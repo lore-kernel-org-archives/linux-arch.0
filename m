@@ -1,1277 +1,816 @@
 From: Harvey Harrison <harvey.harrison@gmail.com>
-Subject: [PATCHv4 3/6] byteorder: wire up arches to use new headers
-Date: Mon, 02 Jun 2008 10:37:22 -0700
-Message-ID: <1212428243.11008.37.camel@brick>
+Subject: [PATCHv4 5/6] byteorder: remove the old byteorder implementation
+Date: Mon, 02 Jun 2008 10:37:23 -0700
+Message-ID: <1212428244.11008.39.camel@brick>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from yw-out-2324.google.com ([74.125.46.28]:40143 "EHLO
+Received: from yw-out-2324.google.com ([74.125.46.29]:35583 "EHLO
 	yw-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755456AbYFBRhi (ORCPT
+	with ESMTP id S1755455AbYFBRhi (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2008 13:37:38 -0400
-Received: by yw-out-2324.google.com with SMTP id 9so562111ywe.1
-        for <linux-arch@vger.kernel.org>; Mon, 02 Jun 2008 10:37:27 -0700 (PDT)
+Received: by yw-out-2324.google.com with SMTP id 9so562118ywe.1
+        for <linux-arch@vger.kernel.org>; Mon, 02 Jun 2008 10:37:30 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Russell King <rmk@arm.linux.org.uk>, "tony.luck" <tony.luck@intel.com>, Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Russell King <rmk@arm.linux.org.uk>, "tony.luck" <tony.luck@intel.com>
 
-=EF=BB=BFAcked-by: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
 Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
 ---
- include/asm-alpha/byteorder.h         |   13 ++----
- include/asm-arm/byteorder.h           |   25 +++++-------
- include/asm-avr32/byteorder.h         |   22 +++++++----
- include/asm-blackfin/byteorder.h      |   33 +++++++---------
- include/asm-cris/arch-v10/byteorder.h |    6 ++-
- include/asm-cris/arch-v32/byteorder.h |    6 ++-
- include/asm-cris/byteorder.h          |   18 +-------
- include/asm-frv/byteorder.h           |   10 +---
- include/asm-h8300/byteorder.h         |   10 +---
- include/asm-ia64/byteorder.h          |   26 +++++-------
- include/asm-m32r/byteorder.h          |   15 +++----
- include/asm-m68k/byteorder.h          |   16 ++-----
- include/asm-m68knommu/byteorder.h     |   10 +---
- include/asm-mips/byteorder.h          |   40 ++++++++-----------
- include/asm-mn10300/byteorder.h       |   23 +++--------
- include/asm-parisc/byteorder.h        |   37 ++++++------------
- include/asm-powerpc/byteorder.h       |   49 +++++++++---------------
- include/asm-s390/byteorder.h          |   68 +++++++++----------------=
--------
- include/asm-sh/byteorder.h            |   32 +++++++--------
- include/asm-sparc/byteorder.h         |   22 ++++-------
- include/asm-x86/byteorder.h           |   69 +++++++++++++------------=
---------
- include/asm-xtensa/byteorder.h        |   32 +++++++--------
- 22 files changed, 223 insertions(+), 359 deletions(-)
+ include/linux/byteorder/Kbuild          |    3 -
+ include/linux/byteorder/big_endian.h    |  108 ---------------
+ include/linux/byteorder/generic.h       |  173 ------------------------
+ include/linux/byteorder/little_endian.h |  108 ---------------
+ include/linux/byteorder/swab.h          |  222 -------------------------------
+ include/linux/byteorder/swabb.h         |  135 -------------------
+ 6 files changed, 0 insertions(+), 749 deletions(-)
 
-diff --git a/include/asm-alpha/byteorder.h b/include/asm-alpha/byteorde=
-r.h
-index 58e958f..cc9d368 100644
---- a/include/asm-alpha/byteorder.h
-+++ b/include/asm-alpha/byteorder.h
-@@ -5,9 +5,9 @@
- #include <linux/compiler.h>
- #include <asm/compiler.h>
-=20
--#ifdef __GNUC__
-+#define __LITTLE_ENDIAN
-=20
--static inline __attribute_const__ __u32 __arch__swab32(__u32 x)
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
- {
- 	/*
- 	 * Unfortunately, we can't use the 6 instruction sequence
-@@ -35,13 +35,8 @@ static inline __attribute_const__ __u32 __arch__swab=
-32(__u32 x)
-=20
- 	return t1;
- }
-+#define HAVE_ARCH_SWAB32
-=20
--#define __arch__swab32 __arch__swab32
+diff --git a/include/linux/byteorder/Kbuild b/include/linux/byteorder/Kbuild
+deleted file mode 100644
+index 1133d5f..0000000
+--- a/include/linux/byteorder/Kbuild
++++ /dev/null
+@@ -1,3 +0,0 @@
+-unifdef-y += big_endian.h
+-unifdef-y += little_endian.h
+-unifdef-y += swab.h
+diff --git a/include/linux/byteorder/big_endian.h b/include/linux/byteorder/big_endian.h
+deleted file mode 100644
+index 961ed4b..0000000
+--- a/include/linux/byteorder/big_endian.h
++++ /dev/null
+@@ -1,108 +0,0 @@
+-#ifndef _LINUX_BYTEORDER_BIG_ENDIAN_H
+-#define _LINUX_BYTEORDER_BIG_ENDIAN_H
 -
--#endif /* __GNUC__ */
--
--#define __BYTEORDER_HAS_U64__
--
--#include <linux/byteorder/little_endian.h>
-+#include <linux/byteorder.h>
-=20
- #endif /* _ALPHA_BYTEORDER_H */
-diff --git a/include/asm-arm/byteorder.h b/include/asm-arm/byteorder.h
-index e6f7fcd..d88a5ce 100644
---- a/include/asm-arm/byteorder.h
-+++ b/include/asm-arm/byteorder.h
-@@ -18,7 +18,15 @@
- #include <linux/compiler.h>
- #include <asm/types.h>
-=20
--static inline __attribute_const__ __u32 ___arch__swab32(__u32 x)
-+#ifdef __ARMEB__
-+# define __BIG_ENDIAN
-+#else
-+# define __LITTLE_ENDIAN
-+#endif
-+
-+#define __SWAB_64_THRU_32__
-+
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
- {
- 	__u32 t;
-=20
-@@ -40,19 +48,8 @@ static inline __attribute_const__ __u32 ___arch__swa=
-b32(__u32 x)
-=20
- 	return x;
- }
-+#define HAVE_ARCH_SWAB32
-=20
--#define __arch__swab32(x) ___arch__swab32(x)
--
--#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
--#  define __BYTEORDER_HAS_U64__
--#  define __SWAB_64_THRU_32__
+-#ifndef __BIG_ENDIAN
+-#define __BIG_ENDIAN 4321
+-#endif
+-#ifndef __BIG_ENDIAN_BITFIELD
+-#define __BIG_ENDIAN_BITFIELD
 -#endif
 -
--#ifdef __ARMEB__
--#include <linux/byteorder/big_endian.h>
--#else
--#include <linux/byteorder/little_endian.h>
--#endif
-+#include <linux/byteorder.h>
-=20
- #endif
+-#include <linux/types.h>
+-#include <linux/byteorder/swab.h>
 -
-diff --git a/include/asm-avr32/byteorder.h b/include/asm-avr32/byteorde=
-r.h
-index d77b48b..15bd96a 100644
---- a/include/asm-avr32/byteorder.h
-+++ b/include/asm-avr32/byteorder.h
-@@ -7,6 +7,9 @@
- #include <asm/types.h>
- #include <linux/compiler.h>
-=20
-+#define __BIG_ENDIAN
-+#define __SWAB_64_THRU_32__
-+
- #ifdef __CHECKER__
- extern unsigned long __builtin_bswap_32(unsigned long x);
- extern unsigned short __builtin_bswap_16(unsigned short x);
-@@ -17,15 +20,18 @@ extern unsigned short __builtin_bswap_16(unsigned s=
-hort x);
-  * the result.
-  */
- #if !(__GNUC__ =3D=3D 4 && __GNUC_MINOR__ < 2)
--#define __arch__swab32(x) __builtin_bswap_32(x)
--#define __arch__swab16(x) __builtin_bswap_16(x)
--#endif
-+static inline __attribute_const__ __u16 __arch_swab16(__u16 val)
-+{
-+	return __builtin_bswap_16(val);
-+}
-+#define HAVE_ARCH_SWAB16
-=20
--#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
--# define __BYTEORDER_HAS_U64__
--# define __SWAB_64_THRU_32__
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 val)
-+{
-+	return __builtin_bswap_32(val);
-+}
-+#define HAVE_ARCH_SWAB32
- #endif
-=20
--#include <linux/byteorder/big_endian.h>
+-#define __constant_htonl(x) ((__force __be32)(__u32)(x))
+-#define __constant_ntohl(x) ((__force __u32)(__be32)(x))
+-#define __constant_htons(x) ((__force __be16)(__u16)(x))
+-#define __constant_ntohs(x) ((__force __u16)(__be16)(x))
+-#define __constant_cpu_to_le64(x) ((__force __le64)___constant_swab64((x)))
+-#define __constant_le64_to_cpu(x) ___constant_swab64((__force __u64)(__le64)(x))
+-#define __constant_cpu_to_le32(x) ((__force __le32)___constant_swab32((x)))
+-#define __constant_le32_to_cpu(x) ___constant_swab32((__force __u32)(__le32)(x))
+-#define __constant_cpu_to_le16(x) ((__force __le16)___constant_swab16((x)))
+-#define __constant_le16_to_cpu(x) ___constant_swab16((__force __u16)(__le16)(x))
+-#define __constant_cpu_to_be64(x) ((__force __be64)(__u64)(x))
+-#define __constant_be64_to_cpu(x) ((__force __u64)(__be64)(x))
+-#define __constant_cpu_to_be32(x) ((__force __be32)(__u32)(x))
+-#define __constant_be32_to_cpu(x) ((__force __u32)(__be32)(x))
+-#define __constant_cpu_to_be16(x) ((__force __be16)(__u16)(x))
+-#define __constant_be16_to_cpu(x) ((__force __u16)(__be16)(x))
+-#define __cpu_to_le64(x) ((__force __le64)__swab64((x)))
+-#define __le64_to_cpu(x) __swab64((__force __u64)(__le64)(x))
+-#define __cpu_to_le32(x) ((__force __le32)__swab32((x)))
+-#define __le32_to_cpu(x) __swab32((__force __u32)(__le32)(x))
+-#define __cpu_to_le16(x) ((__force __le16)__swab16((x)))
+-#define __le16_to_cpu(x) __swab16((__force __u16)(__le16)(x))
+-#define __cpu_to_be64(x) ((__force __be64)(__u64)(x))
+-#define __be64_to_cpu(x) ((__force __u64)(__be64)(x))
+-#define __cpu_to_be32(x) ((__force __be32)(__u32)(x))
+-#define __be32_to_cpu(x) ((__force __u32)(__be32)(x))
+-#define __cpu_to_be16(x) ((__force __be16)(__u16)(x))
+-#define __be16_to_cpu(x) ((__force __u16)(__be16)(x))
 -
-+#include <linux/byteorder.h>
- #endif /* __ASM_AVR32_BYTEORDER_H */
-diff --git a/include/asm-blackfin/byteorder.h b/include/asm-blackfin/by=
-teorder.h
-index 6a673d4..68be8a2 100644
---- a/include/asm-blackfin/byteorder.h
-+++ b/include/asm-blackfin/byteorder.h
-@@ -4,9 +4,10 @@
- #include <asm/types.h>
- #include <linux/compiler.h>
-=20
--#ifdef __GNUC__
-+#define __LITTLE_ENDIAN
-+#define __SWAB_64_THRU_32__
-=20
--static __inline__ __attribute_const__ __u32 ___arch__swahb32(__u32 xx)
-+static inline __attribute_const__ __u32 __arch_swahb32(__u32 xx)
- {
- 	__u32 tmp;
- 	__asm__("%1 =3D %0 >> 8 (V);\n\t"
-@@ -15,34 +16,30 @@ static __inline__ __attribute_const__ __u32 ___arch=
-__swahb32(__u32 xx)
- 		: "+d"(xx), "=3D&d"(tmp));
- 	return xx;
- }
-+#define HAVE_ARCH_SWAHB32
-=20
--static __inline__ __attribute_const__ __u32 ___arch__swahw32(__u32 xx)
-+static inline __attribute_const__ __u32 __arch_swahw32(__u32 xx)
- {
- 	__u32 rv;
- 	__asm__("%0 =3D PACK(%1.L, %1.H);\n\t": "=3Dd"(rv): "d"(xx));
- 	return rv;
- }
-+#define HAVE_ARCH_SWAHW32
-=20
--#define __arch__swahb32(x) ___arch__swahb32(x)
--#define __arch__swahw32(x) ___arch__swahw32(x)
--#define __arch__swab32(x) ___arch__swahb32(___arch__swahw32(x))
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 xx)
-+{
-+	return __arch_swahb32(__arch_swahw32(x));
-+}
-+#define HAVE_ARCH_SWAB32
-=20
--static __inline__ __attribute_const__ __u16 ___arch__swab16(__u16 xx)
-+static inline __attribute_const__ __u16 __arch_swab16(__u16 xx)
- {
- 	__u32 xw =3D xx;
- 	__asm__("%0 <<=3D 8;\n	%0.L =3D %0.L + %0.H (NS);\n": "+d"(xw));
- 	return (__u16)xw;
- }
-+#define HAVE_ARCH_SWAB16
-=20
--#define __arch__swab16(x) ___arch__swab16(x)
--
--#endif
--
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__) || defined(__KERNEL=
-__)
--#  define __BYTEORDER_HAS_U64__
--#  define __SWAB_64_THRU_32__
--#endif
--
--#include <linux/byteorder/little_endian.h>
-+#include <linux/byteorder.h>
-=20
--#endif				/* _BLACKFIN_BYTEORDER_H */
-+#endif /* _BLACKFIN_BYTEORDER_H */
-diff --git a/include/asm-cris/arch-v10/byteorder.h b/include/asm-cris/a=
-rch-v10/byteorder.h
-index 255b646..8aed4e4 100644
---- a/include/asm-cris/arch-v10/byteorder.h
-+++ b/include/asm-cris/arch-v10/byteorder.h
-@@ -9,18 +9,20 @@
-  * them together into ntohl etc.
-  */
-=20
--static inline __attribute_const__ __u32 ___arch__swab32(__u32 x)
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
- {
- 	__asm__ ("swapwb %0" : "=3Dr" (x) : "0" (x));
-  =20
- 	return(x);
- }
-+#define HAVE_ARCH_SWAB32
-=20
--static inline __attribute_const__ __u16 ___arch__swab16(__u16 x)
-+static inline __attribute_const__ __u16 __arch_swab16(__u16 x)
- {
- 	__asm__ ("swapb %0" : "=3Dr" (x) : "0" (x));
- =09
- 	return(x);
- }
-+#define HAVE_ARCH_SWAB16
-=20
- #endif
-diff --git a/include/asm-cris/arch-v32/byteorder.h b/include/asm-cris/a=
-rch-v32/byteorder.h
-index 6ef8fb4..6023146 100644
---- a/include/asm-cris/arch-v32/byteorder.h
-+++ b/include/asm-cris/arch-v32/byteorder.h
-@@ -4,17 +4,19 @@
- #include <asm/types.h>
-=20
- static inline __const__ __u32
--___arch__swab32(__u32 x)
-+__arch_swab32(__u32 x)
- {
- 	__asm__ __volatile__ ("swapwb %0" : "=3Dr" (x) : "0" (x));
- 	return (x);
- }
-+#define HAVE_ARCH_SWAB32
-=20
- static inline __const__ __u16
--___arch__swab16(__u16 x)
-+__arch_swab16(__u16 x)
- {
- 	__asm__ __volatile__ ("swapb %0" : "=3Dr" (x) : "0" (x));
- 	return (x);
- }
-+#define HAVE_ARCH_SWAB16
-=20
- #endif /* _ASM_CRIS_ARCH_BYTEORDER_H */
-diff --git a/include/asm-cris/byteorder.h b/include/asm-cris/byteorder.=
-h
-index 0cd9db1..fb02930 100644
---- a/include/asm-cris/byteorder.h
-+++ b/include/asm-cris/byteorder.h
-@@ -1,26 +1,14 @@
- #ifndef _CRIS_BYTEORDER_H
- #define _CRIS_BYTEORDER_H
-=20
--#ifdef __GNUC__
-+#define __LITTLE_ENDIAN
-+#define __SWAB_64_THRU_32__
-=20
- #ifdef __KERNEL__
- #include <asm/arch/byteorder.h>
--
--/* defines are necessary because the other files detect the presence
-- * of a defined __arch_swab32, not an inline
-- */
--#define __arch__swab32(x) ___arch__swab32(x)
--#define __arch__swab16(x) ___arch__swab16(x)
--#endif /* __KERNEL__ */
--
--#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
--#  define __BYTEORDER_HAS_U64__
--#  define __SWAB_64_THRU_32__
- #endif
-=20
--#endif /* __GNUC__ */
--
--#include <linux/byteorder/little_endian.h>
-+#include <linux/byteorder.h>
-=20
- #endif
-=20
-diff --git a/include/asm-frv/byteorder.h b/include/asm-frv/byteorder.h
-index 411bec3..cb197c3 100644
---- a/include/asm-frv/byteorder.h
-+++ b/include/asm-frv/byteorder.h
-@@ -1,13 +1,9 @@
- #ifndef _ASM_BYTEORDER_H
- #define _ASM_BYTEORDER_H
-=20
--#include <asm/types.h>
-+#define __BIG_ENDIAN
-+#define __SWAB_64_THRU_32__
-=20
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__) || defined(__KERNEL=
-__)
--#  define __BYTEORDER_HAS_U64__
--#  define __SWAB_64_THRU_32__
--#endif
--
--#include <linux/byteorder/big_endian.h>
-+#include <linux/byteorder.h>
-=20
- #endif /* _ASM_BYTEORDER_H */
-diff --git a/include/asm-h8300/byteorder.h b/include/asm-h8300/byteorde=
-r.h
-index 36e597d..465b7af 100644
---- a/include/asm-h8300/byteorder.h
-+++ b/include/asm-h8300/byteorder.h
-@@ -1,13 +1,9 @@
- #ifndef _H8300_BYTEORDER_H
- #define _H8300_BYTEORDER_H
-=20
--#include <asm/types.h>
-+#define __BIG_ENDIAN
-+#define __SWAB_64_THRU_32__
-=20
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__) || defined(__KERNEL=
-__)
--#  define __BYTEORDER_HAS_U64__
--#  define __SWAB_64_THRU_32__
--#endif
--
--#include <linux/byteorder/big_endian.h>
-+#include <linux/byteorder.h>
-=20
- #endif /* _H8300_BYTEORDER_H */
-diff --git a/include/asm-ia64/byteorder.h b/include/asm-ia64/byteorder.=
-h
-index 69bd41d..afd8ded 100644
---- a/include/asm-ia64/byteorder.h
-+++ b/include/asm-ia64/byteorder.h
-@@ -10,33 +10,29 @@
- #include <asm/intrinsics.h>
- #include <linux/compiler.h>
-=20
--static __inline__ __attribute_const__ __u64
--__ia64_swab64 (__u64 x)
-+#define __LITTLE_ENDIAN
-+
-+static inline __attribute_const__ __u64 __arch_swab64(__u64 x)
- {
- 	__u64 result;
-=20
- 	result =3D ia64_mux1(x, ia64_mux1_rev);
- 	return result;
- }
-+#define HAVE_ARCH_SWAB64
-=20
--static __inline__ __attribute_const__ __u32
--__ia64_swab32 (__u32 x)
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
- {
--	return __ia64_swab64(x) >> 32;
-+	return __arch_swab64(x) >> 32;
- }
-+#define HAVE_ARCH_SWAB32
-=20
--static __inline__ __attribute_const__ __u16
--__ia64_swab16(__u16 x)
-+static inline __attribute_const__ __u16 __arch_swab16(__u16 x)
- {
--	return __ia64_swab64(x) >> 48;
-+	return __arch_swab64(x) >> 48;
- }
-+#define HAVE_ARCH_SWAB16
-=20
--#define __arch__swab64(x) __ia64_swab64(x)
--#define __arch__swab32(x) __ia64_swab32(x)
--#define __arch__swab16(x) __ia64_swab16(x)
--
--#define __BYTEORDER_HAS_U64__
--
--#include <linux/byteorder/little_endian.h>
-+#include <linux/byteorder.h>
-=20
- #endif /* _ASM_IA64_BYTEORDER_H */
-diff --git a/include/asm-m32r/byteorder.h b/include/asm-m32r/byteorder.=
-h
-index 10b2c1d..a99896f 100644
---- a/include/asm-m32r/byteorder.h
-+++ b/include/asm-m32r/byteorder.h
-@@ -1,17 +1,14 @@
- #ifndef _ASM_M32R_BYTEORDER_H
- #define _ASM_M32R_BYTEORDER_H
-=20
--#include <asm/types.h>
--
--#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
--#  define __BYTEORDER_HAS_U64__
--#  define __SWAB_64_THRU_32__
--#endif
--
- #if defined(__LITTLE_ENDIAN__)
--#  include <linux/byteorder/little_endian.h>
-+# define __LITTLE_ENDIAN
- #else
--#  include <linux/byteorder/big_endian.h>
-+# define __BIG_ENDIAN
- #endif
-=20
-+#define __SWAB_64_THRU_32__
-+
-+#include <linux/byteorder.h>
-+
- #endif /* _ASM_M32R_BYTEORDER_H */
-diff --git a/include/asm-m68k/byteorder.h b/include/asm-m68k/byteorder.=
-h
-index 81d420b..4569d49 100644
---- a/include/asm-m68k/byteorder.h
-+++ b/include/asm-m68k/byteorder.h
-@@ -4,22 +4,16 @@
- #include <asm/types.h>
- #include <linux/compiler.h>
-=20
--#ifdef __GNUC__
-+#define __BIG_ENDIAN
-+#define __SWAB_64_THRU_32__
-=20
--static __inline__ __attribute_const__ __u32 ___arch__swab32(__u32 val)
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 val)
- {
- 	__asm__("rolw #8,%0; swap %0; rolw #8,%0" : "=3Dd" (val) : "0" (val))=
-;
- 	return val;
- }
--#define __arch__swab32(x) ___arch__swab32(x)
-+#define HAVE_ARCH_SWAB32
-=20
--#endif
--
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__) || defined(__KERNEL=
-__)
--#  define __BYTEORDER_HAS_U64__
--#  define __SWAB_64_THRU_32__
--#endif
--
--#include <linux/byteorder/big_endian.h>
-+#include <linux/byteorder.h>
-=20
- #endif /* _M68K_BYTEORDER_H */
-diff --git a/include/asm-m68knommu/byteorder.h b/include/asm-m68knommu/=
-byteorder.h
-index 8fcde90..a9231f8 100644
---- a/include/asm-m68knommu/byteorder.h
-+++ b/include/asm-m68knommu/byteorder.h
-@@ -1,13 +1,9 @@
- #ifndef _M68KNOMMU_BYTEORDER_H
- #define _M68KNOMMU_BYTEORDER_H
-=20
--#include <asm/types.h>
-+#define __BIG_ENDIAN
-+#define __SWAB_64_THRU_32__
-=20
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__) || defined(__KERNEL=
-__)
--#  define __BYTEORDER_HAS_U64__
--#  define __SWAB_64_THRU_32__
--#endif
--
--#include <linux/byteorder/big_endian.h>
-+#include <linux/byteorder.h>
-=20
- #endif /* _M68KNOMMU_BYTEORDER_H */
-diff --git a/include/asm-mips/byteorder.h b/include/asm-mips/byteorder.=
-h
-index fe7dc2d..dfada7f 100644
---- a/include/asm-mips/byteorder.h
-+++ b/include/asm-mips/byteorder.h
-@@ -11,11 +11,19 @@
- #include <linux/compiler.h>
- #include <asm/types.h>
-=20
--#ifdef __GNUC__
-+#if defined(__MIPSEB__)
-+# define __BIG_ENDIAN
-+#elif defined(__MIPSEL__)
-+# define __LITTLE_ENDIAN
-+#else
-+# error "MIPS, but neither __MIPSEB__, nor __MIPSEL__???"
-+#endif
-+
-+#define __SWAB_64_THRU_32__
-=20
- #ifdef CONFIG_CPU_MIPSR2
-=20
--static __inline__ __attribute_const__ __u16 ___arch__swab16(__u16 x)
-+static inline __attribute_const__ __u16 __arch_swab16(__u16 x)
- {
- 	__asm__(
- 	"	wsbh	%0, %1			\n"
-@@ -24,9 +32,9 @@ static __inline__ __attribute_const__ __u16 ___arch__=
-swab16(__u16 x)
-=20
- 	return x;
- }
--#define __arch__swab16(x)	___arch__swab16(x)
-+#define HAVE_ARCH_SWAB16
-=20
--static __inline__ __attribute_const__ __u32 ___arch__swab32(__u32 x)
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
- {
- 	__asm__(
- 	"	wsbh	%0, %1			\n"
-@@ -36,11 +44,10 @@ static __inline__ __attribute_const__ __u32 ___arch=
-__swab32(__u32 x)
-=20
- 	return x;
- }
--#define __arch__swab32(x)	___arch__swab32(x)
-+#define HAVE_ARCH_SWAB32
-=20
- #ifdef CONFIG_CPU_MIPS64_R2
--
--static __inline__ __attribute_const__ __u64 ___arch__swab64(__u64 x)
-+static inline __attribute_const__ __u64 __arch_swab64(__u64 x)
- {
- 	__asm__(
- 	"	dsbh	%0, %1			\n"
-@@ -51,26 +58,11 @@ static __inline__ __attribute_const__ __u64 ___arch=
-__swab64(__u64 x)
-=20
- 	return x;
- }
--
--#define __arch__swab64(x)	___arch__swab64(x)
--
-+#define HAVE_ARCH_SWAB64
- #endif /* CONFIG_CPU_MIPS64_R2 */
-=20
- #endif /* CONFIG_CPU_MIPSR2 */
-=20
--#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
--#  define __BYTEORDER_HAS_U64__
--#  define __SWAB_64_THRU_32__
--#endif
--
--#endif /* __GNUC__ */
--
--#if defined(__MIPSEB__)
--#  include <linux/byteorder/big_endian.h>
--#elif defined(__MIPSEL__)
--#  include <linux/byteorder/little_endian.h>
--#else
--#  error "MIPS, but neither __MIPSEB__, nor __MIPSEL__???"
--#endif
-+#include <linux/byteorder.h>
-=20
- #endif /* _ASM_BYTEORDER_H */
-diff --git a/include/asm-mn10300/byteorder.h b/include/asm-mn10300/byte=
-order.h
-index 3c993cc..3dd3e2a 100644
---- a/include/asm-mn10300/byteorder.h
-+++ b/include/asm-mn10300/byteorder.h
-@@ -13,34 +13,25 @@
-=20
- #include <asm/types.h>
-=20
--#ifdef __GNUC__
-+#define __LITTLE_ENDIAN
-+#define __SWAB_64_THRU_32__
-=20
--static inline __attribute__((const))
--__u32 ___arch__swab32(__u32 x)
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
- {
- 	__u32 ret;
- 	asm("swap %1,%0" : "=3Dr" (ret) : "r" (x));
- 	return ret;
- }
-+#define HAVE_ARCH_SWAB32
-=20
--static inline __attribute__((const))
--__u16 ___arch__swab16(__u16 x)
-+static inline __attribute_const__ __u16 __arch_swab16(__u16 x)
- {
- 	__u16 ret;
- 	asm("swaph %1,%0" : "=3Dr" (ret) : "r" (x));
- 	return ret;
- }
-+#define HAVE_ARCH_SWAB16
-=20
--#define __arch__swab32(x) ___arch__swab32(x)
--#define __arch__swab16(x) ___arch__swab16(x)
--
--#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
--#  define __BYTEORDER_HAS_U64__
--#  define __SWAB_64_THRU_32__
--#endif
--
--#endif /* __GNUC__ */
--
--#include <linux/byteorder/little_endian.h>
-+#include <linux/byteorder.h>
-=20
- #endif /* _ASM_BYTEORDER_H */
-diff --git a/include/asm-parisc/byteorder.h b/include/asm-parisc/byteor=
-der.h
-index db14831..5e56b1b 100644
---- a/include/asm-parisc/byteorder.h
-+++ b/include/asm-parisc/byteorder.h
-@@ -4,9 +4,10 @@
- #include <asm/types.h>
- #include <linux/compiler.h>
-=20
--#ifdef __GNUC__
-+#define __LITTLE_ENDIAN
-+#define __SWAB_64_THRU_32__
-=20
--static __inline__ __attribute_const__ __u16 ___arch__swab16(__u16 x)
-+static inline __attribute_const__ __u16 __arch_swab16(__u16 x)
- {
- 	__asm__("dep %0, 15, 8, %0\n\t"		/* deposit 00ab -> 0bab */
- 		"shd %%r0, %0, 8, %0"		/* shift 000000ab -> 00ba */
-@@ -14,8 +15,9 @@ static __inline__ __attribute_const__ __u16 ___arch__=
-swab16(__u16 x)
- 		: "0" (x));
- 	return x;
- }
-+#define HAVE_ARCH_SWAB16
-=20
--static __inline__ __attribute_const__ __u32 ___arch__swab24(__u32 x)
-+static inline __attribute_const__ __u32 __arch_swab24(__u32 x)
- {
- 	__asm__("shd %0, %0, 8, %0\n\t"		/* shift xabcxabc -> cxab */
- 		"dep %0, 15, 8, %0\n\t"		/* deposit cxab -> cbab */
-@@ -25,7 +27,7 @@ static __inline__ __attribute_const__ __u32 ___arch__=
-swab24(__u32 x)
- 	return x;
- }
-=20
--static __inline__ __attribute_const__ __u32 ___arch__swab32(__u32 x)
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
- {
- 	unsigned int temp;
- 	__asm__("shd %0, %0, 16, %1\n\t"	/* shift abcdabcd -> cdab */
-@@ -35,7 +37,7 @@ static __inline__ __attribute_const__ __u32 ___arch__=
-swab32(__u32 x)
- 		: "0" (x));
- 	return x;
- }
--
-+#define HAVE_ARCH_SWAB32
-=20
- #if BITS_PER_LONG > 32
- /*
-@@ -48,7 +50,8 @@ static __inline__ __attribute_const__ __u32 ___arch__=
-swab32(__u32 x)
- **      HSHR    67452301 -> *6*4*2*0 into %0
- **      OR      %0 | %1  -> 76543210 into %0 (all done!)
- */
--static __inline__ __attribute_const__ __u64 ___arch__swab64(__u64 x) {
-+static inline __attribute_const__ __u64 __arch_swab64(__u64 x)
-+{
- 	__u64 temp;
- 	__asm__("permh,3210 %0, %0\n\t"
- 		"hshl %0, 8, %1\n\t"
-@@ -58,25 +61,9 @@ static __inline__ __attribute_const__ __u64 ___arch_=
-_swab64(__u64 x) {
- 		: "0" (x));
- 	return x;
- }
--#define __arch__swab64(x) ___arch__swab64(x)
--#define __BYTEORDER_HAS_U64__
--#elif !defined(__STRICT_ANSI__)
--static __inline__ __attribute_const__ __u64 ___arch__swab64(__u64 x)
+-static inline __le64 __cpu_to_le64p(const __u64 *p)
 -{
--	__u32 t1 =3D ___arch__swab32((__u32) x);
--	__u32 t2 =3D ___arch__swab32((__u32) (x >> 32));
--	return (((__u64) t1 << 32) | t2);
+-	return (__force __le64)__swab64p(p);
 -}
--#define __arch__swab64(x) ___arch__swab64(x)
--#define __BYTEORDER_HAS_U64__
--#endif
+-static inline __u64 __le64_to_cpup(const __le64 *p)
+-{
+-	return __swab64p((__u64 *)p);
+-}
+-static inline __le32 __cpu_to_le32p(const __u32 *p)
+-{
+-	return (__force __le32)__swab32p(p);
+-}
+-static inline __u32 __le32_to_cpup(const __le32 *p)
+-{
+-	return __swab32p((__u32 *)p);
+-}
+-static inline __le16 __cpu_to_le16p(const __u16 *p)
+-{
+-	return (__force __le16)__swab16p(p);
+-}
+-static inline __u16 __le16_to_cpup(const __le16 *p)
+-{
+-	return __swab16p((__u16 *)p);
+-}
+-static inline __be64 __cpu_to_be64p(const __u64 *p)
+-{
+-	return (__force __be64)*p;
+-}
+-static inline __u64 __be64_to_cpup(const __be64 *p)
+-{
+-	return (__force __u64)*p;
+-}
+-static inline __be32 __cpu_to_be32p(const __u32 *p)
+-{
+-	return (__force __be32)*p;
+-}
+-static inline __u32 __be32_to_cpup(const __be32 *p)
+-{
+-	return (__force __u32)*p;
+-}
+-static inline __be16 __cpu_to_be16p(const __u16 *p)
+-{
+-	return (__force __be16)*p;
+-}
+-static inline __u16 __be16_to_cpup(const __be16 *p)
+-{
+-	return (__force __u16)*p;
+-}
+-#define __cpu_to_le64s(x) __swab64s((x))
+-#define __le64_to_cpus(x) __swab64s((x))
+-#define __cpu_to_le32s(x) __swab32s((x))
+-#define __le32_to_cpus(x) __swab32s((x))
+-#define __cpu_to_le16s(x) __swab16s((x))
+-#define __le16_to_cpus(x) __swab16s((x))
+-#define __cpu_to_be64s(x) do {} while (0)
+-#define __be64_to_cpus(x) do {} while (0)
+-#define __cpu_to_be32s(x) do {} while (0)
+-#define __be32_to_cpus(x) do {} while (0)
+-#define __cpu_to_be16s(x) do {} while (0)
+-#define __be16_to_cpus(x) do {} while (0)
 -
--#define __arch__swab16(x) ___arch__swab16(x)
--#define __arch__swab24(x) ___arch__swab24(x)
--#define __arch__swab32(x) ___arch__swab32(x)
--
--#endif /* __GNUC__ */
-+#define HAVE_ARCH_SWAB64
-+#endif /* BITS_PER_LONG > 32 */
-=20
--#include <linux/byteorder/big_endian.h>
-+#include <linux/byteorder.h>
-=20
- #endif /* _PARISC_BYTEORDER_H */
-diff --git a/include/asm-powerpc/byteorder.h b/include/asm-powerpc/byte=
-order.h
-index b377522..9608169 100644
---- a/include/asm-powerpc/byteorder.h
-+++ b/include/asm-powerpc/byteorder.h
-@@ -11,36 +11,43 @@
- #include <asm/types.h>
- #include <linux/compiler.h>
-=20
--#ifdef __GNUC__
 -#ifdef __KERNEL__
-+#define __BIG_ENDIAN
-=20
--static __inline__ __u16 ld_le16(const volatile __u16 *addr)
-+#ifndef __powerpc64__
-+# define __SWAB_64_THRU_32__
-+#endif
-+
-+static inline __u16 __arch_swab16p(const volatile __u16 *addr)
- {
- 	__u16 val;
-=20
- 	__asm__ __volatile__ ("lhbrx %0,0,%1" : "=3Dr" (val) : "r" (addr), "m=
-" (*addr));
- 	return val;
- }
-+#define HAVE_ARCH_SWAB16P
-=20
--static __inline__ void st_le16(volatile __u16 *addr, const __u16 val)
-+static inline void __arch_swab16s(volatile __u16 *addr, const __u16 va=
-l)
- {
- 	__asm__ __volatile__ ("sthbrx %1,0,%2" : "=3Dm" (*addr) : "r" (val), =
-"r" (addr));
- }
-+#define HAVE_ARCH_SWAB16S
-=20
--static __inline__ __u32 ld_le32(const volatile __u32 *addr)
-+static inline __u32 __arch_swab32p(const volatile __u32 *addr)
- {
- 	__u32 val;
-=20
- 	__asm__ __volatile__ ("lwbrx %0,0,%1" : "=3Dr" (val) : "r" (addr), "m=
-" (*addr));
- 	return val;
- }
-+#define HAVE_ARCH_SWAB32P
-=20
--static __inline__ void st_le32(volatile __u32 *addr, const __u32 val)
-+static inline void __arch_swab32s(volatile __u32 *addr, const __u32 va=
-l)
- {
- 	__asm__ __volatile__ ("stwbrx %1,0,%2" : "=3Dm" (*addr) : "r" (val), =
-"r" (addr));
- }
-+#define HAVE_ARCH_SWAB32S
-=20
--static __inline__ __attribute_const__ __u16 ___arch__swab16(__u16 valu=
-e)
-+static inline __attribute_const__ __u16 __arch_swab16(__u16 value)
- {
- 	__u16 result;
-=20
-@@ -49,8 +56,9 @@ static __inline__ __attribute_const__ __u16 ___arch__=
-swab16(__u16 value)
- 	    : "r" (value), "0" (value >> 8));
- 	return result;
- }
-+#define HAVE_ARCH_SWAB16
-=20
--static __inline__ __attribute_const__ __u32 ___arch__swab32(__u32 valu=
-e)
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 value)
- {
- 	__u32 result;
-=20
-@@ -61,29 +69,8 @@ static __inline__ __attribute_const__ __u32 ___arch_=
-_swab32(__u32 value)
- 	    : "r" (value), "0" (value >> 24));
- 	return result;
- }
-+#define HAVE_ARCH_SWAB32
-=20
--#define __arch__swab16(x) ___arch__swab16(x)
--#define __arch__swab32(x) ___arch__swab32(x)
--
--/* The same, but returns converted value from the location pointer by =
-addr. */
--#define __arch__swab16p(addr) ld_le16(addr)
--#define __arch__swab32p(addr) ld_le32(addr)
--
--/* The same, but do the conversion in situ, ie. put the value back to =
-addr. */
--#define __arch__swab16s(addr) st_le16(addr,*addr)
--#define __arch__swab32s(addr) st_le32(addr,*addr)
--
--#endif /* __KERNEL__ */
--
--#ifndef __STRICT_ANSI__
--#define __BYTEORDER_HAS_U64__
--#ifndef __powerpc64__
--#define __SWAB_64_THRU_32__
--#endif /* __powerpc64__ */
--#endif /* __STRICT_ANSI__ */
--
--#endif /* __GNUC__ */
--
--#include <linux/byteorder/big_endian.h>
-+#include <linux/byteorder.h>
-=20
- #endif /* _ASM_POWERPC_BYTEORDER_H */
-diff --git a/include/asm-s390/byteorder.h b/include/asm-s390/byteorder.=
-h
-index 1fe2492..4cad6d3 100644
---- a/include/asm-s390/byteorder.h
-+++ b/include/asm-s390/byteorder.h
-@@ -11,32 +11,39 @@
-=20
- #include <asm/types.h>
-=20
--#ifdef __GNUC__
-+#define __BIG_ENDIAN
-+
-+#ifndef __s390x__
-+# define __SWAB_64_THRU_32__
-+#endif
-=20
- #ifdef __s390x__
--static inline __u64 ___arch__swab64p(const __u64 *x)
-+static inline __u64 __arch_swab64p(const __u64 *x)
- {
- 	__u64 result;
-=20
- 	asm volatile("lrvg %0,%1" : "=3Dd" (result) : "m" (*x));
- 	return result;
- }
-+#define HAVE_ARCH_SWAB64P
-=20
--static inline __u64 ___arch__swab64(__u64 x)
-+static inline __u64 __arch_swab64(__u64 x)
- {
- 	__u64 result;
-=20
- 	asm volatile("lrvgr %0,%1" : "=3Dd" (result) : "d" (x));
- 	return result;
- }
-+#define HAVE_ARCH_SWAB64
-=20
--static inline void ___arch__swab64s(__u64 *x)
-+static inline void __arch_swab64s(__u64 *x)
- {
- 	*x =3D ___arch__swab64p(x);
- }
-+#define HAVE_ARCH_SWAB64S
- #endif /* __s390x__ */
-=20
--static inline __u32 ___arch__swab32p(const __u32 *x)
-+static inline __u32 __arch_swab32p(const __u32 *x)
- {
- 	__u32 result;
- =09
-@@ -53,25 +60,20 @@ static inline __u32 ___arch__swab32p(const __u32 *x=
-)
- #endif /* __s390x__ */
- 	return result;
- }
-+#define HAVE_ARCH_SWAB32P
-=20
--static inline __u32 ___arch__swab32(__u32 x)
-+#ifdef __s390x__
-+static inline __u32 __arch_swab32(__u32 x)
- {
--#ifndef __s390x__
--	return ___arch__swab32p(&x);
--#else /* __s390x__ */
- 	__u32 result;
- =09
- 	asm volatile("lrvr  %0,%1" : "=3Dd" (result) : "d" (x));
- 	return result;
--#endif /* __s390x__ */
--}
--
--static __inline__ void ___arch__swab32s(__u32 *x)
--{
--	*x =3D ___arch__swab32p(x);
- }
-+#define HAVE_ARCH_SWAB32
-+#endif /* __s390x__ */
-=20
--static __inline__ __u16 ___arch__swab16p(const __u16 *x)
-+static inline __u16 __arch_swab16p(const __u16 *x)
- {
- 	__u16 result;
- =09
-@@ -86,39 +88,7 @@ static __inline__ __u16 ___arch__swab16p(const __u16=
- *x)
- #endif /* __s390x__ */
- 	return result;
- }
--
--static __inline__ __u16 ___arch__swab16(__u16 x)
--{
--	return ___arch__swab16p(&x);
--}
--
--static __inline__ void ___arch__swab16s(__u16 *x)
--{
--	*x =3D ___arch__swab16p(x);
--}
--
--#ifdef __s390x__
--#define __arch__swab64(x) ___arch__swab64(x)
--#define __arch__swab64p(x) ___arch__swab64p(x)
--#define __arch__swab64s(x) ___arch__swab64s(x)
--#endif /* __s390x__ */
--#define __arch__swab32(x) ___arch__swab32(x)
--#define __arch__swab16(x) ___arch__swab16(x)
--#define __arch__swab32p(x) ___arch__swab32p(x)
--#define __arch__swab16p(x) ___arch__swab16p(x)
--#define __arch__swab32s(x) ___arch__swab32s(x)
--#define __arch__swab16s(x) ___arch__swab16s(x)
--
--#ifndef __s390x__
--#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
--#  define __BYTEORDER_HAS_U64__
--#  define __SWAB_64_THRU_32__
--#endif
--#else /* __s390x__ */
--#define __BYTEORDER_HAS_U64__
--#endif /* __s390x__ */
--
--#endif /* __GNUC__ */
-+#define HAVE_ARCH_SWAB16P
-=20
- #include <linux/byteorder/big_endian.h>
-=20
-diff --git a/include/asm-sh/byteorder.h b/include/asm-sh/byteorder.h
-index 4c13e61..2259210 100644
---- a/include/asm-sh/byteorder.h
-+++ b/include/asm-sh/byteorder.h
-@@ -8,7 +8,15 @@
- #include <linux/compiler.h>
- #include <linux/types.h>
-=20
--static inline __attribute_const__ __u32 ___arch__swab32(__u32 x)
-+#ifdef __LITTLE_ENDIAN__
-+# define __LITTLE_ENDIAN
-+#else
-+# define __BIG_ENDIAN
-+#endif
-+
-+#define __SWAB_64_THRU_32__
-+
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
- {
- 	__asm__(
- #ifdef __SH5__
-@@ -24,8 +32,9 @@ static inline __attribute_const__ __u32 ___arch__swab=
-32(__u32 x)
-=20
- 	return x;
- }
-+#define HAVE_ARCH_SWAB32
-=20
--static inline __attribute_const__ __u16 ___arch__swab16(__u16 x)
-+static inline __attribute_const__ __u16 __arch_swab16(__u16 x)
- {
- 	__asm__(
- #ifdef __SH5__
-@@ -39,8 +48,9 @@ static inline __attribute_const__ __u16 ___arch__swab=
-16(__u16 x)
-=20
- 	return x;
- }
-+#define HAVE_ARCH_SWAB16
-=20
--static inline __u64 ___arch__swab64(__u64 val)
-+static inline __u64 __arch_swab64(__u64 val)
- {
- 	union {
- 		struct { __u32 a,b; } s;
-@@ -51,20 +61,8 @@ static inline __u64 ___arch__swab64(__u64 val)
- 	w.s.a =3D ___arch__swab32(v.s.b);
- 	return w.u;
- }
-+#define HAVE_ARCH_SWAB64
-=20
--#define __arch__swab64(x) ___arch__swab64(x)
--#define __arch__swab32(x) ___arch__swab32(x)
--#define __arch__swab16(x) ___arch__swab16(x)
--
--#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
--#  define __BYTEORDER_HAS_U64__
--#  define __SWAB_64_THRU_32__
+-#include <linux/byteorder/generic.h>
 -#endif
 -
--#ifdef __LITTLE_ENDIAN__
--#include <linux/byteorder/little_endian.h>
+-#endif /* _LINUX_BYTEORDER_BIG_ENDIAN_H */
+diff --git a/include/linux/byteorder/generic.h b/include/linux/byteorder/generic.h
+deleted file mode 100644
+index 0846e6b..0000000
+--- a/include/linux/byteorder/generic.h
++++ /dev/null
+@@ -1,173 +0,0 @@
+-#ifndef _LINUX_BYTEORDER_GENERIC_H
+-#define _LINUX_BYTEORDER_GENERIC_H
+-
+-/*
+- * linux/byteorder_generic.h
+- * Generic Byte-reordering support
+- *
+- * The "... p" macros, like le64_to_cpup, can be used with pointers
+- * to unaligned data, but there will be a performance penalty on 
+- * some architectures.  Use get_unaligned for unaligned data.
+- *
+- * Francois-Rene Rideau <fare@tunes.org> 19970707
+- *    gathered all the good ideas from all asm-foo/byteorder.h into one file,
+- *    cleaned them up.
+- *    I hope it is compliant with non-GCC compilers.
+- *    I decided to put __BYTEORDER_HAS_U64__ in byteorder.h,
+- *    because I wasn't sure it would be ok to put it in types.h
+- *    Upgraded it to 2.1.43
+- * Francois-Rene Rideau <fare@tunes.org> 19971012
+- *    Upgraded it to 2.1.57
+- *    to please Linus T., replaced huge #ifdef's between little/big endian
+- *    by nestedly #include'd files.
+- * Francois-Rene Rideau <fare@tunes.org> 19971205
+- *    Made it to 2.1.71; now a facelift:
+- *    Put files under include/linux/byteorder/
+- *    Split swab from generic support.
+- *
+- * TODO:
+- *   = Regular kernel maintainers could also replace all these manual
+- *    byteswap macros that remain, disseminated among drivers,
+- *    after some grep or the sources...
+- *   = Linus might want to rename all these macros and files to fit his taste,
+- *    to fit his personal naming scheme.
+- *   = it seems that a few drivers would also appreciate
+- *    nybble swapping support...
+- *   = every architecture could add their byteswap macro in asm/byteorder.h
+- *    see how some architectures already do (i386, alpha, ppc, etc)
+- *   = cpu_to_beXX and beXX_to_cpu might some day need to be well
+- *    distinguished throughout the kernel. This is not the case currently,
+- *    since little endian, big endian, and pdp endian machines needn't it.
+- *    But this might be the case for, say, a port of Linux to 20/21 bit
+- *    architectures (and F21 Linux addict around?).
+- */
+-
+-/*
+- * The following macros are to be defined by <asm/byteorder.h>:
+- *
+- * Conversion of long and short int between network and host format
+- *	ntohl(__u32 x)
+- *	ntohs(__u16 x)
+- *	htonl(__u32 x)
+- *	htons(__u16 x)
+- * It seems that some programs (which? where? or perhaps a standard? POSIX?)
+- * might like the above to be functions, not macros (why?).
+- * if that's true, then detect them, and take measures.
+- * Anyway, the measure is: define only ___ntohl as a macro instead,
+- * and in a separate file, have
+- * unsigned long inline ntohl(x){return ___ntohl(x);}
+- *
+- * The same for constant arguments
+- *	__constant_ntohl(__u32 x)
+- *	__constant_ntohs(__u16 x)
+- *	__constant_htonl(__u32 x)
+- *	__constant_htons(__u16 x)
+- *
+- * Conversion of XX-bit integers (16- 32- or 64-)
+- * between native CPU format and little/big endian format
+- * 64-bit stuff only defined for proper architectures
+- *	cpu_to_[bl]eXX(__uXX x)
+- *	[bl]eXX_to_cpu(__uXX x)
+- *
+- * The same, but takes a pointer to the value to convert
+- *	cpu_to_[bl]eXXp(__uXX x)
+- *	[bl]eXX_to_cpup(__uXX x)
+- *
+- * The same, but change in situ
+- *	cpu_to_[bl]eXXs(__uXX x)
+- *	[bl]eXX_to_cpus(__uXX x)
+- *
+- * See asm-foo/byteorder.h for examples of how to provide
+- * architecture-optimized versions
+- *
+- */
+-
+-#define cpu_to_le64 __cpu_to_le64
+-#define le64_to_cpu __le64_to_cpu
+-#define cpu_to_le32 __cpu_to_le32
+-#define le32_to_cpu __le32_to_cpu
+-#define cpu_to_le16 __cpu_to_le16
+-#define le16_to_cpu __le16_to_cpu
+-#define cpu_to_be64 __cpu_to_be64
+-#define be64_to_cpu __be64_to_cpu
+-#define cpu_to_be32 __cpu_to_be32
+-#define be32_to_cpu __be32_to_cpu
+-#define cpu_to_be16 __cpu_to_be16
+-#define be16_to_cpu __be16_to_cpu
+-#define cpu_to_le64p __cpu_to_le64p
+-#define le64_to_cpup __le64_to_cpup
+-#define cpu_to_le32p __cpu_to_le32p
+-#define le32_to_cpup __le32_to_cpup
+-#define cpu_to_le16p __cpu_to_le16p
+-#define le16_to_cpup __le16_to_cpup
+-#define cpu_to_be64p __cpu_to_be64p
+-#define be64_to_cpup __be64_to_cpup
+-#define cpu_to_be32p __cpu_to_be32p
+-#define be32_to_cpup __be32_to_cpup
+-#define cpu_to_be16p __cpu_to_be16p
+-#define be16_to_cpup __be16_to_cpup
+-#define cpu_to_le64s __cpu_to_le64s
+-#define le64_to_cpus __le64_to_cpus
+-#define cpu_to_le32s __cpu_to_le32s
+-#define le32_to_cpus __le32_to_cpus
+-#define cpu_to_le16s __cpu_to_le16s
+-#define le16_to_cpus __le16_to_cpus
+-#define cpu_to_be64s __cpu_to_be64s
+-#define be64_to_cpus __be64_to_cpus
+-#define cpu_to_be32s __cpu_to_be32s
+-#define be32_to_cpus __be32_to_cpus
+-#define cpu_to_be16s __cpu_to_be16s
+-#define be16_to_cpus __be16_to_cpus
+-
+-/*
+- * They have to be macros in order to do the constant folding
+- * correctly - if the argument passed into a inline function
+- * it is no longer constant according to gcc..
+- */
+-
+-#undef ntohl
+-#undef ntohs
+-#undef htonl
+-#undef htons
+-
+-#define ___htonl(x) __cpu_to_be32(x)
+-#define ___htons(x) __cpu_to_be16(x)
+-#define ___ntohl(x) __be32_to_cpu(x)
+-#define ___ntohs(x) __be16_to_cpu(x)
+-
+-#define htonl(x) ___htonl(x)
+-#define ntohl(x) ___ntohl(x)
+-#define htons(x) ___htons(x)
+-#define ntohs(x) ___ntohs(x)
+-
+-static inline void le16_add_cpu(__le16 *var, u16 val)
+-{
+-	*var = cpu_to_le16(le16_to_cpu(*var) + val);
+-}
+-
+-static inline void le32_add_cpu(__le32 *var, u32 val)
+-{
+-	*var = cpu_to_le32(le32_to_cpu(*var) + val);
+-}
+-
+-static inline void le64_add_cpu(__le64 *var, u64 val)
+-{
+-	*var = cpu_to_le64(le64_to_cpu(*var) + val);
+-}
+-
+-static inline void be16_add_cpu(__be16 *var, u16 val)
+-{
+-	*var = cpu_to_be16(be16_to_cpu(*var) + val);
+-}
+-
+-static inline void be32_add_cpu(__be32 *var, u32 val)
+-{
+-	*var = cpu_to_be32(be32_to_cpu(*var) + val);
+-}
+-
+-static inline void be64_add_cpu(__be64 *var, u64 val)
+-{
+-	*var = cpu_to_be64(be64_to_cpu(*var) + val);
+-}
+-
+-#endif /* _LINUX_BYTEORDER_GENERIC_H */
+diff --git a/include/linux/byteorder/little_endian.h b/include/linux/byteorder/little_endian.h
+deleted file mode 100644
+index 05dc7c3..0000000
+--- a/include/linux/byteorder/little_endian.h
++++ /dev/null
+@@ -1,108 +0,0 @@
+-#ifndef _LINUX_BYTEORDER_LITTLE_ENDIAN_H
+-#define _LINUX_BYTEORDER_LITTLE_ENDIAN_H
+-
+-#ifndef __LITTLE_ENDIAN
+-#define __LITTLE_ENDIAN 1234
+-#endif
+-#ifndef __LITTLE_ENDIAN_BITFIELD
+-#define __LITTLE_ENDIAN_BITFIELD
+-#endif
+-
+-#include <linux/types.h>
+-#include <linux/byteorder/swab.h>
+-
+-#define __constant_htonl(x) ((__force __be32)___constant_swab32((x)))
+-#define __constant_ntohl(x) ___constant_swab32((__force __be32)(x))
+-#define __constant_htons(x) ((__force __be16)___constant_swab16((x)))
+-#define __constant_ntohs(x) ___constant_swab16((__force __be16)(x))
+-#define __constant_cpu_to_le64(x) ((__force __le64)(__u64)(x))
+-#define __constant_le64_to_cpu(x) ((__force __u64)(__le64)(x))
+-#define __constant_cpu_to_le32(x) ((__force __le32)(__u32)(x))
+-#define __constant_le32_to_cpu(x) ((__force __u32)(__le32)(x))
+-#define __constant_cpu_to_le16(x) ((__force __le16)(__u16)(x))
+-#define __constant_le16_to_cpu(x) ((__force __u16)(__le16)(x))
+-#define __constant_cpu_to_be64(x) ((__force __be64)___constant_swab64((x)))
+-#define __constant_be64_to_cpu(x) ___constant_swab64((__force __u64)(__be64)(x))
+-#define __constant_cpu_to_be32(x) ((__force __be32)___constant_swab32((x)))
+-#define __constant_be32_to_cpu(x) ___constant_swab32((__force __u32)(__be32)(x))
+-#define __constant_cpu_to_be16(x) ((__force __be16)___constant_swab16((x)))
+-#define __constant_be16_to_cpu(x) ___constant_swab16((__force __u16)(__be16)(x))
+-#define __cpu_to_le64(x) ((__force __le64)(__u64)(x))
+-#define __le64_to_cpu(x) ((__force __u64)(__le64)(x))
+-#define __cpu_to_le32(x) ((__force __le32)(__u32)(x))
+-#define __le32_to_cpu(x) ((__force __u32)(__le32)(x))
+-#define __cpu_to_le16(x) ((__force __le16)(__u16)(x))
+-#define __le16_to_cpu(x) ((__force __u16)(__le16)(x))
+-#define __cpu_to_be64(x) ((__force __be64)__swab64((x)))
+-#define __be64_to_cpu(x) __swab64((__force __u64)(__be64)(x))
+-#define __cpu_to_be32(x) ((__force __be32)__swab32((x)))
+-#define __be32_to_cpu(x) __swab32((__force __u32)(__be32)(x))
+-#define __cpu_to_be16(x) ((__force __be16)__swab16((x)))
+-#define __be16_to_cpu(x) __swab16((__force __u16)(__be16)(x))
+-
+-static inline __le64 __cpu_to_le64p(const __u64 *p)
+-{
+-	return (__force __le64)*p;
+-}
+-static inline __u64 __le64_to_cpup(const __le64 *p)
+-{
+-	return (__force __u64)*p;
+-}
+-static inline __le32 __cpu_to_le32p(const __u32 *p)
+-{
+-	return (__force __le32)*p;
+-}
+-static inline __u32 __le32_to_cpup(const __le32 *p)
+-{
+-	return (__force __u32)*p;
+-}
+-static inline __le16 __cpu_to_le16p(const __u16 *p)
+-{
+-	return (__force __le16)*p;
+-}
+-static inline __u16 __le16_to_cpup(const __le16 *p)
+-{
+-	return (__force __u16)*p;
+-}
+-static inline __be64 __cpu_to_be64p(const __u64 *p)
+-{
+-	return (__force __be64)__swab64p(p);
+-}
+-static inline __u64 __be64_to_cpup(const __be64 *p)
+-{
+-	return __swab64p((__u64 *)p);
+-}
+-static inline __be32 __cpu_to_be32p(const __u32 *p)
+-{
+-	return (__force __be32)__swab32p(p);
+-}
+-static inline __u32 __be32_to_cpup(const __be32 *p)
+-{
+-	return __swab32p((__u32 *)p);
+-}
+-static inline __be16 __cpu_to_be16p(const __u16 *p)
+-{
+-	return (__force __be16)__swab16p(p);
+-}
+-static inline __u16 __be16_to_cpup(const __be16 *p)
+-{
+-	return __swab16p((__u16 *)p);
+-}
+-#define __cpu_to_le64s(x) do {} while (0)
+-#define __le64_to_cpus(x) do {} while (0)
+-#define __cpu_to_le32s(x) do {} while (0)
+-#define __le32_to_cpus(x) do {} while (0)
+-#define __cpu_to_le16s(x) do {} while (0)
+-#define __le16_to_cpus(x) do {} while (0)
+-#define __cpu_to_be64s(x) __swab64s((x))
+-#define __be64_to_cpus(x) __swab64s((x))
+-#define __cpu_to_be32s(x) __swab32s((x))
+-#define __be32_to_cpus(x) __swab32s((x))
+-#define __cpu_to_be16s(x) __swab16s((x))
+-#define __be16_to_cpus(x) __swab16s((x))
+-
+-#ifdef __KERNEL__
+-#include <linux/byteorder/generic.h>
+-#endif
+-
+-#endif /* _LINUX_BYTEORDER_LITTLE_ENDIAN_H */
+diff --git a/include/linux/byteorder/swab.h b/include/linux/byteorder/swab.h
+deleted file mode 100644
+index 142134f..0000000
+--- a/include/linux/byteorder/swab.h
++++ /dev/null
+@@ -1,222 +0,0 @@
+-#ifndef _LINUX_BYTEORDER_SWAB_H
+-#define _LINUX_BYTEORDER_SWAB_H
+-
+-/*
+- * linux/byteorder/swab.h
+- * Byte-swapping, independently from CPU endianness
+- *	swabXX[ps]?(foo)
+- *
+- * Francois-Rene Rideau <fare@tunes.org> 19971205
+- *    separated swab functions from cpu_to_XX,
+- *    to clean up support for bizarre-endian architectures.
+- *
+- * Trent Piepho <xyzzy@speakeasy.org> 2007114
+- *    make constant-folding work, provide C versions that
+- *    gcc can optimize better, explain different versions
+- *
+- * See asm-i386/byteorder.h and suches for examples of how to provide
+- * architecture-dependent optimized versions
+- *
+- */
+-
+-#include <linux/compiler.h>
+-
+-/* Functions/macros defined, there are a lot:
+- *
+- * ___swabXX
+- *    Generic C versions of the swab functions.
+- *
+- * ___constant_swabXX
+- *    C versions that gcc can fold into a compile-time constant when
+- *    the argument is a compile-time constant.
+- *
+- * __arch__swabXX[sp]?
+- *    Architecture optimized versions of all the swab functions
+- *    (including the s and p versions).  These can be defined in
+- *    asm-arch/byteorder.h.  Any which are not, are defined here.
+- *    __arch__swabXXs() is defined in terms of __arch__swabXXp(), which
+- *    is defined in terms of __arch__swabXX(), which is in turn defined
+- *    in terms of ___swabXX(x).
+- *    These must be macros.  They may be unsafe for arguments with
+- *    side-effects.
+- *
+- * __fswabXX
+- *    Inline function versions of the __arch__ macros.  These _are_ safe
+- *    if the arguments have side-effects.  Note there are no s and p
+- *    versions of these.
+- *
+- * __swabXX[sb]
+- *    There are the ones you should actually use.  The __swabXX versions
+- *    will be a constant given a constant argument and use the arch
+- *    specific code (if any) for non-constant arguments.  The s and p
+- *    versions always use the arch specific code (constant folding
+- *    doesn't apply).  They are safe to use with arguments with
+- *    side-effects.
+- *
+- * swabXX[sb]
+- *    Nicknames for __swabXX[sb] to use in the kernel.
+- */
+-
+-/* casts are necessary for constants, because we never know how for sure
+- * how U/UL/ULL map to __u16, __u32, __u64. At least not in a portable way.
+- */
+-
+-static __inline__ __attribute_const__ __u16 ___swab16(__u16 x)
+-{
+-	return x<<8 | x>>8;
+-}
+-static __inline__ __attribute_const__ __u32 ___swab32(__u32 x)
+-{
+-	return x<<24 | x>>24 |
+-		(x & (__u32)0x0000ff00UL)<<8 |
+-		(x & (__u32)0x00ff0000UL)>>8;
+-}
+-static __inline__ __attribute_const__ __u64 ___swab64(__u64 x)
+-{
+-	return x<<56 | x>>56 |
+-		(x & (__u64)0x000000000000ff00ULL)<<40 |
+-		(x & (__u64)0x0000000000ff0000ULL)<<24 |
+-		(x & (__u64)0x00000000ff000000ULL)<< 8 |
+-	        (x & (__u64)0x000000ff00000000ULL)>> 8 |
+-		(x & (__u64)0x0000ff0000000000ULL)>>24 |
+-		(x & (__u64)0x00ff000000000000ULL)>>40;
+-}
+-
+-#define ___constant_swab16(x) \
+-	((__u16)( \
+-		(((__u16)(x) & (__u16)0x00ffU) << 8) | \
+-		(((__u16)(x) & (__u16)0xff00U) >> 8) ))
+-#define ___constant_swab32(x) \
+-	((__u32)( \
+-		(((__u32)(x) & (__u32)0x000000ffUL) << 24) | \
+-		(((__u32)(x) & (__u32)0x0000ff00UL) <<  8) | \
+-		(((__u32)(x) & (__u32)0x00ff0000UL) >>  8) | \
+-		(((__u32)(x) & (__u32)0xff000000UL) >> 24) ))
+-#define ___constant_swab64(x) \
+-	((__u64)( \
+-		(__u64)(((__u64)(x) & (__u64)0x00000000000000ffULL) << 56) | \
+-		(__u64)(((__u64)(x) & (__u64)0x000000000000ff00ULL) << 40) | \
+-		(__u64)(((__u64)(x) & (__u64)0x0000000000ff0000ULL) << 24) | \
+-		(__u64)(((__u64)(x) & (__u64)0x00000000ff000000ULL) <<  8) | \
+-	        (__u64)(((__u64)(x) & (__u64)0x000000ff00000000ULL) >>  8) | \
+-		(__u64)(((__u64)(x) & (__u64)0x0000ff0000000000ULL) >> 24) | \
+-		(__u64)(((__u64)(x) & (__u64)0x00ff000000000000ULL) >> 40) | \
+-		(__u64)(((__u64)(x) & (__u64)0xff00000000000000ULL) >> 56) ))
+-
+-/*
+- * provide defaults when no architecture-specific optimization is detected
+- */
+-#ifndef __arch__swab16
+-#  define __arch__swab16(x) ___swab16(x)
+-#endif
+-#ifndef __arch__swab32
+-#  define __arch__swab32(x) ___swab32(x)
+-#endif
+-#ifndef __arch__swab64
+-#  define __arch__swab64(x) ___swab64(x)
+-#endif
+-
+-#ifndef __arch__swab16p
+-#  define __arch__swab16p(x) __arch__swab16(*(x))
+-#endif
+-#ifndef __arch__swab32p
+-#  define __arch__swab32p(x) __arch__swab32(*(x))
+-#endif
+-#ifndef __arch__swab64p
+-#  define __arch__swab64p(x) __arch__swab64(*(x))
+-#endif
+-
+-#ifndef __arch__swab16s
+-#  define __arch__swab16s(x) ((void)(*(x) = __arch__swab16p(x)))
+-#endif
+-#ifndef __arch__swab32s
+-#  define __arch__swab32s(x) ((void)(*(x) = __arch__swab32p(x)))
+-#endif
+-#ifndef __arch__swab64s
+-#  define __arch__swab64s(x) ((void)(*(x) = __arch__swab64p(x)))
+-#endif
+-
+-
+-/*
+- * Allow constant folding
+- */
+-#if defined(__GNUC__) && defined(__OPTIMIZE__)
+-#  define __swab16(x) \
+-(__builtin_constant_p((__u16)(x)) ? \
+- ___constant_swab16((x)) : \
+- __fswab16((x)))
+-#  define __swab32(x) \
+-(__builtin_constant_p((__u32)(x)) ? \
+- ___constant_swab32((x)) : \
+- __fswab32((x)))
+-#  define __swab64(x) \
+-(__builtin_constant_p((__u64)(x)) ? \
+- ___constant_swab64((x)) : \
+- __fswab64((x)))
 -#else
--#include <linux/byteorder/big_endian.h>
--#endif
-+#include <linux/byteorder.h>
-=20
- #endif /* __ASM_SH_BYTEORDER_H */
-diff --git a/include/asm-sparc/byteorder.h b/include/asm-sparc/byteorde=
-r.h
-index bcd83aa..9195613 100644
---- a/include/asm-sparc/byteorder.h
-+++ b/include/asm-sparc/byteorder.h
-@@ -4,15 +4,14 @@
- #include <asm/types.h>
- #include <asm/asi.h>
-=20
--#ifdef __GNUC__
-+#define __BIG_ENDIAN
-=20
- #ifdef CONFIG_SPARC32
- #define __SWAB_64_THRU_32__
- #endif
-=20
- #ifdef CONFIG_SPARC64
+-#  define __swab16(x) __fswab16(x)
+-#  define __swab32(x) __fswab32(x)
+-#  define __swab64(x) __fswab64(x)
+-#endif /* OPTIMIZE */
 -
--static inline __u16 ___arch__swab16p(const __u16 *addr)
-+static inline __u16 __arch_swab16p(const __u16 *addr)
- {
- 	__u16 ret;
-=20
-@@ -21,8 +20,9 @@ static inline __u16 ___arch__swab16p(const __u16 *add=
-r)
- 			      : "r" (addr), "i" (ASI_PL));
- 	return ret;
- }
-+#define HAVE_ARCH_SWAB16P
-=20
--static inline __u32 ___arch__swab32p(const __u32 *addr)
-+static inline __u32 __arch_swab32p(const __u32 *addr)
- {
- 	__u32 ret;
-=20
-@@ -31,8 +31,9 @@ static inline __u32 ___arch__swab32p(const __u32 *add=
-r)
- 			      : "r" (addr), "i" (ASI_PL));
- 	return ret;
- }
-+#define HAVE_ARCH_SWAB32P
-=20
--static inline __u64 ___arch__swab64p(const __u64 *addr)
-+static inline __u64 __arch_swab64p(const __u64 *addr)
- {
- 	__u64 ret;
-=20
-@@ -41,17 +42,10 @@ static inline __u64 ___arch__swab64p(const __u64 *a=
-ddr)
- 			      : "r" (addr), "i" (ASI_PL));
- 	return ret;
- }
 -
--#define __arch__swab16p(x) ___arch__swab16p(x)
--#define __arch__swab32p(x) ___arch__swab32p(x)
--#define __arch__swab64p(x) ___arch__swab64p(x)
-+#define HAVE_ARCH_SWAB64P
-=20
- #endif /* CONFIG_SPARC64 */
-=20
--#define __BYTEORDER_HAS_U64__
--
--#endif
--
--#include <linux/byteorder/big_endian.h>
-+#include <linux/byteorder.h>
-=20
- #endif /* _SPARC_BYTEORDER_H */
-diff --git a/include/asm-x86/byteorder.h b/include/asm-x86/byteorder.h
-index e02ae2d..79220a9 100644
---- a/include/asm-x86/byteorder.h
-+++ b/include/asm-x86/byteorder.h
-@@ -4,26 +4,33 @@
- #include <asm/types.h>
- #include <linux/compiler.h>
-=20
--#ifdef __GNUC__
-+#define __LITTLE_ENDIAN
-=20
--#ifdef __i386__
--
--static inline __attribute_const__ __u32 ___arch__swab32(__u32 x)
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 val)
- {
--#ifdef CONFIG_X86_BSWAP
--	asm("bswap %0" : "=3Dr" (x) : "0" (x));
--#else
-+#ifdef __i386__
-+# ifdef CONFIG_X86_BSWAP
-+	asm("bswap %0" : "=3Dr" (val) : "0" (val));
-+# else
- 	asm("xchgb %b0,%h0\n\t"	/* swap lower bytes	*/
- 	    "rorl $16,%0\n\t"	/* swap words		*/
- 	    "xchgb %b0,%h0"	/* swap higher bytes	*/
--	    : "=3Dq" (x)
--	    : "0" (x));
-+	    : "=3Dq" (val)
-+	    : "0" (val));
-+# endif
-+
-+#else /* __i386__ */
-+	asm("bswapl %0"
-+	    : "=3Dr" (val)
-+	    : "0" (val));
- #endif
--	return x;
-+	return val;
- }
-+#define HAVE_ARCH_SWAB32
-=20
--static inline __attribute_const__ __u64 ___arch__swab64(__u64 val)
-+static inline __attribute_const__ __u64 __arch_swab64(__u64 val)
- {
-+#ifdef __i386__
- 	union {
- 		struct {
- 			__u32 a;
-@@ -32,50 +39,28 @@ static inline __attribute_const__ __u64 ___arch__sw=
-ab64(__u64 val)
- 		__u64 u;
- 	} v;
- 	v.u =3D val;
--#ifdef CONFIG_X86_BSWAP
-+# ifdef CONFIG_X86_BSWAP
- 	asm("bswapl %0 ; bswapl %1 ; xchgl %0,%1"
- 	    : "=3Dr" (v.s.a), "=3Dr" (v.s.b)
- 	    : "0" (v.s.a), "1" (v.s.b));
--#else
-+# else
- 	v.s.a =3D ___arch__swab32(v.s.a);
- 	v.s.b =3D ___arch__swab32(v.s.b);
- 	asm("xchgl %0,%1"
- 	    : "=3Dr" (v.s.a), "=3Dr" (v.s.b)
- 	    : "0" (v.s.a), "1" (v.s.b));
--#endif
-+# endif
- 	return v.u;
--}
-=20
- #else /* __i386__ */
--
--static inline __attribute_const__ __u64 ___arch__swab64(__u64 x)
+-static __inline__ __attribute_const__ __u16 __fswab16(__u16 x)
 -{
- 	asm("bswapq %0"
--	    : "=3Dr" (x)
--	    : "0" (x));
--	return x;
+-	return __arch__swab16(x);
 -}
--
--static inline __attribute_const__ __u32 ___arch__swab32(__u32 x)
+-static __inline__ __u16 __swab16p(const __u16 *x)
 -{
--	asm("bswapl %0"
--	    : "=3Dr" (x)
--	    : "0" (x));
--	return x;
+-	return __arch__swab16p(x);
+-}
+-static __inline__ void __swab16s(__u16 *addr)
+-{
+-	__arch__swab16s(addr);
 -}
 -
-+	    : "=3Dr" (val)
-+	    : "0" (val));
-+	return val;
- #endif
-+}
-+#define HAVE_ARCH_SWAB64
-=20
--/* Do not define swab16.  Gcc is smart enough to recognize "C" version=
- and
--   convert it into rotation or exhange.  */
+-static __inline__ __attribute_const__ __u32 __fswab32(__u32 x)
+-{
+-	return __arch__swab32(x);
+-}
+-static __inline__ __u32 __swab32p(const __u32 *x)
+-{
+-	return __arch__swab32p(x);
+-}
+-static __inline__ void __swab32s(__u32 *addr)
+-{
+-	__arch__swab32s(addr);
+-}
 -
--#define __arch__swab64(x) ___arch__swab64(x)
--#define __arch__swab32(x) ___arch__swab32(x)
+-#ifdef __BYTEORDER_HAS_U64__
+-static __inline__ __attribute_const__ __u64 __fswab64(__u64 x)
+-{
+-#  ifdef __SWAB_64_THRU_32__
+-	__u32 h = x >> 32;
+-        __u32 l = x & ((1ULL<<32)-1);
+-        return (((__u64)__swab32(l)) << 32) | ((__u64)(__swab32(h)));
+-#  else
+-	return __arch__swab64(x);
+-#  endif
+-}
+-static __inline__ __u64 __swab64p(const __u64 *x)
+-{
+-	return __arch__swab64p(x);
+-}
+-static __inline__ void __swab64s(__u64 *addr)
+-{
+-	__arch__swab64s(addr);
+-}
+-#endif /* __BYTEORDER_HAS_U64__ */
 -
--#define __BYTEORDER_HAS_U64__
--
--#endif /* __GNUC__ */
--
--#include <linux/byteorder/little_endian.h>
-+#include <linux/byteorder.h>
-=20
- #endif /* _ASM_X86_BYTEORDER_H */
-diff --git a/include/asm-xtensa/byteorder.h b/include/asm-xtensa/byteor=
-der.h
-index 765edf1..9a5928b 100644
---- a/include/asm-xtensa/byteorder.h
-+++ b/include/asm-xtensa/byteorder.h
-@@ -14,7 +14,17 @@
- #include <asm/types.h>
- #include <linux/compiler.h>
-=20
--static __inline__ __attribute_const__ __u32 ___arch__swab32(__u32 x)
-+#ifdef __XTENSA_EL__
-+# define __LITTLE_ENDIAN
-+#elif defined(__XTENSA_EB__)
-+# define __BIG_ENDIAN
-+#else
-+# error processor byte order undefined!
-+#endif
-+
-+#define __SWAB_64_THRU_32__
-+
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
- {
-     __u32 res;
-     /* instruction sequence from Xtensa ISA release 2/2000 */
-@@ -28,8 +38,9 @@ static __inline__ __attribute_const__ __u32 ___arch__=
-swab32(__u32 x)
- 	    );
-     return res;
- }
-+#define HAVE_ARCH_SWAB32
-=20
--static __inline__ __attribute_const__ __u16 ___arch__swab16(__u16 x)
-+static inline __attribute_const__ __u16 __arch_swab16(__u16 x)
- {
-     /* Given that 'short' values are signed (i.e., can be negative),
-      * we cannot assume that the upper 16-bits of the register are
-@@ -62,21 +73,8 @@ static __inline__ __attribute_const__ __u16 ___arch_=
-_swab16(__u16 x)
-=20
-     return res;
- }
-+#define HAVE_ARCH_SWAB16
-=20
--#define __arch__swab32(x) ___arch__swab32(x)
--#define __arch__swab16(x) ___arch__swab16(x)
--
--#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
--#  define __BYTEORDER_HAS_U64__
--#  define __SWAB_64_THRU_32__
+-#if defined(__KERNEL__)
+-#define swab16 __swab16
+-#define swab32 __swab32
+-#define swab64 __swab64
+-#define swab16p __swab16p
+-#define swab32p __swab32p
+-#define swab64p __swab64p
+-#define swab16s __swab16s
+-#define swab32s __swab32s
+-#define swab64s __swab64s
 -#endif
 -
--#ifdef __XTENSA_EL__
--# include <linux/byteorder/little_endian.h>
--#elif defined(__XTENSA_EB__)
--# include <linux/byteorder/big_endian.h>
--#else
--# error processor byte order undefined!
+-#endif /* _LINUX_BYTEORDER_SWAB_H */
+diff --git a/include/linux/byteorder/swabb.h b/include/linux/byteorder/swabb.h
+deleted file mode 100644
+index 8c780c7..0000000
+--- a/include/linux/byteorder/swabb.h
++++ /dev/null
+@@ -1,135 +0,0 @@
+-#ifndef _LINUX_BYTEORDER_SWABB_H
+-#define _LINUX_BYTEORDER_SWABB_H
+-
+-/*
+- * linux/byteorder/swabb.h
+- * SWAp Bytes Bizarrely
+- *	swaHHXX[ps]?(foo)
+- *
+- * Support for obNUXIous pdp-endian and other bizarre architectures.
+- * Will Linux ever run on such ancient beasts? if not, this file
+- * will be but a programming pearl. Still, it's a reminder that we
+- * shouldn't be making too many assumptions when trying to be portable.
+- *
+- */
+-
+-/*
+- * Meaning of the names I chose (vaxlinux people feel free to correct them):
+- * swahw32	swap 16-bit half-words in a 32-bit word
+- * swahb32	swap 8-bit halves of each 16-bit half-word in a 32-bit word
+- *
+- * No 64-bit support yet. I don't know NUXI conventions for long longs.
+- * I guarantee it will be a mess when it's there, though :->
+- * It will be even worse if there are conflicting 64-bit conventions.
+- * Hopefully, no one ever used 64-bit objects on NUXI machines.
+- *
+- */
+-
+-#include <linux/types.h>
+-
+-#define ___swahw32(x) \
+-({ \
+-	__u32 __x = (x); \
+-	((__u32)( \
+-		(((__u32)(__x) & (__u32)0x0000ffffUL) << 16) | \
+-		(((__u32)(__x) & (__u32)0xffff0000UL) >> 16) )); \
+-})
+-#define ___swahb32(x) \
+-({ \
+-	__u32 __x = (x); \
+-	((__u32)( \
+-		(((__u32)(__x) & (__u32)0x00ff00ffUL) << 8) | \
+-		(((__u32)(__x) & (__u32)0xff00ff00UL) >> 8) )); \
+-})
+-
+-#define ___constant_swahw32(x) \
+-	((__u32)( \
+-		(((__u32)(x) & (__u32)0x0000ffffUL) << 16) | \
+-		(((__u32)(x) & (__u32)0xffff0000UL) >> 16) ))
+-#define ___constant_swahb32(x) \
+-	((__u32)( \
+-		(((__u32)(x) & (__u32)0x00ff00ffUL) << 8) | \
+-		(((__u32)(x) & (__u32)0xff00ff00UL) >> 8) ))
+-
+-/*
+- * provide defaults when no architecture-specific optimization is detected
+- */
+-#ifndef __arch__swahw32
+-#  define __arch__swahw32(x) ___swahw32(x)
 -#endif
-+#include <linux/byteorder.h>
-=20
- #endif /* _XTENSA_BYTEORDER_H */
---=20
+-#ifndef __arch__swahb32
+-#  define __arch__swahb32(x) ___swahb32(x)
+-#endif
+-
+-#ifndef __arch__swahw32p
+-#  define __arch__swahw32p(x) __swahw32(*(x))
+-#endif
+-#ifndef __arch__swahb32p
+-#  define __arch__swahb32p(x) __swahb32(*(x))
+-#endif
+-
+-#ifndef __arch__swahw32s
+-#  define __arch__swahw32s(x) do { *(x) = __swahw32p((x)); } while (0)
+-#endif
+-#ifndef __arch__swahb32s
+-#  define __arch__swahb32s(x) do { *(x) = __swahb32p((x)); } while (0)
+-#endif
+-
+-
+-/*
+- * Allow constant folding
+- */
+-#define __swahw32(x) \
+-(__builtin_constant_p((__u32)(x)) ? \
+- ___swahw32((x)) : \
+- __fswahw32((x)))
+-#define __swahb32(x) \
+-(__builtin_constant_p((__u32)(x)) ? \
+- ___swahb32((x)) : \
+- __fswahb32((x)))
+-
+-
+-static inline __u32 __fswahw32(__u32 x)
+-{
+-	return __arch__swahw32(x);
+-}
+-
+-static inline __u32 __swahw32p(__u32 *x)
+-{
+-	return __arch__swahw32p(x);
+-}
+-
+-static inline void __swahw32s(__u32 *addr)
+-{
+-	__arch__swahw32s(addr);
+-}
+-
+-static inline __u32 __fswahb32(__u32 x)
+-{
+-	return __arch__swahb32(x);
+-}
+-
+-static inline __u32 __swahb32p(__u32 *x)
+-{
+-	return __arch__swahb32p(x);
+-}
+-
+-static inline void __swahb32s(__u32 *addr)
+-{
+-	__arch__swahb32s(addr);
+-}
+-
+-#ifdef __BYTEORDER_HAS_U64__
+-/*
+- * Not supported yet
+- */
+-#endif /* __BYTEORDER_HAS_U64__ */
+-
+-#define swahw32 __swahw32
+-#define swahb32 __swahb32
+-#define swahw32p __swahw32p
+-#define swahb32p __swahb32p
+-#define swahw32s __swahw32s
+-#define swahb32s __swahb32s
+-
+-#endif /* _LINUX_BYTEORDER_SWABB_H */
+-- 
 1.5.6.rc0.277.g804cf
