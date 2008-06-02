@@ -1,53 +1,56 @@
-From: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Mon, 2 Jun 2008 10:11:02 +0200
-Message-ID: <20080602101102.0d8979c5@hskinnemo-gx745.norway.atmel.com>
-References: <1211852026.3286.36.camel@pasglop>
-	<20080526.184047.88207142.davem@davemloft.net>
-	<1211854540.3286.42.camel@pasglop>
-	<20080526.192812.184590464.davem@davemloft.net>
-	<1211859542.3286.46.camel@pasglop>
-	<alpine.LFD.1.10.0805270833060.2958@woody.linux-foundation.org>
-	<1211922621.3286.80.camel@pasglop>
-	<alpine.LFD.1.10.0805271421570.2958@woody.linux-foundation.org>
-	<1211924335.3286.89.camel@pasglop>
-	<20080527214241.GA22636@parisc-linux.org>
-	<1211926636.3286.100.camel@pasglop>
-	<20080528103648.54eb8734@hskinnemo-gx745.norway.atmel.com>
-	<1212110003.15633.0.camel@pasglop>
-	<20080530080700.773a82cc@siona.local>
-	<1212132267.15633.69.camel@pasglop>
-	<20080530102706.56fca248@siona.local>
-	<Pine.LNX.4.64.0805301120510.26332@anakin>
+From: Paul Jackson <pj@sgi.com>
+Subject: Re: [patch 02/41] cpu alloc: The allocator
+Date: Mon, 2 Jun 2008 04:29:46 -0500
+Message-ID: <20080602042946.1f27faf3.pj@sgi.com>
+References: <20080530035620.587204923@sgi.com>
+	<20080530040011.084909898@sgi.com>
+	<20080529215833.469c3cbe.akpm@linux-foundation.org>
+	<Pine.LNX.4.64.0805292203240.12107@schroedinger.engr.sgi.com>
+	<20080529223109.bbb7b0e0.akpm@linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtpeu1.atmel.com ([195.65.72.27]:64729 "EHLO bagnes.atmel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757188AbYFBIS5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 2 Jun 2008 04:18:57 -0400
-In-Reply-To: <Pine.LNX.4.64.0805301120510.26332@anakin>
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:57905 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1750986AbYFBJ3v (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2008 05:29:51 -0400
+In-Reply-To: <20080529223109.bbb7b0e0.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: benh@kernel.crashing.org, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: clameter@sgi.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, dada1@cosmosbay.com, peterz@infradead.org, rusty@rustcorp.com.au, travis@sgi.com
 
-Geert Uytterhoeven <geert@linux-m68k.org> wrote:
-> On Fri, 30 May 2008, Haavard Skinnemoen wrote:
-> > Maybe we need another interface that does not do byteswapping but
-> > provides stronger ordering guarantees?
+Andrew wrote:
+> > > > +#define CPU_PTR(__p, __cpu)	SHIFT_PERCPU_PTR((__p), per_cpu_offset(__cpu))
+> > > 
+> > > eek, a major interface function which is ALL IN CAPS!
+> > > 
+> > > can we do this in lower-case?  In a C function?
+> > 
+> > No. This is a macro and therefore uppercase (there is macro magic going on 
+> > that ppl need to be aware of). AFAICR you wanted it this way last year. C 
+> > function not possible because of the type checking.
 > 
-> The byte swapping depends on the device/bus.
+> urgh.  This is a C-convention versus kernel-convention thing.  The C
+> convention exists for very good reasons.  But it sure does suck.
+> 
+> What do others think?
 
-Of course. But isn't it reasonable to assume that a device integrated
-on the same silicon as the CPU is connected to a somewhat sane bus
-which doesn't require any byte swapping?
+A few, key symbols get to be special ... short but distinctive names
+that become (in)famous.  The classic was "u", for the per-user
+structure, aka the "user area", in old Unix kernels.  In people's
+names, a few one word or first names such as "Ike", "Madonna", "Ali",
+"Tiger", "Cher", "Mao", "OJ", "Plato", "Linus", ... have become
+distinctive and well known to many people.
 
-> So what happened to the old idea of putting the accessor function pointers
-> in the device/bus structure?
+How about "_pcpu", instead of CPU_PTR?  "_pcpu" is a short, unique
+(not currently in use) symbol that, tersely, says what we want to say.
 
-Don't know. I think it sounds like overkill to replace a simple load or
-store with an indirect function call.
+Yes - it violates multiple conventions.  "The Boss" (Bruce Springsteen)
+gets to do that.
 
-Haavard
+-- 
+                  I won't rest till it's the best ...
+                  Programmer, Linux Scalability
+                  Paul Jackson <pj@sgi.com> 1.940.382.4214
