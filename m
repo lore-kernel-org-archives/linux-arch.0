@@ -1,39 +1,56 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCHv4 6/6] byteorder: add copy_{endian} helpers
-Date: Mon, 2 Jun 2008 21:15:03 +0200 (CEST)
-Message-ID: <Pine.LNX.4.64.0806022038400.6262@anakin>
-References: <1212428244.11008.40.camel@brick>
+From: Jeremy Higdon <jeremy@sgi.com>
+Subject: Re: MMIO and gcc re-ordering issue
+Date: Mon, 2 Jun 2008 14:02:13 -0700
+Message-ID: <20080602210213.GA116363@sgi.com>
+References: <1211854540.3286.42.camel@pasglop> <20080526.192812.184590464.davem@davemloft.net> <20080526204233.75b71bb8@infradead.org> <1211872130.3286.64.camel@pasglop> <adaprr721c6.fsf@cisco.com> <1211922696.3286.82.camel@pasglop> <adaiqwzsa83.fsf@cisco.com> <yq0iqwxrwuh.fsf@jaguar.mkp.net> <20080531075242.GC108600@sgi.com> <4843C3D7.7000609@sgi.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from edna.telenet-ops.be ([195.130.132.58]:34263 "EHLO
-	edna.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750788AbYFBTPJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2008 15:15:09 -0400
-In-Reply-To: <1212428244.11008.40.camel@brick>
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:53737 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1750877AbYFBVCU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2008 17:02:20 -0400
+Content-Disposition: inline
+In-Reply-To: <4843C3D7.7000609@sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Harvey Harrison <harvey.harrison@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Russell King <rmk@arm.linux.org.uk>, "tony.luck" <tony.luck@intel.com>
+To: Jes Sorensen <jes@sgi.com>
+Cc: Roland Dreier <rdreier@cisco.com>, benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
 
-On Mon, 2 Jun 2008, Harvey Harrison wrote:
-> Add helpers for the idiom:
-> *(__le16 *)ptr = cpu_to_le16(val);
+On Mon, Jun 02, 2008 at 11:56:39AM +0200, Jes Sorensen wrote:
+> Jeremy Higdon wrote:
+> >We don't actually have that problem on the Altix.  All writes issued
+> >by CPU X will be ordered with respect to each other.  But writes by
+> >CPU X and CPU Y will not be, unless an mmiowb() is done by the
+> >original CPU before the second CPU writes.  I.e.
+> >
+> >	CPU X	writel
+> >	CPU X	writel
+> >	CPU X	mmiowb
+> >
+> >	CPU Y	writel
+> >	...
+> >
+> >Note that this implies some sort of locking.  Also note that if in
+> >the above, CPU Y did the mmiowb, that would not work.
 > 
-> Can now be written as:
-> copy_le16(ptr, val);
+> Hmmm,
+> 
+> Then it's less bad than I thought - my apologies for the confusion.
+> 
+> Would we be able to use Ben's trick of setting a per cpu flag in
+> writel() then and checking that in spin unlock issuing the mmiowb()
+> there if needed?
 
-Copy a little endian 16-bit value?
 
-It doesn't just copy. It does a byteswap during the copy.
+Yes, that should work fine.  You will get more mmiowb's than you
+need, since some drivers, such as Fusion, don't need them.  On the
+Origins (older SGI MIPS-based Numa), the 'sync' instruction had
+the same effect as mmiowb() with respect to mmio write ordering,
+and it was issued unconditionally in the spin unlock.  It was
+cheaper than mmiowb, however.
 
-Gr{oetje,eeting}s,
+If it matters, we could invent and use writel_relaxed() to get
+performance back in drivers we care about....
 
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+jeremy
