@@ -1,56 +1,41 @@
-From: Jeremy Higdon <jeremy@sgi.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Mon, 2 Jun 2008 14:02:13 -0700
-Message-ID: <20080602210213.GA116363@sgi.com>
-References: <1211854540.3286.42.camel@pasglop> <20080526.192812.184590464.davem@davemloft.net> <20080526204233.75b71bb8@infradead.org> <1211872130.3286.64.camel@pasglop> <adaprr721c6.fsf@cisco.com> <1211922696.3286.82.camel@pasglop> <adaiqwzsa83.fsf@cisco.com> <yq0iqwxrwuh.fsf@jaguar.mkp.net> <20080531075242.GC108600@sgi.com> <4843C3D7.7000609@sgi.com>
+Date: Tue, 03 Jun 2008 07:53:24 +1000
+Message-ID: <1212443604.26672.7.camel@pasglop>
+References: <1211852026.3286.36.camel@pasglop>
+	 <20080526.184047.88207142.davem@davemloft.net>
+	 <1211854540.3286.42.camel@pasglop>
+	 <20080526.192812.184590464.davem@davemloft.net>
+	 <1211859542.3286.46.camel@pasglop>
+	 <alpine.LFD.1.10.0805270833060.2958@woody.linux-foundation.org>
+	 <alpine.LFD.1.10.0805270943100.2958@woody.linux-foundation.org>
+	 <alpine.LFD.1.10.0805271028520.2958@woody.linux-foundation.org>
+	 <20080602103643.GA21285@elte.hu>
+Reply-To: benh@kernel.crashing.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:53737 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1750877AbYFBVCU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2008 17:02:20 -0400
-Content-Disposition: inline
-In-Reply-To: <4843C3D7.7000609@sgi.com>
+Received: from gate.crashing.org ([63.228.1.57]:46423 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751292AbYFBVyc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Jun 2008 17:54:32 -0400
+In-Reply-To: <20080602103643.GA21285@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jes Sorensen <jes@sgi.com>
-Cc: Roland Dreier <rdreier@cisco.com>, benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
 
-On Mon, Jun 02, 2008 at 11:56:39AM +0200, Jes Sorensen wrote:
-> Jeremy Higdon wrote:
-> >We don't actually have that problem on the Altix.  All writes issued
-> >by CPU X will be ordered with respect to each other.  But writes by
-> >CPU X and CPU Y will not be, unless an mmiowb() is done by the
-> >original CPU before the second CPU writes.  I.e.
-> >
-> >	CPU X	writel
-> >	CPU X	writel
-> >	CPU X	mmiowb
-> >
-> >	CPU Y	writel
-> >	...
-> >
-> >Note that this implies some sort of locking.  Also note that if in
-> >the above, CPU Y did the mmiowb, that would not work.
-> 
-> Hmmm,
-> 
-> Then it's less bad than I thought - my apologies for the confusion.
-> 
-> Would we be able to use Ben's trick of setting a per cpu flag in
-> writel() then and checking that in spin unlock issuing the mmiowb()
-> there if needed?
+On Mon, 2008-06-02 at 12:36 +0200, Ingo Molnar wrote:
+> The patch passed initial light testing in -tip (~30 successful random 
+> self-builds and bootups on various mixed 32-bit/64-bit boxes) but
+> it's 
+> still v2.6.27 material IMO.
 
+I think adding the "memory" clobber should be .26 and even -stable. We
+know for sure newer gcc will re-order things, we know it for sure some
+drivers will break in subtle ways because of that, ad we know as well
+that sticking "memory" clobber in there will fix that breakage we know
+about ... So I don't see the point of waiting.
 
-Yes, that should work fine.  You will get more mmiowb's than you
-need, since some drivers, such as Fusion, don't need them.  On the
-Origins (older SGI MIPS-based Numa), the 'sync' instruction had
-the same effect as mmiowb() with respect to mmio write ordering,
-and it was issued unconditionally in the spin unlock.  It was
-cheaper than mmiowb, however.
-
-If it matters, we could invent and use writel_relaxed() to get
-performance back in drivers we care about....
-
-jeremy
+Ben.
