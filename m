@@ -1,46 +1,27 @@
-From: Jes Sorensen <jes@sgi.com>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Mon, 02 Jun 2008 11:56:39 +0200
-Message-ID: <4843C3D7.7000609@sgi.com>
-References: <1211852026.3286.36.camel@pasglop> <20080526.184047.88207142.davem@davemloft.net> <1211854540.3286.42.camel@pasglop> <20080526.192812.184590464.davem@davemloft.net> <20080526204233.75b71bb8@infradead.org> <1211872130.3286.64.camel@pasglop> <adaprr721c6.fsf@cisco.com> <1211922696.3286.82.camel@pasglop> <adaiqwzsa83.fsf@cisco.com> <yq0iqwxrwuh.fsf@jaguar.mkp.net> <20080531075242.GC108600@sgi.com>
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [patch 3/5] x86: lockless get_user_pages_fast
+Date: Mon, 2 Jun 2008 12:15:30 +0200
+Message-ID: <20080602101530.GA7206@wotan.suse.de>
+References: <20080529122050.823438000@nick.local0.net> <20080529122602.330656000@nick.local0.net> <1212081659.6308.10.camel@norville.austin.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:58491 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751233AbYFBJ4n (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2008 05:56:43 -0400
-In-Reply-To: <20080531075242.GC108600@sgi.com>
+Received: from ns2.suse.de ([195.135.220.15]:46383 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751542AbYFBKPg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Jun 2008 06:15:36 -0400
+Content-Disposition: inline
+In-Reply-To: <1212081659.6308.10.camel@norville.austin.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeremy Higdon <jeremy@sgi.com>
-Cc: Roland Dreier <rdreier@cisco.com>, benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
+To: Dave Kleikamp <shaggy@linux.vnet.ibm.com>
+Cc: akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, apw@shadowen.org
 
-Jeremy Higdon wrote:
-> We don't actually have that problem on the Altix.  All writes issued
-> by CPU X will be ordered with respect to each other.  But writes by
-> CPU X and CPU Y will not be, unless an mmiowb() is done by the
-> original CPU before the second CPU writes.  I.e.
-> 
-> 	CPU X	writel
-> 	CPU X	writel
-> 	CPU X	mmiowb
-> 
-> 	CPU Y	writel
-> 	...
-> 
-> Note that this implies some sort of locking.  Also note that if in
-> the above, CPU Y did the mmiowb, that would not work.
-
-Hmmm,
-
-Then it's less bad than I thought - my apologies for the confusion.
-
-Would we be able to use Ben's trick of setting a per cpu flag in
-writel() then and checking that in spin unlock issuing the mmiowb()
-there if needed?
+BTW. I do plan to ask Linus to merge this as soon as 2.6.27 opens.
+Hope nobody objects (or if they do please speak up before then)
 
 
-Cheers,
-Jes
+On Thu, May 29, 2008 at 12:20:59PM -0500, Dave Kleikamp wrote:
+> On Thu, 2008-05-29 at 22:20 +1000, npiggin@suse.de wrote:
+>  
+> > +int get_user_pages_fast(unsigned long start, int nr_pages, int write, struct page **pages)
