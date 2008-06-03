@@ -1,38 +1,34 @@
-From: Nick Piggin <nickpiggin@yahoo.com.au>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Tue, 3 Jun 2008 18:19:05 +1000
-Message-ID: <200806031819.06559.nickpiggin@yahoo.com.au>
-References: <1211852026.3286.36.camel@pasglop> <200806031433.12460.nickpiggin@yahoo.com.au> <20080603081552.GC117059@sgi.com>
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [PATCH -mm] clean up duplicated alloc/free_thread_info
+Date: Tue, 3 Jun 2008 09:22:13 +0100
+Message-ID: <20080603082213.GA28346@flint.arm.linux.org.uk>
+References: <20080603140620S.fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp116.mail.mud.yahoo.com ([209.191.84.165]:37135 "HELO
-	smtp116.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1751228AbYFCITU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2008 04:19:20 -0400
-In-Reply-To: <20080603081552.GC117059@sgi.com>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:48464 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751175AbYFCIWj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2008 04:22:39 -0400
 Content-Disposition: inline
+In-Reply-To: <20080603140620S.fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeremy Higdon <jeremy@sgi.com>
-Cc: Jes Sorensen <jes@sgi.com>, Roland Dreier <rdreier@cisco.com>, benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-On Tuesday 03 June 2008 18:15, Jeremy Higdon wrote:
-> On Tue, Jun 03, 2008 at 02:33:11PM +1000, Nick Piggin wrote:
-> > On Monday 02 June 2008 19:56, Jes Sorensen wrote:
+On Tue, Jun 03, 2008 at 02:02:25PM +0900, FUJITA Tomonori wrote:
+> We duplicate alloc/free_thread_info defines on many platforms (the
+> majority uses __get_free_pages/free_pages). This patch defines common
+> defines and removes these duplicated
+> defines. __HAVE_ARCH_THREAD_INFO_ALLOCATOR is introduced for platforms
+> that do something different.
+> 
+> Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
 
-> > > Would we be able to use Ben's trick of setting a per cpu flag in
-> > > writel() then and checking that in spin unlock issuing the mmiowb()
-> > > there if needed?
-> >
-> > Yes you could, but your writels would still not be strongly ordered
-> > within (or outside) spinlock regions, which is what Linus wants (and
-> > I kind of agree with).
->
-> Yes they would be.  Writes from the same CPU are always ordered.  Writes
-> from different CPUs are not, but that's only a concern if you protect
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
 
-They are not strongly ordered WRT writes to cacheable memory. If they
-were, then they would not leak out of spinlocks.
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
