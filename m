@@ -1,82 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp117.mail.mud.yahoo.com ([209.191.84.166]:36539 "HELO
-	smtp117.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1750791AbYFCEXM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2008 00:23:12 -0400
+Received: from smtp113.mail.mud.yahoo.com ([209.191.84.66]:30746 "HELO
+	smtp113.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1752826AbYFCHS7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2008 03:18:59 -0400
 From: Nick Piggin <nickpiggin@yahoo.com.au>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Tue, 3 Jun 2008 14:16:17 +1000
-References: <1211852026.3286.36.camel@pasglop> <alpine.LFD.1.10.0805271451100.2958@woody.linux-foundation.org> <20080602072403.GA20222@flint.arm.linux.org.uk>
-In-Reply-To: <20080602072403.GA20222@flint.arm.linux.org.uk>
+Date: Tue, 3 Jun 2008 17:18:42 +1000
+References: <1211852026.3286.36.camel@pasglop> <200806031611.13817.nickpiggin@yahoo.com.au> <18500.60032.989380.864674@cargo.ozlabs.ibm.com>
+In-Reply-To: <18500.60032.989380.864674@cargo.ozlabs.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-Message-ID: <200806031416.18195.nickpiggin@yahoo.com.au>
+Message-ID: <200806031718.43393.nickpiggin@yahoo.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
-Message-ID: <20080603041617.R1mWBi-8AKi3KQGO3-iT6ohdxoUz6nZZS2CxrinAVlY@z>
+To: Paul Mackerras <paulus@samba.org>
+Cc: benh@kernel.crashing.org, Russell King <rmk+lkml@arm.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
+Message-ID: <20080603071842.FBxJY1A2i7X1pShLaYqXAJde2MXgPkltTM5dZXVvEtY@z>
 
-On Monday 02 June 2008 17:24, Russell King wrote:
-> On Tue, May 27, 2008 at 02:55:56PM -0700, Linus Torvalds wrote:
-> > On Wed, 28 May 2008, Benjamin Herrenschmidt wrote:
-> > > A problem with __raw_ though is that they -also- don't do byteswap,
+On Tuesday 03 June 2008 16:53, Paul Mackerras wrote:
+> Nick Piggin writes:
+> > So your readl can pass an earlier cacheable store or earlier writel?
+>
+> No.  It's quite gross at the moment, it has a sync before the access
+> (i.e. a full mb()) and a twi; isync sequence after the access that
+> stalls execution until the data comes back.
+
+OK.
+
+
+> > > We don't provide meaningless ones like writel + cacheable store for
+> > > example. (PCI posting would defeat it anyway).
 > >
-> > Well, that's why there is __readl() and __raw_readl(), no?
-> >
-> > Neither does ordering, and __raw_readl() doesn't do byte-swap.
+> > What do you mean by meaningless? Ordering of writel followed by a
+> > cacheable store  is meaningful eg. for retaining io operations within
+> > locks. OK, you explicitly have some extra code for spin_unlock, but
+> > not for bit locks, mutexes, etc. It would make sense to have the
+> > default operations _very_ strongly ordered IMO, and then move drivers
+> > to be more relaxed when they are verified.
 >
-> This is where the lack of documentation causes arch maintainers a big
-> problem.  None of the semantics of __raw_readl vs __readl vs readl are
-> documented _anywhere_.  If you look at x86 as a template, there's no
-> comments there about what the different variants are supposed to do
-> or not do.
->
-> So it's left up to arch maintainers to literally guess what should be
-> done.  That's precisely what I did when I implemented ARMs __raw_readl
-> and friends.  I guessed.
->
-> And it was only after I read a few mails on lkml which suggested that
-> readl and friends should always be LE that ARMs readl implementation
-> started to use le32_to_cpu()... before that it had always been native
-> endian.  Again, lack of documentation...
->
-> So, can the semantics of what's expected from these IO accessor
-> functions be documented somewhere.  Please?  Before this thread gets
-> lost in the depths of time?
+> It's meaningless in the sense that nothing guarantees that the writel
+> has actually hit the device, even if we put a full mb() barrier in
+> between the writel and the cacheable write.  That would guarantee that
+> the writel had got to the PCI host bridge, and couldn't be reordered
+> with other accesses to the device, but not that the device had
+> actually seen it.
 
-This whole thread also ties in with my posts about mmiowb (which IMO
-should go away).
+OK, but I think fits OK with our SMP ordering model for cacheable
+stores: no amount of barriers on CPU0 will guarantee that CPU1 has
+seen the store, you actually have to observe a causual effect
+of the store before you can say that.
 
-readl/writel:  strongly ordered wrt one another and other stores
-               to cacheable RAM, byteswapping
-__readl/__writel:  not ordered (needs mb/rmb/wmb to order with
-                   other readl/writel and cacheable operations, or
-                   io_*mb to order with one another)
-raw_readl/raw_writel:  strongly ordered, no byteswapping
-__raw_readl/__raw_writel:  not ordered, no byteswapping
 
-then get rid of *relaxed* variants.
+> I don't mind adding code to the mutex unlock to do the same as
+> spin_unlock, but I really don't want to have *two* sync instructions
+> for every MMIO write.  One is bad enough.
 
-Linus: on x86, memory operations to wc and wc+ memory are not ordered
-with one another, or operations to other memory types (ie. load/load
-and store/store reordering is allowed). Also, as you know, store/load
-reordering is explicitly allowed as well, which covers all memory
-types. So perhaps it is not quite true to say readl/writel is strongly
-ordered by default even on x86. You would have to put in some
-mfence instructions in them to make it so.
+So you can't provide iostore/store ordering without another sync
+after the writel store?
 
-So, what *exact* definition are you going to mandate for readl/writel?
-Anything less than strict ordering then we also need to ensure drivers
-use the correct barriers (to implement strict ordering, we could either
-put mfence instructions in, or explicitly disallow readl/writel to be
-used on wc/wc+ memory).
+I guess the problem with providing exceptions is that it makes it
+hard for people who absolutely don't know or care about ordering.
+I don't like having to think about it "hmm, we can allow this type
+of reordering... oh, unless some silly device does X...".
 
-The other way we can go is just say that they have x86 semantics,
-although that would be a bit sad IMO: we should have strong ops, in
-which case driver writers never need to use a single barrier provided
-they have locking right, and weak ops, in which case they should match
-up with the weak Linux memory ordering model for system RAM.
+If we come up with a sane set of weakly ordered accessors
+(including io_*mb()), it will make it easier to go through the
+important drivers and improve them. We don't have to enforce the
+the new semantics strictly until then if they'll slow you down
+too much in the meantime.
