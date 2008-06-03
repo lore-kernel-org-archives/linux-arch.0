@@ -1,55 +1,62 @@
-From: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
+From: Jeremy Higdon <jeremy@sgi.com>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Tue, 3 Jun 2008 09:46:46 +0200
-Message-ID: <20080603094646.0dbf2911@hskinnemo-gx745.norway.atmel.com>
-References: <1211924335.3286.89.camel@pasglop>
-	<20080527214241.GA22636@parisc-linux.org>
-	<1211926636.3286.100.camel@pasglop>
-	<20080528103648.54eb8734@hskinnemo-gx745.norway.atmel.com>
-	<1212110003.15633.0.camel@pasglop>
-	<20080530080700.773a82cc@siona.local>
-	<1212132267.15633.69.camel@pasglop>
-	<20080530102706.56fca248@siona.local>
-	<Pine.LNX.4.64.0805301120510.26332@anakin>
-	<20080602101102.0d8979c5@hskinnemo-gx745.norway.atmel.com>
-	<20080602154812.GB2734@loki.buserror.net>
+Date: Tue, 3 Jun 2008 01:15:52 -0700
+Message-ID: <20080603081552.GC117059@sgi.com>
+References: <1211852026.3286.36.camel@pasglop>
+	<20080531075242.GC108600@sgi.com> <4843C3D7.7000609@sgi.com>
+	<200806031433.12460.nickpiggin@yahoo.com.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtpeu1.atmel.com ([195.65.72.27]:47651 "EHLO bagnes.atmel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751228AbYFCHrD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jun 2008 03:47:03 -0400
-In-Reply-To: <20080602154812.GB2734@loki.buserror.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Scott Wood <scottwood@freescale.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, benh@kernel.crashing.org, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org>
+Content-Disposition: inline
+In-Reply-To: <200806031433.12460.nickpiggin@yahoo.com.au>
+List-Unsubscribe: <https://ozlabs.org/mailman/options/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@ozlabs.org?subject=unsubscribe>
+List-Archive: <http://ozlabs.org/pipermail/linuxppc-dev>
+List-Post: <mailto:linuxppc-dev@ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@ozlabs.org?subject=help>
+List-Subscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@ozlabs.org?subject=subscribe>
+Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: linux-arch@vger.kernel.org, Roland Dreier <rdreier@cisco.com>, Jes Sorensen <jes@sgi.com>, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, tpiepho@freescale.com, alan@lxorguk.ukuu.org.uk, Arjan van de Ven <arjan@infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-Scott Wood <scottwood@freescale.com> wrote:
-> On Mon, Jun 02, 2008 at 10:11:02AM +0200, Haavard Skinnemoen wrote:
-> > Geert Uytterhoeven <geert@linux-m68k.org> wrote:
-> > > On Fri, 30 May 2008, Haavard Skinnemoen wrote:
-> > > > Maybe we need another interface that does not do byteswapping but
-> > > > provides stronger ordering guarantees?
-> > > 
-> > > The byte swapping depends on the device/bus.
-> > 
-> > Of course. But isn't it reasonable to assume that a device integrated
-> > on the same silicon as the CPU is connected to a somewhat sane bus
-> > which doesn't require any byte swapping?
+On Tue, Jun 03, 2008 at 02:33:11PM +1000, Nick Piggin wrote:
+> On Monday 02 June 2008 19:56, Jes Sorensen wrote:
+> > Jeremy Higdon wrote:
+> > > We don't actually have that problem on the Altix.  All writes issued
+> > > by CPU X will be ordered with respect to each other.  But writes by
+> > > CPU X and CPU Y will not be, unless an mmiowb() is done by the
+> > > original CPU before the second CPU writes.  I.e.
+> > >
+> > > 	CPU X	writel
+> > > 	CPU X	writel
+> > > 	CPU X	mmiowb
+> > >
+> > > 	CPU Y	writel
+> > > 	...
+> > >
+> > > Note that this implies some sort of locking.  Also note that if in
+> > > the above, CPU Y did the mmiowb, that would not work.
+> >
+> > Hmmm,
+> >
+> > Then it's less bad than I thought - my apologies for the confusion.
+> >
+> > Would we be able to use Ben's trick of setting a per cpu flag in
+> > writel() then and checking that in spin unlock issuing the mmiowb()
+> > there if needed?
 > 
-> No, unfortunately. :-(
+> Yes you could, but your writels would still not be strongly ordered
+> within (or outside) spinlock regions, which is what Linus wants (and
+> I kind of agree with).
 
-Ok, I guess I was being naive.
+Yes they would be.  Writes from the same CPU are always ordered.  Writes
+from different CPUs are not, but that's only a concern if you protect
+writing via some sort of lock.  If the lock release forces a barrier,
+that should take care of the problem.
 
-> See the end of drivers/dma/fsldma.h.  Likewise with Freescale's PCI host
-> bridges; for some reason the bus itself being little endian led to the host
-> bridge control registers also being little endian.
-
-Right. But still, isn't it better to handle it on a case-by-case basis
-in the drivers? In some cases, it's best to explicitly use a certain
-byte order, in others it's best to use whatever is native to the CPU.
-
-Haavard
+jeremy
