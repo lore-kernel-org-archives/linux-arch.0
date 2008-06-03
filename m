@@ -1,47 +1,34 @@
-From: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
-Subject: Re: [PATCH -mm] clean up duplicated alloc/free_thread_info
-Date: Tue, 3 Jun 2008 12:31:12 +0200
-Message-ID: <20080603123112.0d58e193@hskinnemo-gx745.norway.atmel.com>
-References: <20080603140620S.fujita.tomonori@lab.ntt.co.jp>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: MMIO and gcc re-ordering issue
+Date: Tue, 3 Jun 2008 07:47:26 -0700 (PDT)
+Message-ID: <alpine.LFD.1.10.0806030746190.3473@woody.linux-foundation.org>
+References: <1211852026.3286.36.camel@pasglop> <alpine.LFD.1.10.0805271451100.2958@woody.linux-foundation.org> <20080602072403.GA20222@flint.arm.linux.org.uk> <200806031416.18195.nickpiggin@yahoo.com.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtpeu1.atmel.com ([195.65.72.27]:51071 "EHLO bagnes.atmel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752367AbYFCKbI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jun 2008 06:31:08 -0400
-In-Reply-To: <20080603140620S.fujita.tomonori@lab.ntt.co.jp>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:42135 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753876AbYFCOr6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2008 10:47:58 -0400
+In-Reply-To: <200806031416.18195.nickpiggin@yahoo.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
 
-FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp> wrote:
->  include/asm-alpha/thread_info.h     |    4 +---
->  include/asm-arm/thread_info.h       |   13 -------------
->  include/asm-blackfin/thread_info.h  |    5 +----
->  include/asm-cris/thread_info.h      |    2 ++
->  include/asm-frv/thread_info.h       |    2 ++
->  include/asm-h8300/thread_info.h     |    5 +----
->  include/asm-ia64/thread_info.h      |    2 ++
->  include/asm-m32r/thread_info.h      |    2 ++
->  include/asm-m68k/thread_info.h      |    8 +-------
->  include/asm-m68knommu/thread_info.h |    4 ----
->  include/asm-mips/thread_info.h      |    2 ++
->  include/asm-mn10300/thread_info.h   |    2 ++
->  include/asm-parisc/thread_info.h    |   10 +++-------
->  include/asm-powerpc/thread_info.h   |   14 +++-----------
->  include/asm-s390/thread_info.h      |    5 +----
->  include/asm-sh/thread_info.h        |    2 ++
->  include/asm-sparc/thread_info.h     |    2 ++
->  include/asm-sparc64/thread_info.h   |   23 ++---------------------
->  include/asm-um/thread_info.h        |   16 +---------------
->  include/asm-x86/thread_info.h       |    2 ++
->  include/asm-xtensa/thread_info.h    |    5 +----
->  kernel/fork.c                       |   17 +++++++++++++++++
->  22 files changed, 50 insertions(+), 97 deletions(-)
 
-Can you do the same with avr32 as well?
 
-Haavard
+On Tue, 3 Jun 2008, Nick Piggin wrote:
+> 
+> Linus: on x86, memory operations to wc and wc+ memory are not ordered
+> with one another, or operations to other memory types (ie. load/load
+> and store/store reordering is allowed). Also, as you know, store/load
+> reordering is explicitly allowed as well, which covers all memory
+> types. So perhaps it is not quite true to say readl/writel is strongly
+> ordered by default even on x86. You would have to put in some
+> mfence instructions in them to make it so.
+
+Well, you have to ask for WC/WC+ anyway, so it's immaterial. A driver that 
+does that needs to be aware of it. IOW, it's a non-issue, imnsho.
+
+			Linus
