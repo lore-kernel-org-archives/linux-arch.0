@@ -1,112 +1,41 @@
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
+From: Trent Piepho <tpiepho@freescale.com>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Tue, 3 Jun 2008 09:52:09 -0700
-Message-ID: <200806030952.10360.jbarnes@virtuousgeek.org>
-References: <1211852026.3286.36.camel@pasglop> <4843C3D7.7000609@sgi.com> <200806031433.12460.nickpiggin@yahoo.com.au>
+Date: Tue, 3 Jun 2008 11:47:00 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0806031130130.3242@t2.domain.actdsltmp>
+References: <1211852026.3286.36.camel@pasglop>
+ <alpine.LFD.1.10.0805271451100.2958@woody.linux-foundation.org>
+ <20080602072403.GA20222@flint.arm.linux.org.uk> <200806031416.18195.nickpiggin@yahoo.com.au>
+ <alpine.LFD.1.10.0806030746190.3473@woody.linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1752865AbYFCQxV@vger.kernel.org>
-In-Reply-To: <200806031433.12460.nickpiggin@yahoo.com.au>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: Jes Sorensen <jes@sgi.com>, Jeremy Higdon <jeremy@sgi.com>, Roland Dreier <rdreier@cisco.com>, benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from az33egw02.freescale.net ([192.88.158.103]:37803 "EHLO
+	az33egw02.freescale.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753176AbYFCSrx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2008 14:47:53 -0400
+In-Reply-To: <alpine.LFD.1.10.0806030746190.3473@woody.linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
 
-On Monday, June 02, 2008 9:33 pm Nick Piggin wrote:
-> On Monday 02 June 2008 19:56, Jes Sorensen wrote:
-> > Jeremy Higdon wrote:
-> > > We don't actually have that problem on the Altix.  All writes issued
-> > > by CPU X will be ordered with respect to each other.  But writes by
-> > > CPU X and CPU Y will not be, unless an mmiowb() is done by the
-> > > original CPU before the second CPU writes.  I.e.
-> > >
-> > > 	CPU X	writel
-> > > 	CPU X	writel
-> > > 	CPU X	mmiowb
-> > >
-> > > 	CPU Y	writel
-> > > 	...
-> > >
-> > > Note that this implies some sort of locking.  Also note that if in
-> > > the above, CPU Y did the mmiowb, that would not work.
-> >
-> > Hmmm,
-> >
-> > Then it's less bad than I thought - my apologies for the confusion.
-> >
-> > Would we be able to use Ben's trick of setting a per cpu flag in
-> > writel() then and checking that in spin unlock issuing the mmiowb()
-> > there if needed?
->
-> Yes you could, but your writels would still not be strongly ordered
-> within (or outside) spinlock regions, which is what Linus wants (and
-> I kind of agree with).
+On Tue, 3 Jun 2008, Linus Torvalds wrote:
+> On Tue, 3 Jun 2008, Nick Piggin wrote:
+>>
+>> Linus: on x86, memory operations to wc and wc+ memory are not ordered
+>> with one another, or operations to other memory types (ie. load/load
+>> and store/store reordering is allowed). Also, as you know, store/load
+>> reordering is explicitly allowed as well, which covers all memory
+>> types. So perhaps it is not quite true to say readl/writel is strongly
+>> ordered by default even on x86. You would have to put in some
+>> mfence instructions in them to make it so.
 
-I think you mean wrt cacheable memory accesses here (though iirc on ia64 
-spin_unlock has release semantics, so at least it'll barrier other stores).
+So on x86, these could be re-ordered?
 
-> This comes back to my posting about mmiowb and io_*mb barriers etc.
->
-> Despite what you say, what you've done really _does_ change the semantics
-> of wmb() for all drivers. It is a really sad situation we've got ourselves
-> into somehow, AFAIKS in the hope of trying to save ourselves a tiny bit
-> of work upfront :( (this is not just the sgi folk with mmiowb I'm talking
-> about, but the whole random undefinedness of ordering and io barriers).
->
-> The right way to make any change is never to weaken the postcondition of
-> an existing interface *unless* you are willing to audit the entire tree
-> and fix it. Impossible for drivers, so the correct thing to do is introduce
-> a new interface, and move things over at an easier pace. Not rocket
-> science.
+writel(START_OPERATION, CONTROL_REGISTER);
+status = readl(STATUS_REGISTER);
 
-Well, given how undefined things have been in the past, each arch has had to 
-figure out what things mean (based on looking at drivers & core code) then 
-come up with appropriate primitives.  On Altix, we went both directions:  we 
-made regular PIO reads (readX etc.) *very* expensive to preserve 
-compatibility with what existing drivers expect, and added a readX_relaxed to 
-give a big performance boost to tuned drivers.
+> Well, you have to ask for WC/WC+ anyway, so it's immaterial. A driver that
+> does that needs to be aware of it. IOW, it's a non-issue, imnsho.
 
-OTOH, given that posted PCI writes were nothing new to Linux, but the Altix 
-network topology was, we introduced mmiowb() (with lots of discussion I might 
-add), which has clear and relatively simple usage guidelines.
-
-Now, in hindsight, using a PIO write set & test flag approach in 
-writeX/spin_unlock (ala powerpc) might have been a better approach, but iirc 
-that never came up in the discussion, probably because we were focused on PCI 
-posting and not uncached vs. cached ordering.
-
-> The argument that "Altix only uses a few drivers so this way we can just
-> fix these up rather than make big modifications to large numbers of
-> drivers" is bogus. It is far worse even for Altix if you make incompatible
-> changes, because you first *break* every driver on your platform, then you
-> have to audit and fix them. If you make compatible changes, then you have
-> to do exactly the same audits to move them over to the new API, but you go
-> from slower->faster rather than broken->non broken. As a bonus, you haven't
-> got random broken stuff all over the tree that you forgot to audit.
-
-I agree, but afaik the only change Altix ended up forcing on people was 
-mmiowb(), but that turned out to be necessary on mips64 (and maybe some other 
-platforms?) anyway.
-
-> I don't know how there is still so much debate about this :(
->
-> I have a proposal: I am a neutral party here, not being an arch maintainer,
-> so I'll take input and write up a backward compatible API specification
-> and force everybody to conform to it ;)
-
-Aside from the obvious performance impact of making all the readX/writeX 
-routines strongly ordered, both in terms of PCI posting and cacheable vs. 
-uncacheable accesses, it also makes things inconsistent.  Both core code & 
-drivers will still have to worry about regular, cacheable memory barriers for 
-correctness, but it looks like you're proposing that they not have to think 
-about I/O ordering.
-
-At any rate, I don't think anyone would argue against defining the ordering 
-semantics of all of these routines (btw you should also include ordering wrt 
-DMA & PCI posting); the question is what's the best balance between keeping 
-the driver requirements simple and the performance cost on complex arches.
-
-Jesse
+You need to ask for coherent DMA memory too.
