@@ -1,68 +1,55 @@
-From: Nick Piggin <nickpiggin@yahoo.com.au>
+From: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Tue, 3 Jun 2008 17:18:42 +1000
-Message-ID: <200806031718.43393.nickpiggin@yahoo.com.au>
-References: <1211852026.3286.36.camel@pasglop> <200806031611.13817.nickpiggin@yahoo.com.au> <18500.60032.989380.864674@cargo.ozlabs.ibm.com>
+Date: Tue, 3 Jun 2008 09:46:46 +0200
+Message-ID: <20080603094646.0dbf2911@hskinnemo-gx745.norway.atmel.com>
+References: <1211924335.3286.89.camel@pasglop>
+	<20080527214241.GA22636@parisc-linux.org>
+	<1211926636.3286.100.camel@pasglop>
+	<20080528103648.54eb8734@hskinnemo-gx745.norway.atmel.com>
+	<1212110003.15633.0.camel@pasglop>
+	<20080530080700.773a82cc@siona.local>
+	<1212132267.15633.69.camel@pasglop>
+	<20080530102706.56fca248@siona.local>
+	<Pine.LNX.4.64.0805301120510.26332@anakin>
+	<20080602101102.0d8979c5@hskinnemo-gx745.norway.atmel.com>
+	<20080602154812.GB2734@loki.buserror.net>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1754797AbYFCHTO@vger.kernel.org>
-In-Reply-To: <18500.60032.989380.864674@cargo.ozlabs.ibm.com>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
-Cc: benh@kernel.crashing.org, Russell King <rmk+lkml@arm.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtpeu1.atmel.com ([195.65.72.27]:47651 "EHLO bagnes.atmel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751228AbYFCHrD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Jun 2008 03:47:03 -0400
+In-Reply-To: <20080602154812.GB2734@loki.buserror.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Scott Wood <scottwood@freescale.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, benh@kernel.crashing.org, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
 
-On Tuesday 03 June 2008 16:53, Paul Mackerras wrote:
-> Nick Piggin writes:
-> > So your readl can pass an earlier cacheable store or earlier writel?
->
-> No.  It's quite gross at the moment, it has a sync before the access
-> (i.e. a full mb()) and a twi; isync sequence after the access that
-> stalls execution until the data comes back.
+Scott Wood <scottwood@freescale.com> wrote:
+> On Mon, Jun 02, 2008 at 10:11:02AM +0200, Haavard Skinnemoen wrote:
+> > Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> > > On Fri, 30 May 2008, Haavard Skinnemoen wrote:
+> > > > Maybe we need another interface that does not do byteswapping but
+> > > > provides stronger ordering guarantees?
+> > > 
+> > > The byte swapping depends on the device/bus.
+> > 
+> > Of course. But isn't it reasonable to assume that a device integrated
+> > on the same silicon as the CPU is connected to a somewhat sane bus
+> > which doesn't require any byte swapping?
+> 
+> No, unfortunately. :-(
 
-OK.
+Ok, I guess I was being naive.
 
+> See the end of drivers/dma/fsldma.h.  Likewise with Freescale's PCI host
+> bridges; for some reason the bus itself being little endian led to the host
+> bridge control registers also being little endian.
 
-> > > We don't provide meaningless ones like writel + cacheable store for
-> > > example. (PCI posting would defeat it anyway).
-> >
-> > What do you mean by meaningless? Ordering of writel followed by a
-> > cacheable store  is meaningful eg. for retaining io operations within
-> > locks. OK, you explicitly have some extra code for spin_unlock, but
-> > not for bit locks, mutexes, etc. It would make sense to have the
-> > default operations _very_ strongly ordered IMO, and then move drivers
-> > to be more relaxed when they are verified.
->
-> It's meaningless in the sense that nothing guarantees that the writel
-> has actually hit the device, even if we put a full mb() barrier in
-> between the writel and the cacheable write.  That would guarantee that
-> the writel had got to the PCI host bridge, and couldn't be reordered
-> with other accesses to the device, but not that the device had
-> actually seen it.
+Right. But still, isn't it better to handle it on a case-by-case basis
+in the drivers? In some cases, it's best to explicitly use a certain
+byte order, in others it's best to use whatever is native to the CPU.
 
-OK, but I think fits OK with our SMP ordering model for cacheable
-stores: no amount of barriers on CPU0 will guarantee that CPU1 has
-seen the store, you actually have to observe a causual effect
-of the store before you can say that.
-
-
-> I don't mind adding code to the mutex unlock to do the same as
-> spin_unlock, but I really don't want to have *two* sync instructions
-> for every MMIO write.  One is bad enough.
-
-So you can't provide iostore/store ordering without another sync
-after the writel store?
-
-I guess the problem with providing exceptions is that it makes it
-hard for people who absolutely don't know or care about ordering.
-I don't like having to think about it "hmm, we can allow this type
-of reordering... oh, unless some silly device does X...".
-
-If we come up with a sane set of weakly ordered accessors
-(including io_*mb()), it will make it easier to go through the
-important drivers and improve them. We don't have to enforce the
-the new semantics strictly until then if they'll slow you down
-too much in the meantime.
+Haavard
