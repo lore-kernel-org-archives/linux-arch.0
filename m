@@ -1,93 +1,67 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Tue, 03 Jun 2008 14:32:31 +1000
-Message-ID: <1212467551.9496.23.camel@pasglop>
-References: <1211852026.3286.36.camel@pasglop>
-	 <alpine.LFD.1.10.0805271451100.2958@woody.linux-foundation.org>
-	 <20080602072403.GA20222@flint.arm.linux.org.uk>
-	 <200806031416.18195.nickpiggin@yahoo.com.au>
-Reply-To: benh@kernel.crashing.org
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [patch 3/5] x86: lockless get_user_pages_fast
+Date: Tue, 3 Jun 2008 14:46:18 +1000
+Message-ID: <20080603144618.0a4dcfc8.sfr@canb.auug.org.au>
+References: <20080529122050.823438000@nick.local0.net>
+	<20080529122602.330656000@nick.local0.net>
+	<1212081659.6308.10.camel@norville.austin.ibm.com>
+	<20080602101530.GA7206@wotan.suse.de>
+	<20080602212833.226146bc.sfr@canb.auug.org.au>
+	<20080603023419.GC5527@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Tue__3_Jun_2008_14_46_18_+1000_g1njvM6w4ycl2OqB"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:41474 "EHLO gate.crashing.org"
+Received: from chilli.pcug.org.au ([203.10.76.44]:42202 "EHLO smtps.tip.net.au"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751481AbYFCEeF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jun 2008 00:34:05 -0400
-In-Reply-To: <200806031416.18195.nickpiggin@yahoo.com.au>
+	id S1751300AbYFCEq0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Jun 2008 00:46:26 -0400
+In-Reply-To: <20080603023419.GC5527@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
+To: Nick Piggin <npiggin@suse.de>
+Cc: Dave Kleikamp <shaggy@linux.vnet.ibm.com>, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, apw@shadowen.org
 
+--Signature=_Tue__3_Jun_2008_14_46_18_+1000_g1njvM6w4ycl2OqB
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> This whole thread also ties in with my posts about mmiowb (which IMO
-> should go away).
-> 
-> readl/writel:  strongly ordered wrt one another and other stores
->                to cacheable RAM, byteswapping
-> __readl/__writel:  not ordered (needs mb/rmb/wmb to order with
->                    other readl/writel and cacheable operations, or
->                    io_*mb to order with one another)
-> raw_readl/raw_writel:  strongly ordered, no byteswapping
-> __raw_readl/__raw_writel:  not ordered, no byteswapping
-> 
-> then get rid of *relaxed* variants.
+Hi Nick,
 
-In addition, some archs like powerpc also provide readl_be/writel_be as
-being defined as big endian (ie. byteswap on LE archs, no byteswap on BE
-archs).
+On Tue, 3 Jun 2008 04:34:20 +0200 Nick Piggin <npiggin@suse.de> wrote:
+>
+> Thanks for the offer... I was hoping for Andrew to pick it up (which
+> he now has).
+>=20
+> I'm not sure how best to do mm/ related stuff, but I suspect we have
+> gone as smoothly as we are in large part due to Andrew's reviewing
+> and martialling mm patches so well.
 
-As of today, powerpc lacks the raw_readl/raw_writel and __readl/__writel
-variants (ie, we only provide fully ordered + byteswap and no ordering +
-no byteswap variants).
+Yeah, that is the correct and best way to go.
 
-If we agree on the above semantics, I'll do a patch providing the
-missing ones.
+> For other developments I'll keep linux-next in mind. I guess it will
+> be useful for me eg in the case where I change an arch defined prototype
+> that requires a big sweep of the tree.
 
-> Linus: on x86, memory operations to wc and wc+ memory are not ordered
-> with one another, or operations to other memory types (ie. load/load
-> and store/store reordering is allowed). Also, as you know, store/load
-> reordering is explicitly allowed as well, which covers all memory
-> types. So perhaps it is not quite true to say readl/writel is strongly
-> ordered by default even on x86. You would have to put in some
-> mfence instructions in them to make it so.
-> 
-> So, what *exact* definition are you going to mandate for readl/writel?
-> Anything less than strict ordering then we also need to ensure drivers
-> use the correct barriers (to implement strict ordering, we could either
-> put mfence instructions in, or explicitly disallow readl/writel to be
-> used on wc/wc+ memory).
+Yep, linux-next is idea for that because you find out all the places you
+step on other people's toes :-)
 
-The ordering guarantees that I provide on powerpc for "ordered" variants
-are:
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
 
-	- cacheable store + writel stays ordered (ie, write to some
-          DMA stuff and then a register to trigger the DMA).
+--Signature=_Tue__3_Jun_2008_14_46_18_+1000_g1njvM6w4ycl2OqB
+Content-Type: application/pgp-signature
 
-	- readl + cacheable read stays ordered (ie. read some status
-          register, for example, after an interrupt, and then read the
-          resulting data in memory).
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.6 (GNU/Linux)
 
-	- any of these ordered vs. spin_lock and spin_unlock (with the
-          exception that stores done before the spin_lock 
-          could potentially leak into the lock).
+iD8DBQFIRMydTgG2atn1QN8RAvtDAJsHNRYgIzPGkVsAUYUNcZN+Eyh3+ACfeitJ
+QSzEQ1WU09+zvIpUu+MtNWA=
+=sMhS
+-----END PGP SIGNATURE-----
 
-	- readl is synchronous (ie, makes the CPU think the
-          data was actually used before executing subsequent
-          instructions, thus waits for the data to come back,
-          for example to ensure that a read used to push out
-          post buffers followed by a delay will indeed happen
-          with the right delay).
-
-We don't provide meaningless ones like writel + cacheable store for
-example. (PCI posting would defeat it anyway).
-
-> The other way we can go is just say that they have x86 semantics,
-> although that would be a bit sad IMO: we should have strong ops, in
-> which case driver writers never need to use a single barrier provided
-> they have locking right, and weak ops, in which case they should match
-> up with the weak Linux memory ordering model for system RAM.
-
-Ben.
+--Signature=_Tue__3_Jun_2008_14_46_18_+1000_g1njvM6w4ycl2OqB--
