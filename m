@@ -1,41 +1,52 @@
-From: Trent Piepho <tpiepho@freescale.com>
+From: Matthew Wilcox <matthew@wil.cx>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Tue, 3 Jun 2008 11:47:00 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0806031130130.3242@t2.domain.actdsltmp>
-References: <1211852026.3286.36.camel@pasglop>
- <alpine.LFD.1.10.0805271451100.2958@woody.linux-foundation.org>
- <20080602072403.GA20222@flint.arm.linux.org.uk> <200806031416.18195.nickpiggin@yahoo.com.au>
- <alpine.LFD.1.10.0806030746190.3473@woody.linux-foundation.org>
+Date: Tue, 3 Jun 2008 12:55:41 -0600
+Message-ID: <20080603185541.GB3549@parisc-linux.org>
+References: <1211852026.3286.36.camel@pasglop> <alpine.LFD.1.10.0805271451100.2958@woody.linux-foundation.org> <20080602072403.GA20222@flint.arm.linux.org.uk> <200806031416.18195.nickpiggin@yahoo.com.au> <alpine.LFD.1.10.0806030746190.3473@woody.linux-foundation.org> <Pine.LNX.4.64.0806031130130.3242@t2.domain.actdsltmp>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from az33egw02.freescale.net ([192.88.158.103]:37803 "EHLO
-	az33egw02.freescale.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753176AbYFCSrx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2008 14:47:53 -0400
-In-Reply-To: <alpine.LFD.1.10.0806030746190.3473@woody.linux-foundation.org>
+Received: from palinux.external.hp.com ([192.25.206.14]:36269 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751624AbYFCSzn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2008 14:55:43 -0400
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0806031130130.3242@t2.domain.actdsltmp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
+To: Trent Piepho <tpiepho@freescale.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nick Piggin <nickpiggin@yahoo.com.au>, Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
 
-On Tue, 3 Jun 2008, Linus Torvalds wrote:
-> On Tue, 3 Jun 2008, Nick Piggin wrote:
->>
->> Linus: on x86, memory operations to wc and wc+ memory are not ordered
->> with one another, or operations to other memory types (ie. load/load
->> and store/store reordering is allowed). Also, as you know, store/load
->> reordering is explicitly allowed as well, which covers all memory
->> types. So perhaps it is not quite true to say readl/writel is strongly
->> ordered by default even on x86. You would have to put in some
->> mfence instructions in them to make it so.
+On Tue, Jun 03, 2008 at 11:47:00AM -0700, Trent Piepho wrote:
+> On Tue, 3 Jun 2008, Linus Torvalds wrote:
+> >On Tue, 3 Jun 2008, Nick Piggin wrote:
+> >>
+> >>Linus: on x86, memory operations to wc and wc+ memory are not ordered
+> >>with one another, or operations to other memory types (ie. load/load
+> >>and store/store reordering is allowed). Also, as you know, store/load
+> >>reordering is explicitly allowed as well, which covers all memory
+> >>types. So perhaps it is not quite true to say readl/writel is strongly
+> >>ordered by default even on x86. You would have to put in some
+> >>mfence instructions in them to make it so.
+> 
+> So on x86, these could be re-ordered?
+> 
+> writel(START_OPERATION, CONTROL_REGISTER);
+> status = readl(STATUS_REGISTER);
 
-So on x86, these could be re-ordered?
+You wouldn't ask for write-combining memory mapping for control or
+status registers.
 
-writel(START_OPERATION, CONTROL_REGISTER);
-status = readl(STATUS_REGISTER);
+> >Well, you have to ask for WC/WC+ anyway, so it's immaterial. A driver that
+> >does that needs to be aware of it. IOW, it's a non-issue, imnsho.
+> 
+> You need to ask for coherent DMA memory too.
 
-> Well, you have to ask for WC/WC+ anyway, so it's immaterial. A driver that
-> does that needs to be aware of it. IOW, it's a non-issue, imnsho.
+Different case.  Coherent DMA memory is *host* memory that the *device*
+accesses.  We're talking about *device* memory that the *cpu* accesses.
 
-You need to ask for coherent DMA memory too.
+-- 
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
