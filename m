@@ -1,62 +1,46 @@
 From: Trent Piepho <tpiepho@freescale.com>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Tue, 3 Jun 2008 12:43:21 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0806031154050.3242@t2.domain.actdsltmp>
+Date: Tue, 3 Jun 2008 12:57:56 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0806031253180.3242@t2.domain.actdsltmp>
 References: <1211852026.3286.36.camel@pasglop>
  <alpine.LFD.1.10.0805271451100.2958@woody.linux-foundation.org>
  <20080602072403.GA20222@flint.arm.linux.org.uk> <200806031416.18195.nickpiggin@yahoo.com.au>
+ <alpine.LFD.1.10.0806030746190.3473@woody.linux-foundation.org>
+ <Pine.LNX.4.64.0806031130130.3242@t2.domain.actdsltmp>
+ <20080603185541.GB3549@parisc-linux.org>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from az33egw02.freescale.net ([192.88.158.103]:54013 "EHLO
+Received: from az33egw02.freescale.net ([192.88.158.103]:63713 "EHLO
 	az33egw02.freescale.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757143AbYFCToT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2008 15:44:19 -0400
-In-Reply-To: <200806031416.18195.nickpiggin@yahoo.com.au>
+	with ESMTP id S1754861AbYFCT7B (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2008 15:59:01 -0400
+In-Reply-To: <20080603185541.GB3549@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nick Piggin <nickpiggin@yahoo.com.au>, Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
 
-On Tue, 3 Jun 2008, Nick Piggin wrote:
-> On Monday 02 June 2008 17:24, Russell King wrote:
->> So, can the semantics of what's expected from these IO accessor
->> functions be documented somewhere.  Please?  Before this thread gets
->> lost in the depths of time?
+On Tue, 3 Jun 2008, Matthew Wilcox wrote:
+> On Tue, Jun 03, 2008 at 11:47:00AM -0700, Trent Piepho wrote:
+>> On Tue, 3 Jun 2008, Linus Torvalds wrote:
+>>> On Tue, 3 Jun 2008, Nick Piggin wrote:
+>>>>
+>>>> Linus: on x86, memory operations to wc and wc+ memory are not ordered
+>>>> with one another, or operations to other memory types (ie. load/load
+>>>> and store/store reordering is allowed). Also, as you know, store/load
+>>>> reordering is explicitly allowed as well, which covers all memory
+>>>> types. So perhaps it is not quite true to say readl/writel is strongly
+>>>> ordered by default even on x86. You would have to put in some
+>>>> mfence instructions in them to make it so.
+>>
+>> So on x86, these could be re-ordered?
+>>
+>> writel(START_OPERATION, CONTROL_REGISTER);
+>> status = readl(STATUS_REGISTER);
 >
-> This whole thread also ties in with my posts about mmiowb (which IMO
-> should go away).
->
-> readl/writel:  strongly ordered wrt one another and other stores
->               to cacheable RAM, byteswapping
-> __readl/__writel:  not ordered (needs mb/rmb/wmb to order with
->                   other readl/writel and cacheable operations, or
->                   io_*mb to order with one another)
-> raw_readl/raw_writel:  strongly ordered, no byteswapping
-> __raw_readl/__raw_writel:  not ordered, no byteswapping
+> You wouldn't ask for write-combining memory mapping for control or
+> status registers.
 
-Byte-swapping vs not byte-swapping is not usually what the programmer wants. 
-Usually your device's registers are defined as being big-endian or
-little-endian and you want whatever is needed to give you that.
-
-I believe that on some archs that can be either byte order, some built-in
-devices will change their registers to match, and so you want "native endian"
-or no swapping for these.  Though that's definitely in the minority.
-
-An accessors that always byte-swaps regardless of the endianness of the host
-is never something I've seen a driver want.
-
-IOW, there are four ways one can defined endianness/swapping:
-1) Little-endian
-2) Big-endian
-3) Native-endian aka non-byte-swapping
-4) Foreign-endian aka byte-swapping
-
-1 and 2 are by far the most used.  Some code wants 3.  No one wants 4.  Yet
-our API is providing 3 & 4, the two which are the least useful.
-
-Is it enough to provide only "all or none" for ordering strictness?  For
-instance on powerpc, one can get a speedup by dropping strict ordering for IO
-vs cacheable memory, but still keeping ordering for IO vs IO and IO vs locks. 
-This is much easier to program for than no ordering at all.  In fact, if one
-doesn't use coherent DMA, it's basically the same as fully strict ordering.
+But Nick said, "store/load reordering is explicitly allowed as well, which
+covers *all* memory types."
