@@ -1,76 +1,61 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Trent Piepho <tpiepho@freescale.com>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Tue, 3 Jun 2008 19:46:44 -0700 (PDT)
-Message-ID: <alpine.LFD.1.10.0806031932370.3473@woody.linux-foundation.org>
-References: <1211852026.3286.36.camel@pasglop> <Pine.LNX.4.64.0806031130130.3242@t2.domain.actdsltmp> <alpine.LFD.1.10.0806031153360.3473@woody.linux-foundation.org> <200806041205.45833.nickpiggin@yahoo.com.au>
+Date: Tue, 3 Jun 2008 23:39:06 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0806032307580.3242@t2.domain.actdsltmp>
+References: <1211852026.3286.36.camel@pasglop> <20080603213310.GC3549@parisc-linux.org>
+ <Pine.LNX.4.64.0806031439520.3242@t2.domain.actdsltmp>
+ <200806041225.50058.nickpiggin@yahoo.com.au>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:47684 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752143AbYFDCre (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2008 22:47:34 -0400
-In-Reply-To: <200806041205.45833.nickpiggin@yahoo.com.au>
+Received: from az33egw01.freescale.net ([192.88.158.102]:34164 "EHLO
+	az33egw01.freescale.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751529AbYFDGkE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jun 2008 02:40:04 -0400
+In-Reply-To: <200806041225.50058.nickpiggin@yahoo.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: Trent Piepho <tpiepho@freescale.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
-
-
+Cc: Matthew Wilcox <matthew@wil.cx>, Russell King <rmk+lkml@arm.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
 
 On Wed, 4 Jun 2008, Nick Piggin wrote:
-> 
-> Actually, according to the document I am looking at (the AMD one), a UC
-> store may pass a previous WC store.
+> On Wednesday 04 June 2008 07:44, Trent Piepho wrote:
+>> On Tue, 3 Jun 2008, Matthew Wilcox wrote:
+>
+>>> I don't understand why you keep talking about DMA.  Are you talking
+>>> about ordering between readX() and DMA?  PCI proides those guarantees.
+>>
+>> I guess you haven't been reading the whole thread.  The reason it started
+>> was because gcc can re-order powerpc (and everyone else's too) IO accesses
+>> vs accesses to cachable memory (but not spin-locks), which ends up only
+>> being a problem with coherent DMA.
+>
+> I don't think it is only a problem with coherent DMA.
+>
+> CPU0                         CPU1
+> mutex_lock(mutex);
+> writel(something, DATA_REG);
+> writel(GO, CTRL_REG);
+> started = 1;
+ 	(A)
+> mutex_unlock(mutex);
+>                             mutex_lock(mutex);
+ 	(B)
+>                             if (started)
+>                               /* oops, this can reach device before GO */
+>                               writel(STOP, CTRL_REG);
 
-Hmm. Intel arch manyal, Vol 3, 10.3 (page 10-7 in my version):
+The locks themselves should have (and do have) ordering operations to insure
+gcc and/or the cpu can't move a store or load outside the locked region. 
+Generally you need that to keep stores/loads to cacheable memory inside the
+critical area, much less I/O operations.  Otherwise all you have to do is
+replace writel(something, ...) with shared_data->something = ...  and there's
+an obvious problem.  In your example, gcc currently can and will move the GO
+operation to point A (if it can figure out that CTRL_REG and started aren't
+aliased), but that's not a problem.  If it could move it to B that would be a
+problem, but it can't.
 
-  "If the WC bufer is partially filled, the writes may be delayed until 
-   the next ocurrence of a serializing event; such as, an SFENCE or MFENCE 
-   instruction, CPUID execution, a read or write to uncached memory, ..."
-
-Any typos mine.
-
-Anyway, Intel certainly seems to document that WC memory is serialized by 
-any access to UC memory.
-
-But yes, I can well imagine that AMD is different, and I also heartily 
-would recommend rather being safe than sorry. Putting an explicit memory 
-barrier in between those accesses when you know it might make a difference 
-is just a good idea. 
-
-But basically, as far as I know the thing was designed to be invisible to 
-old software: that is the whole idea behind WC memory. So the design was 
-certainly intended to be that you can generally mark a framebuffer-like 
-structure WC without any software _ever_ caring, as long as you keep all 
-control ports in UC memory.
-
-Of course, because burst writes from the WC buffer are <i>so</i> much more 
-efficient on the PCI bus than dribbling them out one write at a time, it 
-didn't take long before all the graphics cards etc wanted to <i>also</i> 
-mark their command queues as WC memory, so that you could burst out the 
-commands to the ring buffers as fast as possible. So now you have both 
-your frame buffer *and* your command buffers mapped WC, and now ordering 
-really has to be ensured in software if you access both.
-
-[ And then there are the crazy people who mark *main memory* as WC, 
-  because they don't want to pollute the cache with all the data, and then 
-  you have the issue of cache coherency etc crap. Which only gets worse 
-  with SMP, especially if one processor thinks it has part of memory 
-  exclusively cached, and another one - or even the same one, 
-  through another aliasign address - ignores the cache protocol.
-
-  And you now get unhappy CPU's that think that there is a bug in the 
-  cache protocol and they get machine check faults.
-
-  So what started out as a "we can do accesses to the frame buffer more 
-  efficiently without anybody ever even having to know or care" has 
-  turned into a whole nightmare of people using it for other things, and 
-  then you very much _do_ have to care! ]
-
-And it doesn't surprise me if AMD then didn't get exactly the same 
-rules. 
-
-Oh, well.
-
-		Linus
+Other than coherent DMA, I don't think there is any reason to care if I/O
+accessors are strongly ordered wrt load/stores to cacheable memory.  locking
+and streaming DMA sync operations already need to have ordering, so they don't
+require all I/O to be ordered wrt all cacheable memory.
