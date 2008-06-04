@@ -1,36 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:39500 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756753AbYFCW7h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jun 2008 18:59:37 -0400
-Date: Wed, 4 Jun 2008 07:58:40 +0900
-Subject: Re: [PATCH -mm] clean up duplicated alloc/free_thread_info
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-In-Reply-To: <26320.1212484490@redhat.com>
-References: <20080603140620S.fujita.tomonori@lab.ntt.co.jp>
-	<26320.1212484490@redhat.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Received: from smtp105.mail.mud.yahoo.com ([209.191.85.215]:37671 "HELO
+	smtp105.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1751847AbYFDCcn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2008 22:32:43 -0400
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+Subject: Re: MMIO and gcc re-ordering issue
+Date: Wed, 4 Jun 2008 12:25:49 +1000
+References: <1211852026.3286.36.camel@pasglop> <20080603213310.GC3549@parisc-linux.org> <Pine.LNX.4.64.0806031439520.3242@t2.domain.actdsltmp>
+In-Reply-To: <Pine.LNX.4.64.0806031439520.3242@t2.domain.actdsltmp>
+MIME-Version: 1.0
+Content-Disposition: inline
+Message-ID: <200806041225.50058.nickpiggin@yahoo.com.au>
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Message-ID: <20080604080140T.fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: dhowells@redhat.com
-Cc: fujita.tomonori@lab.ntt.co.jp, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Message-ID: <20080603225840.JugsNE3Y9DWCW-aLtCq_SCDT9CNFvJIyNeysCg6WztM@z>
+To: Trent Piepho <tpiepho@freescale.com>
+Cc: Matthew Wilcox <matthew@wil.cx>, Russell King <rmk+lkml@arm.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
+Message-ID: <20080604022549.d2RYbO0vAb-ZZmSBsQjkssSkHUfscQbg5Sj8Bijguc4@z>
 
-On Tue, 03 Jun 2008 10:14:50 +0100
-David Howells <dhowells@redhat.com> wrote:
+On Wednesday 04 June 2008 07:44, Trent Piepho wrote:
+> On Tue, 3 Jun 2008, Matthew Wilcox wrote:
 
-> FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp> wrote:
-> 
-> > - frv, m32r, mips, mn10300, and sh uses kmalloc/kfree instead of
-> > __get_free_pages/free_pages. I let them alone but it could remove more
-> > code if __get_free_pages/free_pages works for them.
-> 
-> On FRV, PAGE_SIZE is 16Kb, THREAD_SIZE is half that.
+> > I don't understand why you keep talking about DMA.  Are you talking
+> > about ordering between readX() and DMA?  PCI proides those guarantees.
+>
+> I guess you haven't been reading the whole thread.  The reason it started
+> was because gcc can re-order powerpc (and everyone else's too) IO accesses
+> vs accesses to cachable memory (but not spin-locks), which ends up only
+> being a problem with coherent DMA.
 
-Thanks,
+I don't think it is only a problem with coherent DMA.
 
-From a quick look, seems that on m32r, mips, mn10300, and sh,
-THREAD_SIZE is a multiple of PAGE_SIZE.
+CPU0                         CPU1
+mutex_lock(mutex);
+writel(something, DATA_REG);
+writel(GO, CTRL_REG);
+started = 1;
+mutex_unlock(mutex);
+                             mutex_lock(mutex);
+                             if (started)
+                               /* oops, this can reach device before GO */
+                               writel(STOP, CTRL_REG);
+                               
