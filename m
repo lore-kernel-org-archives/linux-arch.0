@@ -1,56 +1,73 @@
-From: Mike Travis <travis@sgi.com>
-Subject: Re: [patch 02/41] cpu alloc: The allocator
-Date: Wed, 04 Jun 2008 08:30:23 -0700
-Message-ID: <4846B50F.5060808@sgi.com>
-References: <20080530035620.587204923@sgi.com> <483F8AF7.9000309@cosmosbay.com> <Pine.LNX.4.64.0805292219220.12107@schroedinger.engr.sgi.com> <200805301552.25423.rusty@rustcorp.com.au>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: MMIO and gcc re-ordering issue
+Date: Wed, 4 Jun 2008 08:31:58 -0700 (PDT)
+Message-ID: <alpine.LFD.1.10.0806040811350.3473@woody.linux-foundation.org>
+References: <1211852026.3286.36.camel@pasglop> <20080526.184047.88207142.davem@davemloft.net> <1211854540.3286.42.camel@pasglop> <20080526.192812.184590464.davem@davemloft.net> <1211859542.3286.46.camel@pasglop> <alpine.LFD.1.10.0805270833060.2958@woody.linux-foundation.org>
+ <1211922621.3286.80.camel@pasglop> <alpine.LFD.1.10.0805271421570.2958@woody.linux-foundation.org> <1211924335.3286.89.camel@pasglop> <20080527214241.GA22636@parisc-linux.org> <1211926636.3286.100.camel@pasglop> <20080528103648.54eb8734@hskinnemo-gx745.norway.atmel.com>
+ <1212110003.15633.0.camel@pasglop> <20080530080700.773a82cc@siona.local> <1212132267.15633.69.camel@pasglop> <20080530102706.56fca248@siona.local> <Pine.LNX.4.64.0805301120510.26332@anakin> <20080602101102.0d8979c5@hskinnemo-gx745.norway.atmel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:60880 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1750959AbYFDPa0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jun 2008 11:30:26 -0400
-In-Reply-To: <200805301552.25423.rusty@rustcorp.com.au>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:49938 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753124AbYFDPdE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jun 2008 11:33:04 -0400
+In-Reply-To: <20080602101102.0d8979c5@hskinnemo-gx745.norway.atmel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Christoph Lameter <clameter@sgi.com>, Eric Dumazet <dada1@cosmosbay.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>
+To: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, benh@kernel.crashing.org, Matthew Wilcox <matthew@wil.cx>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
 
-Rusty Russell wrote:
-> On Friday 30 May 2008 15:20:45 Christoph Lameter wrote:
->> On Fri, 30 May 2008, Eric Dumazet wrote:
->>>> +static DEFINE_PER_CPU(UNIT_TYPE, area[UNITS]);
->>> area[] is not guaranteed to be aligned on anything but 4 bytes.
->>>
->>> If someone then needs to call cpu_alloc(8, GFP_KERNEL, 8), it might get
->>> an non aligned result.
->>>
->>> Either you should add an __attribute__((__aligned__(PAGE_SIZE))),
->>> or take into account the real address of area[] in cpu_alloc() to avoid
->>> waste of up to PAGE_SIZE bytes
->>> per cpu.
->> I think cacheline aligning should be sufficient. People should not
->> allocate large page aligned objects here.
+
+
+On Mon, 2 Jun 2008, Haavard Skinnemoen wrote:
 > 
-> I vaguely recall there were issues with this in the module code.  They might 
-> be gone now, but failing to meet alignment contraints without a big warning 
-> would suck.
+> > So what happened to the old idea of putting the accessor function pointers
+> > in the device/bus structure?
 > 
-> But modifying your code to consider the actual alignment is actually pretty 
-> trivial, AFAICT.
-> 
-> Cheers,
-> Rusty.
+> Don't know. I think it sounds like overkill to replace a simple load or
+> store with an indirect function call.
 
-So paraphrasing my earlier email, we should add:
+Indeed. *Especially* as the driver in practice tends to always know which 
+one it is statically.
 
-	bitmap_find_free_area(bitmap, nbits, size, align, alignbase)
+Yes, sometimes the same RTL may end up being used behind two differnt 
+buses, and with some broken byte-conversion hardware in the middle, but 
+that's pretty damn rare in the end. It happens, but it happens mostly with 
+the odd broken kind of embedded setups where somebody took a standard part 
+and then did something _strange_ to it - and in the process they may well 
+have introduced other issues as well.
 
-so that > cacheline alignment is possible?
+I suspect you find this kind of thing mostly with things like stupid 
+integrated IDE controllers, and things like byte order tends to be the 
+_least_ of the issues (specialized register accesses with odd offsets etc 
+will happen).
 
-My thinking is that if we do go to true dynamically sized cpu_alloc area then
-allocating PAGE_SIZE units may be both practical and worthwhile...?
+So most of the time the byte order is simply decided by the hardware 
+itself (and LE is the common one, due to ISA/PCI). Sometimes you can set 
+it dynamically (at which point it's irrelevant - just pick the one you 
+want).
 
-Thanks,
-Mike
+So I definitely argue against complex IO accessor functions with things 
+like dynamic support for byte order depending on bus. 99.9% of all 
+hardware simply do not need them, and the small percentage that might need 
+it will need special drivers anyway, so they might as well do the 
+complexity on their own rather than make everybody else care.
+
+See for example the input driver for the i8042 chip: not only do those 
+things sometimes need native order (probably exactly because it's 
+integrated on a chip over some special "native bus", or just wired up to 
+be big-endian on a BE platform by some moron), but you'll also find that 
+they just need odd accesses anyway exactly because it's oddly wired up 
+(eg it's some special serial protocol that emulates ISA accesses).
+
+So having some "byte-order correcting function" still wouldn't make any 
+sense, because it's not just about byte order.
+
+Will that mean that you might occasionally have a "normal" driver and an 
+"odd" driver that actually drives what is basically the same HW block, 
+just wired up differently? Sure. But that's still a smaller price to pay 
+than it would be to try to make everything be "generic" when there is no 
+point to it.
+
+			Linus
