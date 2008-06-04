@@ -1,29 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtpeu1.atmel.com ([195.65.72.27]:32991 "EHLO bagnes.atmel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752444AbYFDIqT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Jun 2008 04:46:19 -0400
-Date: Wed, 4 Jun 2008 10:46:32 +0200
-From: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
-Subject: Re: [PATCH -mm] clean up duplicated alloc/free_thread_info
-Message-ID: <20080604104632.45299954@hskinnemo-gx745.norway.atmel.com>
-In-Reply-To: <20080604080242P.fujita.tomonori@lab.ntt.co.jp>
-References: <20080603140620S.fujita.tomonori@lab.ntt.co.jp>
-	<20080603123112.0d58e193@hskinnemo-gx745.norway.atmel.com>
-	<20080604080242P.fujita.tomonori@lab.ntt.co.jp>
+Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:55954 "EHLO
+	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1750764AbYFDMDC convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jun 2008 08:03:02 -0400
+Date: Wed, 4 Jun 2008 12:47:14 +0100
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Subject: Re: MMIO and gcc re-ordering issue
+Message-ID: <20080604124714.55dbce65@core>
+In-Reply-To: <alpine.LFD.1.10.0806031932370.3473@woody.linux-foundation.org>
+References: <1211852026.3286.36.camel@pasglop>
+	<Pine.LNX.4.64.0806031130130.3242@t2.domain.actdsltmp>
+	<alpine.LFD.1.10.0806031153360.3473@woody.linux-foundation.org>
+	<200806041205.45833.nickpiggin@yahoo.com.au>
+	<alpine.LFD.1.10.0806031932370.3473@woody.linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Message-ID: <20080604084632.oTQ9NbwJ3W5OYETfIOsd0XKSovvPeDybNghGkuRjC_c@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Trent Piepho <tpiepho@freescale.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, linux-kernel@vger.kernel.org
+Message-ID: <20080604114714.dcLQ0HoJQ2Zxnvl2IkVlH6aWrryP9KjkzvH13p13uRE@z>
 
-FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp> wrote:
-> I can just remove the duplicated defines on avr32 since avr32 has
-> THREAD_SIZE_ORDER define and uses __get_free_pages/free_pages.
+> Anyway, Intel certainly seems to document that WC memory is serialized by 
+> any access to UC memory.
 
-Yeah, that should do it. Thanks!
+I don't believe that is actually true on Pentium Pro at least.
 
-Haavard
+>   So what started out as a "we can do accesses to the frame buffer more 
+>   efficiently without anybody ever even having to know or care" has 
+>   turned into a whole nightmare of people using it for other things, and 
+>   then you very much _do_ have to care! ]
+
+Notably graphics where 3Dfx lined the registers up specifically to make
+this work. We were also using it with I²O where it gave a small
+performance gain.
+
+Alan
