@@ -1,37 +1,106 @@
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Wed, 4 Jun 2008 12:47:14 +0100
-Message-ID: <20080604124714.55dbce65@core>
-References: <1211852026.3286.36.camel@pasglop>
-	<Pine.LNX.4.64.0806031130130.3242@t2.domain.actdsltmp>
-	<alpine.LFD.1.10.0806031153360.3473@woody.linux-foundation.org>
-	<200806041205.45833.nickpiggin@yahoo.com.au>
-	<alpine.LFD.1.10.0806031932370.3473@woody.linux-foundation.org>
+From: Mike Travis <travis@sgi.com>
+Subject: Re: [patch 02/41] cpu alloc: The allocator
+Date: Wed, 04 Jun 2008 07:48:34 -0700
+Message-ID: <4846AB42.5070402@sgi.com>
+References: <20080530035620.587204923@sgi.com>	<20080530040011.084909898@sgi.com> <20080529215833.469c3cbe.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1760727AbYFDMDT@vger.kernel.org>
-In-Reply-To: <alpine.LFD.1.10.0806031932370.3473@woody.linux-foundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Trent Piepho <tpiepho@freescale.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from relay2.sgi.com ([192.48.171.30]:41676 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753342AbYFDOsh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Jun 2008 10:48:37 -0400
+In-Reply-To: <20080529215833.469c3cbe.akpm@linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Christoph Lameter <clameter@sgi.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>
 
-> Anyway, Intel certainly seems to document that WC memory is serialize=
-d by=20
-> any access to UC memory.
 
-I don't believe that is actually true on Pentium Pro at least.
+Andrew Morton wrote:
+...
+>> +/*
+>> + * Mark an object as used in the cpu_alloc_map
+>> + *
+>> + * Must hold cpu_alloc_map_lock
+>> + */
+>> +static void set_map(int start, int length)
+>> +{
+>> +	while (length-- > 0)
+>> +		__set_bit(start++, cpu_alloc_map);
+>> +}
+> 
+> bitmap_fill()?
+> 
+>> +/*
+>> + * Mark an area as freed.
+>> + *
+>> + * Must hold cpu_alloc_map_lock
+>> + */
+>> +static void clear_map(int start, int length)
+>> +{
+>> +	while (length-- > 0)
+>> +		__clear_bit(start++, cpu_alloc_map);
+>> +}
+> 
+> bitmap_zero()?
+...
+>> +void *cpu_alloc(unsigned long size, gfp_t gfpflags, unsigned long align)
+>> +{
+>> +	unsigned long start;
+>> +	int units = size_to_units(size);
+>> +	void *ptr;
+>> +	int first;
+>> +	unsigned long flags;
+>> +
+>> +	if (!size)
+>> +		return ZERO_SIZE_PTR;
+> 
+> OK, so we reuse ZERO_SIZE_PTR from kmalloc.
+> 
+>> +	spin_lock_irqsave(&cpu_alloc_map_lock, flags);
+>> +
+>> +	first = 1;
+>> +	start = first_free;
+>> +
+>> +	for ( ; ; ) {
+>> +
+>> +		start = find_next_zero_bit(cpu_alloc_map, UNITS, start);
+>> +		if (start >= UNITS)
+>> +			goto out_of_memory;
+>> +
+>> +		if (first)
+>> +			first_free = start;
+>> +
+>> +		/*
+>> +		 * Check alignment and that there is enough space after
+>> +		 * the starting unit.
+>> +		 */
+>> +		if (start % (align / UNIT_SIZE) == 0 &&
+>> +			find_next_bit(cpu_alloc_map, UNITS, start + 1)
+>> +							>= start + units)
+>> +				break;
+>> +		start++;
+>> +		first = 0;
+>> +	}
+> 
+> This is kinda bitmap_find_free_region(), only bitmap_find_free_region()
+> isn't quite strong enough.
+> 
+> Generally I think it would have been better if you had added new
+> primitives to the bitmap library (or enhanced existing ones) and used
+> them here, rather than implementing private functionality.
 
->   So what started out as a "we can do accesses to the frame buffer mo=
-re=20
->   efficiently without anybody ever even having to know or care" has=20
->   turned into a whole nightmare of people using it for other things, =
-and=20
->   then you very much _do_ have to care! ]
+Hi Andrew,
 
-Notably graphics where 3Dfx lined the registers up specifically to make
-this work. We were also using it with I=C2=B2O where it gave a small
-performance gain.
+I've sort of inherited this now...
 
-Alan
+So are you suggesting that we add new bitmap primitives to:
+
+	bitmap_fill_offset(bitmap, start, nbits)   /* start at bitmap[start] */
+	bitmap_zero_offset(bitmap, start, nbits)
+	bitmap_find_free_area(bitmap, nbits, size, align)  /* size not order */
+
+Thanks,
+Mike 
