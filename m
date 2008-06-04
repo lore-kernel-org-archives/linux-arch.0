@@ -1,65 +1,104 @@
-From: Andy Whitcroft <apw@shadowen.org>
-Subject: Re: [patch 1/5] x86: implement pte_special
-Date: Wed, 4 Jun 2008 18:14:31 +0100
-Message-ID: <20080604171431.GD26120@shadowen.org>
-References: <20080529122050.823438000@nick.local0.net> <20080529122602.062780000@nick.local0.net> <20080602165847.dd19ddb1.akpm@linux-foundation.org>
+From: Mike Travis <travis@sgi.com>
+Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu
+ operations
+Date: Wed, 04 Jun 2008 11:18:19 -0700
+Message-ID: <4846DC6B.6030802@sgi.com>
+References: <20080530035620.587204923@sgi.com> <200805301708.51284.rusty@rustcorp.com.au> <Pine.LNX.4.64.0805301055270.14564@schroedinger.engr.sgi.com> <200806021200.41652.rusty@rustcorp.com.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hellhawk.shadowen.org ([80.68.90.175]:3126 "EHLO
-	hellhawk.shadowen.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752427AbYFDROs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jun 2008 13:14:48 -0400
-Content-Disposition: inline
-In-Reply-To: <20080602165847.dd19ddb1.akpm@linux-foundation.org>
+Received: from relay2.sgi.com ([192.48.171.30]:55000 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752599AbYFDSSW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Jun 2008 14:18:22 -0400
+In-Reply-To: <200806021200.41652.rusty@rustcorp.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: npiggin@suse.de, shaggy@austin.ibm.com, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Christoph Lameter <clameter@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>
 
-On Mon, Jun 02, 2008 at 04:58:47PM -0700, Andrew Morton wrote:
-> On Thu, 29 May 2008 22:20:51 +1000
-> npiggin@suse.de wrote:
-> 
-> > Implement the pte_special bit for x86. This is required to support lockless
-> > get_user_pages, because we need to know whether or not we can refcount a
-> > particular page given only its pte (and no vma).
-> 
-> Spits this reject:
-> 
-> ***************
-> *** 39,44 ****
->   #define _PAGE_UNUSED3	(_AC(1, L)<<_PAGE_BIT_UNUSED3)
->   #define _PAGE_PAT	(_AC(1, L)<<_PAGE_BIT_PAT)
->   #define _PAGE_PAT_LARGE (_AC(1, L)<<_PAGE_BIT_PAT_LARGE)
->   
->   #if defined(CONFIG_X86_64) || defined(CONFIG_X86_PAE)
->   #define _PAGE_NX	(_AC(1, ULL) << _PAGE_BIT_NX)
-> --- 40,47 ----
->   #define _PAGE_UNUSED3	(_AC(1, L)<<_PAGE_BIT_UNUSED3)
->   #define _PAGE_PAT	(_AC(1, L)<<_PAGE_BIT_PAT)
->   #define _PAGE_PAT_LARGE (_AC(1, L)<<_PAGE_BIT_PAT_LARGE)
-> + #define _PAGE_SPECIAL	(_AC(1, L)<<_PAGE_BIT_SPECIAL)
-> + #define __HAVE_ARCH_PTE_SPECIAL
->   
->   #if defined(CONFIG_X86_64) || defined(CONFIG_X86_PAE)
->   #define _PAGE_NX	(_AC(1, ULL) << _PAGE_BIT_NX)
-> 
-> Which I fixed thusly:
-> 
-> #define _PAGE_PAT	(_AT(pteval_t, 1) << _PAGE_BIT_PAT)
-> #define _PAGE_PAT_LARGE (_AT(pteval_t, 1) << _PAGE_BIT_PAT_LARGE)
-> #define _PAGE_SPECIAL	(_AT(pteval_t, 1) << _PAGE_BIT_SPECIAL)
-> #define __HAVE_ARCH_PTE_SPECIAL
-> 
-> 
-> OK?
-> 
-> 
-> (Also please check the bunch of checkpatch fixes, a warning fix and a
-> compile fix).
 
-That looks a sane merge to me.  I had a quick look over the various
-fixes and they all look fine to me.
+> cpu_local_inc() does all this: it takes the name of a local_t var, and is 
+> expected to increment this cpu's version of that.  You ripped this out and 
+> called it CPU_INC().
 
--apw
+Hi,
+
+I'm attempting to test both approaches to compare the object generated in order
+to understand the issues involved here.  Here's my code:
+
+        void test_cpu_inc(int *s)
+        {
+                __CPU_INC(s);
+        }
+
+        void test_local_inc(local_t *t)
+        {
+                __local_inc(THIS_CPU(t));
+        }
+
+        void test_cpu_local_inc(local_t *t)
+        {
+                __cpu_local_inc(t);
+        }
+
+But I don't know how I can use cpu_local_inc because the pointer to the object
+is not &__get_cpu_var(l):
+
+	#define __cpu_local_inc(l)      cpu_local_inc((l))
+	#define cpu_local_inc(l)     cpu_local_wrap(local_inc(&__get_cpu_var((l))))
+
+At the minimum, we would need a new local_t op to get the correct CPU_ALLOC'd
+pointer value for the increment.  These new local_t ops for CPU_ALLOC'd variables
+could use CPU_XXX primitives to implement them, or just a base val_to_ptr primitive
+to replace __get_cpu_var().
+
+I did notice this in local.h:
+
+	 * X86_64: This could be done better if we moved the per cpu data directly
+	 * after GS.
+
+... which it now is, so true per_cpu variables could be optimized better as well.
+
+Also, the above cpu_local_wrap(...) adds:
+
+	#define cpu_local_wrap(l)               \
+	({                                      \
+	        preempt_disable();              \
+	        (l);                            \
+	        preempt_enable();               \
+	})                                      \
+
+... and there isn't a non-preemption version that I can find.
+
+Here are the objects.  
+
+0000000000000000 <test_cpu_inc>:
+   0:   55                      push   %rbp
+   1:   48 89 e5                mov    %rsp,%rbp
+   4:   48 83 ec 08             sub    $0x8,%rsp
+   8:   48 89 7d f8             mov    %rdi,0xfffffffffffffff8(%rbp)
+   c:   65 48 ff 45 f8          incq   %gs:0xfffffffffffffff8(%rbp)
+  11:   c9                      leaveq
+  12:   c3                      retq
+
+0000000000000013 <test_local_inc>:
+  13:   55                      push   %rbp
+  14:   65 48 8b 05 00 00 00    mov    %gs:0(%rip),%rax        # 1c <test_local_inc+0x9>
+  1b:   00
+  1c:   48 89 e5                mov    %rsp,%rbp
+  1f:   48 ff 04 07             incq   (%rdi,%rax,1)
+  23:   c9                      leaveq
+  24:   c3                      retq
+
+
+With a new local_t op then test_local_inc probably could be optimized to be
+the same instructions as test_cpu_inc.
+
+One other distinction is CPU_INC increments an arbitrary sized variable
+while local_inc requires a local_t variable.  This may not make it usable
+in all cases.
+
+Thanks,
+Mike
