@@ -1,43 +1,54 @@
 From: Mike Travis <travis@sgi.com>
-Subject: Re: [patch 02/41] cpu alloc: The allocator
-Date: Wed, 04 Jun 2008 08:04:22 -0700
-Message-ID: <4846AEF6.2020107@sgi.com>
-References: <20080530035620.587204923@sgi.com> <20080530040011.084909898@sgi.com> <200805301546.49627.rusty@rustcorp.com.au>
+Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
+Date: Wed, 04 Jun 2008 08:07:59 -0700
+Message-ID: <4846AFCF.30500@sgi.com>
+References: <20080530035620.587204923@sgi.com> <20080529215827.b659d032.akpm@linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay2.sgi.com ([192.48.171.30]:56911 "EHLO relay.sgi.com"
+Received: from relay2.sgi.com ([192.48.171.30]:53116 "EHLO relay.sgi.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754856AbYFDPEZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Jun 2008 11:04:25 -0400
-In-Reply-To: <200805301546.49627.rusty@rustcorp.com.au>
+	id S1750895AbYFDPIB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Jun 2008 11:08:01 -0400
+In-Reply-To: <20080529215827.b659d032.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Christoph Lameter <clameter@sgi.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Christoph Lameter <clameter@sgi.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>
 
-Rusty Russell wrote:
-> On Friday 30 May 2008 13:56:22 Christoph Lameter wrote:
->> The per cpu allocator allows dynamic allocation of memory on all
->> processors simultaneously. A bitmap is used to track used areas.
->> The allocator implements tight packing to reduce the cache footprint
->> and increase speed since cacheline contention is typically not a concern
->> for memory mainly used by a single cpu. Small objects will fill up gaps
->> left by larger allocations that required alignments.
+Andrew Morton wrote:
+> On Thu, 29 May 2008 20:56:20 -0700 Christoph Lameter <clameter@sgi.com> wrote:
 > 
-> Allocator seems nice and simple, similar to existing one in module.c (which 
-> predates cool bitmap operators).
+>> In various places the kernel maintains arrays of pointers indexed by
+>> processor numbers. These are used to locate objects that need to be used
+>> when executing on a specirfic processor. Both the slab allocator
+>> and the page allocator use these arrays and there the arrays are used in
+>> performance critical code. The allocpercpu functionality is a simple
+>> allocator to provide these arrays.
 > 
-> Being able to do per-cpu allocations in an interrupt handler seems like 
-> encouraging a Bad Idea though: I'd be tempted to avoid the flags word, always 
-> zero, and use a mutex instead of a spinlock.
+> All seems reasonable to me.  The obvious question is "how do we size
+> the arena".  We either waste memory or, much worse, run out.
 > 
-> Cheers,
-> Rusty.
+> And running out is a real possibility, I think.  Most people will only
+> mount a handful of XFS filesystems.  But some customer will come along
+> who wants to mount 5,000, and distributors will need to cater for that,
+> but how can they?
+> 
+> I wonder if we can arrange for the default to be overridden via a
+> kernel boot option?
+> 
+> 
+> Another obvious question is "how much of a problem will we have with
+> internal fragmentation"?  This might be a drop-dead showstopper.
 
-I haven't seen any further discussion on these aspects... is there a consensus
-to remove the flags from CPU_ALLOC() and use a mutex?
+One problem with variable sized cpu_alloc area is this comment in bitmap.h:
+
+ * Note that nbits should be always a compile time evaluable constant.
+ * Otherwise many inlines will generate horrible code.
+
+I'm guessing since this will be of low use and not performance critical,
+then we can ignore the "horrible code"?  ;-)
 
 Thanks,
 Mike
