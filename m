@@ -1,106 +1,53 @@
 From: Mike Travis <travis@sgi.com>
 Subject: Re: [patch 02/41] cpu alloc: The allocator
-Date: Wed, 04 Jun 2008 07:48:34 -0700
-Message-ID: <4846AB42.5070402@sgi.com>
-References: <20080530035620.587204923@sgi.com>	<20080530040011.084909898@sgi.com> <20080529215833.469c3cbe.akpm@linux-foundation.org>
+Date: Wed, 04 Jun 2008 07:58:12 -0700
+Message-ID: <4846AD84.2090800@sgi.com>
+References: <20080530035620.587204923@sgi.com> <20080530040011.084909898@sgi.com> <483F8AF7.9000309@cosmosbay.com> <Pine.LNX.4.64.0805292219220.12107@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay2.sgi.com ([192.48.171.30]:41676 "EHLO relay.sgi.com"
+Received: from relay1.sgi.com ([192.48.171.29]:38996 "EHLO relay.sgi.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753342AbYFDOsh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Jun 2008 10:48:37 -0400
-In-Reply-To: <20080529215833.469c3cbe.akpm@linux-foundation.org>
+	id S1754079AbYFDO6O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Jun 2008 10:58:14 -0400
+In-Reply-To: <Pine.LNX.4.64.0805292219220.12107@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Christoph Lameter <clameter@sgi.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Eric Dumazet <dada1@cosmosbay.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>
 
+Christoph Lameter wrote:
+> On Fri, 30 May 2008, Eric Dumazet wrote:
+> 
+>>> +static DEFINE_PER_CPU(UNIT_TYPE, area[UNITS]);
+>>>   
+>> area[] is not guaranteed to be aligned on anything but 4 bytes.
+>>
+>> If someone then needs to call cpu_alloc(8, GFP_KERNEL, 8), it might get an non
+>> aligned result.
+>>
+>> Either you should add an __attribute__((__aligned__(PAGE_SIZE))),
+>> or take into account the real address of area[] in cpu_alloc() to avoid waste
+>> of up to PAGE_SIZE bytes
+>> per cpu.
+> 
+> I think cacheline aligning should be sufficient. People should not 
+> allocate large page aligned objects here.
 
-Andrew Morton wrote:
-...
->> +/*
->> + * Mark an object as used in the cpu_alloc_map
->> + *
->> + * Must hold cpu_alloc_map_lock
->> + */
->> +static void set_map(int start, int length)
->> +{
->> +	while (length-- > 0)
->> +		__set_bit(start++, cpu_alloc_map);
->> +}
-> 
-> bitmap_fill()?
-> 
->> +/*
->> + * Mark an area as freed.
->> + *
->> + * Must hold cpu_alloc_map_lock
->> + */
->> +static void clear_map(int start, int length)
->> +{
->> +	while (length-- > 0)
->> +		__clear_bit(start++, cpu_alloc_map);
->> +}
-> 
-> bitmap_zero()?
-...
->> +void *cpu_alloc(unsigned long size, gfp_t gfpflags, unsigned long align)
->> +{
->> +	unsigned long start;
->> +	int units = size_to_units(size);
->> +	void *ptr;
->> +	int first;
->> +	unsigned long flags;
->> +
->> +	if (!size)
->> +		return ZERO_SIZE_PTR;
-> 
-> OK, so we reuse ZERO_SIZE_PTR from kmalloc.
-> 
->> +	spin_lock_irqsave(&cpu_alloc_map_lock, flags);
->> +
->> +	first = 1;
->> +	start = first_free;
->> +
->> +	for ( ; ; ) {
->> +
->> +		start = find_next_zero_bit(cpu_alloc_map, UNITS, start);
->> +		if (start >= UNITS)
->> +			goto out_of_memory;
->> +
->> +		if (first)
->> +			first_free = start;
->> +
->> +		/*
->> +		 * Check alignment and that there is enough space after
->> +		 * the starting unit.
->> +		 */
->> +		if (start % (align / UNIT_SIZE) == 0 &&
->> +			find_next_bit(cpu_alloc_map, UNITS, start + 1)
->> +							>= start + units)
->> +				break;
->> +		start++;
->> +		first = 0;
->> +	}
-> 
-> This is kinda bitmap_find_free_region(), only bitmap_find_free_region()
-> isn't quite strong enough.
-> 
-> Generally I think it would have been better if you had added new
-> primitives to the bitmap library (or enhanced existing ones) and used
-> them here, rather than implementing private functionality.
+I'm a bit confused.  Why is DEFINE_PER_CPU_SHARED_ALIGNED() conditioned on
+ifdef MODULE?
 
-Hi Andrew,
+        #ifdef MODULE
+        #define SHARED_ALIGNED_SECTION ".data.percpu"
+        #else
+        #define SHARED_ALIGNED_SECTION ".data.percpu.shared_aligned"
+        #endif
 
-I've sort of inherited this now...
-
-So are you suggesting that we add new bitmap primitives to:
-
-	bitmap_fill_offset(bitmap, start, nbits)   /* start at bitmap[start] */
-	bitmap_zero_offset(bitmap, start, nbits)
-	bitmap_find_free_area(bitmap, nbits, size, align)  /* size not order */
+        #define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)                       \
+                __attribute__((__section__(SHARED_ALIGNED_SECTION)))            \
+                PER_CPU_ATTRIBUTES __typeof__(type) per_cpu__##name             \
+                ____cacheline_aligned_in_smp
 
 Thanks,
-Mike 
+Mike
