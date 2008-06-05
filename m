@@ -1,70 +1,105 @@
 From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [patch 02/41] cpu alloc: The allocator
-Date: Fri, 6 Jun 2008 09:48:24 +1000
-Message-ID: <200806060948.25074.rusty@rustcorp.com.au>
-References: <20080530035620.587204923@sgi.com> <200805301552.25423.rusty@rustcorp.com.au> <4846B50F.5060808@sgi.com>
+Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu operations
+Date: Fri, 6 Jun 2008 09:59:12 +1000
+Message-ID: <200806060959.13362.rusty@rustcorp.com.au>
+References: <20080530035620.587204923@sgi.com> <200806021200.41652.rusty@rustcorp.com.au> <4846DC6B.6030802@sgi.com>
 Mime-Version: 1.0
 Content-Type: text/plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:60703 "EHLO ozlabs.org"
+Received: from ozlabs.org ([203.10.76.45]:44433 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753263AbYFEXsa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 5 Jun 2008 19:48:30 -0400
-In-Reply-To: <4846B50F.5060808@sgi.com>
+	id S1752850AbYFEX7S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 5 Jun 2008 19:59:18 -0400
+In-Reply-To: <4846DC6B.6030802@sgi.com>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Mike Travis <travis@sgi.com>
-Cc: Christoph Lameter <clameter@sgi.com>, Eric Dumazet <dada1@cosmosbay.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>
+Cc: Christoph Lameter <clameter@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>
 
-On Thursday 05 June 2008 01:30:23 Mike Travis wrote:
-> Rusty Russell wrote:
-> > On Friday 30 May 2008 15:20:45 Christoph Lameter wrote:
-> >> On Fri, 30 May 2008, Eric Dumazet wrote:
-> >>>> +static DEFINE_PER_CPU(UNIT_TYPE, area[UNITS]);
-> >>>
-> >>> area[] is not guaranteed to be aligned on anything but 4 bytes.
-> >>>
-> >>> If someone then needs to call cpu_alloc(8, GFP_KERNEL, 8), it might get
-> >>> an non aligned result.
-> >>>
-> >>> Either you should add an __attribute__((__aligned__(PAGE_SIZE))),
-> >>> or take into account the real address of area[] in cpu_alloc() to avoid
-> >>> waste of up to PAGE_SIZE bytes
-> >>> per cpu.
-> >>
-> >> I think cacheline aligning should be sufficient. People should not
-> >> allocate large page aligned objects here.
-> >
-> > I vaguely recall there were issues with this in the module code.  They
-> > might be gone now, but failing to meet alignment contraints without a big
-> > warning would suck.
-> >
-> > But modifying your code to consider the actual alignment is actually
-> > pretty trivial, AFAICT.
-> >
-> > Cheers,
-> > Rusty.
+On Thursday 05 June 2008 04:18:19 Mike Travis wrote:
+> > cpu_local_inc() does all this: it takes the name of a local_t var, and is
+> > expected to increment this cpu's version of that.  You ripped this out
+> > and called it CPU_INC().
 >
-> So paraphrasing my earlier email, we should add:
+> Hi,
 >
-> 	bitmap_find_free_area(bitmap, nbits, size, align, alignbase)
+> I'm attempting to test both approaches to compare the object generated in
+> order to understand the issues involved here.  Here's my code:
 >
-> so that > cacheline alignment is possible?
+>         void test_cpu_inc(int *s)
+>         {
+>                 __CPU_INC(s);
+>         }
 >
-> My thinking is that if we do go to true dynamically sized cpu_alloc area
-> then allocating PAGE_SIZE units may be both practical and worthwhile...?
+>         void test_local_inc(local_t *t)
+>         {
+>                 __local_inc(THIS_CPU(t));
+>         }
 >
-> Thanks,
-> Mike
+>         void test_cpu_local_inc(local_t *t)
+>         {
+>                 __cpu_local_inc(t);
+>         }
+>
+> But I don't know how I can use cpu_local_inc because the pointer to the
+> object is not &__get_cpu_var(l):
 
-Well, my thinking is that unless we do true dynamic per-cpu, this entire patch 
-series is a non-starter :(
+Yes.  Because the only true per-cpu vars are the static ones, cpu_local_inc() 
+only works on identifiers, not arbitrary pointers.  Once this is fixed, we 
+should be enhancing the infrastructure to allow that (AFAICT it's not too 
+hard, but we should add an __percpu marker for sparse).
 
-Once we have that, we can reopen this.  Then we'll discuss why we're writing a 
-new allocator rather than using the existing one :)
+> At the minimum, we would need a new local_t op to get the correct
+> CPU_ALLOC'd pointer value for the increment.  These new local_t ops for
+> CPU_ALLOC'd variables could use CPU_XXX primitives to implement them, or
+> just a base val_to_ptr primitive to replace __get_cpu_var().
+
+I think the latter: __get_cpu_ptr() perhaps?
+
+> I did notice this in local.h:
+>
+> 	 * X86_64: This could be done better if we moved the per cpu data directly
+> 	 * after GS.
+>
+> ... which it now is, so true per_cpu variables could be optimized better as
+> well.
+
+Indeed.
+
+>
+> Also, the above cpu_local_wrap(...) adds:
+>
+> 	#define cpu_local_wrap(l)               \
+> 	({                                      \
+> 	        preempt_disable();              \
+> 	        (l);                            \
+> 	        preempt_enable();               \
+> 	})                                      \
+>
+> ... and there isn't a non-preemption version that I can find.
+
+Yes, this should be fixed.  I thought i386 had optimized versions pre-merge, 
+but I was wrong (%gs for per-cpu came later, and noone cleaned up these naive 
+versions).  Did you want me to write them?
+
+I actually think that using local_t == atomic_t is better than 
+preempt_disable/enable for most archs which can't do atomic deref-and-inc.
+
+> One other distinction is CPU_INC increments an arbitrary sized variable
+> while local_inc requires a local_t variable.  This may not make it usable
+> in all cases.
+
+You might be right, but note that local_t is 64 bit on 64-bit platforms.  And 
+speculation of possible use cases isn't a good reason to rip out working 
+infrastructure :)
 
 Cheers,
 Rusty.
+
+
+>
+> Thanks,
+> Mike
