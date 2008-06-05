@@ -1,66 +1,32 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [patch 1/5] x86: implement pte_special
-Date: Thu, 5 Jun 2008 04:01:45 +0200
-Message-ID: <20080605020145.GB11811@wotan.suse.de>
-References: <20080529122050.823438000@nick.local0.net> <20080529122602.062780000@nick.local0.net> <20080602165847.dd19ddb1.akpm@linux-foundation.org> <20080604171431.GD26120@shadowen.org>
+From: Jes Sorensen <jes@sgi.com>
+Subject: Re: MMIO and gcc re-ordering issue
+Date: Thu, 05 Jun 2008 10:40:48 +0200
+Message-ID: <4847A690.302@sgi.com>
+References: <1211852026.3286.36.camel@pasglop> <4843C3D7.7000609@sgi.com> <200806031433.12460.nickpiggin@yahoo.com.au> <200806030952.10360.jbarnes@virtuousgeek.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:55196 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752907AbYFECBs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Jun 2008 22:01:48 -0400
-Content-Disposition: inline
-In-Reply-To: <20080604171431.GD26120@shadowen.org>
+Received: from relay1.sgi.com ([192.48.171.29]:52992 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751713AbYFEIky (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 5 Jun 2008 04:40:54 -0400
+In-Reply-To: <200806030952.10360.jbarnes@virtuousgeek.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Whitcroft <apw@shadowen.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, shaggy@austin.ibm.com, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: Jesse Barnes <jbarnes@virtuousgeek.org>
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Jeremy Higdon <jeremy@sgi.com>, Roland Dreier <rdreier@cisco.com>, benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
 
-On Wed, Jun 04, 2008 at 06:14:31PM +0100, Andy Whitcroft wrote:
-> On Mon, Jun 02, 2008 at 04:58:47PM -0700, Andrew Morton wrote:
-> > On Thu, 29 May 2008 22:20:51 +1000
-> > npiggin@suse.de wrote:
-> > 
-> > > Implement the pte_special bit for x86. This is required to support lockless
-> > > get_user_pages, because we need to know whether or not we can refcount a
-> > > particular page given only its pte (and no vma).
-> > 
-> > Spits this reject:
-> > 
-> > ***************
-> > *** 39,44 ****
-> >   #define _PAGE_UNUSED3	(_AC(1, L)<<_PAGE_BIT_UNUSED3)
-> >   #define _PAGE_PAT	(_AC(1, L)<<_PAGE_BIT_PAT)
-> >   #define _PAGE_PAT_LARGE (_AC(1, L)<<_PAGE_BIT_PAT_LARGE)
-> >   
-> >   #if defined(CONFIG_X86_64) || defined(CONFIG_X86_PAE)
-> >   #define _PAGE_NX	(_AC(1, ULL) << _PAGE_BIT_NX)
-> > --- 40,47 ----
-> >   #define _PAGE_UNUSED3	(_AC(1, L)<<_PAGE_BIT_UNUSED3)
-> >   #define _PAGE_PAT	(_AC(1, L)<<_PAGE_BIT_PAT)
-> >   #define _PAGE_PAT_LARGE (_AC(1, L)<<_PAGE_BIT_PAT_LARGE)
-> > + #define _PAGE_SPECIAL	(_AC(1, L)<<_PAGE_BIT_SPECIAL)
-> > + #define __HAVE_ARCH_PTE_SPECIAL
-> >   
-> >   #if defined(CONFIG_X86_64) || defined(CONFIG_X86_PAE)
-> >   #define _PAGE_NX	(_AC(1, ULL) << _PAGE_BIT_NX)
-> > 
-> > Which I fixed thusly:
-> > 
-> > #define _PAGE_PAT	(_AT(pteval_t, 1) << _PAGE_BIT_PAT)
-> > #define _PAGE_PAT_LARGE (_AT(pteval_t, 1) << _PAGE_BIT_PAT_LARGE)
-> > #define _PAGE_SPECIAL	(_AT(pteval_t, 1) << _PAGE_BIT_SPECIAL)
-> > #define __HAVE_ARCH_PTE_SPECIAL
-> > 
-> > 
-> > OK?
-> > 
-> > 
-> > (Also please check the bunch of checkpatch fixes, a warning fix and a
-> > compile fix).
-> 
-> That looks a sane merge to me.  I had a quick look over the various
-> fixes and they all look fine to me.
+Jesse Barnes wrote:
+> Now, in hindsight, using a PIO write set & test flag approach in 
+> writeX/spin_unlock (ala powerpc) might have been a better approach, but iirc 
+> that never came up in the discussion, probably because we were focused on PCI 
+> posting and not uncached vs. cached ordering.
 
-That means we can put your reviewed-by: back? ;)
+Hi Jesse,
+
+I am going to take a stab at implementing this so we can see how much
+of an impact it will have.
+
+Cheers,
+Jes
