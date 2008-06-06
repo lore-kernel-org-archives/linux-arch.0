@@ -1,46 +1,35 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [PATCH 9/10] parisc: convert to generic helpers for IPI
-	function calls
-Date: Fri, 6 Jun 2008 17:11:43 -0400
-Message-ID: <20080606211143.GA20770@phobos.i.cabal.ca>
-References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-10-git-send-email-jens.axboe@oracle.com> <20080531070049.GA6623@phobos.i.cabal.ca> <20080602081749.GG5757@kernel.dk> <20080602160943.GB25011@phobos.i.cabal.ca> <20080606084743.GL5757@kernel.dk>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: Re: [patch 1/5] x86: implement pte_special
+Date: Fri, 06 Jun 2008 23:35:40 +0200
+Message-ID: <1212788140.19205.76.camel@lappy.programming.kicks-ass.net>
+References: <20080529122050.823438000@nick.local0.net>
+	 <20080529122602.062780000@nick.local0.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 206-248-169-182.dsl.ncf.ca ([206.248.169.182]:38657 "EHLO
-	phobos.cabal.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759405AbYFFVLp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jun 2008 17:11:45 -0400
-Content-Disposition: inline
-In-Reply-To: <20080606084743.GL5757@kernel.dk>
+Received: from bombadil.infradead.org ([18.85.46.34]:55976 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757576AbYFFVf4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jun 2008 17:35:56 -0400
+In-Reply-To: <20080529122602.062780000@nick.local0.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>
+To: npiggin@suse.de
+Cc: akpm@linux-foundation.org, shaggy@austin.ibm.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, apw@shadowen.org
 
-On Fri, Jun 06, 2008 at 10:47:43AM +0200, Jens Axboe wrote:
-> > Thanks, I'll try it out this evening.
+On Thu, 2008-05-29 at 22:20 +1000, npiggin@suse.de wrote:
+> plain text document attachment (x86-implement-pte_special.patch)
+> Implement the pte_special bit for x86. This is required to support lockless
+> get_user_pages, because we need to know whether or not we can refcount a
+> particular page given only its pte (and no vma).
 > 
-> How did that go?
-> 
+> Signed-off-by: Nick Piggin <npiggin@suse.de>
+> Cc: shaggy@austin.ibm.com
+> Cc: linux-mm@kvack.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: apw@shadowen.org
 
-Ah, sorry, I forgot to mention that. Seems to be working fine, at least,
-I'm getting jobs scheduled on each cpu, afaict.
+Full series:
 
-Needed this patch though, and from the looks of things, a bunch of other
-architectures will need it as well.
-
-Signed-off-by: Kyle McMartin <kyle@mcmartin.ca>
-
-diff --git a/include/asm-parisc/smp.h b/include/asm-parisc/smp.h
-index 306f495..ad24e7f 100644
---- a/include/asm-parisc/smp.h
-+++ b/include/asm-parisc/smp.h
-@@ -62,4 +62,7 @@ static inline void __cpu_die (unsigned int cpu) {
- }
- extern int __cpu_up (unsigned int cpu);
- 
-+void arch_send_call_function_ipi(cpumask_t mask);
-+void arch_send_call_function_single_ipi(int cpu);
-+
- #endif /*  __ASM_SMP_H */
+Reviewed-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
