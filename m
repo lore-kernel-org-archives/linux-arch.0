@@ -1,105 +1,42 @@
 From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu operations
-Date: Fri, 6 Jun 2008 09:59:12 +1000
-Message-ID: <200806060959.13362.rusty@rustcorp.com.au>
-References: <20080530035620.587204923@sgi.com> <200806021200.41652.rusty@rustcorp.com.au> <4846DC6B.6030802@sgi.com>
+Subject: Re: [patch 02/41] cpu alloc: The allocator
+Date: Fri, 6 Jun 2008 10:32:47 +1000
+Message-ID: <200806061032.47598.rusty@rustcorp.com.au>
+References: <20080530035620.587204923@sgi.com> <4846AD84.2090800@sgi.com> <4846B084.6000607@cosmosbay.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:44433 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752850AbYFEX7S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 5 Jun 2008 19:59:18 -0400
-In-Reply-To: <4846DC6B.6030802@sgi.com>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1762888AbYFFAdR@vger.kernel.org>
+In-Reply-To: <4846B084.6000607@cosmosbay.com>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mike Travis <travis@sgi.com>
-Cc: Christoph Lameter <clameter@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Eric Dumazet <dada1@cosmosbay.com>
+Cc: Mike Travis <travis@sgi.com>, Christoph Lameter <clameter@sgi.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thursday 05 June 2008 04:18:19 Mike Travis wrote:
-> > cpu_local_inc() does all this: it takes the name of a local_t var, and is
-> > expected to increment this cpu's version of that.  You ripped this out
-> > and called it CPU_INC().
+On Thursday 05 June 2008 01:11:00 Eric Dumazet wrote:
+> Mike Travis a =E9crit :
+> > I'm a bit confused.  Why is DEFINE_PER_CPU_SHARED_ALIGNED() conditi=
+oned
+> > on ifdef MODULE?
+> Because we had crashes when loading oprofile module, when a previous
+> version of oprofile used to use DEFINE_PER_CPU_SHARED_ALIGNED variabl=
+e
 >
-> Hi,
+> module loader only takes into account the special section ".data.perc=
+pu"
+> and ignores ".data.percpu.shared_aligned"
 >
-> I'm attempting to test both approaches to compare the object generated in
-> order to understand the issues involved here.  Here's my code:
->
->         void test_cpu_inc(int *s)
->         {
->                 __CPU_INC(s);
->         }
->
->         void test_local_inc(local_t *t)
->         {
->                 __local_inc(THIS_CPU(t));
->         }
->
->         void test_cpu_local_inc(local_t *t)
->         {
->                 __cpu_local_inc(t);
->         }
->
-> But I don't know how I can use cpu_local_inc because the pointer to the
-> object is not &__get_cpu_var(l):
+> I therefore submitted two patches :
 
-Yes.  Because the only true per-cpu vars are the static ones, cpu_local_inc() 
-only works on identifiers, not arbitrary pointers.  Once this is fixed, we 
-should be enhancing the infrastructure to allow that (AFAICT it's not too 
-hard, but we should add an __percpu marker for sparse).
+Put one way, putting page-aligned per-cpu data in a separate section is=
+ a=20
+space-saving hack: one which is not really required for modules because=
+ of=20
+the low frequency of such variables.  Put another way, not respecting=20
+the .data.percpu.shared_aligned section in modules is a bug.
 
-> At the minimum, we would need a new local_t op to get the correct
-> CPU_ALLOC'd pointer value for the increment.  These new local_t ops for
-> CPU_ALLOC'd variables could use CPU_XXX primitives to implement them, or
-> just a base val_to_ptr primitive to replace __get_cpu_var().
-
-I think the latter: __get_cpu_ptr() perhaps?
-
-> I did notice this in local.h:
->
-> 	 * X86_64: This could be done better if we moved the per cpu data directly
-> 	 * after GS.
->
-> ... which it now is, so true per_cpu variables could be optimized better as
-> well.
-
-Indeed.
-
->
-> Also, the above cpu_local_wrap(...) adds:
->
-> 	#define cpu_local_wrap(l)               \
-> 	({                                      \
-> 	        preempt_disable();              \
-> 	        (l);                            \
-> 	        preempt_enable();               \
-> 	})                                      \
->
-> ... and there isn't a non-preemption version that I can find.
-
-Yes, this should be fixed.  I thought i386 had optimized versions pre-merge, 
-but I was wrong (%gs for per-cpu came later, and noone cleaned up these naive 
-versions).  Did you want me to write them?
-
-I actually think that using local_t == atomic_t is better than 
-preempt_disable/enable for most archs which can't do atomic deref-and-inc.
-
-> One other distinction is CPU_INC increments an arbitrary sized variable
-> while local_inc requires a local_t variable.  This may not make it usable
-> in all cases.
-
-You might be right, but note that local_t is 64 bit on 64-bit platforms.  And 
-speculation of possible use cases isn't a good reason to rip out working 
-infrastructure :)
+But a comment would probably be nice!
 
 Cheers,
 Rusty.
-
-
->
-> Thanks,
-> Mike
