@@ -1,39 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:55954 "EHLO
-	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1750764AbYFDMDC convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jun 2008 08:03:02 -0400
-Date: Wed, 4 Jun 2008 12:47:14 +0100
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: MMIO and gcc re-ordering issue
-Message-ID: <20080604124714.55dbce65@core>
-In-Reply-To: <alpine.LFD.1.10.0806031932370.3473@woody.linux-foundation.org>
-References: <1211852026.3286.36.camel@pasglop>
-	<Pine.LNX.4.64.0806031130130.3242@t2.domain.actdsltmp>
-	<alpine.LFD.1.10.0806031153360.3473@woody.linux-foundation.org>
-	<200806041205.45833.nickpiggin@yahoo.com.au>
-	<alpine.LFD.1.10.0806031932370.3473@woody.linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Received: from ozlabs.org ([203.10.76.45]:43106 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753129AbYFFAdD convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Jun 2008 20:33:03 -0400
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [patch 02/41] cpu alloc: The allocator
+Date: Fri, 6 Jun 2008 10:32:47 +1000
+References: <20080530035620.587204923@sgi.com> <4846AD84.2090800@sgi.com> <4846B084.6000607@cosmosbay.com>
+In-Reply-To: <4846B084.6000607@cosmosbay.com>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
+Message-ID: <200806061032.47598.rusty@rustcorp.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Trent Piepho <tpiepho@freescale.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, linux-kernel@vger.kernel.org
-Message-ID: <20080604114714.dcLQ0HoJQ2Zxnvl2IkVlH6aWrryP9KjkzvH13p13uRE@z>
+To: Eric Dumazet <dada1@cosmosbay.com>
+Cc: Mike Travis <travis@sgi.com>, Christoph Lameter <clameter@sgi.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20080606003247.OrTC10OMPh4aQVt-191LnaUM2I_tAodz35JfkpS5z1Y@z>
 
-> Anyway, Intel certainly seems to document that WC memory is serialized by 
-> any access to UC memory.
+On Thursday 05 June 2008 01:11:00 Eric Dumazet wrote:
+> Mike Travis a écrit :
+> > I'm a bit confused.  Why is DEFINE_PER_CPU_SHARED_ALIGNED() conditioned
+> > on ifdef MODULE?
+> Because we had crashes when loading oprofile module, when a previous
+> version of oprofile used to use DEFINE_PER_CPU_SHARED_ALIGNED variable
+>
+> module loader only takes into account the special section ".data.percpu"
+> and ignores ".data.percpu.shared_aligned"
+>
+> I therefore submitted two patches :
 
-I don't believe that is actually true on Pentium Pro at least.
+Put one way, putting page-aligned per-cpu data in a separate section is a 
+space-saving hack: one which is not really required for modules because of 
+the low frequency of such variables.  Put another way, not respecting 
+the .data.percpu.shared_aligned section in modules is a bug.
 
->   So what started out as a "we can do accesses to the frame buffer more 
->   efficiently without anybody ever even having to know or care" has 
->   turned into a whole nightmare of people using it for other things, and 
->   then you very much _do_ have to care! ]
+But a comment would probably be nice!
 
-Notably graphics where 3Dfx lined the registers up specifically to make
-this work. We were also using it with IÂ²O where it gave a small
-performance gain.
-
-Alan
+Cheers,
+Rusty.
