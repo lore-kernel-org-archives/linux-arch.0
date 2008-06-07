@@ -1,35 +1,89 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [patch 1/5] x86: implement pte_special
-Date: Fri, 06 Jun 2008 23:35:40 +0200
-Message-ID: <1212788140.19205.76.camel@lappy.programming.kicks-ass.net>
-References: <20080529122050.823438000@nick.local0.net>
-	 <20080529122602.062780000@nick.local0.net>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: [PATCH v2 -mm 4/6] ide: avoid DMA on the stack for
+	REQ_TYPE_ATA_PC
+Date: Sat, 7 Jun 2008 13:45:26 +0900
+Message-ID: <20080607134937Z.fujita.tomonori@lab.ntt.co.jp>
+References: <1212389852-1277-4-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+	<1212389852-1277-5-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+	<1212682248.13549.48.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:55976 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757576AbYFFVf4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jun 2008 17:35:56 -0400
-In-Reply-To: <20080529122602.062780000@nick.local0.net>
+Received: from sh.osrg.net ([192.16.179.4]:55574 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756550AbYFGE6Y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 7 Jun 2008 00:58:24 -0400
+In-Reply-To: <1212682248.13549.48.camel@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: npiggin@suse.de
-Cc: akpm@linux-foundation.org, shaggy@austin.ibm.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, apw@shadowen.org
+To: James.Bottomley@HansenPartnership.com
+Cc: fujita.tomonori@lab.ntt.co.jp, linux-scsi@vger.kernel.org, linux-ide@vger.kernel.org, jens.axboe@oracle.com, tsbogend@alpha.franken.de, bzolnier@gmail.com, petkovbb@gmail.com, jeff@garzik.org, davem@davemloft.net, akpm@linux-foundation.org, linux-arch@vger.kernel.org, zippel@linux-m68k.org
 
-On Thu, 2008-05-29 at 22:20 +1000, npiggin@suse.de wrote:
-> plain text document attachment (x86-implement-pte_special.patch)
-> Implement the pte_special bit for x86. This is required to support lockless
-> get_user_pages, because we need to know whether or not we can refcount a
-> particular page given only its pte (and no vma).
+On Thu, 05 Jun 2008 11:10:48 -0500
+James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
+
+> On Mon, 2008-06-02 at 15:57 +0900, FUJITA Tomonori wrote:
+> > Some REQ_TYPE_ATA_PC commands uses the stack buffers for DMA, which
+> > leads to memory corruption on a non-coherent platform.
+> > 
+> > With regard to alignment and padding, ide-cd has the the dma safe
+> > check for sg requests and REQ_TYPE_ATA_PC. This adds the stack buffer
+> > check to that check.
+> > 
+> > Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+> > Cc: Borislav Petkov <petkovbb@gmail.com>
+> > Cc: Bartlomiej Zolnierkiewicz <bzolnier@gmail.com>
+> > ---
+> >  drivers/ide/ide-cd.c |    5 +++++
+> >  1 files changed, 5 insertions(+), 0 deletions(-)
+> > 
+> > diff --git a/drivers/ide/ide-cd.c b/drivers/ide/ide-cd.c
+> > index e3f085c..e12d602 100644
+> > --- a/drivers/ide/ide-cd.c
+> > +++ b/drivers/ide/ide-cd.c
+> > @@ -1195,6 +1195,7 @@ static ide_startstop_t cdrom_do_block_pc(ide_drive_t *drive, struct request *rq)
+> >  		struct request_queue *q = drive->queue;
+> >  		unsigned int alignment;
+> >  		unsigned long addr;
+> > +		unsigned long stack_mask = ~(THREAD_SIZE - 1);
+> >  
+> >  		if (rq->bio)
+> >  			addr = (unsigned long)bio_data(rq->bio);
+> > @@ -1212,6 +1213,10 @@ static ide_startstop_t cdrom_do_block_pc(ide_drive_t *drive, struct request *rq)
+> >  		alignment = queue_dma_alignment(q) | q->dma_pad_mask;
+> >  		if (addr & alignment || rq->data_len & alignment)
+> >  			info->dma = 0;
+> > +
+> > +		if (!((addr & stack_mask) ^
+> > +		      ((unsigned long)current->stack & stack_mask)))
 > 
-> Signed-off-by: Nick Piggin <npiggin@suse.de>
-> Cc: shaggy@austin.ibm.com
-> Cc: linux-mm@kvack.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: apw@shadowen.org
+> That can basically become
+> 
+> if ((addr & stack_mask)  == ((unsigned long)current->stack & stack_mask))
+> 
+> to be a bit clearer, can't it?
 
-Full series:
+Ok, I'll do next time.
 
-Reviewed-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+
+> I'm also not keen on the use of current->stack.  It looks like this
+> commit:
+> 
+> commit f7e4217b007d1f73e7e3cf10ba4fea4a608c603f
+> Author: Roman Zippel <zippel@linux-m68k.org>
+> Date:   Wed May 9 02:35:17 2007 -0700
+> 
+>     rename thread_info to stack
+> 
+> Introduced a task_stack_page() accessor to get this instead, so perhaps
+> we should use it (I've cc'd Roman and linux-arch for opinions).
+
+Thanks. Seems that we should use it here (though current->stack look
+like work now).
+
+lib/debugobjects.c has the same code (that uses current->stack) to
+detect an address on the stack.
+
+Next time, I'll add a helper function to detect an address on the
+stack, which is useful for debugobjects.c, blk-map.c and ide-cd.c.
