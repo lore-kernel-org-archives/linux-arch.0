@@ -1,81 +1,53 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
-Date: Mon, 9 Jun 2008 11:44:23 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0806091136410.30727@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com> <20080529215827.b659d032.akpm@linux-foundation.org>
- <4846AFCF.30500@sgi.com> <4848CC22.6090109@cosmosbay.com>
+Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu
+ operations
+Date: Mon, 9 Jun 2008 12:00:36 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0806091158020.30776@schroedinger.engr.sgi.com>
+References: <20080530035620.587204923@sgi.com> <200806021200.41652.rusty@rustcorp.com.au>
+ <4846DC6B.6030802@sgi.com> <200806060959.13362.rusty@rustcorp.com.au>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay2.sgi.com ([192.48.171.30]:52502 "EHLO relay.sgi.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750728AbYFISoa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 9 Jun 2008 14:44:30 -0400
-In-Reply-To: <4848CC22.6090109@cosmosbay.com>
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:48603 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751088AbYFITAh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jun 2008 15:00:37 -0400
+In-Reply-To: <200806060959.13362.rusty@rustcorp.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric Dumazet <dada1@cosmosbay.com>
-Cc: Mike Travis <travis@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>
+To: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Mike Travis <travis@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>
 
-On Fri, 6 Jun 2008, Eric Dumazet wrote:
+On Fri, 6 Jun 2008, Rusty Russell wrote:
 
-> Please forgive me if I beat a dead horse, but this percpu stuff
-> should find its way.
-
-Definitely and its very complex so any more eyes on this are appreciated.
-
-> I wonder why you absolutely want to have only one chunk holding
-> all percpu variables, static(vmlinux) & static(modules)
-> & dynamically allocated.
+> > Also, the above cpu_local_wrap(...) adds:
+> >
+> > 	#define cpu_local_wrap(l)               \
+> > 	({                                      \
+> > 	        preempt_disable();              \
+> > 	        (l);                            \
+> > 	        preempt_enable();               \
+> > 	})                                      \
+> >
+> > ... and there isn't a non-preemption version that I can find.
 > 
-> Its *not* possible to put an arbitrary limit to this global zone.
-> You'll allways find somebody to break this limit. This is the point
-> we must solve, before coding anything.
+> Yes, this should be fixed.  I thought i386 had optimized versions pre-merge, 
+> but I was wrong (%gs for per-cpu came later, and noone cleaned up these naive 
+> versions).  Did you want me to write them?
 
-The problem is that offsets relative to %gs or %fs are limited by the 
-small memory model that is chosen. We cannot have an offset large than 
-2GB. So we must have a linear address range and cannot use separate chunks 
-of memory. If we do not use the segment register then we cannot do atomic 
-(wrt interrupt) cpu ops.
+How can that be fixed? You have no atomic instruction that calculates the 
+per cpu address in one go. And as long as that is the case you need to 
+disable preempt. Otherwise you may increment the per cpu variable of 
+another processor because the process was rescheduled after the address 
+was calculated but before the increment was done.
 
-> Have you considered using a list of fixed size chunks, each chunk
-> having its own bitmap ?
-
-Mike has done so and then I had to tell him what I just told you.
-
-> On x86_64 && NUMA we could use 2 Mbytes chunks, while
-> on x86_32 or non NUMA we should probably use 64 Kbytes.
-
-Right that is what cpu_alloc v2 did. It created a virtual mapping and 
-populated it on demand with 2MB PMD entries.
-
-> I understand you want to offset percpu data to 0, but for
-> static percpu data. (pda being included in, to share %gs)
+> > One other distinction is CPU_INC increments an arbitrary sized variable
+> > while local_inc requires a local_t variable.  This may not make it usable
+> > in all cases.
 > 
-> For dynamically allocated percpu variables (including modules
-> ".data.percpu"), nothing forces you to have low offsets,
-> relative to %gs/%fs register. Access to these variables
-> will be register indirect based anyway (eg %gs:(%rax) )
+> You might be right, but note that local_t is 64 bit on 64-bit platforms.  And 
+> speculation of possible use cases isn't a good reason to rip out working 
+> infrastructure :)
 
-The relative to 0 stuff comes in at the x86_64 level because we want to 
-unify pda and percpu accesses. pda access have been relative to 0 and in 
-particular the stack canary in glibc directly accesses the pda at a 
-certain offset. So we must be zero based in order to preserve 
-compatibility with glibc. 
-
-> Chunk 0 would use normal memory (no vmap TLB cost), only next ones need vmalloc().
-
-Normal memory uses 2MB tlbs. There is no overhead therefore by mapping the 
-percpu areas using 2MB tlbs. So we do not need to be that complicated.
-
-What v2 did was allocate an area n * MAX_VIRT_PER_CPU_SIZE in vmalloc 
-space and then it dynamically populated 2MB segments as needed. The MAX 
-size was 128MB or so.
-
-We could either do the same on i386 or use 4kb mappings (then we can 
-directly use the vmalloc functionality). But then there would be 
-additional TLB overhead.
-
-We have similar 2MB virtual mapping tricks for the virtual memmap. 
-Basically we can copy the functions and customize them for the virtual per 
-cpu areas (Mike is hopefully listening and reading the V2 patch ....)
+Its fundamentally broken since because of the preemption issue. This is 
+also why local_t is rarely used.
