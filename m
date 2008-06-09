@@ -1,53 +1,32 @@
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu
- operations
-Date: Mon, 9 Jun 2008 12:00:36 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0806091158020.30776@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com> <200806021200.41652.rusty@rustcorp.com.au>
- <4846DC6B.6030802@sgi.com> <200806060959.13362.rusty@rustcorp.com.au>
+From: Andi Kleen <andi@firstfloor.org>
+Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
+Date: Mon, 09 Jun 2008 21:11:54 +0200
+Message-ID: <87abhuqv7p.fsf@basil.nowhere.org>
+References: <20080530035620.587204923@sgi.com>
+	<20080529215827.b659d032.akpm@linux-foundation.org>
+	<4846AFCF.30500@sgi.com> <4848CC22.6090109@cosmosbay.com>
+	<Pine.LNX.4.64.0806091136410.30727@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:48603 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751088AbYFITAh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jun 2008 15:00:37 -0400
-In-Reply-To: <200806060959.13362.rusty@rustcorp.com.au>
+Received: from smtp-out04.alice-dsl.net ([88.44.63.6]:3997 "EHLO
+	smtp-out04.alice-dsl.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756814AbYFITMR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jun 2008 15:12:17 -0400
+In-Reply-To: <Pine.LNX.4.64.0806091136410.30727@schroedinger.engr.sgi.com> (Christoph Lameter's message of "Mon, 9 Jun 2008 11:44:23 -0700 (PDT)")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Mike Travis <travis@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Eric Dumazet <dada1@cosmosbay.com>, Mike Travis <travis@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>
 
-On Fri, 6 Jun 2008, Rusty Russell wrote:
+Christoph Lameter <clameter@sgi.com> writes:
 
-> > Also, the above cpu_local_wrap(...) adds:
-> >
-> > 	#define cpu_local_wrap(l)               \
-> > 	({                                      \
-> > 	        preempt_disable();              \
-> > 	        (l);                            \
-> > 	        preempt_enable();               \
-> > 	})                                      \
-> >
-> > ... and there isn't a non-preemption version that I can find.
-> 
-> Yes, this should be fixed.  I thought i386 had optimized versions pre-merge, 
-> but I was wrong (%gs for per-cpu came later, and noone cleaned up these naive 
-> versions).  Did you want me to write them?
+> The problem is that offsets relative to %gs or %fs are limited by the 
+> small memory model that is chosen.
 
-How can that be fixed? You have no atomic instruction that calculates the 
-per cpu address in one go. And as long as that is the case you need to 
-disable preempt. Otherwise you may increment the per cpu variable of 
-another processor because the process was rescheduled after the address 
-was calculated but before the increment was done.
+Actually they are not. If you really want you can do 
+movabs $64bit,%reg ; op ...,%gs:(%reg) 
+It's just not very efficient compared to small (or rather kernel) model
+and also older binutils didn't support large model.
 
-> > One other distinction is CPU_INC increments an arbitrary sized variable
-> > while local_inc requires a local_t variable.  This may not make it usable
-> > in all cases.
-> 
-> You might be right, but note that local_t is 64 bit on 64-bit platforms.  And 
-> speculation of possible use cases isn't a good reason to rip out working 
-> infrastructure :)
-
-Its fundamentally broken since because of the preemption issue. This is 
-also why local_t is rarely used.
+-Andi
