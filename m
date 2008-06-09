@@ -1,32 +1,32 @@
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
-Date: Mon, 09 Jun 2008 21:11:54 +0200
-Message-ID: <87abhuqv7p.fsf@basil.nowhere.org>
-References: <20080530035620.587204923@sgi.com>
-	<20080529215827.b659d032.akpm@linux-foundation.org>
-	<4846AFCF.30500@sgi.com> <4848CC22.6090109@cosmosbay.com>
-	<Pine.LNX.4.64.0806091136410.30727@schroedinger.engr.sgi.com>
+From: Harvey Harrison <harvey.harrison@gmail.com>
+Subject: Re: [PATCHv4 1/6] byteorder: add a new include/linux/swab.h to
+	define byteswapping functions
+Date: Mon, 09 Jun 2008 12:43:48 -0700
+Message-ID: <1213040628.5974.76.camel@brick>
+References: <1212428241.11008.35.camel@brick>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out04.alice-dsl.net ([88.44.63.6]:3997 "EHLO
-	smtp-out04.alice-dsl.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756814AbYFITMR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jun 2008 15:12:17 -0400
-In-Reply-To: <Pine.LNX.4.64.0806091136410.30727@schroedinger.engr.sgi.com> (Christoph Lameter's message of "Mon, 9 Jun 2008 11:44:23 -0700 (PDT)")
+Received: from wf-out-1314.google.com ([209.85.200.172]:35217 "EHLO
+	wf-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752747AbYFITnt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jun 2008 15:43:49 -0400
+Received: by wf-out-1314.google.com with SMTP id 27so2236156wfd.4
+        for <linux-arch@vger.kernel.org>; Mon, 09 Jun 2008 12:43:49 -0700 (PDT)
+In-Reply-To: <1212428241.11008.35.camel@brick>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Eric Dumazet <dada1@cosmosbay.com>, Mike Travis <travis@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Russell King <rmk@arm.linux.org.uk>, "tony.luck" <tony.luck@intel.com>
 
-Christoph Lameter <clameter@sgi.com> writes:
+On Mon, 2008-06-02 at 10:37 -0700, Harvey Harrison wrote:
+> Collect the implementations from include/linux/byteorder/swab.h, swabb.h
+> in swab.h
+> 
 
-> The problem is that offsets relative to %gs or %fs are limited by the 
-> small memory model that is chosen.
+Andrew, any chance of getting 1-5 of 6 into -mm?
 
-Actually they are not. If you really want you can do 
-movabs $64bit,%reg ; op ...,%gs:(%reg) 
-It's just not very efficient compared to small (or rather kernel) model
-and also older binutils didn't support large model.
+Do you want a resend?
 
--Andi
+Harvey
