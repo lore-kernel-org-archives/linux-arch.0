@@ -1,73 +1,45 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [patch 2/5] mm: introduce get_user_pages_fast
-Date: Mon, 9 Jun 2008 03:29:28 -0700
-Message-ID: <20080609032928.e3270194.akpm@linux-foundation.org>
-References: <20080529122050.823438000@nick.local0.net>
-	<20080529122602.208851000@nick.local0.net>
+From: Roman Zippel <zippel@linux-m68k.org>
+Subject: Re: [PATCH v2 -mm 4/6] ide: avoid DMA on the stack for REQ_TYPE_ATA_PC
+Date: Mon, 9 Jun 2008 19:44:56 +0200 (CEST)
+Message-ID: <Pine.LNX.4.64.0806091937580.6791@localhost.localdomain>
+References: <1212389852-1277-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+  <1212389852-1277-2-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+ <1212389852-1277-3-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+ <1212389852-1277-4-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+ <1212389852-1277-5-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+ <1212682248.13549.48.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:47964 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1759061AbYFIKkV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jun 2008 06:40:21 -0400
-In-Reply-To: <20080529122602.208851000@nick.local0.net>
+Received: from smtp-vbr11.xs4all.nl ([194.109.24.31]:4816 "EHLO
+	smtp-vbr11.xs4all.nl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752634AbYFIRpU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jun 2008 13:45:20 -0400
+In-Reply-To: <1212682248.13549.48.camel@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: npiggin@suse.de
-Cc: shaggy@austin.ibm.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, apw@shadowen.org
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, linux-scsi@vger.kernel.org, linux-ide@vger.kernel.org, jens.axboe@oracle.com, tsbogend@alpha.franken.de, bzolnier@gmail.com, petkovbb@gmail.com, jeff@garzik.org, davem@davemloft.net, akpm@linux-foundation.org, linux-arch@vger.kernel.org
 
-On Thu, 29 May 2008 22:20:52 +1000 npiggin@suse.de wrote:
+Hi,
 
-> Introduce a new get_user_pages_fast mm API, which is basically a get_user_pages
-> with a less general API (but still tends to be suited to the common case):
+On Thu, 5 Jun 2008, James Bottomley wrote:
+
+> I'm also not keen on the use of current->stack.  It looks like this
+> commit:
 > 
-> - task and mm are always current and current->mm
-> - force is always 0
-> - pages is always non-NULL
-> - don't pass back vmas
+> commit f7e4217b007d1f73e7e3cf10ba4fea4a608c603f
+> Author: Roman Zippel <zippel@linux-m68k.org>
+> Date:   Wed May 9 02:35:17 2007 -0700
 > 
-> This restricted API can be implemented in a much more scalable way on
-> many architectures when the ptes are present, by walking the page tables
-> locklessly (no mmap_sem or page table locks). When the ptes are not
-> populated, get_user_pages_fast() could be slower.
+>     rename thread_info to stack
 > 
-> This is implemented locklessly on x86, and used in some key direct IO call
-> sites, in later patches, which provides nearly 10% performance improvement
-> on a threaded database workload.
-> 
-> Lots of other code could use this too, depending on use cases (eg. grep
-> drivers/). And it might inspire some new and clever ways to use it.
-> 
-> ...
->
-> --- linux-2.6.orig/include/linux/mm.h
-> +++ linux-2.6/include/linux/mm.h
-> @@ -12,6 +12,7 @@
->  #include <linux/prio_tree.h>
->  #include <linux/debug_locks.h>
->  #include <linux/mm_types.h>
-> +#include <linux/uaccess.h> /* for __HAVE_ARCH_GET_USER_PAGES_FAST */
->  
+> Introduced a task_stack_page() accessor to get this instead, so perhaps
+> we should use it (I've cc'd Roman and linux-arch for opinions).
 
-That breaks ia64:
+This helper was mainly introduced to help with the transition from direct 
+thread_info access. I don't see this field go away or change somehow in 
+the near future, so direct access of stack is IMO ok, but we already have 
+the helper, so using it to improve readability is fine too.
 
-In file included from include/linux/mm.h:15,
-                 from include/asm/uaccess.h:39,
-                 from include/linux/poll.h:13,
-                 from include/linux/rtc.h:113,
-                 from include/linux/efi.h:19,
-                 from include/asm/sal.h:40,
-                 from include/asm-ia64/mca.h:20,
-                 from arch/ia64/kernel/asm-offsets.c:17:
-include/linux/uaccess.h: In function `__copy_from_user_inatomic_nocache':
-include/linux/uaccess.h:46: error: implicit declaration of function `__copy_from_user_inatomic'
-include/linux/uaccess.h: In function `__copy_from_user_nocache':
-include/linux/uaccess.h:52: error: implicit declaration of function `__copy_from_user'
-
-
-It shouldn't have been a __HAVE_ARCH_whatever anyway - it should have
-been a CONFIG_whatever.
-
-I'll fix it.
+bye, Roman
