@@ -1,26 +1,24 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
-Date: Tue, 10 Jun 2008 10:44:43 -0500
-Message-ID: <1213112683.3440.20.camel@localhost.localdomain>
-References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com>
-	 <1212051504-12561-2-git-send-email-jens.axboe@oracle.com>
-	 <1213109485.24701.107.camel@pc1117.cambridge.arm.com>
+Date: Tue, 10 Jun 2008 08:47:16 -0700
+Message-ID: <20080610154716.GF15481@linux.vnet.ibm.com>
+References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-2-git-send-email-jens.axboe@oracle.com> <1213109485.24701.107.camel@pc1117.cambridge.arm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from accolon.hansenpartnership.com ([76.243.235.52]:36180 "EHLO
-	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752984AbYFJPot (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jun 2008 11:44:49 -0400
+Received: from E23SMTP02.au.ibm.com ([202.81.18.163]:35614 "EHLO
+	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753346AbYFJPrY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jun 2008 11:47:24 -0400
+Content-Disposition: inline
 In-Reply-To: <1213109485.24701.107.camel@pc1117.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Jens Axboe <jens.axboe@oracle.com>, linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com, Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: Jens Axboe <jens.axboe@oracle.com>, linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, Russell King <rmk+lkml@arm.linux.org.uk>
 
-On Tue, 2008-06-10 at 15:51 +0100, Catalin Marinas wrote:
+On Tue, Jun 10, 2008 at 03:51:25PM +0100, Catalin Marinas wrote:
 > Hi,
 > 
 > On Thu, 2008-05-29 at 10:58 +0200, Jens Axboe wrote:
@@ -62,24 +60,61 @@ On Tue, 2008-06-10 at 15:51 +0100, Catalin Marinas wrote:
 > Please let me know what you think or whether deadlocks are still
 > possible (or any other solution apart from hardware fixes :-)). Thanks.
 
-I don't see how your proposal fixes the deadlocks.  The problem is that
-on a lot of arch's IPIs are normal interrupts.  If interrupts are
-disabled, you don't see them.
+There were objections last month:  http://lkml.org/lkml/2008/5/3/167
 
-The deadlock scenario is CPU1 enters smp_call_function() with IRQ's
-disabled as CPU2 does the same thing and spins on the call_lock.  Now
-CPU1 is waiting for an ack for its IPI to CPU2, but CPU2 will never see
-the IPI until it enables interrupts.
+The issue was that this permits some interrupts to arrive despite
+interrupts being disabled.  There seemed to be less resistance to
+doing this in the wait==1 case, however.
 
-One way to mitigate the effects of this is to enable interrupts if the
-architecture code finds the call_lock (x86 implementation) held against
-it, then re-disable before trying to get the lock again.  But really, in
-order to make smp_call_function work in interrupt disabled sections, the
-interrupt handler has to be modified to bar all non-IPI interrupts until
-the critical section is over (otherwise there's no point allowing it
-with disabled interrupts because an smp_call_function becomes a de facto
-interrupt enable again).  If you really want to see how something like
-this works, the voyager code has it (because interrupt disabling in the
-VIC is expensive).  But it's quite a lot of code ...
+						Thanx, Paul
 
-James
+> diff --git a/kernel/smp.c b/kernel/smp.c
+> index ef6de3d..2c63e81 100644
+> --- a/kernel/smp.c
+> +++ b/kernel/smp.c
+> @@ -54,6 +54,10 @@ static void csd_flag_wait(struct call_single_data *data)
+>  		smp_mb();
+>  		if (!(data->flags & CSD_FLAG_WAIT))
+>  			break;
+> +		if (irqs_disabled()) {
+> +			generic_smp_call_function_single_interrupt();
+> +			generic_smp_call_function_interrupt();
+> +		}
+>  		cpu_relax();
+>  	} while (1);
+>  }
+> @@ -208,9 +212,6 @@ int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
+>  	/* prevent preemption and reschedule on another processor */
+>  	int me = get_cpu();
+> 
+> -	/* Can deadlock when called with interrupts disabled */
+> -	WARN_ON(irqs_disabled());
+> -
+>  	if (cpu == me) {
+>  		local_irq_save(flags);
+>  		func(info);
+> @@ -250,9 +251,6 @@ EXPORT_SYMBOL(smp_call_function_single);
+>   */
+>  void __smp_call_function_single(int cpu, struct call_single_data *data)
+>  {
+> -	/* Can deadlock when called with interrupts disabled */
+> -	WARN_ON((data->flags & CSD_FLAG_WAIT) && irqs_disabled());
+> -
+>  	generic_exec_single(cpu, data);
+>  }
+> 
+> @@ -279,9 +277,6 @@ int smp_call_function_mask(cpumask_t mask, void (*func)(void *), void *info,
+>  	unsigned long flags;
+>  	int cpu, num_cpus;
+> 
+> -	/* Can deadlock when called with interrupts disabled */
+> -	WARN_ON(irqs_disabled());
+> -
+>  	cpu = smp_processor_id();
+>  	allbutself = cpu_online_map;
+>  	cpu_clear(cpu, allbutself);
+> 
+> 
+> -- 
+> Catalin
+> 
