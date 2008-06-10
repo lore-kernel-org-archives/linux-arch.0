@@ -1,44 +1,33 @@
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Tue, 10 Jun 2008 12:19:34 -0700
-Message-ID: <200806101219.34995.jbarnes@virtuousgeek.org>
-References: <1211852026.3286.36.camel@pasglop> <1213121426.8536.7.camel@localhost.localdomain> <adaskvl3yb0.fsf@cisco.com>
+From: "Luck, Tony" <tony.luck@intel.com>
+Subject: RE: [patch 01/41] cpu_alloc: Increase percpu area size to 128k
+Date: Tue, 10 Jun 2008 12:54:44 -0700
+Message-ID: <1FE6DD409037234FAB833C420AA843EC0188382F@orsmsx424.amr.corp.intel.com>
+References: <20080530035620.587204923@sgi.com> <20080530040010.806208523@sgi.com> <1FE6DD409037234FAB833C420AA843EC0177822B@orsmsx424.amr.corp.intel.com> <Pine.LNX.4.64.0806101022190.17093@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound-mail-11.bluehost.com ([69.89.18.111]:54716 "HELO
-	outbound-mail-11.bluehost.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1755240AbYFJTU3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jun 2008 15:20:29 -0400
-In-Reply-To: <adaskvl3yb0.fsf@cisco.com>
-Content-Disposition: inline
+Received: from mga11.intel.com ([192.55.52.93]:31132 "EHLO mga11.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751257AbYFJTyq convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jun 2008 15:54:46 -0400
+Content-class: urn:content-classes:message
+In-Reply-To: <Pine.LNX.4.64.0806101022190.17093@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland Dreier <rdreier@cisco.com>
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, Nick Piggin <nickpiggin@yahoo.com.au>, Linus Torvalds <torvalds@linux-foundation.org>, Matthew Wilcox <matthew@wil.cx>, Trent Piepho <tpiepho@freescale.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
+To: Christoph Lameter <clameter@sgi.com>
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-On Tuesday, June 10, 2008 12:05 pm Roland Dreier wrote:
->  > me too.  That's the whole basis for readX_relaxed() and its cohorts: we
->  > make our weirdest machines (like altix) conform to the x86 norm.  Then
->  > where it really kills us we introduce additional semantics to selected
->  > drivers that enable us to recover I/O speed on the abnormal platforms.
+> > > -#define PERCPU_PAGE_SHIFT	16	/* log2() of max. size of per-CPU area */
+> > > +#define PERCPU_PAGE_SHIFT	17	/* log2() of max. size of per-CPU area */
+> > 
+> > Don't you need some more changes to the alt_dtlb_miss handler in
+> > ivt.S for this to work?  128K is not a supported pagesize on any
+> > processor model.
 >
-> Except as I pointed out before, Altix doesn't conform to the norm and
-> many (most?) drivers are missing mmiowb()s that are needed for Altix.
-> Just no one has plugged most devices into an Altix (or haven't stressed
-> the driver in a way that exposes problems of IO ordering between CPUs).
->
-> It would be a great thing to use the powerpc trick of setting a flag
-> that is tested by spin_unlock()/mutex_unlock() and automatically doing
-> the mmiowb() if needed, and then killing off mmiowb() entirely.
+> Ok so this needs to be 18?
 
-Yeah I think that's what Nick's guidelines would guarantee.  And Jes is 
-already working on the spin_unlock change you mentioned, so mmiowb() should 
-be history soon (in name only, assuming Nick also introduces the I/O barriers 
-he talked about for ordering the looser accessors it would still be there but 
-would be called io_wmb or something).
+Yes. 18 will work (256K is an architected page size, guaranteed to be supported
+by all processor models ... SDM 2:52 table 4-4).
 
-Jesse
+-Tony
