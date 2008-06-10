@@ -1,55 +1,29 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
-Date: Tue, 10 Jun 2008 17:53:08 +0100
-Message-ID: <1213116788.24701.133.camel@pc1117.cambridge.arm.com>
-References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com>
-	 <1212051504-12561-2-git-send-email-jens.axboe@oracle.com>
-	 <1213109485.24701.107.camel@pc1117.cambridge.arm.com>
-	 <20080610154716.GF15481@linux.vnet.ibm.com>
+From: Christoph Lameter <clameter@sgi.com>
+Subject: RE: [patch 01/41] cpu_alloc: Increase percpu area size to 128k
+Date: Tue, 10 Jun 2008 10:22:42 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0806101022190.17093@schroedinger.engr.sgi.com>
+References: <20080530035620.587204923@sgi.com> <20080530040010.806208523@sgi.com>
+ <1FE6DD409037234FAB833C420AA843EC0177822B@orsmsx424.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([193.131.176.58]:51977 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753315AbYFJQ7i (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jun 2008 12:59:38 -0400
-In-Reply-To: <20080610154716.GF15481@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: Jens Axboe <jens.axboe@oracle.com>, linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, Russell King <rmk+lkml@arm.linux.org.uk>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757691AbYFJRWy@vger.kernel.org>
+In-Reply-To: <1FE6DD409037234FAB833C420AA843EC0177822B@orsmsx424.amr.corp.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2008-06-10 at 08:47 -0700, Paul E. McKenney wrote:
-> On Tue, Jun 10, 2008 at 03:51:25PM +0100, Catalin Marinas wrote:
-> > I was thinking whether this condition can be removed and allow the
-> > smp_call_function*() to be called with IRQs disabled. At a quick look,
-> > it seems to be possible if the csd_flag_wait() function calls the IPI
-> > handlers directly when the IRQs are disabled (see the patch below).
-[...]
-> There were objections last month:  http://lkml.org/lkml/2008/5/3/167
+On Mon, 2 Jun 2008, Luck, Tony wrote:
 
-Thanks, I missed this discussion.
+> > The per cpu allocator requires more per cpu space and we are already near
+> > the limit on IA64. Increase the maximum size of the IA64 per cpu area from
+> > 64K to 128K.
+> 
+> > -#define PERCPU_PAGE_SHIFT	16	/* log2() of max. size of per-CPU area */
+> > +#define PERCPU_PAGE_SHIFT	17	/* log2() of max. size of per-CPU area */
+> 
+> Don't you need some more changes to the alt_dtlb_miss handler in
+> ivt.S for this to work?  128K is not a supported pagesize on any
+> processor model.
 
-> The issue was that this permits some interrupts to arrive despite
-> interrupts being disabled.  There seemed to be less resistance to
-> doing this in the wait==1 case, however.
-
-The "(wait == 1) && irqs_disabled()" case is what I would be interested
-in. In the patch you proposed, this doesn't seem to be allowed (at least
-from the use of WARN_ON). However, from your post in May:
-
-> 5.	If you call smp_call_function() with irqs disabled, then you
-> 	are guaranteed that no other CPU's smp_call_function() handler
-> 	will be invoked while smp_call_function() is executing.
-
-this would be possible but no one need this functionality yet.
-
-Would one use-case (ARM SMP and DMA cache maintenance) be enough to
-implement this or I should add it to the ARM-specific code?
-
-Thanks.
-
--- 
-Catalin
+Ok so this needs to be 18?
