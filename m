@@ -1,54 +1,60 @@
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu
- operations
-Date: Tue, 10 Jun 2008 10:42:15 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0806101034480.17131@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com> <200805301708.51284.rusty@rustcorp.com.au>
- <Pine.LNX.4.64.0805301055270.14564@schroedinger.engr.sgi.com>
- <200806021200.41652.rusty@rustcorp.com.au>
+From: Eric Dumazet <dada1@cosmosbay.com>
+Subject: Re: [patch 02/41] cpu alloc: The allocator
+Date: Tue, 10 Jun 2008 20:05:18 +0200
+Message-ID: <484EC25E.4070209@cosmosbay.com>
+References: <20080530035620.587204923@sgi.com> <20080530040011.084909898@sgi.com> <483F8AF7.9000309@cosmosbay.com> <Pine.LNX.4.64.0805292219220.12107@schroedinger.engr.sgi.com> <4846AD84.2090800@sgi.com> <Pine.LNX.4.64.0806101032550.17131@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay2.sgi.com ([192.48.171.30]:36890 "EHLO relay.sgi.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755911AbYFJRmQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jun 2008 13:42:16 -0400
-In-Reply-To: <200806021200.41652.rusty@rustcorp.com.au>
+Received: from smtp28.orange.fr ([80.12.242.99]:44498 "EHLO smtp28.orange.fr"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751129AbYFJSFf convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jun 2008 14:05:35 -0400
+In-Reply-To: <Pine.LNX.4.64.0806101032550.17131@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Mike Travis <travis@sgi.com>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Mike Travis <travis@sgi.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>
 
-On Mon, 2 Jun 2008, Rusty Russell wrote:
+Christoph Lameter a =E9crit :
+> On Wed, 4 Jun 2008, Mike Travis wrote:
+>=20
+>> I'm a bit confused.  Why is DEFINE_PER_CPU_SHARED_ALIGNED() conditio=
+ned on
+>> ifdef MODULE?
+>>
+>>         #ifdef MODULE
+>>         #define SHARED_ALIGNED_SECTION ".data.percpu"
+>>         #else
+>>         #define SHARED_ALIGNED_SECTION ".data.percpu.shared_aligned"
+>>         #endif
+>>
+>>         #define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)           =
+            \
+>>                 __attribute__((__section__(SHARED_ALIGNED_SECTION)))=
+            \
+>>                 PER_CPU_ATTRIBUTES __typeof__(type) per_cpu__##name =
+            \
+>>                 ____cacheline_aligned_in_smp
+>=20
+> Looks wrong to me. There can be shared objects even without modules.
+>=20
+>=20
 
-> > Believe me I have tried to use local_t repeatedly for vm statistics etc.
-> > It always fails on that issue.
-> 
-> Frankly, I am finding it increasingly easy to believe that you failed.  But 
-> you are blaming the wrong thing.
-> 
-> There are three implementations of local_t which are obvious.  The best is for 
-> architectures which can locate and increment a per-cpu var in one instruction 
-> (eg. x86).  Otherwise, using atomic_t/atomic64_t for local_t provides a 
-> general solution.  The other general solution would involve 
-> local_irq_disable()/increment/local_irq_enable().
-> 
-> My (fading) hope is that this idiocy is an abberation,
+Well, MODULE is not CONFIG_MODULES :)
 
-1. The x86 implementation does not exist because the segment register has 
-   so far not been available on x86_64. So you could not do the solution.
-   You need the zero basing. Then you can use per_xxx_add in cpu_inc.
+If compiling an object that is going to be statically linked to kernel,=
+=20
+MODULE is not defined, so we have shared objects.
 
-2. The general solution created overhead that is often not needed. If we
-   would have done vm event counters with local_t then we would have
-   atomic overhead for each increment on f.e. IA64. That was not
-   acceptable. cpu_alloc never falls back to atomic operations.
+When compiling a module, we cannot *yet* use .data.percpu.shared_aligne=
+d=20
+section, since module loader wont handle this section.
 
-3. local_t is based on the atomic logic. But percpu handling is 
-   fundamentally different in that accesses without the special macros
-   are okay provided you are in a non preemptible or irq context!
-   A local_t declaration makes such accesses impossible.
+Alternative is to change modules linking for all arches to merge=20
+=2Edata.percpu{*} subsections correctly, or tell module loader to take=20
+into account all .data.percpu sections.
 
-4. The modeling of local_t on atomic_t limits it to 32bit! There is no
-   way to use this with pointers or 64 bit entities. Adding that would 
-   duplicate the API for each type added.
+AFAIK no module uses DEFINE_PER_CPU_SHARED_ALIGNED() yet...
