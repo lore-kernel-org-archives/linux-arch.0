@@ -1,64 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp118.mail.mud.yahoo.com ([209.191.84.167]:22829 "HELO
-	smtp118.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1754759AbYFKD3r (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jun 2008 23:29:47 -0400
-From: Nick Piggin <nickpiggin@yahoo.com.au>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Wed, 11 Jun 2008 13:29:35 +1000
-References: <1211852026.3286.36.camel@pasglop> <adaskvl3yb0.fsf@cisco.com> <200806101219.34995.jbarnes@virtuousgeek.org>
-In-Reply-To: <200806101219.34995.jbarnes@virtuousgeek.org>
+Received: from ozlabs.org ([203.10.76.45]:46475 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753345AbYFKJGm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 11 Jun 2008 05:06:42 -0400
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-ID: <200806111329.35894.nickpiggin@yahoo.com.au>
+Message-ID: <18511.24732.191606.794160@cargo.ozlabs.ibm.com>
+Date: Wed, 11 Jun 2008 15:20:28 +1000
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: MMIO and gcc re-ordering issue
+In-Reply-To: <200806101656.51211.nickpiggin@yahoo.com.au>
+References: <1211852026.3286.36.camel@pasglop>
+	<Pine.LNX.4.64.0806031130130.3242@t2.domain.actdsltmp>
+	<alpine.LFD.1.10.0806031153360.3473@woody.linux-foundation.org>
+	<200806101656.51211.nickpiggin@yahoo.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>, linux-arch@vger.kernel.org
-Cc: Roland Dreier <rdreier@cisco.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Linus Torvalds <torvalds@linux-foundation.org>, Matthew Wilcox <matthew@wil.cx>, Trent Piepho <tpiepho@freescale.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
-Message-ID: <20080611032935.JrYv8qngu1BDzrrPQwsWP68LVjEdvdViPibSagNgGLg@z>
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Matthew Wilcox <matthew@wil.cx>, Trent Piepho <tpiepho@freescale.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
+Message-ID: <20080611052028.x3ixsWYVWMzFY9XDEttajx1y_5XtnsoHb4AqiGL2f1w@z>
 
-On Wednesday 11 June 2008 05:19, Jesse Barnes wrote:
-> On Tuesday, June 10, 2008 12:05 pm Roland Dreier wrote:
-> >  > me too.  That's the whole basis for readX_relaxed() and its cohorts:
-> >  > we make our weirdest machines (like altix) conform to the x86 norm. 
-> >  > Then where it really kills us we introduce additional semantics to
-> >  > selected drivers that enable us to recover I/O speed on the abnormal
-> >  > platforms.
-> >
-> > Except as I pointed out before, Altix doesn't conform to the norm and
-> > many (most?) drivers are missing mmiowb()s that are needed for Altix.
-> > Just no one has plugged most devices into an Altix (or haven't stressed
-> > the driver in a way that exposes problems of IO ordering between CPUs).
-> >
-> > It would be a great thing to use the powerpc trick of setting a flag
-> > that is tested by spin_unlock()/mutex_unlock() and automatically doing
-> > the mmiowb() if needed, and then killing off mmiowb() entirely.
->
-> Yeah I think that's what Nick's guidelines would guarantee.  And Jes is
-> already working on the spin_unlock change you mentioned, so mmiowb() should
-> be history soon (in name only, assuming Nick also introduces the I/O
-> barriers he talked about for ordering the looser accessors it would still
-> be there but would be called io_wmb or something).
+Nick Piggin writes:
 
-Exactly, yes. I guess everybody has had good intentions here, but
-as noticed, what is lacking is coordination and documentation.
+> Now that doesn't leave waker ordering architectures lumped with "slow old
+> x86 semantics". Think of it as giving them the benefit of sharing x86
+> development and testing :)
 
-You mention strong ordering WRT spin_unlock, which suggests that
-you would prefer to take option #2 (the current powerpc one): io/io
-is ordered and io is contained inside spinlocks, but io/cacheable
-in general is not ordered.
+Worth something, but not perhaps as much as you think, given that many
+x86 driver writers still don't pay much attention to making their code
+endian-safe and 64-bit-clean.  And there are still plenty of drivers
+that use virt_to_bus...
 
-I *would* prefer that io/cacheable actually is strongly ordered with
-the default accessors. Because if you have that, then the driver
-writer never has to care about memory ordering, provided they use
-correct locking for SMP issues. Same as x86. With option 2, there
-are still windows where you could possibly have issues.
-
-For any high performance drivers that are well maintained (ie. the
-ones where slowdown might be noticed), everyone should have a pretty
-good handle on memory ordering requirements, so it shouldn't take
-long to go through and convert them to relaxed accessors.
+Paul.
