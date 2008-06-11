@@ -1,57 +1,57 @@
-From: Nick Piggin <nickpiggin@yahoo.com.au>
+From: Paul Mackerras <paulus@samba.org>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Wed, 11 Jun 2008 14:06:27 +1000
-Message-ID: <200806111406.28411.nickpiggin@yahoo.com.au>
-References: <1211852026.3286.36.camel@pasglop> <200806111329.35894.nickpiggin@yahoo.com.au> <1213155644.25745.60.camel@pasglop>
+Date: Wed, 11 Jun 2008 14:18:41 +1000
+Message-ID: <18511.21025.978328.596571@cargo.ozlabs.ibm.com>
+References: <1211852026.3286.36.camel@pasglop>
+	<Pine.LNX.4.64.0806031130130.3242@t2.domain.actdsltmp>
+	<alpine.LFD.1.10.0806031153360.3473@woody.linux-foundation.org>
+	<200806101656.51211.nickpiggin@yahoo.com.au>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp118.mail.mud.yahoo.com ([209.191.84.167]:28006 "HELO
-	smtp118.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1751057AbYFKEGk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 Jun 2008 00:06:40 -0400
-In-Reply-To: <1213155644.25745.60.camel@pasglop>
-Content-Disposition: inline
+Received: from ozlabs.org ([203.10.76.45]:43828 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750775AbYFKESv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 11 Jun 2008 00:18:51 -0400
+In-Reply-To: <200806101656.51211.nickpiggin@yahoo.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, linux-arch@vger.kernel.org, Roland Dreier <rdreier@cisco.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Linus Torvalds <torvalds@linux-foundation.org>, Matthew Wilcox <matthew@wil.cx>, Trent Piepho <tpiepho@freescale.com>, Russell King <rmk+lkml@arm.linux.org.uk>, David Miller <davem@davemloft.net>, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Matthew Wilcox <matthew@wil.cx>, Trent Piepho <tpiepho@freescale.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
 
-On Wednesday 11 June 2008 13:40, Benjamin Herrenschmidt wrote:
-> On Wed, 2008-06-11 at 13:29 +1000, Nick Piggin wrote:
-> > Exactly, yes. I guess everybody has had good intentions here, but
-> > as noticed, what is lacking is coordination and documentation.
-> >
-> > You mention strong ordering WRT spin_unlock, which suggests that
-> > you would prefer to take option #2 (the current powerpc one): io/io
-> > is ordered and io is contained inside spinlocks, but io/cacheable
-> > in general is not ordered.
->
-> IO/cacheable -is- ordered on powepc in what we believe is the direction
-> that matter: IO reads are fully ordered vs. anything and IO writes are
-> ordered vs. previous cacheable stores. The only "relaxed" situation is
-> IO writes followed by cacheable stores, which I believe shouldn't be
-> a problem. (except for spinlocks for which we use the flag trick)
+Nick Piggin writes:
 
-Spinlocks... mutexes, semaphores, rwsems, rwlocks, bit spinlocks, bit
-mutexes, open coded bit locks (of which there are a number floating
-around in drivers/).
+> OK, I'm sitll not quite sure where this has ended up. I guess you are happy
+> with x86 semantics as they are now. That is, all IO accesses are strongly
+> ordered WRT one another and WRT cacheable memory (which includes keeping
+> them within spinlocks),
 
-But even assuming you get all of that fixed up. I wonder what is such
-a big benefit to powerpc that you'll rather add the exception "cacheable
-stores are not ordered with previous io stores" than to say "any driver
-which works on x86 will work on powerpc as far as memory ordering goes"?
-(don't you also need something to order io reads with cacheable reads?
-as per my observation that your rmb is broken according to IBM docs)
+My understanding was that on x86, loads could pass stores in general,
+i.e. a later load could be performed before an earlier store.  I guess
+that can't be true for uncached loads, but could a cacheable load be
+performed before an earlier uncached store?
 
-Obviously you already have a sync instruction in your writel, so 1)
-adding a second one doesn't slow it down by an order of mangnitude or
-anything, just some small factor; and 2) you obviously want to be
-converting high performance drivers to a more relaxed model anyway
-regardless of whether there is one sync or two in there.
+> - as strong as x86. guaranteed not to break drivers that work on x86,
+>   but slower on some archs. To me, this is most pleasing. It is much
+>   much easier to notice something is going a little slower and to work
+>   out how to use weaker ordering there, than it is to debug some
+>   once-in-a-bluemoon breakage caused by just the right architecture,
+>   driver, etc. It totally frees up the driver writer from thinking
+>   about barriers, provided they get the locking right.
 
-Has this ever been measured or thought carefully about? Beyond the
-extent of "one sync good, two sync bad" ;)
+I just wish we had even one actual example of things going wrong with
+the current rules we have on powerpc to motivate changing to this
+model.
+
+> Now that doesn't leave waker ordering architectures lumped with "slow old
+> x86 semantics". Think of it as giving them the benefit of sharing x86
+> development and testing :) We can then formalise the relaxed __ accessors
+> to be more complete (ie. +/- byteswapping).
+
+That leaves a gulf between the extremely strongly ordered writel
+etc. and the extremely weakly ordered __writel etc.  The current
+powerpc scheme is fine for a lot of drivers but your proposal would
+leave us no way to deliver it to them.
+
+Paul.
