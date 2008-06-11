@@ -1,43 +1,54 @@
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu
- operations
-Date: Tue, 10 Jun 2008 17:15:31 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0806101712490.19088@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com> <200806101256.31615.rusty@rustcorp.com.au>
- <Pine.LNX.4.64.0806092012240.13024@schroedinger.engr.sgi.com>
- <200806111003.37167.rusty@rustcorp.com.au>
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
+Date: Wed, 11 Jun 2008 05:25:31 +0200
+Message-ID: <20080611032531.GC8228@wotan.suse.de>
+References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-2-git-send-email-jens.axboe@oracle.com> <1213109485.24701.107.camel@pc1117.cambridge.arm.com> <20080610154716.GF15481@linux.vnet.ibm.com> <1213116788.24701.133.camel@pc1117.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.sgi.com ([192.48.171.29]:45643 "EHLO relay.sgi.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753603AbYFKAPt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jun 2008 20:15:49 -0400
-In-Reply-To: <200806111003.37167.rusty@rustcorp.com.au>
+Received: from ns2.suse.de ([195.135.220.15]:48968 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754546AbYFKDZh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 Jun 2008 23:25:37 -0400
+Content-Disposition: inline
+In-Reply-To: <1213116788.24701.133.camel@pc1117.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Mike Travis <travis@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: paulmck@linux.vnet.ibm.com, Jens Axboe <jens.axboe@oracle.com>, linux-kernel@vger.kernel.org, peterz@infradead.org, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, Russell King <rmk+lkml@arm.linux.org.uk>
 
-On Wed, 11 Jun 2008, Rusty Russell wrote:
+On Tue, Jun 10, 2008 at 05:53:08PM +0100, Catalin Marinas wrote:
+> On Tue, 2008-06-10 at 08:47 -0700, Paul E. McKenney wrote:
+> > On Tue, Jun 10, 2008 at 03:51:25PM +0100, Catalin Marinas wrote:
+> > > I was thinking whether this condition can be removed and allow the
+> > > smp_call_function*() to be called with IRQs disabled. At a quick look,
+> > > it seems to be possible if the csd_flag_wait() function calls the IPI
+> > > handlers directly when the IRQs are disabled (see the patch below).
+> [...]
+> > There were objections last month:  http://lkml.org/lkml/2008/5/3/167
+> 
+> Thanks, I missed this discussion.
+> 
+> > The issue was that this permits some interrupts to arrive despite
+> > interrupts being disabled.  There seemed to be less resistance to
+> > doing this in the wait==1 case, however.
+> 
+> The "(wait == 1) && irqs_disabled()" case is what I would be interested
+> in. In the patch you proposed, this doesn't seem to be allowed (at least
+> from the use of WARN_ON). However, from your post in May:
+> 
+> > 5.	If you call smp_call_function() with irqs disabled, then you
+> > 	are guaranteed that no other CPU's smp_call_function() handler
+> > 	will be invoked while smp_call_function() is executing.
+> 
+> this would be possible but no one need this functionality yet.
+> 
+> Would one use-case (ARM SMP and DMA cache maintenance) be enough to
+> implement this or I should add it to the ARM-specific code?
 
-> You're being obtuse.  See previous mail about the three possible 
-> implementations of local_t, and the comment in asm-generic/local.h.
-
-OK. I hope I responded in the other email in a more intelligent 
-fashion.
-
-> The paths forward are clear:
-> 1) Improve x86 local_t (mostly orthogonal to the others, but useful).
-
-Not sure about that. Its rarely used and the more general cpu alloc stuff 
-can be used in lots of places as evident by the rest of the patchset. But 
-lets leave it if its important for some reason.
-
-> 2) Implement extensible per-cpu areas.
-> 3) Generalize per-cpu accessors.
-> 4) Extend or replace the module.c per-cpu allocator to alloc from the other
->    areas.
-> 5) Convert alloc_percpu et al. to use the new code.
-
-Yes thanks. We are mostly on the same wavelength.
+How will you implement it? You have to be able to wait *somewhere*
+(either before or after the smp_call_function call) with interrupts
+enabled. It is not enough just to eg. use a spinlock around
+smp_call_function, because other CPUs might also be trying to call
+down the same path also with interrupts disabled, and they'll wait
+forever on the spinlock.
