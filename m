@@ -1,52 +1,74 @@
-From: Paul Mackerras <paulus@samba.org>
+From: Nick Piggin <nickpiggin@yahoo.com.au>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Thu, 12 Jun 2008 22:14:53 +1000
-Message-ID: <18513.4925.711881.794221@cargo.ozlabs.ibm.com>
-References: <1211852026.3286.36.camel@pasglop>
-	<200806111500.30789.nickpiggin@yahoo.com.au>
-	<18511.24317.31038.926337@cargo.ozlabs.ibm.com>
-	<200806111535.24523.nickpiggin@yahoo.com.au>
+Date: Thu, 12 Jun 2008 23:08:35 +1000
+Message-ID: <200806122308.35556.nickpiggin@yahoo.com.au>
+References: <1211852026.3286.36.camel@pasglop> <200806111535.24523.nickpiggin@yahoo.com.au> <18513.4925.711881.794221@cargo.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:57581 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753862AbYFLMO7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 12 Jun 2008 08:14:59 -0400
-In-Reply-To: <200806111535.24523.nickpiggin@yahoo.com.au>
+Received: from smtp115.mail.mud.yahoo.com ([209.191.84.164]:49140 "HELO
+	smtp115.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1760216AbYFLNIn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 12 Jun 2008 09:08:43 -0400
+In-Reply-To: <18513.4925.711881.794221@cargo.ozlabs.ibm.com>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <nickpiggin@yahoo.com.au>
+To: Paul Mackerras <paulus@samba.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Matthew Wilcox <matthew@wil.cx>, Trent Piepho <tpiepho@freescale.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
 
-Nick Piggin writes:
+On Thursday 12 June 2008 22:14, Paul Mackerras wrote:
+> Nick Piggin writes:
+> >                 /* turn off LED */
+> >                 val64 = readq(&bar0->adapter_control);
+> >                 val64 = val64 &(~ADAPTER_LED_ON);
+> >                 writeq(val64, &bar0->adapter_control);
+> >                 s2io_link(nic, LINK_DOWN);
+> >         }
+> >         clear_bit(__S2IO_STATE_LINK_TASK, &(nic->state));
+> >
+> > Now I can't say definitively that this is going to be wrong on
+> > powerpc, because I don't know the code well enough. But I'd be
+> > 90% sure that the unlock is not supposed to be visible to
+> > other CPUs before the writeqs are queued to the card. On x86 it
+> > wouldn't be.
+>
+> Interestingly, there is also a store to cacheable memory
+> (nic->device_enabled_once), but no smp_wmb or equivalent before the
+> clear_bit.  So there are other potential problems here besides the I/O
+> related ones.
 
->                 /* turn off LED */
->                 val64 = readq(&bar0->adapter_control);
->                 val64 = val64 &(~ADAPTER_LED_ON);
->                 writeq(val64, &bar0->adapter_control);
->                 s2io_link(nic, LINK_DOWN);
->         }
->         clear_bit(__S2IO_STATE_LINK_TASK, &(nic->state));
-> 
-> Now I can't say definitively that this is going to be wrong on
-> powerpc, because I don't know the code well enough. But I'd be
-> 90% sure that the unlock is not supposed to be visible to
-> other CPUs before the writeqs are queued to the card. On x86 it
-> wouldn't be.
+Yeah there sure is. That sucks too, but we go one step at a time ;)
+I think proposing a strong ordering between set_bit/clear_bit would
+actually be quite noticable slowdown in core kernel code at this
+point.
 
-Interestingly, there is also a store to cacheable memory
-(nic->device_enabled_once), but no smp_wmb or equivalent before the
-clear_bit.  So there are other potential problems here besides the I/O
-related ones.
+Which reminds me, I have been meaning to do another pass of test and
+set bit / clear bit conversions to the _lock primitives...
 
-Anyway, I have done some tests on a dual G5 here with putting a sync
-on both sides of the store in writel etc. (i.e. making readl/writel
-strongly ordered w.r.t. everything else), and as you predicted, there
-wasn't a noticeable performance degradation, at least not on the
-couple of things I tried.  So I am now inclined to accept your
-suggestion that we should do that.  I should probably do some similar
-checks on POWER6 and a few other machines first, though.
 
-Paul.
+> Anyway, I have done some tests on a dual G5 here with putting a sync
+> on both sides of the store in writel etc. (i.e. making readl/writel
+> strongly ordered w.r.t. everything else), and as you predicted, there
+> wasn't a noticeable performance degradation, at least not on the
+> couple of things I tried.  So I am now inclined to accept your
+> suggestion that we should do that.  I should probably do some similar
+> checks on POWER6 and a few other machines first, though.
+
+Oh good, thanks for looking into it. I guess it might be a little more
+noticable on bigger POWER systems. And I think we might even need to do
+a PCI read after every writel on sn2 systems in order to get the
+semantics I want.
+
+I can't say it won't be noticable. But if we consider the number of
+drivers (maybe one or two dozen well maintained ones), and number of
+sites in each driver (maybe one or two submission and completion
+fastpaths which should have a minimum of IO operations in each one)
+that will have to be converted in order to get performance as good or
+better than it is currently with relaxed accessors.... and weigh that
+against all the places in those and every other crappy obscure
+driver that we *won't* have to audit, I really think we end up with
+a net win even with some short term pain.
