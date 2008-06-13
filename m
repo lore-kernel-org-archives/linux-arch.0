@@ -1,71 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound-mail-02.bluehost.com ([69.89.21.12]:39950 "HELO
-	outbound-mail-02.bluehost.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1750948AbYFKQOr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 Jun 2008 12:14:47 -0400
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Wed, 11 Jun 2008 09:07:11 -0700
-References: <1211852026.3286.36.camel@pasglop> <200806101219.34995.jbarnes@virtuousgeek.org> <200806111329.35894.nickpiggin@yahoo.com.au>
-In-Reply-To: <200806111329.35894.nickpiggin@yahoo.com.au>
+Received: from cn.fujitsu.com ([222.73.24.84]:54632 "EHLO song.cn.fujitsu.com"
+	rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org with ESMTP
+	id S1753309AbYFMJsI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 13 Jun 2008 05:48:08 -0400
+Message-ID: <485241AE.4030300@cn.fujitsu.com>
+Date: Fri, 13 Jun 2008 17:45:18 +0800
+From: Li Zefan <lizf@cn.fujitsu.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Subject: Re: [PATCH -mm] PAGE_ALIGN(): correctly handle 64-bit values on 32-bit
+ architectures
+References: <20080521152921.15001.65968.sendpatchset@localhost.localdomain>	<20080521152948.15001.39361.sendpatchset@localhost.localdomain>	<4850070F.6060305@gmail.com>	<20080611121510.d91841a3.akpm@linux-foundation.org>	<485032C8.4010001@gmail.com>	<20080611134323.936063d3.akpm@linux-foundation.org>	<485055FF.9020500@gmail.com>	<20080611155530.099a54d6.akpm@linux-foundation.org>	<4850BE9B.5030504@linux.vnet.ibm.com>	<4850E3BC.308@gmail.com> <20080612020235.29a81d7c.akpm@linux-foundation.org> <485156B8.5070709@gmail.com> <48523FC5.4040900@linux.vnet.ibm.com>
+In-Reply-To: <48523FC5.4040900@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-ID: <200806110907.12070.jbarnes@virtuousgeek.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: linux-arch@vger.kernel.org, Roland Dreier <rdreier@cisco.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Linus Torvalds <torvalds@linux-foundation.org>, Matthew Wilcox <matthew@wil.cx>, Trent Piepho <tpiepho@freescale.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
-Message-ID: <20080611160711.G68KIIX7BA9I8AdUKVAbfPyDCI19mW9JJ2hlyVOVIhs@z>
+To: balbir@linux.vnet.ibm.com
+Cc: righi.andrea@gmail.com, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Sudhir Kumar <skumar@linux.vnet.ibm.com>, yamamoto@valinux.co.jp, menage@google.com, linux-kernel@vger.kernel.org, xemul@openvz.org, kamezawa.hiroyu@jp.fujitsu.com, linux-arch@vger.kernel.org
+Message-ID: <20080613094518.D0S0ltTxQGMoSDiwoNlq9gXzUzzxcj6epHFS9UrfaEI@z>
 
-On Tuesday, June 10, 2008 8:29 pm Nick Piggin wrote:
-> On Wednesday 11 June 2008 05:19, Jesse Barnes wrote:
-> > On Tuesday, June 10, 2008 12:05 pm Roland Dreier wrote:
-> > >  > me too.  That's the whole basis for readX_relaxed() and its cohorts:
-> > >  > we make our weirdest machines (like altix) conform to the x86 norm.
-> > >  > Then where it really kills us we introduce additional semantics to
-> > >  > selected drivers that enable us to recover I/O speed on the abnormal
-> > >  > platforms.
-> > >
-> > > Except as I pointed out before, Altix doesn't conform to the norm and
-> > > many (most?) drivers are missing mmiowb()s that are needed for Altix.
-> > > Just no one has plugged most devices into an Altix (or haven't stressed
-> > > the driver in a way that exposes problems of IO ordering between CPUs).
-> > >
-> > > It would be a great thing to use the powerpc trick of setting a flag
-> > > that is tested by spin_unlock()/mutex_unlock() and automatically doing
-> > > the mmiowb() if needed, and then killing off mmiowb() entirely.
-> >
-> > Yeah I think that's what Nick's guidelines would guarantee.  And Jes is
-> > already working on the spin_unlock change you mentioned, so mmiowb()
-> > should be history soon (in name only, assuming Nick also introduces the
-> > I/O barriers he talked about for ordering the looser accessors it would
-> > still be there but would be called io_wmb or something).
->
-> Exactly, yes. I guess everybody has had good intentions here, but
-> as noticed, what is lacking is coordination and documentation.
->
-> You mention strong ordering WRT spin_unlock, which suggests that
-> you would prefer to take option #2 (the current powerpc one): io/io
-> is ordered and io is contained inside spinlocks, but io/cacheable
-> in general is not ordered.
+Balbir Singh wrote:
+> Andrea Righi wrote:
+>> I've tested the following patch on a i386 box with my usual .config and
+>> everything seems fine. I also tested allmodconfig and some randconfig
+>> builds and
+>> I've not seen any evident error.
+>>
+>> I'll repeat the tests tonight on a x86_64. Other architectures should be
+>> tested
+>> as well...
+>>
+>> Patch is against 2.6.25-rc5-mm3.
+> 
+> Hi, Andrea,
+> 
+> CC'ing linux-arch. I have a power box, but it's busy. I'll try and test your
+> patch on it as soon as I can get hold of it.
+> 
+> 
 
-I was thinking it would be good for the weaker accessors, but now that I think 
-about it you could just use the new io_* barrier functions.
-
-I didn't mean to imply that I wasn't in favor of the io/cacheable ordering as 
-well.
-
-> For any high performance drivers that are well maintained (ie. the
-> ones where slowdown might be noticed), everyone should have a pretty
-> good handle on memory ordering requirements, so it shouldn't take
-> long to go through and convert them to relaxed accessors.
-
-Yep.  Thanks for working on this, Nick, it's definitely a good thing that 
-you're taking control of it. :)
-
-Thanks,
-Jesse
+It passes allmodconfig and a randconfig build on ia64, but I have no more access
+to the machine to do more test.
