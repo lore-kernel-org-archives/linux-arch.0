@@ -1,48 +1,44 @@
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu
- operations
-Date: Thu, 12 Jun 2008 19:27:07 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0806121921260.4570@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com> <200806122121.09835.nickpiggin@yahoo.com.au>
- <Pine.LNX.4.64.0806121017010.30597@schroedinger.engr.sgi.com>
- <200806131038.12987.rusty@rustcorp.com.au>
+From: Balbir Singh <balbir@linux.vnet.ibm.com>
+Subject: Re: [PATCH -mm] PAGE_ALIGN(): correctly handle 64-bit values on 32-bit
+ architectures
+Date: Fri, 13 Jun 2008 15:07:09 +0530
+Message-ID: <48523FC5.4040900@linux.vnet.ibm.com>
+References: <20080521152921.15001.65968.sendpatchset@localhost.localdomain>	<20080521152948.15001.39361.sendpatchset@localhost.localdomain>	<4850070F.6060305@gmail.com>	<20080611121510.d91841a3.akpm@linux-foundation.org>	<485032C8.4010001@gmail.com>	<20080611134323.936063d3.akpm@linux-foundation.org>	<485055FF.9020500@gmail.com>	<20080611155530.099a54d6.akpm@linux-foundation.org>	<4850BE9B.5030504@linux.vnet.ibm.com>	<4850E3BC.308@gmail.com> <20080612020235.29a81d7c.akpm@linux-foundation.org> <485156B8.5070709@gmail.com>
+Reply-To: balbir@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.sgi.com ([192.48.171.29]:60361 "EHLO relay.sgi.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755300AbYFMC1L (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 12 Jun 2008 22:27:11 -0400
-In-Reply-To: <200806131038.12987.rusty@rustcorp.com.au>
+Received: from e28smtp02.in.ibm.com ([59.145.155.2]:58788 "EHLO
+	e28esmtp02.in.ibm.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1754317AbYFMJhi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jun 2008 05:37:38 -0400
+In-Reply-To: <485156B8.5070709@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Martin Peschke <mp3@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Mike Travis <travis@sgi.com>
+To: righi.andrea@gmail.com
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Sudhir Kumar <skumar@linux.vnet.ibm.com>, yamamoto@valinux.co.jp, menage@google.com, lizf@cn.fujitsu.com, linux-kernel@vger.kernel.org, xemul@openvz.org, kamezawa.hiroyu@jp.fujitsu.com, linux-arch@vger.kernel.org
 
-On Fri, 13 Jun 2008, Rusty Russell wrote:
+Andrea Righi wrote:
+> I've tested the following patch on a i386 box with my usual .config and
+> everything seems fine. I also tested allmodconfig and some randconfig
+> builds and
+> I've not seen any evident error.
+> 
+> I'll repeat the tests tonight on a x86_64. Other architectures should be
+> tested
+> as well...
+> 
+> Patch is against 2.6.25-rc5-mm3.
 
-> cpu_possible_map should definitely be minimal, but your point is well made: 
-> dynamic percpu could actually cut memory allocation.  If we go for a hybrid 
-> scheme where static percpu is always allocated from the initial chunk, 
-> however, we still need the current pessimistic overallocation.
+Hi, Andrea,
 
-The initial chunk would mean that the percpu areas all come from the same 
-NUMA node. We really need to allocate from the node that is nearest to a 
-processor (not all processors have processor local memory!).
+CC'ing linux-arch. I have a power box, but it's busy. I'll try and test your
+patch on it as soon as I can get hold of it.
 
-It would be good to standardize the way that percpu areas are allocated. 
-We have various ways of allocation now in various arches. 
-init/main.c:setup_per_cpu_ares() needs to be generalized:
 
-1. Allocate the per cpu areas in a NUMA aware fashions.
-
-2. Have a function for instantiating a single per cpu area that 
-   can be used during cpu hotplug.
-
-3. Some hooks for arches to override particular behavior as needed.
-   F.e. IA64 allocates percpu structures in a special way. x86_64
-   needs to do some tricks for the pda etc etc.
-
-> Mike's a clever guy, I'm sure he'll think of something :)
-
-Hopefully. Otherwise he will ask me =-).
+-- 
+	Warm Regards,
+	Balbir Singh
+	Linux Technology Center
+	IBM, ISTL
