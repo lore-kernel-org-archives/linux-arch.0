@@ -1,66 +1,85 @@
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu operations
-Date: Sun, 15 Jun 2008 20:33:02 +1000
-Message-ID: <200806152033.02891.rusty@rustcorp.com.au>
-References: <20080530035620.587204923@sgi.com> <200806131038.12987.rusty@rustcorp.com.au> <Pine.LNX.4.64.0806121921260.4570@schroedinger.engr.sgi.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] initrd: Fix virtual/physical mix-up in overwrite test
+Date: Sun, 15 Jun 2008 16:07:45 +0200 (CEST)
+Message-ID: <Pine.LNX.4.64.0806151606320.5736@anakin>
+References: <Pine.LNX.4.64.0712161148340.5869@anakin>
+ <20071218030131.8b272833.akpm@linux-foundation.org> <Pine.LNX.4.64.0712182051050.24841@anakin>
+ <20071218123119.54262974.akpm@linux-foundation.org> <Pine.LNX.4.64.0712231142190.24252@anakin>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757532AbYFOKd3@vger.kernel.org>
-In-Reply-To: <Pine.LNX.4.64.0806121921260.4570@schroedinger.engr.sgi.com>
-Content-Disposition: inline
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1759376AbYFOOH7@vger.kernel.org>
+In-Reply-To: <Pine.LNX.4.64.0712231142190.24252@anakin>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Martin Peschke <mp3@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Mike Travis <travis@sgi.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Friday 13 June 2008 12:27:07 Christoph Lameter wrote:
-> On Fri, 13 Jun 2008, Rusty Russell wrote:
-> > cpu_possible_map should definitely be minimal, but your point is well
-> > made: dynamic percpu could actually cut memory allocation.  If we go for
-> > a hybrid scheme where static percpu is always allocated from the initial
-> > chunk, however, we still need the current pessimistic overallocation.
->
-> The initial chunk would mean that the percpu areas all come from the same
-> NUMA node. We really need to allocate from the node that is nearest to a
-> processor (not all processors have processor local memory!).
+On Sun, 23 Dec 2007, Geert Uytterhoeven wrote:
+> New version below. Tested on Amiga. Compile-tested on ia32 (i386_defconfig) and
+> pp64 (ps3_defconfig).
 
-Yes, this is where it gets nasty.  We shouldn't even allocate the initial 
-chunk in a non-NUMA aware way (I'm using the term chunk loosely, it's a chunk 
-per cpu of course).
+Ping?
 
-> It would be good to standardize the way that percpu areas are allocated.
-> We have various ways of allocation now in various arches.
-> init/main.c:setup_per_cpu_ares() needs to be generalized:
->
-> 1. Allocate the per cpu areas in a NUMA aware fashions.
+> Subject: initrd: Fix virtual/physical mix-up in overwrite test
+> 
+> From: Geert Uytterhoeven <geert@linux-m68k.org>
+> 
+> On recent kernels, I get the following error when using an initrd:
+> 
+> | initrd overwritten (0x00b78000 < 0x07668000) - disabling it.
+> 
+> My Amiga 4000 has 12 MiB of RAM at physical address 0x07400000 (virtual
+> 0x00000000).
+> The initrd is located at the end of RAM: 0x00b78000 - 0x00c00000 (virtual).
+> The overwrite test compares the (virtual) initrd location to the (physical)
+> first available memory location, which fails.
+> 
+> This patch converts initrd_start to a page frame number, so it can be safely
+> compared with min_low_pfn.
+> 
+> Before the introduction of discontiguous memory support on m68k
+> (12d810c1b8c2b913d48e629e2b5c01d105029839), min_low_pfn was just left
+> untouched by the m68k-specific code (zero, I guess), and everything worked
+> fine.
+> 
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> ---
+> On several platforms, initrd_below_start_ok is set to 1:
+> 
+> | arch/mips/kernel/setup.c:       initrd_below_start_ok = 1;
+> | arch/parisc/mm/init.c:                  initrd_below_start_ok = 1;
+> | arch/powerpc/kernel/prom.c:                     initrd_below_start_ok = 1;
+> | arch/ppc/platforms/hdpu.c:                      initrd_below_start_ok = 1;
+> | arch/xtensa/kernel/setup.c:             initrd_below_start_ok = 1;
+> 
+> Some of these may be workarounds for this bug. Please check.
+> 
+>  init/main.c |    5 +++--
+>  1 file changed, 3 insertions(+), 2 deletions(-)
+> 
+> --- a/init/main.c
+> +++ b/init/main.c
+> @@ -598,9 +598,10 @@ asmlinkage void __init start_kernel(void
+>  
+>  #ifdef CONFIG_BLK_DEV_INITRD
+>  	if (initrd_start && !initrd_below_start_ok &&
+> -			initrd_start < min_low_pfn << PAGE_SHIFT) {
+> +	    page_to_pfn(virt_to_page(initrd_start)) < min_low_pfn) {
+>  		printk(KERN_CRIT "initrd overwritten (0x%08lx < 0x%08lx) - "
+> -		    "disabling it.\n",initrd_start,min_low_pfn << PAGE_SHIFT);
+> +		    "disabling it.\n",
+> +		    page_to_pfn(virt_to_page(initrd_start)), min_low_pfn);
+>  		initrd_start = 0;
+>  	}
+>  #endif
 
-Definitely.  We also need to reserve virtual address space to create more 
-areas with congruent mappings; that's the fun part.
+Gr{oetje,eeting}s,
 
-Maybe a simpler non-NUMA variant too, but it's trivial if we want it.
+						Geert
 
-> 2. Have a function for instantiating a single per cpu area that
->    can be used during cpu hotplug.
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-Unfortunately this breaks the current percpu semantics: that if you iterate 
-over all possible cpus you can access percpu vars.  This means you don't need 
-to have hotplug CPU notifiers for simple percpu counters.  We could do this 
-with helpers, but AFAICT it's orthogonal to the other plans.
-
-> 3. Some hooks for arches to override particular behavior as needed.
->    F.e. IA64 allocates percpu structures in a special way. x86_64
->    needs to do some tricks for the pda etc etc.
-
-IA64 is going to need some work, since dynamic percpu addresses won't be able 
-to use their pinned TLB trick to get the local version.
-
-> > Mike's a clever guy, I'm sure he'll think of something :)
->
-> Hopefully. Otherwise he will ask me =-).
-
-And as always, lkml will offer feedback; useful and otherwise :)
-
-Cheers,
-Rusty.
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
