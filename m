@@ -1,97 +1,33 @@
-From: Andrea Righi <righi.andrea@gmail.com>
-Subject: Re: [PATCH -mm] PAGE_ALIGN(): correctly handle 64-bit values on 32-bit
- architectures (v2)
-Date: Mon, 16 Jun 2008 10:35:37 +0200 (MEST)
-Message-ID: <485625D9.6040508@gmail.com>
-References: <1213543436-15254-1-git-send-email-righi.andrea@gmail.com> <18517.39513.867328.171299@cargo.ozlabs.ibm.com>
-Reply-To: righi.andrea@gmail.com
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu
+ operations
+Date: Mon, 16 Jun 2008 07:52:08 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0806160748050.19276@schroedinger.engr.sgi.com>
+References: <20080530035620.587204923@sgi.com> <200806131038.12987.rusty@rustcorp.com.au>
+ <Pine.LNX.4.64.0806121921260.4570@schroedinger.engr.sgi.com>
+ <200806152033.02891.rusty@rustcorp.com.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1761390AbYFPI6X@vger.kernel.org>
-In-Reply-To: <18517.39513.867328.171299@cargo.ozlabs.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, balbir@linux.vnet.ibm.com, Sudhir Kumar <skumar@linux.vnet.ibm.com>, yamamoto@valinux.co.jp, menage@google.com, linux-kernel@vger.kernel.org, xemul@openvz.org, kamezawa.hiroyu@jp.fujitsu.com, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:60826 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752257AbYFPOwN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jun 2008 10:52:13 -0400
+In-Reply-To: <200806152033.02891.rusty@rustcorp.com.au>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Martin Peschke <mp3@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Mike Travis <travis@sgi.com>
 
-Paul Mackerras wrote:
-> Andrea Righi writes:
+On Sun, 15 Jun 2008, Rusty Russell wrote:
+
+> > 3. Some hooks for arches to override particular behavior as needed.
+> >    F.e. IA64 allocates percpu structures in a special way. x86_64
+> >    needs to do some tricks for the pda etc etc.
 > 
->> Also move the PAGE_ALIGN() definitions out of include/asm-*/page.h in
->> include/linux/mm.h.
-> 
-> I'd rather see it in some other place than this, because
-> include/linux/mm.h is a large header that includes quite a lot of
-> other stuff.  What's wrong with leaving it in each arch's page.h and
-> only changing it on those archs that have both 32-bit and 64-bit
-> variants?  Or perhaps there is some other, lower-level header in
-> include/linux where it could go?
+> IA64 is going to need some work, since dynamic percpu addresses won't be able 
+> to use their pinned TLB trick to get the local version.
 
-I think the only evident advantage of this is to have a single
-implementation, instead of dealing with (potentially) N different
-implementations.
-
-Maybe a different place could be linux/mm_types.h, it's not so small,
-but at least it's smaller than linux/mm.h. However, it's a bit ugly to
-put a "function" in a file called mm_types.h.
-
-Anyway, I've to say that fixing PAGE_ALIGN and leaving it in each page.h
-for now would be surely a simpler solution and would introduce less
-potential errors.
-
-> 
->> diff --git a/arch/powerpc/boot/of.c b/arch/powerpc/boot/of.c
->> index 61d9899..6bc72b1 100644
->> --- a/arch/powerpc/boot/of.c
->> +++ b/arch/powerpc/boot/of.c
->> @@ -8,6 +8,7 @@
->>   */
->>  #include <stdarg.h>
->>  #include <stddef.h>
->> +#include <linux/mm.h>
->>  #include "types.h"
->>  #include "elf.h"
->>  #include "string.h"
->> diff --git a/arch/powerpc/boot/page.h b/arch/powerpc/boot/page.h
->> index 14eca30..aa42298 100644
->> --- a/arch/powerpc/boot/page.h
->> +++ b/arch/powerpc/boot/page.h
->> @@ -28,7 +28,4 @@
->>  /* align addr on a size boundary - adjust address up if needed */
->>  #define _ALIGN(addr,size)     _ALIGN_UP(addr,size)
->>  
->> -/* to align the pointer to the (next) page boundary */
->> -#define PAGE_ALIGN(addr)	_ALIGN(addr, PAGE_SIZE)
->> -
->>  #endif				/* _PPC_BOOT_PAGE_H */
-> 
-> These parts are NAKed, because arch/powerpc/boot is a separate program
-> that doesn't use the kernel include files.
-
-OK, so we also shouldn't use the linux/kernel.h's ALIGN() here, but leave
-the local _ALIGN() definition, right?
-
-> 
->> diff --git a/include/asm-powerpc/page.h b/include/asm-powerpc/page.h
->> index cffdf0e..e088545 100644
->> --- a/include/asm-powerpc/page.h
->> +++ b/include/asm-powerpc/page.h
->> @@ -119,9 +119,6 @@ extern phys_addr_t kernstart_addr;
->>  /* align addr on a size boundary - adjust address up if needed */
->>  #define _ALIGN(addr,size)     _ALIGN_UP(addr,size)
->>  
->> -/* to align the pointer to the (next) page boundary */
->> -#define PAGE_ALIGN(addr)	_ALIGN(addr, PAGE_SIZE)
->> -
->>  /*
->>   * Don't compare things with KERNELBASE or PAGE_OFFSET to test for
->>   * "kernelness", use is_kernel_addr() - it should do what you want.
-> 
-> We had already come across this issue on powerpc, and we fixed it by
-> making sure that the type of PAGE_MASK was int, not unsigned int.
-> However, I have no objection to using the ALIGN() macro from
-> include/linux/kernel.h instead.
-
-Thanks,
--Andrea
+The ia64 hook could simply return the address of percpu area that 
+was reserved when the per node memory layout was generated (which happens 
+very early during node bootstrap).
