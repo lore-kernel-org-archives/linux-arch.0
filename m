@@ -1,56 +1,64 @@
-From: David Woodhouse <dwmw2@infradead.org>
+From: Adrian Bunk <bunk@kernel.org>
 Subject: Re: architectures with ARCH_SUPPORTS_AOUT but no binfmt_aout
-Date: Tue, 17 Jun 2008 10:46:44 +0100
-Message-ID: <1213696004.26255.960.camel@pmac.infradead.org>
-References: <1213565555.26255.522.camel@pmac.infradead.org>
-	 <1213604973-7073-1-git-send-email-jacmet@sunsite.dk>
-	 <1213617663.26255.708.camel@pmac.infradead.org>
-	 <20080616121727.GB10854@cs181133002.pp.htv.fi>
-	 <1213619214.26255.721.camel@pmac.infradead.org>
-	 <20080617084235.GA20169@cs181133002.pp.htv.fi>
+Date: Tue, 17 Jun 2008 13:11:12 +0300
+Message-ID: <20080617101112.GE20169@cs181133002.pp.htv.fi>
+References: <1213565555.26255.522.camel@pmac.infradead.org> <1213604973-7073-1-git-send-email-jacmet@sunsite.dk> <1213617663.26255.708.camel@pmac.infradead.org> <20080616121727.GB10854@cs181133002.pp.htv.fi> <1213619214.26255.721.camel@pmac.infradead.org> <20080617084235.GA20169@cs181133002.pp.htv.fi> <1213696004.26255.960.camel@pmac.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:33944 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751987AbYFQJrh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jun 2008 05:47:37 -0400
-In-Reply-To: <20080617084235.GA20169@cs181133002.pp.htv.fi>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Adrian Bunk <bunk@kernel.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-sh-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1213696004.26255.960.camel@pmac.infradead.org>
+Sender: linux-sh-owner@vger.kernel.org
+To: David Woodhouse <dwmw2@infradead.org>
 Cc: Peter Korsgaard <jacmet@sunsite.dk>, linux-kernel@vger.kernel.org, sam@ravnborg.org, dhowells@redhat.com, andi@firstfloor.org, "Kirill A. Shutemov" <k.shutemov@gmail.com>, ysato@users.sourceforge.jp, takata@linux-m32r.org, linux-m32r@ml.linux-m32r.org, kyle@mcmartin.ca, matthew@wil.cx, grundler@parisc-linux.org, linux-parisc@vger.kernel.org, lethal@linux-sh.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2008-06-17 at 11:42 +0300, Adrian Bunk wrote:
+On Tue, Jun 17, 2008 at 10:46:44AM +0100, David Woodhouse wrote:
+> On Tue, 2008-06-17 at 11:42 +0300, Adrian Bunk wrote:
+> > 
+> > > Why _are_ there architectures which define ARCH_SUPPORTS_AOUT and have
+> > > <asm/a.out.h> but don't support binfmt_aout, anyway? How does that make
+> > > sense?
+> > 
+> > My guess would be that binfmt_aout isn't actually used there.
+> > 
+> > The affected architectures are:
+> > - h8300
+> > - m32r
+> > - parisc
+> > - sh
+> > - v850
+> > 
+> > v850 is broken beyond repair, and I hope my patch to remove the 
+> > architecture will make it into 2.6.27.
+> > 
+> > For the other 4 architectures I have Cc'ed the architecture maintainers.
 > 
-> > Why _are_ there architectures which define ARCH_SUPPORTS_AOUT and have
-> > <asm/a.out.h> but don't support binfmt_aout, anyway? How does that make
-> > sense?
+> There's another set of architectures which have <asm/a.out.h> but don't
+> define ARCH_SUPPORTS_AOUT. Including PowerPC.
 > 
-> My guess would be that binfmt_aout isn't actually used there.
-> 
-> The affected architectures are:
-> - h8300
-> - m32r
-> - parisc
-> - sh
-> - v850
-> 
-> v850 is broken beyond repair, and I hope my patch to remove the 
-> architecture will make it into 2.6.27.
-> 
-> For the other 4 architectures I have Cc'ed the architecture maintainers.
+> I think we can probably get away with removing <asm/a.out.h> from every
+> architecture other than Alpha, ARM, m68k and x86, and killing
+> ARCH_SUPPORTS_AOUT completely.
 
-There's another set of architectures which have <asm/a.out.h> but don't
-define ARCH_SUPPORTS_AOUT. Including PowerPC.
+include/linux/a.out.h contains an #include <asm/a.out.h> and is exported 
+to userspace...
 
-I think we can probably get away with removing <asm/a.out.h> from every
-architecture other than Alpha, ARM, m68k and x86, and killing
-ARCH_SUPPORTS_AOUT completely.
+> Or maybe, as dhowells suggests, re-defining ARCH_SUPPORTS_AOUT to be set
+> only on Alpha, ARM, m68k and x86 (so BINFMT_AOUT can depend on it).
 
-Or maybe, as dhowells suggests, re-defining ARCH_SUPPORTS_AOUT to be set
-only on Alpha, ARM, m68k and x86 (so BINFMT_AOUT can depend on it).
+The pattern for this stuff is to provide a HAVE_AOUT kconfig variable 
+that gets select'ed by these architectures.
+
+> dwmw2
+
+cu
+Adrian
 
 -- 
-dwmw2
+
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
+
