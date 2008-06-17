@@ -1,102 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from as1.cineca.com ([130.186.84.213]:50036 "EHLO as1.cineca.com"
+Received: from smtp6.pp.htv.fi ([213.243.153.40]:38599 "EHLO smtp6.pp.htv.fi"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752846AbYFPKQG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Jun 2008 06:16:06 -0400
-Message-ID: <485625D9.6040508@gmail.com>
-From: Andrea Righi <righi.andrea@gmail.com>
-Reply-To: righi.andrea@gmail.com
+	id S1752612AbYFQKMg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 Jun 2008 06:12:36 -0400
+Date: Tue, 17 Jun 2008 13:11:12 +0300
+From: Adrian Bunk <bunk@kernel.org>
+Subject: Re: architectures with ARCH_SUPPORTS_AOUT but no binfmt_aout
+Message-ID: <20080617101112.GE20169@cs181133002.pp.htv.fi>
+References: <1213565555.26255.522.camel@pmac.infradead.org> <1213604973-7073-1-git-send-email-jacmet@sunsite.dk> <1213617663.26255.708.camel@pmac.infradead.org> <20080616121727.GB10854@cs181133002.pp.htv.fi> <1213619214.26255.721.camel@pmac.infradead.org> <20080617084235.GA20169@cs181133002.pp.htv.fi> <1213696004.26255.960.camel@pmac.infradead.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH -mm] PAGE_ALIGN(): correctly handle 64-bit values on 32-bit
- architectures (v2)
-References: <1213543436-15254-1-git-send-email-righi.andrea@gmail.com> <18517.39513.867328.171299@cargo.ozlabs.ibm.com>
-In-Reply-To: <18517.39513.867328.171299@cargo.ozlabs.ibm.com>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
-Date: Mon, 16 Jun 2008 10:35:37 +0200 (MEST)
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <1213696004.26255.960.camel@pmac.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mackerras <paulus@samba.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, balbir@linux.vnet.ibm.com, Sudhir Kumar <skumar@linux.vnet.ibm.com>, yamamoto@valinux.co.jp, menage@google.com, linux-kernel@vger.kernel.org, xemul@openvz.org, kamezawa.hiroyu@jp.fujitsu.com, linux-arch@vger.kernel.org
-Message-ID: <20080616083537.DvgQnT3ePNQVCmK44E_wLD50OPuovFH2BnG1Vp2KN90@z>
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: Peter Korsgaard <jacmet@sunsite.dk>, linux-kernel@vger.kernel.org, sam@ravnborg.org, dhowells@redhat.com, andi@firstfloor.org, "Kirill A. Shutemov" <k.shutemov@gmail.com>, ysato@users.sourceforge.jp, takata@linux-m32r.org, linux-m32r@ml.linux-m32r.org, kyle@mcmartin.ca, matthew@wil.cx, grundler@parisc-linux.org, linux-parisc@vger.kernel.org, lethal@linux-sh.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20080617101112.sznWX2JApcpCFXKPSJyjdpTWW5n9Jha55AlbBfPQCOE@z>
 
-Paul Mackerras wrote:
-> Andrea Righi writes:
+On Tue, Jun 17, 2008 at 10:46:44AM +0100, David Woodhouse wrote:
+> On Tue, 2008-06-17 at 11:42 +0300, Adrian Bunk wrote:
+> > 
+> > > Why _are_ there architectures which define ARCH_SUPPORTS_AOUT and have
+> > > <asm/a.out.h> but don't support binfmt_aout, anyway? How does that make
+> > > sense?
+> > 
+> > My guess would be that binfmt_aout isn't actually used there.
+> > 
+> > The affected architectures are:
+> > - h8300
+> > - m32r
+> > - parisc
+> > - sh
+> > - v850
+> > 
+> > v850 is broken beyond repair, and I hope my patch to remove the 
+> > architecture will make it into 2.6.27.
+> > 
+> > For the other 4 architectures I have Cc'ed the architecture maintainers.
 > 
->> Also move the PAGE_ALIGN() definitions out of include/asm-*/page.h in
->> include/linux/mm.h.
+> There's another set of architectures which have <asm/a.out.h> but don't
+> define ARCH_SUPPORTS_AOUT. Including PowerPC.
 > 
-> I'd rather see it in some other place than this, because
-> include/linux/mm.h is a large header that includes quite a lot of
-> other stuff.  What's wrong with leaving it in each arch's page.h and
-> only changing it on those archs that have both 32-bit and 64-bit
-> variants?  Or perhaps there is some other, lower-level header in
-> include/linux where it could go?
+> I think we can probably get away with removing <asm/a.out.h> from every
+> architecture other than Alpha, ARM, m68k and x86, and killing
+> ARCH_SUPPORTS_AOUT completely.
 
-I think the only evident advantage of this is to have a single
-implementation, instead of dealing with (potentially) N different
-implementations.
+include/linux/a.out.h contains an #include <asm/a.out.h> and is exported 
+to userspace...
 
-Maybe a different place could be linux/mm_types.h, it's not so small,
-but at least it's smaller than linux/mm.h. However, it's a bit ugly to
-put a "function" in a file called mm_types.h.
+> Or maybe, as dhowells suggests, re-defining ARCH_SUPPORTS_AOUT to be set
+> only on Alpha, ARM, m68k and x86 (so BINFMT_AOUT can depend on it).
 
-Anyway, I've to say that fixing PAGE_ALIGN and leaving it in each page.h
-for now would be surely a simpler solution and would introduce less
-potential errors.
+The pattern for this stuff is to provide a HAVE_AOUT kconfig variable 
+that gets select'ed by these architectures.
 
-> 
->> diff --git a/arch/powerpc/boot/of.c b/arch/powerpc/boot/of.c
->> index 61d9899..6bc72b1 100644
->> --- a/arch/powerpc/boot/of.c
->> +++ b/arch/powerpc/boot/of.c
->> @@ -8,6 +8,7 @@
->>   */
->>  #include <stdarg.h>
->>  #include <stddef.h>
->> +#include <linux/mm.h>
->>  #include "types.h"
->>  #include "elf.h"
->>  #include "string.h"
->> diff --git a/arch/powerpc/boot/page.h b/arch/powerpc/boot/page.h
->> index 14eca30..aa42298 100644
->> --- a/arch/powerpc/boot/page.h
->> +++ b/arch/powerpc/boot/page.h
->> @@ -28,7 +28,4 @@
->>  /* align addr on a size boundary - adjust address up if needed */
->>  #define _ALIGN(addr,size)     _ALIGN_UP(addr,size)
->>  
->> -/* to align the pointer to the (next) page boundary */
->> -#define PAGE_ALIGN(addr)	_ALIGN(addr, PAGE_SIZE)
->> -
->>  #endif				/* _PPC_BOOT_PAGE_H */
-> 
-> These parts are NAKed, because arch/powerpc/boot is a separate program
-> that doesn't use the kernel include files.
+> dwmw2
 
-OK, so we also shouldn't use the linux/kernel.h's ALIGN() here, but leave
-the local _ALIGN() definition, right?
+cu
+Adrian
 
-> 
->> diff --git a/include/asm-powerpc/page.h b/include/asm-powerpc/page.h
->> index cffdf0e..e088545 100644
->> --- a/include/asm-powerpc/page.h
->> +++ b/include/asm-powerpc/page.h
->> @@ -119,9 +119,6 @@ extern phys_addr_t kernstart_addr;
->>  /* align addr on a size boundary - adjust address up if needed */
->>  #define _ALIGN(addr,size)     _ALIGN_UP(addr,size)
->>  
->> -/* to align the pointer to the (next) page boundary */
->> -#define PAGE_ALIGN(addr)	_ALIGN(addr, PAGE_SIZE)
->> -
->>  /*
->>   * Don't compare things with KERNELBASE or PAGE_OFFSET to test for
->>   * "kernelness", use is_kernel_addr() - it should do what you want.
-> 
-> We had already come across this issue on powerpc, and we fixed it by
-> making sure that the type of PAGE_MASK was int, not unsigned int.
-> However, I have no objection to using the ALIGN() macro from
-> include/linux/kernel.h instead.
+-- 
 
-Thanks,
--Andrea
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
+
