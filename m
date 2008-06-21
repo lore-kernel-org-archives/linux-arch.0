@@ -1,85 +1,77 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC PATCH]rcu,alpha: avoid smp_read_barrier_depends in rcu_dereference when pointer==NULL
-Date: Sat, 21 Jun 2008 12:26:46 -0700
-Message-ID: <20080621192646.GA22569@linux.vnet.ibm.com>
-References: <485CCFB9.9050208@cn.fujitsu.com> <1214052746.3223.218.camel@lappy.programming.kicks-ass.net>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Support arch/$ARCH/include in kbuild
+Date: Sun, 22 Jun 2008 00:13:52 +0200
+Message-ID: <20080621221352.GE12279@uranus.ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from E23SMTP05.au.ibm.com ([202.81.18.174]:41344 "EHLO
-	e23smtp05.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751709AbYFUT0y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 21 Jun 2008 15:26:54 -0400
+Received: from pasmtpb.tele.dk ([80.160.77.98]:46958 "EHLO pasmtpB.tele.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752681AbYFUWNH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 21 Jun 2008 18:13:07 -0400
+Received: from ravnborg.org (0x535d98d8.vgnxx8.adsl-dhcp.tele.dk [83.93.152.216])
+	by pasmtpB.tele.dk (Postfix) with ESMTP id D13F1E30F6A
+	for <linux-arch@vger.kernel.org>; Sun, 22 Jun 2008 00:13:06 +0200 (CEST)
 Content-Disposition: inline
-In-Reply-To: <1214052746.3223.218.camel@lappy.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Lai Jiangshan <laijs@cn.fujitsu.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: linux arch <linux-arch@vger.kernel.org>
 
-On Sat, Jun 21, 2008 at 02:52:25PM +0200, Peter Zijlstra wrote:
-> On Sat, 2008-06-21 at 17:54 +0800, Lai Jiangshan wrote:
-> > Hi, Paul and Alpha hackers
-> > 
-> > memory barrier is expensive, I think it's worth that adding an if-statement
-> > to avoid it when pointer == NULL.
-> > 
-> > This patch change nothing in UP or in other architectures for compiler's
-> > optimization.
-> 
-> I suspect this optimization is invalid in the case where the loaded
-> value is used as an offset (either pointer or array index). But I'm
-> afraid I'll have to defer to Paul for explanations..
+I just posted this to lkml + kbuild.
+But realised this is as relevant for linux-arch as the others.
 
-What Peter said!
+Patches are here:
+http://lkml.org/lkml/2008/6/21/157
+http://lkml.org/lkml/2008/6/21/158
 
-There are cases where the argument to rcu_dereference() is an array
-index rather than a pointer.  In that case, zero is a perfectly valid
-array index and requires a memory barrier on Alpha.  Given that the
-smp_read_barrier_depends() primitive is very nearly (but not quite)
-a no-op on non-Alpha machines, it will also be necessary to carefully
-check the generated code to make sure that we are not slowing down the
-common non-Alpha machines to help out the very rare Alpha machines.
+[and on lkml if you are subscribed].
 
-Some months ago, we attempted to add a similar check to
-rcu_assign_pointer(), but we were unable to find an approach that handled
-all the cases currently in the Linux kernel, even when we introduced a
-special-case primitive for array indexes.  Please note that we did not
-prove it impossible, but rather decided that it was consuming more time
-and energy than was warranted.
+	Sam
 
-							Thanx, Paul
+----- Forwarded message from Sam Ravnborg <sam@ravnborg.org> -----
 
-PS.  I have not forgotten about your earlier patch to the list structures
-     used by classic RCU -- but I am still curious to know the results
-     of the more-harsh testing that I suggested.
+Subject: Support arch/$ARCH/include in kbuild
+Sender: linux-kbuild-owner@vger.kernel.org
+From: Sam Ravnborg <sam@ravnborg.org>
+Date:	Sun, 22 Jun 2008 00:07:03 +0200
+User-Agent: Mutt/1.4.2.1i
+To: LKML <linux-kernel@vger.kernel.org>,
+	linux-kbuild <linux-kbuild@vger.kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+X-Mailing-List:	linux-kbuild@vger.kernel.org
 
-> > 			Thanks, Lai Jiangshan
-> > 
-> > 
-> > Signed-off-by: Lai Jiangshan <laijs@cn.fujitsu.com>
-> > ---
-> > diff --git a/include/linux/rcupdate.h b/include/linux/rcupdate.h
-> > index d42dbec..8979f29 100644
-> > --- a/include/linux/rcupdate.h
-> > +++ b/include/linux/rcupdate.h
-> > @@ -143,7 +143,8 @@ struct rcu_head {
-> >  
-> >  #define rcu_dereference(p)     ({ \
-> >  				typeof(p) _________p1 = ACCESS_ONCE(p); \
-> > -				smp_read_barrier_depends(); \
-> > +				if (_________p1) \
-> > +					smp_read_barrier_depends(); \
-> >  				(_________p1); \
-> >  				})
-> >  
-> > 
-> > 
-> > 
-> > --
-> > To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> > the body of a message to majordomo@vger.kernel.org
-> > More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> > Please read the FAQ at  http://www.tux.org/lkml/
-> 
+Linus hinted that he liked to have all arch specific
+header files moved from include/asm-$ARCH to
+arch/$ARCH/include/asm.
+
+The following two patches implement the basic support
+for this.
+
+I have used sparc for my testing and to some degree
+I also used i386.
+
+For sparc I just had to do a simple:
+
+    mkdir -p arch/sparc/include/asm
+    mv include/asm-sparc/* arch/sparc/include/asm
+
+to build sparc with the new directory layout.
+
+For i386 I had to do a few trivial path fixes in
+arch/x86/Makefile and to fix the include of unistd_32.h
+in one place to fix the build.
+
+I expect a few additional bits to show up when people
+start to move their header files but this should
+be a good starting point.
+
+
+To support arch/$ARCH/include/ was done in two steps.
+
+First was to teach make headers_* about the new layout.
+And second step was to get the build fixed with the new
+layout.
+
+Patches are on top of kbuild-next.git and follows.
+
+	Sam
