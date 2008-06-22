@@ -1,77 +1,74 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Support arch/$ARCH/include in kbuild
-Date: Sun, 22 Jun 2008 00:13:52 +0200
-Message-ID: <20080621221352.GE12279@uranus.ravnborg.org>
+From: Adrian Bunk <bunk@kernel.org>
+Subject: Re: architectures with ARCH_SUPPORTS_AOUT but no binfmt_aout
+Date: Sun, 22 Jun 2008 12:49:07 +0300
+Message-ID: <20080622094907.GF27069@cs181133002.pp.htv.fi>
+References: <1213565555.26255.522.camel@pmac.infradead.org> <1213604973-7073-1-git-send-email-jacmet@sunsite.dk> <1213617663.26255.708.camel@pmac.infradead.org> <20080616121727.GB10854@cs181133002.pp.htv.fi> <1213619214.26255.721.camel@pmac.infradead.org> <20080617084235.GA20169@cs181133002.pp.htv.fi> <1213696004.26255.960.camel@pmac.infradead.org> <20080617101112.GE20169@cs181133002.pp.htv.fi> <1213702113.26255.996.camel@pmac.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpb.tele.dk ([80.160.77.98]:46958 "EHLO pasmtpB.tele.dk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752681AbYFUWNH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 21 Jun 2008 18:13:07 -0400
-Received: from ravnborg.org (0x535d98d8.vgnxx8.adsl-dhcp.tele.dk [83.93.152.216])
-	by pasmtpB.tele.dk (Postfix) with ESMTP id D13F1E30F6A
-	for <linux-arch@vger.kernel.org>; Sun, 22 Jun 2008 00:13:06 +0200 (CEST)
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-parisc-owner@vger.kernel.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux arch <linux-arch@vger.kernel.org>
+In-Reply-To: <1213702113.26255.996.camel@pmac.infradead.org>
+Sender: linux-parisc-owner@vger.kernel.org
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: Peter Korsgaard <jacmet@sunsite.dk>, linux-kernel@vger.kernel.org, sam@ravnborg.org, dhowells@redhat.com, andi@firstfloor.org, "Kirill A. Shutemov" <k.shutemov@gmail.com>, ysato@users.sourceforge.jp, takata@linux-m32r.org, linux-m32r@ml.linux-m32r.org, kyle@mcmartin.ca, matthew@wil.cx, grundler@parisc-linux.org, linux-parisc@vger.kernel.org, lethal@linux-sh.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, gerg@uclinux.org
+List-Id: linux-arch.vger.kernel.org
 
-I just posted this to lkml + kbuild.
-But realised this is as relevant for linux-arch as the others.
+On Tue, Jun 17, 2008 at 12:28:33PM +0100, David Woodhouse wrote:
+> On Tue, 2008-06-17 at 13:11 +0300, Adrian Bunk wrote:
+> > The pattern for this stuff is to provide a HAVE_AOUT kconfig variable 
+> > that gets select'ed by these architectures.
+> 
+> http://git.infradead.org/users/dwmw2/aout-2.6.git?a=commitdiff;h=a5db5179
+> 
+> Subject: [PATCH] Introduce HAVE_AOUT symbol to remove hard-coded arch list for BINFMT_AOUT
+> 
+> HAVE_AOUT doesn't quite do the same thing as the recently removed
+> ARCH_SUPPORTS_AOUT config option. That was set even on platforms where
+> binfmt_aout isn't supported, although it's not entirely clear why.
+> 
+> So it's best just to introduce a new symbol, handled consistently with
+> other similar HAVE_xxx symbols; with a simple 'select' the arch Kconfig.
+> 
+> Signed-off-by: David Woodhouse <dwmw2@infradead.org>
+> ---
+>  arch/alpha/Kconfig |    1 +
+>  arch/arm/Kconfig   |    1 +
+>  arch/m68k/Kconfig  |    1 +
+>  arch/x86/Kconfig   |    1 +
+>  fs/Kconfig.binfmt  |    5 ++++-
+>  5 files changed, 8 insertions(+), 1 deletions(-)
+>...
+> --- a/fs/Kconfig.binfmt
+> +++ b/fs/Kconfig.binfmt
+> @@ -59,9 +59,12 @@ config BINFMT_SHARED_FLAT
+>  	help
+>  	  Support FLAT shared libraries
+>  
+> +config HAVE_AOUT
+> +       def_bool n
+> +
+>  config BINFMT_AOUT
+>  	tristate "Kernel support for a.out and ECOFF binaries"
+> -	depends on (X86_32 || ALPHA || ARM || M68K)
+> +	depends on HAVE_AOUT
+>  	---help---
+>  	  A.out (Assembler.OUTput) is a set of formats for libraries and
+>  	  executables used in the earliest versions of UNIX.  Linux used
 
-Patches are here:
-http://lkml.org/lkml/2008/6/21/157
-http://lkml.org/lkml/2008/6/21/158
+What about m68knommu?
 
-[and on lkml if you are subscribed].
+I don't know whether it was intentionally available there, but the 
+removal in your patch does not seem to be intentional.
 
-	Sam
+> dwmw2
 
------ Forwarded message from Sam Ravnborg <sam@ravnborg.org> -----
+cu
+Adrian
 
-Subject: Support arch/$ARCH/include in kbuild
-Sender: linux-kbuild-owner@vger.kernel.org
-From: Sam Ravnborg <sam@ravnborg.org>
-Date:	Sun, 22 Jun 2008 00:07:03 +0200
-User-Agent: Mutt/1.4.2.1i
-To: LKML <linux-kernel@vger.kernel.org>,
-	linux-kbuild <linux-kbuild@vger.kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-X-Mailing-List:	linux-kbuild@vger.kernel.org
+-- 
 
-Linus hinted that he liked to have all arch specific
-header files moved from include/asm-$ARCH to
-arch/$ARCH/include/asm.
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
 
-The following two patches implement the basic support
-for this.
-
-I have used sparc for my testing and to some degree
-I also used i386.
-
-For sparc I just had to do a simple:
-
-    mkdir -p arch/sparc/include/asm
-    mv include/asm-sparc/* arch/sparc/include/asm
-
-to build sparc with the new directory layout.
-
-For i386 I had to do a few trivial path fixes in
-arch/x86/Makefile and to fix the include of unistd_32.h
-in one place to fix the build.
-
-I expect a few additional bits to show up when people
-start to move their header files but this should
-be a good starting point.
-
-
-To support arch/$ARCH/include/ was done in two steps.
-
-First was to teach make headers_* about the new layout.
-And second step was to get the build fixed with the new
-layout.
-
-Patches are on top of kbuild-next.git and follows.
-
-	Sam
