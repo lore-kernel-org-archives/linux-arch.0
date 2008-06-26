@@ -1,31 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:47150 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755761AbYFZSVW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2008 14:21:22 -0400
-Message-ID: <4863CB8A.7000204@zytor.com>
-Date: Thu, 26 Jun 2008 10:02:02 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from mxl.seznam.cz ([77.75.72.44]:57093 "EHLO mxl.seznam.cz"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751635AbYFZStd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 14:49:33 -0400
+Message-ID: <4863E414.4090303@seznam.cz>
+Date: Thu, 26 Jun 2008 20:46:44 +0200
+From: Michal Simek <monstr@seznam.cz>
+Reply-To: monstr@seznam.cz
 MIME-Version: 1.0
-Subject: Re: [PATCH 59/60] microblaze_v4: syscall_table.S and unistd.h
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <1214483429-32360-59-git-send-email-monstr@seznam.cz> <1214483429-32360-60-git-send-email-monstr@seznam.cz> <200806261831.19187.arnd@arndb.de>
-In-Reply-To: <200806261831.19187.arnd@arndb.de>
-Content-Type: text/plain; charset=ISO-8859-15; format=flowed
+Subject: Re: [PATCH 02/60] microblaze_v4: Makefiles for Microblaze cpu
+References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <1214483429-32360-2-git-send-email-monstr@seznam.cz> <1214483429-32360-3-git-send-email-monstr@seznam.cz> <20080626143623.GC30954@cs181140183.pp.htv.fi>
+In-Reply-To: <20080626143623.GC30954@cs181140183.pp.htv.fi>
+Content-Type: text/plain; charset=ISO-8859-2
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: monstr@seznam.cz, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, Michal Simek <monstr@monstr.eu>
-Message-ID: <20080626170202.NrSbg3ea2bFlqBwldIb6i4ohcooNvvp-eGqxRUD-H2w@z>
+To: Adrian Bunk <bunk@kernel.org>
+Cc: monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com
+Message-ID: <20080626184644.ypjzgxPU56FvxR1oPWHhoeMPvuXc5cFEfHPOeaIK_h0@z>
 
-Arnd Bergmann wrote:
+Adrian Bunk napsal(a):
+> On Thu, Jun 26, 2008 at 02:29:31PM +0200, monstr@seznam.cz wrote:
+>> ...
+>> --- /dev/null
+>> +++ b/arch/microblaze/Makefile
+>> ...
+>> +# Work out HW multipler support.  This is icky.
+>> +# 1. Spartan2 has no HW multiplers.
+>> +# 2. MicroBlaze v3.x always uses them, except in Spartan 2
+>> +# 3. All other FPGa/CPU ver combos, we can trust the CONFIG_ settings
+>> +ifeq (,$(findstring spartan2,$(CONFIG_XILINX_MICROBLAZE0_FAMILY)))
+>> +  ifeq ($(CPU_MAJOR),3)
+>> +    CPUFLAGS-1 += -mno-xl-soft-mul
+>> +  else
+>> +    # USE_HW_MUL can be 0, 1, or 2, defining a heirarchy of HW Mul support.
+>> +    CPUFLAGS-$(subst 1,,$(CONFIG_XILINX_MICROBLAZE0_USE_HW_MUL)) += -mxl-multiply-high
+>> +    CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_HW_MUL) += -mno-xl-soft-mul
+>> +  endif
+>> +endif
+>> +CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_DIV) += -mno-xl-soft-div
+>> +CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_BARREL) += -mxl-barrel-shift
+>> +CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_PCMP) += -mxl-pattern-compare
+>> +
+>> +CPUFLAGS-1 += $(call cc-option,-mcpu=v$(CPU_VER))
+>> +
+>> +# The various CONFIG_XILINX cpu features options are integers 0/1/2...
+>> +# rather than bools y/n
+>> +CFLAGS += $(CPUFLAGS-1)
+>> +CFLAGS += $(CPUFLAGS-2)
+>> ...
 > 
-> You still set __NR_fork. There is no point defining the number if you
-> can't actually call the syscall in the first place.
+> Why are the options not bools?
 > 
+> cu
+> Adrian
 
-Worse, it is actively *harmful* to set the number; klibc or anything 
-that uses similar kinds of scripts for portability will see the symbol 
-and think the system call is available.
+because CONFIG_XILINX_... are 0, 1 or 2 not only y, n.
 
-	-hpa
+M
