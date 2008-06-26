@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 47/60] microblaze_v4: sigcontext.h siginfo.h
-Date: Thu, 26 Jun 2008 14:30:16 +0200
-Message-ID: <1214483429-32360-48-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 45/60] microblaze_v4: stats headers
+Date: Thu, 26 Jun 2008 14:30:14 +0200
+Message-ID: <1214483429-32360-46-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-2-git-send-email-monstr@seznam.cz>
  <1214483429-32360-3-git-send-email-monstr@seznam.cz>
@@ -47,14 +47,12 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-43-git-send-email-monstr@seznam.cz>
  <1214483429-32360-44-git-send-email-monstr@seznam.cz>
  <1214483429-32360-45-git-send-email-monstr@seznam.cz>
- <1214483429-32360-46-git-send-email-monstr@seznam.cz>
- <1214483429-32360-47-git-send-email-monstr@seznam.cz>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22355 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22462 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755318AbYFZMlB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 08:41:01 -0400
-In-Reply-To: <1214483429-32360-47-git-send-email-monstr@seznam.cz>
+	id S1756722AbYFZMlM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 08:41:12 -0400
+In-Reply-To: <1214483429-32360-45-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -65,57 +63,97 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/sigcontext.h |   19 +++++++++++++++++++
- include/asm-microblaze/siginfo.h    |   15 +++++++++++++++
- 2 files changed, 34 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/sigcontext.h
- create mode 100644 include/asm-microblaze/siginfo.h
+ include/asm-microblaze/stat.h   |   73 +++++++++++++++++++++++++++++++++++++++
+ include/asm-microblaze/statfs.h |    1 +
+ 2 files changed, 74 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/stat.h
+ create mode 100644 include/asm-microblaze/statfs.h
 
-diff --git a/include/asm-microblaze/sigcontext.h b/include/asm-microblaze/sigcontext.h
+diff --git a/include/asm-microblaze/stat.h b/include/asm-microblaze/stat.h
 new file mode 100644
-index 0000000..2819672
+index 0000000..9767b11
 --- /dev/null
-+++ b/include/asm-microblaze/sigcontext.h
-@@ -0,0 +1,19 @@
++++ b/include/asm-microblaze/stat.h
+@@ -0,0 +1,73 @@
 +/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
++ * Microblaze stat structure
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * Copyright (C) 2001,02,03 NEC Electronics Corporation
++ * Copyright (C) 2001,02,03 Miles Bader <miles@gnu.org>
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License. See the file COPYING in the main directory of this
++ * archive for more details.
++ *
++ * Written by Miles Bader <miles@gnu.org>
 + */
 +
-+#ifndef _ASM_MICROBLAZE_SIGCONTEXT_H
-+#define _ASM_MICROBLAZE_SIGCONTEXT_H
++#ifndef _ASM_MICROBLAZE_STAT_H
++#define _ASM_MICROBLAZE_STAT_H
 +
-+#include <asm/ptrace.h>
++#include <asm/posix_types.h>
 +
-+struct sigcontext {
-+	struct pt_regs regs;
-+	unsigned long oldmask;
++struct stat {
++	unsigned int	st_dev;
++	unsigned long	st_ino;
++	unsigned int	st_mode;
++	unsigned int	st_nlink;
++	unsigned int	st_uid;
++	unsigned int	st_gid;
++	unsigned int	st_rdev;
++	long		st_size;
++	unsigned long	st_blksize;
++	unsigned long	st_blocks;
++	unsigned long	st_atime;
++	unsigned long	__unused1;
++	unsigned long	st_mtime;
++	unsigned long	__unused2;
++	unsigned long	st_ctime;
++	unsigned long	__unused3;
++	unsigned long	__unused4;
++	unsigned long	__unused5;
 +};
 +
-+#endif /* _ASM_MICROBLAZE_SIGCONTEXT_H */
-diff --git a/include/asm-microblaze/siginfo.h b/include/asm-microblaze/siginfo.h
++struct stat64 {
++	unsigned long long	st_dev;
++	unsigned long	__unused1;
++
++	unsigned long long	st_ino;
++
++	unsigned int	st_mode;
++	unsigned int	st_nlink;
++
++	unsigned int	st_uid;
++	unsigned int	st_gid;
++
++	unsigned long long	st_rdev;
++	unsigned long	__unused3;
++
++	long long	st_size;
++	unsigned long	st_blksize;
++
++	unsigned long	st_blocks; /* No. of 512-byte blocks allocated */
++	unsigned long	__unused4; /* future possible st_blocks high bits */
++
++	unsigned long	st_atime;
++	unsigned long	st_atime_nsec;
++
++	unsigned long	st_mtime;
++	unsigned long	st_mtime_nsec;
++
++	unsigned long	st_ctime;
++	unsigned long	st_ctime_nsec;
++
++	unsigned long	__unused8;
++};
++
++#endif /* _ASM_MICROBLAZE_STAT_H */
+diff --git a/include/asm-microblaze/statfs.h b/include/asm-microblaze/statfs.h
 new file mode 100644
-index 0000000..f162911
+index 0000000..0b91fe1
 --- /dev/null
-+++ b/include/asm-microblaze/siginfo.h
-@@ -0,0 +1,15 @@
-+/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_SIGINFO_H
-+#define _ASM_MICROBLAZE_SIGINFO_H
-+
-+#include <linux/types.h>
-+#include <asm-generic/siginfo.h>
-+
-+#endif /* _ASM_MICROBLAZE_SIGINFO_H */
++++ b/include/asm-microblaze/statfs.h
+@@ -0,0 +1 @@
++#include <asm-generic/statfs.h>
 -- 
 1.5.4.GIT
