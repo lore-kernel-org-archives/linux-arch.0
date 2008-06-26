@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 51/60] microblaze_v4: pool.h socket.h
-Date: Thu, 26 Jun 2008 14:30:20 +0200
-Message-ID: <1214483429-32360-52-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 41/60] microblaze_v4: atomic.h bitops.h byteorder.h
+Date: Thu, 26 Jun 2008 14:30:10 +0200
+Message-ID: <1214483429-32360-42-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-2-git-send-email-monstr@seznam.cz>
  <1214483429-32360-3-git-send-email-monstr@seznam.cz>
@@ -43,22 +43,12 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-39-git-send-email-monstr@seznam.cz>
  <1214483429-32360-40-git-send-email-monstr@seznam.cz>
  <1214483429-32360-41-git-send-email-monstr@seznam.cz>
- <1214483429-32360-42-git-send-email-monstr@seznam.cz>
- <1214483429-32360-43-git-send-email-monstr@seznam.cz>
- <1214483429-32360-44-git-send-email-monstr@seznam.cz>
- <1214483429-32360-45-git-send-email-monstr@seznam.cz>
- <1214483429-32360-46-git-send-email-monstr@seznam.cz>
- <1214483429-32360-47-git-send-email-monstr@seznam.cz>
- <1214483429-32360-48-git-send-email-monstr@seznam.cz>
- <1214483429-32360-49-git-send-email-monstr@seznam.cz>
- <1214483429-32360-50-git-send-email-monstr@seznam.cz>
- <1214483429-32360-51-git-send-email-monstr@seznam.cz>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22432 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22353 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1758034AbYFZMlR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 08:41:17 -0400
-In-Reply-To: <1214483429-32360-51-git-send-email-monstr@seznam.cz>
+	id S1759550AbYFZMk5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 08:40:57 -0400
+In-Reply-To: <1214483429-32360-41-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -69,20 +59,20 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-generic/socket.h    |   66 +++++++++++++++++++++++++++++++++++++++
- include/asm-microblaze/poll.h   |    1 +
- include/asm-microblaze/socket.h |    1 +
- 3 files changed, 68 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/socket.h
- create mode 100644 include/asm-microblaze/poll.h
- create mode 100644 include/asm-microblaze/socket.h
+ include/asm-microblaze/atomic.h    |  106 ++++++++++++++++++++++++++++++++++++
+ include/asm-microblaze/bitops.h    |   27 +++++++++
+ include/asm-microblaze/byteorder.h |   21 +++++++
+ 3 files changed, 154 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/atomic.h
+ create mode 100644 include/asm-microblaze/bitops.h
+ create mode 100644 include/asm-microblaze/byteorder.h
 
-diff --git a/include/asm-generic/socket.h b/include/asm-generic/socket.h
+diff --git a/include/asm-microblaze/atomic.h b/include/asm-microblaze/atomic.h
 new file mode 100644
-index 0000000..3f3430e
+index 0000000..754688a
 --- /dev/null
-+++ b/include/asm-generic/socket.h
-@@ -0,0 +1,66 @@
++++ b/include/asm-microblaze/atomic.h
+@@ -0,0 +1,106 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
@@ -91,77 +81,163 @@ index 0000000..3f3430e
 + * for more details.
 + */
 +
-+#ifndef _ASM_GENERIC_SOCKET_H
-+#define _ASM_GENERIC_SOCKET_H
++#ifndef _ASM_MICROBLAZE_ATOMIC_H
++#define _ASM_MICROBLAZE_ATOMIC_H
 +
-+#include <asm/sockios.h>
++#include <linux/compiler.h> /* likely */
++#include <asm/system.h> /* local_irq_XXX and friends */
 +
-+/* For setsockoptions(2) */
-+#define SOL_SOCKET	1
++typedef struct { volatile int counter; } atomic_t;
 +
-+#define SO_DEBUG	1
-+#define SO_REUSEADDR	2
-+#define SO_TYPE		3
-+#define SO_ERROR	4
-+#define SO_DONTROUTE	5
-+#define SO_BROADCAST	6
-+#define SO_SNDBUF	7
-+#define SO_RCVBUF	8
-+#define SO_SNDBUFFORCE	32
-+#define SO_RCVBUFFORCE	33
-+#define SO_KEEPALIVE	9
-+#define SO_OOBINLINE	10
-+#define SO_NO_CHECK	11
-+#define SO_PRIORITY	12
-+#define SO_LINGER	13
-+#define SO_BSDCOMPAT	14
-+/* To add :#define SO_REUSEPORT 15 */
-+#define SO_PASSCRED	16
-+#define SO_PEERCRED	17
-+#define SO_RCVLOWAT	18
-+#define SO_SNDLOWAT	19
-+#define SO_RCVTIMEO	20
-+#define SO_SNDTIMEO	21
++#define ATOMIC_INIT(i)		{ (i) }
++#define atomic_read(v)		((v)->counter)
++#define atomic_set(v, i)	(((v)->counter) = (i))
 +
-+/* Security levels - as per NRL IPv6 - don't actually do anything */
-+#define SO_SECURITY_AUTHENTICATION		22
-+#define SO_SECURITY_ENCRYPTION_TRANSPORT	23
-+#define SO_SECURITY_ENCRYPTION_NETWORK		24
++#define atomic_inc(v)		(atomic_add_return(1, (v)))
++#define atomic_dec(v)		(atomic_sub_return(1, (v)))
 +
-+#define SO_BINDTODEVICE	25
++#define atomic_add(i, v)	(atomic_add_return(i, (v)))
++#define atomic_sub(i, v)	(atomic_sub_return(i, (v)))
 +
-+/* Socket filtering */
-+#define SO_ATTACH_FILTER	26
-+#define SO_DETACH_FILTER	27
++#define atomic_inc_return(v)	(atomic_add_return(1, (v)))
++#define atomic_dec_return(v)	(atomic_sub_return(1, (v)))
 +
-+#define SO_PEERNAME		28
-+#define SO_TIMESTAMP		29
-+#define SCM_TIMESTAMP		SO_TIMESTAMP
++#define atomic_inc_and_test(v)	(atomic_add_return(1, (v)) == 0)
++#define atomic_dec_and_test(v)	(atomic_sub_return(1, (v)) == 0)
 +
-+#define SO_ACCEPTCONN		30
++#define atomic_inc_not_zero(v)	(atomic_add_unless((v), 1, 0))
 +
-+#define SO_PEERSEC		31
-+#define SO_PASSSEC		34
++#define atomic_sub_and_test(i, v) (atomic_sub_return((i), (v)) == 0)
 +
-+#define SO_TIMESTAMPNS		35
-+#define SCM_TIMESTAMPNS		SO_TIMESTAMPNS
++static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
++{
++	int ret;
++	unsigned long flags;
 +
-+#define SO_MARK			36
++	local_irq_save(flags);
++	ret = v->counter;
++	if (likely(ret == old))
++		v->counter = new;
++	local_irq_restore(flags);
 +
-+#endif /* _ASM_GENERIC_SOCKET_H */
-diff --git a/include/asm-microblaze/poll.h b/include/asm-microblaze/poll.h
++	return ret;
++}
++
++static inline int atomic_add_unless(atomic_t *v, int a, int u)
++{
++	int c, old;
++
++	c = atomic_read(v);
++	while (c != u && (old = atomic_cmpxchg((v), c, c + a)) != c)
++		c = old;
++	return c != u;
++}
++
++static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
++{
++	unsigned long flags;
++
++	local_irq_save(flags);
++	*addr &= ~mask;
++	local_irq_restore(flags);
++}
++
++/**
++ * atomic_add_return - add and return
++ * @i: integer value to add
++ * @v: pointer of type atomic_t
++ *
++ * Atomically adds @i to @v and returns @i + @v
++ */
++static inline int atomic_add_return(int i, atomic_t *v)
++{
++	unsigned long flags;
++	int val;
++
++	local_irq_save(flags);
++	val = v->counter;
++	v->counter = val += i;
++	local_irq_restore(flags);
++
++	return val;
++}
++
++static inline int atomic_sub_return(int i, atomic_t *v)
++{
++	return atomic_add_return(-i, v);
++}
++
++#define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
++#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
++
++/* Atomic operations are already serializing */
++#define smp_mb__before_atomic_dec()	barrier()
++#define smp_mb__after_atomic_dec()	barrier()
++#define smp_mb__before_atomic_inc()	barrier()
++#define smp_mb__after_atomic_inc()	barrier()
++
++#include <asm-generic/atomic.h>
++
++#endif /* _ASM_MICROBLAZE_ATOMIC_H */
+diff --git a/include/asm-microblaze/bitops.h b/include/asm-microblaze/bitops.h
 new file mode 100644
-index 0000000..c98509d
+index 0000000..98ffb61
 --- /dev/null
-+++ b/include/asm-microblaze/poll.h
-@@ -0,0 +1 @@
-+#include <asm-generic/poll.h>
-diff --git a/include/asm-microblaze/socket.h b/include/asm-microblaze/socket.h
++++ b/include/asm-microblaze/bitops.h
+@@ -0,0 +1,27 @@
++/*
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_MICROBLAZE_BITOPS_H
++#define _ASM_MICROBLAZE_BITOPS_H
++
++/*
++ * Copyright 1992, Linus Torvalds.
++ */
++
++#include <linux/autoconf.h>
++#include <asm/byteorder.h> /* swab32 */
++#include <asm/system.h> /* save_flags */
++
++/*
++ * clear_bit() doesn't provide any barrier for the compiler.
++ */
++#define smp_mb__before_clear_bit()	barrier()
++#define smp_mb__after_clear_bit()	barrier()
++#include <asm-generic/bitops.h>
++
++#endif /* _ASM_MICROBLAZE_BITOPS_H */
+diff --git a/include/asm-microblaze/byteorder.h b/include/asm-microblaze/byteorder.h
 new file mode 100644
-index 0000000..6b71384
+index 0000000..dad9204
 --- /dev/null
-+++ b/include/asm-microblaze/socket.h
-@@ -0,0 +1 @@
-+#include <asm-generic/socket.h>
++++ b/include/asm-microblaze/byteorder.h
+@@ -0,0 +1,21 @@
++/*
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_MICROBLAZE_BYTEORDER_H
++#define _ASM_MICROBLAZE_BYTEORDER_H
++
++#include <asm/types.h>
++
++#if defined(__GNUC__) && !defined(__STRICT_ANSI__) || defined(__KERNEL__)
++#define __BYTEORDER_HAS_U64__
++#define __SWAB_64_THRU_32__
++#endif
++
++#include <linux/byteorder/big_endian.h>
++
++#endif /* _ASM_MICROBLAZE_BYTEORDER_H */
 -- 
 1.5.4.GIT
