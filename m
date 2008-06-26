@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 39/60] microblaze_v4: dma support
-Date: Thu, 26 Jun 2008 14:30:08 +0200
-Message-ID: <1214483429-32360-40-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 47/60] microblaze_v4: sigcontext.h siginfo.h
+Date: Thu, 26 Jun 2008 14:30:16 +0200
+Message-ID: <1214483429-32360-48-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-2-git-send-email-monstr@seznam.cz>
  <1214483429-32360-3-git-send-email-monstr@seznam.cz>
@@ -41,12 +41,20 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-37-git-send-email-monstr@seznam.cz>
  <1214483429-32360-38-git-send-email-monstr@seznam.cz>
  <1214483429-32360-39-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-40-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-41-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-42-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-43-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-44-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-45-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-46-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-47-git-send-email-monstr@seznam.cz>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22527 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22355 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1758680AbYFZMlc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 08:41:32 -0400
-In-Reply-To: <1214483429-32360-39-git-send-email-monstr@seznam.cz>
+	id S1755318AbYFZMlB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 08:41:01 -0400
+In-Reply-To: <1214483429-32360-47-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -57,27 +65,18 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/dma-mapping.h |    1 +
- include/asm-microblaze/dma.h         |   18 ++++++++++++++++++
- include/asm-microblaze/scatterlist.h |   26 ++++++++++++++++++++++++++
- 3 files changed, 45 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/dma-mapping.h
- create mode 100644 include/asm-microblaze/dma.h
- create mode 100644 include/asm-microblaze/scatterlist.h
+ include/asm-microblaze/sigcontext.h |   19 +++++++++++++++++++
+ include/asm-microblaze/siginfo.h    |   15 +++++++++++++++
+ 2 files changed, 34 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/sigcontext.h
+ create mode 100644 include/asm-microblaze/siginfo.h
 
-diff --git a/include/asm-microblaze/dma-mapping.h b/include/asm-microblaze/dma-mapping.h
+diff --git a/include/asm-microblaze/sigcontext.h b/include/asm-microblaze/sigcontext.h
 new file mode 100644
-index 0000000..e7e1690
+index 0000000..2819672
 --- /dev/null
-+++ b/include/asm-microblaze/dma-mapping.h
-@@ -0,0 +1 @@
-+#include <asm-generic/dma-mapping.h>
-diff --git a/include/asm-microblaze/dma.h b/include/asm-microblaze/dma.h
-new file mode 100644
-index 0000000..6ab357b
---- /dev/null
-+++ b/include/asm-microblaze/dma.h
-@@ -0,0 +1,18 @@
++++ b/include/asm-microblaze/sigcontext.h
+@@ -0,0 +1,19 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
@@ -86,47 +85,37 @@ index 0000000..6ab357b
 + * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_DMA_H
-+#define _ASM_MICROBLAZE_DMA_H
++#ifndef _ASM_MICROBLAZE_SIGCONTEXT_H
++#define _ASM_MICROBLAZE_SIGCONTEXT_H
 +
-+/* we don't have dma address limit. define it as zero to be
-+ * unlimited. */
-+#define MAX_DMA_ADDRESS		(0)
++#include <asm/ptrace.h>
 +
-+#define ISA_DMA_THRESHOLD	(0)
-+
-+#endif /* _ASM_MICROBLAZE_DMA_H */
-diff --git a/include/asm-microblaze/scatterlist.h b/include/asm-microblaze/scatterlist.h
-new file mode 100644
-index 0000000..bbe73e6
---- /dev/null
-+++ b/include/asm-microblaze/scatterlist.h
-@@ -0,0 +1,26 @@
-+/*
-+ * Copyright (C) 2008 Michal Simek <monstr@monstr.eu>
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_SCATTERLIST_H
-+#define _ASM_MICROBLAZE_SCATTERLIST_H
-+
-+struct scatterlist {
-+#ifdef CONFIG_DEBUG_SG
-+	unsigned long	sg_magic;
-+#endif
-+	unsigned long	page_link;
-+	dma_addr_t	dma_address;
-+	unsigned int	offset;
-+	unsigned int	length;
++struct sigcontext {
++	struct pt_regs regs;
++	unsigned long oldmask;
 +};
 +
-+#define sg_dma_address(sg)      ((sg)->dma_address)
-+#define sg_dma_len(sg)          ((sg)->length)
++#endif /* _ASM_MICROBLAZE_SIGCONTEXT_H */
+diff --git a/include/asm-microblaze/siginfo.h b/include/asm-microblaze/siginfo.h
+new file mode 100644
+index 0000000..f162911
+--- /dev/null
++++ b/include/asm-microblaze/siginfo.h
+@@ -0,0 +1,15 @@
++/*
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
 +
-+#endif /* _ASM_MICROBLAZE_SCATTERLIST_H */
++#ifndef _ASM_MICROBLAZE_SIGINFO_H
++#define _ASM_MICROBLAZE_SIGINFO_H
++
++#include <linux/types.h>
++#include <asm-generic/siginfo.h>
++
++#endif /* _ASM_MICROBLAZE_SIGINFO_H */
 -- 
 1.5.4.GIT
