@@ -1,16 +1,16 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 52/60] microblaze_v4: fcntl.h sockios.h ucontext.h
-Date: Thu, 26 Jun 2008 18:46:12 +0200
-Message-ID: <200806261846.13599.arnd@arndb.de>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 59/60] microblaze_v4: syscall_table.S and unistd.h
+Date: Thu, 26 Jun 2008 10:02:02 -0700
+Message-ID: <4863CB8A.7000204@zytor.com>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-53-git-send-email-monstr@seznam.cz>
-	<200806261743.10441.arnd@arndb.de>
+	<1214483429-32360-59-git-send-email-monstr@seznam.cz>
+	<1214483429-32360-60-git-send-email-monstr@seznam.cz>
+	<200806261831.19187.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-15"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
 Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org>
-In-Reply-To: <200806261743.10441.arnd@arndb.de>
-Content-Disposition: inline
+In-Reply-To: <200806261831.19187.arnd@arndb.de>
 List-Unsubscribe: <https://ozlabs.org/mailman/options/linuxppc-dev>,
 	<mailto:linuxppc-dev-request@ozlabs.org?subject=unsubscribe>
 List-Archive: <http://ozlabs.org/pipermail/linuxppc-dev>
@@ -20,32 +20,18 @@ List-Subscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
 	<mailto:linuxppc-dev-request@ozlabs.org?subject=subscribe>
 Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
 Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
-To: monstr@seznam.cz
-Cc: linux-arch@vger.kernel.org, alan@lxorguk.ukuu.org.uk, Michal Simek <monstr@monstr.eu>, vapier.adi@gmail.com, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, drepper@redhat.com, linuxppc-dev@ozlabs.org, will.newton@gmail.com, hpa@zytor.com, John.Linn@xilinx.com, john.williams@petalogix.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, alan@lxorguk.ukuu.org.uk, Michal Simek <monstr@monstr.eu>, vapier.adi@gmail.com, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, drepper@redhat.com, linuxppc-dev@ozlabs.org, will.newton@gmail.com, monstr@seznam.cz, John.Linn@xilinx.com, john.williams@petalogix.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thursday 26 June 2008, Arnd Bergmann wrote:
-> On Thursday 26 June 2008, monstr@seznam.cz wrote:
-> > =A0include/asm-generic/sockios.h =A0 =A0 | =A0 23 +++++++++++++++++++++=
-++
-> > =A0include/asm-generic/ucontext.h =A0 =A0| =A0 24 +++++++++++++++++++++=
-+++
-> > =A0include/asm-microblaze/fcntl.h =A0 =A0| =A0 =A01 +
-> > =A0include/asm-microblaze/sockios.h =A0| =A0 23 +++++++++++++++++++++++
-> > =A0include/asm-microblaze/ucontext.h | =A0 =A01 +
-> =
+Arnd Bergmann wrote:
+> 
+> You still set __NR_fork. There is no point defining the number if you
+> can't actually call the syscall in the first place.
+> 
 
-> Also, the sockios file here looks like it should be in asm-generic.
+Worse, it is actively *harmful* to set the number; klibc or anything 
+that uses similar kinds of scripts for portability will see the symbol 
+and think the system call is available.
 
-I just realized that you are adding the same sockios file to both
-asm-generic and asm-microblaze, so I guess that is just an oversight
-and you meant the microblaze file to be just a redirection.
-
-Note that when you add an asm-generic header file that contains
-a user interface, you need to add it to asm-generic/Kbuild as well
-in order to get it installed correctly with make headers_install.
-
-Running make headers_check should tell you about this problem if
-it exists in other places.
-
-	Arnd <><
+	-hpa
