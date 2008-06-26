@@ -1,41 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mxl.seznam.cz ([77.75.72.44]:40463 "EHLO mxl.seznam.cz"
+Received: from mxl.seznam.cz ([77.75.72.44]:60965 "EHLO mxl.seznam.cz"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755101AbYFZTBp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 15:01:45 -0400
-Message-ID: <4863E370.9020205@seznam.cz>
-Date: Thu, 26 Jun 2008 20:44:00 +0200
+	id S1751598AbYFZTTN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 15:19:13 -0400
+Message-ID: <4863EBD9.1010601@seznam.cz>
+Date: Thu, 26 Jun 2008 21:19:53 +0200
 From: Michal Simek <monstr@seznam.cz>
 Reply-To: monstr@seznam.cz
 MIME-Version: 1.0
-Subject: Re: [PATCH 46/60] microblaze_v4: termbits.h termios.h
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>	<1214483429-32360-32-git-send-email-monstr@seznam.cz>	<1214483429-32360-33-git-send-email-monstr@seznam.cz>	<1214483429-32360-34-git-send-email-monstr@seznam.cz>	<1214483429-32360-35-git-send-email-monstr@seznam.cz>	<1214483429-32360-36-git-send-email-monstr@seznam.cz>	<1214483429-32360-37-git-send-email-monstr@seznam.cz>	<1214483429-32360-38-git-send-email-monstr@seznam.cz>	<1214483429-32360-39-git-send-email-monstr@seznam.cz>	<1214483429-32360-40-git-send-email-monstr@seznam.cz>	<1214483429-32360-41-git-send-email-monstr@seznam.cz>	<1214483429-32360-42-git-send-email-monstr@seznam.cz>	<1214483429-32360-43-git-send-email-monstr@seznam.cz>	<1214483429-32360-44-git-send-email-monstr@seznam.cz>	<1214483429-32360-45-git-send-email-monstr@seznam.cz>	<1214483429-32360-46-git-send-email-monstr@seznam.cz>	<1214483429-32360-47-git-send-email-monstr@seznam.cz> <20080626141837.0f8f439d@lxorguk.ukuu.org.uk>
-In-Reply-To: <20080626141837.0f8f439d@lxorguk.ukuu.org.uk>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH 08/60] microblaze_v4: exception handling
+References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>	 <1214483429-32360-2-git-send-email-monstr@seznam.cz>	 <1214483429-32360-3-git-send-email-monstr@seznam.cz>	 <1214483429-32360-4-git-send-email-monstr@seznam.cz>	 <1214483429-32360-5-git-send-email-monstr@seznam.cz>	 <1214483429-32360-6-git-send-email-monstr@seznam.cz>	 <1214483429-32360-7-git-send-email-monstr@seznam.cz>	 <1214483429-32360-8-git-send-email-monstr@seznam.cz>	 <1214483429-32360-9-git-send-email-monstr@seznam.cz> <2c0942db0806260935p51564a7et6517b39e9a6706dc@mail.gmail.com>
+In-Reply-To: <2c0942db0806260935p51564a7et6517b39e9a6706dc@mail.gmail.com>
+Content-Type: text/plain; charset=ISO-8859-2
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, vapier.adi@gmail.com, arnd@arndb.de, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, drepper@redhat.com, linuxppc-dev@ozlabs.org, will.newton@gmail.com, hpa@zytor.com, John.Linn@xilinx.com, john.williams@petalogix.com
-Message-ID: <20080626184400.ummnTUZuTKfbf9nz3SnmZbP2NMCNU8w4mNgYHSUgwIM@z>
+To: Ray Lee <ray-lk@madrabbit.org>
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
+Message-ID: <20080626191953.RDAU_WLbtP7gMTZIlNhWgxpImFj0fMb7xyap6B4D4cU@z>
 
-OK.I'll fix it.
+
+
+
+> On Thu, Jun 26, 2008 at 5:29 AM,  <monstr@seznam.cz> wrote:
+>> +ex_sw:
+>> +       /* Get the destination register number into r5 */
+>> +       lbui    r5, r0, ex_reg_op;
+>> +       /* Form store_word jump table offset (sw_table + (8 * regnum)) */
+>> +       la      r6, r0, sw_table;
+>> +       add     r5, r5, r5;
+>> +       add     r5, r5, r5;
+>> +       add     r5, r5, r5;
+>> +       add     r5, r5, r6;
+>> +       bra     r5;
+> 
+> Possibly stupid question: This is part of the unaligned store word
+> exception handler, yes? Shouldn't the above add's be addk's to
+> preserve the state of the carry register pre/post store?
+
+I don't think that addk is important. I have some tests for exception, I want to
+cover full exception handling.
 
 M
-
->> +++ b/include/asm-generic/termbits.h
->> @@ -0,0 +1,200 @@
-> 
->> +/* c_cflag bit meaning */
->> +
->> +#define CBAUD	0010017
->> +#define B0	0000000 /* hang up */
-> 
-> You need BOTHER in here as well - especially if it is going to be generic.
-> 
-> _______________________________________________
-> Linuxppc-dev mailing list
-> Linuxppc-dev@ozlabs.org
-> https://ozlabs.org/mailman/listinfo/linuxppc-dev
-> 
 
