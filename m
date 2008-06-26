@@ -1,49 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp5.pp.htv.fi ([213.243.153.39]:35551 "EHLO smtp5.pp.htv.fi"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751468AbYFXLsm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Jun 2008 07:48:42 -0400
-Date: Tue, 24 Jun 2008 14:46:43 +0300
-From: Adrian Bunk <bunk@kernel.org>
-Subject: Re: architectures with ARCH_SUPPORTS_AOUT but no binfmt_aout
-Message-ID: <20080624114643.GB16021@cs181140183.pp.htv.fi>
-References: <1213604973-7073-1-git-send-email-jacmet@sunsite.dk> <1213617663.26255.708.camel@pmac.infradead.org> <20080616121727.GB10854@cs181133002.pp.htv.fi> <1213619214.26255.721.camel@pmac.infradead.org> <20080617084235.GA20169@cs181133002.pp.htv.fi> <1213696004.26255.960.camel@pmac.infradead.org> <20080617101112.GE20169@cs181133002.pp.htv.fi> <1213702113.26255.996.camel@pmac.infradead.org> <20080622094907.GF27069@cs181133002.pp.htv.fi> <1214134850.2409.2.camel@shinybook.infradead.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <1214134850.2409.2.camel@shinybook.infradead.org>
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:20624 "EHLO
+	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1758204AbYFZMgz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 08:36:55 -0400
+From: monstr@seznam.cz
+Subject: [PATCH 26/60] microblaze_v4: time support
+Date: Thu, 26 Jun 2008 14:29:55 +0200
+Message-ID: <1214483429-32360-27-git-send-email-monstr@seznam.cz>
+In-Reply-To: <1214483429-32360-26-git-send-email-monstr@seznam.cz>
+References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-2-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-3-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-4-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-5-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-6-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-7-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-8-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-9-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-10-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-11-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-12-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-13-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-14-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-15-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-16-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-17-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-18-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-19-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-20-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-21-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-22-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-23-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-24-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-25-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-26-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: Peter Korsgaard <jacmet@sunsite.dk>, linux-kernel@vger.kernel.org, sam@ravnborg.org, dhowells@redhat.com, andi@firstfloor.org, "Kirill A. Shutemov" <k.shutemov@gmail.com>, ysato@users.sourceforge.jp, takata@linux-m32r.org, linux-m32r@ml.linux-m32r.org, kyle@mcmartin.ca, matthew@wil.cx, grundler@parisc-linux.org, linux-parisc@vger.kernel.org, lethal@linux-sh.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, gerg@uclinux.org, jdike@addtoit.com
-Message-ID: <20080624114643.15ibTk6ZXOy8XdgxTyqvsv9v0n5G_bIFuN4wbMaAoNk@z>
+To: linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
+Message-ID: <20080626122955.adszr7vaWwj5GTrlTNngsoO4OGC1QVF-T11cL8ljbf0@z>
 
-On Sun, Jun 22, 2008 at 12:40:50PM +0100, David Woodhouse wrote:
-> On Sun, 2008-06-22 at 12:49 +0300, Adrian Bunk wrote:
-> > 
-> > What about m68knommu?
-> > 
-> > I don't know whether it was intentionally available there, but the 
-> > removal in your patch does not seem to be intentional.
-> 
-> Hm, true. Well spotted. I think it's probably correct though -- I don't
-> think m68knommu can really support a.out binaries, can it?
+From: Michal Simek <monstr@monstr.eu>
 
-I found another similar case:
 
-X86_32 UML.
+Signed-off-by: Michal Simek <monstr@monstr.eu>
+---
+ include/asm-microblaze/delay.h |   30 ++++++++++++++++++++++++++++++
+ include/asm-microblaze/timex.h |   18 ++++++++++++++++++
+ 2 files changed, 48 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/delay.h
+ create mode 100644 include/asm-microblaze/timex.h
 
-a.out is most likely working there?
-
-> dwmw2
-
-cu
-Adrian
-
+diff --git a/include/asm-microblaze/delay.h b/include/asm-microblaze/delay.h
+new file mode 100644
+index 0000000..cdafdad
+--- /dev/null
++++ b/include/asm-microblaze/delay.h
+@@ -0,0 +1,30 @@
++/*
++ * include/asm-microblaze/delay.h
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ */
++
++#ifndef _ASM_MICROBLAZE_DELAY_H
++#define _ASM_MICROBLAZE_DELAY_H
++
++extern unsigned long loops_per_jiffy;
++
++extern inline void __delay(unsigned long loops)
++{
++	asm volatile ("# __delay		\n\t"		\
++			"1: addi	%0, %0, -1 \t\n"	\
++			"bneid	%0, 1b		\t\n"		\
++			"nop			\t\n"
++			: "=r" (loops)
++			: "0" (loops));
++}
++
++static inline void udelay(unsigned long usec)
++{
++}
++
++#endif /* _ASM_MICROBLAZE_DELAY_H */
+diff --git a/include/asm-microblaze/timex.h b/include/asm-microblaze/timex.h
+new file mode 100644
+index 0000000..678525d
+--- /dev/null
++++ b/include/asm-microblaze/timex.h
+@@ -0,0 +1,18 @@
++/*
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_MICROBLAZE_TIMEX_H
++#define _ASM_MICROBLAZE_TIMEX_H
++
++#define CLOCK_TICK_RATE 1000 /* Timer input freq. */
++
++typedef unsigned long cycles_t;
++
++#define get_cycles()	(0)
++
++#endif /* _ASM_TIMEX_H */
 -- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
+1.5.4.GIT
 
