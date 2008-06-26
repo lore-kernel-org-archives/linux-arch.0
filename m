@@ -1,16 +1,15 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 48/60] microblaze_v4: headers simple files - empty or
-	redirect to asm-generic
-Date: Thu, 26 Jun 2008 18:38:32 +0200
-Message-ID: <200806261838.33787.arnd@arndb.de>
+Subject: Re: [PATCH 52/60] microblaze_v4: fcntl.h sockios.h ucontext.h
+Date: Thu, 26 Jun 2008 18:46:12 +0200
+Message-ID: <200806261846.13599.arnd@arndb.de>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
-	<200806261735.12738.arnd@arndb.de>
-	<20080626162118.GG22025@cs181140183.pp.htv.fi>
+	<1214483429-32360-53-git-send-email-monstr@seznam.cz>
+	<200806261743.10441.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="iso-8859-15"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org>
-In-Reply-To: <20080626162118.GG22025@cs181140183.pp.htv.fi>
+In-Reply-To: <200806261743.10441.arnd@arndb.de>
 Content-Disposition: inline
 List-Unsubscribe: <https://ozlabs.org/mailman/options/linuxppc-dev>,
 	<mailto:linuxppc-dev-request@ozlabs.org?subject=unsubscribe>
@@ -21,21 +20,32 @@ List-Subscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
 	<mailto:linuxppc-dev-request@ozlabs.org?subject=subscribe>
 Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
 Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
-To: Adrian Bunk <bunk@kernel.org>
-Cc: linux-arch@vger.kernel.org, alan@lxorguk.ukuu.org.uk, Michal Simek <monstr@monstr.eu>, vapier.adi@gmail.com, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, drepper@redhat.com, linuxppc-dev@ozlabs.org, will.newton@gmail.com, hpa@zytor.com, monstr@seznam.cz, John.Linn@xilinx.com, john.williams@petalogix.com
+To: monstr@seznam.cz
+Cc: linux-arch@vger.kernel.org, alan@lxorguk.ukuu.org.uk, Michal Simek <monstr@monstr.eu>, vapier.adi@gmail.com, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, drepper@redhat.com, linuxppc-dev@ozlabs.org, will.newton@gmail.com, hpa@zytor.com, John.Linn@xilinx.com, john.williams@petalogix.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thursday 26 June 2008, Adrian Bunk wrote:
-> The comment could be nuked (as well as the #ifdef __KERNEL__), but for 
-> the one #define an asm-generic header would IMHO be overkill.
+On Thursday 26 June 2008, Arnd Bergmann wrote:
+> On Thursday 26 June 2008, monstr@seznam.cz wrote:
+> > =A0include/asm-generic/sockios.h =A0 =A0 | =A0 23 +++++++++++++++++++++=
+++
+> > =A0include/asm-generic/ucontext.h =A0 =A0| =A0 24 +++++++++++++++++++++=
++++
+> > =A0include/asm-microblaze/fcntl.h =A0 =A0| =A0 =A01 +
+> > =A0include/asm-microblaze/sockios.h =A0| =A0 23 +++++++++++++++++++++++
+> > =A0include/asm-microblaze/ucontext.h | =A0 =A01 +
+> =
 
-I agree that it doesn't technically make sense to have a one-line
-asm-generic header, but I like the idea of reducing the number of
-asm/*.h files that actually contain anything other that
-#include <asm-generic/$FILE.h>, mostly for documentation purposes.
+> Also, the sockios file here looks like it should be in asm-generic.
 
-If we can eventually agree on a way to get rid of the requirement
-for explicit redirection, we can remove a larger number of source
-files completely.
+I just realized that you are adding the same sockios file to both
+asm-generic and asm-microblaze, so I guess that is just an oversight
+and you meant the microblaze file to be just a redirection.
+
+Note that when you add an asm-generic header file that contains
+a user interface, you need to add it to asm-generic/Kbuild as well
+in order to get it installed correctly with make headers_install.
+
+Running make headers_check should tell you about this problem if
+it exists in other places.
 
 	Arnd <><
