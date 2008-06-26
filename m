@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:23925 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:24215 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1758615AbYFZNF3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 09:05:29 -0400
+	id S1760564AbYFZNkO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 09:40:14 -0400
 From: monstr@seznam.cz
-Subject: [PATCH 44/60] microblaze_v4: clinkage.h linkage.h sections.h kmap_types.h
-Date: Thu, 26 Jun 2008 14:30:13 +0200
-Message-ID: <1214483429-32360-45-git-send-email-monstr@seznam.cz>
-In-Reply-To: <1214483429-32360-44-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 38/60] microblaze_v4: headers for executables format FLAT, ELF
+Date: Thu, 26 Jun 2008 14:30:07 +0200
+Message-ID: <1214483429-32360-39-git-send-email-monstr@seznam.cz>
+In-Reply-To: <1214483429-32360-38-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-2-git-send-email-monstr@seznam.cz>
  <1214483429-32360-3-git-send-email-monstr@seznam.cz>
@@ -46,149 +46,147 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-36-git-send-email-monstr@seznam.cz>
  <1214483429-32360-37-git-send-email-monstr@seznam.cz>
  <1214483429-32360-38-git-send-email-monstr@seznam.cz>
- <1214483429-32360-39-git-send-email-monstr@seznam.cz>
- <1214483429-32360-40-git-send-email-monstr@seznam.cz>
- <1214483429-32360-41-git-send-email-monstr@seznam.cz>
- <1214483429-32360-42-git-send-email-monstr@seznam.cz>
- <1214483429-32360-43-git-send-email-monstr@seznam.cz>
- <1214483429-32360-44-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
-Message-ID: <20080626123013._pr5A0AiDoZV2ctLVD0msm_k3_CT-q6RxAJ2bXrgBas@z>
+Message-ID: <20080626123007.JvuQpsriMnl19zWvDGW9kP3YaDcvVpQZG_QCgo9x-ec@z>
 
 From: Michal Simek <monstr@monstr.eu>
 
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/clinkage.h   |   27 +++++++++++++++++++++++++++
- include/asm-microblaze/kmap_types.h |   29 +++++++++++++++++++++++++++++
- include/asm-microblaze/linkage.h    |   15 +++++++++++++++
- include/asm-microblaze/sections.h   |   21 +++++++++++++++++++++
- 4 files changed, 92 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/clinkage.h
- create mode 100644 include/asm-microblaze/kmap_types.h
- create mode 100644 include/asm-microblaze/linkage.h
- create mode 100644 include/asm-microblaze/sections.h
+ include/asm-microblaze/elf.h  |   22 ++++++++++
+ include/asm-microblaze/flat.h |   90 +++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 112 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/elf.h
+ create mode 100644 include/asm-microblaze/flat.h
 
-diff --git a/include/asm-microblaze/clinkage.h b/include/asm-microblaze/clinkage.h
+diff --git a/include/asm-microblaze/elf.h b/include/asm-microblaze/elf.h
 new file mode 100644
-index 0000000..a2e09bd
+index 0000000..a9f2ecf
 --- /dev/null
-+++ b/include/asm-microblaze/clinkage.h
-@@ -0,0 +1,27 @@
++++ b/include/asm-microblaze/elf.h
+@@ -0,0 +1,22 @@
 +/*
-+ * Macros to reflect C symbol-naming conventions
++ * Copyright (C) 2006 Atmark Techno, Inc.
 + *
-+ * Copyright (C) 2003 John Williams <jwilliams@itee.uq.edu.au>
-+ * Copyright (C) 2001,2002 NEC Corporatione
-+ * Copyright (C) 2001,2002 Miles Bader <miles@gnu.org>
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_MICROBLAZE_ELF_H
++#define _ASM_MICROBLAZE_ELF_H
++
++#define EM_XILINX_MICROBLAZE 0xbaab
++#define ELF_ARCH	EM_XILINX_MICROBLAZE
++
++#define elf_check_arch(x) ((x)->e_machine == EM_XILINX_MICROBLAZE)
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_CLASS	ELFCLASS32
++
++#endif /* _ASM_MICROBLAZE_ELF_H */
+diff --git a/include/asm-microblaze/flat.h b/include/asm-microblaze/flat.h
+new file mode 100644
+index 0000000..acf0da5
+--- /dev/null
++++ b/include/asm-microblaze/flat.h
+@@ -0,0 +1,90 @@
++/*
++ * uClinux flat-format executables
++ *
++ * Copyright (C) 2005 John Williams <jwilliams@itee.uq.edu.au>
 + *
 + * This file is subject to the terms and conditions of the GNU General
 + * Public License. See the file COPYING in the main directory of this
 + * archive for more details.
-+ *
-+ * Written by Miles Bader <miles@gnu.org>
-+ * Microblaze port by John Williams
 + */
 +
-+#ifndef _ASM_MICROBLAZE_CLINKAGE_H
-+#define _ASM_MICROBLAZE_CLINKAGE_H
++#ifndef _ASM_MICROBLAZE_FLAT_H
++#define _ASM_MICROBLAZE_FLAT_H
 +
-+#define __ASSEMBLY__
++#include <asm/unaligned.h>
 +
-+#include <linux/linkage.h>
++#define	flat_stack_align(sp) /* nothing needed */
++#define	flat_argvp_envp_on_stack()	0
++#define	flat_old_ram_flag(flags)	(flags)
++#define	flat_reloc_valid(reloc, size)	((reloc) <= (size))
++#define	flat_set_persistent(relval, p)		0
 +
-+#define C_SYMBOL_NAME(name)	name
-+#define C_ENTRY(name)		.globl name; .align 4; name
-+#define C_END(name)
-+
-+#endif /* _ASM_MICROBLAZE_CLINKAGE_H */
-diff --git a/include/asm-microblaze/kmap_types.h b/include/asm-microblaze/kmap_types.h
-new file mode 100644
-index 0000000..4d7e222
---- /dev/null
-+++ b/include/asm-microblaze/kmap_types.h
-@@ -0,0 +1,29 @@
 +/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * Microblaze works a little differently from other arches, because
++ * of the MICROBLAZE_64 reloc type. Here, a 32 bit address is split
++ * over two instructions, an 'imm' instruction which provides the top
++ * 16 bits, then the instruction "proper" which provides the low 16
++ * bits.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_KMAP_TYPES_H
-+#define _ASM_MICROBLAZE_KMAP_TYPES_H
-+
-+enum km_type {
-+	KM_BOUNCE_READ,
-+	KM_SKB_SUNRPC_DATA,
-+	KM_SKB_DATA_SOFTIRQ,
-+	KM_USER0,
-+	KM_USER1,
-+	KM_BIO_SRC_IRQ,
-+	KM_BIO_DST_IRQ,
-+	KM_PTE0,
-+	KM_PTE1,
-+	KM_IRQ0,
-+	KM_IRQ1,
-+	KM_SOFTIRQ0,
-+	KM_SOFTIRQ1,
-+	KM_TYPE_NR,
-+};
-+
-+#endif /* _ASM_MICROBLAZE_KMAP_TYPES_H */
-diff --git a/include/asm-microblaze/linkage.h b/include/asm-microblaze/linkage.h
-new file mode 100644
-index 0000000..3a8e36d
---- /dev/null
-+++ b/include/asm-microblaze/linkage.h
-@@ -0,0 +1,15 @@
 +/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * Crack open a symbol reference and extract the address to be
++ * relocated. rp is a potentially unaligned pointer to the
++ * reference
 + */
 +
-+#ifndef _ASM_MICROBLAZE_LINKAGE_H
-+#define _ASM_MICROBLAZE_LINKAGE_H
++static inline unsigned long
++flat_get_addr_from_rp(unsigned long *rp, unsigned long relval,
++			unsigned long flags, unsigned long *persistent)
++{
++	unsigned long addr;
++	(void)flags;
 +
-+#define __ALIGN		.align 4
-+#define __ALIGN_STR	".align 4"
++	/* Is it a split 64/32 reference? */
++	if (relval & 0x80000000) {
++		/* Grab the two halves of the reference */
++		unsigned long val_hi, val_lo;
 +
-+#endif /* _ASM_MICROBLAZE_LINKAGE_H */
-diff --git a/include/asm-microblaze/sections.h b/include/asm-microblaze/sections.h
-new file mode 100644
-index 0000000..d0c12fd
---- /dev/null
-+++ b/include/asm-microblaze/sections.h
-@@ -0,0 +1,21 @@
++		val_hi = get_unaligned(rp);
++		val_lo = get_unaligned(rp+1);
++
++		/* Crack the address out */
++		addr = ((val_hi & 0xffff) << 16) + (val_lo & 0xffff);
++	} else {
++		/* Get the address straight out */
++		addr = get_unaligned(rp);
++	}
++
++	return addr;
++}
++
 +/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * Insert an address into the symbol reference at rp. rp is potentially
++ * unaligned.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_SECTIONS_H
-+#define _ASM_MICROBLAZE_SECTIONS_H
++static inline void
++flat_put_addr_at_rp(unsigned long *rp, unsigned long addr, unsigned long relval)
++{
++	/* Is this a split 64/32 reloc? */
++	if (relval & 0x80000000) {
++		/* Get the two "halves" */
++		unsigned long val_hi = get_unaligned(rp);
++		unsigned long val_lo = get_unaligned(rp + 1);
 +
-+#include <asm-generic/sections.h>
++		/* insert the address */
++		val_hi = (val_hi & 0xffff0000) | addr >> 16;
++		val_lo = (val_lo & 0xffff0000) | (addr & 0xffff);
 +
-+extern char _ssbss[], _esbss[];
-+extern unsigned long __ivt_start[], __ivt_end[];
++		/* store the two halves back into memory */
++		put_unaligned(val_hi, rp);
++		put_unaligned(val_lo, rp+1);
++	} else {
++		/* Put it straight in, no messing around */
++		put_unaligned(addr, rp);
++	}
++}
 +
-+#ifdef CONFIG_MTD_UCLINUX
-+extern char *_ebss;
-+#endif
++#define	flat_get_relocate_addr(rel)	(rel & 0x7fffffff)
 +
-+#endif /* _ASM_MICROBLAZE_SECTIONS_H */
++#endif /* _ASM_MICROBLAZE_FLAT_H */
 -- 
 1.5.4.GIT
 
