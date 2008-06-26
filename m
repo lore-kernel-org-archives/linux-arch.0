@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 41/60] microblaze_v4: atomic.h bitops.h byteorder.h
-Date: Thu, 26 Jun 2008 14:30:10 +0200
-Message-ID: <1214483429-32360-42-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 46/60] microblaze_v4: termbits.h termios.h
+Date: Thu, 26 Jun 2008 14:30:15 +0200
+Message-ID: <1214483429-32360-47-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-2-git-send-email-monstr@seznam.cz>
  <1214483429-32360-3-git-send-email-monstr@seznam.cz>
@@ -43,12 +43,17 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-39-git-send-email-monstr@seznam.cz>
  <1214483429-32360-40-git-send-email-monstr@seznam.cz>
  <1214483429-32360-41-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-42-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-43-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-44-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-45-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-46-git-send-email-monstr@seznam.cz>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22353 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22486 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1759550AbYFZMk5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 08:40:57 -0400
-In-Reply-To: <1214483429-32360-41-git-send-email-monstr@seznam.cz>
+	id S1759613AbYFZMlQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 08:41:16 -0400
+In-Reply-To: <1214483429-32360-46-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -59,20 +64,20 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/atomic.h    |  106 ++++++++++++++++++++++++++++++++++++
- include/asm-microblaze/bitops.h    |   27 +++++++++
- include/asm-microblaze/byteorder.h |   21 +++++++
- 3 files changed, 154 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/atomic.h
- create mode 100644 include/asm-microblaze/bitops.h
- create mode 100644 include/asm-microblaze/byteorder.h
+ include/asm-generic/termbits.h    |  200 +++++++++++++++++++++++++++++++++++++
+ include/asm-microblaze/termbits.h |    1 +
+ include/asm-microblaze/termios.h  |   84 ++++++++++++++++
+ 3 files changed, 285 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/termbits.h
+ create mode 100644 include/asm-microblaze/termbits.h
+ create mode 100644 include/asm-microblaze/termios.h
 
-diff --git a/include/asm-microblaze/atomic.h b/include/asm-microblaze/atomic.h
+diff --git a/include/asm-generic/termbits.h b/include/asm-generic/termbits.h
 new file mode 100644
-index 0000000..754688a
+index 0000000..740b044
 --- /dev/null
-+++ b/include/asm-microblaze/atomic.h
-@@ -0,0 +1,106 @@
++++ b/include/asm-generic/termbits.h
+@@ -0,0 +1,200 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
@@ -81,110 +86,211 @@ index 0000000..754688a
 + * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_ATOMIC_H
-+#define _ASM_MICROBLAZE_ATOMIC_H
++#ifndef _ASM_GENERIC_TERMBITS_H
++#define _ASM_GENERIC_TERMBITS_H
 +
-+#include <linux/compiler.h> /* likely */
-+#include <asm/system.h> /* local_irq_XXX and friends */
++#include <linux/posix_types.h>
 +
-+typedef struct { volatile int counter; } atomic_t;
++typedef unsigned char	cc_t;
++typedef unsigned int	speed_t;
++typedef unsigned int	tcflag_t;
 +
-+#define ATOMIC_INIT(i)		{ (i) }
-+#define atomic_read(v)		((v)->counter)
-+#define atomic_set(v, i)	(((v)->counter) = (i))
++#define NCCS 19
++struct termios {
++	tcflag_t c_iflag; /* input mode flags */
++	tcflag_t c_oflag; /* output mode flags */
++	tcflag_t c_cflag; /* control mode flags */
++	tcflag_t c_lflag; /* local mode flags */
++	cc_t c_line; /* line discipline */
++	cc_t c_cc[NCCS]; /* control characters */
++};
 +
-+#define atomic_inc(v)		(atomic_add_return(1, (v)))
-+#define atomic_dec(v)		(atomic_sub_return(1, (v)))
++struct ktermios {
++	tcflag_t c_iflag; /* input mode flags */
++	tcflag_t c_oflag; /* output mode flags */
++	tcflag_t c_cflag; /* control mode flags */
++	tcflag_t c_lflag; /* local mode flags */
++	cc_t c_line; /* line discipline */
++	cc_t c_cc[NCCS]; /* control characters */
++	speed_t c_ispeed; /* input speed */
++	speed_t c_ospeed; /* output speed */
++};
 +
-+#define atomic_add(i, v)	(atomic_add_return(i, (v)))
-+#define atomic_sub(i, v)	(atomic_sub_return(i, (v)))
++/* c_cc characters */
 +
-+#define atomic_inc_return(v)	(atomic_add_return(1, (v)))
-+#define atomic_dec_return(v)	(atomic_sub_return(1, (v)))
++#define VINTR 0
++#define VQUIT 1
++#define VERASE 2
++#define VKILL 3
++#define VEOF 4
++#define VTIME 5
++#define VMIN 6
++#define VSWTC 7
++#define VSTART 8
++#define VSTOP 9
++#define VSUSP 10
++#define VEOL 11
++#define VREPRINT 12
++#define VDISCARD 13
++#define VWERASE 14
++#define VLNEXT 15
++#define VEOL2 16
 +
-+#define atomic_inc_and_test(v)	(atomic_add_return(1, (v)) == 0)
-+#define atomic_dec_and_test(v)	(atomic_sub_return(1, (v)) == 0)
++/* c_iflag bits */
 +
-+#define atomic_inc_not_zero(v)	(atomic_add_unless((v), 1, 0))
++#define IGNBRK	0000001
++#define BRKINT	0000002
++#define IGNPAR	0000004
++#define PARMRK	0000010
++#define INPCK	0000020
++#define ISTRIP	0000040
++#define INLCR	0000100
++#define IGNCR	0000200
++#define ICRNL	0000400
++#define IUCLC	0001000
++#define IXON	0002000
++#define IXANY	0004000
++#define IXOFF	0010000
++#define IMAXBEL	0020000
++#define IUTF8	0040000
 +
-+#define atomic_sub_and_test(i, v) (atomic_sub_return((i), (v)) == 0)
++/* c_oflag bits */
 +
-+static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
-+{
-+	int ret;
-+	unsigned long flags;
++#define OPOST	0000001
++#define OLCUC	0000002
++#define ONLCR	0000004
++#define OCRNL	0000010
++#define ONOCR	0000020
++#define ONLRET	0000040
++#define OFILL	0000100
++#define OFDEL	0000200
++#define NLDLY	0000400
++#define NL0	0000000
++#define NL1	0000400
++#define CRDLY	0003000
++#define CR0	0000000
++#define CR1	0001000
++#define CR2	0002000
++#define CR3	0003000
++#define TABDLY	0014000
++#define TAB0	0000000
++#define TAB1	0004000
++#define TAB2	0010000
++#define TAB3	0014000
++#define XTABS	0014000
++#define BSDLY	0020000
++#define BS0	0000000
++#define BS1	0020000
++#define VTDLY	0040000
++#define VT0	0000000
++#define VT1	0040000
++#define FFDLY	0100000
++#define FF0	0000000
++#define FF1	0100000
 +
-+	local_irq_save(flags);
-+	ret = v->counter;
-+	if (likely(ret == old))
-+		v->counter = new;
-+	local_irq_restore(flags);
++/* c_cflag bit meaning */
 +
-+	return ret;
-+}
++#define CBAUD	0010017
++#define B0	0000000 /* hang up */
++#define B50	0000001
++#define B75	0000002
++#define B110	0000003
++#define B134	0000004
++#define B150	0000005
++#define B200	0000006
++#define B300	0000007
++#define B600	0000010
++#define B1200	0000011
++#define B1800	0000012
++#define B2400	0000013
++#define B4800	0000014
++#define B9600	0000015
++#define B19200	0000016
++#define B38400	0000017
++#define EXTA B19200
++#define EXTB B38400
++#define CSIZE	0000060
++#define CS5	0000000
++#define CS6	0000020
++#define CS7	0000040
++#define CS8	0000060
++#define CSTOPB	0000100
++#define CREAD	0000200
++#define PARENB	0000400
++#define PARODD	0001000
++#define HUPCL	0002000
++#define CLOCAL	0004000
++#define CBAUDEX	0010000
++#define B57600	0010001
++#define B115200	0010002
++#define B230400	0010003
++#define B460800	0010004
++#define B500000	0010005
++#define B576000	0010006
++#define B921600	0010007
++#define B1000000	0010010
++#define B1152000	0010011
++#define B1500000	0010012
++#define B2000000	0010013
++#define B2500000	0010014
++#define B3000000	0010015
++#define B3500000	0010016
++#define B4000000	0010017
++#define CIBAUD		002003600000 /* input baud rate (not used) */
++#define CMSPAR		010000000000 /* mark or space (stick) parity */
++#define CRTSCTS		020000000000 /* flow control */
 +
-+static inline int atomic_add_unless(atomic_t *v, int a, int u)
-+{
-+	int c, old;
++/* c_lflag bits */
 +
-+	c = atomic_read(v);
-+	while (c != u && (old = atomic_cmpxchg((v), c, c + a)) != c)
-+		c = old;
-+	return c != u;
-+}
++#define ISIG	0000001
++#define ICANON	0000002
++#define XCASE	0000004
++#define ECHO	0000010
++#define ECHOE	0000020
++#define ECHOK	0000040
++#define ECHONL	0000100
++#define NOFLSH	0000200
++#define TOSTOP	0000400
++#define ECHOCTL	0001000
++#define ECHOPRT	0002000
++#define ECHOKE	0004000
++#define FLUSHO	0010000
++#define PENDIN	0040000
++#define IEXTEN	0100000
 +
-+static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
-+{
-+	unsigned long flags;
++/* tcflow() and TCXONC use these */
 +
-+	local_irq_save(flags);
-+	*addr &= ~mask;
-+	local_irq_restore(flags);
-+}
++#define	TCOOFF		0
++#define	TCOON		1
++#define	TCIOFF		2
++#define	TCION		3
 +
-+/**
-+ * atomic_add_return - add and return
-+ * @i: integer value to add
-+ * @v: pointer of type atomic_t
-+ *
-+ * Atomically adds @i to @v and returns @i + @v
-+ */
-+static inline int atomic_add_return(int i, atomic_t *v)
-+{
-+	unsigned long flags;
-+	int val;
++/* tcflush() and TCFLSH use these */
 +
-+	local_irq_save(flags);
-+	val = v->counter;
-+	v->counter = val += i;
-+	local_irq_restore(flags);
++#define	TCIFLUSH	0
++#define	TCOFLUSH	1
++#define	TCIOFLUSH	2
 +
-+	return val;
-+}
++/* tcsetattr uses these */
 +
-+static inline int atomic_sub_return(int i, atomic_t *v)
-+{
-+	return atomic_add_return(-i, v);
-+}
++#define	TCSANOW		0
++#define	TCSADRAIN	1
++#define	TCSAFLUSH	2
 +
-+#define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
-+#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
-+
-+/* Atomic operations are already serializing */
-+#define smp_mb__before_atomic_dec()	barrier()
-+#define smp_mb__after_atomic_dec()	barrier()
-+#define smp_mb__before_atomic_inc()	barrier()
-+#define smp_mb__after_atomic_inc()	barrier()
-+
-+#include <asm-generic/atomic.h>
-+
-+#endif /* _ASM_MICROBLAZE_ATOMIC_H */
-diff --git a/include/asm-microblaze/bitops.h b/include/asm-microblaze/bitops.h
++#endif /* _ASM_GENERIC_TERMBITS_H */
+diff --git a/include/asm-microblaze/termbits.h b/include/asm-microblaze/termbits.h
 new file mode 100644
-index 0000000..98ffb61
+index 0000000..3935b10
 --- /dev/null
-+++ b/include/asm-microblaze/bitops.h
-@@ -0,0 +1,27 @@
++++ b/include/asm-microblaze/termbits.h
+@@ -0,0 +1 @@
++#include <asm-generic/termbits.h>
+diff --git a/include/asm-microblaze/termios.h b/include/asm-microblaze/termios.h
+new file mode 100644
+index 0000000..dd72e5d
+--- /dev/null
++++ b/include/asm-microblaze/termios.h
+@@ -0,0 +1,84 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
@@ -193,51 +299,81 @@ index 0000000..98ffb61
 + * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_BITOPS_H
-+#define _ASM_MICROBLAZE_BITOPS_H
++#ifndef _ASM_MICROBLAZE_TERMIOS_H
++#define _ASM_MICROBLAZE_TERMIOS_H
 +
-+/*
-+ * Copyright 1992, Linus Torvalds.
-+ */
++#include <linux/string.h>
++#include <asm/termbits.h>
++#include <asm/ioctls.h>
 +
-+#include <linux/autoconf.h>
-+#include <asm/byteorder.h> /* swab32 */
-+#include <asm/system.h> /* save_flags */
++struct winsize {
++	unsigned short ws_row;
++	unsigned short ws_col;
++	unsigned short ws_xpixel;
++	unsigned short ws_ypixel;
++};
 +
-+/*
-+ * clear_bit() doesn't provide any barrier for the compiler.
-+ */
-+#define smp_mb__before_clear_bit()	barrier()
-+#define smp_mb__after_clear_bit()	barrier()
-+#include <asm-generic/bitops.h>
++#define NCC 8
++struct termio {
++	unsigned short c_iflag; /* input mode flags */
++	unsigned short c_oflag; /* output mode flags */
++	unsigned short c_cflag; /* control mode flags */
++	unsigned short c_lflag; /* local mode flags */
++	unsigned char c_line; /* line discipline */
++	unsigned char c_cc[NCC]; /* control characters */
++};
 +
-+#endif /* _ASM_MICROBLAZE_BITOPS_H */
-diff --git a/include/asm-microblaze/byteorder.h b/include/asm-microblaze/byteorder.h
-new file mode 100644
-index 0000000..dad9204
---- /dev/null
-+++ b/include/asm-microblaze/byteorder.h
-@@ -0,0 +1,21 @@
-+/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_BYTEORDER_H
-+#define _ASM_MICROBLAZE_BYTEORDER_H
-+
-+#include <asm/types.h>
-+
-+#if defined(__GNUC__) && !defined(__STRICT_ANSI__) || defined(__KERNEL__)
-+#define __BYTEORDER_HAS_U64__
-+#define __SWAB_64_THRU_32__
++#ifdef __KERNEL__
++/*	intr=^C		quit=^|		erase=del	kill=^U
++	eof=^D		vtime=\0	vmin=\1		sxtc=\0
++	start=^Q	stop=^S		susp=^Z		eol=\0
++	reprint=^R	discard=^U	werase=^W	lnext=^V
++	eol2=\0
++*/
++#define INIT_C_CC "\003\034\177\025\004\0\1\0\021\023\032\0\022\017\027\026\0"
 +#endif
 +
-+#include <linux/byteorder/big_endian.h>
++/* Modem lines */
 +
-+#endif /* _ASM_MICROBLAZE_BYTEORDER_H */
++#define TIOCM_LE	0x001
++#define TIOCM_DTR	0x002
++#define TIOCM_RTS	0x004
++#define TIOCM_ST	0x008
++#define TIOCM_SR	0x010
++#define TIOCM_CTS	0x020
++#define TIOCM_CAR	0x040
++#define TIOCM_RNG	0x080
++#define TIOCM_DSR	0x100
++#define TIOCM_CD	TIOCM_CAR
++#define TIOCM_RI	TIOCM_RNG
++#define TIOCM_OUT1	0x2000
++#define TIOCM_OUT2	0x4000
++#define TIOCM_LOOP	0x8000
++
++/* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
++
++/* Line disciplines */
++
++#define N_TTY		0
++#define N_SLIP		1
++#define N_MOUSE		2
++#define N_PPP		3
++#define N_STRIP		4
++#define N_AX25		5
++#define N_X25		6 /* X.25 async */
++#define N_6PACK		7
++#define N_MASC		8 /* Reserved for Mobitex module <kaz@cafe.net> */
++#define N_R3964		9 /* Reserved for Simatic R3964 module */
++#define N_PROFIBUS_FDL	10 /* Reserved for Profibus <Dave@mvhi.com> */
++#define N_IRDA		11 /* Linux IR - http://irda.sourceforge.net/ */
++#define N_SMSBLOCK	12 /* SMS block mode - for talking to GSM data cards
++				about SMS messages */
++#define N_HDLC		13 /* synchronous HDLC */
++#define N_SYNC_PPP	14
++#define N_HCI		15 /* Bluetooth HCI UART */
++
++#include <asm-generic/termios.h>
++
++#endif /* _ASM_MICROBLAZE_TERMIOS_H */
 -- 
 1.5.4.GIT
