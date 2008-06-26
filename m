@@ -1,72 +1,44 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 46/60] microblaze_v4: termbits.h termios.h
-Date: Thu, 26 Jun 2008 17:28:47 +0200
-Message-ID: <200806261728.48860.arnd@arndb.de>
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <1214483429-32360-46-git-send-email-monstr@seznam.cz> <1214483429-32360-47-git-send-email-monstr@seznam.cz>
+Subject: Re: [PATCH 48/60] microblaze_v4: headers simple files - empty or redirect to asm-generic
+Date: Thu, 26 Jun 2008 17:35:11 +0200
+Message-ID: <200806261735.12738.arnd@arndb.de>
+References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <1214483429-32360-48-git-send-email-monstr@seznam.cz> <1214483429-32360-49-git-send-email-monstr@seznam.cz>
 Mime-Version: 1.0
 Content-Type: text/plain;
   charset="iso-8859-15"
-Content-Transfer-Encoding: base64
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:53277 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.174]:61013 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754193AbYFZP2w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2008 11:28:52 -0400
-In-Reply-To: <1214483429-32360-47-git-send-email-monstr@seznam.cz>
+	with ESMTP id S1751513AbYFZPfo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2008 11:35:44 -0400
+In-Reply-To: <1214483429-32360-49-git-send-email-monstr@seznam.cz>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: monstr@seznam.cz
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
 
-T24gVGh1cnNkYXkgMjYgSnVuZSAyMDA4LCBtb25zdHJAc2V6bmFtLmN6IHdyb3RlOgo+IEBAIC0w
-LDAgKzEsODQgQEAKPiArCj4gKyNpbmNsdWRlIDxsaW51eC9zdHJpbmcuaD4KPiArI2luY2x1ZGUg
-PGFzbS90ZXJtYml0cy5oPgo+ICsjaW5jbHVkZSA8YXNtL2lvY3Rscy5oPgo+ICsKPiArc3RydWN0
-IHdpbnNpemUgewo+ICugoKCgoKCgdW5zaWduZWQgc2hvcnQgd3Nfcm93Owo+ICugoKCgoKCgdW5z
-aWduZWQgc2hvcnQgd3NfY29sOwo+ICugoKCgoKCgdW5zaWduZWQgc2hvcnQgd3NfeHBpeGVsOwo+
-ICugoKCgoKCgdW5zaWduZWQgc2hvcnQgd3NfeXBpeGVsOwo+ICt9Owo+ICsKPiArI2RlZmluZSBO
-Q0MgOAo+ICtzdHJ1Y3QgdGVybWlvIHsKPiAroKCgoKCgoHVuc2lnbmVkIHNob3J0IGNfaWZsYWc7
-IC8qIGlucHV0IG1vZGUgZmxhZ3MgKi8KPiAroKCgoKCgoHVuc2lnbmVkIHNob3J0IGNfb2ZsYWc7
-IC8qIG91dHB1dCBtb2RlIGZsYWdzICovCj4gK6CgoKCgoKB1bnNpZ25lZCBzaG9ydCBjX2NmbGFn
-OyAvKiBjb250cm9sIG1vZGUgZmxhZ3MgKi8KPiAroKCgoKCgoHVuc2lnbmVkIHNob3J0IGNfbGZs
-YWc7IC8qIGxvY2FsIG1vZGUgZmxhZ3MgKi8KPiAroKCgoKCgoHVuc2lnbmVkIGNoYXIgY19saW5l
-OyAvKiBsaW5lIGRpc2NpcGxpbmUgKi8KPiAroKCgoKCgoHVuc2lnbmVkIGNoYXIgY19jY1tOQ0Nd
-OyAvKiBjb250cm9sIGNoYXJhY3RlcnMgKi8KPiArfTsKPiArCj4gKyNpZmRlZiBfX0tFUk5FTF9f
-Cj4gKy8qoKCgoKBpbnRyPV5DoKCgoKCgoKCgcXVpdD1efKCgoKCgoKCgoGVyYXNlPWRlbKCgoKCg
-oKBraWxsPV5VCj4gK6CgoKCgoKBlb2Y9XkSgoKCgoKCgoKCgdnRpbWU9XDCgoKCgoKCgoHZtaW49
-XDGgoKCgoKCgoKBzeHRjPVwwCj4gK6CgoKCgoKBzdGFydD1eUaCgoKCgoKCgc3RvcD1eU6CgoKCg
-oKCgoHN1c3A9XlqgoKCgoKCgoKBlb2w9XDAKPiAroKCgoKCgoHJlcHJpbnQ9XlKgoKCgoKBkaXNj
-YXJkPV5VoKCgoKCgd2VyYXNlPV5XoKCgoKCgoGxuZXh0PV5WCj4gK6CgoKCgoKBlb2wyPVwwCj4g
-KyovCj4gKyNkZWZpbmUgSU5JVF9DX0NDICJcMDAzXDAzNFwxNzdcMDI1XDAwNFwwXDFcMFwwMjFc
-MDIzXDAzMlwwXDAyMlwwMTdcMDI3XDAyNlwwIgo+ICsjZW5kaWYKPiArCj4gKy8qIE1vZGVtIGxp
-bmVzICovCj4gKwo+ICsjZGVmaW5lIFRJT0NNX0xFoKCgoKCgoDB4MDAxCj4gKyNkZWZpbmUgVElP
-Q01fRFRSoKCgoKCgMHgwMDIKPiArI2RlZmluZSBUSU9DTV9SVFOgoKCgoKAweDAwNAo+ICsjZGVm
-aW5lIFRJT0NNX1NUoKCgoKCgoDB4MDA4Cj4gKyNkZWZpbmUgVElPQ01fU1KgoKCgoKCgMHgwMTAK
-PiArI2RlZmluZSBUSU9DTV9DVFOgoKCgoKAweDAyMAo+ICsjZGVmaW5lIFRJT0NNX0NBUqCgoKCg
-oDB4MDQwCj4gKyNkZWZpbmUgVElPQ01fUk5HoKCgoKCgMHgwODAKPiArI2RlZmluZSBUSU9DTV9E
-U1KgoKCgoKAweDEwMAo+ICsjZGVmaW5lIFRJT0NNX0NEoKCgoKCgoFRJT0NNX0NBUgo+ICsjZGVm
-aW5lIFRJT0NNX1JJoKCgoKCgoFRJT0NNX1JORwo+ICsjZGVmaW5lIFRJT0NNX09VVDGgoKCgoDB4
-MjAwMAo+ICsjZGVmaW5lIFRJT0NNX09VVDKgoKCgoDB4NDAwMAo+ICsjZGVmaW5lIFRJT0NNX0xP
-T1CgoKCgoDB4ODAwMAoKSXQgd291bGQgYmUgbmljZSBpZiBtb3JlIG9mIHRoZSBhYm92ZSBjb3Vs
-ZCBiZSBpbiBhc20tZ2VuZXJpYy90ZXJtaW9zLmgsCmFzIGZhciBhcyBJIGNhbiB0ZWxsIHRoZXkg
-YXJlIGlkZW50aWNhbCBmb3IgYWxsIChmb3VyKSB1c2VycyBvZiB0aGF0CmdlbmVyaWMgZmlsZS4K
-T2YgY291cnNlIGlmIHlvdSBkbyB0aGF0LCB5b3UnbGwgaGF2ZSB0byByZW1vdmUgdGhlIGNvZGUg
-ZnJvbSB0aGUgZXhpc3RpbmcKdXNlcnMuCgo+ICsvKiBpb2N0bCAoZmQsIFRJT0NTRVJHRVRMU1Is
-ICZyZXN1bHQpIHdoZXJlIHJlc3VsdCBtYXkgYmUgYXMgYmVsb3cgKi8KPiArCj4gKy8qIExpbmUg
-ZGlzY2lwbGluZXMgKi8KPiArCj4gKyNkZWZpbmUgTl9UVFmgoKCgoKCgoKCgMAo+ICsjZGVmaW5l
-IE5fU0xJUKCgoKCgoKCgoDEKPiArI2RlZmluZSBOX01PVVNFoKCgoKCgoKCgoKCgoKCgoDIKPiAr
-I2RlZmluZSBOX1BQUKCgoKCgoKCgoKAzCj4gKyNkZWZpbmUgTl9TVFJJUKCgoKCgoKCgoKCgoKCg
-oKA0Cj4gKyNkZWZpbmUgTl9BWDI1oKCgoKCgoKCgNQo+ICsjZGVmaW5lIE5fWDI1oKCgoKCgoKCg
-oDYgLyogWC4yNSBhc3luYyAqLwo+ICsjZGVmaW5lIE5fNlBBQ0ugoKCgoKCgoKCgoKCgoKCgNwo+
-ICsjZGVmaW5lIE5fTUFTQ6CgoKCgoKCgoDggLyogUmVzZXJ2ZWQgZm9yIE1vYml0ZXggbW9kdWxl
-IDxrYXpAY2FmZS5uZXQ+ICovCj4gKyNkZWZpbmUgTl9SMzk2NKCgoKCgoKCgoKCgoKCgoKA5IC8q
-IFJlc2VydmVkIGZvciBTaW1hdGljIFIzOTY0IG1vZHVsZSAqLwo+ICsjZGVmaW5lIE5fUFJPRklC
-VVNfRkRMoDEwIC8qIFJlc2VydmVkIGZvciBQcm9maWJ1cyA8RGF2ZUBtdmhpLmNvbT4gKi8KPiAr
-I2RlZmluZSBOX0lSREGgoKCgoKCgoKAxMSAvKiBMaW51eCBJUiAtIGh0dHA6Ly9pcmRhLnNvdXJj
-ZWZvcmdlLm5ldC8gKi8KPiArI2RlZmluZSBOX1NNU0JMT0NLoKCgoKAxMiAvKiBTTVMgYmxvY2sg
-bW9kZSAtIGZvciB0YWxraW5nIHRvIEdTTSBkYXRhIGNhcmRzCj4gK6CgoKCgoKCgoKCgoKCgoKCg
-oKCgoKCgoKCgoKCgoKBhYm91dCBTTVMgbWVzc2FnZXMgKi8KPiArI2RlZmluZSBOX0hETEOgoKCg
-oKCgoKAxMyAvKiBzeW5jaHJvbm91cyBIRExDICovCj4gKyNkZWZpbmUgTl9TWU5DX1BQUKCgoKCg
-MTQKPiArI2RlZmluZSBOX0hDSaCgoKCgoKCgoKAxNSAvKiBCbHVldG9vdGggSENJIFVBUlQgKi8K
-PiArCgpUaGVzZSBhcmUgYWxyZWFkeSBkZWZpbmVkIGluIGxpbnV4L3R0eS5oLCBzbyB0aGV5IHNo
-b3VsZCBub3QgYmUgaGVyZS4KCglBcm5kIDw+PAoK
+On Thursday 26 June 2008, monstr@seznam.cz wrote:
+> +
+> +#ifndef _ASM_MICROBLAZE_NAMEI_H
+> +#define _ASM_MICROBLAZE_NAMEI_H
+> +
+> +#ifdef __KERNEL__
+> +
+> +/* This dummy routine maybe changed to something useful
+> + * for /usr/gnemul/ emulation stuff.
+> + * Look at asm-sparc/namei.h for details.
+> + */
+> +#define __emul_prefix() NULL
+> +
+> +#endif /* __KERNEL__ */
+> +
+> +#endif /* _ASM_MICROBLAZE_NAMEI_H */
+
+Could you move this to asm-generic? Note that the comment is wrong,
+asm-sparc doesn't actually implement it any more, only ia64, mips and
+arm have an implementation that actually does something interesting
+here.
+
+	Arnd <><
