@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 29/60] microblaze_v4: traps support
-Date: Thu, 26 Jun 2008 14:29:58 +0200
-Message-ID: <1214483429-32360-30-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 35/60] microblaze_v4: definitions of types
+Date: Thu, 26 Jun 2008 14:30:04 +0200
+Message-ID: <1214483429-32360-36-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-2-git-send-email-monstr@seznam.cz>
  <1214483429-32360-3-git-send-email-monstr@seznam.cz>
@@ -31,12 +31,18 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-27-git-send-email-monstr@seznam.cz>
  <1214483429-32360-28-git-send-email-monstr@seznam.cz>
  <1214483429-32360-29-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-30-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-31-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-32-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-33-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-34-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-35-git-send-email-monstr@seznam.cz>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:20892 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:20891 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1758922AbYFZMhg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 08:37:36 -0400
-In-Reply-To: <1214483429-32360-29-git-send-email-monstr@seznam.cz>
+	id S1758644AbYFZMhf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 08:37:35 -0400
+In-Reply-To: <1214483429-32360-35-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -47,16 +53,18 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/kernel/traps.c |   86 ++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 86 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/kernel/traps.c
+ include/asm-microblaze/posix_types.h |   69 ++++++++++++++++++++++++++++++++++
+ include/asm-microblaze/types.h       |   62 ++++++++++++++++++++++++++++++
+ 2 files changed, 131 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/posix_types.h
+ create mode 100644 include/asm-microblaze/types.h
 
-diff --git a/arch/microblaze/kernel/traps.c b/arch/microblaze/kernel/traps.c
+diff --git a/include/asm-microblaze/posix_types.h b/include/asm-microblaze/posix_types.h
 new file mode 100644
-index 0000000..69d75ee
+index 0000000..4e6412d
 --- /dev/null
-+++ b/arch/microblaze/kernel/traps.c
-@@ -0,0 +1,86 @@
++++ b/include/asm-microblaze/posix_types.h
+@@ -0,0 +1,69 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
@@ -65,83 +73,134 @@ index 0000000..69d75ee
 + * for more details.
 + */
 +
-+#include <linux/kernel.h>
-+#include <linux/kallsyms.h>
-+#include <linux/module.h>
-+#include <linux/sched.h>
++#ifndef _ASM_MICROBLAZE_POSIX_TYPES_H
++#define _ASM_MICROBLAZE_POSIX_TYPES_H
 +
-+#include <asm/exceptions.h>
-+#include <asm/system.h>
++/*
++ * This file is generally used by user-level software, so you need to
++ * be a little careful about namespace pollution etc. Also, we cannot
++ * assume GCC is being used.
++ */
 +
-+void trap_init(void)
-+{
-+	initialize_exception_handlers();
-+	__enable_hw_exceptions();
-+}
++typedef unsigned long	__kernel_ino_t;
++typedef unsigned int	__kernel_mode_t;
++typedef unsigned int	__kernel_nlink_t;
++typedef long		__kernel_off_t;
++typedef int		__kernel_pid_t;
++typedef unsigned int	__kernel_ipc_pid_t;
++typedef unsigned int	__kernel_uid_t;
++typedef unsigned int	__kernel_gid_t;
++typedef unsigned int	__kernel_size_t;
++typedef int		__kernel_ssize_t;
++typedef int		__kernel_ptrdiff_t;
++typedef long		__kernel_time_t;
++typedef long		__kernel_suseconds_t;
++typedef long		__kernel_clock_t;
++typedef int		__kernel_timer_t;
++typedef int		__kernel_clockid_t;
++typedef int		__kernel_daddr_t;
++typedef char *		__kernel_caddr_t;
++typedef unsigned short	__kernel_uid16_t;
++typedef unsigned short	__kernel_gid16_t;
++typedef unsigned int	__kernel_uid32_t;
++typedef unsigned int	__kernel_gid32_t;
 +
-+void __bad_xchg(volatile void *ptr, int size)
-+{
-+	printk(KERN_INFO "xchg: bad data size: pc 0x%p, ptr 0x%p, size %d\n",
-+		__builtin_return_address(0), ptr, size);
-+	BUG();
-+}
-+EXPORT_SYMBOL(__bad_xchg);
-+
-+static int kstack_depth_to_print = 24;
-+
-+void show_trace(struct task_struct *task, unsigned long *stack)
-+{
-+	unsigned long addr;
-+
-+	if (!stack)
-+		stack = (unsigned long *)&stack;
-+
-+	printk(KERN_INFO "Call Trace: ");
-+#ifdef CONFIG_KALLSYMS
-+	printk(KERN_INFO "\n");
++#ifdef __GNUC__
++typedef long long	__kernel_loff_t;
 +#endif
-+	while (!kstack_end(stack)) {
-+		addr = *stack++;
-+		if (__kernel_text_address(addr)) {
-+			printk(KERN_INFO "[<%08lx>] ", addr);
-+			print_symbol("%s\n", addr);
-+		}
-+	}
-+	printk(KERN_INFO "\n");
-+}
 +
-+void show_stack(struct task_struct *task, unsigned long *sp)
-+{
-+	unsigned long *stack;
-+	int i;
++typedef struct {
++#if defined(__KERNEL__) || defined(__USE_ALL)
++	int	val[2];
++#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
++	int	__val[2];
++#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
++} __kernel_fsid_t;
 +
-+	if (sp == NULL) {
-+		if (task)
-+			sp = (unsigned long *) ((struct thread_info *)
-+						(task->stack))->cpu_context.r1;
-+		else
-+			sp = (unsigned long *)&sp;
-+	}
++#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
 +
-+	stack = sp;
++#undef	__FD_SET
++#define	__FD_SET(d, set)	((set)->fds_bits[__FDELT(d)] |= __FDMASK(d))
 +
-+	printk(KERN_INFO "\nStack:\n  ");
++#undef	__FD_CLR
++#define	__FD_CLR(d, set)	((set)->fds_bits[__FDELT(d)] &= ~__FDMASK(d))
 +
-+	for (i = 0; i < kstack_depth_to_print; i++) {
-+		if (kstack_end(sp))
-+			break;
-+		if (i && ((i % 8) == 0))
-+			printk("\n  ");
-+		printk("%08lx ", *sp++);
-+	}
-+	printk("\n");
-+	show_trace(task, stack);
-+}
++#undef	__FD_ISSET
++#define	__FD_ISSET(d, set)	(!!((set)->fds_bits[__FDELT(d)] & __FDMASK(d)))
 +
-+void dump_stack(void)
-+{
-+	show_stack(NULL, NULL);
-+}
-+EXPORT_SYMBOL(dump_stack);
++#undef	__FD_ZERO
++#define __FD_ZERO(fdsetp) (memset (fdsetp, 0, sizeof(*(fd_set *)fdsetp)))
++
++#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
++
++#endif /* _ASM_MICROBLAZE_POSIX_TYPES_H */
+diff --git a/include/asm-microblaze/types.h b/include/asm-microblaze/types.h
+new file mode 100644
+index 0000000..449ab8d
+--- /dev/null
++++ b/include/asm-microblaze/types.h
+@@ -0,0 +1,62 @@
++/*
++ * Copyright (C) Atmark Techno, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_MICROBLAZE_TYPES_H
++#define _ASM_MICROBLAZE_TYPES_H
++
++#ifndef __ASSEMBLY__
++
++typedef unsigned short umode_t;
++
++/*
++ * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
++ * header files exported to user space
++ */
++
++typedef __signed__ char __s8;
++typedef unsigned char __u8;
++
++typedef __signed__ short __s16;
++typedef unsigned short __u16;
++
++typedef __signed__ int __s32;
++typedef unsigned int __u32;
++
++#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
++typedef __signed__ long long __s64;
++typedef unsigned long long __u64;
++#endif
++
++/*
++ * These aren't exported outside the kernel to avoid name space clashes
++ */
++#ifdef __KERNEL__
++
++typedef __signed__ char s8;
++typedef unsigned char u8;
++
++typedef __signed__ short s16;
++typedef unsigned short u16;
++
++typedef __signed__ int s32;
++typedef unsigned int u32;
++
++typedef __signed__ long long s64;
++typedef unsigned long long u64;
++
++
++#define BITS_PER_LONG 32
++
++/* Dma addresses are 32-bits wide. */
++
++typedef u32 dma_addr_t;
++
++#endif/* __KERNEL__ */
++#endif
++
++#endif /* _ASM_MICROBLAZE_TYPES_H */
 -- 
 1.5.4.GIT
