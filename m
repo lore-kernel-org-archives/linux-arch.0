@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 54/60] microblaze_v4: Kbuild file
-Date: Thu, 26 Jun 2008 14:30:23 +0200
-Message-ID: <1214483429-32360-55-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 07/60] microblaze_v4: Support for semaphores
+Date: Thu, 26 Jun 2008 14:29:36 +0200
+Message-ID: <1214483429-32360-8-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-2-git-send-email-monstr@seznam.cz>
  <1214483429-32360-3-git-send-email-monstr@seznam.cz>
@@ -9,59 +9,12 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-5-git-send-email-monstr@seznam.cz>
  <1214483429-32360-6-git-send-email-monstr@seznam.cz>
  <1214483429-32360-7-git-send-email-monstr@seznam.cz>
- <1214483429-32360-8-git-send-email-monstr@seznam.cz>
- <1214483429-32360-9-git-send-email-monstr@seznam.cz>
- <1214483429-32360-10-git-send-email-monstr@seznam.cz>
- <1214483429-32360-11-git-send-email-monstr@seznam.cz>
- <1214483429-32360-12-git-send-email-monstr@seznam.cz>
- <1214483429-32360-13-git-send-email-monstr@seznam.cz>
- <1214483429-32360-14-git-send-email-monstr@seznam.cz>
- <1214483429-32360-15-git-send-email-monstr@seznam.cz>
- <1214483429-32360-16-git-send-email-monstr@seznam.cz>
- <1214483429-32360-17-git-send-email-monstr@seznam.cz>
- <1214483429-32360-18-git-send-email-monstr@seznam.cz>
- <1214483429-32360-19-git-send-email-monstr@seznam.cz>
- <1214483429-32360-20-git-send-email-monstr@seznam.cz>
- <1214483429-32360-21-git-send-email-monstr@seznam.cz>
- <1214483429-32360-22-git-send-email-monstr@seznam.cz>
- <1214483429-32360-23-git-send-email-monstr@seznam.cz>
- <1214483429-32360-24-git-send-email-monstr@seznam.cz>
- <1214483429-32360-25-git-send-email-monstr@seznam.cz>
- <1214483429-32360-26-git-send-email-monstr@seznam.cz>
- <1214483429-32360-27-git-send-email-monstr@seznam.cz>
- <1214483429-32360-28-git-send-email-monstr@seznam.cz>
- <1214483429-32360-29-git-send-email-monstr@seznam.cz>
- <1214483429-32360-30-git-send-email-monstr@seznam.cz>
- <1214483429-32360-31-git-send-email-monstr@seznam.cz>
- <1214483429-32360-32-git-send-email-monstr@seznam.cz>
- <1214483429-32360-33-git-send-email-monstr@seznam.cz>
- <1214483429-32360-34-git-send-email-monstr@seznam.cz>
- <1214483429-32360-35-git-send-email-monstr@seznam.cz>
- <1214483429-32360-36-git-send-email-monstr@seznam.cz>
- <1214483429-32360-37-git-send-email-monstr@seznam.cz>
- <1214483429-32360-38-git-send-email-monstr@seznam.cz>
- <1214483429-32360-39-git-send-email-monstr@seznam.cz>
- <1214483429-32360-40-git-send-email-monstr@seznam.cz>
- <1214483429-32360-41-git-send-email-monstr@seznam.cz>
- <1214483429-32360-42-git-send-email-monstr@seznam.cz>
- <1214483429-32360-43-git-send-email-monstr@seznam.cz>
- <1214483429-32360-44-git-send-email-monstr@seznam.cz>
- <1214483429-32360-45-git-send-email-monstr@seznam.cz>
- <1214483429-32360-46-git-send-email-monstr@seznam.cz>
- <1214483429-32360-47-git-send-email-monstr@seznam.cz>
- <1214483429-32360-48-git-send-email-monstr@seznam.cz>
- <1214483429-32360-49-git-send-email-monstr@seznam.cz>
- <1214483429-32360-50-git-send-email-monstr@seznam.cz>
- <1214483429-32360-51-git-send-email-monstr@seznam.cz>
- <1214483429-32360-52-git-send-email-monstr@seznam.cz>
- <1214483429-32360-53-git-send-email-monstr@seznam.cz>
- <1214483429-32360-54-git-send-email-monstr@seznam.cz>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:23937 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:23958 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1764709AbYFZNHZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 09:07:25 -0400
-In-Reply-To: <1214483429-32360-54-git-send-email-monstr@seznam.cz>
+	id S1761589AbYFZNLT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 09:11:19 -0400
+In-Reply-To: <1214483429-32360-7-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -72,39 +25,16 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/Kbuild |   24 ++++++++++++++++++++++++
- 1 files changed, 24 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/Kbuild
+ include/asm-microblaze/semaphore.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/semaphore.h
 
-diff --git a/include/asm-microblaze/Kbuild b/include/asm-microblaze/Kbuild
+diff --git a/include/asm-microblaze/semaphore.h b/include/asm-microblaze/semaphore.h
 new file mode 100644
-index 0000000..783296d
+index 0000000..d9b2034
 --- /dev/null
-+++ b/include/asm-microblaze/Kbuild
-@@ -0,0 +1,24 @@
-+include include/asm-generic/Kbuild.asm
-+
-+header-y += auxvec.h
-+header-y += cpuinfo.h
-+header-y += errno.h
-+header-y += fcntl.h
-+header-y += ioctl.h
-+header-y += ioctls.h
-+header-y += ipcbuf.h
-+header-y += linkage.h
-+header-y += mman.h
-+header-y += msgbuf.h
-+header-y += poll.h
-+header-y += resource.h
-+header-y += sembuf.h
-+header-y += shmbuf.h
-+header-y += sigcontext.h
-+header-y += siginfo.h
-+header-y += socket.h
-+header-y += sockios.h
-+header-y += statfs.h
-+header-y += stat.h
-+header-y += termbits.h
-+header-y += ucontext.h
++++ b/include/asm-microblaze/semaphore.h
+@@ -0,0 +1 @@
++#include <linux/semaphore.h>
 -- 
 1.5.4.GIT
