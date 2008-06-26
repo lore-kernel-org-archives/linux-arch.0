@@ -1,101 +1,39 @@
 From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH 58/60] microblaze_v4: sys_microblaze.c
-Date: Thu, 26 Jun 2008 21:07:30 +0200
-Message-ID: <4863E8F2.5080608@seznam.cz>
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <1214483429-32360-58-git-send-email-monstr@seznam.cz> <1214483429-32360-59-git-send-email-monstr@seznam.cz> <200806261748.30698.arnd@arndb.de>
+Subject: Re: [PATCH 08/60] microblaze_v4: exception handling
+Date: Thu, 26 Jun 2008 21:19:53 +0200
+Message-ID: <4863EBD9.1010601@seznam.cz>
+References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>	 <1214483429-32360-2-git-send-email-monstr@seznam.cz>	 <1214483429-32360-3-git-send-email-monstr@seznam.cz>	 <1214483429-32360-4-git-send-email-monstr@seznam.cz>	 <1214483429-32360-5-git-send-email-monstr@seznam.cz>	 <1214483429-32360-6-git-send-email-monstr@seznam.cz>	 <1214483429-32360-7-git-send-email-monstr@seznam.cz>	 <1214483429-32360-8-git-send-email-monstr@seznam.cz>	 <1214483429-32360-9-git-send-email-monstr@seznam.cz> <2c0942db0806260935p51564a7et6517b39e9a6706dc@mail.gmail.com>
 Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-2
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mxl.seznam.cz ([77.75.72.44]:38894 "EHLO mxl.seznam.cz"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755221AbYFZTGc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 15:06:32 -0400
-In-Reply-To: <200806261748.30698.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757225AbYFZTT1@vger.kernel.org>
+In-Reply-To: <2c0942db0806260935p51564a7et6517b39e9a6706dc@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ray Lee <ray-lk@madrabbit.org>
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
+List-Id: linux-arch.vger.kernel.org
 
 
->> +
->> +/*
->> + * sys_ipc() is the de-multiplexer for the SysV IPC calls..
->> + *
->> + * This is really horribly ugly.
->> + */
+
+
+> On Thu, Jun 26, 2008 at 5:29 AM,  <monstr@seznam.cz> wrote:
+>> +ex_sw:
+>> +       /* Get the destination register number into r5 */
+>> +       lbui    r5, r0, ex_reg_op;
+>> +       /* Form store_word jump table offset (sw_table + (8 * regnum)) */
+>> +       la      r6, r0, sw_table;
+>> +       add     r5, r5, r5;
+>> +       add     r5, r5, r5;
+>> +       add     r5, r5, r5;
+>> +       add     r5, r5, r6;
+>> +       bra     r5;
 > 
-> If it's so horribly ugly, don't do it this way ;-)
+> Possibly stupid question: This is part of the unaligned store word
+> exception handler, yes? Shouldn't the above add's be addk's to
+> preserve the state of the carry register pre/post store?
 
-:-) this is not my part of code. I'll remove it with syscall changes.
-
->> +int
->> +sys_ipc(uint call, int first, int second, int third, void *ptr, long fifth)
->> +{
->> +	int version, ret;
->> +
->> +	version = call >> 16; /* hack for backward compatibility */
->> +	call &= 0xffff;
-> 
-> Backwards compatibility with what?
-
-I don't know.
-John: I suppose this is your comment.
-
->> +static inline unsigned long
->> +do_mmap2(unsigned long addr, size_t len,
->> +	unsigned long prot, unsigned long flags,
->> +	unsigned long fd, unsigned long pgoff)
->> +{
->> +	struct file *file = NULL;
->> +	int ret = -EBADF;
->> +
->> +	flags &= ~(MAP_EXECUTABLE | MAP_DENYWRITE);
->> +	if (!(flags & MAP_ANONYMOUS))
->> +		if (!(file = fget(fd))) {
->> +			printk(KERN_INFO "no fd in mmap\r\n");
->> +			goto out;
->> +		}
->> +
->> +	down_write(&current->mm->mmap_sem);
->> +	ret = do_mmap_pgoff(file, addr, len, prot, flags, pgoff);
->> +	up_write(&current->mm->mmap_sem);
->> +	if (file)
->> +		fput(file);
->> +out:
->> +	return ret;
->> +}
->> +
->> +unsigned long sys_mmap2(unsigned long addr, size_t len,
->> +			unsigned long prot, unsigned long flags,
->> +			unsigned long fd, unsigned long pgoff)
->> +{
->> +	return do_mmap2(addr, len, prot, flags, fd, pgoff);
->> +}
->> +
->> +unsigned long sys_mmap(unsigned long addr, size_t len,
->> +			unsigned long prot, unsigned long flags,
->> +			unsigned long fd, off_t offset)
->> +{
->> +	int err = -EINVAL;
->> +
->> +	if (offset & ~PAGE_MASK) {
->> +		printk(KERN_INFO "no pagemask in mmap\r\n");
->> +		goto out;
->> +	}
->> +
->> +	err = do_mmap2(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
->> +out:
->> +	return err;
->> +}
-> 
-> Which mmap is uClibc really using? I suppose you only need mmap2, even for
-> compatibility with any binary ever built for microblaze.
-
-I don't know. Microblaze should be compiled with uClibc and glibc. In case you
-need mmap2 for uClibc and mmap for glibc it is ok.
+I don't think that addk is important. I have some tests for exception, I want to
+cover full exception handling.
 
 M
-
-> 	Arnd <><
