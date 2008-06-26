@@ -1,56 +1,60 @@
-From: Peter Korsgaard <jacmet@sunsite.dk>
-Subject: Re: [PATCH 60/60] microblaze_v4: Enable drivers for Microblaze
-Date: Thu, 26 Jun 2008 16:16:39 +0200
-Message-ID: <87d4m4i8mw.fsf@macbook.be.48ers.dk>
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-42-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-43-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-44-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-45-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-46-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-47-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-48-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-49-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-50-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-51-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-52-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-53-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-54-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-55-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-56-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-57-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-58-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-59-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-60-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-61-git-send-email-monstr@seznam.cz>
+From: Adrian Bunk <bunk@kernel.org>
+Subject: Re: [PATCH 02/60] microblaze_v4: Makefiles for Microblaze cpu
+Date: Thu, 26 Jun 2008 17:36:23 +0300
+Message-ID: <20080626143623.GC30954@cs181140183.pp.htv.fi>
+References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <1214483429-32360-2-git-send-email-monstr@seznam.cz> <1214483429-32360-3-git-send-email-monstr@seznam.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gv-out-0910.google.com ([216.239.58.187]:29469 "EHLO
-	gv-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751604AbYFZORZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2008 10:17:25 -0400
-Received: by gv-out-0910.google.com with SMTP id e6so10381gvc.37
-        for <linux-arch@vger.kernel.org>; Thu, 26 Jun 2008 07:17:23 -0700 (PDT)
-In-Reply-To: <1214483429-32360-61-git-send-email-monstr@seznam.cz> (monstr@seznam.cz's message of "Thu\, 26 Jun 2008 14\:30\:29 +0200")
+Received: from smtp6.pp.htv.fi ([213.243.153.40]:46973 "EHLO smtp6.pp.htv.fi"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753015AbYFZOic (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 10:38:32 -0400
+Content-Disposition: inline
+In-Reply-To: <1214483429-32360-3-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: monstr@seznam.cz
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, alan@lxorguk.ukuu.org.uk, Michal Simek <monstr@monstr.eu>, vapier.adi@gmail.com, arnd@arndb.de, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, drepper@redhat.com, linuxppc-dev@ozlabs.org, will.newton@gmail.com, hpa@zytor.com, John.Linn@xilinx.com, john.williams@petalogix.com
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
 
->>>>> "monstr" == monstr  <monstr@seznam.cz> writes:
+On Thu, Jun 26, 2008 at 02:29:31PM +0200, monstr@seznam.cz wrote:
+>...
+> --- /dev/null
+> +++ b/arch/microblaze/Makefile
+>...
+> +# Work out HW multipler support.  This is icky.
+> +# 1. Spartan2 has no HW multiplers.
+> +# 2. MicroBlaze v3.x always uses them, except in Spartan 2
+> +# 3. All other FPGa/CPU ver combos, we can trust the CONFIG_ settings
+> +ifeq (,$(findstring spartan2,$(CONFIG_XILINX_MICROBLAZE0_FAMILY)))
+> +  ifeq ($(CPU_MAJOR),3)
+> +    CPUFLAGS-1 += -mno-xl-soft-mul
+> +  else
+> +    # USE_HW_MUL can be 0, 1, or 2, defining a heirarchy of HW Mul support.
+> +    CPUFLAGS-$(subst 1,,$(CONFIG_XILINX_MICROBLAZE0_USE_HW_MUL)) += -mxl-multiply-high
+> +    CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_HW_MUL) += -mno-xl-soft-mul
+> +  endif
+> +endif
+> +CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_DIV) += -mno-xl-soft-div
+> +CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_BARREL) += -mxl-barrel-shift
+> +CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_PCMP) += -mxl-pattern-compare
+> +
+> +CPUFLAGS-1 += $(call cc-option,-mcpu=v$(CPU_VER))
+> +
+> +# The various CONFIG_XILINX cpu features options are integers 0/1/2...
+> +# rather than bools y/n
+> +CFLAGS += $(CPUFLAGS-1)
+> +CFLAGS += $(CPUFLAGS-2)
+>...
 
- monstr> From: Michal Simek <monstr@monstr.eu>
- monstr> Signed-off-by: Michal Simek <monstr@monstr.eu>
+Why are the options not bools?
 
-Acked-by: Peter Korsgaard <jacmet@sunsite.dk>
-
- monstr>  config SERIAL_UARTLITE
- monstr>  	tristate "Xilinx uartlite serial port support"
- monstr> -	depends on PPC32
- monstr> +	depends on PPC32 || MICROBLAZE
- monstr>  	select SERIAL_CORE
- monstr>  	help
+cu
+Adrian
 
 -- 
-Bye, Peter Korsgaard
+
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
