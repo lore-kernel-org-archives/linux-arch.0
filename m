@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 34/60] microblaze_v4: bug headers files
-Date: Thu, 26 Jun 2008 14:30:03 +0200
-Message-ID: <1214483429-32360-35-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 60/60] microblaze_v4: Enable drivers for Microblaze
+Date: Thu, 26 Jun 2008 14:30:29 +0200
+Message-ID: <1214483429-32360-61-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-2-git-send-email-monstr@seznam.cz>
  <1214483429-32360-3-git-send-email-monstr@seznam.cz>
@@ -36,12 +36,38 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-32-git-send-email-monstr@seznam.cz>
  <1214483429-32360-33-git-send-email-monstr@seznam.cz>
  <1214483429-32360-34-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-35-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-36-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-37-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-38-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-39-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-40-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-41-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-42-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-43-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-44-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-45-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-46-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-47-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-48-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-49-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-50-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-51-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-52-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-53-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-54-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-55-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-56-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-57-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-58-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-59-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-60-git-send-email-monstr@seznam.cz>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:23784 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:23819 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1758882AbYFZMow (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 08:44:52 -0400
-In-Reply-To: <1214483429-32360-34-git-send-email-monstr@seznam.cz>
+	id S1760491AbYFZMpg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 08:45:36 -0400
+In-Reply-To: <1214483429-32360-60-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -52,55 +78,49 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/bug.h  |   15 +++++++++++++++
- include/asm-microblaze/bugs.h |   17 +++++++++++++++++
- 2 files changed, 32 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/bug.h
- create mode 100644 include/asm-microblaze/bugs.h
+ drivers/block/Kconfig  |    2 +-
+ drivers/char/Kconfig   |    2 +-
+ drivers/serial/Kconfig |    2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/include/asm-microblaze/bug.h b/include/asm-microblaze/bug.h
-new file mode 100644
-index 0000000..8eb2cdd
---- /dev/null
-+++ b/include/asm-microblaze/bug.h
-@@ -0,0 +1,15 @@
-+/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_BUG_H
-+#define _ASM_MICROBLAZE_BUG_H
-+
-+#include <linux/kernel.h>
-+#include <asm-generic/bug.h>
-+
-+#endif /* _ASM_MICROBLAZE_BUG_H */
-diff --git a/include/asm-microblaze/bugs.h b/include/asm-microblaze/bugs.h
-new file mode 100644
-index 0000000..f2c6593
---- /dev/null
-+++ b/include/asm-microblaze/bugs.h
-@@ -0,0 +1,17 @@
-+/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_BUGS_H
-+#define _ASM_MICROBLAZE_BUGS_H
-+
-+static inline void check_bugs(void)
-+{
-+	/* nothing to do */
-+}
-+
-+#endif /* _ASM_MICROBLAZE_BUGS_H */
+diff --git a/drivers/block/Kconfig b/drivers/block/Kconfig
+index 0d1d213..a92767c 100644
+--- a/drivers/block/Kconfig
++++ b/drivers/block/Kconfig
+@@ -413,7 +413,7 @@ source "drivers/s390/block/Kconfig"
+ 
+ config XILINX_SYSACE
+ 	tristate "Xilinx SystemACE support"
+-	depends on 4xx
++	depends on 4xx || MICROBLAZE
+ 	help
+ 	  Include support for the Xilinx SystemACE CompactFlash interface
+ 
+diff --git a/drivers/char/Kconfig b/drivers/char/Kconfig
+index 2d854bb..981c57a 100644
+--- a/drivers/char/Kconfig
++++ b/drivers/char/Kconfig
+@@ -879,7 +879,7 @@ config DTLK
+ 
+ config XILINX_HWICAP
+ 	tristate "Xilinx HWICAP Support"
+-	depends on XILINX_VIRTEX
++	depends on XILINX_VIRTEX || MICROBLAZE
+ 	help
+ 	  This option enables support for Xilinx Internal Configuration
+ 	  Access Port (ICAP) driver.  The ICAP is used on Xilinx Virtex
+diff --git a/drivers/serial/Kconfig b/drivers/serial/Kconfig
+index 9bc4276..984ba34 100644
+--- a/drivers/serial/Kconfig
++++ b/drivers/serial/Kconfig
+@@ -776,7 +776,7 @@ config SERIAL_IMX_CONSOLE
+ 
+ config SERIAL_UARTLITE
+ 	tristate "Xilinx uartlite serial port support"
+-	depends on PPC32
++	depends on PPC32 || MICROBLAZE
+ 	select SERIAL_CORE
+ 	help
+ 	  Say Y here if you want to use the Xilinx uartlite serial controller.
 -- 
 1.5.4.GIT
