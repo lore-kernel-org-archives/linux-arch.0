@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 42/60] microblaze_v4: headers pgalloc.h pgtable.h
-Date: Thu, 26 Jun 2008 14:30:11 +0200
-Message-ID: <1214483429-32360-43-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 51/60] microblaze_v4: pool.h socket.h
+Date: Thu, 26 Jun 2008 14:30:20 +0200
+Message-ID: <1214483429-32360-52-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-2-git-send-email-monstr@seznam.cz>
  <1214483429-32360-3-git-send-email-monstr@seznam.cz>
@@ -44,12 +44,21 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-40-git-send-email-monstr@seznam.cz>
  <1214483429-32360-41-git-send-email-monstr@seznam.cz>
  <1214483429-32360-42-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-43-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-44-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-45-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-46-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-47-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-48-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-49-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-50-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-51-git-send-email-monstr@seznam.cz>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22354 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22432 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1759552AbYFZMkx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 08:40:53 -0400
-In-Reply-To: <1214483429-32360-42-git-send-email-monstr@seznam.cz>
+	id S1758034AbYFZMlR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 08:41:17 -0400
+In-Reply-To: <1214483429-32360-51-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -60,18 +69,20 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/pgalloc.h |   14 +++++++++++
- include/asm-microblaze/pgtable.h |   48 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 62 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/pgalloc.h
- create mode 100644 include/asm-microblaze/pgtable.h
+ include/asm-generic/socket.h    |   66 +++++++++++++++++++++++++++++++++++++++
+ include/asm-microblaze/poll.h   |    1 +
+ include/asm-microblaze/socket.h |    1 +
+ 3 files changed, 68 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/socket.h
+ create mode 100644 include/asm-microblaze/poll.h
+ create mode 100644 include/asm-microblaze/socket.h
 
-diff --git a/include/asm-microblaze/pgalloc.h b/include/asm-microblaze/pgalloc.h
+diff --git a/include/asm-generic/socket.h b/include/asm-generic/socket.h
 new file mode 100644
-index 0000000..2a4b354
+index 0000000..3f3430e
 --- /dev/null
-+++ b/include/asm-microblaze/pgalloc.h
-@@ -0,0 +1,14 @@
++++ b/include/asm-generic/socket.h
+@@ -0,0 +1,66 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
@@ -80,65 +91,77 @@ index 0000000..2a4b354
 + * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_PGALLOC_H
-+#define _ASM_MICROBLAZE_PGALLOC_H
++#ifndef _ASM_GENERIC_SOCKET_H
++#define _ASM_GENERIC_SOCKET_H
 +
-+#define check_pgt_cache()	do {} while (0)
++#include <asm/sockios.h>
 +
-+#endif /* _ASM_MICROBLAZE_PGALLOC_H */
-diff --git a/include/asm-microblaze/pgtable.h b/include/asm-microblaze/pgtable.h
++/* For setsockoptions(2) */
++#define SOL_SOCKET	1
++
++#define SO_DEBUG	1
++#define SO_REUSEADDR	2
++#define SO_TYPE		3
++#define SO_ERROR	4
++#define SO_DONTROUTE	5
++#define SO_BROADCAST	6
++#define SO_SNDBUF	7
++#define SO_RCVBUF	8
++#define SO_SNDBUFFORCE	32
++#define SO_RCVBUFFORCE	33
++#define SO_KEEPALIVE	9
++#define SO_OOBINLINE	10
++#define SO_NO_CHECK	11
++#define SO_PRIORITY	12
++#define SO_LINGER	13
++#define SO_BSDCOMPAT	14
++/* To add :#define SO_REUSEPORT 15 */
++#define SO_PASSCRED	16
++#define SO_PEERCRED	17
++#define SO_RCVLOWAT	18
++#define SO_SNDLOWAT	19
++#define SO_RCVTIMEO	20
++#define SO_SNDTIMEO	21
++
++/* Security levels - as per NRL IPv6 - don't actually do anything */
++#define SO_SECURITY_AUTHENTICATION		22
++#define SO_SECURITY_ENCRYPTION_TRANSPORT	23
++#define SO_SECURITY_ENCRYPTION_NETWORK		24
++
++#define SO_BINDTODEVICE	25
++
++/* Socket filtering */
++#define SO_ATTACH_FILTER	26
++#define SO_DETACH_FILTER	27
++
++#define SO_PEERNAME		28
++#define SO_TIMESTAMP		29
++#define SCM_TIMESTAMP		SO_TIMESTAMP
++
++#define SO_ACCEPTCONN		30
++
++#define SO_PEERSEC		31
++#define SO_PASSSEC		34
++
++#define SO_TIMESTAMPNS		35
++#define SCM_TIMESTAMPNS		SO_TIMESTAMPNS
++
++#define SO_MARK			36
++
++#endif /* _ASM_GENERIC_SOCKET_H */
+diff --git a/include/asm-microblaze/poll.h b/include/asm-microblaze/poll.h
 new file mode 100644
-index 0000000..0354908
+index 0000000..c98509d
 --- /dev/null
-+++ b/include/asm-microblaze/pgtable.h
-@@ -0,0 +1,48 @@
-+/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_PGTABLE_H
-+#define _ASM_MICROBLAZE_PGTABLE_H
-+
-+#define pgd_present(pgd)	(1) /* pages are always present on NO_MM */
-+#define pgd_none(pgd)		(0)
-+#define pgd_bad(pgd)		(0)
-+#define pgd_clear(pgdp)
-+#define kern_addr_valid(addr)	(1)
-+#define	pmd_offset(a, b)	((void *) 0)
-+
-+#define PAGE_NONE		__pgprot(0) /* these mean nothing to NO_MM */
-+#define PAGE_SHARED		__pgprot(0) /* these mean nothing to NO_MM */
-+#define PAGE_COPY		__pgprot(0) /* these mean nothing to NO_MM */
-+#define PAGE_READONLY		__pgprot(0) /* these mean nothing to NO_MM */
-+#define PAGE_KERNEL		__pgprot(0) /* these mean nothing to NO_MM */
-+
-+#define __swp_type(x)		(0)
-+#define __swp_offset(x)		(0)
-+#define __swp_entry(typ, off)	((swp_entry_t) { ((typ) | ((off) << 7)) })
-+#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
-+#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
-+
-+#ifndef __ASSEMBLY__
-+static inline int pte_file(pte_t pte) { return 0; }
-+#endif
-+
-+#define ZERO_PAGE(vaddr)	({ BUG(); NULL; })
-+
-+#define swapper_pg_dir ((pgd_t *) NULL)
-+
-+#define pgtable_cache_init()	do {} while (0)
-+
-+#define io_remap_pfn_range(vma, vaddr, pfn, size, prot)		\
-+		remap_pfn_range(vma, vaddr, pfn, size, prot)
-+
-+#define arch_enter_lazy_cpu_mode()	do {} while (0)
-+
-+void paging_init(void);
-+
-+#endif /* _ASM_MICROBLAZE_PGTABLE_H */
++++ b/include/asm-microblaze/poll.h
+@@ -0,0 +1 @@
++#include <asm-generic/poll.h>
+diff --git a/include/asm-microblaze/socket.h b/include/asm-microblaze/socket.h
+new file mode 100644
+index 0000000..6b71384
+--- /dev/null
++++ b/include/asm-microblaze/socket.h
+@@ -0,0 +1 @@
++#include <asm-generic/socket.h>
 -- 
 1.5.4.GIT
