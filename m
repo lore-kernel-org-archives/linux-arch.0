@@ -1,110 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mxl.seznam.cz ([77.75.72.44]:38073 "EHLO mxl.seznam.cz"
+Received: from mxl.seznam.cz ([77.75.72.44]:40463 "EHLO mxl.seznam.cz"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752186AbYFZS4v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 14:56:51 -0400
-Message-ID: <4863E68C.30802@seznam.cz>
-Date: Thu, 26 Jun 2008 20:57:16 +0200
+	id S1755101AbYFZTBp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 15:01:45 -0400
+Message-ID: <4863E370.9020205@seznam.cz>
+Date: Thu, 26 Jun 2008 20:44:00 +0200
 From: Michal Simek <monstr@seznam.cz>
 Reply-To: monstr@seznam.cz
 MIME-Version: 1.0
-Subject: Re: [PATCH 12/60] microblaze_v4: Generic dts file for platforms
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>	<1214483429-32360-2-git-send-email-monstr@seznam.cz>	<1214483429-32360-3-git-send-email-monstr@seznam.cz>	<1214483429-32360-4-git-send-email-monstr@seznam.cz>	<1214483429-32360-5-git-send-email-monstr@seznam.cz>	<1214483429-32360-6-git-send-email-monstr@seznam.cz>	<1214483429-32360-7-git-send-email-monstr@seznam.cz>	<1214483429-32360-8-git-send-email-monstr@seznam.cz>	<1214483429-32360-9-git-send-email-monstr@seznam.cz>	<1214483429-32360-10-git-send-email-monstr@seznam.cz>	<1214483429-32360-11-git-send-email-monstr@seznam.cz>	<1214483429-32360-12-git-send-email-monstr@seznam.cz>	<1214483429-32360-13-git-send-email-monstr@seznam.cz> <4863B096.7020309@freescale.com>
-In-Reply-To: <4863B096.7020309@freescale.com>
+Subject: Re: [PATCH 46/60] microblaze_v4: termbits.h termios.h
+References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>	<1214483429-32360-32-git-send-email-monstr@seznam.cz>	<1214483429-32360-33-git-send-email-monstr@seznam.cz>	<1214483429-32360-34-git-send-email-monstr@seznam.cz>	<1214483429-32360-35-git-send-email-monstr@seznam.cz>	<1214483429-32360-36-git-send-email-monstr@seznam.cz>	<1214483429-32360-37-git-send-email-monstr@seznam.cz>	<1214483429-32360-38-git-send-email-monstr@seznam.cz>	<1214483429-32360-39-git-send-email-monstr@seznam.cz>	<1214483429-32360-40-git-send-email-monstr@seznam.cz>	<1214483429-32360-41-git-send-email-monstr@seznam.cz>	<1214483429-32360-42-git-send-email-monstr@seznam.cz>	<1214483429-32360-43-git-send-email-monstr@seznam.cz>	<1214483429-32360-44-git-send-email-monstr@seznam.cz>	<1214483429-32360-45-git-send-email-monstr@seznam.cz>	<1214483429-32360-46-git-send-email-monstr@seznam.cz>	<1214483429-32360-47-git-send-email-monstr@seznam.cz> <20080626141837.0f8f439d@lxorguk.ukuu.org.uk>
+In-Reply-To: <20080626141837.0f8f439d@lxorguk.ukuu.org.uk>
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jon Loeliger <jdl@freescale.com>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, vapier.adi@gmail.com, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, John.Linn@xilinx.com, linuxppc-dev@ozlabs.org, will.newton@gmail.com, john.williams@petalogix.com, hpa@zytor.com, drepper@redhat.com, alan@lxorguk.ukuu.org.uk
-Message-ID: <20080626185716.Szo880euevKFu6FWCww2DeOshxHGa250ewBXqixwBZ0@z>
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, vapier.adi@gmail.com, arnd@arndb.de, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, drepper@redhat.com, linuxppc-dev@ozlabs.org, will.newton@gmail.com, hpa@zytor.com, John.Linn@xilinx.com, john.williams@petalogix.com
+Message-ID: <20080626184400.ummnTUZuTKfbf9nz3SnmZbP2NMCNU8w4mNgYHSUgwIM@z>
 
-OK. We have to change fdt generator with Steve.
-
-Steve: can you look at it?
+OK.I'll fix it.
 
 M
 
-
-> monstr@seznam.cz wrote:
->> From: Michal Simek <monstr@monstr.eu>
->>
->>
->> Signed-off-by: Michal Simek <monstr@monstr.eu>
->> ---
->>  arch/microblaze/platform/generic/system.dts |  300
->> +++++++++++++++++++++++++++
->>  1 files changed, 300 insertions(+), 0 deletions(-)
->>  create mode 100644 arch/microblaze/platform/generic/system.dts
->>
->> diff --git a/arch/microblaze/platform/generic/system.dts
->> b/arch/microblaze/platform/generic/system.dts
->> new file mode 100644
->> index 0000000..724a037
->> --- /dev/null
->> +++ b/arch/microblaze/platform/generic/system.dts
->> @@ -0,0 +1,300 @@
->> +/*
->> + * (C) Copyright 2007-2008 Xilinx, Inc.
->> + * (C) Copyright 2007-2008 Michal Simek
->> + *
->> + * Michal SIMEK <monstr@monstr.eu>
->> + *
->> + * This program is free software; you can redistribute it and/or
->> + * modify it under the terms of the GNU General Public License as
->> + * published by the Free Software Foundation; either version 2 of
->> + * the License, or (at your option) any later version.
->> + *
->> + * This program is distributed in the hope that it will be useful,
->> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
->> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
->> + * GNU General Public License for more details.
->> + *
->> + * You should have received a copy of the GNU General Public License
->> + * along with this program; if not, write to the Free Software
->> + * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
->> + * MA 02111-1307 USA
->> + *
->> + * CAUTION: This file is automatically generated by libgen.
->> + * Version: Xilinx EDK 9.2.02 EDK_Jm_SP2.3
->> + * Generate by FDT v1.00.a
->> + */
+>> +++ b/include/asm-generic/termbits.h
+>> @@ -0,0 +1,200 @@
+> 
+>> +/* c_cflag bit meaning */
 >> +
->> +/ {
->> +    #address-cells = <1>;
->> +    #size-cells = <1>;
->> +    compatible = "xlnx,microblaze";
->> +    model = "testing";
->> +    DDR_SDRAM_32Mx16: memory@20000000 {
->> +        device_type = "memory";
->> +        reg = < 20000000 2000000 >;
->> +    } ;
->> +    chosen {
->> +        bootargs = "console=ttyUL0,115200 loglevel=15";
->> +        linux,stdout-path = "/plb@0/serial@40100000";
->> +    } ;
->> +    cpus {
->> +        #address-cells = <1>;
->> +        #cpus = <1>;
->> +        #size-cells = <0>;
->> +        microblaze_0: cpu@0 {
->> +            clock-frequency = <2faf080>;
+>> +#define CBAUD	0010017
+>> +#define B0	0000000 /* hang up */
 > 
-> 
-> This should really be using the /dts-v1/ format now.
-> 
-> Thanks,
-> jdl
+> You need BOTHER in here as well - especially if it is going to be generic.
 > 
 > _______________________________________________
 > Linuxppc-dev mailing list
 > Linuxppc-dev@ozlabs.org
 > https://ozlabs.org/mailman/listinfo/linuxppc-dev
 > 
-> 
-> ------------------------------------------------------------------------
-> 
-> 
-> No virus found in this incoming message.
-> Checked by AVG. 
-> Version: 8.0.101 / Virus Database: 270.4.1/1519 - Release Date: 25.6.2008 04:13
+
