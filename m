@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 35/60] microblaze_v4: definitions of types
-Date: Thu, 26 Jun 2008 14:30:04 +0200
-Message-ID: <1214483429-32360-36-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 55/60] microblaze_v4: pci headers
+Date: Thu, 26 Jun 2008 14:30:24 +0200
+Message-ID: <1214483429-32360-56-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-2-git-send-email-monstr@seznam.cz>
  <1214483429-32360-3-git-send-email-monstr@seznam.cz>
@@ -37,12 +37,32 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-33-git-send-email-monstr@seznam.cz>
  <1214483429-32360-34-git-send-email-monstr@seznam.cz>
  <1214483429-32360-35-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-36-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-37-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-38-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-39-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-40-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-41-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-42-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-43-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-44-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-45-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-46-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-47-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-48-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-49-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-50-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-51-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-52-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-53-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-54-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-55-git-send-email-monstr@seznam.cz>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:20891 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22502 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1758644AbYFZMhf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 08:37:35 -0400
-In-Reply-To: <1214483429-32360-35-git-send-email-monstr@seznam.cz>
+	id S1759607AbYFZMlO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 08:41:14 -0400
+In-Reply-To: <1214483429-32360-55-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -53,154 +73,25 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/posix_types.h |   69 ++++++++++++++++++++++++++++++++++
- include/asm-microblaze/types.h       |   62 ++++++++++++++++++++++++++++++
- 2 files changed, 131 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/posix_types.h
- create mode 100644 include/asm-microblaze/types.h
+ include/asm-microblaze/pci-bridge.h |    1 +
+ include/asm-microblaze/pci.h        |    1 +
+ 2 files changed, 2 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/pci-bridge.h
+ create mode 100644 include/asm-microblaze/pci.h
 
-diff --git a/include/asm-microblaze/posix_types.h b/include/asm-microblaze/posix_types.h
+diff --git a/include/asm-microblaze/pci-bridge.h b/include/asm-microblaze/pci-bridge.h
 new file mode 100644
-index 0000000..4e6412d
+index 0000000..7ad28f6
 --- /dev/null
-+++ b/include/asm-microblaze/posix_types.h
-@@ -0,0 +1,69 @@
-+/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_POSIX_TYPES_H
-+#define _ASM_MICROBLAZE_POSIX_TYPES_H
-+
-+/*
-+ * This file is generally used by user-level software, so you need to
-+ * be a little careful about namespace pollution etc. Also, we cannot
-+ * assume GCC is being used.
-+ */
-+
-+typedef unsigned long	__kernel_ino_t;
-+typedef unsigned int	__kernel_mode_t;
-+typedef unsigned int	__kernel_nlink_t;
-+typedef long		__kernel_off_t;
-+typedef int		__kernel_pid_t;
-+typedef unsigned int	__kernel_ipc_pid_t;
-+typedef unsigned int	__kernel_uid_t;
-+typedef unsigned int	__kernel_gid_t;
-+typedef unsigned int	__kernel_size_t;
-+typedef int		__kernel_ssize_t;
-+typedef int		__kernel_ptrdiff_t;
-+typedef long		__kernel_time_t;
-+typedef long		__kernel_suseconds_t;
-+typedef long		__kernel_clock_t;
-+typedef int		__kernel_timer_t;
-+typedef int		__kernel_clockid_t;
-+typedef int		__kernel_daddr_t;
-+typedef char *		__kernel_caddr_t;
-+typedef unsigned short	__kernel_uid16_t;
-+typedef unsigned short	__kernel_gid16_t;
-+typedef unsigned int	__kernel_uid32_t;
-+typedef unsigned int	__kernel_gid32_t;
-+
-+#ifdef __GNUC__
-+typedef long long	__kernel_loff_t;
-+#endif
-+
-+typedef struct {
-+#if defined(__KERNEL__) || defined(__USE_ALL)
-+	int	val[2];
-+#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
-+	int	__val[2];
-+#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
-+} __kernel_fsid_t;
-+
-+#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
-+
-+#undef	__FD_SET
-+#define	__FD_SET(d, set)	((set)->fds_bits[__FDELT(d)] |= __FDMASK(d))
-+
-+#undef	__FD_CLR
-+#define	__FD_CLR(d, set)	((set)->fds_bits[__FDELT(d)] &= ~__FDMASK(d))
-+
-+#undef	__FD_ISSET
-+#define	__FD_ISSET(d, set)	(!!((set)->fds_bits[__FDELT(d)] & __FDMASK(d)))
-+
-+#undef	__FD_ZERO
-+#define __FD_ZERO(fdsetp) (memset (fdsetp, 0, sizeof(*(fd_set *)fdsetp)))
-+
-+#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
-+
-+#endif /* _ASM_MICROBLAZE_POSIX_TYPES_H */
-diff --git a/include/asm-microblaze/types.h b/include/asm-microblaze/types.h
++++ b/include/asm-microblaze/pci-bridge.h
+@@ -0,0 +1 @@
++#include <linux/pci.h>
+diff --git a/include/asm-microblaze/pci.h b/include/asm-microblaze/pci.h
 new file mode 100644
-index 0000000..449ab8d
+index 0000000..469e80e
 --- /dev/null
-+++ b/include/asm-microblaze/types.h
-@@ -0,0 +1,62 @@
-+/*
-+ * Copyright (C) Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_TYPES_H
-+#define _ASM_MICROBLAZE_TYPES_H
-+
-+#ifndef __ASSEMBLY__
-+
-+typedef unsigned short umode_t;
-+
-+/*
-+ * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
-+ * header files exported to user space
-+ */
-+
-+typedef __signed__ char __s8;
-+typedef unsigned char __u8;
-+
-+typedef __signed__ short __s16;
-+typedef unsigned short __u16;
-+
-+typedef __signed__ int __s32;
-+typedef unsigned int __u32;
-+
-+#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-+typedef __signed__ long long __s64;
-+typedef unsigned long long __u64;
-+#endif
-+
-+/*
-+ * These aren't exported outside the kernel to avoid name space clashes
-+ */
-+#ifdef __KERNEL__
-+
-+typedef __signed__ char s8;
-+typedef unsigned char u8;
-+
-+typedef __signed__ short s16;
-+typedef unsigned short u16;
-+
-+typedef __signed__ int s32;
-+typedef unsigned int u32;
-+
-+typedef __signed__ long long s64;
-+typedef unsigned long long u64;
-+
-+
-+#define BITS_PER_LONG 32
-+
-+/* Dma addresses are 32-bits wide. */
-+
-+typedef u32 dma_addr_t;
-+
-+#endif/* __KERNEL__ */
-+#endif
-+
-+#endif /* _ASM_MICROBLAZE_TYPES_H */
++++ b/include/asm-microblaze/pci.h
+@@ -0,0 +1 @@
++#include <asm/io.h>
 -- 
 1.5.4.GIT
