@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 48/60] microblaze_v4: headers simple files - empty or redirect to asm-generic
-Date: Thu, 26 Jun 2008 14:30:17 +0200
-Message-ID: <1214483429-32360-49-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 50/60] microblaze_v4: device.h param.h topology.h
+Date: Thu, 26 Jun 2008 14:30:19 +0200
+Message-ID: <1214483429-32360-51-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-2-git-send-email-monstr@seznam.cz>
  <1214483429-32360-3-git-send-email-monstr@seznam.cz>
@@ -50,12 +50,14 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-46-git-send-email-monstr@seznam.cz>
  <1214483429-32360-47-git-send-email-monstr@seznam.cz>
  <1214483429-32360-48-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-49-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-50-git-send-email-monstr@seznam.cz>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22719 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:23243 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1759684AbYFZMmG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 08:42:06 -0400
-In-Reply-To: <1214483429-32360-48-git-send-email-monstr@seznam.cz>
+	id S1759969AbYFZMm7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 08:42:59 -0400
+In-Reply-To: <1214483429-32360-50-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -66,135 +68,94 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/cputime.h           |    1 +
- include/asm-microblaze/div64.h             |    1 +
- include/asm-microblaze/emergency-restart.h |    1 +
- include/asm-microblaze/errno.h             |    1 +
- include/asm-microblaze/futex.h             |    1 +
- include/asm-microblaze/kdebug.h            |    1 +
- include/asm-microblaze/local.h             |    1 +
- include/asm-microblaze/mutex.h             |    1 +
- include/asm-microblaze/namei.h             |   22 ++++++++++++++++++++++
- include/asm-microblaze/percpu.h            |    1 +
- include/asm-microblaze/resource.h          |    1 +
- 11 files changed, 32 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/auxvec.h
- create mode 100644 include/asm-microblaze/cputime.h
- create mode 100644 include/asm-microblaze/div64.h
- create mode 100644 include/asm-microblaze/emergency-restart.h
- create mode 100644 include/asm-microblaze/errno.h
- create mode 100644 include/asm-microblaze/futex.h
- create mode 100644 include/asm-microblaze/kdebug.h
- create mode 100644 include/asm-microblaze/local.h
- create mode 100644 include/asm-microblaze/mutex.h
- create mode 100644 include/asm-microblaze/namei.h
- create mode 100644 include/asm-microblaze/percpu.h
- create mode 100644 include/asm-microblaze/resource.h
- create mode 100644 include/asm-microblaze/user.h
+ include/asm-generic/param.h       |   32 ++++++++++++++++++++++++++++++++
+ include/asm-microblaze/device.h   |   21 +++++++++++++++++++++
+ include/asm-microblaze/param.h    |    1 +
+ include/asm-microblaze/topology.h |    1 +
+ 4 files changed, 55 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/param.h
+ create mode 100644 include/asm-microblaze/device.h
+ create mode 100644 include/asm-microblaze/param.h
+ create mode 100644 include/asm-microblaze/topology.h
 
-diff --git a/include/asm-microblaze/auxvec.h b/include/asm-microblaze/auxvec.h
+diff --git a/include/asm-generic/param.h b/include/asm-generic/param.h
 new file mode 100644
-index 0000000..e69de29
-diff --git a/include/asm-microblaze/cputime.h b/include/asm-microblaze/cputime.h
-new file mode 100644
-index 0000000..6d68ad7
+index 0000000..b2ed486
 --- /dev/null
-+++ b/include/asm-microblaze/cputime.h
-@@ -0,0 +1 @@
-+#include <asm-generic/cputime.h>
-diff --git a/include/asm-microblaze/div64.h b/include/asm-microblaze/div64.h
-new file mode 100644
-index 0000000..6cd978c
---- /dev/null
-+++ b/include/asm-microblaze/div64.h
-@@ -0,0 +1 @@
-+#include <asm-generic/div64.h>
-diff --git a/include/asm-microblaze/emergency-restart.h b/include/asm-microblaze/emergency-restart.h
-new file mode 100644
-index 0000000..3711bd9
---- /dev/null
-+++ b/include/asm-microblaze/emergency-restart.h
-@@ -0,0 +1 @@
-+#include <asm-generic/emergency-restart.h>
-diff --git a/include/asm-microblaze/errno.h b/include/asm-microblaze/errno.h
-new file mode 100644
-index 0000000..4c82b50
---- /dev/null
-+++ b/include/asm-microblaze/errno.h
-@@ -0,0 +1 @@
-+#include <asm-generic/errno.h>
-diff --git a/include/asm-microblaze/futex.h b/include/asm-microblaze/futex.h
-new file mode 100644
-index 0000000..0b74582
---- /dev/null
-+++ b/include/asm-microblaze/futex.h
-@@ -0,0 +1 @@
-+#include <asm-generic/futex.h>
-diff --git a/include/asm-microblaze/kdebug.h b/include/asm-microblaze/kdebug.h
-new file mode 100644
-index 0000000..6ece1b0
---- /dev/null
-+++ b/include/asm-microblaze/kdebug.h
-@@ -0,0 +1 @@
-+#include <asm-generic/kdebug.h>
-diff --git a/include/asm-microblaze/local.h b/include/asm-microblaze/local.h
-new file mode 100644
-index 0000000..c11c530
---- /dev/null
-+++ b/include/asm-microblaze/local.h
-@@ -0,0 +1 @@
-+#include <asm-generic/local.h>
-diff --git a/include/asm-microblaze/mutex.h b/include/asm-microblaze/mutex.h
-new file mode 100644
-index 0000000..ff6101a
---- /dev/null
-+++ b/include/asm-microblaze/mutex.h
-@@ -0,0 +1 @@
-+#include <asm-generic/mutex-dec.h>
-diff --git a/include/asm-microblaze/namei.h b/include/asm-microblaze/namei.h
-new file mode 100644
-index 0000000..61d60b8
---- /dev/null
-+++ b/include/asm-microblaze/namei.h
-@@ -0,0 +1,22 @@
++++ b/include/asm-generic/param.h
+@@ -0,0 +1,32 @@
 +/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
++ * include/asm-generic/param.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
 + * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_NAMEI_H
-+#define _ASM_MICROBLAZE_NAMEI_H
++#ifndef _ASM_GENERIC_PARAM_H
++#define _ASM_GENERIC_PARAM_H
 +
 +#ifdef __KERNEL__
-+
-+/* This dummy routine maybe changed to something useful
-+ * for /usr/gnemul/ emulation stuff.
-+ * Look at asm-sparc/namei.h for details.
-+ */
-+#define __emul_prefix() NULL
-+
++#define HZ		CONFIG_HZ	/* internal kernel timer frequency */
++#define USER_HZ		100		/* for user interfaces in "ticks" */
++#define CLOCKS_PER_SEC	(USER_HZ)	/* frequency at which times() counts */
 +#endif /* __KERNEL__ */
 +
-+#endif /* _ASM_MICROBLAZE_NAMEI_H */
-diff --git a/include/asm-microblaze/percpu.h b/include/asm-microblaze/percpu.h
++#ifndef HZ
++#define HZ 100
++#endif
++
++#define EXEC_PAGESIZE	4096
++
++#ifndef NOGROUP
++#define NOGROUP		(-1)
++#endif
++
++#define MAXHOSTNAMELEN	64	/* max length of hostname */
++
++#endif /* _ASM_GENERIC_PARAM_H */
+diff --git a/include/asm-microblaze/device.h b/include/asm-microblaze/device.h
 new file mode 100644
-index 0000000..06a959d
+index 0000000..c042830
 --- /dev/null
-+++ b/include/asm-microblaze/percpu.h
-@@ -0,0 +1 @@
-+#include <asm-generic/percpu.h>
-diff --git a/include/asm-microblaze/resource.h b/include/asm-microblaze/resource.h
++++ b/include/asm-microblaze/device.h
+@@ -0,0 +1,21 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_MICROBLAZE_DEVICE_H
++#define _ASM_MICROBLAZE_DEVICE_H
++
++struct device_node;
++
++struct dev_archdata {
++	/* Optional pointer to an OF device node */
++	struct device_node	*of_node;
++};
++
++#endif /* _ASM_MICROBLAZE_DEVICE_H */
++
++
+diff --git a/include/asm-microblaze/param.h b/include/asm-microblaze/param.h
 new file mode 100644
-index 0000000..04bc4db
+index 0000000..965d454
 --- /dev/null
-+++ b/include/asm-microblaze/resource.h
++++ b/include/asm-microblaze/param.h
 @@ -0,0 +1 @@
-+#include <asm-generic/resource.h>
-diff --git a/include/asm-microblaze/user.h b/include/asm-microblaze/user.h
++#include <asm-generic/param.h>
+diff --git a/include/asm-microblaze/topology.h b/include/asm-microblaze/topology.h
 new file mode 100644
-index 0000000..e69de29
+index 0000000..5428f33
+--- /dev/null
++++ b/include/asm-microblaze/topology.h
+@@ -0,0 +1 @@
++#include <asm-generic/topology.h>
 -- 
 1.5.4.GIT
