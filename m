@@ -1,18 +1,33 @@
 From: monstr@seznam.cz
-Subject: [PATCH 05/60] microblaze_v4: Open firmware files2
-Date: Thu, 26 Jun 2008 14:29:34 +0200
-Message-ID: <1214483429-32360-6-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 20/60] microblaze_v4: early_printk support
+Date: Thu, 26 Jun 2008 14:29:49 +0200
+Message-ID: <1214483429-32360-21-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-2-git-send-email-monstr@seznam.cz>
  <1214483429-32360-3-git-send-email-monstr@seznam.cz>
  <1214483429-32360-4-git-send-email-monstr@seznam.cz>
  <1214483429-32360-5-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-6-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-7-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-8-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-9-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-10-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-11-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-12-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-13-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-14-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-15-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-16-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-17-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-18-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-19-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-20-git-send-email-monstr@seznam.cz>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:23993 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:24042 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754116AbYFZNPb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 09:15:31 -0400
-In-Reply-To: <1214483429-32360-5-git-send-email-monstr@seznam.cz>
+	id S1752195AbYFZNUm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 09:20:42 -0400
+In-Reply-To: <1214483429-32360-20-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -23,96 +38,145 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/kernel/of_device.c  |   42 +++++++++++++++++++++++++++++++++++
- arch/microblaze/platform/platform.c |   31 +++++++++++++++++++++++++
- 2 files changed, 73 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/kernel/of_device.c
- create mode 100644 arch/microblaze/platform/platform.c
+ arch/microblaze/kernel/early_printk.c |  130 +++++++++++++++++++++++++++++++++
+ 1 files changed, 130 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/kernel/early_printk.c
 
-diff --git a/arch/microblaze/kernel/of_device.c b/arch/microblaze/kernel/of_device.c
+diff --git a/arch/microblaze/kernel/early_printk.c b/arch/microblaze/kernel/early_printk.c
 new file mode 100644
-index 0000000..984d066
+index 0000000..6da0fd9
 --- /dev/null
-+++ b/arch/microblaze/kernel/of_device.c
-@@ -0,0 +1,42 @@
-+#include <linux/string.h>
-+#include <linux/kernel.h>
-+#include <linux/of.h>
-+#include <linux/init.h>
-+#include <linux/module.h>
-+#include <linux/mod_devicetable.h>
-+#include <linux/slab.h>
-+#include <linux/of_device.h>
-+
-+#include <asm/errno.h>
-+
-+void of_device_make_bus_id(struct of_device *dev)
-+{
-+	static atomic_t bus_no_reg_magic;
-+	struct device_node *node = dev->node;
-+	char *name = dev->dev.bus_id;
-+	const u32 *reg;
-+	u64 addr;
-+	int magic;
-+
-+	/*
-+	 * For MMIO, get the physical address
-+	 */
-+	reg = of_get_property(node, "reg", NULL);
-+	if (reg) {
-+		addr = of_translate_address(node, reg);
-+		if (addr != OF_BAD_ADDR) {
-+			snprintf(name, BUS_ID_SIZE,
-+				 "%llx.%s", (unsigned long long)addr,
-+				 node->name);
-+			return;
-+		}
-+	}
-+
-+	/*
-+	 * No BusID, use the node name and add a globally incremented
-+	 * counter (and pray...)
-+	 */
-+	magic = atomic_add_return(1, &bus_no_reg_magic);
-+	snprintf(name, BUS_ID_SIZE, "%s.%d", node->name, magic - 1);
-+}
-+EXPORT_SYMBOL(of_device_make_bus_id);
-diff --git a/arch/microblaze/platform/platform.c b/arch/microblaze/platform/platform.c
-new file mode 100644
-index 0000000..fa0edaf
---- /dev/null
-+++ b/arch/microblaze/platform/platform.c
-@@ -0,0 +1,31 @@
++++ b/arch/microblaze/kernel/early_printk.c
+@@ -0,0 +1,130 @@
 +/*
-+ * Copyright 2008 Michal Simek <monstr@monstr.eu>
++ * Early printk support for Microblaze.
 + *
-+ * based on virtex.c file
++ * Copyright (C) 2007-2008 Michal Simek <monstr@monstr.eu>
++ * Copyright (C) 2003-2006 Yasushi SHOJI <yashi@atmark-techno.com>
 + *
-+ * Copyright 2007 Secret Lab Technologies Ltd.
-+ *
-+ * This file is licensed under the terms of the GNU General Public License
-+ * version 2. This program is licensed "as is" without any warranty of any
-+ * kind, whether express or implied.
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
 +
-+#include <linux/init.h>
-+#include <linux/of_platform.h>
-+#include <asm/prom.h>
++/* FIXME Once we got some system without uart light, we need to refactor */
 +
-+static struct of_device_id xilinx_of_bus_ids[] __initdata = {
-+	{ .compatible = "simple-bus", },
-+	{ .compatible = "xlnx,plb-v46-1.00.a", },
-+	{ .compatible = "xlnx,opb-v20-1.10.c", },
-+	{ .compatible = "xlnx,opb-v20-1.10.b", },
-+	{ .compatible = "xlnx,compound", },
-+	{}
++#include <linux/console.h>
++#include <linux/kernel.h>
++#include <linux/init.h>
++#include <linux/string.h>
++#include <linux/tty.h>
++#include <asm/io.h>
++#include <asm/processor.h>
++#include <asm/fcntl.h>
++#include <asm/setup.h>
++
++#ifdef CONFIG_EARLY_PRINTK
++#define BASE_ADDR ((unsigned char *)CONFIG_EARLY_PRINTK_UARTLITE_ADDRESS)
++
++#define RX_FIFO	BASE_ADDR
++#define TX_FIFO	((unsigned long *)(BASE_ADDR + 4))
++#define STATUS	((unsigned long *)(BASE_ADDR + 8))
++#define CONTROL	((unsigned long *)(BASE_ADDR + 12))
++
++static void early_printk_putc(char c)
++{
++	/*
++	 * Limit how many times we'll spin waiting for TX FIFO status.
++	 * This will prevent lockups if the base address is incorrectly
++	 * set, or any other issue on the UARTLITE.
++	 * This limit is pretty arbitrary, unless we are at about 10 baud
++	 * we'll never timeout on a working UART.
++	 */
++
++	unsigned retries = 10000;
++	while (retries-- && (ioread32(STATUS) & (1<<3)))
++		;
++
++	/* Only attempt the iowrite if we didn't timeout */
++	if (retries)
++		iowrite32((c & 0xff), TX_FIFO);
++}
++
++static void early_printk_write(struct console *unused,
++					const char *s, unsigned n)
++{
++	while (*s && n-- > 0) {
++		early_printk_putc(*s);
++		if (*s == '\n')
++			early_printk_putc('\r');
++		s++;
++	}
++}
++
++static struct console early_serial_console = {
++	.name = "earlyser",
++	.write = early_printk_write,
++	.flags = CON_PRINTBUFFER,
++	.index = -1,
 +};
 +
-+int __init microblaze_device_probe(void)
++/* Direct interface for emergencies */
++static struct console *early_console = &early_serial_console;
++static int early_console_initialized;
++
++void early_printk(const char *fmt, ...)
 +{
-+	of_platform_bus_probe(NULL, xilinx_of_bus_ids, NULL);
++	char buf[512];
++	int n;
++	va_list ap;
++
++	if (early_console_initialized) {
++		va_start(ap, fmt);
++		n = vscnprintf(buf, 512, fmt, ap);
++		early_console->write(early_console, buf, n);
++		va_end(ap);
++	}
++}
++
++static int __initdata keep_early;
++
++int __init setup_early_printk(char *opt)
++{
++	char *space;
++	char buf[256];
++
++	if (early_console_initialized)
++		return 1;
++
++	strlcpy(buf, opt, sizeof(buf));
++	space = strchr(buf, ' ');
++	if (space)
++		*space = 0;
++
++	if (strstr(buf, "keep"))
++		keep_early = 1;
++
++	early_console = &early_serial_console;
++	early_console_initialized = 1;
++	register_console(early_console);
 +	return 0;
 +}
-+device_initcall(microblaze_device_probe);
++#if 0
++static void __init disable_early_printk(void)
++{
++	if (!early_console_initialized || !early_console)
++		return;
++	if (!keep_early) {
++		printk(KERN_INFO "disabling early console\n");
++		unregister_console(early_console);
++		early_console_initialized = 0;
++	} else
++		printk(KERN_INFO "keeping early console\n");
++}
++#endif
++
++__setup("earlyprintk=", setup_early_printk);
++
++#else
++void early_printk(const char *fmt, ...)
++{
++}
++#endif
 -- 
 1.5.4.GIT
