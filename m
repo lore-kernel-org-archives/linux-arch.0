@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 33/60] microblaze_v4: includes SHM*, msgbuf
-Date: Thu, 26 Jun 2008 14:30:02 +0200
-Message-ID: <1214483429-32360-34-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 52/60] microblaze_v4: fcntl.h sockios.h ucontext.h
+Date: Thu, 26 Jun 2008 14:30:21 +0200
+Message-ID: <1214483429-32360-53-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-2-git-send-email-monstr@seznam.cz>
  <1214483429-32360-3-git-send-email-monstr@seznam.cz>
@@ -35,12 +35,31 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-31-git-send-email-monstr@seznam.cz>
  <1214483429-32360-32-git-send-email-monstr@seznam.cz>
  <1214483429-32360-33-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-34-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-35-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-36-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-37-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-38-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-39-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-40-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-41-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-42-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-43-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-44-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-45-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-46-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-47-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-48-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-49-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-50-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-51-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-52-git-send-email-monstr@seznam.cz>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22595 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22403 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1758047AbYFZMlT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 08:41:19 -0400
-In-Reply-To: <1214483429-32360-33-git-send-email-monstr@seznam.cz>
+	id S1759584AbYFZMk6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 08:40:58 -0400
+In-Reply-To: <1214483429-32360-52-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -51,20 +70,24 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/msgbuf.h   |   39 ++++++++++++++++++++++++++++
- include/asm-microblaze/shmbuf.h   |   50 +++++++++++++++++++++++++++++++++++++
- include/asm-microblaze/shmparam.h |   14 ++++++++++
- 3 files changed, 103 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/msgbuf.h
- create mode 100644 include/asm-microblaze/shmbuf.h
- create mode 100644 include/asm-microblaze/shmparam.h
+ include/asm-generic/sockios.h     |   23 +++++++++++++++++++++++
+ include/asm-generic/ucontext.h    |   24 ++++++++++++++++++++++++
+ include/asm-microblaze/fcntl.h    |    1 +
+ include/asm-microblaze/sockios.h  |   23 +++++++++++++++++++++++
+ include/asm-microblaze/ucontext.h |    1 +
+ 5 files changed, 72 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/sockios.h
+ create mode 100644 include/asm-generic/ucontext.h
+ create mode 100644 include/asm-microblaze/fcntl.h
+ create mode 100644 include/asm-microblaze/sockios.h
+ create mode 100644 include/asm-microblaze/ucontext.h
 
-diff --git a/include/asm-microblaze/msgbuf.h b/include/asm-microblaze/msgbuf.h
+diff --git a/include/asm-generic/sockios.h b/include/asm-generic/sockios.h
 new file mode 100644
-index 0000000..8172bc9
+index 0000000..9dc86e6
 --- /dev/null
-+++ b/include/asm-microblaze/msgbuf.h
-@@ -0,0 +1,39 @@
++++ b/include/asm-generic/sockios.h
+@@ -0,0 +1,23 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
@@ -73,43 +96,64 @@ index 0000000..8172bc9
 + * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_MSGBUF_H
-+#define _ASM_MICROBLAZE_MSGBUF_H
++#ifndef _ASM_GENERIC_SOCKIOS_H
++#define _ASM_GENERIC_SOCKIOS_H
 +
++#include <asm-generic/ioctl.h>
++
++/* Socket-level I/O control calls. */
++#define FIOSETOWN	0x8901
++#define SIOCSPGRP	0x8902
++#define FIOGETOWN	0x8903
++#define SIOCGPGRP	0x8904
++#define SIOCATMARK	0x8905
++#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
++#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
++
++#endif /* _ASM_GENERIC_SOCKIOS_H */
+diff --git a/include/asm-generic/ucontext.h b/include/asm-generic/ucontext.h
+new file mode 100644
+index 0000000..3e718c2
+--- /dev/null
++++ b/include/asm-generic/ucontext.h
+@@ -0,0 +1,24 @@
 +/*
-+ * The msqid64_ds structure for microblaze architecture.
-+ * Note extra padding because this structure is passed back and forth
-+ * between kernel and user space.
++ * include/asm-generic/ucontext.h
 + *
-+ * Pad space is left for:
-+ * - 64-bit time_t to solve y2038 problem
-+ * - 2 miscellaneous 32-bit values
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+struct msqid64_ds {
-+	struct ipc64_perm msg_perm;
-+	__kernel_time_t msg_stime; /* last msgsnd time */
-+	unsigned long __unused1;
-+	__kernel_time_t msg_rtime; /* last msgrcv time */
-+	unsigned long __unused2;
-+	__kernel_time_t msg_ctime; /* last change time */
-+	unsigned long __unused3;
-+	unsigned long msg_cbytes; /* current number of bytes on queue */
-+	unsigned long msg_qnum; /* number of messages in queue */
-+	unsigned long msg_qbytes; /* max number of bytes on queue */
-+	__kernel_pid_t msg_lspid; /* pid of last msgsnd */
-+	__kernel_pid_t msg_lrpid; /* last receive pid */
-+	unsigned long __unused4;
-+	unsigned long __unused5;
++#ifndef _ASM_GENERIC_UCONTEXT_H
++#define _ASM_GENERIC_UCONTEXT_H
++
++#include <asm/sigcontext.h>
++
++struct ucontext {
++	unsigned long		uc_flags;
++	struct ucontext		*uc_link;
++	stack_t			uc_stack;
++	struct sigcontext	uc_mcontext;
++	sigset_t		uc_sigmask; /* mask last for extensibility */
 +};
 +
-+#endif /* _ASM_MICROBLAZE_MSGBUF_H */
-diff --git a/include/asm-microblaze/shmbuf.h b/include/asm-microblaze/shmbuf.h
++#endif /* _ASM_GENERIC_UCONTEXT_H */
+diff --git a/include/asm-microblaze/fcntl.h b/include/asm-microblaze/fcntl.h
 new file mode 100644
-index 0000000..a460e36
+index 0000000..46ab12d
 --- /dev/null
-+++ b/include/asm-microblaze/shmbuf.h
-@@ -0,0 +1,50 @@
++++ b/include/asm-microblaze/fcntl.h
+@@ -0,0 +1 @@
++#include <asm-generic/fcntl.h>
+diff --git a/include/asm-microblaze/sockios.h b/include/asm-microblaze/sockios.h
+new file mode 100644
+index 0000000..41d1a0c
+--- /dev/null
++++ b/include/asm-microblaze/sockios.h
+@@ -0,0 +1,23 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
@@ -118,67 +162,27 @@ index 0000000..a460e36
 + * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_SHMBUF_H
-+#define _ASM_MICROBLAZE_SHMBUF_H
++#ifndef _ASM_MICROBLAZE_SOCKIOS_H
++#define _ASM_MICROBLAZE_SOCKIOS_H
 +
-+/*
-+ * The shmid64_ds structure for microblaze architecture.
-+ * Note extra padding because this structure is passed back and forth
-+ * between kernel and user space.
-+ *
-+ * Pad space is left for:
-+ * - 64-bit time_t to solve y2038 problem
-+ * - 2 miscellaneous 32-bit values
-+ */
++#include <asm/ioctl.h>
 +
-+struct shmid64_ds {
-+	struct ipc64_perm	shm_perm; /* operation perms */
-+	size_t			shm_segsz; /* size of segment (bytes) */
-+	__kernel_time_t		shm_atime; /* last attach time */
-+	unsigned long		__unused1;
-+	__kernel_time_t		shm_dtime; /* last detach time */
-+	unsigned long		__unused2;
-+	__kernel_time_t		shm_ctime; /* last change time */
-+	unsigned long		__unused3;
-+	__kernel_pid_t		shm_cpid; /* pid of creator */
-+	__kernel_pid_t		shm_lpid; /* pid of last operator */
-+	unsigned long		shm_nattch; /* no. of current attaches */
-+	unsigned long		__unused4;
-+	unsigned long		__unused5;
-+};
++/* Socket-level I/O control calls. */
++#define FIOSETOWN	0x8901
++#define SIOCSPGRP	0x8902
++#define FIOGETOWN	0x8903
++#define SIOCGPGRP	0x8904
++#define SIOCATMARK	0x8905
++#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
++#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
 +
-+struct shminfo64 {
-+	unsigned long	shmmax;
-+	unsigned long	shmmin;
-+	unsigned long	shmmni;
-+	unsigned long	shmseg;
-+	unsigned long	shmall;
-+	unsigned long	__unused1;
-+	unsigned long	__unused2;
-+	unsigned long	__unused3;
-+	unsigned long	__unused4;
-+};
-+
-+#endif /* _ASM_MICROBLAZE_SHMBUF_H */
-diff --git a/include/asm-microblaze/shmparam.h b/include/asm-microblaze/shmparam.h
++#endif /* _ASM_MICROBLAZE_SOCKIOS_H */
+diff --git a/include/asm-microblaze/ucontext.h b/include/asm-microblaze/ucontext.h
 new file mode 100644
-index 0000000..719bbed
+index 0000000..9bc07b9
 --- /dev/null
-+++ b/include/asm-microblaze/shmparam.h
-@@ -0,0 +1,14 @@
-+/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_SHMPARAM_H
-+#define _ASM_MICROBLAZE_SHMPARAM_H
-+
-+#define SHMLBA	PAGE_SIZE /* attach addr a multiple of this */
-+
-+#endif /* _ASM_MICROBLAZE_SHMPARAM_H */
++++ b/include/asm-microblaze/ucontext.h
+@@ -0,0 +1 @@
++#include <asm-generic/ucontext.h>
 -- 
 1.5.4.GIT
