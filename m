@@ -1,17 +1,16 @@
 From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH 58/60] microblaze_v4: sys_microblaze.c
-Date: Thu, 26 Jun 2008 17:48:29 +0200
-Message-ID: <200806261748.30698.arnd@arndb.de>
+Date: Thu, 26 Jun 2008 18:04:24 +0200
+Message-ID: <200806261804.25344.arnd@arndb.de>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <1214483429-32360-58-git-send-email-monstr@seznam.cz> <1214483429-32360-59-git-send-email-monstr@seznam.cz>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-15
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.183]:63914 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.171]:55868 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752189AbYFZPt1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2008 11:49:27 -0400
+	with ESMTP id S1751810AbYFZQFL convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2008 12:05:11 -0400
 In-Reply-To: <1214483429-32360-59-git-send-email-monstr@seznam.cz>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
@@ -21,73 +20,20 @@ Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorff
 
 On Thursday 26 June 2008, monstr@seznam.cz wrote:
 > +
-> +/*
-> + * sys_ipc() is the de-multiplexer for the SysV IPC calls..
-> + *
-> + * This is really horribly ugly.
-> + */
-
-If it's so horribly ugly, don't do it this way ;-)
-
-> +int
-> +sys_ipc(uint call, int first, int second, int third, void *ptr, long fifth)
+> +int sys_uname(struct old_utsname *name)
 > +{
-> +	int version, ret;
+> +=A0=A0=A0=A0=A0=A0=A0int err =3D -EFAULT;
 > +
-> +	version = call >> 16; /* hack for backward compatibility */
-> +	call &= 0xffff;
-
-Backwards compatibility with what?
-
-
-> +static inline unsigned long
-> +do_mmap2(unsigned long addr, size_t len,
-> +	unsigned long prot, unsigned long flags,
-> +	unsigned long fd, unsigned long pgoff)
-> +{
-> +	struct file *file = NULL;
-> +	int ret = -EBADF;
-> +
-> +	flags &= ~(MAP_EXECUTABLE | MAP_DENYWRITE);
-> +	if (!(flags & MAP_ANONYMOUS))
-> +		if (!(file = fget(fd))) {
-> +			printk(KERN_INFO "no fd in mmap\r\n");
-> +			goto out;
-> +		}
-> +
-> +	down_write(&current->mm->mmap_sem);
-> +	ret = do_mmap_pgoff(file, addr, len, prot, flags, pgoff);
-> +	up_write(&current->mm->mmap_sem);
-> +	if (file)
-> +		fput(file);
-> +out:
-> +	return ret;
-> +}
-> +
-> +unsigned long sys_mmap2(unsigned long addr, size_t len,
-> +			unsigned long prot, unsigned long flags,
-> +			unsigned long fd, unsigned long pgoff)
-> +{
-> +	return do_mmap2(addr, len, prot, flags, fd, pgoff);
-> +}
-> +
-> +unsigned long sys_mmap(unsigned long addr, size_t len,
-> +			unsigned long prot, unsigned long flags,
-> +			unsigned long fd, off_t offset)
-> +{
-> +	int err = -EINVAL;
-> +
-> +	if (offset & ~PAGE_MASK) {
-> +		printk(KERN_INFO "no pagemask in mmap\r\n");
-> +		goto out;
-> +	}
-> +
-> +	err = do_mmap2(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
-> +out:
-> +	return err;
+> +=A0=A0=A0=A0=A0=A0=A0down_read(&uts_sem);
+> +=A0=A0=A0=A0=A0=A0=A0if (name && !copy_to_user(name, utsname(), size=
+of(*name)))
+> +=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0err =3D 0;
+> +=A0=A0=A0=A0=A0=A0=A0up_read(&uts_sem);
+> +=A0=A0=A0=A0=A0=A0=A0return err;
 > +}
 
-Which mmap is uClibc really using? I suppose you only need mmap2, even for
-compatibility with any binary ever built for microblaze.
+This actually seems to be dead code, as your sys_call_table only contai=
+ns
+sys_newuname but not sys_uname.
 
 	Arnd <><
