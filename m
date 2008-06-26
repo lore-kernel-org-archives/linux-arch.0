@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 26/60] microblaze_v4: time support
-Date: Thu, 26 Jun 2008 14:29:55 +0200
-Message-ID: <1214483429-32360-27-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 22/60] microblaze_v4: heartbeat file
+Date: Thu, 26 Jun 2008 14:29:51 +0200
+Message-ID: <1214483429-32360-23-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
 	<1214483429-32360-2-git-send-email-monstr@seznam.cz>
 	<1214483429-32360-3-git-send-email-monstr@seznam.cz>
@@ -24,15 +24,11 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
 	<1214483429-32360-20-git-send-email-monstr@seznam.cz>
 	<1214483429-32360-21-git-send-email-monstr@seznam.cz>
 	<1214483429-32360-22-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-23-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-24-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-25-git-send-email-monstr@seznam.cz>
-	<1214483429-32360-26-git-send-email-monstr@seznam.cz>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org>
-In-Reply-To: <1214483429-32360-26-git-send-email-monstr@seznam.cz>
+In-Reply-To: <1214483429-32360-22-git-send-email-monstr@seznam.cz>
 List-Unsubscribe: <https://ozlabs.org/mailman/options/linuxppc-dev>,
 	<mailto:linuxppc-dev-request@ozlabs.org?subject=unsubscribe>
 List-Archive: <http://ozlabs.org/pipermail/linuxppc-dev>
@@ -51,55 +47,18 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/delay.h |   30 ++++++++++++++++++++++++++++++
- include/asm-microblaze/timex.h |   18 ++++++++++++++++++
- 2 files changed, 48 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/delay.h
- create mode 100644 include/asm-microblaze/timex.h
+ arch/microblaze/kernel/heartbeat.c |   35 +++++++++++++++++++++++++++++++++++
+ 1 files changed, 35 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/kernel/heartbeat.c
 
-diff --git a/include/asm-microblaze/delay.h b/include/asm-microblaze/delay.h
+diff --git a/arch/microblaze/kernel/heartbeat.c b/arch/microblaze/kernel/heartbeat.c
 new file mode 100644
-index 0000000..cdafdad
+index 0000000..5a21c1d
 --- /dev/null
-+++ b/include/asm-microblaze/delay.h
-@@ -0,0 +1,30 @@
++++ b/arch/microblaze/kernel/heartbeat.c
+@@ -0,0 +1,35 @@
 +/*
-+ * include/asm-microblaze/delay.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_DELAY_H
-+#define _ASM_MICROBLAZE_DELAY_H
-+
-+extern unsigned long loops_per_jiffy;
-+
-+extern inline void __delay(unsigned long loops)
-+{
-+	asm volatile ("# __delay		\n\t"		\
-+			"1: addi	%0, %0, -1 \t\n"	\
-+			"bneid	%0, 1b		\t\n"		\
-+			"nop			\t\n"
-+			: "=r" (loops)
-+			: "0" (loops));
-+}
-+
-+static inline void udelay(unsigned long usec)
-+{
-+}
-+
-+#endif /* _ASM_MICROBLAZE_DELAY_H */
-diff --git a/include/asm-microblaze/timex.h b/include/asm-microblaze/timex.h
-new file mode 100644
-index 0000000..678525d
---- /dev/null
-+++ b/include/asm-microblaze/timex.h
-@@ -0,0 +1,18 @@
-+/*
++ * Copyright (C) 2007-2008 Michal Simek <monstr@monstr.eu>
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
@@ -107,15 +66,31 @@ index 0000000..678525d
 + * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_TIMEX_H
-+#define _ASM_MICROBLAZE_TIMEX_H
++#include <linux/sched.h>
++#include <asm/page.h>
++#include <asm/io.h>
++#include <asm/setup.h>
 +
-+#define CLOCK_TICK_RATE 1000 /* Timer input freq. */
++void heartbeat(void)
++{
++	static unsigned int cnt, period, dist;
 +
-+typedef unsigned long cycles_t;
++	if (cnt == 0 || cnt == dist)
++		iowrite32(1, CONFIG_HEART_BEAT_ADDRESS);
++	else if (cnt == 7 || cnt == dist + 7)
++		iowrite32(0, CONFIG_HEART_BEAT_ADDRESS);
 +
-+#define get_cycles()	(0)
-+
-+#endif /* _ASM_TIMEX_H */
++	if (++cnt > period) {
++		cnt = 0;
++		/*
++		 * The hyperbolic function below modifies the heartbeat period
++		 * length in dependency of the current (5min) load. It goes
++		 * through the points f(0)=126, f(1)=86, f(5)=51, f(inf)->30.
++		 */
++		period = ((672 << FSHIFT) / (5 * avenrun[0] +
++					(7 << FSHIFT))) + 30;
++		dist = period / 4;
++	}
++}
 -- 
 1.5.4.GIT
