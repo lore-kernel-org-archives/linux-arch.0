@@ -1,36 +1,56 @@
-From: Jon Loeliger <jdl@freescale.com>
-Subject: Re: [PATCH 12/60] microblaze_v4: Generic dts file for platforms
-Date: Thu, 26 Jun 2008 16:44:17 -0500
-Message-ID: <48640DB1.7020500@freescale.com>
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>	<1214483429-32360-2-git-send-email-monstr@seznam.cz>	<1214483429-32360-3-git-send-email-monstr@seznam.cz>	<1214483429-32360-4-git-send-email-monstr@seznam.cz>	<1214483429-32360-5-git-send-email-monstr@seznam.cz>	<1214483429-32360-6-git-send-email-monstr@seznam.cz>	<1214483429-32360-7-git-send-email-monstr@seznam.cz>	<1214483429-32360-8-git-send-email-monstr@seznam.cz>	<1214483429-32360-9-git-send-email-monstr@seznam.cz>	<1214483429-32360-10-git-send-email-monstr@seznam.cz>	<1214483429-32360-11-git-send-email-monstr@seznam.cz>	<1214483429-32360-12-git-send-email-monstr@seznam.cz>	<1214483429-32360-13-git-send-email-monstr@seznam.cz><4863B096.7020309@freescale.com>	<4863E68C.30802@seznam.cz> <20080626201813.9662411E0051@mail20-
- wa4.bigfish.com> <48640CF7.7050700@seznam.cz>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 48/60] microblaze_v4: headers simple files - empty or redirect to asm-generic
+Date: Fri, 27 Jun 2008 00:09:11 +0200
+Message-ID: <200806270009.12378.arnd@arndb.de>
+References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <200806261838.33787.arnd@arndb.de> <4863D87F.5060103@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain;
+  charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from az33egw01.freescale.net ([192.88.158.102]:43112 "EHLO
-	az33egw01.freescale.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751166AbYFZVpF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2008 17:45:05 -0400
-In-Reply-To: <48640CF7.7050700@seznam.cz>
+Received: from moutng.kundenserver.de ([212.227.126.186]:52179 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751935AbYFZWJj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2008 18:09:39 -0400
+In-Reply-To: <4863D87F.5060103@zytor.com>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@seznam.cz
-Cc: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>, linux-arch@vger.kernel.org, john.williams@petalogix.com, arnd@arndb.de, vapier.adi@gmail.com, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, will.newton@gmail.com, hpa@zytor.com, John Linn <linnj@xilinx.com>, drepper@redhat.com, alan@lxorguk.ukuu.org.uk
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Adrian Bunk <bunk@kernel.org>, monstr@seznam.cz, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, Michal Simek <monstr@monstr.eu>
 
-Michal Simek wrote:
-> Ok. Thanks for information Steve.
+On Thursday 26 June 2008, H. Peter Anvin wrote:
 > 
-> Jon: Only for sure the main difference is only in value handling. Am I right?
-> If yes, it is easy to change.
+> The sanest way to do that would probably be something along the lines of:
 > 
-> M
+> -> Change include/asm-xxx to arch/xxx/include/asm
 
-Right.  It is essentially C-like now.  And has a
-declarator at the top with /dts-v1/.  Essentially
-all of the DTS files in arch/powerpc/boot/dts should
-be V1 now.  Lots of examples.
+Sam Ravnborg is already working on this part.
 
-Except in Byte Arrays:  x = [ CA FE BA BE FE ED D0 0D ];
+> -> Create arch/generic
+> -> Make sure arch/xxx/include/asm and arch/generic/include/asm are both 
+> in the include path, in that order.
+> 
+> That would also get rid of the symlink.
 
-jdl
+It requires two more steps:
+
+- change all remaining users of #include <asm-generic/*.h> to include
+that file with the new name, e.g. #include <generic/asm/foo.h> if we
+have it in the right path.
+- change the way 'make headers_install' works so that the files get
+installed to the right location in $PREFIX/include/asm/ instead of
+$PREFIX/include/asm-generic/ for each header that does not exist
+in arch/foo/include/asm.
+
+These changes are probably somewhat controversial, and the first
+one is much more invasive than the patches that Sam has, so I'd
+not want to do them at the same time.
+
+> On the other hand, the redirection isn't all that bad.
+
+Agreed. I just have the hope that someone comes up with the magical
+solution for this problem that makes it a lot nicer than the suggestions
+so far or the current way of doing it ;-)
+
+	Arnd <><
