@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 56/60] microblaze_v4: IPC headers
-Date: Thu, 26 Jun 2008 14:30:25 +0200
-Message-ID: <1214483429-32360-57-git-send-email-monstr@seznam.cz>
+Subject: [PATCH 48/60] microblaze_v4: headers simple files - empty or redirect to asm-generic
+Date: Thu, 26 Jun 2008 14:30:17 +0200
+Message-ID: <1214483429-32360-49-git-send-email-monstr@seznam.cz>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-2-git-send-email-monstr@seznam.cz>
  <1214483429-32360-3-git-send-email-monstr@seznam.cz>
@@ -50,20 +50,12 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
  <1214483429-32360-46-git-send-email-monstr@seznam.cz>
  <1214483429-32360-47-git-send-email-monstr@seznam.cz>
  <1214483429-32360-48-git-send-email-monstr@seznam.cz>
- <1214483429-32360-49-git-send-email-monstr@seznam.cz>
- <1214483429-32360-50-git-send-email-monstr@seznam.cz>
- <1214483429-32360-51-git-send-email-monstr@seznam.cz>
- <1214483429-32360-52-git-send-email-monstr@seznam.cz>
- <1214483429-32360-53-git-send-email-monstr@seznam.cz>
- <1214483429-32360-54-git-send-email-monstr@seznam.cz>
- <1214483429-32360-55-git-send-email-monstr@seznam.cz>
- <1214483429-32360-56-git-send-email-monstr@seznam.cz>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22650 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:22719 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1759142AbYFZMlZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2008 08:41:25 -0400
-In-Reply-To: <1214483429-32360-56-git-send-email-monstr@seznam.cz>
+	id S1759684AbYFZMmG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2008 08:42:06 -0400
+In-Reply-To: <1214483429-32360-48-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -74,25 +66,97 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/ipc.h    |    1 +
- include/asm-microblaze/ipcbuf.h |   36 ++++++++++++++++++++++++++++++++++++
- 2 files changed, 37 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/ipc.h
- create mode 100644 include/asm-microblaze/ipcbuf.h
+ include/asm-microblaze/cputime.h           |    1 +
+ include/asm-microblaze/div64.h             |    1 +
+ include/asm-microblaze/emergency-restart.h |    1 +
+ include/asm-microblaze/errno.h             |    1 +
+ include/asm-microblaze/futex.h             |    1 +
+ include/asm-microblaze/kdebug.h            |    1 +
+ include/asm-microblaze/local.h             |    1 +
+ include/asm-microblaze/mutex.h             |    1 +
+ include/asm-microblaze/namei.h             |   22 ++++++++++++++++++++++
+ include/asm-microblaze/percpu.h            |    1 +
+ include/asm-microblaze/resource.h          |    1 +
+ 11 files changed, 32 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/auxvec.h
+ create mode 100644 include/asm-microblaze/cputime.h
+ create mode 100644 include/asm-microblaze/div64.h
+ create mode 100644 include/asm-microblaze/emergency-restart.h
+ create mode 100644 include/asm-microblaze/errno.h
+ create mode 100644 include/asm-microblaze/futex.h
+ create mode 100644 include/asm-microblaze/kdebug.h
+ create mode 100644 include/asm-microblaze/local.h
+ create mode 100644 include/asm-microblaze/mutex.h
+ create mode 100644 include/asm-microblaze/namei.h
+ create mode 100644 include/asm-microblaze/percpu.h
+ create mode 100644 include/asm-microblaze/resource.h
+ create mode 100644 include/asm-microblaze/user.h
 
-diff --git a/include/asm-microblaze/ipc.h b/include/asm-microblaze/ipc.h
+diff --git a/include/asm-microblaze/auxvec.h b/include/asm-microblaze/auxvec.h
 new file mode 100644
-index 0000000..a46e3d9
+index 0000000..e69de29
+diff --git a/include/asm-microblaze/cputime.h b/include/asm-microblaze/cputime.h
+new file mode 100644
+index 0000000..6d68ad7
 --- /dev/null
-+++ b/include/asm-microblaze/ipc.h
++++ b/include/asm-microblaze/cputime.h
 @@ -0,0 +1 @@
-+#include <asm-generic/ipc.h>
-diff --git a/include/asm-microblaze/ipcbuf.h b/include/asm-microblaze/ipcbuf.h
++#include <asm-generic/cputime.h>
+diff --git a/include/asm-microblaze/div64.h b/include/asm-microblaze/div64.h
 new file mode 100644
-index 0000000..b056fa4
+index 0000000..6cd978c
 --- /dev/null
-+++ b/include/asm-microblaze/ipcbuf.h
-@@ -0,0 +1,36 @@
++++ b/include/asm-microblaze/div64.h
+@@ -0,0 +1 @@
++#include <asm-generic/div64.h>
+diff --git a/include/asm-microblaze/emergency-restart.h b/include/asm-microblaze/emergency-restart.h
+new file mode 100644
+index 0000000..3711bd9
+--- /dev/null
++++ b/include/asm-microblaze/emergency-restart.h
+@@ -0,0 +1 @@
++#include <asm-generic/emergency-restart.h>
+diff --git a/include/asm-microblaze/errno.h b/include/asm-microblaze/errno.h
+new file mode 100644
+index 0000000..4c82b50
+--- /dev/null
++++ b/include/asm-microblaze/errno.h
+@@ -0,0 +1 @@
++#include <asm-generic/errno.h>
+diff --git a/include/asm-microblaze/futex.h b/include/asm-microblaze/futex.h
+new file mode 100644
+index 0000000..0b74582
+--- /dev/null
++++ b/include/asm-microblaze/futex.h
+@@ -0,0 +1 @@
++#include <asm-generic/futex.h>
+diff --git a/include/asm-microblaze/kdebug.h b/include/asm-microblaze/kdebug.h
+new file mode 100644
+index 0000000..6ece1b0
+--- /dev/null
++++ b/include/asm-microblaze/kdebug.h
+@@ -0,0 +1 @@
++#include <asm-generic/kdebug.h>
+diff --git a/include/asm-microblaze/local.h b/include/asm-microblaze/local.h
+new file mode 100644
+index 0000000..c11c530
+--- /dev/null
++++ b/include/asm-microblaze/local.h
+@@ -0,0 +1 @@
++#include <asm-generic/local.h>
+diff --git a/include/asm-microblaze/mutex.h b/include/asm-microblaze/mutex.h
+new file mode 100644
+index 0000000..ff6101a
+--- /dev/null
++++ b/include/asm-microblaze/mutex.h
+@@ -0,0 +1 @@
++#include <asm-generic/mutex-dec.h>
+diff --git a/include/asm-microblaze/namei.h b/include/asm-microblaze/namei.h
+new file mode 100644
+index 0000000..61d60b8
+--- /dev/null
++++ b/include/asm-microblaze/namei.h
+@@ -0,0 +1,22 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
@@ -101,33 +165,36 @@ index 0000000..b056fa4
 + * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_IPCBUF_H
-+#define _ASM_MICROBLAZE_IPCBUF_H
++#ifndef _ASM_MICROBLAZE_NAMEI_H
++#define _ASM_MICROBLAZE_NAMEI_H
 +
-+/*
-+ * The user_ipc_perm structure for microblaze architecture.
-+ * Note extra padding because this structure is passed back and forth
-+ * between kernel and user space.
-+ *
-+ * Pad space is left for:
-+ * - 32-bit mode_t and seq
-+ * - 2 miscellaneous 32-bit values
++#ifdef __KERNEL__
++
++/* This dummy routine maybe changed to something useful
++ * for /usr/gnemul/ emulation stuff.
++ * Look at asm-sparc/namei.h for details.
 + */
++#define __emul_prefix() NULL
 +
-+struct ipc64_perm {
-+	__kernel_key_t		key;
-+	__kernel_uid32_t	uid;
-+	__kernel_gid32_t	gid;
-+	__kernel_uid32_t	cuid;
-+	__kernel_gid32_t	cgid;
-+	__kernel_mode_t		mode;
-+	unsigned short		__pad1;
-+	unsigned short		seq;
-+	unsigned short		__pad2;
-+	unsigned long		__unused1;
-+	unsigned long		__unused2;
-+};
++#endif /* __KERNEL__ */
 +
-+#endif /* _ASM_MICROBLAZE_IPCBUF_H */
++#endif /* _ASM_MICROBLAZE_NAMEI_H */
+diff --git a/include/asm-microblaze/percpu.h b/include/asm-microblaze/percpu.h
+new file mode 100644
+index 0000000..06a959d
+--- /dev/null
++++ b/include/asm-microblaze/percpu.h
+@@ -0,0 +1 @@
++#include <asm-generic/percpu.h>
+diff --git a/include/asm-microblaze/resource.h b/include/asm-microblaze/resource.h
+new file mode 100644
+index 0000000..04bc4db
+--- /dev/null
++++ b/include/asm-microblaze/resource.h
+@@ -0,0 +1 @@
++#include <asm-generic/resource.h>
+diff --git a/include/asm-microblaze/user.h b/include/asm-microblaze/user.h
+new file mode 100644
+index 0000000..e69de29
 -- 
 1.5.4.GIT
