@@ -1,75 +1,109 @@
 From: Johannes Weiner <hannes@saeurebad.de>
-Subject: [PATCH 00/20] mm: generic show_mem() v4
-Date: Fri, 27 Jun 2008 13:53:49 +0200
-Message-ID: <20080627115349.743368154@saeurebad.de>
+Subject: [PATCH 02/20] mm: generic show_mem()
+Date: Fri, 27 Jun 2008 13:53:51 +0200
+Message-ID: <20080627120048.059732179@saeurebad.de>
+References: <20080627115349.743368154@saeurebad.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from saeurebad.de ([85.214.36.134]:38987 "EHLO saeurebad.de"
+Received: from saeurebad.de ([85.214.36.134]:38993 "EHLO saeurebad.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759679AbYF0MFG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jun 2008 08:05:06 -0400
+	id S1760428AbYF0MFQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jun 2008 08:05:16 -0400
+Content-Disposition: inline; filename=0003-generic-show_mem.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Every arch implements its own show_mem() function.  Most of them share
-quite some code, some of them are completely identical.
+This implements a platform-independent version of show_mem().
 
-This series implements a generic version of this function and migrates
-almost all architectures to it.
+Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
+---
+ mm/Kconfig      |    3 +++
+ mm/page_alloc.c |   55 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 58 insertions(+)
 
-version 4:
-	- rebased against -mmotm
-	- remove free swap space display from alpha, m32r, sh, sparc64,
-	  um (was in a different series originally, but -mm no longer
-	  has them and Linus' tree does not contain them too)
-version 3:
-	- Fix kbuild logic as suggested by Sam Ravnborg
-version 2:
-	- Fix kbuild bits as suggested by Heiko Carstens
-	- Include quicklist info as suggested by Paul Mundt
-	- Extend changelogs by info on removal of redundant output
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -45,6 +45,7 @@
+ #include <linux/fault-inject.h>
+ #include <linux/page-isolation.h>
+ #include <linux/memcontrol.h>
++#include <linux/nmi.h>
+ #include <linux/debugobjects.h>
+ 
+ #include <asm/tlbflush.h>
+@@ -2042,6 +2043,60 @@ static void zoneref_set_zone(struct zone
+ 	zoneref->zone_idx = zone_idx(zone);
+ }
+ 
++#ifdef CONFIG_HAVE_GENERIC_SHOW_MEM
++void show_mem(void)
++{
++	pg_data_t *pgdat;
++	int total = 0, reserved = 0, shared = 0, nonshared = 0, highmem = 0;
++
++	printk(KERN_INFO "Mem-Info:\n");
++	show_free_areas();
++
++	for_each_online_pgdat(pgdat) {
++		unsigned long i, flags;
++
++		pgdat_resize_lock(pgdat, &flags);
++		for (i = 0; i < pgdat->node_spanned_pages; i++) {
++			struct page *page;
++			unsigned long pfn = pgdat->node_start_pfn + i;
++
++			if (unlikely((i % MAX_ORDER_NR_PAGES) == 0))
++				touch_nmi_watchdog();
++
++			if (!pfn_valid(pfn))
++				continue;
++
++			page = pfn_to_page(pfn);
++
++			if (PageHighMem(page))
++				highmem++;
++
++			if (PageReserved(page))
++				reserved++;
++			else if (page_count(page) == 1)
++				nonshared++;
++			else if (page_count(page) > 1)
++				shared += page_count(page) - 1;
++
++			total++;
++		}
++		pgdat_resize_unlock(pgdat, &flags);
++	}
++
++	printk(KERN_INFO "%d pages RAM\n", total);
++#ifdef CONFIG_HIGHMEM
++	printk(KERN_INFO "%d pages HighMem\n", highmem);
++#endif
++	printk(KERN_INFO "%d pages reserved\n", reserved);
++	printk(KERN_INFO "%d pages shared\n", shared);
++	printk(KERN_INFO "%d pages non-shared\n", nonshared);
++#ifdef CONFIG_QUICKLIST
++	printk(KERN_INFO "%d pages in pagetable cache\n",
++		quicklist_total_size());
++#endif
++}
++#endif /* CONFIG_HAVE_GENERIC_SHOW_MEM */
++
+ /*
+  * Builds allocation fallback zone lists.
+  *
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -213,6 +213,9 @@ config VIRT_TO_BUS
+ config PAGE_WALKER
+ 	def_bool n
+ 
++config HAVE_GENERIC_SHOW_MEM
++	def_bool n
++
+ config UNEVICTABLE_LRU
+ 	bool "Add LRU list to track non-evictable pages"
+ 	default y
 
- arch/alpha/Kconfig        |    1 +
- arch/alpha/mm/init.c      |   30 ------------------------
- arch/alpha/mm/numa.c      |   35 ----------------------------
- arch/avr32/Kconfig        |    1 +
- arch/avr32/mm/init.c      |   39 -------------------------------
- arch/blackfin/Kconfig     |    1 +
- arch/blackfin/mm/init.c   |   27 ----------------------
- arch/cris/Kconfig         |    1 +
- arch/cris/mm/init.c       |   30 ------------------------
- arch/frv/Kconfig          |    1 +
- arch/frv/mm/init.c        |   31 -------------------------
- arch/h8300/Kconfig        |    1 +
- arch/h8300/mm/init.c      |   27 ----------------------
- arch/m32r/Kconfig         |    1 +
- arch/m32r/mm/init.c       |   36 -----------------------------
- arch/m68k/Kconfig         |    1 +
- arch/m68k/mm/init.c       |   30 ------------------------
- arch/m68knommu/Kconfig    |    1 +
- arch/m68knommu/mm/init.c  |   27 ----------------------
- arch/mips/Kconfig         |    1 +
- arch/mips/mm/Makefile     |    3 +-
- arch/mips/mm/pgtable.c    |   36 -----------------------------
- arch/mn10300/Kconfig      |    1 +
- arch/mn10300/mm/pgtable.c |   27 ----------------------
- arch/powerpc/Kconfig      |    1 +
- arch/powerpc/mm/mem.c     |   39 -------------------------------
- arch/s390/Kconfig         |    1 +
- arch/s390/mm/init.c       |   32 --------------------------
- arch/sh/Kconfig           |    1 +
- arch/sh/mm/init.c         |   41 ---------------------------------
- arch/sparc64/Kconfig      |    1 +
- arch/sparc64/mm/init.c    |   45 ------------------------------------
- arch/um/Kconfig           |    1 +
- arch/um/kernel/mem.c      |   31 -------------------------
- arch/x86/Kconfig          |    1 +
- arch/x86/mm/init_64.c     |   37 ------------------------------
- arch/x86/mm/pgtable_32.c  |   47 --------------------------------------
- arch/xtensa/Kconfig       |    1 +
- arch/xtensa/mm/init.c     |   26 ---------------------
- mm/Kconfig                |    3 ++
- mm/page_alloc.c           |   55 +++++++++++++++++++++++++++++++++++++++++++++
- mm/swap_state.c           |    3 +-
- 42 files changed, 79 insertions(+), 676 deletions(-)
+-- 
