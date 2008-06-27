@@ -1,69 +1,98 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 48/60] microblaze_v4: headers simple files - empty or redirect to asm-generic
-Date: Fri, 27 Jun 2008 01:23:05 +0200
-Message-ID: <200806270123.06669.arnd@arndb.de>
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <200806261838.33787.arnd@arndb.de> <20080626180530.GA22827@cs181140183.pp.htv.fi>
+From: "John Williams" <john.williams@petalogix.com>
+Subject: Re: [PATCH 02/60] microblaze_v4: Makefiles for Microblaze cpu
+Date: Fri, 27 Jun 2008 10:03:46 +1000
+Message-ID: <1d3f23370806261703w277719cfn8b9f193e08a9d85a@mail.gmail.com>
+References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-2-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-3-git-send-email-monstr@seznam.cz>
+	 <20080626143623.GC30954@cs181140183.pp.htv.fi>
+	 <4863E414.4090303@seznam.cz>
+	 <20080626194002.GC22827@cs181140183.pp.htv.fi>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.177]:55232 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752434AbYFZXYP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2008 19:24:15 -0400
-In-Reply-To: <20080626180530.GA22827@cs181140183.pp.htv.fi>
+Received: from qb-out-0506.google.com ([72.14.204.227]:7851 "EHLO
+	qb-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754633AbYF0ADs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2008 20:03:48 -0400
+Received: by qb-out-0506.google.com with SMTP id q12so559112qbq.1
+        for <linux-arch@vger.kernel.org>; Thu, 26 Jun 2008 17:03:47 -0700 (PDT)
+In-Reply-To: <20080626194002.GC22827@cs181140183.pp.htv.fi>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Adrian Bunk <bunk@kernel.org>
-Cc: monstr@seznam.cz, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
+Cc: Michal Simek <monstr@seznam.cz>, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com
 
-On Thursday 26 June 2008, Adrian Bunk wrote:
-> Honestly, I do not completely like your approach of getting the 
-> microblaze port submitter to create the asm-generic files - I would 
-> personally prefer if the microblaze port would look exactly like all 
-> other ports and the (reasonable) changes you have in mind were not
-> being discussed and done as part of the submission of a new port.
+On 6/27/08, Adrian Bunk <bunk@kernel.org> wrote:
+> On Thu, Jun 26, 2008 at 08:46:44PM +0200, Michal Simek wrote:
+>  > Adrian Bunk napsal(a):
+>  > > On Thu, Jun 26, 2008 at 02:29:31PM +0200, monstr@seznam.cz wrote:
+>  > >> ...
+>  > >> --- /dev/null
+>  > >> +++ b/arch/microblaze/Makefile
+>  > >> ...
+>  > >> +# Work out HW multipler support.  This is icky.
+>  > >> +# 1. Spartan2 has no HW multiplers.
+>  > >> +# 2. MicroBlaze v3.x always uses them, except in Spartan 2
+>  > >> +# 3. All other FPGa/CPU ver combos, we can trust the CONFIG_ settings
+>  > >> +ifeq (,$(findstring spartan2,$(CONFIG_XILINX_MICROBLAZE0_FAMILY)))
+>  > >> +  ifeq ($(CPU_MAJOR),3)
+>  > >> +    CPUFLAGS-1 += -mno-xl-soft-mul
+>  > >> +  else
+>  > >> +    # USE_HW_MUL can be 0, 1, or 2, defining a heirarchy of HW Mul support.
+>  > >> +    CPUFLAGS-$(subst 1,,$(CONFIG_XILINX_MICROBLAZE0_USE_HW_MUL)) += -mxl-multiply-high
+>  > >> +    CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_HW_MUL) += -mno-xl-soft-mul
+>  > >> +  endif
+>  > >> +endif
+>  > >> +CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_DIV) += -mno-xl-soft-div
+>  > >> +CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_BARREL) += -mxl-barrel-shift
+>  > >> +CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_PCMP) += -mxl-pattern-compare
+>  > >> +
+>  > >> +CPUFLAGS-1 += $(call cc-option,-mcpu=v$(CPU_VER))
+>  > >> +
+>  > >> +# The various CONFIG_XILINX cpu features options are integers 0/1/2...
+>  > >> +# rather than bools y/n
+>  > >> +CFLAGS += $(CPUFLAGS-1)
+>  > >> +CFLAGS += $(CPUFLAGS-2)
+>  > >> ...
+>  > >
+>  > > Why are the options not bools?
+>  > because CONFIG_XILINX_... are 0, 1 or 2 not only y, n.
 
-But it works really well this way ;-). My point is that a new port
-should look just like all the other ports should have looked as
-well, not like they did. When it comes to the ABI, you
-cannot make incompatible changes after it's merged, so IMHO all
-ABI defining headers should go to asm-generic if possible.
+> I understood that.
+>
+>  But _why_ are these options not bools?
 
-Since there doesn't seem to be anyone investing work into moving the
-files there (I started it before, but got bored before submitting
-them all myself), the point of adding a new architecture is exactly
-the right one for putting the file to asm-generic. For Michal, there
-is no difference between putting the file into asm-generic or
-asm-microblaze, other than that he has to change his existing
-patch once, but in return he gets fewer files to maintain afterwards.
+The CPU has 3 levels of multiplier support -
 
-The fundamental principle here is: if you want your code to get in,
-do it in a way that makes your own code cleaner by making it cleaner
-for everyone else as well.
-The result is that more people look at the code, and that Michal's
-name gets more widely known, so the next time he needs something
-from another developer, he's more likely to get heard because
-you think of him as the person that did all the useful work on
-the asm-generic files.
+0=none
+1= 32-bit (mul produces 32 LSB of a 32x32 bit multiply)
+2= 32-bit high (mulhi produces 32 MSB of a 32x32 bit multiply).
 
-> After all, it won't matter whether we'll unify resp. remove
-> 22 or 23 files.
+The CPU-specific options are pulled directly out of the MicroBlaze
+system design tools as an auto-generated config file that we drop into
+the kernel build.  Doing so ensures consistency between the hardware
+and the kernel running on it.
 
-That wasn't my idea. The logic was that if one more file exists
-in asm-generic that can be removed from the architectures,
-we get 22 more files to remove without anyone having to look
-at the big picture. When microblaze is in, I can compile a list
-with asm-generic files that can be used to replace the architecture
-specific files, so the arch maintainers can decide on their own
-whether to clean their own stuff up or not.
+These options come out of the tools as intergers, 0,1,2.  We found in
+the early days of microblaze that lots of users built unbootable
+kernels because they manually transcribed these options incorrectly.
+So, we integrate as closely as we reasonable can to prevent these sort
+of CPU configuration errors.
 
-With namei.h, I may have gone too far to request moving it
-to asm-generic as part of the microblaze merge, because it's
-not an ABI header, but I think it's a step in the right direction
-anyway, and I may put it there myself if I ever get to do
-my "how to port Linux to a new architecture the right way" paper.
+These options are now limited to about 6 CPU-specific options - things
+we must know about the CPU at compile time to set the correct cpuflags
+to GCC.
 
-	Arnd <><
+All else is set through open firmware or querying a Processor Version
+Register at boot.
+
+Regards,
+
+John
+-- 
+John Williams, PhD, B.Eng, B.IT
+PetaLogix - Linux Solutions for a Reconfigurable World
+w: www.petalogix.com  p: +61-7-30090663  f: +61-7-30090663
