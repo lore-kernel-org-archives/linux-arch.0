@@ -1,31 +1,76 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 26/60] microblaze_v4: time support
-Date: Fri, 27 Jun 2008 12:43:00 +0200 (CEST)
-Message-ID: <alpine.LFD.1.10.0806271240461.3297@apollo.tec.linutronix.de>
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <1214483429-32360-12-git-send-email-monstr@seznam.cz> <1214483429-32360-13-git-send-email-monstr@seznam.cz> <1214483429-32360-14-git-send-email-monstr@seznam.cz> <1214483429-32360-15-git-send-email-monstr@seznam.cz>
- <1214483429-32360-16-git-send-email-monstr@seznam.cz> <1214483429-32360-17-git-send-email-monstr@seznam.cz> <1214483429-32360-18-git-send-email-monstr@seznam.cz> <1214483429-32360-19-git-send-email-monstr@seznam.cz> <1214483429-32360-20-git-send-email-monstr@seznam.cz>
- <1214483429-32360-21-git-send-email-monstr@seznam.cz> <1214483429-32360-22-git-send-email-monstr@seznam.cz> <1214483429-32360-23-git-send-email-monstr@seznam.cz> <1214483429-32360-24-git-send-email-monstr@seznam.cz> <1214483429-32360-25-git-send-email-monstr@seznam.cz>
- <1214483429-32360-26-git-send-email-monstr@seznam.cz> <1214483429-32360-27-git-send-email-monstr@seznam.cz>
+From: Adrian Bunk <bunk@kernel.org>
+Subject: Re: [PATCH 48/60] microblaze_v4: headers simple files - empty or
+	redirect to asm-generic
+Date: Fri, 27 Jun 2008 14:59:37 +0300
+Message-ID: <20080627115936.GA18644@cs181140183.pp.htv.fi>
+References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <200806261838.33787.arnd@arndb.de> <20080626180530.GA22827@cs181140183.pp.htv.fi> <200806270123.06669.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:38565 "EHLO www.tglx.de"
+Received: from smtp5.pp.htv.fi ([213.243.153.39]:56741 "EHLO smtp5.pp.htv.fi"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751009AbYF0KqL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jun 2008 06:46:11 -0400
-In-Reply-To: <1214483429-32360-27-git-send-email-monstr@seznam.cz>
+	id S1759382AbYF0MBu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jun 2008 08:01:50 -0400
+Content-Disposition: inline
+In-Reply-To: <200806270123.06669.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@seznam.cz
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: monstr@seznam.cz, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
 
-On Thu, 26 Jun 2008, monstr@seznam.cz wrote:
-> +
-> +static inline void udelay(unsigned long usec)
-> +{
-> +}
+On Fri, Jun 27, 2008 at 01:23:05AM +0200, Arnd Bergmann wrote:
+> On Thursday 26 June 2008, Adrian Bunk wrote:
+> > Honestly, I do not completely like your approach of getting the 
+> > microblaze port submitter to create the asm-generic files - I would 
+> > personally prefer if the microblaze port would look exactly like all 
+> > other ports and the (reasonable) changes you have in mind were not
+> > being discussed and done as part of the submission of a new port.
+> 
+> But it works really well this way ;-). My point is that a new port
+> should look just like all the other ports should have looked as
+> well, not like they did. When it comes to the ABI, you
+> cannot make incompatible changes after it's merged, so IMHO all
+> ABI defining headers should go to asm-generic if possible.
+>...
 
-shouldnt this function be named zerodelay() ?
+For the ABI it doesn't matter where the headers are.
 
-Thanks,
-	tglx
+> > After all, it won't matter whether we'll unify resp. remove
+> > 22 or 23 files.
+> 
+> That wasn't my idea. The logic was that if one more file exists
+> in asm-generic that can be removed from the architectures,
+> we get 22 more files to remove without anyone having to look
+> at the big picture. When microblaze is in,
+
+Discussions of the "big picture" should be in an own thread, not as 
+part of a merge of a new architecture.
+
+I am not an architecture maintainer, but I do not like the way you want 
+to couple the microblaze merge with the move of stuff to asm-generic.
+
+They both make sense, but they are clearly separate issues.
+
+> I can compile a list
+> with asm-generic files that can be used to replace the architecture
+> specific files, so the arch maintainers can decide on their own
+> whether to clean their own stuff up or not.
+>...
+
+We need either all architectures changed or none at all - we do need the 
+arch headers to become more similar, not more different.
+
+And this is why we need an agreement _before_ an asm-generic header gets 
+added, not after it.
+
+> 	Arnd <><
+
+cu
+Adrian
+
+-- 
+
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
