@@ -1,57 +1,31 @@
-From: "John Williams" <john.williams@petalogix.com>
-Subject: Re: Microblaze init port v4
-Date: Fri, 27 Jun 2008 10:12:07 +1000
-Message-ID: <1d3f23370806261712s5251253cs5f9c8d6614184bae@mail.gmail.com>
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
-	 <20080626150121.GB22025@cs181140183.pp.htv.fi>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 26/60] microblaze_v4: time support
+Date: Fri, 27 Jun 2008 12:43:00 +0200 (CEST)
+Message-ID: <alpine.LFD.1.10.0806271240461.3297@apollo.tec.linutronix.de>
+References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <1214483429-32360-12-git-send-email-monstr@seznam.cz> <1214483429-32360-13-git-send-email-monstr@seznam.cz> <1214483429-32360-14-git-send-email-monstr@seznam.cz> <1214483429-32360-15-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-16-git-send-email-monstr@seznam.cz> <1214483429-32360-17-git-send-email-monstr@seznam.cz> <1214483429-32360-18-git-send-email-monstr@seznam.cz> <1214483429-32360-19-git-send-email-monstr@seznam.cz> <1214483429-32360-20-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-21-git-send-email-monstr@seznam.cz> <1214483429-32360-22-git-send-email-monstr@seznam.cz> <1214483429-32360-23-git-send-email-monstr@seznam.cz> <1214483429-32360-24-git-send-email-monstr@seznam.cz> <1214483429-32360-25-git-send-email-monstr@seznam.cz>
+ <1214483429-32360-26-git-send-email-monstr@seznam.cz> <1214483429-32360-27-git-send-email-monstr@seznam.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hu-out-0506.google.com ([72.14.214.234]:59143 "EHLO
-	hu-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751935AbYF0AMJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2008 20:12:09 -0400
-Received: by hu-out-0506.google.com with SMTP id 28so594454hub.21
-        for <linux-arch@vger.kernel.org>; Thu, 26 Jun 2008 17:12:08 -0700 (PDT)
-In-Reply-To: <20080626150121.GB22025@cs181140183.pp.htv.fi>
-Content-Disposition: inline
+Received: from www.tglx.de ([62.245.132.106]:38565 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751009AbYF0KqL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jun 2008 06:46:11 -0400
+In-Reply-To: <1214483429-32360-27-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Adrian Bunk <bunk@kernel.org>
-Cc: monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com
+To: monstr@seznam.cz
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
 
-Hi,
+On Thu, 26 Jun 2008, monstr@seznam.cz wrote:
+> +
+> +static inline void udelay(unsigned long usec)
+> +{
+> +}
 
-On 6/27/08, Adrian Bunk <bunk@kernel.org> wrote:
-> On Thu, Jun 26, 2008 at 02:29:29PM +0200, monstr@seznam.cz wrote:
+shouldnt this function be named zerodelay() ?
 
->  > current linux version is 2.6.26-rc8 and I think this is the right time
->  > to send latest patches againts rc8 for Microblaze CPU.
->  >...
->
->  Thanks for your work on getting the architecture included.
->
->  I have two questions:
->
->  Where can I find a toolchain for compiling a Microblaze kernel?
-
-We bundle it in the PetaLinux distro:
-
-http://developer.petalogix.com
-
->  What is the status of Microblaze support in upstream binutils and gcc?
-
-noMMU uClibc toolchain is at 3.4.1, MMU/glibc is at 4.1.1  Xilinx does
-their gcc/binutils stuff mostly in-house, and none of it is upstream.
-We (PetaLogix) build and distribute the uClibc toolchain, and we are
-slowly merging the MMU support across to our regular distro, that will
-also include the glibc tools.
-
-Cheers,
-
-John
--- 
-John Williams, PhD, B.Eng, B.IT
-PetaLogix - Linux Solutions for a Reconfigurable World
-w: www.petalogix.com  p: +61-7-30090663  f: +61-7-30090663
+Thanks,
+	tglx
