@@ -1,85 +1,34 @@
-From: Johannes Weiner <hannes@saeurebad.de>
-Subject: [PATCH 18/20] um: use generic show_mem()
-Date: Fri, 27 Jun 2008 13:54:07 +0200
-Message-ID: <20080627120050.500232841@saeurebad.de>
-References: <20080627115349.743368154@saeurebad.de>
+From: =?us-ascii?Q?Michal=20Simek?= <Monstr@seznam.cz>
+Subject: =?us-ascii?Q?Re=3A=20=5BPATCH=2026=2F60=5D=20microblaze=5Fv4=3A=20time=20support?=
+Date: Fri, 27 Jun 2008 15:10:32 +0200 (CEST)
+Message-ID: <4641.7464-1217-45420265-1214572232@seznam.cz>
+References: <alpine.LFD.1.10.0806271240461.3297@apollo.tec.linutronix.de>
+Mime-Version: 1.0
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from saeurebad.de ([85.214.36.134]:39057 "EHLO saeurebad.de"
+Received: from mxl.seznam.cz ([77.75.72.44]:46359 "EHLO mxl.seznam.cz"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760658AbYF0MGt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jun 2008 08:06:49 -0400
-Content-Disposition: inline; filename=0020-um-use-generic-show_mem.patch
+	id S1751197AbYF0NLZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jun 2008 09:11:25 -0400
+In-Reply-To: <alpine.LFD.1.10.0806271240461.3297@apollo.tec.linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>
+To: =?us-ascii?Q?Thomas=20Gleixner?= <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, =?us-ascii?Q?Michal=20Simek?= <monstr@monstr.eu>
 
-Remove arch-specific show_mem() in favor of the generic version.
+>> +
+>> +static inline void udelay(unsigned long usec)
+>> +{
+>> +}
+>
+>shouldnt this function be named zerodelay() ?
+>
+>Thanks,
+>	tglx
 
-This also removes the following redundant information display:
+I have prepared implementation of this function which sent me JW.
+I did some changes which I test it because I found problem there. 
 
-	- free swap pages, printed by show_swap_cache_info()
-	- pages in swapcache, printed by show_swap_cache_info()
-
-where show_mem() calls show_free_areas(), which calls
-show_swap_cache_info().
-
-Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
-Acked-by: Jeff Dike <jdike@addtoit.com>
----
- arch/um/Kconfig      |    1 +
- arch/um/kernel/mem.c |   31 -------------------------------
- 2 files changed, 1 insertion(+), 31 deletions(-)
-
---- a/arch/um/Kconfig
-+++ b/arch/um/Kconfig
-@@ -11,6 +11,7 @@ config GENERIC_HARDIRQS
- config UML
- 	bool
- 	default y
-+	select HAVE_GENERIC_SHOW_MEM
- 
- config MMU
- 	bool
---- a/arch/um/kernel/mem.c
-+++ b/arch/um/kernel/mem.c
-@@ -264,37 +264,6 @@ void free_initrd_mem(unsigned long start
- }
- #endif
- 
--void show_mem(void)
--{
--	int pfn, total = 0, reserved = 0;
--	int shared = 0, cached = 0;
--	int high_mem = 0;
--	struct page *page;
--
--	printk(KERN_INFO "Mem-info:\n");
--	show_free_areas();
--	printk(KERN_INFO "Free swap:       %6ldkB\n",
--	       nr_swap_pages<<(PAGE_SHIFT-10));
--	pfn = max_mapnr;
--	while (pfn-- > 0) {
--		page = pfn_to_page(pfn);
--		total++;
--		if (PageHighMem(page))
--			high_mem++;
--		if (PageReserved(page))
--			reserved++;
--		else if (PageSwapCache(page))
--			cached++;
--		else if (page_count(page))
--			shared += page_count(page) - 1;
--	}
--	printk(KERN_INFO "%d pages of RAM\n", total);
--	printk(KERN_INFO "%d pages of HIGHMEM\n", high_mem);
--	printk(KERN_INFO "%d reserved pages\n", reserved);
--	printk(KERN_INFO "%d pages shared\n", shared);
--	printk(KERN_INFO "%d pages swap cached\n", cached);
--}
--
- /* Allocate and free page tables. */
- 
- pgd_t *pgd_alloc(struct mm_struct *mm)
-
--- 
+M
