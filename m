@@ -1,32 +1,27 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 48/60] microblaze_v4: headers simple files - empty or redirect to asm-generic
-Date: Fri, 27 Jun 2008 15:55:52 +0200
-Message-ID: <20080627135552.GA16485@uranus.ravnborg.org>
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <200806261838.33787.arnd@arndb.de> <20080626180530.GA22827@cs181140183.pp.htv.fi> <200806270123.06669.arnd@arndb.de> <20080627115936.GA18644@cs181140183.pp.htv.fi>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH 02/20] mm: generic show_mem()
+Date: Fri, 27 Jun 2008 16:43:30 +0200
+Message-ID: <20080627144329.GA7634@osiris.ibm.com>
+References: <20080627115349.743368154@saeurebad.de> <20080627120048.059732179@saeurebad.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpb.tele.dk ([80.160.77.98]:51723 "EHLO pasmtpB.tele.dk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755301AbYF0NzI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jun 2008 09:55:08 -0400
+Received: from mtagate5.de.ibm.com ([195.212.29.154]:56118 "EHLO
+	mtagate5.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753881AbYF0OoV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jun 2008 10:44:21 -0400
 Content-Disposition: inline
-In-Reply-To: <20080627115936.GA18644@cs181140183.pp.htv.fi>
+In-Reply-To: <20080627120048.059732179@saeurebad.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Adrian Bunk <bunk@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, monstr@seznam.cz, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
+To: Johannes Weiner <hannes@saeurebad.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-> 
-> We need either all architectures changed or none at all - we do need the 
-> arch headers to become more similar, not more different.
-> 
-> And this is why we need an agreement _before_ an asm-generic header gets 
-> added, not after it.
-We already have the agreement..
-Files which are equal among archs should be in asm-generic.
-And there is simply no gain in adding files for an arch when can put
-them in asm-generic.
-When they are in asm-generic than we can fix the other archs one-by-one.
+> +#ifdef CONFIG_HAVE_GENERIC_SHOW_MEM
+> +void show_mem(void)
+> +{
+> +	pg_data_t *pgdat;
+> +	int total = 0, reserved = 0, shared = 0, nonshared = 0, highmem = 0;
 
-	Sam
+All of these should be unsigned long. Might overflow on very large
+configurations otherwise.
