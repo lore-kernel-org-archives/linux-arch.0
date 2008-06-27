@@ -1,99 +1,85 @@
 From: Johannes Weiner <hannes@saeurebad.de>
-Subject: [PATCH 11/20] mips: use generic show_mem()
-Date: Fri, 27 Jun 2008 13:54:00 +0200
-Message-ID: <20080627120049.421752993@saeurebad.de>
+Subject: [PATCH 15/20] s390: use generic show_mem()
+Date: Fri, 27 Jun 2008 13:54:04 +0200
+Message-ID: <20080627120050.037687440@saeurebad.de>
 References: <20080627115349.743368154@saeurebad.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from saeurebad.de ([85.214.36.134]:39025 "EHLO saeurebad.de"
+Received: from saeurebad.de ([85.214.36.134]:39043 "EHLO saeurebad.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759840AbYF0MGK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jun 2008 08:06:10 -0400
-Content-Disposition: inline; filename=0012-mips-use-generic-show_mem.patch
+	id S1760154AbYF0MGb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jun 2008 08:06:31 -0400
+Content-Disposition: inline; filename=0017-s390-use-generic-show_mem.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-Remove arch-specific show_mem() in favor of the generic version. 
+Remove arch-specific show_mem() in favor of the generic version.
 
 This also removes the following redundant information display:
 
 	- pages in swapcache, printed by show_swap_cache_info()
 
 where show_mem() calls show_free_areas(), which calls
-show_swap_cache_info(). 
-
-And show_mem() does now actually print something on configurations
-with multiple nodes. 
+show_swap_cache_info().
 
 Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
-Acked-by: Ralf Baechle <ralf@linux-mips.org>
+Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 ---
- arch/mips/Kconfig      |    1 +
- arch/mips/mm/Makefile  |    3 +--
- arch/mips/mm/pgtable.c |   36 ------------------------------------
- 3 files changed, 2 insertions(+), 38 deletions(-)
+ arch/s390/Kconfig   |    1 +
+ arch/s390/mm/init.c |   32 --------------------------------
+ 2 files changed, 1 insertion(+), 32 deletions(-)
 
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -3,6 +3,7 @@ config MIPS
- 	default y
- 	select HAVE_IDE
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -73,6 +73,7 @@ config S390
  	select HAVE_OPROFILE
+ 	select HAVE_KPROBES
+ 	select HAVE_KRETPROBES
 +	select HAVE_GENERIC_SHOW_MEM
- 	# Horrible source of confusion.  Die, die, die ...
- 	select EMBEDDED
- 	select RTC_LIB
---- a/arch/mips/mm/Makefile
-+++ b/arch/mips/mm/Makefile
-@@ -3,8 +3,7 @@
- #
+ 	select HAVE_KVM if 64BIT
  
- obj-y				+= cache.o dma-default.o extable.o fault.o \
--				   init.o pgtable.o tlbex.o tlbex-fault.o \
--				   uasm.o page.o
-+				   init.o tlbex.o tlbex-fault.o uasm.o page.o
+ source "init/Kconfig"
+--- a/arch/s390/mm/init.c
++++ b/arch/s390/mm/init.c
+@@ -42,38 +42,6 @@ DEFINE_PER_CPU(struct mmu_gather, mmu_ga
+ pgd_t swapper_pg_dir[PTRS_PER_PGD] __attribute__((__aligned__(PAGE_SIZE)));
+ char  empty_zero_page[PAGE_SIZE] __attribute__((__aligned__(PAGE_SIZE)));
  
- obj-$(CONFIG_32BIT)		+= ioremap.o pgtable-32.o
- obj-$(CONFIG_64BIT)		+= pgtable-64.o
---- a/arch/mips/mm/pgtable.c
-+++ /dev/null
-@@ -1,36 +0,0 @@
--#include <linux/kernel.h>
--#include <linux/mm.h>
--#include <linux/swap.h>
--
 -void show_mem(void)
 -{
--#ifndef CONFIG_NEED_MULTIPLE_NODES  /* XXX(hch): later.. */
--	int pfn, total = 0, reserved = 0;
--	int shared = 0, cached = 0;
--	int highmem = 0;
+-	unsigned long i, total = 0, reserved = 0;
+-	unsigned long shared = 0, cached = 0;
+-	unsigned long flags;
 -	struct page *page;
+-	pg_data_t *pgdat;
 -
 -	printk("Mem-info:\n");
 -	show_free_areas();
--	pfn = max_mapnr;
--	while (pfn-- > 0) {
--		if (!pfn_valid(pfn))
--			continue;
--		page = pfn_to_page(pfn);
--		total++;
--		if (PageHighMem(page))
--			highmem++;
--		if (PageReserved(page))
--			reserved++;
--		else if (PageSwapCache(page))
--			cached++;
--		else if (page_count(page))
--			shared += page_count(page) - 1;
+-	for_each_online_pgdat(pgdat) {
+-		pgdat_resize_lock(pgdat, &flags);
+-		for (i = 0; i < pgdat->node_spanned_pages; i++) {
+-			if (!pfn_valid(pgdat->node_start_pfn + i))
+-				continue;
+-			page = pfn_to_page(pgdat->node_start_pfn + i);
+-			total++;
+-			if (PageReserved(page))
+-				reserved++;
+-			else if (PageSwapCache(page))
+-				cached++;
+-			else if (page_count(page))
+-				shared += page_count(page) - 1;
+-		}
+-		pgdat_resize_unlock(pgdat, &flags);
 -	}
--	printk("%d pages of RAM\n", total);
--	printk("%d pages of HIGHMEM\n", highmem);
--	printk("%d reserved pages\n", reserved);
--	printk("%d pages shared\n", shared);
--	printk("%d pages swap cached\n", cached);
--#endif
+-	printk("%ld pages of RAM\n", total);
+-	printk("%ld reserved pages\n", reserved);
+-	printk("%ld pages shared\n", shared);
+-	printk("%ld pages swap cached\n", cached);
 -}
+-
+ /*
+  * paging_init() sets up the page tables
+  */
 
 -- 
