@@ -1,64 +1,59 @@
 From: Johannes Weiner <hannes@saeurebad.de>
-Subject: [PATCH 03/20] alpha: use generic show_mem()
-Date: Fri, 27 Jun 2008 13:53:52 +0200
-Message-ID: <20080627120048.210681257@saeurebad.de>
+Subject: [PATCH 20/20] xtensa: use generic show_mem()
+Date: Fri, 27 Jun 2008 13:54:09 +0200
+Message-ID: <20080627120050.812615008@saeurebad.de>
 References: <20080627115349.743368154@saeurebad.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from saeurebad.de ([85.214.36.134]:38996 "EHLO saeurebad.de"
+Received: from saeurebad.de ([85.214.36.134]:39065 "EHLO saeurebad.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758925AbYF0MFW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jun 2008 08:05:22 -0400
-Content-Disposition: inline; filename=0004-alpha-use-generic-show_mem.patch
+	id S1760741AbYF0MHD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jun 2008 08:07:03 -0400
+Content-Disposition: inline; filename=0023-xtensa-use-generic-show_mem.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Richard Henderson <rth@twiddle.net>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Chris Zankel <chris@zankel.net>
 
 Remove arch-specific show_mem() in favor of the generic version.
 
 This also removes the following redundant information display:
 
 	- free pages, printed by show_free_areas()
-	- free swap pages, printed by show_swap_cache_info()
 	- pages in swapcache, printed by show_swap_cache_info()
 
 where show_mem() calls show_free_areas(), which calls
 show_swap_cache_info().
 
 Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
-CC: Richard Henderson <rth@twiddle.net>
+CC: Chris Zankel <chris@zankel.net>
 ---
- arch/alpha/Kconfig   |    1 +
- arch/alpha/mm/init.c |   30 ------------------------------
- arch/alpha/mm/numa.c |   35 -----------------------------------
- 3 files changed, 1 insertion(+), 65 deletions(-)
+ arch/xtensa/Kconfig   |    1 +
+ arch/xtensa/mm/init.c |   26 --------------------------
+ 2 files changed, 1 insertion(+), 26 deletions(-)
 
---- a/arch/alpha/Kconfig
-+++ b/arch/alpha/Kconfig
-@@ -7,6 +7,7 @@ config ALPHA
+--- a/arch/xtensa/Kconfig
++++ b/arch/xtensa/Kconfig
+@@ -15,6 +15,7 @@ config XTENSA
+ 	bool
  	default y
  	select HAVE_IDE
- 	select HAVE_OPROFILE
 +	select HAVE_GENERIC_SHOW_MEM
  	help
- 	  The Alpha is a 64-bit general-purpose processor designed and
- 	  marketed by the Digital Equipment Corporation of blessed memory,
---- a/arch/alpha/mm/init.c
-+++ b/arch/alpha/mm/init.c
-@@ -94,36 +94,6 @@ __bad_page(void)
- 	return pte_mkdirty(mk_pte(virt_to_page(EMPTY_PGE), PAGE_SHARED));
+ 	  Xtensa processors are 32-bit RISC machines designed by Tensilica
+ 	  primarily for embedded systems.  These processors are both
+--- a/arch/xtensa/mm/init.c
++++ b/arch/xtensa/mm/init.c
+@@ -272,32 +272,6 @@ void free_initmem(void)
+ 	       (&__init_end - &__init_begin) >> 10);
  }
  
--#ifndef CONFIG_DISCONTIGMEM
--void
--show_mem(void)
+-void show_mem(void)
 -{
--	long i,free = 0,total = 0,reserved = 0;
--	long shared = 0, cached = 0;
+-	int i, free = 0, total = 0, reserved = 0;
+-	int shared = 0, cached = 0;
 -
--	printk("\nMem-info:\n");
+-	printk("Mem-info:\n");
 -	show_free_areas();
--	printk("Free swap:       %6ldkB\n", nr_swap_pages<<(PAGE_SHIFT-10));
 -	i = max_mapnr;
 -	while (i-- > 0) {
 -		total++;
@@ -66,62 +61,20 @@ CC: Richard Henderson <rth@twiddle.net>
 -			reserved++;
 -		else if (PageSwapCache(mem_map+i))
 -			cached++;
--		else if (!page_count(mem_map+i))
+-		else if (!page_count(mem_map + i))
 -			free++;
 -		else
 -			shared += page_count(mem_map + i) - 1;
 -	}
--	printk("%ld pages of RAM\n",total);
--	printk("%ld free pages\n",free);
--	printk("%ld reserved pages\n",reserved);
--	printk("%ld pages shared\n",shared);
--	printk("%ld pages swap cached\n",cached);
+-	printk("%d pages of RAM\n", total);
+-	printk("%d reserved pages\n", reserved);
+-	printk("%d pages shared\n", shared);
+-	printk("%d pages swap cached\n",cached);
+-	printk("%d free pages\n", free);
 -}
--#endif
 -
- static inline unsigned long
- load_PCB(struct pcb_struct *pcb)
- {
---- a/arch/alpha/mm/numa.c
-+++ b/arch/alpha/mm/numa.c
-@@ -359,38 +359,3 @@ void __init mem_init(void)
- 	mem_stress();
- #endif
- }
--
--void
--show_mem(void)
--{
--	long i,free = 0,total = 0,reserved = 0;
--	long shared = 0, cached = 0;
--	int nid;
--
--	printk("\nMem-info:\n");
--	show_free_areas();
--	printk("Free swap:       %6ldkB\n", nr_swap_pages<<(PAGE_SHIFT-10));
--	for_each_online_node(nid) {
--		unsigned long flags;
--		pgdat_resize_lock(NODE_DATA(nid), &flags);
--		i = node_spanned_pages(nid);
--		while (i-- > 0) {
--			struct page *page = nid_page_nr(nid, i);
--			total++;
--			if (PageReserved(page))
--				reserved++;
--			else if (PageSwapCache(page))
--				cached++;
--			else if (!page_count(page))
--				free++;
--			else
--				shared += page_count(page) - 1;
--		}
--		pgdat_resize_unlock(NODE_DATA(nid), &flags);
--	}
--	printk("%ld pages of RAM\n",total);
--	printk("%ld free pages\n",free);
--	printk("%ld reserved pages\n",reserved);
--	printk("%ld pages shared\n",shared);
--	printk("%ld pages swap cached\n",cached);
--}
+ struct kmem_cache *pgtable_cache __read_mostly;
+ 
+ static void pgd_ctor(struct kmem_cache *cache, void* addr)
 
 -- 
