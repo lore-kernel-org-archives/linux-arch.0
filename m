@@ -1,39 +1,83 @@
 From: Johannes Weiner <hannes@saeurebad.de>
-Subject: [PATCH 01/20] mm: print swapcache page count in show_swap_cache_info()
-Date: Fri, 27 Jun 2008 13:53:50 +0200
-Message-ID: <20080627120047.908072507@saeurebad.de>
+Subject: [PATCH 07/20] frv: use generic show_mem()
+Date: Fri, 27 Jun 2008 13:53:56 +0200
+Message-ID: <20080627120048.813409767@saeurebad.de>
 References: <20080627115349.743368154@saeurebad.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from saeurebad.de ([85.214.36.134]:38990 "EHLO saeurebad.de"
+Received: from saeurebad.de ([85.214.36.134]:39011 "EHLO saeurebad.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760415AbYF0MFK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jun 2008 08:05:10 -0400
-Content-Disposition: inline; filename=0002-swapcache-page-count.patch
+	id S1759521AbYF0MFp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jun 2008 08:05:45 -0400
+Content-Disposition: inline; filename=0008-frv-use-generic-show_mem.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
 
-Most show_mem() implementations calculate the amount of pages within
-the swapcache every time.  Move the output to a more appropriate place
-and use the anyway available total_swapcache_pages variable.
+Remove arch-specific show_mem() in favor of the generic version.
+
+This also removes the following redundant information display:
+
+	- free pages, printed by show_free_areas()
+
+where show_mem() calls show_free_areas().
 
 Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
+Acked-by: David Howells <dhowells@redhat.com>
 ---
- mm/swap_state.c |    3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ arch/frv/Kconfig   |    1 +
+ arch/frv/mm/init.c |   31 -------------------------------
+ 2 files changed, 1 insertion(+), 31 deletions(-)
 
---- a/mm/swap_state.c
-+++ b/mm/swap_state.c
-@@ -56,7 +56,8 @@ static struct {
+--- a/arch/frv/Kconfig
++++ b/arch/frv/Kconfig
+@@ -6,6 +6,7 @@ config FRV
+ 	bool
+ 	default y
+ 	select HAVE_IDE
++	select HAVE_GENERIC_SHOW_MEM
  
- void show_swap_cache_info(void)
- {
--	printk("Swap cache: add %lu, delete %lu, find %lu/%lu\n",
-+	printk("%lu pages in swap cache\n", total_swapcache_pages);
-+	printk("Swap cache stats: add %lu, delete %lu, find %lu/%lu\n",
- 		swap_cache_info.add_total, swap_cache_info.del_total,
- 		swap_cache_info.find_success, swap_cache_info.find_total);
- 	printk("Free swap  = %lukB\n", nr_swap_pages << (PAGE_SHIFT - 10));
+ config ZONE_DMA
+ 	bool
+--- a/arch/frv/mm/init.c
++++ b/arch/frv/mm/init.c
+@@ -63,37 +63,6 @@ EXPORT_SYMBOL(empty_zero_page);
+ 
+ /*****************************************************************************/
+ /*
+- *
+- */
+-void show_mem(void)
+-{
+-	unsigned long i;
+-	int free = 0, total = 0, reserved = 0, shared = 0;
+-
+-	printk("\nMem-info:\n");
+-	show_free_areas();
+-	i = max_mapnr;
+-	while (i-- > 0) {
+-		struct page *page = &mem_map[i];
+-
+-		total++;
+-		if (PageReserved(page))
+-			reserved++;
+-		else if (!page_count(page))
+-			free++;
+-		else
+-			shared += page_count(page) - 1;
+-	}
+-
+-	printk("%d pages of RAM\n",total);
+-	printk("%d free pages\n",free);
+-	printk("%d reserved pages\n",reserved);
+-	printk("%d pages shared\n",shared);
+-
+-} /* end show_mem() */
+-
+-/*****************************************************************************/
+-/*
+  * paging_init() continues the virtual memory environment setup which
+  * was begun by the code in arch/head.S.
+  * The parameters are pointers to where to stick the starting and ending
 
 -- 
