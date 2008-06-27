@@ -1,94 +1,81 @@
 From: Johannes Weiner <hannes@saeurebad.de>
-Subject: [PATCH 04/20] avr32: use generic show_mem()
-Date: Fri, 27 Jun 2008 13:53:53 +0200
-Message-ID: <20080627120048.363025147@saeurebad.de>
+Subject: [PATCH 10/20] m68knommu: use generic show_mem()
+Date: Fri, 27 Jun 2008 13:53:59 +0200
+Message-ID: <20080627120049.269621765@saeurebad.de>
 References: <20080627115349.743368154@saeurebad.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from saeurebad.de ([85.214.36.134]:38998 "EHLO saeurebad.de"
+Received: from saeurebad.de ([85.214.36.134]:39023 "EHLO saeurebad.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759309AbYF0MF2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jun 2008 08:05:28 -0400
-Content-Disposition: inline; filename=0005-avr32-use-generic-show_mem.patch
+	id S1760593AbYF0MGC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jun 2008 08:06:02 -0400
+Content-Disposition: inline; filename=0011-m68knommu-use-generic-show_mem.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@atmel.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
 
 Remove arch-specific show_mem() in favor of the generic version.
 
 This also removes the following redundant information display:
 
 	- free pages, printed by show_free_areas()
-	- pages in slabs, printed by show_free_areas()
 	- pages in swapcache, printed by show_swap_cache_info()
 
 where show_mem() calls show_free_areas(), which calls
 show_swap_cache_info().
 
 Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
-Acked-by: Haavard Skinnemoen <hskinnemoen@atmel.com>
+CC: Geert Uytterhoeven <geert@linux-m68k.org>
 ---
- arch/avr32/Kconfig   |    1 +
- arch/avr32/mm/init.c |   39 ---------------------------------------
- 2 files changed, 1 insertion(+), 39 deletions(-)
+ arch/m68knommu/Kconfig   |    1 +
+ arch/m68knommu/mm/init.c |   27 ---------------------------
+ 2 files changed, 1 insertion(+), 27 deletions(-)
 
---- a/arch/avr32/mm/init.c
-+++ b/arch/avr32/mm/init.c
-@@ -36,45 +36,6 @@ EXPORT_SYMBOL(empty_zero_page);
-  */
- unsigned long mmu_context_cache = NO_CONTEXT;
+--- a/arch/m68knommu/Kconfig
++++ b/arch/m68knommu/Kconfig
+@@ -9,6 +9,7 @@ config M68K
+ 	bool
+ 	default y
+ 	select HAVE_IDE
++	select HAVE_GENERIC_SHOW_MEM
+ 
+ config MMU
+ 	bool
+--- a/arch/m68knommu/mm/init.c
++++ b/arch/m68knommu/mm/init.c
+@@ -62,33 +62,6 @@ static unsigned long empty_bad_page;
+ 
+ unsigned long empty_zero_page;
  
 -void show_mem(void)
 -{
--	int total = 0, reserved = 0, cached = 0;
--	int slab = 0, free = 0, shared = 0;
--	pg_data_t *pgdat;
+-    unsigned long i;
+-    int free = 0, total = 0, reserved = 0, shared = 0;
+-    int cached = 0;
 -
--	printk("Mem-info:\n");
--	show_free_areas();
--
--	for_each_online_pgdat(pgdat) {
--		struct page *page, *end;
--
--		page = pgdat->node_mem_map;
--		end = page + pgdat->node_spanned_pages;
--
--		do {
--			total++;
--			if (PageReserved(page))
--				reserved++;
--			else if (PageSwapCache(page))
--				cached++;
--			else if (PageSlab(page))
--				slab++;
--			else if (!page_count(page))
--				free++;
--			else
--				shared += page_count(page) - 1;
--			page++;
--		} while (page < end);
--	}
--
--	printk ("%d pages of RAM\n", total);
--	printk ("%d free pages\n", free);
--	printk ("%d reserved pages\n", reserved);
--	printk ("%d slab pages\n", slab);
--	printk ("%d pages shared\n", shared);
--	printk ("%d pages swap cached\n", cached);
+-    printk(KERN_INFO "\nMem-info:\n");
+-    show_free_areas();
+-    i = max_mapnr;
+-    while (i-- > 0) {
+-	total++;
+-	if (PageReserved(mem_map+i))
+-	    reserved++;
+-	else if (PageSwapCache(mem_map+i))
+-	    cached++;
+-	else if (!page_count(mem_map+i))
+-	    free++;
+-	else
+-	    shared += page_count(mem_map+i) - 1;
+-    }
+-    printk(KERN_INFO "%d pages of RAM\n",total);
+-    printk(KERN_INFO "%d free pages\n",free);
+-    printk(KERN_INFO "%d reserved pages\n",reserved);
+-    printk(KERN_INFO "%d pages shared\n",shared);
+-    printk(KERN_INFO "%d pages swap cached\n",cached);
 -}
 -
- /*
-  * paging_init() sets up the page tables
-  *
---- a/arch/avr32/Kconfig
-+++ b/arch/avr32/Kconfig
-@@ -13,6 +13,7 @@ config AVR32
- 	select HAVE_CLK
- 	select HAVE_OPROFILE
- 	select HAVE_KPROBES
-+	select HAVE_GENERIC_SHOW_MEM
- 	help
- 	  AVR32 is a high-performance 32-bit RISC microprocessor core,
- 	  designed for cost-sensitive embedded applications, with particular
+ extern unsigned long memory_start;
+ extern unsigned long memory_end;
+ 
 
 -- 
