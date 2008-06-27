@@ -1,92 +1,81 @@
 From: Johannes Weiner <hannes@saeurebad.de>
-Subject: [PATCH 14/20] powerpc: use generic show_mem()
-Date: Fri, 27 Jun 2008 13:54:03 +0200
-Message-ID: <20080627120049.883374735@saeurebad.de>
+Subject: [PATCH 13/20] mn10300: use generic show_mem()
+Date: Fri, 27 Jun 2008 13:54:02 +0200
+Message-ID: <20080627120049.724004313@saeurebad.de>
 References: <20080627115349.743368154@saeurebad.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from saeurebad.de ([85.214.36.134]:39041 "EHLO saeurebad.de"
+Received: from saeurebad.de ([85.214.36.134]:39036 "EHLO saeurebad.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758259AbYF0MGZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jun 2008 08:06:25 -0400
-Content-Disposition: inline; filename=0015-powerpc-use-generic-show_mem.patch
+	id S1760108AbYF0MGT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jun 2008 08:06:19 -0400
+Content-Disposition: inline; filename=0014-mn10300-use-generic-show_mem.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
 
 Remove arch-specific show_mem() in favor of the generic version.
 
 This also removes the following redundant information display:
 
+	- free pages, printed by show_free_areas()
 	- pages in swapcache, printed by show_swap_cache_info()
 
 where show_mem() calls show_free_areas(), which calls
 show_swap_cache_info().
 
 Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
-CC: Paul Mackerras <paulus@samba.org>
+Acked-by: David Howells <dhowells@redhat.com>
 ---
- arch/powerpc/Kconfig  |    1 +
- arch/powerpc/mm/mem.c |   39 ---------------------------------------
- 2 files changed, 1 insertion(+), 39 deletions(-)
+ arch/mn10300/Kconfig      |    1 +
+ arch/mn10300/mm/pgtable.c |   27 ---------------------------
+ 2 files changed, 1 insertion(+), 27 deletions(-)
 
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -114,6 +114,7 @@ config PPC
- 	select HAVE_KRETPROBES
- 	select HAVE_LMB
- 	select HAVE_OPROFILE
-+	select HAVE_GENERIC_SHOW_MEM
- 	select USE_GENERIC_SMP_HELPERS if SMP
+--- a/arch/mn10300/Kconfig
++++ b/arch/mn10300/Kconfig
+@@ -7,6 +7,7 @@ mainmenu "Linux Kernel Configuration"
  
- config EARLY_PRINTK
---- a/arch/powerpc/mm/mem.c
-+++ b/arch/powerpc/mm/mem.c
-@@ -185,45 +185,6 @@ walk_memory_resource(unsigned long start
- }
- EXPORT_SYMBOL_GPL(walk_memory_resource);
+ config MN10300
+ 	def_bool y
++	select HAVE_GENERIC_SHOW_MEM
+ 
+ config AM33
+ 	def_bool y
+--- a/arch/mn10300/mm/pgtable.c
++++ b/arch/mn10300/mm/pgtable.c
+@@ -27,33 +27,6 @@
+ #include <asm/tlb.h>
+ #include <asm/tlbflush.h>
  
 -void show_mem(void)
 -{
--	unsigned long total = 0, reserved = 0;
--	unsigned long shared = 0, cached = 0;
--	unsigned long highmem = 0;
--	struct page *page;
--	pg_data_t *pgdat;
 -	unsigned long i;
+-	int free = 0, total = 0, reserved = 0, shared = 0;
 -
--	printk("Mem-info:\n");
+-	int cached = 0;
+-	printk(KERN_INFO "Mem-info:\n");
 -	show_free_areas();
--	for_each_online_pgdat(pgdat) {
--		unsigned long flags;
--		pgdat_resize_lock(pgdat, &flags);
--		for (i = 0; i < pgdat->node_spanned_pages; i++) {
--			if (!pfn_valid(pgdat->node_start_pfn + i))
--				continue;
--			page = pgdat_page_nr(pgdat, i);
--			total++;
--			if (PageHighMem(page))
--				highmem++;
--			if (PageReserved(page))
--				reserved++;
--			else if (PageSwapCache(page))
--				cached++;
--			else if (page_count(page))
--				shared += page_count(page) - 1;
--		}
--		pgdat_resize_unlock(pgdat, &flags);
+-	i = max_mapnr;
+-	while (i-- > 0) {
+-		total++;
+-		if (PageReserved(mem_map + i))
+-			reserved++;
+-		else if (PageSwapCache(mem_map + i))
+-			cached++;
+-		else if (!page_count(mem_map + i))
+-			free++;
+-		else
+-			shared += page_count(mem_map + i) - 1;
 -	}
--	printk("%ld pages of RAM\n", total);
--#ifdef CONFIG_HIGHMEM
--	printk("%ld pages of HIGHMEM\n", highmem);
--#endif
--	printk("%ld reserved pages\n", reserved);
--	printk("%ld pages shared\n", shared);
--	printk("%ld pages swap cached\n", cached);
+-	printk(KERN_INFO "%d pages of RAM\n", total);
+-	printk(KERN_INFO "%d free pages\n", free);
+-	printk(KERN_INFO "%d reserved pages\n", reserved);
+-	printk(KERN_INFO "%d pages shared\n", shared);
+-	printk(KERN_INFO "%d pages swap cached\n", cached);
 -}
 -
  /*
-  * Initialize the bootmem system and give it all the memory we
-  * have available.  If we are using highmem, we only put the
+  * Associate a large virtual page frame with a given physical page frame
+  * and protection flags for that frame. pfn is for the base of the page,
 
 -- 
