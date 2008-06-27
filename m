@@ -1,76 +1,81 @@
-From: Adrian Bunk <bunk@kernel.org>
-Subject: Re: [PATCH 48/60] microblaze_v4: headers simple files - empty or
-	redirect to asm-generic
-Date: Fri, 27 Jun 2008 14:59:37 +0300
-Message-ID: <20080627115936.GA18644@cs181140183.pp.htv.fi>
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <200806261838.33787.arnd@arndb.de> <20080626180530.GA22827@cs181140183.pp.htv.fi> <200806270123.06669.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+From: Johannes Weiner <hannes@saeurebad.de>
+Subject: [PATCH 05/20] blackfin: use generic show_mem()
+Date: Fri, 27 Jun 2008 13:53:54 +0200
+Message-ID: <20080627120048.512902842@saeurebad.de>
+References: <20080627115349.743368154@saeurebad.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp5.pp.htv.fi ([213.243.153.39]:56741 "EHLO smtp5.pp.htv.fi"
+Received: from saeurebad.de ([85.214.36.134]:39002 "EHLO saeurebad.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759382AbYF0MBu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jun 2008 08:01:50 -0400
-Content-Disposition: inline
-In-Reply-To: <200806270123.06669.arnd@arndb.de>
+	id S1759101AbYF0MFf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jun 2008 08:05:35 -0400
+Content-Disposition: inline; filename=0006-blackfin-use-generic-show_mem.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: monstr@seznam.cz, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Bryan Wu <cooloney@kernel.org>
 
-On Fri, Jun 27, 2008 at 01:23:05AM +0200, Arnd Bergmann wrote:
-> On Thursday 26 June 2008, Adrian Bunk wrote:
-> > Honestly, I do not completely like your approach of getting the 
-> > microblaze port submitter to create the asm-generic files - I would 
-> > personally prefer if the microblaze port would look exactly like all 
-> > other ports and the (reasonable) changes you have in mind were not
-> > being discussed and done as part of the submission of a new port.
-> 
-> But it works really well this way ;-). My point is that a new port
-> should look just like all the other ports should have looked as
-> well, not like they did. When it comes to the ABI, you
-> cannot make incompatible changes after it's merged, so IMHO all
-> ABI defining headers should go to asm-generic if possible.
->...
+Remove arch-specific show_mem() in favor of the generic version.
 
-For the ABI it doesn't matter where the headers are.
+This also removes the following redundant information display:
 
-> > After all, it won't matter whether we'll unify resp. remove
-> > 22 or 23 files.
-> 
-> That wasn't my idea. The logic was that if one more file exists
-> in asm-generic that can be removed from the architectures,
-> we get 22 more files to remove without anyone having to look
-> at the big picture. When microblaze is in,
+	- free pages, printed by show_free_areas()
+	- pages in swapcache, printed by show_swap_cache_info()
 
-Discussions of the "big picture" should be in an own thread, not as 
-part of a merge of a new architecture.
+where show_mem() calls show_free_areas(), which calls
+show_swap_cache_info().
 
-I am not an architecture maintainer, but I do not like the way you want 
-to couple the microblaze merge with the move of stuff to asm-generic.
+Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
+Acked-by: Bryan Wu <cooloney@kernel.org>
+---
+ arch/blackfin/Kconfig   |    1 +
+ arch/blackfin/mm/init.c |   27 ---------------------------
+ 2 files changed, 1 insertion(+), 27 deletions(-)
 
-They both make sense, but they are clearly separate issues.
-
-> I can compile a list
-> with asm-generic files that can be used to replace the architecture
-> specific files, so the arch maintainers can decide on their own
-> whether to clean their own stuff up or not.
->...
-
-We need either all architectures changed or none at all - we do need the 
-arch headers to become more similar, not more different.
-
-And this is why we need an agreement _before_ an asm-generic header gets 
-added, not after it.
-
-> 	Arnd <><
-
-cu
-Adrian
+--- a/arch/blackfin/mm/init.c
++++ b/arch/blackfin/mm/init.c
+@@ -53,33 +53,6 @@ static unsigned long empty_bad_page;
+ 
+ unsigned long empty_zero_page;
+ 
+-void show_mem(void)
+-{
+-	unsigned long i;
+-	int free = 0, total = 0, reserved = 0, shared = 0;
+-
+-	int cached = 0;
+-	printk(KERN_INFO "Mem-info:\n");
+-	show_free_areas();
+-	i = max_mapnr;
+-	while (i-- > 0) {
+-		total++;
+-		if (PageReserved(mem_map + i))
+-			reserved++;
+-		else if (PageSwapCache(mem_map + i))
+-			cached++;
+-		else if (!page_count(mem_map + i))
+-			free++;
+-		else
+-			shared += page_count(mem_map + i) - 1;
+-	}
+-	printk(KERN_INFO "%d pages of RAM\n", total);
+-	printk(KERN_INFO "%d free pages\n", free);
+-	printk(KERN_INFO "%d reserved pages\n", reserved);
+-	printk(KERN_INFO "%d pages shared\n", shared);
+-	printk(KERN_INFO "%d pages swap cached\n", cached);
+-}
+-
+ /*
+  * paging_init() continues the virtual memory environment setup which
+  * was begun by the code in arch/head.S.
+--- a/arch/blackfin/Kconfig
++++ b/arch/blackfin/Kconfig
+@@ -26,6 +26,7 @@ config BLACKFIN
+ 	default y
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
++	select HAVE_GENERIC_SHOW_MEM
+ 
+ config ZONE_DMA
+ 	bool
 
 -- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
