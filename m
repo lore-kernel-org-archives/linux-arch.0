@@ -1,36 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from az33egw01.freescale.net ([192.88.158.102]:43112 "EHLO
-	az33egw01.freescale.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751166AbYFZVpF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2008 17:45:05 -0400
-Message-ID: <48640DB1.7020500@freescale.com>
-Date: Thu, 26 Jun 2008 16:44:17 -0500
-From: Jon Loeliger <jdl@freescale.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH 12/60] microblaze_v4: Generic dts file for platforms
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>	<1214483429-32360-2-git-send-email-monstr@seznam.cz>	<1214483429-32360-3-git-send-email-monstr@seznam.cz>	<1214483429-32360-4-git-send-email-monstr@seznam.cz>	<1214483429-32360-5-git-send-email-monstr@seznam.cz>	<1214483429-32360-6-git-send-email-monstr@seznam.cz>	<1214483429-32360-7-git-send-email-monstr@seznam.cz>	<1214483429-32360-8-git-send-email-monstr@seznam.cz>	<1214483429-32360-9-git-send-email-monstr@seznam.cz>	<1214483429-32360-10-git-send-email-monstr@seznam.cz>	<1214483429-32360-11-git-send-email-monstr@seznam.cz>	<1214483429-32360-12-git-send-email-monstr@seznam.cz>	<1214483429-32360-13-git-send-email-monstr@seznam.cz><4863B096.7020309@freescale.com>	<4863E68C.30802@seznam.cz> <20080626201813.9662411E0051@mail20-wa4.bigfish.com> <48640CF7.7050700@seznam.cz>
-In-Reply-To: <48640CF7.7050700@seznam.cz>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Received: from mxl.seznam.cz ([77.75.72.44]:38042 "EHLO mxl.seznam.cz"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754175AbYF0NVA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jun 2008 09:21:00 -0400
+In-Reply-To: <20080627115936.GA18644@cs181140183.pp.htv.fi>
+Date: Fri, 27 Jun 2008 15:19:34 +0200 (CEST)
+From: =?us-ascii?Q?Michal=20Simek?= <Monstr@seznam.cz>
+Subject: =?us-ascii?Q?Re=3A=20=5BPATCH=2048=2F60=5D=20microblaze=5Fv4=3A=20headers=20simple=20files=20=2D=20empty=20or=20redirect=20to=20asm=2Dgeneric?=
+Mime-Version: 1.0
+Message-ID: <4641.7464-1541-432171441-1214572774@seznam.cz>
 Content-Transfer-Encoding: 7bit
+Content-Type: text/plain;
+	charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@seznam.cz
-Cc: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>, linux-arch@vger.kernel.org, john.williams@petalogix.com, arnd@arndb.de, vapier.adi@gmail.com, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, will.newton@gmail.com, hpa@zytor.com, John Linn <linnj@xilinx.com>, drepper@redhat.com, alan@lxorguk.ukuu.org.uk
-Message-ID: <20080626214417.kbAZ0uB9YctEbT0gH1qiVsl84MJ2Yvl7Tq7H_ymo5mU@z>
+To: =?us-ascii?Q?Adrian=20Bunk?= <bunk@kernel.org>
+Cc: =?us-ascii?Q?Arnd=20Bergmann?= <arnd@arndb.de>, linux-arch@vger.kernel.org, alan@lxorguk.ukuu.org.uk, =?us-ascii?Q?Michal=20Simek?= <monstr@monstr.eu>, vapier.adi@gmail.com, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, drepper@redhat.com, linuxppc-dev@ozlabs.org, will.newton@gmail.com, hpa@zytor.com, John.Linn@xilinx.com, john.williams@petalogix.com
+Message-ID: <20080627131934.40YPEkK3cFxcwOVcbpnE4oTCPgEMHG5XrjWoAeXeA3k@z>
 
-Michal Simek wrote:
-> Ok. Thanks for information Steve.
-> 
-> Jon: Only for sure the main difference is only in value handling. Am I right?
-> If yes, it is easy to change.
-> 
-> M
+Hi Adrian and Arnd,
 
-Right.  It is essentially C-like now.  And has a
-declarator at the top with /dts-v1/.  Essentially
-all of the DTS files in arch/powerpc/boot/dts should
-be V1 now.  Lots of examples.
+>> > After all, it won't matter whether we'll unify resp. remove
+>> > 22 or 23 files.
+>> 
+>> That wasn't my idea. The logic was that if one more file exists
+>> in asm-generic that can be removed from the architectures,
+>> we get 22 more files to remove without anyone having to look
+>> at the big picture. When microblaze is in,
+>
+>Discussions of the "big picture" should be in an own thread, not as 
+>part of a merge of a new architecture.
+>
+>I am not an architecture maintainer, but I do not like the way you want 
+>to couple the microblaze merge with the move of stuff to asm-generic.
+>
+>They both make sense, but they are clearly separate issues.
+>
+>> I can compile a list
+>> with asm-generic files that can be used to replace the architecture
+>> specific files, so the arch maintainers can decide on their own
+>> whether to clean their own stuff up or not.
+>>...
+>
+>We need either all architectures changed or none at all - we do need the 
+>arch headers to become more similar, not more different.
+>
+>And this is why we need an agreement _before_ an asm-generic header gets 
+>added, not after it.
 
-Except in Byte Arrays:  x = [ CA FE BA BE FE ED D0 0D ];
+I moved some headers to asm-generic how Arnd recommended to me. The same style
+is applied to of files. If you think that is good idea to start with new topic what is necessary to move
+to asm-generic, I agree. For me is not hard to move these files back to asm-microblaze and then
+someone can do big patch among all archs.
+If you want to managed, please open new discussion about and cc me.
 
-jdl
+Michal
