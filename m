@@ -1,29 +1,88 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH 59/60] microblaze_v4: syscall_table.S and unistd.h
-Date: Sat, 28 Jun 2008 14:10:27 +0900
-Message-ID: <20080628051027.GJ25492@linux-sh.org>
-References: <1214483429-32360-51-git-send-email-monstr@seznam.cz> <1214483429-32360-52-git-send-email-monstr@seznam.cz> <1214483429-32360-53-git-send-email-monstr@seznam.cz> <1214483429-32360-54-git-send-email-monstr@seznam.cz> <1214483429-32360-55-git-send-email-monstr@seznam.cz> <1214483429-32360-56-git-send-email-monstr@seznam.cz> <1214483429-32360-57-git-send-email-monstr@seznam.cz> <1214483429-32360-58-git-send-email-monstr@seznam.cz> <1214483429-32360-59-git-send-email-monstr@seznam.cz> <1214483429-32360-60-git-send-email-monstr@seznam.cz>
+From: "Grant Likely" <grant.likely@secretlab.ca>
+Subject: Re: [PATCH 12/60] microblaze_v4: Generic dts file for platforms
+Date: Fri, 27 Jun 2008 22:49:36 -0700
+Message-ID: <fa686aa40806272249l7eae0c34k43a20ad41672b77a@mail.gmail.com>
+References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-5-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-6-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-7-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-8-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-9-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-10-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-11-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-12-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-13-git-send-email-monstr@seznam.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mta23.gyao.ne.jp ([125.63.38.249]:40964 "EHLO mx.gate01.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750806AbYF1FNQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 28 Jun 2008 01:13:16 -0400
+Received: from yw-out-2324.google.com ([74.125.46.30]:15149 "EHLO
+	yw-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753652AbYF1Fth (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Jun 2008 01:49:37 -0400
+Received: by yw-out-2324.google.com with SMTP id 9so350550ywe.1
+        for <linux-arch@vger.kernel.org>; Fri, 27 Jun 2008 22:49:36 -0700 (PDT)
+In-Reply-To: <1214483429-32360-13-git-send-email-monstr@seznam.cz>
 Content-Disposition: inline
-In-Reply-To: <1214483429-32360-60-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: monstr@seznam.cz
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
 
-On Thu, Jun 26, 2008 at 02:30:28PM +0200, monstr@seznam.cz wrote:
-> +#define __NR_semtimedop		325
-> +#define __NR_timerfd_settime	326
-> +#define __NR_timerfd_gettime	327
-> +
-> +#ifdef __KERNEL__
-> +
-> +#define __NR_syscalls		327
-> +
-Off-by-1 on __NR_syscalls, this should be 328.
+On Thu, Jun 26, 2008 at 5:29 AM,  <monstr@seznam.cz> wrote:
+> From: Michal Simek <monstr@monstr.eu>
+>
+>
+> Signed-off-by: Michal Simek <monstr@monstr.eu>
+> ---
+>  arch/microblaze/platform/generic/system.dts |  300 +++++++++++++++++++++++++++
+>  1 files changed, 300 insertions(+), 0 deletions(-)
+>  create mode 100644 arch/microblaze/platform/generic/system.dts
+
+Since this is a generated file, and entirely bitstream specific, does
+it make sense to include it in the kernel tree?  If it does, then is
+it produced from one of the Xilinx reference designs?  Can you add
+documentation to the header that specifies exactly which design
+version this .dts is for?
+
+>
+> diff --git a/arch/microblaze/platform/generic/system.dts b/arch/microblaze/platform/generic/system.dts
+> new file mode 100644
+> index 0000000..724a037
+> --- /dev/null
+> +++ b/arch/microblaze/platform/generic/system.dts
+> @@ -0,0 +1,300 @@
+> +/*
+> + * (C) Copyright 2007-2008 Xilinx, Inc.
+> + * (C) Copyright 2007-2008 Michal Simek
+> + *
+> + * Michal SIMEK <monstr@monstr.eu>
+
+If this is a generated file, then is this copyright notice even appropriate?
+
+> + *
+> + * This program is free software; you can redistribute it and/or
+> + * modify it under the terms of the GNU General Public License as
+> + * published by the Free Software Foundation; either version 2 of
+> + * the License, or (at your option) any later version.
+> + *
+> + * This program is distributed in the hope that it will be useful,
+> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+> + * GNU General Public License for more details.
+> + *
+> + * You should have received a copy of the GNU General Public License
+> + * along with this program; if not, write to the Free Software
+> + * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+> + * MA 02111-1307 USA
+
+I don't this whole large legal block is necessary.  Unless specified
+otherwise in the comment block, I believe GPL licencing is pretty much
+assumed and so the above three copyrights should be redundant.
+
+Cheers,
+g.
+
+-- 
+Grant Likely, B.Sc., P.Eng.
+Secret Lab Technologies Ltd.
