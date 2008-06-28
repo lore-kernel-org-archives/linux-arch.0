@@ -1,88 +1,43 @@
-From: "Grant Likely" <grant.likely@secretlab.ca>
-Subject: Re: [PATCH 12/60] microblaze_v4: Generic dts file for platforms
-Date: Fri, 27 Jun 2008 22:49:36 -0700
-Message-ID: <fa686aa40806272249l7eae0c34k43a20ad41672b77a@mail.gmail.com>
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
-	 <1214483429-32360-5-git-send-email-monstr@seznam.cz>
-	 <1214483429-32360-6-git-send-email-monstr@seznam.cz>
-	 <1214483429-32360-7-git-send-email-monstr@seznam.cz>
-	 <1214483429-32360-8-git-send-email-monstr@seznam.cz>
-	 <1214483429-32360-9-git-send-email-monstr@seznam.cz>
-	 <1214483429-32360-10-git-send-email-monstr@seznam.cz>
-	 <1214483429-32360-11-git-send-email-monstr@seznam.cz>
-	 <1214483429-32360-12-git-send-email-monstr@seznam.cz>
-	 <1214483429-32360-13-git-send-email-monstr@seznam.cz>
+From: Johannes Weiner <hannes@saeurebad.de>
+Subject: Re: [PATCH 02/20] mm: generic show_mem()
+Date: Sat, 28 Jun 2008 12:25:57 +0200
+Message-ID: <87myl5ama2.fsf@skyscraper.fehenstaub.lan>
+References: <20080627115349.743368154@saeurebad.de>
+	<20080627120048.059732179@saeurebad.de>
+	<20080628042240.GB25492@linux-sh.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from yw-out-2324.google.com ([74.125.46.30]:15149 "EHLO
-	yw-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753652AbYF1Fth (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Jun 2008 01:49:37 -0400
-Received: by yw-out-2324.google.com with SMTP id 9so350550ywe.1
-        for <linux-arch@vger.kernel.org>; Fri, 27 Jun 2008 22:49:36 -0700 (PDT)
-In-Reply-To: <1214483429-32360-13-git-send-email-monstr@seznam.cz>
-Content-Disposition: inline
+Received: from saeurebad.de ([85.214.36.134]:49016 "EHLO saeurebad.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751756AbYF1K0c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 28 Jun 2008 06:26:32 -0400
+In-Reply-To: <20080628042240.GB25492@linux-sh.org> (Paul Mundt's message of
+	"Sat, 28 Jun 2008 13:22:40 +0900")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@seznam.cz
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
+To: Paul Mundt <lethal@linux-sh.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, Jun 26, 2008 at 5:29 AM,  <monstr@seznam.cz> wrote:
-> From: Michal Simek <monstr@monstr.eu>
+Hi,
+
+Paul Mundt <lethal@linux-sh.org> writes:
+
+> On Fri, Jun 27, 2008 at 01:53:51PM +0200, Johannes Weiner wrote:
+>> This implements a platform-independent version of show_mem().
+>> 
+>> Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
 >
->
-> Signed-off-by: Michal Simek <monstr@monstr.eu>
-> ---
->  arch/microblaze/platform/generic/system.dts |  300 +++++++++++++++++++++++++++
->  1 files changed, 300 insertions(+), 0 deletions(-)
->  create mode 100644 arch/microblaze/platform/generic/system.dts
+> Looking at this again, does having this as a Kconfig option really make
+> sense? We have no tristate in-tree users of this that I can see, wouldn't
+> this be better off in lib/? It would be preferable not to let the
+> HAVE_foo stuff get out of hand if we can avoid it.
 
-Since this is a generated file, and entirely bitstream specific, does
-it make sense to include it in the kernel tree?  If it does, then is
-it produced from one of the Xilinx reference designs?  Can you add
-documentation to the header that specifies exactly which design
-version this .dts is for?
+I hate the current Kconfig usage, too.  But I figured, if I won't obey
+on such decisions by people who maintain it, it won't have a chance to
+get in.
 
->
-> diff --git a/arch/microblaze/platform/generic/system.dts b/arch/microblaze/platform/generic/system.dts
-> new file mode 100644
-> index 0000000..724a037
-> --- /dev/null
-> +++ b/arch/microblaze/platform/generic/system.dts
-> @@ -0,0 +1,300 @@
-> +/*
-> + * (C) Copyright 2007-2008 Xilinx, Inc.
-> + * (C) Copyright 2007-2008 Michal Simek
-> + *
-> + * Michal SIMEK <monstr@monstr.eu>
+So, what do you suggest?  Moving it to lib/ and have one simple #define
+if the arch wants to use it or not?
 
-If this is a generated file, then is this copyright notice even appropriate?
-
-> + *
-> + * This program is free software; you can redistribute it and/or
-> + * modify it under the terms of the GNU General Public License as
-> + * published by the Free Software Foundation; either version 2 of
-> + * the License, or (at your option) any later version.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program; if not, write to the Free Software
-> + * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
-> + * MA 02111-1307 USA
-
-I don't this whole large legal block is necessary.  Unless specified
-otherwise in the comment block, I believe GPL licencing is pretty much
-assumed and so the above three copyrights should be redundant.
-
-Cheers,
-g.
-
--- 
-Grant Likely, B.Sc., P.Eng.
-Secret Lab Technologies Ltd.
+	Hannes
