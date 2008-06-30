@@ -1,10 +1,8 @@
 From: "John Williams" <john.williams@petalogix.com>
 Subject: Re: [PATCH 12/60] microblaze_v4: Generic dts file for platforms
-Date: Mon, 30 Jun 2008 10:02:21 +1000
-Message-ID: <1d3f23370806291702g4344a2f9lb62f85cbb475fca4@mail.gmail.com>
+Date: Mon, 30 Jun 2008 13:59:53 +1000
+Message-ID: <1d3f23370806292059qe407693h500d7e562b214e9a@mail.gmail.com>
 References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
-	 <1214483429-32360-6-git-send-email-monstr@seznam.cz>
-	 <1214483429-32360-7-git-send-email-monstr@seznam.cz>
 	 <1214483429-32360-8-git-send-email-monstr@seznam.cz>
 	 <1214483429-32360-9-git-send-email-monstr@seznam.cz>
 	 <1214483429-32360-10-git-send-email-monstr@seznam.cz>
@@ -12,57 +10,85 @@ References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
 	 <1214483429-32360-12-git-send-email-monstr@seznam.cz>
 	 <1214483429-32360-13-git-send-email-monstr@seznam.cz>
 	 <fa686aa40806272249l7eae0c34k43a20ad41672b77a@mail.gmail.com>
+	 <1d3f23370806291702g4344a2f9lb62f85cbb475fca4@mail.gmail.com>
+	 <20080630033943.332471860046@mail171-va3.bigfish.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hu-out-0506.google.com ([72.14.214.225]:12191 "EHLO
-	hu-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754713AbYF3AC3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 29 Jun 2008 20:02:29 -0400
-Received: by hu-out-0506.google.com with SMTP id 28so2933568hub.21
-        for <linux-arch@vger.kernel.org>; Sun, 29 Jun 2008 17:02:27 -0700 (PDT)
-In-Reply-To: <fa686aa40806272249l7eae0c34k43a20ad41672b77a@mail.gmail.com>
+Received: from fg-out-1718.google.com ([72.14.220.153]:40459 "EHLO
+	fg-out-1718.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752037AbYF3D7z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 29 Jun 2008 23:59:55 -0400
+Received: by fg-out-1718.google.com with SMTP id 19so675981fgg.17
+        for <linux-arch@vger.kernel.org>; Sun, 29 Jun 2008 20:59:54 -0700 (PDT)
+In-Reply-To: <20080630033943.332471860046@mail171-va3.bigfish.com>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
+To: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
+Cc: grant.likely@secretlab.ca, monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, linuxppc-dev@ozlabs.org, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, Michal Simek <monstr@monstr.eu>
 
-On Sat, Jun 28, 2008 at 3:49 PM, Grant Likely <grant.likely@secretlab.ca> wrote:
-> On Thu, Jun 26, 2008 at 5:29 AM,  <monstr@seznam.cz> wrote:
->> From: Michal Simek <monstr@monstr.eu>
+Hi Steve,
 
->>  arch/microblaze/platform/generic/system.dts |  300 +++++++++++++++++++++++++++
+> In my opionion, we should only include dts files for reference designs, and
+> it must be documented how to get the design that the dts corresponds to.
 
-> Since this is a generated file, and entirely bitstream specific, does
-> it make sense to include it in the kernel tree?  If it does, then is
-> it produced from one of the Xilinx reference designs?  Can you add
-> documentation to the header that specifies exactly which design
-> version this .dts is for?
+I'm not sure you (or Xilinx) are quite ready for the pain this implies
+- have you tried browsing reference designs on Xilinx.com recently?
+It's a total mishmash of tool versions, boards, you name it.  If
+Xilinx is ready to declare a gold standard "ML401" design, and commit
+to maintaining it tool version after tool version, lots of people will
+be very happy, but I don't see it just yet!
 
-I think there's value in having a generic DTS as an example or
-template, even if it doesn't correspond to any specific machine.
-Agreed a comment block explaining this is valuable.
+I'm not having a go at you here, just questioning the notion that
+there is really any such thing as a persistent 'reference design' for
+these platforms.  These are not physical boards that get manufactured
+and persist as real objects.
 
-I'd almost oppose any attempt to include a standard DTS for things
-like ML401 boards etc - they are just misleading.  Unless we do MD5
-hashes on MHS files, and use them as the filenames, any attempt to
-define a standard platform will just fail and confuse people.  Better
-to show them how to generate the DTS for their system.
+> MD5 hashing might be one way to prevent people from getting the dts file
+> wrong, however without some way of checking it automatically, I don't think
+> anyone will have the patience to checksum the design they have (even worse,
+> with whitespace changes, the md5 sum will change, so this is pretty fragile.
 
->> +/*
->> + * (C) Copyright 2007-2008 Xilinx, Inc.
->> + * (C) Copyright 2007-2008 Michal Simek
->> + *
->> + * Michal SIMEK <monstr@monstr.eu>
->
-> If this is a generated file, then is this copyright notice even appropriate?
+Actually I was only joking about the md5 hashing - just to prove my point :)
 
-I agree.  I think Michal is just copying Xilinx's habit of putting
-copyright headers in generated files, and it's one that we should stop
-now.
+> Having a device tree in the kernel for documentation *shouldn't* be
+> necessary,
 
-Regards,
+Well, yes and no.  A vanilla DTS that shows what a valid one might
+look like - "oh, here's where I declare my main memory parameters,
+..." has some value IMO.
+
+> since noone should ever write their dts by hand. (right?)
+
+I'm not certain you can guarantee that.
+
+> Hence, I'd prefer to not put the dts file in the kernel at all, and but to
+> automatically generate the dts and store it in the blockram of the design.
+> This inextricably associates the dts with the design.
+
+Whether the DTS lives in block ram or is pulled over the net by uboot
+or whatever is not our call to make in the kernel - that's a
+deployment issue.
+
+> As for the copyright, I haven't been able to find much information on
+> whether or not generated files are even copyrightable.  One might argue that
+> they
+> don't have sufficient 'creative value' to be copyrightable.  Or arguably,
+> they are as copyrightable by the generator author as by the author or the
+> .mhs file.
+
+The DTS is a mechanical translation from one file format to another
+(more or less).  Auto-inserting a copyright Xilinx (or anyone else) in
+there would be unenforceable, and therefore should probably just go
+away.
+
+How would you feel if the FSF claimed copyright over object code
+derived from your source files simply because you ran them through
+gcc? :)  I believe there's a special clause in the GCC license to
+explicitly cover this kind of situation.
+
+Cheers,
 
 John
