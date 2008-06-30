@@ -1,72 +1,206 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mxl.seznam.cz ([77.75.72.44]:38374 "EHLO mxl.seznam.cz"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753107AbYF3Gxj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Jun 2008 02:53:39 -0400
-In-Reply-To: <1d3f23370806291702g4344a2f9lb62f85cbb475fca4@mail.gmail.com>
-Date: Mon, 30 Jun 2008 08:48:14 +0200 (CEST)
-From: =?us-ascii?Q?Michal=20Simek?= <Monstr@seznam.cz>
-Subject: =?us-ascii?Q?Re=3A=20=5BPATCH=2012=2F60=5D=20microblaze=5Fv4=3A=20Generic=20dts=20file=20for=20platforms?=
-Mime-Version: 1.0
-Message-ID: <4121.6644-31137-1228643821-1214808494@seznam.cz>
-Content-Transfer-Encoding: 7bit
-Content-Type: text/plain;
-	charset="us-ascii"
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:60970 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753300AbYF3Wdw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 30 Jun 2008 18:33:52 -0400
+Message-ID: <200806302233.m5UMXnbn029068@imap1.linux-foundation.org>
+Subject: + page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix.patch added to -mm tree
+From: akpm@linux-foundation.org
+Date: Mon, 30 Jun 2008 15:33:49 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?us-ascii?Q?John=20Williams?= <john.williams@petalogix.com>
-Cc: =?us-ascii?Q?Grant=20Likely?= <grant.likely@secretlab.ca>, linux-arch@vger.kernel.org, =?us-ascii?Q?Michal=20Simek?= <monstr@monstr.eu>, vapier.adi@gmail.com, arnd@arndb.de, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, drepper@redhat.com, linuxppc-dev@ozlabs.org, will.newton@gmail.com, hpa@zytor.com, John.Linn@xilinx.com, alan@lxorguk.ukuu.org.uk
-Message-ID: <20080630064814.3nJGv78pfD9heWX3N3Gr-mHRYWD_7hjZlFgw86y-NzE@z>
+To: mm-commits@vger.kernel.org
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, righi.andrea@gmail.com
+Message-ID: <20080630223349.6O0T4uc_9U3kkzmELZsNR-GHqa3vDPKSA1U71bv6fao@z>
 
-Hi John, Steve and others,
 
-in generic platform will be generic DTS which I sent in first versions. 
-This DTS will be for simple platform. There is not copyright.
+The patch titled
+     page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix
+has been added to the -mm tree.  Its filename is
+     page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix.patch
 
-FDT generator add copyright notice on the top of file. I added it when I start 
-to program this BSP. Xilinx only add their copyright line which is fine. 
-We can talk how big can be this copyright but I am convinced that will be 
-part of commented code forever because there is placed important information
-which EDK version this file generated and which version of FDT this file generate.
-We can talk about showing license there but I think this is out of topic now because there
-won't be any license in first microblaze pack.
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
 
-Michal
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
 
-> Since this is a generated file, and entirely bitstream specific, does
-> it make sense to include it in the kernel tree?  If it does, then is
-> it produced from one of the Xilinx reference designs?  Can you add
-> documentation to the header that specifies exactly which design
-> version this .dts is for?
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
 
-I think there's value in having a generic DTS as an example or
-template, even if it doesn't correspond to any specific machine.
-Agreed a comment block explaining this is valuable.
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
-I'd almost oppose any attempt to include a standard DTS for things
-like ML401 boards etc - they are just misleading.  Unless we do MD5
-hashes on MHS files, and use them as the filenames, any attempt to
-define a standard platform will just fail and confuse people.  Better
-to show them how to generate the DTS for their system.
+------------------------------------------------------
+Subject: page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix
+From: Andrew Morton <akpm@linux-foundation.org>
 
->> +/*
->> + * (C) Copyright 2007-2008 Xilinx, Inc.
->> + * (C) Copyright 2007-2008 Michal Simek
->> + *
->> + * Michal SIMEK <monstr@monstr.eu>
->
-> If this is a generated file, then is this copyright notice even appropriate?
+Fix v850, even though remove-the-v850-port.patch is in the pipeline.
 
-I agree.  I think Michal is just copying Xilinx's habit of putting
-copyright headers in generated files, and it's one that we should stop
-now.
+Cc: <linux-arch@vger.kernel.org>
+Cc: Andrea Righi <righi.andrea@gmail.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
 
-Regards,
+ include/asm-v850/page.h |    4 ----
+ 1 file changed, 4 deletions(-)
 
-John
-_______________________________________________
-Linuxppc-dev mailing list
-Linuxppc-dev@ozlabs.org
-https://ozlabs.org/mailman/listinfo/linuxppc-dev
+diff -puN include/asm-v850/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix include/asm-v850/page.h
+--- a/include/asm-v850/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix
++++ a/include/asm-v850/page.h
+@@ -94,10 +94,6 @@ typedef unsigned long pgprot_t;
+ #endif /* !__ASSEMBLY__ */
+ 
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr) + PAGE_SIZE - 1) & PAGE_MASK)
+-
+-
+ /* No current v850 processor has virtual memory.  */
+ #define __virt_to_phys(addr)	(addr)
+ #define __phys_to_virt(addr)	(addr)
+_
 
+Patches currently in -mm which might be from akpm@linux-foundation.org are
+
+origin.patch
+rtc-x1205-fix-alarm-set-fix.patch
+next-remove-localversion.patch
+revert-git-pekka.patch
+fix-kobject-fix-kobject_rename-and-config_sysfs.patch
+kvm-is-busted-on-ia64.patch
+drivers-mtd-nand-nandsimc-needs-div64h.patch
+acpi-enable-c3-power-state-on-dell-inspiron-8200.patch
+arm-omap1-n770-convert-audio_pwr_sem-in-a-mutex.patch
+i2c-renesas-highlander-fpga-smbus-support.patch
+git-jg-misc-git-rejects.patch
+drivers-scsi-broadsasc-fix-uninitialised-var-warning.patch
+documentation-build-source-files-in-documentation-sub-dir-disable.patch
+mmc-sd-host-driver-for-ricoh-bay1controllers.patch
+drivers-mtd-devices-block2mtdc-suppress-warning.patch
+sundance-set-carrier-status-on-link-change-events.patch
+8390-split-8390-support-into-a-pausing-and-a-non-pausing-driver-core-fix-fix.patch
+update-smc91x-driver-with-arm-versatile-board-info.patch
+git-scsi-misc-fix-scsi_dh-build-errors.patch
+drivers-scsi-qla2xxx-qla_osc-suppress-uninitialized-var-warning.patch
+s390-uninline-spinlock-functions-which-use-smp_processor_id.patch
+pktcdvd-push-bkl-down-into-driver-fix.patch
+block-fix-bio_add_page-for-non-trivial-merge_bvec_fn-case-fix.patch
+git-unionfs.patch
+git-unionfs-fixup.patch
+git-logfs-fixup.patch
+watchdog-wdt501-pci-clean-up-coding-style-and-switch-to-unlocked_ioctl.patch
+git-xtensa.patch
+scsi-dpt_i2o-is-bust-on-ia64.patch
+mm-verify-the-page-links-and-memory-model.patch
+mspec-convert-nopfn-to-fault-fix.patch
+page-allocator-inlnie-some-__alloc_pages-wrappers-fix.patch
+kill-generic_file_direct_io-checkpatch-fixes.patch
+use-generic_access_phys-for-dev-mem-mappings-fix.patch
+spufs-use-the-new-vm_ops-access-fix.patch
+fix-soft-lock-up-at-nfs-mount-by-per-sb-lru-list-of-unused-dentries-fix.patch
+page-flags-record-page-flag-overlays-explicitly-xen.patch
+mapping_set_error-add-unlikely.patch
+huge-page-private-reservation-review-cleanups-fix.patch
+sync_file_range_write-may-and-will-block-document-that-fix.patch
+vmallocinfo-add-numa-information-fix.patch
+hugetlb-modular-state-for-hugetlb-page-size-checkpatch-fixes.patch
+hugetlb-multiple-hstates-for-multiple-page-sizes-checkpatch-fixes.patch
+hugetlb-override-default-huge-page-size-ia64-build.patch
+linux-next-revert-bootmem-add-return-value-to-reserve_bootmem_node.patch
+revert-linux-next-revert-bootmem-add-return-value-to-reserve_bootmem_node.patch
+revert-revert-linux-next-revert-bootmem-add-return-value-to-reserve_bootmem_node.patch
+revert-revert-revert-linux-next-revert-bootmem-add-return-value-to-reserve_bootmem_node.patch
+bootmem-add-debugging-framework-fix.patch
+bootmem-clean-up-free_all_bootmem_core-fix.patch
+bootmem-free-reserve-helpers-fix.patch
+revert-revert-revert-revert-linux-next-revert-bootmem-add-return-value-to-reserve_bootmem_node.patch
+bootmem-factor-out-the-marking-of-a-pfn-range-fix.patch
+page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix.patch
+vmscan-give-referenced-active-and-unmapped-pages-a-second-trip-around-the-lru.patch
+vm-dont-run-touch_buffer-during-buffercache-lookups.patch
+security-protect-legacy-apps-from-insufficient-privilege-cleanup.patch
+swsusp-provide-users-with-a-hint-about-the-no_console_suspend-option-fix.patch
+split-the-typecheck-macros-out-of-include-linux-kernelh.patch
+locking-add-typecheck-on-irqsave-and-friends-for-correct-flags.patch
+locking-add-typecheck-on-irqsave-and-friends-for-correct-flags-fix.patch
+remove-apparently-unused-fd1772h-header-file.patch
+lib-allow-memparse-to-accept-a-null-and-ignorable-second-parm-checkpatch-fixes.patch
+build-kernel-profileo-only-when-requested-cleanups.patch
+fs-partition-checkc-fix-return-value-warning-v2-cleanup.patch
+block-ioctlc-and-fs-partition-checkc-checkpatch-fixes.patch
+seq_file-fix-bug-when-seq_read-reads-nothing-fix.patch
+rename-warn-to-warning-to-clear-the-namespace-fix.patch
+add-a-warn-macro-this-is-warn_on-printk-arguments-fix.patch
+flag-parameters-paccept-fix.patch
+flag-parameters-paccept-sys_ni.patch
+flag-parameters-anon_inode_getfd-extension-fix.patch
+flag-parameters-signalfd-fix.patch
+flag-parameters-eventfd-fix.patch
+flag-parameters-inotify_init-fix.patch
+flag-parameters-check-magic-constants-alpha.patch
+oprofile-multiplexing-checkpatch-fixes.patch
+gpio-gpio-driver-for-max7301-spi-gpio-expander-checkpatch-fixes.patch
+drivers-video-aty-radeon_basec-notify-user-if-sysfs_create_bin_file-failed-checkpatch-fixes.patch
+atmel_lcdfb-avoid-division-by-zero-checkpatch-fixes.patch
+fsl-diu-fb-update-freescale-diu-driver-to-use-page_alloc_exact-fix.patch
+jbd-fix-race-between-free-buffer-and-commit-trasanction-checkpatch-fixes.patch
+jbd-fix-race-between-free-buffer-and-commit-trasanction-checkpatch-fixes-fix.patch
+ext3-handle-corrupted-orphan-list-at-mount-cleanup.patch
+ext3-handle-corrupted-orphan-list-at-mount-fix.patch
+ext3-handle-corrupted-orphan-list-at-mount-cleanup-fix.patch
+reiserfs-convert-j_flush_sem-to-mutex.patch
+reiserfs-convert-j_commit_lock-to-mutex-checkpatch-fixes.patch
+quota-move-function-macros-from-quotah-to-quotaopsh-jfs-fix.patch
+quota-move-function-macros-from-quotah-to-quotaopsh-jfs-fix-fix.patch
+cgroup_clone-use-pid-of-newly-created-task-for-new-cgroup-checkpatch-fixes.patch
+memcg-remove-refcnt-from-page_cgroup-fix-2.patch
+jbd2-fix-race-between-jbd2_journal_try_to_free_buffers-and-jbd2-commit-transaction-cleanup.patch
+ipc-semc-convert-undo-structures-to-struct-list_head-checkpatch-fixes.patch
+ipc-semc-convert-sem_arraysem_pending-to-struct-list_head-checkpatch-fixes.patch
+ipc-semc-rewrite-undo-list-locking-checkpatch-fixes.patch
+getdelaysc-add-a-usr1-signal-handler-checkpatch-fixes.patch
+dma-mapping-add-the-device-argument-to-dma_mapping_error-sge-fix.patch
+dma-mapping-add-the-device-argument-to-dma_mapping_error-svc_rdma-fix.patch
+dma-mapping-add-the-device-argument-to-dma_mapping_error-bnx2x.patch
+dma-mapping-add-the-device-argument-to-dma_mapping_error-sparc32.patch
+dma-mapping-x86-per-device-dma_mapping_ops-support-fix.patch
+tpm-increase-size-of-internal-tpm-response-buffers-checkpatch-fixes.patch
+memstick-allow-set_param-method-to-return-an-error-code-checkpatch-fixes.patch
+memstick-use-fully-asynchronous-request-processing-fix.patch
+ppc-use-the-common-ascii-hex-helpers-fix.patch
+gcov-architecture-specific-compile-flag-adjustments-powerpc-moved-stuff.patch
+mm-introduce-get_user_pages_fast-fix.patch
+mm-introduce-get_user_pages_fast-checkpatch-fixes.patch
+x86-lockless-get_user_pages_fast-checkpatch-fixes.patch
+x86-lockless-get_user_pages_fast-fix.patch
+x86-lockless-get_user_pages_fast-fix-2.patch
+x86-lockless-get_user_pages_fast-fix-2-fix-fix.patch
+x86-lockless-get_user_pages_fast-fix-warning.patch
+vmscan-move-isolate_lru_page-to-vmscanc-fix.patch
+define-page_file_cache-function-fix.patch
+unevictable-lru-infrastructure-fix.patch
+mlock-mlocked-pages-are-unevictable-fix.patch
+mlock-mlocked-pages-are-unevictable-fix-fix.patch
+mlock-mlocked-pages-are-unevictable-fix-3.patch
+mmap-handle-mlocked-pages-during-map-remap-unmap-cleanup.patch
+vmscan-unevictable-lru-scan-sysctl-nommu-fix.patch
+reiser4.patch
+reiser4-tree_lock-fixes.patch
+reiser4-tree_lock-fixes-fix.patch
+reiser4-semaphore-fix.patch
+page-owner-tracking-leak-detector.patch
+nr_blockdev_pages-in_interrupt-warning.patch
+slab-leaks3-default-y.patch
+put_bh-debug.patch
+shrink_slab-handle-bad-shrinkers.patch
+getblk-handle-2tb-devices.patch
+getblk-handle-2tb-devices-fix.patch
+undeprecate-pci_find_device.patch
+notify_change-callers-must-hold-i_mutex.patch
+profile-likely-unlikely-macros.patch
+drivers-net-bonding-bond_sysfsc-suppress-uninitialized-var-warning.patch
+w1-build-fix.patch
 
