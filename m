@@ -1,73 +1,49 @@
 From: =?us-ascii?Q?Michal=20Simek?= <Monstr@seznam.cz>
-Subject: =?us-ascii?Q?Re=3A=20=5BPATCH=2012=2F60=5D=20microblaze=5Fv4=3A=20Generic=20dts=20file=20for=20platforms?=
-Date: Mon, 30 Jun 2008 08:48:14 +0200 (CEST)
-Message-ID: <4121.6644-31137-1228643821-1214808494@seznam.cz>
-References: <1d3f23370806291702g4344a2f9lb62f85cbb475fca4@mail.gmail.com>
+Subject: =?us-ascii?Q?Re=3A=20=5BPATCH=2019=2F60=5D=20microblaze=5Fv4=3A=20checksum=20support?=
+Date: Mon, 30 Jun 2008 09:18:10 +0200 (CEST)
+Message-ID: <4117.6640-711-1819091302-1214810290@seznam.cz>
+References: <6e8c2b4453be89dba35e0595c9cfcf0a@kernel.crashing.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain;
+	charset="us-ascii";
+	format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org>
-In-Reply-To: <1d3f23370806291702g4344a2f9lb62f85cbb475fca4@mail.gmail.com>
-List-Unsubscribe: <https://ozlabs.org/mailman/options/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@ozlabs.org?subject=unsubscribe>
-List-Archive: <http://ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@ozlabs.org?subject=help>
-List-Subscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@ozlabs.org?subject=subscribe>
-Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
-To: =?us-ascii?Q?John=20Williams?= <john.williams@petalogix.com>
-Cc: linux-arch@vger.kernel.org, =?us-ascii?Q?Michal=20Simek?= <monstr@monstr.eu>, vapier.adi@gmail.com, arnd@arndb.de, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, John.Linn@xilinx.com, linuxppc-dev@ozlabs.org, will.newton@gmail.com, hpa@zytor.com, drepper@redhat.com, alan@lxorguk.ukuu.org.uk
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mxl.seznam.cz ([77.75.72.44]:53194 "EHLO mxl.seznam.cz"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750884AbYF3Hgl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 30 Jun 2008 03:36:41 -0400
+In-Reply-To: <6e8c2b4453be89dba35e0595c9cfcf0a@kernel.crashing.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: =?us-ascii?Q?Segher=20Boessenkool?= <segher@kernel.crashing.org>
+Cc: hpa@zytor.com, John.Linn@xilinx.com, arnd@arndb.de, drepper@redhat.com, matthew@wil.cx, john.williams@petalogix.com, linux-kernel@vger.kernel.org, alan@lxorguk.ukuu.org.uk, linuxppc-dev@ozlabs.org, =?us-ascii?Q?Michal=20Simek?= <monstr@monstr.eu>, vapier.adi@gmail.com, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, will.newton@gmail.com
 
-Hi John, Steve and others,
+Hi Segher,
 
-in generic platform will be generic DTS which I sent in first versions. 
-This DTS will be for simple platform. There is not copyright.
-
-FDT generator add copyright notice on the top of file. I added it when I start 
-to program this BSP. Xilinx only add their copyright line which is fine. 
-We can talk how big can be this copyright but I am convinced that will be 
-part of commented code forever because there is placed important information
-which EDK version this file generated and which version of FDT this file generate.
-We can talk about showing license there but I think this is out of topic now because there
-won't be any license in first microblaze pack.
+you find bug because there is microblaze asm code in generic folder. 
+Big thanks. I'll fix it and I'll look at parameters too.
 
 Michal
 
-> Since this is a generated file, and entirely bitstream specific, does
-> it make sense to include it in the kernel tree?  If it does, then is
-> it produced from one of the Xilinx reference designs?  Can you add
-> documentation to the header that specifies exactly which design
-> version this .dts is for?
+> +static inline unsigned int
+> +csum_tcpudp_nofold(unsigned long saddr, unsigned long daddr, unsigned 
+> short len,
+> +		unsigned short proto, unsigned int sum)
+> +{
+> +	__asm__("add %0, %4, %1\n\t"
+> +		"addc %0, %4, %2\n\t"
+> +		"addc %0, %4, %3\n\t"
+> +		"addc %0, %4, r0\n\t"
+> +		: "=d" (sum)
+> +		: "d" (saddr), "d" (daddr), "d" (len + proto),
+> +		"0"(sum));
 
-I think there's value in having a generic DTS as an example or
-template, even if it doesn't correspond to any specific machine.
-Agreed a comment block explaining this is valuable.
+"sum" should use an earlyclobber, i.e.  "=&d"(sum)  , since some
+inputs are used after %0 is first written to.
 
-I'd almost oppose any attempt to include a standard DTS for things
-like ML401 boards etc - they are just misleading.  Unless we do MD5
-hashes on MHS files, and use them as the filenames, any attempt to
-define a standard platform will just fail and confuse people.  Better
-to show them how to generate the DTS for their system.
+Also, you can use "+" instead of "=" to say the argument is both
+input and output, and get rid of %4, if you like.
 
->> +/*
->> + * (C) Copyright 2007-2008 Xilinx, Inc.
->> + * (C) Copyright 2007-2008 Michal Simek
->> + *
->> + * Michal SIMEK <monstr@monstr.eu>
->
-> If this is a generated file, then is this copyright notice even appropriate?
 
-I agree.  I think Michal is just copying Xilinx's habit of putting
-copyright headers in generated files, and it's one that we should stop
-now.
-
-Regards,
-
-John
-_______________________________________________
-Linuxppc-dev mailing list
-Linuxppc-dev@ozlabs.org
-https://ozlabs.org/mailman/listinfo/linuxppc-dev
+Segher
