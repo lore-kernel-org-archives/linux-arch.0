@@ -1,87 +1,331 @@
-From: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
-Subject: RE: [PATCH 12/60] microblaze_v4: Generic dts file for platforms
-Date: Tue, 1 Jul 2008 08:58:43 -0700
-Message-ID: <20080701155845.9DDE299004D@mail180-dub.bigfish.com>
-References: <1214483429-32360-1-git-send-email-monstr@seznam.cz> <1214483429-32360-6-git-send-email-monstr@seznam.cz> <1214483429-32360-7-git-send-email-monstr@seznam.cz> <1214483429-32360-8-git-send-email-monstr@seznam.cz> <1214483429-32360-9-git-send-email-monstr@seznam.cz> <1214483429-32360-10-git-send-email-monstr@seznam.cz> <1214483429-32360-11-git-send-email-monstr@seznam.cz> <1214483429-32360-12-git-send-email-monstr@seznam.cz> <1214483429-32360-13-git-send-email-monstr@seznam.cz> <fa686aa40806272249l7eae0c34k43a20ad41672b77a@mail.gmail.com> <1d3f23370806291702g4344a2f9lb62f85cbb475fca4@mail.gmail.com> <20080630033943.332471860046@mail171-va3.bigfish.com> <1214893302.20711.102.camel@pasglop>
+From: Adrian Bunk <bunk@kernel.org>
+Subject: [2.6 patch] remove dummy asm/kvm.h files
+Date: Tue, 1 Jul 2008 19:27:16 +0300
+Message-ID: <20080701162716.GB32598@cs181140183.pp.htv.fi>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound-dub.frontbridge.com ([213.199.154.16]:54539 "EHLO
-	IE1EHSOBE005.bigfish.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753970AbYGAP6s convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2008 11:58:48 -0400
-Content-Class: urn:content-classes:message
-In-Reply-To: <1214893302.20711.102.camel@pasglop>
+Received: from smtp6.pp.htv.fi ([213.243.153.40]:48218 "EHLO smtp6.pp.htv.fi"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752136AbYGAQ1h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 1 Jul 2008 12:27:37 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org
-Cc: John Williams <john.williams@petalogix.com>, grant.likely@secretlab.ca, linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, vapier.adi@gmail.com, arnd@arndb.de, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, will.newton@gmail.com, hpa@zytor.com, John Linn <linnj@xilinx.com>, monstr@seznam.cz, drepper@redhat.com, alan@lxorguk.ukuu.org.uk
+To: Christian Borntraeger <borntraeger@de.ibm.com>, Avi Kivity <avi@qumranet.com>
+Cc: linux-arch@vger.kernel.org, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, David Woodhouse <dwmw2@infradead.org>
 
+This patch removes the dummy asm/kvm.h files on architectures not (yet) 
+supporting KVM and uses the same conditional headers installation as
+already used for a.out.h .
 
-Doing this at the binary level would be nice, but I see enough problems
-just doing it at the source level and at least for my purposes, doing it
-on a dtb would be overkill, I think.   
+Also removed are superfluous install rules in the s390 and x86 Kbuild 
+files (they are already in Kbuild.asm).
 
-The main difficulty remains how to deal with cross references between
-nodes in a reasonable way where the references cross from one fragment
-to another.
+Signed-off-by: Adrian Bunk <bunk@kernel.org>
 
-Steve
+---
 
-> -----Original Message-----
-> From: Benjamin Herrenschmidt [mailto:benh@kernel.crashing.org]
-> Sent: Monday, June 30, 2008 11:22 PM
-> To: Stephen Neuendorffer
-> Cc: John Williams; grant.likely@secretlab.ca;
-linux-arch@vger.kernel.org; Michal Simek;
-> vapier.adi@gmail.com; arnd@arndb.de; matthew@wil.cx;
-microblaze-uclinux@itee.uq.edu.au; linux-
-> kernel@vger.kernel.org; linuxppc-dev@ozlabs.org;
-will.newton@gmail.com; hpa@zytor.com; John Linn;
-> monstr@seznam.cz; drepper@redhat.com; alan@lxorguk.ukuu.org.uk
-> Subject: RE: [PATCH 12/60] microblaze_v4: Generic dts file for
-platforms
-> 
-> 
-> > As for the copyright, I haven't been able to find much information
-on
-> > whether or not generated files are even copyrightable.  One might
-> > argue that they
-> > don't have sufficient 'creative value' to be copyrightable.  Or
-> > arguably, they are as copyrightable by the generator author as by
-the
-> > author or the .mhs file.
-> > I admit in this case, I've followed the safe route by claiming a
-> > copyright, which at least at Xilinx has significant precedent.
-> 
-> Also, thinking about your idea of sticking bits in BRAM etc...
-> 
-> what would be nice would be the ability to "merge" trees. We've been
-> talking about that multiple times, it would be useful at several
-levels:
-> 
->  - We could provide pre-made DTs for known CPUs (ie, 440GP, 440GX,
-> 405EX, ...)
->  - Boards can then include that, and then "override" some properties
-> (clocks, PHY wiring, ...)
->  - That could be done at the binary level too so that the BRAM
-contains
-> on "overlay" on top of the base ref. platform device-tree that comes
-> with the kernel for example.
-> 
-> This is slightly different between doing that in the .dts source via
-> some kind of #include vs. doing that by merging blobs but we could
-make
-> it be essentially be the same internally: The #include generates a
-blob
-> that is then "merged in".
-> 
-> Just random thoughts...
-> 
-> Ben.
-> 
-> 
+ include/asm-alpha/kvm.h        |    6 ------
+ include/asm-arm/kvm.h          |    6 ------
+ include/asm-avr32/kvm.h        |    6 ------
+ include/asm-blackfin/kvm.h     |    6 ------
+ include/asm-cris/kvm.h         |    6 ------
+ include/asm-frv/kvm.h          |    6 ------
+ include/asm-generic/Kbuild.asm |    2 ++
+ include/asm-h8300/kvm.h        |    6 ------
+ include/asm-m32r/kvm.h         |    6 ------
+ include/asm-m68k/kvm.h         |    6 ------
+ include/asm-m68knommu/kvm.h    |    6 ------
+ include/asm-mips/kvm.h         |    6 ------
+ include/asm-mn10300/kvm.h      |    6 ------
+ include/asm-parisc/kvm.h       |    6 ------
+ include/asm-s390/Kbuild        |    1 -
+ include/asm-sh/kvm.h           |    6 ------
+ include/asm-sparc/kvm.h        |    6 ------
+ include/asm-sparc64/kvm.h      |    6 ------
+ include/asm-um/kvm.h           |    6 ------
+ include/asm-v850/kvm.h         |    6 ------
+ include/asm-x86/Kbuild         |    1 -
+ include/asm-xtensa/kvm.h       |    6 ------
+ include/linux/Kbuild           |    2 ++
+ 23 files changed, 4 insertions(+), 116 deletions(-)
 
-
-This email and any attachments are intended for the sole use of the named recipient(s) and contain(s) confidential information that may be proprietary, privileged or copyrighted under applicable law. If you are not the intended recipient, do not read, copy, or forward this email message or any attachments. Delete this email message and any attachments immediately.
+ab4cdd1a69f500aa1eeed892142a496172b5e40a 
+diff --git a/include/asm-alpha/kvm.h b/include/asm-alpha/kvm.h
+deleted file mode 100644
+index b9daec4..0000000
+--- a/include/asm-alpha/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_ALPHA_H
+-#define __LINUX_KVM_ALPHA_H
+-
+-/* alpha does not support KVM */
+-
+-#endif
+diff --git a/include/asm-arm/kvm.h b/include/asm-arm/kvm.h
+deleted file mode 100644
+index cb3c08c..0000000
+--- a/include/asm-arm/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_ARM_H
+-#define __LINUX_KVM_ARM_H
+-
+-/* arm does not support KVM */
+-
+-#endif
+diff --git a/include/asm-avr32/kvm.h b/include/asm-avr32/kvm.h
+deleted file mode 100644
+index 8c57770..0000000
+--- a/include/asm-avr32/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_AVR32_H
+-#define __LINUX_KVM_AVR32_H
+-
+-/* avr32 does not support KVM */
+-
+-#endif
+diff --git a/include/asm-blackfin/kvm.h b/include/asm-blackfin/kvm.h
+deleted file mode 100644
+index e3477d7..0000000
+--- a/include/asm-blackfin/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_BLACKFIN_H
+-#define __LINUX_KVM_BLACKFIN_H
+-
+-/* blackfin does not support KVM */
+-
+-#endif
+diff --git a/include/asm-cris/kvm.h b/include/asm-cris/kvm.h
+deleted file mode 100644
+index c860f51..0000000
+--- a/include/asm-cris/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_CRIS_H
+-#define __LINUX_KVM_CRIS_H
+-
+-/* cris does not support KVM */
+-
+-#endif
+diff --git a/include/asm-frv/kvm.h b/include/asm-frv/kvm.h
+deleted file mode 100644
+index 9c8a4f0..0000000
+--- a/include/asm-frv/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_FRV_H
+-#define __LINUX_KVM_FRV_H
+-
+-/* frv does not support KVM */
+-
+-#endif
+diff --git a/include/asm-generic/Kbuild.asm b/include/asm-generic/Kbuild.asm
+index 7cd25b8..1170dc6 100644
+--- a/include/asm-generic/Kbuild.asm
++++ b/include/asm-generic/Kbuild.asm
+@@ -1,4 +1,6 @@
++ifneq ($(wildcard $(srctree)/include/asm-$(SRCARCH)/kvm.h),)
+ header-y  += kvm.h
++endif
+ 
+ ifneq ($(wildcard $(srctree)/include/asm-$(SRCARCH)/a.out.h),)
+ unifdef-y += a.out.h
+diff --git a/include/asm-h8300/kvm.h b/include/asm-h8300/kvm.h
+deleted file mode 100644
+index bdbed7b..0000000
+--- a/include/asm-h8300/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_H8300_H
+-#define __LINUX_KVM_H8300_H
+-
+-/* h8300 does not support KVM */
+-
+-#endif
+diff --git a/include/asm-m32r/kvm.h b/include/asm-m32r/kvm.h
+deleted file mode 100644
+index 99a4051..0000000
+--- a/include/asm-m32r/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_M32R_H
+-#define __LINUX_KVM_M32R_H
+-
+-/* m32r does not support KVM */
+-
+-#endif
+diff --git a/include/asm-m68k/kvm.h b/include/asm-m68k/kvm.h
+deleted file mode 100644
+index 7ed27fc..0000000
+--- a/include/asm-m68k/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_M68K_H
+-#define __LINUX_KVM_M68K_H
+-
+-/* m68k does not support KVM */
+-
+-#endif
+diff --git a/include/asm-m68knommu/kvm.h b/include/asm-m68knommu/kvm.h
+deleted file mode 100644
+index b49d425..0000000
+--- a/include/asm-m68knommu/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_M68KNOMMU_H
+-#define __LINUX_KVM_M68KNOMMU_H
+-
+-/* m68knommu does not support KVM */
+-
+-#endif
+diff --git a/include/asm-mips/kvm.h b/include/asm-mips/kvm.h
+deleted file mode 100644
+index 093a5b7..0000000
+--- a/include/asm-mips/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_MIPS_H
+-#define __LINUX_KVM_MIPS_H
+-
+-/* mips does not support KVM */
+-
+-#endif
+diff --git a/include/asm-mn10300/kvm.h b/include/asm-mn10300/kvm.h
+deleted file mode 100644
+index f6b609f..0000000
+--- a/include/asm-mn10300/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_MN10300_H
+-#define __LINUX_KVM_MN10300_H
+-
+-/* mn10300 does not support KVM */
+-
+-#endif
+diff --git a/include/asm-parisc/kvm.h b/include/asm-parisc/kvm.h
+deleted file mode 100644
+index 00cc458..0000000
+--- a/include/asm-parisc/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_PARISC_H
+-#define __LINUX_KVM_PARISC_H
+-
+-/* parisc does not support KVM */
+-
+-#endif
+diff --git a/include/asm-s390/Kbuild b/include/asm-s390/Kbuild
+index 13c9805..e92b429 100644
+--- a/include/asm-s390/Kbuild
++++ b/include/asm-s390/Kbuild
+@@ -7,7 +7,6 @@ header-y += tape390.h
+ header-y += ucontext.h
+ header-y += vtoc.h
+ header-y += zcrypt.h
+-header-y += kvm.h
+ 
+ unifdef-y += cmb.h
+ unifdef-y += debug.h
+diff --git a/include/asm-sh/kvm.h b/include/asm-sh/kvm.h
+deleted file mode 100644
+index 6af51db..0000000
+--- a/include/asm-sh/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_SH_H
+-#define __LINUX_KVM_SH_H
+-
+-/* sh does not support KVM */
+-
+-#endif
+diff --git a/include/asm-sparc/kvm.h b/include/asm-sparc/kvm.h
+deleted file mode 100644
+index 2e5478d..0000000
+--- a/include/asm-sparc/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_SPARC_H
+-#define __LINUX_KVM_SPARC_H
+-
+-/* sparc does not support KVM */
+-
+-#endif
+diff --git a/include/asm-sparc64/kvm.h b/include/asm-sparc64/kvm.h
+deleted file mode 100644
+index 380537a..0000000
+--- a/include/asm-sparc64/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_SPARC64_H
+-#define __LINUX_KVM_SPARC64_H
+-
+-/* sparc64 does not support KVM */
+-
+-#endif
+diff --git a/include/asm-um/kvm.h b/include/asm-um/kvm.h
+deleted file mode 100644
+index 66aa770..0000000
+--- a/include/asm-um/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_UM_H
+-#define __LINUX_KVM_UM_H
+-
+-/* um does not support KVM */
+-
+-#endif
+diff --git a/include/asm-v850/kvm.h b/include/asm-v850/kvm.h
+deleted file mode 100644
+index 3f729b7..0000000
+--- a/include/asm-v850/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_V850_H
+-#define __LINUX_KVM_V850_H
+-
+-/* v850 does not support KVM */
+-
+-#endif
+diff --git a/include/asm-x86/Kbuild b/include/asm-x86/Kbuild
+index 1e35545..811e982 100644
+--- a/include/asm-x86/Kbuild
++++ b/include/asm-x86/Kbuild
+@@ -3,7 +3,6 @@ include include/asm-generic/Kbuild.asm
+ header-y += boot.h
+ header-y += bootparam.h
+ header-y += debugreg.h
+-header-y += kvm.h
+ header-y += ldt.h
+ header-y += msr-index.h
+ header-y += prctl.h
+diff --git a/include/asm-xtensa/kvm.h b/include/asm-xtensa/kvm.h
+deleted file mode 100644
+index bda4e33..0000000
+--- a/include/asm-xtensa/kvm.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __LINUX_KVM_XTENSA_H
+-#define __LINUX_KVM_XTENSA_H
+-
+-/* xtensa does not support KVM */
+-
+-#endif
+diff --git a/include/linux/Kbuild b/include/linux/Kbuild
+index 71d70d1..402c8f5 100644
+--- a/include/linux/Kbuild
++++ b/include/linux/Kbuild
+@@ -256,7 +256,9 @@ unifdef-y += kd.h
+ unifdef-y += kernelcapi.h
+ unifdef-y += kernel.h
+ unifdef-y += keyboard.h
++ifneq ($(wildcard $(srctree)/include/asm-$(SRCARCH)/kvm.h),)
+ unifdef-y += kvm.h
++endif
+ unifdef-y += llc.h
+ unifdef-y += loop.h
+ unifdef-y += lp.h
