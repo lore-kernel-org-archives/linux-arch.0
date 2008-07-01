@@ -1,107 +1,55 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 14/20] powerpc: use generic show_mem()
-Date: Tue, 01 Jul 2008 17:27:27 +1000
-Message-ID: <1214897247.20711.115.camel@pasglop>
+From: Johannes Weiner <hannes@saeurebad.de>
+Subject: Re: [PATCH 00/20] mm: generic show_mem() v4
+Date: Tue, 01 Jul 2008 09:54:11 +0200
+Message-ID: <87iqvq59b0.fsf@skyscraper.fehenstaub.lan>
 References: <20080627115349.743368154@saeurebad.de>
-	 <20080627120049.883374735@saeurebad.de>
-Reply-To: benh@kernel.crashing.org
+	<8763rq6qlc.fsf@skyscraper.fehenstaub.lan>
+	<20080701002518.7918fdaf.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:59838 "EHLO gate.crashing.org"
+Received: from saeurebad.de ([85.214.36.134]:51269 "EHLO saeurebad.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752595AbYGAH2L (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 1 Jul 2008 03:28:11 -0400
-In-Reply-To: <20080627120049.883374735@saeurebad.de>
+	id S1752970AbYGAHys (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 1 Jul 2008 03:54:48 -0400
+In-Reply-To: <20080701002518.7918fdaf.akpm@linux-foundation.org> (Andrew
+	Morton's message of "Tue, 1 Jul 2008 00:25:18 -0700")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Johannes Weiner <hannes@saeurebad.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, 2008-06-27 at 13:54 +0200, Johannes Weiner wrote:
-> plain text document attachment
-> (0015-powerpc-use-generic-show_mem.patch)
-> Remove arch-specific show_mem() in favor of the generic version.
-> 
-> This also removes the following redundant information display:
-> 
-> 	- pages in swapcache, printed by show_swap_cache_info()
-> 
-> where show_mem() calls show_free_areas(), which calls
-> show_swap_cache_info().
-> 
-> Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
-> CC: Paul Mackerras <paulus@samba.org>
+Hi,
 
-Looks good to me. Paul, do you know of any userland thingy that might be
-unhappy by the change from "%d pages of XXX" to "%d pages RAM" and "%d
-reserved pages" to "%s pages reserved" ?
+Andrew Morton <akpm@linux-foundation.org> writes:
 
-Cheers,
-Ben.
+> On Tue, 01 Jul 2008 08:55:27 +0200 Johannes Weiner <hannes@saeurebad.de> wrote:
+>
+>> Hi,
+>> 
+>> Johannes Weiner <hannes@saeurebad.de> writes:
+>> 
+>> > Every arch implements its own show_mem() function.  Most of them share
+>> > quite some code, some of them are completely identical.
+>> >
+>> > This series implements a generic version of this function and migrates
+>> > almost all architectures to it.
+>> >
+>> > version 4:
+>> > 	- rebased against -mmotm
+>> 
+>> Oh, btw, do you even want them, Andrew?
+>
+> These are only a few hundred patches ahead of my current backlog cursor
+> :( I should be caught up mid-weekish.
+>
+>>  Or should I base this set on
+>> Linus' tree directly?
+>
+> That would be a bad step.  Linus's tree is 2.6.26 whereas we're all
+> developing 2.6.27.  There's a ~30MB diff between the two.
 
-> ---
->  arch/powerpc/Kconfig  |    1 +
->  arch/powerpc/mm/mem.c |   39 ---------------------------------------
->  2 files changed, 1 insertion(+), 39 deletions(-)
-> 
-> --- a/arch/powerpc/Kconfig
-> +++ b/arch/powerpc/Kconfig
-> @@ -114,6 +114,7 @@ config PPC
->  	select HAVE_KRETPROBES
->  	select HAVE_LMB
->  	select HAVE_OPROFILE
-> +	select HAVE_GENERIC_SHOW_MEM
->  	select USE_GENERIC_SMP_HELPERS if SMP
->  
->  config EARLY_PRINTK
-> --- a/arch/powerpc/mm/mem.c
-> +++ b/arch/powerpc/mm/mem.c
-> @@ -185,45 +185,6 @@ walk_memory_resource(unsigned long start
->  }
->  EXPORT_SYMBOL_GPL(walk_memory_resource);
->  
-> -void show_mem(void)
-> -{
-> -	unsigned long total = 0, reserved = 0;
-> -	unsigned long shared = 0, cached = 0;
-> -	unsigned long highmem = 0;
-> -	struct page *page;
-> -	pg_data_t *pgdat;
-> -	unsigned long i;
-> -
-> -	printk("Mem-info:\n");
-> -	show_free_areas();
-> -	for_each_online_pgdat(pgdat) {
-> -		unsigned long flags;
-> -		pgdat_resize_lock(pgdat, &flags);
-> -		for (i = 0; i < pgdat->node_spanned_pages; i++) {
-> -			if (!pfn_valid(pgdat->node_start_pfn + i))
-> -				continue;
-> -			page = pgdat_page_nr(pgdat, i);
-> -			total++;
-> -			if (PageHighMem(page))
-> -				highmem++;
-> -			if (PageReserved(page))
-> -				reserved++;
-> -			else if (PageSwapCache(page))
-> -				cached++;
-> -			else if (page_count(page))
-> -				shared += page_count(page) - 1;
-> -		}
-> -		pgdat_resize_unlock(pgdat, &flags);
-> -	}
-> -	printk("%ld pages of RAM\n", total);
-> -#ifdef CONFIG_HIGHMEM
-> -	printk("%ld pages of HIGHMEM\n", highmem);
-> -#endif
-> -	printk("%ld reserved pages\n", reserved);
-> -	printk("%ld pages shared\n", shared);
-> -	printk("%ld pages swap cached\n", cached);
-> -}
-> -
->  /*
->   * Initialize the bootmem system and give it all the memory we
->   * have available.  If we are using highmem, we only put the
-> 
+Alright, I will keep them against -mmotm and resend them soon without
+the Kconfig stuff as suggested by Paul Mundt.
+
+	Hannes
