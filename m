@@ -1,331 +1,74 @@
-From: Adrian Bunk <bunk@kernel.org>
-Subject: [2.6 patch] remove dummy asm/kvm.h files
-Date: Tue, 1 Jul 2008 19:27:16 +0300
-Message-ID: <20080701162716.GB32598@cs181140183.pp.htv.fi>
+From: Andrea Righi <righi.andrea@gmail.com>
+Subject: Re: + page_align-correctly-handle-64-bit-values-on-32-bit-architectures-x86_64-fix.patch
+ added to -mm tree
+Date: Tue, 01 Jul 2008 20:22:38 +0200
+Message-ID: <486A75EE.1060606@gmail.com>
+References: <200806302233.m5UMXpAn029071@imap1.linux-foundation.org>
+Reply-To: righi.andrea@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp6.pp.htv.fi ([213.243.153.40]:48218 "EHLO smtp6.pp.htv.fi"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752136AbYGAQ1h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 1 Jul 2008 12:27:37 -0400
-Content-Disposition: inline
+Received: from fg-out-1718.google.com ([72.14.220.156]:21568 "EHLO
+	fg-out-1718.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750976AbYGASWn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2008 14:22:43 -0400
+Received: by fg-out-1718.google.com with SMTP id 19so3519fgg.17
+        for <linux-arch@vger.kernel.org>; Tue, 01 Jul 2008 11:22:41 -0700 (PDT)
+In-Reply-To: <200806302233.m5UMXpAn029071@imap1.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Borntraeger <borntraeger@de.ibm.com>, Avi Kivity <avi@qumranet.com>
-Cc: linux-arch@vger.kernel.org, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, David Woodhouse <dwmw2@infradead.org>
+To: akpm@linux-foundation.org
+Cc: mm-commits@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Balbir Singh <balbir@linux.vnet.ibm.com>
 
-This patch removes the dummy asm/kvm.h files on architectures not (yet) 
-supporting KVM and uses the same conditional headers installation as
-already used for a.out.h .
+akpm@linux-foundation.org wrote:
+> ------------------------------------------------------
+> Subject: page_align-correctly-handle-64-bit-values-on-32-bit-architectures x86_64 fix
+> From: Andrea Righi <righi.andrea@gmail.com>
+> 
+> x86_64 allmodconfig build failed due to a missing #include <linux/mm.h>
+> in arch/x86/kernel/module_64.c.
 
-Also removed are superfluous install rules in the s390 and x86 Kbuild 
-files (they are already in Kbuild.asm).
+There are probably other missing includes like this for other
+architectures, due to the move of PAGE_ALIGN() from asm-*/page.h to
+linux/mm.h. I tested allmodconfig and some randconfig only with x86_64
+and i386.
 
-Signed-off-by: Adrian Bunk <bunk@kernel.org>
+I've found other (probably) missing includes doing some simple greps,
+see patch v2:
 
----
+http://lkml.org/lkml/2008/6/15/85
 
- include/asm-alpha/kvm.h        |    6 ------
- include/asm-arm/kvm.h          |    6 ------
- include/asm-avr32/kvm.h        |    6 ------
- include/asm-blackfin/kvm.h     |    6 ------
- include/asm-cris/kvm.h         |    6 ------
- include/asm-frv/kvm.h          |    6 ------
- include/asm-generic/Kbuild.asm |    2 ++
- include/asm-h8300/kvm.h        |    6 ------
- include/asm-m32r/kvm.h         |    6 ------
- include/asm-m68k/kvm.h         |    6 ------
- include/asm-m68knommu/kvm.h    |    6 ------
- include/asm-mips/kvm.h         |    6 ------
- include/asm-mn10300/kvm.h      |    6 ------
- include/asm-parisc/kvm.h       |    6 ------
- include/asm-s390/Kbuild        |    1 -
- include/asm-sh/kvm.h           |    6 ------
- include/asm-sparc/kvm.h        |    6 ------
- include/asm-sparc64/kvm.h      |    6 ------
- include/asm-um/kvm.h           |    6 ------
- include/asm-v850/kvm.h         |    6 ------
- include/asm-x86/Kbuild         |    1 -
- include/asm-xtensa/kvm.h       |    6 ------
- include/linux/Kbuild           |    2 ++
- 23 files changed, 4 insertions(+), 116 deletions(-)
+Otherwise, a less intrusive approach could be to just fix the bug and
+don't move PAGE_ALIGN() out of asm-*/page.h, see v3:
 
-ab4cdd1a69f500aa1eeed892142a496172b5e40a 
-diff --git a/include/asm-alpha/kvm.h b/include/asm-alpha/kvm.h
-deleted file mode 100644
-index b9daec4..0000000
---- a/include/asm-alpha/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_ALPHA_H
--#define __LINUX_KVM_ALPHA_H
--
--/* alpha does not support KVM */
--
--#endif
-diff --git a/include/asm-arm/kvm.h b/include/asm-arm/kvm.h
-deleted file mode 100644
-index cb3c08c..0000000
---- a/include/asm-arm/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_ARM_H
--#define __LINUX_KVM_ARM_H
--
--/* arm does not support KVM */
--
--#endif
-diff --git a/include/asm-avr32/kvm.h b/include/asm-avr32/kvm.h
-deleted file mode 100644
-index 8c57770..0000000
---- a/include/asm-avr32/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_AVR32_H
--#define __LINUX_KVM_AVR32_H
--
--/* avr32 does not support KVM */
--
--#endif
-diff --git a/include/asm-blackfin/kvm.h b/include/asm-blackfin/kvm.h
-deleted file mode 100644
-index e3477d7..0000000
---- a/include/asm-blackfin/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_BLACKFIN_H
--#define __LINUX_KVM_BLACKFIN_H
--
--/* blackfin does not support KVM */
--
--#endif
-diff --git a/include/asm-cris/kvm.h b/include/asm-cris/kvm.h
-deleted file mode 100644
-index c860f51..0000000
---- a/include/asm-cris/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_CRIS_H
--#define __LINUX_KVM_CRIS_H
--
--/* cris does not support KVM */
--
--#endif
-diff --git a/include/asm-frv/kvm.h b/include/asm-frv/kvm.h
-deleted file mode 100644
-index 9c8a4f0..0000000
---- a/include/asm-frv/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_FRV_H
--#define __LINUX_KVM_FRV_H
--
--/* frv does not support KVM */
--
--#endif
-diff --git a/include/asm-generic/Kbuild.asm b/include/asm-generic/Kbuild.asm
-index 7cd25b8..1170dc6 100644
---- a/include/asm-generic/Kbuild.asm
-+++ b/include/asm-generic/Kbuild.asm
-@@ -1,4 +1,6 @@
-+ifneq ($(wildcard $(srctree)/include/asm-$(SRCARCH)/kvm.h),)
- header-y  += kvm.h
-+endif
- 
- ifneq ($(wildcard $(srctree)/include/asm-$(SRCARCH)/a.out.h),)
- unifdef-y += a.out.h
-diff --git a/include/asm-h8300/kvm.h b/include/asm-h8300/kvm.h
-deleted file mode 100644
-index bdbed7b..0000000
---- a/include/asm-h8300/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_H8300_H
--#define __LINUX_KVM_H8300_H
--
--/* h8300 does not support KVM */
--
--#endif
-diff --git a/include/asm-m32r/kvm.h b/include/asm-m32r/kvm.h
-deleted file mode 100644
-index 99a4051..0000000
---- a/include/asm-m32r/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_M32R_H
--#define __LINUX_KVM_M32R_H
--
--/* m32r does not support KVM */
--
--#endif
-diff --git a/include/asm-m68k/kvm.h b/include/asm-m68k/kvm.h
-deleted file mode 100644
-index 7ed27fc..0000000
---- a/include/asm-m68k/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_M68K_H
--#define __LINUX_KVM_M68K_H
--
--/* m68k does not support KVM */
--
--#endif
-diff --git a/include/asm-m68knommu/kvm.h b/include/asm-m68knommu/kvm.h
-deleted file mode 100644
-index b49d425..0000000
---- a/include/asm-m68knommu/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_M68KNOMMU_H
--#define __LINUX_KVM_M68KNOMMU_H
--
--/* m68knommu does not support KVM */
--
--#endif
-diff --git a/include/asm-mips/kvm.h b/include/asm-mips/kvm.h
-deleted file mode 100644
-index 093a5b7..0000000
---- a/include/asm-mips/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_MIPS_H
--#define __LINUX_KVM_MIPS_H
--
--/* mips does not support KVM */
--
--#endif
-diff --git a/include/asm-mn10300/kvm.h b/include/asm-mn10300/kvm.h
-deleted file mode 100644
-index f6b609f..0000000
---- a/include/asm-mn10300/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_MN10300_H
--#define __LINUX_KVM_MN10300_H
--
--/* mn10300 does not support KVM */
--
--#endif
-diff --git a/include/asm-parisc/kvm.h b/include/asm-parisc/kvm.h
-deleted file mode 100644
-index 00cc458..0000000
---- a/include/asm-parisc/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_PARISC_H
--#define __LINUX_KVM_PARISC_H
--
--/* parisc does not support KVM */
--
--#endif
-diff --git a/include/asm-s390/Kbuild b/include/asm-s390/Kbuild
-index 13c9805..e92b429 100644
---- a/include/asm-s390/Kbuild
-+++ b/include/asm-s390/Kbuild
-@@ -7,7 +7,6 @@ header-y += tape390.h
- header-y += ucontext.h
- header-y += vtoc.h
- header-y += zcrypt.h
--header-y += kvm.h
- 
- unifdef-y += cmb.h
- unifdef-y += debug.h
-diff --git a/include/asm-sh/kvm.h b/include/asm-sh/kvm.h
-deleted file mode 100644
-index 6af51db..0000000
---- a/include/asm-sh/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_SH_H
--#define __LINUX_KVM_SH_H
--
--/* sh does not support KVM */
--
--#endif
-diff --git a/include/asm-sparc/kvm.h b/include/asm-sparc/kvm.h
-deleted file mode 100644
-index 2e5478d..0000000
---- a/include/asm-sparc/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_SPARC_H
--#define __LINUX_KVM_SPARC_H
--
--/* sparc does not support KVM */
--
--#endif
-diff --git a/include/asm-sparc64/kvm.h b/include/asm-sparc64/kvm.h
-deleted file mode 100644
-index 380537a..0000000
---- a/include/asm-sparc64/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_SPARC64_H
--#define __LINUX_KVM_SPARC64_H
--
--/* sparc64 does not support KVM */
--
--#endif
-diff --git a/include/asm-um/kvm.h b/include/asm-um/kvm.h
-deleted file mode 100644
-index 66aa770..0000000
---- a/include/asm-um/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_UM_H
--#define __LINUX_KVM_UM_H
--
--/* um does not support KVM */
--
--#endif
-diff --git a/include/asm-v850/kvm.h b/include/asm-v850/kvm.h
-deleted file mode 100644
-index 3f729b7..0000000
---- a/include/asm-v850/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_V850_H
--#define __LINUX_KVM_V850_H
--
--/* v850 does not support KVM */
--
--#endif
-diff --git a/include/asm-x86/Kbuild b/include/asm-x86/Kbuild
-index 1e35545..811e982 100644
---- a/include/asm-x86/Kbuild
-+++ b/include/asm-x86/Kbuild
-@@ -3,7 +3,6 @@ include include/asm-generic/Kbuild.asm
- header-y += boot.h
- header-y += bootparam.h
- header-y += debugreg.h
--header-y += kvm.h
- header-y += ldt.h
- header-y += msr-index.h
- header-y += prctl.h
-diff --git a/include/asm-xtensa/kvm.h b/include/asm-xtensa/kvm.h
-deleted file mode 100644
-index bda4e33..0000000
---- a/include/asm-xtensa/kvm.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __LINUX_KVM_XTENSA_H
--#define __LINUX_KVM_XTENSA_H
--
--/* xtensa does not support KVM */
--
--#endif
-diff --git a/include/linux/Kbuild b/include/linux/Kbuild
-index 71d70d1..402c8f5 100644
---- a/include/linux/Kbuild
-+++ b/include/linux/Kbuild
-@@ -256,7 +256,9 @@ unifdef-y += kd.h
- unifdef-y += kernelcapi.h
- unifdef-y += kernel.h
- unifdef-y += keyboard.h
-+ifneq ($(wildcard $(srctree)/include/asm-$(SRCARCH)/kvm.h),)
- unifdef-y += kvm.h
-+endif
- unifdef-y += llc.h
- unifdef-y += loop.h
- unifdef-y += lp.h
+http://lkml.org/lkml/2008/6/19/217
+
+Let me know if you need a patch (v2 or v3) on-top-of the previous one.
+
+-Andrea
+
+> 
+> Following patch resolves (on top of the previous one).
+> 
+> Except this, no errors for x86_64.
+> 
+> Signed-off-by: Andrea Righi <righi.andrea@gmail.com>
+> Cc: <linux-arch@vger.kernel.org>
+> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+> ---
+> 
+>  arch/x86/kernel/module_64.c |    1 +
+>  1 file changed, 1 insertion(+)
+> 
+> diff -puN arch/x86/kernel/module_64.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures-x86_64-fix arch/x86/kernel/module_64.c
+> --- a/arch/x86/kernel/module_64.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures-x86_64-fix
+> +++ a/arch/x86/kernel/module_64.c
+> @@ -22,6 +22,7 @@
+>  #include <linux/fs.h>
+>  #include <linux/string.h>
+>  #include <linux/kernel.h>
+> +#include <linux/mm.h>
+>  #include <linux/slab.h>
+>  #include <linux/bug.h>
+>  
