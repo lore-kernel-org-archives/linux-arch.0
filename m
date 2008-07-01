@@ -1,43 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wf-out-1314.google.com ([209.85.200.171]:2826 "EHLO
-	wf-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756531AbYGAW6D (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2008 18:58:03 -0400
-Received: by wf-out-1314.google.com with SMTP id 27so96577wfd.4
-        for <linux-arch@vger.kernel.org>; Tue, 01 Jul 2008 15:58:02 -0700 (PDT)
-Message-ID: <8bd0f97a0807011558u2c02f6fcre2f3af3d5cced936@mail.gmail.com>
-Date: Tue, 1 Jul 2008 18:58:02 -0400
-From: "Mike Frysinger" <vapier.adi@gmail.com>
-Subject: Re: [PATCH 5/23] make section names compatible with -ffunction-sections -fdata-sections: blackfin
-In-Reply-To: <200807020235.08025.vda.linux@googlemail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from turing-police.cc.vt.edu ([128.173.14.107]:54525 "EHLO
+	turing-police.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753649AbYGAW7o (ORCPT
+	<RFC822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2008 18:59:44 -0400
+Subject: Re: [PATCH 1/23] make section names compatible with -ffunction-sections -fdata-sections
+In-Reply-To: Your message of "Wed, 02 Jul 2008 02:33:48 +0200."
+             <200807020233.48646.vda.linux@googlemail.com>
+From: Valdis.Kletnieks@vt.edu
+References: <200807020233.48646.vda.linux@googlemail.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; boundary="==_Exmh_1214952973_2982P";
+	 micalg=pgp-sha1; protocol="application/pgp-signature"
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-References: <200807020235.08025.vda.linux@googlemail.com>
+Date: Tue, 01 Jul 2008 18:56:13 -0400
+Message-ID: <60320.1214952973@turing-police.cc.vt.edu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Denys Vlasenko <vda.linux@googlemail.com>
-Cc: linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
-Message-ID: <20080701225802.8tHx-RReZhwJTKPxmR989MvvInBO3D5BLtZfK0ONrz0@z>
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
+Message-ID: <20080701225613.AHtDc8m8Z6n-4U4GEvG8ze1TyWxkud0xnNVvNSrxUcY@z>
 
-On Tue, Jul 1, 2008 at 8:35 PM, Denys Vlasenko wrote:
-> The purpose of this patch is to make kernel buildable
+--==_Exmh_1214952973_2982P
+Content-Type: text/plain; charset=us-ascii
+
+On Wed, 02 Jul 2008 02:33:48 +0200, Denys Vlasenko said:
+
+> The purpose of these patches is to make kernel buildable
 > with "gcc -ffunction-sections -fdata-sections".
-> This patch fixes blackfin architecture.
+> 
+> Newer gcc and binutils can do dead code and data removal
+> at link time. It is achieved using combination of
+> -ffunction-sections -fdata-sections options for gcc and
+> --gc-sections for ld.
 
-the comment right above what you changed says it already works for
-Blackfin.  so you arent fixing it at all.
->                /* This gets done first, so the glob doesn't suck it in */
->                . = ALIGN(32);
-> -               *(.data.cacheline_aligned)
-> +               *(.cacheline_aligned.data)
+Interesting idea.  Do you happen to have before-and-after 'size vmlinux'
+numbers to show how much space is actually reclaimed?
 
-ive built Blackfin kernels with function/data sections a long time ago
-... but iirc, there were toolchain problems, so i havent pursued it
-since.
+--==_Exmh_1214952973_2982P
+Content-Type: application/pgp-signature
 
-if you're going to muck with names, you might as well do it right the
-first time: move the names into asm-generic/vmlinux.lds.h so we dont
-have to worry about this kind of churn again.
--mike
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
+Comment: Exmh version 2.5 07/13/2001
+
+iD8DBQFIarYNcC3lWbTT17ARAh9sAJ9xjYck9zBa6K8R7tTHzDIj28eiwACeOD8Q
+hdump+CXw2+ZexG6of1uSVQ=
+=RKDh
+-----END PGP SIGNATURE-----
+
+--==_Exmh_1214952973_2982P--
