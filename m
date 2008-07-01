@@ -1,57 +1,62 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [2.6 patch] remove dummy asm/kvm.h files
-Date: Tue, 1 Jul 2008 22:09:10 +0200
-Message-ID: <20080701200910.GA10677@uranus.ravnborg.org>
-References: <20080701162716.GB32598@cs181140183.pp.htv.fi> <20080701193236.GB10350@uranus.ravnborg.org> <1214942000.10393.418.camel@pmac.infradead.org>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: +
+ page_align-correctly-handle-64-bit-values-on-32-bit-architectures-x86_64-fix.patch
+ added to -mm tree
+Date: Tue, 1 Jul 2008 13:23:06 -0700
+Message-ID: <20080701132306.514cc359.akpm@linux-foundation.org>
+References: <200806302233.m5UMXpAn029071@imap1.linux-foundation.org>
+	<486A75EE.1060606@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <kvm-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1214942000.10393.418.camel@pmac.infradead.org>
-Sender: kvm-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: Adrian Bunk <bunk@kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Avi Kivity <avi@qumranet.com>, linux-arch@vger.kernel.org, kvm@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:42408 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754350AbYGAUXT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2008 16:23:19 -0400
+In-Reply-To: <486A75EE.1060606@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: righi.andrea@gmail.com
+Cc: linux-arch@vger.kernel.org, paulus@samba.org, balbir@linux.vnet.ibm.com
 
-On Tue, Jul 01, 2008 at 08:53:20PM +0100, David Woodhouse wrote:
-> On Tue, 2008-07-01 at 21:32 +0200, Sam Ravnborg wrote:
-> > On Tue, Jul 01, 2008 at 07:27:16PM +0300, Adrian Bunk wrote:
-> > > This patch removes the dummy asm/kvm.h files on architectures not (yet) 
-> > > supporting KVM and uses the same conditional headers installation as
-> > > already used for a.out.h .
-> > > 
-> > > Also removed are superfluous install rules in the s390 and x86 Kbuild 
-> > > files (they are already in Kbuild.asm).
-> > > 
-> > > Signed-off-by: Adrian Bunk <bunk@kernel.org>
-> > 
-> > I really do not like the way we implement these checks and
-> > think this should be a kconfig option.
-> > But we do not (yet) require a configured kernel when exporting
-> > to userspace so this is not feasible right now.
-> 
-> I'm _really_ dubious about doing this kind of thing through Kconfig.
-> 
-> In the general case, we really don't want exported headers to have any
-> differences based on the kernel configuration.
-> 
-> Yes, I suppose it would be OK if we are very careful not to let anyone
-> use config symbols that aren't hard-coded for the given architecture.
-> But in practice I don't think there's any real chance that we'd manage
-> to be careful _enough_. We'd find people using symbols they shouldn't
-> be.
-We have two cases now and I think we can manage it.
-But if we have only a few cases then we can also accept use of ARCH.
+On Tue, 01 Jul 2008 20:22:38 +0200
+Andrea Righi <righi.andrea@gmail.com> wrote:
 
-> 
-> > So despite the above this patch has my:
-> > Acked-by: Sam Ravnborg <sam@ravnborg.org>
+> akpm@linux-foundation.org wrote:
+> > ------------------------------------------------------
+> > Subject: page_align-correctly-handle-64-bit-values-on-32-bit-architectures x86_64 fix
+> > From: Andrea Righi <righi.andrea@gmail.com>
 > > 
-> > Same for the asm/a.out patch you posted the other day.
-> > 
-> > David - I assume you take these via your tree?
+> > x86_64 allmodconfig build failed due to a missing #include <linux/mm.h>
+> > in arch/x86/kernel/module_64.c.
 > 
-> I can do.
-Thanks,
+> There are probably other missing includes like this for other
+> architectures, due to the move of PAGE_ALIGN() from asm-*/page.h to
+> linux/mm.h. I tested allmodconfig and some randconfig only with x86_64
+> and i386.
+> 
+> I've found other (probably) missing includes doing some simple greps,
+> see patch v2:
+> 
+> http://lkml.org/lkml/2008/6/15/85
+> 
+> Otherwise, a less intrusive approach could be to just fix the bug and
+> don't move PAGE_ALIGN() out of asm-*/page.h, see v3:
+> 
+> http://lkml.org/lkml/2008/6/19/217
+> 
+> Let me know if you need a patch (v2 or v3) on-top-of the previous one.
+> 
 
-	Sam
+It's dopey to duplicate identical code in tens of header files.  There
+is no conceivable reason why an architecture would want to have a
+customised version of PAGE_ALIGN().
+
+So let's just struggle on and get it right.  Please send me any needed
+fixups against the current
+
+page_align-correctly-handle-64-bit-values-on-32-bit-architectures.patch
+page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix.patch
+page_align-correctly-handle-64-bit-values-on-32-bit-architectures-x86_64-fix.patch
+page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fix.patch
