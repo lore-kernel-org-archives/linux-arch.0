@@ -1,51 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from turing-police.cc.vt.edu ([128.173.14.107]:54525 "EHLO
-	turing-police.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753649AbYGAW7o (ORCPT
-	<RFC822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2008 18:59:44 -0400
-Subject: Re: [PATCH 1/23] make section names compatible with -ffunction-sections -fdata-sections
-In-Reply-To: Your message of "Wed, 02 Jul 2008 02:33:48 +0200."
-             <200807020233.48646.vda.linux@googlemail.com>
-From: Valdis.Kletnieks@vt.edu
-References: <200807020233.48646.vda.linux@googlemail.com>
-Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="==_Exmh_1214952973_2982P";
-	 micalg=pgp-sha1; protocol="application/pgp-signature"
+Received: from qb-out-0506.google.com ([72.14.204.239]:59802 "EHLO
+	qb-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760202AbYGBAA5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2008 20:00:57 -0400
+Received: by qb-out-0506.google.com with SMTP id d8so1002907qbc.37
+        for <linux-arch@vger.kernel.org>; Tue, 01 Jul 2008 17:00:56 -0700 (PDT)
+From: Denys Vlasenko <vda.linux@googlemail.com>
+Subject: Re: [PATCH 14/23] make section names compatible with -ffunction-sections -fdata-sections: parisc
+Date: Wed, 2 Jul 2008 02:00:49 +0200
+References: <200807020239.11410.vda.linux@googlemail.com> <1214955660.3316.31.camel@localhost.localdomain>
+In-Reply-To: <1214955660.3316.31.camel@localhost.localdomain>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Date: Tue, 01 Jul 2008 18:56:13 -0400
-Message-ID: <60320.1214952973@turing-police.cc.vt.edu>
+Content-Disposition: inline
+Message-ID: <200807020200.49518.vda.linux@googlemail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Denys Vlasenko <vda.linux@googlemail.com>
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
-Message-ID: <20080701225613.AHtDc8m8Z6n-4U4GEvG8ze1TyWxkud0xnNVvNSrxUcY@z>
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
+Message-ID: <20080702000049.3XZ2QKGY5gmKhR0lz2ySbK5eSsMrUs1D3_w7Unt11eg@z>
 
---==_Exmh_1214952973_2982P
-Content-Type: text/plain; charset=us-ascii
-
-On Wed, 02 Jul 2008 02:33:48 +0200, Denys Vlasenko said:
-
-> The purpose of these patches is to make kernel buildable
-> with "gcc -ffunction-sections -fdata-sections".
+On Wednesday 02 July 2008 01:41, James Bottomley wrote:
+> On Wed, 2008-07-02 at 02:39 +0200, Denys Vlasenko wrote:
+> > The purpose of this patch is to make kernel buildable
+> > with "gcc -ffunction-sections -fdata-sections".
+> > This patch fixes parisc architecture.
+> > 
+> > Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
 > 
-> Newer gcc and binutils can do dead code and data removal
-> at link time. It is achieved using combination of
-> -ffunction-sections -fdata-sections options for gcc and
-> --gc-sections for ld.
+> Um ... if you look at the Makefile you'll see we already build parisc
+> with -ffunction-sections; we have to: our relative jumps are too small
+> to guarantee finding the stubs in large files.
+> 
+> Since our text is -ffunction-sections compatible already, I question the
+> need for transformations like this:
+> 
+> > -               *(.text.do_softirq)
+> > -               *(.text.sys_exit)
+> > -               *(.text.do_sigaltstack)
+> > -               *(.text.do_fork)
+> > +               *(.do_softirq.text)
+> > +               *(.sys_exit.text)
+> > +               *(.do_sigaltstack.text)
+> > +               *(.do_fork.text)
 
-Interesting idea.  Do you happen to have before-and-after 'size vmlinux'
-numbers to show how much space is actually reclaimed?
+arch/parisc/kernel/vmlinux.lds.S contains these lines:
 
---==_Exmh_1214952973_2982P
-Content-Type: application/pgp-signature
+               TEXT_TEXT
+               SCHED_TEXT
+               LOCK_TEXT
+               *(.text.do_softirq)
+               *(.text.sys_exit)
+               *(.text.do_sigaltstack)
+               *(.text.do_fork)
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.9 (GNU/Linux)
-Comment: Exmh version 2.5 07/13/2001
+which suggested to me that for parisc it is important to have
+these sections in that place (after LOCK_TEXT) and order.
 
-iD8DBQFIarYNcC3lWbTT17ARAh9sAJ9xjYck9zBa6K8R7tTHzDIj28eiwACeOD8Q
-hdump+CXw2+ZexG6of1uSVQ=
-=RKDh
------END PGP SIGNATURE-----
+If you use -ffunction-sections, any function with the name
+do_fork (say, a static function somewhere) will end up in
+.text.do_fork function, and will be "mixed up" with
+global do_fork(). For parisc it is maybe not a problem
+(I am not an expert) but in other places/arches people
+clearly would not want this kind of things to happen.
 
---==_Exmh_1214952973_2982P--
+In order to handle these situations uniformly, in these patches
+I decided to _never_ use .text.XXXX names for sections,
+effectively leaving them "reserved for gcc's use".
+
+Did I understand you right that in this chunk I need to
+leave .text.FUNC_NAME as it was before?
+
+> And thus by the same token the data transformations.
+
+It would be easiest for me if you will reply to the parisc patch
+and indicate all parts where I should NOT do name change.
+
+Thanks!
+--
+vda
