@@ -1,92 +1,167 @@
 From: Denys Vlasenko <vda.linux@googlemail.com>
-Subject: [PATCH 11/23] make section names compatible with -ffunction-sections -fdata-sections: mips
-Date: Wed, 2 Jul 2008 02:37:36 +0200
-Message-ID: <200807020237.36623.vda.linux@googlemail.com>
+Subject: [PATCH 12/23] make section names compatible with -ffunction-sections -fdata-sections: m68k
+Date: Wed, 2 Jul 2008 02:38:21 +0200
+Message-ID: <200807020238.21228.vda.linux@googlemail.com>
 Mime-Version: 1.0
 Content-Type: text/plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from qb-out-0506.google.com ([72.14.204.227]:17527 "EHLO
-	qb-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755910AbYGAWhp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2008 18:37:45 -0400
-Received: by qb-out-0506.google.com with SMTP id d8so937473qbc.37
-        for <linux-arch@vger.kernel.org>; Tue, 01 Jul 2008 15:37:45 -0700 (PDT)
+Return-path: <linux-embedded-owner@vger.kernel.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-embedded-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
+List-Id: linux-arch.vger.kernel.org
 
 The purpose of this patch is to make kernel buildable
 with "gcc -ffunction-sections -fdata-sections".
-This patch fixes mips architecture.
+This patch fixes m68k architecture.
 
 Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
 --
 vda
 
 
---- 0.org/arch/mips/kernel/init_task.c	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/mips/kernel/init_task.c	Wed Jul  2 00:45:57 2008
-@@ -27,7 +27,7 @@
-  * The things we do for performance..
+--- 0.org/arch/m68k/kernel/head.S	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68k/kernel/head.S	Wed Jul  2 00:44:22 2008
+@@ -577,7 +577,7 @@
+ #endif
+ .endm
+ 
+-.section ".text.head","ax"
++.section ".head.text","ax"
+ ENTRY(_stext)
+ /*
+  * Version numbers of the bootinfo interface
+--- 0.org/arch/m68k/kernel/process.c	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68k/kernel/process.c	Wed Jul  2 00:45:57 2008
+@@ -48,7 +48,7 @@
+ EXPORT_SYMBOL(init_mm);
+ 
+ union thread_union init_thread_union
+-__attribute__((section(".data.init_task"), aligned(THREAD_SIZE)))
++__attribute__((section(".init_task.data"), aligned(THREAD_SIZE)))
+        = { INIT_THREAD_INFO(init_task) };
+ 
+ /* initial task structure */
+--- 0.org/arch/m68k/kernel/sun3-head.S	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68k/kernel/sun3-head.S	Wed Jul  2 00:44:22 2008
+@@ -29,7 +29,7 @@
+ .globl kernel_pg_dir
+ .equ    kernel_pg_dir,kernel_pmd_table
+ 
+-	.section .text.head
++	.section .head.text
+ ENTRY(_stext)
+ ENTRY(_start)
+ 
+--- 0.org/arch/m68k/kernel/vmlinux-std.lds	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68k/kernel/vmlinux-std.lds	Wed Jul  2 00:45:57 2008
+@@ -11,7 +11,7 @@
+   . = 0x1000;
+   _text = .;			/* Text and read-only data */
+   .text : {
+-	*(.text.head)
++	*(.head.text)
+ 	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+@@ -36,7 +36,7 @@
+   .bss : { *(.bss) }		/* BSS */
+ 
+   . = ALIGN(16);
+-  .data.cacheline_aligned : { *(.data.cacheline_aligned) } :data
++  .cacheline_aligned.data : { *(.cacheline_aligned.data) } :data
+ 
+   _edata = .;			/* End of data section */
+ 
+@@ -76,7 +76,7 @@
+   . = ALIGN(8192);
+   __init_end = .;
+ 
+-  .data.init_task : { *(.data.init_task) }	/* The initial task and kernel stack */
++  .init_task.data : { *(.init_task.data) }	/* The initial task and kernel stack */
+ 
+   _end = . ;
+ 
+--- 0.org/arch/m68k/kernel/vmlinux-sun3.lds	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68k/kernel/vmlinux-sun3.lds	Wed Jul  2 00:45:57 2008
+@@ -11,7 +11,7 @@
+   . = 0xE002000;
+   _text = .;			/* Text and read-only data */
+   .text : {
+-	*(.text.head)
++	*(.head.text)
+ 	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+@@ -68,7 +68,7 @@
+ #endif
+ 	. = ALIGN(8192);
+ 	__init_end = .;
+-	.data.init.task : { *(.data.init_task) }
++	.init.task.data : { *(.init_task.data) }
+ 
+ 
+   .bss : { *(.bss) }		/* BSS */
+--- 0.org/arch/m68knommu/kernel/init_task.c	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68knommu/kernel/init_task.c	Wed Jul  2 00:45:57 2008
+@@ -37,6 +37,6 @@
+  * "init_task" linker map entry..
   */
  union thread_union init_thread_union
--	__attribute__((__section__(".data.init_task"),
-+	__attribute__((__section__(".init_task.data"),
- 	               __aligned__(THREAD_SIZE))) =
+-	__attribute__((__section__(".data.init_task"))) =
++	__attribute__((__section__(".init_task.data"))) =
  		{ INIT_THREAD_INFO(init_task) };
  
---- 0.org/arch/mips/kernel/vmlinux.lds.S	Wed Jul  2 00:40:41 2008
-+++ 1.fixname/arch/mips/kernel/vmlinux.lds.S	Wed Jul  2 00:46:03 2008
-@@ -76,7 +76,7 @@
- 		 * object file alignment.  Using 32768
- 		 */
- 		. = ALIGN(_PAGE_SIZE);
+--- 0.org/arch/m68knommu/kernel/vmlinux.lds.S	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68knommu/kernel/vmlinux.lds.S	Wed Jul  2 00:45:57 2008
+@@ -55,7 +55,7 @@
+ 	.romvec : {
+ 		__rom_start = . ;
+ 		_romvec = .;
+-		*(.data.initvect)
++		*(.initvect.data)
+ 	} > romvec
+ #endif
+ 
+@@ -65,7 +65,7 @@
+ 		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+-        	*(.text.lock)
++        	*(.lock.text)
+ 
+ 		. = ALIGN(16);          /* Exception table              */
+ 		__start___ex_table = .;
+@@ -147,7 +147,7 @@
+ 		_sdata = . ;
+ 		DATA_DATA
+ 		. = ALIGN(8192) ;
 -		*(.data.init_task)
 +		*(.init_task.data)
+ 		_edata = . ;
+ 	} > DATA
  
- 		DATA_DATA
- 		CONSTRUCTORS
-@@ -98,14 +98,14 @@
- 	. = ALIGN(_PAGE_SIZE);
- 	.data_nosave : {
- 		__nosave_begin = .;
--		*(.data.nosave)
-+		*(.nosave.data)
- 	}
- 	. = ALIGN(_PAGE_SIZE);
- 	__nosave_end = .;
- 
- 	. = ALIGN(32);
--	.data.cacheline_aligned : {
--		*(.data.cacheline_aligned)
-+	.cacheline_aligned.data : {
-+		*(.cacheline_aligned.data)
- 	}
- 	_edata =  .;			/* End of data section */
- 
---- 0.org/arch/mips/lasat/image/head.S	Wed Jul  2 00:40:41 2008
-+++ 1.fixname/arch/mips/lasat/image/head.S	Wed Jul  2 00:44:34 2008
-@@ -1,7 +1,7 @@
- #include <asm/lasat/head.h>
- 
- 	.text
--	.section .text.start, "ax"
-+	.section .start.text, "ax"
- 	.set noreorder
- 	.set mips3
- 
---- 0.org/arch/mips/lasat/image/romscript.normal	Wed Jul  2 00:40:41 2008
-+++ 1.fixname/arch/mips/lasat/image/romscript.normal	Wed Jul  2 00:44:34 2008
-@@ -4,7 +4,7 @@
- {
-   .text :
-   {
--    *(.text.start)
-+    *(.start.text)
-   }
- 
-   /* Data in ROM */
+--- 0.org/arch/m68knommu/platform/68360/head-ram.S	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68knommu/platform/68360/head-ram.S	Wed Jul  2 00:45:57 2008
+@@ -280,7 +280,7 @@
+      * and then overwritten as needed.
+      */
+  
+-.section ".data.initvect","awx"
++.section ".initvect.data","awx"
+     .long   RAMEND	/* Reset: Initial Stack Pointer                 - 0.  */
+     .long   _start      /* Reset: Initial Program Counter               - 1.  */
+     .long   buserr      /* Bus Error                                    - 2.  */
+--- 0.org/arch/m68knommu/platform/68360/head-rom.S	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68knommu/platform/68360/head-rom.S	Wed Jul  2 00:45:57 2008
+@@ -291,7 +291,7 @@
+      * and then overwritten as needed.
+      */
+  
+-.section ".data.initvect","awx"
++.section ".initvect.data","awx"
+     .long   RAMEND	/* Reset: Initial Stack Pointer                 - 0.  */
+     .long   _start      /* Reset: Initial Program Counter               - 1.  */
+     .long   buserr      /* Bus Error                                    - 2.  */
