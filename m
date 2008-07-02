@@ -1,47 +1,51 @@
-From: Denys Vlasenko <vda.linux@googlemail.com>
-Subject: Re: [PATCH 5/23] make section names compatible with -ffunction-sections -fdata-sections: blackfin
-Date: Wed, 2 Jul 2008 02:08:33 +0200
-Message-ID: <200807020208.33302.vda.linux@googlemail.com>
-References: <200807020235.08025.vda.linux@googlemail.com> <8bd0f97a0807011558u2c02f6fcre2f3af3d5cced936@mail.gmail.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: RE: [PATCH 12/60] microblaze_v4: Generic dts file for platforms
+Date: Wed, 02 Jul 2008 10:25:30 +1000
+Message-ID: <1214958330.20711.205.camel@pasglop>
+References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-6-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-7-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-8-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-9-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-10-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-11-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-12-git-send-email-monstr@seznam.cz>
+	 <1214483429-32360-13-git-send-email-monstr@seznam.cz>
+	 <fa686aa40806272249l7eae0c34k43a20ad41672b77a@mail.gmail.com>
+	 <1d3f23370806291702g4344a2f9lb62f85cbb475fca4@mail.gmail.com>
+	 <20080630033943.332471860046@mail171-va3.bigfish.com>
+	 <1214893302.20711.102.camel@pasglop>
+	 <20080701155845.9DDE299004D@mail180-dub.bigfish.com>
+Reply-To: benh@kernel.crashing.org
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from qb-out-0506.google.com ([72.14.204.224]:15434 "EHLO
-	qb-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751234AbYGBAIl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2008 20:08:41 -0400
-Received: by qb-out-0506.google.com with SMTP id a33so5142794qbd.1
-        for <linux-arch@vger.kernel.org>; Tue, 01 Jul 2008 17:08:40 -0700 (PDT)
-In-Reply-To: <8bd0f97a0807011558u2c02f6fcre2f3af3d5cced936@mail.gmail.com>
-Content-Disposition: inline
+Received: from gate.crashing.org ([63.228.1.57]:48081 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751537AbYGBA2t (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 1 Jul 2008 20:28:49 -0400
+In-Reply-To: <20080701155845.9DDE299004D@mail180-dub.bigfish.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier.adi@gmail.com>
-Cc: linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
+To: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
+Cc: John Williams <john.williams@petalogix.com>, grant.likely@secretlab.ca, linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, vapier.adi@gmail.com, arnd@arndb.de, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, will.newton@gmail.com, hpa@zytor.com, John Linn <linnj@xilinx.com>, monstr@seznam.cz, drepper@redhat.com, alan@lxorguk.ukuu.org.uk
 
-On Wednesday 02 July 2008 00:58, Mike Frysinger wrote:
-> On Tue, Jul 1, 2008 at 8:35 PM, Denys Vlasenko wrote:
-> > The purpose of this patch is to make kernel buildable
-> > with "gcc -ffunction-sections -fdata-sections".
-> > This patch fixes blackfin architecture.
+On Tue, 2008-07-01 at 08:58 -0700, Stephen Neuendorffer wrote:
+> Doing this at the binary level would be nice, but I see enough problems
+> just doing it at the source level and at least for my purposes, doing it
+> on a dtb would be overkill, I think.   
 > 
-> the comment right above what you changed says it already works for
-> Blackfin.  so you arent fixing it at all.
-> >                /* This gets done first, so the glob doesn't suck it in */
-> >                . = ALIGN(32);
-> > -               *(.data.cacheline_aligned)
-> > +               *(.cacheline_aligned.data)
+> The main difficulty remains how to deal with cross references between
+> nodes in a reasonable way where the references cross from one fragment
+> to another.
 
-This may pull in an unrelated data object named "cacheline_aligned"
-(say, a static variable in a driver). If that variable is not
-itself aligned to the cacheline size, it will mess up alignment of all
-objects in .data.cacheline_aligned which follow. Not good.
+I would have those done in the toplevel .dts
 
-To be safe from such weird and hard to debug problems
-it's better to not use names like .data.XXXX at all.
-I just uniformly renamed al such "special sections"
-in the kernel to .XXXXX.data
---
-vda
+You can always override the property with the reference....
+
+Ie. you #include your CPU or your SOC for example, and then override
+some property to point to something else using the override mechanism I
+mentioned.
+
+Ben.
