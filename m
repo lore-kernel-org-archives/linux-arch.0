@@ -1,68 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from qb-out-0506.google.com ([72.14.204.227]:17527 "EHLO
-	qb-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1762684AbYGAWii (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2008 18:38:38 -0400
-Received: by qb-out-0506.google.com with SMTP id d8so937473qbc.37
-        for <linux-arch@vger.kernel.org>; Tue, 01 Jul 2008 15:38:38 -0700 (PDT)
+Received: from hu-out-0506.google.com ([72.14.214.230]:22786 "EHLO
+	hu-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760200AbYGAWkH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2008 18:40:07 -0400
+Received: by hu-out-0506.google.com with SMTP id 28so819660hub.21
+        for <linux-arch@vger.kernel.org>; Tue, 01 Jul 2008 15:40:04 -0700 (PDT)
 From: Denys Vlasenko <vda.linux@googlemail.com>
-Subject: [PATCH 13/23] make section names compatible with -ffunction-sections -fdata-sections: mn10300
-Date: Wed, 2 Jul 2008 02:38:45 +0200
+Subject: [PATCH 16/23] make section names compatible with -ffunction-sections -fdata-sections: ppc
+Date: Wed, 2 Jul 2008 02:40:03 +0200
 MIME-Version: 1.0
 Content-Disposition: inline
 Content-Type: text/plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Message-ID: <200807020238.45086.vda.linux@googlemail.com>
+Message-ID: <200807020240.03443.vda.linux@googlemail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
-Message-ID: <20080702003845.w_0FHavt7VBOQ3XLXgC0GNx9c2LbcTkfcPsiZW_Av4w@z>
+Message-ID: <20080702004003.ODHvZMIoibt6nnYhWlBLRMhBPPmqGtOCHp6Z1tWXcmI@z>
 
 The purpose of this patch is to make kernel buildable
 with "gcc -ffunction-sections -fdata-sections".
-This patch fixes mn10300 architecture.
+This patch fixes ppc architecture.
 
 Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
 --
 vda
 
 
---- 0.org/arch/mn10300/kernel/head.S	Wed Jul  2 00:40:41 2008
-+++ 1.fixname/arch/mn10300/kernel/head.S	Wed Jul  2 00:44:22 2008
-@@ -19,7 +19,7 @@
- #include <asm/param.h>
- #include <asm/unit/serial.h>
+--- 0.org/arch/ppc/boot/ld.script	Wed Jul  2 00:40:41 2008
++++ 1.fixname/arch/ppc/boot/ld.script	Wed Jul  2 00:46:50 2008
+@@ -41,7 +41,7 @@
+   {
+     *(.data)
+     *(.data1)
+-    *(.data.boot)
++    *(.boot.data)
+     *(.sdata)
+     *(.sdata2)
+     *(.got.plt) *(.got)
+--- 0.org/arch/ppc/boot/simple/misc-embedded.c	Wed Jul  2 00:40:41 2008
++++ 1.fixname/arch/ppc/boot/simple/misc-embedded.c	Wed Jul  2 00:46:50 2008
+@@ -60,7 +60,7 @@
  
--	.section .text.head,"ax"
-+	.section .head.text,"ax"
+ /* We need to make sure that this is before the images to ensure
+  * that it's in a mapped location. - Tom */
+-bd_t hold_resid_buf __attribute__ ((__section__ (".data.boot")));
++bd_t hold_resid_buf __attribute__ ((__section__ (".boot.data")));
+ bd_t *hold_residual = &hold_resid_buf;
  
- ###############################################################################
- #
---- 0.org/arch/mn10300/kernel/init_task.c	Wed Jul  2 00:40:41 2008
-+++ 1.fixname/arch/mn10300/kernel/init_task.c	Wed Jul  2 00:45:57 2008
-@@ -32,7 +32,7 @@
-  * "init_task" linker map entry..
-  */
- union thread_union init_thread_union
--	__attribute__((__section__(".data.init_task"))) =
-+	__attribute__((__section__(".init_task.data"))) =
- 		{ INIT_THREAD_INFO(init_task) };
+ extern unsigned long serial_init(int chan, bd_t *bp);
+--- 0.org/arch/ppc/boot/simple/openbios.c	Wed Jul  2 00:40:41 2008
++++ 1.fixname/arch/ppc/boot/simple/openbios.c	Wed Jul  2 00:46:50 2008
+@@ -41,7 +41,7 @@
  
- /*
---- 0.org/arch/mn10300/kernel/vmlinux.lds.S	Wed Jul  2 00:40:41 2008
-+++ 1.fixname/arch/mn10300/kernel/vmlinux.lds.S	Wed Jul  2 00:47:00 2008
-@@ -27,7 +27,7 @@
-   _text = .;			/* Text and read-only data */
-   .text : {
- 	*(
--	.text.head
-+	.head.text
- 	.text
- 	)
- 	TEXT_TEXT
-@@ -57,25 +57,25 @@
+ /* We need to make sure that this is before the images to ensure
+  * that it's in a mapped location. */
+-bd_t hold_resid_buf __attribute__ ((__section__ (".data.boot")));
++bd_t hold_resid_buf __attribute__ ((__section__ (".boot.data")));
+ bd_t *hold_residual = &hold_resid_buf;
+ 
+ typedef struct openbios_board_info {
+--- 0.org/arch/ppc/boot/simple/pibs.c	Wed Jul  2 00:40:41 2008
++++ 1.fixname/arch/ppc/boot/simple/pibs.c	Wed Jul  2 00:46:50 2008
+@@ -16,7 +16,7 @@
+ 
+ /* We need to make sure that this is before the images to ensure
+  * that it's in a mapped location. - Tom */
+-bd_t hold_resid_buf __attribute__ ((__section__ (".data.boot")));
++bd_t hold_resid_buf __attribute__ ((__section__ (".boot.data")));
+ bd_t *hold_residual = &hold_resid_buf;
+ 
+ /* String functions lifted from lib/vsprintf.c and lib/ctype.c */
+--- 0.org/arch/ppc/kernel/vmlinux.lds.S	Wed Jul  2 00:40:41 2008
++++ 1.fixname/arch/ppc/kernel/vmlinux.lds.S	Wed Jul  2 00:46:03 2008
+@@ -78,18 +78,18 @@
  
    . = ALIGN(4096);
    __nosave_begin = .;
@@ -71,44 +84,16 @@ vda
    . = ALIGN(4096);
    __nosave_end = .;
  
-   . = ALIGN(4096);
--  .data.page_aligned : { *(.data.idt) }
-+  .page_aligned.data : { *(.idt.data) }
- 
    . = ALIGN(32);
 -  .data.cacheline_aligned : { *(.data.cacheline_aligned) }
 +  .cacheline_aligned.data : { *(.cacheline_aligned.data) }
  
-   /* rarely changed data like cpu maps */
-   . = ALIGN(32);
--  .data.read_mostly : AT(ADDR(.data.read_mostly)) {
--	*(.data.read_mostly)
-+  .read_mostly.data : AT(ADDR(.read_mostly.data)) {
-+	*(.read_mostly.data)
- 	_edata = .;		/* End of data section */
-   }
+   _edata  =  .;
+   PROVIDE (edata = .);
  
-   . = ALIGN(THREAD_SIZE);	/* init_task */
+   . = ALIGN(8192);
 -  .data.init_task : { *(.data.init_task) }
 +  .init_task.data : { *(.init_task.data) }
  
-   /* might get freed after init */
-   . = ALIGN(4096);
-@@ -128,7 +128,7 @@
+   NOTES
  
-   . = ALIGN(32);
-   __per_cpu_start = .;
--  .data.percpu  : { *(.data.percpu) }
-+  .percpu.data  : { *(.percpu.data) }
-   __per_cpu_end = .;
-   . = ALIGN(4096);
-   __init_end = .;
-@@ -136,7 +136,7 @@
- 
-   __bss_start = .;		/* BSS */
-   .bss : {
--	*(.bss.page_aligned)
-+	*(.bss.k.page_aligned)
- 	*(.bss)
-   }
-   . = ALIGN(4);
