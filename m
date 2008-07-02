@@ -1,34 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate6.uk.ibm.com ([195.212.29.139]:17341 "EHLO
-	mtagate6.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759733AbYGBHi7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jul 2008 03:38:59 -0400
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: Re: [2.6 patch] remove dummy asm/kvm.h files
-Date: Wed, 2 Jul 2008 09:38:50 +0200
-References: <20080701162716.GB32598@cs181140183.pp.htv.fi>
-In-Reply-To: <20080701162716.GB32598@cs181140183.pp.htv.fi>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
+Received: from e32.co.us.ibm.com ([32.97.110.150]:59444 "EHLO
+	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753170AbYGBL6Z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jul 2008 07:58:25 -0400
+Date: Wed, 2 Jul 2008 07:54:59 -0400
+From: Josh Boyer <jwboyer@linux.vnet.ibm.com>
+Subject: Re: [PATCH 16/23] make section names compatible with
+ -ffunction-sections -fdata-sections: ppc
+Message-ID: <20080702075459.44334db9@zod.rchland.ibm.com>
+In-Reply-To: <200807020240.03443.vda.linux@googlemail.com>
+References: <200807020240.03443.vda.linux@googlemail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-ID: <200807020938.50194.borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Adrian Bunk <bunk@kernel.org>
-Cc: Avi Kivity <avi@qumranet.com>, linux-arch@vger.kernel.org, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, David Woodhouse <dwmw2@infradead.org>
-Message-ID: <20080702073850.Frq2BSHqoC6olnOJ0Z8OlCcGwVO_x6nZ9WFKIFNCAvU@z>
+To: Denys Vlasenko <vda.linux@googlemail.com>
+Cc: linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
+Message-ID: <20080702115459.0xdy5SsD82c6GaWluaVPQhKD44zpOKFrr_GT1dWngOo@z>
 
-Am Dienstag, 1. Juli 2008 schrieb Adrian Bunk:
-> This patch removes the dummy asm/kvm.h files on architectures not (yet) 
-> supporting KVM and uses the same conditional headers installation as
-> already used for a.out.h .
-> 
-> Also removed are superfluous install rules in the s390 and x86 Kbuild 
-> files (they are already in Kbuild.asm).
-> 
-> Signed-off-by: Adrian Bunk <bunk@kernel.org>
+On Wed, 2 Jul 2008 02:40:03 +0200
+Denys Vlasenko <vda.linux@googlemail.com> wrote:
 
-Seems to work on s390, ppc and arm as expected.
-Acked-by: Christian Borntraeger <borntraeger@de.ibm.com>
+> The purpose of this patch is to make kernel buildable
+> with "gcc -ffunction-sections -fdata-sections".
+> This patch fixes ppc architecture.
+> 
+> Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
+
+You can drop this one entirely.  arch/ppc won't exist in 2.6.27.  It
+has been removed in the powerpc tree already.
+
+josh
