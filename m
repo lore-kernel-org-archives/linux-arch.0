@@ -1,7 +1,7 @@
 From: Denys Vlasenko <vda.linux@googlemail.com>
-Subject: [PATCH 3/23] make section names compatible with -ffunction-sections -fdata-sections: arm
-Date: Wed, 2 Jul 2008 02:34:26 +0200
-Message-ID: <200807020234.26755.vda.linux@googlemail.com>
+Subject: [PATCH 2/23] make section names compatible with -ffunction-sections -fdata-sections: alpha
+Date: Wed, 2 Jul 2008 02:34:09 +0200
+Message-ID: <200807020234.09577.vda.linux@googlemail.com>
 Mime-Version: 1.0
 Content-Type: text/plain;
   charset="iso-8859-1"
@@ -15,140 +15,66 @@ List-Id: linux-arch.vger.kernel.org
 
 The purpose of this patch is to make kernel buildable
 with "gcc -ffunction-sections -fdata-sections".
-This patch fixes arm architecture.
+This patch fixes alpha architecture.
 
 Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
 --
 vda
 
 
---- 0.org/arch/arm/kernel/head-nommu.S	Wed Jul  2 00:40:39 2008
-+++ 1.fixname/arch/arm/kernel/head-nommu.S	Wed Jul  2 00:44:22 2008
-@@ -33,7 +33,7 @@
-  * numbers for r1.
-  *
-  */
--	.section ".text.head", "ax"
-+	.section ".head.text", "ax"
- 	.type	stext, %function
- ENTRY(stext)
- 	msr	cpsr_c, #PSR_F_BIT | PSR_I_BIT | SVC_MODE @ ensure svc mode
---- 0.org/arch/arm/kernel/head.S	Wed Jul  2 00:40:39 2008
-+++ 1.fixname/arch/arm/kernel/head.S	Wed Jul  2 00:44:22 2008
-@@ -74,7 +74,7 @@
-  * crap here - that's what the boot loader (or in extreme, well justified
-  * circumstances, zImage) is for.
-  */
--	.section ".text.head", "ax"
-+	.section ".head.text", "ax"
- 	.type	stext, %function
- ENTRY(stext)
- 	msr	cpsr_c, #PSR_F_BIT | PSR_I_BIT | SVC_MODE @ ensure svc mode
---- 0.org/arch/arm/kernel/init_task.c	Wed Jul  2 00:40:39 2008
-+++ 1.fixname/arch/arm/kernel/init_task.c	Wed Jul  2 00:45:57 2008
-@@ -30,7 +30,7 @@
-  * The things we do for performance..
-  */
- union thread_union init_thread_union
--	__attribute__((__section__(".data.init_task"))) =
-+	__attribute__((__section__(".init_task.data"))) =
- 		{ INIT_THREAD_INFO(init_task) };
+--- 0.org/arch/alpha/kernel/head.S	Wed Jul  2 00:40:39 2008
++++ 1.fixname/arch/alpha/kernel/head.S	Wed Jul  2 00:44:22 2008
+@@ -10,7 +10,7 @@
+ #include <asm/system.h>
+ #include <asm/asm-offsets.h>
  
- /*
---- 0.org/arch/arm/kernel/vmlinux.lds.S	Wed Jul  2 00:40:39 2008
-+++ 1.fixname/arch/arm/kernel/vmlinux.lds.S	Wed Jul  2 00:46:03 2008
-@@ -23,10 +23,10 @@
- #else
- 	. = PAGE_OFFSET + TEXT_OFFSET;
- #endif
--	.text.head : {
-+	.head.text : {
- 		_stext = .;
- 		_sinittext = .;
--		*(.text.head)
-+		*(.head.text)
+-.section .text.head, "ax"
++.section .head.text, "ax"
+ .globl swapper_pg_dir
+ .globl _stext
+ swapper_pg_dir=SWAPPER_PGD
+--- 0.org/arch/alpha/kernel/init_task.c	Wed Jul  2 00:40:39 2008
++++ 1.fixname/arch/alpha/kernel/init_task.c	Wed Jul  2 00:45:57 2008
+@@ -18,5 +18,5 @@
+ EXPORT_SYMBOL(init_task);
+ 
+ union thread_union init_thread_union
+-	__attribute__((section(".data.init_thread")))
++	__attribute__((section(".init_thread.data")))
+ 	= { INIT_THREAD_INFO(init_task) };
+--- 0.org/arch/alpha/kernel/vmlinux.lds.S	Wed Jul  2 00:40:39 2008
++++ 1.fixname/arch/alpha/kernel/vmlinux.lds.S	Wed Jul  2 00:46:09 2008
+@@ -16,7 +16,7 @@
+ 
+ 	_text = .;	/* Text and read-only data */
+ 	.text : {
+-	*(.text.head)
++	*(.head.text)
+ 		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+@@ -93,18 +93,18 @@
+ 	/* Freed after init ends here */
+ 
+ 	/* Note 2 page alignment above.  */
+-	.data.init_thread : {
+-		*(.data.init_thread)
++	.init_thread.data : {
++		*(.init_thread.data)
  	}
  
- 	.init : {			/* Init code and data		*/
-@@ -65,8 +65,8 @@
- #endif
- 		. = ALIGN(4096);
- 		__per_cpu_start = .;
--			*(.data.percpu)
--			*(.data.percpu.shared_aligned)
-+			*(.percpu.data)
-+			*(.percpu.shared_aligned.data)
- 		__per_cpu_end = .;
- #ifndef CONFIG_XIP_KERNEL
- 		__init_begin = _stext;
-@@ -125,7 +125,7 @@
- 		 * first, the init task union, aligned
- 		 * to an 8192 byte boundary.
- 		 */
--		*(.data.init_task)
-+		*(.init_task.data)
+ 	. = ALIGN(PAGE_SIZE);
+-	.data.page_aligned : {
+-		*(.data.page_aligned)
++	.page_aligned.data : {
++		*(.page_aligned.data)
+ 	}
  
- #ifdef CONFIG_XIP_KERNEL
- 		. = ALIGN(4096);
-@@ -137,7 +137,7 @@
- 
- 		. = ALIGN(4096);
- 		__nosave_begin = .;
--		*(.data.nosave)
-+		*(.nosave.data)
- 		. = ALIGN(4096);
- 		__nosave_end = .;
- 
-@@ -145,7 +145,7 @@
- 		 * then the cacheline aligned data
- 		 */
- 		. = ALIGN(32);
+ 	. = ALIGN(64);
+-	.data.cacheline_aligned : {
 -		*(.data.cacheline_aligned)
++	.cacheline_aligned.data : {
 +		*(.cacheline_aligned.data)
+ 	}
  
- 		/*
- 		 * The exception fixup table (might need resorting at runtime)
---- 0.org/arch/arm/mm/proc-v6.S	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/arm/mm/proc-v6.S	Wed Jul  2 00:44:28 2008
-@@ -164,7 +164,7 @@
- 	.asciz	"ARMv6-compatible processor"
- 	.align
- 
--	.section ".text.init", #alloc, #execinstr
-+	.section ".init.text", #alloc, #execinstr
- 
- /*
-  *	__v6_setup
---- 0.org/arch/arm/mm/proc-v7.S	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/arm/mm/proc-v7.S	Wed Jul  2 00:44:28 2008
-@@ -146,7 +146,7 @@
- 	.ascii	"ARMv7 Processor"
- 	.align
- 
--	.section ".text.init", #alloc, #execinstr
-+	.section ".init.text", #alloc, #execinstr
- 
- /*
-  *	__v7_setup
---- 0.org/arch/arm/mm/tlb-v6.S	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/arm/mm/tlb-v6.S	Wed Jul  2 00:44:28 2008
-@@ -87,7 +87,7 @@
- 	mcr	p15, 0, r2, c7, c5, 4		@ prefetch flush
- 	mov	pc, lr
- 
--	.section ".text.init", #alloc, #execinstr
-+	.section ".init.text", #alloc, #execinstr
- 
- 	.type	v6wbi_tlb_fns, #object
- ENTRY(v6wbi_tlb_fns)
---- 0.org/arch/arm/mm/tlb-v7.S	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/arm/mm/tlb-v7.S	Wed Jul  2 00:44:28 2008
-@@ -78,7 +78,7 @@
- 	isb
- 	mov	pc, lr
- 
--	.section ".text.init", #alloc, #execinstr
-+	.section ".init.text", #alloc, #execinstr
- 
- 	.type	v7wbi_tlb_fns, #object
- ENTRY(v7wbi_tlb_fns)
+ 	_data = .;
