@@ -1,236 +1,154 @@
 From: Denys Vlasenko <vda.linux@googlemail.com>
-Subject: [PATCH 1/23] make section names compatible with -ffunction-sections -fdata-sections
-Date: Wed, 2 Jul 2008 02:33:48 +0200
-Message-ID: <200807020233.48646.vda.linux@googlemail.com>
+Subject: [PATCH 3/23] make section names compatible with -ffunction-sections -fdata-sections: arm
+Date: Wed, 2 Jul 2008 02:34:26 +0200
+Message-ID: <200807020234.26755.vda.linux@googlemail.com>
 Mime-Version: 1.0
 Content-Type: text/plain;
-  charset="us-ascii"
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-embedded-owner@vger.kernel.org>
 Content-Disposition: inline
 Sender: linux-embedded-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
+To: linux-arch@vger.kernel.org
+Cc: Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Andrew, folks,
-
-I am unsure how to synchronize propagation of these patches
-across all architectures.
-
-Andrew, how this can be done without causing lots of pain
-for arch maintainers? Please advise.
-
-The purpose of these patches is to make kernel buildable
+The purpose of this patch is to make kernel buildable
 with "gcc -ffunction-sections -fdata-sections".
-
-Newer gcc and binutils can do dead code and data removal
-at link time. It is achieved using combination of
--ffunction-sections -fdata-sections options for gcc and
---gc-sections for ld.
-
-Theory of operation:
-
--ffunction-sections instructs gcc to place each function
-(including static ones) in it's own section named .text.function_name
-instead of placing all functions in one big .text section.
-
-At link time, ld normally coalesce all such sections into one
-output section .text again. It is achieved by having *(.text.*) spec
-along with *(.text) spec in built-in linker scripts.
-
-If ld is invoked with --gc-sections, it tracks references, starting
-from entry point and marks all input sections which are reachable
-from there. Then it discards all input sections which are not marked.
-
-This isn't buying much if you have one big .text section per .o module,
-because even one referenced function will pull in entire section.
-You need -ffunction-sections in order to split .text into per-function
-sections and make --gc-sections much more useful.
-
--fdata-sections is analogous: it places each global or static variable
-into .data.variable_name, .rodata.variable_name or .bss.variable_name.
-
-If we ever want to use described mechanism, we need to adapt
-existing code for new section names. Basically, we need to stop using
-section names of the form
-.text.xxxx
-.data.xxxx
-.rodata.xxxx
-.bss.xxxx
-in the kernel - otherwise section placement done by kernel's
-custom linker scripts produces broken vmlinux and vdso images.
-
-The following patches fix section names, one per architecture.
-
-The patch in _this_ mail fixes generic part.
+This patch fixes arm architecture.
 
 Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
 --
 vda
 
 
---- 0.org/Documentation/mutex-design.txt	Wed Jul  2 00:40:39 2008
-+++ 1.fixname/Documentation/mutex-design.txt	Wed Jul  2 00:44:40 2008
-@@ -66,14 +66,14 @@
- 
-     c0377ccb <mutex_lock>:
-     c0377ccb:       f0 ff 08                lock decl (%eax)
--    c0377cce:       78 0e                   js     c0377cde <.text.lock.mutex>
-+    c0377cce:       78 0e                   js     c0377cde <.lock.mutex.text>
-     c0377cd0:       c3                      ret
- 
-    the unlocking fastpath is equally tight:
- 
-     c0377cd1 <mutex_unlock>:
-     c0377cd1:       f0 ff 00                lock incl (%eax)
--    c0377cd4:       7e 0f                   jle    c0377ce5 <.text.lock.mutex+0x7>
-+    c0377cd4:       7e 0f                   jle    c0377ce5 <.lock.mutex.text+0x7>
-     c0377cd6:       c3                      ret
- 
-  - 'struct mutex' semantics are well-defined and are enforced if
---- 0.org/include/asm-generic/vmlinux.lds.h	Wed Jul  2 00:40:50 2008
-+++ 1.fixname/include/asm-generic/vmlinux.lds.h	Wed Jul  2 00:54:09 2008
-@@ -41,7 +41,7 @@
- /* .data section */
- #define DATA_DATA							\
- 	*(.data)							\
--	*(.data.init.refok)						\
-+	*(.init.refok.data)						\
- 	*(.ref.data)							\
- 	DEV_KEEP(init.data)						\
- 	DEV_KEEP(exit.data)						\
-@@ -206,8 +206,8 @@
- 		ALIGN_FUNCTION();					\
- 		*(.text)						\
- 		*(.ref.text)						\
--		*(.text.init.refok)					\
--		*(.exit.text.refok)					\
-+		*(.init.refok.text)					\
-+		*(.exit.refok.text)					\
- 	DEV_KEEP(init.text)						\
- 	DEV_KEEP(exit.text)						\
- 	CPU_KEEP(init.text)						\
-@@ -347,8 +347,8 @@
- #define PERCPU(align)							\
- 	. = ALIGN(align);						\
- 	__per_cpu_start = .;						\
--	.data.percpu  : AT(ADDR(.data.percpu) - LOAD_OFFSET) {		\
--		*(.data.percpu)						\
--		*(.data.percpu.shared_aligned)				\
-+	.percpu.data  : AT(ADDR(.percpu.data) - LOAD_OFFSET) {		\
-+		*(.percpu.data)						\
-+		*(.percpu.shared_aligned.data)				\
- 	}								\
- 	__per_cpu_end = .;
---- 0.org/include/linux/cache.h	Wed Jul  2 00:40:51 2008
-+++ 1.fixname/include/linux/cache.h	Wed Jul  2 00:45:51 2008
-@@ -31,7 +31,7 @@
- #ifndef __cacheline_aligned
- #define __cacheline_aligned					\
-   __attribute__((__aligned__(SMP_CACHE_BYTES),			\
--		 __section__(".data.cacheline_aligned")))
-+		 __section__(".cacheline_aligned.data")))
- #endif /* __cacheline_aligned */
- 
- #ifndef __cacheline_aligned_in_smp
---- 0.org/include/linux/init.h	Wed Jul  2 00:40:51 2008
-+++ 1.fixname/include/linux/init.h	Wed Jul  2 00:54:13 2008
-@@ -62,9 +62,9 @@
- 
- /* backward compatibility note
-  *  A few places hardcode the old section names:
-- *  .text.init.refok
-- *  .data.init.refok
-- *  .exit.text.refok
-+ *  .init.refok.text
-+ *  .init.refok.data
-+ *  .exit.refok.text
-  *  They should be converted to use the defines from this file
+--- 0.org/arch/arm/kernel/head-nommu.S	Wed Jul  2 00:40:39 2008
++++ 1.fixname/arch/arm/kernel/head-nommu.S	Wed Jul  2 00:44:22 2008
+@@ -33,7 +33,7 @@
+  * numbers for r1.
+  *
   */
+-	.section ".text.head", "ax"
++	.section ".head.text", "ax"
+ 	.type	stext, %function
+ ENTRY(stext)
+ 	msr	cpsr_c, #PSR_F_BIT | PSR_I_BIT | SVC_MODE @ ensure svc mode
+--- 0.org/arch/arm/kernel/head.S	Wed Jul  2 00:40:39 2008
++++ 1.fixname/arch/arm/kernel/head.S	Wed Jul  2 00:44:22 2008
+@@ -74,7 +74,7 @@
+  * crap here - that's what the boot loader (or in extreme, well justified
+  * circumstances, zImage) is for.
+  */
+-	.section ".text.head", "ax"
++	.section ".head.text", "ax"
+ 	.type	stext, %function
+ ENTRY(stext)
+ 	msr	cpsr_c, #PSR_F_BIT | PSR_I_BIT | SVC_MODE @ ensure svc mode
+--- 0.org/arch/arm/kernel/init_task.c	Wed Jul  2 00:40:39 2008
++++ 1.fixname/arch/arm/kernel/init_task.c	Wed Jul  2 00:45:57 2008
+@@ -30,7 +30,7 @@
+  * The things we do for performance..
+  */
+ union thread_union init_thread_union
+-	__attribute__((__section__(".data.init_task"))) =
++	__attribute__((__section__(".init_task.data"))) =
+ 		{ INIT_THREAD_INFO(init_task) };
  
-@@ -299,7 +299,7 @@
- #endif
- 
- /* Data marked not to be saved by software suspend */
--#define __nosavedata __section(.data.nosave)
-+#define __nosavedata __section(.nosave.data)
- 
- /* This means "can be init if no module support, otherwise module load
-    may call it." */
---- 0.org/include/linux/percpu.h	Wed Jul  2 00:40:51 2008
-+++ 1.fixname/include/linux/percpu.h	Wed Jul  2 00:45:39 2008
-@@ -10,13 +10,13 @@
- 
- #ifdef CONFIG_SMP
- #define DEFINE_PER_CPU(type, name)					\
--	__attribute__((__section__(".data.percpu")))			\
-+	__attribute__((__section__(".percpu.data")))			\
- 	PER_CPU_ATTRIBUTES __typeof__(type) per_cpu__##name
- 
- #ifdef MODULE
--#define SHARED_ALIGNED_SECTION ".data.percpu"
-+#define SHARED_ALIGNED_SECTION ".percpu.data"
- #else
--#define SHARED_ALIGNED_SECTION ".data.percpu.shared_aligned"
-+#define SHARED_ALIGNED_SECTION ".percpu.shared_aligned.data"
- #endif
- 
- #define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)			\
---- 0.org/include/linux/spinlock.h	Wed Jul  2 00:40:51 2008
-+++ 1.fixname/include/linux/spinlock.h	Wed Jul  2 00:44:40 2008
-@@ -59,7 +59,7 @@
  /*
-  * Must define these before including other files, inline functions need them
-  */
--#define LOCK_SECTION_NAME ".text.lock."KBUILD_BASENAME
-+#define LOCK_SECTION_NAME ".lock.text."KBUILD_BASENAME
+--- 0.org/arch/arm/kernel/vmlinux.lds.S	Wed Jul  2 00:40:39 2008
++++ 1.fixname/arch/arm/kernel/vmlinux.lds.S	Wed Jul  2 00:46:03 2008
+@@ -23,10 +23,10 @@
+ #else
+ 	. = PAGE_OFFSET + TEXT_OFFSET;
+ #endif
+-	.text.head : {
++	.head.text : {
+ 		_stext = .;
+ 		_sinittext = .;
+-		*(.text.head)
++		*(.head.text)
+ 	}
  
- #define LOCK_SECTION_START(extra)               \
-         ".subsection 1\n\t"                     \
---- 0.org/kernel/module.c	Wed Jul  2 00:40:51 2008
-+++ 1.fixname/kernel/module.c	Wed Jul  2 00:45:39 2008
-@@ -433,7 +433,7 @@
- 				 Elf_Shdr *sechdrs,
- 				 const char *secstrings)
- {
--	return find_sec(hdr, sechdrs, secstrings, ".data.percpu");
-+	return find_sec(hdr, sechdrs, secstrings, ".percpu.data");
- }
+ 	.init : {			/* Init code and data		*/
+@@ -65,8 +65,8 @@
+ #endif
+ 		. = ALIGN(4096);
+ 		__per_cpu_start = .;
+-			*(.data.percpu)
+-			*(.data.percpu.shared_aligned)
++			*(.percpu.data)
++			*(.percpu.shared_aligned.data)
+ 		__per_cpu_end = .;
+ #ifndef CONFIG_XIP_KERNEL
+ 		__init_begin = _stext;
+@@ -125,7 +125,7 @@
+ 		 * first, the init task union, aligned
+ 		 * to an 8192 byte boundary.
+ 		 */
+-		*(.data.init_task)
++		*(.init_task.data)
  
- static void percpu_modcopy(void *pcpudest, const void *from, unsigned long size)
---- 0.org/scripts/mod/modpost.c	Wed Jul  2 00:40:54 2008
-+++ 1.fixname/scripts/mod/modpost.c	Wed Jul  2 00:54:21 2008
-@@ -794,9 +794,9 @@
- /* sections that may refer to an init/exit section with no warning */
- static const char *initref_sections[] =
- {
--	".text.init.refok*",
--	".exit.text.refok*",
--	".data.init.refok*",
-+	".init.refok.text*",
-+	".exit.refok.text*",
-+	".init.refok.data*",
- 	NULL
- };
+ #ifdef CONFIG_XIP_KERNEL
+ 		. = ALIGN(4096);
+@@ -137,7 +137,7 @@
  
-@@ -915,7 +915,7 @@
-  * Pattern 0:
-  *   Do not warn if funtion/data are marked with __init_refok/__initdata_refok.
-  *   The pattern is identified by:
-- *   fromsec = .text.init.refok* | .data.init.refok*
-+ *   fromsec = .init.refok.text* | .init.refok.data*
-  *
-  * Pattern 1:
-  *   If a module parameter is declared __initdata and permissions=0
-@@ -939,8 +939,8 @@
-  *           *probe_one, *_console, *_timer
-  *
-  * Pattern 3:
-- *   Whitelist all refereces from .text.head to .init.data
-- *   Whitelist all refereces from .text.head to .init.text
-+ *   Whitelist all refereces from .head.text to .init.data
-+ *   Whitelist all refereces from .head.text to .init.text
-  *
-  * Pattern 4:
-  *   Some symbols belong to init section but still it is ok to reference
+ 		. = ALIGN(4096);
+ 		__nosave_begin = .;
+-		*(.data.nosave)
++		*(.nosave.data)
+ 		. = ALIGN(4096);
+ 		__nosave_end = .;
+ 
+@@ -145,7 +145,7 @@
+ 		 * then the cacheline aligned data
+ 		 */
+ 		. = ALIGN(32);
+-		*(.data.cacheline_aligned)
++		*(.cacheline_aligned.data)
+ 
+ 		/*
+ 		 * The exception fixup table (might need resorting at runtime)
+--- 0.org/arch/arm/mm/proc-v6.S	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/arm/mm/proc-v6.S	Wed Jul  2 00:44:28 2008
+@@ -164,7 +164,7 @@
+ 	.asciz	"ARMv6-compatible processor"
+ 	.align
+ 
+-	.section ".text.init", #alloc, #execinstr
++	.section ".init.text", #alloc, #execinstr
+ 
+ /*
+  *	__v6_setup
+--- 0.org/arch/arm/mm/proc-v7.S	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/arm/mm/proc-v7.S	Wed Jul  2 00:44:28 2008
+@@ -146,7 +146,7 @@
+ 	.ascii	"ARMv7 Processor"
+ 	.align
+ 
+-	.section ".text.init", #alloc, #execinstr
++	.section ".init.text", #alloc, #execinstr
+ 
+ /*
+  *	__v7_setup
+--- 0.org/arch/arm/mm/tlb-v6.S	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/arm/mm/tlb-v6.S	Wed Jul  2 00:44:28 2008
+@@ -87,7 +87,7 @@
+ 	mcr	p15, 0, r2, c7, c5, 4		@ prefetch flush
+ 	mov	pc, lr
+ 
+-	.section ".text.init", #alloc, #execinstr
++	.section ".init.text", #alloc, #execinstr
+ 
+ 	.type	v6wbi_tlb_fns, #object
+ ENTRY(v6wbi_tlb_fns)
+--- 0.org/arch/arm/mm/tlb-v7.S	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/arm/mm/tlb-v7.S	Wed Jul  2 00:44:28 2008
+@@ -78,7 +78,7 @@
+ 	isb
+ 	mov	pc, lr
+ 
+-	.section ".text.init", #alloc, #execinstr
++	.section ".init.text", #alloc, #execinstr
+ 
+ 	.type	v7wbi_tlb_fns, #object
+ ENTRY(v7wbi_tlb_fns)
