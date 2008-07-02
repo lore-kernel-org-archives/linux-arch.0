@@ -1,34 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:59444 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753170AbYGBL6Z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jul 2008 07:58:25 -0400
-Date: Wed, 2 Jul 2008 07:54:59 -0400
-From: Josh Boyer <jwboyer@linux.vnet.ibm.com>
-Subject: Re: [PATCH 16/23] make section names compatible with
- -ffunction-sections -fdata-sections: ppc
-Message-ID: <20080702075459.44334db9@zod.rchland.ibm.com>
-In-Reply-To: <200807020240.03443.vda.linux@googlemail.com>
-References: <200807020240.03443.vda.linux@googlemail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from smtp5.pp.htv.fi ([213.243.153.39]:54992 "EHLO smtp5.pp.htv.fi"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753140AbYGBOzj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 2 Jul 2008 10:55:39 -0400
+Date: Wed, 2 Jul 2008 17:55:14 +0300
+From: Adrian Bunk <bunk@kernel.org>
+Subject: Re: [PATCH 14/23] make section names compatible with
+	-ffunction-sections -fdata-sections: parisc
+Message-ID: <20080702145514.GC4196@cs181140183.pp.htv.fi>
+References: <200807020239.11410.vda.linux@googlemail.com> <1214955660.3316.31.camel@localhost.localdomain> <200807020200.49518.vda.linux@googlemail.com> <1214988107.10393.444.camel@pmac.infradead.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <1214988107.10393.444.camel@pmac.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Denys Vlasenko <vda.linux@googlemail.com>
-Cc: linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
-Message-ID: <20080702115459.0xdy5SsD82c6GaWluaVPQhKD44zpOKFrr_GT1dWngOo@z>
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: Denys Vlasenko <vda.linux@googlemail.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
+Message-ID: <20080702145514.S-5uiBJfy7ffv-tZ8bEOTuJN9QI0LcaPIvwzRBHjx6M@z>
 
-On Wed, 2 Jul 2008 02:40:03 +0200
-Denys Vlasenko <vda.linux@googlemail.com> wrote:
-
-> The purpose of this patch is to make kernel buildable
-> with "gcc -ffunction-sections -fdata-sections".
-> This patch fixes ppc architecture.
+On Wed, Jul 02, 2008 at 09:41:47AM +0100, David Woodhouse wrote:
+> On Wed, 2008-07-02 at 02:00 +0200, Denys Vlasenko wrote:
+> > On Wednesday 02 July 2008 01:41, James Bottomley wrote:
+> > > On Wed, 2008-07-02 at 02:39 +0200, Denys Vlasenko wrote:
+> > > > The purpose of this patch is to make kernel buildable
+> > > > with "gcc -ffunction-sections -fdata-sections".
+> > > > This patch fixes parisc architecture.
+> > > > 
+> > > > Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
+> > > 
+> > > Um ... if you look at the Makefile you'll see we already build parisc
+> > > with -ffunction-sections; we have to: our relative jumps are too small
+> > > to guarantee finding the stubs in large files.
+> > > 
+> > > Since our text is -ffunction-sections compatible already, I question the
+> > > need for transformations like this:
 > 
-> Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
+> We've been building FR-V kernels with --gc-sections for a long time,
+> too.
+>...
 
-You can drop this one entirely.  arch/ppc won't exist in 2.6.27.  It
-has been removed in the powerpc tree already.
+Is there any specific reason why it's not done in the upstream kernel?
 
-josh
+> dwmw2
+
+cu
+Adrian
+
+-- 
+
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
+
