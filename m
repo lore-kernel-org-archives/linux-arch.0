@@ -1,361 +1,174 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from qb-out-0506.google.com ([72.14.204.232]:3790 "EHLO
-	qb-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757123AbYGAWgq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2008 18:36:46 -0400
-Received: by qb-out-0506.google.com with SMTP id d8so934894qbc.37
-        for <linux-arch@vger.kernel.org>; Tue, 01 Jul 2008 15:36:45 -0700 (PDT)
+Received: from hu-out-0506.google.com ([72.14.214.236]:20599 "EHLO
+	hu-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1762520AbYGAWiQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2008 18:38:16 -0400
+Received: by hu-out-0506.google.com with SMTP id 28so818304hub.21
+        for <linux-arch@vger.kernel.org>; Tue, 01 Jul 2008 15:38:15 -0700 (PDT)
 From: Denys Vlasenko <vda.linux@googlemail.com>
-Subject: [PATCH 9/23] make section names compatible with -ffunction-sections -fdata-sections: ia64
-Date: Wed, 2 Jul 2008 02:36:52 +0200
+Subject: [PATCH 12/23] make section names compatible with -ffunction-sections -fdata-sections: m68k
+Date: Wed, 2 Jul 2008 02:38:21 +0200
 MIME-Version: 1.0
 Content-Disposition: inline
 Content-Type: text/plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Message-ID: <200807020236.52729.vda.linux@googlemail.com>
+Message-ID: <200807020238.21228.vda.linux@googlemail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
-Message-ID: <20080702003652.DuNYuvzDJR55EetyTI4hBKr7oO2rNALcTsEPlLtkAY8@z>
+Message-ID: <20080702003821.t2YRWfASahsagC5Uc2fechsFtjAZTrMSLT1OrA8qc1g@z>
 
 The purpose of this patch is to make kernel buildable
 with "gcc -ffunction-sections -fdata-sections".
-This patch fixes ia64 architecture.
+This patch fixes m68k architecture.
 
 Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
 --
 vda
 
 
---- 0.org/arch/ia64/kernel/Makefile	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/ia64/kernel/Makefile	Wed Jul  2 00:46:44 2008
-@@ -66,7 +66,7 @@
- $(obj)/gate-syms.o: $(obj)/gate.lds $(obj)/gate.o FORCE
- 	$(call if_changed,gate)
- 
--# gate-data.o contains the gate DSO image as data in section .data.gate.
-+# gate-data.o contains the gate DSO image as data in section .gate..data
- # We must build gate.so before we can assemble it.
- # Note: kbuild does not track this dependency due to usage of .incbin
- $(obj)/gate-data.o: $(obj)/gate.so
---- 0.org/arch/ia64/kernel/gate-data.S	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/ia64/kernel/gate-data.S	Wed Jul  2 00:46:44 2008
-@@ -1,3 +1,3 @@
--	.section .data.gate, "aw"
-+	.section .gate.data, "aw"
- 
- 	.incbin "arch/ia64/kernel/gate.so"
---- 0.org/arch/ia64/kernel/gate.S	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/ia64/kernel/gate.S	Wed Jul  2 00:46:20 2008
-@@ -20,18 +20,18 @@
-  * to targets outside the shared object) and to avoid multi-phase kernel builds, we
-  * simply create minimalistic "patch lists" in special ELF sections.
-  */
--	.section ".data.patch.fsyscall_table", "a"
-+	.section ".patch.fsyscall_table.data", "a"
- 	.previous
- #define LOAD_FSYSCALL_TABLE(reg)			\
- [1:]	movl reg=0;					\
--	.xdata4 ".data.patch.fsyscall_table", 1b-.
-+	.xdata4 ".patch.fsyscall_table.data", 1b-.
- 
--	.section ".data.patch.brl_fsys_bubble_down", "a"
-+	.section ".patch.brl_fsys_bubble_down.data", "a"
- 	.previous
- #define BRL_COND_FSYS_BUBBLE_DOWN(pr)			\
- [1:](pr)brl.cond.sptk 0;				\
- 	;;						\
--	.xdata4 ".data.patch.brl_fsys_bubble_down", 1b-.
-+	.xdata4 ".patch.brl_fsys_bubble_down.data", 1b-.
- 
- GLOBAL_ENTRY(__kernel_syscall_via_break)
- 	.prologue
---- 0.org/arch/ia64/kernel/gate.lds.S	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/ia64/kernel/gate.lds.S	Wed Jul  2 00:46:20 2008
-@@ -32,21 +32,21 @@
- 	 */
- 	. = GATE_ADDR + 0x600;
- 
--	.data.patch		: {
-+	.patch.data		: {
- 		__start_gate_mckinley_e9_patchlist = .;
--		*(.data.patch.mckinley_e9)
-+		*(.patch.mckinley_e9.data)
- 		__end_gate_mckinley_e9_patchlist = .;
- 
- 		__start_gate_vtop_patchlist = .;
--		*(.data.patch.vtop)
-+		*(.patch.vtop.data)
- 		__end_gate_vtop_patchlist = .;
- 
- 		__start_gate_fsyscall_patchlist = .;
--		*(.data.patch.fsyscall_table)
-+		*(.patch.fsyscall_table.data)
- 		__end_gate_fsyscall_patchlist = .;
- 
- 		__start_gate_brl_fsys_bubble_down_patchlist = .;
--		*(.data.patch.brl_fsys_bubble_down)
-+		*(.patch.brl_fsys_bubble_down.data)
- 		__end_gate_brl_fsys_bubble_down_patchlist = .;
- 	}						:readable
- 
---- 0.org/arch/ia64/kernel/head.S	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/ia64/kernel/head.S	Wed Jul  2 00:44:22 2008
-@@ -178,7 +178,7 @@
- halt_msg:
- 	stringz "Halting kernel\n"
- 
--	.section .text.head,"ax"
-+	.section .head.text,"ax"
- 
- 	.global start_ap
- 
---- 0.org/arch/ia64/kernel/init_task.c	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/ia64/kernel/init_task.c	Wed Jul  2 00:45:57 2008
-@@ -28,7 +28,7 @@
-  * Initial task structure.
-  *
-  * We need to make sure that this is properly aligned due to the way process stacks are
-- * handled. This is done by having a special ".data.init_task" section...
-+ * handled. This is done by having a special ".init_task.data" section...
-  */
- #define init_thread_info	init_task_mem.s.thread_info
- 
-@@ -38,7 +38,7 @@
- 		struct thread_info thread_info;
- 	} s;
- 	unsigned long stack[KERNEL_STACK_SIZE/sizeof (unsigned long)];
--} init_task_mem asm ("init_task") __attribute__((section(".data.init_task"))) = {{
-+} init_task_mem asm ("init_task") __attribute__((section(".init_task.data"))) = {{
- 	.task =		INIT_TASK(init_task_mem.s.task),
- 	.thread_info =	INIT_THREAD_INFO(init_task_mem.s.task)
- }};
---- 0.org/arch/ia64/kernel/ivt.S	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/ia64/kernel/ivt.S	Wed Jul  2 00:45:33 2008
-@@ -75,7 +75,7 @@
- 	mov r19=n;;			/* prepare to save predicates */		\
- 	br.sptk.many dispatch_to_fault_handler
- 
--	.section .text.ivt,"ax"
-+	.section .ivt.text,"ax"
- 
- 	.align 32768	// align on 32KB boundary
- 	.global ia64_ivt
---- 0.org/arch/ia64/kernel/minstate.h	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/ia64/kernel/minstate.h	Wed Jul  2 00:46:20 2008
-@@ -15,7 +15,7 @@
- #define ACCOUNT_SYS_ENTER
+--- 0.org/arch/m68k/kernel/head.S	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68k/kernel/head.S	Wed Jul  2 00:44:22 2008
+@@ -577,7 +577,7 @@
  #endif
+ .endm
  
--.section ".data.patch.rse", "a"
-+.section ".patch.rse.data", "a"
- .previous
- 
+-.section ".text.head","ax"
++.section ".head.text","ax"
+ ENTRY(_stext)
  /*
-@@ -214,7 +214,7 @@
- (pUStk) extr.u r17=r18,3,6;			\
- (pUStk)	sub r16=r18,r22;			\
- [1:](pKStk)	br.cond.sptk.many 1f;		\
--	.xdata4 ".data.patch.rse",1b-.		\
-+	.xdata4 ".patch.rse.data",1b-.		\
- 	;;					\
- 	cmp.ge p6,p7 = 33,r17;			\
- 	;;					\
---- 0.org/arch/ia64/kernel/vmlinux.lds.S	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/ia64/kernel/vmlinux.lds.S	Wed Jul  2 00:46:44 2008
-@@ -9,7 +9,7 @@
+  * Version numbers of the bootinfo interface
+--- 0.org/arch/m68k/kernel/process.c	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68k/kernel/process.c	Wed Jul  2 00:45:57 2008
+@@ -48,7 +48,7 @@
+ EXPORT_SYMBOL(init_mm);
  
- #define IVT_TEXT							\
- 		VMLINUX_SYMBOL(__start_ivt_text) = .;			\
--		*(.text.ivt)						\
-+		*(.ivt.text)						\
- 		VMLINUX_SYMBOL(__end_ivt_text) = .;
+ union thread_union init_thread_union
+-__attribute__((section(".data.init_task"), aligned(THREAD_SIZE)))
++__attribute__((section(".init_task.data"), aligned(THREAD_SIZE)))
+        = { INIT_THREAD_INFO(init_task) };
  
- OUTPUT_FORMAT("elf64-ia64-little")
-@@ -52,13 +52,13 @@
- 	KPROBES_TEXT
- 	*(.gnu.linkonce.t*)
-     }
--  .text.head : AT(ADDR(.text.head) - LOAD_OFFSET)
--	{ *(.text.head) }
-+  .head.text : AT(ADDR(.head.text) - LOAD_OFFSET)
-+	{ *(.head.text) }
-   .text2 : AT(ADDR(.text2) - LOAD_OFFSET)
- 	{ *(.text2) }
- #ifdef CONFIG_SMP
--  .text.lock : AT(ADDR(.text.lock) - LOAD_OFFSET)
--	{ *(.text.lock) }
-+  .lock.text : AT(ADDR(.lock.text) - LOAD_OFFSET)
-+	{ *(.lock.text) }
- #endif
-   _etext = .;
+ /* initial task structure */
+--- 0.org/arch/m68k/kernel/sun3-head.S	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68k/kernel/sun3-head.S	Wed Jul  2 00:44:22 2008
+@@ -29,7 +29,7 @@
+ .globl kernel_pg_dir
+ .equ    kernel_pg_dir,kernel_pmd_table
  
-@@ -85,10 +85,10 @@
- 	  __stop___mca_table = .;
- 	}
+-	.section .text.head
++	.section .head.text
+ ENTRY(_stext)
+ ENTRY(_start)
  
--  .data.patch.phys_stack_reg : AT(ADDR(.data.patch.phys_stack_reg) - LOAD_OFFSET)
-+  .patch.phys_stack_reg.data : AT(ADDR(.patch.phys_stack_reg.data) - LOAD_OFFSET)
- 	{
- 	  __start___phys_stack_reg_patchlist = .;
--	  *(.data.patch.phys_stack_reg)
-+	  *(.patch.phys_stack_reg.data)
- 	  __end___phys_stack_reg_patchlist = .;
- 	}
+--- 0.org/arch/m68k/kernel/vmlinux-std.lds	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68k/kernel/vmlinux-std.lds	Wed Jul  2 00:45:57 2008
+@@ -11,7 +11,7 @@
+   . = 0x1000;
+   _text = .;			/* Text and read-only data */
+   .text : {
+-	*(.text.head)
++	*(.head.text)
+ 	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+@@ -36,7 +36,7 @@
+   .bss : { *(.bss) }		/* BSS */
  
-@@ -149,24 +149,24 @@
- 	  __initcall_end = .;
- 	}
+   . = ALIGN(16);
+-  .data.cacheline_aligned : { *(.data.cacheline_aligned) } :data
++  .cacheline_aligned.data : { *(.cacheline_aligned.data) } :data
  
--  .data.patch.vtop : AT(ADDR(.data.patch.vtop) - LOAD_OFFSET)
-+  .patch.vtop.data : AT(ADDR(.patch.vtop.data) - LOAD_OFFSET)
- 	{
- 	  __start___vtop_patchlist = .;
--	  *(.data.patch.vtop)
-+	  *(.patch.vtop.data)
- 	  __end___vtop_patchlist = .;
- 	}
+   _edata = .;			/* End of data section */
  
--  .data.patch.rse : AT(ADDR(.data.patch.rse) - LOAD_OFFSET)
-+  .patch.rse.data : AT(ADDR(.patch.rse.data) - LOAD_OFFSET)
- 	{
- 	  __start___rse_patchlist = .;
--	  *(.data.patch.rse)
-+	  *(.patch.rse.data)
- 	  __end___rse_patchlist = .;
- 	}
- 
--  .data.patch.mckinley_e9 : AT(ADDR(.data.patch.mckinley_e9) - LOAD_OFFSET)
-+  .patch.mckinley_e9.data : AT(ADDR(.patch.mckinley_e9.data) - LOAD_OFFSET)
- 	{
- 	  __start___mckinley_e9_bundles = .;
--	  *(.data.patch.mckinley_e9)
-+	  *(.patch.mckinley_e9.data)
- 	  __end___mckinley_e9_bundles = .;
- 	}
- 
-@@ -194,34 +194,34 @@
+@@ -76,7 +76,7 @@
+   . = ALIGN(8192);
    __init_end = .;
  
-   /* The initial task and kernel stack */
--  .data.init_task : AT(ADDR(.data.init_task) - LOAD_OFFSET)
--	{ *(.data.init_task) }
-+  .init_task.data : AT(ADDR(.init_task.data) - LOAD_OFFSET)
-+	{ *(.init_task.data) }
+-  .data.init_task : { *(.data.init_task) }	/* The initial task and kernel stack */
++  .init_task.data : { *(.init_task.data) }	/* The initial task and kernel stack */
  
--  .data.page_aligned : AT(ADDR(.data.page_aligned) - LOAD_OFFSET)
-+  .page_aligned.data : AT(ADDR(.page_aligned.data) - LOAD_OFFSET)
-         { *(__special_page_section)
- 	  __start_gate_section = .;
--	  *(.data.gate)
-+	  *(.gate.data)
- 	  __stop_gate_section = .;
- 	}
-   . = ALIGN(PAGE_SIZE);		/* make sure the gate page doesn't expose
-   				 * kernel data
- 				 */
+   _end = . ;
  
--  .data.read_mostly : AT(ADDR(.data.read_mostly) - LOAD_OFFSET)
--        { *(.data.read_mostly) }
-+  .read_mostly.data : AT(ADDR(.read_mostly.data) - LOAD_OFFSET)
-+        { *(.read_mostly.data) }
- 
--  .data.cacheline_aligned : AT(ADDR(.data.cacheline_aligned) - LOAD_OFFSET)
--        { *(.data.cacheline_aligned) }
-+  .cacheline_aligned.data : AT(ADDR(.cacheline_aligned.data) - LOAD_OFFSET)
-+        { *(.cacheline_aligned.data) }
- 
-   /* Per-cpu data: */
-   percpu : { } :percpu
-   . = ALIGN(PERCPU_PAGE_SIZE);
-   __phys_per_cpu_start = .;
--  .data.percpu PERCPU_ADDR : AT(__phys_per_cpu_start - LOAD_OFFSET)
-+  .percpu.data PERCPU_ADDR : AT(__phys_per_cpu_start - LOAD_OFFSET)
- 	{
- 		__per_cpu_start = .;
--		*(.data.percpu)
--		*(.data.percpu.shared_aligned)
-+		*(.percpu.data)
-+		*(.percpu.shared_aligned.data)
- 		__per_cpu_end = .;
- 	}
-   . = __phys_per_cpu_start + PERCPU_PAGE_SIZE;	/* ensure percpu data fits
---- 0.org/arch/ia64/kvm/vmm_ivt.S	Wed Jul  2 00:40:40 2008
-+++ 1.fixname/arch/ia64/kvm/vmm_ivt.S	Wed Jul  2 00:45:33 2008
-@@ -97,7 +97,7 @@
+--- 0.org/arch/m68k/kernel/vmlinux-sun3.lds	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68k/kernel/vmlinux-sun3.lds	Wed Jul  2 00:45:57 2008
+@@ -11,7 +11,7 @@
+   . = 0xE002000;
+   _text = .;			/* Text and read-only data */
+   .text : {
+-	*(.text.head)
++	*(.head.text)
+ 	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+@@ -68,7 +68,7 @@
+ #endif
+ 	. = ALIGN(8192);
+ 	__init_end = .;
+-	.data.init.task : { *(.data.init_task) }
++	.init.task.data : { *(.init_task.data) }
  
  
- 
--    .section .text.ivt,"ax"
-+    .section .ivt.text,"ax"
- 
-     .align 32768    // align on 32KB boundary
-     .global kvm_ia64_ivt
---- 0.org/include/asm-ia64/asmmacro.h	Wed Jul  2 00:40:50 2008
-+++ 1.fixname/include/asm-ia64/asmmacro.h	Wed Jul  2 00:46:20 2008
-@@ -70,12 +70,12 @@
-  * path (ivt.S - TLB miss processing) or in places where it might not be
-  * safe to use a "tpa" instruction (mca_asm.S - error recovery).
+   .bss : { *(.bss) }		/* BSS */
+--- 0.org/arch/m68knommu/kernel/init_task.c	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68knommu/kernel/init_task.c	Wed Jul  2 00:45:57 2008
+@@ -37,6 +37,6 @@
+  * "init_task" linker map entry..
   */
--	.section ".data.patch.vtop", "a"	// declare section & section attributes
-+	.section ".patch.vtop.data", "a"	// declare section & section attributes
- 	.previous
+ union thread_union init_thread_union
+-	__attribute__((__section__(".data.init_task"))) =
++	__attribute__((__section__(".init_task.data"))) =
+ 		{ INIT_THREAD_INFO(init_task) };
  
- #define	LOAD_PHYSICAL(pr, reg, obj)		\
- [1:](pr)movl reg = obj;				\
--	.xdata4 ".data.patch.vtop", 1b-.
-+	.xdata4 ".patch.vtop.data", 1b-.
- 
- /*
-  * For now, we always put in the McKinley E9 workaround.  On CPUs that don't need it,
-@@ -84,11 +84,11 @@
- #define DO_MCKINLEY_E9_WORKAROUND
- 
- #ifdef DO_MCKINLEY_E9_WORKAROUND
--	.section ".data.patch.mckinley_e9", "a"
-+	.section ".patch.mckinley_e9.data", "a"
- 	.previous
- /* workaround for Itanium 2 Errata 9: */
- # define FSYS_RETURN					\
--	.xdata4 ".data.patch.mckinley_e9", 1f-.;	\
-+	.xdata4 ".patch.mckinley_e9.data", 1f-.;	\
- 1:{ .mib;						\
- 	nop.m 0;					\
- 	mov r16=ar.pfs;					\
-@@ -107,11 +107,11 @@
-  * If physical stack register size is different from DEF_NUM_STACK_REG,
-  * dynamically patch the kernel for correct size.
-  */
--	.section ".data.patch.phys_stack_reg", "a"
-+	.section ".patch.phys_stack_reg.data", "a"
- 	.previous
- #define LOAD_PHYS_STACK_REG_SIZE(reg)			\
- [1:]	adds reg=IA64_NUM_PHYS_STACK_REG*8+8,r0;	\
--	.xdata4 ".data.patch.phys_stack_reg", 1b-.
-+	.xdata4 ".patch.phys_stack_reg.data", 1b-.
- 
- /*
-  * Up until early 2004, use of .align within a function caused bad unwind info.
---- 0.org/include/asm-ia64/cache.h	Wed Jul  2 00:40:50 2008
-+++ 1.fixname/include/asm-ia64/cache.h	Wed Jul  2 00:45:45 2008
-@@ -24,6 +24,6 @@
- # define SMP_CACHE_BYTES	(1 << 3)
+--- 0.org/arch/m68knommu/kernel/vmlinux.lds.S	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68knommu/kernel/vmlinux.lds.S	Wed Jul  2 00:45:57 2008
+@@ -55,7 +55,7 @@
+ 	.romvec : {
+ 		__rom_start = . ;
+ 		_romvec = .;
+-		*(.data.initvect)
++		*(.initvect.data)
+ 	} > romvec
  #endif
  
--#define __read_mostly __attribute__((__section__(".data.read_mostly")))
-+#define __read_mostly __attribute__((__section__(".read_mostly.data")))
+@@ -65,7 +65,7 @@
+ 		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+-        	*(.text.lock)
++        	*(.lock.text)
  
- #endif /* _ASM_IA64_CACHE_H */
---- 0.org/include/asm-ia64/percpu.h	Wed Jul  2 00:40:50 2008
-+++ 1.fixname/include/asm-ia64/percpu.h	Wed Jul  2 00:45:39 2008
-@@ -27,7 +27,7 @@
+ 		. = ALIGN(16);          /* Exception table              */
+ 		__start___ex_table = .;
+@@ -147,7 +147,7 @@
+ 		_sdata = . ;
+ 		DATA_DATA
+ 		. = ALIGN(8192) ;
+-		*(.data.init_task)
++		*(.init_task.data)
+ 		_edata = . ;
+ 	} > DATA
  
- #else /* ! SMP */
- 
--#define PER_CPU_ATTRIBUTES	__attribute__((__section__(".data.percpu")))
-+#define PER_CPU_ATTRIBUTES	__attribute__((__section__(".percpu.data")))
- 
- #define per_cpu_init()				(__phys_per_cpu_start)
- 
+--- 0.org/arch/m68knommu/platform/68360/head-ram.S	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68knommu/platform/68360/head-ram.S	Wed Jul  2 00:45:57 2008
+@@ -280,7 +280,7 @@
+      * and then overwritten as needed.
+      */
+  
+-.section ".data.initvect","awx"
++.section ".initvect.data","awx"
+     .long   RAMEND	/* Reset: Initial Stack Pointer                 - 0.  */
+     .long   _start      /* Reset: Initial Program Counter               - 1.  */
+     .long   buserr      /* Bus Error                                    - 2.  */
+--- 0.org/arch/m68knommu/platform/68360/head-rom.S	Wed Jul  2 00:40:40 2008
++++ 1.fixname/arch/m68knommu/platform/68360/head-rom.S	Wed Jul  2 00:45:57 2008
+@@ -291,7 +291,7 @@
+      * and then overwritten as needed.
+      */
+  
+-.section ".data.initvect","awx"
++.section ".initvect.data","awx"
+     .long   RAMEND	/* Reset: Initial Stack Pointer                 - 0.  */
+     .long   _start      /* Reset: Initial Program Counter               - 1.  */
+     .long   buserr      /* Bus Error                                    - 2.  */
