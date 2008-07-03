@@ -1,58 +1,115 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH 21/23] make section names compatible with
- -ffunction-sections -fdata-sections: v850
-Date: Thu, 3 Jul 2008 15:45:12 +1000
-Message-ID: <20080703154512.8aae68ae.sfr@canb.auug.org.au>
-References: <200807020242.21960.vda.linux@googlemail.com>
-	<20080702145859.a9af30ea.akpm@linux-foundation.org>
-	<486BFC21.1040001@firstfloor.org>
-	<200807030017.53747.arnd@arndb.de>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: linux-next powerpc allmodconfig
+Date: Thu, 3 Jul 2008 09:22:00 +0200
+Message-ID: <20080703072200.GA5648@elte.hu>
+References: <20080702235122.7aca2f5a.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Thu__3_Jul_2008_15_45_12_+1000_wavV4XOqtDABxZGi"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:41236 "EHLO smtps.tip.net.au"
+Received: from mx3.mail.elte.hu ([157.181.1.138]:49229 "EHLO mx3.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754892AbYGCFpZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 3 Jul 2008 01:45:25 -0400
-In-Reply-To: <200807030017.53747.arnd@arndb.de>
+	id S937000AbYGCHW0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 3 Jul 2008 03:22:26 -0400
+Content-Disposition: inline
+In-Reply-To: <20080702235122.7aca2f5a.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andi Kleen <andi@firstfloor.org>, Andrew Morton <akpm@linux-foundation.org>, vda.linux@googlemail.com, linux-arch@vger.kernel.org, rmk@arm.linux.org.uk, dhowells@redhat.com, ralf@linux-mips.org, kernel@wantstofly.org, jwboyer@linux.vnet.ibm.com, paulus@samba.org, dwmw2@infradead.org, torvalds@linux-foundation.org, paul.gortmaker@windriver.com, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, tim.bird@am.sony.com, schwidefsky@de.ibm.com, davem@davemloft.net
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Arjan van de Ven <arjan@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org
 
---Signature=_Thu__3_Jul_2008_15_45_12_+1000_wavV4XOqtDABxZGi
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
 
-On Thu, 3 Jul 2008 00:17:52 +0200 Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Thursday 03 July 2008, Andi Kleen wrote:
-> > Same seems to be true for cris btw.
->=20
-> Cris has seen significant updates in 2.6.25 by its maintainer.
-> It's not a very active port, but skipping updates for one kernel
-> version is on a completely different scale from doing nothing
-> at all for over three years as in the v850 case.
+* Andrew Morton <akpm@linux-foundation.org> wrote:
 
-Also, cris has a tree in linux-next now, so there will be updates in 2.6.27.
+> ERROR: ".save_stack_trace" [tests/backtracetest.ko] undefined!
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+thanks. This will affect every architecture that implements stacktrace. 
+The fix is below.
 
---Signature=_Thu__3_Jul_2008_15_45_12_+1000_wavV4XOqtDABxZGi
-Content-Type: application/pgp-signature
+	Ingo
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.9 (GNU/Linux)
+--------------------->
+commit 7b4c9505f2fd82b117dd015b561f723b9a5dab79
+Author: Ingo Molnar <mingo@elte.hu>
+Date:   Thu Jul 3 09:17:55 2008 +0200
 
-iEYEARECAAYFAkhsZ2gACgkQjjKRsyhoI8zW4wCbBHlOYz/v5rXuJUwe+oni1mfV
-irsAoKsvbpYV3Ou8gqTf62Y9ZoKpfXWn
-=6aOm
------END PGP SIGNATURE-----
+    stacktrace: export save_stack_trace[_tsk]
+    
+    Andrew Morton reported this against linux-next:
+    
+    ERROR: ".save_stack_trace" [tests/backtracetest.ko] undefined!
+    
+    Reported-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Ingo Molnar <mingo@elte.hu>
 
---Signature=_Thu__3_Jul_2008_15_45_12_+1000_wavV4XOqtDABxZGi--
+diff --git a/arch/arm/kernel/stacktrace.c b/arch/arm/kernel/stacktrace.c
+index ae31deb..6b3ffde 100644
+--- a/arch/arm/kernel/stacktrace.c
++++ b/arch/arm/kernel/stacktrace.c
+@@ -66,4 +66,5 @@ void save_stack_trace(struct stack_trace *trace)
+ 
+ 	walk_stackframe(fp, base, base + THREAD_SIZE, save_trace, &data);
+ }
++EXPORT_SYMBOL_GPL(save_stack_trace);
+ #endif
+diff --git a/arch/avr32/kernel/stacktrace.c b/arch/avr32/kernel/stacktrace.c
+index 9a68190..f4bdb44 100644
+--- a/arch/avr32/kernel/stacktrace.c
++++ b/arch/avr32/kernel/stacktrace.c
+@@ -51,3 +51,4 @@ void save_stack_trace(struct stack_trace *trace)
+ 		fp = frame->fp;
+ 	}
+ }
++EXPORT_SYMBOL_GPL(save_stack_trace);
+diff --git a/arch/mips/kernel/stacktrace.c b/arch/mips/kernel/stacktrace.c
+index ebd9db8..5eb4681 100644
+--- a/arch/mips/kernel/stacktrace.c
++++ b/arch/mips/kernel/stacktrace.c
+@@ -73,3 +73,4 @@ void save_stack_trace(struct stack_trace *trace)
+ 	prepare_frametrace(regs);
+ 	save_context_stack(trace, regs);
+ }
++EXPORT_SYMBOL_GPL(save_stack_trace);
+diff --git a/arch/powerpc/kernel/stacktrace.c b/arch/powerpc/kernel/stacktrace.c
+index 9629440..9861f17 100644
+--- a/arch/powerpc/kernel/stacktrace.c
++++ b/arch/powerpc/kernel/stacktrace.c
+@@ -44,3 +44,4 @@ void save_stack_trace(struct stack_trace *trace)
+ 		sp = newsp;
+ 	}
+ }
++EXPORT_SYMBOL_GPL(save_stack_trace);
+diff --git a/arch/s390/kernel/stacktrace.c b/arch/s390/kernel/stacktrace.c
+index 85e46a5..57571f1 100644
+--- a/arch/s390/kernel/stacktrace.c
++++ b/arch/s390/kernel/stacktrace.c
+@@ -81,6 +81,7 @@ void save_stack_trace(struct stack_trace *trace)
+ 			   S390_lowcore.thread_info,
+ 			   S390_lowcore.thread_info + THREAD_SIZE, 1);
+ }
++EXPORT_SYMBOL_GPL(save_stack_trace);
+ 
+ void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
+ {
+@@ -93,3 +94,4 @@ void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
+ 	if (trace->nr_entries < trace->max_entries)
+ 		trace->entries[trace->nr_entries++] = ULONG_MAX;
+ }
++EXPORT_SYMBOL_GPL(save_stack_trace_tsk);
+diff --git a/arch/sh/kernel/stacktrace.c b/arch/sh/kernel/stacktrace.c
+index d41e561..1b2ae35 100644
+--- a/arch/sh/kernel/stacktrace.c
++++ b/arch/sh/kernel/stacktrace.c
+@@ -34,3 +34,4 @@ void save_stack_trace(struct stack_trace *trace)
+ 		}
+ 	}
+ }
++EXPORT_SYMBOL_GPL(save_stack_trace);
+diff --git a/arch/sparc64/kernel/stacktrace.c b/arch/sparc64/kernel/stacktrace.c
+index c73ce3f..49656ed 100644
+--- a/arch/sparc64/kernel/stacktrace.c
++++ b/arch/sparc64/kernel/stacktrace.c
+@@ -47,3 +47,4 @@ void save_stack_trace(struct stack_trace *trace)
+ 			trace->entries[trace->nr_entries++] = pc;
+ 	} while (trace->nr_entries < trace->max_entries);
+ }
++EXPORT_SYMBOL_GPL(save_stack_trace);
