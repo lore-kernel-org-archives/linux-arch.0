@@ -1,35 +1,48 @@
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [PATCH 21/23] make section names compatible with -ffunction-sections
- -fdata-sections: v850
-Date: Thu, 03 Jul 2008 11:54:28 +0200
-Message-ID: <486CA1D4.8050108@firstfloor.org>
-References: <200807020242.21960.vda.linux@googlemail.com> <20080702145859.a9af30ea.akpm@linux-foundation.org> <486BFC21.1040001@firstfloor.org> <200807030017.53747.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+From: Andrea Righi <righi.andrea@gmail.com>
+Subject: [PATCH -mm 6/8] mips: fix implicit declarations of function 'PAGE_ALIGN'
+Date: Thu,  3 Jul 2008 11:59:29 +0200
+Message-ID: <1215079171-22637-7-git-send-email-righi.andrea@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:34724 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756773AbYGCMCq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jul 2008 08:02:46 -0400
-In-Reply-To: <200807030017.53747.arnd@arndb.de>
+Received: from host198-128-dynamic.19-87-r.retail.telecomitalia.it ([87.19.128.198]:12566
+	"EHLO linux.localdomain" rhost-flags-OK-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1758031AbYGCMOT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jul 2008 08:14:19 -0400
+In-Reply-To: <>
+References: <>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, vda.linux@googlemail.com, linux-arch@vger.kernel.org, rmk@arm.linux.org.uk, dhowells@redhat.com, ralf@linux-mips.org, kernel@wantstofly.org, jwboyer@linux.vnet.ibm.com, paulus@samba.org, dwmw2@infradead.org, torvalds@linux-foundation.org, paul.gortmaker@windriver.com, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, tim.bird@am.sony.com, schwidefsky@de.ibm.com, davem@davemloft.net
+To: akpm@linux-foundation.org
+Cc: linux-arch@vger.kernel.org, paulus@samba.org, balbir@linux.vnet.ibm.com, Andrea Righi <righi.andrea@gmail.com>
 
-Arnd Bergmann wrote:
-> On Thursday 03 July 2008, Andi Kleen wrote:
->> Same seems to be true for cris btw.
-> 
-> Cris has seen significant updates in 2.6.25 by its maintainer.
+Signed-off-by: Andrea Righi <righi.andrea@gmail.com>
+---
+ arch/mips/kernel/module.c        |    1 +
+ arch/mips/sgi-ip27/ip27-klnuma.c |    1 +
+ 2 files changed, 2 insertions(+), 0 deletions(-)
 
-Hmm missed that, sorry. It was just last time I looked cris
-didn't seem to have any updates for a long time.
-
-> It's not a very active port, but skipping updates for one kernel
-> version 
-
-It was far longer than that.
-
--Andi
+diff --git a/arch/mips/kernel/module.c b/arch/mips/kernel/module.c
+index e7ed0ac..1f60e27 100644
+--- a/arch/mips/kernel/module.c
++++ b/arch/mips/kernel/module.c
+@@ -22,6 +22,7 @@
+ 
+ #include <linux/moduleloader.h>
+ #include <linux/elf.h>
++#include <linux/mm.h>
+ #include <linux/vmalloc.h>
+ #include <linux/slab.h>
+ #include <linux/fs.h>
+diff --git a/arch/mips/sgi-ip27/ip27-klnuma.c b/arch/mips/sgi-ip27/ip27-klnuma.c
+index 48932ce..d9c79d8 100644
+--- a/arch/mips/sgi-ip27/ip27-klnuma.c
++++ b/arch/mips/sgi-ip27/ip27-klnuma.c
+@@ -4,6 +4,7 @@
+  * Copyright 2000 - 2001 Kanoj Sarcar (kanoj@sgi.com)
+  */
+ #include <linux/init.h>
++#include <linux/mm.h>
+ #include <linux/mmzone.h>
+ #include <linux/kernel.h>
+ #include <linux/nodemask.h>
+-- 
+1.5.4.3
