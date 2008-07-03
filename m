@@ -1,49 +1,58 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 3/3] relay: Add buffer-only channels; useful for early
- logging.
-Date: Wed, 2 Jul 2008 23:06:36 -0700
-Message-ID: <20080702230636.66e484bb.akpm@linux-foundation.org>
-References: <20080623153104.50549291@linux360.ro>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH 21/23] make section names compatible with
+ -ffunction-sections -fdata-sections: v850
+Date: Thu, 3 Jul 2008 15:45:12 +1000
+Message-ID: <20080703154512.8aae68ae.sfr@canb.auug.org.au>
+References: <200807020242.21960.vda.linux@googlemail.com>
+	<20080702145859.a9af30ea.akpm@linux-foundation.org>
+	<486BFC21.1040001@firstfloor.org>
+	<200807030017.53747.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Thu__3_Jul_2008_15_45_12_+1000_wavV4XOqtDABxZGi"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:34037 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755154AbYGCGHG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jul 2008 02:07:06 -0400
-In-Reply-To: <20080623153104.50549291@linux360.ro>
+Received: from chilli.pcug.org.au ([203.10.76.44]:41236 "EHLO smtps.tip.net.au"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754892AbYGCFpZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 3 Jul 2008 01:45:25 -0400
+In-Reply-To: <200807030017.53747.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eduard - Gabriel Munteanu <eduard.munteanu@linux360.ro>
-Cc: tzanussi@gmail.com, penberg@cs.helsinki.fi, torvalds@linux-foundation.org, compudj@krystal.dyndns.org, vegard.nossum@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Andi Kleen <andi@firstfloor.org>, Andrew Morton <akpm@linux-foundation.org>, vda.linux@googlemail.com, linux-arch@vger.kernel.org, rmk@arm.linux.org.uk, dhowells@redhat.com, ralf@linux-mips.org, kernel@wantstofly.org, jwboyer@linux.vnet.ibm.com, paulus@samba.org, dwmw2@infradead.org, torvalds@linux-foundation.org, paul.gortmaker@windriver.com, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, tim.bird@am.sony.com, schwidefsky@de.ibm.com, davem@davemloft.net
 
-On Mon, 23 Jun 2008 15:31:04 +0300 Eduard - Gabriel Munteanu <eduard.munteanu@linux360.ro> wrote:
+--Signature=_Thu__3_Jul_2008_15_45_12_+1000_wavV4XOqtDABxZGi
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> Allows one to create and use a channel with no associated files. Files
-> can be initialized later. This is useful in scenarios such as logging
-> in early code, before VFS is up. Therefore, such channels can be
-> created and used as soon as kmem_cache_init() completed.
-> 
-> This is needed by kmemtrace to do tracing in early kernel code.
+On Thu, 3 Jul 2008 00:17:52 +0200 Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> On Thursday 03 July 2008, Andi Kleen wrote:
+> > Same seems to be true for cris btw.
+>=20
+> Cris has seen significant updates in 2.6.25 by its maintainer.
+> It's not a very active port, but skipping updates for one kernel
+> version is on a completely different scale from doing nothing
+> at all for over three years as in the v850 case.
 
-This breaks on sparc64.
+Also, cris has a tree in linux-next now, so there will be updates in 2.6.27.
 
-> +			err = smp_call_function_single(i,
-> +						       __relay_set_buf_dentry,
-> +						       &disp, 0, 1);
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
 
-Because that ain't implemented.
+--Signature=_Thu__3_Jul_2008_15_45_12_+1000_wavV4XOqtDABxZGi
+Content-Type: application/pgp-signature
 
-There's a call in net/iucv/iucv.c, but that's s390-only.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
 
-There's a call in virt/kvm/kvm_main.c.
+iEYEARECAAYFAkhsZ2gACgkQjjKRsyhoI8zW4wCbBHlOYz/v5rXuJUwe+oni1mfV
+irsAoKsvbpYV3Ou8gqTf62Y9ZoKpfXWn
+=6aOm
+-----END PGP SIGNATURE-----
 
-There's a call in kernel/time/tick-broadcast.c, so I assume that the
-intersection between CONFIG_GENERIC_CLOCKEVENTS_BROADCAST and
-non-smp_call_function_single() architectures is presently empty.
-
-
-I guess all SMP-capable architectures should now implement this,
-please.  It is presently defined on all architectures for CONFIG_SMP=n
-and it is declared in include/linux/smp.h.
+--Signature=_Thu__3_Jul_2008_15_45_12_+1000_wavV4XOqtDABxZGi--
