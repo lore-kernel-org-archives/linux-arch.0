@@ -1,103 +1,63 @@
 From: Johannes Weiner <hannes@saeurebad.de>
-Subject: [PATCH 02/20] lib: generic show_mem()
-Date: Fri, 04 Jul 2008 18:07:39 +0200
-Message-ID: <20080704161452.730548249@saeurebad.de>
-References: <20080704160737.750988999@saeurebad.de>
+Subject: [PATCH 00/20] generic show_mem() v5
+Date: Fri, 04 Jul 2008 18:07:37 +0200
+Message-ID: <20080704160737.750988999@saeurebad.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from saeurebad.de ([85.214.36.134]:38515 "EHLO saeurebad.de"
+Received: from saeurebad.de ([85.214.36.134]:38508 "EHLO saeurebad.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758604AbYGDQvF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 4 Jul 2008 12:51:05 -0400
-Content-Disposition: inline; filename=lib-generic-show_mem.patch
+	id S1754705AbYGDQu6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 4 Jul 2008 12:50:58 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-This implements a platform-independent version of show_mem().
+Every arch implements its own show_mem() function.  Most of them share
+quite some code, some of them are completely identical.
 
-Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
----
- lib/Makefile   |    2 -
- lib/show_mem.c |   63 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 64 insertions(+), 1 deletion(-)
+This series implements a generic version of this function and migrates
+almost all architectures to it.
 
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -6,7 +6,7 @@ lib-y := ctype.o string.o vsprintf.o cmd
- 	 rbtree.o radix-tree.o dump_stack.o \
- 	 idr.o int_sqrt.o extable.o prio_tree.o \
- 	 sha1.o irq_regs.o reciprocal_div.o argv_split.o \
--	 proportions.o prio_heap.o ratelimit.o
-+	 proportions.o prio_heap.o ratelimit.o show_mem.o
- 
- ifdef CONFIG_FTRACE
- # Do not profile string.o, since it may be used in early boot or vdso
---- /dev/null
-+++ b/lib/show_mem.c
-@@ -0,0 +1,63 @@
-+/*
-+ * Generic show_mem() implementation
-+ *
-+ * Copyright (C) 2008 Johannes Weiner <hannes@saeurebad.de>
-+ * All code subject to the GPL version 2.
-+ */
-+
-+#include <linux/mm.h>
-+#include <linux/nmi.h>
-+#include <linux/quicklist.h>
-+
-+void show_mem(void)
-+{
-+	pg_data_t *pgdat;
-+	unsigned long total = 0, reserved = 0, shared = 0,
-+		nonshared = 0, highmem = 0;
-+
-+	printk(KERN_INFO "Mem-Info:\n");
-+	show_free_areas();
-+
-+	for_each_online_pgdat(pgdat) {
-+		unsigned long i, flags;
-+
-+		pgdat_resize_lock(pgdat, &flags);
-+		for (i = 0; i < pgdat->node_spanned_pages; i++) {
-+			struct page *page;
-+			unsigned long pfn = pgdat->node_start_pfn + i;
-+
-+			if (unlikely(!(i % MAX_ORDER_NR_PAGES)))
-+				touch_nmi_watchdog();
-+
-+			if (!pfn_valid(pfn))
-+				continue;
-+
-+			page = pfn_to_page(pfn);
-+
-+			if (PageHighMem(page))
-+				highmem++;
-+
-+			if (PageReserved(page))
-+				reserved++;
-+			else if (page_count(page) == 1)
-+				nonshared++;
-+			else if (page_count(page) > 1)
-+				shared += page_count(page) - 1;
-+
-+			total++;
-+		}
-+		pgdat_resize_unlock(pgdat, &flags);
-+	}
-+
-+	printk(KERN_INFO "%lu pages RAM\n", total);
-+#ifdef CONFIG_HIGHMEM
-+	printk(KERN_INFO "%lu pages HighMem\n", highmem);
-+#endif
-+	printk(KERN_INFO "%lu pages reserved\n", reserved);
-+	printk(KERN_INFO "%lu pages shared\n", shared);
-+	printk(KERN_INFO "%lu pages non-shared\n", nonshared);
-+#ifdef CONFIG_QUICKLIST
-+	printk(KERN_INFO "%lu pages in pagetable cache\n",
-+		quicklist_total_size());
-+#endif
-+}
+version 5:
+	- removed the Kconfig parts and moved generic version to lib/
+	  as suggested by Paul Mundt.  We now touch half the files and
+	  save even more lines!
+version 4:
+	- rebased against -mmotm
+	- remove free swap space display from alpha, m32r, sh, sparc64,
+	  um (was in a different series originally, but -mm no longer
+	  has them and Linus' tree does not contain them too)
+version 3:
+	- Fix kbuild logic as suggested by Sam Ravnborg
+version 2:
+	- Fix kbuild bits as suggested by Heiko Carstens
+	- Include quicklist info as suggested by Paul Mundt
+	- Extend changelogs by info on removal of redundant output
 
--- 
+Compile- and runtime-tested on x86_32.
+
+ arch/alpha/mm/init.c      |   30 ---------------------
+ arch/alpha/mm/numa.c      |   35 -------------------------
+ arch/avr32/mm/init.c      |   39 ---------------------------
+ arch/blackfin/mm/init.c   |   27 -------------------
+ arch/cris/mm/init.c       |   30 ---------------------
+ arch/frv/mm/init.c        |   31 ----------------------
+ arch/h8300/mm/init.c      |   27 -------------------
+ arch/m32r/mm/init.c       |   36 -------------------------
+ arch/m68k/mm/init.c       |   30 ---------------------
+ arch/m68knommu/mm/init.c  |   27 -------------------
+ arch/mips/mm/Makefile     |    3 +-
+ arch/mips/mm/pgtable.c    |   36 -------------------------
+ arch/mn10300/mm/pgtable.c |   27 -------------------
+ arch/powerpc/mm/mem.c     |   39 ---------------------------
+ arch/s390/mm/init.c       |   32 -----------------------
+ arch/sh/mm/init.c         |   41 -----------------------------
+ arch/sparc64/mm/init.c    |   45 --------------------------------
+ arch/um/kernel/mem.c      |   31 ----------------------
+ arch/x86/mm/init_64.c     |   37 --------------------------
+ arch/x86/mm/pgtable_32.c  |   47 ---------------------------------
+ arch/xtensa/mm/init.c     |   26 ------------------
+ lib/Makefile              |    2 +-
+ lib/show_mem.c            |   63 +++++++++++++++++++++++++++++++++++++++++++++
+ mm/swap_state.c           |    3 +-
+ 24 files changed, 67 insertions(+), 677 deletions(-)
