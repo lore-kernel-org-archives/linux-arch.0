@@ -1,48 +1,103 @@
-From: Harvey Harrison <harvey.harrison@gmail.com>
-Subject: Re: [PATCH 4/5] byteorder: fix direct byteswap includes
-Date: Fri, 04 Jul 2008 09:37:53 -0700
-Message-ID: <1215189473.16647.80.camel@brick>
-References: <1215144734.16647.70.camel@brick>  <27042.1215185863@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+From: Johannes Weiner <hannes@saeurebad.de>
+Subject: [PATCH 02/20] lib: generic show_mem()
+Date: Fri, 04 Jul 2008 18:07:39 +0200
+Message-ID: <20080704161452.730548249@saeurebad.de>
+References: <20080704160737.750988999@saeurebad.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from py-out-1112.google.com ([64.233.166.181]:34527 "EHLO
-	py-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753950AbYGDQiA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jul 2008 12:38:00 -0400
-Received: by py-out-1112.google.com with SMTP id p76so798731pyb.10
-        for <linux-arch@vger.kernel.org>; Fri, 04 Jul 2008 09:37:57 -0700 (PDT)
-In-Reply-To: <27042.1215185863@redhat.com>
+Received: from saeurebad.de ([85.214.36.134]:38515 "EHLO saeurebad.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758604AbYGDQvF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 4 Jul 2008 12:51:05 -0400
+Content-Disposition: inline; filename=lib-generic-show_mem.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, 2008-07-04 at 16:37 +0100, David Howells wrote:
-> Harvey Harrison <harvey.harrison@gmail.com> wrote:
-> 
-> > +#include <asm/byteorder.h>
-> 
-> Please use <linux/byteorder.h> rather than <asm/byteorder.h> when including
-> stuff from .c files outside the include and arch directories.
+This implements a platform-independent version of show_mem().
 
-asm/byteorder.h is the file included everywhere else, and before my
-patches, linux/byteorder.h didn't even exist.  Thus, when preparing my
-patches I made sure that including asm/byteorder.h continued to be the
-way to get this functionality.
+Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
+---
+ lib/Makefile   |    2 -
+ lib/show_mem.c |   63 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 64 insertions(+), 1 deletion(-)
 
-I could add another patch  on top that makes linux/byteorder the one we
-want included and search/replace the existing asm includes, but I thought
-that was a bit too big to do in one go.
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -6,7 +6,7 @@ lib-y := ctype.o string.o vsprintf.o cmd
+ 	 rbtree.o radix-tree.o dump_stack.o \
+ 	 idr.o int_sqrt.o extable.o prio_tree.o \
+ 	 sha1.o irq_regs.o reciprocal_div.o argv_split.o \
+-	 proportions.o prio_heap.o ratelimit.o
++	 proportions.o prio_heap.o ratelimit.o show_mem.o
+ 
+ ifdef CONFIG_FTRACE
+ # Do not profile string.o, since it may be used in early boot or vdso
+--- /dev/null
++++ b/lib/show_mem.c
+@@ -0,0 +1,63 @@
++/*
++ * Generic show_mem() implementation
++ *
++ * Copyright (C) 2008 Johannes Weiner <hannes@saeurebad.de>
++ * All code subject to the GPL version 2.
++ */
++
++#include <linux/mm.h>
++#include <linux/nmi.h>
++#include <linux/quicklist.h>
++
++void show_mem(void)
++{
++	pg_data_t *pgdat;
++	unsigned long total = 0, reserved = 0, shared = 0,
++		nonshared = 0, highmem = 0;
++
++	printk(KERN_INFO "Mem-Info:\n");
++	show_free_areas();
++
++	for_each_online_pgdat(pgdat) {
++		unsigned long i, flags;
++
++		pgdat_resize_lock(pgdat, &flags);
++		for (i = 0; i < pgdat->node_spanned_pages; i++) {
++			struct page *page;
++			unsigned long pfn = pgdat->node_start_pfn + i;
++
++			if (unlikely(!(i % MAX_ORDER_NR_PAGES)))
++				touch_nmi_watchdog();
++
++			if (!pfn_valid(pfn))
++				continue;
++
++			page = pfn_to_page(pfn);
++
++			if (PageHighMem(page))
++				highmem++;
++
++			if (PageReserved(page))
++				reserved++;
++			else if (page_count(page) == 1)
++				nonshared++;
++			else if (page_count(page) > 1)
++				shared += page_count(page) - 1;
++
++			total++;
++		}
++		pgdat_resize_unlock(pgdat, &flags);
++	}
++
++	printk(KERN_INFO "%lu pages RAM\n", total);
++#ifdef CONFIG_HIGHMEM
++	printk(KERN_INFO "%lu pages HighMem\n", highmem);
++#endif
++	printk(KERN_INFO "%lu pages reserved\n", reserved);
++	printk(KERN_INFO "%lu pages shared\n", shared);
++	printk(KERN_INFO "%lu pages non-shared\n", nonshared);
++#ifdef CONFIG_QUICKLIST
++	printk(KERN_INFO "%lu pages in pagetable cache\n",
++		quicklist_total_size());
++#endif
++}
 
-If people think this is the way to go, I'll prepare a patch to change the
-includes.
-
-> And whilst you're at it, Documentation/byteorder.txt is yours for the
-> creation:-)
-
-Already working on an update to unaligned_access.txt, I'll get to
-byteorder next.
-
-Harvey
+-- 
