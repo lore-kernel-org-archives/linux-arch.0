@@ -1,63 +1,39 @@
 From: Johannes Weiner <hannes@saeurebad.de>
-Subject: [PATCH 00/20] generic show_mem() v5
-Date: Fri, 04 Jul 2008 18:07:37 +0200
-Message-ID: <20080704160737.750988999@saeurebad.de>
+Subject: [PATCH 01/20] mm: print swapcache page count in show_swap_cache_info()
+Date: Fri, 04 Jul 2008 18:07:38 +0200
+Message-ID: <20080704161452.426549011@saeurebad.de>
+References: <20080704160737.750988999@saeurebad.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from saeurebad.de ([85.214.36.134]:38508 "EHLO saeurebad.de"
+Received: from saeurebad.de ([85.214.36.134]:38512 "EHLO saeurebad.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754705AbYGDQu6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 4 Jul 2008 12:50:58 -0400
+	id S1758604AbYGDQvB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 4 Jul 2008 12:51:01 -0400
+Content-Disposition: inline; filename=mm-show-swapcache-pages-in-show_swap_cache_info.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Every arch implements its own show_mem() function.  Most of them share
-quite some code, some of them are completely identical.
+Most show_mem() implementations calculate the amount of pages within
+the swapcache every time.  Move the output to a more appropriate place
+and use the anyway available total_swapcache_pages variable.
 
-This series implements a generic version of this function and migrates
-almost all architectures to it.
+Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
+---
+ mm/swap_state.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-version 5:
-	- removed the Kconfig parts and moved generic version to lib/
-	  as suggested by Paul Mundt.  We now touch half the files and
-	  save even more lines!
-version 4:
-	- rebased against -mmotm
-	- remove free swap space display from alpha, m32r, sh, sparc64,
-	  um (was in a different series originally, but -mm no longer
-	  has them and Linus' tree does not contain them too)
-version 3:
-	- Fix kbuild logic as suggested by Sam Ravnborg
-version 2:
-	- Fix kbuild bits as suggested by Heiko Carstens
-	- Include quicklist info as suggested by Paul Mundt
-	- Extend changelogs by info on removal of redundant output
+--- a/mm/swap_state.c
++++ b/mm/swap_state.c
+@@ -56,7 +56,8 @@ static struct {
+ 
+ void show_swap_cache_info(void)
+ {
+-	printk("Swap cache: add %lu, delete %lu, find %lu/%lu\n",
++	printk("%lu pages in swap cache\n", total_swapcache_pages);
++	printk("Swap cache stats: add %lu, delete %lu, find %lu/%lu\n",
+ 		swap_cache_info.add_total, swap_cache_info.del_total,
+ 		swap_cache_info.find_success, swap_cache_info.find_total);
+ 	printk("Free swap  = %lukB\n", nr_swap_pages << (PAGE_SHIFT - 10));
 
-Compile- and runtime-tested on x86_32.
-
- arch/alpha/mm/init.c      |   30 ---------------------
- arch/alpha/mm/numa.c      |   35 -------------------------
- arch/avr32/mm/init.c      |   39 ---------------------------
- arch/blackfin/mm/init.c   |   27 -------------------
- arch/cris/mm/init.c       |   30 ---------------------
- arch/frv/mm/init.c        |   31 ----------------------
- arch/h8300/mm/init.c      |   27 -------------------
- arch/m32r/mm/init.c       |   36 -------------------------
- arch/m68k/mm/init.c       |   30 ---------------------
- arch/m68knommu/mm/init.c  |   27 -------------------
- arch/mips/mm/Makefile     |    3 +-
- arch/mips/mm/pgtable.c    |   36 -------------------------
- arch/mn10300/mm/pgtable.c |   27 -------------------
- arch/powerpc/mm/mem.c     |   39 ---------------------------
- arch/s390/mm/init.c       |   32 -----------------------
- arch/sh/mm/init.c         |   41 -----------------------------
- arch/sparc64/mm/init.c    |   45 --------------------------------
- arch/um/kernel/mem.c      |   31 ----------------------
- arch/x86/mm/init_64.c     |   37 --------------------------
- arch/x86/mm/pgtable_32.c  |   47 ---------------------------------
- arch/xtensa/mm/init.c     |   26 ------------------
- lib/Makefile              |    2 +-
- lib/show_mem.c            |   63 +++++++++++++++++++++++++++++++++++++++++++++
- mm/swap_state.c           |    3 +-
- 24 files changed, 67 insertions(+), 677 deletions(-)
+-- 
