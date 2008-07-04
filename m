@@ -1,69 +1,64 @@
-From: Johannes Weiner <hannes@saeurebad.de>
-Subject: [PATCH 20/20] cris: use generic show_mem()
-Date: Fri, 04 Jul 2008 18:07:57 +0200
-Message-ID: <20080704161458.252875138@saeurebad.de>
-References: <20080704160737.750988999@saeurebad.de>
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1761259AbYGDQ7g@vger.kernel.org>
-Content-Disposition: inline; filename=cris-use-generic-show_mem.patch
-Sender: linux-kernel-owner@vger.kernel.org
+From: Harvey Harrison <harvey.harrison@gmail.com>
+Subject: Re: [PATCH 3/5] byteorder: wire up arches to use new headers
+Date: Fri, 04 Jul 2008 10:23:59 -0700
+Message-ID: <1215192239.16647.84.camel@brick>
+References: <1215144733.16647.69.camel@brick>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from wf-out-1314.google.com ([209.85.200.174]:12751 "EHLO
+	wf-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751732AbYGDRYC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jul 2008 13:24:02 -0400
+Received: by wf-out-1314.google.com with SMTP id 27so1260945wfd.4
+        for <linux-arch@vger.kernel.org>; Fri, 04 Jul 2008 10:24:02 -0700 (PDT)
+In-Reply-To: <1215144733.16647.69.camel@brick>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mikael Starvik <starvik@axis.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 
-Remove arch-specific show_mem() in favor of the generic version.
-
-This also removes the following redundant information display:
-
-	- free pages, printed by show_free_areas()
-	- pages in swapcache, printed by show_swap_cache_info()
-
-where show_mem() calls show_free_areas(), which calls
-show_swap_cache_info().
-
-Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
-Acked-by: Mikael Starvik <starvik@axis.com>
+=EF=BB=BFSigned-off-by: Harvey Harrison <harvey.harrison@gmail.com>
 ---
- arch/cris/mm/init.c |   30 ------------------------------
- 1 file changed, 30 deletions(-)
+rebasing to today's next, noticed a conflict in m68knommu, here's a rev=
+ised part
+of the arch hook-up.
 
---- a/arch/cris/mm/init.c
-+++ b/arch/cris/mm/init.c
-@@ -19,36 +19,6 @@ unsigned long empty_zero_page;
- extern char _stext, _edata, _etext; /* From linkerscript */
- extern char __init_begin, __init_end;
- 
--void 
--show_mem(void)
--{
--	int i,free = 0,total = 0,cached = 0, reserved = 0, nonshared = 0;
--	int shared = 0;
--
--	printk("\nMem-info:\n");
--	show_free_areas();
--	i = max_mapnr;
--	while (i-- > 0) {
--		total++;
--		if (PageReserved(mem_map+i))
--			reserved++;
--		else if (PageSwapCache(mem_map+i))
--			cached++;
--		else if (!page_count(mem_map+i))
--			free++;
--		else if (page_count(mem_map+i) == 1)
--			nonshared++;
--		else
--			shared += page_count(mem_map+i) - 1;
--	}
--	printk("%d pages of RAM\n",total);
--	printk("%d free pages\n",free);
--	printk("%d reserved pages\n",reserved);
--	printk("%d pages nonshared\n",nonshared);
--	printk("%d pages shared\n",shared);
--	printk("%d pages swap cached\n",cached);
--}
--
- void __init
- mem_init(void)
+diff --git a/include/asm-m68knommu/byteorder.h b/include/asm-m68knommu/=
+byteorder.h
+index 20bb442..8a68b3c 100644
+--- a/include/asm-m68knommu/byteorder.h
++++ b/include/asm-m68knommu/byteorder.h
+@@ -3,13 +3,11 @@
+=20
+ #include <linux/types.h>
+=20
+-#if defined(__GNUC__) && !defined(__STRICT_ANSI__) || defined(__KERNEL=
+__)
+-#  define __BYTEORDER_HAS_U64__
+-#  define __SWAB_64_THRU_32__
+-#endif
++#define __BIG_ENDIAN
++#define __SWAB_64_THRU_32__
+=20
+ #if defined (__mcfisaaplus__) || defined (__mcfisac__)
+-static inline __attribute_const__ __u32 ___arch__swab32(__u32 val)
++static inline __attribute_const__ __u32 __arch_swab32(__u32 val)
  {
-
--- 
+ 	asm(
+ 			"byterev %0"
+@@ -18,10 +16,9 @@ static inline __attribute_const__ __u32 ___arch__swa=
+b32(__u32 val)
+ 	   );
+ 	return val;
+ }
+-
+-#define __arch__swab32(x) ___arch__swab32(x)
++#define HAVE_ARCH_SWAB32
+ #endif
+=20
+-#include <linux/byteorder/big_endian.h>
++#include <linux/byteorder.h>
+=20
+ #endif /* _M68KNOMMU_BYTEORDER_H */
