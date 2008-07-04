@@ -1,79 +1,69 @@
 From: Johannes Weiner <hannes@saeurebad.de>
-Subject: [PATCH 18/20] m32r: use generic show_mem()
-Date: Fri, 04 Jul 2008 18:07:55 +0200
-Message-ID: <20080704161457.649814200@saeurebad.de>
+Subject: [PATCH 20/20] cris: use generic show_mem()
+Date: Fri, 04 Jul 2008 18:07:57 +0200
+Message-ID: <20080704161458.252875138@saeurebad.de>
 References: <20080704160737.750988999@saeurebad.de>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from saeurebad.de ([85.214.36.134]:38579 "EHLO saeurebad.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759885AbYGDQwN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 4 Jul 2008 12:52:13 -0400
-Content-Disposition: inline; filename=m32r-use-generic-show_mem.patch
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1761259AbYGDQ7g@vger.kernel.org>
+Content-Disposition: inline; filename=cris-use-generic-show_mem.patch
+Sender: linux-kernel-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Hirokazu Takata <takata@linux-m32r.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mikael Starvik <starvik@axis.com>
+List-Id: linux-arch.vger.kernel.org
 
 Remove arch-specific show_mem() in favor of the generic version.
 
 This also removes the following redundant information display:
 
-	- free swap pages, printed by show_swap_cache_info()
+	- free pages, printed by show_free_areas()
 	- pages in swapcache, printed by show_swap_cache_info()
 
 where show_mem() calls show_free_areas(), which calls
 show_swap_cache_info().
 
 Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
-CC: Hirokazu Takata <takata@linux-m32r.org>
+Acked-by: Mikael Starvik <starvik@axis.com>
 ---
- arch/m32r/mm/init.c |   36 ------------------------------------
- 1 file changed, 36 deletions(-)
+ arch/cris/mm/init.c |   30 ------------------------------
+ 1 file changed, 30 deletions(-)
 
---- a/arch/m32r/mm/init.c
-+++ b/arch/m32r/mm/init.c
-@@ -36,42 +36,6 @@ pgd_t swapper_pg_dir[1024];
+--- a/arch/cris/mm/init.c
++++ b/arch/cris/mm/init.c
+@@ -19,36 +19,6 @@ unsigned long empty_zero_page;
+ extern char _stext, _edata, _etext; /* From linkerscript */
+ extern char __init_begin, __init_end;
  
- DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);
- 
--void show_mem(void)
+-void 
+-show_mem(void)
 -{
--	int total = 0, reserved = 0;
--	int shared = 0, cached = 0;
--	int highmem = 0;
--	struct page *page;
--	pg_data_t *pgdat;
--	unsigned long i;
+-	int i,free = 0,total = 0,cached = 0, reserved = 0, nonshared = 0;
+-	int shared = 0;
 -
--	printk("Mem-info:\n");
+-	printk("\nMem-info:\n");
 -	show_free_areas();
--	printk("Free swap:       %6ldkB\n",nr_swap_pages<<(PAGE_SHIFT-10));
--	for_each_online_pgdat(pgdat) {
--		unsigned long flags;
--		pgdat_resize_lock(pgdat, &flags);
--		for (i = 0; i < pgdat->node_spanned_pages; ++i) {
--			page = pgdat_page_nr(pgdat, i);
--			total++;
--			if (PageHighMem(page))
--				highmem++;
--			if (PageReserved(page))
--				reserved++;
--			else if (PageSwapCache(page))
--				cached++;
--			else if (page_count(page))
--				shared += page_count(page) - 1;
--		}
--		pgdat_resize_unlock(pgdat, &flags);
+-	i = max_mapnr;
+-	while (i-- > 0) {
+-		total++;
+-		if (PageReserved(mem_map+i))
+-			reserved++;
+-		else if (PageSwapCache(mem_map+i))
+-			cached++;
+-		else if (!page_count(mem_map+i))
+-			free++;
+-		else if (page_count(mem_map+i) == 1)
+-			nonshared++;
+-		else
+-			shared += page_count(mem_map+i) - 1;
 -	}
--	printk("%d pages of RAM\n", total);
--	printk("%d pages of HIGHMEM\n",highmem);
+-	printk("%d pages of RAM\n",total);
+-	printk("%d free pages\n",free);
 -	printk("%d reserved pages\n",reserved);
+-	printk("%d pages nonshared\n",nonshared);
 -	printk("%d pages shared\n",shared);
 -	printk("%d pages swap cached\n",cached);
 -}
 -
- /*
-  * Cache of MMU context last used.
-  */
+ void __init
+ mem_init(void)
+ {
 
 -- 
