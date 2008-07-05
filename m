@@ -1,86 +1,46 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 3/3] relay: Add buffer-only channels; useful for early
- logging.
-Date: Fri, 4 Jul 2008 23:32:05 -0700
-Message-ID: <20080704233205.5cf6f04b.akpm@linux-foundation.org>
-References: <20080623153104.50549291@linux360.ro>
-	<20080702230636.66e484bb.akpm@linux-foundation.org>
-	<20080705071401.0fe75d9f@linux360.ro>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 16/20] m68knommu: use generic show_mem()
+Date: Sat, 5 Jul 2008 10:11:21 +0200 (CEST)
+Message-ID: <Pine.LNX.4.64.0807051010550.5733@anakin>
+References: <20080704160737.750988999@saeurebad.de> <20080704161457.056057813@saeurebad.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:59768 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752778AbYGEGce (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Jul 2008 02:32:34 -0400
-In-Reply-To: <20080705071401.0fe75d9f@linux360.ro>
+Received: from monty.telenet-ops.be ([195.130.132.56]:34339 "EHLO
+	monty.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752025AbYGEIL0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Jul 2008 04:11:26 -0400
+In-Reply-To: <20080704161457.056057813@saeurebad.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eduard - Gabriel Munteanu <eduard.munteanu@linux360.ro>
-Cc: tzanussi@gmail.com, penberg@cs.helsinki.fi, torvalds@linux-foundation.org, compudj@krystal.dyndns.org, vegard.nossum@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Johannes Weiner <hannes@saeurebad.de>, Greg Ungerer <gerg@uclinux.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, uClinux list <uclinux-dev@uclinux.org>
 
-On Sat, 5 Jul 2008 07:14:01 +0300 Eduard - Gabriel Munteanu <eduard.munteanu@linux360.ro> wrote:
-
-> On Wed, 2 Jul 2008 23:06:36 -0700
-> Andrew Morton <akpm@linux-foundation.org> wrote:
->  
-> > This breaks on sparc64.
-> > 
-> > > +			err = smp_call_function_single(i,
-> > > +
-> > > __relay_set_buf_dentry,
-> > > +						       &disp, 0,
-> > > 1);
-> > 
-> > Because that ain't implemented.
-> > 
-> > There's a call in net/iucv/iucv.c, but that's s390-only.
-> > 
-> > There's a call in virt/kvm/kvm_main.c.
-> > 
-> > There's a call in kernel/time/tick-broadcast.c, so I assume that the
-> > intersection between CONFIG_GENERIC_CLOCKEVENTS_BROADCAST and
-> > non-smp_call_function_single() architectures is presently empty.
+On Fri, 4 Jul 2008, Johannes Weiner wrote:
+> Remove arch-specific show_mem() in favor of the generic version.
 > 
-> Hi,
+> This also removes the following redundant information display:
 > 
-> I'm not sure what I should do.
-
-Nothing, I'd suggest.  I think that all architectures should implement
-smp_call_function_single().  You can have a shot at doing that if you
-like, but the implementations will need to be reviewed and merged by
-the relevant architectures maintainers.  (That's why I snuck linux-arch
-into the cc list last time).
-
-> Maybe disable relay_late_setup_files()
-> on sparc64, with an empty inline?
->  
-> > I guess all SMP-capable architectures should now implement this,
-> > please.  It is presently defined on all architectures for CONFIG_SMP=n
-> > and it is declared in include/linux/smp.h.
+> 	- free pages, printed by show_free_areas()
+> 	- pages in swapcache, printed by show_swap_cache_info()
 > 
-> sparc64 seems to have smp_call_function_mask(). If we have the generic
-> kernel/smp.c in linux-next or -mmotm, then this will define
-> smp_call_function_single() to call smp_call_function_mask().
+> where show_mem() calls show_free_areas(), which calls
+> show_swap_cache_info().
 > 
-> Is there anything I can do regarding this patch? Does it work since
-> kernel/smp.c reappeared?
+> Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
+> CC: Geert Uytterhoeven <geert@linux-m68k.org>
+> ---
+>  arch/m68knommu/mm/init.c |   27 ---------------------------
 
-Nope:
+m68knommu is uClinux.
 
-y:/usr/src/25> grep USE_GENERIC_SMP_HELPERS arch/*/Kconfig
-arch/alpha/Kconfig:     select USE_GENERIC_SMP_HELPERS
-arch/arm/Kconfig:       select USE_GENERIC_SMP_HELPERS
-arch/ia64/Kconfig:      select USE_GENERIC_SMP_HELPERS
-arch/m32r/Kconfig:      select USE_GENERIC_SMP_HELPERS
-arch/mips/Kconfig:      select USE_GENERIC_SMP_HELPERS
-arch/parisc/Kconfig:    select USE_GENERIC_SMP_HELPERS
-arch/powerpc/Kconfig:   select USE_GENERIC_SMP_HELPERS if SMP
-arch/sh/Kconfig:        select USE_GENERIC_SMP_HELPERS
-arch/x86/Kconfig:       select USE_GENERIC_SMP_HELPERS
+Gr{oetje,eeting}s,
 
-It would help if you could check to see which architectures need work
-and then perhaps propose patches.  If not, well, 2.6.27-rc1 will be
-broken on some architectures on some configs and people will have a
-couple of months to unbreak it.  Not a big problem, I expect.
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
