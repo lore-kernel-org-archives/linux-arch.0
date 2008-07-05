@@ -1,93 +1,46 @@
 From: Johannes Weiner <hannes@saeurebad.de>
-Subject: Re: [PATCH 02/20] lib: generic show_mem()
-Date: Sat, 05 Jul 2008 11:29:29 +0000
-Message-ID: <87hcb44lie.fsf@saeurebad.de>
+Subject: Re: [PATCH 16/20] m68knommu: use generic show_mem()
+Date: Sat, 05 Jul 2008 11:30:24 +0000
+Message-ID: <87d4ls4lgv.fsf@saeurebad.de>
 References: <20080704160737.750988999@saeurebad.de>
-	<20080704161452.730548249@saeurebad.de>
-	<20080705083445.GA5454@osiris.boeblingen.de.ibm.com>
+	<20080704161457.056057813@saeurebad.de>
+	<Pine.LNX.4.64.0807051010550.5733@anakin>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from saeurebad.de ([85.214.36.134]:47181 "EHLO saeurebad.de"
+Received: from saeurebad.de ([85.214.36.134]:47193 "EHLO saeurebad.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751496AbYGELbG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 5 Jul 2008 07:31:06 -0400
-In-Reply-To: <20080705083445.GA5454@osiris.boeblingen.de.ibm.com> (Heiko
-	Carstens's message of "Sat, 5 Jul 2008 10:34:45 +0200")
+	id S1751594AbYGELb7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 5 Jul 2008 07:31:59 -0400
+In-Reply-To: <Pine.LNX.4.64.0807051010550.5733@anakin> (Geert Uytterhoeven's
+	message of "Sat, 5 Jul 2008 10:11:21 +0200 (CEST)")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Greg Ungerer <gerg@uclinux.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, uClinux list <uclinux-dev@uclinux.org>
 
 Hi,
 
-Heiko Carstens <heiko.carstens@de.ibm.com> writes:
+Geert Uytterhoeven <geert@linux-m68k.org> writes:
 
-> On Fri, Jul 04, 2008 at 06:07:39PM +0200, Johannes Weiner wrote:
->> This implements a platform-independent version of show_mem().
+> On Fri, 4 Jul 2008, Johannes Weiner wrote:
+>> Remove arch-specific show_mem() in favor of the generic version.
+>> 
+>> This also removes the following redundant information display:
+>> 
+>> 	- free pages, printed by show_free_areas()
+>> 	- pages in swapcache, printed by show_swap_cache_info()
+>> 
+>> where show_mem() calls show_free_areas(), which calls
+>> show_swap_cache_info().
 >> 
 >> Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
+>> CC: Geert Uytterhoeven <geert@linux-m68k.org>
 >> ---
->>  lib/Makefile   |    2 -
->>  lib/show_mem.c |   63 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
->>  2 files changed, 64 insertions(+), 1 deletion(-)
->> 
->> --- a/lib/Makefile
->> +++ b/lib/Makefile
->> @@ -6,7 +6,7 @@ lib-y := ctype.o string.o vsprintf.o cmd
->>  	 rbtree.o radix-tree.o dump_stack.o \
->>  	 idr.o int_sqrt.o extable.o prio_tree.o \
->>  	 sha1.o irq_regs.o reciprocal_div.o argv_split.o \
->> -	 proportions.o prio_heap.o ratelimit.o
->> +	 proportions.o prio_heap.o ratelimit.o show_mem.o
->> 
->>  ifdef CONFIG_FTRACE
->>  # Do not profile string.o, since it may be used in early boot or vdso
->> --- /dev/null
->> +++ b/lib/show_mem.c
->> @@ -0,0 +1,63 @@
->> +/*
->> + * Generic show_mem() implementation
->> + *
->> + * Copyright (C) 2008 Johannes Weiner <hannes@saeurebad.de>
->> + * All code subject to the GPL version 2.
->> + */
->> +
->> +#include <linux/mm.h>
->> +#include <linux/nmi.h>
->> +#include <linux/quicklist.h>
->> +
->> +void show_mem(void)
->> +{
+>>  arch/m68knommu/mm/init.c |   27 ---------------------------
 >
-> Umh.. I think your 4th patch set was the way to go. This set is not
-> bisectable anymore and those architectures which you didn't convert
-> to the generic implementation won't build anymore. show_mem is present
-> twice there...
+> m68knommu is uClinux.
 
-hannes@skyscraper:/tmp/test$ gcc -o prog prog.c lib1.a lib2.a && ./prog
-lib1
-hannes@skyscraper:/tmp/test$ gcc -o prog prog.c lib2.a lib1.a && ./prog
-lib2
-
-Both lib1 and lib2 define foo() which prog calls.
-
-I tested this with x86 and it built before and after removal of the
-x86-specific show_mem() (and it did the right thing as the arch code has
-higher priority than lib code).
-
-But why is it no more bisectable?  You have one point where your kernel
-uses the arch-specific show_mem() and in the next commit, you use the
-generic version.  If something breaks, you can compare the old arch
-version with the generic version.
-
-> You might solve this by adding an __attribute__((weak)) but I'm sure
-> people will complain again, because it produces dead code for all
-> architectures which got converted.
-
-Yeah, lib/show_mem.c is built in any case, which sucks a bit.
-
-What do others think?  Would you prefer conditional code generation
-about linking magic here?
+Uhm, I can not quite follow you here.  Is the CC wrong?
 
 	Hannes
