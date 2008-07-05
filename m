@@ -1,46 +1,64 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 16/20] m68knommu: use generic show_mem()
-Date: Sat, 5 Jul 2008 10:11:21 +0200 (CEST)
-Message-ID: <Pine.LNX.4.64.0807051010550.5733@anakin>
-References: <20080704160737.750988999@saeurebad.de> <20080704161457.056057813@saeurebad.de>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH 02/20] lib: generic show_mem()
+Date: Sat, 5 Jul 2008 10:34:45 +0200
+Message-ID: <20080705083445.GA5454@osiris.boeblingen.de.ibm.com>
+References: <20080704160737.750988999@saeurebad.de> <20080704161452.730548249@saeurebad.de>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from monty.telenet-ops.be ([195.130.132.56]:34339 "EHLO
-	monty.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752025AbYGEIL0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Jul 2008 04:11:26 -0400
-In-Reply-To: <20080704161457.056057813@saeurebad.de>
+Received: from mtagate7.de.ibm.com ([195.212.29.156]:2800 "EHLO
+	mtagate7.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751266AbYGEIfW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Jul 2008 04:35:22 -0400
+Content-Disposition: inline
+In-Reply-To: <20080704161452.730548249@saeurebad.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Johannes Weiner <hannes@saeurebad.de>, Greg Ungerer <gerg@uclinux.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, uClinux list <uclinux-dev@uclinux.org>
+To: Johannes Weiner <hannes@saeurebad.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, 4 Jul 2008, Johannes Weiner wrote:
-> Remove arch-specific show_mem() in favor of the generic version.
-> 
-> This also removes the following redundant information display:
-> 
-> 	- free pages, printed by show_free_areas()
-> 	- pages in swapcache, printed by show_swap_cache_info()
-> 
-> where show_mem() calls show_free_areas(), which calls
-> show_swap_cache_info().
+On Fri, Jul 04, 2008 at 06:07:39PM +0200, Johannes Weiner wrote:
+> This implements a platform-independent version of show_mem().
 > 
 > Signed-off-by: Johannes Weiner <hannes@saeurebad.de>
-> CC: Geert Uytterhoeven <geert@linux-m68k.org>
 > ---
->  arch/m68knommu/mm/init.c |   27 ---------------------------
+>  lib/Makefile   |    2 -
+>  lib/show_mem.c |   63 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+>  2 files changed, 64 insertions(+), 1 deletion(-)
+> 
+> --- a/lib/Makefile
+> +++ b/lib/Makefile
+> @@ -6,7 +6,7 @@ lib-y := ctype.o string.o vsprintf.o cmd
+>  	 rbtree.o radix-tree.o dump_stack.o \
+>  	 idr.o int_sqrt.o extable.o prio_tree.o \
+>  	 sha1.o irq_regs.o reciprocal_div.o argv_split.o \
+> -	 proportions.o prio_heap.o ratelimit.o
+> +	 proportions.o prio_heap.o ratelimit.o show_mem.o
+> 
+>  ifdef CONFIG_FTRACE
+>  # Do not profile string.o, since it may be used in early boot or vdso
+> --- /dev/null
+> +++ b/lib/show_mem.c
+> @@ -0,0 +1,63 @@
+> +/*
+> + * Generic show_mem() implementation
+> + *
+> + * Copyright (C) 2008 Johannes Weiner <hannes@saeurebad.de>
+> + * All code subject to the GPL version 2.
+> + */
+> +
+> +#include <linux/mm.h>
+> +#include <linux/nmi.h>
+> +#include <linux/quicklist.h>
+> +
+> +void show_mem(void)
+> +{
 
-m68knommu is uClinux.
+Umh.. I think your 4th patch set was the way to go. This set is not
+bisectable anymore and those architectures which you didn't convert
+to the generic implementation won't build anymore. show_mem is present
+twice there...
 
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+You might solve this by adding an __attribute__((weak)) but I'm sure
+people will complain again, because it produces dead code for all
+architectures which got converted.
