@@ -1,48 +1,177 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH 14/23] make section names compatible with
-	-ffunction-sections -fdata-sections: parisc
-Date: Sun, 06 Jul 2008 11:19:32 -0500
-Message-ID: <1215361172.4197.21.camel@localhost.localdomain>
-References: <200807020239.11410.vda.linux@googlemail.com>
-	 <200807061746.02517.vda.linux@googlemail.com>
+From: Jeremy Fitzhardinge <jeremy@goop.org>
+Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
+Date: Sun, 06 Jul 2008 10:21:18 -0700
+Message-ID: <4870FF0E.80200@goop.org>
+References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-2-git-send-email-jens.axboe@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=ISO-8859-15; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-embedded-owner@vger.kernel.org>
-In-Reply-To: <200807061746.02517.vda.linux@googlemail.com>
-Sender: linux-embedded-owner@vger.kernel.org
-To: Denys Vlasenko <vda.linux@googlemail.com>
-Cc: linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gw.goop.org ([64.81.55.164]:40406 "EHLO mail.goop.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751410AbYGFRV2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 6 Jul 2008 13:21:28 -0400
+In-Reply-To: <1212051504-12561-2-git-send-email-jens.axboe@oracle.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jens Axboe <jens.axboe@oracle.com>
+Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
 
-On Sun, 2008-07-06 at 17:46 +0200, Denys Vlasenko wrote:
-> The purpose of this patch is to make kernel buildable
-> with "gcc -ffunction-sections -fdata-sections".
-> This patch fixes parisc architecture.
-> 
-> Updated version - does not try to rename sections
-> which really are expected to be produced by gcc - .text.sys_exit etc.
+Jens Axboe wrote:
+> +/**
+> + * __smp_call_function_single(): Run a function on another CPU
+> + * @cpu: The CPU to run on.
+> + * @data: Pre-allocated and setup data structure
+> + *
+> + * Like smp_call_function_single(), but allow caller to pass in a pre-allocated
+> + * data structure. Useful for embedding @data inside other structures, for
+> + * instance.
+> + *
+> + */
+> +void __smp_call_function_single(int cpu, struct call_single_data *data)
+>   
 
-Actually, I've thought about it some more and I don't think your
-approach is quite right.  The way gcc works with -ffunction-sections
-makes it clear that it expects the section namespace to be scoped left
-to right. However, by using *.text and *.data, your patch is following a
-reverse convention (putting your most global name to the right).  This
-is setting us up for a clash with future global section names that our
-toolchain might emit in future.
+Does this have any users?  Proposed users?
 
-Since we have to have special handling for your reversed sections in
-every vmlinux.lds, what about introducing our own namespace instead?  So
-we reserve the global section specifier linux and then make everything a
-namespace under this.  So our constructed text and data sections become
+> +{
+> +	/* Can deadlock when called with interrupts disabled */
+> +	WARN_ON((data->flags & CSD_FLAG_WAIT) && irqs_disabled());
+>   
 
-linux.text.*
+Can it be reasonably be used without FLAG_WAIT set?  If it doesn't have 
+FLAG_WAIT, it must have FLAG_ALLOC set, but it can't have FLAG_ALLOC if 
+the csd structure is embedded in something else.
 
-and
+> +
+> +	generic_exec_single(cpu, data);
+> +}
+> +
+> +/**
+> + * smp_call_function_mask(): Run a function on a set of other CPUs.
+> + * @mask: The set of cpus to run on.
+> + * @func: The function to run. This must be fast and non-blocking.
+> + * @info: An arbitrary pointer to pass to the function.
+> + * @wait: If true, wait (atomically) until function has completed on other CPUs.
+> + *
+> + * Returns 0 on success, else a negative status code.
+> + *
+> + * If @wait is true, then returns once @func has returned.
+> + *
+> + * You must not call this function with disabled interrupts or from a
+> + * hardware interrupt handler or from a bottom half handler.
+> + */
+> +int smp_call_function_mask(cpumask_t mask, void (*func)(void *), void *info,
+> +			   int wait)
+> +{
+> +	struct call_function_data d;
+> +	struct call_function_data *data = NULL;
+> +	cpumask_t allbutself;
+> +	unsigned long flags;
+> +	int cpu, num_cpus;
+> +
+> +	/* Can deadlock when called with interrupts disabled */
+> +	WARN_ON(irqs_disabled());
+> +
+> +	cpu = smp_processor_id();
+>   
 
-linux.data.*
+What prevents us from changing cpus?  Are all callers supposed to 
+disable preemption?  If so, should we WARN for it?
 
-That way we could only ever get a clash if the toolchain decided to use
-a section global name linux (which we can beat them up over).
+> +	allbutself = cpu_online_map;
+> +	cpu_clear(cpu, allbutself);
+> +	cpus_and(mask, mask, allbutself);
+> +	num_cpus = cpus_weight(mask);
+>   
 
-James
+Ditto: What prevents the online map changing under our feet?  Is 
+disabling preemption enough?
+
+> +
+> +	/*
+> +	 * If zero CPUs, return. If just a single CPU, turn this request
+> +	 * into a targetted single call instead since it's faster.
+> +	 */
+> +	if (!num_cpus)
+> +		return 0;
+> +	else if (num_cpus == 1) {
+> +		cpu = first_cpu(mask);
+> +		return smp_call_function_single(cpu, func, info, 0, wait);
+> +	}
+>   
+
+It's weirdly inconsistent that smp_call_function_mask will ignore the 
+current cpu if its in the mask, but smp_call_function_single will call 
+the function locally if the specified cpu is the current one.  I know 
+this is a hold-over from the old code, but could we finally fix it now?  
+I guess it's still reasonable for smp_call_function to call on 
+everywhere but current cpu, but it can do its own mask manipulation to 
+sort that out.
+
+> +
+> +	if (!wait) {
+> +		data = kmalloc(sizeof(*data), GFP_ATOMIC);
+> +		if (data)
+> +			data->csd.flags = CSD_FLAG_ALLOC;
+> +	}
+> +	if (!data) {
+> +		data = &d;
+> +		data->csd.flags = CSD_FLAG_WAIT;
+> +	}
+> +
+> +	spin_lock_init(&data->lock);
+> +	data->csd.func = func;
+> +	data->csd.info = info;
+> +	data->refs = num_cpus;
+> +
+> +	/*
+> +	 * need to see above stores before the cpumask is valid for the CPU
+> +	 */
+> +	smp_wmb();
+> +	data->cpumask = mask;
+> +
+> +	spin_lock_irqsave(&call_function_lock, flags);
+> +	list_add_tail_rcu(&data->csd.list, &call_function_queue);
+> +	spin_unlock_irqrestore(&call_function_lock, flags);
+> +
+> +	/* Send a message to all CPUs in the map */
+> +	arch_send_call_function_ipi(mask);
+> +
+> +	/* optionally wait for the CPUs to complete */
+> +	if (wait)
+>   
+Should this test for data->csd.flags & CDS_FLAG_WAIT?  Or should the "if 
+(!data)" path above also set "wait"?
+
+> +		csd_flag_wait(&data->csd);
+> +
+> +	return 0;
+> +}
+> +EXPORT_SYMBOL(smp_call_function_mask);
+> +
+> +/**
+> + * smp_call_function(): Run a function on all other CPUs.
+> + * @func: The function to run. This must be fast and non-blocking.
+> + * @info: An arbitrary pointer to pass to the function.
+> + * @natomic: Unused
+> + * @wait: If true, wait (atomically) until function has completed on other CPUs.
+> + *
+> + * Returns 0 on success, else a negative status code.
+> + *
+> + * If @wait is true, then returns once @func has returned; otherwise
+> + * it returns just before the target cpu calls @func.
+> + *
+> + * You must not call this function with disabled interrupts or from a
+> + * hardware interrupt handler or from a bottom half handler.
+> + */
+> +int smp_call_function(void (*func)(void *), void *info, int natomic, int wait)
+> +{
+> +	int ret;
+> +
+> +	preempt_disable();
+> +	ret = smp_call_function_mask(cpu_online_map, func, info, wait);
+> +	preempt_enable();
+> +	return ret;
+> +}
+> +EXPORT_SYMBOL(smp_call_function);
+>   
