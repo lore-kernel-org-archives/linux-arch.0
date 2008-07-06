@@ -1,51 +1,163 @@
-From: Greg Ungerer <gerg@snapgear.com>
-Subject: Re: [PATCH -mm 5/8] m68knommu: fix implicit declaration of function
- 'PAGE_ALIGN'
-Date: Sun, 06 Jul 2008 14:36:09 +1000
-Message-ID: <48704BB9.5060003@snapgear.com>
-References: <> <1215079171-22637-6-git-send-email-righi.andrea@gmail.com>
+From: Denys Vlasenko <vda.linux@googlemail.com>
+Subject: Re: [PATCH 14/23] make section names compatible with -ffunction-sections -fdata-sections: parisc
+Date: Sun, 6 Jul 2008 17:46:02 +0200
+Message-ID: <200807061746.02517.vda.linux@googlemail.com>
+References: <200807020239.11410.vda.linux@googlemail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rex.securecomputing.com ([203.24.151.4]:54226 "EHLO
-	cyberguard.com.au" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751120AbYGFEhs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Jul 2008 00:37:48 -0400
-In-Reply-To: <1215079171-22637-6-git-send-email-righi.andrea@gmail.com>
+Received: from fk-out-0910.google.com ([209.85.128.186]:40447 "EHLO
+	fk-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757222AbYGFPqJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Jul 2008 11:46:09 -0400
+Received: by fk-out-0910.google.com with SMTP id 18so1068233fkq.5
+        for <linux-arch@vger.kernel.org>; Sun, 06 Jul 2008 08:46:06 -0700 (PDT)
+In-Reply-To: <200807020239.11410.vda.linux@googlemail.com>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Righi <righi.andrea@gmail.com>
-Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, paulus@samba.org, balbir@linux.vnet.ibm.com
+To: linux-arch@vger.kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>
+
+The purpose of this patch is to make kernel buildable
+with "gcc -ffunction-sections -fdata-sections".
+This patch fixes parisc architecture.
+
+Updated version - does not try to rename sections
+which really are expected to be produced by gcc - .text.sys_exit etc.
+
+James please ACK/NAK.
+
+Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
+--
+vda
 
 
-
-Andrea Righi wrote:
-> Signed-off-by: Andrea Righi <righi.andrea@gmail.com>
-
-Acked-by: Greg Ungerer <gerg@uclinux.org>
-
-
-
->  arch/m68knommu/kernel/setup.c |    1 +
->  1 files changed, 1 insertions(+), 0 deletions(-)
-> 
-> diff --git a/arch/m68knommu/kernel/setup.c b/arch/m68knommu/kernel/setup.c
-> index 03f4fe6..5985f19 100644
-> --- a/arch/m68knommu/kernel/setup.c
-> +++ b/arch/m68knommu/kernel/setup.c
-> @@ -22,6 +22,7 @@
->  #include <linux/interrupt.h>
->  #include <linux/fb.h>
->  #include <linux/module.h>
-> +#include <linux/mm.h>
->  #include <linux/console.h>
->  #include <linux/errno.h>
->  #include <linux/string.h>
-
--- 
-------------------------------------------------------------------------
-Greg Ungerer  --  Chief Software Dude       EMAIL:     gerg@snapgear.com
-Secure Computing Corporation                PHONE:       +61 7 3435 2888
-825 Stanley St,                             FAX:         +61 7 3891 3630
-Woolloongabba, QLD, 4102, Australia         WEB: http://www.SnapGear.com
+--- 0.org/arch/parisc/kernel/head.S	Wed Jul  2 00:40:41 2008
++++ 1.fixname/arch/parisc/kernel/head.S	Wed Jul  2 00:45:45 2008
+@@ -345,7 +345,7 @@
+ ENDPROC(stext)
+ 
+ #ifndef CONFIG_64BIT
+-	.section .data.read_mostly
++	.section .read_mostly.data
+ 
+ 	.align	4
+ 	.export	$global$,data
+--- 0.org/arch/parisc/kernel/init_task.c	Wed Jul  2 00:40:41 2008
++++ 1.fixname/arch/parisc/kernel/init_task.c	Wed Jul  2 00:46:55 2008
+@@ -49,7 +49,7 @@
+  * "init_task" linker map entry..
+  */
+ union thread_union init_thread_union
+-	__attribute__((aligned(128))) __attribute__((__section__(".data.init_task"))) =
++	__attribute__((aligned(128))) __attribute__((__section__(".init_task.data"))) =
+ 		{ INIT_THREAD_INFO(init_task) };
+ 
+ #if PT_NLEVELS == 3
+@@ -58,11 +58,11 @@
+  * guarantee that global objects will be laid out in memory in the same order 
+  * as the order of declaration, so put these in different sections and use
+  * the linker script to order them. */
+-pmd_t pmd0[PTRS_PER_PMD] __attribute__ ((__section__ (".data.vm0.pmd"), aligned(PAGE_SIZE)));
++pmd_t pmd0[PTRS_PER_PMD] __attribute__ ((__section__ (".vm0.pmd.data"), aligned(PAGE_SIZE)));
+ #endif
+ 
+-pgd_t swapper_pg_dir[PTRS_PER_PGD] __attribute__ ((__section__ (".data.vm0.pgd"), aligned(PAGE_SIZE)));
+-pte_t pg0[PT_INITIAL * PTRS_PER_PTE] __attribute__ ((__section__ (".data.vm0.pte"), aligned(PAGE_SIZE)));
++pgd_t swapper_pg_dir[PTRS_PER_PGD] __attribute__ ((__section__ (".vm0.pgd.data"), aligned(PAGE_SIZE)));
++pte_t pg0[PT_INITIAL * PTRS_PER_PTE] __attribute__ ((__section__ (".vm0.pte.data"), aligned(PAGE_SIZE)));
+ 
+ /*
+  * Initial task structure.
+--- 0.org/arch/parisc/kernel/vmlinux.lds.S	Wed Jul  2 00:40:41 2008
++++ 1.fixname/arch/parisc/kernel/vmlinux.lds.S	Wed Jul  2 01:02:35 2008
+@@ -95,8 +95,8 @@
+ 
+ 	/* rarely changed data like cpu maps */
+ 	. = ALIGN(16);
+-	.data.read_mostly : {
+-		*(.data.read_mostly)
++	.read_mostly.data : {
++		*(.read_mostly.data)
+ 	}
+ 
+ 	. = ALIGN(L1_CACHE_BYTES);
+@@ -107,14 +107,14 @@
+ 	}
+ 
+ 	. = ALIGN(L1_CACHE_BYTES);
+-	.data.cacheline_aligned : {
+-		*(.data.cacheline_aligned)
++	.cacheline_aligned.data : {
++		*(.cacheline_aligned.data)
+ 	}
+ 
+ 	/* PA-RISC locks requires 16-byte alignment */
+ 	. = ALIGN(16);
+-	.data.lock_aligned : {
+-		*(.data.lock_aligned)
++	.lock_aligned.data : {
++		*(.lock_aligned.data)
+ 	}
+ 
+ 	/* nosave data is really only used for software suspend...it's here
+@@ -123,7 +123,7 @@
+ 	. = ALIGN(PAGE_SIZE);
+ 	__nosave_begin = .;
+ 	.data_nosave : {
+-		*(.data.nosave)
++		*(.nosave.data)
+ 	}
+ 	. = ALIGN(PAGE_SIZE);
+ 	__nosave_end = .;
+@@ -135,10 +135,10 @@
+ 	__bss_start = .;
+ 	/* page table entries need to be PAGE_SIZE aligned */
+ 	. = ALIGN(PAGE_SIZE);
+-	.data.vmpages : {
+-		*(.data.vm0.pmd)
+-		*(.data.vm0.pgd)
+-		*(.data.vm0.pte)
++	.data.vmpages : { /* TODO: rename .vmpages.data? */
++		*(.vm0.pmd.data)
++		*(.vm0.pgd.data)
++		*(.vm0.pte.data)
+ 	}
+ 	.bss : {
+ 		*(.bss)
+@@ -150,8 +150,8 @@
+ 	/* assembler code expects init_task to be 16k aligned */
+ 	. = ALIGN(16384);
+ 	/* init_task */
+-	.data.init_task : {
+-		*(.data.init_task)
++	.init_task.data : {
++		*(.init_task.data)
+ 	}
+ 
+ #ifdef CONFIG_64BIT
+--- 0.org/include/asm-parisc/cache.h	Wed Jul  2 00:40:50 2008
++++ 1.fixname/include/asm-parisc/cache.h	Wed Jul  2 00:45:45 2008
+@@ -28,7 +28,7 @@
+ 
+ #define SMP_CACHE_BYTES L1_CACHE_BYTES
+ 
+-#define __read_mostly __attribute__((__section__(".data.read_mostly")))
++#define __read_mostly __attribute__((__section__(".read_mostly.data")))
+ 
+ void parisc_cache_init(void);	/* initializes cache-flushing */
+ void disable_sr_hashing_asm(int); /* low level support for above */
+--- 0.org/include/asm-parisc/system.h	Wed Jul  2 00:40:50 2008
++++ 1.fixname/include/asm-parisc/system.h	Wed Jul  2 00:46:14 2008
+@@ -174,7 +174,7 @@
+ })
+ 
+ #ifdef CONFIG_SMP
+-# define __lock_aligned __attribute__((__section__(".data.lock_aligned")))
++# define __lock_aligned __attribute__((__section__(".lock_aligned.data")))
+ #endif
+ 
+ #define arch_align_stack(x) (x)
