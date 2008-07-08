@@ -1,7 +1,7 @@
 From: monstr@monstr.eu
-Subject: [PATCH 14/58] microblaze_v5: PVR support, cpuinfo support
-Date: Tue,  8 Jul 2008 13:59:14 +0200
-Message-ID: <e61f5a8579570cf7cd18a22e4106b7f85518928e.1215517976.git.monstr@monstr.eu>
+Subject: [PATCH 58/58] microblaze_v5: Enable drivers for Microblaze
+Date: Tue,  8 Jul 2008 13:59:58 +0200
+Message-ID: <cec841c5f8192ec25a6f52f3672cf6a0bdb65bc0.1215517976.git.monstr@monstr.eu>
 References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
  <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
@@ -16,12 +16,56 @@ References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <dbd9df742cdd9eb3355d7bc8e39f9dfef6c545e4.1215517976.git.monstr@monstr.eu>
  <1f9a1f345caa749cb630cf85f95f217366395069.1215517976.git.monstr@monstr.eu>
  <fe3686f0f70d838b33642bcbcd7185fc2180b366.1215517976.git.monstr@monstr.eu>
+ <e61f5a8579570cf7cd18a22e4106b7f85518928e.1215517976.git.monstr@monstr.eu>
+ <59d7e0a5f38b8d38f01f357a071fc93eed36f3a8.1215517976.git.monstr@monstr.eu>
+ <143afcf84af583ab66da7e8acfc9eb03b7f3eaa0.1215517976.git.monstr@monstr.eu>
+ <a967ee4e5a60b410e2810ce0475e8fd04f99e3ae.1215517976.git.monstr@monstr.eu>
+ <c5f0730287365c845746467a9917dbc07d2fca3c.1215517976.git.monstr@monstr.eu>
+ <2aa1ac7891af57959237aae3addf4bbe607f55d7.1215517976.git.monstr@monstr.eu>
+ <875ba2708f6cd3c585e4d965142e2feb07c39a0e.1215517976.git.monstr@monstr.eu>
+ <eb0e741f891335df37c3cd19f1a3ce2f7ce8652a.1215517976.git.monstr@monstr.eu>
+ <b28df2ea2419cbda26f9089ed6edcc175c009688.1215517976.git.monstr@monstr.eu>
+ <5da1d8f069f18f14faee8c4bff736791179ef6f1.1215517976.git.monstr@monstr.eu>
+ <9a32168fe72b772f301216a7090670474af78e49.1215517976.git.monstr@monstr.eu>
+ <7ada4bceefc1806a2c8ef73676b7aabd8ac1cad6.1215517976.git.monstr@monstr.eu>
+ <701c1dac442ac09f5010cb5356cc1a12bb0abfe1.1215517976.git.monstr@monstr.eu>
+ <9b48e9d85b4a5a6dcffce8eef62b232b6bfac8e8.1215517976.git.monstr@monstr.eu>
+ <04b0b222b84ba9cfe2507a9081f4d715f2323733.1215517976.git.monstr@monstr.eu>
+ <d4c1b3ecfec1bf37ca0ecea6909ad25bbc945630.1215517976.git.monstr@monstr.eu>
+ <6e5687d37386334cf122d1eafcca0c6649c955be.1215517976.git.monstr@monstr.eu>
+ <689cff1b6d98f60d8f8abc4472193688b524284d.1215517976.git.monstr@monstr.eu>
+ <9664f18e7e86af4332018549b29bf0797d6afcd5.1215517976.git.monstr@monstr.eu>
+ <c7120d8a6379cb1a18af5330997e30ec974acc2f.1215517976.git.monstr@monstr.eu>
+ <d1d33c18956829ec9ac7daf8d0516b17e85ed190.1215517976.git.monstr@monstr.eu>
+ <7a16429cfc461420883dbaa80c16047e5a1a91c1.1215517976.git.monstr@monstr.eu>
+ <b6a0f3bceb0867c55613463fc43be5328fcedecd.1215517976.git.monstr@monstr.eu>
+ <fc26823d77c7180b62022e2d4bcca3c4fe6de574.1215517976.git.monstr@monstr.eu>
+ <64089967061955b7a29eb6d4e6269ff75b5442f2.1215517976.git.monstr@monstr.eu>
+ <92e3ab88c2174acf4e25c474c1f68ffd4db72ca6.1215517976.git.monstr@monstr.eu>
+ <5174afd0eaa5c6cb9344ea3217199e48899be313.1215517976.git.monstr@monstr.eu>
+ <bcb94400dca62fb349d0ab1e0a6209291fdcdfc5.1215517976.git.monstr@monstr.eu>
+ <5b2ed516b2e51d5117386c1b6eb814acc6e5a157.1215517976.git.monstr@monstr.eu>
+ <421f4b613d4dbd983df1545a9a163347e5bd1c56.1215517976.git.monstr@monstr.eu>
+ <0d39e8f03c487c004efa226c5ee81a81a8856768.1215517976.git.monstr@monstr.eu>
+ <c4f477d71dd4cd2ae884b9c47756c9334f8dac18.1215517976.git.monstr@monstr.eu>
+ <a98df8525bf9287d7a8b6077ff20dd61a055a98e.1215517976.git.monstr@monstr.eu>
+ <c6651b096ee8a0691f94f8c19574302dbfb61ee4.1215517976.git.monstr@monstr.eu>
+ <2ac3915482a9a50f7a4531908305b326baa2008e.1215517976.git.monstr@monstr.eu>
+ <3c5eac3dbdbf538c727a4a8fe336cdd55650bb37.1215517976.git.monstr@monstr.eu>
+ <6c03dcf8dbfd910ebf6c2f95db61d0456aa943e1.1215517976.git.monstr@monstr.eu>
+ <1054e7643bd01351ba67273043203df322b49bea.1215517976.git.monstr@monstr.eu>
+ <2bc35758e609ee5b79afe0f58be17d11a01498dc.1215517976.git.monstr@monstr.eu>
+ <542a23f9748621b66e6f0ef8e0eb6248d542aa99.1215517976.git.monstr@monstr.eu>
+ <5fbc8a35844b0f81291f7cf3ff5030baca819b67.1215517976.git.monstr@monstr.eu>
+ <64353f136ffa9f5dba8854168b6ef9d3a71f5a47.1215517976.git.monstr@monstr.eu>
+ <41cdea2c3255c0bcc7da940a2a1e76d48dc71d02.1215517976.git.monstr@monstr.eu>
+ <4a11ba8b7ae0ee21fbd05ea1881f59fb9fe4bafc.1215517976.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:25129 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:25411 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1756395AbYGHMIX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Jul 2008 08:08:23 -0400
-In-Reply-To: <fe3686f0f70d838b33642bcbcd7185fc2180b366.1215517976.git.monstr@monstr.eu>
+	id S1757682AbYGHMIx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Jul 2008 08:08:53 -0400
+In-Reply-To: <4a11ba8b7ae0ee21fbd05ea1881f59fb9fe4bafc.1215517976.git.monstr@monstr.eu>
 In-Reply-To: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -31,222 +75,53 @@ Cc: monstr@seznam.cz, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendo
 
 From: Michal Simek <monstr@monstr.eu>
 
+Acked-by: Peter Korsgaard <jacmet@sunsite.dk> - for drivers/serial/Kconfig
 Acked-by: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/kernel/cpu/mb.c  |  115 ++++++++++++++++++++++++++++++++++++++
- arch/microblaze/kernel/cpu/pvr.c |   81 ++++++++++++++++++++++++++
- 2 files changed, 196 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/kernel/cpu/mb.c
- create mode 100644 arch/microblaze/kernel/cpu/pvr.c
+ drivers/block/Kconfig  |    2 +-
+ drivers/char/Kconfig   |    2 +-
+ drivers/serial/Kconfig |    2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/microblaze/kernel/cpu/mb.c b/arch/microblaze/kernel/cpu/mb.c
-new file mode 100644
-index 0000000..31429ed
---- /dev/null
-+++ b/arch/microblaze/kernel/cpu/mb.c
-@@ -0,0 +1,115 @@
-+/*
-+ * CPU-version specific code
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2007 Michal Simek <monstr@monstr.eu>
-+ * Copyright (C) 2006 PetaLogix
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/string.h>
-+#include <linux/seq_file.h>
-+#include <linux/cpu.h>
-+#include <linux/initrd.h>
-+
-+#include <asm/cpuinfo.h>
-+#include <asm/setup.h>
-+#include <asm/sections.h>
-+#include <asm/page.h>
-+#include <asm/io.h>
-+#include <asm/bug.h>
-+#include <asm/param.h>
-+#include <asm/delay.h>
-+
-+static int show_cpuinfo(struct seq_file *m, void *v)
-+{
-+	int count = 0;
-+	char *fpga_family = "Unknown";
-+	char *cpu_ver = "Unknown";
-+	int i;
-+	printk("%s\n",__func__);
-+
-+	/* Denormalised to get the fpga family string */
-+	for (i = 0; family_string_lookup[i].s != NULL; i++) {
-+		if (cpuinfo.fpga_family_code == family_string_lookup[i].k) {
-+			fpga_family = (char *)family_string_lookup[i].s;
-+			break;
-+		}
-+	}
-+
-+	/* Denormalised to get the hw version string */
-+	for (i = 0; cpu_ver_lookup[i].s != NULL; i++) {
-+		if (cpuinfo.ver_code == cpu_ver_lookup[i].k) {
-+			cpu_ver = (char *)cpu_ver_lookup[i].s;
-+			break;
-+		}
-+	}
-+
-+	count = seq_printf(m,
-+			"CPU-Family:	MicroBlaze\n"
-+			"FPGA-Arch:	%s\n"
-+			"CPU-Ver:	%s\n"
-+			"CPU-MHz:	%d.%02d\n"
-+			"BogoMips:	%lu.%02lu\n",
-+			fpga_family,
-+			cpu_ver,
-+			cpuinfo.cpu_clock_freq /
-+			1000000,
-+			cpuinfo.cpu_clock_freq %
-+			1000000,
-+			loops_per_jiffy / (500000 / HZ),
-+			(loops_per_jiffy / (5000 / HZ)) % 100);
-+
-+	count += seq_printf(m,
-+			"HW-Div:\t\t%s\n"
-+			"HW-Shift:\t%s\n",
-+			cpuinfo.use_divider ? "yes" : "no",
-+			cpuinfo.use_barrel ? "yes" : "no");
-+
-+	if (cpuinfo.use_icache)
-+		count += seq_printf(m,
-+				"Icache:\t\t%ukB\n",
-+				cpuinfo.icache_size >> 10);
-+	else
-+		count += seq_printf(m, "Icache:\t\tno\n");
-+
-+	if (cpuinfo.use_dcache)
-+		count += seq_printf(m,
-+				"Dcache:\t\t%ukB\n",
-+				cpuinfo.dcache_size >> 10);
-+	else
-+		count += seq_printf(m, "Dcache:\t\tno\n");
-+
-+	count += seq_printf(m,
-+			"HW-Debug:\t%s\n",
-+			cpuinfo.hw_debug ? "yes" : "no");
-+
-+	return 0;
-+}
-+
-+static void *c_start(struct seq_file *m, loff_t *pos)
-+{
-+	int i = *pos;
-+
-+	return i < NR_CPUS ? (void *) (i + 1) : NULL;
-+}
-+
-+static void *c_next(struct seq_file *m, void *v, loff_t *pos)
-+{
-+	++*pos;
-+	return c_start(m, pos);
-+}
-+
-+static void c_stop(struct seq_file *m, void *v)
-+{
-+}
-+
-+struct seq_operations cpuinfo_op = {
-+	.start = c_start,
-+	.next = c_next,
-+	.stop = c_stop,
-+	.show = show_cpuinfo,
-+};
-diff --git a/arch/microblaze/kernel/cpu/pvr.c b/arch/microblaze/kernel/cpu/pvr.c
-new file mode 100644
-index 0000000..0b117bd
---- /dev/null
-+++ b/arch/microblaze/kernel/cpu/pvr.c
-@@ -0,0 +1,81 @@
-+/*
-+ * Support for MicroBlaze PVR (processor version register)
-+ *
-+ * Copyright (C) 2007 Michal Simek <monstr@monstr.eu>
-+ * Copyright (C) 2007 John Williams <john.williams@petalogix.com>
-+ * Copyright (C) 2007 PetaLogix
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#include <linux/kernel.h>
-+#include <linux/compiler.h>
-+#include <asm/system.h>
-+#include <asm/exceptions.h>
-+#include <asm/pvr.h>
-+
-+/*
-+ * Until we get an assembler that knows about the pvr registers,
-+ * this horrible cruft will have to do.
-+ * That hardcoded opcode is mfs r3, rpvrNN
-+ */
-+
-+#define get_single_pvr(pvrid, val)				\
-+{								\
-+	register unsigned tmp __asm__("r3");			\
-+	tmp = 0x0;	/* Prevent warning about unused */	\
-+	__asm__ __volatile__ (					\
-+			".byte 0x94,0x60,0xa0, " #pvrid "\n\t"	\
-+			: "=r" (tmp):: "memory"); 		\
-+	val = tmp;						\
-+}
-+
-+/*
-+ * Does the CPU support the PVR register?
-+ * return value:
-+ * 0: no PVR
-+ * 1: simple PVR
-+ * 2: full PVR
-+ *
-+ * This must work on all CPU versions, including those before the
-+ * PVR was even an option.
-+ */
-+
-+int cpu_has_pvr(void)
-+{
-+	unsigned flags;
-+	unsigned pvr0;
-+
-+	local_save_flags(flags);
-+
-+	/* PVR bit in MSR tells us if there is any support */
-+	if (!(flags & PVR_MSR_BIT))
-+		return 0;
-+
-+	get_single_pvr(0x00, pvr0);
-+	pr_debug("%s: pvr0 is 0x%08x\n", __func__, pvr0);
-+
-+	if (pvr0 & PVR0_PVR_FULL_MASK)
-+		return 1;
-+
-+	/* for partial PVR use static cpuinfo */
-+	return 2;
-+}
-+
-+void get_pvr(struct pvr_s *p)
-+{
-+	get_single_pvr(0, p->pvr[0]);
-+	get_single_pvr(1, p->pvr[1]);
-+	get_single_pvr(2, p->pvr[2]);
-+	get_single_pvr(3, p->pvr[3]);
-+	get_single_pvr(4, p->pvr[4]);
-+	get_single_pvr(5, p->pvr[5]);
-+	get_single_pvr(6, p->pvr[6]);
-+	get_single_pvr(7, p->pvr[7]);
-+	get_single_pvr(8, p->pvr[8]);
-+	get_single_pvr(9, p->pvr[9]);
-+	get_single_pvr(10, p->pvr[10]);
-+	get_single_pvr(11, p->pvr[11]);
-+}
+diff --git a/drivers/block/Kconfig b/drivers/block/Kconfig
+index 0d1d213..a92767c 100644
+--- a/drivers/block/Kconfig
++++ b/drivers/block/Kconfig
+@@ -413,7 +413,7 @@ source "drivers/s390/block/Kconfig"
+ 
+ config XILINX_SYSACE
+ 	tristate "Xilinx SystemACE support"
+-	depends on 4xx
++	depends on 4xx || MICROBLAZE
+ 	help
+ 	  Include support for the Xilinx SystemACE CompactFlash interface
+ 
+diff --git a/drivers/char/Kconfig b/drivers/char/Kconfig
+index 2d854bb..981c57a 100644
+--- a/drivers/char/Kconfig
++++ b/drivers/char/Kconfig
+@@ -879,7 +879,7 @@ config DTLK
+ 
+ config XILINX_HWICAP
+ 	tristate "Xilinx HWICAP Support"
+-	depends on XILINX_VIRTEX
++	depends on XILINX_VIRTEX || MICROBLAZE
+ 	help
+ 	  This option enables support for Xilinx Internal Configuration
+ 	  Access Port (ICAP) driver.  The ICAP is used on Xilinx Virtex
+diff --git a/drivers/serial/Kconfig b/drivers/serial/Kconfig
+index 9bc4276..984ba34 100644
+--- a/drivers/serial/Kconfig
++++ b/drivers/serial/Kconfig
+@@ -776,7 +776,7 @@ config SERIAL_IMX_CONSOLE
+ 
+ config SERIAL_UARTLITE
+ 	tristate "Xilinx uartlite serial port support"
+-	depends on PPC32
++	depends on PPC32 || MICROBLAZE
+ 	select SERIAL_CORE
+ 	help
+ 	  Say Y here if you want to use the Xilinx uartlite serial controller.
 -- 
 1.5.4.GIT
