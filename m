@@ -1,64 +1,47 @@
-From: =?us-ascii?Q?Michal=20Simek?= <Monstr@seznam.cz>
-Subject: =?us-ascii?Q?Re=3A=20microblaze=5Fv5=3A=20Status=20message?=
-Date: Tue, 08 Jul 2008 21:43:12 +0200 (CEST)
-Message-ID: <4550.7361-27429-1211674422-1215546192@seznam.cz>
-References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
+From: "John Williams" <john.williams@petalogix.com>
+Subject: Re: [PATCH 19/58] microblaze_v5: early_printk support
+Date: Wed, 9 Jul 2008 09:47:29 +1000
+Message-ID: <1d3f23370807081647y446534dp6db16f560e4e0a2d@mail.gmail.com>
+References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
+	 <2aa1ac7891af57959237aae3addf4bbe607f55d7.1215517976.git.monstr@monstr.eu>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mxl.seznam.cz ([77.75.72.44]:60011 "EHLO mxl.seznam.cz"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753036AbYGHToQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Jul 2008 15:44:16 -0400
-In-Reply-To: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
+Received: from fg-out-1718.google.com ([72.14.220.159]:32212 "EHLO
+	fg-out-1718.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753316AbYGHXrb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jul 2008 19:47:31 -0400
+Received: by fg-out-1718.google.com with SMTP id 19so1091993fgg.17
+        for <linux-arch@vger.kernel.org>; Tue, 08 Jul 2008 16:47:30 -0700 (PDT)
+In-Reply-To: <2aa1ac7891af57959237aae3addf4bbe607f55d7.1215517976.git.monstr@monstr.eu>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: monstr@monstr.eu
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, lethal@linux-sh.org, florian@openwrt.org
+Cc: linux-kernel@vger.kernel.org, monstr@seznam.cz, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, lethal@linux-sh.org, florian@openwrt.org
 
-Hi All,
+> +++ b/arch/microblaze/kernel/early_printk.c
+> @@ -0,0 +1,130 @@
 
-I found the next two issues which are not in this pack. 
-First one is removing kvm.h from asm-microblaze 
-and second one is bad number of syscalls in unistd.h
-I fixed it in my repo. Please do not report these two bugs.
+> +#ifdef CONFIG_EARLY_PRINTK
+> +#define BASE_ADDR ((unsigned char *)CONFIG_EARLY_PRINTK_UARTLITE_ADDRESS)
 
-Thanks,
-Michal
+This is a problem - default value of EARLY_PRINTK_UARTLITE_ADDRESS is
+0x0, so by default the kernel will try to access a uartlite at 0x0
+which is the reset vector!  I know there is the test in the actual
+output routine but it's not good to rely on that in the default case.
 
+Can we either
 
-Hi All,
+#if CONFIG_EARLY_PRINTK_UARTLITE_ADDRESS==0
+#warning EARLY_PRINTK address not set, disabling
+...
+#else
+..
+#endif
 
-here is microblaze_v5 set of patches with initial port
-for Microblaze CPU. I did some changes which was reported
-to me. Please check your reported changes if there are in the pack.
+or query the OF subsystem (is it up yet?), and default to using the
+first uartlite in the system for early printk?
 
-The patches are also available at git.monstr.eu. (linux-microblaze.git
- master branch).
-
-I got ACK from Steve Neuendorffer (xilinx guy) for this pack.
-
-Changes in v5 pack:
-      Add new dts v1 file
-      clean autoconf.h and remove a.out.h
-      remove internal.h library
-      fix headers - add one definition
-      remove dependency on asm/semaphore.h
-      Clean make headers_check dependency
-      Fix Kconfig issue
-      Remove macros DEFINE and BLANK from asm-offsets.c
-      Move asm code from asm-generic checksum.h
-      Clean process for enabling possibility to use smp with MB
-      Clean platform folder to generic dts
-      current config file
-      Clean ptrace for generic use
-      Clean cmdline handling
-      Fix traps.c
-
-Thanks for your comments and ACKs. I'll add them to patches.
-
-Best regards,
-Michal Simek
-www.monstr.eu
+John
