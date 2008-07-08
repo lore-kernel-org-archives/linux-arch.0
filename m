@@ -1,7 +1,7 @@
 From: monstr@monstr.eu
-Subject: [PATCH 46/58] microblaze_v5: headers simple files - empty or redirect to asm-generic
-Date: Tue,  8 Jul 2008 13:59:46 +0200
-Message-ID: <a98df8525bf9287d7a8b6077ff20dd61a055a98e.1215517976.git.monstr@monstr.eu>
+Subject: [PATCH 35/58] microblaze_v5: io.h IO operations
+Date: Tue,  8 Jul 2008 13:59:35 +0200
+Message-ID: <7a16429cfc461420883dbaa80c16047e5a1a91c1.1215517976.git.monstr@monstr.eu>
 References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
  <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
@@ -37,23 +37,12 @@ References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <9664f18e7e86af4332018549b29bf0797d6afcd5.1215517976.git.monstr@monstr.eu>
  <c7120d8a6379cb1a18af5330997e30ec974acc2f.1215517976.git.monstr@monstr.eu>
  <d1d33c18956829ec9ac7daf8d0516b17e85ed190.1215517976.git.monstr@monstr.eu>
- <7a16429cfc461420883dbaa80c16047e5a1a91c1.1215517976.git.monstr@monstr.eu>
- <b6a0f3bceb0867c55613463fc43be5328fcedecd.1215517976.git.monstr@monstr.eu>
- <fc26823d77c7180b62022e2d4bcca3c4fe6de574.1215517976.git.monstr@monstr.eu>
- <64089967061955b7a29eb6d4e6269ff75b5442f2.1215517976.git.monstr@monstr.eu>
- <92e3ab88c2174acf4e25c474c1f68ffd4db72ca6.1215517976.git.monstr@monstr.eu>
- <5174afd0eaa5c6cb9344ea3217199e48899be313.1215517976.git.monstr@monstr.eu>
- <bcb94400dca62fb349d0ab1e0a6209291fdcdfc5.1215517976.git.monstr@monstr.eu>
- <5b2ed516b2e51d5117386c1b6eb814acc6e5a157.1215517976.git.monstr@monstr.eu>
- <421f4b613d4dbd983df1545a9a163347e5bd1c56.1215517976.git.monstr@monstr.eu>
- <0d39e8f03c487c004efa226c5ee81a81a8856768.1215517976.git.monstr@monstr.eu>
- <c4f477d71dd4cd2ae884b9c47756c9334f8dac18.1215517976.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
 Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27555 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1759343AbYGHMpq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Jul 2008 08:45:46 -0400
-In-Reply-To: <c4f477d71dd4cd2ae884b9c47756c9334f8dac18.1215517976.git.monstr@monstr.eu>
+	id S1759314AbYGHMpm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Jul 2008 08:45:42 -0400
+In-Reply-To: <d1d33c18956829ec9ac7daf8d0516b17e85ed190.1215517976.git.monstr@monstr.eu>
 In-Reply-To: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -66,144 +55,16 @@ From: Michal Simek <monstr@monstr.eu>
 Acked-by: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/cputime.h           |    1 +
- include/asm-microblaze/div64.h             |    1 +
- include/asm-microblaze/emergency-restart.h |    1 +
- include/asm-microblaze/errno.h             |    1 +
- include/asm-microblaze/fcntl.h             |    1 +
- include/asm-microblaze/futex.h             |    1 +
- include/asm-microblaze/kdebug.h            |    1 +
- include/asm-microblaze/local.h             |    1 +
- include/asm-microblaze/mutex.h             |    1 +
- include/asm-microblaze/namei.h             |   14 ++++++++++++++
- include/asm-microblaze/percpu.h            |    1 +
- include/asm-microblaze/resource.h          |    1 +
- include/asm-microblaze/sockios.h           |   23 +++++++++++++++++++++++
- include/asm-microblaze/ucontext.h          |    1 +
- 14 files changed, 49 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/auxvec.h
- create mode 100644 include/asm-microblaze/cputime.h
- create mode 100644 include/asm-microblaze/div64.h
- create mode 100644 include/asm-microblaze/emergency-restart.h
- create mode 100644 include/asm-microblaze/errno.h
- create mode 100644 include/asm-microblaze/fcntl.h
- create mode 100644 include/asm-microblaze/futex.h
- create mode 100644 include/asm-microblaze/kdebug.h
- create mode 100644 include/asm-microblaze/local.h
- create mode 100644 include/asm-microblaze/mutex.h
- create mode 100644 include/asm-microblaze/namei.h
- create mode 100644 include/asm-microblaze/percpu.h
- create mode 100644 include/asm-microblaze/resource.h
- create mode 100644 include/asm-microblaze/sockios.h
- create mode 100644 include/asm-microblaze/ucontext.h
- create mode 100644 include/asm-microblaze/user.h
+ include/asm-microblaze/io.h |  208 +++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 208 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/io.h
 
-diff --git a/include/asm-microblaze/auxvec.h b/include/asm-microblaze/auxvec.h
+diff --git a/include/asm-microblaze/io.h b/include/asm-microblaze/io.h
 new file mode 100644
-index 0000000..e69de29
-diff --git a/include/asm-microblaze/cputime.h b/include/asm-microblaze/cputime.h
-new file mode 100644
-index 0000000..6d68ad7
+index 0000000..cb0a178
 --- /dev/null
-+++ b/include/asm-microblaze/cputime.h
-@@ -0,0 +1 @@
-+#include <asm-generic/cputime.h>
-diff --git a/include/asm-microblaze/div64.h b/include/asm-microblaze/div64.h
-new file mode 100644
-index 0000000..6cd978c
---- /dev/null
-+++ b/include/asm-microblaze/div64.h
-@@ -0,0 +1 @@
-+#include <asm-generic/div64.h>
-diff --git a/include/asm-microblaze/emergency-restart.h b/include/asm-microblaze/emergency-restart.h
-new file mode 100644
-index 0000000..3711bd9
---- /dev/null
-+++ b/include/asm-microblaze/emergency-restart.h
-@@ -0,0 +1 @@
-+#include <asm-generic/emergency-restart.h>
-diff --git a/include/asm-microblaze/errno.h b/include/asm-microblaze/errno.h
-new file mode 100644
-index 0000000..4c82b50
---- /dev/null
-+++ b/include/asm-microblaze/errno.h
-@@ -0,0 +1 @@
-+#include <asm-generic/errno.h>
-diff --git a/include/asm-microblaze/fcntl.h b/include/asm-microblaze/fcntl.h
-new file mode 100644
-index 0000000..46ab12d
---- /dev/null
-+++ b/include/asm-microblaze/fcntl.h
-@@ -0,0 +1 @@
-+#include <asm-generic/fcntl.h>
-diff --git a/include/asm-microblaze/futex.h b/include/asm-microblaze/futex.h
-new file mode 100644
-index 0000000..0b74582
---- /dev/null
-+++ b/include/asm-microblaze/futex.h
-@@ -0,0 +1 @@
-+#include <asm-generic/futex.h>
-diff --git a/include/asm-microblaze/kdebug.h b/include/asm-microblaze/kdebug.h
-new file mode 100644
-index 0000000..6ece1b0
---- /dev/null
-+++ b/include/asm-microblaze/kdebug.h
-@@ -0,0 +1 @@
-+#include <asm-generic/kdebug.h>
-diff --git a/include/asm-microblaze/local.h b/include/asm-microblaze/local.h
-new file mode 100644
-index 0000000..c11c530
---- /dev/null
-+++ b/include/asm-microblaze/local.h
-@@ -0,0 +1 @@
-+#include <asm-generic/local.h>
-diff --git a/include/asm-microblaze/mutex.h b/include/asm-microblaze/mutex.h
-new file mode 100644
-index 0000000..ff6101a
---- /dev/null
-+++ b/include/asm-microblaze/mutex.h
-@@ -0,0 +1 @@
-+#include <asm-generic/mutex-dec.h>
-diff --git a/include/asm-microblaze/namei.h b/include/asm-microblaze/namei.h
-new file mode 100644
-index 0000000..743f0f3
---- /dev/null
-+++ b/include/asm-microblaze/namei.h
-@@ -0,0 +1,14 @@
-+#ifndef _ASM_MICROBLAZE_NAMEI_H
-+#define _ASM_MICROBLAZE_NAMEI_H
-+
-+#ifdef __KERNEL__
-+
-+/* This dummy routine maybe changed to something useful
-+ * for /usr/gnemul/ emulation stuff.
-+ * Look at asm-sparc/namei.h for details.
-+ */
-+#define __emul_prefix() NULL
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* _ASM_MICROBLAZE_NAMEI_H */
-diff --git a/include/asm-microblaze/percpu.h b/include/asm-microblaze/percpu.h
-new file mode 100644
-index 0000000..06a959d
---- /dev/null
-+++ b/include/asm-microblaze/percpu.h
-@@ -0,0 +1 @@
-+#include <asm-generic/percpu.h>
-diff --git a/include/asm-microblaze/resource.h b/include/asm-microblaze/resource.h
-new file mode 100644
-index 0000000..04bc4db
---- /dev/null
-+++ b/include/asm-microblaze/resource.h
-@@ -0,0 +1 @@
-+#include <asm-generic/resource.h>
-diff --git a/include/asm-microblaze/sockios.h b/include/asm-microblaze/sockios.h
-new file mode 100644
-index 0000000..41d1a0c
---- /dev/null
-+++ b/include/asm-microblaze/sockios.h
-@@ -0,0 +1,23 @@
++++ b/include/asm-microblaze/io.h
+@@ -0,0 +1,208 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
@@ -212,30 +73,205 @@ index 0000000..41d1a0c
 + * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_SOCKIOS_H
-+#define _ASM_MICROBLAZE_SOCKIOS_H
++#ifndef _ASM_MICROBLAZE_IO_H
++#define _ASM_MICROBLAZE_IO_H
 +
-+#include <asm/ioctl.h>
++#include <asm/byteorder.h>
++#include <asm/page.h>
 +
-+/* Socket-level I/O control calls. */
-+#define FIOSETOWN	0x8901
-+#define SIOCSPGRP	0x8902
-+#define FIOGETOWN	0x8903
-+#define SIOCGPGRP	0x8904
-+#define SIOCATMARK	0x8905
-+#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
-+#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
++static inline unsigned char __raw_readb(const volatile void *addr)
++{
++	return *(volatile unsigned char __force *)addr;
++}
++static inline unsigned short __raw_readw(const volatile void *addr)
++{
++	return *(volatile unsigned short __force *)addr;
++}
++static inline unsigned int __raw_readl(const volatile void *addr)
++{
++	return *(volatile unsigned int __force *)addr;
++}
++static inline unsigned long __raw_readq(const volatile void *addr)
++{
++	return *(volatile unsigned long __force *)addr;
++}
++static inline void __raw_writeb(unsigned char v, volatile void *addr)
++{
++	*(volatile unsigned char __force *)addr = v;
++}
++static inline void __raw_writew(unsigned short v, volatile void *addr)
++{
++	*(volatile unsigned short __force *)addr = v;
++}
++static inline void __raw_writel(unsigned int v, volatile void *addr)
++{
++	*(volatile unsigned int __force *)addr = v;
++}
++static inline void __raw_writeq(unsigned long v, volatile void *addr)
++{
++	*(volatile unsigned long __force *)addr = v;
++}
 +
-+#endif /* _ASM_MICROBLAZE_SOCKIOS_H */
-diff --git a/include/asm-microblaze/ucontext.h b/include/asm-microblaze/ucontext.h
-new file mode 100644
-index 0000000..9bc07b9
---- /dev/null
-+++ b/include/asm-microblaze/ucontext.h
-@@ -0,0 +1 @@
-+#include <asm-generic/ucontext.h>
-diff --git a/include/asm-microblaze/user.h b/include/asm-microblaze/user.h
-new file mode 100644
-index 0000000..e69de29
++/*
++ * read (readb, readw, readl, readq) and write (writeb, writew,
++ * writel, writeq) accessors are for PCI and thus littel endian.
++ * Linux 2.4 for Microblaze had this wrong.
++ */
++static inline unsigned char readb(const volatile void *addr)
++{
++	return *(volatile unsigned char __force *)addr;
++}
++static inline unsigned short readw(const volatile void *addr)
++{
++	return le16_to_cpu(*(volatile unsigned short __force *)addr);
++}
++static inline unsigned int readl(const volatile void *addr)
++{
++	return le32_to_cpu(*(volatile unsigned int __force *)addr);
++}
++static inline void writeb(unsigned char v, volatile void *addr)
++{
++	*(volatile unsigned char __force *)addr = v;
++}
++static inline void writew(unsigned short v, volatile void *addr)
++{
++	*(volatile unsigned short __force *)addr = cpu_to_le16(v);
++}
++static inline void writel(unsigned int v, volatile void __iomem *addr)
++{
++	*(volatile unsigned int __force *)addr = cpu_to_le32(v);
++}
++
++/* ioread and iowrite variants. thease are for now same as __raw_
++ * variants of accessors. we might check for endianess in the feature
++ */
++#define ioread8(addr)		__raw_readb((u8 *)(addr))
++#define ioread16(addr)		__raw_readw((u16 *)(addr))
++#define ioread32(addr)		__raw_readl((u32 *)(addr))
++#define iowrite8(v, addr)	__raw_writeb((u8)(v), (u8 *)(addr))
++#define iowrite16(v, addr)	__raw_writew((u16)(v), (u16 *)(addr))
++#define iowrite32(v, addr)	__raw_writel((u32)(v), (u32 *)(addr))
++
++/* These are the definitions for the x86 IO instructions
++ * inb/inw/inl/outb/outw/outl, the "string" versions
++ * insb/insw/insl/outsb/outsw/outsl, and the "pausing" versions
++ * inb_p/inw_p/...
++ * The macros don't do byte-swapping.
++ */
++#define inb(port)		readb((u8 *)((port)))
++#define outb(val, port)		writeb((val), (u8 *)((unsigned long)(port)))
++#define inw(port)		readw((u16 *)((port)))
++#define outw(val, port)		writew((val), (u16 *)((unsigned long)(port)))
++#define inl(port)		readl((u32 *)((port)))
++#define outl(val, port)		writel((val), (u32 *)((unsigned long)(port)))
++
++#define inb_p(port)		inb((port))
++#define outb_p(val, port)	outb((val), (port))
++#define inw_p(port)		inw((port))
++#define outw_p(val, port)	outw((val), (port))
++#define inl_p(port)		inl((port))
++#define outl_p(val, port)	outl((val), (port))
++
++#define memset_io(a, b, c)	memset((void *)(a), (b), (c))
++#define memcpy_fromio(a, b, c)	memcpy((a), (void *)(b), (c))
++#define memcpy_toio(a, b, c)	memcpy((void *)(a), (b), (c))
++
++/**
++ *	virt_to_phys	-	map virtual addresses to physical
++ *	@address: address to remap
++ *
++ *	The returned physical address is the physical (CPU) mapping for
++ *	the memory address given. It is only valid to use this function on
++ *	addresses directly mapped or allocated via kmalloc.
++ *
++ *	This function does not give bus mappings for DMA transfers. In
++ *	almost all conceivable cases a device driver should not be using
++ *	this function
++ */
++static inline unsigned long __iomem virt_to_phys(volatile void *address)
++{
++	return __pa((unsigned long)address);
++}
++
++#define virt_to_bus virt_to_phys
++
++/**
++ *	phys_to_virt	-	map physical address to virtual
++ *	@address: address to remap
++ *
++ *	The returned virtual address is a current CPU mapping for
++ *	the memory address given. It is only valid to use this function on
++ *	addresses that have a kernel mapping
++ *
++ *	This function does not handle bus mappings for DMA transfers. In
++ *	almost all conceivable cases a device driver should not be using
++ *	this function
++ */
++static inline void *phys_to_virt(unsigned long address)
++{
++	return (void *)__va(address);
++}
++
++#define bus_to_virt(a) phys_to_virt(a)
++
++static inline void *__ioremap(unsigned long address, unsigned long size,
++			unsigned long flags)
++{
++	return (void *)address;
++}
++
++
++#define IO_SPACE_LIMIT ~(0UL)
++
++#define ioremap(physaddr, size)	((void *)(unsigned long)(physaddr))
++#define iounmap(addr)		((void)0)
++#define ioremap_nocache(physaddr, size)	ioremap(physaddr, size)
++
++/*
++ * Convert a physical pointer to a virtual kernel pointer for /dev/mem
++ * access
++ */
++#define xlate_dev_mem_ptr(p)	__va(p)
++
++/*
++ * Convert a virtual cached pointer to an uncached pointer
++ */
++#define xlate_dev_kmem_ptr(p)	p
++
++/*
++ * Big Endian
++ */
++#define out_be32(a, v) __raw_writel((v), (a))
++#define out_be16(a, v) __raw_writew((v), (a))
++
++#define in_be32(a) __raw_readl(a)
++#define in_be16(a) __raw_readw(a)
++
++/*
++ * Little endian
++ */
++
++#define out_le32(a, v) __raw_writel(__cpu_to_le32(v), (a));
++#define out_le16(a, v) __raw_writew(__cpu_to_le16(v), (a))
++
++#define in_le32(a) __le32_to_cpu(__raw_readl(a))
++#define in_le16(a) __le16_to_cpu(__raw_readw(a))
++
++/* Byte ops */
++#define out_8(a, v) __raw_writeb((v), (a))
++#define in_8(a) __raw_readb(a)
++
++/* FIXME */
++static inline void __iomem *ioport_map(unsigned long port, unsigned int len)
++{
++	return (void __iomem *) (port);
++}
++
++static inline void ioport_unmap(void __iomem *addr)
++{
++	/* Nothing to do */
++}
++
++#endif /* _ASM_MICROBLAZE_IO_H */
 -- 
 1.5.4.GIT
