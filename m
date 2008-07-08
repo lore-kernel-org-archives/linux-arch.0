@@ -1,7 +1,7 @@
 From: monstr@monstr.eu
-Subject: [PATCH 11/58] microblaze_v5: Generic dts file for platforms
-Date: Tue,  8 Jul 2008 13:59:11 +0200
-Message-ID: <dbd9df742cdd9eb3355d7bc8e39f9dfef6c545e4.1215517976.git.monstr@monstr.eu>
+Subject: [PATCH 10/58] microblaze_v5: cache support
+Date: Tue,  8 Jul 2008 13:59:10 +0200
+Message-ID: <f7458acb0252f72b5620d19c76104408ecc2e451.1215517976.git.monstr@monstr.eu>
 References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
  <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
@@ -12,303 +12,418 @@ References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <9be4eff2f4d015023c453eaec3b3473a44380491.1215517976.git.monstr@monstr.eu>
  <f8e331ed9432719f3c0555c840cbbb7bbc1a6322.1215517976.git.monstr@monstr.eu>
  <4409daf2ac356e902a8f091bb5908eb8a90218bc.1215517976.git.monstr@monstr.eu>
- <f7458acb0252f72b5620d19c76104408ecc2e451.1215517976.git.monstr@monstr.eu>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:25837 "EHLO
-	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1757710AbYGHMJa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Jul 2008 08:09:30 -0400
-In-Reply-To: <f7458acb0252f72b5620d19c76104408ecc2e451.1215517976.git.monstr@monstr.eu>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753105AbYGHMJi@vger.kernel.org>
+In-Reply-To: <4409daf2ac356e902a8f091bb5908eb8a90218bc.1215517976.git.monstr@monstr.eu>
 In-Reply-To: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: monstr@seznam.cz, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, lethal@linux-sh.org, florian@openwrt.org, Michal Simek <monstr@monstr.eu>
+List-Id: linux-arch.vger.kernel.org
 
 From: Michal Simek <monstr@monstr.eu>
 
 Acked-by: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/platform/generic/system.dts |  269 +++++++++++++++++++++++++++
- 1 files changed, 269 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/platform/generic/system.dts
+ arch/microblaze/kernel/cpu/cache.c  |  255 +++++++++++++++++++++++++++++++++++
+ include/asm-microblaze/cache.h      |   43 ++++++
+ include/asm-microblaze/cacheflush.h |   75 ++++++++++
+ 3 files changed, 373 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/kernel/cpu/cache.c
+ create mode 100644 include/asm-microblaze/cache.h
+ create mode 100644 include/asm-microblaze/cacheflush.h
 
-diff --git a/arch/microblaze/platform/generic/system.dts b/arch/microblaze/platform/generic/system.dts
+diff --git a/arch/microblaze/kernel/cpu/cache.c b/arch/microblaze/kernel/cpu/cache.c
 new file mode 100644
-index 0000000..91b21c7
+index 0000000..9dcf3e9
 --- /dev/null
-+++ b/arch/microblaze/platform/generic/system.dts
-@@ -0,0 +1,269 @@
-+/dts-v1/;
++++ b/arch/microblaze/kernel/cpu/cache.c
+@@ -0,0 +1,255 @@
++/*
++ * Cache control for MicroBlaze cache memories
++ *
++ * Copyright (C) 2007 Michal Simek <monstr@monstr.eu>
++ * Copyright (C) 2007 PetaLogix
++ * Copyright (C) 2007 John Williams <john.williams@petalogix.com>
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License. See the file COPYING in the main directory of this
++ * archive for more details.
++ *
++ */
 +
-+/ {
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	compatible = "xlnx,microblaze";
-+	model = "testing";
-+	memory: memory@20000000 {
-+		device_type = "memory";
-+		reg = < 0x20000000 0x2000000 >;
-+	} ;
-+	chosen {
-+		bootargs = "console=ttyUL0,115200";
-+	} ;
-+	cpus {
-+		#address-cells = <1>;
-+		#cpus = <1>;
-+		#size-cells = <0>;
-+		microblaze_0: cpu@0 {
-+			clock-frequency = <50000000>;
-+			compatible = "xlnx,microblaze-7.00.b";
-+			d-cache-baseaddr = <0x20000000>;
-+			d-cache-highaddr = <0x21ffffff>;
-+			d-cache-line-size = <0x10>;
-+			d-cache-size = <0x4000>;
-+			device_type = "cpu";
-+			i-cache-baseaddr = <0x20000000>;
-+			i-cache-highaddr = <0x21ffffff>;
-+			i-cache-line-size = <0x10>;
-+			i-cache-size = <0x4000>;
-+			model = "microblaze,7.00.b";
-+			reg = <0>;
-+			timebase-frequency = <50000000>;
-+			xlnx,addr-tag-bits = <0xb>;
-+			xlnx,allow-dcache-wr = <0x1>;
-+			xlnx,allow-icache-wr = <0x1>;
-+			xlnx,area-optimized = <0x0>;
-+			xlnx,cache-byte-size = <0x4000>;
-+			xlnx,d-lmb = <0x1>;
-+			xlnx,d-opb = <0x0>;
-+			xlnx,d-plb = <0x1>;
-+			xlnx,data-size = <0x20>;
-+			xlnx,dcache-addr-tag = <0xb>;
-+			xlnx,dcache-byte-size = <0x4000>;
-+			xlnx,dcache-line-len = <0x4>;
-+			xlnx,dcache-use-fsl = <0x1>;
-+			xlnx,debug-enabled = <0x1>;
-+			xlnx,div-zero-exception = <0x1>;
-+			xlnx,dopb-bus-exception = <0x0>;
-+			xlnx,dynamic-bus-sizing = <0x1>;
-+			xlnx,edge-is-positive = <0x1>;
-+			xlnx,family = "spartan3e";
-+			xlnx,fpu-exception = <0x1>;
-+			xlnx,fsl-data-size = <0x20>;
-+			xlnx,fsl-exception = <0x0>;
-+			xlnx,fsl-links = <0x1>;
-+			xlnx,i-lmb = <0x1>;
-+			xlnx,i-opb = <0x0>;
-+			xlnx,i-plb = <0x1>;
-+			xlnx,icache-line-len = <0x4>;
-+			xlnx,icache-use-fsl = <0x1>;
-+			xlnx,ill-opcode-exception = <0x1>;
-+			xlnx,instance = "microblaze_0";
-+			xlnx,interconnect = <0x1>;
-+			xlnx,interrupt-is-edge = <0x0>;
-+			xlnx,iopb-bus-exception = <0x0>;
-+			xlnx,mmu-dtlb-size = <0x4>;
-+			xlnx,mmu-itlb-size = <0x2>;
-+			xlnx,mmu-tlb-access = <0x3>;
-+			xlnx,mmu-zones = <0x2>;
-+			xlnx,number-of-pc-brk = <0x3>;
-+			xlnx,number-of-rd-addr-brk = <0x3>;
-+			xlnx,number-of-wr-addr-brk = <0x3>;
-+			xlnx,opcode-0x0-illegal = <0x1>;
-+			xlnx,pvr = <0x2>;
-+			xlnx,pvr-user1 = <0x12>;
-+			xlnx,pvr-user2 = <0x12345678>;
-+			xlnx,reset-msr = <0x0>;
-+			xlnx,sco = <0x0>;
-+			xlnx,unaligned-exceptions = <0x1>;
-+			xlnx,use-barrel = <0x1>;
-+			xlnx,use-dcache = <0x1>;
-+			xlnx,use-div = <0x1>;
-+			xlnx,use-extended-fsl-instr = <0x0>;
-+			xlnx,use-fpu = <0x2>;
-+			xlnx,use-hw-mul = <0x2>;
-+			xlnx,use-icache = <0x1>;
-+			xlnx,use-mmu = <0x3>;
-+			xlnx,use-msr-instr = <0x1>;
-+			xlnx,use-pcmp-instr = <0x1>;
-+		} ;
-+	} ;
-+	mb_plb: plb@0 {
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		compatible = "xlnx,plb-v46-1.00.a", "simple-bus";
-+		ranges ;
-+		gpio_0: gpio@40800000 {
-+			compatible = "xlnx,xps-gpio-1.00.a";
-+			interrupt-parent = <&xps_intc_0>;
-+			interrupts = < 6 0x2 >;
-+			reg = < 0x40800000 0x100000 >;
-+			xlnx,all-inputs = <0x1>;
-+			xlnx,all-inputs-2 = <0x0>;
-+			xlnx,dout-default = <0x0>;
-+			xlnx,dout-default-2 = <0x0>;
-+			xlnx,family = "spartan3e";
-+			xlnx,gpio-width = <0x3>;
-+			xlnx,interrupt-present = <0x1>;
-+			xlnx,is-bidir = <0x0>;
-+			xlnx,is-bidir-2 = <0x1>;
-+			xlnx,is-dual = <0x0>;
-+			xlnx,tri-default = <0xffffffff>;
-+			xlnx,tri-default-2 = <0xffffffff>;
-+		} ;
-+		gpio_1: gpio@40900000 {
-+			compatible = "xlnx,xps-gpio-1.00.a";
-+			reg = < 0x40900000 0x100000 >;
-+			xlnx,all-inputs = <0x0>;
-+			xlnx,all-inputs-2 = <0x0>;
-+			xlnx,dout-default = <0x0>;
-+			xlnx,dout-default-2 = <0x0>;
-+			xlnx,family = "spartan3e";
-+			xlnx,gpio-width = <0x7>;
-+			xlnx,interrupt-present = <0x0>;
-+			xlnx,is-bidir = <0x1>;
-+			xlnx,is-bidir-2 = <0x1>;
-+			xlnx,is-dual = <0x0>;
-+			xlnx,tri-default = <0xffffffff>;
-+			xlnx,tri-default-2 = <0xffffffff>;
-+		} ;
-+		gpio_2: gpio@40700000 {
-+			compatible = "xlnx,xps-gpio-1.00.a";
-+			interrupt-parent = <&xps_intc_0>;
-+			interrupts = < 7 0x2 >;
-+			reg = < 0x40700000 0x100000 >;
-+			xlnx,all-inputs = <0x1>;
-+			xlnx,all-inputs-2 = <0x0>;
-+			xlnx,dout-default = <0x0>;
-+			xlnx,dout-default-2 = <0x0>;
-+			xlnx,family = "spartan3e";
-+			xlnx,gpio-width = <0x4>;
-+			xlnx,interrupt-present = <0x1>;
-+			xlnx,is-bidir = <0x0>;
-+			xlnx,is-bidir-2 = <0x1>;
-+			xlnx,is-dual = <0x0>;
-+			xlnx,tri-default = <0xffffffff>;
-+			xlnx,tri-default-2 = <0xffffffff>;
-+		} ;
-+		gpio_3: gpio@40600000 {
-+			compatible = "xlnx,xps-gpio-1.00.a";
-+			reg = < 0x40600000 0x100000 >;
-+			xlnx,all-inputs = <0x0>;
-+			xlnx,all-inputs-2 = <0x0>;
-+			xlnx,dout-default = <0x0>;
-+			xlnx,dout-default-2 = <0x0>;
-+			xlnx,family = "spartan3e";
-+			xlnx,gpio-width = <0x8>;
-+			xlnx,interrupt-present = <0x0>;
-+			xlnx,is-bidir = <0x0>;
-+			xlnx,is-bidir-2 = <0x1>;
-+			xlnx,is-dual = <0x0>;
-+			xlnx,tri-default = <0xffffffff>;
-+			xlnx,tri-default-2 = <0xffffffff>;
-+		} ;
-+		emaclite: ethernet@40c00000 {
-+			compatible = "xlnx,xps-ethernetlite-1.00.a";
-+			device_type = "network";
-+			interrupt-parent = <&xps_intc_0>;
-+			interrupts = < 2 0x0 >;
-+			local-mac-address = [ 02 00 00 00 00 00 ];
-+			reg = < 0x40c00000 0x100000 >;
-+			xlnx,duplex = <0x1>;
-+			xlnx,family = "spartan3e";
-+			xlnx,rx-ping-pong = <0x0>;
-+			xlnx,tx-ping-pong = <0x0>;
-+		} ;
-+		uart16550: serial@40200000 {
-+			clock-frequency = <50000000>;
-+			compatible = "xlnx,xps-uart16550-1.00.a", "ns16550";
-+			current-speed = <9600>;
-+			device_type = "serial";
-+			interrupt-parent = <&xps_intc_0>;
-+			interrupts = < 4 0x2 >;
-+			reg = < 0x40200000 0x100000 >;
-+			reg-offset = <3>;
-+			reg-shift = <2>;
-+			xlnx,family = "spartan3e";
-+			xlnx,has-external-rclk = <0x0>;
-+			xlnx,has-external-xin = <0x0>;
-+			xlnx,is-a-16550 = <0x1>;
-+		} ;
-+		uartlite: serial@40100000 {
-+			clock-frequency = <50000000>;
-+			compatible = "xlnx,xps-uartlite-1.00.a";
-+			device_type = "serial";
-+			interrupt-parent = <&xps_intc_0>;
-+			interrupts = < 3 0x0 >;
-+			port-number = <0>;
-+			reg = < 0x40100000 0x100000 >;
-+			xlnx,baudrate = <0x1c200>;
-+			xlnx,data-bits = <0x8>;
-+			xlnx,family = "spartan3e";
-+			xlnx,odd-parity = <0x0>;
-+			xlnx,use-parity = <0x0>;
-+		} ;
-+		spi: xps-spi@40a00000 {
-+			compatible = "xlnx,xps-spi-1.00.a";
-+			interrupt-parent = <&xps_intc_0>;
-+			interrupts = < 5 0x2 >;
-+			reg = < 0x40a00000 0x100000 >;
-+			xlnx,family = "spartan3e";
-+			xlnx,fifo-exist = <0x1>;
-+			xlnx,num-offchip-ss-bits = <0x4>;
-+			xlnx,num-ss-bits = <0x4>;
-+			xlnx,sck-ratio = <0x20>;
-+		} ;
-+		mdm: debug@40300000 {
-+			compatible = "xlnx,mdm-1.00.a";
-+			reg = < 0x40300000 0x100000 >;
-+			xlnx,family = "spartan3e";
-+			xlnx,interconnect = <0x1>;
-+			xlnx,jtag-chain = <0x2>;
-+			xlnx,mb-dbg-ports = <0x1>;
-+			xlnx,uart-width = <0x8>;
-+			xlnx,use-uart = <0x1>;
-+			xlnx,write-fsl-ports = <0x1>;
-+		} ;
-+		mpmc@20000000 {
-+			#address-cells = <1>;
-+			#size-cells = <1>;
-+			compatible = "xlnx,mpmc-3.00.a";
-+		} ;
-+		intc_0: interrupt-controller@40000000 {
-+			#interrupt-cells = <2>;
-+			compatible = "xlnx,xps-intc-1.00.a";
-+			interrupt-controller ;
-+			reg = < 0x40000000 0x100000 >;
-+			xlnx,kind-of-edge = <0>;
-+			xlnx,num-intr-inputs = <0x8>;
-+		} ;
-+		timer_0: timer@40400000 {
-+			compatible = "xlnx,xps-timer-1.00.a";
-+			interrupt-parent = <&xps_intc_0>;
-+			interrupts = < 0 0x2 >;
-+			reg = < 0x40400000 0x100000 >;
-+			xlnx,count-width = <0x20>;
-+			xlnx,family = "spartan3e";
-+			xlnx,gen0-assert = <0x1>;
-+			xlnx,gen1-assert = <0x1>;
-+			xlnx,one-timer-only = <0x0>;
-+			xlnx,trig0-assert = <0x1>;
-+			xlnx,trig1-assert = <0x1>;
-+		} ;
-+		timer_1: timer@40500000 {
-+			compatible = "xlnx,xps-timer-1.00.a";
-+			interrupt-parent = <&xps_intc_0>;
-+			interrupts = < 1 0x2 >;
-+			reg = < 0x40500000 0x100000 >;
-+			xlnx,count-width = <0x20>;
-+			xlnx,family = "spartan3e";
-+			xlnx,gen0-assert = <0x1>;
-+			xlnx,gen1-assert = <0x1>;
-+			xlnx,one-timer-only = <0x1>;
-+			xlnx,trig0-assert = <0x1>;
-+			xlnx,trig1-assert = <0x1>;
-+		} ;
-+	} ;
-+}  ;
++#include <asm/cacheflush.h>
++#include <asm/cache.h>
++#include <asm/cpuinfo.h>
++
++/* Exported functions */
++
++void _enable_icache(void)
++{
++	if (cpuinfo.use_icache) {
++#if CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR
++		__asm__ __volatile__ ("					\
++				msrset	r0, %0;				\
++				nop; "					\
++				:					\
++				: "i" (MSR_ICE)				\
++				: "memory");
++#else
++		__asm__ __volatile__ ("					\
++				mfs	r12, rmsr;			\
++				ori	r12, r12, %0;			\
++				mts	rmsr, r12;			\
++				nop; "					\
++				:					\
++				: "i" (MSR_ICE)				\
++				: "memory", "r12");
++#endif
++	}
++}
++
++void _disable_icache(void)
++{
++	if (cpuinfo.use_icache) {
++#if CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR
++		__asm__ __volatile__ ("					\
++				msrclr r0, %0;				\
++				nop; "					\
++				:					\
++				: "i" (MSR_ICE)				\
++				: "memory");
++#else
++		__asm__ __volatile__ ("					\
++				mfs	r12, rmsr;			\
++				andi	r12, r12, ~%0;			\
++				mts	rmsr, r12;			\
++				nop; "					\
++				:					\
++				: "i" (MSR_ICE)				\
++				: "memory", "r12");
++#endif
++	}
++}
++
++void _invalidate_icache(unsigned int addr)
++{
++	if (cpuinfo.use_icache) {
++		__asm__ __volatile__ ("					\
++				wic	%0, r0"				\
++				:					\
++				: "r" (addr));
++	}
++}
++
++void _enable_dcache(void)
++{
++	if (cpuinfo.use_dcache) {
++#if CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR
++		__asm__ __volatile__ ("					\
++				msrset	r0, %0;				\
++				nop; "					\
++				:					\
++				: "i" (MSR_DCE)				\
++				: "memory");
++#else
++		__asm__ __volatile__ ("					\
++				mfs	r12, rmsr;			\
++				ori	r12, r12, %0;			\
++				mts	rmsr, r12;			\
++				nop; "					\
++				:					\
++				: "i" (MSR_DCE)			\
++				: "memory", "r12");
++#endif
++	}
++}
++
++void _disable_dcache(void)
++{
++	if (cpuinfo.use_dcache) {
++#if CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR
++		__asm__ __volatile__ ("					\
++				msrclr	r0, %0;				\
++				nop; "					\
++				:					\
++				: "i" (MSR_DCE)			\
++				: "memory");
++#else
++		__asm__ __volatile__ ("					\
++				mfs	r12, rmsr;			\
++				andi	r12, r12, ~%0;			\
++				mts	rmsr, r12;			\
++				nop; "					\
++				:					\
++				: "i" (MSR_DCE)			\
++				: "memory", "r12");
++#endif
++	}
++}
++
++void _invalidate_dcache(unsigned int addr)
++{
++	if (cpuinfo.use_dcache)
++		__asm__ __volatile__ ("					\
++				wdc	%0, r0"				\
++				:					\
++				: "r" (addr));
++}
++
++void __invalidate_icache_all(void)
++{
++	unsigned int i;
++	unsigned flags;
++
++	if (cpuinfo.use_icache) {
++		local_irq_save(flags);
++		__disable_icache();
++
++		/* Just loop through cache size and invalidate, no need to add
++			CACHE_BASE address */
++		for (i = 0; i < cpuinfo.icache_size;
++			i += cpuinfo.icache_line)
++				__invalidate_icache(i);
++
++		__enable_icache();
++		local_irq_restore(flags);
++	}
++}
++
++void __invalidate_icache_range(unsigned long start, unsigned long end)
++{
++	unsigned int i;
++	unsigned flags;
++	unsigned int align;
++
++	if (cpuinfo.use_icache) {
++		/*
++		 * No need to cover entire cache range,
++		 * just cover cache footprint
++		 */
++		end = min(start + cpuinfo.icache_size, end);
++		align = ~(cpuinfo.icache_line - 1);
++		start &= align; /* Make sure we are aligned */
++		/* Push end up to the next cache line */
++		end = ((end & align) + cpuinfo.icache_line);
++
++		local_irq_save(flags);
++		__disable_icache();
++
++		for (i = start; i < end; i += cpuinfo.icache_line)
++			__invalidate_icache(i);
++
++		__enable_icache();
++		local_irq_restore(flags);
++	}
++}
++
++void __invalidate_icache_page(struct vm_area_struct *vma, struct page *page)
++{
++	__invalidate_icache_all();
++}
++
++void __invalidate_icache_user_range(struct vm_area_struct *vma,
++				struct page *page, unsigned long adr,
++				int len)
++{
++	__invalidate_icache_all();
++}
++
++void __invalidate_cache_sigtramp(unsigned long addr)
++{
++	__invalidate_icache_range(addr, addr + 8);
++}
++
++void __invalidate_dcache_all(void)
++{
++	unsigned int i;
++	unsigned flags;
++
++	if (cpuinfo.use_dcache) {
++		local_irq_save(flags);
++		__disable_dcache();
++
++		/*
++		 * Just loop through cache size and invalidate,
++		 * no need to add CACHE_BASE address
++		 */
++		for (i = 0; i < cpuinfo.dcache_size;
++			i += cpuinfo.dcache_line)
++				__invalidate_dcache(i);
++
++		__enable_dcache();
++		local_irq_restore(flags);
++	}
++}
++
++void __invalidate_dcache_range(unsigned long start, unsigned long end)
++{
++	unsigned int i;
++	unsigned flags;
++	unsigned int align;
++
++	if (cpuinfo.use_dcache) {
++		/*
++		 * No need to cover entire cache range,
++		 * just cover cache footprint
++		 */
++		end = min(start + cpuinfo.dcache_size, end);
++		align = ~(cpuinfo.dcache_line - 1);
++		start &= align; /* Make sure we are aligned */
++		/* Push end up to the next cache line */
++		end = ((end & align) + cpuinfo.dcache_line);
++		local_irq_save(flags);
++		__disable_dcache();
++
++		for (i = start; i < end; i += cpuinfo.dcache_line)
++			__invalidate_dcache(i);
++
++		__enable_dcache();
++		local_irq_restore(flags);
++	}
++}
++
++void __invalidate_dcache_page(struct vm_area_struct *vma, struct page *page)
++{
++	__invalidate_dcache_all();
++}
++
++void __invalidate_dcache_user_range(struct vm_area_struct *vma,
++				struct page *page, unsigned long adr,
++				int len)
++{
++	__invalidate_dcache_all();
++}
+diff --git a/include/asm-microblaze/cache.h b/include/asm-microblaze/cache.h
+new file mode 100644
+index 0000000..16a647d
+--- /dev/null
++++ b/include/asm-microblaze/cache.h
+@@ -0,0 +1,43 @@
++/*
++ * Cache operations
++ *
++ * Copyright (C) 2007 Michal Simek <monstr@monstr.eu>
++ * Copyright (C) 2003 John Williams <jwilliams@itee.uq.edu.au>
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License. See the file COPYING in the main directory of this
++ * archive for more details.
++ */
++
++#ifndef _ASM_MICROBLAZE_CACHE_H
++#define _ASM_MICROBLAZE_CACHE_H
++
++#include <asm/registers.h>
++
++#ifndef L1_CACHE_BYTES
++/* word-granular cache in microblaze */
++#define L1_CACHE_BYTES		4
++#endif
++
++void _enable_icache(void);
++void _disable_icache(void);
++void _invalidate_icache(unsigned int addr);
++
++#define __enable_icache()		_enable_icache()
++#define __disable_icache()		_disable_icache()
++#define __invalidate_icache(addr)	_invalidate_icache(addr)
++
++void _enable_dcache(void);
++void _disable_dcache(void);
++void _invalidate_dcache(unsigned int addr);
++
++#define __enable_dcache()		_enable_dcache()
++#define __disable_dcache()		_disable_dcache()
++#define __invalidate_dcache(addr)	_invalidate_dcache(addr)
++
++/* FIXME - I don't think this is right */
++#ifdef CONFIG_XILINX_UNCACHED_SHADOW
++#define UNCACHED_SHADOW_MASK (CONFIG_XILINX_ERAM_SIZE)
++#endif
++
++#endif /* _ASM_MICROBLAZE_CACHE_H */
+diff --git a/include/asm-microblaze/cacheflush.h b/include/asm-microblaze/cacheflush.h
+new file mode 100644
+index 0000000..6afe017
+--- /dev/null
++++ b/include/asm-microblaze/cacheflush.h
+@@ -0,0 +1,75 @@
++/*
++ * Copyright (C) 2007 PetaLogix
++ * Copyright (C) 2007 John Williams <john.williams@petalogix.com>
++ * based on v850 version which was
++ * Copyright (C) 2001,02,03 NEC Electronics Corporation
++ * Copyright (C) 2001,02,03 Miles Bader <miles@gnu.org>
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License. See the file COPYING in the main directory of this
++ * archive for more details.
++ *
++ */
++
++#ifndef _ASM_MICROBLAZE_CACHEFLUSH_H
++#define _ASM_MICROBLAZE_CACHEFLUSH_H
++
++/* Somebody depends on this; sigh... */
++#include <linux/mm.h>
++
++/*
++ * Cache handling functions.
++ * Microblaze has a write-through data cache, and no icache snooping of dcache
++ */
++
++#define flush_cache_all()			__invalidate_cache_all()
++#define flush_cache_mm(mm)			do { } while (0)
++#define flush_cache_range(vma, start, end)	__invalidate_cache_all()
++#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
++
++#define flush_dcache_range(start, end)	__invalidate_dcache_range(start, end)
++#define flush_dcache_page(page)			do { } while (0)
++#define flush_dcache_mmap_lock(mapping)		do { } while (0)
++#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
++
++#define flush_icache_range(start, len)	__invalidate_icache_range(start, len)
++#define flush_icache_page(vma, pg)		do { } while (0)
++
++#define flush_cache_vmap(start, end)		do { } while (0)
++#define flush_cache_vunmap(start, end)		do { } while (0)
++
++struct page;
++struct mm_struct;
++struct vm_area_struct;
++
++/* see arch/microblaze/kernel/cache.c */
++extern void __invalidate_icache_all(void);
++extern void __invalidate_icache_range(unsigned long start, unsigned long end);
++extern void __invalidate_icache_page(struct vm_area_struct *vma, struct page *page);
++extern void __invalidate_icache_user_range(struct vm_area_struct *vma,
++				struct page *page,
++				unsigned long adr, int len);
++extern void __invalidate_cache_sigtramp(unsigned long addr);
++
++extern void __invalidate_dcache_all(void);
++extern void __invalidate_dcache_range(unsigned long start, unsigned long end);
++extern void __invalidate_dcache_page(struct vm_area_struct *vma, struct page *page);
++extern void __invalidate_dcache_user_range(struct vm_area_struct *vma,
++				struct page *page,
++				unsigned long adr, int len);
++
++extern inline void __invalidate_cache_all(void)
++{
++	__invalidate_icache_all();
++	__invalidate_dcache_all();
++}
++
++#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
++do { memcpy((dst), (src), (len)); \
++	flush_icache_range((unsigned) (dst), (unsigned) (dst) + (len)); \
++} while (0)
++
++#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
++	memcpy((dst), (src), (len))
++
++#endif /* _ASM_MICROBLAZE_CACHEFLUSH_H */
 -- 
 1.5.4.GIT
