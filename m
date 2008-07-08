@@ -1,177 +1,60 @@
-From: Jeremy Fitzhardinge <jeremy@goop.org>
-Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
-Date: Sun, 06 Jul 2008 10:21:18 -0700
-Message-ID: <4870FF0E.80200@goop.org>
-References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-2-git-send-email-jens.axboe@oracle.com>
+From: Michal Simek <monstr@seznam.cz>
+Subject: Re: [PATCH 31/60] microblaze_v4: memory inicialization, MMU, TLB
+Date: Tue, 08 Jul 2008 08:17:57 +0200
+Message-ID: <48730695.5010004@seznam.cz>
+References: <1214483429-32360-1-git-send-email-monstr@seznam.cz>	<1214483429-32360-31-git-send-email-monstr@seznam.cz>	<1214483429-32360-32-git-send-email-monstr@seznam.cz> <200806261714.12967.arnd@arndb.de>
+Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15; format=flowed
+Content-Type: text/plain; charset=ISO-8859-2
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gw.goop.org ([64.81.55.164]:40406 "EHLO mail.goop.org"
+Received: from mxl.seznam.cz ([77.75.72.44]:45762 "EHLO mxl.seznam.cz"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751410AbYGFRV2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 6 Jul 2008 13:21:28 -0400
-In-Reply-To: <1212051504-12561-2-git-send-email-jens.axboe@oracle.com>
+	id S1751453AbYGHGao (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Jul 2008 02:30:44 -0400
+In-Reply-To: <200806261714.12967.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, alan@lxorguk.ukuu.org.uk, Michal Simek <monstr@monstr.eu>, vapier.adi@gmail.com, matthew@wil.cx, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, drepper@redhat.com, linuxppc-dev@ozlabs.org, will.newton@gmail.com, hpa@zytor.com, John.Linn@xilinx.com, john.williams@petalogix.com
 
-Jens Axboe wrote:
-> +/**
-> + * __smp_call_function_single(): Run a function on another CPU
-> + * @cpu: The CPU to run on.
-> + * @data: Pre-allocated and setup data structure
-> + *
-> + * Like smp_call_function_single(), but allow caller to pass in a pre-allocated
-> + * data structure. Useful for embedding @data inside other structures, for
-> + * instance.
-> + *
-> + */
-> +void __smp_call_function_single(int cpu, struct call_single_data *data)
->   
+Hi Arnd,
 
-Does this have any users?  Proposed users?
+> On Thursday 26 June 2008, monstr@seznam.cz wrote:
+> 
+>> +#include <linux/autoconf.h>
+> 
+> You should never need to include linux/autoconf.h anywhere,
+> just remove this.
 
-> +{
-> +	/* Can deadlock when called with interrupts disabled */
-> +	WARN_ON((data->flags & CSD_FLAG_WAIT) && irqs_disabled());
->   
+Remove from all files
 
-Can it be reasonably be used without FLAG_WAIT set?  If it doesn't have 
-FLAG_WAIT, it must have FLAG_ALLOC set, but it can't have FLAG_ALLOC if 
-the csd structure is embedded in something else.
+>> +#include <linux/init.h>
+>> +#include <linux/mm.h>
+>> +#include "../../../mm/internal.h"
+> 
+> Why do you need to include the internal.h file here?
+> If you have a good reason to do it, you should probably
+> add the symbol you need to a global header file.
 
-> +
-> +	generic_exec_single(cpu, data);
-> +}
-> +
-> +/**
-> + * smp_call_function_mask(): Run a function on a set of other CPUs.
-> + * @mask: The set of cpus to run on.
-> + * @func: The function to run. This must be fast and non-blocking.
-> + * @info: An arbitrary pointer to pass to the function.
-> + * @wait: If true, wait (atomically) until function has completed on other CPUs.
-> + *
-> + * Returns 0 on success, else a negative status code.
-> + *
-> + * If @wait is true, then returns once @func has returned.
-> + *
-> + * You must not call this function with disabled interrupts or from a
-> + * hardware interrupt handler or from a bottom half handler.
-> + */
-> +int smp_call_function_mask(cpumask_t mask, void (*func)(void *), void *info,
-> +			   int wait)
-> +{
-> +	struct call_function_data d;
-> +	struct call_function_data *data = NULL;
-> +	cpumask_t allbutself;
-> +	unsigned long flags;
-> +	int cpu, num_cpus;
-> +
-> +	/* Can deadlock when called with interrupts disabled */
-> +	WARN_ON(irqs_disabled());
-> +
-> +	cpu = smp_processor_id();
->   
+There was reason for doing it in older version. With current
+version work without internal.h.
 
-What prevents us from changing cpus?  Are all callers supposed to 
-disable preemption?  If so, should we WARN for it?
+Thank for comment,
+Michal
 
-> +	allbutself = cpu_online_map;
-> +	cpu_clear(cpu, allbutself);
-> +	cpus_and(mask, mask, allbutself);
-> +	num_cpus = cpus_weight(mask);
->   
 
-Ditto: What prevents the online map changing under our feet?  Is 
-disabling preemption enough?
 
-> +
-> +	/*
-> +	 * If zero CPUs, return. If just a single CPU, turn this request
-> +	 * into a targetted single call instead since it's faster.
-> +	 */
-> +	if (!num_cpus)
-> +		return 0;
-> +	else if (num_cpus == 1) {
-> +		cpu = first_cpu(mask);
-> +		return smp_call_function_single(cpu, func, info, 0, wait);
-> +	}
->   
-
-It's weirdly inconsistent that smp_call_function_mask will ignore the 
-current cpu if its in the mask, but smp_call_function_single will call 
-the function locally if the specified cpu is the current one.  I know 
-this is a hold-over from the old code, but could we finally fix it now?  
-I guess it's still reasonable for smp_call_function to call on 
-everywhere but current cpu, but it can do its own mask manipulation to 
-sort that out.
-
-> +
-> +	if (!wait) {
-> +		data = kmalloc(sizeof(*data), GFP_ATOMIC);
-> +		if (data)
-> +			data->csd.flags = CSD_FLAG_ALLOC;
-> +	}
-> +	if (!data) {
-> +		data = &d;
-> +		data->csd.flags = CSD_FLAG_WAIT;
-> +	}
-> +
-> +	spin_lock_init(&data->lock);
-> +	data->csd.func = func;
-> +	data->csd.info = info;
-> +	data->refs = num_cpus;
-> +
-> +	/*
-> +	 * need to see above stores before the cpumask is valid for the CPU
-> +	 */
-> +	smp_wmb();
-> +	data->cpumask = mask;
-> +
-> +	spin_lock_irqsave(&call_function_lock, flags);
-> +	list_add_tail_rcu(&data->csd.list, &call_function_queue);
-> +	spin_unlock_irqrestore(&call_function_lock, flags);
-> +
-> +	/* Send a message to all CPUs in the map */
-> +	arch_send_call_function_ipi(mask);
-> +
-> +	/* optionally wait for the CPUs to complete */
-> +	if (wait)
->   
-Should this test for data->csd.flags & CDS_FLAG_WAIT?  Or should the "if 
-(!data)" path above also set "wait"?
-
-> +		csd_flag_wait(&data->csd);
-> +
-> +	return 0;
-> +}
-> +EXPORT_SYMBOL(smp_call_function_mask);
-> +
-> +/**
-> + * smp_call_function(): Run a function on all other CPUs.
-> + * @func: The function to run. This must be fast and non-blocking.
-> + * @info: An arbitrary pointer to pass to the function.
-> + * @natomic: Unused
-> + * @wait: If true, wait (atomically) until function has completed on other CPUs.
-> + *
-> + * Returns 0 on success, else a negative status code.
-> + *
-> + * If @wait is true, then returns once @func has returned; otherwise
-> + * it returns just before the target cpu calls @func.
-> + *
-> + * You must not call this function with disabled interrupts or from a
-> + * hardware interrupt handler or from a bottom half handler.
-> + */
-> +int smp_call_function(void (*func)(void *), void *info, int natomic, int wait)
-> +{
-> +	int ret;
-> +
-> +	preempt_disable();
-> +	ret = smp_call_function_mask(cpu_online_map, func, info, wait);
-> +	preempt_enable();
-> +	return ret;
-> +}
-> +EXPORT_SYMBOL(smp_call_function);
->   
+> 	Arnd <><
+> _______________________________________________
+> Linuxppc-dev mailing list
+> Linuxppc-dev@ozlabs.org
+> https://ozlabs.org/mailman/listinfo/linuxppc-dev
+> 
+> 
+> ------------------------------------------------------------------------
+> 
+> 
+> No virus found in this incoming message.
+> Checked by AVG. 
+> Version: 8.0.101 / Virus Database: 270.4.1/1519 - Release Date: 25.6.2008 04:13
