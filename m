@@ -1,63 +1,15 @@
 From: monstr@monstr.eu
-Subject: [PATCH 50/58] microblaze_v5: generic files sockios.h ucontext.h
-Date: Tue,  8 Jul 2008 13:59:50 +0200
-Message-ID: <6c03dcf8dbfd910ebf6c2f95db61d0456aa943e1.1215517976.git.monstr@monstr.eu>
+Subject: [PATCH 02/58] microblaze_v5: Makefiles for Microblaze cpu
+Date: Tue,  8 Jul 2008 13:59:02 +0200
+Message-ID: <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
 References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
- <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
- <58f35f498bac29e7105c589c06567e86c5a42dd5.1215517976.git.monstr@monstr.eu>
- <810775b1bb678003923039726a9153ee34fb67b4.1215517976.git.monstr@monstr.eu>
- <2a24e5bc2cfbd349613ef10c716a28f04ce24a9f.1215517976.git.monstr@monstr.eu>
- <3171c5cf21eefc79665165f4a14bc5b68dd03f95.1215517976.git.monstr@monstr.eu>
- <9be4eff2f4d015023c453eaec3b3473a44380491.1215517976.git.monstr@monstr.eu>
- <f8e331ed9432719f3c0555c840cbbb7bbc1a6322.1215517976.git.monstr@monstr.eu>
- <4409daf2ac356e902a8f091bb5908eb8a90218bc.1215517976.git.monstr@monstr.eu>
- <f7458acb0252f72b5620d19c76104408ecc2e451.1215517976.git.monstr@monstr.eu>
- <dbd9df742cdd9eb3355d7bc8e39f9dfef6c545e4.1215517976.git.monstr@monstr.eu>
- <1f9a1f345caa749cb630cf85f95f217366395069.1215517976.git.monstr@monstr.eu>
- <fe3686f0f70d838b33642bcbcd7185fc2180b366.1215517976.git.monstr@monstr.eu>
- <e61f5a8579570cf7cd18a22e4106b7f85518928e.1215517976.git.monstr@monstr.eu>
- <59d7e0a5f38b8d38f01f357a071fc93eed36f3a8.1215517976.git.monstr@monstr.eu>
- <143afcf84af583ab66da7e8acfc9eb03b7f3eaa0.1215517976.git.monstr@monstr.eu>
- <a967ee4e5a60b410e2810ce0475e8fd04f99e3ae.1215517976.git.monstr@monstr.eu>
- <c5f0730287365c845746467a9917dbc07d2fca3c.1215517976.git.monstr@monstr.eu>
- <2aa1ac7891af57959237aae3addf4bbe607f55d7.1215517976.git.monstr@monstr.eu>
- <875ba2708f6cd3c585e4d965142e2feb07c39a0e.1215517976.git.monstr@monstr.eu>
- <eb0e741f891335df37c3cd19f1a3ce2f7ce8652a.1215517976.git.monstr@monstr.eu>
- <b28df2ea2419cbda26f9089ed6edcc175c009688.1215517976.git.monstr@monstr.eu>
- <5da1d8f069f18f14faee8c4bff736791179ef6f1.1215517976.git.monstr@monstr.eu>
- <9a32168fe72b772f301216a7090670474af78e49.1215517976.git.monstr@monstr.eu>
- <7ada4bceefc1806a2c8ef73676b7aabd8ac1cad6.1215517976.git.monstr@monstr.eu>
- <701c1dac442ac09f5010cb5356cc1a12bb0abfe1.1215517976.git.monstr@monstr.eu>
- <9b48e9d85b4a5a6dcffce8eef62b232b6bfac8e8.1215517976.git.monstr@monstr.eu>
- <04b0b222b84ba9cfe2507a9081f4d715f2323733.1215517976.git.monstr@monstr.eu>
- <d4c1b3ecfec1bf37ca0ecea6909ad25bbc945630.1215517976.git.monstr@monstr.eu>
- <6e5687d37386334cf122d1eafcca0c6649c955be.1215517976.git.monstr@monstr.eu>
- <689cff1b6d98f60d8f8abc4472193688b524284d.1215517976.git.monstr@monstr.eu>
- <9664f18e7e86af4332018549b29bf0797d6afcd5.1215517976.git.monstr@monstr.eu>
- <c7120d8a6379cb1a18af5330997e30ec974acc2f.1215517976.git.monstr@monstr.eu>
- <d1d33c18956829ec9ac7daf8d0516b17e85ed190.1215517976.git.monstr@monstr.eu>
- <7a16429cfc461420883dbaa80c16047e5a1a91c1.1215517976.git.monstr@monstr.eu>
- <b6a0f3bceb0867c55613463fc43be5328fcedecd.1215517976.git.monstr@monstr.eu>
- <fc26823d77c7180b62022e2d4bcca3c4fe6de574.1215517976.git.monstr@monstr.eu>
- <64089967061955b7a29eb6d4e6269ff75b5442f2.1215517976.git.monstr@monstr.eu>
- <92e3ab88c2174acf4e25c474c1f68ffd4db72ca6.1215517976.git.monstr@monstr.eu>
- <5174afd0eaa5c6cb9344ea3217199e48899be313.1215517976.git.monstr@monstr.eu>
- <bcb94400dca62fb349d0ab1e0a6209291fdcdfc5.1215517976.git.monstr@monstr.eu>
- <5b2ed516b2e51d5117386c1b6eb814acc6e5a157.1215517976.git.monstr@monstr.eu>
- <421f4b613d4dbd983df1545a9a163347e5bd1c56.1215517976.git.monstr@monstr.eu>
- <0d39e8f03c487c004efa226c5ee81a81a8856768.1215517976.git.monstr@monstr.eu>
- <c4f477d71dd4cd2ae884b9c47756c9334f8dac18.1215517976.git.monstr@monstr.eu>
- <a98df8525bf9287d7a8b6077ff20dd61a055a98e.1215517976.git.monstr@monstr.eu>
- <c6651b096ee8a0691f94f8c19574302dbfb61ee4.1215517976.git.monstr@monstr.eu>
- <2ac3915482a9a50f7a4531908305b326baa2008e.1215517976.git.monstr@monstr.eu>
- <3c5eac3dbdbf538c727a4a8fe336cdd55650bb37.1215517976.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
 Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27528 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753105AbYGHMnN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Jul 2008 08:43:13 -0400
-In-Reply-To: <3c5eac3dbdbf538c727a4a8fe336cdd55650bb37.1215517976.git.monstr@monstr.eu>
+	id S1757782AbYGHMnW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Jul 2008 08:43:22 -0400
+In-Reply-To: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 In-Reply-To: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -70,70 +22,195 @@ From: Michal Simek <monstr@monstr.eu>
 Acked-by: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-generic/sockios.h  |   23 +++++++++++++++++++++++
- include/asm-generic/ucontext.h |   24 ++++++++++++++++++++++++
- 2 files changed, 47 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/sockios.h
- create mode 100644 include/asm-generic/ucontext.h
+ arch/microblaze/Makefile                  |   63 +++++++++++++++++++++++++++++
+ arch/microblaze/boot/Makefile             |   17 ++++++++
+ arch/microblaze/kernel/Makefile           |   17 ++++++++
+ arch/microblaze/kernel/cpu/Makefile       |    8 ++++
+ arch/microblaze/lib/Makefile              |    5 ++
+ arch/microblaze/mm/Makefile               |    5 ++
+ arch/microblaze/platform/Makefile         |    6 +++
+ arch/microblaze/platform/generic/Makefile |    3 +
+ 8 files changed, 124 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/Makefile
+ create mode 100644 arch/microblaze/boot/Makefile
+ create mode 100644 arch/microblaze/kernel/Makefile
+ create mode 100644 arch/microblaze/kernel/cpu/Makefile
+ create mode 100644 arch/microblaze/lib/Makefile
+ create mode 100644 arch/microblaze/mm/Makefile
+ create mode 100644 arch/microblaze/platform/Makefile
+ create mode 100644 arch/microblaze/platform/generic/Makefile
 
-diff --git a/include/asm-generic/sockios.h b/include/asm-generic/sockios.h
+diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
 new file mode 100644
-index 0000000..9dc86e6
+index 0000000..7e9e1b4
 --- /dev/null
-+++ b/include/asm-generic/sockios.h
-@@ -0,0 +1,23 @@
-+/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
++++ b/arch/microblaze/Makefile
+@@ -0,0 +1,63 @@
++UTS_SYSNAME = -DUTS_SYSNAME=\"uClinux\"
 +
-+#ifndef _ASM_GENERIC_SOCKIOS_H
-+#define _ASM_GENERIC_SOCKIOS_H
++# What CPU vesion are we building for, and crack it open
++# as major.minor.rev
++CPU_VER=$(subst ",,$(CONFIG_XILINX_MICROBLAZE0_HW_VER) )
++CPU_MAJOR=$(shell echo $(CPU_VER) | cut -d '.' -f 1)
++CPU_MINOR=$(shell echo $(CPU_VER) | cut -d '.' -f 2)
++CPU_REV=$(shell echo $(CPU_VER) | cut -d '.' -f 3)
 +
-+#include <asm-generic/ioctl.h>
++export CPU_VER CPU_MAJOR CPU_MINOR CPU_REV
 +
-+/* Socket-level I/O control calls. */
-+#define FIOSETOWN	0x8901
-+#define SIOCSPGRP	0x8902
-+#define FIOGETOWN	0x8903
-+#define SIOCGPGRP	0x8904
-+#define SIOCATMARK	0x8905
-+#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
-+#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
++# Use cpu-related CONFIG_ vars to set compile options.
 +
-+#endif /* _ASM_GENERIC_SOCKIOS_H */
-diff --git a/include/asm-generic/ucontext.h b/include/asm-generic/ucontext.h
++# Work out HW multipler support.  This is icky.
++# 1. Spartan2 has no HW multiplers.
++# 2. MicroBlaze v3.x always uses them, except in Spartan 2
++# 3. All other FPGa/CPU ver combos, we can trust the CONFIG_ settings
++ifeq (,$(findstring spartan2,$(CONFIG_XILINX_MICROBLAZE0_FAMILY)))
++  ifeq ($(CPU_MAJOR),3)
++    CPUFLAGS-1 += -mno-xl-soft-mul
++  else
++    # USE_HW_MUL can be 0, 1, or 2, defining a heirarchy of HW Mul support.
++    CPUFLAGS-$(subst 1,,$(CONFIG_XILINX_MICROBLAZE0_USE_HW_MUL)) += -mxl-multiply-high
++    CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_HW_MUL) += -mno-xl-soft-mul
++  endif
++endif
++CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_DIV) += -mno-xl-soft-div
++CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_BARREL) += -mxl-barrel-shift
++CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_PCMP) += -mxl-pattern-compare
++
++CPUFLAGS-1 += $(call cc-option,-mcpu=v$(CPU_VER))
++
++# The various CONFIG_XILINX cpu features options are integers 0/1/2...
++# rather than bools y/n
++CFLAGS += $(CPUFLAGS-1)
++CFLAGS += $(CPUFLAGS-2)
++
++# r31 holds current when in kernel mode
++CFLAGS += -ffixed-r31
++
++LDFLAGS_BLOB := --format binary --oformat elf32-microblaze
++
++LIBGCC := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
++
++head-y		:= arch/microblaze/kernel/head.o
++libs-y		+= arch/microblaze/lib/ $(LIBGCC)
++core-y		+= arch/microblaze/kernel/ arch/microblaze/mm/ \
++		   arch/microblaze/platform/
++
++boot := arch/$(ARCH)/boot
++
++all: linux.bin
++
++archclean:
++	$(Q)$(MAKE) $(clean)=$(boot)
++
++linux.bin linux.bin.gz: vmlinux
++	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
++
++define archhelp
++  echo  '* linux.bin    - Create raw binary'
++  echo  '  linux.bin.gz - Create compressed raw binary'
++endef
+diff --git a/arch/microblaze/boot/Makefile b/arch/microblaze/boot/Makefile
 new file mode 100644
-index 0000000..3e718c2
+index 0000000..844edf4
 --- /dev/null
-+++ b/include/asm-generic/ucontext.h
-@@ -0,0 +1,24 @@
-+/*
-+ * include/asm-generic/ucontext.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++++ b/arch/microblaze/boot/Makefile
+@@ -0,0 +1,17 @@
++#
++# arch/microblaze/boot/Makefile
++#
 +
-+#ifndef _ASM_GENERIC_UCONTEXT_H
-+#define _ASM_GENERIC_UCONTEXT_H
++targets := linux.bin linux.bin.gz
 +
-+#include <asm/sigcontext.h>
++OBJCOPYFLAGS_linux.bin  := -O binary
 +
-+struct ucontext {
-+	unsigned long		uc_flags;
-+	struct ucontext		*uc_link;
-+	stack_t			uc_stack;
-+	struct sigcontext	uc_mcontext;
-+	sigset_t		uc_sigmask; /* mask last for extensibility */
-+};
++$(obj)/linux.bin: vmlinux FORCE
++	$(call if_changed,objcopy)
++	@echo 'Kernel: $@ is ready' ' (#'`cat .version`')'
 +
-+#endif /* _ASM_GENERIC_UCONTEXT_H */
++$(obj)/linux.bin.gz: $(obj)/linux.bin FORCE
++	$(call if_changed,gzip)
++	@echo 'Kernel: $@ is ready' ' (#'`cat .version`')'
++
++clean-kernel += linux.bin linux.bin.gz
+diff --git a/arch/microblaze/kernel/Makefile b/arch/microblaze/kernel/Makefile
+new file mode 100644
+index 0000000..f7a6bb8
+--- /dev/null
++++ b/arch/microblaze/kernel/Makefile
+@@ -0,0 +1,17 @@
++#
++# Makefile
++#
++
++extra-y := head.o vmlinux.lds
++
++obj-y += entry.o exceptions.o \
++	hw_exception_handler.o init_task.o intc.o irq.o of_device.o \
++	process.o prom.o ptrace.o \
++	setup.o signal.o sys_microblaze.o timer.o traps.o
++
++obj-y += cpu/
++
++obj-$(CONFIG_EARLY_PRINTK)	+= early_printk.o
++obj-$(CONFIG_SELFMOD)		+= selfmod.o
++obj-$(CONFIG_HEART_BEAT)	+= heartbeat.o
++obj-$(CONFIG_MODULES)		+= microblaze_ksyms.o module.o
+diff --git a/arch/microblaze/kernel/cpu/Makefile b/arch/microblaze/kernel/cpu/Makefile
+new file mode 100644
+index 0000000..20646e5
+--- /dev/null
++++ b/arch/microblaze/kernel/cpu/Makefile
+@@ -0,0 +1,8 @@
++#
++# Build the appropriate CPU version support
++#
++
++EXTRA_CFLAGS += -DCPU_MAJOR=$(CPU_MAJOR) -DCPU_MINOR=$(CPU_MINOR) \
++		-DCPU_REV=$(CPU_REV)
++
++obj-y += cache.o cpuinfo.o cpuinfo-pvr-full.o cpuinfo-static.o mb.o pvr.o
+diff --git a/arch/microblaze/lib/Makefile b/arch/microblaze/lib/Makefile
+new file mode 100644
+index 0000000..f0c36ff
+--- /dev/null
++++ b/arch/microblaze/lib/Makefile
+@@ -0,0 +1,5 @@
++#
++# Makefile
++#
++
++lib-y := memcpy.o memmove.o memset.o uaccess.o
+diff --git a/arch/microblaze/mm/Makefile b/arch/microblaze/mm/Makefile
+new file mode 100644
+index 0000000..bf9e447
+--- /dev/null
++++ b/arch/microblaze/mm/Makefile
+@@ -0,0 +1,5 @@
++#
++# Makefile
++#
++
++obj-y := init.o
+diff --git a/arch/microblaze/platform/Makefile b/arch/microblaze/platform/Makefile
+new file mode 100644
+index 0000000..ea1b75c
+--- /dev/null
++++ b/arch/microblaze/platform/Makefile
+@@ -0,0 +1,6 @@
++#
++# Makefile for arch/microblaze/platform directory
++#
++#obj-$(CONFIG_PLATFORM_GENERIC) += generic/
++
++obj-y	+= platform.o
+diff --git a/arch/microblaze/platform/generic/Makefile b/arch/microblaze/platform/generic/Makefile
+new file mode 100644
+index 0000000..9a8b1bd
+--- /dev/null
++++ b/arch/microblaze/platform/generic/Makefile
+@@ -0,0 +1,3 @@
++#
++# Empty Makefile to keep make clean happy
++#
 -- 
 1.5.4.GIT
