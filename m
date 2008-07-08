@@ -1,54 +1,14 @@
 From: monstr@monstr.eu
-Subject: [PATCH 39/58] microblaze_v5: atomic.h bitops.h byteorder.h
-Date: Tue,  8 Jul 2008 13:59:39 +0200
-Message-ID: <92e3ab88c2174acf4e25c474c1f68ffd4db72ca6.1215517976.git.monstr@monstr.eu>
+Subject: [PATCH 01/58] microblaze_v5: Kconfig patches
+Date: Tue,  8 Jul 2008 13:59:01 +0200
+Message-ID: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
- <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
- <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
- <58f35f498bac29e7105c589c06567e86c5a42dd5.1215517976.git.monstr@monstr.eu>
- <810775b1bb678003923039726a9153ee34fb67b4.1215517976.git.monstr@monstr.eu>
- <2a24e5bc2cfbd349613ef10c716a28f04ce24a9f.1215517976.git.monstr@monstr.eu>
- <3171c5cf21eefc79665165f4a14bc5b68dd03f95.1215517976.git.monstr@monstr.eu>
- <9be4eff2f4d015023c453eaec3b3473a44380491.1215517976.git.monstr@monstr.eu>
- <f8e331ed9432719f3c0555c840cbbb7bbc1a6322.1215517976.git.monstr@monstr.eu>
- <4409daf2ac356e902a8f091bb5908eb8a90218bc.1215517976.git.monstr@monstr.eu>
- <f7458acb0252f72b5620d19c76104408ecc2e451.1215517976.git.monstr@monstr.eu>
- <dbd9df742cdd9eb3355d7bc8e39f9dfef6c545e4.1215517976.git.monstr@monstr.eu>
- <1f9a1f345caa749cb630cf85f95f217366395069.1215517976.git.monstr@monstr.eu>
- <fe3686f0f70d838b33642bcbcd7185fc2180b366.1215517976.git.monstr@monstr.eu>
- <e61f5a8579570cf7cd18a22e4106b7f85518928e.1215517976.git.monstr@monstr.eu>
- <59d7e0a5f38b8d38f01f357a071fc93eed36f3a8.1215517976.git.monstr@monstr.eu>
- <143afcf84af583ab66da7e8acfc9eb03b7f3eaa0.1215517976.git.monstr@monstr.eu>
- <a967ee4e5a60b410e2810ce0475e8fd04f99e3ae.1215517976.git.monstr@monstr.eu>
- <c5f0730287365c845746467a9917dbc07d2fca3c.1215517976.git.monstr@monstr.eu>
- <2aa1ac7891af57959237aae3addf4bbe607f55d7.1215517976.git.monstr@monstr.eu>
- <875ba2708f6cd3c585e4d965142e2feb07c39a0e.1215517976.git.monstr@monstr.eu>
- <eb0e741f891335df37c3cd19f1a3ce2f7ce8652a.1215517976.git.monstr@monstr.eu>
- <b28df2ea2419cbda26f9089ed6edcc175c009688.1215517976.git.monstr@monstr.eu>
- <5da1d8f069f18f14faee8c4bff736791179ef6f1.1215517976.git.monstr@monstr.eu>
- <9a32168fe72b772f301216a7090670474af78e49.1215517976.git.monstr@monstr.eu>
- <7ada4bceefc1806a2c8ef73676b7aabd8ac1cad6.1215517976.git.monstr@monstr.eu>
- <701c1dac442ac09f5010cb5356cc1a12bb0abfe1.1215517976.git.monstr@monstr.eu>
- <9b48e9d85b4a5a6dcffce8eef62b232b6bfac8e8.1215517976.git.monstr@monstr.eu>
- <04b0b222b84ba9cfe2507a9081f4d715f2323733.1215517976.git.monstr@monstr.eu>
- <d4c1b3ecfec1bf37ca0ecea6909ad25bbc945630.1215517976.git.monstr@monstr.eu>
- <6e5687d37386334cf122d1eafcca0c6649c955be.1215517976.git.monstr@monstr.eu>
- <689cff1b6d98f60d8f8abc4472193688b524284d.1215517976.git.monstr@monstr.eu>
- <9664f18e7e86af4332018549b29bf0797d6afcd5.1215517976.git.monstr@monstr.eu>
- <c7120d8a6379cb1a18af5330997e30ec974acc2f.1215517976.git.monstr@monstr.eu>
- <d1d33c18956829ec9ac7daf8d0516b17e85ed190.1215517976.git.monstr@monstr.eu>
- <7a16429cfc461420883dbaa80c16047e5a1a91c1.1215517976.git.monstr@monstr.eu>
- <b6a0f3bceb0867c55613463fc43be5328fcedecd.1215517976.git.monstr@monstr.eu>
- <fc26823d77c7180b62022e2d4bcca3c4fe6de574.1215517976.git.monstr@monstr.eu>
- <64089967061955b7a29eb6d4e6269ff75b5442f2.1215517976.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27541 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27544 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1759039AbYGHMon (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Jul 2008 08:44:43 -0400
-In-Reply-To: <64089967061955b7a29eb6d4e6269ff75b5442f2.1215517976.git.monstr@monstr.eu>
-In-Reply-To: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
-References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
+	id S1759221AbYGHMpL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Jul 2008 08:45:11 -0400
+In-Reply-To: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -59,184 +19,344 @@ From: Michal Simek <monstr@monstr.eu>
 Acked-by: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/atomic.h    |  106 ++++++++++++++++++++++++++++++++++++
- include/asm-microblaze/bitops.h    |   26 +++++++++
- include/asm-microblaze/byteorder.h |   21 +++++++
- 3 files changed, 153 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/atomic.h
- create mode 100644 include/asm-microblaze/bitops.h
- create mode 100644 include/asm-microblaze/byteorder.h
+ arch/microblaze/Kconfig                       |  127 +++++++++++++++++++++++++
+ arch/microblaze/Kconfig.debug                 |   39 ++++++++
+ arch/microblaze/platform/Kconfig.platform     |   77 +++++++++++++++
+ arch/microblaze/platform/generic/Kconfig.auto |   62 ++++++++++++
+ 4 files changed, 305 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/Kconfig
+ create mode 100644 arch/microblaze/Kconfig.debug
+ create mode 100644 arch/microblaze/platform/Kconfig.platform
+ create mode 100644 arch/microblaze/platform/generic/Kconfig.auto
 
-diff --git a/include/asm-microblaze/atomic.h b/include/asm-microblaze/atomic.h
+diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
 new file mode 100644
-index 0000000..754688a
+index 0000000..9774f71
 --- /dev/null
-+++ b/include/asm-microblaze/atomic.h
-@@ -0,0 +1,106 @@
-+/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
++++ b/arch/microblaze/Kconfig
+@@ -0,0 +1,127 @@
++# For a description of the syntax of this configuration file,
++# see Documentation/kbuild/kconfig-language.txt.
 +
-+#ifndef _ASM_MICROBLAZE_ATOMIC_H
-+#define _ASM_MICROBLAZE_ATOMIC_H
++mainmenu "Linux/Microblaze Kernel Configuration"
 +
-+#include <linux/compiler.h> /* likely */
-+#include <asm/system.h> /* local_irq_XXX and friends */
++config MICROBLAZE
++	def_bool y
++	select HAVE_LMB
 +
-+typedef struct { volatile int counter; } atomic_t;
++config MMU
++	def_bool n
 +
-+#define ATOMIC_INIT(i)		{ (i) }
-+#define atomic_read(v)		((v)->counter)
-+#define atomic_set(v, i)	(((v)->counter) = (i))
++config SWAP
++	def_bool n
 +
-+#define atomic_inc(v)		(atomic_add_return(1, (v)))
-+#define atomic_dec(v)		(atomic_sub_return(1, (v)))
++config RWSEM_GENERIC_SPINLOCK
++	def_bool y
 +
-+#define atomic_add(i, v)	(atomic_add_return(i, (v)))
-+#define atomic_sub(i, v)	(atomic_sub_return(i, (v)))
++config RWSEM_XCHGADD_ALGORITHM
++	bool
 +
-+#define atomic_inc_return(v)	(atomic_add_return(1, (v)))
-+#define atomic_dec_return(v)	(atomic_sub_return(1, (v)))
++config ARCH_HAS_ILOG2_U32
++	def_bool n
 +
-+#define atomic_inc_and_test(v)	(atomic_add_return(1, (v)) == 0)
-+#define atomic_dec_and_test(v)	(atomic_sub_return(1, (v)) == 0)
++config ARCH_HAS_ILOG2_U64
++	def_bool n
 +
-+#define atomic_inc_not_zero(v)	(atomic_add_unless((v), 1, 0))
++config GENERIC_FIND_NEXT_BIT
++	def_bool y
 +
-+#define atomic_sub_and_test(i, v) (atomic_sub_return((i), (v)) == 0)
++config GENERIC_HWEIGHT
++	def_bool y
 +
-+static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
-+{
-+	int ret;
-+	unsigned long flags;
++config GENERIC_HARDIRQS
++	def_bool y
 +
-+	local_irq_save(flags);
-+	ret = v->counter;
-+	if (likely(ret == old))
-+		v->counter = new;
-+	local_irq_restore(flags);
++config GENERIC_IRQ_PROBE
++	def_bool y
 +
-+	return ret;
-+}
++config GENERIC_CALIBRATE_DELAY
++	def_bool y
 +
-+static inline int atomic_add_unless(atomic_t *v, int a, int u)
-+{
-+	int c, old;
++config GENERIC_TIME
++	def_bool y
 +
-+	c = atomic_read(v);
-+	while (c != u && (old = atomic_cmpxchg((v), c, c + a)) != c)
-+		c = old;
-+	return c != u;
-+}
++config PCI
++	def_bool n
 +
-+static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
-+{
-+	unsigned long flags;
++config NO_DMA
++	def_bool y
 +
-+	local_irq_save(flags);
-+	*addr &= ~mask;
-+	local_irq_restore(flags);
-+}
++config GENERIC_CSUM
++	def_bool y
 +
-+/**
-+ * atomic_add_return - add and return
-+ * @i: integer value to add
-+ * @v: pointer of type atomic_t
-+ *
-+ * Atomically adds @i to @v and returns @i + @v
-+ */
-+static inline int atomic_add_return(int i, atomic_t *v)
-+{
-+	unsigned long flags;
-+	int val;
++source "init/Kconfig"
 +
-+	local_irq_save(flags);
-+	val = v->counter;
-+	v->counter = val += i;
-+	local_irq_restore(flags);
++source "arch/microblaze/platform/Kconfig.platform"
 +
-+	return val;
-+}
++menu "Processor type and features"
 +
-+static inline int atomic_sub_return(int i, atomic_t *v)
-+{
-+	return atomic_add_return(-i, v);
-+}
++source "kernel/Kconfig.preempt"
 +
-+#define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
-+#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
++source "kernel/Kconfig.hz"
 +
-+/* Atomic operations are already serializing */
-+#define smp_mb__before_atomic_dec()	barrier()
-+#define smp_mb__after_atomic_dec()	barrier()
-+#define smp_mb__before_atomic_inc()	barrier()
-+#define smp_mb__after_atomic_inc()	barrier()
++comment "Boot options"
 +
-+#include <asm-generic/atomic.h>
++config CMDLINE_BOOL
++	bool "Default bootloader kernel arguments"
 +
-+#endif /* _ASM_MICROBLAZE_ATOMIC_H */
-diff --git a/include/asm-microblaze/bitops.h b/include/asm-microblaze/bitops.h
++config CMDLINE
++	string "Default kernel command string"
++	depends on CMDLINE_BOOL
++	default "console=ttyUL0,115200"
++	help
++	  On some architectures there is currently no way for the boot loader
++	  to pass arguments to the kernel. For these architectures, you should
++	  supply some command-line options at build time by entering them
++	  here.
++
++config CMDLINE_FORCE
++	bool "Force default kernel command string"
++	depends on CMDLINE_BOOL
++	default n
++	help
++	  Set this to have arguments from the default kernel command string
++	  override those passed by the boot loader.
++
++config OF
++	def_bool y
++
++config OF_DEVICE
++	def_bool y
++
++config PROC_DEVICETREE
++	bool "Support for device tree in /proc"
++	depends on PROC_FS
++	help
++	  This option adds a device-tree directory under /proc which contains
++	  an image of the device tree that the kernel copies from Open
++	  Firmware or other boot firmware. If unsure, say Y here.
++
++endmenu
++
++config APM_EMULATION
++	bool
++
++source "mm/Kconfig"
++
++menu "Exectuable file formats"
++
++source "fs/Kconfig.binfmt"
++
++endmenu
++
++source "net/Kconfig"
++
++source "drivers/Kconfig"
++
++source "fs/Kconfig"
++
++source "arch/microblaze/Kconfig.debug"
++
++source "security/Kconfig"
++
++source "crypto/Kconfig"
++
++source "lib/Kconfig"
+diff --git a/arch/microblaze/Kconfig.debug b/arch/microblaze/Kconfig.debug
 new file mode 100644
-index 0000000..43344b6
+index 0000000..611ef00
 --- /dev/null
-+++ b/include/asm-microblaze/bitops.h
-@@ -0,0 +1,26 @@
-+/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
++++ b/arch/microblaze/Kconfig.debug
+@@ -0,0 +1,39 @@
++# For a description of the syntax of this configuration file,
++# see Documentation/kbuild/kconfig-language.txt.
 +
-+#ifndef _ASM_MICROBLAZE_BITOPS_H
-+#define _ASM_MICROBLAZE_BITOPS_H
++menu "Kernel hacking"
 +
-+/*
-+ * Copyright 1992, Linus Torvalds.
-+ */
++source "lib/Kconfig.debug"
 +
-+#include <asm/byteorder.h> /* swab32 */
-+#include <asm/system.h> /* save_flags */
++config EARLY_PRINTK
++	bool "Early printk function for kernel"
++	default n
++	help
++	  This option turns on/off early printk messages to console.
 +
-+/*
-+ * clear_bit() doesn't provide any barrier for the compiler.
-+ */
-+#define smp_mb__before_clear_bit()	barrier()
-+#define smp_mb__after_clear_bit()	barrier()
-+#include <asm-generic/bitops.h>
++config EARLY_PRINTK_UARTLITE_ADDRESS
++	hex "Physical address where UART Lite for early printk is mapped"
++	depends on EARLY_PRINTK
++	default "0x00000000"
++	help
++	  Please enter physical address where your uart lite is mapped.
 +
-+#endif /* _ASM_MICROBLAZE_BITOPS_H */
-diff --git a/include/asm-microblaze/byteorder.h b/include/asm-microblaze/byteorder.h
++config HEART_BEAT
++	bool "Heart beat function for kernel"
++	default n
++	help
++	  This option turns on/off heart beat kernel functionality on selected
++	  GPIO address.
++
++config HEART_BEAT_ADDRESS
++	hex "Physical address for heart beat LED"
++	depends on HEART_BEAT
++	default "0x00000000"
++	help
++	  Please enter physical address GPIO LED.
++
++config DEBUG_BOOTMEM
++	depends on DEBUG_KERNEL
++	bool "Debug BOOTMEM initialization"
++
++endmenu
+diff --git a/arch/microblaze/platform/Kconfig.platform b/arch/microblaze/platform/Kconfig.platform
 new file mode 100644
-index 0000000..dad9204
+index 0000000..2789f92
 --- /dev/null
-+++ b/include/asm-microblaze/byteorder.h
-@@ -0,0 +1,21 @@
-+/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
++++ b/arch/microblaze/platform/Kconfig.platform
+@@ -0,0 +1,77 @@
++# For a description of the syntax of this configuration file,
++# see Documentation/kbuild/kconfig-language.txt.
++#
++# Platform selection Kconfig menu for MicroBlaze targets
++#
 +
-+#ifndef _ASM_MICROBLAZE_BYTEORDER_H
-+#define _ASM_MICROBLAZE_BYTEORDER_H
++menu "Platform options"
++choice
++	prompt "Platform"
++	default PLATFORM_MICROBLAZE_AUTO
++	help
++	  Choose which hardware board/platform you are targeting.
 +
-+#include <asm/types.h>
++config PLATFORM_GENERIC
++	bool "Generic"
++	help
++	  Choose this option for the Generic platform.
 +
-+#if defined(__GNUC__) && !defined(__STRICT_ANSI__) || defined(__KERNEL__)
-+#define __BYTEORDER_HAS_U64__
-+#define __SWAB_64_THRU_32__
-+#endif
++endchoice
 +
-+#include <linux/byteorder/big_endian.h>
++config SELFMOD
++	bool "Use self modified code for intc/timer"
++	depends on EXPERIMENTAL
++	default n
++	help
++	  This choice enables self-modified code for interrupt controller
++	  and timer.
 +
-+#endif /* _ASM_MICROBLAZE_BYTEORDER_H */
++config SELFMOD_INTC
++	bool "Use self modified code for intc"
++	depends on SELFMOD
++	default y
++	help
++	  This choice enables self-modified code for interrupt controller.
++
++config SELFMOD_TIMER
++	bool "Use self modified code for timer"
++	depends on SELFMOD
++	default y
++	help
++	  This choice enables self-modified code for timer.
++
++config OPT_LIB_FUNCTION
++	bool "Optimalized lib function"
++	default y
++	help
++	  Allows turn on optimalized library function (memcpy and memmove).
++	  They are optimized by using word alignment. This will work
++	  fine if both source and destination are aligned on the same
++	  boundary. However, if they are aligned on different boundaries
++	  shifts will be necessary. This might result in bad performance
++	  on MicroBlaze systems without a barrel shifter.
++
++# This is still a bit broken - disabling for now JW 20070504
++config ALLOW_EDIT_AUTO
++	bool "Permit Display/edit of Kconfig.auto platform settings"
++	default n
++	help
++	  Allows the editing of auto-generated platform settings from
++	  the Kconfig.auto file. Obviously this does not change the
++	  underlying hardware, so be very careful if you go editing
++	  these settings.
++
++	  Also, if you enable this, and edit various Kconfig.auto
++	  settings, YOUR CHANGES WILL BE LOST if you then disable it
++	  again. You have been warned!
++
++	  If unsure, say no.
++
++comment "Automatic platform settings from Kconfig.auto"
++	depends on ALLOW_EDIT_AUTO
++
++if PLATFORM_GENERIC=y
++	source "arch/microblaze/platform/generic/Kconfig.auto"
++endif
++
++endmenu
+diff --git a/arch/microblaze/platform/generic/Kconfig.auto b/arch/microblaze/platform/generic/Kconfig.auto
+new file mode 100644
+index 0000000..8f33468
+--- /dev/null
++++ b/arch/microblaze/platform/generic/Kconfig.auto
+@@ -0,0 +1,62 @@
++#
++# (C) Copyright 2007 Michal Simek
++#
++# Michal SIMEK <monstr@monstr.eu>
++#
++# This program is free software; you can redistribute it and/or
++# modify it under the terms of the GNU General Public License as
++# published by the Free Software Foundation; either version 2 of
++# the License, or (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 59 Temple Place, Suite 330, Boston,
++# MA 02111-1307 USA
++#
++# CAUTION: This file is automatically generated by libgen.
++# Version: Xilinx EDK 9.2.02 EDK_Jm_SP2.3
++# Generate by U-BOOT v4.00.c
++#
++
++# Definitions for MICROBLAZE0
++comment "Definitions for MICROBLAZE0"
++      depends on ALLOW_EDIT_AUTO
++
++config KERNEL_BASE_ADDR
++	hex "Physical address where Linux Kernel is"
++	default "0x20000000"
++	help
++	  BASE Address for kernel
++
++config XILINX_MICROBLAZE0_FAMILY
++       string "Targetted FPGA family" if ALLOW_EDIT_AUTO
++       default spartan3e
++
++config XILINX_MICROBLAZE0_USE_MSR_INSTR
++       int "USE_MSR_INSTR" if ALLOW_EDIT_AUTO
++       default 1
++
++config XILINX_MICROBLAZE0_USE_BARREL
++       int "USE_BARREL range (0:1)" if ALLOW_EDIT_AUTO
++       default 1
++
++config XILINX_MICROBLAZE0_USE_DIV
++       int "USE_DIV range (0:1)" if ALLOW_EDIT_AUTO
++       default 1
++
++config XILINX_MICROBLAZE0_USE_HW_MULT
++       int "USE_HW_MULT range (0:1)" if ALLOW_EDIT_AUTO
++       default 2
++
++config XILINX_MICROBLAZE0_USE_FPU
++       int "USE_FPU range (0:1)" if ALLOW_EDIT_AUTO
++       default 2
++
++config XILINX_MICROBLAZE0_HW_VER
++       string "Core version number" if ALLOW_EDIT_AUTO
++       default 7.00.b
 -- 
 1.5.4.GIT
