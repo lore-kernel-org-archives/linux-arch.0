@@ -1,7 +1,7 @@
 From: monstr@monstr.eu
-Subject: [PATCH 36/58] microblaze_v5: headers for executables format FLAT, ELF
-Date: Tue,  8 Jul 2008 13:59:36 +0200
-Message-ID: <b6a0f3bceb0867c55613463fc43be5328fcedecd.1215517976.git.monstr@monstr.eu>
+Subject: [PATCH 44/58] microblaze_v5: termbits.h termios.h
+Date: Tue,  8 Jul 2008 13:59:44 +0200
+Message-ID: <0d39e8f03c487c004efa226c5ee81a81a8856768.1215517976.git.monstr@monstr.eu>
 References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
  <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
@@ -38,12 +38,20 @@ References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <c7120d8a6379cb1a18af5330997e30ec974acc2f.1215517976.git.monstr@monstr.eu>
  <d1d33c18956829ec9ac7daf8d0516b17e85ed190.1215517976.git.monstr@monstr.eu>
  <7a16429cfc461420883dbaa80c16047e5a1a91c1.1215517976.git.monstr@monstr.eu>
+ <b6a0f3bceb0867c55613463fc43be5328fcedecd.1215517976.git.monstr@monstr.eu>
+ <fc26823d77c7180b62022e2d4bcca3c4fe6de574.1215517976.git.monstr@monstr.eu>
+ <64089967061955b7a29eb6d4e6269ff75b5442f2.1215517976.git.monstr@monstr.eu>
+ <92e3ab88c2174acf4e25c474c1f68ffd4db72ca6.1215517976.git.monstr@monstr.eu>
+ <5174afd0eaa5c6cb9344ea3217199e48899be313.1215517976.git.monstr@monstr.eu>
+ <bcb94400dca62fb349d0ab1e0a6209291fdcdfc5.1215517976.git.monstr@monstr.eu>
+ <5b2ed516b2e51d5117386c1b6eb814acc6e5a157.1215517976.git.monstr@monstr.eu>
+ <421f4b613d4dbd983df1545a9a163347e5bd1c56.1215517976.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27047 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27059 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1757690AbYGHMLx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Jul 2008 08:11:53 -0400
-In-Reply-To: <7a16429cfc461420883dbaa80c16047e5a1a91c1.1215517976.git.monstr@monstr.eu>
+	id S1757782AbYGHML6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Jul 2008 08:11:58 -0400
+In-Reply-To: <421f4b613d4dbd983df1545a9a163347e5bd1c56.1215517976.git.monstr@monstr.eu>
 In-Reply-To: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -56,18 +64,20 @@ From: Michal Simek <monstr@monstr.eu>
 Acked-by: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/elf.h  |   22 ++++++++++
- include/asm-microblaze/flat.h |   90 +++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 112 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/elf.h
- create mode 100644 include/asm-microblaze/flat.h
+ include/asm-generic/termbits.h    |  200 +++++++++++++++++++++++++++++++++++++
+ include/asm-microblaze/termbits.h |    1 +
+ include/asm-microblaze/termios.h  |   63 ++++++++++++
+ 3 files changed, 264 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/termbits.h
+ create mode 100644 include/asm-microblaze/termbits.h
+ create mode 100644 include/asm-microblaze/termios.h
 
-diff --git a/include/asm-microblaze/elf.h b/include/asm-microblaze/elf.h
+diff --git a/include/asm-generic/termbits.h b/include/asm-generic/termbits.h
 new file mode 100644
-index 0000000..a9f2ecf
+index 0000000..740b044
 --- /dev/null
-+++ b/include/asm-microblaze/elf.h
-@@ -0,0 +1,22 @@
++++ b/include/asm-generic/termbits.h
+@@ -0,0 +1,200 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
@@ -76,115 +86,273 @@ index 0000000..a9f2ecf
 + * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_ELF_H
-+#define _ASM_MICROBLAZE_ELF_H
++#ifndef _ASM_GENERIC_TERMBITS_H
++#define _ASM_GENERIC_TERMBITS_H
 +
-+#define EM_XILINX_MICROBLAZE 0xbaab
-+#define ELF_ARCH	EM_XILINX_MICROBLAZE
++#include <linux/posix_types.h>
 +
-+#define elf_check_arch(x) ((x)->e_machine == EM_XILINX_MICROBLAZE)
++typedef unsigned char	cc_t;
++typedef unsigned int	speed_t;
++typedef unsigned int	tcflag_t;
 +
-+/*
-+ * These are used to set parameters in the core dumps.
-+ */
-+#define ELF_CLASS	ELFCLASS32
++#define NCCS 19
++struct termios {
++	tcflag_t c_iflag; /* input mode flags */
++	tcflag_t c_oflag; /* output mode flags */
++	tcflag_t c_cflag; /* control mode flags */
++	tcflag_t c_lflag; /* local mode flags */
++	cc_t c_line; /* line discipline */
++	cc_t c_cc[NCCS]; /* control characters */
++};
 +
-+#endif /* _ASM_MICROBLAZE_ELF_H */
-diff --git a/include/asm-microblaze/flat.h b/include/asm-microblaze/flat.h
++struct ktermios {
++	tcflag_t c_iflag; /* input mode flags */
++	tcflag_t c_oflag; /* output mode flags */
++	tcflag_t c_cflag; /* control mode flags */
++	tcflag_t c_lflag; /* local mode flags */
++	cc_t c_line; /* line discipline */
++	cc_t c_cc[NCCS]; /* control characters */
++	speed_t c_ispeed; /* input speed */
++	speed_t c_ospeed; /* output speed */
++};
++
++/* c_cc characters */
++
++#define VINTR 0
++#define VQUIT 1
++#define VERASE 2
++#define VKILL 3
++#define VEOF 4
++#define VTIME 5
++#define VMIN 6
++#define VSWTC 7
++#define VSTART 8
++#define VSTOP 9
++#define VSUSP 10
++#define VEOL 11
++#define VREPRINT 12
++#define VDISCARD 13
++#define VWERASE 14
++#define VLNEXT 15
++#define VEOL2 16
++
++/* c_iflag bits */
++
++#define IGNBRK	0000001
++#define BRKINT	0000002
++#define IGNPAR	0000004
++#define PARMRK	0000010
++#define INPCK	0000020
++#define ISTRIP	0000040
++#define INLCR	0000100
++#define IGNCR	0000200
++#define ICRNL	0000400
++#define IUCLC	0001000
++#define IXON	0002000
++#define IXANY	0004000
++#define IXOFF	0010000
++#define IMAXBEL	0020000
++#define IUTF8	0040000
++
++/* c_oflag bits */
++
++#define OPOST	0000001
++#define OLCUC	0000002
++#define ONLCR	0000004
++#define OCRNL	0000010
++#define ONOCR	0000020
++#define ONLRET	0000040
++#define OFILL	0000100
++#define OFDEL	0000200
++#define NLDLY	0000400
++#define NL0	0000000
++#define NL1	0000400
++#define CRDLY	0003000
++#define CR0	0000000
++#define CR1	0001000
++#define CR2	0002000
++#define CR3	0003000
++#define TABDLY	0014000
++#define TAB0	0000000
++#define TAB1	0004000
++#define TAB2	0010000
++#define TAB3	0014000
++#define XTABS	0014000
++#define BSDLY	0020000
++#define BS0	0000000
++#define BS1	0020000
++#define VTDLY	0040000
++#define VT0	0000000
++#define VT1	0040000
++#define FFDLY	0100000
++#define FF0	0000000
++#define FF1	0100000
++
++/* c_cflag bit meaning */
++
++#define CBAUD	0010017
++#define B0	0000000 /* hang up */
++#define B50	0000001
++#define B75	0000002
++#define B110	0000003
++#define B134	0000004
++#define B150	0000005
++#define B200	0000006
++#define B300	0000007
++#define B600	0000010
++#define B1200	0000011
++#define B1800	0000012
++#define B2400	0000013
++#define B4800	0000014
++#define B9600	0000015
++#define B19200	0000016
++#define B38400	0000017
++#define EXTA B19200
++#define EXTB B38400
++#define CSIZE	0000060
++#define CS5	0000000
++#define CS6	0000020
++#define CS7	0000040
++#define CS8	0000060
++#define CSTOPB	0000100
++#define CREAD	0000200
++#define PARENB	0000400
++#define PARODD	0001000
++#define HUPCL	0002000
++#define CLOCAL	0004000
++#define CBAUDEX	0010000
++#define B57600	0010001
++#define B115200	0010002
++#define B230400	0010003
++#define B460800	0010004
++#define B500000	0010005
++#define B576000	0010006
++#define B921600	0010007
++#define B1000000	0010010
++#define B1152000	0010011
++#define B1500000	0010012
++#define B2000000	0010013
++#define B2500000	0010014
++#define B3000000	0010015
++#define B3500000	0010016
++#define B4000000	0010017
++#define CIBAUD		002003600000 /* input baud rate (not used) */
++#define CMSPAR		010000000000 /* mark or space (stick) parity */
++#define CRTSCTS		020000000000 /* flow control */
++
++/* c_lflag bits */
++
++#define ISIG	0000001
++#define ICANON	0000002
++#define XCASE	0000004
++#define ECHO	0000010
++#define ECHOE	0000020
++#define ECHOK	0000040
++#define ECHONL	0000100
++#define NOFLSH	0000200
++#define TOSTOP	0000400
++#define ECHOCTL	0001000
++#define ECHOPRT	0002000
++#define ECHOKE	0004000
++#define FLUSHO	0010000
++#define PENDIN	0040000
++#define IEXTEN	0100000
++
++/* tcflow() and TCXONC use these */
++
++#define	TCOOFF		0
++#define	TCOON		1
++#define	TCIOFF		2
++#define	TCION		3
++
++/* tcflush() and TCFLSH use these */
++
++#define	TCIFLUSH	0
++#define	TCOFLUSH	1
++#define	TCIOFLUSH	2
++
++/* tcsetattr uses these */
++
++#define	TCSANOW		0
++#define	TCSADRAIN	1
++#define	TCSAFLUSH	2
++
++#endif /* _ASM_GENERIC_TERMBITS_H */
+diff --git a/include/asm-microblaze/termbits.h b/include/asm-microblaze/termbits.h
 new file mode 100644
-index 0000000..acf0da5
+index 0000000..3935b10
 --- /dev/null
-+++ b/include/asm-microblaze/flat.h
-@@ -0,0 +1,90 @@
++++ b/include/asm-microblaze/termbits.h
+@@ -0,0 +1 @@
++#include <asm-generic/termbits.h>
+diff --git a/include/asm-microblaze/termios.h b/include/asm-microblaze/termios.h
+new file mode 100644
+index 0000000..3b26c00
+--- /dev/null
++++ b/include/asm-microblaze/termios.h
+@@ -0,0 +1,63 @@
 +/*
-+ * uClinux flat-format executables
++ * Copyright (C) 2006 Atmark Techno, Inc.
 + *
-+ * Copyright (C) 2005 John Williams <jwilliams@itee.uq.edu.au>
-+ *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License. See the file COPYING in the main directory of this
-+ * archive for more details.
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_FLAT_H
-+#define _ASM_MICROBLAZE_FLAT_H
++#ifndef _ASM_MICROBLAZE_TERMIOS_H
++#define _ASM_MICROBLAZE_TERMIOS_H
 +
-+#include <asm/unaligned.h>
++#include <asm/termbits.h>
++#include <asm/ioctls.h>
 +
-+#define	flat_stack_align(sp) /* nothing needed */
-+#define	flat_argvp_envp_on_stack()	0
-+#define	flat_old_ram_flag(flags)	(flags)
-+#define	flat_reloc_valid(reloc, size)	((reloc) <= (size))
-+#define	flat_set_persistent(relval, p)		0
++struct winsize {
++	unsigned short ws_row;
++	unsigned short ws_col;
++	unsigned short ws_xpixel;
++	unsigned short ws_ypixel;
++};
 +
-+/*
-+ * Microblaze works a little differently from other arches, because
-+ * of the MICROBLAZE_64 reloc type. Here, a 32 bit address is split
-+ * over two instructions, an 'imm' instruction which provides the top
-+ * 16 bits, then the instruction "proper" which provides the low 16
-+ * bits.
-+ */
++#define NCC 8
++struct termio {
++	unsigned short c_iflag; /* input mode flags */
++	unsigned short c_oflag; /* output mode flags */
++	unsigned short c_cflag; /* control mode flags */
++	unsigned short c_lflag; /* local mode flags */
++	unsigned char c_line; /* line discipline */
++	unsigned char c_cc[NCC]; /* control characters */
++};
 +
-+/*
-+ * Crack open a symbol reference and extract the address to be
-+ * relocated. rp is a potentially unaligned pointer to the
-+ * reference
-+ */
++#ifdef __KERNEL__
++/*	intr=^C		quit=^|		erase=del	kill=^U
++	eof=^D		vtime=\0	vmin=\1		sxtc=\0
++	start=^Q	stop=^S		susp=^Z		eol=\0
++	reprint=^R	discard=^U	werase=^W	lnext=^V
++	eol2=\0
++*/
++#define INIT_C_CC "\003\034\177\025\004\0\1\0\021\023\032\0\022\017\027\026\0"
++#endif
 +
-+static inline unsigned long
-+flat_get_addr_from_rp(unsigned long *rp, unsigned long relval,
-+			unsigned long flags, unsigned long *persistent)
-+{
-+	unsigned long addr;
-+	(void)flags;
++/* Modem lines */
 +
-+	/* Is it a split 64/32 reference? */
-+	if (relval & 0x80000000) {
-+		/* Grab the two halves of the reference */
-+		unsigned long val_hi, val_lo;
++#define TIOCM_LE	0x001
++#define TIOCM_DTR	0x002
++#define TIOCM_RTS	0x004
++#define TIOCM_ST	0x008
++#define TIOCM_SR	0x010
++#define TIOCM_CTS	0x020
++#define TIOCM_CAR	0x040
++#define TIOCM_RNG	0x080
++#define TIOCM_DSR	0x100
++#define TIOCM_CD	TIOCM_CAR
++#define TIOCM_RI	TIOCM_RNG
++#define TIOCM_OUT1	0x2000
++#define TIOCM_OUT2	0x4000
++#define TIOCM_LOOP	0x8000
 +
-+		val_hi = get_unaligned(rp);
-+		val_lo = get_unaligned(rp+1);
++/* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
 +
-+		/* Crack the address out */
-+		addr = ((val_hi & 0xffff) << 16) + (val_lo & 0xffff);
-+	} else {
-+		/* Get the address straight out */
-+		addr = get_unaligned(rp);
-+	}
++#include <asm-generic/termios.h>
 +
-+	return addr;
-+}
-+
-+/*
-+ * Insert an address into the symbol reference at rp. rp is potentially
-+ * unaligned.
-+ */
-+
-+static inline void
-+flat_put_addr_at_rp(unsigned long *rp, unsigned long addr, unsigned long relval)
-+{
-+	/* Is this a split 64/32 reloc? */
-+	if (relval & 0x80000000) {
-+		/* Get the two "halves" */
-+		unsigned long val_hi = get_unaligned(rp);
-+		unsigned long val_lo = get_unaligned(rp + 1);
-+
-+		/* insert the address */
-+		val_hi = (val_hi & 0xffff0000) | addr >> 16;
-+		val_lo = (val_lo & 0xffff0000) | (addr & 0xffff);
-+
-+		/* store the two halves back into memory */
-+		put_unaligned(val_hi, rp);
-+		put_unaligned(val_lo, rp+1);
-+	} else {
-+		/* Put it straight in, no messing around */
-+		put_unaligned(addr, rp);
-+	}
-+}
-+
-+#define	flat_get_relocate_addr(rel)	(rel & 0x7fffffff)
-+
-+#endif /* _ASM_MICROBLAZE_FLAT_H */
++#endif /* _ASM_MICROBLAZE_TERMIOS_H */
 -- 
 1.5.4.GIT
