@@ -1,7 +1,7 @@
 From: monstr@monstr.eu
-Subject: [PATCH 23/58] microblaze_v5: asm-offsets
-Date: Tue,  8 Jul 2008 13:59:23 +0200
-Message-ID: <5da1d8f069f18f14faee8c4bff736791179ef6f1.1215517976.git.monstr@monstr.eu>
+Subject: [PATCH 26/58] microblaze_v5: virtualization
+Date: Tue,  8 Jul 2008 13:59:26 +0200
+Message-ID: <701c1dac442ac09f5010cb5356cc1a12bb0abfe1.1215517976.git.monstr@monstr.eu>
 References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
  <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
@@ -25,12 +25,15 @@ References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <875ba2708f6cd3c585e4d965142e2feb07c39a0e.1215517976.git.monstr@monstr.eu>
  <eb0e741f891335df37c3cd19f1a3ce2f7ce8652a.1215517976.git.monstr@monstr.eu>
  <b28df2ea2419cbda26f9089ed6edcc175c009688.1215517976.git.monstr@monstr.eu>
+ <5da1d8f069f18f14faee8c4bff736791179ef6f1.1215517976.git.monstr@monstr.eu>
+ <9a32168fe72b772f301216a7090670474af78e49.1215517976.git.monstr@monstr.eu>
+ <7ada4bceefc1806a2c8ef73676b7aabd8ac1cad6.1215517976.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27350 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27402 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1759627AbYGHMPC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Jul 2008 08:15:02 -0400
-In-Reply-To: <b28df2ea2419cbda26f9089ed6edcc175c009688.1215517976.git.monstr@monstr.eu>
+	id S1753250AbYGHMaF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Jul 2008 08:30:05 -0400
+In-Reply-To: <7ada4bceefc1806a2c8ef73676b7aabd8ac1cad6.1215517976.git.monstr@monstr.eu>
 In-Reply-To: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -43,130 +46,11 @@ From: Michal Simek <monstr@monstr.eu>
 Acked-by: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/kernel/asm-offsets.c |  115 ++++++++++++++++++++++++++++++++++
- 1 files changed, 115 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/kernel/asm-offsets.c
+ 0 files changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/kvm.h
 
-diff --git a/arch/microblaze/kernel/asm-offsets.c b/arch/microblaze/kernel/asm-offsets.c
+diff --git a/include/asm-microblaze/kvm.h b/include/asm-microblaze/kvm.h
 new file mode 100644
-index 0000000..10c07bc
---- /dev/null
-+++ b/arch/microblaze/kernel/asm-offsets.c
-@@ -0,0 +1,115 @@
-+/*
-+ * Copyright (C) 2007 PetaLogix
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/stddef.h>
-+#include <linux/sched.h>
-+#include <linux/kernel_stat.h>
-+#include <linux/ptrace.h>
-+#include <linux/hardirq.h>
-+#include <linux/thread_info.h>
-+#include <linux/kbuild.h>
-+
-+int main(int argc, char *argv[])
-+{
-+	/* struct pt_regs */
-+	DEFINE(PT_SIZE, sizeof(struct pt_regs));
-+	DEFINE(PT_MSR, offsetof(struct pt_regs, msr));
-+	DEFINE(PT_EAR, offsetof(struct pt_regs, ear));
-+	DEFINE(PT_ESR, offsetof(struct pt_regs, esr));
-+	DEFINE(PT_FSR, offsetof(struct pt_regs, fsr));
-+	DEFINE(PT_PC, offsetof(struct pt_regs, pc));
-+	DEFINE(PT_R0, offsetof(struct pt_regs, r0));
-+	DEFINE(PT_R1, offsetof(struct pt_regs, r1));
-+	DEFINE(PT_R2, offsetof(struct pt_regs, r2));
-+	DEFINE(PT_R3, offsetof(struct pt_regs, r3));
-+	DEFINE(PT_R4, offsetof(struct pt_regs, r4));
-+	DEFINE(PT_R5, offsetof(struct pt_regs, r5));
-+	DEFINE(PT_R6, offsetof(struct pt_regs, r6));
-+	DEFINE(PT_R7, offsetof(struct pt_regs, r7));
-+	DEFINE(PT_R8, offsetof(struct pt_regs, r8));
-+	DEFINE(PT_R9, offsetof(struct pt_regs, r9));
-+	DEFINE(PT_R10, offsetof(struct pt_regs, r10));
-+	DEFINE(PT_R11, offsetof(struct pt_regs, r11));
-+	DEFINE(PT_R12, offsetof(struct pt_regs, r12));
-+	DEFINE(PT_R13, offsetof(struct pt_regs, r13));
-+	DEFINE(PT_R14, offsetof(struct pt_regs, r14));
-+	DEFINE(PT_R15, offsetof(struct pt_regs, r15));
-+	DEFINE(PT_R16, offsetof(struct pt_regs, r16));
-+	DEFINE(PT_R17, offsetof(struct pt_regs, r17));
-+	DEFINE(PT_R18, offsetof(struct pt_regs, r18));
-+	DEFINE(PT_R19, offsetof(struct pt_regs, r19));
-+	DEFINE(PT_R20, offsetof(struct pt_regs, r20));
-+	DEFINE(PT_R21, offsetof(struct pt_regs, r21));
-+	DEFINE(PT_R22, offsetof(struct pt_regs, r22));
-+	DEFINE(PT_R23, offsetof(struct pt_regs, r23));
-+	DEFINE(PT_R24, offsetof(struct pt_regs, r24));
-+	DEFINE(PT_R25, offsetof(struct pt_regs, r25));
-+	DEFINE(PT_R26, offsetof(struct pt_regs, r26));
-+	DEFINE(PT_R27, offsetof(struct pt_regs, r27));
-+	DEFINE(PT_R28, offsetof(struct pt_regs, r28));
-+	DEFINE(PT_R29, offsetof(struct pt_regs, r29));
-+	DEFINE(PT_R30, offsetof(struct pt_regs, r30));
-+	DEFINE(PT_R31, offsetof(struct pt_regs, r31));
-+	DEFINE(PT_MODE, offsetof(struct pt_regs, kernel_mode));
-+	BLANK();
-+
-+	/* Magic offsets for PTRACE PEEK/POKE etc */
-+	DEFINE(PT_TEXT_ADDR, sizeof(struct pt_regs) + 1);
-+	DEFINE(PT_TEXT_LEN, sizeof(struct pt_regs) + 2);
-+	DEFINE(PT_DATA_ADDR, sizeof(struct pt_regs) + 3);
-+	BLANK();
-+
-+	/* struct task_struct */
-+	DEFINE(TS_THREAD_INFO, offsetof(struct task_struct, stack));
-+
-+	/* struct thread_info */
-+	DEFINE(TI_TASK, offsetof(struct thread_info, task));
-+	DEFINE(TI_EXEC_DOMAIN, offsetof(struct thread_info, exec_domain));
-+	DEFINE(TI_FLAGS, offsetof(struct thread_info, flags));
-+	DEFINE(TI_STATUS, offsetof(struct thread_info, status));
-+	DEFINE(TI_CPU, offsetof(struct thread_info, cpu));
-+	DEFINE(TI_PRE_COUNT, offsetof(struct thread_info, preempt_count));
-+	DEFINE(TI_ADDR_LIMIT, offsetof(struct thread_info, addr_limit));
-+	DEFINE(TI_RESTART_BLOCK, offsetof(struct thread_info, restart_block));
-+	DEFINE(TI_CPU_CONTEXT, offsetof(struct thread_info, cpu_context));
-+	BLANK();
-+
-+	/* struct cpu_context */
-+	DEFINE(CC_SP, offsetof(struct cpu_context, r1)); /* r1 */
-+	DEFINE(CC_R2, offsetof(struct cpu_context, r2));
-+	/* dedicated registers */
-+	DEFINE(CC_R13, offsetof(struct cpu_context, r13));
-+	DEFINE(CC_R14, offsetof(struct cpu_context, r14));
-+	DEFINE(CC_R15, offsetof(struct cpu_context, r15));
-+	DEFINE(CC_R16, offsetof(struct cpu_context, r16));
-+	DEFINE(CC_R17, offsetof(struct cpu_context, r17));
-+	DEFINE(CC_R18, offsetof(struct cpu_context, r18));
-+	/* non-volatile registers */
-+	DEFINE(CC_R19, offsetof(struct cpu_context, r19));
-+	DEFINE(CC_R20, offsetof(struct cpu_context, r20));
-+	DEFINE(CC_R21, offsetof(struct cpu_context, r21));
-+	DEFINE(CC_R22, offsetof(struct cpu_context, r22));
-+	DEFINE(CC_R23, offsetof(struct cpu_context, r23));
-+	DEFINE(CC_R24, offsetof(struct cpu_context, r24));
-+	DEFINE(CC_R25, offsetof(struct cpu_context, r25));
-+	DEFINE(CC_R26, offsetof(struct cpu_context, r26));
-+	DEFINE(CC_R27, offsetof(struct cpu_context, r27));
-+	DEFINE(CC_R28, offsetof(struct cpu_context, r28));
-+	DEFINE(CC_R29, offsetof(struct cpu_context, r29));
-+	DEFINE(CC_R30, offsetof(struct cpu_context, r30));
-+	/* special purpose registers */
-+	DEFINE(CC_MSR, offsetof(struct cpu_context, msr));
-+	DEFINE(CC_EAR, offsetof(struct cpu_context, ear));
-+	DEFINE(CC_ESR, offsetof(struct cpu_context, esr));
-+	DEFINE(CC_FSR, offsetof(struct cpu_context, fsr));
-+	BLANK();
-+
-+	return 0;
-+}
+index 0000000..e69de29
 -- 
 1.5.4.GIT
