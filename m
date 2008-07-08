@@ -1,7 +1,7 @@
 From: monstr@monstr.eu
-Subject: [PATCH 33/58] microblaze_v5: definitions of types
-Date: Tue,  8 Jul 2008 13:59:33 +0200
-Message-ID: <c7120d8a6379cb1a18af5330997e30ec974acc2f.1215517976.git.monstr@monstr.eu>
+Subject: [PATCH 49/58] microblaze_v5: pool.h socket.h
+Date: Tue,  8 Jul 2008 13:59:49 +0200
+Message-ID: <3c5eac3dbdbf538c727a4a8fe336cdd55650bb37.1215517976.git.monstr@monstr.eu>
 References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
  <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
@@ -35,12 +35,28 @@ References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <6e5687d37386334cf122d1eafcca0c6649c955be.1215517976.git.monstr@monstr.eu>
  <689cff1b6d98f60d8f8abc4472193688b524284d.1215517976.git.monstr@monstr.eu>
  <9664f18e7e86af4332018549b29bf0797d6afcd5.1215517976.git.monstr@monstr.eu>
+ <c7120d8a6379cb1a18af5330997e30ec974acc2f.1215517976.git.monstr@monstr.eu>
+ <d1d33c18956829ec9ac7daf8d0516b17e85ed190.1215517976.git.monstr@monstr.eu>
+ <7a16429cfc461420883dbaa80c16047e5a1a91c1.1215517976.git.monstr@monstr.eu>
+ <b6a0f3bceb0867c55613463fc43be5328fcedecd.1215517976.git.monstr@monstr.eu>
+ <fc26823d77c7180b62022e2d4bcca3c4fe6de574.1215517976.git.monstr@monstr.eu>
+ <64089967061955b7a29eb6d4e6269ff75b5442f2.1215517976.git.monstr@monstr.eu>
+ <92e3ab88c2174acf4e25c474c1f68ffd4db72ca6.1215517976.git.monstr@monstr.eu>
+ <5174afd0eaa5c6cb9344ea3217199e48899be313.1215517976.git.monstr@monstr.eu>
+ <bcb94400dca62fb349d0ab1e0a6209291fdcdfc5.1215517976.git.monstr@monstr.eu>
+ <5b2ed516b2e51d5117386c1b6eb814acc6e5a157.1215517976.git.monstr@monstr.eu>
+ <421f4b613d4dbd983df1545a9a163347e5bd1c56.1215517976.git.monstr@monstr.eu>
+ <0d39e8f03c487c004efa226c5ee81a81a8856768.1215517976.git.monstr@monstr.eu>
+ <c4f477d71dd4cd2ae884b9c47756c9334f8dac18.1215517976.git.monstr@monstr.eu>
+ <a98df8525bf9287d7a8b6077ff20dd61a055a98e.1215517976.git.monstr@monstr.eu>
+ <c6651b096ee8a0691f94f8c19574302dbfb61ee4.1215517976.git.monstr@monstr.eu>
+ <2ac3915482a9a50f7a4531908305b326baa2008e.1215517976.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27720 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27733 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750929AbYGHNKv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Jul 2008 09:10:51 -0400
-In-Reply-To: <9664f18e7e86af4332018549b29bf0797d6afcd5.1215517976.git.monstr@monstr.eu>
+	id S1754205AbYGHNL4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Jul 2008 09:11:56 -0400
+In-Reply-To: <2ac3915482a9a50f7a4531908305b326baa2008e.1215517976.git.monstr@monstr.eu>
 In-Reply-To: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -53,18 +69,20 @@ From: Michal Simek <monstr@monstr.eu>
 Acked-by: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/posix_types.h |   69 ++++++++++++++++++++++++++++++++++
- include/asm-microblaze/types.h       |   62 ++++++++++++++++++++++++++++++
- 2 files changed, 131 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/posix_types.h
- create mode 100644 include/asm-microblaze/types.h
+ include/asm-generic/socket.h    |   66 +++++++++++++++++++++++++++++++++++++++
+ include/asm-microblaze/poll.h   |    1 +
+ include/asm-microblaze/socket.h |    1 +
+ 3 files changed, 68 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/socket.h
+ create mode 100644 include/asm-microblaze/poll.h
+ create mode 100644 include/asm-microblaze/socket.h
 
-diff --git a/include/asm-microblaze/posix_types.h b/include/asm-microblaze/posix_types.h
+diff --git a/include/asm-generic/socket.h b/include/asm-generic/socket.h
 new file mode 100644
-index 0000000..4e6412d
+index 0000000..3f3430e
 --- /dev/null
-+++ b/include/asm-microblaze/posix_types.h
-@@ -0,0 +1,69 @@
++++ b/include/asm-generic/socket.h
+@@ -0,0 +1,66 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
@@ -73,134 +91,77 @@ index 0000000..4e6412d
 + * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_POSIX_TYPES_H
-+#define _ASM_MICROBLAZE_POSIX_TYPES_H
++#ifndef _ASM_GENERIC_SOCKET_H
++#define _ASM_GENERIC_SOCKET_H
 +
-+/*
-+ * This file is generally used by user-level software, so you need to
-+ * be a little careful about namespace pollution etc. Also, we cannot
-+ * assume GCC is being used.
-+ */
++#include <asm/sockios.h>
 +
-+typedef unsigned long	__kernel_ino_t;
-+typedef unsigned int	__kernel_mode_t;
-+typedef unsigned int	__kernel_nlink_t;
-+typedef long		__kernel_off_t;
-+typedef int		__kernel_pid_t;
-+typedef unsigned int	__kernel_ipc_pid_t;
-+typedef unsigned int	__kernel_uid_t;
-+typedef unsigned int	__kernel_gid_t;
-+typedef unsigned int	__kernel_size_t;
-+typedef int		__kernel_ssize_t;
-+typedef int		__kernel_ptrdiff_t;
-+typedef long		__kernel_time_t;
-+typedef long		__kernel_suseconds_t;
-+typedef long		__kernel_clock_t;
-+typedef int		__kernel_timer_t;
-+typedef int		__kernel_clockid_t;
-+typedef int		__kernel_daddr_t;
-+typedef char *		__kernel_caddr_t;
-+typedef unsigned short	__kernel_uid16_t;
-+typedef unsigned short	__kernel_gid16_t;
-+typedef unsigned int	__kernel_uid32_t;
-+typedef unsigned int	__kernel_gid32_t;
++/* For setsockoptions(2) */
++#define SOL_SOCKET	1
 +
-+#ifdef __GNUC__
-+typedef long long	__kernel_loff_t;
-+#endif
++#define SO_DEBUG	1
++#define SO_REUSEADDR	2
++#define SO_TYPE		3
++#define SO_ERROR	4
++#define SO_DONTROUTE	5
++#define SO_BROADCAST	6
++#define SO_SNDBUF	7
++#define SO_RCVBUF	8
++#define SO_SNDBUFFORCE	32
++#define SO_RCVBUFFORCE	33
++#define SO_KEEPALIVE	9
++#define SO_OOBINLINE	10
++#define SO_NO_CHECK	11
++#define SO_PRIORITY	12
++#define SO_LINGER	13
++#define SO_BSDCOMPAT	14
++/* To add :#define SO_REUSEPORT 15 */
++#define SO_PASSCRED	16
++#define SO_PEERCRED	17
++#define SO_RCVLOWAT	18
++#define SO_SNDLOWAT	19
++#define SO_RCVTIMEO	20
++#define SO_SNDTIMEO	21
 +
-+typedef struct {
-+#if defined(__KERNEL__) || defined(__USE_ALL)
-+	int	val[2];
-+#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
-+	int	__val[2];
-+#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
-+} __kernel_fsid_t;
++/* Security levels - as per NRL IPv6 - don't actually do anything */
++#define SO_SECURITY_AUTHENTICATION		22
++#define SO_SECURITY_ENCRYPTION_TRANSPORT	23
++#define SO_SECURITY_ENCRYPTION_NETWORK		24
 +
-+#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
++#define SO_BINDTODEVICE	25
 +
-+#undef	__FD_SET
-+#define	__FD_SET(d, set)	((set)->fds_bits[__FDELT(d)] |= __FDMASK(d))
++/* Socket filtering */
++#define SO_ATTACH_FILTER	26
++#define SO_DETACH_FILTER	27
 +
-+#undef	__FD_CLR
-+#define	__FD_CLR(d, set)	((set)->fds_bits[__FDELT(d)] &= ~__FDMASK(d))
++#define SO_PEERNAME		28
++#define SO_TIMESTAMP		29
++#define SCM_TIMESTAMP		SO_TIMESTAMP
 +
-+#undef	__FD_ISSET
-+#define	__FD_ISSET(d, set)	(!!((set)->fds_bits[__FDELT(d)] & __FDMASK(d)))
++#define SO_ACCEPTCONN		30
 +
-+#undef	__FD_ZERO
-+#define __FD_ZERO(fdsetp) (memset (fdsetp, 0, sizeof(*(fd_set *)fdsetp)))
++#define SO_PEERSEC		31
++#define SO_PASSSEC		34
 +
-+#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
++#define SO_TIMESTAMPNS		35
++#define SCM_TIMESTAMPNS		SO_TIMESTAMPNS
 +
-+#endif /* _ASM_MICROBLAZE_POSIX_TYPES_H */
-diff --git a/include/asm-microblaze/types.h b/include/asm-microblaze/types.h
++#define SO_MARK			36
++
++#endif /* _ASM_GENERIC_SOCKET_H */
+diff --git a/include/asm-microblaze/poll.h b/include/asm-microblaze/poll.h
 new file mode 100644
-index 0000000..449ab8d
+index 0000000..c98509d
 --- /dev/null
-+++ b/include/asm-microblaze/types.h
-@@ -0,0 +1,62 @@
-+/*
-+ * Copyright (C) Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_TYPES_H
-+#define _ASM_MICROBLAZE_TYPES_H
-+
-+#ifndef __ASSEMBLY__
-+
-+typedef unsigned short umode_t;
-+
-+/*
-+ * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
-+ * header files exported to user space
-+ */
-+
-+typedef __signed__ char __s8;
-+typedef unsigned char __u8;
-+
-+typedef __signed__ short __s16;
-+typedef unsigned short __u16;
-+
-+typedef __signed__ int __s32;
-+typedef unsigned int __u32;
-+
-+#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-+typedef __signed__ long long __s64;
-+typedef unsigned long long __u64;
-+#endif
-+
-+/*
-+ * These aren't exported outside the kernel to avoid name space clashes
-+ */
-+#ifdef __KERNEL__
-+
-+typedef __signed__ char s8;
-+typedef unsigned char u8;
-+
-+typedef __signed__ short s16;
-+typedef unsigned short u16;
-+
-+typedef __signed__ int s32;
-+typedef unsigned int u32;
-+
-+typedef __signed__ long long s64;
-+typedef unsigned long long u64;
-+
-+
-+#define BITS_PER_LONG 32
-+
-+/* Dma addresses are 32-bits wide. */
-+
-+typedef u32 dma_addr_t;
-+
-+#endif/* __KERNEL__ */
-+#endif
-+
-+#endif /* _ASM_MICROBLAZE_TYPES_H */
++++ b/include/asm-microblaze/poll.h
+@@ -0,0 +1 @@
++#include <asm-generic/poll.h>
+diff --git a/include/asm-microblaze/socket.h b/include/asm-microblaze/socket.h
+new file mode 100644
+index 0000000..6b71384
+--- /dev/null
++++ b/include/asm-microblaze/socket.h
+@@ -0,0 +1 @@
++#include <asm-generic/socket.h>
 -- 
 1.5.4.GIT
