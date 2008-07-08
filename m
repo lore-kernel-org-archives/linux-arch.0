@@ -1,7 +1,7 @@
 From: monstr@monstr.eu
-Subject: [PATCH 19/58] microblaze_v5: early_printk support
-Date: Tue,  8 Jul 2008 13:59:19 +0200
-Message-ID: <2aa1ac7891af57959237aae3addf4bbe607f55d7.1215517976.git.monstr@monstr.eu>
+Subject: [PATCH 40/58] microblaze_v5: headers pgalloc.h pgtable.h
+Date: Tue,  8 Jul 2008 13:59:40 +0200
+Message-ID: <5174afd0eaa5c6cb9344ea3217199e48899be313.1215517976.git.monstr@monstr.eu>
 References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
  <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
@@ -21,12 +21,33 @@ References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <143afcf84af583ab66da7e8acfc9eb03b7f3eaa0.1215517976.git.monstr@monstr.eu>
  <a967ee4e5a60b410e2810ce0475e8fd04f99e3ae.1215517976.git.monstr@monstr.eu>
  <c5f0730287365c845746467a9917dbc07d2fca3c.1215517976.git.monstr@monstr.eu>
+ <2aa1ac7891af57959237aae3addf4bbe607f55d7.1215517976.git.monstr@monstr.eu>
+ <875ba2708f6cd3c585e4d965142e2feb07c39a0e.1215517976.git.monstr@monstr.eu>
+ <eb0e741f891335df37c3cd19f1a3ce2f7ce8652a.1215517976.git.monstr@monstr.eu>
+ <b28df2ea2419cbda26f9089ed6edcc175c009688.1215517976.git.monstr@monstr.eu>
+ <5da1d8f069f18f14faee8c4bff736791179ef6f1.1215517976.git.monstr@monstr.eu>
+ <9a32168fe72b772f301216a7090670474af78e49.1215517976.git.monstr@monstr.eu>
+ <7ada4bceefc1806a2c8ef73676b7aabd8ac1cad6.1215517976.git.monstr@monstr.eu>
+ <701c1dac442ac09f5010cb5356cc1a12bb0abfe1.1215517976.git.monstr@monstr.eu>
+ <9b48e9d85b4a5a6dcffce8eef62b232b6bfac8e8.1215517976.git.monstr@monstr.eu>
+ <04b0b222b84ba9cfe2507a9081f4d715f2323733.1215517976.git.monstr@monstr.eu>
+ <d4c1b3ecfec1bf37ca0ecea6909ad25bbc945630.1215517976.git.monstr@monstr.eu>
+ <6e5687d37386334cf122d1eafcca0c6649c955be.1215517976.git.monstr@monstr.eu>
+ <689cff1b6d98f60d8f8abc4472193688b524284d.1215517976.git.monstr@monstr.eu>
+ <9664f18e7e86af4332018549b29bf0797d6afcd5.1215517976.git.monstr@monstr.eu>
+ <c7120d8a6379cb1a18af5330997e30ec974acc2f.1215517976.git.monstr@monstr.eu>
+ <d1d33c18956829ec9ac7daf8d0516b17e85ed190.1215517976.git.monstr@monstr.eu>
+ <7a16429cfc461420883dbaa80c16047e5a1a91c1.1215517976.git.monstr@monstr.eu>
+ <b6a0f3bceb0867c55613463fc43be5328fcedecd.1215517976.git.monstr@monstr.eu>
+ <fc26823d77c7180b62022e2d4bcca3c4fe6de574.1215517976.git.monstr@monstr.eu>
+ <64089967061955b7a29eb6d4e6269ff75b5442f2.1215517976.git.monstr@monstr.eu>
+ <92e3ab88c2174acf4e25c474c1f68ffd4db72ca6.1215517976.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27522 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27528 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1757063AbYGHMmX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Jul 2008 08:42:23 -0400
-In-Reply-To: <c5f0730287365c845746467a9917dbc07d2fca3c.1215517976.git.monstr@monstr.eu>
+	id S1753971AbYGHMnL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Jul 2008 08:43:11 -0400
+In-Reply-To: <92e3ab88c2174acf4e25c474c1f68ffd4db72ca6.1215517976.git.monstr@monstr.eu>
 In-Reply-To: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -39,145 +60,85 @@ From: Michal Simek <monstr@monstr.eu>
 Acked-by: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/kernel/early_printk.c |  130 +++++++++++++++++++++++++++++++++
- 1 files changed, 130 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/kernel/early_printk.c
+ include/asm-microblaze/pgalloc.h |   14 +++++++++++
+ include/asm-microblaze/pgtable.h |   48 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 62 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/pgalloc.h
+ create mode 100644 include/asm-microblaze/pgtable.h
 
-diff --git a/arch/microblaze/kernel/early_printk.c b/arch/microblaze/kernel/early_printk.c
+diff --git a/include/asm-microblaze/pgalloc.h b/include/asm-microblaze/pgalloc.h
 new file mode 100644
-index 0000000..54df948
+index 0000000..2a4b354
 --- /dev/null
-+++ b/arch/microblaze/kernel/early_printk.c
-@@ -0,0 +1,130 @@
++++ b/include/asm-microblaze/pgalloc.h
+@@ -0,0 +1,14 @@
 +/*
-+ * Early printk support for Microblaze.
-+ *
-+ * Copyright (C) 2007-2008 Michal Simek <monstr@monstr.eu>
-+ * Copyright (C) 2003-2006 Yasushi SHOJI <yashi@atmark-techno.com>
++ * Copyright (C) 2006 Atmark Techno, Inc.
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
 + * for more details.
 + */
 +
-+/* FIXME Once we got some system without uart light, we need to refactor */
++#ifndef _ASM_MICROBLAZE_PGALLOC_H
++#define _ASM_MICROBLAZE_PGALLOC_H
 +
-+#include <linux/console.h>
-+#include <linux/kernel.h>
-+#include <linux/init.h>
-+#include <linux/string.h>
-+#include <linux/tty.h>
-+#include <asm/io.h>
-+#include <asm/processor.h>
-+#include <asm/fcntl.h>
-+#include <asm/setup.h>
++#define check_pgt_cache()	do {} while (0)
 +
-+#ifdef CONFIG_EARLY_PRINTK
-+#define BASE_ADDR ((unsigned char *)CONFIG_EARLY_PRINTK_UARTLITE_ADDRESS)
++#endif /* _ASM_MICROBLAZE_PGALLOC_H */
+diff --git a/include/asm-microblaze/pgtable.h b/include/asm-microblaze/pgtable.h
+new file mode 100644
+index 0000000..0354908
+--- /dev/null
++++ b/include/asm-microblaze/pgtable.h
+@@ -0,0 +1,48 @@
++/*
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
 +
-+#define RX_FIFO	BASE_ADDR
-+#define TX_FIFO	((unsigned long *)(BASE_ADDR + 4))
-+#define STATUS	((unsigned long *)(BASE_ADDR + 8))
-+#define CONTROL	((unsigned long *)(BASE_ADDR + 12))
++#ifndef _ASM_MICROBLAZE_PGTABLE_H
++#define _ASM_MICROBLAZE_PGTABLE_H
 +
-+static void early_printk_putc(char c)
-+{
-+	/*
-+	 * Limit how many times we'll spin waiting for TX FIFO status.
-+	 * This will prevent lockups if the base address is incorrectly
-+	 * set, or any other issue on the UARTLITE.
-+	 * This limit is pretty arbitrary, unless we are at about 10 baud
-+	 * we'll never timeout on a working UART.
-+	 */
++#define pgd_present(pgd)	(1) /* pages are always present on NO_MM */
++#define pgd_none(pgd)		(0)
++#define pgd_bad(pgd)		(0)
++#define pgd_clear(pgdp)
++#define kern_addr_valid(addr)	(1)
++#define	pmd_offset(a, b)	((void *) 0)
 +
-+	unsigned retries = 10000;
-+	while (retries-- && (ioread32(STATUS) & (1<<3)))
-+		;
++#define PAGE_NONE		__pgprot(0) /* these mean nothing to NO_MM */
++#define PAGE_SHARED		__pgprot(0) /* these mean nothing to NO_MM */
++#define PAGE_COPY		__pgprot(0) /* these mean nothing to NO_MM */
++#define PAGE_READONLY		__pgprot(0) /* these mean nothing to NO_MM */
++#define PAGE_KERNEL		__pgprot(0) /* these mean nothing to NO_MM */
 +
-+	/* Only attempt the iowrite if we didn't timeout */
-+	if(retries)
-+		iowrite32((c & 0xff), TX_FIFO);
-+}
++#define __swp_type(x)		(0)
++#define __swp_offset(x)		(0)
++#define __swp_entry(typ, off)	((swp_entry_t) { ((typ) | ((off) << 7)) })
++#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
++#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
 +
-+static void early_printk_write(struct console *unused,
-+					const char *s, unsigned n)
-+{
-+	while (*s && n-- > 0) {
-+		early_printk_putc(*s);
-+		if (*s == '\n')
-+			early_printk_putc('\r');
-+		s++;
-+	}
-+}
-+
-+static struct console early_serial_console = {
-+	.name = "earlyser",
-+	.write = early_printk_write,
-+	.flags = CON_PRINTBUFFER,
-+	.index = -1,
-+};
-+
-+/* Direct interface for emergencies */
-+static struct console *early_console = &early_serial_console;
-+static int early_console_initialized;
-+
-+void early_printk(const char *fmt, ...)
-+{
-+	char buf[512];
-+	int n;
-+	va_list ap;
-+
-+	if (early_console_initialized) {
-+		va_start(ap, fmt);
-+		n = vscnprintf(buf, 512, fmt, ap);
-+		early_console->write(early_console, buf, n);
-+		va_end(ap);
-+	}
-+}
-+
-+static int __initdata keep_early;
-+
-+int __init setup_early_printk(char *opt)
-+{
-+	char *space;
-+	char buf[256];
-+
-+	if (early_console_initialized)
-+		return 1;
-+
-+	strlcpy(buf, opt, sizeof(buf));
-+	space = strchr(buf, ' ');
-+	if (space)
-+		*space = 0;
-+
-+	if (strstr(buf, "keep"))
-+		keep_early = 1;
-+
-+	early_console = &early_serial_console;
-+	early_console_initialized = 1;
-+	register_console(early_console);
-+	return 0;
-+}
-+#if 0
-+static void __init disable_early_printk(void)
-+{
-+	if (!early_console_initialized || !early_console)
-+		return;
-+	if (!keep_early) {
-+		printk(KERN_INFO "disabling early console\n");
-+		unregister_console(early_console);
-+		early_console_initialized = 0;
-+	} else
-+		printk(KERN_INFO "keeping early console\n");
-+}
++#ifndef __ASSEMBLY__
++static inline int pte_file(pte_t pte) { return 0; }
 +#endif
 +
-+__setup("earlyprintk=", setup_early_printk);
++#define ZERO_PAGE(vaddr)	({ BUG(); NULL; })
 +
-+#else
-+void early_printk(const char *fmt, ...)
-+{
-+}
-+#endif
++#define swapper_pg_dir ((pgd_t *) NULL)
++
++#define pgtable_cache_init()	do {} while (0)
++
++#define io_remap_pfn_range(vma, vaddr, pfn, size, prot)		\
++		remap_pfn_range(vma, vaddr, pfn, size, prot)
++
++#define arch_enter_lazy_cpu_mode()	do {} while (0)
++
++void paging_init(void);
++
++#endif /* _ASM_MICROBLAZE_PGTABLE_H */
 -- 
 1.5.4.GIT
