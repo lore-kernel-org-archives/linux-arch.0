@@ -1,20 +1,16 @@
 From: monstr@monstr.eu
-Subject: [PATCH 07/58] microblaze_v5: exception handling
-Date: Tue,  8 Jul 2008 13:59:07 +0200
-Message-ID: <9be4eff2f4d015023c453eaec3b3473a44380491.1215517976.git.monstr@monstr.eu>
+Subject: [PATCH 03/58] microblaze_v5: Cpuinfo handling
+Date: Tue,  8 Jul 2008 13:59:03 +0200
+Message-ID: <58f35f498bac29e7105c589c06567e86c5a42dd5.1215517976.git.monstr@monstr.eu>
 References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
  <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
- <58f35f498bac29e7105c589c06567e86c5a42dd5.1215517976.git.monstr@monstr.eu>
- <810775b1bb678003923039726a9153ee34fb67b4.1215517976.git.monstr@monstr.eu>
- <2a24e5bc2cfbd349613ef10c716a28f04ce24a9f.1215517976.git.monstr@monstr.eu>
- <3171c5cf21eefc79665165f4a14bc5b68dd03f95.1215517976.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27570 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27565 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1759135AbYGHMrC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Jul 2008 08:47:02 -0400
-In-Reply-To: <3171c5cf21eefc79665165f4a14bc5b68dd03f95.1215517976.git.monstr@monstr.eu>
+	id S1759670AbYGHMqk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Jul 2008 08:46:40 -0400
+In-Reply-To: <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
 In-Reply-To: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -27,560 +23,430 @@ From: Michal Simek <monstr@monstr.eu>
 Acked-by: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/kernel/exceptions.c           |   77 +++++
- arch/microblaze/kernel/hw_exception_handler.S |  391 +++++++++++++++++++++++++
- include/asm-microblaze/exceptions.h           |   61 ++++
- 3 files changed, 529 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/kernel/exceptions.c
- create mode 100644 arch/microblaze/kernel/hw_exception_handler.S
- create mode 100644 include/asm-microblaze/exceptions.h
+ arch/microblaze/kernel/cpu/cpuinfo-pvr-full.c |   83 ++++++++++++++++++
+ arch/microblaze/kernel/cpu/cpuinfo-static.c   |  114 +++++++++++++++++++++++++
+ arch/microblaze/kernel/cpu/cpuinfo.c          |   84 ++++++++++++++++++
+ include/asm-microblaze/cpuinfo.h              |  110 ++++++++++++++++++++++++
+ 4 files changed, 391 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/kernel/cpu/cpuinfo-pvr-full.c
+ create mode 100644 arch/microblaze/kernel/cpu/cpuinfo-static.c
+ create mode 100644 arch/microblaze/kernel/cpu/cpuinfo.c
+ create mode 100644 include/asm-microblaze/cpuinfo.h
 
-diff --git a/arch/microblaze/kernel/exceptions.c b/arch/microblaze/kernel/exceptions.c
+diff --git a/arch/microblaze/kernel/cpu/cpuinfo-pvr-full.c b/arch/microblaze/kernel/cpu/cpuinfo-pvr-full.c
 new file mode 100644
-index 0000000..734038e
+index 0000000..b5ff5b1
 --- /dev/null
-+++ b/arch/microblaze/kernel/exceptions.c
-@@ -0,0 +1,77 @@
++++ b/arch/microblaze/kernel/cpu/cpuinfo-pvr-full.c
+@@ -0,0 +1,83 @@
 +/*
-+ * HW exception handling
++ * Support for MicroBlaze PVR (processor version register)
 + *
-+ * Copyright (C) 2007 Xilinx, Inc.
++ * Copyright (C) 2007 John Williams <john.williams@petalogix.com>
++ * Copyright (C) 2007 PetaLogix
 + *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License. See the file COPYING in the main directory of this
-+ * archive for more details.
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ */
++
++#include <linux/init.h>
++#include <linux/string.h>
++#include <asm/pvr.h>
++#include <asm/cpuinfo.h>
++
++/*
++ * Helper macro to map between fields in our struct cpuinfo, and
++ * the PVR macros in pvr.h.
++ */
++
++#define CI(c, p) ci->c = PVR_##p(pvr)
++
++void set_cpuinfo_pvr_full(struct cpuinfo *ci, struct device_node *cpu)
++{
++	struct pvr_s pvr;
++	get_pvr(&pvr);
++
++	CI(use_barrel, USE_BARREL);
++	CI(use_divider, USE_DIV);
++	CI(use_mult, USE_HW_MUL);
++	CI(use_fpu, USE_FPU);
++
++	CI(use_mul_64, USE_MUL64);
++	CI(use_msr_instr, USE_MSR_INSTR);
++	CI(use_pcmp_instr, USE_PCMP_INSTR);
++	CI(ver_code, VERSION);
++
++	CI(use_icache, USE_ICACHE);
++	CI(icache_tagbits, ICACHE_ADDR_TAG_BITS);
++	CI(icache_write, ICACHE_ALLOW_WR);
++	CI(icache_line, ICACHE_LINE_LEN);
++	CI(icache_size, ICACHE_BYTE_SIZE);
++	CI(icache_base, ICACHE_BASEADDR);
++	CI(icache_high, ICACHE_HIGHADDR);
++
++	CI(use_dcache, USE_DCACHE);
++	CI(dcache_tagbits, DCACHE_ADDR_TAG_BITS);
++	CI(dcache_write, DCACHE_ALLOW_WR);
++	CI(dcache_line, DCACHE_LINE_LEN);
++	CI(dcache_size, DCACHE_BYTE_SIZE);
++	CI(dcache_base, DCACHE_BASEADDR);
++	CI(dcache_high, DCACHE_HIGHADDR);
++
++	CI(use_dopb, D_OPB);
++	CI(use_iopb, I_OPB);
++	CI(use_dlmb, D_LMB);
++	CI(use_ilmb, I_LMB);
++	CI(num_fsl, FSL_LINKS);
++
++	CI(irq_edge, INTERRUPT_IS_EDGE);
++	CI(irq_positive, EDGE_IS_POSITIVE);
++
++	CI(area_optimised, AREA_OPTIMISED);
++	CI(opcode_0_illegal, OPCODE_0x0_ILLEGAL);
++	CI(exc_unaligned, UNALIGNED_EXCEPTION);
++	CI(exc_ill_opcode, ILL_OPCODE_EXCEPTION);
++	CI(exc_iopb, IOPB_BUS_EXCEPTION);
++	CI(exc_dopb, DOPB_BUS_EXCEPTION);
++	CI(exc_div_zero, DIV_ZERO_EXCEPTION);
++	CI(exc_fpu, FPU_EXCEPTION);
++
++	CI(hw_debug, DEBUG_ENABLED);
++	CI(num_pc_brk, NUMBER_OF_PC_BRK);
++	CI(num_rd_brk, NUMBER_OF_RD_ADDR_BRK);
++	CI(num_wr_brk, NUMBER_OF_WR_ADDR_BRK);
++
++	CI(fpga_family_code, TARGET_FAMILY);
++
++	/* take timebase-frequency from DTS */
++	ci->cpu_clock_freq = fcpu(cpu, "timebase-frequency");
++}
+diff --git a/arch/microblaze/kernel/cpu/cpuinfo-static.c b/arch/microblaze/kernel/cpu/cpuinfo-static.c
+new file mode 100644
+index 0000000..a81bcd6
+--- /dev/null
++++ b/arch/microblaze/kernel/cpu/cpuinfo-static.c
+@@ -0,0 +1,114 @@
++/*
++ * Copyright (C) 2007-2008 Michal Simek <monstr@monstr.eu>
++ * Copyright (C) 2007 John Williams <john.williams@petalogix.com>
++ * Copyright (C) 2007 PetaLogix
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
 + */
 +
 +#include <linux/kernel.h>
-+#include <linux/signal.h>
-+#include <linux/sched.h>
-+#include <asm/exceptions.h>
-+#include <asm/entry.h>		/* For KM CPU var */
++#include <linux/init.h>
++#include <linux/string.h>
++#include <asm/cpuinfo.h>
 +
-+/* Initialize_exception_handlers() - called from setup.c/trap_init() */
-+void initialize_exception_handlers(void)
++const static char family_string[] = CONFIG_XILINX_MICROBLAZE0_FAMILY;
++const static char cpu_ver_string[] = CONFIG_XILINX_MICROBLAZE0_HW_VER;
++
++void __init set_cpuinfo_static(struct cpuinfo *ci, struct device_node *cpu)
 +{
-+}
++	int i;
 +
-+#define MICROBLAZE_ILL_OPCODE_EXCEPTION	0x02
-+#define MICROBLAZE_IOPB_BUS_EXCEPTION	0x03
-+#define MICROBLAZE_DOPB_BUS_EXCEPTION	0x04
-+#define MICROBLAZE_DIV_ZERO_EXCEPTION	0x05
-+#define MICROBLAZE_FPU_EXCEPTION	0x06
++	ci->use_barrel = fcpu(cpu, "xlnx,use-barrel");
++	ci->use_divider = fcpu(cpu, "xlnx,use-div");
++	ci->use_mult = fcpu(cpu, "xlnx,use-hw-mul");
++	ci->use_fpu = fcpu(cpu, "xlnx,use-fpu");
++	ci->use_mul_64 = (ci->use_mult == 2 ? 1 : 0);
++	ci->use_msr_instr = fcpu(cpu, "xlnx,use-msr-instr");
++	ci->use_pcmp_instr = fcpu(cpu, "xlnx,use-pcmp-instr");
 +
-+static void handle_unexpected_exception(unsigned int esr,
-+				unsigned int kernel_mode, unsigned int addr)
-+{
-+	printk(KERN_WARNING "Unexpected exception %02x in %s mode, PC=%08x\n",
-+		esr, kernel_mode ? "kernel" : "user", addr);
-+}
++	ci->use_exception = fcpu(cpu, "xlnx,unaligned-exceptions") ||
++			fcpu(cpu, "xlnx,ill-opcode-exception") ||
++			fcpu(cpu, "xlnx,iopb-bus-exception") ||
++			fcpu(cpu, "xlnx,dopb-bus-exception") ||
++			fcpu(cpu, "xlnx,div-zero-exception") ||
++			fcpu(cpu, "xlnx,fpu-exception");
 +
-+static void handle_exception(const char *message, int signal,
-+				unsigned int kernel_mode, unsigned int addr)
-+{
-+	if (kernel_mode)
-+		panic("%s in the kernel mode, PC=%08x\n", message, addr);
-+	else
-+		force_sig(signal, current);
-+}
++	ci->exc_unaligned = fcpu(cpu, "xlnx,unaligned-exceptions");
++	ci->exc_unaligned = fcpu(cpu, "xlnx,ill-opcode-exception");
++	ci->exc_iopb = fcpu(cpu, "xlnx,iopb-bus-exception");
++	ci->exc_dopb = fcpu(cpu, "xlnx,dopb-bus-exception");
++	ci->exc_fpu = fcpu(cpu, "xlnx,fpu-exception");
++	ci->exc_div_zero = fcpu(cpu, "xlnx,div-zero-exception");
++	ci->opcode_0_illegal = fcpu(cpu, "xlnx,opcode-0x0-illegal");
 +
-+asmlinkage void other_exception_handler(unsigned int esr, unsigned int addr)
-+{
-+	unsigned int kernel_mode = per_cpu(KM, 0);
++	ci->use_icache = fcpu(cpu, "xlnx,use-icache");
++	ci->icache_tagbits = fcpu(cpu, "xlnx,addr-tag-bits");
++	ci->icache_write = fcpu(cpu, "xlnx,allow-icache-wr");
++	ci->icache_line = fcpu(cpu, "xlnx,icache-line-len") << 2;
++	if (!ci->icache_line) {
++		if (fcpu(cpu, "xlnx,icache-use-fsl"))
++			ci->icache_line = 4 << 2;
++		else
++			ci->icache_line = 1 << 2;
++	}
++	ci->icache_size = fcpu(cpu, "i-cache-size");
++	ci->icache_base = fcpu(cpu, "i-cache-baseaddr");
++	ci->icache_high = fcpu(cpu, "i-cache-highaddr");
 +
-+	switch (esr) {
++	ci->use_dcache = fcpu(cpu, "xlnx,use-dcache");
++	ci->dcache_tagbits = fcpu(cpu, "xlnx,dcache-addr-tag");
++	ci->dcache_write = fcpu(cpu, "xlnx,allow-dcache-wr");
++	ci->dcache_line = fcpu(cpu, "xlnx,dcache-line-len") << 2;
++	if (!ci->dcache_line) {
++		if (fcpu(cpu, "xlnx,dcache-use-fsl"))
++			ci->dcache_line = 4 << 2;
++		else
++			ci->dcache_line = 1 << 2;
++	}
++	ci->dcache_size = fcpu(cpu, "d-cache-size");
++	ci->dcache_base = fcpu(cpu, "d-cache-baseaddr");
++	ci->dcache_high = fcpu(cpu, "d-cache-highaddr");
 +
-+	case MICROBLAZE_ILL_OPCODE_EXCEPTION:
-+		handle_exception("Illegal instruction", SIGILL,
-+						kernel_mode, addr);
-+		break;
++	ci->use_dopb = fcpu(cpu, "xlnx,d-opb");
++	ci->use_iopb = fcpu(cpu, "xlnx,i-opb");
++	ci->use_dlmb = fcpu(cpu, "xlnx,d-lmb");
++	ci->use_ilmb = fcpu(cpu, "xlnx,i-lmb");
 +
-+	case MICROBLAZE_IOPB_BUS_EXCEPTION:
-+		handle_exception("Instruction bus error", SIGBUS,
-+						kernel_mode, addr);
-+		break;
++	ci->num_fsl = fcpu(cpu, "xlnx,fsl-links");
++	ci->irq_edge = fcpu(cpu, "xlnx,interrupt-is-edge");
++	ci->irq_positive = fcpu(cpu, "xlnx,edge-is-positive");
++	ci->area_optimised = 0;
 +
-+	case MICROBLAZE_DOPB_BUS_EXCEPTION:
-+		handle_exception("Data bus error", SIGBUS, kernel_mode, addr);
-+		break;
++	ci->hw_debug = fcpu(cpu, "xlnx,debug-enabled");
++	ci->num_pc_brk = fcpu(cpu, "xlnx,number-of-pc-brk");
++	ci->num_rd_brk = fcpu(cpu, "xlnx,number-of-rd-addr-brk");
++	ci->num_wr_brk = fcpu(cpu, "xlnx,number-of-wr-addr-brk");
 +
-+	case MICROBLAZE_DIV_ZERO_EXCEPTION:
-+		handle_exception("Divide by zero", SIGILL, kernel_mode, addr);
-+		break;
++	ci->cpu_clock_freq = fcpu(cpu, "timebase-frequency");
 +
-+	case MICROBLAZE_FPU_EXCEPTION:
-+		handle_exception("FPU error", SIGFPE, kernel_mode, addr);
-+		break;
++	ci->ver_code = 0;
++	ci->fpga_family_code = 0;
 +
-+	default:
-+		handle_unexpected_exception(esr, kernel_mode, addr);
++	/* Do various fixups based on CPU version and FPGA family strings */
++
++	/* Resolved the CPU version code */
++	for (i = 0; cpu_ver_lookup[i].s != NULL; i++) {
++		if (strcmp(cpu_ver_lookup[i].s, cpu_ver_string) == 0)
++			ci->ver_code = cpu_ver_lookup[i].k;
 +	}
 +
-+	return;
++	/* Resolved the fpga family code */
++	for (i = 0; family_string_lookup[i].s != NULL; i++) {
++		if (strcmp(family_string_lookup[i].s, family_string) == 0)
++			ci->fpga_family_code = family_string_lookup[i].k;
++	}
++
++	/* FIXME - mb3 and spartan2 do not exist in PVR */
++	/* This is mb3 and on a non Spartan2 */
++	if (ci->ver_code == 0x20 && ci->fpga_family_code != 0xf0)
++		/* Hardware Multiplier in use */
++		ci->use_mult = 1;
 +}
-diff --git a/arch/microblaze/kernel/hw_exception_handler.S b/arch/microblaze/kernel/hw_exception_handler.S
+diff --git a/arch/microblaze/kernel/cpu/cpuinfo.c b/arch/microblaze/kernel/cpu/cpuinfo.c
 new file mode 100644
-index 0000000..c96edcf
+index 0000000..7a3ace8
 --- /dev/null
-+++ b/arch/microblaze/kernel/hw_exception_handler.S
-@@ -0,0 +1,391 @@
++++ b/arch/microblaze/kernel/cpu/cpuinfo.c
+@@ -0,0 +1,84 @@
 +/*
-+ * Unaligned exception handling for Microblaze
++ * Copyright (C) 2007-2008 Michal Simek <monstr@monstr.eu>
++ * Copyright (C) 2007 John Williams <john.williams@petalogix.com>
++ * Copyright (C) 2007 PetaLogix
 + *
-+ * cleanup code (C) 2007 Michal Simek <monstr@monstr.eu>
-+ * uClinux customisation (C) 2005 John Williams
-+ *
-+ * Original code
-+ * Copyright (C) 2004 Xilinx, Inc. All rights reserved.
-+ *
-+ * Xilinx, Inc.
-+ * XILINX IS PROVIDING THIS DESIGN, CODE, OR INFORMATION "AS IS" AS A
-+ * COURTESY TO YOU. BY PROVIDING THIS DESIGN, CODE, OR INFORMATION AS
-+ * ONE POSSIBLE IMPLEMENTATION OF THIS FEATURE, APPLICATION OR
-+ * STANDARD, XILINX IS MAKING NO REPRESENTATION THAT THIS IMPLEMENTATION
-+ * IS FREE FROM ANY CLAIMS OF INFRINGEMENT, AND YOU ARE RESPONSIBLE
-+ * FOR OBTAINING ANY RIGHTS YOU MAY REQUIRE FOR YOUR IMPLEMENTATION.
-+ * XILINX EXPRESSLY DISCLAIMS ANY WARRANTY WHATSOEVER WITH RESPECT TO
-+ * THE ADEQUACY OF THE IMPLEMENTATION, INCLUDING BUT NOT LIMITED TO
-+ * ANY WARRANTIES OR REPRESENTATIONS THAT THIS IMPLEMENTATION IS FREE
-+ * FROM CLAIMS OF INFRINGEMENT, IMPLIED WARRANTIES OF MERCHANTABILITY
-+ * AND FITNESS FOR A PARTICULAR PURPOSE.
-+ *
-+ * $Id: hw_exception_handler.S,v 1.1.2.1 2007/03/16 16:09:57 imanuilov Exp $
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
 + *
 + */
 +
++#include <linux/init.h>
++#include <linux/slab.h>
++#include <asm/cpuinfo.h>
++#include <asm/pvr.h>
++
++const struct cpu_ver_key cpu_ver_lookup[] = {
++	/* These key value are as per MBV field in PVR0 */
++	{"5.00.a", 0x01},
++	{"5.00.b", 0x02},
++	{"5.00.c", 0x03},
++	{"6.00.a", 0x04},
++	{"6.00.b", 0x06},
++	{"7.00.a", 0x05},
++	{"7.00.b", 0x07},
++	{"7.10.a", 0x08},
++	{"7.10.b", 0x09},
++	/* FIXME There is no keycode defined in MBV for these versions */
++	{"2.10.a", 0x10},
++	{"3.00.a", 0x20},
++	{"4.00.a", 0x30},
++	{"4.00.b", 0x40},
++	{NULL, 0},
++};
++
 +/*
-+ * Microblaze HW Exception Handler
-+ * - Non self-modifying exception handler for the following exception conditions
-+ * - Unalignment
-+ * - Instruction bus error
-+ * - Data bus error
-+ * - Illegal instruction opcode
-+ * - Divide-by-zero
-+ *
-+ * Note we disable interrupts during exception handling, otherwise we will
-+ * possibly get multiple re-entrancy if interrupt handles themselves cause
-+ * exceptions. JW
++ * FIXME Not sure if the actual key is defined by Xilinx in the PVR
 + */
++const struct family_string_key family_string_lookup[] = {
++	{"virtex2", 0x4},
++	{"virtex2pro", 0x5},
++	{"spartan3", 0x6},
++	{"virtex4", 0x7},
++	{"virtex5", 0x8},
++	{"spartan3e", 0x9},
++	{"spartan3a", 0xa},
++	{"spartan3an", 0xb},
++	{"spartan3adsp", 0xc},
++	/* FIXME There is no key code defined for spartan2 */
++	{"spartan2", 0xf0},
++	{NULL, 0},
++};
 +
-+#include <asm/exceptions.h>
-+#include <asm/unistd.h>
++struct cpuinfo cpuinfo;
 +
-+/* Helpful Macros */
-+#define EX_HANDLER_STACK_SIZ	(4*19)
-+#define RMSR_OFFSET		0
-+#define REG_OFFSET(regnum)	(4*regnum)
-+#define NUM_TO_REG(num)		r ## num
++void __init setup_cpuinfo(void)
++{
++	struct device_node *cpu = NULL;
 +
-+#define R3_TO_STACK(regnum)	swi	r3, r1, REG_OFFSET(regnum)
-+#define R3_FROM_STACK(regnum)	lwi	r3, r1, REG_OFFSET(regnum)
++	cpu = (struct device_node *) of_find_node_by_type(NULL, "cpu");
++	if (!cpu)
++		printk(KERN_ERR "You don't have cpu!!!\n");
 +
-+#define PUSH_REG(regnum)	swi NUM_TO_REG(regnum), r1, REG_OFFSET(regnum)
-+#define POP_REG(regnum)		lwi NUM_TO_REG(regnum), r1, REG_OFFSET(regnum)
++	printk(KERN_INFO "%s: initialising\n", __func__);
 +
-+/* Uses r5 */
-+#define PUSH_MSR					\
-+	mfs	r5, rmsr;				\
-+	swi	r5, r1, RMSR_OFFSET;
-+
-+#define PUSH_MSR_AND_ENABLE_EXC				\
-+	mfs	r5, rmsr;				\
-+	swi	r5, r1, RMSR_OFFSET;			\
-+	ori	r5, r5, 0x100; /* Turn ON the EE bit */	\
-+	andi	r5, r5, ~2; /* Disable interrupts */	\
-+	mts	rmsr, r5;
-+
-+/* Uses r5 */
-+#define POP_MSR						\
-+	lwi	r5, r1, RMSR_OFFSET;			\
-+	mts	rmsr, r5;
-+
-+#define LWREG_NOP					\
-+	bri	ex_handler_unhandled;			\
-+	nop;
-+
-+#define SWREG_NOP					\
-+	bri	ex_handler_unhandled;			\
-+	nop;
-+
-+/* r3 is the source */
-+#define R3_TO_LWREG_V(regnum)				\
-+	R3_TO_STACK(regnum);				\
-+	bri	ex_handler_done;
-+
-+/* r3 is the source */
-+#define R3_TO_LWREG(regnum)				\
-+	or	NUM_TO_REG (regnum), r0, r3;		\
-+	bri	ex_handler_done;
-+
-+/* r3 is the target */
-+#define SWREG_TO_R3_V(regnum)				\
-+	R3_FROM_STACK (regnum);				\
-+	bri	ex_sw_tail;
-+
-+/* r3 is the target */
-+#define SWREG_TO_R3(regnum)				\
-+	or	r3, r0, NUM_TO_REG (regnum);		\
-+	bri	ex_sw_tail;
-+
-+.extern other_exception_handler /* Defined in exception.c */
-+
-+/*
-+ * hw_exception_handler - Handler for unaligned exceptions
-+ * Exception handler notes:
-+ * - Does not handle exceptions other than unaligned exceptions
-+ * - Does not handle exceptions during load into r17, r1, r0.
-+ * - Does not handle exceptions during store from r17 (cannot be done)
-+ *	and r1 (slows down common case)
-+ *
-+ * Relevant register structures
-+ *
-+ * EAR	- |----|----|----|----|----|----|----|----|
-+ *	- <  ##   32 bit faulting address     ##  >
-+ *
-+ * ESR	- |----|----|----|----|----| - | - |-----|-----|
-+ *	-			     W   S   REG   EXC
-+ *
-+ *
-+ * STACK FRAME STRUCTURE
-+ * ---------------------
-+ *
-+ *	+-------------+		+ 0
-+ *	|     MSR     |
-+ *	+-------------+		+ 4
-+ *	|     r1      |
-+ *	|      .      |
-+ *	|      .      |
-+ *	|      .      |
-+ *	|      .      |
-+ *	|     r18     |
-+ *	+-------------+		+ 76
-+ *	|      .      |
-+ *	|      .      |
-+ */
-+
-+.global _hw_exception_handler
-+.section .text
-+.align 4
-+.ent _hw_exception_handler
-+_hw_exception_handler:
-+	addik	r1, r1, -(EX_HANDLER_STACK_SIZ); /* Create stack frame */
-+	PUSH_REG(3);
-+	PUSH_REG(4);
-+	PUSH_REG(5);
-+	PUSH_REG(6);
-+	mfs	r3, resr;
-+
-+	andi	r5, r3, 0x1000;
-+	beqi	r5, not_in_delay_slot;
-+	mfs	r17, rbtr;
-+not_in_delay_slot:
-+
-+	PUSH_REG(17);
-+	/* Exceptions enabled here. This will allow nested exceptions */
-+	PUSH_MSR_AND_ENABLE_EXC;
-+
-+	andi	r5, r3, 0x1F; /* Extract ESR[EXC] */
-+
-+	xori	r6, r5, 1; /* 00001 = Unaligned Exception */
-+	/* Jump to unalignment exception handler */
-+	beqi	r6, handle_unaligned_ex;
-+
-+handle_other_ex: /* Handle Other exceptions here */
-+	/* Save other volatiles before we make procedure calls below */
-+	PUSH_REG(7);
-+	PUSH_REG(8);
-+	PUSH_REG(9);
-+	PUSH_REG(10);
-+	PUSH_REG(11);
-+	PUSH_REG(12);
-+	PUSH_REG(14);
-+	PUSH_REG(15);
-+	PUSH_REG(18);
-+
-+	andi	r5, r3, 0x1F; /* Load ESR[EC] */
-+	addk	r6, r17, r0; /* Load exception address */
-+	bralid	r15, other_exception_handler; /* Branch to the handler */
-+	nop;
-+
-+	/*
-+	* Trigger execution of the signal handler by enabling
-+	* interrupts and calling an invalid syscall.
-+	*/
-+	mfs	r5, rmsr;
-+	ori	r5, r5, 2;
-+	mts	rmsr, r5;
-+	addi	r12, r0, NR_syscalls;
-+	brki	r14, 0x08;
-+	mfs	r5, rmsr;
-+	andi	r5, r5, ~2;
-+	mts	rmsr, r5;
-+
-+	POP_REG(7); /* Restore other volatiles */
-+	POP_REG(8);
-+	POP_REG(9);
-+	POP_REG(10);
-+	POP_REG(11);
-+	POP_REG(12);
-+	POP_REG(14);
-+	POP_REG(15);
-+	POP_REG(18);
-+
-+	bri	ex_handler_done; /* Complete exception handling */
-+handle_unaligned_ex:
-+	andi	r6, r3, 0x3E0; /* Mask and extract the register operand */
-+	srl	r6, r6; /* r6 >> 5 */
-+	srl	r6, r6;
-+	srl	r6, r6;
-+	srl	r6, r6;
-+	srl	r6, r6;
-+	/* Store the register operand in a temporary location */
-+	sbi	r6, r0, ex_reg_op;
-+	mfs	r4, rear;
-+	andi	r6, r3, 0x400; /* Extract ESR[S] */
-+	bnei	r6, ex_sw;
-+ex_lw:
-+	andi	r6, r3, 0x800; /* Extract ESR[W] */
-+	beqi	r6, ex_lhw;
-+	lbui	r5, r4, 0; /* Exception address in r4 */
-+	/* Load a word, byte-by-byte from destination address
-+		and save it in tmp space */
-+	sbi	r5, r0, ex_tmp_data_loc_0;
-+	lbui	r5, r4, 1;
-+	sbi	r5, r0, ex_tmp_data_loc_1;
-+	lbui	r5, r4, 2;
-+	sbi	r5, r0, ex_tmp_data_loc_2;
-+	lbui	r5, r4, 3;
-+	sbi	r5, r0, ex_tmp_data_loc_3;
-+	/* Get the destination register value into r3 */
-+	lwi	r3, r0, ex_tmp_data_loc_0;
-+	bri	ex_lw_tail;
-+ex_lhw:
-+	lbui	r5, r4, 0; /* Exception address in r4 */
-+	/* Load a half-word, byte-by-byte from destination
-+		address and save it in tmp space */
-+	sbi	r5, r0, ex_tmp_data_loc_0;
-+	lbui	r5, r4, 1;
-+	sbi	r5, r0, ex_tmp_data_loc_1;
-+	/* Get the destination register value into r3 */
-+	lhui	r3, r0, ex_tmp_data_loc_0;
-+ex_lw_tail:
-+	/* Get the destination register number into r5 */
-+	lbui	r5, r0, ex_reg_op;
-+	/* Form load_word jump table offset (lw_table + (8 * regnum)) */
-+	la	r6, r0, lw_table;
-+	addk	r5, r5, r5;
-+	addk	r5, r5, r5;
-+	addk	r5, r5, r5;
-+	addk	r5, r5, r6;
-+	bra	r5;
-+ex_lw_end: /* Exception handling of load word, ends */
-+ex_sw:
-+	/* Get the destination register number into r5 */
-+	lbui	r5, r0, ex_reg_op;
-+	/* Form store_word jump table offset (sw_table + (8 * regnum)) */
-+	la	r6, r0, sw_table;
-+	add	r5, r5, r5;
-+	add	r5, r5, r5;
-+	add	r5, r5, r5;
-+	add	r5, r5, r6;
-+	bra	r5;
-+ex_sw_tail:
-+	mfs	r6, resr;
-+	andi	r6, r6, 0x800; /* Extract ESR[W] */
-+	beqi	r6, ex_shw;
-+	swi	r3, r0, ex_tmp_data_loc_0;
-+	/* Store the word, byte-by-byte into destination address */
-+	lbui	r3, r0, ex_tmp_data_loc_0;
-+	sbi	r3, r4, 0;
-+	lbui	r3, r0, ex_tmp_data_loc_1;
-+	sbi	r3, r4, 1;
-+	lbui	r3, r0, ex_tmp_data_loc_2;
-+	sbi	r3, r4, 2;
-+	lbui	r3, r0, ex_tmp_data_loc_3;
-+	sbi	r3, r4, 3;
-+	bri	ex_handler_done;
-+ex_shw:
-+	/* Store the lower half-word, byte-by-byte into destination address */
-+	swi	r3, r0, ex_tmp_data_loc_0;
-+	lbui	r3, r0, ex_tmp_data_loc_2;
-+	sbi	r3, r4, 0;
-+	lbui	r3, r0, ex_tmp_data_loc_3;
-+	sbi	r3, r4, 1;
-+ex_sw_end: /* Exception handling of store word, ends. */
-+
-+ex_handler_done:
-+	POP_MSR;
-+	POP_REG(3);
-+	POP_REG(4);
-+	POP_REG(5);
-+	POP_REG(6);
-+	POP_REG(17);
-+	rted	r17, 0
-+	addik	r1, r1, (EX_HANDLER_STACK_SIZ); /* Restore stack frame */
-+ex_handler_unhandled:
-+	bri 0 /* UNHANDLED. TRAP HERE */
-+.end _hw_exception_handler
-+
-+/*
-+* hw_exception_handler Jump Table
-+* - Contains code snippets for each register that caused the unaligned exception
-+* - Hence exception handler is NOT self-modifying
-+* - Separate table for load exceptions and store exceptions.
-+* - Each table is of size: (8 * 32) = 256 bytes
-+*/
-+
-+.section .text
-+.align 4
-+lw_table:
-+lw_r0:	R3_TO_LWREG	(0);
-+lw_r1:	LWREG_NOP;
-+lw_r2:	R3_TO_LWREG	(2);
-+lw_r3:	R3_TO_LWREG_V	(3);
-+lw_r4:	R3_TO_LWREG_V	(4);
-+lw_r5:	R3_TO_LWREG_V	(5);
-+lw_r6:	R3_TO_LWREG_V	(6);
-+lw_r7:	R3_TO_LWREG	(7);
-+lw_r8:	R3_TO_LWREG	(8);
-+lw_r9:	R3_TO_LWREG	(9);
-+lw_r10:	R3_TO_LWREG	(10);
-+lw_r11:	R3_TO_LWREG	(11);
-+lw_r12:	R3_TO_LWREG	(12);
-+lw_r13:	R3_TO_LWREG	(13);
-+lw_r14:	R3_TO_LWREG	(14);
-+lw_r15:	R3_TO_LWREG	(15);
-+lw_r16:	R3_TO_LWREG	(16);
-+lw_r17:	LWREG_NOP;
-+lw_r18:	R3_TO_LWREG	(18);
-+lw_r19:	R3_TO_LWREG	(19);
-+lw_r20:	R3_TO_LWREG	(20);
-+lw_r21:	R3_TO_LWREG	(21);
-+lw_r22:	R3_TO_LWREG	(22);
-+lw_r23:	R3_TO_LWREG	(23);
-+lw_r24:	R3_TO_LWREG	(24);
-+lw_r25:	R3_TO_LWREG	(25);
-+lw_r26:	R3_TO_LWREG	(26);
-+lw_r27:	R3_TO_LWREG	(27);
-+lw_r28:	R3_TO_LWREG	(28);
-+lw_r29:	R3_TO_LWREG	(29);
-+lw_r30:	R3_TO_LWREG	(30);
-+lw_r31:	R3_TO_LWREG	(31);
-+
-+sw_table:
-+sw_r0:	SWREG_TO_R3	(0);
-+sw_r1:	SWREG_NOP;
-+sw_r2:	SWREG_TO_R3	(2);
-+sw_r3:	SWREG_TO_R3_V	(3);
-+sw_r4:	SWREG_TO_R3_V	(4);
-+sw_r5:	SWREG_TO_R3_V	(5);
-+sw_r6:	SWREG_TO_R3_V	(6);
-+sw_r7:	SWREG_TO_R3	(7);
-+sw_r8:	SWREG_TO_R3	(8);
-+sw_r9:	SWREG_TO_R3	(9);
-+sw_r10:	SWREG_TO_R3	(10);
-+sw_r11:	SWREG_TO_R3	(11);
-+sw_r12:	SWREG_TO_R3	(12);
-+sw_r13:	SWREG_TO_R3	(13);
-+sw_r14:	SWREG_TO_R3	(14);
-+sw_r15:	SWREG_TO_R3	(15);
-+sw_r16:	SWREG_TO_R3	(16);
-+sw_r17:	SWREG_NOP;
-+sw_r18:	SWREG_TO_R3	(18);
-+sw_r19:	SWREG_TO_R3	(19);
-+sw_r20:	SWREG_TO_R3	(20);
-+sw_r21:	SWREG_TO_R3	(21);
-+sw_r22:	SWREG_TO_R3	(22);
-+sw_r23:	SWREG_TO_R3	(23);
-+sw_r24:	SWREG_TO_R3	(24);
-+sw_r25:	SWREG_TO_R3	(25);
-+sw_r26:	SWREG_TO_R3	(26);
-+sw_r27:	SWREG_TO_R3	(27);
-+sw_r28:	SWREG_TO_R3	(28);
-+sw_r29:	SWREG_TO_R3	(29);
-+sw_r30:	SWREG_TO_R3	(30);
-+sw_r31:	SWREG_TO_R3	(31);
-+
-+/* Temporary data structures used in the handler */
-+.section .data
-+.align 4
-+ex_tmp_data_loc_0:
-+	.byte 0
-+ex_tmp_data_loc_1:
-+	.byte 0
-+ex_tmp_data_loc_2:
-+	.byte 0
-+ex_tmp_data_loc_3:
-+	.byte 0
-+ex_reg_op:
-+	.byte 0
-+
-diff --git a/include/asm-microblaze/exceptions.h b/include/asm-microblaze/exceptions.h
++	switch (cpu_has_pvr()) {
++	case 0:
++		printk(KERN_WARNING
++			"%s: No PVR support. Using static CPU info from FDT\n",
++			__func__);
++		set_cpuinfo_static(&cpuinfo, cpu);
++		break;
++/* FIXME I found weird behavior with MB 7.00.a/b
++ * please do not use FULL PVR with MMU */
++	case 1:
++		printk(KERN_INFO "%s: Using full CPU PVR support\n",
++			__func__);
++		set_cpuinfo_pvr_full(&cpuinfo, cpu);
++		break;
++	default:
++		printk(KERN_WARNING "%s: Unsupported PVR setting\n", __func__);
++		set_cpuinfo_static(&cpuinfo, cpu);
++	}
++}
+diff --git a/include/asm-microblaze/cpuinfo.h b/include/asm-microblaze/cpuinfo.h
 new file mode 100644
-index 0000000..33f19bc
+index 0000000..b9cd56d
 --- /dev/null
-+++ b/include/asm-microblaze/exceptions.h
-@@ -0,0 +1,61 @@
++++ b/include/asm-microblaze/cpuinfo.h
+@@ -0,0 +1,110 @@
 +/*
-+ * Preliminary support for HW exception handing for Microblaze
++ * Generic support for queying CPU info
 + *
-+ * Copyright (C) 2005 John Williams <jwilliams@itee.uq.edu.au>
++ * Copyright (C) 2007-2008 Michal Simek <monstr@monstr.eu>
++ * Copyright (C) 2007 John Williams <john.williams@petalogix.com>
++ * Copyright (C) 2007 PetaLogix
 + *
 + * This file is subject to the terms and conditions of the GNU General
 + * Public License. See the file COPYING in the main directory of this
 + * archive for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_EXCEPTIONS_H
-+#define _ASM_MICROBLAZE_EXCEPTIONS_H
++#ifndef _ASM_MICROBLAZE_CPUINFO_H
++#define _ASM_MICROBLAZE_CPUINFO_H
 +
-+#ifndef __ASSEMBLY__
++#include <asm/prom.h>
 +
-+void initialize_exception_handlers(void);
-+asmlinkage void other_exception_handler(unsigned int esr, unsigned int addr);
++/* CPU Version and FPGA Family code conversion table type */
++struct cpu_ver_key {
++	const char *s;
++	const unsigned k;
++};
 +
-+/* Macros to enable and disable HW exceptions in the MSR */
-+/* Define MSR enable bit for HW exceptions */
-+#define HWEX_MSR_BIT (1 << 8)
++extern const struct cpu_ver_key cpu_ver_lookup[];
 +
-+#if CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR
-+#define __enable_hw_exceptions()					\
-+	__asm__ __volatile__ ("	msrset	r0, %0;				\
-+				nop; "					\
-+				:					\
-+				: "i" (HWEX_MSR_BIT)			\
-+				: "memory")
++struct family_string_key {
++	const char *s;
++	const unsigned k;
++};
 +
-+#define __disable_hw_exceptions()					\
-+	__asm__ __volatile__ ("	msrclr r0, %0;				\
-+				nop; "					\
-+				:					\
-+				: "i" (HWEX_MSR_BIT)			\
-+				: "memory")
-+#else /* !CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR */
-+#define __enable_hw_exceptions()					\
-+	__asm__ __volatile__ ("						\
-+				mfs	r12, rmsr;			\
-+				ori	r12, r12, %0;			\
-+				mts	rmsr, r12;			\
-+				nop; "					\
-+				:					\
-+				: "i" (HWEX_MSR_BIT)			\
-+				: "memory", "r12")
++extern const struct family_string_key family_string_lookup[];
 +
-+#define __disable_hw_exceptions()					\
-+	__asm__ __volatile__ ("						\
-+				mfs	r12, rmsr;			\
-+				andi	r12, r12, ~%0;			\
-+				mts	rmsr, r12;			\
-+				nop; "					\
-+				:					\
-+				: "i" (HWEX_MSR_BIT)			\
-+				: "memory", "r12")
-+#endif /* CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR */
++struct cpuinfo {
++	/* Core CPU configuration */
++	int use_barrel;
++	int use_divider;
++	int use_mult;
++	int use_fpu;
++	int use_exception;
++	int use_mul_64;
++	int use_msr_instr;
++	int use_pcmp_instr;
 +
-+#endif /*__ASSEMBLY__ */
++	int ver_code;
 +
-+#endif /* _ASM_MICROBLAZE_EXCEPTIONS_H */
++	/* CPU caches */
++	int use_icache;
++	int icache_tagbits;
++	int icache_write;
++	int icache_line;
++	int icache_size;
++	unsigned long icache_base;
++	unsigned long icache_high;
++
++	int use_dcache;
++	int dcache_tagbits;
++	int dcache_write;
++	int dcache_line;
++	int dcache_size;
++	unsigned long dcache_base;
++	unsigned long dcache_high;
++
++	/* Bus connections */
++	int use_dopb;
++	int use_iopb;
++	int use_dlmb;
++	int use_ilmb;
++	int num_fsl;
++
++	/* CPU interrupt line info */
++	int irq_edge;
++	int irq_positive;
++
++	int area_optimised;
++
++	/* HW support for CPU exceptions */
++	int opcode_0_illegal;
++	int exc_unaligned;
++	int exc_ill_opcode;
++	int exc_iopb;
++	int exc_dopb;
++	int exc_div_zero;
++	int exc_fpu;
++
++	/* HW debug support */
++	int hw_debug;
++	int num_pc_brk;
++	int num_rd_brk;
++	int num_wr_brk;
++	int cpu_clock_freq;
++
++	/* FPGA family */
++	int fpga_family_code;
++};
++
++extern struct cpuinfo cpuinfo;
++
++/* fwd declarations of the various CPUinfo populators */
++void setup_cpuinfo(void);
++
++void set_cpuinfo_static(struct cpuinfo *ci, struct device_node *cpu);
++void set_cpuinfo_pvr_full(struct cpuinfo *ci, struct device_node *cpu);
++
++static inline unsigned int fcpu(struct device_node *cpu, char *n)
++{
++	int *val;
++	return ((val = (int *) of_get_property(cpu, n, NULL)) ? *val : 0);
++}
++
++#endif /* _ASM_MICROBLAZE_CPUINFO_H */
 -- 
 1.5.4.GIT
