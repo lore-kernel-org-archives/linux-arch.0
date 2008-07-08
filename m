@@ -1,7 +1,7 @@
 From: monstr@monstr.eu
-Subject: [PATCH 29/58] microblaze_v5: memory inicialization, MMU, TLB
-Date: Tue,  8 Jul 2008 13:59:29 +0200
-Message-ID: <d4c1b3ecfec1bf37ca0ecea6909ad25bbc945630.1215517976.git.monstr@monstr.eu>
+Subject: [PATCH 45/58] microblaze_v5: sigcontext.h siginfo.h
+Date: Tue,  8 Jul 2008 13:59:45 +0200
+Message-ID: <c4f477d71dd4cd2ae884b9c47756c9334f8dac18.1215517976.git.monstr@monstr.eu>
 References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
  <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
@@ -31,12 +31,28 @@ References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <701c1dac442ac09f5010cb5356cc1a12bb0abfe1.1215517976.git.monstr@monstr.eu>
  <9b48e9d85b4a5a6dcffce8eef62b232b6bfac8e8.1215517976.git.monstr@monstr.eu>
  <04b0b222b84ba9cfe2507a9081f4d715f2323733.1215517976.git.monstr@monstr.eu>
+ <d4c1b3ecfec1bf37ca0ecea6909ad25bbc945630.1215517976.git.monstr@monstr.eu>
+ <6e5687d37386334cf122d1eafcca0c6649c955be.1215517976.git.monstr@monstr.eu>
+ <689cff1b6d98f60d8f8abc4472193688b524284d.1215517976.git.monstr@monstr.eu>
+ <9664f18e7e86af4332018549b29bf0797d6afcd5.1215517976.git.monstr@monstr.eu>
+ <c7120d8a6379cb1a18af5330997e30ec974acc2f.1215517976.git.monstr@monstr.eu>
+ <d1d33c18956829ec9ac7daf8d0516b17e85ed190.1215517976.git.monstr@monstr.eu>
+ <7a16429cfc461420883dbaa80c16047e5a1a91c1.1215517976.git.monstr@monstr.eu>
+ <b6a0f3bceb0867c55613463fc43be5328fcedecd.1215517976.git.monstr@monstr.eu>
+ <fc26823d77c7180b62022e2d4bcca3c4fe6de574.1215517976.git.monstr@monstr.eu>
+ <64089967061955b7a29eb6d4e6269ff75b5442f2.1215517976.git.monstr@monstr.eu>
+ <92e3ab88c2174acf4e25c474c1f68ffd4db72ca6.1215517976.git.monstr@monstr.eu>
+ <5174afd0eaa5c6cb9344ea3217199e48899be313.1215517976.git.monstr@monstr.eu>
+ <bcb94400dca62fb349d0ab1e0a6209291fdcdfc5.1215517976.git.monstr@monstr.eu>
+ <5b2ed516b2e51d5117386c1b6eb814acc6e5a157.1215517976.git.monstr@monstr.eu>
+ <421f4b613d4dbd983df1545a9a163347e5bd1c56.1215517976.git.monstr@monstr.eu>
+ <0d39e8f03c487c004efa226c5ee81a81a8856768.1215517976.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:26616 "EHLO
+Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:26856 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1758438AbYGHMK7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Jul 2008 08:10:59 -0400
-In-Reply-To: <04b0b222b84ba9cfe2507a9081f4d715f2323733.1215517976.git.monstr@monstr.eu>
+	id S932152AbYGHML0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Jul 2008 08:11:26 -0400
+In-Reply-To: <0d39e8f03c487c004efa226c5ee81a81a8856768.1215517976.git.monstr@monstr.eu>
 In-Reply-To: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -49,213 +65,18 @@ From: Michal Simek <monstr@monstr.eu>
 Acked-by: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/mm/init.c            |  183 ++++++++++++++++++++++++++++++++++
- include/asm-microblaze/mmu.h         |   17 +++
- include/asm-microblaze/mmu_context.h |   22 ++++
- include/asm-microblaze/tlb.h         |   16 +++
- include/asm-microblaze/tlbflush.h    |   20 ++++
- 5 files changed, 258 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/mm/init.c
- create mode 100644 include/asm-microblaze/mmu.h
- create mode 100644 include/asm-microblaze/mmu_context.h
- create mode 100644 include/asm-microblaze/tlb.h
- create mode 100644 include/asm-microblaze/tlbflush.h
+ include/asm-microblaze/sigcontext.h |   19 +++++++++++++++++++
+ include/asm-microblaze/siginfo.h    |   15 +++++++++++++++
+ 2 files changed, 34 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/sigcontext.h
+ create mode 100644 include/asm-microblaze/siginfo.h
 
-diff --git a/arch/microblaze/mm/init.c b/arch/microblaze/mm/init.c
+diff --git a/include/asm-microblaze/sigcontext.h b/include/asm-microblaze/sigcontext.h
 new file mode 100644
-index 0000000..c4da9da
+index 0000000..2819672
 --- /dev/null
-+++ b/arch/microblaze/mm/init.c
-@@ -0,0 +1,183 @@
-+/*
-+ * arch/microblaze/mm/init.c
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2007-2008 Michal Simek <monstr@monstr.eu>
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
-+
-+#undef DEBUG
-+
-+#include <linux/init.h>
-+#include <linux/mm.h>
-+//#include "../../../mm/internal.h"
-+#include <linux/swap.h>
-+#include <linux/bootmem.h>
-+#include <linux/pfn.h>
-+#include <linux/lmb.h>
-+
-+#include <asm/sections.h>
-+#include <asm/uaccess.h>
-+#include <asm/system.h>
-+#include <asm/pgtable.h>
-+
-+char *klimit = _end;
-+static unsigned int memory_start;
-+unsigned int memory_end; /* due to mm/nommu.c */
-+
-+unsigned int __page_offset;
-+/* EXPORT_SYMBOL(__page_offset); */
-+
-+void __init setup_memory(void)
-+{
-+	int i;
-+	unsigned int start, end;
-+	unsigned long map_size;
-+	unsigned long start_pfn = 0;
-+	unsigned long end_pfn = 0;
-+
-+	/* Find main memory where is the kernel */
-+	for (i = 0; i < lmb.memory.cnt; i++) {
-+		start_pfn = lmb.memory.region[i].base >> PAGE_SHIFT;
-+		end_pfn = start_pfn + lmb_size_pages(&lmb.memory, i);
-+		if ((start_pfn <= (((int)_text) >> PAGE_SHIFT)) &&
-+			(((int)_text >> PAGE_SHIFT) <= end_pfn)) {
-+			memory_end = (end_pfn << PAGE_SHIFT) - 1;
-+			PAGE_OFFSET = memory_start = start_pfn << PAGE_SHIFT;
-+			pr_debug("%s: Main mem: 0x%x-0x%x\n", __func__,
-+				memory_start, memory_end);
-+			break;
-+		}
-+	}
-+	/*
-+	 * start_pfn - start page - starting point
-+	 * end_pfn - first unused page
-+	 * memory_start - base physical address of main memory
-+	 * memory_end - end physical address of main memory
-+	 * PAGE_OFFSET - moving of first page
-+	 *
-+	 * Kernel:
-+	 * start: base phys address of kernel - page align
-+	 * end: base phys address of kernel - page align
-+	 *
-+	 * min_low_pfn - the first page (mm/bootmem.c - node_boot_start)
-+	 * max_low_pfn
-+	 * max_mapnr - the first unused page (mm/bootmem.c - node_low_pfn)
-+	 * num_physpages - number of all pages
-+	 *
-+	 */
-+
-+	/* reservation of region where is the kernel */
-+	start = PFN_DOWN((int)_text) << PAGE_SHIFT;
-+	end = PAGE_ALIGN((unsigned long)klimit);
-+	lmb_reserve(start, end - start);
-+	pr_debug("%s: kernel addr 0x%08x-0x%08x\n", __func__, start, end);
-+
-+	/* calculate free pages, etc. */
-+	min_low_pfn = PFN_UP(start_pfn << PAGE_SHIFT);
-+	max_mapnr = PFN_DOWN((end_pfn << PAGE_SHIFT));
-+	max_low_pfn = max_mapnr - min_low_pfn;
-+	num_physpages = max_mapnr - min_low_pfn + 1;
-+	printk(KERN_INFO "%s: max_mapnr: %#lx\n", __func__, max_mapnr);
-+	printk(KERN_INFO "%s: min_low_pfn: %#lx\n", __func__, min_low_pfn);
-+	printk(KERN_INFO "%s: max_low_pfn: %#lx\n", __func__, max_low_pfn);
-+
-+	/* add place for data pages */
-+	map_size = init_bootmem_node(NODE_DATA(0), PFN_UP(end),
-+			min_low_pfn, max_mapnr);
-+	lmb_reserve(PFN_UP(end) << PAGE_SHIFT, map_size);
-+
-+	/* free bootmem is whole main memory */
-+	free_bootmem_node(NODE_DATA(0), start_pfn << PAGE_SHIFT,
-+			((end_pfn - start_pfn) << PAGE_SHIFT) - 1);
-+
-+	/* reserve allocate blocks */
-+	for (i = 0; i < lmb.reserved.cnt; i++) {
-+		pr_debug("reserved %d - 0x%08x-0x%08x\n", i,
-+			(u32) lmb.reserved.region[i].base,
-+			(u32) lmb_size_bytes(&lmb.reserved, i));
-+		reserve_bootmem(lmb.reserved.region[i].base,
-+			lmb_size_bytes(&lmb.reserved, i) - 1, BOOTMEM_DEFAULT);
-+	}
-+}
-+
-+void __init paging_init(void)
-+{
-+	int i;
-+	unsigned long zones_size[MAX_NR_ZONES];
-+
-+	/* we can DMA to/from any address.  put all page into
-+	 * ZONE_DMA. */
-+	zones_size[ZONE_NORMAL] = max_low_pfn;
-+
-+	/* every other zones are empty */
-+	for (i = 1; i < MAX_NR_ZONES; i++)
-+		zones_size[i] = 0;
-+
-+	free_area_init_node(0, NODE_DATA(0), zones_size,
-+		NODE_DATA(0)->bdata->node_boot_start >> PAGE_SHIFT, NULL);
-+}
-+
-+void free_init_pages(char *what, unsigned long begin, unsigned long end)
-+{
-+	unsigned long addr;
-+
-+	for (addr = begin; addr < end; addr += PAGE_SIZE) {
-+		ClearPageReserved(virt_to_page(addr));
-+		init_page_count(virt_to_page(addr));
-+		memset((void *)addr, 0xcc, PAGE_SIZE);
-+		free_page(addr);
-+		totalram_pages++;
-+	}
-+	printk(KERN_INFO "Freeing %s: %ldk freed\n", what, (end - begin) >> 10);
-+}
-+
-+#ifdef CONFIG_BLK_DEV_INITRD
-+void free_initrd_mem(unsigned long start, unsigned long end)
-+{
-+	int pages = 0;
-+	for (; start < end; start += PAGE_SIZE) {
-+		ClearPageReserved(virt_to_page(start));
-+		set_page_count(virt_to_page(start), 1);
-+		free_page(start);
-+		totalram_pages++;
-+		pages++;
-+	}
-+	printk(KERN_NOTICE "Freeing initrd memory: %dk freed\n", pages);
-+}
-+#endif
-+
-+void free_initmem(void)
-+{
-+	free_init_pages("unused kernel memory",
-+			(unsigned long)(&__init_begin),
-+			(unsigned long)(&__init_end));
-+}
-+
-+/* FIXME from arch/powerpc/mm/mem.c*/
-+void show_mem(void)
-+{
-+	printk(KERN_NOTICE "%s\n", __func__);
-+}
-+
-+void __init mem_init(void)
-+{
-+	high_memory = (void *)(memory_end);
-+
-+	/* this will put all memory onto the freelists */
-+	totalram_pages += free_all_bootmem();
-+
-+	printk(KERN_INFO "Memory: %luk/%luk available\n",
-+	       (unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
-+	       num_physpages << (PAGE_SHIFT-10));
-+}
-+
-+/* Check against bounds of physical memory */
-+int ___range_ok(unsigned long addr, unsigned long size)
-+{
-+	return ((addr < memory_start) ||
-+		((addr + size) >= memory_end));
-+}
-diff --git a/include/asm-microblaze/mmu.h b/include/asm-microblaze/mmu.h
-new file mode 100644
-index 0000000..e9cd52d
---- /dev/null
-+++ b/include/asm-microblaze/mmu.h
-@@ -0,0 +1,17 @@
++++ b/include/asm-microblaze/sigcontext.h
+@@ -0,0 +1,19 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
@@ -264,21 +85,23 @@ index 0000000..e9cd52d
 + * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_MMU_H
-+#define _ASM_MICROBLAZE_MMU_H
++#ifndef _ASM_MICROBLAZE_SIGCONTEXT_H
++#define _ASM_MICROBLAZE_SIGCONTEXT_H
 +
-+typedef struct {
-+	struct vm_list_struct	*vmlist;
-+	unsigned long		end_brk;
-+} mm_context_t;
++#include <asm/ptrace.h>
 +
-+#endif /* _ASM_MICROBLAZE_MMU_H */
-diff --git a/include/asm-microblaze/mmu_context.h b/include/asm-microblaze/mmu_context.h
++struct sigcontext {
++	struct pt_regs regs;
++	unsigned long oldmask;
++};
++
++#endif /* _ASM_MICROBLAZE_SIGCONTEXT_H */
+diff --git a/include/asm-microblaze/siginfo.h b/include/asm-microblaze/siginfo.h
 new file mode 100644
-index 0000000..bd4952a
+index 0000000..f162911
 --- /dev/null
-+++ b/include/asm-microblaze/mmu_context.h
-@@ -0,0 +1,22 @@
++++ b/include/asm-microblaze/siginfo.h
+@@ -0,0 +1,15 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + *
@@ -287,67 +110,12 @@ index 0000000..bd4952a
 + * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_MMU_CONTEXT_H
-+#define _ASM_MICROBLAZE_MMU_CONTEXT_H
++#ifndef _ASM_MICROBLAZE_SIGINFO_H
++#define _ASM_MICROBLAZE_SIGINFO_H
 +
-+#define init_new_context(tsk, mm)		({ 0; })
++#include <linux/types.h>
++#include <asm-generic/siginfo.h>
 +
-+#define enter_lazy_tlb(mm, tsk)			do {} while (0)
-+#define change_mm_context(old, ctx, _pml4)	do {} while (0)
-+#define destroy_context(mm)			do {} while (0)
-+#define deactivate_mm(tsk, mm)			do {} while (0)
-+#define switch_mm(prev, next, tsk)		do {} while (0)
-+#define activate_mm(prev, next)			do {} while (0)
-+
-+
-+#endif /* _ASM_MICROBLAZE_MMU_CONTEXT_H */
-diff --git a/include/asm-microblaze/tlb.h b/include/asm-microblaze/tlb.h
-new file mode 100644
-index 0000000..d1dfe37
---- /dev/null
-+++ b/include/asm-microblaze/tlb.h
-@@ -0,0 +1,16 @@
-+/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_TLB_H
-+#define _ASM_MICROBLAZE_TLB_H
-+
-+#define tlb_flush(tlb)	do {} while (0)
-+
-+#include <asm-generic/tlb.h>
-+
-+#endif /* _ASM_MICROBLAZE_TLB_H */
-diff --git a/include/asm-microblaze/tlbflush.h b/include/asm-microblaze/tlbflush.h
-new file mode 100644
-index 0000000..d7fe762
---- /dev/null
-+++ b/include/asm-microblaze/tlbflush.h
-@@ -0,0 +1,20 @@
-+/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_TLBFLUSH_H
-+#define _ASM_MICROBLAZE_TLBFLUSH_H
-+
-+#define flush_tlb()				BUG()
-+#define flush_tlb_all()				BUG()
-+#define flush_tlb_mm(mm)			BUG()
-+#define flush_tlb_page(vma, addr)		BUG()
-+#define flush_tlb_range(mm, start, end)		BUG()
-+#define flush_tlb_pgtables(mm, start, end)	BUG()
-+#define flush_tlb_kernel_range(start, end)	BUG()
-+
-+#endif /* _ASM_MICROBLAZE_TLBFLUSH_H */
++#endif /* _ASM_MICROBLAZE_SIGINFO_H */
 -- 
 1.5.4.GIT
