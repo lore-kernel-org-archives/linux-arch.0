@@ -1,7 +1,7 @@
 From: monstr@monstr.eu
-Subject: [PATCH 08/58] microblaze_v5: Signal support
-Date: Tue,  8 Jul 2008 13:59:08 +0200
-Message-ID: <f8e331ed9432719f3c0555c840cbbb7bbc1a6322.1215517976.git.monstr@monstr.eu>
+Subject: [PATCH 41/58] microblaze_v5: system.h pvr.h processor.h
+Date: Tue,  8 Jul 2008 13:59:41 +0200
+Message-ID: <bcb94400dca62fb349d0ab1e0a6209291fdcdfc5.1215517976.git.monstr@monstr.eu>
 References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
  <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
@@ -10,12 +10,45 @@ References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
  <2a24e5bc2cfbd349613ef10c716a28f04ce24a9f.1215517976.git.monstr@monstr.eu>
  <3171c5cf21eefc79665165f4a14bc5b68dd03f95.1215517976.git.monstr@monstr.eu>
  <9be4eff2f4d015023c453eaec3b3473a44380491.1215517976.git.monstr@monstr.eu>
+ <f8e331ed9432719f3c0555c840cbbb7bbc1a6322.1215517976.git.monstr@monstr.eu>
+ <4409daf2ac356e902a8f091bb5908eb8a90218bc.1215517976.git.monstr@monstr.eu>
+ <f7458acb0252f72b5620d19c76104408ecc2e451.1215517976.git.monstr@monstr.eu>
+ <dbd9df742cdd9eb3355d7bc8e39f9dfef6c545e4.1215517976.git.monstr@monstr.eu>
+ <1f9a1f345caa749cb630cf85f95f217366395069.1215517976.git.monstr@monstr.eu>
+ <fe3686f0f70d838b33642bcbcd7185fc2180b366.1215517976.git.monstr@monstr.eu>
+ <e61f5a8579570cf7cd18a22e4106b7f85518928e.1215517976.git.monstr@monstr.eu>
+ <59d7e0a5f38b8d38f01f357a071fc93eed36f3a8.1215517976.git.monstr@monstr.eu>
+ <143afcf84af583ab66da7e8acfc9eb03b7f3eaa0.1215517976.git.monstr@monstr.eu>
+ <a967ee4e5a60b410e2810ce0475e8fd04f99e3ae.1215517976.git.monstr@monstr.eu>
+ <c5f0730287365c845746467a9917dbc07d2fca3c.1215517976.git.monstr@monstr.eu>
+ <2aa1ac7891af57959237aae3addf4bbe607f55d7.1215517976.git.monstr@monstr.eu>
+ <875ba2708f6cd3c585e4d965142e2feb07c39a0e.1215517976.git.monstr@monstr.eu>
+ <eb0e741f891335df37c3cd19f1a3ce2f7ce8652a.1215517976.git.monstr@monstr.eu>
+ <b28df2ea2419cbda26f9089ed6edcc175c009688.1215517976.git.monstr@monstr.eu>
+ <5da1d8f069f18f14faee8c4bff736791179ef6f1.1215517976.git.monstr@monstr.eu>
+ <9a32168fe72b772f301216a7090670474af78e49.1215517976.git.monstr@monstr.eu>
+ <7ada4bceefc1806a2c8ef73676b7aabd8ac1cad6.1215517976.git.monstr@monstr.eu>
+ <701c1dac442ac09f5010cb5356cc1a12bb0abfe1.1215517976.git.monstr@monstr.eu>
+ <9b48e9d85b4a5a6dcffce8eef62b232b6bfac8e8.1215517976.git.monstr@monstr.eu>
+ <04b0b222b84ba9cfe2507a9081f4d715f2323733.1215517976.git.monstr@monstr.eu>
+ <d4c1b3ecfec1bf37ca0ecea6909ad25bbc945630.1215517976.git.monstr@monstr.eu>
+ <6e5687d37386334cf122d1eafcca0c6649c955be.1215517976.git.monstr@monstr.eu>
+ <689cff1b6d98f60d8f8abc4472193688b524284d.1215517976.git.monstr@monstr.eu>
+ <9664f18e7e86af4332018549b29bf0797d6afcd5.1215517976.git.monstr@monstr.eu>
+ <c7120d8a6379cb1a18af5330997e30ec974acc2f.1215517976.git.monstr@monstr.eu>
+ <d1d33c18956829ec9ac7daf8d0516b17e85ed190.1215517976.git.monstr@monstr.eu>
+ <7a16429cfc461420883dbaa80c16047e5a1a91c1.1215517976.git.monstr@monstr.eu>
+ <b6a0f3bceb0867c55613463fc43be5328fcedecd.1215517976.git.monstr@monstr.eu>
+ <fc26823d77c7180b62022e2d4bcca3c4fe6de574.1215517976.git.monstr@monstr.eu>
+ <64089967061955b7a29eb6d4e6269ff75b5442f2.1215517976.git.monstr@monstr.eu>
+ <92e3ab88c2174acf4e25c474c1f68ffd4db72ca6.1215517976.git.monstr@monstr.eu>
+ <5174afd0eaa5c6cb9344ea3217199e48899be313.1215517976.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
 Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:27570 "EHLO
 	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1758796AbYGHMr1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Jul 2008 08:47:27 -0400
-In-Reply-To: <9be4eff2f4d015023c453eaec3b3473a44380491.1215517976.git.monstr@monstr.eu>
+	id S1756956AbYGHMrQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Jul 2008 08:47:16 -0400
+In-Reply-To: <5174afd0eaa5c6cb9344ea3217199e48899be313.1215517976.git.monstr@monstr.eu>
 In-Reply-To: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -28,736 +61,491 @@ From: Michal Simek <monstr@monstr.eu>
 Acked-by: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/kernel/signal.c |  532 +++++++++++++++++++++++++++++++++++++++
- include/asm-microblaze/signal.h |  181 +++++++++++++
- 2 files changed, 713 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/kernel/signal.c
- create mode 100644 include/asm-microblaze/signal.h
+ include/asm-microblaze/processor.h |   88 +++++++++++++++++
+ include/asm-microblaze/pvr.h       |  183 ++++++++++++++++++++++++++++++++++
+ include/asm-microblaze/system.h    |  189 ++++++++++++++++++++++++++++++++++++
+ 3 files changed, 460 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/processor.h
+ create mode 100644 include/asm-microblaze/pvr.h
+ create mode 100644 include/asm-microblaze/system.h
 
-diff --git a/arch/microblaze/kernel/signal.c b/arch/microblaze/kernel/signal.c
+diff --git a/include/asm-microblaze/processor.h b/include/asm-microblaze/processor.h
 new file mode 100644
-index 0000000..ba56799
+index 0000000..2213d6f
 --- /dev/null
-+++ b/arch/microblaze/kernel/signal.c
-@@ -0,0 +1,532 @@
-+/*
-+ * Signal handling
-+ *
-+ * Copyright (C) 2003,2004 John Williams <jwilliams@itee.uq.edu.au>
-+ * Copyright (C) 2001 NEC Corporation
-+ * Copyright (C) 2001 Miles Bader <miles@gnu.org>
-+ * Copyright (C) 1999,2000 Niibe Yutaka & Kaz Kojima
-+ * Copyright (C) 1991,1992 Linus Torvalds
-+ *
-+ * 1997-11-28 Modified for POSIX.1b signals by Richard Henderson
-+ *
-+ * This file was was derived from the sh version, arch/sh/kernel/signal.c
-+ *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License. See the file COPYING in the main directory of this
-+ * archive for more details.
-+ */
-+
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
-+#include <linux/smp_lock.h>
-+#include <linux/kernel.h>
-+#include <linux/signal.h>
-+#include <linux/errno.h>
-+#include <linux/wait.h>
-+#include <linux/ptrace.h>
-+#include <linux/unistd.h>
-+#include <linux/stddef.h>
-+#include <linux/personality.h>
-+#include <linux/percpu.h>
-+#include <linux/linkage.h>
-+#include <asm/entry.h>
-+#include <asm/ucontext.h>
-+#include <asm/uaccess.h>
-+#include <asm/pgtable.h>
-+#include <asm/pgalloc.h>
-+#include <asm/signal.h>
-+#include <asm/cacheflush.h>
-+
-+#define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
-+
-+asmlinkage int do_signal(struct pt_regs *regs, sigset_t *oldset, int in_sycall);
-+
-+/*
-+ * Atomically swap in the new signal mask, and wait for a signal.
-+ */
-+asmlinkage int
-+sys_sigsuspend(old_sigset_t mask, struct pt_regs *regs)
-+{
-+	sigset_t saveset;
-+
-+	mask &= _BLOCKABLE;
-+	spin_lock_irq(&current->sighand->siglock);
-+	saveset = current->blocked;
-+	siginitset(&current->blocked, mask);
-+	recalc_sigpending();
-+	spin_unlock_irq(&current->sighand->siglock);
-+
-+	regs->r3 = -EINTR;
-+	while (1) {
-+		current->state = TASK_INTERRUPTIBLE;
-+		schedule();
-+		if (do_signal(regs, &saveset, 1))
-+			return -EINTR;
-+	}
-+}
-+
-+asmlinkage int
-+sys_rt_sigsuspend(sigset_t *unewset, size_t sigsetsize,
-+		struct pt_regs *regs)
-+{
-+	sigset_t saveset, newset;
-+
-+	/* XXX: Don't preclude handling different sized sigset_t's. */
-+	if (sigsetsize != sizeof(sigset_t))
-+		return -EINVAL;
-+
-+	if (copy_from_user(&newset, unewset, sizeof(newset)))
-+		return -EFAULT;
-+	sigdelsetmask(&newset, ~_BLOCKABLE);
-+	spin_lock_irq(&current->sighand->siglock);
-+	saveset = current->blocked;
-+	current->blocked = newset;
-+	recalc_sigpending();
-+	spin_unlock_irq(&current->sighand->siglock);
-+
-+	regs->r3 = -EINTR;
-+	while (1) {
-+		current->state = TASK_INTERRUPTIBLE;
-+		schedule();
-+		if (do_signal(regs, &saveset, 1))
-+			return -EINTR;
-+	}
-+}
-+
-+asmlinkage int
-+sys_sigaction(int sig, const struct old_sigaction *act,
-+		struct old_sigaction *oact)
-+{
-+	struct k_sigaction new_ka, old_ka;
-+	int ret;
-+
-+	if (act) {
-+		old_sigset_t mask;
-+		if (!access_ok(VERIFY_READ, act, sizeof(*act)) ||
-+			__get_user(new_ka.sa.sa_handler, &act->sa_handler) ||
-+			__get_user(new_ka.sa.sa_restorer, &act->sa_restorer))
-+			return -EFAULT;
-+		__get_user(new_ka.sa.sa_flags, &act->sa_flags);
-+		__get_user(mask, &act->sa_mask);
-+		siginitset(&new_ka.sa.sa_mask, mask);
-+	}
-+
-+	ret = do_sigaction(sig, act ? &new_ka : NULL, oact ? &old_ka : NULL);
-+
-+	if (!ret && oact) {
-+		if (!access_ok(VERIFY_WRITE, oact, sizeof(*oact)) ||
-+			__put_user(old_ka.sa.sa_handler, &oact->sa_handler) ||
-+			__put_user(old_ka.sa.sa_restorer, &oact->sa_restorer))
-+			return -EFAULT;
-+		__put_user(old_ka.sa.sa_flags, &oact->sa_flags);
-+		__put_user(old_ka.sa.sa_mask.sig[0], &oact->sa_mask);
-+	}
-+
-+	return ret;
-+}
-+
-+asmlinkage int
-+sys_sigaltstack(const stack_t __user *uss, stack_t __user *uoss,
-+		struct pt_regs *regs)
-+{
-+	return do_sigaltstack(uss, uoss, regs->r1);
-+}
-+
-+/*
-+ * Do a signal return; undo the signal stack.
-+ */
-+
-+struct sigframe {
-+	struct sigcontext sc;
-+	unsigned long extramask[_NSIG_WORDS-1];
-+	unsigned long tramp[2];	/* signal trampoline */
-+};
-+
-+struct rt_sigframe {
-+	struct siginfo info;
-+	struct ucontext uc;
-+	unsigned long tramp[2];	/* signal trampoline */
-+};
-+
-+static int
-+restore_sigcontext(struct pt_regs *regs, struct sigcontext *sc, int *rval_p)
-+{
-+	unsigned int err = 0;
-+
-+#define COPY(x)		err |= __get_user(regs->x, &sc->regs.x)
-+	COPY(r0);	COPY(r1);
-+	COPY(r2);	COPY(r3);	COPY(r4);	COPY(r5);
-+	COPY(r6);	COPY(r7);	COPY(r8);	COPY(r9);
-+	COPY(r10);	COPY(r11);	COPY(r12);	COPY(r13);
-+	COPY(r14);	COPY(r15);	COPY(r16);	COPY(r17);
-+	COPY(r18);	COPY(r19);	COPY(r20);	COPY(r21);
-+	COPY(r22);	COPY(r23);	COPY(r24);	COPY(r25);
-+	COPY(r26);	COPY(r27);	COPY(r28);	COPY(r29);
-+	COPY(r30);	COPY(r31);
-+	COPY(pc);	COPY(ear);	COPY(esr);	COPY(fsr);
-+#undef COPY
-+
-+	*rval_p = regs->r3;
-+
-+	return err;
-+}
-+
-+asmlinkage int sys_sigreturn(struct pt_regs *regs)
-+{
-+	struct sigframe *frame = (struct sigframe *)regs->r1;
-+	sigset_t set;
-+	int rval;
-+
-+	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
-+		goto badframe;
-+
-+	if (__get_user(set.sig[0], &frame->sc.oldmask)
-+		|| (_NSIG_WORDS > 1
-+		&& __copy_from_user(&set.sig[1], &frame->extramask,
-+					sizeof(frame->extramask))))
-+		goto badframe;
-+
-+	sigdelsetmask(&set, ~_BLOCKABLE);
-+
-+	spin_lock_irq(&current->sighand->siglock);
-+	current->blocked = set;
-+	recalc_sigpending();
-+	spin_unlock_irq(&current->sighand->siglock);
-+
-+	if (restore_sigcontext(regs, &frame->sc, &rval))
-+		goto badframe;
-+	return rval;
-+
-+badframe:
-+	force_sig(SIGSEGV, current);
-+	return 0;
-+}
-+
-+asmlinkage int sys_rt_sigreturn(struct pt_regs *regs)
-+{
-+	struct rt_sigframe *frame = (struct rt_sigframe *)regs->r1;
-+	sigset_t set;
-+	stack_t st;
-+	int rval;
-+
-+	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
-+		goto badframe;
-+
-+	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
-+		goto badframe;
-+
-+	sigdelsetmask(&set, ~_BLOCKABLE);
-+	spin_lock_irq(&current->sighand->siglock);
-+	current->blocked = set;
-+	recalc_sigpending();
-+	spin_unlock_irq(&current->sighand->siglock);
-+
-+	if (restore_sigcontext(regs, &frame->uc.uc_mcontext, &rval))
-+		goto badframe;
-+
-+	if (__copy_from_user((void *)&st, &frame->uc.uc_stack, sizeof(st)))
-+		goto badframe;
-+	/* It is more difficult to avoid calling this function than to
-+	 call it and ignore errors. */
-+	do_sigaltstack(&st, NULL, regs->r1);
-+
-+	return rval;
-+
-+badframe:
-+	force_sig(SIGSEGV, current);
-+	return 0;
-+}
-+
-+/*
-+ * Set up a signal frame.
-+ */
-+
-+static int
-+setup_sigcontext(struct sigcontext *sc, struct pt_regs *regs,
-+		unsigned long mask)
-+{
-+	int err = 0;
-+
-+#define COPY(x)		err |= __put_user(regs->x, &sc->regs.x)
-+	COPY(r0);	COPY(r1);
-+	COPY(r2);	COPY(r3);	COPY(r4);	COPY(r5);
-+	COPY(r6);	COPY(r7);	COPY(r8);	COPY(r9);
-+	COPY(r10);	COPY(r11);	COPY(r12);	COPY(r13);
-+	COPY(r14);	COPY(r15);	COPY(r16);	COPY(r17);
-+	COPY(r18);	COPY(r19);	COPY(r20);	COPY(r21);
-+	COPY(r22);	COPY(r23);	COPY(r24);	COPY(r25);
-+	COPY(r26);	COPY(r27);	COPY(r28);	COPY(r29);
-+	COPY(r30);	COPY(r31);
-+	COPY(pc);	COPY(ear);	COPY(esr);	COPY(fsr);
-+#undef COPY
-+
-+	err |= __put_user(mask, &sc->oldmask);
-+
-+	return err;
-+}
-+
-+/*
-+ * Determine which stack to use..
-+ */
-+static inline void *
-+get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size)
-+{
-+	/* Default to using normal stack */
-+	unsigned long sp = regs->r1;
-+
-+	if ((ka->sa.sa_flags & SA_ONSTACK) != 0 && !on_sig_stack(sp))
-+		sp = current->sas_ss_sp + current->sas_ss_size;
-+
-+	return (void *)((sp - frame_size) & -8UL);
-+}
-+
-+static void setup_frame(int sig, struct k_sigaction *ka,
-+			sigset_t *set, struct pt_regs *regs)
-+{
-+	struct sigframe *frame;
-+	int err = 0;
-+	int signal;
-+
-+	frame = get_sigframe(ka, regs, sizeof(*frame));
-+
-+	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
-+		goto give_sigsegv;
-+
-+	signal = current_thread_info()->exec_domain
-+		&& current_thread_info()->exec_domain->signal_invmap
-+		&& sig < 32
-+		? current_thread_info()->exec_domain->signal_invmap[sig]
-+		: sig;
-+
-+	err |= setup_sigcontext(&frame->sc, regs, set->sig[0]);
-+
-+	if (_NSIG_WORDS > 1) {
-+		err |= __copy_to_user(frame->extramask, &set->sig[1],
-+					sizeof(frame->extramask));
-+	}
-+
-+	/* Set up to return from userspace. If provided, use a stub
-+	 already in userspace. */
-+	/* minus 8 is offset to cater for "rtsd r15,8" offset */
-+	if (ka->sa.sa_flags & SA_RESTORER) {
-+		regs->r15 = ((unsigned long)ka->sa.sa_restorer)-8;
-+	} else {
-+		/* Note, these encodings are _big endian_! */
-+
-+		/* addi r12, r0, __NR_sigreturn */
-+		err |= __put_user(0x31800000 | __NR_sigreturn ,
-+				frame->tramp + 0);
-+		/* brki r14, 0x8 */
-+		err |= __put_user(0xb9cc0008, frame->tramp + 1);
-+
-+		/* Return from sighandler will jump to the tramp.
-+		 Negative 8 offset because return is rtsd r15, 8 */
-+		regs->r15 = ((unsigned long)frame->tramp)-8;
-+
-+		__invalidate_cache_sigtramp((unsigned long)frame->tramp);
-+	}
-+
-+	if (err)
-+		goto give_sigsegv;
-+
-+	/* Set up registers for signal handler */
-+	regs->r1 = (unsigned long) frame;
-+	/* Signal handler args: */
-+	regs->r5 = signal; /* Arg 0: signum */
-+	regs->r6 = (unsigned long) &frame->sc; /* arg 1: sigcontext */
-+
-+	/* Offset of 4 to handle microblaze rtid r14, 0 */
-+	regs->pc = (unsigned long)ka->sa.sa_handler;
-+
-+	set_fs(USER_DS);
-+
-+#ifdef DEBUG_SIG
-+	printk(KERN_INFO "SIG deliver (%s:%d): sp=%p pc=%08lx\n",
-+		current->comm, current->pid, frame, regs->pc);
-+#endif
-+
-+	return;
-+
-+give_sigsegv:
-+	if (sig == SIGSEGV)
-+		ka->sa.sa_handler = SIG_DFL;
-+	force_sig(SIGSEGV, current);
-+}
-+
-+static void setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
-+			sigset_t *set, struct pt_regs *regs)
-+{
-+	struct rt_sigframe *frame;
-+	int err = 0;
-+	int signal;
-+
-+	frame = get_sigframe(ka, regs, sizeof(*frame));
-+
-+	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
-+		goto give_sigsegv;
-+
-+	signal = current_thread_info()->exec_domain
-+		&& current_thread_info()->exec_domain->signal_invmap
-+		&& sig < 32
-+		? current_thread_info()->exec_domain->signal_invmap[sig]
-+		: sig;
-+
-+	err |= copy_siginfo_to_user(&frame->info, info);
-+
-+	/* Create the ucontext. */
-+	err |= __put_user(0, &frame->uc.uc_flags);
-+	err |= __put_user(0, &frame->uc.uc_link);
-+	err |= __put_user((void *)current->sas_ss_sp,
-+			&frame->uc.uc_stack.ss_sp);
-+	err |= __put_user(sas_ss_flags(regs->r1),
-+			&frame->uc.uc_stack.ss_flags);
-+	err |= __put_user(current->sas_ss_size, &frame->uc.uc_stack.ss_size);
-+	err |= setup_sigcontext(&frame->uc.uc_mcontext,
-+			regs, set->sig[0]);
-+	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
-+
-+	/* Set up to return from userspace. If provided, use a stub
-+	 already in userspace. */
-+	/* minus 8 is offset to cater for "rtsd r15,8" */
-+	if (ka->sa.sa_flags & SA_RESTORER) {
-+		regs->r15 = ((unsigned long)ka->sa.sa_restorer)-8;
-+	} else {
-+		/* addi r12, r0, __NR_sigreturn */
-+		err |= __put_user(0x31800000 | __NR_rt_sigreturn ,
-+				frame->tramp + 0);
-+		/* brki r14, 0x8 */
-+		err |= __put_user(0xb9cc0008, frame->tramp + 1);
-+
-+		/* Return from sighandler will jump to the tramp.
-+		 Negative 8 offset because return is rtsd r15, 8 */
-+		regs->r15 = ((unsigned long)frame->tramp)-8;
-+
-+		__invalidate_cache_sigtramp((unsigned long)frame->tramp);
-+	}
-+
-+	if (err)
-+		goto give_sigsegv;
-+
-+	/* Set up registers for signal handler */
-+	regs->r1 = (unsigned long) frame;
-+	/* Signal handler args: */
-+	regs->r5 = signal; /* arg 0: signum */
-+	regs->r6 = (unsigned long) &frame->info; /* arg 1: siginfo */
-+	regs->r7 = (unsigned long) &frame->uc; /* arg2: ucontext */
-+	/* Offset to handle microblaze rtid r14, 0 */
-+	regs->pc = (unsigned long)ka->sa.sa_handler;
-+
-+	set_fs(USER_DS);
-+
-+#ifdef DEBUG_SIG
-+	printk(KERN_INFO "SIG deliver (%s:%d): sp=%p pc=%08lx\n",
-+		current->comm, current->pid, frame, regs->pc);
-+#endif
-+
-+	return;
-+
-+give_sigsegv:
-+	if (sig == SIGSEGV)
-+		ka->sa.sa_handler = SIG_DFL;
-+	force_sig(SIGSEGV, current);
-+}
-+
-+/* Handle restarting system calls */
-+static inline void
-+handle_restart(struct pt_regs *regs, struct k_sigaction *ka, int has_handler)
-+{
-+	switch (regs->r3) {
-+	case -ERESTART_RESTARTBLOCK:
-+	case -ERESTARTNOHAND:
-+		if (!has_handler)
-+			goto do_restart;
-+		regs->r3 = -EINTR;
-+		break;
-+	case -ERESTARTSYS:
-+		if (has_handler && !(ka->sa.sa_flags & SA_RESTART)) {
-+			regs->r3 = -EINTR;
-+			break;
-+	}
-+	/* fallthrough */
-+	case -ERESTARTNOINTR:
-+do_restart:
-+		/* offset of 4 bytes to re-execute trap (brki) instruction */
-+		regs->pc -= 4;
-+		break;
-+	}
-+}
-+
-+/*
-+ * OK, we're invoking a handler
-+ */
-+
-+static void
-+handle_signal(unsigned long sig, struct k_sigaction *ka,
-+		siginfo_t *info, sigset_t *oldset, struct pt_regs *regs)
-+{
-+	/* Set up the stack frame */
-+	if (ka->sa.sa_flags & SA_SIGINFO)
-+		setup_rt_frame(sig, ka, info, oldset, regs);
-+	else
-+		setup_frame(sig, ka, oldset, regs);
-+
-+	if (ka->sa.sa_flags & SA_ONESHOT)
-+		ka->sa.sa_handler = SIG_DFL;
-+
-+	if (!(ka->sa.sa_flags & SA_NODEFER)) {
-+		spin_lock_irq(&current->sighand->siglock);
-+		sigorsets(&current->blocked,
-+				&current->blocked, &ka->sa.sa_mask);
-+		sigaddset(&current->blocked, sig);
-+		recalc_sigpending();
-+		spin_unlock_irq(&current->sighand->siglock);
-+	}
-+}
-+
-+/*
-+ * Note that 'init' is a special process: it doesn't get signals it doesn't
-+ * want to handle. Thus you cannot kill init even with a SIGKILL even by
-+ * mistake.
-+ *
-+ * Note that we go through the signals twice: once to check the signals that
-+ * the kernel can handle, and then we build all the user-level signal handling
-+ * stack-frames in one go after that.
-+ */
-+int do_signal(struct pt_regs *regs, sigset_t *oldset, int in_syscall)
-+{
-+	siginfo_t info;
-+	int signr;
-+	struct k_sigaction ka;
-+#ifdef DEBUG_SIG
-+	printk(KERN_INFO "do signal: %p %p %d\n", regs, oldset, in_syscall);
-+	printk(KERN_INFO "do signal2: %lx %lx %ld [%lx]\n", regs->pc, regs->r1,
-+			regs->r12, current_thread_info()->flags);
-+#endif
-+	/*
-+	 * We want the common case to go fast, which
-+	 * is why we may in certain cases get here from
-+	 * kernel mode. Just return without doing anything
-+	 * if so.
-+	 */
-+	if (!user_mode(regs))
-+		return 1;
-+
-+	if (!oldset)
-+		oldset = &current->blocked;
-+
-+	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
-+	if (signr > 0) {
-+		/* Whee! Actually deliver the signal. */
-+		if (in_syscall)
-+			handle_restart(regs, &ka, 1);
-+		handle_signal(signr, &ka, &info, oldset, regs);
-+		return 1;
-+	}
-+
-+	if (in_syscall)
-+		handle_restart(regs, NULL, 0);
-+
-+	/* Did we come from a system call? */
-+	return 0;
-+}
-diff --git a/include/asm-microblaze/signal.h b/include/asm-microblaze/signal.h
-new file mode 100644
-index 0000000..fc6f5db
---- /dev/null
-+++ b/include/asm-microblaze/signal.h
-@@ -0,0 +1,181 @@
++++ b/include/asm-microblaze/processor.h
+@@ -0,0 +1,88 @@
 +/*
 + * Copyright (C) 2006 Atmark Techno, Inc.
-+ *	Yasushi SHOJI <yashi@atmark-techno.com>
-+ *	Tetsuya OHKAWA <tetsuya@atmark-techno.com>
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
 + * for more details.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_SIGNAL_H
-+#define _ASM_MICROBLAZE_SIGNAL_H
++#ifndef _ASM_MICROBLAZE_PROCESSOR_H
++#define _ASM_MICROBLAZE_PROCESSOR_H
 +
-+#ifndef __ASSEMBLY__
-+#include <linux/types.h>
-+
-+/* Avoid too many header ordering problems. */
-+struct siginfo;
-+
-+#ifdef __KERNEL__
-+
-+/* Most things should be clean enough to redefine this at will, if care
-+ is taken to make libc match. */
-+#define _NSIG		64
-+#define _NSIG_BPW	32
-+#define _NSIG_WORDS	(_NSIG / _NSIG_BPW)
-+
-+typedef unsigned long old_sigset_t; /* at least 32 bits */
-+
-+typedef struct {
-+	unsigned long sig[_NSIG_WORDS];
-+} sigset_t;
-+
-+#else /* !__KERNEL__ */
-+
-+/* Here we must cater to libcs that poke about in kernel headers. */
-+
-+#define NSIG		32
-+typedef unsigned long sigset_t;
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#define SIGHUP		1
-+#define SIGINT		2
-+#define SIGQUIT		3
-+#define SIGILL		4
-+#define SIGTRAP		5
-+#define SIGABRT		6
-+#define SIGIOT		6
-+#define SIGBUS		7
-+#define SIGFPE		8
-+#define SIGKILL		9
-+#define SIGUSR1		10
-+#define SIGSEGV		11
-+#define SIGUSR2		12
-+#define SIGPIPE		13
-+#define SIGALRM		14
-+#define SIGTERM		15
-+#define SIGSTKFLT	16
-+#define SIGCHLD		17
-+#define SIGCONT		18
-+#define SIGSTOP		19
-+#define SIGTSTP		20
-+#define SIGTTIN		21
-+#define SIGTTOU		22
-+#define SIGURG		23
-+#define SIGXCPU		24
-+#define SIGXFSZ		25
-+#define SIGVTALRM	26
-+#define SIGPROF		27
-+#define SIGWINCH	28
-+#define SIGIO		29
-+#define SIGPOLL		SIGIO
-+/*
-+#define SIGLOST		29
-+*/
-+#define SIGPWR		30
-+#define SIGSYS		31
-+#define	SIGUNUSED	31
-+
-+/* These should not be considered constants from userland. */
-+#define SIGRTMIN	32
-+#define SIGRTMAX	_NSIG
++#include <asm/ptrace.h>
++#include <asm/setup.h>
 +
 +/*
-+ * SA_FLAGS values:
++ * User space process size: memory size
 + *
-+ * SA_ONSTACK indicates that a registered stack_t will be used.
-+ * SA_RESTART flag to get restarting signals (which were the default long ago)
-+ * SA_NOCLDSTOP flag to turn off SIGCHLD when children stop.
-+ * SA_RESETHAND clears the handler when the signal is delivered.
-+ * SA_NOCLDWAIT flag on SIGCHLD to inhibit zombies.
-+ * SA_NODEFER prevents the current signal from being masked in the handler.
-+ *
-+ * SA_ONESHOT and SA_NOMASK are the historical Linux names for the Single
-+ * Unix names RESETHAND and NODEFER respectively.
++ * TASK_SIZE on MMU cpu is usually 1GB. However, on no-MMU arch, both
++ * user processes and the kernel is on the same memory region. They
++ * both share the memory space and that is limited by the amount of
++ * physical memory. thus, we set TASK_SIZE == amount of total memory.
 + */
-+#define SA_NOCLDSTOP	0x00000001
-+#define SA_NOCLDWAIT	0x00000002
-+#define SA_SIGINFO	0x00000004
-+#define SA_ONSTACK	0x08000000
-+#define SA_RESTART	0x10000000
-+#define SA_NODEFER	0x40000000
-+#define SA_RESETHAND	0x80000000
 +
-+#define SA_NOMASK	SA_NODEFER
-+#define SA_ONESHOT	SA_RESETHAND
-+
-+#define SA_RESTORER	0x04000000
++#define TASK_SIZE	(0x81000000 - 0x80000000)
 +
 +/*
-+ * sigaltstack controls
++ * Default implementation of macro that returns current
++ * instruction pointer ("program counter").
 + */
-+#define SS_ONSTACK	1
-+#define SS_DISABLE	2
++#define current_text_addr() ({ __label__ _l; _l: &&_l; })
 +
-+#define MINSIGSTKSZ	2048
-+#define SIGSTKSZ	8192
++/*
++ * This decides where the kernel will search for a free chunk of vm
++ * space during mmap's. We won't be using it
++ */
++#define TASK_UNMAPPED_BASE	0
 +
-+#ifndef __ASSEMBLY__
-+#include <asm-generic/signal.h>
++struct task_struct;
 +
-+#ifdef __KERNEL__
++/* thread_struct is gone. use thread_info instead. */
++struct thread_struct { };
++#define INIT_THREAD	{ }
 +
-+struct old_sigaction {
-+	__sighandler_t sa_handler;
-+	old_sigset_t sa_mask;
-+	unsigned long sa_flags;
-+	void (*sa_restorer)(void);
++/* Do necessary setup to start up a newly executed thread. */
++static inline void start_thread(struct pt_regs *regs,
++				unsigned long pc,
++				unsigned long usp)
++{
++	regs->pc = pc;
++	regs->r1 = usp;
++	regs->kernel_mode = 0;
++}
++
++/* Free all resources held by a thread. */
++static inline void release_thread(struct task_struct *dead_task)
++{
++}
++
++/* Free all resources held by a thread. */
++static inline void exit_thread(void)
++{
++}
++
++extern unsigned long thread_saved_pc(struct task_struct *t);
++
++extern unsigned long get_wchan(struct task_struct *p);
++
++/* FIXME */
++#define cpu_relax()		do {} while (0)
++#define cpu_sleep()		do {} while (0)
++#define prepare_to_copy(tsk)	do {} while (0)
++
++/*
++ * create a kernel thread without removing it from tasklists
++ */
++extern int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
++
++/* #define task_thread_info(task) (task)->thread_info */
++/* #define task_stack_page(task) ((void*)((task)->thread_info)) */
++
++#define task_pt_regs(tsk) \
++		(((struct pt_regs *)(THREAD_SIZE + task_stack_page(tsk))) - 1)
++
++
++#define KSTK_EIP(tsk)	(0)
++#define KSTK_ESP(tsk)	(0)
++
++#endif /* _ASM_MICROBLAZE_PROCESSOR_H */
+diff --git a/include/asm-microblaze/pvr.h b/include/asm-microblaze/pvr.h
+new file mode 100644
+index 0000000..1c67731
+--- /dev/null
++++ b/include/asm-microblaze/pvr.h
+@@ -0,0 +1,183 @@
++/*
++ * Support for the MicroBlaze PVR (Processor Version Register)
++ *
++ * Copyright (C) 2007 John Williams <john.williams@petalogix.com>
++ * Copyright (C) 2007 PetaLogix
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License. See the file COPYING in the main directory of this
++ * archive for more details.
++ *
++ */
++#ifndef _ASM_MICROBLAZE_PVR_H
++#define _ASM_MICROBLAZE_PVR_H
++
++#define PVR_MSR_BIT 0x400
++
++struct pvr_s {
++	unsigned pvr[16];
 +};
 +
-+struct sigaction {
-+	__sighandler_t sa_handler;
-+	unsigned long sa_flags;
-+	void (*sa_restorer)(void);
-+	sigset_t sa_mask; /* mask last for extensibility */
-+};
++/* The following taken from Xilinx's standalone BSP pvr.h */
 +
-+struct k_sigaction {
-+	struct sigaction sa;
-+};
++/* Basic PVR mask */
++#define PVR0_PVR_FULL_MASK		0x80000000
++#define PVR0_USE_BARREL_MASK		0x40000000
++#define PVR0_USE_DIV_MASK		0x20000000
++#define PVR0_USE_HW_MUL_MASK		0x10000000
++#define PVR0_USE_FPU_MASK		0x08000000
++#define PVR0_USE_EXCEPTION_MASK		0x04000000
++#define PVR0_USE_ICACHE_MASK		0x02000000
++#define PVR0_USE_DCACHE_MASK		0x01000000
++#define PVR0_VERSION_MASK		0x0000FF00
++#define PVR0_USER1_MASK			0x000000FF
 +
-+#else /* !__KERNEL__ */
++/* User 2 PVR mask */
++#define PVR1_USER2_MASK			0xFFFFFFFF
 +
-+/* Here we must cater to libcs that poke about in kernel headers. */
++/* Configuration PVR masks */
++#define PVR2_D_OPB_MASK			0x80000000
++#define PVR2_D_LMB_MASK			0x40000000
++#define PVR2_I_OPB_MASK			0x20000000
++#define PVR2_I_LMB_MASK			0x10000000
++#define PVR2_INTERRUPT_IS_EDGE_MASK	0x08000000
++#define PVR2_EDGE_IS_POSITIVE_MASK	0x04000000
++#define PVR2_USE_MSR_INSTR		0x00020000
++#define PVR2_USE_PCMP_INSTR		0x00010000
++#define PVR2_AREA_OPTIMISED		0x00008000
++#define PVR2_USE_BARREL_MASK		0x00004000
++#define PVR2_USE_DIV_MASK		0x00002000
++#define PVR2_USE_HW_MUL_MASK		0x00001000
++#define PVR2_USE_FPU_MASK		0x00000800
++#define PVR2_USE_MUL64_MASK		0x00000400
++#define PVR2_OPCODE_0x0_ILLEGAL_MASK	0x00000040
++#define PVR2_UNALIGNED_EXCEPTION_MASK	0x00000020
++#define PVR2_ILL_OPCODE_EXCEPTION_MASK	0x00000010
++#define PVR2_IOPB_BUS_EXCEPTION_MASK	0x00000008
++#define PVR2_DOPB_BUS_EXCEPTION_MASK	0x00000004
++#define PVR2_DIV_ZERO_EXCEPTION_MASK	0x00000002
++#define PVR2_FPU_EXCEPTION_MASK		0x00000001
 +
-+struct sigaction {
-+	union {
-+	__sighandler_t _sa_handler;
-+	void (*_sa_sigaction)(int, struct siginfo *, void *);
-+	} _u;
-+	sigset_t sa_mask;
-+	unsigned long sa_flags;
-+	void (*sa_restorer)(void);
-+};
++/* Debug and exception PVR masks */
++#define PVR3_DEBUG_ENABLED_MASK		0x80000000
++#define PVR3_NUMBER_OF_PC_BRK_MASK	0x1E000000
++#define PVR3_NUMBER_OF_RD_ADDR_BRK_MASK	0x00380000
++#define PVR3_NUMBER_OF_WR_ADDR_BRK_MASK	0x0000E000
++#define PVR3_FSL_LINKS_MASK		0x00000380
 +
-+#define sa_handler	_u._sa_handler
-+#define sa_sigaction	_u._sa_sigaction
++/* ICache config PVR masks */
++#define PVR4_USE_ICACHE_MASK		0x80000000
++#define PVR4_ICACHE_ADDR_TAG_BITS_MASK	0x7C000000
++#define PVR4_ICACHE_USE_FSL_MASK	0x02000000
++#define PVR4_ICACHE_ALLOW_WR_MASK	0x01000000
++#define PVR4_ICACHE_LINE_LEN_MASK	0x00E00000
++#define PVR4_ICACHE_BYTE_SIZE_MASK	0x001F0000
 +
-+#endif /* __KERNEL__ */
++/* DCache config PVR masks */
++#define PVR5_USE_DCACHE_MASK		0x80000000
++#define PVR5_DCACHE_ADDR_TAG_BITS_MASK	0x7C000000
++#define PVR5_DCACHE_USE_FSL_MASK	0x02000000
++#define PVR5_DCACHE_ALLOW_WR_MASK	0x01000000
++#define PVR5_DCACHE_LINE_LEN_MASK	0x00E00000
++#define PVR5_DCACHE_BYTE_SIZE_MASK	0x001F0000
++
++/* ICache base address PVR mask */
++#define PVR6_ICACHE_BASEADDR_MASK	0xFFFFFFFF
++
++/* ICache high address PVR mask */
++#define PVR7_ICACHE_HIGHADDR_MASK	0xFFFFFFFF
++
++/* DCache base address PVR mask */
++#define PVR8_DCACHE_BASEADDR_MASK	0xFFFFFFFF
++
++/* DCache high address PVR mask */
++#define PVR9_DCACHE_HIGHADDR_MASK	0xFFFFFFFF
++
++/* Target family PVR mask */
++#define PVR10_TARGET_FAMILY_MASK	0xFF000000
++
++/* MSR Reset value PVR mask */
++#define PVR11_MSR_RESET_VALUE_MASK	0x000007FF
 +
 +
-+typedef struct sigaltstack {
-+	void *ss_sp;
-+	int ss_flags;
-+	size_t ss_size;
-+} stack_t;
++/* PVR access macros */
++#define PVR_IS_FULL(pvr)		(pvr.pvr[0] & PVR0_PVR_FULL_MASK)
++#define PVR_USE_BARREL(pvr)		(pvr.pvr[0] & PVR0_USE_BARREL_MASK)
++#define PVR_USE_DIV(pvr)		(pvr.pvr[0] & PVR0_USE_DIV_MASK)
++#define PVR_USE_HW_MUL(pvr)		(pvr.pvr[0] & PVR0_USE_HW_MUL_MASK)
++#define PVR_USE_FPU(pvr)		(pvr.pvr[0] & PVR0_USE_FPU_MASK)
++#define PVR_USE_ICACHE(pvr)		(pvr.pvr[0] & PVR0_USE_ICACHE_MASK)
++#define PVR_USE_DCACHE(pvr)		(pvr.pvr[0] & PVR0_USE_DCACHE_MASK)
++#define PVR_VERSION(pvr)	((pvr.pvr[0] & PVR0_VERSION_MASK) >> 8)
++#define PVR_USER1(pvr)			(pvr.pvr[0] & PVR0_USER1_MASK)
++#define PVR_USER2(pvr)			(pvr.pvr[1] & PVR1_USER2_MASK)
 +
-+#ifdef __KERNEL__
++#define PVR_D_OPB(pvr)			(pvr.pvr[2] & PVR2_D_OPB_MASK)
++#define PVR_D_LMB(pvr)			(pvr.pvr[2] & PVR2_D_LMB_MASK)
++#define PVR_I_OPB(pvr)			(pvr.pvr[2] & PVR2_I_OPB_MASK)
++#define PVR_I_LMB(pvr)			(pvr.pvr[2] & PVR2_I_LMB_MASK)
++#define PVR_INTERRUPT_IS_EDGE(pvr) \
++			(pvr.pvr[2] & PVR2_INTERRUPT_IS_EDGE_MASK)
++#define PVR_EDGE_IS_POSITIVE(pvr) \
++			(pvr.pvr[2] & PVR2_EDGE_IS_POSITIVE_MASK)
++#define PVR_USE_MSR_INSTR(pvr)		(pvr.pvr[2] & PVR2_USE_MSR_INSTR)
++#define PVR_USE_PCMP_INSTR(pvr)		(pvr.pvr[2] & PVR2_USE_PCMP_INSTR)
++#define PVR_AREA_OPTIMISED(pvr)		(pvr.pvr[2] & PVR2_AREA_OPTIMISED)
++#define PVR_USE_MUL64(pvr)		(pvr.pvr[2] & PVR2_USE_MUL64_MASK)
++#define PVR_OPCODE_0x0_ILLEGAL(pvr) \
++			(pvr.pvr[2] & PVR2_OPCODE_0x0_ILLEGAL_MASK)
++#define PVR_UNALIGNED_EXCEPTION(pvr) \
++			(pvr.pvr[2] & PVR2_UNALIGNED_EXCEPTION_MASK)
++#define PVR_ILL_OPCODE_EXCEPTION(pvr) \
++			(pvr.pvr[2] & PVR2_ILL_OPCODE_EXCEPTION_MASK)
++#define PVR_IOPB_BUS_EXCEPTION(pvr) \
++			(pvr.pvr[2] & PVR2_IOPB_BUS_EXCEPTION_MASK)
++#define PVR_DOPB_BUS_EXCEPTION(pvr) \
++			(pvr.pvr[2] & PVR2_DOPB_BUS_EXCEPTION_MASK)
++#define PVR_DIV_ZERO_EXCEPTION(pvr) \
++			(pvr.pvr[2] & PVR2_DIV_ZERO_EXCEPTION_MASK)
++#define PVR_FPU_EXCEPTION(pvr)		(pvr.pvr[2] & PVR2_FPU_EXCEPTION_MASK)
 +
-+#include <asm/sigcontext.h>
-+#undef __HAVE_ARCH_SIG_BITOPS
++#define PVR_DEBUG_ENABLED(pvr)		(pvr.pvr[3] & PVR3_DEBUG_ENABLED_MASK)
++#define PVR_NUMBER_OF_PC_BRK(pvr) \
++			((pvr.pvr[3] & PVR3_NUMBER_OF_PC_BRK_MASK) >> 25)
++#define PVR_NUMBER_OF_RD_ADDR_BRK(pvr) \
++			((pvr.pvr[3] & PVR3_NUMBER_OF_RD_ADDR_BRK_MASK) >> 19)
++#define PVR_NUMBER_OF_WR_ADDR_BRK(pvr) \
++			((pvr.pvr[3] & PVR3_NUMBER_OF_WR_ADDR_BRK_MASK) >> 13)
++#define PVR_FSL_LINKS(pvr)	((pvr.pvr[3] & PVR3_FSL_LINKS_MASK) >> 7)
 +
-+#define ptrace_signal_deliver(regs, cookie) do { } while (0)
++#define PVR_ICACHE_ADDR_TAG_BITS(pvr) \
++			((pvr.pvr[4] & PVR4_ICACHE_ADDR_TAG_BITS_MASK) >> 26)
++#define PVR_ICACHE_USE_FSL(pvr)		(pvr.pvr[4] & PVR4_ICACHE_USE_FSL_MASK)
++#define PVR_ICACHE_ALLOW_WR(pvr)	(pvr.pvr[4] & PVR4_ICACHE_ALLOW_WR_MASK)
++#define PVR_ICACHE_LINE_LEN(pvr) \
++			(1 << ((pvr.pvr[4] & PVR4_ICACHE_LINE_LEN_MASK) >> 21))
++#define PVR_ICACHE_BYTE_SIZE(pvr) \
++			(1 << ((pvr.pvr[4] & PVR4_ICACHE_BYTE_SIZE_MASK) >> 16))
 +
-+#endif /* __KERNEL__ */
-+#endif /* __ASSEMBLY__ */
++#define PVR_DCACHE_ADDR_TAG_BITS(pvr) \
++			((pvr.pvr[5] & PVR5_DCACHE_ADDR_TAG_BITS_MASK) >> 26)
++#define PVR_DCACHE_USE_FSL(pvr)		(pvr.pvr[5] & PVR5_DCACHE_USE_FSL_MASK)
++#define PVR_DCACHE_ALLOW_WR(pvr)	(pvr.pvr[5] & PVR5_DCACHE_ALLOW_WR_MASK)
++#define PVR_DCACHE_LINE_LEN(pvr) \
++			(1 << ((pvr.pvr[5] & PVR5_DCACHE_LINE_LEN_MASK) >> 21))
++#define PVR_DCACHE_BYTE_SIZE(pvr) \
++			(1 << ((pvr.pvr[5] & PVR5_DCACHE_BYTE_SIZE_MASK) >> 16))
 +
-+#endif /* _ASM_MICROBLAZE_SIGNAL_H */
++
++#define PVR_ICACHE_BASEADDR(pvr)	(pvr.pvr[6] & PVR6_ICACHE_BASEADDR_MASK)
++#define PVR_ICACHE_HIGHADDR(pvr)	(pvr.pvr[7] & PVR7_ICACHE_HIGHADDR_MASK)
++
++#define PVR_DCACHE_BASEADDR(pvr)	(pvr.pvr[8] & PVR8_DCACHE_BASEADDR_MASK)
++#define PVR_DCACHE_HIGHADDR(pvr)	(pvr.pvr[9] & PVR9_DCACHE_HIGHADDR_MASK)
++
++#define PVR_TARGET_FAMILY(pvr)	((pvr.pvr[10] & PVR10_TARGET_FAMILY_MASK) >> 24)
++
++#define PVR_MSR_RESET_VALUE(pvr) \
++				(pvr.pvr[11] & PVR11_MSR_RESET_VALUE_MASK)
++
++int cpu_has_pvr(void);
++void get_pvr(struct pvr_s *pvr);
++
++#endif /* _ASM_MICROBLAZE_PVR_H */
+diff --git a/include/asm-microblaze/system.h b/include/asm-microblaze/system.h
+new file mode 100644
+index 0000000..6ca1946
+--- /dev/null
++++ b/include/asm-microblaze/system.h
+@@ -0,0 +1,189 @@
++/*
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_MICROBLAZE_SYSTEM_H
++#define _ASM_MICROBLAZE_SYSTEM_H
++
++#include <asm/registers.h>
++#include <asm/setup.h>
++
++struct task_struct;
++struct thread_info;
++
++extern struct task_struct *_switch_to(struct thread_info *prev,
++					struct thread_info *next);
++
++#define switch_to(prev, next, last)					\
++	do {								\
++		(last) = _switch_to(task_thread_info(prev),		\
++					task_thread_info(next));	\
++	} while (0)
++
++#if CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR
++
++#define local_irq_save(flags)				\
++	do {						\
++		asm volatile ("# local_irq_save	\n\t"	\
++				"msrclr %0, %1	\n\t"	\
++				"nop	\n\t"		\
++				: "=r"(flags)		\
++				: "i"(MSR_IE)		\
++				: "memory");		\
++	} while (0)
++
++#define local_irq_disable()					\
++	do {							\
++		asm volatile ("# local_irq_disable \n\t"	\
++				"msrclr r0, %0 \n\t"		\
++				"nop	\n\t"			\
++				:				\
++				: "i"(MSR_IE)			\
++				: "memory");			\
++	} while (0)
++
++#define local_irq_enable()					\
++	do {							\
++		asm volatile ("# local_irq_enable \n\t"		\
++				"msrset	r0, %0 \n\t"		\
++				"nop	\n\t"			\
++				:				\
++				: "i"(MSR_IE)			\
++				: "memory");			\
++	} while (0)
++
++#else /* CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR == 0 */
++
++#define local_irq_save(flags)					\
++	do {							\
++		register unsigned tmp;				\
++		asm volatile ("# local_irq_save	\n\t"		\
++				"mfs	%0, rmsr \n\t"		\
++				"andi	%1, %0, %2 \n\t"	\
++				"mts	rmsr, %1 \n\t"		\
++				"nop \n\t"			\
++				: "=r"(flags), "=r" (tmp)	\
++				: "i"(~MSR_IE)			\
++				: "memory");			\
++	} while (0)
++
++#define local_irq_disable()					\
++	do {							\
++		register unsigned tmp;				\
++		asm volatile ("# local_irq_disable \n\t"	\
++				"mfs	%0, rmsr \n\t"		\
++				"andi	%0, %0, %1 \n\t"	\
++				"mts	rmsr, %0 \n\t"		\
++				"nop \n\t"			\
++				: "=r"(tmp)			\
++				: "i"(~MSR_IE)			\
++				: "memory");			\
++	} while (0)
++
++#define local_irq_enable()					\
++	do {							\
++		register unsigned tmp;				\
++		asm volatile ("# local_irq_enable \n\t"		\
++				"mfs	%0, rmsr \n\t"		\
++				"ori	%0, %0, %1 \n\t"	\
++				"mts	rmsr, %0 \n\t"		\
++				"nop \n\t"			\
++				: "=r"(tmp)			\
++				: "i"(MSR_IE)			\
++				: "memory");			\
++	} while (0)
++
++#endif /* CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR */
++
++#define local_save_flags(flags)					\
++	do {							\
++		asm volatile ("# local_save_flags \n\t"		\
++				"mfs	%0, rmsr \n\t"		\
++				"nop	\n\t"			\
++				: "=r"(flags)			\
++				:				\
++				: "memory");			\
++	} while (0)
++
++#define local_irq_restore(flags)			\
++	do {						\
++		asm volatile ("# local_irq_restore \n\t"\
++				"mts	rmsr, %0 \n\t"	\
++				"nop	\n\t"		\
++				:			\
++				:"r"(flags)		\
++				: "memory");		\
++	} while (0)
++
++static inline int irqs_disabled(void)
++{
++	unsigned long flags;
++
++	local_save_flags(flags);
++	return ((flags & MSR_IE) == 0);
++}
++
++#define smp_read_barrier_depends()	do {} while (0)
++#define read_barrier_depends()		do {} while (0)
++
++#define nop()			asm volatile ("nop")
++#define mb()			barrier()
++#define rmb()			mb()
++#define wmb()			mb()
++#define set_mb(var, value)	do { var = value; mb(); } while (0)
++#define set_wmb(var, value)	do { var = value; wmb(); } while (0)
++
++#define smp_mb()		mb()
++#define smp_rmb()		rmb()
++#define smp_wmb()		wmb()
++
++void show_trace(struct task_struct *task, unsigned long *stack);
++void __bad_xchg(volatile void *ptr, int size);
++
++static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
++								int size)
++{
++	unsigned long ret;
++	unsigned long flags;
++
++	switch (size) {
++	case 1:
++		local_irq_save(flags);
++		ret = *(volatile unsigned char *)ptr;
++		*(volatile unsigned char *)ptr = x;
++		local_irq_restore(flags);
++		break;
++
++	case 4:
++		local_irq_save(flags);
++		ret = *(volatile unsigned long *)ptr;
++		*(volatile unsigned long *)ptr = x;
++		local_irq_restore(flags);
++		break;
++	default:
++		__bad_xchg(ptr, size), ret = 0;
++		break;
++	}
++
++	return ret;
++}
++
++#define xchg(ptr,x) \
++	((__typeof__(*(ptr))) __xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
++
++extern void *cacheable_memcpy(void *, const void *, unsigned int);
++void free_init_pages(char *what, unsigned long begin, unsigned long end);
++void free_initmem(void);
++extern char *klimit;
++extern unsigned int memory_end;
++extern void ret_from_fork(void);
++
++#ifdef CONFIG_DEBUG_FS
++extern struct dentry *of_debugfs_root;
++#endif
++
++#endif /* _ASM_MICROBLAZE_SYSTEM_H */
 -- 
 1.5.4.GIT
