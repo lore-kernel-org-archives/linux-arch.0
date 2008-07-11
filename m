@@ -1,47 +1,373 @@
-From: "John Williams" <john.williams@petalogix.com>
-Subject: Re: [PATCH 19/58] microblaze_v5: early_printk support
-Date: Wed, 9 Jul 2008 09:47:29 +1000
-Message-ID: <1d3f23370807081647y446534dp6db16f560e4e0a2d@mail.gmail.com>
-References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
-	 <2aa1ac7891af57959237aae3addf4bbe607f55d7.1215517976.git.monstr@monstr.eu>
+From: Harvey Harrison <harvey.harrison@gmail.com>
+Subject: [PATCH 1/6] byteorder: add a new include/linux/swab.h to define
+	byteswapping functions
+Date: Fri, 11 Jul 2008 12:11:11 -0700
+Message-ID: <1215803471.15972.20.camel@brick>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fg-out-1718.google.com ([72.14.220.159]:32212 "EHLO
-	fg-out-1718.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753316AbYGHXrb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jul 2008 19:47:31 -0400
-Received: by fg-out-1718.google.com with SMTP id 19so1091993fgg.17
-        for <linux-arch@vger.kernel.org>; Tue, 08 Jul 2008 16:47:30 -0700 (PDT)
-In-Reply-To: <2aa1ac7891af57959237aae3addf4bbe607f55d7.1215517976.git.monstr@monstr.eu>
-Content-Disposition: inline
+Received: from wf-out-1314.google.com ([209.85.200.169]:53008 "EHLO
+	wf-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751469AbYGKTLQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Jul 2008 15:11:16 -0400
+Received: by wf-out-1314.google.com with SMTP id 27so3743795wfd.4
+        for <linux-arch@vger.kernel.org>; Fri, 11 Jul 2008 12:11:15 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@monstr.eu
-Cc: linux-kernel@vger.kernel.org, monstr@seznam.cz, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, lethal@linux-sh.org, florian@openwrt.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 
-> +++ b/arch/microblaze/kernel/early_printk.c
-> @@ -0,0 +1,130 @@
+Collect the implementations from include/linux/byteorder/swab.h, swabb.h
+in swab.h
 
-> +#ifdef CONFIG_EARLY_PRINTK
-> +#define BASE_ADDR ((unsigned char *)CONFIG_EARLY_PRINTK_UARTLITE_ADDRESS)
+The functionality provided covers:
+u16 swab16(u16 val) - return a byteswapped 16 bit value
+u32 swab32(u32 val) - return a byteswapped 32 bit value
+u64 swab64(u64 val) - return a byteswapped 64 bit value
+u32 swahw32(u32 val) - return a wordswapped 32 bit value
+u32 swahb32(u32 val) - return a high/low byteswapped 32 bit value
 
-This is a problem - default value of EARLY_PRINTK_UARTLITE_ADDRESS is
-0x0, so by default the kernel will try to access a uartlite at 0x0
-which is the reset vector!  I know there is the test in the actual
-output routine but it's not good to rely on that in the default case.
+The above versions also do compile-time folding if possible.
 
-Can we either
+Similar to above, but return swapped value from a naturally-aligned pointer
+u16 swab16p(u16 *p)
+u32 swab32p(u32 *p)
+u64 swab64p(u64 *p)
+u32 swahw32p(u32 *p)
+u32 swahb32p(u32 *p)
 
-#if CONFIG_EARLY_PRINTK_UARTLITE_ADDRESS==0
-#warning EARLY_PRINTK address not set, disabling
-...
-#else
-..
-#endif
+Similar to above, but swap the value in-place (in-situ)
+void swab16s(u16 *p)
+void swab32s(u32 *p)
+void swab64s(u64 *p)
+void swahw32s(u32 *p)
+void swahb32s(u32 *p)
 
-or query the OF subsystem (is it up yet?), and default to using the
-first uartlite in the system for early printk?
+Arches can override any of these with an optimized version by defining an
+inline in their asm/byteorder.h (example given for swab16()):
 
-John
+u16 __arch_swab16() {}
+
+Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
+---
+ include/linux/swab.h |  309 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 309 insertions(+), 0 deletions(-)
+
+diff --git a/include/linux/swab.h b/include/linux/swab.h
+new file mode 100644
+index 0000000..8f955b2
+--- /dev/null
++++ b/include/linux/swab.h
+@@ -0,0 +1,309 @@
++#ifndef _LINUX_SWAB_H
++#define _LINUX_SWAB_H
++
++#include <linux/types.h>
++#include <linux/compiler.h>
++#include <asm/byteorder.h>
++
++/*
++ * casts are necessary for constants, because we never know how for sure
++ * how U/UL/ULL map to __u16, __u32, __u64. At least not in a portable way.
++ */
++#define __const_swab16(x) ((__u16)(				\
++	(((__u16)(x) & (__u16)0x00ffU) << 8) |			\
++	(((__u16)(x) & (__u16)0xff00U) >> 8)))
++
++#define __const_swab32(x) ((__u32)(				\
++	(((__u32)(x) & (__u32)0x000000ffUL) << 24) |		\
++	(((__u32)(x) & (__u32)0x0000ff00UL) <<  8) |		\
++	(((__u32)(x) & (__u32)0x00ff0000UL) >>  8) |		\
++	(((__u32)(x) & (__u32)0xff000000UL) >> 24)))
++
++#define __const_swab64(x) ((__u64)(				\
++	(((__u64)(x) & (__u64)0x00000000000000ffULL) << 56) |	\
++	(((__u64)(x) & (__u64)0x000000000000ff00ULL) << 40) |	\
++	(((__u64)(x) & (__u64)0x0000000000ff0000ULL) << 24) |	\
++	(((__u64)(x) & (__u64)0x00000000ff000000ULL) <<  8) |	\
++	(((__u64)(x) & (__u64)0x000000ff00000000ULL) >>  8) |	\
++	(((__u64)(x) & (__u64)0x0000ff0000000000ULL) >> 24) |	\
++	(((__u64)(x) & (__u64)0x00ff000000000000ULL) >> 40) |	\
++	(((__u64)(x) & (__u64)0xff00000000000000ULL) >> 56)))
++
++#define __const_swahw32(x) ((__u32)(				\
++	(((__u32)(x) & (__u32)0x0000ffffUL) << 16) |		\
++	(((__u32)(x) & (__u32)0xffff0000UL) >> 16)))
++
++#define __const_swahb32(x) ((__u32)(				\
++	(((__u32)(x) & (__u32)0x00ff00ffUL) << 8) |		\
++	(((__u32)(x) & (__u32)0xff00ff00UL) >> 8)))
++
++/*
++ * Implement the following as inlines, but define the interface using
++ * macros to allow constant folding when possible:
++ * ___swab16, ___swab32, ___swab64, ___swahw32, ___swahb32
++ */
++
++static inline __attribute_const__ __u16 ___swab16(__u16 val)
++{
++#ifdef HAVE_ARCH_SWAB16
++	return __arch_swab16(val);
++#elif defined(HAVE_ARCH_SWAB16P)
++	return __arch_swab16p(&val);
++#else
++	return __const_swab16(val);
++#endif
++}
++
++static inline __attribute_const__ __u32 ___swab32(__u32 val)
++{
++#ifdef HAVE_ARCH_SWAB32
++	return __arch_swab32(val);
++#elif defined(HAVE_ARCH_SWAB32P)
++	return __arch_swab32p(&val);
++#else
++	return __const_swab32(val);
++#endif
++}
++
++static inline __attribute_const__ __u64 ___swab64(__u64 val)
++{
++#ifdef HAVE_ARCH_SWAB64
++	return __arch_swab64(val);
++#elif defined(HAVE_ARCH_SWAB64P)
++	return __arch_swab64p(&val);
++#elif defined(__SWAB_64_THRU_32__)
++	__u32 h = val >> 32;
++	__u32 l = val & ((1ULL << 32) - 1);
++	return (((__u64)___swab32(l)) << 32) | ((__u64)(___swab32(h)));
++#else
++	return __const_swab64(val);
++#endif
++}
++
++static inline __attribute_const__ __u32 ___swahw32(__u32 val)
++{
++#ifdef HAVE_ARCH_SWAHW32
++	return __arch_swahw32(val);
++#elif defined(HAVE_ARCH_SWAHW32P)
++	return __arch_swahw32p(&val);
++#else
++	return __const_swahw32(val);
++#endif
++}
++
++static inline __attribute_const__ __u32 ___swahb32(__u32 val)
++{
++#ifdef HAVE_ARCH_SWAHB32
++	return __arch_swahb32(val);
++#elif defined(HAVE_ARCH_SWAHB32P)
++	return __arch_swahb32p(&val);
++#else
++	return __const_swahb32(val);
++#endif
++}
++
++/**
++ * __swab16 - return a byteswapped 16-bit value
++ * @x: value to byteswap
++ */
++#define __swab16(x)				\
++	(__builtin_constant_p((__u16)(x)) ?	\
++	__const_swab16((x)) :			\
++	___swab16((x)))
++
++/**
++ * __swab32 - return a byteswapped 32-bit value
++ * @x: value to byteswap
++ */
++#define __swab32(x)				\
++	(__builtin_constant_p((__u32)(x)) ?	\
++	__const_swab32((x)) :			\
++	___swab32((x)))
++
++/**
++ * __swab64 - return a byteswapped 64-bit value
++ * @x: value to byteswap
++ */
++#define __swab64(x)				\
++	(__builtin_constant_p((__u64)(x)) ?	\
++	__const_swab64((x)) :			\
++	___swab64((x)))
++
++/**
++ * __swahw32 - return a word-swapped 32-bit value
++ * @x: value to wordswap
++ *
++ * __swahw32(0x12340000) is 0x00001234
++ */
++#define __swahw32(x)				\
++	(__builtin_constant_p((__u32)(x)) ?	\
++	__const_swahw32((x)) :			\
++	___swahw32((x)))
++
++/**
++ * __swahb32 - return a high and low byte-swapped 32-bit value
++ * @x: value to byteswap
++ *
++ * __swahb32(0x12345678) is 0x34127856
++ */
++#define __swahb32(x)				\
++	(__builtin_constant_p((__u32)(x)) ?	\
++	__const_swahb32((x)) :			\
++	___swahb32((x)))
++
++/**
++ * __swab16p - return a byteswapped 16-bit value from a pointer
++ * @p: pointer to a naturally-aligned 16-bit value
++ */
++static inline __u16 __swab16p(const __u16 *p)
++{
++#ifdef HAVE_ARCH_SWAB16P
++	return __arch_swab16p(p);
++#else
++	return __swab16(*p);
++#endif
++}
++
++/**
++ * __swab32p - return a byteswapped 32-bit value from a pointer
++ * @p: pointer to a naturally-aligned 32-bit value
++ */
++static inline __u32 __swab32p(const __u32 *p)
++{
++#ifdef HAVE_ARCH_SWAB32P
++	return __arch_swab32p(p);
++#else
++	return __swab32(*p);
++#endif
++}
++
++/**
++ * __swab64p - return a byteswapped 64-bit value from a pointer
++ * @p: pointer to a naturally-aligned 64-bit value
++ */
++static inline __u64 __swab64p(const __u64 *p)
++{
++#ifdef HAVE_ARCH_SWAB64P
++	return __arch_swab64p(p);
++#else
++	return __swab64(*p);
++#endif
++}
++
++/**
++ * __swahw32p - return a wordswapped 32-bit value from a pointer
++ * @p: pointer to a naturally-aligned 32-bit value
++ *
++ * See __swahw32() for details of wordswapping.
++ */
++static inline __u32 __swahw32p(const __u32 *p)
++{
++#ifdef HAVE_ARCH_SWAHW32P
++	return __arch_swahw32p(p);
++#else
++	return __swahw32(*p);
++#endif
++}
++
++/**
++ * __swahb32p - return a high and low byteswapped 32-bit value from a pointer
++ * @p: pointer to a naturally-aligned 32-bit value
++ *
++ * See __swahb32() for details of high/low byteswapping.
++ */
++static inline __u32 __swahb32p(const __u32 *p)
++{
++#ifdef HAVE_ARCH_SWAHB32P
++	return __arch_swahb32p(p);
++#else
++	return __swahb32(*p);
++#endif
++}
++
++/**
++ * __swab16s - byteswap a 16-bit value in-place
++ * @p: pointer to a naturally-aligned 16-bit value
++ */
++static inline void __swab16s(__u16 *p)
++{
++#ifdef HAVE_ARCH_SWAB16S
++	__arch_swab16s(p);
++#else
++	*p = __swab16p(p);
++#endif
++}
++/**
++ * __swab32s - byteswap a 32-bit value in-place
++ * @p: pointer to a naturally-aligned 32-bit value
++ */
++static inline void __swab32s(__u32 *p)
++{
++#ifdef HAVE_ARCH_SWAB32S
++	__arch_swab32s(p);
++#else
++	*p = __swab32p(p);
++#endif
++}
++
++/**
++ * __swab64s - byteswap a 64-bit value in-place
++ * @p: pointer to a naturally-aligned 64-bit value
++ */
++static inline void __swab64s(__u64 *p)
++{
++#ifdef HAVE_ARCH_SWAB64S
++	__arch_swab64s(p);
++#else
++	*p = __swab64p(p);
++#endif
++}
++
++/**
++ * __swahw32s - wordswap a 32-bit value in-place
++ * @p: pointer to a naturally-aligned 32-bit value
++ *
++ * See __swahw32() for details of wordswapping
++ */
++static inline void __swahw32s(__u32 *p)
++{
++#ifdef HAVE_ARCH_SWAHW32S
++	__arch_swahw32s(p);
++#else
++	*p = __swahw32p(p);
++#endif
++}
++
++/**
++ * __swahb32s - high and low byteswap a 32-bit value in-place
++ * @p: pointer to a naturally-aligned 32-bit value
++ *
++ * See __swahb32() for details of high and low byte swapping
++ */
++static inline void __swahb32s(__u32 *p)
++{
++#ifdef HAVE_ARCH_SWAHB32S
++	__arch_swahb32s(p);
++#else
++	*p = __swahb32p(p);
++#endif
++}
++
++#ifdef __KERNEL__
++# define swab16 __swab16
++# define swab32 __swab32
++# define swab64 __swab64
++# define swahw32 __swahw32
++# define swahb32 __swahb32
++# define swab16p __swab16p
++# define swab32p __swab32p
++# define swab64p __swab64p
++# define swahw32p __swahw32p
++# define swahb32p __swahb32p
++# define swab16s __swab16s
++# define swab32s __swab32s
++# define swab64s __swab64s
++# define swahw32s __swahw32s
++# define swahb32s __swahb32s
++#endif /* __KERNEL__ */
++
++#endif /* _LINUX_SWAB_H */
+-- 
+1.5.6.2.393.g45096
