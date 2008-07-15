@@ -1,17 +1,21 @@
 From: Alex Chiang <achiang@hp.com>
-Subject: [PATCH 03/14] [ALPHA] Populate cpu_enabled_map
-Date: Mon, 14 Jul 2008 20:33:59 -0600
-Message-ID: <20080715023359.2528.87647.stgit@blender.achiang>
+Subject: [PATCH 05/14] [MIPS] Populate cpu_enabled_map
+Date: Mon, 14 Jul 2008 20:34:10 -0600
+Message-ID: <20080715023410.2528.66597.stgit@blender.achiang>
 References: <20080715023344.2528.1836.stgit@blender.achiang>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-acpi-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:15963 "EHLO
+	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755006AbYGOCeM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2008 22:34:12 -0400
 In-Reply-To: <20080715023344.2528.1836.stgit@blender.achiang>
-Sender: linux-acpi-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux-acpi@vger.kernel.org, Alex Chiang <achiang@hp.com>, Richard Henderson <rth@twiddle.net>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-acpi@vger.kernel.org, Alex Chiang <achiang@hp.com>, Ralf Baechle <ralf@linux-mips.org>
 
 Populate the cpu_enabled_map correctly.
 
@@ -25,51 +29,34 @@ However, as the map is presented via sysfs in:
 It should be populated correctly.
 
 Signed-off-by: Alex Chiang <achiang@hp.com>
-Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ralf Baechle <ralf@linux-mips.org>
 ---
 
- arch/alpha/kernel/process.c |    2 ++
- arch/alpha/kernel/smp.c     |    2 ++
- 2 files changed, 4 insertions(+), 0 deletions(-)
+ arch/mips/kernel/smp.c  |    1 +
+ arch/mips/kernel/smtc.c |    1 +
+ 2 files changed, 2 insertions(+), 0 deletions(-)
 
-diff --git a/arch/alpha/kernel/process.c b/arch/alpha/kernel/process.c
-index 96ed82f..7a261e2 100644
---- a/arch/alpha/kernel/process.c
-+++ b/arch/alpha/kernel/process.c
-@@ -94,6 +94,7 @@ common_shutdown_1(void *generic_ptr)
- 		flags |= 0x00040000UL; /* "remain halted" */
- 		*pflags = flags;
- 		cpu_clear(cpuid, cpu_present_map);
-+		cpu_clear(cpuid, cpu_enabled_map);
- 		halt();
- 	}
+diff --git a/arch/mips/kernel/smp.c b/arch/mips/kernel/smp.c
+index cdf87a9..8f7f742 100644
+--- a/arch/mips/kernel/smp.c
++++ b/arch/mips/kernel/smp.c
+@@ -304,6 +304,7 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
+ 	set_cpu_sibling_map(0);
+ #ifndef CONFIG_HOTPLUG_CPU
+ 	cpu_present_map = cpu_possible_map;
++	cpu_enabled_map = cpu_possible_map;
  #endif
-@@ -120,6 +121,7 @@ common_shutdown_1(void *generic_ptr)
- #ifdef CONFIG_SMP
- 	/* Wait for the secondaries to halt. */
- 	cpu_clear(boot_cpuid, cpu_present_map);
-+	cpu_clear(boot_cpuid, cpu_enabled_map);
- 	while (cpus_weight(cpu_present_map))
- 		barrier();
- #endif
-diff --git a/arch/alpha/kernel/smp.c b/arch/alpha/kernel/smp.c
-index 2525692..ec53061 100644
---- a/arch/alpha/kernel/smp.c
-+++ b/arch/alpha/kernel/smp.c
-@@ -436,6 +436,7 @@ setup_smp(void)
- 			if ((cpu->flags & 0x1cc) == 0x1cc) {
- 				smp_num_probed++;
- 				cpu_set(i, cpu_present_map);
-+				cpu_set(i, cpu_enabled_map);
- 				cpu->pal_revision = boot_cpu_palrev;
- 			}
+ }
  
-@@ -469,6 +470,7 @@ smp_prepare_cpus(unsigned int max_cpus)
- 	/* Nothing to do on a UP box, or when told not to.  */
- 	if (smp_num_probed == 1 || max_cpus == 0) {
- 		cpu_present_map = cpumask_of_cpu(boot_cpuid);
-+		cpu_enabled_map = cpumask_of_cpu(boot_cpuid);
- 		printk(KERN_INFO "SMP mode deactivated.\n");
- 		return;
+diff --git a/arch/mips/kernel/smtc.c b/arch/mips/kernel/smtc.c
+index 3e86318..b0c16e0 100644
+--- a/arch/mips/kernel/smtc.c
++++ b/arch/mips/kernel/smtc.c
+@@ -498,6 +498,7 @@ void mipsmt_prepare_cpus(void)
+ 	while (tc < (((val & MVPCONF0_PTC) >> MVPCONF0_PTC_SHIFT) + 1)) {
+ 		cpu_clear(tc, phys_cpu_present_map);
+ 		cpu_clear(tc, cpu_present_map);
++		cpu_clear(tc, cpu_enabled_map);
+ 		tc++;
  	}
-
+ 
