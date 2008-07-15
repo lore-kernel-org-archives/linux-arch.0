@@ -1,72 +1,136 @@
 From: Alex Chiang <achiang@hp.com>
-Subject: [PATCH 06/14] [PARISC] Populate cpu_enabled_map
-Date: Mon, 14 Jul 2008 20:34:15 -0600
-Message-ID: <20080715023415.2528.97760.stgit@blender.achiang>
+Subject: [PATCH 12/14] [IA64] Populate and use cpu_enabled_map
+Date: Mon, 14 Jul 2008 20:34:45 -0600
+Message-ID: <20080715023445.2528.16785.stgit@blender.achiang>
 References: <20080715023344.2528.1836.stgit@blender.achiang>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0028.austin.hp.com ([15.216.28.35]:30801 "EHLO
-	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761093AbYGOCeQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2008 22:34:16 -0400
+Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:16107 "EHLO
+	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761588AbYGOCeq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2008 22:34:46 -0400
 In-Reply-To: <20080715023344.2528.1836.stgit@blender.achiang>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux-acpi@vger.kernel.org, Alex Chiang <achiang@hp.com>, Kyle McMartin <kyle@mcmartin.ca>
+Cc: linux-acpi@vger.kernel.org, Alex Chiang <achiang@hp.com>, Tony Luck <tony.luck@intel.com>
 
-Populate the cpu_enabled_map correctly.
+Modify MADT local SAPIC parsing such that:
 
-Note that this patch does not actually make any decisions based
-on the contents of the map.
+	- all present CPUs added to cpu_present_map
+	- all enabled CPUs added to cpu_enabled_map
 
-However, as the map is presented via sysfs in:
+This change allows us to check during __cpu_up() if we should
+actually bring up the CPU. That is, if a CPU is present, but not
+enabled by firmware, we should not bring it up.
 
-	/sys/devices/system/cpu/
+Contrariwise, by creating a sysfs interface for a disabled CPU,
+we provide a hook that allows a user to interact with the CPU.
 
-It should be populated correctly.
+The most visible user interface change with this patch is that more
+sysfs entries will appear in /sys/devices/system/cpu/cpuN/ on
+multi-threaded systems with threads turned off.
+
+The actual directories will be empty. A later patch in this series
+will provide an example of using this new hook to provide a user
+interface for disabled CPUs.
 
 Signed-off-by: Alex Chiang <achiang@hp.com>
-Cc: Kyle McMartin <kyle@mcmartin.ca>
+Cc: Tony Luck <tony.luck@intel.com>
 ---
 
- arch/parisc/kernel/processor.c |    1 +
- arch/parisc/kernel/smp.c       |    3 +++
- 2 files changed, 4 insertions(+), 0 deletions(-)
+ arch/ia64/kernel/acpi.c    |   16 +++++++++-------
+ arch/ia64/kernel/smpboot.c |    7 +++++++
+ include/asm-ia64/smp.h     |    1 +
+ 3 files changed, 17 insertions(+), 7 deletions(-)
 
-diff --git a/arch/parisc/kernel/processor.c b/arch/parisc/kernel/processor.c
-index 370086f..fb81222 100644
---- a/arch/parisc/kernel/processor.c
-+++ b/arch/parisc/kernel/processor.c
-@@ -201,6 +201,7 @@ static int __cpuinit processor_probe(struct parisc_device *dev)
+diff --git a/arch/ia64/kernel/acpi.c b/arch/ia64/kernel/acpi.c
+index 43687cc..1b4b338 100644
+--- a/arch/ia64/kernel/acpi.c
++++ b/arch/ia64/kernel/acpi.c
+@@ -212,13 +212,14 @@ acpi_parse_lsapic(struct acpi_subtable_header * header, const unsigned long end)
+ 
+ 	/*Skip BAD_MADT_ENTRY check, as lsapic size could vary */
+ 
+-	if (lsapic->lapic_flags & ACPI_MADT_ENABLED) {
  #ifdef CONFIG_SMP
- 	if (cpuid) {
- 		cpu_set(cpuid, cpu_present_map);
-+		cpu_set(cpuid, cpu_enabled_map);
- 		cpu_up(cpuid);
- 	}
+-		smp_boot_data.cpu_phys_id[available_cpus] =
+-		    (lsapic->id << 8) | lsapic->eid;
++	smp_boot_data.cpu_phys_id[available_cpus] =
++	    (lsapic->id << 8) | lsapic->eid;
++
++	smp_boot_data.cpu_enabled[available_cpus] =
++		lsapic->lapic_flags & ACPI_MADT_ENABLED;
  #endif
-diff --git a/arch/parisc/kernel/smp.c b/arch/parisc/kernel/smp.c
-index 85fc775..a31b0ad 100644
---- a/arch/parisc/kernel/smp.c
-+++ b/arch/parisc/kernel/smp.c
-@@ -535,6 +535,7 @@ void __devinit smp_prepare_boot_cpu(void)
+-		++available_cpus;
+-	}
++	++available_cpus;
  
- 	cpu_set(bootstrap_processor, cpu_online_map);
- 	cpu_set(bootstrap_processor, cpu_present_map);
-+	cpu_set(bootstrap_processor, cpu_enabled_map);
- }
+ 	total_cpus++;
+ 	return 0;
+@@ -872,8 +873,7 @@ int acpi_map_lsapic(acpi_handle handle, int *pcpu)
  
+ 	lsapic = (struct acpi_madt_local_sapic *)obj->buffer.pointer;
  
-@@ -546,7 +547,9 @@ void __devinit smp_prepare_boot_cpu(void)
- void __init smp_prepare_cpus(unsigned int max_cpus)
- {
+-	if ((lsapic->header.type != ACPI_MADT_TYPE_LOCAL_SAPIC) ||
+-	    (!(lsapic->lapic_flags & ACPI_MADT_ENABLED))) {
++	if (lsapic->header.type != ACPI_MADT_TYPE_LOCAL_SAPIC) {
+ 		kfree(buffer.pointer);
+ 		return -EINVAL;
+ 	}
+@@ -892,6 +892,8 @@ int acpi_map_lsapic(acpi_handle handle, int *pcpu)
+ 	acpi_map_cpu2node(handle, cpu, physid);
+ 
+ 	cpu_set(cpu, cpu_present_map);
++	if (lsapic->lapic_flags & ACPI_MADT_ENABLED)
++		cpu_set(cpu, cpu_enabled_map);
+ 	ia64_cpu_to_sapicid[cpu] = physid;
+ 
+ 	*pcpu = cpu;
+diff --git a/arch/ia64/kernel/smpboot.c b/arch/ia64/kernel/smpboot.c
+index d7ad42b..caa1a44 100644
+--- a/arch/ia64/kernel/smpboot.c
++++ b/arch/ia64/kernel/smpboot.c
+@@ -582,14 +582,18 @@ smp_build_cpu_map (void)
+ 
+ 	ia64_cpu_to_sapicid[0] = boot_cpu_id;
  	cpus_clear(cpu_present_map);
 +	cpus_clear(cpu_enabled_map);
  	cpu_set(0, cpu_present_map);
+ 	cpu_set(0, cpu_possible_map);
 +	cpu_set(0, cpu_enabled_map);
+ 	for (cpu = 1, i = 0; i < smp_boot_data.cpu_count; i++) {
+ 		sapicid = smp_boot_data.cpu_phys_id[i];
+ 		if (sapicid == boot_cpu_id)
+ 			continue;
+ 		cpu_set(cpu, cpu_present_map);
+ 		cpu_set(cpu, cpu_possible_map);
++		if (smp_boot_data.cpu_enabled[cpu])
++			cpu_set(cpu, cpu_enabled_map);
+ 		ia64_cpu_to_sapicid[cpu] = sapicid;
+ 		cpu++;
+ 	}
+@@ -820,6 +824,9 @@ __cpu_up (unsigned int cpu)
+ 	if (cpu_isset(cpu, cpu_callin_map))
+ 		return -EINVAL;
  
- 	parisc_max_cpus = max_cpus;
- 	if (!max_cpus)
++	if (!cpu_isset(cpu, cpu_enabled_map))
++		return -EINVAL;
++
+ 	per_cpu(cpu_state, cpu) = CPU_UP_PREPARE;
+ 	/* Processor goes to start_secondary(), sets online flag */
+ 	ret = do_boot_cpu(sapicid, cpu);
+diff --git a/include/asm-ia64/smp.h b/include/asm-ia64/smp.h
+index ec5f355..e5f60e8 100644
+--- a/include/asm-ia64/smp.h
++++ b/include/asm-ia64/smp.h
+@@ -55,6 +55,7 @@ extern int smp_call_function_mask(cpumask_t mask, void (*func)(void *),
+ extern struct smp_boot_data {
+ 	int cpu_count;
+ 	int cpu_phys_id[NR_CPUS];
++	int cpu_enabled[NR_CPUS];
+ } smp_boot_data __initdata;
+ 
+ extern char no_int_routing __devinitdata;
