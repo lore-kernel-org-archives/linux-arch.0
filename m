@@ -1,435 +1,135 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 238.225.broadband7.iol.cz ([88.102.225.238]:25508 "EHLO
-	monstr.eu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1758222AbYGHMJV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Jul 2008 08:09:21 -0400
-From: monstr@monstr.eu
-Subject: [PATCH 10/58] microblaze_v5: cache support
-Date: Tue,  8 Jul 2008 13:59:10 +0200
-Message-ID: <f7458acb0252f72b5620d19c76104408ecc2e451.1215517976.git.monstr@monstr.eu>
-In-Reply-To: <4409daf2ac356e902a8f091bb5908eb8a90218bc.1215517976.git.monstr@monstr.eu>
-References: <1215518398-5057-1-git-send-email-monstr@monstr.eu>
- <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
- <c03d29cbccaef8aed8a2911c2a259fbd79ad23d9.1215517976.git.monstr@monstr.eu>
- <58f35f498bac29e7105c589c06567e86c5a42dd5.1215517976.git.monstr@monstr.eu>
- <810775b1bb678003923039726a9153ee34fb67b4.1215517976.git.monstr@monstr.eu>
- <2a24e5bc2cfbd349613ef10c716a28f04ce24a9f.1215517976.git.monstr@monstr.eu>
- <3171c5cf21eefc79665165f4a14bc5b68dd03f95.1215517976.git.monstr@monstr.eu>
- <9be4eff2f4d015023c453eaec3b3473a44380491.1215517976.git.monstr@monstr.eu>
- <f8e331ed9432719f3c0555c840cbbb7bbc1a6322.1215517976.git.monstr@monstr.eu>
- <4409daf2ac356e902a8f091bb5908eb8a90218bc.1215517976.git.monstr@monstr.eu>
-In-Reply-To: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
-References: <80a2e46f2fb93812ab12bf79c703e8e2d6b0faa0.1215517976.git.monstr@monstr.eu>
+Received: from g1t0027.austin.hp.com ([15.216.28.34]:48136 "EHLO
+	g1t0027.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752291AbYGOCdq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2008 22:33:46 -0400
+From: Alex Chiang <achiang@hp.com>
+Subject: [PATCH 00/14] Introduce cpu_enabled_map and friends
+Date: Mon, 14 Jul 2008 20:33:44 -0600
+Message-ID: <20080715023344.2528.1836.stgit@blender.achiang>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: monstr@seznam.cz, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, vapier.adi@gmail.com, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, lethal@linux-sh.org, florian@openwrt.org, Michal Simek <monstr@monstr.eu>
-Message-ID: <20080708115910.mOepORxbyXtc3GNXBaC1bkGC57z1gSGaZEVdY42B7rA@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: linux-acpi@vger.kernel.org
+Message-ID: <20080715023344.FklyU5Vu9vevtKoKq4pLSbP-gOlXVWfHzfQm5nGorZw@z>
 
-From: Michal Simek <monstr@monstr.eu>
+The following series presents cpu_enabled_map, which captures
+the concept of a physically present and enabled CPU.
 
-Acked-by: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
-Signed-off-by: Michal Simek <monstr@monstr.eu>
+The complement of this map gives us present but disabled CPUs.
+Perhaps the CPU was disabled by firmware for whatever reason.
+
+For the most part, cpu_enabled_map will follow cpu_present_map.
+On x86 and ia64, ACPI can tell us if a CPU is present, enabled,
+or both. On those two archs, cpu_enabled_map is a subset of
+cpu_present_map. All CPUs described in the MADT are now added
+to cpu_present_map, but only ones with ACPI_MADT_ENABLED are
+added to cpu_enabled_map.
+
+Other archs may wish to do something similar, so some minimum
+levels of support are included with this patch series, enabling
+others to fill things in as desired. I certainly acknowledge
+that a better job could be done.
+
+Patch 01 introduces the actual map and interface.
+
+Patches 02 -- 12 modify arch code in an attempt to populate the
+map correctly.
+
+Patch 12 is the most interesting one, in that we actually
+demonstrate how an arch [ia64] would actually use cpu_enabled_map
+to control calling cpu_up() on a given CPU.
+
+Patch 13 fixes a potential overflow bug in ia64 ACPI code.
+
+Patch 14 is the money patch. It demonstrates why we might
+want to go through all these gyrations. Now that ia64 presents
+*all* physically present CPUs in sysfs, even if they have been
+disabled by firmware, we give userspace a way to poke at those
+CPUs.
+
+This is possible because present CPUs are in the ACPI namespace.
+Even though we might not have a valid per_cpu pointer for a
+disabled CPU (because we never called cpu_up() on it), we can
+still obtain a valid ACPI handle for that CPU by walking the
+namespace and executing methods underneath it.
+
+The big picture implication is that we can allow userspace
+to interact with disabled CPUs. In this particular example,
+we provide a knob that lets a sysadmin schedule any present
+CPU for firmware deconfiguration or enablement.
+
+I have compile tested on:
+
+	- arm, sparc, powerpc, alpha, x86, and ia64
+
+I have boot tested on x86 and ia64
+
+None of my x86 platforms have firmware support for disabling
+CPUs, but my ia64 ones do, so that's where I've done my most
+extensive testing.
+
+Thanks.
+
+/ac
+
 ---
- arch/microblaze/kernel/cpu/cache.c  |  255 +++++++++++++++++++++++++++++++++++
- include/asm-microblaze/cache.h      |   43 ++++++
- include/asm-microblaze/cacheflush.h |   75 ++++++++++
- 3 files changed, 373 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/kernel/cpu/cache.c
- create mode 100644 include/asm-microblaze/cache.h
- create mode 100644 include/asm-microblaze/cacheflush.h
 
-diff --git a/arch/microblaze/kernel/cpu/cache.c b/arch/microblaze/kernel/cpu/cache.c
-new file mode 100644
-index 0000000..9dcf3e9
---- /dev/null
-+++ b/arch/microblaze/kernel/cpu/cache.c
-@@ -0,0 +1,255 @@
-+/*
-+ * Cache control for MicroBlaze cache memories
-+ *
-+ * Copyright (C) 2007 Michal Simek <monstr@monstr.eu>
-+ * Copyright (C) 2007 PetaLogix
-+ * Copyright (C) 2007 John Williams <john.williams@petalogix.com>
-+ *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License. See the file COPYING in the main directory of this
-+ * archive for more details.
-+ *
-+ */
-+
-+#include <asm/cacheflush.h>
-+#include <asm/cache.h>
-+#include <asm/cpuinfo.h>
-+
-+/* Exported functions */
-+
-+void _enable_icache(void)
-+{
-+	if (cpuinfo.use_icache) {
-+#if CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR
-+		__asm__ __volatile__ ("					\
-+				msrset	r0, %0;				\
-+				nop; "					\
-+				:					\
-+				: "i" (MSR_ICE)				\
-+				: "memory");
-+#else
-+		__asm__ __volatile__ ("					\
-+				mfs	r12, rmsr;			\
-+				ori	r12, r12, %0;			\
-+				mts	rmsr, r12;			\
-+				nop; "					\
-+				:					\
-+				: "i" (MSR_ICE)				\
-+				: "memory", "r12");
-+#endif
-+	}
-+}
-+
-+void _disable_icache(void)
-+{
-+	if (cpuinfo.use_icache) {
-+#if CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR
-+		__asm__ __volatile__ ("					\
-+				msrclr r0, %0;				\
-+				nop; "					\
-+				:					\
-+				: "i" (MSR_ICE)				\
-+				: "memory");
-+#else
-+		__asm__ __volatile__ ("					\
-+				mfs	r12, rmsr;			\
-+				andi	r12, r12, ~%0;			\
-+				mts	rmsr, r12;			\
-+				nop; "					\
-+				:					\
-+				: "i" (MSR_ICE)				\
-+				: "memory", "r12");
-+#endif
-+	}
-+}
-+
-+void _invalidate_icache(unsigned int addr)
-+{
-+	if (cpuinfo.use_icache) {
-+		__asm__ __volatile__ ("					\
-+				wic	%0, r0"				\
-+				:					\
-+				: "r" (addr));
-+	}
-+}
-+
-+void _enable_dcache(void)
-+{
-+	if (cpuinfo.use_dcache) {
-+#if CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR
-+		__asm__ __volatile__ ("					\
-+				msrset	r0, %0;				\
-+				nop; "					\
-+				:					\
-+				: "i" (MSR_DCE)				\
-+				: "memory");
-+#else
-+		__asm__ __volatile__ ("					\
-+				mfs	r12, rmsr;			\
-+				ori	r12, r12, %0;			\
-+				mts	rmsr, r12;			\
-+				nop; "					\
-+				:					\
-+				: "i" (MSR_DCE)			\
-+				: "memory", "r12");
-+#endif
-+	}
-+}
-+
-+void _disable_dcache(void)
-+{
-+	if (cpuinfo.use_dcache) {
-+#if CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR
-+		__asm__ __volatile__ ("					\
-+				msrclr	r0, %0;				\
-+				nop; "					\
-+				:					\
-+				: "i" (MSR_DCE)			\
-+				: "memory");
-+#else
-+		__asm__ __volatile__ ("					\
-+				mfs	r12, rmsr;			\
-+				andi	r12, r12, ~%0;			\
-+				mts	rmsr, r12;			\
-+				nop; "					\
-+				:					\
-+				: "i" (MSR_DCE)			\
-+				: "memory", "r12");
-+#endif
-+	}
-+}
-+
-+void _invalidate_dcache(unsigned int addr)
-+{
-+	if (cpuinfo.use_dcache)
-+		__asm__ __volatile__ ("					\
-+				wdc	%0, r0"				\
-+				:					\
-+				: "r" (addr));
-+}
-+
-+void __invalidate_icache_all(void)
-+{
-+	unsigned int i;
-+	unsigned flags;
-+
-+	if (cpuinfo.use_icache) {
-+		local_irq_save(flags);
-+		__disable_icache();
-+
-+		/* Just loop through cache size and invalidate, no need to add
-+			CACHE_BASE address */
-+		for (i = 0; i < cpuinfo.icache_size;
-+			i += cpuinfo.icache_line)
-+				__invalidate_icache(i);
-+
-+		__enable_icache();
-+		local_irq_restore(flags);
-+	}
-+}
-+
-+void __invalidate_icache_range(unsigned long start, unsigned long end)
-+{
-+	unsigned int i;
-+	unsigned flags;
-+	unsigned int align;
-+
-+	if (cpuinfo.use_icache) {
-+		/*
-+		 * No need to cover entire cache range,
-+		 * just cover cache footprint
-+		 */
-+		end = min(start + cpuinfo.icache_size, end);
-+		align = ~(cpuinfo.icache_line - 1);
-+		start &= align; /* Make sure we are aligned */
-+		/* Push end up to the next cache line */
-+		end = ((end & align) + cpuinfo.icache_line);
-+
-+		local_irq_save(flags);
-+		__disable_icache();
-+
-+		for (i = start; i < end; i += cpuinfo.icache_line)
-+			__invalidate_icache(i);
-+
-+		__enable_icache();
-+		local_irq_restore(flags);
-+	}
-+}
-+
-+void __invalidate_icache_page(struct vm_area_struct *vma, struct page *page)
-+{
-+	__invalidate_icache_all();
-+}
-+
-+void __invalidate_icache_user_range(struct vm_area_struct *vma,
-+				struct page *page, unsigned long adr,
-+				int len)
-+{
-+	__invalidate_icache_all();
-+}
-+
-+void __invalidate_cache_sigtramp(unsigned long addr)
-+{
-+	__invalidate_icache_range(addr, addr + 8);
-+}
-+
-+void __invalidate_dcache_all(void)
-+{
-+	unsigned int i;
-+	unsigned flags;
-+
-+	if (cpuinfo.use_dcache) {
-+		local_irq_save(flags);
-+		__disable_dcache();
-+
-+		/*
-+		 * Just loop through cache size and invalidate,
-+		 * no need to add CACHE_BASE address
-+		 */
-+		for (i = 0; i < cpuinfo.dcache_size;
-+			i += cpuinfo.dcache_line)
-+				__invalidate_dcache(i);
-+
-+		__enable_dcache();
-+		local_irq_restore(flags);
-+	}
-+}
-+
-+void __invalidate_dcache_range(unsigned long start, unsigned long end)
-+{
-+	unsigned int i;
-+	unsigned flags;
-+	unsigned int align;
-+
-+	if (cpuinfo.use_dcache) {
-+		/*
-+		 * No need to cover entire cache range,
-+		 * just cover cache footprint
-+		 */
-+		end = min(start + cpuinfo.dcache_size, end);
-+		align = ~(cpuinfo.dcache_line - 1);
-+		start &= align; /* Make sure we are aligned */
-+		/* Push end up to the next cache line */
-+		end = ((end & align) + cpuinfo.dcache_line);
-+		local_irq_save(flags);
-+		__disable_dcache();
-+
-+		for (i = start; i < end; i += cpuinfo.dcache_line)
-+			__invalidate_dcache(i);
-+
-+		__enable_dcache();
-+		local_irq_restore(flags);
-+	}
-+}
-+
-+void __invalidate_dcache_page(struct vm_area_struct *vma, struct page *page)
-+{
-+	__invalidate_dcache_all();
-+}
-+
-+void __invalidate_dcache_user_range(struct vm_area_struct *vma,
-+				struct page *page, unsigned long adr,
-+				int len)
-+{
-+	__invalidate_dcache_all();
-+}
-diff --git a/include/asm-microblaze/cache.h b/include/asm-microblaze/cache.h
-new file mode 100644
-index 0000000..16a647d
---- /dev/null
-+++ b/include/asm-microblaze/cache.h
-@@ -0,0 +1,43 @@
-+/*
-+ * Cache operations
-+ *
-+ * Copyright (C) 2007 Michal Simek <monstr@monstr.eu>
-+ * Copyright (C) 2003 John Williams <jwilliams@itee.uq.edu.au>
-+ *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License. See the file COPYING in the main directory of this
-+ * archive for more details.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_CACHE_H
-+#define _ASM_MICROBLAZE_CACHE_H
-+
-+#include <asm/registers.h>
-+
-+#ifndef L1_CACHE_BYTES
-+/* word-granular cache in microblaze */
-+#define L1_CACHE_BYTES		4
-+#endif
-+
-+void _enable_icache(void);
-+void _disable_icache(void);
-+void _invalidate_icache(unsigned int addr);
-+
-+#define __enable_icache()		_enable_icache()
-+#define __disable_icache()		_disable_icache()
-+#define __invalidate_icache(addr)	_invalidate_icache(addr)
-+
-+void _enable_dcache(void);
-+void _disable_dcache(void);
-+void _invalidate_dcache(unsigned int addr);
-+
-+#define __enable_dcache()		_enable_dcache()
-+#define __disable_dcache()		_disable_dcache()
-+#define __invalidate_dcache(addr)	_invalidate_dcache(addr)
-+
-+/* FIXME - I don't think this is right */
-+#ifdef CONFIG_XILINX_UNCACHED_SHADOW
-+#define UNCACHED_SHADOW_MASK (CONFIG_XILINX_ERAM_SIZE)
-+#endif
-+
-+#endif /* _ASM_MICROBLAZE_CACHE_H */
-diff --git a/include/asm-microblaze/cacheflush.h b/include/asm-microblaze/cacheflush.h
-new file mode 100644
-index 0000000..6afe017
---- /dev/null
-+++ b/include/asm-microblaze/cacheflush.h
-@@ -0,0 +1,75 @@
-+/*
-+ * Copyright (C) 2007 PetaLogix
-+ * Copyright (C) 2007 John Williams <john.williams@petalogix.com>
-+ * based on v850 version which was
-+ * Copyright (C) 2001,02,03 NEC Electronics Corporation
-+ * Copyright (C) 2001,02,03 Miles Bader <miles@gnu.org>
-+ *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License. See the file COPYING in the main directory of this
-+ * archive for more details.
-+ *
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_CACHEFLUSH_H
-+#define _ASM_MICROBLAZE_CACHEFLUSH_H
-+
-+/* Somebody depends on this; sigh... */
-+#include <linux/mm.h>
-+
-+/*
-+ * Cache handling functions.
-+ * Microblaze has a write-through data cache, and no icache snooping of dcache
-+ */
-+
-+#define flush_cache_all()			__invalidate_cache_all()
-+#define flush_cache_mm(mm)			do { } while (0)
-+#define flush_cache_range(vma, start, end)	__invalidate_cache_all()
-+#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
-+
-+#define flush_dcache_range(start, end)	__invalidate_dcache_range(start, end)
-+#define flush_dcache_page(page)			do { } while (0)
-+#define flush_dcache_mmap_lock(mapping)		do { } while (0)
-+#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
-+
-+#define flush_icache_range(start, len)	__invalidate_icache_range(start, len)
-+#define flush_icache_page(vma, pg)		do { } while (0)
-+
-+#define flush_cache_vmap(start, end)		do { } while (0)
-+#define flush_cache_vunmap(start, end)		do { } while (0)
-+
-+struct page;
-+struct mm_struct;
-+struct vm_area_struct;
-+
-+/* see arch/microblaze/kernel/cache.c */
-+extern void __invalidate_icache_all(void);
-+extern void __invalidate_icache_range(unsigned long start, unsigned long end);
-+extern void __invalidate_icache_page(struct vm_area_struct *vma, struct page *page);
-+extern void __invalidate_icache_user_range(struct vm_area_struct *vma,
-+				struct page *page,
-+				unsigned long adr, int len);
-+extern void __invalidate_cache_sigtramp(unsigned long addr);
-+
-+extern void __invalidate_dcache_all(void);
-+extern void __invalidate_dcache_range(unsigned long start, unsigned long end);
-+extern void __invalidate_dcache_page(struct vm_area_struct *vma, struct page *page);
-+extern void __invalidate_dcache_user_range(struct vm_area_struct *vma,
-+				struct page *page,
-+				unsigned long adr, int len);
-+
-+extern inline void __invalidate_cache_all(void)
-+{
-+	__invalidate_icache_all();
-+	__invalidate_dcache_all();
-+}
-+
-+#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
-+do { memcpy((dst), (src), (len)); \
-+	flush_icache_range((unsigned) (dst), (unsigned) (dst) + (len)); \
-+} while (0)
-+
-+#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
-+	memcpy((dst), (src), (len))
-+
-+#endif /* _ASM_MICROBLAZE_CACHEFLUSH_H */
--- 
-1.5.4.GIT
+Alex Chiang (14):
+      ACPI: Provide /sys/devices/system/cpu/cpuN/deconfigure
+      [IA64] Avoid overflowing ia64_cpu_to_sapicid in acpi_map_lsapic()
+      [IA64] Populate and use cpu_enabled_map
+      x86: Populate cpu_enabled_map
+      [SPARC] Populate cpu_enabled_map
+      [SH] Populate cpu_enabled_map
+      [S390] Populate cpu_enabled_map
+      [POWERPC] Populate cpu_enabled_map
+      [PARISC] Populate cpu_enabled_map
+      [MIPS] Populate cpu_enabled_map
+      [ARM] Populate cpu_enabled_map
+      [ALPHA] Populate cpu_enabled_map
+      [M32R] Populate cpu_enabled_map
+      Introduce cpu_enabled_map and friends
+
+
+ arch/alpha/kernel/process.c                  |    2 
+ arch/alpha/kernel/smp.c                      |    2 
+ arch/arm/mach-realview/platsmp.c             |    4 
+ arch/ia64/kernel/acpi.c                      |   21 +-
+ arch/ia64/kernel/smpboot.c                   |    7 +
+ arch/m32r/kernel/smpboot.c                   |    1 
+ arch/mips/kernel/smp.c                       |    1 
+ arch/mips/kernel/smtc.c                      |    1 
+ arch/parisc/kernel/processor.c               |    1 
+ arch/parisc/kernel/smp.c                     |    3 
+ arch/powerpc/kernel/setup-common.c           |    1 
+ arch/powerpc/platforms/powermac/smp.c        |    1 
+ arch/powerpc/platforms/pseries/hotplug-cpu.c |    2 
+ arch/s390/kernel/smp.c                       |    7 +
+ arch/sh/kernel/smp.c                         |    1 
+ arch/sparc/kernel/smp.c                      |    1 
+ arch/sparc64/kernel/mdesc.c                  |    1 
+ arch/sparc64/kernel/smp.c                    |    1 
+ arch/x86/kernel/acpi/boot.c                  |    7 -
+ arch/x86/kernel/apic_32.c                    |    1 
+ arch/x86/kernel/apic_64.c                    |    1 
+ arch/x86/kernel/smpboot.c                    |    2 
+ arch/x86/mach-voyager/voyager_smp.c          |    2 
+ arch/x86/xen/smp.c                           |    1 
+ drivers/acpi/Kconfig                         |   18 ++
+ drivers/acpi/Makefile                        |    4 
+ drivers/acpi/processor_core.c                |    8 +
+ drivers/acpi/processor_deconfigure.c         |  275 ++++++++++++++++++++++++++
+ drivers/base/cpu.c                           |    9 +
+ include/acpi/processor.h                     |    6 +
+ include/asm-ia64/smp.h                       |    1 
+ include/asm-m32r/smp.h                       |    1 
+ include/linux/cpumask.h                      |   31 ++-
+ init/main.c                                  |    1 
+ kernel/sched.c                               |   16 +-
+ 35 files changed, 415 insertions(+), 27 deletions(-)
+ create mode 100644 drivers/acpi/processor_deconfigure.c
 
