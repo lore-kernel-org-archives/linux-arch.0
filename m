@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0015.houston.hp.com ([15.201.24.18]:30196 "EHLO
-	g4t0015.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761283AbYGOCeb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2008 22:34:31 -0400
+Received: from g5t0007.atlanta.hp.com ([15.192.0.44]:15596 "EHLO
+	g5t0007.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761536AbYGOCev (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2008 22:34:51 -0400
 From: Alex Chiang <achiang@hp.com>
-Subject: [PATCH 09/14] [SH] Populate cpu_enabled_map
-Date: Mon, 14 Jul 2008 20:34:30 -0600
-Message-ID: <20080715023430.2528.48009.stgit@blender.achiang>
+Subject: [PATCH 13/14] [IA64] Avoid overflowing ia64_cpu_to_sapicid in
+	acpi_map_lsapic()
+Date: Mon, 14 Jul 2008 20:34:50 -0600
+Message-ID: <20080715023450.2528.89675.stgit@blender.achiang>
 In-Reply-To: <20080715023344.2528.1836.stgit@blender.achiang>
 References: <20080715023344.2528.1836.stgit@blender.achiang>
 MIME-Version: 1.0
@@ -15,37 +16,42 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux-acpi@vger.kernel.org, Alex Chiang <achiang@hp.com>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20080715023430.SY2eN1C7hCek_cTywm20wC9-TRlLJt-9Qe3Z2y1FIkM@z>
+Cc: linux-acpi@vger.kernel.org, Alex Chiang <achiang@hp.com>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20080715023450.LogHT9_zFNGVKSgZ99FaKisMEwnNmhj-PHXj5FhrVFE@z>
 
-Populate the cpu_enabled_map correctly.
+acpi_map_lsapic tries to stuff a long into ia64_cpu_to_sapicid[],
+which can only hold ints, so let's fix that.
 
-Note that this patch does not actually make any decisions based
-on the contents of the map.
-
-However, as the map is presented via sysfs in:
-
-	/sys/devices/system/cpu/
-
-It should be populated correctly.
+We need to update the signature of acpi_map_cpu2node() too.
 
 Signed-off-by: Alex Chiang <achiang@hp.com>
-Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: Tony Luck <tony.luck@intel.com>
 ---
 
- arch/sh/kernel/smp.c |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+ arch/ia64/kernel/acpi.c |    5 ++---
+ 1 files changed, 2 insertions(+), 3 deletions(-)
 
-diff --git a/arch/sh/kernel/smp.c b/arch/sh/kernel/smp.c
-index 5d039d1..b91fdfa 100644
---- a/arch/sh/kernel/smp.c
-+++ b/arch/sh/kernel/smp.c
-@@ -60,6 +60,7 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
+diff --git a/arch/ia64/kernel/acpi.c b/arch/ia64/kernel/acpi.c
+index 1b4b338..a928b94 100644
+--- a/arch/ia64/kernel/acpi.c
++++ b/arch/ia64/kernel/acpi.c
+@@ -775,7 +775,7 @@ int acpi_gsi_to_irq(u32 gsi, unsigned int *irq)
+  */
+ #ifdef CONFIG_ACPI_HOTPLUG_CPU
+ static
+-int acpi_map_cpu2node(acpi_handle handle, int cpu, long physid)
++int acpi_map_cpu2node(acpi_handle handle, int cpu, int physid)
+ {
+ #ifdef CONFIG_ACPI_NUMA
+ 	int pxm_id;
+@@ -855,8 +855,7 @@ int acpi_map_lsapic(acpi_handle handle, int *pcpu)
+ 	union acpi_object *obj;
+ 	struct acpi_madt_local_sapic *lsapic;
+ 	cpumask_t tmp_map;
+-	long physid;
+-	int cpu;
++	int cpu, physid;
  
- #ifndef CONFIG_HOTPLUG_CPU
- 	cpu_present_map = cpu_possible_map;
-+	cpu_enabled_map = cpu_possible_map;
- #endif
- }
- 
+ 	if (ACPI_FAILURE(acpi_evaluate_object(handle, "_MAT", NULL, &buffer)))
+ 		return -EINVAL;
 
