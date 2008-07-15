@@ -1,17 +1,21 @@
 From: Alex Chiang <achiang@hp.com>
-Subject: [PATCH 09/14] [SH] Populate cpu_enabled_map
-Date: Mon, 14 Jul 2008 20:34:30 -0600
-Message-ID: <20080715023430.2528.48009.stgit@blender.achiang>
+Subject: [PATCH 06/14] [PARISC] Populate cpu_enabled_map
+Date: Mon, 14 Jul 2008 20:34:15 -0600
+Message-ID: <20080715023415.2528.97760.stgit@blender.achiang>
 References: <20080715023344.2528.1836.stgit@blender.achiang>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-acpi-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g1t0028.austin.hp.com ([15.216.28.35]:30801 "EHLO
+	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761093AbYGOCeQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2008 22:34:16 -0400
 In-Reply-To: <20080715023344.2528.1836.stgit@blender.achiang>
-Sender: linux-acpi-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux-acpi@vger.kernel.org, Alex Chiang <achiang@hp.com>, Paul Mundt <lethal@linux-sh.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-acpi@vger.kernel.org, Alex Chiang <achiang@hp.com>, Kyle McMartin <kyle@mcmartin.ca>
 
 Populate the cpu_enabled_map correctly.
 
@@ -25,22 +29,44 @@ However, as the map is presented via sysfs in:
 It should be populated correctly.
 
 Signed-off-by: Alex Chiang <achiang@hp.com>
-Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: Kyle McMartin <kyle@mcmartin.ca>
 ---
 
- arch/sh/kernel/smp.c |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+ arch/parisc/kernel/processor.c |    1 +
+ arch/parisc/kernel/smp.c       |    3 +++
+ 2 files changed, 4 insertions(+), 0 deletions(-)
 
-diff --git a/arch/sh/kernel/smp.c b/arch/sh/kernel/smp.c
-index 5d039d1..b91fdfa 100644
---- a/arch/sh/kernel/smp.c
-+++ b/arch/sh/kernel/smp.c
-@@ -60,6 +60,7 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
- 
- #ifndef CONFIG_HOTPLUG_CPU
- 	cpu_present_map = cpu_possible_map;
-+	cpu_enabled_map = cpu_possible_map;
+diff --git a/arch/parisc/kernel/processor.c b/arch/parisc/kernel/processor.c
+index 370086f..fb81222 100644
+--- a/arch/parisc/kernel/processor.c
++++ b/arch/parisc/kernel/processor.c
+@@ -201,6 +201,7 @@ static int __cpuinit processor_probe(struct parisc_device *dev)
+ #ifdef CONFIG_SMP
+ 	if (cpuid) {
+ 		cpu_set(cpuid, cpu_present_map);
++		cpu_set(cpuid, cpu_enabled_map);
+ 		cpu_up(cpuid);
+ 	}
  #endif
+diff --git a/arch/parisc/kernel/smp.c b/arch/parisc/kernel/smp.c
+index 85fc775..a31b0ad 100644
+--- a/arch/parisc/kernel/smp.c
++++ b/arch/parisc/kernel/smp.c
+@@ -535,6 +535,7 @@ void __devinit smp_prepare_boot_cpu(void)
+ 
+ 	cpu_set(bootstrap_processor, cpu_online_map);
+ 	cpu_set(bootstrap_processor, cpu_present_map);
++	cpu_set(bootstrap_processor, cpu_enabled_map);
  }
  
-
+ 
+@@ -546,7 +547,9 @@ void __devinit smp_prepare_boot_cpu(void)
+ void __init smp_prepare_cpus(unsigned int max_cpus)
+ {
+ 	cpus_clear(cpu_present_map);
++	cpus_clear(cpu_enabled_map);
+ 	cpu_set(0, cpu_present_map);
++	cpu_set(0, cpu_enabled_map);
+ 
+ 	parisc_max_cpus = max_cpus;
+ 	if (!max_cpus)
