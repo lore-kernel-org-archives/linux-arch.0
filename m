@@ -1,7 +1,7 @@
 From: Alex Chiang <achiang@hp.com>
-Subject: [PATCH 02/14] [M32R] Populate cpu_enabled_map
-Date: Mon, 14 Jul 2008 20:33:54 -0600
-Message-ID: <20080715023354.2528.8879.stgit@blender.achiang>
+Subject: [PATCH 04/14] [ARM] Populate cpu_enabled_map
+Date: Mon, 14 Jul 2008 20:34:05 -0600
+Message-ID: <20080715023405.2528.34106.stgit@blender.achiang>
 References: <20080715023344.2528.1836.stgit@blender.achiang>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,7 +10,7 @@ Return-path: <linux-acpi-owner@vger.kernel.org>
 In-Reply-To: <20080715023344.2528.1836.stgit@blender.achiang>
 Sender: linux-acpi-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux-acpi@vger.kernel.org, Alex Chiang <achiang@hp.com>, Hirokazu Takata <takata@linux-m32r.org>
+Cc: linux-acpi@vger.kernel.org, Alex Chiang <achiang@hp.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <rmk@dyn-67.arm.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
 Populate the cpu_enabled_map correctly.
@@ -25,35 +25,27 @@ However, as the map is presented via sysfs in:
 It should be populated correctly.
 
 Signed-off-by: Alex Chiang <achiang@hp.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Russell King <rmk@dyn-67.arm.linux.org.uk>
 ---
 
- arch/m32r/kernel/smpboot.c |    1 +
- include/asm-m32r/smp.h     |    1 +
- 2 files changed, 2 insertions(+), 0 deletions(-)
+ arch/arm/mach-realview/platsmp.c |    4 +++-
+ 1 files changed, 3 insertions(+), 1 deletions(-)
 
-diff --git a/arch/m32r/kernel/smpboot.c b/arch/m32r/kernel/smpboot.c
-index 2c03ac1..4f2bbde 100644
---- a/arch/m32r/kernel/smpboot.c
-+++ b/arch/m32r/kernel/smpboot.c
-@@ -184,6 +184,7 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
- 		physid_set(phys_id, phys_cpu_present_map);
- #ifndef CONFIG_HOTPLUG_CPU
- 	cpu_present_map = cpu_possible_map;
-+	cpu_enabled_map = cpu_possible_map;
- #endif
+diff --git a/arch/arm/mach-realview/platsmp.c b/arch/arm/mach-realview/platsmp.c
+index 8e813ed..c33f298 100644
+--- a/arch/arm/mach-realview/platsmp.c
++++ b/arch/arm/mach-realview/platsmp.c
+@@ -241,8 +241,10 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
+ 	 * Initialise the present map, which describes the set of CPUs
+ 	 * actually populated at the present time.
+ 	 */
+-	for (i = 0; i < max_cpus; i++)
++	for (i = 0; i < max_cpus; i++) {
+ 		cpu_set(i, cpu_present_map);
++		cpu_set(i, cpu_enabled_map);
++	}
  
- 	show_mp_info(nr_cpu);
-diff --git a/include/asm-m32r/smp.h b/include/asm-m32r/smp.h
-index 078e1a5..4ea1845 100644
---- a/include/asm-m32r/smp.h
-+++ b/include/asm-m32r/smp.h
-@@ -65,6 +65,7 @@ extern volatile int cpu_2_physid[NR_CPUS];
- extern cpumask_t cpu_callout_map;
- extern cpumask_t cpu_possible_map;
- extern cpumask_t cpu_present_map;
-+extern cpumask_t cpu_enabled_map;
- 
- static __inline__ int hard_smp_processor_id(void)
- {
+ 	/*
+ 	 * Initialise the SCU if there are more than one CPU and let
 
