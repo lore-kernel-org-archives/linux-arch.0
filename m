@@ -1,93 +1,33 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 07/14] [POWERPC] Populate cpu_enabled_map
-Date: Tue, 15 Jul 2008 15:51:35 +1000
-Message-ID: <1216101095.7740.74.camel@pasglop>
+From: Andi Kleen <andi@firstfloor.org>
+Subject: Re: [PATCH 01/14] Introduce cpu_enabled_map and friends
+Date: Tue, 15 Jul 2008 12:03:27 +0200
+Message-ID: <87wsjnxy4w.fsf@basil.nowhere.org>
 References: <20080715023344.2528.1836.stgit@blender.achiang>
-	 <20080715023420.2528.44404.stgit@blender.achiang>
-Reply-To: benh@kernel.crashing.org
+	<20080715023349.2528.9423.stgit@blender.achiang>
+	<20080715031512.GF14894@parisc-linux.org>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:56990 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754091AbYGOFvs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 Jul 2008 01:51:48 -0400
-In-Reply-To: <20080715023420.2528.44404.stgit@blender.achiang>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alex Chiang <achiang@hp.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Paul Mackerras <paulus@samba.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-acpi-owner@vger.kernel.org>
+In-Reply-To: <20080715031512.GF14894@parisc-linux.org> (Matthew Wilcox's message of "Mon, 14 Jul 2008 21:15:12 -0600")
+Sender: linux-acpi-owner@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Alex Chiang <achiang@hp.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2008-07-14 at 20:34 -0600, Alex Chiang wrote:
-> Populate the cpu_enabled_map correctly.
-> 
-> Note that this patch does not actually make any decisions based
-> on the contents of the map.
-> 
-> However, as the map is presented via sysfs in:
-> 
-> 	/sys/devices/system/cpu/
-> 
-> It should be populated correctly.
+Matthew Wilcox <matthew@wil.cx> writes:
+>
+> I don't understand why we want to know about these CPUs.  Surely they
+> should be 'possible', but not 'present'?  What useful thing can Linux do
+> with them?
 
-Care to educate me on the difference between online_map and
-enabled_map ?
+He explained it in the intro, near the end (I nearly complained about
+this too when I hadn't finished reading it completely :):
 
-Cheers,
-Ben.
+|The big picture implication is that we can allow userspace
+|to interact with disabled CPUs. In this particular example,
+|we provide a knob that lets a sysadmin schedule any present
+|CPU for firmware deconfiguration or enablement.
 
-> Signed-off-by: Alex Chiang <achiang@hp.com>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> ---
-> 
->  arch/powerpc/kernel/setup-common.c           |    1 +
->  arch/powerpc/platforms/powermac/smp.c        |    1 +
->  arch/powerpc/platforms/pseries/hotplug-cpu.c |    2 ++
->  3 files changed, 4 insertions(+), 0 deletions(-)
-> 
-> diff --git a/arch/powerpc/kernel/setup-common.c b/arch/powerpc/kernel/setup-common.c
-> index db540ea..a4c894a 100644
-> --- a/arch/powerpc/kernel/setup-common.c
-> +++ b/arch/powerpc/kernel/setup-common.c
-> @@ -413,6 +413,7 @@ void __init smp_setup_cpu_maps(void)
->  			DBG("    thread %d -> cpu %d (hard id %d)\n",
->  			    j, cpu, intserv[j]);
->  			cpu_set(cpu, cpu_present_map);
-> +			cpu_set(cpu, cpu_enabled_map);
->  			set_hard_smp_processor_id(cpu, intserv[j]);
->  			cpu_set(cpu, cpu_possible_map);
->  			cpu++;
-> diff --git a/arch/powerpc/platforms/powermac/smp.c b/arch/powerpc/platforms/powermac/smp.c
-> index cb2d894..a74dada 100644
-> --- a/arch/powerpc/platforms/powermac/smp.c
-> +++ b/arch/powerpc/platforms/powermac/smp.c
-> @@ -317,6 +317,7 @@ static int __init smp_psurge_probe(void)
->  		ncpus = NR_CPUS;
->  	for (i = 1; i < ncpus ; ++i) {
->  		cpu_set(i, cpu_present_map);
-> +		cpu_set(i, cpu_enabled_map);
->  		set_hard_smp_processor_id(i, i);
->  	}
->  
-> diff --git a/arch/powerpc/platforms/pseries/hotplug-cpu.c b/arch/powerpc/platforms/pseries/hotplug-cpu.c
-> index 1f03248..e738b07 100644
-> --- a/arch/powerpc/platforms/pseries/hotplug-cpu.c
-> +++ b/arch/powerpc/platforms/pseries/hotplug-cpu.c
-> @@ -186,6 +186,7 @@ static int pseries_add_processor(struct device_node *np)
->  	for_each_cpu_mask(cpu, tmp) {
->  		BUG_ON(cpu_isset(cpu, cpu_present_map));
->  		cpu_set(cpu, cpu_present_map);
-> +		cpu_set(cpu, cpu_enabled_map);
->  		set_hard_smp_processor_id(cpu, *intserv++);
->  	}
->  	err = 0;
-> @@ -218,6 +219,7 @@ static void pseries_remove_processor(struct device_node *np)
->  				continue;
->  			BUG_ON(cpu_online(cpu));
->  			cpu_clear(cpu, cpu_present_map);
-> +			cpu_clear(cpu, cpu_enabled_map);
->  			set_hard_smp_processor_id(cpu, -1);
->  			break;
->  		}
+The reason sounds pretty exotic, but ok.
+
+-Andi
