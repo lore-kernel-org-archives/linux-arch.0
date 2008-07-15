@@ -1,75 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0028.austin.hp.com ([15.216.28.35]:38316 "EHLO
-	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753877AbYGOCz2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2008 22:55:28 -0400
-Date: Mon, 14 Jul 2008 20:55:27 -0600
-From: Alex Chiang <achiang@hp.com>
-Subject: [PATCH 10/14] [SPARC] Populate cpu_enabled_map
-Message-ID: <20080715025527.GB15452@ldl.fc.hp.com>
+Received: from smtp-out01.alice-dsl.net ([88.44.60.11]:27346 "EHLO
+	smtp-out01.alice-dsl.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752645AbYGOKD6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2008 06:03:58 -0400
+Subject: Re: [PATCH 01/14] Introduce cpu_enabled_map and friends
+From: Andi Kleen <andi@firstfloor.org>
+References: <20080715023344.2528.1836.stgit@blender.achiang>
+	<20080715023349.2528.9423.stgit@blender.achiang>
+	<20080715031512.GF14894@parisc-linux.org>
+Date: Tue, 15 Jul 2008 12:03:27 +0200
+In-Reply-To: <20080715031512.GF14894@parisc-linux.org> (Matthew Wilcox's message of "Mon, 14 Jul 2008 21:15:12 -0600")
+Message-ID: <87wsjnxy4w.fsf@basil.nowhere.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux-acpi@vger.kernel.org, Alex Chiang <achiang@hp.com>, davem@davemloft.net
-Message-ID: <20080715025527.Tx-ofXqQ98BvjjcbN_QOZuRrm4MYsVDwQX-15bqhO2Q@z>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Alex Chiang <achiang@hp.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org
+Message-ID: <20080715100327.OjHD2L7dsn2ctYPZkVRxvnE2ihruLshL47zkXV06Fc0@z>
 
-Populate the cpu_enabled_map correctly.
+Matthew Wilcox <matthew@wil.cx> writes:
+>
+> I don't understand why we want to know about these CPUs.  Surely they
+> should be 'possible', but not 'present'?  What useful thing can Linux do
+> with them?
 
-Note that this patch does not actually make any decisions based
-on the contents of the map.
+He explained it in the intro, near the end (I nearly complained about
+this too when I hadn't finished reading it completely :):
 
-However, as the map is presented via sysfs in:
+|The big picture implication is that we can allow userspace
+|to interact with disabled CPUs. In this particular example,
+|we provide a knob that lets a sysadmin schedule any present
+|CPU for firmware deconfiguration or enablement.
 
-	/sys/devices/system/cpu/
+The reason sounds pretty exotic, but ok.
 
-It should be populated correctly.
-
-Signed-off-by: Alex Chiang <achiang@hp.com>
-Cc: David S. Miller <davem@davemloft.net>
----
-
- arch/sparc/kernel/smp.c     |    1 +
- arch/sparc64/kernel/mdesc.c |    1 +
- arch/sparc64/kernel/smp.c   |    1 +
- 3 files changed, 3 insertions(+), 0 deletions(-)
-
-diff --git a/arch/sparc/kernel/smp.c b/arch/sparc/kernel/smp.c
-index 6724ab9..154f32c 100644
---- a/arch/sparc/kernel/smp.c
-+++ b/arch/sparc/kernel/smp.c
-@@ -343,6 +343,7 @@ void __init smp_setup_cpu_possible_map(void)
- 		if (mid < NR_CPUS) {
- 			cpu_set(mid, phys_cpu_present_map);
- 			cpu_set(mid, cpu_present_map);
-+			cpu_set(mid, cpu_enabled_map);
- 		}
- 		instance++;
- 	}
-diff --git a/arch/sparc64/kernel/mdesc.c b/arch/sparc64/kernel/mdesc.c
-index dde52bc..5a77dad 100644
---- a/arch/sparc64/kernel/mdesc.c
-+++ b/arch/sparc64/kernel/mdesc.c
-@@ -827,6 +827,7 @@ void __cpuinit mdesc_fill_in_cpu_data(cpumask_t mask)
- 
- #ifdef CONFIG_SMP
- 		cpu_set(cpuid, cpu_present_map);
-+		cpu_set(cpuid, cpu_enabled_map);
- #endif
- 
- 		c->core_id = 0;
-diff --git a/arch/sparc64/kernel/smp.c b/arch/sparc64/kernel/smp.c
-index fa63c68..652992a 100644
---- a/arch/sparc64/kernel/smp.c
-+++ b/arch/sparc64/kernel/smp.c
-@@ -1414,6 +1414,7 @@ void __cpu_die(unsigned int cpu)
- 			hv_err = sun4v_cpu_stop(cpu);
- 			if (hv_err == HV_EOK) {
- 				cpu_clear(cpu, cpu_present_map);
-+				cpu_clear(cpu, cpu_enabled_map);
- 				break;
- 			}
- 		} while (--limit > 0);
-
+-Andi
