@@ -1,57 +1,64 @@
-From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: Re: [PATCH 00/20] generic show_mem() v5
-Date: Tue, 15 Jul 2008 13:33:06 -0700
-Message-ID: <1216153986.25942.31.camel@nimitz>
-References: <20080704160737.750988999@saeurebad.de>
-	 <1216148794.25942.11.camel@nimitz>
-	 <20080715132203.a9482685.akpm@linux-foundation.org>
+From: Alex Chiang <achiang@hp.com>
+Subject: Re: [PATCH 00/14] Introduce cpu_enabled_map and friends
+Date: Tue, 15 Jul 2008 17:54:01 -0600
+Message-ID: <20080715235401.GG10919@ldl.fc.hp.com>
+References: <20080715023344.2528.1836.stgit@blender.achiang> <57C9024A16AD2D4C97DC78E552063EA306594DA5@orsmsx505.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e35.co.us.ibm.com ([32.97.110.153]:41717 "EHLO
-	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755879AbYGOUdO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2008 16:33:14 -0400
-In-Reply-To: <20080715132203.a9482685.akpm@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: hannes@saeurebad.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, stable@kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-ia64-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <57C9024A16AD2D4C97DC78E552063EA306594DA5@orsmsx505.amr.corp.intel.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-acpi@vger.kernel.org" <linux-acpi@vger.kernel.org>, linux-ia64@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2008-07-15 at 13:22 -0700, Andrew Morton wrote:
-> > The sections are 512MB, and you can see 6 valid ones
-> > followed by two holes, and then two more valid ones.
-> > 
-> > Anyway, I believe this patch will fix the oops.
+I didn't include linux-ia64 originally. Sorry about that.
+
+Here is the 00/14 cover email describing the patch series:
+
+	http://lkml.org/lkml/2008/7/14/468
+
+Here is the 12/14 ia64 specific bit:
+
+	http://lkml.org/lkml/2008/7/14/478
+
+Here is the 14/14 patch that Tony is referring to:
+
+	http://lkml.org/lkml/2008/7/14/482
+
+* Luck, Tony <tony.luck@intel.com>:
+> > Patch 14 is the money patch. It demonstrates why we might
+> > want to go through all these gyrations. Now that ia64 presents
+> > *all* physically present CPUs in sysfs, even if they have been
+> > disabled by firmware, we give userspace a way to poke at those
+> > CPUs.
 > 
-> This looks like it might be suitable.  Can you please test it?
+> There's only the one bit for "disabled by firmware" ... no extra
+> space for any extra information.  How would userspace know that
+> it was safe to poke at a disabled cpu?  Perhaps firmware disabled
+> it for some very good reason, and poking at it could cause system
+> instability.
 
-Yup, will do.  It's where I'm sending this email from, so I'll get to it
-in a bit. :)
+My thought here was that it would be a vendor-specific thing. In
+patch 14/14 I created:
 
-> > ---
-> >  arch/x86/mm/pgtable_32.c |    2 ++
-> >  1 files changed, 2 insertions(+), 0 deletions(-)
-> > 
-> > diff --git a/arch/x86/mm/pgtable_32.c b/arch/x86/mm/pgtable_32.c
-> > index 369cf06..eb2a480 100644
-> > --- a/arch/x86/mm/pgtable_32.c
-> > +++ b/arch/x86/mm/pgtable_32.c
-> > @@ -37,6 +37,8 @@ void show_mem(void)
-> >               for (i = 0; i < pgdat->node_spanned_pages; ++i) {
-> >                       if (unlikely(i % MAX_ORDER_NR_PAGES == 0))
-> >                               touch_nmi_watchdog();
-> > +                     if (!pfn_valid(pgdat->node_start_pfn + i))
-> > +                             continue;
-> >                       page = pgdat_page_nr(pgdat, i);
-> >                       total++;
-> >                       if (PageHighMem(page))
-> 
-> What change caused this oops to turn up now?
+	/sys/devices/system/cpu/cpuN/deconfigure
 
-Me getting an extra 2GB (up to 4GB) of RAM for my laptop, which caused a
-memory hole, which triggers only with SPARSEMEM=y.  Most people probably
-don't run with sparsemem or a 32-bit kernel with that much RAM.
+(although /sys/device/system/cpu/cpuN/enabled would probably be
+better)
 
--- Dave
+I set up 'deconfigure' to have different implementations based on
+a DMI, so it is very much an opt-in (especially since it's a
+Kconfig option).
+
+It would be the responsibility of the vendor to provide something
+safe to poke at. In the sample implementation I gave, nothing
+happens to the system until the *next* reboot, so it shouldn't
+cause the current boot any distress.
+
+A different implementation of deconfigure/enabled could return
+an error to userspace if an operation was unsafe.
+
+/ac
+
