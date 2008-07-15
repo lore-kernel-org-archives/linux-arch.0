@@ -1,22 +1,20 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0007.atlanta.hp.com ([15.192.0.44]:15313 "EHLO
-	g5t0007.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756694AbYGOCdz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2008 22:33:55 -0400
+Received: from g1t0028.austin.hp.com ([15.216.28.35]:38316 "EHLO
+	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753877AbYGOCz2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2008 22:55:28 -0400
+Date: Mon, 14 Jul 2008 20:55:27 -0600
 From: Alex Chiang <achiang@hp.com>
-Subject: [PATCH 02/14] [M32R] Populate cpu_enabled_map
-Date: Mon, 14 Jul 2008 20:33:54 -0600
-Message-ID: <20080715023354.2528.8879.stgit@blender.achiang>
-In-Reply-To: <20080715023344.2528.1836.stgit@blender.achiang>
-References: <20080715023344.2528.1836.stgit@blender.achiang>
+Subject: [PATCH 10/14] [SPARC] Populate cpu_enabled_map
+Message-ID: <20080715025527.GB15452@ldl.fc.hp.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux-acpi@vger.kernel.org, Alex Chiang <achiang@hp.com>, Hirokazu Takata <takata@linux-m32r.org>
-Message-ID: <20080715023354.0WNLSHRusfwKr7HnLHuE052pYQdy_A12D3F_EAxaUsI@z>
+Cc: linux-acpi@vger.kernel.org, Alex Chiang <achiang@hp.com>, davem@davemloft.net
+Message-ID: <20080715025527.Tx-ofXqQ98BvjjcbN_QOZuRrm4MYsVDwQX-15bqhO2Q@z>
 
 Populate the cpu_enabled_map correctly.
 
@@ -30,35 +28,48 @@ However, as the map is presented via sysfs in:
 It should be populated correctly.
 
 Signed-off-by: Alex Chiang <achiang@hp.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: David S. Miller <davem@davemloft.net>
 ---
 
- arch/m32r/kernel/smpboot.c |    1 +
- include/asm-m32r/smp.h     |    1 +
- 2 files changed, 2 insertions(+), 0 deletions(-)
+ arch/sparc/kernel/smp.c     |    1 +
+ arch/sparc64/kernel/mdesc.c |    1 +
+ arch/sparc64/kernel/smp.c   |    1 +
+ 3 files changed, 3 insertions(+), 0 deletions(-)
 
-diff --git a/arch/m32r/kernel/smpboot.c b/arch/m32r/kernel/smpboot.c
-index 2c03ac1..4f2bbde 100644
---- a/arch/m32r/kernel/smpboot.c
-+++ b/arch/m32r/kernel/smpboot.c
-@@ -184,6 +184,7 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
- 		physid_set(phys_id, phys_cpu_present_map);
- #ifndef CONFIG_HOTPLUG_CPU
- 	cpu_present_map = cpu_possible_map;
-+	cpu_enabled_map = cpu_possible_map;
+diff --git a/arch/sparc/kernel/smp.c b/arch/sparc/kernel/smp.c
+index 6724ab9..154f32c 100644
+--- a/arch/sparc/kernel/smp.c
++++ b/arch/sparc/kernel/smp.c
+@@ -343,6 +343,7 @@ void __init smp_setup_cpu_possible_map(void)
+ 		if (mid < NR_CPUS) {
+ 			cpu_set(mid, phys_cpu_present_map);
+ 			cpu_set(mid, cpu_present_map);
++			cpu_set(mid, cpu_enabled_map);
+ 		}
+ 		instance++;
+ 	}
+diff --git a/arch/sparc64/kernel/mdesc.c b/arch/sparc64/kernel/mdesc.c
+index dde52bc..5a77dad 100644
+--- a/arch/sparc64/kernel/mdesc.c
++++ b/arch/sparc64/kernel/mdesc.c
+@@ -827,6 +827,7 @@ void __cpuinit mdesc_fill_in_cpu_data(cpumask_t mask)
+ 
+ #ifdef CONFIG_SMP
+ 		cpu_set(cpuid, cpu_present_map);
++		cpu_set(cpuid, cpu_enabled_map);
  #endif
  
- 	show_mp_info(nr_cpu);
-diff --git a/include/asm-m32r/smp.h b/include/asm-m32r/smp.h
-index 078e1a5..4ea1845 100644
---- a/include/asm-m32r/smp.h
-+++ b/include/asm-m32r/smp.h
-@@ -65,6 +65,7 @@ extern volatile int cpu_2_physid[NR_CPUS];
- extern cpumask_t cpu_callout_map;
- extern cpumask_t cpu_possible_map;
- extern cpumask_t cpu_present_map;
-+extern cpumask_t cpu_enabled_map;
- 
- static __inline__ int hard_smp_processor_id(void)
- {
+ 		c->core_id = 0;
+diff --git a/arch/sparc64/kernel/smp.c b/arch/sparc64/kernel/smp.c
+index fa63c68..652992a 100644
+--- a/arch/sparc64/kernel/smp.c
++++ b/arch/sparc64/kernel/smp.c
+@@ -1414,6 +1414,7 @@ void __cpu_die(unsigned int cpu)
+ 			hv_err = sun4v_cpu_stop(cpu);
+ 			if (hv_err == HV_EOK) {
+ 				cpu_clear(cpu, cpu_present_map);
++				cpu_clear(cpu, cpu_enabled_map);
+ 				break;
+ 			}
+ 		} while (--limit > 0);
 
