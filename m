@@ -1,135 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0027.austin.hp.com ([15.216.28.34]:48136 "EHLO
-	g1t0027.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752291AbYGOCdq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2008 22:33:46 -0400
+Received: from g5t0006.atlanta.hp.com ([15.192.0.43]:11538 "EHLO
+	g5t0006.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759329AbYGOCeB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2008 22:34:01 -0400
 From: Alex Chiang <achiang@hp.com>
-Subject: [PATCH 00/14] Introduce cpu_enabled_map and friends
-Date: Mon, 14 Jul 2008 20:33:44 -0600
-Message-ID: <20080715023344.2528.1836.stgit@blender.achiang>
+Subject: [PATCH 03/14] [ALPHA] Populate cpu_enabled_map
+Date: Mon, 14 Jul 2008 20:33:59 -0600
+Message-ID: <20080715023359.2528.87647.stgit@blender.achiang>
+In-Reply-To: <20080715023344.2528.1836.stgit@blender.achiang>
+References: <20080715023344.2528.1836.stgit@blender.achiang>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux-acpi@vger.kernel.org
-Message-ID: <20080715023344.FklyU5Vu9vevtKoKq4pLSbP-gOlXVWfHzfQm5nGorZw@z>
+Cc: linux-acpi@vger.kernel.org, Alex Chiang <achiang@hp.com>, Richard Henderson <rth@twiddle.net>
+Message-ID: <20080715023359.xdBblBEz_xxlkHd6hIbPps8VJRbbXendfc9zBuQxroE@z>
 
-The following series presents cpu_enabled_map, which captures
-the concept of a physically present and enabled CPU.
+Populate the cpu_enabled_map correctly.
 
-The complement of this map gives us present but disabled CPUs.
-Perhaps the CPU was disabled by firmware for whatever reason.
+Note that this patch does not actually make any decisions based
+on the contents of the map.
 
-For the most part, cpu_enabled_map will follow cpu_present_map.
-On x86 and ia64, ACPI can tell us if a CPU is present, enabled,
-or both. On those two archs, cpu_enabled_map is a subset of
-cpu_present_map. All CPUs described in the MADT are now added
-to cpu_present_map, but only ones with ACPI_MADT_ENABLED are
-added to cpu_enabled_map.
+However, as the map is presented via sysfs in:
 
-Other archs may wish to do something similar, so some minimum
-levels of support are included with this patch series, enabling
-others to fill things in as desired. I certainly acknowledge
-that a better job could be done.
+	/sys/devices/system/cpu/
 
-Patch 01 introduces the actual map and interface.
+It should be populated correctly.
 
-Patches 02 -- 12 modify arch code in an attempt to populate the
-map correctly.
-
-Patch 12 is the most interesting one, in that we actually
-demonstrate how an arch [ia64] would actually use cpu_enabled_map
-to control calling cpu_up() on a given CPU.
-
-Patch 13 fixes a potential overflow bug in ia64 ACPI code.
-
-Patch 14 is the money patch. It demonstrates why we might
-want to go through all these gyrations. Now that ia64 presents
-*all* physically present CPUs in sysfs, even if they have been
-disabled by firmware, we give userspace a way to poke at those
-CPUs.
-
-This is possible because present CPUs are in the ACPI namespace.
-Even though we might not have a valid per_cpu pointer for a
-disabled CPU (because we never called cpu_up() on it), we can
-still obtain a valid ACPI handle for that CPU by walking the
-namespace and executing methods underneath it.
-
-The big picture implication is that we can allow userspace
-to interact with disabled CPUs. In this particular example,
-we provide a knob that lets a sysadmin schedule any present
-CPU for firmware deconfiguration or enablement.
-
-I have compile tested on:
-
-	- arm, sparc, powerpc, alpha, x86, and ia64
-
-I have boot tested on x86 and ia64
-
-None of my x86 platforms have firmware support for disabling
-CPUs, but my ia64 ones do, so that's where I've done my most
-extensive testing.
-
-Thanks.
-
-/ac
-
+Signed-off-by: Alex Chiang <achiang@hp.com>
+Cc: Richard Henderson <rth@twiddle.net>
 ---
 
-Alex Chiang (14):
-      ACPI: Provide /sys/devices/system/cpu/cpuN/deconfigure
-      [IA64] Avoid overflowing ia64_cpu_to_sapicid in acpi_map_lsapic()
-      [IA64] Populate and use cpu_enabled_map
-      x86: Populate cpu_enabled_map
-      [SPARC] Populate cpu_enabled_map
-      [SH] Populate cpu_enabled_map
-      [S390] Populate cpu_enabled_map
-      [POWERPC] Populate cpu_enabled_map
-      [PARISC] Populate cpu_enabled_map
-      [MIPS] Populate cpu_enabled_map
-      [ARM] Populate cpu_enabled_map
-      [ALPHA] Populate cpu_enabled_map
-      [M32R] Populate cpu_enabled_map
-      Introduce cpu_enabled_map and friends
+ arch/alpha/kernel/process.c |    2 ++
+ arch/alpha/kernel/smp.c     |    2 ++
+ 2 files changed, 4 insertions(+), 0 deletions(-)
 
-
- arch/alpha/kernel/process.c                  |    2 
- arch/alpha/kernel/smp.c                      |    2 
- arch/arm/mach-realview/platsmp.c             |    4 
- arch/ia64/kernel/acpi.c                      |   21 +-
- arch/ia64/kernel/smpboot.c                   |    7 +
- arch/m32r/kernel/smpboot.c                   |    1 
- arch/mips/kernel/smp.c                       |    1 
- arch/mips/kernel/smtc.c                      |    1 
- arch/parisc/kernel/processor.c               |    1 
- arch/parisc/kernel/smp.c                     |    3 
- arch/powerpc/kernel/setup-common.c           |    1 
- arch/powerpc/platforms/powermac/smp.c        |    1 
- arch/powerpc/platforms/pseries/hotplug-cpu.c |    2 
- arch/s390/kernel/smp.c                       |    7 +
- arch/sh/kernel/smp.c                         |    1 
- arch/sparc/kernel/smp.c                      |    1 
- arch/sparc64/kernel/mdesc.c                  |    1 
- arch/sparc64/kernel/smp.c                    |    1 
- arch/x86/kernel/acpi/boot.c                  |    7 -
- arch/x86/kernel/apic_32.c                    |    1 
- arch/x86/kernel/apic_64.c                    |    1 
- arch/x86/kernel/smpboot.c                    |    2 
- arch/x86/mach-voyager/voyager_smp.c          |    2 
- arch/x86/xen/smp.c                           |    1 
- drivers/acpi/Kconfig                         |   18 ++
- drivers/acpi/Makefile                        |    4 
- drivers/acpi/processor_core.c                |    8 +
- drivers/acpi/processor_deconfigure.c         |  275 ++++++++++++++++++++++++++
- drivers/base/cpu.c                           |    9 +
- include/acpi/processor.h                     |    6 +
- include/asm-ia64/smp.h                       |    1 
- include/asm-m32r/smp.h                       |    1 
- include/linux/cpumask.h                      |   31 ++-
- init/main.c                                  |    1 
- kernel/sched.c                               |   16 +-
- 35 files changed, 415 insertions(+), 27 deletions(-)
- create mode 100644 drivers/acpi/processor_deconfigure.c
+diff --git a/arch/alpha/kernel/process.c b/arch/alpha/kernel/process.c
+index 96ed82f..7a261e2 100644
+--- a/arch/alpha/kernel/process.c
++++ b/arch/alpha/kernel/process.c
+@@ -94,6 +94,7 @@ common_shutdown_1(void *generic_ptr)
+ 		flags |= 0x00040000UL; /* "remain halted" */
+ 		*pflags = flags;
+ 		cpu_clear(cpuid, cpu_present_map);
++		cpu_clear(cpuid, cpu_enabled_map);
+ 		halt();
+ 	}
+ #endif
+@@ -120,6 +121,7 @@ common_shutdown_1(void *generic_ptr)
+ #ifdef CONFIG_SMP
+ 	/* Wait for the secondaries to halt. */
+ 	cpu_clear(boot_cpuid, cpu_present_map);
++	cpu_clear(boot_cpuid, cpu_enabled_map);
+ 	while (cpus_weight(cpu_present_map))
+ 		barrier();
+ #endif
+diff --git a/arch/alpha/kernel/smp.c b/arch/alpha/kernel/smp.c
+index 2525692..ec53061 100644
+--- a/arch/alpha/kernel/smp.c
++++ b/arch/alpha/kernel/smp.c
+@@ -436,6 +436,7 @@ setup_smp(void)
+ 			if ((cpu->flags & 0x1cc) == 0x1cc) {
+ 				smp_num_probed++;
+ 				cpu_set(i, cpu_present_map);
++				cpu_set(i, cpu_enabled_map);
+ 				cpu->pal_revision = boot_cpu_palrev;
+ 			}
+ 
+@@ -469,6 +470,7 @@ smp_prepare_cpus(unsigned int max_cpus)
+ 	/* Nothing to do on a UP box, or when told not to.  */
+ 	if (smp_num_probed == 1 || max_cpus == 0) {
+ 		cpu_present_map = cpumask_of_cpu(boot_cpuid);
++		cpu_enabled_map = cpumask_of_cpu(boot_cpuid);
+ 		printk(KERN_INFO "SMP mode deactivated.\n");
+ 		return;
+ 	}
 
