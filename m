@@ -1,64 +1,67 @@
 From: Alex Chiang <achiang@hp.com>
-Subject: Re: [PATCH 00/14] Introduce cpu_enabled_map and friends
-Date: Tue, 15 Jul 2008 17:54:01 -0600
-Message-ID: <20080715235401.GG10919@ldl.fc.hp.com>
-References: <20080715023344.2528.1836.stgit@blender.achiang> <57C9024A16AD2D4C97DC78E552063EA306594DA5@orsmsx505.amr.corp.intel.com>
+Subject: Re: [PATCH 07/14] [POWERPC] Populate cpu_enabled_map
+Date: Tue, 15 Jul 2008 19:04:18 -0600
+Message-ID: <20080716010418.GH10919@ldl.fc.hp.com>
+References: <20080715023344.2528.1836.stgit@blender.achiang> <20080715023420.2528.44404.stgit@blender.achiang> <1216101095.7740.74.camel@pasglop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-ia64-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g4t0015.houston.hp.com ([15.201.24.18]:41760 "EHLO
+	g4t0015.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757362AbYGPBET (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2008 21:04:19 -0400
 Content-Disposition: inline
-In-Reply-To: <57C9024A16AD2D4C97DC78E552063EA306594DA5@orsmsx505.amr.corp.intel.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-acpi@vger.kernel.org" <linux-acpi@vger.kernel.org>, linux-ia64@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1216101095.7740.74.camel@pasglop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Paul Mackerras <paulus@samba.org>
 
-I didn't include linux-ia64 originally. Sorry about that.
-
-Here is the 00/14 cover email describing the patch series:
-
-	http://lkml.org/lkml/2008/7/14/468
-
-Here is the 12/14 ia64 specific bit:
-
-	http://lkml.org/lkml/2008/7/14/478
-
-Here is the 14/14 patch that Tony is referring to:
-
-	http://lkml.org/lkml/2008/7/14/482
-
-* Luck, Tony <tony.luck@intel.com>:
-> > Patch 14 is the money patch. It demonstrates why we might
-> > want to go through all these gyrations. Now that ia64 presents
-> > *all* physically present CPUs in sysfs, even if they have been
-> > disabled by firmware, we give userspace a way to poke at those
-> > CPUs.
+* Benjamin Herrenschmidt <benh@kernel.crashing.org>:
+> On Mon, 2008-07-14 at 20:34 -0600, Alex Chiang wrote:
+> > Populate the cpu_enabled_map correctly.
+> > 
+> > Note that this patch does not actually make any decisions based
+> > on the contents of the map.
+> > 
+> > However, as the map is presented via sysfs in:
+> > 
+> > 	/sys/devices/system/cpu/
+> > 
+> > It should be populated correctly.
 > 
-> There's only the one bit for "disabled by firmware" ... no extra
-> space for any extra information.  How would userspace know that
-> it was safe to poke at a disabled cpu?  Perhaps firmware disabled
-> it for some very good reason, and poking at it could cause system
-> instability.
+> Care to educate me on the difference between online_map and
+> enabled_map ?
 
-My thought here was that it would be a vendor-specific thing. In
-patch 14/14 I created:
+enabled_map is closer conceptually to present_map than
+online_map.
 
-	/sys/devices/system/cpu/cpuN/deconfigure
+present_map are CPUs that are actually plugged in
 
-(although /sys/device/system/cpu/cpuN/enabled would probably be
-better)
+online_map are CPUs that have had cpu_up() called on them; ie.
+schedulable
 
-I set up 'deconfigure' to have different implementations based on
-a DMI, so it is very much an opt-in (especially since it's a
-Kconfig option).
+enabled_map is somewhere inbetween -- the CPUs are plugged in,
+but we don't want to cpu_up() them. On hp ia64 systems, these
+CPUs are disabled by system firmware.
 
-It would be the responsibility of the vendor to provide something
-safe to poke at. In the sample implementation I gave, nothing
-happens to the system until the *next* reboot, so it shouldn't
-cause the current boot any distress.
+Currently, a user can only configure/deconfigure the CPUs from
+the system firmware interface. By providing a sysfs interface for
+these CPUs, we can allow the user to configure/deconfigure them
+from userspace. More realistically, higher level managability
+software now has an OS-level interface to interact with these
+CPUs.
 
-A different implementation of deconfigure/enabled could return
-an error to userspace if an operation was unsafe.
+Might this be useful for ppc and your hypervisor based
+architecture? I could imagine your hypervisor telling the kernel
+about all the physically present CPUs, but then you would be able
+to have finer grained control using the enabled_map.
+
+I haven't studied your code in depth, so maybe you can just do
+everything with pure online/offline, but at least on my
+platforms, there are use-cases where we might want something
+in-between.
+
+Thanks.
 
 /ac
-
