@@ -1,67 +1,64 @@
 From: Alex Chiang <achiang@hp.com>
-Subject: Re: [PATCH 07/14] [POWERPC] Populate cpu_enabled_map
-Date: Tue, 15 Jul 2008 19:04:18 -0600
-Message-ID: <20080716010418.GH10919@ldl.fc.hp.com>
-References: <20080715023344.2528.1836.stgit@blender.achiang> <20080715023420.2528.44404.stgit@blender.achiang> <1216101095.7740.74.camel@pasglop>
+Subject: Re: [PATCH 01/14] Introduce cpu_enabled_map and friends
+Date: Tue, 15 Jul 2008 19:11:42 -0600
+Message-ID: <20080716011142.GI10919@ldl.fc.hp.com>
+References: <20080715023344.2528.1836.stgit@blender.achiang> <20080715023349.2528.9423.stgit@blender.achiang> <20080715031512.GF14894@parisc-linux.org> <87wsjnxy4w.fsf@basil.nowhere.org> <20080715102130.GA22866@flint.arm.linux.org.uk> <20080715175740.GB10919@ldl.fc.hp.com> <20080715181632.GG14894@parisc-linux.org> <20080715184822.GB29991@flint.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0015.houston.hp.com ([15.201.24.18]:41760 "EHLO
-	g4t0015.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757362AbYGPBET (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2008 21:04:19 -0400
+Return-path: <linux-acpi-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1216101095.7740.74.camel@pasglop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Paul Mackerras <paulus@samba.org>
+In-Reply-To: <20080715184822.GB29991@flint.arm.linux.org.uk>
+Sender: linux-acpi-owner@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>, Andi Kleen <andi@firstfloor.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, linux-ia64@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-* Benjamin Herrenschmidt <benh@kernel.crashing.org>:
-> On Mon, 2008-07-14 at 20:34 -0600, Alex Chiang wrote:
-> > Populate the cpu_enabled_map correctly.
+* Russell King <rmk+lkml@arm.linux.org.uk>:
+> On Tue, Jul 15, 2008 at 12:16:32PM -0600, Matthew Wilcox wrote:
+> > On Tue, Jul 15, 2008 at 11:57:40AM -0600, Alex Chiang wrote:
+> > > My thought was that big SMP systems like ia64, possibly sparc and
+> > > ppc, and increasingly, x86, might find something like this
+> > > useful, as systems get larger and larger, and vendors are going
+> > > to want to do RAS-ish features, like the ability to keep CPUs in
+> > > firmware across reboots until told otherwise by the sysadmin.
+> > > 
+> > > Right now, a 'present' CPU strongly implies 'online' as well,
+> > > since we're calling cpu_up() for all 'present' CPUs in
+> > > smp_init(). But this hurts if:
+> > > 
+> > > 	- you don't actually want to bring up all 'present' CPUs
+> > > 	- you still want to interact with these weirdo zombie
+> > > 	  CPUs that are 'present' but not 'online'
 > > 
-> > Note that this patch does not actually make any decisions based
-> > on the contents of the map.
-> > 
-> > However, as the map is presented via sysfs in:
-> > 
-> > 	/sys/devices/system/cpu/
-> > 
-> > It should be populated correctly.
+> > Have you considered simply failing __cpu_up() for CPUs that are
+> > deconfigured by firmware?
 > 
-> Care to educate me on the difference between online_map and
-> enabled_map ?
+> But what if you want to have a system boot with, say, 4 CPUs and
+> then decide at run time to bring up another 4 CPUs when required?
+> 
+> How about having smp_init() call into arch code to query whether
+> it should bring up a not-already-online CPU?  Architectures that
+> want to do something special can then make the decision there and
+> everyone else can define the test completely away.
 
-enabled_map is closer conceptually to present_map than
-online_map.
+I experimented today with an ia64-only solution, keeping track of
+'present' vs 'enabled' vs 'online' all in arch-specific code.
 
-present_map are CPUs that are actually plugged in
+The arch-specific stuff turns out to be more or less a wash; that
+is, it's not too hard to keep it all in ia64.
 
-online_map are CPUs that have had cpu_up() called on them; ie.
-schedulable
+However, the problem is, I would still need a generic
+'enabled_map' to control whether 'online' and 'crash_notes'
+entries get created for /sys/devices/system/cpu/cpuN/.
 
-enabled_map is somewhere inbetween -- the CPUs are plugged in,
-but we don't want to cpu_up() them. On hp ia64 systems, these
-CPUs are disabled by system firmware.
+So if other archs are at least neutral on this class of CPUs, I
+can work on another patchset that lowers the tax to a simple
+#define for archs that don't care.
 
-Currently, a user can only configure/deconfigure the CPUs from
-the system firmware interface. By providing a sysfs interface for
-these CPUs, we can allow the user to configure/deconfigure them
-from userspace. More realistically, higher level managability
-software now has an OS-level interface to interact with these
-CPUs.
-
-Might this be useful for ppc and your hypervisor based
-architecture? I could imagine your hypervisor telling the kernel
-about all the physically present CPUs, but then you would be able
-to have finer grained control using the enabled_map.
-
-I haven't studied your code in depth, so maybe you can just do
-everything with pure online/offline, but at least on my
-platforms, there are use-cases where we might want something
-in-between.
+But if people hate this idea of a new map, I'd like to know so
+that I'm not wasting my time and can work on a different solution
+(what that would be, I have no idea at the moment).
 
 Thanks.
 
 /ac
+
