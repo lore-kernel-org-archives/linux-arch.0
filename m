@@ -1,69 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0006.atlanta.hp.com ([15.192.0.43]:19319 "EHLO
-	g5t0006.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752189AbYGOXyD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2008 19:54:03 -0400
-Date: Tue, 15 Jul 2008 17:54:01 -0600
+Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:6819 "EHLO
+	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752326AbYGPBLn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2008 21:11:43 -0400
+Date: Tue, 15 Jul 2008 19:11:42 -0600
 From: Alex Chiang <achiang@hp.com>
-Subject: Re: [PATCH 00/14] Introduce cpu_enabled_map and friends
-Message-ID: <20080715235401.GG10919@ldl.fc.hp.com>
-References: <20080715023344.2528.1836.stgit@blender.achiang> <57C9024A16AD2D4C97DC78E552063EA306594DA5@orsmsx505.amr.corp.intel.com>
+Subject: Re: [PATCH 01/14] Introduce cpu_enabled_map and friends
+Message-ID: <20080716011142.GI10919@ldl.fc.hp.com>
+References: <20080715023344.2528.1836.stgit@blender.achiang> <20080715023349.2528.9423.stgit@blender.achiang> <20080715031512.GF14894@parisc-linux.org> <87wsjnxy4w.fsf@basil.nowhere.org> <20080715102130.GA22866@flint.arm.linux.org.uk> <20080715175740.GB10919@ldl.fc.hp.com> <20080715181632.GG14894@parisc-linux.org> <20080715184822.GB29991@flint.arm.linux.org.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <57C9024A16AD2D4C97DC78E552063EA306594DA5@orsmsx505.amr.corp.intel.com>
+In-Reply-To: <20080715184822.GB29991@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-acpi@vger.kernel.org" <linux-acpi@vger.kernel.org>, linux-ia64@vger.kernel.org
-Message-ID: <20080715235401.o6KDATy6Z16VE6OGVdQjvjX6awBwC1sAUZj2uHWxoTE@z>
+To: Matthew Wilcox <matthew@wil.cx>, Andi Kleen <andi@firstfloor.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, linux-ia64@vger.kernel.org
+Message-ID: <20080716011142.qiDmDeg597DjJVuHoXa_dVQoMo74O6Xs4druNjyLI2M@z>
 
-I didn't include linux-ia64 originally. Sorry about that.
-
-Here is the 00/14 cover email describing the patch series:
-
-	http://lkml.org/lkml/2008/7/14/468
-
-Here is the 12/14 ia64 specific bit:
-
-	http://lkml.org/lkml/2008/7/14/478
-
-Here is the 14/14 patch that Tony is referring to:
-
-	http://lkml.org/lkml/2008/7/14/482
-
-* Luck, Tony <tony.luck@intel.com>:
-> > Patch 14 is the money patch. It demonstrates why we might
-> > want to go through all these gyrations. Now that ia64 presents
-> > *all* physically present CPUs in sysfs, even if they have been
-> > disabled by firmware, we give userspace a way to poke at those
-> > CPUs.
+* Russell King <rmk+lkml@arm.linux.org.uk>:
+> On Tue, Jul 15, 2008 at 12:16:32PM -0600, Matthew Wilcox wrote:
+> > On Tue, Jul 15, 2008 at 11:57:40AM -0600, Alex Chiang wrote:
+> > > My thought was that big SMP systems like ia64, possibly sparc and
+> > > ppc, and increasingly, x86, might find something like this
+> > > useful, as systems get larger and larger, and vendors are going
+> > > to want to do RAS-ish features, like the ability to keep CPUs in
+> > > firmware across reboots until told otherwise by the sysadmin.
+> > > 
+> > > Right now, a 'present' CPU strongly implies 'online' as well,
+> > > since we're calling cpu_up() for all 'present' CPUs in
+> > > smp_init(). But this hurts if:
+> > > 
+> > > 	- you don't actually want to bring up all 'present' CPUs
+> > > 	- you still want to interact with these weirdo zombie
+> > > 	  CPUs that are 'present' but not 'online'
+> > 
+> > Have you considered simply failing __cpu_up() for CPUs that are
+> > deconfigured by firmware?
 > 
-> There's only the one bit for "disabled by firmware" ... no extra
-> space for any extra information.  How would userspace know that
-> it was safe to poke at a disabled cpu?  Perhaps firmware disabled
-> it for some very good reason, and poking at it could cause system
-> instability.
+> But what if you want to have a system boot with, say, 4 CPUs and
+> then decide at run time to bring up another 4 CPUs when required?
+> 
+> How about having smp_init() call into arch code to query whether
+> it should bring up a not-already-online CPU?  Architectures that
+> want to do something special can then make the decision there and
+> everyone else can define the test completely away.
 
-My thought here was that it would be a vendor-specific thing. In
-patch 14/14 I created:
+I experimented today with an ia64-only solution, keeping track of
+'present' vs 'enabled' vs 'online' all in arch-specific code.
 
-	/sys/devices/system/cpu/cpuN/deconfigure
+The arch-specific stuff turns out to be more or less a wash; that
+is, it's not too hard to keep it all in ia64.
 
-(although /sys/device/system/cpu/cpuN/enabled would probably be
-better)
+However, the problem is, I would still need a generic
+'enabled_map' to control whether 'online' and 'crash_notes'
+entries get created for /sys/devices/system/cpu/cpuN/.
 
-I set up 'deconfigure' to have different implementations based on
-a DMI, so it is very much an opt-in (especially since it's a
-Kconfig option).
+So if other archs are at least neutral on this class of CPUs, I
+can work on another patchset that lowers the tax to a simple
+#define for archs that don't care.
 
-It would be the responsibility of the vendor to provide something
-safe to poke at. In the sample implementation I gave, nothing
-happens to the system until the *next* reboot, so it shouldn't
-cause the current boot any distress.
+But if people hate this idea of a new map, I'd like to know so
+that I'm not wasting my time and can work on a different solution
+(what that would be, I have no idea at the moment).
 
-A different implementation of deconfigure/enabled could return
-an error to userspace if an operation was unsafe.
+Thanks.
 
 /ac
 
