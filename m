@@ -1,64 +1,34 @@
-From: Alex Chiang <achiang@hp.com>
-Subject: Re: [PATCH 01/14] Introduce cpu_enabled_map and friends
-Date: Tue, 15 Jul 2008 19:11:42 -0600
-Message-ID: <20080716011142.GI10919@ldl.fc.hp.com>
-References: <20080715023344.2528.1836.stgit@blender.achiang> <20080715023349.2528.9423.stgit@blender.achiang> <20080715031512.GF14894@parisc-linux.org> <87wsjnxy4w.fsf@basil.nowhere.org> <20080715102130.GA22866@flint.arm.linux.org.uk> <20080715175740.GB10919@ldl.fc.hp.com> <20080715181632.GG14894@parisc-linux.org> <20080715184822.GB29991@flint.arm.linux.org.uk>
+From: Dave Hansen <dave@linux.vnet.ibm.com>
+Subject: Re: [PATCH 00/20] generic show_mem() v5
+Date: Wed, 16 Jul 2008 14:51:40 -0700
+Message-ID: <1216245100.8711.8.camel@nimitz>
+References: <20080704160737.750988999@saeurebad.de>
+	 <1216148794.25942.11.camel@nimitz>
+	 <20080715132203.a9482685.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-acpi-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20080715184822.GB29991@flint.arm.linux.org.uk>
-Sender: linux-acpi-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>, Andi Kleen <andi@firstfloor.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, linux-ia64@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e35.co.us.ibm.com ([32.97.110.153]:36274 "EHLO
+	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755521AbYGPVvo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jul 2008 17:51:44 -0400
+In-Reply-To: <20080715132203.a9482685.akpm@linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: hannes@saeurebad.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, stable@kernel.org
 
-* Russell King <rmk+lkml@arm.linux.org.uk>:
-> On Tue, Jul 15, 2008 at 12:16:32PM -0600, Matthew Wilcox wrote:
-> > On Tue, Jul 15, 2008 at 11:57:40AM -0600, Alex Chiang wrote:
-> > > My thought was that big SMP systems like ia64, possibly sparc and
-> > > ppc, and increasingly, x86, might find something like this
-> > > useful, as systems get larger and larger, and vendors are going
-> > > to want to do RAS-ish features, like the ability to keep CPUs in
-> > > firmware across reboots until told otherwise by the sysadmin.
-> > > 
-> > > Right now, a 'present' CPU strongly implies 'online' as well,
-> > > since we're calling cpu_up() for all 'present' CPUs in
-> > > smp_init(). But this hurts if:
-> > > 
-> > > 	- you don't actually want to bring up all 'present' CPUs
-> > > 	- you still want to interact with these weirdo zombie
-> > > 	  CPUs that are 'present' but not 'online'
+On Tue, 2008-07-15 at 13:22 -0700, Andrew Morton wrote:
+> 
+> > The sections are 512MB, and you can see 6 valid ones
+> > followed by two holes, and then two more valid ones.
 > > 
-> > Have you considered simply failing __cpu_up() for CPUs that are
-> > deconfigured by firmware?
+> > Anyway, I believe this patch will fix the oops.
 > 
-> But what if you want to have a system boot with, say, 4 CPUs and
-> then decide at run time to bring up another 4 CPUs when required?
-> 
-> How about having smp_init() call into arch code to query whether
-> it should bring up a not-already-online CPU?  Architectures that
-> want to do something special can then make the decision there and
-> everyone else can define the test completely away.
+> This looks like it might be suitable.  Can you please test it?
 
-I experimented today with an ia64-only solution, keeping track of
-'present' vs 'enabled' vs 'online' all in arch-specific code.
+I compiled, tested, and booted on the machine that had this problem.  It
+hasn't reappeared.
 
-The arch-specific stuff turns out to be more or less a wash; that
-is, it's not too hard to keep it all in ia64.
-
-However, the problem is, I would still need a generic
-'enabled_map' to control whether 'online' and 'crash_notes'
-entries get created for /sys/devices/system/cpu/cpuN/.
-
-So if other archs are at least neutral on this class of CPUs, I
-can work on another patchset that lowers the tax to a simple
-#define for archs that don't care.
-
-But if people hate this idea of a new map, I'd like to know so
-that I'm not wasting my time and can work on a different solution
-(what that would be, I have no idea at the moment).
-
-Thanks.
-
-/ac
-
+-- Dave
