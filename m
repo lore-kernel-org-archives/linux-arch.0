@@ -1,66 +1,73 @@
 From: Alex Chiang <achiang@hp.com>
-Subject: Re: [PATCH 11/14] x86: Populate cpu_enabled_map
-Date: Fri, 18 Jul 2008 17:06:42 -0600
-Message-ID: <20080718230642.GB20344@ldl.fc.hp.com>
-References: <20080715025656.GC15452@ldl.fc.hp.com> <4880F657.8050508@zytor.com>
+Subject: Re: [PATCH 01/14] Introduce cpu_enabled_map and friends
+Date: Fri, 18 Jul 2008 17:08:37 -0600
+Message-ID: <20080718230837.GC20344@ldl.fc.hp.com>
+References: <20080715023344.2528.1836.stgit@blender.achiang> <20080715023349.2528.9423.stgit@blender.achiang> <20080715031512.GF14894@parisc-linux.org> <87wsjnxy4w.fsf@basil.nowhere.org> <20080715102130.GA22866@flint.arm.linux.org.uk> <20080715175740.GB10919@ldl.fc.hp.com> <20080715181632.GG14894@parisc-linux.org> <20080715184822.GB29991@flint.arm.linux.org.uk> <20080715191515.GE10919@ldl.fc.hp.com> <20080718214454.GD25816@flint.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0007.atlanta.hp.com ([15.192.0.44]:39166 "EHLO
-	g5t0007.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752884AbYGRXGo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2008 19:06:44 -0400
+Return-path: <linux-acpi-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <4880F657.8050508@zytor.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
+In-Reply-To: <20080718214454.GD25816@flint.arm.linux.org.uk>
+Sender: linux-acpi-owner@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>, Andi Kleen <andi@firstfloor.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-* H. Peter Anvin <hpa@zytor.com>:
-> Alex Chiang wrote:
->> Populate the cpu_enabled_map correctly.
->>
->> Note that this patch does not actually make any decisions based
->> on the contents of the map.
->>
->> However, as the map is presented via sysfs in:
->>
->> 	/sys/devices/system/cpu/
->>
->> It should be populated correctly.
->>
->> There will be a user-visible change under the above directory.
->> cpuN/ entries for firmware-disabled CPUs will now appear, whereas
->> before, they did not due to a check against ACPI_MADT_ENABLED.
->>
->> The cpuN/ entries will be empty, and the online file in the
->> above directory will reflect which CPUs are actually schedulable.
->>
->> Signed-off-by: Alex Chiang <achiang@hp.com>
->> Cc: Ingo Molnar <mingo@redhat.com>
->> Cc: Thomas Gleixner <tglx@linutronix.de>
->> Cc: H. Peter Anvin <hpa@zytor.com>
->
-> From an x86 standpoint this patchset seems reasonable to me.
->
-> Acked-by: H. Peter Anvin <hpa@zytor.com>
+* Russell King <rmk+lkml@arm.linux.org.uk>:
+> On Tue, Jul 15, 2008 at 01:15:15PM -0600, Alex Chiang wrote:
+> > * Russell King <rmk+lkml@arm.linux.org.uk>:
+> > > 
+> > > How about having smp_init() call into arch code to query whether
+> > > it should bring up a not-already-online CPU?  Architectures that
+> > > want to do something special can then make the decision there and
+> > > everyone else can define the test completely away.
+> > 
+> > So this is exactly what I'm doing. The ia64 patch has this hunk:
+> > 
+> > @@ -820,6 +824,9 @@ __cpu_up (unsigned int cpu)
+> >         if (cpu_isset(cpu, cpu_callin_map))
+> >                 return -EINVAL;
+> > 
+> > +       if (!cpu_isset(cpu, cpu_enabled_map))
+> > +               return -EINVAL;
+> > +
+> >         per_cpu(cpu_state, cpu) = CPU_UP_PREPARE;
+> >         /* Processor goes to start_secondary(), sets online flag */
+> >         ret = do_boot_cpu(sapicid, cpu);
+> > 
+> > That was the easiest, most-straightforward solution I could think
+> > of. If you have an idea for a version with lower taxes (doesn't
+> > touch all the archs or can be #define'd out), I'm happy to hear
+> > it.
+> 
+> I think I did make a suggestion in the bit you quote from me above.
+> 
+> Let me be more explicit:
 
-Thanks Peter. Let me try and rework the patchset according to
-Russell's suggestion here:
+Thanks, sorry for being dense.
 
-	http://lkml.org/lkml/2008/7/18/467
+> static void __init smp_init(void)
+> {
+>         unsigned int cpu;
+> 
+>         /* FIXME: This should be done in userspace --RR */
+>         for_each_present_cpu(cpu) {
+>                 if (num_online_cpus() >= setup_max_cpus)
+>                         break;
+> -		if (!cpu_online(cpu))
+> +		if (smp_cpu_enabled(cpu) && !cpu_online(cpu))
+>                         cpu_up(cpu);
+>         }
+> 
+>         /* Any cleanup work */
+>         printk(KERN_INFO "Brought up %ld CPUs\n", (long)num_online_cpus());
+>         smp_cpus_done(setup_max_cpus);
+> }
+> 
+> and have architectures provide 'smp_cpu_enabled(cpu)' which can either
+> be a function, inline function or a macro (and therefore possible to be
+> completely eliminated.)
 
-That approach seems cleaner to me.
-
-> Obviously, if the sematics of the operations don't make sense
-> for other  architectures -- which I will leave up to the
-> affected maintainers --  then that should be carefully
-> considered if the generic operations can  be done better.
-
-Russell's solution avoids the issue with the ability to #define
-the check away for archs that don't care.
-
-cheers,
+Yup, this is nicer. I'll try this.
 
 /ac
+
