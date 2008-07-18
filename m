@@ -1,72 +1,51 @@
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [PATCH-mm] byteorder: wire up arches to use new headers
-Date: Fri, 18 Jul 2008 14:36:27 +0100
-Message-ID: <20080718133627.GA25816@flint.arm.linux.org.uk>
-References: <1216337353.6029.66.camel@brick>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 11/14] x86: Populate cpu_enabled_map
+Date: Fri, 18 Jul 2008 13:00:23 -0700
+Message-ID: <4880F657.8050508@zytor.com>
+References: <20080715025656.GC15452@ldl.fc.hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:33805 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756398AbYGRNgv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2008 09:36:51 -0400
-Content-Disposition: inline
-In-Reply-To: <1216337353.6029.66.camel@brick>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Harvey Harrison <harvey.harrison@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1760308AbYGRUBP@vger.kernel.org>
+In-Reply-To: <20080715025656.GC15452@ldl.fc.hp.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alex Chiang <achiang@hp.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 17, 2008 at 04:29:13PM -0700, Harvey Harrison wrote:
-> diff --git a/include/asm-arm/byteorder.h b/include/asm-arm/byteorder.h
-> index e6f7fcd..d88a5ce 100644
-> --- a/include/asm-arm/byteorder.h
-> +++ b/include/asm-arm/byteorder.h
-> @@ -18,7 +18,15 @@
->  #include <linux/compiler.h>
->  #include <asm/types.h>
->  
-> -static inline __attribute_const__ __u32 ___arch__swab32(__u32 x)
-> +#ifdef __ARMEB__
-> +# define __BIG_ENDIAN
-> +#else
-> +# define __LITTLE_ENDIAN
-> +#endif
-> +
-> +#define __SWAB_64_THRU_32__
-> +
-> +static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
->  {
->  	__u32 t;
->  
-> @@ -40,19 +48,8 @@ static inline __attribute_const__ __u32 ___arch__swab32(__u32 x)
->  
->  	return x;
->  }
-> +#define HAVE_ARCH_SWAB32
->  
-> -#define __arch__swab32(x) ___arch__swab32(x)
-> -
-> -#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
-> -#  define __BYTEORDER_HAS_U64__
-> -#  define __SWAB_64_THRU_32__
-> -#endif
-> -
-> -#ifdef __ARMEB__
-> -#include <linux/byteorder/big_endian.h>
-> -#else
-> -#include <linux/byteorder/little_endian.h>
-> -#endif
-> +#include <linux/byteorder.h>
->  
->  #endif
-> -
+Alex Chiang wrote:
+> Populate the cpu_enabled_map correctly.
+> 
+> Note that this patch does not actually make any decisions based
+> on the contents of the map.
+> 
+> However, as the map is presented via sysfs in:
+> 
+> 	/sys/devices/system/cpu/
+> 
+> It should be populated correctly.
+> 
+> There will be a user-visible change under the above directory.
+> cpuN/ entries for firmware-disabled CPUs will now appear, whereas
+> before, they did not due to a check against ACPI_MADT_ENABLED.
+> 
+> The cpuN/ entries will be empty, and the online file in the
+> above directory will reflect which CPUs are actually schedulable.
+> 
+> Signed-off-by: Alex Chiang <achiang@hp.com>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: H. Peter Anvin <hpa@zytor.com>
 
-For the above,
+ From an x86 standpoint this patchset seems reasonable to me.
 
-Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
+Acked-by: H. Peter Anvin <hpa@zytor.com>
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Since it is a panarch patchset it presumably should go via -mm rather 
+than in the arch trees, so I'm not going to add it to -tip.
+
+Obviously, if the sematics of the operations don't make sense for other 
+architectures -- which I will leave up to the affected maintainers -- 
+then that should be carefully considered if the generic operations can 
+be done better.
+
+	-hpa
