@@ -1,32 +1,72 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCH] x86: fix description of __fls(): __fls(0) is undefined
-Date: Fri, 18 Jul 2008 14:33:00 +0200
-Message-ID: <20080718123300.GP6875@elte.hu>
-References: <20080315172913.GA21648@mailshack.com> <20080315173236.GC21659@mailshack.com> <1215276997.7167.12.camel@localhost> <20080705175345.GA7698@mailshack.com>
+From: Russell King <rmk@arm.linux.org.uk>
+Subject: Re: [PATCH-mm] byteorder: wire up arches to use new headers
+Date: Fri, 18 Jul 2008 14:36:27 +0100
+Message-ID: <20080718133627.GA25816@flint.arm.linux.org.uk>
+References: <1216337353.6029.66.camel@brick>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:51449 "EHLO mx3.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751899AbYGRMdU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Jul 2008 08:33:20 -0400
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:33805 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756398AbYGRNgv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2008 09:36:51 -0400
 Content-Disposition: inline
-In-Reply-To: <20080705175345.GA7698@mailshack.com>
+In-Reply-To: <1216337353.6029.66.camel@brick>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander van Heukelum <heukelum@mailshack.com>
-Cc: "Ricardo M. Correia" <Ricardo.M.Correia@Sun.COM>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, LKML <linux-kernel@vger.kernel.org>, heukelum@fastmail.fm
+To: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
 
+On Thu, Jul 17, 2008 at 04:29:13PM -0700, Harvey Harrison wrote:
+> diff --git a/include/asm-arm/byteorder.h b/include/asm-arm/byteorder.h
+> index e6f7fcd..d88a5ce 100644
+> --- a/include/asm-arm/byteorder.h
+> +++ b/include/asm-arm/byteorder.h
+> @@ -18,7 +18,15 @@
+>  #include <linux/compiler.h>
+>  #include <asm/types.h>
+>  
+> -static inline __attribute_const__ __u32 ___arch__swab32(__u32 x)
+> +#ifdef __ARMEB__
+> +# define __BIG_ENDIAN
+> +#else
+> +# define __LITTLE_ENDIAN
+> +#endif
+> +
+> +#define __SWAB_64_THRU_32__
+> +
+> +static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
+>  {
+>  	__u32 t;
+>  
+> @@ -40,19 +48,8 @@ static inline __attribute_const__ __u32 ___arch__swab32(__u32 x)
+>  
+>  	return x;
+>  }
+> +#define HAVE_ARCH_SWAB32
+>  
+> -#define __arch__swab32(x) ___arch__swab32(x)
+> -
+> -#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
+> -#  define __BYTEORDER_HAS_U64__
+> -#  define __SWAB_64_THRU_32__
+> -#endif
+> -
+> -#ifdef __ARMEB__
+> -#include <linux/byteorder/big_endian.h>
+> -#else
+> -#include <linux/byteorder/little_endian.h>
+> -#endif
+> +#include <linux/byteorder.h>
+>  
+>  #endif
+> -
 
-* Alexander van Heukelum <heukelum@mailshack.com> wrote:
+For the above,
 
-> Ricardo M. Correia spotted that the use of __fls() in fls64() did not 
-> seem to make sense. In fact fls64()'s implementation is fine, but the 
-> description of __fls() was wrong. Fix that.
-> 
-> Reported-by: "Ricardo M. Correia" <Ricardo.M.Correia@Sun.COM>
-> Signed-off-by: Alexander van Heukelum <heukelum@fastmail.fm>
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
 
-applied to tip/x86/cleanups, thanks!
-
-	Ingo
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
