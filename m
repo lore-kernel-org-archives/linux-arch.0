@@ -1,48 +1,32 @@
-From: "Mike Frysinger" <vapier.adi@gmail.com>
-Subject: Re: [PATCH] (updated, rolled up) make section names compatible with -ffunction-sections -fdata-sections
-Date: Thu, 17 Jul 2008 21:15:21 -0400
-Message-ID: <8bd0f97a0807171815x69185d2bnca3b410caf0a8afe@mail.gmail.com>
-References: <200807172213.37411.vda.linux@googlemail.com>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH] x86: fix description of __fls(): __fls(0) is undefined
+Date: Fri, 18 Jul 2008 14:33:00 +0200
+Message-ID: <20080718123300.GP6875@elte.hu>
+References: <20080315172913.GA21648@mailshack.com> <20080315173236.GC21659@mailshack.com> <1215276997.7167.12.camel@localhost> <20080705175345.GA7698@mailshack.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-embedded-owner@vger.kernel.org>
-In-Reply-To: <200807172213.37411.vda.linux@googlemail.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx3.mail.elte.hu ([157.181.1.138]:51449 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751899AbYGRMdU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Jul 2008 08:33:20 -0400
 Content-Disposition: inline
-Sender: linux-embedded-owner@vger.kernel.org
-To: Denys Vlasenko <vda.linux@googlemail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, mingo@elte.hu, x86@kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>, Linux Arch Maintainers <linux-arch@vger.kernel.org>, Bryan Wu <cooloney@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20080705175345.GA7698@mailshack.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alexander van Heukelum <heukelum@mailshack.com>
+Cc: "Ricardo M. Correia" <Ricardo.M.Correia@Sun.COM>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, LKML <linux-kernel@vger.kernel.org>, heukelum@fastmail.fm
 
-On Thu, Jul 17, 2008 at 4:13 PM, Denys Vlasenko
-<vda.linux@googlemail.com> wrote:
-> Hi Andrew,
->
-> Here is the update against current Linus tree,
-> rolled up into one patch.
->
-> James Bottomley suggested a different naming scheme:
-> instead of swapping parts (.text.head -> .head.text),
-> prepend .kernel to our special section names.
-> This patch implements his idea.
->
-> ppc and v850 are dropped per comments from arch people.
-> parisc and x86 had minor fixes. x86 fix added proper
-> executable bits to a section:
->
-> -.section ".text.head"
-> +.section ".kernel.text.head","ax",@progbits
->
-> Does arch/m68k/kernel/sun3-head.S need the same fix?
->
-> The patch is run-tested on x86_64.
->
-> I would like to ask arch maintainers to ACK/NAK this patch,
-> and Andrew to act accordingly.
 
-the Blackfin piece is just one line and shouldnt be a problem from our
-side.  thanks.
+* Alexander van Heukelum <heukelum@mailshack.com> wrote:
 
-btw, arch maintainers have an alias "linux-arch@vger.kernel.org" ...
-but it doesnt appear to be in MAINTAINERS ?
--mike
+> Ricardo M. Correia spotted that the use of __fls() in fls64() did not 
+> seem to make sense. In fact fls64()'s implementation is fine, but the 
+> description of __fls() was wrong. Fix that.
+> 
+> Reported-by: "Ricardo M. Correia" <Ricardo.M.Correia@Sun.COM>
+> Signed-off-by: Alexander van Heukelum <heukelum@fastmail.fm>
+
+applied to tip/x86/cleanups, thanks!
+
+	Ingo
