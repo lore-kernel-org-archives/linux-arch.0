@@ -1,55 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from yw-out-2324.google.com ([74.125.46.28]:65097 "EHLO
-	yw-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756410AbYGRBPZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2008 21:15:25 -0400
-Received: by yw-out-2324.google.com with SMTP id 9so25170ywe.1
-        for <linux-arch@vger.kernel.org>; Thu, 17 Jul 2008 18:15:22 -0700 (PDT)
-Message-ID: <8bd0f97a0807171815x69185d2bnca3b410caf0a8afe@mail.gmail.com>
-Date: Thu, 17 Jul 2008 21:15:21 -0400
-From: "Mike Frysinger" <vapier.adi@gmail.com>
-Subject: Re: [PATCH] (updated, rolled up) make section names compatible with -ffunction-sections -fdata-sections
-In-Reply-To: <200807172213.37411.vda.linux@googlemail.com>
+Received: from terminus.zytor.com ([198.137.202.10]:53504 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756622AbYGRUAy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2008 16:00:54 -0400
+Message-ID: <4880F657.8050508@zytor.com>
+Date: Fri, 18 Jul 2008 13:00:23 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH 11/14] x86: Populate cpu_enabled_map
+References: <20080715025656.GC15452@ldl.fc.hp.com>
+In-Reply-To: <20080715025656.GC15452@ldl.fc.hp.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-References: <200807172213.37411.vda.linux@googlemail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Denys Vlasenko <vda.linux@googlemail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, mingo@elte.hu, x86@kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>, Linux Arch Maintainers <linux-arch@vger.kernel.org>, Bryan Wu <cooloney@kernel.org>
-Message-ID: <20080718011521.Z4buISPFHDXw9ntw48e5vSy3piYVddt1jJoqWh3kVyM@z>
+To: Alex Chiang <achiang@hp.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, hpa@zytor.com
+Message-ID: <20080718200023.gUpQzrLHn39xjg9MhpgK9Shof62nTJ6Szgdl7xEJscA@z>
 
-On Thu, Jul 17, 2008 at 4:13 PM, Denys Vlasenko
-<vda.linux@googlemail.com> wrote:
-> Hi Andrew,
->
-> Here is the update against current Linus tree,
-> rolled up into one patch.
->
-> James Bottomley suggested a different naming scheme:
-> instead of swapping parts (.text.head -> .head.text),
-> prepend .kernel to our special section names.
-> This patch implements his idea.
->
-> ppc and v850 are dropped per comments from arch people.
-> parisc and x86 had minor fixes. x86 fix added proper
-> executable bits to a section:
->
-> -.section ".text.head"
-> +.section ".kernel.text.head","ax",@progbits
->
-> Does arch/m68k/kernel/sun3-head.S need the same fix?
->
-> The patch is run-tested on x86_64.
->
-> I would like to ask arch maintainers to ACK/NAK this patch,
-> and Andrew to act accordingly.
+Alex Chiang wrote:
+> Populate the cpu_enabled_map correctly.
+> 
+> Note that this patch does not actually make any decisions based
+> on the contents of the map.
+> 
+> However, as the map is presented via sysfs in:
+> 
+> 	/sys/devices/system/cpu/
+> 
+> It should be populated correctly.
+> 
+> There will be a user-visible change under the above directory.
+> cpuN/ entries for firmware-disabled CPUs will now appear, whereas
+> before, they did not due to a check against ACPI_MADT_ENABLED.
+> 
+> The cpuN/ entries will be empty, and the online file in the
+> above directory will reflect which CPUs are actually schedulable.
+> 
+> Signed-off-by: Alex Chiang <achiang@hp.com>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: H. Peter Anvin <hpa@zytor.com>
 
-the Blackfin piece is just one line and shouldnt be a problem from our
-side.  thanks.
+ From an x86 standpoint this patchset seems reasonable to me.
 
-btw, arch maintainers have an alias "linux-arch@vger.kernel.org" ...
-but it doesnt appear to be in MAINTAINERS ?
--mike
+Acked-by: H. Peter Anvin <hpa@zytor.com>
+
+Since it is a panarch patchset it presumably should go via -mm rather 
+than in the arch trees, so I'm not going to add it to -tip.
+
+Obviously, if the sematics of the operations don't make sense for other 
+architectures -- which I will leave up to the affected maintainers -- 
+then that should be carefully considered if the generic operations can 
+be done better.
+
+	-hpa
