@@ -1,69 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:6819 "EHLO
-	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752326AbYGPBLn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2008 21:11:43 -0400
-Date: Tue, 15 Jul 2008 19:11:42 -0600
-From: Alex Chiang <achiang@hp.com>
-Subject: Re: [PATCH 01/14] Introduce cpu_enabled_map and friends
-Message-ID: <20080716011142.GI10919@ldl.fc.hp.com>
-References: <20080715023344.2528.1836.stgit@blender.achiang> <20080715023349.2528.9423.stgit@blender.achiang> <20080715031512.GF14894@parisc-linux.org> <87wsjnxy4w.fsf@basil.nowhere.org> <20080715102130.GA22866@flint.arm.linux.org.uk> <20080715175740.GB10919@ldl.fc.hp.com> <20080715181632.GG14894@parisc-linux.org> <20080715184822.GB29991@flint.arm.linux.org.uk>
+Received: from yw-out-2324.google.com ([74.125.46.28]:65097 "EHLO
+	yw-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756410AbYGRBPZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2008 21:15:25 -0400
+Received: by yw-out-2324.google.com with SMTP id 9so25170ywe.1
+        for <linux-arch@vger.kernel.org>; Thu, 17 Jul 2008 18:15:22 -0700 (PDT)
+Message-ID: <8bd0f97a0807171815x69185d2bnca3b410caf0a8afe@mail.gmail.com>
+Date: Thu, 17 Jul 2008 21:15:21 -0400
+From: "Mike Frysinger" <vapier.adi@gmail.com>
+Subject: Re: [PATCH] (updated, rolled up) make section names compatible with -ffunction-sections -fdata-sections
+In-Reply-To: <200807172213.37411.vda.linux@googlemail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <20080715184822.GB29991@flint.arm.linux.org.uk>
+References: <200807172213.37411.vda.linux@googlemail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>, Andi Kleen <andi@firstfloor.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, linux-ia64@vger.kernel.org
-Message-ID: <20080716011142.qiDmDeg597DjJVuHoXa_dVQoMo74O6Xs4druNjyLI2M@z>
+To: Denys Vlasenko <vda.linux@googlemail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, mingo@elte.hu, x86@kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, Lennert Buytenhek <kernel@wantstofly.org>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, David Woodhouse <dwmw2@infradead.org>, Andi Kleen <andi@firstfloor.org>, torvalds@linux-foundation.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-embedded@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Dave Miller <davem@davemloft.net>, Linux Arch Maintainers <linux-arch@vger.kernel.org>, Bryan Wu <cooloney@kernel.org>
+Message-ID: <20080718011521.Z4buISPFHDXw9ntw48e5vSy3piYVddt1jJoqWh3kVyM@z>
 
-* Russell King <rmk+lkml@arm.linux.org.uk>:
-> On Tue, Jul 15, 2008 at 12:16:32PM -0600, Matthew Wilcox wrote:
-> > On Tue, Jul 15, 2008 at 11:57:40AM -0600, Alex Chiang wrote:
-> > > My thought was that big SMP systems like ia64, possibly sparc and
-> > > ppc, and increasingly, x86, might find something like this
-> > > useful, as systems get larger and larger, and vendors are going
-> > > to want to do RAS-ish features, like the ability to keep CPUs in
-> > > firmware across reboots until told otherwise by the sysadmin.
-> > > 
-> > > Right now, a 'present' CPU strongly implies 'online' as well,
-> > > since we're calling cpu_up() for all 'present' CPUs in
-> > > smp_init(). But this hurts if:
-> > > 
-> > > 	- you don't actually want to bring up all 'present' CPUs
-> > > 	- you still want to interact with these weirdo zombie
-> > > 	  CPUs that are 'present' but not 'online'
-> > 
-> > Have you considered simply failing __cpu_up() for CPUs that are
-> > deconfigured by firmware?
-> 
-> But what if you want to have a system boot with, say, 4 CPUs and
-> then decide at run time to bring up another 4 CPUs when required?
-> 
-> How about having smp_init() call into arch code to query whether
-> it should bring up a not-already-online CPU?  Architectures that
-> want to do something special can then make the decision there and
-> everyone else can define the test completely away.
+On Thu, Jul 17, 2008 at 4:13 PM, Denys Vlasenko
+<vda.linux@googlemail.com> wrote:
+> Hi Andrew,
+>
+> Here is the update against current Linus tree,
+> rolled up into one patch.
+>
+> James Bottomley suggested a different naming scheme:
+> instead of swapping parts (.text.head -> .head.text),
+> prepend .kernel to our special section names.
+> This patch implements his idea.
+>
+> ppc and v850 are dropped per comments from arch people.
+> parisc and x86 had minor fixes. x86 fix added proper
+> executable bits to a section:
+>
+> -.section ".text.head"
+> +.section ".kernel.text.head","ax",@progbits
+>
+> Does arch/m68k/kernel/sun3-head.S need the same fix?
+>
+> The patch is run-tested on x86_64.
+>
+> I would like to ask arch maintainers to ACK/NAK this patch,
+> and Andrew to act accordingly.
 
-I experimented today with an ia64-only solution, keeping track of
-'present' vs 'enabled' vs 'online' all in arch-specific code.
+the Blackfin piece is just one line and shouldnt be a problem from our
+side.  thanks.
 
-The arch-specific stuff turns out to be more or less a wash; that
-is, it's not too hard to keep it all in ia64.
-
-However, the problem is, I would still need a generic
-'enabled_map' to control whether 'online' and 'crash_notes'
-entries get created for /sys/devices/system/cpu/cpuN/.
-
-So if other archs are at least neutral on this class of CPUs, I
-can work on another patchset that lowers the tax to a simple
-#define for archs that don't care.
-
-But if people hate this idea of a new map, I'd like to know so
-that I'm not wasting my time and can work on a different solution
-(what that would be, I have no idea at the moment).
-
-Thanks.
-
-/ac
-
+btw, arch maintainers have an alias "linux-arch@vger.kernel.org" ...
+but it doesnt appear to be in MAINTAINERS ?
+-mike
