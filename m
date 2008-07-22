@@ -1,73 +1,91 @@
-From: Alex Chiang <achiang@hp.com>
-Subject: Re: [PATCH 01/14] Introduce cpu_enabled_map and friends
-Date: Fri, 18 Jul 2008 17:08:37 -0600
-Message-ID: <20080718230837.GC20344@ldl.fc.hp.com>
-References: <20080715023344.2528.1836.stgit@blender.achiang> <20080715023349.2528.9423.stgit@blender.achiang> <20080715031512.GF14894@parisc-linux.org> <87wsjnxy4w.fsf@basil.nowhere.org> <20080715102130.GA22866@flint.arm.linux.org.uk> <20080715175740.GB10919@ldl.fc.hp.com> <20080715181632.GG14894@parisc-linux.org> <20080715184822.GB29991@flint.arm.linux.org.uk> <20080715191515.GE10919@ldl.fc.hp.com> <20080718214454.GD25816@flint.arm.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-acpi-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20080718214454.GD25816@flint.arm.linux.org.uk>
-Sender: linux-acpi-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>, Andi Kleen <andi@firstfloor.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: akpm@linux-foundation.org
+Subject: + make-u64-long-long-on-all-architectures.patch added to -mm tree
+Date: Tue, 22 Jul 2008 03:02:26 -0700
+Message-ID: <200807221002.m6MA2Qrs022237@imap1.linux-foundation.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:58722 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753566AbYGVKC2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Jul 2008 06:02:28 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: mm-commits@vger.kernel.org
+Cc: matthew@wil.cx, linux-arch@vger.kernel.org, willy@linux.intel.com
 
-* Russell King <rmk+lkml@arm.linux.org.uk>:
-> On Tue, Jul 15, 2008 at 01:15:15PM -0600, Alex Chiang wrote:
-> > * Russell King <rmk+lkml@arm.linux.org.uk>:
-> > > 
-> > > How about having smp_init() call into arch code to query whether
-> > > it should bring up a not-already-online CPU?  Architectures that
-> > > want to do something special can then make the decision there and
-> > > everyone else can define the test completely away.
-> > 
-> > So this is exactly what I'm doing. The ia64 patch has this hunk:
-> > 
-> > @@ -820,6 +824,9 @@ __cpu_up (unsigned int cpu)
-> >         if (cpu_isset(cpu, cpu_callin_map))
-> >                 return -EINVAL;
-> > 
-> > +       if (!cpu_isset(cpu, cpu_enabled_map))
-> > +               return -EINVAL;
-> > +
-> >         per_cpu(cpu_state, cpu) = CPU_UP_PREPARE;
-> >         /* Processor goes to start_secondary(), sets online flag */
-> >         ret = do_boot_cpu(sapicid, cpu);
-> > 
-> > That was the easiest, most-straightforward solution I could think
-> > of. If you have an idea for a version with lower taxes (doesn't
-> > touch all the archs or can be #define'd out), I'm happy to hear
-> > it.
-> 
-> I think I did make a suggestion in the bit you quote from me above.
-> 
-> Let me be more explicit:
 
-Thanks, sorry for being dense.
+The patch titled
+     Make u64 long long on all architectures
+has been added to the -mm tree.  Its filename is
+     make-u64-long-long-on-all-architectures.patch
 
-> static void __init smp_init(void)
-> {
->         unsigned int cpu;
-> 
->         /* FIXME: This should be done in userspace --RR */
->         for_each_present_cpu(cpu) {
->                 if (num_online_cpus() >= setup_max_cpus)
->                         break;
-> -		if (!cpu_online(cpu))
-> +		if (smp_cpu_enabled(cpu) && !cpu_online(cpu))
->                         cpu_up(cpu);
->         }
-> 
->         /* Any cleanup work */
->         printk(KERN_INFO "Brought up %ld CPUs\n", (long)num_online_cpus());
->         smp_cpus_done(setup_max_cpus);
-> }
-> 
-> and have architectures provide 'smp_cpu_enabled(cpu)' which can either
-> be a function, inline function or a macro (and therefore possible to be
-> completely eliminated.)
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
 
-Yup, this is nicer. I'll try this.
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
 
-/ac
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
 
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: Make u64 long long on all architectures
+From: Matthew Wilcox <matthew@wil.cx>
+
+It is currently awkward to print a u64 type.  Some architectures use
+unsigned long while others use unsigned long long.  Since unsigned long
+long is 64-bit for all existing Linux architectures, change those that
+use long to use long long.  Note that this applies only within the
+kernel.  If u64 is being used in a C++ method definition, the symbol
+mangling would change.
+
+Signed-off-by: Matthew Wilcox <willy@linux.intel.com>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/asm-generic/int-l64.h |    5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff -puN include/asm-generic/int-l64.h~make-u64-long-long-on-all-architectures include/asm-generic/int-l64.h
+--- a/include/asm-generic/int-l64.h~make-u64-long-long-on-all-architectures
++++ a/include/asm-generic/int-l64.h
+@@ -23,8 +23,13 @@ typedef unsigned short __u16;
+ typedef __signed__ int __s32;
+ typedef unsigned int __u32;
+ 
++#ifdef __KERNEL__
++typedef __signed__ long long __s64;
++typedef unsigned long long __u64;
++#else
+ typedef __signed__ long __s64;
+ typedef unsigned long __u64;
++#endif
+ 
+ #endif /* __ASSEMBLY__ */
+ 
+_
+
+Patches currently in -mm which might be from matthew@wil.cx are
+
+origin.patch
+linux-next.patch
+parisc-fix-incomplete-header-guard.patch
+list-debugging-use-warn_on-instead-of-bug.patch
+reiserfs-convert-j_lock-to-mutex.patch
+reiserfs-convert-j_flush_sem-to-mutex.patch
+reiserfs-convert-j_commit_lock-to-mutex.patch
+reiserfs-convert-j_commit_lock-to-mutex-checkpatch-fixes.patch
+ptrace-give-more-respect-to-sigkill.patch
+lockd-dont-return-eagain-for-a-permanent-error.patch
+locks-add-special-return-value-for-asynchronous-locks.patch
+locks-cleanup-code-duplication.patch
+locks-allow-lock-to-return-file_lock_deferred.patch
+fuse-nfs-export-special-lookups.patch
+fuse-lockd-support.patch
+make-u64-long-long-on-all-architectures.patch
+make-sure-nobodys-leaking-resources.patch
