@@ -1,8 +1,8 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: [PATCH] Make u64 long long on all architectures (was: the
 	printk problem)
-Date: Tue, 22 Jul 2008 21:35:30 +1000
-Message-ID: <1216726530.11027.205.camel@pasglop>
+Date: Tue, 22 Jul 2008 21:36:46 +1000
+Message-ID: <1216726606.11027.207.camel@pasglop>
 References: <20080625131101.GA6205@digi.com>
 	 <20080704104634.GA31634@digi.com>
 	 <20080704111540.ddffd241.akpm@linux-foundation.org>
@@ -13,31 +13,33 @@ References: <20080625131101.GA6205@digi.com>
 	 <20080704150100.1f7b8a65.akpm@linux-foundation.org>
 	 <20080705020350.GN14894@parisc-linux.org>
 	 <20080722030506.206a2cc2.akpm@linux-foundation.org>
+	 <1216722995.8357.4.camel@localhost>
 Reply-To: benh@kernel.crashing.org
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <20080722030506.206a2cc2.akpm@linux-foundation.org>
+In-Reply-To: <1216722995.8357.4.camel@localhost>
 Sender: linux-ia64-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, Peter Anvin <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>
+To: michael@ellerman.id.au
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, Peter Anvin <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-
+On Tue, 2008-07-22 at 20:36 +1000, Michael Ellerman wrote:
+> concordia powerpc(master) $ find arch/powerpc/ ! -name '*32.*' | xargs
+> grep "%l" | grep -v "%ll" | wc -l
+> 635
 > 
-> This is (IMO) a desirable change and will prevent a heck of a lot of
-> goofing around, and will permit a lot of prior goofing around to
-> be removed.
 > 
-> But I bet there are lots of instalces of printk("%l", some_u64) down in
-> arch code where the type of u64 _is_ known which will now spew warnings.
+> Someone's gonna get a lot of git points for fixing all those. Might
+> keep
+> the speeling fix crowd busy for a 
 
-Well, I'm about to call a big "warning fixing day" on the powerpc list,
-I saw a few today when building a couple of configs and that hurts my
-eyes so we may as well fold that in :-)
+But a bunch of those might actually be real longs, not u64's ...
 
-Cheers,
+Easier to do the change and build something like ppc6xx_defconfig to get
+a better approximation.
+
 Ben.
- 
+
 
