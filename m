@@ -1,78 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0014.houston.hp.com ([15.201.24.17]:45339 "EHLO
-	g4t0014.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754184AbYGRXIi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2008 19:08:38 -0400
-Date: Fri, 18 Jul 2008 17:08:37 -0600
-From: Alex Chiang <achiang@hp.com>
-Subject: Re: [PATCH 01/14] Introduce cpu_enabled_map and friends
-Message-ID: <20080718230837.GC20344@ldl.fc.hp.com>
-References: <20080715023344.2528.1836.stgit@blender.achiang> <20080715023349.2528.9423.stgit@blender.achiang> <20080715031512.GF14894@parisc-linux.org> <87wsjnxy4w.fsf@basil.nowhere.org> <20080715102130.GA22866@flint.arm.linux.org.uk> <20080715175740.GB10919@ldl.fc.hp.com> <20080715181632.GG14894@parisc-linux.org> <20080715184822.GB29991@flint.arm.linux.org.uk> <20080715191515.GE10919@ldl.fc.hp.com> <20080718214454.GD25816@flint.arm.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080718214454.GD25816@flint.arm.linux.org.uk>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:57021 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751935AbYGVKFO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Jul 2008 06:05:14 -0400
+Date: Tue, 22 Jul 2008 03:05:06 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH] Make u64 long long on all architectures (was: the
+ printk problem)
+Message-ID: <20080722030506.206a2cc2.akpm@linux-foundation.org>
+In-Reply-To: <20080705020350.GN14894@parisc-linux.org>
+References: <20080625131101.GA6205@digi.com>
+	<20080704104634.GA31634@digi.com>
+	<20080704111540.ddffd241.akpm@linux-foundation.org>
+	<alpine.LFD.1.10.0807041147450.2815@woody.linux-foundation.org>
+	<alpine.LFD.1.10.0807041250220.2815@woody.linux-foundation.org>
+	<20080704132716.f1e12554.akpm@linux-foundation.org>
+	<20080704204252.GM14894@parisc-linux.org>
+	<20080704150100.1f7b8a65.akpm@linux-foundation.org>
+	<20080705020350.GN14894@parisc-linux.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>, Andi Kleen <andi@firstfloor.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org
-Message-ID: <20080718230837.1EKVW3HaEl6GUfxT8mRM3Nra9xilzEFB34r9qyll_KU@z>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Peter Anvin <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20080722100506._0QJxVbSo2uhxHBJ_uzTjbVuOJgO4W_Y2NTbDgTDdPc@z>
 
-* Russell King <rmk+lkml@arm.linux.org.uk>:
-> On Tue, Jul 15, 2008 at 01:15:15PM -0600, Alex Chiang wrote:
-> > * Russell King <rmk+lkml@arm.linux.org.uk>:
-> > > 
-> > > How about having smp_init() call into arch code to query whether
-> > > it should bring up a not-already-online CPU?  Architectures that
-> > > want to do something special can then make the decision there and
-> > > everyone else can define the test completely away.
-> > 
-> > So this is exactly what I'm doing. The ia64 patch has this hunk:
-> > 
-> > @@ -820,6 +824,9 @@ __cpu_up (unsigned int cpu)
-> >         if (cpu_isset(cpu, cpu_callin_map))
-> >                 return -EINVAL;
-> > 
-> > +       if (!cpu_isset(cpu, cpu_enabled_map))
-> > +               return -EINVAL;
-> > +
-> >         per_cpu(cpu_state, cpu) = CPU_UP_PREPARE;
-> >         /* Processor goes to start_secondary(), sets online flag */
-> >         ret = do_boot_cpu(sapicid, cpu);
-> > 
-> > That was the easiest, most-straightforward solution I could think
-> > of. If you have an idea for a version with lower taxes (doesn't
-> > touch all the archs or can be #define'd out), I'm happy to hear
-> > it.
+On Fri, 4 Jul 2008 20:03:51 -0600 Matthew Wilcox <matthew@wil.cx> wrote:
+
+> [PATCH] Make u64 long long on all architectures
 > 
-> I think I did make a suggestion in the bit you quote from me above.
+> It is currently awkward to print a u64 type.  Some architectures use
+> unsigned long while others use unsigned long long.  Since unsigned long
+> long is 64-bit for all existing Linux architectures, change those that
+> use long to use long long.  Note that this applies only within the
+> kernel.  If u64 is being used in a C++ method definition, the symbol
+> mangling would change.
 > 
-> Let me be more explicit:
-
-Thanks, sorry for being dense.
-
-> static void __init smp_init(void)
-> {
->         unsigned int cpu;
+> Signed-off-by: Matthew Wilcox <willy@linux.intel.com>
 > 
->         /* FIXME: This should be done in userspace --RR */
->         for_each_present_cpu(cpu) {
->                 if (num_online_cpus() >= setup_max_cpus)
->                         break;
-> -		if (!cpu_online(cpu))
-> +		if (smp_cpu_enabled(cpu) && !cpu_online(cpu))
->                         cpu_up(cpu);
->         }
-> 
->         /* Any cleanup work */
->         printk(KERN_INFO "Brought up %ld CPUs\n", (long)num_online_cpus());
->         smp_cpus_done(setup_max_cpus);
-> }
-> 
-> and have architectures provide 'smp_cpu_enabled(cpu)' which can either
-> be a function, inline function or a macro (and therefore possible to be
-> completely eliminated.)
+> diff --git a/include/asm-generic/int-l64.h b/include/asm-generic/int-l64.h
+> index 2af9b75..32f07bd 100644
+> --- a/include/asm-generic/int-l64.h
+> +++ b/include/asm-generic/int-l64.h
+> @@ -23,8 +23,13 @@ typedef unsigned short __u16;
+>  typedef __signed__ int __s32;
+>  typedef unsigned int __u32;
+>  
+> +#ifdef __KERNEL__
+> +typedef __signed__ long long __s64;
+> +typedef unsigned long long __u64;
+> +#else
+>  typedef __signed__ long __s64;
+>  typedef unsigned long __u64;
+> +#endif
+>  
+>  #endif /* __ASSEMBLY__ */
 
-Yup, this is nicer. I'll try this.
+This is (IMO) a desirable change and will prevent a heck of a lot of
+goofing around, and will permit a lot of prior goofing around to
+be removed.
 
-/ac
+But I bet there are lots of instalces of printk("%l", some_u64) down in
+arch code where the type of u64 _is_ known which will now spew warnings.
 
+Oh well.
