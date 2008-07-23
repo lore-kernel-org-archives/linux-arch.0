@@ -1,76 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:56381 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:34575 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754937AbYGWXZf (ORCPT
+	by vger.kernel.org with ESMTP id S1755152AbYGWXlM (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 Jul 2008 19:25:35 -0400
-Message-ID: <200807232325.m6NNPXCZ017531@imap1.linux-foundation.org>
-Subject: - page_align-correctly-handle-64-bit-values-on-32-bit-architectures-x86_64-fix.patch removed from -mm tree
+	Wed, 23 Jul 2008 19:41:12 -0400
+Message-ID: <200807232340.m6NNerLL018269@imap1.linux-foundation.org>
+Subject: - flag-parameters-paccept-sys_ni.patch removed from -mm tree
 From: akpm@linux-foundation.org
-Date: Wed, 23 Jul 2008 16:12:56 -0700
+Date: Wed, 23 Jul 2008 16:28:15 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: righi.andrea@gmail.com, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
-Message-ID: <20080723231256.HExQp8fAZ0Qt0_1J68vjeIgB6zJBYAU6ObKHR101ovI@z>
+To: akpm@linux-foundation.org, davidel@xmailserver.org, drepper@redhat.com, linux-arch@vger.kernel.org, mtk.manpages@googlemail.com, mm-commits@vger.kernel.org
+Message-ID: <20080723232815.cFRc_qJkseXkvM3B3vFugmkx37aNtxyd_rb5kEBb_AM@z>
 
 
 The patch titled
-     page_align-correctly-handle-64-bit-values-on-32-bit-architectures x86_64 fix
+     flag-parameters-paccept-sys_ni
 has been removed from the -mm tree.  Its filename was
-     page_align-correctly-handle-64-bit-values-on-32-bit-architectures-x86_64-fix.patch
+     flag-parameters-paccept-sys_ni.patch
 
-This patch was dropped because it was folded into page_align-correctly-handle-64-bit-values-on-32-bit-architectures.patch
+This patch was dropped because it was folded into flag-parameters-paccept.patch
 
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: page_align-correctly-handle-64-bit-values-on-32-bit-architectures x86_64 fix
-From: Andrea Righi <righi.andrea@gmail.com>
+Subject: flag-parameters-paccept-sys_ni
+From: Andrew Morton <akpm@linux-foundation.org>
 
-x86_64 allmodconfig build failed due to a missing #include <linux/mm.h>
-in arch/x86/kernel/module_64.c.
-
-Following patch resolves (on top of the previous one).
-
-Except this, no errors for x86_64.
-
-Signed-off-by: Andrea Righi <righi.andrea@gmail.com>
 Cc: <linux-arch@vger.kernel.org>
+Cc: Davide Libenzi <davidel@xmailserver.org>
+Cc: Michael Kerrisk <mtk.manpages@googlemail.com>
+Cc: Ulrich Drepper <drepper@redhat.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/x86/kernel/module_64.c |    1 +
+ kernel/sys_ni.c |    1 +
  1 file changed, 1 insertion(+)
 
-diff -puN arch/x86/kernel/module_64.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures-x86_64-fix arch/x86/kernel/module_64.c
---- a/arch/x86/kernel/module_64.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures-x86_64-fix
-+++ a/arch/x86/kernel/module_64.c
-@@ -22,6 +22,7 @@
- #include <linux/fs.h>
- #include <linux/string.h>
- #include <linux/kernel.h>
-+#include <linux/mm.h>
- #include <linux/slab.h>
- #include <linux/bug.h>
- 
+diff -puN kernel/sys_ni.c~flag-parameters-paccept-sys_ni kernel/sys_ni.c
+--- a/kernel/sys_ni.c~flag-parameters-paccept-sys_ni
++++ a/kernel/sys_ni.c
+@@ -31,6 +31,7 @@ cond_syscall(sys_socketpair);
+ cond_syscall(sys_bind);
+ cond_syscall(sys_listen);
+ cond_syscall(sys_accept);
++cond_syscall(sys_paccept);
+ cond_syscall(sys_connect);
+ cond_syscall(sys_getsockname);
+ cond_syscall(sys_getpeername);
 _
 
-Patches currently in -mm which might be from righi.andrea@gmail.com are
+Patches currently in -mm which might be from akpm@linux-foundation.org are
 
+origin.patch
+mm-verify-the-page-links-and-memory-model.patch
+mspec-convert-nopfn-to-fault.patch
+page-allocator-inlnie-some-__alloc_pages-wrappers.patch
+kill-generic_file_direct_io.patch
+use-generic_access_phys-for-dev-mem-mappings.patch
+spufs-use-the-new-vm_ops-access.patch
+fix-soft-lock-up-at-nfs-mount-by-per-sb-lru-list-of-unused-dentries.patch
+page-flags-record-page-flag-overlays-explicitly.patch
+mapping_set_error-add-unlikely.patch
+huge-page-private-reservation-review-cleanups.patch
+vma-page-offset-has-no-callees-drop-it.patch
+sync_file_range_write-may-and-will-block-document-that.patch
+vmallocinfo-add-numa-information.patch
+hugetlb-modular-state-for-hugetlb-page-size.patch
+hugetlb-multiple-hstates-for-multiple-page-sizes.patch
+bootmem-add-debugging-framework.patch
+bootmem-clean-up-free_all_bootmem_core.patch
+bootmem-free-reserve-helpers.patch
+bootmem-factor-out-the-marking-of-a-pfn-range.patch
 page_align-correctly-handle-64-bit-values-on-32-bit-architectures.patch
-page_align-correctly-handle-64-bit-values-on-32-bit-architectures-x86_64-fix.patch
-page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fix.patch
-page_align-correctly-handle-64-bit-values-on-32-bit-architectures-arm-fix.patch
-page_align-correctly-handle-64-bit-values-on-32-bit-architectures-mips-fix.patch
-page_align-correctly-handle-64-bit-values-on-32-bit-architectures-dvb.patch
-page_align-correctly-handle-64-bit-values-on-32-bit-architectures-mtd-fix.patch
-page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fixes.patch
-page_align-arm-fix-implicit-declaration-of-function-page_align.patch
-page_align-avr32-fix-implicit-declaration-of-function-page_align.patch
-page_align-h8300-fix-implicit-declaration-of-function-page_align.patch
-page_align-m68k-fix-implicit-declaration-of-function-page_align.patch
-page_align-m68knommu-fix-implicit-declaration-of-function-page_align.patch
-page_align-mips-fix-implicit-declarations-of-function-page_align.patch
-page_align-xtensa-fix-implicit-declaration-of-function-page_align.patch
-page_align-fix-implicit-declarations-of-function-page_align-in-various-drivers.patch
+mmu-notifiers-add-mm_take_all_locks-operation.patch
+mmu-notifier-core.patch
+security-protect-legacy-applications-from-executing-with-insufficient-privilege.patch
+security-protect-legacy-apps-from-insufficient-privilege-cleanup.patch
+swsusp-provide-users-with-a-hint-about-the-no_console_suspend-option.patch
+flag-parameters-paccept.patch
+flag-parameters-paccept-sys_ni.patch
+flag-parameters-anon_inode_getfd-extension-fix.patch
+flag-parameters-signalfd-fix.patch
+flag-parameters-eventfd-fix.patch
+flag-parameters-inotify_init-fix.patch
+flag-parameters-check-magic-constants-alpha.patch
+spi-au1550_spi-improve-pio-transfer-mode-checkpatch-fixes.patch
+autofs4-use-lookup-intent-flags-to-trigger-mounts-fix.patch
+rtc-cmos-improve-hpet-irq-glue-build-fix.patch
+drivers-video-aty-radeon_basec-notify-user-if-sysfs_create_bin_file-failed-checkpatch-fixes.patch
+atmel_lcdfb-avoid-division-by-zero-checkpatch-fixes.patch
+sm501-fixup-allocation-code-to-be-64bit-resource-compliant-sm501-align-panel-fb-to-page_size-fix.patch
+lcd-add-platform_lcd-driver-fix.patch
+fsl-diu-fb-update-freescale-diu-driver-to-use-page_alloc_exact.patch
+fbdev-add-new-cobalt-lcd-framebuffer-driver.patch
+fbcon-remove-stray-semicolons-checkpatch-fixes.patch
 
