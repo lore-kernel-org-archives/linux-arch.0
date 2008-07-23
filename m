@@ -1,93 +1,105 @@
 From: akpm@linux-foundation.org
-Subject: - make-u64-long-long-on-all-architectures.patch removed from -mm tree
-Date: Tue, 22 Jul 2008 21:55:49 -0700
-Message-ID: <200807230455.m6N4tn3w003645@imap1.linux-foundation.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:43961 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752571AbYGWEzv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 Jul 2008 00:55:51 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: matthew@wil.cx, linux-arch@vger.kernel.org, willy@linux.intel.com, mm-commits@vger.kernel.org
+Subject: - page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix.patch removed from -mm tree
+Date: Wed, 23 Jul 2008 16:12:54 -0700
+Message-ID: <200807232325.m6NNPVc4017528@imap1.linux-foundation.org>
+Reply-To: linux-kernel@vger.kernel.org
+Return-path: <mm-commits-owner@vger.kernel.org>
+Sender: mm-commits-owner@vger.kernel.org
+To: akpm@linux-foundation.org, linux-arch@vger.kernel.org, righi.andrea@gmail.com, mm-commits@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 
 The patch titled
-     Make u64 long long on all architectures
+     page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix
 has been removed from the -mm tree.  Its filename was
-     make-u64-long-long-on-all-architectures.patch
+     page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix.patch
 
-This patch was dropped because im a wimp
+This patch was dropped because it was folded into page_align-correctly-handle-64-bit-values-on-32-bit-architectures.patch
 
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: Make u64 long long on all architectures
-From: Matthew Wilcox <matthew@wil.cx>
+Subject: page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix
+From: Andrew Morton <akpm@linux-foundation.org>
 
-It is currently awkward to print a u64 type.  Some architectures use
-unsigned long while others use unsigned long long.  Since unsigned long
-long is 64-bit for all existing Linux architectures, change those that
-use long to use long long.  Note that this applies only within the
-kernel.  If u64 is being used in a C++ method definition, the symbol
-mangling would change.
+Fix v850, even though remove-the-v850-port.patch is in the pipeline.
 
-[akpm@linux-foundation.org: Do u64 and s64 too]
-Signed-off-by: Matthew Wilcox <willy@linux.intel.com>
 Cc: <linux-arch@vger.kernel.org>
+Cc: Andrea Righi <righi.andrea@gmail.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- include/asm-generic/int-l64.h |    9 +++++++--
- 1 file changed, 7 insertions(+), 2 deletions(-)
+ include/asm-v850/page.h |    4 ----
+ 1 file changed, 4 deletions(-)
 
-diff -puN include/asm-generic/int-l64.h~make-u64-long-long-on-all-architectures include/asm-generic/int-l64.h
---- a/include/asm-generic/int-l64.h~make-u64-long-long-on-all-architectures
-+++ a/include/asm-generic/int-l64.h
-@@ -23,8 +23,13 @@ typedef unsigned short __u16;
- typedef __signed__ int __s32;
- typedef unsigned int __u32;
+diff -puN include/asm-v850/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix include/asm-v850/page.h
+--- a/include/asm-v850/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix
++++ a/include/asm-v850/page.h
+@@ -94,10 +94,6 @@ typedef unsigned long pgprot_t;
+ #endif /* !__ASSEMBLY__ */
  
-+#ifdef __KERNEL__
-+typedef __signed__ long long __s64;
-+typedef unsigned long long __u64;
-+#else
- typedef __signed__ long __s64;
- typedef unsigned long __u64;
-+#endif
  
- #endif /* __ASSEMBLY__ */
- 
-@@ -41,8 +46,8 @@ typedef unsigned short u16;
- typedef signed int s32;
- typedef unsigned int u32;
- 
--typedef signed long s64;
--typedef unsigned long u64;
-+typedef signed long long s64;
-+typedef unsigned long long u64;
- 
- #define S8_C(x)  x
- #define U8_C(x)  x ## U
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr) + PAGE_SIZE - 1) & PAGE_MASK)
+-
+-
+ /* No current v850 processor has virtual memory.  */
+ #define __virt_to_phys(addr)	(addr)
+ #define __phys_to_virt(addr)	(addr)
 _
 
-Patches currently in -mm which might be from matthew@wil.cx are
+Patches currently in -mm which might be from akpm@linux-foundation.org are
 
 origin.patch
-linux-next.patch
-parisc-fix-incomplete-header-guard.patch
-list-debugging-use-warn_on-instead-of-bug.patch
-reiserfs-convert-j_lock-to-mutex.patch
-reiserfs-convert-j_flush_sem-to-mutex.patch
-reiserfs-convert-j_commit_lock-to-mutex.patch
-reiserfs-convert-j_commit_lock-to-mutex-checkpatch-fixes.patch
-ptrace-give-more-respect-to-sigkill.patch
-lockd-dont-return-eagain-for-a-permanent-error.patch
-locks-add-special-return-value-for-asynchronous-locks.patch
-locks-cleanup-code-duplication.patch
-locks-allow-lock-to-return-file_lock_deferred.patch
-fuse-nfs-export-special-lookups.patch
-fuse-lockd-support.patch
-make-u64-long-long-on-all-architectures.patch
-make-sure-nobodys-leaking-resources.patch
+mm-verify-the-page-links-and-memory-model.patch
+mspec-convert-nopfn-to-fault.patch
+page-allocator-inlnie-some-__alloc_pages-wrappers.patch
+kill-generic_file_direct_io.patch
+use-generic_access_phys-for-dev-mem-mappings.patch
+spufs-use-the-new-vm_ops-access.patch
+fix-soft-lock-up-at-nfs-mount-by-per-sb-lru-list-of-unused-dentries.patch
+page-flags-record-page-flag-overlays-explicitly.patch
+mapping_set_error-add-unlikely.patch
+huge-page-private-reservation-review-cleanups.patch
+vma-page-offset-has-no-callees-drop-it.patch
+sync_file_range_write-may-and-will-block-document-that.patch
+vmallocinfo-add-numa-information.patch
+hugetlb-modular-state-for-hugetlb-page-size.patch
+hugetlb-multiple-hstates-for-multiple-page-sizes.patch
+bootmem-add-debugging-framework.patch
+bootmem-clean-up-free_all_bootmem_core.patch
+bootmem-free-reserve-helpers.patch
+bootmem-factor-out-the-marking-of-a-pfn-range.patch
+page_align-correctly-handle-64-bit-values-on-32-bit-architectures.patch
+page_align-correctly-handle-64-bit-values-on-32-bit-architectures-v850-fix.patch
+page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fix.patch
+page_align-correctly-handle-64-bit-values-on-32-bit-architectures-arm-fix.patch
+page_align-correctly-handle-64-bit-values-on-32-bit-architectures-mips-fix.patch
+page_align-correctly-handle-64-bit-values-on-32-bit-architectures-dvb.patch
+page_align-correctly-handle-64-bit-values-on-32-bit-architectures-mtd-fix.patch
+page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fixes.patch
+mmu-notifiers-add-mm_take_all_locks-operation-checkpatch-fixes.patch
+mmu-notifier-core-checkpatch-fixes.patch
+mmu-notifier-core-fix.patch
+mmu-notifier-core-fix-2.patch
+security-protect-legacy-apps-from-insufficient-privilege-cleanup.patch
+security-protect-legacy-applications-from-executing-with-insufficient-privilege-checkpatch-fixes.patch
+swsusp-provide-users-with-a-hint-about-the-no_console_suspend-option-fix.patch
+flag-parameters-paccept-fix.patch
+flag-parameters-paccept-sys_ni.patch
+flag-parameters-anon_inode_getfd-extension-fix.patch
+flag-parameters-signalfd-fix.patch
+flag-parameters-eventfd-fix.patch
+flag-parameters-inotify_init-fix.patch
+flag-parameters-check-magic-constants-alpha.patch
+spi-au1550_spi-improve-pio-transfer-mode-checkpatch-fixes.patch
+autofs4-use-lookup-intent-flags-to-trigger-mounts-fix.patch
+rtc-cmos-improve-hpet-irq-glue-build-fix.patch
+drivers-video-aty-radeon_basec-notify-user-if-sysfs_create_bin_file-failed-checkpatch-fixes.patch
+atmel_lcdfb-avoid-division-by-zero-checkpatch-fixes.patch
+sm501-fixup-allocation-code-to-be-64bit-resource-compliant-sm501-align-panel-fb-to-page_size-fix.patch
+lcd-add-platform_lcd-driver-fix.patch
+fsl-diu-fb-update-freescale-diu-driver-to-use-page_alloc_exact.patch
+fbdev-add-new-cobalt-lcd-framebuffer-driver.patch
+fbcon-remove-stray-semicolons-checkpatch-fixes.patch
+
