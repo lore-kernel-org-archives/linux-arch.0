@@ -1,51 +1,62 @@
 From: akpm@linux-foundation.org
-Subject: - page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fix.patch removed from -mm tree
-Date: Wed, 23 Jul 2008 16:12:58 -0700
-Message-ID: <200807232325.m6NNPZZZ017534@imap1.linux-foundation.org>
+Subject: - page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fixes.patch removed from -mm tree
+Date: Wed, 23 Jul 2008 16:13:09 -0700
+Message-ID: <200807232325.m6NNPkqI017626@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:57450 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:39911 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755027AbYGWXZi (ORCPT
+	by vger.kernel.org with ESMTP id S1754990AbYGWXZs (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 Jul 2008 19:25:38 -0400
+	Wed, 23 Jul 2008 19:25:48 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, linux-arch@vger.kernel.org, paulus@samba.org, righi.andrea@gmail.com, mm-commits@vger.kernel.org
+To: akpm@linux-foundation.org, linux-arch@vger.kernel.org, righi.andrea@gmail.com, mm-commits@vger.kernel.org
 
 
 The patch titled
-     page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fix
+     page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fixes
 has been removed from the -mm tree.  Its filename was
-     page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fix.patch
+     page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fixes.patch
 
 This patch was dropped because it was folded into page_align-correctly-handle-64-bit-values-on-32-bit-architectures.patch
 
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fix
+Subject: page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fixes
 From: Andrew Morton <akpm@linux-foundation.org>
 
 Cc: <linux-arch@vger.kernel.org>
 Cc: Andrea Righi <righi.andrea@gmail.com>
-Cc: Paul Mackerras <paulus@samba.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/powerpc/boot/page.h |    3 +++
- 1 file changed, 3 insertions(+)
+ arch/powerpc/kernel/suspend.c    |    1 +
+ arch/powerpc/lib/code-patching.c |    1 +
+ 2 files changed, 2 insertions(+)
 
-diff -puN arch/powerpc/boot/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fix arch/powerpc/boot/page.h
---- a/arch/powerpc/boot/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fix
-+++ a/arch/powerpc/boot/page.h
-@@ -28,4 +28,7 @@
- /* align addr on a size boundary - adjust address up if needed */
- #define _ALIGN(addr,size)     _ALIGN_UP(addr,size)
+diff -puN arch/powerpc/kernel/suspend.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fixes arch/powerpc/kernel/suspend.c
+--- a/arch/powerpc/kernel/suspend.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fixes
++++ a/arch/powerpc/kernel/suspend.c
+@@ -7,6 +7,7 @@
+  * Copyright (c) 2001 Patrick Mochel <mochel@osdl.org>
+  */
  
-+/* to align the pointer to the (next) page boundary */
-+#define PAGE_ALIGN(addr)	_ALIGN(addr, PAGE_SIZE)
-+
- #endif				/* _PPC_BOOT_PAGE_H */
++#include <linux/mm.h>
+ #include <asm/page.h>
+ 
+ /* References to section boundaries */
+diff -puN arch/powerpc/lib/code-patching.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fixes arch/powerpc/lib/code-patching.c
+--- a/arch/powerpc/lib/code-patching.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fixes
++++ a/arch/powerpc/lib/code-patching.c
+@@ -10,6 +10,7 @@
+ #include <linux/kernel.h>
+ #include <linux/vmalloc.h>
+ #include <linux/init.h>
++#include <linux/mm.h>
+ #include <asm/page.h>
+ #include <asm/code-patching.h>
+ 
 _
 
 Patches currently in -mm which might be from akpm@linux-foundation.org are
@@ -71,11 +82,6 @@ bootmem-clean-up-free_all_bootmem_core.patch
 bootmem-free-reserve-helpers.patch
 bootmem-factor-out-the-marking-of-a-pfn-range.patch
 page_align-correctly-handle-64-bit-values-on-32-bit-architectures.patch
-page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fix.patch
-page_align-correctly-handle-64-bit-values-on-32-bit-architectures-arm-fix.patch
-page_align-correctly-handle-64-bit-values-on-32-bit-architectures-mips-fix.patch
-page_align-correctly-handle-64-bit-values-on-32-bit-architectures-dvb.patch
-page_align-correctly-handle-64-bit-values-on-32-bit-architectures-mtd-fix.patch
 page_align-correctly-handle-64-bit-values-on-32-bit-architectures-powerpc-fixes.patch
 mmu-notifiers-add-mm_take_all_locks-operation-checkpatch-fixes.patch
 mmu-notifier-core-checkpatch-fixes.patch
