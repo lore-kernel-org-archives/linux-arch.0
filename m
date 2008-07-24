@@ -1,13 +1,13 @@
 From: akpm@linux-foundation.org
-Subject: [patch 165/322] flag parameters: eventfd
-Date: Wed, 23 Jul 2008 21:29:25 -0700
-Message-ID: <200807240429.m6O4TP4g029328@imap1.linux-foundation.org>
+Subject: [patch 167/322] flag parameters: epoll_create
+Date: Wed, 23 Jul 2008 21:29:27 -0700
+Message-ID: <200807240429.m6O4TSG8029336@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:36279 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:33131 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752485AbYGXE3p (ORCPT
+	by vger.kernel.org with ESMTP id S1752482AbYGXE3r (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 Jul 2008 00:29:45 -0400
+	Thu, 24 Jul 2008 00:29:47 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org
@@ -15,12 +15,12 @@ Cc: akpm@linux-foundation.org, drepper@redhat.com, davidel@xmailserver.org, linu
 
 From: Ulrich Drepper <drepper@redhat.com>
 
-This patch adds the new eventfd2 syscall.  It extends the old eventfd
+This patch adds the new epoll_create2 syscall.  It extends the old epoll_create
 syscall by one parameter which is meant to hold a flag value.  In this
-patch the only flag support is EFD_CLOEXEC which causes the close-on-exec
+patch the only flag support is EPOLL_CLOEXEC which causes the close-on-exec
 flag for the returned file descriptor to be set.
 
-A new name EFD_CLOEXEC is introduced which in this implementation must
+A new name EPOLL_CLOEXEC is introduced which in this implementation must
 have the same value as O_CLOEXEC.
 
 The following test must be adjusted for architectures other than x86 and
@@ -29,28 +29,29 @@ x86-64 and in case the syscall numbers changed.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #include <fcntl.h>
 #include <stdio.h>
+#include <time.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 
-#ifndef __NR_eventfd2
+#ifndef __NR_epoll_create2
 # ifdef __x86_64__
-#  define __NR_eventfd2 290
+#  define __NR_epoll_create2 291
 # elif defined __i386__
-#  define __NR_eventfd2 328
+#  define __NR_epoll_create2 329
 # else
-#  error "need __NR_eventfd2"
+#  error "need __NR_epoll_create2"
 # endif
 #endif
 
-#define EFD_CLOEXEC O_CLOEXEC
+#define EPOLL_CLOEXEC O_CLOEXEC
 
 int
 main (void)
 {
-  int fd = syscall (__NR_eventfd2, 1, 0);
+  int fd = syscall (__NR_epoll_create2, 1, 0);
   if (fd == -1)
     {
-      puts ("eventfd2(0) failed");
+      puts ("epoll_create2(0) failed");
       return 1;
     }
   int coe = fcntl (fd, F_GETFD);
@@ -61,15 +62,15 @@ main (void)
     }
   if (coe & FD_CLOEXEC)
     {
-      puts ("eventfd2(0) sets close-on-exec flag");
+      puts ("epoll_create2(0) set close-on-exec flag");
       return 1;
     }
   close (fd);
 
-  fd = syscall (__NR_eventfd2, 1, EFD_CLOEXEC);
+  fd = syscall (__NR_epoll_create2, 1, EPOLL_CLOEXEC);
   if (fd == -1)
     {
-      puts ("eventfd2(EFD_CLOEXEC) failed");
+      puts ("epoll_create2(EPOLL_CLOEXEC) failed");
       return 1;
     }
   coe = fcntl (fd, F_GETFD);
@@ -80,7 +81,7 @@ main (void)
     }
   if ((coe & FD_CLOEXEC) == 0)
     {
-      puts ("eventfd2(EFD_CLOEXEC) does not set close-on-exec flag");
+      puts ("epoll_create2(EPOLL_CLOEXEC) set close-on-exec flag");
       return 1;
     }
   close (fd);
@@ -91,7 +92,6 @@ main (void)
 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-[akpm@linux-foundation.org: add sys_ni stub]
 Signed-off-by: Ulrich Drepper <drepper@redhat.com>
 Acked-by: Davide Libenzi <davidel@xmailserver.org>
 Cc: Michael Kerrisk <mtk.manpages@googlemail.com>
@@ -101,123 +101,119 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 
  arch/x86/ia32/ia32entry.S          |    1 +
  arch/x86/kernel/syscall_table_32.S |    1 +
- fs/eventfd.c                       |   13 +++++++++++--
+ fs/eventpoll.c                     |   13 +++++++++++--
  include/asm-x86/unistd_32.h        |    1 +
  include/asm-x86/unistd_64.h        |    2 ++
- include/linux/eventfd.h            |    6 ++++++
+ include/linux/eventpoll.h          |    4 ++++
  include/linux/syscalls.h           |    1 +
- kernel/sys_ni.c                    |    1 +
- 8 files changed, 24 insertions(+), 2 deletions(-)
+ 7 files changed, 21 insertions(+), 2 deletions(-)
 
-diff -puN arch/x86/ia32/ia32entry.S~flag-parameters-eventfd arch/x86/ia32/ia32entry.S
---- a/arch/x86/ia32/ia32entry.S~flag-parameters-eventfd
+diff -puN arch/x86/ia32/ia32entry.S~flag-parameters-epoll_create arch/x86/ia32/ia32entry.S
+--- a/arch/x86/ia32/ia32entry.S~flag-parameters-epoll_create
 +++ a/arch/x86/ia32/ia32entry.S
-@@ -744,4 +744,5 @@ ia32_sys_call_table:
- 	.quad compat_sys_timerfd_settime	/* 325 */
+@@ -745,4 +745,5 @@ ia32_sys_call_table:
  	.quad compat_sys_timerfd_gettime
  	.quad compat_sys_signalfd4
-+	.quad sys_eventfd2
+ 	.quad sys_eventfd2
++	.quad sys_epoll_create2
  ia32_syscall_end:
-diff -puN arch/x86/kernel/syscall_table_32.S~flag-parameters-eventfd arch/x86/kernel/syscall_table_32.S
---- a/arch/x86/kernel/syscall_table_32.S~flag-parameters-eventfd
+diff -puN arch/x86/kernel/syscall_table_32.S~flag-parameters-epoll_create arch/x86/kernel/syscall_table_32.S
+--- a/arch/x86/kernel/syscall_table_32.S~flag-parameters-epoll_create
 +++ a/arch/x86/kernel/syscall_table_32.S
-@@ -327,3 +327,4 @@ ENTRY(sys_call_table)
- 	.long sys_timerfd_settime	/* 325 */
+@@ -328,3 +328,4 @@ ENTRY(sys_call_table)
  	.long sys_timerfd_gettime
  	.long sys_signalfd4
-+	.long sys_eventfd2
-diff -puN fs/eventfd.c~flag-parameters-eventfd fs/eventfd.c
---- a/fs/eventfd.c~flag-parameters-eventfd
-+++ a/fs/eventfd.c
-@@ -198,11 +198,14 @@ struct file *eventfd_fget(int fd)
- 	return file;
- }
- 
--asmlinkage long sys_eventfd(unsigned int count)
-+asmlinkage long sys_eventfd2(unsigned int count, int flags)
+ 	.long sys_eventfd2
++	.long sys_epoll_create2
+diff -puN fs/eventpoll.c~flag-parameters-epoll_create fs/eventpoll.c
+--- a/fs/eventpoll.c~flag-parameters-epoll_create
++++ a/fs/eventpoll.c
+@@ -1046,11 +1046,14 @@ retry:
+  * RB tree. With the current implementation, the "size" parameter is ignored
+  * (besides sanity checks).
+  */
+-asmlinkage long sys_epoll_create(int size)
++asmlinkage long sys_epoll_create2(int size, int flags)
  {
- 	int fd;
- 	struct eventfd_ctx *ctx;
+ 	int error, fd = -1;
+ 	struct eventpoll *ep;
  
-+	if (flags & ~EFD_CLOEXEC)
++	if (flags & ~EPOLL_CLOEXEC)
 +		return -EINVAL;
 +
- 	ctx = kmalloc(sizeof(*ctx), GFP_KERNEL);
- 	if (!ctx)
- 		return -ENOMEM;
-@@ -214,9 +217,15 @@ asmlinkage long sys_eventfd(unsigned int
- 	 * When we call this, the initialization must be complete, since
- 	 * anon_inode_getfd() will install the fd.
+ 	DNPRINTK(3, (KERN_INFO "[%p] eventpoll: sys_epoll_create(%d)\n",
+ 		     current, size));
+ 
+@@ -1068,7 +1071,8 @@ asmlinkage long sys_epoll_create(int siz
+ 	 * Creates all the items needed to setup an eventpoll file. That is,
+ 	 * a file structure and a free file descriptor.
  	 */
--	fd = anon_inode_getfd("[eventfd]", &eventfd_fops, ctx, 0);
-+	fd = anon_inode_getfd("[eventfd]", &eventfd_fops, ctx,
+-	fd = anon_inode_getfd("[eventpoll]", &eventpoll_fops, ep, 0);
++	fd = anon_inode_getfd("[eventpoll]", &eventpoll_fops, ep,
 +			      flags & O_CLOEXEC);
  	if (fd < 0)
- 		kfree(ctx);
+ 		ep_free(ep);
+ 
+@@ -1079,6 +1083,11 @@ error_return:
  	return fd;
  }
  
-+asmlinkage long sys_eventfd(unsigned int count)
++asmlinkage long sys_epoll_create(int size)
 +{
-+	return sys_eventfd2(count, 0);
++	return sys_epoll_create2(size, 0);
 +}
 +
-diff -puN include/asm-x86/unistd_32.h~flag-parameters-eventfd include/asm-x86/unistd_32.h
---- a/include/asm-x86/unistd_32.h~flag-parameters-eventfd
+ /*
+  * The following function implements the controller interface for
+  * the eventpoll file that enables the insertion/removal/change of
+diff -puN include/asm-x86/unistd_32.h~flag-parameters-epoll_create include/asm-x86/unistd_32.h
+--- a/include/asm-x86/unistd_32.h~flag-parameters-epoll_create
 +++ a/include/asm-x86/unistd_32.h
-@@ -333,6 +333,7 @@
- #define __NR_timerfd_settime	325
+@@ -334,6 +334,7 @@
  #define __NR_timerfd_gettime	326
  #define __NR_signalfd4		327
-+#define __NR_eventfd2		328
+ #define __NR_eventfd2		328
++#define __NR_epoll_create2	329
  
  #ifdef __KERNEL__
  
-diff -puN include/asm-x86/unistd_64.h~flag-parameters-eventfd include/asm-x86/unistd_64.h
---- a/include/asm-x86/unistd_64.h~flag-parameters-eventfd
+diff -puN include/asm-x86/unistd_64.h~flag-parameters-epoll_create include/asm-x86/unistd_64.h
+--- a/include/asm-x86/unistd_64.h~flag-parameters-epoll_create
 +++ a/include/asm-x86/unistd_64.h
-@@ -643,6 +643,8 @@ __SYSCALL(__NR_timerfd_gettime, sys_time
- __SYSCALL(__NR_paccept, sys_paccept)
- #define __NR_signalfd4				289
+@@ -645,6 +645,8 @@ __SYSCALL(__NR_paccept, sys_paccept)
  __SYSCALL(__NR_signalfd4, sys_signalfd4)
-+#define __NR_eventfd2				290
-+__SYSCALL(__NR_eventfd2, sys_eventfd2)
+ #define __NR_eventfd2				290
+ __SYSCALL(__NR_eventfd2, sys_eventfd2)
++#define __NR_epoll_create2			291
++__SYSCALL(__NR_epoll_create2, sys_epoll_create2)
  
  
  #ifndef __NO_STUBS
-diff -puN include/linux/eventfd.h~flag-parameters-eventfd include/linux/eventfd.h
---- a/include/linux/eventfd.h~flag-parameters-eventfd
-+++ a/include/linux/eventfd.h
-@@ -10,6 +10,12 @@
- 
- #ifdef CONFIG_EVENTFD
+diff -puN include/linux/eventpoll.h~flag-parameters-epoll_create include/linux/eventpoll.h
+--- a/include/linux/eventpoll.h~flag-parameters-epoll_create
++++ a/include/linux/eventpoll.h
+@@ -14,8 +14,12 @@
+ #ifndef _LINUX_EVENTPOLL_H
+ #define _LINUX_EVENTPOLL_H
  
 +/* For O_CLOEXEC */
 +#include <linux/fcntl.h>
-+
-+/* Flags for eventfd2.  */
-+#define EFD_CLOEXEC O_CLOEXEC
-+
- struct file *eventfd_fget(int fd);
- int eventfd_signal(struct file *file, int n);
+ #include <linux/types.h>
  
-diff -puN include/linux/syscalls.h~flag-parameters-eventfd include/linux/syscalls.h
---- a/include/linux/syscalls.h~flag-parameters-eventfd
++/* Flags for epoll_create2.  */
++#define EPOLL_CLOEXEC O_CLOEXEC
+ 
+ /* Valid opcodes to issue to sys_epoll_ctl() */
+ #define EPOLL_CTL_ADD 1
+diff -puN include/linux/syscalls.h~flag-parameters-epoll_create include/linux/syscalls.h
+--- a/include/linux/syscalls.h~flag-parameters-epoll_create
 +++ a/include/linux/syscalls.h
-@@ -617,6 +617,7 @@ asmlinkage long sys_timerfd_settime(int 
- 				    struct itimerspec __user *otmr);
- asmlinkage long sys_timerfd_gettime(int ufd, struct itimerspec __user *otmr);
- asmlinkage long sys_eventfd(unsigned int count);
-+asmlinkage long sys_eventfd2(unsigned int count, int flags);
- asmlinkage long sys_fallocate(int fd, int mode, loff_t offset, loff_t len);
- 
- int kernel_execve(const char *filename, char *const argv[], char *const envp[]);
-diff -puN kernel/sys_ni.c~flag-parameters-eventfd kernel/sys_ni.c
---- a/kernel/sys_ni.c~flag-parameters-eventfd
-+++ a/kernel/sys_ni.c
-@@ -164,3 +164,4 @@ cond_syscall(sys_timerfd_gettime);
- cond_syscall(compat_sys_timerfd_settime);
- cond_syscall(compat_sys_timerfd_gettime);
- cond_syscall(sys_eventfd);
-+cond_syscall(sys_eventfd2);
+@@ -430,6 +430,7 @@ asmlinkage long sys_poll(struct pollfd _
+ asmlinkage long sys_select(int n, fd_set __user *inp, fd_set __user *outp,
+ 			fd_set __user *exp, struct timeval __user *tvp);
+ asmlinkage long sys_epoll_create(int size);
++asmlinkage long sys_epoll_create2(int size, int flags);
+ asmlinkage long sys_epoll_ctl(int epfd, int op, int fd,
+ 				struct epoll_event __user *event);
+ asmlinkage long sys_epoll_wait(int epfd, struct epoll_event __user *events,
 _
