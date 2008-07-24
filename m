@@ -1,110 +1,93 @@
 From: akpm@linux-foundation.org
-Subject: - flag-parameters-pipe.patch removed from -mm tree
-Date: Thu, 24 Jul 2008 16:27:32 -0700
-Message-ID: <200807242327.m6ONRW6H011169@imap1.linux-foundation.org>
+Subject: - flag-parameters-add-on-remove-epoll_create-size-param.patch removed from -mm tree
+Date: Thu, 24 Jul 2008 16:28:02 -0700
+Message-ID: <200807242328.m6ONS2u7011221@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:47283 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:55198 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756765AbYGXX3k (ORCPT
+	by vger.kernel.org with ESMTP id S1756213AbYGXX3Y (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 Jul 2008 19:29:40 -0400
+	Thu, 24 Jul 2008 19:29:24 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: drepper@redhat.com, davidel@xmailserver.org, linux-arch@vger.kernel.org, mtk.manpages@googlemail.com, mm-commits@vger.kernel.org
 
 
 The patch titled
-     flag parameters: pipe
+     flag parameters add-on: remove epoll_create size param
 has been removed from the -mm tree.  Its filename was
-     flag-parameters-pipe.patch
+     flag-parameters-add-on-remove-epoll_create-size-param.patch
 
 This patch was dropped because it was merged into mainline or a subsystem tree
 
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: flag parameters: pipe
+Subject: flag parameters add-on: remove epoll_create size param
 From: Ulrich Drepper <drepper@redhat.com>
 
-This patch introduces the new syscall pipe2 which is like pipe but it also
-takes an additional parameter which takes a flag value.  This patch implements
-the handling of O_CLOEXEC for the flag.  I did not add support for the new
-syscall for the architectures which have a special sys_pipe implementation.  I
-think the maintainers of those archs have the chance to go with the unified
-implementation but that's up to them.
-
-The implementation introduces do_pipe_flags.  I did that instead of changing
-all callers of do_pipe because some of the callers are written in assembler. 
-I would probably screw up changing the assembly code.  To avoid breaking code
-do_pipe is now a small wrapper around do_pipe_flags.  Once all callers are
-changed over to do_pipe_flags the old do_pipe function can be removed.
-
-The following test must be adjusted for architectures other than x86 and
-x86-64 and in case the syscall numbers changed.
+Remove the size parameter from the new epoll_create syscall and renames the
+syscall itself.  The updated test program follows.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #include <fcntl.h>
 #include <stdio.h>
+#include <time.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 
-#ifndef __NR_pipe2
+#ifndef __NR_epoll_create2
 # ifdef __x86_64__
-#  define __NR_pipe2 293
+#  define __NR_epoll_create2 291
 # elif defined __i386__
-#  define __NR_pipe2 331
+#  define __NR_epoll_create2 329
 # else
-#  error "need __NR_pipe2"
+#  error "need __NR_epoll_create2"
 # endif
 #endif
+
+#define EPOLL_CLOEXEC O_CLOEXEC
 
 int
 main (void)
 {
-  int fd[2];
-  if (syscall (__NR_pipe2, fd, 0) != 0)
+  int fd = syscall (__NR_epoll_create2, 0);
+  if (fd == -1)
     {
-      puts ("pipe2(0) failed");
+      puts ("epoll_create2(0) failed");
       return 1;
     }
-  for (int i = 0; i < 2; ++i)
+  int coe = fcntl (fd, F_GETFD);
+  if (coe == -1)
     {
-      int coe = fcntl (fd[i], F_GETFD);
-      if (coe == -1)
-        {
-          puts ("fcntl failed");
-          return 1;
-        }
-      if (coe & FD_CLOEXEC)
-        {
-          printf ("pipe2(0) set close-on-exit for fd[%d]\n", i);
-          return 1;
-        }
+      puts ("fcntl failed");
+      return 1;
     }
-  close (fd[0]);
-  close (fd[1]);
+  if (coe & FD_CLOEXEC)
+    {
+      puts ("epoll_create2(0) set close-on-exec flag");
+      return 1;
+    }
+  close (fd);
 
-  if (syscall (__NR_pipe2, fd, O_CLOEXEC) != 0)
+  fd = syscall (__NR_epoll_create2, EPOLL_CLOEXEC);
+  if (fd == -1)
     {
-      puts ("pipe2(O_CLOEXEC) failed");
+      puts ("epoll_create2(EPOLL_CLOEXEC) failed");
       return 1;
     }
-  for (int i = 0; i < 2; ++i)
+  coe = fcntl (fd, F_GETFD);
+  if (coe == -1)
     {
-      int coe = fcntl (fd[i], F_GETFD);
-      if (coe == -1)
-        {
-          puts ("fcntl failed");
-          return 1;
-        }
-      if ((coe & FD_CLOEXEC) == 0)
-        {
-          printf ("pipe2(O_CLOEXEC) does not set close-on-exit for fd[%d]\n", i);
-          return 1;
-        }
+      puts ("fcntl failed");
+      return 1;
     }
-  close (fd[0]);
-  close (fd[1]);
+  if ((coe & FD_CLOEXEC) == 0)
+    {
+      puts ("epoll_create2(EPOLL_CLOEXEC) set close-on-exec flag");
+      return 1;
+    }
+  close (fd);
 
   puts ("OK");
 
@@ -119,253 +102,140 @@ Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/ia64/ia32/sys_ia32.c          |    2 +-
- arch/ia64/kernel/sys_ia64.c        |    2 +-
- arch/mips/kernel/syscall.c         |    2 +-
- arch/parisc/hpux/sys_hpux.c        |    2 +-
- arch/sh/kernel/sys_sh32.c          |    2 +-
- arch/sparc/kernel/sys_sparc.c      |    2 +-
- arch/sparc64/kernel/sys_sparc.c    |    2 +-
- arch/x86/ia32/ia32entry.S          |    1 +
- arch/x86/ia32/sys_ia32.c           |    2 +-
- arch/x86/kernel/syscall_table_32.S |    1 +
- arch/xtensa/kernel/syscall.c       |    2 +-
- fs/pipe.c                          |   23 ++++++++++++++++++-----
- include/asm-x86/unistd_32.h        |    1 +
- include/asm-x86/unistd_64.h        |    2 ++
- include/linux/fs.h                 |    1 +
- 15 files changed, 33 insertions(+), 14 deletions(-)
+ arch/x86/ia32/ia32entry.S          |    2 +-
+ arch/x86/kernel/syscall_table_32.S |    2 +-
+ fs/eventpoll.c                     |   18 ++++++++++--------
+ include/asm-x86/unistd_32.h        |    2 +-
+ include/asm-x86/unistd_64.h        |    4 ++--
+ include/linux/eventpoll.h          |    2 +-
+ include/linux/syscalls.h           |    2 +-
+ 7 files changed, 17 insertions(+), 15 deletions(-)
 
-diff -puN arch/ia64/ia32/sys_ia32.c~flag-parameters-pipe arch/ia64/ia32/sys_ia32.c
---- a/arch/ia64/ia32/sys_ia32.c~flag-parameters-pipe
-+++ a/arch/ia64/ia32/sys_ia32.c
-@@ -1139,7 +1139,7 @@ sys32_pipe (int __user *fd)
- 	int retval;
- 	int fds[2];
- 
--	retval = do_pipe(fds);
-+	retval = do_pipe_flags(fds, 0);
- 	if (retval)
- 		goto out;
- 	if (copy_to_user(fd, fds, sizeof(fds)))
-diff -puN arch/ia64/kernel/sys_ia64.c~flag-parameters-pipe arch/ia64/kernel/sys_ia64.c
---- a/arch/ia64/kernel/sys_ia64.c~flag-parameters-pipe
-+++ a/arch/ia64/kernel/sys_ia64.c
-@@ -160,7 +160,7 @@ sys_pipe (void)
- 	int fd[2];
- 	int retval;
- 
--	retval = do_pipe(fd);
-+	retval = do_pipe_flags(fd, 0);
- 	if (retval)
- 		goto out;
- 	retval = fd[0];
-diff -puN arch/mips/kernel/syscall.c~flag-parameters-pipe arch/mips/kernel/syscall.c
---- a/arch/mips/kernel/syscall.c~flag-parameters-pipe
-+++ a/arch/mips/kernel/syscall.c
-@@ -52,7 +52,7 @@ asmlinkage int sysm_pipe(nabi_no_regargs
- 	int fd[2];
- 	int error, res;
- 
--	error = do_pipe(fd);
-+	error = do_pipe_flags(fd, 0);
- 	if (error) {
- 		res = error;
- 		goto out;
-diff -puN arch/parisc/hpux/sys_hpux.c~flag-parameters-pipe arch/parisc/hpux/sys_hpux.c
---- a/arch/parisc/hpux/sys_hpux.c~flag-parameters-pipe
-+++ a/arch/parisc/hpux/sys_hpux.c
-@@ -448,7 +448,7 @@ int hpux_pipe(int *kstack_fildes)
- 	int error;
- 
- 	lock_kernel();
--	error = do_pipe(kstack_fildes);
-+	error = do_pipe_flags(kstack_fildes, 0);
- 	unlock_kernel();
- 	return error;
- }
-diff -puN arch/sh/kernel/sys_sh32.c~flag-parameters-pipe arch/sh/kernel/sys_sh32.c
---- a/arch/sh/kernel/sys_sh32.c~flag-parameters-pipe
-+++ a/arch/sh/kernel/sys_sh32.c
-@@ -29,7 +29,7 @@ asmlinkage int sys_pipe(unsigned long r4
- 	int fd[2];
- 	int error;
- 
--	error = do_pipe(fd);
-+	error = do_pipe_flags(fd, 0);
- 	if (!error) {
- 		regs->regs[1] = fd[1];
- 		return fd[0];
-diff -puN arch/sparc/kernel/sys_sparc.c~flag-parameters-pipe arch/sparc/kernel/sys_sparc.c
---- a/arch/sparc/kernel/sys_sparc.c~flag-parameters-pipe
-+++ a/arch/sparc/kernel/sys_sparc.c
-@@ -97,7 +97,7 @@ asmlinkage int sparc_pipe(struct pt_regs
- 	int fd[2];
- 	int error;
- 
--	error = do_pipe(fd);
-+	error = do_pipe_flags(fd, 0);
- 	if (error)
- 		goto out;
- 	regs->u_regs[UREG_I1] = fd[1];
-diff -puN arch/sparc64/kernel/sys_sparc.c~flag-parameters-pipe arch/sparc64/kernel/sys_sparc.c
---- a/arch/sparc64/kernel/sys_sparc.c~flag-parameters-pipe
-+++ a/arch/sparc64/kernel/sys_sparc.c
-@@ -418,7 +418,7 @@ asmlinkage long sparc_pipe(struct pt_reg
- 	int fd[2];
- 	int error;
- 
--	error = do_pipe(fd);
-+	error = do_pipe_flags(fd, 0);
- 	if (error)
- 		goto out;
- 	regs->u_regs[UREG_I1] = fd[1];
-diff -puN arch/x86/ia32/ia32entry.S~flag-parameters-pipe arch/x86/ia32/ia32entry.S
---- a/arch/x86/ia32/ia32entry.S~flag-parameters-pipe
+diff -puN arch/x86/ia32/ia32entry.S~flag-parameters-add-on-remove-epoll_create-size-param arch/x86/ia32/ia32entry.S
+--- a/arch/x86/ia32/ia32entry.S~flag-parameters-add-on-remove-epoll_create-size-param
 +++ a/arch/x86/ia32/ia32entry.S
-@@ -747,4 +747,5 @@ ia32_sys_call_table:
+@@ -745,7 +745,7 @@ ia32_sys_call_table:
+ 	.quad compat_sys_timerfd_gettime
+ 	.quad compat_sys_signalfd4
  	.quad sys_eventfd2
- 	.quad sys_epoll_create2
+-	.quad sys_epoll_create2
++	.quad sys_epoll_create1
  	.quad sys_dup3			/* 330 */
-+	.quad sys_pipe2
- ia32_syscall_end:
-diff -puN arch/x86/ia32/sys_ia32.c~flag-parameters-pipe arch/x86/ia32/sys_ia32.c
---- a/arch/x86/ia32/sys_ia32.c~flag-parameters-pipe
-+++ a/arch/x86/ia32/sys_ia32.c
-@@ -238,7 +238,7 @@ asmlinkage long sys32_pipe(int __user *f
- 	int retval;
- 	int fds[2];
- 
--	retval = do_pipe(fds);
-+	retval = do_pipe_flags(fds, 0);
- 	if (retval)
- 		goto out;
- 	if (copy_to_user(fd, fds, sizeof(fds)))
-diff -puN arch/x86/kernel/syscall_table_32.S~flag-parameters-pipe arch/x86/kernel/syscall_table_32.S
---- a/arch/x86/kernel/syscall_table_32.S~flag-parameters-pipe
+ 	.quad sys_pipe2
+ 	.quad sys_inotify_init1
+diff -puN arch/x86/kernel/syscall_table_32.S~flag-parameters-add-on-remove-epoll_create-size-param arch/x86/kernel/syscall_table_32.S
+--- a/arch/x86/kernel/syscall_table_32.S~flag-parameters-add-on-remove-epoll_create-size-param
 +++ a/arch/x86/kernel/syscall_table_32.S
-@@ -330,3 +330,4 @@ ENTRY(sys_call_table)
+@@ -328,7 +328,7 @@ ENTRY(sys_call_table)
+ 	.long sys_timerfd_gettime
+ 	.long sys_signalfd4
  	.long sys_eventfd2
- 	.long sys_epoll_create2
+-	.long sys_epoll_create2
++	.long sys_epoll_create1
  	.long sys_dup3			/* 330 */
-+	.long sys_pipe2
-diff -puN arch/xtensa/kernel/syscall.c~flag-parameters-pipe arch/xtensa/kernel/syscall.c
---- a/arch/xtensa/kernel/syscall.c~flag-parameters-pipe
-+++ a/arch/xtensa/kernel/syscall.c
-@@ -49,7 +49,7 @@ asmlinkage long xtensa_pipe(int __user *
- 	int fd[2];
- 	int error;
+ 	.long sys_pipe2
+ 	.long sys_inotify_init1
+diff -puN fs/eventpoll.c~flag-parameters-add-on-remove-epoll_create-size-param fs/eventpoll.c
+--- a/fs/eventpoll.c~flag-parameters-add-on-remove-epoll_create-size-param
++++ a/fs/eventpoll.c
+@@ -1046,7 +1046,7 @@ retry:
+  * RB tree. With the current implementation, the "size" parameter is ignored
+  * (besides sanity checks).
+  */
+-asmlinkage long sys_epoll_create2(int size, int flags)
++asmlinkage long sys_epoll_create1(int flags)
+ {
+ 	int error, fd = -1;
+ 	struct eventpoll *ep;
+@@ -1058,14 +1058,13 @@ asmlinkage long sys_epoll_create2(int si
+ 		return -EINVAL;
  
--	error = do_pipe(fd);
-+	error = do_pipe_flags(fd, 0);
- 	if (!error) {
- 		if (copy_to_user(userfds, fd, 2 * sizeof(int)))
- 			error = -EFAULT;
-diff -puN fs/pipe.c~flag-parameters-pipe fs/pipe.c
---- a/fs/pipe.c~flag-parameters-pipe
-+++ a/fs/pipe.c
-@@ -1027,12 +1027,15 @@ struct file *create_read_pipe(struct fil
- 	return f;
+ 	DNPRINTK(3, (KERN_INFO "[%p] eventpoll: sys_epoll_create(%d)\n",
+-		     current, size));
++		     current, flags));
+ 
+ 	/*
+-	 * Sanity check on the size parameter, and create the internal data
+-	 * structure ( "struct eventpoll" ).
++	 * Create the internal data structure ( "struct eventpoll" ).
+ 	 */
+-	error = -EINVAL;
+-	if (size <= 0 || (error = ep_alloc(&ep)) < 0) {
++	error = ep_alloc(&ep);
++	if (error < 0) {
+ 		fd = error;
+ 		goto error_return;
+ 	}
+@@ -1081,14 +1080,17 @@ asmlinkage long sys_epoll_create2(int si
+ 
+ error_return:
+ 	DNPRINTK(3, (KERN_INFO "[%p] eventpoll: sys_epoll_create(%d) = %d\n",
+-		     current, size, fd));
++		     current, flags, fd));
+ 
+ 	return fd;
  }
  
--int do_pipe(int *fd)
-+int do_pipe_flags(int *fd, int flags)
+ asmlinkage long sys_epoll_create(int size)
  {
- 	struct file *fw, *fr;
- 	int error;
- 	int fdw, fdr;
- 
-+	if (flags & ~O_CLOEXEC)
+-	return sys_epoll_create2(size, 0);
++	if (size < 0)
 +		return -EINVAL;
 +
- 	fw = create_write_pipe();
- 	if (IS_ERR(fw))
- 		return PTR_ERR(fw);
-@@ -1041,12 +1044,12 @@ int do_pipe(int *fd)
- 	if (IS_ERR(fr))
- 		goto err_write_pipe;
- 
--	error = get_unused_fd();
-+	error = get_unused_fd_flags(flags);
- 	if (error < 0)
- 		goto err_read_pipe;
- 	fdr = error;
- 
--	error = get_unused_fd();
-+	error = get_unused_fd_flags(flags);
- 	if (error < 0)
- 		goto err_fdr;
- 	fdw = error;
-@@ -1074,16 +1077,21 @@ int do_pipe(int *fd)
- 	return error;
++	return sys_epoll_create1(0);
  }
  
-+int do_pipe(int *fd)
-+{
-+	return do_pipe_flags(fd, 0);
-+}
-+
  /*
-  * sys_pipe() is the normal C calling standard for creating
-  * a pipe. It's not the way Unix traditionally does this, though.
-  */
--asmlinkage long __weak sys_pipe(int __user *fildes)
-+asmlinkage long __weak sys_pipe2(int __user *fildes, int flags)
- {
- 	int fd[2];
- 	int error;
- 
--	error = do_pipe(fd);
-+	error = do_pipe_flags(fd, flags);
- 	if (!error) {
- 		if (copy_to_user(fildes, fd, sizeof(fd))) {
- 			sys_close(fd[0]);
-@@ -1094,6 +1102,11 @@ asmlinkage long __weak sys_pipe(int __us
- 	return error;
- }
- 
-+asmlinkage long __weak sys_pipe(int __user *fildes)
-+{
-+	return sys_pipe2(fildes, 0);
-+}
-+
- /*
-  * pipefs should _never_ be mounted by userland - too much of security hassle,
-  * no real gain from having the whole whorehouse mounted. So we don't need
-diff -puN include/asm-x86/unistd_32.h~flag-parameters-pipe include/asm-x86/unistd_32.h
---- a/include/asm-x86/unistd_32.h~flag-parameters-pipe
+diff -puN include/asm-x86/unistd_32.h~flag-parameters-add-on-remove-epoll_create-size-param include/asm-x86/unistd_32.h
+--- a/include/asm-x86/unistd_32.h~flag-parameters-add-on-remove-epoll_create-size-param
 +++ a/include/asm-x86/unistd_32.h
-@@ -336,6 +336,7 @@
+@@ -334,7 +334,7 @@
+ #define __NR_timerfd_gettime	326
+ #define __NR_signalfd4		327
  #define __NR_eventfd2		328
- #define __NR_epoll_create2	329
+-#define __NR_epoll_create2	329
++#define __NR_epoll_create1	329
  #define __NR_dup3		330
-+#define __NR_pipe2		331
- 
- #ifdef __KERNEL__
- 
-diff -puN include/asm-x86/unistd_64.h~flag-parameters-pipe include/asm-x86/unistd_64.h
---- a/include/asm-x86/unistd_64.h~flag-parameters-pipe
+ #define __NR_pipe2		331
+ #define __NR_inotify_init1	332
+diff -puN include/asm-x86/unistd_64.h~flag-parameters-add-on-remove-epoll_create-size-param include/asm-x86/unistd_64.h
+--- a/include/asm-x86/unistd_64.h~flag-parameters-add-on-remove-epoll_create-size-param
 +++ a/include/asm-x86/unistd_64.h
-@@ -649,6 +649,8 @@ __SYSCALL(__NR_eventfd2, sys_eventfd2)
- __SYSCALL(__NR_epoll_create2, sys_epoll_create2)
+@@ -645,8 +645,8 @@ __SYSCALL(__NR_paccept, sys_paccept)
+ __SYSCALL(__NR_signalfd4, sys_signalfd4)
+ #define __NR_eventfd2				290
+ __SYSCALL(__NR_eventfd2, sys_eventfd2)
+-#define __NR_epoll_create2			291
+-__SYSCALL(__NR_epoll_create2, sys_epoll_create2)
++#define __NR_epoll_create1			291
++__SYSCALL(__NR_epoll_create1, sys_epoll_create1)
  #define __NR_dup3				292
  __SYSCALL(__NR_dup3, sys_dup3)
-+#define __NR_pipe2				293
-+__SYSCALL(__NR_pipe2, sys_pipe2)
+ #define __NR_pipe2				293
+diff -puN include/linux/eventpoll.h~flag-parameters-add-on-remove-epoll_create-size-param include/linux/eventpoll.h
+--- a/include/linux/eventpoll.h~flag-parameters-add-on-remove-epoll_create-size-param
++++ a/include/linux/eventpoll.h
+@@ -18,7 +18,7 @@
+ #include <linux/fcntl.h>
+ #include <linux/types.h>
  
+-/* Flags for epoll_create2.  */
++/* Flags for epoll_create1.  */
+ #define EPOLL_CLOEXEC O_CLOEXEC
  
- #ifndef __NO_STUBS
-diff -puN include/linux/fs.h~flag-parameters-pipe include/linux/fs.h
---- a/include/linux/fs.h~flag-parameters-pipe
-+++ a/include/linux/fs.h
-@@ -1777,6 +1777,7 @@ static inline void allow_write_access(st
- 		atomic_inc(&file->f_path.dentry->d_inode->i_writecount);
- }
- extern int do_pipe(int *);
-+extern int do_pipe_flags(int *, int);
- extern struct file *create_read_pipe(struct file *f);
- extern struct file *create_write_pipe(void);
- extern void free_write_pipe(struct file *);
+ /* Valid opcodes to issue to sys_epoll_ctl() */
+diff -puN include/linux/syscalls.h~flag-parameters-add-on-remove-epoll_create-size-param include/linux/syscalls.h
+--- a/include/linux/syscalls.h~flag-parameters-add-on-remove-epoll_create-size-param
++++ a/include/linux/syscalls.h
+@@ -431,7 +431,7 @@ asmlinkage long sys_poll(struct pollfd _
+ asmlinkage long sys_select(int n, fd_set __user *inp, fd_set __user *outp,
+ 			fd_set __user *exp, struct timeval __user *tvp);
+ asmlinkage long sys_epoll_create(int size);
+-asmlinkage long sys_epoll_create2(int size, int flags);
++asmlinkage long sys_epoll_create1(int flags);
+ asmlinkage long sys_epoll_ctl(int epfd, int op, int fd,
+ 				struct epoll_event __user *event);
+ asmlinkage long sys_epoll_wait(int epfd, struct epoll_event __user *events,
 _
 
 Patches currently in -mm which might be from drepper@redhat.com are
