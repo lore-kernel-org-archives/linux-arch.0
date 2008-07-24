@@ -1,13 +1,13 @@
 From: akpm@linux-foundation.org
-Subject: [patch 169/322] flag parameters: pipe
-Date: Wed, 23 Jul 2008 21:29:30 -0700
-Message-ID: <200807240429.m6O4TU3d029344@imap1.linux-foundation.org>
+Subject: [patch 170/322] flag parameters: inotify_init
+Date: Wed, 23 Jul 2008 21:29:32 -0700
+Message-ID: <200807240429.m6O4TWrR029348@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:48326 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:48010 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752490AbYGXE3u (ORCPT
+	by vger.kernel.org with ESMTP id S1752505AbYGXE3v (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 Jul 2008 00:29:50 -0400
+	Thu, 24 Jul 2008 00:29:51 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org
@@ -15,18 +15,11 @@ Cc: akpm@linux-foundation.org, drepper@redhat.com, davidel@xmailserver.org, linu
 
 From: Ulrich Drepper <drepper@redhat.com>
 
-This patch introduces the new syscall pipe2 which is like pipe but it also
-takes an additional parameter which takes a flag value.  This patch implements
-the handling of O_CLOEXEC for the flag.  I did not add support for the new
-syscall for the architectures which have a special sys_pipe implementation.  I
-think the maintainers of those archs have the chance to go with the unified
-implementation but that's up to them.
-
-The implementation introduces do_pipe_flags.  I did that instead of changing
-all callers of do_pipe because some of the callers are written in assembler. 
-I would probably screw up changing the assembly code.  To avoid breaking code
-do_pipe is now a small wrapper around do_pipe_flags.  Once all callers are
-changed over to do_pipe_flags the old do_pipe function can be removed.
+This patch introduces the new syscall inotify_init1 (note: the 1 stands for
+the one parameter the syscall takes, as opposed to no parameter before).  The
+values accepted for this parameter are function-specific and defined in the
+inotify.h header.  Here the values must match the O_* flags, though.  In this
+patch CLOEXEC support is introduced.
 
 The following test must be adjusted for architectures other than x86 and
 x86-64 and in case the syscall numbers changed.
@@ -37,63 +30,59 @@ x86-64 and in case the syscall numbers changed.
 #include <unistd.h>
 #include <sys/syscall.h>
 
-#ifndef __NR_pipe2
+#ifndef __NR_inotify_init1
 # ifdef __x86_64__
-#  define __NR_pipe2 293
+#  define __NR_inotify_init1 294
 # elif defined __i386__
-#  define __NR_pipe2 331
+#  define __NR_inotify_init1 332
 # else
-#  error "need __NR_pipe2"
+#  error "need __NR_inotify_init1"
 # endif
 #endif
+
+#define IN_CLOEXEC O_CLOEXEC
 
 int
 main (void)
 {
-  int fd[2];
-  if (syscall (__NR_pipe2, fd, 0) != 0)
+  int fd;
+  fd = syscall (__NR_inotify_init1, 0);
+  if (fd == -1)
     {
-      puts ("pipe2(0) failed");
+      puts ("inotify_init1(0) failed");
       return 1;
     }
-  for (int i = 0; i < 2; ++i)
+  int coe = fcntl (fd, F_GETFD);
+  if (coe == -1)
     {
-      int coe = fcntl (fd[i], F_GETFD);
-      if (coe == -1)
-        {
-          puts ("fcntl failed");
-          return 1;
-        }
-      if (coe & FD_CLOEXEC)
-        {
-          printf ("pipe2(0) set close-on-exit for fd[%d]\n", i);
-          return 1;
-        }
+      puts ("fcntl failed");
+      return 1;
     }
-  close (fd[0]);
-  close (fd[1]);
+  if (coe & FD_CLOEXEC)
+    {
+      puts ("inotify_init1(0) set close-on-exit");
+      return 1;
+    }
+  close (fd);
 
-  if (syscall (__NR_pipe2, fd, O_CLOEXEC) != 0)
+  fd = syscall (__NR_inotify_init1, IN_CLOEXEC);
+  if (fd == -1)
     {
-      puts ("pipe2(O_CLOEXEC) failed");
+      puts ("inotify_init1(IN_CLOEXEC) failed");
       return 1;
     }
-  for (int i = 0; i < 2; ++i)
+  coe = fcntl (fd, F_GETFD);
+  if (coe == -1)
     {
-      int coe = fcntl (fd[i], F_GETFD);
-      if (coe == -1)
-        {
-          puts ("fcntl failed");
-          return 1;
-        }
-      if ((coe & FD_CLOEXEC) == 0)
-        {
-          printf ("pipe2(O_CLOEXEC) does not set close-on-exit for fd[%d]\n", i);
-          return 1;
-        }
+      puts ("fcntl failed");
+      return 1;
     }
-  close (fd[0]);
-  close (fd[1]);
+  if ((coe & FD_CLOEXEC) == 0)
+    {
+      puts ("inotify_init1(O_CLOEXEC) does not set close-on-exit");
+      return 1;
+    }
+  close (fd);
 
   puts ("OK");
 
@@ -101,6 +90,7 @@ main (void)
 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+[akpm@linux-foundation.org: add sys_ni stub]
 Signed-off-by: Ulrich Drepper <drepper@redhat.com>
 Acked-by: Davide Libenzi <davidel@xmailserver.org>
 Cc: Michael Kerrisk <mtk.manpages@googlemail.com>
@@ -108,251 +98,134 @@ Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/ia64/ia32/sys_ia32.c          |    2 +-
- arch/ia64/kernel/sys_ia64.c        |    2 +-
- arch/mips/kernel/syscall.c         |    2 +-
- arch/parisc/hpux/sys_hpux.c        |    2 +-
- arch/sh/kernel/sys_sh32.c          |    2 +-
- arch/sparc/kernel/sys_sparc.c      |    2 +-
- arch/sparc64/kernel/sys_sparc.c    |    2 +-
  arch/x86/ia32/ia32entry.S          |    1 +
- arch/x86/ia32/sys_ia32.c           |    2 +-
  arch/x86/kernel/syscall_table_32.S |    1 +
- arch/xtensa/kernel/syscall.c       |    2 +-
- fs/pipe.c                          |   23 ++++++++++++++++++-----
+ fs/inotify_user.c                  |   12 ++++++++++--
  include/asm-x86/unistd_32.h        |    1 +
  include/asm-x86/unistd_64.h        |    2 ++
- include/linux/fs.h                 |    1 +
- 15 files changed, 33 insertions(+), 14 deletions(-)
+ include/linux/inotify.h            |    5 +++++
+ include/linux/syscalls.h           |    1 +
+ kernel/sys_ni.c                    |    1 +
+ 8 files changed, 22 insertions(+), 2 deletions(-)
 
-diff -puN arch/ia64/ia32/sys_ia32.c~flag-parameters-pipe arch/ia64/ia32/sys_ia32.c
---- a/arch/ia64/ia32/sys_ia32.c~flag-parameters-pipe
-+++ a/arch/ia64/ia32/sys_ia32.c
-@@ -1139,7 +1139,7 @@ sys32_pipe (int __user *fd)
- 	int retval;
- 	int fds[2];
- 
--	retval = do_pipe(fds);
-+	retval = do_pipe_flags(fds, 0);
- 	if (retval)
- 		goto out;
- 	if (copy_to_user(fd, fds, sizeof(fds)))
-diff -puN arch/ia64/kernel/sys_ia64.c~flag-parameters-pipe arch/ia64/kernel/sys_ia64.c
---- a/arch/ia64/kernel/sys_ia64.c~flag-parameters-pipe
-+++ a/arch/ia64/kernel/sys_ia64.c
-@@ -160,7 +160,7 @@ sys_pipe (void)
- 	int fd[2];
- 	int retval;
- 
--	retval = do_pipe(fd);
-+	retval = do_pipe_flags(fd, 0);
- 	if (retval)
- 		goto out;
- 	retval = fd[0];
-diff -puN arch/mips/kernel/syscall.c~flag-parameters-pipe arch/mips/kernel/syscall.c
---- a/arch/mips/kernel/syscall.c~flag-parameters-pipe
-+++ a/arch/mips/kernel/syscall.c
-@@ -52,7 +52,7 @@ asmlinkage int sysm_pipe(nabi_no_regargs
- 	int fd[2];
- 	int error, res;
- 
--	error = do_pipe(fd);
-+	error = do_pipe_flags(fd, 0);
- 	if (error) {
- 		res = error;
- 		goto out;
-diff -puN arch/parisc/hpux/sys_hpux.c~flag-parameters-pipe arch/parisc/hpux/sys_hpux.c
---- a/arch/parisc/hpux/sys_hpux.c~flag-parameters-pipe
-+++ a/arch/parisc/hpux/sys_hpux.c
-@@ -448,7 +448,7 @@ int hpux_pipe(int *kstack_fildes)
- 	int error;
- 
- 	lock_kernel();
--	error = do_pipe(kstack_fildes);
-+	error = do_pipe_flags(kstack_fildes, 0);
- 	unlock_kernel();
- 	return error;
- }
-diff -puN arch/sh/kernel/sys_sh32.c~flag-parameters-pipe arch/sh/kernel/sys_sh32.c
---- a/arch/sh/kernel/sys_sh32.c~flag-parameters-pipe
-+++ a/arch/sh/kernel/sys_sh32.c
-@@ -29,7 +29,7 @@ asmlinkage int sys_pipe(unsigned long r4
- 	int fd[2];
- 	int error;
- 
--	error = do_pipe(fd);
-+	error = do_pipe_flags(fd, 0);
- 	if (!error) {
- 		regs->regs[1] = fd[1];
- 		return fd[0];
-diff -puN arch/sparc/kernel/sys_sparc.c~flag-parameters-pipe arch/sparc/kernel/sys_sparc.c
---- a/arch/sparc/kernel/sys_sparc.c~flag-parameters-pipe
-+++ a/arch/sparc/kernel/sys_sparc.c
-@@ -97,7 +97,7 @@ asmlinkage int sparc_pipe(struct pt_regs
- 	int fd[2];
- 	int error;
- 
--	error = do_pipe(fd);
-+	error = do_pipe_flags(fd, 0);
- 	if (error)
- 		goto out;
- 	regs->u_regs[UREG_I1] = fd[1];
-diff -puN arch/sparc64/kernel/sys_sparc.c~flag-parameters-pipe arch/sparc64/kernel/sys_sparc.c
---- a/arch/sparc64/kernel/sys_sparc.c~flag-parameters-pipe
-+++ a/arch/sparc64/kernel/sys_sparc.c
-@@ -418,7 +418,7 @@ asmlinkage long sparc_pipe(struct pt_reg
- 	int fd[2];
- 	int error;
- 
--	error = do_pipe(fd);
-+	error = do_pipe_flags(fd, 0);
- 	if (error)
- 		goto out;
- 	regs->u_regs[UREG_I1] = fd[1];
-diff -puN arch/x86/ia32/ia32entry.S~flag-parameters-pipe arch/x86/ia32/ia32entry.S
---- a/arch/x86/ia32/ia32entry.S~flag-parameters-pipe
+diff -puN arch/x86/ia32/ia32entry.S~flag-parameters-inotify_init arch/x86/ia32/ia32entry.S
+--- a/arch/x86/ia32/ia32entry.S~flag-parameters-inotify_init
 +++ a/arch/x86/ia32/ia32entry.S
-@@ -747,4 +747,5 @@ ia32_sys_call_table:
- 	.quad sys_eventfd2
+@@ -748,4 +748,5 @@ ia32_sys_call_table:
  	.quad sys_epoll_create2
  	.quad sys_dup3			/* 330 */
-+	.quad sys_pipe2
+ 	.quad sys_pipe2
++	.quad sys_inotify_init1
  ia32_syscall_end:
-diff -puN arch/x86/ia32/sys_ia32.c~flag-parameters-pipe arch/x86/ia32/sys_ia32.c
---- a/arch/x86/ia32/sys_ia32.c~flag-parameters-pipe
-+++ a/arch/x86/ia32/sys_ia32.c
-@@ -238,7 +238,7 @@ asmlinkage long sys32_pipe(int __user *f
- 	int retval;
- 	int fds[2];
- 
--	retval = do_pipe(fds);
-+	retval = do_pipe_flags(fds, 0);
- 	if (retval)
- 		goto out;
- 	if (copy_to_user(fd, fds, sizeof(fds)))
-diff -puN arch/x86/kernel/syscall_table_32.S~flag-parameters-pipe arch/x86/kernel/syscall_table_32.S
---- a/arch/x86/kernel/syscall_table_32.S~flag-parameters-pipe
+diff -puN arch/x86/kernel/syscall_table_32.S~flag-parameters-inotify_init arch/x86/kernel/syscall_table_32.S
+--- a/arch/x86/kernel/syscall_table_32.S~flag-parameters-inotify_init
 +++ a/arch/x86/kernel/syscall_table_32.S
-@@ -330,3 +330,4 @@ ENTRY(sys_call_table)
- 	.long sys_eventfd2
+@@ -331,3 +331,4 @@ ENTRY(sys_call_table)
  	.long sys_epoll_create2
  	.long sys_dup3			/* 330 */
-+	.long sys_pipe2
-diff -puN arch/xtensa/kernel/syscall.c~flag-parameters-pipe arch/xtensa/kernel/syscall.c
---- a/arch/xtensa/kernel/syscall.c~flag-parameters-pipe
-+++ a/arch/xtensa/kernel/syscall.c
-@@ -49,7 +49,7 @@ asmlinkage long xtensa_pipe(int __user *
- 	int fd[2];
- 	int error;
+ 	.long sys_pipe2
++	.long sys_inotify_init1
+diff -puN fs/inotify_user.c~flag-parameters-inotify_init fs/inotify_user.c
+--- a/fs/inotify_user.c~flag-parameters-inotify_init
++++ a/fs/inotify_user.c
+@@ -566,7 +566,7 @@ static const struct inotify_operations i
+ 	.destroy_watch	= free_inotify_user_watch,
+ };
  
--	error = do_pipe(fd);
-+	error = do_pipe_flags(fd, 0);
- 	if (!error) {
- 		if (copy_to_user(userfds, fd, 2 * sizeof(int)))
- 			error = -EFAULT;
-diff -puN fs/pipe.c~flag-parameters-pipe fs/pipe.c
---- a/fs/pipe.c~flag-parameters-pipe
-+++ a/fs/pipe.c
-@@ -1027,12 +1027,15 @@ struct file *create_read_pipe(struct fil
- 	return f;
- }
- 
--int do_pipe(int *fd)
-+int do_pipe_flags(int *fd, int flags)
+-asmlinkage long sys_inotify_init(void)
++asmlinkage long sys_inotify_init1(int flags)
  {
- 	struct file *fw, *fr;
- 	int error;
- 	int fdw, fdr;
+ 	struct inotify_device *dev;
+ 	struct inotify_handle *ih;
+@@ -574,7 +574,10 @@ asmlinkage long sys_inotify_init(void)
+ 	struct file *filp;
+ 	int fd, ret;
  
-+	if (flags & ~O_CLOEXEC)
+-	fd = get_unused_fd();
++	if (flags & ~IN_CLOEXEC)
 +		return -EINVAL;
 +
- 	fw = create_write_pipe();
- 	if (IS_ERR(fw))
- 		return PTR_ERR(fw);
-@@ -1041,12 +1044,12 @@ int do_pipe(int *fd)
- 	if (IS_ERR(fr))
- 		goto err_write_pipe;
++	fd = get_unused_fd_flags(flags & O_CLOEXEC);
+ 	if (fd < 0)
+ 		return fd;
  
--	error = get_unused_fd();
-+	error = get_unused_fd_flags(flags);
- 	if (error < 0)
- 		goto err_read_pipe;
- 	fdr = error;
- 
--	error = get_unused_fd();
-+	error = get_unused_fd_flags(flags);
- 	if (error < 0)
- 		goto err_fdr;
- 	fdw = error;
-@@ -1074,16 +1077,21 @@ int do_pipe(int *fd)
- 	return error;
+@@ -638,6 +641,11 @@ out_put_fd:
+ 	return ret;
  }
  
-+int do_pipe(int *fd)
++asmlinkage long sys_inotify_init(void)
 +{
-+	return do_pipe_flags(fd, 0);
++	return sys_inotify_init1(0);
 +}
 +
- /*
-  * sys_pipe() is the normal C calling standard for creating
-  * a pipe. It's not the way Unix traditionally does this, though.
-  */
--asmlinkage long __weak sys_pipe(int __user *fildes)
-+asmlinkage long __weak sys_pipe2(int __user *fildes, int flags)
+ asmlinkage long sys_inotify_add_watch(int fd, const char __user *path, u32 mask)
  {
- 	int fd[2];
- 	int error;
- 
--	error = do_pipe(fd);
-+	error = do_pipe_flags(fd, flags);
- 	if (!error) {
- 		if (copy_to_user(fildes, fd, sizeof(fd))) {
- 			sys_close(fd[0]);
-@@ -1094,6 +1102,11 @@ asmlinkage long __weak sys_pipe(int __us
- 	return error;
- }
- 
-+asmlinkage long __weak sys_pipe(int __user *fildes)
-+{
-+	return sys_pipe2(fildes, 0);
-+}
-+
- /*
-  * pipefs should _never_ be mounted by userland - too much of security hassle,
-  * no real gain from having the whole whorehouse mounted. So we don't need
-diff -puN include/asm-x86/unistd_32.h~flag-parameters-pipe include/asm-x86/unistd_32.h
---- a/include/asm-x86/unistd_32.h~flag-parameters-pipe
+ 	struct inode *inode;
+diff -puN include/asm-x86/unistd_32.h~flag-parameters-inotify_init include/asm-x86/unistd_32.h
+--- a/include/asm-x86/unistd_32.h~flag-parameters-inotify_init
 +++ a/include/asm-x86/unistd_32.h
-@@ -336,6 +336,7 @@
- #define __NR_eventfd2		328
+@@ -337,6 +337,7 @@
  #define __NR_epoll_create2	329
  #define __NR_dup3		330
-+#define __NR_pipe2		331
+ #define __NR_pipe2		331
++#define __NR_inotify_init1	332
  
  #ifdef __KERNEL__
  
-diff -puN include/asm-x86/unistd_64.h~flag-parameters-pipe include/asm-x86/unistd_64.h
---- a/include/asm-x86/unistd_64.h~flag-parameters-pipe
+diff -puN include/asm-x86/unistd_64.h~flag-parameters-inotify_init include/asm-x86/unistd_64.h
+--- a/include/asm-x86/unistd_64.h~flag-parameters-inotify_init
 +++ a/include/asm-x86/unistd_64.h
-@@ -649,6 +649,8 @@ __SYSCALL(__NR_eventfd2, sys_eventfd2)
- __SYSCALL(__NR_epoll_create2, sys_epoll_create2)
- #define __NR_dup3				292
+@@ -651,6 +651,8 @@ __SYSCALL(__NR_epoll_create2, sys_epoll_
  __SYSCALL(__NR_dup3, sys_dup3)
-+#define __NR_pipe2				293
-+__SYSCALL(__NR_pipe2, sys_pipe2)
+ #define __NR_pipe2				293
+ __SYSCALL(__NR_pipe2, sys_pipe2)
++#define __NR_inotify_init1			294
++__SYSCALL(__NR_inotify_init1, sys_inotify_init1)
  
  
  #ifndef __NO_STUBS
-diff -puN include/linux/fs.h~flag-parameters-pipe include/linux/fs.h
---- a/include/linux/fs.h~flag-parameters-pipe
-+++ a/include/linux/fs.h
-@@ -1777,6 +1777,7 @@ static inline void allow_write_access(st
- 		atomic_inc(&file->f_path.dentry->d_inode->i_writecount);
- }
- extern int do_pipe(int *);
-+extern int do_pipe_flags(int *, int);
- extern struct file *create_read_pipe(struct file *f);
- extern struct file *create_write_pipe(void);
- extern void free_write_pipe(struct file *);
+diff -puN include/linux/inotify.h~flag-parameters-inotify_init include/linux/inotify.h
+--- a/include/linux/inotify.h~flag-parameters-inotify_init
++++ a/include/linux/inotify.h
+@@ -7,6 +7,8 @@
+ #ifndef _LINUX_INOTIFY_H
+ #define _LINUX_INOTIFY_H
+ 
++/* For O_CLOEXEC */
++#include <linux/fcntl.h>
+ #include <linux/types.h>
+ 
+ /*
+@@ -63,6 +65,9 @@ struct inotify_event {
+ 			 IN_MOVED_TO | IN_DELETE | IN_CREATE | IN_DELETE_SELF | \
+ 			 IN_MOVE_SELF)
+ 
++/* Flags for sys_inotify_init1.  */
++#define IN_CLOEXEC O_CLOEXEC
++
+ #ifdef __KERNEL__
+ 
+ #include <linux/dcache.h>
+diff -puN include/linux/syscalls.h~flag-parameters-inotify_init include/linux/syscalls.h
+--- a/include/linux/syscalls.h~flag-parameters-inotify_init
++++ a/include/linux/syscalls.h
+@@ -547,6 +547,7 @@ asmlinkage long sys_get_mempolicy(int __
+ 				unsigned long addr, unsigned long flags);
+ 
+ asmlinkage long sys_inotify_init(void);
++asmlinkage long sys_inotify_init1(int flags);
+ asmlinkage long sys_inotify_add_watch(int fd, const char __user *path,
+ 					u32 mask);
+ asmlinkage long sys_inotify_rm_watch(int fd, u32 wd);
+diff -puN kernel/sys_ni.c~flag-parameters-inotify_init kernel/sys_ni.c
+--- a/kernel/sys_ni.c~flag-parameters-inotify_init
++++ a/kernel/sys_ni.c
+@@ -96,6 +96,7 @@ cond_syscall(sys_keyctl);
+ cond_syscall(compat_sys_keyctl);
+ cond_syscall(compat_sys_socketcall);
+ cond_syscall(sys_inotify_init);
++cond_syscall(sys_inotify_init1);
+ cond_syscall(sys_inotify_add_watch);
+ cond_syscall(sys_inotify_rm_watch);
+ cond_syscall(sys_migrate_pages);
 _
