@@ -1,372 +1,808 @@
 From: akpm@linux-foundation.org
-Subject: [patch 085/322] bootmem: replace node_boot_start in struct bootmem_data
-Date: Wed, 23 Jul 2008 21:28:09 -0700
-Message-ID: <200807240428.m6O4S9fv028971@imap1.linux-foundation.org>
+Subject: [patch 089/322] PAGE_ALIGN(): correctly handle 64-bit values on 32-bit architectures
+Date: Wed, 23 Jul 2008 21:28:13 -0700
+Message-ID: <200807240428.m6O4SDW9028989@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:41559 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:55185 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752482AbYGXE2W (ORCPT
+	by vger.kernel.org with ESMTP id S1752477AbYGXE2T (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 Jul 2008 00:28:22 -0400
+	Thu, 24 Jul 2008 00:28:19 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, hannes@saeurebad.de, hannes@saeureba.de, lee.schermerhorn@hp.com, linux-arch@vger.kernel.org
+Cc: akpm@linux-foundation.org, righi.andrea@gmail.com, linux-arch@vger.kernel.org
 
-From: Johannes Weiner <hannes@saeurebad.de>
+From: Andrea Righi <righi.andrea@gmail.com>
 
-Almost all users of this field need a PFN instead of a physical address,
-so replace node_boot_start with node_min_pfn.
+On 32-bit architectures PAGE_ALIGN() truncates 64-bit values to the 32-bit
+boundary. For example:
 
-[Lee.Schermerhorn@hp.com: fix spurious BUG_ON() in mark_bootmem()]
-Signed-off-by: Johannes Weiner <hannes@saeureba.de>
+	u64 val = PAGE_ALIGN(size);
+
+always returns a value < 4GB even if size is greater than 4GB.
+
+The problem resides in PAGE_MASK definition (from include/asm-x86/page.h for
+example):
+
+#define PAGE_SHIFT      12
+#define PAGE_SIZE       (_AC(1,UL) << PAGE_SHIFT)
+#define PAGE_MASK       (~(PAGE_SIZE-1))
+...
+#define PAGE_ALIGN(addr)       (((addr)+PAGE_SIZE-1)&PAGE_MASK)
+
+The "~" is performed on a 32-bit value, so everything in "and" with
+PAGE_MASK greater than 4GB will be truncated to the 32-bit boundary. 
+Using the ALIGN() macro seems to be the right way, because it uses
+typeof(addr) for the mask.
+
+Also move the PAGE_ALIGN() definitions out of include/asm-*/page.h in
+include/linux/mm.h.
+
+See also lkml discussion: http://lkml.org/lkml/2008/6/11/237
+
+[akpm@linux-foundation.org: fix drivers/media/video/uvc/uvc_queue.c]
+[akpm@linux-foundation.org: fix v850]
+[akpm@linux-foundation.org: fix powerpc]
+[akpm@linux-foundation.org: fix arm]
+[akpm@linux-foundation.org: fix mips]
+[akpm@linux-foundation.org: fix drivers/media/video/pvrusb2/pvrusb2-dvb.c]
+[akpm@linux-foundation.org: fix drivers/mtd/maps/uclinux.c]
+[akpm@linux-foundation.org: fix powerpc]
+Signed-off-by: Andrea Righi <righi.andrea@gmail.com>
 Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Lee Schermerhorn <lee.schermerhorn@hp.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/alpha/mm/numa.c     |    2 -
- arch/arm/plat-omap/fb.c  |    4 ---
- arch/avr32/mm/init.c     |    3 --
- arch/ia64/mm/discontig.c |   19 +++++++++--------
- arch/m32r/mm/discontig.c |    3 --
- arch/m32r/mm/init.c      |    4 ---
- arch/mn10300/mm/init.c   |    6 ++---
- arch/sh/mm/init.c        |    2 -
- include/linux/bootmem.h  |    2 -
- mm/bootmem.c             |   40 +++++++++++++++++++------------------
- 10 files changed, 41 insertions(+), 44 deletions(-)
+ arch/arm/kernel/module.c                     |    1 +
+ arch/arm/plat-omap/fb.c                      |    1 +
+ arch/avr32/mm/ioremap.c                      |    1 +
+ arch/h8300/kernel/setup.c                    |    1 +
+ arch/m68k/amiga/chipram.c                    |    1 +
+ arch/m68knommu/kernel/setup.c                |    1 +
+ arch/mips/kernel/module.c                    |    1 +
+ arch/mips/sgi-ip27/ip27-klnuma.c             |    1 +
+ arch/powerpc/kernel/suspend.c                |    1 +
+ arch/powerpc/lib/code-patching.c             |    1 +
+ arch/sparc64/kernel/iommu_common.h           |    2 +-
+ arch/x86/kernel/module_64.c                  |    1 +
+ arch/xtensa/kernel/setup.c                   |    1 +
+ drivers/char/random.c                        |    1 +
+ drivers/ieee1394/iso.c                       |    1 +
+ drivers/media/video/pvrusb2/pvrusb2-dvb.c    |    1 +
+ drivers/media/video/pvrusb2/pvrusb2-ioread.c |    1 +
+ drivers/media/video/uvc/uvc_queue.c          |    1 +
+ drivers/media/video/videobuf-core.c          |    1 +
+ drivers/mtd/maps/uclinux.c                   |    1 +
+ drivers/net/mlx4/eq.c                        |    1 +
+ drivers/pcmcia/electra_cf.c                  |    1 +
+ drivers/scsi/sun_esp.c                       |    1 +
+ drivers/video/acornfb.c                      |    1 +
+ drivers/video/imxfb.c                        |    1 +
+ drivers/video/omap/dispc.c                   |    1 +
+ drivers/video/omap/omapfb_main.c             |    1 +
+ drivers/video/pxafb.c                        |    1 +
+ drivers/video/sa1100fb.c                     |    1 +
+ include/asm-alpha/page.h                     |    3 ---
+ include/asm-arm/page-nommu.h                 |    4 +---
+ include/asm-arm/page.h                       |    3 ---
+ include/asm-avr32/page.h                     |    3 ---
+ include/asm-blackfin/page.h                  |    3 ---
+ include/asm-cris/page.h                      |    3 ---
+ include/asm-frv/page.h                       |    3 ---
+ include/asm-h8300/page.h                     |    3 ---
+ include/asm-ia64/page.h                      |    1 -
+ include/asm-m32r/page.h                      |    3 ---
+ include/asm-m68k/dvma.h                      |    2 +-
+ include/asm-m68k/page.h                      |    3 ---
+ include/asm-m68knommu/page.h                 |    3 ---
+ include/asm-mips/page.h                      |    3 ---
+ include/asm-mips/processor.h                 |    2 +-
+ include/asm-mn10300/page.h                   |    3 ---
+ include/asm-parisc/page.h                    |    4 ----
+ include/asm-powerpc/page.h                   |    3 ---
+ include/asm-s390/page.h                      |    3 ---
+ include/asm-sh/page.h                        |    3 ---
+ include/asm-sparc/page_32.h                  |    3 ---
+ include/asm-sparc/page_64.h                  |    3 ---
+ include/asm-um/page.h                        |    3 ---
+ include/asm-v850/page.h                      |    4 ----
+ include/asm-x86/page.h                       |    3 ---
+ include/asm-xtensa/page.h                    |    2 --
+ include/linux/mm.h                           |    3 +++
+ sound/core/info.c                            |    1 +
+ 57 files changed, 36 insertions(+), 74 deletions(-)
 
-diff -puN arch/alpha/mm/numa.c~bootmem-replace-node_boot_start-in-struct-bootmem_data arch/alpha/mm/numa.c
---- a/arch/alpha/mm/numa.c~bootmem-replace-node_boot_start-in-struct-bootmem_data
-+++ a/arch/alpha/mm/numa.c
-@@ -304,7 +304,7 @@ void __init paging_init(void)
- 
- 	for_each_online_node(nid) {
- 		bootmem_data_t *bdata = &bootmem_node_data[nid];
--		unsigned long start_pfn = bdata->node_boot_start >> PAGE_SHIFT;
-+		unsigned long start_pfn = bdata->node_min_pfn;
- 		unsigned long end_pfn = bdata->node_low_pfn;
- 
- 		if (dma_local_pfn >= end_pfn - start_pfn)
-diff -puN arch/arm/plat-omap/fb.c~bootmem-replace-node_boot_start-in-struct-bootmem_data arch/arm/plat-omap/fb.c
---- a/arch/arm/plat-omap/fb.c~bootmem-replace-node_boot_start-in-struct-bootmem_data
+diff -puN arch/arm/kernel/module.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures arch/arm/kernel/module.c
+--- a/arch/arm/kernel/module.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/arch/arm/kernel/module.c
+@@ -13,6 +13,7 @@
+ #include <linux/module.h>
+ #include <linux/moduleloader.h>
+ #include <linux/kernel.h>
++#include <linux/mm.h>
+ #include <linux/elf.h>
+ #include <linux/vmalloc.h>
+ #include <linux/slab.h>
+diff -puN arch/arm/plat-omap/fb.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures arch/arm/plat-omap/fb.c
+--- a/arch/arm/plat-omap/fb.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
 +++ a/arch/arm/plat-omap/fb.c
-@@ -182,7 +182,7 @@ void __init omapfb_reserve_sdram(void)
- 		return;
+@@ -23,6 +23,7 @@
  
- 	bdata = NODE_DATA(0)->bdata;
--	sdram_start = bdata->node_boot_start;
-+	sdram_start = bdata->node_min_pfn << PAGE_SHIFT;
- 	sdram_size = (bdata->node_low_pfn << PAGE_SHIFT) - sdram_start;
- 	reserved = 0;
- 	for (i = 0; ; i++) {
-@@ -340,5 +340,3 @@ unsigned long omapfb_reserve_sram(unsign
- 
- 
- #endif
--
--
-diff -puN arch/avr32/mm/init.c~bootmem-replace-node_boot_start-in-struct-bootmem_data arch/avr32/mm/init.c
---- a/arch/avr32/mm/init.c~bootmem-replace-node_boot_start-in-struct-bootmem_data
-+++ a/arch/avr32/mm/init.c
-@@ -119,8 +119,7 @@ void __init paging_init(void)
- 		unsigned long zones_size[MAX_NR_ZONES];
- 		unsigned long low, start_pfn;
- 
--		start_pfn = pgdat->bdata->node_boot_start;
--		start_pfn >>= PAGE_SHIFT;
-+		start_pfn = pgdat->bdata->node_min_pfn;
- 		low = pgdat->bdata->node_low_pfn;
- 
- 		memset(zones_size, 0, sizeof(zones_size));
-diff -puN arch/ia64/mm/discontig.c~bootmem-replace-node_boot_start-in-struct-bootmem_data arch/ia64/mm/discontig.c
---- a/arch/ia64/mm/discontig.c~bootmem-replace-node_boot_start-in-struct-bootmem_data
-+++ a/arch/ia64/mm/discontig.c
-@@ -74,17 +74,17 @@ pg_data_t *pgdat_list[MAX_NUMNODES];
- static int __init build_node_maps(unsigned long start, unsigned long len,
- 				  int node)
- {
--	unsigned long cstart, epfn, end = start + len;
-+	unsigned long spfn, epfn, end = start + len;
- 	struct bootmem_data *bdp = &bootmem_node_data[node];
- 
- 	epfn = GRANULEROUNDUP(end) >> PAGE_SHIFT;
--	cstart = GRANULEROUNDDOWN(start);
-+	spfn = GRANULEROUNDDOWN(start) >> PAGE_SHIFT;
- 
- 	if (!bdp->node_low_pfn) {
--		bdp->node_boot_start = cstart;
-+		bdp->node_min_pfn = spfn;
- 		bdp->node_low_pfn = epfn;
- 	} else {
--		bdp->node_boot_start = min(cstart, bdp->node_boot_start);
-+		bdp->node_min_pfn = min(spfn, bdp->node_min_pfn);
- 		bdp->node_low_pfn = max(epfn, bdp->node_low_pfn);
- 	}
- 
-@@ -221,20 +221,21 @@ static void __init fill_pernode(int node
- static int __init find_pernode_space(unsigned long start, unsigned long len,
- 				     int node)
- {
--	unsigned long epfn;
-+	unsigned long spfn, epfn;
- 	unsigned long pernodesize = 0, pernode, pages, mapsize;
- 	struct bootmem_data *bdp = &bootmem_node_data[node];
- 
-+	spfn = start >> PAGE_SHIFT;
- 	epfn = (start + len) >> PAGE_SHIFT;
- 
--	pages = bdp->node_low_pfn - (bdp->node_boot_start >> PAGE_SHIFT);
-+	pages = bdp->node_low_pfn - bdp->node_min_pfn;
- 	mapsize = bootmem_bootmap_pages(pages) << PAGE_SHIFT;
- 
- 	/*
- 	 * Make sure this memory falls within this node's usable memory
- 	 * since we may have thrown some away in build_maps().
- 	 */
--	if (start < bdp->node_boot_start || epfn > bdp->node_low_pfn)
-+	if (spfn < bdp->node_min_pfn || epfn > bdp->node_low_pfn)
- 		return 0;
- 
- 	/* Don't setup this node's local space twice... */
-@@ -296,7 +297,7 @@ static void __init reserve_pernode_space
- 		bdp = pdp->bdata;
- 
- 		/* First the bootmem_map itself */
--		pages = bdp->node_low_pfn - (bdp->node_boot_start>>PAGE_SHIFT);
-+		pages = bdp->node_low_pfn - bdp->node_min_pfn;
- 		size = bootmem_bootmap_pages(pages) << PAGE_SHIFT;
- 		base = __pa(bdp->node_bootmem_map);
- 		reserve_bootmem_node(pdp, base, size, BOOTMEM_DEFAULT);
-@@ -466,7 +467,7 @@ void __init find_memory(void)
- 
- 		init_bootmem_node(pgdat_list[node],
- 				  map>>PAGE_SHIFT,
--				  bdp->node_boot_start>>PAGE_SHIFT,
-+				  bdp->node_min_pfn,
- 				  bdp->node_low_pfn);
- 	}
- 
-diff -puN arch/m32r/mm/discontig.c~bootmem-replace-node_boot_start-in-struct-bootmem_data arch/m32r/mm/discontig.c
---- a/arch/m32r/mm/discontig.c~bootmem-replace-node_boot_start-in-struct-bootmem_data
-+++ a/arch/m32r/mm/discontig.c
-@@ -123,8 +123,7 @@ unsigned long __init setup_memory(void)
- 	return max_low_pfn;
- }
- 
--#define START_PFN(nid)	\
--	(NODE_DATA(nid)->bdata->node_boot_start >> PAGE_SHIFT)
-+#define START_PFN(nid)		(NODE_DATA(nid)->bdata->node_min_pfn)
- #define MAX_LOW_PFN(nid)	(NODE_DATA(nid)->bdata->node_low_pfn)
- 
- unsigned long __init zone_sizes_init(void)
-diff -puN arch/m32r/mm/init.c~bootmem-replace-node_boot_start-in-struct-bootmem_data arch/m32r/mm/init.c
---- a/arch/m32r/mm/init.c~bootmem-replace-node_boot_start-in-struct-bootmem_data
-+++ a/arch/m32r/mm/init.c
-@@ -93,8 +93,7 @@ void free_initrd_mem(unsigned long, unsi
- #endif
- 
- /* It'd be good if these lines were in the standard header file. */
--#define START_PFN(nid)	\
--	(NODE_DATA(nid)->bdata->node_boot_start >> PAGE_SHIFT)
-+#define START_PFN(nid)		(NODE_DATA(nid)->bdata->node_min_pfn)
- #define MAX_LOW_PFN(nid)	(NODE_DATA(nid)->bdata->node_low_pfn)
- 
- #ifndef CONFIG_DISCONTIGMEM
-@@ -252,4 +251,3 @@ void free_initrd_mem(unsigned long start
- 	printk (KERN_INFO "Freeing initrd memory: %ldk freed\n", (end - start) >> 10);
- }
- #endif
--
-diff -puN arch/mn10300/mm/init.c~bootmem-replace-node_boot_start-in-struct-bootmem_data arch/mn10300/mm/init.c
---- a/arch/mn10300/mm/init.c~bootmem-replace-node_boot_start-in-struct-bootmem_data
-+++ a/arch/mn10300/mm/init.c
-@@ -67,8 +67,8 @@ void __init paging_init(void)
- 
- 	/* declare the sizes of the RAM zones (only use the normal zone) */
- 	zones_size[ZONE_NORMAL] =
--		(contig_page_data.bdata->node_low_pfn) -
--		(contig_page_data.bdata->node_boot_start >> PAGE_SHIFT);
-+		contig_page_data.bdata->node_low_pfn -
-+		contig_page_data.bdata->node_min_pfn;
- 
- 	/* pass the memory from the bootmem allocator to the main allocator */
- 	free_area_init(zones_size);
-@@ -87,7 +87,7 @@ void __init mem_init(void)
- 	if (!mem_map)
- 		BUG();
- 
--#define START_PFN	(contig_page_data.bdata->node_boot_start >> PAGE_SHIFT)
-+#define START_PFN	(contig_page_data.bdata->node_min_pfn)
- #define MAX_LOW_PFN	(contig_page_data.bdata->node_low_pfn)
- 
- 	max_mapnr = num_physpages = MAX_LOW_PFN - START_PFN;
-diff -puN arch/sh/mm/init.c~bootmem-replace-node_boot_start-in-struct-bootmem_data arch/sh/mm/init.c
---- a/arch/sh/mm/init.c~bootmem-replace-node_boot_start-in-struct-bootmem_data
-+++ a/arch/sh/mm/init.c
-@@ -191,7 +191,7 @@ void __init paging_init(void)
- 		pg_data_t *pgdat = NODE_DATA(nid);
- 		unsigned long low, start_pfn;
- 
--		start_pfn = pgdat->bdata->node_boot_start >> PAGE_SHIFT;
-+		start_pfn = pgdat->bdata->node_min_pfn;
- 		low = pgdat->bdata->node_low_pfn;
- 
- 		if (max_zone_pfns[ZONE_NORMAL] < low)
-diff -puN include/linux/bootmem.h~bootmem-replace-node_boot_start-in-struct-bootmem_data include/linux/bootmem.h
---- a/include/linux/bootmem.h~bootmem-replace-node_boot_start-in-struct-bootmem_data
-+++ a/include/linux/bootmem.h
-@@ -28,7 +28,7 @@ extern unsigned long saved_max_pfn;
-  * memory pages (including holes) on the node.
+ #include <linux/module.h>
+ #include <linux/kernel.h>
++#include <linux/mm.h>
+ #include <linux/init.h>
+ #include <linux/platform_device.h>
+ #include <linux/bootmem.h>
+diff -puN arch/avr32/mm/ioremap.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures arch/avr32/mm/ioremap.c
+--- a/arch/avr32/mm/ioremap.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/arch/avr32/mm/ioremap.c
+@@ -6,6 +6,7 @@
+  * published by the Free Software Foundation.
   */
- typedef struct bootmem_data {
--	unsigned long node_boot_start;
-+	unsigned long node_min_pfn;
- 	unsigned long node_low_pfn;
- 	void *node_bootmem_map;
- 	unsigned long last_end_off;
-diff -puN mm/bootmem.c~bootmem-replace-node_boot_start-in-struct-bootmem_data mm/bootmem.c
---- a/mm/bootmem.c~bootmem-replace-node_boot_start-in-struct-bootmem_data
-+++ a/mm/bootmem.c
-@@ -80,7 +80,7 @@ static void __init link_bootmem(bootmem_
- 		bootmem_data_t *ent;
+ #include <linux/vmalloc.h>
++#include <linux/mm.h>
+ #include <linux/module.h>
+ #include <linux/io.h>
  
- 		ent = list_entry(iter, bootmem_data_t, list);
--		if (bdata->node_boot_start < ent->node_boot_start)
-+		if (bdata->node_min_pfn < ent->node_min_pfn)
- 			break;
- 	}
- 	list_add_tail(&bdata->list, iter);
-@@ -96,7 +96,7 @@ static unsigned long __init init_bootmem
+diff -puN arch/h8300/kernel/setup.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures arch/h8300/kernel/setup.c
+--- a/arch/h8300/kernel/setup.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/arch/h8300/kernel/setup.c
+@@ -20,6 +20,7 @@
+ #include <linux/sched.h>
+ #include <linux/delay.h>
+ #include <linux/interrupt.h>
++#include <linux/mm.h>
+ #include <linux/fs.h>
+ #include <linux/fb.h>
+ #include <linux/console.h>
+diff -puN arch/m68k/amiga/chipram.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures arch/m68k/amiga/chipram.c
+--- a/arch/m68k/amiga/chipram.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/arch/m68k/amiga/chipram.c
+@@ -9,6 +9,7 @@
  
- 	mminit_validate_memmodel_limits(&start, &end);
- 	bdata->node_bootmem_map = phys_to_virt(PFN_PHYS(mapstart));
--	bdata->node_boot_start = PFN_PHYS(start);
-+	bdata->node_min_pfn = start;
- 	bdata->node_low_pfn = end;
- 	link_bootmem(bdata);
+ #include <linux/types.h>
+ #include <linux/kernel.h>
++#include <linux/mm.h>
+ #include <linux/init.h>
+ #include <linux/ioport.h>
+ #include <linux/slab.h>
+diff -puN arch/m68knommu/kernel/setup.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures arch/m68knommu/kernel/setup.c
+--- a/arch/m68knommu/kernel/setup.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/arch/m68knommu/kernel/setup.c
+@@ -22,6 +22,7 @@
+ #include <linux/interrupt.h>
+ #include <linux/fb.h>
+ #include <linux/module.h>
++#include <linux/mm.h>
+ #include <linux/console.h>
+ #include <linux/errno.h>
+ #include <linux/string.h>
+diff -puN arch/mips/kernel/module.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures arch/mips/kernel/module.c
+--- a/arch/mips/kernel/module.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/arch/mips/kernel/module.c
+@@ -22,6 +22,7 @@
  
-@@ -151,7 +151,7 @@ static unsigned long __init free_all_boo
- 	if (!bdata->node_bootmem_map)
- 		return 0;
+ #include <linux/moduleloader.h>
+ #include <linux/elf.h>
++#include <linux/mm.h>
+ #include <linux/vmalloc.h>
+ #include <linux/slab.h>
+ #include <linux/fs.h>
+diff -puN arch/mips/sgi-ip27/ip27-klnuma.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures arch/mips/sgi-ip27/ip27-klnuma.c
+--- a/arch/mips/sgi-ip27/ip27-klnuma.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/arch/mips/sgi-ip27/ip27-klnuma.c
+@@ -4,6 +4,7 @@
+  * Copyright 2000 - 2001 Kanoj Sarcar (kanoj@sgi.com)
+  */
+ #include <linux/init.h>
++#include <linux/mm.h>
+ #include <linux/mmzone.h>
+ #include <linux/kernel.h>
+ #include <linux/nodemask.h>
+diff -puN arch/powerpc/kernel/suspend.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures arch/powerpc/kernel/suspend.c
+--- a/arch/powerpc/kernel/suspend.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/arch/powerpc/kernel/suspend.c
+@@ -7,6 +7,7 @@
+  * Copyright (c) 2001 Patrick Mochel <mochel@osdl.org>
+  */
  
--	start = PFN_DOWN(bdata->node_boot_start);
-+	start = bdata->node_min_pfn;
- 	end = bdata->node_low_pfn;
++#include <linux/mm.h>
+ #include <asm/page.h>
  
- 	/*
-@@ -167,7 +167,7 @@ static unsigned long __init free_all_boo
- 		unsigned long *map, idx, vec;
+ /* References to section boundaries */
+diff -puN arch/powerpc/lib/code-patching.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures arch/powerpc/lib/code-patching.c
+--- a/arch/powerpc/lib/code-patching.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/arch/powerpc/lib/code-patching.c
+@@ -10,6 +10,7 @@
+ #include <linux/kernel.h>
+ #include <linux/vmalloc.h>
+ #include <linux/init.h>
++#include <linux/mm.h>
+ #include <asm/page.h>
+ #include <asm/code-patching.h>
  
- 		map = bdata->node_bootmem_map;
--		idx = start - PFN_DOWN(bdata->node_boot_start);
-+		idx = start - bdata->node_min_pfn;
- 		vec = ~map[idx / BITS_PER_LONG];
+diff -puN arch/sparc64/kernel/iommu_common.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures arch/sparc64/kernel/iommu_common.h
+--- a/arch/sparc64/kernel/iommu_common.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/arch/sparc64/kernel/iommu_common.h
+@@ -23,7 +23,7 @@
+ #define IO_PAGE_SHIFT			13
+ #define IO_PAGE_SIZE			(1UL << IO_PAGE_SHIFT)
+ #define IO_PAGE_MASK			(~(IO_PAGE_SIZE-1))
+-#define IO_PAGE_ALIGN(addr)		(((addr)+IO_PAGE_SIZE-1)&IO_PAGE_MASK)
++#define IO_PAGE_ALIGN(addr)		ALIGN(addr, IO_PAGE_SIZE)
  
- 		if (aligned && vec == ~0UL && start + BITS_PER_LONG < end) {
-@@ -192,7 +192,7 @@ static unsigned long __init free_all_boo
- 	}
+ #define IO_TSB_ENTRIES			(128*1024)
+ #define IO_TSB_SIZE			(IO_TSB_ENTRIES * 8)
+diff -puN arch/x86/kernel/module_64.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures arch/x86/kernel/module_64.c
+--- a/arch/x86/kernel/module_64.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/arch/x86/kernel/module_64.c
+@@ -22,6 +22,7 @@
+ #include <linux/fs.h>
+ #include <linux/string.h>
+ #include <linux/kernel.h>
++#include <linux/mm.h>
+ #include <linux/slab.h>
+ #include <linux/bug.h>
  
- 	page = virt_to_page(bdata->node_bootmem_map);
--	pages = bdata->node_low_pfn - PFN_DOWN(bdata->node_boot_start);
-+	pages = bdata->node_low_pfn - bdata->node_min_pfn;
- 	pages = bootmem_bootmap_pages(pages);
- 	count += pages;
- 	while (pages--)
-@@ -231,8 +231,8 @@ static void __init __free(bootmem_data_t
- 	unsigned long idx;
+diff -puN arch/xtensa/kernel/setup.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures arch/xtensa/kernel/setup.c
+--- a/arch/xtensa/kernel/setup.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/arch/xtensa/kernel/setup.c
+@@ -16,6 +16,7 @@
  
- 	bdebug("nid=%td start=%lx end=%lx\n", bdata - bootmem_node_data,
--		sidx + PFN_DOWN(bdata->node_boot_start),
--		eidx + PFN_DOWN(bdata->node_boot_start));
-+		sidx + bdata->node_min_pfn,
-+		eidx + bdata->node_min_pfn);
+ #include <linux/errno.h>
+ #include <linux/init.h>
++#include <linux/mm.h>
+ #include <linux/proc_fs.h>
+ #include <linux/screen_info.h>
+ #include <linux/bootmem.h>
+diff -puN drivers/char/random.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/char/random.c
+--- a/drivers/char/random.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/char/random.c
+@@ -236,6 +236,7 @@
+ #include <linux/fs.h>
+ #include <linux/genhd.h>
+ #include <linux/interrupt.h>
++#include <linux/mm.h>
+ #include <linux/spinlock.h>
+ #include <linux/percpu.h>
+ #include <linux/cryptohash.h>
+diff -puN drivers/ieee1394/iso.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/ieee1394/iso.c
+--- a/drivers/ieee1394/iso.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/ieee1394/iso.c
+@@ -11,6 +11,7 @@
  
- 	if (bdata->hint_idx > sidx)
- 		bdata->hint_idx = sidx;
-@@ -250,8 +250,8 @@ static int __init __reserve(bootmem_data
+ #include <linux/pci.h>
+ #include <linux/sched.h>
++#include <linux/mm.h>
+ #include <linux/slab.h>
  
- 	bdebug("nid=%td start=%lx end=%lx flags=%x\n",
- 		bdata - bootmem_node_data,
--		sidx + PFN_DOWN(bdata->node_boot_start),
--		eidx + PFN_DOWN(bdata->node_boot_start),
-+		sidx + bdata->node_min_pfn,
-+		eidx + bdata->node_min_pfn,
- 		flags);
+ #include "hosts.h"
+diff -puN drivers/media/video/pvrusb2/pvrusb2-dvb.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/media/video/pvrusb2/pvrusb2-dvb.c
+--- a/drivers/media/video/pvrusb2/pvrusb2-dvb.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/media/video/pvrusb2/pvrusb2-dvb.c
+@@ -20,6 +20,7 @@
  
- 	for (idx = sidx; idx < eidx; idx++)
-@@ -261,7 +261,7 @@ static int __init __reserve(bootmem_data
- 				return -EBUSY;
- 			}
- 			bdebug("silent double reserve of PFN %lx\n",
--				idx + PFN_DOWN(bdata->node_boot_start));
-+				idx + bdata->node_min_pfn);
- 		}
- 	return 0;
- }
-@@ -275,11 +275,11 @@ static int __init mark_bootmem_node(boot
- 	bdebug("nid=%td start=%lx end=%lx reserve=%d flags=%x\n",
- 		bdata - bootmem_node_data, start, end, reserve, flags);
+ #include <linux/kthread.h>
+ #include <linux/freezer.h>
++#include <linux/mm.h>
+ #include "dvbdev.h"
+ #include "pvrusb2-debug.h"
+ #include "pvrusb2-hdw-internal.h"
+diff -puN drivers/media/video/pvrusb2/pvrusb2-ioread.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/media/video/pvrusb2/pvrusb2-ioread.c
+--- a/drivers/media/video/pvrusb2/pvrusb2-ioread.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/media/video/pvrusb2/pvrusb2-ioread.c
+@@ -22,6 +22,7 @@
+ #include "pvrusb2-debug.h"
+ #include <linux/errno.h>
+ #include <linux/string.h>
++#include <linux/mm.h>
+ #include <linux/slab.h>
+ #include <linux/mutex.h>
+ #include <asm/uaccess.h>
+diff -puN drivers/media/video/uvc/uvc_queue.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/media/video/uvc/uvc_queue.c
+--- a/drivers/media/video/uvc/uvc_queue.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/media/video/uvc/uvc_queue.c
+@@ -13,6 +13,7 @@
  
--	BUG_ON(start < PFN_DOWN(bdata->node_boot_start));
-+	BUG_ON(start < bdata->node_min_pfn);
- 	BUG_ON(end > bdata->node_low_pfn);
+ #include <linux/kernel.h>
+ #include <linux/version.h>
++#include <linux/mm.h>
+ #include <linux/list.h>
+ #include <linux/module.h>
+ #include <linux/usb.h>
+diff -puN drivers/media/video/videobuf-core.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/media/video/videobuf-core.c
+--- a/drivers/media/video/videobuf-core.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/media/video/videobuf-core.c
+@@ -16,6 +16,7 @@
+ #include <linux/init.h>
+ #include <linux/module.h>
+ #include <linux/moduleparam.h>
++#include <linux/mm.h>
+ #include <linux/slab.h>
+ #include <linux/interrupt.h>
  
--	sidx = start - PFN_DOWN(bdata->node_boot_start);
--	eidx = end - PFN_DOWN(bdata->node_boot_start);
-+	sidx = start - bdata->node_min_pfn;
-+	eidx = end - bdata->node_min_pfn;
+diff -puN drivers/mtd/maps/uclinux.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/mtd/maps/uclinux.c
+--- a/drivers/mtd/maps/uclinux.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/mtd/maps/uclinux.c
+@@ -15,6 +15,7 @@
+ #include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/fs.h>
++#include <linux/mm.h>
+ #include <linux/major.h>
+ #include <linux/mtd/mtd.h>
+ #include <linux/mtd/map.h>
+diff -puN drivers/net/mlx4/eq.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/net/mlx4/eq.c
+--- a/drivers/net/mlx4/eq.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/net/mlx4/eq.c
+@@ -33,6 +33,7 @@
  
- 	if (reserve)
- 		return __reserve(bdata, sidx, eidx, flags);
-@@ -299,7 +299,8 @@ static int __init mark_bootmem(unsigned 
- 		int err;
- 		unsigned long max;
+ #include <linux/init.h>
+ #include <linux/interrupt.h>
++#include <linux/mm.h>
+ #include <linux/dma-mapping.h>
  
--		if (pos < PFN_DOWN(bdata->node_boot_start)) {
-+		if (pos < bdata->node_min_pfn ||
-+		    pos >= bdata->node_low_pfn) {
- 			BUG_ON(pos != start);
- 			continue;
- 		}
-@@ -422,7 +423,7 @@ static void * __init alloc_bootmem_core(
- 		bdata - bootmem_node_data, size, PAGE_ALIGN(size) >> PAGE_SHIFT,
- 		align, goal, limit);
+ #include <linux/mlx4/cmd.h>
+diff -puN drivers/pcmcia/electra_cf.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/pcmcia/electra_cf.c
+--- a/drivers/pcmcia/electra_cf.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/pcmcia/electra_cf.c
+@@ -28,6 +28,7 @@
+ #include <linux/init.h>
+ #include <linux/delay.h>
+ #include <linux/interrupt.h>
++#include <linux/mm.h>
+ #include <linux/vmalloc.h>
+ #include <linux/of_platform.h>
  
--	min = PFN_DOWN(bdata->node_boot_start);
-+	min = bdata->node_min_pfn;
- 	max = bdata->node_low_pfn;
+diff -puN drivers/scsi/sun_esp.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/scsi/sun_esp.c
+--- a/drivers/scsi/sun_esp.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/scsi/sun_esp.c
+@@ -7,6 +7,7 @@
+ #include <linux/types.h>
+ #include <linux/delay.h>
+ #include <linux/module.h>
++#include <linux/mm.h>
+ #include <linux/init.h>
  
- 	goal >>= PAGE_SHIFT;
-@@ -440,8 +441,8 @@ static void * __init alloc_bootmem_core(
- 	else
- 		start = ALIGN(min, step);
+ #include <asm/irq.h>
+diff -puN drivers/video/acornfb.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/video/acornfb.c
+--- a/drivers/video/acornfb.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/video/acornfb.c
+@@ -23,6 +23,7 @@
+ #include <linux/string.h>
+ #include <linux/ctype.h>
+ #include <linux/slab.h>
++#include <linux/mm.h>
+ #include <linux/init.h>
+ #include <linux/fb.h>
+ #include <linux/platform_device.h>
+diff -puN drivers/video/imxfb.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/video/imxfb.c
+--- a/drivers/video/imxfb.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/video/imxfb.c
+@@ -24,6 +24,7 @@
+ #include <linux/string.h>
+ #include <linux/interrupt.h>
+ #include <linux/slab.h>
++#include <linux/mm.h>
+ #include <linux/fb.h>
+ #include <linux/delay.h>
+ #include <linux/init.h>
+diff -puN drivers/video/omap/dispc.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/video/omap/dispc.c
+--- a/drivers/video/omap/dispc.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/video/omap/dispc.c
+@@ -20,6 +20,7 @@
+  */
+ #include <linux/kernel.h>
+ #include <linux/dma-mapping.h>
++#include <linux/mm.h>
+ #include <linux/vmalloc.h>
+ #include <linux/clk.h>
+ #include <linux/io.h>
+diff -puN drivers/video/omap/omapfb_main.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/video/omap/omapfb_main.c
+--- a/drivers/video/omap/omapfb_main.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/video/omap/omapfb_main.c
+@@ -25,6 +25,7 @@
+  * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+  */
+ #include <linux/platform_device.h>
++#include <linux/mm.h>
+ #include <linux/uaccess.h>
  
--	sidx = start - PFN_DOWN(bdata->node_boot_start);
--	midx = max - PFN_DOWN(bdata->node_boot_start);
-+	sidx = start - bdata->node_min_pfn;;
-+	midx = max - bdata->node_min_pfn;
+ #include <asm/mach-types.h>
+diff -puN drivers/video/pxafb.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/video/pxafb.c
+--- a/drivers/video/pxafb.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/video/pxafb.c
+@@ -30,6 +30,7 @@
+ #include <linux/string.h>
+ #include <linux/interrupt.h>
+ #include <linux/slab.h>
++#include <linux/mm.h>
+ #include <linux/fb.h>
+ #include <linux/delay.h>
+ #include <linux/init.h>
+diff -puN drivers/video/sa1100fb.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures drivers/video/sa1100fb.c
+--- a/drivers/video/sa1100fb.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/drivers/video/sa1100fb.c
+@@ -167,6 +167,7 @@
+ #include <linux/string.h>
+ #include <linux/interrupt.h>
+ #include <linux/slab.h>
++#include <linux/mm.h>
+ #include <linux/fb.h>
+ #include <linux/delay.h>
+ #include <linux/init.h>
+diff -puN include/asm-alpha/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-alpha/page.h
+--- a/include/asm-alpha/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-alpha/page.h
+@@ -80,9 +80,6 @@ typedef struct page *pgtable_t;
  
- 	if (bdata->hint_idx > sidx) {
- 		/*
-@@ -491,7 +492,8 @@ find_block:
- 				PFN_UP(end_off), BOOTMEM_EXCLUSIVE))
- 			BUG();
+ #endif /* !__ASSEMBLY__ */
  
--		region = phys_to_virt(bdata->node_boot_start + start_off);
-+		region = phys_to_virt(PFN_PHYS(bdata->node_min_pfn) +
-+				start_off);
- 		memset(region, 0, size);
- 		return region;
- 	}
-@@ -518,7 +520,7 @@ restart:
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ #define __pa(x)			((unsigned long) (x) - PAGE_OFFSET)
+ #define __va(x)			((void *)((unsigned long) (x) + PAGE_OFFSET))
+ #ifndef CONFIG_DISCONTIGMEM
+diff -puN include/asm-arm/page-nommu.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-arm/page-nommu.h
+--- a/include/asm-arm/page-nommu.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-arm/page-nommu.h
+@@ -7,6 +7,7 @@
+  * it under the terms of the GNU General Public License version 2 as
+  * published by the Free Software Foundation.
+  */
++
+ #ifndef _ASMARM_PAGE_NOMMU_H
+ #define _ASMARM_PAGE_NOMMU_H
  
- 		if (goal && bdata->node_low_pfn <= PFN_DOWN(goal))
- 			continue;
--		if (limit && bdata->node_boot_start >= limit)
-+		if (limit && bdata->node_min_pfn >= PFN_DOWN(limit))
- 			break;
+@@ -42,9 +43,6 @@ typedef unsigned long pgprot_t;
+ #define __pmd(x)        (x)
+ #define __pgprot(x)     (x)
  
- 		region = alloc_bootmem_core(bdata, size, align, goal, limit);
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ extern unsigned long memory_start;
+ extern unsigned long memory_end;
+ 
+diff -puN include/asm-arm/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-arm/page.h
+--- a/include/asm-arm/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-arm/page.h
+@@ -15,9 +15,6 @@
+ #define PAGE_SIZE		(1UL << PAGE_SHIFT)
+ #define PAGE_MASK		(~(PAGE_SIZE-1))
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ #ifndef __ASSEMBLY__
+ 
+ #ifndef CONFIG_MMU
+diff -puN include/asm-avr32/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-avr32/page.h
+--- a/include/asm-avr32/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-avr32/page.h
+@@ -57,9 +57,6 @@ static inline int get_order(unsigned lon
+ 
+ #endif /* !__ASSEMBLY__ */
+ 
+-/* Align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr) + PAGE_SIZE - 1) & PAGE_MASK)
+-
+ /*
+  * The hardware maps the virtual addresses 0x80000000 -> 0x9fffffff
+  * permanently to the physical addresses 0x00000000 -> 0x1fffffff when
+diff -puN include/asm-blackfin/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-blackfin/page.h
+--- a/include/asm-blackfin/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-blackfin/page.h
+@@ -51,9 +51,6 @@ typedef struct page *pgtable_t;
+ #define __pgd(x)	((pgd_t) { (x) } )
+ #define __pgprot(x)	((pgprot_t) { (x) } )
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ extern unsigned long memory_start;
+ extern unsigned long memory_end;
+ 
+diff -puN include/asm-cris/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-cris/page.h
+--- a/include/asm-cris/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-cris/page.h
+@@ -60,9 +60,6 @@ typedef struct page *pgtable_t;
+ 
+ #define page_to_phys(page)     __pa((((page) - mem_map) << PAGE_SHIFT) + PAGE_OFFSET)
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ #ifndef __ASSEMBLY__
+ 
+ #endif /* __ASSEMBLY__ */
+diff -puN include/asm-frv/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-frv/page.h
+--- a/include/asm-frv/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-frv/page.h
+@@ -40,9 +40,6 @@ typedef struct page *pgtable_t;
+ #define __pgprot(x)	((pgprot_t) { (x) } )
+ #define PTE_MASK	PAGE_MASK
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr) + PAGE_SIZE - 1) & PAGE_MASK)
+-
+ #define devmem_is_allowed(pfn)	1
+ 
+ #define __pa(vaddr)		virt_to_phys((void *) (unsigned long) (vaddr))
+diff -puN include/asm-h8300/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-h8300/page.h
+--- a/include/asm-h8300/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-h8300/page.h
+@@ -43,9 +43,6 @@ typedef struct page *pgtable_t;
+ #define __pgd(x)	((pgd_t) { (x) } )
+ #define __pgprot(x)	((pgprot_t) { (x) } )
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ extern unsigned long memory_start;
+ extern unsigned long memory_end;
+ 
+diff -puN include/asm-ia64/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-ia64/page.h
+--- a/include/asm-ia64/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-ia64/page.h
+@@ -40,7 +40,6 @@
+ 
+ #define PAGE_SIZE		(__IA64_UL_CONST(1) << PAGE_SHIFT)
+ #define PAGE_MASK		(~(PAGE_SIZE - 1))
+-#define PAGE_ALIGN(addr)	(((addr) + PAGE_SIZE - 1) & PAGE_MASK)
+ 
+ #define PERCPU_PAGE_SHIFT	16	/* log2() of max. size of per-CPU area */
+ #define PERCPU_PAGE_SIZE	(__IA64_UL_CONST(1) << PERCPU_PAGE_SHIFT)
+diff -puN include/asm-m32r/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-m32r/page.h
+--- a/include/asm-m32r/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-m32r/page.h
+@@ -41,9 +41,6 @@ typedef struct page *pgtable_t;
+ 
+ #endif /* !__ASSEMBLY__ */
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr) + PAGE_SIZE - 1) & PAGE_MASK)
+-
+ /*
+  * This handles the memory map.. We could make this a config
+  * option, but too many people screw it up, and too few need
+diff -puN include/asm-m68k/dvma.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-m68k/dvma.h
+--- a/include/asm-m68k/dvma.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-m68k/dvma.h
+@@ -13,7 +13,7 @@
+ #define DVMA_PAGE_SHIFT	13
+ #define DVMA_PAGE_SIZE	(1UL << DVMA_PAGE_SHIFT)
+ #define DVMA_PAGE_MASK	(~(DVMA_PAGE_SIZE-1))
+-#define DVMA_PAGE_ALIGN(addr)	(((addr)+DVMA_PAGE_SIZE-1)&DVMA_PAGE_MASK)
++#define DVMA_PAGE_ALIGN(addr)	ALIGN(addr, DVMA_PAGE_SIZE)
+ 
+ extern void dvma_init(void);
+ extern int dvma_map_iommu(unsigned long kaddr, unsigned long baddr,
+diff -puN include/asm-m68k/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-m68k/page.h
+--- a/include/asm-m68k/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-m68k/page.h
+@@ -103,9 +103,6 @@ typedef struct page *pgtable_t;
+ #define __pgd(x)	((pgd_t) { (x) } )
+ #define __pgprot(x)	((pgprot_t) { (x) } )
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ #endif /* !__ASSEMBLY__ */
+ 
+ #include <asm/page_offset.h>
+diff -puN include/asm-m68knommu/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-m68knommu/page.h
+--- a/include/asm-m68knommu/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-m68knommu/page.h
+@@ -43,9 +43,6 @@ typedef struct page *pgtable_t;
+ #define __pgd(x)	((pgd_t) { (x) } )
+ #define __pgprot(x)	((pgprot_t) { (x) } )
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ extern unsigned long memory_start;
+ extern unsigned long memory_end;
+ 
+diff -puN include/asm-mips/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-mips/page.h
+--- a/include/asm-mips/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-mips/page.h
+@@ -137,9 +137,6 @@ typedef struct { unsigned long pgprot; }
+ 
+ #endif /* !__ASSEMBLY__ */
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr) + PAGE_SIZE - 1) & PAGE_MASK)
+-
+ /*
+  * __pa()/__va() should be used only during mem init.
+  */
+diff -puN include/asm-mips/processor.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-mips/processor.h
+--- a/include/asm-mips/processor.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-mips/processor.h
+@@ -45,7 +45,7 @@ extern unsigned int vced_count, vcei_cou
+  * This decides where the kernel will search for a free chunk of vm
+  * space during mmap's.
+  */
+-#define TASK_UNMAPPED_BASE	(PAGE_ALIGN(TASK_SIZE / 3))
++#define TASK_UNMAPPED_BASE	((TASK_SIZE / 3) & ~(PAGE_SIZE))
+ #endif
+ 
+ #ifdef CONFIG_64BIT
+diff -puN include/asm-mn10300/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-mn10300/page.h
+--- a/include/asm-mn10300/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-mn10300/page.h
+@@ -61,9 +61,6 @@ typedef struct page *pgtable_t;
+ 
+ #endif /* !__ASSEMBLY__ */
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr) + PAGE_SIZE - 1) & PAGE_MASK)
+-
+ /*
+  * This handles the memory map.. We could make this a config
+  * option, but too many people screw it up, and too few need
+diff -puN include/asm-parisc/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-parisc/page.h
+--- a/include/asm-parisc/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-parisc/page.h
+@@ -119,10 +119,6 @@ extern int npmem_ranges;
+ #define PMD_ENTRY_SIZE	(1UL << BITS_PER_PMD_ENTRY)
+ #define PTE_ENTRY_SIZE	(1UL << BITS_PER_PTE_ENTRY)
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+-
+ #define LINUX_GATEWAY_SPACE     0
+ 
+ /* This governs the relationship between virtual and physical addresses.
+diff -puN include/asm-powerpc/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-powerpc/page.h
+--- a/include/asm-powerpc/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-powerpc/page.h
+@@ -119,9 +119,6 @@ extern phys_addr_t kernstart_addr;
+ /* align addr on a size boundary - adjust address up if needed */
+ #define _ALIGN(addr,size)     _ALIGN_UP(addr,size)
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	_ALIGN(addr, PAGE_SIZE)
+-
+ /*
+  * Don't compare things with KERNELBASE or PAGE_OFFSET to test for
+  * "kernelness", use is_kernel_addr() - it should do what you want.
+diff -puN include/asm-s390/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-s390/page.h
+--- a/include/asm-s390/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-s390/page.h
+@@ -138,9 +138,6 @@ void arch_alloc_page(struct page *page, 
+ 
+ #endif /* !__ASSEMBLY__ */
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)        (((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ #define __PAGE_OFFSET           0x0UL
+ #define PAGE_OFFSET             0x0UL
+ #define __pa(x)                 (unsigned long)(x)
+diff -puN include/asm-sh/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-sh/page.h
+--- a/include/asm-sh/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-sh/page.h
+@@ -22,9 +22,6 @@
+ #define PAGE_MASK	(~(PAGE_SIZE-1))
+ #define PTE_MASK	PAGE_MASK
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ #if defined(CONFIG_HUGETLB_PAGE_SIZE_64K)
+ #define HPAGE_SHIFT	16
+ #elif defined(CONFIG_HUGETLB_PAGE_SIZE_256K)
+diff -puN include/asm-sparc/page_32.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-sparc/page_32.h
+--- a/include/asm-sparc/page_32.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-sparc/page_32.h
+@@ -134,9 +134,6 @@ BTFIXUPDEF_SETHI(sparc_unmapped_base)
+ 
+ #endif /* !(__ASSEMBLY__) */
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)  (((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ #define PAGE_OFFSET	0xf0000000
+ #ifndef __ASSEMBLY__
+ extern unsigned long phys_base;
+diff -puN include/asm-sparc/page_64.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-sparc/page_64.h
+--- a/include/asm-sparc/page_64.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-sparc/page_64.h
+@@ -106,9 +106,6 @@ typedef struct page *pgtable_t;
+ 
+ #endif /* !(__ASSEMBLY__) */
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ /* We used to stick this into a hard-coded global register (%g4)
+  * but that does not make sense anymore.
+  */
+diff -puN include/asm-um/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-um/page.h
+--- a/include/asm-um/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-um/page.h
+@@ -92,9 +92,6 @@ typedef struct page *pgtable_t;
+ #define __pgd(x) ((pgd_t) { (x) } )
+ #define __pgprot(x)	((pgprot_t) { (x) } )
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ extern unsigned long uml_physmem;
+ 
+ #define PAGE_OFFSET (uml_physmem)
+diff -puN include/asm-v850/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-v850/page.h
+--- a/include/asm-v850/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-v850/page.h
+@@ -94,10 +94,6 @@ typedef unsigned long pgprot_t;
+ #endif /* !__ASSEMBLY__ */
+ 
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr) + PAGE_SIZE - 1) & PAGE_MASK)
+-
+-
+ /* No current v850 processor has virtual memory.  */
+ #define __virt_to_phys(addr)	(addr)
+ #define __phys_to_virt(addr)	(addr)
+diff -puN include/asm-x86/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-x86/page.h
+--- a/include/asm-x86/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-x86/page.h
+@@ -34,9 +34,6 @@
+ 
+ #define HUGE_MAX_HSTATE 2
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ #ifndef __ASSEMBLY__
+ #include <linux/types.h>
+ #endif
+diff -puN include/asm-xtensa/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/asm-xtensa/page.h
+--- a/include/asm-xtensa/page.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/asm-xtensa/page.h
+@@ -26,13 +26,11 @@
+ 
+ /*
+  * PAGE_SHIFT determines the page size
+- * PAGE_ALIGN(x) aligns the pointer to the (next) page boundary
+  */
+ 
+ #define PAGE_SHIFT		12
+ #define PAGE_SIZE		(__XTENSA_UL_CONST(1) << PAGE_SHIFT)
+ #define PAGE_MASK		(~(PAGE_SIZE-1))
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE - 1) & PAGE_MASK)
+ 
+ #define PAGE_OFFSET		XCHAL_KSEG_CACHED_VADDR
+ #define MAX_MEM_PFN		XCHAL_KSEG_SIZE
+diff -puN include/linux/mm.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures include/linux/mm.h
+--- a/include/linux/mm.h~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/include/linux/mm.h
+@@ -41,6 +41,9 @@ extern unsigned long mmap_min_addr;
+ 
+ #define nth_page(page,n) pfn_to_page(page_to_pfn((page)) + (n))
+ 
++/* to align the pointer to the (next) page boundary */
++#define PAGE_ALIGN(addr) ALIGN(addr, PAGE_SIZE)
++
+ /*
+  * Linux kernel virtual memory manager primitives.
+  * The idea being to have a "virtual" mm in the same way
+diff -puN sound/core/info.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures sound/core/info.c
+--- a/sound/core/info.c~page_align-correctly-handle-64-bit-values-on-32-bit-architectures
++++ a/sound/core/info.c
+@@ -21,6 +21,7 @@
+ 
+ #include <linux/init.h>
+ #include <linux/time.h>
++#include <linux/mm.h>
+ #include <linux/smp_lock.h>
+ #include <linux/string.h>
+ #include <sound/core.h>
 _
