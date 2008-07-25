@@ -1,37 +1,37 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCH] flag parameters: fix compile error of sys_epoll_create1
-Date: Fri, 25 Jul 2008 12:30:13 +0200
-Message-ID: <20080725103012.GA11796@elte.hu>
-References: <48898461.4070603@cn.fujitsu.com>
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: __weak vs ifdef
+Date: Fri, 25 Jul 2008 06:24:54 -0600
+Message-ID: <20080725122454.GE6701@parisc-linux.org>
+References: <20080725083943.GC19310@cs181140183.pp.htv.fi> <20080725015537.564e3397.akpm@linux-foundation.org> <20080725091455.GD19310@cs181140183.pp.htv.fi> <20080725092748.GF19310@cs181140183.pp.htv.fi> <20080725023455.dde3eb27.akpm@linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:43399 "EHLO mx3.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752566AbYGYKa3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 Jul 2008 06:30:29 -0400
+Received: from palinux.external.hp.com ([192.25.206.14]:38387 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752712AbYGYMZL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Jul 2008 08:25:11 -0400
 Content-Disposition: inline
-In-Reply-To: <48898461.4070603@cn.fujitsu.com>
+In-Reply-To: <20080725023455.dde3eb27.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Wang Chen <wangchen@cn.fujitsu.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Davide Libenzi <davidel@xmailserver.org>, Ulrich Drepper <drepper@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Adrian Bunk <bunk@kernel.org>, Andrea Righi <righi.andrea@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
+On Fri, Jul 25, 2008 at 02:34:55AM -0700, Andrew Morton wrote:
+> We should make arch_pick_mmap_layout __weak and nuke that ifdef.
 
-* Wang Chen <wangchen@cn.fujitsu.com> wrote:
+I strongly disagree.  I find it makes it harder to follow code flow
+when __weak functions are involved.  Ifdefs are ugly, no question, but
+they're easier to grep for, see when they'll be defined and know which of
+the arch_pick_mmap_layout() functions will be called.  __weak certainly
+has its uses (eg the sys_ni_syscall is great) but I find it's becoming
+overused.
 
->   GEN     .version
->   CHK     include/linux/compile.h
->   UPD     include/linux/compile.h
->   CC      init/version.o
->   LD      init/built-in.o
->   LD      vmlinux
-> arch/x86/kernel/built-in.o: In function `sys_call_table':
-> (.rodata+0x8a4): undefined reference to `sys_epoll_create1'
-> make: *** [vmlinux] Error 1
+My basic point here is that __weak makes the code easier to write but
+harder to read, and we're supposed to be optimising for easier to read.
 
-just ran into this too - 64-bit allnoconfig triggers it.
-
-Acked-by: Ingo Molnar <mingo@elte.hu>
-
-	Ingo
+-- 
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
