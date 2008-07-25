@@ -1,134 +1,93 @@
-From: akpm@linux-foundation.org
-Subject: [patch 015/277] introduce HAVE_EFFICIENT_UNALIGNED_ACCESS Kconfig symbol
-Date: Fri, 25 Jul 2008 01:45:33 -0700
-Message-ID: <200807250845.m6P8jXn8000887@imap1.linux-foundation.org>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: PAGE_ALIGN() compile breakage
+Date: Fri, 25 Jul 2008 01:55:37 -0700
+Message-ID: <20080725015537.564e3397.akpm@linux-foundation.org>
+References: <20080725083943.GC19310@cs181140183.pp.htv.fi>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:35846 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:59974 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752537AbYGYIqa (ORCPT
+	by vger.kernel.org with ESMTP id S1752423AbYGYI4P (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 Jul 2008 04:46:30 -0400
+	Fri, 25 Jul 2008 04:56:15 -0400
+In-Reply-To: <20080725083943.GC19310@cs181140183.pp.htv.fi>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, johannes@sipsolutions.net, linux-arch@vger.kernel.org, mingo@elte.hu, sam@ravnborg.org
+To: Adrian Bunk <bunk@kernel.org>
+Cc: Andrea Righi <righi.andrea@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-From: Johannes Berg <johannes@sipsolutions.net>
+On Fri, 25 Jul 2008 11:39:43 +0300 Adrian Bunk <bunk@kernel.org> wrote:
 
-In many cases, especially in networking, it can be beneficial to know at
-compile time whether the architecture can do unaligned accesses efficiently. 
-This patch introduces a new Kconfig symbol
+> Commit 27ac792ca0b0a1e7e65f20342260650516c95864
+> (PAGE_ALIGN(): correctly handle 64-bit values on 32-bit architectures)
+> causes on some architectures (e.g. avr32 and mips) compile errors
+> like the following in some configurations starting with:
+> 
+> <--  snip  -->
+> 
+> ...
+>   CC      init/main.o
+> In file included from 
+> /home/bunk/linux/kernel-2.6/git/linux-2.6/include/linux/utsname.h:35,
+>                  from /home/bunk/linux/kernel-2.6/git/linux-2.6/init/main.c:20:
+> /home/bunk/linux/kernel-2.6/git/linux-2.6/include/linux/sched.h: In function 'arch_pick_mmap_layout':
+> /home/bunk/linux/kernel-2.6/git/linux-2.6/include/linux/sched.h:2149: error: implicit declaration of function 'PAGE_ALIGN'
+> make[2]: *** [init/main.o] Error 1
+> 
 
-	HAVE_EFFICIENT_UNALIGNED_ACCESS
+pls test:
 
-for that purpose and adds it to the powerpc and x86 architectures.  Also add
-some documentation about alignment and networking, and especially one intended
-use of this symbol.
-
-Signed-off-by: Johannes Berg <johannes@sipsolutions.net>
-Acked-by: Sam Ravnborg <sam@ravnborg.org>
-Acked-by: Ingo Molnar <mingo@elte.hu> [x86 architecture part]
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- Documentation/unaligned-memory-access.txt |   32 ++++++++++++++++++--
- arch/Kconfig                              |   19 +++++++++++
- arch/powerpc/Kconfig                      |    1 
- arch/x86/Kconfig                          |    1 
- 4 files changed, 50 insertions(+), 3 deletions(-)
-
-diff -puN Documentation/unaligned-memory-access.txt~introduce-have_efficient_unaligned_access-kconfig-symbol Documentation/unaligned-memory-access.txt
---- a/Documentation/unaligned-memory-access.txt~introduce-have_efficient_unaligned_access-kconfig-symbol
-+++ a/Documentation/unaligned-memory-access.txt
-@@ -218,9 +218,35 @@ If use of such macros is not convenient,
- where the source or destination (or both) are of type u8* or unsigned char*.
- Due to the byte-wise nature of this operation, unaligned accesses are avoided.
+diff -puN include/linux/sched.h~a include/linux/sched.h
+--- a/include/linux/sched.h~a
++++ a/include/linux/sched.h
+@@ -2139,16 +2139,7 @@ static inline void set_task_cpu(struct t
  
+ #endif /* CONFIG_SMP */
+ 
+-#ifdef HAVE_ARCH_PICK_MMAP_LAYOUT
+ extern void arch_pick_mmap_layout(struct mm_struct *mm);
+-#else
+-static inline void arch_pick_mmap_layout(struct mm_struct *mm)
+-{
+-	mm->mmap_base = TASK_UNMAPPED_BASE;
+-	mm->get_unmapped_area = arch_get_unmapped_area;
+-	mm->unmap_area = arch_unmap_area;
+-}
+-#endif
+ 
+ #ifdef CONFIG_TRACING
+ extern void
+diff -puN mm/mmap.c~a mm/mmap.c
+--- a/mm/mmap.c~a
++++ a/mm/mmap.c
+@@ -2268,3 +2268,12 @@ int install_special_mapping(struct mm_st
+ 
+ 	return 0;
+ }
 +
-+Alignment vs. Networking
-+========================
-+
-+On architectures that require aligned loads, networking requires that the IP
-+header is aligned on a four-byte boundary to optimise the IP stack. For
-+regular ethernet hardware, the constant NET_IP_ALIGN is used. On most
-+architectures this constant has the value 2 because the normal ethernet
-+header is 14 bytes long, so in order to get proper alignment one needs to
-+DMA to an address which can be expressed as 4*n + 2. One notable exception
-+here is powerpc which defines NET_IP_ALIGN to 0 because DMA to unaligned
-+addresses can be very expensive and dwarf the cost of unaligned loads.
-+
-+For some ethernet hardware that cannot DMA to unaligned addresses like
-+4*n+2 or non-ethernet hardware, this can be a problem, and it is then
-+required to copy the incoming frame into an aligned buffer. Because this is
-+unnecessary on architectures that can do unaligned accesses, the code can be
-+made dependent on CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS like so:
-+
-+#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
-+	skb = original skb
-+#else
-+	skb = copy skb
++#ifndef HAVE_ARCH_PICK_MMAP_LAYOUT
++void arch_pick_mmap_layout(struct mm_struct *mm)
++{
++	mm->mmap_base = TASK_UNMAPPED_BASE;
++	mm->get_unmapped_area = arch_get_unmapped_area;
++	mm->unmap_area = arch_unmap_area;
++}
 +#endif
-+
- --
--Author: Daniel Drake <dsd@gentoo.org>
-+Authors: Daniel Drake <dsd@gentoo.org>,
-+         Johannes Berg <johannes@sipsolutions.net>
- With help from: Alan Cox, Avuton Olrich, Heikki Orsila, Jan Engelhardt,
--Johannes Berg, Kyle McMartin, Kyle Moffett, Randy Dunlap, Robert Hancock,
--Uli Kunitz, Vadim Lobanov
-+Kyle McMartin, Kyle Moffett, Randy Dunlap, Robert Hancock, Uli Kunitz,
-+Vadim Lobanov
- 
-diff -puN arch/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol arch/Kconfig
---- a/arch/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol
-+++ a/arch/Kconfig
-@@ -27,6 +27,25 @@ config KPROBES
- 	  for kernel debugging, non-intrusive instrumentation and testing.
- 	  If in doubt, say "N".
- 
-+config HAVE_EFFICIENT_UNALIGNED_ACCESS
-+	def_bool n
-+	help
-+	  Some architectures are unable to perform unaligned accesses
-+	  without the use of get_unaligned/put_unaligned. Others are
-+	  unable to perform such accesses efficiently (e.g. trap on
-+	  unaligned access and require fixing it up in the exception
-+	  handler.)
-+
-+	  This symbol should be selected by an architecture if it can
-+	  perform unaligned accesses efficiently to allow different
-+	  code paths to be selected for these cases. Some network
-+	  drivers, for example, could opt to not fix up alignment
-+	  problems with received packets if doing so would not help
-+	  much.
-+
-+	  See Documentation/unaligned-memory-access.txt for more
-+	  information on the topic of unaligned memory accesses.
-+
- config KRETPROBES
- 	def_bool y
- 	depends on KPROBES && HAVE_KRETPROBES
-diff -puN arch/powerpc/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol arch/powerpc/Kconfig
---- a/arch/powerpc/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol
-+++ a/arch/powerpc/Kconfig
-@@ -112,6 +112,7 @@ config PPC
- 	select HAVE_FTRACE
- 	select HAVE_IDE
- 	select HAVE_IOREMAP_PROT
-+	select HAVE_EFFICIENT_UNALIGNED_ACCESS
- 	select HAVE_KPROBES
- 	select HAVE_ARCH_KGDB
- 	select HAVE_KRETPROBES
-diff -puN arch/x86/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol arch/x86/Kconfig
---- a/arch/x86/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol
-+++ a/arch/x86/Kconfig
-@@ -28,6 +28,7 @@ config X86
- 	select HAVE_FTRACE
- 	select HAVE_KVM if ((X86_32 && !X86_VOYAGER && !X86_VISWS && !X86_NUMAQ) || X86_64)
- 	select HAVE_ARCH_KGDB if !X86_VOYAGER
-+	select HAVE_EFFICIENT_UNALIGNED_ACCESS
- 
- config ARCH_DEFCONFIG
- 	string
 _
+
+> 
+> and more nasty problems follow later.
+> 
+> My suggestion is to:
+> - revert commit 27ac792ca0b0a1e7e65f20342260650516c95864 and then
+> - fix all PAGE_ALIGN() instances without moving them.
+
+Every time this patch blew up (and it did it often), fixing it resulted
+in overall improvements.
+
+> Unifying code is a good thing, but in this case it is not worth the 
+> trouble it causes by poking into the heart of our headers mess.
+
+Well.   If we leave it a mess, it'll stay a mess.
