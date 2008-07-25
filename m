@@ -1,241 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:40489 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756674AbYGXX3G (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 Jul 2008 19:29:06 -0400
-Message-ID: <200807242327.m6ONRKOP011157@imap1.linux-foundation.org>
-Subject: - flag-parameters-eventfd.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Thu, 24 Jul 2008 16:27:20 -0700
+Received: from mba.ocn.ne.jp ([122.1.235.107]:61228 "EHLO smtp.mba.ocn.ne.jp"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751239AbYGYRMG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 Jul 2008 13:12:06 -0400
+Date: Sat, 26 Jul 2008 01:27:31 +0900 (JST)
+Message-ID: <20080726.012731.122621958.anemo@mba.ocn.ne.jp>
+Subject: Re: [patch 29/29] initrd: Fix virtual/physical mix-up in overwrite
+ test
+From: Atsushi Nemoto <anemo@mba.ocn.ne.jp>
+In-Reply-To: <Pine.LNX.4.64.0807242032430.701@anakin>
+References: <20080717191758.556975996@mail.of.borg>
+	<20080725.003526.39154055.anemo@mba.ocn.ne.jp>
+	<Pine.LNX.4.64.0807242032430.701@anakin>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: drepper@redhat.com, davidel@xmailserver.org, linux-arch@vger.kernel.org, mtk.manpages@googlemail.com, mm-commits@vger.kernel.org
-Message-ID: <20080724232720.vPdTHrWqas-3t2RU42Hd5pv4GnXZRxtBvaCe46aJ46A@z>
+To: geert@linux-m68k.org
+Cc: ralf@linux-mips.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-m68k@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org
+Message-ID: <20080725162731.ZBzdVF0PGQ8OpvFIo58gOE9ySieBkAewnLJgKGF-fUo@z>
 
+On Thu, 24 Jul 2008 20:49:27 +0200 (CEST), Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> > Because an argument of mips virt_to_phys() is an pointer and
+> > initrd_start is unsigned long.  It seems most (all?) arch's
+> > virt_to_phys() casts its argument to unsigned long internally.  Should
+> > mips follow?
+> 
+> Alternatively, as initrd_start is really a virtual kernel address,
+> perhaps it should be changed from unsigned long to void * instead?
+> 
+> It's cast to `void *' in several place. arch/xtensa/kernel/setup.c even
+> has `extern void *initrd_start' to fool around this?
 
-The patch titled
-     flag parameters: eventfd
-has been removed from the -mm tree.  Its filename was
-     flag-parameters-eventfd.patch
+I agree it would make code cleaner, but the conversion might be
+somewhat hard.
 
-This patch was dropped because it was merged into mainline or a subsystem tree
+If we converted initrd_start (and initrd_end) to void *, we should
+also convert INITRD_START, free_initrd_mem(), some other arch specific
+local/global variables and printk format strings.  Also code like
+"initrd_start & PAGE_MASK" should be changed too...
 
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+Is it worth to do?
 
-------------------------------------------------------
-Subject: flag parameters: eventfd
-From: Ulrich Drepper <drepper@redhat.com>
-
-This patch adds the new eventfd2 syscall.  It extends the old eventfd
-syscall by one parameter which is meant to hold a flag value.  In this
-patch the only flag support is EFD_CLOEXEC which causes the close-on-exec
-flag for the returned file descriptor to be set.
-
-A new name EFD_CLOEXEC is introduced which in this implementation must
-have the same value as O_CLOEXEC.
-
-The following test must be adjusted for architectures other than x86 and
-x86-64 and in case the syscall numbers changed.
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#include <fcntl.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/syscall.h>
-
-#ifndef __NR_eventfd2
-# ifdef __x86_64__
-#  define __NR_eventfd2 290
-# elif defined __i386__
-#  define __NR_eventfd2 328
-# else
-#  error "need __NR_eventfd2"
-# endif
-#endif
-
-#define EFD_CLOEXEC O_CLOEXEC
-
-int
-main (void)
-{
-  int fd = syscall (__NR_eventfd2, 1, 0);
-  if (fd == -1)
-    {
-      puts ("eventfd2(0) failed");
-      return 1;
-    }
-  int coe = fcntl (fd, F_GETFD);
-  if (coe == -1)
-    {
-      puts ("fcntl failed");
-      return 1;
-    }
-  if (coe & FD_CLOEXEC)
-    {
-      puts ("eventfd2(0) sets close-on-exec flag");
-      return 1;
-    }
-  close (fd);
-
-  fd = syscall (__NR_eventfd2, 1, EFD_CLOEXEC);
-  if (fd == -1)
-    {
-      puts ("eventfd2(EFD_CLOEXEC) failed");
-      return 1;
-    }
-  coe = fcntl (fd, F_GETFD);
-  if (coe == -1)
-    {
-      puts ("fcntl failed");
-      return 1;
-    }
-  if ((coe & FD_CLOEXEC) == 0)
-    {
-      puts ("eventfd2(EFD_CLOEXEC) does not set close-on-exec flag");
-      return 1;
-    }
-  close (fd);
-
-  puts ("OK");
-
-  return 0;
-}
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-[akpm@linux-foundation.org: add sys_ni stub]
-Signed-off-by: Ulrich Drepper <drepper@redhat.com>
-Acked-by: Davide Libenzi <davidel@xmailserver.org>
-Cc: Michael Kerrisk <mtk.manpages@googlemail.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
-
- arch/x86/ia32/ia32entry.S          |    1 +
- arch/x86/kernel/syscall_table_32.S |    1 +
- fs/eventfd.c                       |   13 +++++++++++--
- include/asm-x86/unistd_32.h        |    1 +
- include/asm-x86/unistd_64.h        |    2 ++
- include/linux/eventfd.h            |    6 ++++++
- include/linux/syscalls.h           |    1 +
- kernel/sys_ni.c                    |    1 +
- 8 files changed, 24 insertions(+), 2 deletions(-)
-
-diff -puN arch/x86/ia32/ia32entry.S~flag-parameters-eventfd arch/x86/ia32/ia32entry.S
---- a/arch/x86/ia32/ia32entry.S~flag-parameters-eventfd
-+++ a/arch/x86/ia32/ia32entry.S
-@@ -744,4 +744,5 @@ ia32_sys_call_table:
- 	.quad compat_sys_timerfd_settime	/* 325 */
- 	.quad compat_sys_timerfd_gettime
- 	.quad compat_sys_signalfd4
-+	.quad sys_eventfd2
- ia32_syscall_end:
-diff -puN arch/x86/kernel/syscall_table_32.S~flag-parameters-eventfd arch/x86/kernel/syscall_table_32.S
---- a/arch/x86/kernel/syscall_table_32.S~flag-parameters-eventfd
-+++ a/arch/x86/kernel/syscall_table_32.S
-@@ -327,3 +327,4 @@ ENTRY(sys_call_table)
- 	.long sys_timerfd_settime	/* 325 */
- 	.long sys_timerfd_gettime
- 	.long sys_signalfd4
-+	.long sys_eventfd2
-diff -puN fs/eventfd.c~flag-parameters-eventfd fs/eventfd.c
---- a/fs/eventfd.c~flag-parameters-eventfd
-+++ a/fs/eventfd.c
-@@ -198,11 +198,14 @@ struct file *eventfd_fget(int fd)
- 	return file;
- }
- 
--asmlinkage long sys_eventfd(unsigned int count)
-+asmlinkage long sys_eventfd2(unsigned int count, int flags)
- {
- 	int fd;
- 	struct eventfd_ctx *ctx;
- 
-+	if (flags & ~EFD_CLOEXEC)
-+		return -EINVAL;
-+
- 	ctx = kmalloc(sizeof(*ctx), GFP_KERNEL);
- 	if (!ctx)
- 		return -ENOMEM;
-@@ -214,9 +217,15 @@ asmlinkage long sys_eventfd(unsigned int
- 	 * When we call this, the initialization must be complete, since
- 	 * anon_inode_getfd() will install the fd.
- 	 */
--	fd = anon_inode_getfd("[eventfd]", &eventfd_fops, ctx, 0);
-+	fd = anon_inode_getfd("[eventfd]", &eventfd_fops, ctx,
-+			      flags & O_CLOEXEC);
- 	if (fd < 0)
- 		kfree(ctx);
- 	return fd;
- }
- 
-+asmlinkage long sys_eventfd(unsigned int count)
-+{
-+	return sys_eventfd2(count, 0);
-+}
-+
-diff -puN include/asm-x86/unistd_32.h~flag-parameters-eventfd include/asm-x86/unistd_32.h
---- a/include/asm-x86/unistd_32.h~flag-parameters-eventfd
-+++ a/include/asm-x86/unistd_32.h
-@@ -333,6 +333,7 @@
- #define __NR_timerfd_settime	325
- #define __NR_timerfd_gettime	326
- #define __NR_signalfd4		327
-+#define __NR_eventfd2		328
- 
- #ifdef __KERNEL__
- 
-diff -puN include/asm-x86/unistd_64.h~flag-parameters-eventfd include/asm-x86/unistd_64.h
---- a/include/asm-x86/unistd_64.h~flag-parameters-eventfd
-+++ a/include/asm-x86/unistd_64.h
-@@ -643,6 +643,8 @@ __SYSCALL(__NR_timerfd_gettime, sys_time
- __SYSCALL(__NR_paccept, sys_paccept)
- #define __NR_signalfd4				289
- __SYSCALL(__NR_signalfd4, sys_signalfd4)
-+#define __NR_eventfd2				290
-+__SYSCALL(__NR_eventfd2, sys_eventfd2)
- 
- 
- #ifndef __NO_STUBS
-diff -puN include/linux/eventfd.h~flag-parameters-eventfd include/linux/eventfd.h
---- a/include/linux/eventfd.h~flag-parameters-eventfd
-+++ a/include/linux/eventfd.h
-@@ -10,6 +10,12 @@
- 
- #ifdef CONFIG_EVENTFD
- 
-+/* For O_CLOEXEC */
-+#include <linux/fcntl.h>
-+
-+/* Flags for eventfd2.  */
-+#define EFD_CLOEXEC O_CLOEXEC
-+
- struct file *eventfd_fget(int fd);
- int eventfd_signal(struct file *file, int n);
- 
-diff -puN include/linux/syscalls.h~flag-parameters-eventfd include/linux/syscalls.h
---- a/include/linux/syscalls.h~flag-parameters-eventfd
-+++ a/include/linux/syscalls.h
-@@ -617,6 +617,7 @@ asmlinkage long sys_timerfd_settime(int 
- 				    struct itimerspec __user *otmr);
- asmlinkage long sys_timerfd_gettime(int ufd, struct itimerspec __user *otmr);
- asmlinkage long sys_eventfd(unsigned int count);
-+asmlinkage long sys_eventfd2(unsigned int count, int flags);
- asmlinkage long sys_fallocate(int fd, int mode, loff_t offset, loff_t len);
- 
- int kernel_execve(const char *filename, char *const argv[], char *const envp[]);
-diff -puN kernel/sys_ni.c~flag-parameters-eventfd kernel/sys_ni.c
---- a/kernel/sys_ni.c~flag-parameters-eventfd
-+++ a/kernel/sys_ni.c
-@@ -164,3 +164,4 @@ cond_syscall(sys_timerfd_gettime);
- cond_syscall(compat_sys_timerfd_settime);
- cond_syscall(compat_sys_timerfd_gettime);
- cond_syscall(sys_eventfd);
-+cond_syscall(sys_eventfd2);
-_
-
-Patches currently in -mm which might be from drepper@redhat.com are
-
-origin.patch
-linux-next.patch
-
+Atsushi Nemoto
