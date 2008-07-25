@@ -1,216 +1,443 @@
 From: akpm@linux-foundation.org
-Subject: - flag-parameters-dup2.patch removed from -mm tree
-Date: Thu, 24 Jul 2008 16:27:29 -0700
-Message-ID: <200807242327.m6ONRTXg011166@imap1.linux-foundation.org>
+Subject: [patch 023/283] clean up duplicated alloc/free_thread_info
+Date: Fri, 25 Jul 2008 00:01:15 -0700
+Message-ID: <200807250701.m6P71FpU028253@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:57289 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:50162 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756676AbYGXX3G (ORCPT
+	by vger.kernel.org with ESMTP id S1750720AbYGYHBb (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 Jul 2008 19:29:06 -0400
+	Fri, 25 Jul 2008 03:01:31 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: drepper@redhat.com, davidel@xmailserver.org, linux-arch@vger.kernel.org, mtk.manpages@googlemail.com, mm-commits@vger.kernel.org
+To: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org, fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, penberg@cs.helsinki.fi, rmk+kernel@arm.linux.org.uk
 
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
 
-The patch titled
-     flag parameters: dup2
-has been removed from the -mm tree.  Its filename was
-     flag-parameters-dup2.patch
+We duplicate alloc/free_thread_info defines on many platforms (the
+majority uses __get_free_pages/free_pages).  This patch defines common
+defines and removes these duplicated defines. 
+__HAVE_ARCH_THREAD_INFO_ALLOCATOR is introduced for platforms that do
+something different.
 
-This patch was dropped because it was merged into mainline or a subsystem tree
-
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: flag parameters: dup2
-From: Ulrich Drepper <drepper@redhat.com>
-
-This patch adds the new dup3 syscall.  It extends the old dup2 syscall by one
-parameter which is meant to hold a flag value.  Support for the O_CLOEXEC flag
-is added in this patch.
-
-The following test must be adjusted for architectures other than x86 and
-x86-64 and in case the syscall numbers changed.
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#include <fcntl.h>
-#include <stdio.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/syscall.h>
-
-#ifndef __NR_dup3
-# ifdef __x86_64__
-#  define __NR_dup3 292
-# elif defined __i386__
-#  define __NR_dup3 330
-# else
-#  error "need __NR_dup3"
-# endif
-#endif
-
-int
-main (void)
-{
-  int fd = syscall (__NR_dup3, 1, 4, 0);
-  if (fd == -1)
-    {
-      puts ("dup3(0) failed");
-      return 1;
-    }
-  int coe = fcntl (fd, F_GETFD);
-  if (coe == -1)
-    {
-      puts ("fcntl failed");
-      return 1;
-    }
-  if (coe & FD_CLOEXEC)
-    {
-      puts ("dup3(0) set close-on-exec flag");
-      return 1;
-    }
-  close (fd);
-
-  fd = syscall (__NR_dup3, 1, 4, O_CLOEXEC);
-  if (fd == -1)
-    {
-      puts ("dup3(O_CLOEXEC) failed");
-      return 1;
-    }
-  coe = fcntl (fd, F_GETFD);
-  if (coe == -1)
-    {
-      puts ("fcntl failed");
-      return 1;
-    }
-  if ((coe & FD_CLOEXEC) == 0)
-    {
-      puts ("dup3(O_CLOEXEC) set close-on-exec flag");
-      return 1;
-    }
-  close (fd);
-
-  puts ("OK");
-
-  return 0;
-}
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Signed-off-by: Ulrich Drepper <drepper@redhat.com>
-Acked-by: Davide Libenzi <davidel@xmailserver.org>
-Cc: Michael Kerrisk <mtk.manpages@googlemail.com>
+Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
+Cc: Pekka Enberg <penberg@cs.helsinki.fi>
 Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/x86/ia32/ia32entry.S          |    1 +
- arch/x86/kernel/syscall_table_32.S |    1 +
- fs/fcntl.c                         |   15 +++++++++++++--
- include/asm-x86/unistd_32.h        |    1 +
- include/asm-x86/unistd_64.h        |    2 ++
- include/linux/syscalls.h           |    1 +
- 6 files changed, 19 insertions(+), 2 deletions(-)
+ include/asm-alpha/thread_info.h     |    4 +---
+ include/asm-arm/thread_info.h       |   13 -------------
+ include/asm-avr32/thread_info.h     |    4 ----
+ include/asm-blackfin/thread_info.h  |    5 +----
+ include/asm-cris/thread_info.h      |    2 ++
+ include/asm-frv/thread_info.h       |    2 ++
+ include/asm-h8300/thread_info.h     |    5 +----
+ include/asm-ia64/thread_info.h      |    2 ++
+ include/asm-m32r/thread_info.h      |    2 ++
+ include/asm-m68k/thread_info.h      |    8 +-------
+ include/asm-m68knommu/thread_info.h |    4 ----
+ include/asm-mips/thread_info.h      |    2 ++
+ include/asm-mn10300/thread_info.h   |    2 ++
+ include/asm-parisc/thread_info.h    |   10 +++-------
+ include/asm-powerpc/thread_info.h   |   14 +++-----------
+ include/asm-s390/thread_info.h      |    5 +----
+ include/asm-sh/thread_info.h        |    2 ++
+ include/asm-sparc/thread_info_32.h  |    2 ++
+ include/asm-sparc/thread_info_64.h  |    2 ++
+ include/asm-um/thread_info.h        |   16 +---------------
+ include/asm-x86/thread_info.h       |    2 ++
+ include/asm-xtensa/thread_info.h    |    5 +----
+ kernel/fork.c                       |   17 +++++++++++++++++
+ 23 files changed, 50 insertions(+), 80 deletions(-)
 
-diff -puN arch/x86/ia32/ia32entry.S~flag-parameters-dup2 arch/x86/ia32/ia32entry.S
---- a/arch/x86/ia32/ia32entry.S~flag-parameters-dup2
-+++ a/arch/x86/ia32/ia32entry.S
-@@ -746,4 +746,5 @@ ia32_sys_call_table:
- 	.quad compat_sys_signalfd4
- 	.quad sys_eventfd2
- 	.quad sys_epoll_create2
-+	.quad sys_dup3			/* 330 */
- ia32_syscall_end:
-diff -puN arch/x86/kernel/syscall_table_32.S~flag-parameters-dup2 arch/x86/kernel/syscall_table_32.S
---- a/arch/x86/kernel/syscall_table_32.S~flag-parameters-dup2
-+++ a/arch/x86/kernel/syscall_table_32.S
-@@ -329,3 +329,4 @@ ENTRY(sys_call_table)
- 	.long sys_signalfd4
- 	.long sys_eventfd2
- 	.long sys_epoll_create2
-+	.long sys_dup3			/* 330 */
-diff -puN fs/fcntl.c~flag-parameters-dup2 fs/fcntl.c
---- a/fs/fcntl.c~flag-parameters-dup2
-+++ a/fs/fcntl.c
-@@ -125,13 +125,16 @@ static int dupfd(struct file *file, unsi
- 	return fd;
+diff -puN include/asm-alpha/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-alpha/thread_info.h
+--- a/include/asm-alpha/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-alpha/thread_info.h
+@@ -50,10 +50,8 @@ register struct thread_info *__current_t
+ #define current_thread_info()  __current_thread_info
+ 
+ /* Thread information allocation.  */
++#define THREAD_SIZE_ORDER 1
+ #define THREAD_SIZE (2*PAGE_SIZE)
+-#define alloc_thread_info(tsk) \
+-  ((struct thread_info *) __get_free_pages(GFP_KERNEL,1))
+-#define free_thread_info(ti) free_pages((unsigned long) (ti), 1)
+ 
+ #endif /* __ASSEMBLY__ */
+ 
+diff -puN include/asm-arm/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-arm/thread_info.h
+--- a/include/asm-arm/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-arm/thread_info.h
+@@ -97,19 +97,6 @@ static inline struct thread_info *curren
+ 	return (struct thread_info *)(sp & ~(THREAD_SIZE - 1));
  }
  
--asmlinkage long sys_dup2(unsigned int oldfd, unsigned int newfd)
-+asmlinkage long sys_dup3(unsigned int oldfd, unsigned int newfd, int flags)
- {
- 	int err = -EBADF;
- 	struct file * file, *tofree;
- 	struct files_struct * files = current->files;
- 	struct fdtable *fdt;
- 
-+	if ((flags & ~O_CLOEXEC) != 0)
-+		return -EINVAL;
-+
- 	spin_lock(&files->file_lock);
- 	if (!(file = fcheck(oldfd)))
- 		goto out_unlock;
-@@ -163,7 +166,10 @@ asmlinkage long sys_dup2(unsigned int ol
- 
- 	rcu_assign_pointer(fdt->fd[newfd], file);
- 	FD_SET(newfd, fdt->open_fds);
--	FD_CLR(newfd, fdt->close_on_exec);
-+	if (flags & O_CLOEXEC)
-+		FD_SET(newfd, fdt->close_on_exec);
-+	else
-+		FD_CLR(newfd, fdt->close_on_exec);
- 	spin_unlock(&files->file_lock);
- 
- 	if (tofree)
-@@ -181,6 +187,11 @@ out_fput:
- 	goto out;
+-/* thread information allocation */
+-#ifdef CONFIG_DEBUG_STACK_USAGE
+-#define alloc_thread_info(tsk) \
+-	((struct thread_info *)__get_free_pages(GFP_KERNEL | __GFP_ZERO, \
+-		THREAD_SIZE_ORDER))
+-#else
+-#define alloc_thread_info(tsk) \
+-	((struct thread_info *)__get_free_pages(GFP_KERNEL, THREAD_SIZE_ORDER))
+-#endif
+-
+-#define free_thread_info(info) \
+-	free_pages((unsigned long)info, THREAD_SIZE_ORDER);
+-
+ #define thread_saved_pc(tsk)	\
+ 	((unsigned long)(pc_pointer(task_thread_info(tsk)->cpu_context.pc)))
+ #define thread_saved_fp(tsk)	\
+diff -puN include/asm-avr32/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-avr32/thread_info.h
+--- a/include/asm-avr32/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-avr32/thread_info.h
+@@ -61,10 +61,6 @@ static inline struct thread_info *curren
+ 	return (struct thread_info *)addr;
  }
  
-+asmlinkage long sys_dup2(unsigned int oldfd, unsigned int newfd)
-+{
-+	return sys_dup3(oldfd, newfd, 0);
-+}
-+
- asmlinkage long sys_dup(unsigned int fildes)
- {
- 	int ret = -EBADF;
-diff -puN include/asm-x86/unistd_32.h~flag-parameters-dup2 include/asm-x86/unistd_32.h
---- a/include/asm-x86/unistd_32.h~flag-parameters-dup2
-+++ a/include/asm-x86/unistd_32.h
-@@ -335,6 +335,7 @@
- #define __NR_signalfd4		327
- #define __NR_eventfd2		328
- #define __NR_epoll_create2	329
-+#define __NR_dup3		330
+-/* thread information allocation */
+-#define alloc_thread_info(ti) \
+-	((struct thread_info *) __get_free_pages(GFP_KERNEL, THREAD_SIZE_ORDER))
+-#define free_thread_info(ti) free_pages((unsigned long)(ti), 1)
+ #define get_thread_info(ti) get_task_struct((ti)->task)
+ #define put_thread_info(ti) put_task_struct((ti)->task)
+ 
+diff -puN include/asm-blackfin/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-blackfin/thread_info.h
+--- a/include/asm-blackfin/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-blackfin/thread_info.h
+@@ -42,6 +42,7 @@
+ /*
+  * Size of kernel stack for each process. This must be a power of 2...
+  */
++#define THREAD_SIZE_ORDER	1
+ #define THREAD_SIZE		8192	/* 2 pages */
+ 
+ #ifndef __ASSEMBLY__
+@@ -94,10 +95,6 @@ static inline struct thread_info *curren
+ 	return (struct thread_info *)((long)ti & ~((long)THREAD_SIZE-1));
+ }
+ 
+-/* thread information allocation */
+-#define alloc_thread_info(tsk) ((struct thread_info *) \
+-				__get_free_pages(GFP_KERNEL, 1))
+-#define free_thread_info(ti)	free_pages((unsigned long) (ti), 1)
+ #endif				/* __ASSEMBLY__ */
+ 
+ /*
+diff -puN include/asm-cris/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-cris/thread_info.h
+--- a/include/asm-cris/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-cris/thread_info.h
+@@ -11,6 +11,8 @@
  
  #ifdef __KERNEL__
  
-diff -puN include/asm-x86/unistd_64.h~flag-parameters-dup2 include/asm-x86/unistd_64.h
---- a/include/asm-x86/unistd_64.h~flag-parameters-dup2
-+++ a/include/asm-x86/unistd_64.h
-@@ -647,6 +647,8 @@ __SYSCALL(__NR_signalfd4, sys_signalfd4)
- __SYSCALL(__NR_eventfd2, sys_eventfd2)
- #define __NR_epoll_create2			291
- __SYSCALL(__NR_epoll_create2, sys_epoll_create2)
-+#define __NR_dup3				292
-+__SYSCALL(__NR_dup3, sys_dup3)
++#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++
+ #ifndef __ASSEMBLY__
+ #include <asm/types.h>
+ #include <asm/processor.h>
+diff -puN include/asm-frv/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-frv/thread_info.h
+--- a/include/asm-frv/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-frv/thread_info.h
+@@ -82,6 +82,8 @@ register struct thread_info *__current_t
+ 
+ #define current_thread_info() ({ __current_thread_info; })
+ 
++#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++
+ /* thread information allocation */
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+ #define alloc_thread_info(tsk)					\
+diff -puN include/asm-h8300/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-h8300/thread_info.h
+--- a/include/asm-h8300/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-h8300/thread_info.h
+@@ -49,6 +49,7 @@ struct thread_info {
+ /*
+  * Size of kernel stack for each process. This must be a power of 2...
+  */
++#define THREAD_SIZE_ORDER	1
+ #define THREAD_SIZE		8192	/* 2 pages */
  
  
- #ifndef __NO_STUBS
-diff -puN include/linux/syscalls.h~flag-parameters-dup2 include/linux/syscalls.h
---- a/include/linux/syscalls.h~flag-parameters-dup2
-+++ a/include/linux/syscalls.h
-@@ -305,6 +305,7 @@ asmlinkage long sys_fcntl64(unsigned int
+@@ -65,10 +66,6 @@ static inline struct thread_info *curren
+ 	return ti;
+ }
+ 
+-/* thread information allocation */
+-#define alloc_thread_info(tsk) ((struct thread_info *) \
+-				__get_free_pages(GFP_KERNEL, 1))
+-#define free_thread_info(ti)	free_pages((unsigned long) (ti), 1)
+ #endif /* __ASSEMBLY__ */
+ 
+ /*
+diff -puN include/asm-ia64/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-ia64/thread_info.h
+--- a/include/asm-ia64/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-ia64/thread_info.h
+@@ -54,6 +54,8 @@ struct thread_info {
+ 	},					\
+ }
+ 
++#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++
+ #ifndef ASM_OFFSETS_C
+ /* how to get the thread information struct from C */
+ #define current_thread_info()	((struct thread_info *) ((char *) current + IA64_TASK_SIZE))
+diff -puN include/asm-m32r/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-m32r/thread_info.h
+--- a/include/asm-m32r/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-m32r/thread_info.h
+@@ -94,6 +94,8 @@ static inline struct thread_info *curren
+ 	return ti;
+ }
+ 
++#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++
+ /* thread information allocation */
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+ #define alloc_thread_info(tsk)					\
+diff -puN include/asm-m68k/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-m68k/thread_info.h
+--- a/include/asm-m68k/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-m68k/thread_info.h
+@@ -25,13 +25,7 @@ struct thread_info {
+ }
+ 
+ /* THREAD_SIZE should be 8k, so handle differently for 4k and 8k machines */
+-#if PAGE_SHIFT == 13 /* 8k machines */
+-#define alloc_thread_info(tsk)   ((struct thread_info *)__get_free_pages(GFP_KERNEL,0))
+-#define free_thread_info(ti)  free_pages((unsigned long)(ti),0)
+-#else /* otherwise assume 4k pages */
+-#define alloc_thread_info(tsk)   ((struct thread_info *)__get_free_pages(GFP_KERNEL,1))
+-#define free_thread_info(ti)  free_pages((unsigned long)(ti),1)
+-#endif /* PAGE_SHIFT == 13 */
++#define THREAD_SIZE_ORDER (13 - PAGE_SHIFT)
+ 
+ #define init_thread_info	(init_task.thread.info)
+ #define init_stack		(init_thread_union.stack)
+diff -puN include/asm-m68knommu/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-m68knommu/thread_info.h
+--- a/include/asm-m68knommu/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-m68knommu/thread_info.h
+@@ -71,10 +71,6 @@ static inline struct thread_info *curren
+ 	return ti;
+ }
+ 
+-/* thread information allocation */
+-#define alloc_thread_info(tsk) ((struct thread_info *) \
+-				__get_free_pages(GFP_KERNEL, THREAD_SIZE_ORDER))
+-#define free_thread_info(ti)	free_pages((unsigned long) (ti), THREAD_SIZE_ORDER)
+ #endif /* __ASSEMBLY__ */
+ 
+ #define	PREEMPT_ACTIVE	0x4000000
+diff -puN include/asm-mips/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-mips/thread_info.h
+--- a/include/asm-mips/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-mips/thread_info.h
+@@ -82,6 +82,8 @@ register struct thread_info *__current_t
+ #define THREAD_SIZE (PAGE_SIZE << THREAD_SIZE_ORDER)
+ #define THREAD_MASK (THREAD_SIZE - 1UL)
+ 
++#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+ #define alloc_thread_info(tsk)					\
+ ({								\
+diff -puN include/asm-mn10300/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-mn10300/thread_info.h
+--- a/include/asm-mn10300/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-mn10300/thread_info.h
+@@ -112,6 +112,8 @@ static inline unsigned long current_stac
+ 	return sp;
+ }
+ 
++#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++
+ /* thread information allocation */
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+ #define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
+diff -puN include/asm-parisc/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-parisc/thread_info.h
+--- a/include/asm-parisc/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-parisc/thread_info.h
+@@ -34,15 +34,11 @@ struct thread_info {
+ 
+ /* thread information allocation */
+ 
+-#define THREAD_ORDER            2
++#define THREAD_SIZE_ORDER            2
+ /* Be sure to hunt all references to this down when you change the size of
+  * the kernel stack */
+-#define THREAD_SIZE             (PAGE_SIZE << THREAD_ORDER)
+-#define THREAD_SHIFT            (PAGE_SHIFT + THREAD_ORDER)
+-
+-#define alloc_thread_info(tsk) ((struct thread_info *) \
+-			__get_free_pages(GFP_KERNEL, THREAD_ORDER))
+-#define free_thread_info(ti)    free_pages((unsigned long) (ti), THREAD_ORDER)
++#define THREAD_SIZE             (PAGE_SIZE << THREAD_SIZE_ORDER)
++#define THREAD_SHIFT            (PAGE_SHIFT + THREAD_SIZE_ORDER)
+ 
+ /* how to get the thread information struct from C */
+ #define current_thread_info()	((struct thread_info *)mfctl(30))
+diff -puN include/asm-powerpc/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-powerpc/thread_info.h
+--- a/include/asm-powerpc/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-powerpc/thread_info.h
+@@ -66,20 +66,12 @@ struct thread_info {
+ 
+ #if THREAD_SHIFT >= PAGE_SHIFT
+ 
+-#define THREAD_ORDER	(THREAD_SHIFT - PAGE_SHIFT)
+-
+-#ifdef CONFIG_DEBUG_STACK_USAGE
+-#define alloc_thread_info(tsk)	\
+-	((struct thread_info *)__get_free_pages(GFP_KERNEL | \
+-		__GFP_ZERO, THREAD_ORDER))
+-#else
+-#define alloc_thread_info(tsk)	\
+-	((struct thread_info *)__get_free_pages(GFP_KERNEL, THREAD_ORDER))
+-#endif
+-#define free_thread_info(ti)	free_pages((unsigned long)ti, THREAD_ORDER)
++#define THREAD_SIZE_ORDER	(THREAD_SHIFT - PAGE_SHIFT)
+ 
+ #else /* THREAD_SHIFT < PAGE_SHIFT */
+ 
++#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++
+ extern struct thread_info *alloc_thread_info(struct task_struct *tsk);
+ extern void free_thread_info(struct thread_info *ti);
+ 
+diff -puN include/asm-s390/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-s390/thread_info.h
+--- a/include/asm-s390/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-s390/thread_info.h
+@@ -78,10 +78,7 @@ static inline struct thread_info *curren
+ 	return (struct thread_info *)((*(unsigned long *) __LC_KERNEL_STACK)-THREAD_SIZE);
+ }
+ 
+-/* thread information allocation */
+-#define alloc_thread_info(tsk) ((struct thread_info *) \
+-	__get_free_pages(GFP_KERNEL,THREAD_ORDER))
+-#define free_thread_info(ti) free_pages((unsigned long) (ti),THREAD_ORDER)
++#define THREAD_SIZE_ORDER THREAD_ORDER
+ 
  #endif
- asmlinkage long sys_dup(unsigned int fildes);
- asmlinkage long sys_dup2(unsigned int oldfd, unsigned int newfd);
-+asmlinkage long sys_dup3(unsigned int oldfd, unsigned int newfd, int flags);
- asmlinkage long sys_ioperm(unsigned long from, unsigned long num, int on);
- asmlinkage long sys_ioctl(unsigned int fd, unsigned int cmd,
- 				unsigned long arg);
+ 
+diff -puN include/asm-sh/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-sh/thread_info.h
+--- a/include/asm-sh/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-sh/thread_info.h
+@@ -92,6 +92,8 @@ static inline struct thread_info *curren
+ 	return ti;
+ }
+ 
++#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++
+ /* thread information allocation */
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+ #define alloc_thread_info(ti)	kzalloc(THREAD_SIZE, GFP_KERNEL)
+diff -puN include/asm-sparc/thread_info_32.h~clean-up-duplicated-alloc-free_thread_info include/asm-sparc/thread_info_32.h
+--- a/include/asm-sparc/thread_info_32.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-sparc/thread_info_32.h
+@@ -86,6 +86,8 @@ register struct thread_info *current_thr
+ #define THREAD_INFO_ORDER  1
+ #endif
+ 
++#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++
+ BTFIXUPDEF_CALL(struct thread_info *, alloc_thread_info, void)
+ #define alloc_thread_info(tsk) BTFIXUP_CALL(alloc_thread_info)()
+ 
+diff -puN include/asm-sparc/thread_info_64.h~clean-up-duplicated-alloc-free_thread_info include/asm-sparc/thread_info_64.h
+--- a/include/asm-sparc/thread_info_64.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-sparc/thread_info_64.h
+@@ -155,6 +155,8 @@ register struct thread_info *current_thr
+ #define __THREAD_INFO_ORDER	0
+ #endif /* PAGE_SHIFT == 13 */
+ 
++#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+ #define alloc_thread_info(tsk)					\
+ ({								\
+diff -puN include/asm-um/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-um/thread_info.h
+--- a/include/asm-um/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-um/thread_info.h
+@@ -53,21 +53,7 @@ static inline struct thread_info *curren
+ 	return ti;
+ }
+ 
+-#ifdef CONFIG_DEBUG_STACK_USAGE
+-
+-#define alloc_thread_info(tsk) \
+-	((struct thread_info *) __get_free_pages(GFP_KERNEL | __GFP_ZERO, \
+-						 CONFIG_KERNEL_STACK_ORDER))
+-#else
+-
+-/* thread information allocation */
+-#define alloc_thread_info(tsk) \
+-	((struct thread_info *) __get_free_pages(GFP_KERNEL, \
+-						 CONFIG_KERNEL_STACK_ORDER))
+-#endif
+-
+-#define free_thread_info(ti) \
+-	free_pages((unsigned long)(ti),CONFIG_KERNEL_STACK_ORDER)
++#define THREAD_SIZE_ORDER CONFIG_KERNEL_STACK_ORDER
+ 
+ #endif
+ 
+diff -puN include/asm-x86/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-x86/thread_info.h
+--- a/include/asm-x86/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-x86/thread_info.h
+@@ -152,6 +152,8 @@ struct thread_info {
+ #define THREAD_FLAGS GFP_KERNEL
+ #endif
+ 
++#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++
+ #define alloc_thread_info(tsk)						\
+ 	((struct thread_info *)__get_free_pages(THREAD_FLAGS, THREAD_ORDER))
+ 
+diff -puN include/asm-xtensa/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-xtensa/thread_info.h
+--- a/include/asm-xtensa/thread_info.h~clean-up-duplicated-alloc-free_thread_info
++++ a/include/asm-xtensa/thread_info.h
+@@ -111,10 +111,6 @@ static inline struct thread_info *curren
+ 	return ti;
+ }
+ 
+-/* thread information allocation */
+-#define alloc_thread_info(tsk) ((struct thread_info *) __get_free_pages(GFP_KERNEL,1))
+-#define free_thread_info(ti) free_pages((unsigned long) (ti), 1)
+-
+ #else /* !__ASSEMBLY__ */
+ 
+ /* how to get the thread information struct from ASM */
+@@ -160,6 +156,7 @@ static inline struct thread_info *curren
+ #define TS_USEDFPU		0x0001	/* FPU was used by this task this quantum (SMP) */
+ 
+ #define THREAD_SIZE 8192	//(2*PAGE_SIZE)
++#define THREAD_SIZE_ORDER 1
+ 
+ #endif	/* __KERNEL__ */
+ #endif	/* _XTENSA_THREAD_INFO */
+diff -puN kernel/fork.c~clean-up-duplicated-alloc-free_thread_info kernel/fork.c
+--- a/kernel/fork.c~clean-up-duplicated-alloc-free_thread_info
++++ a/kernel/fork.c
+@@ -93,6 +93,23 @@ int nr_processes(void)
+ static struct kmem_cache *task_struct_cachep;
+ #endif
+ 
++#ifndef __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++static inline struct thread_info *alloc_thread_info(struct task_struct *tsk)
++{
++#ifdef CONFIG_DEBUG_STACK_USAGE
++	gfp_t mask = GFP_KERNEL | __GFP_ZERO;
++#else
++	gfp_t mask = GFP_KERNEL;
++#endif
++	return (struct thread_info *)__get_free_pages(mask, THREAD_SIZE_ORDER);
++}
++
++static inline void free_thread_info(struct thread_info *ti)
++{
++	free_pages((unsigned long)ti, THREAD_SIZE_ORDER);
++}
++#endif
++
+ /* SLAB cache for signal_struct structures (tsk->signal) */
+ static struct kmem_cache *signal_cachep;
+ 
 _
-
-Patches currently in -mm which might be from drepper@redhat.com are
-
-origin.patch
-linux-next.patch
