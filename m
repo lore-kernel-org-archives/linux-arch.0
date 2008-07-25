@@ -1,112 +1,340 @@
-From: Adrian Bunk <bunk@kernel.org>
-Subject: Re: PAGE_ALIGN() compile breakage
-Date: Fri, 25 Jul 2008 12:14:55 +0300
-Message-ID: <20080725091455.GD19310@cs181140183.pp.htv.fi>
-References: <20080725083943.GC19310@cs181140183.pp.htv.fi> <20080725015537.564e3397.akpm@linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+From: akpm@linux-foundation.org
+Subject: [patch 151/277] include/asm/ptrace.h userspace headers cleanup
+Date: Fri, 25 Jul 2008 01:47:34 -0700
+Message-ID: <200807250847.m6P8lYYu001485@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp6.pp.htv.fi ([213.243.153.40]:41466 "EHLO smtp6.pp.htv.fi"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752330AbYGYJPU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 Jul 2008 05:15:20 -0400
-Content-Disposition: inline
-In-Reply-To: <20080725015537.564e3397.akpm@linux-foundation.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:56309 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755116AbYGYJTM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 Jul 2008 05:19:12 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andrea Righi <righi.andrea@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org, bunk@kernel.org, chris@zankel.net, dhowells@redhat.com, gerg@uclinux.org, grundler@parisc-linux.org, jesper.nilsson@axis.com, lethal@linux-sh.org, linux-arch@vger.kernel.org, oleg@tv-sign.ru, paulus@samba.org, rmk+kernel@arm.linux.org.uk, roland@redhat.com
 
-On Fri, Jul 25, 2008 at 01:55:37AM -0700, Andrew Morton wrote:
-> On Fri, 25 Jul 2008 11:39:43 +0300 Adrian Bunk <bunk@kernel.org> wrote:
-> 
-> > Commit 27ac792ca0b0a1e7e65f20342260650516c95864
-> > (PAGE_ALIGN(): correctly handle 64-bit values on 32-bit architectures)
-> > causes on some architectures (e.g. avr32 and mips) compile errors
-> > like the following in some configurations starting with:
-> > 
-> > <--  snip  -->
-> > 
-> > ...
-> >   CC      init/main.o
-> > In file included from 
-> > /home/bunk/linux/kernel-2.6/git/linux-2.6/include/linux/utsname.h:35,
-> >                  from /home/bunk/linux/kernel-2.6/git/linux-2.6/init/main.c:20:
-> > /home/bunk/linux/kernel-2.6/git/linux-2.6/include/linux/sched.h: In function 'arch_pick_mmap_layout':
-> > /home/bunk/linux/kernel-2.6/git/linux-2.6/include/linux/sched.h:2149: error: implicit declaration of function 'PAGE_ALIGN'
-> > make[2]: *** [init/main.o] Error 1
-> > 
-> 
-> pls test:
-> 
-> diff -puN include/linux/sched.h~a include/linux/sched.h
-> --- a/include/linux/sched.h~a
-> +++ a/include/linux/sched.h
-> @@ -2139,16 +2139,7 @@ static inline void set_task_cpu(struct t
->  
->  #endif /* CONFIG_SMP */
->  
-> -#ifdef HAVE_ARCH_PICK_MMAP_LAYOUT
->  extern void arch_pick_mmap_layout(struct mm_struct *mm);
-> -#else
-> -static inline void arch_pick_mmap_layout(struct mm_struct *mm)
-> -{
-> -	mm->mmap_base = TASK_UNMAPPED_BASE;
-> -	mm->get_unmapped_area = arch_get_unmapped_area;
-> -	mm->unmap_area = arch_unmap_area;
-> -}
-> -#endif
->  
->  #ifdef CONFIG_TRACING
->  extern void
-> diff -puN mm/mmap.c~a mm/mmap.c
-> --- a/mm/mmap.c~a
-> +++ a/mm/mmap.c
-> @@ -2268,3 +2268,12 @@ int install_special_mapping(struct mm_st
->  
->  	return 0;
->  }
-> +
-> +#ifndef HAVE_ARCH_PICK_MMAP_LAYOUT
-> +void arch_pick_mmap_layout(struct mm_struct *mm)
-> +{
-> +	mm->mmap_base = TASK_UNMAPPED_BASE;
-> +	mm->get_unmapped_area = arch_get_unmapped_area;
-> +	mm->unmap_area = arch_unmap_area;
-> +}
-> +#endif
+From: Adrian Bunk <bunk@kernel.org>
 
-Nice, this seems to fix the problem.
+This patch contains the following cleanups for the asm/ptrace.h
+userspace headers:
 
-> > and more nasty problems follow later.
-> > 
-> > My suggestion is to:
-> > - revert commit 27ac792ca0b0a1e7e65f20342260650516c95864 and then
-> > - fix all PAGE_ALIGN() instances without moving them.
-> 
-> Every time this patch blew up (and it did it often), fixing it resulted
-> in overall improvements.
-> 
-> > Unifying code is a good thing, but in this case it is not worth the 
-> > trouble it causes by poking into the heart of our headers mess.
-> 
-> Well.   If we leave it a mess, it'll stay a mess.
+- include/asm-generic/Kbuild.asm already lists ptrace.h, remove
+  the superfluous listings in the Kbuild files of the following
+  architectures:
+  - cris
+  - frv
+  - powerpc
+  - x86
+- don't expose function prototypes and macros to userspace:
+  - arm
+  - blackfin
+  - cris
+  - mn10300
+  - parisc
+- remove #ifdef CONFIG_'s around #define's:
+  - blackfin
+  - m68knommu
+- sh: AFAIK __SH5__ should work in both kernel and userspace,
+      no need to leak CONFIG_SUPERH64 to userspace
+- xtensa: cosmetical change to remove empty
+            #ifndef __ASSEMBLY__ #else #endif
+          from the userspace headers
 
-An interesting question is whether the PAGE_ALIGN() move makes the mess 
-bigger or smaller.
+Not changed by this patch is the fact that the following architectures
+have a different struct pt_regs depending on CONFIG_ variables:
+- h8300
+- m68knommu
+- mips
 
-Ideally, all headers should be self-contained. IOW, they should #include 
-everything they use.
+This does not work in userspace.
 
-But TASK_UNMAPPED_BASE in asm/processor.h on some architectures uses 
-PAGE_ALIGN() that got moved from asm/page.h to linux/mm.h .
+Signed-off-by: Adrian Bunk <bunk@kernel.org>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Roland McGrath <roland@redhat.com>
+Cc: Oleg Nesterov <oleg@tv-sign.ru>
+Acked-by: Greg Ungerer <gerg@uclinux.org>
+Acked-by: Paul Mundt <lethal@linux-sh.org>
+Acked-by: Grant Grundler <grundler@parisc-linux.org>
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+Acked-by: Chris Zankel <chris@zankel.net>
+Acked-by: David Howells <dhowells@redhat.com>
+Acked-by: Paul Mackerras <paulus@samba.org>
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
 
-cu
-Adrian
+ include/asm-arm/ptrace.h           |    6 ++----
+ include/asm-blackfin/ptrace.h      |    6 ++++--
+ include/asm-cris/arch-v10/Kbuild   |    1 -
+ include/asm-cris/arch-v10/ptrace.h |    4 ++++
+ include/asm-cris/arch-v32/Kbuild   |    1 -
+ include/asm-cris/arch-v32/ptrace.h |    4 ++++
+ include/asm-cris/ptrace.h          |    4 +++-
+ include/asm-frv/Kbuild             |    1 -
+ include/asm-m68knommu/ptrace.h     |    2 --
+ include/asm-mn10300/ptrace.h       |    8 ++++++--
+ include/asm-parisc/ptrace.h        |    4 +++-
+ include/asm-powerpc/Kbuild         |    1 -
+ include/asm-sh/ptrace.h            |    2 +-
+ include/asm-x86/Kbuild             |    1 -
+ include/asm-xtensa/ptrace.h        |   10 +++++-----
+ 15 files changed, 32 insertions(+), 23 deletions(-)
 
--- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
+diff -puN include/asm-arm/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup include/asm-arm/ptrace.h
+--- a/include/asm-arm/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-arm/ptrace.h
+@@ -139,8 +139,6 @@ static inline int valid_user_regs(struct
+ 	return 0;
+ }
+ 
+-#endif	/* __KERNEL__ */
+-
+ #define pc_pointer(v) \
+ 	((v) & ~PCMASK)
+ 
+@@ -153,10 +151,10 @@ extern unsigned long profile_pc(struct p
+ #define profile_pc(regs) instruction_pointer(regs)
+ #endif
+ 
+-#ifdef __KERNEL__
+ #define predicate(x)		((x) & 0xf0000000)
+ #define PREDICATE_ALWAYS	0xe0000000
+-#endif
++
++#endif /* __KERNEL__ */
+ 
+ #endif /* __ASSEMBLY__ */
+ 
+diff -puN include/asm-blackfin/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup include/asm-blackfin/ptrace.h
+--- a/include/asm-blackfin/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-blackfin/ptrace.h
+@@ -83,14 +83,14 @@ struct pt_regs {
+ #define PTRACE_GETREGS            12
+ #define PTRACE_SETREGS            13	/* ptrace signal  */
+ 
+-#ifdef CONFIG_BINFMT_ELF_FDPIC
+ #define PTRACE_GETFDPIC           31
+ #define PTRACE_GETFDPIC_EXEC      0
+ #define PTRACE_GETFDPIC_INTERP    1
+-#endif
+ 
+ #define PS_S  (0x0002)
+ 
++#ifdef __KERNEL__
++
+ /* user_mode returns true if only one bit is set in IPEND, other than the
+    master interrupt enable.  */
+ #define user_mode(regs) (!(((regs)->ipend & ~0x10) & (((regs)->ipend & ~0x10) - 1)))
+@@ -98,6 +98,8 @@ struct pt_regs {
+ #define profile_pc(regs) instruction_pointer(regs)
+ extern void show_regs(struct pt_regs *);
+ 
++#endif  /*  __KERNEL__  */
++
+ #endif				/* __ASSEMBLY__ */
+ 
+ /*
+diff -puN include/asm-cris/arch-v10/Kbuild~include-asm-ptraceh-userspace-headers-cleanup include/asm-cris/arch-v10/Kbuild
+--- a/include/asm-cris/arch-v10/Kbuild~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-cris/arch-v10/Kbuild
+@@ -1,4 +1,3 @@
+-header-y += ptrace.h
+ header-y += user.h
+ header-y += svinto.h
+ header-y += sv_addr_ag.h
+diff -puN include/asm-cris/arch-v10/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup include/asm-cris/arch-v10/ptrace.h
+--- a/include/asm-cris/arch-v10/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-cris/arch-v10/ptrace.h
+@@ -106,10 +106,14 @@ struct switch_stack {
+ 	unsigned long return_ip; /* ip that _resume will return to */
+ };
+ 
++#ifdef __KERNEL__
++
+ /* bit 8 is user-mode flag */
+ #define user_mode(regs) (((regs)->dccr & 0x100) != 0)
+ #define instruction_pointer(regs) ((regs)->irp)
+ #define profile_pc(regs) instruction_pointer(regs)
+ extern void show_regs(struct pt_regs *);
+ 
++#endif  /*  __KERNEL__  */
++
+ #endif
+diff -puN include/asm-cris/arch-v32/Kbuild~include-asm-ptraceh-userspace-headers-cleanup include/asm-cris/arch-v32/Kbuild
+--- a/include/asm-cris/arch-v32/Kbuild~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-cris/arch-v32/Kbuild
+@@ -1,3 +1,2 @@
+-header-y += ptrace.h
+ header-y += user.h
+ header-y += cryptocop.h
+diff -puN include/asm-cris/arch-v32/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup include/asm-cris/arch-v32/ptrace.h
+--- a/include/asm-cris/arch-v32/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-cris/arch-v32/ptrace.h
+@@ -106,9 +106,13 @@ struct switch_stack {
+ 	unsigned long return_ip; /* ip that _resume will return to */
+ };
+ 
++#ifdef __KERNEL__
++
+ #define user_mode(regs) (((regs)->ccs & (1 << (U_CCS_BITNR + CCS_SHIFT))) != 0)
+ #define instruction_pointer(regs) ((regs)->erp)
+ extern void show_regs(struct pt_regs *);
+ #define profile_pc(regs) instruction_pointer(regs)
+ 
++#endif  /*  __KERNEL__  */
++
+ #endif
+diff -puN include/asm-cris/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup include/asm-cris/ptrace.h
+--- a/include/asm-cris/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-cris/ptrace.h
+@@ -4,11 +4,13 @@
+ #include <asm/arch/ptrace.h>
+ 
+ #ifdef __KERNEL__
++
+ /* Arbitrarily choose the same ptrace numbers as used by the Sparc code. */
+ #define PTRACE_GETREGS            12
+ #define PTRACE_SETREGS            13
+-#endif
+ 
+ #define profile_pc(regs) instruction_pointer(regs)
+ 
++#endif /* __KERNEL__ */
++
+ #endif /* _CRIS_PTRACE_H */
+diff -puN include/asm-frv/Kbuild~include-asm-ptraceh-userspace-headers-cleanup include/asm-frv/Kbuild
+--- a/include/asm-frv/Kbuild~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-frv/Kbuild
+@@ -3,4 +3,3 @@ include include/asm-generic/Kbuild.asm
+ header-y += registers.h
+ 
+ unifdef-y += termios.h
+-unifdef-y += ptrace.h
+diff -puN include/asm-m68knommu/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup include/asm-m68knommu/ptrace.h
+--- a/include/asm-m68knommu/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-m68knommu/ptrace.h
+@@ -68,10 +68,8 @@ struct switch_stack {
+ /* Arbitrarily choose the same ptrace numbers as used by the Sparc code. */
+ #define PTRACE_GETREGS            12
+ #define PTRACE_SETREGS            13
+-#ifdef CONFIG_FPU
+ #define PTRACE_GETFPREGS          14
+ #define PTRACE_SETFPREGS          15
+-#endif
+ 
+ #ifdef __KERNEL__
+ 
+diff -puN include/asm-mn10300/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup include/asm-mn10300/ptrace.h
+--- a/include/asm-mn10300/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-mn10300/ptrace.h
+@@ -88,12 +88,16 @@ extern struct pt_regs *__frame; /* curre
+ /* options set using PTRACE_SETOPTIONS */
+ #define PTRACE_O_TRACESYSGOOD     0x00000001
+ 
+-#if defined(__KERNEL__) && !defined(__ASSEMBLY__)
++#if defined(__KERNEL__)
++
++#if !defined(__ASSEMBLY__)
+ #define user_mode(regs)			(((regs)->epsw & EPSW_nSL) == EPSW_nSL)
+ #define instruction_pointer(regs)	((regs)->pc)
+ extern void show_regs(struct pt_regs *);
+-#endif
++#endif  /*  !__ASSEMBLY  */
+ 
+ #define profile_pc(regs) ((regs)->pc)
+ 
++#endif  /*  __KERNEL__  */
++
+ #endif /* _ASM_PTRACE_H */
+diff -puN include/asm-parisc/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup include/asm-parisc/ptrace.h
+--- a/include/asm-parisc/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-parisc/ptrace.h
+@@ -33,7 +33,6 @@ struct pt_regs {
+ 	unsigned long ipsw;	/* CR22 */
+ };
+ 
+-#define task_regs(task) ((struct pt_regs *) ((char *)(task) + TASK_REGS))
+ /*
+  * The numbers chosen here are somewhat arbitrary but absolutely MUST
+  * not overlap with any of the number assigned in <linux/ptrace.h>.
+@@ -43,8 +42,11 @@ struct pt_regs {
+  * since we have taken branch traps too)
+  */
+ #define PTRACE_SINGLEBLOCK	12	/* resume execution until next branch */
++
+ #ifdef __KERNEL__
+ 
++#define task_regs(task) ((struct pt_regs *) ((char *)(task) + TASK_REGS))
++
+ /* XXX should we use iaoq[1] or iaoq[0] ? */
+ #define user_mode(regs)			(((regs)->iaoq[0] & 3) ? 1 : 0)
+ #define user_space(regs)		(((regs)->iasq[1] != 0) ? 1 : 0)
+diff -puN include/asm-powerpc/Kbuild~include-asm-ptraceh-userspace-headers-cleanup include/asm-powerpc/Kbuild
+--- a/include/asm-powerpc/Kbuild~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-powerpc/Kbuild
+@@ -29,7 +29,6 @@ unifdef-y += elf.h
+ unifdef-y += nvram.h
+ unifdef-y += param.h
+ unifdef-y += posix_types.h
+-unifdef-y += ptrace.h
+ unifdef-y += seccomp.h
+ unifdef-y += signal.h
+ unifdef-y += spu_info.h
+diff -puN include/asm-sh/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup include/asm-sh/ptrace.h
+--- a/include/asm-sh/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-sh/ptrace.h
+@@ -5,7 +5,7 @@
+  * Copyright (C) 1999, 2000  Niibe Yutaka
+  *
+  */
+-#if defined(__SH5__) || defined(CONFIG_SUPERH64)
++#if defined(__SH5__)
+ struct pt_regs {
+ 	unsigned long long pc;
+ 	unsigned long long sr;
+diff -puN include/asm-x86/Kbuild~include-asm-ptraceh-userspace-headers-cleanup include/asm-x86/Kbuild
+--- a/include/asm-x86/Kbuild~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-x86/Kbuild
+@@ -19,7 +19,6 @@ unifdef-y += msr.h
+ unifdef-y += mtrr.h
+ unifdef-y += posix_types_32.h
+ unifdef-y += posix_types_64.h
+-unifdef-y += ptrace.h
+ unifdef-y += unistd_32.h
+ unifdef-y += unistd_64.h
+ unifdef-y += vm86.h
+diff -puN include/asm-xtensa/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup include/asm-xtensa/ptrace.h
+--- a/include/asm-xtensa/ptrace.h~include-asm-ptraceh-userspace-headers-cleanup
++++ a/include/asm-xtensa/ptrace.h
+@@ -73,10 +73,10 @@
+ #define PTRACE_GETXTREGS	18
+ #define PTRACE_SETXTREGS	19
+ 
+-#ifndef __ASSEMBLY__
+-
+ #ifdef __KERNEL__
+ 
++#ifndef __ASSEMBLY__
++
+ /*
+  * This struct defines the way the registers are stored on the
+  * kernel stack during a system call or other kernel entry.
+@@ -122,14 +122,14 @@ extern void show_regs(struct pt_regs *);
+ # ifndef CONFIG_SMP
+ #  define profile_pc(regs) instruction_pointer(regs)
+ # endif
+-#endif /* __KERNEL__ */
+ 
+ #else	/* __ASSEMBLY__ */
+ 
+-#ifdef __KERNEL__
+ # include <asm/asm-offsets.h>
+ #define PT_REGS_OFFSET	  (KERNEL_STACK_SIZE - PT_USER_SIZE)
+-#endif
+ 
+ #endif	/* !__ASSEMBLY__ */
++
++#endif  /* __KERNEL__ */
++
+ #endif	/* _XTENSA_PTRACE_H */
+_
