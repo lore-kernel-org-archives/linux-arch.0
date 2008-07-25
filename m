@@ -1,42 +1,46 @@
-From: Atsushi Nemoto <anemo@mba.ocn.ne.jp>
-Subject: Re: [patch 29/29] initrd: Fix virtual/physical mix-up in overwrite
- test
-Date: Sat, 26 Jul 2008 01:27:31 +0900 (JST)
-Message-ID: <20080726.012731.122621958.anemo@mba.ocn.ne.jp>
-References: <20080717191758.556975996@mail.of.borg>
-	<20080725.003526.39154055.anemo@mba.ocn.ne.jp>
-	<Pine.LNX.4.64.0807242032430.701@anakin>
+From: Andrea Righi <righi.andrea@gmail.com>
+Subject: Re: PAGE_ALIGN() compile breakage
+Date: Fri, 25 Jul 2008 20:34:30 +0200
+Message-ID: <488A1CB6.5090707@gmail.com>
+References: <20080725083943.GC19310@cs181140183.pp.htv.fi>	<20080725015537.564e3397.akpm@linux-foundation.org>	<20080725091455.GD19310@cs181140183.pp.htv.fi> <20080725022547.a05ea755.akpm@linux-foundation.org>
+Reply-To: righi.andrea@gmail.com
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753185AbYGYQZu@vger.kernel.org>
-In-Reply-To: <Pine.LNX.4.64.0807242032430.701@anakin>
-Sender: linux-kernel-owner@vger.kernel.org
-To: geert@linux-m68k.org
-Cc: ralf@linux-mips.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-m68k@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mu-out-0910.google.com ([209.85.134.189]:7212 "EHLO
+	mu-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751718AbYGYSec (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Jul 2008 14:34:32 -0400
+Received: by mu-out-0910.google.com with SMTP id w8so2894649mue.1
+        for <linux-arch@vger.kernel.org>; Fri, 25 Jul 2008 11:34:30 -0700 (PDT)
+In-Reply-To: <20080725022547.a05ea755.akpm@linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Adrian Bunk <bunk@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>
 
-On Thu, 24 Jul 2008 20:49:27 +0200 (CEST), Geert Uytterhoeven <geert@linux-m68k.org> wrote:
-> > Because an argument of mips virt_to_phys() is an pointer and
-> > initrd_start is unsigned long.  It seems most (all?) arch's
-> > virt_to_phys() casts its argument to unsigned long internally.  Should
-> > mips follow?
+Andrew Morton wrote:
+> On Fri, 25 Jul 2008 12:14:55 +0300 Adrian Bunk <bunk@kernel.org> wrote:
 > 
-> Alternatively, as initrd_start is really a virtual kernel address,
-> perhaps it should be changed from unsigned long to void * instead?
+>> Ideally, all headers should be self-contained. IOW, they should #include 
+>> everything they use.
 > 
-> It's cast to `void *' in several place. arch/xtensa/kernel/setup.c even
-> has `extern void *initrd_start' to fool around this?
+> Yup.  And the core reason for our headers mess is that the headers do
+> too much stuff, and cnosequently demand a large dependency trail.
+> 
+>> But TASK_UNMAPPED_BASE in asm/processor.h on some architectures uses 
+>> PAGE_ALIGN() that got moved from asm/page.h to linux/mm.h .
+> 
+> Probably mm.h should be split up - put the simple things (usually
+> declarations) into one "early" header file and leave the more
+> heavyweight things (usually implementations) in mm.h.
 
-I agree it would make code cleaner, but the conversion might be
-somewhat hard.
+IMHO splitting mm.h is probably the best solution. If I'm not wrong
+Paul (CCed) already suggested to move the stuff like PAGE_ALIGN() outside
+mm.h the first time I submitted this patch.
 
-If we converted initrd_start (and initrd_end) to void *, we should
-also convert INITRD_START, free_initrd_mem(), some other arch specific
-local/global variables and printk format strings.  Also code like
-"initrd_start & PAGE_MASK" should be changed too...
+In this way we could even include the "lightweight" mm.h (mm_define.h??)
+in all the asm-*/page.h, preserving also the backward compatibility.
 
-Is it worth to do?
-
----
-Atsushi Nemoto
+-Andrea
