@@ -1,443 +1,134 @@
 From: akpm@linux-foundation.org
-Subject: [patch 024/277] clean up duplicated alloc/free_thread_info
-Date: Fri, 25 Jul 2008 01:45:40 -0700
-Message-ID: <200807250845.m6P8jesr000923@imap1.linux-foundation.org>
+Subject: [patch 015/277] introduce HAVE_EFFICIENT_UNALIGNED_ACCESS Kconfig symbol
+Date: Fri, 25 Jul 2008 01:45:33 -0700
+Message-ID: <200807250845.m6P8jXn8000887@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:60251 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:35846 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752566AbYGYIp4 (ORCPT
+	by vger.kernel.org with ESMTP id S1752537AbYGYIqa (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 Jul 2008 04:45:56 -0400
+	Fri, 25 Jul 2008 04:46:30 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, penberg@cs.helsinki.fi, rmk+kernel@arm.linux.org.uk
+Cc: akpm@linux-foundation.org, johannes@sipsolutions.net, linux-arch@vger.kernel.org, mingo@elte.hu, sam@ravnborg.org
 
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+From: Johannes Berg <johannes@sipsolutions.net>
 
-We duplicate alloc/free_thread_info defines on many platforms (the
-majority uses __get_free_pages/free_pages).  This patch defines common
-defines and removes these duplicated defines. 
-__HAVE_ARCH_THREAD_INFO_ALLOCATOR is introduced for platforms that do
-something different.
+In many cases, especially in networking, it can be beneficial to know at
+compile time whether the architecture can do unaligned accesses efficiently. 
+This patch introduces a new Kconfig symbol
 
-Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
-Cc: Pekka Enberg <penberg@cs.helsinki.fi>
+	HAVE_EFFICIENT_UNALIGNED_ACCESS
+
+for that purpose and adds it to the powerpc and x86 architectures.  Also add
+some documentation about alignment and networking, and especially one intended
+use of this symbol.
+
+Signed-off-by: Johannes Berg <johannes@sipsolutions.net>
+Acked-by: Sam Ravnborg <sam@ravnborg.org>
+Acked-by: Ingo Molnar <mingo@elte.hu> [x86 architecture part]
 Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- include/asm-alpha/thread_info.h     |    4 +---
- include/asm-arm/thread_info.h       |   13 -------------
- include/asm-avr32/thread_info.h     |    4 ----
- include/asm-blackfin/thread_info.h  |    5 +----
- include/asm-cris/thread_info.h      |    2 ++
- include/asm-frv/thread_info.h       |    2 ++
- include/asm-h8300/thread_info.h     |    5 +----
- include/asm-ia64/thread_info.h      |    2 ++
- include/asm-m32r/thread_info.h      |    2 ++
- include/asm-m68k/thread_info.h      |    8 +-------
- include/asm-m68knommu/thread_info.h |    4 ----
- include/asm-mips/thread_info.h      |    2 ++
- include/asm-mn10300/thread_info.h   |    2 ++
- include/asm-parisc/thread_info.h    |   10 +++-------
- include/asm-powerpc/thread_info.h   |   14 +++-----------
- include/asm-s390/thread_info.h      |    5 +----
- include/asm-sh/thread_info.h        |    2 ++
- include/asm-sparc/thread_info_32.h  |    2 ++
- include/asm-sparc/thread_info_64.h  |    2 ++
- include/asm-um/thread_info.h        |   16 +---------------
- include/asm-x86/thread_info.h       |    2 ++
- include/asm-xtensa/thread_info.h    |    5 +----
- kernel/fork.c                       |   17 +++++++++++++++++
- 23 files changed, 50 insertions(+), 80 deletions(-)
+ Documentation/unaligned-memory-access.txt |   32 ++++++++++++++++++--
+ arch/Kconfig                              |   19 +++++++++++
+ arch/powerpc/Kconfig                      |    1 
+ arch/x86/Kconfig                          |    1 
+ 4 files changed, 50 insertions(+), 3 deletions(-)
 
-diff -puN include/asm-alpha/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-alpha/thread_info.h
---- a/include/asm-alpha/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-alpha/thread_info.h
-@@ -50,10 +50,8 @@ register struct thread_info *__current_t
- #define current_thread_info()  __current_thread_info
+diff -puN Documentation/unaligned-memory-access.txt~introduce-have_efficient_unaligned_access-kconfig-symbol Documentation/unaligned-memory-access.txt
+--- a/Documentation/unaligned-memory-access.txt~introduce-have_efficient_unaligned_access-kconfig-symbol
++++ a/Documentation/unaligned-memory-access.txt
+@@ -218,9 +218,35 @@ If use of such macros is not convenient,
+ where the source or destination (or both) are of type u8* or unsigned char*.
+ Due to the byte-wise nature of this operation, unaligned accesses are avoided.
  
- /* Thread information allocation.  */
-+#define THREAD_SIZE_ORDER 1
- #define THREAD_SIZE (2*PAGE_SIZE)
--#define alloc_thread_info(tsk) \
--  ((struct thread_info *) __get_free_pages(GFP_KERNEL,1))
--#define free_thread_info(ti) free_pages((unsigned long) (ti), 1)
- 
- #endif /* __ASSEMBLY__ */
- 
-diff -puN include/asm-arm/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-arm/thread_info.h
---- a/include/asm-arm/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-arm/thread_info.h
-@@ -97,19 +97,6 @@ static inline struct thread_info *curren
- 	return (struct thread_info *)(sp & ~(THREAD_SIZE - 1));
- }
- 
--/* thread information allocation */
--#ifdef CONFIG_DEBUG_STACK_USAGE
--#define alloc_thread_info(tsk) \
--	((struct thread_info *)__get_free_pages(GFP_KERNEL | __GFP_ZERO, \
--		THREAD_SIZE_ORDER))
--#else
--#define alloc_thread_info(tsk) \
--	((struct thread_info *)__get_free_pages(GFP_KERNEL, THREAD_SIZE_ORDER))
--#endif
--
--#define free_thread_info(info) \
--	free_pages((unsigned long)info, THREAD_SIZE_ORDER);
--
- #define thread_saved_pc(tsk)	\
- 	((unsigned long)(pc_pointer(task_thread_info(tsk)->cpu_context.pc)))
- #define thread_saved_fp(tsk)	\
-diff -puN include/asm-avr32/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-avr32/thread_info.h
---- a/include/asm-avr32/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-avr32/thread_info.h
-@@ -61,10 +61,6 @@ static inline struct thread_info *curren
- 	return (struct thread_info *)addr;
- }
- 
--/* thread information allocation */
--#define alloc_thread_info(ti) \
--	((struct thread_info *) __get_free_pages(GFP_KERNEL, THREAD_SIZE_ORDER))
--#define free_thread_info(ti) free_pages((unsigned long)(ti), 1)
- #define get_thread_info(ti) get_task_struct((ti)->task)
- #define put_thread_info(ti) put_task_struct((ti)->task)
- 
-diff -puN include/asm-blackfin/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-blackfin/thread_info.h
---- a/include/asm-blackfin/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-blackfin/thread_info.h
-@@ -42,6 +42,7 @@
- /*
-  * Size of kernel stack for each process. This must be a power of 2...
-  */
-+#define THREAD_SIZE_ORDER	1
- #define THREAD_SIZE		8192	/* 2 pages */
- 
- #ifndef __ASSEMBLY__
-@@ -94,10 +95,6 @@ static inline struct thread_info *curren
- 	return (struct thread_info *)((long)ti & ~((long)THREAD_SIZE-1));
- }
- 
--/* thread information allocation */
--#define alloc_thread_info(tsk) ((struct thread_info *) \
--				__get_free_pages(GFP_KERNEL, 1))
--#define free_thread_info(ti)	free_pages((unsigned long) (ti), 1)
- #endif				/* __ASSEMBLY__ */
- 
- /*
-diff -puN include/asm-cris/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-cris/thread_info.h
---- a/include/asm-cris/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-cris/thread_info.h
-@@ -11,6 +11,8 @@
- 
- #ifdef __KERNEL__
- 
-+#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
 +
- #ifndef __ASSEMBLY__
- #include <asm/types.h>
- #include <asm/processor.h>
-diff -puN include/asm-frv/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-frv/thread_info.h
---- a/include/asm-frv/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-frv/thread_info.h
-@@ -82,6 +82,8 @@ register struct thread_info *__current_t
- 
- #define current_thread_info() ({ __current_thread_info; })
- 
-+#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++Alignment vs. Networking
++========================
 +
- /* thread information allocation */
- #ifdef CONFIG_DEBUG_STACK_USAGE
- #define alloc_thread_info(tsk)					\
-diff -puN include/asm-h8300/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-h8300/thread_info.h
---- a/include/asm-h8300/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-h8300/thread_info.h
-@@ -49,6 +49,7 @@ struct thread_info {
- /*
-  * Size of kernel stack for each process. This must be a power of 2...
-  */
-+#define THREAD_SIZE_ORDER	1
- #define THREAD_SIZE		8192	/* 2 pages */
- 
- 
-@@ -65,10 +66,6 @@ static inline struct thread_info *curren
- 	return ti;
- }
- 
--/* thread information allocation */
--#define alloc_thread_info(tsk) ((struct thread_info *) \
--				__get_free_pages(GFP_KERNEL, 1))
--#define free_thread_info(ti)	free_pages((unsigned long) (ti), 1)
- #endif /* __ASSEMBLY__ */
- 
- /*
-diff -puN include/asm-ia64/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-ia64/thread_info.h
---- a/include/asm-ia64/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-ia64/thread_info.h
-@@ -54,6 +54,8 @@ struct thread_info {
- 	},					\
- }
- 
-+#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++On architectures that require aligned loads, networking requires that the IP
++header is aligned on a four-byte boundary to optimise the IP stack. For
++regular ethernet hardware, the constant NET_IP_ALIGN is used. On most
++architectures this constant has the value 2 because the normal ethernet
++header is 14 bytes long, so in order to get proper alignment one needs to
++DMA to an address which can be expressed as 4*n + 2. One notable exception
++here is powerpc which defines NET_IP_ALIGN to 0 because DMA to unaligned
++addresses can be very expensive and dwarf the cost of unaligned loads.
 +
- #ifndef ASM_OFFSETS_C
- /* how to get the thread information struct from C */
- #define current_thread_info()	((struct thread_info *) ((char *) current + IA64_TASK_SIZE))
-diff -puN include/asm-m32r/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-m32r/thread_info.h
---- a/include/asm-m32r/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-m32r/thread_info.h
-@@ -94,6 +94,8 @@ static inline struct thread_info *curren
- 	return ti;
- }
- 
-+#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++For some ethernet hardware that cannot DMA to unaligned addresses like
++4*n+2 or non-ethernet hardware, this can be a problem, and it is then
++required to copy the incoming frame into an aligned buffer. Because this is
++unnecessary on architectures that can do unaligned accesses, the code can be
++made dependent on CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS like so:
 +
- /* thread information allocation */
- #ifdef CONFIG_DEBUG_STACK_USAGE
- #define alloc_thread_info(tsk)					\
-diff -puN include/asm-m68k/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-m68k/thread_info.h
---- a/include/asm-m68k/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-m68k/thread_info.h
-@@ -25,13 +25,7 @@ struct thread_info {
- }
- 
- /* THREAD_SIZE should be 8k, so handle differently for 4k and 8k machines */
--#if PAGE_SHIFT == 13 /* 8k machines */
--#define alloc_thread_info(tsk)   ((struct thread_info *)__get_free_pages(GFP_KERNEL,0))
--#define free_thread_info(ti)  free_pages((unsigned long)(ti),0)
--#else /* otherwise assume 4k pages */
--#define alloc_thread_info(tsk)   ((struct thread_info *)__get_free_pages(GFP_KERNEL,1))
--#define free_thread_info(ti)  free_pages((unsigned long)(ti),1)
--#endif /* PAGE_SHIFT == 13 */
-+#define THREAD_SIZE_ORDER (13 - PAGE_SHIFT)
- 
- #define init_thread_info	(init_task.thread.info)
- #define init_stack		(init_thread_union.stack)
-diff -puN include/asm-m68knommu/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-m68knommu/thread_info.h
---- a/include/asm-m68knommu/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-m68knommu/thread_info.h
-@@ -71,10 +71,6 @@ static inline struct thread_info *curren
- 	return ti;
- }
- 
--/* thread information allocation */
--#define alloc_thread_info(tsk) ((struct thread_info *) \
--				__get_free_pages(GFP_KERNEL, THREAD_SIZE_ORDER))
--#define free_thread_info(ti)	free_pages((unsigned long) (ti), THREAD_SIZE_ORDER)
- #endif /* __ASSEMBLY__ */
- 
- #define	PREEMPT_ACTIVE	0x4000000
-diff -puN include/asm-mips/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-mips/thread_info.h
---- a/include/asm-mips/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-mips/thread_info.h
-@@ -82,6 +82,8 @@ register struct thread_info *__current_t
- #define THREAD_SIZE (PAGE_SIZE << THREAD_SIZE_ORDER)
- #define THREAD_MASK (THREAD_SIZE - 1UL)
- 
-+#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
-+
- #ifdef CONFIG_DEBUG_STACK_USAGE
- #define alloc_thread_info(tsk)					\
- ({								\
-diff -puN include/asm-mn10300/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-mn10300/thread_info.h
---- a/include/asm-mn10300/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-mn10300/thread_info.h
-@@ -112,6 +112,8 @@ static inline unsigned long current_stac
- 	return sp;
- }
- 
-+#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
-+
- /* thread information allocation */
- #ifdef CONFIG_DEBUG_STACK_USAGE
- #define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
-diff -puN include/asm-parisc/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-parisc/thread_info.h
---- a/include/asm-parisc/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-parisc/thread_info.h
-@@ -34,15 +34,11 @@ struct thread_info {
- 
- /* thread information allocation */
- 
--#define THREAD_ORDER            2
-+#define THREAD_SIZE_ORDER            2
- /* Be sure to hunt all references to this down when you change the size of
-  * the kernel stack */
--#define THREAD_SIZE             (PAGE_SIZE << THREAD_ORDER)
--#define THREAD_SHIFT            (PAGE_SHIFT + THREAD_ORDER)
--
--#define alloc_thread_info(tsk) ((struct thread_info *) \
--			__get_free_pages(GFP_KERNEL, THREAD_ORDER))
--#define free_thread_info(ti)    free_pages((unsigned long) (ti), THREAD_ORDER)
-+#define THREAD_SIZE             (PAGE_SIZE << THREAD_SIZE_ORDER)
-+#define THREAD_SHIFT            (PAGE_SHIFT + THREAD_SIZE_ORDER)
- 
- /* how to get the thread information struct from C */
- #define current_thread_info()	((struct thread_info *)mfctl(30))
-diff -puN include/asm-powerpc/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-powerpc/thread_info.h
---- a/include/asm-powerpc/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-powerpc/thread_info.h
-@@ -66,20 +66,12 @@ struct thread_info {
- 
- #if THREAD_SHIFT >= PAGE_SHIFT
- 
--#define THREAD_ORDER	(THREAD_SHIFT - PAGE_SHIFT)
--
--#ifdef CONFIG_DEBUG_STACK_USAGE
--#define alloc_thread_info(tsk)	\
--	((struct thread_info *)__get_free_pages(GFP_KERNEL | \
--		__GFP_ZERO, THREAD_ORDER))
--#else
--#define alloc_thread_info(tsk)	\
--	((struct thread_info *)__get_free_pages(GFP_KERNEL, THREAD_ORDER))
--#endif
--#define free_thread_info(ti)	free_pages((unsigned long)ti, THREAD_ORDER)
-+#define THREAD_SIZE_ORDER	(THREAD_SHIFT - PAGE_SHIFT)
- 
- #else /* THREAD_SHIFT < PAGE_SHIFT */
- 
-+#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
-+
- extern struct thread_info *alloc_thread_info(struct task_struct *tsk);
- extern void free_thread_info(struct thread_info *ti);
- 
-diff -puN include/asm-s390/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-s390/thread_info.h
---- a/include/asm-s390/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-s390/thread_info.h
-@@ -78,10 +78,7 @@ static inline struct thread_info *curren
- 	return (struct thread_info *)((*(unsigned long *) __LC_KERNEL_STACK)-THREAD_SIZE);
- }
- 
--/* thread information allocation */
--#define alloc_thread_info(tsk) ((struct thread_info *) \
--	__get_free_pages(GFP_KERNEL,THREAD_ORDER))
--#define free_thread_info(ti) free_pages((unsigned long) (ti),THREAD_ORDER)
-+#define THREAD_SIZE_ORDER THREAD_ORDER
- 
- #endif
- 
-diff -puN include/asm-sh/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-sh/thread_info.h
---- a/include/asm-sh/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-sh/thread_info.h
-@@ -92,6 +92,8 @@ static inline struct thread_info *curren
- 	return ti;
- }
- 
-+#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
-+
- /* thread information allocation */
- #ifdef CONFIG_DEBUG_STACK_USAGE
- #define alloc_thread_info(ti)	kzalloc(THREAD_SIZE, GFP_KERNEL)
-diff -puN include/asm-sparc/thread_info_32.h~clean-up-duplicated-alloc-free_thread_info include/asm-sparc/thread_info_32.h
---- a/include/asm-sparc/thread_info_32.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-sparc/thread_info_32.h
-@@ -86,6 +86,8 @@ register struct thread_info *current_thr
- #define THREAD_INFO_ORDER  1
- #endif
- 
-+#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
-+
- BTFIXUPDEF_CALL(struct thread_info *, alloc_thread_info, void)
- #define alloc_thread_info(tsk) BTFIXUP_CALL(alloc_thread_info)()
- 
-diff -puN include/asm-sparc/thread_info_64.h~clean-up-duplicated-alloc-free_thread_info include/asm-sparc/thread_info_64.h
---- a/include/asm-sparc/thread_info_64.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-sparc/thread_info_64.h
-@@ -155,6 +155,8 @@ register struct thread_info *current_thr
- #define __THREAD_INFO_ORDER	0
- #endif /* PAGE_SHIFT == 13 */
- 
-+#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
-+
- #ifdef CONFIG_DEBUG_STACK_USAGE
- #define alloc_thread_info(tsk)					\
- ({								\
-diff -puN include/asm-um/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-um/thread_info.h
---- a/include/asm-um/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-um/thread_info.h
-@@ -53,21 +53,7 @@ static inline struct thread_info *curren
- 	return ti;
- }
- 
--#ifdef CONFIG_DEBUG_STACK_USAGE
--
--#define alloc_thread_info(tsk) \
--	((struct thread_info *) __get_free_pages(GFP_KERNEL | __GFP_ZERO, \
--						 CONFIG_KERNEL_STACK_ORDER))
--#else
--
--/* thread information allocation */
--#define alloc_thread_info(tsk) \
--	((struct thread_info *) __get_free_pages(GFP_KERNEL, \
--						 CONFIG_KERNEL_STACK_ORDER))
--#endif
--
--#define free_thread_info(ti) \
--	free_pages((unsigned long)(ti),CONFIG_KERNEL_STACK_ORDER)
-+#define THREAD_SIZE_ORDER CONFIG_KERNEL_STACK_ORDER
- 
- #endif
- 
-diff -puN include/asm-x86/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-x86/thread_info.h
---- a/include/asm-x86/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-x86/thread_info.h
-@@ -152,6 +152,8 @@ struct thread_info {
- #define THREAD_FLAGS GFP_KERNEL
- #endif
- 
-+#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
-+
- #define alloc_thread_info(tsk)						\
- 	((struct thread_info *)__get_free_pages(THREAD_FLAGS, THREAD_ORDER))
- 
-diff -puN include/asm-xtensa/thread_info.h~clean-up-duplicated-alloc-free_thread_info include/asm-xtensa/thread_info.h
---- a/include/asm-xtensa/thread_info.h~clean-up-duplicated-alloc-free_thread_info
-+++ a/include/asm-xtensa/thread_info.h
-@@ -111,10 +111,6 @@ static inline struct thread_info *curren
- 	return ti;
- }
- 
--/* thread information allocation */
--#define alloc_thread_info(tsk) ((struct thread_info *) __get_free_pages(GFP_KERNEL,1))
--#define free_thread_info(ti) free_pages((unsigned long) (ti), 1)
--
- #else /* !__ASSEMBLY__ */
- 
- /* how to get the thread information struct from ASM */
-@@ -160,6 +156,7 @@ static inline struct thread_info *curren
- #define TS_USEDFPU		0x0001	/* FPU was used by this task this quantum (SMP) */
- 
- #define THREAD_SIZE 8192	//(2*PAGE_SIZE)
-+#define THREAD_SIZE_ORDER 1
- 
- #endif	/* __KERNEL__ */
- #endif	/* _XTENSA_THREAD_INFO */
-diff -puN kernel/fork.c~clean-up-duplicated-alloc-free_thread_info kernel/fork.c
---- a/kernel/fork.c~clean-up-duplicated-alloc-free_thread_info
-+++ a/kernel/fork.c
-@@ -93,6 +93,23 @@ int nr_processes(void)
- static struct kmem_cache *task_struct_cachep;
- #endif
- 
-+#ifndef __HAVE_ARCH_THREAD_INFO_ALLOCATOR
-+static inline struct thread_info *alloc_thread_info(struct task_struct *tsk)
-+{
-+#ifdef CONFIG_DEBUG_STACK_USAGE
-+	gfp_t mask = GFP_KERNEL | __GFP_ZERO;
++#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
++	skb = original skb
 +#else
-+	gfp_t mask = GFP_KERNEL;
-+#endif
-+	return (struct thread_info *)__get_free_pages(mask, THREAD_SIZE_ORDER);
-+}
-+
-+static inline void free_thread_info(struct thread_info *ti)
-+{
-+	free_pages((unsigned long)ti, THREAD_SIZE_ORDER);
-+}
++	skb = copy skb
 +#endif
 +
- /* SLAB cache for signal_struct structures (tsk->signal) */
- static struct kmem_cache *signal_cachep;
+ --
+-Author: Daniel Drake <dsd@gentoo.org>
++Authors: Daniel Drake <dsd@gentoo.org>,
++         Johannes Berg <johannes@sipsolutions.net>
+ With help from: Alan Cox, Avuton Olrich, Heikki Orsila, Jan Engelhardt,
+-Johannes Berg, Kyle McMartin, Kyle Moffett, Randy Dunlap, Robert Hancock,
+-Uli Kunitz, Vadim Lobanov
++Kyle McMartin, Kyle Moffett, Randy Dunlap, Robert Hancock, Uli Kunitz,
++Vadim Lobanov
  
+diff -puN arch/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol arch/Kconfig
+--- a/arch/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol
++++ a/arch/Kconfig
+@@ -27,6 +27,25 @@ config KPROBES
+ 	  for kernel debugging, non-intrusive instrumentation and testing.
+ 	  If in doubt, say "N".
+ 
++config HAVE_EFFICIENT_UNALIGNED_ACCESS
++	def_bool n
++	help
++	  Some architectures are unable to perform unaligned accesses
++	  without the use of get_unaligned/put_unaligned. Others are
++	  unable to perform such accesses efficiently (e.g. trap on
++	  unaligned access and require fixing it up in the exception
++	  handler.)
++
++	  This symbol should be selected by an architecture if it can
++	  perform unaligned accesses efficiently to allow different
++	  code paths to be selected for these cases. Some network
++	  drivers, for example, could opt to not fix up alignment
++	  problems with received packets if doing so would not help
++	  much.
++
++	  See Documentation/unaligned-memory-access.txt for more
++	  information on the topic of unaligned memory accesses.
++
+ config KRETPROBES
+ 	def_bool y
+ 	depends on KPROBES && HAVE_KRETPROBES
+diff -puN arch/powerpc/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol arch/powerpc/Kconfig
+--- a/arch/powerpc/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol
++++ a/arch/powerpc/Kconfig
+@@ -112,6 +112,7 @@ config PPC
+ 	select HAVE_FTRACE
+ 	select HAVE_IDE
+ 	select HAVE_IOREMAP_PROT
++	select HAVE_EFFICIENT_UNALIGNED_ACCESS
+ 	select HAVE_KPROBES
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_KRETPROBES
+diff -puN arch/x86/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol arch/x86/Kconfig
+--- a/arch/x86/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol
++++ a/arch/x86/Kconfig
+@@ -28,6 +28,7 @@ config X86
+ 	select HAVE_FTRACE
+ 	select HAVE_KVM if ((X86_32 && !X86_VOYAGER && !X86_VISWS && !X86_NUMAQ) || X86_64)
+ 	select HAVE_ARCH_KGDB if !X86_VOYAGER
++	select HAVE_EFFICIENT_UNALIGNED_ACCESS
+ 
+ config ARCH_DEFCONFIG
+ 	string
 _
