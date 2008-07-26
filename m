@@ -1,132 +1,71 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: __weak vs ifdef
-Date: Sat, 26 Jul 2008 12:38:05 -0700 (PDT)
-Message-ID: <alpine.LFD.1.10.0807261221480.4188@nehalem.linux-foundation.org>
+From: Adrian Bunk <bunk@kernel.org>
+Subject: [-mm patch] mm/util.c must #include <linux/sched.h>
+Date: Sun, 27 Jul 2008 00:22:20 +0300
+Message-ID: <20080726212219.GH9301@cs181140183.pp.htv.fi>
 References: <20080725083943.GC19310@cs181140183.pp.htv.fi> <20080725015537.564e3397.akpm@linux-foundation.org> <20080725091455.GD19310@cs181140183.pp.htv.fi> <20080725092748.GF19310@cs181140183.pp.htv.fi> <20080725023455.dde3eb27.akpm@linux-foundation.org>
- <20080725122454.GE6701@parisc-linux.org>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:46788 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752022AbYGZTlM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 26 Jul 2008 15:41:12 -0400
-In-Reply-To: <20080725122454.GE6701@parisc-linux.org>
+Received: from smtp4.pp.htv.fi ([213.243.153.38]:54982 "EHLO smtp4.pp.htv.fi"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758068AbYGZVWw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 Jul 2008 17:22:52 -0400
+Content-Disposition: inline
+In-Reply-To: <20080725023455.dde3eb27.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Adrian Bunk <bunk@kernel.org>, Andrea Righi <righi.andrea@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andrea Righi <righi.andrea@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-
-
-On Fri, 25 Jul 2008, Matthew Wilcox wrote:
-
-> On Fri, Jul 25, 2008 at 02:34:55AM -0700, Andrew Morton wrote:
-> > We should make arch_pick_mmap_layout __weak and nuke that ifdef.
+On Fri, Jul 25, 2008 at 02:34:55AM -0700, Andrew Morton wrote:
+> On Fri, 25 Jul 2008 12:27:48 +0300 Adrian Bunk <bunk@kernel.org> wrote:
 > 
-> I strongly disagree.  I find it makes it harder to follow code flow
-> when __weak functions are involved.  Ifdefs are ugly, no question, but
-> they're easier to grep for
+> > Further testing revealed that you should choose a file that also gets 
+> > compiled on MMU-less architectures:
+> 
+> We don't have one :(
+> 
+> I guess util.c will have to do.
+>...
 
-Hell no, they're not.
+Requires the fix below.
 
-Our use of random HAVE_ARCH_xyz or ARCH_SUPPORTS_xyz etc stuff makes 
-things _totally_ impossible to grep for.
+cu
+Adrian
 
-In contrast, it we did this code as
 
-	#ifndef arch_pick_mmap_layout
-	void __weak arch_pick_mmap_layout(struct mm_struct *mm)
-	{
-		mm->mmap_base = TASK_UNMAPPED_BASE;
-		mm->get_unmapped_area = arch_get_unmapped_area;
-		mm->unmap_area = arch_unmap_area;
-	}
-	#endif
+<--  snip  -->
 
-then trying to grep for arch_pick_mmap_layout() would show EVERY SINGLE 
-RELEVANT CASE! And it would show the "__weak" there too, so that once 
-people get used to this convention, they'd have a really easy time 
-figuring out the rules from just the output of the 'grep'.
 
-I really think that whoever started that 'HAVE_ARCH_x'/'ARCH_HAS_x' mess 
-with totally random symbols that have NOTHING WHAT-SO-EVER to do with the 
-actual symbols in question (so they do _not_ show up in grep'ing for some 
-use) should be shot. 
+This patch fixes the following build error:
 
-We should never _ever_ use that model. And we use it way too much.
+<--  snip  -->
 
-We should generally strive for the simpler and much more obvious
+...
+  CC      mm/util.o
+/home/bunk/linux/kernel-2.6/git/linux-2.6/mm/util.c: In function 'arch_pick_mmap_layout':
+/home/bunk/linux/kernel-2.6/git/linux-2.6/mm/util.c:144: error: dereferencing pointer to incomplete type
+/home/bunk/linux/kernel-2.6/git/linux-2.6/mm/util.c:145: error: 'arch_get_unmapped_area' undeclared (first use in this function)
+/home/bunk/linux/kernel-2.6/git/linux-2.6/mm/util.c:145: error: (Each undeclared identifier is reported only once
+/home/bunk/linux/kernel-2.6/git/linux-2.6/mm/util.c:145: error: for each function it appears in.)
+/home/bunk/linux/kernel-2.6/git/linux-2.6/mm/util.c:146: error: 'arch_unmap_area' undeclared (first use in this function)
+make[2]: *** [mm/util.o] Error 1
 
-	/* Generic definition */
-	#ifndef symbol
-	int symbol(..)
-	...
-	#endif
+<--  snip  -->
 
-and then architecture code can do
+Signed-off-by: Adrian Bunk <bunk@kernel.org>
 
-	#define symbol(x) ...
-
-or if they want to do a function, and you _really_ don't like the '__weak' 
-part (or you want to make it an inline function and don't want the clash 
-with the real declaration), then you can just do
-
-	static inline int symbol(x)
-	{
-		...
-	}
-	#define symbol symbol
-
-and again it all works fine WITHOUT having to introduce some idiotic new 
-and unrelated element called ARCH_HAS_SYMBOL.
-
-And now when you do 'git grep symbol' you really will see the rules. ALL 
-the rules. Not some random collection of uses that don't actually explain 
-why there are five different definitions of the same thing and then you 
-have to figure out which one gets used.
-
-> My basic point here is that __weak makes the code easier to write but
-> harder to read, and we're supposed to be optimising for easier to read.
-
-But your basic point is flawed. The thing you advocate is actually harder 
-to read.
-
-Yes, if you don't follow the codign style, and you write
-
-	int __weak
-	symbol(x)
-	{
-
-you are (a) a moronic rebel you never understood why the declaration 
-should be on one line and (b) as a result your 'grep' won't see the __weak 
-and you'll be confused about the rules.
-
-But if we _consistently_ used
-
- - '#ifndef symbol' to avoid redeclaring something that the architecture 
-   overrides
-
- - and '__weak' to allow architectures to just override functions without 
-   extra work and rules
-
-then after a while people would simply _know_ that very simple set of 
-rules, and a 'grep' would work so much better than it does now.
-
-Really. Try it. Try it with 'arch_pick_mmap_layout' (with Andrews patch in 
-place). And then imagine that you'd be used to '__weak', and seeing that 
-additional
-
-	mm/util.c:#ifndef arch_pick_mmap_layout
-	mm/util.c:void __weak arch_pick_mmap_layout(struct mm_struct *mm)
-
-in the output. Be honest now - wouldn't that actually _tell_ you something 
-relevant about that particular declaration? And make the fact that some 
-architectures override it _less_ confusing?
-
-IOW, you could tell directly from the grep output that it's a "default 
-fallback". Which you definitely cannot tell right now, because we have 
-insane models for doing it.
-
-		Linus
+---
+f003405997b99d300c99f7b1eae408fe42c07126 
+diff --git a/mm/util.c b/mm/util.c
+index 0efd830..d8d0221 100644
+--- a/mm/util.c
++++ b/mm/util.c
+@@ -3,6 +3,7 @@
+ #include <linux/string.h>
+ #include <linux/module.h>
+ #include <linux/err.h>
++#include <linux/sched.h>
+ #include <asm/uaccess.h>
+ 
+ /**
