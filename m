@@ -1,66 +1,32 @@
-From: Andrea Arcangeli <andrea@qumranet.com>
+From: Nick Piggin <npiggin@suse.de>
 Subject: Re: MMU notifiers review and some proposals
-Date: Sat, 26 Jul 2008 15:02:02 +0200
-Message-ID: <20080726130202.GA9598@duo.random>
-References: <20080724143949.GB12897@wotan.suse.de> <20080725214552.GB21150@duo.random> <20080726030810.GA18896@wotan.suse.de> <20080726113813.GD21150@duo.random> <20080726122826.GA17958@wotan.suse.de>
+Date: Sat, 26 Jul 2008 15:04:06 +0200
+Message-ID: <20080726130406.GA21820@wotan.suse.de>
+References: <20080724143949.GB12897@wotan.suse.de> <20080725214552.GB21150@duo.random> <20080726030810.GA18896@wotan.suse.de> <20080726113813.GD21150@duo.random>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from host36-195-149-62.serverdedicati.aruba.it ([62.149.195.36]:42292
-	"EHLO mx.cpushare.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751487AbYGZNCG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 26 Jul 2008 09:02:06 -0400
+Received: from ns2.suse.de ([195.135.220.15]:59848 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751808AbYGZNEI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 Jul 2008 09:04:08 -0400
 Content-Disposition: inline
-In-Reply-To: <20080726122826.GA17958@wotan.suse.de>
+In-Reply-To: <20080726113813.GD21150@duo.random>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
+To: Andrea Arcangeli <andrea@qumranet.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org, steiner@sgi.com, cl@linux-foundation.org
 
-On Sat, Jul 26, 2008 at 02:28:26PM +0200, Nick Piggin wrote:
-> 3) livelock/starvation problem with TLB holdoff
->
-> That's not shooting yourself in the foot if you are forced into the
-> design. Definitely there can be indefinite starvation because there
-> is no notion of queueing on the range_active count.
+On Sat, Jul 26, 2008 at 01:38:13PM +0200, Andrea Arcangeli wrote:
+> 
+> 1) absolute minimal intrusion into the kernel common code, and
+>    absolute minimum number of branches added to the kernel fast
+>    paths. Kernel is faster than your "minimal" type of notifiers when
+>    they're disarmed.
 
-I don't see how, it's all per-mm, all other -mm can't possibly be hold
-off. What can happen is that once cpu loops because the other cpu is
-mprotecting in a flood forever. Both have to be threads belonging to
-the same -mm for this holdoff to be meaningful. It's the same app,
-with multiple threads. The rest of the system can't even notice
-whatever happens in that -mm and they all reschedule all the time, so
-it can't starve other tasks. It's not a _global_ hold off! It's a
-per-mm holdoff. The counter is in the kvm struct and the kvm struct is
-bind to a single mm. Each different kvm struct has a different
-counter. all it can happen that an app is shooting itself in the foot,
-it's actually easier to run "for (;;)" if it wants to shoot itself in
-the foot... so no big deal.
+BTW. is this really significant? Having one branch per pte
+I don't think is necessarily slower than 2 branches per unmap.
 
-I really can't see any issue with your point 3, and infact this looks a
-nice locking design to me.
-
-> I'm doing range flushing withing tlb-gathers in the patch I posted which
-> does not add a branch for every pte teardown. And I don't really
-> consider range_start/end as better, given my reasons.
-
-As you said you missed tlb_remove_page, that is the _only_ troublesome
-one! A bit too easy to skip that one and then claim your patch as
-simpler...
-
-Just post a patch that works for real and see if you can avoid to
-invalidate every pte, or if you've to hack inside
-asm-generic/tlb.h... I can't see how you can avoid to mangle on the
-asm-generic/tlb.h if you don't want to send IPIs at every single pte
-zapped with your patch...
-
-> If I had seen even a single number to show the more complex scheme
-
-Please post a patch that actually works then we'll re-evaluate what is
-the best tradeoff ;).
-
-In the meantime please merge -mm patches into Linus's tree, this is
-taking forever and if the changes are so small to go Nick's way and
-his future "actually working" patch remains so small, it can be
-applied incrementally without any problem IMHO, infact it is presented
-as an incremental patch in the first place.
+The 2 branches will use more icache and more branch history. One
+branch even once per pte in the unmapping loop is going to remain
+hot in icache and branch history isn't it?
