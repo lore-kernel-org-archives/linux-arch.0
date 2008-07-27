@@ -1,71 +1,47 @@
-From: Adrian Bunk <bunk@kernel.org>
-Subject: [-mm patch] mm/util.c must #include <linux/sched.h>
-Date: Sun, 27 Jul 2008 00:22:20 +0300
-Message-ID: <20080726212219.GH9301@cs181140183.pp.htv.fi>
-References: <20080725083943.GC19310@cs181140183.pp.htv.fi> <20080725015537.564e3397.akpm@linux-foundation.org> <20080725091455.GD19310@cs181140183.pp.htv.fi> <20080725092748.GF19310@cs181140183.pp.htv.fi> <20080725023455.dde3eb27.akpm@linux-foundation.org>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: MMU notifiers review and some proposals
+Date: Sun, 27 Jul 2008 02:45:20 -0700
+Message-ID: <20080727024520.7dd12bf0.akpm@linux-foundation.org>
+References: <20080724143949.GB12897@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp4.pp.htv.fi ([213.243.153.38]:54982 "EHLO smtp4.pp.htv.fi"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758068AbYGZVWw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 26 Jul 2008 17:22:52 -0400
-Content-Disposition: inline
-In-Reply-To: <20080725023455.dde3eb27.akpm@linux-foundation.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:49100 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751119AbYG0Jpm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 27 Jul 2008 05:45:42 -0400
+In-Reply-To: <20080724143949.GB12897@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andrea Righi <righi.andrea@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org, andrea@qumranet.com, steiner@sgi.com, cl@linux-foundation.org
 
-On Fri, Jul 25, 2008 at 02:34:55AM -0700, Andrew Morton wrote:
-> On Fri, 25 Jul 2008 12:27:48 +0300 Adrian Bunk <bunk@kernel.org> wrote:
+On Thu, 24 Jul 2008 16:39:49 +0200 Nick Piggin <npiggin@suse.de> wrote:
+
+> I think everybody is hoping to have a workable mmu notifier scheme
+> merged in 2.6.27 (myself included). However I do have some concerns
+> about the implementation proposed (in -mm).
 > 
-> > Further testing revealed that you should choose a file that also gets 
-> > compiled on MMU-less architectures:
-> 
-> We don't have one :(
-> 
-> I guess util.c will have to do.
->...
+> I apologise for this late review, before anybody gets too upset,
+> most of my concerns have been raised before, but I'd like to state
+> my case again and involving everyone.
 
-Requires the fix below.
+Nick, having read through this discussion and the code (yet again) I
+think I'll go ahead and send it all in to Linus.  On the basis that
 
-cu
-Adrian
+- the code is fairly short and simple
+
+- has no known bugs
+
+- seems to be needed by some folks ;)
+
+- you already have a protopatch which partially addresses your
+  concerns and afaik there's nothing blocking future improvements to
+  this implementation?
 
 
-<--  snip  -->
-
-
-This patch fixes the following build error:
-
-<--  snip  -->
-
-...
-  CC      mm/util.o
-/home/bunk/linux/kernel-2.6/git/linux-2.6/mm/util.c: In function 'arch_pick_mmap_layout':
-/home/bunk/linux/kernel-2.6/git/linux-2.6/mm/util.c:144: error: dereferencing pointer to incomplete type
-/home/bunk/linux/kernel-2.6/git/linux-2.6/mm/util.c:145: error: 'arch_get_unmapped_area' undeclared (first use in this function)
-/home/bunk/linux/kernel-2.6/git/linux-2.6/mm/util.c:145: error: (Each undeclared identifier is reported only once
-/home/bunk/linux/kernel-2.6/git/linux-2.6/mm/util.c:145: error: for each function it appears in.)
-/home/bunk/linux/kernel-2.6/git/linux-2.6/mm/util.c:146: error: 'arch_unmap_area' undeclared (first use in this function)
-make[2]: *** [mm/util.o] Error 1
-
-<--  snip  -->
-
-Signed-off-by: Adrian Bunk <bunk@kernel.org>
-
----
-f003405997b99d300c99f7b1eae408fe42c07126 
-diff --git a/mm/util.c b/mm/util.c
-index 0efd830..d8d0221 100644
---- a/mm/util.c
-+++ b/mm/util.c
-@@ -3,6 +3,7 @@
- #include <linux/string.h>
- #include <linux/module.h>
- #include <linux/err.h>
-+#include <linux/sched.h>
- #include <asm/uaccess.h>
- 
- /**
+And a late-breaking review comment: given that about 0.000000000000001%
+of people will actually use mm_take_all_locks(), could we make its
+compilation conditional on something?  Such as CONFIG_MMU_NOTIFIER?
