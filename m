@@ -1,36 +1,66 @@
-From: Andrea Righi <righi.andrea@gmail.com>
-Subject: Re: [PATCH 1/1] mm: unify pmd_free() implementation
-Date: Mon, 28 Jul 2008 19:19:44 +0200
-Message-ID: <488DFFB0.1090107@gmail.com>
-References: <alpine.LFD.1.10.0807280851130.3486@nehalem.linux-foundation.org> <488DF119.2000004@gmail.com> <20080729012656.566F.KOSAKI.MOTOHIRO@jp.fujitsu.com>
-Reply-To: righi.andrea@gmail.com
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: kbuild now support arch/$ARCH/include - time for ARCHs to convert
+Date: Mon, 28 Jul 2008 22:05:00 +0200
+Message-ID: <20080728200500.GA14284@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fg-out-1718.google.com ([72.14.220.155]:60051 "EHLO
-	fg-out-1718.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756388AbYG1RTs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jul 2008 13:19:48 -0400
-Received: by fg-out-1718.google.com with SMTP id 19so2121291fgg.17
-        for <linux-arch@vger.kernel.org>; Mon, 28 Jul 2008 10:19:47 -0700 (PDT)
-In-Reply-To: <20080729012656.566F.KOSAKI.MOTOHIRO@jp.fujitsu.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1754361AbYG1UEZ@vger.kernel.org>
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux arch <linux-arch@vger.kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-KOSAKI Motohiro wrote:
->> yep! clear.
->>
->> Ok, in this case wouldn't be better at least to define pud_free() as:
->>
->> static inline pud_free(struct mm_struct *mm, pmd_t *pmd)
->> {
->> }
-> 
-> I also like this :)
+The traditional location of the arch specific Makefiles
+has been at:
 
-ok, a simpler patch using the inline function will follow.
+	include/asm-$ARCH
 
--Andrea
+But as suggested by several people over time and lately
+by Linus in the following post:
+http://kerneltrap.org/mailarchive/linux-kernel/2008/5/21/1903924
+
+is is suggested to move the arch specific files under arch/
+and for the header files this is arch/$ARCH/include.
+
+So I have hacked up support for this in kbuild so
+for the simpler cases a simple move of header files as
+in:
+	git mv include/asm-$ARCH arch/$ARCH/include/asm
+
+is enough.
+
+If Linus will accept it then I think -rc1 is a perfect
+time to do it as people has less stuff pending touching
+the header files that are moved.
+Validation is easy - does the usual configs build?
+
+For the archs that plays games with symlinks this is a
+splendid opportunity to get rid af these.
+The receipe is simple:
+Use 
+	KBUILD_CFLAGS += -Iarch/$ARCH/include/$CPU
+
+to select the CPU and then do a copy of the header files
+like this:
+
+	git mv include/asm-$ARCH/$CPU arch/$ARCH/include/$CPU/cpu
+
+Then the code can continue to use:
+
+	#include <cpu/foo.h>
+
+I already converted sparc to use arch/sparc/include -
+while I merged the header files for sparc and sparc64.
+This change is already upstream.
+
+And for SH I posted a receipe which you can read here:
+http://lkml.org/lkml/2008/7/28/83
+
+It is SH specific but anyway pretty generic.
+
+I am limited in time and resources at the moment but I
+would be glad to help out as time permits should there
+be any questions.
+
+	Sam
