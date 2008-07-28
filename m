@@ -1,53 +1,36 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Andrea Righi <righi.andrea@gmail.com>
 Subject: Re: [PATCH 1/1] mm: unify pmd_free() implementation
-Date: Mon, 28 Jul 2008 10:10:19 -0700 (PDT)
-Message-ID: <alpine.LFD.1.10.0807281000070.3486@nehalem.linux-foundation.org>
-References: <> <1217260287-13115-1-git-send-email-righi.andrea@gmail.com>  <alpine.LFD.1.10.0807280851130.3486@nehalem.linux-foundation.org>  <1217261852.3503.89.camel@localhost.localdomain>  <alpine.LFD.1.10.0807280937150.3486@nehalem.linux-foundation.org>
- <1217264339.3503.97.camel@localhost.localdomain>
+Date: Mon, 28 Jul 2008 19:19:44 +0200
+Message-ID: <488DFFB0.1090107@gmail.com>
+References: <alpine.LFD.1.10.0807280851130.3486@nehalem.linux-foundation.org> <488DF119.2000004@gmail.com> <20080729012656.566F.KOSAKI.MOTOHIRO@jp.fujitsu.com>
+Reply-To: righi.andrea@gmail.com
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:47738 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756236AbYG1RNx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 28 Jul 2008 13:13:53 -0400
-In-Reply-To: <1217264339.3503.97.camel@localhost.localdomain>
+Received: from fg-out-1718.google.com ([72.14.220.155]:60051 "EHLO
+	fg-out-1718.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756388AbYG1RTs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jul 2008 13:19:48 -0400
+Received: by fg-out-1718.google.com with SMTP id 19so2121291fgg.17
+        for <linux-arch@vger.kernel.org>; Mon, 28 Jul 2008 10:19:47 -0700 (PDT)
+In-Reply-To: <20080729012656.566F.KOSAKI.MOTOHIRO@jp.fujitsu.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Andrea Righi <righi.andrea@gmail.com>, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-
-
-On Mon, 28 Jul 2008, James Bottomley wrote:
+KOSAKI Motohiro wrote:
+>> yep! clear.
+>>
+>> Ok, in this case wouldn't be better at least to define pud_free() as:
+>>
+>> static inline pud_free(struct mm_struct *mm, pmd_t *pmd)
+>> {
+>> }
 > 
-> Sorry ... should have been clearer.  My main concern is the cost of
-> barrier() which is just a memory clobber ... we have to use barriers to
-> place the probe points correctly in the code.
+> I also like this :)
 
-Oh, "barrier()" itself has _much_ less cost.
+ok, a simpler patch using the inline function will follow.
 
-It still has all the "needs to flush any global/address-taken-of variables 
-to memory" property and can thus cause reloads, but that's kind of the 
-point of it, after all. So in that sense "barrier()" is free: the only 
-cost of a barrier is the cost of what you actually need to get done. It's 
-not really "free", but it's also not any more costly than what your 
-objective was.
-
-In contrast, the "objective" in an empty function call is seldom the 
-serialization, so in that case the serialization is all just unnecessary 
-overhead.
-
-Also, barrier() avoids the big hit of turning a leaf function into a 
-non-leaf one. It also avoids all the fixed registers and the register 
-clobbers (although for tracing purposes you may end up setting up fixed 
-regs, of course).
-
-The leaf -> non-leaf thing is actually often the major thing. Yes, the 
-compiler will often inline functions that are simple enough to be leaf 
-functions with no stack frame, so we don't have _that_ many of them, but 
-when it hits, it's often the most noticeable part of an unnecessary 
-function call. And "barrier()" should never trigger that problem.
-
-			Linus
+-Andrea
