@@ -1,57 +1,54 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: MMU notifiers review and some proposals
-Date: Sun, 27 Jul 2008 14:38:39 +0200
-Message-ID: <20080727123839.GD5223@wotan.suse.de>
-References: <20080724143949.GB12897@wotan.suse.de> <20080727024520.7dd12bf0.akpm@linux-foundation.org>
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: u64-ull
+Date: Mon, 28 Jul 2008 06:19:52 -0600
+Message-ID: <20080728121952.GE18026@parisc-linux.org>
+References: <1217214947.11188.156.camel@pasglop> <1217238791.6331.15.camel@twins> <1217239403.11188.189.camel@pasglop> <20080728035340.e8c931f5.akpm@linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:38231 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751307AbYG0Mil (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 27 Jul 2008 08:38:41 -0400
+Received: from palinux.external.hp.com ([192.25.206.14]:37620 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750744AbYG1MTx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jul 2008 08:19:53 -0400
 Content-Disposition: inline
-In-Reply-To: <20080727024520.7dd12bf0.akpm@linux-foundation.org>
+In-Reply-To: <20080728035340.e8c931f5.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org, andrea@qumranet.com, steiner@sgi.com, cl@linux-foundation.org
+Cc: benh@kernel.crashing.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org
 
-On Sun, Jul 27, 2008 at 02:45:20AM -0700, Andrew Morton wrote:
-> On Thu, 24 Jul 2008 16:39:49 +0200 Nick Piggin <npiggin@suse.de> wrote:
+On Mon, Jul 28, 2008 at 03:53:40AM -0700, Andrew Morton wrote:
+> On Mon, 28 Jul 2008 20:03:23 +1000 Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
 > 
-> > I think everybody is hoping to have a workable mmu notifier scheme
-> > merged in 2.6.27 (myself included). However I do have some concerns
-> > about the implementation proposed (in -mm).
-> > 
-> > I apologise for this late review, before anybody gets too upset,
-> > most of my concerns have been raised before, but I'd like to state
-> > my case again and involving everyone.
+> > Andrew, what was your decision vs. changing once for all u64 and s64 on
+> > all archs to be long long's ?
 > 
-> Nick, having read through this discussion and the code (yet again) I
-> think I'll go ahead and send it all in to Linus.  On the basis that
+> We should do it.  Matthew's initial patch was busted and I don't
+> _really_ want to have to take on all the fallout.  It's a project for
+> someone: get the core patch working then start fixing up fallout.  At
+> least make it all compile, hopefully fix most of the warnings too.
 
-You call. As I said, I was OK for you to use your judgement.
+Yeah, I just threw it out as a trial balloon without thinking about it
+properly.  We need to test:
 
- 
-> - the code is fairly short and simple
-> 
-> - has no known bugs
-> 
-> - seems to be needed by some folks ;)
-> 
-> - you already have a protopatch which partially addresses your
->   concerns and afaik there's nothing blocking future improvements to
->   this implementation?
+include/asm-alpha/types.h:#include <asm-generic/int-l64.h>
+include/asm-ia64/types.h:#include <asm-generic/int-l64.h>
+include/asm-mips/types.h:# include <asm-generic/int-l64.h>
+include/asm-powerpc/types.h:# include <asm-generic/int-l64.h>
+include/asm-s390/types.h:# include <asm-generic/int-l64.h>
+include/asm-sparc/types.h:#include <asm-generic/int-l64.h>
 
-Seems like I was able to get my head around KVM and GRU more easily
-than I had feared. I don't expect help, but I will say that good
-simplifications will always get merged unless there is a reasonable
-performance case not to, so I will work on patches.
+I can take care of ia64 easily enough.  Ben is, I presume, willing to
+take care of powerpc.  Just need to find suckers^W people willing to fix
+up alpha, mips, s390 and sparc.
 
+I don't think this needs to go in during the merge window, I'm happy to
+wait until -rc2 or something.  Anyway, initial patch at
+http://git.kernel.org/?p=linux/kernel/git/willy/misc.git;a=shortlog;h=u64-ull
+so if anyone wants to get started early ...
 
-> And a late-breaking review comment: given that about 0.000000000000001%
-> of people will actually use mm_take_all_locks(), could we make its
-> compilation conditional on something?  Such as CONFIG_MMU_NOTIFIER?
-
-Well I prefer that because I don't want any new callers to pop up.
+-- 
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
