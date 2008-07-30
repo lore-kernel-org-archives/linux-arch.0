@@ -1,92 +1,37 @@
-From: Greg Ungerer <gerg@snapgear.com>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to convert
-Date: Wed, 30 Jul 2008 16:49:08 +1000
-Message-ID: <48900EE4.8030606@snapgear.com>
-References: <20080728200500.GA14284@uranus.ravnborg.org>
+Date: Wed, 30 Jul 2008 09:07:24 +0200
+Message-ID: <200807300907.25186.arnd@arndb.de>
+References: <20080728200500.GA14284@uranus.ravnborg.org> <48900EE4.8030606@snapgear.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rex.securecomputing.com ([203.24.151.4]:41928 "EHLO
-	cyberguard.com.au" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751208AbYG3GvS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jul 2008 02:51:18 -0400
-In-Reply-To: <20080728200500.GA14284@uranus.ravnborg.org>
+Received: from moutng.kundenserver.de ([212.227.126.171]:60495 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757538AbYG3HH3 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jul 2008 03:07:29 -0400
+In-Reply-To: <48900EE4.8030606@snapgear.com>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Greg Ungerer <gerg@snapgear.com>
+Cc: Sam Ravnborg <sam@ravnborg.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 
-Hi Sam,
+On Wednesday 30 July 2008, Greg Ungerer wrote:
+> I just tried moving the include/asm-m68knommu directory
+> to arch/m68knommu/include/asm and it all worked fine.
+> Clean compile first go :-) =A0Nice. =A0(As noted
+> asm-offsets.h was still generated in incldue/asm-m68knommu
+> afterwards though).
 
-Sam Ravnborg wrote:
-> The traditional location of the arch specific Makefiles
-> has been at:
-> 
-> 	include/asm-$ARCH
-> 
-> But as suggested by several people over time and lately
-> by Linus in the following post:
-> http://kerneltrap.org/mailarchive/linux-kernel/2008/5/21/1903924
-> 
-> is is suggested to move the arch specific files under arch/
-> and for the header files this is arch/$ARCH/include.
-> 
-> So I have hacked up support for this in kbuild so
-> for the simpler cases a simple move of header files as
-> in:
-> 	git mv include/asm-$ARCH arch/$ARCH/include/asm
-> 
-> is enough.
-> 
-> If Linus will accept it then I think -rc1 is a perfect
-> time to do it as people has less stuff pending touching
-> the header files that are moved.
-> Validation is easy - does the usual configs build?
-> 
-> For the archs that plays games with symlinks this is a
-> splendid opportunity to get rid af these.
-> The receipe is simple:
-> Use 
-> 	KBUILD_CFLAGS += -Iarch/$ARCH/include/$CPU
-> 
-> to select the CPU and then do a copy of the header files
-> like this:
-> 
-> 	git mv include/asm-$ARCH/$CPU arch/$ARCH/include/$CPU/cpu
-> 
-> Then the code can continue to use:
-> 
-> 	#include <cpu/foo.h>
-> 
-> I already converted sparc to use arch/sparc/include -
-> while I merged the header files for sparc and sparc64.
-> This change is already upstream.
-> 
-> And for SH I posted a receipe which you can read here:
-> http://lkml.org/lkml/2008/7/28/83
-> 
-> It is SH specific but anyway pretty generic.
-> 
-> I am limited in time and resources at the moment but I
-> would be glad to help out as time permits should there
-> be any questions.
+I think the more interesting aspect in m68knommu is what happens
+when asm-m68k gets moved. Does that work as well?
 
-I just tried moving the include/asm-m68knommu directory
-to arch/m68knommu/include/asm and it all worked fine.
-Clean compile first go :-)  Nice.  (As noted
-asm-offsets.h was still generated in incldue/asm-m68knommu
-afterwards though).
+I think the best way to deal with it is to remove all files
+that just include an asm-m68k file with the same name, and
+add -Iarch/m68k/include to your CFLAGS. Not sure about 'make
+headers_install', if there is an easy way to install the
+files from each of the two directories correctly.
 
-So what is the status, should I prepare git/patch
-for Linus?
-
-Regards
-Greg
-
-
-------------------------------------------------------------------------
-Greg Ungerer  --  Chief Software Dude       EMAIL:     gerg@snapgear.com
-Secure Computing Corporation                PHONE:       +61 7 3435 2888
-825 Stanley St,                             FAX:         +61 7 3891 3630
-Woolloongabba, QLD, 4102, Australia         WEB: http://www.SnapGear.com
+	Arnd <><
