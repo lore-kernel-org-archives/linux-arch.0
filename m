@@ -1,44 +1,92 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to
-	convert
-Date: Tue, 29 Jul 2008 10:21:45 -0400
-Message-ID: <20080729142145.GC11425@phobos.i.cabal.ca>
-References: <20080728200500.GA14284@uranus.ravnborg.org> <20080729030647.GA11425@phobos.i.cabal.ca> <20080729032726.GA27460@uranus.ravnborg.org>
+From: Greg Ungerer <gerg@snapgear.com>
+Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to convert
+Date: Wed, 30 Jul 2008 16:49:08 +1000
+Message-ID: <48900EE4.8030606@snapgear.com>
+References: <20080728200500.GA14284@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 206-248-169-182.dsl.ncf.ca ([206.248.169.182]:39100 "EHLO
-	phobos.cabal.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756889AbYG2OVr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jul 2008 10:21:47 -0400
-Content-Disposition: inline
-In-Reply-To: <20080729032726.GA27460@uranus.ravnborg.org>
+Received: from rex.securecomputing.com ([203.24.151.4]:41928 "EHLO
+	cyberguard.com.au" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751208AbYG3GvS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jul 2008 02:51:18 -0400
+In-Reply-To: <20080728200500.GA14284@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Kyle McMartin <kyle@mcmartin.ca>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Cc: linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 
-On Tue, Jul 29, 2008 at 05:27:26AM +0200, Sam Ravnborg wrote:
-> On Mon, Jul 28, 2008 at 11:06:47PM -0400, Kyle McMartin wrote:
-> > On Mon, Jul 28, 2008 at 10:05:00PM +0200, Sam Ravnborg wrote:
-> > > I am limited in time and resources at the moment but I
-> > > would be glad to help out as time permits should there
-> > > be any questions.
-> > > 
-> > 
-> > Just a quick one... I moved the files on parisc, but found we're still
-> > using include/asm-$foo/asm-offsets.h. A quick glance at Kbuild seems to
-> > indicate so. Is this expected?
-> Yes.
-> 
-> asm-offsets.h is a generated file and I wanted to avoid adding
-> generated files to arch/$ARCH/include.
-> 
-> It was also a less intrusive patch to keep it at the old location.
-> But I recall that it troubles me a bit before I got it
-> correct but the kbuild changes all take care of this.
-> 
+Hi Sam,
 
-Thanks for clarifying, Sam.
+Sam Ravnborg wrote:
+> The traditional location of the arch specific Makefiles
+> has been at:
+> 
+> 	include/asm-$ARCH
+> 
+> But as suggested by several people over time and lately
+> by Linus in the following post:
+> http://kerneltrap.org/mailarchive/linux-kernel/2008/5/21/1903924
+> 
+> is is suggested to move the arch specific files under arch/
+> and for the header files this is arch/$ARCH/include.
+> 
+> So I have hacked up support for this in kbuild so
+> for the simpler cases a simple move of header files as
+> in:
+> 	git mv include/asm-$ARCH arch/$ARCH/include/asm
+> 
+> is enough.
+> 
+> If Linus will accept it then I think -rc1 is a perfect
+> time to do it as people has less stuff pending touching
+> the header files that are moved.
+> Validation is easy - does the usual configs build?
+> 
+> For the archs that plays games with symlinks this is a
+> splendid opportunity to get rid af these.
+> The receipe is simple:
+> Use 
+> 	KBUILD_CFLAGS += -Iarch/$ARCH/include/$CPU
+> 
+> to select the CPU and then do a copy of the header files
+> like this:
+> 
+> 	git mv include/asm-$ARCH/$CPU arch/$ARCH/include/$CPU/cpu
+> 
+> Then the code can continue to use:
+> 
+> 	#include <cpu/foo.h>
+> 
+> I already converted sparc to use arch/sparc/include -
+> while I merged the header files for sparc and sparc64.
+> This change is already upstream.
+> 
+> And for SH I posted a receipe which you can read here:
+> http://lkml.org/lkml/2008/7/28/83
+> 
+> It is SH specific but anyway pretty generic.
+> 
+> I am limited in time and resources at the moment but I
+> would be glad to help out as time permits should there
+> be any questions.
 
-cheers, Kyle
+I just tried moving the include/asm-m68knommu directory
+to arch/m68knommu/include/asm and it all worked fine.
+Clean compile first go :-)  Nice.  (As noted
+asm-offsets.h was still generated in incldue/asm-m68knommu
+afterwards though).
+
+So what is the status, should I prepare git/patch
+for Linus?
+
+Regards
+Greg
+
+
+------------------------------------------------------------------------
+Greg Ungerer  --  Chief Software Dude       EMAIL:     gerg@snapgear.com
+Secure Computing Corporation                PHONE:       +61 7 3435 2888
+825 Stanley St,                             FAX:         +61 7 3891 3630
+Woolloongabba, QLD, 4102, Australia         WEB: http://www.SnapGear.com
