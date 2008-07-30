@@ -1,32 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 206-248-169-182.dsl.ncf.ca ([206.248.169.182]:34861 "EHLO
-	phobos.cabal.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752660AbYG2DOo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jul 2008 23:14:44 -0400
-Date: Mon, 28 Jul 2008 23:06:47 -0400
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to
-	convert
-Message-ID: <20080729030647.GA11425@phobos.i.cabal.ca>
-References: <20080728200500.GA14284@uranus.ravnborg.org>
+Received: from yorgi.telenet-ops.be ([195.130.133.69]:49955 "EHLO
+	yorgi.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754582AbYG3M0d (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jul 2008 08:26:33 -0400
+Received: from winston.telenet-ops.be (winston.telenet-ops.be [195.130.137.75])
+	by yorgi.telenet-ops.be (Postfix) with ESMTP id DF922680E8C
+	for <linux-arch@vger.kernel.org>; Wed, 30 Jul 2008 14:26:31 +0200 (CEST)
+Date: Wed, 30 Jul 2008 14:26:04 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to convert
+In-Reply-To: <3995.1217410495@redhat.com>
+Message-ID: <Pine.LNX.4.64.0807301422380.3316@anakin>
+References: <200807300907.25186.arnd@arndb.de> <20080728200500.GA14284@uranus.ravnborg.org>
+ <48900EE4.8030606@snapgear.com> <3995.1217410495@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080728200500.GA14284@uranus.ravnborg.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20080729030647.PTqj8VaPsnWtp72d5L7Zw_CuY2EBgDGKi8KLnzgFoaI@z>
+To: David Howells <dhowells@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Ungerer <gerg@snapgear.com>, Sam Ravnborg <sam@ravnborg.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>, uClinux list <uclinux-dev@uclinux.org>
+Message-ID: <20080730122604.J8FML_bknVfquCM-NMtEJAI53qJvAjICqY5RhNxjUGM@z>
 
-On Mon, Jul 28, 2008 at 10:05:00PM +0200, Sam Ravnborg wrote:
-> I am limited in time and resources at the moment but I
-> would be glad to help out as time permits should there
-> be any questions.
+On Wed, 30 Jul 2008, David Howells wrote:
+> Arnd Bergmann <arnd@arndb.de> wrote:
 > 
+> > I think the more interesting aspect in m68knommu is what happens
+> > when asm-m68k gets moved. Does that work as well?
+> 
+> Can m68knommu be merged into m68k and be made contingent on CONFIG_MMU?  This
+> is what FRV does.
 
-Just a quick one... I moved the files on parisc, but found we're still
-using include/asm-$foo/asm-offsets.h. A quick glance at Kbuild seems to
-indicate so. Is this expected?
+Sure it can ;-)
 
-cheers, Kyle
+Actually I did a bit of work to add nommu support to m68k to make it
+boot on old MMU-less Amigas, but it dates back to the 2.6.8.1 era...
+
+The bigger issue is in those parts that are done differently by m68k and
+m68knommu (esp. head.S).
+
+Who's gonna take the work? :-)
+
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
