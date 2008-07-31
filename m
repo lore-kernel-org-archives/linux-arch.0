@@ -1,81 +1,87 @@
-From: Andrea Righi <righi.andrea@gmail.com>
-Subject: Re: [PATCH 1/1] mm: unify pmd_free() and __pmd_free_tlb() implementation
-Date: Thu, 31 Jul 2008 18:59:57 +0200
-Message-ID: <4891EF8D.6010502@gmail.com>
-References: <alpine.LFD.1.10.0807280851130.3486@nehalem.linux-foundation.org> <488DF119.2000004@gmail.com> <20080729012656.566F.KOSAKI.MOTOHIRO@jp.fujitsu.com> <488DFFB0.1090107@gmail.com> <20080728133030.8b29fa5a.akpm@linux-foundation.org> <488E3020.1040701@goop.org> <488E4DEB.5010705@gmail.com> <20080731161750.GA26393@elte.hu>
-Reply-To: righi.andrea@gmail.com
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to
+	convert
+Date: Thu, 31 Jul 2008 19:23:15 +0100
+Message-ID: <20080731182315.GA18060@linux-mips.org>
+References: <20080728200500.GA14284@uranus.ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fk-out-0910.google.com ([209.85.128.188]:42687 "EHLO
-	fk-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751374AbYGaQ77 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Jul 2008 12:59:59 -0400
-Received: by fk-out-0910.google.com with SMTP id 18so510582fkq.5
-        for <linux-arch@vger.kernel.org>; Thu, 31 Jul 2008 09:59:57 -0700 (PDT)
-In-Reply-To: <20080731161750.GA26393@elte.hu>
+Received: from ditditdahdahdah-dahdahdahditdit.dl5rb.org.uk ([217.169.26.28]:37428
+	"EHLO ditditdahdahdah-dahdahdahditdit.dl5rb.org.uk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753060AbYGaSXa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 31 Jul 2008 14:23:30 -0400
+Content-Disposition: inline
+In-Reply-To: <20080728200500.GA14284@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Andrew Morton <akpm@linux-foundation.org>, kosaki.motohiro@jp.fujitsu.com, torvalds@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 
-Ingo Molnar wrote:
-> * Andrea Righi <righi.andrea@gmail.com> wrote:
-> 
->> Jeremy Fitzhardinge wrote:
->>> Andrew Morton wrote:
->>>> I can second that.  See
->>>> http://userweb.kernel.org/~akpm/mmotm/broken-out/include-asm-generic-pgtable-nopmdh-macros-are-noxious-reason-435.patch
->>>>
->>>> Ingo cruelly ignored it.  Probably he's used to ignoring the comit
->>>> storm which I send in his direction - I'll need to resend it sometime.
->>>>
->>>> I'd consider that patch to be partial - we should demacroize the
->>>> surrounding similar functions too.  But that will require a bit more
->>>> testing.
->>> Its immediate neighbours should be easy enough (pmd_alloc_one, 
->>> __pmd_free_tlb), but any of the ones involving pmd_t risk #include hell 
->>> (though the earlier references to pud_t in inline functions suggest it 
->>> will work).  And pmd_addr_end is just ugly.
->>>
->>>     J
->>>
->> ok, let's start with the easiest: pmd_free() and __pmd_free_tlb().
->>
->> Following another attempt to unify the implementations using inline 
->> functions. It seems to build fine on x86 (pae / non-pae) and on 
->> x86_64. This is an RFC patch right now, not for inclusion (just asking 
->> if it could be a reasonable approach or not). And in any case this 
->> would need more testing.
->>
->> Signed-off-by: Andrea Righi <righi.andrea@gmail.com>
->> ---
->>  arch/sparc/include/asm/pgalloc_64.h |    1 +
->>  include/asm-alpha/pgalloc.h         |    1 +
->>  include/asm-arm/pgalloc.h           |    1 -
->>  include/asm-frv/pgalloc.h           |    2 --
->>  include/asm-generic/pgtable-nopmd.h |   19 +++++++++++++++++--
->>  include/asm-ia64/pgalloc.h          |    1 +
->>  include/asm-m32r/pgalloc.h          |    2 --
->>  include/asm-m68k/motorola_pgalloc.h |    3 ++-
->>  include/asm-m68k/sun3_pgalloc.h     |    7 -------
->>  include/asm-mips/pgalloc.h          |   12 +-----------
->>  include/asm-parisc/pgalloc.h        |    2 +-
->>  include/asm-powerpc/pgalloc-32.h    |    2 --
->>  include/asm-powerpc/pgalloc-64.h    |    1 +
->>  include/asm-s390/pgalloc.h          |    1 -
->>  include/asm-sh/pgalloc.h            |    8 --------
->>  include/asm-um/pgalloc.h            |    1 +
->>  include/asm-x86/pgalloc.h           |    2 ++
->>  17 files changed, 28 insertions(+), 38 deletions(-)
-> 
-> the x86 bits look good to me in principle but touches a ton of 
-> architectures and deals with VM issues - the perfect candidate for -mm?
-> 
-> 	Ingo
+On Mon, Jul 28, 2008 at 10:05:00PM +0200, Sam Ravnborg wrote:
 
-Yes, sounds reasonable. I'll rebase to -mm and post a new patch.
+> The traditional location of the arch specific Makefiles
+> has been at:
+> 
+> 	include/asm-$ARCH
+> 
+> But as suggested by several people over time and lately
+> by Linus in the following post:
+> http://kerneltrap.org/mailarchive/linux-kernel/2008/5/21/1903924
+> 
+> is is suggested to move the arch specific files under arch/
+> and for the header files this is arch/$ARCH/include.
+> 
+> So I have hacked up support for this in kbuild so
+> for the simpler cases a simple move of header files as
+> in:
+> 	git mv include/asm-$ARCH arch/$ARCH/include/asm
+> 
+> is enough.
+> 
+> If Linus will accept it then I think -rc1 is a perfect
+> time to do it as people has less stuff pending touching
+> the header files that are moved.
+> Validation is easy - does the usual configs build?
+> 
+> For the archs that plays games with symlinks this is a
+> splendid opportunity to get rid af these.
+> The receipe is simple:
+> Use 
+> 	KBUILD_CFLAGS += -Iarch/$ARCH/include/$CPU
+> 
+> to select the CPU and then do a copy of the header files
+> like this:
+> 
+> 	git mv include/asm-$ARCH/$CPU arch/$ARCH/include/$CPU/cpu
+> 
+> Then the code can continue to use:
+> 
+> 	#include <cpu/foo.h>
+> 
+> I already converted sparc to use arch/sparc/include -
+> while I merged the header files for sparc and sparc64.
+> This change is already upstream.
+> 
+> And for SH I posted a receipe which you can read here:
+> http://lkml.org/lkml/2008/7/28/83
+> 
+> It is SH specific but anyway pretty generic.
+> 
+> I am limited in time and resources at the moment but I
+> would be glad to help out as time permits should there
+> be any questions.
 
-Thanks,
--Andrea
+I just did the necessary changes for MIPS and the first testbuild is running
+successfully so far.
+
+One of the ugly things in the MIPS makefiles is the use of platform-
+specific headers in include/asm-mips/mach-* which contain platform specific
+headers.  Ideally those should be included through something like
+<mach/somefile.h> or <plat/something.h> and I think a directory like
+arch/$ARCH/$PLATFORM/include/plat/foobar.h could be a good place in the
+new scheme?  I assume other platforms have similar issues with subplatforms,
+processor sub-architectures etc.?
+
+  Ralf
