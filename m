@@ -1,73 +1,29 @@
-From: Greg Ungerer <gerg@snapgear.com>
-Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to convert
-Date: Thu, 31 Jul 2008 21:26:33 +1000
-Message-ID: <4891A169.30603@snapgear.com>
-References: <200807300907.25186.arnd@arndb.de> <20080728200500.GA14284@uranus.ravnborg.org> <48900EE4.8030606@snapgear.com> <3995.1217410495@redhat.com> <Pine.LNX.4.64.0807301422380.3316@anakin> <20080731032338.GA14296@linux-sh.org> <Pine.LNX.4.64.0807310916430.10810@anakin>
+From: Christoph Lameter <cl@linux-foundation.org>
+Subject: Re: MMU notifiers review and some proposals
+Date: Thu, 31 Jul 2008 09:19:01 -0500
+Message-ID: <4891C9D5.8000500@linux-foundation.org>
+References: <20080724143949.GB12897@wotan.suse.de> <20080725214552.GB21150@duo.random> <20080726030810.GA18896@wotan.suse.de> <20080726113813.GD21150@duo.random> <20080726122826.GA17958@wotan.suse.de> <20080726130202.GA9598@duo.random> <20080726131450.GC21820@wotan.suse.de> <48907880.3020105@linux-foundation.org> <20080730145436.GJ11494@duo.random> <48908BD4.10408@linux-foundation.org> <20080731061419.GB32644@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753661AbYGaL0z@vger.kernel.org>
-In-Reply-To: <Pine.LNX.4.64.0807310916430.10810@anakin>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Paul Mundt <lethal@linux-sh.org>, David Howells <dhowells@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Sam Ravnborg <sam@ravnborg.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>, uClinux list <uclinux-dev@uclinux.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:58199 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751375AbYGaOTl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 31 Jul 2008 10:19:41 -0400
+In-Reply-To: <20080731061419.GB32644@wotan.suse.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nick Piggin <npiggin@suse.de>
+Cc: Andrea Arcangeli <andrea@qumranet.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org, steiner@sgi.com
 
-Geert Uytterhoeven wrote:
-> On Thu, 31 Jul 2008, Paul Mundt wrote:
->> On Wed, Jul 30, 2008 at 02:26:04PM +0200, Geert Uytterhoeven wrote:
->>> On Wed, 30 Jul 2008, David Howells wrote:
->>>> Arnd Bergmann <arnd@arndb.de> wrote:
->>>>
->>>>> I think the more interesting aspect in m68knommu is what happens
->>>>> when asm-m68k gets moved. Does that work as well?
->>>> Can m68knommu be merged into m68k and be made contingent on CONFIG_MMU?  This
->>>> is what FRV does.
->>> Sure it can ;-)
->>>
->>> Actually I did a bit of work to add nommu support to m68k to make it
->>> boot on old MMU-less Amigas, but it dates back to the 2.6.8.1 era...
->>>
->>> The bigger issue is in those parts that are done differently by m68k and
->>> m68knommu (esp. head.S).
->>>
->>> Who's gonna take the work? :-)
->>>
->> This sort of merging is fairly easy to do incrementally, at least by
->> someone that has both platforms available. An easy first step would be to
-> 
-> Indeed. I have none of the currently supported m68knommu platforms,
-> though.
-> Don't know about Greg and m68k platforms (of course he can use ARAnyM
-> ;-).
+Nick Piggin wrote:
 
-I don't have any real m68k (with MMU) hardware ;-)
-I do have a v4e ColdFire with MMU, but that is not supported
-by mainline m68k code. Maybe a help...
+> That's OK. We don't have to make decisions just by people supporting one
+> way or the other, because I'll come up with some competing patches and
+> if they turn out to be significantly simpler to the core VM without having
+> a significant negative impact on performance then naturally everybody should
+> be happy to merge them, so nobody has to argue with handwaving.
 
-
->> move the m68knommu stuff that are implemented differently over as _nommu
->> files, similar to how the _32/_64 renames happened, and then set about
->> converging the two little by little. This is what I've been doing with
->> sh64->sh integration for example, despite fundamental differences like
->> having a totally different register layout and instruction set.
-> 
-> IC.
-
-Probably not hugely difficult to merge together. Quite a few of the
-m68knommu files came from m68k with only a little change and a lot
-of removal. The board/platform stuff is obviously quite different -
-very little (if any) commonality.
-
-Just needs someone with time to sit down and do it and clean up
-the resulting mess.
-
-Regards
-Greg
-
-
-------------------------------------------------------------------------
-Greg Ungerer  --  Chief Software Dude       EMAIL:     gerg@snapgear.com
-SnapGear -- a Secure Computing Company      PHONE:       +61 7 3435 2888
-825 Stanley St,                             FAX:         +61 7 3891 3630
-Woolloongabba, QLD, 4102, Australia         WEB: http://www.SnapGear.com
+We make decisions based on technical issues. If you can come up with a solution that addresses the issues (please review the earlier discussion on the subject matter) then we will all be happy to see that merged.
