@@ -1,29 +1,76 @@
-From: Christoph Lameter <cl@linux-foundation.org>
-Subject: Re: MMU notifiers review and some proposals
-Date: Thu, 31 Jul 2008 09:19:01 -0500
-Message-ID: <4891C9D5.8000500@linux-foundation.org>
-References: <20080724143949.GB12897@wotan.suse.de> <20080725214552.GB21150@duo.random> <20080726030810.GA18896@wotan.suse.de> <20080726113813.GD21150@duo.random> <20080726122826.GA17958@wotan.suse.de> <20080726130202.GA9598@duo.random> <20080726131450.GC21820@wotan.suse.de> <48907880.3020105@linux-foundation.org> <20080730145436.GJ11494@duo.random> <48908BD4.10408@linux-foundation.org> <20080731061419.GB32644@wotan.suse.de>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH 1/1] mm: unify pmd_free() and __pmd_free_tlb()
+	implementation
+Date: Thu, 31 Jul 2008 18:17:50 +0200
+Message-ID: <20080731161750.GA26393@elte.hu>
+References: <alpine.LFD.1.10.0807280851130.3486@nehalem.linux-foundation.org> <488DF119.2000004@gmail.com> <20080729012656.566F.KOSAKI.MOTOHIRO@jp.fujitsu.com> <488DFFB0.1090107@gmail.com> <20080728133030.8b29fa5a.akpm@linux-foundation.org> <488E3020.1040701@goop.org> <488E4DEB.5010705@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:58199 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751375AbYGaOTl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 31 Jul 2008 10:19:41 -0400
-In-Reply-To: <20080731061419.GB32644@wotan.suse.de>
+Received: from mx3.mail.elte.hu ([157.181.1.138]:46619 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751376AbYGaQSR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 31 Jul 2008 12:18:17 -0400
+Content-Disposition: inline
+In-Reply-To: <488E4DEB.5010705@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Andrea Arcangeli <andrea@qumranet.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org, steiner@sgi.com
+To: Andrea Righi <righi.andrea@gmail.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Andrew Morton <akpm@linux-foundation.org>, kosaki.motohiro@jp.fujitsu.com, torvalds@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
 
-Nick Piggin wrote:
 
-> That's OK. We don't have to make decisions just by people supporting one
-> way or the other, because I'll come up with some competing patches and
-> if they turn out to be significantly simpler to the core VM without having
-> a significant negative impact on performance then naturally everybody should
-> be happy to merge them, so nobody has to argue with handwaving.
+* Andrea Righi <righi.andrea@gmail.com> wrote:
 
-We make decisions based on technical issues. If you can come up with a solution that addresses the issues (please review the earlier discussion on the subject matter) then we will all be happy to see that merged.
+> Jeremy Fitzhardinge wrote:
+> > Andrew Morton wrote:
+> >> I can second that.  See
+> >> http://userweb.kernel.org/~akpm/mmotm/broken-out/include-asm-generic-pgtable-nopmdh-macros-are-noxious-reason-435.patch
+> >>
+> >> Ingo cruelly ignored it.  Probably he's used to ignoring the comit
+> >> storm which I send in his direction - I'll need to resend it sometime.
+> >>
+> >> I'd consider that patch to be partial - we should demacroize the
+> >> surrounding similar functions too.  But that will require a bit more
+> >> testing.
+> > 
+> > Its immediate neighbours should be easy enough (pmd_alloc_one, 
+> > __pmd_free_tlb), but any of the ones involving pmd_t risk #include hell 
+> > (though the earlier references to pud_t in inline functions suggest it 
+> > will work).  And pmd_addr_end is just ugly.
+> > 
+> >     J
+> > 
+> 
+> ok, let's start with the easiest: pmd_free() and __pmd_free_tlb().
+> 
+> Following another attempt to unify the implementations using inline 
+> functions. It seems to build fine on x86 (pae / non-pae) and on 
+> x86_64. This is an RFC patch right now, not for inclusion (just asking 
+> if it could be a reasonable approach or not). And in any case this 
+> would need more testing.
+> 
+> Signed-off-by: Andrea Righi <righi.andrea@gmail.com>
+> ---
+>  arch/sparc/include/asm/pgalloc_64.h |    1 +
+>  include/asm-alpha/pgalloc.h         |    1 +
+>  include/asm-arm/pgalloc.h           |    1 -
+>  include/asm-frv/pgalloc.h           |    2 --
+>  include/asm-generic/pgtable-nopmd.h |   19 +++++++++++++++++--
+>  include/asm-ia64/pgalloc.h          |    1 +
+>  include/asm-m32r/pgalloc.h          |    2 --
+>  include/asm-m68k/motorola_pgalloc.h |    3 ++-
+>  include/asm-m68k/sun3_pgalloc.h     |    7 -------
+>  include/asm-mips/pgalloc.h          |   12 +-----------
+>  include/asm-parisc/pgalloc.h        |    2 +-
+>  include/asm-powerpc/pgalloc-32.h    |    2 --
+>  include/asm-powerpc/pgalloc-64.h    |    1 +
+>  include/asm-s390/pgalloc.h          |    1 -
+>  include/asm-sh/pgalloc.h            |    8 --------
+>  include/asm-um/pgalloc.h            |    1 +
+>  include/asm-x86/pgalloc.h           |    2 ++
+>  17 files changed, 28 insertions(+), 38 deletions(-)
+
+the x86 bits look good to me in principle but touches a ton of 
+architectures and deals with VM issues - the perfect candidate for -mm?
+
+	Ingo
