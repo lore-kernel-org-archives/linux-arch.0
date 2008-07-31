@@ -1,29 +1,46 @@
-From: Christoph Lameter <cl@linux-foundation.org>
-Subject: Re: MMU notifiers review and some proposals
-Date: Wed, 30 Jul 2008 10:42:12 -0500
-Message-ID: <48908BD4.10408@linux-foundation.org>
-References: <20080724143949.GB12897@wotan.suse.de> <20080725214552.GB21150@duo.random> <20080726030810.GA18896@wotan.suse.de> <20080726113813.GD21150@duo.random> <20080726122826.GA17958@wotan.suse.de> <20080726130202.GA9598@duo.random> <20080726131450.GC21820@wotan.suse.de> <48907880.3020105@linux-foundation.org> <20080730145436.GJ11494@duo.random>
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to convert
+Date: Thu, 31 Jul 2008 12:23:38 +0900
+Message-ID: <20080731032338.GA14296@linux-sh.org>
+References: <200807300907.25186.arnd@arndb.de> <20080728200500.GA14284@uranus.ravnborg.org> <48900EE4.8030606@snapgear.com> <3995.1217410495@redhat.com> <Pine.LNX.4.64.0807301422380.3316@anakin>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:42236 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753722AbYG3Pmf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Jul 2008 11:42:35 -0400
-In-Reply-To: <20080730145436.GJ11494@duo.random>
+Received: from mta23.gyao.ne.jp ([125.63.38.249]:57932 "EHLO mx.gate01.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1762229AbYGaDYh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Jul 2008 23:24:37 -0400
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0807301422380.3316@anakin>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Arcangeli <andrea@qumranet.com>
-Cc: Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org, steiner@sgi.com
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: David Howells <dhowells@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Greg Ungerer <gerg@snapgear.com>, Sam Ravnborg <sam@ravnborg.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>, uClinux list <uclinux-dev@uclinux.org>
 
-Andrea Arcangeli wrote:
-
-> I think the current implementation is fine for the long run, it can
-> provide the fastest performance when armed, and each invalidate either
-> requires IPIs or it may may need to access the southbridge, so when
-> freeing large areas of memory it's good being able to do a single
-> invalidate.
-
-Right. A couple of months ago we had this discussion and agreed that the begin / end was the way to go. I still support that decision.
+On Wed, Jul 30, 2008 at 02:26:04PM +0200, Geert Uytterhoeven wrote:
+> On Wed, 30 Jul 2008, David Howells wrote:
+> > Arnd Bergmann <arnd@arndb.de> wrote:
+> > 
+> > > I think the more interesting aspect in m68knommu is what happens
+> > > when asm-m68k gets moved. Does that work as well?
+> > 
+> > Can m68knommu be merged into m68k and be made contingent on CONFIG_MMU?  This
+> > is what FRV does.
+> 
+> Sure it can ;-)
+> 
+> Actually I did a bit of work to add nommu support to m68k to make it
+> boot on old MMU-less Amigas, but it dates back to the 2.6.8.1 era...
+> 
+> The bigger issue is in those parts that are done differently by m68k and
+> m68knommu (esp. head.S).
+> 
+> Who's gonna take the work? :-)
+> 
+This sort of merging is fairly easy to do incrementally, at least by
+someone that has both platforms available. An easy first step would be to
+move the m68knommu stuff that are implemented differently over as _nommu
+files, similar to how the _32/_64 renames happened, and then set about
+converging the two little by little. This is what I've been doing with
+sh64->sh integration for example, despite fundamental differences like
+having a totally different register layout and instruction set.
