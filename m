@@ -1,58 +1,64 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to convert
-Date: Mon, 4 Aug 2008 16:35:11 +0200
-Message-ID: <200808041635.11854.arnd@arndb.de>
-References: <20080728200500.GA14284@uranus.ravnborg.org> <4892A719.5090302@snapgear.com> <Pine.LNX.4.64.0808032205120.23329@anakin>
+Date: Mon, 4 Aug 2008 18:00:53 +0200 (CEST)
+Message-ID: <Pine.LNX.4.64.0808041750110.16461@anakin>
+References: <20080728200500.GA14284@uranus.ravnborg.org> <4892A719.5090302@snapgear.com>
+ <Pine.LNX.4.64.0808032205120.23329@anakin> <200808041635.11854.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: MULTIPART/MIXED; BOUNDARY="-1463808415-1983824005-1217865653=:16461"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:51855 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753551AbYHDOfb convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Aug 2008 10:35:31 -0400
-In-Reply-To: <Pine.LNX.4.64.0808032205120.23329@anakin>
-Content-Disposition: inline
+Received: from edna.telenet-ops.be ([195.130.132.58]:36311 "EHLO
+	edna.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753675AbYHDQA4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Aug 2008 12:00:56 -0400
+In-Reply-To: <200808041635.11854.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: Greg Ungerer <gerg@snapgear.com>, Sam Ravnborg <sam@ravnborg.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>
 
-On Sunday 03 August 2008, Geert Uytterhoeven wrote:
-> There seem to be 3 classes of m68knommu header files:
-> =A0 1. Plain files (some of them may be (nearly) identical copies of =
-the
-> =A0 =A0 =A0m68k variants,
+  This message is in MIME format.  The first part should be readable text,
+  while the remaining parts are likely unreadable without MIME-aware tools.
 
-=46or reference, I found the files auxvec.h, device.h, emergency-restar=
-t.h,
-futex.h, ioctl.h, irq_regs.h, kdebug.h, mutex.h and topology.h to be
-entirely identical, so you may remove the m68knommu variants with your
-approach.
+---1463808415-1983824005-1217865653=:16461
+Content-Type: TEXT/PLAIN; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 
-> =A0 2. Files that just include the m68k variant,
-> =A0 3. Files that include the m68k variant and do something more (pci=
-=2Eh and
-> =A0 =A0 =A0setup.h).
->
-> Since I don't think we want to do the m68k/m68knommu merge right now
-> (Sorry Arnd, I'll keep your script in mind anyway!), the simplest way=
- is to:
->  - Remove all files from class 2, and add to the Makefile:
+On Mon, 4 Aug 2008, Arnd Bergmann wrote:
+> On Sunday 03 August 2008, Geert Uytterhoeven wrote:
+> > There seem to be 3 classes of m68knommu header files:
+> >   1. Plain files (some of them may be (nearly) identical copies of the
+> >      m68k variants,
+> 
+> For reference, I found the files auxvec.h, device.h, emergency-restart.h,
+> futex.h, ioctl.h, irq_regs.h, kdebug.h, mutex.h and topology.h to be
+> entirely identical, so you may remove the m68knommu variants with your
+> approach.
 
-Does this work with the exported headers? I guess it should if you
-always use the m68k exports for m68knommu as well, but if that's
-possible is is a question you haven't answered yet.
+Thanks for the list!
 
-Right now, you would remove the following exported headers from m68knom=
-mu:
-auxvec.h, errno.h, fcntl.h, ioctl.h, ioctls.h, ipcbuf.h, mman.h, msgbuf=
-=2Eh,
-poll.h, posix_types.h, resource.h, sembuf.h, shmbuf.h, socket.h, stat.h=
-,
-statfs.h, termbits.h.
+> >   2. Files that just include the m68k variant,
+> >   3. Files that include the m68k variant and do something more (pci.h and
+> >      setup.h).
+> >
+> > Since I don't think we want to do the m68k/m68knommu merge right now
+> > (Sorry Arnd, I'll keep your script in mind anyway!), the simplest way is to:
+> >  - Remove all files from class 2, and add to the Makefile:
+> 
+> Does this work with the exported headers? I guess it should if you
+> always use the m68k exports for m68knommu as well, but if that's
+> possible is is a question you haven't answered yet.
 
-If you don't want to use the m68k exports on m68knomu, you'd also have
-to duplicate all these.
+Oops, forgot about the exported headers... Don't know. Sam?
 
-	Arnd <><
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
+---1463808415-1983824005-1217865653=:16461--
