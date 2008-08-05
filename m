@@ -1,86 +1,32 @@
-From: Sam Ravnborg <sam@ravnborg.org>
+From: Rusty Russell <rusty@rustcorp.com.au>
 Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to convert
-Date: Mon, 4 Aug 2008 18:45:58 +0200
-Message-ID: <20080804164558.GA26622@uranus.ravnborg.org>
-References: <20080728200500.GA14284@uranus.ravnborg.org> <4892A719.5090302@snapgear.com> <Pine.LNX.4.64.0808032205120.23329@anakin> <200808041635.11854.arnd@arndb.de> <Pine.LNX.4.64.0808041750110.16461@anakin>
+Date: Tue, 5 Aug 2008 14:18:05 +1000
+Message-ID: <200808051418.05324.rusty@rustcorp.com.au>
+References: <20080728200500.GA14284@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtpout3.tre.se ([80.251.192.228]:45685 "EHLO smtpout3.tre.se"
+Received: from ozlabs.org ([203.10.76.45]:47447 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753720AbYHDQqN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 4 Aug 2008 12:46:13 -0400
+	id S1751568AbYHEES3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 5 Aug 2008 00:18:29 -0400
+In-Reply-To: <20080728200500.GA14284@uranus.ravnborg.org>
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0808041750110.16461@anakin>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Ungerer <gerg@snapgear.com>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 
-On Mon, Aug 04, 2008 at 06:00:53PM +0200, Geert Uytterhoeven wrote:
-> On Mon, 4 Aug 2008, Arnd Bergmann wrote:
-> > On Sunday 03 August 2008, Geert Uytterhoeven wrote:
-> > > There seem to be 3 classes of m68knommu header files:
-> > > ? 1. Plain files (some of them may be (nearly) identical copies of the
-> > > ? ? ?m68k variants,
-> > 
-> > For reference, I found the files auxvec.h, device.h, emergency-restart.h,
-> > futex.h, ioctl.h, irq_regs.h, kdebug.h, mutex.h and topology.h to be
-> > entirely identical, so you may remove the m68knommu variants with your
-> > approach.
-> 
-> Thanks for the list!
-> 
-> > > ? 2. Files that just include the m68k variant,
-> > > ? 3. Files that include the m68k variant and do something more (pci.h and
-> > > ? ? ?setup.h).
-> > >
-> > > Since I don't think we want to do the m68k/m68knommu merge right now
-> > > (Sorry Arnd, I'll keep your script in mind anyway!), the simplest way is to:
-> > >  - Remove all files from class 2, and add to the Makefile:
-> > 
-> > Does this work with the exported headers? I guess it should if you
-> > always use the m68k exports for m68knommu as well, but if that's
-> > possible is is a question you haven't answered yet.
-> 
-> Oops, forgot about the exported headers... Don't know. Sam?
+On Tuesday 29 July 2008 06:05:00 Sam Ravnborg wrote:
+> is is suggested to move the arch specific files under arch/
+> and for the header files this is arch/$ARCH/include.
 
-For sparc I has a similar issue and in the end I decided
-to put the extra effort in and merged the header files
-for sparc and sparc64. In this way we then had only a single
-source to export from and despite the number of files named
-foo_32.h / foo_64.h it was a net win because David long term anyway
-plan to merge the two.
+Well, it would have been nice to take the opportunity to separate user-visible 
+header files and non-user-visible files.  We could have left the user-visible 
+ones in place, for example: diffstat would then show when you were frobbing 
+the userspace interface.
 
-So to me the obvious solution for m68k / m68knommu is to
-put in the additional effort required to merge the header files
-for the two architectures.
-
-In the top-level Makefile you will need this trivial patch to make it work:
-diff --git a/Makefile b/Makefile
-index f156f40..491ce6b 100644
---- a/Makefile
-+++ b/Makefile
-@@ -206,10 +206,12 @@ ifeq ($(ARCH),x86_64)
- endif
-
- # Where to locate arch specific headers
-+hdr-arch  := $(SRCARCH)
- ifeq ($(ARCH),sparc64)
-        hdr-arch  := sparc
--else
--       hdr-arch  := $(SRCARCH)
-+endif
-+ifeq ($(ARCH),m68knommu)
-+        hdr-arch := m68k
- endif
-
-So we have a script to help us. We know what files are identical and
-kbuild support is ready.
-
-And if we avoid it we have issues with exported headers.
-
-So let's merge the two now - there is no reason to wait.
-And do so in the git tree to make it obvious what happens.
-
-	Sam
+But I'm guessing noone wants even more marginal-value churn right now.
+Rusty.
