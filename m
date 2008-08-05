@@ -1,78 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hosted06.westnet.com.au ([203.10.1.221]:36827 "EHLO
-	hosted06.westnet.com.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751110AbYGaL5c (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Jul 2008 07:57:32 -0400
-Message-ID: <4891A169.30603@snapgear.com>
-Date: Thu, 31 Jul 2008 21:26:33 +1000
-From: Greg Ungerer <gerg@snapgear.com>
-MIME-Version: 1.0
+Received: from yergi.telenet-ops.be ([195.130.132.36]:46009 "EHLO
+	yergi.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761068AbYHERRH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Aug 2008 13:17:07 -0400
+Received: from winston.telenet-ops.be (unknown [195.130.137.75])
+	by yergi.telenet-ops.be (Postfix) with ESMTP id 74E755CB06D
+	for <linux-arch@vger.kernel.org>; Tue,  5 Aug 2008 19:17:13 +0200 (CEST)
+Date: Tue, 5 Aug 2008 19:16:25 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to convert
-References: <200807300907.25186.arnd@arndb.de> <20080728200500.GA14284@uranus.ravnborg.org> <48900EE4.8030606@snapgear.com> <3995.1217410495@redhat.com> <Pine.LNX.4.64.0807301422380.3316@anakin> <20080731032338.GA14296@linux-sh.org> <Pine.LNX.4.64.0807310916430.10810@anakin>
-In-Reply-To: <Pine.LNX.4.64.0807310916430.10810@anakin>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <200808051418.05324.rusty@rustcorp.com.au>
+Message-ID: <Pine.LNX.4.64.0808051916010.28683@anakin>
+References: <20080728200500.GA14284@uranus.ravnborg.org>
+ <200808051418.05324.rusty@rustcorp.com.au>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Paul Mundt <lethal@linux-sh.org>, David Howells <dhowells@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Sam Ravnborg <sam@ravnborg.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>, uClinux list <uclinux-dev@uclinux.org>
-Message-ID: <20080731112633.nVjAYqn2FX6DFT8Uinj5RMO9Iq7O59CZs7MO5X1Dhvw@z>
+To: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Sam Ravnborg <sam@ravnborg.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20080805171625.qmvBcb0klkmPgc3Tbc1FWgS6ZNkkbiqAEQC9NCnL9hw@z>
 
-Geert Uytterhoeven wrote:
-> On Thu, 31 Jul 2008, Paul Mundt wrote:
->> On Wed, Jul 30, 2008 at 02:26:04PM +0200, Geert Uytterhoeven wrote:
->>> On Wed, 30 Jul 2008, David Howells wrote:
->>>> Arnd Bergmann <arnd@arndb.de> wrote:
->>>>
->>>>> I think the more interesting aspect in m68knommu is what happens
->>>>> when asm-m68k gets moved. Does that work as well?
->>>> Can m68knommu be merged into m68k and be made contingent on CONFIG_MMU?  This
->>>> is what FRV does.
->>> Sure it can ;-)
->>>
->>> Actually I did a bit of work to add nommu support to m68k to make it
->>> boot on old MMU-less Amigas, but it dates back to the 2.6.8.1 era...
->>>
->>> The bigger issue is in those parts that are done differently by m68k and
->>> m68knommu (esp. head.S).
->>>
->>> Who's gonna take the work? :-)
->>>
->> This sort of merging is fairly easy to do incrementally, at least by
->> someone that has both platforms available. An easy first step would be to
+On Tue, 5 Aug 2008, Rusty Russell wrote:
+> On Tuesday 29 July 2008 06:05:00 Sam Ravnborg wrote:
+> > is is suggested to move the arch specific files under arch/
+> > and for the header files this is arch/$ARCH/include.
 > 
-> Indeed. I have none of the currently supported m68knommu platforms,
-> though.
-> Don't know about Greg and m68k platforms (of course he can use ARAnyM
-> ;-).
-
-I don't have any real m68k (with MMU) hardware ;-)
-I do have a v4e ColdFire with MMU, but that is not supported
-by mainline m68k code. Maybe a help...
-
-
->> move the m68knommu stuff that are implemented differently over as _nommu
->> files, similar to how the _32/_64 renames happened, and then set about
->> converging the two little by little. This is what I've been doing with
->> sh64->sh integration for example, despite fundamental differences like
->> having a totally different register layout and instruction set.
+> Well, it would have been nice to take the opportunity to separate user-visible 
+> header files and non-user-visible files.  We could have left the user-visible 
+> ones in place, for example: diffstat would then show when you were frobbing 
+> the userspace interface.
 > 
-> IC.
+> But I'm guessing noone wants even more marginal-value churn right now.
+> Rusty.
 
-Probably not hugely difficult to merge together. Quite a few of the
-m68knommu files came from m68k with only a little change and a lot
-of removal. The board/platform stuff is obviously quite different -
-very little (if any) commonality.
+That actually sounds like a good idea to me!
+Can we do the same with the <linux/*.h> ones?
 
-Just needs someone with time to sit down and do it and clean up
-the resulting mess.
+Gr{oetje,eeting}s,
 
-Regards
-Greg
+						Geert
 
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-------------------------------------------------------------------------
-Greg Ungerer  --  Chief Software Dude       EMAIL:     gerg@snapgear.com
-SnapGear -- a Secure Computing Company      PHONE:       +61 7 3435 2888
-825 Stanley St,                             FAX:         +61 7 3891 3630
-Woolloongabba, QLD, 4102, Australia         WEB: http://www.SnapGear.com
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
