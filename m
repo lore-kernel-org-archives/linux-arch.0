@@ -1,57 +1,47 @@
 From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to convert
-Date: Tue, 5 Aug 2008 23:06:15 +0100
-Message-ID: <20080805220615.GC18607@flint.arm.linux.org.uk>
-References: <20080728200500.GA14284@uranus.ravnborg.org> <200808051418.05324.rusty@rustcorp.com.au> <20080805204548.GD5464@uranus.ravnborg.org>
+Date: Wed, 6 Aug 2008 20:21:26 +0100
+Message-ID: <20080806192126.GA29891@flint.arm.linux.org.uk>
+References: <20080728200500.GA14284@uranus.ravnborg.org> <200808051418.05324.rusty@rustcorp.com.au> <20080805204548.GD5464@uranus.ravnborg.org> <20080805220615.GC18607@flint.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:56119 "EHLO
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:53194 "EHLO
 	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754109AbYHEWGe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Aug 2008 18:06:34 -0400
+	with ESMTP id S1756484AbYHFTVy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Aug 2008 15:21:54 -0400
 Content-Disposition: inline
-In-Reply-To: <20080805204548.GD5464@uranus.ravnborg.org>
+In-Reply-To: <20080805220615.GC18607@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>, Rusty Russell <rusty@rustcorp.com.au>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 
-On Tue, Aug 05, 2008 at 10:45:48PM +0200, Sam Ravnborg wrote:
-> On Tue, Aug 05, 2008 at 02:18:05PM +1000, Rusty Russell wrote:
-> > On Tuesday 29 July 2008 06:05:00 Sam Ravnborg wrote:
-> > > is is suggested to move the arch specific files under arch/
-> > > and for the header files this is arch/$ARCH/include.
-> > 
-> > Well, it would have been nice to take the opportunity to separate user-visible 
-> > header files and non-user-visible files.  We could have left the user-visible 
-> > ones in place, for example: diffstat would then show when you were frobbing 
-> > the userspace interface.
-> 
-> I would like to see this change too - but intentionally I would
-> not try to mix it with the move of the header files. Lets get the
-> move done now and fix the fall-outs, then we can take this logical
-> next step.
+On Tue, Aug 05, 2008 at 11:06:15PM +0100, Russell King wrote:
+> Currently, I know Linus' tree builds fine for most ARM platforms (thanks
+> to the ARM kautobuild project.)  However, I'm seeing unexpected build
+> failures that don't make sense from the linux-next project.
 
-Absolutely agreed.
+And the expression "oh bugger" comes to mind.  The breakage in linux-next
+is because of 2e57d051160dd61776461637f767df19036b1186 and
+ea35455e0dc17d732436a5b98bd511cab64eb10e.
 
-Some architectures (eg, ARM) have quite a large headache to solve with
-these changes.
+During the last fortnight, I'd moved the "easy to move" ARM headers
+from include/asm-arm to arch/arm/include/asm.  This means that, unknown
+to me, the symlink was no longer being created.  That didn't get picked
+up in my testing, because I always build using O= builds into already
+existing object trees, which of course all have the symlink in place.
 
-Currently, I know Linus' tree builds fine for most ARM platforms (thanks
-to the ARM kautobuild project.)  However, I'm seeing unexpected build
-failures that don't make sense from the linux-next project.
+This doesn't affect kautobuild because that always builds trees without
+using the O= facility.
 
-I've just wound my tree back to a "pristine" state for linux-next, and
-plan to wait for its next build to check whether its me or something else
-causing it.  What I'm referring to is:
+The question is what to do about it.  Given the size of the task, I'm
+currently of the opinion that we're moving things around in the wrong
+order, and 4baa9922430662431231ac637adedddbb0cfb2d7 should be reverted
+until we've moved all the other ARM headers (in asm/arch and asm/plat-*)
+first.
 
-s3c2410_defconfig's showing:
-include/asm/arch/map.h:16:30: error: asm/plat-s3c/map.h: No such file or directory
-
-which, if its including it via include/ shouldn't be happening because
-plat-s3c hasn't moved from include/asm(-arm)/, the same as
-include/asm-arm/arch-s3c2410 hasn't moved in linux-next yet.
+Maybe even leaving this until the next merge window now that -rc2 is
+out would be a good idea.
 
 -- 
 Russell King
