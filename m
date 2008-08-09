@@ -1,70 +1,32 @@
 From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to convert
-Date: Sat, 9 Aug 2008 09:28:22 +0200
-Message-ID: <20080809072822.GB11302@uranus.ravnborg.org>
-References: <20080728200500.GA14284@uranus.ravnborg.org>
+Date: Sat, 9 Aug 2008 13:13:42 +0200
+Message-ID: <20080809111342.GA12660@uranus.ravnborg.org>
+References: <20080728200500.GA14284@uranus.ravnborg.org> <20080731182315.GA18060@linux-mips.org> <20080809025244.GB9794@uranus.ravnborg.org> <20080809030927.GA7766@linux-sh.org> <20080809070344.GA11302@uranus.ravnborg.org> <20080809072031.GB25046@flint.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtpout3.tre.se ([80.251.192.228]:34694 "EHLO smtpout3.tre.se"
+Received: from smtpout3.tre.se ([80.251.192.228]:54344 "EHLO smtpout3.tre.se"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752209AbYHIH1n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 9 Aug 2008 03:27:43 -0400
+	id S1751282AbYHILM6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 9 Aug 2008 07:12:58 -0400
 Content-Disposition: inline
-In-Reply-To: <20080728200500.GA14284@uranus.ravnborg.org>
+In-Reply-To: <20080809072031.GB25046@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux arch <linux-arch@vger.kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>
+To: Paul Mundt <lethal@linux-sh.org>, Ralf Baechle <ralf@linux-mips.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 
-On Mon, Jul 28, 2008 at 10:05:00PM +0200, Sam Ravnborg wrote:
-> The traditional location of the arch specific Makefiles
-> has been at:
+On Sat, Aug 09, 2008 at 08:20:31AM +0100, Russell King wrote:
+> On Sat, Aug 09, 2008 at 09:03:44AM +0200, Sam Ravnborg wrote:
+> > On Sat, Aug 09, 2008 at 12:09:28PM +0900, Paul Mundt wrote:
+> > > Where was this discussed? SH has the same issues obviously, but we've
+> > > already settled on a scheme.
+> > 
+> > Looking again I realize this was only discussed on the arm kernel mailing list
+> > and people involved was rmk, Harvaard and myself.
 > 
-> 	include/asm-$ARCH
-> 
-> But as suggested by several people over time and lately
-> by Linus in the following post:
-> http://kerneltrap.org/mailarchive/linux-kernel/2008/5/21/1903924
-> 
-> is is suggested to move the arch specific files under arch/
-> and for the header files this is arch/$ARCH/include.
+> ... and with almost every other ARM person ignoring it entirely
 
-So where are we now?
-alpha        Not done - but trivial (I have tested it)
-blackfin     Not done - uses symlinks
-h8300        Not done - but looks trivial
-m32r         Not done - looks trivial
-mips         Not done - but I think it is prepared
-powerpc      Done
-sparc        Done
-x86          Not done - assume planned at end of next merge window
-arm          Almost done - three plat-* directories needs to be moved
-cris         Not done - uses symlinks
-ia64         Done
-m68k         Not done - may be combined with merging headers for m68knommu
-mn10300      Not done - uses symlinks
-s390         Done
-sparc64      Done
-xtensa       Not done - uses symlinks
-avr32        Done
-frv          Not done - looks trivial
-m68knommu    Done
-parisc       Not done - but patches are prepared
-sh           Done
-um           Not done - uses symlinks
-
-So 8 out of 22 so far.
-
-That is pretty good as we only started this at the end of the
-merge window.
-And of these sh, arm, avr have restructured to avoid symlinks so
-it was not that simple.
-
-And we have at six architectures where a simple:
-mkdir -p arch/$ARCH/include/asm
-git mv include/asm-$ARCH/* arch/$ARCH/include/asm
-
-looks like the only effort needed {alpha, h8300, m32r, mips frv, parisc}.
+Or they know they could trust the person dealign with it...
 
 	Sam
