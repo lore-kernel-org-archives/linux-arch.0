@@ -1,29 +1,48 @@
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to convert
-Date: Wed, 6 Aug 2008 20:51:32 +0100
-Message-ID: <20080806195132.GC29891@flint.arm.linux.org.uk>
-References: <20080728200500.GA14284@uranus.ravnborg.org> <200808051418.05324.rusty@rustcorp.com.au> <20080805204548.GD5464@uranus.ravnborg.org> <20080805220615.GC18607@flint.arm.linux.org.uk> <20080806192126.GA29891@flint.arm.linux.org.uk> <20080806192842.GB17227@uranus.ravnborg.org>
+Date: Sat, 9 Aug 2008 04:50:44 +0200
+Message-ID: <20080809025044.GA9794@uranus.ravnborg.org>
+References: <20080728200500.GA14284@uranus.ravnborg.org> <20080729030647.GA11425@phobos.i.cabal.ca> <20080729032726.GA27460@uranus.ravnborg.org> <20080729142145.GC11425@phobos.i.cabal.ca>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:33920 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752572AbYHFTvy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Aug 2008 15:51:54 -0400
+Received: from smtpout3.tre.se ([80.251.192.228]:28560 "EHLO smtpout3.tre.se"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754194AbYHICt6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 8 Aug 2008 22:49:58 -0400
 Content-Disposition: inline
-In-Reply-To: <20080806192842.GB17227@uranus.ravnborg.org>
+In-Reply-To: <20080729142145.GC11425@phobos.i.cabal.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Kyle McMartin <kyle@mcmartin.ca>
+Cc: linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 
-On Wed, Aug 06, 2008 at 09:28:42PM +0200, Sam Ravnborg wrote:
-> Our mails crossed. I will fix kbuild asap so you do not need to revert.
+On Tue, Jul 29, 2008 at 10:21:45AM -0400, Kyle McMartin wrote:
+> On Tue, Jul 29, 2008 at 05:27:26AM +0200, Sam Ravnborg wrote:
+> > On Mon, Jul 28, 2008 at 11:06:47PM -0400, Kyle McMartin wrote:
+> > > On Mon, Jul 28, 2008 at 10:05:00PM +0200, Sam Ravnborg wrote:
+> > > > I am limited in time and resources at the moment but I
+> > > > would be glad to help out as time permits should there
+> > > > be any questions.
+> > > > 
+> > > 
+> > > Just a quick one... I moved the files on parisc, but found we're still
+> > > using include/asm-$foo/asm-offsets.h. A quick glance at Kbuild seems to
+> > > indicate so. Is this expected?
+> > Yes.
+> > 
+> > asm-offsets.h is a generated file and I wanted to avoid adding
+> > generated files to arch/$ARCH/include.
+> > 
+> > It was also a less intrusive patch to keep it at the old location.
+> > But I recall that it troubles me a bit before I got it
+> > correct but the kbuild changes all take care of this.
+> > 
+> 
+> Thanks for clarifying, Sam.
 
-Have crossed again, sorry.  If you can get a fix for the asm/errno.h
-thing to Linus ASAP, that'd be great.
+Any chance we can have this pushed towards Linus?
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+It would be nice to gat as many arch converted in this cycle as possible.
+
+	Sam
