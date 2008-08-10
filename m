@@ -1,32 +1,62 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: kbuild now support arch/$ARCH/include - time for ARCHs to convert
-Date: Sat, 9 Aug 2008 13:13:42 +0200
-Message-ID: <20080809111342.GA12660@uranus.ravnborg.org>
-References: <20080728200500.GA14284@uranus.ravnborg.org> <20080731182315.GA18060@linux-mips.org> <20080809025244.GB9794@uranus.ravnborg.org> <20080809030927.GA7766@linux-sh.org> <20080809070344.GA11302@uranus.ravnborg.org> <20080809072031.GB25046@flint.arm.linux.org.uk>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [patch 179/322] flag parameters add-on: remove epoll_create size
+ param
+Date: Sun, 10 Aug 2008 14:13:32 +0200 (CEST)
+Message-ID: <Pine.LNX.4.64.0808101411490.10672@anakin>
+References: <200807240429.m6O4ThGR029384@imap1.linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtpout3.tre.se ([80.251.192.228]:54344 "EHLO smtpout3.tre.se"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751282AbYHILM6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 9 Aug 2008 07:12:58 -0400
-Content-Disposition: inline
-In-Reply-To: <20080809072031.GB25046@flint.arm.linux.org.uk>
+Received: from wilson.telenet-ops.be ([195.130.132.42]:49538 "EHLO
+	wilson.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755244AbYHJMNg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Aug 2008 08:13:36 -0400
+In-Reply-To: <200807240429.m6O4ThGR029384@imap1.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>, Ralf Baechle <ralf@linux-mips.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>, Ulrich Drepper <drepper@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, davidel@xmailserver.org, linux-arch@vger.kernel.org, mtk.manpages@googlemail.com
 
-On Sat, Aug 09, 2008 at 08:20:31AM +0100, Russell King wrote:
-> On Sat, Aug 09, 2008 at 09:03:44AM +0200, Sam Ravnborg wrote:
-> > On Sat, Aug 09, 2008 at 12:09:28PM +0900, Paul Mundt wrote:
-> > > Where was this discussed? SH has the same issues obviously, but we've
-> > > already settled on a scheme.
-> > 
-> > Looking again I realize this was only discussed on the arm kernel mailing list
-> > and people involved was rmk, Harvaard and myself.
+On Wed, 23 Jul 2008, akpm@linux-foundation.org wrote:
+> Remove the size parameter from the new epoll_create syscall and renames the
+> syscall itself.  The updated test program follows.
 > 
-> ... and with almost every other ARM person ignoring it entirely
+> ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+> #include <fcntl.h>
+> #include <stdio.h>
+> #include <time.h>
+> #include <unistd.h>
+> #include <sys/syscall.h>
+> 
+> #ifndef __NR_epoll_create2
+			   ^
+The test program still uses __NR_epoll_create2 instead of
+__NR_epoll_create1 everywhere.
 
-Or they know they could trust the person dealign with it...
+> diff -puN fs/eventpoll.c~flag-parameters-add-on-remove-epoll_create-size-param fs/eventpoll.c
+> --- a/fs/eventpoll.c~flag-parameters-add-on-remove-epoll_create-size-param
+> +++ a/fs/eventpoll.c
+> @@ -1046,7 +1046,7 @@ retry:
+>   * RB tree. With the current implementation, the "size" parameter is ignored
+                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>   * (besides sanity checks).
+      ^^^^^^^^^^^^^^^^^^^^^^^
+>   */
+> -asmlinkage long sys_epoll_create2(int size, int flags)
+> +asmlinkage long sys_epoll_create1(int flags)
 
-	Sam
+The function comment was not updated for the removal of the `size'
+parameter. Can you please fix that?
+
+Thanks!
+
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
