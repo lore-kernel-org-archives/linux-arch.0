@@ -1,47 +1,56 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: RFC: killing ksyms.c
-Date: Mon, 11 Aug 2008 16:06:43 +0200
-Message-ID: <200808111606.44103.arnd@arndb.de>
+From: Geert Uytterhoeven <Geert.Uytterhoeven@sonycom.com>
+Subject: Re: [RFC 2/3] powerpc: export all symbols from the definition file
+Date: Mon, 11 Aug 2008 16:53:39 +0200 (CEST)
+Message-ID: <Pine.LNX.4.64.0808111653170.3030@vixen.sonytel.be>
+References: <200808111606.44103.arnd@arndb.de> <200808111617.53305.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: MULTIPART/MIXED; BOUNDARY="-584349381-230652837-1218466419=:3030"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.177]:64040 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754750AbYHKOjj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Aug 2008 10:39:39 -0400
-Content-Disposition: inline
+Received: from vervifontaine.sonytel.be ([80.88.33.193]:48031 "EHLO
+	vervifontaine.sonycom.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751419AbYHKOxo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Aug 2008 10:53:44 -0400
+In-Reply-To: <200808111617.53305.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, David Woodhouse <dwmw2@infradead.org>, Al Viro <viro@zeniv.linux.org.uk>, Rusty Russell <rusty@rustcorp.com.au>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, Rusty Russell <rusty@rustcorp.com.au>, linuxppc-dev@ozlabs.org, Al Viro <viro@zeniv.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>
 
-I saw this conversation on IRC when I came back to my screen, and
-managed to dig out an older patch of mine:
+  This message is in MIME format.  The first part should be readable text,
+  while the remaining parts are likely unreadable without MIME-aware tools.
 
-[19:03:13] <willy> at some point we really need to forbid that
-[19:03:28] <willy> bit hard at this point with things like memcpy()
-[19:04:36] <willy> could do it with a script of some kind and
-           either a whitelist of filenames (arch/*/kernel/ksyms.c
-           can export anything) or of functions (anywhere can
-           EXPORT_SYMBOL(memcpy)).
-[Sun Aug 10 2008] [19:07:35] <viro> I suspect that we really want
-           to teach *.S how to do exports
-[Sun Aug 10 2008] [19:07:58] <viro> and kill ksyms.c
-[Sun Aug 10 2008] [19:12:47] <dwmw2_gone> if we do the -fwhole-program
-           --combine thing we'll make it hard anyway
+---584349381-230652837-1218466419=:3030
+Content-Type: TEXT/PLAIN; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 
-I compile-tested this on powerpc, 32 and 64 bit, and it should be usable as
-an example for other architectures.
-The idea is to provide an EXPORT_SYMBOL macro for assembly that
-behaves in the same way as the C version, and then export every
-symbol from the file that defines it.
+On Mon, 11 Aug 2008, Arnd Bergmann wrote:
+> It's now possible to export symbols from .S files, so move all
 
-I'm not sure if the macro I used is actually correct or portable across
-all supported architectures, so I hope to get some insight about this
-from linux-arch. It does not do genksyms versioned symbol generation
-from assembly, but that should be fine since they tend to be really
-stable.
+Nice!
 
-	Arnd <><
+> exports out of the ppc_ksyms.c file to the definition of the
+> symbols.
+
+>  drivers/macintosh/adb.c              |    5 +++++
+>  drivers/macintosh/via-cuda.c         |    3 +++
+
+I think these 2 belong to patch 3?
+
+With kind regards,
+
+Geert Uytterhoeven
+Software Architect
+
+Sony Techsoft Centre Europe
+The Corporate Village · Da Vincilaan 7-D1 · B-1935 Zaventem · Belgium
+
+Phone:    +32 (0)2 700 8453
+Fax:      +32 (0)2 700 8622
+E-mail:   Geert.Uytterhoeven@sonycom.com
+Internet: http://www.sony-europe.com/
+
+A division of Sony Europe (Belgium) N.V.
+VAT BE 0413.825.160 · RPR Brussels
+Fortis 293-0376800-10 GEBA-BE-BB
+---584349381-230652837-1218466419=:3030--
