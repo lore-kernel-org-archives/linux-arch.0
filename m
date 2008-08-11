@@ -1,56 +1,35 @@
-From: Adrian Bunk <bunk@kernel.org>
-Subject: Re: RFC: killing ksyms.c
-Date: Mon, 11 Aug 2008 18:03:58 +0300
-Message-ID: <20080811150358.GC3338@cs181140183.pp.htv.fi>
-References: <200808111606.44103.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC 2/3] powerpc: export all symbols from the definition file
+Date: Mon, 11 Aug 2008 17:27:07 +0200
+Message-ID: <200808111727.07720.arnd@arndb.de>
+References: <200808111606.44103.arnd@arndb.de> <200808111617.53305.arnd@arndb.de> <Pine.LNX.4.64.0808111653170.3030@vixen.sonytel.be>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=iso-8859-15
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp5.pp.htv.fi ([213.243.153.39]:48089 "EHLO smtp5.pp.htv.fi"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751419AbYHKPFk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Aug 2008 11:05:40 -0400
+Received: from moutng.kundenserver.de ([212.227.126.171]:58183 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751800AbYHKP1X convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Aug 2008 11:27:23 -0400
+In-Reply-To: <Pine.LNX.4.64.0808111653170.3030@vixen.sonytel.be>
 Content-Disposition: inline
-In-Reply-To: <200808111606.44103.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, David Woodhouse <dwmw2@infradead.org>, Al Viro <viro@zeniv.linux.org.uk>, Rusty Russell <rusty@rustcorp.com.au>
+To: linuxppc-dev@ozlabs.org
+Cc: Geert Uytterhoeven <Geert.Uytterhoeven@sonycom.com>, linux-arch@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, Rusty Russell <rusty@rustcorp.com.au>, linux-kernel <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>
 
-On Mon, Aug 11, 2008 at 04:06:43PM +0200, Arnd Bergmann wrote:
-> I saw this conversation on IRC when I came back to my screen, and
-> managed to dig out an older patch of mine:
-> 
-> [19:03:13] <willy> at some point we really need to forbid that
-> [19:03:28] <willy> bit hard at this point with things like memcpy()
-> [19:04:36] <willy> could do it with a script of some kind and
->            either a whitelist of filenames (arch/*/kernel/ksyms.c
->            can export anything) or of functions (anywhere can
->            EXPORT_SYMBOL(memcpy)).
-> [Sun Aug 10 2008] [19:07:35] <viro> I suspect that we really want
->            to teach *.S how to do exports
-> [Sun Aug 10 2008] [19:07:58] <viro> and kill ksyms.c
-> [Sun Aug 10 2008] [19:12:47] <dwmw2_gone> if we do the -fwhole-program
->            --combine thing we'll make it hard anyway
-> 
-> I compile-tested this on powerpc, 32 and 64 bit, and it should be usable as
-> an example for other architectures.
-> The idea is to provide an EXPORT_SYMBOL macro for assembly that
-> behaves in the same way as the C version, and then export every
-> symbol from the file that defines it.
->...
+On Monday 11 August 2008, Geert Uytterhoeven wrote:
+> > =A0drivers/macintosh/adb.c =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 =A05 ++=
++++
+> > =A0drivers/macintosh/via-cuda.c =A0 =A0 =A0 =A0 | =A0 =A03 +++
+>=20
+> I think these 2 belong to patch 3?
 
-On some architectures the kernel is linked with libgcc and symbols from 
-libgcc are EXPORT_SYMBOL'ed.
+I tried to come up with other ways of splitting up the patch,
+but since these come from ppc_ksyms, it makes sense to keep
+them with the rest.
 
-> 	Arnd <><
+Maybe I could split the exports for C functions from those
+in assember files that depend on patch 1.
 
-cu
-Adrian
-
--- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
+	Arnd <><
