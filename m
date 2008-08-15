@@ -1,25 +1,20 @@
-From: Felipe Balbi <me@felipebalbi.com>
+From: Russell King <rmk-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>
 Subject: Re: drivers/usb/musb/musb_io.h
-Date: Fri, 15 Aug 2008 12:23:50 +0300
-Message-ID: <20080815092350.GL16231@frodo>
+Date: Fri, 15 Aug 2008 12:53:08 +0100
+Message-ID: <20080815115308.GA24513@flint.arm.linux.org.uk>
 References: <20080814215200.27f79a59.akpm@linux-foundation.org> <20080815073750.GG16231@frodo> <20080815074318.GH16231@frodo> <20080815010227.121e5e4b.akpm@linux-foundation.org> <20080815081154.GJ16231@frodo> <20080815013148.b9dfc7ad.akpm@linux-foundation.org> <20080815085247.GK16231@frodo> <20080815021131.dfab416a.akpm@linux-foundation.org>
-Reply-To: me@felipebalbi.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.siteground211.com ([209.62.36.12]:54451 "EHLO
-	serv01.siteground211.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753324AbYHOJYA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Aug 2008 05:24:00 -0400
+Return-path: <linux-usb-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <20080815021131.dfab416a.akpm@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: me@felipebalbi.com, Felipe Balbi <felipe.balbi@nokia.com>, linux-usb@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <rmk+kernel@arm.linux.org.uk>
+In-Reply-To: <20080815021131.dfab416a.akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Sender: linux-usb-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Cc: me-uiRdBs8odbtmTBlB0Cgj/Q@public.gmane.org, Felipe Balbi <felipe.balbi-xNZwKgViW5gAvxtiuMwx3w@public.gmane.org>, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
 On Fri, Aug 15, 2008 at 02:11:31AM -0700, Andrew Morton wrote:
-> On Fri, 15 Aug 2008 11:52:48 +0300 Felipe Balbi <me@felipebalbi.com> wrote:
+> On Fri, 15 Aug 2008 11:52:48 +0300 Felipe Balbi <me-uiRdBs8odbtmTBlB0Cgj/Q@public.gmane.org> wrote:
 > 
 > > Wonder if it's possible to have the above patch applied so I can get rid
 > > of those stubs in musb_io.h
@@ -37,19 +32,34 @@ On Fri, Aug 15, 2008 at 02:11:31AM -0700, Andrew Morton wrote:
 > 
 > which is somewhat clear as mud.  I'd guess that these are the MMIO
 > partners to insl and friends?
-> 
+
+Yes.
+
 > And then it has
 > 
 > extern void __raw_writesb(void __iomem *addr, const void *data, int bytelen);
 > extern void __raw_writesw(void __iomem *addr, const void *data, int wordlen);
 > extern void __raw_writesl(void __iomem *addr, const void *data, int longlen);
 > 
-> which is a bit odd.  I assume that "bytelen" should have been
-> "bytecount" or similar.
+> which is a bit odd.
 
-Clearing that out is as easy as asking Russel King for more details.
+Shrug.  Everything is not a PC.  I don't see anything odd about the above.
 
-Russel, do you have any comments to the above ?
+We basically implement a standard set of IO macros (the __raw_*) stuff
+which is used to implement the standard set of IO support (inl, insl)
+and provide a set of extensions for our platforms (readsl to complement
+insl - named precisely the same way because that's what they are) because
+the generic stuff doesn't cover all our needs.
+
+> I assume that "bytelen" should have been "bytecount" or similar.
+
+bytelen and bytecount mean the same thing to me.
 
 -- 
-balbi
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
+--
+To unsubscribe from this list: send the line "unsubscribe linux-usb" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
