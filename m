@@ -1,44 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:38155 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751175AbYHLCER (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Aug 2008 22:04:17 -0400
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [RFC 1/3] add support for exporting symbols from .S files
-Date: Tue, 12 Aug 2008 12:03:56 +1000
-References: <200808111606.44103.arnd@arndb.de> <200808111618.08206.arnd@arndb.de>
-In-Reply-To: <200808111618.08206.arnd@arndb.de>
+Received: from ns1.siteground211.com ([209.62.36.12]:51434 "EHLO
+	serv01.siteground211.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750790AbYHOIw6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Aug 2008 04:52:58 -0400
+Date: Fri, 15 Aug 2008 11:52:48 +0300
+From: Felipe Balbi <me@felipebalbi.com>
+Subject: Re: drivers/usb/musb/musb_io.h
+Message-ID: <20080815085247.GK16231@frodo>
+Reply-To: me@felipebalbi.com
+References: <20080814215200.27f79a59.akpm@linux-foundation.org> <20080815073750.GG16231@frodo> <20080815074318.GH16231@frodo> <20080815010227.121e5e4b.akpm@linux-foundation.org> <20080815081154.GJ16231@frodo> <20080815013148.b9dfc7ad.akpm@linux-foundation.org>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-ID: <200808121203.57182.rusty@rustcorp.com.au>
+In-Reply-To: <20080815013148.b9dfc7ad.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, David Woodhouse <dwmw2@infradead.org>, Al Viro <viro@zeniv.linux.org.uk>, linuxppc-dev@ozlabs.org
-Message-ID: <20080812020356.BfdVL0Hzm3KlBc-wZK45ih4tVtZwZhyD5Czm47OpExQ@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: me@felipebalbi.com, Felipe Balbi <felipe.balbi@nokia.com>, linux-usb@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20080815085248.YsXKaQa0dwHwsz8ofcKSDdVIXLleK_K4Zxz5Pmg1aqA@z>
 
-On Tuesday 12 August 2008 00:18:07 Arnd Bergmann wrote:
-> This makes it possible to export symbols from assembly files, instead
-> of having to export them through an extra ksyms.c file.
->
-> I found this nicer to implement using a gas macro than a cpp macro.
-...
-> +	.ifeq BITS_PER_LONG-32
-> +	.align 3
-> +\symtab:
-> +	.long \sym
-> +	.long \strtab
-> +	.else
-> +	.align 4
+On Fri, Aug 15, 2008 at 01:31:48AM -0700, Andrew Morton wrote:
+> One possible implementation might be
+> 
+> 
+> --- a/include/linux/io.h~a
+> +++ a/include/linux/io.h
+> @@ -67,4 +67,41 @@ int check_signature(const volatile void 
+>  			const unsigned char *signature, int length);
+>  void devm_ioremap_release(struct device *dev, void *res);
+>  
+> +#ifndef readsl
+> +
+> +/*
+> + * description goes here
+> + */
+> +static inline void readsl(const void __iomem *addr, void *buf, int len)
+> +{
+> +	insl((unsigned long)addr, buf, len);
+> +}
+> +
+> +static inline void readsw(const void __iomem *addr, void *buf, int len)
+> +{
+> +	insw((unsigned long)addr, buf, len);
+> +}
+> +
+> +static inline void readsb(const void __iomem *addr, void *buf, int len)
+> +{
+> +	insb((unsigned long)addr, buf, len);
+> +}
+> +
+> +static inline void writesl(const void __iomem *addr, const void *buf, int len)
+> +{
+> +	outsl((unsigned long)addr, buf, len);
+> +}
+> +
+> +static inline void writesw(const void __iomem *addr, const void *buf, int len)
+> +{
+> +	outsw((unsigned long)addr, buf, len);
+> +}
+> +
+> +static inline void writesb(const void __iomem *addr, const void *buf, int len)
+> +{
+> +	outsb((unsigned long)addr, buf, len);
+> +}
+> +
+> +#endif		/* readsl */
+> +
+>  #endif /* _LINUX_IO_H */
 
-Good work!   Hmm, you can .balign BITS_PER_LONG/8 outside the ifeq.  
-Unfortunately .long doesn't do the Right Thing on 64 bit, so getting rid of 
-the if is harder.
+That's what I meant (or tried to). It should come from the kernel itself.
+Unfortunately we didn't have that at that time and we "hacked" it in the
+driver.
 
-Acked-by: Rusty Russell <rusty@rustcorp.com.au>
+> But just saying "oh look, the arch layer is all screwed up, let's hack
+> around it in our driver" is plain irresponsible.
 
-Cheers,
-Rusty.
+I'd be glad to change if include/linux/io.h can provide those stubs.
+
+> > > avr32 and powerpc might also have conflicts.  Now, or in the future.
+> 
+> Did you review these architectures?
+
+Yeah. ppc and avr32 provide them.
+Wonder if it's possible to have the above patch applied so I can get rid
+of those stubs in musb_io.h
+
+-- 
+balbi
