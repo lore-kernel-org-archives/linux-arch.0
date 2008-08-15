@@ -1,122 +1,110 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC 1/3] add support for exporting symbols from .S files
-Date: Tue, 12 Aug 2008 15:58:52 +0200
-Message-ID: <200808121558.53576.arnd@arndb.de>
-References: <200808111606.44103.arnd@arndb.de> <200808111618.08206.arnd@arndb.de> <20080812164352.ddcf1ef5.sfr@canb.auug.org.au>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: drivers/usb/musb/musb_io.h
+Date: Fri, 15 Aug 2008 01:31:48 -0700
+Message-ID: <20080815013148.b9dfc7ad.akpm@linux-foundation.org>
+References: <20080814215200.27f79a59.akpm@linux-foundation.org>
+	<20080815073750.GG16231@frodo>
+	<20080815074318.GH16231@frodo>
+	<20080815010227.121e5e4b.akpm@linux-foundation.org>
+	<20080815081154.GJ16231@frodo>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.177]:63405 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752237AbYHLOAX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Aug 2008 10:00:23 -0400
-In-Reply-To: <20080812164352.ddcf1ef5.sfr@canb.auug.org.au>
-Content-Disposition: inline
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:33084 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753237AbYHOIb7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 Aug 2008 04:31:59 -0400
+In-Reply-To: <20080815081154.GJ16231@frodo>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: linux-kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, David Woodhouse <dwmw2@infradead.org>, Al Viro <viro@zeniv.linux.org.uk>, Rusty Russell <rusty@rustcorp.com.au>, linuxppc-dev@ozlabs.org
+To: me@felipebalbi.com
+Cc: Felipe Balbi <felipe.balbi@nokia.com>, linux-usb@vger.kernel.org, linux-arch@vger.kernel.org
 
-This makes it possible to export symbols from assembly files, instead
-of having to export them through an extra ksyms.c file.
+(cc linux-arch)
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+On Fri, 15 Aug 2008 11:11:55 +0300 Felipe Balbi <me@felipebalbi.com> wrote:
 
----
+> On Fri, Aug 15, 2008 at 01:02:27AM -0700, Andrew Morton wrote:
+> > > SH also defines read/write friends.
+> > 
+> > That's an unilluminating changelog.
+> > What's actually going on in here?
+> 
+> Those functions are used for fifo reading/writing operations. Some
+> architectures provide them and some don't. For those who don't, we add
+> the definition to the driver.
+> 
+> > Why is a driver implementing what appear to be core architecture helper
+> > functions?
+> 
+> Just because the core architecture doesn't provide them.
+> 
+> > What is a proper fix?
+> 
+> The proper fix is that we always have, at least, stubs for read/write
+> friends even if the arch doesn't provide them.
 
-On Tuesday 12 August 2008, Stephen Rothwell wrote:
-> This won't be portable across architectures as .align is sometimes in
-> bytes and sometimes a power of two.  You can use .balign or .p2align
-> portably on gas, though.
+That is absolutely not the proper fix.  Far from it.  This way we end
+up with multiple (and of course, different) implementations of these
+things in an arbitrary number of drivers.
 
-Ok, this version uses the .balign as suggested by rusty, and also
-fixes building with modversions turned on, which did not work in the
-first version.
+A proper fix would be to a) define the semantics of these operations,
+b) document them then c) implement them on each architecture.
 
-	Arnd <><
+One possible implementation might be
 
---- a/include/linux/module.h
-+++ b/include/linux/module.h
-@@ -1,5 +1,7 @@
- #ifndef _LINUX_MODULE_H
- #define _LINUX_MODULE_H
-+
-+#ifndef __ASSEMBLY__
- /*
-  * Dynamic loading of modules into the kernel.
-  *
-@@ -605,4 +607,72 @@ static inline void module_remove_modinfo_attrs(struct module *mod)
+
+--- a/include/linux/io.h~a
++++ a/include/linux/io.h
+@@ -67,4 +67,41 @@ int check_signature(const volatile void 
+ 			const unsigned char *signature, int length);
+ void devm_ioremap_release(struct device *dev, void *res);
  
- #define __MODULE_STRING(x) __stringify(x)
- 
-+#else /* __ASSEMBLY__ */
-+#include <asm/types.h>
++#ifndef readsl
 +
-+#ifdef CONFIG_MODULES
-+.macro __EXPORT_SYMBOL sym section symtab strtab crctab crc
-+	.section \section, "a", @progbits
-+	.type \symtab, @object
-+	.balign BITS_PER_LONG/8
-+\symtab:
-+	.ifeq BITS_PER_LONG - 32
-+	.long \sym
-+	.long \strtab
-+	.else
-+	.quad \sym
-+	.quad \strtab
-+	.endif
-+	.size \symtab, . - \symtab
-+	.previous
++/*
++ * description goes here
++ */
++static inline void readsl(const void __iomem *addr, void *buf, int len)
++{
++	insl((unsigned long)addr, buf, len);
++}
 +
-+	.section __ksymtab_strings, "a", @progbits
-+	.type \strtab, @object
-+\strtab:
-+	.string "\sym"
-+	.size \strtab, . - \strtab
-+	.previous
++static inline void readsw(const void __iomem *addr, void *buf, int len)
++{
++	insw((unsigned long)addr, buf, len);
++}
 +
-+#ifdef CONFIG_MODVERSIONS
-+	/*
-+	 * Modversions doesn't work with assembly files,
-+	 * so insert a dummy CRC.
-+	 */
-+	.section __kcrctab, "a", @progbits
-+	.balign 4
-+	.type \crctab, @object
-+\crctab:
-+	.long \crc
-+	.size \crctab, . - \crctab
-+	.set \crc, 0
-+	.previous
-+#endif
-+	.endm
++static inline void readsb(const void __iomem *addr, void *buf, int len)
++{
++	insb((unsigned long)addr, buf, len);
++}
 +
-+#define EXPORT_SYMBOL(sym) \
-+	 __EXPORT_SYMBOL sym, __ksymtab, __ksymtab_ ## sym, \
-+		__kstrtab_ ## sym, __kcrctab_ ## sym, __crc_ ## sym
-+#define EXPORT_SYMBOL_GPL(sym) \
-+	 __EXPORT_SYMBOL sym, __ksymtab_gpl, __ksymtab_ ## sym, \
-+		__kstrtab_ ## sym, __kcrctab_ ## sym, __crc_ ## sym
-+#define EXPORT_SYMBOL_GPL_FUTURE(sym) \
-+	 __EXPORT_SYMBOL sym, __ksymtab_gpl_future, __ksymtab_ ## sym, \
-+		__kstrtab_ ## sym, __kcrctab_ ## sym, __crc_ ## sym
-+#define EXPORT_UNUSED_SYMBOL(sym) \
-+	 __EXPORT_SYMBOL sym, __ksymtab_unused, __ksymtab_ ## sym, \
-+		__kstrtab_ ## sym, __kcrctab_ ## sym, __crc_ ## sym
-+#define EXPORT_UNUSED_SYMBOL_GPL(sym) \
-+	 __EXPORT_SYMBOL sym, __ksymtab_unused_gpl, __ksymtab_ ## sym, \
-+		__kstrtab_ ## sym, __kcrctab_ ## sym, __crc_ ## sym
++static inline void writesl(const void __iomem *addr, const void *buf, int len)
++{
++	outsl((unsigned long)addr, buf, len);
++}
 +
-+#else /* CONFIG_MODULES... */
-+#define EXPORT_SYMBOL(sym)
-+#define EXPORT_SYMBOL_GPL(sym)
-+#define EXPORT_SYMBOL_GPL_FUTURE(sym)
-+#define EXPORT_UNUSED_SYMBOL(sym)
-+#define EXPORT_UNUSED_SYMBOL_GPL(sym)
-+#endif /* !CONFIG_MODULES... */
++static inline void writesw(const void __iomem *addr, const void *buf, int len)
++{
++	outsw((unsigned long)addr, buf, len);
++}
 +
-+#endif /* __ASSEMBLY__ */
++static inline void writesb(const void __iomem *addr, const void *buf, int len)
++{
++	outsb((unsigned long)addr, buf, len);
++}
 +
- #endif /* _LINUX_MODULE_H */
++#endif		/* readsl */
++
+ #endif /* _LINUX_IO_H */
+
+
+But just saying "oh look, the arch layer is all screwed up, let's hack
+around it in our driver" is plain irresponsible.
+
+> > avr32 and powerpc might also have conflicts.  Now, or in the future.
+
+Did you review these architectures?
