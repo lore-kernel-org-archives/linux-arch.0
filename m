@@ -1,87 +1,53 @@
-From: Felipe Balbi <me-uiRdBs8odbtmTBlB0Cgj/Q@public.gmane.org>
+From: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
 Subject: Re: drivers/usb/musb/musb_io.h
-Date: Fri, 15 Aug 2008 11:52:48 +0300
-Message-ID: <20080815085247.GK16231@frodo>
-References: <20080814215200.27f79a59.akpm@linux-foundation.org> <20080815073750.GG16231@frodo> <20080815074318.GH16231@frodo> <20080815010227.121e5e4b.akpm@linux-foundation.org> <20080815081154.GJ16231@frodo> <20080815013148.b9dfc7ad.akpm@linux-foundation.org>
-Reply-To: me-uiRdBs8odbtmTBlB0Cgj/Q@public.gmane.org
+Date: Fri, 15 Aug 2008 02:11:31 -0700
+Message-ID: <20080815021131.dfab416a.akpm@linux-foundation.org>
+References: <20080814215200.27f79a59.akpm@linux-foundation.org>
+	<20080815073750.GG16231@frodo>
+	<20080815074318.GH16231@frodo>
+	<20080815010227.121e5e4b.akpm@linux-foundation.org>
+	<20080815081154.GJ16231@frodo>
+	<20080815013148.b9dfc7ad.akpm@linux-foundation.org>
+	<20080815085247.GK16231@frodo>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-usb-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20080815013148.b9dfc7ad.akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+In-Reply-To: <20080815085247.GK16231@frodo>
 Sender: linux-usb-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: me-uiRdBs8odbtmTBlB0Cgj/Q@public.gmane.org, Felipe Balbi <felipe.balbi-xNZwKgViW5gAvxtiuMwx3w@public.gmane.org>, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: me-uiRdBs8odbtmTBlB0Cgj/Q@public.gmane.org
+Cc: Felipe Balbi <felipe.balbi-xNZwKgViW5gAvxtiuMwx3w@public.gmane.org>, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Aug 15, 2008 at 01:31:48AM -0700, Andrew Morton wrote:
-> One possible implementation might be
-> 
-> 
-> --- a/include/linux/io.h~a
-> +++ a/include/linux/io.h
-> @@ -67,4 +67,41 @@ int check_signature(const volatile void 
->  			const unsigned char *signature, int length);
->  void devm_ioremap_release(struct device *dev, void *res);
->  
-> +#ifndef readsl
-> +
-> +/*
-> + * description goes here
-> + */
-> +static inline void readsl(const void __iomem *addr, void *buf, int len)
-> +{
-> +	insl((unsigned long)addr, buf, len);
-> +}
-> +
-> +static inline void readsw(const void __iomem *addr, void *buf, int len)
-> +{
-> +	insw((unsigned long)addr, buf, len);
-> +}
-> +
-> +static inline void readsb(const void __iomem *addr, void *buf, int len)
-> +{
-> +	insb((unsigned long)addr, buf, len);
-> +}
-> +
-> +static inline void writesl(const void __iomem *addr, const void *buf, int len)
-> +{
-> +	outsl((unsigned long)addr, buf, len);
-> +}
-> +
-> +static inline void writesw(const void __iomem *addr, const void *buf, int len)
-> +{
-> +	outsw((unsigned long)addr, buf, len);
-> +}
-> +
-> +static inline void writesb(const void __iomem *addr, const void *buf, int len)
-> +{
-> +	outsb((unsigned long)addr, buf, len);
-> +}
-> +
-> +#endif		/* readsl */
-> +
->  #endif /* _LINUX_IO_H */
+On Fri, 15 Aug 2008 11:52:48 +0300 Felipe Balbi <me-uiRdBs8odbtmTBlB0Cgj/Q@public.gmane.org> wrote:
 
-That's what I meant (or tried to). It should come from the kernel itself.
-Unfortunately we didn't have that at that time and we "hacked" it in the
-driver.
+> Wonder if it's possible to have the above patch applied so I can get rid
+> of those stubs in musb_io.h
 
-> But just saying "oh look, the arch layer is all screwed up, let's hack
-> around it in our driver" is plain irresponsible.
+Someone would need to take care of it and document it and repair all
+those driver which broke because they went and created private copies.
 
-I'd be glad to change if include/linux/io.h can provide those stubs.
+I could do some of that but I'm stuck at step #1.  What the heck _are_
+these things?  Why do they exist?  What are their semantics?
 
-> > > avr32 and powerpc might also have conflicts.  Now, or in the future.
-> 
-> Did you review these architectures?
+The arm implementation says
 
-Yeah. ppc and avr32 provide them.
-Wonder if it's possible to have the above patch applied so I can get rid
-of those stubs in musb_io.h
+ * Generic IO read/write.  These perform native-endian accesses.  Note
+ * that some architectures will want to re-define __raw_{read,write}w.
 
--- 
-balbi
+which is somewhat clear as mud.  I'd guess that these are the MMIO
+partners to insl and friends?
+
+And then it has
+
+extern void __raw_writesb(void __iomem *addr, const void *data, int bytelen);
+extern void __raw_writesw(void __iomem *addr, const void *data, int wordlen);
+extern void __raw_writesl(void __iomem *addr, const void *data, int longlen);
+
+which is a bit odd.  I assume that "bytelen" should have been
+"bytecount" or similar.
+
+
 --
 To unsubscribe from this list: send the line "unsubscribe linux-usb" in
 the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
