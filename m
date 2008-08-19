@@ -1,79 +1,35 @@
-From: Nick Piggin <npiggin@suse.de>
+From: Christoph Lameter <cl@linux-foundation.org>
 Subject: Re: [patch] mm: rewrite vmap layer
-Date: Tue, 19 Aug 2008 12:39:52 +0200
-Message-ID: <20080819103952.GE16446@wotan.suse.de>
-References: <20080818133224.GA5258@wotan.suse.de> <20080818172446.9172ff98.akpm@linux-foundation.org> <20080819073719.GC30521@flint.arm.linux.org.uk>
+Date: Tue, 19 Aug 2008 09:42:36 -0500
+Message-ID: <48AADBDC.2000608@linux-foundation.org>
+References: <20080818133224.GA5258@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.suse.de ([195.135.220.2]:54811 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751260AbYHSKjy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Aug 2008 06:39:54 -0400
-Content-Disposition: inline
-In-Reply-To: <20080819073719.GC30521@flint.arm.linux.org.uk>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:51150 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751192AbYHSOnV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 Aug 2008 10:43:21 -0400
+In-Reply-To: <20080818133224.GA5258@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 
-On Tue, Aug 19, 2008 at 08:37:19AM +0100, Russell King wrote:
-> On Mon, Aug 18, 2008 at 05:24:46PM -0700, Andrew Morton wrote:
-> > On Mon, 18 Aug 2008 15:32:24 +0200
-> > Nick Piggin <npiggin@suse.de> wrote:
-> > > XEN and PAT and such do not like deferred TLB flushing because they can't
-> > > always handle multiple aliasing virtual addresses to a physical address. They
-> > > now call vm_unmap_aliases() in order to flush any deferred mappings.  That call
-> > > is very expensive (well, actually not a lot more expensive than a single vunmap
-> > > under the old scheme), however it should be OK if not called too often.
-> > 
-> > What are the prospects now for making vunmap safe from atomic (or
-> > interrupt) contexts?  That's something which people keep on trying to
-> > do and all the other memory-freeing functions permit it.
-> 
-> We've tried lazy unmap with dma_free_coherent() on ARM and had one
-> report of success and another of filesystem corruption.  Thankfully
-> vmap isn't used for this, but is used for ARMs ioremap.
+Nick Piggin wrote:
 
-Hmm. I've run it fairly extensively on x86 and ia64 (including the XFS
-workload, which makes heavy use of vmap). No problems yet here...
+> +static void free_unmap_vmap_area(struct vmap_area *va)
+> +{
+> +	va->flags |= VM_LAZY_FREE;
+> +	atomic_add((va->va_end - va->va_start) >> PAGE_SHIFT, &vmap_lazy_nr);
+> +	if (unlikely(atomic_read(&vmap_lazy_nr) > LAZY_MAX))
+> +		purge_vmap_area_lazy();
+> +}
 
-Is there anything I can do to reduce your concern, or are we resigned
-to wait-and-listen if we want to go ahead with this patch?
+Could you check here if we are in an atomic context and then simply not purge
+the vmap area? That may we may get to a vfree that can be run in an atomic
+context.
 
- 
-> > > +#if 0 /* constant vmalloc space size */
-> > > +#define VMALLOC_SPACE		(VMALLOC_END-VMALLOC_START)
-> > 
-> > kill?
-> > 
-> > > +#else
-> > > +#if BITS_PER_LONG == 32
-> > > +#define VMALLOC_SPACE		(128UL*1024*1024)
-> > > +#else
-> > > +#define VMALLOC_SPACE		(128UL*1024*1024*1024)
-> > > +#endif
-> > > +#endif
-> > 
-> > So VMALLOC_SPACE has type unsigned long, whereas it previously had type
-> > <god-knows-what-usually-unsigned-long>.  Fair enough.
-> 
-> So the generic code knows enough about all the platforms Linux runs on
-> to be able to dictate that there shall be 128MB of space available on
-> all platforms?
-
-Right, it does not. But you see my first VMALLOC_SPACE definition does
-not work. We shouldn't actually explode if this goes wrong (unless the
-vmalloc space is *really* small). It is just an heuristic. But yes it
-might be an idea to get some more help from arch code here. As I said,
-I preferred not to bother just now, but I'll keep this in mind and
-ping linux-arch again before asking to merge upstream.
-
- 
-> Second question - will ARMs separate module area still work with this
-> code in place (which allocates regions in a different address space
-> using __get_vm_area and __vmalloc_area)?
-
-I hope so. The old APIs are still in place. You will actually get lazy
-unmapping, but that should be a transparent change unless you have any
-issues with the aliasing.
- 
+Or run purge_vma_area_lazy from keventd?
