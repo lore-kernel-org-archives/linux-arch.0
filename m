@@ -1,33 +1,44 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
+From: Nick Piggin <npiggin@suse.de>
 Subject: Re: [patch] mm: rewrite vmap layer
-Date: Tue, 19 Aug 2008 23:32:50 -0400
-Message-ID: <20080820033249.GA19241@phobos.i.cabal.ca>
-References: <20080818133224.GA5258@wotan.suse.de> <20080818172446.9172ff98.akpm@linux-foundation.org> <20080819073719.GC30521@flint.arm.linux.org.uk> <20080819103952.GE16446@wotan.suse.de>
+Date: Wed, 20 Aug 2008 11:02:34 +0200
+Message-ID: <20080820090234.GA7018@wotan.suse.de>
+References: <20080818133224.GA5258@wotan.suse.de> <48AADBDC.2000608@linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 206-248-169-182.dsl.ncf.ca ([206.248.169.182]:44443 "EHLO
-	phobos.cabal.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752923AbYHTDcv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Aug 2008 23:32:51 -0400
+Received: from cantor.suse.de ([195.135.220.2]:46281 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751830AbYHTJCg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Aug 2008 05:02:36 -0400
 Content-Disposition: inline
-In-Reply-To: <20080819103952.GE16446@wotan.suse.de>
+In-Reply-To: <48AADBDC.2000608@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: Christoph Lameter <cl@linux-foundation.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 
-On Tue, Aug 19, 2008 at 12:39:52PM +0200, Nick Piggin wrote:
-> > Second question - will ARMs separate module area still work with this
-> > code in place (which allocates regions in a different address space
-> > using __get_vm_area and __vmalloc_area)?
+On Tue, Aug 19, 2008 at 09:42:36AM -0500, Christoph Lameter wrote:
+> Nick Piggin wrote:
 > 
-> I hope so. The old APIs are still in place. You will actually get lazy
-> unmapping, but that should be a transparent change unless you have any
-> issues with the aliasing.
->  
+> > +static void free_unmap_vmap_area(struct vmap_area *va)
+> > +{
+> > +	va->flags |= VM_LAZY_FREE;
+> > +	atomic_add((va->va_end - va->va_start) >> PAGE_SHIFT, &vmap_lazy_nr);
+> > +	if (unlikely(atomic_read(&vmap_lazy_nr) > LAZY_MAX))
+> > +		purge_vmap_area_lazy();
+> > +}
+> 
+> Could you check here if we are in an atomic context and then simply not purge
+> the vmap area? That may we may get to a vfree that can be run in an atomic
+> context.
 
-x86_64 does this anyway, so if that's continuing to work, then it should
-be fine.
+If the locks and per-cpu access is made irq safe, then yes.
 
-r, Kyle
+ 
+> Or run purge_vma_area_lazy from keventd?
+ 
+Right. But that's only needed if we want to vmap from irq context too
+(otherwise we can just do the purge check at vmap time).
+
+Is there any good reason to be able to vmap or vunmap from interrupt
+time, though?
