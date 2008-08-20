@@ -1,44 +1,37 @@
-From: Nick Piggin <npiggin@suse.de>
+From: Christoph Lameter <cl@linux-foundation.org>
 Subject: Re: [patch] mm: rewrite vmap layer
-Date: Wed, 20 Aug 2008 11:02:34 +0200
-Message-ID: <20080820090234.GA7018@wotan.suse.de>
-References: <20080818133224.GA5258@wotan.suse.de> <48AADBDC.2000608@linux-foundation.org>
+Date: Wed, 20 Aug 2008 09:03:59 -0500
+Message-ID: <48AC244F.1030104@linux-foundation.org>
+References: <20080818133224.GA5258@wotan.suse.de> <48AADBDC.2000608@linux-foundation.org> <20080820090234.GA7018@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:46281 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751830AbYHTJCg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Aug 2008 05:02:36 -0400
-Content-Disposition: inline
-In-Reply-To: <48AADBDC.2000608@linux-foundation.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:37943 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753304AbYHTOEq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Aug 2008 10:04:46 -0400
+In-Reply-To: <20080820090234.GA7018@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux-foundation.org>
+To: Nick Piggin <npiggin@suse.de>
 Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 
-On Tue, Aug 19, 2008 at 09:42:36AM -0500, Christoph Lameter wrote:
-> Nick Piggin wrote:
+Nick Piggin wrote:
+
+>> Or run purge_vma_area_lazy from keventd?
+>  
+> Right. But that's only needed if we want to vmap from irq context too
+> (otherwise we can just do the purge check at vmap time).
 > 
-> > +static void free_unmap_vmap_area(struct vmap_area *va)
-> > +{
-> > +	va->flags |= VM_LAZY_FREE;
-> > +	atomic_add((va->va_end - va->va_start) >> PAGE_SHIFT, &vmap_lazy_nr);
-> > +	if (unlikely(atomic_read(&vmap_lazy_nr) > LAZY_MAX))
-> > +		purge_vmap_area_lazy();
-> > +}
-> 
-> Could you check here if we are in an atomic context and then simply not purge
-> the vmap area? That may we may get to a vfree that can be run in an atomic
-> context.
+> Is there any good reason to be able to vmap or vunmap from interrupt
+> time, though?
 
-If the locks and per-cpu access is made irq safe, then yes.
+It would be good to have vunmap work in an interrupt context like other free
+operations. One may hold spinlocks while freeing structure.
 
- 
-> Or run purge_vma_area_lazy from keventd?
- 
-Right. But that's only needed if we want to vmap from irq context too
-(otherwise we can just do the purge check at vmap time).
-
-Is there any good reason to be able to vmap or vunmap from interrupt
-time, though?
+vmap from interrupt context would be useful f.e. for general fallback in the
+page allocator to virtually mapped memory if no linear physical memory is
+available (virtualizable compound pages). Without a vmap that can be run in an
+interrupt context we cannot support GFP_ATOMIC allocs there.
