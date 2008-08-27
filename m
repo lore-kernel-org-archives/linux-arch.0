@@ -1,52 +1,54 @@
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: + separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh.patch added to -mm tree
-Date: Fri, 22 Aug 2008 15:36:25 -0600
-Message-ID: <20080822213624.GX8318@parisc-linux.org>
-References: <200808222056.m7MKucHA016131@imap1.linux-foundation.org>
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+Subject: Re: [PATCH] Export kmap_atomic_pfn for DRM-GEM.
+Date: Wed, 27 Aug 2008 23:36:05 +1000
+Message-ID: <200808272336.05736.nickpiggin@yahoo.com.au>
+References: <1219779789-8368-1-git-send-email-eric@anholt.net> <1219779789-8368-2-git-send-email-eric@anholt.net> <1219779789-8368-3-git-send-email-eric@anholt.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:34024 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758592AbYHVVg0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Aug 2008 17:36:26 -0400
+Content-Type: text/plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1756290AbYH0Ng1@vger.kernel.org>
+In-Reply-To: <1219779789-8368-3-git-send-email-eric@anholt.net>
 Content-Disposition: inline
-In-Reply-To: <200808222056.m7MKucHA016131@imap1.linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: mm-commits@vger.kernel.org, ying.huang@intel.com, linux-arch@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
+To: Eric Anholt <eric@anholt.net>, Dave Airlie <airlied@gmail.com>, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Aug 22, 2008 at 01:56:38PM -0700, akpm@linux-foundation.org wrote:
-> Subject: Separate atomic_t declaration from asm/atomic.h into asm/atomic_def.h
-> From: Huang Ying <ying.huang@intel.com>
-> 
-> asm/atomic.h contains both declaration and implementation of atomic_t.  So
-> there are some implementation related files included in asm/atomic.h.  And
-> atomic_t is a typedef.  Combination of above makes it impossible to use
-> atomic_t in files included by atomic.h.  Such as atomic_t can not be used
-> in linux/kernel.h on i386, because it is included by asm/atomic.h.
-> 
-> It is reasonable to separate declaration from implementation.  So a new
-> file atomic_def.h is added for every architecture to accommodate the
-> declaration of atomic_t.
+On Wednesday 27 August 2008 05:43, Eric Anholt wrote:
+> The driver would like to map IO space directly for copying data in when
+> appropriate, to avoid CPU cache flushing for streaming writes.
+> kmap_atomic_pfn lets us avoid IPIs associated with ioremap for this
+> process.
+>
+> Signed-off-by: Eric Anholt <eric@anholt.net>
+> ---
+>  arch/x86/mm/highmem_32.c |    1 +
+>  1 files changed, 1 insertions(+), 0 deletions(-)
+>
+> diff --git a/arch/x86/mm/highmem_32.c b/arch/x86/mm/highmem_32.c
+> index 165c871..d52e91d 100644
+> --- a/arch/x86/mm/highmem_32.c
+> +++ b/arch/x86/mm/highmem_32.c
+> @@ -137,6 +137,7 @@ void *kmap_atomic_pfn(unsigned long pfn, enum km_type
+> type)
+>
+>  	return (void*) vaddr;
+>  }
+> +EXPORT_SYMBOL(kmap_atomic_pfn);
+>
+>  struct page *kmap_atomic_to_page(void *ptr)
+>  {
 
-Seems to me like all architectures could use:
 
-+++ include/linux/atomic_type.h
-+typedef struct { volatile int counter; } atomic_t;
-+#ifdef CONFIG_64BIT
-+typedef struct { volatile long counter; } atomic64_t;
-+#endif
+I wonder if you ever tested my vmap rework patches with this issue? It
+seems somewhat x86 specific and also not conceptually so clean to use
+kmap_atomic_pfn for this. vmap may not be used by all architectures but
+I think it might be able to cover some of them.
 
-S390 has an __aligned__((4)) on theirs -- is this really necessary?
-Doesn't s390 align ints to 4 bytes automatically?  If it doesn't, it
-shouldn't be harmful to add it to other architectures (iirc m68k only
-requires 2-byte alignment for ints ... hmm, wonder if their atomic_t is
-really atomic if, say, it cross a page boundary ...)
+As I said, there are some other possible improvements that can be made
+to my vmap rewrite if performance isn't good enough, but I simply have
+not seen numbers...
 
--- 
-Matthew Wilcox				Intel Open Source Technology Centre
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+Thanks,
+Nick
