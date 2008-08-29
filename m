@@ -1,77 +1,171 @@
-From: Nick Piggin <nickpiggin@yahoo.com.au>
-Subject: Re: [PATCH] Export kmap_atomic_pfn for DRM-GEM.
-Date: Thu, 28 Aug 2008 10:22:14 +1000
-Message-ID: <200808281022.14296.nickpiggin@yahoo.com.au>
-References: <1219779789-8368-1-git-send-email-eric@anholt.net> <200808272336.05736.nickpiggin@yahoo.com.au> <1219855961.4994.6.camel@vonnegut.anholt.net>
-Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
+From: akpm@linux-foundation.org
+Subject: + separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix.patch added to -mm tree
+Date: Fri, 29 Aug 2008 00:44:33 -0700
+Message-ID: <200808290758.m7T7w1Fd005912@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp106.mail.mud.yahoo.com ([209.191.85.216]:39773 "HELO
-	smtp106.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1752786AbYH1AWW (ORCPT
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:53535 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751712AbYH2H6g (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Aug 2008 20:22:22 -0400
-In-Reply-To: <1219855961.4994.6.camel@vonnegut.anholt.net>
-Content-Disposition: inline
+	Fri, 29 Aug 2008 03:58:36 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric Anholt <eric@anholt.net>
-Cc: Dave Airlie <airlied@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-
-On Thursday 28 August 2008 02:52, Eric Anholt wrote:
-> On Wed, 2008-08-27 at 23:36 +1000, Nick Piggin wrote:
-> > On Wednesday 27 August 2008 05:43, Eric Anholt wrote:
-> > > The driver would like to map IO space directly for copying data in when
-> > > appropriate, to avoid CPU cache flushing for streaming writes.
-> > > kmap_atomic_pfn lets us avoid IPIs associated with ioremap for this
-> > > process.
-> > >
-> > > Signed-off-by: Eric Anholt <eric@anholt.net>
-> > > ---
-> > >  arch/x86/mm/highmem_32.c |    1 +
-> > >  1 files changed, 1 insertions(+), 0 deletions(-)
-> > >
-> > > diff --git a/arch/x86/mm/highmem_32.c b/arch/x86/mm/highmem_32.c
-> > > index 165c871..d52e91d 100644
-> > > --- a/arch/x86/mm/highmem_32.c
-> > > +++ b/arch/x86/mm/highmem_32.c
-> > > @@ -137,6 +137,7 @@ void *kmap_atomic_pfn(unsigned long pfn, enum
-> > > km_type type)
-> > >
-> > >  	return (void*) vaddr;
-> > >  }
-> > > +EXPORT_SYMBOL(kmap_atomic_pfn);
-> > >
-> > >  struct page *kmap_atomic_to_page(void *ptr)
-> > >  {
-> >
-> > I wonder if you ever tested my vmap rework patches with this issue? It
-> > seems somewhat x86 specific and also not conceptually so clean to use
-> > kmap_atomic_pfn for this. vmap may not be used by all architectures but
-> > I think it might be able to cover some of them.
-> >
-> > As I said, there are some other possible improvements that can be made
-> > to my vmap rewrite if performance isn't good enough, but I simply have
-> > not seen numbers...
->
-> The consumer of this is a driver for Intel platforms, so being
-> x86-specific is not a worry this patch series.
-
-It would help verify and improve the new vmap code, and it would be
-"doing the right thing" to begin with. It would avoid some nasty
-ifdefery in your driver too. And what about 64 bit x86 that doesn't
-have kmap_atomic_pfn? Or x86 builds without highmem?
+To: mm-commits@vger.kernel.org
+Cc: akpm@linux-foundation.org, lethal@linux-sh.org, linux-arch@vger.kernel.org, ying.huang@intel.com
 
 
-> However, when other DRM drivers get around to doing memory management,
-> I'm sure they'll also be interested in an ioremap_wc that doesn't eat
-> ipi costs.  For us, the ipis for flushing were eating over 10% of CPU
-> time.  If your patch series cuts that cost, we could drop this piece at
-> that point.
+The patch titled
+     separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix
+has been added to the -mm tree.  Its filename is
+     separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix.patch
 
-It can cut the cost quite significantly on normal vmap/vunmap loads I
-tested. Whether it will work as well on your workload, I don't know
-but I would have liked to find out. I raised this issue quite a while
-back, so I'm disappointed it had not been tried...
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
+
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
+
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix
+From: Andrew Morton <akpm@linux-foundation.org>
+
+Cc: <linux-arch@vger.kernel.org>
+Cc: Huang Ying <ying.huang@intel.com>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ arch/sh/include/asm/atomic.h     |    2 +-
+ arch/sh/include/asm/atomic_def.h |    8 ++++++++
+ 2 files changed, 9 insertions(+), 1 deletion(-)
+
+diff -puN arch/sh/include/asm/atomic.h~separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix arch/sh/include/asm/atomic.h
+--- a/arch/sh/include/asm/atomic.h~separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix
++++ a/arch/sh/include/asm/atomic.h
+@@ -7,7 +7,7 @@
+  *
+  */
+ 
+-typedef struct { volatile int counter; } atomic_t;
++#include <asm/atomic_def.h>
+ 
+ #define ATOMIC_INIT(i)	( (atomic_t) { (i) } )
+ 
+diff -puN /dev/null arch/sh/include/asm/atomic_def.h
+--- /dev/null
++++ a/arch/sh/include/asm/atomic_def.h
+@@ -0,0 +1,8 @@
++#ifndef _ASM_IA64_ATOMIC_DEF_H
++#define _ASM_IA64_ATOMIC_DEF_H
++
++typedef struct {
++	volatile int counter;
++} atomic_t;
++
++#endif
+_
+
+Patches currently in -mm which might be from akpm@linux-foundation.org are
+
+vfs-fix-dio-write-returning-eio-when-try_to_release_page-fails-fix.patch
+acer-wmi-remove-debugfs-entries-upon-unloading-cleanup.patch
+linux-next.patch
+next-remove-localversion.patch
+drivers-mfd-ucb1400_corec-needs-gpio.patch
+drivers-mfd-ucb1400_corec-further-unbork.patch
+kbuild-ftrace-dont-assume-that-scripts-recordmcountpl-is-executable.patch
+acpi-ec-dont-degrade-to-poll-mode-at-storm-automatically-cleanup.patch
+zero-based-percpu-use-vmlinux_symbol-in-include-asm-generic-vmlinuxldsh.patch
+x86-make-poll_idle-behave-more-like-the-other-idle-methods-checkpatch-fixes.patch
+fs-sysfs-dirc-remove-unused-__sysfs_get_dentry.patch
+tick-schedc-suppress-needless-timer-reprogramming.patch
+drivers-input-touchscreen-ucb1400_tsc-needs-gpio.patch
+git-jg-misc.patch
+led-driver-for-leds-on-pcengines-alix2-and-alix3-boards.patch
+libata-blackfin-pata-driver-add-proper-pm-operation-into-atapi-driver-fix.patch
+git-ubi-git-rejects.patch
+sundance-set-carrier-status-on-link-change-events.patch
+cassini-use-request_firmware.patch
+e1000e-avoid-duplicated-output-of-device-name-in-kernel-warning-checkpatch-fixes.patch
+e1000e-avoid-duplicated-output-of-device-name-in-kernel-warning-fix.patch
+backlight-driver-for-tabletkiosk-sahara-touchit-213-tablet-pc.patch
+backlight-driver-for-tabletkiosk-sahara-touchit-213-tablet-pc-update-2-checkpatch-fixes.patch
+power-support-for-texas-instruments-bq27x00-battery-managers.patch
+drivers-pci-hotplug-ibmphp_ebdac-list_for_each-to-list_for_each_entry-checkpatch-fixes.patch
+pci-tidy-pme-support-messages-checkpatch-fixes.patch
+scsi-gdthc-use-unaligned-access-helpers.patch
+drivers-scsi-device_handler-scsi_dh_emcc-suppress-warning.patch
+git-xtensa.patch
+scsi-dpt_i2o-is-bust-on-ia64.patch
+mm-page_allocc-free_area_init_nodes-fix-inappropriate-use-of-enum.patch
+vmscan-give-referenced-active-and-unmapped-pages-a-second-trip-around-the-lru.patch
+vm-dont-run-touch_buffer-during-buffercache-lookups.patch
+vmscan-move-isolate_lru_page-to-vmscanc.patch
+define-page_file_cache-function.patch
+vmscan-split-lru-lists-into-anon-file-sets.patch
+unevictable-lru-infrastructure.patch
+unevictable-lru-page-statistics.patch
+mlock-mlocked-pages-are-unevictable.patch
+mlock-mlocked-pages-are-unevictable-fix.patch
+mmap-handle-mlocked-pages-during-map-remap-unmap.patch
+mmap-handle-mlocked-pages-during-map-remap-unmap-mlock-resubmit-locked_vm-adjustment-as-separate-patch-fix.patch
+vmscan-unevictable-lru-scan-sysctl.patch
+mlock-make-mlock-error-return-posixly-correct-fix.patch
+mm-rewrite-vmap-layer-fix.patch
+mm-rewrite-vmap-layer-fix-fix.patch
+mm-rewrite-vmap-layer-fix-fix-fix.patch
+h8300-generic_bug-support-checkpatch-fixes.patch
+pm-rework-disabling-of-user-mode-helpers-during-suspend-hibernation-cleanup.patch
+container-freezer-implement-freezer-cgroup-subsystem-checkpatch-fixes.patch
+container-freezer-implement-freezer-cgroup-subsystem-uninline-thaw_process-fix.patch
+separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix.patch
+fix-a-race-condtion-of-oops_in_progress-fix.patch
+vsprintf-use-new-vsprintf-symbolic-function-pointer-format-cleanup.patch
+autofs4-track-uid-and-gid-of-last-mount-requester-fix.patch
+autofs4-add-miscellaneous-device-for-ioctls-fix.patch
+autofs4-add-miscellaneous-device-for-ioctls-fix-2.patch
+autofs4-add-miscellaneous-device-for-ioctls-fix-fix-3.patch
+rtc-add-device-driver-for-dallas-ds3234-spi-rtc-chip-fix.patch
+fb-push-down-the-bkl-in-the-ioctl-handler-checkpatch-fixes.patch
+viafb-viafbmodes-viafbtxt-fix-fix.patch
+viafb-accelc-accelh-checkpatch-fixes.patch
+viafb-dvic-dvih-globalc-and-globalh-checkpatch-fixes.patch
+viafb-hwc-hwh-checkpatch-fixes.patch
+viafb-viafbdevc-viafbdevh-checkpatch-fixes.patch
+fbdev-kconfig-update-fix.patch
+eink_apollofb-new-driver-for-apollo-eink-controller.patch
+cgroups-fix-probable-race-with-put_css_set-and-find_css_set-fix.patch
+memrlimit-add-memrlimit-controller-accounting-and-control-mm_owner-fix-checkpatch-fixes.patch
+message-queues-increase-range-limits-checkpatch-fixes.patch
+applicomc-fix-apparently-broken-code-in-do_ac_read.patch
+drivers-char-tpm-tpmc-fix-error-patch-memory-leak.patch
+gru-driver-minor-updates-fix.patch
+gcov-architecture-specific-compile-flag-adjustments-powerpc-moved-stuff.patch
+nilfs2-continuous-snapshotting-file-system-fix.patch
+nilfs2-continuous-snapshotting-file-system-fix-fix-2.patch
+reiser4.patch
+reiser4-tree_lock-fixes.patch
+reiser4-tree_lock-fixes-fix.patch
+reiser4-semaphore-fix.patch
+slb-drop-kmem-cache-argument-from-constructor-reiser4.patch
+reiser4-suid.patch
+reiser4-track-upstream-changes.patch
+page-owner-tracking-leak-detector.patch
+nr_blockdev_pages-in_interrupt-warning.patch
+slab-leaks3-default-y.patch
+put_bh-debug.patch
+shrink_slab-handle-bad-shrinkers.patch
+getblk-handle-2tb-devices.patch
+getblk-handle-2tb-devices-fix.patch
+undeprecate-pci_find_device.patch
+notify_change-callers-must-hold-i_mutex.patch
+profile-likely-unlikely-macros.patch
+drivers-net-bonding-bond_sysfsc-suppress-uninitialized-var-warning.patch
+w1-build-fix.patch
