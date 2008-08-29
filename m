@@ -1,23 +1,19 @@
 From: akpm@linux-foundation.org
-Subject: + separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix.patch added to -mm tree
-Date: Fri, 29 Aug 2008 00:44:33 -0700
-Message-ID: <200808290758.m7T7w1Fd005912@imap1.linux-foundation.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:53535 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751712AbYH2H6g (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 29 Aug 2008 03:58:36 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: + separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix.patch added to -mm tree
+Date: Fri, 29 Aug 2008 15:08:12 -0700
+Message-ID: <200808292221.m7TMLhLZ007300@imap1.linux-foundation.org>
+Reply-To: linux-kernel@vger.kernel.org
+Return-path: <mm-commits-owner@vger.kernel.org>
+Sender: mm-commits-owner@vger.kernel.org
 To: mm-commits@vger.kernel.org
-Cc: akpm@linux-foundation.org, lethal@linux-sh.org, linux-arch@vger.kernel.org, ying.huang@intel.com
+Cc: akpm@linux-foundation.org, davem@davemloft.net, linux-arch@vger.kernel.org, ying.huang@intel.com
+List-Id: linux-arch.vger.kernel.org
 
 
 The patch titled
-     separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix
+     separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix
 has been added to the -mm tree.  Its filename is
-     separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix.patch
+     separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix.patch
 
 Before you just go and hit "reply", please:
    a) Consider who else should be cc'ed
@@ -33,37 +29,55 @@ out what to do about this
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix
+Subject: separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix
 From: Andrew Morton <akpm@linux-foundation.org>
 
 Cc: <linux-arch@vger.kernel.org>
 Cc: Huang Ying <ying.huang@intel.com>
-Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: "David S. Miller" <davem@davemloft.net>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/sh/include/asm/atomic.h     |    2 +-
- arch/sh/include/asm/atomic_def.h |    8 ++++++++
- 2 files changed, 9 insertions(+), 1 deletion(-)
+ arch/sparc/include/asm/atomic_32.h  |    4 ++--
+ arch/sparc/include/asm/atomic_64.h  |    2 +-
+ arch/sparc/include/asm/atomic_def.h |    8 ++++++++
+ 3 files changed, 11 insertions(+), 3 deletions(-)
 
-diff -puN arch/sh/include/asm/atomic.h~separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix arch/sh/include/asm/atomic.h
---- a/arch/sh/include/asm/atomic.h~separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix
-+++ a/arch/sh/include/asm/atomic.h
-@@ -7,7 +7,7 @@
-  *
-  */
+diff -puN arch/sparc/include/asm/atomic_32.h~separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix arch/sparc/include/asm/atomic_32.h
+--- a/arch/sparc/include/asm/atomic_32.h~separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix
++++ a/arch/sparc/include/asm/atomic_32.h
+@@ -13,10 +13,10 @@
+ 
+ #include <linux/types.h>
  
 -typedef struct { volatile int counter; } atomic_t;
+-
+ #ifdef __KERNEL__
+ 
++#include <asm/atomic_def.h>
++
+ #define ATOMIC_INIT(i)  { (i) }
+ 
+ extern int __atomic_add_return(int, atomic_t *);
+diff -puN arch/sparc/include/asm/atomic_64.h~separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix arch/sparc/include/asm/atomic_64.h
+--- a/arch/sparc/include/asm/atomic_64.h~separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix
++++ a/arch/sparc/include/asm/atomic_64.h
+@@ -9,8 +9,8 @@
+ 
+ #include <linux/types.h>
+ #include <asm/system.h>
 +#include <asm/atomic_def.h>
  
- #define ATOMIC_INIT(i)	( (atomic_t) { (i) } )
+-typedef struct { volatile int counter; } atomic_t;
+ typedef struct { volatile __s64 counter; } atomic64_t;
  
-diff -puN /dev/null arch/sh/include/asm/atomic_def.h
+ #define ATOMIC_INIT(i)		{ (i) }
+diff -puN /dev/null arch/sparc/include/asm/atomic_def.h
 --- /dev/null
-+++ a/arch/sh/include/asm/atomic_def.h
++++ a/arch/sparc/include/asm/atomic_def.h
 @@ -0,0 +1,8 @@
-+#ifndef _ASM_IA64_ATOMIC_DEF_H
-+#define _ASM_IA64_ATOMIC_DEF_H
++#ifndef _ATOMIC_DEF_H
++#define _ATOMIC_DEF_H
 +
 +typedef struct {
 +	volatile int counter;
@@ -82,6 +96,7 @@ drivers-mfd-ucb1400_corec-needs-gpio.patch
 drivers-mfd-ucb1400_corec-further-unbork.patch
 kbuild-ftrace-dont-assume-that-scripts-recordmcountpl-is-executable.patch
 acpi-ec-dont-degrade-to-poll-mode-at-storm-automatically-cleanup.patch
+toshiba_acpi-add-support-for-bluetooth-toggling-through-rfkill-v7-fix.patch
 zero-based-percpu-use-vmlinux_symbol-in-include-asm-generic-vmlinuxldsh.patch
 x86-make-poll_idle-behave-more-like-the-other-idle-methods-checkpatch-fixes.patch
 fs-sysfs-dirc-remove-unused-__sysfs_get_dentry.patch
@@ -98,11 +113,14 @@ e1000e-avoid-duplicated-output-of-device-name-in-kernel-warning-fix.patch
 backlight-driver-for-tabletkiosk-sahara-touchit-213-tablet-pc.patch
 backlight-driver-for-tabletkiosk-sahara-touchit-213-tablet-pc-update-2-checkpatch-fixes.patch
 power-support-for-texas-instruments-bq27x00-battery-managers.patch
+power-support-for-texas-instruments-bq27x00-battery-managers-fix.patch
 drivers-pci-hotplug-ibmphp_ebdac-list_for_each-to-list_for_each_entry-checkpatch-fixes.patch
 pci-tidy-pme-support-messages-checkpatch-fixes.patch
 scsi-gdthc-use-unaligned-access-helpers.patch
 drivers-scsi-device_handler-scsi_dh_emcc-suppress-warning.patch
 git-xtensa.patch
+drivers-char-randomc-fix-a-race-which-can-lead-to-a-bogus-bug.patch
+drivers-char-randomc-fix-a-race-which-can-lead-to-a-bogus-bug-fix.patch
 scsi-dpt_i2o-is-bust-on-ia64.patch
 mm-page_allocc-free_area_init_nodes-fix-inappropriate-use-of-enum.patch
 vmscan-give-referenced-active-and-unmapped-pages-a-second-trip-around-the-lru.patch
@@ -126,6 +144,7 @@ pm-rework-disabling-of-user-mode-helpers-during-suspend-hibernation-cleanup.patc
 container-freezer-implement-freezer-cgroup-subsystem-checkpatch-fixes.patch
 container-freezer-implement-freezer-cgroup-subsystem-uninline-thaw_process-fix.patch
 separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix.patch
+separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix.patch
 fix-a-race-condtion-of-oops_in_progress-fix.patch
 vsprintf-use-new-vsprintf-symbolic-function-pointer-format-cleanup.patch
 autofs4-track-uid-and-gid-of-last-mount-requester-fix.patch
@@ -169,3 +188,4 @@ notify_change-callers-must-hold-i_mutex.patch
 profile-likely-unlikely-macros.patch
 drivers-net-bonding-bond_sysfsc-suppress-uninitialized-var-warning.patch
 w1-build-fix.patch
+
