@@ -1,57 +1,159 @@
-From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH 8/8] S390: Update comments about why we don't use
-	<asm-generic/statfs.h>
-Date: Wed, 03 Sep 2008 10:38:35 +0100
-Message-ID: <1220434715.2985.68.camel@pmac.infradead.org>
-References: <1220275314.2982.83.camel@pmac.infradead.org>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: [PATCH] Correct printk %pF to work on all architectures
+Date: Wed, 03 Sep 2008 15:18:57 -0500
+Message-ID: <1220473137.3254.29.camel@localhost.localdomain>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:44252 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754859AbYICJii (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Sep 2008 05:38:38 -0400
-In-Reply-To: <1220275314.2982.83.camel@pmac.infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Return-path: <linux-parisc-owner@vger.kernel.org>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, linux-ia64@vger.kernel.org, linuxppc-dev@ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: David Woodhouse <David.Woodhouse@intel.com>
+It was introduced by 
+
+commit 0fe1ef24f7bd0020f29ffe287dfdb9ead33ca0b2
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sun Jul 6 16:43:12 2008 -0700
+
+    vsprintf: add support for '%pS' and '%pF' pointer formats
+
+
+However, the current way its coded doesn't work on parisc64.  For two
+reasons:  1) parisc isn't in the #ifdef and 2) parisc has a different
+format for function descriptors
+
+Make dereference_function_descriptor() more accommodating by allowing
+architecture overrides.  I put the three overrides (for parisc64, ppc64
+and ia64) in arch/kernel/module.c because that's where the kernel
+internal linker which knows how to deal with function descriptors sits.
+
+Signed-off-by: James Bottomley <James.Bottomley@HansenPartnership.com>
 ---
- arch/s390/include/asm/statfs.h |   11 ++++-------
- 1 files changed, 4 insertions(+), 7 deletions(-)
+ arch/ia64/kernel/module.c       |    9 +++++++++
+ arch/parisc/kernel/module.c     |   13 +++++++++++++
+ arch/powerpc/kernel/module_64.c |    9 +++++++++
+ include/linux/kernel.h          |    3 +++
+ lib/vsprintf.c                  |   12 ++++++------
+ 5 files changed, 40 insertions(+), 6 deletions(-)
 
-diff --git a/arch/s390/include/asm/statfs.h b/arch/s390/include/asm/statfs.h
-index 099a455..06cc703 100644
---- a/arch/s390/include/asm/statfs.h
-+++ b/arch/s390/include/asm/statfs.h
-@@ -12,19 +12,16 @@
- #ifndef __s390x__
- #include <asm-generic/statfs.h>
- #else
+diff --git a/arch/ia64/kernel/module.c b/arch/ia64/kernel/module.c
+index 29aad34..596a862 100644
+--- a/arch/ia64/kernel/module.c
++++ b/arch/ia64/kernel/module.c
+@@ -31,6 +31,7 @@
+ #include <linux/elf.h>
+ #include <linux/moduleloader.h>
+ #include <linux/string.h>
++#include <linux/uaccess.h>
+ #include <linux/vmalloc.h>
+ 
+ #include <asm/patch.h>
+@@ -941,3 +942,11 @@ module_arch_cleanup (struct module *mod)
+ 	if (mod->arch.core_unw_table)
+ 		unw_remove_unwind_table(mod->arch.core_unw_table);
+ }
++
++void *dereference_function_descriptor(void *ptr)
++{
++	void *p = NULL;
++	if (!probe_kernel_address(ptr, p))
++		ptr = p;
++	return p;
++}
+diff --git a/arch/parisc/kernel/module.c b/arch/parisc/kernel/module.c
+index fdacdd4..4ad80a5 100644
+--- a/arch/parisc/kernel/module.c
++++ b/arch/parisc/kernel/module.c
+@@ -47,6 +47,7 @@
+ #include <linux/string.h>
+ #include <linux/kernel.h>
+ #include <linux/bug.h>
++#include <linux/uaccess.h>
+ 
+ #include <asm/unwind.h>
+ 
+@@ -860,3 +861,15 @@ void module_arch_cleanup(struct module *mod)
+ 	deregister_unwind_table(mod);
+ 	module_bug_cleanup(mod);
+ }
++
++#ifdef CONFIG_64BIT
++void *dereference_function_descriptor(void *ptr)
++{
++	Elf64_Fdesc *desc = ptr;
++	void *p = NULL;
++
++	if (!probe_kernel_address(&desc->addr, p))
++		ptr = p;
++	return p;
++}
++#endif
+diff --git a/arch/powerpc/kernel/module_64.c b/arch/powerpc/kernel/module_64.c
+index ee6a298..60e9749 100644
+--- a/arch/powerpc/kernel/module_64.c
++++ b/arch/powerpc/kernel/module_64.c
+@@ -21,6 +21,7 @@
+ #include <linux/err.h>
+ #include <linux/vmalloc.h>
+ #include <linux/bug.h>
++#include <linux/uaccess.h>
+ #include <asm/module.h>
+ #include <asm/uaccess.h>
+ #include <asm/firmware.h>
+@@ -451,3 +452,11 @@ int apply_relocate_add(Elf64_Shdr *sechdrs,
+ 
+ 	return 0;
+ }
++
++void *dereference_function_descriptor(void *ptr)
++{
++	void *p = NULL;
++	if (!probe_kernel_address(ptr, p))
++		ptr = p;
++	return p;
++}
+diff --git a/include/linux/kernel.h b/include/linux/kernel.h
+index 2651f80..8ff19b3 100644
+--- a/include/linux/kernel.h
++++ b/include/linux/kernel.h
+@@ -189,6 +189,9 @@ extern int __kernel_text_address(unsigned long addr);
+ extern int kernel_text_address(unsigned long addr);
+ struct pid;
+ extern struct pid *session_of_pgrp(struct pid *pgrp);
++/* function descriptor handling (if any) */
++extern void *dereference_function_descriptor(void *ptr);
++
+ 
+ #ifdef CONFIG_PRINTK
+ asmlinkage int vprintk(const char *fmt, va_list args)
+diff --git a/lib/vsprintf.c b/lib/vsprintf.c
+index d8d1d11..cffcd95 100644
+--- a/lib/vsprintf.c
++++ b/lib/vsprintf.c
+@@ -513,13 +513,13 @@ static char *string(char *buf, char *end, char *s, int field_width, int precisio
+ 	return buf;
+ }
+ 
+-static inline void *dereference_function_descriptor(void *ptr)
 +/*
-+ * We can't use <asm-generic/statfs.h> because in 64-bit mode
-+ * we mix ints of different sizes in our struct statfs.
++ * Some architectures need special handling for pointers
++ * to functions, which are done via function descriptors
++ * Do a non weak override of this function for them
 + */
++void __weak *dereference_function_descriptor(void *ptr)
+ {
+-#if defined(CONFIG_IA64) || defined(CONFIG_PPC64)
+-	void *p;
+-	if (!probe_kernel_address(ptr, p))
+-		ptr = p;
+-#endif
+ 	return ptr;
+ }
  
- #ifndef __KERNEL_STRICT_NAMES
--
- #include <linux/types.h>
--
- typedef __kernel_fsid_t	fsid_t;
--
- #endif
- 
--/*
-- * This is ugly -- we're already 64-bit clean, so just duplicate the 
-- * definitions.
-- */
- struct statfs {
- 	int  f_type;
- 	int  f_bsize;
 -- 
-1.5.5.1
--- 
-David Woodhouse                            Open Source Technology Centre
-David.Woodhouse@intel.com                              Intel Corporation
+1.5.6.5
+
+
+
