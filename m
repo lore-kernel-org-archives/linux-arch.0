@@ -1,16 +1,16 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH 2/8] ARM: Use <asm-generic/statfs.h>
-Date: Wed, 03 Sep 2008 10:37:56 +0100
-Message-ID: <1220434676.2985.62.camel@pmac.infradead.org>
+Subject: [PATCH 4/8] x86_64: Use <asm-generic/statfs.h>
+Date: Wed, 03 Sep 2008 10:38:08 +0100
+Message-ID: <1220434688.2985.64.camel@pmac.infradead.org>
 References: <1220275314.2982.83.camel@pmac.infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:44240 "EHLO
+Received: from casper.infradead.org ([85.118.1.10]:44242 "EHLO
 	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752076AbYICJh6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Sep 2008 05:37:58 -0400
+	with ESMTP id S1754094AbYICJiL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Sep 2008 05:38:11 -0400
 In-Reply-To: <1220275314.2982.83.camel@pmac.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -18,42 +18,66 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
 Signed-off-by: David Woodhouse <David.Woodhouse@intel.com>
 ---
- arch/arm/include/asm/statfs.h |   34 ++--------------------------------
- 1 files changed, 2 insertions(+), 32 deletions(-)
+ include/asm-x86/statfs.h |   61 ++++------------------------------------------
+ 1 files changed, 5 insertions(+), 56 deletions(-)
 
-diff --git a/arch/arm/include/asm/statfs.h b/arch/arm/include/asm/statfs.h
-index a02e6a8..079447c 100644
---- a/arch/arm/include/asm/statfs.h
-+++ b/arch/arm/include/asm/statfs.h
-@@ -1,42 +1,12 @@
- #ifndef _ASMARM_STATFS_H
- #define _ASMARM_STATFS_H
+diff --git a/include/asm-x86/statfs.h b/include/asm-x86/statfs.h
+index 7c651aa..4c935ca 100644
+--- a/include/asm-x86/statfs.h
++++ b/include/asm-x86/statfs.h
+@@ -1,63 +1,12 @@
+ #ifndef _ASM_X86_STATFS_H
+ #define _ASM_X86_STATFS_H
  
+-#ifdef __i386__
+-#include <asm-generic/statfs.h>
+-#else
+-
 -#ifndef __KERNEL_STRICT_NAMES
--# include <linux/types.h>
+-
+-#include <linux/types.h>
+-
 -typedef __kernel_fsid_t	fsid_t;
+-
 -#endif
 -
+ /*
+- * This is ugly -- we're already 64-bit clean, so just duplicate the
+- * definitions.
++ * We need compat_statfs64 to be packed, because the i386 ABI won't
++ * add padding at the end to bring it to a multiple of 8 bytes, but
++ * the x86_64 ABI will.
+  */
 -struct statfs {
--	__u32 f_type;
--	__u32 f_bsize;
--	__u32 f_blocks;
--	__u32 f_bfree;
--	__u32 f_bavail;
--	__u32 f_files;
--	__u32 f_ffree;
+-	long f_type;
+-	long f_bsize;
+-	long f_blocks;
+-	long f_bfree;
+-	long f_bavail;
+-	long f_files;
+-	long f_ffree;
 -	__kernel_fsid_t f_fsid;
--	__u32 f_namelen;
--	__u32 f_frsize;
--	__u32 f_spare[5];
+-	long f_namelen;
+-	long f_frsize;
+-	long f_spare[5];
 -};
 -
- /*
-  * With EABI there is 4 bytes of padding added to this structure.
-  * Let's pack it so the padding goes away to simplify dual ABI support.
-  * Note that user space does NOT have to pack this structure.
-  */
 -struct statfs64 {
+-	long f_type;
+-	long f_bsize;
+-	long f_blocks;
+-	long f_bfree;
+-	long f_bavail;
+-	long f_files;
+-	long f_ffree;
+-	__kernel_fsid_t f_fsid;
+-	long f_namelen;
+-	long f_frsize;
+-	long f_spare[5];
+-};
++#define ARCH_PACK_COMPAT_STATFS64 __attribute__((packed,aligned(4)))
+ 
+-struct compat_statfs64 {
 -	__u32 f_type;
 -	__u32 f_bsize;
 -	__u64 f_blocks;
@@ -65,9 +89,9 @@ index a02e6a8..079447c 100644
 -	__u32 f_namelen;
 -	__u32 f_frsize;
 -	__u32 f_spare[5];
--} __attribute__ ((packed,aligned(4)));
-+#define ARCH_PACK_STATFS64 __attribute__((packed,aligned(4)))
- 
+-} __attribute__((packed));
+-
+-#endif /* !__i386__ */
 +#include <asm-generic/statfs.h>
  #endif
 -- 
