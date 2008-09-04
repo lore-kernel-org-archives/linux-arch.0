@@ -1,295 +1,457 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH] Correct printk %pF to work on all architectures
-Date: Wed, 03 Sep 2008 20:43:36 -0500
-Message-ID: <1220492616.3254.64.camel@localhost.localdomain>
-References: <1220473137.3254.29.camel@localhost.localdomain>
-	 <alpine.LFD.1.10.0809031419560.3515@nehalem.linux-foundation.org>
-	 <1220481754.3254.42.camel@localhost.localdomain>
-	 <alpine.LFD.1.10.0809031546310.3515@nehalem.linux-foundation.org>
-	 <1220482853.3254.47.camel@localhost.localdomain>
-	 <alpine.LFD.1.10.0809031602270.3515@nehalem.linux-foundation.org>
-	 <1220484812.3254.59.camel@localhost.localdomain>
-	 <alpine.LFD.1.10.0809031636320.3515@nehalem.linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from accolon.hansenpartnership.com ([76.243.235.52]:54852 "EHLO
-	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752377AbYIDBnj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Sep 2008 21:43:39 -0400
-In-Reply-To: <alpine.LFD.1.10.0809031636320.3515@nehalem.linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, linux-ia64@vger.kernel.org, linuxppc-dev@ozlabs.org
+From: akpm@linux-foundation.org
+Subject: + compat-move-cp_compat_stat-to-common-code.patch added to -mm tree
+Date: Thu, 04 Sep 2008 13:10:47 -0700
+Message-ID: <200809042011.m84KAlBn028455@imap1.linux-foundation.org>
+Reply-To: linux-kernel@vger.kernel.org
+Return-path: <mm-commits-owner@vger.kernel.org>
+Sender: mm-commits-owner@vger.kernel.org
+To: mm-commits@vger.kernel.org
+Cc: hch@lst.de, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2008-09-03 at 17:01 -0700, Linus Torvalds wrote:
-> 
-> On Wed, 3 Sep 2008, James Bottomley wrote:
-> > 
-> > Oh ... because Arjan has a patch to export
-> > dereference_function_descriptor.  I suppose I could make him do the
-> > heavy lifting, but it seemed sensible to make it easy for him (and me)
-> > by putting it in a header.
-> > 
-> > http://marc.info/?l=linux-kernel&m=121976793429869
-> 
-> Ahh.
-> 
-> NOW it all starts to make sense.
-> 
-> Or perhaps not sense, but I at least understand why people want to move it 
-> around. The kernel.h location kind of goes together with that 
-> core_kernel_text() thing, although it seems to be more of a "random 
-> collection of routines" thing than anything else (but hey, that's the very 
-> definition of "kernel.h" for you).
-> 
-> The module.h location still seems to be more of a "oh, both 
-> kernel/extable.c and lib/vsprintf.c already included <linux/module.h>" and 
-> it's a bit sad, since it really has nothing at all to do with modules.
-> 
-> Grr. It does seem like we don't have any kind of "abi" header file. 
-> <linux/kernel.h> and <asm/processor.h> has various random things.
-> 
-> So yea, there doesn't seem to be any _obvious_ place that makes sense.
-> 
-> 		Linus
-> 
-> Not-very-strong-opinion: How about <asm/sections.h>? That does seem to be 
-> where we already hide things like "in_kernel_text()" at least on powerpc. 
-> In fact, since we already always have a generic version, the patch would 
-> actually be something like
-> 
->  - in <asm-generic/sections.h>, just do
-> 
-> 	#define dereference_function_descriptor(p) (p)
-> 
->  - in architectures that want to override it
-> 
-> 	#undef dereference_function_descriptor
-> 
->    followed by 
-> 
-> 	static inline void *dereference_function_descriptor(..) ..
-> 	or
-> 	#define dereference_function_descriptor my_fn_dereference
-> 
->    since they all include the generic one as a base
-> 
-> Hmm? I do admit that "<asm/sections.h>" doesn't really strike me as a very 
-> natural name for this, but kernel/extable.c does already include it for 
-> other reasons, and it's at least no worse than module.h.
 
-Well, good as any other I suppose.  So this is what you want?
+The patch titled
+     compat: move cp_compat_stat to common code
+has been added to the -mm tree.  Its filename is
+     compat-move-cp_compat_stat-to-common-code.patch
 
-James
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
 
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
+
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: compat: move cp_compat_stat to common code
+From: Christoph Hellwig <hch@lst.de>
+
+struct stat / compat_stat is the same on all architectures, so
+cp_compat_stat should be, too.
+
+Turns out it is, except that various architectures have slightly and some
+high2lowuid/high2lowgid or the direct assignment instead of the
+SET_UID/SET_GID that expands to the correct one anyway.
+
+This patch replaces the arch-specific cp_compat_stat implementations with
+a common one based on the x86-64 one.
+
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
-It was introduced by 
+ arch/ia64/ia32/sys_ia32.c         |   35 --------------------
+ arch/mips/kernel/linux32.c        |   35 --------------------
+ arch/parisc/kernel/sys_parisc32.c |   47 ----------------------------
+ arch/powerpc/kernel/sys_ppc32.c   |   36 ---------------------
+ arch/s390/kernel/compat_linux.c   |   35 --------------------
+ arch/sparc64/kernel/sys_sparc32.c |   35 --------------------
+ arch/x86/ia32/sys_ia32.c          |   35 --------------------
+ fs/compat.c                       |   39 +++++++++++++++++++++++
+ include/linux/compat.h            |    1 
+ 9 files changed, 39 insertions(+), 259 deletions(-)
 
-commit 0fe1ef24f7bd0020f29ffe287dfdb9ead33ca0b2
-Author: Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Sun Jul 6 16:43:12 2008 -0700
-
-    vsprintf: add support for '%pS' and '%pF' pointer formats
-
-
-However, the current way its coded doesn't work on parisc64.  For two
-reasons:  1) parisc isn't in the #ifdef and 2) parisc has a different
-format for function descriptors
-
-Make dereference_function_descriptor() more accommodating by allowing
-architecture overrides.  I put the three overrides (for parisc64, ppc64
-and ia64) in arch/kernel/module.c because that's where the kernel
-internal linker which knows how to deal with function descriptors sits.
-
-Signed-off-by: James Bottomley <James.Bottomley@HansenPartnership.com>
----
- arch/ia64/include/asm/sections.h    |    3 +++
- arch/ia64/kernel/module.c           |   12 ++++++++++++
- arch/parisc/kernel/module.c         |   14 ++++++++++++++
- arch/powerpc/include/asm/sections.h |    3 +++
- arch/powerpc/kernel/module_64.c     |   13 ++++++++++++-
- include/asm-generic/sections.h      |    6 ++++++
- include/asm-parisc/sections.h       |    5 +++++
- lib/vsprintf.c                      |   11 +----------
- 8 files changed, 56 insertions(+), 11 deletions(-)
-
-diff --git a/arch/ia64/include/asm/sections.h b/arch/ia64/include/asm/sections.h
-index 7286e4a..a7acad2 100644
---- a/arch/ia64/include/asm/sections.h
-+++ b/arch/ia64/include/asm/sections.h
-@@ -21,5 +21,8 @@ extern char __start_gate_brl_fsys_bubble_down_patchlist[], __end_gate_brl_fsys_b
- extern char __start_unwind[], __end_unwind[];
- extern char __start_ivt_text[], __end_ivt_text[];
- 
-+#undef dereference_function_descriptor
-+void *dereference_function_descriptor(void *);
-+
- #endif /* _ASM_IA64_SECTIONS_H */
- 
-diff --git a/arch/ia64/kernel/module.c b/arch/ia64/kernel/module.c
-index 29aad34..545626f 100644
---- a/arch/ia64/kernel/module.c
-+++ b/arch/ia64/kernel/module.c
-@@ -31,9 +31,11 @@
- #include <linux/elf.h>
- #include <linux/moduleloader.h>
- #include <linux/string.h>
-+#include <linux/uaccess.h>
- #include <linux/vmalloc.h>
- 
- #include <asm/patch.h>
-+#include <asm/sections.h>
- #include <asm/unaligned.h>
- 
- #define ARCH_MODULE_DEBUG 0
-@@ -941,3 +943,13 @@ module_arch_cleanup (struct module *mod)
- 	if (mod->arch.core_unw_table)
- 		unw_remove_unwind_table(mod->arch.core_unw_table);
- }
-+
-+void *dereference_function_descriptor(void *ptr)
-+{
-+	struct fdesc *desc = ptr;
-+	void *p;
-+
-+	if (!probe_kernel_address(&desc->ip, p))
-+		ptr = p;
-+	return ptr;
-+}
-diff --git a/arch/parisc/kernel/module.c b/arch/parisc/kernel/module.c
-index fdacdd4..44138c3 100644
---- a/arch/parisc/kernel/module.c
-+++ b/arch/parisc/kernel/module.c
-@@ -47,7 +47,9 @@
- #include <linux/string.h>
- #include <linux/kernel.h>
- #include <linux/bug.h>
-+#include <linux/uaccess.h>
- 
-+#include <asm/sections.h>
- #include <asm/unwind.h>
- 
- #if 0
-@@ -860,3 +862,15 @@ void module_arch_cleanup(struct module *mod)
- 	deregister_unwind_table(mod);
- 	module_bug_cleanup(mod);
- }
-+
-+#ifdef CONFIG_64BIT
-+void *dereference_function_descriptor(void *ptr)
-+{
-+	Elf64_Fdesc *desc = ptr;
-+	void *p;
-+
-+	if (!probe_kernel_address(&desc->addr, p))
-+		ptr = p;
-+	return ptr;
-+}
-+#endif
-diff --git a/arch/powerpc/include/asm/sections.h b/arch/powerpc/include/asm/sections.h
-index 916018e..7710e9e 100644
---- a/arch/powerpc/include/asm/sections.h
-+++ b/arch/powerpc/include/asm/sections.h
-@@ -16,6 +16,9 @@ static inline int in_kernel_text(unsigned long addr)
- 	return 0;
+diff -puN arch/ia64/ia32/sys_ia32.c~compat-move-cp_compat_stat-to-common-code arch/ia64/ia32/sys_ia32.c
+--- a/arch/ia64/ia32/sys_ia32.c~compat-move-cp_compat_stat-to-common-code
++++ a/arch/ia64/ia32/sys_ia32.c
+@@ -118,41 +118,6 @@ sys32_execve (char __user *name, compat_
+ 	return error;
  }
  
-+#undef dereference_function_descriptor
-+void *dereference_function_descriptor(void *);
-+
- #endif
- 
- #endif /* __KERNEL__ */
-diff --git a/arch/powerpc/kernel/module_64.c b/arch/powerpc/kernel/module_64.c
-index ee6a298..ad79de2 100644
---- a/arch/powerpc/kernel/module_64.c
-+++ b/arch/powerpc/kernel/module_64.c
-@@ -21,8 +21,9 @@
- #include <linux/err.h>
- #include <linux/vmalloc.h>
- #include <linux/bug.h>
-+#include <linux/uaccess.h>
- #include <asm/module.h>
--#include <asm/uaccess.h>
-+#include <asm/sections.h>
- #include <asm/firmware.h>
- #include <asm/code-patching.h>
- #include <linux/sort.h>
-@@ -451,3 +452,13 @@ int apply_relocate_add(Elf64_Shdr *sechdrs,
- 
- 	return 0;
- }
-+
-+void *dereference_function_descriptor(void *ptr)
-+{
-+	struct ppc64_opd_entry *desc = ptr;
-+	void *p;
-+
-+	if (!probe_kernel_address(&desc->funcaddr, p))
-+		ptr = p;
-+	return ptr;
-+}
-diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
-index 8feeae1..79a7ff9 100644
---- a/include/asm-generic/sections.h
-+++ b/include/asm-generic/sections.h
-@@ -14,4 +14,10 @@ extern char __kprobes_text_start[], __kprobes_text_end[];
- extern char __initdata_begin[], __initdata_end[];
- extern char __start_rodata[], __end_rodata[];
- 
-+/* function descriptor handling (if any).  Override
-+ * in asm/sections.h */
-+#ifndef dereference_function_descriptor
-+#define dereference_function_descriptor(p) (p)
-+#endif
-+
- #endif /* _ASM_GENERIC_SECTIONS_H_ */
-diff --git a/include/asm-parisc/sections.h b/include/asm-parisc/sections.h
-index fdd43ec..9d13c35 100644
---- a/include/asm-parisc/sections.h
-+++ b/include/asm-parisc/sections.h
-@@ -4,4 +4,9 @@
- /* nothing to see, move along */
- #include <asm-generic/sections.h>
- 
-+#ifdef CONFIG_64BIT
-+#undef dereference_function_descriptor
-+void *dereference_function_descriptor(void *);
-+#endif
-+
- #endif
-diff --git a/lib/vsprintf.c b/lib/vsprintf.c
-index d8d1d11..c399bc1 100644
---- a/lib/vsprintf.c
-+++ b/lib/vsprintf.c
-@@ -27,6 +27,7 @@
- 
- #include <asm/page.h>		/* for PAGE_SIZE */
- #include <asm/div64.h>
-+#include <asm/sections.h>	/* for dereference_function_descriptor() */
- 
- /* Works only for digits and letters, but small and fast */
- #define TOLOWER(x) ((x) | 0x20)
-@@ -513,16 +514,6 @@ static char *string(char *buf, char *end, char *s, int field_width, int precisio
- 	return buf;
- }
- 
--static inline void *dereference_function_descriptor(void *ptr)
+-int cp_compat_stat(struct kstat *stat, struct compat_stat __user *ubuf)
 -{
--#if defined(CONFIG_IA64) || defined(CONFIG_PPC64)
--	void *p;
--	if (!probe_kernel_address(ptr, p))
--		ptr = p;
+-	compat_ino_t ino;
+-	int err;
+-
+-	if ((u64) stat->size > MAX_NON_LFS ||
+-	    !old_valid_dev(stat->dev) ||
+-	    !old_valid_dev(stat->rdev))
+-		return -EOVERFLOW;
+-
+-	ino = stat->ino;
+-	if (sizeof(ino) < sizeof(stat->ino) && ino != stat->ino)
+-		return -EOVERFLOW;
+-
+-	if (clear_user(ubuf, sizeof(*ubuf)))
+-		return -EFAULT;
+-
+-	err  = __put_user(old_encode_dev(stat->dev), &ubuf->st_dev);
+-	err |= __put_user(ino, &ubuf->st_ino);
+-	err |= __put_user(stat->mode, &ubuf->st_mode);
+-	err |= __put_user(stat->nlink, &ubuf->st_nlink);
+-	err |= __put_user(high2lowuid(stat->uid), &ubuf->st_uid);
+-	err |= __put_user(high2lowgid(stat->gid), &ubuf->st_gid);
+-	err |= __put_user(old_encode_dev(stat->rdev), &ubuf->st_rdev);
+-	err |= __put_user(stat->size, &ubuf->st_size);
+-	err |= __put_user(stat->atime.tv_sec, &ubuf->st_atime);
+-	err |= __put_user(stat->atime.tv_nsec, &ubuf->st_atime_nsec);
+-	err |= __put_user(stat->mtime.tv_sec, &ubuf->st_mtime);
+-	err |= __put_user(stat->mtime.tv_nsec, &ubuf->st_mtime_nsec);
+-	err |= __put_user(stat->ctime.tv_sec, &ubuf->st_ctime);
+-	err |= __put_user(stat->ctime.tv_nsec, &ubuf->st_ctime_nsec);
+-	err |= __put_user(stat->blksize, &ubuf->st_blksize);
+-	err |= __put_user(stat->blocks, &ubuf->st_blocks);
+-	return err;
+-}
+ 
+ #if PAGE_SHIFT > IA32_PAGE_SHIFT
+ 
+diff -puN arch/mips/kernel/linux32.c~compat-move-cp_compat_stat-to-common-code arch/mips/kernel/linux32.c
+--- a/arch/mips/kernel/linux32.c~compat-move-cp_compat_stat-to-common-code
++++ a/arch/mips/kernel/linux32.c
+@@ -63,41 +63,6 @@
+ #define merge_64(r1, r2) ((((r2) & 0xffffffffUL) << 32) + ((r1) & 0xffffffffUL))
+ #endif
+ 
+-/*
+- * Revalidate the inode. This is required for proper NFS attribute caching.
+- */
+-
+-int cp_compat_stat(struct kstat *stat, struct compat_stat __user *statbuf)
+-{
+-	struct compat_stat tmp;
+-
+-	if (!new_valid_dev(stat->dev) || !new_valid_dev(stat->rdev))
+-		return -EOVERFLOW;
+-
+-	memset(&tmp, 0, sizeof(tmp));
+-	tmp.st_dev = new_encode_dev(stat->dev);
+-	tmp.st_ino = stat->ino;
+-	if (sizeof(tmp.st_ino) < sizeof(stat->ino) && tmp.st_ino != stat->ino)
+-		return -EOVERFLOW;
+-	tmp.st_mode = stat->mode;
+-	tmp.st_nlink = stat->nlink;
+-	SET_UID(tmp.st_uid, stat->uid);
+-	SET_GID(tmp.st_gid, stat->gid);
+-	tmp.st_rdev = new_encode_dev(stat->rdev);
+-	tmp.st_size = stat->size;
+-	tmp.st_atime = stat->atime.tv_sec;
+-	tmp.st_mtime = stat->mtime.tv_sec;
+-	tmp.st_ctime = stat->ctime.tv_sec;
+-#ifdef STAT_HAVE_NSEC
+-	tmp.st_atime_nsec = stat->atime.tv_nsec;
+-	tmp.st_mtime_nsec = stat->mtime.tv_nsec;
+-	tmp.st_ctime_nsec = stat->ctime.tv_nsec;
 -#endif
--	return ptr;
+-	tmp.st_blocks = stat->blocks;
+-	tmp.st_blksize = stat->blksize;
+-	return copy_to_user(statbuf, &tmp, sizeof(tmp)) ? -EFAULT : 0;
 -}
 -
- static char *symbol_string(char *buf, char *end, void *ptr, int field_width, int precision, int flags)
+ asmlinkage unsigned long
+ sys32_mmap2(unsigned long addr, unsigned long len, unsigned long prot,
+          unsigned long flags, unsigned long fd, unsigned long pgoff)
+diff -puN arch/parisc/kernel/sys_parisc32.c~compat-move-cp_compat_stat-to-common-code arch/parisc/kernel/sys_parisc32.c
+--- a/arch/parisc/kernel/sys_parisc32.c~compat-move-cp_compat_stat-to-common-code
++++ a/arch/parisc/kernel/sys_parisc32.c
+@@ -237,53 +237,6 @@ int sys32_settimeofday(struct compat_tim
+ 	return do_sys_settimeofday(tv ? &kts : NULL, tz ? &ktz : NULL);
+ }
+ 
+-int cp_compat_stat(struct kstat *stat, struct compat_stat __user *statbuf)
+-{
+-	compat_ino_t ino;
+-	int err;
+-
+-	if (stat->size > MAX_NON_LFS || !new_valid_dev(stat->dev) ||
+-	    !new_valid_dev(stat->rdev))
+-		return -EOVERFLOW;
+-
+-	ino = stat->ino;
+-	if (sizeof(ino) < sizeof(stat->ino) && ino != stat->ino)
+-		return -EOVERFLOW;
+-
+-	err  = put_user(new_encode_dev(stat->dev), &statbuf->st_dev);
+-	err |= put_user(ino, &statbuf->st_ino);
+-	err |= put_user(stat->mode, &statbuf->st_mode);
+-	err |= put_user(stat->nlink, &statbuf->st_nlink);
+-	err |= put_user(0, &statbuf->st_reserved1);
+-	err |= put_user(0, &statbuf->st_reserved2);
+-	err |= put_user(new_encode_dev(stat->rdev), &statbuf->st_rdev);
+-	err |= put_user(stat->size, &statbuf->st_size);
+-	err |= put_user(stat->atime.tv_sec, &statbuf->st_atime);
+-	err |= put_user(stat->atime.tv_nsec, &statbuf->st_atime_nsec);
+-	err |= put_user(stat->mtime.tv_sec, &statbuf->st_mtime);
+-	err |= put_user(stat->mtime.tv_nsec, &statbuf->st_mtime_nsec);
+-	err |= put_user(stat->ctime.tv_sec, &statbuf->st_ctime);
+-	err |= put_user(stat->ctime.tv_nsec, &statbuf->st_ctime_nsec);
+-	err |= put_user(stat->blksize, &statbuf->st_blksize);
+-	err |= put_user(stat->blocks, &statbuf->st_blocks);
+-	err |= put_user(0, &statbuf->__unused1);
+-	err |= put_user(0, &statbuf->__unused2);
+-	err |= put_user(0, &statbuf->__unused3);
+-	err |= put_user(0, &statbuf->__unused4);
+-	err |= put_user(0, &statbuf->__unused5);
+-	err |= put_user(0, &statbuf->st_fstype); /* not avail */
+-	err |= put_user(0, &statbuf->st_realdev); /* not avail */
+-	err |= put_user(0, &statbuf->st_basemode); /* not avail */
+-	err |= put_user(0, &statbuf->st_spareshort);
+-	err |= put_user(stat->uid, &statbuf->st_uid);
+-	err |= put_user(stat->gid, &statbuf->st_gid);
+-	err |= put_user(0, &statbuf->st_spare4[0]);
+-	err |= put_user(0, &statbuf->st_spare4[1]);
+-	err |= put_user(0, &statbuf->st_spare4[2]);
+-
+-	return err;
+-}
+-
+ /*** copied from mips64 ***/
+ /*
+  * Ooo, nasty.  We need here to frob 32-bit unsigned longs to
+diff -puN arch/powerpc/kernel/sys_ppc32.c~compat-move-cp_compat_stat-to-common-code arch/powerpc/kernel/sys_ppc32.c
+--- a/arch/powerpc/kernel/sys_ppc32.c~compat-move-cp_compat_stat-to-common-code
++++ a/arch/powerpc/kernel/sys_ppc32.c
+@@ -61,42 +61,6 @@ asmlinkage long ppc32_select(u32 n, comp
+ 	return compat_sys_select((int)n, inp, outp, exp, compat_ptr(tvp_x));
+ }
+ 
+-int cp_compat_stat(struct kstat *stat, struct compat_stat __user *statbuf)
+-{
+-	compat_ino_t ino;
+-	long err;
+-
+-	if (stat->size > MAX_NON_LFS || !new_valid_dev(stat->dev) ||
+-	    !new_valid_dev(stat->rdev))
+-		return -EOVERFLOW;
+-
+-	ino = stat->ino;
+-	if (sizeof(ino) < sizeof(stat->ino) && ino != stat->ino)
+-		return -EOVERFLOW;
+-
+-	err  = access_ok(VERIFY_WRITE, statbuf, sizeof(*statbuf)) ? 0 : -EFAULT;
+-	err |= __put_user(new_encode_dev(stat->dev), &statbuf->st_dev);
+-	err |= __put_user(ino, &statbuf->st_ino);
+-	err |= __put_user(stat->mode, &statbuf->st_mode);
+-	err |= __put_user(stat->nlink, &statbuf->st_nlink);
+-	err |= __put_user(stat->uid, &statbuf->st_uid);
+-	err |= __put_user(stat->gid, &statbuf->st_gid);
+-	err |= __put_user(new_encode_dev(stat->rdev), &statbuf->st_rdev);
+-	err |= __put_user(stat->size, &statbuf->st_size);
+-	err |= __put_user(stat->atime.tv_sec, &statbuf->st_atime);
+-	err |= __put_user(stat->atime.tv_nsec, &statbuf->st_atime_nsec);
+-	err |= __put_user(stat->mtime.tv_sec, &statbuf->st_mtime);
+-	err |= __put_user(stat->mtime.tv_nsec, &statbuf->st_mtime_nsec);
+-	err |= __put_user(stat->ctime.tv_sec, &statbuf->st_ctime);
+-	err |= __put_user(stat->ctime.tv_nsec, &statbuf->st_ctime_nsec);
+-	err |= __put_user(stat->blksize, &statbuf->st_blksize);
+-	err |= __put_user(stat->blocks, &statbuf->st_blocks);
+-	err |= __put_user(0, &statbuf->__unused4[0]);
+-	err |= __put_user(0, &statbuf->__unused4[1]);
+-
+-	return err;
+-}
+-
+ /* Note: it is necessary to treat option as an unsigned int,
+  * with the corresponding cast to a signed int to insure that the 
+  * proper conversion (sign extension) between the register representation of a signed int (msr in 32-bit mode)
+diff -puN arch/s390/kernel/compat_linux.c~compat-move-cp_compat_stat-to-common-code arch/s390/kernel/compat_linux.c
+--- a/arch/s390/kernel/compat_linux.c~compat-move-cp_compat_stat-to-common-code
++++ a/arch/s390/kernel/compat_linux.c
+@@ -362,41 +362,6 @@ asmlinkage long sys32_ftruncate64(unsign
+ 		return sys_ftruncate(fd, (high << 32) | low);
+ }
+ 
+-int cp_compat_stat(struct kstat *stat, struct compat_stat __user *statbuf)
+-{
+-	compat_ino_t ino;
+-	int err;
+-
+-	if (!old_valid_dev(stat->dev) || !old_valid_dev(stat->rdev))
+-		return -EOVERFLOW;
+-
+-	ino = stat->ino;
+-	if (sizeof(ino) < sizeof(stat->ino) && ino != stat->ino)
+-		return -EOVERFLOW;
+-
+-	err = put_user(old_encode_dev(stat->dev), &statbuf->st_dev);
+-	err |= put_user(stat->ino, &statbuf->st_ino);
+-	err |= put_user(stat->mode, &statbuf->st_mode);
+-	err |= put_user(stat->nlink, &statbuf->st_nlink);
+-	err |= put_user(high2lowuid(stat->uid), &statbuf->st_uid);
+-	err |= put_user(high2lowgid(stat->gid), &statbuf->st_gid);
+-	err |= put_user(old_encode_dev(stat->rdev), &statbuf->st_rdev);
+-	err |= put_user(stat->size, &statbuf->st_size);
+-	err |= put_user(stat->atime.tv_sec, &statbuf->st_atime);
+-	err |= put_user(stat->atime.tv_nsec, &statbuf->st_atime_nsec);
+-	err |= put_user(stat->mtime.tv_sec, &statbuf->st_mtime);
+-	err |= put_user(stat->mtime.tv_nsec, &statbuf->st_mtime_nsec);
+-	err |= put_user(stat->ctime.tv_sec, &statbuf->st_ctime);
+-	err |= put_user(stat->ctime.tv_nsec, &statbuf->st_ctime_nsec);
+-	err |= put_user(stat->blksize, &statbuf->st_blksize);
+-	err |= put_user(stat->blocks, &statbuf->st_blocks);
+-/* fixme
+-	err |= put_user(0, &statbuf->__unused4[0]);
+-	err |= put_user(0, &statbuf->__unused4[1]);
+-*/
+-	return err;
+-}
+-
+ asmlinkage long sys32_sched_rr_get_interval(compat_pid_t pid,
+ 				struct compat_timespec __user *interval)
  {
- 	unsigned long value = (unsigned long) ptr;
--- 
-1.5.6.5
+diff -puN arch/sparc64/kernel/sys_sparc32.c~compat-move-cp_compat_stat-to-common-code arch/sparc64/kernel/sys_sparc32.c
+--- a/arch/sparc64/kernel/sys_sparc32.c~compat-move-cp_compat_stat-to-common-code
++++ a/arch/sparc64/kernel/sys_sparc32.c
+@@ -148,41 +148,6 @@ asmlinkage long sys32_ftruncate64(unsign
+ 		return sys_ftruncate(fd, (high << 32) | low);
+ }
+ 
+-int cp_compat_stat(struct kstat *stat, struct compat_stat __user *statbuf)
+-{
+-	compat_ino_t ino;
+-	int err;
+-
+-	if (stat->size > MAX_NON_LFS || !old_valid_dev(stat->dev) ||
+-	    !old_valid_dev(stat->rdev))
+-		return -EOVERFLOW;
+-
+-	ino = stat->ino;
+-	if (sizeof(ino) < sizeof(stat->ino) && ino != stat->ino)
+-		return -EOVERFLOW;
+-
+-	err  = put_user(old_encode_dev(stat->dev), &statbuf->st_dev);
+-	err |= put_user(stat->ino, &statbuf->st_ino);
+-	err |= put_user(stat->mode, &statbuf->st_mode);
+-	err |= put_user(stat->nlink, &statbuf->st_nlink);
+-	err |= put_user(high2lowuid(stat->uid), &statbuf->st_uid);
+-	err |= put_user(high2lowgid(stat->gid), &statbuf->st_gid);
+-	err |= put_user(old_encode_dev(stat->rdev), &statbuf->st_rdev);
+-	err |= put_user(stat->size, &statbuf->st_size);
+-	err |= put_user(stat->atime.tv_sec, &statbuf->st_atime);
+-	err |= put_user(stat->atime.tv_nsec, &statbuf->st_atime_nsec);
+-	err |= put_user(stat->mtime.tv_sec, &statbuf->st_mtime);
+-	err |= put_user(stat->mtime.tv_nsec, &statbuf->st_mtime_nsec);
+-	err |= put_user(stat->ctime.tv_sec, &statbuf->st_ctime);
+-	err |= put_user(stat->ctime.tv_nsec, &statbuf->st_ctime_nsec);
+-	err |= put_user(stat->blksize, &statbuf->st_blksize);
+-	err |= put_user(stat->blocks, &statbuf->st_blocks);
+-	err |= put_user(0, &statbuf->__unused4[0]);
+-	err |= put_user(0, &statbuf->__unused4[1]);
+-
+-	return err;
+-}
+-
+ static int cp_compat_stat64(struct kstat *stat,
+ 			    struct compat_stat64 __user *statbuf)
+ {
+diff -puN arch/x86/ia32/sys_ia32.c~compat-move-cp_compat_stat-to-common-code arch/x86/ia32/sys_ia32.c
+--- a/arch/x86/ia32/sys_ia32.c~compat-move-cp_compat_stat-to-common-code
++++ a/arch/x86/ia32/sys_ia32.c
+@@ -49,41 +49,6 @@
+ 
+ #define AA(__x)		((unsigned long)(__x))
+ 
+-int cp_compat_stat(struct kstat *kbuf, struct compat_stat __user *ubuf)
+-{
+-	compat_ino_t ino;
+-
+-	typeof(ubuf->st_uid) uid = 0;
+-	typeof(ubuf->st_gid) gid = 0;
+-	SET_UID(uid, kbuf->uid);
+-	SET_GID(gid, kbuf->gid);
+-	if (!old_valid_dev(kbuf->dev) || !old_valid_dev(kbuf->rdev))
+-		return -EOVERFLOW;
+-	if (kbuf->size >= 0x7fffffff)
+-		return -EOVERFLOW;
+-	ino = kbuf->ino;
+-	if (sizeof(ino) < sizeof(kbuf->ino) && ino != kbuf->ino)
+-		return -EOVERFLOW;
+-	if (!access_ok(VERIFY_WRITE, ubuf, sizeof(struct compat_stat)) ||
+-	    __put_user(old_encode_dev(kbuf->dev), &ubuf->st_dev) ||
+-	    __put_user(ino, &ubuf->st_ino) ||
+-	    __put_user(kbuf->mode, &ubuf->st_mode) ||
+-	    __put_user(kbuf->nlink, &ubuf->st_nlink) ||
+-	    __put_user(uid, &ubuf->st_uid) ||
+-	    __put_user(gid, &ubuf->st_gid) ||
+-	    __put_user(old_encode_dev(kbuf->rdev), &ubuf->st_rdev) ||
+-	    __put_user(kbuf->size, &ubuf->st_size) ||
+-	    __put_user(kbuf->atime.tv_sec, &ubuf->st_atime) ||
+-	    __put_user(kbuf->atime.tv_nsec, &ubuf->st_atime_nsec) ||
+-	    __put_user(kbuf->mtime.tv_sec, &ubuf->st_mtime) ||
+-	    __put_user(kbuf->mtime.tv_nsec, &ubuf->st_mtime_nsec) ||
+-	    __put_user(kbuf->ctime.tv_sec, &ubuf->st_ctime) ||
+-	    __put_user(kbuf->ctime.tv_nsec, &ubuf->st_ctime_nsec) ||
+-	    __put_user(kbuf->blksize, &ubuf->st_blksize) ||
+-	    __put_user(kbuf->blocks, &ubuf->st_blocks))
+-		return -EFAULT;
+-	return 0;
+-}
+ 
+ asmlinkage long sys32_truncate64(char __user *filename,
+ 				 unsigned long offset_low,
+diff -puN fs/compat.c~compat-move-cp_compat_stat-to-common-code fs/compat.c
+--- a/fs/compat.c~compat-move-cp_compat_stat-to-common-code
++++ a/fs/compat.c
+@@ -137,6 +137,45 @@ asmlinkage long compat_sys_utimes(char _
+ 	return compat_sys_futimesat(AT_FDCWD, filename, t);
+ }
+ 
++static int cp_compat_stat(struct kstat *stat, struct compat_stat __user *ubuf)
++{
++	compat_ino_t ino = stat->ino;
++	typeof(ubuf->st_uid) uid = 0;
++	typeof(ubuf->st_gid) gid = 0;
++	int err;
++
++	SET_UID(uid, stat->uid);
++	SET_GID(gid, stat->gid);
++
++	if ((u64) stat->size > MAX_NON_LFS ||
++	    !old_valid_dev(stat->dev) ||
++	    !old_valid_dev(stat->rdev))
++		return -EOVERFLOW;
++	if (sizeof(ino) < sizeof(stat->ino) && ino != stat->ino)
++		return -EOVERFLOW;
++
++	if (clear_user(ubuf, sizeof(*ubuf)))
++		return -EFAULT;
++
++	err  = __put_user(old_encode_dev(stat->dev), &ubuf->st_dev);
++	err |= __put_user(ino, &ubuf->st_ino);
++	err |= __put_user(stat->mode, &ubuf->st_mode);
++	err |= __put_user(stat->nlink, &ubuf->st_nlink);
++	err |= __put_user(uid, &ubuf->st_uid);
++	err |= __put_user(gid, &ubuf->st_gid);
++	err |= __put_user(old_encode_dev(stat->rdev), &ubuf->st_rdev);
++	err |= __put_user(stat->size, &ubuf->st_size);
++	err |= __put_user(stat->atime.tv_sec, &ubuf->st_atime);
++	err |= __put_user(stat->atime.tv_nsec, &ubuf->st_atime_nsec);
++	err |= __put_user(stat->mtime.tv_sec, &ubuf->st_mtime);
++	err |= __put_user(stat->mtime.tv_nsec, &ubuf->st_mtime_nsec);
++	err |= __put_user(stat->ctime.tv_sec, &ubuf->st_ctime);
++	err |= __put_user(stat->ctime.tv_nsec, &ubuf->st_ctime_nsec);
++	err |= __put_user(stat->blksize, &ubuf->st_blksize);
++	err |= __put_user(stat->blocks, &ubuf->st_blocks);
++	return err;
++}
++
+ asmlinkage long compat_sys_newstat(char __user * filename,
+ 		struct compat_stat __user *statbuf)
+ {
+diff -puN include/linux/compat.h~compat-move-cp_compat_stat-to-common-code include/linux/compat.h
+--- a/include/linux/compat.h~compat-move-cp_compat_stat-to-common-code
++++ a/include/linux/compat.h
+@@ -78,7 +78,6 @@ typedef struct {
+ 	compat_sigset_word	sig[_COMPAT_NSIG_WORDS];
+ } compat_sigset_t;
+ 
+-extern int cp_compat_stat(struct kstat *, struct compat_stat __user *);
+ extern int get_compat_timespec(struct timespec *, const struct compat_timespec __user *);
+ extern int put_compat_timespec(const struct timespec *, struct compat_timespec __user *);
+ 
+_
+
+Patches currently in -mm which might be from hch@lst.de are
+
+linux-next.patch
+x86-remove-init_mm-export-as-planned-for-2626.patch
+vfs-fix-vfs_rename_dir-for-fs_rename_does_d_move-filesystems.patch
+compat-move-cp_compat_stat-to-common-code.patch
+
