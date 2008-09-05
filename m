@@ -1,113 +1,123 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [patch] mm: rewrite vmap layer
-Date: Thu, 4 Sep 2008 20:06:25 -0700
-Message-ID: <20080904200625.a926e274.akpm@linux-foundation.org>
-References: <20080818133224.GA5258@wotan.suse.de>
+From: David Woodhouse <dwmw2@infradead.org>
+Subject: [PATCH 2/2] Introduce HAVE_AOUT symbol to remove hard-coded arch
+	list for BINFMT_AOUT
+Date: Fri, 05 Sep 2008 17:27:06 +0100
+Message-ID: <1220632026.2985.361.camel@pmac.infradead.org>
+References: <1213696004.26255.960.camel@pmac.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:51067 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752108AbYIEDGf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Sep 2008 23:06:35 -0400
-In-Reply-To: <20080818133224.GA5258@wotan.suse.de>
+Received: from casper.infradead.org ([85.118.1.10]:35061 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751524AbYIEQ1J (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2008 12:27:09 -0400
+In-Reply-To: <1213696004.26255.960.camel@pmac.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Dave Airlie <airlied@linux.ie>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, 18 Aug 2008 15:32:24 +0200 Nick Piggin <npiggin@suse.de> wrote:
+HAVE_AOUT doesn't quite do the same thing as the recently removed
+ARCH_SUPPORTS_AOUT config option. That was set even on platforms where
+binfmt_aout isn't supported, although it's not entirely clear why.
 
-> Rewrite the vmap allocator to use rbtrees and lazy tlb flushing, and provide a
-> fast, scalable percpu frontend for small vmaps (requires a slightly different
-> API, though).
+So it's best just to introduce a new symbol, handled consistently with
+other similar HAVE_xxx symbols; with a simple 'select' in the arch Kconfig.
 
-With the full -mm lineup my ancient PIII machine is saying
+Signed-off-by: David Woodhouse <David.Woodhouse@intel.com>
+---
+ arch/alpha/Kconfig   |    1 +
+ arch/arm/Kconfig     |    1 +
+ arch/m68k/Kconfig    |    1 +
+ arch/um/Kconfig.i386 |    5 +++--
+ arch/x86/Kconfig     |    1 +
+ fs/Kconfig.binfmt    |    5 ++++-
+ 6 files changed, 11 insertions(+), 3 deletions(-)
 
-calling agp_init+0x0/0x30
-Linux agpgart interface v0.103
-initcall agp_init+0x0/0x30 returned 0 after 0 msecs
-calling agp_intel_init+0x0/0x30
-agpgart-intel 0000:00:00.0: Intel 440BX Chipset
-------------[ cut here ]------------
-WARNING: at mm/vmalloc.c:105 vmap_page_range+0xea/0x130()
-Modules linked in:
-Pid: 1, comm: swapper Not tainted 2.6.27-rc5-mm1 #1
- [<c0126404>] warn_on_slowpath+0x54/0x70
- [<c016dce9>] ? rmqueue_bulk+0x69/0x80
- [<c014666b>] ? trace_hardirqs_on+0xb/0x10
- [<c01465d4>] ? trace_hardirqs_on_caller+0xd4/0x160
- [<c016ece9>] ? get_page_from_freelist+0x229/0x4f0
- [<c018278a>] vmap_page_range+0xea/0x130
- [<c0182801>] map_vm_area+0x31/0x50
- [<c01828d4>] __vmalloc_area_node+0xb4/0x110
- [<c01829c9>] __vmalloc_node+0x99/0xa0
- [<c02c4040>] ? agp_add_bridge+0x1e0/0x4b0
- [<c02c4040>] ? agp_add_bridge+0x1e0/0x4b0
- [<c0182a23>] vmalloc+0x23/0x30
- [<c02c4040>] ? agp_add_bridge+0x1e0/0x4b0
- [<c02c4040>] agp_add_bridge+0x1e0/0x4b0
- [<c03d70c5>] agp_intel_probe+0x145/0x2d0
- [<c029f81e>] pci_device_probe+0x5e/0x80
- [<c02d4ef4>] driver_probe_device+0x84/0x180
- [<c02d5065>] __driver_attach+0x75/0x80
- [<c02d45a9>] bus_for_each_dev+0x49/0x70
- [<c029f760>] ? pci_device_remove+0x0/0x40
- [<c02d4d69>] driver_attach+0x19/0x20
- [<c02d4ff0>] ? __driver_attach+0x0/0x80
- [<c02d49ff>] bus_add_driver+0xaf/0x220
- [<c028e46f>] ? kset_find_obj+0x5f/0x80
- [<c029f760>] ? pci_device_remove+0x0/0x40
- [<c02d51ff>] driver_register+0x4f/0x120
- [<c02974a2>] ? __spin_lock_init+0x32/0x60
- [<c054f2c0>] ? agp_intel_init+0x0/0x30
- [<c029fa8b>] __pci_register_driver+0x5b/0xb0
- [<c054f2c0>] ? agp_intel_init+0x0/0x30
- [<c054f2e5>] agp_intel_init+0x25/0x30
- [<c010102a>] _stext+0x2a/0x150
- [<c054f2c0>] ? agp_intel_init+0x0/0x30
- [<c011deff>] ? wake_up_process+0xf/0x20
- [<c0135d3d>] ? start_workqueue_thread+0x1d/0x20
- [<c0136103>] ? __create_workqueue_key+0x143/0x190
- [<c0532732>] kernel_init+0x182/0x280
- [<c05325b0>] ? kernel_init+0x0/0x280
- [<c0103fff>] kernel_thread_helper+0x7/0x18
- =======================
----[ end trace e9106f0cfec79452 ]---
-agpgart-intel 0000:00:00.0: can't allocate memory for key lists
-agpgart-intel 0000:00:00.0: agp_backend_initialize() failed
-agpgart-intel: probe of 0000:00:00.0 failed with error -12
-initcall agp_intel_init+0x0/0x30 returned 0 after 10 msecs
-
-: static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
-: 		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
-: {
-: 	pte_t *pte;
-: 
-: 	/*
-: 	 * nr is a running index into the array which helps higher level
-: 	 * callers keep track of where we're up to.
-: 	 */
-: 
-: 	pte = pte_alloc_kernel(pmd, addr);
-: 	if (!pte)
-: 		return -ENOMEM;
-: 	do {
-: 		struct page *page = pages[*nr];
-: 
-: -->>		if (WARN_ON(!pte_none(*pte)))
-: 			return -EBUSY;
-: 		if (WARN_ON(!page))
-: 			return -ENOMEM;
-: 		set_pte_at(&init_mm, addr, pte, mk_pte(page, prot));
-: 		(*nr)++;
-: 	} while (pte++, addr += PAGE_SIZE, addr != end);
-: 	return 0;
-: }
-: 
-
-wanna take a look please?
-
-config: http://userweb.kernel.org/~akpm/config-vmm.txt
-dmesg: http://userweb.kernel.org/~akpm/dmesg-vmm.txt
+diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
+index 46f0ddf..ee35226 100644
+--- a/arch/alpha/Kconfig
++++ b/arch/alpha/Kconfig
+@@ -5,6 +5,7 @@
+ config ALPHA
+ 	bool
+ 	default y
++	select HAVE_AOUT
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
+ 	help
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 8803c39..2f7ef54 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -8,6 +8,7 @@ mainmenu "Linux Kernel Configuration"
+ config ARM
+ 	bool
+ 	default y
++	select HAVE_AOUT
+ 	select HAVE_IDE
+ 	select RTC_LIB
+ 	select SYS_SUPPORTS_APM_EMULATION
+diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
+index d42b996..41e5bf0 100644
+--- a/arch/m68k/Kconfig
++++ b/arch/m68k/Kconfig
+@@ -5,6 +5,7 @@
+ config M68K
+ 	bool
+ 	default y
++	select HAVE_AOUT
+ 	select HAVE_IDE
+ 
+ config MMU
+diff --git a/arch/um/Kconfig.i386 b/arch/um/Kconfig.i386
+index 2a44e5c..1f57c11 100644
+--- a/arch/um/Kconfig.i386
++++ b/arch/um/Kconfig.i386
+@@ -9,8 +9,9 @@ config UML_X86
+ 	default y
+ 
+ config X86_32
+-       bool
+-       default y
++	bool
++	default y
++  	select HAVE_AOUT
+ 
+ config RWSEM_XCHGADD_ALGORITHM
+ 	def_bool y
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 2e8fa40..59b1d65 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -18,6 +18,7 @@ config X86_64
+ ### Arch settings
+ config X86
+ 	def_bool y
++	select HAVE_AOUT if X86_32
+ 	select HAVE_UNSTABLE_SCHED_CLOCK
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
+diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
+index e4df913..17c9c5e 100644
+--- a/fs/Kconfig.binfmt
++++ b/fs/Kconfig.binfmt
+@@ -59,9 +59,12 @@ config BINFMT_SHARED_FLAT
+ 	help
+ 	  Support FLAT shared libraries
+ 
++config HAVE_AOUT
++       def_bool n
++
+ config BINFMT_AOUT
+ 	tristate "Kernel support for a.out and ECOFF binaries"
+-	depends on (X86_32 || ALPHA || ARM || M68K)
++	depends on HAVE_AOUT
+ 	---help---
+ 	  A.out (Assembler.OUTput) is a set of formats for libraries and
+ 	  executables used in the earliest versions of UNIX.  Linux used
+-- 
+1.5.5.1
+-- 
+David Woodhouse                            Open Source Technology Centre
+David.Woodhouse@intel.com                              Intel Corporation
