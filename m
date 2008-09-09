@@ -1,297 +1,251 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sing.entic.net ([208.64.63.147]:37814 "EHLO mail.q-ag.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752518AbYIHRqT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Sep 2008 13:46:19 -0400
-Message-Id: <200809081710.m88HAgXl015314@mail.q-ag.de>
-From: Manfred Spraul <manfred@colorfullife.com>
-Date: Sun, 7 Sep 2008 16:57:22 +0200
-Subject: [PATCH] kernel/cpu.c: create a CPU_STARTING cpu_chain notifier
+Received: from accolon.hansenpartnership.com ([76.243.235.52]:49799 "EHLO
+	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753765AbYIIOMp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Sep 2008 10:12:45 -0400
+Subject: RE: [PATCH] Correct printk %pF to work on all architectures
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <57C9024A16AD2D4C97DC78E552063EA30A0DC383@orsmsx505.amr.corp.intel.com>
+References: <1220473137.3254.29.camel@localhost.localdomain>
+	 <alpine.LFD.1.10.0809031419560.3515@nehalem.linux-foundation.org>
+	 <1220481754.3254.42.camel@localhost.localdomain>
+	 <alpine.LFD.1.10.0809031546310.3515@nehalem.linux-foundation.org>
+	 <1220482853.3254.47.camel@localhost.localdomain>
+	 <alpine.LFD.1.10.0809031602270.3515@nehalem.linux-foundation.org>
+	 <1220484812.3254.59.camel@localhost.localdomain>
+	 <alpine.LFD.1.10.0809031636320.3515@nehalem.linux-foundation.org>
+	 <1220492616.3254.64.camel@localhost.localdomain>
+	 <1220567811.4879.85.camel@pasglop>
+	 <57C9024A16AD2D4C97DC78E552063EA30A0DC383@orsmsx505.amr.corp.intel.com>
+Content-Type: text/plain
+Date: Tue, 09 Sep 2008 09:12:41 -0500
+Message-ID: <1220969561.3334.7.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, paulmck@linux.vnet.ibm.com
-Cc: linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "Luck, Tony" <tony.luck@intel.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linuxppc-dev@ozlabs.org" <linuxppc-dev@ozlabs.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>
+Message-ID: <20080909141241.mrn9WmPDZ9lUN7WRHEIzHbpfDSCTaUWynaYXMMS4XDc@z>
 
-Right now, there is no notifier that is called on a new cpu, before the new
-cpu begins processing interrupts/softirqs.
-Various kernel function would need that notification, e.g. kvm works around
-by calling smp_call_function_single(), rcu polls cpu_online_map.
+OK, so could we get this in to -rc5 please?  It's a bug fix for parisc
+since we're currently printing rubbish.
 
-The patch adds a CPU_STARTING notification. It also adds a helper function
-that sends the message to all cpu_chain handlers.
+James
 
-Tested on x86-64.
-All other archs are untested. Especially on sparc, I'm not sure if I got
-it right.
-
-Signed-Off-By: Manfred Spraul <manfred@colorfullife.com>
 ---
- arch/alpha/kernel/smp.c             |    3 +++
- arch/arm/kernel/smp.c               |    1 +
- arch/cris/arch-v32/kernel/smp.c     |    1 +
- arch/ia64/kernel/smpboot.c          |    1 +
- arch/m32r/kernel/smpboot.c          |    2 ++
- arch/mips/kernel/smp.c              |    2 ++
- arch/powerpc/kernel/smp.c           |    1 +
- arch/s390/kernel/smp.c              |    2 ++
- arch/sh/kernel/smp.c                |    2 ++
- arch/sparc/kernel/sun4d_smp.c       |    1 +
- arch/sparc/kernel/sun4m_smp.c       |    2 ++
- arch/um/kernel/smp.c                |    1 +
- arch/x86/kernel/smpboot.c           |    1 +
- arch/x86/mach-voyager/voyager_smp.c |    2 ++
- include/linux/cpu.h                 |    1 +
- include/linux/notifier.h            |   10 +++++++++-
- kernel/cpu.c                        |   20 +++++++++++++++++++-
- 17 files changed, 51 insertions(+), 2 deletions(-)
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Date: Wed, 3 Sep 2008 20:43:36 -0500
+Subject: lib: Correct printk %pF to work on all architectures
 
-diff --git a/arch/alpha/kernel/smp.c b/arch/alpha/kernel/smp.c
-index 83df541..06b6fda 100644
---- a/arch/alpha/kernel/smp.c
-+++ b/arch/alpha/kernel/smp.c
-@@ -149,6 +149,9 @@ smp_callin(void)
- 	atomic_inc(&init_mm.mm_count);
- 	current->active_mm = &init_mm;
+It was introduced by
+
+commit 0fe1ef24f7bd0020f29ffe287dfdb9ead33ca0b2
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sun Jul 6 16:43:12 2008 -0700
+
+    vsprintf: add support for '%pS' and '%pF' pointer formats
+
+
+However, the current way its coded doesn't work on parisc64.  For two
+reasons:  1) parisc isn't in the #ifdef and 2) parisc has a different
+format for function descriptors
+
+Make dereference_function_descriptor() more accommodating by allowing
+architecture overrides.  I put the three overrides (for parisc64, ppc64
+and ia64) in arch/kernel/module.c because that's where the kernel
+internal linker which knows how to deal with function descriptors sits.
+
+Signed-off-by: James Bottomley <James.Bottomley@HansenPartnership.com>
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Acked-by: Tony Luck <tony.luck@intel.com>
+---
+ arch/ia64/include/asm/sections.h    |    3 +++
+ arch/ia64/kernel/module.c           |   12 ++++++++++++
+ arch/parisc/kernel/module.c         |   14 ++++++++++++++
+ arch/powerpc/include/asm/sections.h |    3 +++
+ arch/powerpc/kernel/module_64.c     |   13 ++++++++++++-
+ include/asm-generic/sections.h      |    6 ++++++
+ include/asm-parisc/sections.h       |    5 +++++
+ lib/vsprintf.c                      |   11 +----------
+ 8 files changed, 56 insertions(+), 11 deletions(-)
+
+diff --git a/arch/ia64/include/asm/sections.h b/arch/ia64/include/asm/sections.h
+index 7286e4a..a7acad2 100644
+--- a/arch/ia64/include/asm/sections.h
++++ b/arch/ia64/include/asm/sections.h
+@@ -21,5 +21,8 @@ extern char __start_gate_brl_fsys_bubble_down_patchlist[], __end_gate_brl_fsys_b
+ extern char __start_unwind[], __end_unwind[];
+ extern char __start_ivt_text[], __end_ivt_text[];
  
-+	/* inform the notifiers about the new cpu */
-+	notify_cpu_starting(cpuid);
++#undef dereference_function_descriptor
++void *dereference_function_descriptor(void *);
 +
- 	/* Must have completely accurate bogos.  */
- 	local_irq_enable();
+ #endif /* _ASM_IA64_SECTIONS_H */
  
-diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
-index e9842f6..e42a749 100644
---- a/arch/arm/kernel/smp.c
-+++ b/arch/arm/kernel/smp.c
-@@ -277,6 +277,7 @@ asmlinkage void __cpuinit secondary_start_kernel(void)
- 	/*
- 	 * Enable local interrupts.
- 	 */
-+	notify_cpu_starting(cpu);
- 	local_irq_enable();
- 	local_fiq_enable();
+diff --git a/arch/ia64/kernel/module.c b/arch/ia64/kernel/module.c
+index 29aad34..545626f 100644
+--- a/arch/ia64/kernel/module.c
++++ b/arch/ia64/kernel/module.c
+@@ -31,9 +31,11 @@
+ #include <linux/elf.h>
+ #include <linux/moduleloader.h>
+ #include <linux/string.h>
++#include <linux/uaccess.h>
+ #include <linux/vmalloc.h>
  
-diff --git a/arch/cris/arch-v32/kernel/smp.c b/arch/cris/arch-v32/kernel/smp.c
-index 952a24b..52e16c6 100644
---- a/arch/cris/arch-v32/kernel/smp.c
-+++ b/arch/cris/arch-v32/kernel/smp.c
-@@ -178,6 +178,7 @@ void __init smp_callin(void)
- 	unmask_irq(IPI_INTR_VECT);
- 	unmask_irq(TIMER0_INTR_VECT);
- 	preempt_disable();
-+	notify_cpu_starting(cpu);
- 	local_irq_enable();
+ #include <asm/patch.h>
++#include <asm/sections.h>
+ #include <asm/unaligned.h>
  
- 	cpu_set(cpu, cpu_online_map);
-diff --git a/arch/ia64/kernel/smpboot.c b/arch/ia64/kernel/smpboot.c
-index bcea81e..333b58f 100644
---- a/arch/ia64/kernel/smpboot.c
-+++ b/arch/ia64/kernel/smpboot.c
-@@ -401,6 +401,7 @@ smp_callin (void)
- 	spin_lock(&vector_lock);
- 	/* Setup the per cpu irq handling data structures */
- 	__setup_vector_irq(cpuid);
-+	notify_cpu_starting(cpuid);
- 	cpu_set(cpuid, cpu_online_map);
- 	per_cpu(cpu_state, cpuid) = CPU_ONLINE;
- 	spin_unlock(&vector_lock);
-diff --git a/arch/m32r/kernel/smpboot.c b/arch/m32r/kernel/smpboot.c
-index 2c03ac1..fc29948 100644
---- a/arch/m32r/kernel/smpboot.c
-+++ b/arch/m32r/kernel/smpboot.c
-@@ -498,6 +498,8 @@ static void __init smp_online(void)
- {
- 	int cpu_id = smp_processor_id();
- 
-+	notify_cpu_starting(cpu_id);
+ #define ARCH_MODULE_DEBUG 0
+@@ -941,3 +943,13 @@ module_arch_cleanup (struct module *mod)
+ 	if (mod->arch.core_unw_table)
+ 		unw_remove_unwind_table(mod->arch.core_unw_table);
+ }
 +
- 	local_irq_enable();
- 
- 	/* Get our bogomips. */
-diff --git a/arch/mips/kernel/smp.c b/arch/mips/kernel/smp.c
-index 4410f17..7b59cfb 100644
---- a/arch/mips/kernel/smp.c
-+++ b/arch/mips/kernel/smp.c
-@@ -121,6 +121,8 @@ asmlinkage __cpuinit void start_secondary(void)
- 	cpu = smp_processor_id();
- 	cpu_data[cpu].udelay_val = loops_per_jiffy;
- 
-+	notify_cpu_starting(cpu);
++void *dereference_function_descriptor(void *ptr)
++{
++	struct fdesc *desc = ptr;
++	void *p;
 +
- 	mp_ops->smp_finish();
- 	set_cpu_sibling_map(cpu);
++	if (!probe_kernel_address(&desc->ip, p))
++		ptr = p;
++	return ptr;
++}
+diff --git a/arch/parisc/kernel/module.c b/arch/parisc/kernel/module.c
+index fdacdd4..44138c3 100644
+--- a/arch/parisc/kernel/module.c
++++ b/arch/parisc/kernel/module.c
+@@ -47,7 +47,9 @@
+ #include <linux/string.h>
+ #include <linux/kernel.h>
+ #include <linux/bug.h>
++#include <linux/uaccess.h>
  
-diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
-index 5337ca7..c27b10a 100644
---- a/arch/powerpc/kernel/smp.c
-+++ b/arch/powerpc/kernel/smp.c
-@@ -453,6 +453,7 @@ int __devinit start_secondary(void *unused)
- 	secondary_cpu_time_init();
++#include <asm/sections.h>
+ #include <asm/unwind.h>
  
- 	ipi_call_lock();
-+	notify_cpu_starting(cpu);
- 	cpu_set(cpu, cpu_online_map);
- 	/* Update sibling maps */
- 	base = cpu_first_thread_in_core(cpu);
-diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
-index 00b9b4d..9e8b1f9 100644
---- a/arch/s390/kernel/smp.c
-+++ b/arch/s390/kernel/smp.c
-@@ -585,6 +585,8 @@ int __cpuinit start_secondary(void *cpuvoid)
- 	/* Enable pfault pseudo page faults on this cpu. */
- 	pfault_init();
- 
-+	/* call cpu notifiers */
-+	notify_cpu_starting(smp_processor_id());
- 	/* Mark this cpu as online */
- 	spin_lock(&call_lock);
- 	cpu_set(smp_processor_id(), cpu_online_map);
-diff --git a/arch/sh/kernel/smp.c b/arch/sh/kernel/smp.c
-index 60c5084..001778f 100644
---- a/arch/sh/kernel/smp.c
-+++ b/arch/sh/kernel/smp.c
-@@ -82,6 +82,8 @@ asmlinkage void __cpuinit start_secondary(void)
- 
- 	preempt_disable();
- 
-+	notify_cpu_starting(smp_processor_id());
+ #if 0
+@@ -860,3 +862,15 @@ void module_arch_cleanup(struct module *mod)
+ 	deregister_unwind_table(mod);
+ 	module_bug_cleanup(mod);
+ }
 +
- 	local_irq_enable();
- 
- 	calibrate_delay();
-diff --git a/arch/sparc/kernel/sun4d_smp.c b/arch/sparc/kernel/sun4d_smp.c
-index 6959640..446767e 100644
---- a/arch/sparc/kernel/sun4d_smp.c
-+++ b/arch/sparc/kernel/sun4d_smp.c
-@@ -88,6 +88,7 @@ void __init smp4d_callin(void)
- 	local_flush_cache_all();
- 	local_flush_tlb_all();
- 
-+	notify_cpu_starting(cpuid);
- 	/*
- 	 * Unblock the master CPU _only_ when the scheduler state
- 	 * of all secondary CPUs will be up-to-date, so after
-diff --git a/arch/sparc/kernel/sun4m_smp.c b/arch/sparc/kernel/sun4m_smp.c
-index a14a76a..9964890 100644
---- a/arch/sparc/kernel/sun4m_smp.c
-+++ b/arch/sparc/kernel/sun4m_smp.c
-@@ -71,6 +71,8 @@ void __cpuinit smp4m_callin(void)
- 	local_flush_cache_all();
- 	local_flush_tlb_all();
- 
-+	notify_cpu_starting(cpuid);
++#ifdef CONFIG_64BIT
++void *dereference_function_descriptor(void *ptr)
++{
++	Elf64_Fdesc *desc = ptr;
++	void *p;
 +
- 	/* Get our local ticker going. */
- 	smp_setup_percpu_timer();
- 
-diff --git a/arch/um/kernel/smp.c b/arch/um/kernel/smp.c
-index be2d50c..0457721 100644
---- a/arch/um/kernel/smp.c
-+++ b/arch/um/kernel/smp.c
-@@ -85,6 +85,7 @@ static int idle_proc(void *cpup)
- 	while (!cpu_isset(cpu, smp_commenced_mask))
- 		cpu_relax();
- 
-+	notify_cpu_starting(cpu);
- 	cpu_set(cpu, cpu_online_map);
- 	default_idle();
++	if (!probe_kernel_address(&desc->addr, p))
++		ptr = p;
++	return ptr;
++}
++#endif
+diff --git a/arch/powerpc/include/asm/sections.h b/arch/powerpc/include/asm/sections.h
+index 916018e..7710e9e 100644
+--- a/arch/powerpc/include/asm/sections.h
++++ b/arch/powerpc/include/asm/sections.h
+@@ -16,6 +16,9 @@ static inline int in_kernel_text(unsigned long addr)
  	return 0;
-diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
-index 7985c5b..0b8261c 100644
---- a/arch/x86/kernel/smpboot.c
-+++ b/arch/x86/kernel/smpboot.c
-@@ -257,6 +257,7 @@ static void __cpuinit smp_callin(void)
- 	end_local_APIC_setup();
- 	map_cpu_to_logical_apicid();
+ }
  
-+	notify_cpu_starting(cpuid);
- 	/*
- 	 * Get our bogomips.
- 	 *
-diff --git a/arch/x86/mach-voyager/voyager_smp.c b/arch/x86/mach-voyager/voyager_smp.c
-index ee0fba0..199a5f4 100644
---- a/arch/x86/mach-voyager/voyager_smp.c
-+++ b/arch/x86/mach-voyager/voyager_smp.c
-@@ -448,6 +448,8 @@ static void __init start_secondary(void *unused)
- 
- 	VDEBUG(("VOYAGER SMP: CPU%d, stack at about %p\n", cpuid, &cpuid));
- 
-+	notify_cpu_starting(cpuid);
++#undef dereference_function_descriptor
++void *dereference_function_descriptor(void *);
 +
- 	/* enable interrupts */
- 	local_irq_enable();
- 
-diff --git a/include/linux/cpu.h b/include/linux/cpu.h
-index d7faf88..c2747ac 100644
---- a/include/linux/cpu.h
-+++ b/include/linux/cpu.h
-@@ -69,6 +69,7 @@ static inline void unregister_cpu_notifier(struct notifier_block *nb)
  #endif
  
- int cpu_up(unsigned int cpu);
-+void notify_cpu_starting(unsigned int cpu);
- extern void cpu_hotplug_init(void);
- extern void cpu_maps_update_begin(void);
- extern void cpu_maps_update_done(void);
-diff --git a/include/linux/notifier.h b/include/linux/notifier.h
-index da2698b..8e47661 100644
---- a/include/linux/notifier.h
-+++ b/include/linux/notifier.h
-@@ -213,9 +213,16 @@ static inline int notifier_to_errno(int ret)
- #define CPU_DOWN_FAILED		0x0006 /* CPU (unsigned)v NOT going down */
- #define CPU_DEAD		0x0007 /* CPU (unsigned)v dead */
- #define CPU_DYING		0x0008 /* CPU (unsigned)v not running any task,
--				        * not handling interrupts, soon dead */
-+				        * not handling interrupts, soon dead.
-+				        * Called on the dying cpu, interrupts
-+				        * are already disabled. Must not
-+				        * sleep, must not fail */
- #define CPU_POST_DEAD		0x0009 /* CPU (unsigned)v dead, cpu_hotplug
- 					* lock is dropped */
-+#define CPU_STARTING		0x000A /* CPU (unsigned)v soon running.
-+					* Called on the new cpu, just before
-+					* enabling interrupts. Must not sleep,
-+					* must not fail */
+ #endif /* __KERNEL__ */
+diff --git a/arch/powerpc/kernel/module_64.c b/arch/powerpc/kernel/module_64.c
+index ee6a298..ad79de2 100644
+--- a/arch/powerpc/kernel/module_64.c
++++ b/arch/powerpc/kernel/module_64.c
+@@ -21,8 +21,9 @@
+ #include <linux/err.h>
+ #include <linux/vmalloc.h>
+ #include <linux/bug.h>
++#include <linux/uaccess.h>
+ #include <asm/module.h>
+-#include <asm/uaccess.h>
++#include <asm/sections.h>
+ #include <asm/firmware.h>
+ #include <asm/code-patching.h>
+ #include <linux/sort.h>
+@@ -451,3 +452,13 @@ int apply_relocate_add(Elf64_Shdr *sechdrs,
  
- /* Used for CPU hotplug events occuring while tasks are frozen due to a suspend
-  * operation in progress
-@@ -229,6 +236,7 @@ static inline int notifier_to_errno(int ret)
- #define CPU_DOWN_FAILED_FROZEN	(CPU_DOWN_FAILED | CPU_TASKS_FROZEN)
- #define CPU_DEAD_FROZEN		(CPU_DEAD | CPU_TASKS_FROZEN)
- #define CPU_DYING_FROZEN	(CPU_DYING | CPU_TASKS_FROZEN)
-+#define CPU_STARTING_FROZEN	(CPU_STARTING | CPU_TASKS_FROZEN)
- 
- /* Hibernation and suspend events */
- #define PM_HIBERNATION_PREPARE	0x0001 /* Going to hibernate */
-diff --git a/kernel/cpu.c b/kernel/cpu.c
-index f17e985..46a8bbd 100644
---- a/kernel/cpu.c
-+++ b/kernel/cpu.c
-@@ -453,6 +453,25 @@ out:
+ 	return 0;
  }
- #endif /* CONFIG_PM_SLEEP_SMP */
- 
-+/**
-+ * notify_cpu_starting(cpu) - call the CPU_STARTING notifiers
-+ * @cpu: cpu that just started
-+ *
-+ * This function calls the cpu_chain notifiers with CPU_STARTING.
-+ * It must be called by the arch code on the new cpu, before the new cpu
-+ * enables interrupts and before the "boot" cpu returns from __cpu_up().
-+ */
-+void notify_cpu_starting(unsigned int cpu)
++
++void *dereference_function_descriptor(void *ptr)
 +{
-+	unsigned long val = CPU_STARTING;
++	struct ppc64_opd_entry *desc = ptr;
++	void *p;
 +
-+#ifdef CONFIG_PM_SLEEP_SMP
-+	if (cpu_isset(cpu, frozen_cpus))
-+		val = CPU_STARTING_FROZEN;
-+#endif /* CONFIG_PM_SLEEP_SMP */
-+	raw_notifier_call_chain(&cpu_chain, val, (void*)(long)cpu);
++	if (!probe_kernel_address(&desc->funcaddr, p))
++		ptr = p;
++	return ptr;
 +}
-+
- #endif /* CONFIG_SMP */
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index 8feeae1..79a7ff9 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -14,4 +14,10 @@ extern char __kprobes_text_start[], __kprobes_text_end[];
+ extern char __initdata_begin[], __initdata_end[];
+ extern char __start_rodata[], __end_rodata[];
  
- /*
++/* function descriptor handling (if any).  Override
++ * in asm/sections.h */
++#ifndef dereference_function_descriptor
++#define dereference_function_descriptor(p) (p)
++#endif
++
+ #endif /* _ASM_GENERIC_SECTIONS_H_ */
+diff --git a/include/asm-parisc/sections.h b/include/asm-parisc/sections.h
+index fdd43ec..9d13c35 100644
+--- a/include/asm-parisc/sections.h
++++ b/include/asm-parisc/sections.h
+@@ -4,4 +4,9 @@
+ /* nothing to see, move along */
+ #include <asm-generic/sections.h>
+ 
++#ifdef CONFIG_64BIT
++#undef dereference_function_descriptor
++void *dereference_function_descriptor(void *);
++#endif
++
+ #endif
+diff --git a/lib/vsprintf.c b/lib/vsprintf.c
+index d8d1d11..c399bc1 100644
+--- a/lib/vsprintf.c
++++ b/lib/vsprintf.c
+@@ -27,6 +27,7 @@
+ 
+ #include <asm/page.h>		/* for PAGE_SIZE */
+ #include <asm/div64.h>
++#include <asm/sections.h>	/* for dereference_function_descriptor() */
+ 
+ /* Works only for digits and letters, but small and fast */
+ #define TOLOWER(x) ((x) | 0x20)
+@@ -513,16 +514,6 @@ static char *string(char *buf, char *end, char *s, int field_width, int precisio
+ 	return buf;
+ }
+ 
+-static inline void *dereference_function_descriptor(void *ptr)
+-{
+-#if defined(CONFIG_IA64) || defined(CONFIG_PPC64)
+-	void *p;
+-	if (!probe_kernel_address(ptr, p))
+-		ptr = p;
+-#endif
+-	return ptr;
+-}
+-
+ static char *symbol_string(char *buf, char *end, void *ptr, int field_width, int precision, int flags)
+ {
+ 	unsigned long value = (unsigned long) ptr;
 -- 
 1.5.5.1
+
+
+
