@@ -1,48 +1,119 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH] Correct printk %pF to work on all architectures
-Date: Wed, 10 Sep 2008 08:05:18 +1000
-Message-ID: <1220997918.4879.392.camel@pasglop>
-References: <1220481754.3254.42.camel@localhost.localdomain>
-	 <alpine.LFD.1.10.0809031546310.3515@nehalem.linux-foundation.org>
-	 <1220482853.3254.47.camel@localhost.localdomain>
-	 <alpine.LFD.1.10.0809031602270.3515@nehalem.linux-foundation.org>
-	 <1220484812.3254.59.camel@localhost.localdomain>
-	 <alpine.LFD.1.10.0809031636320.3515@nehalem.linux-foundation.org>
-	 <1220492616.3254.64.camel@localhost.localdomain>
-	 <1220567811.4879.85.camel@pasglop>
-	 <57C9024A16AD2D4C97DC78E552063EA30A0DC383@orsmsx505.amr.corp.intel.com>
-	 <1220969561.3334.7.camel@localhost.localdomain>
-	 <20080909180840.GA1940@phobos.i.cabal.ca>
-Reply-To: benh@kernel.crashing.org
+From: Pierre Morel <pmorel@linux.vnet.ibm.com>
+Subject: Re: [PATCH 1/1] system call notification with self_ptrace
+Date: Wed, 10 Sep 2008 16:17:31 +0200
+Message-ID: <48C7D6FB.3050207@linux.vnet.ibm.com>
+References: <48C51439.7000706@linux.vnet.ibm.com> <20080908170427.c8bf38f5.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <20080909180840.GA1940@phobos.i.cabal.ca>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Kyle McMartin <kyle@mcmartin.ca>
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Luck, Tony" <tony.luck@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linuxppc-dev@ozlabs.org" <linuxppc-dev@ozlabs.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mtagate5.de.ibm.com ([195.212.29.154]:49623 "EHLO
+	mtagate5.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751446AbYIJOVc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Sep 2008 10:21:32 -0400
+In-Reply-To: <20080908170427.c8bf38f5.akpm@linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, oleg@tv-sign.ru, roland@redhat.com, heicars2@linux.vnet.ibm.com, sameske@linux.vnet.ibm.com, schwidefsky@de.ibm.com, mingo@elte.hu, gregkh@suse.de, user-mode-linux-devel@lists.sourceforge.net, dave@linux.vnet.ibm.com, clg@fr.ibm.com, dlezcano@fr.ibm.com, Michael Kerrisk <mtk.manpages@googlemail.com>, linux-arch@vger.kernel.org
 
-On Tue, 2008-09-09 at 14:08 -0400, Kyle McMartin wrote:
-> On Tue, Sep 09, 2008 at 09:12:41AM -0500, James Bottomley wrote:
-> > OK, so could we get this in to -rc5 please?  It's a bug fix for parisc
-> > since we're currently printing rubbish.
-> > 
-> 
-> While I suppose it's a "parisc" patch, I'm not going to try to push it
-> unless either Linus just applies it, or we get an ack from the ppc/ia64
-> folks too.
-> 
-> ... That said, please apply it, Linus. :)
-> 
-> Acked-by: Kyle McMartin <kyle@mcmartin.ca>
+Hi,
 
-Got one from us already but here it is again
+Andrew Morton wrote:
+> On Mon, 08 Sep 2008 14:02:01 +0200
+> Pierre Morel <pmorel@linux.vnet.ibm.com> wrote:
+>
+>   
+>> Subject: [PATCH] system call notification with self_ptrace
+>>
+>> From: Pierre Morel <pmorel@fr.ibm.com>
+>>
+>>
+>> PTRACE SELF
+>>
+>> This patch adds a new functionality to ptrace: system call notification to
+>> the current process.
+>> When a process requests self ptrace, with the new request PTRACE_SELF_ON:
+>>
+>>  1.  the next system call performed by the process will not be executed
+>>  2.  self ptrace will be disabled for the process
+>>  3.  a SIGSYS signal will be sent to the process.
+>>
+>> With an appropriate SIGSYS signal handler, the process can access its own
+>> data structures to
+>>
+>>  1.  get the system call number from the siginfo structure
+>>  2.  get the system call arguments from the stack
+>>  3.  instrument the system call with other system calls
+>>  4.  emulate the system call with other system calls
+>>  5.  change the arguments of the system call
+>>  6.  perform the system call for good
+>>  7.  change the return value of the system call
+>>  8.  request self ptrace again before returning.
+>>
+>> The new request PTRACE_SELF_OFF disables self ptrace.
+>>
+>>     
+>
+> It sounds like it might be useful.
+>   
+Thanks, yes I am sure it might.
+> Are there any userspace tools available with which people can utilise
+> this new functionality?  Or plans to release them?
+>   
+Yes, we plan to release a tool to trace an application soon.
+>   
+>> arch/s390/kernel/ptrace.c     |   16 ++++++++++++++++
+>> arch/s390/kernel/signal.c     |    5 +++++
+>> arch/x86/kernel/ptrace.c      |   29 +++++++++++++++++++++++++++++
+>> arch/x86/kernel/signal_32.c   |    5 +++++
+>> arch/x86/kernel/signal_64.c   |    5 +++++
+>>     
+>
+> Maintainers of the other 30-odd architectures would appreciate a test
+> application which they can use to develop and test their ports, please.
+>   
+Yes, of course I have one for x86 and one for s390.
+I am cleaning them to make them available.
+> Michael Kerrisk will no doubt be looking for manpage assistance. 
+> Please cc him on this material.
+>   
+OK, I will prepare this.
+> It would be good to get suitable testcases integrated into LTP (if LTP
+> has ptrace tests).
+>   
+Yes, I will prepare this too.
+> The patch title uses the term "self_ptrace", but the patch itself uses
+> the term "ptrace_self".  Let's get it consistent everywhere.
+>   
+Right.  It should be self_ptrace.
+> The patch adds a
+>
+> +	u64	instrumentation;
+>
+> to the task_struct but no explanation is provided as to why this was
+> added, why it is a 64-bit field, what its locking rules are, etc. 
+> Please fix this.
+>   
 
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+I used to steal one bit in the ptrace bit-field of the task_struct but 
+Oleg pointed out that the ptrace bit-field is used in a lot of places 
+without any bit mask, so I chose another way to remember that I (the 
+thread) am instrumenting myself.
 
-Cheers,
-Ben.
+Alternatively, I could also use the ptrace bit-field and modify every 
+reference to use a mask for any test, set or reset of the bit-field.
+
+I provision a 64 bit wide bit-field for future extensions of the 
+instrumentation.  I could of course use a smaller bit-field as only 1 
+bit is really useful for now. I used 64 bit to be memory aligned with 
+most of the architectures.
+
+There is no lock for the instrumentation bit-field because it is used 
+for self tracing only, and only current ever accesses the flag.
 
 
+-- 
+=============
+Pierre Morel
+RTOS and Embedded Linux
