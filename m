@@ -1,50 +1,48 @@
-From: David Miller <davem@davemloft.net>
+From: Roland McGrath <roland@redhat.com>
 Subject: Re: CONFIG_HAVE_ARCH_TRACEHOOK and you
-Date: Fri, 12 Sep 2008 14:57:41 -0700 (PDT)
-Message-ID: <20080912.145741.59974282.davem@davemloft.net>
+Date: Fri, 12 Sep 2008 15:31:56 -0700 (PDT)
+Message-ID: <20080912223156.51D4815420D@magilla.localdomain>
 References: <20080912025733.E55F415420D@magilla.localdomain>
 	<20080912131351.GA31545@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:53873
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1755626AbYILV5s (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 12 Sep 2008 17:57:48 -0400
-In-Reply-To: <20080912131351.GA31545@flint.arm.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: rmk+lkml@arm.linux.org.uk
-Cc: roland@redhat.com, linux-arch@vger.kernel.org, utrace-devel@redhat.com, linux-kernel@vger.kernel.org
+Return-path: <utrace-devel-bounces@redhat.com>
+In-Reply-To: Russell King's message of  Friday,
+	12 September 2008 14:13:51 +0100
+	<20080912131351.GA31545@flint.arm.linux.org.uk>
+List-Unsubscribe: <https://www.redhat.com/mailman/listinfo/utrace-devel>,
+	<mailto:utrace-devel-request@redhat.com?subject=unsubscribe>
+List-Archive: <https://www.redhat.com/archives/utrace-devel>
+List-Post: <mailto:utrace-devel@redhat.com>
+List-Help: <mailto:utrace-devel-request@redhat.com?subject=help>
+List-Subscribe: <https://www.redhat.com/mailman/listinfo/utrace-devel>,
+	<mailto:utrace-devel-request@redhat.com?subject=subscribe>
+Sender: utrace-devel-bounces@redhat.com
+Errors-To: utrace-devel-bounces@redhat.com
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, utrace-devel@redhat.com, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Date: Fri, 12 Sep 2008 14:13:51 +0100
+> clean.  The only thing I did do was invent some alternative simpler
+> helper functions rather than using the user_regset_copy* functions (to
+> avoid taking the address of function arguments, which needlessly forces
+> them onto the stack.)
 
-> However, in looking at other architectures, I notice that sparc does this
-> when initializing its regsets:
-> 
->                 .n = 38 * sizeof(u32),
->                 .size = sizeof(u32), .align = sizeof(u32),
-> 
-> and sparc64:
-> 
->                 .n = 36 * sizeof(u64),
->                 .size = sizeof(u64), .align = sizeof(u64),
-> 
-> which, given that fs/binfmt_elf.c does this:
-> 
->                         size_t size = regset->n * regset->size;
->                         void *data = kmalloc(size, GFP_KERNEL);
->                         if (unlikely(!data))
->                                 return 0;
-> 
+Ideally those would get inlined so that doesn't happen.  Their only purpose
+is to make it easier to write get/set functions in arch code.  Whatever you
+find preferable in your arch code is certainly fine with me.  If you have
+something different, or changes to those regset.h functions, that would be
+of use for other arch code too, then bring them on (under a new subject
+line if you don't mind).
+
 > means sparc ends up allocating 38 * sizeof(u32) * sizeof(u32), and
 > sparc64 ends up with 36 * sizeof(u64) * sizeof(u64), which must surely
 > be wrong?
 
-Yep, definitely a bug, good catch.  I guess, better to allocate
-too much by accident rather than too little in this case :-)
+Yup!  Sure looks like Dave skipped the step where it says "test that core
+dumps work ... and produce correct results". :-)
 
-I'll fix this up, thanks!
+
+Thanks,
+Roland
