@@ -1,119 +1,184 @@
-From: Pierre Morel <pmorel@linux.vnet.ibm.com>
-Subject: Re: [PATCH 1/1] system call notification with self_ptrace
-Date: Wed, 10 Sep 2008 16:17:31 +0200
-Message-ID: <48C7D6FB.3050207@linux.vnet.ibm.com>
-References: <48C51439.7000706@linux.vnet.ibm.com> <20080908170427.c8bf38f5.akpm@linux-foundation.org>
+From: Roland McGrath <roland@redhat.com>
+Subject: CONFIG_HAVE_ARCH_TRACEHOOK and you
+Date: Thu, 11 Sep 2008 19:57:33 -0700 (PDT)
+Message-ID: <20080912025733.E55F415420D@magilla.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate5.de.ibm.com ([195.212.29.154]:49623 "EHLO
-	mtagate5.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751446AbYIJOVc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Sep 2008 10:21:32 -0400
-In-Reply-To: <20080908170427.c8bf38f5.akpm@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, oleg@tv-sign.ru, roland@redhat.com, heicars2@linux.vnet.ibm.com, sameske@linux.vnet.ibm.com, schwidefsky@de.ibm.com, mingo@elte.hu, gregkh@suse.de, user-mode-linux-devel@lists.sourceforge.net, dave@linux.vnet.ibm.com, clg@fr.ibm.com, dlezcano@fr.ibm.com, Michael Kerrisk <mtk.manpages@googlemail.com>, linux-arch@vger.kernel.org
+Return-path: <utrace-devel-bounces@redhat.com>
+List-Unsubscribe: <https://www.redhat.com/mailman/listinfo/utrace-devel>,
+	<mailto:utrace-devel-request@redhat.com?subject=unsubscribe>
+List-Archive: <https://www.redhat.com/archives/utrace-devel>
+List-Post: <mailto:utrace-devel@redhat.com>
+List-Help: <mailto:utrace-devel-request@redhat.com?subject=help>
+List-Subscribe: <https://www.redhat.com/mailman/listinfo/utrace-devel>,
+	<mailto:utrace-devel-request@redhat.com?subject=subscribe>
+Sender: utrace-devel-bounces@redhat.com
+Errors-To: utrace-devel-bounces@redhat.com
+To: linux-arch@vger.kernel.org
+Cc: utrace-devel@redhat.com, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi,
+Hi, linux-arch!  I'd like to tell you about CONFIG_HAVE_ARCH_TRACEHOOK
+and what each arch's maintainers will want to do about it.
 
-Andrew Morton wrote:
-> On Mon, 08 Sep 2008 14:02:01 +0200
-> Pierre Morel <pmorel@linux.vnet.ibm.com> wrote:
->
->   
->> Subject: [PATCH] system call notification with self_ptrace
->>
->> From: Pierre Morel <pmorel@fr.ibm.com>
->>
->>
->> PTRACE SELF
->>
->> This patch adds a new functionality to ptrace: system call notification to
->> the current process.
->> When a process requests self ptrace, with the new request PTRACE_SELF_ON:
->>
->>  1.  the next system call performed by the process will not be executed
->>  2.  self ptrace will be disabled for the process
->>  3.  a SIGSYS signal will be sent to the process.
->>
->> With an appropriate SIGSYS signal handler, the process can access its own
->> data structures to
->>
->>  1.  get the system call number from the siginfo structure
->>  2.  get the system call arguments from the stack
->>  3.  instrument the system call with other system calls
->>  4.  emulate the system call with other system calls
->>  5.  change the arguments of the system call
->>  6.  perform the system call for good
->>  7.  change the return value of the system call
->>  8.  request self ptrace again before returning.
->>
->> The new request PTRACE_SELF_OFF disables self ptrace.
->>
->>     
->
-> It sounds like it might be useful.
->   
-Thanks, yes I am sure it might.
-> Are there any userspace tools available with which people can utilise
-> this new functionality?  Or plans to release them?
->   
-Yes, we plan to release a tool to trace an application soon.
->   
->> arch/s390/kernel/ptrace.c     |   16 ++++++++++++++++
->> arch/s390/kernel/signal.c     |    5 +++++
->> arch/x86/kernel/ptrace.c      |   29 +++++++++++++++++++++++++++++
->> arch/x86/kernel/signal_32.c   |    5 +++++
->> arch/x86/kernel/signal_64.c   |    5 +++++
->>     
->
-> Maintainers of the other 30-odd architectures would appreciate a test
-> application which they can use to develop and test their ports, please.
->   
-Yes, of course I have one for x86 and one for s390.
-I am cleaning them to make them available.
-> Michael Kerrisk will no doubt be looking for manpage assistance. 
-> Please cc him on this material.
->   
-OK, I will prepare this.
-> It would be good to get suitable testcases integrated into LTP (if LTP
-> has ptrace tests).
->   
-Yes, I will prepare this too.
-> The patch title uses the term "self_ptrace", but the patch itself uses
-> the term "ptrace_self".  Let's get it consistent everywhere.
->   
-Right.  It should be self_ptrace.
-> The patch adds a
->
-> +	u64	instrumentation;
->
-> to the task_struct but no explanation is provided as to why this was
-> added, why it is a 64-bit field, what its locking rules are, etc. 
-> Please fix this.
->   
+In the current tree (since 2.6.27-rc1), arch/Kconfig defines the
+internal config item HAVE_ARCH_TRACEHOOK.  The idea is to set a new
+baseline of what an arch has to implement to support tracing/debugging
+of user tasks.  After you do these things, then new kinds of tracing
+features, new replacements for ptrace, or drastic changes to the
+implementation details of ptrace, can come along later and just work on
+your arch without every arch maintainer having to worry about the
+details of new features or new non-arch implementation details.  When
+your arch is ready, adding "select HAVE_ARCH_TRACEHOOK" somewhere in an
+arch-specific Kconfig file makes known that your arch is compatible with
+new code.  New features and options will "require HAVE_ARCH_TRACEHOOK".
 
-I used to steal one bit in the ptrace bit-field of the task_struct but 
-Oleg pointed out that the ptrace bit-field is used in a lot of places 
-without any bit mask, so I chose another way to remember that I (the 
-thread) am instrumenting myself.
+In 2.6.27 (as of rc6), powerpc{,64} and sparc{,64} have complete support
+and do "select HAVE_ARCH_TRACEHOOK".  In 2.6.28, x86 will have it (that
+work is already done and waiting in the tip/x86/tracehook branch), and I
+believe s390 is also already on track to have it done in 2.6.28.  Since
+2.6.27-rc1, everything mentioned here has been in place in the generic
+code, so you can start the changes for your arch as soon as you like.
 
-Alternatively, I could also use the ptrace bit-field and modify every 
-reference to use a mask for any test, set or reset of the bit-field.
+If there is interest, I can run an informal session at the Kernel Summit
+and/or Linux Plumbers Conference next week to walk arch hackers through
+each work item.  (I don't have any presentation to give or anything, all
+the info is in this posting and/or documented in the source code.  But
+we can work through it all in detail in person for as long as you'd like.)
+Let me know ASAP if folks want this, so we can get it scheduled.
 
-I provision a 64 bit wide bit-field for future extensions of the 
-instrumentation.  I could of course use a smaller bit-field as only 1 
-bit is really useful for now. I used 64 bit to be memory aligned with 
-most of the architectures.
+It has been suggested that we set a deadline to require every arch to be
+compatible and set HAVE_ARCH_TRACEHOOK.  If your arch hadn't been
+updated after that deadline, then your kernel build might break, or it
+might still build but suddenly fail to support the ptrace system call.
+I'm not especially suggesting this myself, and I really don't know when
+that deadline might be set.  But it's possible that in a few releases,
+you'd be sorry if you just ignore this stuff now and let it slide.
 
-There is no lock for the instrumentation bit-field because it is used 
-for self tracing only, and only current ever accesses the flag.
+Of course more arch-specific work is liable to come along in the future
+for some fancy new tracing features.  I won't try to promise that by
+doing this now you won't ever have to think about ptrace and its ilk
+again.  But it should be enough for a good number of possible new
+features and reorganizations to come along and work on your arch without
+you having to think about them, or at least not too much.
+
+I did most of this work myself for x86 and powerpc.  I found it
+advantageous to do it in a large number of tiny incremental patches.
+There are many little items, but most are very quick to do (trivial).
+With a few exceptions, this is pretty much just renaming and juggling code
+you already have.  (The user_regset parts are most of the work.)  I'll be
+glad to help with any specific questions about your arch code, or to
+review your arch patches if you CC me.
+
+All of the interfaces are subject to change if the current definitions
+make life really hard for some arch.  So don't worry about bending over
+backward, just pipe up if you see a problem.
+
+The comment in arch/Kconfig lists the items:
+
+#	task_pt_regs()		in asm/processor.h or asm/ptrace.h
+#	arch_has_single_step()	if there is hardware single-step support
+#	arch_has_block_step()	if there is hardware block-step support
+#	arch_ptrace()		and not #define __ARCH_SYS_PTRACE
+#	compat_arch_ptrace()	and #define __ARCH_WANT_COMPAT_SYS_PTRACE
+#	asm/syscall.h		supplying asm-generic/syscall.h interface
+#	linux/regset.h		user_regset interfaces
+#	CORE_DUMP_USE_REGSET	#define'd in linux/elf.h
+#	TIF_SYSCALL_TRACE	calls tracehook_report_syscall_{entry,exit}
+#	TIF_NOTIFY_RESUME	calls tracehook_notify_resume()
+#	signal delivery		calls tracehook_signal_handler()
+
+The various kerneldoc comments in linux/ptrace.h, linux/tracehook.h,
+asm-generic/syscall.h, and linux/regset.h give full details about the
+new calls (some calls to make, some calls to define).
+
+There is a little more verbiage you can find from:
+	http://sourceware.org/systemtap/wiki/utrace/arch
+Feel free to edit that wiki, or move the contents someplace else you
+like better.  (It mentions utrace, but all the substance there is about
+HAVE_ARCH_TRACEHOOK and not dependent on utrace, which is not in the kernel.)
+
+Maybe it's useful for more text about this to go into some Documentation/
+file (please go right ahead and write one).
+
+Here's the text that's on that wiki:
+
+    1. task_pt_regs()
+
+          * Define this inline function in asm/processor.h or asm/ptrace.h.
+
+    2. arch_has_single_step(), arch_has_block_step()
+
+          * If your hardware has single-step and/or block-step support, then
+            define these macros and related functions.
+
+            See the kerneldoc comments in linux/ptrace.h for details.
+
+    3. arch_ptrace()
+
+          * You must define arch_ptrace() and not #define __ARCH_SYS_PTRACE.
+
+    4. compat_arch_ptrace()
+
+          * If your arch uses CONFIG_COMPAT, you must define
+            compat_arch_ptrace() and #define __ARCH_WANT_COMPAT_SYS_PTRACE.
+
+    5. linux/regset.h
+
+          * You must define user_regset structures and calls for your
+            machine, and define task_user_regset_view(). The formats must
+            match those used for core dumps, and have appropriate
+            .core_note_type fields. See linux/regset.h for details.
+
+    6. CORE_DUMP_USE_REGSET
+
+          * You must #define CORE_DUMP_USE_REGSET in asm/elf.h and test that
+            core dumps work via the user_regset interfaces and produce
+            correct results.
+
+    7. asm/syscall.h
+
+          * You must supply asm/syscall.h for your arch, with all the
+            functions (usually inlines) described in asm-generic/syscall.h.
+
+    8. TIF_SYSCALL_TRACE
+
+          * Setting TIF_SYSCALL_TRACE must cause calls from arch code to
+            tracehook_report_syscall_entry() and
+            tracehook_report_syscall_exit() instead of the old ptrace
+            behavior. Note that the calling arch code should handle the
+            return value from tracehook_report_syscall_entry(), which is
+            behavior that was not required for the old ptrace
+            support. This needs to implement some form of safe abort of
+            the syscall. See the kerneldoc comments for the exact details.
+
+    9. TIF_NOTIFY_RESUME
+
+          * You must define the TIF_NOTIFY_RESUME bit. This should behave in
+            the arch code like TIF_SIGPENDING, i.e. checked when returning to
+            user mode so you can never miss one. But when TIF_NOTIFY_RESUME
+            is set, the arch code must do:
+
+                 clear_thread_flag(TIF_NOTIFY_RESUME);
+                 tracehook_notify_resume(regs);
+
+            where regs is the same as task_pt_regs(current). (That is the
+            only effect of TIF_NOTIFY_RESUME, and it does not affect waits et
+            al like TIF_SIGPENDING does.) This code path should not
+            unconditionally go into the signals code, i.e. at some point you
+            should check TIF_SIGPENDING independently and not enter a
+            do_signal() path when only TIF_NOTIFY_RESUME is set; this avoids
+            debugged threads serializing on their shared siglock.
+
+   10. tracehook_signal_handler()
+
+          * Your signal handling code should call tracehook_signal_handler()
+            after doing handler setup. This happens after all the signal
+            magic (sa_mask handling et al), usually the last thing before
+            returning from do_signal() or a similar function in the arch
+            code. See linux/tracehook.h for the parameters to pass it.
 
 
--- 
-=============
-Pierre Morel
-RTOS and Embedded Linux
+Thanks,
+Roland
