@@ -1,99 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:39707 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751241AbYILNki (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Sep 2008 09:40:38 -0400
-Date: Fri, 12 Sep 2008 14:40:11 +0100
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: CONFIG_HAVE_ARCH_TRACEHOOK and you
-Message-ID: <20080912134011.GA7385@flint.arm.linux.org.uk>
-Mime-Version: 1.0
+Received: from mx2.redhat.com ([66.187.237.31]:41344 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756508AbYILWdE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 12 Sep 2008 18:33:04 -0400
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Content-Transfer-Encoding: 7bit
+From: Roland McGrath <roland@redhat.com>
+Subject: Re: CONFIG_HAVE_ARCH_TRACEHOOK and you
+In-Reply-To: Russell King's message of  Friday, 12 September 2008 14:13:51 +0100 <20080912131351.GA31545@flint.arm.linux.org.uk>
+References: <20080912025733.E55F415420D@magilla.localdomain>
+	<20080912131351.GA31545@flint.arm.linux.org.uk>
+Message-ID: <20080912223156.51D4815420D@magilla.localdomain>
+Date: Fri, 12 Sep 2008 15:31:56 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <roland@redhat.com>
+To: Russell King <rmk+lkml@arm.linux.org.uk>
 Cc: linux-arch@vger.kernel.org, utrace-devel@redhat.com, linux-kernel@vger.kernel.org
-Message-ID: <20080912134011.NVcwTY5LPJqwgzO-4TGo3frkkGjTrEIvg7jf1GEz1UQ@z>
+Message-ID: <20080912223156.5rz-yU8n3cKTt1JEjf2GLa6UASPlR5Z80XDCmX_myMA@z>
 
-ptrace_report_syscall
----------------------
+> clean.  The only thing I did do was invent some alternative simpler
+> helper functions rather than using the user_regset_copy* functions (to
+> avoid taking the address of function arguments, which needlessly forces
+> them onto the stack.)
 
-What's the purpose of the PT_PTRACED check in there?  The current code
-is setup such that you can only start tracing syscalls if the
-__ptrace_may_access test succeeds, which will only succeed if PT_PTRACED
-is already set.  TIF_SYSCALL_TRACE will be cleared before PT_PTRACED is
-cleared when stopping ptracing.  So, TIF_SYSCALL_TRACE can only ever be
-set if PT_PTRACED is already set, and hopefully arch code never tries
-to call the syscall tracing hooks if TIF_SYSCALL_TRACE isn't set.  That
-all means that the PT_PTRACED test seems redundant.
+Ideally those would get inlined so that doesn't happen.  Their only purpose
+is to make it easier to write get/set functions in arch code.  Whatever you
+find preferable in your arch code is certainly fine with me.  If you have
+something different, or changes to those regset.h functions, that would be
+of use for other arch code too, then bring them on (under a new subject
+line if you don't mind).
 
-Also, shouldn't ptrace_report_syscall() be in linux/ptrace.h, since it's
-just the guts of the existing syscall tracing hook irrespective of the
-tracehook stuff?
+> means sparc ends up allocating 38 * sizeof(u32) * sizeof(u32), and
+> sparc64 ends up with 36 * sizeof(u64) * sizeof(u64), which must surely
+> be wrong?
+
+Yup!  Sure looks like Dave skipped the step where it says "test that core
+dumps work ... and produce correct results". :-)
 
 
-syscall
--------
-
- * syscall_get_arguments - extract system call parameter values
- * @task:       task of interest, must be blocked
- * @regs:       task_pt_regs() of @task
- * @i:          argument index [0,5]
- * @n:          number of arguments; n+i must be [1,6].
- * @args:       array filled with argument values
-
-This is all very well, but adds a lot of complexity for architectures
-which isn't currently required.  This is fine if you have a sane ABI
-where you can just pick the arguments straight out of the registers one
-by one.
-
-However, with ARM EABI, we have the situation where, for a syscall such
-as:
-
-	long sys_foo(int a, long long b, long long c, int d);
-
-the register allocation ends up as:
-
-	a => r0
-	b => r2, r3
-	c => r4, r5
-	d => r6
-
-whereas:
-
-	long sys_foo(long long a, long long b, int c, int d);
-
-the register allocation ends up as:
-
-	a => r0, r1
-	b => r2, r3
-	c => r4
-	d => r5
-
-So, in order to know which register argument N is in, you need to know
-all the types of the arguments which come before it.  That means
-creating and maintaining a table of syscall arguments which sounds
-really sucky.
-
-I can think of why you want these interfaces - because you see it as
-necessary for things like strace.  However, strace needs to know the
-type information for each syscall argument in any case, so by putting
-the requirement for arg N access into the kernel, you're causing that
-type information to be placed not only in strace but also into the
-kernel.
-
-It also means that you can't randomly change the syscall number, since
-changing the syscall number between those two examples means you need
-to reshuffle the registers to make the arguments fit.
-
-To me, this looks like a source of a large can of worms.  Is this really
-necessary, or can we keep this functionality pushed to where it belongs -
-in the very few userspace applications which require it?
-
-I think the rest of syscall.h shouldn't be that much of a problem for ARM.
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Thanks,
+Roland
