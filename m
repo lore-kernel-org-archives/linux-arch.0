@@ -1,15 +1,15 @@
-From: Paul Mundt <lethal@linux-sh.org>
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: CONFIG_HAVE_ARCH_TRACEHOOK and you
-Date: Fri, 12 Sep 2008 22:05:11 +0900
-Message-ID: <20080912130511.GA11375@linux-sh.org>
+Date: Fri, 12 Sep 2008 14:13:51 +0100
+Message-ID: <20080912131351.GA31545@flint.arm.linux.org.uk>
 References: <20080912025733.E55F415420D@magilla.localdomain>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mta23.gyao.ne.jp ([125.63.38.249]:54725 "EHLO mx.gate01.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752852AbYILNFy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 12 Sep 2008 09:05:54 -0400
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:41024 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751273AbYILNON (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Sep 2008 09:14:13 -0400
 Content-Disposition: inline
 In-Reply-To: <20080912025733.E55F415420D@magilla.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
@@ -17,53 +17,40 @@ List-ID: <linux-arch.vger.kernel.org>
 To: Roland McGrath <roland@redhat.com>
 Cc: linux-arch@vger.kernel.org, utrace-devel@redhat.com, linux-kernel@vger.kernel.org
 
-On Thu, Sep 11, 2008 at 07:57:33PM -0700, Roland McGrath wrote:
-> The comment in arch/Kconfig lists the items:
-> 
-> #	task_pt_regs()		in asm/processor.h or asm/ptrace.h
-> #	arch_has_single_step()	if there is hardware single-step support
-> #	arch_has_block_step()	if there is hardware block-step support
-> #	arch_ptrace()		and not #define __ARCH_SYS_PTRACE
-> #	compat_arch_ptrace()	and #define __ARCH_WANT_COMPAT_SYS_PTRACE
-> #	asm/syscall.h		supplying asm-generic/syscall.h interface
-> #	linux/regset.h		user_regset interfaces
-> #	CORE_DUMP_USE_REGSET	#define'd in linux/elf.h
-> #	TIF_SYSCALL_TRACE	calls tracehook_report_syscall_{entry,exit}
-> #	TIF_NOTIFY_RESUME	calls tracehook_notify_resume()
-> #	signal delivery		calls tracehook_signal_handler()
-> 
-[snip]
+Okay, let's comment on each bit separately.
 
-> Here's the text that's on that wiki:
-> 
->     1. task_pt_regs()
-> 
->           * Define this inline function in asm/processor.h or asm/ptrace.h.
-> 
-user_stack_pointer() is apparently a requirement, too. Although given
-that you already have a task_struct pointer the only place you currently
-use it (lib/syscall.c), it makes more sense to use KSTK_ESP/KSTK_EIP
-which is provided by almost everyone already.
+Regsets
+-------
 
-Signed-off-by: Paul Mundt <lethal@linux-sh.org>
+These don't appear to be a problem for ARM, and turn out to be relatively
+clean.  The only thing I did do was invent some alternative simpler
+helper functions rather than using the user_regset_copy* functions (to
+avoid taking the address of function arguments, which needlessly forces
+them onto the stack.)
 
----
+However, in looking at other architectures, I notice that sparc does this
+when initializing its regsets:
 
- lib/syscall.c |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+                .n = 38 * sizeof(u32),
+                .size = sizeof(u32), .align = sizeof(u32),
 
-diff --git a/lib/syscall.c b/lib/syscall.c
-index a4f7067..888c36a 100644
---- a/lib/syscall.c
-+++ b/lib/syscall.c
-@@ -11,8 +11,8 @@ static int collect_syscall(struct task_struct *target, long *callno,
- 	if (unlikely(!regs))
- 		return -EAGAIN;
- 
--	*sp = user_stack_pointer(regs);
--	*pc = instruction_pointer(regs);
-+	*sp = KSTK_ESP(target);
-+	*pc = KSTK_EIP(target);
- 
- 	*callno = syscall_get_nr(target, regs);
- 	if (*callno != -1L && maxargs > 0)
+and sparc64:
+
+                .n = 36 * sizeof(u64),
+                .size = sizeof(u64), .align = sizeof(u64),
+
+which, given that fs/binfmt_elf.c does this:
+
+                        size_t size = regset->n * regset->size;
+                        void *data = kmalloc(size, GFP_KERNEL);
+                        if (unlikely(!data))
+                                return 0;
+
+means sparc ends up allocating 38 * sizeof(u32) * sizeof(u32), and
+sparc64 ends up with 36 * sizeof(u64) * sizeof(u64), which must surely
+be wrong?
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
