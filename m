@@ -1,89 +1,50 @@
 From: Roland McGrath <roland@redhat.com>
 Subject: Re: CONFIG_HAVE_ARCH_TRACEHOOK and you
-Date: Fri, 12 Sep 2008 16:57:42 -0700 (PDT)
-Message-ID: <20080912235742.C8FA915420D@magilla.localdomain>
-References: <20080912134011.GA7385@flint.arm.linux.org.uk>
+Date: Mon, 15 Sep 2008 13:38:35 -0700 (PDT)
+Message-ID: <20080915203835.E2438242E5@pipsqueak.localdomain>
+References: <20080912025733.E55F415420D@magilla.localdomain>
+	<20080912130511.GA11375@linux-sh.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <utrace-devel-bounces@redhat.com>
-In-Reply-To: Russell King's message of  Friday,
-	12 September 2008 14:40:11 +0100
-	<20080912134011.GA7385@flint.arm.linux.org.uk>
-List-Unsubscribe: <https://www.redhat.com/mailman/listinfo/utrace-devel>,
-	<mailto:utrace-devel-request@redhat.com?subject=unsubscribe>
-List-Archive: <https://www.redhat.com/archives/utrace-devel>
-List-Post: <mailto:utrace-devel@redhat.com>
-List-Help: <mailto:utrace-devel-request@redhat.com?subject=help>
-List-Subscribe: <https://www.redhat.com/mailman/listinfo/utrace-devel>,
-	<mailto:utrace-devel-request@redhat.com?subject=subscribe>
-Sender: utrace-devel-bounces@redhat.com
-Errors-To: utrace-devel-bounces@redhat.com
-To: Russell King <rmk@arm.linux.org.uk>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([66.187.233.31]:38314 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754444AbYIOUio (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Sep 2008 16:38:44 -0400
+In-Reply-To: Paul Mundt's message of  Friday, 12 September 2008 22:05:11 +0900 <20080912130511.GA11375@linux-sh.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Paul Mundt <lethal@linux-sh.org>
 Cc: linux-arch@vger.kernel.org, utrace-devel@redhat.com, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-> ptrace_report_syscall
-> ---------------------
-> 
-> What's the purpose of the PT_PTRACED check in there?  [...]
+> user_stack_pointer() is apparently a requirement, too. 
 
-The short answer is that tracehook_report_syscall_* is just about moving
-the current ptrace logic into the shared inline, not changing that logic.
-So it's a separate issue.  The current logic (in arch/arm/kernel/ptrace.c
-too) has the check, I didn't change that.
+Ah, yes!  I'd forgotten about user_stack_pointer() and instruction_pointer().
+Those never got properly documented either.
 
-In fact, I think it's not entirely redundant.  When the tracer exits
-suddenly without doing PTRACE_DETACH (kill -9 gdb or whatnot), then
-->ptrace gets cleared but TIF_SYSCALL_TRACE never gets reset.  
-(That very arguably should be fixed, but it's not anything new.)
+> Although given that you already have a task_struct pointer the only place
+> you currently use it (lib/syscall.c), it makes more sense to use
+> KSTK_ESP/KSTK_EIP which is provided by almost everyone already.
 
-But all that's entirely orthogonal to consolidating each arch's copy of the
-code into ptrace_report_syscall, which is the only change to this area of
-ptrace that the tracehook migration itself does.
+Almost?  It must be everyone, right?  
+It's used unconditionally in fs/proc/array.c (the only use).
 
-> Also, shouldn't ptrace_report_syscall() be in linux/ptrace.h, since it's
-> just the guts of the existing syscall tracing hook irrespective of the
-> tracehook stuff?
+I hadn't noticed these before.  They aren't commented anywhere.
+I've got to say, too, these are truly dismal names!
 
-I have no objection.
+Also, I've just noticed that x86-64's user_stack_pointer() is wrong for the
+case when a fast-path 64-bit syscall is in progress.  To get it right, it
+needs a bit from the struct thread_info, so a call that takes task_struct
+instead of (or in addition to) pt_regs is certainly right.
 
-> So, in order to know which register argument N is in, you need to know
-> all the types of the arguments which come before it.  That means
-> creating and maintaining a table of syscall arguments which sounds
-> really sucky.
+These are defined in asm/processor.h, as macros.  It would be better if
+they could be inlines, but they really can't because asm/processor.h is
+before struct task_struct is defined, etc.  I wonder if we could move these
+to another header where they can be clean inlines.  I'd sure like to change
+those names while we're at it.
 
-I certainly don't propose that you do any of that.  I think this is just a
-documentation issue.  Instead of "syscall arguments", read "syscall
-argument registers, in the most naturally useful order for your arch".
-
-Everything about these values, and the syscall # value (when != -1L), is
-entirely arch-specific.  The asm/syscall.h interfaces aren't meant to make
-the meaning of those bits generic.
-
-For example, on all 32-bit machines, __NR_pread64 logically takes 4
-arguments but that's in 5 argument registers.  In the syscall.h calls,
-args[3] means only the 4th argument register, not the whole "4th argument"
-(which is (args[3] | (args[4] << 32)) on LE-32).
-
-Indeed, we do expect userland to know exactly which registers, in which
-order, we mean by "the 6 syscall arg registers" on the particular arch/ABI.
-It may be handy for userland that on some arch's or for many syscalls on
-most arch's, this happens to correspond with one argument per register in
-the natural order of syscall arguments at source level.  But it's
-userland's problem to grok the ABI enough to know what these 6 registers
-plus the syscall # mean.
-
-The reason we need syscall_get_arguments is that it can be used in places
-that the full user_regset calls can't be, such as in task_current_syscall.
-It's deep knowledge of the internals of the kernel's entry paths to know
-which user registers can and can't be found correctly in pt_regs when
-inside a fast-path system call entry.  Nothing in userland knows that, nor
-should it.  (And anyway, the user_regset calls are only kosher to call at
-"safe spots" like ptrace/signal stops--so that the arch's regset code is
-not obliged to carefully slice and dice for partially-available regsets.)
-When inside a syscall, the argument registers were certainly copied in, so
-we specify syscall_get_arguments assuming that these can always be got.
+Thoughts?
 
 
 Thanks,
