@@ -1,85 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:48864 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753137AbYILX6u (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 12 Sep 2008 19:58:50 -0400
+Received: from outbound-mail-18.bluehost.com ([69.89.20.233]:36346 "HELO
+	outbound-mail-18.bluehost.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1751392AbYIVSHF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Sep 2008 14:07:05 -0400
+From: Jesse Barnes <jbarnes@virtuousgeek.org>
+Subject: Re: [PATCH] Export kmap_atomic_pfn for DRM-GEM.
+Date: Mon, 22 Sep 2008 10:59:54 -0700
+References: <1219779789-8368-1-git-send-email-eric@anholt.net> <1219855961.4994.6.camel@vonnegut.anholt.net> <200808281022.14296.nickpiggin@yahoo.com.au>
+In-Reply-To: <200808281022.14296.nickpiggin@yahoo.com.au>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="utf-8"
 Content-Transfer-Encoding: 7bit
-From: Roland McGrath <roland@redhat.com>
-Subject: Re: CONFIG_HAVE_ARCH_TRACEHOOK and you
-In-Reply-To: Russell King's message of  Friday, 12 September 2008 14:40:11 +0100 <20080912134011.GA7385@flint.arm.linux.org.uk>
-References: <20080912134011.GA7385@flint.arm.linux.org.uk>
-Message-ID: <20080912235742.C8FA915420D@magilla.localdomain>
-Date: Fri, 12 Sep 2008 16:57:42 -0700 (PDT)
+Content-Disposition: inline
+Message-ID: <200809221059.54779.jbarnes@virtuousgeek.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk@arm.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, utrace-devel@redhat.com, linux-kernel@vger.kernel.org
-Message-ID: <20080912235742.IGhViCUOtp8y04wTb4yp8JiFXcMNEtLNYXbZmmizJBs@z>
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: Eric Anholt <eric@anholt.net>, Dave Airlie <airlied@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20080922175954.jT-uTt_gRPIqKNgd46Z-vohqWHL18GLQVl47Ts1ryk8@z>
 
-> ptrace_report_syscall
-> ---------------------
-> 
-> What's the purpose of the PT_PTRACED check in there?  [...]
+On Wednesday, August 27, 2008 5:22 pm Nick Piggin wrote:
+> > However, when other DRM drivers get around to doing memory management,
+> > I'm sure they'll also be interested in an ioremap_wc that doesn't eat
+> > ipi costs.  For us, the ipis for flushing were eating over 10% of CPU
+> > time.  If your patch series cuts that cost, we could drop this piece at
+> > that point.
+>
+> It can cut the cost quite significantly on normal vmap/vunmap loads I
+> tested. Whether it will work as well on your workload, I don't know
+> but I would have liked to find out. I raised this issue quite a while
+> back, so I'm disappointed it had not been tried...
 
-The short answer is that tracehook_report_syscall_* is just about moving
-the current ptrace logic into the shared inline, not changing that logic.
-So it's a separate issue.  The current logic (in arch/arm/kernel/ptrace.c
-too) has the check, I didn't change that.
+I think Eric has code with the vmap changes now?
 
-In fact, I think it's not entirely redundant.  When the tracer exits
-suddenly without doing PTRACE_DETACH (kill -9 gdb or whatnot), then
-->ptrace gets cleared but TIF_SYSCALL_TRACE never gets reset.  
-(That very arguably should be fixed, but it's not anything new.)
+Given our discussions at KS/Plumbers would you be ok with acking these 
+patches?  Or do you want a repost so you can check out the vmap stuff?
 
-But all that's entirely orthogonal to consolidating each arch's copy of the
-code into ptrace_report_syscall, which is the only change to this area of
-ptrace that the tracehook migration itself does.
-
-> Also, shouldn't ptrace_report_syscall() be in linux/ptrace.h, since it's
-> just the guts of the existing syscall tracing hook irrespective of the
-> tracehook stuff?
-
-I have no objection.
-
-> So, in order to know which register argument N is in, you need to know
-> all the types of the arguments which come before it.  That means
-> creating and maintaining a table of syscall arguments which sounds
-> really sucky.
-
-I certainly don't propose that you do any of that.  I think this is just a
-documentation issue.  Instead of "syscall arguments", read "syscall
-argument registers, in the most naturally useful order for your arch".
-
-Everything about these values, and the syscall # value (when != -1L), is
-entirely arch-specific.  The asm/syscall.h interfaces aren't meant to make
-the meaning of those bits generic.
-
-For example, on all 32-bit machines, __NR_pread64 logically takes 4
-arguments but that's in 5 argument registers.  In the syscall.h calls,
-args[3] means only the 4th argument register, not the whole "4th argument"
-(which is (args[3] | (args[4] << 32)) on LE-32).
-
-Indeed, we do expect userland to know exactly which registers, in which
-order, we mean by "the 6 syscall arg registers" on the particular arch/ABI.
-It may be handy for userland that on some arch's or for many syscalls on
-most arch's, this happens to correspond with one argument per register in
-the natural order of syscall arguments at source level.  But it's
-userland's problem to grok the ABI enough to know what these 6 registers
-plus the syscall # mean.
-
-The reason we need syscall_get_arguments is that it can be used in places
-that the full user_regset calls can't be, such as in task_current_syscall.
-It's deep knowledge of the internals of the kernel's entry paths to know
-which user registers can and can't be found correctly in pt_regs when
-inside a fast-path system call entry.  Nothing in userland knows that, nor
-should it.  (And anyway, the user_regset calls are only kosher to call at
-"safe spots" like ptrace/signal stops--so that the arch's regset code is
-not obliged to carefully slice and dice for partially-available regsets.)
-When inside a syscall, the argument registers were certainly copied in, so
-we specify syscall_get_arguments assuming that these can always be got.
-
+After talking a bit more about it, I think we agreed that the ioctl interface 
+is actually a better approach then trying to shoehorn this stuff into system 
+calls, so aside from the vmap code (which could be done in 2.6.29 or whenever 
+the vmap stuff lands) I think this patchset is pretty close to what we want 
+in drm-next now...
 
 Thanks,
-Roland
+Jesse
