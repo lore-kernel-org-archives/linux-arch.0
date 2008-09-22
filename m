@@ -1,43 +1,42 @@
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: How to write ports to new CPU and architecture?
-Date: Wed, 17 Sep 2008 07:41:35 -0600
-Message-ID: <20080917134134.GB5802@parisc-linux.org>
-References: <48D0F9A2.60806@sesca.com>
+From: Jesse Barnes <jbarnes@virtuousgeek.org>
+Subject: Re: [PATCH] Export kmap_atomic_pfn for DRM-GEM.
+Date: Mon, 22 Sep 2008 10:59:54 -0700
+Message-ID: <200809221059.54779.jbarnes@virtuousgeek.org>
+References: <1219779789-8368-1-git-send-email-eric@anholt.net> <1219855961.4994.6.camel@vonnegut.anholt.net> <200808281022.14296.nickpiggin@yahoo.com.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:45142 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752352AbYIQNlw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Sep 2008 09:41:52 -0400
+Content-Type: text/plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1754296AbYIVSAj@vger.kernel.org>
+In-Reply-To: <200808281022.14296.nickpiggin@yahoo.com.au>
 Content-Disposition: inline
-In-Reply-To: <48D0F9A2.60806@sesca.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Meng Sun <meng.sun@sesca.com>
-Cc: linux-arch@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: Eric Anholt <eric@anholt.net>, Dave Airlie <airlied@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 17, 2008 at 03:35:46PM +0300, Meng Sun wrote:
-> What should I do for implement Linux kernel on a new CPU and target
-> board? I just read FAQ but it's just general information. Could you
-> please tell me which documents(except CPU datasheets and target board
-> documents) I should read?
+On Wednesday, August 27, 2008 5:22 pm Nick Piggin wrote:
+> > However, when other DRM drivers get around to doing memory management,
+> > I'm sure they'll also be interested in an ioremap_wc that doesn't eat
+> > ipi costs.  For us, the ipis for flushing were eating over 10% of CPU
+> > time.  If your patch series cuts that cost, we could drop this piece at
+> > that point.
+>
+> It can cut the cost quite significantly on normal vmap/vunmap loads I
+> tested. Whether it will work as well on your workload, I don't know
+> but I would have liked to find out. I raised this issue quite a while
+> back, so I'm disappointed it had not been tried...
 
-Is it an existing processor such as PowerPC or MIPS?  If so, you should
-approach that port directly and ask for advice (since it will differ
-greatly from one architecture to another).
+I think Eric has code with the vmap changes now?
 
-Is it a new processor that we don't currently have support for in the
-kernel tree?  That's a much larger undertaking, normally a multi-year
-project First, you're going to need a toolchain that targets your CPU --
-GCC, binutils and so on.  Then you can start porting Linux.  It's
-probably best to start by copying an existing architecture and modify it
-piecemeal.
+Given our discussions at KS/Plumbers would you be ok with acking these 
+patches?  Or do you want a repost so you can check out the vmap stuff?
 
-I can't really be more specific since your question is so vague.
+After talking a bit more about it, I think we agreed that the ioctl interface 
+is actually a better approach then trying to shoehorn this stuff into system 
+calls, so aside from the vmap code (which could be done in 2.6.29 or whenever 
+the vmap stuff lands) I think this patchset is pretty close to what we want 
+in drm-next now...
 
--- 
-Matthew Wilcox				Intel Open Source Technology Centre
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+Thanks,
+Jesse
