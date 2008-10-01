@@ -1,65 +1,44 @@
-From: Ralf Baechle <ralf@linux-mips.org>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Subject: Re: RFC: remove ibcs2/PER_SVR4?
-Date: Wed, 1 Oct 2008 17:08:27 +0100
-Message-ID: <20081001160827.GA13102@linux-mips.org>
+Date: Wed, 01 Oct 2008 18:17:41 +0200
+Message-ID: <1222877861.32562.14.camel@localhost>
 References: <1222850741.32562.4.camel@localhost>
+	 <20081001160827.GA13102@linux-mips.org>
+Reply-To: schwidefsky@de.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ditditdahdahdah-dahditditditdit.dl5rb.org.uk ([217.169.26.26]:34707
-	"EHLO ditditdahdahdah-dahdahdahditdit.dl5rb.org.uk"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750760AbYJAQKh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 1 Oct 2008 12:10:37 -0400
-Content-Disposition: inline
-In-Reply-To: <1222850741.32562.4.camel@localhost>
+Received: from mtagate3.de.ibm.com ([195.212.29.152]:38344 "EHLO
+	mtagate3.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751810AbYJAQZz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Oct 2008 12:25:55 -0400
+Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
+	by mtagate3.de.ibm.com (8.13.8/8.13.8) with ESMTP id m91GPrYA277736
+	for <linux-arch@vger.kernel.org>; Wed, 1 Oct 2008 16:25:53 GMT
+Received: from d12av02.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
+	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v9.1) with ESMTP id m91GPqxn1056880
+	for <linux-arch@vger.kernel.org>; Wed, 1 Oct 2008 18:25:52 +0200
+Received: from d12av02.megacenter.de.ibm.com (loopback [127.0.0.1])
+	by d12av02.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id m91GPnZv010221
+	for <linux-arch@vger.kernel.org>; Wed, 1 Oct 2008 18:25:49 +0200
+In-Reply-To: <20081001160827.GA13102@linux-mips.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: Ralf Baechle <ralf@linux-mips.org>
 Cc: linux-arch@vger.kernel.org
 
-On Wed, Oct 01, 2008 at 10:45:41AM +0200, Martin Schwidefsky wrote:
+On Wed, 2008-10-01 at 17:08 +0100, Ralf Baechle wrote:
+> Doesn't look like it; all invocations of SET_PERSONALITY are passing 0 for
+> the ibcs2 argument.  So I think the 2nd argument should go entirely.  MIPS
+> segment against linux-next is below.  As you may notice it's actually a
+> bug fix, there was a missing else statement that didn't bite bite anybody
+> thanks to the unusedness :-)
 
-> Greetings,
-> I stumbled across SET_PERSONALITY and the ibcs2/PER_SVR4 personality once
-> more. I never really understood why it is there and with the current code
-> it is in fact completely unused. The minimal patch I will do is the one
-> below, it just removes ibcs2/PER_SVR4 for s390. I think the same could be
-> done for all architectures and the SET_PERSONALITY macro could drop the
-> ibcs2 argument. Before I go ahead and do a patch across all architectures:
-> does anybody out there still needs ibcs2/PER_SVR4?
+Hmpf, yes, it is the second argument..
 
-Doesn't look like it; all invocations of SET_PERSONALITY are passing 0 for
-the ibcs2 argument.  So I think the 2nd argument should go entirely.  MIPS
-segment against linux-next is below.  As you may notice it's actually a
-bug fix, there was a missing else statement that didn't bite bite anybody
-thanks to the unusedness :-)
+-- 
+blue skies,
+  Martin.
 
-  Ralf
-
-Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
-
-diff --git a/arch/mips/include/asm/elf.h b/arch/mips/include/asm/elf.h
-index f69f7ac..3d15e02 100644
---- a/arch/mips/include/asm/elf.h
-+++ b/arch/mips/include/asm/elf.h
-@@ -249,8 +249,6 @@ extern struct mips_abi mips_abi_n32;
- 
- #define SET_PERSONALITY(ex, ibcs2)					\
- do {									\
--	if (ibcs2)							\
--		set_personality(PER_SVR4);				\
- 	set_personality(PER_LINUX);					\
- 									\
- 	current->thread.abi = &mips_abi;				\
-@@ -306,9 +304,7 @@ do {									\
- 	else								\
- 		current->thread.abi = &mips_abi;			\
- 									\
--	if (ibcs2)							\
--		set_personality(PER_SVR4);				\
--	else if (current->personality != PER_LINUX32)			\
-+	if (current->personality != PER_LINUX32)			\
- 		set_personality(PER_LINUX);				\
- } while (0)
- 
+"Reality continues to ruin my life." - Calvin.
