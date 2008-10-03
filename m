@@ -1,570 +1,494 @@
-From: akpm@linux-foundation.org
-Subject: - fix-a-race-condtion-of-oops_in_progress.patch removed from -mm tree
-Date: Wed, 01 Oct 2008 14:39:05 -0700
-Message-ID: <200810012139.m91Ld5FA005302@imap1.linux-foundation.org>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: RFC: remove ibcs2/PER_SVR4?
+Date: Fri, 03 Oct 2008 22:21:05 +0200
+Message-ID: <1223065265.31517.10.camel@localhost>
+References: <1222850741.32562.4.camel@localhost>
+	 <20081001160827.GA13102@linux-mips.org>
+Reply-To: schwidefsky@de.ibm.com
+Mime-Version: 1.0
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:54038 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750769AbYJAVjf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Oct 2008 17:39:35 -0400
+Received: from mtagate1.de.ibm.com ([195.212.17.161]:56402 "EHLO
+	mtagate1.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753076AbYJCUqX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Oct 2008 16:46:23 -0400
+Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
+	by mtagate1.de.ibm.com (8.13.1/8.13.1) with ESMTP id m93KkLbF011074
+	for <linux-arch@vger.kernel.org>; Fri, 3 Oct 2008 20:46:21 GMT
+Received: from d12av02.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
+	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v9.1) with ESMTP id m93KkLGo3514378
+	for <linux-arch@vger.kernel.org>; Fri, 3 Oct 2008 22:46:21 +0200
+Received: from d12av02.megacenter.de.ibm.com (loopback [127.0.0.1])
+	by d12av02.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id m93KkK9Y014021
+	for <linux-arch@vger.kernel.org>; Fri, 3 Oct 2008 22:46:20 +0200
+In-Reply-To: <20081001160827.GA13102@linux-mips.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ying.huang@intel.com, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-arch@vger.kernel.org
 
+Greetings,
+nobody raised an objection to the removal of ibcs2/PER_SVR4 from
+SET_PERSONALITY. So I created the full patch which removes the second
+argument from SET_PERSONALITY and adapted all architectures definitions
+I could find. Patch applies against todays upstream git.
 
-The patch titled
-     Fix a race accessing oops_in_progress
-has been removed from the -mm tree.  Its filename was
-     fix-a-race-condtion-of-oops_in_progress.patch
+-- 
+blue skies,
+  Martin.
 
-This patch was dropped because an updated version will be merged
+"Reality continues to ruin my life." - Calvin.
 
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+---
+Subject: [PATCH] remove unused ibcs2/PER_SVR4 in SET_PERSONALITY
 
-------------------------------------------------------
-Subject: Fix a race accessing oops_in_progress
-From: Huang Ying <ying.huang@intel.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-Fix a race condition accessing oops_in_progress.  Which may be changed on
-multiple CPU simultaneously, but it is changed via non-atomic operation
-++/--.  This patch changes the definition of oops_in_process from int to
-atomic_t, and accessing method to atomic operations.
+The SET_PERSONALITY macro is always called with a second argument of 0.
+Remove the ibcs argument and the various tests to set the PER_SVR4
+personality.
 
-Signed-off-by: Huang Ying <ying.huang@intel.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 ---
 
- arch/blackfin/kernel/traps.c            |   14 +++++++-------
- arch/cris/arch-v32/kernel/time.c        |    4 ++--
- arch/cris/kernel/traps.c                |    6 +++---
- arch/cris/mm/fault.c                    |    6 +++---
- arch/ia64/kernel/mca.c                  |    6 +++---
- arch/mn10300/mm/fault.c                 |    4 ++--
- arch/parisc/kernel/traps.c              |    4 ++--
- arch/s390/kernel/setup.c                |    6 +++---
- arch/s390/mm/fault.c                    |    4 ++--
- drivers/char/vt.c                       |    2 +-
- drivers/mtd/mtdoops.c                   |    2 +-
- drivers/parisc/led.c                    |    2 +-
- drivers/serial/8250.c                   |    2 +-
- drivers/serial/cpm_uart/cpm_uart_core.c |    2 +-
- drivers/serial/sunhv.c                  |    4 ++--
- drivers/serial/sunsab.c                 |    2 +-
- drivers/serial/sunsu.c                  |    2 +-
- drivers/serial/sunzilog.c               |    2 +-
- drivers/serial/uartlite.c               |    4 ++--
- drivers/video/aty/radeonfb.h            |    2 +-
- include/linux/console.h                 |    3 ++-
- include/linux/kernel.h                  |    4 +++-
- kernel/printk.c                         |    8 ++++----
- kernel/sched.c                          |    2 +-
- lib/bust_spinlocks.c                    |    4 ++--
- 25 files changed, 52 insertions(+), 49 deletions(-)
+ arch/alpha/include/asm/elf.h      |    4 ++--
+ arch/arm/include/asm/elf.h        |    2 +-
+ arch/avr32/include/asm/elf.h      |    2 +-
+ arch/blackfin/include/asm/elf.h   |    2 +-
+ arch/h8300/include/asm/elf.h      |    2 +-
+ arch/ia64/ia32/binfmt_elf32.c     |    2 +-
+ arch/ia64/ia32/ia32priv.h         |    4 ++--
+ arch/ia64/include/asm/elf.h       |    2 +-
+ arch/m68knommu/include/asm/elf.h  |    2 +-
+ arch/parisc/kernel/binfmt_elf32.c |    2 +-
+ arch/powerpc/include/asm/elf.h    |    4 ++--
+ arch/s390/include/asm/elf.h       |    8 +++-----
+ arch/sh/include/asm/elf.h         |    2 +-
+ arch/sparc/include/asm/elf_32.h   |    2 +-
+ arch/sparc/include/asm/elf_64.h   |    6 ++----
+ fs/binfmt_elf.c                   |    6 +++---
+ include/asm-cris/elf.h            |    2 +-
+ include/asm-frv/elf.h             |    2 +-
+ include/asm-m32r/elf.h            |    2 +-
+ include/asm-m68k/elf.h            |    2 +-
+ include/asm-mips/elf.h            |   10 +++-------
+ include/asm-mn10300/elf.h         |    2 +-
+ include/asm-parisc/elf.h          |    2 +-
+ include/asm-um/elf-i386.h         |    2 +-
+ include/asm-um/elf-ppc.h          |    2 +-
+ include/asm-um/elf-x86_64.h       |    2 +-
+ include/asm-x86/elf.h             |    4 ++--
+ include/asm-xtensa/elf.h          |    2 +-
+ 28 files changed, 39 insertions(+), 47 deletions(-)
 
-diff -puN arch/blackfin/kernel/traps.c~fix-a-race-condtion-of-oops_in_progress arch/blackfin/kernel/traps.c
---- a/arch/blackfin/kernel/traps.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/arch/blackfin/kernel/traps.c
-@@ -183,7 +183,7 @@ done:
- asmlinkage void double_fault_c(struct pt_regs *fp)
- {
- 	console_verbose();
--	oops_in_progress = 1;
-+	atomic_set(&oops_in_progress, 1);
- 	printk(KERN_EMERG "\n" KERN_EMERG "Double Fault\n");
- 	dump_bfin_process(fp);
- 	dump_bfin_mem(fp);
-@@ -221,11 +221,11 @@ asmlinkage void trap_c(struct pt_regs *f
+diff -urpN linux-2.6/arch/alpha/include/asm/elf.h linux-2.6-patched/arch/alpha/include/asm/elf.h
+--- linux-2.6/arch/alpha/include/asm/elf.h	2008-10-03 22:10:05.000000000 +0200
++++ linux-2.6-patched/arch/alpha/include/asm/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -144,9 +144,9 @@ extern int dump_elf_task_fp(elf_fpreg_t 
+ 	: amask (AMASK_CIX) ? "ev6" : "ev67");	\
+ })
+ 
+-#define SET_PERSONALITY(EX, IBCS2)				\
++#define SET_PERSONALITY(EX)					\
+ 	set_personality(((EX).e_flags & EF_ALPHA_32BIT)		\
+-	   ? PER_LINUX_32BIT : (IBCS2) ? PER_SVR4 : PER_LINUX)
++	   ? PER_LINUX_32BIT : PER_LINUX)
+ 
+ extern int alpha_l1i_cacheshape;
+ extern int alpha_l1d_cacheshape;
+diff -urpN linux-2.6/arch/arm/include/asm/elf.h linux-2.6-patched/arch/arm/include/asm/elf.h
+--- linux-2.6/arch/arm/include/asm/elf.h	2008-10-03 22:10:05.000000000 +0200
++++ linux-2.6-patched/arch/arm/include/asm/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -100,7 +100,7 @@ extern char elf_platform[];
+  * binary is EABI or softfloat (and thus, guaranteed not to use
+  * FPA instructions.)
+  */
+-#define SET_PERSONALITY(ex, ibcs2)					\
++#define SET_PERSONALITY(ex)						\
+ 	do {								\
+ 		if ((ex).e_flags & EF_ARM_APCS26) {			\
+ 			set_personality(PER_LINUX);			\
+diff -urpN linux-2.6/arch/avr32/include/asm/elf.h linux-2.6-patched/arch/avr32/include/asm/elf.h
+--- linux-2.6/arch/avr32/include/asm/elf.h	2008-10-03 22:10:06.000000000 +0200
++++ linux-2.6-patched/arch/avr32/include/asm/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -103,6 +103,6 @@ typedef struct user_fpu_struct elf_fpreg
+ 
+ #define ELF_PLATFORM  (NULL)
+ 
+-#define SET_PERSONALITY(ex, ibcs2) set_personality(PER_LINUX_32BIT)
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX_32BIT)
+ 
+ #endif /* __ASM_AVR32_ELF_H */
+diff -urpN linux-2.6/arch/blackfin/include/asm/elf.h linux-2.6-patched/arch/blackfin/include/asm/elf.h
+--- linux-2.6/arch/blackfin/include/asm/elf.h	2008-10-03 22:10:06.000000000 +0200
++++ linux-2.6-patched/arch/blackfin/include/asm/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -122,6 +122,6 @@ do {											\
+ 
+ #define ELF_PLATFORM  (NULL)
+ 
+-#define SET_PERSONALITY(ex, ibcs2) set_personality((ibcs2)?PER_SVR4:PER_LINUX)
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
+ 
  #endif
- 	){
- 		console_verbose();
--		oops_in_progress = 1;
-+		atomic_set(&oops_in_progress, 1);
- 	} else if (current) {
- 		if (current->mm == NULL) {
- 			console_verbose();
--			oops_in_progress = 1;
-+			atomic_set(&oops_in_progress, 1);
- 		}
+diff -urpN linux-2.6/arch/h8300/include/asm/elf.h linux-2.6-patched/arch/h8300/include/asm/elf.h
+--- linux-2.6/arch/h8300/include/asm/elf.h	2008-10-03 22:10:06.000000000 +0200
++++ linux-2.6-patched/arch/h8300/include/asm/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -55,7 +55,7 @@ typedef unsigned long elf_fpregset_t;
+ 
+ #define ELF_PLATFORM  (NULL)
+ 
+-#define SET_PERSONALITY(ex, ibcs2) set_personality(PER_LINUX)
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
+ 
+ #define R_H8_NONE       0
+ #define R_H8_DIR32      1
+diff -urpN linux-2.6/arch/ia64/ia32/binfmt_elf32.c linux-2.6-patched/arch/ia64/ia32/binfmt_elf32.c
+--- linux-2.6/arch/ia64/ia32/binfmt_elf32.c	2008-07-13 23:51:29.000000000 +0200
++++ linux-2.6-patched/arch/ia64/ia32/binfmt_elf32.c	2008-10-03 22:10:29.000000000 +0200
+@@ -41,7 +41,7 @@ randomize_stack_top(unsigned long stack_
+ #define elf_map				elf32_map
+ 
+ #undef SET_PERSONALITY
+-#define SET_PERSONALITY(ex, ibcs2)	elf32_set_personality()
++#define SET_PERSONALITY(ex)	elf32_set_personality()
+ 
+ #define elf_read_implies_exec(ex, have_pt_gnu_stack)	(!(have_pt_gnu_stack))
+ 
+diff -urpN linux-2.6/arch/ia64/ia32/ia32priv.h linux-2.6-patched/arch/ia64/ia32/ia32priv.h
+--- linux-2.6/arch/ia64/ia32/ia32priv.h	2008-10-03 22:10:06.000000000 +0200
++++ linux-2.6-patched/arch/ia64/ia32/ia32priv.h	2008-10-03 22:10:29.000000000 +0200
+@@ -332,8 +332,8 @@ void ia64_elf32_init(struct pt_regs *reg
+ #define ELF_PLATFORM	NULL
+ 
+ #ifdef __KERNEL__
+-# define SET_PERSONALITY(EX,IBCS2)				\
+-	(current->personality = (IBCS2) ? PER_SVR4 : PER_LINUX)
++# define SET_PERSONALITY(EX)				\
++	(current->personality = PER_LINUX)
+ #endif
+ 
+ #define IA32_EFLAG	0x200
+diff -urpN linux-2.6/arch/ia64/include/asm/elf.h linux-2.6-patched/arch/ia64/include/asm/elf.h
+--- linux-2.6/arch/ia64/include/asm/elf.h	2008-10-03 22:10:06.000000000 +0200
++++ linux-2.6-patched/arch/ia64/include/asm/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -202,7 +202,7 @@ extern void ia64_elf_core_copy_regs (str
+    relevant until we have real hardware to play with... */
+ #define ELF_PLATFORM	NULL
+ 
+-#define SET_PERSONALITY(ex, ibcs2)	set_personality(PER_LINUX)
++#define SET_PERSONALITY(ex)	set_personality(PER_LINUX)
+ #define elf_read_implies_exec(ex, executable_stack)					\
+ 	((executable_stack!=EXSTACK_DISABLE_X) && ((ex).e_flags & EF_IA_64_LINUX_EXECUTABLE_STACK) != 0)
+ 
+diff -urpN linux-2.6/arch/m68knommu/include/asm/elf.h linux-2.6-patched/arch/m68knommu/include/asm/elf.h
+--- linux-2.6/arch/m68knommu/include/asm/elf.h	2008-10-03 22:10:06.000000000 +0200
++++ linux-2.6-patched/arch/m68knommu/include/asm/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -105,6 +105,6 @@ typedef struct user_m68kfp_struct elf_fp
+ 
+ #define ELF_PLATFORM  (NULL)
+ 
+-#define SET_PERSONALITY(ex, ibcs2) set_personality((ibcs2)?PER_SVR4:PER_LINUX)
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
+ 
+ #endif
+diff -urpN linux-2.6/arch/parisc/kernel/binfmt_elf32.c linux-2.6-patched/arch/parisc/kernel/binfmt_elf32.c
+--- linux-2.6/arch/parisc/kernel/binfmt_elf32.c	2008-07-13 23:51:29.000000000 +0200
++++ linux-2.6-patched/arch/parisc/kernel/binfmt_elf32.c	2008-10-03 22:10:29.000000000 +0200
+@@ -85,7 +85,7 @@ struct elf_prpsinfo32
+  * could set a processor dependent flag in the thread_struct.
+  */
+ 
+-#define SET_PERSONALITY(ex, ibcs2) \
++#define SET_PERSONALITY(ex) \
+ 	set_thread_flag(TIF_32BIT); \
+ 	current->thread.map_base = DEFAULT_MAP_BASE32; \
+ 	current->thread.task_size = DEFAULT_TASK_SIZE32 \
+diff -urpN linux-2.6/arch/powerpc/include/asm/elf.h linux-2.6-patched/arch/powerpc/include/asm/elf.h
+--- linux-2.6/arch/powerpc/include/asm/elf.h	2008-10-03 22:10:06.000000000 +0200
++++ linux-2.6-patched/arch/powerpc/include/asm/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -232,7 +232,7 @@ typedef elf_vrregset_t elf_fpxregset_t;
+ #endif /* __powerpc64__ */
+ 
+ #ifdef __powerpc64__
+-# define SET_PERSONALITY(ex, ibcs2)				\
++# define SET_PERSONALITY(ex)					\
+ do {								\
+ 	unsigned long new_flags = 0;				\
+ 	if ((ex).e_ident[EI_CLASS] == ELFCLASS32)		\
+@@ -256,7 +256,7 @@ do {								\
+ # define elf_read_implies_exec(ex, exec_stk) (test_thread_flag(TIF_32BIT) ? \
+ 		(exec_stk != EXSTACK_DISABLE_X) : 0)
+ #else 
+-# define SET_PERSONALITY(ex, ibcs2) set_personality((ibcs2)?PER_SVR4:PER_LINUX)
++# define SET_PERSONALITY(ex) set_personality(PER_LINUX)
+ #endif /* __powerpc64__ */
+ 
+ extern int dcache_bsize;
+diff -urpN linux-2.6/arch/s390/include/asm/elf.h linux-2.6-patched/arch/s390/include/asm/elf.h
+--- linux-2.6/arch/s390/include/asm/elf.h	2008-10-03 22:10:07.000000000 +0200
++++ linux-2.6-patched/arch/s390/include/asm/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -166,13 +166,11 @@ extern char elf_platform[];
+ #define ELF_PLATFORM (elf_platform)
+ 
+ #ifndef __s390x__
+-#define SET_PERSONALITY(ex, ibcs2) set_personality((ibcs2)?PER_SVR4:PER_LINUX)
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
+ #else /* __s390x__ */
+-#define SET_PERSONALITY(ex, ibcs2)			\
++#define SET_PERSONALITY(ex)				\
+ do {							\
+-	if (ibcs2)					\
+-		set_personality(PER_SVR4);		\
+-	else if (current->personality != PER_LINUX32)	\
++	if (current->personality != PER_LINUX32)	\
+ 		set_personality(PER_LINUX);		\
+ 	if ((ex).e_ident[EI_CLASS] == ELFCLASS32)	\
+ 		set_thread_flag(TIF_31BIT);		\
+diff -urpN linux-2.6/arch/sh/include/asm/elf.h linux-2.6-patched/arch/sh/include/asm/elf.h
+--- linux-2.6/arch/sh/include/asm/elf.h	2008-10-03 22:10:07.000000000 +0200
++++ linux-2.6-patched/arch/sh/include/asm/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -189,7 +189,7 @@ do {									\
+ } while (0)
+ #endif
+ 
+-#define SET_PERSONALITY(ex, ibcs2) set_personality(PER_LINUX_32BIT)
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX_32BIT)
+ struct task_struct;
+ extern int dump_task_regs (struct task_struct *, elf_gregset_t *);
+ extern int dump_task_fpu (struct task_struct *, elf_fpregset_t *);
+diff -urpN linux-2.6/arch/sparc/include/asm/elf_32.h linux-2.6-patched/arch/sparc/include/asm/elf_32.h
+--- linux-2.6/arch/sparc/include/asm/elf_32.h	2008-10-03 22:10:07.000000000 +0200
++++ linux-2.6-patched/arch/sparc/include/asm/elf_32.h	2008-10-03 22:10:29.000000000 +0200
+@@ -140,6 +140,6 @@ typedef struct {
+ 
+ #define ELF_PLATFORM	(NULL)
+ 
+-#define SET_PERSONALITY(ex, ibcs2) set_personality((ibcs2)?PER_SVR4:PER_LINUX)
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
+ 
+ #endif /* !(__ASMSPARC_ELF_H) */
+diff -urpN linux-2.6/arch/sparc/include/asm/elf_64.h linux-2.6-patched/arch/sparc/include/asm/elf_64.h
+--- linux-2.6/arch/sparc/include/asm/elf_64.h	2008-10-03 22:10:07.000000000 +0200
++++ linux-2.6-patched/arch/sparc/include/asm/elf_64.h	2008-10-03 22:10:29.000000000 +0200
+@@ -195,7 +195,7 @@ static inline unsigned int sparc64_elf_h
+ 
+ #define ELF_PLATFORM	(NULL)
+ 
+-#define SET_PERSONALITY(ex, ibcs2)			\
++#define SET_PERSONALITY(ex)				\
+ do {	unsigned long new_flags = current_thread_info()->flags; \
+ 	new_flags &= _TIF_32BIT;			\
+ 	if ((ex).e_ident[EI_CLASS] == ELFCLASS32)	\
+@@ -208,9 +208,7 @@ do {	unsigned long new_flags = current_t
+ 	else						\
+ 		clear_thread_flag(TIF_ABI_PENDING);	\
+ 	/* flush_thread will update pgd cache */	\
+-	if (ibcs2)					\
+-		set_personality(PER_SVR4);		\
+-	else if (current->personality != PER_LINUX32)	\
++	if (current->personality != PER_LINUX32)	\
+ 		set_personality(PER_LINUX);		\
+ } while (0)
+ 
+diff -urpN linux-2.6/fs/binfmt_elf.c linux-2.6-patched/fs/binfmt_elf.c
+--- linux-2.6/fs/binfmt_elf.c	2008-10-03 22:10:11.000000000 +0200
++++ linux-2.6-patched/fs/binfmt_elf.c	2008-10-03 22:10:29.000000000 +0200
+@@ -683,7 +683,7 @@ static int load_elf_binary(struct linux_
+ 			 * switch really is going to happen - do this in
+ 			 * flush_thread().	- akpm
+ 			 */
+-			SET_PERSONALITY(loc->elf_ex, 0);
++			SET_PERSONALITY(loc->elf_ex);
+ 
+ 			interpreter = open_exec(elf_interpreter);
+ 			retval = PTR_ERR(interpreter);
+@@ -734,7 +734,7 @@ static int load_elf_binary(struct linux_
+ 			goto out_free_dentry;
+ 	} else {
+ 		/* Executables without an interpreter also need a personality  */
+-		SET_PERSONALITY(loc->elf_ex, 0);
++		SET_PERSONALITY(loc->elf_ex);
  	}
  
-@@ -510,7 +510,7 @@ asmlinkage void trap_c(struct pt_regs *f
+ 	/* Flush all traces of the currently running executable */
+@@ -748,7 +748,7 @@ static int load_elf_binary(struct linux_
+ 
+ 	/* Do this immediately, since STACK_TOP as used in setup_arg_pages
+ 	   may depend on the personality.  */
+-	SET_PERSONALITY(loc->elf_ex, 0);
++	SET_PERSONALITY(loc->elf_ex);
+ 	if (elf_read_implies_exec(loc->elf_ex, executable_stack))
+ 		current->personality |= READ_IMPLIES_EXEC;
+ 
+diff -urpN linux-2.6/include/asm-cris/elf.h linux-2.6-patched/include/asm-cris/elf.h
+--- linux-2.6/include/asm-cris/elf.h	2008-07-13 23:51:29.000000000 +0200
++++ linux-2.6-patched/include/asm-cris/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -88,6 +88,6 @@ typedef unsigned long elf_fpregset_t;
+ 
+ #define ELF_PLATFORM  (NULL)
+ 
+-#define SET_PERSONALITY(ex, ibcs2) set_personality((ibcs2)?PER_SVR4:PER_LINUX)
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
+ 
  #endif
- 			dump_bfin_trace_buffer();
+diff -urpN linux-2.6/include/asm-frv/elf.h linux-2.6-patched/include/asm-frv/elf.h
+--- linux-2.6/include/asm-frv/elf.h	2008-07-13 23:51:29.000000000 +0200
++++ linux-2.6-patched/include/asm-frv/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -137,6 +137,6 @@ do {											\
  
--		if (oops_in_progress) {
-+		if (atomic_read(&oops_in_progress)) {
- 			/* Dump the current kernel stack */
- 			printk(KERN_NOTICE "\n" KERN_NOTICE "Kernel Stack\n");
- 			show_stack(current, NULL);
-@@ -870,7 +870,7 @@ void dump_bfin_process(struct pt_regs *f
- 	 * stack all the time, so do this until we fix that */
- 	unsigned int context = bfin_read_IPEND();
+ #define ELF_PLATFORM  (NULL)
  
--	if (oops_in_progress)
-+	if (atomic_read(&oops_in_progress))
- 		printk(KERN_EMERG "Kernel OOPS in progress\n");
+-#define SET_PERSONALITY(ex, ibcs2) set_personality((ibcs2)?PER_SVR4:PER_LINUX)
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
  
- 	if (context & 0x0020 && (fp->seqstat & SEQSTAT_EXCAUSE) == VEC_HWERR)
-@@ -952,7 +952,7 @@ void dump_bfin_mem(struct pt_regs *fp)
- 
- 	/* Hardware error interrupts can be deferred */
- 	if (unlikely(sti && (fp->seqstat & SEQSTAT_EXCAUSE) == VEC_HWERR &&
--	    oops_in_progress)){
-+	    atomic_read(&oops_in_progress))) {
- 		printk(KERN_NOTICE "Looks like this was a deferred error - sorry\n");
- #ifndef CONFIG_DEBUG_HWERR
- 		printk(KERN_NOTICE "The remaining message may be meaningless\n"
-@@ -1141,7 +1141,7 @@ void panic_cplb_error(int cplb_panic, st
- 		break;
- 	}
- 
--	oops_in_progress = 1;
-+	atomic_set(&oops_in_progress, 1);
- 
- 	dump_bfin_process(fp);
- 	dump_bfin_mem(fp);
-diff -puN arch/cris/arch-v32/kernel/time.c~fix-a-race-condtion-of-oops_in_progress arch/cris/arch-v32/kernel/time.c
---- a/arch/cris/arch-v32/kernel/time.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/arch/cris/arch-v32/kernel/time.c
-@@ -170,7 +170,7 @@ handle_watchdog_bite(struct pt_regs* reg
- #if defined(CONFIG_ETRAX_WATCHDOG)
- 	extern int cause_of_death;
- 
--	oops_in_progress = 1;
-+	atomic_set(&oops_in_progress, 1);
- 	printk(KERN_WARNING "Watchdog bite\n");
- 
- 	/* Check if forced restart or unexpected watchdog */
-@@ -191,7 +191,7 @@ handle_watchdog_bite(struct pt_regs* reg
- 	stop_watchdog();
- 	printk(KERN_WARNING "Oops: bitten by watchdog\n");
- 	show_registers(regs);
--	oops_in_progress = 0;
-+	atomic_set(&oops_in_progress, 0);
- #ifndef CONFIG_ETRAX_WATCHDOG_NICE_DOGGY
- 	reset_watchdog();
  #endif
-diff -puN arch/cris/kernel/traps.c~fix-a-race-condtion-of-oops_in_progress arch/cris/kernel/traps.c
---- a/arch/cris/kernel/traps.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/arch/cris/kernel/traps.c
-@@ -164,10 +164,10 @@ void
- oops_nmi_handler(struct pt_regs *regs)
- {
- 	stop_watchdog();
--	oops_in_progress = 1;
-+	atomic_set(&oops_in_progress, 1);
- 	printk("NMI!\n");
- 	show_registers(regs);
--	oops_in_progress = 0;
-+	atomic_set(&oops_in_progress, 0);
- }
+diff -urpN linux-2.6/include/asm-m32r/elf.h linux-2.6-patched/include/asm-m32r/elf.h
+--- linux-2.6/include/asm-m32r/elf.h	2008-07-13 23:51:29.000000000 +0200
++++ linux-2.6-patched/include/asm-m32r/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -129,6 +129,6 @@ typedef elf_fpreg_t elf_fpregset_t;
+    intent than poking at uname or /proc/cpuinfo.  */
+ #define ELF_PLATFORM	(NULL)
  
- static int __init
-@@ -223,7 +223,7 @@ die_if_kernel(const char *str, struct pt
+-#define SET_PERSONALITY(ex, ibcs2) set_personality(PER_LINUX)
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
  
- 	show_registers(regs);
+ #endif  /* _ASM_M32R__ELF_H */
+diff -urpN linux-2.6/include/asm-m68k/elf.h linux-2.6-patched/include/asm-m68k/elf.h
+--- linux-2.6/include/asm-m68k/elf.h	2008-07-13 23:51:29.000000000 +0200
++++ linux-2.6-patched/include/asm-m68k/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -114,6 +114,6 @@ typedef struct user_m68kfp_struct elf_fp
  
--	oops_in_progress = 0;
-+	atomic_set(&oops_in_progress, 0);
+ #define ELF_PLATFORM  (NULL)
  
- #ifdef CONFIG_ETRAX_WATCHDOG_NICE_DOGGY
- 	reset_watchdog();
-diff -puN arch/cris/mm/fault.c~fix-a-race-condtion-of-oops_in_progress arch/cris/mm/fault.c
---- a/arch/cris/mm/fault.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/arch/cris/mm/fault.c
-@@ -223,8 +223,8 @@ do_page_fault(unsigned long address, str
- 	 * terminate things with extreme prejudice.
- 	 */
+-#define SET_PERSONALITY(ex, ibcs2) set_personality((ibcs2)?PER_SVR4:PER_LINUX)
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
  
--	if (!oops_in_progress) {
--		oops_in_progress = 1;
-+	if (!atomic_read(&oops_in_progress)) {
-+		atomic_set(&oops_in_progress, 1);
- 		if ((unsigned long) (address) < PAGE_SIZE)
- 			printk(KERN_ALERT "Unable to handle kernel NULL "
- 				"pointer dereference");
-@@ -233,7 +233,7 @@ do_page_fault(unsigned long address, str
- 				" at virtual address %08lx\n", address);
+ #endif
+diff -urpN linux-2.6/include/asm-mips/elf.h linux-2.6-patched/include/asm-mips/elf.h
+--- linux-2.6/include/asm-mips/elf.h	2008-07-13 23:51:29.000000000 +0200
++++ linux-2.6-patched/include/asm-mips/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -247,10 +247,8 @@ extern struct mips_abi mips_abi_n32;
  
- 		die_if_kernel("Oops", regs, (writeaccess << 1) | protection);
--		oops_in_progress = 0;
-+		atomic_set(&oops_in_progress, 0);
- 	}
+ #ifdef CONFIG_32BIT
  
- 	do_exit(SIGKILL);
-diff -puN arch/ia64/kernel/mca.c~fix-a-race-condtion-of-oops_in_progress arch/ia64/kernel/mca.c
---- a/arch/ia64/kernel/mca.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/arch/ia64/kernel/mca.c
-@@ -187,7 +187,7 @@ static unsigned long mlogbuf_timestamp =
+-#define SET_PERSONALITY(ex, ibcs2)					\
++#define SET_PERSONALITY(ex)						\
+ do {									\
+-	if (ibcs2)							\
+-		set_personality(PER_SVR4);				\
+ 	set_personality(PER_LINUX);					\
+ 									\
+ 	current->thread.abi = &mips_abi;				\
+@@ -296,7 +294,7 @@ do {									\
+ #define __SET_PERSONALITY32(ex)	do { } while (0)
+ #endif
  
- static int loglevel_save = -1;
- #define BREAK_LOGLEVEL(__console_loglevel)		\
--	oops_in_progress = 1;				\
-+	atomic_set(&oops_in_progress, 1);		\
- 	if (loglevel_save < 0)				\
- 		loglevel_save = __console_loglevel;	\
- 	__console_loglevel = 15;
-@@ -198,7 +198,7 @@ static int loglevel_save = -1;
- 		loglevel_save = -1;			\
- 	}						\
- 	mlogbuf_finished = 0;				\
--	oops_in_progress = 0;
-+	atomic_set(&oops_in_progress, 0);
+-#define SET_PERSONALITY(ex, ibcs2)					\
++#define SET_PERSONALITY(ex)						\
+ do {									\
+ 	clear_thread_flag(TIF_32BIT_REGS);				\
+ 	clear_thread_flag(TIF_32BIT_ADDR);				\
+@@ -306,9 +304,7 @@ do {									\
+ 	else								\
+ 		current->thread.abi = &mips_abi;			\
+ 									\
+-	if (ibcs2)							\
+-		set_personality(PER_SVR4);				\
+-	else if (current->personality != PER_LINUX32)			\
++	if (current->personality != PER_LINUX32)			\
+ 		set_personality(PER_LINUX);				\
+ } while (0)
+ 
+diff -urpN linux-2.6/include/asm-mn10300/elf.h linux-2.6-patched/include/asm-mn10300/elf.h
+--- linux-2.6/include/asm-mn10300/elf.h	2008-07-13 23:51:29.000000000 +0200
++++ linux-2.6-patched/include/asm-mn10300/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -141,7 +141,7 @@ do {						\
+ #define ELF_PLATFORM  (NULL)
+ 
+ #ifdef __KERNEL__
+-#define SET_PERSONALITY(ex, ibcs2) set_personality(PER_LINUX)
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
+ #endif
+ 
+ #endif /* _ASM_ELF_H */
+diff -urpN linux-2.6/include/asm-parisc/elf.h linux-2.6-patched/include/asm-parisc/elf.h
+--- linux-2.6/include/asm-parisc/elf.h	2008-07-13 23:51:29.000000000 +0200
++++ linux-2.6-patched/include/asm-parisc/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -236,7 +236,7 @@ typedef unsigned long elf_greg_t;
+ 
+ #define ELF_PLATFORM  ("PARISC\0")
+ 
+-#define SET_PERSONALITY(ex, ibcs2) \
++#define SET_PERSONALITY(ex) \
+ 	current->personality = PER_LINUX; \
+ 	current->thread.map_base = DEFAULT_MAP_BASE; \
+ 	current->thread.task_size = DEFAULT_TASK_SIZE \
+diff -urpN linux-2.6/include/asm-um/elf-i386.h linux-2.6-patched/include/asm-um/elf-i386.h
+--- linux-2.6/include/asm-um/elf-i386.h	2008-07-13 23:51:29.000000000 +0200
++++ linux-2.6-patched/include/asm-um/elf-i386.h	2008-10-03 22:10:29.000000000 +0200
+@@ -86,7 +86,7 @@ extern long elf_aux_hwcap;
+ extern char * elf_aux_platform;
+ #define ELF_PLATFORM (elf_aux_platform)
+ 
+-#define SET_PERSONALITY(ex, ibcs2) do { } while (0)
++#define SET_PERSONALITY(ex) do { } while (0)
+ 
+ extern unsigned long vsyscall_ehdr;
+ extern unsigned long vsyscall_end;
+diff -urpN linux-2.6/include/asm-um/elf-ppc.h linux-2.6-patched/include/asm-um/elf-ppc.h
+--- linux-2.6/include/asm-um/elf-ppc.h	2008-07-13 23:51:29.000000000 +0200
++++ linux-2.6-patched/include/asm-um/elf-ppc.h	2008-10-03 22:10:29.000000000 +0200
+@@ -5,7 +5,7 @@
+ extern long elf_aux_hwcap;
+ #define ELF_HWCAP (elf_aux_hwcap)
+ 
+-#define SET_PERSONALITY(ex, ibcs2) do ; while(0)
++#define SET_PERSONALITY(ex) do ; while(0)
+ 
+ #define ELF_EXEC_PAGESIZE 4096
+ 
+diff -urpN linux-2.6/include/asm-um/elf-x86_64.h linux-2.6-patched/include/asm-um/elf-x86_64.h
+--- linux-2.6/include/asm-um/elf-x86_64.h	2008-07-13 23:51:29.000000000 +0200
++++ linux-2.6-patched/include/asm-um/elf-x86_64.h	2008-10-03 22:10:29.000000000 +0200
+@@ -114,6 +114,6 @@ extern long elf_aux_hwcap;
+ 
+ #define ELF_PLATFORM "x86_64"
+ 
+-#define SET_PERSONALITY(ex, ibcs2) do ; while(0)
++#define SET_PERSONALITY(ex) do ; while(0)
+ 
+ #endif
+diff -urpN linux-2.6/include/asm-x86/elf.h linux-2.6-patched/include/asm-x86/elf.h
+--- linux-2.6/include/asm-x86/elf.h	2008-10-03 22:10:12.000000000 +0200
++++ linux-2.6-patched/include/asm-x86/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -185,7 +185,7 @@ do {							\
+ 	set_fs(USER_DS);				\
+ } while (0)
+ 
+-#define COMPAT_SET_PERSONALITY(ex, ibcs2)		\
++#define COMPAT_SET_PERSONALITY(ex)			\
+ do {							\
+ 	if (test_thread_flag(TIF_IA32))			\
+ 		clear_thread_flag(TIF_ABI_PENDING);	\
+@@ -266,7 +266,7 @@ extern int force_personality32;
+    For the moment, we have only optimizations for the Intel generations,
+    but that could change... */
+ 
+-#define SET_PERSONALITY(ex, ibcs2) set_personality_64bit()
++#define SET_PERSONALITY(ex) set_personality_64bit()
  
  /*
-  * Push messages into buffer, print them later if not urgent.
-@@ -215,7 +215,7 @@ void ia64_mca_printk(const char *fmt, ..
- 	va_end(args);
- 
- 	/* Copy the output into mlogbuf */
--	if (oops_in_progress) {
-+	if (atomic_read(&oops_in_progress)) {
- 		/* mlogbuf was abandoned, use printk directly instead. */
- 		printk(temp_buf);
- 	} else {
-diff -puN arch/mn10300/mm/fault.c~fix-a-race-condtion-of-oops_in_progress arch/mn10300/mm/fault.c
---- a/arch/mn10300/mm/fault.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/arch/mn10300/mm/fault.c
-@@ -39,7 +39,7 @@
- void bust_spinlocks(int yes)
- {
- 	if (yes) {
--		oops_in_progress = 1;
-+		atomic_set(&oops_in_progress, 1);
- #ifdef CONFIG_SMP
- 		/* Many serial drivers do __global_cli() */
- 		global_irq_lock = 0;
-@@ -49,7 +49,7 @@ void bust_spinlocks(int yes)
- #ifdef CONFIG_VT
- 		unblank_screen();
+  * An executable for which elf_read_implies_exec() returns TRUE will
+diff -urpN linux-2.6/include/asm-xtensa/elf.h linux-2.6-patched/include/asm-xtensa/elf.h
+--- linux-2.6/include/asm-xtensa/elf.h	2008-07-13 23:51:29.000000000 +0200
++++ linux-2.6-patched/include/asm-xtensa/elf.h	2008-10-03 22:10:29.000000000 +0200
+@@ -189,7 +189,7 @@ typedef struct {
  #endif
--		oops_in_progress = 0;
-+		atomic_set(&oops_in_progress, 0);
- 		/*
- 		 * OK, the message is on the console.  Now we call printk()
- 		 * without oops_in_progress set so that printk will give klogd
-diff -puN arch/parisc/kernel/traps.c~fix-a-race-condtion-of-oops_in_progress arch/parisc/kernel/traps.c
---- a/arch/parisc/kernel/traps.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/arch/parisc/kernel/traps.c
-@@ -246,7 +246,7 @@ void die_if_kernel(char *str, struct pt_
- 		return;
- 	}
+ } elf_xtregs_t;
  
--	oops_in_progress = 1;
-+	atomic_set(&oops_in_progress, 1);
+-#define SET_PERSONALITY(ex, ibcs2) set_personality(PER_LINUX_32BIT)
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX_32BIT)
  
- 	/* Amuse the user in a SPARC fashion */
- 	if (err) printk(
-@@ -438,7 +438,7 @@ void parisc_terminate(char *msg, struct 
- {
- 	static DEFINE_SPINLOCK(terminate_lock);
+ struct task_struct;
  
--	oops_in_progress = 1;
-+	atomic_set(&oops_in_progress, 1);
- 
- 	set_eiem(0);
- 	local_irq_disable();
-diff -puN arch/s390/kernel/setup.c~fix-a-race-condtion-of-oops_in_progress arch/s390/kernel/setup.c
---- a/arch/s390/kernel/setup.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/arch/s390/kernel/setup.c
-@@ -240,7 +240,7 @@ static inline void setup_zfcpdump(unsign
- 
- void machine_restart(char *command)
- {
--	if ((!in_interrupt() && !in_atomic()) || oops_in_progress)
-+	if ((!in_interrupt() && !in_atomic()) || atomic_read(&oops_in_progress))
- 		/*
- 		 * Only unblank the console if we are called in enabled
- 		 * context or a bust_spinlocks cleared the way for us.
-@@ -251,7 +251,7 @@ void machine_restart(char *command)
- 
- void machine_halt(void)
- {
--	if (!in_interrupt() || oops_in_progress)
-+	if (!in_interrupt() || atomic_read(&oops_in_progress))
- 		/*
- 		 * Only unblank the console if we are called in enabled
- 		 * context or a bust_spinlocks cleared the way for us.
-@@ -262,7 +262,7 @@ void machine_halt(void)
- 
- void machine_power_off(void)
- {
--	if (!in_interrupt() || oops_in_progress)
-+	if (!in_interrupt() || atomic_read(&oops_in_progress))
- 		/*
- 		 * Only unblank the console if we are called in enabled
- 		 * context or a bust_spinlocks cleared the way for us.
-diff -puN arch/s390/mm/fault.c~fix-a-race-condtion-of-oops_in_progress arch/s390/mm/fault.c
---- a/arch/s390/mm/fault.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/arch/s390/mm/fault.c
-@@ -81,11 +81,11 @@ static inline int notify_page_fault(stru
- void bust_spinlocks(int yes)
- {
- 	if (yes) {
--		oops_in_progress = 1;
-+		atomic_set(&oops_in_progress, 1);
- 	} else {
- 		int loglevel_save = console_loglevel;
- 		console_unblank();
--		oops_in_progress = 0;
-+		atomic_set(&oops_in_progress, 0);
- 		/*
- 		 * OK, the message is on the console.  Now we call printk()
- 		 * without oops_in_progress set so that printk will give klogd
-diff -puN drivers/char/vt.c~fix-a-race-condtion-of-oops_in_progress drivers/char/vt.c
---- a/drivers/char/vt.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/drivers/char/vt.c
-@@ -3660,7 +3660,7 @@ void do_unblank_screen(int leaving_gfx)
- 	 * context for the sake of the low level drivers, except in the special
- 	 * case of oops_in_progress
- 	 */
--	if (!oops_in_progress)
-+	if (!atomic_read(&oops_in_progress))
- 		might_sleep();
- 
- 	WARN_CONSOLE_UNLOCKED();
-diff -puN drivers/mtd/mtdoops.c~fix-a-race-condtion-of-oops_in_progress drivers/mtd/mtdoops.c
---- a/drivers/mtd/mtdoops.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/drivers/mtd/mtdoops.c
-@@ -341,7 +341,7 @@ mtdoops_console_write(struct console *co
- 	struct mtd_info *mtd = cxt->mtd;
- 	unsigned long flags;
- 
--	if (!oops_in_progress) {
-+	if (!atomic_read(&oops_in_progress)) {
- 		mtdoops_console_sync();
- 		return;
- 	}
-diff -puN drivers/parisc/led.c~fix-a-race-condtion-of-oops_in_progress drivers/parisc/led.c
---- a/drivers/parisc/led.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/drivers/parisc/led.c
-@@ -464,7 +464,7 @@ static void led_work_func (struct work_s
- 	if (likely(led_diskio))   currentleds |= led_get_diskio_activity();
- 
- 	/* blink all LEDs twice a second if we got an Oops (HPMC) */
--	if (unlikely(oops_in_progress)) 
-+	if (unlikely(atomic_read(&oops_in_progress)))
- 		currentleds = (count_HZ<=(HZ/2)) ? 0 : 0xff;
- 
- 	if (currentleds != lastleds)
-diff -puN drivers/serial/8250.c~fix-a-race-condtion-of-oops_in_progress drivers/serial/8250.c
---- a/drivers/serial/8250.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/drivers/serial/8250.c
-@@ -2612,7 +2612,7 @@ serial8250_console_write(struct console 
- 	if (up->port.sysrq) {
- 		/* serial8250_handle_port() already took the lock */
- 		locked = 0;
--	} else if (oops_in_progress) {
-+	} else if (atomic_read(&oops_in_progress)) {
- 		locked = spin_trylock(&up->port.lock);
- 	} else
- 		spin_lock(&up->port.lock);
-diff -puN drivers/serial/cpm_uart/cpm_uart_core.c~fix-a-race-condtion-of-oops_in_progress drivers/serial/cpm_uart/cpm_uart_core.c
---- a/drivers/serial/cpm_uart/cpm_uart_core.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/drivers/serial/cpm_uart/cpm_uart_core.c
-@@ -1120,7 +1120,7 @@ static void cpm_uart_console_write(struc
- 	cbd_t __iomem *bdp, *bdbase;
- 	unsigned char *cp;
- 	unsigned long flags;
--	int nolock = oops_in_progress;
-+	int nolock = atomic_read(&oops_in_progress);
- 
- 	if (unlikely(nolock)) {
- 		local_irq_save(flags);
-diff -puN drivers/serial/sunhv.c~fix-a-race-condtion-of-oops_in_progress drivers/serial/sunhv.c
---- a/drivers/serial/sunhv.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/drivers/serial/sunhv.c
-@@ -435,7 +435,7 @@ static void sunhv_console_write_paged(st
- 	local_irq_save(flags);
- 	if (port->sysrq) {
- 		locked = 0;
--	} else if (oops_in_progress) {
-+	} else if (atomic_read(&oops_in_progress)) {
- 		locked = spin_trylock(&port->lock);
- 	} else
- 		spin_lock(&port->lock);
-@@ -494,7 +494,7 @@ static void sunhv_console_write_bychar(s
- 	local_irq_save(flags);
- 	if (port->sysrq) {
- 		locked = 0;
--	} else if (oops_in_progress) {
-+	} else if (atomic_read(&oops_in_progress)) {
- 		locked = spin_trylock(&port->lock);
- 	} else
- 		spin_lock(&port->lock);
-diff -puN drivers/serial/sunsab.c~fix-a-race-condtion-of-oops_in_progress drivers/serial/sunsab.c
---- a/drivers/serial/sunsab.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/drivers/serial/sunsab.c
-@@ -852,7 +852,7 @@ static void sunsab_console_write(struct 
- 	local_irq_save(flags);
- 	if (up->port.sysrq) {
- 		locked = 0;
--	} else if (oops_in_progress) {
-+	} else if (atomic_read(&oops_in_progress)) {
- 		locked = spin_trylock(&up->port.lock);
- 	} else
- 		spin_lock(&up->port.lock);
-diff -puN drivers/serial/sunsu.c~fix-a-race-condtion-of-oops_in_progress drivers/serial/sunsu.c
---- a/drivers/serial/sunsu.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/drivers/serial/sunsu.c
-@@ -1296,7 +1296,7 @@ static void sunsu_console_write(struct c
- 	local_irq_save(flags);
- 	if (up->port.sysrq) {
- 		locked = 0;
--	} else if (oops_in_progress) {
-+	} else if (atomic_read(&oops_in_progress)) {
- 		locked = spin_trylock(&up->port.lock);
- 	} else
- 		spin_lock(&up->port.lock);
-diff -puN drivers/serial/sunzilog.c~fix-a-race-condtion-of-oops_in_progress drivers/serial/sunzilog.c
---- a/drivers/serial/sunzilog.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/drivers/serial/sunzilog.c
-@@ -1154,7 +1154,7 @@ sunzilog_console_write(struct console *c
- 	local_irq_save(flags);
- 	if (up->port.sysrq) {
- 		locked = 0;
--	} else if (oops_in_progress) {
-+	} else if (atomic_read(&oops_in_progress)) {
- 		locked = spin_trylock(&up->port.lock);
- 	} else
- 		spin_lock(&up->port.lock);
-diff -puN drivers/serial/uartlite.c~fix-a-race-condtion-of-oops_in_progress drivers/serial/uartlite.c
---- a/drivers/serial/uartlite.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/drivers/serial/uartlite.c
-@@ -368,9 +368,9 @@ static void ulite_console_write(struct c
- 	unsigned int ier;
- 	int locked = 1;
- 
--	if (oops_in_progress) {
-+	if (atomic_read(&oops_in_progress))
- 		locked = spin_trylock_irqsave(&port->lock, flags);
--	} else
-+	else
- 		spin_lock_irqsave(&port->lock, flags);
- 
- 	/* save and disable interrupt */
-diff -puN drivers/video/aty/radeonfb.h~fix-a-race-condtion-of-oops_in_progress drivers/video/aty/radeonfb.h
---- a/drivers/video/aty/radeonfb.h~fix-a-race-condtion-of-oops_in_progress
-+++ a/drivers/video/aty/radeonfb.h
-@@ -380,7 +380,7 @@ struct radeonfb_info {
-  */
- static inline void _radeon_msleep(struct radeonfb_info *rinfo, unsigned long ms)
- {
--	if (rinfo->no_schedule || oops_in_progress)
-+	if (rinfo->no_schedule || atomic_read(&oops_in_progress))
- 		mdelay(ms);
- 	else
- 		msleep(ms);
-diff -puN include/linux/console.h~fix-a-race-condtion-of-oops_in_progress include/linux/console.h
---- a/include/linux/console.h~fix-a-race-condtion-of-oops_in_progress
-+++ a/include/linux/console.h
-@@ -142,7 +142,8 @@ void vcs_remove_sysfs(struct tty_struct 
- 
- /* Some debug stub to catch some of the obvious races in the VT code */
- #if 1
--#define WARN_CONSOLE_UNLOCKED()	WARN_ON(!is_console_locked() && !oops_in_progress)
-+#define WARN_CONSOLE_UNLOCKED()	\
-+	WARN_ON(!is_console_locked() && !atomic_read(&oops_in_progress))
- #else
- #define WARN_CONSOLE_UNLOCKED()
- #endif
-diff -puN include/linux/kernel.h~fix-a-race-condtion-of-oops_in_progress include/linux/kernel.h
---- a/include/linux/kernel.h~fix-a-race-condtion-of-oops_in_progress
-+++ a/include/linux/kernel.h
-@@ -19,6 +19,7 @@
- #include <linux/dynamic_printk.h>
- #include <asm/byteorder.h>
- #include <asm/bug.h>
-+#include <asm/atomic_def.h>
- 
- extern const char linux_banner[];
- extern const char linux_proc_banner[];
-@@ -256,7 +257,8 @@ static inline void console_verbose(void)
- 
- extern void bust_spinlocks(int yes);
- extern void wake_up_klogd(void);
--extern int oops_in_progress;		/* If set, an oops, panic(), BUG() or die() is in progress */
-+/* If set, an oops, panic(), BUG() or die() is in progress */
-+extern atomic_t oops_in_progress;
- extern int panic_timeout;
- extern int panic_on_oops;
- extern int panic_on_unrecovered_nmi;
-diff -puN kernel/printk.c~fix-a-race-condtion-of-oops_in_progress kernel/printk.c
---- a/kernel/printk.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/kernel/printk.c
-@@ -64,7 +64,7 @@ int console_printk[4] = {
-  * Low level drivers may need that to know if they can schedule in
-  * their unblank() callback or not. So let's export it.
-  */
--int oops_in_progress;
-+atomic_t oops_in_progress;
- EXPORT_SYMBOL(oops_in_progress);
- 
- /*
-@@ -248,7 +248,7 @@ int log_buf_copy(char *dest, int idx, in
- 	int ret, max;
- 	bool took_lock = false;
- 
--	if (!oops_in_progress) {
-+	if (!atomic_read(&oops_in_progress)) {
- 		spin_lock_irq(&logbuf_lock);
- 		took_lock = true;
- 	}
-@@ -688,7 +688,7 @@ asmlinkage int vprintk(const char *fmt, 
- 		 * recursion and return - but flag the recursion so that
- 		 * it can be printed at the next appropriate moment:
- 		 */
--		if (!oops_in_progress) {
-+		if (!atomic_read(&oops_in_progress)) {
- 			recursion_bug = 1;
- 			goto out_restore_irqs;
- 		}
-@@ -1067,7 +1067,7 @@ void console_unblank(void)
- 	 * console_unblank can no longer be called in interrupt context unless
- 	 * oops_in_progress is set to 1..
- 	 */
--	if (oops_in_progress) {
-+	if (atomic_read(&oops_in_progress)) {
- 		if (down_trylock(&console_sem) != 0)
- 			return;
- 	} else
-diff -puN kernel/sched.c~fix-a-race-condtion-of-oops_in_progress kernel/sched.c
---- a/kernel/sched.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/kernel/sched.c
-@@ -8238,7 +8238,7 @@ void __might_sleep(char *file, int line)
- 	static unsigned long prev_jiffy;	/* ratelimiting */
- 
- 	if ((in_atomic() || irqs_disabled()) &&
--	    system_state == SYSTEM_RUNNING && !oops_in_progress) {
-+	    system_state == SYSTEM_RUNNING && !atomic_read(&oops_in_progress)) {
- 		if (time_before(jiffies, prev_jiffy + HZ) && prev_jiffy)
- 			return;
- 		prev_jiffy = jiffies;
-diff -puN lib/bust_spinlocks.c~fix-a-race-condtion-of-oops_in_progress lib/bust_spinlocks.c
---- a/lib/bust_spinlocks.c~fix-a-race-condtion-of-oops_in_progress
-+++ a/lib/bust_spinlocks.c
-@@ -17,12 +17,12 @@
- void __attribute__((weak)) bust_spinlocks(int yes)
- {
- 	if (yes) {
--		++oops_in_progress;
-+		atomic_inc(&oops_in_progress);
- 	} else {
- #ifdef CONFIG_VT
- 		unblank_screen();
- #endif
--		if (--oops_in_progress == 0)
-+		if (atomic_dec_and_test(&oops_in_progress))
- 			wake_up_klogd();
- 	}
- }
-_
-
-Patches currently in -mm which might be from ying.huang@intel.com are
-
-git-ftrace.patch
-separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh.patch
-separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix.patch
-separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix.patch
-fix-a-race-condtion-of-oops_in_progress.patch
