@@ -1,48 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound-mail-18.bluehost.com ([69.89.20.233]:36346 "HELO
-	outbound-mail-18.bluehost.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1751392AbYIVSHF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Sep 2008 14:07:05 -0400
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
-Subject: Re: [PATCH] Export kmap_atomic_pfn for DRM-GEM.
-Date: Mon, 22 Sep 2008 10:59:54 -0700
-References: <1219779789-8368-1-git-send-email-eric@anholt.net> <1219855961.4994.6.camel@vonnegut.anholt.net> <200808281022.14296.nickpiggin@yahoo.com.au>
-In-Reply-To: <200808281022.14296.nickpiggin@yahoo.com.au>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
+Received: from accolon.hansenpartnership.com ([76.243.235.52]:50612 "EHLO
+	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757126AbYJGWMd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Oct 2008 18:12:33 -0400
+Subject: Re: [RFC] Normalizing byteorder/unaligned access API
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <1223416391.8195.22.camel@brick>
+References: <1223416391.8195.22.camel@brick>
+Content-Type: text/plain
+Date: Tue, 07 Oct 2008 18:12:22 -0400
+Message-ID: <1223417543.7484.7.camel@localhost.localdomain>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-ID: <200809221059.54779.jbarnes@virtuousgeek.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: Eric Anholt <eric@anholt.net>, Dave Airlie <airlied@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20080922175954.jT-uTt_gRPIqKNgd46Z-vohqWHL18GLQVl47Ts1ryk8@z>
+To: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@ZenIV.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Matthew Wilcox <matthew@wil.cx>, linux-scsi <linux-scsi@vger.kernel.org>, Boaz Harrosh <bharrosh@panasas.com>
+Message-ID: <20081007221222.TwHIbRybput8U19rJC-5q9838gJvP2vBuwi3KbZoeCw@z>
 
-On Wednesday, August 27, 2008 5:22 pm Nick Piggin wrote:
-> > However, when other DRM drivers get around to doing memory management,
-> > I'm sure they'll also be interested in an ioremap_wc that doesn't eat
-> > ipi costs.  For us, the ipis for flushing were eating over 10% of CPU
-> > time.  If your patch series cuts that cost, we could drop this piece at
-> > that point.
->
-> It can cut the cost quite significantly on normal vmap/vunmap loads I
-> tested. Whether it will work as well on your workload, I don't know
-> but I would have liked to find out. I raised this issue quite a while
-> back, so I'm disappointed it had not been tried...
+On Tue, 2008-10-07 at 14:53 -0700, Harvey Harrison wrote:
+> [related question regarding the SCSI-private endian helper needs at the end]
+> 
+> Currently on the read side, we have (le16 as an example endianness)
+> 
+> le16_to_cpup(__le16 *)
+> get_unaligned_le16(void *)
+> 
+> And on the write side:
+> 
+> *(__le16)ptr = cpu_to_le16(u16)
+> put_unaligned_le16(u16, void *);
+> 
+> On the read side, Al said he would have preferred the unaligned version
+> take the same types as the aligned, rather than void *.  AKPM didn't think
+> the use of get_ was that great as get/put generally implies some kind of reference
+> taking in the kernel.
+> 
+> As the le16_to_cpup has been around for so long and is more recognizable, let's
+> make it the same for the unaligned case and typesafe:
+> 
+> le16_to_cpup(__le16 *)
+> unaligned_le16_to_cpup(__le16 *)
+> 
+> On the write side, the above get/put and type issues are still there, in addition AKPM felt
+> that the ordering of the put_unaligned parameters was opposite what was intuitive and that
+> the pointer should come first.
+> 
+> In this case, as there is currently no aligned helper (other than in some drivers defining macros)
+> define the api thusly:
+> 
+> Aligned:
+> write_le16(__le16 *ptr, u16 val)
+> 
+> Unaligned:
+> unaligned_write_le16(__le16 *ptr, u16 val)
 
-I think Eric has code with the vmap changes now?
+Well, for us it would be even worse since now we'll have to do casting
+to __beX just to shut sparse up, which makes the code even more
+unreadable.
 
-Given our discussions at KS/Plumbers would you be ok with acking these 
-patches?  Or do you want a repost so you can check out the vmap stuff?
+> The existing get/put_unaligned macros do not necessarily need to be modified.  It would
+> present one oddity that the parameter order was different, but that's not a huge issue.
+> 
+> These could be phased in as they do not collide with the current API and the old api converted
+> over fairly quickly as not many places use the get/put_unaligned_{endian} helpers yet.
+> 
+> In addition, there are some subsystems (scsi) that are looking into some differently sized
+> endian helpers (be24) and it may be worthwhile to have some agreement whether it is worth
+> making them common infrastructure and whether they should present a similar API to the
+> common byteorder/unaligned API.
+> 
+> Is this a worthwhile direction to take?
 
-After talking a bit more about it, I think we agreed that the ioctl interface 
-is actually a better approach then trying to shoehorn this stuff into system 
-calls, so aside from the vmap code (which could be done in 2.6.29 or whenever 
-the vmap stuff lands) I think this patchset is pretty close to what we want 
-in drm-next now...
+I really don't think so.  The current:
 
-Thanks,
-Jesse
+cmd[2] = X >> 24;
+cmd[3] = X >> 16;
+...
+
+make sense to a storage person because they replicate exactly how the
+standards are laid out.  They're also clearer than the plethora of
+unaligned_write_be32 etc.
+
+The only real one we need an accessor for is 64 bits ... purely because
+most people are too lazy to write all eight statements.
+
+The optimisation argument is a bit of a myth ... the number of cycles
+taken by these stores is dwarfed by the rest of the code path, even if
+the compiler totally screws up the optimisation, which, realistically,
+it shouldn't since it should know the platform native endianness in most
+cases.
+
+There was a fairly luke warm response to the idea of SCSI accessors
+basically showing the level of apathy; certainly generic ones would be a
+shade worse than this because now readers have to work out what they're
+doing.  In general, I'd prefer the SCSI stack just be left alone rather
+than converted to accessors like this.
+
+James
+
+
