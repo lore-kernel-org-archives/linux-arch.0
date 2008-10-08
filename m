@@ -1,45 +1,55 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+From: Marcel Holtmann <holtmann@linux.intel.com>
 Subject: Re: [RFC] Normalizing byteorder/unaligned access API
-Date: Wed, 8 Oct 2008 09:15:53 +0200 (CEST)
-Message-ID: <Pine.LNX.4.64.0810080913150.19202@anakin>
-References: <1223416391.8195.22.camel@brick> <1223417543.7484.7.camel@localhost.localdomain>
- <1223419166.8195.37.camel@brick> <20081007233315.GM25780@parisc-linux.org>
- <1223422788.8195.45.camel@brick>
+Date: Wed, 08 Oct 2008 09:31:24 +0200
+Message-ID: <1223451084.11272.250.camel@violet.holtmann.net>
+References: <1223416391.8195.22.camel@brick>
+	 <20081007232807.GL25780@parisc-linux.org> <1223422542.8195.42.camel@brick>
+	 <20081007235533.GN25780@parisc-linux.org>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1754526AbYJHHQH@vger.kernel.org>
-In-Reply-To: <1223422788.8195.45.camel@brick>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Harvey Harrison <harvey.harrison@gmail.com>
-Cc: Matthew Wilcox <matthew@wil.cx>, James Bottomley <James.Bottomley@HansenPartnership.com>, Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@ZenIV.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-scsi <linux-scsi@vger.kernel.org>, Boaz Harrosh <bharrosh@panasas.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from senator.holtmann.net ([87.106.208.187]:40022 "EHLO
+	mail.holtmann.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753147AbYJHHbA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Oct 2008 03:31:00 -0400
+In-Reply-To: <20081007235533.GN25780@parisc-linux.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Harvey Harrison <harvey.harrison@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@ZenIV.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, linux-scsi <linux-scsi@vger.kernel.org>, Boaz Harrosh <bharrosh@panasas.com>
 
-On Tue, 7 Oct 2008, Harvey Harrison wrote:
-> On Tue, 2008-10-07 at 17:33 -0600, Matthew Wilcox wrote:
-> > On Tue, Oct 07, 2008 at 03:39:25PM -0700, Harvey Harrison wrote:
-> > > As an example, in the write command handling in achba.c, a patch similar to the following
-> > > (assumes the existence of a __be24 type somewhere):
+Hi Matthew,
+
+> > > On Tue, Oct 07, 2008 at 02:53:11PM -0700, Harvey Harrison wrote:
+> > > > In addition, there are some subsystems (scsi) that are looking into some
+> > > > differently sized endian helpers (be24) and it may be worthwhile to have
+> > > > some agreement whether it is worth making them common infrastructure and
+> > > > whether they should present a similar API to the common byteorder/unaligned
+> > > > API.
+> > > 
+> > > I still think SCSI should have its own accessors, even if they're
+> > > just wrappers around the common BE code.
+> > > 
 > > 
-> > What type could be defined to be '__be24'?  Would
+> > I thought it was generally discouraged that subsystems have trivial
+> > wrappers like that, otherwise you wind up with:
 > > 
-> > typedef struct {
-> > 	unsigned char data[3];
-> > } __be24;
+> > scsi_get_u32
+> > usb_get_u32
+> > v4l_get_u32
+> > 
+> > ... and so on, where as if they all used the common names, people more
+> > used to other areas of the kernel can still recognize what the code
+> > is doing without having the lookup another define.
 > 
-> __packed
+> My point is that they don't have to recognise what the code is doing.
+> They don't have to know if the protocol is BE or LE, only that USB code
+> is accessing the data in the appropriate way for USB.
 
-I don't think __packed would help here, as alignment(struct) ==
-max(alignment(struct member)) == alignment(char).
+nice idea, but in the real world some stacks mix big and little endian
+in their protocols. Take Bluetooth as an example ;)
 
-Don't you want the __packed on the structure that embeds the __be24?
+Regards
 
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+Marcel
