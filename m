@@ -1,199 +1,123 @@
-From: akpm@linux-foundation.org
-Subject: - separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix.patch removed from -mm tree
-Date: Fri, 10 Oct 2008 14:36:52 -0700
-Message-ID: <200810102136.m9ALaqVj005290@imap1.linux-foundation.org>
-Reply-To: linux-kernel@vger.kernel.org
-Return-path: <mm-commits-owner@vger.kernel.org>
-Sender: mm-commits-owner@vger.kernel.org
-To: akpm@linux-foundation.org, lethal@linux-sh.org, linux-arch@vger.kernel.org, ying.huang@intel.com, mm-commits@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Nick Piggin <npiggin@suse.de>
+Subject: [patch] mutex: optimise generic mutex implementations
+Date: Sun, 12 Oct 2008 07:46:34 +0200
+Message-ID: <20081012054634.GA12535@wotan.suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.suse.de ([195.135.220.2]:58149 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750752AbYJLFrM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 12 Oct 2008 01:47:12 -0400
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, paulus@samba.org, benh@kernel.crashing.org
 
+Speed up generic mutex implementations.
 
-The patch titled
-     separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix
-has been removed from the -mm tree.  Its filename was
-     separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix.patch
+- atomic operations which both modify the variable and return something imply
+  full smp memory barriers before and after the memory operations involved
+  (failing atomic_cmpxchg, atomic_add_unless, etc don't imply a barrier because
+  they don't modify the target). See Documentation/atomic_ops.txt.
+  So remove extra barriers and branches.
+  
+- All architectures support atomic_cmpxchg. This has no relation to
+  __HAVE_ARCH_CMPXCHG. We can just take the atomic_cmpxchg path unconditionally
 
-This patch was dropped because it was folded into separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh.patch
+This reduces a simple single threaded fastpath lock+unlock test from 590 cycles
+to 203 cycles on a ppc970 system.
 
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix
-From: Andrew Morton <akpm@linux-foundation.org>
-
-Cc: <linux-arch@vger.kernel.org>
-Cc: Huang Ying <ying.huang@intel.com>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Nick Piggin <npiggin@suse.de>
 ---
-
- arch/sh/include/asm/atomic.h     |    2 +-
- arch/sh/include/asm/atomic_def.h |    8 ++++++++
- 2 files changed, 9 insertions(+), 1 deletion(-)
-
-diff -puN arch/sh/include/asm/atomic.h~separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix arch/sh/include/asm/atomic.h
---- a/arch/sh/include/asm/atomic.h~separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix
-+++ a/arch/sh/include/asm/atomic.h
-@@ -7,7 +7,7 @@
-  *
-  */
+Index: linux-2.6/include/asm-generic/mutex-dec.h
+===================================================================
+--- linux-2.6.orig/include/asm-generic/mutex-dec.h
++++ linux-2.6/include/asm-generic/mutex-dec.h
+@@ -22,8 +22,6 @@ __mutex_fastpath_lock(atomic_t *count, v
+ {
+ 	if (unlikely(atomic_dec_return(count) < 0))
+ 		fail_fn(count);
+-	else
+-		smp_mb();
+ }
  
--typedef struct { volatile int counter; } atomic_t;
-+#include <asm/atomic_def.h>
+ /**
+@@ -41,10 +39,7 @@ __mutex_fastpath_lock_retval(atomic_t *c
+ {
+ 	if (unlikely(atomic_dec_return(count) < 0))
+ 		return fail_fn(count);
+-	else {
+-		smp_mb();
+-		return 0;
+-	}
++	return 0;
+ }
  
- #define ATOMIC_INIT(i)	( (atomic_t) { (i) } )
+ /**
+@@ -63,7 +58,6 @@ __mutex_fastpath_lock_retval(atomic_t *c
+ static inline void
+ __mutex_fastpath_unlock(atomic_t *count, void (*fail_fn)(atomic_t *))
+ {
+-	smp_mb();
+ 	if (unlikely(atomic_inc_return(count) <= 0))
+ 		fail_fn(count);
+ }
+@@ -98,15 +92,9 @@ __mutex_fastpath_trylock(atomic_t *count
+ 	 * just as efficient (and simpler) as a 'destructive' probing of
+ 	 * the mutex state would be.
+ 	 */
+-#ifdef __HAVE_ARCH_CMPXCHG
+-	if (likely(atomic_cmpxchg(count, 1, 0) == 1)) {
+-		smp_mb();
++	if (likely(atomic_cmpxchg(count, 1, 0) == 1))
+ 		return 1;
+-	}
+ 	return 0;
+-#else
+-	return fail_fn(count);
+-#endif
+ }
  
-diff -puN /dev/null arch/sh/include/asm/atomic_def.h
---- /dev/null
-+++ a/arch/sh/include/asm/atomic_def.h
-@@ -0,0 +1,8 @@
-+#ifndef _ASM_IA64_ATOMIC_DEF_H
-+#define _ASM_IA64_ATOMIC_DEF_H
-+
-+typedef struct {
-+	volatile int counter;
-+} atomic_t;
-+
-+#endif
-_
-
-Patches currently in -mm which might be from akpm@linux-foundation.org are
-
-mm-remove-the-might_sleep-from-lock_page.patch
-git-tip.patch
-markers-make-marker_synchronize_unregister-a-macro.patch
-git-powerpc.patch
-git-sparc.patch
-git-xtensa.patch
-git-pci.patch
-git-hid.patch
-git-v4l-dvb.patch
-git-v4l-dvb-git-rejects.patch
-git-nfs.patch
-git-nfsd.patch
-git-dlm.patch
-git-scsi.patch
-git-tests-fixup.patch
-git-ext4.patch
-git-ext4-vs-git-ocfs2.patch
-git-async_tx.patch
-git-net.patch
-git-net-conflicts.patch
-git-mtd.patch
-git-vfs-vs-git-ext4.patch
-git-sound.patch
-git-sound-vs-git-arm.patch
-git-input.patch
-git-block.patch
-git-block-reject-fix.patch
-git-pcmcia-git-rejects.patch
-git-battery.patch
-git-battery-rejects.patch
-git-slab-versus-git-tip.patch
-git-mfd.patch
-git-drm.patch
-revert-usb-usb-remove-info-macro-from-usbh.patch
-revert-usb-usb-remove-warn-macro-from-usbh.patch
-fix-ttydev-tty-usbserial-kref.patch
-drivers-mfd-ucb1400_corec-needs-gpio.patch
-drivers-mfd-ucb1400_corec-further-unbork.patch
-arch-x86-kernel-early_printkc-remove-unused-enable_debug_console.patch
-tick-schedc-suppress-needless-timer-reprogramming.patch
-drivers-input-touchscreen-ucb1400_tsc-needs-gpio.patch
-led-driver-for-leds-on-pcengines-alix2-and-alix3-boards.patch
-libata-blackfin-pata-driver-add-proper-pm-operation-into-atapi-driver.patch
-misdn-misc-timerdev-fixes-fix.patch
-drivers-net-sfc-falconc-fix-min-warnings.patch
-backlight-driver-for-tabletkiosk-sahara-touchit-213-tablet-pc.patch
-drivers-scsi-sdh-use-inlined-c-functions-not-macros.patch
-scsi-dpt_i2o-is-bust-on-ia64.patch
-mm-page_allocc-free_area_init_nodes-fix-inappropriate-use-of-enum.patch
-mm-cleanup-to-make-remove_memory-arch-neutral-fix.patch
-mm-cleanup-to-make-remove_memory-arch-neutral-fix-fix.patch
-vmscan-give-referenced-active-and-unmapped-pages-a-second-trip-around-the-lru.patch
-vm-dont-run-touch_buffer-during-buffercache-lookups.patch
-vmscan-move-isolate_lru_page-to-vmscanc.patch
-define-page_file_cache-function.patch
-vmscan-split-lru-lists-into-anon-file-sets.patch
-unevictable-lru-infrastructure.patch
-unevictable-lru-page-statistics.patch
-mlock-mlocked-pages-are-unevictable.patch
-mlock-mlocked-pages-are-unevictable-fix.patch
-mmap-handle-mlocked-pages-during-map-remap-unmap.patch
-mmap-handle-mlocked-pages-during-map-remap-unmap-mlock-resubmit-locked_vm-adjustment-as-separate-patch-fix.patch
-vmscan-unevictable-lru-scan-sysctl.patch
-mlock-make-mlock-error-return-posixly-correct-fix.patch
-mm-vmallocc-revert-git-tip-change.patch
-mm-rewrite-vmap-layer-fix.patch
-mm-rewrite-vmap-layer-fix-fix.patch
-mm-rewrite-vmap-layer-fix-fix-fix.patch
-revert-mm-vmallocc-revert-git-tip-change.patch
-memory_probe-fix-wrong-sysfs-file-attribute-fix.patch
-mm-use-a-radix-tree-to-make-do_move_pages-complexity-linear-checkpatch-fixes.patch
-h8300-generic_bug-support-checkpatch-fixes.patch
-pm-rework-disabling-of-user-mode-helpers-during-suspend-hibernation-cleanup.patch
-container-freezer-add-tif_freeze-flag-to-all-architectures-fix.patch
-container-freezer-implement-freezer-cgroup-subsystem-checkpatch-fixes.patch
-container-freezer-implement-freezer-cgroup-subsystem-uninline-thaw_process-fix.patch
-eeepc-laptop-use-standard-interfaces-fix-fix.patch
-separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh.patch
-separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix.patch
-separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix.patch
-make-taint-bit-reliable-v3-fix.patch
-kernel-sysc-improve-code-generation.patch
-compat-generic-compat-get-settimeofday-checkpatch-fixes.patch
-hwmon-pc87360-separate-alarm-files-add-in-min-max-alarms-cleanup.patch
-hwmon-pc87360-separate-alarm-files-add-temp-min-max-crit-fault-alarms-cleanup.patch
-hwmon-pc87360-separate-alarm-files-add-therm-min-max-crit-alarms-cleanup.patch
-drivers-hwmon-applesmcc-remove-unneeded-casts.patch
-allow-recursion-in-binfmt_script-and-binfmt_misc-fix.patch
-serial-make-uart_ports-ioport-unsigned-long-fix.patch
-autofs4-track-uid-and-gid-of-last-mount-requester-fix.patch
-autofs4-add-miscellaneous-device-for-ioctls-fix.patch
-autofs4-add-miscellaneous-device-for-ioctls-fix-2.patch
-rtc-add-device-driver-for-dallas-ds3234-spi-rtc-chip-fix.patch
-fb-push-down-the-bkl-in-the-ioctl-handler-checkpatch-fixes.patch
-viafb-viafbmodes-viafbtxt-fix-fix.patch
-viafb-accelc-accelh-checkpatch-fixes.patch
-viafb-dvic-dvih-globalc-and-globalh-checkpatch-fixes.patch
-viafb-hwc-hwh-checkpatch-fixes.patch
-viafb-viafbdevc-viafbdevh-checkpatch-fixes.patch
-fbdev-kconfig-update-fix.patch
-fbdev-allow-more-chip-revisions-in-epson-s1d13-video-driver-cleanups.patch
-ext2-avoid-printk-floods-in-the-face-of-directory-corruption-checkpatch-fixes.patch
-ext3-fix-ext3_dx_readdir-hash-collision-handling-checkpatch-fixes.patch
-cgroups-fix-probable-race-with-put_css_set-and-find_css_set-fix.patch
-memrlimit-add-memrlimit-controller-accounting-and-control-mm_owner-fix-checkpatch-fixes.patch
-message-queues-increase-range-limits-checkpatch-fixes.patch
-applicomc-fix-apparently-broken-code-in-do_ac_read.patch
-drivers-char-tpm-tpmc-fix-error-patch-memory-leak.patch
-tpm-addition-of-pnp_remove-checkpatch-fixes.patch
-w1-be-able-to-manually-add-and-remove-slaves-fix.patch
-w1-new-driver-ds2431-chip-fix.patch
-gru-driver-minor-updates-fix.patch
-drivers-rtc-rtc-bq4802c-dont-use-bin_2_bcd-and-bcd_2_bin.patch
-x86-sysfs-kill-owner-field-from-attribute-fix.patch
-x86-sysfs-kill-owner-field-from-attribute-fix-3.patch
-nilfs2-inode-operations-fix.patch
-nilfs2-pathname-operations-fix.patch
-reiser4.patch
-reiser4-tree_lock-fixes.patch
-reiser4-tree_lock-fixes-fix.patch
-reiser4-semaphore-fix.patch
-slb-drop-kmem-cache-argument-from-constructor-reiser4.patch
-reiser4-suid.patch
-reiser4-track-upstream-changes.patch
-page-owner-tracking-leak-detector.patch
-nr_blockdev_pages-in_interrupt-warning.patch
-slab-leaks3-default-y.patch
-put_bh-debug.patch
-shrink_slab-handle-bad-shrinkers.patch
-getblk-handle-2tb-devices.patch
-getblk-handle-2tb-devices-fix.patch
-undeprecate-pci_find_device.patch
-notify_change-callers-must-hold-i_mutex.patch
-profile-likely-unlikely-macros.patch
-drivers-net-bonding-bond_sysfsc-suppress-uninitialized-var-warning.patch
-w1-build-fix.patch
-
+ #endif
+Index: linux-2.6/include/asm-generic/mutex-xchg.h
+===================================================================
+--- linux-2.6.orig/include/asm-generic/mutex-xchg.h
++++ linux-2.6/include/asm-generic/mutex-xchg.h
+@@ -27,8 +27,6 @@ __mutex_fastpath_lock(atomic_t *count, v
+ {
+ 	if (unlikely(atomic_xchg(count, 0) != 1))
+ 		fail_fn(count);
+-	else
+-		smp_mb();
+ }
+ 
+ /**
+@@ -46,10 +44,7 @@ __mutex_fastpath_lock_retval(atomic_t *c
+ {
+ 	if (unlikely(atomic_xchg(count, 0) != 1))
+ 		return fail_fn(count);
+-	else {
+-		smp_mb();
+-		return 0;
+-	}
++	return 0;
+ }
+ 
+ /**
+@@ -67,7 +62,6 @@ __mutex_fastpath_lock_retval(atomic_t *c
+ static inline void
+ __mutex_fastpath_unlock(atomic_t *count, void (*fail_fn)(atomic_t *))
+ {
+-	smp_mb();
+ 	if (unlikely(atomic_xchg(count, 1) != 0))
+ 		fail_fn(count);
+ }
+@@ -110,7 +104,6 @@ __mutex_fastpath_trylock(atomic_t *count
+ 		if (prev < 0)
+ 			prev = 0;
+ 	}
+-	smp_mb();
+ 
+ 	return prev;
+ }
