@@ -1,33 +1,49 @@
-From: Nick Piggin <npiggin@suse.de>
+From: Scott Wood <scottwood@freescale.com>
 Subject: Re: [patch] powerpc: implement optimised mutex fastpaths
-Date: Mon, 13 Oct 2008 03:18:27 +0200
-Message-ID: <20081013011827.GA1299@wotan.suse.de>
+Date: Mon, 13 Oct 2008 11:15:47 -0500
+Message-ID: <20081013161547.GB19080@ld0162-tx32.am.freescale.net>
 References: <20081012054634.GA12535@wotan.suse.de> <20081012054732.GB12535@wotan.suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:56110 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751749AbYJMBSc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 12 Oct 2008 21:18:32 -0400
+Received: from de01egw02.freescale.net ([192.88.165.103]:38959 "EHLO
+	de01egw02.freescale.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756445AbYJMQP6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Oct 2008 12:15:58 -0400
+Received: from de01smr02.am.mot.com (de01smr02.freescale.net [10.208.0.151])
+	by de01egw02.freescale.net (8.12.11/de01egw02) with ESMTP id m9DGFpNZ013539
+	for <linux-arch@vger.kernel.org>; Mon, 13 Oct 2008 09:15:52 -0700 (MST)
+Received: from ld0162-tx32.am.freescale.net (ld0162-tx32.am.freescale.net [10.82.19.112])
+	by de01smr02.am.mot.com (8.13.1/8.13.0) with ESMTP id m9DGFmWe010155
+	for <linux-arch@vger.kernel.org>; Mon, 13 Oct 2008 11:15:48 -0500 (CDT)
 Content-Disposition: inline
 In-Reply-To: <20081012054732.GB12535@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, paulus@samba.org, benh@kernel.crashing.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, paulus@samba.org, benh@kernel.crashing.org
 
 On Sun, Oct 12, 2008 at 07:47:32AM +0200, Nick Piggin wrote:
-> 
-> Implement a more optimal mutex fastpath for powerpc, making use of acquire
-> and release barrier semantics. This takes the mutex lock+unlock benchmark
-> from 203 to 173 cycles on a G5.
-> 
-> +static inline int
-> +__mutex_fastpath_trylock(atomic_t *count, int (*fail_fn)(atomic_t *))
+> +static inline int __mutex_cmpxchg_lock(atomic_t *v, int old, int new)
 > +{
-> +	if (likely(__mutex_cmpxchg_lock(count, 1, 0) == 1))
-> +		return 1;
+> +	int t;
+> +
+> +	__asm__ __volatile__ (
+> +"1:	lwarx	%0,0,%1		# mutex trylock\n\
+> +	cmpw	0,%0,%2\n\
+> +	bne-	2f\n"
+> +	PPC405_ERR77(0,%1)
+> +"	stwcx.	%3,0,%1\n\
+> +	bne-	1b"
+> +	ISYNC_ON_SMP
+> +	"\n\
+> +2:"
+> +	: "=&r" (t)
+> +	: "r" (&v->counter), "r" (old), "r" (new)
+> +	: "cc", "memory");
 
-Oops, I must have sent the wrong version. This needs a return 0 here.
+This will break if the compiler picks r0 for &v->counter.  Use "b" as the
+constraint, or better yet do "lwarx %0, %y1", with a "Z" (v->counter)
+constraint.
 
-> +}
+-Scott
