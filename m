@@ -1,221 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:37795 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760247AbYJJVhC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Oct 2008 17:37:02 -0400
-Message-ID: <200810102136.m9ALauPV005296@imap1.linux-foundation.org>
-Subject: - separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Fri, 10 Oct 2008 14:36:56 -0700
+Received: from de01egw02.freescale.net ([192.88.165.103]:56287 "EHLO
+	de01egw02.freescale.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751374AbYJNGGK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Oct 2008 02:06:10 -0400
+Received: from de01smr01.freescale.net (de01smr01.freescale.net [10.208.0.31])
+	by de01egw02.freescale.net (8.12.11/de01egw02) with ESMTP id m9E62H0D012528
+	for <linux-arch@vger.kernel.org>; Mon, 13 Oct 2008 23:06:07 -0700 (MST)
+Received: from ld0162-tx32.am.freescale.net (ld0162-tx32.am.freescale.net [10.82.19.112])
+	by de01smr01.freescale.net (8.13.1/8.13.0) with ESMTP id m9DGKLsQ006183
+	for <linux-arch@vger.kernel.org>; Mon, 13 Oct 2008 11:20:21 -0500 (CDT)
+Date: Mon, 13 Oct 2008 11:20:20 -0500
+From: Scott Wood <scottwood@freescale.com>
+Subject: Re: [patch] powerpc: implement optimised mutex fastpaths
+Message-ID: <20081013162020.GC19080@ld0162-tx32.am.freescale.net>
+References: <20081012054634.GA12535@wotan.suse.de> <20081012054732.GB12535@wotan.suse.de> <20081013161547.GB19080@ld0162-tx32.am.freescale.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20081013161547.GB19080@ld0162-tx32.am.freescale.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, davem@davemloft.net, linux-arch@vger.kernel.org, ying.huang@intel.com, mm-commits@vger.kernel.org
-Message-ID: <20081010213656.BDhcgs99IvZgReA1pYTUxaMH7cWaebgIb8Eamtz7cKU@z>
+To: Nick Piggin <npiggin@suse.de>
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, Ingo Molnar <mingo@elte.hu>, paulus@samba.org
+Message-ID: <20081013162020.mcOQWY4tOtue8ptsg2r9omCyo-NO3XuVGQMfbjyXz1E@z>
 
+On Mon, Oct 13, 2008 at 11:15:47AM -0500, Scott Wood wrote:
+> On Sun, Oct 12, 2008 at 07:47:32AM +0200, Nick Piggin wrote:
+> > +static inline int __mutex_cmpxchg_lock(atomic_t *v, int old, int new)
+> > +{
+> > +	int t;
+> > +
+> > +	__asm__ __volatile__ (
+> > +"1:	lwarx	%0,0,%1		# mutex trylock\n\
+> > +	cmpw	0,%0,%2\n\
+> > +	bne-	2f\n"
+> > +	PPC405_ERR77(0,%1)
+> > +"	stwcx.	%3,0,%1\n\
+> > +	bne-	1b"
+> > +	ISYNC_ON_SMP
+> > +	"\n\
+> > +2:"
+> > +	: "=&r" (t)
+> > +	: "r" (&v->counter), "r" (old), "r" (new)
+> > +	: "cc", "memory");
+> 
+> This will break if the compiler picks r0 for &v->counter.  Use "b" as the
+> constraint, or better yet do "lwarx %0, %y1", with a "Z" (v->counter)
+> constraint.
 
-The patch titled
-     separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix
-has been removed from the -mm tree.  Its filename was
-     separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix.patch
+Sorry, had a morning brain-fart there -- you're not using the base
+register.
 
-This patch was dropped because it was folded into separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh.patch
-
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix
-From: Andrew Morton <akpm@linux-foundation.org>
-
-Cc: <linux-arch@vger.kernel.org>
-Cc: Huang Ying <ying.huang@intel.com>
-Cc: "David S. Miller" <davem@davemloft.net>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- arch/sparc/include/asm/atomic_32.h  |    4 ++--
- arch/sparc/include/asm/atomic_64.h  |    2 +-
- arch/sparc/include/asm/atomic_def.h |    8 ++++++++
- 3 files changed, 11 insertions(+), 3 deletions(-)
-
-diff -puN arch/sparc/include/asm/atomic_32.h~separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix arch/sparc/include/asm/atomic_32.h
---- a/arch/sparc/include/asm/atomic_32.h~separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix
-+++ a/arch/sparc/include/asm/atomic_32.h
-@@ -13,10 +13,10 @@
- 
- #include <linux/types.h>
- 
--typedef struct { volatile int counter; } atomic_t;
--
- #ifdef __KERNEL__
- 
-+#include <asm/atomic_def.h>
-+
- #define ATOMIC_INIT(i)  { (i) }
- 
- extern int __atomic_add_return(int, atomic_t *);
-diff -puN arch/sparc/include/asm/atomic_64.h~separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix arch/sparc/include/asm/atomic_64.h
---- a/arch/sparc/include/asm/atomic_64.h~separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix
-+++ a/arch/sparc/include/asm/atomic_64.h
-@@ -9,8 +9,8 @@
- 
- #include <linux/types.h>
- #include <asm/system.h>
-+#include <asm/atomic_def.h>
- 
--typedef struct { volatile int counter; } atomic_t;
- typedef struct { volatile __s64 counter; } atomic64_t;
- 
- #define ATOMIC_INIT(i)		{ (i) }
-diff -puN /dev/null arch/sparc/include/asm/atomic_def.h
---- /dev/null
-+++ a/arch/sparc/include/asm/atomic_def.h
-@@ -0,0 +1,8 @@
-+#ifndef _ATOMIC_DEF_H
-+#define _ATOMIC_DEF_H
-+
-+typedef struct {
-+	volatile int counter;
-+} atomic_t;
-+
-+#endif
-_
-
-Patches currently in -mm which might be from akpm@linux-foundation.org are
-
-mm-remove-the-might_sleep-from-lock_page.patch
-git-tip.patch
-markers-make-marker_synchronize_unregister-a-macro.patch
-git-powerpc.patch
-git-sparc.patch
-git-xtensa.patch
-git-pci.patch
-git-hid.patch
-git-v4l-dvb.patch
-git-v4l-dvb-git-rejects.patch
-git-nfs.patch
-git-nfsd.patch
-git-dlm.patch
-git-scsi.patch
-git-tests-fixup.patch
-git-ext4.patch
-git-ext4-vs-git-ocfs2.patch
-git-async_tx.patch
-git-net.patch
-git-net-conflicts.patch
-git-mtd.patch
-git-vfs-vs-git-ext4.patch
-git-sound.patch
-git-sound-vs-git-arm.patch
-git-input.patch
-git-block.patch
-git-block-reject-fix.patch
-git-pcmcia-git-rejects.patch
-git-battery.patch
-git-battery-rejects.patch
-git-slab-versus-git-tip.patch
-git-mfd.patch
-git-drm.patch
-revert-usb-usb-remove-info-macro-from-usbh.patch
-revert-usb-usb-remove-warn-macro-from-usbh.patch
-fix-ttydev-tty-usbserial-kref.patch
-drivers-mfd-ucb1400_corec-needs-gpio.patch
-drivers-mfd-ucb1400_corec-further-unbork.patch
-arch-x86-kernel-early_printkc-remove-unused-enable_debug_console.patch
-tick-schedc-suppress-needless-timer-reprogramming.patch
-drivers-input-touchscreen-ucb1400_tsc-needs-gpio.patch
-led-driver-for-leds-on-pcengines-alix2-and-alix3-boards.patch
-libata-blackfin-pata-driver-add-proper-pm-operation-into-atapi-driver.patch
-misdn-misc-timerdev-fixes-fix.patch
-drivers-net-sfc-falconc-fix-min-warnings.patch
-backlight-driver-for-tabletkiosk-sahara-touchit-213-tablet-pc.patch
-drivers-scsi-sdh-use-inlined-c-functions-not-macros.patch
-scsi-dpt_i2o-is-bust-on-ia64.patch
-mm-page_allocc-free_area_init_nodes-fix-inappropriate-use-of-enum.patch
-mm-cleanup-to-make-remove_memory-arch-neutral-fix.patch
-mm-cleanup-to-make-remove_memory-arch-neutral-fix-fix.patch
-vmscan-give-referenced-active-and-unmapped-pages-a-second-trip-around-the-lru.patch
-vm-dont-run-touch_buffer-during-buffercache-lookups.patch
-vmscan-move-isolate_lru_page-to-vmscanc.patch
-define-page_file_cache-function.patch
-vmscan-split-lru-lists-into-anon-file-sets.patch
-unevictable-lru-infrastructure.patch
-unevictable-lru-page-statistics.patch
-mlock-mlocked-pages-are-unevictable.patch
-mlock-mlocked-pages-are-unevictable-fix.patch
-mmap-handle-mlocked-pages-during-map-remap-unmap.patch
-mmap-handle-mlocked-pages-during-map-remap-unmap-mlock-resubmit-locked_vm-adjustment-as-separate-patch-fix.patch
-vmscan-unevictable-lru-scan-sysctl.patch
-mlock-make-mlock-error-return-posixly-correct-fix.patch
-mm-vmallocc-revert-git-tip-change.patch
-mm-rewrite-vmap-layer-fix.patch
-mm-rewrite-vmap-layer-fix-fix.patch
-mm-rewrite-vmap-layer-fix-fix-fix.patch
-revert-mm-vmallocc-revert-git-tip-change.patch
-memory_probe-fix-wrong-sysfs-file-attribute-fix.patch
-mm-use-a-radix-tree-to-make-do_move_pages-complexity-linear-checkpatch-fixes.patch
-h8300-generic_bug-support-checkpatch-fixes.patch
-pm-rework-disabling-of-user-mode-helpers-during-suspend-hibernation-cleanup.patch
-container-freezer-add-tif_freeze-flag-to-all-architectures-fix.patch
-container-freezer-implement-freezer-cgroup-subsystem-checkpatch-fixes.patch
-container-freezer-implement-freezer-cgroup-subsystem-uninline-thaw_process-fix.patch
-eeepc-laptop-use-standard-interfaces-fix-fix.patch
-separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh.patch
-separate-atomic_t-declaration-from-asm-atomich-into-asm-atomic_defh-fix-fix.patch
-make-taint-bit-reliable-v3-fix.patch
-kernel-sysc-improve-code-generation.patch
-compat-generic-compat-get-settimeofday-checkpatch-fixes.patch
-hwmon-pc87360-separate-alarm-files-add-in-min-max-alarms-cleanup.patch
-hwmon-pc87360-separate-alarm-files-add-temp-min-max-crit-fault-alarms-cleanup.patch
-hwmon-pc87360-separate-alarm-files-add-therm-min-max-crit-alarms-cleanup.patch
-drivers-hwmon-applesmcc-remove-unneeded-casts.patch
-allow-recursion-in-binfmt_script-and-binfmt_misc-fix.patch
-serial-make-uart_ports-ioport-unsigned-long-fix.patch
-autofs4-track-uid-and-gid-of-last-mount-requester-fix.patch
-autofs4-add-miscellaneous-device-for-ioctls-fix.patch
-autofs4-add-miscellaneous-device-for-ioctls-fix-2.patch
-rtc-add-device-driver-for-dallas-ds3234-spi-rtc-chip-fix.patch
-fb-push-down-the-bkl-in-the-ioctl-handler-checkpatch-fixes.patch
-viafb-viafbmodes-viafbtxt-fix-fix.patch
-viafb-accelc-accelh-checkpatch-fixes.patch
-viafb-dvic-dvih-globalc-and-globalh-checkpatch-fixes.patch
-viafb-hwc-hwh-checkpatch-fixes.patch
-viafb-viafbdevc-viafbdevh-checkpatch-fixes.patch
-fbdev-kconfig-update-fix.patch
-fbdev-allow-more-chip-revisions-in-epson-s1d13-video-driver-cleanups.patch
-ext2-avoid-printk-floods-in-the-face-of-directory-corruption-checkpatch-fixes.patch
-ext3-fix-ext3_dx_readdir-hash-collision-handling-checkpatch-fixes.patch
-cgroups-fix-probable-race-with-put_css_set-and-find_css_set-fix.patch
-memrlimit-add-memrlimit-controller-accounting-and-control-mm_owner-fix-checkpatch-fixes.patch
-message-queues-increase-range-limits-checkpatch-fixes.patch
-applicomc-fix-apparently-broken-code-in-do_ac_read.patch
-drivers-char-tpm-tpmc-fix-error-patch-memory-leak.patch
-tpm-addition-of-pnp_remove-checkpatch-fixes.patch
-w1-be-able-to-manually-add-and-remove-slaves-fix.patch
-w1-new-driver-ds2431-chip-fix.patch
-gru-driver-minor-updates-fix.patch
-drivers-rtc-rtc-bq4802c-dont-use-bin_2_bcd-and-bcd_2_bin.patch
-x86-sysfs-kill-owner-field-from-attribute-fix.patch
-x86-sysfs-kill-owner-field-from-attribute-fix-3.patch
-nilfs2-inode-operations-fix.patch
-nilfs2-pathname-operations-fix.patch
-reiser4.patch
-reiser4-tree_lock-fixes.patch
-reiser4-tree_lock-fixes-fix.patch
-reiser4-semaphore-fix.patch
-slb-drop-kmem-cache-argument-from-constructor-reiser4.patch
-reiser4-suid.patch
-reiser4-track-upstream-changes.patch
-page-owner-tracking-leak-detector.patch
-nr_blockdev_pages-in_interrupt-warning.patch
-slab-leaks3-default-y.patch
-put_bh-debug.patch
-shrink_slab-handle-bad-shrinkers.patch
-getblk-handle-2tb-devices.patch
-getblk-handle-2tb-devices-fix.patch
-undeprecate-pci_find_device.patch
-notify_change-callers-must-hold-i_mutex.patch
-profile-likely-unlikely-macros.patch
-drivers-net-bonding-bond_sysfsc-suppress-uninitialized-var-warning.patch
-w1-build-fix.patch
-
+-Scott
