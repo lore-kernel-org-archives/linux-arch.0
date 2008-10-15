@@ -1,34 +1,37 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [patch 0/2] vdso support for s390
-Date: Wed, 15 Oct 2008 19:45:06 +0200
-Message-ID: <20081015174506.107691579@de.ibm.com>
+From: Russell King <rmk@arm.linux.org.uk>
+Subject: Re: [PATCH] remove ibcs2/PER_SVR4 from SET_PERSONALITY
+Date: Wed, 15 Oct 2008 19:17:19 +0100
+Message-ID: <20081015181719.GA10387@flint.arm.linux.org.uk>
+References: <1224072352.16990.18.camel@localhost> <20081015121445.GB21756@flint.arm.linux.org.uk> <1224075143.16990.25.camel@localhost>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate5.de.ibm.com ([195.212.29.154]:61870 "EHLO
-	mtagate5.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753800AbYJOR6Q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Oct 2008 13:58:16 -0400
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:59682 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752051AbYJOSSN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Oct 2008 14:18:13 -0400
+Content-Disposition: inline
+In-Reply-To: <1224075143.16990.25.camel@localhost>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-Greetings,
-the two patches in this series add a vdso to s390 for three system calls:
-1) gettimeofday
-2) clock_getres for CLOCK_REALTIME and CLOCK_MONOTONIC
-3) clock_gettime for CLOCK_REALTIME and CLOCK_MONOTONIC
-The vdso code for gettimeofday is about 4-5 times faster than the system
-call. Similar results for clock_gettime.
+On Wed, Oct 15, 2008 at 02:52:23PM +0200, Martin Schwidefsky wrote:
+> On Wed, 2008-10-15 at 13:14 +0100, Russell King wrote:
+> > On Wed, Oct 15, 2008 at 02:05:52PM +0200, Martin Schwidefsky wrote:
+> > > Greetings,
+> > > this is the ibcs2/PER_SVR4 removal patch against today git tree. Nobody
+> > > complained so I guess it is ready for prime time.
+> > 
+> > Not yet.
+> 
+> But now ?
 
-The first of the two patches changes the arch_setup_additional_pages
-function. The second argument is unused and can be removed. For the
-s390 vdso I want to know if the elf executable is dynamically linked
-or not. Only if an interpreter is used the vdso is mapped. This adds
-a second argument to arch_setup_additional_pages again but with a
-different semantic.
+The ARM bit now look fine to me.  Thanks.
 
+Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
 -- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
