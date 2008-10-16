@@ -1,65 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from smtp.polymtl.ca ([132.207.4.11]:54283 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753714AbYJQAHK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Oct 2008 20:07:10 -0400
-Message-ID: <20081016234656.385520321@polymtl.ca>
+	id S1753714AbYJQAHM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Oct 2008 20:07:12 -0400
+Message-ID: <20081016234656.224625422@polymtl.ca>
 References: <20081016232729.699004293@polymtl.ca>
-Date: Thu, 16 Oct 2008 19:27:35 -0400
+Date: Thu, 16 Oct 2008 19:27:34 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [RFC patch 06/15] LTTng build
-Content-Disposition: inline; filename=lttng-build-instrumentation-menu.patch
+Subject: [RFC patch 05/15] get_cycles() : MIPS HAVE_GET_CYCLES_32
+Content-Disposition: inline; filename=get-cycles-mips-have-get-cycles.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>
-Cc: David Miller <davem@davemloft.net>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Ingo Molnar <mingo@redhat.com>, "William L. Irwin" <wli@holomorphy.com>
-Message-ID: <20081016232735.eJL6MPprsu3ORJmsuIOjBE2NXxWxFloa-Kq9ga5XqG8@z>
+Cc: David Miller <davem@davemloft.net>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@redhat.com>
+Message-ID: <20081016232734.kjOE4xxrrlZj5_luplCT4V1_UaLnEDZ4qbeYlpMCGxo@z>
 
-Adds the basic LTTng config options.
+partly reverts commit efb9ca08b5a2374b29938cdcab417ce4feb14b54. Selects
+HAVE_GET_CYCLES_32 only on CPUs where it is safe to use it.
 
-sparc32 needs to have ltt/ added to core-y for some reason (seems broken).
+Currently consider the "_WORKAROUND" cases for 4000 and 4400 to be unsafe, but
+should probably add other sub-architecture to the blacklist.
 
-ltt/Kconfig is sourced from kernel/Kconfig.instrumentation.
+Do not define HAVE_GET_CYCLES because MIPS does not provide 64-bit tsc (only
+32-bits).
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+CC: Ralf Baechle <ralf@linux-mips.org>
+CC: David Miller <davem@davemloft.net>
 CC: Linus Torvalds <torvalds@linux-foundation.org>
 CC: Andrew Morton <akpm@linux-foundation.org>
 CC: Ingo Molnar <mingo@redhat.com>
 CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
 CC: Thomas Gleixner <tglx@linutronix.de>
 CC: Steven Rostedt <rostedt@goodmis.org>
-CC: William L. Irwin <wli@holomorphy.com>
+CC: linux-arch@vger.kernel.org
 ---
- Makefile            |    2 +-
- arch/sparc/Makefile |    2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ arch/mips/Kconfig        |    4 ++++
+ include/asm-mips/timex.h |   25 +++++++++++++++++++++++++
+ 2 files changed, 29 insertions(+)
 
-Index: linux-2.6-lttng/arch/sparc/Makefile
+Index: linux-2.6-lttng/include/asm-mips/timex.h
 ===================================================================
---- linux-2.6-lttng.orig/arch/sparc/Makefile	2008-10-16 18:16:33.000000000 -0400
-+++ linux-2.6-lttng/arch/sparc/Makefile	2008-10-16 18:16:38.000000000 -0400
-@@ -37,7 +37,7 @@ drivers-$(CONFIG_OPROFILE)	+= arch/sparc
- # Renaming is done to avoid confusing pattern matching rules in 2.5.45 (multy-)
- INIT_Y		:= $(patsubst %/, %/built-in.o, $(init-y))
- CORE_Y		:= $(core-y)
--CORE_Y		+= kernel/ mm/ fs/ ipc/ security/ crypto/ block/
-+CORE_Y		+= kernel/ mm/ fs/ ipc/ security/ crypto/ block/ ltt/
- CORE_Y		:= $(patsubst %/, %/built-in.o, $(CORE_Y))
- DRIVERS_Y	:= $(patsubst %/, %/built-in.o, $(drivers-y))
- NET_Y		:= $(patsubst %/, %/built-in.o, $(net-y))
-Index: linux-2.6-lttng/Makefile
+--- linux-2.6-lttng.orig/include/asm-mips/timex.h	2008-10-16 12:25:47.000000000 -0400
++++ linux-2.6-lttng/include/asm-mips/timex.h	2008-10-16 12:34:18.000000000 -0400
+@@ -29,14 +29,39 @@
+  * which isn't an evil thing.
+  *
+  * We know that all SMP capable CPUs have cycle counters.
++ *
++ * Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
++ * HAVE_GET_CYCLES makes sure that this case is handled properly :
++ *
++ * Ralf Baechle <ralf@linux-mips.org> :
++ * This avoids us executing an mfc0 c0_count instruction on processors which
++ * don't have but also on certain R4000 and R4400 versions where reading from
++ * the count register just in the very moment when its value equals c0_compare
++ * will result in the timer interrupt getting lost.
+  */
+ 
+ typedef unsigned int cycles_t;
+ 
++#ifdef HAVE_GET_CYCLES_32
++static inline cycles_t get_cycles(void)
++{
++	return read_c0_count();
++}
++
++static inline void get_cycles_barrier(void)
++{
++}
++
++static inline cycles_t get_cycles_rate(void)
++{
++	return CLOCK_TICK_RATE;
++}
++#else
+ static inline cycles_t get_cycles(void)
+ {
+ 	return 0;
+ }
++#endif
+ 
+ #endif /* __KERNEL__ */
+ 
+Index: linux-2.6-lttng/arch/mips/Kconfig
 ===================================================================
---- linux-2.6-lttng.orig/Makefile	2008-10-16 18:16:33.000000000 -0400
-+++ linux-2.6-lttng/Makefile	2008-10-16 18:16:38.000000000 -0400
-@@ -619,7 +619,7 @@ export mod_strip_cmd
+--- linux-2.6-lttng.orig/arch/mips/Kconfig	2008-10-16 12:25:47.000000000 -0400
++++ linux-2.6-lttng/arch/mips/Kconfig	2008-10-16 12:34:01.000000000 -0400
+@@ -1581,6 +1581,10 @@ config CPU_R4000_WORKAROUNDS
+ config CPU_R4400_WORKAROUNDS
+ 	bool
  
- 
- ifeq ($(KBUILD_EXTMOD),)
--core-y		+= kernel/ mm/ fs/ ipc/ security/ crypto/ block/
-+core-y		+= kernel/ mm/ fs/ ipc/ security/ crypto/ block/ ltt/
- 
- vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, $(init-y) $(init-m) \
- 		     $(core-y) $(core-m) $(drivers-y) $(drivers-m) \
++config HAVE_GET_CYCLES_32
++	def_bool y
++	depends on !CPU_R4400_WORKAROUNDS
++
+ #
+ # Use the generic interrupt handling code in kernel/irq/:
+ #
 
 -- 
 Mathieu Desnoyers
