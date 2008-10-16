@@ -1,215 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:54283 "EHLO smtp.polymtl.ca"
+Received: from smtp.polymtl.ca ([132.207.4.11]:54587 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753714AbYJQAHN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Oct 2008 20:07:13 -0400
-Message-ID: <20081016234657.678118309@polymtl.ca>
+	id S1753259AbYJQAHT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Oct 2008 20:07:19 -0400
+Message-ID: <20081016234657.521254081@polymtl.ca>
 References: <20081016232729.699004293@polymtl.ca>
-Date: Thu, 16 Oct 2008 19:27:43 -0400
+Date: Thu, 16 Oct 2008 19:27:42 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [RFC patch 14/15] LTTng - TSC synchronicity test
-Content-Disposition: inline; filename=lttng-test-tsc.patch
+Subject: [RFC patch 13/15] LTTng timestamp sh
+Content-Disposition: inline; filename=lttng-timestamp-sh.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>
-Cc: David Miller <davem@davemloft.net>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Ingo Molnar <mingo@redhat.com>, Jan Kiszka <jan.kiszka@siemens.com>
-Message-ID: <20081016232743.S8ZJFOdvggipJq89qCr4LcVaDZFBHyJpxSPhTeyaPeQ@z>
+Cc: David Miller <davem@davemloft.net>, Giuseppe Cavallaro <peppe.cavallaro@st.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org
+Message-ID: <20081016232742.MPzTiLxm0MmX_v4OKFEm6-a_unbszH2TE8mLiK54Hj0@z>
 
-Test TSC synchronization across CPUs. Architecture independant and can therefore
-be used on various architectures. Aims at testing the TSC synchronization on a
-running system (not only at early boot), with minimal impact on interrupt
-latency.
+This patch adds the timestamping mechanism in the ltt.h arch header file.
+The new timestamp functions use the TMU channel 1.
 
-I've written this code before x86 tsc_sync.c existed and given it worked well
-for my needs, I never switched to tsc_sync.c. Although it has the same goal, it
-does it a bit differently :
+This code only works if the TMU channel 1 is initialized during the kernel boot
 
-tsc_sync looks at the cycle counters on two CPUs to see if one compared to the
-other are going backward when read in loop. The LTTng code synchronizes both
-cores with a counter used as a memory barrier and then reads the two TSCs at a
-delta equal to the cache line exchange. Instruction and data caches are primed.
-This test is repeated in loops to insure we deal with MCE, NMIs which could skew
-the results.
+Note from Mathieu :
+This patch seems to assume TMU channel 1 is setup at boot. Is it always true on
+all SuperH boards ? Is there some Kconfig selection that should be done here ?
+We could probably extract part of this patch into get_cycles() and remove
+CONFIG_LTT dependency.
 
-The problem I see with tsc_sync.c is that is one of the two CPUs is delayed by
-an interrupt handler (for way too long) while the other CPU is doing its
-check_tsc_warp() execution, and if the CPU with the lowest TSC values runs
-first, this code will fail to detect unsynchronized CPUs.
-
-LTTng TSC sync test code does not have this problem.
-
+From: Giuseppe Cavallaro <peppe.cavallaro@st.com>
+Signed-off-by: Giuseppe Cavallaro <peppe.cavallaro@st.com>
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: Ingo Molnar <mingo@redhat.com>
-CC: Jan Kiszka <jan.kiszka@siemens.com>
-CC: Linus Torvalds <torvalds@linux-foundation.org>
-CC: Andrew Morton <akpm@linux-foundation.org>
-CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
-CC: Thomas Gleixner <tglx@linutronix.de>
-CC: Steven Rostedt <rostedt@goodmis.org>
+CC: Paul Mundt <lethal@linux-sh.org>
+CC: linux-sh@vger.kernel.org
 ---
- ltt/Kconfig        |    3 +
- ltt/Makefile       |    1 
- ltt/ltt-test-tsc.c |  132 +++++++++++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 136 insertions(+)
+ arch/sh/Kconfig             |    2 +
+ arch/sh/include/asm/ltt.h   |   45 ++++++++++++++++++++++++++++++++++++++++++++
+ arch/sh/include/asm/timex.h |    8 ++++++-
+ 3 files changed, 54 insertions(+), 1 deletion(-)
 
-Index: linux-2.6-lttng/ltt/ltt-test-tsc.c
+Index: linux-2.6-lttng/arch/sh/include/asm/ltt.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6-lttng/ltt/ltt-test-tsc.c	2008-10-16 18:53:07.000000000 -0400
-@@ -0,0 +1,132 @@
++++ linux-2.6-lttng/arch/sh/include/asm/ltt.h	2008-10-16 18:54:57.000000000 -0400
+@@ -0,0 +1,45 @@
 +/*
-+ * ltt-test-tsc.c
++ * Copyright (C) 2007, Giuseppe Cavallaro <peppe.cavallaro@st.com>
++ *                     Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
 + *
-+ * Test TSC synchronization
-+ *
-+ * Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
++ * SuperH definitions for tracing system
 + */
-+#include <linux/module.h>
++
++#ifndef _ASM_SH_LTT_H
++#define _ASM_SH_LTT_H
++
 +#include <linux/timer.h>
-+#include <linux/timex.h>
-+#include <linux/jiffies.h>
-+#include <linux/cpu.h>
-+#include <linux/kthread.h>
-+#include <linux/mutex.h>
++#include <asm/clock.h>
 +
-+#define MAX_CYCLES_DELTA 1000ULL
++extern u64 ltt_read_synthetic_tsc(void);
 +
-+static DEFINE_PER_CPU(cycles_t, tsc_count);
-+static DEFINE_MUTEX(tscsync_mutex);
-+
-+static DEFINE_PER_CPU(int, wait_sync);
-+static DEFINE_PER_CPU(int, wait_end_sync);
-+
-+int ltt_tsc_is_sync = 1;
-+EXPORT_SYMBOL(ltt_tsc_is_sync);
-+
-+cycles_t ltt_last_tsc;
-+EXPORT_SYMBOL(ltt_last_tsc);
-+
-+/*
-+ * Mark it noinline so we make sure it is not unrolled.
-+ * Wait until value is reached.
-+ */
-+static noinline void tsc_barrier(long wait_cpu, int value)
++static inline u32 ltt_get_timestamp32(void)
 +{
-+	sync_core();
-+	per_cpu(wait_sync, smp_processor_id())--;
-+	do {
-+		smp_mb();
-+	} while (unlikely(per_cpu(wait_sync, wait_cpu) > value));
-+	rdtsc_barrier();
-+	__get_cpu_var(tsc_count) = get_cycles();
-+	rdtsc_barrier();
++	return get_cycles();
 +}
 +
-+/*
-+ * Worker thread called on each CPU.
-+ * First wait with interrupts enabled, then wait with interrupt disabled,
-+ * for precision. We are already bound to one CPU.
-+ */
-+static void test_sync(void *arg)
++static inline u64 ltt_get_timestamp64(void)
 +{
-+	long wait_cpu = (long)arg;
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	/* Make sure the instructions are in I-CACHE */
-+	tsc_barrier(wait_cpu, 1);
-+	tsc_barrier(wait_cpu, 0);
-+	per_cpu(wait_end_sync, smp_processor_id())--;
-+	do {
-+		smp_mb();
-+	} while (unlikely(per_cpu(wait_end_sync, wait_cpu) > 1));
-+	per_cpu(wait_end_sync, smp_processor_id())--;
-+	local_irq_restore(flags);
++	return ltt_read_synthetic_tsc();
 +}
 +
-+/*
-+ * Do loops (making sure no unexpected event changes the timing), keep the
-+ * best one. The result of each loop is the highest tsc delta between the
-+ * master CPU and the slaves.
-+ */
-+static int test_tsc_synchronization(void)
++static inline void ltt_add_timestamp(unsigned long ticks)
++{ }
++
++static inline unsigned int ltt_frequency(void)
 +{
-+	long cpu, master;
-+	cycles_t max_diff = 0, diff, best_loop, worse_loop = 0;
-+	int i;
++	unsigned long rate;
++	struct clk *tmu1_clk;
 +
-+	mutex_lock(&tscsync_mutex);
-+	preempt_disable();
-+	master = smp_processor_id();
-+	for_each_online_cpu(cpu) {
-+		if (master == cpu)
-+			continue;
-+		best_loop = ULLONG_MAX;
-+		for (i = 0; i < 10; i++) {
-+			/*
-+			 * Each CPU (master and slave) must decrement the
-+			 * wait_sync value twice (one for priming in cache).
-+			 */
-+			per_cpu(wait_sync, master) = 2;
-+			per_cpu(wait_sync, cpu) = 2;
-+			per_cpu(wait_end_sync, master) = 2;
-+			per_cpu(wait_end_sync, cpu) = 2;
-+			smp_call_function_single(cpu, test_sync,
-+						(void *)master, 0);
-+			test_sync((void *)cpu);
-+			/*
-+			 * Wait until slave is done so that we don't overwrite
-+			 * wait_end_sync prematurely.
-+			 */
-+			while (unlikely(per_cpu(wait_end_sync, cpu) > 0))
-+				cpu_relax();
++	tmu1_clk = clk_get(NULL, "tmu1_clk");
++	rate = (clk_get_rate(tmu1_clk));
 +
-+			diff = abs(per_cpu(tsc_count, cpu)
-+				- per_cpu(tsc_count, master));
-+			best_loop = min(best_loop, diff);
-+			worse_loop = max(worse_loop, diff);
-+		}
-+		max_diff = max(best_loop, max_diff);
-+	}
-+	preempt_enable();
-+	if (max_diff >= MAX_CYCLES_DELTA) {
-+		printk(KERN_WARNING
-+			"LTTng : Your timestamp counter is not reliable.\n"
-+			"See LTTng documentation to find the "
-+			"appropriate solution for your architecture.\n");
-+		printk("TSC unsynchronized : %llu cycles delta is over "
-+			"threshold %llu\n", max_diff, MAX_CYCLES_DELTA);
-+	}
-+	mutex_unlock(&tscsync_mutex);
-+	return max_diff < MAX_CYCLES_DELTA;
-+}
-+EXPORT_SYMBOL_GPL(test_tsc_synchronization);
-+
-+static int __init tsc_test_init(void)
-+{
-+	ltt_tsc_is_sync = test_tsc_synchronization();
-+	return 0;
++	return (unsigned int)(rate);
 +}
 +
-+__initcall(tsc_test_init);
-Index: linux-2.6-lttng/ltt/Makefile
++static inline u32 ltt_freq_scale(void)
++{
++	return 1;
++}
++
++#endif /* _ASM_SH_LTT_H */
+Index: linux-2.6-lttng/arch/sh/include/asm/timex.h
 ===================================================================
---- linux-2.6-lttng.orig/ltt/Makefile	2008-10-16 18:50:32.000000000 -0400
-+++ linux-2.6-lttng/ltt/Makefile	2008-10-16 18:52:39.000000000 -0400
-@@ -1 +1,2 @@
- obj-$(CONFIG_HAVE_LTT_SYNTHETIC_TSC)	+= ltt-timestamp.o
-+obj-$(CONFIG_HAVE_LTT_UNSTABLE_TSC)	+= ltt-test-tsc.o
-Index: linux-2.6-lttng/ltt/Kconfig
+--- linux-2.6-lttng.orig/arch/sh/include/asm/timex.h	2008-10-16 18:53:59.000000000 -0400
++++ linux-2.6-lttng/arch/sh/include/asm/timex.h	2008-10-16 18:54:51.000000000 -0400
+@@ -6,12 +6,18 @@
+ #ifndef __ASM_SH_TIMEX_H
+ #define __ASM_SH_TIMEX_H
+ 
+-#define CLOCK_TICK_RATE		(CONFIG_SH_PCLK_FREQ / 4) /* Underlying HZ */
++#include <linux/io.h>
++#include <asm/cpu/timer.h>
++
++#define CLOCK_TICK_RATE		(HZ * 100000UL)
+ 
+ typedef unsigned long long cycles_t;
+ 
+ static __inline__ cycles_t get_cycles (void)
+ {
++#ifdef CONFIG_LTT
++	return 0xffffffff - ctrl_inl(TMU1_TCNT);
++#endif
+ 	return 0;
+ }
+ 
+Index: linux-2.6-lttng/arch/sh/Kconfig
 ===================================================================
---- linux-2.6-lttng.orig/ltt/Kconfig	2008-10-16 18:50:32.000000000 -0400
-+++ linux-2.6-lttng/ltt/Kconfig	2008-10-16 18:52:39.000000000 -0400
-@@ -6,6 +6,9 @@ config LTT_TIMESTAMP
+--- linux-2.6-lttng.orig/arch/sh/Kconfig	2008-10-16 18:53:59.000000000 -0400
++++ linux-2.6-lttng/arch/sh/Kconfig	2008-10-16 18:54:51.000000000 -0400
+@@ -11,6 +11,8 @@ config SUPERH
+ 	select HAVE_CLK
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
++	select HAVE_LTT_CLOCK
++	select HAVE_LTT_SYNTHETIC_TSC
+ 	select HAVE_GENERIC_DMA_COHERENT
  	help
- 	  Allow fine-grained timestamps to be taken from tracing applications.
- 
-+config HAVE_LTT_UNSTABLE_TSC
-+	def_bool n
-+
- config HAVE_LTT_CLOCK
- 	def_bool n
- 
+ 	  The SuperH is a RISC processor targeted for use in embedded systems
 
 -- 
 Mathieu Desnoyers
