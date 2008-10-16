@@ -1,77 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from smtp.polymtl.ca ([132.207.4.11]:54283 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753298AbYJQAFD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Oct 2008 20:05:03 -0400
-Message-ID: <20081016234655.893647148@polymtl.ca>
+	id S1753714AbYJQAFF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Oct 2008 20:05:05 -0400
+Message-ID: <20081016234657.052698980@polymtl.ca>
 References: <20081016232729.699004293@polymtl.ca>
-Date: Thu, 16 Oct 2008 19:27:32 -0400
+Date: Thu, 16 Oct 2008 19:27:39 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [RFC patch 03/15] get_cycles() : sparc64 HAVE_GET_CYCLES
-Content-Disposition: inline; filename=get-cycles-sparc64-have-get-cycles.patch
+Subject: [RFC patch 10/15] LTTng timestamp mips
+Content-Disposition: inline; filename=lttng-timestamp-mips.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>
-Cc: David Miller <davem@davemloft.net>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Ingo Molnar <mingo@redhat.com>
-Message-ID: <20081016232732.5NgWw01_-KBMP494uan3IkS3kFP4Kc_dbMg2Wikkvwo@z>
+Cc: David Miller <davem@davemloft.net>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20081016232739.JOk06Hgul_pQVe9YXFcoSNBsL0XV_vsMoOKz2lPihHY@z>
 
-This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
-get_cycles_rate() are implemented.
+MIPS get_cycles only returns a 32 bits TSC (see timex.h). The assumption there
+is that the reschedule is done every 8 seconds or so. Given that tracing needs
+to detect delays longer than 8 seconds, we need a full 64-bits TSC, whic is
+provided by LTTng syntheric TSC.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: David Miller <davem@davemloft.net>
-CC: Linus Torvalds <torvalds@linux-foundation.org>
-CC: Andrew Morton <akpm@linux-foundation.org>
-CC: Ingo Molnar <mingo@redhat.com>
-CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
-CC: Thomas Gleixner <tglx@linutronix.de>
-CC: Steven Rostedt <rostedt@goodmis.org>
-CC: linux-arch@vger.kernel.org
+CC: Ralf Baechle <ralf@linux-mips.org>
 ---
- arch/sparc/include/asm/timex_64.h |   17 ++++++++++++++++-
- arch/sparc64/Kconfig              |    1 +
- 2 files changed, 17 insertions(+), 1 deletion(-)
+ arch/mips/Kconfig      |    2 ++
+ include/asm-mips/ltt.h |   44 ++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 46 insertions(+)
 
-Index: linux-2.6-lttng/arch/sparc64/Kconfig
+Index: linux-2.6-lttng/include/asm-mips/ltt.h
 ===================================================================
---- linux-2.6-lttng.orig/arch/sparc64/Kconfig	2008-10-16 13:07:04.000000000 -0400
-+++ linux-2.6-lttng/arch/sparc64/Kconfig	2008-10-16 18:14:45.000000000 -0400
-@@ -14,6 +14,7 @@ config SPARC64
- 	select HAVE_DYNAMIC_FTRACE
- 	select HAVE_FTRACE
- 	select HAVE_IDE
-+	select HAVE_GET_CYCLES
- 	select HAVE_LMB
- 	select HAVE_ARCH_KGDB
- 	select USE_GENERIC_SMP_HELPERS if SMP
-Index: linux-2.6-lttng/arch/sparc/include/asm/timex_64.h
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-2.6-lttng/include/asm-mips/ltt.h	2008-10-16 19:18:48.000000000 -0400
+@@ -0,0 +1,44 @@
++/*
++ * Copyright (C) 2005, Mathieu Desnoyers
++ *
++ * MIPS definitions for tracing system
++ */
++
++#ifndef _ASM_MIPS_LTT_H
++#define _ASM_MIPS_LTT_H
++
++#include <linux/timex.h>
++#include <asm/processor.h>
++
++extern u64 ltt_read_synthetic_tsc(void);
++
++/*
++ * MIPS get_cycles only returns a 32 bits TSC (see timex.h). The assumption
++ * there is that the reschedule is done every 8 seconds or so. Given that
++ * tracing needs to detect delays longer than 8 seconds, we need a full 64-bits
++ * TSC, whic is provided by LTTng syntheric TSC.
++*/
++static inline u32 ltt_get_timestamp32(void)
++{
++	return get_cycles();
++}
++
++static inline u64 ltt_get_timestamp64(void)
++{
++	return ltt_read_synthetic_tsc();
++}
++
++static inline void ltt_add_timestamp(unsigned long ticks)
++{ }
++
++static inline unsigned int ltt_frequency(void)
++{
++	return mips_hpt_frequency;
++}
++
++static inline u32 ltt_freq_scale(void)
++{
++	return 1;
++}
++
++#endif /* _ASM_MIPS_LTT_H */
+Index: linux-2.6-lttng/arch/mips/Kconfig
 ===================================================================
---- linux-2.6-lttng.orig/arch/sparc/include/asm/timex_64.h	2008-10-16 13:07:04.000000000 -0400
-+++ linux-2.6-lttng/arch/sparc/include/asm/timex_64.h	2008-10-16 18:14:25.000000000 -0400
-@@ -12,7 +12,22 @@
+--- linux-2.6-lttng.orig/arch/mips/Kconfig	2008-10-16 19:14:08.000000000 -0400
++++ linux-2.6-lttng/arch/mips/Kconfig	2008-10-16 19:16:49.000000000 -0400
+@@ -1584,6 +1584,8 @@ config CPU_R4400_WORKAROUNDS
+ config HAVE_GET_CYCLES_32
+ 	def_bool y
+ 	depends on !CPU_R4400_WORKAROUNDS
++	select HAVE_LTT_CLOCK
++	select HAVE_LTT_SYNTHETIC_TSC
  
- /* Getting on the cycle counter on sparc64. */
- typedef unsigned long cycles_t;
--#define get_cycles()	tick_ops->get_tick()
-+
-+static inline cycles_t get_cycles(void)
-+{
-+	return tick_ops->get_tick();
-+}
-+
-+/* get_cycles instruction is synchronized on sparc64 */
-+static inline void get_cycles_barrier(void)
-+{
-+	return;
-+}
-+
-+static inline cycles_t get_cycles_rate(void)
-+{
-+	return CLOCK_TICK_RATE;
-+}
- 
- #define ARCH_HAS_READ_CURRENT_TIMER
- 
+ #
+ # Use the generic interrupt handling code in kernel/irq/:
 
 -- 
 Mathieu Desnoyers
