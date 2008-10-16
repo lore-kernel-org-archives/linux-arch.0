@@ -1,83 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from smtp.polymtl.ca ([132.207.4.11]:54283 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753500AbYJQAHH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Oct 2008 20:07:07 -0400
-Message-ID: <20081016234657.210268948@polymtl.ca>
+	id S1753714AbYJQAHK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Oct 2008 20:07:10 -0400
+Message-ID: <20081016234656.385520321@polymtl.ca>
 References: <20081016232729.699004293@polymtl.ca>
-Date: Thu, 16 Oct 2008 19:27:40 -0400
+Date: Thu, 16 Oct 2008 19:27:35 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [RFC patch 11/15] LTTng timestamp powerpc
-Content-Disposition: inline; filename=lttng-timestamp-powerpc.patch
+Subject: [RFC patch 06/15] LTTng build
+Content-Disposition: inline; filename=lttng-build-instrumentation-menu.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>
-Cc: David Miller <davem@davemloft.net>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, benh@kernel.crashing.org, paulus@samba.org
-Message-ID: <20081016232740.I-kpbMwRfCtZMoYM5EXavhX8UJ2ZdlwNoTj-XANKwh4@z>
+Cc: David Miller <davem@davemloft.net>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Ingo Molnar <mingo@redhat.com>, "William L. Irwin" <wli@holomorphy.com>
+Message-ID: <20081016232735.eJL6MPprsu3ORJmsuIOjBE2NXxWxFloa-Kq9ga5XqG8@z>
+
+Adds the basic LTTng config options.
+
+sparc32 needs to have ltt/ added to core-y for some reason (seems broken).
+
+ltt/Kconfig is sourced from kernel/Kconfig.instrumentation.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: benh@kernel.crashing.org
-CC: paulus@samba.org
-CC: linux-arch@vger.kernel.org
+CC: Linus Torvalds <torvalds@linux-foundation.org>
+CC: Andrew Morton <akpm@linux-foundation.org>
+CC: Ingo Molnar <mingo@redhat.com>
+CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
+CC: Thomas Gleixner <tglx@linutronix.de>
+CC: Steven Rostedt <rostedt@goodmis.org>
+CC: William L. Irwin <wli@holomorphy.com>
 ---
- arch/powerpc/Kconfig      |    1 +
- include/asm-powerpc/ltt.h |   37 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 38 insertions(+)
+ Makefile            |    2 +-
+ arch/sparc/Makefile |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-Index: linux-2.6-lttng/include/asm-powerpc/ltt.h
+Index: linux-2.6-lttng/arch/sparc/Makefile
 ===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6-lttng/include/asm-powerpc/ltt.h	2008-10-16 19:18:51.000000000 -0400
-@@ -0,0 +1,37 @@
-+/*
-+ * Copyright (C) 2005, Mathieu Desnoyers
-+ *
-+ * POWERPC definitions for tracing system
-+ */
-+
-+#ifndef _ASM_POWERPC_LTT_H
-+#define _ASM_POWERPC_LTT_H
-+
-+#include <linux/timex.h>
-+#include <asm/time.h>
-+#include <asm/processor.h>
-+
-+static inline u32 ltt_get_timestamp32(void)
-+{
-+	return get_tbl();
-+}
-+
-+static inline u64 ltt_get_timestamp64(void)
-+{
-+	return get_tb();
-+}
-+
-+static inline void ltt_add_timestamp(unsigned long ticks)
-+{ }
-+
-+static inline unsigned int ltt_frequency(void)
-+{
-+	return tb_ticks_per_sec;
-+}
-+
-+static inline u32 ltt_freq_scale(void)
-+{
-+	return 1;
-+}
-+
-+#endif /* _ASM_POWERPC_LTT_H */
-Index: linux-2.6-lttng/arch/powerpc/Kconfig
+--- linux-2.6-lttng.orig/arch/sparc/Makefile	2008-10-16 18:16:33.000000000 -0400
++++ linux-2.6-lttng/arch/sparc/Makefile	2008-10-16 18:16:38.000000000 -0400
+@@ -37,7 +37,7 @@ drivers-$(CONFIG_OPROFILE)	+= arch/sparc
+ # Renaming is done to avoid confusing pattern matching rules in 2.5.45 (multy-)
+ INIT_Y		:= $(patsubst %/, %/built-in.o, $(init-y))
+ CORE_Y		:= $(core-y)
+-CORE_Y		+= kernel/ mm/ fs/ ipc/ security/ crypto/ block/
++CORE_Y		+= kernel/ mm/ fs/ ipc/ security/ crypto/ block/ ltt/
+ CORE_Y		:= $(patsubst %/, %/built-in.o, $(CORE_Y))
+ DRIVERS_Y	:= $(patsubst %/, %/built-in.o, $(drivers-y))
+ NET_Y		:= $(patsubst %/, %/built-in.o, $(net-y))
+Index: linux-2.6-lttng/Makefile
 ===================================================================
---- linux-2.6-lttng.orig/arch/powerpc/Kconfig	2008-10-16 19:14:07.000000000 -0400
-+++ linux-2.6-lttng/arch/powerpc/Kconfig	2008-10-16 19:20:22.000000000 -0400
-@@ -115,6 +115,7 @@ config PPC
- 	select HAVE_IOREMAP_PROT
- 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
- 	select HAVE_KPROBES
-+	select HAVE_LTT_CLOCK
- 	select HAVE_ARCH_KGDB
- 	select HAVE_KRETPROBES
- 	select HAVE_ARCH_TRACEHOOK
+--- linux-2.6-lttng.orig/Makefile	2008-10-16 18:16:33.000000000 -0400
++++ linux-2.6-lttng/Makefile	2008-10-16 18:16:38.000000000 -0400
+@@ -619,7 +619,7 @@ export mod_strip_cmd
+ 
+ 
+ ifeq ($(KBUILD_EXTMOD),)
+-core-y		+= kernel/ mm/ fs/ ipc/ security/ crypto/ block/
++core-y		+= kernel/ mm/ fs/ ipc/ security/ crypto/ block/ ltt/
+ 
+ vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, $(init-y) $(init-m) \
+ 		     $(core-y) $(core-m) $(drivers-y) $(drivers-m) \
 
 -- 
 Mathieu Desnoyers
