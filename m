@@ -1,59 +1,51 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [garloff@suse.de: [PATCH 1/1] default mlock limit 32k->64k]
-Date: Thu, 16 Oct 2008 15:48:16 -0700
-Message-ID: <20081016154816.c53a6f8e.akpm@linux-foundation.org>
-References: <20081016074319.GD5286@tpkurt2.garloff.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:59884 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758201AbYJPWtM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Oct 2008 18:49:12 -0400
-In-Reply-To: <20081016074319.GD5286@tpkurt2.garloff.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kurt Garloff <garloff@suse.de>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, NPiggin@suse.de
+From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Subject: [RFC patch 09/15] LTTng mips export hpt frequency
+Date: Thu, 16 Oct 2008 19:27:38 -0400
+Message-ID: <20081016234656.889753679@polymtl.ca>
+References: <20081016232729.699004293@polymtl.ca>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757124AbYJPXzs@vger.kernel.org>
+Content-Disposition: inline; filename=lttng-mips-export-hpt-frequency.patch
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steve
+Cc: David Miller <davem@davemloft.net>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Ralf Baechle <ralf@linux-mips.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 16 Oct 2008 09:43:19 +0200
-Kurt Garloff <garloff@suse.de> wrote:
+LTTng needs it from modules.
 
-> By default, non-privileged tasks can only mlock() a small amount of
-> memory to avoid a DoS attack by ordinary users. The Linux kernel
-> defaulted to 32k (on a 4k page size system) to accommodate the
-> needs of gpg.
-> However, newer gpg2 needs 64k in various circumstances and otherwise
-> fails miserably, see bnc#329675.
-> 
-> Change the default to 64k, and make it more agnostic to PAGE_SIZE.
-> 
-> Signed-off-by: Kurt Garloff <garloff@suse.de>
-> Signed-off-by: Nick Piggin <npiggin@suse.de>
-> ---
-> Index: linux-2.6.27/include/linux/resource.h
-> ===================================================================
-> --- linux-2.6.27.orig/include/linux/resource.h
-> +++ linux-2.6.27/include/linux/resource.h
-> @@ -59,10 +59,10 @@ struct rlimit {
->  #define _STK_LIM	(8*1024*1024)
->  
->  /*
-> - * GPG wants 32kB of mlocked memory, to make sure pass phrases
-> + * GPG2 wants 64kB of mlocked memory, to make sure pass phrases
->   * and other sensitive information are never written to disk.
->   */
-> -#define MLOCK_LIMIT	(8 * PAGE_SIZE)
-> +#define MLOCK_LIMIT	((PAGE_SIZE > 64*1024) ? PAGE_SIZE : 64*1024)
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+CC: Ralf Baechle <ralf@linux-mips.org>
+---
+ arch/mips/kernel/time.c  |    1 +
+ include/asm-mips/timex.h |    2 ++
+ 2 files changed, 3 insertions(+)
 
-I dunno.  Is there really much point in chasing userspace changes like
-this?
+Index: linux-2.6-lttng/include/asm-mips/timex.h
+===================================================================
+--- linux-2.6-lttng.orig/include/asm-mips/timex.h	2008-10-16 18:16:37.000000000 -0400
++++ linux-2.6-lttng/include/asm-mips/timex.h	2008-10-16 18:16:44.000000000 -0400
+@@ -63,6 +63,8 @@ static inline cycles_t get_cycles(void)
+ }
+ #endif
+ 
++extern unsigned int mips_hpt_frequency;
++
+ #endif /* __KERNEL__ */
+ 
+ #endif /*  _ASM_TIMEX_H */
+Index: linux-2.6-lttng/arch/mips/kernel/time.c
+===================================================================
+--- linux-2.6-lttng.orig/arch/mips/kernel/time.c	2008-10-16 18:16:32.000000000 -0400
++++ linux-2.6-lttng/arch/mips/kernel/time.c	2008-10-16 18:16:44.000000000 -0400
+@@ -70,6 +70,7 @@ EXPORT_SYMBOL(perf_irq);
+  */
+ 
+ unsigned int mips_hpt_frequency;
++EXPORT_SYMBOL(mips_hpt_frequency);
+ 
+ void __init clocksource_set_clock(struct clocksource *cs, unsigned int clock)
+ {
 
-Worst case, we end up releasing distributions which work properly on
-newer kernels and which fail to work properly on older kernels.
-
-I suspect that it would be better to set the default to zero and
-*force* userspace to correctly tune whatever-kernel-they're-running-on
-to match their requirements.
+-- 
+Mathieu Desnoyers
+Computer Engineering Ph.D. Student, Ecole Polytechnique de Montreal
+OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
