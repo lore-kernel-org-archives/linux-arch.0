@@ -1,129 +1,163 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from smtp.polymtl.ca ([132.207.4.11]:54587 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753259AbYJQAHT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Oct 2008 20:07:19 -0400
-Message-ID: <20081016234657.521254081@polymtl.ca>
+	id S1753714AbYJQAHW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Oct 2008 20:07:22 -0400
+Message-ID: <20081016234656.724741666@polymtl.ca>
 References: <20081016232729.699004293@polymtl.ca>
-Date: Thu, 16 Oct 2008 19:27:42 -0400
+Date: Thu, 16 Oct 2008 19:27:37 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [RFC patch 13/15] LTTng timestamp sh
-Content-Disposition: inline; filename=lttng-timestamp-sh.patch
+Subject: [RFC patch 08/15] LTTng - Timestamping
+Content-Disposition: inline; filename=lttng-timestamp-generic.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>
-Cc: David Miller <davem@davemloft.net>, Giuseppe Cavallaro <peppe.cavallaro@st.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org
-Message-ID: <20081016232742.MPzTiLxm0MmX_v4OKFEm6-a_unbszH2TE8mLiK54Hj0@z>
+Cc: David Miller <davem@davemloft.net>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, Ingo Molnar <mingo@redhat.com>
+Message-ID: <20081016232737.F_C2IxQvTmyIhATwnA_D759nEzP40SeQjSYLtkQ-o48@z>
 
-This patch adds the timestamping mechanism in the ltt.h arch header file.
-The new timestamp functions use the TMU channel 1.
+Wrapper to use the lower level clock sources available on the systems. Fall-back
+on jiffies or'd with a logical clock for architectures lacking CPU timestamp
+counters. Fall-back on a mixed TSC-logical clock on architectures lacking
+synchronized TSC on SMP.
 
-This code only works if the TMU channel 1 is initialized during the kernel boot
+A generic fallback based on a logical clock and the timer interrupt is
+available.
 
-Note from Mathieu :
-This patch seems to assume TMU channel 1 is setup at boot. Is it always true on
-all SuperH boards ? Is there some Kconfig selection that should be done here ?
-We could probably extract part of this patch into get_cycles() and remove
-CONFIG_LTT dependency.
+generic - Uses jiffies or'd with a logical clock extended to 64 bits by
+          ltt-timestamp.c.
+i386 - Uses TSC. If detects non synchronized TSC, uses mixed TSC-logical clock.
+mips - Uses TSC extended atomically from 32 to 64 bits by ltt-heartbeat.c.
+powerpc - Uses TSC or generic ltt clock.
+x86_64 - Uses TSC. If detects non synchronized TSC, uses mixed TSC-logical clock
 
-From: Giuseppe Cavallaro <peppe.cavallaro@st.com>
-Signed-off-by: Giuseppe Cavallaro <peppe.cavallaro@st.com>
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: Paul Mundt <lethal@linux-sh.org>
-CC: linux-sh@vger.kernel.org
+CC: Ralf Baechle <ralf@linux-mips.org>
+CC: benh@kernel.crashing.org
+CC: paulus@samba.org
+CC: David Miller <davem@davemloft.net>
+CC: Linus Torvalds <torvalds@linux-foundation.org>
+CC: Andrew Morton <akpm@linux-foundation.org>
+CC: Ingo Molnar <mingo@redhat.com>
+CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
+CC: Thomas Gleixner <tglx@linutronix.de>
+CC: Steven Rostedt <rostedt@goodmis.org>
+CC: linux-arch@vger.kernel.org
 ---
- arch/sh/Kconfig             |    2 +
- arch/sh/include/asm/ltt.h   |   45 ++++++++++++++++++++++++++++++++++++++++++++
- arch/sh/include/asm/timex.h |    8 ++++++-
- 3 files changed, 54 insertions(+), 1 deletion(-)
+ include/asm-generic/ltt.h |   53 ++++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/ltt.h       |   27 +++++++++++++++++++++++
+ kernel/timer.c            |    2 +
+ 3 files changed, 82 insertions(+)
 
-Index: linux-2.6-lttng/arch/sh/include/asm/ltt.h
+Index: linux-2.6-lttng/kernel/timer.c
+===================================================================
+--- linux-2.6-lttng.orig/kernel/timer.c	2008-09-16 14:50:15.000000000 -0400
++++ linux-2.6-lttng/kernel/timer.c	2008-09-16 14:59:17.000000000 -0400
+@@ -37,6 +37,7 @@
+ #include <linux/delay.h>
+ #include <linux/tick.h>
+ #include <linux/kallsyms.h>
++#include <linux/ltt.h>
+ 
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
+@@ -1066,6 +1067,7 @@ void do_timer(unsigned long ticks)
+ {
+ 	jiffies_64 += ticks;
+ 	update_times(ticks);
++	ltt_add_timestamp(ticks);
+ }
+ 
+ #ifdef __ARCH_WANT_SYS_ALARM
+Index: linux-2.6-lttng/include/linux/ltt.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6-lttng/arch/sh/include/asm/ltt.h	2008-10-16 18:54:57.000000000 -0400
-@@ -0,0 +1,45 @@
++++ linux-2.6-lttng/include/linux/ltt.h	2008-09-16 14:58:47.000000000 -0400
+@@ -0,0 +1,27 @@
++#ifndef _LINUX_LTT_H
++#define _LINUX_LTT_H
++
 +/*
-+ * Copyright (C) 2007, Giuseppe Cavallaro <peppe.cavallaro@st.com>
-+ *                     Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
++ * Generic LTT clock.
 + *
-+ * SuperH definitions for tracing system
++ * Chooses between an architecture specific clock or an atomic logical clock.
++ *
++ * Copyright (C) 2007 Mathieu Desnoyers (mathieu.desnoyers@polymtl.ca)
 + */
 +
-+#ifndef _ASM_SH_LTT_H
-+#define _ASM_SH_LTT_H
++#ifdef CONFIG_LTT_TIMESTAMP
++#ifdef CONFIG_HAVE_LTT_CLOCK
++#include <asm/ltt.h>
++#else
++#include <asm-generic/ltt.h>
 +
-+#include <linux/timer.h>
-+#include <asm/clock.h>
++#define ltt_get_timestamp32	ltt_get_timestamp32_generic
++#define ltt_get_timestamp64	ltt_get_timestamp64_generic
++#define ltt_add_timestamp	ltt_add_timestamp_generic
++#define ltt_frequency		ltt_frequency_generic
++#define ltt_freq_scale		ltt_freq_scale_generic
++#endif /* CONFIG_HAVE_LTT_CLOCK */
++#else
++#define ltt_add_timestamp(ticks)
++#endif /* CONFIG_LTT_TIMESTAMP */
++#endif /* _LINUX_LTT_H */
+Index: linux-2.6-lttng/include/asm-generic/ltt.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-2.6-lttng/include/asm-generic/ltt.h	2008-09-16 14:58:47.000000000 -0400
+@@ -0,0 +1,53 @@
++#ifndef _ASM_GENERIC_LTT_H
++#define _ASM_GENERIC_LTT_H
 +
-+extern u64 ltt_read_synthetic_tsc(void);
++/*
++ * linux/include/asm-generic/ltt.h
++ *
++ * Copyright (C) 2007 - Mathieu Desnoyers (mathieu.desnoyers@polymtl.ca)
++ *
++ * Generic definitions for LTT
++ * Architectures without TSC
++ */
 +
-+static inline u32 ltt_get_timestamp32(void)
++#include <linux/param.h>	/* For HZ */
++#include <asm/atomic.h>
++
++#define LTT_GENERIC_CLOCK_SHIFT 13
++
++u64 ltt_read_synthetic_tsc(void);
++
++extern atomic_t lttng_generic_clock;
++
++static inline u32 ltt_get_timestamp32_generic(void)
 +{
-+	return get_cycles();
++	return atomic_add_return(1, &lttng_generic_clock);
 +}
 +
-+static inline u64 ltt_get_timestamp64(void)
++static inline u64 ltt_get_timestamp64_generic(void)
 +{
 +	return ltt_read_synthetic_tsc();
 +}
 +
-+static inline void ltt_add_timestamp(unsigned long ticks)
-+{ }
-+
-+static inline unsigned int ltt_frequency(void)
++static inline void ltt_add_timestamp_generic(unsigned long ticks)
 +{
-+	unsigned long rate;
-+	struct clk *tmu1_clk;
++	int old_clock, new_clock;
 +
-+	tmu1_clk = clk_get(NULL, "tmu1_clk");
-+	rate = (clk_get_rate(tmu1_clk));
-+
-+	return (unsigned int)(rate);
++	do {
++		old_clock = atomic_read(&lttng_generic_clock);
++		new_clock = (old_clock + (ticks << LTT_GENERIC_CLOCK_SHIFT))
++			& (~((1 << LTT_GENERIC_CLOCK_SHIFT) - 1));
++	} while (atomic_cmpxchg(&lttng_generic_clock, old_clock, new_clock)
++			!= old_clock);
 +}
 +
-+static inline u32 ltt_freq_scale(void)
++static inline unsigned int ltt_frequency_generic(void)
++{
++	return HZ << LTT_GENERIC_CLOCK_SHIFT;
++}
++
++static inline u32 ltt_freq_scale_generic(void)
 +{
 +	return 1;
 +}
-+
-+#endif /* _ASM_SH_LTT_H */
-Index: linux-2.6-lttng/arch/sh/include/asm/timex.h
-===================================================================
---- linux-2.6-lttng.orig/arch/sh/include/asm/timex.h	2008-10-16 18:53:59.000000000 -0400
-+++ linux-2.6-lttng/arch/sh/include/asm/timex.h	2008-10-16 18:54:51.000000000 -0400
-@@ -6,12 +6,18 @@
- #ifndef __ASM_SH_TIMEX_H
- #define __ASM_SH_TIMEX_H
- 
--#define CLOCK_TICK_RATE		(CONFIG_SH_PCLK_FREQ / 4) /* Underlying HZ */
-+#include <linux/io.h>
-+#include <asm/cpu/timer.h>
-+
-+#define CLOCK_TICK_RATE		(HZ * 100000UL)
- 
- typedef unsigned long long cycles_t;
- 
- static __inline__ cycles_t get_cycles (void)
- {
-+#ifdef CONFIG_LTT
-+	return 0xffffffff - ctrl_inl(TMU1_TCNT);
-+#endif
- 	return 0;
- }
- 
-Index: linux-2.6-lttng/arch/sh/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/sh/Kconfig	2008-10-16 18:53:59.000000000 -0400
-+++ linux-2.6-lttng/arch/sh/Kconfig	2008-10-16 18:54:51.000000000 -0400
-@@ -11,6 +11,8 @@ config SUPERH
- 	select HAVE_CLK
- 	select HAVE_IDE
- 	select HAVE_OPROFILE
-+	select HAVE_LTT_CLOCK
-+	select HAVE_LTT_SYNTHETIC_TSC
- 	select HAVE_GENERIC_DMA_COHERENT
- 	help
- 	  The SuperH is a RISC processor targeted for use in embedded systems
++#endif /* _ASM_GENERIC_LTT_H */
 
 -- 
 Mathieu Desnoyers
