@@ -1,130 +1,53 @@
-From: Kurt Garloff <garloff@suse.de>
-Subject: [garloff@suse.de: [PATCH 1/1] default mlock limit 32k->64k]
-Date: Thu, 16 Oct 2008 09:43:19 +0200
-Message-ID: <20081016074319.GD5286@tpkurt2.garloff.de>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [patch 2/4] idle cputime accounting
+Date: Thu, 16 Oct 2008 11:08:28 +0200
+Message-ID: <1224148108.9617.5.camel@localhost>
+References: <20081008161958.767142939@de.ibm.com>
+	 <20081008162144.500130264@de.ibm.com>
+	 <18678.51741.878923.169870@cargo.ozlabs.ibm.com>
+	 <1224139369.6228.8.camel@localhost>
+Reply-To: schwidefsky@de.ibm.com
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="S8hWgp6Wl+RBuNna"
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-Sender: owner-linux-mm@kvack.org
-To: linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <NPiggin@suse.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mtagate4.de.ibm.com ([195.212.29.153]:36408 "EHLO
+	mtagate4.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755153AbYJPJNN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Oct 2008 05:13:13 -0400
+Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
+	by mtagate4.de.ibm.com (8.13.8/8.13.8) with ESMTP id m9G9DAB7179384
+	for <linux-arch@vger.kernel.org>; Thu, 16 Oct 2008 09:13:10 GMT
+Received: from d12av02.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
+	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v9.1) with ESMTP id m9G9D9GC3776632
+	for <linux-arch@vger.kernel.org>; Thu, 16 Oct 2008 11:13:10 +0200
+Received: from d12av02.megacenter.de.ibm.com (loopback [127.0.0.1])
+	by d12av02.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id m9G9D8vs029093
+	for <linux-arch@vger.kernel.org>; Thu, 16 Oct 2008 11:13:09 +0200
+In-Reply-To: <1224139369.6228.8.camel@localhost>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Paul Mackerras <paulus@samba.org>
+Cc: linux-arch@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hidetoshi Seto <seto.hidetoshi@jp.fujitsu.com>, Tony Luck <tony.luck@intel.com>, Jeremy Fitzhardinge <jeremy@xensource.com>, Chris Wright <chrisw@sous-sol.org>, Michael Neuling <mikey@neuling.org>
 
---S8hWgp6Wl+RBuNna
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Thu, 2008-10-16 at 08:42 +0200, Martin Schwidefsky wrote:
+> > Finally, with this patch I get the following compilation error on
+> > powerpc:
+> > 
+> > arch/powerpc/kernel/process.c: In function '__switch_to':
+> > arch/powerpc/kernel/process.c:400: error: implicit declaration of
+> function 'account_process_tick'
+> > make[2]: *** [arch/powerpc/kernel/process.o] Error 1
+> > make[1]: *** [arch/powerpc/kernel] Error 2
+> 
+> This is with CONFIG_VIRT_CPU_ACCOUNTING=y?
 
-Hi,
+Ok, the include for kernel_stat.h has been missing in
+arch/powerpc/kernel/process.c. All the other call sites already have the
+include.
 
-this patch does increase the default mlock()able memory from 32k to 64k
-on PAGE_SIZE=3D4k systems. However, on systems with page sizes larger than
-8k, the patch actually decreases the default down to 64k (or one page
-in case that's larger).
+-- 
+blue skies,
+  Martin.
 
-Please speak up if you foresee problems on those platforms.
-It would be simple to do=20
-#define MLOCK_LIMIT  ((PAGE_SIZE > 4096) ? 8*PAGE_SIZE : 64*1024)
-in that case -- but doing min(64k,PAGE_SIZE) seems cleaner to me.
-
------ Forwarded message from Kurt Garloff <garloff@suse.de> -----
-
-Date: Wed, 15 Oct 2008 11:27:36 +0200
-=46rom: Kurt Garloff <garloff@suse.de>
-To: linux-kernel@vger.kernel.org
-Cc: Nick Piggin <NPiggin@suse.de>
-Subject: [PATCH 1/1] default mlock limit 32k->64k
-X-Operating-System: Linux 2.6.25.16-0.1-default x86_64
-X-PGP-Info: on http://www.garloff.de/kurt/mykeys.pgp
-X-PGP-Key: 1024D/1C98774E
-Organization: SUSE Linux Products GmbH (a Novell company), Nuernberg, GF:
-	Markus Rex, HRB 16746 (AG Nuernberg)
-User-Agent: Mutt/1.5.17 (2007-11-01)
-Precedence: bulk
-List-ID: <linux-kernel.vger.kernel.org>
-X-Mailing-List: linux-kernel@vger.kernel.org
-
-Hi,
-
-normal users can mlock memory up to the value defined in RLIMIT_MLOCK.
-The number used to 0 for a long time and has been changed to 8 pages
-(32k on 4k page systems) a number of years ago to accommodate the needs
-of gpg, which is one of the few programs that a normal user runs and
-which needs mlock (to prevent passphrase and key from leaking into
-swap).=20
-
-Nowadays, we have gpg2, and the need has increased to 64k.
-Attached patch does change the default to 64k, independent of the
-PAGE_SIZE. (Unless PAGE_SIZE is larger than 64k, then we allow one
-page.)
-
-Please apply.
---=20
-Kurt Garloff, VP Business Development -- OPS, Novell Inc.
-
-=46rom: Kurt Garloff <garloff@suse.de>
-Subject: Increase default RLIMIT_MEMLOCK to 64k
-References: bnc#329675
-Patch-Mainline: no (should be submitted)
-
-By default, non-privileged tasks can only mlock() a small amount of
-memory to avoid a DoS attack by ordinary users. The Linux kernel
-defaulted to 32k (on a 4k page size system) to accommodate the
-needs of gpg.
-However, newer gpg2 needs 64k in various circumstances and otherwise
-fails miserably, see bnc#329675.
-
-Change the default to 64k, and make it more agnostic to PAGE_SIZE.
-
-Signed-off-by: Kurt Garloff <garloff@suse.de>
-Signed-off-by: Nick Piggin <npiggin@suse.de>
----
-Index: linux-2.6.27/include/linux/resource.h
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
---- linux-2.6.27.orig/include/linux/resource.h
-+++ linux-2.6.27/include/linux/resource.h
-@@ -59,10 +59,10 @@ struct rlimit {
- #define _STK_LIM	(8*1024*1024)
-=20
- /*
-- * GPG wants 32kB of mlocked memory, to make sure pass phrases
-+ * GPG2 wants 64kB of mlocked memory, to make sure pass phrases
-  * and other sensitive information are never written to disk.
-  */
--#define MLOCK_LIMIT	(8 * PAGE_SIZE)
-+#define MLOCK_LIMIT	((PAGE_SIZE > 64*1024) ? PAGE_SIZE : 64*1024)
-=20
- /*
-  * Due to binary compatibility, the actual resource numbers
-
-
-
-
------ End forwarded message -----
-
---=20
-Kurt Garloff, VP Business Development -- OPS, Novell Inc.
-
---S8hWgp6Wl+RBuNna
-Content-Type: application/pgp-signature
-Content-Disposition: inline
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.4-svn0 (GNU/Linux)
-
-iD8DBQFI9vCXxmLh6hyYd04RApTlAJ98br+ffFTABav4jRWvyq3IHXjXlQCeMZX/
-38Cf2L53ORnNqcGwNuc44Uw=
-=GVzC
------END PGP SIGNATURE-----
-
---S8hWgp6Wl+RBuNna--
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+"Reality continues to ruin my life." - Calvin.
