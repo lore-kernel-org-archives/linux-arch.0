@@ -1,82 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:54259 "EHLO smtp.polymtl.ca"
+Received: from smtp.polymtl.ca ([132.207.4.11]:54283 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752346AbYJQAEu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Oct 2008 20:04:50 -0400
-Message-ID: <20081016234657.365649521@polymtl.ca>
+	id S1752676AbYJQAE4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Oct 2008 20:04:56 -0400
+Message-ID: <20081016234656.055839676@polymtl.ca>
 References: <20081016232729.699004293@polymtl.ca>
-Date: Thu, 16 Oct 2008 19:27:41 -0400
+Date: Thu, 16 Oct 2008 19:27:33 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [RFC patch 12/15] LTTng timestamp sparc64
-Content-Disposition: inline; filename=lttng-timestamp-sparc64.patch
+Subject: [RFC patch 04/15] get_cycles() : powerpc64 HAVE_GET_CYCLES
+Content-Disposition: inline; filename=get-cycles-powerpc-have-get-cycles.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>
-Cc: David Miller <davem@davemloft.net>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Message-ID: <20081016232741.lfJwKFYs0po-B79VxhvNDQ7SyRXiimSCfC9zIIf-lis@z>
+Cc: David Miller <davem@davemloft.net>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, benh@kernel.crashing.org, paulus@samba.org, Ingo Molnar <mingo@redhat.com>
+Message-ID: <20081016232733.UvbzNIpmHYyY82pmzolCL-0_RGry7hEZ0_RfRcM9NXg@z>
 
-Implement LTTng timestamping for sparc64
+This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
+get_cycles_rate() are implemented.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+CC: benh@kernel.crashing.org
+CC: paulus@samba.org
 CC: David Miller <davem@davemloft.net>
+CC: Linus Torvalds <torvalds@linux-foundation.org>
+CC: Andrew Morton <akpm@linux-foundation.org>
+CC: Ingo Molnar <mingo@redhat.com>
+CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
+CC: Thomas Gleixner <tglx@linutronix.de>
+CC: Steven Rostedt <rostedt@goodmis.org>
 CC: linux-arch@vger.kernel.org
 ---
- arch/sparc/include/asm/ltt.h |   35 +++++++++++++++++++++++++++++++++++
- arch/sparc64/Kconfig         |    1 +
- 2 files changed, 36 insertions(+)
+ arch/powerpc/Kconfig             |    1 +
+ arch/powerpc/include/asm/timex.h |   13 +++++++++++++
+ 2 files changed, 14 insertions(+)
 
-Index: linux-2.6-lttng/arch/sparc/include/asm/ltt.h
+Index: linux-2.6-lttng/arch/powerpc/Kconfig
 ===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6-lttng/arch/sparc/include/asm/ltt.h	2008-10-16 19:04:23.000000000 -0400
-@@ -0,0 +1,35 @@
-+/*
-+ * Copyright (C) 2008, Mathieu Desnoyers
-+ *
-+ * SPARC64 definitions for tracing system
-+ */
-+
-+#ifndef _ASM_SPARC_LTT_H
-+#define _ASM_SPARC_LTT_H
-+
-+#include <linux/timex.h>
-+
-+static inline u32 ltt_get_timestamp32(void)
-+{
-+	return get_cycles();
-+}
-+
-+static inline u64 ltt_get_timestamp64(void)
-+{
-+	return get_cycles();
-+}
-+
-+static inline void ltt_add_timestamp(unsigned long ticks)
-+{ }
-+
-+static inline unsigned int ltt_frequency(void)
+--- linux-2.6-lttng.orig/arch/powerpc/Kconfig	2008-10-16 12:25:48.000000000 -0400
++++ linux-2.6-lttng/arch/powerpc/Kconfig	2008-10-16 12:33:31.000000000 -0400
+@@ -122,6 +122,7 @@ config PPC
+ 	select HAVE_DMA_ATTRS if PPC64
+ 	select USE_GENERIC_SMP_HELPERS if SMP
+ 	select HAVE_OPROFILE
++	select HAVE_GET_CYCLES if PPC64
+ 
+ config EARLY_PRINTK
+ 	bool
+Index: linux-2.6-lttng/arch/powerpc/include/asm/timex.h
+===================================================================
+--- linux-2.6-lttng.orig/arch/powerpc/include/asm/timex.h	2008-10-16 12:25:48.000000000 -0400
++++ linux-2.6-lttng/arch/powerpc/include/asm/timex.h	2008-10-16 12:33:58.000000000 -0400
+@@ -46,5 +46,18 @@ static inline cycles_t get_cycles(void)
+ #endif
+ }
+ 
++static inline cycles_t get_cycles_rate(void)
 +{
 +	return CLOCK_TICK_RATE;
 +}
 +
-+static inline u32 ltt_freq_scale(void)
++/*
++ * To check : assuming mtfb requires isync to synchronize instruction execution.
++ */
++static inline void get_cycles_barrier(void)
 +{
-+	return 1;
++	isync();
 +}
 +
-+#endif /* _ASM_SPARC_LTT_H */
-Index: linux-2.6-lttng/arch/sparc64/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/sparc64/Kconfig	2008-10-16 18:57:15.000000000 -0400
-+++ linux-2.6-lttng/arch/sparc64/Kconfig	2008-10-16 19:02:55.000000000 -0400
-@@ -19,6 +19,7 @@ config SPARC64
- 	select HAVE_ARCH_KGDB
- 	select USE_GENERIC_SMP_HELPERS if SMP
- 	select HAVE_ARCH_TRACEHOOK
-+	select HAVE_LTT_CLOCK
- 
- config GENERIC_TIME
- 	bool
+ #endif	/* __KERNEL__ */
+ #endif	/* _ASM_POWERPC_TIMEX_H */
 
 -- 
 Mathieu Desnoyers
