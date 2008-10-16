@@ -1,54 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from smtp.polymtl.ca ([132.207.4.11]:54283 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752917AbYJQAE6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Oct 2008 20:04:58 -0400
-Message-ID: <20081016234656.889753679@polymtl.ca>
+	id S1753157AbYJQAFA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Oct 2008 20:05:00 -0400
+Message-ID: <20081016234655.754205834@polymtl.ca>
 References: <20081016232729.699004293@polymtl.ca>
-Date: Thu, 16 Oct 2008 19:27:38 -0400
+Date: Thu, 16 Oct 2008 19:27:31 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [RFC patch 09/15] LTTng mips export hpt frequency
-Content-Disposition: inline; filename=lttng-mips-export-hpt-frequency.patch
+Subject: [RFC patch 02/15] get_cycles() : x86 HAVE_GET_CYCLES
+Content-Disposition: inline; filename=get-cycles-x86-have-get-cycles.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>
-Cc: David Miller <davem@davemloft.net>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20081016232738.QjJJDIlLhv7MXvPbn6hkOHTVcFhX4DnV2H345D0wPmw@z>
+Cc: David Miller <davem@davemloft.net>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Ingo Molnar <mingo@redhat.com>
+Message-ID: <20081016232731.76qxHBQFlSD06BxPcgnLjH8E2THXTKS7AzK4sPXZbCQ@z>
 
-LTTng needs it from modules.
+This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
+get_cycles_rate() are implemented.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: Ralf Baechle <ralf@linux-mips.org>
+CC: David Miller <davem@davemloft.net>
+CC: Linus Torvalds <torvalds@linux-foundation.org>
+CC: Andrew Morton <akpm@linux-foundation.org>
+CC: Ingo Molnar <mingo@redhat.com>
+CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
+CC: Thomas Gleixner <tglx@linutronix.de>
+CC: Steven Rostedt <rostedt@goodmis.org>
+CC: linux-arch@vger.kernel.org
 ---
- arch/mips/kernel/time.c  |    1 +
- include/asm-mips/timex.h |    2 ++
- 2 files changed, 3 insertions(+)
+ arch/x86/Kconfig      |    1 +
+ include/asm-x86/tsc.h |   12 ++++++++++++
+ 2 files changed, 13 insertions(+)
 
-Index: linux-2.6-lttng/include/asm-mips/timex.h
+Index: linux-2.6-lttng/arch/x86/Kconfig
 ===================================================================
---- linux-2.6-lttng.orig/include/asm-mips/timex.h	2008-10-16 18:16:37.000000000 -0400
-+++ linux-2.6-lttng/include/asm-mips/timex.h	2008-10-16 18:16:44.000000000 -0400
-@@ -63,6 +63,8 @@ static inline cycles_t get_cycles(void)
- }
- #endif
+--- linux-2.6-lttng.orig/arch/x86/Kconfig	2008-10-16 13:07:04.000000000 -0400
++++ linux-2.6-lttng/arch/x86/Kconfig	2008-10-16 13:07:12.000000000 -0400
+@@ -19,6 +19,7 @@ config X86_64
+ config X86
+ 	def_bool y
+ 	select HAVE_UNSTABLE_SCHED_CLOCK
++	select HAVE_GET_CYCLES
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
+ 	select HAVE_IOREMAP_PROT
+Index: linux-2.6-lttng/include/asm-x86/tsc.h
+===================================================================
+--- linux-2.6-lttng.orig/include/asm-x86/tsc.h	2008-10-16 13:07:04.000000000 -0400
++++ linux-2.6-lttng/include/asm-x86/tsc.h	2008-10-16 13:07:24.000000000 -0400
+@@ -50,6 +50,18 @@ extern void mark_tsc_unstable(char *reas
+ extern int unsynchronized_tsc(void);
+ int check_tsc_unstable(void);
  
-+extern unsigned int mips_hpt_frequency;
++static inline cycles_t get_cycles_rate(void)
++{
++	if (check_tsc_unstable())
++		return 0;
++	return tsc_khz;
++}
 +
- #endif /* __KERNEL__ */
- 
- #endif /*  _ASM_TIMEX_H */
-Index: linux-2.6-lttng/arch/mips/kernel/time.c
-===================================================================
---- linux-2.6-lttng.orig/arch/mips/kernel/time.c	2008-10-16 18:16:32.000000000 -0400
-+++ linux-2.6-lttng/arch/mips/kernel/time.c	2008-10-16 18:16:44.000000000 -0400
-@@ -70,6 +70,7 @@ EXPORT_SYMBOL(perf_irq);
-  */
- 
- unsigned int mips_hpt_frequency;
-+EXPORT_SYMBOL(mips_hpt_frequency);
- 
- void __init clocksource_set_clock(struct clocksource *cs, unsigned int clock)
- {
++static inline void get_cycles_barrier(void)
++{
++	rdtsc_barrier();
++}
++
+ /*
+  * Boot-time check whether the TSCs are synchronized across
+  * all CPUs/cores:
 
 -- 
 Mathieu Desnoyers
