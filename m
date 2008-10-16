@@ -1,39 +1,26 @@
 From: Kyle McMartin <kyle@infradead.org>
-Subject: Re: [patch 054/272] compat: move cp_compat_stat to common code
-Date: Thu, 16 Oct 2008 11:17:41 -0400
-Message-ID: <20081016151741.GA2529@bombadil.infradead.org>
-References: <200810160502.m9G525d8028553@imap1.linux-foundation.org>
+Subject: Re: [GIT PULL] SET_PERSONALITY cleanup.
+Date: Thu, 16 Oct 2008 11:23:09 -0400
+Message-ID: <20081016152309.GB2529@bombadil.infradead.org>
+References: <1224164705.9617.9.camel@localhost>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:39005 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752890AbYJPPRo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Oct 2008 11:17:44 -0400
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1756106AbYJPPX4@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <200810160502.m9G525d8028553@imap1.linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: torvalds@linux-foundation.org, hch@lst.de, linux-arch@vger.kernel.org
+In-Reply-To: <1224164705.9617.9.camel@localhost>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 15, 2008 at 10:02:05PM -0700, akpm@linux-foundation.org wrote:
-> From: Christoph Hellwig <hch@lst.de>
+On Thu, Oct 16, 2008 at 03:45:04PM +0200, Martin Schwidefsky wrote:
+> Hi Linus,
 > 
-> struct stat / compat_stat is the same on all architectures, so
-> cp_compat_stat should be, too.
+> please pull from 'personality' branch of
 > 
-> Turns out it is, except that various architectures have slightly and some
-> high2lowuid/high2lowgid or the direct assignment instead of the
-> SET_UID/SET_GID that expands to the correct one anyway.
+> 	git://git390.osdl.marist.edu/pub/scm/linux-2.6.git personality
 > 
-> This patch replaces the arch-specific cp_compat_stat implementations with
-> a common one based on the x86-64 one.
+> to receive the following updates:
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> Cc: <linux-arch@vger.kernel.org>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 
-direct cc's would have been nice. ;-)
-
-Acked-by: Kyle McMartin <kyle@mcmartin.ca>
+Ack the parisc bits...
