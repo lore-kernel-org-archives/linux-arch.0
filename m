@@ -1,144 +1,53 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: Re: [RFC patch 15/15] LTTng timestamp x86
-Date: Thu, 16 Oct 2008 21:28:35 -0400
-Message-ID: <20081017012835.GA30195@Krystal>
-References: <20081016232729.699004293@polymtl.ca> <20081016234657.837704867@polymtl.ca> <alpine.LFD.2.00.0810161701470.3288@nehalem.linux-foundation.org>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [RFC patch 04/15] get_cycles() : powerpc64 HAVE_GET_CYCLES
+ (update)
+Date: Thu, 16 Oct 2008 18:42:52 -0700 (PDT)
+Message-ID: <20081016.184252.193691889.davem@davemloft.net>
+References: <20081016234656.055839676@polymtl.ca>
+	<18679.56239.74999.534588@cargo.ozlabs.ibm.com>
+	<20081017004328.GA29768@Krystal>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from tomts22-srv.bellnexxia.net ([209.226.175.184]:51527 "EHLO
-	tomts22-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751892AbYJQB2h (ORCPT
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:41404
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1752828AbYJQBnQ (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Oct 2008 21:28:37 -0400
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.0810161701470.3288@nehalem.linux-foundation.org>
+	Thu, 16 Oct 2008 21:43:16 -0400
+In-Reply-To: <20081017004328.GA29768@Krystal>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+To: mathieu.desnoyers@polymtl.ca
+Cc: paulus@samba.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@elte.hu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, a.p.zijlstra@chello.nl, tglx@linutronix.de, benh@kernel.crashing.org, mingo@redhat.com
 
-* Linus Torvalds (torvalds@linux-foundation.org) wrote:
+From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Date: Thu, 16 Oct 2008 20:43:28 -0400
+
+> * Paul Mackerras (paulus@samba.org) wrote:
+> > Mathieu Desnoyers writes:
+> > 
+> > > This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
+> > > get_cycles_rate() are implemented.
+> > 
+> > [snip]
+> > 
+> > > +static inline cycles_t get_cycles_rate(void)
+> > > +{
+> > > +	return CLOCK_TICK_RATE;
+> > > +}
+> > 
+> > CLOCK_TICK_RATE is certainly wrong.  You want ppc_tb_freq (declared in
+> > asm/time.h).  Or tb_ticks_per_sec, since we seem to have two variables
+> > for exactly the same thing, for some reason. :)
+> > 
+> > Paul.
 > 
+> Ok, this should work better. Thanks !
 > 
-> On Thu, 16 Oct 2008, Mathieu Desnoyers wrote:
-> >
-> > +static inline cycles_t ltt_async_tsc_read(void)
-> 
-> (a) this shouldn't be inline
-> 
+> Do you know if mtfb implies an instruction synchronization (isync) ? I
+> think that if it does not, the new get_cycles_barrier() might have to be
+> used at some locations in the kernel code if more precise timestamp
+> order is required.
 
-Ok, will fix. I will put this in a new arch/x86/kernel/ltt.c.
-
-> > +	rdtsc_barrier();
-> > +	new_tsc = get_cycles();
-> > +	rdtsc_barrier();
-> > +	do {
-> > +		last_tsc = ltt_last_tsc;
-> > +		if (new_tsc < last_tsc)
-> > +			new_tsc = last_tsc + LTT_MIN_PROBE_DURATION;
-> > +		/*
-> > +		 * If cmpxchg fails with a value higher than the new_tsc, don't
-> > +		 * retry : the value has been incremented and the events
-> > +		 * happened almost at the same time.
-> > +		 * We must retry if cmpxchg fails with a lower value :
-> > +		 * it means that we are the CPU with highest frequency and
-> > +		 * therefore MUST update the value.
-> > +		 */
-> > +	} while (cmpxchg64(&ltt_last_tsc, last_tsc, new_tsc) < new_tsc);
-> 
-> (b) This is really quite expensive.
-> 
-
-Ok, let's try to figure out what the use-cases are, because we are
-really facing an architectural mess (thanks to Intel and AMD). I don't
-think there is a single perfect solution for all, but I'll try to
-explain why I accept the cache-line bouncing behavior when
-unsynchronized TSCs are detected by LTTng.
-
-First, the most important thing in LTTng is to provide the event flow
-in the correct order across CPUs. Secondary to that, getting the precise
-execution time is a nice-to-have when the architecture supports it, but
-the time granularity itself is not crucially important, as long as we
-have a way to determine which of two events close in time happens first.
-The principal use-case where I have seen such tracer in action is when
-one have to understand why one or more processes are slower than
-expected. The root cause can easily sit on another CPU, be a locking
-delay in a particular race condition, or just a process waiting for
-other processes waiting for a timeout.
-
-
-> Why do things like this? Make the timestamps be per-cpu. If you do things 
-> like the above, then just getting the timestamp means that every single 
-> trace event will cause a cacheline bounce, and if you do that, you might 
-> as well just not have per-cpu tracing at all.
-> 
-
-This cache-line bouncing global clock is a best-effort to provide
-correct event order in the trace on architectures with unsync tsc. It's
-actually better than a global tracing buffer because it limits the
-number of cache line transfers required to one per event. Global tracing
-buffers may require to transfer many cache lines across CPUs when events
-are written across cache lines or larger than a cache line.
-
-> It really boils down to two cases:
-> 
->  - you do per-CPU traces
-> 
->    If so, you need to ONLY EVER touch per-cpu data when tracing, and the 
->    above is a fundamental BUG. Dirtying shared cachelines makes the whole 
->    per-cpu thing pointless.
-
-Sharing only a single cache-line is not completely pointless, as
-explained above, but yes, there is a big performance hit involved.
-
-I agree that we should maybe add a degree of flexibility in this time
-infrastructure to let users select the type of time source they want :
-
-- Global clock, potentially slow on unsynchronized CPUs.
-- Local clock, fast, possibility unsynchronized across CPUs.
-
-> 
->  - you do global traces
-> 
->    Sure, then the above works, but why bother? You'll get the ordering 
->    from the global trace, you might as well do time stamps with local 
->    counts.
-> 
-
-I simply don't like the global traces because of the extra cache-line
-bouncing experienced by events written on multiple cache-lines.
-
-> So in neither case does it make any sense to try to do that global 
-> ltt_last_tsc.
-> 
-> Perhaps more importantly - if the TSC really are out of whack, that just 
-> means that now all your timestamps are worthless, because the value you 
-> calculate ends up having NOTHING to do with the timestamp. So you cannot 
-> even use it to see how long something took, because it may be that you're 
-> running on the CPU that runs behind, and all you ever see is the value of 
-> LTT_MIN_PROBE_DURATION.
-> 
-
-I thought about this one. There is actually a FIXME in the code which
-plans to add an IPI called at each timer interrupt to do a "read tsc" on
-each CPU. This would give an HZ upper bound to the time precision, which
-would give a trace with events ordered across CPUs and manage to have
-the execution time at a HZ precision.
-
-So given that global buffers are less efficient that just synchronizing
-a single cache-line and that some people are willing to pay the price to
-get events synchronized across CPUs and others are not, what do you
-think of leaving the choice to the user about globally/locally
-synchronized timestamps ?
-
-Thanks for the feedback,
-
-Mathieu
-
-> 			Linus
-
--- 
-Mathieu Desnoyers
-OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
+You'll need to make a similar fix on sparc64.
