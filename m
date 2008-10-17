@@ -1,98 +1,55 @@
-From: Kurt Garloff <garloff@suse.de>
-Subject: Re: [garloff@suse.de: [PATCH 1/1] default mlock limit 32k->64k]
-Date: Fri, 17 Oct 2008 18:46:30 +0200
-Message-ID: <20081017164630.GL5286@tpkurt2.garloff.de>
-References: <20081016074319.GD5286@tpkurt2.garloff.de> <20081016154816.c53a6f8e.akpm@linux-foundation.org>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC patch 15/15] LTTng timestamp x86
+Date: Fri, 17 Oct 2008 13:25:16 -0400
+Message-ID: <20081017172515.GA9639@goodmis.org>
+References: <20081016232729.699004293@polymtl.ca> <20081016234657.837704867@polymtl.ca> <alpine.LFD.2.00.0810161701470.3288@nehalem.linux-foundation.org> <20081017012835.GA30195@Krystal> <57C9024A16AD2D4C97DC78E552063EA3532D455F@orsmsx505.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="qWQny9krlSHwPXz2"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:43723 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753174AbYJQQqc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Oct 2008 12:46:32 -0400
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:61193 "EHLO
+	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755548AbYJQRZX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Oct 2008 13:25:23 -0400
 Content-Disposition: inline
-In-Reply-To: <20081016154816.c53a6f8e.akpm@linux-foundation.org>
+In-Reply-To: <57C9024A16AD2D4C97DC78E552063EA3532D455F@orsmsx505.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, NPiggin@suse.de
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 
+On Thu, Oct 16, 2008 at 07:19:48PM -0700, Luck, Tony wrote:
+> > This cache-line bouncing global clock is a best-effort to provide
+> > correct event order in the trace on architectures with unsync tsc. It's
+> > actually better than a global tracing buffer because it limits the
+> > number of cache line transfers required to one per event.
+> 
+> Even one line bouncing between cpus can be a performamce disaster.
+> You'll probably hit a serious wall somewhere between 8 and 16
+> cpus (ia64 has code that looks a lot like this in the gettimeofday()
+> path because it does not synchronize cpu cycle counters ... some
+> applications that are overly fond of timestamping internal
+> events using gettimeofday() end up spending significant time
+> doing so on large systems ... even with only a few thousands
+> of calls per second).
+> 
 
---qWQny9krlSHwPXz2
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+I agree that one cache line bouncer is devastating to performance. But
+as Mathieu said, it is better than a global tracer with lots of bouncing
+going on. My logdev tracer (something similar to ftrace, but used only
+for debugging) use to have a single buffer. By moving it to a per cpu
+buffer and using an atomic counter to sort the events, the increase of
+speed was a few magnitudes.
 
-Andrew,
+ftrace does not have a global counter, but on some boxes with out of
+sync TSCs, it could not find race conditions. I had to pull in logdev,
+which found the race right away, because of this atomic counter.
 
-On Thu, Oct 16, 2008 at 03:48:16PM -0700, Andrew Morton wrote:
-> On Thu, 16 Oct 2008 09:43:19 +0200 Kurt Garloff <garloff@suse.de> wrote:
-> > Index: linux-2.6.27/include/linux/resource.h
-> > =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-> > --- linux-2.6.27.orig/include/linux/resource.h
-> > +++ linux-2.6.27/include/linux/resource.h
-> > @@ -59,10 +59,10 @@ struct rlimit {
-> >  #define _STK_LIM	(8*1024*1024)
-> > =20
-> >  /*
-> > - * GPG wants 32kB of mlocked memory, to make sure pass phrases
-> > + * GPG2 wants 64kB of mlocked memory, to make sure pass phrases
-> >   * and other sensitive information are never written to disk.
-> >   */
-> > -#define MLOCK_LIMIT	(8 * PAGE_SIZE)
-> > +#define MLOCK_LIMIT	((PAGE_SIZE > 64*1024) ? PAGE_SIZE : 64*1024)
->=20
-> I dunno.  Is there really much point in chasing userspace changes like
-> this?
+logdev adds a bit of perfomance degradation, but for debugging, I don't
+care, and it has helped me quite a bit.
 
-If there were many apps that would need it and that would have
-contradicting or fast changing requirements, I would certainly
-not wanna chase that.
+ftrace can help in debugging most of the time, but on some boxes with
+wacky time stamps, it is useless to find race problems between CPUS. But
+ftrace is for production, and can not afford the performance penalty of
+a global counter.
 
-We're lucky here that gpg/gpg2 is the only unprivileged user
-of locked memory and that the requirement does not really change
-often. We've had gpg1 with 32k need since 1999 and now gpg2 with
-a 64k need.
-
-Accommodating that seems like a pragmatic thing to do. Will ensure
-good defaults for a broad set of users.
-
-> Worst case, we end up releasing distributions which work properly on
-> newer kernels and which fail to work properly on older kernels.
-
-I know a number of users that run new kernels below old distributions
-but few that do the opposite.
-The failure mode in this specific case is not obscure at all, so I'm
-not worried:=20
-can't lock memory: Cannot allocate memory
-Warning: using insecure memory!
-
-> I suspect that it would be better to set the default to zero and
-> *force* userspace to correctly tune whatever-kernel-they're-running-on
-> to match their requirements.
-
-That's feasible, though I think distributions are not today
-preconfigured to do that. Turning your argument around:
-It would it a bit harder to run new kernels on old distros.
-(Which I believe is worse -- we need testers!)
-
-Best,
---=20
-Kurt Garloff, VP Business Development -- OPS, Novell Inc.
-
---qWQny9krlSHwPXz2
-Content-Type: application/pgp-signature
-Content-Disposition: inline
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.4-svn0 (GNU/Linux)
-
-iD8DBQFI+MFmxmLh6hyYd04RAnvMAJ9WZosJUvKQToc3n+zOWFir5XLVHACgtrIl
-6RXOcYl1bVnNIABDacpTz7s=
-=Z96D
------END PGP SIGNATURE-----
-
---qWQny9krlSHwPXz2--
+-- Steve
