@@ -1,63 +1,51 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [RFC patch 00/15] Tracer Timestamping
-Date: Fri, 17 Oct 2008 09:59:13 +0200
-Message-ID: <1224230353.28131.65.camel@twins>
-References: <20081016232729.699004293@polymtl.ca>
+From: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Subject: Re: [RFC patch 06/15] LTTng build
+Date: Fri, 17 Oct 2008 17:10:24 +0900 (JST)
+Message-ID: <20081017170830.E22D.KOSAKI.MOTOHIRO@jp.fujitsu.com>
+References: <20081016232729.699004293@polymtl.ca> <20081016234656.385520321@polymtl.ca>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="US-ASCII"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from viefep18-int.chello.at ([213.46.255.22]:43329 "EHLO
-	viefep18-int.chello.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751152AbYJQH7D (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Oct 2008 03:59:03 -0400
-In-Reply-To: <20081016232729.699004293@polymtl.ca>
+Received: from fgwmail7.fujitsu.co.jp ([192.51.44.37]:48327 "EHLO
+	fgwmail7.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751786AbYJQIK2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Oct 2008 04:10:28 -0400
+In-Reply-To: <20081016234656.385520321@polymtl.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>
+Cc: kosaki.motohiro@jp.fujitsu.com, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "William L. Irwin" <wli@holomorphy.com>
 
-On Thu, 2008-10-16 at 19:27 -0400, Mathieu Desnoyers wrote:
-> Hi,
-> 
-> Starting with the bottom of my LTTng patchset
-> (git://git.kernel.org/pub/scm/linux/kernel/git/compudj/linux-2.6-lttng.git)
-> I post as RFC the timestamping infrastructure I have been using for a while in
-> the tracer. It integrates get_cycles() standardization following David Miller's
-> comments I did more recently.
-> 
-> It also deals with 32 -> 64 bits timestamp counter extension with a RCU-style
-> algorithm, which is especially useful on MIPS and SuperH architectures.
+Hi
 
-Have you looked at the existing 32->63 extention code in
-include/linux/cnt32_to_63.h and considered unifying it?
+just nit
 
-> There is also a TSC synchronization test within this patchset to detect
-> unsynchronized TSCs. 
+> Index: linux-2.6-lttng/Makefile
+> ===================================================================
+> --- linux-2.6-lttng.orig/Makefile	2008-10-16 18:16:33.000000000 -0400
+> +++ linux-2.6-lttng/Makefile	2008-10-16 18:16:38.000000000 -0400
+> @@ -619,7 +619,7 @@ export mod_strip_cmd
+>  
+>  
+>  ifeq ($(KBUILD_EXTMOD),)
+> -core-y		+= kernel/ mm/ fs/ ipc/ security/ crypto/ block/
+> +core-y		+= kernel/ mm/ fs/ ipc/ security/ crypto/ block/ ltt/
+>  
+>  vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, $(init-y) $(init-m) \
+>  		     $(core-y) $(core-m) $(drivers-y) $(drivers-m) \
 
-We already have such code, no? Does this code replace that one or just
-add a second test?
+This patch depend on 07/15. it seems wrong patch order.
+Then it cause following build error.
 
-> See comments in this specific patch to figure out the
-> difference between the current x86 tsc_sync.c and the one I propose in this
-> patch.
 
-Right so you don't unify, that's a missed opportunity, no?
-
-> It also provides an architecture-agnostic fallback in case there is no
-> timestamp counter available : basically, it's
-> (jiffies << 13) | atomically_incremented_counter (if there are more than 8192
-> events per jiffy, time will still be monotonic, but will increment faster than
-> the actual system frequency).
-> 
-> Comments are welcome. Note that this is only the beginning of the patchset. I
-> plan to submit the event ID allocation/portable event typing aimed at exporting
-> the data to userspace and buffering mechanism as soon as I integrate a core
-> version of the LTTV userspace tools to the kernel build tree. Other than that, I
-> currently have a tracer which fulfills most of the requirements expressed
-> earlier. I just fear that if I release only the kernel part without foolproof
-> binary-to-ascii trace decoder within the kernel, people might be a bit reluctant
-> to fetch a separate userspace package.
-
-It might be good to drop all the ltt naming and pick more generic names,
-esp. as ftrace could use a lot of this infrastructure as well.
+~/linux/linux-2.6.27-lttng% make
+make
+make[1]: `include/asm-ia64/nr-irqs.h' is up to date.
+  CHK     include/linux/version.h
+  CHK     include/linux/utsrelease.h
+  CALL    scripts/checksyscalls.sh
+  CHK     include/linux/compile.h
+scripts/Makefile.build:41: /mnt/sdb1/kosaki/linux/linux-2.6.27-lttng/ltt/Makefile: No such file or directory
+make[1]: *** No rule to make target `/mnt/sdb1/kosaki/linux/linux-2.6.27-lttng/ltt/Makefile'.  Stop.
+make: *** [ltt] Error 2
