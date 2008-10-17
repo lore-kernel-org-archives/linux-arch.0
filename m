@@ -1,34 +1,42 @@
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: RE: [RFC patch 15/15] LTTng timestamp x86
-Date: Thu, 16 Oct 2008 19:19:48 -0700
-Message-ID: <57C9024A16AD2D4C97DC78E552063EA3532D455F@orsmsx505.amr.corp.intel.com>
-References: <20081016232729.699004293@polymtl.ca>
- <20081016234657.837704867@polymtl.ca>
- <alpine.LFD.2.00.0810161701470.3288@nehalem.linux-foundation.org>
- <20081017012835.GA30195@Krystal>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [RFC patch 04/15] get_cycles() : powerpc64 HAVE_GET_CYCLES
+ (update)
+Date: Thu, 16 Oct 2008 19:33:11 -0700 (PDT)
+Message-ID: <20081016.193310.47274971.davem@davemloft.net>
+References: <20081017004328.GA29768@Krystal>
+	<20081016.184252.193691889.davem@davemloft.net>
+	<20081017020813.GA32468@Krystal>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1754817AbYJQCUI@vger.kernel.org>
-In-Reply-To: <20081017012835.GA30195@Krystal>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:53978
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1751751AbYJQCde (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Oct 2008 22:33:34 -0400
+In-Reply-To: <20081017020813.GA32468@Krystal>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: mathieu.desnoyers@polymtl.ca
+Cc: paulus@samba.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@elte.hu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, a.p.zijlstra@chello.nl, tglx@linutronix.de, benh@kernel.crashing.org, mingo@redhat.com
 
-> This cache-line bouncing global clock is a best-effort to provide
-> correct event order in the trace on architectures with unsync tsc. It's
-> actually better than a global tracing buffer because it limits the
-> number of cache line transfers required to one per event.
+From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Date: Thu, 16 Oct 2008 22:08:13 -0400
 
-Even one line bouncing between cpus can be a performamce disaster.
-You'll probably hit a serious wall somewhere between 8 and 16
-cpus (ia64 has code that looks a lot like this in the gettimeofday()
-path because it does not synchronize cpu cycle counters ... some
-applications that are overly fond of timestamping internal
-events using gettimeofday() end up spending significant time
-doing so on large systems ... even with only a few thousands
-of calls per second).
+> * David Miller (davem@davemloft.net) wrote:
+> > Date: Thu, 16 Oct 2008 20:43:28 -0400
+> > 
+> > You'll need to make a similar fix on sparc64.
+> 
+> I guess you are talking about using sparc64_get_clock_tick rather than
+> CLOCK_TICK_RATE ? I assume sparc64_get_clock_tick() done on any CPU will
+> return the same rate ?
 
--Tony
+You'll need to use tb_ticks_per_usec or similar.
+
+The ->get_tick() thing you are using uses a TICK source which is
+synchronized across the entire system and advances at a non-changing
+rate.
+
+sparc64_get_clock_tick() returns something different.
