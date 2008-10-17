@@ -1,114 +1,36 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+From: Paul Mackerras <paulus@samba.org>
 Subject: Re: [RFC patch 04/15] get_cycles() : powerpc64 HAVE_GET_CYCLES
 	(update)
-Date: Thu, 16 Oct 2008 20:43:28 -0400
-Message-ID: <20081017004328.GA29768@Krystal>
-References: <20081016232729.699004293@polymtl.ca> <20081016234656.055839676@polymtl.ca> <18679.56239.74999.534588@cargo.ozlabs.ibm.com>
+Date: Fri, 17 Oct 2008 11:54:58 +1100
+Message-ID: <18679.57954.270256.597333@cargo.ozlabs.ibm.com>
+References: <20081016232729.699004293@polymtl.ca>
+	<20081016234656.055839676@polymtl.ca>
+	<18679.56239.74999.534588@cargo.ozlabs.ibm.com>
+	<20081017004328.GA29768@Krystal>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757411AbYJQAnq@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <18679.56239.74999.534588@cargo.ozlabs.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([203.10.76.45]:50663 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750986AbYJQBNa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Oct 2008 21:13:30 -0400
+In-Reply-To: <20081017004328.GA29768@Krystal>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, benh@kernel.crashing.org, Ingo Molnar <mingo@redhat.com>
-List-Id: linux-arch.vger.kernel.org
 
-* Paul Mackerras (paulus@samba.org) wrote:
-> Mathieu Desnoyers writes:
-> 
-> > This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
-> > get_cycles_rate() are implemented.
-> 
-> [snip]
-> 
-> > +static inline cycles_t get_cycles_rate(void)
-> > +{
-> > +	return CLOCK_TICK_RATE;
-> > +}
-> 
-> CLOCK_TICK_RATE is certainly wrong.  You want ppc_tb_freq (declared in
-> asm/time.h).  Or tb_ticks_per_sec, since we seem to have two variables
-> for exactly the same thing, for some reason. :)
-> 
-> Paul.
+Mathieu Desnoyers writes:
 
-Ok, this should work better. Thanks !
+> Do you know if mtfb implies an instruction synchronization (isync) ? I
 
-Do you know if mtfb implies an instruction synchronization (isync) ? I
-think that if it does not, the new get_cycles_barrier() might have to be
-used at some locations in the kernel code if more precise timestamp
-order is required.
+It doesn't.
 
-Mathieu
+> think that if it does not, the new get_cycles_barrier() might have to be
+> used at some locations in the kernel code if more precise timestamp
+> order is required.
 
+OK.  I'll let you figure out where. :)
 
-get_cycles() : powerpc64 HAVE_GET_CYCLES
-
-This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
-get_cycles_rate() are implemented.
-
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: benh@kernel.crashing.org
-CC: paulus@samba.org
-CC: David Miller <davem@davemloft.net>
-CC: Linus Torvalds <torvalds@linux-foundation.org>
-CC: Andrew Morton <akpm@linux-foundation.org>
-CC: Ingo Molnar <mingo@redhat.com>
-CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
-CC: Thomas Gleixner <tglx@linutronix.de>
-CC: Steven Rostedt <rostedt@goodmis.org>
-CC: linux-arch@vger.kernel.org
----
- arch/powerpc/Kconfig             |    1 +
- arch/powerpc/include/asm/timex.h |   14 ++++++++++++++
- 2 files changed, 15 insertions(+)
-
-Index: linux-2.6-lttng/arch/powerpc/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/powerpc/Kconfig	2008-10-16 20:31:33.000000000 -0400
-+++ linux-2.6-lttng/arch/powerpc/Kconfig	2008-10-16 20:31:36.000000000 -0400
-@@ -122,6 +122,7 @@ config PPC
- 	select HAVE_DMA_ATTRS if PPC64
- 	select USE_GENERIC_SMP_HELPERS if SMP
- 	select HAVE_OPROFILE
-+	select HAVE_GET_CYCLES if PPC64
- 
- config EARLY_PRINTK
- 	bool
-Index: linux-2.6-lttng/arch/powerpc/include/asm/timex.h
-===================================================================
---- linux-2.6-lttng.orig/arch/powerpc/include/asm/timex.h	2008-10-16 20:31:33.000000000 -0400
-+++ linux-2.6-lttng/arch/powerpc/include/asm/timex.h	2008-10-16 20:32:02.000000000 -0400
-@@ -9,6 +9,7 @@
- 
- #include <asm/cputable.h>
- #include <asm/reg.h>
-+#include <asm/time.h>
- 
- #define CLOCK_TICK_RATE	1024000 /* Underlying HZ */
- 
-@@ -46,5 +47,18 @@ static inline cycles_t get_cycles(void)
- #endif
- }
- 
-+static inline cycles_t get_cycles_rate(void)
-+{
-+	return tb_ticks_per_sec;
-+}
-+
-+/*
-+ * To check : assuming mtfb requires isync to synchronize instruction execution.
-+ */
-+static inline void get_cycles_barrier(void)
-+{
-+	isync();
-+}
-+
- #endif	/* __KERNEL__ */
- #endif	/* _ASM_POWERPC_TIMEX_H */
-
--- 
-Mathieu Desnoyers
-OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
+Paul.
