@@ -1,103 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tomts16.bellnexxia.net ([209.226.175.4]:64012 "EHLO
-	tomts16-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752162AbYJQCs0 (ORCPT
+Received: from tomts40.bellnexxia.net ([209.226.175.97]:58726 "EHLO
+	tomts40-srv.bellnexxia.net" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1754446AbYJQQXm (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Oct 2008 22:48:26 -0400
-Date: Thu, 16 Oct 2008 22:48:24 -0400
+	Fri, 17 Oct 2008 12:23:42 -0400
+Date: Fri, 17 Oct 2008 12:23:39 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: Re: [RFC patch 03/15] get_cycles() : sparc64 HAVE_GET_CYCLES
-	(update)
-Message-ID: <20081017024824.GB32468@Krystal>
-References: <20081016232729.699004293@polymtl.ca> <20081016234655.893647148@polymtl.ca>
+Subject: Re: [RFC patch 07/15] LTTng timestamp
+Message-ID: <20081017162339.GC5696@Krystal>
+References: <20081016232729.699004293@polymtl.ca> <20081016234656.542407833@polymtl.ca> <20081017171212.E230.KOSAKI.MOTOHIRO@jp.fujitsu.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <20081016234655.893647148@polymtl.ca>
+In-Reply-To: <20081017171212.E230.KOSAKI.MOTOHIRO@jp.fujitsu.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>
-Cc: David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>
-Message-ID: <20081017024824.O6INBs19rpIx7p390K9tXINQmspVs22BqIw0ycVsACc@z>
+To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, Ingo Molnar <mingo@redhat.com>
+Message-ID: <20081017162339.gwRdwAD6qB9r9j5d9Uix0RSTIgj6EZYG-6vRnh3IgYY@z>
 
-This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
-get_cycles_rate() are implemented.
+* KOSAKI Motohiro (kosaki.motohiro@jp.fujitsu.com) wrote:
+> 
+> more nit.
+> 
+> > +#include <linux/module.h>
+> > +#include <linux/init.h>
+> > +#include <linux/delay.h>
+> > +#include <linux/timer.h>
+> > +#include <linux/workqueue.h>
+> > +#include <linux/cpu.h>
+> > +#include <linux/timex.h>
+> > +#include <linux/bitops.h>
+> > +#include <linux/ltt.h>
+> 
+> ltt.h is created by 08/15. then following build error happend.
+> 
+> make[1]: `include/asm-ia64/nr-irqs.h' is up to date.
+>   CHK     include/linux/version.h
+>   CHK     include/linux/utsrelease.h
+>   CALL    scripts/checksyscalls.sh
+>   CHK     include/linux/compile.h
+>   GZIP    kernel/config_data.gz
+>   IKCFG   kernel/config_data.h
+>   CC      kernel/configs.o
+>   LD      kernel/built-in.o
+>   CC      ltt/ltt-timestamp.o
+> ltt/ltt-timestamp.c:23:23: error: linux/ltt.h: No such file or directory
+> ltt/ltt-timestamp.c: In function 'ltt_update_synthetic_tsc':
+> ltt/ltt-timestamp.c:75: error: implicit declaration of function 'ltt_get_timestamp32'
+> ltt/ltt-timestamp.c: In function 'precalc_stsc_interval':
+> ltt/ltt-timestamp.c:157: error: implicit declaration of function 'ltt_frequency'
+> ltt/ltt-timestamp.c:157: error: implicit declaration of function 'ltt_freq_scale'
+> make[1]: *** [ltt/ltt-timestamp.o] Error 1
+> make: *** [ltt] Error 2
+> 
 
-Changelog :
-- Use tb_ticks_per_usec * 1000000 in get_cycles_rate().
+Thanks for pointing this out. Will fix in the next release with the
+following patchset order :
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: David Miller <davem@davemloft.net>
-CC: Linus Torvalds <torvalds@linux-foundation.org>
-CC: Andrew Morton <akpm@linux-foundation.org>
-CC: Ingo Molnar <mingo@redhat.com>
-CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
-CC: Thomas Gleixner <tglx@linutronix.de>
-CC: Steven Rostedt <rostedt@goodmis.org>
-CC: linux-arch@vger.kernel.org
----
- arch/sparc/include/asm/timex_64.h |   19 ++++++++++++++++++-
- arch/sparc64/Kconfig              |    1 +
- arch/sparc64/kernel/time.c        |    3 ++-
- 3 files changed, 21 insertions(+), 2 deletions(-)
+get-cycles-kconfig-have-get-cycles.patch
+get-cycles-x86-have-get-cycles.patch
+get-cycles-sparc64-have-get-cycles.patch
+get-cycles-powerpc-have-get-cycles.patch
+get-cycles-mips-have-get-cycles.patch
 
-Index: linux-2.6-lttng/arch/sparc64/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/sparc64/Kconfig	2008-10-16 22:29:43.000000000 -0400
-+++ linux-2.6-lttng/arch/sparc64/Kconfig	2008-10-16 22:29:53.000000000 -0400
-@@ -14,6 +14,7 @@ config SPARC64
- 	select HAVE_DYNAMIC_FTRACE
- 	select HAVE_FTRACE
- 	select HAVE_IDE
-+	select HAVE_GET_CYCLES
- 	select HAVE_LMB
- 	select HAVE_ARCH_KGDB
- 	select USE_GENERIC_SMP_HELPERS if SMP
-Index: linux-2.6-lttng/arch/sparc/include/asm/timex_64.h
-===================================================================
---- linux-2.6-lttng.orig/arch/sparc/include/asm/timex_64.h	2008-10-16 22:29:43.000000000 -0400
-+++ linux-2.6-lttng/arch/sparc/include/asm/timex_64.h	2008-10-16 22:33:48.000000000 -0400
-@@ -12,7 +12,24 @@
- 
- /* Getting on the cycle counter on sparc64. */
- typedef unsigned long cycles_t;
--#define get_cycles()	tick_ops->get_tick()
-+
-+static inline cycles_t get_cycles(void)
-+{
-+	return tick_ops->get_tick();
-+}
-+
-+/* get_cycles instruction is synchronized on sparc64 */
-+static inline void get_cycles_barrier(void)
-+{
-+	return;
-+}
-+
-+extern unsigned long tb_ticks_per_usec;
-+
-+static inline cycles_t get_cycles_rate(void)
-+{
-+	return tb_ticks_per_usec * 1000000UL;
-+}
- 
- #define ARCH_HAS_READ_CURRENT_TIMER
- 
-Index: linux-2.6-lttng/arch/sparc64/kernel/time.c
-===================================================================
---- linux-2.6-lttng.orig/arch/sparc64/kernel/time.c	2008-10-16 22:30:36.000000000 -0400
-+++ linux-2.6-lttng/arch/sparc64/kernel/time.c	2008-10-16 22:30:58.000000000 -0400
-@@ -1008,7 +1008,8 @@ static void __init setup_clockevent_mult
- 	sparc64_clockevent.mult = mult;
- }
- 
--static unsigned long tb_ticks_per_usec __read_mostly;
-+unsigned long tb_ticks_per_usec __read_mostly;
-+EXPORT_SYMBOL_GPL(tb_ticks_per_usec);
- 
- void __delay(unsigned long loops)
- {
+#LTTng timestamping
+#
+lttng-timestamp-core.patch
+lttng-timestamp-generic.patch
+lttng-build-instrumentation-menu.patch
+lttng-build-instrumentation-menu-timestamp.patch
+lttng-mips-export-hpt-frequency.patch
+lttng-timestamp-mips.patch
+lttng-timestamp-powerpc.patch
+lttng-timestamp-sparc64.patch
+lttng-timestamp-sh.patch
+lttng-test-tsc.patch
+lttng-timestamp-x86.patch
+
+Mathieu
+
+> 
+> > +#include <linux/smp.h>
+> > +#include <linux/sched.h> /* FIX for m68k local_irq_enable in on_each_cpu */
+> 
+> 
+> 
+> 
 
 -- 
 Mathieu Desnoyers
