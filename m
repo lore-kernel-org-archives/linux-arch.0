@@ -1,46 +1,67 @@
-From: Bastian Blank <bastian@waldi.eu.org>
-Subject: Re: [patch 2/2] introduce vdso on s390
-Date: Fri, 17 Oct 2008 17:34:36 +0200
-Message-ID: <20081017153436.GA17116@wavehammer.waldi.eu.org>
-References: <20081015174506.107691579@de.ibm.com> <20081015175305.332585239@de.ibm.com>
+From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Subject: Re: [RFC patch 06/15] LTTng build
+Date: Fri, 17 Oct 2008 12:18:52 -0400
+Message-ID: <20081017161852.GB5696@Krystal>
+References: <20081016232729.699004293@polymtl.ca> <20081016234656.385520321@polymtl.ca> <20081017170830.E22D.KOSAKI.MOTOHIRO@jp.fujitsu.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wavehammer.waldi.eu.org ([82.139.201.20]:37426 "EHLO
-	wavehammer.waldi.eu.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754684AbYJQPej (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Oct 2008 11:34:39 -0400
+Received: from tomts20.bellnexxia.net ([209.226.175.74]:54964 "EHLO
+	tomts20-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753883AbYJQQS5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Oct 2008 12:18:57 -0400
 Content-Disposition: inline
-In-Reply-To: <20081015175305.332585239@de.ibm.com>
+In-Reply-To: <20081017170830.E22D.KOSAKI.MOTOHIRO@jp.fujitsu.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>
+To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "William L. Irwin" <wli@holomorphy.com>
 
-On Wed, Oct 15, 2008 at 07:45:08PM +0200, Martin Schwidefsky wrote:
-> +void update_vsyscall(struct timespec *wall_time, struct clocksource *clock)
-> +{
-> +	if (clock != &clocksource_tod)
-> +		return;
-> +
-> +	/* Make userspace gettimeofday spin until we're done. */
-> +	++vdso_data->tb_update_count;
-> +	smp_mb();
-> +	vdso_data->xtime_tod_stamp = clock->cycle_last;
-> +	vdso_data->xtime_clock_sec = xtime.tv_sec;
-> +	vdso_data->xtime_clock_nsec = xtime.tv_nsec;
-> +	vdso_data->wtom_clock_sec = wall_to_monotonic.tv_sec;
-> +	vdso_data->wtom_clock_nsec = wall_to_monotonic.tv_nsec;
-> +	smp_wmb();
+* KOSAKI Motohiro (kosaki.motohiro@jp.fujitsu.com) wrote:
+> Hi
+> 
+> just nit
+> 
+> > Index: linux-2.6-lttng/Makefile
+> > ===================================================================
+> > --- linux-2.6-lttng.orig/Makefile	2008-10-16 18:16:33.000000000 -0400
+> > +++ linux-2.6-lttng/Makefile	2008-10-16 18:16:38.000000000 -0400
+> > @@ -619,7 +619,7 @@ export mod_strip_cmd
+> >  
+> >  
+> >  ifeq ($(KBUILD_EXTMOD),)
+> > -core-y		+= kernel/ mm/ fs/ ipc/ security/ crypto/ block/
+> > +core-y		+= kernel/ mm/ fs/ ipc/ security/ crypto/ block/ ltt/
+> >  
+> >  vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, $(init-y) $(init-m) \
+> >  		     $(core-y) $(core-m) $(drivers-y) $(drivers-m) \
+> 
+> This patch depend on 07/15. it seems wrong patch order.
+> Then it cause following build error.
+> 
 
-Different barriers?
+Will fix in the next release, thanks !
 
-> +	++(vdso_data->tb_update_count);
+Mathieu
 
-Why ++(...)?
-
-Bastian
+> 
+> ~/linux/linux-2.6.27-lttng% make
+> make
+> make[1]: `include/asm-ia64/nr-irqs.h' is up to date.
+>   CHK     include/linux/version.h
+>   CHK     include/linux/utsrelease.h
+>   CALL    scripts/checksyscalls.sh
+>   CHK     include/linux/compile.h
+> scripts/Makefile.build:41: /mnt/sdb1/kosaki/linux/linux-2.6.27-lttng/ltt/Makefile: No such file or directory
+> make[1]: *** No rule to make target `/mnt/sdb1/kosaki/linux/linux-2.6.27-lttng/ltt/Makefile'.  Stop.
+> make: *** [ltt] Error 2
+> 
+> 
+> 
+> 
 
 -- 
-Either one of us, by himself, is expendable.  Both of us are not.
-		-- Kirk, "The Devil in the Dark", stardate 3196.1
+Mathieu Desnoyers
+OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
