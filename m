@@ -1,88 +1,98 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: Re: [RFC patch 07/15] LTTng timestamp
-Date: Fri, 17 Oct 2008 12:23:39 -0400
-Message-ID: <20081017162339.GC5696@Krystal>
-References: <20081016232729.699004293@polymtl.ca> <20081016234656.542407833@polymtl.ca> <20081017171212.E230.KOSAKI.MOTOHIRO@jp.fujitsu.com>
+From: Kurt Garloff <garloff@suse.de>
+Subject: Re: [garloff@suse.de: [PATCH 1/1] default mlock limit 32k->64k]
+Date: Fri, 17 Oct 2008 18:46:30 +0200
+Message-ID: <20081017164630.GL5286@tpkurt2.garloff.de>
+References: <20081016074319.GD5286@tpkurt2.garloff.de> <20081016154816.c53a6f8e.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1756659AbYJQQXw@vger.kernel.org>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="qWQny9krlSHwPXz2"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cantor2.suse.de ([195.135.220.15]:43723 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753174AbYJQQqc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Oct 2008 12:46:32 -0400
 Content-Disposition: inline
-In-Reply-To: <20081017171212.E230.KOSAKI.MOTOHIRO@jp.fujitsu.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, Ingo Molnar <mingo@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20081016154816.c53a6f8e.akpm@linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, NPiggin@suse.de
 
-* KOSAKI Motohiro (kosaki.motohiro@jp.fujitsu.com) wrote:
-> 
-> more nit.
-> 
-> > +#include <linux/module.h>
-> > +#include <linux/init.h>
-> > +#include <linux/delay.h>
-> > +#include <linux/timer.h>
-> > +#include <linux/workqueue.h>
-> > +#include <linux/cpu.h>
-> > +#include <linux/timex.h>
-> > +#include <linux/bitops.h>
-> > +#include <linux/ltt.h>
-> 
-> ltt.h is created by 08/15. then following build error happend.
-> 
-> make[1]: `include/asm-ia64/nr-irqs.h' is up to date.
->   CHK     include/linux/version.h
->   CHK     include/linux/utsrelease.h
->   CALL    scripts/checksyscalls.sh
->   CHK     include/linux/compile.h
->   GZIP    kernel/config_data.gz
->   IKCFG   kernel/config_data.h
->   CC      kernel/configs.o
->   LD      kernel/built-in.o
->   CC      ltt/ltt-timestamp.o
-> ltt/ltt-timestamp.c:23:23: error: linux/ltt.h: No such file or directory
-> ltt/ltt-timestamp.c: In function 'ltt_update_synthetic_tsc':
-> ltt/ltt-timestamp.c:75: error: implicit declaration of function 'ltt_get_timestamp32'
-> ltt/ltt-timestamp.c: In function 'precalc_stsc_interval':
-> ltt/ltt-timestamp.c:157: error: implicit declaration of function 'ltt_frequency'
-> ltt/ltt-timestamp.c:157: error: implicit declaration of function 'ltt_freq_scale'
-> make[1]: *** [ltt/ltt-timestamp.o] Error 1
-> make: *** [ltt] Error 2
-> 
 
-Thanks for pointing this out. Will fix in the next release with the
-following patchset order :
+--qWQny9krlSHwPXz2
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-get-cycles-kconfig-have-get-cycles.patch
-get-cycles-x86-have-get-cycles.patch
-get-cycles-sparc64-have-get-cycles.patch
-get-cycles-powerpc-have-get-cycles.patch
-get-cycles-mips-have-get-cycles.patch
+Andrew,
 
-#LTTng timestamping
-#
-lttng-timestamp-core.patch
-lttng-timestamp-generic.patch
-lttng-build-instrumentation-menu.patch
-lttng-build-instrumentation-menu-timestamp.patch
-lttng-mips-export-hpt-frequency.patch
-lttng-timestamp-mips.patch
-lttng-timestamp-powerpc.patch
-lttng-timestamp-sparc64.patch
-lttng-timestamp-sh.patch
-lttng-test-tsc.patch
-lttng-timestamp-x86.patch
+On Thu, Oct 16, 2008 at 03:48:16PM -0700, Andrew Morton wrote:
+> On Thu, 16 Oct 2008 09:43:19 +0200 Kurt Garloff <garloff@suse.de> wrote:
+> > Index: linux-2.6.27/include/linux/resource.h
+> > =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+> > --- linux-2.6.27.orig/include/linux/resource.h
+> > +++ linux-2.6.27/include/linux/resource.h
+> > @@ -59,10 +59,10 @@ struct rlimit {
+> >  #define _STK_LIM	(8*1024*1024)
+> > =20
+> >  /*
+> > - * GPG wants 32kB of mlocked memory, to make sure pass phrases
+> > + * GPG2 wants 64kB of mlocked memory, to make sure pass phrases
+> >   * and other sensitive information are never written to disk.
+> >   */
+> > -#define MLOCK_LIMIT	(8 * PAGE_SIZE)
+> > +#define MLOCK_LIMIT	((PAGE_SIZE > 64*1024) ? PAGE_SIZE : 64*1024)
+>=20
+> I dunno.  Is there really much point in chasing userspace changes like
+> this?
 
-Mathieu
+If there were many apps that would need it and that would have
+contradicting or fast changing requirements, I would certainly
+not wanna chase that.
 
-> 
-> > +#include <linux/smp.h>
-> > +#include <linux/sched.h> /* FIX for m68k local_irq_enable in on_each_cpu */
-> 
-> 
-> 
-> 
+We're lucky here that gpg/gpg2 is the only unprivileged user
+of locked memory and that the requirement does not really change
+often. We've had gpg1 with 32k need since 1999 and now gpg2 with
+a 64k need.
 
--- 
-Mathieu Desnoyers
-OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
+Accommodating that seems like a pragmatic thing to do. Will ensure
+good defaults for a broad set of users.
+
+> Worst case, we end up releasing distributions which work properly on
+> newer kernels and which fail to work properly on older kernels.
+
+I know a number of users that run new kernels below old distributions
+but few that do the opposite.
+The failure mode in this specific case is not obscure at all, so I'm
+not worried:=20
+can't lock memory: Cannot allocate memory
+Warning: using insecure memory!
+
+> I suspect that it would be better to set the default to zero and
+> *force* userspace to correctly tune whatever-kernel-they're-running-on
+> to match their requirements.
+
+That's feasible, though I think distributions are not today
+preconfigured to do that. Turning your argument around:
+It would it a bit harder to run new kernels on old distros.
+(Which I believe is worse -- we need testers!)
+
+Best,
+--=20
+Kurt Garloff, VP Business Development -- OPS, Novell Inc.
+
+--qWQny9krlSHwPXz2
+Content-Type: application/pgp-signature
+Content-Disposition: inline
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.4-svn0 (GNU/Linux)
+
+iD8DBQFI+MFmxmLh6hyYd04RAnvMAJ9WZosJUvKQToc3n+zOWFir5XLVHACgtrIl
+6RXOcYl1bVnNIABDacpTz7s=
+=Z96D
+-----END PGP SIGNATURE-----
+
+--qWQny9krlSHwPXz2--
