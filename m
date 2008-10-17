@@ -1,92 +1,31 @@
-From: Steven Rostedt <rostedt@goodmis.org>
+From: Christoph Lameter <cl@linux-foundation.org>
 Subject: Re: [RFC patch 15/15] LTTng timestamp x86
-Date: Fri, 17 Oct 2008 15:17:54 -0400 (EDT)
-Message-ID: <alpine.DEB.1.10.0810171513480.22097@gandalf.stny.rr.com>
+Date: Fri, 17 Oct 2008 14:36:56 -0500
+Message-ID: <48F8E958.5080907@linux-foundation.org>
 References: <20081016232729.699004293@polymtl.ca> <20081016234657.837704867@polymtl.ca> <alpine.LFD.2.00.0810161701470.3288@nehalem.linux-foundation.org> <20081017012835.GA30195@Krystal> <57C9024A16AD2D4C97DC78E552063EA3532D455F@orsmsx505.amr.corp.intel.com>
- <20081017172515.GA9639@goodmis.org> <57C9024A16AD2D4C97DC78E552063EA3533458AC@orsmsx505.amr.corp.intel.com> <20081017184215.GB9874@Krystal>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.124]:41892 "EHLO
-	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754711AbYJQTR6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Oct 2008 15:17:58 -0400
-In-Reply-To: <20081017184215.GB9874@Krystal>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:59728 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755196AbYJQTjE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Oct 2008 15:39:04 -0400
+In-Reply-To: <57C9024A16AD2D4C97DC78E552063EA3532D455F@orsmsx505.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: "Luck, Tony" <tony.luck@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+
+Luck, Tony wrote:
+> Even one line bouncing between cpus can be a performamce disaster.
+> You'll probably hit a serious wall somewhere between 8 and 16
+> cpus (ia64 has code that looks a lot like this in the gettimeofday()
+> path because it does not synchronize cpu cycle counters ... some
 
 
-
-
-On Fri, 17 Oct 2008, Mathieu Desnoyers wrote:
-
-> * Luck, Tony (tony.luck@intel.com) wrote:
-> > > I agree that one cache line bouncer is devastating to performance. But
-> > > as Mathieu said, it is better than a global tracer with lots of bouncing
-> > > going on.
-> > 
-> > Scale up enough, and it becomes more than just a performance problem.
-> > When SGI first tried to boot on 512 cpus they found the kernel hung
-> > completely because of a single global atomic counter for how many
-> > interrupts there were.  With HZ=1024 and 512 cpus the ensuing cache
-> > line bouncing storm from each interrupt took longer to resolve than
-> > the interval between interrupts.
-> > 
-> > With higher event rates (1KHz seems relatively low) this wall will
-> > be a problem for smaller systems too.
-> > 
-> 
-> Hrm, on such systems
-> - *large* amount of cpus
-> - no synchronized TSCs
-
-What about selective counting? Or have counters per nodes? If you are
-dealing with a race, most cases, the race is not happening against CPUs
-not sharing a node. Those not sharing will try hard not to ever use the
-same cache lines.
-
-
-> 
-> What would be the best approach to order events ? Do you think we should
-> consider using HPET, event though it's painfully slow ? Would it be
-> faster than cache-line bouncing on such large boxes ? With a frequency
-> around 10MHz, that would give a 100ns precision, which should be enough
-> to order events. However, HPET is known for its poor performances, which
-> I doubt will do better than the cache-line bouncing alternative.
-> 
-> > > ftrace does not have a global counter, but on some boxes with out of
-> > > sync TSCs, it could not find race conditions. I had to pull in logdev,
-> > > which found the race right away, because of this atomic counter.
-> > 
-> > Perhaps this needs to be optional (and run-time switchable).  Some
-> > users (tracking performance issues) will want the  tracer to have
-> > the minumum possible effect on the system.  Others (chasing race
-> > conditions) will want the best possible ordering of events between
-> > cpus[*].
-> > 
-> 
-> Yup, I think this solution would work. The user could specify the time
-> source for a specific set of buffers (a trace) through debugfs files.
-> 
-> > -Tony
-> > 
-> > [*] I'd still be concerned that a heavyweight strict ordering might
-> > perturb the system enough to make the race disappear when tracing
-> > is enabled.
-> > 
-> 
-> Yes, it's true that it may make the race disappear, but what has been
-> seen in the field (Steven could confirm that) is that it usually makes
-> the race more likely to appear due to an enlarged race window. But I
-> guess it all depends on where the activated instrumentation is.
-
-I've seen both. 9 out of 10 times, the tracer helps induce the race. But 
-I've had that 1 out of 10 where it makes the race go away.
-
-Actually, what happens is that I'll start adding trace markers (printk 
-like traces), and the race will happen quicker. Then I'll add a few more 
-markers and the race goes away. Those are the worst ;-)
-
--- Steve
+The code exist by necessity because some systems do not have synchronized ITCs
+and one would not have time go backward. The cmpxchg there is usually switched
+off. Its horrible in terms of scaling to large numbers of processor and also
+horrible in terms of clock accuracy.
