@@ -1,146 +1,143 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC patch 15/15] LTTng timestamp x86
-Date: Sat, 18 Oct 2008 13:01:19 -0400
-Message-ID: <20081018170118.GA22243@Krystal>
-References: <20081016234657.837704867@polymtl.ca> <alpine.LFD.2.00.0810161701470.3288@nehalem.linux-foundation.org> <20081017012835.GA30195@Krystal> <57C9024A16AD2D4C97DC78E552063EA3532D455F@orsmsx505.amr.corp.intel.com> <20081017172515.GA9639@goodmis.org> <57C9024A16AD2D4C97DC78E552063EA3533458AC@orsmsx505.amr.corp.intel.com> <20081017184215.GB9874@Krystal> <57C9024A16AD2D4C97DC78E552063EA35334594F@orsmsx505.amr.corp.intel.com> <20081017202313.GA13597@Krystal> <57C9024A16AD2D4C97DC78E552063EA353345B9B@orsmsx505.amr.corp.intel.com>
+Date: Sat, 18 Oct 2008 10:35:52 -0700 (PDT)
+Message-ID: <alpine.LFD.2.00.0810181011310.3438@nehalem.linux-foundation.org>
+References: <20081016234657.837704867@polymtl.ca> <alpine.LFD.2.00.0810161701470.3288@nehalem.linux-foundation.org> <20081017012835.GA30195@Krystal> <57C9024A16AD2D4C97DC78E552063EA3532D455F@orsmsx505.amr.corp.intel.com> <20081017172515.GA9639@goodmis.org>
+ <57C9024A16AD2D4C97DC78E552063EA3533458AC@orsmsx505.amr.corp.intel.com> <20081017184215.GB9874@Krystal> <57C9024A16AD2D4C97DC78E552063EA35334594F@orsmsx505.amr.corp.intel.com> <20081017202313.GA13597@Krystal> <57C9024A16AD2D4C97DC78E552063EA353345B9B@orsmsx505.amr.corp.intel.com>
+ <20081018170118.GA22243@Krystal>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1752726AbYJRRBu@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <57C9024A16AD2D4C97DC78E552063EA353345B9B@orsmsx505.amr.corp.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "ltt-dev@lists.casi.polymtl.ca" <ltt-dev@lists.casi.polymtl.ca>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:58096 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750892AbYJRRgx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 18 Oct 2008 13:36:53 -0400
+In-Reply-To: <20081018170118.GA22243@Krystal>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Cc: "Luck, Tony" <tony.luck@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "ltt-dev@lists.casi.polymtl.ca" <ltt-dev@lists.casi.polymtl.ca>
 
-* Luck, Tony (tony.luck@intel.com) wrote:
-> Complexity of dealing with all the random issues that have
-> plagued TSC in different cpus over the years definitely
-> seems to be a problem.
+
+
+On Sat, 18 Oct 2008, Mathieu Desnoyers wrote:
 > 
+> So, the conclusion it brings about scalability of those time sources
+> regarding tracing is :
+> - local TSC read scales very well when the number of CPU increases
+>   (constant 50% overhead)
 
-Yes :(
+You should basically expect it to scale perfectly. Of course the tracing 
+itself adds overhead, and at some point the trace data generation may add 
+so much cache/memory traffic that you start getting worse scaling because 
+of _that_, but just a local TSC access itself will be perfect on any sane 
+setup.
 
-> I have one more idea on how we might be able to use
-> TSC locally and still have confidence that we can
-> merge local cpu buffers into a consistent stream.
+> - Comparing the added overhead of both get_cyles+cmpxchg and HPET to
+>   the local sync TSC :
 > 
-> What if we read the HPET occasionally (once per
-> second?) and add a record to our per-cpu buffer
-> with the value of the HPET.  That would give us
-> a periodic cross-check of each cpus TSC against
-> real time so that a "smart" post-processor can
-> sanity check the log entries at regular intervals.
+>   cores    get_cycles+cmpxchg    HPET
+>       1                  0.8%     10%
+>       2                  8  %     11%
+>       8                 12  %     19%
 > 
+> So, is it me, or HPET scales even more poorly than a cache-line bouncing
+> cmpxchg ? I find it a bit surprising.
 
-Hrm, that would make the timestamps much more sensitive to tracing
-hiccups :
+I don't think that's strictly true.
 
-- if interrupts are disabled for a long time on the system (kernel bug
-  or at early boot), we cannot assume those HPET events will be logged
-  at the expected interval.
-- if we are in buffer full condition (buffers are too small to handle
-  the load and we drop events on buffer full condition), we will not
-  only have missing events : given we depend on those HPET events to
-  have a consistent time-base, all the trace time-base must be
-  considered untrustable.
-- we would also have to get this HPET timer value at each subbuffer
-  boundary (at each page in Steven's implementation). This is required
-  so we can make sense of the time-base of buffers when we only gather
-  the last subbuffers written, given the previous ones have been
-  overwritten in flight-recorder mode. However, with a relatively large
-  load and small subbuffers (e.g. 4kB), we would have to get this HPET
-  value 2048 times/second/cpu. On a 512 nodes machine, it may become a
-  problem. See my analysis of poor HPET scalability below.
-  
-> It doesn't deal with the truly insane TSC behaivours
-> (like stopping completely in certain C states, or
-> varying frequency) ... but it would at least be able
-> to reliably detect these forms of insanity.
-> 
+The cacheline is going to generally be faster than HPET ever will, since 
+caches are really important. But as you can see, the _degradation_ is 
+actually worse for the cacheline, since the cacheline works perfectly in 
+the UP case (not surprising) and starts degrading a lot more when you 
+start getting bouncing.
 
-I also like the one done by AMD when the cycle counter goes backward
-one a single CPU. :) Hrm, I thought those you say are truly insane
-behaviors are exactly the ones we are trying to deal with ?
+And I'm not sure what the behaviour would be for many-core, but I would 
+not be surprised of the cmpxchg actually ends up losing at some point. The 
+HPET is never fast (you can think of it as "uncached access"), and it's 
+going to degrade too (contention at the IO hub level), but it's actually 
+possible that the contention at some point becomes less than wild 
+bouncing.
 
-And what do we say when we detect this ? "sorry, please upgrade your
-hardware to get a reliable trace" ? ;)
+Many cacheline bouncing issues end up being almost exponential. When you 
+*really* get bouncing, things degrade in a major way. I don't think you've 
+seen the worst of it with 8 cores ;)
 
-> We need periodic entries added to the buffer anyway
-> to make sure we can detect rollover since we don't
-> want waste space in log records with a full width
-> TSC value.
-> 
+And that's why I'd really like to see the "only local TSC" access, even if 
+I admit that the code is going to be much more subtle, and I will also 
+admit that especially in the presense of frequency changes *and* hw with 
+unsynchronized TSC's you may be in the situation where you never get 
+exactly what you want.
 
-Nope, this is not required. I removed the heartbeat event from LTTng two
-weeks ago, implementing detection of the delta from the last timestamp
-written into the trace. If we detect that the new timestamp is too far
-from the previous one, we write the full 64 bits TSC in an extended
-event header. Therefore, we have no dependency on interrupt latency to
-get a sane time-base.
+But while you may not like some of the "purely local TSC" issues, I would 
+like to point out that
 
+ - In _practice_, it's going to be essentially perfect on a lot of 
+   machines, and under a lot of loads. 
 
-> -Tony
-> 
+   For example, yes it's true that frequency changes will make TSC things 
+   less reliable on a number of machines, but people already end up 
+   disabling dynamic cpufreq when doing various benchmark runs, simply 
+   because people want more consistent numbers for benchmarking across 
+   different kernels etc.
 
-Here are some numbers showing the scalability of synchronized TSC vs
-cache-line bouncing vs HPET read under tracing load. I use LTTng to take
-a trace only in circular per-cpu memory buffers while tbench is running.
-I look at the resulting tbench speed. This kind of load generates a lot
-of tracing data especially because tbench does a lot of small
-read/writes which generates a lot of system call events. Side-note:
-LTTng is currently fully dynamic and parses the format string like
-printk, and this is accountable for a large part of the performance
-degradation. LTTng however supports to override this probe with
-"specialized" probes which know exactly which types to record. I just
-did not create any yet. So let's focus on timestamping :
+   So it's entirely possible (and I'd say "likely") that most people are 
+   simply willing to do the same thing for tracing if they are tracing 
+   things at a level where CPU frequency changes might otherwise matter. 
 
+   So maybe the "local TSC" approach isn't always perfect, but I'd expect 
+   that quite often people who do tracing are willing to work around it. 
+   The people doing tracing are generally not doing so without being aware 
+   of what they are up to..
 
-model name	: Intel(R) Xeon(R) CPU           E5405  @ 2.00GHz
-stepping	: 6
-cpu MHz		: 2000.073
+ - While there is certainly a lot of hardware out there with flaky TSC's, 
+   there's also a lot of hardware (especially upcoming) that do *not* have 
+   flaky TSC's. We've been complaining to Intel about TSC behavior for 
+   years, and the thing is, it actually _is_ improving. It just takes some 
+   time.
 
-tbench, x86_64 dual quad-core, 2.0GHz, 16GB ram      Speed          Slowdown
+ - So considering that some of the tracing will actually be very important 
+   on machines that have lots of cores, and considering that a lot of the 
+   issues can generally be worked around, I really do think that it's 
+   worth trying to spend a bit of effort on doing the "local TSC + timely 
+   corrections"
 
-(8 cores up)
-  No tracing :                                      1910.50 MB/sec
-  Flight recorder tracing (per-cpu memory buffers)
-    synchronized TSC, get_cycles with cpuid :        940.20 MB/sec (50%)
-    unsync TSC, get_cycles + cmpxchg :               716.96 MB/sec (62%)
-    unsync TSC, HPET read :                          586.53 MB/sec (69%)
+For example, you mention that interrupts can be disabled for a time, 
+delaying things like regular sync events with some stable external clock 
+(say the HPET). That's true, and it would even be a problem if you'd use 
+the time of the interrupt itself as the source of the sync, but you don't 
+really need to depend on the timing of the interrupt - just that it 
+happens "reasonably often" (and now we're talking _much_ longer timeframes 
+than some interrupt-disabled time - we're talking tenths of seconds or 
+even more).
 
-(2 cores up)
-  No tracing :                                       488.15 MB/sec
-  Flight recorder tracing (per-cpu memory buffers)
-    synchronized TSC, get_cycles with cpuid :        241.34 MB/sec (50%)
-    unsync TSC, get_cycles + cmpxchg :               202.30 MB/sec (58%)
-    unsync TSC, HPET read :                          187.04 MB/sec (61%)
+Then, rather than depend on the time of the interrupt, you just purely can 
+check the local TSC against the HPET (or other source), and synchronize 
+just _purely_ based on those. That you can do by basically doing something 
+like
 
-(1 core up)
-  No tracing :                                       270.67 MB/sec
-  Flight recorder tracing (per-cpu memory buffers)
-    synchronized TSC, get_cycles with cpuid :        126.82 MB/sec (53.1%)
-    unsync TSC, get_cycles + cmpxchg :               124.54 MB/sec (53.9%)
-    unsync TSC, HPET read :                           98.75 MB/sec (63.5%)
+	do {
+		start = read_tsc();
+		hpet = read_hpet();
+		end = read_tsc();
+	} while (end - start > ERROR);
 
-So, the conclusion it brings about scalability of those time sources
-regarding tracing is :
-- local TSC read scales very well when the number of CPU increases
-  (constant 50% overhead)
-- Comparing the added overhead of both get_cyles+cmpxchg and HPET to
-  the local sync TSC :
+and now, even if you have interrupts enabled (or worry about NMI's), you 
+now know that you have a totally _independent_ sync point, ie you know 
+that your hpet read value is withing ERROR cycles of the start/end values, 
+so now you have a good point for doing future linear interpolation based 
+on those kinds of sync points.
 
-  cores    get_cycles+cmpxchg    HPET
-      1                  0.8%     10%
-      2                  8  %     11%
-      8                 12  %     19%
+And if you make all these linear interpolations be per-CPU (so you have 
+per-CPU offsets and frequencies) you never _ever_ need to touch any shared 
+data at all, and you know you can scale basically perfectly.
 
-So, is it me, or HPET scales even more poorly than a cache-line bouncing
-cmpxchg ? I find it a bit surprising.
+Your linear interpolations may not be _perfect_, but you'll be able to get 
+them pretty damn near. In fact, even if the TSC's aren't synchronized at 
+all, if they are at least _individually_ stable (just running at slightly 
+different frequencies because they are in different clock domains, and/or 
+at different start points), you can basically perfect the precision over 
+time.
 
-Mathieu
-
--- 
-Mathieu Desnoyers
-OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
+			Linus
