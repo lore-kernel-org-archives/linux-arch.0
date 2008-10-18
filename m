@@ -1,55 +1,77 @@
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: RE: [RFC patch 15/15] LTTng timestamp x86
-Date: Fri, 17 Oct 2008 16:52:16 -0700
-Message-ID: <57C9024A16AD2D4C97DC78E552063EA353345B9B@orsmsx505.amr.corp.intel.com>
-References: <20081016232729.699004293@polymtl.ca>
- <20081016234657.837704867@polymtl.ca>
- <alpine.LFD.2.00.0810161701470.3288@nehalem.linux-foundation.org>
- <20081017012835.GA30195@Krystal>
- <57C9024A16AD2D4C97DC78E552063EA3532D455F@orsmsx505.amr.corp.intel.com>
- <20081017172515.GA9639@goodmis.org>
- <57C9024A16AD2D4C97DC78E552063EA3533458AC@orsmsx505.amr.corp.intel.com>
- <20081017184215.GB9874@Krystal>
- <57C9024A16AD2D4C97DC78E552063EA35334594F@orsmsx505.amr.corp.intel.com>
- <20081017202313.GA13597@Krystal>
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [patch] mm: fix anon_vma races
+Date: Sat, 18 Oct 2008 03:53:23 +0200
+Message-ID: <20081018015323.GA11149@wotan.suse.de>
+References: <20081016041033.GB10371@wotan.suse.de> <Pine.LNX.4.64.0810172300280.30871@blonde.site> <alpine.LFD.2.00.0810171549310.3438@nehalem.linux-foundation.org> <Pine.LNX.4.64.0810180045370.8995@blonde.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:19465 "EHLO mga01.intel.com"
+Received: from ns.suse.de ([195.135.220.2]:57428 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752859AbYJQXwl convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Oct 2008 19:52:41 -0400
-In-Reply-To: <20081017202313.GA13597@Krystal>
-Content-Language: en-US
+	id S1752717AbYJRBxi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Oct 2008 21:53:38 -0400
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0810180045370.8995@blonde.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "ltt-dev@lists.casi.polymtl.ca" <ltt-dev@lists.casi.polymtl.ca>
+To: Hugh Dickins <hugh@veritas.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 
-Complexity of dealing with all the random issues that have
-plagued TSC in different cpus over the years definitely
-seems to be a problem.
+On Sat, Oct 18, 2008 at 01:13:16AM +0100, Hugh Dickins wrote:
+> On Fri, 17 Oct 2008, Linus Torvalds wrote:
+> > would be more obvious in the place where we actually fetch that "anon_vma" 
+> > pointer again and actually derefernce it.
+> > 
+> > HOWEVER:
+> > 
+> >  - there are potentially multiple places that do that, and putting it in 
+> >    the anon_vma_prepare() thing not only matches things with the 
+> >    smp_wmb(), making that whole pairing much more obvious, but it also 
+> >    means that we're guaranteed that any anon_vma user will have done the 
+> >    smp_read_barrier_depends(), since they all have to do that prepare 
+> >    thing anyway.
+> 
+> No, it's not so that any anon_vma user would have done the
+> smp_read_barrier_depends() placed in anon_vma_prepare().
+> 
+> Anyone faulting in a page would have done it (swapoff? that
+> assumes it's been done, let's not worry about it right now).
+> 
+> But they're doing it to make the page's ptes accessible to
+> memory reclaim, and the CPU doing memory reclaim will not
+> (unless by coincidence) have done that anon_vma_prepare() -
+> it's just reading the links which the faulters are providing.
 
-I have one more idea on how we might be able to use
-TSC locally and still have confidence that we can
-merge local cpu buffers into a consistent stream.
+Yes, that's a very important flaw you point out with the fix. Good
+spotting.
 
-What if we read the HPET occasionally (once per
-second?) and add a record to our per-cpu buffer
-with the value of the HPET.  That would give us
-a periodic cross-check of each cpus TSC against
-real time so that a "smart" post-processor can
-sanity check the log entries at regular intervals.
+Actually another thing I was staying awake thinking about was the
+pairwise consistency problem. "Apparently" Linux is supposed to
+support arbitrary pairwise consistency.
 
-It doesn't deal with the truly insane TSC behaivours
-(like stopping completely in certain C states, or
-varying frequency) ... but it would at least be able
-to reliably detect these forms of insanity.
+This means.
+CPU0
+anon_vma.initialized = 1;
+smp_wmb()
+vma->anon_vma = anon_vma;
 
-We need periodic entries added to the buffer anyway
-to make sure we can detect rollover since we don't
-want waste space in log records with a full width
-TSC value.
+CPU1
+if (vma->anon_vma)
+  page->anon_vma = vma->anon_vma;
 
--Tony
+CPU2
+if (page->anon_vma) {
+  smp_read_barrier_depends();
+  assert(page->anon_vma.initialized);
+}
+
+The assertion may trigger because the store from CPU0 may not have
+propograted to CPU2 before the stores from CPU1.
+
+But after thinking about this a bit more, I think Linux would be
+broken all over the map under such ordering schemes. I think we'd
+have to mandate causal consistency. Are there any architectures we
+run on where this is not guaranteed? (I think recent clarifications
+to x86 ordering give us CC on that architecture).
+
+powerpc, ia64, alpha, sparc, arm, mips? (cced linux-arch)
