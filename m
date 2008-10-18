@@ -1,77 +1,46 @@
-From: Nick Piggin <npiggin@suse.de>
+From: Paul Mackerras <paulus@samba.org>
 Subject: Re: [patch] mm: fix anon_vma races
-Date: Sat, 18 Oct 2008 03:53:23 +0200
-Message-ID: <20081018015323.GA11149@wotan.suse.de>
-References: <20081016041033.GB10371@wotan.suse.de> <Pine.LNX.4.64.0810172300280.30871@blonde.site> <alpine.LFD.2.00.0810171549310.3438@nehalem.linux-foundation.org> <Pine.LNX.4.64.0810180045370.8995@blonde.site>
+Date: Sat, 18 Oct 2008 13:50:57 +1100
+Message-ID: <18681.20241.347889.843669@cargo.ozlabs.ibm.com>
+References: <20081016041033.GB10371@wotan.suse.de>
+	<Pine.LNX.4.64.0810172300280.30871@blonde.site>
+	<alpine.LFD.2.00.0810171549310.3438@nehalem.linux-foundation.org>
+	<Pine.LNX.4.64.0810180045370.8995@blonde.site>
+	<20081018015323.GA11149@wotan.suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.suse.de ([195.135.220.2]:57428 "EHLO mx1.suse.de"
+Received: from ozlabs.org ([203.10.76.45]:42718 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752717AbYJRBxi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Oct 2008 21:53:38 -0400
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0810180045370.8995@blonde.site>
+	id S1751822AbYJRCvF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Oct 2008 22:51:05 -0400
+In-Reply-To: <20081018015323.GA11149@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hugh Dickins <hugh@veritas.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Hugh Dickins <hugh@veritas.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 
-On Sat, Oct 18, 2008 at 01:13:16AM +0100, Hugh Dickins wrote:
-> On Fri, 17 Oct 2008, Linus Torvalds wrote:
-> > would be more obvious in the place where we actually fetch that "anon_vma" 
-> > pointer again and actually derefernce it.
-> > 
-> > HOWEVER:
-> > 
-> >  - there are potentially multiple places that do that, and putting it in 
-> >    the anon_vma_prepare() thing not only matches things with the 
-> >    smp_wmb(), making that whole pairing much more obvious, but it also 
-> >    means that we're guaranteed that any anon_vma user will have done the 
-> >    smp_read_barrier_depends(), since they all have to do that prepare 
-> >    thing anyway.
+Nick Piggin writes:
+
+> But after thinking about this a bit more, I think Linux would be
+> broken all over the map under such ordering schemes. I think we'd
+> have to mandate causal consistency. Are there any architectures we
+> run on where this is not guaranteed? (I think recent clarifications
+> to x86 ordering give us CC on that architecture).
 > 
-> No, it's not so that any anon_vma user would have done the
-> smp_read_barrier_depends() placed in anon_vma_prepare().
-> 
-> Anyone faulting in a page would have done it (swapoff? that
-> assumes it's been done, let's not worry about it right now).
-> 
-> But they're doing it to make the page's ptes accessible to
-> memory reclaim, and the CPU doing memory reclaim will not
-> (unless by coincidence) have done that anon_vma_prepare() -
-> it's just reading the links which the faulters are providing.
+> powerpc, ia64, alpha, sparc, arm, mips? (cced linux-arch)
 
-Yes, that's a very important flaw you point out with the fix. Good
-spotting.
+Not sure what you mean by causal consistency, but I assume it's the
+same as saying that barriers give cumulative ordering, as described on
+page 413 of the Power Architecture V2.05 document at:
 
-Actually another thing I was staying awake thinking about was the
-pairwise consistency problem. "Apparently" Linux is supposed to
-support arbitrary pairwise consistency.
+http://www.power.org/resources/reading/PowerISA_V2.05.pdf
 
-This means.
-CPU0
-anon_vma.initialized = 1;
-smp_wmb()
-vma->anon_vma = anon_vma;
+The ordering provided by sync, lwsync and eieio is cumulative (see
+pages 446 and 448), so we should be OK on powerpc AFAICS.  (The
+cumulative property of eieio only applies to accesses to normal system
+memory, but that should be OK since we use sync when we want barriers
+that affect non-cacheable accesses as well as cacheable.)
 
-CPU1
-if (vma->anon_vma)
-  page->anon_vma = vma->anon_vma;
-
-CPU2
-if (page->anon_vma) {
-  smp_read_barrier_depends();
-  assert(page->anon_vma.initialized);
-}
-
-The assertion may trigger because the store from CPU0 may not have
-propograted to CPU2 before the stores from CPU1.
-
-But after thinking about this a bit more, I think Linux would be
-broken all over the map under such ordering schemes. I think we'd
-have to mandate causal consistency. Are there any architectures we
-run on where this is not guaranteed? (I think recent clarifications
-to x86 ordering give us CC on that architecture).
-
-powerpc, ia64, alpha, sparc, arm, mips? (cced linux-arch)
+Paul.
