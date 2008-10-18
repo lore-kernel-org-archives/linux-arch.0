@@ -1,143 +1,51 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [RFC patch 15/15] LTTng timestamp x86
-Date: Sat, 18 Oct 2008 10:35:52 -0700 (PDT)
-Message-ID: <alpine.LFD.2.00.0810181011310.3438@nehalem.linux-foundation.org>
-References: <20081016234657.837704867@polymtl.ca> <alpine.LFD.2.00.0810161701470.3288@nehalem.linux-foundation.org> <20081017012835.GA30195@Krystal> <57C9024A16AD2D4C97DC78E552063EA3532D455F@orsmsx505.amr.corp.intel.com> <20081017172515.GA9639@goodmis.org>
- <57C9024A16AD2D4C97DC78E552063EA3533458AC@orsmsx505.amr.corp.intel.com> <20081017184215.GB9874@Krystal> <57C9024A16AD2D4C97DC78E552063EA35334594F@orsmsx505.amr.corp.intel.com> <20081017202313.GA13597@Krystal> <57C9024A16AD2D4C97DC78E552063EA353345B9B@orsmsx505.amr.corp.intel.com>
- <20081018170118.GA22243@Krystal>
+Date: Sat, 18 Oct 2008 19:50:05 +0200
+Message-ID: <20081018175005.GA2211@elte.hu>
+References: <20081017012835.GA30195@Krystal> <57C9024A16AD2D4C97DC78E552063EA3532D455F@orsmsx505.amr.corp.intel.com> <20081017172515.GA9639@goodmis.org> <57C9024A16AD2D4C97DC78E552063EA3533458AC@orsmsx505.amr.corp.intel.com> <20081017184215.GB9874@Krystal> <57C9024A16AD2D4C97DC78E552063EA35334594F@orsmsx505.amr.corp.intel.com> <20081017202313.GA13597@Krystal> <57C9024A16AD2D4C97DC78E552063EA353345B9B@orsmsx505.amr.corp.intel.com> <20081018170118.GA22243@Krystal> <alpine.LFD.2.00.0810181011310.3438@nehalem.linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:58096 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750892AbYJRRgx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 18 Oct 2008 13:36:53 -0400
-In-Reply-To: <20081018170118.GA22243@Krystal>
+Received: from mx2.mail.elte.hu ([157.181.151.9]:53593 "EHLO mx2.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750892AbYJRRum (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 18 Oct 2008 13:50:42 -0400
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.00.0810181011310.3438@nehalem.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: "Luck, Tony" <tony.luck@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "ltt-dev@lists.casi.polymtl.ca" <ltt-dev@lists.casi.polymtl.ca>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, "Luck, Tony" <tony.luck@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "ltt-dev@lists.casi.polymtl.ca" <ltt-dev@lists.casi.polymtl.ca>, Michael Davidson <md@google.com>
 
 
+* Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-On Sat, 18 Oct 2008, Mathieu Desnoyers wrote:
+> And if you make all these linear interpolations be per-CPU (so you 
+> have per-CPU offsets and frequencies) you never _ever_ need to touch 
+> any shared data at all, and you know you can scale basically 
+> perfectly.
 > 
-> So, the conclusion it brings about scalability of those time sources
-> regarding tracing is :
-> - local TSC read scales very well when the number of CPU increases
->   (constant 50% overhead)
+> Your linear interpolations may not be _perfect_, but you'll be able to 
+> get them pretty damn near. In fact, even if the TSC's aren't 
+> synchronized at all, if they are at least _individually_ stable (just 
+> running at slightly different frequencies because they are in 
+> different clock domains, and/or at different start points), you can 
+> basically perfect the precision over time.
 
-You should basically expect it to scale perfectly. Of course the tracing 
-itself adds overhead, and at some point the trace data generation may add 
-so much cache/memory traffic that you start getting worse scaling because 
-of _that_, but just a local TSC access itself will be perfect on any sane 
-setup.
+there's been code submitted by Michael Davidson recently that looked 
+interesting, which turns the TSC into such an entity:
 
-> - Comparing the added overhead of both get_cyles+cmpxchg and HPET to
->   the local sync TSC :
-> 
->   cores    get_cycles+cmpxchg    HPET
->       1                  0.8%     10%
->       2                  8  %     11%
->       8                 12  %     19%
-> 
-> So, is it me, or HPET scales even more poorly than a cache-line bouncing
-> cmpxchg ? I find it a bit surprising.
+    http://lkml.org/lkml/2008/9/25/451
 
-I don't think that's strictly true.
+The periodic synchronization uses the hpet, but it thus allows lockless 
+and globally correct readouts of the TSC .
 
-The cacheline is going to generally be faster than HPET ever will, since 
-caches are really important. But as you can see, the _degradation_ is 
-actually worse for the cacheline, since the cacheline works perfectly in 
-the UP case (not surprising) and starts degrading a lot more when you 
-start getting bouncing.
+And that would match the long term goal as well: the hw should do this 
+all automatically. So perhaps we should have a trace_clock() after all, 
+independent of sched_clock(), and derived straight from RDTSC.
 
-And I'm not sure what the behaviour would be for many-core, but I would 
-not be surprised of the cmpxchg actually ends up losing at some point. The 
-HPET is never fast (you can think of it as "uncached access"), and it's 
-going to degrade too (contention at the IO hub level), but it's actually 
-possible that the contention at some point becomes less than wild 
-bouncing.
+The approach as propoed has a couple of practical problems, but if we 
+could be one RDTSC+multiplication away from a pretty good timestamp that 
+would be rather useful, very fast and very robust ...
 
-Many cacheline bouncing issues end up being almost exponential. When you 
-*really* get bouncing, things degrade in a major way. I don't think you've 
-seen the worst of it with 8 cores ;)
-
-And that's why I'd really like to see the "only local TSC" access, even if 
-I admit that the code is going to be much more subtle, and I will also 
-admit that especially in the presense of frequency changes *and* hw with 
-unsynchronized TSC's you may be in the situation where you never get 
-exactly what you want.
-
-But while you may not like some of the "purely local TSC" issues, I would 
-like to point out that
-
- - In _practice_, it's going to be essentially perfect on a lot of 
-   machines, and under a lot of loads. 
-
-   For example, yes it's true that frequency changes will make TSC things 
-   less reliable on a number of machines, but people already end up 
-   disabling dynamic cpufreq when doing various benchmark runs, simply 
-   because people want more consistent numbers for benchmarking across 
-   different kernels etc.
-
-   So it's entirely possible (and I'd say "likely") that most people are 
-   simply willing to do the same thing for tracing if they are tracing 
-   things at a level where CPU frequency changes might otherwise matter. 
-
-   So maybe the "local TSC" approach isn't always perfect, but I'd expect 
-   that quite often people who do tracing are willing to work around it. 
-   The people doing tracing are generally not doing so without being aware 
-   of what they are up to..
-
- - While there is certainly a lot of hardware out there with flaky TSC's, 
-   there's also a lot of hardware (especially upcoming) that do *not* have 
-   flaky TSC's. We've been complaining to Intel about TSC behavior for 
-   years, and the thing is, it actually _is_ improving. It just takes some 
-   time.
-
- - So considering that some of the tracing will actually be very important 
-   on machines that have lots of cores, and considering that a lot of the 
-   issues can generally be worked around, I really do think that it's 
-   worth trying to spend a bit of effort on doing the "local TSC + timely 
-   corrections"
-
-For example, you mention that interrupts can be disabled for a time, 
-delaying things like regular sync events with some stable external clock 
-(say the HPET). That's true, and it would even be a problem if you'd use 
-the time of the interrupt itself as the source of the sync, but you don't 
-really need to depend on the timing of the interrupt - just that it 
-happens "reasonably often" (and now we're talking _much_ longer timeframes 
-than some interrupt-disabled time - we're talking tenths of seconds or 
-even more).
-
-Then, rather than depend on the time of the interrupt, you just purely can 
-check the local TSC against the HPET (or other source), and synchronize 
-just _purely_ based on those. That you can do by basically doing something 
-like
-
-	do {
-		start = read_tsc();
-		hpet = read_hpet();
-		end = read_tsc();
-	} while (end - start > ERROR);
-
-and now, even if you have interrupts enabled (or worry about NMI's), you 
-now know that you have a totally _independent_ sync point, ie you know 
-that your hpet read value is withing ERROR cycles of the start/end values, 
-so now you have a good point for doing future linear interpolation based 
-on those kinds of sync points.
-
-And if you make all these linear interpolations be per-CPU (so you have 
-per-CPU offsets and frequencies) you never _ever_ need to touch any shared 
-data at all, and you know you can scale basically perfectly.
-
-Your linear interpolations may not be _perfect_, but you'll be able to get 
-them pretty damn near. In fact, even if the TSC's aren't synchronized at 
-all, if they are at least _individually_ stable (just running at slightly 
-different frequencies because they are in different clock domains, and/or 
-at different start points), you can basically perfect the precision over 
-time.
-
-			Linus
+	Ingo
