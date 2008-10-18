@@ -1,51 +1,59 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [RFC patch 15/15] LTTng timestamp x86
-Date: Sat, 18 Oct 2008 19:50:05 +0200
-Message-ID: <20081018175005.GA2211@elte.hu>
-References: <20081017012835.GA30195@Krystal> <57C9024A16AD2D4C97DC78E552063EA3532D455F@orsmsx505.amr.corp.intel.com> <20081017172515.GA9639@goodmis.org> <57C9024A16AD2D4C97DC78E552063EA3533458AC@orsmsx505.amr.corp.intel.com> <20081017184215.GB9874@Krystal> <57C9024A16AD2D4C97DC78E552063EA35334594F@orsmsx505.amr.corp.intel.com> <20081017202313.GA13597@Krystal> <57C9024A16AD2D4C97DC78E552063EA353345B9B@orsmsx505.amr.corp.intel.com> <20081018170118.GA22243@Krystal> <alpine.LFD.2.00.0810181011310.3438@nehalem.linux-foundation.org>
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [patch] mm: fix anon_vma races
+Date: Sat, 18 Oct 2008 12:44:05 -0600
+Message-ID: <20081018184405.GA26184@parisc-linux.org>
+References: <20081016041033.GB10371@wotan.suse.de> <Pine.LNX.4.64.0810172300280.30871@blonde.site> <alpine.LFD.2.00.0810171549310.3438@nehalem.linux-foundation.org> <Pine.LNX.4.64.0810180045370.8995@blonde.site> <20081018015323.GA11149@wotan.suse.de> <18681.20241.347889.843669@cargo.ozlabs.ibm.com> <20081018054916.GB26472@wotan.suse.de> <alpine.LFD.2.00.0810180921140.3438@nehalem.linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:53593 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750892AbYJRRum (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 18 Oct 2008 13:50:42 -0400
+Received: from palinux.external.hp.com ([192.25.206.14]:54892 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750926AbYJRSoW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 18 Oct 2008 14:44:22 -0400
 Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.0810181011310.3438@nehalem.linux-foundation.org>
+In-Reply-To: <alpine.LFD.2.00.0810180921140.3438@nehalem.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, "Luck, Tony" <tony.luck@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "ltt-dev@lists.casi.polymtl.ca" <ltt-dev@lists.casi.polymtl.ca>, Michael Davidson <md@google.com>
+Cc: Nick Piggin <npiggin@suse.de>, Paul Mackerras <paulus@samba.org>, Hugh Dickins <hugh@veritas.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 
-
-* Linus Torvalds <torvalds@linux-foundation.org> wrote:
-
-> And if you make all these linear interpolations be per-CPU (so you 
-> have per-CPU offsets and frequencies) you never _ever_ need to touch 
-> any shared data at all, and you know you can scale basically 
-> perfectly.
+On Sat, Oct 18, 2008 at 10:00:30AM -0700, Linus Torvalds wrote:
+> > Apparently pairwise ordering is more interesting than just a theoretical
+> > thing, and not just restricted to Alpha's funny caches.
 > 
-> Your linear interpolations may not be _perfect_, but you'll be able to 
-> get them pretty damn near. In fact, even if the TSC's aren't 
-> synchronized at all, if they are at least _individually_ stable (just 
-> running at slightly different frequencies because they are in 
-> different clock domains, and/or at different start points), you can 
-> basically perfect the precision over time.
+> Nobody does just pairwise ordering, afaik. It's an insane model. Everybody 
+> does some form of transitive ordering.
 
-there's been code submitted by Michael Davidson recently that looked 
-interesting, which turns the TSC into such an entity:
+I assume you're talking about CPUs in particular here, and I don't know
+of any counterexamples.
 
-    http://lkml.org/lkml/2008/9/25/451
+If you're talking about PCI devices, the model is not transitive.
+Here's the exact text from Appendix E of PCI 3.0:
 
-The periodic synchronization uses the hpet, but it thus allows lockless 
-and globally correct readouts of the TSC .
+  A system may have multiple Producer-Consumer pairs operating
+  simultaneously, with different data - flag-status sets located all
+  around the system. But since only one Producer can write to a single
+  data-flag set, there are no ordering requirements between different
+  masters. Writes from one master on one bus may occur in one order on
+  one bus, with respect to another master's writes, and occur in another
+  order on another bus. In this case, the rules allow for some writes
+  to be rearranged; for example, an agent on Bus 1 may see Transaction
+  A from a master on Bus 1 complete first, followed by Transaction B
+  from another master on Bus 0. An agent on Bus 0 may see Transaction
+  B complete first followed by Transaction A. Even though the actual
+  transactions complete in a different order, this causes no problem
+  since the different masters must be addressing different data-flag sets.
 
-And that would match the long term goal as well: the hw should do this 
-all automatically. So perhaps we should have a trace_clock() after all, 
-independent of sched_clock(), and derived straight from RDTSC.
+I seem to remember earlier versions of the spec having more clear
+language about A happening before B and B happening before C didn't
+mean that A happened before C from the perspective of a third device,
+but I can't find it right now.
 
-The approach as propoed has a couple of practical problems, but if we 
-could be one RDTSC+multiplication away from a pretty good timestamp that 
-would be rather useful, very fast and very robust ...
+Anyway, as the spec says, you're not supposed to use PCI like that,
+so it doesn't matter.
 
-	Ingo
+-- 
+Matthew Wilcox				Intel Open Source Technology Centre
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
