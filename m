@@ -1,133 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tomts13-srv.bellnexxia.net ([209.226.175.34]:45120 "EHLO
-	tomts13-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752471AbYJTUZU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Oct 2008 16:25:20 -0400
-Date: Mon, 20 Oct 2008 16:25:17 -0400
-From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: Re: [RFC patch 00/15] Tracer Timestamping
-Message-ID: <20081020202517.GF28562@Krystal>
-References: <20081016232729.699004293@polymtl.ca> <1224230353.28131.65.camel@twins>
-Mime-Version: 1.0
+Received: from mx3.mail.elte.hu ([157.181.1.138]:49183 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753811AbYJTWTK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Oct 2008 18:19:10 -0400
+Date: Tue, 21 Oct 2008 00:17:44 +0200
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [RFC patch 15/15] LTTng timestamp x86
+Message-ID: <20081020221744.GA30133@elte.hu>
+References: <20081016234657.837704867@polymtl.ca> <alpine.LFD.2.00.0810161701470.3288@nehalem.linux-foundation.org> <20081017012835.GA30195@Krystal> <57C9024A16AD2D4C97DC78E552063EA3532D455F@orsmsx505.amr.corp.intel.com> <20081017172515.GA9639@goodmis.org> <57C9024A16AD2D4C97DC78E552063EA3533458AC@orsmsx505.amr.corp.intel.com> <20081017184215.GB9874@Krystal> <alpine.LFD.2.00.0810201256350.3518@nehalem.linux-foundation.org> <1f1b08da0810201438g6a109af5i75b34841462b655d@mail.gmail.com> <alpine.LFD.2.00.0810201451190.3287@nehalem.linux-foundation.org>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <1224230353.28131.65.camel@twins>
+In-Reply-To: <alpine.LFD.2.00.0810201451190.3287@nehalem.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>
-Message-ID: <20081020202517.qhHuZ3oBYGUGgWvfCFMWLNCx1ofS9xq9JZ1X77LjBXc@z>
-
-* Peter Zijlstra (a.p.zijlstra@chello.nl) wrote:
-> On Thu, 2008-10-16 at 19:27 -0400, Mathieu Desnoyers wrote:
-> > Hi,
-> > 
-> > Starting with the bottom of my LTTng patchset
-> > (git://git.kernel.org/pub/scm/linux/kernel/git/compudj/linux-2.6-lttng.git)
-> > I post as RFC the timestamping infrastructure I have been using for a while in
-> > the tracer. It integrates get_cycles() standardization following David Miller's
-> > comments I did more recently.
-> > 
-> > It also deals with 32 -> 64 bits timestamp counter extension with a RCU-style
-> > algorithm, which is especially useful on MIPS and SuperH architectures.
-> 
-> Have you looked at the existing 32->63 extention code in
-> include/linux/cnt32_to_63.h and considered unifying it?
-> 
-
-Yep, I felt this code was dangerous on SMP given it could suffer from
-the following type of race due to lack of proper barriers :
-
-CPU    A                                 B
-       read hw cnt low
-       read __m_cnt_hi
-                                         read hw cnt low
-       (wrap detected)
-       write __m_cnt_hi (incremented)
-                                         read __m_cnt_hi
-                                         (wrap detected)
-                                         write __m_cnt_hi (incremented)
-
-we therefore increment the high bits twice in the given race.
-
-On UP, the same race could happen if the code is called with preemption
-enabled.
-
-I don't think the "volatile" statement would necessarily make sure the
-compiler and CPU would do the __m_cnt_hi read before the hw cnt low
-read. A real memory barrier to order mmio reads wrt memory reads (or
-instruction sync barrier if the value is taken from the cpu registers)
-would be required to insure such order.
-
-I also felt it would be more solid to have per-cpu structures to keep
-track of 32->64 bits TSC updates, given the TSCs can always be slightly
-out-of-sync :
-
-CPU    A                                 B
-       read __m_cnt_hi
-       read hw cnt low (+200 cycles)
-       (wrap detected)
-       write __m_cnt_hi (incremented)
-                                         read __m_cnt_hi
-                                         read hw cnt low (-200 cycles)
-                                         (no wrap)
-                                         -> bogus value returned.
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: john stultz <johnstul@us.ibm.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, "Luck, Tony" <tony.luck@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20081020221744.Hyip0Xo10Bx29juFRmB1Mn9nE86UCPBt9JaUSv6KREo@z>
 
 
+* Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
+> That's why I'd suggest making _purely_ local time, and then aiming for 
+> something NTP-like. But maybe there are better solutions out there.
 
-> > There is also a TSC synchronization test within this patchset to detect
-> > unsynchronized TSCs. 
-> 
-> We already have such code, no? Does this code replace that one or just
-> add a second test?
-> 
+this 'fast local time' was the rough idea we tried to implement via the 
+cpu_clock(cpu) interface.
 
-It adds a second test, which seems more solid to me than the existing
-x86 tsc_sync detection code.
+cpu_clock() results are loosely coupled to xtime in every scheduler tick 
+via the scd->tick_gtod logic.
 
-> > See comments in this specific patch to figure out the
-> > difference between the current x86 tsc_sync.c and the one I propose in this
-> > patch.
-> 
-> Right so you don't unify, that's a missed opportunity, no?
-> 
+( That way in a sense it tracks NTP time as well, if NTP is fed back 
+  into GTOD, such as when ntpd is running. Granted, this is not the same 
+  quality at all as if it did native NTP-alike corrections, but it at 
+  least has a long-term stability. )
 
-Yep, If we can switch the current x86 tsc_sync code to use my
-architecture agnostic implementation, that would be a gain. We could
-probably port other tsc sync detect code (ia64 ?) to use this
-infrastructure too.
+And it only ever does cross-CPU work if we specifically ask for a remote 
+clock:
 
+        if (cpu != raw_smp_processor_id()) {
+                struct sched_clock_data *my_scd = this_scd();
 
-> > It also provides an architecture-agnostic fallback in case there is no
-> > timestamp counter available : basically, it's
-> > (jiffies << 13) | atomically_incremented_counter (if there are more than 8192
-> > events per jiffy, time will still be monotonic, but will increment faster than
-> > the actual system frequency).
-> > 
-> > Comments are welcome. Note that this is only the beginning of the patchset. I
-> > plan to submit the event ID allocation/portable event typing aimed at exporting
-> > the data to userspace and buffering mechanism as soon as I integrate a core
-> > version of the LTTV userspace tools to the kernel build tree. Other than that, I
-> > currently have a tracer which fulfills most of the requirements expressed
-> > earlier. I just fear that if I release only the kernel part without foolproof
-> > binary-to-ascii trace decoder within the kernel, people might be a bit reluctant
-> > to fetch a separate userspace package.
-> 
-> It might be good to drop all the ltt naming and pick more generic names,
-> esp. as ftrace could use a lot of this infrastructure as well.
-> 
+                lock_double_clock(scd, my_scd);
 
-Sure. I've done all this development as part of the LTTng project, but I
-don't care about renaming stuff. trace_clock() seems like a good name
-for trace clock source. The unsync TSC detection and the 23->64 bits TSC
-extension would also probably require more generic names (and would
-benefit to be moved to kernel/).
+it still does this "serialization looking" even in the local case:
 
-Mathieu
+                __raw_spin_lock(&scd->lock);
+                clock = __update_sched_clock(scd, now);
+        }
 
--- 
-Mathieu Desnoyers
-OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
+        __raw_spin_unlock(&scd->lock);
+
+... but that lock is strictly per CPU, so it only matters if there _is_ 
+cross-CPU "interest" in that clock. Otherwise these locks are in essence 
+just per CPU and cause no cacheline bouncing, etc.
+
+... but we could try to eliminate even that potential for any locking. 
+On 64-bit it's a real possibility i think. (we need the lock for 32-bit 
+mainly, the timestamps are all 64 bits)
+
+... it also has all the tsc-stops-in-idle smarts, knows about cpufreq, 
+etc. Those things are needed even on UP, to not get really bad 
+transients in time.
+
+That still leaves us with sched_clock() complexity, which has spread out 
+a bit more than it should have. So it's not all as simple as you'd like 
+it to be i think, but we are trying hard ...
+
+Ideas to simplify/robustify it are welcome.
+
+	Ingo
