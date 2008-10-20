@@ -1,65 +1,54 @@
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: RE: [RFC patch 15/15] LTTng timestamp x86
-Date: Mon, 20 Oct 2008 11:07:05 -0700
-Message-ID: <57C9024A16AD2D4C97DC78E552063EA353346068@orsmsx505.amr.corp.intel.com>
-References: <20081016234657.837704867@polymtl.ca>
- <alpine.LFD.2.00.0810161701470.3288@nehalem.linux-foundation.org>
- <20081017012835.GA30195@Krystal>
- <57C9024A16AD2D4C97DC78E552063EA3532D455F@orsmsx505.amr.corp.intel.com>
- <20081017172515.GA9639@goodmis.org>
- <57C9024A16AD2D4C97DC78E552063EA3533458AC@orsmsx505.amr.corp.intel.com>
- <20081017184215.GB9874@Krystal>
- <57C9024A16AD2D4C97DC78E552063EA35334594F@orsmsx505.amr.corp.intel.com>
- <20081017202313.GA13597@Krystal>
- <57C9024A16AD2D4C97DC78E552063EA353345B9B@orsmsx505.amr.corp.intel.com>
- <20081018170118.GA22243@Krystal>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC patch 15/15] LTTng timestamp x86
+Date: Mon, 20 Oct 2008 13:10:02 -0700 (PDT)
+Message-ID: <alpine.LFD.2.00.0810201256350.3518@nehalem.linux-foundation.org>
+References: <20081016232729.699004293@polymtl.ca> <20081016234657.837704867@polymtl.ca> <alpine.LFD.2.00.0810161701470.3288@nehalem.linux-foundation.org> <20081017012835.GA30195@Krystal> <57C9024A16AD2D4C97DC78E552063EA3532D455F@orsmsx505.amr.corp.intel.com>
+ <20081017172515.GA9639@goodmis.org> <57C9024A16AD2D4C97DC78E552063EA3533458AC@orsmsx505.amr.corp.intel.com> <20081017184215.GB9874@Krystal>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:50394 "EHLO mga11.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752385AbYJTSH3 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Oct 2008 14:07:29 -0400
-In-Reply-To: <20081018170118.GA22243@Krystal>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1754530AbYJTULY@vger.kernel.org>
+In-Reply-To: <20081017184215.GB9874@Krystal>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "ltt-dev@lists.casi.polymtl.ca" <ltt-dev@lists.casi.polymtl.ca>
-
-> And what do we say when we detect this ? "sorry, please upgrade your
-> hardware to get a reliable trace" ? ;)
-
-My employer might be happy with that answer ;-) ... but I think
-we could tell the user to:
-
-        1) adjust something in /sys/...
-        2) boot with some special option
-        3) rebuild kernel with CONFIG_INSANE_TSC=y
-
-to switch over to a heavyweight workaround in s/w.  Systems
-that require this are already in the minority ... and I
-think (hope!) that current and future generations of cpus
-won't have these challenges.
-
-So this is mostly a campaign for the default code path to
-be based on current (sane) TSC behaviour ... with the workarounds
-for past problems kept to one side.
-
-> Nope, this is not required. I removed the heartbeat event from LTTng two
-> weeks ago, implementing detection of the delta from the last timestamp
-> written into the trace. If we detect that the new timestamp is too far
-> from the previous one, we write the full 64 bits TSC in an extended
-> event header. Therefore, we have no dependency on interrupt latency to
-> get a sane time-base.
-
-Neat.  Could you grab the HPET value here too?
+Cc: "Luck, Tony" <tony.luck@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+List-Id: linux-arch.vger.kernel.org
 
 
-> (8 cores up)
 
-Interesting results.  I'm not at all sure why HPET scales so badly.
-Maybe some h/w throttling/synchronizing going on???
+On Fri, 17 Oct 2008, Mathieu Desnoyers wrote:
+> 
+> Hrm, on such systems
+> - *large* amount of cpus
+> - no synchronized TSCs
+> 
+> What would be the best approach to order events ?
 
--Tony
+My strong opinion has been - for a longish while now, and independently of 
+any timestamping code - that we should be seriously looking at basically 
+doing essentially a "ntp" inside the kernel to give up the whole idiotic 
+notion of "synchronized TSCs". Yes, TSC's are often synchronized, but even 
+when they are, we might as well _think_ of them as not being so.
+
+In other words, instead of expecting internal clocks to be synchronized, 
+just make the clock be a clock network of independent TSC domains. The 
+domains could in theory be per-package (assuming TSC is synchronized at 
+that level), but even if we _could_ do that, we'd probably still be better 
+off by simply always doing it per-core. If only because then the reading 
+would be per-core.
+
+I think it's a mistake for us to maintain a single clock for 
+gettimeofday() (well, "getnstimeofday" and the whole "clocksource_read()" 
+crud to be technically correct). And sure, I bet clocksource_read() can do 
+various per-CPU things and try to do that, but it's complex and pretty 
+generic code, and as far as I know none of the clocksources have even 
+tried. The TSC clocksource read certainly does not (it just does a very 
+similar horrible "at least don't go backwards" crud that the LTTng patch 
+suggested).
+
+So I think we should make "xtime" be a per-CPU thing, and add support for 
+per-CPU clocksources. And screw that insane "mark_tsc_unstable()" thing.
+
+And if we did it well, we migth be able to get good timestamps that way 
+too.
+
+		Linus
