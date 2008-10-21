@@ -1,172 +1,154 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: Re: [RFC patch 00/15] Tracer Timestamping
-Date: Tue, 21 Oct 2008 00:05:42 -0400
-Message-ID: <20081021040542.GB24142@Krystal>
-References: <20081016232729.699004293@polymtl.ca> <1224230353.28131.65.camel@twins> <20081020202517.GF28562@Krystal> <alpine.LFD.2.00.0810202003260.26244@xanadu.home> <20081021013223.GB18751@Krystal> <alpine.LFD.2.00.0810202152030.26244@xanadu.home>
+From: Nick Piggin <npiggin@suse.de>
+Subject: [patch] mutex: speed up generic mutex implementations
+Date: Tue, 21 Oct 2008 10:59:15 +0200
+Message-ID: <20081021085915.GC6974@wotan.suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from tomts13-srv.bellnexxia.net ([209.226.175.34]:53126 "EHLO
-	tomts13-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750746AbYJUEFp convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Oct 2008 00:05:45 -0400
+Received: from mx2.suse.de ([195.135.220.15]:51830 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751474AbYJUI7R (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Oct 2008 04:59:17 -0400
 Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.0810202152030.26244@xanadu.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Pitre <nico@cam.org>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, lkml <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org
 
-* Nicolas Pitre (nico@cam.org) wrote:
-> On Mon, 20 Oct 2008, Mathieu Desnoyers wrote:
-> 
-> > * Nicolas Pitre (nico@cam.org) wrote:
-> > > On Mon, 20 Oct 2008, Mathieu Desnoyers wrote:
-> > > 
-> > > > * Peter Zijlstra (a.p.zijlstra@chello.nl) wrote:
-> > > > > Have you looked at the existing 32->63 extention code in
-> > > > > include/linux/cnt32_to_63.h and considered unifying it?
-> > > > > 
-> > > > 
-> > > > Yep, I felt this code was dangerous on SMP given it could suffer from
-> > > > the following type of race due to lack of proper barriers :
-> > > 
-> > > You are wrong.
-> > > 
-> > > > CPU    A                                 B
-> > > >        read hw cnt low
-> > > >        read __m_cnt_hi
-> > > >                                          read hw cnt low
-> > > >        (wrap detected)
-> > > >        write __m_cnt_hi (incremented)
-> > > >                                          read __m_cnt_hi
-> > > >                                          (wrap detected)
-> > > >                                          write __m_cnt_hi (incremented)
-> > > > 
-> > > > we therefore increment the high bits twice in the given race.
-> > > 
-> > > No.  Either you do the _same_ incrementation twice effectively writing 
-> > > the _same_ high value twice, or you don't have simultaneous wrap 
-> > > detections.  Simulate it on paper with real numbers if you are not 
-> > > convinced.
-> > > 
-> > 
-> > Hi Nicolas,
-> > 
-> > Yup, you are right. However, the case where one CPU sees the clock source
-> > a little bit off-sync (late) still poses a problem. Example follows :
-> > 
-> > CPU    A                                 B
-> >        read __m_cnt_hi (0x80000000)
-> >        read hw cnt low (0x00000001)
-> >        (wrap detected :
-> >         (s32)(0x80000000 ^ 0x1) < 0)
-> >        write __m_cnt_hi = 0x00000001
-> >        return 0x0000000100000001
-> >                                             read __m_cnt_hi (0x00000001)
-> >                                      (late) read hw cnt low (0xFFFFFFFA)
-> >                                             (wrap detected :
-> >                                              (s32)(0x00000001 ^ 0xFFFFFFFA) < 0)
-> >                                             write __m_cnt_hi = 0x80000001
-> >                                             return 0x80000001FFFFFFFA
-> >                                                                   (time jumps)
-> 
-> If this is through a global counter then I have a big problem believing 
-> you.
-> 
+Hi,
 
-If the global counter read through mmap io insures that the values
-monotonically increases and if the proper memory barriers are there, it
-should be ok and two consecutive reads done on different CPUs should
-never go backward.
+This has gone through one review cycle on linux-arch before the merge window
+opened. I'm hoping it can be merged for 2.6.28 because the speedup is so
+significant and the change rather unintrusive. If not, I'll try to get it in
+someone else's tree...
 
-> If this is a per-CPU counter then you just need a per-CPU version of 
-> __m_cnt_hi.
-> 
+We were considering merging the powerpc specific optimisation independently,
+however that is one of the few architectures with serious SMP and memory
+reordering capabilities that is currently using the generic path, so it would
+be _really_ nice to run the optimised generic code on powerpc for a week or
+so just as a final sanity check of it...
 
-Counters like MIPS 32-bits timestamp counter is supposedly synchronized
-across cores, and could thus be thought to be global, but could suffer
-from such small drift due to inexact counter synchronization.
+Anyway, let me know if you won't merge it, and I can work out where to send
+it.
 
-> > A similar situation can be generated by out-of-order hi/low bits reads.
-> 
-> This, of course, should and can be prevented.  No big deal.
-> 
-> > > If the low part is a per CPU value then the high part has to be a per 
-> > > CPU value too.  There only needs to be a per-CPU variant of the same 
-> > > algorithm where the only difference is that __m_cnt_hi would be per CPU.
-> > > 
-> > > If the low part is global then __m_cnt_hi has to be global, even on SMP.
-> > > 
-> > 
-> > Hrm, given the performance impact of barriers that would need to be
-> > added to insure correct read order of hi and low bits, and also
-> > considering the risk that a "synchronized" timestamp counter off by a
-> > few cycles poses in terms of time jumping forward, I don't see why we
-> > would ever want to use a global __m_cnt_hi ?
-> 
-> I still would like to know just _how_ you could manage to have one CPU 
-> perform two reads and one write and manage for another CPU to see that 
-> just written value but read an even older value from the global counter 
-> than what the first CPU saw.
-> 
+Thanks,
+Nick
 
-As I said above, it would be ok with a global mmio counter, given the
-proper barriers are used.
+--
+Speed up generic mutex implementations.
 
-> > I would therefore recommend to always use a per-cpu __m_cnt_hi.
-> 
-> No, not until you convince me of the above nonsense.  Sure it will 
-> work with a per-CPU __m_cnt_hi of course, but then the timing constraint 
-> to keep the algorithm warm is for each CPU which, if the source counter 
-> is global, shouldn't be necessary.
-> 
+- atomic operations which both modify the variable and return something imply
+  full smp memory barriers before and after the memory operations involved
+  (failing atomic_cmpxchg, atomic_add_unless, etc don't imply a barrier because
+  they don't modify the target). See Documentation/atomic_ops.txt.
+  So remove extra barriers and branches.
+  
+- All architectures support atomic_cmpxchg. This has no relation to
+  __HAVE_ARCH_CMPXCHG. We can just take the atomic_cmpxchg path unconditionally
 
-True, with a mmio time source, only a single counter seems necessary.
-Only when there are slightly off time sources (such as "almost"
-synchronized TSC") would the per-cpu counter be needed.
+This reduces a simple single threaded fastpath lock+unlock test from 590 cycles
+to 203 cycles on a ppc970 system.
 
-> If the 63-bit counter is queried often enough on each CPU then it is of 
-> course advantageous to go per-CPU to avoid excessive cache bouncing, and 
-> if you start worrying about cache bouncing then you certainly call this 
-> code often enough to keep everything in synch.  But that needs not to be 
-> always the case.
-
-This code should only cache bounce about once or twice per overflow
-period. The rest should only read the __m_cnt_hi value for comparison.
-Therefore I don't think cache-line bouncing is such an issue here. OTOH,
-added barriers can degrade performance a lot.
-
-> 
-> > Also, a small nit, to make sure cnt32_to_63 never gets scheduled out
-> > with a stale old __m_cnt_hi value, its comments should probably say that
-> > it has to be always used with preemption off.
-> 
-> NO! THAT's THE WHOLE POINT OF THIS CODE: TO NOT NEED ANY KIND OF 
-> LOCKING!  The only requirement is that you must not be preempted away 
-> for longer than half (or a quarter if you want to play real safe) the 
-> period of the base counter.  If you cannot guarantee that then either 
-> your base counter is so fast that it wraps so often to be unusable, or 
-> you have another and bigger problem for being preempted for so long.
-> 
-
-Or maybe you are just unlucky and a user hit CTRL-Z at the wrong time ?
-I could be wrong and maybe there is no such thing possible as to "stop"
-a thread while it's in kernel-space, but unless there are restrictions
-about where a thread can be stopped, I assume such scenario could cause
-a very long preemption if preemption is not disabled.
-
-Even if such thread stop is not possible, assuming the scheduler will
-never leave _any_ thread out of the runqueue for a few seconds seems
-questionable.
-
-Mathieu
-
-> 
-> Nicolas
-
--- 
-Mathieu Desnoyers
-OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
+Signed-off-by: Nick Piggin <npiggin@suse.de>
+---
+Index: linux-2.6/include/asm-generic/mutex-dec.h
+===================================================================
+--- linux-2.6.orig/include/asm-generic/mutex-dec.h
++++ linux-2.6/include/asm-generic/mutex-dec.h
+@@ -22,8 +22,6 @@ __mutex_fastpath_lock(atomic_t *count, v
+ {
+ 	if (unlikely(atomic_dec_return(count) < 0))
+ 		fail_fn(count);
+-	else
+-		smp_mb();
+ }
+ 
+ /**
+@@ -41,10 +39,7 @@ __mutex_fastpath_lock_retval(atomic_t *c
+ {
+ 	if (unlikely(atomic_dec_return(count) < 0))
+ 		return fail_fn(count);
+-	else {
+-		smp_mb();
+-		return 0;
+-	}
++	return 0;
+ }
+ 
+ /**
+@@ -63,7 +58,6 @@ __mutex_fastpath_lock_retval(atomic_t *c
+ static inline void
+ __mutex_fastpath_unlock(atomic_t *count, void (*fail_fn)(atomic_t *))
+ {
+-	smp_mb();
+ 	if (unlikely(atomic_inc_return(count) <= 0))
+ 		fail_fn(count);
+ }
+@@ -88,25 +82,9 @@ __mutex_fastpath_unlock(atomic_t *count,
+ static inline int
+ __mutex_fastpath_trylock(atomic_t *count, int (*fail_fn)(atomic_t *))
+ {
+-	/*
+-	 * We have two variants here. The cmpxchg based one is the best one
+-	 * because it never induce a false contention state.  It is included
+-	 * here because architectures using the inc/dec algorithms over the
+-	 * xchg ones are much more likely to support cmpxchg natively.
+-	 *
+-	 * If not we fall back to the spinlock based variant - that is
+-	 * just as efficient (and simpler) as a 'destructive' probing of
+-	 * the mutex state would be.
+-	 */
+-#ifdef __HAVE_ARCH_CMPXCHG
+-	if (likely(atomic_cmpxchg(count, 1, 0) == 1)) {
+-		smp_mb();
++	if (likely(atomic_cmpxchg(count, 1, 0) == 1))
+ 		return 1;
+-	}
+ 	return 0;
+-#else
+-	return fail_fn(count);
+-#endif
+ }
+ 
+ #endif
+Index: linux-2.6/include/asm-generic/mutex-xchg.h
+===================================================================
+--- linux-2.6.orig/include/asm-generic/mutex-xchg.h
++++ linux-2.6/include/asm-generic/mutex-xchg.h
+@@ -27,8 +27,6 @@ __mutex_fastpath_lock(atomic_t *count, v
+ {
+ 	if (unlikely(atomic_xchg(count, 0) != 1))
+ 		fail_fn(count);
+-	else
+-		smp_mb();
+ }
+ 
+ /**
+@@ -46,10 +44,7 @@ __mutex_fastpath_lock_retval(atomic_t *c
+ {
+ 	if (unlikely(atomic_xchg(count, 0) != 1))
+ 		return fail_fn(count);
+-	else {
+-		smp_mb();
+-		return 0;
+-	}
++	return 0;
+ }
+ 
+ /**
+@@ -67,7 +62,6 @@ __mutex_fastpath_lock_retval(atomic_t *c
+ static inline void
+ __mutex_fastpath_unlock(atomic_t *count, void (*fail_fn)(atomic_t *))
+ {
+-	smp_mb();
+ 	if (unlikely(atomic_xchg(count, 1) != 0))
+ 		fail_fn(count);
+ }
+@@ -110,7 +104,6 @@ __mutex_fastpath_trylock(atomic_t *count
+ 		if (prev < 0)
+ 			prev = 0;
+ 	}
+-	smp_mb();
+ 
+ 	return prev;
+ }
