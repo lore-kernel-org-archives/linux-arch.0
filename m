@@ -1,74 +1,133 @@
-From: Nicolas Pitre <nico@cam.org>
+From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
 Subject: Re: [RFC patch 00/15] Tracer Timestamping
-Date: Mon, 20 Oct 2008 20:20:29 -0400 (EDT)
-Message-ID: <alpine.LFD.2.00.0810202003260.26244@xanadu.home>
-References: <20081016232729.699004293@polymtl.ca>
- <1224230353.28131.65.camel@twins> <20081020202517.GF28562@Krystal>
+Date: Mon, 20 Oct 2008 21:32:24 -0400
+Message-ID: <20081021013223.GB18751@Krystal>
+References: <20081016232729.699004293@polymtl.ca> <1224230353.28131.65.camel@twins> <20081020202517.GF28562@Krystal> <alpine.LFD.2.00.0810202003260.26244@xanadu.home>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:45423 "EHLO
-	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752724AbYJUAUg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Oct 2008 20:20:36 -0400
-In-reply-to: <20081020202517.GF28562@Krystal>
+Received: from tomts25.bellnexxia.net ([209.226.175.188]:53801 "EHLO
+	tomts25-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751855AbYJUBc1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Oct 2008 21:32:27 -0400
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.00.0810202003260.26244@xanadu.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+To: Nicolas Pitre <nico@cam.org>
 Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, lkml <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>
 
-On Mon, 20 Oct 2008, Mathieu Desnoyers wrote:
-
-> * Peter Zijlstra (a.p.zijlstra@chello.nl) wrote:
-> > Have you looked at the existing 32->63 extention code in
-> > include/linux/cnt32_to_63.h and considered unifying it?
+* Nicolas Pitre (nico@cam.org) wrote:
+> On Mon, 20 Oct 2008, Mathieu Desnoyers wrote:
+> 
+> > * Peter Zijlstra (a.p.zijlstra@chello.nl) wrote:
+> > > Have you looked at the existing 32->63 extention code in
+> > > include/linux/cnt32_to_63.h and considered unifying it?
+> > > 
 > > 
+> > Yep, I felt this code was dangerous on SMP given it could suffer from
+> > the following type of race due to lack of proper barriers :
 > 
-> Yep, I felt this code was dangerous on SMP given it could suffer from
-> the following type of race due to lack of proper barriers :
-
-You are wrong.
-
-> CPU    A                                 B
->        read hw cnt low
->        read __m_cnt_hi
->                                          read hw cnt low
->        (wrap detected)
->        write __m_cnt_hi (incremented)
->                                          read __m_cnt_hi
->                                          (wrap detected)
->                                          write __m_cnt_hi (incremented)
+> You are wrong.
 > 
-> we therefore increment the high bits twice in the given race.
+> > CPU    A                                 B
+> >        read hw cnt low
+> >        read __m_cnt_hi
+> >                                          read hw cnt low
+> >        (wrap detected)
+> >        write __m_cnt_hi (incremented)
+> >                                          read __m_cnt_hi
+> >                                          (wrap detected)
+> >                                          write __m_cnt_hi (incremented)
+> > 
+> > we therefore increment the high bits twice in the given race.
+> 
+> No.  Either you do the _same_ incrementation twice effectively writing 
+> the _same_ high value twice, or you don't have simultaneous wrap 
+> detections.  Simulate it on paper with real numbers if you are not 
+> convinced.
+> 
 
-No.  Either you do the _same_ incrementation twice effectively writing 
-the _same_ high value twice, or you don't have simultaneous wrap 
-detections.  Simulate it on paper with real numbers if you are not 
-convinced.
+Hi Nicolas,
 
-> On UP, the same race could happen if the code is called with preemption
-> enabled.
+Yup, you are right. However, the case where one CPU sees the clock source
+a little bit off-sync (late) still poses a problem. Example follows :
 
-Wrong again.
+CPU    A                                 B
+       read __m_cnt_hi (0x80000000)
+       read hw cnt low (0x00000001)
+       (wrap detected :
+        (s32)(0x80000000 ^ 0x1) < 0)
+       write __m_cnt_hi = 0x00000001
+       return 0x0000000100000001
+                                            read __m_cnt_hi (0x00000001)
+                                     (late) read hw cnt low (0xFFFFFFFA)
+                                            (wrap detected :
+                                             (s32)(0x00000001 ^ 0xFFFFFFFA) < 0)
+                                            write __m_cnt_hi = 0x80000001
+                                            return 0x80000001FFFFFFFA
+                                                                  (time jumps)
+       read __m_cnt_hi (0x80000001)
+       read hw cnt low (0x00000020)
+       (wrap detected :
+        (s32)(0x80000001 ^ 0x20) < 0)
+       write __m_cnt_hi = 0x00000002
+       return 0x0000000200000020
+                             (time jumps again)
 
-> I don't think the "volatile" statement would necessarily make sure the
-> compiler and CPU would do the __m_cnt_hi read before the hw cnt low
-> read. A real memory barrier to order mmio reads wrt memory reads (or
-> instruction sync barrier if the value is taken from the cpu registers)
-> would be required to insure such order.
+A similar situation can be generated by out-of-order hi/low bits reads.
 
-That's easy enough to fix, right?
+> > On UP, the same race could happen if the code is called with preemption
+> > enabled.
+> 
+> Wrong again.
+> 
+> > I don't think the "volatile" statement would necessarily make sure the
+> > compiler and CPU would do the __m_cnt_hi read before the hw cnt low
+> > read. A real memory barrier to order mmio reads wrt memory reads (or
+> > instruction sync barrier if the value is taken from the cpu registers)
+> > would be required to insure such order.
+> 
+> That's easy enough to fix, right?
+> 
 
-> I also felt it would be more solid to have per-cpu structures to keep
-> track of 32->64 bits TSC updates, given the TSCs can always be slightly
-> out-of-sync :
+For memory read vs cycle counter, something like the "data_barrier(x)"
+on powerpc would probably be enough when available. We would need
+something that orders memory reads with the rest of instruction
+execution. On other architectures, smp_rmb() + get_cycles_barrier() (the
+latter being an instruction sync) would be required.
 
-If the low part is a per CPU value then the high part has to be a per 
-CPU value too.  There only needs to be a per-CPU variant of the same 
-algorithm where the only difference is that __m_cnt_hi would be per CPU.
+For memory read vs mmap io read, a smp_rmb() should be enough.
 
-If the low part is global then __m_cnt_hi has to be global, even on SMP.
+> > I also felt it would be more solid to have per-cpu structures to keep
+> > track of 32->64 bits TSC updates, given the TSCs can always be slightly
+> > out-of-sync :
+> 
+> If the low part is a per CPU value then the high part has to be a per 
+> CPU value too.  There only needs to be a per-CPU variant of the same 
+> algorithm where the only difference is that __m_cnt_hi would be per CPU.
+> 
+> If the low part is global then __m_cnt_hi has to be global, even on SMP.
+> 
 
+Hrm, given the performance impact of barriers that would need to be
+added to insure correct read order of hi and low bits, and also
+considering the risk that a "synchronized" timestamp counter off by a
+few cycles poses in terms of time jumping forward, I don't see why we
+would ever want to use a global __m_cnt_hi ? I would therefore recommend
+to always use a per-cpu __m_cnt_hi.
 
-Nicolas
+Also, a small nit, to make sure cnt32_to_63 never gets scheduled out
+with a stale old __m_cnt_hi value, its comments should probably say that
+it has to be always used with preemption off.
+
+Mathieu
+
+> 
+> Nicolas
+
+-- 
+Mathieu Desnoyers
+OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
