@@ -1,53 +1,67 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [patch] mutex: optimise generic mutex implementations
-Date: Thu, 23 Oct 2008 09:02:08 +0200
-Message-ID: <20081023070207.GA30765@wotan.suse.de>
-References: <20081012054634.GA12535@wotan.suse.de> <20081022155923.GM23060@elte.hu> <1224737038.7654.385.camel@pasglop>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC patch 15/15] LTTng timestamp x86
+Date: Thu, 23 Oct 2008 08:47:58 -0700 (PDT)
+Message-ID: <alpine.LFD.2.00.0810230838410.3287@nehalem.linux-foundation.org>
+References: <20081016232729.699004293@polymtl.ca> <alpine.LFD.2.00.0810201451190.3287@nehalem.linux-foundation.org> <48FD0633.70604@zytor.com> <200810211211.00332.bjorn.helgaas@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:48283 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750785AbYJWHCK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Oct 2008 03:02:10 -0400
-Content-Disposition: inline
-In-Reply-To: <1224737038.7654.385.camel@pasglop>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:60036 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756652AbYJWPti (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Oct 2008 11:49:38 -0400
+In-Reply-To: <200810211211.00332.bjorn.helgaas@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, paulus@samba.org, Peter Zijlstra <a.p.zijlstra@chello.nl>
+To: Bjorn Helgaas <bjorn.helgaas@hp.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, john stultz <johnstul@us.ibm.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, "Luck, Tony" <tony.luck@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>
 
-On Thu, Oct 23, 2008 at 03:43:58PM +1100, Benjamin Herrenschmidt wrote:
-> On Wed, 2008-10-22 at 17:59 +0200, Ingo Molnar wrote:
-> > * Nick Piggin <npiggin@suse.de> wrote:
-> > 
-> > > Speed up generic mutex implementations.
+
+
+On Tue, 21 Oct 2008, Bjorn Helgaas wrote:
+
+> On Monday 20 October 2008 04:29:07 pm H. Peter Anvin wrote:
+> > Linus Torvalds wrote:
 > > > 
-> > > - atomic operations which both modify the variable and return something imply
-> > >   full smp memory barriers before and after the memory operations involved
-> > >   (failing atomic_cmpxchg, atomic_add_unless, etc don't imply a barrier because
-> > >   they don't modify the target). See Documentation/atomic_ops.txt.
-> > >   So remove extra barriers and branches.
-> > >   
-> > > - All architectures support atomic_cmpxchg. This has no relation to
-> > >   __HAVE_ARCH_CMPXCHG. We can just take the atomic_cmpxchg path unconditionally
+> > > But it's not going to solve the "hey, I have 512 CPU's, they are all on 
+> > > different boards, and no, they are _not_ synchronized to one global 
+> > > clock!".
 > > > 
-> > > This reduces a simple single threaded fastpath lock+unlock test from 590 cycles
-> > > to 203 cycles on a ppc970 system.
-> > > 
-> > > Signed-off-by: Nick Piggin <npiggin@suse.de>
+> > > That's why I'd suggest making _purely_ local time, and then aiming for 
+> > > something NTP-like. But maybe there are better solutions out there.
 > > 
-> > no objections here. Lets merge these two patches via the ppc tree, so 
-> > that it gets testing on real hardware as well?
-> > 
-> > Acked-by: Ingo Molnar <mingo@elte.hu>
+> > At the same time, it would definitely be nice to encourage vendors of 
+> > large SMP systems to provide a common root crystal (frequency standard) 
+> > for a single SMP domain.  Preferrably a really good one, TCXO or better.
 > 
-> Allright but in that case it will be after -rc1 unless I manage to sneak
-> something in tomorrow before linux closes the merge window.
-> 
-> I can't get an update today.
+> A single root crystal is nice for us software guys.  But it often
+> also turns into a single point of failure, which the hardware guys
+> are always trying to eliminate.  So I think multiple crystals are
+> inevitable for the really large machines.
 
-Fine with me.
+They are almost inevitable for another reason too: the interconnect seldom 
+has a concept of "clock signal" other than for the signalling itself, and 
+the signal clock is designed for the signal itself and is designed for 
+signal integrity rather than "stable clock".
 
-Thanks,
-Nick
+Does _any_ common interconnect have integral support for clock 
+distribution?
+
+And no, nobody is going to add another clock network for just clock 
+distribution. 
+
+So even ignoring redundancy issues, and the fact that people want to 
+hot-plug things (and yes, that would make a central clock interesting), I 
+doubt any hw manufacturer really looks at it the way we do.
+
+The best we could hope for is some hardware assist for helping distribute 
+a common clock. Ie not a real single crystal, but having time-packets in 
+the interconnect that are used to synchronize nodes whenever there is 
+communication between them. It's hard to do that in software, because the 
+overhead is fairly high, but if hardware does at least some of it you 
+could probably get a damn fine distributed clock source.
+
+But I don't know if any hw people are worried enough about it to do it...
+
+		Linus
