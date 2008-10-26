@@ -1,50 +1,53 @@
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [RFC patch 15/15] LTTng timestamp x86
-Date: Fri, 24 Oct 2008 08:54:43 +1100
-Message-ID: <18688.62115.341529.412042@cargo.ozlabs.ibm.com>
-References: <20081016232729.699004293@polymtl.ca>
-	<alpine.LFD.2.00.0810201451190.3287@nehalem.linux-foundation.org>
-	<48FD0633.70604@zytor.com>
-	<200810211211.00332.bjorn.helgaas@hp.com>
-	<alpine.LFD.2.00.0810230838410.3287@nehalem.linux-foundation.org>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [RFC patch 05/15] get_cycles() : MIPS HAVE_GET_CYCLES_32
+Date: Sun, 26 Oct 2008 10:18:26 +0000
+Message-ID: <20081026101826.GB24378@linux-mips.org>
+References: <20081016232729.699004293@polymtl.ca> <20081016234656.224625422@polymtl.ca>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:51349 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752366AbYJWVyu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Oct 2008 17:54:50 -0400
-In-Reply-To: <alpine.LFD.2.00.0810230838410.3287@nehalem.linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Bjorn Helgaas <bjorn.helgaas@hp.com>, "H. Peter Anvin" <hpa@zytor.com>, john stultz <johnstul@us.ibm.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, "Luck, Tony" <tony.luck@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753814AbYJZLUg@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20081016234656.224625422@polymtl.ca>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
-Linus Torvalds writes:
+On Thu, Oct 16, 2008 at 07:27:34PM -0400, Mathieu Desnoyers wrote:
 
-> They are almost inevitable for another reason too: the interconnect seldom 
-> has a concept of "clock signal" other than for the signalling itself, and 
-> the signal clock is designed for the signal itself and is designed for 
-> signal integrity rather than "stable clock".
+> partly reverts commit efb9ca08b5a2374b29938cdcab417ce4feb14b54. Selects
+> HAVE_GET_CYCLES_32 only on CPUs where it is safe to use it.
 > 
-> Does _any_ common interconnect have integral support for clock 
-> distribution?
+> Currently consider the "_WORKAROUND" cases for 4000 and 4400 to be unsafe, but
+> should probably add other sub-architecture to the blacklist.
+> 
+> Do not define HAVE_GET_CYCLES because MIPS does not provide 64-bit tsc (only
+> 32-bits).
 
-I realize you're asking about x86, but just for interest, this is what
-POWER6 does to give us a timebase register that increments at 512MHz
-and is synchronized across the machine (i.e. sufficiently well
-synchronized that the difference between the timebases on any two
-cores is less than the time taken for them to synchronize via a memory
-location).
+[...]
 
-The hardware distributes a 32MHz clock pulse to all nodes, which
-increments the upper 60 bits of the timebase and clears the bottom 4
-bits.  The bottom 4 bits are then incremented at a rate that is the
-processor clock speed divided by some number N set by the hypervisor.
-The bottom 4 bits also stop incrementing once they reach 0xf.
+> Index: linux-2.6-lttng/include/asm-mips/timex.h
+> ===================================================================
+> --- linux-2.6-lttng.orig/include/asm-mips/timex.h	2008-10-16 12:25:47.000000000 -0400
+> +++ linux-2.6-lttng/include/asm-mips/timex.h	2008-10-16 12:34:18.000000000 -0400
+> @@ -29,14 +29,39 @@
+>   * which isn't an evil thing.
+>   *
+>   * We know that all SMP capable CPUs have cycle counters.
+> + *
+> + * Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+> + * HAVE_GET_CYCLES makes sure that this case is handled properly :
+> + *
+> + * Ralf Baechle <ralf@linux-mips.org> :
+> + * This avoids us executing an mfc0 c0_count instruction on processors which
+> + * don't have but also on certain R4000 and R4400 versions where reading from
+> + * the count register just in the very moment when its value equals c0_compare
+> + * will result in the timer interrupt getting lost.
+>   */
 
-This seems to work pretty well in practice and avoids the need for
-hardware to distribute a synchronous 512MHz clock everywhere.
+The usual workaround for this processor bug is to check if the value of
+the c0_count and c0_compare registers are close.  Clone, not identical to
+allow for the time skew in the pipeline.  If they are close, then
+execute the timer interrupt handler.  See also the R4000/R4400 errata.
 
-Paul.
+  Ralf
