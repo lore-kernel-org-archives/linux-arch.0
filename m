@@ -1,44 +1,36 @@
-From: Alexey Dobriyan <adobriyan@gmail.com>
-Subject: On spreading atomic_t initialization
-Date: Tue, 28 Oct 2008 18:29:43 +0300
-Message-ID: <20081028152943.GA20989@x200.localdomain>
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: On spreading atomic_t initialization
+Date: Tue, 28 Oct 2008 09:54:58 -0600
+Message-ID: <20081028155457.GC12792@parisc-linux.org>
+References: <20081028152943.GA20989@x200.localdomain>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from nf-out-0910.google.com ([64.233.182.189]:45286 "EHLO
-	nf-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751554AbYJ1P0U (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Oct 2008 11:26:20 -0400
-Received: by nf-out-0910.google.com with SMTP id d3so987799nfc.21
-        for <linux-arch@vger.kernel.org>; Tue, 28 Oct 2008 08:26:18 -0700 (PDT)
+Received: from palinux.external.hp.com ([192.25.206.14]:60413 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751981AbYJ1Py7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Oct 2008 11:54:59 -0400
 Content-Disposition: inline
+In-Reply-To: <20081028152943.GA20989@x200.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@osdl.org, akpm@osdl.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Alexey Dobriyan <adobriyan@gmail.com>
+Cc: torvalds@osdl.org, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-I wrote stupid runtime checker to look for atomic_t uninitialized usage
-and the amount of screaming in logs is surprisingly very big.
+On Tue, Oct 28, 2008 at 06:29:43PM +0300, Alexey Dobriyan wrote:
+> I wrote stupid runtime checker to look for atomic_t uninitialized usage
+> and the amount of screaming in logs is surprisingly very big.
+> 
+> So the question: is there really really an arch for which setting atomic_t
+> by hand (kzalloc) is not equivalent to atomic_set()?
 
-So the question: is there really really an arch for which setting atomic_t
-by hand (kzalloc) is not equivalent to atomic_set()?
+No.  atomic_t is 32-bit, and requires all 32 bits to be usable by the
+callers.  It's kind of like NULL might not theoretically be represented
+by a bit-pattern of all zeroes.  In practise, it always is.  I don't
+see the value in your checker, sorry.
 
-Given the following patch, there is none almost certainly.
-
---- a/kernel/user.c
-+++ b/kernel/user.c
-@@ -405,6 +405,9 @@ struct user_struct *alloc_uid(struct user_namespace *ns, uid_t uid)
- 
- 		new->uid = uid;
- 		atomic_set(&new->__count, 1);
-+		atomic_set(&new->processes, 0);
-+		atomic_set(&new->files, 0);
-+		atomic_set(&new->sigpending, 0);
- 
- 		if (sched_create_user(new) < 0)
- 			goto out_free_user;
-
-
-Such checker will still be useful to catch genuine uninitialized usages,
-but the amount of stuff to shut up before it can realistically be put in -mm
-is amazing.
+-- 
+Matthew Wilcox				Intel Open Source Technology Centre
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
