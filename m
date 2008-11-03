@@ -1,51 +1,69 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: On spreading atomic_t initialization
-Date: Tue, 28 Oct 2008 09:16:40 -0700 (PDT)
-Message-ID: <alpine.LFD.2.00.0810280905350.3386@nehalem.linux-foundation.org>
-References: <20081028152943.GA20989@x200.localdomain>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH] kernel/cpu.c: Section mismatch warning fix.
+Date: Mon, 3 Nov 2008 15:34:25 -0800
+Message-ID: <20081103153425.7282ab84.akpm@linux-foundation.org>
+References: <b9df5fa10810292104h38fcee68kae42cf5ab6275fbb@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:48032 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:59245 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752321AbYJ1QQn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 28 Oct 2008 12:16:43 -0400
-In-Reply-To: <20081028152943.GA20989@x200.localdomain>
+	by vger.kernel.org with ESMTP id S1751164AbYKCXep (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Nov 2008 18:34:45 -0500
+In-Reply-To: <b9df5fa10810292104h38fcee68kae42cf5ab6275fbb@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Rakib Mullick <rakib.mullick@gmail.com>
+Cc: linux-kernel@vger.kernel.org, mingo@elte.hu, linux-arch@vger.kernel.org
 
+On Thu, 30 Oct 2008 10:04:54 +0600
+"Rakib Mullick" <rakib.mullick@gmail.com> wrote:
 
-
-On Tue, 28 Oct 2008, Alexey Dobriyan wrote:
->
-> I wrote stupid runtime checker to look for atomic_t uninitialized usage
-> and the amount of screaming in logs is surprisingly very big.
+>  LD      kernel/built-in.o
+> WARNING: kernel/built-in.o(.text+0xb7c8): Section mismatch in
+> reference from the function notify_cpu_starting() to the variable
+> .cpuinit.data:cpu_chain
+> The function notify_cpu_starting() references
+> the variable __cpuinitdata cpu_chain.
+> This is often because notify_cpu_starting lacks a __cpuinitdata
+> annotation or the annotation of cpu_chain is wrong.
 > 
-> So the question: is there really really an arch for which setting atomic_t
-> by hand (kzalloc) is not equivalent to atomic_set()?
+> This patch fixes the above section mismatch warning. If anything else
+> please notice.
+> Thanks.
+> 
+> Signed-off-by: Md.Rakib H. Mullick <rakib.mullick@gmail.com>
+> 
+> --- linux-2.6-orig/kernel/cpu.c	2008-10-28 20:52:38.000000000 +0600
+> +++ linux-2.6/kernel/cpu.c	2008-10-28 22:46:22.000000000 +0600
+> @@ -462,7 +462,7 @@ out:
+>   * It must be called by the arch code on the new cpu, before the new cpu
+>   * enables interrupts and before the "boot" cpu returns from __cpu_up().
+>   */
+> -void notify_cpu_starting(unsigned int cpu)
+> +void __cpuinit notify_cpu_starting(unsigned int cpu)
+>  {
+>  	unsigned long val = CPU_STARTING;
 
-For _initializers_? Not any more. And never for zero values.
+arch/alpha/kernel/smp.c calls notify_cpu_starting() from __init code.
 
-We used to have very strict rules because 32-bit sparc historically used 
-to use the low byte as a lock byte, but even back then it was ok to 
-initialize the values with zero, and you had to use atomic_set() only if 
-you set it to some other value (because the thing needed to be shifted up 
-by eight bits in order to avoid the lock byte).
+arch/cris/arch-v32/kernel/smp.c calls notify_cpu_starting() from __init code.
 
-But zero has always been safe, and in fact since then we've also simply 
-required that "atomic_t" always has at least 32 bits of data, and sparc 
-fixed its implementation to have the lock separately for the broken old 
-sparc32 architectures that don't have good atomic handling. 
+arch/x86/mach-voyager/voyager_smp.c calls notify_cpu_starting() from
+__init code.
 
-So it might possibly still be valid to check that an atomic_t is 
-initialized properly, but setting it to zero is a special case, and so 
-it's ok to initialize it with a zeroing allocation (kzalloc()) or simply 
-with a 'memset(ptr, 0, size)'.
+arch/m32r/kernel/smpboot.c calls notify_cpu_starting() from __init code.
 
-I bet that if you change your checker to accept zero initializations, you 
-won't find any issues any more. 
+arch/sparc/kernel/sun4d_smp.c calls notify_cpu_starting() from __init code.
 
-			Linus
+arch/powerpc/kernel/smp.c calls notify_cpu_starting() from __devinit
+code.
+
+arch/um/kernel/smp.c calls notify_cpu_starting() from .text code.
+
+
+The other nine callers call notify_cpu_starting() from __cpuinit code.
+
+
+What a mess.
