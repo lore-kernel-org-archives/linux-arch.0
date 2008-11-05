@@ -1,175 +1,122 @@
 From: Harvey Harrison <harvey.harrison@gmail.com>
-Subject: [RFC-PATCH 2/5] unaligned: convert arches where unaligned access
- is OK
-Date: Wed, 05 Nov 2008 10:16:17 -0800
-Message-ID: <1225908977.5991.181.camel@brick>
+Subject: [RFC-PATCH 4/5] unaligned: convert all remaining arches to common
+ asm-generic version
+Date: Wed, 05 Nov 2008 10:16:18 -0800
+Message-ID: <1225908978.5991.183.camel@brick>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wf-out-1314.google.com ([209.85.200.170]:5002 "EHLO
-	wf-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752991AbYKESQY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Nov 2008 13:16:24 -0500
+Received: from hs-out-0708.google.com ([64.233.178.246]:40972 "EHLO
+	hs-out-0708.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753421AbYKESQ3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Nov 2008 13:16:29 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-
-No functional changes, just use the asm-generic header.
+Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Russell King <rmk@arm.linux.org.uk>, Chris Zankel <chris@zankel.net>, Yoshinori Sato <ysato@users.sourceforge.jp>, Hirokazu Takata <takata@linux-m32r.org>
 
 Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
 ---
- arch/cris/include/asm/unaligned.h      |    7 ++-----
- arch/m68knommu/include/asm/unaligned.h |   22 +++++-----------------
- arch/powerpc/include/asm/unaligned.h   |    7 ++-----
- arch/s390/include/asm/unaligned.h      |    7 ++-----
- arch/x86/include/asm/unaligned.h       |    8 ++------
- include/asm-m68k/unaligned.h           |    7 ++-----
- include/asm-mn10300/unaligned.h        |   10 +++++-----
- 7 files changed, 20 insertions(+), 48 deletions(-)
+Not for immediate application, RFC-only.
 
-diff --git a/arch/cris/include/asm/unaligned.h b/arch/cris/include/asm/unaligned.h
-index 7b3f3fe..0634570 100644
---- a/arch/cris/include/asm/unaligned.h
-+++ b/arch/cris/include/asm/unaligned.h
-@@ -4,10 +4,7 @@
- /*
-  * CRIS can do unaligned accesses itself. 
-  */
--#include <linux/unaligned/access_ok.h>
+ arch/arm/include/asm/unaligned.h   |   15 +--------------
+ arch/h8300/include/asm/unaligned.h |    7 +------
+ include/asm-m32r/unaligned.h       |   14 +-------------
+ include/asm-xtensa/unaligned.h     |   16 +---------------
+ 4 files changed, 4 insertions(+), 48 deletions(-)
+
+diff --git a/arch/arm/include/asm/unaligned.h b/arch/arm/include/asm/unaligned.h
+index 44593a8..c1bf50b 100644
+--- a/arch/arm/include/asm/unaligned.h
++++ b/arch/arm/include/asm/unaligned.h
+@@ -1,19 +1,6 @@
+ #ifndef _ASM_ARM_UNALIGNED_H
+ #define _ASM_ARM_UNALIGNED_H
+ 
+-#include <linux/unaligned/le_byteshift.h>
+-#include <linux/unaligned/be_byteshift.h>
 -#include <linux/unaligned/generic.h>
 -
+-/*
+- * Select endianness
+- */
+-#ifndef __ARMEB__
 -#define get_unaligned	__get_unaligned_le
 -#define put_unaligned	__put_unaligned_le
-+#define _UNALIGNED_ACCESS_OK
+-#else
+-#define get_unaligned	__get_unaligned_be
+-#define put_unaligned	__put_unaligned_be
+-#endif
 +#include <asm-generic/unaligned.h>
  
- #endif /* _ASM_CRIS_UNALIGNED_H */
-diff --git a/arch/m68knommu/include/asm/unaligned.h b/arch/m68knommu/include/asm/unaligned.h
-index eb1ea4c..651419e 100644
---- a/arch/m68knommu/include/asm/unaligned.h
-+++ b/arch/m68knommu/include/asm/unaligned.h
-@@ -1,25 +1,13 @@
- #ifndef _ASM_M68KNOMMU_UNALIGNED_H
- #define _ASM_M68KNOMMU_UNALIGNED_H
+ #endif /* _ASM_ARM_UNALIGNED_H */
+diff --git a/arch/h8300/include/asm/unaligned.h b/arch/h8300/include/asm/unaligned.h
+index b8d06c7..4d7c1f5 100644
+--- a/arch/h8300/include/asm/unaligned.h
++++ b/arch/h8300/include/asm/unaligned.h
+@@ -1,11 +1,6 @@
+ #ifndef _ASM_H8300_UNALIGNED_H
+ #define _ASM_H8300_UNALIGNED_H
  
--
--#ifdef CONFIG_COLDFIRE
--#include <linux/unaligned/be_struct.h>
+-#include <linux/unaligned/be_memmove.h>
 -#include <linux/unaligned/le_byteshift.h>
 -#include <linux/unaligned/generic.h>
 -
 -#define get_unaligned	__get_unaligned_be
 -#define put_unaligned	__put_unaligned_be
--
++#include <asm-generic/unaligned.h>
+ 
+ #endif /* _ASM_H8300_UNALIGNED_H */
+diff --git a/include/asm-m32r/unaligned.h b/include/asm-m32r/unaligned.h
+index 377eb20..14d2598 100644
+--- a/include/asm-m32r/unaligned.h
++++ b/include/asm-m32r/unaligned.h
+@@ -1,18 +1,6 @@
+ #ifndef _ASM_M32R_UNALIGNED_H
+ #define _ASM_M32R_UNALIGNED_H
+ 
+-#if defined(__LITTLE_ENDIAN__)
+-# include <linux/unaligned/le_memmove.h>
+-# include <linux/unaligned/be_byteshift.h>
+-# include <linux/unaligned/generic.h>
+-# define get_unaligned	__get_unaligned_le
+-# define put_unaligned	__put_unaligned_le
 -#else
- /*
-- * The m68k can do unaligned accesses itself. 
-+ * The m68k can do unaligned accesses itself.  COLDFIRE can not.
-  */
--#include <linux/unaligned/access_ok.h>
--#include <linux/unaligned/generic.h>
--
--#define get_unaligned	__get_unaligned_be
--#define put_unaligned	__put_unaligned_be
--
-+#ifndef CONFIG_COLDFIRE
-+# define _UNALIGNED_ACCESS_OK
- #endif
- 
-+#include <asm-generic/unaligned.h>
-+
- #endif /* _ASM_M68KNOMMU_UNALIGNED_H */
-diff --git a/arch/powerpc/include/asm/unaligned.h b/arch/powerpc/include/asm/unaligned.h
-index 5f1b1e3..5fb95fc 100644
---- a/arch/powerpc/include/asm/unaligned.h
-+++ b/arch/powerpc/include/asm/unaligned.h
-@@ -6,11 +6,8 @@
- /*
-  * The PowerPC can do unaligned accesses itself in big endian mode.
-  */
--#include <linux/unaligned/access_ok.h>
--#include <linux/unaligned/generic.h>
--
--#define get_unaligned	__get_unaligned_be
--#define put_unaligned	__put_unaligned_be
-+#define _UNALIGNED_ACCESS_OK
+-# include <linux/unaligned/be_memmove.h>
+-# include <linux/unaligned/le_byteshift.h>
+-# include <linux/unaligned/generic.h>
+-# define get_unaligned	__get_unaligned_be
+-# define put_unaligned	__put_unaligned_be
+-#endif
 +#include <asm-generic/unaligned.h>
  
- #endif	/* __KERNEL__ */
- #endif	/* _ASM_POWERPC_UNALIGNED_H */
-diff --git a/arch/s390/include/asm/unaligned.h b/arch/s390/include/asm/unaligned.h
-index da9627a..69a4088 100644
---- a/arch/s390/include/asm/unaligned.h
-+++ b/arch/s390/include/asm/unaligned.h
-@@ -4,10 +4,7 @@
- /*
-  * The S390 can do unaligned accesses itself. 
-  */
--#include <linux/unaligned/access_ok.h>
--#include <linux/unaligned/generic.h>
--
--#define get_unaligned	__get_unaligned_be
--#define put_unaligned	__put_unaligned_be
-+#define _UNALIGNED_ACCESS_OK
+ #endif /* _ASM_M32R_UNALIGNED_H */
+diff --git a/include/asm-xtensa/unaligned.h b/include/asm-xtensa/unaligned.h
+index 8f3424f..3922953 100644
+--- a/include/asm-xtensa/unaligned.h
++++ b/include/asm-xtensa/unaligned.h
+@@ -10,20 +10,6 @@
+ #ifndef _ASM_XTENSA_UNALIGNED_H
+ #define _ASM_XTENSA_UNALIGNED_H
+ 
+-#ifdef __XTENSA_EL__
+-# include <linux/unaligned/le_memmove.h>
+-# include <linux/unaligned/be_byteshift.h>
+-# include <linux/unaligned/generic.h>
+-# define get_unaligned	__get_unaligned_le
+-# define put_unaligned	__put_unaligned_le
+-#elif defined(__XTENSA_EB__)
+-# include <linux/unaligned/be_memmove.h>
+-# include <linux/unaligned/le_byteshift.h>
+-# include <linux/unaligned/generic.h>
+-# define get_unaligned	__get_unaligned_be
+-# define put_unaligned	__put_unaligned_be
+-#else
+-# error processor byte order undefined!
+-#endif
 +#include <asm-generic/unaligned.h>
  
- #endif /* _ASM_S390_UNALIGNED_H */
-diff --git a/arch/x86/include/asm/unaligned.h b/arch/x86/include/asm/unaligned.h
-index a7bd416..1ba0b8a 100644
---- a/arch/x86/include/asm/unaligned.h
-+++ b/arch/x86/include/asm/unaligned.h
-@@ -4,11 +4,7 @@
- /*
-  * The x86 can do unaligned accesses itself.
-  */
--
--#include <linux/unaligned/access_ok.h>
--#include <linux/unaligned/generic.h>
--
--#define get_unaligned __get_unaligned_le
--#define put_unaligned __put_unaligned_le
-+#define _UNALIGNED_ACCESS_OK
-+#include <asm-generic/unaligned.h>
- 
- #endif /* _ASM_X86_UNALIGNED_H */
-diff --git a/include/asm-m68k/unaligned.h b/include/asm-m68k/unaligned.h
-index 77698f2..2d92d6a 100644
---- a/include/asm-m68k/unaligned.h
-+++ b/include/asm-m68k/unaligned.h
-@@ -4,10 +4,7 @@
- /*
-  * The m68k can do unaligned accesses itself.
-  */
--#include <linux/unaligned/access_ok.h>
--#include <linux/unaligned/generic.h>
--
--#define get_unaligned	__get_unaligned_be
--#define put_unaligned	__put_unaligned_be
-+#define _UNALIGNED_ACCESS_OK
-+#include <asm-generic/unaligned.h>
- 
- #endif /* _ASM_M68K_UNALIGNED_H */
-diff --git a/include/asm-mn10300/unaligned.h b/include/asm-mn10300/unaligned.h
-index 0df6713..0ab409f 100644
---- a/include/asm-mn10300/unaligned.h
-+++ b/include/asm-mn10300/unaligned.h
-@@ -11,10 +11,10 @@
- #ifndef _ASM_MN10300_UNALIGNED_H
- #define _ASM_MN10300_UNALIGNED_H
- 
--#include <linux/unaligned/access_ok.h>
--#include <linux/unaligned/generic.h>
--
--#define get_unaligned	__get_unaligned_le
--#define put_unaligned	__put_unaligned_le
-+/*
-+ * The MN10300 can do unaligned accesses itself.
-+ */
-+#define _UNALIGNED_ACCESS_OK
-+#include <asm-generic/unaligned.h>
- 
- #endif /* _ASM_MN10300_UNALIGNED_H */
+ #endif	/* _ASM_XTENSA_UNALIGNED_H */
 -- 
 1.6.0.3.756.gb776d
