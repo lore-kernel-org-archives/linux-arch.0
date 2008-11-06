@@ -1,342 +1,129 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 05/27] asm-generic: add generic io.h
-Date: Thu, 6 Nov 2008 14:38:22 +0100
-Message-ID: <19d8a91dbf3456f9eb0b0bb2f92b302b88a1c672.1241105648.git.arnd@arndb.de>
+Subject: [PATCH 04/27] asm-generic: add legacy I/O header files
+Date: Thu, 6 Nov 2008 14:16:55 +0100
+Message-ID: <10b3a32656e5552458db7412ef9ff8530d5f92aa.1241105648.git.arnd@arndb.de>
 References: <cover.1241105648.git.arnd@arndb.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:60936 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.171]:58586 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932212AbZD3PmB (ORCPT
+	with ESMTP id S932284AbZD3PmB (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2009 11:42:01 -0400
 In-Reply-To: <cover.1241105648.git.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
-Architectures that only have strictly ordered memory mapped
-I/O can use a very simple asm/io.h implementation, which was
-first written for the mn10300 architecture.
+The dma.h, hw_irq.h, serial.h and timex.h files originally
+described PC-style i8237, i8259A, i8250 and i8253 chips.
+Modern architectures live happily without these specific
+interfaces, but a few definitions from these headers keep
+getting used in common code.
 
-Make it generic, so that future architectures can use it
-directly.
+The new generic headers are what most architectures use
+anyway nowadays, just implementing the minimal definitions.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
 ---
- include/asm-generic/io.h |  305 ++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 305 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/io.h
+ include/asm-generic/dma.h    |   15 +++++++++++++++
+ include/asm-generic/hw_irq.h |    9 +++++++++
+ include/asm-generic/serial.h |   13 +++++++++++++
+ include/asm-generic/timex.h  |   29 +++++++++++++++++++++++++++++
+ 4 files changed, 66 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/dma.h
+ create mode 100644 include/asm-generic/hw_irq.h
+ create mode 100644 include/asm-generic/serial.h
+ create mode 100644 include/asm-generic/timex.h
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+diff --git a/include/asm-generic/dma.h b/include/asm-generic/dma.h
 new file mode 100644
-index 0000000..8377715
+index 0000000..9dfc3a7
 --- /dev/null
-+++ b/include/asm-generic/io.h
-@@ -0,0 +1,305 @@
-+/* Generic I/O port emulation, based on MN10300 code
++++ b/include/asm-generic/dma.h
+@@ -0,0 +1,15 @@
++#ifndef __ASM_GENERIC_DMA_H
++#define __ASM_GENERIC_DMA_H
++/*
++ * This file traditionally describes the i8237 PC style DMA controller.
++ * Most architectures don't have these any more and can get the minimal
++ * implementation from kernel/dma.c by not defining MAX_DMA_CHANNELS.
 + *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
++ * Some code relies on seeing MAX_DMA_ADDRESS though.
++ */
++#define MAX_DMA_ADDRESS PAGE_OFFSET
++
++extern int request_dma(unsigned int dmanr, const char *device_id);
++extern void free_dma(unsigned int dmanr);
++
++#endif /* __ASM_GENERIC_DMA_H */
+diff --git a/include/asm-generic/hw_irq.h b/include/asm-generic/hw_irq.h
+new file mode 100644
+index 0000000..89036d7
+--- /dev/null
++++ b/include/asm-generic/hw_irq.h
+@@ -0,0 +1,9 @@
++#ifndef __ASM_GENERIC_HW_IRQ_H
++#define __ASM_GENERIC_HW_IRQ_H
++/*
++ * hw_irq.h has internal declarations for the low-level interrupt
++ * controller, like the original i8259A.
++ * In general, this is not needed for new architectures.
++ */
++
++#endif /* __ASM_GENERIC_HW_IRQ_H */
+diff --git a/include/asm-generic/serial.h b/include/asm-generic/serial.h
+new file mode 100644
+index 0000000..5e29109
+--- /dev/null
++++ b/include/asm-generic/serial.h
+@@ -0,0 +1,13 @@
++#ifndef __ASM_GENERIC_SERIAL_H
++#define __ASM_GENERIC_SERIAL_H
++
++/*
++ * This should not be an architecture specific #define, oh well.
 + *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
++ * Traditionally, it just describes i8250 and related serial ports
++ * that have this clock rate.
 + */
-+#ifndef __ASM_GENERIC_IO_H
-+#define __ASM_GENERIC_IO_H
 +
-+#include <asm/page.h> /* I/O is all done through memory accesses */
-+#include <asm/cacheflush.h>
++#define BASE_BAUD (1843200 / 16)
 +
-+#ifdef CONFIG_GENERIC_IOMAP
-+#include <asm-generic/iomap.h>
++#endif /* __ASM_GENERIC_SERIAL_H */
+diff --git a/include/asm-generic/timex.h b/include/asm-generic/timex.h
+new file mode 100644
+index 0000000..8a8d4a0
+--- /dev/null
++++ b/include/asm-generic/timex.h
+@@ -0,0 +1,29 @@
++#ifndef __ASM_GENERIC_TIMEX_H
++#define __ASM_GENERIC_TIMEX_H
++
++/*
++ * CLOCK_TICK_RATE is highly PC-specific and should not
++ * be used in portable code. 1193182 is the value for the
++ * original i8253 PIC.
++ */
++#ifndef CLOCK_TICK_RATE
++#define CLOCK_TICK_RATE		1193182
 +#endif
 +
-+#define mmiowb() do {} while (0)
-+
-+/*****************************************************************************/
 +/*
-+ * readX/writeX() are used to access memory mapped devices. On some
-+ * architectures the memory mapped IO stuff needs to be accessed
-+ * differently. On the simple architectures, we just read/write the
-+ * memory location directly.
++ * If you have a cycle counter, return the value here.
 + */
-+static inline u8 __raw_readb(const volatile void __iomem *addr)
++typedef unsigned long cycles_t;
++static inline cycles_t get_cycles(void)
 +{
-+	return *(const volatile u8 *) addr;
-+}
-+
-+static inline u16 __raw_readw(const volatile void __iomem *addr)
-+{
-+	return *(const volatile u16 *) addr;
-+}
-+
-+static inline u32 __raw_readl(const volatile void __iomem *addr)
-+{
-+	return *(const volatile u32 *) addr;
-+}
-+
-+#define readb __raw_readb
-+#define readw(addr) __le16_to_cpu(__raw_readw(addr))
-+#define readl(addr) __le32_to_cpu(__raw_readl(addr))
-+
-+static inline void __raw_writeb(u8 b, volatile void __iomem *addr)
-+{
-+	*(volatile u8 *) addr = b;
-+}
-+
-+static inline void __raw_writew(u16 b, volatile void __iomem *addr)
-+{
-+	*(volatile u16 *) addr = b;
-+}
-+
-+static inline void __raw_writel(u32 b, volatile void __iomem *addr)
-+{
-+	*(volatile u32 *) addr = b;
-+}
-+
-+#define writeb __raw_writeb
-+#define writew(b,addr) __raw_writew(__cpu_to_le16(b),addr)
-+#define writel(b,addr) __raw_writel(__cpu_to_le32(b),addr)
-+
-+#ifdef CONFIG_64BIT
-+static inline u64 __raw_readq(const volatile void __iomem *addr)
-+{
-+	return *(const volatile u64 *) addr;
-+}
-+#define readq(addr) __le64_to_cpu(__raw_readq(addr))
-+
-+static inline void __raw_writeq(u64 b, volatile void __iomem *addr)
-+{
-+	*(volatile u64 *) addr = b;
-+}
-+#define writeq(b,addr) __raw_writeq(__cpu_to_le64(b),addr)
-+#endif
-+
-+/*****************************************************************************/
-+/*
-+ * traditional input/output functions
-+ */
-+
-+static inline u8 inb(unsigned long addr)
-+{
-+	return readb((volatile void __iomem *) addr);
-+}
-+
-+static inline u16 inw(unsigned long addr)
-+{
-+	return readw((volatile void __iomem *) addr);
-+}
-+
-+static inline u32 inl(unsigned long addr)
-+{
-+	return readl((volatile void __iomem *) addr);
-+}
-+
-+static inline void outb(u8 b, unsigned long addr)
-+{
-+	return writeb(b, (volatile void __iomem *) addr);
-+}
-+
-+static inline void outw(u16 b, unsigned long addr)
-+{
-+	return writew(b, (volatile void __iomem *) addr);
-+}
-+
-+static inline void outl(u32 b, unsigned long addr)
-+{
-+	return writel(b, (volatile void __iomem *) addr);
-+}
-+
-+#define inb_p(addr)	inb(addr)
-+#define inw_p(addr)	inw(addr)
-+#define inl_p(addr)	inl(addr)
-+#define outb_p(x, addr)	outb((x), (addr))
-+#define outw_p(x, addr)	outw((x), (addr))
-+#define outl_p(x, addr)	outl((x), (addr))
-+
-+static inline void insb(unsigned long addr, void *buffer, int count)
-+{
-+	if (count) {
-+		u8 *buf = buffer;
-+		do {
-+			u8 x = inb(addr);
-+			*buf++ = x;
-+		} while (--count);
-+	}
-+}
-+
-+static inline void insw(unsigned long addr, void *buffer, int count)
-+{
-+	if (count) {
-+		u16 *buf = buffer;
-+		do {
-+			u16 x = inw(addr);
-+			*buf++ = x;
-+		} while (--count);
-+	}
-+}
-+
-+static inline void insl(unsigned long addr, void *buffer, int count)
-+{
-+	if (count) {
-+		u32 *buf = buffer;
-+		do {
-+			u32 x = inl(addr);
-+			*buf++ = x;
-+		} while (--count);
-+	}
-+}
-+
-+static inline void outsb(unsigned long addr, const void *buffer, int count)
-+{
-+	if (count) {
-+		const u8 *buf = buffer;
-+		do {
-+			outb(*buf++, addr);
-+		} while (--count);
-+	}
-+}
-+
-+static inline void outsw(unsigned long addr, const void *buffer, int count)
-+{
-+	if (count) {
-+		const u16 *buf = buffer;
-+		do {
-+			outw(*buf++, addr);
-+		} while (--count);
-+	}
-+}
-+
-+static inline void outsl(unsigned long addr, const void *buffer, int count)
-+{
-+	if (count) {
-+		const u32 *buf = buffer;
-+		do {
-+			outl(*buf++, addr);
-+		} while (--count);
-+	}
-+}
-+
-+#ifndef CONFIG_GENERIC_IOMAP
-+#define ioread8(addr)		readb(addr)
-+#define ioread16(addr)		readw(addr)
-+#define ioread32(addr)		readl(addr)
-+
-+#define iowrite8(v, addr)	writeb((v), (addr))
-+#define iowrite16(v, addr)	writew((v), (addr))
-+#define iowrite32(v, addr)	writel((v), (addr))
-+
-+#define ioread8_rep(p, dst, count) \
-+	insb((unsigned long) (p), (dst), (count))
-+#define ioread16_rep(p, dst, count) \
-+	insw((unsigned long) (p), (dst), (count))
-+#define ioread32_rep(p, dst, count) \
-+	insl((unsigned long) (p), (dst), (count))
-+
-+#define iowrite8_rep(p, src, count) \
-+	outsb((unsigned long) (p), (src), (count))
-+#define iowrite16_rep(p, src, count) \
-+	outsw((unsigned long) (p), (src), (count))
-+#define iowrite32_rep(p, src, count) \
-+	outsl((unsigned long) (p), (src), (count))
-+#endif /* CONFIG_GENERIC_IOMAP */
-+
-+
-+#define IO_SPACE_LIMIT 0xffffffff
-+
-+#ifdef __KERNEL__
-+
-+#include <linux/vmalloc.h>
-+#define __io_virt(x) ((void *) (x))
-+
-+#ifndef CONFIG_GENERIC_IOMAP
-+/* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
-+struct pci_dev;
-+extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
-+static inline void pci_iounmap(struct pci_dev *dev, void __iomem *p)
-+{
-+}
-+#endif /* CONFIG_GENERIC_IOMAP */
-+
-+/*
-+ * Change virtual addresses to physical addresses and vv.
-+ * These are pretty trivial
-+ */
-+static inline unsigned long virt_to_phys(volatile void *address)
-+{
-+	return __pa(address);
-+}
-+
-+static inline void *phys_to_virt(unsigned long address)
-+{
-+	return __va(address);
++	return 0;
 +}
 +
 +/*
-+ * Change "struct page" to physical address.
++ * Architectures are encouraged to implement read_current_timer
++ * and define this in order to avoid the expensive delay loop
++ * calibration during boot.
 + */
-+static inline void *__ioremap(unsigned long offset, unsigned long size,
-+			      unsigned long flags)
-+{
-+	return (void *) offset;
-+}
++#undef ARCH_HAS_READ_CURRENT_TIMER
 +
-+static inline void *ioremap(unsigned long offset, unsigned long size)
-+{
-+	return (void *) offset;
-+}
-+
-+#ifndef ioremap_nocache
-+#define ioremap_nocache ioremap
-+#endif
-+
-+#ifndef ioremap_wc
-+#define ioremap_wc ioremap_nocache
-+#endif
-+
-+static inline void iounmap(void *addr)
-+{
-+}
-+
-+#ifndef CONFIG_GENERIC_IOMAP
-+static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
-+{
-+	return (void __iomem *) port;
-+}
-+
-+static inline void ioport_unmap(void __iomem *p)
-+{
-+}
-+#else /* CONFIG_GENERIC_IOMAP */
-+extern void __iomem *ioport_map(unsigned long port, unsigned int nr);
-+extern void ioport_unmap(void __iomem *p);
-+#endif /* CONFIG_GENERIC_IOMAP */
-+
-+#define xlate_dev_kmem_ptr(p)	((void *) (p))
-+#define xlate_dev_mem_ptr(p)	((void *) (p))
-+
-+#ifndef virt_to_bus
-+static inline unsigned long virt_to_bus(volatile void *address)
-+{
-+	return ((unsigned long) address);
-+}
-+
-+static inline void *bus_to_virt(unsigned long address)
-+{
-+	return (void *) address;
-+}
-+#endif
-+
-+#define page_to_bus page_to_phys
-+
-+#define memset_io(a, b, c)	memset(__io_virt(a), (b), (c))
-+#define memcpy_fromio(a, b, c)	memcpy((a), __io_virt(b), (c))
-+#define memcpy_toio(a, b, c)	memcpy(__io_virt(a), (b), (c))
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* __ASM_GENERIC_IO_H */
++#endif /* __ASM_GENERIC_TIMEX_H */
 -- 
 1.5.6.3
