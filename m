@@ -1,325 +1,320 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 17/27] add generic lib/checksum.c
-Date: Tue, 31 Mar 2009 15:30:31 +0200
-Message-ID: <cda5746ab12cf9d6bcb7803a3667c92250a29784.1241105648.git.arnd@arndb.de>
+Subject: [PATCH 12/27] asm-generic: add a NOMMU uaccess.h
+Date: Thu, 6 Nov 2008 16:31:03 +0100
+Message-ID: <45b4644e80c27b9d042b3960e3d99f0d444e0d92.1241105648.git.arnd@arndb.de>
 References: <cover.1241105648.git.arnd@arndb.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:64325 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.177]:53510 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932285AbZD3PmF (ORCPT
+	with ESMTP id S932394AbZD3PmF (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2009 11:42:05 -0400
 In-Reply-To: <cover.1241105648.git.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
-Add a generic (unoptimized) implementation of checksum.c in pure C
-for use by all architectures.
+This uaccess.h can be used by all NOMMU architectures,
+but it does not provide exception handlers that would
+be needed for an architecture with an MMU.
 
-Based on microblaze code by Michal Simek <monstr@monstr.eu>
-
-Cc: Michal Simek <monstr@monstr.eu>
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
 ---
- include/asm-generic/checksum.h |   79 +++++++++++++++++
- lib/Makefile                   |    2 +
- lib/checksum.c                 |  188 ++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 269 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/checksum.h
- create mode 100644 lib/checksum.c
+ arch/parisc/include/asm/uaccess.h                  |    2 +-
+ arch/sparc/include/asm/uaccess_64.h                |    2 +-
+ .../asm-generic/{uaccess.h => uaccess-unaligned.h} |    6 +-
+ include/asm-generic/uaccess.h                      |  235 +++++++++++++++++---
+ 4 files changed, 214 insertions(+), 31 deletions(-)
+ rename include/asm-generic/{uaccess.h => uaccess-unaligned.h} (82%)
+ rewrite include/asm-generic/uaccess.h (96%)
 
-diff --git a/include/asm-generic/checksum.h b/include/asm-generic/checksum.h
-new file mode 100644
-index 0000000..4647c76
---- /dev/null
-+++ b/include/asm-generic/checksum.h
-@@ -0,0 +1,79 @@
-+#ifndef __ASM_GENERIC_CHECKSUM_H
-+#define __ASM_GENERIC_CHECKSUM_H
+diff --git a/arch/parisc/include/asm/uaccess.h b/arch/parisc/include/asm/uaccess.h
+index cd4c0b2..7cf799d 100644
+--- a/arch/parisc/include/asm/uaccess.h
++++ b/arch/parisc/include/asm/uaccess.h
+@@ -7,7 +7,7 @@
+ #include <asm/page.h>
+ #include <asm/system.h>
+ #include <asm/cache.h>
+-#include <asm-generic/uaccess.h>
++#include <asm-generic/uaccess-unaligned.h>
+ 
+ #define VERIFY_READ 0
+ #define VERIFY_WRITE 1
+diff --git a/arch/sparc/include/asm/uaccess_64.h b/arch/sparc/include/asm/uaccess_64.h
+index c64e767..a38c032 100644
+--- a/arch/sparc/include/asm/uaccess_64.h
++++ b/arch/sparc/include/asm/uaccess_64.h
+@@ -12,7 +12,7 @@
+ #include <asm/asi.h>
+ #include <asm/system.h>
+ #include <asm/spitfire.h>
+-#include <asm-generic/uaccess.h>
++#include <asm-generic/uaccess-unaligned.h>
+ #endif
+ 
+ #ifndef __ASSEMBLY__
+diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess-unaligned.h
+similarity index 82%
+rename from include/asm-generic/uaccess.h
+rename to include/asm-generic/uaccess-unaligned.h
+index 549cb3a..67deb89 100644
+--- a/include/asm-generic/uaccess.h
++++ b/include/asm-generic/uaccess-unaligned.h
+@@ -1,5 +1,5 @@
+-#ifndef _ASM_GENERIC_UACCESS_H_
+-#define _ASM_GENERIC_UACCESS_H_
++#ifndef __ASM_GENERIC_UACCESS_UNALIGNED_H
++#define __ASM_GENERIC_UACCESS_UNALIGNED_H
+ 
+ /*
+  * This macro should be used instead of __get_user() when accessing
+@@ -23,4 +23,4 @@
+ 	__copy_to_user((ptr), &__x, sizeof(*(ptr))) ? -EFAULT : 0;	\
+ })
+ 
+-#endif /* _ASM_GENERIC_UACCESS_H */
++#endif /* __ASM_GENERIC_UACCESS_UNALIGNED_H */
+diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
+dissimilarity index 96%
+index 549cb3a..ebeacd9 100644
+--- a/include/asm-generic/uaccess.h
++++ b/include/asm-generic/uaccess.h
+@@ -1,26 +1,209 @@
+-#ifndef _ASM_GENERIC_UACCESS_H_
+-#define _ASM_GENERIC_UACCESS_H_
+-
+-/*
+- * This macro should be used instead of __get_user() when accessing
+- * values at locations that are not known to be aligned.
+- */
+-#define __get_user_unaligned(x, ptr)					\
+-({									\
+-	__typeof__ (*(ptr)) __x;					\
+-	__copy_from_user(&__x, (ptr), sizeof(*(ptr))) ? -EFAULT : 0;	\
+-	(x) = __x;							\
+-})
+-
+-
+-/*
+- * This macro should be used instead of __put_user() when accessing
+- * values at locations that are not known to be aligned.
+- */
+-#define __put_user_unaligned(x, ptr)					\
+-({									\
+-	__typeof__ (*(ptr)) __x = (x);					\
+-	__copy_to_user((ptr), &__x, sizeof(*(ptr))) ? -EFAULT : 0;	\
+-})
+-
+-#endif /* _ASM_GENERIC_UACCESS_H */
++#ifndef __ASM_GENERIC_UACCESS_H
++#define __ASM_GENERIC_UACCESS_H
 +
 +/*
-+ * computes the checksum of a memory block at buff, length len,
-+ * and adds in "sum" (32-bit)
-+ *
-+ * returns a 32-bit number suitable for feeding into itself
-+ * or csum_tcpudp_magic
-+ *
-+ * this function must be called with even lengths, except
-+ * for the last fragment, which may be odd
-+ *
-+ * it's best to have buff aligned on a 32-bit boundary
++ * User space memory access functions, these should work
++ * on a ny machine that has kernel and user data in the same
++ * address space, e.g. all NOMMU machines.
 + */
-+extern __wsum csum_partial(const void *buff, int len, __wsum sum);
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <linux/string.h>
 +
-+/*
-+ * the same as csum_partial, but copies from src while it
-+ * checksums
-+ *
-+ * here even more important to align src and dst on a 32-bit (or even
-+ * better 64-bit) boundary
-+ */
-+extern __wsum csum_partial_copy(const void *src, void *dst, int len, __wsum sum);
++#include <asm/segment.h>
 +
-+/*
-+ * the same as csum_partial_copy, but copies from user space.
-+ *
-+ * here even more important to align src and dst on a 32-bit (or even
-+ * better 64-bit) boundary
-+ */
-+extern __wsum csum_partial_copy_from_user(const void __user *src, void *dst,
-+					int len, __wsum sum, int *csum_err);
++#ifndef get_fs
++#define MAKE_MM_SEG(s)	((mm_segment_t) { (s) })
++#define KERNEL_DS	MAKE_MM_SEG(~0UL)
++#define USER_DS		MAKE_MM_SEG(TASK_SIZE - 1)
 +
-+#define csum_partial_copy_nocheck(src, dst, len, sum)	\
-+	csum_partial_copy((src), (dst), (len), (sum))
++#define get_ds() (KERNEL_DS)
++#define get_fs() (current_thread_info()->addr_limit)
 +
-+/*
-+ * This is a version of ip_compute_csum() optimized for IP headers,
-+ * which always checksum on 4 octet boundaries.
-+ */
-+extern __sum16 ip_fast_csum(const void *iph, unsigned int ihl);
-+
-+/*
-+ * Fold a partial checksum
-+ */
-+static inline __sum16 csum_fold(__wsum csum)
++static inline void set_fs(mm_segment_t fs)
 +{
-+	u32 sum = (__force u32)csum;
-+	sum = (sum & 0xffff) + (sum >> 16);
-+	sum = (sum & 0xffff) + (sum >> 16);
-+	return (__force __sum16)~sum;
++	current_thread_info()->addr_limit = fs;
 +}
-+
-+#ifndef csum_tcpudp_nofold
-+/*
-+ * computes the checksum of the TCP/UDP pseudo-header
-+ * returns a 16-bit checksum, already complemented
-+ */
-+extern __wsum
-+csum_tcpudp_nofold(__be32 saddr, __be32 daddr, unsigned short len,
-+		unsigned short proto, __wsum sum);
 +#endif
 +
-+static inline __sum16
-+csum_tcpudp_magic(__be32 saddr, __be32 daddr, unsigned short len,
-+		  unsigned short proto, __wsum sum)
-+{
-+	return csum_fold(csum_tcpudp_nofold(saddr, daddr, len, proto, sum));
-+}
++#define segment_eq(a, b) ((a).seg == (b).seg)
++
++#define VERIFY_READ	0
++#define VERIFY_WRITE	1
++
++#define access_ok(type, addr, size) _access_ok((unsigned long)(addr),(size))
 +
 +/*
-+ * this routine is used for miscellaneous IP-like checksums, mainly
-+ * in icmp.c
++ * The architecture should really override this if possible, at least
++ * doing a check on the get_fs()
 + */
-+extern __sum16 ip_compute_csum(const void *buff, int len);
-+
-+#endif /* __ASM_GENERIC_CHECKSUM_H */
-diff --git a/lib/Makefile b/lib/Makefile
-index 33a40e4..b6869e1 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -92,6 +92,8 @@ obj-$(CONFIG_NLATTR) += nlattr.o
- 
- obj-$(CONFIG_DMA_API_DEBUG) += dma-debug.o
- 
-+obj-$(CONFIG_GENERIC_CSUM) += checksum.o
-+
- hostprogs-y	:= gen_crc32table
- clean-files	:= crc32table.h
- 
-diff --git a/lib/checksum.c b/lib/checksum.c
-new file mode 100644
-index 0000000..4f80a4d
---- /dev/null
-+++ b/lib/checksum.c
-@@ -0,0 +1,188 @@
-+/*
-+ * arch/microblaze/lib/checksum.c
-+ *
-+ * Copyright (C) 2008 Michal Simek <monstr@monstr.eu>
-+ *
-+ * INET	An implementation of the TCP/IP protocol suite for the LINUX
-+ *		operating system.  INET is implemented using the  BSD Socket
-+ *		interface as the means of communication with the user level.
-+ *
-+ *		IP/TCP/UDP checksumming routines
-+ *
-+ * Authors:	Jorge Cwik, <jorge@laser.satlink.net>
-+ *		Arnt Gulbrandsen, <agulbra@nvg.unit.no>
-+ *		Tom May, <ftom@netcom.com>
-+ *		Andreas Schwab, <schwab@issan.informatik.uni-dortmund.de>
-+ *		Lots of code moved from tcp.c and ip.c; see those files
-+ *		for more names.
-+ *
-+ * 03/02/96	Jes Sorensen, Andreas Schwab, Roman Hodek:
-+ *		Fixed some nasty bugs, causing some horrible crashes.
-+ *		A: At some points, the sum (%0) was used as
-+ *		length-counter instead of the length counter
-+ *		(%1). Thanks to Roman Hodek for pointing this out.
-+ *		B: GCC seems to mess up if one uses too many
-+ *		data-registers to hold input values and one tries to
-+ *		specify d0 and d1 as scratch registers. Letting gcc choose these
-+ *		registers itself solves the problem.
-+ *
-+ *		This program is free software; you can redistribute it and/or
-+ *		modify it under the terms of the GNU General Public License
-+ *		as published by the Free Software Foundation; either version
-+ *		2 of the License, or (at your option) any later version.
-+ */
-+
-+/* Revised by Kenneth Albanowski for m68knommu. Basic problem: unaligned access
-+ kills, so most of the assembly has to go. */
-+
-+#include <net/checksum.h>
-+#include <asm-generic/checksum.h>
-+#include <linux/module.h>
-+#include <asm/byteorder.h>
-+
-+static inline unsigned short from32to16(unsigned long x)
++#ifndef _access_ok
++static inline int _access_ok(unsigned long addr, unsigned long size)
 +{
-+	/* add up 16-bit and 16-bit for 16+c bit */
-+	x = (x & 0xffff) + (x >> 16);
-+	/* add up carry.. */
-+	x = (x & 0xffff) + (x >> 16);
-+	return x;
++	return 1;
 +}
-+
-+static unsigned int do_csum(const unsigned char *buff, int len)
-+{
-+	int odd, count;
-+	unsigned long result = 0;
-+
-+	if (len <= 0)
-+		goto out;
-+	odd = 1 & (unsigned long) buff;
-+	if (odd) {
-+		result = *buff;
-+		len--;
-+		buff++;
-+	}
-+	count = len >> 1;		/* nr of 16-bit words.. */
-+	if (count) {
-+		if (2 & (unsigned long) buff) {
-+			result += *(unsigned short *) buff;
-+			count--;
-+			len -= 2;
-+			buff += 2;
-+		}
-+		count >>= 1;		/* nr of 32-bit words.. */
-+		if (count) {
-+			unsigned long carry = 0;
-+			do {
-+				unsigned long w = *(unsigned long *) buff;
-+				count--;
-+				buff += 4;
-+				result += carry;
-+				result += w;
-+				carry = (w > result);
-+			} while (count);
-+			result += carry;
-+			result = (result & 0xffff) + (result >> 16);
-+		}
-+		if (len & 2) {
-+			result += *(unsigned short *) buff;
-+			buff += 2;
-+		}
-+	}
-+	if (len & 1)
-+		result += (*buff << 8);
-+	result = from32to16(result);
-+	if (odd)
-+		result = ((result >> 8) & 0xff) | ((result & 0xff) << 8);
-+out:
-+	return result;
-+}
-+
-+/*
-+ *	This is a version of ip_compute_csum() optimized for IP headers,
-+ *	which always checksum on 4 octet boundaries.
-+ */
-+__sum16 ip_fast_csum(const void *iph, unsigned int ihl)
-+{
-+	return ~do_csum(iph, ihl*4);
-+}
-+
-+/*
-+ * computes the checksum of a memory block at buff, length len,
-+ * and adds in "sum" (32-bit)
-+ *
-+ * returns a 32-bit number suitable for feeding into itself
-+ * or csum_tcpudp_magic
-+ *
-+ * this function must be called with even lengths, except
-+ * for the last fragment, which may be odd
-+ *
-+ * it's best to have buff aligned on a 32-bit boundary
-+ */
-+__wsum csum_partial(const void *buff, int len, __wsum sum)
-+{
-+	unsigned int result = do_csum(buff, len);
-+
-+	/* add in old sum, and carry.. */
-+	result += sum;
-+	if (sum > result)
-+		result += 1;
-+	return result;
-+}
-+EXPORT_SYMBOL(csum_partial);
-+
-+/*
-+ * this routine is used for miscellaneous IP-like checksums, mainly
-+ * in icmp.c
-+ */
-+__sum16 ip_compute_csum(const void *buff, int len)
-+{
-+	return ~do_csum(buff, len);
-+}
-+EXPORT_SYMBOL(ip_compute_csum);
-+
-+/*
-+ * copy from fs while checksumming, otherwise like csum_partial
-+ */
-+__wsum
-+csum_partial_copy_from_user(const void __user *src, void *dst, int len,
-+						__wsum sum, int *csum_err)
-+{
-+	if (csum_err)
-+		*csum_err = 0;
-+	memcpy(dst, src, len);
-+	return csum_partial(dst, len, sum);
-+}
-+EXPORT_SYMBOL(csum_partial_copy_from_user);
-+
-+/*
-+ * copy from ds while checksumming, otherwise like csum_partial
-+ */
-+__wsum
-+csum_partial_copy(const void *src, void *dst, int len, __wsum sum)
-+{
-+	memcpy(dst, src, len);
-+	return csum_partial(dst, len, sum);
-+}
-+EXPORT_SYMBOL(csum_partial_copy);
-+
-+#ifndef csum_tcpudp_nofold
-+__wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
-+			unsigned short len,
-+			unsigned short proto,
-+			__wsum sum)
-+{
-+	unsigned long long s = (__force u32)sum;
-+
-+	s += (__force u32)saddr;
-+	s += (__force u32)daddr;
-+#ifdef __BIG_ENDIAN
-+	s += proto + len;
-+#else
-+	s += (proto + len) << 8;
 +#endif
-+	s += (s >> 32);
-+	return (__force __wsum)s;
-+}
-+EXPORT_SYMBOL(csum_tcpudp_nofold);
++
++/*
++ * The exception table consists of pairs of addresses: the first is the
++ * address of an instruction that is allowed to fault, and the second is
++ * the address at which the program should continue.  No registers are
++ * modified, so it is entirely up to the continuation code to figure out
++ * what to do.
++ *
++ * All the routines below use bits of fixup code that are out of line
++ * with the main instruction path.  This means when everything is well,
++ * we don't even have to jump over them.  Further, they do not intrude
++ * on our cache or tlb entries.
++ */
++
++struct exception_table_entry
++{
++	unsigned long insn, fixup;
++};
++
++/* Returns 0 if exception not found and fixup otherwise.  */
++extern unsigned long search_exception_table(unsigned long);
++
++/*
++ * These are the main single-value transfer routines.  They automatically
++ * use the right size if we just have the right pointer type.
++ */
++#ifndef __put_user
++#define __put_user(x, ptr)				\
++({							\
++	int __pu_err = 0;				\
++	typeof(*(ptr)) __pu_val = (x);			\
++	switch (sizeof (*(ptr))) {			\
++	case 1:						\
++	case 2:						\
++	case 4:						\
++		*(ptr) = (__pu_val);			\
++		break;					\
++	case 8:						\
++		memcpy(ptr, &__pu_val, sizeof (*(ptr)));\
++		break;					\
++	default:					\
++		__pu_err = __put_user_bad();		\
++		break;					\
++	}						\
++	__pu_err;					\
++})
++extern int __put_user_bad(void);
 +#endif
++
++#define put_user(x, ptr) (				\
++	access_ok(VERIFY_WRITE, ptr, sizeof (*ptr)) ?	\
++		__put_user(x, ptr) :			\
++		-EFAULT)
++
++#ifndef __get_user
++#define __get_user(x, ptr)				\
++({							\
++	int __gu_err = 0;				\
++	unsigned long __gu_val = (unsigned long)*ptr;	\
++	switch (sizeof(*(ptr))) {			\
++	case 1:						\
++	case 2:						\
++	case 4:						\
++	case 8:						\
++		break;					\
++	default:					\
++		__gu_err = __get_user_bad();		\
++		__gu_val = 0;				\
++		break;					\
++	}						\
++	(x) = (typeof(*ptr))__gu_val;			\
++	__gu_err;					\
++})
++extern int __get_user_bad(void);
++#endif
++
++#define get_user(x, ptr) (				\
++	access_ok(VERIFY_READ, ptr, sizeof (*ptr)) ?	\
++		__get_user(x, ptr) :			\
++		-EFAULT)
++
++#define __copy_from_user(to, from, n) (memcpy(to, from, n), 0)
++#define __copy_to_user(to, from, n) (memcpy(to, from, n), 0)
++#define __copy_to_user_inatomic __copy_to_user
++#define __copy_from_user_inatomic __copy_from_user
++
++#define copy_to_user_ret(to,from,n,retval) ({ if (copy_to_user(to,from,n)) return retval; })
++
++#define copy_from_user_ret(to,from,n,retval) ({ if (copy_from_user(to,from,n)) return retval; })
++
++static inline long copy_from_user(void *to,
++				  const void __user * from, unsigned long n)
++{
++	if (access_ok(VERIFY_READ, from, n))
++		__copy_from_user(to, from, n);
++	else
++		return n;
++	return 0;
++}
++
++static inline long copy_to_user(void *to,
++				const void __user * from, unsigned long n)
++{
++	if (access_ok(VERIFY_WRITE, to, n))
++		__copy_to_user(to, from, n);
++	else
++		return n;
++	return 0;
++}
++
++/*
++ * Copy a null terminated string from userspace.
++ */
++
++static inline long
++__do_strncpy_from_user(char *dst, const char __user *src, long count)
++{
++	char *tmp;
++	strncpy(dst, src, count);
++	for (tmp = dst; *tmp && count > 0; tmp++, count--)
++		;
++	return (tmp - dst);
++}
++
++static inline long
++strncpy_from_user(char *dst, const char __user *src, long count)
++{
++	if (!access_ok(VERIFY_READ, src, 1))
++		return -EFAULT;
++	return __do_strncpy_from_user(dst, src, count);
++}
++
++static inline long
++__strncpy_from_user(char *dst, const char __user *src, long count)
++{
++	return __do_strncpy_from_user(dst, src, count);
++}
++
++/*
++ * Return the size of a string (including the ending 0)
++ *
++ * Return 0 on exception, a value greater than N if too long
++ */
++static inline long strnlen_user(const char *src, long n)
++{
++	return strlen(src) + 1;
++}
++
++#define strlen_user(str) strnlen_user(str, 32767)
++
++/*
++ * Zero Userspace
++ */
++
++static inline unsigned long
++__clear_user(void *to, unsigned long n)
++{
++	memset(to, 0, n);
++	return 0;
++}
++
++#define clear_user(to, n) __clear_user(to, n)
++
++#endif /* __ASM_GENERIC_UACCESS_H */
 -- 
 1.5.6.3
