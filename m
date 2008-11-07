@@ -1,68 +1,91 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
 Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-Date: Fri, 7 Nov 2008 13:42:51 -0500
-Message-ID: <20081107184251.GA29428@Krystal>
-References: <20081106220530.5b0e3a96.akpm@linux-foundation.org> <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <25363.1226056819@redhat.com> <alpine.LFD.2.00.0811070952150.13034@xanadu.home> <8189.1226074915@redhat.com> <8509.1226077800@redhat.com> <20081107092643.0bd9bb4e.akpm@linux-foundation.org> <20081107180041.GG22134@Krystal> <20081107102148.6eb53dea.akpm@linux-foundation.org> <1226082624.11596.28.camel@brick>
+Date: Fri, 7 Nov 2008 14:18:34 -0500
+Message-ID: <20081107191833.GA31809@Krystal>
+References: <20081107053349.861709786@polymtl.ca> <20081107052336.652868737@polymtl.ca> <25257.1226055312@redhat.com> <20081107170902.GD22134@Krystal> <alpine.DEB.1.10.0811071229570.28548@gandalf.stny.rr.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bc.sympatico.ca ([209.226.175.184]:34223 "EHLO
-	tomts22-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751713AbYKGSrz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 13:47:55 -0500
+Received: from tomts40.bellnexxia.net ([209.226.175.97]:42309 "EHLO
+	tomts40-srv.bellnexxia.net" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1750974AbYKGTSg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 14:18:36 -0500
 Content-Disposition: inline
-In-Reply-To: <1226082624.11596.28.camel@brick>
+In-Reply-To: <alpine.DEB.1.10.0811071229570.28548@gandalf.stny.rr.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Harvey Harrison <harvey.harrison@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, dhowells@redhat.com, nico@cam.org, torvalds@linux-foundation.org, mingo@elte.hu, a.p.zijlstra@chello.nl, linux-kernel@vger.kernel.org, ralf@linux-mips.org, benh@kernel.crashing.org, paulus@samba.org, davem@davemloft.net, mingo@redhat.com, tglx@linutronix.de, rostedt@goodmis.org, linux-arch@vger.kernel.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: David Howells <dhowells@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Nicolas Pitre <nico@cam.org>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
 
-* Harvey Harrison (harvey.harrison@gmail.com) wrote:
-> On Fri, 2008-11-07 at 10:21 -0800, Andrew Morton wrote:
-> > On Fri, 7 Nov 2008 13:00:41 -0500
-> > Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca> wrote:
-> > > > It's one of those things I hope I never need to know about, but perhaps
-> > > > we do somewhere have static storage in an inline.  Wouldn't surprise
-> > > > me, and I bet that if we do, it's a bug.
-> > > 
-> > > Tracepoints actually use that.
-> > 
-> > Referring to include/linux/tracepoint.h:DEFINE_TRACE()?
-> > 
-> > It does look a bit fragile.  Does every .c file which included
-> > include/trace/block.h get a copy of __tracepoint_block_rq_issue,
-> > whether or not it used that tracepoint? Hopefully not.
-> > 
-> > > It could be changed so they use :
-> > > 
-> > > DECLARE_TRACE() (in include/trace/group.h)
-> > > DEFINE_TRACE()  (in the appropriate kernel c file)
-> > > trace_somename(); (in the code)
-> > > 
-> > > instead. That would actually make more sense and remove the need for
-> > > multiple declarations when the same tracepoint name is used in many
-> > > spots (this is a problem kmemtrace has, it generates a lot of tracepoint
-> > > declarations).
+* Steven Rostedt (rostedt@goodmis.org) wrote:
 > 
-> Could this scheme also help with the thousands of sparse warnings that
-> kmemtrace produces because of the current arrangement, all of the form:
+> On Fri, 7 Nov 2008, Mathieu Desnoyers wrote:
+> > 
+> >   __m_cnt_hi
+> >  is read before
+> >   mmio cnt_lo read
+> > 
+> > for the detailed reasons explained in my previous discussion with
+> > Nicolas here :
+> > http://lkml.org/lkml/2008/10/21/1
+> > 
+> > I use smp_rmb() to do this on SMP systems (hrm, actually, a rmb() could
+> > be required so it works also on UP systems safely wrt interrupts).
 > 
-> include/linux/kmemtrace.h:33:2: warning: Initializer entry defined twice
-> include/linux/kmemtrace.h:33:2:   also defined here
-> 
-> As you could have unique names for the tracepoints now, rather than the
-> 'unique' static storage?  Or am I off-base here?
+> smp_rmb turns into a compiler barrier on UP and should prevent the below
+> description.
 > 
 
-Exactly.
+Ah, right, preserving program order on UP should be enough. smp_rmb()
+then.
+
+Thanks,
 
 Mathieu
 
-> Harvey
+> -- Steve
 > 
-> 
-> 
+> > 
+> > The write side is between the hardware counter, which is assumed to
+> > increment monotonically between each read, and the value __m_cnt_hi
+> > updated by the CPU. I don't see where we could put a wmb() there.
+> > 
+> > Without barrier, the smp race looks as follow :
+> > 
+> > 
+> > CPU    A                                    B
+> >                                             read hw cnt low (0xFFFFFFFA)
+> >        read __m_cnt_hi (0x80000000)
+> >        read hw cnt low (0x00000001)
+> >        (wrap detected :
+> >         (s32)(0x80000000 ^ 0x1) < 0)
+> >        write __m_cnt_hi = 0x00000001
+> >                                             read __m_cnt_hi (0x00000001)
+> >        return 0x0000000100000001
+> >                                             (wrap detected :
+> >                                              (s32)(0x00000001 ^ 0xFFFFFFFA) < 0)
+> >                                             write __m_cnt_hi = 0x80000001
+> >                                             return 0x80000001FFFFFFFA
+> >                                                                   (time jumps)
+> > 
+> > And UP interrupt race :
+> > 
+> >        Thread context                       Interrupts
+> >        read hw cnt low (0xFFFFFFFA)
+> >                                             read __m_cnt_hi (0x80000000)
+> >                                             read hw cnt low (0x00000001)
+> >                                             (wrap detected :
+> >                                              (s32)(0x80000000 ^ 0x1) < 0)
+> >                                             write __m_cnt_hi = 0x00000001
+> >        read __m_cnt_hi (0x00000001)
+> >                                             return 0x0000000100000001
+> >        (wrap detected :
+> >         (s32)(0x00000001 ^ 0xFFFFFFFA) < 0)
+> >        write __m_cnt_hi = 0x80000001
+> >        return 0x80000001FFFFFFFA
+> >                 (time jumps)
+> > 
 
 -- 
 Mathieu Desnoyers
