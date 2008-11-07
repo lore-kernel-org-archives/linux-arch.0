@@ -1,70 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:40196 "EHLO
-	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752045AbYKGPBJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 10:01:09 -0500
-MIME-version: 1.0
-Content-transfer-encoding: 7BIT
-Content-type: TEXT/PLAIN; charset=US-ASCII
-Date: Fri, 07 Nov 2008 10:01:01 -0500 (EST)
-From: Nicolas Pitre <nico@cam.org>
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:64291 "EHLO
+	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751363AbYKGRdb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 12:33:31 -0500
+Date: Fri, 7 Nov 2008 12:33:26 -0500 (EST)
+From: Steven Rostedt <rostedt@goodmis.org>
 Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-In-reply-to: <25363.1226056819@redhat.com>
-Message-ID: <alpine.LFD.2.00.0811070952150.13034@xanadu.home>
-References: <20081107003816.9b0f947a.akpm@linux-foundation.org>
- <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca>
- <20081106220530.5b0e3a96.akpm@linux-foundation.org>
- <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <25363.1226056819@redhat.com>
+In-Reply-To: <20081107170902.GD22134@Krystal>
+Message-ID: <alpine.DEB.1.10.0811071229570.28548@gandalf.stny.rr.com>
+References: <20081107053349.861709786@polymtl.ca> <20081107052336.652868737@polymtl.ca> <25257.1226055312@redhat.com> <20081107170902.GD22134@Krystal>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
-Message-ID: <20081107150101.0G5Tiokwf-JFN8a9LnUJfyAeZVoKHV2B92n_SVoGrus@z>
+To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Cc: David Howells <dhowells@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Nicolas Pitre <nico@cam.org>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
+Message-ID: <20081107173326.OYuuKpOE2AYwgTYTa0zJb_Erdu7BUY_2pxIgA70ifuY@z>
 
-On Fri, 7 Nov 2008, David Howells wrote:
 
-> Andrew Morton <akpm@linux-foundation.org> wrote:
+On Fri, 7 Nov 2008, Mathieu Desnoyers wrote:
 > 
-> > As I said in the text which you deleted and ignored, this would be
-> > better if it was implemented as a C function which requires that the
-> > caller explicitly pass in a reference to the state storage.
-
-The whole purpose of that thing is to be utterly fast and lightweight.  
-Having an out of line C call would trash the major advantage of this 
-code.
-
-> I'd be quite happy if it was:
+>   __m_cnt_hi
+>  is read before
+>   mmio cnt_lo read
 > 
-> 	static inline u64 cnt32_to_63(u32 cnt_lo, u32 *__m_cnt_hi)
-> 	{
-> 		union cnt32_to_63 __x;
-> 		__x.hi = *__m_cnt_hi;
-> 		__x.lo = cnt_lo;
-> 		if (unlikely((s32)(__x.hi ^ __x.lo) < 0))
-> 			*__m_cnt_hi =
-> 				__x.hi = (__x.hi ^ 0x80000000) + (__x.hi >> 31);
-> 		return __x.val;
-> 	}
+> for the detailed reasons explained in my previous discussion with
+> Nicolas here :
+> http://lkml.org/lkml/2008/10/21/1
 > 
-> I imagine this would compile pretty much the same as the macro.
+> I use smp_rmb() to do this on SMP systems (hrm, actually, a rmb() could
+> be required so it works also on UP systems safely wrt interrupts).
 
-Depends.  As everybody has noticed now, the read ordering is important, 
-and if gcc decides to not inline this for whatever reason then the 
-ordering is lost.  This is why this was a macro to start with.
+smp_rmb turns into a compiler barrier on UP and should prevent the below
+description.
 
-> I think it
-> would make it more obvious about the independence of the storage.
+-- Steve
 
-I don't think having the associated storage be outside the macro make 
-any sense either.  There is simply no valid reason for having it shared 
-between multiple invokations of the macro, as well as making its 
-interface more complex for no gain.
-
-> Alternatively, perhaps Nicolas just needs to mention this in the comment more
-> clearly.
-
-I wrote that code so to me it is cristal clear already.  Any suggestions 
-as to how this could be improved?
-
-
-Nicolas
+> 
+> The write side is between the hardware counter, which is assumed to
+> increment monotonically between each read, and the value __m_cnt_hi
+> updated by the CPU. I don't see where we could put a wmb() there.
+> 
+> Without barrier, the smp race looks as follow :
+> 
+> 
+> CPU    A                                    B
+>                                             read hw cnt low (0xFFFFFFFA)
+>        read __m_cnt_hi (0x80000000)
+>        read hw cnt low (0x00000001)
+>        (wrap detected :
+>         (s32)(0x80000000 ^ 0x1) < 0)
+>        write __m_cnt_hi = 0x00000001
+>                                             read __m_cnt_hi (0x00000001)
+>        return 0x0000000100000001
+>                                             (wrap detected :
+>                                              (s32)(0x00000001 ^ 0xFFFFFFFA) < 0)
+>                                             write __m_cnt_hi = 0x80000001
+>                                             return 0x80000001FFFFFFFA
+>                                                                   (time jumps)
+> 
+> And UP interrupt race :
+> 
+>        Thread context                       Interrupts
+>        read hw cnt low (0xFFFFFFFA)
+>                                             read __m_cnt_hi (0x80000000)
+>                                             read hw cnt low (0x00000001)
+>                                             (wrap detected :
+>                                              (s32)(0x80000000 ^ 0x1) < 0)
+>                                             write __m_cnt_hi = 0x00000001
+>        read __m_cnt_hi (0x00000001)
+>                                             return 0x0000000100000001
+>        (wrap detected :
+>         (s32)(0x00000001 ^ 0xFFFFFFFA) < 0)
+>        write __m_cnt_hi = 0x80000001
+>        return 0x80000001FFFFFFFA
+>                 (time jumps)
+> 
