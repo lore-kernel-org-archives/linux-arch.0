@@ -1,134 +1,60 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
 Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-Date: Fri, 7 Nov 2008 11:47:58 -0500
-Message-ID: <20081107164758.GB22134@Krystal>
-References: <20081107003816.9b0f947a.akpm@linux-foundation.org> <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca> <20081106220530.5b0e3a96.akpm@linux-foundation.org> <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <25363.1226056819@redhat.com>
+Date: Fri, 7 Nov 2008 11:51:12 -0500
+Message-ID: <20081107165112.GC22134@Krystal>
+References: <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca> <20081106220530.5b0e3a96.akpm@linux-foundation.org> <25298.1226055815@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from tomts13.bellnexxia.net ([209.226.175.34]:37949 "EHLO
-	tomts13-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752963AbYKGQsB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 11:48:01 -0500
+Received: from tomts10-srv.bellnexxia.net ([209.226.175.54]:57105 "EHLO
+	tomts10-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752450AbYKGQ4P (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 11:56:15 -0500
 Content-Disposition: inline
-In-Reply-To: <25363.1226056819@redhat.com>
+In-Reply-To: <25298.1226055815@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Howells <dhowells@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@cam.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+Cc: Nicolas Pitre <nico@cam.org>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
 * David Howells (dhowells@redhat.com) wrote:
-> Andrew Morton <akpm@linux-foundation.org> wrote:
+> Nicolas Pitre <nico@cam.org> wrote:
 > 
-> > We have a macro which must only have a single usage in any particular
-> > kernel build (and nothing to detect a violation of that).
+> > > I mean, the darned thing is called from sched_clock(), which can be
+> > > concurrently called on separate CPUs and which can be called from
+> > > interrupt context (with an arbitrary nesting level!) while it was running
+> > > in process context.
+> > 
+> > Yes!  And this is so on *purpose*.  Please take some time to read the 
+> > comment that goes along with it, and if you're still not convinced then 
+> > look for those explanation emails I've already posted.
 > 
-> That's not true.  It's a macro containing a _static_ local variable, therefore
-> the macro may be used multiple times, and each time it's used the compiler
-> will allocate a new piece of storage.
+> I agree with Nicolas on this.  It's abominably clever, but I think he's right.
 > 
-> > It apparently tries to avoid races via ordering tricks, as long
-> > as it is called with sufficient frequency.  But nothing guarantees
-> > that it _is_ called sufficiently frequently?
+> The one place I remain unconvinced is over the issue of preemption of a process
+> that is in the middle of cnt32_to_63(), where if the preempted process is
+> asleep for long enough, I think it can wind time backwards when it resumes, but
+> that's not a problem for the one place I want to use it (sched_clock()) because
+> that is (almost) always called with preemption disabled in one way or another.
 > 
-> The comment attached to it clearly states this restriction.  Therefore the
-> caller must guarantee it.  That is something Mathieu's code and my code must
-> deal with, not Nicolas's.
-> 
-> > There is absolutely no reason why the first two of these quite bad things
-> > needed to be done.  In fact there is no reason why it needed to be
-> > implemented as a macro at all.
-> 
-> There's a very good reason to implement it as either a macro or an inline
-> function: it's faster.  Moving the whole thing out of line would impose an
-> additional function call overhead - with a 64-bit return value on 32-bit
-> platforms.  For my case - sched_clock() - I'm willing to burn a bit of extra
-> space to get the extra speed.
-> 
-> > As I said in the text which you deleted and ignored, this would be
-> > better if it was implemented as a C function which requires that the
-> > caller explicitly pass in a reference to the state storage.
-> 
-> I'd be quite happy if it was:
-> 
-> 	static inline u64 cnt32_to_63(u32 cnt_lo, u32 *__m_cnt_hi)
-> 	{
-> 		union cnt32_to_63 __x;
-> 		__x.hi = *__m_cnt_hi;
-> 		__x.lo = cnt_lo;
-> 		if (unlikely((s32)(__x.hi ^ __x.lo) < 0))
-> 			*__m_cnt_hi =
-> 				__x.hi = (__x.hi ^ 0x80000000) + (__x.hi >> 31);
-> 		return __x.val;
-> 	}
+> The one place it isn't is a debugging case that I'm not too worried about.
 > 
 
-Almost there. At least, with this kind of implementation, we would not
-have to resort to various tricks to make sure a single code path is
-called at a certain frequency. We would simply have to make sure the
-__m_cnt_hi value is updated at a certain frequency. Thinking about
-"data" rather than "code" makes much more sense.
+I am also concerned about the non-preemption off case.
 
-The only missing thing here is the correct ordering. The problem is, as
-I presented in more depth in my previous discussion with Nicolas, that
-the __m_cnt_hi value has to be read before cnt_lo. First off, using this
-macro with get_cycles() is simply buggy, because the macro expects
-_perfect_ order of timestamps, no skew whatsoever, or otherwise time
-could jump. This macro is therefore good only for mmio reads. One should
-use per-cpu variables to keep the state of get_cycles() reads (as I did
-in my other patch).
-
-The following approach should work :
-
-static inline u64 cnt32_to_63(u32 io_addr, u32 *__m_cnt_hi)
-{
-	union cnt32_to_63 __x;
-	__x.hi = *__m_cnt_hi;   /* memory read for high bits internal state */
-  smp_rmb();              /*
-                           * read high bits before low bits insures time
-                           * does not go backward.
-                           */
-	__x.lo = readl(cnt_lo); /* mmio read */
-	if (unlikely((s32)(__x.hi ^ __x.lo) < 0))
-		*__m_cnt_hi =
-			__x.hi = (__x.hi ^ 0x80000000) + (__x.hi >> 31);
-	return __x.val;
-}
-
-But any get_cycles() user of cnt32_to_63() should be shot down. The
-bright side is  : there is no way get_cycles() can be used with this
-new code. :)
-
-e.g. of incorrect users for arm (unless they are UP only, but that seems
-like a weird design argument) :
-
-mach-sa1100/include/mach/SA-1100.h:#define OSCR     __REG(0x90000010)
-/* OS timer Counter Reg. */
-mach-sa1100/generic.c:  unsigned long long v = cnt32_to_63(OSCR);
-mach-pxa/include/mach/pxa-regs.h:#define OSCR   __REG(0x40A00010)  /* OS
-Timer Counter Register */
-mach-pxa/time.c:  unsigned long long v = cnt32_to_63(OSCR);
-
-Correct user :
-mach-versatile/core.c:  unsigned long long v =
-  cnt32_to_63(readl(VERSATILE_REFCOUNTER));
-
-The new call would look like :
-
-/* Hi 32-bits of versatile refcounter state, kept for cnt32_to_64. */
-static u32 versatile_refcounter_hi;
-
-unsigned long long v = cnt32_to_64(VERSATILE_REFCOUNTER, refcounter_hi);
+Then I think the function should document that it must be called with
+preempt disabled.
 
 Mathieu
 
-
-> I imagine this would compile pretty much the same as the macro.  I think it
-> would make it more obvious about the independence of the storage.
+> > > /*
+> > >  * Caller must provide locking to protect *caller_state
+> > >  */
+> > 
+> > NO!  This is meant to be LOCK FREE!
 > 
-> Alternatively, perhaps Nicolas just needs to mention this in the comment more
-> clearly.
+> Absolutely.
 > 
 > David
 
