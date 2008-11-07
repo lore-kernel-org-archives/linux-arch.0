@@ -1,92 +1,56 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
 Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-Date: Fri, 7 Nov 2008 12:09:02 -0500
-Message-ID: <20081107170902.GD22134@Krystal>
-References: <20081107053349.861709786@polymtl.ca> <20081107052336.652868737@polymtl.ca> <25257.1226055312@redhat.com>
+Date: Fri, 7 Nov 2008 12:17:03 -0500
+Message-ID: <20081107171703.GE22134@Krystal>
+References: <20081107164758.GB22134@Krystal> <20081107003816.9b0f947a.akpm@linux-foundation.org> <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca> <20081106220530.5b0e3a96.akpm@linux-foundation.org> <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <25363.1226056819@redhat.com> <8481.1226077497@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from tomts43-srv.bellnexxia.net ([209.226.175.110]:33306 "EHLO
-	tomts43-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750814AbYKGROH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 12:14:07 -0500
+Received: from tomts25-srv.bellnexxia.net ([209.226.175.188]:39123 "EHLO
+	tomts25-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750929AbYKGRRG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 12:17:06 -0500
 Content-Disposition: inline
-In-Reply-To: <25257.1226055312@redhat.com>
+In-Reply-To: <8481.1226077497@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Howells <dhowells@redhat.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Nicolas Pitre <nico@cam.org>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@cam.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
 * David Howells (dhowells@redhat.com) wrote:
 > Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca> wrote:
 > 
-> > Assume the time source is a global clock which insures that time will never
-> > *ever* go backward. Use a smp_rmb() to make sure the cnt_lo value is read before
-> > __m_cnt_hi.
+> > First off, using this macro with get_cycles() is simply buggy, because the
+> > macro expects _perfect_ order of timestamps, no skew whatsoever, or
+> > otherwise time could jump.
 > 
-> If you have an smp_rmb(), then don't you need an smp_wmb()/smp_mb() to match
-> it to make it work?  And is your assumption valid that smp_rmb() will affect
-> memory vs the I/O access to read the clock?  There's no requirement that
-> cnt_lo will have been read from an MMIO location at all.
+> Erm...  Why can't I pass it get_cycles()?  Are you saying that sched_clock()
+> in MN10300 is wrong for it's use of get_cycles() with cnt32_to_63()?
 > 
-> David
 
-I want to make sure
+Yes. Do you think the synchronization of the cycles counters is
+_perfect_ across CPUs so that there is no possible way whatsoever that
+two cycle counter values appear to go backward between CPUs ? (also
+taking in account delays in __m_cnt_hi write-back...)
 
-  __m_cnt_hi
- is read before
-  mmio cnt_lo read
+As I showed in my previous example, if you are unlucky enough to hit the
+spot where the cycle counters go backward at the time warp edge, time
+will jump of 2^32, so about 4.29s at 1GHz.
 
-for the detailed reasons explained in my previous discussion with
-Nicolas here :
-http://lkml.org/lkml/2008/10/21/1
+> > 	__x.lo = readl(cnt_lo); /* mmio read */
+> 
+> readl() might insert an extra barrier instruction.  Not only that, io_addr
+> must be unsigned long.
 
-I use smp_rmb() to do this on SMP systems (hrm, actually, a rmb() could
-be required so it works also on UP systems safely wrt interrupts).
+If we expect the only correct use-case to be with readl(), I don't see
+the problem with added synchronization.
 
-The write side is between the hardware counter, which is assumed to
-increment monotonically between each read, and the value __m_cnt_hi
-updated by the CPU. I don't see where we could put a wmb() there.
+> 
 
-Without barrier, the smp race looks as follow :
+Ah, right, then the parameters should be updated accordingly.
 
-
-CPU    A                                    B
-                                            read hw cnt low (0xFFFFFFFA)
-       read __m_cnt_hi (0x80000000)
-       read hw cnt low (0x00000001)
-       (wrap detected :
-        (s32)(0x80000000 ^ 0x1) < 0)
-       write __m_cnt_hi = 0x00000001
-                                            read __m_cnt_hi (0x00000001)
-       return 0x0000000100000001
-                                            (wrap detected :
-                                             (s32)(0x00000001 ^ 0xFFFFFFFA) < 0)
-                                            write __m_cnt_hi = 0x80000001
-                                            return 0x80000001FFFFFFFA
-                                                                  (time jumps)
-
-And UP interrupt race :
-
-       Thread context                       Interrupts
-       read hw cnt low (0xFFFFFFFA)
-                                            read __m_cnt_hi (0x80000000)
-                                            read hw cnt low (0x00000001)
-                                            (wrap detected :
-                                             (s32)(0x80000000 ^ 0x1) < 0)
-                                            write __m_cnt_hi = 0x00000001
-       read __m_cnt_hi (0x00000001)
-                                            return 0x0000000100000001
-       (wrap detected :
-        (s32)(0x00000001 ^ 0xFFFFFFFA) < 0)
-       write __m_cnt_hi = 0x80000001
-       return 0x80000001FFFFFFFA
-                (time jumps)
-
-New code to fix it here with full rmb() :
-
-static inline u64 cnt32_to_63(u32 io_addr, u32 *__m_cnt_hi)
+static inline u64 cnt32_to_63(unsigned long io_addr, u32 *__m_cnt_hi)
 {
         union cnt32_to_63 __x;
         __x.hi = *__m_cnt_hi;   /* memory read for high bits internal state */
@@ -95,7 +59,7 @@ static inline u64 cnt32_to_63(u32 io_addr, u32 *__m_cnt_hi)
                                  * does not go backward. Sync across
                                  * CPUs and for interrupts.
                                  */
-        __x.lo = readl(cnt_lo); /* mmio read */
+        __x.lo = readl(io_addr); /* mmio read */
         if (unlikely((s32)(__x.hi ^ __x.lo) < 0))
                 *__m_cnt_hi =
                         __x.hi = (__x.hi ^ 0x80000000) + (__x.hi >> 31);
@@ -103,6 +67,8 @@ static inline u64 cnt32_to_63(u32 io_addr, u32 *__m_cnt_hi)
 }
 
 Mathieu
+
+> David
 
 -- 
 Mathieu Desnoyers
