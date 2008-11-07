@@ -1,67 +1,57 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-Date: Fri, 07 Nov 2008 11:20:19 +0000
-Message-ID: <25363.1226056819@redhat.com>
-References: <20081107003816.9b0f947a.akpm@linux-foundation.org> <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca> <20081106220530.5b0e3a96.akpm@linux-foundation.org> <alpine.LFD.2.00.0811070256450.13034@xanadu.home>
+From: Josh Boyer <jwboyer@linux.vnet.ibm.com>
+Subject: Re: [RFC patch 04/18] get_cycles() : powerpc64 HAVE_GET_CYCLES
+Date: Fri, 7 Nov 2008 09:56:36 -0500
+Message-ID: <20081107145636.GA5021@yoda.jdub.homelinux.org>
+References: <20081107052336.652868737@polymtl.ca> <20081107053349.215096700@polymtl.ca>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:48523 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751887AbYKGLVC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 7 Nov 2008 06:21:02 -0500
-In-Reply-To: <20081107003816.9b0f947a.akpm@linux-foundation.org>
+Received: from rn-out-0910.google.com ([64.233.170.188]:23309 "EHLO
+	rn-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752000AbYKGO6i (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 09:58:38 -0500
+Content-Disposition: inline
+In-Reply-To: <20081107053349.215096700@polymtl.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: dhowells@redhat.com, Nicolas Pitre <nico@cam.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-Andrew Morton <akpm@linux-foundation.org> wrote:
+On Fri, Nov 07, 2008 at 12:23:40AM -0500, Mathieu Desnoyers wrote:
+>This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
+>get_cycles_rate() are implemented.
+>
+>Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+>CC: benh@kernel.crashing.org
+>CC: paulus@samba.org
+>CC: David Miller <davem@davemloft.net>
+>CC: Linus Torvalds <torvalds@linux-foundation.org>
+>CC: Andrew Morton <akpm@linux-foundation.org>
+>CC: Ingo Molnar <mingo@redhat.com>
+>CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
+>CC: Thomas Gleixner <tglx@linutronix.de>
+>CC: Steven Rostedt <rostedt@goodmis.org>
+>CC: linux-arch@vger.kernel.org
+>---
+> arch/powerpc/Kconfig             |    1 +
+> arch/powerpc/include/asm/timex.h |   11 +++++++++++
+> 2 files changed, 12 insertions(+)
+>
+>Index: linux.trees.git/arch/powerpc/Kconfig
+>===================================================================
+>--- linux.trees.git.orig/arch/powerpc/Kconfig	2008-11-07 00:09:44.000000000 -0500
+>+++ linux.trees.git/arch/powerpc/Kconfig	2008-11-07 00:09:46.000000000 -0500
+>@@ -121,6 +121,7 @@ config PPC
+> 	select HAVE_DMA_ATTRS if PPC64
+> 	select USE_GENERIC_SMP_HELPERS if SMP
+> 	select HAVE_OPROFILE
+>+	select HAVE_GET_CYCLES if PPC64
 
-> We have a macro which must only have a single usage in any particular
-> kernel build (and nothing to detect a violation of that).
+So maybe it's just me because it's Friday and I'm on vacation, but I don't
+see anything overly specific to ppc64 here.  In fact, you use get_cycles_rate
+for all of powerpc in a later patch in the series.
 
-That's not true.  It's a macro containing a _static_ local variable, therefore
-the macro may be used multiple times, and each time it's used the compiler
-will allocate a new piece of storage.
+Is there something special about HAVE_GET_CYCLES that I'm missing that would
+make it only apply to ppc64 and not ppc32?
 
-> It apparently tries to avoid races via ordering tricks, as long
-> as it is called with sufficient frequency.  But nothing guarantees
-> that it _is_ called sufficiently frequently?
-
-The comment attached to it clearly states this restriction.  Therefore the
-caller must guarantee it.  That is something Mathieu's code and my code must
-deal with, not Nicolas's.
-
-> There is absolutely no reason why the first two of these quite bad things
-> needed to be done.  In fact there is no reason why it needed to be
-> implemented as a macro at all.
-
-There's a very good reason to implement it as either a macro or an inline
-function: it's faster.  Moving the whole thing out of line would impose an
-additional function call overhead - with a 64-bit return value on 32-bit
-platforms.  For my case - sched_clock() - I'm willing to burn a bit of extra
-space to get the extra speed.
-
-> As I said in the text which you deleted and ignored, this would be
-> better if it was implemented as a C function which requires that the
-> caller explicitly pass in a reference to the state storage.
-
-I'd be quite happy if it was:
-
-	static inline u64 cnt32_to_63(u32 cnt_lo, u32 *__m_cnt_hi)
-	{
-		union cnt32_to_63 __x;
-		__x.hi = *__m_cnt_hi;
-		__x.lo = cnt_lo;
-		if (unlikely((s32)(__x.hi ^ __x.lo) < 0))
-			*__m_cnt_hi =
-				__x.hi = (__x.hi ^ 0x80000000) + (__x.hi >> 31);
-		return __x.val;
-	}
-
-I imagine this would compile pretty much the same as the macro.  I think it
-would make it more obvious about the independence of the storage.
-
-Alternatively, perhaps Nicolas just needs to mention this in the comment more
-clearly.
-
-David
+josh
