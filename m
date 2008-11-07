@@ -1,30 +1,28 @@
 From: David Howells <dhowells@redhat.com>
 Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-Date: Fri, 07 Nov 2008 23:50:38 +0000
-Message-ID: <9473.1226101838@redhat.com>
-References: <alpine.DEB.1.10.0811071229570.28548@gandalf.stny.rr.com> <20081107053349.861709786@polymtl.ca> <20081107052336.652868737@polymtl.ca> <25257.1226055312@redhat.com> <20081107170902.GD22134@Krystal>
+Date: Fri, 07 Nov 2008 23:55:05 +0000
+Message-ID: <9500.1226102105@redhat.com>
+References: <alpine.LFD.2.00.0811071513180.13034@xanadu.home> <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca> <20081106220530.5b0e3a96.akpm@linux-foundation.org> <25298.1226055815@redhat.com> <20081107165112.GC22134@Krystal>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:54291 "EHLO mx2.redhat.com"
+Received: from mx2.redhat.com ([66.187.237.31]:39938 "EHLO mx2.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752305AbYKGXvu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 7 Nov 2008 18:51:50 -0500
-In-Reply-To: <alpine.DEB.1.10.0811071229570.28548@gandalf.stny.rr.com>
+	id S1751449AbYKGX4o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 7 Nov 2008 18:56:44 -0500
+In-Reply-To: <alpine.LFD.2.00.0811071513180.13034@xanadu.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: dhowells@redhat.com, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Nicolas Pitre <nico@cam.org>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
+To: Nicolas Pitre <nico@cam.org>
+Cc: dhowells@redhat.com, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-Steven Rostedt <rostedt@goodmis.org> wrote:
+Nicolas Pitre <nico@cam.org> wrote:
 
-> > I use smp_rmb() to do this on SMP systems (hrm, actually, a rmb() could
-> > be required so it works also on UP systems safely wrt interrupts).
-> 
-> smp_rmb turns into a compiler barrier on UP and should prevent the below
-> description.
+> I explained several times already why I disagree.  Preemption is not a 
+> problem unless you're preempted away for long enough, or IOW if your 
+> counter is too fast.
 
-Note that that does not guarantee that the two reads will be done in the order
-you want.  The compiler barrier _only_ affects the compiler.  It does not stop
-the CPU from doing the reads in any order it wants.  You need something
-stronger than smp_rmb() if you need the reads to be so ordered.
+That's my point.  Say a nice -19 process gets preempted... what guarantees
+that it will resume within, the time it takes the counter to wrap?  Even if
+the preempting process goes back to sleep, in that time a bunch of other
+processes could have woken up and could starve it for a long period of time.
 
 David
