@@ -1,78 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:64291 "EHLO
-	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751363AbYKGRdb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 12:33:31 -0500
-Date: Fri, 7 Nov 2008 12:33:26 -0500 (EST)
-From: Steven Rostedt <rostedt@goodmis.org>
+Received: from relais.videotron.ca ([24.201.245.36]:54701 "EHLO
+	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751324AbYKGUD4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 15:03:56 -0500
+MIME-version: 1.0
+Content-transfer-encoding: 7BIT
+Content-type: TEXT/PLAIN; charset=US-ASCII
+Date: Fri, 07 Nov 2008 15:03:49 -0500 (EST)
+From: Nicolas Pitre <nico@cam.org>
 Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-In-Reply-To: <20081107170902.GD22134@Krystal>
-Message-ID: <alpine.DEB.1.10.0811071229570.28548@gandalf.stny.rr.com>
-References: <20081107053349.861709786@polymtl.ca> <20081107052336.652868737@polymtl.ca> <25257.1226055312@redhat.com> <20081107170902.GD22134@Krystal>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+In-reply-to: <20081107092115.7c3c4a49.akpm@linux-foundation.org>
+Message-ID: <alpine.LFD.2.00.0811071458560.13034@xanadu.home>
+References: <20081107003816.9b0f947a.akpm@linux-foundation.org>
+ <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca>
+ <20081106220530.5b0e3a96.akpm@linux-foundation.org>
+ <alpine.LFD.2.00.0811070256450.13034@xanadu.home>
+ <25363.1226056819@redhat.com>
+ <alpine.LFD.2.00.0811070952150.13034@xanadu.home>
+ <20081107075003.fa93ccf4.akpm@linux-foundation.org>
+ <alpine.LFD.2.00.0811071129440.13034@xanadu.home>
+ <20081107092115.7c3c4a49.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: David Howells <dhowells@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Nicolas Pitre <nico@cam.org>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
-Message-ID: <20081107173326.OYuuKpOE2AYwgTYTa0zJb_Erdu7BUY_2pxIgA70ifuY@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: David Howells <dhowells@redhat.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+Message-ID: <20081107200349.X-Pp6NYyFSu_XZ81AHLQx8lmEXjXEHSfV-dbP4hNHAA@z>
+
+On Fri, 7 Nov 2008, Andrew Morton wrote:
+
+> On Fri, 07 Nov 2008 11:47:47 -0500 (EST) Nicolas Pitre <nico@cam.org> wrote:
+> 
+> > > btw, do you know how damned irritating and frustrating it is for a code
+> > > reviewer to have his comments deliberately ignored and deleted in
+> > > replies?
+> > 
+> > Do you know how irritating and frustrating it is when reviewers don't 
+> > care reading the damn comments along with the code?
+> 
+> As you still seek to ignore it, I shall repeat my earlier question. 
+> Please do not delete it again.
+> 
+>    It apparently tries to avoid races via ordering tricks, as long
+>    as it is called with sufficient frequency.  But nothing guarantees
+>    that it _is_ called sufficiently frequently?
+> 
+> Things like tickless kernels and SCHED_RR can surely cause
+> sched_clock() to not be called for arbitrary periods.
+
+On the machines this was initially written for, the critical period is 
+in the order of minutes.  And if you're afraid you might lack enough 
+scheduling activities for that long, you simply have to keep the 
+algorithm "warm" with a simple kernel timer which only purpose is to 
+ensure it is called often enough.
+
+> Userspace cli() will definitely do this, but it is expected to break
+> stuff and is not as legitiate a thing to do.
+
+Why do you bring it on then?
+
+> I'm just giving up on the tastefulness issue.
+
+Taste is a pretty subjective matter.
 
 
-On Fri, 7 Nov 2008, Mathieu Desnoyers wrote:
-> 
->   __m_cnt_hi
->  is read before
->   mmio cnt_lo read
-> 
-> for the detailed reasons explained in my previous discussion with
-> Nicolas here :
-> http://lkml.org/lkml/2008/10/21/1
-> 
-> I use smp_rmb() to do this on SMP systems (hrm, actually, a rmb() could
-> be required so it works also on UP systems safely wrt interrupts).
-
-smp_rmb turns into a compiler barrier on UP and should prevent the below
-description.
-
--- Steve
-
-> 
-> The write side is between the hardware counter, which is assumed to
-> increment monotonically between each read, and the value __m_cnt_hi
-> updated by the CPU. I don't see where we could put a wmb() there.
-> 
-> Without barrier, the smp race looks as follow :
-> 
-> 
-> CPU    A                                    B
->                                             read hw cnt low (0xFFFFFFFA)
->        read __m_cnt_hi (0x80000000)
->        read hw cnt low (0x00000001)
->        (wrap detected :
->         (s32)(0x80000000 ^ 0x1) < 0)
->        write __m_cnt_hi = 0x00000001
->                                             read __m_cnt_hi (0x00000001)
->        return 0x0000000100000001
->                                             (wrap detected :
->                                              (s32)(0x00000001 ^ 0xFFFFFFFA) < 0)
->                                             write __m_cnt_hi = 0x80000001
->                                             return 0x80000001FFFFFFFA
->                                                                   (time jumps)
-> 
-> And UP interrupt race :
-> 
->        Thread context                       Interrupts
->        read hw cnt low (0xFFFFFFFA)
->                                             read __m_cnt_hi (0x80000000)
->                                             read hw cnt low (0x00000001)
->                                             (wrap detected :
->                                              (s32)(0x80000000 ^ 0x1) < 0)
->                                             write __m_cnt_hi = 0x00000001
->        read __m_cnt_hi (0x00000001)
->                                             return 0x0000000100000001
->        (wrap detected :
->         (s32)(0x00000001 ^ 0xFFFFFFFA) < 0)
->        write __m_cnt_hi = 0x80000001
->        return 0x80000001FFFFFFFA
->                 (time jumps)
-> 
+Nicolas
