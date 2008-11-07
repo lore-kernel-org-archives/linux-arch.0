@@ -1,34 +1,57 @@
 From: David Howells <dhowells@redhat.com>
 Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-Date: Fri, 07 Nov 2008 23:27:59 +0000
-Message-ID: <9302.1226100479@redhat.com>
-References: <20081107171703.GE22134@Krystal> <20081107164758.GB22134@Krystal> <20081107003816.9b0f947a.akpm@linux-foundation.org> <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca> <20081106220530.5b0e3a96.akpm@linux-foundation.org> <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <25363.1226056819@redhat.com> <8481.1226077497@redhat.com>
+Date: Fri, 07 Nov 2008 23:41:55 +0000
+Message-ID: <9405.1226101315@redhat.com>
+References: <20081107221813.GA18378@flint.arm.linux.org.uk> <20081107003816.9b0f947a.akpm@linux-foundation.org> <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca> <20081106220530.5b0e3a96.akpm@linux-foundation.org> <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <25363.1226056819@redhat.com> <20081107164758.GB22134@Krystal> <20081107201118.GB28600@flint.arm.linux.org.uk> <20081107213610.GC2654@Krystal>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:55867 "EHLO mx2.redhat.com"
+Received: from mx2.redhat.com ([66.187.237.31]:41023 "EHLO mx2.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755377AbYKGX3W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 7 Nov 2008 18:29:22 -0500
-In-Reply-To: <20081107171703.GE22134@Krystal>
+	id S1751619AbYKGXn3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 7 Nov 2008 18:43:29 -0500
+In-Reply-To: <20081107221813.GA18378@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: dhowells@redhat.com, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@cam.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: dhowells@redhat.com, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@cam.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca> wrote:
+Russell King <rmk+lkml@arm.linux.org.uk> wrote:
 
-> Yes. Do you think the synchronization of the cycles counters is
-> _perfect_ across CPUs so that there is no possible way whatsoever that
-> two cycle counter values appear to go backward between CPUs ? (also
-> taking in account delays in __m_cnt_hi write-back...)
+> Well, that's where it was - private to ARM.  Then David Howells came
+> along and unilaterally - and without reference to anyone as far as I
+> can see - moved it to include/linux.
+> 
+> Neither Nicolas, nor me had any idea that it was going to move into
+> include/linux - the first we knew of it was when pulling the change
+> from Linus' tree.
+> 
+> Look, if people in the kernel community can't or won't communicate
+> with others (either through malice, purpose or accident), you can
+> expect this kind of crap to happen.
 
-Given there's currently only one CPU allowed, yes, I think it's perfect:-)
+Excuse me, Russell, but I sent Nicolas an email prior to doing so asking him
+if he had any objections:
 
-It's something to re-evaluate should Panasonic decide to do SMP.
+	To: Nicolas Pitre <nico@cam.org>
+	cc: dhowells@redhat.com
+	Subject: Moving asm-arm/cnt32_to_63.h to include/linux/
+	Date: Thu, 31 Jul 2008 16:04:04 +0100
 
-> If we expect the only correct use-case to be with readl(), I don't see
-> the problem with added synchronization.
+	Hi Nicolas,
 
-It might be expensive if you don't actually want to call readl().  But that's
-on a par with using funky instructions to read the TSC, I guess.
+	Mind if I move include/asm-arm/cnt32_to_63.h to include/linux/?
+
+	I need to use it for MN10300.
+
+	David
+
+He didn't respond.  Not only that, but I copied Nicolas on the patch to make
+the move and the patch to make MN10300 use it when I submitted it to Linus on
+the 24th September, so it's not like he didn't have plenty of time.  He
+certainly saw that because he joined in the discussion of the second patch.
+Furthermore, he could've asked Linus to refuse the patch, or to revert it if
+it had already gone in.
+
+I suppose I should've cc'd the ARM list too... but why should it adversely
+affect ARM?
 
 David
