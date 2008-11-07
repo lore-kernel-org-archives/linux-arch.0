@@ -1,66 +1,41 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-Date: Fri, 07 Nov 2008 16:07:34 +0000
-Message-ID: <8106.1226074054@redhat.com>
-References: <alpine.LFD.2.00.0811070952150.13034@xanadu.home> <20081107003816.9b0f947a.akpm@linux-foundation.org> <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca> <20081106220530.5b0e3a96.akpm@linux-foundation.org> <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <25363.1226056819@redhat.com>
+From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Subject: Re: [RFC patch 07/18] Trace clock core
+Date: Fri, 7 Nov 2008 11:12:38 -0500
+Message-ID: <20081107161237.GA22134@Krystal>
+References: <20081107052336.652868737@polymtl.ca> <20081107053349.699011457@polymtl.ca> <20081106215256.a9f01ec4.akpm@linux-foundation.org> <20081107061643.GA798@Krystal> <20081106222656.8e35d9d5.akpm@linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:36459 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750986AbYKGQJO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 7 Nov 2008 11:09:14 -0500
-In-Reply-To: <alpine.LFD.2.00.0811070952150.13034@xanadu.home>
+Received: from tomts13-srv.bellnexxia.net ([209.226.175.34]:34818 "EHLO
+	tomts13-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752352AbYKGQMk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 11:12:40 -0500
+Content-Disposition: inline
+In-Reply-To: <20081106222656.8e35d9d5.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Pitre <nico@cam.org>
-Cc: dhowells@redhat.com, Andrew Morton <akpm@linux-foundation.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Nicolas Pitre <nico@cam.org>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-Nicolas Pitre <nico@cam.org> wrote:
-
-> The whole purpose of that thing is to be utterly fast and lightweight.  
-> Having an out of line C call would trash the major advantage of this 
-> code.
-
-No argument there.
-
-> > I imagine this would compile pretty much the same as the macro.
-
-Having said that, I realise it's wrong.  The macro potentially takes a h/w
-read operation (cnt_lo) and does it at a place of its choosing - which the
-compiler may not be permitted to move if cnt_lo resolves to a bit of volatile
-inline asm with memory constraints.  Converting it to an inline function
-forces cnt_lo to be resolved first.
-
-> Depends.  As everybody has noticed now, the read ordering is important, 
-> and if gcc decides to not inline this for whatever reason then the 
-> ordering is lost.  This is why this was a macro to start with.
-
-Good point.  I wonder if you should've put a compiler barrier in there to at
-least make the point.
-
-> I don't think having the associated storage be outside the macro make any
-> sense either.
-
-It can have a comment attached to it to say what it represents.  On the other
-hand, it'd probably need further comments attaching to it to fend off people
-who start thinking they can make use of this variable in other ways...
-
-
-> > Alternatively, perhaps Nicolas just needs to mention this in the comment
-> > more clearly.
+* Andrew Morton (akpm@linux-foundation.org) wrote:
+> On Fri, 7 Nov 2008 01:16:43 -0500 Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca> wrote:
 > 
-> I wrote that code so to me it is cristal clear already.  Any suggestions 
-> as to how this could be improved?
+> > > Is there something we should be fixing in m68k?
+> > > 
+> > 
+> > Yes, but I fear it's going to go deep into include hell :-(
+> 
+> Oh, OK.  I thought that the comment meant that m68k's on_each_cpu()
+> behaves differently at runtime from other architectures (and wrongly).
+> 
+> If it's just some compile-time #include snafu then that's far less
+> of a concern.
+> 
 
-It ought to be, but clearly it isn't.  Sometimes the obvious is all too easy to
-overlook.  I'll think about it, but perhaps something like:
+Should I simply remove this comment then ?
 
- * This macro uses a static internal variable to retain the upper counter.
- * This has two consequences: firstly, it may be used in multiple ways by
- * different callers for different things without interference; and secondly,
- * each caller will get its own, independent counter, and so an out of line
- * wrapper must be used if multiple callers want to use the same pair of
- * counters.
 
-It's a bit heavy-handed, but...
-
-David
+-- 
+Mathieu Desnoyers
+OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
