@@ -1,23 +1,25 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [RFC patch 02/18] get_cycles() : x86 HAVE_GET_CYCLES
-Date: Fri, 07 Nov 2008 00:23:38 -0500
-Message-ID: <20081107053348.889354279@polymtl.ca>
+Subject: [RFC patch 04/18] get_cycles() : powerpc64 HAVE_GET_CYCLES
+Date: Fri, 07 Nov 2008 00:23:40 -0500
+Message-ID: <20081107053349.215096700@polymtl.ca>
 References: <20081107052336.652868737@polymtl.ca>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:60987 "EHLO smtp.polymtl.ca"
+Received: from smtp.polymtl.ca ([132.207.4.11]:60993 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755322AbYKGFoj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 7 Nov 2008 00:44:39 -0500
-Content-Disposition: inline; filename=get-cycles-x86-have-get-cycles.patch
+	id S1755366AbYKGFol (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 7 Nov 2008 00:44:41 -0500
+Content-Disposition: inline; filename=get-cycles-powerpc-have-get-cycles.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
 This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
 get_cycles_rate() are implemented.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+CC: benh@kernel.crashing.org
+CC: paulus@samba.org
 CC: David Miller <davem@davemloft.net>
 CC: Linus Torvalds <torvalds@linux-foundation.org>
 CC: Andrew Morton <akpm@linux-foundation.org>
@@ -27,45 +29,50 @@ CC: Thomas Gleixner <tglx@linutronix.de>
 CC: Steven Rostedt <rostedt@goodmis.org>
 CC: linux-arch@vger.kernel.org
 ---
- arch/x86/Kconfig           |    1 +
- arch/x86/include/asm/tsc.h |   12 ++++++++++++
- 2 files changed, 13 insertions(+)
+ arch/powerpc/Kconfig             |    1 +
+ arch/powerpc/include/asm/timex.h |   11 +++++++++++
+ 2 files changed, 12 insertions(+)
 
-Index: linux.trees.git/arch/x86/Kconfig
+Index: linux.trees.git/arch/powerpc/Kconfig
 ===================================================================
---- linux.trees.git.orig/arch/x86/Kconfig	2008-11-07 00:06:06.000000000 -0500
-+++ linux.trees.git/arch/x86/Kconfig	2008-11-07 00:09:33.000000000 -0500
-@@ -20,6 +20,7 @@ config X86
- 	def_bool y
- 	select HAVE_AOUT if X86_32
- 	select HAVE_UNSTABLE_SCHED_CLOCK
-+	select HAVE_GET_CYCLES
- 	select HAVE_IDE
+--- linux.trees.git.orig/arch/powerpc/Kconfig	2008-11-07 00:09:44.000000000 -0500
++++ linux.trees.git/arch/powerpc/Kconfig	2008-11-07 00:09:46.000000000 -0500
+@@ -121,6 +121,7 @@ config PPC
+ 	select HAVE_DMA_ATTRS if PPC64
+ 	select USE_GENERIC_SMP_HELPERS if SMP
  	select HAVE_OPROFILE
- 	select HAVE_IOREMAP_PROT
-Index: linux.trees.git/arch/x86/include/asm/tsc.h
++	select HAVE_GET_CYCLES if PPC64
+ 
+ config EARLY_PRINTK
+ 	bool
+Index: linux.trees.git/arch/powerpc/include/asm/timex.h
 ===================================================================
---- linux.trees.git.orig/arch/x86/include/asm/tsc.h	2008-10-30 20:22:50.000000000 -0400
-+++ linux.trees.git/arch/x86/include/asm/tsc.h	2008-11-07 00:09:33.000000000 -0500
-@@ -50,6 +50,18 @@ extern void mark_tsc_unstable(char *reas
- extern int unsynchronized_tsc(void);
- int check_tsc_unstable(void);
+--- linux.trees.git.orig/arch/powerpc/include/asm/timex.h	2008-11-07 00:09:44.000000000 -0500
++++ linux.trees.git/arch/powerpc/include/asm/timex.h	2008-11-07 00:09:46.000000000 -0500
+@@ -7,6 +7,7 @@
+  * PowerPC architecture timex specifications
+  */
+ 
++#include <linux/time.h>
+ #include <asm/cputable.h>
+ #include <asm/reg.h>
+ 
+@@ -46,5 +47,15 @@ static inline cycles_t get_cycles(void)
+ #endif
+ }
  
 +static inline cycles_t get_cycles_rate(void)
 +{
-+	if (check_tsc_unstable())
-+		return 0;
-+	return tsc_khz;
++	return tb_ticks_per_sec;
 +}
 +
 +static inline void get_cycles_barrier(void)
 +{
-+	rdtsc_barrier();
++	isync();
 +}
 +
- /*
-  * Boot-time check whether the TSCs are synchronized across
-  * all CPUs/cores:
+ #endif	/* __KERNEL__ */
+ #endif	/* _ASM_POWERPC_TIMEX_H */
 
 -- 
 Mathieu Desnoyers
