@@ -1,66 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:54701 "EHLO
-	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751324AbYKGUD4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 15:03:56 -0500
-MIME-version: 1.0
-Content-transfer-encoding: 7BIT
-Content-type: TEXT/PLAIN; charset=US-ASCII
-Date: Fri, 07 Nov 2008 15:03:49 -0500 (EST)
-From: Nicolas Pitre <nico@cam.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:45770 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753655AbYKGUNd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 15:13:33 -0500
+Date: Fri, 7 Nov 2008 20:11:18 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-In-reply-to: <20081107092115.7c3c4a49.akpm@linux-foundation.org>
-Message-ID: <alpine.LFD.2.00.0811071458560.13034@xanadu.home>
-References: <20081107003816.9b0f947a.akpm@linux-foundation.org>
- <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca>
- <20081106220530.5b0e3a96.akpm@linux-foundation.org>
- <alpine.LFD.2.00.0811070256450.13034@xanadu.home>
- <25363.1226056819@redhat.com>
- <alpine.LFD.2.00.0811070952150.13034@xanadu.home>
- <20081107075003.fa93ccf4.akpm@linux-foundation.org>
- <alpine.LFD.2.00.0811071129440.13034@xanadu.home>
- <20081107092115.7c3c4a49.akpm@linux-foundation.org>
+Message-ID: <20081107201118.GB28600@flint.arm.linux.org.uk>
+References: <20081107003816.9b0f947a.akpm@linux-foundation.org> <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca> <20081106220530.5b0e3a96.akpm@linux-foundation.org> <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <25363.1226056819@redhat.com> <20081107164758.GB22134@Krystal>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20081107164758.GB22134@Krystal>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: David Howells <dhowells@redhat.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
-Message-ID: <20081107200349.X-Pp6NYyFSu_XZ81AHLQx8lmEXjXEHSfV-dbP4hNHAA@z>
+To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Cc: David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@cam.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+Message-ID: <20081107201118.rBjXMWR3eUTIPwy7A8vtKH7AwcpOa14KluGlaE4k_ik@z>
 
-On Fri, 7 Nov 2008, Andrew Morton wrote:
-
-> On Fri, 07 Nov 2008 11:47:47 -0500 (EST) Nicolas Pitre <nico@cam.org> wrote:
+On Fri, Nov 07, 2008 at 11:47:58AM -0500, Mathieu Desnoyers wrote:
+> But any get_cycles() user of cnt32_to_63() should be shot down. The
+> bright side is  : there is no way get_cycles() can be used with this
+> new code. :)
 > 
-> > > btw, do you know how damned irritating and frustrating it is for a code
-> > > reviewer to have his comments deliberately ignored and deleted in
-> > > replies?
-> > 
-> > Do you know how irritating and frustrating it is when reviewers don't 
-> > care reading the damn comments along with the code?
+> e.g. of incorrect users for arm (unless they are UP only, but that seems
+> like a weird design argument) :
 > 
-> As you still seek to ignore it, I shall repeat my earlier question. 
-> Please do not delete it again.
-> 
->    It apparently tries to avoid races via ordering tricks, as long
->    as it is called with sufficient frequency.  But nothing guarantees
->    that it _is_ called sufficiently frequently?
-> 
-> Things like tickless kernels and SCHED_RR can surely cause
-> sched_clock() to not be called for arbitrary periods.
+> mach-sa1100/include/mach/SA-1100.h:#define OSCR     __REG(0x90000010)
+> /* OS timer Counter Reg. */
+> mach-sa1100/generic.c:  unsigned long long v = cnt32_to_63(OSCR);
+> mach-pxa/include/mach/pxa-regs.h:#define OSCR   __REG(0x40A00010)  /* OS
+> Timer Counter Register */
+> mach-pxa/time.c:  unsigned long long v = cnt32_to_63(OSCR);
 
-On the machines this was initially written for, the critical period is 
-in the order of minutes.  And if you're afraid you might lack enough 
-scheduling activities for that long, you simply have to keep the 
-algorithm "warm" with a simple kernel timer which only purpose is to 
-ensure it is called often enough.
+It's strange for you to make that assertion when PXA was the exact
+platform that Nicolas created this code for - and that's a platform
+where preempt has been widely used.
 
-> Userspace cli() will definitely do this, but it is expected to break
-> stuff and is not as legitiate a thing to do.
+The two you mention are both ARMv5 or older architectures, and the
+first real SMP ARM architecture is ARMv6.  So architecturally they
+are UP only.
 
-Why do you bring it on then?
+So, tell me why you say "unless they are UP only, but that seems like
+a weird design argument"?  If the platforms can only ever be UP only,
+what's wrong with UP only code being used with them?  (Not that I'm
+saying anything there about cnt32_to_63.)
 
-> I'm just giving up on the tastefulness issue.
+I'd like to see you modify the silicon of a PXA or SA11x0 SoC to add
+more than one processor to the chip - maybe you could use evostick to
+glue two dies together and a microscope to aid bonding wires between
+the two?  (Of course, you'd need to design something to ensure cache
+coherence as well, and arbitrate the internal bus between the two
+dies.) ;)
 
-Taste is a pretty subjective matter.
+Personally, I think that's highly unlikely.
 
-
-Nicolas
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
