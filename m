@@ -1,92 +1,70 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: Re: [RFC patch 04/18] get_cycles() : powerpc64 HAVE_GET_CYCLES
-Date: Fri, 7 Nov 2008 13:14:12 -0500
-Message-ID: <20081107181412.GH22134@Krystal>
-References: <20081107052336.652868737@polymtl.ca> <20081107053349.215096700@polymtl.ca> <20081107145636.GA5021@yoda.jdub.homelinux.org>
+Subject: Re: [RFC patch 07/18] Trace clock core
+Date: Fri, 7 Nov 2008 13:16:50 -0500
+Message-ID: <20081107181650.GI22134@Krystal>
+References: <20081107052336.652868737@polymtl.ca> <20081107053349.699011457@polymtl.ca> <20081106215256.a9f01ec4.akpm@linux-foundation.org> <20081107061643.GA798@Krystal> <20081106222656.8e35d9d5.akpm@linux-foundation.org> <20081107161237.GA22134@Krystal> <20081107081939.4bcdf25b.akpm@linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from tomts43-srv.bellnexxia.net ([209.226.175.110]:37657 "EHLO
-	tomts43-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753144AbYKGSOP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 13:14:15 -0500
+Received: from tomts20.bellnexxia.net ([209.226.175.74]:49109 "EHLO
+	tomts20-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751080AbYKGSQy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 13:16:54 -0500
 Content-Disposition: inline
-In-Reply-To: <20081107145636.GA5021@yoda.jdub.homelinux.org>
+In-Reply-To: <20081107081939.4bcdf25b.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Josh Boyer <jwboyer@linux.vnet.ibm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Nicolas Pitre <nico@cam.org>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-* Josh Boyer (jwboyer@linux.vnet.ibm.com) wrote:
-> On Fri, Nov 07, 2008 at 12:23:40AM -0500, Mathieu Desnoyers wrote:
-> >This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
-> >get_cycles_rate() are implemented.
-> >
-> >Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-> >CC: benh@kernel.crashing.org
-> >CC: paulus@samba.org
-> >CC: David Miller <davem@davemloft.net>
-> >CC: Linus Torvalds <torvalds@linux-foundation.org>
-> >CC: Andrew Morton <akpm@linux-foundation.org>
-> >CC: Ingo Molnar <mingo@redhat.com>
-> >CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> >CC: Thomas Gleixner <tglx@linutronix.de>
-> >CC: Steven Rostedt <rostedt@goodmis.org>
-> >CC: linux-arch@vger.kernel.org
-> >---
-> > arch/powerpc/Kconfig             |    1 +
-> > arch/powerpc/include/asm/timex.h |   11 +++++++++++
-> > 2 files changed, 12 insertions(+)
-> >
-> >Index: linux.trees.git/arch/powerpc/Kconfig
-> >===================================================================
-> >--- linux.trees.git.orig/arch/powerpc/Kconfig	2008-11-07 00:09:44.000000000 -0500
-> >+++ linux.trees.git/arch/powerpc/Kconfig	2008-11-07 00:09:46.000000000 -0500
-> >@@ -121,6 +121,7 @@ config PPC
-> > 	select HAVE_DMA_ATTRS if PPC64
-> > 	select USE_GENERIC_SMP_HELPERS if SMP
-> > 	select HAVE_OPROFILE
-> >+	select HAVE_GET_CYCLES if PPC64
+* Andrew Morton (akpm@linux-foundation.org) wrote:
+> On Fri, 7 Nov 2008 11:12:38 -0500 Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca> wrote:
 > 
-> So maybe it's just me because it's Friday and I'm on vacation, but I don't
-> see anything overly specific to ppc64 here.  In fact, you use get_cycles_rate
-> for all of powerpc in a later patch in the series.
+> > * Andrew Morton (akpm@linux-foundation.org) wrote:
+> > > On Fri, 7 Nov 2008 01:16:43 -0500 Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca> wrote:
+> > > 
+> > > > > Is there something we should be fixing in m68k?
+> > > > > 
+> > > > 
+> > > > Yes, but I fear it's going to go deep into include hell :-(
+> > > 
+> > > Oh, OK.  I thought that the comment meant that m68k's on_each_cpu()
+> > > behaves differently at runtime from other architectures (and wrongly).
+> > > 
+> > > If it's just some compile-time #include snafu then that's far less
+> > > of a concern.
+> > > 
+> > 
+> > Should I simply remove this comment then ?
+> > 
 > 
-> Is there something special about HAVE_GET_CYCLES that I'm missing that would
-> make it only apply to ppc64 and not ppc32?
+> umm, it could perhaps be clarified - mention that it's needed for an
+> include order problem.
 > 
-> josh
+> It's a bit odd.  Surely by the time we've included these:
+> 
+> +#include <linux/module.h>
+> +#include <linux/init.h>
+> +#include <linux/delay.h>
+> +#include <linux/timer.h>
+> +#include <linux/workqueue.h>
+> +#include <linux/cpu.h>
+> +#include <linux/timex.h>
+> +#include <linux/bitops.h>
+> +#include <linux/trace-clock.h>
+> +#include <linux/smp.h>
+> 
+> someone has already included sched.h, and the definition of
+> _LINUX_SCHED_H will cause the later inclusion to not change anything?
+> 
 
-Hi Josh,
+Maybe now it's ok, but in the past, sched.h was not included..
+surprisingly.
 
-powerpc32 only uses the 32 LSBs for the TSC in the current get_cycles()
-implementation. We could either define HAVE_GET_CYCLES_32 like I did on
-mips32, or change get_cycles so it also reads the 32 MSBs in a loop like
-this (it does not take care of the CPU_FTR_CELL_TB_BUG though) :
+I'll just write a clearer comment.
 
-typedef unsigned long long cycles_t;
-
-cycles_t get_cycles_ppc32(void)
-{
-  union {
-    cycles_t v;
-    struct {
-      u32 ms32, ls32; /* powerpc is big endian */
-    } s;
-  } cycles;
-
-  do {
-    cycles.ls32 = mftbu();
-    cycles.ms32 = mftbl();
-  } while (cycles.ls32 != mftbu());
-  return cycles.v;
-}
-
-I'd prefer this second solution. If one needs a specific get_cycles() to
-be only 32-bits (but really really fast) for the scheduler, then this
-could be a get_cycles_sched() or something like this which does not
-guarantee that it returns full 64-bits...
+Thanks,
 
 Mathieu
 
