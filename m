@@ -1,59 +1,61 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+From: Nicolas Pitre <nico@cam.org>
 Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-Date: Fri, 07 Nov 2008 20:32:02 +0100
-Message-ID: <1226086322.31966.67.camel@lappy.programming.kicks-ass.net>
-References: <20081107053349.861709786@polymtl.ca>
-	 <20081107052336.652868737@polymtl.ca> <25257.1226055312@redhat.com>
-	 <20081107170902.GD22134@Krystal>
-	 <alpine.DEB.1.10.0811071229570.28548@gandalf.stny.rr.com>
-	 <20081107191833.GA31809@Krystal>
+Date: Fri, 07 Nov 2008 15:03:49 -0500 (EST)
+Message-ID: <alpine.LFD.2.00.0811071458560.13034@xanadu.home>
+References: <20081107003816.9b0f947a.akpm@linux-foundation.org>
+ <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca>
+ <20081106220530.5b0e3a96.akpm@linux-foundation.org>
+ <alpine.LFD.2.00.0811070256450.13034@xanadu.home>
+ <25363.1226056819@redhat.com>
+ <alpine.LFD.2.00.0811070952150.13034@xanadu.home>
+ <20081107075003.fa93ccf4.akpm@linux-foundation.org>
+ <alpine.LFD.2.00.0811071129440.13034@xanadu.home>
+ <20081107092115.7c3c4a49.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:45573 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750940AbYKGTc5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 14:32:57 -0500
-In-Reply-To: <20081107191833.GA31809@Krystal>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: Steven Rostedt <rostedt@goodmis.org>, David Howells <dhowells@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, Nicolas Pitre <nico@cam.org>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1752350AbYKGUEQ@vger.kernel.org>
+In-reply-to: <20081107092115.7c3c4a49.akpm@linux-foundation.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: David Howells <dhowells@redhat.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2008-11-07 at 14:18 -0500, Mathieu Desnoyers wrote:
-> * Steven Rostedt (rostedt@goodmis.org) wrote:
-> > 
-> > On Fri, 7 Nov 2008, Mathieu Desnoyers wrote:
-> > > 
-> > >   __m_cnt_hi
-> > >  is read before
-> > >   mmio cnt_lo read
-> > > 
-> > > for the detailed reasons explained in my previous discussion with
-> > > Nicolas here :
-> > > http://lkml.org/lkml/2008/10/21/1
-> > > 
-> > > I use smp_rmb() to do this on SMP systems (hrm, actually, a rmb() could
-> > > be required so it works also on UP systems safely wrt interrupts).
-> > 
-> > smp_rmb turns into a compiler barrier on UP and should prevent the below
-> > description.
-> > 
+On Fri, 7 Nov 2008, Andrew Morton wrote:
+
+> On Fri, 07 Nov 2008 11:47:47 -0500 (EST) Nicolas Pitre <nico@cam.org> wrote:
 > 
-> Ah, right, preserving program order on UP should be enough. smp_rmb()
-> then.
+> > > btw, do you know how damned irritating and frustrating it is for a code
+> > > reviewer to have his comments deliberately ignored and deleted in
+> > > replies?
+> > 
+> > Do you know how irritating and frustrating it is when reviewers don't 
+> > care reading the damn comments along with the code?
+> 
+> As you still seek to ignore it, I shall repeat my earlier question. 
+> Please do not delete it again.
+> 
+>    It apparently tries to avoid races via ordering tricks, as long
+>    as it is called with sufficient frequency.  But nothing guarantees
+>    that it _is_ called sufficiently frequently?
+> 
+> Things like tickless kernels and SCHED_RR can surely cause
+> sched_clock() to not be called for arbitrary periods.
+
+On the machines this was initially written for, the critical period is 
+in the order of minutes.  And if you're afraid you might lack enough 
+scheduling activities for that long, you simply have to keep the 
+algorithm "warm" with a simple kernel timer which only purpose is to 
+ensure it is called often enough.
+
+> Userspace cli() will definitely do this, but it is expected to break
+> stuff and is not as legitiate a thing to do.
+
+Why do you bring it on then?
+
+> I'm just giving up on the tastefulness issue.
+
+Taste is a pretty subjective matter.
 
 
-I'm not quite sure I'm following here. Is this a global hardware clock
-you're reading from multiple cpus, if so, are you sure smp_rmb() will
-indeed be enough to sync the read?
-
-(In which case the smp_wmb() is provided by the hardware increasing the
-clock?)
-
-If these are per-cpu clocks then even in the smp case we'd be good with
-a plain barrier() because you'd only ever want to read your own cpu's
-clock (and have a separate __m_cnt_hi per cpu).
-
-Or am I totally missing out on something?
+Nicolas
