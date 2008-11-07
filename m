@@ -1,97 +1,71 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [RFC patch 09/18] Powerpc : Trace clock
-Date: Fri, 07 Nov 2008 00:23:45 -0500
-Message-ID: <20081107053350.043912191@polymtl.ca>
+Subject: [RFC patch 02/18] get_cycles() : x86 HAVE_GET_CYCLES
+Date: Fri, 07 Nov 2008 00:23:38 -0500
+Message-ID: <20081107053348.889354279@polymtl.ca>
 References: <20081107052336.652868737@polymtl.ca>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:60869 "EHLO smtp.polymtl.ca"
+Received: from smtp.polymtl.ca ([132.207.4.11]:60987 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750828AbYKGFnx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 7 Nov 2008 00:43:53 -0500
-Content-Disposition: inline; filename=powerpc-trace-clock.patch
+	id S1755322AbYKGFoj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 7 Nov 2008 00:44:39 -0500
+Content-Disposition: inline; filename=get-cycles-x86-have-get-cycles.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, benh@kernel.crashing.org, paulus@samba.org, linux-arch@vger.kernel.org
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-Powerpc implementation of trace clock with get_tb().
+This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
+get_cycles_rate() are implemented.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: benh@kernel.crashing.org
-CC: paulus@samba.org
+CC: David Miller <davem@davemloft.net>
+CC: Linus Torvalds <torvalds@linux-foundation.org>
+CC: Andrew Morton <akpm@linux-foundation.org>
+CC: Ingo Molnar <mingo@redhat.com>
+CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
+CC: Thomas Gleixner <tglx@linutronix.de>
+CC: Steven Rostedt <rostedt@goodmis.org>
 CC: linux-arch@vger.kernel.org
 ---
- arch/powerpc/Kconfig                   |    1 
- arch/powerpc/include/asm/trace-clock.h |   50 +++++++++++++++++++++++++++++++++
- 2 files changed, 51 insertions(+)
+ arch/x86/Kconfig           |    1 +
+ arch/x86/include/asm/tsc.h |   12 ++++++++++++
+ 2 files changed, 13 insertions(+)
 
-Index: linux.trees.git/arch/powerpc/Kconfig
+Index: linux.trees.git/arch/x86/Kconfig
 ===================================================================
---- linux.trees.git.orig/arch/powerpc/Kconfig	2008-11-07 00:09:46.000000000 -0500
-+++ linux.trees.git/arch/powerpc/Kconfig	2008-11-07 00:11:59.000000000 -0500
-@@ -114,6 +114,7 @@ config PPC
+--- linux.trees.git.orig/arch/x86/Kconfig	2008-11-07 00:06:06.000000000 -0500
++++ linux.trees.git/arch/x86/Kconfig	2008-11-07 00:09:33.000000000 -0500
+@@ -20,6 +20,7 @@ config X86
+ 	def_bool y
+ 	select HAVE_AOUT if X86_32
+ 	select HAVE_UNSTABLE_SCHED_CLOCK
++	select HAVE_GET_CYCLES
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
  	select HAVE_IOREMAP_PROT
- 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
- 	select HAVE_KPROBES
-+	select HAVE_TRACE_CLOCK
- 	select HAVE_ARCH_KGDB
- 	select HAVE_KRETPROBES
- 	select HAVE_ARCH_TRACEHOOK
-Index: linux.trees.git/arch/powerpc/include/asm/trace-clock.h
+Index: linux.trees.git/arch/x86/include/asm/tsc.h
 ===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux.trees.git/arch/powerpc/include/asm/trace-clock.h	2008-11-07 00:11:59.000000000 -0500
-@@ -0,0 +1,50 @@
-+/*
-+ * Copyright (C) 2005,2008 Mathieu Desnoyers
-+ *
-+ * Trace clock PowerPC definitions.
-+ *
-+ * Use get_tb() directly to insure reading a 64-bits value on powerpc 32.
-+ */
-+
-+#ifndef _ASM_TRACE_CLOCK_H
-+#define _ASM_TRACE_CLOCK_H
-+
-+#include <linux/timex.h>
-+#include <linux/time.h>
-+#include <asm/processor.h>
-+
-+static inline u32 trace_clock_read32(void)
+--- linux.trees.git.orig/arch/x86/include/asm/tsc.h	2008-10-30 20:22:50.000000000 -0400
++++ linux.trees.git/arch/x86/include/asm/tsc.h	2008-11-07 00:09:33.000000000 -0500
+@@ -50,6 +50,18 @@ extern void mark_tsc_unstable(char *reas
+ extern int unsynchronized_tsc(void);
+ int check_tsc_unstable(void);
+ 
++static inline cycles_t get_cycles_rate(void)
 +{
-+	return get_tbl();
++	if (check_tsc_unstable())
++		return 0;
++	return tsc_khz;
 +}
 +
-+static inline u64 trace_clock_read64(void)
++static inline void get_cycles_barrier(void)
 +{
-+	return get_tb();
++	rdtsc_barrier();
 +}
 +
-+static inline void trace_clock_add_timestamp(unsigned long ticks)
-+{ }
-+
-+static inline unsigned int trace_clock_frequency(void)
-+{
-+	return get_cycles_rate();
-+}
-+
-+static inline u32 trace_clock_freq_scale(void)
-+{
-+	return 1;
-+}
-+
-+static inline void get_trace_clock(void)
-+{
-+}
-+
-+static inline void put_trace_clock(void)
-+{
-+}
-+
-+static inline void set_trace_clock_is_sync(int state)
-+{
-+}
-+#endif /* _ASM_TRACE_CLOCK_H */
+ /*
+  * Boot-time check whether the TSCs are synchronized across
+  * all CPUs/cores:
 
 -- 
 Mathieu Desnoyers
