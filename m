@@ -1,57 +1,65 @@
-From: Josh Boyer <jwboyer@linux.vnet.ibm.com>
-Subject: Re: [RFC patch 04/18] get_cycles() : powerpc64 HAVE_GET_CYCLES
-Date: Fri, 7 Nov 2008 09:56:36 -0500
-Message-ID: <20081107145636.GA5021@yoda.jdub.homelinux.org>
-References: <20081107052336.652868737@polymtl.ca> <20081107053349.215096700@polymtl.ca>
+From: Nicolas Pitre <nico@cam.org>
+Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
+Date: Fri, 07 Nov 2008 10:01:01 -0500 (EST)
+Message-ID: <alpine.LFD.2.00.0811070952150.13034@xanadu.home>
+References: <20081107003816.9b0f947a.akpm@linux-foundation.org>
+ <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca>
+ <20081106220530.5b0e3a96.akpm@linux-foundation.org>
+ <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <25363.1226056819@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rn-out-0910.google.com ([64.233.170.188]:23309 "EHLO
-	rn-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752000AbYKGO6i (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 09:58:38 -0500
-Content-Disposition: inline
-In-Reply-To: <20081107053349.215096700@polymtl.ca>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1754304AbYKGPBX@vger.kernel.org>
+In-reply-to: <25363.1226056819@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 07, 2008 at 12:23:40AM -0500, Mathieu Desnoyers wrote:
->This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
->get_cycles_rate() are implemented.
->
->Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
->CC: benh@kernel.crashing.org
->CC: paulus@samba.org
->CC: David Miller <davem@davemloft.net>
->CC: Linus Torvalds <torvalds@linux-foundation.org>
->CC: Andrew Morton <akpm@linux-foundation.org>
->CC: Ingo Molnar <mingo@redhat.com>
->CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
->CC: Thomas Gleixner <tglx@linutronix.de>
->CC: Steven Rostedt <rostedt@goodmis.org>
->CC: linux-arch@vger.kernel.org
->---
-> arch/powerpc/Kconfig             |    1 +
-> arch/powerpc/include/asm/timex.h |   11 +++++++++++
-> 2 files changed, 12 insertions(+)
->
->Index: linux.trees.git/arch/powerpc/Kconfig
->===================================================================
->--- linux.trees.git.orig/arch/powerpc/Kconfig	2008-11-07 00:09:44.000000000 -0500
->+++ linux.trees.git/arch/powerpc/Kconfig	2008-11-07 00:09:46.000000000 -0500
->@@ -121,6 +121,7 @@ config PPC
-> 	select HAVE_DMA_ATTRS if PPC64
-> 	select USE_GENERIC_SMP_HELPERS if SMP
-> 	select HAVE_OPROFILE
->+	select HAVE_GET_CYCLES if PPC64
+On Fri, 7 Nov 2008, David Howells wrote:
 
-So maybe it's just me because it's Friday and I'm on vacation, but I don't
-see anything overly specific to ppc64 here.  In fact, you use get_cycles_rate
-for all of powerpc in a later patch in the series.
+> Andrew Morton <akpm@linux-foundation.org> wrote:
+> 
+> > As I said in the text which you deleted and ignored, this would be
+> > better if it was implemented as a C function which requires that the
+> > caller explicitly pass in a reference to the state storage.
 
-Is there something special about HAVE_GET_CYCLES that I'm missing that would
-make it only apply to ppc64 and not ppc32?
+The whole purpose of that thing is to be utterly fast and lightweight.  
+Having an out of line C call would trash the major advantage of this 
+code.
 
-josh
+> I'd be quite happy if it was:
+> 
+> 	static inline u64 cnt32_to_63(u32 cnt_lo, u32 *__m_cnt_hi)
+> 	{
+> 		union cnt32_to_63 __x;
+> 		__x.hi = *__m_cnt_hi;
+> 		__x.lo = cnt_lo;
+> 		if (unlikely((s32)(__x.hi ^ __x.lo) < 0))
+> 			*__m_cnt_hi =
+> 				__x.hi = (__x.hi ^ 0x80000000) + (__x.hi >> 31);
+> 		return __x.val;
+> 	}
+> 
+> I imagine this would compile pretty much the same as the macro.
+
+Depends.  As everybody has noticed now, the read ordering is important, 
+and if gcc decides to not inline this for whatever reason then the 
+ordering is lost.  This is why this was a macro to start with.
+
+> I think it
+> would make it more obvious about the independence of the storage.
+
+I don't think having the associated storage be outside the macro make 
+any sense either.  There is simply no valid reason for having it shared 
+between multiple invokations of the macro, as well as making its 
+interface more complex for no gain.
+
+> Alternatively, perhaps Nicolas just needs to mention this in the comment more
+> clearly.
+
+I wrote that code so to me it is cristal clear already.  Any suggestions 
+as to how this could be improved?
+
+
+Nicolas
