@@ -1,56 +1,61 @@
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+From: Nicolas Pitre <nico@cam.org>
 Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-Date: Fri, 7 Nov 2008 20:11:18 +0000
-Message-ID: <20081107201118.GB28600@flint.arm.linux.org.uk>
-References: <20081107003816.9b0f947a.akpm@linux-foundation.org> <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca> <20081106220530.5b0e3a96.akpm@linux-foundation.org> <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <25363.1226056819@redhat.com> <20081107164758.GB22134@Krystal>
+Date: Fri, 07 Nov 2008 15:18:22 -0500 (EST)
+Message-ID: <alpine.LFD.2.00.0811071513180.13034@xanadu.home>
+References: <alpine.LFD.2.00.0811070256450.13034@xanadu.home>
+ <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca>
+ <20081106220530.5b0e3a96.akpm@linux-foundation.org>
+ <25298.1226055815@redhat.com> <20081107165112.GC22134@Krystal>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1752726AbYKGUMz@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20081107164758.GB22134@Krystal>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from relais.videotron.ca ([24.201.245.36]:16981 "EHLO
+	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750903AbYKGUS2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 15:18:28 -0500
+In-reply-to: <20081107165112.GC22134@Krystal>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@cam.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-On Fri, Nov 07, 2008 at 11:47:58AM -0500, Mathieu Desnoyers wrote:
-> But any get_cycles() user of cnt32_to_63() should be shot down. The
-> bright side is  : there is no way get_cycles() can be used with this
-> new code. :)
+On Fri, 7 Nov 2008, Mathieu Desnoyers wrote:
+
+> * David Howells (dhowells@redhat.com) wrote:
+> > Nicolas Pitre <nico@cam.org> wrote:
+> > 
+> > > > I mean, the darned thing is called from sched_clock(), which can be
+> > > > concurrently called on separate CPUs and which can be called from
+> > > > interrupt context (with an arbitrary nesting level!) while it was running
+> > > > in process context.
+> > > 
+> > > Yes!  And this is so on *purpose*.  Please take some time to read the 
+> > > comment that goes along with it, and if you're still not convinced then 
+> > > look for those explanation emails I've already posted.
+> > 
+> > I agree with Nicolas on this.  It's abominably clever, but I think he's right.
+> > 
+> > The one place I remain unconvinced is over the issue of preemption of a process
+> > that is in the middle of cnt32_to_63(), where if the preempted process is
+> > asleep for long enough, I think it can wind time backwards when it resumes, but
+> > that's not a problem for the one place I want to use it (sched_clock()) because
+> > that is (almost) always called with preemption disabled in one way or another.
+> > 
+> > The one place it isn't is a debugging case that I'm not too worried about.
+> > 
 > 
-> e.g. of incorrect users for arm (unless they are UP only, but that seems
-> like a weird design argument) :
+> I am also concerned about the non-preemption off case.
 > 
-> mach-sa1100/include/mach/SA-1100.h:#define OSCR     __REG(0x90000010)
-> /* OS timer Counter Reg. */
-> mach-sa1100/generic.c:  unsigned long long v = cnt32_to_63(OSCR);
-> mach-pxa/include/mach/pxa-regs.h:#define OSCR   __REG(0x40A00010)  /* OS
-> Timer Counter Register */
-> mach-pxa/time.c:  unsigned long long v = cnt32_to_63(OSCR);
+> Then I think the function should document that it must be called with
+> preempt disabled.
 
-It's strange for you to make that assertion when PXA was the exact
-platform that Nicolas created this code for - and that's a platform
-where preempt has been widely used.
+I explained several times already why I disagree.  Preemption is not a 
+problem unless you're preempted away for long enough, or IOW if your 
+counter is too fast.
 
-The two you mention are both ARMv5 or older architectures, and the
-first real SMP ARM architecture is ARMv6.  So architecturally they
-are UP only.
+And no, ^Z on a process doesn't create preemption. This is a signal that 
+gets acted upon far away from the middle of cnt32_to_63().
 
-So, tell me why you say "unless they are UP only, but that seems like
-a weird design argument"?  If the platforms can only ever be UP only,
-what's wrong with UP only code being used with them?  (Not that I'm
-saying anything there about cnt32_to_63.)
 
-I'd like to see you modify the silicon of a PXA or SA11x0 SoC to add
-more than one processor to the chip - maybe you could use evostick to
-glue two dies together and a microscope to aid bonding wires between
-the two?  (Of course, you'd need to design something to ensure cache
-coherence as well, and arbitrate the internal bus between the two
-dies.) ;)
-
-Personally, I think that's highly unlikely.
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Nicolas
