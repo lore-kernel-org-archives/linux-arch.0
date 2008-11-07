@@ -1,63 +1,92 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-Date: Fri, 7 Nov 2008 13:00:41 -0500
-Message-ID: <20081107180041.GG22134@Krystal>
-References: <20081107003816.9b0f947a.akpm@linux-foundation.org> <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca> <20081106220530.5b0e3a96.akpm@linux-foundation.org> <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <25363.1226056819@redhat.com> <alpine.LFD.2.00.0811070952150.13034@xanadu.home> <8189.1226074915@redhat.com> <8509.1226077800@redhat.com> <20081107092643.0bd9bb4e.akpm@linux-foundation.org>
+Subject: Re: [RFC patch 04/18] get_cycles() : powerpc64 HAVE_GET_CYCLES
+Date: Fri, 7 Nov 2008 13:14:12 -0500
+Message-ID: <20081107181412.GH22134@Krystal>
+References: <20081107052336.652868737@polymtl.ca> <20081107053349.215096700@polymtl.ca> <20081107145636.GA5021@yoda.jdub.homelinux.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from tomts10-srv.bellnexxia.net ([209.226.175.54]:62084 "EHLO
-	tomts10-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752580AbYKGSAn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 13:00:43 -0500
+Received: from tomts43-srv.bellnexxia.net ([209.226.175.110]:37657 "EHLO
+	tomts43-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753144AbYKGSOP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 13:14:15 -0500
 Content-Disposition: inline
-In-Reply-To: <20081107092643.0bd9bb4e.akpm@linux-foundation.org>
+In-Reply-To: <20081107145636.GA5021@yoda.jdub.homelinux.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: David Howells <dhowells@redhat.com>, Nicolas Pitre <nico@cam.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+To: Josh Boyer <jwboyer@linux.vnet.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-* Andrew Morton (akpm@linux-foundation.org) wrote:
-> On Fri, 07 Nov 2008 17:10:00 +0000 David Howells <dhowells@redhat.com> wrote:
+* Josh Boyer (jwboyer@linux.vnet.ibm.com) wrote:
+> On Fri, Nov 07, 2008 at 12:23:40AM -0500, Mathieu Desnoyers wrote:
+> >This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
+> >get_cycles_rate() are implemented.
+> >
+> >Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+> >CC: benh@kernel.crashing.org
+> >CC: paulus@samba.org
+> >CC: David Miller <davem@davemloft.net>
+> >CC: Linus Torvalds <torvalds@linux-foundation.org>
+> >CC: Andrew Morton <akpm@linux-foundation.org>
+> >CC: Ingo Molnar <mingo@redhat.com>
+> >CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> >CC: Thomas Gleixner <tglx@linutronix.de>
+> >CC: Steven Rostedt <rostedt@goodmis.org>
+> >CC: linux-arch@vger.kernel.org
+> >---
+> > arch/powerpc/Kconfig             |    1 +
+> > arch/powerpc/include/asm/timex.h |   11 +++++++++++
+> > 2 files changed, 12 insertions(+)
+> >
+> >Index: linux.trees.git/arch/powerpc/Kconfig
+> >===================================================================
+> >--- linux.trees.git.orig/arch/powerpc/Kconfig	2008-11-07 00:09:44.000000000 -0500
+> >+++ linux.trees.git/arch/powerpc/Kconfig	2008-11-07 00:09:46.000000000 -0500
+> >@@ -121,6 +121,7 @@ config PPC
+> > 	select HAVE_DMA_ATTRS if PPC64
+> > 	select USE_GENERIC_SMP_HELPERS if SMP
+> > 	select HAVE_OPROFILE
+> >+	select HAVE_GET_CYCLES if PPC64
 > 
-> > 
-> > Andrew Morton <akpm@linux-foundation.org> wrote:
-> > 
-> > > I'd expect it to behave in the same way as it would if the function was
-> > > implemented out-of-line.
-> > > 
-> > > But it occurs to me that the modrobe-doesnt-work thing would happen if
-> > > the function _is_ inlined anyway, so we won't be doing that.
-> > > 
-> > > Whatever.  Killing this many puppies because gcc may do something so
-> > > bizarrely wrong isn't justifiable.
-> > 
-> > With gcc, you get one instance of the static variable from inside a static
-> > (inline or outofline) function per .o file that invokes it, and these do not
-> > merge even though they're common symbols.  I asked around and the opinion
-> > seems to be that this is correct C.  I suppose it's the equivalent of cutting
-> > and pasting a function between several files - why should the compiler assume
-> > it's the same function in each?
-> > 
+> So maybe it's just me because it's Friday and I'm on vacation, but I don't
+> see anything overly specific to ppc64 here.  In fact, you use get_cycles_rate
+> for all of powerpc in a later patch in the series.
 > 
-> OK, thanks, I guess that makes sense.  For static inline.  I wonder if
-> `extern inline' or plain old `inline' should change it.
+> Is there something special about HAVE_GET_CYCLES that I'm missing that would
+> make it only apply to ppc64 and not ppc32?
 > 
-> It's one of those things I hope I never need to know about, but perhaps
-> we do somewhere have static storage in an inline.  Wouldn't surprise
-> me, and I bet that if we do, it's a bug.
+> josh
 
-Tracepoints actually use that. It could be changed so they use :
+Hi Josh,
 
-DECLARE_TRACE() (in include/trace/group.h)
-DEFINE_TRACE()  (in the appropriate kernel c file)
-trace_somename(); (in the code)
+powerpc32 only uses the 32 LSBs for the TSC in the current get_cycles()
+implementation. We could either define HAVE_GET_CYCLES_32 like I did on
+mips32, or change get_cycles so it also reads the 32 MSBs in a loop like
+this (it does not take care of the CPU_FTR_CELL_TB_BUG though) :
 
-instead. That would actually make more sense and remove the need for
-multiple declarations when the same tracepoint name is used in many
-spots (this is a problem kmemtrace has, it generates a lot of tracepoint
-declarations).
+typedef unsigned long long cycles_t;
+
+cycles_t get_cycles_ppc32(void)
+{
+  union {
+    cycles_t v;
+    struct {
+      u32 ms32, ls32; /* powerpc is big endian */
+    } s;
+  } cycles;
+
+  do {
+    cycles.ls32 = mftbu();
+    cycles.ms32 = mftbl();
+  } while (cycles.ls32 != mftbu());
+  return cycles.v;
+}
+
+I'd prefer this second solution. If one needs a specific get_cycles() to
+be only 32-bits (but really really fast) for the scheduler, then this
+could be a get_cycles_sched() or something like this which does not
+guarantee that it returns full 64-bits...
 
 Mathieu
 
