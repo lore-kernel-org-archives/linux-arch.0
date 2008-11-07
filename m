@@ -1,57 +1,73 @@
-From: Andrew Morton <akpm@linux-foundation.org>
+From: Steven Rostedt <rostedt@goodmis.org>
 Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-Date: Fri, 7 Nov 2008 09:26:43 -0800
-Message-ID: <20081107092643.0bd9bb4e.akpm@linux-foundation.org>
-References: <20081107082926.ee3e1efe.akpm@linux-foundation.org>
-	<20081107075003.fa93ccf4.akpm@linux-foundation.org>
-	<20081107003816.9b0f947a.akpm@linux-foundation.org>
-	<20081107052336.652868737@polymtl.ca>
-	<20081107053349.861709786@polymtl.ca>
-	<20081106220530.5b0e3a96.akpm@linux-foundation.org>
-	<alpine.LFD.2.00.0811070256450.13034@xanadu.home>
-	<25363.1226056819@redhat.com>
-	<alpine.LFD.2.00.0811070952150.13034@xanadu.home>
-	<8189.1226074915@redhat.com>
-	<8509.1226077800@redhat.com>
+Date: Fri, 7 Nov 2008 12:33:26 -0500 (EST)
+Message-ID: <alpine.DEB.1.10.0811071229570.28548@gandalf.stny.rr.com>
+References: <20081107053349.861709786@polymtl.ca> <20081107052336.652868737@polymtl.ca> <25257.1226055312@redhat.com> <20081107170902.GD22134@Krystal>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:48668 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751119AbYKGR2h (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 12:28:37 -0500
-In-Reply-To: <8509.1226077800@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Nicolas Pitre <nico@cam.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753937AbYKGRdo@vger.kernel.org>
+In-Reply-To: <20081107170902.GD22134@Krystal>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Cc: David Howells <dhowells@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Nicolas Pitre <nico@cam.org>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 07 Nov 2008 17:10:00 +0000 David Howells <dhowells@redhat.com> wrote:
+
+On Fri, 7 Nov 2008, Mathieu Desnoyers wrote:
+> 
+>   __m_cnt_hi
+>  is read before
+>   mmio cnt_lo read
+> 
+> for the detailed reasons explained in my previous discussion with
+> Nicolas here :
+> http://lkml.org/lkml/2008/10/21/1
+> 
+> I use smp_rmb() to do this on SMP systems (hrm, actually, a rmb() could
+> be required so it works also on UP systems safely wrt interrupts).
+
+smp_rmb turns into a compiler barrier on UP and should prevent the below
+description.
+
+-- Steve
 
 > 
-> Andrew Morton <akpm@linux-foundation.org> wrote:
+> The write side is between the hardware counter, which is assumed to
+> increment monotonically between each read, and the value __m_cnt_hi
+> updated by the CPU. I don't see where we could put a wmb() there.
 > 
-> > I'd expect it to behave in the same way as it would if the function was
-> > implemented out-of-line.
-> > 
-> > But it occurs to me that the modrobe-doesnt-work thing would happen if
-> > the function _is_ inlined anyway, so we won't be doing that.
-> > 
-> > Whatever.  Killing this many puppies because gcc may do something so
-> > bizarrely wrong isn't justifiable.
+> Without barrier, the smp race looks as follow :
 > 
-> With gcc, you get one instance of the static variable from inside a static
-> (inline or outofline) function per .o file that invokes it, and these do not
-> merge even though they're common symbols.  I asked around and the opinion
-> seems to be that this is correct C.  I suppose it's the equivalent of cutting
-> and pasting a function between several files - why should the compiler assume
-> it's the same function in each?
 > 
-
-OK, thanks, I guess that makes sense.  For static inline.  I wonder if
-`extern inline' or plain old `inline' should change it.
-
-It's one of those things I hope I never need to know about, but perhaps
-we do somewhere have static storage in an inline.  Wouldn't surprise
-me, and I bet that if we do, it's a bug.
+> CPU    A                                    B
+>                                             read hw cnt low (0xFFFFFFFA)
+>        read __m_cnt_hi (0x80000000)
+>        read hw cnt low (0x00000001)
+>        (wrap detected :
+>         (s32)(0x80000000 ^ 0x1) < 0)
+>        write __m_cnt_hi = 0x00000001
+>                                             read __m_cnt_hi (0x00000001)
+>        return 0x0000000100000001
+>                                             (wrap detected :
+>                                              (s32)(0x00000001 ^ 0xFFFFFFFA) < 0)
+>                                             write __m_cnt_hi = 0x80000001
+>                                             return 0x80000001FFFFFFFA
+>                                                                   (time jumps)
+> 
+> And UP interrupt race :
+> 
+>        Thread context                       Interrupts
+>        read hw cnt low (0xFFFFFFFA)
+>                                             read __m_cnt_hi (0x80000000)
+>                                             read hw cnt low (0x00000001)
+>                                             (wrap detected :
+>                                              (s32)(0x80000000 ^ 0x1) < 0)
+>                                             write __m_cnt_hi = 0x00000001
+>        read __m_cnt_hi (0x00000001)
+>                                             return 0x0000000100000001
+>        (wrap detected :
+>         (s32)(0x00000001 ^ 0xFFFFFFFA) < 0)
+>        write __m_cnt_hi = 0x80000001
+>        return 0x80000001FFFFFFFA
+>                 (time jumps)
+> 
