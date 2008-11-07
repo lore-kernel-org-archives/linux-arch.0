@@ -1,61 +1,66 @@
 From: Nicolas Pitre <nico@cam.org>
 Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-Date: Fri, 07 Nov 2008 15:18:22 -0500 (EST)
-Message-ID: <alpine.LFD.2.00.0811071513180.13034@xanadu.home>
-References: <alpine.LFD.2.00.0811070256450.13034@xanadu.home>
- <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca>
- <20081106220530.5b0e3a96.akpm@linux-foundation.org>
- <25298.1226055815@redhat.com> <20081107165112.GC22134@Krystal>
+Date: Fri, 07 Nov 2008 15:36:45 -0500 (EST)
+Message-ID: <alpine.LFD.2.00.0811071522270.13034@xanadu.home>
+References: <20081107053349.861709786@polymtl.ca>
+ <20081107052336.652868737@polymtl.ca> <25257.1226055312@redhat.com>
+ <20081107170902.GD22134@Krystal>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:16981 "EHLO
+Received: from relais.videotron.ca ([24.201.245.36]:44123 "EHLO
 	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750903AbYKGUS2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 15:18:28 -0500
-In-reply-to: <20081107165112.GC22134@Krystal>
+	with ESMTP id S1750911AbYKGUh0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2008 15:37:26 -0500
+In-reply-to: <20081107170902.GD22134@Krystal>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+Cc: David Howells <dhowells@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, lkml <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
 On Fri, 7 Nov 2008, Mathieu Desnoyers wrote:
 
-> * David Howells (dhowells@redhat.com) wrote:
-> > Nicolas Pitre <nico@cam.org> wrote:
-> > 
-> > > > I mean, the darned thing is called from sched_clock(), which can be
-> > > > concurrently called on separate CPUs and which can be called from
-> > > > interrupt context (with an arbitrary nesting level!) while it was running
-> > > > in process context.
-> > > 
-> > > Yes!  And this is so on *purpose*.  Please take some time to read the 
-> > > comment that goes along with it, and if you're still not convinced then 
-> > > look for those explanation emails I've already posted.
-> > 
-> > I agree with Nicolas on this.  It's abominably clever, but I think he's right.
-> > 
-> > The one place I remain unconvinced is over the issue of preemption of a process
-> > that is in the middle of cnt32_to_63(), where if the preempted process is
-> > asleep for long enough, I think it can wind time backwards when it resumes, but
-> > that's not a problem for the one place I want to use it (sched_clock()) because
-> > that is (almost) always called with preemption disabled in one way or another.
-> > 
-> > The one place it isn't is a debugging case that I'm not too worried about.
-> > 
+> I want to make sure
 > 
-> I am also concerned about the non-preemption off case.
+>   __m_cnt_hi
+>  is read before
+>   mmio cnt_lo read
 > 
-> Then I think the function should document that it must be called with
-> preempt disabled.
+> for the detailed reasons explained in my previous discussion with
+> Nicolas here :
+> http://lkml.org/lkml/2008/10/21/1
+> 
+> I use smp_rmb() to do this on SMP systems (hrm, actually, a rmb() could
+> be required so it works also on UP systems safely wrt interrupts).
+> 
+> The write side is between the hardware counter, which is assumed to
+> increment monotonically between each read, and the value __m_cnt_hi
+> updated by the CPU. I don't see where we could put a wmb() there.
+> 
+> Without barrier, the smp race looks as follow :
+> 
+> 
+> CPU    A                                    B
+>                                             read hw cnt low (0xFFFFFFFA)
+>        read __m_cnt_hi (0x80000000)
+>        read hw cnt low (0x00000001)
+>        (wrap detected :
+>         (s32)(0x80000000 ^ 0x1) < 0)
+>        write __m_cnt_hi = 0x00000001
+>                                             read __m_cnt_hi (0x00000001)
+>        return 0x0000000100000001
+>                                             (wrap detected :
+>                                              (s32)(0x00000001 ^ 0xFFFFFFFA) < 0)
+>                                             write __m_cnt_hi = 0x80000001
+>                                             return 0x80000001FFFFFFFA
+>                                                                   (time jumps)
 
-I explained several times already why I disagree.  Preemption is not a 
-problem unless you're preempted away for long enough, or IOW if your 
-counter is too fast.
-
-And no, ^Z on a process doesn't create preemption. This is a signal that 
-gets acted upon far away from the middle of cnt32_to_63().
+Could you have hardware doing such things?  You would get a non cached 
+and more expensive read on CPU B which is not in program order with the 
+read that should have happened before, and before that second out of 
+order read could be performed, you'd have a full sequence in program 
+order performed on CPU A.
 
 
 Nicolas
