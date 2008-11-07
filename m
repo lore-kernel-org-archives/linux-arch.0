@@ -1,73 +1,122 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [RFC patch 10/18] Sparc64 : Trace clock
-Date: Fri, 07 Nov 2008 00:23:46 -0500
-Message-ID: <20081107053350.207895822@polymtl.ca>
+Subject: [RFC patch 06/18] Trace clock generic
+Date: Fri, 07 Nov 2008 00:23:42 -0500
+Message-ID: <20081107053349.533903418@polymtl.ca>
 References: <20081107052336.652868737@polymtl.ca>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:60941 "EHLO smtp.polymtl.ca"
+Received: from smtp.polymtl.ca ([132.207.4.11]:60991 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754848AbYKGFoT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 7 Nov 2008 00:44:19 -0500
-Content-Disposition: inline; filename=sparc64-trace-clock.patch
+	id S1755362AbYKGFok (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 7 Nov 2008 00:44:40 -0500
+Content-Disposition: inline; filename=trace-clock-generic.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-Implement sparc64 trace clock.
+Wrapper to use the lower level clock sources available on the systems. Fall-back
+on jiffies or'd with a logical clock for architectures lacking CPU timestamp
+counters. Fall-back on a mixed TSC-logical clock on architectures lacking
+synchronized TSC on SMP.
+
+A generic fallback based on a logical clock and the timer interrupt is
+available.
+
+generic - Uses jiffies or'd with a logical clock extended to 64 bits by
+          ltt-timestamp.c.
+i386 - Uses TSC. If detects non synchronized TSC, uses mixed TSC-logical clock.
+mips - Uses TSC extended atomically from 32 to 64 bits by ltt-heartbeat.c.
+powerpc - Uses TSC or generic ltt clock.
+x86_64 - Uses TSC. If detects non synchronized TSC, uses mixed TSC-logical clock
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+CC: Ralf Baechle <ralf@linux-mips.org>
+CC: benh@kernel.crashing.org
+CC: paulus@samba.org
 CC: David Miller <davem@davemloft.net>
+CC: Linus Torvalds <torvalds@linux-foundation.org>
+CC: Andrew Morton <akpm@linux-foundation.org>
+CC: Ingo Molnar <mingo@redhat.com>
+CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
+CC: Thomas Gleixner <tglx@linutronix.de>
+CC: Steven Rostedt <rostedt@goodmis.org>
 CC: linux-arch@vger.kernel.org
 ---
- arch/sparc/include/asm/trace-clock.h |   46 +++++++++++++++++++++++++++++++++++
- arch/sparc64/Kconfig                 |    1 
- 2 files changed, 47 insertions(+)
+ include/asm-generic/trace-clock.h |   69 ++++++++++++++++++++++++++++++++++++++
+ include/linux/trace-clock.h       |   17 +++++++++
+ kernel/timer.c                    |    2 +
+ 3 files changed, 88 insertions(+)
 
-Index: linux.trees.git/arch/sparc64/Kconfig
+Index: linux.trees.git/kernel/timer.c
 ===================================================================
---- linux.trees.git.orig/arch/sparc64/Kconfig	2008-11-07 00:09:35.000000000 -0500
-+++ linux.trees.git/arch/sparc64/Kconfig	2008-11-07 00:12:26.000000000 -0500
-@@ -16,6 +16,7 @@ config SPARC64
- 	select HAVE_GET_CYCLES
- 	select HAVE_LMB
- 	select HAVE_ARCH_KGDB
-+	select HAVE_TRACE_CLOCK
- 	select USE_GENERIC_SMP_HELPERS if SMP
- 	select HAVE_ARCH_TRACEHOOK
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
-Index: linux.trees.git/arch/sparc/include/asm/trace-clock.h
+--- linux.trees.git.orig/kernel/timer.c	2008-10-06 10:23:39.000000000 -0400
++++ linux.trees.git/kernel/timer.c	2008-11-07 00:10:13.000000000 -0500
+@@ -37,6 +37,7 @@
+ #include <linux/delay.h>
+ #include <linux/tick.h>
+ #include <linux/kallsyms.h>
++#include <linux/trace-clock.h>
+ 
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
+@@ -1067,6 +1068,7 @@ void do_timer(unsigned long ticks)
+ {
+ 	jiffies_64 += ticks;
+ 	update_times(ticks);
++	trace_clock_add_timestamp(ticks);
+ }
+ 
+ #ifdef __ARCH_WANT_SYS_ALARM
+Index: linux.trees.git/include/asm-generic/trace-clock.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux.trees.git/arch/sparc/include/asm/trace-clock.h	2008-11-07 00:12:04.000000000 -0500
-@@ -0,0 +1,46 @@
++++ linux.trees.git/include/asm-generic/trace-clock.h	2008-11-07 00:10:13.000000000 -0500
+@@ -0,0 +1,69 @@
++#ifndef _ASM_GENERIC_TRACE_CLOCK_H
++#define _ASM_GENERIC_TRACE_CLOCK_H
++
 +/*
-+ * Copyright (C) 2008, Mathieu Desnoyers
++ * include/asm-generic/trace-clock.h
 + *
-+ * Trace clock definitions for Sparc64.
++ * Copyright (C) 2007 - Mathieu Desnoyers (mathieu.desnoyers@polymtl.ca)
++ *
++ * Generic tracing clock for architectures without TSC.
 + */
 +
-+#ifndef _ASM_SPARC_TRACE_CLOCK_H
-+#define _ASM_SPARC_TRACE_CLOCK_H
++#include <linux/param.h>	/* For HZ */
++#include <asm/atomic.h>
 +
-+#include <linux/timex.h>
++#define TRACE_CLOCK_SHIFT 13
++
++u64 trace_clock_read_synthetic_tsc(void);
++
++extern atomic_t trace_clock;
 +
 +static inline u32 trace_clock_read32(void)
 +{
-+	return get_cycles();
++	return atomic_add_return(1, &trace_clock);
 +}
 +
 +static inline u64 trace_clock_read64(void)
 +{
-+	return get_cycles();
++	return trace_clock_read_synthetic_tsc();
 +}
 +
 +static inline void trace_clock_add_timestamp(unsigned long ticks)
-+{ }
++{
++	int old_clock, new_clock;
++
++	do {
++		old_clock = atomic_read(&trace_clock);
++		new_clock = (old_clock + (ticks << TRACE_CLOCK_SHIFT))
++			& (~((1 << TRACE_CLOCK_SHIFT) - 1));
++	} while (atomic_cmpxchg(&trace_clock, old_clock, new_clock)
++			!= old_clock);
++}
 +
 +static inline unsigned int trace_clock_frequency(void)
 +{
-+	return get_cycles_rate();
++	return HZ << TRACE_CLOCK_SHIFT;
 +}
 +
 +static inline u32 trace_clock_freq_scale(void)
@@ -75,18 +124,45 @@ Index: linux.trees.git/arch/sparc/include/asm/trace-clock.h
 +	return 1;
 +}
 +
++extern void get_synthetic_tsc(void);
++extern void put_synthetic_tsc(void);
++
 +static inline void get_trace_clock(void)
 +{
++	get_synthetic_tsc();
 +}
 +
 +static inline void put_trace_clock(void)
 +{
++	put_synthetic_tsc();
 +}
 +
 +static inline void set_trace_clock_is_sync(int state)
 +{
 +}
-+#endif /* _ASM_SPARC_TRACE_CLOCK_H */
++#endif /* _ASM_GENERIC_TRACE_CLOCK_H */
+Index: linux.trees.git/include/linux/trace-clock.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux.trees.git/include/linux/trace-clock.h	2008-11-07 00:10:13.000000000 -0500
+@@ -0,0 +1,17 @@
++#ifndef _LINUX_TRACE_CLOCK_H
++#define _LINUX_TRACE_CLOCK_H
++
++/*
++ * Trace clock
++ *
++ * Chooses between an architecture specific clock or an atomic logical clock.
++ *
++ * Copyright (C) 2007,2008 Mathieu Desnoyers (mathieu.desnoyers@polymtl.ca)
++ */
++
++#ifdef CONFIG_HAVE_TRACE_CLOCK
++#include <asm/trace-clock.h>
++#else
++#include <asm-generic/trace-clock.h>
++#endif /* CONFIG_HAVE_TRACE_CLOCK */
++#endif /* _LINUX_TRACE_CLOCK_H */
 
 -- 
 Mathieu Desnoyers
