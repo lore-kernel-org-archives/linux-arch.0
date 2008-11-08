@@ -1,28 +1,72 @@
-From: David Howells <dhowells@redhat.com>
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
-Date: Fri, 07 Nov 2008 23:55:05 +0000
-Message-ID: <9500.1226102105@redhat.com>
-References: <alpine.LFD.2.00.0811071513180.13034@xanadu.home> <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca> <20081106220530.5b0e3a96.akpm@linux-foundation.org> <25298.1226055815@redhat.com> <20081107165112.GC22134@Krystal>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:39938 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751449AbYKGX4o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 7 Nov 2008 18:56:44 -0500
-In-Reply-To: <alpine.LFD.2.00.0811071513180.13034@xanadu.home>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Pitre <nico@cam.org>
-Cc: dhowells@redhat.com, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+Date: Sat, 8 Nov 2008 00:15:55 +0000
+Message-ID: <20081108001555.GE18378@flint.arm.linux.org.uk>
+References: <20081107003816.9b0f947a.akpm@linux-foundation.org> <20081107052336.652868737@polymtl.ca> <20081107053349.861709786@polymtl.ca> <20081106220530.5b0e3a96.akpm@linux-foundation.org> <alpine.LFD.2.00.0811070256450.13034@xanadu.home> <25363.1226056819@redhat.com> <20081107164758.GB22134@Krystal> <20081107201118.GB28600@flint.arm.linux.org.uk> <20081107213610.GC2654@Krystal> <9405.1226101315@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753521AbYKHAR5@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <9405.1226101315@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@cam.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Nicolas Pitre <nico@cam.org> wrote:
+On Fri, Nov 07, 2008 at 11:41:55PM +0000, David Howells wrote:
+> Russell King <rmk+lkml@arm.linux.org.uk> wrote:
+> 
+> > Well, that's where it was - private to ARM.  Then David Howells came
+> > along and unilaterally - and without reference to anyone as far as I
+> > can see - moved it to include/linux.
+> > 
+> > Neither Nicolas, nor me had any idea that it was going to move into
+> > include/linux - the first we knew of it was when pulling the change
+> > from Linus' tree.
+> > 
+> > Look, if people in the kernel community can't or won't communicate
+> > with others (either through malice, purpose or accident), you can
+> > expect this kind of crap to happen.
+> 
+> Excuse me, Russell, but I sent Nicolas an email prior to doing so asking him
+> if he had any objections:
+> 
+> 	To: Nicolas Pitre <nico@cam.org>
+> 	cc: dhowells@redhat.com
+> 	Subject: Moving asm-arm/cnt32_to_63.h to include/linux/
+> 	Date: Thu, 31 Jul 2008 16:04:04 +0100
+> 
+> 	Hi Nicolas,
+> 
+> 	Mind if I move include/asm-arm/cnt32_to_63.h to include/linux/?
+> 
+> 	I need to use it for MN10300.
+> 
+> 	David
+> 
+> He didn't respond.  Not only that, but I copied Nicolas on the patch to make
+> the move and the patch to make MN10300 use it when I submitted it to Linus on
+> the 24th September, so it's not like he didn't have plenty of time.  He
+> certainly saw that because he joined in the discussion of the second patch.
+> Furthermore, he could've asked Linus to refuse the patch, or to revert it if
+> it had already gone in.
+> 
+> I suppose I should've cc'd the ARM list too... but why should it adversely
+> affect ARM?
 
-> I explained several times already why I disagree.  Preemption is not a 
-> problem unless you're preempted away for long enough, or IOW if your 
-> counter is too fast.
+I take back the "Neither Nicolas" bit but the rest of my comment stands
+and remains valid.
 
-That's my point.  Say a nice -19 process gets preempted... what guarantees
-that it will resume within, the time it takes the counter to wrap?  Even if
-the preempting process goes back to sleep, in that time a bunch of other
-processes could have woken up and could starve it for a long period of time.
+In light of akpm's demands to know how this got into the kernel, I decided
+I'd put the story forward, especially as people in this thread are confused
+about what it was designed for, and making random unfounded claiming that
+its existing ARM uses are buggy when they aren't.
 
-David
+It sounds to me as if the right answer is for it to move back to being an
+ARM private thing with a MN10300 private copy, rather than it pretending
+to be something everyone can use.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
