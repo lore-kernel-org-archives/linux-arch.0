@@ -1,83 +1,99 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: Re: [PATCH v2] clarify usage expectations for cnt32_to_63()
-Date: Sun, 9 Nov 2008 11:22:50 -0500
-Message-ID: <20081109162250.GB10181@Krystal>
-References: <9405.1226101315@redhat.com> <20081108001555.GE18378@flint.arm.linux.org.uk> <alpine.LFD.2.00.0811080939180.13034@xanadu.home> <alpine.LFD.2.00.0811081746060.13034@xanadu.home> <20081109022549.GA18508@Krystal> <alpine.LFD.2.00.0811082143320.13034@xanadu.home> <alpine.LFD.2.00.0811082356090.13034@xanadu.home> <alpine.LFD.2.00.0811090015570.13034@xanadu.home> <20081109064855.GA23782@Krystal> <alpine.LFD.2.00.0811090827160.13034@xanadu.home>
+Subject: Re: [RFC patch 08/18] cnt32_to_63 should use smp_rmb()
+Date: Sun, 9 Nov 2008 11:18:11 -0500
+Message-ID: <20081109161811.GA10181@Krystal>
+References: <alpine.DEB.1.10.0811071922010.26139@gandalf.stny.rr.com> <alpine.DEB.1.10.0811071229570.28548@gandalf.stny.rr.com> <20081107053349.861709786@polymtl.ca> <20081107052336.652868737@polymtl.ca> <25257.1226055312@redhat.com> <20081107170902.GD22134@Krystal> <9473.1226101838@redhat.com> <1219.1226231496@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from tomts40.bellnexxia.net ([209.226.175.97]:62029 "EHLO
-	tomts40-srv.bellnexxia.net" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1755168AbYKIQWx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Nov 2008 11:22:53 -0500
+Received: from tomts16-srv.bellnexxia.net ([209.226.175.4]:63197 "EHLO
+	tomts16-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755785AbYKIQXO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Nov 2008 11:23:14 -0500
 Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.0811090827160.13034@xanadu.home>
+In-Reply-To: <1219.1226231496@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Pitre <nico@cam.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Russell King <rmk+lkml@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, lkml <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, Nicolas Pitre <nico@cam.org>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
 
-* Nicolas Pitre (nico@cam.org) wrote:
-> On Sun, 9 Nov 2008, Mathieu Desnoyers wrote:
+* David Howells (dhowells@redhat.com) wrote:
+> Steven Rostedt <rostedt@goodmis.org> wrote:
 > 
-> > * Nicolas Pitre (nico@cam.org) wrote:
-> > > Currently, all existing users of cnt32_to_63() are fine since the CPU
-> > > architectures where it is used don't do read access reordering, and user
-> > > mode preemption is disabled already.  It is nevertheless a good idea to
-> > > better elaborate usage requirements wrt preemption, and use an explicit
-> > > memory barrier on SMP to avoid different CPUs accessing the counter
-> > > value in the wrong order.  On UP a simple compiler barrier is 
-> > > sufficient.
-> > > 
-> > > Signed-off-by: Nicolas Pitre <nico@marvell.com>
-> > > ---
-> > > 
-> > ...
-> > > @@ -68,9 +77,10 @@ union cnt32_to_63 {
-> > >   */
-> > >  #define cnt32_to_63(cnt_lo) \
-> > >  ({ \
-> > > -	static volatile u32 __m_cnt_hi; \
-> > > +	static u32 __m_cnt_hi; \
+> > > Note that that does not guarantee that the two reads will be done in the
+> > > order you want.  The compiler barrier _only_ affects the compiler.  It
+> > > does not stop the CPU from doing the reads in any order it wants.  You
+> > > need something stronger than smp_rmb() if you need the reads to be so
+> > > ordered.
 > > 
-> > It's important to get the smp_rmb() here, which this patch provides, so
-> > consider this patch to be acked-by me. The added documentation is needed
-> > too.
+> > For reading hardware devices that can indeed be correct. But for normal 
+> > memory access on a uniprocessor, if the CPU were to reorder the reads that 
+> > would effect the actual algorithm then that CPU is broken.
+> > 
+> >  read a
+> >     <---  interrupt  - should see read a here before read b is done.
+> >  read b
 > 
-> Thanks.
+> Life isn't that simple.  Go and read the section labelled "The things cpus get
+> up to" in Documentation/memory-barriers.txt.
 > 
-> > But I also think that declaring the static u32 __m_cnt_hi here is
-> > counter-intuitive for developers who wish to use it.
+> The two reads we're talking about are independent of each other.  Independent
+> reads and writes can be reordered and merged at will by the CPU, subject to
+> restrictions imposed by barriers, cacheability attributes, MMIO attributes and
+> suchlike.
 > 
-> I'm rather not convinced of that.  And this is a much bigger change 
-> affecting all callers so I'd defer such change even if I was convinced 
-> of it.
+> You can get read b happening before read a, but in such a case both
+> instructions will be in the CPU's execution pipeline.  When an interrupt
+> occurs, the CPU will presumably finish clearing what's in its pipeline before
+> going and servicing the interrupt handler.
 > 
-> > I'd recommend letting the declaration be done outside of cnt32_to_63 so
-> > the same variable can be passed as parameter to more than one execution
-> > site.
+> If a CPU is strictly ordered with respect to reads, do you actually need read
+> barriers?
 > 
-> Do you really have such instances where multiple call sites are needed?  
-> That sounds even more confusing to me than the current model.  Better 
-> encapsulate the usage of this macro within some function which has a 
-> stronger meaning, such as sched_clock(), and call _that_ from multiple 
-> sites instead.
+> The fact that a pair of reads might be part of an algorithm that is critically
+> dependent on the ordering of those reads isn't something the CPU cares about.
+> It doesn't know there's an algorithm there.
 > 
+> > Now the fact that one of the reads is a hardware clock, then this 
+> > statement might not be too strong. But the fact that it is a clock, and 
+> > not some memory mapped device register, I still think smp_rmb is 
+> > sufficient.
 > 
-> Nicolas
+> To quote again from memory-barriers.txt, section "CPU memory barriers":
+> 
+> 	Mandatory barriers should not be used to control SMP effects, since
+> 	mandatory barriers unnecessarily impose overhead on UP systems. They
+> 	may, however, be used to control MMIO effects on accesses through
+> 	relaxed memory I/O windows.  These are required even on non-SMP
+> 	systems 
 
-I see a few reasons for it :
+<emphasis>
+>   as they affect the order in which memory operations appear to a device
+</emphasis>
 
-- If we want to inline the whole read function so we don't pay the extra
-  runtime cost of a function call, this would become required.
-- If we want to create a per cpu timer which updates the value
-  periodically without calling the function. We may want to add some
-  WARN_ON or some sanity tests in this periodic update that would not be
-  part of the standard read code. If we don't have access to this
-  variable outside of the macro, this becomes impossible.
+In this particular case, we don't care about the order of memory
+operations as seen by the device, given we only read the mmio time
+source atomically. So considering what you said above about the fact
+that the CPU will flush all the pending operations in the pipeline
+before proceeding to service an interrupt, a simple barrier() should be
+enough to make the two operations appear in correct order wrt local
+interrupts. I therefore don't think a full rmb() is required to insure
+correct read order on UP, because, again, in this case we don't need to
+order accesses as seen by the device.
 
 Mathieu
+
+>   by prohibiting both the compiler and the CPU from reordering
+> 	them.
+> 
+> Section "Accessing devices":
+> 
+>  (2) If the accessor functions are used to refer to an I/O memory window with
+>      relaxed memory access properties, then _mandatory_ memory barriers are
+>      required to enforce ordering.
+> 
+> David
 
 -- 
 Mathieu Desnoyers
