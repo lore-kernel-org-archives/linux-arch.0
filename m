@@ -1,137 +1,63 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 1/1] edac x38: new MC driver module
-Date: Sun, 9 Nov 2008 11:26:46 -0800
-Message-ID: <20081109112646.97c594b5.akpm@linux-foundation.org>
-References: <20081105222911.d76e7e1c.mitake@clustcom.com>
-	<413709.12821.qm@web50106.mail.re2.yahoo.com>
-	<20081106164641.ed369060.akpm@linux-foundation.org>
-	<20081107152830.a42766f3.mitake@clustcom.com>
-	<20081106223122.8a255211.akpm@linux-foundation.org>
-	<20081107153824.0ec934e6.mitake@clustcom.com>
-	<20081106231102.aab83cd4.akpm@linux-foundation.org>
-	<a6b9f31a0811090710y17e956bawf20675d6678b145e@mail.gmail.com>
+From: Nicolas Pitre <nico@cam.org>
+Subject: Re: [PATCH v2] clarify usage expectations for cnt32_to_63()
+Date: Sun, 09 Nov 2008 23:20:00 -0500 (EST)
+Message-ID: <alpine.LFD.2.00.0811092304300.13034@xanadu.home>
+References: <9405.1226101315@redhat.com>
+ <20081108001555.GE18378@flint.arm.linux.org.uk>
+ <alpine.LFD.2.00.0811080939180.13034@xanadu.home>
+ <alpine.LFD.2.00.0811081746060.13034@xanadu.home>
+ <20081109022549.GA18508@Krystal>
+ <alpine.LFD.2.00.0811082143320.13034@xanadu.home>
+ <alpine.LFD.2.00.0811082356090.13034@xanadu.home>
+ <alpine.LFD.2.00.0811090015570.13034@xanadu.home>
+ <20081109064855.GA23782@Krystal>
+ <alpine.LFD.2.00.0811090827160.13034@xanadu.home>
+ <20081109162250.GB10181@Krystal>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:41763 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755690AbYKIT0x (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Nov 2008 14:26:53 -0500
-In-Reply-To: <a6b9f31a0811090710y17e956bawf20675d6678b145e@mail.gmail.com>
+Received: from relais.videotron.ca ([24.201.245.36]:33297 "EHLO
+	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752538AbYKJEUH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Nov 2008 23:20:07 -0500
+In-reply-to: <20081109162250.GB10181@Krystal>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hitoshi Mitake <h.mitake@gmail.com>
-Cc: Hitoshi Mitake <mitake@clustcom.com>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, ktaka@clustcom.com, linux-arch@vger.kernel.org
+To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Russell King <rmk+lkml@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, lkml <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-(cc linux-arch)
+On Sun, 9 Nov 2008, Mathieu Desnoyers wrote:
 
-On Mon, 10 Nov 2008 00:10:34 +0900 "Hitoshi Mitake" <h.mitake@gmail.com> wrote:
+> * Nicolas Pitre (nico@cam.org) wrote:
+> > Do you really have such instances where multiple call sites are needed?  
+> > That sounds even more confusing to me than the current model.  Better 
+> > encapsulate the usage of this macro within some function which has a 
+> > stronger meaning, such as sched_clock(), and call _that_ from multiple 
+> > sites instead.
+> 
+> I see a few reasons for it :
+> 
+> - If we want to inline the whole read function so we don't pay the extra
+>   runtime cost of a function call, this would become required.
 
-> ...
->
-> >> -static u64 x38_readq(const void __iomem *addr)
-> >> +#ifndef CONFIG_X86_64
-> >> +static u64 readq(const void __iomem *addr)
-> >
-> > hm, it'd be nice if there was some more general way of determining
-> > whether the architecture provides readq/writeq.
-> >
-> 
-> 
-> I found this code in include/asm-x86/io.h
-> 
-> #ifdef CONFIG_X86_64
-> 
-> ...
-> 
-> /* Let people know we have them */
-> #define readq readq
-> #define writeq writeq
-> #endif
-> 
-> x86 programmers are able to know existence of readq/writeq by using
-> this definition.
-> 
-> And I grepped,
-> 
-> % grep readq `find include/asm-* -name "*.h"`
-> include/asm-mips/io.h:			".set	mips3"		"\t\t# __readq"	"\n\t"	\
-> include/asm-mips/io.h:#define readq_relaxed			readq
-> include/asm-mips/io.h:#define readq				readq
-> include/asm-mips/txx9/tx4927.h:	((__u32)__raw_readq(&tx4927_ccfgptr->crir)
-> >> 16)
-> include/asm-mips/txx9/tx4927.h:#define
-> TX4927_SDRAMC_CR(ch)	__raw_readq(&tx4927_sdramcptr->cr[(ch)])
-> include/asm-mips/txx9/tx4927.h:#define
-> TX4927_EBUSC_CR(ch)	__raw_readq(&tx4927_ebuscptr->cr[(ch)])
-> include/asm-mips/txx9/tx4927.h:	____raw_writeq(____raw_readq(adr) & ~bits, adr);
-> include/asm-mips/txx9/tx4927.h:	____raw_writeq(____raw_readq(adr) | bits, adr);
-> include/asm-mips/txx9/tx4927.h:	____raw_writeq(____raw_readq(&tx4927_ccfgptr->ccfg)
-> include/asm-mips/txx9/tx4927.h:	____raw_writeq((____raw_readq(&tx4927_ccfgptr->ccfg)
-> include/asm-mips/txx9/tx4927.h:	____raw_writeq((____raw_readq(&tx4927_ccfgptr->ccfg)
-> include/asm-mips/txx9/tx4938.h:	((__u32)__raw_readq(&tx4938_ccfgptr->crir)
-> >> 16)
-> include/asm-parisc/io.h:static inline unsigned long long
-> gsc_readq(unsigned long addr)
-> include/asm-parisc/io.h:static inline unsigned long long
-> __raw_readq(const volatile void __iomem *addr)
-> include/asm-parisc/io.h:#define readq(addr) __fswab64(__raw_readq(addr))
-> include/asm-parisc/io.h:#define readq_relaxed(addr) readq(addr)
-> include/asm-x86/io.h:build_mmio_read(readq, "q", unsigned long, "=r", :"memory")
-> include/asm-x86/io.h:build_mmio_read(__readq, "q", unsigned long, "=r", )
-> include/asm-x86/io.h:#define readq_relaxed(a) __readq(a)
-> include/asm-x86/io.h:#define __raw_readq __readq
-> include/asm-x86/io.h:#define readq readq
-> 
-> It seems that architectures that provide readq/writeq are
-> mips, parisc and x86 (and x86_64).
-> 
-> mips and x86 provides this line
-> #define readq readq
-> to let user know existence of readq (and writeq),
-> and parisc doesn't provide.
-> But there is,
-> #define readq(addr) __fswab64(__raw_readq(addr))
-> in parisc.
-> 
-> There is a difference between mips and x86's readq/writeq and
-> parisc's readq/writeq. mips and x86's definition is only token,
-> but parisc's definition is macro function.
-> 
-> But these defines can be used to determine existence of readq/writeq
-> by common preprocessor like this,
-> #ifndef readq
-> /* programmer can define private version of readq (or writeq) */
-> #endif
-> 
-> Is this way enough general for our requirement?
-> (If we use this as general way to determine existence of readq/writeq,
-> I want other architecture's developer (whose architecture provides
-> readq/writeq in the future)
-> to support same way.)
+You can inline it as you want as long as it remains in the same .c file.  
+The static variable is still shared amongst all call sites in that case.
 
-Yes, I'd say that
+> - If we want to create a per cpu timer which updates the value
+>   periodically without calling the function. We may want to add some
+>   WARN_ON or some sanity tests in this periodic update that would not be
+>   part of the standard read code. If we don't have access to this
+>   variable outside of the macro, this becomes impossible.
 
-#ifdef readq
+I don't see how you could update the variable without calling the 
+function somehow or duplicating it.  As to the sanity check argument: 
+you can perform such checks on the result rather than the internal 
+variable which IMHO would be more logical.
 
-Is a suitable way of determining whether the architecture implements
-readq and writeq.  It isn't pretty, but it will suffice.
-
-A problem with it is that drivers will then do
-
-#ifndef readq
-<provide a local implementation here>
-#endif
-
-which rather sucks - we don't want lots of little private readq/writeq
-implementations all over the tree.
-
-Perhaps it would be better to have a CONFIG_ARCH_HAS_READQ and to then
-disable these drivers on the architectures which don't provide
-readq/writeq support.
+And if you want a per CPU version, then it's better to create a 
+per_cpu_cnt32_to_63() variant which could use a relaxed barrier in that 
+case.
 
 
-Also, I'm not sure that we have sufficiently defined the semantics of
-these operations, and whether all the architectures which do purport to
-implement them actually implement them with the same semantics.
+Nicolas
