@@ -1,78 +1,40 @@
-From: Nicolas Pitre <nico@cam.org>
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [PATCH] convert cnt32_to_63 to inline
-Date: Tue, 11 Nov 2008 16:00:46 -0500 (EST)
-Message-ID: <alpine.LFD.2.00.0811111543060.27509@xanadu.home>
-References: <20081109064855.GA23782@Krystal>
- <alpine.LFD.2.00.0811090827160.13034@xanadu.home>
- <20081109162250.GB10181@Krystal>
- <alpine.LFD.2.00.0811092304300.13034@xanadu.home>
- <20081109204256.89ab7925.akpm@linux-foundation.org>
- <alpine.LFD.2.00.0811101627510.13034@xanadu.home>
- <20081110135850.0d620f3c.akpm@linux-foundation.org>
- <alpine.LFD.2.00.0811101811130.13034@xanadu.home>
- <20081110152221.64948d23.akpm@linux-foundation.org>
- <alpine.LFD.2.00.0811101917450.13034@xanadu.home>
- <20081111182759.GA8052@Krystal>
+Date: Tue, 11 Nov 2008 21:13:06 +0000
+Message-ID: <20081111211306.GA12739@flint.arm.linux.org.uk>
+References: <20081109162250.GB10181@Krystal> <alpine.LFD.2.00.0811092304300.13034@xanadu.home> <20081109204256.89ab7925.akpm@linux-foundation.org> <alpine.LFD.2.00.0811101627510.13034@xanadu.home> <20081110135850.0d620f3c.akpm@linux-foundation.org> <alpine.LFD.2.00.0811101811130.13034@xanadu.home> <20081110152221.64948d23.akpm@linux-foundation.org> <alpine.LFD.2.00.0811101917450.13034@xanadu.home> <20081111182759.GA8052@Krystal> <alpine.LFD.2.00.0811111543060.27509@xanadu.home>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:35320 "EHLO
-	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753135AbYKKVBD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Nov 2008 16:01:03 -0500
-In-reply-to: <20081111182759.GA8052@Krystal>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org, rmk+lkml@arm.linux.org.uk, dhowells@redhat.com, mingo@elte.hu, a.p.zijlstra@chello.nl, linux-kernel@vger.kernel.org, ralf@linux-mips.org, benh@kernel.crashing.org, paulus@samba.org, davem@davemloft.net, mingo@redhat.com, tglx@linutronix.de, rostedt@goodmis.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753383AbYKKVPX@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.00.0811111543060.27509@xanadu.home>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Nicolas Pitre <nico@cam.org>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org, dhowells@redhat.com, mingo@elte.hu, a.p.zijlstra@chello.nl, linux-kernel@vger.kernel.org, ralf@linux-mips.org, benh@kernel.crashing.org, paulus@samba.org, davem@davemloft.net, mingo@redhat.com, tglx@linutronix.de, rostedt@goodmis.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 11 Nov 2008, Mathieu Desnoyers wrote:
+On Tue, Nov 11, 2008 at 04:00:46PM -0500, Nicolas Pitre wrote:
+> No thank you.  If this trend continues I'm going to make it back private 
+> to ARM again so you could pessimize your own code as much as you want.
 
-> * Nicolas Pitre (nico@cam.org) wrote:
-> > That hasn't anything to do with "a macro is faster" at all.  It's all 
-> > about the order used to evaluate provided arguments.  And the first one 
-> > might be anything like a memory value, an IO operation, an expression, 
-> > etc.  An inline function would work correctly with pointers only and 
-> > therefore totally break apart on x86 for example.
-> > 
-> > 
-> > Nicolas
-> 
-> Let's see what it gives once implemented. Only compile-tested. Assumes
-> pxa, sa110 and mn10300 are all UP-only. Correct smp_rmb() are used for
-> arm versatile.
-> 
-> Turn cnt32_to_63 into an inline function.
-> Change all callers to new API.
-> Document barrier usage.
+As I've already stated several days ago, I think that's the right
+course of action.  Given all the concerns raised, it's clearly not
+something that should have been allowed to become generic.
 
-Look, I'm not interested at all into this mess.
+So, let's just close this discussion off by taking that course of
+action.
 
-The _WHOLE_ point of the cnt32_to_63 macro was to abstract and 
-encapsulate the subtlety of the algorithm.  It initially started as an 
-open coded implementation in PXA's sched_clock().  Then I was asked to 
-make it a macro that can be reused for other ARM platforms.  Then David 
-wanted to reuse it on other platforms than ARM.
+What's required is (in order):
+1. a local copy for NM10300 needs to be created and it converted to that
+2. these two commits then need to be reverted:
 
-Now you are simply destroying all the value of having that macro in the 
-first place.  The argument is that the macro could be misused because it 
-has a static variable inside it, etc. etc.  The solution: spread the 
-subtlety all around instead of keeping it into the macro and risk having 
-it wrong or broken due to future changes surrounding it in the future.  
-And it _will_ happen due to the increased exposure making the whole idea 
-even more fragile compared to having it concentrated in only one spot.  
-This is a total non sense and I can't believe you truly think your patch 
-makes things better...
+bc173c5789e1fc6065fd378edc815914b40ee86b
+b4f151ff899362fec952c45d166252c9912c041f
 
-You're even disabling preemption where it is really unneeded making the 
-whole thing about the double its initial cost.  Look at the generated 
-assembly and count the cycles if you don't believe me!
+Then our usage is again limited to sched_clock() which is well understood
+and known to be problem free.
 
-No thank you.  If this trend continues I'm going to make it back private 
-to ARM again so you could pessimize your own code as much as you want.
-
-NACK.
-
-
-Nicolas
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
