@@ -1,68 +1,28 @@
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+From: David Howells <dhowells@redhat.com>
 Subject: Re: [PATCH] convert cnt32_to_63 to inline
-Date: Tue, 11 Nov 2008 21:51:12 +0000
-Message-ID: <20081111215112.GB12739@flint.arm.linux.org.uk>
-References: <alpine.LFD.2.00.0811092304300.13034@xanadu.home> <20081109204256.89ab7925.akpm@linux-foundation.org> <alpine.LFD.2.00.0811101627510.13034@xanadu.home> <20081110135850.0d620f3c.akpm@linux-foundation.org> <alpine.LFD.2.00.0811101811130.13034@xanadu.home> <20081110152221.64948d23.akpm@linux-foundation.org> <alpine.LFD.2.00.0811101917450.13034@xanadu.home> <20081111182759.GA8052@Krystal> <20081111191355.GA13724@flint.arm.linux.org.uk> <20081111201130.GA10801@Krystal>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1752913AbYKKVxg@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20081111201130.GA10801@Krystal>
-Sender: linux-kernel-owner@vger.kernel.org
+Date: Tue, 11 Nov 2008 22:31:42 +0000
+Message-ID: <8896.1226442702@redhat.com>
+References: <20081111182759.GA8052@Krystal> <20081109064855.GA23782@Krystal> <alpine.LFD.2.00.0811090827160.13034@xanadu.home> <20081109162250.GB10181@Krystal> <alpine.LFD.2.00.0811092304300.13034@xanadu.home> <20081109204256.89ab7925.akpm@linux-foundation.org> <alpine.LFD.2.00.0811101627510.13034@xanadu.home> <20081110135850.0d620f3c.akpm@linux-foundation.org> <alpine.LFD.2.00.0811101811130.13034@xanadu.home> <20081110152221.64948d23.akpm@linux-foundation.org> <alpine.LFD.2.00.0811101917450.13034@xanadu.home>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.redhat.com ([66.187.237.31]:44046 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754570AbYKKWco (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 11 Nov 2008 17:32:44 -0500
+In-Reply-To: <20081111182759.GA8052@Krystal>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: Nicolas Pitre <nico@cam.org>, Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org, dhowells@redhat.com, mingo@elte.hu, a.p.zijlstra@chello.nl, linux-kernel@vger.kernel.org, ralf@linux-mips.org, benh@kernel.crashing.org, paulus@samba.org, davem@davemloft.net, mingo@redhat.com, tglx@linutronix.de, rostedt@goodmis.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: dhowells@redhat.com, Nicolas Pitre <nico@cam.org>, Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org, rmk+lkml@arm.linux.org.uk, mingo@elte.hu, a.p.zijlstra@chello.nl, linux-kernel@vger.kernel.org, ralf@linux-mips.org, benh@kernel.crashing.org, paulus@samba.org, davem@davemloft.net, mingo@redhat.com, tglx@linutronix.de, rostedt@goodmis.org, linux-arch@vger.kernel.org
 
-On Tue, Nov 11, 2008 at 03:11:30PM -0500, Mathieu Desnoyers wrote:
-> I think the added barrier() are causing these pipeline stalls. They
-> don't allow the compiler to read variables such as oscr2ns_scale before
-> the barrier because gcc cannot assume it won't be modified. However, to
-> insure that OSCR read is done after __m_cnt_hi read, this barrier seems
-> required to be safe against gcc optimizations.
-> 
-> Have you compared my patch to Nicolas'patch, which adds a smp_rmb() in
-> the macro or to a vanilla tree ?
+Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca> wrote:
 
-Nicolas' patch compared to unmodified - there's less side effects,
-which come down to two pipeline stalls whereas we had none with
-the unmodified code.
+> @@ -52,18 +57,22 @@ unsigned long long sched_clock(void)
+> ...
+> +	preempt_disable_notrace();
 
-One pipeline stall for loading the address of __m_cnt_hi and reading
-its value, followed by the same thing for oscr2ns_scale.
+Please, no!  sched_clock() is called with preemption or interrupts disabled
+everywhere except from some debugging code (lock tracing IIRC).  If you need
+to insert this preemption disablement somewhere, please insert it there.  At
+least then sched_clock() will be called consistently.
 
-I think this is showing the problem of compiler barriers - they are
-indescriminate.  They are total and complete barriers - not only do
-they act on the data but also the compilers ability to emit code for
-generating the addresses of the data to be loaded.
-
-Clearly, the address of OSCR, __m_cnt_hi nor oscr2ns_scale is ever
-going to change at run time - their addresses are all stored in the
-literal pool, but by putting compiler barriers in, the compiler is
-being prevented from reading from the literal pool at the most
-appropriate point.
-
-So, I've tried this:
-
- unsigned long long sched_clock(void)
- {
-+       unsigned long *oscr2ns_ptr = &oscr2ns_scale;
-        unsigned long long v = cnt32_to_63(OSCR);
--       return (v * oscr2ns_scale) >> OSCR2NS_SCALE_FACTOR;
-+       return (v * *oscr2ns_ptr) >> OSCR2NS_SCALE_FACTOR;
- }
-
-to try to explicitly code the loads.  This unfortunately results in
-three pipeline stalls.  Also tried swapping the two lines starting
-'unsigned long' without any improvement on not having those extra hacks
-to work around the barrier.
-
-So, let's summarise this:
-
-1. the existing code works, is correct on ARM, and is efficient.
-2. throwing barriers into the function makes it less efficient.
-3. re-engineering the code appears to make things worse.
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+David
