@@ -1,48 +1,57 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: PCIBIOS_MIN_IO/MEM problem
-Date: Tue, 11 Nov 2008 15:56:55 +1100
-Message-ID: <1226379415.7530.94.camel@pasglop>
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH 1/1] edac x38: new MC driver module
+Date: Tue, 11 Nov 2008 15:11:40 +0900
+Message-ID: <20081111061140.GB32733@linux-sh.org>
+References: <20081105222911.d76e7e1c.mitake@clustcom.com> <413709.12821.qm@web50106.mail.re2.yahoo.com> <20081106164641.ed369060.akpm@linux-foundation.org> <20081107152830.a42766f3.mitake@clustcom.com> <20081106223122.8a255211.akpm@linux-foundation.org> <20081107153824.0ec934e6.mitake@clustcom.com> <20081106231102.aab83cd4.akpm@linux-foundation.org> <a6b9f31a0811090710y17e956bawf20675d6678b145e@mail.gmail.com> <20081109112646.97c594b5.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:54827 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753154AbYKKFpM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 Nov 2008 00:45:12 -0500
+Received: from mta23.gyao.ne.jp ([125.63.38.249]:51945 "EHLO mx.gate01.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751111AbYKKGMi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 11 Nov 2008 01:12:38 -0500
+Content-Disposition: inline
+In-Reply-To: <20081109112646.97c594b5.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-pci <linux-pci@vger.kernel.org>
-Cc: Jesse Barnes <jesse.barnes@intel.com>, Linux Arch list <linux-arch@vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Hitoshi Mitake <h.mitake@gmail.com>, Hitoshi Mitake <mitake@clustcom.com>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, ktaka@clustcom.com, linux-arch@vger.kernel.org
 
-Hi !
+On Sun, Nov 09, 2008 at 11:26:46AM -0800, Andrew Morton wrote:
+> (cc linux-arch)
+> 
+> > It seems that architectures that provide readq/writeq are
+> > mips, parisc and x86 (and x86_64).
+> > 
+There are more than that, grep arch/*/include also.
 
-I have a problem on platforms with multiple PCI domains and allocating
-resources.
+In addition to mips, parisc, and x86, there is ia64, alpha, sh, and
+sparc.
 
-The mechanism of having the arch set PCIBIOS_MIN_IO and PCIBIOS_MIN_MEM
-to avoid allocating things over the legacy areas among other things
-doesn't work well for us.
+> #ifdef readq
+> 
+> Is a suitable way of determining whether the architecture implements
+> readq and writeq.  It isn't pretty, but it will suffice.
+> 
+> A problem with it is that drivers will then do
+> 
+> #ifndef readq
+> <provide a local implementation here>
+> #endif
+> 
+> which rather sucks - we don't want lots of little private readq/writeq
+> implementations all over the tree.
+> 
+> Perhaps it would be better to have a CONFIG_ARCH_HAS_READQ and to then
+> disable these drivers on the architectures which don't provide
+> readq/writeq support.
+> 
+However this is handled, we don't want a rehash of the read/writes{b,w,l} fiasco.
 
-The reason is that on platforms where resource addresses are remapped
-because the PCI bus isn't mapped 1:1, the values of the ranges we try
-to avoid (typically 0...4K for IO space and legacy VGA memory) is
-different from one domain to the next.
+Allowing drivers to do their own local implementations of these things
+has always been a complete disaster. A Kconfig option will at least take
+care of having these craptastic ifdef lists for architectures in every
+driver that rolls its own implementation.
 
-Right now, I'm doing a workaround for .28 that will reserve those
-regions on some platforms before the allocation occurs, but it's a bit
-fishy, especially it gives strange results when using things like legacy
-IDE PCI cards that really want to allocate in those areas.
-
-Ideally, we would need to pass the pci_bus pointer to those macros.
-
-Thus, is there any objection to me replacing those accross the board
-with something like that ?
-
-	resource_size_t pcibios_min_assign_io(struct pci_bus *bus)
-	resource_size_t pcibios_min_assign_mem(struct pci_bus *bus)
-
-Please holler if you have objections before I start fixing everybody :-)
-
-Cheers,
-Ben.
+Even a sub-optimal asm-generic version would be preferable, if the
+semantics are well enough defined and consistently adhered to.
