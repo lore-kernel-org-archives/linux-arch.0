@@ -1,64 +1,48 @@
-From: Nicolas Pitre <nico@cam.org>
-Subject: Re: [PATCH v2] clarify usage expectations for cnt32_to_63()
-Date: Mon, 10 Nov 2008 19:26:36 -0500 (EST)
-Message-ID: <alpine.LFD.2.00.0811101917450.13034@xanadu.home>
-References: <9405.1226101315@redhat.com>
- <20081108001555.GE18378@flint.arm.linux.org.uk>
- <alpine.LFD.2.00.0811080939180.13034@xanadu.home>
- <alpine.LFD.2.00.0811081746060.13034@xanadu.home>
- <20081109022549.GA18508@Krystal>
- <alpine.LFD.2.00.0811082143320.13034@xanadu.home>
- <alpine.LFD.2.00.0811082356090.13034@xanadu.home>
- <alpine.LFD.2.00.0811090015570.13034@xanadu.home>
- <20081109064855.GA23782@Krystal>
- <alpine.LFD.2.00.0811090827160.13034@xanadu.home>
- <20081109162250.GB10181@Krystal>
- <alpine.LFD.2.00.0811092304300.13034@xanadu.home>
- <20081109204256.89ab7925.akpm@linux-foundation.org>
- <alpine.LFD.2.00.0811101627510.13034@xanadu.home>
- <20081110135850.0d620f3c.akpm@linux-foundation.org>
- <alpine.LFD.2.00.0811101811130.13034@xanadu.home>
- <20081110152221.64948d23.akpm@linux-foundation.org>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: PCIBIOS_MIN_IO/MEM problem
+Date: Tue, 11 Nov 2008 15:56:55 +1100
+Message-ID: <1226379415.7530.94.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:39600 "EHLO
-	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751286AbYKKA07 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Nov 2008 19:26:59 -0500
-In-reply-to: <20081110152221.64948d23.akpm@linux-foundation.org>
+Received: from gate.crashing.org ([63.228.1.57]:54827 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753154AbYKKFpM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 11 Nov 2008 00:45:12 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: mathieu.desnoyers@polymtl.ca, torvalds@linux-foundation.org, rmk+lkml@arm.linux.org.uk, dhowells@redhat.com, mingo@elte.hu, a.p.zijlstra@chello.nl, linux-kernel@vger.kernel.org, ralf@linux-mips.org, benh@kernel.crashing.org, paulus@samba.org, davem@davemloft.net, mingo@redhat.com, tglx@linutronix.de, rostedt@goodmis.org, linux-arch@vger.kernel.org
+To: linux-pci <linux-pci@vger.kernel.org>
+Cc: Jesse Barnes <jesse.barnes@intel.com>, Linux Arch list <linux-arch@vger.kernel.org>
 
-On Mon, 10 Nov 2008, Andrew Morton wrote:
+Hi !
 
-> On Mon, 10 Nov 2008 18:15:32 -0500 (EST)
-> Nicolas Pitre <nico@cam.org> wrote:
-> 
-> > On Mon, 10 Nov 2008, Andrew Morton wrote:
-> > 
-> > > This references its second argument twice, which can cause correctness
-> > > or efficiency problems.
-> > > 
-> > > There is no reason that this had to be implemented in cpp. 
-> > > Implementing it in C will fix the above problem.
-> > 
-> > No, it won't, for correctness and efficiency reasons.
-> > 
-> > And I've explained why already.
-> 
-> I'd be very surprised if you've really found a case where a macro is
-> faster than an inlined function.  I don't think that has happened
-> before.
+I have a problem on platforms with multiple PCI domains and allocating
+resources.
 
-That hasn't anything to do with "a macro is faster" at all.  It's all 
-about the order used to evaluate provided arguments.  And the first one 
-might be anything like a memory value, an IO operation, an expression, 
-etc.  An inline function would work correctly with pointers only and 
-therefore totally break apart on x86 for example.
+The mechanism of having the arch set PCIBIOS_MIN_IO and PCIBIOS_MIN_MEM
+to avoid allocating things over the legacy areas among other things
+doesn't work well for us.
 
+The reason is that on platforms where resource addresses are remapped
+because the PCI bus isn't mapped 1:1, the values of the ranges we try
+to avoid (typically 0...4K for IO space and legacy VGA memory) is
+different from one domain to the next.
 
-Nicolas
+Right now, I'm doing a workaround for .28 that will reserve those
+regions on some platforms before the allocation occurs, but it's a bit
+fishy, especially it gives strange results when using things like legacy
+IDE PCI cards that really want to allocate in those areas.
+
+Ideally, we would need to pass the pci_bus pointer to those macros.
+
+Thus, is there any objection to me replacing those accross the board
+with something like that ?
+
+	resource_size_t pcibios_min_assign_io(struct pci_bus *bus)
+	resource_size_t pcibios_min_assign_mem(struct pci_bus *bus)
+
+Please holler if you have objections before I start fixing everybody :-)
+
+Cheers,
+Ben.
