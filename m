@@ -1,90 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:48454 "EHLO smtp.polymtl.ca"
+Received: from mga09.intel.com ([134.134.136.24]:11670 "EHLO mga09.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752880AbYKLXeE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 Nov 2008 18:34:04 -0500
-Message-Id: <20081112232259.696466804@polymtl.ca>
-References: <20081112231551.473569400@polymtl.ca>
-Date: Wed, 12 Nov 2008 18:16:00 -0500
-From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 09/17] Sparc64 : Trace clock
-Content-Disposition: inline; filename=sparc64-trace-clock.patch
+	id S1751192AbYKMTdD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 13 Nov 2008 14:33:03 -0500
+From: Jesse Barnes <jesse.barnes@intel.com>
+Subject: Re: PCIBIOS_MIN_IO/MEM problem
+Date: Thu, 13 Nov 2008 11:33:00 -0800
+References: <1226379415.7530.94.camel@pasglop>
+In-Reply-To: <1226379415.7530.94.camel@pasglop>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-ID: <200811131133.00880.jesse.barnes@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: linux-pci <linux-pci@vger.kernel.org>, Linux Arch list <linux-arch@vger.kernel.org>
+Message-ID: <20081113193300.74lVY2N8xcGRATucbyVZJnHsjaGx2MiDGJ_H9LJFQdk@z>
 
-Implement sparc64 trace clock.
+On Monday, November 10, 2008 8:56 pm Benjamin Herrenschmidt wrote:
+> Hi !
+>
+> I have a problem on platforms with multiple PCI domains and allocating
+> resources.
+>
+> The mechanism of having the arch set PCIBIOS_MIN_IO and PCIBIOS_MIN_MEM
+> to avoid allocating things over the legacy areas among other things
+> doesn't work well for us.
+>
+> The reason is that on platforms where resource addresses are remapped
+> because the PCI bus isn't mapped 1:1, the values of the ranges we try
+> to avoid (typically 0...4K for IO space and legacy VGA memory) is
+> different from one domain to the next.
+>
+> Right now, I'm doing a workaround for .28 that will reserve those
+> regions on some platforms before the allocation occurs, but it's a bit
+> fishy, especially it gives strange results when using things like legacy
+> IDE PCI cards that really want to allocate in those areas.
+>
+> Ideally, we would need to pass the pci_bus pointer to those macros.
+>
+> Thus, is there any objection to me replacing those accross the board
+> with something like that ?
+>
+> 	resource_size_t pcibios_min_assign_io(struct pci_bus *bus)
+> 	resource_size_t pcibios_min_assign_mem(struct pci_bus *bus)
+>
+> Please holler if you have objections before I start fixing everybody :-)
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Acked-by: David S. Miller <davem@davemloft.net>
-CC: linux-arch@vger.kernel.org
----
- arch/sparc/include/asm/trace-clock.h |   43 +++++++++++++++++++++++++++++++++++
- arch/sparc64/Kconfig                 |    1 
- 2 files changed, 44 insertions(+)
+Ah yeah, having per-bus ranges makes sense.  No objections here.
 
-Index: linux.trees.git/arch/sparc64/Kconfig
-===================================================================
---- linux.trees.git.orig/arch/sparc64/Kconfig	2008-11-12 18:00:04.000000000 -0500
-+++ linux.trees.git/arch/sparc64/Kconfig	2008-11-12 18:01:51.000000000 -0500
-@@ -18,6 +18,7 @@ config SPARC64
- 	select HAVE_ARCH_KGDB
- 	select USE_GENERIC_SMP_HELPERS if SMP
- 	select HAVE_ARCH_TRACEHOOK
-+	select HAVE_TRACE_CLOCK
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
- 	select RTC_CLASS
- 	select RTC_DRV_M48T59
-Index: linux.trees.git/arch/sparc/include/asm/trace-clock.h
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux.trees.git/arch/sparc/include/asm/trace-clock.h	2008-11-12 18:01:27.000000000 -0500
-@@ -0,0 +1,43 @@
-+/*
-+ * Copyright (C) 2008, Mathieu Desnoyers
-+ *
-+ * Trace clock definitions for Sparc64.
-+ */
-+
-+#ifndef _ASM_SPARC_TRACE_CLOCK_H
-+#define _ASM_SPARC_TRACE_CLOCK_H
-+
-+#include <linux/timex.h>
-+
-+static inline u32 trace_clock_read32(void)
-+{
-+	return get_cycles();
-+}
-+
-+static inline u64 trace_clock_read64(void)
-+{
-+	return get_cycles();
-+}
-+
-+static inline unsigned int trace_clock_frequency(void)
-+{
-+	return get_cycles_rate();
-+}
-+
-+static inline u32 trace_clock_freq_scale(void)
-+{
-+	return 1;
-+}
-+
-+static inline void get_trace_clock(void)
-+{
-+}
-+
-+static inline void put_trace_clock(void)
-+{
-+}
-+
-+static inline void set_trace_clock_is_sync(int state)
-+{
-+}
-+#endif /* _ASM_SPARC_TRACE_CLOCK_H */
-
--- 
-Mathieu Desnoyers
-OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
+Thanks,
+Jesse
