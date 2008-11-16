@@ -1,64 +1,52 @@
-From: Arjan van de Ven <arjan@infradead.org>
+From: Alexey Dobriyan <adobriyan@gmail.com>
 Subject: Re: [PATCH 2/2] Add dev.mem.restricted sysctl
-Date: Sun, 16 Nov 2008 01:36:20 -0800
-Message-ID: <20081116013620.5564de1e@infradead.org>
-References: <1226793823-32360-1-git-send-email-bwalle@suse.de>
-	<1226793823-32360-3-git-send-email-bwalle@suse.de>
-	<20081115194914.6791b96c@infradead.org>
-	<20081116103005.72a28833@kopernikus.site>
+Date: Sun, 16 Nov 2008 13:13:18 +0300
+Message-ID: <20081116101318.GA31541@x200.localdomain>
+References: <1226793823-32360-1-git-send-email-bwalle@suse.de> <1226793823-32360-3-git-send-email-bwalle@suse.de> <20081116003327.GA2405@x200.localdomain> <20081116102843.35658969@kopernikus.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:36040 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751618AbYKPJfh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Nov 2008 04:35:37 -0500
-In-Reply-To: <20081116103005.72a28833@kopernikus.site>
+Received: from ug-out-1314.google.com ([66.249.92.168]:42535 "EHLO
+	ug-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751626AbYKPKJo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Nov 2008 05:09:44 -0500
+Received: by ug-out-1314.google.com with SMTP id 39so203356ugf.37
+        for <linux-arch@vger.kernel.org>; Sun, 16 Nov 2008 02:09:42 -0800 (PST)
+Content-Disposition: inline
+In-Reply-To: <20081116102843.35658969@kopernikus.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bernhard Walle <bwalle@suse.de>
 Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Sun, 16 Nov 2008 10:30:05 +0100
-Bernhard Walle <bwalle@suse.de> wrote:
-
-> * Arjan van de Ven [2008-11-15 19:49]:
+On Sun, Nov 16, 2008 at 10:28:43AM +0100, Bernhard Walle wrote:
+> * Alexey Dobriyan [2008-11-16 03:33]:
 > >
-> > On Sun, 16 Nov 2008 01:03:43 +0100
-> > Bernhard Walle <bwalle@suse.de> wrote:
+> > On Sun, Nov 16, 2008 at 01:03:43AM +0100, Bernhard Walle wrote:
+> > > --- a/include/linux/sysctl.h
+> > > +++ b/include/linux/sysctl.h
+> > > @@ -858,6 +858,7 @@ enum {
+> > >  	DEV_MAC_HID=5,
+> > >  	DEV_SCSI=6,
+> > >  	DEV_IPMI=7,
+> > > +	DEV_MEM=8,
+> > >  };
+> > >  
+> > >  /* /proc/sys/dev/cdrom */
+> > > @@ -875,6 +876,11 @@ enum {
+> > >  	DEV_PARPORT_DEFAULT=-3
+> > >  };
+> > >  
+> > > +/* /proc/sys/dev/mem */
+> > > +enum {
+> > > +    DEV_MEM_RESTRICTED=1,
+> > > +};
 > > 
-> > > When CONFIG_STRICT_DEVMEM is set, live debugging is not possible
-> > > with the crash utility (see http://people.redhat.com/~anderson).
-> > > For distributors who ship a generic kernel it's difficult:
-> > > Disabling CONFIG_STRICT_DEVMEM is possible, but in general the
-> > > protection provided by CONFIG_STRICT_DEVMEM is useful. However,
-> > > live debugging should be still neceessary.
-> > > 
-> > > This patch now adds a dev.mem.restricted sysctl that defaults to 0
-> > > (off). When set to 1 (on), /dev/mem access is unrestricted and
-> > > crash can be used.
-> > 
-> > sounds like a really bad idea to me.
-> > If you want to use /dev/mem like this, don't enable the config
-> > option to restrict it. Really.
+> > No new binary sysctls please.
 > 
-> So, what's that restriction really for? 
+> Why is that sysctl binary? It's just an integer.
 
-It's for not allowing something that you don't need, if you 
-know you don't need it. Least privilege and all that.
-(so that selinux can give X access to devices but not to all of memory.
-I know Alan mentioned DMA but that's also a choice, a lot of the systems
-on the market for the last year or two have an IOMMU that you can use
-etc)
- 
-But if you do need it, then you do need it, simple as that.
+It's a name for sysctls accessible via sysctl(2).
 
-(that leave the entire fun question of cache attributes but thats' a
-whole different animal)
-
- 
--- 
-Arjan van de Ven 	Intel Open Source Technology Centre
-For development, discussion and tips for power savings, 
-visit http://www.lesswatts.org
+Please, if you're adding sysctl, supply only .procname and make it accessible
+only via /proc/sys/.
