@@ -1,52 +1,86 @@
-From: Alexey Dobriyan <adobriyan@gmail.com>
-Subject: Re: [PATCH 2/2] Add dev.mem.restricted sysctl
-Date: Sun, 16 Nov 2008 13:13:18 +0300
-Message-ID: <20081116101318.GA31541@x200.localdomain>
-References: <1226793823-32360-1-git-send-email-bwalle@suse.de> <1226793823-32360-3-git-send-email-bwalle@suse.de> <20081116003327.GA2405@x200.localdomain> <20081116102843.35658969@kopernikus.site>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Bernhard Walle <bwalle@suse.de>
+Subject: [PATCH 1/3] Unify devmem_is_allowed across architectures
+Date: Sun, 16 Nov 2008 15:47:46 +0100
+Message-ID: <1226846868-9595-2-git-send-email-bwalle@suse.de>
+References: <1226846868-9595-1-git-send-email-bwalle@suse.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ug-out-1314.google.com ([66.249.92.168]:42535 "EHLO
-	ug-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751626AbYKPKJo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Nov 2008 05:09:44 -0500
-Received: by ug-out-1314.google.com with SMTP id 39so203356ugf.37
-        for <linux-arch@vger.kernel.org>; Sun, 16 Nov 2008 02:09:42 -0800 (PST)
-Content-Disposition: inline
-In-Reply-To: <20081116102843.35658969@kopernikus.site>
+Received: from cantor.suse.de ([195.135.220.2]:44826 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751727AbYKPOrv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 16 Nov 2008 09:47:51 -0500
+In-Reply-To: <1226846868-9595-1-git-send-email-bwalle@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bernhard Walle <bwalle@suse.de>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, crash-utility@redhat.com, Bernhard Walle <bwalle@suse.de>
 
-On Sun, Nov 16, 2008 at 10:28:43AM +0100, Bernhard Walle wrote:
-> * Alexey Dobriyan [2008-11-16 03:33]:
-> >
-> > On Sun, Nov 16, 2008 at 01:03:43AM +0100, Bernhard Walle wrote:
-> > > --- a/include/linux/sysctl.h
-> > > +++ b/include/linux/sysctl.h
-> > > @@ -858,6 +858,7 @@ enum {
-> > >  	DEV_MAC_HID=5,
-> > >  	DEV_SCSI=6,
-> > >  	DEV_IPMI=7,
-> > > +	DEV_MEM=8,
-> > >  };
-> > >  
-> > >  /* /proc/sys/dev/cdrom */
-> > > @@ -875,6 +876,11 @@ enum {
-> > >  	DEV_PARPORT_DEFAULT=-3
-> > >  };
-> > >  
-> > > +/* /proc/sys/dev/mem */
-> > > +enum {
-> > > +    DEV_MEM_RESTRICTED=1,
-> > > +};
-> > 
-> > No new binary sysctls please.
-> 
-> Why is that sysctl binary? It's just an integer.
+This patch unifies devmem_is_allowed() across different architectures.
+It removes the devmem_is_allowed 1 defines from m32r and frv and
+adds a generic fallback implementation to <asm-generic/page.h>.
 
-It's a name for sysctls accessible via sysctl(2).
+Architecutes can define their version and define __HAVE_ARCH_RANGE_IS_ALLOWED.
 
-Please, if you're adding sysctl, supply only .procname and make it accessible
-only via /proc/sys/.
+
+Signed-off-by: Bernhard Walle <bwalle@suse.de>
+---
+ arch/x86/include/asm/page.h |    1 +
+ include/asm-frv/page.h      |    2 --
+ include/asm-generic/page.h  |    4 ++++
+ include/asm-m32r/page.h     |    2 --
+ 4 files changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/arch/x86/include/asm/page.h b/arch/x86/include/asm/page.h
+index e9873a2..b768401 100644
+--- a/arch/x86/include/asm/page.h
++++ b/arch/x86/include/asm/page.h
+@@ -63,6 +63,7 @@ extern void map_devmem(unsigned long pfn, unsigned long size,
+ 		       pgprot_t vma_prot);
+ extern void unmap_devmem(unsigned long pfn, unsigned long size,
+ 			 pgprot_t vma_prot);
++#define __HAVE_ARCH_RANGE_IS_ALLOWED 1
+ 
+ extern unsigned long max_low_pfn_mapped;
+ extern unsigned long max_pfn_mapped;
+diff --git a/include/asm-frv/page.h b/include/asm-frv/page.h
+index bd9c220..bc2c835 100644
+--- a/include/asm-frv/page.h
++++ b/include/asm-frv/page.h
+@@ -40,8 +40,6 @@ typedef struct page *pgtable_t;
+ #define __pgprot(x)	((pgprot_t) { (x) } )
+ #define PTE_MASK	PAGE_MASK
+ 
+-#define devmem_is_allowed(pfn)	1
+-
+ #define __pa(vaddr)		virt_to_phys((void *) (unsigned long) (vaddr))
+ #define __va(paddr)		phys_to_virt((unsigned long) (paddr))
+ 
+diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
+index 14db733..cde4ceb 100644
+--- a/include/asm-generic/page.h
++++ b/include/asm-generic/page.h
+@@ -19,6 +19,10 @@ static __inline__ __attribute_const__ int get_order(unsigned long size)
+ 	return order;
+ }
+ 
++#ifndef __HAVE_ARCH_RANGE_IS_ALLOWED
++#define devmem_is_allowed(pfn)	1
++#endif
++
+ #endif	/* __ASSEMBLY__ */
+ 
+ #endif	/* _ASM_GENERIC_PAGE_H */
+diff --git a/include/asm-m32r/page.h b/include/asm-m32r/page.h
+index c933308..89d6b10 100644
+--- a/include/asm-m32r/page.h
++++ b/include/asm-m32r/page.h
+@@ -79,8 +79,6 @@ typedef struct page *pgtable_t;
+ #define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
+ 				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC )
+ 
+-#define devmem_is_allowed(x) 1
+-
+ #include <asm-generic/memory_model.h>
+ #include <asm-generic/page.h>
+ 
+-- 
+1.6.0.4
