@@ -1,56 +1,56 @@
-From: Arjan van de Ven <arjan@infradead.org>
-Subject: Re: Turn CONFIG_STRICT_DEVMEM in sysctl dev.mem.restricted
-Date: Sun, 16 Nov 2008 08:06:41 -0800
-Message-ID: <20081116080641.3f4c3dba@infradead.org>
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Subject: Re: Turn CONFIG_STRICT_DEVMEM in sysctl
+	dev.mem.restricted
+Date: Sun, 16 Nov 2008 16:09:05 +0000
+Message-ID: <20081116160905.17e867da@lxorguk.ukuu.org.uk>
 References: <1226846868-9595-1-git-send-email-bwalle@suse.de>
-	<20081116073948.02aea58c@infradead.org>
-	<20081116165609.4f17fc10@kopernikus.site>
+	<20081116150756.3cece2de@lxorguk.ukuu.org.uk>
+	<20081116162003.04267538@kopernikus.site>
+	<20081116154541.1f196f1e@lxorguk.ukuu.org.uk>
+	<20081116080342.3d6c6976@infradead.org>
+Reply-To: "Discussion list for crash utility usage,
+	maintenance and development" <crash-utility@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:57624 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751910AbYKPQF7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Nov 2008 11:05:59 -0500
-In-Reply-To: <20081116165609.4f17fc10@kopernikus.site>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Bernhard Walle <bwalle@suse.de>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, crash-utility@redhat.com
+Return-path: <crash-utility-bounces@redhat.com>
+In-Reply-To: <20081116080342.3d6c6976@infradead.org>
+List-Unsubscribe: <https://www.redhat.com/mailman/listinfo/crash-utility>,
+	<mailto:crash-utility-request@redhat.com?subject=unsubscribe>
+List-Archive: <https://www.redhat.com/archives/crash-utility>
+List-Post: <mailto:crash-utility@redhat.com>
+List-Help: <mailto:crash-utility-request@redhat.com?subject=help>
+List-Subscribe: <https://www.redhat.com/mailman/listinfo/crash-utility>,
+	<mailto:crash-utility-request@redhat.com?subject=subscribe>
+Sender: crash-utility-bounces@redhat.com
+Errors-To: crash-utility-bounces@redhat.com
+To: Arjan van de Ven <arjan@infradead.org>
+Cc: linux-arch@vger.kernel.org, Bernhard Walle <bwalle@suse.de>, x86@kernel.org, linux-kernel@vger.kernel.org, crash-utility@redhat.com
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, 16 Nov 2008 16:56:09 +0100
-Bernhard Walle <bwalle@suse.de> wrote:
+> because it can load kernel modules?
+> or because it can bypass the iommu?
 
-> > > While the original submission of CONFIG_STRICT_DEVMEM mentions
-> > > that the option has been in RHEL and Fedora for 4 years without
-> > > problems, that's only a half of the story. The truth is that at
-> > > least RHEL has /dev/crash exactly to circumvent that /dev/mem
-> > > restriction. Don't tell me that this is better than having that
-> > > sysctl entry. ;-)
+It has iopl, firmware loading, ioperm, raw disk I/O, mknod, module loading
+etc etc.. 
+
+> the point of the /dev/mem restrictions is to not allow things you know
+> you don't need, while still allowing X to function where it can access
+> the crap it does. Now in Bernhard's case he DOES need them, so he
+> shouldn't use the restrictions.
+
+I know what the point is, but it doesn't actually implement any
+meaningful restriction to achieve that result, so it is worthless junk.
+
+> > There are proper ways to deal with X, modern video cards and modern
+> > security models. They involve using framebuffer mappings off the PCI
+> > device node itself and DRI.
 > > 
-> > I assume /dev/crash is read only
-> 
-> I don't know. But if that matters, why can't we make /dev/mem
-> write-only for certain areas and read-only for the rest ...?
-> 
-> > You either want this at compile time or you don't want it at all.
-> 
-> Why? You don't write something about my arguments (as Alan does, even
-> though I disagree), you only write that you "nak" it.
+> when X has this for all hw that matters /dev/mem could go away for the
+> people who then no longer have any need for it.
 
-It's very simple: if you want the strict form you really want the
-strict form, not some half "oh but it's one line to turn off" form.
+Why should it go away ? It's a matter of file permissions and security
+rules as to who can access it. Trying to make it go away is just more
+fake-security crap.
 
-
-(Note: your usecase is in trouble in general already with PAT used by
-modern video drivers: the requirement is that all mappings of the same
-physical page are mapped with the same cachability semantics. mmaping
-random parts of physical real memory via /dev/mem makes that a way too
-complex issue and will likely turn the crash utility in what it's name
-says ;-)
-
--- 
-Arjan van de Ven 	Intel Open Source Technology Centre
-For development, discussion and tips for power savings, 
-visit http://www.lesswatts.org
+Alan
