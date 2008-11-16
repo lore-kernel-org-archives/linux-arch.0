@@ -1,74 +1,34 @@
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: Turn CONFIG_STRICT_DEVMEM in sysctl
-	dev.mem.restricted
-Date: Sun, 16 Nov 2008 17:03:06 +0000
-Message-ID: <20081116170306.5b3bc30a@lxorguk.ukuu.org.uk>
-References: <1226846868-9595-1-git-send-email-bwalle@suse.de>
-	<20081116150756.3cece2de@lxorguk.ukuu.org.uk>
-	<20081116162003.04267538@kopernikus.site>
-	<20081116154541.1f196f1e@lxorguk.ukuu.org.uk>
-	<20081116171139.0456b1b2@kopernikus.site>
-Reply-To: "Discussion list for crash utility usage,
-	maintenance and development" <crash-utility@redhat.com>
+From: "H. Peter Anvin" <hpa@kernel.org>
+Subject: Re: Turn CONFIG_STRICT_DEVMEM in sysctl dev.mem.restricted
+Date: Sun, 16 Nov 2008 12:32:46 -0800
+Message-ID: <4920836E.1080803@kernel.org>
+References: <1226846868-9595-1-git-send-email-bwalle@suse.de> <20081116073948.02aea58c@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <crash-utility-bounces@redhat.com>
-In-Reply-To: <20081116171139.0456b1b2@kopernikus.site>
-List-Unsubscribe: <https://www.redhat.com/mailman/listinfo/crash-utility>,
-	<mailto:crash-utility-request@redhat.com?subject=unsubscribe>
-List-Archive: <https://www.redhat.com/archives/crash-utility>
-List-Post: <mailto:crash-utility@redhat.com>
-List-Help: <mailto:crash-utility-request@redhat.com?subject=help>
-List-Subscribe: <https://www.redhat.com/mailman/listinfo/crash-utility>,
-	<mailto:crash-utility-request@redhat.com?subject=subscribe>
-Sender: crash-utility-bounces@redhat.com
-Errors-To: crash-utility-bounces@redhat.com
-To: Bernhard Walle <bwalle@suse.de>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, crash-utility@redhat.com
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:46340 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752287AbYKPUgX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Nov 2008 15:36:23 -0500
+In-Reply-To: <20081116073948.02aea58c@infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arjan van de Ven <arjan@infradead.org>
+Cc: Bernhard Walle <bwalle@suse.de>, x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, crash-utility@redhat.com
 
-> > Which also doesn't explain what this turd is for.
+Arjan van de Ven wrote:
 > 
-> Could we discuss more factual without words like "turd", please?
-
-What else would you have me call it. It's junk.
-
-> > The functionality provided by STRICT_DEVMEM is the same with it on or off
-> > - absolutely *nothing*.
+> I assume /dev/crash is read only
 > 
-> Even with SELinux?
-
-As far as I can tell yes, and certainly with vendor shipped rulesets.
-
-> > does compile it *out* and the overhead is gone totally for the many
-> > embedded and other devices that don't use it.
+> but your series still makes absolutely no sense to me...
+> really. Nak.
 > 
-> For SELinux, yes. 
-
-And for strict devmem but only before your patch.
-
-> Oh well, I don't tell it our legal people if you would write SuSE
-> instead of SUSE. Even not S.u.S.E. ;-)
-
-Hehe ;)
-
-> Well, if you let the CONFIG option there and only add the sysfs entry
-> it does not. Even most embedded stuff is not x86.
-
-These days a large amount of embedded is x86 and this is growing.
-
-> > Even if you want to turd polish there are cleaner solutions. A process
-> > with CAP_SYS_RAWIO can cheerfully bypass any restriction you try and
-> > place so you could rip out all the sysctl crap and just say that
-> > the /dev/mem restriction doesn't apply to a CAP_SYS_RAWIO process.
+> You either want this at compile time or you don't want it at all.
 > 
-> According to Arjan that does not work.
 
-According to me CONFIG_STRICT_DEVMEM does not work either. Looking at the
-X code most of it now tries really hard to use the right device files and
-accesses. The window that is left is primarily the old ISA VGA hole and
-even that could better be solved with a /dev/vgamem or similar that X
-could use rather than /dev/mem.
+You could certainly envision this as a boottime option, or even a
+*one-way* settable runtime option (kind of like the BSD securelevel
+idea.)  The question is to which extent even that makes any sense.
 
-Alan
+	-hpa
