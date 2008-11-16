@@ -1,202 +1,40 @@
-From: Bernhard Walle <bwalle@suse.de>
-Subject: [PATCH 2/3] Add dev.mem.restricted sysctl
-Date: Sun, 16 Nov 2008 15:47:47 +0100
-Message-ID: <1226846868-9595-3-git-send-email-bwalle@suse.de>
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Subject: Re: Turn CONFIG_STRICT_DEVMEM in sysctl dev.mem.restricted
+Date: Sun, 16 Nov 2008 15:07:56 +0000
+Message-ID: <20081116150756.3cece2de@lxorguk.ukuu.org.uk>
 References: <1226846868-9595-1-git-send-email-bwalle@suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.suse.de ([195.135.220.2]:44829 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751918AbYKPOrw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 16 Nov 2008 09:47:52 -0500
+Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:51835 "EHLO
+	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752179AbYKPPIW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Nov 2008 10:08:22 -0500
 In-Reply-To: <1226846868-9595-1-git-send-email-bwalle@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, crash-utility@redhat.com, Bernhard Walle <bwalle@suse.de>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, crash-utility@redhat.com, Bernhard Walle <bwalle@suse.de>
 
-When CONFIG_STRICT_DEVMEM is set, live debugging is not possible with the
-crash utility (see http://people.redhat.com/~anderson). For distributors
-who ship a generic kernel it's difficult: Disabling CONFIG_STRICT_DEVMEM
-is possible, but in general the protection provided by CONFIG_STRICT_DEVMEM
-is useful. However, live debugging should be still neceessary.
+> The protection in the general case and the ability to do live debugging.
 
-This patch now adds a dev.mem.restricted sysctl that defaults to 0 (off).
-When set to 1 (on), /dev/mem access is unrestricted and crash can be used.
+What protection. You've completely failed to explain or provide a single
+example of any protection provided by the STRICT_DEVMEM code.
 
-From a security point of view the sysctl should be no problem. It's already
-possible to circumvent that restriction if you have root access by loading
-a kernel module that installs a kretprobe that returns 1 for the check function.
+> only a half of the story. The truth is that at least RHEL has /dev/crash
+> exactly to circumvent that /dev/mem restriction. Don't tell me that this
+> is better than having that sysctl entry. ;-)
 
-I thought of a command line parameter first, but we already have lots of
-command line parameters and rebooting the machine is more difficult than
-just setting a sysctl to 1. It may be possible to implement setting that
-variable in the tools automatically, but that's out of the scope of that
-patch for the kernel and should also not be discussed on LKML.
+Which nicely illustrates what a waste of time the whole thing is.
 
+Please do the decent thing and just turn the crap concerned off. The fact
+other vendors get it wrong doesn't mean you need to copy. Even better
+submit a patch to remove this rubbish from the kernel completely.
 
-Signed-off-by: Bernhard Walle <bwalle@suse.de>
----
- arch/x86/include/asm/page.h |    7 +++++
- arch/x86/mm/pat.c           |    9 +-----
- drivers/char/mem.c          |   60 ++++++++++++++++++++++++++++++++++++++-----
- 3 files changed, 61 insertions(+), 15 deletions(-)
+Your patch is still adding bells and whistles to a useless turd. In fact
+this patch is worse. Without this patch the turd can be disabled and left
+out, with your patch everyone now has to compile in said turd pile.
 
-diff --git a/arch/x86/include/asm/page.h b/arch/x86/include/asm/page.h
-index b768401..e5fe778 100644
---- a/arch/x86/include/asm/page.h
-+++ b/arch/x86/include/asm/page.h
-@@ -65,6 +65,13 @@ extern void unmap_devmem(unsigned long pfn, unsigned long size,
- 			 pgprot_t vma_prot);
- #define __HAVE_ARCH_RANGE_IS_ALLOWED 1
- 
-+
-+#ifdef CONFIG_STRICT_DEVMEM
-+extern int devmem_restricted;
-+#else
-+#define devmem_restricted 0
-+#endif
-+
- extern unsigned long max_low_pfn_mapped;
- extern unsigned long max_pfn_mapped;
- 
-diff --git a/arch/x86/mm/pat.c b/arch/x86/mm/pat.c
-index eb1bf00..c80ced4 100644
---- a/arch/x86/mm/pat.c
-+++ b/arch/x86/mm/pat.c
-@@ -26,6 +26,7 @@
- #include <asm/msr.h>
- #include <asm/pat.h>
- #include <asm/io.h>
-+#include <asm/page.h>
- 
- #ifdef CONFIG_X86_PAT
- int __read_mostly pat_enabled = 1;
-@@ -474,13 +475,6 @@ pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
- 	return vma_prot;
- }
- 
--#ifdef CONFIG_STRICT_DEVMEM
--/* This check is done in drivers/char/mem.c in case of STRICT_DEVMEM*/
--static inline int range_is_allowed(unsigned long pfn, unsigned long size)
--{
--	return 1;
--}
--#else
- /* This check is needed to avoid cache aliasing when PAT is enabled */
- static inline int range_is_allowed(unsigned long pfn, unsigned long size)
- {
-@@ -503,7 +497,6 @@ static inline int range_is_allowed(unsigned long pfn, unsigned long size)
- 	}
- 	return 1;
- }
--#endif /* CONFIG_STRICT_DEVMEM */
- 
- int phys_mem_access_prot_allowed(struct file *file, unsigned long pfn,
- 				unsigned long size, pgprot_t *vma_prot)
-diff --git a/drivers/char/mem.c b/drivers/char/mem.c
-index 6431f69..43b70b8 100644
---- a/drivers/char/mem.c
-+++ b/drivers/char/mem.c
-@@ -27,6 +27,7 @@
- #include <linux/splice.h>
- #include <linux/pfn.h>
- #include <linux/smp_lock.h>
-+#include <linux/sysctl.h>
- 
- #include <asm/uaccess.h>
- #include <asm/io.h>
-@@ -35,6 +36,47 @@
- # include <linux/efi.h>
- #endif
- 
-+
-+#ifdef CONFIG_STRICT_DEVMEM
-+
-+int devmem_restricted = 1;
-+
-+#ifdef CONFIG_SYSCTL
-+struct ctl_table dev_mem_restricted_sysctl_table[] = {
-+	{
-+		.procname	= "restricted",
-+		.data		= &devmem_restricted,
-+		.maxlen		= sizeof(int),
-+		.mode		= 0644,
-+		.proc_handler	= &proc_dointvec,
-+	},
-+	{ .ctl_name = 0 }
-+};
-+
-+struct ctl_table dev_mem_sysctl_table[] = {
-+	{
-+	       .procname	= "mem",
-+	       .mode		= 0555,
-+	       .child		= dev_mem_restricted_sysctl_table
-+	},
-+	{ .ctl_name = 0 }
-+};
-+
-+struct ctl_table dev_sysctl_table[] = {
-+	{
-+		.ctl_name	= CTL_DEV,
-+		.procname	= "dev",
-+		.mode		= 0555,
-+		.child		= dev_mem_sysctl_table
-+	},
-+	{ .ctl_name = 0 }
-+};
-+
-+#endif
-+
-+#endif /* CONFIG_STRICT_DEVMEM */
-+
-+
- /*
-  * Architectures vary in how they handle caching for addresses
-  * outside of main memory.
-@@ -80,13 +122,15 @@ static inline int valid_mmap_phys_addr_range(unsigned long pfn, size_t size)
- }
- #endif
- 
--#ifdef CONFIG_STRICT_DEVMEM
- static inline int range_is_allowed(unsigned long pfn, unsigned long size)
- {
- 	u64 from = ((u64)pfn) << PAGE_SHIFT;
- 	u64 to = from + size;
- 	u64 cursor = from;
- 
-+	if (!devmem_restricted)
-+		return 1;
-+
- 	while (cursor < to) {
- 		if (!devmem_is_allowed(pfn)) {
- 			printk(KERN_INFO
-@@ -99,12 +143,6 @@ static inline int range_is_allowed(unsigned long pfn, unsigned long size)
- 	}
- 	return 1;
- }
--#else
--static inline int range_is_allowed(unsigned long pfn, unsigned long size)
--{
--	return 1;
--}
--#endif
- 
- void __attribute__((weak)) unxlate_dev_mem_ptr(unsigned long phys, void *addr)
- {
-@@ -996,6 +1034,14 @@ static int __init chr_dev_init(void)
- 			      MKDEV(MEM_MAJOR, devlist[i].minor), NULL,
- 			      devlist[i].name);
- 
-+#if defined(CONFIG_SYSCTL) && defined(CONFIG_STRICT_DEVMEM)
-+	/*
-+	 * since there is no unload function, we don't have to deregister that
-+	 * the whole lifetime of the kernel and can ignore the return value
-+	 */
-+	register_sysctl_table(dev_sysctl_table);
-+#endif
-+
- 	return 0;
- }
- 
--- 
-1.6.0.4
+NAK this changeset.
+
+Alan
