@@ -1,35 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:39112 "EHLO
+Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:37093 "EHLO
 	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1750952AbYKPPrC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Nov 2008 10:47:02 -0500
-Date: Sun, 16 Nov 2008 15:46:57 +0000
+	with ESMTP id S1753286AbYKPQJi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Nov 2008 11:09:38 -0500
+Date: Sun, 16 Nov 2008 16:09:05 +0000
 From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: [PATCH 3/3] Remove CONFIG_STRICT_DEVMEM
-Message-ID: <20081116154657.6629e6bf@lxorguk.ukuu.org.uk>
-In-Reply-To: <20081116162149.07f05c7c@kopernikus.site>
+Subject: Re: Turn CONFIG_STRICT_DEVMEM in sysctl dev.mem.restricted
+Message-ID: <20081116160905.17e867da@lxorguk.ukuu.org.uk>
+In-Reply-To: <20081116080342.3d6c6976@infradead.org>
 References: <1226846868-9595-1-git-send-email-bwalle@suse.de>
-	<1226846868-9595-4-git-send-email-bwalle@suse.de>
-	<20081116150901.4d824e6d@lxorguk.ukuu.org.uk>
-	<20081116162149.07f05c7c@kopernikus.site>
+	<20081116150756.3cece2de@lxorguk.ukuu.org.uk>
+	<20081116162003.04267538@kopernikus.site>
+	<20081116154541.1f196f1e@lxorguk.ukuu.org.uk>
+	<20081116080342.3d6c6976@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bernhard Walle <bwalle@suse.de>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, crash-utility@redhat.com
-Message-ID: <20081116154657.yIwfUP7t-I33vn1CTIZAtLDp7zJeGqv3XIowygJshA0@z>
+To: Arjan van de Ven <arjan@infradead.org>
+Cc: Bernhard Walle <bwalle@suse.de>, x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, crash-utility@redhat.com
+Message-ID: <20081116160905.CBDuN0JUdRGR9T5bNTzt-jeMlSsAwm0dFatG9IS7Upo@z>
 
-> if just that patch doesn't make it, well, ok for me. I just think
-> CONFIG_STRICT_DEVMEM is superfluous when the runtime configuration
-> option is present.
+> because it can load kernel modules?
+> or because it can bypass the iommu?
 
-It should always be "N" because the only other option means "add
-pointless code of no value whatsoever"
+It has iopl, firmware loading, ioperm, raw disk I/O, mknod, module loading
+etc etc.. 
 
-Which means strict_devmem really belongs in the bitbucket as a bad idea
+> the point of the /dev/mem restrictions is to not allow things you know
+> you don't need, while still allowing X to function where it can access
+> the crap it does. Now in Bernhard's case he DOES need them, so he
+> shouldn't use the restrictions.
+
+I know what the point is, but it doesn't actually implement any
+meaningful restriction to achieve that result, so it is worthless junk.
+
+> > There are proper ways to deal with X, modern video cards and modern
+> > security models. They involve using framebuffer mappings off the PCI
+> > device node itself and DRI.
+> > 
+> when X has this for all hw that matters /dev/mem could go away for the
+> people who then no longer have any need for it.
+
+Why should it go away ? It's a matter of file permissions and security
+rules as to who can access it. Trying to make it go away is just more
+fake-security crap.
 
 Alan
-
-
