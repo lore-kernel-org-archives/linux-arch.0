@@ -1,40 +1,51 @@
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: Turn CONFIG_STRICT_DEVMEM in sysctl dev.mem.restricted
-Date: Sun, 16 Nov 2008 15:07:56 +0000
-Message-ID: <20081116150756.3cece2de@lxorguk.ukuu.org.uk>
-References: <1226846868-9595-1-git-send-email-bwalle@suse.de>
+From: Willy Tarreau <w@1wt.eu>
+Subject: Re: [PATCH 2/3] Add dev.mem.restricted sysctl
+Date: Sun, 16 Nov 2008 16:07:56 +0100
+Message-ID: <20081116150756.GA24654@1wt.eu>
+References: <1226846868-9595-1-git-send-email-bwalle@suse.de> <1226846868-9595-3-git-send-email-bwalle@suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:51835 "EHLO
-	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752179AbYKPPIW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Nov 2008 10:08:22 -0500
-In-Reply-To: <1226846868-9595-1-git-send-email-bwalle@suse.de>
+Received: from 1wt.eu ([62.212.114.60]:1264 "EHLO 1wt.eu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752054AbYKPPIU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 16 Nov 2008 10:08:20 -0500
+Content-Disposition: inline
+In-Reply-To: <1226846868-9595-3-git-send-email-bwalle@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, crash-utility@redhat.com, Bernhard Walle <bwalle@suse.de>
+To: Bernhard Walle <bwalle@suse.de>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, crash-utility@redhat.com
 
-> The protection in the general case and the ability to do live debugging.
+On Sun, Nov 16, 2008 at 03:47:47PM +0100, Bernhard Walle wrote:
+> When CONFIG_STRICT_DEVMEM is set, live debugging is not possible with the
+> crash utility (see http://people.redhat.com/~anderson). For distributors
+> who ship a generic kernel it's difficult: Disabling CONFIG_STRICT_DEVMEM
+> is possible, but in general the protection provided by CONFIG_STRICT_DEVMEM
+> is useful. However, live debugging should be still neceessary.
+> 
+> This patch now adds a dev.mem.restricted sysctl that defaults to 0 (off).
+> When set to 1 (on), /dev/mem access is unrestricted and crash can be used.
 
-What protection. You've completely failed to explain or provide a single
-example of any protection provided by the STRICT_DEVMEM code.
+I like your approach. I use /dev/mem a lot for debugging purposes, and
+even sometimes to recover important data from memory after a crash has
+occurred. Having the ability to inspect memory again by setting a sysctl
+seems very appealing to me.
 
-> only a half of the story. The truth is that at least RHEL has /dev/crash
-> exactly to circumvent that /dev/mem restriction. Don't tell me that this
-> is better than having that sysctl entry. ;-)
+> >From a security point of view the sysctl should be no problem. It's already
+> possible to circumvent that restriction if you have root access by loading
+> a kernel module that installs a kretprobe that returns 1 for the check function.
 
-Which nicely illustrates what a waste of time the whole thing is.
+I agree.
 
-Please do the decent thing and just turn the crap concerned off. The fact
-other vendors get it wrong doesn't mean you need to copy. Even better
-submit a patch to remove this rubbish from the kernel completely.
+> I thought of a command line parameter first, but we already have lots of
+> command line parameters and rebooting the machine is more difficult than
+> just setting a sysctl to 1. It may be possible to implement setting that
+> variable in the tools automatically, but that's out of the scope of that
+> patch for the kernel and should also not be discussed on LKML.
 
-Your patch is still adding bells and whistles to a useless turd. In fact
-this patch is worse. Without this patch the turd can be disabled and left
-out, with your patch everyone now has to compile in said turd pile.
+Rebooting the machine voids any ability to debug or recover data, so the
+sysctl is the way to go IMHO.
 
-NAK this changeset.
-
-Alan
+Regards,
+Willy
