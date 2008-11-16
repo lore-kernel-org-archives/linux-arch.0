@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:51835 "EHLO
-	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752179AbYKPPIW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Nov 2008 10:08:22 -0500
-Date: Sun, 16 Nov 2008 15:07:56 +0000
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Received: from casper.infradead.org ([85.118.1.10]:38290 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752684AbYKPPjF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Nov 2008 10:39:05 -0500
+Date: Sun, 16 Nov 2008 07:39:48 -0800
+From: Arjan van de Ven <arjan@infradead.org>
 Subject: Re: Turn CONFIG_STRICT_DEVMEM in sysctl dev.mem.restricted
-Message-ID: <20081116150756.3cece2de@lxorguk.ukuu.org.uk>
+Message-ID: <20081116073948.02aea58c@infradead.org>
 In-Reply-To: <1226846868-9595-1-git-send-email-bwalle@suse.de>
 References: <1226846868-9595-1-git-send-email-bwalle@suse.de>
 Mime-Version: 1.0
@@ -16,27 +16,27 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bernhard Walle <bwalle@suse.de>
 Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, crash-utility@redhat.com
-Message-ID: <20081116150756.rMS1dxVMAuVRT0rHOsWI6Pnlr_vjb4JOTLFjf3Ba4Rg@z>
+Message-ID: <20081116153948.6oGtfjx6QnW1WIKgH3PkK9_FTdjn7Mnc9uj-ALzo_aM@z>
 
-> The protection in the general case and the ability to do live debugging.
+On Sun, 16 Nov 2008 15:47:45 +0100
+Bernhard Walle <bwalle@suse.de> wrote:
 
-What protection. You've completely failed to explain or provide a single
-example of any protection provided by the STRICT_DEVMEM code.
+> While the original submission of CONFIG_STRICT_DEVMEM mentions that
+> the option has been in RHEL and Fedora for 4 years without problems,
+> that's only a half of the story. The truth is that at least RHEL
+> has /dev/crash exactly to circumvent that /dev/mem restriction. Don't
+> tell me that this is better than having that sysctl entry. ;-)
 
-> only a half of the story. The truth is that at least RHEL has /dev/crash
-> exactly to circumvent that /dev/mem restriction. Don't tell me that this
-> is better than having that sysctl entry. ;-)
+I assume /dev/crash is read only
 
-Which nicely illustrates what a waste of time the whole thing is.
 
-Please do the decent thing and just turn the crap concerned off. The fact
-other vendors get it wrong doesn't mean you need to copy. Even better
-submit a patch to remove this rubbish from the kernel completely.
+but your series still makes absolutely no sense to me...
+really. Nak.
 
-Your patch is still adding bells and whistles to a useless turd. In fact
-this patch is worse. Without this patch the turd can be disabled and left
-out, with your patch everyone now has to compile in said turd pile.
+You either want this at compile time or you don't want it at all.
 
-NAK this changeset.
 
-Alan
+-- 
+Arjan van de Ven 	Intel Open Source Technology Centre
+For development, discussion and tips for power savings, 
+visit http://www.lesswatts.org
