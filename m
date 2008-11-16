@@ -1,38 +1,45 @@
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: [PATCH 3/3] Remove CONFIG_STRICT_DEVMEM
-Date: Sun, 16 Nov 2008 15:46:57 +0000
-Message-ID: <20081116154657.6629e6bf@lxorguk.ukuu.org.uk>
+From: Bernhard Walle <bwalle@suse.de>
+Subject: Re: Turn CONFIG_STRICT_DEVMEM in sysctl dev.mem.restricted
+Date: Sun, 16 Nov 2008 16:56:09 +0100
+Message-ID: <20081116165609.4f17fc10@kopernikus.site>
 References: <1226846868-9595-1-git-send-email-bwalle@suse.de>
-	<1226846868-9595-4-git-send-email-bwalle@suse.de>
-	<20081116150901.4d824e6d@lxorguk.ukuu.org.uk>
-	<20081116162149.07f05c7c@kopernikus.site>
-Reply-To: "Discussion list for crash utility usage,
-	maintenance and development" <crash-utility@redhat.com>
+	<20081116073948.02aea58c@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <crash-utility-bounces@redhat.com>
-In-Reply-To: <20081116162149.07f05c7c@kopernikus.site>
-List-Unsubscribe: <https://www.redhat.com/mailman/listinfo/crash-utility>,
-	<mailto:crash-utility-request@redhat.com?subject=unsubscribe>
-List-Archive: <https://www.redhat.com/archives/crash-utility>
-List-Post: <mailto:crash-utility@redhat.com>
-List-Help: <mailto:crash-utility-request@redhat.com?subject=help>
-List-Subscribe: <https://www.redhat.com/mailman/listinfo/crash-utility>,
-	<mailto:crash-utility-request@redhat.com?subject=subscribe>
-Sender: crash-utility-bounces@redhat.com
-Errors-To: crash-utility-bounces@redhat.com
-To: Bernhard Walle <bwalle@suse.de>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, crash-utility@redhat.com
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:49405 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750952AbYKPP4M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 16 Nov 2008 10:56:12 -0500
+In-Reply-To: <20081116073948.02aea58c@infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arjan van de Ven <arjan@infradead.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, crash-utility@redhat.com
 
-> if just that patch doesn't make it, well, ok for me. I just think
-> CONFIG_STRICT_DEVMEM is superfluous when the runtime configuration
-> option is present.
+* Arjan van de Ven [2008-11-16 07:39]:
+>
+> On Sun, 16 Nov 2008 15:47:45 +0100
+> Bernhard Walle <bwalle@suse.de> wrote:
+> 
+> > While the original submission of CONFIG_STRICT_DEVMEM mentions that
+> > the option has been in RHEL and Fedora for 4 years without problems,
+> > that's only a half of the story. The truth is that at least RHEL
+> > has /dev/crash exactly to circumvent that /dev/mem restriction. Don't
+> > tell me that this is better than having that sysctl entry. ;-)
+> 
+> I assume /dev/crash is read only
 
-It should always be "N" because the only other option means "add
-pointless code of no value whatsoever"
+I don't know. But if that matters, why can't we make /dev/mem
+write-only for certain areas and read-only for the rest ...?
 
-Which means strict_devmem really belongs in the bitbucket as a bad idea
+> You either want this at compile time or you don't want it at all.
 
-Alan
+Why? You don't write something about my arguments (as Alan does, even
+though I disagree), you only write that you "nak" it.
+
+
+
+Regards,
+Bernhard
