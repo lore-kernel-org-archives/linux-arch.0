@@ -1,43 +1,41 @@
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: [PATCH 1/1] edac x38: new MC driver module
-Date: Tue, 18 Nov 2008 12:32:15 +0000
-Message-ID: <20081118123215.GB30509@flint.arm.linux.org.uk>
-References: <20081105222911.d76e7e1c.mitake@clustcom.com> <413709.12821.qm@web50106.mail.re2.yahoo.com> <20081106164641.ed369060.akpm@linux-foundation.org> <20081107152830.a42766f3.mitake@clustcom.com> <20081106223122.8a255211.akpm@linux-foundation.org> <20081107153824.0ec934e6.mitake@clustcom.com> <20081106231102.aab83cd4.akpm@linux-foundation.org> <a6b9f31a0811090710y17e956bawf20675d6678b145e@mail.gmail.com> <20081109112646.97c594b5.akpm@linux-foundation.org> <20081118121620.GB8625@linux-mips.org>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Heads up: cpumask changes
+Date: Wed, 19 Nov 2008 00:30:10 +1030
+Message-ID: <200811190030.10550.rusty@rustcorp.com.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:56949 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752472AbYKRMda (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Nov 2008 07:33:30 -0500
+Received: from ozlabs.org ([203.10.76.45]:52326 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751710AbYKROAT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Nov 2008 09:00:19 -0500
 Content-Disposition: inline
-In-Reply-To: <20081118121620.GB8625@linux-mips.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Hitoshi Mitake <h.mitake@gmail.com>, Hitoshi Mitake <mitake@clustcom.com>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, ktaka@clustcom.com, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org
+Cc: Mike Travis <travis@sgi.com>
 
-On Tue, Nov 18, 2008 at 12:16:20PM +0000, Ralf Baechle wrote:
-> On Sun, Nov 09, 2008 at 11:26:46AM -0800, Andrew Morton wrote:
-> 
-> > Perhaps it would be better to have a CONFIG_ARCH_HAS_READQ and to then
-> > disable these drivers on the architectures which don't provide
-> > readq/writeq support.
-> 
-> And we also need to define the exact semantics.  Questions coming to mind:
-> 
->   o are implementations performing 2 32-bit accesses acceptable?
->   o if so, what ordering for the two accesses is acceptable?
+Hi all,
 
-and don't forget to document the semantics.  If we're going to end up
-with CONFIG_ARCH_HAS_READQ which architectures can select, I suggest
-putting it in the help for that symbol.  Why not another random file
-in Documentation/ ?  Because it's a random file in Documentation/
-that'll be overlooked when someone decided to select ARCH_HAS_READQ.
-If it's along side the relevent config option, there is a higher
-chance it will be noticed.
+   With large NR_CPUS coming, Mike and I have been working to make dynamic 
+cpumasks an option.  The main change is to APIs which pass cpumask_t around; 
+they'll now be '[const] struct cpumask *'.  This unfortunately will hit arch 
+code as interfaces get frobbed, and a couple of nasty one-shot transitions are 
+unavoidable.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+   For archs which never intend to support CONFIG_CPUMASK_OFFSTACK, the rest 
+of the changes will be cosmetic (eg. s/cpumask_t/struct cpumask/ eventually).  
+For x86 and others who allow CONFIG_CPUMASK_OFFSTACK, "struct cpumask" will 
+eventually be undefined so it cannot be assigned or used on the stack: this 
+means use cpumask_copy(), cpumask_var_t and as a last resort, 
+DEFINE_BITMAP(bitmap, NR_CPUS) and to_cpumask(bitmap).
+
+   We've been working most closely with Ingo, as x86, irq and scheduler are 
+most effected.  Apologies in advance for the churn, but the final result will 
+be a neater API than what we have now as well as stupid numbers of cpus in 
+your .config.
+
+Thanks!
+Rusty.
