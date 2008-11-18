@@ -1,23 +1,31 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 3/3] Remove CONFIG_STRICT_DEVMEM
-Date: Mon, 17 Nov 2008 13:57:38 +0000
-Message-ID: <32168.1226930258@redhat.com>
-References: <20081116162149.07f05c7c@kopernikus.site> <1226846868-9595-1-git-send-email-bwalle@suse.de> <1226846868-9595-4-git-send-email-bwalle@suse.de> <20081116150901.4d824e6d@lxorguk.ukuu.org.uk>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH 1/1] edac x38: new MC driver module
+Date: Tue, 18 Nov 2008 12:16:20 +0000
+Message-ID: <20081118121620.GB8625@linux-mips.org>
+References: <20081105222911.d76e7e1c.mitake@clustcom.com> <413709.12821.qm@web50106.mail.re2.yahoo.com> <20081106164641.ed369060.akpm@linux-foundation.org> <20081107152830.a42766f3.mitake@clustcom.com> <20081106223122.8a255211.akpm@linux-foundation.org> <20081107153824.0ec934e6.mitake@clustcom.com> <20081106231102.aab83cd4.akpm@linux-foundation.org> <a6b9f31a0811090710y17e956bawf20675d6678b145e@mail.gmail.com> <20081109112646.97c594b5.akpm@linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:49046 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751988AbYKQN54 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 Nov 2008 08:57:56 -0500
-In-Reply-To: <20081116162149.07f05c7c@kopernikus.site>
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:33957 "EHLO mail.linux-mips.net"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752027AbYKRM0w (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Nov 2008 07:26:52 -0500
+Content-Disposition: inline
+In-Reply-To: <20081109112646.97c594b5.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bernhard Walle <bwalle@suse.de>
-Cc: dhowells@redhat.com, Alan Cox <alan@lxorguk.ukuu.org.uk>, x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, crash-utility@redhat.com
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Hitoshi Mitake <h.mitake@gmail.com>, Hitoshi Mitake <mitake@clustcom.com>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, ktaka@clustcom.com, linux-arch@vger.kernel.org
 
-Bernhard Walle <bwalle@suse.de> wrote:
+On Sun, Nov 09, 2008 at 11:26:46AM -0800, Andrew Morton wrote:
 
-> For embedded users, do they use CONFIG_SYSCTL at all?
+> Perhaps it would be better to have a CONFIG_ARCH_HAS_READQ and to then
+> disable these drivers on the architectures which don't provide
+> readq/writeq support.
 
-Yes.  It still allows you to configure various things about the kernel.
+And we also need to define the exact semantics.  Questions coming to mind:
 
-David
+  o are implementations performing 2 32-bit accesses acceptable?
+  o if so, what ordering for the two accesses is acceptable?
+
+  Ralf
