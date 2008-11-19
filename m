@@ -1,51 +1,41 @@
-From: Harvey Harrison <harvey.harrison@gmail.com>
-Subject: [PATCH] unaligned: write in increasing memory order
-Date: Wed, 19 Nov 2008 11:20:05 -0800
-Message-ID: <1227122405.13182.21.camel@brick>
+From: Jim Radford <radford@blackbean.org>
+Subject: Re: [patch] mm: vmalloc fix lazy unmapping cache aliasing
+Date: Wed, 19 Nov 2008 10:58:14 -0800
+Message-ID: <20081119185814.GA25025@blackbean.org>
+References: <20081119045338.GA18697@wotan.suse.de> <20081119045425.GB18697@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hs-out-0708.google.com ([64.233.178.251]:59989 "EHLO
-	hs-out-0708.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754032AbYKSTUK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Nov 2008 14:20:10 -0500
-Received: by hs-out-0708.google.com with SMTP id 4so66501hsl.5
-        for <linux-arch@vger.kernel.org>; Wed, 19 Nov 2008 11:20:09 -0800 (PST)
+Received: from cpe-67-49-92-118.socal.res.rr.com ([67.49.92.118]:50043 "EHLO
+	mail.blackbean.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752825AbYKSTZ4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Nov 2008 14:25:56 -0500
+Content-Disposition: inline
+In-Reply-To: <20081119045425.GB18697@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, "ralf@linux-mips.org" <ralf@linux-mips.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+To: Nick Piggin <npiggin@suse.de>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, rmk@arm.linux.org.uk, Andrew Morton <akpm@linux-foundation.org>
 
-This ordering seems more logical.
+On Wed, Nov 19, 2008 at 05:54:25AM +0100, Nick Piggin wrote:
+> On Wed, Nov 19, 2008 at 05:53:38AM +0100, Nick Piggin wrote:
+> > Jim Radford has reported that the vmap subsystem rewrite was sometimes causing
+> > his VIVT ARM system to behave strangely (seemed like going into infinite loops
+> > trying to fault in pages to userspace).
 
-Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
----
-gcc 4.2 seems to be smart enough to figure it out in either order.
+> > We determined that the problem was most likely due to a cache aliasing issue.
+> > flush_cache_vunmap was only being called at the moment the page tables were
+> > to be taken down, however with lazy unmapping, this can happen after the page
+> > has subsequently been freed and allocated for something else. The dangling
+> > alias may still have dirty data attached to it.
 
- include/asm-generic/unaligned.h |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+> > The fix for this problem is to do the cache flushing when the caller has
+> > called vunmap -- it would be a bug for them to write anything else to the
+> > mapping at that point.
 
-diff --git a/include/asm-generic/unaligned.h b/include/asm-generic/unaligned.h
-index 3bef59f..55d1126 100644
---- a/include/asm-generic/unaligned.h
-+++ b/include/asm-generic/unaligned.h
-@@ -164,14 +164,14 @@ static inline void __put_le16_noalign(u8 *p, u16 val)
- 
- static inline void __put_le32_noalign(u8 *p, u32 val)
- {
--	__put_le16_noalign(p + 2, val >> 16);
- 	__put_le16_noalign(p, val);
-+	__put_le16_noalign(p + 2, val >> 16);
- }
- 
- static inline void __put_le64_noalign(u8 *p, u64 val)
- {
--	__put_le32_noalign(p + 4, val >> 32);
- 	__put_le32_noalign(p, val);
-+	__put_le32_noalign(p + 4, val >> 32);
- }
- 
- static inline void __put_be16_noalign(u8 *p, u16 val)
--- 
-1.6.0.4.1013.gc6a01
+> Added Jim to CC...
+
+Thanks Nick.  I just wanted to confirm that this latest version of the
+patch works for me as well.
+
+-Jim
