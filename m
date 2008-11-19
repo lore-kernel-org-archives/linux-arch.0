@@ -1,100 +1,289 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [patch] mm: vmalloc fix lazy unmapping cache aliasing
-Date: Wed, 19 Nov 2008 05:54:25 +0100
-Message-ID: <20081119045425.GB18697@wotan.suse.de>
-References: <20081119045338.GA18697@wotan.suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: akpm@linux-foundation.org
+Subject: + unaligned-remove-packed-struct-and-unaligned-access_ok-headers.patch added to -mm tree
+Date: Tue, 18 Nov 2008 22:15:08 -0800
+Message-ID: <200811190615.mAJ6F8VJ007444@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:50265 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751737AbYKSEy1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 Nov 2008 23:54:27 -0500
-Content-Disposition: inline
-In-Reply-To: <20081119045338.GA18697@wotan.suse.de>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:46967 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750834AbYKSGPj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Nov 2008 01:15:39 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, rmk@arm.linux.org.uk, Andrew Morton <akpm@linux-foundation.org>, radford@blackbean.org
+To: mm-commits@vger.kernel.org
+Cc: harvey.harrison@gmail.com, linux-arch@vger.kernel.org
 
-Added Jim to CC...
 
-On Wed, Nov 19, 2008 at 05:53:38AM +0100, Nick Piggin wrote:
-> 
-> Jim Radford has reported that the vmap subsystem rewrite was sometimes causing
-> his VIVT ARM system to behave strangely (seemed like going into infinite loops
-> trying to fault in pages to userspace).
-> 
-> We determined that the problem was most likely due to a cache aliasing issue.
-> flush_cache_vunmap was only being called at the moment the page tables were
-> to be taken down, however with lazy unmapping, this can happen after the page
-> has subsequently been freed and allocated for something else. The dangling
-> alias may still have dirty data attached to it.
-> 
-> The fix for this problem is to do the cache flushing when the caller has
-> called vunmap -- it would be a bug for them to write anything else to the
-> mapping at that point.
-> 
-> That appeared to solve Jim's problems.
-> 
-> Reported-by: Jim Radford <radford@blackbean.org>
-> Signed-off-by: Nick Piggin <npiggin@suse.de>
-> ---
-> Index: linux-2.6/mm/vmalloc.c
-> ===================================================================
-> --- linux-2.6.orig/mm/vmalloc.c
-> +++ linux-2.6/mm/vmalloc.c
-> @@ -77,7 +77,6 @@ static void vunmap_page_range(unsigned l
->  
->  	BUG_ON(addr >= end);
->  	pgd = pgd_offset_k(addr);
-> -	flush_cache_vunmap(addr, end);
->  	do {
->  		next = pgd_addr_end(addr, end);
->  		if (pgd_none_or_clear_bad(pgd))
-> @@ -543,9 +542,10 @@ static void purge_vmap_area_lazy(void)
->  }
->  
->  /*
-> - * Free and unmap a vmap area
-> + * Free and unmap a vmap area, caller ensuring flush_cache_vunmap had been
-> + * called for the correct range previously.
->   */
-> -static void free_unmap_vmap_area(struct vmap_area *va)
-> +static void free_unmap_vmap_area_noflush(struct vmap_area *va)
->  {
->  	va->flags |= VM_LAZY_FREE;
->  	atomic_add((va->va_end - va->va_start) >> PAGE_SHIFT, &vmap_lazy_nr);
-> @@ -553,6 +553,15 @@ static void free_unmap_vmap_area(struct 
->  		try_purge_vmap_area_lazy();
->  }
->  
-> +/*
-> + * Free and unmap a vmap area
-> + */
-> +static void free_unmap_vmap_area(struct vmap_area *va)
-> +{
-> +	flush_cache_vunmap(va->va_start, va->va_end);
-> +	free_unmap_vmap_area_noflush(va);
-> +}
-> +
->  static struct vmap_area *find_vmap_area(unsigned long addr)
->  {
->  	struct vmap_area *va;
-> @@ -734,7 +743,7 @@ static void free_vmap_block(struct vmap_
->  	spin_unlock(&vmap_block_tree_lock);
->  	BUG_ON(tmp != vb);
->  
-> -	free_unmap_vmap_area(vb->va);
-> +	free_unmap_vmap_area_noflush(vb->va);
->  	call_rcu(&vb->rcu_head, rcu_free_vb);
->  }
->  
-> @@ -820,6 +829,8 @@ static void vb_free(const void *addr, un
->  		free_vmap_block(vb);
->  	} else
->  		spin_unlock(&vb->lock);
-> +
-> +	flush_cache_vunmap((unsigned long)addr, (unsigned long)addr + size);
->  }
->  
->  /**
+The patch titled
+     unaligned: remove packed-struct and unaligned access_ok headers
+has been added to the -mm tree.  Its filename is
+     unaligned-remove-packed-struct-and-unaligned-access_ok-headers.patch
+
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
+
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
+out what to do about this
+
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: unaligned: remove packed-struct and unaligned access_ok headers
+From: Harvey Harrison <harvey.harrison@gmail.com>
+
+The asm-generic version of unaligned.h now contains these bits.
+
+Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/linux/unaligned/access_ok.h     |   67 ----------------------
+ include/linux/unaligned/be_struct.h     |   36 -----------
+ include/linux/unaligned/le_struct.h     |   36 -----------
+ include/linux/unaligned/packed_struct.h |   46 ---------------
+ 4 files changed, 185 deletions(-)
+
+diff -puN include/linux/unaligned/access_ok.h~unaligned-remove-packed-struct-and-unaligned-access_ok-headers /dev/null
+--- a/include/linux/unaligned/access_ok.h
++++ /dev/null
+@@ -1,67 +0,0 @@
+-#ifndef _LINUX_UNALIGNED_ACCESS_OK_H
+-#define _LINUX_UNALIGNED_ACCESS_OK_H
+-
+-#include <linux/kernel.h>
+-#include <asm/byteorder.h>
+-
+-static inline u16 get_unaligned_le16(const void *p)
+-{
+-	return le16_to_cpup((__le16 *)p);
+-}
+-
+-static inline u32 get_unaligned_le32(const void *p)
+-{
+-	return le32_to_cpup((__le32 *)p);
+-}
+-
+-static inline u64 get_unaligned_le64(const void *p)
+-{
+-	return le64_to_cpup((__le64 *)p);
+-}
+-
+-static inline u16 get_unaligned_be16(const void *p)
+-{
+-	return be16_to_cpup((__be16 *)p);
+-}
+-
+-static inline u32 get_unaligned_be32(const void *p)
+-{
+-	return be32_to_cpup((__be32 *)p);
+-}
+-
+-static inline u64 get_unaligned_be64(const void *p)
+-{
+-	return be64_to_cpup((__be64 *)p);
+-}
+-
+-static inline void put_unaligned_le16(u16 val, void *p)
+-{
+-	*((__le16 *)p) = cpu_to_le16(val);
+-}
+-
+-static inline void put_unaligned_le32(u32 val, void *p)
+-{
+-	*((__le32 *)p) = cpu_to_le32(val);
+-}
+-
+-static inline void put_unaligned_le64(u64 val, void *p)
+-{
+-	*((__le64 *)p) = cpu_to_le64(val);
+-}
+-
+-static inline void put_unaligned_be16(u16 val, void *p)
+-{
+-	*((__be16 *)p) = cpu_to_be16(val);
+-}
+-
+-static inline void put_unaligned_be32(u32 val, void *p)
+-{
+-	*((__be32 *)p) = cpu_to_be32(val);
+-}
+-
+-static inline void put_unaligned_be64(u64 val, void *p)
+-{
+-	*((__be64 *)p) = cpu_to_be64(val);
+-}
+-
+-#endif /* _LINUX_UNALIGNED_ACCESS_OK_H */
+diff -puN include/linux/unaligned/be_struct.h~unaligned-remove-packed-struct-and-unaligned-access_ok-headers /dev/null
+--- a/include/linux/unaligned/be_struct.h
++++ /dev/null
+@@ -1,36 +0,0 @@
+-#ifndef _LINUX_UNALIGNED_BE_STRUCT_H
+-#define _LINUX_UNALIGNED_BE_STRUCT_H
+-
+-#include <linux/unaligned/packed_struct.h>
+-
+-static inline u16 get_unaligned_be16(const void *p)
+-{
+-	return __get_unaligned_cpu16((const u8 *)p);
+-}
+-
+-static inline u32 get_unaligned_be32(const void *p)
+-{
+-	return __get_unaligned_cpu32((const u8 *)p);
+-}
+-
+-static inline u64 get_unaligned_be64(const void *p)
+-{
+-	return __get_unaligned_cpu64((const u8 *)p);
+-}
+-
+-static inline void put_unaligned_be16(u16 val, void *p)
+-{
+-	__put_unaligned_cpu16(val, p);
+-}
+-
+-static inline void put_unaligned_be32(u32 val, void *p)
+-{
+-	__put_unaligned_cpu32(val, p);
+-}
+-
+-static inline void put_unaligned_be64(u64 val, void *p)
+-{
+-	__put_unaligned_cpu64(val, p);
+-}
+-
+-#endif /* _LINUX_UNALIGNED_BE_STRUCT_H */
+diff -puN include/linux/unaligned/le_struct.h~unaligned-remove-packed-struct-and-unaligned-access_ok-headers /dev/null
+--- a/include/linux/unaligned/le_struct.h
++++ /dev/null
+@@ -1,36 +0,0 @@
+-#ifndef _LINUX_UNALIGNED_LE_STRUCT_H
+-#define _LINUX_UNALIGNED_LE_STRUCT_H
+-
+-#include <linux/unaligned/packed_struct.h>
+-
+-static inline u16 get_unaligned_le16(const void *p)
+-{
+-	return __get_unaligned_cpu16((const u8 *)p);
+-}
+-
+-static inline u32 get_unaligned_le32(const void *p)
+-{
+-	return __get_unaligned_cpu32((const u8 *)p);
+-}
+-
+-static inline u64 get_unaligned_le64(const void *p)
+-{
+-	return __get_unaligned_cpu64((const u8 *)p);
+-}
+-
+-static inline void put_unaligned_le16(u16 val, void *p)
+-{
+-	__put_unaligned_cpu16(val, p);
+-}
+-
+-static inline void put_unaligned_le32(u32 val, void *p)
+-{
+-	__put_unaligned_cpu32(val, p);
+-}
+-
+-static inline void put_unaligned_le64(u64 val, void *p)
+-{
+-	__put_unaligned_cpu64(val, p);
+-}
+-
+-#endif /* _LINUX_UNALIGNED_LE_STRUCT_H */
+diff -puN include/linux/unaligned/packed_struct.h~unaligned-remove-packed-struct-and-unaligned-access_ok-headers /dev/null
+--- a/include/linux/unaligned/packed_struct.h
++++ /dev/null
+@@ -1,46 +0,0 @@
+-#ifndef _LINUX_UNALIGNED_PACKED_STRUCT_H
+-#define _LINUX_UNALIGNED_PACKED_STRUCT_H
+-
+-#include <linux/kernel.h>
+-
+-struct __una_u16 { u16 x __attribute__((packed)); };
+-struct __una_u32 { u32 x __attribute__((packed)); };
+-struct __una_u64 { u64 x __attribute__((packed)); };
+-
+-static inline u16 __get_unaligned_cpu16(const void *p)
+-{
+-	const struct __una_u16 *ptr = (const struct __una_u16 *)p;
+-	return ptr->x;
+-}
+-
+-static inline u32 __get_unaligned_cpu32(const void *p)
+-{
+-	const struct __una_u32 *ptr = (const struct __una_u32 *)p;
+-	return ptr->x;
+-}
+-
+-static inline u64 __get_unaligned_cpu64(const void *p)
+-{
+-	const struct __una_u64 *ptr = (const struct __una_u64 *)p;
+-	return ptr->x;
+-}
+-
+-static inline void __put_unaligned_cpu16(u16 val, void *p)
+-{
+-	struct __una_u16 *ptr = (struct __una_u16 *)p;
+-	ptr->x = val;
+-}
+-
+-static inline void __put_unaligned_cpu32(u32 val, void *p)
+-{
+-	struct __una_u32 *ptr = (struct __una_u32 *)p;
+-	ptr->x = val;
+-}
+-
+-static inline void __put_unaligned_cpu64(u64 val, void *p)
+-{
+-	struct __una_u64 *ptr = (struct __una_u64 *)p;
+-	ptr->x = val;
+-}
+-
+-#endif /* _LINUX_UNALIGNED_PACKED_STRUCT_H */
+_
+
+Patches currently in -mm which might be from harvey.harrison@gmail.com are
+
+linux-next.patch
+arm-use-the-new-byteorder-headers.patch
+dvb-cinergyt2-annotate-struct-endiannes-remove-unused-variable-add-static.patch
+v4l-s2255drv-fix-firmware-test-on-big-endian.patch
+ia64-use-the-new-byteorder-headers.patch
+input-ads7846c-sparse-lock-annotation.patch
+m32r-use-the-new-byteorder-headers.patch
+blackfin-remove-__function__-in-new-serial-driver.patch
+blackfin-use-the-new-byteorder-headers.patch
+parisc-use-the-new-byteorder-headers.patch
+s390-use-the-new-byteorder-headers.patch
+scsi-replace-__inline-with-inline.patch
+scsi-use-the-common-hex_asc-array-rather-than-a-private-one.patch
+scsi-gdthc-use-unaligned-access-helpers.patch
+scsi-annotate-gdth_rdcap_data-gdth_rdcap16_data-endianness.patch
+frv-use-the-new-byteorder-headers.patch
+m68knommu-use-the-new-byteorder-headers.patch
+h8300-use-the-new-byteorder-headers.patch
+alpha-use-the-new-byteorder-headers.patch
+lib-fix-sparse-shadowed-variable-warning.patch
+lib-radix_treec-make-percpu-variable-static.patch
+lib-proportionsc-trivial-sparse-lock-annotation.patch
+ibmpex-add-endian-annotation-to-extract_data-helper.patch
+blackfin-remove-__function__-in-video-driver.patch
+fb-carminefb-trivial-annotation-packing-color-register.patch
+memstick-annotate-endianness-of-attribute-structs.patch
+unaligned-introduce-common-header.patch
+unaligned-convert-arches-where-unaligned-access-is-ok.patch
+unaligned-use-generic-implementation-on-packed-struct-arches.patch
+unaligned-remove-packed-struct-and-unaligned-access_ok-headers.patch
+unaligned-pack-the-struct-not-the-struct-members.patch
+unaligned-move-arm-m32r-h8300-to-the-asm-generic-version.patch
+unaligned-remove-last-bits-of-the-unaligned-access-helpers.patch
