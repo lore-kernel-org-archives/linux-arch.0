@@ -1,28 +1,27 @@
 From: "Bryan Wu" <cooloney@kernel.org>
-Subject: Re: [PATCH 2/5] Blackfin arch: SMP supporting patchset: Blackfin header files and machine common code
-Date: Wed, 19 Nov 2008 15:44:04 +0800
-Message-ID: <386072610811182344m1fccdb9cx736fbde980081c4b@mail.gmail.com>
+Subject: Re: [PATCH 3/5] Blackfin arch: SMP supporting patchset: Blackfin CPLB related code
+Date: Wed, 19 Nov 2008 15:45:59 +0800
+Message-ID: <386072610811182345i53e43cd2hcc24fa331d52ba0a@mail.gmail.com>
 References: <1226999108-13839-1-git-send-email-cooloney@kernel.org>
-	 <1226999108-13839-3-git-send-email-cooloney@kernel.org>
+	 <1226999108-13839-4-git-send-email-cooloney@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from yw-out-2324.google.com ([74.125.46.30]:23869 "EHLO
-	yw-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750780AbYKSHoG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Nov 2008 02:44:06 -0500
-Received: by yw-out-2324.google.com with SMTP id 9so1400767ywe.1
-        for <linux-arch@vger.kernel.org>; Tue, 18 Nov 2008 23:44:04 -0800 (PST)
-In-Reply-To: <1226999108-13839-3-git-send-email-cooloney@kernel.org>
+Received: from an-out-0708.google.com ([209.85.132.240]:38916 "EHLO
+	an-out-0708.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750747AbYKSHqB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Nov 2008 02:46:01 -0500
+Received: by an-out-0708.google.com with SMTP id d40so1446747and.1
+        for <linux-arch@vger.kernel.org>; Tue, 18 Nov 2008 23:45:59 -0800 (PST)
+In-Reply-To: <1226999108-13839-4-git-send-email-cooloney@kernel.org>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@elte.hu, linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Graf Yang <graf.yang@analog.com>, Bryan Wu <cooloney@kernel.org>
+To: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@elte.hu
+Cc: linux-kernel@vger.kernel.org, Graf Yang <graf.yang@analog.com>, Bryan Wu <cooloney@kernel.org>, linux-arch@vger.kernel.org
 
-Post this patch to linux-arch, maybe more people are interested in this.
-
+Cc, linux-arch
 -Bryan
 
 On Tue, Nov 18, 2008 at 5:05 PM, Bryan Wu <cooloney@kernel.org> wrote:
@@ -31,2384 +30,1158 @@ On Tue, Nov 18, 2008 at 5:05 PM, Bryan Wu <cooloney@kernel.org> wrote:
 > Blackfin dual core BF561 processor can support SMP like features.
 > https://docs.blackfin.uclinux.org/doku.php?id=linux-kernel:smp-like
 >
-> In this patch, we provide SMP extend to Blackfin header files
-> and machine common code
+> In this patch, we provide SMP extend to Blackfin CPLB related code
 >
 > Signed-off-by: Graf Yang <graf.yang@analog.com>
 > Signed-off-by: Bryan Wu <cooloney@kernel.org>
 > ---
->  arch/blackfin/include/asm/atomic.h         |  124 ++++++--
->  arch/blackfin/include/asm/bfin-global.h    |    5 +-
->  arch/blackfin/include/asm/bitops.h         |  185 ++++++++----
->  arch/blackfin/include/asm/cache.h          |   29 ++
->  arch/blackfin/include/asm/cacheflush.h     |   20 +-
->  arch/blackfin/include/asm/context.S        |    6 +-
->  arch/blackfin/include/asm/cpu.h            |   42 +++
->  arch/blackfin/include/asm/l1layout.h       |    3 +-
->  arch/blackfin/include/asm/mutex-dec.h      |  112 +++++++
->  arch/blackfin/include/asm/mutex.h          |   63 ++++
->  arch/blackfin/include/asm/pda.h            |   70 ++++
->  arch/blackfin/include/asm/percpu.h         |   12 +-
->  arch/blackfin/include/asm/processor.h      |    7 +-
->  arch/blackfin/include/asm/rwlock.h         |    6 +
->  arch/blackfin/include/asm/smp.h            |   42 +++
->  arch/blackfin/include/asm/spinlock.h       |   87 +++++-
->  arch/blackfin/include/asm/spinlock_types.h |   22 ++
->  arch/blackfin/include/asm/system.h         |  116 ++++++--
->  arch/blackfin/mach-common/Makefile         |    1 +
->  arch/blackfin/mach-common/cache.S          |   36 ++
->  arch/blackfin/mach-common/entry.S          |   92 +++---
->  arch/blackfin/mach-common/head.S           |   29 +-
->  arch/blackfin/mach-common/ints-priority.c  |   41 +++-
->  arch/blackfin/mach-common/smp.c            |  476 ++++++++++++++++++++++++++++
->  arch/blackfin/oprofile/common.c            |    2 +-
->  25 files changed, 1437 insertions(+), 191 deletions(-)
->  create mode 100644 arch/blackfin/include/asm/cpu.h
->  create mode 100644 arch/blackfin/include/asm/mutex-dec.h
->  create mode 100644 arch/blackfin/include/asm/pda.h
->  create mode 100644 arch/blackfin/include/asm/rwlock.h
->  create mode 100644 arch/blackfin/include/asm/smp.h
->  create mode 100644 arch/blackfin/include/asm/spinlock_types.h
->  create mode 100644 arch/blackfin/mach-common/smp.c
+>  arch/blackfin/include/asm/cplb-mpu.h        |   15 ++--
+>  arch/blackfin/include/asm/cplb.h            |   21 +++---
+>  arch/blackfin/include/asm/cplbinit.h        |   57 ++++++++++++---
+>  arch/blackfin/include/asm/mmu_context.h     |   27 +++++--
+>  arch/blackfin/kernel/cplb-mpu/cacheinit.c   |    4 +-
+>  arch/blackfin/kernel/cplb-mpu/cplbinfo.c    |   43 +++++++----
+>  arch/blackfin/kernel/cplb-mpu/cplbinit.c    |   43 ++++++------
+>  arch/blackfin/kernel/cplb-mpu/cplbmgr.c     |  102 ++++++++++++++-------------
+>  arch/blackfin/kernel/cplb-nompu/cacheinit.c |    9 ++-
+>  arch/blackfin/kernel/cplb-nompu/cplbinfo.c  |   55 +++++++++------
+>  arch/blackfin/kernel/cplb-nompu/cplbinit.c  |   89 +++++++++---------------
+>  arch/blackfin/kernel/cplb-nompu/cplbmgr.S   |   29 ++++----
+>  12 files changed, 275 insertions(+), 219 deletions(-)
 >
-> diff --git a/arch/blackfin/include/asm/atomic.h b/arch/blackfin/include/asm/atomic.h
-> index 7cf5087..8af0542 100644
-> --- a/arch/blackfin/include/asm/atomic.h
-> +++ b/arch/blackfin/include/asm/atomic.h
-> @@ -13,15 +13,83 @@
->  * Tony Kou (tonyko@lineo.ca)   Lineo Inc.   2001
+> diff --git a/arch/blackfin/include/asm/cplb-mpu.h b/arch/blackfin/include/asm/cplb-mpu.h
+> index 75c67b9..80680ad 100644
+> --- a/arch/blackfin/include/asm/cplb-mpu.h
+> +++ b/arch/blackfin/include/asm/cplb-mpu.h
+> @@ -28,6 +28,7 @@
 >  */
+>  #ifndef __ASM_BFIN_CPLB_MPU_H
+>  #define __ASM_BFIN_CPLB_MPU_H
+> +#include <linux/threads.h>
 >
-> -typedef struct {
-> -       int counter;
-> -} atomic_t;
-> -#define ATOMIC_INIT(i) { (i) }
-> +typedef struct { volatile int counter; } atomic_t;
+>  struct cplb_entry {
+>        unsigned long data, addr;
+> @@ -39,22 +40,22 @@ struct mem_region {
+>        unsigned long icplb_data;
+>  };
 >
-> -#define atomic_read(v)         ((v)->counter)
-> +#define ATOMIC_INIT(i) { (i) }
->  #define atomic_set(v, i)       (((v)->counter) = i)
+> -extern struct cplb_entry dcplb_tbl[MAX_CPLBS];
+> -extern struct cplb_entry icplb_tbl[MAX_CPLBS];
+> +extern struct cplb_entry dcplb_tbl[NR_CPUS][MAX_CPLBS];
+> +extern struct cplb_entry icplb_tbl[NR_CPUS][MAX_CPLBS];
+>  extern int first_switched_icplb;
+>  extern int first_mask_dcplb;
+>  extern int first_switched_dcplb;
 >
-> -static __inline__ void atomic_add(int i, atomic_t * v)
-> +#ifdef CONFIG_SMP
-> +
-> +#define atomic_read(v) __raw_uncached_fetch_asm(&(v)->counter)
-> +
-> +asmlinkage int __raw_uncached_fetch_asm(const volatile int *ptr);
-> +
-> +asmlinkage int __raw_atomic_update_asm(volatile int *ptr, int value);
-> +
-> +asmlinkage int __raw_atomic_clear_asm(volatile int *ptr, int value);
-> +
-> +asmlinkage int __raw_atomic_set_asm(volatile int *ptr, int value);
-> +
-> +asmlinkage int __raw_atomic_xor_asm(volatile int *ptr, int value);
-> +
-> +asmlinkage int __raw_atomic_test_asm(const volatile int *ptr, int value);
-> +
-> +static inline void atomic_add(int i, atomic_t *v)
-> +{
-> +       __raw_atomic_update_asm(&v->counter, i);
-> +}
-> +
-> +static inline void atomic_sub(int i, atomic_t *v)
-> +{
-> +       __raw_atomic_update_asm(&v->counter, -i);
-> +}
-> +
-> +static inline int atomic_add_return(int i, atomic_t *v)
-> +{
-> +       return __raw_atomic_update_asm(&v->counter, i);
-> +}
-> +
-> +static inline int atomic_sub_return(int i, atomic_t *v)
-> +{
-> +       return __raw_atomic_update_asm(&v->counter, -i);
-> +}
-> +
-> +static inline void atomic_inc(volatile atomic_t *v)
-> +{
-> +       __raw_atomic_update_asm(&v->counter, 1);
-> +}
-> +
-> +static inline void atomic_dec(volatile atomic_t *v)
-> +{
-> +       __raw_atomic_update_asm(&v->counter, -1);
-> +}
-> +
-> +static inline void atomic_clear_mask(int mask, atomic_t *v)
-> +{
-> +       __raw_atomic_clear_asm(&v->counter, mask);
-> +}
-> +
-> +static inline void atomic_set_mask(int mask, atomic_t *v)
-> +{
-> +       __raw_atomic_set_asm(&v->counter, mask);
-> +}
-> +
-> +static inline int atomic_test_mask(int mask, atomic_t *v)
-> +{
-> +       return __raw_atomic_test_asm(&v->counter, mask);
-> +}
-> +
-> +/* Atomic operations are already serializing */
-> +#define smp_mb__before_atomic_dec()    barrier()
-> +#define smp_mb__after_atomic_dec() barrier()
-> +#define smp_mb__before_atomic_inc()    barrier()
-> +#define smp_mb__after_atomic_inc() barrier()
-> +
-> +#else /* !CONFIG_SMP */
-> +
-> +#define atomic_read(v) ((v)->counter)
-> +
-> +static inline void atomic_add(int i, atomic_t *v)
->  {
->        long flags;
+> -extern int nr_dcplb_miss, nr_icplb_miss, nr_icplb_supv_miss, nr_dcplb_prot;
+> -extern int nr_cplb_flush;
+> +extern int nr_dcplb_miss[], nr_icplb_miss[], nr_icplb_supv_miss[];
+> +extern int nr_dcplb_prot[], nr_cplb_flush[];
 >
-> @@ -30,7 +98,7 @@ static __inline__ void atomic_add(int i, atomic_t * v)
->        local_irq_restore(flags);
->  }
+>  extern int page_mask_order;
+>  extern int page_mask_nelts;
 >
-> -static __inline__ void atomic_sub(int i, atomic_t * v)
-> +static inline void atomic_sub(int i, atomic_t *v)
->  {
->        long flags;
+> -extern unsigned long *current_rwx_mask;
+> +extern unsigned long *current_rwx_mask[NR_CPUS];
 >
-> @@ -40,7 +108,7 @@ static __inline__ void atomic_sub(int i, atomic_t * v)
+> -extern void flush_switched_cplbs(void);
+> -extern void set_mask_dcplbs(unsigned long *);
+> +extern void flush_switched_cplbs(unsigned int);
+> +extern void set_mask_dcplbs(unsigned long *, unsigned int);
 >
->  }
+>  extern void __noreturn panic_cplb_error(int seqstat, struct pt_regs *);
 >
-> -static inline int atomic_add_return(int i, atomic_t * v)
-> +static inline int atomic_add_return(int i, atomic_t *v)
->  {
->        int __temp = 0;
->        long flags;
-> @@ -54,8 +122,7 @@ static inline int atomic_add_return(int i, atomic_t * v)
->        return __temp;
->  }
+> diff --git a/arch/blackfin/include/asm/cplb.h b/arch/blackfin/include/asm/cplb.h
+> index 9e8b403..5f7545d 100644
+> --- a/arch/blackfin/include/asm/cplb.h
+> +++ b/arch/blackfin/include/asm/cplb.h
+> @@ -30,7 +30,6 @@
+>  #ifndef _CPLB_H
+>  #define _CPLB_H
 >
-> -#define atomic_add_negative(a, v)      (atomic_add_return((a), (v)) < 0)
-> -static inline int atomic_sub_return(int i, atomic_t * v)
-> +static inline int atomic_sub_return(int i, atomic_t *v)
->  {
->        int __temp = 0;
->        long flags;
-> @@ -68,7 +135,7 @@ static inline int atomic_sub_return(int i, atomic_t * v)
->        return __temp;
->  }
+> -#include <asm/blackfin.h>
+>  #include <mach/anomaly.h>
 >
-> -static __inline__ void atomic_inc(volatile atomic_t * v)
-> +static inline void atomic_inc(volatile atomic_t *v)
->  {
->        long flags;
->
-> @@ -77,20 +144,7 @@ static __inline__ void atomic_inc(volatile atomic_t * v)
->        local_irq_restore(flags);
->  }
->
-> -#define atomic_cmpxchg(v, o, n) ((int)cmpxchg(&((v)->counter), (o), (n)))
-> -#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
-> -
-> -#define atomic_add_unless(v, a, u)                             \
-> -({                                                             \
-> -       int c, old;                                             \
-> -       c = atomic_read(v);                                     \
-> -       while (c != (u) && (old = atomic_cmpxchg((v), c, c + (a))) != c) \
-> -               c = old;                                        \
-> -       c != (u);                                               \
-> -})
-> -#define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
-> -
-> -static __inline__ void atomic_dec(volatile atomic_t * v)
-> +static inline void atomic_dec(volatile atomic_t *v)
->  {
->        long flags;
->
-> @@ -99,7 +153,7 @@ static __inline__ void atomic_dec(volatile atomic_t * v)
->        local_irq_restore(flags);
->  }
->
-> -static __inline__ void atomic_clear_mask(unsigned int mask, atomic_t * v)
-> +static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
->  {
->        long flags;
->
-> @@ -108,7 +162,7 @@ static __inline__ void atomic_clear_mask(unsigned int mask, atomic_t * v)
->        local_irq_restore(flags);
->  }
->
-> -static __inline__ void atomic_set_mask(unsigned int mask, atomic_t * v)
-> +static inline void atomic_set_mask(unsigned int mask, atomic_t *v)
->  {
->        long flags;
->
-> @@ -123,9 +177,25 @@ static __inline__ void atomic_set_mask(unsigned int mask, atomic_t * v)
->  #define smp_mb__before_atomic_inc()    barrier()
->  #define smp_mb__after_atomic_inc() barrier()
->
-> +#endif /* !CONFIG_SMP */
-> +
-> +#define atomic_add_negative(a, v)      (atomic_add_return((a), (v)) < 0)
->  #define atomic_dec_return(v) atomic_sub_return(1,(v))
->  #define atomic_inc_return(v) atomic_add_return(1,(v))
->
-> +#define atomic_cmpxchg(v, o, n) ((int)cmpxchg(&((v)->counter), (o), (n)))
-> +#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
-> +
-> +#define atomic_add_unless(v, a, u)                             \
-> +({                                                             \
-> +       int c, old;                                             \
-> +       c = atomic_read(v);                                     \
-> +       while (c != (u) && (old = atomic_cmpxchg((v), c, c + (a))) != c) \
-> +               c = old;                                        \
-> +       c != (u);                                               \
-> +})
-> +#define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
-> +
->  /*
->  * atomic_inc_and_test - increment and test
->  * @v: pointer of type atomic_t
-> diff --git a/arch/blackfin/include/asm/bfin-global.h b/arch/blackfin/include/asm/bfin-global.h
-> index 7729566..1dd0805 100644
-> --- a/arch/blackfin/include/asm/bfin-global.h
-> +++ b/arch/blackfin/include/asm/bfin-global.h
-> @@ -47,6 +47,9 @@
->  # define DMA_UNCACHED_REGION (0)
+>  #define SDRAM_IGENERIC    (CPLB_L1_CHBL | CPLB_USER_RD | CPLB_VALID | CPLB_PORTPRIO)
+> @@ -55,13 +54,24 @@
 >  #endif
 >
-> +extern void bfin_setup_caches(unsigned int cpu);
-> +extern void bfin_setup_cpudata(unsigned int cpu);
+>  #define L1_DMEMORY       (CPLB_LOCK | CPLB_COMMON)
 > +
->  extern unsigned long get_cclk(void);
->  extern unsigned long get_sclk(void);
->  extern unsigned long sclk_to_usecs(unsigned long sclk);
-> @@ -58,8 +61,6 @@ extern void dump_bfin_trace_buffer(void);
->
->  /* init functions only */
->  extern int init_arch_irq(void);
-> -extern void bfin_icache_init(void);
-> -extern void bfin_dcache_init(void);
->  extern void init_exception_vectors(void);
->  extern void program_IAR(void);
->
-> diff --git a/arch/blackfin/include/asm/bitops.h b/arch/blackfin/include/asm/bitops.h
-> index b39a175..5872fb6 100644
-> --- a/arch/blackfin/include/asm/bitops.h
-> +++ b/arch/blackfin/include/asm/bitops.h
-> @@ -7,7 +7,6 @@
->
->  #include <linux/compiler.h>
->  #include <asm/byteorder.h>     /* swab32 */
-> -#include <asm/system.h>                /* save_flags */
->
->  #ifdef __KERNEL__
->
-> @@ -20,36 +19,71 @@
->  #include <asm-generic/bitops/sched.h>
->  #include <asm-generic/bitops/ffz.h>
->
-> -static __inline__ void set_bit(int nr, volatile unsigned long *addr)
 > +#ifdef CONFIG_SMP
+> +#define L2_ATTR           (INITIAL_T | I_CPLB | D_CPLB)
+> +#define L2_IMEMORY         (CPLB_COMMON | CPLB_LOCK)
+> +#define L2_DMEMORY         (CPLB_COMMON | CPLB_LOCK)
 > +
-> +#include <linux/linkage.h>
+> +#else
+>  #ifdef CONFIG_BFIN_L2_CACHEABLE
+>  #define L2_IMEMORY        (SDRAM_IGENERIC)
+>  #define L2_DMEMORY        (SDRAM_DGENERIC)
+>  #else
+>  #define L2_IMEMORY        (CPLB_COMMON)
+>  #define L2_DMEMORY        (CPLB_COMMON)
+> -#endif
+> +#endif /* CONFIG_BFIN_L2_CACHEABLE */
 > +
-> +asmlinkage int __raw_bit_set_asm(volatile unsigned long *addr, int nr);
-> +
-> +asmlinkage int __raw_bit_clear_asm(volatile unsigned long *addr, int nr);
-> +
-> +asmlinkage int __raw_bit_toggle_asm(volatile unsigned long *addr, int nr);
-> +
-> +asmlinkage int __raw_bit_test_set_asm(volatile unsigned long *addr, int nr);
-> +
-> +asmlinkage int __raw_bit_test_clear_asm(volatile unsigned long *addr, int nr);
-> +
-> +asmlinkage int __raw_bit_test_toggle_asm(volatile unsigned long *addr, int nr);
-> +
-> +asmlinkage int __raw_bit_test_asm(const volatile unsigned long *addr, int nr);
-> +
-> +static inline void set_bit(int nr, volatile unsigned long *addr)
->  {
-> -       int *a = (int *)addr;
-> -       int mask;
-> -       unsigned long flags;
-> +       volatile unsigned long *a = addr + (nr >> 5);
-> +       __raw_bit_set_asm(a, nr & 0x1f);
-> +}
->
-> -       a += nr >> 5;
-> -       mask = 1 << (nr & 0x1f);
-> -       local_irq_save(flags);
-> -       *a |= mask;
-> -       local_irq_restore(flags);
-> +static inline void clear_bit(int nr, volatile unsigned long *addr)
-> +{
-> +       volatile unsigned long *a = addr + (nr >> 5);
-> +       __raw_bit_clear_asm(a, nr & 0x1f);
->  }
->
-> -static __inline__ void __set_bit(int nr, volatile unsigned long *addr)
-> +static inline void change_bit(int nr, volatile unsigned long *addr)
->  {
-> -       int *a = (int *)addr;
-> -       int mask;
-> +       volatile unsigned long *a = addr + (nr >> 5);
-> +       __raw_bit_toggle_asm(a, nr & 0x1f);
-> +}
->
-> -       a += nr >> 5;
-> -       mask = 1 << (nr & 0x1f);
-> -       *a |= mask;
-> +static inline int test_bit(int nr, const volatile unsigned long *addr)
-> +{
-> +       volatile const unsigned long *a = addr + (nr >> 5);
-> +       return __raw_bit_test_asm(a, nr & 0x1f) != 0;
->  }
->
-> -/*
-> - * clear_bit() doesn't provide any barrier for the compiler.
-> - */
-> -#define smp_mb__before_clear_bit()     barrier()
-> -#define smp_mb__after_clear_bit()      barrier()
-> +static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
-> +{
-> +       volatile unsigned long *a = addr + (nr >> 5);
-> +       return __raw_bit_test_set_asm(a, nr & 0x1f);
-> +}
->
-> -static __inline__ void clear_bit(int nr, volatile unsigned long *addr)
-> +static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
-> +{
-> +       volatile unsigned long *a = addr + (nr >> 5);
-> +       return __raw_bit_test_clear_asm(a, nr & 0x1f);
-> +}
-> +
-> +static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
-> +{
-> +       volatile unsigned long *a = addr + (nr >> 5);
-> +       return __raw_bit_test_toggle_asm(a, nr & 0x1f);
-> +}
-> +
-> +#else /* !CONFIG_SMP */
-> +
-> +#include <asm/system.h>                /* save_flags */
-> +
-> +static inline void set_bit(int nr, volatile unsigned long *addr)
->  {
->        int *a = (int *)addr;
->        int mask;
-> @@ -57,21 +91,23 @@ static __inline__ void clear_bit(int nr, volatile unsigned long *addr)
->        a += nr >> 5;
->        mask = 1 << (nr & 0x1f);
->        local_irq_save(flags);
-> -       *a &= ~mask;
-> +       *a |= mask;
->        local_irq_restore(flags);
->  }
->
-> -static __inline__ void __clear_bit(int nr, volatile unsigned long *addr)
-> +static inline void clear_bit(int nr, volatile unsigned long *addr)
->  {
->        int *a = (int *)addr;
->        int mask;
-> -
-> +       unsigned long flags;
->        a += nr >> 5;
->        mask = 1 << (nr & 0x1f);
-> +       local_irq_save(flags);
->        *a &= ~mask;
-> +       local_irq_restore(flags);
->  }
->
-> -static __inline__ void change_bit(int nr, volatile unsigned long *addr)
-> +static inline void change_bit(int nr, volatile unsigned long *addr)
->  {
->        int mask, flags;
->        unsigned long *ADDR = (unsigned long *)addr;
-> @@ -83,17 +119,7 @@ static __inline__ void change_bit(int nr, volatile unsigned long *addr)
->        local_irq_restore(flags);
->  }
->
-> -static __inline__ void __change_bit(int nr, volatile unsigned long *addr)
-> -{
-> -       int mask;
-> -       unsigned long *ADDR = (unsigned long *)addr;
-> -
-> -       ADDR += nr >> 5;
-> -       mask = 1 << (nr & 31);
-> -       *ADDR ^= mask;
-> -}
-> -
-> -static __inline__ int test_and_set_bit(int nr, void *addr)
-> +static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
->  {
->        int mask, retval;
->        volatile unsigned int *a = (volatile unsigned int *)addr;
-> @@ -109,19 +135,23 @@ static __inline__ int test_and_set_bit(int nr, void *addr)
->        return retval;
->  }
->
-> -static __inline__ int __test_and_set_bit(int nr, volatile unsigned long *addr)
-> +static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
->  {
->        int mask, retval;
->        volatile unsigned int *a = (volatile unsigned int *)addr;
-> +       unsigned long flags;
->
->        a += nr >> 5;
->        mask = 1 << (nr & 0x1f);
-> +       local_irq_save(flags);
->        retval = (mask & *a) != 0;
-> -       *a |= mask;
-> +       *a &= ~mask;
-> +       local_irq_restore(flags);
-> +
->        return retval;
->  }
->
-> -static __inline__ int test_and_clear_bit(int nr, volatile unsigned long *addr)
-> +static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
->  {
->        int mask, retval;
->        volatile unsigned int *a = (volatile unsigned int *)addr;
-> @@ -131,13 +161,59 @@ static __inline__ int test_and_clear_bit(int nr, volatile unsigned long *addr)
->        mask = 1 << (nr & 0x1f);
->        local_irq_save(flags);
->        retval = (mask & *a) != 0;
-> -       *a &= ~mask;
-> +       *a ^= mask;
->        local_irq_restore(flags);
-> -
->        return retval;
->  }
->
-> -static __inline__ int __test_and_clear_bit(int nr, volatile unsigned long *addr)
-> +/*
-> + * This routine doesn't need to go through raw atomic ops in UP
-> + * context.
-> + */
-> +#define test_bit(nr,addr) \
-> +(__builtin_constant_p(nr) ? \
-> + __constant_test_bit((nr), (addr)) : \
-> + __test_bit((nr), (addr)))
-> +
+> +#define L2_ATTR           (INITIAL_T | SWITCH_T | I_CPLB | D_CPLB)
 > +#endif /* CONFIG_SMP */
 > +
-> +/*
-> + * clear_bit() doesn't provide any barrier for the compiler.
-> + */
-> +#define smp_mb__before_clear_bit()     barrier()
-> +#define smp_mb__after_clear_bit()      barrier()
-> +
-> +static inline void __set_bit(int nr, volatile unsigned long *addr)
-> +{
-> +       int *a = (int *)addr;
-> +       int mask;
-> +
-> +       a += nr >> 5;
-> +       mask = 1 << (nr & 0x1f);
-> +       *a |= mask;
-> +}
-> +
-> +static inline void __clear_bit(int nr, volatile unsigned long *addr)
-> +{
-> +       int *a = (int *)addr;
-> +       int mask;
-> +
-> +       a += nr >> 5;
-> +       mask = 1 << (nr & 0x1f);
-> +       *a &= ~mask;
-> +}
-> +
-> +static inline void __change_bit(int nr, volatile unsigned long *addr)
-> +{
-> +       int mask;
-> +       unsigned long *ADDR = (unsigned long *)addr;
-> +
-> +       ADDR += nr >> 5;
-> +       mask = 1 << (nr & 31);
-> +       *ADDR ^= mask;
-> +}
-> +
-> +static inline int __test_and_set_bit(int nr, volatile unsigned long *addr)
->  {
->        int mask, retval;
->        volatile unsigned int *a = (volatile unsigned int *)addr;
-> @@ -145,26 +221,23 @@ static __inline__ int __test_and_clear_bit(int nr, volatile unsigned long *addr)
->        a += nr >> 5;
->        mask = 1 << (nr & 0x1f);
->        retval = (mask & *a) != 0;
-> -       *a &= ~mask;
-> +       *a |= mask;
->        return retval;
->  }
+>  #define SDRAM_DNON_CHBL  (CPLB_COMMON)
+>  #define SDRAM_EBIU       (CPLB_COMMON)
+>  #define SDRAM_OOPS       (CPLB_VALID | ANOMALY_05000158_WORKAROUND | CPLB_LOCK | CPLB_DIRTY)
+> @@ -71,14 +81,7 @@
+>  #define SIZE_1M 0x00100000      /* 1M */
+>  #define SIZE_4M 0x00400000      /* 4M */
 >
-> -static __inline__ int test_and_change_bit(int nr, volatile unsigned long *addr)
-> +static inline int __test_and_clear_bit(int nr, volatile unsigned long *addr)
->  {
->        int mask, retval;
->        volatile unsigned int *a = (volatile unsigned int *)addr;
-> -       unsigned long flags;
->
->        a += nr >> 5;
->        mask = 1 << (nr & 0x1f);
-> -       local_irq_save(flags);
->        retval = (mask & *a) != 0;
-> -       *a ^= mask;
-> -       local_irq_restore(flags);
-> +       *a &= ~mask;
->        return retval;
->  }
->
-> -static __inline__ int __test_and_change_bit(int nr,
-> +static inline int __test_and_change_bit(int nr,
->                                            volatile unsigned long *addr)
->  {
->        int mask, retval;
-> @@ -177,16 +250,13 @@ static __inline__ int __test_and_change_bit(int nr,
->        return retval;
->  }
->
-> -/*
-> - * This routine doesn't need to be atomic.
-> - */
-> -static __inline__ int __constant_test_bit(int nr, const void *addr)
-> +static inline int __constant_test_bit(int nr, const void *addr)
->  {
->        return ((1UL << (nr & 31)) &
->                (((const volatile unsigned int *)addr)[nr >> 5])) != 0;
->  }
->
-> -static __inline__ int __test_bit(int nr, const void *addr)
-> +static inline int __test_bit(int nr, const void *addr)
->  {
->        int *a = (int *)addr;
->        int mask;
-> @@ -196,11 +266,6 @@ static __inline__ int __test_bit(int nr, const void *addr)
->        return ((mask & *a) != 0);
->  }
->
-> -#define test_bit(nr,addr) \
-> -(__builtin_constant_p(nr) ? \
-> - __constant_test_bit((nr),(addr)) : \
-> - __test_bit((nr),(addr)))
+> -#ifdef CONFIG_MPU
+>  #define MAX_CPLBS 16
+> -#else
+> -#define MAX_CPLBS (16 * 2)
+> -#endif
 > -
->  #include <asm-generic/bitops/find.h>
->  #include <asm-generic/bitops/hweight.h>
->  #include <asm-generic/bitops/lock.h>
-> diff --git a/arch/blackfin/include/asm/cache.h b/arch/blackfin/include/asm/cache.h
-> index 023d721..8663781 100644
-> --- a/arch/blackfin/include/asm/cache.h
-> +++ b/arch/blackfin/include/asm/cache.h
-> @@ -12,6 +12,11 @@
->  #define L1_CACHE_BYTES (1 << L1_CACHE_SHIFT)
->  #define SMP_CACHE_BYTES        L1_CACHE_BYTES
+> -#define ASYNC_MEMORY_CPLB_COVERAGE     ((ASYNC_BANK0_SIZE + ASYNC_BANK1_SIZE + \
+> -                                ASYNC_BANK2_SIZE + ASYNC_BANK3_SIZE) / SIZE_4M)
 >
-> +#ifdef CONFIG_SMP
-> +#define __cacheline_aligned
-> +#else
-> +#define ____cacheline_aligned
+>  #define CPLB_ENABLE_ICACHE_P   0
+>  #define CPLB_ENABLE_DCACHE_P   1
+> diff --git a/arch/blackfin/include/asm/cplbinit.h b/arch/blackfin/include/asm/cplbinit.h
+> index f845b41..6bfc257 100644
+> --- a/arch/blackfin/include/asm/cplbinit.h
+> +++ b/arch/blackfin/include/asm/cplbinit.h
+> @@ -36,6 +36,8 @@
+>  #ifdef CONFIG_MPU
+>
+>  #include <asm/cplb-mpu.h>
+> +extern void bfin_icache_init(struct cplb_entry *icplb_tbl);
+> +extern void bfin_dcache_init(struct cplb_entry *icplb_tbl);
+>
+>  #else
+>
+> @@ -46,8 +48,40 @@
+>
+>  #define IN_KERNEL 1
+>
+> -enum
+> -{ZERO_P, L1I_MEM, L1D_MEM, SDRAM_KERN , SDRAM_RAM_MTD, SDRAM_DMAZ, RES_MEM, ASYNC_MEM, L2_MEM};
+> +#define ASYNC_MEMORY_CPLB_COVERAGE  ((ASYNC_BANK0_SIZE + ASYNC_BANK1_SIZE + \
+> +                               ASYNC_BANK2_SIZE + ASYNC_BANK3_SIZE) / SIZE_4M)
 > +
->  /*
->  * Put cacheline_aliged data to L1 data memory
+> +#define CPLB_MEM CONFIG_MAX_MEM_SIZE
+> +
+> +/*
+> +* Number of required data CPLB switchtable entries
+> +* MEMSIZE / 4 (we mostly install 4M page size CPLBs
+> +* approx 16 for smaller 1MB page size CPLBs for allignment purposes
+> +* 1 for L1 Data Memory
+> +* possibly 1 for L2 Data Memory
+> +* 1 for CONFIG_DEBUG_HUNT_FOR_ZERO
+> +* 1 for ASYNC Memory
+> +*/
+> +#define MAX_SWITCH_D_CPLBS (((CPLB_MEM / 4) + 16 + 1 + 1 + 1 \
+> +                                + ASYNC_MEMORY_CPLB_COVERAGE) * 2)
+> +
+> +/*
+> +* Number of required instruction CPLB switchtable entries
+> +* MEMSIZE / 4 (we mostly install 4M page size CPLBs
+> +* approx 12 for smaller 1MB page size CPLBs for allignment purposes
+> +* 1 for L1 Instruction Memory
+> +* possibly 1 for L2 Instruction Memory
+> +* 1 for CONFIG_DEBUG_HUNT_FOR_ZERO
+> +*/
+> +#define MAX_SWITCH_I_CPLBS (((CPLB_MEM / 4) + 12 + 1 + 1 + 1) * 2)
+> +
+> +/* Number of CPLB table entries, used for cplb-nompu. */
+> +#define CPLB_TBL_ENTRIES (16 * 4)
+> +
+> +enum {
+> +       ZERO_P, L1I_MEM, L1D_MEM, L2_MEM, SDRAM_KERN, SDRAM_RAM_MTD, SDRAM_DMAZ,
+> +       RES_MEM, ASYNC_MEM, OCB_ROM
+> +};
+>
+>  struct cplb_desc {
+>        u32 start; /* start address */
+> @@ -66,8 +100,8 @@ struct cplb_tab {
+>        u16 size;
+>  };
+>
+> -extern u_long icplb_table[];
+> -extern u_long dcplb_table[];
+> +extern u_long icplb_tables[NR_CPUS][CPLB_TBL_ENTRIES+1];
+> +extern u_long dcplb_tables[NR_CPUS][CPLB_TBL_ENTRIES+1];
+>
+>  /* Till here we are discussing about the static memory management model.
+>  * However, the operating envoronments commonly define more CPLB
+> @@ -78,15 +112,18 @@ extern u_long dcplb_table[];
+>  * This is how Page descriptor Table is implemented in uClinux/Blackfin.
 >  */
-> @@ -21,9 +26,33 @@
->                __section__(".data_l1.cacheline_aligned")))
+>
+> -extern u_long ipdt_table[];
+> -extern u_long dpdt_table[];
+> +extern u_long ipdt_tables[NR_CPUS][MAX_SWITCH_I_CPLBS+1];
+> +extern u_long dpdt_tables[NR_CPUS][MAX_SWITCH_D_CPLBS+1];
+>  #ifdef CONFIG_CPLB_INFO
+> -extern u_long ipdt_swapcount_table[];
+> -extern u_long dpdt_swapcount_table[];
+> +extern u_long ipdt_swapcount_tables[NR_CPUS][MAX_SWITCH_I_CPLBS];
+> +extern u_long dpdt_swapcount_tables[NR_CPUS][MAX_SWITCH_D_CPLBS];
 >  #endif
+> +extern void bfin_icache_init(u_long icplbs[]);
+> +extern void bfin_dcache_init(u_long dcplbs[]);
 >
-> +#endif
-> +
->  /*
->  * largest L1 which this arch supports
->  */
->  #define L1_CACHE_SHIFT_MAX     5
+>  #endif /* CONFIG_MPU */
 >
-> +#if defined(CONFIG_SMP) && \
-> +    !defined(CONFIG_BFIN_CACHE_COHERENT) && \
-> +    defined(CONFIG_BFIN_DCACHE)
-> +#define __ARCH_SYNC_CORE_DCACHE
-> +#ifndef __ASSEMBLY__
-> +asmlinkage void __raw_smp_mark_barrier_asm(void);
-> +asmlinkage void __raw_smp_check_barrier_asm(void);
-> +
-> +static inline void smp_mark_barrier(void)
-> +{
-> +       __raw_smp_mark_barrier_asm();
-> +}
-> +static inline void smp_check_barrier(void)
-> +{
-> +       __raw_smp_check_barrier_asm();
-> +}
-> +
-> +void resync_core_dcache(void);
+> -extern void generate_cplb_tables(void);
+> -
+> +#if defined(CONFIG_BFIN_DCACHE) || defined(CONFIG_BFIN_ICACHE)
+> +extern void generate_cplb_tables_cpu(unsigned int cpu);
 > +#endif
-> +#endif
-> +
-> +
 >  #endif
-> diff --git a/arch/blackfin/include/asm/cacheflush.h b/arch/blackfin/include/asm/cacheflush.h
-> index 4403415..1b040f5 100644
-> --- a/arch/blackfin/include/asm/cacheflush.h
-> +++ b/arch/blackfin/include/asm/cacheflush.h
-> @@ -35,6 +35,7 @@ extern void blackfin_icache_flush_range(unsigned long start_address, unsigned lo
->  extern void blackfin_dcache_flush_range(unsigned long start_address, unsigned long end_address);
->  extern void blackfin_dcache_invalidate_range(unsigned long start_address, unsigned long end_address);
->  extern void blackfin_dflush_page(void *page);
-> +extern void blackfin_invalidate_entire_dcache(void);
+> diff --git a/arch/blackfin/include/asm/mmu_context.h b/arch/blackfin/include/asm/mmu_context.h
+> index 35593dd..944e29f 100644
+> --- a/arch/blackfin/include/asm/mmu_context.h
+> +++ b/arch/blackfin/include/asm/mmu_context.h
+> @@ -37,6 +37,10 @@
+>  #include <asm/pgalloc.h>
+>  #include <asm/cplbinit.h>
 >
->  #define flush_dcache_mmap_lock(mapping)                do { } while (0)
->  #define flush_dcache_mmap_unlock(mapping)      do { } while (0)
-> @@ -44,12 +45,20 @@ extern void blackfin_dflush_page(void *page);
->  #define flush_cache_vmap(start, end)           do { } while (0)
->  #define flush_cache_vunmap(start, end)         do { } while (0)
->
-> +#ifdef CONFIG_SMP
-> +#define flush_icache_range_others(start, end)  \
-> +       smp_icache_flush_range_others((start), (end))
-> +#else
-> +#define flush_icache_range_others(start, end)  do { } while (0)
-> +#endif
+> +/* Note: L1 stacks are CPU-private things, so we bluntly disable this
+> +   feature in SMP mode, and use the per-CPU scratch SRAM bank only to
+> +   store the PDA instead. */
 > +
->  static inline void flush_icache_range(unsigned start, unsigned end)
+>  extern void *current_l1_stack_save;
+>  extern int nr_l1stack_tasks;
+>  extern void *l1_stack_base;
+> @@ -88,12 +92,15 @@ activate_l1stack(struct mm_struct *mm, unsigned long sp_base)
+>  static inline void switch_mm(struct mm_struct *prev_mm, struct mm_struct *next_mm,
+>                             struct task_struct *tsk)
 >  {
->  #if defined(CONFIG_BFIN_DCACHE) && defined(CONFIG_BFIN_ICACHE)
+> +#ifdef CONFIG_MPU
+> +       unsigned int cpu = smp_processor_id();
+> +#endif
+>        if (prev_mm == next_mm)
+>                return;
+>  #ifdef CONFIG_MPU
+> -       if (prev_mm->context.page_rwx_mask == current_rwx_mask) {
+> -               flush_switched_cplbs();
+> -               set_mask_dcplbs(next_mm->context.page_rwx_mask);
+> +       if (prev_mm->context.page_rwx_mask == current_rwx_mask[cpu]) {
+> +               flush_switched_cplbs(cpu);
+> +               set_mask_dcplbs(next_mm->context.page_rwx_mask, cpu);
+>        }
+>  #endif
 >
->  # if defined(CONFIG_BFIN_WT)
->        blackfin_icache_flush_range((start), (end));
-> +       flush_icache_range_others(start, end);
->  # else
->        blackfin_icache_dcache_flush_range((start), (end));
->  # endif
-> @@ -58,6 +67,7 @@ static inline void flush_icache_range(unsigned start, unsigned end)
+> @@ -138,9 +145,10 @@ static inline void protect_page(struct mm_struct *mm, unsigned long addr,
 >
->  # if defined(CONFIG_BFIN_ICACHE)
->        blackfin_icache_flush_range((start), (end));
-> +       flush_icache_range_others(start, end);
->  # endif
->  # if defined(CONFIG_BFIN_DCACHE)
->        blackfin_dcache_flush_range((start), (end));
-> @@ -66,10 +76,12 @@ static inline void flush_icache_range(unsigned start, unsigned end)
+>  static inline void update_protections(struct mm_struct *mm)
+>  {
+> -       if (mm->context.page_rwx_mask == current_rwx_mask) {
+> -               flush_switched_cplbs();
+> -               set_mask_dcplbs(mm->context.page_rwx_mask);
+> +       unsigned int cpu = smp_processor_id();
+> +       if (mm->context.page_rwx_mask == current_rwx_mask[cpu]) {
+> +               flush_switched_cplbs(cpu);
+> +               set_mask_dcplbs(mm->context.page_rwx_mask, cpu);
+>        }
+>  }
+>  #endif
+> @@ -165,6 +173,9 @@ init_new_context(struct task_struct *tsk, struct mm_struct *mm)
+>  static inline void destroy_context(struct mm_struct *mm)
+>  {
+>        struct sram_list_struct *tmp;
+> +#ifdef CONFIG_MPU
+> +       unsigned int cpu = smp_processor_id();
+> +#endif
+>
+>  #ifdef CONFIG_APP_STACK_L1
+>        if (current_l1_stack_save == mm->context.l1_stack_save)
+> @@ -179,8 +190,8 @@ static inline void destroy_context(struct mm_struct *mm)
+>                kfree(tmp);
+>        }
+>  #ifdef CONFIG_MPU
+> -       if (current_rwx_mask == mm->context.page_rwx_mask)
+> -               current_rwx_mask = NULL;
+> +       if (current_rwx_mask[cpu] == mm->context.page_rwx_mask)
+> +               current_rwx_mask[cpu] = NULL;
+>        free_pages((unsigned long)mm->context.page_rwx_mask, page_mask_order);
 >  #endif
 >  }
+> diff --git a/arch/blackfin/kernel/cplb-mpu/cacheinit.c b/arch/blackfin/kernel/cplb-mpu/cacheinit.c
+> index a8b712a..c6ff947 100644
+> --- a/arch/blackfin/kernel/cplb-mpu/cacheinit.c
+> +++ b/arch/blackfin/kernel/cplb-mpu/cacheinit.c
+> @@ -25,7 +25,7 @@
+>  #include <asm/cplbinit.h>
 >
-> -#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
-> -do { memcpy(dst, src, len); \
-> -     flush_icache_range ((unsigned) (dst), (unsigned) (dst) + (len)); \
-> +#define copy_to_user_page(vma, page, vaddr, dst, src, len)             \
-> +do { memcpy(dst, src, len);                                            \
-> +     flush_icache_range((unsigned) (dst), (unsigned) (dst) + (len));   \
-> +     flush_icache_range_others((unsigned long) (dst), (unsigned long) (dst) + (len));\
->  } while (0)
-> +
->  #define copy_from_user_page(vma, page, vaddr, dst, src, len)   memcpy(dst, src, len)
+>  #if defined(CONFIG_BFIN_ICACHE)
+> -void __init bfin_icache_init(void)
+> +void __cpuinit bfin_icache_init(struct cplb_entry *icplb_tbl)
+>  {
+>        unsigned long ctrl;
+>        int i;
+> @@ -43,7 +43,7 @@ void __init bfin_icache_init(void)
+>  #endif
 >
 >  #if defined(CONFIG_BFIN_DCACHE)
-> @@ -82,7 +94,7 @@ do { memcpy(dst, src, len); \
->  # define flush_dcache_page(page)                       blackfin_dflush_page(page_address(page))
->  #else
->  # define flush_dcache_range(start,end)         do { } while (0)
-> -# define flush_dcache_page(page)                       do { } while (0)
-> +# define flush_dcache_page(page)               do { } while (0)
->  #endif
->
->  extern unsigned long reserved_mem_dcache_on;
-> diff --git a/arch/blackfin/include/asm/context.S b/arch/blackfin/include/asm/context.S
-> index c0e630e..40d20b4 100644
-> --- a/arch/blackfin/include/asm/context.S
-> +++ b/arch/blackfin/include/asm/context.S
-> @@ -303,9 +303,14 @@
->        RETI = [sp++];
->        RETS = [sp++];
->
-> +#ifdef CONFIG_SMP
-> +       GET_PDA(p0, r0);
-> +       r0 = [p0 + PDA_IRQFLAGS];
-> +#else
->        p0.h = _irq_flags;
->        p0.l = _irq_flags;
->        r0 = [p0];
-> +#endif
->        sti r0;
->
->        sp += 4;        /* Skip Reserved */
-> @@ -352,4 +357,3 @@
->        SYSCFG = [sp++];
->        csync;
->  .endm
-> -
-> diff --git a/arch/blackfin/include/asm/cpu.h b/arch/blackfin/include/asm/cpu.h
-> new file mode 100644
-> index 0000000..9b7aefe
-> --- /dev/null
-> +++ b/arch/blackfin/include/asm/cpu.h
-> @@ -0,0 +1,42 @@
-> +/*
-> + * File:         arch/blackfin/include/asm/cpu.h.
-> + * Author:       Philippe Gerum <rpm@xenomai.org>
-> + *
-> + *               Copyright 2007 Analog Devices Inc.
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License as published by
-> + * the Free Software Foundation; either version 2 of the License, or
-> + * (at your option) any later version.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program; if not, see the file COPYING, or write
-> + * to the Free Software Foundation, Inc.,
-> + * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-> + */
-> +
-> +#ifndef __ASM_BLACKFIN_CPU_H
-> +#define __ASM_BLACKFIN_CPU_H
-> +
-> +#include <linux/percpu.h>
-> +
-> +struct task_struct;
-> +
-> +struct blackfin_cpudata {
-> +       struct cpu cpu;
-> +       struct task_struct *idle;
-> +       unsigned long cclk;
-> +       unsigned int imemctl;
-> +       unsigned int dmemctl;
-> +       unsigned long loops_per_jiffy;
-> +       unsigned long dcache_invld_count;
-> +};
-> +
-> +DECLARE_PER_CPU(struct blackfin_cpudata, cpu_data);
-> +
-> +#endif
-> diff --git a/arch/blackfin/include/asm/l1layout.h b/arch/blackfin/include/asm/l1layout.h
-> index c13ded7..06bb37f 100644
-> --- a/arch/blackfin/include/asm/l1layout.h
-> +++ b/arch/blackfin/include/asm/l1layout.h
-> @@ -24,7 +24,8 @@ struct l1_scratch_task_info
->  };
->
->  /* A pointer to the structure in memory.  */
-> -#define L1_SCRATCH_TASK_INFO ((struct l1_scratch_task_info *)L1_SCRATCH_START)
-> +#define L1_SCRATCH_TASK_INFO ((struct l1_scratch_task_info *)\
-> +                                               get_l1_scratch_start())
->
->  #endif
->
-> diff --git a/arch/blackfin/include/asm/mutex-dec.h b/arch/blackfin/include/asm/mutex-dec.h
-> new file mode 100644
-> index 0000000..0134151
-> --- /dev/null
-> +++ b/arch/blackfin/include/asm/mutex-dec.h
-> @@ -0,0 +1,112 @@
-> +/*
-> + * include/asm-generic/mutex-dec.h
-> + *
-> + * Generic implementation of the mutex fastpath, based on atomic
-> + * decrement/increment.
-> + */
-> +#ifndef _ASM_GENERIC_MUTEX_DEC_H
-> +#define _ASM_GENERIC_MUTEX_DEC_H
-> +
-> +/**
-> + *  __mutex_fastpath_lock - try to take the lock by moving the count
-> + *                          from 1 to a 0 value
-> + *  @count: pointer of type atomic_t
-> + *  @fail_fn: function to call if the original value was not 1
-> + *
-> + * Change the count from 1 to a value lower than 1, and call <fail_fn> if
-> + * it wasn't 1 originally. This function MUST leave the value lower than
-> + * 1 even when the "1" assertion wasn't true.
-> + */
-> +static inline void
-> +__mutex_fastpath_lock(atomic_t *count, fastcall void (*fail_fn)(atomic_t *))
-> +{
-> +       if (unlikely(atomic_dec_return(count) < 0))
-> +               fail_fn(count);
-> +       else
-> +               smp_mb();
-> +}
-> +
-> +/**
-> + *  __mutex_fastpath_lock_retval - try to take the lock by moving the count
-> + *                                 from 1 to a 0 value
-> + *  @count: pointer of type atomic_t
-> + *  @fail_fn: function to call if the original value was not 1
-> + *
-> + * Change the count from 1 to a value lower than 1, and call <fail_fn> if
-> + * it wasn't 1 originally. This function returns 0 if the fastpath succeeds,
-> + * or anything the slow path function returns.
-> + */
-> +static inline int
-> +__mutex_fastpath_lock_retval(atomic_t *count, fastcall int (*fail_fn)(atomic_t *))
-> +{
-> +       if (unlikely(atomic_dec_return(count) < 0))
-> +               return fail_fn(count);
-> +       else {
-> +               smp_mb();
-> +               return 0;
-> +       }
-> +}
-> +
-> +/**
-> + *  __mutex_fastpath_unlock - try to promote the count from 0 to 1
-> + *  @count: pointer of type atomic_t
-> + *  @fail_fn: function to call if the original value was not 0
-> + *
-> + * Try to promote the count from 0 to 1. If it wasn't 0, call <fail_fn>.
-> + * In the failure case, this function is allowed to either set the value to
-> + * 1, or to set it to a value lower than 1.
-> + *
-> + * If the implementation sets it to a value of lower than 1, then the
-> + * __mutex_slowpath_needs_to_unlock() macro needs to return 1, it needs
-> + * to return 0 otherwise.
-> + */
-> +static inline void
-> +__mutex_fastpath_unlock(atomic_t *count, fastcall void (*fail_fn)(atomic_t *))
-> +{
-> +       smp_mb();
-> +       if (unlikely(atomic_inc_return(count) <= 0))
-> +               fail_fn(count);
-> +}
-> +
-> +#define __mutex_slowpath_needs_to_unlock()             1
-> +
-> +/**
-> + * __mutex_fastpath_trylock - try to acquire the mutex, without waiting
-> + *
-> + *  @count: pointer of type atomic_t
-> + *  @fail_fn: fallback function
-> + *
-> + * Change the count from 1 to a value lower than 1, and return 0 (failure)
-> + * if it wasn't 1 originally, or return 1 (success) otherwise. This function
-> + * MUST leave the value lower than 1 even when the "1" assertion wasn't true.
-> + * Additionally, if the value was < 0 originally, this function must not leave
-> + * it to 0 on failure.
-> + *
-> + * If the architecture has no effective trylock variant, it should call the
-> + * <fail_fn> spinlock-based trylock variant unconditionally.
-> + */
-> +static inline int
-> +__mutex_fastpath_trylock(atomic_t *count, int (*fail_fn)(atomic_t *))
-> +{
-> +       /*
-> +        * We have two variants here. The cmpxchg based one is the best one
-> +        * because it never induce a false contention state.  It is included
-> +        * here because architectures using the inc/dec algorithms over the
-> +        * xchg ones are much more likely to support cmpxchg natively.
-> +        *
-> +        * If not we fall back to the spinlock based variant - that is
-> +        * just as efficient (and simpler) as a 'destructive' probing of
-> +        * the mutex state would be.
-> +        */
-> +#ifdef __HAVE_ARCH_CMPXCHG
-> +       if (likely(atomic_cmpxchg(count, 1, 0) == 1)) {
-> +               smp_mb();
-> +               return 1;
-> +       }
-> +       return 0;
-> +#else
-> +       return fail_fn(count);
-> +#endif
-> +}
-> +
-> +#endif
-> diff --git a/arch/blackfin/include/asm/mutex.h b/arch/blackfin/include/asm/mutex.h
-> index 458c1f7..5d39925 100644
-> --- a/arch/blackfin/include/asm/mutex.h
-> +++ b/arch/blackfin/include/asm/mutex.h
-> @@ -6,4 +6,67 @@
->  * implementation. (see asm-generic/mutex-xchg.h for details)
->  */
->
-> +#ifndef _ASM_MUTEX_H
-> +#define _ASM_MUTEX_H
-> +
-> +#ifndef CONFIG_SMP
->  #include <asm-generic/mutex-dec.h>
-> +#else
-> +
-> +static inline void
-> +__mutex_fastpath_lock(atomic_t *count, void (*fail_fn)(atomic_t *))
-> +{
-> +       if (unlikely(atomic_dec_return(count) < 0))
-> +               fail_fn(count);
-> +       else
-> +               smp_mb();
-> +}
-> +
-> +static inline int
-> +__mutex_fastpath_lock_retval(atomic_t *count, int (*fail_fn)(atomic_t *))
-> +{
-> +       if (unlikely(atomic_dec_return(count) < 0))
-> +               return fail_fn(count);
-> +       else {
-> +               smp_mb();
-> +               return 0;
-> +       }
-> +}
-> +
-> +static inline void
-> +__mutex_fastpath_unlock(atomic_t *count, void (*fail_fn)(atomic_t *))
-> +{
-> +       smp_mb();
-> +       if (unlikely(atomic_inc_return(count) <= 0))
-> +               fail_fn(count);
-> +}
-> +
-> +#define __mutex_slowpath_needs_to_unlock()             1
-> +
-> +static inline int
-> +__mutex_fastpath_trylock(atomic_t *count, int (*fail_fn)(atomic_t *))
-> +{
-> +       /*
-> +        * We have two variants here. The cmpxchg based one is the best one
-> +        * because it never induce a false contention state.  It is included
-> +        * here because architectures using the inc/dec algorithms over the
-> +        * xchg ones are much more likely to support cmpxchg natively.
-> +        *
-> +        * If not we fall back to the spinlock based variant - that is
-> +        * just as efficient (and simpler) as a 'destructive' probing of
-> +        * the mutex state would be.
-> +        */
-> +#ifdef __HAVE_ARCH_CMPXCHG
-> +       if (likely(atomic_cmpxchg(count, 1, 0) == 1)) {
-> +               smp_mb();
-> +               return 1;
-> +       }
-> +       return 0;
-> +#else
-> +       return fail_fn(count);
-> +#endif
-> +}
-> +
-> +#endif
-> +
-> +#endif
-> diff --git a/arch/blackfin/include/asm/pda.h b/arch/blackfin/include/asm/pda.h
-> new file mode 100644
-> index 0000000..a24d130
-> --- /dev/null
-> +++ b/arch/blackfin/include/asm/pda.h
-> @@ -0,0 +1,70 @@
-> +/*
-> + * File:         arch/blackfin/include/asm/pda.h
-> + * Author:       Philippe Gerum <rpm@xenomai.org>
-> + *
-> + *               Copyright 2007 Analog Devices Inc.
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License as published by
-> + * the Free Software Foundation; either version 2 of the License, or
-> + * (at your option) any later version.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program; if not, see the file COPYING, or write
-> + * to the Free Software Foundation, Inc.,
-> + * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-> + */
-> +
-> +#ifndef _ASM_BLACKFIN_PDA_H
-> +#define _ASM_BLACKFIN_PDA_H
-> +
-> +#include <asm/mem_map.h>
-> +
-> +#ifndef __ASSEMBLY__
-> +
-> +struct blackfin_pda {                  /* Per-processor Data Area */
-> +       struct blackfin_pda *next;
-> +
-> +       unsigned long syscfg;
-> +#ifdef CONFIG_SMP
-> +       unsigned long imask;            /* Current IMASK value */
-> +#endif
-> +
-> +       unsigned long *ipdt;            /* Start of switchable I-CPLB table */
-> +       unsigned long *ipdt_swapcount;  /* Number of swaps in ipdt */
-> +       unsigned long *dpdt;            /* Start of switchable D-CPLB table */
-> +       unsigned long *dpdt_swapcount;  /* Number of swaps in dpdt */
-> +
-> +       /*
-> +        * Single instructions can have multiple faults, which
-> +        * need to be handled by traps.c, in irq5. We store
-> +        * the exception cause to ensure we don't miss a
-> +        * double fault condition
-> +        */
-> +       unsigned long ex_iptr;
-> +       unsigned long ex_optr;
-> +       unsigned long ex_buf[4];
-> +       unsigned long ex_imask;         /* Saved imask from exception */
-> +       unsigned long *ex_stack;        /* Exception stack space */
-> +
-> +#ifdef ANOMALY_05000261
-> +       unsigned long last_cplb_fault_retx;
-> +#endif
-> +       unsigned long dcplb_fault_addr;
-> +       unsigned long icplb_fault_addr;
-> +       unsigned long retx;
-> +       unsigned long seqstat;
-> +};
-> +
-> +extern struct blackfin_pda cpu_pda[];
-> +
-> +void reserve_pda(void);
-> +
-> +#endif /* __ASSEMBLY__ */
-> +
-> +#endif /* _ASM_BLACKFIN_PDA_H */
-> diff --git a/arch/blackfin/include/asm/percpu.h b/arch/blackfin/include/asm/percpu.h
-> index 78dd61f..797c0c1 100644
-> --- a/arch/blackfin/include/asm/percpu.h
-> +++ b/arch/blackfin/include/asm/percpu.h
-> @@ -3,4 +3,14 @@
->
->  #include <asm-generic/percpu.h>
->
-> -#endif                         /* __ARCH_BLACKFIN_PERCPU__ */
-> +#ifdef CONFIG_MODULES
-> +#define PERCPU_MODULE_RESERVE 8192
-> +#else
-> +#define PERCPU_MODULE_RESERVE 0
-> +#endif
-> +
-> +#define PERCPU_ENOUGH_ROOM \
-> +       (ALIGN(__per_cpu_end - __per_cpu_start, SMP_CACHE_BYTES) + \
-> +        PERCPU_MODULE_RESERVE)
-> +
-> +#endif /* __ARCH_BLACKFIN_PERCPU__ */
-> diff --git a/arch/blackfin/include/asm/processor.h b/arch/blackfin/include/asm/processor.h
-> index e3e9b41..30703c7 100644
-> --- a/arch/blackfin/include/asm/processor.h
-> +++ b/arch/blackfin/include/asm/processor.h
-> @@ -106,7 +106,8 @@ unsigned long get_wchan(struct task_struct *p);
->        eip; })
->  #define        KSTK_ESP(tsk)   ((tsk) == current ? rdusp() : (tsk)->thread.usp)
->
-> -#define cpu_relax()            barrier()
-> +#define cpu_relax()            smp_mb()
-> +
->
->  /* Get the Silicon Revision of the chip */
->  static inline uint32_t __pure bfin_revid(void)
-> @@ -137,7 +138,11 @@ static inline uint32_t __pure bfin_revid(void)
->  static inline uint16_t __pure bfin_cpuid(void)
+> -void __init bfin_dcache_init(void)
+> +void __cpuinit bfin_dcache_init(struct cplb_entry *dcplb_tbl)
 >  {
->        return (bfin_read_CHIPID() & CHIPID_FAMILY) >> 12;
-> +}
->
-> +static inline uint32_t __pure bfin_dspid(void)
-> +{
-> +       return bfin_read_DSPID();
+>        unsigned long ctrl;
+>        int i;
+> diff --git a/arch/blackfin/kernel/cplb-mpu/cplbinfo.c b/arch/blackfin/kernel/cplb-mpu/cplbinfo.c
+> index 822beef..00cb2cf 100644
+> --- a/arch/blackfin/kernel/cplb-mpu/cplbinfo.c
+> +++ b/arch/blackfin/kernel/cplb-mpu/cplbinfo.c
+> @@ -66,32 +66,32 @@ static char *cplb_print_entry(char *buf, struct cplb_entry *tbl, int switched)
+>        return buf;
 >  }
 >
->  static inline uint32_t __pure bfin_compiled_revid(void)
-> diff --git a/arch/blackfin/include/asm/rwlock.h b/arch/blackfin/include/asm/rwlock.h
-> new file mode 100644
-> index 0000000..4a724b3
-> --- /dev/null
-> +++ b/arch/blackfin/include/asm/rwlock.h
-> @@ -0,0 +1,6 @@
-> +#ifndef _ASM_BLACKFIN_RWLOCK_H
-> +#define _ASM_BLACKFIN_RWLOCK_H
-> +
-> +#define RW_LOCK_BIAS   0x01000000
-> +
-> +#endif
-> diff --git a/arch/blackfin/include/asm/smp.h b/arch/blackfin/include/asm/smp.h
-> new file mode 100644
-> index 0000000..233cb8c
-> --- /dev/null
-> +++ b/arch/blackfin/include/asm/smp.h
-> @@ -0,0 +1,42 @@
-> +/*
-> + * File:         arch/blackfin/include/asm/smp.h
-> + * Author:       Philippe Gerum <rpm@xenomai.org>
-> + *
-> + *               Copyright 2007 Analog Devices Inc.
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License as published by
-> + * the Free Software Foundation; either version 2 of the License, or
-> + * (at your option) any later version.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program; if not, see the file COPYING, or write
-> + * to the Free Software Foundation, Inc.,
-> + * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-> + */
-> +
-> +#ifndef __ASM_BLACKFIN_SMP_H
-> +#define __ASM_BLACKFIN_SMP_H
-> +
-> +#include <linux/kernel.h>
-> +#include <linux/threads.h>
-> +#include <linux/cpumask.h>
-> +#include <linux/cache.h>
-> +#include <asm/blackfin.h>
-> +#include <mach/smp.h>
-> +
-> +#define raw_smp_processor_id()  blackfin_core_id()
-> +
-> +struct corelock_slot {
-> +       int lock;
-> +};
-> +
-> +void smp_icache_flush_range_others(unsigned long start,
-> +                                  unsigned long end);
-> +
-> +#endif /* !__ASM_BLACKFIN_SMP_H */
-> diff --git a/arch/blackfin/include/asm/spinlock.h b/arch/blackfin/include/asm/spinlock.h
-> index 64e908a..0249ac3 100644
-> --- a/arch/blackfin/include/asm/spinlock.h
-> +++ b/arch/blackfin/include/asm/spinlock.h
-> @@ -1,6 +1,89 @@
->  #ifndef __BFIN_SPINLOCK_H
->  #define __BFIN_SPINLOCK_H
+> -int cplbinfo_proc_output(char *buf)
+> +int cplbinfo_proc_output(char *buf, void *data)
+>  {
+>        char *p;
+> +       unsigned int cpu = (unsigned int)data;;
 >
-> -#error blackfin architecture does not support SMP spin lock yet
-> +#include <asm/atomic.h>
+>        p = buf;
 >
-> -#endif
-> +asmlinkage int __raw_spin_is_locked_asm(volatile int *ptr);
-> +asmlinkage void __raw_spin_lock_asm(volatile int *ptr);
-> +asmlinkage int __raw_spin_trylock_asm(volatile int *ptr);
-> +asmlinkage void __raw_spin_unlock_asm(volatile int *ptr);
-> +asmlinkage void __raw_read_lock_asm(volatile int *ptr);
-> +asmlinkage int __raw_read_trylock_asm(volatile int *ptr);
-> +asmlinkage void __raw_read_unlock_asm(volatile int *ptr);
-> +asmlinkage void __raw_write_lock_asm(volatile int *ptr);
-> +asmlinkage int __raw_write_trylock_asm(volatile int *ptr);
-> +asmlinkage void __raw_write_unlock_asm(volatile int *ptr);
+> -       p += sprintf(p, "------------------ CPLB Information ------------------\n\n");
+> -
+> +       p += sprintf(p, "------------- CPLB Information on CPU%u --------------\n\n", cpu);
+>        if (bfin_read_IMEM_CONTROL() & ENICPLB) {
+>                p += sprintf(p, "Instruction CPLB entry:\n");
+> -               p = cplb_print_entry(p, icplb_tbl, first_switched_icplb);
+> +               p = cplb_print_entry(p, icplb_tbl[cpu], first_switched_icplb);
+>        } else
+>                p += sprintf(p, "Instruction CPLB is disabled.\n\n");
+>
+>        if (1 || bfin_read_DMEM_CONTROL() & ENDCPLB) {
+>                p += sprintf(p, "Data CPLB entry:\n");
+> -               p = cplb_print_entry(p, dcplb_tbl, first_switched_dcplb);
+> +               p = cplb_print_entry(p, dcplb_tbl[cpu], first_switched_dcplb);
+>        } else
+>                p += sprintf(p, "Data CPLB is disabled.\n");
+>
+>        p += sprintf(p, "ICPLB miss: %d\nICPLB supervisor miss: %d\n",
+> -                    nr_icplb_miss, nr_icplb_supv_miss);
+> +                    nr_icplb_miss[cpu], nr_icplb_supv_miss[cpu]);
+>        p += sprintf(p, "DCPLB miss: %d\nDCPLB protection fault:%d\n",
+> -                    nr_dcplb_miss, nr_dcplb_prot);
+> +                    nr_dcplb_miss[cpu], nr_dcplb_prot[cpu]);
+>        p += sprintf(p, "CPLB flushes: %d\n",
+> -                    nr_cplb_flush);
+> +                    nr_cplb_flush[cpu]);
+>
+>        return p - buf;
+>  }
+> @@ -101,7 +101,7 @@ static int cplbinfo_read_proc(char *page, char **start, off_t off,
+>  {
+>        int len;
+>
+> -       len = cplbinfo_proc_output(page);
+> +       len = cplbinfo_proc_output(page, data);
+>        if (len <= off + count)
+>                *eof = 1;
+>        *start = page + off;
+> @@ -115,20 +115,33 @@ static int cplbinfo_read_proc(char *page, char **start, off_t off,
+>
+>  static int __init cplbinfo_init(void)
+>  {
+> -       struct proc_dir_entry *entry;
+> +       struct proc_dir_entry *parent, *entry;
+> +       unsigned int cpu;
+> +       unsigned char str[10];
 > +
-> +static inline int __raw_spin_is_locked(raw_spinlock_t *lock)
-> +{
-> +       return __raw_spin_is_locked_asm(&lock->lock);
-> +}
+> +       parent = proc_mkdir("cplbinfo", NULL);
+>
+> -       entry = create_proc_entry("cplbinfo", 0, NULL);
+> -       if (!entry)
+> -               return -ENOMEM;
+> +       for_each_online_cpu(cpu) {
+> +               sprintf(str, "cpu%u", cpu);
+> +               entry = create_proc_entry(str, 0, parent);
+> +               if (!entry)
+> +                       return -ENOMEM;
+>
+> -       entry->read_proc = cplbinfo_read_proc;
+> -       entry->data = NULL;
+> +               entry->read_proc = cplbinfo_read_proc;
+> +               entry->data = (void *)cpu;
+> +       }
+>
+>        return 0;
+>  }
+>
+>  static void __exit cplbinfo_exit(void)
+>  {
+> +       unsigned int cpu;
+> +       unsigned char str[20];
+> +       for_each_online_cpu(cpu) {
+> +               sprintf(str, "cplbinfo/cpu%u", cpu);
+> +               remove_proc_entry(str, NULL);
+> +       }
+>        remove_proc_entry("cplbinfo", NULL);
+>  }
+>
+> diff --git a/arch/blackfin/kernel/cplb-mpu/cplbinit.c b/arch/blackfin/kernel/cplb-mpu/cplbinit.c
+> index 55af729..269d2a3 100644
+> --- a/arch/blackfin/kernel/cplb-mpu/cplbinit.c
+> +++ b/arch/blackfin/kernel/cplb-mpu/cplbinit.c
+> @@ -30,13 +30,13 @@
+>  # error the MPU will not function safely while Anomaly 05000263 applies
+>  #endif
+>
+> -struct cplb_entry icplb_tbl[MAX_CPLBS];
+> -struct cplb_entry dcplb_tbl[MAX_CPLBS];
+> +struct cplb_entry icplb_tbl[NR_CPUS][MAX_CPLBS];
+> +struct cplb_entry dcplb_tbl[NR_CPUS][MAX_CPLBS];
+>
+>  int first_switched_icplb, first_switched_dcplb;
+>  int first_mask_dcplb;
+>
+> -void __init generate_cplb_tables(void)
+> +void __init generate_cplb_tables_cpu(unsigned int cpu)
+>  {
+>        int i_d, i_i;
+>        unsigned long addr;
+> @@ -55,15 +55,16 @@ void __init generate_cplb_tables(void)
+>        d_cache |= CPLB_L1_AOW | CPLB_WT;
+>  #endif
+>  #endif
 > +
-> +static inline void __raw_spin_lock(raw_spinlock_t *lock)
-> +{
-> +       __raw_spin_lock_asm(&lock->lock);
-> +}
-> +
-> +#define __raw_spin_lock_flags(lock, flags) __raw_spin_lock(lock)
-> +
-> +static inline int __raw_spin_trylock(raw_spinlock_t *lock)
-> +{
-> +       return __raw_spin_trylock_asm(&lock->lock);
-> +}
-> +
-> +static inline void __raw_spin_unlock(raw_spinlock_t *lock)
-> +{
-> +       __raw_spin_unlock_asm(&lock->lock);
-> +}
-> +
-> +static inline void __raw_spin_unlock_wait(raw_spinlock_t *lock)
-> +{
-> +       while (__raw_spin_is_locked(lock))
-> +               cpu_relax();
-> +}
-> +
-> +static inline int __raw_read_can_lock(raw_rwlock_t *rw)
-> +{
-> +       return __raw_uncached_fetch_asm(&rw->lock) > 0;
-> +}
-> +
-> +static inline int __raw_write_can_lock(raw_rwlock_t *rw)
-> +{
-> +       return __raw_uncached_fetch_asm(&rw->lock) == RW_LOCK_BIAS;
-> +}
-> +
-> +static inline void __raw_read_lock(raw_rwlock_t *rw)
-> +{
-> +       __raw_read_lock_asm(&rw->lock);
-> +}
-> +
-> +static inline int __raw_read_trylock(raw_rwlock_t *rw)
-> +{
-> +       return __raw_read_trylock_asm(&rw->lock);
-> +}
-> +
-> +static inline void __raw_read_unlock(raw_rwlock_t *rw)
-> +{
-> +       __raw_read_unlock_asm(&rw->lock);
-> +}
-> +
-> +static inline void __raw_write_lock(raw_rwlock_t *rw)
-> +{
-> +       __raw_write_lock_asm(&rw->lock);
-> +}
-> +
-> +static inline int __raw_write_trylock(raw_rwlock_t *rw)
-> +{
-> +       return __raw_write_trylock_asm(&rw->lock);
-> +}
-> +
-> +static inline void __raw_write_unlock(raw_rwlock_t *rw)
-> +{
-> +       __raw_write_unlock_asm(&rw->lock);
-> +}
-> +
-> +#define _raw_spin_relax(lock)          cpu_relax()
-> +#define _raw_read_relax(lock)  cpu_relax()
-> +#define _raw_write_relax(lock) cpu_relax()
-> +
-> +#endif /*  !__BFIN_SPINLOCK_H */
-> diff --git a/arch/blackfin/include/asm/spinlock_types.h b/arch/blackfin/include/asm/spinlock_types.h
-> new file mode 100644
-> index 0000000..b1e3c4c
-> --- /dev/null
-> +++ b/arch/blackfin/include/asm/spinlock_types.h
-> @@ -0,0 +1,22 @@
-> +#ifndef __ASM_SPINLOCK_TYPES_H
-> +#define __ASM_SPINLOCK_TYPES_H
-> +
-> +#ifndef __LINUX_SPINLOCK_TYPES_H
-> +# error "please don't include this file directly"
-> +#endif
-> +
-> +#include <asm/rwlock.h>
-> +
-> +typedef struct {
-> +       volatile unsigned int lock;
-> +} raw_spinlock_t;
-> +
-> +#define __RAW_SPIN_LOCK_UNLOCKED       { 0 }
-> +
-> +typedef struct {
-> +       volatile unsigned int lock;
-> +} raw_rwlock_t;
-> +
-> +#define __RAW_RW_LOCK_UNLOCKED         { RW_LOCK_BIAS }
-> +
-> +#endif
-> diff --git a/arch/blackfin/include/asm/system.h b/arch/blackfin/include/asm/system.h
-> index 8f1627d..6b368fa 100644
-> --- a/arch/blackfin/include/asm/system.h
-> +++ b/arch/blackfin/include/asm/system.h
-> @@ -37,20 +37,16 @@
->  #include <linux/linkage.h>
->  #include <linux/compiler.h>
->  #include <mach/anomaly.h>
-> +#include <asm/pda.h>
-> +#include <asm/processor.h>
-> +
-> +/* Forward decl needed due to cdef inter dependencies */
-> +static inline uint32_t __pure bfin_dspid(void);
-> +#define blackfin_core_id() (bfin_dspid() & 0xff)
+>        i_d = i_i = 0;
+>
+>        /* Set up the zero page.  */
+> -       dcplb_tbl[i_d].addr = 0;
+> -       dcplb_tbl[i_d++].data = SDRAM_OOPS | PAGE_SIZE_1KB;
+> +       dcplb_tbl[cpu][i_d].addr = 0;
+> +       dcplb_tbl[cpu][i_d++].data = SDRAM_OOPS | PAGE_SIZE_1KB;
+>
+>  #if 0
+> -       icplb_tbl[i_i].addr = 0;
+> -       icplb_tbl[i_i++].data = i_cache | CPLB_USER_RD | PAGE_SIZE_4KB;
+> +       icplb_tbl[cpu][i_i].addr = 0;
+> +       icplb_tbl[cpu][i_i++].data = i_cache | CPLB_USER_RD | PAGE_SIZE_4KB;
+>  #endif
+>
+>        /* Cover kernel memory with 4M pages.  */
+> @@ -72,28 +73,28 @@ void __init generate_cplb_tables(void)
+>        i_data = i_cache | CPLB_VALID | CPLB_PORTPRIO | PAGE_SIZE_4MB;
+>
+>        for (; addr < memory_start; addr += 4 * 1024 * 1024) {
+> -               dcplb_tbl[i_d].addr = addr;
+> -               dcplb_tbl[i_d++].data = d_data;
+> -               icplb_tbl[i_i].addr = addr;
+> -               icplb_tbl[i_i++].data = i_data | (addr == 0 ? CPLB_USER_RD : 0);
+> +               dcplb_tbl[cpu][i_d].addr = addr;
+> +               dcplb_tbl[cpu][i_d++].data = d_data;
+> +               icplb_tbl[cpu][i_i].addr = addr;
+> +               icplb_tbl[cpu][i_i++].data = i_data | (addr == 0 ? CPLB_USER_RD : 0);
+>        }
+>
+>        /* Cover L1 memory.  One 4M area for code and data each is enough.  */
+>  #if L1_DATA_A_LENGTH > 0 || L1_DATA_B_LENGTH > 0
+> -       dcplb_tbl[i_d].addr = L1_DATA_A_START;
+> -       dcplb_tbl[i_d++].data = L1_DMEMORY | PAGE_SIZE_4MB;
+> +       dcplb_tbl[cpu][i_d].addr = get_l1_data_a_start_cpu(cpu);
+> +       dcplb_tbl[cpu][i_d++].data = L1_DMEMORY | PAGE_SIZE_4MB;
+>  #endif
+>  #if L1_CODE_LENGTH > 0
+> -       icplb_tbl[i_i].addr = L1_CODE_START;
+> -       icplb_tbl[i_i++].data = L1_IMEMORY | PAGE_SIZE_4MB;
+> +       icplb_tbl[cpu][i_i].addr = get_l1_code_start_cpu(cpu);
+> +       icplb_tbl[cpu][i_i++].data = L1_IMEMORY | PAGE_SIZE_4MB;
+>  #endif
+>
+>        /* Cover L2 memory */
+>  #if L2_LENGTH > 0
+> -       dcplb_tbl[i_d].addr = L2_START;
+> -       dcplb_tbl[i_d++].data = L2_DMEMORY | PAGE_SIZE_1MB;
+> -       icplb_tbl[i_i].addr = L2_START;
+> -       icplb_tbl[i_i++].data = L2_IMEMORY | PAGE_SIZE_1MB;
+> +       dcplb_tbl[cpu][i_d].addr = L2_START;
+> +       dcplb_tbl[cpu][i_d++].data = L2_DMEMORY | PAGE_SIZE_1MB;
+> +       icplb_tbl[cpu][i_i].addr = L2_START;
+> +       icplb_tbl[cpu][i_i++].data = L2_IMEMORY | PAGE_SIZE_1MB;
+>  #endif
+>
+>        first_mask_dcplb = i_d;
+> @@ -101,7 +102,7 @@ void __init generate_cplb_tables(void)
+>        first_switched_icplb = i_i;
+>
+>        while (i_d < MAX_CPLBS)
+> -               dcplb_tbl[i_d++].data = 0;
+> +               dcplb_tbl[cpu][i_d++].data = 0;
+>        while (i_i < MAX_CPLBS)
+> -               icplb_tbl[i_i++].data = 0;
+> +               icplb_tbl[cpu][i_i++].data = 0;
+>  }
+> diff --git a/arch/blackfin/kernel/cplb-mpu/cplbmgr.c b/arch/blackfin/kernel/cplb-mpu/cplbmgr.c
+> index baa52e2..76bd991 100644
+> --- a/arch/blackfin/kernel/cplb-mpu/cplbmgr.c
+> +++ b/arch/blackfin/kernel/cplb-mpu/cplbmgr.c
+> @@ -30,10 +30,11 @@
+>
+>  int page_mask_nelts;
+>  int page_mask_order;
+> -unsigned long *current_rwx_mask;
+> +unsigned long *current_rwx_mask[NR_CPUS];
+>
+> -int nr_dcplb_miss, nr_icplb_miss, nr_icplb_supv_miss, nr_dcplb_prot;
+> -int nr_cplb_flush;
+> +int nr_dcplb_miss[NR_CPUS], nr_icplb_miss[NR_CPUS];
+> +int nr_icplb_supv_miss[NR_CPUS], nr_dcplb_prot[NR_CPUS];
+> +int nr_cplb_flush[NR_CPUS];
+>
+>  static inline void disable_dcplb(void)
+>  {
+> @@ -98,42 +99,42 @@ static inline int write_permitted(int status, unsigned long data)
+>  }
+>
+>  /* Counters to implement round-robin replacement.  */
+> -static int icplb_rr_index, dcplb_rr_index;
+> +static int icplb_rr_index[NR_CPUS], dcplb_rr_index[NR_CPUS];
 >
 >  /*
->  * Interrupt configuring macros.
+>  * Find an ICPLB entry to be evicted and return its index.
 >  */
-> -
-> -extern unsigned long irq_flags;
-> -
-> -#define local_irq_enable() \
-> -       __asm__ __volatile__( \
-> -               "sti %0;" \
-> -               : \
-> -               : "d" (irq_flags) \
-> -       )
-> -
->  #define local_irq_disable() \
->        do { \
->                int __tmp_dummy; \
-> @@ -66,6 +62,18 @@ extern unsigned long irq_flags;
->  # define NOP_PAD_ANOMALY_05000244
->  #endif
+> -static int evict_one_icplb(void)
+> +static int evict_one_icplb(unsigned int cpu)
+>  {
+>        int i;
+>        for (i = first_switched_icplb; i < MAX_CPLBS; i++)
+> -               if ((icplb_tbl[i].data & CPLB_VALID) == 0)
+> +               if ((icplb_tbl[cpu][i].data & CPLB_VALID) == 0)
+>                        return i;
+> -       i = first_switched_icplb + icplb_rr_index;
+> +       i = first_switched_icplb + icplb_rr_index[cpu];
+>        if (i >= MAX_CPLBS) {
+>                i -= MAX_CPLBS - first_switched_icplb;
+> -               icplb_rr_index -= MAX_CPLBS - first_switched_icplb;
+> +               icplb_rr_index[cpu] -= MAX_CPLBS - first_switched_icplb;
+>        }
+> -       icplb_rr_index++;
+> +       icplb_rr_index[cpu]++;
+>        return i;
+>  }
 >
-> +#ifdef CONFIG_SMP
-> +# define irq_flags cpu_pda[blackfin_core_id()].imask
-> +#else
-> +extern unsigned long irq_flags;
-> +#endif
-> +
-> +#define local_irq_enable() \
-> +       __asm__ __volatile__( \
-> +               "sti %0;" \
-> +               : \
-> +               : "d" (irq_flags) \
-> +       )
->  #define idle_with_irq_disabled() \
->        __asm__ __volatile__( \
->                NOP_PAD_ANOMALY_05000244 \
-> @@ -129,22 +137,85 @@ extern unsigned long irq_flags;
->  #define rmb()  asm volatile (""   : : :"memory")
->  #define wmb()  asm volatile (""   : : :"memory")
->  #define set_mb(var, value) do { (void) xchg(&var, value); } while (0)
-> -
->  #define read_barrier_depends()                 do { } while(0)
+> -static int evict_one_dcplb(void)
+> +static int evict_one_dcplb(unsigned int cpu)
+>  {
+>        int i;
+>        for (i = first_switched_dcplb; i < MAX_CPLBS; i++)
+> -               if ((dcplb_tbl[i].data & CPLB_VALID) == 0)
+> +               if ((dcplb_tbl[cpu][i].data & CPLB_VALID) == 0)
+>                        return i;
+> -       i = first_switched_dcplb + dcplb_rr_index;
+> +       i = first_switched_dcplb + dcplb_rr_index[cpu];
+>        if (i >= MAX_CPLBS) {
+>                i -= MAX_CPLBS - first_switched_dcplb;
+> -               dcplb_rr_index -= MAX_CPLBS - first_switched_dcplb;
+> +               dcplb_rr_index[cpu] -= MAX_CPLBS - first_switched_dcplb;
+>        }
+> -       dcplb_rr_index++;
+> +       dcplb_rr_index[cpu]++;
+>        return i;
+>  }
 >
->  #ifdef CONFIG_SMP
-> -#define smp_mb()       mb()
-> -#define smp_rmb()      rmb()
-> -#define smp_wmb()      wmb()
-> -#define smp_read_barrier_depends()     read_barrier_depends()
-> +asmlinkage unsigned long __raw_xchg_1_asm(volatile void *ptr, unsigned long value);
-> +asmlinkage unsigned long __raw_xchg_2_asm(volatile void *ptr, unsigned long value);
-> +asmlinkage unsigned long __raw_xchg_4_asm(volatile void *ptr, unsigned long value);
-> +asmlinkage unsigned long __raw_cmpxchg_1_asm(volatile void *ptr,
-> +                                       unsigned long new, unsigned long old);
-> +asmlinkage unsigned long __raw_cmpxchg_2_asm(volatile void *ptr,
-> +                                       unsigned long new, unsigned long old);
-> +asmlinkage unsigned long __raw_cmpxchg_4_asm(volatile void *ptr,
-> +                                       unsigned long new, unsigned long old);
-> +
-> +#ifdef __ARCH_SYNC_CORE_DCACHE
-> +# define smp_mb()      do { barrier(); smp_check_barrier(); smp_mark_barrier(); } while (0)
-> +# define smp_rmb()     do { barrier(); smp_check_barrier(); } while (0)
-> +# define smp_wmb()     do { barrier(); smp_mark_barrier(); } while (0)
->  #else
-> +# define smp_mb()      barrier()
-> +# define smp_rmb()     barrier()
-> +# define smp_wmb()     barrier()
-> +#endif
-> +
-> +static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
-> +                                  int size)
-> +{
-> +       unsigned long tmp;
-> +
-> +       switch (size) {
-> +       case 1:
-> +               tmp = __raw_xchg_1_asm(ptr, x);
-> +               break;
-> +       case 2:
-> +               tmp = __raw_xchg_2_asm(ptr, x);
-> +               break;
-> +       case 4:
-> +               tmp = __raw_xchg_4_asm(ptr, x);
-> +               break;
-> +       }
-> +
-> +       return tmp;
-> +}
-> +
-> +/*
-> + * Atomic compare and exchange.  Compare OLD with MEM, if identical,
-> + * store NEW in MEM.  Return the initial value in MEM.  Success is
-> + * indicated by comparing RETURN with OLD.
-> + */
-> +static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
-> +                                     unsigned long new, int size)
-> +{
-> +       unsigned long tmp;
-> +
-> +       switch (size) {
-> +       case 1:
-> +               tmp = __raw_cmpxchg_1_asm(ptr, new, old);
-> +               break;
-> +       case 2:
-> +               tmp = __raw_cmpxchg_2_asm(ptr, new, old);
-> +               break;
-> +       case 4:
-> +               tmp = __raw_cmpxchg_4_asm(ptr, new, old);
-> +               break;
-> +       }
-> +
-> +       return tmp;
-> +}
-> +#define cmpxchg(ptr, o, n) \
-> +       ((__typeof__(*(ptr)))__cmpxchg((ptr), (unsigned long)(o), \
-> +               (unsigned long)(n), sizeof(*(ptr))))
-> +
-> +#define smp_read_barrier_depends()     smp_check_barrier()
-> +
-> +#else /* !CONFIG_SMP */
-> +
->  #define smp_mb()       barrier()
->  #define smp_rmb()      barrier()
->  #define smp_wmb()      barrier()
->  #define smp_read_barrier_depends()     do { } while(0)
-> -#endif
-> -
-> -#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
+> -static noinline int dcplb_miss(void)
+> +static noinline int dcplb_miss(unsigned int cpu)
+>  {
+>        unsigned long addr = bfin_read_DCPLB_FAULT_ADDR();
+>        int status = bfin_read_DCPLB_STATUS();
+> @@ -141,7 +142,7 @@ static noinline int dcplb_miss(void)
+>        int idx;
+>        unsigned long d_data;
 >
->  struct __xchg_dummy {
->        unsigned long a[100];
-> @@ -194,9 +265,12 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
->                        (unsigned long)(n), sizeof(*(ptr))))
->  #define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+> -       nr_dcplb_miss++;
+> +       nr_dcplb_miss[cpu]++;
 >
-> -#ifndef CONFIG_SMP
->  #include <asm-generic/cmpxchg.h>
-> -#endif
-> +
-> +#endif /* !CONFIG_SMP */
-> +
-> +#define xchg(ptr, x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
-> +#define tas(ptr) ((void)xchg((ptr), 1))
+>        d_data = CPLB_SUPV_WR | CPLB_VALID | CPLB_DIRTY | PAGE_SIZE_4KB;
+>  #ifdef CONFIG_BFIN_DCACHE
+> @@ -168,25 +169,25 @@ static noinline int dcplb_miss(void)
+>        } else if (addr >= _ramend) {
+>            d_data |= CPLB_USER_RD | CPLB_USER_WR;
+>        } else {
+> -               mask = current_rwx_mask;
+> +               mask = current_rwx_mask[cpu];
+>                if (mask) {
+>                        int page = addr >> PAGE_SHIFT;
+> -                       int offs = page >> 5;
+> +                       int idx = page >> 5;
+>                        int bit = 1 << (page & 31);
 >
->  #define prepare_to_switch()     do { } while(0)
+> -                       if (mask[offs] & bit)
+> +                       if (mask[idx] & bit)
+>                                d_data |= CPLB_USER_RD;
 >
-> @@ -218,4 +292,4 @@ do {    \
->        (last) = resume (prev, next);   \
->  } while (0)
+>                        mask += page_mask_nelts;
+> -                       if (mask[offs] & bit)
+> +                       if (mask[idx] & bit)
+>                                d_data |= CPLB_USER_WR;
+>                }
+>        }
+> -       idx = evict_one_dcplb();
+> +       idx = evict_one_dcplb(cpu);
 >
-> -#endif                         /* _BLACKFIN_SYSTEM_H */
-> +#endif /* _BLACKFIN_SYSTEM_H */
-> diff --git a/arch/blackfin/mach-common/Makefile b/arch/blackfin/mach-common/Makefile
-> index e6ed57c..9388b4a 100644
-> --- a/arch/blackfin/mach-common/Makefile
-> +++ b/arch/blackfin/mach-common/Makefile
-> @@ -10,3 +10,4 @@ obj-$(CONFIG_BFIN_ICACHE_LOCK) += lock.o
->  obj-$(CONFIG_PM)          += pm.o dpmc_modes.o
->  obj-$(CONFIG_CPU_FREQ)    += cpufreq.o
->  obj-$(CONFIG_CPU_VOLTAGE) += dpmc.o
-> +obj-$(CONFIG_SMP)         += smp.o
-> diff --git a/arch/blackfin/mach-common/cache.S b/arch/blackfin/mach-common/cache.S
-> index 3c98dac..1187512 100644
-> --- a/arch/blackfin/mach-common/cache.S
-> +++ b/arch/blackfin/mach-common/cache.S
-> @@ -97,3 +97,39 @@ ENTRY(_blackfin_dflush_page)
->        P1 = 1 << (PAGE_SHIFT - L1_CACHE_SHIFT);
->        jump .Ldfr;
->  ENDPROC(_blackfin_dflush_page)
-> +
-> +/* Invalidate the Entire Data cache by
-> + * clearing DMC[1:0] bits
-> + */
-> +ENTRY(_blackfin_invalidate_entire_dcache)
-> +       [--SP] = ( R7:5);
-> +
-> +       P0.L = LO(DMEM_CONTROL);
-> +       P0.H = HI(DMEM_CONTROL);
-> +       R7 = [P0];
-> +       R5 = R7;        /* Save DMEM_CNTR */
-> +
-> +       /* Clear the DMC[1:0] bits, All valid bits in the data
-> +        * cache are set to the invalid state
-> +        */
-> +       BITCLR(R7,DMC0_P);
-> +       BITCLR(R7,DMC1_P);
-> +       CLI R6;
-> +       SSYNC;          /* SSYNC required before writing to DMEM_CONTROL. */
-> +       .align 8;
-> +       [P0] = R7;
-> +       SSYNC;
-> +       STI R6;
-> +
-> +       /* Configures the data cache again */
-> +
-> +       CLI R6;
-> +       SSYNC;          /* SSYNC required before writing to DMEM_CONTROL. */
-> +       .align 8;
-> +       [P0] = R5;
-> +       SSYNC;
-> +       STI R6;
-> +
-> +       ( R7:5) = [SP++];
-> +       RTS;
-> +ENDPROC(_blackfin_invalidate_entire_dcache)
-> diff --git a/arch/blackfin/mach-common/entry.S b/arch/blackfin/mach-common/entry.S
-> index c6ae844..5531f49 100644
-> --- a/arch/blackfin/mach-common/entry.S
-> +++ b/arch/blackfin/mach-common/entry.S
-> @@ -36,6 +36,7 @@
->  #include <linux/init.h>
->  #include <linux/linkage.h>
->  #include <linux/unistd.h>
-> +#include <linux/threads.h>
->  #include <asm/blackfin.h>
->  #include <asm/errno.h>
->  #include <asm/fixed_code.h>
-> @@ -75,11 +76,11 @@ ENTRY(_ex_workaround_261)
->         * handle it.
->         */
->        P4 = R7;        /* Store EXCAUSE */
-> -       p5.l = _last_cplb_fault_retx;
-> -       p5.h = _last_cplb_fault_retx;
-> -       r7 = [p5];
-> +
-> +       GET_PDA(p5, r7);
-> +       r7 = [p5 + PDA_LFRETX];
->        r6 = retx;
-> -       [p5] = r6;
-> +       [p5 + PDA_LFRETX] = r6;
->        cc = r6 == r7;
->        if !cc jump _bfin_return_from_exception;
->        /* fall through */
-> @@ -324,7 +325,9 @@ ENTRY(_ex_trap_c)
->        [p4] = p5;
->        csync;
+>        addr &= PAGE_MASK;
+> -       dcplb_tbl[idx].addr = addr;
+> -       dcplb_tbl[idx].data = d_data;
+> +       dcplb_tbl[cpu][idx].addr = addr;
+> +       dcplb_tbl[cpu][idx].data = d_data;
 >
-> +       GET_PDA(p5, r6);
->  #ifndef CONFIG_DEBUG_DOUBLEFAULT
-> +
+>        disable_dcplb();
+>        bfin_write32(DCPLB_DATA0 + idx * 4, d_data);
+> @@ -196,21 +197,21 @@ static noinline int dcplb_miss(void)
+>        return 0;
+>  }
+>
+> -static noinline int icplb_miss(void)
+> +static noinline int icplb_miss(unsigned int cpu)
+>  {
+>        unsigned long addr = bfin_read_ICPLB_FAULT_ADDR();
+>        int status = bfin_read_ICPLB_STATUS();
+>        int idx;
+>        unsigned long i_data;
+>
+> -       nr_icplb_miss++;
+> +       nr_icplb_miss[cpu]++;
+>
+>        /* If inside the uncached DMA region, fault.  */
+>        if (addr >= _ramend - DMA_UNCACHED_REGION && addr < _ramend)
+>                return CPLB_PROT_VIOL;
+>
+>        if (status & FAULT_USERSUPV)
+> -               nr_icplb_supv_miss++;
+> +               nr_icplb_supv_miss[cpu]++;
+>
 >        /*
->         * Save these registers, as they are only valid in exception context
->         *  (where we are now - as soon as we defer to IRQ5, they can change)
-> @@ -335,29 +338,25 @@ ENTRY(_ex_trap_c)
->        p4.l = lo(DCPLB_FAULT_ADDR);
->        p4.h = hi(DCPLB_FAULT_ADDR);
->        r7 = [p4];
-> -       p5.h = _saved_dcplb_fault_addr;
-> -       p5.l = _saved_dcplb_fault_addr;
-> -       [p5] = r7;
-> +       [p5 + PDA_DCPLB] = r7;
+>         * First, try to find a CPLB that matches this address.  If we
+> @@ -218,8 +219,8 @@ static noinline int icplb_miss(void)
+>         * that the instruction crosses a page boundary.
+>         */
+>        for (idx = first_switched_icplb; idx < MAX_CPLBS; idx++) {
+> -               if (icplb_tbl[idx].data & CPLB_VALID) {
+> -                       unsigned long this_addr = icplb_tbl[idx].addr;
+> +               if (icplb_tbl[cpu][idx].data & CPLB_VALID) {
+> +                       unsigned long this_addr = icplb_tbl[cpu][idx].addr;
+>                        if (this_addr <= addr && this_addr + PAGE_SIZE > addr) {
+>                                addr += PAGE_SIZE;
+>                                break;
+> @@ -257,23 +258,23 @@ static noinline int icplb_miss(void)
+>                 * Otherwise, check the x bitmap of the current process.
+>                 */
+>                if (!(status & FAULT_USERSUPV)) {
+> -                       unsigned long *mask = current_rwx_mask;
+> +                       unsigned long *mask = current_rwx_mask[cpu];
 >
-> -       r7 = [p4 + (ICPLB_FAULT_ADDR - DCPLB_FAULT_ADDR)];
-> -       p5.h = _saved_icplb_fault_addr;
-> -       p5.l = _saved_icplb_fault_addr;
-> -       [p5] = r7;
-> +       p4.l = lo(ICPLB_FAULT_ADDR);
-> +       p4.h = hi(ICPLB_FAULT_ADDR);
-> +       r6 = [p4];
-> +       [p5 + PDA_ICPLB] = r6;
+>                        if (mask) {
+>                                int page = addr >> PAGE_SHIFT;
+> -                               int offs = page >> 5;
+> +                               int idx = page >> 5;
+>                                int bit = 1 << (page & 31);
 >
->        r6 = retx;
-> -       p4.l = _saved_retx;
-> -       p4.h = _saved_retx;
-> -       [p4] = r6;
-> +       [p5 + PDA_RETX] = r6;
+>                                mask += 2 * page_mask_nelts;
+> -                               if (mask[offs] & bit)
+> +                               if (mask[idx] & bit)
+>                                        i_data |= CPLB_USER_RD;
+>                        }
+>                }
+>        }
+> -       idx = evict_one_icplb();
+> +       idx = evict_one_icplb(cpu);
+>        addr &= PAGE_MASK;
+> -       icplb_tbl[idx].addr = addr;
+> -       icplb_tbl[idx].data = i_data;
+> +       icplb_tbl[cpu][idx].addr = addr;
+> +       icplb_tbl[cpu][idx].data = i_data;
+>
+>        disable_icplb();
+>        bfin_write32(ICPLB_DATA0 + idx * 4, i_data);
+> @@ -283,19 +284,19 @@ static noinline int icplb_miss(void)
+>        return 0;
+>  }
+>
+> -static noinline int dcplb_protection_fault(void)
+> +static noinline int dcplb_protection_fault(unsigned int cpu)
+>  {
+>        int status = bfin_read_DCPLB_STATUS();
+>
+> -       nr_dcplb_prot++;
+> +       nr_dcplb_prot[cpu]++;
+>
+>        if (status & FAULT_RW) {
+>                int idx = faulting_cplb_index(status);
+> -               unsigned long data = dcplb_tbl[idx].data;
+> +               unsigned long data = dcplb_tbl[cpu][idx].data;
+>                if (!(data & CPLB_WT) && !(data & CPLB_DIRTY) &&
+>                    write_permitted(status, data)) {
+>                        data |= CPLB_DIRTY;
+> -                       dcplb_tbl[idx].data = data;
+> +                       dcplb_tbl[cpu][idx].data = data;
+>                        bfin_write32(DCPLB_DATA0 + idx * 4, data);
+>                        return 0;
+>                }
+> @@ -306,36 +307,37 @@ static noinline int dcplb_protection_fault(void)
+>  int cplb_hdr(int seqstat, struct pt_regs *regs)
+>  {
+>        int cause = seqstat & 0x3f;
+> +       unsigned int cpu = smp_processor_id();
+>        switch (cause) {
+>        case 0x23:
+> -               return dcplb_protection_fault();
+> +               return dcplb_protection_fault(cpu);
+>        case 0x2C:
+> -               return icplb_miss();
+> +               return icplb_miss(cpu);
+>        case 0x26:
+> -               return dcplb_miss();
+> +               return dcplb_miss(cpu);
+>        default:
+>                return 1;
+>        }
+>  }
+>
+> -void flush_switched_cplbs(void)
+> +void flush_switched_cplbs(unsigned int cpu)
+>  {
+>        int i;
+>        unsigned long flags;
+>
+> -       nr_cplb_flush++;
+> +       nr_cplb_flush[cpu]++;
+>
+>        local_irq_save(flags);
+>        disable_icplb();
+>        for (i = first_switched_icplb; i < MAX_CPLBS; i++) {
+> -               icplb_tbl[i].data = 0;
+> +               icplb_tbl[cpu][i].data = 0;
+>                bfin_write32(ICPLB_DATA0 + i * 4, 0);
+>        }
+>        enable_icplb();
+>
+>        disable_dcplb();
+>        for (i = first_switched_dcplb; i < MAX_CPLBS; i++) {
+> -               dcplb_tbl[i].data = 0;
+> +               dcplb_tbl[cpu][i].data = 0;
+>                bfin_write32(DCPLB_DATA0 + i * 4, 0);
+>        }
+>        enable_dcplb();
+> @@ -343,7 +345,7 @@ void flush_switched_cplbs(void)
+>
+>  }
+>
+> -void set_mask_dcplbs(unsigned long *masks)
+> +void set_mask_dcplbs(unsigned long *masks, unsigned int cpu)
+>  {
+>        int i;
+>        unsigned long addr = (unsigned long)masks;
+> @@ -351,12 +353,12 @@ void set_mask_dcplbs(unsigned long *masks)
+>        unsigned long flags;
+>
+>        if (!masks) {
+> -               current_rwx_mask = masks;
+> +               current_rwx_mask[cpu] = masks;
+>                return;
+>        }
+>
+>        local_irq_save(flags);
+> -       current_rwx_mask = masks;
+> +       current_rwx_mask[cpu] = masks;
+>
+>        d_data = CPLB_SUPV_WR | CPLB_VALID | CPLB_DIRTY | PAGE_SIZE_4KB;
+>  #ifdef CONFIG_BFIN_DCACHE
+> @@ -368,8 +370,8 @@ void set_mask_dcplbs(unsigned long *masks)
+>
+>        disable_dcplb();
+>        for (i = first_mask_dcplb; i < first_switched_dcplb; i++) {
+> -               dcplb_tbl[i].addr = addr;
+> -               dcplb_tbl[i].data = d_data;
+> +               dcplb_tbl[cpu][i].addr = addr;
+> +               dcplb_tbl[cpu][i].data = d_data;
+>                bfin_write32(DCPLB_DATA0 + i * 4, d_data);
+>                bfin_write32(DCPLB_ADDR0 + i * 4, addr);
+>                addr += PAGE_SIZE;
+> diff --git a/arch/blackfin/kernel/cplb-nompu/cacheinit.c b/arch/blackfin/kernel/cplb-nompu/cacheinit.c
+> index bd08315..3a385ae 100644
+> --- a/arch/blackfin/kernel/cplb-nompu/cacheinit.c
+> +++ b/arch/blackfin/kernel/cplb-nompu/cacheinit.c
+> @@ -25,9 +25,9 @@
+>  #include <asm/cplbinit.h>
+>
+>  #if defined(CONFIG_BFIN_ICACHE)
+> -void __init bfin_icache_init(void)
+> +void __cpuinit bfin_icache_init(u_long icplb[])
+>  {
+> -       unsigned long *table = icplb_table;
+> +       unsigned long *table = icplb;
+>        unsigned long ctrl;
+>        int i;
+>
+> @@ -47,9 +47,9 @@ void __init bfin_icache_init(void)
 >  #endif
->        r6 = SYSCFG;
-> -       [p4 + 4] = r6;
-> +       [p5 + PDA_SYSCFG] = r6;
->        BITCLR(r6, 0);
->        SYSCFG = r6;
 >
->        /* Disable all interrupts, but make sure level 5 is enabled so
->         * we can switch to that level.  Save the old mask.  */
->        cli r6;
-> -       [p4 + 8] = r6;
-> +       [p5 + PDA_EXIMASK] = r6;
+>  #if defined(CONFIG_BFIN_DCACHE)
+> -void __init bfin_dcache_init(void)
+> +void __cpuinit bfin_dcache_init(u_long dcplb[])
+>  {
+> -       unsigned long *table = dcplb_table;
+> +       unsigned long *table = dcplb;
+>        unsigned long ctrl;
+>        int i;
 >
->        p4.l = lo(SAFE_USER_INSTRUCTION);
->        p4.h = hi(SAFE_USER_INSTRUCTION);
-> @@ -424,17 +423,16 @@ ENDPROC(_double_fault)
->  ENTRY(_exception_to_level5)
->        SAVE_ALL_SYS
->
-> -       p4.l = _saved_retx;
-> -       p4.h = _saved_retx;
-> -       r6 = [p4];
-> +       GET_PDA(p4, r7);        /* Fetch current PDA */
-> +       r6 = [p4 + PDA_RETX];
->        [sp + PT_PC] = r6;
->
-> -       r6 = [p4 + 4];
-> +       r6 = [p4 + PDA_SYSCFG];
->        [sp + PT_SYSCFG] = r6;
->
->        /* Restore interrupt mask.  We haven't pushed RETI, so this
->         * doesn't enable interrupts until we return from this handler.  */
-> -       r6 = [p4 + 8];
-> +       r6 = [p4 + PDA_EXIMASK];
->        sti r6;
->
->        /* Restore the hardware error vector.  */
-> @@ -478,8 +476,8 @@ ENTRY(_trap) /* Exception: 4th entry into system event table(supervisor mode)*/
->         * scratch register (for want of a better option).
->         */
->        EX_SCRATCH_REG = sp;
-> -       sp.l = _exception_stack_top;
-> -       sp.h = _exception_stack_top;
-> +       GET_PDA_SAFE(sp);
-> +       sp = [sp + PDA_EXSTACK]
->        /* Try to deal with syscalls quickly.  */
->        [--sp] = ASTAT;
->        [--sp] = (R7:6,P5:4);
-> @@ -501,27 +499,22 @@ ENTRY(_trap) /* Exception: 4th entry into system event table(supervisor mode)*/
->         * but they are not very interesting, so don't save them
->         */
->
-> +       GET_PDA(p5, r7);
->        p4.l = lo(DCPLB_FAULT_ADDR);
->        p4.h = hi(DCPLB_FAULT_ADDR);
->        r7 = [p4];
-> -       p5.h = _saved_dcplb_fault_addr;
-> -       p5.l = _saved_dcplb_fault_addr;
-> -       [p5] = r7;
-> +       [p5 + PDA_DCPLB] = r7;
->
-> -       r7 = [p4 + (ICPLB_FAULT_ADDR - DCPLB_FAULT_ADDR)];
-> -       p5.h = _saved_icplb_fault_addr;
-> -       p5.l = _saved_icplb_fault_addr;
-> -       [p5] = r7;
-> +       p4.l = lo(ICPLB_FAULT_ADDR);
-> +       p4.h = hi(ICPLB_FAULT_ADDR);
-> +       r7 = [p4];
-> +       [p5 + PDA_ICPLB] = r7;
->
-> -       p4.l = _saved_retx;
-> -       p4.h = _saved_retx;
->        r6 = retx;
-> -       [p4] = r6;
-> +       [p5 + PDA_RETX] = r6;
->
->        r7 = SEQSTAT;           /* reason code is in bit 5:0 */
-> -       p4.l = _saved_seqstat;
-> -       p4.h = _saved_seqstat;
-> -       [p4] = r7;
-> +       [p5 + PDA_SEQSTAT] = r7;
->  #else
->        r7 = SEQSTAT;           /* reason code is in bit 5:0 */
+> @@ -64,6 +64,7 @@ void __init bfin_dcache_init(void)
+>        ctrl = bfin_read_DMEM_CONTROL();
+>        ctrl |= DMEM_CNTR;
+>        bfin_write_DMEM_CONTROL(ctrl);
+> +
+>        SSYNC();
+>  }
 >  #endif
-> @@ -546,11 +539,11 @@ ENTRY(_kernel_execve)
->        p0 = sp;
->        r3 = SIZEOF_PTREGS / 4;
->        r4 = 0(x);
-> -0:
-> +.Lclear_regs:
->        [p0++] = r4;
->        r3 += -1;
->        cc = r3 == 0;
-> -       if !cc jump 0b (bp);
-> +       if !cc jump .Lclear_regs (bp);
+> diff --git a/arch/blackfin/kernel/cplb-nompu/cplbinfo.c b/arch/blackfin/kernel/cplb-nompu/cplbinfo.c
+> index 1e74f0b..3f00809 100644
+> --- a/arch/blackfin/kernel/cplb-nompu/cplbinfo.c
+> +++ b/arch/blackfin/kernel/cplb-nompu/cplbinfo.c
+> @@ -68,22 +68,22 @@ static int cplb_find_entry(unsigned long *cplb_addr,
+>        return -1;
+>  }
 >
->        p0 = sp;
->        sp += -16;
-> @@ -558,7 +551,7 @@ ENTRY(_kernel_execve)
->        call _do_execve;
->        SP += 16;
->        cc = r0 == 0;
-> -       if ! cc jump 1f;
-> +       if ! cc jump .Lexecve_failed;
->        /* Success.  Copy our temporary pt_regs to the top of the kernel
->         * stack and do a normal exception return.
->         */
-> @@ -574,12 +567,12 @@ ENTRY(_kernel_execve)
->        p0 = fp;
->        r4 = [p0--];
->        r3 = SIZEOF_PTREGS / 4;
-> -0:
-> +.Lcopy_regs:
->        r4 = [p0--];
->        [p1--] = r4;
->        r3 += -1;
->        cc = r3 == 0;
-> -       if ! cc jump 0b (bp);
-> +       if ! cc jump .Lcopy_regs (bp);
+> -static char *cplb_print_entry(char *buf, int type)
+> +static char *cplb_print_entry(char *buf, int type, unsigned int cpu)
+>  {
+> -       unsigned long *p_addr = dpdt_table;
+> -       unsigned long *p_data = dpdt_table + 1;
+> -       unsigned long *p_icount = dpdt_swapcount_table;
+> -       unsigned long *p_ocount = dpdt_swapcount_table + 1;
+> +       unsigned long *p_addr = dpdt_tables[cpu];
+> +       unsigned long *p_data = dpdt_tables[cpu] + 1;
+> +       unsigned long *p_icount = dpdt_swapcount_tables[cpu];
+> +       unsigned long *p_ocount = dpdt_swapcount_tables[cpu] + 1;
+>        unsigned long *cplb_addr = (unsigned long *)DCPLB_ADDR0;
+>        unsigned long *cplb_data = (unsigned long *)DCPLB_DATA0;
+>        int entry = 0, used_cplb = 0;
 >
->        r0 = (KERNEL_STACK_SIZE - SIZEOF_PTREGS) (z);
->        p1 = r0;
-> @@ -591,7 +584,7 @@ ENTRY(_kernel_execve)
+>        if (type == CPLB_I) {
+>                buf += sprintf(buf, "Instruction CPLB entry:\n");
+> -               p_addr = ipdt_table;
+> -               p_data = ipdt_table + 1;
+> -               p_icount = ipdt_swapcount_table;
+> -               p_ocount = ipdt_swapcount_table + 1;
+> +               p_addr = ipdt_tables[cpu];
+> +               p_data = ipdt_tables[cpu] + 1;
+> +               p_icount = ipdt_swapcount_tables[cpu];
+> +               p_ocount = ipdt_swapcount_tables[cpu] + 1;
+>                cplb_addr = (unsigned long *)ICPLB_ADDR0;
+>                cplb_data = (unsigned long *)ICPLB_DATA0;
+>        } else
+> @@ -134,24 +134,24 @@ static char *cplb_print_entry(char *buf, int type)
+>        return buf;
+>  }
 >
->        RESTORE_CONTEXT;
->        rti;
-> -1:
-> +.Lexecve_failed:
->        unlink;
->        rts;
->  ENDPROC(_kernel_execve)
-> @@ -925,9 +918,14 @@ _schedule_and_signal_from_int:
->        p1 = rets;
->        [sp + PT_RESERVED] = p1;
+> -static int cplbinfo_proc_output(char *buf)
+> +static int cplbinfo_proc_output(char *buf, void *data)
+>  {
+> +       unsigned int cpu = (unsigned int)data;
+>        char *p;
 >
-> +#ifdef CONFIG_SMP
-> +       GET_PDA(p0, r0);        /* Fetch current PDA (can't migrate to other CPU here) */
-> +       r0 = [p0 + PDA_IRQFLAGS];
-> +#else
->        p0.l = _irq_flags;
->        p0.h = _irq_flags;
->        r0 = [p0];
-> +#endif
->        sti r0;
+>        p = buf;
 >
->        r0 = sp;
-> @@ -1539,12 +1537,6 @@ ENTRY(_sys_call_table)
->        .endr
->  END(_sys_call_table)
+> -       p += sprintf(p, "------------------ CPLB Information ------------------\n\n");
+> +       p += sprintf(p, "------------- CPLB Information on CPU%u--------------\n\n", cpu);
 >
-> -#if ANOMALY_05000261
-> -/* Used by the assembly entry point to work around an anomaly.  */
-> -_last_cplb_fault_retx:
-> -       .long 0;
-> -#endif
+>        if (bfin_read_IMEM_CONTROL() & ENICPLB)
+> -               p = cplb_print_entry(p, CPLB_I);
+> +               p = cplb_print_entry(p, CPLB_I, cpu);
+>        else
+>                p += sprintf(p, "Instruction CPLB is disabled.\n\n");
+>
+>        if (bfin_read_DMEM_CONTROL() & ENDCPLB)
+> -               p = cplb_print_entry(p, CPLB_D);
+> +               p = cplb_print_entry(p, CPLB_D, cpu);
+>        else
+>                p += sprintf(p, "Data CPLB is disabled.\n");
 > -
->  #ifdef CONFIG_EXCEPTION_L1_SCRATCH
->  /* .section .l1.bss.scratch */
->  .set _exception_stack_top, L1_SCRATCH_START + L1_SCRATCH_LENGTH
-> @@ -1554,8 +1546,8 @@ _last_cplb_fault_retx:
+>        return p - buf;
+>  }
+>
+> @@ -160,7 +160,7 @@ static int cplbinfo_read_proc(char *page, char **start, off_t off,
+>  {
+>        int len;
+>
+> -       len = cplbinfo_proc_output(page);
+> +       len = cplbinfo_proc_output(page, data);
+>        if (len <= off + count)
+>                *eof = 1;
+>        *start = page + off;
+> @@ -174,20 +174,33 @@ static int cplbinfo_read_proc(char *page, char **start, off_t off,
+>
+>  static int __init cplbinfo_init(void)
+>  {
+> -       struct proc_dir_entry *entry;
+> +       struct proc_dir_entry *parent, *entry;
+> +       unsigned int cpu;
+> +       unsigned char str[10];
+> +
+> +       parent = proc_mkdir("cplbinfo", NULL);
+>
+> -       entry = create_proc_entry("cplbinfo", 0, NULL);
+> -       if (!entry)
+> -               return -ENOMEM;
+> +       for_each_online_cpu(cpu) {
+> +               sprintf(str, "cpu%u", cpu);
+> +               entry = create_proc_entry(str, 0, parent);
+> +               if (!entry)
+> +                       return -ENOMEM;
+>
+> -       entry->read_proc = cplbinfo_read_proc;
+> -       entry->data = NULL;
+> +               entry->read_proc = cplbinfo_read_proc;
+> +               entry->data = (void *)cpu;
+> +       }
+>
+>        return 0;
+>  }
+>
+>  static void __exit cplbinfo_exit(void)
+>  {
+> +       unsigned int cpu;
+> +       unsigned char str[20];
+> +       for_each_online_cpu(cpu) {
+> +               sprintf(str, "cplbinfo/cpu%u", cpu);
+> +               remove_proc_entry(str, NULL);
+> +       }
+>        remove_proc_entry("cplbinfo", NULL);
+>  }
+>
+> diff --git a/arch/blackfin/kernel/cplb-nompu/cplbinit.c b/arch/blackfin/kernel/cplb-nompu/cplbinit.c
+> index 2debc90..8966c70 100644
+> --- a/arch/blackfin/kernel/cplb-nompu/cplbinit.c
+> +++ b/arch/blackfin/kernel/cplb-nompu/cplbinit.c
+> @@ -27,46 +27,20 @@
+>  #include <asm/cplb.h>
+>  #include <asm/cplbinit.h>
+>
+> -#define CPLB_MEM CONFIG_MAX_MEM_SIZE
+> -
+> -/*
+> -* Number of required data CPLB switchtable entries
+> -* MEMSIZE / 4 (we mostly install 4M page size CPLBs
+> -* approx 16 for smaller 1MB page size CPLBs for allignment purposes
+> -* 1 for L1 Data Memory
+> -* possibly 1 for L2 Data Memory
+> -* 1 for CONFIG_DEBUG_HUNT_FOR_ZERO
+> -* 1 for ASYNC Memory
+> -*/
+> -#define MAX_SWITCH_D_CPLBS (((CPLB_MEM / 4) + 16 + 1 + 1 + 1 \
+> -                                + ASYNC_MEMORY_CPLB_COVERAGE) * 2)
+> -
+> -/*
+> -* Number of required instruction CPLB switchtable entries
+> -* MEMSIZE / 4 (we mostly install 4M page size CPLBs
+> -* approx 12 for smaller 1MB page size CPLBs for allignment purposes
+> -* 1 for L1 Instruction Memory
+> -* possibly 1 for L2 Instruction Memory
+> -* 1 for CONFIG_DEBUG_HUNT_FOR_ZERO
+> -*/
+> -#define MAX_SWITCH_I_CPLBS (((CPLB_MEM / 4) + 12 + 1 + 1 + 1) * 2)
+> -
+> -
+> -u_long icplb_table[MAX_CPLBS + 1];
+> -u_long dcplb_table[MAX_CPLBS + 1];
+> +u_long icplb_tables[NR_CPUS][CPLB_TBL_ENTRIES+1];
+> +u_long dcplb_tables[NR_CPUS][CPLB_TBL_ENTRIES+1];
+>
+>  #ifdef CONFIG_CPLB_SWITCH_TAB_L1
+> -# define PDT_ATTR __attribute__((l1_data))
+> +#define PDT_ATTR __attribute__((l1_data))
 >  #else
->  .bss
+> -# define PDT_ATTR
+> +#define PDT_ATTR
 >  #endif
-> -_exception_stack:
-> -       .rept 1024
-> +ENTRY(_exception_stack)
-> +       .rept 1024 * NR_CPUS
->        .long 0
->        .endr
->  _exception_stack_top:
-> diff --git a/arch/blackfin/mach-common/head.S b/arch/blackfin/mach-common/head.S
-> index c1dcaeb..a621ae4 100644
-> --- a/arch/blackfin/mach-common/head.S
-> +++ b/arch/blackfin/mach-common/head.S
-> @@ -13,6 +13,7 @@
+>
+> -u_long ipdt_table[MAX_SWITCH_I_CPLBS + 1] PDT_ATTR;
+> -u_long dpdt_table[MAX_SWITCH_D_CPLBS + 1] PDT_ATTR;
+> -
+> +u_long ipdt_tables[NR_CPUS][MAX_SWITCH_I_CPLBS+1] PDT_ATTR;
+> +u_long dpdt_tables[NR_CPUS][MAX_SWITCH_D_CPLBS+1] PDT_ATTR;
+>  #ifdef CONFIG_CPLB_INFO
+> -u_long ipdt_swapcount_table[MAX_SWITCH_I_CPLBS] PDT_ATTR;
+> -u_long dpdt_swapcount_table[MAX_SWITCH_D_CPLBS] PDT_ATTR;
+> +u_long ipdt_swapcount_tables[NR_CPUS][MAX_SWITCH_I_CPLBS] PDT_ATTR;
+> +u_long dpdt_swapcount_tables[NR_CPUS][MAX_SWITCH_D_CPLBS] PDT_ATTR;
+>  #endif
+>
+>  struct s_cplb {
+> @@ -93,8 +67,8 @@ static struct cplb_desc cplb_data[] = {
+>                .name = "Zero Pointer Guard Page",
+>        },
+>        {
+> -               .start = L1_CODE_START,
+> -               .end = L1_CODE_START + L1_CODE_LENGTH,
+> +               .start = 0,     /* dyanmic */
+> +               .end = 0,       /* dynamic */
+>                .psize = SIZE_4M,
+>                .attr = INITIAL_T | SWITCH_T | I_CPLB,
+>                .i_conf = L1_IMEMORY,
+> @@ -103,8 +77,8 @@ static struct cplb_desc cplb_data[] = {
+>                .name = "L1 I-Memory",
+>        },
+>        {
+> -               .start = L1_DATA_A_START,
+> -               .end = L1_DATA_B_START + L1_DATA_B_LENGTH,
+> +               .start = 0,     /* dynamic */
+> +               .end = 0,       /* dynamic */
+>                .psize = SIZE_4M,
+>                .attr = INITIAL_T | SWITCH_T | D_CPLB,
+>                .i_conf = 0,
+> @@ -117,6 +91,16 @@ static struct cplb_desc cplb_data[] = {
+>                .name = "L1 D-Memory",
+>        },
+>        {
+> +               .start = L2_START,
+> +               .end = L2_START + L2_LENGTH,
+> +               .psize = SIZE_1M,
+> +               .attr = L2_ATTR,
+> +               .i_conf = L2_IMEMORY,
+> +               .d_conf = L2_DMEMORY,
+> +               .valid = (L2_LENGTH > 0),
+> +               .name = "L2 Memory",
+> +       },
+> +       {
+>                .start = 0,
+>                .end = 0,  /* dynamic */
+>                .psize = 0,
+> @@ -165,16 +149,6 @@ static struct cplb_desc cplb_data[] = {
+>                .name = "Asynchronous Memory Banks",
+>        },
+>        {
+> -               .start = L2_START,
+> -               .end = L2_START + L2_LENGTH,
+> -               .psize = SIZE_1M,
+> -               .attr = SWITCH_T | I_CPLB | D_CPLB,
+> -               .i_conf = L2_IMEMORY,
+> -               .d_conf = L2_DMEMORY,
+> -               .valid = (L2_LENGTH > 0),
+> -               .name = "L2 Memory",
+> -       },
+> -       {
+>                .start = BOOT_ROM_START,
+>                .end = BOOT_ROM_START + BOOT_ROM_LENGTH,
+>                .psize = SIZE_1M,
+> @@ -310,7 +284,7 @@ __fill_data_cplbtab(struct cplb_tab *t, int i, u32 a_start, u32 a_end)
+>        }
+>  }
+>
+> -void __init generate_cplb_tables(void)
+> +void __init generate_cplb_tables_cpu(unsigned int cpu)
+>  {
+>
+>        u16 i, j, process;
+> @@ -322,8 +296,8 @@ void __init generate_cplb_tables(void)
+>
+>        printk(KERN_INFO "NOMPU: setting up cplb tables for global access\n");
+>
+> -       cplb.init_i.size = MAX_CPLBS;
+> -       cplb.init_d.size = MAX_CPLBS;
+> +       cplb.init_i.size = CPLB_TBL_ENTRIES;
+> +       cplb.init_d.size = CPLB_TBL_ENTRIES;
+>        cplb.switch_i.size = MAX_SWITCH_I_CPLBS;
+>        cplb.switch_d.size = MAX_SWITCH_D_CPLBS;
+>
+> @@ -332,11 +306,15 @@ void __init generate_cplb_tables(void)
+>        cplb.switch_i.pos = 0;
+>        cplb.switch_d.pos = 0;
+>
+> -       cplb.init_i.tab = icplb_table;
+> -       cplb.init_d.tab = dcplb_table;
+> -       cplb.switch_i.tab = ipdt_table;
+> -       cplb.switch_d.tab = dpdt_table;
+> +       cplb.init_i.tab = icplb_tables[cpu];
+> +       cplb.init_d.tab = dcplb_tables[cpu];
+> +       cplb.switch_i.tab = ipdt_tables[cpu];
+> +       cplb.switch_d.tab = dpdt_tables[cpu];
+>
+> +       cplb_data[L1I_MEM].start = get_l1_code_start_cpu(cpu);
+> +       cplb_data[L1I_MEM].end = cplb_data[L1I_MEM].start + L1_CODE_LENGTH;
+> +       cplb_data[L1D_MEM].start = get_l1_data_a_start_cpu(cpu);
+> +       cplb_data[L1D_MEM].end = get_l1_data_b_start_cpu(cpu) + L1_DATA_B_LENGTH;
+>        cplb_data[SDRAM_KERN].end = memory_end;
+>
+>  #ifdef CONFIG_MTD_UCLINUX
+> @@ -459,6 +437,5 @@ void __init generate_cplb_tables(void)
+>        cplb.switch_d.tab[cplb.switch_d.pos] = -1;
+>
+>  }
+> -
+>  #endif
+>
+> diff --git a/arch/blackfin/kernel/cplb-nompu/cplbmgr.S b/arch/blackfin/kernel/cplb-nompu/cplbmgr.S
+> index f5cf3ac..985f3fc 100644
+> --- a/arch/blackfin/kernel/cplb-nompu/cplbmgr.S
+> +++ b/arch/blackfin/kernel/cplb-nompu/cplbmgr.S
+> @@ -52,6 +52,7 @@
+>  #include <linux/linkage.h>
 >  #include <asm/blackfin.h>
->  #include <asm/thread_info.h>
->  #include <asm/trace.h>
+>  #include <asm/cplb.h>
 > +#include <asm/asm-offsets.h>
 >
->  __INIT
->
-> @@ -111,33 +112,26 @@ ENTRY(__start)
->         * This happens here, since L1 gets clobbered
->         * below
+>  #ifdef CONFIG_EXCPT_IRQ_SYSC_L1
+>  .section .l1.text
+> @@ -164,10 +165,9 @@ ENTRY(_cplb_mgr)
+>  .Lifound_victim:
+>  #ifdef CONFIG_CPLB_INFO
+>        R7 = [P0 - 0x104];
+> -       P2.L = _ipdt_table;
+> -       P2.H = _ipdt_table;
+> -       P3.L = _ipdt_swapcount_table;
+> -       P3.H = _ipdt_swapcount_table;
+> +       GET_PDA(P2, R2);
+> +       P3 = [P2 + PDA_IPDT_SWAPCOUNT];
+> +       P2 = [P2 + PDA_IPDT];
+>        P3 += -4;
+>  .Licount:
+>        R2 = [P2];      /* address from config table */
+> @@ -208,11 +208,10 @@ ENTRY(_cplb_mgr)
+>         * range.
 >         */
-> -       p0.l = _saved_retx;
-> -       p0.h = _saved_retx;
-> +       GET_PDA(p0, r0);
-> +       r7 = [p0 + PDA_RETX];
->        p1.l = _init_saved_retx;
->        p1.h = _init_saved_retx;
-> -       r0 = [p0];
-> -       [p1] = r0;
-> +       [p1] = r7;
 >
-> -       p0.l = _saved_dcplb_fault_addr;
-> -       p0.h = _saved_dcplb_fault_addr;
-> +       r7 = [p0 + PDA_DCPLB];
->        p1.l = _init_saved_dcplb_fault_addr;
->        p1.h = _init_saved_dcplb_fault_addr;
-> -       r0 = [p0];
-> -       [p1] = r0;
-> +       [p1] = r7;
->
-> -       p0.l = _saved_icplb_fault_addr;
-> -       p0.h = _saved_icplb_fault_addr;
-> +       r7 = [p0 + PDA_ICPLB];
->        p1.l = _init_saved_icplb_fault_addr;
->        p1.h = _init_saved_icplb_fault_addr;
-> -       r0 = [p0];
-> -       [p1] = r0;
-> +       [p1] = r7;
->
-> -       p0.l = _saved_seqstat;
-> -       p0.h = _saved_seqstat;
-> +       r7 = [p0 + PDA_SEQSTAT];
->        p1.l = _init_saved_seqstat;
->        p1.h = _init_saved_seqstat;
-> -       r0 = [p0];
-> -       [p1] = r0;
-> +       [p1] = r7;
+> -       P2.L = _ipdt_table;
+> -       P2.H = _ipdt_table;
+> +       GET_PDA(P3, R0);
+> +       P2 = [P3 + PDA_IPDT];
+>  #ifdef CONFIG_CPLB_INFO
+> -       P3.L = _ipdt_swapcount_table;
+> -       P3.H = _ipdt_swapcount_table;
+> +       P3 = [P3 + PDA_IPDT_SWAPCOUNT];
+>        P3 += -8;
 >  #endif
+>        P0.L = _page_size_table;
+> @@ -469,10 +468,9 @@ ENTRY(_cplb_mgr)
 >
->        /* Initialize stack pointer */
-> @@ -255,6 +249,9 @@ ENTRY(_real_start)
->        sp = sp + p1;
->        usp = sp;
->        fp = sp;
-> +       sp += -12;
-> +       call _init_pda
-> +       sp += 12;
->        jump.l _start_kernel;
->  ENDPROC(_real_start)
+>  #ifdef CONFIG_CPLB_INFO
+>        R7 = [P0 - 0x104];
+> -       P2.L = _dpdt_table;
+> -       P2.H = _dpdt_table;
+> -       P3.L = _dpdt_swapcount_table;
+> -       P3.H = _dpdt_swapcount_table;
+> +       GET_PDA(P2, R2);
+> +       P3 = [P2 + PDA_DPDT_SWAPCOUNT];
+> +       P2 = [P2 + PDA_DPDT];
+>        P3 += -4;
+>  .Ldicount:
+>        R2 = [P2];
+> @@ -541,11 +539,10 @@ ENTRY(_cplb_mgr)
 >
-> diff --git a/arch/blackfin/mach-common/ints-priority.c b/arch/blackfin/mach-common/ints-priority.c
-> index d45d0c5..eb8dfcf 100644
-> --- a/arch/blackfin/mach-common/ints-priority.c
-> +++ b/arch/blackfin/mach-common/ints-priority.c
-> @@ -55,6 +55,7 @@
->  * -
->  */
+>        R0 = I0;                /* Our faulting address */
 >
-> +#ifndef CONFIG_SMP
->  /* Initialize this to an actual value to force it into the .data
->  * section so that we know it is properly initialized at entry into
->  * the kernel but before bss is initialized to zero (which is where
-> @@ -63,6 +64,7 @@
->  */
->  unsigned long irq_flags = 0x1f;
->  EXPORT_SYMBOL(irq_flags);
-> +#endif
->
->  /* The number of spurious interrupts */
->  atomic_t num_spurious;
-> @@ -163,6 +165,10 @@ static void bfin_internal_mask_irq(unsigned int irq)
->        mask_bit = SIC_SYSIRQ(irq) % 32;
->        bfin_write_SIC_IMASK(mask_bank, bfin_read_SIC_IMASK(mask_bank) &
->                             ~(1 << mask_bit));
-> +#ifdef CONFIG_SMP
-> +       bfin_write_SICB_IMASK(mask_bank, bfin_read_SICB_IMASK(mask_bank) &
-> +                            ~(1 << mask_bit));
-> +#endif
+> -       P2.L = _dpdt_table;
+> -       P2.H = _dpdt_table;
+> +       GET_PDA(P3, R1);
+> +       P2 = [P3 + PDA_DPDT];
+>  #ifdef CONFIG_CPLB_INFO
+> -       P3.L = _dpdt_swapcount_table;
+> -       P3.H = _dpdt_swapcount_table;
+> +       P3 = [P3 + PDA_DPDT_SWAPCOUNT];
+>        P3 += -8;
 >  #endif
->  }
->
-> @@ -177,6 +183,10 @@ static void bfin_internal_unmask_irq(unsigned int irq)
->        mask_bit = SIC_SYSIRQ(irq) % 32;
->        bfin_write_SIC_IMASK(mask_bank, bfin_read_SIC_IMASK(mask_bank) |
->                             (1 << mask_bit));
-> +#ifdef CONFIG_SMP
-> +       bfin_write_SICB_IMASK(mask_bank, bfin_read_SICB_IMASK(mask_bank) |
-> +                            (1 << mask_bit));
-> +#endif
->  #endif
->  }
->
-> @@ -896,7 +906,7 @@ static struct irq_chip bfin_gpio_irqchip = {
->  #endif
->  };
->
-> -void __init init_exception_vectors(void)
-> +void __cpuinit init_exception_vectors(void)
->  {
->        /* cannot program in software:
->         * evt0 - emulation (jtag)
-> @@ -935,6 +945,10 @@ int __init init_arch_irq(void)
->  # ifdef CONFIG_BF54x
->        bfin_write_SIC_IMASK2(SIC_UNMASK_ALL);
->  # endif
-> +# ifdef CONFIG_SMP
-> +       bfin_write_SICB_IMASK0(SIC_UNMASK_ALL);
-> +       bfin_write_SICB_IMASK1(SIC_UNMASK_ALL);
-> +# endif
->  #else
->        bfin_write_SIC_IMASK(SIC_UNMASK_ALL);
->  #endif
-> @@ -995,6 +1009,17 @@ int __init init_arch_irq(void)
->
->                        break;
->  #endif
-> +#ifdef CONFIG_TICK_SOURCE_SYSTMR0
-> +               case IRQ_TIMER0:
-> +                       set_irq_handler(irq, handle_percpu_irq);
-> +                       break;
-> +#endif
-> +#ifdef CONFIG_SMP
-> +               case IRQ_SUPPLE_0:
-> +               case IRQ_SUPPLE_1:
-> +                       set_irq_handler(irq, handle_percpu_irq);
-> +                       break;
-> +#endif
->                default:
->                        set_irq_handler(irq, handle_simple_irq);
->                        break;
-> @@ -1029,7 +1054,7 @@ int __init init_arch_irq(void)
->        search_IAR();
->
->        /* Enable interrupts IVG7-15 */
-> -       irq_flags = irq_flags | IMASK_IVG15 |
-> +       irq_flags |= IMASK_IVG15 |
->            IMASK_IVG14 | IMASK_IVG13 | IMASK_IVG12 | IMASK_IVG11 |
->            IMASK_IVG10 | IMASK_IVG9 | IMASK_IVG8 | IMASK_IVG7 | IMASK_IVGHW;
->
-> @@ -1070,8 +1095,16 @@ void do_irq(int vec, struct pt_regs *fp)
->        || defined(BF538_FAMILY) || defined(CONFIG_BF51x)
->                unsigned long sic_status[3];
->
-> -               sic_status[0] = bfin_read_SIC_ISR0() & bfin_read_SIC_IMASK0();
-> -               sic_status[1] = bfin_read_SIC_ISR1() & bfin_read_SIC_IMASK1();
-> +               if (smp_processor_id()) {
-> +#ifdef CONFIG_SMP
-> +                       /* This will be optimized out in UP mode. */
-> +                       sic_status[0] = bfin_read_SICB_ISR0() & bfin_read_SICB_IMASK0();
-> +                       sic_status[1] = bfin_read_SICB_ISR1() & bfin_read_SICB_IMASK1();
-> +#endif
-> +               } else {
-> +                       sic_status[0] = bfin_read_SIC_ISR0() & bfin_read_SIC_IMASK0();
-> +                       sic_status[1] = bfin_read_SIC_ISR1() & bfin_read_SIC_IMASK1();
-> +               }
->  #ifdef CONFIG_BF54x
->                sic_status[2] = bfin_read_SIC_ISR2() & bfin_read_SIC_IMASK2();
->  #endif
-> diff --git a/arch/blackfin/mach-common/smp.c b/arch/blackfin/mach-common/smp.c
-> new file mode 100644
-> index 0000000..7aeeced
-> --- /dev/null
-> +++ b/arch/blackfin/mach-common/smp.c
-> @@ -0,0 +1,476 @@
-> +/*
-> + * File:         arch/blackfin/kernel/smp.c
-> + * Author:       Philippe Gerum <rpm@xenomai.org>
-> + * IPI management based on arch/arm/kernel/smp.c.
-> + *
-> + *               Copyright 2007 Analog Devices Inc.
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License as published by
-> + * the Free Software Foundation; either version 2 of the License, or
-> + * (at your option) any later version.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program; if not, see the file COPYING, or write
-> + * to the Free Software Foundation, Inc.,
-> + * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-> + */
-> +
-> +#include <linux/module.h>
-> +#include <linux/delay.h>
-> +#include <linux/init.h>
-> +#include <linux/spinlock.h>
-> +#include <linux/sched.h>
-> +#include <linux/interrupt.h>
-> +#include <linux/cache.h>
-> +#include <linux/profile.h>
-> +#include <linux/errno.h>
-> +#include <linux/mm.h>
-> +#include <linux/cpu.h>
-> +#include <linux/smp.h>
-> +#include <linux/seq_file.h>
-> +#include <linux/irq.h>
-> +#include <asm/atomic.h>
-> +#include <asm/cacheflush.h>
-> +#include <asm/mmu_context.h>
-> +#include <asm/pgtable.h>
-> +#include <asm/pgalloc.h>
-> +#include <asm/processor.h>
-> +#include <asm/ptrace.h>
-> +#include <asm/cpu.h>
-> +#include <linux/err.h>
-> +
-> +struct corelock_slot corelock __attribute__ ((__section__(".l2.bss")));
-> +
-> +void __cpuinitdata *init_retx_coreb, *init_saved_retx_coreb,
-> +       *init_saved_seqstat_coreb, *init_saved_icplb_fault_addr_coreb,
-> +       *init_saved_dcplb_fault_addr_coreb;
-> +
-> +cpumask_t cpu_possible_map;
-> +EXPORT_SYMBOL(cpu_possible_map);
-> +
-> +cpumask_t cpu_online_map;
-> +EXPORT_SYMBOL(cpu_online_map);
-> +
-> +#define BFIN_IPI_RESCHEDULE   0
-> +#define BFIN_IPI_CALL_FUNC    1
-> +#define BFIN_IPI_CPU_STOP     2
-> +
-> +struct blackfin_flush_data {
-> +       unsigned long start;
-> +       unsigned long end;
-> +};
-> +
-> +void *secondary_stack;
-> +
-> +
-> +struct smp_call_struct {
-> +       void (*func)(void *info);
-> +       void *info;
-> +       int wait;
-> +       cpumask_t pending;
-> +       cpumask_t waitmask;
-> +};
-> +
-> +static struct blackfin_flush_data smp_flush_data;
-> +
-> +static DEFINE_SPINLOCK(stop_lock);
-> +
-> +struct ipi_message {
-> +       struct list_head list;
-> +       unsigned long type;
-> +       struct smp_call_struct call_struct;
-> +};
-> +
-> +struct ipi_message_queue {
-> +       struct list_head head;
-> +       spinlock_t lock;
-> +       unsigned long count;
-> +};
-> +
-> +static DEFINE_PER_CPU(struct ipi_message_queue, ipi_msg_queue);
-> +
-> +static void ipi_cpu_stop(unsigned int cpu)
-> +{
-> +       spin_lock(&stop_lock);
-> +       printk(KERN_CRIT "CPU%u: stopping\n", cpu);
-> +       dump_stack();
-> +       spin_unlock(&stop_lock);
-> +
-> +       cpu_clear(cpu, cpu_online_map);
-> +
-> +       local_irq_disable();
-> +
-> +       while (1)
-> +               SSYNC();
-> +}
-> +
-> +static void ipi_flush_icache(void *info)
-> +{
-> +       struct blackfin_flush_data *fdata = info;
-> +
-> +       /* Invalidate the memory holding the bounds of the flushed region. */
-> +       blackfin_dcache_invalidate_range((unsigned long)fdata,
-> +                                        (unsigned long)fdata + sizeof(*fdata));
-> +
-> +       blackfin_icache_flush_range(fdata->start, fdata->end);
-> +}
-> +
-> +static void ipi_call_function(unsigned int cpu, struct ipi_message *msg)
-> +{
-> +       int wait;
-> +       void (*func)(void *info);
-> +       void *info;
-> +       func = msg->call_struct.func;
-> +       info = msg->call_struct.info;
-> +       wait = msg->call_struct.wait;
-> +       cpu_clear(cpu, msg->call_struct.pending);
-> +       func(info);
-> +       if (wait)
-> +               cpu_clear(cpu, msg->call_struct.waitmask);
-> +       else
-> +               kfree(msg);
-> +}
-> +
-> +static irqreturn_t ipi_handler(int irq, void *dev_instance)
-> +{
-> +       struct ipi_message *msg, *mg;
-> +       struct ipi_message_queue *msg_queue;
-> +       unsigned int cpu = smp_processor_id();
-> +
-> +       platform_clear_ipi(cpu);
-> +
-> +       msg_queue = &__get_cpu_var(ipi_msg_queue);
-> +       msg_queue->count++;
-> +
-> +       spin_lock(&msg_queue->lock);
-> +       list_for_each_entry_safe(msg, mg, &msg_queue->head, list) {
-> +               list_del(&msg->list);
-> +               switch (msg->type) {
-> +               case BFIN_IPI_RESCHEDULE:
-> +                       /* That's the easiest one; leave it to
-> +                        * return_from_int. */
-> +                       kfree(msg);
-> +                       break;
-> +               case BFIN_IPI_CALL_FUNC:
-> +                       ipi_call_function(cpu, msg);
-> +                       break;
-> +               case BFIN_IPI_CPU_STOP:
-> +                       ipi_cpu_stop(cpu);
-> +                       kfree(msg);
-> +                       break;
-> +               default:
-> +                       printk(KERN_CRIT "CPU%u: Unknown IPI message \
-> +                       0x%lx\n", cpu, msg->type);
-> +                       kfree(msg);
-> +                       break;
-> +               }
-> +       }
-> +       spin_unlock(&msg_queue->lock);
-> +       return IRQ_HANDLED;
-> +}
-> +
-> +static void ipi_queue_init(void)
-> +{
-> +       unsigned int cpu;
-> +       struct ipi_message_queue *msg_queue;
-> +       for_each_possible_cpu(cpu) {
-> +               msg_queue = &per_cpu(ipi_msg_queue, cpu);
-> +               INIT_LIST_HEAD(&msg_queue->head);
-> +               spin_lock_init(&msg_queue->lock);
-> +               msg_queue->count = 0;
-> +       }
-> +}
-> +
-> +int smp_call_function(void (*func)(void *info), void *info, int wait)
-> +{
-> +       unsigned int cpu;
-> +       cpumask_t callmap;
-> +       unsigned long flags;
-> +       struct ipi_message_queue *msg_queue;
-> +       struct ipi_message *msg;
-> +
-> +       callmap = cpu_online_map;
-> +       cpu_clear(smp_processor_id(), callmap);
-> +       if (cpus_empty(callmap))
-> +               return 0;
-> +
-> +       msg = kmalloc(sizeof(*msg), GFP_ATOMIC);
-> +       INIT_LIST_HEAD(&msg->list);
-> +       msg->call_struct.func = func;
-> +       msg->call_struct.info = info;
-> +       msg->call_struct.wait = wait;
-> +       msg->call_struct.pending = callmap;
-> +       msg->call_struct.waitmask = callmap;
-> +       msg->type = BFIN_IPI_CALL_FUNC;
-> +
-> +       for_each_cpu_mask(cpu, callmap) {
-> +               msg_queue = &per_cpu(ipi_msg_queue, cpu);
-> +               spin_lock_irqsave(&msg_queue->lock, flags);
-> +               list_add(&msg->list, &msg_queue->head);
-> +               spin_unlock_irqrestore(&msg_queue->lock, flags);
-> +               platform_send_ipi_cpu(cpu);
-> +       }
-> +       if (wait) {
-> +               while (!cpus_empty(msg->call_struct.waitmask))
-> +                       blackfin_dcache_invalidate_range(
-> +                               (unsigned long)(&msg->call_struct.waitmask),
-> +                               (unsigned long)(&msg->call_struct.waitmask));
-> +               kfree(msg);
-> +       }
-> +       return 0;
-> +}
-> +EXPORT_SYMBOL_GPL(smp_call_function);
-> +
-> +int smp_call_function_single(int cpuid, void (*func) (void *info), void *info,
-> +                               int wait)
-> +{
-> +       unsigned int cpu = cpuid;
-> +       cpumask_t callmap;
-> +       unsigned long flags;
-> +       struct ipi_message_queue *msg_queue;
-> +       struct ipi_message *msg;
-> +
-> +       if (cpu_is_offline(cpu))
-> +               return 0;
-> +       cpus_clear(callmap);
-> +       cpu_set(cpu, callmap);
-> +
-> +       msg = kmalloc(sizeof(*msg), GFP_ATOMIC);
-> +       INIT_LIST_HEAD(&msg->list);
-> +       msg->call_struct.func = func;
-> +       msg->call_struct.info = info;
-> +       msg->call_struct.wait = wait;
-> +       msg->call_struct.pending = callmap;
-> +       msg->call_struct.waitmask = callmap;
-> +       msg->type = BFIN_IPI_CALL_FUNC;
-> +
-> +       msg_queue = &per_cpu(ipi_msg_queue, cpu);
-> +       spin_lock_irqsave(&msg_queue->lock, flags);
-> +       list_add(&msg->list, &msg_queue->head);
-> +       spin_unlock_irqrestore(&msg_queue->lock, flags);
-> +       platform_send_ipi_cpu(cpu);
-> +
-> +       if (wait) {
-> +               while (!cpus_empty(msg->call_struct.waitmask))
-> +                       blackfin_dcache_invalidate_range(
-> +                               (unsigned long)(&msg->call_struct.waitmask),
-> +                               (unsigned long)(&msg->call_struct.waitmask));
-> +               kfree(msg);
-> +       }
-> +       return 0;
-> +}
-> +EXPORT_SYMBOL_GPL(smp_call_function_single);
-> +
-> +void smp_send_reschedule(int cpu)
-> +{
-> +       unsigned long flags;
-> +       struct ipi_message_queue *msg_queue;
-> +       struct ipi_message *msg;
-> +
-> +       if (cpu_is_offline(cpu))
-> +               return;
-> +
-> +       msg = kmalloc(sizeof(*msg), GFP_ATOMIC);
-> +       memset(msg, 0, sizeof(msg));
-> +       INIT_LIST_HEAD(&msg->list);
-> +       msg->type = BFIN_IPI_RESCHEDULE;
-> +
-> +       msg_queue = &per_cpu(ipi_msg_queue, cpu);
-> +       spin_lock_irqsave(&msg_queue->lock, flags);
-> +       list_add(&msg->list, &msg_queue->head);
-> +       spin_unlock_irqrestore(&msg_queue->lock, flags);
-> +       platform_send_ipi_cpu(cpu);
-> +
-> +       return;
-> +}
-> +
-> +void smp_send_stop(void)
-> +{
-> +       unsigned int cpu;
-> +       cpumask_t callmap;
-> +       unsigned long flags;
-> +       struct ipi_message_queue *msg_queue;
-> +       struct ipi_message *msg;
-> +
-> +       callmap = cpu_online_map;
-> +       cpu_clear(smp_processor_id(), callmap);
-> +       if (cpus_empty(callmap))
-> +               return;
-> +
-> +       msg = kmalloc(sizeof(*msg), GFP_ATOMIC);
-> +       memset(msg, 0, sizeof(msg));
-> +       INIT_LIST_HEAD(&msg->list);
-> +       msg->type = BFIN_IPI_CPU_STOP;
-> +
-> +       for_each_cpu_mask(cpu, callmap) {
-> +               msg_queue = &per_cpu(ipi_msg_queue, cpu);
-> +               spin_lock_irqsave(&msg_queue->lock, flags);
-> +               list_add(&msg->list, &msg_queue->head);
-> +               spin_unlock_irqrestore(&msg_queue->lock, flags);
-> +               platform_send_ipi_cpu(cpu);
-> +       }
-> +       return;
-> +}
-> +
-> +int __cpuinit __cpu_up(unsigned int cpu)
-> +{
-> +       struct task_struct *idle;
-> +       int ret;
-> +
-> +       idle = fork_idle(cpu);
-> +       if (IS_ERR(idle)) {
-> +               printk(KERN_ERR "CPU%u: fork() failed\n", cpu);
-> +               return PTR_ERR(idle);
-> +       }
-> +
-> +       secondary_stack = task_stack_page(idle) + THREAD_SIZE;
-> +       smp_wmb();
-> +
-> +       ret = platform_boot_secondary(cpu, idle);
-> +
-> +       if (ret) {
-> +               cpu_clear(cpu, cpu_present_map);
-> +               printk(KERN_CRIT "CPU%u: processor failed to boot (%d)\n", cpu, ret);
-> +               free_task(idle);
-> +       } else
-> +               cpu_set(cpu, cpu_online_map);
-> +
-> +       secondary_stack = NULL;
-> +
-> +       return ret;
-> +}
-> +
-> +static void __cpuinit setup_secondary(unsigned int cpu)
-> +{
-> +#ifndef CONFIG_TICK_SOURCE_SYSTMR0
-> +       struct irq_desc *timer_desc;
-> +#endif
-> +       unsigned long ilat;
-> +
-> +       bfin_write_IMASK(0);
-> +       CSYNC();
-> +       ilat = bfin_read_ILAT();
-> +       CSYNC();
-> +       bfin_write_ILAT(ilat);
-> +       CSYNC();
-> +
-> +       /* Reserve the PDA space for the secondary CPU. */
-> +       reserve_pda();
-> +
-> +       /* Enable interrupt levels IVG7-15. IARs have been already
-> +        * programmed by the boot CPU.  */
-> +       irq_flags |= IMASK_IVG15 |
-> +           IMASK_IVG14 | IMASK_IVG13 | IMASK_IVG12 | IMASK_IVG11 |
-> +           IMASK_IVG10 | IMASK_IVG9 | IMASK_IVG8 | IMASK_IVG7 | IMASK_IVGHW;
-> +
-> +#ifdef CONFIG_TICK_SOURCE_SYSTMR0
-> +       /* Power down the core timer, just to play safe. */
-> +       bfin_write_TCNTL(0);
-> +
-> +       /* system timer0 has been setup by CoreA. */
-> +#else
-> +       timer_desc = irq_desc + IRQ_CORETMR;
-> +       setup_core_timer();
-> +       timer_desc->chip->enable(IRQ_CORETMR);
-> +#endif
-> +}
-> +
-> +void __cpuinit secondary_start_kernel(void)
-> +{
-> +       unsigned int cpu = smp_processor_id();
-> +       struct mm_struct *mm = &init_mm;
-> +
-> +       if (_bfin_swrst & SWRST_DBL_FAULT_B) {
-> +               printk(KERN_EMERG "CoreB Recovering from DOUBLE FAULT event\n");
-> +#ifdef CONFIG_DEBUG_DOUBLEFAULT
-> +               printk(KERN_EMERG " While handling exception (EXCAUSE = 0x%x) at %pF\n",
-> +                       (int)init_saved_seqstat_coreb & SEQSTAT_EXCAUSE, init_saved_retx_coreb);
-> +               printk(KERN_NOTICE "   DCPLB_FAULT_ADDR: %pF\n", init_saved_dcplb_fault_addr_coreb);
-> +               printk(KERN_NOTICE "   ICPLB_FAULT_ADDR: %pF\n", init_saved_icplb_fault_addr_coreb);
-> +#endif
-> +               printk(KERN_NOTICE " The instruction at %pF caused a double exception\n",
-> +                       init_retx_coreb);
-> +       }
-> +
-> +       /*
-> +        * We want the D-cache to be enabled early, in case the atomic
-> +        * support code emulates cache coherence (see
-> +        * __ARCH_SYNC_CORE_DCACHE).
-> +        */
-> +       init_exception_vectors();
-> +
-> +       bfin_setup_caches(cpu);
-> +
-> +       local_irq_disable();
-> +
-> +       /* Attach the new idle task to the global mm. */
-> +       atomic_inc(&mm->mm_users);
-> +       atomic_inc(&mm->mm_count);
-> +       current->active_mm = mm;
-> +       BUG_ON(current->mm);    /* Can't be, but better be safe than sorry. */
-> +
-> +       preempt_disable();
-> +
-> +       setup_secondary(cpu);
-> +
-> +       local_irq_enable();
-> +
-> +       platform_secondary_init(cpu);
-> +
-> +       cpu_idle();
-> +}
-> +
-> +void __init smp_prepare_boot_cpu(void)
-> +{
-> +}
-> +
-> +void __init smp_prepare_cpus(unsigned int max_cpus)
-> +{
-> +       platform_prepare_cpus(max_cpus);
-> +       ipi_queue_init();
-> +       platform_request_ipi(&ipi_handler);
-> +}
-> +
-> +void __init smp_cpus_done(unsigned int max_cpus)
-> +{
-> +       unsigned long bogosum = 0;
-> +       unsigned int cpu;
-> +
-> +       for_each_online_cpu(cpu)
-> +               bogosum += per_cpu(cpu_data, cpu).loops_per_jiffy;
-> +
-> +       printk(KERN_INFO "SMP: Total of %d processors activated "
-> +              "(%lu.%02lu BogoMIPS).\n",
-> +              num_online_cpus(),
-> +              bogosum / (500000/HZ),
-> +              (bogosum / (5000/HZ)) % 100);
-> +}
-> +
-> +void smp_icache_flush_range_others(unsigned long start, unsigned long end)
-> +{
-> +       smp_flush_data.start = start;
-> +       smp_flush_data.end = end;
-> +
-> +       if (smp_call_function(&ipi_flush_icache, &smp_flush_data, 1))
-> +               printk(KERN_WARNING "SMP: failed to run I-cache flush request on other CPUs\n");
-> +}
-> +EXPORT_SYMBOL_GPL(smp_icache_flush_range_others);
-> +
-> +#ifdef __ARCH_SYNC_CORE_DCACHE
-> +unsigned long barrier_mask __attribute__ ((__section__(".l2.bss")));
-> +
-> +void resync_core_dcache(void)
-> +{
-> +       unsigned int cpu = get_cpu();
-> +       blackfin_invalidate_entire_dcache();
-> +       ++per_cpu(cpu_data, cpu).dcache_invld_count;
-> +       put_cpu();
-> +}
-> +EXPORT_SYMBOL(resync_core_dcache);
-> +#endif
-> diff --git a/arch/blackfin/oprofile/common.c b/arch/blackfin/oprofile/common.c
-> index 0f6d303..f34795a 100644
-> --- a/arch/blackfin/oprofile/common.c
-> +++ b/arch/blackfin/oprofile/common.c
-> @@ -130,7 +130,7 @@ int __init oprofile_arch_init(struct oprofile_operations *ops)
->
->        mutex_init(&pfmon_lock);
->
-> -       dspid = bfin_read_DSPID();
-> +       dspid = bfin_dspid();
->
->        printk(KERN_INFO "Oprofile got the cpu id is 0x%x. \n", dspid);
 >
 > --
 > 1.5.6.3
