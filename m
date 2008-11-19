@@ -1,70 +1,49 @@
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [patch] mm: vmalloc fix lazy unmapping cache aliasing
-Date: Wed, 19 Nov 2008 20:17:15 +0000
-Message-ID: <20081119201715.GA9404@flint.arm.linux.org.uk>
-References: <20081119045338.GA18697@wotan.suse.de>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: O_DIRECT patch for processors with VIPT cache for mainline kernel (specifically arm in our case)
+Date: Wed, 19 Nov 2008 20:43:15 +0000
+Message-ID: <20081119204315.GB17209@flint.arm.linux.org.uk>
+References: <d8dd82df0811180606w503563ach8650ab07dcd0a35c@mail.gmail.com> <200811191740.23638.nickpiggin@yahoo.com.au>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:33737 "EHLO
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:60008 "EHLO
 	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752864AbYKSUR3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Nov 2008 15:17:29 -0500
+	with ESMTP id S1751097AbYKSUne (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Nov 2008 15:43:34 -0500
 Content-Disposition: inline
-In-Reply-To: <20081119045338.GA18697@wotan.suse.de>
+In-Reply-To: <200811191740.23638.nickpiggin@yahoo.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, Andrew Morton <akpm@linux-foundation.org>
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: Naval Saini <navalnovel@gmail.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, naval.saini@nxp.com
 
-On Wed, Nov 19, 2008 at 05:53:38AM +0100, Nick Piggin wrote:
-> We determined that the problem was most likely due to a cache aliasing
-> issue.  flush_cache_vunmap was only being called at the moment the page
-> tables were to be taken down, however with lazy unmapping, this can
-> happen after the page has subsequently been freed and allocated for
-> something else. The dangling alias may still have dirty data attached
-> to it.
+On Wed, Nov 19, 2008 at 05:40:23PM +1100, Nick Piggin wrote:
+> It would be interesting to know exactly what problem you are seeing.
+> 
+> ARM I think is supposed to handle aliasing problems by flushing
+> caches at appropriate points. It would be nice to know what's going
+> wrong and whether we can cover those holes.
 
-This would certainly cause problems - writes which hit the cache for the
-vmapped pages will remain in the cache, and would be evicted some time
-later.
+I think there's a problem here: the existing cache handling API is
+designed around the MM's manipulation of page tables.  It is generally
+not designed to handle aliasing between multiple mappings of the same
+page, except with one exception: page cache pages mmap'd into userspace,
+which is handled via flush_dcache_page().
 
-With VIVT ARMs, that time is bounded by the context switch, which does a
-full cache flush, but between that a page may well have been reallocated
-for some other purpose.
+O_DIRECT on ARM is probably completely untested for the most part.  It's
+not something that is encountered very often, and as such gets zero
+testing.  I've certainly never had the tools to be able to test it out,
+so even on VIVT it's probably completely buggy.  Bear in mind that most
+of my modern platforms use MTD (either cramfs or in the rare case jffs2)
+so I'm not sure that I could sensibly even test O_DIRECT - isn't O_DIRECT
+for use with proper block devices?
 
-So, ensuring that we have no dirty lines corresponding to stale mappings
-on pages before they're freed is an absolute must for VIVT caches.
+As it's probably clear, I've no clue of the O_DIRECT implementation or
+how it's supposed to work.  At a guess, it probably needs a new cache
+handling API to be designed, since the existing flush_cache_(range|page)
+are basically no-ops on VIPT.  Or maybe we need some way to mark the
+userspace pages as being write-through or uncacheable depending on the
+features we have available on the processor.  Or something.  Don't know.
 
-> @@ -734,7 +743,7 @@ static void free_vmap_block(struct vmap_
->  	spin_unlock(&vmap_block_tree_lock);
->  	BUG_ON(tmp != vb);
->  
-> -	free_unmap_vmap_area(vb->va);
-> +	free_unmap_vmap_area_noflush(vb->va);
->  	call_rcu(&vb->rcu_head, rcu_free_vb);
->  }
->  
-> @@ -820,6 +829,8 @@ static void vb_free(const void *addr, un
->  		free_vmap_block(vb);
->  	} else
->  		spin_unlock(&vb->lock);
-> +
-> +	flush_cache_vunmap((unsigned long)addr, (unsigned long)addr + size);
-
-One minor nit - this looks like we're flushing the cache after the
-range has been marked as needing the mapping torn down.  Can the
-mapping be torn down before the cache is flushed?
-
-The reason I ask is that with VIPT caches, the mapping has to be
-present so the hardware knows the physical tag to be flushed, so if
-the mapping has been torn down, we'll get an exception.  _If_ and
-only if we convert flush_cache_vunmap() to be less heavy weight
-than its current flush_cache_all().
-
-IOW, shouldn't flush_cache_vunmap() be towards the start of vb_free() ?
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+So, what is O_DIRECT, and where can I find some information about it?
+I don't see anything in Documentation/ describing it.
