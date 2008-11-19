@@ -1,126 +1,62 @@
-From: "Bryan Wu" <cooloney@kernel.org>
-Subject: Re: [PATCH 2/5] Blackfin arch: SMP supporting patchset: Blackfin header files and machine common code
-Date: Wed, 19 Nov 2008 16:20:07 +0800
-Message-ID: <386072610811190020w619e5623p8fe2caf3373f8012@mail.gmail.com>
-References: <1226999108-13839-1-git-send-email-cooloney@kernel.org>
-	 <1226999108-13839-3-git-send-email-cooloney@kernel.org>
-	 <20081118225629.eddd23ae.akpm@linux-foundation.org>
-	 <1227081170.24481.41.camel@dyang>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: + unaligned-introduce-common-header.patch added to -mm tree
+Date: Wed, 19 Nov 2008 09:21:48 +0100 (CET)
+Message-ID: <Pine.LNX.4.64.0811190919280.27671@anakin>
+References: <200811190614.mAJ6EsXA007330@imap1.linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-2022-JP
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from yw-out-2324.google.com ([74.125.46.31]:29245 "EHLO
-	yw-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752348AbYKSIUI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Nov 2008 03:20:08 -0500
-Received: by yw-out-2324.google.com with SMTP id 9so1403786ywe.1
-        for <linux-arch@vger.kernel.org>; Wed, 19 Nov 2008 00:20:07 -0800 (PST)
-In-Reply-To: <1227081170.24481.41.camel@dyang>
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: gyang <graf.yang@analog.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org, mingo@elte.hu, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753048AbYKSIWZ@vger.kernel.org>
+In-Reply-To: <200811190614.mAJ6EsXA007330@imap1.linux-foundation.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: mm-commits@vger.kernel.org, harvey.harrison@gmail.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, bryan.wu@analog.com, "David S. Miller" <davem@davemloft.net>, dhowells@redhat.com, Greg Ungerer <gerg@uclinux.org>, grundler@parisc-linux.org, heiko.carstens@de.ibm.com, hskinnemoen@atmel.com, ink@jurassic.park.msu.ru, kyle@mcmartin.ca, lethal@linux-sh.org, linux-arch@vger.kernel.org, mingo@elte.hu, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Russell King <rmk@arm.linux.org.uk>, rth@twiddle.net, schwidefsky@de.ibm.com, takata@linux-m32r.org, tglx@linutronix.de, tony.luck@intel.com, ysato@users.sourceforge.jp, zankel@tensilica.com, Roman Zippel <zippel@linux-m68k.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 19, 2008 at 3:52 PM, gyang <graf.yang@analog.com> wrote:
->
-> 在 2008-11-18二的 22:56 -0800，Andrew Morton写道：
->> On Tue, 18 Nov 2008 17:05:05 +0800 Bryan Wu <cooloney@kernel.org> wrote:
->>
->> > From: Graf Yang <graf.yang@analog.com>
->> >
->> > Blackfin dual core BF561 processor can support SMP like features.
->> > https://docs.blackfin.uclinux.org/doku.php?id=linux-kernel:smp-like
->> >
->> > In this patch, we provide SMP extend to Blackfin header files
->> > and machine common code
->> >
->> >
->> > ...
->> >
->> > +#define atomic_add_unless(v, a, u)                         \
->> > +({                                                         \
->> > +   int c, old;                                             \
->> > +   c = atomic_read(v);                                     \
->> > +   while (c != (u) && (old = atomic_cmpxchg((v), c, c + (a))) != c) \
->> > +           c = old;                                        \
->> > +   c != (u);                                               \
->> > +})
->>
->> The macro references its args multiple times and will do weird or
->> inefficient things when called with expressions which have
->> side-effects, or which do slow things.
->>
->> >
->> > ...
->> >
->> > +#include <asm/system.h>            /* save_flags */
->> > +
->> > +static inline void set_bit(int nr, volatile unsigned long *addr)
->> >  {
->> >     int *a = (int *)addr;
->> >     int mask;
->> > @@ -57,21 +91,23 @@ static __inline__ void clear_bit(int nr, volatile unsigned long *addr)
->> >     a += nr >> 5;
->> >     mask = 1 << (nr & 0x1f);
->> >     local_irq_save(flags);
->> > -   *a &= ~mask;
->> > +   *a |= mask;
->>
->> I think you just broke clear_bit().  Maybe I'm misreading the diff.
-> OK, We have corrected it on our own tree.
+On Tue, 18 Nov 2008, akpm@linux-foundation.org wrote:
+> Subject: unaligned: introduce common header
+> From: Harvey Harrison <harvey.harrison@gmail.com>
+> 
+> There are two common cases in the kernel, one where unaligned access is OK
+> for an arch and one where the arch uses a packed-struct for the native
+> endianness and opencoded C byteshifting for the other endianness. 
+> Consolidate these two implementations in asm-generic/unaligned.h
+> 
+> Arches that require no special handling of unaligned access can define
+> _UNALIGNED_ACCESS_OK in their asm/unaligned.h before including the generic
+> version.
+> 
+> +static inline void __put_le32_noalign(u8 *p, u32 val)
+> +{
+> +	__put_le16_noalign(p + 2, val >> 16);
+> +	__put_le16_noalign(p, val);
 
-Both the code and the patch are all right. Because the mess from diff,
-we all misread it.
+Isn't it more logical to reverse the order, to store in increasing memory
+locations:
 
--Bryan
+	__put_le16_noalign(p, val);
+	__put_le16_noalign(p + 2, val >> 16);
 
->>
->> >     local_irq_restore(flags);
->> >  }
->> >
->> >
->> > ...
->> >
->> > +#define smp_mb__before_clear_bit() barrier()
->> > +#define smp_mb__after_clear_bit()  barrier()
->> > +
->> > +static inline void __set_bit(int nr, volatile unsigned long *addr)
->> > +{
->> > +   int *a = (int *)addr;
->> > +   int mask;
->> > +
->> > +   a += nr >> 5;
->> > +   mask = 1 << (nr & 0x1f);
->> > +   *a |= mask;
->> > +}
->> > +
->> > +static inline void __clear_bit(int nr, volatile unsigned long *addr)
->> > +{
->> > +   int *a = (int *)addr;
->> > +   int mask;
->> > +
->> > +   a += nr >> 5;
->> > +   mask = 1 << (nr & 0x1f);
->> > +   *a &= ~mask;
->> > +}
->> > +
->> > +static inline void __change_bit(int nr, volatile unsigned long *addr)
->> > +{
->> > +   int mask;
->> > +   unsigned long *ADDR = (unsigned long *)addr;
->> > +
->> > +   ADDR += nr >> 5;
->> > +   mask = 1 << (nr & 31);
->> > +   *ADDR ^= mask;
->> > +}
->>
->> I'm surprised there isn't any generic code which can be used for the above.
->>
->> >
->> > ...
->> >
->>
->> Gad what a lot of code.  I don't think I have time to read it all, sorry.
->
+> +}
+> +
+> +static inline void __put_le64_noalign(u8 *p, u64 val)
+> +{
+> +	__put_le32_noalign(p + 4, val >> 32);
+> +	__put_le32_noalign(p, val);
+
+Same here:
+
+	__put_le32_noalign(p, val);
+	__put_le32_noalign(p + 4, val >> 32);
+
+> +}
+
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
