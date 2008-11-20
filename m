@@ -1,89 +1,61 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: O_DIRECT patch for processors with VIPT cache for mainline kernel
-	(specifically arm in our case)
-Date: Thu, 20 Nov 2008 16:30:53 +0000
-Message-ID: <20081120163052.GA5385@flint.arm.linux.org.uk>
-References: <d8dd82df0811180606w503563ach8650ab07dcd0a35c@mail.gmail.com>
-	<200811201759.01039.nickpiggin@yahoo.com.au>
-	<b647ffbd0811200428u2b41b108ifb02872563c871ab@mail.gmail.com>
-	<200811210025.39568.nickpiggin@yahoo.com.au>
-	<20081120135558.GB24308@linux-mips.org>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: O_DIRECT patch for processors with VIPT cache for mainline
+	kernel (specifically arm in our case)
+Date: Thu, 20 Nov 2008 17:17:14 +0000
+Message-ID: <20081120171713.GB27398@linux-mips.org>
+References: <d8dd82df0811180606w503563ach8650ab07dcd0a35c@mail.gmail.com> <200811201759.01039.nickpiggin@yahoo.com.au> <b647ffbd0811200428u2b41b108ifb02872563c871ab@mail.gmail.com> <200811210025.39568.nickpiggin@yahoo.com.au> <20081120135558.GB24308@linux-mips.org> <20081120152719.GS1617@parisc-linux.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.arm.linux.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from h4.dl5rb.org.uk ([81.2.74.4]:53130 "EHLO
+	ditditdahdahdah-dahdahdahditdit.dl5rb.org.uk" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752142AbYKTRRs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 20 Nov 2008 12:17:48 -0500
 Content-Disposition: inline
-In-Reply-To: <20081120135558.GB24308@linux-mips.org>
-List-Unsubscribe: <http://lists.arm.linux.org.uk/mailman/listinfo/linux-arm-kernel>,
-	<mailto:linux-arm-kernel-request@lists.arm.linux.org.uk?subject=unsubscribe>
-List-Archive: <http://lists.arm.linux.org.uk/lurker/list/linux-arm-kernel.html>
-List-Post: <mailto:linux-arm-kernel@lists.arm.linux.org.uk>
-List-Help: <mailto:linux-arm-kernel-request@lists.arm.linux.org.uk?subject=help>
-List-Subscribe: <http://lists.arm.linux.org.uk/mailman/listinfo/linux-arm-kernel>,
-	<mailto:linux-arm-kernel-request@lists.arm.linux.org.uk?subject=subscribe>
-Sender: linux-arm-kernel-bounces@lists.arm.linux.org.uk
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org+linux-arm-kernel=m.gmane.org@lists.arm.linux.org.uk
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Dmitry Adamushko <dmitry.adamushko@gmail.com>, linux-fsdevel@vger.kernel.org, Naval Saini <navalnovel@gmail.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, naval.saini@nxp.com
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20081120152719.GS1617@parisc-linux.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Dmitry Adamushko <dmitry.adamushko@gmail.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-fsdevel@vger.kernel.org, Naval Saini <navalnovel@gmail.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, naval.saini@nxp.com, James Bottomley <James.Bottomley@HansenPartnership.com>
 
-On Thu, Nov 20, 2008 at 01:55:58PM +0000, Ralf Baechle wrote:
-> It's better to avoid aliases than dealing with them by flushing.  A way to
-> avoid aliases whenever a page is mapped to userspace, one creates a mapping
-> at a carefully choosen address that doesn't alias.  On architectures with
-> software reload TLBs such as MIPS that's very cheap and the entire
-> cacheflush with all it's associated pains can go away.  Right now MIPS uses
-> such a mechanism:
-> 
->   void *kmap_coherent(struct page *page, unsigned long addr);
->   void kunmap_coherent(void);
+On Thu, Nov 20, 2008 at 08:27:19AM -0700, Matthew Wilcox wrote:
 
-Yes, we effectively already do that for our copy_user_highpage/
-clear_user_highpage (note: we really want to override both of those
-functions, not just one as the code in include/linux/highmem.h is
-currently setup.  And I wish that V4L didn't use the non-highmem
-clear_user_page() call...)
+> I'm not quite sure why you need kmap_coherent().  If a page is mapped into
+> userspace, you can find what address it's mapped to from
+> page->mapping->i_mmap and page->index.  OTOH, that's potentially
 
-Why?  On ARM, we're starting to support highmem on VIVT and VIPT, and
-having *_user_highpage() kmap, and then have the *_user_page() setup
-yet another mapping for VIPT caches is just silly.
+Even if we know the userspace address of a page we do not necessarily have
+a usable mapping for kernel purposes.  The userspace mapping might be r/o
+when we need r/w or it might be in another process.  kmap_coherent takes
+the job of creating a r/w mapping on a suitable kernel virtual address
+that will avoid any aliases.
 
-Which reminds me that I need to get a patch to make clear_user_highpage()
-overridable out on the relevent lists...
+> page->mapping->i_mmap and page->index.  OTOH, that's potentially
+> expensive since you need to grab the spinlock, and unless you have all
+> user addresses coherent with each other (like parisc does), you need to
+> figure out which process to be coherent with.
 
-> within the architecture private implementation but it could be use beyond
-> that, probably on all architectures though I know that there would be some
-> solvable issues on PARISC.  Lightweight, no ordering constraints between
-> kernel and userspace accesses, so also no locking needed.
+Having all userspace addresses of a page across all processes coherent with
+each other is the only practicable solution in Linux; at least I don't think
+how otherwise and within the currently kernel framework a platform could
+sanely handle userspace-userspace aliases.  So we're talking about extending
+this to cover userspace-kernelspace aliases.
 
-The "no locking needed" depends.  If we're going to be asking drivers
-to copy use such an interface in order to copy data into page cache
-pages, you can't have two drivers calling it from interrupt context
-without some form of locking.
+The original reason for the introduction of kmap_coherent was avoiding
+a cache alias in when a multi-threaded process forks.  The issue has been
+debated on lkml in 2006 as part of my submission of a patchset under the
+subject of "Fix COW D-cache aliasing on fork".  The description is somewhat
+lengthy so I omit it here.
 
-Nor if you're SMP and you don't have the mappings setup per-CPU.
+One of the ugly parts of kmap_coherent() is that it cannot be used safely
+if the page has been marked as dirty by flush_dcache_page(); the callers
+know about this and deal with it.
 
-However, as davem has said in the past, the result of a device reading
-or writing the page cache should result in the same conditions no
-matter how the read or write is actually done.  That's only common
-sense.  So ensuring that device PIO accesses are done with the same
-cache colour as userspace results in a difference between PIO and DMA,
-one which could potentially bite if we end up reading from the kernel
-mapping of those pages first.
+> I know James Bottomley did an experiment (and did an OLS presentation
+> ...) on unmapping the entire page cache and greatly expanding the kmap
+> area to do just this kind of thing.  I think he even got a speedup.
 
-If we extend the argument that "everything must be the same cache colour"
-then we need cache colouring when allocating page cache pages - since
-page cache pages are part of the kernel direct mapped memory, their
-colour is already fixed from the time that you've setup the initial
-kernel memory mappings.  In ARMs case of an aliasing VIPT cache, that
-means that VA [13:12] must equal PA [13:12] for every single mapping
-no matter where...
+The speedup is no surprise.
 
-That would be nice, since we don't then have to worry about aliases
-between kernel and userspace anymore, so we don't have to play these
-remapping games in kernel space. ;)
-
--------------------------------------------------------------------
-List admin: http://lists.arm.linux.org.uk/mailman/listinfo/linux-arm-kernel
-FAQ:        http://www.arm.linux.org.uk/mailinglists/faq.php
-Etiquette:  http://www.arm.linux.org.uk/mailinglists/etiquette.php
+  Ralf
