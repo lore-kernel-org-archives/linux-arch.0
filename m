@@ -1,67 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from yergi.telenet-ops.be ([195.130.132.36]:47558 "EHLO
-	yergi.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753620AbYKSIWk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Nov 2008 03:22:40 -0500
-Date: Wed, 19 Nov 2008 09:21:48 +0100 (CET)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: + unaligned-introduce-common-header.patch added to -mm tree
-In-Reply-To: <200811190614.mAJ6EsXA007330@imap1.linux-foundation.org>
-Message-ID: <Pine.LNX.4.64.0811190919280.27671@anakin>
-References: <200811190614.mAJ6EsXA007330@imap1.linux-foundation.org>
+Received: from smtp114.mail.mud.yahoo.com ([209.191.84.67]:21635 "HELO
+	smtp114.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1751589AbYKTHFy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 20 Nov 2008 02:05:54 -0500
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+Subject: Re: O_DIRECT patch for processors with VIPT cache for mainline kernel (specifically arm in our case)
+Date: Thu, 20 Nov 2008 17:59:00 +1100
+References: <d8dd82df0811180606w503563ach8650ab07dcd0a35c@mail.gmail.com> <200811191740.23638.nickpiggin@yahoo.com.au> <20081119204315.GB17209@flint.arm.linux.org.uk>
+In-Reply-To: <20081119204315.GB17209@flint.arm.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Disposition: inline
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <200811201759.01039.nickpiggin@yahoo.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: mm-commits@vger.kernel.org, harvey.harrison@gmail.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, bryan.wu@analog.com, "David S. Miller" <davem@davemloft.net>, dhowells@redhat.com, Greg Ungerer <gerg@uclinux.org>, grundler@parisc-linux.org, heiko.carstens@de.ibm.com, hskinnemoen@atmel.com, ink@jurassic.park.msu.ru, kyle@mcmartin.ca, lethal@linux-sh.org, linux-arch@vger.kernel.org, mingo@elte.hu, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Russell King <rmk@arm.linux.org.uk>, rth@twiddle.net, schwidefsky@de.ibm.com, takata@linux-m32r.org, tglx@linutronix.de, tony.luck@intel.com, ysato@users.sourceforge.jp, zankel@tensilica.com, Roman Zippel <zippel@linux-m68k.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>
-Message-ID: <20081119082148.e-g7EUNvMAOkm8sCOnmZS5z6FfcBawQCmDi3lxrIWKc@z>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-fsdevel@vger.kernel.org
+Cc: Naval Saini <navalnovel@gmail.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, naval.saini@nxp.com
+Message-ID: <20081120065900.Q8DfyIrSt8omIsn4IB-5LNOx9gx390G0-1k9Bimqxjw@z>
 
-On Tue, 18 Nov 2008, akpm@linux-foundation.org wrote:
-> Subject: unaligned: introduce common header
-> From: Harvey Harrison <harvey.harrison@gmail.com>
-> 
-> There are two common cases in the kernel, one where unaligned access is OK
-> for an arch and one where the arch uses a packed-struct for the native
-> endianness and opencoded C byteshifting for the other endianness. 
-> Consolidate these two implementations in asm-generic/unaligned.h
-> 
-> Arches that require no special handling of unaligned access can define
-> _UNALIGNED_ACCESS_OK in their asm/unaligned.h before including the generic
-> version.
-> 
-> +static inline void __put_le32_noalign(u8 *p, u32 val)
-> +{
-> +	__put_le16_noalign(p + 2, val >> 16);
-> +	__put_le16_noalign(p, val);
+On Thursday 20 November 2008 07:43, Russell King - ARM Linux wrote:
+> On Wed, Nov 19, 2008 at 05:40:23PM +1100, Nick Piggin wrote:
+> > It would be interesting to know exactly what problem you are seeing.
+> >
+> > ARM I think is supposed to handle aliasing problems by flushing
+> > caches at appropriate points. It would be nice to know what's going
+> > wrong and whether we can cover those holes.
+>
+> I think there's a problem here: the existing cache handling API is
+> designed around the MM's manipulation of page tables.  It is generally
+> not designed to handle aliasing between multiple mappings of the same
+> page, except with one exception: page cache pages mmap'd into userspace,
+> which is handled via flush_dcache_page().
 
-Isn't it more logical to reverse the order, to store in increasing memory
-locations:
+Right, flush_dcache_page.
 
-	__put_le16_noalign(p, val);
-	__put_le16_noalign(p + 2, val >> 16);
 
-> +}
-> +
-> +static inline void __put_le64_noalign(u8 *p, u64 val)
-> +{
-> +	__put_le32_noalign(p + 4, val >> 32);
-> +	__put_le32_noalign(p, val);
+> O_DIRECT on ARM is probably completely untested for the most part.  It's
+> not something that is encountered very often, and as such gets zero
+> testing.  I've certainly never had the tools to be able to test it out,
+> so even on VIVT it's probably completely buggy.  Bear in mind that most
+> of my modern platforms use MTD (either cramfs or in the rare case jffs2)
+> so I'm not sure that I could sensibly even test O_DIRECT - isn't O_DIRECT
+> for use with proper block devices?
 
-Same here:
+Yes, although there are other things that use get_user_pages as well
+(eg. splice, ptrace). So it would be interesting if they have corner
+case problems as well.
 
-	__put_le32_noalign(p, val);
-	__put_le32_noalign(p + 4, val >> 32);
 
-> +}
+> As it's probably clear, I've no clue of the O_DIRECT implementation or
+> how it's supposed to work.  At a guess, it probably needs a new cache
+> handling API to be designed, since the existing flush_cache_(range|page)
+> are basically no-ops on VIPT.  Or maybe we need some way to mark the
+> userspace pages as being write-through or uncacheable depending on the
+> features we have available on the processor.  Or something.  Don't know.
+>
+> So, what is O_DIRECT, and where can I find some information about it?
+> I don't see anything in Documentation/ describing it.
 
-Gr{oetje,eeting}s,
+(open(2), with O_DIRECT flag)
 
-						Geert
+O_DIRECT uses "get_user_pages()" pages (user mapped pages) to feed the
+block layer with rather than pagecache pages. However pagecache pages
+can also be user mapped, so I'm thinking there should be enough cache
+flushing APIs to be able to handle either case.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Basically, an O_DIRECT write involves:
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+- The program storing into some virtual address, then passing that virtual
+  address as the buffer to write(2).
+
+- The kernel will get_user_pages() to get the struct page * of that user
+  virtual address. At this point, get_user_pages does flush_dcache_page.
+  (Which should write back the user caches?)
+
+- Then the struct page is sent to the block layer (it won't tend to be
+  touched by the kernel via the kernel linear map, unless we have like an
+  "emulated" block device block device like 'brd').
+
+- Even if it is read via the kernel linear map, AFAIKS, we should be OK
+  due to the flush_dcache_page().
+
+An O_DIRECT read involves:
+
+- Same first 2 steps as O_DIRECT write, including flush_dcache_page. So the
+  user mapping should not have any previously dirtied lines around.
+
+- The page is sent to the block layer, which stores into the page. Some
+  block devices like 'brd' will potentially store via the kernel linear map
+  here, and they probably don't do enough cache flushing. But a regular
+  block device should go via DMA, which AFAIK should be OK? (the user address
+  should remain invalidated because it would be a bug to read from the buffer
+  before the read has completed)
+
+So I can't see exactly where the problem would be. Can you?
