@@ -1,547 +1,109 @@
-From: akpm@linux-foundation.org
-Subject: [patch 05/35] reintroduce accept4
-Date: Wed, 19 Nov 2008 15:36:14 -0800
-Message-ID: <200811192336.mAJNaE3R030021@imap1.linux-foundation.org>
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [patch] mm: vmalloc fix lazy unmapping cache aliasing
+Date: Thu, 20 Nov 2008 03:17:17 +0100
+Message-ID: <20081120021717.GA11774@wotan.suse.de>
+References: <20081119045338.GA18697@wotan.suse.de> <20081119201715.GA9404@flint.arm.linux.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:60900 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751538AbYKSXiZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Nov 2008 18:38:25 -0500
+Received: from cantor2.suse.de ([195.135.220.15]:36761 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751549AbYKTCRT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Nov 2008 21:17:19 -0500
+Content-Disposition: inline
+In-Reply-To: <20081119201715.GA9404@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, drepper@redhat.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, mtk.manpages@gmail.com
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, Andrew Morton <akpm@linux-foundation.org>
 
-From: Ulrich Drepper <drepper@redhat.com>
+On Wed, Nov 19, 2008 at 08:17:15PM +0000, Russell King wrote:
+> On Wed, Nov 19, 2008 at 05:53:38AM +0100, Nick Piggin wrote:
+> > We determined that the problem was most likely due to a cache aliasing
+> > issue.  flush_cache_vunmap was only being called at the moment the page
+> > tables were to be taken down, however with lazy unmapping, this can
+> > happen after the page has subsequently been freed and allocated for
+> > something else. The dangling alias may still have dirty data attached
+> > to it.
+> 
+> This would certainly cause problems - writes which hit the cache for the
+> vmapped pages will remain in the cache, and would be evicted some time
+> later.
+> 
+> With VIVT ARMs, that time is bounded by the context switch, which does a
+> full cache flush, but between that a page may well have been reallocated
+> for some other purpose.
+> 
+> So, ensuring that we have no dirty lines corresponding to stale mappings
+> on pages before they're freed is an absolute must for VIVT caches.
+> 
+> > @@ -734,7 +743,7 @@ static void free_vmap_block(struct vmap_
+> >  	spin_unlock(&vmap_block_tree_lock);
+> >  	BUG_ON(tmp != vb);
+> >  
+> > -	free_unmap_vmap_area(vb->va);
+> > +	free_unmap_vmap_area_noflush(vb->va);
+> >  	call_rcu(&vb->rcu_head, rcu_free_vb);
+> >  }
+> >  
+> > @@ -820,6 +829,8 @@ static void vb_free(const void *addr, un
+> >  		free_vmap_block(vb);
+> >  	} else
+> >  		spin_unlock(&vb->lock);
+> > +
+> > +	flush_cache_vunmap((unsigned long)addr, (unsigned long)addr + size);
+> 
+> One minor nit - this looks like we're flushing the cache after the
+> range has been marked as needing the mapping torn down.  Can the
+> mapping be torn down before the cache is flushed?
+> 
+> The reason I ask is that with VIPT caches, the mapping has to be
+> present so the hardware knows the physical tag to be flushed, so if
+> the mapping has been torn down, we'll get an exception.  _If_ and
+> only if we convert flush_cache_vunmap() to be less heavy weight
+> than its current flush_cache_all().
+> 
+> IOW, shouldn't flush_cache_vunmap() be towards the start of vb_free() ?
 
-Introduce a new accept4() system call.  The addition of this system call
-matches analogous changes in 2.6.27 (dup3(), evenfd2(), signalfd4(),
-inotify_init1(), epoll_create1(), pipe2()) which added new system calls
-that differed from analogous traditional system calls in adding a flags
-argument that can be used to access additional functionality.
+You are correct. Thanks.
 
-The accept4() system call is exactly the same as accept(), except that
-it adds a flags bit-mask argument.  Two flags are initially implemented.
-(Most of the new system calls in 2.6.27 also had both of these flags.)
+Andrew, can you queue this incremental fix please?
 
-SOCK_CLOEXEC causes the close-on-exec (FD_CLOEXEC) flag to be enabled
-for the new file descriptor returned by accept4().  This is a useful
-security feature to avoid leaking information in a multithreaded
-program where one thread is doing an accept() at the same time as
-another thread is doing a fork() plus exec().  More details here:
-http://udrepper.livejournal.com/20407.html "Secure File Descriptor Handling",
-Ulrich Drepper).
+--
+Russell King wrote:
+> One minor nit - this looks like we're flushing the cache after the
+> range has been marked as needing the mapping torn down.  Can the
+> mapping be torn down before the cache is flushed?
+>
+> The reason I ask is that with VIPT caches, the mapping has to be
+> present so the hardware knows the physical tag to be flushed, so if
+> the mapping has been torn down, we'll get an exception.  _If_ and
+> only if we convert flush_cache_vunmap() to be less heavy weight
+> than its current flush_cache_all().
+>
+> IOW, shouldn't flush_cache_vunmap() be towards the start of vb_free() ?
 
-The other flag is SOCK_NONBLOCK, which causes the O_NONBLOCK flag
-to be enabled on the new open file description created by accept4().
-(This flag is merely a convenience, saving the use of additional calls
-fcntl(F_GETFL) and fcntl (F_SETFL) to achieve the same result.
-
-Here's a test program.  Works on x86-32.  Should work on x86-64, but
-I (mtk) don't have a system to hand to test with.
-
-It tests accept4() with each of the four possible combinations of
-SOCK_CLOEXEC and SOCK_NONBLOCK set/clear in 'flags', and verifies
-that the appropriate flags are set on the file descriptor/open file
-description returned by accept4().
-
-I tested Ulrich's patch in this thread by applying against 2.6.28-rc2,
-and it passes according to my test program.
-
-/* test_accept4.c
-
-  Copyright (C) 2008, Linux Foundation, written by Michael Kerrisk
-       <mtk.manpages@gmail.com>
-
-  Licensed under the GNU GPLv2 or later.
-*/
-#define _GNU_SOURCE
-#include <unistd.h>
-#include <sys/syscall.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <string.h>
-
-#define PORT_NUM 33333
-
-#define die(msg) do { perror(msg); exit(EXIT_FAILURE); } while (0)
-
-/**********************************************************************/
-
-/* The following is what we need until glibc gets a wrapper for
-  accept4() */
-
-/* Flags for socket(), socketpair(), accept4() */
-#ifndef SOCK_CLOEXEC
-#define SOCK_CLOEXEC    O_CLOEXEC
-#endif
-#ifndef SOCK_NONBLOCK
-#define SOCK_NONBLOCK   O_NONBLOCK
-#endif
-
-#ifdef __x86_64__
-#define SYS_accept4 288
-#elif __i386__
-#define USE_SOCKETCALL 1
-#define SYS_ACCEPT4 18
-#else
-#error "Sorry -- don't know the syscall # on this architecture"
-#endif
-
-static int
-accept4(int fd, struct sockaddr *sockaddr, socklen_t *addrlen, int flags)
-{
-   printf("Calling accept4(): flags = %x", flags);
-   if (flags != 0) {
-       printf(" (");
-       if (flags & SOCK_CLOEXEC)
-           printf("SOCK_CLOEXEC");
-       if ((flags & SOCK_CLOEXEC) && (flags & SOCK_NONBLOCK))
-           printf(" ");
-       if (flags & SOCK_NONBLOCK)
-           printf("SOCK_NONBLOCK");
-       printf(")");
-   }
-   printf("\n");
-
-#if USE_SOCKETCALL
-   long args[6];
-
-   args[0] = fd;
-   args[1] = (long) sockaddr;
-   args[2] = (long) addrlen;
-   args[3] = flags;
-
-   return syscall(SYS_socketcall, SYS_ACCEPT4, args);
-#else
-   return syscall(SYS_accept4, fd, sockaddr, addrlen, flags);
-#endif
-}
-
-/**********************************************************************/
-
-
-static int
-do_test(int lfd, struct sockaddr_in *conn_addr,
-       int closeonexec_flag, int nonblock_flag)
-{
-   int connfd, acceptfd;
-   int fdf, flf, fdf_pass, flf_pass;
-   struct sockaddr_in claddr;
-   socklen_t addrlen;
-
-   printf("=======================================\n");
-
-   connfd = socket(AF_INET, SOCK_STREAM, 0);
-   if (connfd == -1)
-       die("socket");
-   if (connect(connfd, (struct sockaddr *) conn_addr,
-               sizeof(struct sockaddr_in)) == -1)
-       die("connect");
-
-   addrlen = sizeof(struct sockaddr_in);
-   acceptfd = accept4(lfd, (struct sockaddr *) &claddr, &addrlen,
-                      closeonexec_flag | nonblock_flag);
-   if (acceptfd == -1) {
-       perror("accept4()");
-       close(connfd);
-       return 0;
-   }
-
-   fdf = fcntl(acceptfd, F_GETFD);
-   if (fdf == -1)
-       die("fcntl:F_GETFD");
-   fdf_pass = ((fdf & FD_CLOEXEC) != 0) ==
-              ((closeonexec_flag & SOCK_CLOEXEC) != 0);
-   printf("Close-on-exec flag is %sset (%s); ",
-           (fdf & FD_CLOEXEC) ? "" : "not ",
-           fdf_pass ? "OK" : "failed");
-
-   flf = fcntl(acceptfd, F_GETFL);
-   if (flf == -1)
-       die("fcntl:F_GETFD");
-   flf_pass = ((flf & O_NONBLOCK) != 0) ==
-              ((nonblock_flag & SOCK_NONBLOCK) !=0);
-   printf("nonblock flag is %sset (%s)\n",
-           (flf & O_NONBLOCK) ? "" : "not ",
-           flf_pass ? "OK" : "failed");
-
-   close(acceptfd);
-   close(connfd);
-
-   printf("Test result: %s\n", (fdf_pass && flf_pass) ? "PASS" : "FAIL");
-   return fdf_pass && flf_pass;
-}
-
-
-static int
-create_listening_socket(int port_num)
-{
-   struct sockaddr_in svaddr;
-   int lfd;
-   int optval;
-
-   memset(&svaddr, 0, sizeof(struct sockaddr_in));
-   svaddr.sin_family = AF_INET;
-   svaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-   svaddr.sin_port = htons(port_num);
-
-   lfd = socket(AF_INET, SOCK_STREAM, 0);
-   if (lfd == -1)
-       die("socket");
-
-   optval = 1;
-   if (setsockopt(lfd, SOL_SOCKET, SO_REUSEADDR, &optval,
-                  sizeof(optval)) == -1)
-       die("setsockopt");
-
-   if (bind(lfd, (struct sockaddr *) &svaddr,
-            sizeof(struct sockaddr_in)) == -1)
-       die("bind");
-
-   if (listen(lfd, 5) == -1)
-       die("listen");
-
-   return lfd;
-}
-
-
-int
-main(int argc, char *argv[])
-{
-   struct sockaddr_in conn_addr;
-   int lfd;
-   int port_num;
-   int passed;
-
-   passed = 1;
-
-   port_num = (argc > 1) ? atoi(argv[1]) : PORT_NUM;
-
-   memset(&conn_addr, 0, sizeof(struct sockaddr_in));
-   conn_addr.sin_family = AF_INET;
-   conn_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-   conn_addr.sin_port = htons(port_num);
-
-   lfd = create_listening_socket(port_num);
-
-   if (!do_test(lfd, &conn_addr, 0, 0))
-       passed = 0;
-   if (!do_test(lfd, &conn_addr, SOCK_CLOEXEC, 0))
-       passed = 0;
-   if (!do_test(lfd, &conn_addr, 0, SOCK_NONBLOCK))
-       passed = 0;
-   if (!do_test(lfd, &conn_addr, SOCK_CLOEXEC, SOCK_NONBLOCK))
-       passed = 0;
-
-   close(lfd);
-
-   exit(passed ? EXIT_SUCCESS : EXIT_FAILURE);
-}
-
-[mtk.manpages@gmail.com: rewrote changelog, updated test program]
-Signed-off-by: Ulrich Drepper <drepper@redhat.com>
-Tested-by: Michael Kerrisk <mtk.manpages@gmail.com>
-Acked-by: Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: <linux-api@vger.kernel.org>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Nick Piggin <npiggin@suse.de>
 ---
-
- arch/x86/include/asm/unistd_64.h |    4 -
- include/linux/net.h              |    6 --
- include/linux/syscalls.h         |    3 -
- kernel/sys_ni.c                  |    2 
- net/compat.c                     |   50 +-----------------
- net/socket.c                     |   80 +++--------------------------
- 6 files changed, 21 insertions(+), 124 deletions(-)
-
-diff -puN arch/x86/include/asm/unistd_64.h~reintroduce-accept4 arch/x86/include/asm/unistd_64.h
---- a/arch/x86/include/asm/unistd_64.h~reintroduce-accept4
-+++ a/arch/x86/include/asm/unistd_64.h
-@@ -639,8 +639,8 @@ __SYSCALL(__NR_fallocate, sys_fallocate)
- __SYSCALL(__NR_timerfd_settime, sys_timerfd_settime)
- #define __NR_timerfd_gettime			287
- __SYSCALL(__NR_timerfd_gettime, sys_timerfd_gettime)
--#define __NR_paccept				288
--__SYSCALL(__NR_paccept, sys_paccept)
-+#define __NR_accept4				288
-+__SYSCALL(__NR_accept4, sys_accept4)
- #define __NR_signalfd4				289
- __SYSCALL(__NR_signalfd4, sys_signalfd4)
- #define __NR_eventfd2				290
-diff -puN include/linux/net.h~reintroduce-accept4 include/linux/net.h
---- a/include/linux/net.h~reintroduce-accept4
-+++ a/include/linux/net.h
-@@ -40,7 +40,7 @@
- #define SYS_GETSOCKOPT	15		/* sys_getsockopt(2)		*/
- #define SYS_SENDMSG	16		/* sys_sendmsg(2)		*/
- #define SYS_RECVMSG	17		/* sys_recvmsg(2)		*/
--#define SYS_PACCEPT	18		/* sys_paccept(2)		*/
-+#define SYS_ACCEPT4	18		/* sys_accept4(2)		*/
+Index: linux-2.6/mm/vmalloc.c
+===================================================================
+--- linux-2.6.orig/mm/vmalloc.c
++++ linux-2.6/mm/vmalloc.c
+@@ -805,6 +805,9 @@ static void vb_free(const void *addr, un
  
- typedef enum {
- 	SS_FREE = 0,			/* not allocated		*/
-@@ -100,7 +100,7 @@ enum sock_type {
-  * remaining bits are used as flags. */
- #define SOCK_TYPE_MASK 0xf
+ 	BUG_ON(size & ~PAGE_MASK);
+ 	BUG_ON(size > PAGE_SIZE*VMAP_MAX_ALLOC);
++
++	flush_cache_vunmap((unsigned long)addr, (unsigned long)addr + size);
++
+ 	order = get_order(size);
  
--/* Flags for socket, socketpair, paccept */
-+/* Flags for socket, socketpair, accept4 */
- #define SOCK_CLOEXEC	O_CLOEXEC
- #ifndef SOCK_NONBLOCK
- #define SOCK_NONBLOCK	O_NONBLOCK
-@@ -223,8 +223,6 @@ extern int 	     sock_map_fd(struct sock
- extern struct socket *sockfd_lookup(int fd, int *err);
- #define		     sockfd_put(sock) fput(sock->file)
- extern int	     net_ratelimit(void);
--extern long	     do_accept(int fd, struct sockaddr __user *upeer_sockaddr,
--			       int __user *upeer_addrlen, int flags);
- 
- #define net_random()		random32()
- #define net_srandom(seed)	srandom32((__force u32)seed)
-diff -puN include/linux/syscalls.h~reintroduce-accept4 include/linux/syscalls.h
---- a/include/linux/syscalls.h~reintroduce-accept4
-+++ a/include/linux/syscalls.h
-@@ -410,8 +410,7 @@ asmlinkage long sys_getsockopt(int fd, i
- asmlinkage long sys_bind(int, struct sockaddr __user *, int);
- asmlinkage long sys_connect(int, struct sockaddr __user *, int);
- asmlinkage long sys_accept(int, struct sockaddr __user *, int __user *);
--asmlinkage long sys_paccept(int, struct sockaddr __user *, int __user *,
--			    const __user sigset_t *, size_t, int);
-+asmlinkage long sys_accept4(int, struct sockaddr __user *, int __user *, int);
- asmlinkage long sys_getsockname(int, struct sockaddr __user *, int __user *);
- asmlinkage long sys_getpeername(int, struct sockaddr __user *, int __user *);
- asmlinkage long sys_send(int, void __user *, size_t, unsigned);
-diff -puN kernel/sys_ni.c~reintroduce-accept4 kernel/sys_ni.c
---- a/kernel/sys_ni.c~reintroduce-accept4
-+++ a/kernel/sys_ni.c
-@@ -31,7 +31,7 @@ cond_syscall(sys_socketpair);
- cond_syscall(sys_bind);
- cond_syscall(sys_listen);
- cond_syscall(sys_accept);
--cond_syscall(sys_paccept);
-+cond_syscall(sys_accept4);
- cond_syscall(sys_connect);
- cond_syscall(sys_getsockname);
- cond_syscall(sys_getpeername);
-diff -puN net/compat.c~reintroduce-accept4 net/compat.c
---- a/net/compat.c~reintroduce-accept4
-+++ a/net/compat.c
-@@ -725,7 +725,7 @@ EXPORT_SYMBOL(compat_mc_getsockopt);
- static unsigned char nas[19]={AL(0),AL(3),AL(3),AL(3),AL(2),AL(3),
- 				AL(3),AL(3),AL(4),AL(4),AL(4),AL(6),
- 				AL(6),AL(2),AL(5),AL(5),AL(3),AL(3),
--				AL(6)};
-+				AL(4)};
- #undef AL
- 
- asmlinkage long compat_sys_sendmsg(int fd, struct compat_msghdr __user *msg, unsigned flags)
-@@ -738,52 +738,13 @@ asmlinkage long compat_sys_recvmsg(int f
- 	return sys_recvmsg(fd, (struct msghdr __user *)msg, flags | MSG_CMSG_COMPAT);
+ 	offset = (unsigned long)addr & (VMAP_BLOCK_SIZE - 1);
+@@ -829,8 +832,6 @@ static void vb_free(const void *addr, un
+ 		free_vmap_block(vb);
+ 	} else
+ 		spin_unlock(&vb->lock);
+-
+-	flush_cache_vunmap((unsigned long)addr, (unsigned long)addr + size);
  }
  
--asmlinkage long compat_sys_paccept(int fd, struct sockaddr __user *upeer_sockaddr,
--				   int __user *upeer_addrlen,
--				   const compat_sigset_t __user *sigmask,
--				   compat_size_t sigsetsize, int flags)
--{
--	compat_sigset_t ss32;
--	sigset_t ksigmask, sigsaved;
--	int ret;
--
--	if (sigmask) {
--		if (sigsetsize != sizeof(compat_sigset_t))
--			return -EINVAL;
--		if (copy_from_user(&ss32, sigmask, sizeof(ss32)))
--			return -EFAULT;
--		sigset_from_compat(&ksigmask, &ss32);
--
--		sigdelsetmask(&ksigmask, sigmask(SIGKILL)|sigmask(SIGSTOP));
--		sigprocmask(SIG_SETMASK, &ksigmask, &sigsaved);
--	}
--
--	ret = do_accept(fd, upeer_sockaddr, upeer_addrlen, flags);
--
--	if (ret == -ERESTARTNOHAND) {
--		/*
--		 * Don't restore the signal mask yet. Let do_signal() deliver
--		 * the signal on the way back to userspace, before the signal
--		 * mask is restored.
--		 */
--		if (sigmask) {
--			memcpy(&current->saved_sigmask, &sigsaved,
--			       sizeof(sigsaved));
--			set_restore_sigmask();
--		}
--	} else if (sigmask)
--		sigprocmask(SIG_SETMASK, &sigsaved, NULL);
--
--	return ret;
--}
--
- asmlinkage long compat_sys_socketcall(int call, u32 __user *args)
- {
- 	int ret;
- 	u32 a[6];
- 	u32 a0, a1;
- 
--	if (call < SYS_SOCKET || call > SYS_PACCEPT)
-+	if (call < SYS_SOCKET || call > SYS_ACCEPT4)
- 		return -EINVAL;
- 	if (copy_from_user(a, args, nas[call]))
- 		return -EFAULT;
-@@ -804,7 +765,7 @@ asmlinkage long compat_sys_socketcall(in
- 		ret = sys_listen(a0, a1);
- 		break;
- 	case SYS_ACCEPT:
--		ret = do_accept(a0, compat_ptr(a1), compat_ptr(a[2]), 0);
-+		ret = sys_accept4(a0, compat_ptr(a1), compat_ptr(a[2]), 0);
- 		break;
- 	case SYS_GETSOCKNAME:
- 		ret = sys_getsockname(a0, compat_ptr(a1), compat_ptr(a[2]));
-@@ -844,9 +805,8 @@ asmlinkage long compat_sys_socketcall(in
- 	case SYS_RECVMSG:
- 		ret = compat_sys_recvmsg(a0, compat_ptr(a1), a[2]);
- 		break;
--	case SYS_PACCEPT:
--		ret = compat_sys_paccept(a0, compat_ptr(a1), compat_ptr(a[2]),
--					 compat_ptr(a[3]), a[4], a[5]);
-+	case SYS_ACCEPT4:
-+		ret = sys_accept4(a0, compat_ptr(a1), compat_ptr(a[2]), a[3]);
- 		break;
- 	default:
- 		ret = -EINVAL;
-diff -puN net/socket.c~reintroduce-accept4 net/socket.c
---- a/net/socket.c~reintroduce-accept4
-+++ a/net/socket.c
-@@ -1426,8 +1426,8 @@ asmlinkage long sys_listen(int fd, int b
-  *	clean when we restucture accept also.
-  */
- 
--long do_accept(int fd, struct sockaddr __user *upeer_sockaddr,
--	       int __user *upeer_addrlen, int flags)
-+asmlinkage long sys_accept4(int fd, struct sockaddr __user *upeer_sockaddr,
-+			    int __user *upeer_addrlen, int flags)
- {
- 	struct socket *sock, *newsock;
- 	struct file *newfile;
-@@ -1510,66 +1510,10 @@ out_fd:
- 	goto out_put;
- }
- 
--#if 0
--#ifdef HAVE_SET_RESTORE_SIGMASK
--asmlinkage long sys_paccept(int fd, struct sockaddr __user *upeer_sockaddr,
--			    int __user *upeer_addrlen,
--			    const sigset_t __user *sigmask,
--			    size_t sigsetsize, int flags)
--{
--	sigset_t ksigmask, sigsaved;
--	int ret;
--
--	if (sigmask) {
--		/* XXX: Don't preclude handling different sized sigset_t's.  */
--		if (sigsetsize != sizeof(sigset_t))
--			return -EINVAL;
--		if (copy_from_user(&ksigmask, sigmask, sizeof(ksigmask)))
--			return -EFAULT;
--
--		sigdelsetmask(&ksigmask, sigmask(SIGKILL)|sigmask(SIGSTOP));
--		sigprocmask(SIG_SETMASK, &ksigmask, &sigsaved);
--        }
--
--	ret = do_accept(fd, upeer_sockaddr, upeer_addrlen, flags);
--
--	if (ret < 0 && signal_pending(current)) {
--		/*
--		 * Don't restore the signal mask yet. Let do_signal() deliver
--		 * the signal on the way back to userspace, before the signal
--		 * mask is restored.
--		 */
--		if (sigmask) {
--			memcpy(&current->saved_sigmask, &sigsaved,
--			       sizeof(sigsaved));
--			set_restore_sigmask();
--		}
--	} else if (sigmask)
--		sigprocmask(SIG_SETMASK, &sigsaved, NULL);
--
--	return ret;
--}
--#else
--asmlinkage long sys_paccept(int fd, struct sockaddr __user *upeer_sockaddr,
--			    int __user *upeer_addrlen,
--			    const sigset_t __user *sigmask,
--			    size_t sigsetsize, int flags)
--{
--	/* The platform does not support restoring the signal mask in the
--	 * return path.  So we do not allow using paccept() with a signal
--	 * mask.  */
--	if (sigmask)
--		return -EINVAL;
--
--	return do_accept(fd, upeer_sockaddr, upeer_addrlen, flags);
--}
--#endif
--#endif
--
- asmlinkage long sys_accept(int fd, struct sockaddr __user *upeer_sockaddr,
- 			   int __user *upeer_addrlen)
- {
--	return do_accept(fd, upeer_sockaddr, upeer_addrlen, 0);
-+	return sys_accept4(fd, upeer_sockaddr, upeer_addrlen, 0);
- }
- 
- /*
-@@ -2096,7 +2040,7 @@ static const unsigned char nargs[19]={
- 	AL(0),AL(3),AL(3),AL(3),AL(2),AL(3),
- 	AL(3),AL(3),AL(4),AL(4),AL(4),AL(6),
- 	AL(6),AL(2),AL(5),AL(5),AL(3),AL(3),
--	AL(6)
-+	AL(4)
- };
- 
- #undef AL
-@@ -2115,7 +2059,7 @@ asmlinkage long sys_socketcall(int call,
- 	unsigned long a0, a1;
- 	int err;
- 
--	if (call < 1 || call > SYS_PACCEPT)
-+	if (call < 1 || call > SYS_ACCEPT4)
- 		return -EINVAL;
- 
- 	/* copy_from_user should be SMP safe. */
-@@ -2143,9 +2087,8 @@ asmlinkage long sys_socketcall(int call,
- 		err = sys_listen(a0, a1);
- 		break;
- 	case SYS_ACCEPT:
--		err =
--		    do_accept(a0, (struct sockaddr __user *)a1,
--			      (int __user *)a[2], 0);
-+		err = sys_accept4(a0, (struct sockaddr __user *)a1,
-+				  (int __user *)a[2], 0);
- 		break;
- 	case SYS_GETSOCKNAME:
- 		err =
-@@ -2192,12 +2135,9 @@ asmlinkage long sys_socketcall(int call,
- 	case SYS_RECVMSG:
- 		err = sys_recvmsg(a0, (struct msghdr __user *)a1, a[2]);
- 		break;
--	case SYS_PACCEPT:
--		err =
--		    sys_paccept(a0, (struct sockaddr __user *)a1,
--			        (int __user *)a[2],
--				(const sigset_t __user *) a[3],
--				a[4], a[5]);
-+	case SYS_ACCEPT4:
-+		err = sys_accept4(a0, (struct sockaddr __user *)a1,
-+				  (int __user *)a[2], a[3]);
- 		break;
- 	default:
- 		err = -EINVAL;
-_
+ /**
