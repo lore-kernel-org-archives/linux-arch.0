@@ -1,54 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:50631 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754924AbYKTTmy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Nov 2008 14:42:54 -0500
-Date: Thu, 20 Nov 2008 19:30:49 +0000
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: O_DIRECT patch for processors with VIPT cache for mainline kernel (specifically arm in our case)
-Message-ID: <20081120193049.GC14686@flint.arm.linux.org.uk>
-References: <d8dd82df0811180606w503563ach8650ab07dcd0a35c@mail.gmail.com> <200811201759.01039.nickpiggin@yahoo.com.au> <b647ffbd0811200428u2b41b108ifb02872563c871ab@mail.gmail.com> <200811210025.39568.nickpiggin@yahoo.com.au> <20081120135558.GB24308@linux-mips.org> <20081120152719.GS1617@parisc-linux.org> <20081120171713.GB27398@linux-mips.org> <20081120174054.GU1617@parisc-linux.org>
+Received: from waste.org ([66.93.16.53]:56106 "EHLO waste.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751271AbYKTWiM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 20 Nov 2008 17:38:12 -0500
+Subject: Re: [patch 05/35] reintroduce accept4
+From: Matt Mackall <mpm@selenic.com>
+In-Reply-To: <alpine.LFD.2.00.0811201412040.21698@nehalem.linux-foundation.org>
+References: <200811192336.mAJNaE3R030021@imap1.linux-foundation.org>
+	 <Pine.LNX.4.64.0811202259360.12975@anakin>
+	 <alpine.LFD.2.00.0811201412040.21698@nehalem.linux-foundation.org>
+Content-Type: text/plain
+Date: Thu, 20 Nov 2008 16:37:06 -0600
+Message-ID: <1227220626.3293.137.camel@calx>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20081120174054.GU1617@parisc-linux.org>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Ralf Baechle <ralf@linux-mips.org>, Nick Piggin <nickpiggin@yahoo.com.au>, Dmitry Adamushko <dmitry.adamushko@gmail.com>, linux-fsdevel@vger.kernel.org, Naval Saini <navalnovel@gmail.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, naval.saini@nxp.com, James Bottomley <James.Bottomley@HansenPartnership.com>
-Message-ID: <20081120193049.JUqP0FBrmx1Jhc47n3gUNPNQ0fdzdm219yrwa9N1Dr0@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, akpm@linux-foundation.org, drepper@redhat.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, mtk.manpages@gmail.com
+Message-ID: <20081120223706.Tj6ZKrG4VRR1-MhtZcskWBRiYXaCG3x5IWURLq92gT0@z>
 
-On Thu, Nov 20, 2008 at 10:40:54AM -0700, Matthew Wilcox wrote:
-> On Thu, Nov 20, 2008 at 05:17:14PM +0000, Ralf Baechle wrote:
-> > On Thu, Nov 20, 2008 at 08:27:19AM -0700, Matthew Wilcox wrote:
-> > > I'm not quite sure why you need kmap_coherent().  If a page is mapped into
-> > > userspace, you can find what address it's mapped to from
-> > > page->mapping->i_mmap and page->index.  OTOH, that's potentially
-> > 
-> > Even if we know the userspace address of a page we do not necessarily have
-> > a usable mapping for kernel purposes.  The userspace mapping might be r/o
-> > when we need r/w or it might be in another process.  kmap_coherent takes
-> > the job of creating a r/w mapping on a suitable kernel virtual address
-> > that will avoid any aliases.
+On Thu, 2008-11-20 at 14:14 -0800, Linus Torvalds wrote:
 > 
-> Ah, I didn't do a good enough job of explaining.  My question was why
-> you needed the 'address' argument to kmap_coherent (and thus had a
-> different prototype from kmap) instead of just implementing kmap() on
-> mips.
+> On Thu, 20 Nov 2008, Geert Uytterhoeven wrote:
+> 
+> > On Wed, 19 Nov 2008, akpm@linux-foundation.org wrote:
+> > > From: Ulrich Drepper <drepper@redhat.com>
+> > > 
+> > > Introduce a new accept4() system call.  The addition of this system call
+> > 
+> > > /* test_accept4.c
+> > 
+> > > #ifdef __x86_64__
+> > > #define SYS_accept4 288
+> > > #elif __i386__
+> >         ^^^^^^^^
+> > 	defined(__i386__)
+> > 
+> > > #define USE_SOCKETCALL 1
+> > > #define SYS_ACCEPT4 18
+> > > #else
+> > > #error "Sorry -- don't know the syscall # on this architecture"
+> > > #endif
+> > 
+> > Anyway, it's just a test program. Succeeded on m68k using socketcall.
+> 
+> It _should_ work even without the 'defined()'. Didn't it?
 
-Ok, having discussed this with Matthew, I'm beginning to really warm
-to the idea of always kmapping page cache accesses.
+Lots of symbols are defined with no value, which will result in an empty
+#if expression and a cpp error.
 
-That nicely means that we never touch the page cache via the kernel
-direct mapping, which in turn means we can reduce the amount of RAM
-mapped, freeing up space for kmap in the virtual address space.
+-- 
+Mathematics is the supreme nostalgia of our time.
 
-I think this should work really nicely, and make flush_dcache_page()
-almost a no-op for aliasing VIPT caches (on ARM, we still have a
-problem with instruction/data cache aliasing, but that's a far easier
-issue to solve.)
-
-Ralf: were you saying that you already had an implementation similar
-to Matthew's?  As I see it, if you use page->index to determine the
-userspace mapping colouring (which we do on ARM) then kmap() already
-has access the necessary information to correctly place the page...
