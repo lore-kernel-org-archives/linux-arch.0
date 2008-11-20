@@ -1,22 +1,22 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:55997 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754921AbYKTP1h (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Nov 2008 10:27:37 -0500
-Date: Thu, 20 Nov 2008 08:27:19 -0700
-From: Matthew Wilcox <matthew@wil.cx>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:33557 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753452AbYKTQei (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Nov 2008 11:34:38 -0500
+Date: Thu, 20 Nov 2008 16:30:53 +0000
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
 Subject: Re: O_DIRECT patch for processors with VIPT cache for mainline kernel (specifically arm in our case)
-Message-ID: <20081120152719.GS1617@parisc-linux.org>
+Message-ID: <20081120163052.GA5385@flint.arm.linux.org.uk>
 References: <d8dd82df0811180606w503563ach8650ab07dcd0a35c@mail.gmail.com> <200811201759.01039.nickpiggin@yahoo.com.au> <b647ffbd0811200428u2b41b108ifb02872563c871ab@mail.gmail.com> <200811210025.39568.nickpiggin@yahoo.com.au> <20081120135558.GB24308@linux-mips.org>
-MIME-Version: 1.0
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 In-Reply-To: <20081120135558.GB24308@linux-mips.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ralf Baechle <ralf@linux-mips.org>
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Dmitry Adamushko <dmitry.adamushko@gmail.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-fsdevel@vger.kernel.org, Naval Saini <navalnovel@gmail.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, naval.saini@nxp.com, James Bottomley <James.Bottomley@HansenPartnership.com>
-Message-ID: <20081120152719.0by2_RKJcXjbOqbPQeSJ3PXe-gYF6h8ehlChFP1Bi4I@z>
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Dmitry Adamushko <dmitry.adamushko@gmail.com>, linux-fsdevel@vger.kernel.org, Naval Saini <navalnovel@gmail.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, naval.saini@nxp.com
+Message-ID: <20081120163053.C4pvPWHX2q6mU7wwlkbZHVZRCvNNXEv4h3GWE9KfIdA@z>
 
 On Thu, Nov 20, 2008 at 01:55:58PM +0000, Ralf Baechle wrote:
 > It's better to avoid aliases than dealing with them by flushing.  A way to
@@ -28,25 +28,48 @@ On Thu, Nov 20, 2008 at 01:55:58PM +0000, Ralf Baechle wrote:
 > 
 >   void *kmap_coherent(struct page *page, unsigned long addr);
 >   void kunmap_coherent(void);
-> 
+
+Yes, we effectively already do that for our copy_user_highpage/
+clear_user_highpage (note: we really want to override both of those
+functions, not just one as the code in include/linux/highmem.h is
+currently setup.  And I wish that V4L didn't use the non-highmem
+clear_user_page() call...)
+
+Why?  On ARM, we're starting to support highmem on VIVT and VIPT, and
+having *_user_highpage() kmap, and then have the *_user_page() setup
+yet another mapping for VIPT caches is just silly.
+
+Which reminds me that I need to get a patch to make clear_user_highpage()
+overridable out on the relevent lists...
+
 > within the architecture private implementation but it could be use beyond
 > that, probably on all architectures though I know that there would be some
 > solvable issues on PARISC.  Lightweight, no ordering constraints between
 > kernel and userspace accesses, so also no locking needed.
 
-I'm not quite sure why you need kmap_coherent().  If a page is mapped into
-userspace, you can find what address it's mapped to from
-page->mapping->i_mmap and page->index.  OTOH, that's potentially
-expensive since you need to grab the spinlock, and unless you have all
-user addresses coherent with each other (like parisc does), you need to
-figure out which process to be coherent with.
+The "no locking needed" depends.  If we're going to be asking drivers
+to copy use such an interface in order to copy data into page cache
+pages, you can't have two drivers calling it from interrupt context
+without some form of locking.
 
-I know James Bottomley did an experiment (and did an OLS presentation
-...) on unmapping the entire page cache and greatly expanding the kmap
-area to do just this kind of thing.  I think he even got a speedup.
+Nor if you're SMP and you don't have the mappings setup per-CPU.
 
--- 
-Matthew Wilcox				Intel Open Source Technology Centre
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+However, as davem has said in the past, the result of a device reading
+or writing the page cache should result in the same conditions no
+matter how the read or write is actually done.  That's only common
+sense.  So ensuring that device PIO accesses are done with the same
+cache colour as userspace results in a difference between PIO and DMA,
+one which could potentially bite if we end up reading from the kernel
+mapping of those pages first.
+
+If we extend the argument that "everything must be the same cache colour"
+then we need cache colouring when allocating page cache pages - since
+page cache pages are part of the kernel direct mapped memory, their
+colour is already fixed from the time that you've setup the initial
+kernel memory mappings.  In ARMs case of an aliasing VIPT cache, that
+means that VA [13:12] must equal PA [13:12] for every single mapping
+no matter where...
+
+That would be nice, since we don't then have to worry about aliases
+between kernel and userspace anymore, so we don't have to play these
+remapping games in kernel space. ;)
