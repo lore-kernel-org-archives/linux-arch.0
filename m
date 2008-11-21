@@ -1,64 +1,81 @@
-From: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
-Subject: Re: [patch 05/35] reintroduce accept4
-Date: Fri, 21 Nov 2008 08:20:55 +0100 (CET)
-Message-ID: <Pine.LNX.4.64.0811210819070.12975@anakin>
-References: <200811192336.mAJNaE3R030021@imap1.linux-foundation.org>
- <Pine.LNX.4.64.0811202259360.12975@anakin>
- <alpine.LFD.2.00.0811201412040.21698@nehalem.linux-foundation.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: O_DIRECT patch for processors with VIPT cache for mainline
+	kernel (specifically arm in our case)
+Date: Fri, 21 Nov 2008 17:10:19 +0000
+Message-ID: <1227287420.7015.77.camel@pc1117.cambridge.arm.com>
+References: <d8dd82df0811180606w503563ach8650ab07dcd0a35c@mail.gmail.com>
+	 <200811191740.23638.nickpiggin@yahoo.com.au>
+	 <20081119204315.GB17209@flint.arm.linux.org.uk>
+	 <200811201759.01039.nickpiggin@yahoo.com.au>
+	 <20081120091923.GA2515@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <alpine.LFD.2.00.0811201412040.21698-nfNrOhbfy2R17+2ddN/4kux8cNe9sq/dYPYVAmT7z5s@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, drepper-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([193.131.176.58]:58730 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757147AbYKURKd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 21 Nov 2008 12:10:33 -0500
+In-Reply-To: <20081120091923.GA2515@flint.arm.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>, linux-fsdevel@vger.kernel.org, Naval Saini <navalnovel@gmail.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, naval.saini@nxp.com
 
-On Thu, 20 Nov 2008, Linus Torvalds wrote:
-> On Thu, 20 Nov 2008, Geert Uytterhoeven wrote:
-> > On Wed, 19 Nov 2008, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org wrote:
-> > > From: Ulrich Drepper <drepper-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-> > > 
-> > > Introduce a new accept4() system call.  The addition of this system call
-> > 
-> > > /* test_accept4.c
-> > 
-> > > #ifdef __x86_64__
-> > > #define SYS_accept4 288
-> > > #elif __i386__
-> >         ^^^^^^^^
-> > 	defined(__i386__)
-> > 
-> > > #define USE_SOCKETCALL 1
-> > > #define SYS_ACCEPT4 18
-> > > #else
-> > > #error "Sorry -- don't know the syscall # on this architecture"
-> > > #endif
-> > 
-> > Anyway, it's just a test program. Succeeded on m68k using socketcall.
+On Thu, 2008-11-20 at 09:19 +0000, Russell King - ARM Linux wrote:
+> On Thu, Nov 20, 2008 at 05:59:00PM +1100, Nick Piggin wrote:
+> > - The page is sent to the block layer, which stores into the page. Some
+> >   block devices like 'brd' will potentially store via the kernel linear map
+> >   here, and they probably don't do enough cache flushing. But a regular
+> >   block device should go via DMA, which AFAIK should be OK? (the user address
+> >   should remain invalidated because it would be a bug to read from the buffer
+> >   before the read has completed)
 > 
-> It _should_ work even without the 'defined()'. Didn't it?
+> This is where things get icky with lots of drivers - DMA is fine, but
+> many PIO based drivers don't handle the implications of writing to the
+> kernel page cache page when there may be CPU cache side effects.
 
-Yes it worked.
+And for PIO devices, what cache flushing function should be used if the
+page isn't available (maybe just a pointer to a buffer) to do a
+flush_dcache_page? Should this be done in the filesystem layer?
 
-> Unknown symbols should expand to '0' in preprocessor value evaluation. Of 
-> course, the compiler may warn about the practice, but it shouldn't be 
-> technically wrong.
+> If the cache is in read allocate mode, then in this case there shouldn't
+> be any dirty cache lines.  (That's not always the case though, esp. via
+> conventional IO.)  If the cache is in write allocate mode, PIO data will
+> sit in the kernel mapping and won't be visible to userspace.
 
-gcc 4.4 complains:
-http://www.cyrius.com/journal/gcc/gcc-4.4-preprocessor-errors
+This problem re-appeared in our tests when someone started using an ext2
+filesystem with mtd+slram with write-allocate caches. Basically the D
+cache isn't flushed to ensure its coherency with the I cache.
 
-Gr{oetje,eeting}s,
+The very dirty workaround was to use flush_icache_range (I know, it's
+meant for something completely different) in mtd_blkdevs.c. The slram.c
+doesn't have access to any page information either and I noticed that
+there are very few block devices that call flush_dcache_page directly.
+Should this be done by the filesystem layer?
 
-						Geert
+It looks to me like some filesystems like cramfs call flush_dcache_page
+in their "readpage" functions but ext2 doesn't. My other, less dirty,
+workaround for the mtd+slram problem is below. It appears to solve the
+problem though I'm not sure it is the right solution (ext2 uses
+mpage_readpages).
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org
+diff --git a/fs/mpage.c b/fs/mpage.c
+index 552b80b..979a4a9 100644
+--- a/fs/mpage.c
++++ b/fs/mpage.c
+@@ -51,6 +51,7 @@ static void mpage_end_io_read(struct bio *bio, int err)
+ 			prefetchw(&bvec->bv_page->flags);
+ 
+ 		if (uptodate) {
++			flush_dcache_page(page);
+ 			SetPageUptodate(page);
+ 		} else {
+ 			ClearPageUptodate(page);
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
---
-To unsubscribe from this list: send the line "unsubscribe linux-api" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+
+Thanks.
+
+-- 
+Catalin
