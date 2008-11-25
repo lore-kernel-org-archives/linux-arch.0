@@ -1,65 +1,348 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from monty.telenet-ops.be ([195.130.132.56]:35971 "EHLO
-	monty.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751806AbYKUHU7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Nov 2008 02:20:59 -0500
-Date: Fri, 21 Nov 2008 08:20:55 +0100 (CET)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [patch 05/35] reintroduce accept4
-In-Reply-To: <alpine.LFD.2.00.0811201412040.21698@nehalem.linux-foundation.org>
-Message-ID: <Pine.LNX.4.64.0811210819070.12975@anakin>
-References: <200811192336.mAJNaE3R030021@imap1.linux-foundation.org>
- <Pine.LNX.4.64.0811202259360.12975@anakin>
- <alpine.LFD.2.00.0811201412040.21698@nehalem.linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:51458 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753297AbYKYW5I (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 25 Nov 2008 17:57:08 -0500
+Message-ID: <200811252256.mAPMuwhq027729@imap1.linux-foundation.org>
+Subject: + kernel-add-common-endian-load-store-api.patch added to -mm tree
+From: akpm@linux-foundation.org
+Date: Tue, 25 Nov 2008 14:56:58 -0800
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: akpm@linux-foundation.org, drepper@redhat.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, mtk.manpages@gmail.com
-Message-ID: <20081121072055.NLOGRRDT3kEDq9a8cN0jt2PrKOASq3ljmGXPXbFhuRQ@z>
+To: mm-commits@vger.kernel.org
+Cc: harvey.harrison@gmail.com, ecashin@coraid.com, jens.axboe@oracle.com, linux-arch@vger.kernel.org
+Message-ID: <20081125225658.wPOCp_lWpeLuqiwaGzAcj_vALjY2lPBi6dvvL_eljr8@z>
 
-On Thu, 20 Nov 2008, Linus Torvalds wrote:
-> On Thu, 20 Nov 2008, Geert Uytterhoeven wrote:
-> > On Wed, 19 Nov 2008, akpm@linux-foundation.org wrote:
-> > > From: Ulrich Drepper <drepper@redhat.com>
-> > > 
-> > > Introduce a new accept4() system call.  The addition of this system call
-> > 
-> > > /* test_accept4.c
-> > 
-> > > #ifdef __x86_64__
-> > > #define SYS_accept4 288
-> > > #elif __i386__
-> >         ^^^^^^^^
-> > 	defined(__i386__)
-> > 
-> > > #define USE_SOCKETCALL 1
-> > > #define SYS_ACCEPT4 18
-> > > #else
-> > > #error "Sorry -- don't know the syscall # on this architecture"
-> > > #endif
-> > 
-> > Anyway, it's just a test program. Succeeded on m68k using socketcall.
-> 
-> It _should_ work even without the 'defined()'. Didn't it?
 
-Yes it worked.
+The patch titled
+     kernel: add common endian load/store API
+has been added to the -mm tree.  Its filename is
+     kernel-add-common-endian-load-store-api.patch
 
-> Unknown symbols should expand to '0' in preprocessor value evaluation. Of 
-> course, the compiler may warn about the practice, but it shouldn't be 
-> technically wrong.
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
 
-gcc 4.4 complains:
-http://www.cyrius.com/journal/gcc/gcc-4.4-preprocessor-errors
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
 
-Gr{oetje,eeting}s,
+See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
+out what to do about this
 
-						Geert
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+------------------------------------------------------
+Subject: kernel: add common endian load/store API
+From: Harvey Harrison <harvey.harrison@gmail.com>
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+Add the following API for the 6 endian types in the kernel __le16,__le32,
+__le64, __be16, __be32, __be64:
+
+u16 load_le16(const __le16 *p)
+u16 load_le16_noalign(const __le16 *p)
+
+void store_le16(__le16 *p, u16 val)
+void store_le16_noalign(__le16 *p, u16 val)
+
+get/put_unaligned are being replaced because get/put in the kernel usually
+implies some kind of reference is being taken/released, which is not the
+case here.  They work with void * pointers which defeats sparse checking. 
+Also, put_unaligned takes its arguments in the opposite order from what is
+expected.  The new names are chosen to allow the APIs to live in parallel
+without breaking compilation.  The get/put_unaligned API can be removed
+once all users are converted.
+
+load_le16 is a synonym for the existing le16_to_cpup and is added to be
+symmetric with the load_le16_noalign API.  On arches where unaligned
+access is OK, the unaligned calls are replaced with aligned calls.  This
+name is also shorter than le16_to_cpup which will hopefully encourage its
+use as it is generally faster than dereferencing the pointer and using
+le16_to_cpu.  The only case where this does not hold is when taking the
+address of a stack variable, as the work to get the stack variable address
+generally outweighs just using le16_to_cpu directly.
+
+store_le16 is a new API and is added to be symmetric with the unaligned
+functions.  It is implemented as a macro to allow compile-time
+byteswapping when the value is a constant.  This will also allow use in
+many places currently that are of the form:
+
+*(__le16 *)ptr = cpu_to_le16(foo);
+
+In addition, some drivers/filesystems/arches already provide this API
+privately, which will allow them to be consolidated into this common code.
+
+Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: <linux-arch@vger.kernel.org>
+Cc: "Ed L. Cashin" <ecashin@coraid.com>
+Cc: Jens Axboe <jens.axboe@oracle.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/asm-generic/unaligned.h |  100 +++++++++++++++++++-----------
+ include/linux/byteorder.h       |   14 ++++
+ 2 files changed, 78 insertions(+), 36 deletions(-)
+
+diff -puN include/asm-generic/unaligned.h~kernel-add-common-endian-load-store-api include/asm-generic/unaligned.h
+--- a/include/asm-generic/unaligned.h~kernel-add-common-endian-load-store-api
++++ a/include/asm-generic/unaligned.h
+@@ -6,6 +6,20 @@
+ 
+ #ifdef _UNALIGNED_ACCESS_OK
+ 
++# define load_le16_noalign load_le16
++# define load_le32_noalign load_le32
++# define load_le64_noalign load_le64
++# define load_be16_noalign load_be16
++# define load_be32_noalign load_be32
++# define load_be64_noalign load_be64
++
++# define store_le16_noalign store_le16
++# define store_le32_noalign store_le32
++# define store_le64_noalign store_le64
++# define store_be16_noalign store_be16
++# define store_be32_noalign store_be32
++# define store_be64_noalign store_be64
++
+ static inline u16 get_unaligned_le16(const void *p)
+ {
+ 	return le16_to_cpup(p);
+@@ -102,60 +116,67 @@ static inline u64 __get_be64_noalign(con
+ 	return ((u64)__get_be32_noalign(p) << 32) | __get_be32_noalign(p + 4);
+ }
+ 
+-static inline u16 get_unaligned_le16(const void *p)
++static inline u16 load_le16_noalign(const __le16 *p)
+ {
+ #ifdef __LITTLE_ENDIAN
+-	return ((const struct __una_u16 *)p)->x;
++	return ((__force const struct __una_u16 *)p)->x;
+ #else
+-	return __get_le16_noalign(p);
++	return __get_le16_noalign((__force const u8 *)p);
+ #endif
+ }
+ 
+-static inline u32 get_unaligned_le32(const void *p)
++static inline u32 load_le32_noalign(const __le32 *p)
+ {
+ #ifdef __LITTLE_ENDIAN
+-	return ((const struct __una_u32 *)p)->x;
++	return ((__force const struct __una_u32 *)p)->x;
+ #else
+-	return __get_le32_noalign(p);
++	return __get_le32_noalign((__force const u8 *)p);
+ #endif
+ }
+ 
+-static inline u64 get_unaligned_le64(const void *p)
++static inline u64 load_le64_noalign(const __le64 *p)
+ {
+ #ifdef __LITTLE_ENDIAN
+-	return ((const struct __una_u64 *)p)->x;
++	return ((__force const struct __una_u64 *)p)->x;
+ #else
+-	return __get_le64_noalign(p);
++	return __get_le64_noalign((__force const u8 *)p);
+ #endif
+ }
+ 
+-static inline u16 get_unaligned_be16(const void *p)
++static inline u16 load_be16_noalign(const __be16 *p)
+ {
+ #ifdef __BIG_ENDIAN
+-	return ((const struct __una_u16 *)p)->x;
++	return ((__force const struct __una_u16 *)p)->x;
+ #else
+-	return __get_be16_noalign(p);
++	return __get_be16_noalign((__force const u8 *)p);
+ #endif
+ }
+ 
+-static inline u32 get_unaligned_be32(const void *p)
++static inline u32 load_be32_noalign(const __be32 *p)
+ {
+ #ifdef __BIG_ENDIAN
+-	return ((const struct __una_u32 *)p)->x;
++	return ((__force const struct __una_u32 *)p)->x;
+ #else
+-	return __get_be32_noalign(p);
++	return __get_be32_noalign((__force const u8 *)p);
+ #endif
+ }
+ 
+-static inline u64 get_unaligned_be64(const void *p)
++static inline u64 load_be64_noalign(const __be64 *p)
+ {
+ #ifdef __BIG_ENDIAN
+-	return ((const struct __una_u64 *)p)->x;
++	return ((__force const struct __una_u64 *)p)->x;
+ #else
+-	return __get_be64_noalign(p);
++	return __get_be64_noalign((__force const u8 *)p);
+ #endif
+ }
+ 
++#define get_unaligned_le16(p) load_le16_noalign((void *)(p))
++#define get_unaligned_le32(p) load_le32_noalign((void *)(p))
++#define get_unaligned_le64(p) load_le64_noalign((void *)(p))
++#define get_unaligned_be16(p) load_be16_noalign((void *)(p))
++#define get_unaligned_be32(p) load_be32_noalign((void *)(p))
++#define get_unaligned_be64(p) load_be64_noalign((void *)(p))
++
+ static inline void __put_le16_noalign(u8 *p, u16 val)
+ {
+ 	*p++ = val;
+@@ -192,60 +213,67 @@ static inline void __put_be64_noalign(u8
+ 	__put_be32_noalign(p + 4, val);
+ }
+ 
+-static inline void put_unaligned_le16(u16 val, void *p)
++static inline void store_le16_noalign(__le16 *p, u16 val)
+ {
+ #ifdef __LITTLE_ENDIAN
+-	((struct __una_u16 *)p)->x = val;
++	((__force struct __una_u16 *)p)->x = val;
+ #else
+-	__put_le16_noalign(p, val);
++	__put_le16_noalign((__force u8 *)p, val);
+ #endif
+ }
+ 
+-static inline void put_unaligned_le32(u32 val, void *p)
++static inline void store_le32_noalign(__le32 *p, u32 val)
+ {
+ #ifdef __LITTLE_ENDIAN
+-	((struct __una_u32 *)p)->x = val;
++	((__force struct __una_u32 *)p)->x = val;
+ #else
+-	__put_le32_noalign(p, val);
++	__put_le32_noalign((__force u8 *)p, val);
+ #endif
+ }
+ 
+-static inline void put_unaligned_le64(u64 val, void *p)
++static inline void store_le64_noalign(__le64 *p, u64 val)
+ {
+ #ifdef __LITTLE_ENDIAN
+-	((struct __una_u64 *)p)->x = val;
++	((__force struct __una_u64 *)p)->x = val;
+ #else
+-	__put_le64_noalign(p, val);
++	__put_le64_noalign((__force u8 *)p, val);
+ #endif
+ }
+ 
+-static inline void put_unaligned_be16(u16 val, void *p)
++static inline void store_be16_noalign(__be16 *p, u16 val)
+ {
+ #ifdef __BIG_ENDIAN
+-	((struct __una_u16 *)p)->x = val;
++	((__force struct __una_u16 *)p)->x = val;
+ #else
+-	__put_be16_noalign(p, val);
++	__put_be16_noalign((__force u8 *)p, val);
+ #endif
+ }
+ 
+-static inline void put_unaligned_be32(u32 val, void *p)
++static inline void store_be32_noalign(__be32 *p, u32 val)
+ {
+ #ifdef __BIG_ENDIAN
+-	((struct __una_u32 *)p)->x = val;
++	((__force struct __una_u32 *)p)->x = val;
+ #else
+-	__put_be32_noalign(p, val);
++	__put_be32_noalign((__force u8 *)p, val);
+ #endif
+ }
+ 
+-static inline void put_unaligned_be64(u64 val, void *p)
++static inline void store_be64_noalign(__be64 *p, u64 val)
+ {
+ #ifdef __BIG_ENDIAN
+-	((struct __una_u64 *)p)->x = val;
++	((__force struct __una_u64 *)p)->x = val;
+ #else
+-	__put_be64_noalign(p, val);
++	__put_be64_noalign((__force u8 *)p, val);
+ #endif
+ }
+ 
++#define put_unaligned_le16(val, p) store_le16_noalign((void *)(p), (val))
++#define put_unaligned_le32(val, p) store_le32_noalign((void *)(p), (val))
++#define put_unaligned_le64(val, p) store_le64_noalign((void *)(p), (val))
++#define put_unaligned_be16(val, p) store_be16_noalign((void *)(p), (val))
++#define put_unaligned_be32(val, p) store_be32_noalign((void *)(p), (val))
++#define put_unaligned_be64(val, p) store_be64_noalign((void *)(p), (val))
++
+ #endif /* _UNALIGNED_ACCESS_OK */
+ 
+ /*
+diff -puN include/linux/byteorder.h~kernel-add-common-endian-load-store-api include/linux/byteorder.h
+--- a/include/linux/byteorder.h~kernel-add-common-endian-load-store-api
++++ a/include/linux/byteorder.h
+@@ -292,6 +292,20 @@ static inline __be64 __cpu_to_be64p(cons
+ # define cpu_to_be32 __cpu_to_be32
+ # define cpu_to_be64 __cpu_to_be64
+ 
++# define load_le16 __le16_to_cpup
++# define load_le32 __le32_to_cpup
++# define load_le64 __le64_to_cpup
++# define load_be16 __be16_to_cpup
++# define load_be32 __be32_to_cpup
++# define load_be64 __be64_to_cpup
++
++# define store_le16(p, val) (*(__le16 *)(p) = cpu_to_le16(val))
++# define store_le32(p, val) (*(__le32 *)(p) = cpu_to_le32(val))
++# define store_le64(p, val) (*(__le64 *)(p) = cpu_to_le64(val))
++# define store_be16(p, val) (*(__be16 *)(p) = cpu_to_be16(val))
++# define store_be32(p, val) (*(__be32 *)(p) = cpu_to_be32(val))
++# define store_be64(p, val) (*(__be64 *)(p) = cpu_to_be64(val))
++
+ # define le16_to_cpup __le16_to_cpup
+ # define le32_to_cpup __le32_to_cpup
+ # define le64_to_cpup __le64_to_cpup
+_
+
+Patches currently in -mm which might be from harvey.harrison@gmail.com are
+
+linux-next.patch
+arm-use-the-new-byteorder-headers.patch
+i2c-misannotation-in-i2c-pmcmspc.patch
+i2c-trivial-endian-casting-fixes-in-i2c-highlanderc.patch
+ia64-use-the-new-byteorder-headers.patch
+input-ads7846c-sparse-lock-annotation.patch
+m32r-use-the-new-byteorder-headers.patch
+blackfin-remove-__function__-in-new-serial-driver.patch
+blackfin-use-the-new-byteorder-headers.patch
+parisc-use-the-new-byteorder-headers.patch
+s390-use-the-new-byteorder-headers.patch
+scsi-replace-__inline-with-inline.patch
+scsi-use-the-common-hex_asc-array-rather-than-a-private-one.patch
+scsi-gdthc-use-unaligned-access-helpers.patch
+scsi-annotate-gdth_rdcap_data-gdth_rdcap16_data-endianness.patch
+frv-use-the-new-byteorder-headers.patch
+m68knommu-use-the-new-byteorder-headers.patch
+h8300-use-the-new-byteorder-headers.patch
+alpha-use-the-new-byteorder-headers.patch
+lib-fix-sparse-shadowed-variable-warning.patch
+lib-radix_treec-make-percpu-variable-static.patch
+lib-proportionsc-trivial-sparse-lock-annotation.patch
+ibmpex-add-endian-annotation-to-extract_data-helper.patch
+blackfin-remove-__function__-in-video-driver.patch
+fb-carminefb-trivial-annotation-packing-color-register.patch
+memstick-annotate-endianness-of-attribute-structs.patch
+unaligned-introduce-common-header.patch
+unaligned-introduce-common-header-fix.patch
+unaligned-introduce-common-header-fix-2.patch
+unaligned-convert-arches-where-unaligned-access-is-ok.patch
+unaligned-use-generic-implementation-on-packed-struct-arches.patch
+unaligned-remove-packed-struct-and-unaligned-access_ok-headers.patch
+unaligned-pack-the-struct-not-the-struct-members.patch
+unaligned-move-arm-m32r-h8300-to-the-asm-generic-version.patch
+unaligned-remove-last-bits-of-the-unaligned-access-helpers.patch
+kernel-add-common-endian-load-store-api.patch
+block-aoe-switch-to-the-new-endian-helpers.patch
+
