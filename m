@@ -1,72 +1,57 @@
-From: Hitoshi Mitake <h.mitake@gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: [PATCH 1/1] edac x38: new MC driver module
-Date: Wed, 26 Nov 2008 00:30:25 +0900
-Message-ID: <20081126003025.85f19670.h.mitake@gmail.com>
+Date: Tue, 25 Nov 2008 16:46:18 +0100 (CET)
+Message-ID: <Pine.LNX.4.64.0811251645530.25595@anakin>
 References: <20081105222911.d76e7e1c.mitake@clustcom.com>
-	<413709.12821.qm@web50106.mail.re2.yahoo.com>
-	<20081106164641.ed369060.akpm@linux-foundation.org>
-	<20081107152830.a42766f3.mitake@clustcom.com>
-	<20081106223122.8a255211.akpm@linux-foundation.org>
-	<20081107153824.0ec934e6.mitake@clustcom.com>
-	<20081106231102.aab83cd4.akpm@linux-foundation.org>
-	<a6b9f31a0811090710y17e956bawf20675d6678b145e@mail.gmail.com>
-	<20081109112646.97c594b5.akpm@linux-foundation.org>
-	<20081118121620.GB8625@linux-mips.org>
-	<20081118123215.GB30509@flint.arm.linux.org.uk>
-	<20081121011941.26e05a25.h.mitake@gmail.com>
-	<4929ECB7.8080108@zytor.com>
-	<57C9024A16AD2D4C97DC78E552063EA35C517F42@orsmsx505.amr.corp.intel.com>
-	<492AEC40.5060009@zytor.com>
-	<20081125115510.108fa886.h.mitake@gmail.com>
-	<492B8996.2020302@zytor.com>
+ <413709.12821.qm@web50106.mail.re2.yahoo.com> <20081106164641.ed369060.akpm@linux-foundation.org>
+ <20081107152830.a42766f3.mitake@clustcom.com> <20081106223122.8a255211.akpm@linux-foundation.org>
+ <20081107153824.0ec934e6.mitake@clustcom.com> <20081106231102.aab83cd4.akpm@linux-foundation.org>
+ <a6b9f31a0811090710y17e956bawf20675d6678b145e@mail.gmail.com>
+ <20081109112646.97c594b5.akpm@linux-foundation.org> <20081118121620.GB8625@linux-mips.org>
+ <20081118123215.GB30509@flint.arm.linux.org.uk> <20081121011941.26e05a25.h.mitake@gmail.com>
+ <4929ECB7.8080108@zytor.com> <57C9024A16AD2D4C97DC78E552063EA35C517F42@orsmsx505.amr.corp.intel.com>
+ <492AEC40.5060009@zytor.com> <20081125115510.108fa886.h.mitake@gmail.com>
+ <492B8996.2020302@zytor.com> <20081126003025.85f19670.h.mitake@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wa-out-1112.google.com ([209.85.146.178]:16980 "EHLO
-	wa-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751370AbYKYPab (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2008 10:30:31 -0500
-Received: by wa-out-1112.google.com with SMTP id v27so2328wah.21
-        for <linux-arch@vger.kernel.org>; Tue, 25 Nov 2008 07:30:30 -0800 (PST)
-In-Reply-To: <492B8996.2020302@zytor.com>
+Received: from monty.telenet-ops.be ([195.130.132.56]:36692 "EHLO
+	monty.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752954AbYKYPqd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2008 10:46:33 -0500
+In-Reply-To: <20081126003025.85f19670.h.mitake@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, "dougthompson@xmission.com" <dougthompson@xmission.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Hitoshi Mitake <h.mitake@gmail.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, "dougthompson@xmission.com" <dougthompson@xmission.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Mon, 24 Nov 2008 21:13:58 -0800
-"H. Peter Anvin" <hpa@zytor.com> wrote:
-
-> Hitoshi Mitake wrote:
-> > I think which need __ is variable type name, not each variable name.
-> > Name of each local variables can't effect namespace.
+On Wed, 26 Nov 2008, Hitoshi Mitake wrote:
+> On Mon, 24 Nov 2008 21:13:58 -0800
+> "H. Peter Anvin" <hpa@zytor.com> wrote:
+> > Are you planning to add writeq() as well?
 > 
-> Wrong.  It affects the namespace in the sense that it can interfere with
-> user-created macros.  Again, this is only an issue for user space.
-
-Sorry, I've misunderstood. I didn't think about macros.
-
+> Yes, I want to add writeq().
+> But there's a problem that
+> I don't have a plan to use writeq() now, so I can't test writeq() soon.
 > 
-> > And I found this comment in asm-generic/int-ll64.h,
-> > /*
-> >  * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
-> >  * header files exported to user space
-> >  */
-> > 
-> > According to your advice, I rewrote the patch, how is this?
+> How is this? I think it isn't bad. I want to hear your opinion.
 > 
-> Are you planning to add writeq() as well?
-> 
+> static inline void writeq(__u64 val, volatile void __iomem *addr)
+> {
+> 	writel((unsigned int)val, addr);
+> 	writel((unsigned int)(val >> 32), addr+1);
+                                               ^
+					       4
 
-Yes, I want to add writeq().
-But there's a problem that
-I don't have a plan to use writeq() now, so I can't test writeq() soon.
+> }
 
-How is this? I think it isn't bad. I want to hear your opinion.
+Gr{oetje,eeting}s,
 
-static inline void writeq(__u64 val, volatile void __iomem *addr)
-{
-	writel((unsigned int)val, addr);
-	writel((unsigned int)(val >> 32), addr+1);
-}
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
