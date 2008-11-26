@@ -1,343 +1,90 @@
-From: akpm@linux-foundation.org
-Subject: + kernel-add-common-endian-load-store-api.patch added to -mm tree
-Date: Tue, 25 Nov 2008 14:56:58 -0800
-Message-ID: <200811252256.mAPMuwhq027729@imap1.linux-foundation.org>
-Reply-To: linux-kernel@vger.kernel.org
-Return-path: <mm-commits-owner@vger.kernel.org>
-Sender: mm-commits-owner@vger.kernel.org
-To: mm-commits@vger.kernel.org
-Cc: harvey.harrison@gmail.com, ecashin@coraid.com, jens.axboe@oracle.com, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Subject: [patch 10/17] Sparc64 : Trace clock
+Date: Wed, 26 Nov 2008 07:42:56 -0500
+Message-ID: <20081126124635.913740788@polymtl.ca>
+References: <20081126124246.800751190@polymtl.ca>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.polymtl.ca ([132.207.4.11]:46127 "EHLO smtp.polymtl.ca"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752430AbYKZM54 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Nov 2008 07:57:56 -0500
+Content-Disposition: inline; filename=sparc64-trace-clock.patch
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org
 
+Implement sparc64 trace clock.
 
-The patch titled
-     kernel: add common endian load/store API
-has been added to the -mm tree.  Its filename is
-     kernel-add-common-endian-load-store-api.patch
-
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
-
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
-
-See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
-out what to do about this
-
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: kernel: add common endian load/store API
-From: Harvey Harrison <harvey.harrison@gmail.com>
-
-Add the following API for the 6 endian types in the kernel __le16,__le32,
-__le64, __be16, __be32, __be64:
-
-u16 load_le16(const __le16 *p)
-u16 load_le16_noalign(const __le16 *p)
-
-void store_le16(__le16 *p, u16 val)
-void store_le16_noalign(__le16 *p, u16 val)
-
-get/put_unaligned are being replaced because get/put in the kernel usually
-implies some kind of reference is being taken/released, which is not the
-case here.  They work with void * pointers which defeats sparse checking. 
-Also, put_unaligned takes its arguments in the opposite order from what is
-expected.  The new names are chosen to allow the APIs to live in parallel
-without breaking compilation.  The get/put_unaligned API can be removed
-once all users are converted.
-
-load_le16 is a synonym for the existing le16_to_cpup and is added to be
-symmetric with the load_le16_noalign API.  On arches where unaligned
-access is OK, the unaligned calls are replaced with aligned calls.  This
-name is also shorter than le16_to_cpup which will hopefully encourage its
-use as it is generally faster than dereferencing the pointer and using
-le16_to_cpu.  The only case where this does not hold is when taking the
-address of a stack variable, as the work to get the stack variable address
-generally outweighs just using le16_to_cpu directly.
-
-store_le16 is a new API and is added to be symmetric with the unaligned
-functions.  It is implemented as a macro to allow compile-time
-byteswapping when the value is a constant.  This will also allow use in
-many places currently that are of the form:
-
-*(__le16 *)ptr = cpu_to_le16(foo);
-
-In addition, some drivers/filesystems/arches already provide this API
-privately, which will allow them to be consolidated into this common code.
-
-Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
-Cc: <linux-arch@vger.kernel.org>
-Cc: "Ed L. Cashin" <ecashin@coraid.com>
-Cc: Jens Axboe <jens.axboe@oracle.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Acked-by: David S. Miller <davem@davemloft.net>
+CC: linux-arch@vger.kernel.org
 ---
+ arch/sparc/include/asm/trace-clock.h |   43 +++++++++++++++++++++++++++++++++++
+ arch/sparc64/Kconfig                 |    1 
+ 2 files changed, 44 insertions(+)
 
- include/asm-generic/unaligned.h |  100 +++++++++++++++++++-----------
- include/linux/byteorder.h       |   14 ++++
- 2 files changed, 78 insertions(+), 36 deletions(-)
+Index: linux.trees.git/arch/sparc64/Kconfig
+===================================================================
+--- linux.trees.git.orig/arch/sparc64/Kconfig	2008-11-26 06:48:52.000000000 -0500
++++ linux.trees.git/arch/sparc64/Kconfig	2008-11-26 06:52:21.000000000 -0500
+@@ -18,6 +18,7 @@ config SPARC64
+ 	select HAVE_ARCH_KGDB
+ 	select USE_GENERIC_SMP_HELPERS if SMP
+ 	select HAVE_ARCH_TRACEHOOK
++	select HAVE_TRACE_CLOCK
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+ 	select RTC_CLASS
+ 	select RTC_DRV_M48T59
+Index: linux.trees.git/arch/sparc/include/asm/trace-clock.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux.trees.git/arch/sparc/include/asm/trace-clock.h	2008-11-26 06:52:02.000000000 -0500
+@@ -0,0 +1,43 @@
++/*
++ * Copyright (C) 2008, Mathieu Desnoyers
++ *
++ * Trace clock definitions for Sparc64.
++ */
++
++#ifndef _ASM_SPARC_TRACE_CLOCK_H
++#define _ASM_SPARC_TRACE_CLOCK_H
++
++#include <linux/timex.h>
++
++static inline u32 trace_clock_read32(void)
++{
++	return get_cycles();
++}
++
++static inline u64 trace_clock_read64(void)
++{
++	return get_cycles();
++}
++
++static inline unsigned int trace_clock_frequency(void)
++{
++	return get_cycles_rate();
++}
++
++static inline u32 trace_clock_freq_scale(void)
++{
++	return 1;
++}
++
++static inline void get_trace_clock(void)
++{
++}
++
++static inline void put_trace_clock(void)
++{
++}
++
++static inline void set_trace_clock_is_sync(int state)
++{
++}
++#endif /* _ASM_SPARC_TRACE_CLOCK_H */
 
-diff -puN include/asm-generic/unaligned.h~kernel-add-common-endian-load-store-api include/asm-generic/unaligned.h
---- a/include/asm-generic/unaligned.h~kernel-add-common-endian-load-store-api
-+++ a/include/asm-generic/unaligned.h
-@@ -6,6 +6,20 @@
- 
- #ifdef _UNALIGNED_ACCESS_OK
- 
-+# define load_le16_noalign load_le16
-+# define load_le32_noalign load_le32
-+# define load_le64_noalign load_le64
-+# define load_be16_noalign load_be16
-+# define load_be32_noalign load_be32
-+# define load_be64_noalign load_be64
-+
-+# define store_le16_noalign store_le16
-+# define store_le32_noalign store_le32
-+# define store_le64_noalign store_le64
-+# define store_be16_noalign store_be16
-+# define store_be32_noalign store_be32
-+# define store_be64_noalign store_be64
-+
- static inline u16 get_unaligned_le16(const void *p)
- {
- 	return le16_to_cpup(p);
-@@ -102,60 +116,67 @@ static inline u64 __get_be64_noalign(con
- 	return ((u64)__get_be32_noalign(p) << 32) | __get_be32_noalign(p + 4);
- }
- 
--static inline u16 get_unaligned_le16(const void *p)
-+static inline u16 load_le16_noalign(const __le16 *p)
- {
- #ifdef __LITTLE_ENDIAN
--	return ((const struct __una_u16 *)p)->x;
-+	return ((__force const struct __una_u16 *)p)->x;
- #else
--	return __get_le16_noalign(p);
-+	return __get_le16_noalign((__force const u8 *)p);
- #endif
- }
- 
--static inline u32 get_unaligned_le32(const void *p)
-+static inline u32 load_le32_noalign(const __le32 *p)
- {
- #ifdef __LITTLE_ENDIAN
--	return ((const struct __una_u32 *)p)->x;
-+	return ((__force const struct __una_u32 *)p)->x;
- #else
--	return __get_le32_noalign(p);
-+	return __get_le32_noalign((__force const u8 *)p);
- #endif
- }
- 
--static inline u64 get_unaligned_le64(const void *p)
-+static inline u64 load_le64_noalign(const __le64 *p)
- {
- #ifdef __LITTLE_ENDIAN
--	return ((const struct __una_u64 *)p)->x;
-+	return ((__force const struct __una_u64 *)p)->x;
- #else
--	return __get_le64_noalign(p);
-+	return __get_le64_noalign((__force const u8 *)p);
- #endif
- }
- 
--static inline u16 get_unaligned_be16(const void *p)
-+static inline u16 load_be16_noalign(const __be16 *p)
- {
- #ifdef __BIG_ENDIAN
--	return ((const struct __una_u16 *)p)->x;
-+	return ((__force const struct __una_u16 *)p)->x;
- #else
--	return __get_be16_noalign(p);
-+	return __get_be16_noalign((__force const u8 *)p);
- #endif
- }
- 
--static inline u32 get_unaligned_be32(const void *p)
-+static inline u32 load_be32_noalign(const __be32 *p)
- {
- #ifdef __BIG_ENDIAN
--	return ((const struct __una_u32 *)p)->x;
-+	return ((__force const struct __una_u32 *)p)->x;
- #else
--	return __get_be32_noalign(p);
-+	return __get_be32_noalign((__force const u8 *)p);
- #endif
- }
- 
--static inline u64 get_unaligned_be64(const void *p)
-+static inline u64 load_be64_noalign(const __be64 *p)
- {
- #ifdef __BIG_ENDIAN
--	return ((const struct __una_u64 *)p)->x;
-+	return ((__force const struct __una_u64 *)p)->x;
- #else
--	return __get_be64_noalign(p);
-+	return __get_be64_noalign((__force const u8 *)p);
- #endif
- }
- 
-+#define get_unaligned_le16(p) load_le16_noalign((void *)(p))
-+#define get_unaligned_le32(p) load_le32_noalign((void *)(p))
-+#define get_unaligned_le64(p) load_le64_noalign((void *)(p))
-+#define get_unaligned_be16(p) load_be16_noalign((void *)(p))
-+#define get_unaligned_be32(p) load_be32_noalign((void *)(p))
-+#define get_unaligned_be64(p) load_be64_noalign((void *)(p))
-+
- static inline void __put_le16_noalign(u8 *p, u16 val)
- {
- 	*p++ = val;
-@@ -192,60 +213,67 @@ static inline void __put_be64_noalign(u8
- 	__put_be32_noalign(p + 4, val);
- }
- 
--static inline void put_unaligned_le16(u16 val, void *p)
-+static inline void store_le16_noalign(__le16 *p, u16 val)
- {
- #ifdef __LITTLE_ENDIAN
--	((struct __una_u16 *)p)->x = val;
-+	((__force struct __una_u16 *)p)->x = val;
- #else
--	__put_le16_noalign(p, val);
-+	__put_le16_noalign((__force u8 *)p, val);
- #endif
- }
- 
--static inline void put_unaligned_le32(u32 val, void *p)
-+static inline void store_le32_noalign(__le32 *p, u32 val)
- {
- #ifdef __LITTLE_ENDIAN
--	((struct __una_u32 *)p)->x = val;
-+	((__force struct __una_u32 *)p)->x = val;
- #else
--	__put_le32_noalign(p, val);
-+	__put_le32_noalign((__force u8 *)p, val);
- #endif
- }
- 
--static inline void put_unaligned_le64(u64 val, void *p)
-+static inline void store_le64_noalign(__le64 *p, u64 val)
- {
- #ifdef __LITTLE_ENDIAN
--	((struct __una_u64 *)p)->x = val;
-+	((__force struct __una_u64 *)p)->x = val;
- #else
--	__put_le64_noalign(p, val);
-+	__put_le64_noalign((__force u8 *)p, val);
- #endif
- }
- 
--static inline void put_unaligned_be16(u16 val, void *p)
-+static inline void store_be16_noalign(__be16 *p, u16 val)
- {
- #ifdef __BIG_ENDIAN
--	((struct __una_u16 *)p)->x = val;
-+	((__force struct __una_u16 *)p)->x = val;
- #else
--	__put_be16_noalign(p, val);
-+	__put_be16_noalign((__force u8 *)p, val);
- #endif
- }
- 
--static inline void put_unaligned_be32(u32 val, void *p)
-+static inline void store_be32_noalign(__be32 *p, u32 val)
- {
- #ifdef __BIG_ENDIAN
--	((struct __una_u32 *)p)->x = val;
-+	((__force struct __una_u32 *)p)->x = val;
- #else
--	__put_be32_noalign(p, val);
-+	__put_be32_noalign((__force u8 *)p, val);
- #endif
- }
- 
--static inline void put_unaligned_be64(u64 val, void *p)
-+static inline void store_be64_noalign(__be64 *p, u64 val)
- {
- #ifdef __BIG_ENDIAN
--	((struct __una_u64 *)p)->x = val;
-+	((__force struct __una_u64 *)p)->x = val;
- #else
--	__put_be64_noalign(p, val);
-+	__put_be64_noalign((__force u8 *)p, val);
- #endif
- }
- 
-+#define put_unaligned_le16(val, p) store_le16_noalign((void *)(p), (val))
-+#define put_unaligned_le32(val, p) store_le32_noalign((void *)(p), (val))
-+#define put_unaligned_le64(val, p) store_le64_noalign((void *)(p), (val))
-+#define put_unaligned_be16(val, p) store_be16_noalign((void *)(p), (val))
-+#define put_unaligned_be32(val, p) store_be32_noalign((void *)(p), (val))
-+#define put_unaligned_be64(val, p) store_be64_noalign((void *)(p), (val))
-+
- #endif /* _UNALIGNED_ACCESS_OK */
- 
- /*
-diff -puN include/linux/byteorder.h~kernel-add-common-endian-load-store-api include/linux/byteorder.h
---- a/include/linux/byteorder.h~kernel-add-common-endian-load-store-api
-+++ a/include/linux/byteorder.h
-@@ -292,6 +292,20 @@ static inline __be64 __cpu_to_be64p(cons
- # define cpu_to_be32 __cpu_to_be32
- # define cpu_to_be64 __cpu_to_be64
- 
-+# define load_le16 __le16_to_cpup
-+# define load_le32 __le32_to_cpup
-+# define load_le64 __le64_to_cpup
-+# define load_be16 __be16_to_cpup
-+# define load_be32 __be32_to_cpup
-+# define load_be64 __be64_to_cpup
-+
-+# define store_le16(p, val) (*(__le16 *)(p) = cpu_to_le16(val))
-+# define store_le32(p, val) (*(__le32 *)(p) = cpu_to_le32(val))
-+# define store_le64(p, val) (*(__le64 *)(p) = cpu_to_le64(val))
-+# define store_be16(p, val) (*(__be16 *)(p) = cpu_to_be16(val))
-+# define store_be32(p, val) (*(__be32 *)(p) = cpu_to_be32(val))
-+# define store_be64(p, val) (*(__be64 *)(p) = cpu_to_be64(val))
-+
- # define le16_to_cpup __le16_to_cpup
- # define le32_to_cpup __le32_to_cpup
- # define le64_to_cpup __le64_to_cpup
-_
-
-Patches currently in -mm which might be from harvey.harrison@gmail.com are
-
-linux-next.patch
-arm-use-the-new-byteorder-headers.patch
-i2c-misannotation-in-i2c-pmcmspc.patch
-i2c-trivial-endian-casting-fixes-in-i2c-highlanderc.patch
-ia64-use-the-new-byteorder-headers.patch
-input-ads7846c-sparse-lock-annotation.patch
-m32r-use-the-new-byteorder-headers.patch
-blackfin-remove-__function__-in-new-serial-driver.patch
-blackfin-use-the-new-byteorder-headers.patch
-parisc-use-the-new-byteorder-headers.patch
-s390-use-the-new-byteorder-headers.patch
-scsi-replace-__inline-with-inline.patch
-scsi-use-the-common-hex_asc-array-rather-than-a-private-one.patch
-scsi-gdthc-use-unaligned-access-helpers.patch
-scsi-annotate-gdth_rdcap_data-gdth_rdcap16_data-endianness.patch
-frv-use-the-new-byteorder-headers.patch
-m68knommu-use-the-new-byteorder-headers.patch
-h8300-use-the-new-byteorder-headers.patch
-alpha-use-the-new-byteorder-headers.patch
-lib-fix-sparse-shadowed-variable-warning.patch
-lib-radix_treec-make-percpu-variable-static.patch
-lib-proportionsc-trivial-sparse-lock-annotation.patch
-ibmpex-add-endian-annotation-to-extract_data-helper.patch
-blackfin-remove-__function__-in-video-driver.patch
-fb-carminefb-trivial-annotation-packing-color-register.patch
-memstick-annotate-endianness-of-attribute-structs.patch
-unaligned-introduce-common-header.patch
-unaligned-introduce-common-header-fix.patch
-unaligned-introduce-common-header-fix-2.patch
-unaligned-convert-arches-where-unaligned-access-is-ok.patch
-unaligned-use-generic-implementation-on-packed-struct-arches.patch
-unaligned-remove-packed-struct-and-unaligned-access_ok-headers.patch
-unaligned-pack-the-struct-not-the-struct-members.patch
-unaligned-move-arm-m32r-h8300-to-the-asm-generic-version.patch
-unaligned-remove-last-bits-of-the-unaligned-access-helpers.patch
-kernel-add-common-endian-load-store-api.patch
-block-aoe-switch-to-the-new-endian-helpers.patch
-
+-- 
+Mathieu Desnoyers
+OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
