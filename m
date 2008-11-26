@@ -1,27 +1,34 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 03/17] get_cycles() : sparc64 HAVE_GET_CYCLES
-Date: Wed, 26 Nov 2008 07:42:49 -0500
-Message-ID: <20081126124634.777757087@polymtl.ca>
+Subject: [patch 01/17] get_cycles() : kconfig HAVE_GET_CYCLES
+Date: Wed, 26 Nov 2008 07:42:47 -0500
+Message-ID: <20081126124634.459240769@polymtl.ca>
 References: <20081126124246.800751190@polymtl.ca>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:46281 "EHLO smtp.polymtl.ca"
+Received: from smtp.polymtl.ca ([132.207.4.11]:46235 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752508AbYKZM60 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Nov 2008 07:58:26 -0500
-Content-Disposition: inline; filename=get-cycles-sparc64-have-get-cycles.patch
+	id S1753936AbYKZM6O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Nov 2008 07:58:14 -0500
+Content-Disposition: inline; filename=get-cycles-kconfig-have-get-cycles.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
-get_cycles_rate() are implemented.
+Create a new "HAVE_GET_CYCLES" architecture option to specify which
+architectures provide 64-bits TSC counters readable with get_cycles(). It's
+principally useful to only enable high-precision tracing code only on such
+architectures and don't even bother building it on architectures which lack such
+support.
 
-Changelog :
-- Use tb_ticks_per_usec * 1000000 in get_cycles_rate().
+It also requires architectures to provide get_cycles_barrier() and
+get_cycles_rate().
+
+I mainly use it for the "priority-sifting rwlock" latency tracing code, which
+traces worse-case latency induced by the locking. It also provides the basic
+changes needed for the LTTng timestamping infrastructure.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Acked-by: David S. Miller <davem@davemloft.net>
+CC: David Miller <davem@davemloft.net>
 CC: Linus Torvalds <torvalds@linux-foundation.org>
 CC: Andrew Morton <akpm@linux-foundation.org>
 CC: Ingo Molnar <mingo@redhat.com>
@@ -30,67 +37,30 @@ CC: Thomas Gleixner <tglx@linutronix.de>
 CC: Steven Rostedt <rostedt@goodmis.org>
 CC: linux-arch@vger.kernel.org
 ---
- arch/sparc/include/asm/timex_64.h |   19 ++++++++++++++++++-
- arch/sparc64/Kconfig              |    1 +
- arch/sparc64/kernel/time.c        |    3 ++-
- 3 files changed, 21 insertions(+), 2 deletions(-)
+ init/Kconfig |   10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-Index: linux.trees.git/arch/sparc64/Kconfig
+Index: linux.trees.git/init/Kconfig
 ===================================================================
---- linux.trees.git.orig/arch/sparc64/Kconfig	2008-11-12 18:15:48.000000000 -0500
-+++ linux.trees.git/arch/sparc64/Kconfig	2008-11-26 06:48:52.000000000 -0500
-@@ -13,6 +13,7 @@ config SPARC64
- 	default y
- 	select HAVE_FUNCTION_TRACER
- 	select HAVE_IDE
-+	select HAVE_GET_CYCLES
- 	select HAVE_LMB
- 	select HAVE_ARCH_KGDB
- 	select USE_GENERIC_SMP_HELPERS if SMP
-Index: linux.trees.git/arch/sparc/include/asm/timex_64.h
-===================================================================
---- linux.trees.git.orig/arch/sparc/include/asm/timex_64.h	2008-11-12 18:15:48.000000000 -0500
-+++ linux.trees.git/arch/sparc/include/asm/timex_64.h	2008-11-26 06:48:52.000000000 -0500
-@@ -12,7 +12,24 @@
+--- linux.trees.git.orig/init/Kconfig	2008-11-18 06:44:11.000000000 -0500
++++ linux.trees.git/init/Kconfig	2008-11-26 06:48:12.000000000 -0500
+@@ -330,6 +330,16 @@ config CPUSETS
+ config HAVE_UNSTABLE_SCHED_CLOCK
+ 	bool
  
- /* Getting on the cycle counter on sparc64. */
- typedef unsigned long cycles_t;
--#define get_cycles()	tick_ops->get_tick()
++#
++# Architectures with a 64-bits get_cycles() should select this.
++# They should also define
++# get_cycles_barrier() : instruction synchronization barrier if required
++# get_cycles_rate() : cycle counter rate, in HZ. If 0, TSC are not synchronized
++# across CPUs or their frequency may vary due to frequency scaling.
++#
++config HAVE_GET_CYCLES
++	def_bool n
 +
-+static inline cycles_t get_cycles(void)
-+{
-+	return tick_ops->get_tick();
-+}
-+
-+/* get_cycles instruction is synchronized on sparc64 */
-+static inline void get_cycles_barrier(void)
-+{
-+	return;
-+}
-+
-+extern unsigned long tb_ticks_per_usec;
-+
-+static inline cycles_t get_cycles_rate(void)
-+{
-+	return (cycles_t)tb_ticks_per_usec * 1000000UL;
-+}
- 
- #define ARCH_HAS_READ_CURRENT_TIMER
- 
-Index: linux.trees.git/arch/sparc64/kernel/time.c
-===================================================================
---- linux.trees.git.orig/arch/sparc64/kernel/time.c	2008-11-12 18:15:48.000000000 -0500
-+++ linux.trees.git/arch/sparc64/kernel/time.c	2008-11-26 06:48:52.000000000 -0500
-@@ -793,7 +793,8 @@ static void __init setup_clockevent_mult
- 	sparc64_clockevent.mult = mult;
- }
- 
--static unsigned long tb_ticks_per_usec __read_mostly;
-+unsigned long tb_ticks_per_usec __read_mostly;
-+EXPORT_SYMBOL_GPL(tb_ticks_per_usec);
- 
- void __delay(unsigned long loops)
- {
+ config GROUP_SCHED
+ 	bool "Group CPU scheduler"
+ 	depends on EXPERIMENTAL
 
 -- 
 Mathieu Desnoyers
