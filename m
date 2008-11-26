@@ -1,31 +1,21 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 01/17] get_cycles() : kconfig HAVE_GET_CYCLES
-Date: Wed, 26 Nov 2008 07:42:47 -0500
-Message-ID: <20081126124634.459240769@polymtl.ca>
+Subject: [patch 02/17] get_cycles() : x86 HAVE_GET_CYCLES
+Date: Wed, 26 Nov 2008 07:42:48 -0500
+Message-ID: <20081126124634.617634769@polymtl.ca>
 References: <20081126124246.800751190@polymtl.ca>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:46235 "EHLO smtp.polymtl.ca"
+Received: from smtp.polymtl.ca ([132.207.4.11]:46290 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753936AbYKZM6O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Nov 2008 07:58:14 -0500
-Content-Disposition: inline; filename=get-cycles-kconfig-have-get-cycles.patch
+	id S1754107AbYKZM6b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Nov 2008 07:58:31 -0500
+Content-Disposition: inline; filename=get-cycles-x86-have-get-cycles.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org
 Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-Create a new "HAVE_GET_CYCLES" architecture option to specify which
-architectures provide 64-bits TSC counters readable with get_cycles(). It's
-principally useful to only enable high-precision tracing code only on such
-architectures and don't even bother building it on architectures which lack such
-support.
-
-It also requires architectures to provide get_cycles_barrier() and
-get_cycles_rate().
-
-I mainly use it for the "priority-sifting rwlock" latency tracing code, which
-traces worse-case latency induced by the locking. It also provides the basic
-changes needed for the LTTng timestamping infrastructure.
+This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
+get_cycles_rate() are implemented.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
 CC: David Miller <davem@davemloft.net>
@@ -37,30 +27,45 @@ CC: Thomas Gleixner <tglx@linutronix.de>
 CC: Steven Rostedt <rostedt@goodmis.org>
 CC: linux-arch@vger.kernel.org
 ---
- init/Kconfig |   10 ++++++++++
- 1 file changed, 10 insertions(+)
+ arch/x86/Kconfig           |    1 +
+ arch/x86/include/asm/tsc.h |   12 ++++++++++++
+ 2 files changed, 13 insertions(+)
 
-Index: linux.trees.git/init/Kconfig
+Index: linux.trees.git/arch/x86/Kconfig
 ===================================================================
---- linux.trees.git.orig/init/Kconfig	2008-11-18 06:44:11.000000000 -0500
-+++ linux.trees.git/init/Kconfig	2008-11-26 06:48:12.000000000 -0500
-@@ -330,6 +330,16 @@ config CPUSETS
- config HAVE_UNSTABLE_SCHED_CLOCK
- 	bool
+--- linux.trees.git.orig/arch/x86/Kconfig	2008-11-26 05:46:29.000000000 -0500
++++ linux.trees.git/arch/x86/Kconfig	2008-11-26 06:48:49.000000000 -0500
+@@ -20,6 +20,7 @@ config X86
+ 	def_bool y
+ 	select HAVE_AOUT if X86_32
+ 	select HAVE_UNSTABLE_SCHED_CLOCK
++	select HAVE_GET_CYCLES
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
+ 	select HAVE_IOREMAP_PROT
+Index: linux.trees.git/arch/x86/include/asm/tsc.h
+===================================================================
+--- linux.trees.git.orig/arch/x86/include/asm/tsc.h	2008-11-14 17:38:28.000000000 -0500
++++ linux.trees.git/arch/x86/include/asm/tsc.h	2008-11-26 06:48:49.000000000 -0500
+@@ -50,6 +50,18 @@ extern void mark_tsc_unstable(char *reas
+ extern int unsynchronized_tsc(void);
+ int check_tsc_unstable(void);
  
-+#
-+# Architectures with a 64-bits get_cycles() should select this.
-+# They should also define
-+# get_cycles_barrier() : instruction synchronization barrier if required
-+# get_cycles_rate() : cycle counter rate, in HZ. If 0, TSC are not synchronized
-+# across CPUs or their frequency may vary due to frequency scaling.
-+#
-+config HAVE_GET_CYCLES
-+	def_bool n
++static inline cycles_t get_cycles_rate(void)
++{
++	if (check_tsc_unstable())
++		return 0;
++	return (cycles_t)tsc_khz * 1000;
++}
 +
- config GROUP_SCHED
- 	bool "Group CPU scheduler"
- 	depends on EXPERIMENTAL
++static inline void get_cycles_barrier(void)
++{
++	rdtsc_barrier();
++}
++
+ /*
+  * Boot-time check whether the TSCs are synchronized across
+  * all CPUs/cores:
 
 -- 
 Mathieu Desnoyers
