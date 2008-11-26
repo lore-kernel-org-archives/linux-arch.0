@@ -1,94 +1,96 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 09/17] Powerpc : Trace clock
-Date: Wed, 26 Nov 2008 07:42:55 -0500
-Message-ID: <20081126124635.756699196@polymtl.ca>
+Subject: [patch 03/17] get_cycles() : sparc64 HAVE_GET_CYCLES
+Date: Wed, 26 Nov 2008 07:42:49 -0500
+Message-ID: <20081126124634.777757087@polymtl.ca>
 References: <20081126124246.800751190@polymtl.ca>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:46125 "EHLO smtp.polymtl.ca"
+Received: from smtp.polymtl.ca ([132.207.4.11]:46281 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752308AbYKZM5z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Nov 2008 07:57:55 -0500
-Content-Disposition: inline; filename=powerpc-trace-clock.patch
+	id S1752508AbYKZM60 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Nov 2008 07:58:26 -0500
+Content-Disposition: inline; filename=get-cycles-sparc64-have-get-cycles.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, benh@kernel.crashing.org, paulus@samba.org, linux-arch@vger.kernel.org
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-Powerpc implementation of trace clock with get_tb().
+This patch selects HAVE_GET_CYCLES and makes sure get_cycles_barrier() and
+get_cycles_rate() are implemented.
+
+Changelog :
+- Use tb_ticks_per_usec * 1000000 in get_cycles_rate().
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: benh@kernel.crashing.org
-CC: paulus@samba.org
+Acked-by: David S. Miller <davem@davemloft.net>
+CC: Linus Torvalds <torvalds@linux-foundation.org>
+CC: Andrew Morton <akpm@linux-foundation.org>
+CC: Ingo Molnar <mingo@redhat.com>
+CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
+CC: Thomas Gleixner <tglx@linutronix.de>
+CC: Steven Rostedt <rostedt@goodmis.org>
 CC: linux-arch@vger.kernel.org
 ---
- arch/powerpc/Kconfig                   |    1 
- arch/powerpc/include/asm/trace-clock.h |   47 +++++++++++++++++++++++++++++++++
- 2 files changed, 48 insertions(+)
+ arch/sparc/include/asm/timex_64.h |   19 ++++++++++++++++++-
+ arch/sparc64/Kconfig              |    1 +
+ arch/sparc64/kernel/time.c        |    3 ++-
+ 3 files changed, 21 insertions(+), 2 deletions(-)
 
-Index: linux.trees.git/arch/powerpc/Kconfig
+Index: linux.trees.git/arch/sparc64/Kconfig
 ===================================================================
---- linux.trees.git.orig/arch/powerpc/Kconfig	2008-11-26 06:49:00.000000000 -0500
-+++ linux.trees.git/arch/powerpc/Kconfig	2008-11-26 06:51:50.000000000 -0500
-@@ -114,6 +114,7 @@ config PPC
- 	select HAVE_IOREMAP_PROT
- 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
- 	select HAVE_KPROBES
-+	select HAVE_TRACE_CLOCK
+--- linux.trees.git.orig/arch/sparc64/Kconfig	2008-11-12 18:15:48.000000000 -0500
++++ linux.trees.git/arch/sparc64/Kconfig	2008-11-26 06:48:52.000000000 -0500
+@@ -13,6 +13,7 @@ config SPARC64
+ 	default y
+ 	select HAVE_FUNCTION_TRACER
+ 	select HAVE_IDE
++	select HAVE_GET_CYCLES
+ 	select HAVE_LMB
  	select HAVE_ARCH_KGDB
- 	select HAVE_KRETPROBES
- 	select HAVE_ARCH_TRACEHOOK
-Index: linux.trees.git/arch/powerpc/include/asm/trace-clock.h
+ 	select USE_GENERIC_SMP_HELPERS if SMP
+Index: linux.trees.git/arch/sparc/include/asm/timex_64.h
 ===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux.trees.git/arch/powerpc/include/asm/trace-clock.h	2008-11-26 06:51:50.000000000 -0500
-@@ -0,0 +1,47 @@
-+/*
-+ * Copyright (C) 2005,2008 Mathieu Desnoyers
-+ *
-+ * Trace clock PowerPC definitions.
-+ *
-+ * Use get_tb() directly to insure reading a 64-bits value on powerpc 32.
-+ */
+--- linux.trees.git.orig/arch/sparc/include/asm/timex_64.h	2008-11-12 18:15:48.000000000 -0500
++++ linux.trees.git/arch/sparc/include/asm/timex_64.h	2008-11-26 06:48:52.000000000 -0500
+@@ -12,7 +12,24 @@
+ 
+ /* Getting on the cycle counter on sparc64. */
+ typedef unsigned long cycles_t;
+-#define get_cycles()	tick_ops->get_tick()
 +
-+#ifndef _ASM_TRACE_CLOCK_H
-+#define _ASM_TRACE_CLOCK_H
-+
-+#include <linux/timex.h>
-+#include <linux/time.h>
-+#include <asm/processor.h>
-+
-+static inline u32 trace_clock_read32(void)
++static inline cycles_t get_cycles(void)
 +{
-+	return get_tbl();
++	return tick_ops->get_tick();
 +}
 +
-+static inline u64 trace_clock_read64(void)
++/* get_cycles instruction is synchronized on sparc64 */
++static inline void get_cycles_barrier(void)
 +{
-+	return get_tb();
++	return;
 +}
 +
-+static inline unsigned int trace_clock_frequency(void)
-+{
-+	return get_cycles_rate();
-+}
++extern unsigned long tb_ticks_per_usec;
 +
-+static inline u32 trace_clock_freq_scale(void)
++static inline cycles_t get_cycles_rate(void)
 +{
-+	return 1;
++	return (cycles_t)tb_ticks_per_usec * 1000000UL;
 +}
-+
-+static inline void get_trace_clock(void)
-+{
-+}
-+
-+static inline void put_trace_clock(void)
-+{
-+}
-+
-+static inline void set_trace_clock_is_sync(int state)
-+{
-+}
-+#endif /* _ASM_TRACE_CLOCK_H */
+ 
+ #define ARCH_HAS_READ_CURRENT_TIMER
+ 
+Index: linux.trees.git/arch/sparc64/kernel/time.c
+===================================================================
+--- linux.trees.git.orig/arch/sparc64/kernel/time.c	2008-11-12 18:15:48.000000000 -0500
++++ linux.trees.git/arch/sparc64/kernel/time.c	2008-11-26 06:48:52.000000000 -0500
+@@ -793,7 +793,8 @@ static void __init setup_clockevent_mult
+ 	sparc64_clockevent.mult = mult;
+ }
+ 
+-static unsigned long tb_ticks_per_usec __read_mostly;
++unsigned long tb_ticks_per_usec __read_mostly;
++EXPORT_SYMBOL_GPL(tb_ticks_per_usec);
+ 
+ void __delay(unsigned long loops)
+ {
 
 -- 
 Mathieu Desnoyers
