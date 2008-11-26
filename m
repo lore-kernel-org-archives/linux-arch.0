@@ -1,65 +1,70 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 10/17] Sparc64 : Trace clock
-Date: Wed, 26 Nov 2008 07:42:56 -0500
-Message-ID: <20081126124635.913740788@polymtl.ca>
+Subject: [patch 09/17] Powerpc : Trace clock
+Date: Wed, 26 Nov 2008 07:42:55 -0500
+Message-ID: <20081126124635.756699196@polymtl.ca>
 References: <20081126124246.800751190@polymtl.ca>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:46127 "EHLO smtp.polymtl.ca"
+Received: from smtp.polymtl.ca ([132.207.4.11]:46125 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752430AbYKZM54 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Nov 2008 07:57:56 -0500
-Content-Disposition: inline; filename=sparc64-trace-clock.patch
+	id S1752308AbYKZM5z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Nov 2008 07:57:55 -0500
+Content-Disposition: inline; filename=powerpc-trace-clock.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, benh@kernel.crashing.org, paulus@samba.org, linux-arch@vger.kernel.org
 
-Implement sparc64 trace clock.
+Powerpc implementation of trace clock with get_tb().
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Acked-by: David S. Miller <davem@davemloft.net>
+CC: benh@kernel.crashing.org
+CC: paulus@samba.org
 CC: linux-arch@vger.kernel.org
 ---
- arch/sparc/include/asm/trace-clock.h |   43 +++++++++++++++++++++++++++++++++++
- arch/sparc64/Kconfig                 |    1 
- 2 files changed, 44 insertions(+)
+ arch/powerpc/Kconfig                   |    1 
+ arch/powerpc/include/asm/trace-clock.h |   47 +++++++++++++++++++++++++++++++++
+ 2 files changed, 48 insertions(+)
 
-Index: linux.trees.git/arch/sparc64/Kconfig
+Index: linux.trees.git/arch/powerpc/Kconfig
 ===================================================================
---- linux.trees.git.orig/arch/sparc64/Kconfig	2008-11-26 06:48:52.000000000 -0500
-+++ linux.trees.git/arch/sparc64/Kconfig	2008-11-26 06:52:21.000000000 -0500
-@@ -18,6 +18,7 @@ config SPARC64
- 	select HAVE_ARCH_KGDB
- 	select USE_GENERIC_SMP_HELPERS if SMP
- 	select HAVE_ARCH_TRACEHOOK
+--- linux.trees.git.orig/arch/powerpc/Kconfig	2008-11-26 06:49:00.000000000 -0500
++++ linux.trees.git/arch/powerpc/Kconfig	2008-11-26 06:51:50.000000000 -0500
+@@ -114,6 +114,7 @@ config PPC
+ 	select HAVE_IOREMAP_PROT
+ 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
+ 	select HAVE_KPROBES
 +	select HAVE_TRACE_CLOCK
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
- 	select RTC_CLASS
- 	select RTC_DRV_M48T59
-Index: linux.trees.git/arch/sparc/include/asm/trace-clock.h
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_KRETPROBES
+ 	select HAVE_ARCH_TRACEHOOK
+Index: linux.trees.git/arch/powerpc/include/asm/trace-clock.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux.trees.git/arch/sparc/include/asm/trace-clock.h	2008-11-26 06:52:02.000000000 -0500
-@@ -0,0 +1,43 @@
++++ linux.trees.git/arch/powerpc/include/asm/trace-clock.h	2008-11-26 06:51:50.000000000 -0500
+@@ -0,0 +1,47 @@
 +/*
-+ * Copyright (C) 2008, Mathieu Desnoyers
++ * Copyright (C) 2005,2008 Mathieu Desnoyers
 + *
-+ * Trace clock definitions for Sparc64.
++ * Trace clock PowerPC definitions.
++ *
++ * Use get_tb() directly to insure reading a 64-bits value on powerpc 32.
 + */
 +
-+#ifndef _ASM_SPARC_TRACE_CLOCK_H
-+#define _ASM_SPARC_TRACE_CLOCK_H
++#ifndef _ASM_TRACE_CLOCK_H
++#define _ASM_TRACE_CLOCK_H
 +
 +#include <linux/timex.h>
++#include <linux/time.h>
++#include <asm/processor.h>
 +
 +static inline u32 trace_clock_read32(void)
 +{
-+	return get_cycles();
++	return get_tbl();
 +}
 +
 +static inline u64 trace_clock_read64(void)
 +{
-+	return get_cycles();
++	return get_tb();
 +}
 +
 +static inline unsigned int trace_clock_frequency(void)
@@ -83,7 +88,7 @@ Index: linux.trees.git/arch/sparc/include/asm/trace-clock.h
 +static inline void set_trace_clock_is_sync(int state)
 +{
 +}
-+#endif /* _ASM_SPARC_TRACE_CLOCK_H */
++#endif /* _ASM_TRACE_CLOCK_H */
 
 -- 
 Mathieu Desnoyers
