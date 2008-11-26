@@ -1,421 +1,563 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 07/17] Trace clock core
-Date: Wed, 26 Nov 2008 07:42:53 -0500
-Message-ID: <20081126124635.419728733@polymtl.ca>
-References: <20081126124246.800751190@polymtl.ca>
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: [RESEND:PATCH] [ARM] clearpage: provide our own clear_user_highpage()
+Date: Wed, 26 Nov 2008 17:13:21 +0000
+Message-ID: <20081126171321.GA4719@dyn-67.arm.linux.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:46297 "EHLO smtp.polymtl.ca"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754116AbYKZM6c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Nov 2008 07:58:32 -0500
-Content-Disposition: inline; filename=trace-clock-core.patch
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:56395 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752694AbYKZRN2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Nov 2008 12:13:28 -0500
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Nicolas Pitre <nico@cam.org>, Ralf Baechle <ralf@linux-mips.org>, benh@kernel.crashing.org, paulus@samba.org, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org, Linux Kernel List <linux-kernel@vger.kernel.org>, linux-mm@kvack.org
 
-32 to 64 bits clock extension. Extracts 64 bits tsc from a [1..32]
-bits counter, kept up to date by periodical timer interrupt. Lockless.
+I've not had any response to this, so in liu of any response by this
+coming weekend, I'm going to assume that everyone's happy with this
+change (at which point it's going to become buried under a lot of
+merges with other trees.)
 
-It's actually a specialized version of cnt_32_to_63.h which does the following
-in addition :
-- Uses per-cpu data to keep track of counters.
-  - It limits cache-line bouncing
-  - I supports machines with non-synchronized TSCs.
-  - Does not require read barriers, which can be slow on some architectures.
-- Supports a full 64-bits counter (well, just one bit more than 63 is not really
-  a big deal when we talk about timestamp counters). If 2^64 is considered long
-  enough between overflows, 2^63 is normally considered long enough too.
-- The periodical update of the value is insured by the infrastructure. There is
-  no assumption that the counter is read frequently, because we cannot assume
-  that given the events for which tracing is enabled can be dynamically
-  selected.
-- Supports counters of various width (32-bits and below) by changing the
-  HW_BITS define.
+----- Forwarded message from Russell King <rmk+lkml@arm.linux.org.uk> -----
 
-What cnt_32_to_63.h does that this patch doesn't do :
-- It has a global counter, which removes the need to do an update periodically
-  on _each_ cpu. This can be important in a dynamic tick system where CPUs need
-  to sleep to save power. It is therefore well suited for systems reading a
-  global clock expected to be _exactly_ synchronized across cores (where time
-  can never ever go backward).
+Date: Thu, 20 Nov 2008 17:50:17 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+To: linux-arch@vger.kernel.org,
+	Linux Kernel List <linux-kernel@vger.kernel.org>,
+	linux-mm@kvack.org
+Subject: [PATCH] [ARM] clearpage: provide our own clear_user_highpage()
 
-Q:
+This patch is part of a larger ARM specific patch set cleaning up
+aliasing VIPT cache support.
 
-> do you actually use the RCU internals? or do you just reimplement an RCU
-> algorithm?
-> 
+With aliasing VIPT cache support, our implementation of clear_user_page()
+and copy_user_page() sets up a temporary kernel space mapping such that
+we have the same cache colour as the userspace page.  This avoids having
+to consider any userspace aliases from this operation.
 
-A:
+However, when highmem is enabled, kmap_atomic() have to setup mappings.
+The copy_user_highpage() and clear_user_highpage() call these functions
+before delegating the copies to copy_user_page() and clear_user_page().
 
-Nope, I don't use RCU internals in this code. Preempt disable seemed
-like the best way to handle this utterly short code path and I wanted
-the write side to be fast enough to be called periodically. What I do is:
+The effect of this is that each of the *_user_highpage() functions setup
+their own kmap mapping, followed by the *_user_page() functions setting
+up another mapping.  This is rather wasteful.
 
-- Disable preemption at the read-side :
-  it makes sure the pointer I get will point to a data structure that
-  will never change while I am in the preempt disabled code. (see *)
-- I use per-cpu data to allow the read-side to be as fast as possible
-  (only need to disable preemption, does not race against other CPUs and
-  won't generate cache line bouncing). It also allows dealing with
-  unsynchronized TSCs if needed.
-- Periodical write side : it's called from an IPI running on each CPU.
+Thankfully, copy_user_highpage() can be overriden by architectures by
+defining __HAVE_ARCH_COPY_USER_HIGHPAGE.  However, replacement of 
+clear_user_highpage() is more difficult because its inline definition
+is not conditional.  It seems that you're expected to define
+__HAVE_ARCH_ALLOC_ZEROED_USER_HIGHPAGE and provide a replacement
+__alloc_zeroed_user_highpage() implementation instead.
 
-(*) We expect the read-side (preempt off region) to last shorter than
-the interval between IPI updates so we can guarantee the data structure
-it uses won't be modified underneath it. Since the IPI update is
-launched each seconds or so (depends on the frequency of the counter we
-are trying to extend), it's more than ok.
+The allocation itself is fine, so we don't want to override that.  What
+we really want to do is to override clear_user_highpage() with our own
+version which doesn't kmap_atomic() unnecessarily.
 
-Changelog:
+However, there are two drivers (drivers/media/video/videobuf-dma-sg.c
+and drivers/staging/go7007/go7007-v4l2.c) which want to provide non-
+highmem clear_user_page()'d pages to userspace.
 
-- Support [1..32] bits -> 64 bits.
+Requiring an architecture to provide __alloc_zeroed_user_highpage(),
+a sub-optimal clear_user_page(), and keep the sub-optimal
+clear_user_highpage() around seems rather silly and potentially
+error prone.
 
-I volountarily limit the code to use at most 32 bits of the hardware clock for
-performance considerations. If this is a problem it could be changed. Also, the
-algorithm is aimed at a 32 bits architecture. The code becomes muuuch simpler on
-a 64 bits arch, since we can do the updates atomically.
+So, what this patch below does is allow clear_user_highpage() itself
+to be overriden by architectures, so that they can provide just one
+implementation.
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: Nicolas Pitre <nico@cam.org>
-CC: Ralf Baechle <ralf@linux-mips.org>
-CC: benh@kernel.crashing.org
-CC: paulus@samba.org
-CC: David Miller <davem@davemloft.net>
-CC: Linus Torvalds <torvalds@linux-foundation.org>
-CC: Andrew Morton <akpm@linux-foundation.org>
-CC: Ingo Molnar <mingo@redhat.com>
-CC: Peter Zijlstra <a.p.zijlstra@chello.nl>
-CC: Thomas Gleixner <tglx@linutronix.de>
-CC: Steven Rostedt <rostedt@goodmis.org>
-CC: linux-arch@vger.kernel.org
+What needs to follow on from this is converting those two drivers to
+use clear_user_highpage() instead of clear_user_page() - that should
+be a trivial patch.
+
+Are there any objections to this approach?  Can I get any acked-by's
+from any MM folk for the include/linux/highmem.h change?
+
+
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Date: Mon, 17 Nov 2008 14:08:49 +0000
+Subject: Re: [PATCH] [ARM] clearpage: provide our own clear_user_highpage()
+
+From: Russell King <rmk@dyn-67.arm.linux.org.uk>
+
+For similar reasons as copy_user_page(), we want to avoid the
+additional kmap_atomic if it's unnecessary.
+
+Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
 ---
- init/Kconfig                        |   12 +
- kernel/trace/Makefile               |    1 
- kernel/trace/trace-clock-32-to-64.c |  281 ++++++++++++++++++++++++++++++++++++
- 3 files changed, 294 insertions(+)
+ arch/arm/include/asm/page.h     |   11 ++++++-----
+ arch/arm/mm/copypage-feroceon.c |   20 ++++++++++----------
+ arch/arm/mm/copypage-v3.c       |   13 +++++++------
+ arch/arm/mm/copypage-v4mc.c     |   28 ++++++++++++++--------------
+ arch/arm/mm/copypage-v4wb.c     |   28 ++++++++++++++--------------
+ arch/arm/mm/copypage-v4wt.c     |   24 ++++++++++++------------
+ arch/arm/mm/copypage-v6.c       |   23 +++++++++--------------
+ arch/arm/mm/copypage-xsc3.c     |   25 +++++++++++++------------
+ arch/arm/mm/copypage-xscale.c   |   26 ++++++++++++++------------
+ arch/arm/mm/proc-syms.c         |    2 +-
+ include/linux/highmem.h         |    2 ++
+ 11 files changed, 102 insertions(+), 100 deletions(-)
 
-Index: linux.trees.git/kernel/trace/Makefile
-===================================================================
---- linux.trees.git.orig/kernel/trace/Makefile	2008-11-26 07:00:51.000000000 -0500
-+++ linux.trees.git/kernel/trace/Makefile	2008-11-26 07:01:38.000000000 -0500
-@@ -33,5 +33,6 @@ obj-$(CONFIG_FUNCTION_GRAPH_TRACER) += t
- obj-$(CONFIG_TRACE_BRANCH_PROFILING) += trace_branch.o
- obj-$(CONFIG_BTS_TRACER) += trace_bts.o
- obj-$(CONFIG_POWER_TRACER) += trace_power.o
-+obj-$(CONFIG_HAVE_TRACE_CLOCK_32_TO_64) += trace-clock-32-to-64.o
+diff --git a/arch/arm/include/asm/page.h b/arch/arm/include/asm/page.h
+index f6e090f..f341c9d 100644
+--- a/arch/arm/include/asm/page.h
++++ b/arch/arm/include/asm/page.h
+@@ -111,7 +111,7 @@
+ struct page;
  
- libftrace-y := ftrace.o
-Index: linux.trees.git/kernel/trace/trace-clock-32-to-64.c
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux.trees.git/kernel/trace/trace-clock-32-to-64.c	2008-11-26 07:01:38.000000000 -0500
-@@ -0,0 +1,281 @@
-+/*
-+ * kernel/trace/trace-clock-32-to-64.c
-+ *
-+ * (C) Copyright	2006,2007,2008 -
-+ * 		Mathieu Desnoyers (mathieu.desnoyers@polymtl.ca)
-+ *
-+ * Extends a 32 bits clock source to a full 64 bits count, readable atomically
-+ * from any execution context.
-+ *
-+ * notes :
-+ * - trace clock 32->64 bits extended timer-based clock cannot be used for early
-+ *   tracing in the boot process, as it depends on timer interrupts.
-+ * - The timer is only on one CPU to support hotplug.
-+ * - We have the choice between schedule_delayed_work_on and an IPI to get each
-+ *   CPU to write the heartbeat. IPI has been chosen because it is considered
-+ *   faster than passing through the timer to get the work scheduled on all the
-+ *   CPUs.
-+ */
-+
-+#include <linux/module.h>
-+#include <linux/init.h>
-+#include <linux/delay.h>
-+#include <linux/timer.h>
-+#include <linux/workqueue.h>
-+#include <linux/cpu.h>
-+#include <linux/timex.h>
-+#include <linux/bitops.h>
-+#include <linux/trace-clock.h>
-+#include <linux/smp.h>
-+#include <linux/sched.h> /* needed due to include order problem on m68k */
-+
-+/*
-+ * Number of hardware clock bits. The higher order bits are expected to be 0.
-+ * If the hardware clock source has more than 32 bits, the bits higher than the
-+ * 32nd will be truncated by a cast to a 32 bits unsigned. Range : 1 - 32.
-+ * (too few bits would be unrealistic though, since we depend on the timer to
-+ * detect the overflows).
-+ */
-+#define HW_BITS				32
-+
-+#define HW_BITMASK			((1ULL << HW_BITS) - 1)
-+#define HW_LS32(hw)			((hw) & HW_BITMASK)
-+#define SW_MS32(sw)			((sw) & ~HW_BITMASK)
-+
-+/* Expected maximum interrupt latency in ms : 15ms, *2 for security */
-+#define EXPECTED_INTERRUPT_LATENCY	30
-+
-+static DEFINE_MUTEX(synthetic_tsc_mutex);
-+static int synthetic_tsc_refcount;  /* Number of readers */
-+static int synthetic_tsc_enabled;   /* synth. TSC enabled on all online CPUs */
-+
-+static DEFINE_PER_CPU(struct timer_list, tsc_timer);
-+static unsigned int precalc_expire;
-+
-+struct synthetic_tsc_struct {
-+	union {
-+		u64 val;
-+		struct {
-+#ifdef __BIG_ENDIAN
-+			u32 ms32;
-+			u32 ls32;
-+#else
-+			u32 ls32;
-+			u32 ms32;
+ struct cpu_user_fns {
+-	void (*cpu_clear_user_page)(void *p, unsigned long user);
++	void (*cpu_clear_user_highpage)(struct page *page, unsigned long vaddr);
+ 	void (*cpu_copy_user_highpage)(struct page *to, struct page *from,
+ 			unsigned long vaddr);
+ };
+@@ -119,20 +119,21 @@ struct cpu_user_fns {
+ #ifdef MULTI_USER
+ extern struct cpu_user_fns cpu_user;
+ 
+-#define __cpu_clear_user_page		cpu_user.cpu_clear_user_page
++#define __cpu_clear_user_highpage	cpu_user.cpu_clear_user_highpage
+ #define __cpu_copy_user_highpage	cpu_user.cpu_copy_user_highpage
+ 
+ #else
+ 
+-#define __cpu_clear_user_page		__glue(_USER,_clear_user_page)
++#define __cpu_clear_user_highpage	__glue(_USER,_clear_user_highpage)
+ #define __cpu_copy_user_highpage	__glue(_USER,_copy_user_highpage)
+ 
+-extern void __cpu_clear_user_page(void *p, unsigned long user);
++extern void __cpu_clear_user_highpage(struct page *page, unsigned long vaddr);
+ extern void __cpu_copy_user_highpage(struct page *to, struct page *from,
+ 			unsigned long vaddr);
+ #endif
+ 
+-#define clear_user_page(addr,vaddr,pg)	 __cpu_clear_user_page(addr, vaddr)
++#define clear_user_highpage(page,vaddr)		\
++	 __cpu_clear_user_highpage(page, vaddr)
+ 
+ #define __HAVE_ARCH_COPY_USER_HIGHPAGE
+ #define copy_user_highpage(to,from,vaddr,vma)	\
+diff --git a/arch/arm/mm/copypage-feroceon.c b/arch/arm/mm/copypage-feroceon.c
+index edd7168..c3651b2 100644
+--- a/arch/arm/mm/copypage-feroceon.c
++++ b/arch/arm/mm/copypage-feroceon.c
+@@ -79,12 +79,11 @@ void feroceon_copy_user_highpage(struct page *to, struct page *from,
+ 	kunmap_atomic(kto, KM_USER0);
+ }
+ 
+-void __attribute__((naked))
+-feroceon_clear_user_page(void *kaddr, unsigned long vaddr)
++void feroceon_clear_user_highpage(struct page *page, unsigned long vaddr)
+ {
++	void *kaddr = kmap_atomic(page, KM_USER0);
+ 	asm("\
+-	stmfd	sp!, {r4-r7, lr}		\n\
+-	mov	r1, %0				\n\
++	mov	r1, %1				\n\
+ 	mov	r2, #0				\n\
+ 	mov	r3, #0				\n\
+ 	mov	r4, #0				\n\
+@@ -93,19 +92,20 @@ feroceon_clear_user_page(void *kaddr, unsigned long vaddr)
+ 	mov	r7, #0				\n\
+ 	mov	ip, #0				\n\
+ 	mov	lr, #0				\n\
+-1:	stmia	r0, {r2-r7, ip, lr}		\n\
++1:	stmia	%0, {r2-r7, ip, lr}		\n\
+ 	subs	r1, r1, #1			\n\
+-	mcr	p15, 0, r0, c7, c14, 1		@ clean and invalidate D line\n\
++	mcr	p15, 0, %0, c7, c14, 1		@ clean and invalidate D line\n\
+ 	add	r0, r0, #32			\n\
+ 	bne	1b				\n\
+-	mcr	p15, 0, r1, c7, c10, 4		@ drain WB\n\
+-	ldmfd	sp!, {r4-r7, pc}"
++	mcr	p15, 0, r1, c7, c10, 4		@ drain WB"
+ 	:
+-	: "I" (PAGE_SIZE / 32));
++	: "r" (kaddr), "I" (PAGE_SIZE / 32)
++	: "r1", "r2", "r3", "r4", "r5", "r6", "r7", "ip", "lr");
++	kunmap_atomic(kaddr, KM_USER0);
+ }
+ 
+ struct cpu_user_fns feroceon_user_fns __initdata = {
+-	.cpu_clear_user_page	= feroceon_clear_user_page,
++	.cpu_clear_user_highpage = feroceon_clear_user_highpage,
+ 	.cpu_copy_user_highpage	= feroceon_copy_user_highpage,
+ };
+ 
+diff --git a/arch/arm/mm/copypage-v3.c b/arch/arm/mm/copypage-v3.c
+index 52df8f0..13ce0ba 100644
+--- a/arch/arm/mm/copypage-v3.c
++++ b/arch/arm/mm/copypage-v3.c
+@@ -54,10 +54,10 @@ void v3_copy_user_highpage(struct page *to, struct page *from,
+  *
+  * FIXME: do we need to handle cache stuff...
+  */
+-void __attribute__((naked)) v3_clear_user_page(void *kaddr, unsigned long vaddr)
++void v3_clear_user_highpage(struct page *page, unsigned long vaddr)
+ {
++	void *kaddr = kmap_atomic(page, KM_USER0);
+ 	asm("\n\
+-	str	lr, [sp, #-4]!\n\
+ 	mov	r1, %1				@ 1\n\
+ 	mov	r2, #0				@ 1\n\
+ 	mov	r3, #0				@ 1\n\
+@@ -68,13 +68,14 @@ void __attribute__((naked)) v3_clear_user_page(void *kaddr, unsigned long vaddr)
+ 	stmia	%0!, {r2, r3, ip, lr}		@ 4\n\
+ 	stmia	%0!, {r2, r3, ip, lr}		@ 4\n\
+ 	subs	r1, r1, #1			@ 1\n\
+-	bne	1b				@ 1\n\
+-	ldr	pc, [sp], #4"
++	bne	1b				@ 1"
+ 	:
+-	: "r" (kaddr), "I" (PAGE_SIZE / 64));
++	: "r" (kaddr), "I" (PAGE_SIZE / 64)
++	: "r1", "r2", "r3", "ip", "lr");
++	kunmap_atomic(kaddr, KM_USER0);
+ }
+ 
+ struct cpu_user_fns v3_user_fns __initdata = {
+-	.cpu_clear_user_page	= v3_clear_user_page,
++	.cpu_clear_user_highpage = v3_clear_user_highpage,
+ 	.cpu_copy_user_highpage	= v3_copy_user_highpage,
+ };
+diff --git a/arch/arm/mm/copypage-v4mc.c b/arch/arm/mm/copypage-v4mc.c
+index a7dc838..a5eae50 100644
+--- a/arch/arm/mm/copypage-v4mc.c
++++ b/arch/arm/mm/copypage-v4mc.c
+@@ -91,30 +91,30 @@ void v4_mc_copy_user_highpage(struct page *from, struct page *to,
+ /*
+  * ARMv4 optimised clear_user_page
+  */
+-void __attribute__((naked))
+-v4_mc_clear_user_page(void *kaddr, unsigned long vaddr)
++void v4_mc_clear_user_highpage(struct page *page, unsigned long vaddr)
+ {
+-	asm volatile(
+-	"str	lr, [sp, #-4]!\n\
++	void *kaddr = kmap_atomic(page, KM_USER0);
++	asm volatile("\
+ 	mov	r1, %0				@ 1\n\
+ 	mov	r2, #0				@ 1\n\
+ 	mov	r3, #0				@ 1\n\
+ 	mov	ip, #0				@ 1\n\
+ 	mov	lr, #0				@ 1\n\
+-1:	mcr	p15, 0, r0, c7, c6, 1		@ 1   invalidate D line\n\
+-	stmia	r0!, {r2, r3, ip, lr}		@ 4\n\
+-	stmia	r0!, {r2, r3, ip, lr}		@ 4\n\
+-	mcr	p15, 0, r0, c7, c6, 1		@ 1   invalidate D line\n\
+-	stmia	r0!, {r2, r3, ip, lr}		@ 4\n\
+-	stmia	r0!, {r2, r3, ip, lr}		@ 4\n\
++1:	mcr	p15, 0, %0, c7, c6, 1		@ 1   invalidate D line\n\
++	stmia	%0!, {r2, r3, ip, lr}		@ 4\n\
++	stmia	%0!, {r2, r3, ip, lr}		@ 4\n\
++	mcr	p15, 0, %0, c7, c6, 1		@ 1   invalidate D line\n\
++	stmia	%0!, {r2, r3, ip, lr}		@ 4\n\
++	stmia	%0!, {r2, r3, ip, lr}		@ 4\n\
+ 	subs	r1, r1, #1			@ 1\n\
+-	bne	1b				@ 1\n\
+-	ldr	pc, [sp], #4"
++	bne	1b				@ 1"
+ 	:
+-	: "I" (PAGE_SIZE / 64));
++	: "r" (kaddr), "I" (PAGE_SIZE / 64)
++	: "r1", "r2", "r3", "ip", "lr");
++	kunmap_atomic(kaddr, KM_USER0);
+ }
+ 
+ struct cpu_user_fns v4_mc_user_fns __initdata = {
+-	.cpu_clear_user_page	= v4_mc_clear_user_page, 
++	.cpu_clear_user_highpage = v4_mc_clear_user_highpage,
+ 	.cpu_copy_user_highpage	= v4_mc_copy_user_highpage,
+ };
+diff --git a/arch/arm/mm/copypage-v4wb.c b/arch/arm/mm/copypage-v4wb.c
+index 186a68a..9144a96 100644
+--- a/arch/arm/mm/copypage-v4wb.c
++++ b/arch/arm/mm/copypage-v4wb.c
+@@ -64,31 +64,31 @@ void v4wb_copy_user_highpage(struct page *to, struct page *from,
+  *
+  * Same story as above.
+  */
+-void __attribute__((naked))
+-v4wb_clear_user_page(void *kaddr, unsigned long vaddr)
++void v4wb_clear_user_highpage(struct page *page, unsigned long vaddr)
+ {
++	void *kaddr = kmap_atomic(page, KM_USER0);
+ 	asm("\
+-	str	lr, [sp, #-4]!\n\
+-	mov	r1, %0				@ 1\n\
++	mov	r1, %1				@ 1\n\
+ 	mov	r2, #0				@ 1\n\
+ 	mov	r3, #0				@ 1\n\
+ 	mov	ip, #0				@ 1\n\
+ 	mov	lr, #0				@ 1\n\
+-1:	mcr	p15, 0, r0, c7, c6, 1		@ 1   invalidate D line\n\
+-	stmia	r0!, {r2, r3, ip, lr}		@ 4\n\
+-	stmia	r0!, {r2, r3, ip, lr}		@ 4\n\
+-	mcr	p15, 0, r0, c7, c6, 1		@ 1   invalidate D line\n\
+-	stmia	r0!, {r2, r3, ip, lr}		@ 4\n\
+-	stmia	r0!, {r2, r3, ip, lr}		@ 4\n\
++1:	mcr	p15, 0, %0, c7, c6, 1		@ 1   invalidate D line\n\
++	stmia	%0!, {r2, r3, ip, lr}		@ 4\n\
++	stmia	%0!, {r2, r3, ip, lr}		@ 4\n\
++	mcr	p15, 0, %0, c7, c6, 1		@ 1   invalidate D line\n\
++	stmia	%0!, {r2, r3, ip, lr}		@ 4\n\
++	stmia	%0!, {r2, r3, ip, lr}		@ 4\n\
+ 	subs	r1, r1, #1			@ 1\n\
+ 	bne	1b				@ 1\n\
+-	mcr	p15, 0, r1, c7, c10, 4		@ 1   drain WB\n\
+-	ldr	pc, [sp], #4"
++	mcr	p15, 0, r1, c7, c10, 4		@ 1   drain WB"
+ 	:
+-	: "I" (PAGE_SIZE / 64));
++	: "r" (kaddr), "I" (PAGE_SIZE / 64)
++	: "r1", "r2", "r3", "ip", "lr");
++	kunmap_atomic(kaddr, KM_USER0);
+ }
+ 
+ struct cpu_user_fns v4wb_user_fns __initdata = {
+-	.cpu_clear_user_page	= v4wb_clear_user_page,
++	.cpu_clear_user_highpage = v4wb_clear_user_highpage,
+ 	.cpu_copy_user_highpage	= v4wb_copy_user_highpage,
+ };
+diff --git a/arch/arm/mm/copypage-v4wt.c b/arch/arm/mm/copypage-v4wt.c
+index 86c2cfd..b8a345d 100644
+--- a/arch/arm/mm/copypage-v4wt.c
++++ b/arch/arm/mm/copypage-v4wt.c
+@@ -60,29 +60,29 @@ void v4wt_copy_user_highpage(struct page *to, struct page *from,
+  *
+  * Same story as above.
+  */
+-void __attribute__((naked))
+-v4wt_clear_user_page(void *kaddr, unsigned long vaddr)
++void v4wt_clear_user_highpage(struct page *page, unsigned long vaddr)
+ {
++	void *kaddr = kmap_atomic(page, KM_USER0);
+ 	asm("\
+-	str	lr, [sp, #-4]!\n\
+-	mov	r1, %0				@ 1\n\
++	mov	r1, %1				@ 1\n\
+ 	mov	r2, #0				@ 1\n\
+ 	mov	r3, #0				@ 1\n\
+ 	mov	ip, #0				@ 1\n\
+ 	mov	lr, #0				@ 1\n\
+-1:	stmia	r0!, {r2, r3, ip, lr}		@ 4\n\
+-	stmia	r0!, {r2, r3, ip, lr}		@ 4\n\
+-	stmia	r0!, {r2, r3, ip, lr}		@ 4\n\
+-	stmia	r0!, {r2, r3, ip, lr}		@ 4\n\
++1:	stmia	%0!, {r2, r3, ip, lr}		@ 4\n\
++	stmia	%0!, {r2, r3, ip, lr}		@ 4\n\
++	stmia	%0!, {r2, r3, ip, lr}		@ 4\n\
++	stmia	%0!, {r2, r3, ip, lr}		@ 4\n\
+ 	subs	r1, r1, #1			@ 1\n\
+ 	bne	1b				@ 1\n\
+-	mcr	p15, 0, r2, c7, c7, 0		@ flush ID cache\n\
+-	ldr	pc, [sp], #4"
++	mcr	p15, 0, r2, c7, c7, 0		@ flush ID cache"
+ 	:
+-	: "I" (PAGE_SIZE / 64));
++	: "r" (kaddr), "I" (PAGE_SIZE / 64)
++	: "r1", "r2", "r3", "ip", "lr");
++	kunmap_atomic(kaddr, KM_USER0);
+ }
+ 
+ struct cpu_user_fns v4wt_user_fns __initdata = {
+-	.cpu_clear_user_page	= v4wt_clear_user_page,
++	.cpu_clear_user_highpage = v4wt_clear_user_highpage,
+ 	.cpu_copy_user_highpage	= v4wt_copy_user_highpage,
+ };
+diff --git a/arch/arm/mm/copypage-v6.c b/arch/arm/mm/copypage-v6.c
+index 2ea75d0..4127a7b 100644
+--- a/arch/arm/mm/copypage-v6.c
++++ b/arch/arm/mm/copypage-v6.c
+@@ -49,9 +49,11 @@ static void v6_copy_user_highpage_nonaliasing(struct page *to,
+  * Clear the user page.  No aliasing to deal with so we can just
+  * attack the kernel's existing mapping of this page.
+  */
+-static void v6_clear_user_page_nonaliasing(void *kaddr, unsigned long vaddr)
++static void v6_clear_user_highpage_nonaliasing(struct page *page, unsigned long vaddr)
+ {
++	void *kaddr = kmap_atomic(page, KM_USER0);
+ 	clear_page(kaddr);
++	kunmap_atomic(kaddr, KM_USER0);
+ }
+ 
+ /*
+@@ -107,20 +109,13 @@ static void v6_copy_user_highpage_aliasing(struct page *to,
+  * so remap the kernel page into the same cache colour as the user
+  * page.
+  */
+-static void v6_clear_user_page_aliasing(void *kaddr, unsigned long vaddr)
++static void v6_clear_user_highpage_aliasing(struct page *page, unsigned long vaddr)
+ {
+ 	unsigned int offset = CACHE_COLOUR(vaddr);
+ 	unsigned long to = to_address + (offset << PAGE_SHIFT);
+ 
+-	/*
+-	 * Discard data in the kernel mapping for the new page
+-	 * FIXME: needs this MCRR to be supported.
+-	 */
+-	__asm__("mcrr	p15, 0, %1, %0, c6	@ 0xec401f06"
+-	   :
+-	   : "r" (kaddr),
+-	     "r" ((unsigned long)kaddr + PAGE_SIZE - L1_CACHE_BYTES)
+-	   : "cc");
++	/* FIXME: not highmem safe */
++	discard_old_kernel_data(page_address(page));
+ 
+ 	/*
+ 	 * Now clear the page using the same cache colour as
+@@ -128,7 +123,7 @@ static void v6_clear_user_page_aliasing(void *kaddr, unsigned long vaddr)
+ 	 */
+ 	spin_lock(&v6_lock);
+ 
+-	set_pte_ext(TOP_PTE(to_address) + offset, pfn_pte(__pa(kaddr) >> PAGE_SHIFT, PAGE_KERNEL), 0);
++	set_pte_ext(TOP_PTE(to_address) + offset, pfn_pte(page_to_pfn(page), PAGE_KERNEL), 0);
+ 	flush_tlb_kernel_page(to);
+ 	clear_page((void *)to);
+ 
+@@ -136,14 +131,14 @@ static void v6_clear_user_page_aliasing(void *kaddr, unsigned long vaddr)
+ }
+ 
+ struct cpu_user_fns v6_user_fns __initdata = {
+-	.cpu_clear_user_page	= v6_clear_user_page_nonaliasing,
++	.cpu_clear_user_highpage = v6_clear_user_highpage_nonaliasing,
+ 	.cpu_copy_user_highpage	= v6_copy_user_highpage_nonaliasing,
+ };
+ 
+ static int __init v6_userpage_init(void)
+ {
+ 	if (cache_is_vipt_aliasing()) {
+-		cpu_user.cpu_clear_user_page = v6_clear_user_page_aliasing;
++		cpu_user.cpu_clear_user_highpage = v6_clear_user_highpage_aliasing;
+ 		cpu_user.cpu_copy_user_highpage = v6_copy_user_highpage_aliasing;
+ 	}
+ 
+diff --git a/arch/arm/mm/copypage-xsc3.c b/arch/arm/mm/copypage-xsc3.c
+index caa697c..0e7cb32 100644
+--- a/arch/arm/mm/copypage-xsc3.c
++++ b/arch/arm/mm/copypage-xsc3.c
+@@ -87,26 +87,27 @@ void xsc3_mc_copy_user_highpage(struct page *to, struct page *from,
+  *  r0 = destination
+  *  r1 = virtual user address of ultimate destination page
+  */
+-void __attribute__((naked))
+-xsc3_mc_clear_user_page(void *kaddr, unsigned long vaddr)
++void xsc3_mc_clear_user_highpage(struct page *page, unsigned long vaddr)
+ {
++	void *kaddr = kmap_atomic(page, KM_USER0);
+ 	asm("\
+-	mov	r1, %0				\n\
++	mov	r1, %1				\n\
+ 	mov	r2, #0				\n\
+ 	mov	r3, #0				\n\
+-1:	mcr	p15, 0, r0, c7, c6, 1		@ invalidate line\n\
+-	strd	r2, [r0], #8			\n\
+-	strd	r2, [r0], #8			\n\
+-	strd	r2, [r0], #8			\n\
+-	strd	r2, [r0], #8			\n\
++1:	mcr	p15, 0, %0, c7, c6, 1		@ invalidate line\n\
++	strd	r2, [%0], #8			\n\
++	strd	r2, [%0], #8			\n\
++	strd	r2, [%0], #8			\n\
++	strd	r2, [%0], #8			\n\
+ 	subs	r1, r1, #1			\n\
+-	bne	1b				\n\
+-	mov	pc, lr"
++	bne	1b"
+ 	:
+-	: "I" (PAGE_SIZE / 32));
++	: "r" (kaddr), "I" (PAGE_SIZE / 32)
++	: "r1", "r2", "r3");
++	kunmap_atomic(kaddr, KM_USER0);
+ }
+ 
+ struct cpu_user_fns xsc3_mc_user_fns __initdata = {
+-	.cpu_clear_user_page	= xsc3_mc_clear_user_page,
++	.cpu_clear_user_highpage = xsc3_mc_clear_user_highpage,
+ 	.cpu_copy_user_highpage	= xsc3_mc_copy_user_highpage,
+ };
+diff --git a/arch/arm/mm/copypage-xscale.c b/arch/arm/mm/copypage-xscale.c
+index 01bafaf..aa9f2ff 100644
+--- a/arch/arm/mm/copypage-xscale.c
++++ b/arch/arm/mm/copypage-xscale.c
+@@ -113,28 +113,30 @@ void xscale_mc_copy_user_highpage(struct page *to, struct page *from,
+ /*
+  * XScale optimised clear_user_page
+  */
+-void __attribute__((naked))
+-xscale_mc_clear_user_page(void *kaddr, unsigned long vaddr)
++void
++xscale_mc_clear_user_highpage(struct page *page, unsigned long vaddr)
+ {
++	void *kaddr = kmap_atomic(page, KM_USER0);
+ 	asm volatile(
+-	"mov	r1, %0				\n\
++	"mov	r1, %1				\n\
+ 	mov	r2, #0				\n\
+ 	mov	r3, #0				\n\
+-1:	mov	ip, r0				\n\
+-	strd	r2, [r0], #8			\n\
+-	strd	r2, [r0], #8			\n\
+-	strd	r2, [r0], #8			\n\
+-	strd	r2, [r0], #8			\n\
++1:	mov	ip, %0				\n\
++	strd	r2, [%0], #8			\n\
++	strd	r2, [%0], #8			\n\
++	strd	r2, [%0], #8			\n\
++	strd	r2, [%0], #8			\n\
+ 	mcr	p15, 0, ip, c7, c10, 1		@ clean D line\n\
+ 	subs	r1, r1, #1			\n\
+ 	mcr	p15, 0, ip, c7, c6, 1		@ invalidate D line\n\
+-	bne	1b				\n\
+-	mov	pc, lr"
++	bne	1b"
+ 	:
+-	: "I" (PAGE_SIZE / 32));
++	: "r" (kaddr), "I" (PAGE_SIZE / 32)
++	: "r1", "r2", "r3", "ip");
++	kunmap_atomic(kaddr, KM_USER0);
+ }
+ 
+ struct cpu_user_fns xscale_mc_user_fns __initdata = {
+-	.cpu_clear_user_page	= xscale_mc_clear_user_page, 
++	.cpu_clear_user_highpage = xscale_mc_clear_user_highpage,
+ 	.cpu_copy_user_highpage	= xscale_mc_copy_user_highpage,
+ };
+diff --git a/arch/arm/mm/proc-syms.c b/arch/arm/mm/proc-syms.c
+index b9743e6..4ad3bf2 100644
+--- a/arch/arm/mm/proc-syms.c
++++ b/arch/arm/mm/proc-syms.c
+@@ -33,7 +33,7 @@ EXPORT_SYMBOL(cpu_cache);
+ 
+ #ifdef CONFIG_MMU
+ #ifndef MULTI_USER
+-EXPORT_SYMBOL(__cpu_clear_user_page);
++EXPORT_SYMBOL(__cpu_clear_user_highpage);
+ EXPORT_SYMBOL(__cpu_copy_user_highpage);
+ #else
+ EXPORT_SYMBOL(cpu_user);
+diff --git a/include/linux/highmem.h b/include/linux/highmem.h
+index 7dcbc82..13875ce 100644
+--- a/include/linux/highmem.h
++++ b/include/linux/highmem.h
+@@ -63,12 +63,14 @@ static inline void *kmap_atomic(struct page *page, enum km_type idx)
+ #endif /* CONFIG_HIGHMEM */
+ 
+ /* when CONFIG_HIGHMEM is not set these will be plain clear/copy_page */
++#ifndef clear_user_highpage
+ static inline void clear_user_highpage(struct page *page, unsigned long vaddr)
+ {
+ 	void *addr = kmap_atomic(page, KM_USER0);
+ 	clear_user_page(addr, vaddr, page);
+ 	kunmap_atomic(addr, KM_USER0);
+ }
 +#endif
-+		} sel;
-+	} tsc[2];
-+	unsigned int index;	/* Index of the current synth. tsc. */
-+};
-+
-+static DEFINE_PER_CPU(struct synthetic_tsc_struct, synthetic_tsc);
-+
-+/* Called from IPI or timer interrupt */
-+static void update_synthetic_tsc(void)
-+{
-+	struct synthetic_tsc_struct *cpu_synth;
-+	u32 tsc;
-+
-+	cpu_synth = &per_cpu(synthetic_tsc, smp_processor_id());
-+	tsc = trace_clock_read32();		/* Hardware clocksource read */
-+
-+	if (tsc < HW_LS32(cpu_synth->tsc[cpu_synth->index].sel.ls32)) {
-+		unsigned int new_index = 1 - cpu_synth->index; /* 0 <-> 1 */
-+		/*
-+		 * Overflow
-+		 * Non atomic update of the non current synthetic TSC, followed
-+		 * by an atomic index change. There is no write concurrency,
-+		 * so the index read/write does not need to be atomic.
-+		 */
-+		cpu_synth->tsc[new_index].val =
-+			(SW_MS32(cpu_synth->tsc[cpu_synth->index].val)
-+				| (u64)tsc) + (1ULL << HW_BITS);
-+		cpu_synth->index = new_index;	/* atomic change of index */
-+	} else {
-+		/*
-+		 * No overflow : We know that the only bits changed are
-+		 * contained in the 32 LS32s, which can be written to atomically.
-+		 */
-+		cpu_synth->tsc[cpu_synth->index].sel.ls32 =
-+			SW_MS32(cpu_synth->tsc[cpu_synth->index].sel.ls32) | tsc;
-+	}
-+}
-+
-+/* Called from buffer switch : in _any_ context (even NMI) */
-+u64 notrace trace_clock_read_synthetic_tsc(void)
-+{
-+	struct synthetic_tsc_struct *cpu_synth;
-+	u64 ret;
-+	unsigned int index;
-+	u32 tsc;
-+
-+	preempt_disable_notrace();
-+	cpu_synth = &per_cpu(synthetic_tsc, smp_processor_id());
-+	index = cpu_synth->index;		/* atomic read */
-+	tsc = trace_clock_read32();		/* Hardware clocksource read */
-+
-+	/* Overflow detection */
-+	if (unlikely(tsc < HW_LS32(cpu_synth->tsc[index].sel.ls32)))
-+		ret = (SW_MS32(cpu_synth->tsc[index].val) | (u64)tsc)
-+			+ (1ULL << HW_BITS);
-+	else
-+		ret = SW_MS32(cpu_synth->tsc[index].val) | (u64)tsc;
-+	preempt_enable_notrace();
-+	return ret;
-+}
-+EXPORT_SYMBOL_GPL(trace_clock_read_synthetic_tsc);
-+
-+static void synthetic_tsc_ipi(void *info)
-+{
-+	update_synthetic_tsc();
-+}
-+
-+/*
-+ * tsc_timer_fct : - Timer function synchronizing synthetic TSC.
-+ * @data: unused
-+ *
-+ * Guarantees at least 1 execution before low word of TSC wraps.
-+ */
-+static void tsc_timer_fct(unsigned long data)
-+{
-+	update_synthetic_tsc();
-+
-+	per_cpu(tsc_timer, smp_processor_id()).expires =
-+		jiffies + precalc_expire;
-+	add_timer_on(&per_cpu(tsc_timer, smp_processor_id()),
-+		     smp_processor_id());
-+}
-+
-+/*
-+ * precalc_stsc_interval: - Precalculates the interval between the clock
-+ * wraparounds.
-+ */
-+static int __init precalc_stsc_interval(void)
-+{
-+	precalc_expire =
-+		(HW_BITMASK / ((trace_clock_frequency() / HZ
-+			* trace_clock_freq_scale()) << 1)
-+			- 1 - (EXPECTED_INTERRUPT_LATENCY * HZ / 1000)) >> 1;
-+	WARN_ON(precalc_expire == 0);
-+	printk(KERN_DEBUG "Synthetic TSC timer will fire each %u jiffies.\n",
-+		precalc_expire);
-+	return 0;
-+}
-+
-+static void prepare_synthetic_tsc(int cpu)
-+{
-+	struct synthetic_tsc_struct *cpu_synth;
-+	u64 local_count;
-+
-+	cpu_synth = &per_cpu(synthetic_tsc, cpu);
-+	local_count = trace_clock_read_synthetic_tsc();
-+	cpu_synth->tsc[0].val = local_count;
-+	cpu_synth->index = 0;
-+	smp_wmb();	/* Writing in data of CPU about to come up */
-+	init_timer(&per_cpu(tsc_timer, cpu));
-+	per_cpu(tsc_timer, cpu).function = tsc_timer_fct;
-+	per_cpu(tsc_timer, cpu).expires = jiffies + precalc_expire;
-+}
-+
-+static void enable_synthetic_tsc(int cpu)
-+{
-+	smp_call_function_single(cpu, synthetic_tsc_ipi, NULL, 1);
-+	add_timer_on(&per_cpu(tsc_timer, cpu), cpu);
-+}
-+
-+static void disable_synthetic_tsc(int cpu)
-+{
-+	del_timer_sync(&per_cpu(tsc_timer, cpu));
-+}
-+
-+/*
-+ * 	hotcpu_callback - CPU hotplug callback
-+ * 	@nb: notifier block
-+ * 	@action: hotplug action to take
-+ * 	@hcpu: CPU number
-+ *
-+ *	Sets the new CPU's current synthetic TSC to the same value as the
-+ *	currently running CPU.
-+ *
-+ * 	Returns the success/failure of the operation. (NOTIFY_OK, NOTIFY_BAD)
-+ */
-+static int __cpuinit hotcpu_callback(struct notifier_block *nb,
-+				unsigned long action,
-+				void *hcpu)
-+{
-+	unsigned int hotcpu = (unsigned long)hcpu;
-+
-+	switch (action) {
-+	case CPU_UP_PREPARE:
-+	case CPU_UP_PREPARE_FROZEN:
-+		if (synthetic_tsc_refcount)
-+			prepare_synthetic_tsc(hotcpu);
-+		break;
-+	case CPU_ONLINE:
-+	case CPU_ONLINE_FROZEN:
-+		if (synthetic_tsc_refcount)
-+			enable_synthetic_tsc(hotcpu);
-+		break;
-+#ifdef CONFIG_HOTPLUG_CPU
-+	case CPU_UP_CANCELED:
-+	case CPU_UP_CANCELED_FROZEN:
-+	case CPU_DEAD:
-+	case CPU_DEAD_FROZEN:
-+		if (synthetic_tsc_refcount)
-+			disable_synthetic_tsc(hotcpu);
-+		break;
-+#endif /* CONFIG_HOTPLUG_CPU */
-+	}
-+	return NOTIFY_OK;
-+}
-+
-+void get_synthetic_tsc(void)
-+{
-+	int cpu;
-+
-+	get_online_cpus();
-+	mutex_lock(&synthetic_tsc_mutex);
-+	if (synthetic_tsc_refcount++)
-+		goto end;
-+
-+	synthetic_tsc_enabled = 1;
-+	for_each_online_cpu(cpu) {
-+		prepare_synthetic_tsc(cpu);
-+		enable_synthetic_tsc(cpu);
-+	}
-+end:
-+	mutex_unlock(&synthetic_tsc_mutex);
-+	put_online_cpus();
-+}
-+EXPORT_SYMBOL_GPL(get_synthetic_tsc);
-+
-+void put_synthetic_tsc(void)
-+{
-+	int cpu;
-+
-+	get_online_cpus();
-+	mutex_lock(&synthetic_tsc_mutex);
-+	WARN_ON(synthetic_tsc_refcount <= 0);
-+	if (synthetic_tsc_refcount != 1 || !synthetic_tsc_enabled)
-+		goto end;
-+
-+	for_each_online_cpu(cpu)
-+		disable_synthetic_tsc(cpu);
-+	synthetic_tsc_enabled = 0;
-+end:
-+	synthetic_tsc_refcount--;
-+	mutex_unlock(&synthetic_tsc_mutex);
-+	put_online_cpus();
-+}
-+EXPORT_SYMBOL_GPL(put_synthetic_tsc);
-+
-+/* Called from CPU 0, before any tracing starts, to init each structure */
-+static int __init init_synthetic_tsc(void)
-+{
-+	precalc_stsc_interval();
-+	hotcpu_notifier(hotcpu_callback, 3);
-+	return 0;
-+}
-+
-+/* Before SMP is up */
-+early_initcall(init_synthetic_tsc);
-Index: linux.trees.git/init/Kconfig
-===================================================================
---- linux.trees.git.orig/init/Kconfig	2008-11-26 07:00:51.000000000 -0500
-+++ linux.trees.git/init/Kconfig	2008-11-26 07:01:38.000000000 -0500
-@@ -340,6 +340,18 @@ config HAVE_UNSTABLE_SCHED_CLOCK
- config HAVE_GET_CYCLES
- 	def_bool n
  
-+#
-+# Architectures with a specialized tracing clock should select this.
-+#
-+config HAVE_TRACE_CLOCK
-+	def_bool n
-+
-+#
-+# Architectures with only a 32-bits clock source should select this.
-+#
-+config HAVE_TRACE_CLOCK_32_TO_64
-+	def_bool n
-+
- config GROUP_SCHED
- 	bool "Group CPU scheduler"
- 	depends on EXPERIMENTAL
+ #ifndef __HAVE_ARCH_ALLOC_ZEROED_USER_HIGHPAGE
+ /**
 
--- 
-Mathieu Desnoyers
-OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
+----- End forwarded message -----
+
+----- End forwarded message -----
