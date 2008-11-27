@@ -1,26 +1,26 @@
-From: Hugh Dickins <hugh@veritas.com>
+From: Paul Mundt <lethal@linux-sh.org>
 Subject: Re: [RESEND:PATCH] [ARM] clearpage: provide our own clear_user_highpage()
-Date: Thu, 27 Nov 2008 12:02:30 +0000 (GMT)
-Message-ID: <Pine.LNX.4.64.0811271158120.28319@blonde.site>
-References: <20081126171321.GA4719@dyn-67.arm.linux.org.uk>
- <1227719999.3387.0.camel@localhost.localdomain> <20081127102920.660303a5.sfr@canb.auug.org.au>
- <20081127010755.GA30854@linux-sh.org> <20081127112124.GA9233@flint.arm.linux.org.uk>
+Date: Fri, 28 Nov 2008 05:09:42 +0900
+Message-ID: <20081127200942.GA3364@linux-sh.org>
+References: <20081126171321.GA4719@dyn-67.arm.linux.org.uk> <1227719999.3387.0.camel@localhost.localdomain> <20081127102920.660303a5.sfr@canb.auug.org.au> <20081127010755.GA30854@linux-sh.org> <20081127112124.GA9233@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from extu-mxob-2.symantec.com ([216.10.194.135]:56197 "EHLO
-	extu-mxob-2.symantec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751125AbYK0MCT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Nov 2008 07:02:19 -0500
+Received: from mta23.gyao.ne.jp ([125.63.38.249]:22950 "EHLO mx.gate01.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752588AbYK0ULK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 27 Nov 2008 15:11:10 -0500
+Content-Disposition: inline
 In-Reply-To: <20081127112124.GA9233@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk@arm.linux.org.uk>
-Cc: Paul Mundt <lethal@linux-sh.org>, Stephen Rothwell <sfr@canb.auug.org.au>, James Bottomley <James.Bottomley@HansenPartnership.com>, linux-arch@vger.kernel.org, Linux Kernel List <linux-kernel@vger.kernel.org>, linux-mm@kvack.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>, James Bottomley <James.Bottomley@HansenPartnership.com>, linux-arch@vger.kernel.org, Linux Kernel List <linux-kernel@vger.kernel.org>linux-
 
-On Thu, 27 Nov 2008, Russell King wrote:
+On Thu, Nov 27, 2008 at 11:21:24AM +0000, Russell King wrote:
 > On Thu, Nov 27, 2008 at 10:07:55AM +0900, Paul Mundt wrote:
 > > On Thu, Nov 27, 2008 at 10:29:20AM +1100, Stephen Rothwell wrote:
+> > > Hi Russell,
+> > > 
 > > > On Wed, 26 Nov 2008 11:19:59 -0600 James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
 > > > >
 > > > > We'd like to pull this trick on parisc as well (another VIPT
@@ -38,9 +38,7 @@ On Thu, 27 Nov 2008, Russell King wrote:
 > I'll queue the change to linux/highmem.h for when Linus gets back then.
 > Can I assume that Hugh and James are happy for their ack to apply to
 > both parts of the split patch?  And do I have your ack as well?
+> 
+Yes, my apologies for not making that obvious.
 
-I rather trusted you on the ARM end of it: I won't be kicking up a
-fuss if my Acked-by ends up appearing on that part too, but really,
-it was for the linux/highmem.h end of it.
-
-Hugh
+Acked-by: Paul Mundt <lethal@linux-sh.org>
