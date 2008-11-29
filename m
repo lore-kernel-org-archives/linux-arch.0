@@ -1,42 +1,33 @@
-From: Hitoshi Mitake <h.mitake@gmail.com>
-Subject: Re: [PATCH 1/1] edac x38: new MC driver module
-Date: Sat, 29 Nov 2008 09:11:08 +0900
-Message-ID: <20081129091108.78fb4213.h.mitake@gmail.com>
-References: <20081105222911.d76e7e1c.mitake@clustcom.com>
-	<413709.12821.qm@web50106.mail.re2.yahoo.com>
-	<20081106164641.ed369060.akpm@linux-foundation.org>
-	<20081107152830.a42766f3.mitake@clustcom.com>
-	<20081106223122.8a255211.akpm@linux-foundation.org>
-	<20081107153824.0ec934e6.mitake@clustcom.com>
-	<20081106231102.aab83cd4.akpm@linux-foundation.org>
-	<a6b9f31a0811090710y17e956bawf20675d6678b145e@mail.gmail.com>
-	<20081109112646.97c594b5.akpm@linux-foundation.org>
-	<20081118121620.GB8625@linux-mips.org>
-	<20081118123215.GB30509@flint.arm.linux.org.uk>
-	<20081121011941.26e05a25.h.mitake@gmail.com>
-	<4929ECB7.8080108@zytor.com>
-	<57C9024A16AD2D4C97DC78E552063EA35C517F42@orsmsx505.amr.corp.intel.com>
-	<492AEC40.5060009@zytor.com>
-	<20081125115510.108fa886.h.mitake@gmail.com>
-	<492B8996.2020302@zytor.com>
-	<20081126003025.85f19670.h.mitake@gmail.com>
-	<Pine.LNX.4.64.0811251645530.25595@anakin>
-	<20081126011059.afb1e8e6.h.mitake@gmail.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: RE: [PATCH 1/1] edac x38: new MC driver module
+Date: Fri, 28 Nov 2008 16:56:39 -0800
+Message-ID: <200811290056.mAT0uTuk028924@terminus.zytor.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ti-out-0910.google.com ([209.85.142.189]:9758 "EHLO
-	ti-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752642AbYK2ALP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Nov 2008 19:11:15 -0500
-Received: by ti-out-0910.google.com with SMTP id b6so1110548tic.23
-        for <linux-arch@vger.kernel.org>; Fri, 28 Nov 2008 16:11:13 -0800 (PST)
-In-Reply-To: <20081126011059.afb1e8e6.h.mitake@gmail.com>
+Received: from terminus.zytor.com ([198.137.202.10]:54247 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753007AbYK2BBc convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Nov 2008 20:01:32 -0500
+content-class: 
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Hitoshi Mitake <h.mitake@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, "H. Peter Anvin" <hpa@zytor.com>, "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, "dougthompson@xmission.com" <dougthompson@xmission.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+
+The cast is unnecessary; one can argue for a cast to (u32) for clarity, but personally I think writel() is a clear enough especialy given the context.
+
+-- 
+Sent from my mobile phone (pardon any lack of formatting)
+
+
+-----Original Message-----
+From: Hitoshi Mitake <h.mitake@gmail.com>
+Sent: Friday, November 28, 2008 16:11
+To: Hitoshi Mitake <h.mitake@gmail.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>; H. Peter Anvin <hpa@zytor.com>; Luck, Tony <tony.luck@intel.com>; Russell King <rmk+lkml@arm.linux.org.uk>; Ralf Baechle <ralf@linux-mips.org>; Andrew Morton <akpm@linux-foundation.org>; Doug Thompson <norsk5@yahoo.com>; dougthompson@xmission.com <dougthompson@xmission.com>; linux-kernel@vger.kernel.org <linux-kernel@vger.kernel.org>; linux-arch@vger.kernel.org <linux-arch@vger.kernel.org>
+Subject: Re: [PATCH 1/1] edac x38: new MC driver module
 
 On Wed, 26 Nov 2008 01:10:59 +0900
 Hitoshi Mitake <h.mitake@gmail.com> wrote:
