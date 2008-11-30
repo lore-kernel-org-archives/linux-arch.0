@@ -1,87 +1,276 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 1/1] edac x38: new MC driver module
-Date: Sat, 29 Nov 2008 19:01:44 +0100
-Message-ID: <20081129180144.GA15533@uranus.ravnborg.org>
-References: <200811290056.mAT0uTuk028924@terminus.zytor.com> <20081129164736.0b5a71db.h.mitake@gmail.com> <20081129093858.GC26691@elte.hu> <20081129192610.716a2d57.h.mitake@gmail.com> <20081129105229.GA9643@uranus.ravnborg.org> <20081129222449.e341f028.h.mitake@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: akpm@linux-foundation.org
+Subject: - unaligned-remove-packed-struct-and-unaligned-access_ok-headers.patch removed from -mm tree
+Date: Sat, 29 Nov 2008 17:24:46 -0800
+Message-ID: <200811300124.mAU1Ok2X016513@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepb.post.tele.dk ([195.41.46.236]:35143 "EHLO
-	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751194AbYK2SAU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 29 Nov 2008 13:00:20 -0500
-Content-Disposition: inline
-In-Reply-To: <20081129222449.e341f028.h.mitake@gmail.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:38449 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753835AbYK3BYt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 29 Nov 2008 20:24:49 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hitoshi Mitake <h.mitake@gmail.com>
-Cc: Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: harvey.harrison@gmail.com, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
 
-On Sat, Nov 29, 2008 at 10:24:49PM +0900, Hitoshi Mitake wrote:
-> On Sat, 29 Nov 2008 11:52:29 +0100
-> Sam Ravnborg <sam@ravnborg.org> wrote:
-> 
-> > > 
-> > > But this is old way. ARCH_HAS_READQ and ARCH_HAS_WRITEQ are new ways
-> > > to determine existence of readq/writeq. Drivers which use readq/writeq should
-> > > depend on these values in their Kconfig file.
-> > 
-> > If we look at arch/x86/Kconfig we see:
-> > ### Arch settings
-> > config X86
-> >         def_bool y
-> >         select HAVE_AOUT if X86_32
-> >         select HAVE_UNSTABLE_SCHED_CLOCK
-> >         select HAVE_IDE
-> >         select HAVE_OPROFILE
-> >         select HAVE_IOREMAP_PROT
-> >         select HAVE_KPROBES
-> >         select ARCH_WANT_OPTIONAL_GPIOLIB
-> > 	...
-> > 
-> > So the normal syntax here is "HAVE_XXX_XXX" - not ARCH_HAS_XXX_XXX
-> > 
-> > If you update your patch please use this syntax,
-> > and locate the select under X86 - not under the 32/64 entries.
-> 
-> Thanks for your notification. I didn't notice that syntax rule.
-> 
-> > 
-> > But I do not see why adding these in the first place.
-> > 
-> 
-> Andrew Morton told that drivers which need readq/writeq should use ones of kernel,
-> and if architecture part of kernel does not provide readq/writeq, drivers should be disabled.
-> 
-> This is Andrew's mail:
-> http://marc.info/?l=linux-kernel&m=122625885124798&w=2
-> ===> Quote:
-> 
-> #ifdef readq
-> 
-> Is a suitable way of determining whether the architecture implements
-> readq and writeq.  It isn't pretty, but it will suffice.
-> 
-> A problem with it is that drivers will then do
-> 
-> #ifndef readq
-> <provide a local implementation here>
-> #endif
-> 
-> which rather sucks - we don't want lots of little private readq/writeq
-> implementations all over the tree.
-> 
-> Perhaps it would be better to have a CONFIG_ARCH_HAS_READQ and to then
-> disable these drivers on the architectures which don't provide
-> readq/writeq support.
-> 
-> <====
-I see both rationales and you combine them in your patch - OK.
 
-And the reason why you cannot just add this to
-include/linux/io.h is that not all architectures
-provide a readl()/writel() I assume.
+The patch titled
+     unaligned: remove packed-struct and unaligned access_ok headers
+has been removed from the -mm tree.  Its filename was
+     unaligned-remove-packed-struct-and-unaligned-access_ok-headers.patch
 
-Feel free to add my Acked-by: to the patch.
+This patch was dropped because an updated version will be merged
 
-	Sam
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: unaligned: remove packed-struct and unaligned access_ok headers
+From: Harvey Harrison <harvey.harrison@gmail.com>
+
+The asm-generic version of unaligned.h now contains these bits.
+
+Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/linux/unaligned/access_ok.h     |   67 ----------------------
+ include/linux/unaligned/be_struct.h     |   36 -----------
+ include/linux/unaligned/le_struct.h     |   36 -----------
+ include/linux/unaligned/packed_struct.h |   46 ---------------
+ 4 files changed, 185 deletions(-)
+
+diff -puN include/linux/unaligned/access_ok.h~unaligned-remove-packed-struct-and-unaligned-access_ok-headers /dev/null
+--- a/include/linux/unaligned/access_ok.h
++++ /dev/null
+@@ -1,67 +0,0 @@
+-#ifndef _LINUX_UNALIGNED_ACCESS_OK_H
+-#define _LINUX_UNALIGNED_ACCESS_OK_H
+-
+-#include <linux/kernel.h>
+-#include <asm/byteorder.h>
+-
+-static inline u16 get_unaligned_le16(const void *p)
+-{
+-	return le16_to_cpup((__le16 *)p);
+-}
+-
+-static inline u32 get_unaligned_le32(const void *p)
+-{
+-	return le32_to_cpup((__le32 *)p);
+-}
+-
+-static inline u64 get_unaligned_le64(const void *p)
+-{
+-	return le64_to_cpup((__le64 *)p);
+-}
+-
+-static inline u16 get_unaligned_be16(const void *p)
+-{
+-	return be16_to_cpup((__be16 *)p);
+-}
+-
+-static inline u32 get_unaligned_be32(const void *p)
+-{
+-	return be32_to_cpup((__be32 *)p);
+-}
+-
+-static inline u64 get_unaligned_be64(const void *p)
+-{
+-	return be64_to_cpup((__be64 *)p);
+-}
+-
+-static inline void put_unaligned_le16(u16 val, void *p)
+-{
+-	*((__le16 *)p) = cpu_to_le16(val);
+-}
+-
+-static inline void put_unaligned_le32(u32 val, void *p)
+-{
+-	*((__le32 *)p) = cpu_to_le32(val);
+-}
+-
+-static inline void put_unaligned_le64(u64 val, void *p)
+-{
+-	*((__le64 *)p) = cpu_to_le64(val);
+-}
+-
+-static inline void put_unaligned_be16(u16 val, void *p)
+-{
+-	*((__be16 *)p) = cpu_to_be16(val);
+-}
+-
+-static inline void put_unaligned_be32(u32 val, void *p)
+-{
+-	*((__be32 *)p) = cpu_to_be32(val);
+-}
+-
+-static inline void put_unaligned_be64(u64 val, void *p)
+-{
+-	*((__be64 *)p) = cpu_to_be64(val);
+-}
+-
+-#endif /* _LINUX_UNALIGNED_ACCESS_OK_H */
+diff -puN include/linux/unaligned/be_struct.h~unaligned-remove-packed-struct-and-unaligned-access_ok-headers /dev/null
+--- a/include/linux/unaligned/be_struct.h
++++ /dev/null
+@@ -1,36 +0,0 @@
+-#ifndef _LINUX_UNALIGNED_BE_STRUCT_H
+-#define _LINUX_UNALIGNED_BE_STRUCT_H
+-
+-#include <linux/unaligned/packed_struct.h>
+-
+-static inline u16 get_unaligned_be16(const void *p)
+-{
+-	return __get_unaligned_cpu16((const u8 *)p);
+-}
+-
+-static inline u32 get_unaligned_be32(const void *p)
+-{
+-	return __get_unaligned_cpu32((const u8 *)p);
+-}
+-
+-static inline u64 get_unaligned_be64(const void *p)
+-{
+-	return __get_unaligned_cpu64((const u8 *)p);
+-}
+-
+-static inline void put_unaligned_be16(u16 val, void *p)
+-{
+-	__put_unaligned_cpu16(val, p);
+-}
+-
+-static inline void put_unaligned_be32(u32 val, void *p)
+-{
+-	__put_unaligned_cpu32(val, p);
+-}
+-
+-static inline void put_unaligned_be64(u64 val, void *p)
+-{
+-	__put_unaligned_cpu64(val, p);
+-}
+-
+-#endif /* _LINUX_UNALIGNED_BE_STRUCT_H */
+diff -puN include/linux/unaligned/le_struct.h~unaligned-remove-packed-struct-and-unaligned-access_ok-headers /dev/null
+--- a/include/linux/unaligned/le_struct.h
++++ /dev/null
+@@ -1,36 +0,0 @@
+-#ifndef _LINUX_UNALIGNED_LE_STRUCT_H
+-#define _LINUX_UNALIGNED_LE_STRUCT_H
+-
+-#include <linux/unaligned/packed_struct.h>
+-
+-static inline u16 get_unaligned_le16(const void *p)
+-{
+-	return __get_unaligned_cpu16((const u8 *)p);
+-}
+-
+-static inline u32 get_unaligned_le32(const void *p)
+-{
+-	return __get_unaligned_cpu32((const u8 *)p);
+-}
+-
+-static inline u64 get_unaligned_le64(const void *p)
+-{
+-	return __get_unaligned_cpu64((const u8 *)p);
+-}
+-
+-static inline void put_unaligned_le16(u16 val, void *p)
+-{
+-	__put_unaligned_cpu16(val, p);
+-}
+-
+-static inline void put_unaligned_le32(u32 val, void *p)
+-{
+-	__put_unaligned_cpu32(val, p);
+-}
+-
+-static inline void put_unaligned_le64(u64 val, void *p)
+-{
+-	__put_unaligned_cpu64(val, p);
+-}
+-
+-#endif /* _LINUX_UNALIGNED_LE_STRUCT_H */
+diff -puN include/linux/unaligned/packed_struct.h~unaligned-remove-packed-struct-and-unaligned-access_ok-headers /dev/null
+--- a/include/linux/unaligned/packed_struct.h
++++ /dev/null
+@@ -1,46 +0,0 @@
+-#ifndef _LINUX_UNALIGNED_PACKED_STRUCT_H
+-#define _LINUX_UNALIGNED_PACKED_STRUCT_H
+-
+-#include <linux/kernel.h>
+-
+-struct __una_u16 { u16 x __attribute__((packed)); };
+-struct __una_u32 { u32 x __attribute__((packed)); };
+-struct __una_u64 { u64 x __attribute__((packed)); };
+-
+-static inline u16 __get_unaligned_cpu16(const void *p)
+-{
+-	const struct __una_u16 *ptr = (const struct __una_u16 *)p;
+-	return ptr->x;
+-}
+-
+-static inline u32 __get_unaligned_cpu32(const void *p)
+-{
+-	const struct __una_u32 *ptr = (const struct __una_u32 *)p;
+-	return ptr->x;
+-}
+-
+-static inline u64 __get_unaligned_cpu64(const void *p)
+-{
+-	const struct __una_u64 *ptr = (const struct __una_u64 *)p;
+-	return ptr->x;
+-}
+-
+-static inline void __put_unaligned_cpu16(u16 val, void *p)
+-{
+-	struct __una_u16 *ptr = (struct __una_u16 *)p;
+-	ptr->x = val;
+-}
+-
+-static inline void __put_unaligned_cpu32(u32 val, void *p)
+-{
+-	struct __una_u32 *ptr = (struct __una_u32 *)p;
+-	ptr->x = val;
+-}
+-
+-static inline void __put_unaligned_cpu64(u64 val, void *p)
+-{
+-	struct __una_u64 *ptr = (struct __una_u64 *)p;
+-	ptr->x = val;
+-}
+-
+-#endif /* _LINUX_UNALIGNED_PACKED_STRUCT_H */
+_
+
+Patches currently in -mm which might be from harvey.harrison@gmail.com are
+
+linux-next.patch
+arm-use-the-new-byteorder-headers.patch
+i2c-misannotation-in-i2c-pmcmspc.patch
+i2c-trivial-endian-casting-fixes-in-i2c-highlanderc.patch
+ia64-use-the-new-byteorder-headers.patch
+input-ads7846c-sparse-lock-annotation.patch
+m32r-use-the-new-byteorder-headers.patch
+blackfin-remove-__function__-in-new-serial-driver.patch
+blackfin-use-the-new-byteorder-headers.patch
+parisc-use-the-new-byteorder-headers.patch
+s390-use-the-new-byteorder-headers.patch
+scsi-replace-__inline-with-inline.patch
+scsi-use-the-common-hex_asc-array-rather-than-a-private-one.patch
+scsi-gdthc-use-unaligned-access-helpers.patch
+scsi-annotate-gdth_rdcap_data-gdth_rdcap16_data-endianness.patch
+frv-use-the-new-byteorder-headers.patch
+m68knommu-use-the-new-byteorder-headers.patch
+h8300-use-the-new-byteorder-headers.patch
+alpha-use-the-new-byteorder-headers.patch
+lib-fix-sparse-shadowed-variable-warning.patch
+lib-radix_treec-make-percpu-variable-static.patch
+lib-proportionsc-trivial-sparse-lock-annotation.patch
+ibmpex-add-endian-annotation-to-extract_data-helper.patch
+blackfin-remove-__function__-in-video-driver.patch
+fb-carminefb-trivial-annotation-packing-color-register.patch
+memstick-annotate-endianness-of-attribute-structs.patch
+unaligned-remove-packed-struct-and-unaligned-access_ok-headers.patch
+unaligned-pack-the-struct-not-the-struct-members.patch
+unaligned-move-arm-m32r-h8300-to-the-asm-generic-version.patch
+unaligned-remove-last-bits-of-the-unaligned-access-helpers.patch
