@@ -1,125 +1,113 @@
-From: Harvey Harrison <harvey.harrison@gmail.com>
-Subject: [PATCH-mm 6/7] unaligned: wire up ARM arch overrides for unaligned
- access
-Date: Sat, 29 Nov 2008 18:40:31 -0800
-Message-ID: <1228012831.26141.1031.camel@brick>
+From: Hitoshi Mitake <h.mitake@gmail.com>
+Subject: Re: [PATCH 1/1] edac x38: new MC driver module
+Date: Sun, 30 Nov 2008 17:16:04 +0900
+Message-ID: <20081130171604.dc3c8715.h.mitake@gmail.com>
+References: <200811290056.mAT0uTuk028924@terminus.zytor.com>
+	<20081129164736.0b5a71db.h.mitake@gmail.com>
+	<20081129093858.GC26691@elte.hu>
+	<20081129192610.716a2d57.h.mitake@gmail.com>
+	<20081129105229.GA9643@uranus.ravnborg.org>
+	<20081129222449.e341f028.h.mitake@gmail.com>
+	<20081129180144.GA15533@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wf-out-1314.google.com ([209.85.200.172]:23550 "EHLO
-	wf-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755895AbYK3Cks (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 29 Nov 2008 21:40:48 -0500
-Received: by wf-out-1314.google.com with SMTP id 27so2058660wfd.4
-        for <linux-arch@vger.kernel.org>; Sat, 29 Nov 2008 18:40:48 -0800 (PST)
+Received: from ti-out-0910.google.com ([209.85.142.185]:17638 "EHLO
+	ti-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750898AbYK3IQM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 30 Nov 2008 03:16:12 -0500
+Received: by ti-out-0910.google.com with SMTP id b6so1333426tic.23
+        for <linux-arch@vger.kernel.org>; Sun, 30 Nov 2008 00:16:10 -0800 (PST)
+In-Reply-To: <20081129180144.GA15533@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Russell King <rmk@arm.linux.org.uk>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Add byteshifting arch overrides to avoid any functional changes
-when using the new common header.  At a later time this arch should
-be able to use the common header directly, but this has not been
-proven yet.
+On Sat, 29 Nov 2008 19:01:44 +0100
+Sam Ravnborg <sam@ravnborg.org> wrote:
 
-Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
+> I see both rationales and you combine them in your patch - OK.
+> 
+> And the reason why you cannot just add this to
+> include/linux/io.h is that not all architectures
+> provide a readl()/writel() I assume.
+>
+Yes, I can't say all architectures provide readl/writel.
+And there may be some architecture depended problems,
+so I can't decide to add my readq/writeq as architecture independent ones.
+
+> Feel free to add my Acked-by: to the patch.
+
+Thanks, I added your Acked-by to new patch.
+
+
+description of this patch
+Adding implementation of readq/writeq to x86_32,
+and adding config value to x86 architecture to determine existence of readq/writeq
+
+Signed-off-by: Hitoshi Mitake <h.mitake@gmail.com>
+Acked-by: Sam Ravnborg <sam@ravnborg.org>
 ---
- arch/arm/include/asm/unaligned.h |   81 ++++++++++++++++++++++++++++++++------
- 1 files changed, 69 insertions(+), 12 deletions(-)
+ arch/x86/Kconfig          |    2 ++
+ arch/x86/include/asm/io.h |   24 ++++++++++++++++++++++++
+ 2 files changed, 26 insertions(+), 0 deletions(-)
 
-diff --git a/arch/arm/include/asm/unaligned.h b/arch/arm/include/asm/unaligned.h
-index 44593a8..1510c8b 100644
---- a/arch/arm/include/asm/unaligned.h
-+++ b/arch/arm/include/asm/unaligned.h
-@@ -1,19 +1,76 @@
- #ifndef _ASM_ARM_UNALIGNED_H
- #define _ASM_ARM_UNALIGNED_H
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index ac22bb7..75408fe 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -34,6 +34,8 @@ config X86
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_GENERIC_DMA_COHERENT if X86_32
+ 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
++	select HAVE_READQ
++	select HAVE_WRITEQ
  
--#include <linux/unaligned/le_byteshift.h>
--#include <linux/unaligned/be_byteshift.h>
--#include <linux/unaligned/generic.h>
--
--/*
-- * Select endianness
-- */
--#ifndef __ARMEB__
--#define get_unaligned	__get_unaligned_le
--#define put_unaligned	__put_unaligned_le
-+#include <linux/kernel.h>
-+#include <asm/byteorder.h>
+ config ARCH_DEFCONFIG
+ 	string
+diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
+index ac2abc8..ddc67aa 100644
+--- a/arch/x86/include/asm/io.h
++++ b/arch/x86/include/asm/io.h
+@@ -4,6 +4,7 @@
+ #define ARCH_HAS_IOREMAP_WC
+ 
+ #include <linux/compiler.h>
++#include <asm-generic/int-ll64.h>
+ 
+ #define build_mmio_read(name, size, type, reg, barrier) \
+ static inline type name(const volatile void __iomem *addr) \
+@@ -57,6 +58,29 @@ build_mmio_write(__writeq, "q", unsigned long, "r", )
+ /* Let people know we have them */
+ #define readq readq
+ #define writeq writeq
 +
-+static inline u16 __arch_load_cpu16_noalign(const u8 *p)
++#else  /* CONFIG_X86_32 from here */
++
++static inline __u64 readq(const volatile void __iomem *addr)
 +{
-+#ifdef __LITTLE_ENDIAN
-+	return p[0] | p[1] << 8;
-+#else
-+	return p[0] << 8 | p[1];
-+#endif
++	const volatile u32 __iomem *p = addr;
++	u32 l, h;
++
++	l = readl(p);
++	h = readl(p+1);
++
++	return l + ((u64)h << 32);
 +}
-+#define __arch_load_cpu16_noalign __arch_load_cpu16_noalign
 +
-+static inline u32 __arch_load_cpu32_noalign(const u8 *p)
++static inline void writeq(__u64 val, volatile void __iomem *addr)
 +{
-+#ifdef __LITTLE_ENDIAN
-+	return p[0] | p[1] << 8 | p[2] << 16 | p[3] << 24;
-+#else
-+	return p[0] << 24 | p[1] << 16 | p[2] << 8 | p[3];
-+#endif
++	writel(val, addr);
++	writel(val >> 32, addr+4);
 +}
-+#define __arch_load_cpu32_noalign __arch_load_cpu32_noalign
 +
-+static inline u64 __arch_load_cpu64_noalign(const u8 *p)
-+{
-+#ifdef __LITTLE_ENDIAN
-+	return ((u64)__arch_load_cpu32_noalign(p + 4) << 32) |
-+	        __arch_load_cpu32_noalign(p);
-+#else
-+	return ((u64)__arch_load_cpu32_noalign(p) << 32) |
-+	       __arch_load_cpu32_noalign(p + 4);
-+#endif
-+}
-+#define __arch_load_cpu64_noalign __arch_load_cpu64_noalign
++#define readq readq
++#define writeq writeq
 +
-+static inline void __arch_store_cpu16_noalign(u8 *p, u16 val)
-+{
-+#ifdef __LITTLE_ENDIAN
-+	*p++ = val;
-+	*p++ = val >> 8;
-+#else
-+	*p++ = val >> 8;
-+	*p++ = val;
-+#endif
-+}
-+#define __arch_store_cpu16_noalign __arch_store_cpu16_noalign
-+
-+static inline void __arch_store_cpu32_noalign(u8 *p, u32 val)
-+{
-+#ifdef __LITTLE_ENDIAN
-+	__arch_store_cpu16_noalign(p, val);
-+	__arch_store_cpu16_noalign(p + 2, val >> 16);
-+#else
-+	__arch_store_cpu16_noalign(p, val >> 16);
-+	__arch_store_cpu16_noalign(p + 2, val);
-+#endif
-+}
-+#define __arch_store_cpu32_noalign __arch_store_cpu32_noalign
-+
-+static inline void __arch_store_cpu64_noalign(u8 *p, u64 val)
-+{
-+#ifdef __LITTLE_ENDIAN
-+	__arch_store_cpu32_noalign(p, val);
-+	__arch_store_cpu32_noalign(p + 4, val >> 32);
- #else
--#define get_unaligned	__get_unaligned_be
--#define put_unaligned	__put_unaligned_be
-+	__arch_store_cpu32_noalign(p, val >> 32);
-+	__arch_store_cpu32_noalign(p + 4, val);
  #endif
-+}
-+#define __arch_store_cpu64_noalign __arch_store_cpu64_noalign
  
-+#include <linux/unaligned.h>
- #endif /* _ASM_ARM_UNALIGNED_H */
+ extern int iommu_bio_merge;
 -- 
-1.6.0.4.1044.g77718
+1.5.6.5
