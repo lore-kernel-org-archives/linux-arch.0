@@ -1,105 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:58592 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753877AbYK3BYx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 29 Nov 2008 20:24:53 -0500
-Message-ID: <200811300124.mAU1OnkU016520@imap1.linux-foundation.org>
-Subject: - unaligned-pack-the-struct-not-the-struct-members.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Sat, 29 Nov 2008 17:24:49 -0800
+Received: from mx3.mail.elte.hu ([157.181.1.138]:48110 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750943AbYK3JYg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 30 Nov 2008 04:24:36 -0500
+Date: Sun, 30 Nov 2008 10:24:07 +0100
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH 1/1] edac x38: new MC driver module
+Message-ID: <20081130092407.GA10802@elte.hu>
+References: <200811290056.mAT0uTuk028924@terminus.zytor.com> <20081129164736.0b5a71db.h.mitake@gmail.com> <20081129093858.GC26691@elte.hu> <20081129192610.716a2d57.h.mitake@gmail.com> <20081129105229.GA9643@uranus.ravnborg.org> <20081129222449.e341f028.h.mitake@gmail.com> <20081129180144.GA15533@uranus.ravnborg.org> <20081130171604.dc3c8715.h.mitake@gmail.com> <20081130083700.GA31644@elte.hu>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20081130083700.GA31644@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: harvey.harrison@gmail.com, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
-Message-ID: <20081130012449.yo7VQxnF1tYviKA-s2WNwhHgWAt1FjgLSSaseqp-TsM@z>
+To: Hitoshi Mitake <h.mitake@gmail.com>
+Cc: Sam Ravnborg <sam@ravnborg.org>, "H. Peter Anvin" <hpa@zytor.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20081130092407.UkalNnbubU9vIzUNRhlCxDs3p0Exew_jX72H1kOJkes@z>
 
 
-The patch titled
-     unaligned: pack the struct, not the struct members
-has been removed from the -mm tree.  Its filename was
-     unaligned-pack-the-struct-not-the-struct-members.patch
+the 32-bit build broke promptly - readq/writeq is a family of APIs that 
+has to be either fully provided or not provided at all. The fix is below.
 
-This patch was dropped because an updated version will be merged
+	Ingo
 
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+--------------->
+From 16ebd68883e3583a66733d8b12ba55c8985af3f6 Mon Sep 17 00:00:00 2001
+From: Ingo Molnar <mingo@elte.hu>
+Date: Sun, 30 Nov 2008 10:20:20 +0100
+Subject: [PATCH] x86: provide readq()/writeq() on 32-bit too, complete
 
-------------------------------------------------------
-Subject: unaligned: pack the struct, not the struct members
-From: Harvey Harrison <harvey.harrison@gmail.com>
+if HAVE_READQ/HAVE_WRITEQ are defined, the full range of readq/writeq
+APIs has to be provided to drivers:
 
-This is safe for the arches that currently use this as gcc says that
-defining a struct as packed is equivalent to putting packed on each struct
-member.
+ drivers/infiniband/hw/amso1100/c2.c: In function 'c2_tx_ring_alloc':
+ drivers/infiniband/hw/amso1100/c2.c:133: error: implicit declaration of function '__raw_writeq'
 
-The reason this is needed is that there are some arches that define
-structs to be aligned to something greater than a byte...so even if the
-first member of the struct is marked as packed, gcc will still treat it as
-having the default stuct alignment which will allow it to choose
-_builtin_memcpy...  see the comments in the memmove-using arches.  This
-also turned out to be the issue with ARM (needs confirmation) because
-_some_ ARM compilers have this alignment set to 4 bytes.
+So provide them on 32-bit as well. Also, map all the APIs to the
+strongest ordering variant. It's way too easy to mess such details
+up in drivers and the difference between "memory" and "" constrained
+asm() constructs is in the noise range.
 
-If the struct _itself_ is marked as packed, the compiler cannot assume
-this default alignment and _must_ do the bytewise access in whatever way
-the arch does it.  By making this change, the last 3 arches could move to
-the new asm-generic version and the bits in linux/unaligned/ can be
-removed.
-
-Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Ingo Molnar <mingo@elte.hu>
 ---
+ arch/x86/include/asm/io.h |   18 +++++++++---------
+ 1 files changed, 9 insertions(+), 9 deletions(-)
 
- include/asm-generic/unaligned.h |    6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
-
-diff -puN include/asm-generic/unaligned.h~unaligned-pack-the-struct-not-the-struct-members include/asm-generic/unaligned.h
---- a/include/asm-generic/unaligned.h~unaligned-pack-the-struct-not-the-struct-members
-+++ a/include/asm-generic/unaligned.h
-@@ -68,9 +68,9 @@ static inline void put_unaligned_be64(u6
+diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
+index 3ccfaf6..9036156 100644
+--- a/arch/x86/include/asm/io.h
++++ b/arch/x86/include/asm/io.h
+@@ -46,16 +46,11 @@ build_mmio_write(__writel, "l", unsigned int, "r", )
+ #define mmiowb() barrier()
  
- #else /* _UNALIGNED_ACCESS_OK */
+ #ifdef CONFIG_X86_64
++
+ build_mmio_read(readq, "q", unsigned long, "=r", :"memory")
+-build_mmio_read(__readq, "q", unsigned long, "=r", )
+ build_mmio_write(writeq, "q", unsigned long, "r", :"memory")
+-build_mmio_write(__writeq, "q", unsigned long, "r", )
+-
+-#define readq_relaxed(a) __readq(a)
+-#define __raw_readq __readq
+-#define __raw_writeq writeq
  
--struct __una_u16 { u16 x __attribute__((packed)); };
--struct __una_u32 { u32 x __attribute__((packed)); };
--struct __una_u64 { u64 x __attribute__((packed)); };
-+struct __una_u16 { u16 x; } __attribute__((packed));
-+struct __una_u32 { u32 x; } __attribute__((packed));
-+struct __una_u64 { u64 x; } __attribute__((packed));
+-#else  /* CONFIG_X86_32 from here */
++#else
  
- static inline u16 __get_le16_noalign(const u8 *p)
+ static inline __u64 readq(const volatile void __iomem *addr)
  {
-_
-
-Patches currently in -mm which might be from harvey.harrison@gmail.com are
-
-linux-next.patch
-arm-use-the-new-byteorder-headers.patch
-i2c-misannotation-in-i2c-pmcmspc.patch
-i2c-trivial-endian-casting-fixes-in-i2c-highlanderc.patch
-ia64-use-the-new-byteorder-headers.patch
-input-ads7846c-sparse-lock-annotation.patch
-m32r-use-the-new-byteorder-headers.patch
-blackfin-remove-__function__-in-new-serial-driver.patch
-blackfin-use-the-new-byteorder-headers.patch
-parisc-use-the-new-byteorder-headers.patch
-s390-use-the-new-byteorder-headers.patch
-scsi-replace-__inline-with-inline.patch
-scsi-use-the-common-hex_asc-array-rather-than-a-private-one.patch
-scsi-gdthc-use-unaligned-access-helpers.patch
-scsi-annotate-gdth_rdcap_data-gdth_rdcap16_data-endianness.patch
-frv-use-the-new-byteorder-headers.patch
-m68knommu-use-the-new-byteorder-headers.patch
-h8300-use-the-new-byteorder-headers.patch
-alpha-use-the-new-byteorder-headers.patch
-lib-fix-sparse-shadowed-variable-warning.patch
-lib-radix_treec-make-percpu-variable-static.patch
-lib-proportionsc-trivial-sparse-lock-annotation.patch
-ibmpex-add-endian-annotation-to-extract_data-helper.patch
-blackfin-remove-__function__-in-video-driver.patch
-fb-carminefb-trivial-annotation-packing-color-register.patch
-memstick-annotate-endianness-of-attribute-structs.patch
-unaligned-pack-the-struct-not-the-struct-members.patch
-unaligned-move-arm-m32r-h8300-to-the-asm-generic-version.patch
-unaligned-remove-last-bits-of-the-unaligned-access-helpers.patch
-
+@@ -76,9 +71,14 @@ static inline void writeq(__u64 val, volatile void __iomem *addr)
+ 
+ #endif
+ 
++#define readq_relaxed(a)	readq(a)
++
++#define __raw_readq(a)		readq(a)
++#define __raw_writeq(a)		writeq(a)
++
+ /* Let people know that we have them */
+-#define readq		readq
+-#define writeq		writeq
++#define readq			readq
++#define writeq			writeq
+ 
+ extern int iommu_bio_merge;
+ 
