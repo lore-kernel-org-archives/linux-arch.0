@@ -1,38 +1,29 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCH 1/1] edac x38: new MC driver module
-Date: Sun, 30 Nov 2008 17:15:04 +0100
-Message-ID: <20081130161504.GA25627@elte.hu>
-References: <20081129164736.0b5a71db.h.mitake@gmail.com> <20081129093858.GC26691@elte.hu> <20081129192610.716a2d57.h.mitake@gmail.com> <20081129105229.GA9643@uranus.ravnborg.org> <20081129222449.e341f028.h.mitake@gmail.com> <20081129180144.GA15533@uranus.ravnborg.org> <20081130171604.dc3c8715.h.mitake@gmail.com> <20081130083700.GA31644@elte.hu> <20081130092407.GA10802@elte.hu> <20081201002056.d9f9204c.h.mitake@gmail.com>
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH-mm 4/7] sh: wire up arch overrides for unaligned access on the SH4a
+Date: Mon, 1 Dec 2008 15:51:23 +0900
+Message-ID: <20081201065123.GB30438@linux-sh.org>
+References: <1228012830.26141.1029.camel@brick>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:41494 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751144AbYK3QPe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 30 Nov 2008 11:15:34 -0500
+Received: from mta23.gyao.ne.jp ([125.63.38.249]:40035 "EHLO mx.gate01.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1750709AbYLAGwx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 1 Dec 2008 01:52:53 -0500
 Content-Disposition: inline
-In-Reply-To: <20081201002056.d9f9204c.h.mitake@gmail.com>
+In-Reply-To: <1228012830.26141.1029.camel@brick>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hitoshi Mitake <h.mitake@gmail.com>
-Cc: Sam Ravnborg <sam@ravnborg.org>, "H. Peter Anvin" <hpa@zytor.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-
-* Hitoshi Mitake <h.mitake@gmail.com> wrote:
-
-> On Sun, 30 Nov 2008 10:24:07 +0100
-> Ingo Molnar <mingo@elte.hu> wrote:
+On Sat, Nov 29, 2008 at 06:40:30PM -0800, Harvey Harrison wrote:
+> Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
+> ---
+>  arch/sh/include/asm/unaligned-sh4a.h |  258 ----------------------------------
+>  arch/sh/include/asm/unaligned.h      |   76 ++++++++--
+>  2 files changed, 61 insertions(+), 273 deletions(-)
 > 
-> > 
-> > the 32-bit build broke promptly - readq/writeq is a family of APIs that 
-> > has to be either fully provided or not provided at all. The fix is below.
-> 
-> Thanks for your fix and adding!
-> When will this patch be added to mainline?
-> I want to rewrite x38_edac.c to adapt new APIs.
+Acked-by: Paul Mundt <lethal@linux-sh.org>
 
-v2.6.29 at the earliest - if there are no regressions. A number of 
-drivers use these APIs and usage is a bit messy - so bugs could be 
-triggered, etc.
-
-	Ingo
+Thanks for looking at this!
