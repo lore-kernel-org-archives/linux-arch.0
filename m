@@ -1,47 +1,131 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [Patch V3 0/3] Enable irqs when waiting for rwlocks
-Date: Tue, 2 Dec 2008 16:13:11 -0800
-Message-ID: <20081202161311.ae3376cb.akpm@linux-foundation.org>
-References: <20081104122405.046233722@attica.americas.sgi.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <20081104122405.046233722@attica.americas.sgi.com>
-Sender: linux-ia64-owner@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, ptesarik@suse.cz, tee@sgi.com, holt@sgi.com, peterz@infradead.org, mingo@elte.hu, linux-arch@vger.kernel.org
+From: akpm@linux-foundation.org
+Subject: + factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags.patch added to -mm tree
+Date: Tue, 02 Dec 2008 16:13:24 -0800
+Message-ID: <200812030013.mB30DPAB032286@imap1.linux-foundation.org>
+Reply-To: linux-kernel@vger.kernel.org
+Return-path: <mm-commits-owner@vger.kernel.org>
+Sender: mm-commits-owner@vger.kernel.org
+To: mm-commits@vger.kernel.org
+Cc: holt@sgi.com, a.p.zijlstra@chello.nl, linux-arch@vger.kernel.org, mingo@elte.hu, ptesarik@suse.cz, tony.luck@intel.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 04 Nov 2008 06:24:05 -0600
-holt@sgi.com wrote:
 
-> New in V3:
->  * Handle rearrangement of some arch's include/asm directories.
-> 
-> New in V2:
->  * get rid of ugly #ifdef's in kernel/spinlock.h
->  * convert __raw_{read|write}_lock_flags to an inline func
-> 
-> SGI has observed that on large systems, interrupts are not serviced for
-> a long period of time when waiting for a rwlock. The following patch
-> series re-enables irqs while waiting for the lock, resembling the code
-> which is already there for spinlocks.
-> 
-> I only made the ia64 version, because the patch adds some overhead to
-> the fast path. I assume there is currently no demand to have this for
-> other architectures, because the systems are not so large. Of course,
-> the possibility to implement raw_{read|write}_lock_flags for any
-> architecture is still there.
-> 
+The patch titled
+     Factor out #ifdefs from kernel/spinlock.c to LOCK_CONTENDED_FLAGS
+has been added to the -mm tree.  Its filename is
+     factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags.patch
 
-The patches seem reasonable.  I queued all three with the intention of
-merging #1 and #2 into 2.6.29.  At that stage, architectures can decide
-whether or not they want to do this.  I shall then spam Tony with #3 so
-you can duke it out with him.
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
 
-It's a bit regrettable to have different architectures behaving in
-different ways.  It would be interesting to toss an x86_64
-implementation into the grinder, see if it causes any problems, see if
-it produces any tangible benefits.  Then other architectures might
-follow.  Or not, depending on the results ;)
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
+out what to do about this
+
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: Factor out #ifdefs from kernel/spinlock.c to LOCK_CONTENDED_FLAGS
+From: Robin Holt <holt@sgi.com>
+
+SGI has observed that on large systems, interrupts are not serviced for a
+long period of time when waiting for a rwlock.  The following patch series
+re-enables irqs while waiting for the lock, resembling the code which is
+already there for spinlocks.
+
+I only made the ia64 version, because the patch adds some overhead to the
+fast path.  I assume there is currently no demand to have this for other
+architectures, because the systems are not so large.  Of course, the
+possibility to implement raw_{read|write}_lock_flags for any architecture
+is still there.
+
+
+This patch:
+
+The new macro LOCK_CONTENDED_FLAGS expands to the correct implementation
+depending on the config options, so that IRQ's are re-enabled when
+possible, but they remain disabled if CONFIG_LOCKDEP is set.
+
+Signed-off-by: Petr Tesarik <ptesarik@suse.cz>
+Signed-off-by: Robin Holt <holt@sgi.com>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: "Luck, Tony" <tony.luck@intel.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/linux/lockdep.h |   17 +++++++++++++++++
+ kernel/spinlock.c       |   12 ++----------
+ 2 files changed, 19 insertions(+), 10 deletions(-)
+
+diff -puN include/linux/lockdep.h~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags include/linux/lockdep.h
+--- a/include/linux/lockdep.h~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags
++++ a/include/linux/lockdep.h
+@@ -382,6 +382,23 @@ do {								\
+ 
+ #endif /* CONFIG_LOCK_STAT */
+ 
++#ifdef CONFIG_LOCKDEP
++
++/*
++ * On lockdep we dont want the hand-coded irq-enable of
++ * _raw_*_lock_flags() code, because lockdep assumes
++ * that interrupts are not re-enabled during lock-acquire:
++ */
++#define LOCK_CONTENDED_FLAGS(_lock, try, lock, lockfl, flags) \
++	LOCK_CONTENDED((_lock), (try), (lock))
++
++#else /* CONFIG_LOCKDEP */
++
++#define LOCK_CONTENDED_FLAGS(_lock, try, lock, lockfl, flags) \
++	lockfl((_lock), (flags))
++
++#endif /* CONFIG_LOCKDEP */
++
+ #if defined(CONFIG_TRACE_IRQFLAGS) && defined(CONFIG_GENERIC_HARDIRQS)
+ extern void early_init_irq_lock_class(void);
+ #else
+diff -puN kernel/spinlock.c~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags kernel/spinlock.c
+--- a/kernel/spinlock.c~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags
++++ a/kernel/spinlock.c
+@@ -299,16 +299,8 @@ unsigned long __lockfunc _spin_lock_irqs
+ 	local_irq_save(flags);
+ 	preempt_disable();
+ 	spin_acquire(&lock->dep_map, subclass, 0, _RET_IP_);
+-	/*
+-	 * On lockdep we dont want the hand-coded irq-enable of
+-	 * _raw_spin_lock_flags() code, because lockdep assumes
+-	 * that interrupts are not re-enabled during lock-acquire:
+-	 */
+-#ifdef CONFIG_LOCKDEP
+-	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
+-#else
+-	_raw_spin_lock_flags(lock, &flags);
+-#endif
++	LOCK_CONTENDED_FLAGS(lock, _raw_spin_trylock, _raw_spin_lock,
++				_raw_spin_lock_flags, &flags);
+ 	return flags;
+ }
+ EXPORT_SYMBOL(_spin_lock_irqsave_nested);
+_
+
+Patches currently in -mm which might be from holt@sgi.com are
+
+mm-gup-persist-for-write-permission.patch
+mm-wp-lock-page-before-deciding-cow.patch
+mm-reuse_swap_page-replaces-can_share_swap_page.patch
+mm-try_to_free_swap-replaces-remove_exclusive_swap_page.patch
+mm-try_to_unuse-check-removing-right-swap.patch
+mm-remove-try_to_munlock-from-vmscan.patch
+mm-remove-gfp_mask-from-add_to_swap.patch
+mm-add-add_to_swap-stub.patch
+mm-optimize-get_scan_ratio-for-no-swap.patch
+factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags.patch
+allow-rwlocks-to-re-enable-interrupts.patch
+ia64-implement-interrupt-enabling-rwlocks.patch
 
