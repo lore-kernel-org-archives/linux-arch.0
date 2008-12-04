@@ -1,174 +1,135 @@
-From: Hitoshi Mitake <h.mitake@gmail.com>
-Subject: Re: [PATCH 1/1] edac x38: new MC driver module
-Date: Fri, 5 Dec 2008 00:58:41 +0900
-Message-ID: <20081205005841.1ee1dc71.h.mitake@gmail.com>
-References: <20081129192610.716a2d57.h.mitake@gmail.com>
-	<20081129222449.e341f028.h.mitake@gmail.com>
-	<20081129180144.GA15533@uranus.ravnborg.org>
-	<20081130171604.dc3c8715.h.mitake@gmail.com>
-	<20081130083700.GA31644@elte.hu>
-	<20081130092407.GA10802@elte.hu>
-	<20081201002056.d9f9204c.h.mitake@gmail.com>
-	<20081130161504.GA25627@elte.hu>
-	<a6b9f31a0812010551h28c0841fxa2a26af4645df64@mail.gmail.com>
-	<20081201135922.GA30068@elte.hu>
-	<a6b9f31a0812011558o373edbd3r9690efe539d43ca0@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch 2/3] performance counters: documentation
+Date: Thu, 04 Dec 2008 23:44:54 -0000
+Message-ID: <20081204230228.557959174@linutronix.de>
+References: <20081204225345.654705757@linutronix.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ti-out-0910.google.com ([209.85.142.188]:38002 "EHLO
-	ti-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751569AbYLDP6s (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2008 10:58:48 -0500
-Received: by ti-out-0910.google.com with SMTP id b6so2665559tic.23
-        for <linux-arch@vger.kernel.org>; Thu, 04 Dec 2008 07:58:46 -0800 (PST)
-In-Reply-To: <a6b9f31a0812011558o373edbd3r9690efe539d43ca0@mail.gmail.com>
+Received: from www.tglx.de ([62.245.132.106]:38346 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751392AbYLDXqB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 4 Dec 2008 18:46:01 -0500
+Content-Disposition: inline; filename=perf-counters-docs.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hitoshi Mitake <h.mitake@gmail.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Sam Ravnborg <sam@ravnborg.org>, "H. Peter Anvin" <hpa@zytor.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>, Paul Mackerras <paulus@samba.org>
 
-On Tue, 2 Dec 2008 08:58:19 +0900
-"Hitoshi Mitake" <h.mitake@gmail.com> wrote:
+From: Ingo Molnar <mingo@elte.hu>
 
-> On Mon, Dec 1, 2008 at 22:59, Ingo Molnar <mingo@elte.hu> wrote:
-> >
-> > * Hitoshi Mitake <h.mitake@gmail.com> wrote:
-> >
-> >> On Mon, Dec 1, 2008 at 01:15, Ingo Molnar <mingo@elte.hu> wrote:
-> >> >
-> >> > * Hitoshi Mitake <h.mitake@gmail.com> wrote:
-> >> >
-> >> >> On Sun, 30 Nov 2008 10:24:07 +0100
-> >> >> Ingo Molnar <mingo@elte.hu> wrote:
-> >> >>
-> >> >> >
-> >> >> > the 32-bit build broke promptly - readq/writeq is a family of APIs that
-> >> >> > has to be either fully provided or not provided at all. The fix is below.
-> >> >>
-> >> >> Thanks for your fix and adding!
-> >> >> When will this patch be added to mainline?
-> >> >> I want to rewrite x38_edac.c to adapt new APIs.
-> >> >
-> >> > v2.6.29 at the earliest - if there are no regressions. A number of
-> >> > drivers use these APIs and usage is a bit messy - so bugs could be
-> >> > triggered, etc.
-> >> >
-> >> Thanks. What is URL of your repository?
-> >> I want to look your tree and test it.
-> >
-> > you can pick up tip/master via:
-> >
-> >  http://people.redhat.com/mingo/tip.git/README
-> >
-> 
+Add more documentation about performance counters.
 
-I build your tree with allmodconfig, but there's no compile error.
-
-And I wrote a patch to add HAVE_READQ and HAVE_WRITEQ to all architecutres without x86.
-
-Signed-off-by: Hitoshi Mitake <h.mitake@gmail.com>
+Signed-off-by: Ingo Molnar <mingo@elte.hu>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/alpha/Kconfig   |    2 ++
- arch/ia64/Kconfig    |    2 ++
- arch/mips/Kconfig    |    2 ++
- arch/parisc/Kconfig  |    2 ++
- arch/powerpc/Kconfig |    2 ++
- arch/sh/Kconfig      |    2 ++
- arch/sparc64/Kconfig |    2 ++
- 7 files changed, 14 insertions(+), 0 deletions(-)
+ Documentation/perf-counters.txt |  104 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 104 insertions(+)
 
-diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-index 6110197..4355170 100644
---- a/arch/alpha/Kconfig
-+++ b/arch/alpha/Kconfig
-@@ -8,6 +8,8 @@ config ALPHA
- 	select HAVE_AOUT
- 	select HAVE_IDE
- 	select HAVE_OPROFILE
-+	select HAVE_READQ
-+	select HAVE_WRITEQ
- 	help
- 	  The Alpha is a 64-bit general-purpose processor designed and
- 	  marketed by the Digital Equipment Corporation of blessed memory,
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 6bd91ed..833bfdd 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -24,6 +24,8 @@ config IA64
- 	select HAVE_DMA_ATTRS
- 	select HAVE_KVM
- 	select HAVE_ARCH_TRACEHOOK
-+	select HAVE_READQ
-+	select HAVE_WRITEQ
- 	default y
- 	help
- 	  The Itanium Processor Family is Intel's 64-bit successor to
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index f4af967..cf4f046 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -7,6 +7,8 @@ config MIPS
- 	# Horrible source of confusion.  Die, die, die ...
- 	select EMBEDDED
- 	select RTC_LIB
-+	select HAVE_READQ
-+	select HAVE_WRITEQ
- 
- mainmenu "Linux/MIPS Kernel Configuration"
- 
-diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-index 644a70b..4eef1f0 100644
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -11,6 +11,8 @@ config PARISC
- 	select HAVE_OPROFILE
- 	select RTC_CLASS
- 	select RTC_DRV_PARISC
-+	select HAVE_READQ
-+	select HAVE_WRITEQ
- 	help
- 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
- 	  in many of their workstations & servers (HP9000 700 and 800 series,
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 525c13a..9e1701f 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -121,6 +121,8 @@ config PPC
- 	select HAVE_DMA_ATTRS if PPC64
- 	select USE_GENERIC_SMP_HELPERS if SMP
- 	select HAVE_OPROFILE
-+	select HAVE_READQ
-+	select HAVE_WRITEQ
- 
- config EARLY_PRINTK
- 	bool
-diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
-index 80119b3..410e1fe 100644
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -13,6 +13,8 @@ config SUPERH
- 	select HAVE_OPROFILE
- 	select HAVE_GENERIC_DMA_COHERENT
- 	select HAVE_IOREMAP_PROT if MMU
-+	select HAVE_READQ
-+	select HAVE_WRITEQ
- 	help
- 	  The SuperH is a RISC processor targeted for use in embedded systems
- 	  and consumer electronics; it was also used in the Sega Dreamcast
-diff --git a/arch/sparc64/Kconfig b/arch/sparc64/Kconfig
-index 3b96e70..b92409f 100644
---- a/arch/sparc64/Kconfig
-+++ b/arch/sparc64/Kconfig
-@@ -24,6 +24,8 @@ config SPARC64
- 	select RTC_DRV_BQ4802
- 	select RTC_DRV_SUN4V
- 	select RTC_DRV_STARFIRE
-+	select HAVE_READQ
-+	select HAVE_WRITEQ
- 
- config GENERIC_TIME
- 	bool
--- 
-1.5.6.5
+Index: linux/Documentation/perf-counters.txt
+===================================================================
+--- /dev/null
++++ linux/Documentation/perf-counters.txt
+@@ -0,0 +1,104 @@
++
++Performance Counters for Linux
++------------------------------
++
++Performance counters are special hardware registers available on most modern
++CPUs. These registers count the number of certain types of hw events: such
++as instructions executed, cachemisses suffered, or branches mis-predicted -
++without slowing down the kernel or applications. These registers can also
++trigger interrupts when a threshold number of events have passed - and can
++thus be used to profile the code that runs on that CPU.
++
++The Linux Performance Counter subsystem provides an abstraction of these
++hardware capabilities. It provides per task and per CPU counters, and
++it provides event capabilities on top of those.
++
++Performance counters are accessed via special file descriptors.
++There's one file descriptor per virtual counter used.
++
++The special file descriptor is opened via the perf_counter_open()
++system call:
++
++ int
++ perf_counter_open(u32 hw_event_type,
++                   u32 hw_event_period,
++                   u32 record_type,
++                   pid_t pid,
++                   int cpu);
++
++The syscall returns the new fd. The fd can be used via the normal
++VFS system calls: read() can be used to read the counter, fcntl()
++can be used to set the blocking mode, etc.
++
++Multiple counters can be kept open at a time, and the counters
++can be poll()ed.
++
++When creating a new counter fd, 'hw_event_type' is one of:
++
++ enum hw_event_types {
++	PERF_COUNT_CYCLES,
++	PERF_COUNT_INSTRUCTIONS,
++	PERF_COUNT_CACHE_REFERENCES,
++	PERF_COUNT_CACHE_MISSES,
++	PERF_COUNT_BRANCH_INSTRUCTIONS,
++	PERF_COUNT_BRANCH_MISSES,
++ };
++
++These are standardized types of events that work uniformly on all CPUs
++that implements Performance Counters support under Linux. If a CPU is
++not able to count branch-misses, then the system call will return
++-EINVAL.
++
++[ Note: more hw_event_types are supported as well, but they are CPU
++  specific and are enumerated via /sys on a per CPU basis. Raw hw event
++  types can be passed in as negative numbers. For example, to count
++  "External bus cycles while bus lock signal asserted" events on Intel
++  Core CPUs, pass in a -0x4064 event type value. ]
++
++The parameter 'hw_event_period' is the number of events before waking up
++a read() that is blocked on a counter fd. Zero value means a non-blocking
++counter.
++
++'record_type' is the type of data that a read() will provide for the
++counter, and it can be one of:
++
++  enum perf_record_type {
++	PERF_RECORD_SIMPLE,
++	PERF_RECORD_IRQ,
++  };
++
++a "simple" counter is one that counts hardware events and allows
++them to be read out into a u64 count value. (read() returns 8 on
++a successful read of a simple counter.)
++
++An "irq" counter is one that will also provide an IRQ context information:
++the IP of the interrupted context. In this case read() will return
++the 8-byte counter value, plus the Instruction Pointer address of the
++interrupted context.
++
++The 'pid' parameter allows the counter to be specific to a task:
++
++ pid == 0: if the pid parameter is zero, the counter is attached to the
++ current task.
++
++ pid > 0: the counter is attached to a specific task (if the current task
++ has sufficient privilege to do so)
++
++ pid < 0: all tasks are counted (per cpu counters)
++
++The 'cpu' parameter allows a counter to be made specific to a full
++CPU:
++
++ cpu >= 0: the counter is restricted to a specific CPU
++ cpu == -1: the counter counts on all CPUs
++
++Note: the combination of 'pid == -1' and 'cpu == -1' is not valid.
++
++A 'pid > 0' and 'cpu == -1' counter is a per task counter that counts
++events of that task and 'follows' that task to whatever CPU the task
++gets schedule to. Per task counters can be created by any user, for
++their own tasks.
++
++A 'pid == -1' and 'cpu == x' counter is a per CPU counter that counts
++all events on CPU-x. Per CPU counters need CAP_SYS_ADMIN privilege.
++
