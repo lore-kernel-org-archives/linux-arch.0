@@ -1,68 +1,174 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [Patch V3 0/3] Enable irqs when waiting for rwlocks
-Date: Wed, 03 Dec 2008 13:44:49 +0100
-Message-ID: <1228308289.9673.237.camel@twins>
-References: <20081104122405.046233722@attica.americas.sgi.com>
-	 <20081202161311.ae3376cb.akpm@linux-foundation.org>
-	 <20081203113744.GE8970@sgi.com>  <1228307117.9673.232.camel@twins>
-	 <1228307798.1009.1.camel@nathan.suse.cz>
+From: Hitoshi Mitake <h.mitake@gmail.com>
+Subject: Re: [PATCH 1/1] edac x38: new MC driver module
+Date: Fri, 5 Dec 2008 00:58:41 +0900
+Message-ID: <20081205005841.1ee1dc71.h.mitake@gmail.com>
+References: <20081129192610.716a2d57.h.mitake@gmail.com>
+	<20081129222449.e341f028.h.mitake@gmail.com>
+	<20081129180144.GA15533@uranus.ravnborg.org>
+	<20081130171604.dc3c8715.h.mitake@gmail.com>
+	<20081130083700.GA31644@elte.hu>
+	<20081130092407.GA10802@elte.hu>
+	<20081201002056.d9f9204c.h.mitake@gmail.com>
+	<20081130161504.GA25627@elte.hu>
+	<a6b9f31a0812010551h28c0841fxa2a26af4645df64@mail.gmail.com>
+	<20081201135922.GA30068@elte.hu>
+	<a6b9f31a0812011558o373edbd3r9690efe539d43ca0@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <1228307798.1009.1.camel@nathan.suse.cz>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Petr Tesarik <ptesarik@suse.cz>
-Cc: Robin Holt <holt@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, tee@sgi.com, mingo@elte.hu, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ti-out-0910.google.com ([209.85.142.188]:38002 "EHLO
+	ti-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751569AbYLDP6s (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2008 10:58:48 -0500
+Received: by ti-out-0910.google.com with SMTP id b6so2665559tic.23
+        for <linux-arch@vger.kernel.org>; Thu, 04 Dec 2008 07:58:46 -0800 (PST)
+In-Reply-To: <a6b9f31a0812011558o373edbd3r9690efe539d43ca0@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Hitoshi Mitake <h.mitake@gmail.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Sam Ravnborg <sam@ravnborg.org>, "H. Peter Anvin" <hpa@zytor.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wed, 2008-12-03 at 13:36 +0100, Petr Tesarik wrote:
-> Peter Zijlstra p=C3=AD=C5=A1e v St 03. 12. 2008 v 13:25 +0100:
-> > On Wed, 2008-12-03 at 05:37 -0600, Robin Holt wrote:
-> > > > It's a bit regrettable to have different architectures behaving=
- in
-> > > > different ways.  It would be interesting to toss an x86_64
-> > > > implementation into the grinder, see if it causes any problems,=
- see if
-> > > > it produces any tangible benefits.  Then other architectures mi=
-ght
-> > > > follow.  Or not, depending on the results ;)
-> > >=20
-> > > I personally expect SGI to work on this for x86_64 in the future.
-> > > Once we actually start testing systems with 128 and above cpus, I
-> > > would expect to see these performance issues needing to be addres=
-sed.
-> > > Until then, it is just a theoretical.
-> >=20
-> > Personally I consider this a ugly hack and would love to see people
-> > solve the actual problem and move away from rwlock_t, its utter rub=
-bish.
->=20
-> Me too, but we don't have that clean and nice solution today, but wha=
-t
-> we _do_ have today are the machines which break badly when interrupts
-> are disabled for the whole duration of taking a rwlock_t. :(
+On Tue, 2 Dec 2008 08:58:19 +0900
+"Hitoshi Mitake" <h.mitake@gmail.com> wrote:
 
-Right, which creates an incentive to work on it. So we then either to a
-quick and ugly hack and relieve the stress and never again get around t=
-o
-looking at that particular issue (because management or something
-doesn't see the problem anymore) or we do the right thing and fix it
-properly.
+> On Mon, Dec 1, 2008 at 22:59, Ingo Molnar <mingo@elte.hu> wrote:
+> >
+> > * Hitoshi Mitake <h.mitake@gmail.com> wrote:
+> >
+> >> On Mon, Dec 1, 2008 at 01:15, Ingo Molnar <mingo@elte.hu> wrote:
+> >> >
+> >> > * Hitoshi Mitake <h.mitake@gmail.com> wrote:
+> >> >
+> >> >> On Sun, 30 Nov 2008 10:24:07 +0100
+> >> >> Ingo Molnar <mingo@elte.hu> wrote:
+> >> >>
+> >> >> >
+> >> >> > the 32-bit build broke promptly - readq/writeq is a family of APIs that
+> >> >> > has to be either fully provided or not provided at all. The fix is below.
+> >> >>
+> >> >> Thanks for your fix and adding!
+> >> >> When will this patch be added to mainline?
+> >> >> I want to rewrite x38_edac.c to adapt new APIs.
+> >> >
+> >> > v2.6.29 at the earliest - if there are no regressions. A number of
+> >> > drivers use these APIs and usage is a bit messy - so bugs could be
+> >> > triggered, etc.
+> >> >
+> >> Thanks. What is URL of your repository?
+> >> I want to look your tree and test it.
+> >
+> > you can pick up tip/master via:
+> >
+> >  http://people.redhat.com/mingo/tip.git/README
+> >
+> 
 
-I prefer the second, but I understand its not always an option.
+I build your tree with allmodconfig, but there's no compile error.
 
-> Feel free to rewrite all users of rwlock_t. I'll appreciate it, oh so
-> very much.
+And I wrote a patch to add HAVE_READQ and HAVE_WRITEQ to all architecutres without x86.
 
-Hehe, I wish! its on my todo list though, along with some other things,
-but very unlikely I'll ever get around to it.
+Signed-off-by: Hitoshi Mitake <h.mitake@gmail.com>
+---
+ arch/alpha/Kconfig   |    2 ++
+ arch/ia64/Kconfig    |    2 ++
+ arch/mips/Kconfig    |    2 ++
+ arch/parisc/Kconfig  |    2 ++
+ arch/powerpc/Kconfig |    2 ++
+ arch/sh/Kconfig      |    2 ++
+ arch/sparc64/Kconfig |    2 ++
+ 7 files changed, 14 insertions(+), 0 deletions(-)
 
-The good news is that Eric Dumazet recently got rid of a few prominent
-users in the net code.
-
---
-To unsubscribe from this list: send the line "unsubscribe linux-ia64" i=
-n
-the body of a message to majordomo@vger.kernel.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
+index 6110197..4355170 100644
+--- a/arch/alpha/Kconfig
++++ b/arch/alpha/Kconfig
+@@ -8,6 +8,8 @@ config ALPHA
+ 	select HAVE_AOUT
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
++	select HAVE_READQ
++	select HAVE_WRITEQ
+ 	help
+ 	  The Alpha is a 64-bit general-purpose processor designed and
+ 	  marketed by the Digital Equipment Corporation of blessed memory,
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 6bd91ed..833bfdd 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -24,6 +24,8 @@ config IA64
+ 	select HAVE_DMA_ATTRS
+ 	select HAVE_KVM
+ 	select HAVE_ARCH_TRACEHOOK
++	select HAVE_READQ
++	select HAVE_WRITEQ
+ 	default y
+ 	help
+ 	  The Itanium Processor Family is Intel's 64-bit successor to
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index f4af967..cf4f046 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -7,6 +7,8 @@ config MIPS
+ 	# Horrible source of confusion.  Die, die, die ...
+ 	select EMBEDDED
+ 	select RTC_LIB
++	select HAVE_READQ
++	select HAVE_WRITEQ
+ 
+ mainmenu "Linux/MIPS Kernel Configuration"
+ 
+diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+index 644a70b..4eef1f0 100644
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -11,6 +11,8 @@ config PARISC
+ 	select HAVE_OPROFILE
+ 	select RTC_CLASS
+ 	select RTC_DRV_PARISC
++	select HAVE_READQ
++	select HAVE_WRITEQ
+ 	help
+ 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
+ 	  in many of their workstations & servers (HP9000 700 and 800 series,
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 525c13a..9e1701f 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -121,6 +121,8 @@ config PPC
+ 	select HAVE_DMA_ATTRS if PPC64
+ 	select USE_GENERIC_SMP_HELPERS if SMP
+ 	select HAVE_OPROFILE
++	select HAVE_READQ
++	select HAVE_WRITEQ
+ 
+ config EARLY_PRINTK
+ 	bool
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index 80119b3..410e1fe 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -13,6 +13,8 @@ config SUPERH
+ 	select HAVE_OPROFILE
+ 	select HAVE_GENERIC_DMA_COHERENT
+ 	select HAVE_IOREMAP_PROT if MMU
++	select HAVE_READQ
++	select HAVE_WRITEQ
+ 	help
+ 	  The SuperH is a RISC processor targeted for use in embedded systems
+ 	  and consumer electronics; it was also used in the Sega Dreamcast
+diff --git a/arch/sparc64/Kconfig b/arch/sparc64/Kconfig
+index 3b96e70..b92409f 100644
+--- a/arch/sparc64/Kconfig
++++ b/arch/sparc64/Kconfig
+@@ -24,6 +24,8 @@ config SPARC64
+ 	select RTC_DRV_BQ4802
+ 	select RTC_DRV_SUN4V
+ 	select RTC_DRV_STARFIRE
++	select HAVE_READQ
++	select HAVE_WRITEQ
+ 
+ config GENERIC_TIME
+ 	bool
+-- 
+1.5.6.5
