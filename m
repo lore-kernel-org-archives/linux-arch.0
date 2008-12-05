@@ -1,52 +1,48 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Fri, 5 Dec 2008 11:41:16 +0100
-Message-ID: <20081205104116.GA5747@elte.hu>
-References: <20081204225345.654705757@linutronix.de> <20081204.171233.201039452.davem@davemloft.net> <20081205061012.GA12785@elte.hu> <18744.62865.420502.642345@cargo.ozlabs.ibm.com>
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [patch 1/3] performance counters: core code
+Date: Fri, 5 Dec 2008 21:55:18 +1100
+Message-ID: <18745.2198.389098.296393@cargo.ozlabs.ibm.com>
+References: <20081204225345.654705757@linutronix.de>
+	<20081204230228.470613892@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:54494 "EHLO mx2.mail.elte.hu"
+Received: from ozlabs.org ([203.10.76.45]:38437 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751674AbYLEKlk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Dec 2008 05:41:40 -0500
-Content-Disposition: inline
-In-Reply-To: <18744.62865.420502.642345@cargo.ozlabs.ibm.com>
+	id S1751252AbYLEKzZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Dec 2008 05:55:25 -0500
+In-Reply-To: <20081204230228.470613892@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mackerras <paulus@samba.org>
-Cc: David Miller <davem@davemloft.net>, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
 
+Thomas Gleixner writes:
 
-* Paul Mackerras <paulus@samba.org> wrote:
+> +static void
+> +perf_install_in_context(struct perf_counter_context *ctx,
+> +			struct perf_counter *counter,
+> +			int cpu)
+> +{
+> +	struct task_struct *task = ctx->task;
+> +
 
-> Ingo Molnar writes:
-> 
-> > The 'target' task does not have to be stopped to offer counter 
-> > virtualization (counter overcommit or counter scheduling) - or to offer 
-> > any of the other performance counter features. Please let us know why it 
-> > needs the task to be stopped - we asked about that on lkml in the perfmon 
-> > thread and no technical answer was given, and couldnt find any such 
-> > technical reason while implementing it ourselves.
-> 
-> I like this feature of your patchset, in fact, and the code looks 
-> pretty clean (as I would expect :).  What I don't like (as I have 
-> already said) is having to use an API that splits up the PMU into 
-> pieces, plus the requirement that flows from that to have the kernel 
-> know about the event selection logic on every CPU model we support.
-> 
-> One thing I haven't figured out yet is what happens if you have a 
-> counter on a task and the task dies.  Can I still use the counter fd 
-> after the task has died, and read out the total count?
+[...]
 
-yes, it will work just the way you'd expect it to work: the counter is 
-attached to the fd of the monitoring task, so it does not go away. The 
-counter simply stops counting but otherwise can be read even after the 
-monitored task has exited.
+> +	if (task) {
+> +		task_oncpu_function_call(task, __perf_install_in_context,
+> +					 counter);
+> +	} else {
+> +		smp_call_function_single(cpu, __perf_install_in_context,
+> +					 counter, 1);
+> +	}
 
-We are also planning a natural 'the task has died' notification: a -EPIPE 
-returned by read(), after the final count has been allowed to be read 
-out. With blocking counters this will behave quite smoothly: instead of 
-blocking indefinitely, we'd get back -EPIPE. Hm?
+What happens if we send an IPI to the cpu where the task is running,
+but by the time the IPI arrives, the task has been migrated to another
+cpu and is now running there?  Do you chase after it and send another
+IPI to its new cpu, or is there some reason why it can't migrate?
+If it's the former, where is that code?  I haven't seen it so far (at
+least, task_oncpu_function_call doesn't seem to do it).
 
-	Ingo
+Paul.
