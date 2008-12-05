@@ -1,61 +1,149 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:57899 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751382AbYLCMpA convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Dec 2008 07:45:00 -0500
-Subject: Re: [Patch V3 0/3] Enable irqs when waiting for rwlocks
-From: Peter Zijlstra <peterz@infradead.org>
-In-Reply-To: <1228307798.1009.1.camel@nathan.suse.cz>
-References: <20081104122405.046233722@attica.americas.sgi.com>
-	 <20081202161311.ae3376cb.akpm@linux-foundation.org>
-	 <20081203113744.GE8970@sgi.com>  <1228307117.9673.232.camel@twins>
-	 <1228307798.1009.1.camel@nathan.suse.cz>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Date: Wed, 03 Dec 2008 13:44:49 +0100
-Message-ID: <1228308289.9673.237.camel@twins>
-Mime-Version: 1.0
+Received: from mx2.mail.elte.hu ([157.181.151.9]:41335 "EHLO mx2.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750966AbYLEHD7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Dec 2008 02:03:59 -0500
+Date: Fri, 5 Dec 2008 08:03:29 +0100
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
+Message-ID: <20081205070329.GA30874@elte.hu>
+References: <20081204225345.654705757@linutronix.de> <18744.29747.728320.652642@cargo.ozlabs.ibm.com> <20081205063131.GB12785@elte.hu>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20081205063131.GB12785@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Petr Tesarik <ptesarik@suse.cz>
-Cc: Robin Holt <holt@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, tee@sgi.com, mingo@elte.hu, linux-arch@vger.kernel.org
-Message-ID: <20081203124449.KjnqYKv6YHbPx_rFJ9p_U6aC-Ex5BzpYbMHd6_Y1ulk@z>
+To: Paul Mackerras <paulus@samba.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
+Message-ID: <20081205070329.F0rIcLvC-5J_v-reCvtDB_qkvTqsYFpWU5KZGeSX-Tw@z>
 
-On Wed, 2008-12-03 at 13:36 +0100, Petr Tesarik wrote:
-> Peter Zijlstra píše v St 03. 12. 2008 v 13:25 +0100:
-> > On Wed, 2008-12-03 at 05:37 -0600, Robin Holt wrote:
-> > > > It's a bit regrettable to have different architectures behaving in
-> > > > different ways.  It would be interesting to toss an x86_64
-> > > > implementation into the grinder, see if it causes any problems, see if
-> > > > it produces any tangible benefits.  Then other architectures might
-> > > > follow.  Or not, depending on the results ;)
-> > > 
-> > > I personally expect SGI to work on this for x86_64 in the future.
-> > > Once we actually start testing systems with 128 and above cpus, I
-> > > would expect to see these performance issues needing to be addressed.
-> > > Until then, it is just a theoretical.
-> > 
-> > Personally I consider this a ugly hack and would love to see people
-> > solve the actual problem and move away from rwlock_t, its utter rubbish.
-> 
-> Me too, but we don't have that clean and nice solution today, but what
-> we _do_ have today are the machines which break badly when interrupts
-> are disabled for the whole duration of taking a rwlock_t. :(
 
-Right, which creates an incentive to work on it. So we then either to a
-quick and ugly hack and relieve the stress and never again get around to
-looking at that particular issue (because management or something
-doesn't see the problem anymore) or we do the right thing and fix it
-properly.
+* Ingo Molnar <mingo@elte.hu> wrote:
 
-I prefer the second, but I understand its not always an option.
+> This can be done in a very natural way with our abstraction, and the 
+> "hello.c" example happens to do exactly that:
 
-> Feel free to rewrite all users of rwlock_t. I'll appreciate it, oh so
-> very much.
+multiple people pointed out that we have not posted hello.c :-/
 
-Hehe, I wish! its on my todo list though, along with some other things,
-but very unlikely I'll ever get around to it.
+Here's a simple standalone example (full working code attached below):
 
-The good news is that Eric Dumazet recently got rid of a few prominent
-users in the net code.
+int main(void)
+{
+	unsigned long long count1, count2;
+	int fd1, fd2, ret;
+
+	fd1 = perf_counter_open(PERF_COUNT_INSTRUCTIONS, 0, 0, 0, -1);
+	assert(fd1 >= 0);
+	fd2 = perf_counter_open(PERF_COUNT_CACHE_MISSES, 0, 0, 0, -1);
+	assert(fd1 >= 0);
+
+	for (;;) {
+		ret = read(fd1, &count1, sizeof(count1));
+		assert(ret == 8);
+		ret = read(fd2, &count2, sizeof(count2));
+		assert(ret == 8);
+
+		printf("counter1 value: %Ld instructions\n", count1);
+		printf("counter2 value: %Ld cachemisses\n",  count2);
+		sleep(1);
+	}
+	return 0;
+}
+
+
+which gives this output (one readout per second):
+
+  titan:~/perf-counter-test> ./simple 
+  counter1 value: 0 instructions
+  counter2 value: 0 cachemisses
+  counter1 value: 23 instructions
+  counter2 value: 0 cachemisses
+  counter1 value: 2853 instructions
+  counter2 value: 6 cachemisses
+  counter1 value: 5736 instructions
+  counter2 value: 7 cachemisses
+  counter1 value: 8619 instructions
+  counter2 value: 8 cachemisses
+  counter1 value: 11502 instructions
+  counter2 value: 8 cachemisses
+  ^C
+
+You need our patchset but then the code below will work just fine. No 
+libraries, no context setup, nothing - just what is more interesting: the 
+counter and profiling data.
+
+	Ingo
+
+----------------->
+/*
+ * Very simple performance counter testcase.
+ */
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/uio.h>
+
+#include <linux/unistd.h>
+
+#include <assert.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <fcntl.h>
+
+#ifdef __x86_64__
+# define __NR_perf_counter_open	295
+#endif
+
+#ifdef __i386__
+# define __NR_perf_counter_open 333
+#endif
+
+int
+perf_counter_open(int		hw_event_type,
+                  unsigned int	hw_event_period,
+                  unsigned int	record_type,
+                  pid_t		pid,
+                  int		cpu)
+{
+	return syscall(__NR_perf_counter_open, hw_event_type, hw_event_period,
+			record_type, pid, cpu);
+}
+
+enum hw_event_types {
+	PERF_COUNT_CYCLES,
+	PERF_COUNT_INSTRUCTIONS,
+	PERF_COUNT_CACHE_REFERENCES,
+	PERF_COUNT_CACHE_MISSES,
+	PERF_COUNT_BRANCH_INSTRUCTIONS,
+	PERF_COUNT_BRANCH_MISSES,
+};
+
+int main(void)
+{
+	unsigned long long count1, count2;
+	int fd1, fd2, ret;
+
+	fd1 = perf_counter_open(PERF_COUNT_INSTRUCTIONS, 0, 0, 0, -1);
+	assert(fd1 >= 0);
+	fd2 = perf_counter_open(PERF_COUNT_CACHE_MISSES, 0, 0, 0, -1);
+	assert(fd1 >= 0);
+
+	for (;;) {
+		ret = read(fd1, &count1, sizeof(count1));
+		assert(ret == 8);
+		ret = read(fd2, &count2, sizeof(count2));
+		assert(ret == 8);
+
+		printf("counter1 value: %Ld instructions\n", count1);
+		printf("counter2 value: %Ld cachemisses\n",  count2);
+		sleep(1);
+	}
+	return 0;
+}
 
