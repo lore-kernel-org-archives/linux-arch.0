@@ -1,46 +1,51 @@
-From: Paul Mackerras <paulus@samba.org>
+From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Fri, 5 Dec 2008 20:16:54 +1100
-Message-ID: <18744.61830.572384.96322@cargo.ozlabs.ibm.com>
-References: <20081204225345.654705757@linutronix.de>
-	<18744.29747.728320.652642@cargo.ozlabs.ibm.com>
-	<20081205063131.GB12785@elte.hu>
-	<20081205070329.GA30874@elte.hu>
-	<1228461385.18899.13.camel@twins>
-	<18744.57057.243817.407691@cargo.ozlabs.ibm.com>
-	<1228464216.18899.18.camel@twins>
+Date: Fri, 5 Dec 2008 11:05:19 +0100
+Message-ID: <20081205100519.GA4430@elte.hu>
+References: <20081204225345.654705757@linutronix.de> <20081204.171233.201039452.davem@davemloft.net> <20081205061012.GA12785@elte.hu>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:35033 "EHLO ozlabs.org"
+Received: from mx3.mail.elte.hu ([157.181.1.138]:34345 "EHLO mx3.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751404AbYLEJeW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Dec 2008 04:34:22 -0500
-In-Reply-To: <1228464216.18899.18.camel@twins>
+	id S1751476AbYLEKFr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Dec 2008 05:05:47 -0500
+Content-Disposition: inline
+In-Reply-To: <20081205061012.GA12785@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
+To: David Miller <davem@davemloft.net>
+Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org, paulus@samba.org
 
-Peter Zijlstra writes:
 
-> On Fri, 2008-12-05 at 18:57 +1100, Paul Mackerras wrote:
-> > Peter Zijlstra writes:
+* Ingo Molnar <mingo@elte.hu> wrote:
+
+> > >  - No interaction with ptrace: any task (with sufficient permissions) can
+> > >    monitor other tasks, without having to stop that task.
 > > 
-> > > So, while most people would not consider two consecutive read() ops to
-> > > be close or near the same time, due to preemption and such, that is
-> > > taken away by the fact that the counters are task local time based - so
-> > > preemption doesn't affect thing. Right?
-> > 
-> > I'm sorry, I don't follow the argument here.  What do you mean by
-> > "task local time based"?
+> > This isn't going to work.
+> >
+> > If you look at the things the perfmon libraries do, you do need to stop 
+> > the task.
+> >
+> > Consider counter virtualization as the most direct example. [...]
 > 
-> time only flows when the task is running.
+> Note that counter virtualization is not offered in the perfmon3 patchset that has 
+> been posted to lkml. (It is part of the much larger 'full' perfmon patchset which 
+> has not been submitted for integration)
+> 
+> Nevertheless we will offer counter virtualization in -v2 of our patchset [...]
 
-Right - but the monitored task is running while the monitoring task is
-running.  So time is flowing for the monitored task between the two
-reads done by the monitoring task, meaning that you can't actually
-relate the two values you read with any precision.
+i've just implemented it. Running an (infinite-loop) hello.c with 6 counters on a 
+CPU that has only two counters now gives the expected:
 
-Paul.
+ counter[0 cycles              ]:           3368245084 , delta: 842019470 events
+ counter[1 instructions        ]:           1384678210 , delta: 346108294 events
+ counter[2 cache-refs          ]:                  659 , delta: 150 events
+ counter[3 cache-misses        ]:                    0 
+ counter[4 branch-instructions ]:            266919398 , delta: 66731508 events
+ counter[5 branch-misses       ]:                 1201 , delta: 315 events
+
+This will be in -v2.
+
+	Ingo
