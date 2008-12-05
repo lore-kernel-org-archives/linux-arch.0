@@ -1,40 +1,34 @@
-From: Arjan van de Ven <arjan@infradead.org>
+From: David Miller <davem@davemloft.net>
 Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Fri, 5 Dec 2008 07:00:42 -0800
-Message-ID: <20081205070042.0b8a3ef5@infradead.org>
-References: <1228461385.18899.13.camel@twins>
-	<18744.57057.243817.407691@cargo.ozlabs.ibm.com>
-	<1228464216.18899.18.camel@twins>
-	<20081205.000716.40104924.davem@davemloft.net>
+Date: Fri, 05 Dec 2008 12:08:14 -0800 (PST)
+Message-ID: <20081205.120814.51226316.davem@davemloft.net>
+References: <20081205.002701.172921476.davem@davemloft.net>
+	<20081205084233.GE2030@elte.hu>
+	<87ej0mx0c0.fsf@basil.nowhere.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:52273 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752523AbYLEO7h (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2008 09:59:37 -0500
-In-Reply-To: <20081205.000716.40104924.davem@davemloft.net>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:33248
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1754052AbYLEUIO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2008 15:08:14 -0500
+In-Reply-To: <87ej0mx0c0.fsf@basil.nowhere.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: a.p.zijlstra@chello.nl, paulus@samba.org, mingo@elte.hu, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, hpa@zytor.com, rostedt@goodmis.org
+To: andi@firstfloor.org
+Cc: mingo@elte.hu, a.p.zijlstra@chello.nl, paulus@samba.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, rostedt@goodmis.org
 
-On Fri, 05 Dec 2008 00:07:16 -0800 (PST)
-David Miller <davem@davemloft.net> wrote:
+From: Andi Kleen <andi@firstfloor.org>
+Date: Fri, 05 Dec 2008 13:39:43 +0100
 
-> These things aren't measuring time, or even just cycles, they
-> are measuring things like L2 cache misses, cpu cycles, and
-> other similar kinds of events.
-> 
-> So these counters are going to measure all of the damn crap
-> assosciated with doing the read() call as well as the real work
-> the task does.
+> Given these are more obscure features, but not being able to fit
+> them easily into your model from the start isn't a very promising sign
+> for the long term extensibility of the design.
 
-as you said before, not if you do the read() from a thread that's
-exempt from the profiling.
+Another thing I'm interested in is if this new stuff will work with
+performance counters that lack an overflow interrupt.
 
--- 
-Arjan van de Ven 	Intel Open Source Technology Centre
-For development, discussion and tips for power savings, 
-visit http://www.lesswatts.org
+We have several chips that are like this, and perfmon supported that
+on the kernel side, and also provided overflow emulation for such
+hardware in userspace (where such complexity belongs).
