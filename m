@@ -1,58 +1,60 @@
-From: Andrew Morton <akpm@linux-foundation.org>
+From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Thu, 4 Dec 2008 19:30:11 -0800
-Message-ID: <20081204193011.37d2b3cd.akpm@linux-foundation.org>
-References: <20081204225345.654705757@linutronix.de>
+Date: Fri, 5 Dec 2008 07:10:12 +0100
+Message-ID: <20081205061012.GA12785@elte.hu>
+References: <20081204225345.654705757@linutronix.de> <20081204.171233.201039452.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:41085 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750951AbYLEDbI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2008 22:31:08 -0500
-In-Reply-To: <20081204225345.654705757@linutronix.de>
+Received: from mx3.mail.elte.hu ([157.181.1.138]:45798 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751303AbYLEGKj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Dec 2008 01:10:39 -0500
+Content-Disposition: inline
+In-Reply-To: <20081204.171233.201039452.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>, Paul Mackerras <paulus@samba.org>, perfctr-devel@lists.sourceforge.net
+To: David Miller <davem@davemloft.net>
+Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org, paulus@samba.org
 
-On Thu, 04 Dec 2008 23:44:39 -0000 Thomas Gleixner <tglx@linutronix.de> wrote:
 
-> Performance counters are special hardware registers available on most modern
-> CPUs. These register count the number of certain types of hw events: such
-> as instructions executed, cachemisses suffered, or branches mis-predicted,
-> without slowing down the kernel or applications. These registers can also
-> trigger interrupts when a threshold number of events have passed - and can
-> thus be used to profile the code that runs on that CPU.
-> 
-> We'd like to announce a brand new implementation of performance counter
-> support for Linux. It is a very simple and extensible design that has the
-> potential to implement the full range of features we would expect from such
-> a subsystem.
-> 
-> The Linux Performance Counter subsystem (implemented via the patches
-> posted in this announcement) provides an abstraction of performance counter
-> hardware capabilities. It provides per task and per CPU counters, and it
-> provides event capabilities on top of those.
-> 
-> The code is far from complete - but the basic approach is already there
-> and stable.
-> 
-> The biggest missing detail is lowlevel support for non-Intel CPUs and
-> older Intel CPUs - right now the code is implemented for Intel Core2
-> (and later) Intel CPUs that have the PERFMON CPU feature. (see below
-> a wider list of missing/upcoming features)
-> 
-> We are aware of the perfmon3 patchset that has been submitted to lkml
-> recently. Our patchset tries to achieve a similar end result, with
-> a fundamentally different (and we believe, superior :-) design:
+* David Miller <davem@davemloft.net> wrote:
 
-There's also the perfctr patchset, which has been available for a long
-time.
+> From: Thomas Gleixner <tglx@linutronix.de>
+> Date: Thu, 04 Dec 2008 23:44:39 -0000
+> 
+> >  - No interaction with ptrace: any task (with sufficient permissions) can
+> >    monitor other tasks, without having to stop that task.
+> 
+> This isn't going to work.
+>
+> If you look at the things the perfmon libraries do, you do need to stop 
+> the task.
+>
+> Consider counter virtualization as the most direct example. [...]
 
-I believe that established users of this sort of capability often
-access it via the supposed-to-be-cross-platform PAPI interface/library.
+Note that counter virtualization is not offered in the perfmon3 patchset 
+that has been posted to lkml. (It is part of the much larger 'full' 
+perfmon patchset which has not been submitted for integration)
 
-Please cc perfctr-devel@lists.sourceforge.net on emails related to this
-work.
+Nevertheless we will offer counter virtualization in -v2 of our patchset 
+and we mentioned it in the TODO list:
+
+> >  - Round-robin scheduling of counters, when there's more task
+> >    counters than hw counters available.
+
+The 'target' task does not have to be stopped to offer counter 
+virtualization (counter overcommit or counter scheduling) - or to offer 
+any of the other performance counter features. Please let us know why it 
+needs the task to be stopped - we asked about that on lkml in the perfmon 
+thread and no technical answer was given, and couldnt find any such 
+technical reason while implementing it ourselves.
+
+Relying on ptrace machinery can be considered one of the bigger design 
+mistakes of the permon3 patchset.
+
+We pointed that out in review, and now we demonstrate it via this 
+patchset that it can be done much cleaner and much simpler. (Please stay 
+tuned for -v2 if you want to see the proof of the pudding.)
+
+	Ingo
