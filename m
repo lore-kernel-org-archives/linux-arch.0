@@ -1,39 +1,58 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [patch 2/3] performance counters: documentation
-Date: Thu, 04 Dec 2008 19:26:50 -0800 (PST)
-Message-ID: <20081204.192650.193940655.davem@davemloft.net>
-References: <18744.30427.440468.829807@cargo.ozlabs.ibm.com>
-	<20081204.163741.48585912.davem@davemloft.net>
-	<20081204185002.5faded25@infradead.org>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
+Date: Thu, 4 Dec 2008 19:30:11 -0800
+Message-ID: <20081204193011.37d2b3cd.akpm@linux-foundation.org>
+References: <20081204225345.654705757@linutronix.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:60601
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1750931AbYLED0u (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2008 22:26:50 -0500
-In-Reply-To: <20081204185002.5faded25@infradead.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:41085 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750951AbYLEDbI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2008 22:31:08 -0500
+In-Reply-To: <20081204225345.654705757@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arjan@infradead.org
-Cc: paulus@samba.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mingo@elte.hu, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>, Paul Mackerras <paulus@samba.org>, perfctr-devel@lists.sourceforge.net
 
-From: Arjan van de Ven <arjan@infradead.org>
-Date: Thu, 4 Dec 2008 18:50:02 -0800
+On Thu, 04 Dec 2008 23:44:39 -0000 Thomas Gleixner <tglx@linutronix.de> wrote:
 
-> I would like to respectfully disagree with this some. The kernel needs
-> to abstract hardware to some degree for userspace. The problem in this
-> case is that userspace can't really do a better job, in fact it can
-> only do a worse job since it lacks the coordination capability of
-> knowing it has full control of all the hardware registers. 
+> Performance counters are special hardware registers available on most modern
+> CPUs. These register count the number of certain types of hw events: such
+> as instructions executed, cachemisses suffered, or branches mis-predicted,
+> without slowing down the kernel or applications. These registers can also
+> trigger interrupts when a threshold number of events have passed - and can
+> thus be used to profile the code that runs on that CPU.
+> 
+> We'd like to announce a brand new implementation of performance counter
+> support for Linux. It is a very simple and extensible design that has the
+> potential to implement the full range of features we would expect from such
+> a subsystem.
+> 
+> The Linux Performance Counter subsystem (implemented via the patches
+> posted in this announcement) provides an abstraction of performance counter
+> hardware capabilities. It provides per task and per CPU counters, and it
+> provides event capabilities on top of those.
+> 
+> The code is far from complete - but the basic approach is already there
+> and stable.
+> 
+> The biggest missing detail is lowlevel support for non-Intel CPUs and
+> older Intel CPUs - right now the code is implemented for Intel Core2
+> (and later) Intel CPUs that have the PERFMON CPU feature. (see below
+> a wider list of missing/upcoming features)
+> 
+> We are aware of the perfmon3 patchset that has been submitted to lkml
+> recently. Our patchset tries to achieve a similar end result, with
+> a fundamentally different (and we believe, superior :-) design:
 
-The perfmon context abstraction dealt with that.  Code using the
-perfmon interfaces provided a set of counter and control register
-values to the kernel.
+There's also the perfctr patchset, which has been available for a long
+time.
 
-The kernel merely loaded and unloaded them when a process (or group of
-processes) ran.
+I believe that established users of this sort of capability often
+access it via the supposed-to-be-cross-platform PAPI interface/library.
 
-The kernel is a validity checker, and that minimal stuff is exactly
-what the perfmon kernel component implemented.
+Please cc perfctr-devel@lists.sourceforge.net on emails related to this
+work.
