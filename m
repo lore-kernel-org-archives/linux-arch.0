@@ -1,56 +1,42 @@
 From: David Miller <davem@davemloft.net>
 Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Thu, 04 Dec 2008 23:50:11 -0800 (PST)
-Message-ID: <20081204.235011.161384440.davem@davemloft.net>
-References: <20081204225345.654705757@linutronix.de>
-	<20081204.171233.201039452.davem@davemloft.net>
-	<20081205061012.GA12785@elte.hu>
+Date: Thu, 04 Dec 2008 23:52:38 -0800 (PST)
+Message-ID: <20081204.235238.229578299.davem@davemloft.net>
+References: <18744.29747.728320.652642@cargo.ozlabs.ibm.com>
+	<20081205063131.GB12785@elte.hu>
+	<20081204230206.6e083d51@infradead.org>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:50685
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:48229
 	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1753106AbYLEHuL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2008 02:50:11 -0500
-In-Reply-To: <20081205061012.GA12785@elte.hu>
+	by vger.kernel.org with ESMTP id S1750720AbYLEHwi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2008 02:52:38 -0500
+In-Reply-To: <20081204230206.6e083d51@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mingo@elte.hu
-Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org, paulus@samba.org
+To: arjan@infradead.org
+Cc: mingo@elte.hu, paulus@samba.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org
 
-From: Ingo Molnar <mingo@elte.hu>
-Date: Fri, 5 Dec 2008 07:10:12 +0100
+From: Arjan van de Ven <arjan@infradead.org>
+Date: Thu, 4 Dec 2008 23:02:06 -0800
 
-> * David Miller <davem@davemloft.net> wrote:
+> On Fri, 5 Dec 2008 07:31:31 +0100
+> Ingo Molnar <mingo@elte.hu> wrote:
 > 
-> > From: Thomas Gleixner <tglx@linutronix.de>
-> > Date: Thu, 04 Dec 2008 23:44:39 -0000
-> > 
-> > >  - No interaction with ptrace: any task (with sufficient permissions) can
-> > >    monitor other tasks, without having to stop that task.
-> > 
-> > This isn't going to work.
-> >
-> > If you look at the things the perfmon libraries do, you do need to stop 
-> > the task.
-> >
-> > Consider counter virtualization as the most direct example. [...]
+> > Btw., i'm curious, why would we want to do that? It skews the results
+> > if the task continues executing and counters stop. To get the highest 
+> > quality profiling output the counters should follow the true state of
+> > the task that is profiled - and events should be passed to the
+> > monitoring task asynchronously. The _events_ can contain precise
+> > coupled information 
+> > - but the counters should continue.
 > 
-> Note that counter virtualization is not offered in the perfmon3 patchset 
-> that has been posted to lkml. (It is part of the much larger 'full' 
-> perfmon patchset which has not been submitted for integration)
+> btw stopping the task on counter overflow is an issue for things that
+> want to self profile, like JITs
 
-I know, it was yanked out to make a merge more likely.
+They can fork off a thread to do this.
 
-> Relying on ptrace machinery can be considered one of the bigger design 
-> mistakes of the permon3 patchset.
-
-I totally disagree.
-
-> We pointed that out in review, and now we demonstrate it via this 
-> patchset that it can be done much cleaner and much simpler. (Please stay 
-> tuned for -v2 if you want to see the proof of the pudding.)
-
-I hope it will provide enough for full PAPI library support, otherwise
-it's useless for most of the world.
+No blocking on couter overflow leads to inaccurate results.
+This is a pretty fundamental aspect of perf counter usage.
