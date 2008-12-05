@@ -1,52 +1,77 @@
-From: Andi Kleen <andi@firstfloor.org>
+From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Fri, 05 Dec 2008 13:39:43 +0100
-Message-ID: <87ej0mx0c0.fsf@basil.nowhere.org>
-References: <20081205081137.GB2030@elte.hu>
-	<20081205.001717.216522767.davem@davemloft.net>
-	<20081205082431.GD2030@elte.hu>
-	<20081205.002701.172921476.davem@davemloft.net>
-	<20081205084233.GE2030@elte.hu>
+Date: Fri, 5 Dec 2008 14:25:12 +0100
+Message-ID: <20081205132512.GA18786@elte.hu>
+References: <20081205063131.GB12785@elte.hu> <18744.56857.259756.129894@cargo.ozlabs.ibm.com> <20081205080813.GA2030@elte.hu> <20081205.001520.79526444.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:44875 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750957AbYLEMj2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2008 07:39:28 -0500
-In-Reply-To: <20081205084233.GE2030@elte.hu> (Ingo Molnar's message of "Fri, 5 Dec 2008 09:42:33 +0100")
+Received: from mx2.mail.elte.hu ([157.181.151.9]:52810 "EHLO mx2.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751502AbYLENZi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Dec 2008 08:25:38 -0500
+Content-Disposition: inline
+In-Reply-To: <20081205.001520.79526444.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: David Miller <davem@davemloft.net>, a.p.zijlstra@chello.nl, paulus@samba.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, rostedt@goodmis.org
+To: David Miller <davem@davemloft.net>
+Cc: paulus@samba.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org
 
-Ingo Molnar <mingo@elte.hu> writes:
 
-> Note that more notification record types is actually where latest 
-> hardware is going: for example in Nehalem there's a PEBS notification 
-> record type that has cachemiss latency included in the record. I.e. we 
-> can get profiles with _cachemiss latency_ included (as measured from 
-> issuing the instruction to completion).
+* David Miller <davem@davemloft.net> wrote:
 
-One problem is that you have to find out the correct RIP for that PEBS
-cache miss you have to disassemble from the last basic block because
-the IP in PEBS points to the next instruction. 
+> > > Isn't it two separate read() calls to read the two counters?  If 
+> > > so, the only way the two values are actually going to correspond to 
+> > > the same point in time is if the task being monitored is stopped.  
+> > > In which case the monitoring task needs to use ptrace or something 
+> > > similar in order to make sure that the monitored task is actually 
+> > > stopped.
+> > 
+> > It doesnt matter in practice.
+> 
+> Yes it DOES!
+> 
+> If I want to know if a code block triggers event X or Y, and your read 
+> call triggers one of those events, I can't figure out the answer to my 
+> profiling problem.
 
-If such a thing is ever implemented it should be in user space
-I think.
+( this misunderstanding of yours has been cleared up in a later mail: 
+  reading a counter causes events in the monitoring context, not in the
+  monitored context. )
 
-Also in general some of the more useful PEBS information requires
-disassembling unfortunately. For example if you want a address
-histogram you get the register contents, but you have to interpret the
-code to compute the EA. While the kernel has a x86 interpreter now for
-this I suspect doing it in kernel space would be quite complicated
-and at least I would consider doing it in user space cleaner too.
+> That is completely fundamental to all of this.  And this is why this 
+> proposal is a non-workable solution.
+> 
+> 
+> > Also, look at our code: we buffer notification events and do not have 
+> > to stop the thread for recording the context information.
+> 
+> But that's what monitoring libraries want, they want to stop the task 
+> and inspect it.
+> 
+> Look at the PAPI library.  If you can't implement what that thing 
+> provides, all the real users of profiling information can't use this 
+> stuff.
 
-Given these are more obscure features, but not being able to fit
-them easily into your model from the start isn't a very promising sign
-for the long term extensibility of the design.
+We have looked, and the PAPI library can be implemented on top of our 
+system call as well - just like it was implemented on top of the perfctr 
+driver and like it was implemented ontop of "perfmon-full".
 
--Andi
+PAPI is a relatively simple wrapper around OS level performance counter 
+facilities. Both the high level counter abstraction 
+(PAPI_start_counters() & friends) and the low level PAPI abstraction 
+(PAPI event sets, PAPI_attach/detach) can be readily implemented via the 
+use of our performance counter subsystem facilities. (In addition to all 
+the facilities around PAPI event enumeration.)
 
--- 
-ak@linux.intel.com
+PAPI has about 100 functions - if you think our design does not fit it 
+for some fundamental reason then please point out exactly which 
+functionality (which PAPI function call) cannot be done.
+
+Perfmon needlessly complicated their design by exposing user-space to a 
+'performance counter context' and other lowlevel details that should not 
+and must not be handled at the ABI level. The PAPI interfaces do not 
+force that design choice in any way. It's a plain unnecessary 
+complication that permeates the whole perfmon code.
+
+	Ingo
