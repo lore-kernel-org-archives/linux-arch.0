@@ -1,18 +1,17 @@
 From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [patch 2/3] performance counters: documentation
-Date: Fri, 5 Dec 2008 11:33:31 +1100
-Message-ID: <18744.30427.440468.829807@cargo.ozlabs.ibm.com>
+Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
+Date: Fri, 5 Dec 2008 11:22:11 +1100
+Message-ID: <18744.29747.728320.652642@cargo.ozlabs.ibm.com>
 References: <20081204225345.654705757@linutronix.de>
-	<20081204230228.557959174@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:51435 "EHLO ozlabs.org"
+Received: from ozlabs.org ([203.10.76.45]:51427 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751731AbYLEAdr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1751697AbYLEAdr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Thu, 4 Dec 2008 19:33:47 -0500
-In-Reply-To: <20081204230228.557959174@linutronix.de>
+In-Reply-To: <20081204225345.654705757@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
@@ -20,54 +19,31 @@ Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Mort
 
 Thomas Gleixner writes:
 
-> + enum hw_event_types {
-> +	PERF_COUNT_CYCLES,
-> +	PERF_COUNT_INSTRUCTIONS,
-> +	PERF_COUNT_CACHE_REFERENCES,
-> +	PERF_COUNT_CACHE_MISSES,
-> +	PERF_COUNT_BRANCH_INSTRUCTIONS,
-> +	PERF_COUNT_BRANCH_MISSES,
-> + };
-> +
-> +These are standardized types of events that work uniformly on all CPUs
-> +that implements Performance Counters support under Linux. If a CPU is
-> +not able to count branch-misses, then the system call will return
-> +-EINVAL.
-> +
-> +[ Note: more hw_event_types are supported as well, but they are CPU
-> +  specific and are enumerated via /sys on a per CPU basis. Raw hw event
-> +  types can be passed in as negative numbers. For example, to count
-> +  "External bus cycles while bus lock signal asserted" events on Intel
-> +  Core CPUs, pass in a -0x4064 event type value. ]
+> We'd like to announce a brand new implementation of performance counter
+> support for Linux. It is a very simple and extensible design that has the
+> potential to implement the full range of features we would expect from such
+> a subsystem.
 
-This is going to be a huge problem, at least on powerpc, because it
-means that the kernel will have to know which events can be counted on
-which counters and what values need to be put in the control registers
-to select them.
+Looks like the sort of thing I was thinking about a year or so ago
+when I was trying to come up with a simpler API than perfmon2.
+However, it turned out that my design, and I believe yours too, can't
+do some things that users really want to do with performance
+counters.
 
-The thing is that not all the counters count the same set of events,
-or use the same select values when they can count the same events.
-For example, on a MPC7450 cpu, you can count L2 cache misses in PMC5
-or PMC6.  If you're counting them on PMC5 you need to put 19 into the
-PCM5 event selector field in the MMCR1 register.  But if you're
-counting them on PMC6 then you need to put 29 in the PMC6 event
-selector field in MMCR1.
+One thing that this sort of thing can't do is to get values from
+multiple counters that correlate with each other.  For instance, we
+would often want to count, say, L2 cache misses and instructions
+completed at the same time, and be able to read both counters at very
+close to the same time, so that we can measure average L2 cache misses
+per instruction completed, which is useful.
 
-Since we don't get to say which counter to use in perf_counter_open,
-we would have to pass an abstracted "L2 cache miss" event code and
-have that map to 19 or 29 depending on which PMC register we get to
-use.  But that means that the kernel then has to have the entire table
-of countable events for every supported CPU model - something that
-perfmon3 manages to keep out of the kernel.
+Another problem is that this abstraction provides no way to deal with
+interrelationships between counters.  For example, on PowerPC it is
+common to have a facility where one counter overflowing can cause all
+the other counters to freeze.  I don't see this abstraction providing
+any way to handle that.
 
-The situation will be even worse with POWER5 and POWER6, where the
-event selection logic is very complex, with multiple layers of
-multiplexers.  I really really don't want the kernel to have to know
-about all that.
-
-Basically, what it boils down to is that treating performance monitor
-counters as independent units is just not feasible, at least on
-powerpc.  We really need to be able to deal with the full set of
-counters as one thing.
+It looks to me that your new API will be unworkable for real
+performance measurement and tuning, just like mine ended up being. :)
 
 Paul.
