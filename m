@@ -1,41 +1,60 @@
-From: Andi Kleen <andi@firstfloor.org>
+From: Arjan van de Ven <arjan@infradead.org>
 Subject: Re: [patch 2/3] performance counters: documentation
-Date: Fri, 05 Dec 2008 03:33:13 +0100
-Message-ID: <87myfbwdue.fsf@basil.nowhere.org>
+Date: Thu, 4 Dec 2008 18:50:02 -0800
+Message-ID: <20081204185002.5faded25@infradead.org>
 References: <20081204225345.654705757@linutronix.de>
 	<20081204230228.557959174@linutronix.de>
 	<18744.30427.440468.829807@cargo.ozlabs.ibm.com>
+	<20081204.163741.48585912.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:54283 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754806AbYLECdA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2008 21:33:00 -0500
-In-Reply-To: <18744.30427.440468.829807@cargo.ozlabs.ibm.com> (Paul Mackerras's message of "Fri, 5 Dec 2008 11:33:31 +1100")
+Received: from casper.infradead.org ([85.118.1.10]:35155 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752643AbYLECtD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2008 21:49:03 -0500
+In-Reply-To: <20081204.163741.48585912.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mackerras <paulus@samba.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
+To: David Miller <davem@davemloft.net>
+Cc: paulus@samba.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mingo@elte.hu, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org
 
-Paul Mackerras <paulus@samba.org> writes:
->> +
->> +[ Note: more hw_event_types are supported as well, but they are CPU
->> +  specific and are enumerated via /sys on a per CPU basis. Raw hw event
->> +  types can be passed in as negative numbers. For example, to count
->> +  "External bus cycles while bus lock signal asserted" events on Intel
->> +  Core CPUs, pass in a -0x4064 event type value. ]
->
-> This is going to be a huge problem, at least on powerpc, because it
-> means that the kernel will have to know which events can be counted on
-> which counters and what values need to be put in the control registers
-> to select them.
+On Thu, 04 Dec 2008 16:37:41 -0800 (PST)
+David Miller <davem@davemloft.net> wrote:
 
-P4 has similar problems, and to some extent there's also the same
-problem on newer Intel CPUs (e.g. with fixed counters and if you
-consider PEBS which has some special restrictions)
+> From: Paul Mackerras <paulus@samba.org>
+> Date: Fri, 5 Dec 2008 11:33:31 +1100
+> 
+> > This is going to be a huge problem, at least on powerpc, because it
+> > means that the kernel will have to know which events can be counted
+> > on which counters and what values need to be put in the control
+> > registers to select them.
+> 
+> Sparc64 is the same.
+> 
+> > The situation will be even worse with POWER5 and POWER6, where the
+> > event selection logic is very complex, with multiple layers of
+> > multiplexers.  I really really don't want the kernel to have to know
+> > about all that.
+> 
+> Niagara2 has deep multiplexing and sub-event masking too.
+> 
+> I really appreciated how perfmon kept all of those details
+> in userspace.
 
--Andi
+I would like to respectfully disagree with this some. The kernel needs
+to abstract hardware to some degree for userspace. The problem in this
+case is that userspace can't really do a better job, in fact it can
+only do a worse job since it lacks the coordination capability of
+knowing it has full control of all the hardware registers. 
+I am sure the corner cases you're talking about are nasty, I just don't
+think they are less nasty when dealt with in userspace. Sure the kernel
+might be simpler, but the system as a whole sure is not.
+
+
 
 -- 
-ak@linux.intel.com
+Arjan van de Ven 	Intel Open Source Technology Centre
+For development, discussion and tips for power savings, 
+visit http://www.lesswatts.org
