@@ -1,56 +1,88 @@
-From: David Miller <davem@davemloft.net>
+From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Fri, 05 Dec 2008 00:17:17 -0800 (PST)
-Message-ID: <20081205.001717.216522767.davem@davemloft.net>
-References: <1228464216.18899.18.camel@twins>
-	<20081205.000716.40104924.davem@davemloft.net>
-	<20081205081137.GB2030@elte.hu>
+Date: Fri, 5 Dec 2008 09:18:38 +0100
+Message-ID: <20081205081838.GC2030@elte.hu>
+References: <18744.29747.728320.652642@cargo.ozlabs.ibm.com> <20081205063131.GB12785@elte.hu> <20081205070329.GA30874@elte.hu> <20081204.235747.43111785.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:59228
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1750773AbYLEIRR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2008 03:17:17 -0500
-In-Reply-To: <20081205081137.GB2030@elte.hu>
+Received: from mx3.mail.elte.hu ([157.181.1.138]:45021 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751121AbYLEIS5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Dec 2008 03:18:57 -0500
+Content-Disposition: inline
+In-Reply-To: <20081204.235747.43111785.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mingo@elte.hu
-Cc: a.p.zijlstra@chello.nl, paulus@samba.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, rostedt@goodmis.org
+To: David Miller <davem@davemloft.net>
+Cc: paulus@samba.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org
 
-From: Ingo Molnar <mingo@elte.hu>
-Date: Fri, 5 Dec 2008 09:11:37 +0100
 
+* David Miller <davem@davemloft.net> wrote:
+
+> From: Ingo Molnar <mingo@elte.hu>
+> Date: Fri, 5 Dec 2008 08:03:29 +0100
 > 
-> * David Miller <davem@davemloft.net> wrote:
+> > 
+> > * Ingo Molnar <mingo@elte.hu> wrote:
+> > 
+> > > This can be done in a very natural way with our abstraction, and the 
+> > > "hello.c" example happens to do exactly that:
+> > 
+> > multiple people pointed out that we have not posted hello.c :-/
 > 
-> > From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> > Date: Fri, 05 Dec 2008 09:03:36 +0100
-> > 
-> > > On Fri, 2008-12-05 at 18:57 +1100, Paul Mackerras wrote:
-> > > > Peter Zijlstra writes:
-> > > > 
-> > > > > So, while most people would not consider two consecutive read() ops to
-> > > > > be close or near the same time, due to preemption and such, that is
-> > > > > taken away by the fact that the counters are task local time based - so
-> > > > > preemption doesn't affect thing. Right?
-> > > > 
-> > > > I'm sorry, I don't follow the argument here.  What do you mean by
-> > > > "task local time based"?
-> > > 
-> > > time only flows when the task is running.
-> > 
-> > These things aren't measuring time, or even just cycles, they are 
-> > measuring things like L2 cache misses, cpu cycles, and other similar 
-> > kinds of events.
-> > 
-> > So these counters are going to measure all of the damn crap assosciated 
-> > with doing the read() call as well as the real work the task does.
+> Because it's completely not providing the facility.  This is not how
+> people want to use the performance counters at all.
 > 
-> that's wrong, look at the example we posted - see it pasted below.
+> And it doesn't even do what Paulus said is necessary, he said:
+> 
+> --------------------
+> > One thing that this sort of thing can't do is to get values from 
+> > multiple counters that correlate with each other.  For instance, we 
+> > would often want to count, say, L2 cache misses and instructions 
+> > completed at the same time, and be able to read both counters at very 
+> > close to the same time, so that we can measure average L2 cache misses 
+> > per instruction completed, which is useful.
+> --------------------
+> 
+> And if you read one counter then read the other as seperate operations, 
+> you get extra events in there as a side effect of going back into 
+> userspace between the two reads.
 
-It's still too simple to be useful.
+that's wrong. If you _want_ to measure in a different context, with as 
+little measurement impact as possible, you can do it with our code. The 
+announcement provides the example for that.
 
-There are so many aspects other than the immediate PC that monitoring
-tasks want to inspect when a counter overflows.
+For example, i just started this bash infinite loop:
+
+  $ while :; do :; done &
+  [1] 1877
+
+  $ ./monitor -e 1 -c 1000000000 1877
+  IP: 0x00000031a2e70d4b
+  IP: 0x0000000000455f64
+  IP: 0x00000031a2f028a0
+  IP: 0x0000000000440692
+  IP: 0x0000000000441b8e
+  IP: 0x00000031a2e6f630
+  IP: 0x0000000000446129
+  IP: 0x00000031a2e6edbc
+  IP: 0x0000000000443736
+  IP: 0x0000000000441c80
+  IP: 0x000000000043913a
+  ^C
+
+We get IP readouts every 1 billion instructions executed in that shell. 
+That shell is never stopped or otherwise intruded - it's kept as an as 
+pristine of an execution environment as possible.
+
+Furthermore, the event readouts strictly only include event counts of the 
+shell PID, _not_ of the monitor context's read() or other activities.
+
+> Nobody wants that, [...]
+
+Nobody wants that and we dont do it.
+
+Really, you should take a more serious look at our code.
+
+	Ingo
