@@ -1,88 +1,28 @@
-From: Ingo Molnar <mingo@elte.hu>
+From: David Miller <davem@davemloft.net>
 Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Fri, 5 Dec 2008 09:18:38 +0100
-Message-ID: <20081205081838.GC2030@elte.hu>
-References: <18744.29747.728320.652642@cargo.ozlabs.ibm.com> <20081205063131.GB12785@elte.hu> <20081205070329.GA30874@elte.hu> <20081204.235747.43111785.davem@davemloft.net>
+Date: Fri, 05 Dec 2008 00:20:38 -0800 (PST)
+Message-ID: <20081205.002038.141322875.davem@davemloft.net>
+References: <20081205070329.GA30874@elte.hu>
+	<20081204.235747.43111785.davem@davemloft.net>
+	<20081205081838.GC2030@elte.hu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:45021 "EHLO mx3.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751121AbYLEIS5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Dec 2008 03:18:57 -0500
-Content-Disposition: inline
-In-Reply-To: <20081204.235747.43111785.davem@davemloft.net>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:59241
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1751316AbYLEIUi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2008 03:20:38 -0500
+In-Reply-To: <20081205081838.GC2030@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
+To: mingo@elte.hu
 Cc: paulus@samba.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org
 
+From: Ingo Molnar <mingo@elte.hu>
+Date: Fri, 5 Dec 2008 09:18:38 +0100
 
-* David Miller <davem@davemloft.net> wrote:
+> Really, you should take a more serious look at our code.
 
-> From: Ingo Molnar <mingo@elte.hu>
-> Date: Fri, 5 Dec 2008 08:03:29 +0100
-> 
-> > 
-> > * Ingo Molnar <mingo@elte.hu> wrote:
-> > 
-> > > This can be done in a very natural way with our abstraction, and the 
-> > > "hello.c" example happens to do exactly that:
-> > 
-> > multiple people pointed out that we have not posted hello.c :-/
-> 
-> Because it's completely not providing the facility.  This is not how
-> people want to use the performance counters at all.
-> 
-> And it doesn't even do what Paulus said is necessary, he said:
-> 
-> --------------------
-> > One thing that this sort of thing can't do is to get values from 
-> > multiple counters that correlate with each other.  For instance, we 
-> > would often want to count, say, L2 cache misses and instructions 
-> > completed at the same time, and be able to read both counters at very 
-> > close to the same time, so that we can measure average L2 cache misses 
-> > per instruction completed, which is useful.
-> --------------------
-> 
-> And if you read one counter then read the other as seperate operations, 
-> you get extra events in there as a side effect of going back into 
-> userspace between the two reads.
-
-that's wrong. If you _want_ to measure in a different context, with as 
-little measurement impact as possible, you can do it with our code. The 
-announcement provides the example for that.
-
-For example, i just started this bash infinite loop:
-
-  $ while :; do :; done &
-  [1] 1877
-
-  $ ./monitor -e 1 -c 1000000000 1877
-  IP: 0x00000031a2e70d4b
-  IP: 0x0000000000455f64
-  IP: 0x00000031a2f028a0
-  IP: 0x0000000000440692
-  IP: 0x0000000000441b8e
-  IP: 0x00000031a2e6f630
-  IP: 0x0000000000446129
-  IP: 0x00000031a2e6edbc
-  IP: 0x0000000000443736
-  IP: 0x0000000000441c80
-  IP: 0x000000000043913a
-  ^C
-
-We get IP readouts every 1 billion instructions executed in that shell. 
-That shell is never stopped or otherwise intruded - it's kept as an as 
-pristine of an execution environment as possible.
-
-Furthermore, the event readouts strictly only include event counts of the 
-shell PID, _not_ of the monitor context's read() or other activities.
-
-> Nobody wants that, [...]
-
-Nobody wants that and we dont do it.
-
-Really, you should take a more serious look at our code.
-
-	Ingo
+People don't want code, they want a usable port of the PAPI libraries
+for profiling.
