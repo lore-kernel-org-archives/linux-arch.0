@@ -1,62 +1,35 @@
-From: David Miller <davem@davemloft.net>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Thu, 04 Dec 2008 23:57:47 -0800 (PST)
-Message-ID: <20081204.235747.43111785.davem@davemloft.net>
-References: <18744.29747.728320.652642@cargo.ozlabs.ibm.com>
-	<20081205063131.GB12785@elte.hu>
-	<20081205070329.GA30874@elte.hu>
+Date: Fri, 05 Dec 2008 09:03:36 +0100
+Message-ID: <1228464216.18899.18.camel@twins>
+References: <20081204225345.654705757@linutronix.de>
+	 <18744.29747.728320.652642@cargo.ozlabs.ibm.com>
+	 <20081205063131.GB12785@elte.hu> <20081205070329.GA30874@elte.hu>
+	 <1228461385.18899.13.camel@twins>
+	 <18744.57057.243817.407691@cargo.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:55629
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1755612AbYLEH5r (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2008 02:57:47 -0500
-In-Reply-To: <20081205070329.GA30874@elte.hu>
+Received: from viefep18-int.chello.at ([213.46.255.22]:42792 "EHLO
+	viefep18-int.chello.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750831AbYLEIDr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2008 03:03:47 -0500
+In-Reply-To: <18744.57057.243817.407691@cargo.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mingo@elte.hu
-Cc: paulus@samba.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org
+To: Paul Mackerras <paulus@samba.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
 
-From: Ingo Molnar <mingo@elte.hu>
-Date: Fri, 5 Dec 2008 08:03:29 +0100
-
+On Fri, 2008-12-05 at 18:57 +1100, Paul Mackerras wrote:
+> Peter Zijlstra writes:
 > 
-> * Ingo Molnar <mingo@elte.hu> wrote:
+> > So, while most people would not consider two consecutive read() ops to
+> > be close or near the same time, due to preemption and such, that is
+> > taken away by the fact that the counters are task local time based - so
+> > preemption doesn't affect thing. Right?
 > 
-> > This can be done in a very natural way with our abstraction, and the 
-> > "hello.c" example happens to do exactly that:
-> 
-> multiple people pointed out that we have not posted hello.c :-/
+> I'm sorry, I don't follow the argument here.  What do you mean by
+> "task local time based"?
 
-Because it's completely not providing the facility.  This is not how
-people want to use the performance counters at all.
-
-And it doesn't even do what Paulus said is necessary, he said:
-
---------------------
-> One thing that this sort of thing can't do is to get values from 
-> multiple counters that correlate with each other.  For instance, we 
-> would often want to count, say, L2 cache misses and instructions 
-> completed at the same time, and be able to read both counters at very 
-> close to the same time, so that we can measure average L2 cache misses 
-> per instruction completed, which is useful.
---------------------
-
-And if you read one counter then read the other as seperate operations,
-you get extra events in there as a side effect of going back into
-userspace between the two reads.
-
-Nobody wants that, it's inaccurate and if you're looking for if one
-event happens at all it's not only inaccurate it's useless if the
-reads trigger that counter event.  Also, correlation has other
-meanings.
-
-What people want is blocking on overflow events, and a monitoring task
-or thread doing all of the tricky control register management and task
-inspection.
-
-I mean look at some of the test cases and sample programs in the PAPI
-and perfmon2 librarys, that stuff is extremely cool and this proposal
-cannot do half of that stuff correctly.
+time only flows when the task is running.
