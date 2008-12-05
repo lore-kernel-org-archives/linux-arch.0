@@ -1,149 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:41335 "EHLO mx2.mail.elte.hu"
+Received: from mx3.mail.elte.hu ([157.181.1.138]:35306 "EHLO mx3.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750966AbYLEHD7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Dec 2008 02:03:59 -0500
-Date: Fri, 5 Dec 2008 08:03:29 +0100
+	id S1750895AbYLEMNY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Dec 2008 07:13:24 -0500
+Date: Fri, 5 Dec 2008 13:13:08 +0100
 From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Message-ID: <20081205070329.GA30874@elte.hu>
-References: <20081204225345.654705757@linutronix.de> <18744.29747.728320.652642@cargo.ozlabs.ibm.com> <20081205063131.GB12785@elte.hu>
+Message-ID: <20081205121308.GB28662@elte.hu>
+References: <20081205082431.GD2030@elte.hu> <20081205.002701.172921476.davem@davemloft.net> <20081205084233.GE2030@elte.hu> <20081205.004922.244597525.davem@davemloft.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20081205063131.GB12785@elte.hu>
+In-Reply-To: <20081205.004922.244597525.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mackerras <paulus@samba.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
-Message-ID: <20081205070329.F0rIcLvC-5J_v-reCvtDB_qkvTqsYFpWU5KZGeSX-Tw@z>
+To: David Miller <davem@davemloft.net>
+Cc: a.p.zijlstra@chello.nl, paulus@samba.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, rostedt@goodmis.org
+Message-ID: <20081205121308.VyqQEcX2qNfBMbflZ7plwZi7gdvbi1ADUYFNYqIaEHA@z>
 
 
-* Ingo Molnar <mingo@elte.hu> wrote:
+* David Miller <davem@davemloft.net> wrote:
 
-> This can be done in a very natural way with our abstraction, and the 
-> "hello.c" example happens to do exactly that:
+> From: Ingo Molnar <mingo@elte.hu>
+> Date: Fri, 5 Dec 2008 09:42:33 +0100
+> 
+> > Please let me repeat: it's a _fundamental_ thesis of performance 
+> > instrumentation to not disturb the monitored context. Your insistence 
+> > on _stopping_ the monitored task breaks that fundamental axiom!
+> 
+> This is only a problem if you make your measurement quantums too small.
 
-multiple people pointed out that we have not posted hello.c :-/
+But if you make the measurement long enough - say we make it 100,000 
+usecs, then 0.2 usecs of delay between two read()s is insignificant 
+statistically, right? It's a 1:500,000 ratio.
 
-Here's a simple standalone example (full working code attached below):
-
-int main(void)
-{
-	unsigned long long count1, count2;
-	int fd1, fd2, ret;
-
-	fd1 = perf_counter_open(PERF_COUNT_INSTRUCTIONS, 0, 0, 0, -1);
-	assert(fd1 >= 0);
-	fd2 = perf_counter_open(PERF_COUNT_CACHE_MISSES, 0, 0, 0, -1);
-	assert(fd1 >= 0);
-
-	for (;;) {
-		ret = read(fd1, &count1, sizeof(count1));
-		assert(ret == 8);
-		ret = read(fd2, &count2, sizeof(count2));
-		assert(ret == 8);
-
-		printf("counter1 value: %Ld instructions\n", count1);
-		printf("counter2 value: %Ld cachemisses\n",  count2);
-		sleep(1);
-	}
-	return 0;
-}
-
-
-which gives this output (one readout per second):
-
-  titan:~/perf-counter-test> ./simple 
-  counter1 value: 0 instructions
-  counter2 value: 0 cachemisses
-  counter1 value: 23 instructions
-  counter2 value: 0 cachemisses
-  counter1 value: 2853 instructions
-  counter2 value: 6 cachemisses
-  counter1 value: 5736 instructions
-  counter2 value: 7 cachemisses
-  counter1 value: 8619 instructions
-  counter2 value: 8 cachemisses
-  counter1 value: 11502 instructions
-  counter2 value: 8 cachemisses
-  ^C
-
-You need our patchset but then the code below will work just fine. No 
-libraries, no context setup, nothing - just what is more interesting: the 
-counter and profiling data.
+Scheduling out a task and back is far more drastic of an effect than any 
+new events in 0.2 usecs.
 
 	Ingo
-
------------------>
-/*
- * Very simple performance counter testcase.
- */
-#include <sys/syscall.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/uio.h>
-
-#include <linux/unistd.h>
-
-#include <assert.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
-#include <fcntl.h>
-
-#ifdef __x86_64__
-# define __NR_perf_counter_open	295
-#endif
-
-#ifdef __i386__
-# define __NR_perf_counter_open 333
-#endif
-
-int
-perf_counter_open(int		hw_event_type,
-                  unsigned int	hw_event_period,
-                  unsigned int	record_type,
-                  pid_t		pid,
-                  int		cpu)
-{
-	return syscall(__NR_perf_counter_open, hw_event_type, hw_event_period,
-			record_type, pid, cpu);
-}
-
-enum hw_event_types {
-	PERF_COUNT_CYCLES,
-	PERF_COUNT_INSTRUCTIONS,
-	PERF_COUNT_CACHE_REFERENCES,
-	PERF_COUNT_CACHE_MISSES,
-	PERF_COUNT_BRANCH_INSTRUCTIONS,
-	PERF_COUNT_BRANCH_MISSES,
-};
-
-int main(void)
-{
-	unsigned long long count1, count2;
-	int fd1, fd2, ret;
-
-	fd1 = perf_counter_open(PERF_COUNT_INSTRUCTIONS, 0, 0, 0, -1);
-	assert(fd1 >= 0);
-	fd2 = perf_counter_open(PERF_COUNT_CACHE_MISSES, 0, 0, 0, -1);
-	assert(fd1 >= 0);
-
-	for (;;) {
-		ret = read(fd1, &count1, sizeof(count1));
-		assert(ret == 8);
-		ret = read(fd2, &count2, sizeof(count2));
-		assert(ret == 8);
-
-		printf("counter1 value: %Ld instructions\n", count1);
-		printf("counter2 value: %Ld cachemisses\n",  count2);
-		sleep(1);
-	}
-	return 0;
-}
-
