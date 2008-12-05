@@ -1,54 +1,73 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Thu, 04 Dec 2008 16:22:59 -0800
-Message-ID: <49387463.5070100@zytor.com>
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [patch 2/3] performance counters: documentation
+Date: Fri, 5 Dec 2008 11:33:31 +1100
+Message-ID: <18744.30427.440468.829807@cargo.ozlabs.ibm.com>
 References: <20081204225345.654705757@linutronix.de>
+	<20081204230228.557959174@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:53574 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750720AbYLEA2E (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2008 19:28:04 -0500
-In-Reply-To: <20081204225345.654705757@linutronix.de>
+Received: from ozlabs.org ([203.10.76.45]:51435 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751731AbYLEAdr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 4 Dec 2008 19:33:47 -0500
+In-Reply-To: <20081204230228.557959174@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>, Paul Mackerras <paulus@samba.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
 
-Thomas Gleixner wrote:
-> 
-> We'd like to announce a brand new implementation of performance counter
-> support for Linux. It is a very simple and extensible design that has the
-> potential to implement the full range of features we would expect from such
-> a subsystem.
-> 
+Thomas Gleixner writes:
 
-First of all, let me say I really like what I've seen so far.  The file
-descriptor paradigm seems really elegant to me.
+> + enum hw_event_types {
+> +	PERF_COUNT_CYCLES,
+> +	PERF_COUNT_INSTRUCTIONS,
+> +	PERF_COUNT_CACHE_REFERENCES,
+> +	PERF_COUNT_CACHE_MISSES,
+> +	PERF_COUNT_BRANCH_INSTRUCTIONS,
+> +	PERF_COUNT_BRANCH_MISSES,
+> + };
+> +
+> +These are standardized types of events that work uniformly on all CPUs
+> +that implements Performance Counters support under Linux. If a CPU is
+> +not able to count branch-misses, then the system call will return
+> +-EINVAL.
+> +
+> +[ Note: more hw_event_types are supported as well, but they are CPU
+> +  specific and are enumerated via /sys on a per CPU basis. Raw hw event
+> +  types can be passed in as negative numbers. For example, to count
+> +  "External bus cycles while bus lock signal asserted" events on Intel
+> +  Core CPUs, pass in a -0x4064 event type value. ]
 
->  - Only one single new system call is needed: sys_perf_counter_open().
->    All performance-counter operations are implemented via standard
->    VFS APIs such as read() / fcntl() and poll().
+This is going to be a huge problem, at least on powerpc, because it
+means that the kernel will have to know which events can be counted on
+which counters and what values need to be put in the control registers
+to select them.
 
-As previously discussed, I think this should be a filesystem rather than
-a system call.  There are a couple of advantages to doing it that way, IMO:
+The thing is that not all the counters count the same set of events,
+or use the same select values when they can count the same events.
+For example, on a MPC7450 cpu, you can count L2 cache misses in PMC5
+or PMC6.  If you're counting them on PMC5 you need to put 19 into the
+PCM5 event selector field in the MMCR1 register.  But if you're
+counting them on PMC6 then you need to put 29 in the PMC6 event
+selector field in MMCR1.
 
-- Strings, rather than numbers, which means fewer constraints across
-  architectures.
-- The events available can be exported in the filesystem itself (via
-  readdir) rather than via sysfs.
-- Compatibility with existing tools, esp. non-C tools.
+Since we don't get to say which counter to use in perf_counter_open,
+we would have to pass an abstracted "L2 cache miss" event code and
+have that map to 19 or 29 depending on which PMC register we get to
+use.  But that means that the kernel then has to have the entire table
+of countable events for every supported CPU model - something that
+perfmon3 manages to keep out of the kernel.
 
-I'm thinking of something like:
+The situation will be even worse with POWER5 and POWER6, where the
+event selection logic is very complex, with multiple layers of
+multiplexers.  I really really don't want the kernel to have to know
+about all that.
 
-/dev/perfctr/3/cache_misses/all/simple/300
+Basically, what it boils down to is that treating performance monitor
+counters as independent units is just not feasible, at least on
+powerpc.  We really need to be able to deal with the full set of
+counters as one thing.
 
-i.e. /dev/perfctr/<cpu>/<event>/<pid>/<type>/<period>.  I am putting
-<cpu> ahead of <event> in the hierarchy, so a readdir() on the <cpu>
-directory can show the events available by name on that CPU.  Raw
-hardware events can be accessed by something like
-/dev/perfctr/<cpu>/0x4064/...
-
-	-hpa
+Paul.
