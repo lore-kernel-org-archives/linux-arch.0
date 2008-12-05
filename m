@@ -1,51 +1,52 @@
 From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Fri, 5 Dec 2008 11:05:19 +0100
-Message-ID: <20081205100519.GA4430@elte.hu>
-References: <20081204225345.654705757@linutronix.de> <20081204.171233.201039452.davem@davemloft.net> <20081205061012.GA12785@elte.hu>
+Date: Fri, 5 Dec 2008 11:41:16 +0100
+Message-ID: <20081205104116.GA5747@elte.hu>
+References: <20081204225345.654705757@linutronix.de> <20081204.171233.201039452.davem@davemloft.net> <20081205061012.GA12785@elte.hu> <18744.62865.420502.642345@cargo.ozlabs.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:34345 "EHLO mx3.mail.elte.hu"
+Received: from mx2.mail.elte.hu ([157.181.151.9]:54494 "EHLO mx2.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751476AbYLEKFr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Dec 2008 05:05:47 -0500
+	id S1751674AbYLEKlk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Dec 2008 05:41:40 -0500
 Content-Disposition: inline
-In-Reply-To: <20081205061012.GA12785@elte.hu>
+In-Reply-To: <18744.62865.420502.642345@cargo.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org, paulus@samba.org
+To: Paul Mackerras <paulus@samba.org>
+Cc: David Miller <davem@davemloft.net>, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org
 
 
-* Ingo Molnar <mingo@elte.hu> wrote:
+* Paul Mackerras <paulus@samba.org> wrote:
 
-> > >  - No interaction with ptrace: any task (with sufficient permissions) can
-> > >    monitor other tasks, without having to stop that task.
-> > 
-> > This isn't going to work.
-> >
-> > If you look at the things the perfmon libraries do, you do need to stop 
-> > the task.
-> >
-> > Consider counter virtualization as the most direct example. [...]
+> Ingo Molnar writes:
 > 
-> Note that counter virtualization is not offered in the perfmon3 patchset that has 
-> been posted to lkml. (It is part of the much larger 'full' perfmon patchset which 
-> has not been submitted for integration)
+> > The 'target' task does not have to be stopped to offer counter 
+> > virtualization (counter overcommit or counter scheduling) - or to offer 
+> > any of the other performance counter features. Please let us know why it 
+> > needs the task to be stopped - we asked about that on lkml in the perfmon 
+> > thread and no technical answer was given, and couldnt find any such 
+> > technical reason while implementing it ourselves.
 > 
-> Nevertheless we will offer counter virtualization in -v2 of our patchset [...]
+> I like this feature of your patchset, in fact, and the code looks 
+> pretty clean (as I would expect :).  What I don't like (as I have 
+> already said) is having to use an API that splits up the PMU into 
+> pieces, plus the requirement that flows from that to have the kernel 
+> know about the event selection logic on every CPU model we support.
+> 
+> One thing I haven't figured out yet is what happens if you have a 
+> counter on a task and the task dies.  Can I still use the counter fd 
+> after the task has died, and read out the total count?
 
-i've just implemented it. Running an (infinite-loop) hello.c with 6 counters on a 
-CPU that has only two counters now gives the expected:
+yes, it will work just the way you'd expect it to work: the counter is 
+attached to the fd of the monitoring task, so it does not go away. The 
+counter simply stops counting but otherwise can be read even after the 
+monitored task has exited.
 
- counter[0 cycles              ]:           3368245084 , delta: 842019470 events
- counter[1 instructions        ]:           1384678210 , delta: 346108294 events
- counter[2 cache-refs          ]:                  659 , delta: 150 events
- counter[3 cache-misses        ]:                    0 
- counter[4 branch-instructions ]:            266919398 , delta: 66731508 events
- counter[5 branch-misses       ]:                 1201 , delta: 315 events
-
-This will be in -v2.
+We are also planning a natural 'the task has died' notification: a -EPIPE 
+returned by read(), after the final count has been allowed to be read 
+out. With blocking counters this will behave quite smoothly: instead of 
+blocking indefinitely, we'd get back -EPIPE. Hm?
 
 	Ingo
