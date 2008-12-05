@@ -1,35 +1,52 @@
-From: Ingo Molnar <mingo@elte.hu>
+From: Andi Kleen <andi@firstfloor.org>
 Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Fri, 5 Dec 2008 13:13:08 +0100
-Message-ID: <20081205121308.GB28662@elte.hu>
-References: <20081205082431.GD2030@elte.hu> <20081205.002701.172921476.davem@davemloft.net> <20081205084233.GE2030@elte.hu> <20081205.004922.244597525.davem@davemloft.net>
+Date: Fri, 05 Dec 2008 13:39:43 +0100
+Message-ID: <87ej0mx0c0.fsf@basil.nowhere.org>
+References: <20081205081137.GB2030@elte.hu>
+	<20081205.001717.216522767.davem@davemloft.net>
+	<20081205082431.GD2030@elte.hu>
+	<20081205.002701.172921476.davem@davemloft.net>
+	<20081205084233.GE2030@elte.hu>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1755843AbYLEMNg@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20081205.004922.244597525.davem@davemloft.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: a.p.zijlstra@chello.nl, paulus@samba.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, rostedt@goodmis.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from one.firstfloor.org ([213.235.205.2]:44875 "EHLO
+	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750957AbYLEMj2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2008 07:39:28 -0500
+In-Reply-To: <20081205084233.GE2030@elte.hu> (Ingo Molnar's message of "Fri, 5 Dec 2008 09:42:33 +0100")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: David Miller <davem@davemloft.net>, a.p.zijlstra@chello.nl, paulus@samba.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, rostedt@goodmis.org
 
+Ingo Molnar <mingo@elte.hu> writes:
 
-* David Miller <davem@davemloft.net> wrote:
+> Note that more notification record types is actually where latest 
+> hardware is going: for example in Nehalem there's a PEBS notification 
+> record type that has cachemiss latency included in the record. I.e. we 
+> can get profiles with _cachemiss latency_ included (as measured from 
+> issuing the instruction to completion).
 
-> From: Ingo Molnar <mingo@elte.hu>
-> Date: Fri, 5 Dec 2008 09:42:33 +0100
-> 
-> > Please let me repeat: it's a _fundamental_ thesis of performance 
-> > instrumentation to not disturb the monitored context. Your insistence 
-> > on _stopping_ the monitored task breaks that fundamental axiom!
-> 
-> This is only a problem if you make your measurement quantums too small.
+One problem is that you have to find out the correct RIP for that PEBS
+cache miss you have to disassemble from the last basic block because
+the IP in PEBS points to the next instruction. 
 
-But if you make the measurement long enough - say we make it 100,000 
-usecs, then 0.2 usecs of delay between two read()s is insignificant 
-statistically, right? It's a 1:500,000 ratio.
+If such a thing is ever implemented it should be in user space
+I think.
 
-Scheduling out a task and back is far more drastic of an effect than any 
-new events in 0.2 usecs.
+Also in general some of the more useful PEBS information requires
+disassembling unfortunately. For example if you want a address
+histogram you get the register contents, but you have to interpret the
+code to compute the EA. While the kernel has a x86 interpreter now for
+this I suspect doing it in kernel space would be quite complicated
+and at least I would consider doing it in user space cleaner too.
 
-	Ingo
+Given these are more obscure features, but not being able to fit
+them easily into your model from the start isn't a very promising sign
+for the long term extensibility of the design.
+
+-Andi
+
+-- 
+ak@linux.intel.com
