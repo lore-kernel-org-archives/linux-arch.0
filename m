@@ -1,31 +1,55 @@
-From: Paul Mackerras <paulus@samba.org>
+From: David Miller <davem@davemloft.net>
 Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Fri, 5 Dec 2008 11:43:12 +1100
-Message-ID: <18744.31008.944385.467622@cargo.ozlabs.ibm.com>
+Date: Thu, 04 Dec 2008 17:12:33 -0800 (PST)
+Message-ID: <20081204.171233.201039452.davem@davemloft.net>
 References: <20081204225345.654705757@linutronix.de>
-	<49387463.5070100@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:39994 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751834AbYLEAnT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 4 Dec 2008 19:43:19 -0500
-In-Reply-To: <49387463.5070100@zytor.com>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:56760
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1752022AbYLEBMd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2008 20:12:33 -0500
+In-Reply-To: <20081204225345.654705757@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
+To: tglx@linutronix.de
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mingo@elte.hu, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org, paulus@samba.org
 
-H. Peter Anvin writes:
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Thu, 04 Dec 2008 23:44:39 -0000
 
-> First of all, let me say I really like what I've seen so far.  The file
-> descriptor paradigm seems really elegant to me.
+>  - No interaction with ptrace: any task (with sufficient permissions) can
+>    monitor other tasks, without having to stop that task.
 
-I have to say, without intending any disrespect, that it looks to me
-like it was designed by someone who hasn't actually ever done much
-serious performance analysis or tuning using these hardware
-facilities.  If I'm wrong about that, I'm willing to be corrected.
+This isn't going to work.
 
-Paul.
+If you look at the things the perfmon libraries do, you do need to
+stop the task.
+
+Consider counter virtualization as the most direct example.  Perfmon
+allows you to count 6 events even if you can only monitor 2 at a time
+with your hardware.  It does this by periodically changing the counter
+configuration during the run of the program(s) being inspected.  These
+control register changes and counter captures have to be atomic or
+else you'll get garbage or less accurate results.
+
+There are entire families of cases where you want to perform a
+sequence of operations on the control registers and counters if one of
+them overflows.  And these operations must be atomic.  The only way
+to ensure this is to stop the task, then let the library in the
+monitoring task make the changes, and finally let the library
+release that task.
+
+The crux of the matter is, when a counter overflows, what you want to
+do in response to that event is non-trivial and it must be performed
+without letting the monitored task continue executing.  So you have to
+stop the task, and unless you want tons of cpu specific knowledge and
+counter virtualization support code in the kernel, we want userspace
+telling the kernel how to program the registers.  And since we have
+to stop the task, there is no benefit doing this work in the kernel
+anyways.
+
+If you don't like the NMI and IPI business on x86 in the perfmon
+patches, suggest alternatives.
