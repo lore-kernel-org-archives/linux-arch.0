@@ -1,77 +1,40 @@
-From: Ingo Molnar <mingo@elte.hu>
+From: Arjan van de Ven <arjan@infradead.org>
 Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Fri, 5 Dec 2008 14:25:12 +0100
-Message-ID: <20081205132512.GA18786@elte.hu>
-References: <20081205063131.GB12785@elte.hu> <18744.56857.259756.129894@cargo.ozlabs.ibm.com> <20081205080813.GA2030@elte.hu> <20081205.001520.79526444.davem@davemloft.net>
+Date: Fri, 5 Dec 2008 07:00:42 -0800
+Message-ID: <20081205070042.0b8a3ef5@infradead.org>
+References: <1228461385.18899.13.camel@twins>
+	<18744.57057.243817.407691@cargo.ozlabs.ibm.com>
+	<1228464216.18899.18.camel@twins>
+	<20081205.000716.40104924.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:52810 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751502AbYLENZi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Dec 2008 08:25:38 -0500
-Content-Disposition: inline
-In-Reply-To: <20081205.001520.79526444.davem@davemloft.net>
+Received: from casper.infradead.org ([85.118.1.10]:52273 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752523AbYLEO7h (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2008 09:59:37 -0500
+In-Reply-To: <20081205.000716.40104924.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Miller <davem@davemloft.net>
-Cc: paulus@samba.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org
+Cc: a.p.zijlstra@chello.nl, paulus@samba.org, mingo@elte.hu, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, hpa@zytor.com, rostedt@goodmis.org
 
+On Fri, 05 Dec 2008 00:07:16 -0800 (PST)
+David Miller <davem@davemloft.net> wrote:
 
-* David Miller <davem@davemloft.net> wrote:
-
-> > > Isn't it two separate read() calls to read the two counters?  If 
-> > > so, the only way the two values are actually going to correspond to 
-> > > the same point in time is if the task being monitored is stopped.  
-> > > In which case the monitoring task needs to use ptrace or something 
-> > > similar in order to make sure that the monitored task is actually 
-> > > stopped.
-> > 
-> > It doesnt matter in practice.
+> These things aren't measuring time, or even just cycles, they
+> are measuring things like L2 cache misses, cpu cycles, and
+> other similar kinds of events.
 > 
-> Yes it DOES!
-> 
-> If I want to know if a code block triggers event X or Y, and your read 
-> call triggers one of those events, I can't figure out the answer to my 
-> profiling problem.
+> So these counters are going to measure all of the damn crap
+> assosciated with doing the read() call as well as the real work
+> the task does.
 
-( this misunderstanding of yours has been cleared up in a later mail: 
-  reading a counter causes events in the monitoring context, not in the
-  monitored context. )
+as you said before, not if you do the read() from a thread that's
+exempt from the profiling.
 
-> That is completely fundamental to all of this.  And this is why this 
-> proposal is a non-workable solution.
-> 
-> 
-> > Also, look at our code: we buffer notification events and do not have 
-> > to stop the thread for recording the context information.
-> 
-> But that's what monitoring libraries want, they want to stop the task 
-> and inspect it.
-> 
-> Look at the PAPI library.  If you can't implement what that thing 
-> provides, all the real users of profiling information can't use this 
-> stuff.
-
-We have looked, and the PAPI library can be implemented on top of our 
-system call as well - just like it was implemented on top of the perfctr 
-driver and like it was implemented ontop of "perfmon-full".
-
-PAPI is a relatively simple wrapper around OS level performance counter 
-facilities. Both the high level counter abstraction 
-(PAPI_start_counters() & friends) and the low level PAPI abstraction 
-(PAPI event sets, PAPI_attach/detach) can be readily implemented via the 
-use of our performance counter subsystem facilities. (In addition to all 
-the facilities around PAPI event enumeration.)
-
-PAPI has about 100 functions - if you think our design does not fit it 
-for some fundamental reason then please point out exactly which 
-functionality (which PAPI function call) cannot be done.
-
-Perfmon needlessly complicated their design by exposing user-space to a 
-'performance counter context' and other lowlevel details that should not 
-and must not be handled at the ABI level. The PAPI interfaces do not 
-force that design choice in any way. It's a plain unnecessary 
-complication that permeates the whole perfmon code.
-
-	Ingo
+-- 
+Arjan van de Ven 	Intel Open Source Technology Centre
+For development, discussion and tips for power savings, 
+visit http://www.lesswatts.org
