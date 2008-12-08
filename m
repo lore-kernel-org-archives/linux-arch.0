@@ -1,81 +1,122 @@
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [patch] Performance Counters for Linux, v2
-Date: Mon, 8 Dec 2008 14:24:27 +1100
-Message-ID: <18748.37739.383961.318233@drongo.ozlabs.ibm.com>
-References: <20081208012211.GA23106@elte.hu>
+From: "stephane eranian" <eranian@googlemail.com>
+Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
+Date: Mon, 8 Dec 2008 08:18:51 +0100
+Message-ID: <7c86c4470812072318n33e27045k50490f180ecfd8c0@mail.gmail.com>
+References: <20081204225345.654705757@linutronix.de>
+	 <18744.29747.728320.652642@cargo.ozlabs.ibm.com>
+	 <20081205063131.GB12785@elte.hu>
+	 <18744.56857.259756.129894@cargo.ozlabs.ibm.com>
+	 <20081205080813.GA2030@elte.hu>
+	 <18744.61429.548462.667020@cargo.ozlabs.ibm.com>
+	 <20081205120734.GA26244@elte.hu>
+	 <18745.49593.567217.277510@cargo.ozlabs.ibm.com>
+	 <1228566879.16244.4.camel@lappy.programming.kicks-ass.net>
+	 <18747.23509.977047.540995@cargo.ozlabs.ibm.com>
+Reply-To: eranian@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:36228 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755066AbYLHDZH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 7 Dec 2008 22:25:07 -0500
-In-Reply-To: <20081208012211.GA23106@elte.hu>
+Received: from fg-out-1718.google.com ([72.14.220.159]:31804 "EHLO
+	fg-out-1718.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751406AbYLHHSx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Dec 2008 02:18:53 -0500
+Received: by fg-out-1718.google.com with SMTP id 19so887455fgg.17
+        for <linux-arch@vger.kernel.org>; Sun, 07 Dec 2008 23:18:51 -0800 (PST)
+In-Reply-To: <18747.23509.977047.540995@cargo.ozlabs.ibm.com>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
+To: Paul Mackerras <paulus@samba.org>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
 
-Ingo Molnar writes:
+Hi,
 
-> There's a new "counter group record" facility that is a straightforward 
-> extension of the existing "irq record" notification type. This record 
-> type can be set on a 'master' counter, and if the master counter triggers 
-> an IRQ or an NMI, all the 'secondary' counters are read out atomically 
-> and are put into the counter-group record. The result can then be read() 
-> out by userspace via a single system call. (Based on extensive feedback 
-> from Paul Mackerras and David Miller, thanks guys!)
-> 
-> The other big change is the support of virtual task counters via counter 
-> scheduling: a task can specify more counters than there are on the CPU, 
-> the kernel will then schedule the counters periodically to spread out hw 
-> resources.
+On Sun, Dec 7, 2008 at 6:15 AM, Paul Mackerras <paulus@samba.org> wrote:
+> Peter Zijlstra writes:
+>
+>> On Sat, 2008-12-06 at 11:05 +1100, Paul Mackerras wrote:
+>> > Now, the tables in perfmon's user-land libpfm that describe the
+>> > mapping from abstract events to event-selector values and the
+>> > constraints on what events can be counted together come to nearly
+>> > 29,000 lines of code just for the IBM 64-bit powerpc processors.
+>> >
+>> > Your API condemns us to adding all that bloat to the kernel, plus the
+>> > code to use those tables.
+>>
+>> Since you need those tables and that code anyway, and in a solid
+>> reliable way, what is the objection of carrying it in the kernel?
+>
+> Because it's about 320kB of unpageable kernel memory, and it doesn't
+> need to be in the kernel.
+>
 
-Still not good enough, I'm sorry.
+That inevitably pulls in large amounts of data, the event table for each PMU
+model and the description of the constraints between events. New processors
+have hundreds of events. Moreover, there is the complexity of the assignment
+algorithm to map the events to counters such that they actually measure what
+you've asked for. I described some of those constraints in my previous message.
+They are not trivial and are oftentimes multi-dimensional. Getting the
+algorithms
+right is difficult. Event tables are also oftentimes incomplete or
+bogus when first
+published by HW vendors.
 
-* I have no guarantee that the secondary counters were all counting
-  at the same time(s) as the master counter, so the numbers are
-  virtually useless.
+It does not make sense to have this kind of data + code in the kernel. It would
+make developing them much more difficult. Maintenance would also be more
+difficult. And clearly you don't want to have to re-run the assignment routine
+each time you context switch.
 
-* I might legitimately want to be notified based on any of the
-  "secondary" counters reaching particular values.  The "master"
-  vs. "secondary" distinction is an artificial one that is going to
-  make certain reasonable use-cases impossible.
+The kernel is not the only place for rock-solid code. You can have solid/stable
+code in libraries as well.
 
-These things are both symptoms of the fact that you still have the
-abstraction at the wrong level.  The basic abstraction really needs to
-be a counter-set, not an individual counter.
+> The fundamental problem with Ingo and Thomas's proposal is that the
+> abstraction is at the wrong level.  It makes individual counters the
+> central idea, when the central idea should be a set of counters that
+> all start and stop counting at the same times.  People doing
+> performance analysis want to be able to compare counts of different
+> events and get ratios, and you can't do that meaningfully if the
+> counts correspond to different stretches of code.
+>
+> Once you make the abstraction a set of counters, then you also make it
+> possible to have a counter-set that is the whole PMU.  Then you don't
+> have to have the kernel knowing all the possible settings for the PMU;
+> it only needs to know the simple ones, and if you want to do something
+> more sophisticated, you can have userspace specifying the bits to
+> select the more sophisticated setting.
+>
+>> Furthermore, is there a good technical reason these cpus are so
+>> complicated to use?
+>
+> That question is a bit ambiguous.  If you mean, why did the hardware
+> designers make it so complex? then I don't really know, but it doesn't
+> matter because the CPU hardware is what it is.  At best I might be
+> able to influence future designs to be a bit simpler.
+>
 
-I think your patch can be extended to do counter-sets without
-complicating the interface too much.  We could have:
+Let me explain the HW complexity a bit. It's all a matter of tradeoffs.
+I have regular discussions with the PMU design architects about this.
+If you talk to them, then you understand the environment they have to
+live in and you understand why those constraints are there. The key point
+to understand is that the PMU is never critical to the chip. The chip can work
+well without. The real-estate on the chip is always very tight. PMU is a 2nd
+class citizen, thus low in the priority list. For certain PMU features
+the tradeoff
+is: do you want the feature with constraints on programming or no feature at
+all. The common HW limitation is wires. For instance, I was once told: would you
+rather have a PMU cache event that can be programmed on any counters but
+with an increased cache latency for all accesses or a faster cache and
+a constraint
+on the event? The response is obvious.
 
-struct event_spec {
-	u32 hw_event_type;
-	u32 hw_event_period;
-	u64 hw_raw_ctrl;
-};
+I think you now understand why there are constraints and also why they
+will never
+go away, quite the contrary. I'd rather have a PMU with constraints than no PMU.
+Hardware designers make a lot of efforts to give us what we have today already
+and we should be thankful.
 
-int perf_counterset_open(u32 n_counters,
-    			 struct event_spec *counters,
-			 u32 record_type,
-			 pid_t pid,
-			 int cpu);
-
-and then you could have perf_counter_open as a simple wrapper around
-perf_counterset_open.
-
-With an approach like this we can also provide an "exclusive" mode for
-the PMU (e.g. with a flag bit in record_type or n_counters), which
-means that the counter-set occupies the whole PMU.  That will give a
-way for userspace to specify all the details of how the PMU is to be
-programmed, which in turn means that the kernel doesn't need to know
-all the arcane details of every event on every processor; it just
-needs to know the common events.
-
-I notice the implementation also still assumes it can add any counter
-at any time subject only to a limit on the number of counters in use.
-That will have to be fixed before it is usable on powerpc (and
-apparently on some x86 processors too).
-
-Paul.
+> If you mean, could the software description of the hardware be
+> simpler? then maybe - I'm just reading up on the details of the
+> hardware, and it is pretty complex, with multiple layers of
+> multiplexers and event buses.
+>
