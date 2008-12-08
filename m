@@ -1,231 +1,199 @@
 From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [patch] Performance Counters for Linux, v2
-Date: Mon, 8 Dec 2008 12:33:18 +0100
-Message-ID: <20081208113318.GA14723@elte.hu>
-References: <20081208012211.GA23106@elte.hu> <18748.37739.383961.318233@drongo.ozlabs.ibm.com>
+Date: Mon, 8 Dec 2008 12:49:21 +0100
+Message-ID: <20081208114921.GA8635@elte.hu>
+References: <20081208012211.GA23106@elte.hu> <20081207174932.09673cae@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:47157 "EHLO mx3.mail.elte.hu"
+Received: from mx2.mail.elte.hu ([157.181.151.9]:47385 "EHLO mx2.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751457AbYLHLdt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Dec 2008 06:33:49 -0500
+	id S1753288AbYLHLtp convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Dec 2008 06:49:45 -0500
 Content-Disposition: inline
-In-Reply-To: <18748.37739.383961.318233@drongo.ozlabs.ibm.com>
+In-Reply-To: <20081207174932.09673cae@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mackerras <paulus@samba.org>
-Cc: linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
+To: Arjan van de Ven <arjan@infradead.org>
+Cc: linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Peter Anvin <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>, Paul Mackerras <paulus@samba.org>
 
 
-* Paul Mackerras <paulus@samba.org> wrote:
+* Arjan van de Ven <arjan@infradead.org> wrote:
 
-> Ingo Molnar writes:
+> On Mon, 8 Dec 2008 02:22:12 +0100
+> Ingo Molnar <mingo@elte.hu> wrote:
 > 
-> > There's a new "counter group record" facility that is a straightforward 
-> > extension of the existing "irq record" notification type. This record 
-> > type can be set on a 'master' counter, and if the master counter triggers 
-> > an IRQ or an NMI, all the 'secondary' counters are read out atomically 
-> > and are put into the counter-group record. The result can then be read() 
-> > out by userspace via a single system call. (Based on extensive feedback 
-> > from Paul Mackerras and David Miller, thanks guys!)
 > > 
-> > The other big change is the support of virtual task counters via counter 
-> > scheduling: a task can specify more counters than there are on the CPU, 
-> > the kernel will then schedule the counters periodically to spread out hw 
-> > resources.
+> > [ Performance counters are special hardware registers available on
+> > most modern CPUs. These register count the number of certain types of
+> > hw events: such as instructions executed, cachemisses suffered, or 
+> >   branches mis-predicted, without slowing down the kernel or 
+> >   applications. These registers can also trigger interrupts when a 
+> >   threshold number of events have passed - and can thus be used to 
+> >   profile the code that runs on that CPU. ]
+> > 
+> > This is version 2 of our Performance Counters subsystem
+> > implementation.
+> > 
+> > The biggest user-visible change in this release is a new user-space 
+> > text-mode profiling utility that is based on this code: KernelTop.
+> > 
+> > KernelTop can be downloaded from:
+> > 
+> >   http://redhat.com/~mingo/perfcounters/kerneltop.c
+> > 
+> > It's a standalone .c file that needs no extra libraries - it only
+> > needs a CONFIG_PERF_COUNTERS=y kernel to run on.
+> > 
+> > This utility is intended for kernel developers - it's basically a
+> > dynamic kernel profiler that gets hardware counter events dispatched
+> > to it continuously, which it feeds into a histogram and outputs it 
+> > periodically.
+> > 
 > 
-> Still not good enough, I'm sorry.
+> I played with this a little, and while it works neat, I wanted a 
+> feature added where it shows a detailed profile for the top function.
+
+ah, very nice idea!
+
+> I've hacked this in quickly (the usability isn't all that great yet) 
+> and put the source code up at
+>
+> http://www.tglx.de/~arjan/kerneltop-0.02.tar.gz
+
+ok, picked it up :-)
+
+> with this it looks like this:
 > 
-> * I have no guarantee that the secondary counters were all counting
->   at the same time(s) as the master counter, so the numbers are
->   virtually useless.
-
-If you want a _guarantee_ that multiple counters can count at once you 
-can still do it: for example by using the separate, orthogonal 
-reservation mechanism we had in -v1 already.
-
-Also, you dont _have to_ overcommit counters.
-
-Your whole statistical argument that group readout is a must-have for 
-precision is fundamentally flawed as well: counters _themselves_, as used 
-by most applications, by their nature, are a statistical sample to begin 
-with. There's way too many hardware events to track each of them 
-unintrusively - so this type of instrumentation is _all_ sampling based, 
-and fundamentally so. (with a few narrow exceptions such as single-event 
-interrupts for certain rare event types)
-
-This means that the only correct technical/mathematical argument is to 
-talk about "levels of noise" and how they compare and correlate - and 
-i've seen no actual measurements or estimations pro or contra. Group 
-readout of counters can reduce noise for sure, but it is wrong for you to 
-try to turn this into some sort of all-or-nothing property. Other sources 
-of noise tend to be of much higher of magnitude.
-
-You need really stable workloads to see such low noise levels that group 
-readout of counters starts to matter - and the thing is that often such 
-'stable' workloads are rather boringly artificial, because in real life 
-there's no such thing as a stable workload.
-
-Finally, the basic API to user-space is not the way to impose rigid "I 
-own the whole PMU" notion that you are pushing. That notion can be 
-achieved in different, system administration means - and a perf-counter 
-reservation facility was included in the v1 patchset.
-
-Note that you are doing something that is a kernel design no-no: you are 
-trying to design a "guarantee" for hardware constraints by complicating 
-it into the userpace ABI - and that is a fundamentally losing 
-proposition.
-
-It's a tail-wags-the-dog design situation that we are routinely resisting 
-in the upstream kernel: you are putting hardware constraints ahead of 
-usability, you are putting hardware constraints ahead of sane interface 
-design - and such an approach is wrong and shortsighted on every level.
-
-It's also shortsighted because it's a red herring: there's nothing that 
-forbids the counter scheduler from listening to the hw constraints, for 
-CPUs where there's a lot of counter constraints.
-
-> * I might legitimately want to be notified based on any of the
->   "secondary" counters reaching particular values.  The "master" vs. 
->   "secondary" distinction is an artificial one that is going to make 
->   certain reasonable use-cases impossible.
-
-the secondary counters can cause records too - independently of the 
-master counter. This is because the objects (and fds) are separate so 
-there's no restriction at all on the secondary counters. This is a lot 
-less natural to do if you have a "vector of counters" abstraction.
-
-> These things are both symptoms of the fact that you still have the 
-> abstraction at the wrong level.  The basic abstraction really needs to 
-> be a counter-set, not an individual counter.
-
-Being per object is a very fundamental property of Linux, and you have to 
-understand and respect that down to your bone if you want to design new 
-syscall ABIs for Linux.
-
-The "perfmon v3 light" system calls, all five of them, are a classic 
-loundry list of what _not_ to do in new Linux APIs: they are too 
-specific, too complex and way too limited on every level.
-
-Per object and per fd abstractions are a _very strong_ conceptual 
-property of Linux. Look at what they bring in the performance counters 
-case:
-
- - All the VFS syscalls work naturally: sys_read(), sys_close(),
-   sys_dup(), you name it.
-
- - It makes all counters poll()able. Any subset of them, and at any time,
-   independently of any context descriptor. Look at kerneltop.c: it has a
-   USE_POLLING switch to switch to a poll() loop, and it just works the 
-   way you'd expect it to work.
- 
- - We can share fds between monitor threads and you can do a thread pool
-   that works down new events - without forcing any counter scheduling in
-   the monitored task.
-
- - It makes the same task monitorable by multiple monitors, trivially
-   so. There's no forced context notion that privatizes the PMU - with 
-   some 'virtual context' extra dimension slapped on top of it.
-
- - Doing a proper per object abstraction simplifies event and error
-   handling significantly: instead of having to work down a vector of 
-   counters and demultiplexing events and matching them up to individual 
-   counters, the demultiplexing is done by the _kernel_.
-
- - It makes counter scheduling very dynamic. Instead of exposing
-   user-space to a static "counter allocation" (with all the insane ABI
-   and kernel internal complications this brings), perf-counters
-   subsystem does not expose user-space to such scheduling details
-   _at all_.
-
- - Difference in complexity. The "v3 light" version of perfmon (which 
-   does not even schedule any PMU contexts), contains these core kernel 
-   files:
-
-         19 files changed, 4424 insertions(+)
-
-   Our code has this core kernel impact:
-
-         10 files changed, 1191 insertions(+)
-
-   And in some areas it's already more capable than "perfmon v3".
-   The difference is very obvious.
-
-All in one, using the 1:1 fd:counter design is a powerful, modern Linux 
-abstraction to its core. It's much easier to think about for application 
-developers as well, so we'll see a much sharper adoption rate. 
-
-Also, i noticed that your claims about our code tend to be rather 
-abstract and are often dwelling on issues that IMO have no big practical 
-relevance - so may i suggest the following approach instead to break the 
-(mutual!) cycle of miscommunication: if you think an issue is important, 
-could you please point out the problem in practical terms what you think 
-would not be possible with our scheme? We tend to prioritize items by 
-practical value.
-
-Things like: "kerneltop would not be as accurate with: ..., to the level 
-of adding 5% of extra noise.". Would that work for you?
-
-> I think your patch can be extended to do counter-sets without 
-> complicating the interface too much.  We could have:
+> $ sudo ./kerneltop --vmlinux=/home/arjan/linux-2.6.git/vmlinux
 > 
-> struct event_spec {
-> 	u32 hw_event_type;
-> 	u32 hw_event_period;
-> 	u64 hw_raw_ctrl;
-> };
-
-This needless vectoring and the exposing of contexts would kill many good 
-properties of the new subsystem, without any tangible benefits - see 
-above.
-
-This is really scheduling school 101: a hardware context allocation is 
-the _last_ thing we want to expose to user-space in this particular case. 
-This is a fundamental property of hardware resource scheduling. We _dont_ 
-want to tie the hands of the kernel by putting resource scheduling into 
-user-space!
-
-Your arguments remind me a bit of the "user-space threads have to be 
-scheduled in user-space!" N:M threading design discussions we had years 
-ago. IBM folks were pushing NGPT very strongly back then and claimed that 
-it's the right design for high-performance threading, etc. etc.
-
-In reality, doing user-space scheduling for cheap-to-context-switch 
-hardware resources was a fundamentally wrong proposition back then too, 
-and it is still the wrong concept today as well.
-
-> int perf_counterset_open(u32 n_counters,
->     			 struct event_spec *counters,
-> 			 u32 record_type,
-> 			 pid_t pid,
-> 			 int cpu);
+> ------------------------------------------------------------------------------
+>  KernelTop:     274 irqs/sec  [NMI, 1000000 cycles],  (all, 2 CPUs)
+> ------------------------------------------------------------------------------
 > 
-> and then you could have perf_counter_open as a simple wrapper around 
-> perf_counterset_open.
+>              events         RIP          kernel function
+>              ______   ________________   _______________
 > 
-> With an approach like this we can also provide an "exclusive" mode for 
-> the PMU [...]
-
-You can already allocate "exclusive" counters in a guaranteed way via our 
-code, here and today.
-
-> [...] (e.g. with a flag bit in record_type or n_counters), which means 
-> that the counter-set occupies the whole PMU.  That will give a way for 
-> userspace to specify all the details of how the PMU is to be 
-> programmed, which in turn means that the kernel doesn't need to know 
-> all the arcane details of every event on every processor; it just needs 
-> to know the common events.
+>                 230 - 00000000c04189e9 : read_hpet
+>                  82 - 00000000c0409439 : mwait_idle_with_hints
+>                  77 - 00000000c051a7b7 : acpi_os_read_port
+>                  52 - 00000000c053cb3a : acpi_idle_enter_bm
+>                  38 - 00000000c0418d93 : hpet_next_event
+>                  19 - 00000000c051a802 : acpi_os_write_port
+>                  14 - 00000000c04f8704 : __copy_to_user_ll
+>                  13 - 00000000c0460c20 : get_page_from_freelist
+>                   7 - 00000000c041c96c : kunmap_atomic
+>                   5 - 00000000c06a30d2 : _spin_lock	[joydev]
+>                   4 - 00000000c04f79b7 : vsnprintf	[snd_seq]
+>                   4 - 00000000c06a3048 : _spin_lock_irqsave	[pcspkr]
+>                   3 - 00000000c0403b3c : irq_entries_start
+>                   3 - 00000000c0423fee : run_rebalance_domains
+>                   3 - 00000000c0425e2c : scheduler_tick
+>                   3 - 00000000c0430938 : get_next_timer_interrupt
+>                   3 - 00000000c043cdfa : __update_sched_clock
+>                   3 - 00000000c0448b14 : update_iter
+>                   2 - 00000000c04304bd : run_timer_softirq
 > 
-> I notice the implementation also still assumes it can add any counter 
-> at any time subject only to a limit on the number of counters in use. 
-> That will have to be fixed before it is usable on powerpc (and 
-> apparently on some x86 processors too).
+> Showing details for read_hpet
+>        0	c04189e9 <read_hpet>:
+>        2	c04189e9:	a1 b0 e0 89 c0       	mov    0xc089e0b0,%eax
+>        0	
+>        0	/*
+>        0	 * Clock source related code
+>        0	 */
+>        0	static cycle_t read_hpet(void)
+>        0	{
+>        1	c04189ee:	55                   	push   %ebp
+>        0	c04189ef:	89 e5                	mov    %esp,%ebp
+>        1	c04189f1:	05 f0 00 00 00       	add    $0xf0,%eax
+>        0	c04189f6:	8b 00                	mov    (%eax),%eax
+>        0		return (cycle_t)hpet_readl(HPET_COUNTER);
+>        0	}
+>      300	c04189f8:	31 d2                	xor    %edx,%edx
+>        0	c04189fa:	5d                   	pop    %ebp
+>        0	c04189fb:	c3                   	ret    
+>        0	
 
-There's constrained PMCs on x86 too, as you mention. Instead of repeating 
-the answer that i gave before (that this is easy and natural), how about 
-this approach: if we added real, working support for constrained PMCs on 
-x86, that will then address this point of yours rather forcefully, 
-correct?
+very nice and useful output! This for example shows that it's the readl() 
+on the HPET_COUNTER IO address that is causing the overhead. That is to 
+be expected - HPET is mapped uncached and the access goes out to the 
+chipset.
+
+> As is usual with profile outputs, the cost for the function always gets 
+> added to the instruction after the really guilty one. I'd move the 
+> count one back, but this is hard if the previous instruction was a 
+> (conditional) jump...
+
+yeah. Sometimes the delay can be multiple instructions - so it's best to 
+leave the profiling picture as pristine as possible, and let the kernel 
+developer chose the right counter type that displays particular problem 
+areas in the most expressive way.
+
+For example when i'm doing SMP scalability work, i generally look at 
+cachemiss counts, for cacheline bouncing. The following kerneltop output 
+shows last-level data-cache misses in the kernel during a tbench 64 run 
+on a 16-way box, using latest mainline -git:
+
+------------------------------------------------------------------------------
+ KernelTop:    3744 irqs/sec  [NMI, 1000 cache-misses],  (all, 16 CPUs)
+------------------------------------------------------------------------------
+
+             events         RIP          kernel function
+             ______   ________________   _______________
+
+               7757 - ffffffff804d723e : dst_release
+               7649 - ffffffff804e3611 : eth_type_trans
+               6402 - ffffffff8050e470 : tcp_established_options
+               5975 - ffffffff804fa054 : ip_rcv_finish
+               5530 - ffffffff80365fb0 : copy_user_generic_string!
+               3979 - ffffffff804ccf0c : skb_push
+               3474 - ffffffff804fe6cb : ip_queue_xmit
+               1950 - ffffffff804cdcdd : skb_release_head_state
+               1595 - ffffffff804cce4f : skb_copy_and_csum_dev
+               1365 - ffffffff80501079 : __inet_lookup_established
+                908 - ffffffff804fa5fc : ip_local_deliver_finish
+                743 - ffffffff8036cbcc : unmap_single
+                452 - ffffffff80569402 : _read_lock
+                411 - ffffffff80283010 : get_page_from_freelist
+                410 - ffffffff80505b16 : tcp_sendmsg
+                406 - ffffffff8028631a : put_page
+                386 - ffffffff80509067 : tcp_ack
+                204 - ffffffff804d2d55 : netif_rx
+                194 - ffffffff8050b94b : tcp_data_queue
+
+Cachemiss event samples tend to line up quite close to the instruction 
+that causes them.
+
+Looking at pure cycles (same workload) gives a different view:
+
+------------------------------------------------------------------------------
+ KernelTop:   27357 irqs/sec  [NMI, 1000000 cycles],  (all, 16 CPUs)
+------------------------------------------------------------------------------
+
+             events         RIP          kernel function
+             ______   ________________   _______________
+
+              16602 - ffffffff80365fb0 : copy_user_generic_string!
+               7947 - ffffffff80505b16 : tcp_sendmsg
+               7450 - ffffffff80509067 : tcp_ack
+               7384 - ffffffff80332881 : avc_has_perm_noaudit
+               6888 - ffffffff80504e7c : tcp_recvmsg
+               6564 - ffffffff8056745e : schedule
+               6170 - ffffffff8050ecd5 : tcp_transmit_skb
+               4949 - ffffffff8020a75b : __switch_to
+               4417 - ffffffff8050cc4f : tcp_rcv_established
+               4283 - ffffffff804d723e : dst_release
+               3842 - ffffffff804fed58 : ip_finish_output
+               3760 - ffffffff804fe6cb : ip_queue_xmit
+               3580 - ffffffff80501079 : __inet_lookup_established
+               3540 - ffffffff80514ce5 : tcp_v4_rcv
+               3475 - ffffffff8026c31f : audit_syscall_exit
+               3411 - ffffffffff600130 : vread_hpet
+               3267 - ffffffff802a73de : kfree
+               3058 - ffffffff804d39ed : dev_queue_xmit
+               3047 - ffffffff804eecf8 : nf_iterate
+
+Cycles overhead tends to be harder to match up with instructions.
 
 	Ingo
