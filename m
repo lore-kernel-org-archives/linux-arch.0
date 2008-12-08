@@ -1,52 +1,39 @@
 From: David Miller <davem@davemloft.net>
-Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-Date: Mon, 08 Dec 2008 03:58:28 -0800 (PST)
-Message-ID: <20081208.035828.41796136.davem@davemloft.net>
-References: <18747.23509.977047.540995@cargo.ozlabs.ibm.com>
-	<7c86c4470812072318n33e27045k50490f180ecfd8c0@mail.gmail.com>
-	<20081208111153.GA12377@elte.hu>
+Subject: Re: [patch] Performance Counters for Linux, v2
+Date: Mon, 08 Dec 2008 04:02:04 -0800 (PST)
+Message-ID: <20081208.040204.139217002.davem@davemloft.net>
+References: <20081208012211.GA23106@elte.hu>
+	<18748.37739.383961.318233@drongo.ozlabs.ibm.com>
+	<20081208113318.GA14723@elte.hu>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:35612
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:59298
 	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1758631AbYLHL61 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Dec 2008 06:58:27 -0500
-In-Reply-To: <20081208111153.GA12377@elte.hu>
+	by vger.kernel.org with ESMTP id S1751781AbYLHMCF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Dec 2008 07:02:05 -0500
+In-Reply-To: <20081208113318.GA14723@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@elte.hu
-Cc: eranian@gmail.com, paulus@samba.org, a.p.zijlstra@chello.nl, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, rostedt@goodmis.org
+Cc: paulus@samba.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, linux-arch@vger.kernel.org, akpm@linux-foundation.org, eranian@googlemail.com, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org
 
 From: Ingo Molnar <mingo@elte.hu>
-Date: Mon, 8 Dec 2008 12:11:53 +0100
+Date: Mon, 8 Dec 2008 12:33:18 +0100
 
-> We did what we believe to be the right thing: we gave performance 
-> counters the proper high-level abstraction they _deserve_, and we made 
-> performance counters a prime-time Linux citizen as well.
+> Your whole statistical argument that group readout is a must-have for 
+> precision is fundamentally flawed as well: counters _themselves_, as used 
+> by most applications, by their nature, are a statistical sample to begin 
+> with. There's way too many hardware events to track each of them 
+> unintrusively - so this type of instrumentation is _all_ sampling based, 
+> and fundamentally so. (with a few narrow exceptions such as single-event 
+> interrupts for certain rare event types)
 
-Seperate counters that are read independently is fundamentally wrong,
-no matter how many times you try to say it isn't.  In fact it has
-been shown (repeatedly) that this abstraction is at the wrong level.
+There are a lot of people who are going to fundamentally
+disagree with this, myself included.
 
-People want to correlate, and it's not possible to do that if the
-counters are sampled seperately.
-
-We also don't want half-megabyte PMU tables in the kernel, nor the
-complex logic about how PMU counter X can configured when counter Y is
-configured for event A.  All of that belongs in userspace.
-
-We also want to support PMUs that do not generate an overflow
-interrupt.
-
-Really, all of the backlash these new patches have received is not
-about how clean the abstraction is, but rather whether it can even
-do the job properly.
-
-And also, another part of the backlash is that the poor perfmon3
-person was completely blindsided by this new stuff.  Which to be
-honest was pretty unfair.  He might have had great ideas about
-the requirements (even if you don't give a crap about his approach
-to achieving those requirements) and thus could have helped avoid
-the past few days of churn.
+A lot of things are being stated about what people do with this stuff,
+but I think there are people working longer in this area who quite
+possibly know a lot better.  But they were blindsided by this new work
+instead of being consulted, which was pretty unnice.
