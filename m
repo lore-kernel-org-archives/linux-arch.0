@@ -1,71 +1,57 @@
-From: "Paolo Ciarrocchi" <paolo.ciarrocchi@gmail.com>
+From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [patch] Performance Counters for Linux, v2
-Date: Tue, 9 Dec 2008 13:14:11 +0100
-Message-ID: <4d8e3fd30812090414v2e7a4bc3h621ca56e91ae367@mail.gmail.com>
-References: <20081209110246.GC21618@elte.hu>
-	 <20081209.031120.90683825.davem@davemloft.net>
-	 <20081209112225.GD21618@elte.hu>
-	 <20081209.032955.101042639.davem@davemloft.net>
+Date: Tue, 9 Dec 2008 14:00:45 +0100
+Message-ID: <20081209130045.GA32479@elte.hu>
+References: <20081208012211.GA23106@elte.hu> <18748.37739.383961.318233@drongo.ozlabs.ibm.com> <20081208113318.GA14723@elte.hu> <18749.39345.732524.905159@cargo.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ug-out-1314.google.com ([66.249.92.169]:55684 "EHLO
-	ug-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751416AbYLIMON (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Dec 2008 07:14:13 -0500
-Received: by ug-out-1314.google.com with SMTP id 39so1066206ugf.37
-        for <linux-arch@vger.kernel.org>; Tue, 09 Dec 2008 04:14:11 -0800 (PST)
-In-Reply-To: <20081209.032955.101042639.davem@davemloft.net>
+Received: from mx3.mail.elte.hu ([157.181.1.138]:36610 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751894AbYLINBH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 9 Dec 2008 08:01:07 -0500
 Content-Disposition: inline
+In-Reply-To: <18749.39345.732524.905159@cargo.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>, Ingo Molnar <mingo@elte.hu>
-Cc: eranian@gmail.com, linux-kernel@vger.kernel.org, tglx@linutronix.de, linux-arch@vger.kernel.org, akpm@linux-foundation.org, dada1@cosmosbay.com, robert.richter@amd.com, arjan@infradead.org, hpa@zytor.com, a.p.zijlstra@chello.nl, rostedt@goodmis.org, paulus@samba.org
+To: Paul Mackerras <paulus@samba.org>
+Cc: linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
 
-On Tue, Dec 9, 2008 at 12:29 PM, David Miller <davem@davemloft.net> wrote:
-> From: Ingo Molnar <mingo@elte.hu>
-> Date: Tue, 9 Dec 2008 12:22:25 +0100
->
->>
->> * David Miller <davem@davemloft.net> wrote:
->>
->> > From: Ingo Molnar <mingo@elte.hu>
->> > Date: Tue, 9 Dec 2008 12:02:46 +0100
->> >
->> > >
->> > > * stephane eranian <eranian@googlemail.com> wrote:
->> > >
->> > > > > There's also more generic x86 support: all 4 generic PMCs of Nehalem
->> > > > > / Core i7 are supported - i've run 4 instances of KernelTop and they
->> > > > > used up four separate PMCs.
->> > > >
->> > > > Core/Atom have 5 counters, Nehalem has 7. Why are you not using all of
->> > > > them already?
->> > >
->> > > no, Nehalem has 4 generic purpose PMCs and 3 fixed-purpose PMCs (7
->> > > total),
->> >  ...
->> > > Saying that it has 7 is misleading.
->> >
->> > Even you just did.
->>
->> which portion of my point stressing the general purpose attribute was
->> unclear to you?
->
-> I'm just teasing you because you picked a trite point from stephane's
-> email instead of the meat later on, which I would have found more
-> interesting to hear you comment on.
 
-I'm interested in Ingo's comments on that argument as well but I don't
-feel the need to act like were are all in a kindergarten.
+* Paul Mackerras <paulus@samba.org> wrote:
 
-You are two astonishing developers and I'm sure you can demonstrate
-that you can have a pure technical discussion on this topic as you did
-several times in the past.
+> > Things like: "kerneltop would not be as accurate with: ..., to the 
+> > level of adding 5% of extra noise.". Would that work for you?
+> 
+> OK, here's an example.  I have an application whose execution has 
+> several different phases, and I want to measure the L1 Icache hit rate 
+> and the L1 Dcache hit rate as a function of time and make a graph.  So 
+> I need counters for L1 Icache accesses, L1 Icache misses, L1 Dcache 
+> accesses, and L1 Dcache misses.  I want to sample at 1ms intervals. The 
+> CPU I'm running on has two counters.
+> 
+> With your current proposal, I don't see any way to make sure that the 
+> counter scheduler counts L1 Dcache accesses and L1 Dcache misses at the 
+> same time, then schedules L1 Icache accesses and L1 Icache misses.  I 
+> could end up with L1 Dcache accesses and L1 Icache accesses, then L1 
+> Dcache misses and L1 Icache misses - and get a nonsensical situation 
+> like the misses being greater than the accesses.
 
-Regards,
--- 
-Paolo
-http://paolo.ciarrocchi.googlepages.com/
-http://mypage.vodafone.it/
+yes, agreed, this is a valid special case of simple counter readout - 
+we'll add support to couple counters like that.
+
+Note that this issue does not impact use of multiple counters in 
+profilers. (i.e. anything that is not a pure readout of the counter, 
+along linear time, as your example above suggests).
+
+Once we start sampling the context, grouping of counters becomes 
+irrelevant (and a hindrance) and static frequency sampling becomes an 
+inferior method of sampling.
+
+( The highest quality statistical approach is the kind of multi-counter
+  sampling model you can see implemented in KernelTop for example, where
+  the counters are independently sampled. Can go on in great detail about
+  this if you are interested - this is the far more interesting usecase
+  in practice. )
+
+	Ingo
