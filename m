@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0028.austin.hp.com ([15.216.28.35]:11709 "EHLO
-	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755296AbYLIXL6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Dec 2008 18:11:58 -0500
+Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:44634 "EHLO
+	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755383AbYLIXMO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Dec 2008 18:12:14 -0500
 From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: [PATCH 04/12] x86/PCI: minor logic simplications
-Date: Tue, 09 Dec 2008 16:11:57 -0700
-Message-ID: <20081209231156.18153.70583.stgit@bob.kio>
+Subject: [PATCH 07/12] PCI: arm: use generic pci_swizzle_interrupt_pin()
+Date: Tue, 09 Dec 2008 16:12:12 -0700
+Message-ID: <20081209231212.18153.63913.stgit@bob.kio>
 In-Reply-To: <20081209231037.18153.86962.stgit@bob.kio>
 References: <20081209231037.18153.86962.stgit@bob.kio>
 MIME-Version: 1.0
@@ -16,46 +16,75 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>
 Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Russell King <rmk@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, hpa@zytor.com
-Message-ID: <20081209231157.Afxwf_4jadBOT88nQm5TDT7hmzAjamCpApFHT4RCo2s@z>
+Message-ID: <20081209231212.yq0LMsGOxXtWXOmw8wUhRiArVHLKP-JWh2WT-tSoX5U@z>
 
-Test "pin" immediately to simplify the subsequent code.
+Use the generic pci_swizzle_interrupt_pin() instead of arch-specific code.
 
 Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 ---
- arch/x86/pci/irq.c |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
+ arch/arm/kernel/bios32.c       |    6 +++---
+ arch/arm/mach-integrator/pci.c |   11 ++---------
+ 2 files changed, 5 insertions(+), 12 deletions(-)
 
-diff --git a/arch/x86/pci/irq.c b/arch/x86/pci/irq.c
-index 5d1ce1c..6547497 100644
---- a/arch/x86/pci/irq.c
-+++ b/arch/x86/pci/irq.c
-@@ -1042,6 +1042,9 @@ static void __init pcibios_fixup_irqs(void)
- 	dev = NULL;
- 	while ((dev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, dev)) != NULL) {
- 		pci_read_config_byte(dev, PCI_INTERRUPT_PIN, &pin);
-+		if (!pin)
-+			continue;
-+
- #ifdef CONFIG_X86_IO_APIC
- 		/*
- 		 * Recalculate IRQ numbers if we use the I/O APIC.
-@@ -1049,9 +1052,6 @@ static void __init pcibios_fixup_irqs(void)
- 		if (io_apic_assign_pci_irqs) {
- 			int irq;
+diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
+index 17a59b6..5c5a0bc 100644
+--- a/arch/arm/kernel/bios32.c
++++ b/arch/arm/kernel/bios32.c
+@@ -491,17 +491,17 @@ EXPORT_SYMBOL(pcibios_bus_to_resource);
+  */
+ u8 __devinit pci_std_swizzle(struct pci_dev *dev, u8 *pinp)
+ {
+-	int pin = *pinp - 1;
++	int pin = *pinp;
  
--			if (!pin)
--				continue;
--
- 			/*
- 			 * interrupt pins are numbered starting from 1
- 			 */
-@@ -1092,7 +1092,7 @@ static void __init pcibios_fixup_irqs(void)
+ 	while (dev->bus->self) {
+-		pin = (pin + PCI_SLOT(dev->devfn)) & 3;
++		pin = pci_swizzle_interrupt_pin(dev, pin);
  		/*
- 		 * Still no IRQ? Try to lookup one...
+ 		 * move up the chain of bridges,
+ 		 * swizzling as we go.
  		 */
--		if (pin && !dev->irq)
-+		if (!dev->irq)
- 			pcibios_lookup_irq(dev, 0);
+ 		dev = dev->bus->self;
  	}
+-	*pinp = pin + 1;
++	*pinp = pin;
+ 
+ 	return PCI_SLOT(dev->devfn);
+ }
+diff --git a/arch/arm/mach-integrator/pci.c b/arch/arm/mach-integrator/pci.c
+index af7d3ff..2fdb954 100644
+--- a/arch/arm/mach-integrator/pci.c
++++ b/arch/arm/mach-integrator/pci.c
+@@ -63,13 +63,7 @@
+  *
+  * Where A = pin 1, B = pin 2 and so on and pin=0 = default = A.
+  * Thus, each swizzle is ((pin-1) + (device#-4)) % 4
+- *
+- * The following code swizzles for exactly one bridge.  
+  */
+-static inline int bridge_swizzle(int pin, unsigned int slot) 
+-{
+-	return (pin + slot) & 3;
+-}
+ 
+ /*
+  * This routine handles multiple bridges.
+@@ -81,15 +75,14 @@ static u8 __init integrator_swizzle(struct pci_dev *dev, u8 *pinp)
+ 	if (pin == 0)
+ 		pin = 1;
+ 
+-	pin -= 1;
+ 	while (dev->bus->self) {
+-		pin = bridge_swizzle(pin, PCI_SLOT(dev->devfn));
++		pin = pci_swizzle_interrupt_pin(dev, pin);
+ 		/*
+ 		 * move up the chain of bridges, swizzling as we go.
+ 		 */
+ 		dev = dev->bus->self;
+ 	}
+-	*pinp = pin + 1;
++	*pinp = pin;
+ 
+ 	return PCI_SLOT(dev->devfn);
  }
 
