@@ -1,80 +1,51 @@
 From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: [PATCH 11/12] PCI: sh: use generic pci_swizzle_interrupt_pin()
-Date: Tue, 09 Dec 2008 16:12:32 -0700
-Message-ID: <20081209231232.18153.20376.stgit@bob.kio>
+Subject: [PATCH 10/12] PCI: powerpc: use generic pci_swizzle_interrupt_pin()
+Date: Tue, 09 Dec 2008 16:12:27 -0700
+Message-ID: <20081209231227.18153.14913.stgit@bob.kio>
 References: <20081209231037.18153.86962.stgit@bob.kio>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g1t0028.austin.hp.com ([15.216.28.35]:11820 "EHLO
+	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755406AbYLIXM2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Dec 2008 18:12:28 -0500
 In-Reply-To: <20081209231037.18153.86962.stgit@bob.kio>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>
 Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Russell King <rmk@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, hpa@zytor.com
-List-Id: linux-arch.vger.kernel.org
 
 Use the generic pci_swizzle_interrupt_pin() instead of arch-specific code.
 
 Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 ---
- arch/sh/drivers/pci/ops-cayman.c |    9 ++-------
- arch/sh/drivers/pci/pci.c        |    7 +------
- 2 files changed, 3 insertions(+), 13 deletions(-)
+ arch/powerpc/kernel/prom_parse.c |    7 +------
+ 1 files changed, 1 insertions(+), 6 deletions(-)
 
-diff --git a/arch/sh/drivers/pci/ops-cayman.c b/arch/sh/drivers/pci/ops-cayman.c
-index 5ccf9ea..38ef762 100644
---- a/arch/sh/drivers/pci/ops-cayman.c
-+++ b/arch/sh/drivers/pci/ops-cayman.c
-@@ -5,11 +5,6 @@
- #include <cpu/irq.h>
- #include "pci-sh5.h"
+diff --git a/arch/powerpc/kernel/prom_parse.c b/arch/powerpc/kernel/prom_parse.c
+index a11d689..a377abe 100644
+--- a/arch/powerpc/kernel/prom_parse.c
++++ b/arch/powerpc/kernel/prom_parse.c
+@@ -232,11 +232,6 @@ int of_pci_address_to_resource(struct device_node *dev, int bar,
+ }
+ EXPORT_SYMBOL_GPL(of_pci_address_to_resource);
  
--static inline u8 bridge_swizzle(u8 pin, u8 slot)
+-static u8 of_irq_pci_swizzle(u8 slot, u8 pin)
 -{
 -	return (((pin - 1) + slot) % 4) + 1;
 -}
 -
- int __init pcibios_map_platform_irq(struct pci_dev *dev, u8 slot, u8 pin)
+ int of_irq_map_pci(struct pci_dev *pdev, struct of_irq *out_irq)
  {
- 	int result = -1;
-@@ -42,7 +37,7 @@ int __init pcibios_map_platform_irq(struct pci_dev *dev, u8 slot, u8 pin)
- 	while (dev->bus->number > 0) {
- 
- 		slot = path[i].slot = PCI_SLOT(dev->devfn);
--		pin = path[i].pin = bridge_swizzle(pin, slot);
-+		pin = path[i].pin = pci_swizzle_interrupt_pin(dev, pin);
- 		dev = dev->bus->self;
- 		i++;
- 		if (i > 3) panic("PCI path to root bus too long!\n");
-@@ -56,7 +51,7 @@ int __init pcibios_map_platform_irq(struct pci_dev *dev, u8 slot, u8 pin)
- 	if ((slot < 3) || (i == 0)) {
- 		/* Bus 0 (incl. PCI-PCI bridge itself) : perform the final
- 		   swizzle now. */
--		result = IRQ_INTA + bridge_swizzle(pin, slot) - 1;
-+		result = IRQ_INTA + pci_swizzle_interrupt_pin(dev, pin) - 1;
- 	} else {
- 		i--;
- 		slot = path[i].slot;
-diff --git a/arch/sh/drivers/pci/pci.c b/arch/sh/drivers/pci/pci.c
-index d3839e6..aea3b6b 100644
---- a/arch/sh/drivers/pci/pci.c
-+++ b/arch/sh/drivers/pci/pci.c
-@@ -21,17 +21,12 @@
- #include <linux/init.h>
- #include <asm/io.h>
- 
--static inline u8 bridge_swizzle(u8 pin, u8 slot)
--{
--	return (((pin - 1) + slot) % 4) + 1;
--}
--
- static u8 __init simple_swizzle(struct pci_dev *dev, u8 *pinp)
- {
- 	u8 pin = *pinp;
- 
- 	while (dev->bus->parent) {
--		pin = bridge_swizzle(pin, PCI_SLOT(dev->devfn));
-+		pin = pci_swizzle_interrupt_pin(dev, pin);
- 		/* Move up the chain of bridges. */
- 		dev = dev->bus->self;
+ 	struct device_node *dn, *ppnode;
+@@ -306,7 +301,7 @@ int of_irq_map_pci(struct pci_dev *pdev, struct of_irq *out_irq)
+ 		/* We can only get here if we hit a P2P bridge with no node,
+ 		 * let's do standard swizzling and try again
+ 		 */
+-		lspec = of_irq_pci_swizzle(PCI_SLOT(pdev->devfn), lspec);
++		lspec = pci_swizzle_interrupt_pin(pdev, lspec);
+ 		pdev = ppdev;
  	}
+ 
