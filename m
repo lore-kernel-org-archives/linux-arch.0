@@ -1,262 +1,130 @@
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [patch] Performance Counters for Linux, v2
-Date: Tue, 9 Dec 2008 09:03:29 +1100
-Message-ID: <18749.39345.732524.905159@cargo.ozlabs.ibm.com>
-References: <20081208012211.GA23106@elte.hu>
-	<18748.37739.383961.318233@drongo.ozlabs.ibm.com>
-	<20081208113318.GA14723@elte.hu>
+From: "stephane eranian" <eranian@googlemail.com>
+Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
+Date: Tue, 9 Dec 2008 01:21:48 +0100
+Message-ID: <7c86c4470812081621u7f4ca1bax20300f7b0f522625@mail.gmail.com>
+References: <18744.29747.728320.652642@cargo.ozlabs.ibm.com>
+	 <18744.56857.259756.129894@cargo.ozlabs.ibm.com>
+	 <20081205080813.GA2030@elte.hu>
+	 <18744.61429.548462.667020@cargo.ozlabs.ibm.com>
+	 <20081205120734.GA26244@elte.hu>
+	 <18745.49593.567217.277510@cargo.ozlabs.ibm.com>
+	 <1228566879.16244.4.camel@lappy.programming.kicks-ass.net>
+	 <18747.23509.977047.540995@cargo.ozlabs.ibm.com>
+	 <7c86c4470812072318n33e27045k50490f180ecfd8c0@mail.gmail.com>
+	 <20081208111153.GA12377@elte.hu>
+Reply-To: eranian@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:55664 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752462AbYLHWEn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Dec 2008 17:04:43 -0500
-In-Reply-To: <20081208113318.GA14723@elte.hu>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1754351AbYLIAWF@vger.kernel.org>
+In-Reply-To: <20081208111153.GA12377@elte.hu>
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@elte.hu>
-Cc: linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
+Cc: Paul Mackerras <paulus@samba.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
+List-Id: linux-arch.vger.kernel.org
 
-Ingo Molnar writes:
+On Mon, Dec 8, 2008 at 12:11 PM, Ingo Molnar <mingo@elte.hu> wrote:
+>
+> * stephane eranian <eranian@googlemail.com> wrote:
+>
+>> Let me explain the HW complexity a bit. It's all a matter of tradeoffs.
+>> I have regular discussions with the PMU design architects about this.
+>> If you talk to them, then you understand the environment they have to
+>> live in and you understand why those constraints are there. The key
+>> point to understand is that the PMU is never critical to the chip. The
+>> chip can work well without. The real-estate on the chip is always very
+>> tight. PMU is a 2nd class citizen, thus low in the priority list. [...]
+>
+> The chip designers i talk to with my scheduler maintainer hat on do point
+> out that performance monitoring is (of course) in the critical path of
+> any chip, and hence its overhead and impact on the gate count of various
+> critical components of the CPU core and its impact on the power envelope
+> must be kept very low.
+>
 
-> If you want a _guarantee_ that multiple counters can count at once you 
-> can still do it: for example by using the separate, orthogonal 
-> reservation mechanism we had in -v1 already.
+You have a talent for turning people's argument into something else.
 
-Is that this?
+You dropped my example about the wire limitation. It was describing my point
+about constraints and PMU as 2nd class citizen. I'd rather have a new
+constrained
+PMU feature that no new feature at all. You also seem to limit your
+world to x86,
+you have to look beyond like Itanium and Power, for instance.
 
-" - There's a /sys based reservation facility that allows the allocation
-   of a certain number of hw counters for guaranteed sysadmin access."
+I know quite well that the PMU is used for debugging internally and early on,
+so don't lecture me on this! I have participated in the architectural design of
+some.
 
-Sounds like I can't do that as an ordinary user, even on my own
-processes...
+> Nevertheless, the same chip designers rely on performance counters on a
+> daily basis to plan their next-gen chip. They very much want them to work
+> fine, and they work hard on making them relevant and easy to use. Often
+> the performance counters are the _only_ real cheap hands-on insight into
+> the dynamic situation of a modern CPU core, even for hw designers.
+>
+Like, I did not know that?
 
-I don't want the whole PMU all the time, I just want it while my
-monitored process is running, and only on the CPU where it is
-running.
+> And all the current hw trends show that it's not just talk but action as
+> well: the Core2 PMCs are already much saner (less constrained) than the
+> P4 ones, and now they even expanded on them: Nehalem / Core i7 doubled
+> the number of generic PMCs from two to four.
+>
 
-> Also, you dont _have to_ overcommit counters.
-> 
-> Your whole statistical argument that group readout is a must-have for 
-> precision is fundamentally flawed as well: counters _themselves_, as used 
-> by most applications, by their nature, are a statistical sample to begin 
-> with. There's way too many hardware events to track each of them 
-> unintrusively - so this type of instrumentation is _all_ sampling based, 
-> and fundamentally so. (with a few narrow exceptions such as single-event 
-> interrupts for certain rare event types)
+You think I am not aware of that?I know that quite well because I talk to the
+PMU architects on a regular basis trying to get them to add new features and
+make the PMU easier to manage. And I make sure I broaden my horizon
+beyond x86.
 
-No - at least on the machines I'm familiar with, I can count every
-single cache miss and hit at every level of the memory hierarchy,
-every single TLB miss, every load and store instruction, etc. etc.
+And yes, the PMU is becoming more and more critical and a true-value add.
+That's good for end-users as long as the new features can be exposed.
 
-I want to be able to work out things like cache hit rates, just as one
-example.  To do that I need two numbers that are directly comparable
-because they relate to the same set of instructions.  If I have a
-count of L1 Dcache hits for one set of instructions and a count of L1
-Dcache misses over some different stretch of instructions, the ratio
-of them doesn't mean anything.
+> So, contrary to your suggestion, chip designers very much care about
 
-Your argument about "it's all statistical" is bogus because even if
-the things we are measuring are statistical, that's still no excuse
-for being sloppy about how we make our estimates.  And not being able
-to have synchronized counters is just sloppy.  The users want it, the
-hardware provides it, so that makes it a must-have as far as I am
-concerned.
+You did not get my point, but I am not surprised...
 
-> This means that the only correct technical/mathematical argument is to 
-> talk about "levels of noise" and how they compare and correlate - and 
-> i've seen no actual measurements or estimations pro or contra. Group 
-> readout of counters can reduce noise for sure, but it is wrong for you to 
-> try to turn this into some sort of all-or-nothing property. Other sources 
-> of noise tend to be of much higher of magnitude.
+> performance counters and they are working very hard to make this stuff
+> useful to us. [ Yes, there are constraints even with generic counters
+> (for example you only want a single line towards a PMC register from
+> divider units), but the number of cross-counter constraints and their
+> relevance is decreasing, not increasing. ]
+>
+> Anyway ... i think your reply highlights why the fundamental premise of
+> your patchset is so wrong: i believe you have designed your code and APIs
+> at the wrong level by (paradoxically) assuming in essence that
+> performance counters do not matter in the general scheme of things. (!)
+>
+> So you introduced limited, special-purpose but still quite complex APIs
 
-What can you back that assertion up with?
+That's not a valid argument! Perfmon, unlike any other existing API, has
+exposed all advanced features of all existing PMU models and across
+multiple architectures.
 
-> You need really stable workloads to see such low noise levels that group 
-> readout of counters starts to matter - and the thing is that often such 
-> 'stable' workloads are rather boringly artificial, because in real life 
-> there's no such thing as a stable workload.
+> that tailored the ABIs to intricate low level details of PMUs. I see an
+> explosion in complexity due to that incorrect design choice: too many
 
-More unsupported assertions, that sound wrong to me...
+You current API does not offer access to any of the advanced features of
+X86, like PEBS, IBS, LBR and others,  let alone on the other architectures.
+So again your arguments are unfounded.
 
-> Finally, the basic API to user-space is not the way to impose rigid "I 
-> own the whole PMU" notion that you are pushing. That notion can be 
-> achieved in different, system administration means - and a perf-counter 
-> reservation facility was included in the v1 patchset.
+> syscalls, too broad interaction between core code and architecture code,
+> and too little practical utility in the end.
+>
 
-Only for root, which isn't good enough.
+I think the number of syscalls is irrelevant, that's not how I measure
+the usefulness of an API.
+What matters is the functionalities. Any performance monitoring API should have:
+   - create a session
+   - program the registers
+   - start and stop on demand and has many times as you want
+   - attach to a thread or CPU
+   - read the register values
+   - advanced support for event-based sampling
 
-What I was proposing was NOT a rigid notion - you don't have to own
-the whole PMU if you are happy to use the events that the kernel knows
-about.  If you do want the whole PMU, you can have it while the
-process you're monitoring is running, and the kernel will
-context-switch it between you and other users, who can also have the
-whole PMU when their processes are running.
+> We did what we believe to be the right thing: we gave performance
+> counters the proper high-level abstraction they _deserve_, and we made
+> performance counters a prime-time Linux citizen as well.
+>
+You have no validation to prove you chose the right level.
 
-> Note that you are doing something that is a kernel design no-no: you are 
-> trying to design a "guarantee" for hardware constraints by complicating 
-> it into the userpace ABI - and that is a fundamentally losing 
-> proposition.
-
-Perhaps you have misunderstood my proposal.  A counter-set doesn't
-have to be the whole PMU, and you can have multiple counter-sets
-active at the same time as long as they fit.  You can even have
-multiple "whole PMU" counter-sets and the kernel will multiplex them
-onto the real PMU.
-
-> It's a tail-wags-the-dog design situation that we are routinely resisting 
-> in the upstream kernel: you are putting hardware constraints ahead of 
-> usability, you are putting hardware constraints ahead of sane interface 
-> design - and such an approach is wrong and shortsighted on every level.
-
-Well, I'll ignore the patronizing tone (but please try to avoid it in
-future).
-
-The PRIMARY reason for wanting counter-sets is because THAT IS WHAT
-THE USERS WANT.  A "usable" and "sane" interface design that doesn't
-do what users want is useless.
-
-Anyway, my proposal is just as "usable" as yours, since users still
-have perf_counter_open, exactly as in your proposal.  Users with
-simpler requirements can do things exactly the same way as with your
-proposal.
-
-> It's also shortsighted because it's a red herring: there's nothing that 
-> forbids the counter scheduler from listening to the hw constraints, for 
-> CPUs where there's a lot of counter constraints.
-
-Handling the counter constraints is indeed a matter of implementation,
-and as I noted previously, your current proposed implementation
-doesn't handle them.
-
-> Being per object is a very fundamental property of Linux, and you have to 
-> understand and respect that down to your bone if you want to design new 
-> syscall ABIs for Linux.
-
-It's the choice of a single counter as being your "object" that I
-object to. :)
-
->  - It makes counter scheduling very dynamic. Instead of exposing
->    user-space to a static "counter allocation" (with all the insane ABI
->    and kernel internal complications this brings), perf-counters
->    subsystem does not expose user-space to such scheduling details
->    _at all_.
-
-Which is not necessarily a good thing.  Fundamentally, if you are
-trying to measure something, and you get a number, you need to know
-what exactly got measured.
-
-For example, suppose I am trying to count TLB misses during the
-execution of a program.  If my TLB miss counter keeps getting bumped
-off because the kernel is scheduling my counter along with a dozen
-other counters, then I *at least* want to know about it, and
-preferably control it.  Otherwise I'll be getting results that vary by
-an order of magnitude with no way to tell why.
-
-> All in one, using the 1:1 fd:counter design is a powerful, modern Linux 
-> abstraction to its core. It's much easier to think about for application 
-> developers as well, so we'll see a much sharper adoption rate. 
-
-For simple things, yes it is simpler.  But it can't do the more
-complex things in any sort of clean or sane way.
-
-> Also, i noticed that your claims about our code tend to be rather 
-> abstract
-
-... because the design of your code is wrong at an abstract level ...
-
-> and are often dwelling on issues that IMO have no big practical 
-> relevance - so may i suggest the following approach instead to break the 
-> (mutual!) cycle of miscommunication: if you think an issue is important, 
-> could you please point out the problem in practical terms what you think 
-> would not be possible with our scheme? We tend to prioritize items by 
-> practical value.
-> 
-> Things like: "kerneltop would not be as accurate with: ..., to the level 
-> of adding 5% of extra noise.". Would that work for you?
-
-OK, here's an example.  I have an application whose execution has
-several different phases, and I want to measure the L1 Icache hit rate
-and the L1 Dcache hit rate as a function of time and make a graph.  So
-I need counters for L1 Icache accesses, L1 Icache misses, L1 Dcache
-accesses, and L1 Dcache misses.  I want to sample at 1ms intervals.
-The CPU I'm running on has two counters.
-
-With your current proposal, I don't see any way to make sure that the
-counter scheduler counts L1 Dcache accesses and L1 Dcache misses at
-the same time, then schedules L1 Icache accesses and L1 Icache
-misses.  I could end up with L1 Dcache accesses and L1 Icache
-accesses, then L1 Dcache misses and L1 Icache misses - and get a
-nonsensical situation like the misses being greater than the accesses.
-
-> This needless vectoring and the exposing of contexts would kill many good 
-> properties of the new subsystem, without any tangible benefits - see 
-> above.
-
-No.  Where did you get contexts from?  I didn't write anything about
-contexts.  Please read what I wrote.
-
-> This is really scheduling school 101: a hardware context allocation is 
-> the _last_ thing we want to expose to user-space in this particular case. 
-
-Please drop the patronizing tone, again.
-
-What user-space applications want to be able to do is this:
-
-* Ensure that a set of counters are all counting at the same time.
-
-* Know when counters get scheduled on and off the process so that the
-  results can be interpreted properly.  Either that or be able to
-  control the scheduling.
-
-* Sophisticated applications want to be able to do things with the PMU
-  that the kernel doesn't necessarily understand.
-
-> This is a fundamental property of hardware resource scheduling. We _dont_ 
-> want to tie the hands of the kernel by putting resource scheduling into 
-> user-space!
-
-You'd rather provide useless numbers to userspace? :)
-
-> Your arguments remind me a bit of the "user-space threads have to be 
-> scheduled in user-space!" N:M threading design discussions we had years 
-> ago. IBM folks were pushing NGPT very strongly back then and claimed that 
-> it's the right design for high-performance threading, etc. etc.
-
-Your arguments remind me of a filesystem that a colleague of mine once
-designed that only had files, but no directories (you could have "/"
-characters in the filenames, though).  This whole discussion is a bit
-like you arguing that directories are an unnecessary complication that
-only messes up the interface and adds extra system calls.
-
-> You can already allocate "exclusive" counters in a guaranteed way via our 
-> code, here and today.
-
-But then I don't get context-switching between processes.
-
-> There's constrained PMCs on x86 too, as you mention. Instead of repeating 
-> the answer that i gave before (that this is easy and natural), how about 
-> this approach: if we added real, working support for constrained PMCs on 
-> x86, that will then address this point of yours rather forcefully, 
-> correct?
-
-It still means we end up having to add something approaching 29,000
-lines of code and 320kB to the kernel, just for the IBM 64-bit PowerPC
-processors.  (I don't guarantee that code is optimal, but that is some
-indication of the complexity required.)
-
-I am perfectly happy to add code for the kernel to know about the most
-commonly-used, simple events on those processors.  But I surely don't
-want to have to teach the kernel about every last event and every last
-capability of those machines' PMUs.
-
-For example, there is a facility on POWER6 where certain instructions
-can be selected (based on (instruction_word & mask) == value) and
-marked, and then there are events that allow you to measure how long
-marked instructions take in various stages of execution.  How would I
-make such a feature available for applications to use, within your
-framework?
-
-Paul.
+As if the perfmon project did not put the PMU on the forefront.
+Who is going to buy that?
