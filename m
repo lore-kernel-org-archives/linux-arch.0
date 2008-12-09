@@ -1,69 +1,84 @@
 From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: [PATCH 08/12] PCI: mips: use generic pci_swizzle_interrupt_pin()
-Date: Tue, 09 Dec 2008 16:12:17 -0700
-Message-ID: <20081209231217.18153.85615.stgit@bob.kio>
+Subject: [PATCH 07/12] PCI: arm: use generic pci_swizzle_interrupt_pin()
+Date: Tue, 09 Dec 2008 16:12:12 -0700
+Message-ID: <20081209231212.18153.63913.stgit@bob.kio>
 References: <20081209231037.18153.86962.stgit@bob.kio>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:44652 "EHLO
-	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755449AbYLIXMS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Dec 2008 18:12:18 -0500
+Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <20081209231037.18153.86962.stgit@bob.kio>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>
 Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Russell King <rmk@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, hpa@zytor.com
+List-Id: linux-arch.vger.kernel.org
 
 Use the generic pci_swizzle_interrupt_pin() instead of arch-specific code.
 
 Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 ---
- arch/mips/pci/pci-ip27.c |    6 ------
- arch/mips/pci/pci.c      |    9 +--------
- 2 files changed, 1 insertions(+), 14 deletions(-)
+ arch/arm/kernel/bios32.c       |    6 +++---
+ arch/arm/mach-integrator/pci.c |   11 ++---------
+ 2 files changed, 5 insertions(+), 12 deletions(-)
 
-diff --git a/arch/mips/pci/pci-ip27.c b/arch/mips/pci/pci-ip27.c
-index f97ab14..dda6f20 100644
---- a/arch/mips/pci/pci-ip27.c
-+++ b/arch/mips/pci/pci-ip27.c
-@@ -146,12 +146,6 @@ int __devinit pcibios_map_irq(const struct pci_dev *dev, u8 slot, u8 pin)
- 	return 0;
- }
- 
--/* Most MIPS systems have straight-forward swizzling needs.  */
--static inline u8 bridge_swizzle(u8 pin, u8 slot)
--{
--	return (((pin - 1) + slot) % 4) + 1;
--}
--
- static inline struct pci_dev *bridge_root_dev(struct pci_dev *dev)
+diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
+index 17a59b6..5c5a0bc 100644
+--- a/arch/arm/kernel/bios32.c
++++ b/arch/arm/kernel/bios32.c
+@@ -491,17 +491,17 @@ EXPORT_SYMBOL(pcibios_bus_to_resource);
+  */
+ u8 __devinit pci_std_swizzle(struct pci_dev *dev, u8 *pinp)
  {
- 	while (dev->bus->parent) {
-diff --git a/arch/mips/pci/pci.c b/arch/mips/pci/pci.c
-index a377e9d..dfad63c 100644
---- a/arch/mips/pci/pci.c
-+++ b/arch/mips/pci/pci.c
-@@ -149,19 +149,12 @@ out:
- 	       "Skipping PCI bus scan due to resource conflict\n");
+-	int pin = *pinp - 1;
++	int pin = *pinp;
+ 
+ 	while (dev->bus->self) {
+-		pin = (pin + PCI_SLOT(dev->devfn)) & 3;
++		pin = pci_swizzle_interrupt_pin(dev, pin);
+ 		/*
+ 		 * move up the chain of bridges,
+ 		 * swizzling as we go.
+ 		 */
+ 		dev = dev->bus->self;
+ 	}
+-	*pinp = pin + 1;
++	*pinp = pin;
+ 
+ 	return PCI_SLOT(dev->devfn);
  }
- 
--/* Most MIPS systems have straight-forward swizzling needs.  */
--
--static inline u8 bridge_swizzle(u8 pin, u8 slot)
+diff --git a/arch/arm/mach-integrator/pci.c b/arch/arm/mach-integrator/pci.c
+index af7d3ff..2fdb954 100644
+--- a/arch/arm/mach-integrator/pci.c
++++ b/arch/arm/mach-integrator/pci.c
+@@ -63,13 +63,7 @@
+  *
+  * Where A = pin 1, B = pin 2 and so on and pin=0 = default = A.
+  * Thus, each swizzle is ((pin-1) + (device#-4)) % 4
+- *
+- * The following code swizzles for exactly one bridge.  
+  */
+-static inline int bridge_swizzle(int pin, unsigned int slot) 
 -{
--	return (((pin - 1) + slot) % 4) + 1;
+-	return (pin + slot) & 3;
 -}
--
- static u8 __init common_swizzle(struct pci_dev *dev, u8 *pinp)
- {
- 	u8 pin = *pinp;
  
- 	while (dev->bus->parent) {
+ /*
+  * This routine handles multiple bridges.
+@@ -81,15 +75,14 @@ static u8 __init integrator_swizzle(struct pci_dev *dev, u8 *pinp)
+ 	if (pin == 0)
+ 		pin = 1;
+ 
+-	pin -= 1;
+ 	while (dev->bus->self) {
 -		pin = bridge_swizzle(pin, PCI_SLOT(dev->devfn));
 +		pin = pci_swizzle_interrupt_pin(dev, pin);
- 		/* Move up the chain of bridges. */
+ 		/*
+ 		 * move up the chain of bridges, swizzling as we go.
+ 		 */
  		dev = dev->bus->self;
-         }
+ 	}
+-	*pinp = pin + 1;
++	*pinp = pin;
+ 
+ 	return PCI_SLOT(dev->devfn);
+ }
