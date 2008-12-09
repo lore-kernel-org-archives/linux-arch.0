@@ -1,16 +1,16 @@
 From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: [PATCH 10/12] PCI: powerpc: use generic pci_swizzle_interrupt_pin()
-Date: Tue, 09 Dec 2008 16:12:27 -0700
-Message-ID: <20081209231227.18153.14913.stgit@bob.kio>
+Subject: [PATCH 12/12] PCI: x86: use generic pci_swizzle_interrupt_pin()
+Date: Tue, 09 Dec 2008 16:12:37 -0700
+Message-ID: <20081209231237.18153.72370.stgit@bob.kio>
 References: <20081209231037.18153.86962.stgit@bob.kio>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0028.austin.hp.com ([15.216.28.35]:11820 "EHLO
-	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755406AbYLIXM2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Dec 2008 18:12:28 -0500
+Received: from g1t0029.austin.hp.com ([15.216.28.36]:35348 "EHLO
+	g1t0029.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755495AbYLIXMi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Dec 2008 18:12:38 -0500
 In-Reply-To: <20081209231037.18153.86962.stgit@bob.kio>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -21,31 +21,52 @@ Use the generic pci_swizzle_interrupt_pin() instead of arch-specific code.
 
 Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 ---
- arch/powerpc/kernel/prom_parse.c |    7 +------
- 1 files changed, 1 insertions(+), 6 deletions(-)
+ arch/x86/pci/irq.c   |    4 ++--
+ arch/x86/pci/visws.c |    7 +------
+ 2 files changed, 3 insertions(+), 8 deletions(-)
 
-diff --git a/arch/powerpc/kernel/prom_parse.c b/arch/powerpc/kernel/prom_parse.c
-index a11d689..a377abe 100644
---- a/arch/powerpc/kernel/prom_parse.c
-+++ b/arch/powerpc/kernel/prom_parse.c
-@@ -232,11 +232,6 @@ int of_pci_address_to_resource(struct device_node *dev, int bar,
- }
- EXPORT_SYMBOL_GPL(of_pci_address_to_resource);
+diff --git a/arch/x86/pci/irq.c b/arch/x86/pci/irq.c
+index 6547497..1d6469b 100644
+--- a/arch/x86/pci/irq.c
++++ b/arch/x86/pci/irq.c
+@@ -1069,7 +1069,7 @@ static void __init pcibios_fixup_irqs(void)
+ 				struct pci_dev *bridge = dev->bus->self;
+ 				int bus;
  
--static u8 of_irq_pci_swizzle(u8 slot, u8 pin)
+-				pin = (((pin - 1) + PCI_SLOT(dev->devfn)) % 4) + 1;
++				pin = pci_swizzle_interrupt_pin(dev, pin);
+ 				bus = bridge->bus->number;
+ 				irq = IO_APIC_get_PCI_irq_vector(bus,
+ 						PCI_SLOT(bridge->devfn), pin - 1);
+@@ -1233,7 +1233,7 @@ static int pirq_enable_irq(struct pci_dev *dev)
+ 			while (irq < 0 && dev->bus->parent) { /* go back to the bridge */
+ 				struct pci_dev *bridge = dev->bus->self;
+ 
+-				pin = (((pin - 1) + PCI_SLOT(dev->devfn)) % 4) + 1;
++				pin = pci_swizzle_interrupt_pin(dev, pin);
+ 				irq = IO_APIC_get_PCI_irq_vector(bridge->bus->number,
+ 						PCI_SLOT(bridge->devfn), pin - 1);
+ 				if (irq >= 0)
+diff --git a/arch/x86/pci/visws.c b/arch/x86/pci/visws.c
+index 42f4cb1..6b5ed3d 100644
+--- a/arch/x86/pci/visws.c
++++ b/arch/x86/pci/visws.c
+@@ -25,17 +25,12 @@ static void pci_visws_disable_irq(struct pci_dev *dev) { }
+ 
+ unsigned int pci_bus0, pci_bus1;
+ 
+-static inline u8 bridge_swizzle(u8 pin, u8 slot) 
 -{
 -	return (((pin - 1) + slot) % 4) + 1;
 -}
 -
- int of_irq_map_pci(struct pci_dev *pdev, struct of_irq *out_irq)
+ static u8 __init visws_swizzle(struct pci_dev *dev, u8 *pinp)
  {
- 	struct device_node *dn, *ppnode;
-@@ -306,7 +301,7 @@ int of_irq_map_pci(struct pci_dev *pdev, struct of_irq *out_irq)
- 		/* We can only get here if we hit a P2P bridge with no node,
- 		 * let's do standard swizzling and try again
- 		 */
--		lspec = of_irq_pci_swizzle(PCI_SLOT(pdev->devfn), lspec);
-+		lspec = pci_swizzle_interrupt_pin(pdev, lspec);
- 		pdev = ppdev;
- 	}
+ 	u8 pin = *pinp;
  
+ 	while (dev->bus->self) {	/* Move up the chain of bridges. */
+-		pin = bridge_swizzle(pin, PCI_SLOT(dev->devfn));
++		pin = pci_swizzle_interrupt_pin(dev, pin);
+ 		dev = dev->bus->self;
+ 	}
+ 	*pinp = pin;
