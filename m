@@ -1,7 +1,7 @@
 From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: [PATCH 04/12] x86/PCI: minor logic simplications
-Date: Tue, 09 Dec 2008 16:11:57 -0700
-Message-ID: <20081209231156.18153.70583.stgit@bob.kio>
+Subject: [PATCH 05/12] PCI: add pci_swizzle_interrupt_pin()
+Date: Tue, 09 Dec 2008 16:12:02 -0700
+Message-ID: <20081209231202.18153.60227.stgit@bob.kio>
 References: <20081209231037.18153.86962.stgit@bob.kio>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -13,43 +13,54 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>
 Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Russell King <rmk@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, hpa@zytor.com
 List-Id: linux-arch.vger.kernel.org
 
-Test "pin" immediately to simplify the subsequent code.
+This patch adds pci_swizzle_interrupt_pin(), which implements the
+INTx swizzling algorithm specified in Table 9-1 of the "PCI-to-PCI
+Bridge Architecture Specification," revision 1.2.
+
+There are many architecture-specific implementations of this
+swizzle that can be replaced by this common one.
 
 Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 ---
- arch/x86/pci/irq.c |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
+ drivers/pci/pci.c   |    8 +++++++-
+ include/linux/pci.h |    1 +
+ 2 files changed, 8 insertions(+), 1 deletions(-)
 
-diff --git a/arch/x86/pci/irq.c b/arch/x86/pci/irq.c
-index 5d1ce1c..6547497 100644
---- a/arch/x86/pci/irq.c
-+++ b/arch/x86/pci/irq.c
-@@ -1042,6 +1042,9 @@ static void __init pcibios_fixup_irqs(void)
- 	dev = NULL;
- 	while ((dev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, dev)) != NULL) {
- 		pci_read_config_byte(dev, PCI_INTERRUPT_PIN, &pin);
-+		if (!pin)
-+			continue;
-+
- #ifdef CONFIG_X86_IO_APIC
- 		/*
- 		 * Recalculate IRQ numbers if we use the I/O APIC.
-@@ -1049,9 +1052,6 @@ static void __init pcibios_fixup_irqs(void)
- 		if (io_apic_assign_pci_irqs) {
- 			int irq;
- 
--			if (!pin)
--				continue;
--
- 			/*
- 			 * interrupt pins are numbered starting from 1
- 			 */
-@@ -1092,7 +1092,7 @@ static void __init pcibios_fixup_irqs(void)
- 		/*
- 		 * Still no IRQ? Try to lookup one...
- 		 */
--		if (pin && !dev->irq)
-+		if (!dev->irq)
- 			pcibios_lookup_irq(dev, 0);
- 	}
+diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+index 46f6821..5a882cc 100644
+--- a/drivers/pci/pci.c
++++ b/drivers/pci/pci.c
+@@ -1337,6 +1337,12 @@ void pci_enable_ari(struct pci_dev *dev)
+ 	bridge->ari_enabled = 1;
  }
+ 
++u8 pci_swizzle_interrupt_pin(struct pci_dev *dev, u8 pin)
++{
++	/* This implements Table 9-1 of the PCI-to-PCI bridge spec */
++	return (((pin - 1) + PCI_SLOT(dev->devfn)) % 4) + 1;
++}
++
+ int
+ pci_get_interrupt_pin(struct pci_dev *dev, struct pci_dev **bridge)
+ {
+@@ -1347,7 +1353,7 @@ pci_get_interrupt_pin(struct pci_dev *dev, struct pci_dev **bridge)
+ 		return -1;
+ 
+ 	while (dev->bus->self) {
+-		pin = (((pin - 1) + PCI_SLOT(dev->devfn)) % 4) + 1;
++		pin = pci_swizzle_interrupt_pin(dev, pin);
+ 		dev = dev->bus->self;
+ 	}
+ 	*bridge = dev;
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index feb4657..4be596f 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -527,6 +527,7 @@ int __must_check pci_bus_add_device(struct pci_dev *dev);
+ void pci_read_bridge_bases(struct pci_bus *child);
+ struct resource *pci_find_parent_resource(const struct pci_dev *dev,
+ 					  struct resource *res);
++u8 pci_swizzle_interrupt_pin(struct pci_dev *dev, u8 pin);
+ int pci_get_interrupt_pin(struct pci_dev *dev, struct pci_dev **bridge);
+ extern struct pci_dev *pci_dev_get(struct pci_dev *dev);
+ extern void pci_dev_put(struct pci_dev *dev);
