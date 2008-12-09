@@ -1,69 +1,92 @@
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [patch] Performance Counters for Linux, v2
-Date: Wed, 10 Dec 2008 10:00:19 +1100
-Message-ID: <18750.63619.54374.976070@cargo.ozlabs.ibm.com>
-References: <20081208012211.GA23106@elte.hu>
-	<18748.37739.383961.318233@drongo.ozlabs.ibm.com>
-	<20081208113318.GA14723@elte.hu>
-	<18749.39345.732524.905159@cargo.ozlabs.ibm.com>
-	<20081209130045.GA32479@elte.hu>
+From: Bjorn Helgaas <bjorn.helgaas@hp.com>
+Subject: [PATCH 00/12] PCI: unify P2P bridge INTx swizzling
+Date: Tue, 09 Dec 2008 16:11:36 -0700
+Message-ID: <20081209231037.18153.86962.stgit@bob.kio>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:37852 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755934AbYLIXAc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 9 Dec 2008 18:00:32 -0500
-In-Reply-To: <20081209130045.GA32479@elte.hu>
+Received: from g1t0029.austin.hp.com ([15.216.28.36]:35124 "EHLO
+	g1t0029.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754131AbYLIXLk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Dec 2008 18:11:40 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Stephane Eranian <eranian@googlemail.com>, Eric Dumazet <dada1@cosmosbay.com>, Robert Richter <robert.richter@amd.com>, Arjan van de Veen <arjan@infradead.org>, Peter Anvin <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>
+To: Jesse Barnes <jbarnes@virtuousgeek.org>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Russell King <rmk@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, hpa@zytor.com
 
-Ingo Molnar writes:
+This series adds a pci_swizzle_interrupt_pin() function in the PCI
+core.  Most architectures currently implement this independently.
 
-> * Paul Mackerras <paulus@samba.org> wrote:
-> 
-> > > Things like: "kerneltop would not be as accurate with: ..., to the 
-> > > level of adding 5% of extra noise.". Would that work for you?
-> > 
-> > OK, here's an example.  I have an application whose execution has 
-> > several different phases, and I want to measure the L1 Icache hit rate 
-> > and the L1 Dcache hit rate as a function of time and make a graph.  So 
-> > I need counters for L1 Icache accesses, L1 Icache misses, L1 Dcache 
-> > accesses, and L1 Dcache misses.  I want to sample at 1ms intervals. The 
-> > CPU I'm running on has two counters.
-> > 
-> > With your current proposal, I don't see any way to make sure that the 
-> > counter scheduler counts L1 Dcache accesses and L1 Dcache misses at the 
-> > same time, then schedules L1 Icache accesses and L1 Icache misses.  I 
-> > could end up with L1 Dcache accesses and L1 Icache accesses, then L1 
-> > Dcache misses and L1 Icache misses - and get a nonsensical situation 
-> > like the misses being greater than the accesses.
-> 
-> yes, agreed, this is a valid special case of simple counter readout - 
-> we'll add support to couple counters like that.
+After this series, many of the callers of pci_swizzle_interrupt_pin()
+follow a similar pattern.  I'd like to consolidate those callers, too,
+but I haven't started that yet.
 
-This is an example of a sampling problem, but one where the thing
-being sampled is a derived statistic from two counter values.
+One strange thing I'd like to understand eventually is why the
+swizzle in acpi_pci_irq_derive() does something special for CardBus
+bridges, while no other architecture does.
 
-I don't agree that this is really a "special case".  There are lots of
-derived statistics that are interesting for performance analysis,
-starting with CPI (cycles per instruction), proportions of various
-instructions in the code, cache hit/miss rates for various different
-caches, etc., etc.
+Comments welcome.
 
-> Note that this issue does not impact use of multiple counters in 
-> profilers. (i.e. anything that is not a pure readout of the counter, 
-> along linear time, as your example above suggests).
+These patches have been compile-tested on:
+    alpha
+    arm
+    ia64
+    mips
+    powerpc (ppc64)
+    sh
+    x86 (32-bit)
+    x86 (64-bit)
 
-Well, that's the sampling vs. counting distinction that I made in my
-other email.  We need to do both well.
+I've boot-tested these architectures:
+    ia64
+    x86 (32-bit)
 
-As far as I can see, my "counter set" proposal does everything yours
-does (since a counter set can be just a single counter), and also
-cleanly accommodates what's needed for counting and for sampling
-derived statistics.  No?
+I haven't compiled parisc for want of a cross-compiler.
 
-Paul.
+Bjorn
+
+---
+
+Bjorn Helgaas (12):
+      PCI: x86: use generic pci_swizzle_interrupt_pin()
+      PCI: sh: use generic pci_swizzle_interrupt_pin()
+      PCI: powerpc: use generic pci_swizzle_interrupt_pin()
+      PCI: parisc: use generic pci_swizzle_interrupt_pin()
+      PCI: mips: use generic pci_swizzle_interrupt_pin()
+      PCI: arm: use generic pci_swizzle_interrupt_pin()
+      PCI: alpha: use generic pci_swizzle_interrupt_pin()
+      PCI: add pci_swizzle_interrupt_pin()
+      x86/PCI: minor logic simplications
+      x86/PCI: use config space encoding for interrupt pins
+      PCI: use config space encoding in pci_get_interrupt_pin()
+      PCI Hotplug: cpqphp: use config space PCI interrupt pin encoding
+
+
+ arch/alpha/kernel/pci.c           |    2 +
+ arch/alpha/kernel/pci_impl.h      |    9 +-----
+ arch/alpha/kernel/sys_dp264.c     |    2 +
+ arch/alpha/kernel/sys_eiger.c     |    2 +
+ arch/alpha/kernel/sys_miata.c     |    2 +
+ arch/alpha/kernel/sys_noritake.c  |    2 +
+ arch/alpha/kernel/sys_ruffian.c   |    2 +
+ arch/alpha/kernel/sys_sable.c     |    2 +
+ arch/arm/kernel/bios32.c          |    6 ++--
+ arch/arm/mach-integrator/pci.c    |   11 +-------
+ arch/mips/pci/pci-ip27.c          |    6 ----
+ arch/mips/pci/pci.c               |    9 +-----
+ arch/powerpc/kernel/prom_parse.c  |    7 +----
+ arch/sh/drivers/pci/ops-cayman.c  |    9 +-----
+ arch/sh/drivers/pci/pci.c         |    7 +----
+ arch/x86/pci/irq.c                |   54 +++++++++++++++++--------------------
+ arch/x86/pci/visws.c              |    7 +----
+ drivers/parisc/dino.c             |    4 +--
+ drivers/parisc/iosapic.c          |    3 +-
+ drivers/pci/hotplug/cpqphp_ctrl.c |    4 +--
+ drivers/pci/hotplug/cpqphp_pci.c  |    2 +
+ drivers/pci/pci.c                 |   10 +++++--
+ include/linux/pci.h               |    1 +
+ 23 files changed, 60 insertions(+), 103 deletions(-)
+
+-- 
+Signature
