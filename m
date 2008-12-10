@@ -1,33 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:48653 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754441AbYLJRKr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Dec 2008 12:10:47 -0500
-Subject: Re: [patch 0/3] [Announcement] Performance Counters for Linux
-From: Andi Kleen <andi@firstfloor.org>
-References: <20081204225345.654705757@linutronix.de>
-	<7c86c4470812051836t37e86565w3b92fd06fc905430@mail.gmail.com>
-	<493FEDE9.5080209@renci.org>
-Date: Wed, 10 Dec 2008 18:11:06 +0100
-In-Reply-To: <493FEDE9.5080209@renci.org> (Rob Fowler's message of "Wed, 10 Dec 2008 11:27:21 -0500")
-Message-ID: <87d4g0c5w5.fsf@basil.nowhere.org>
+Received: from extu-mxob-2.symantec.com ([216.10.194.135]:42036 "EHLO
+	extu-mxob-2.symantec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755264AbYLJVo4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Dec 2008 16:44:56 -0500
+Received: from [172.20.17.148]([172.20.17.148]) (3469 bytes) by megami.veritas.com
+	via sendmail with P:esmtp/R:smart_host/T:smtp
+	(sender: <hugh@veritas.com>)
+	id <m1LAVyM-0002JTC@megami.veritas.com>
+	for <linux-arch@vger.kernel.org>; Wed, 10 Dec 2008 12:47:54 -0800 (PST)
+	(Smail-3.2.0.101 1997-Dec-17 #15 built 2001-Aug-30)
+Date: Wed, 10 Dec 2008 20:48:52 +0000 (GMT)
+From: Hugh Dickins <hugh@veritas.com>
+Subject: [PATCH] fix mapping_writably_mapped()
+In-Reply-To: <Pine.LNX.4.64.0812101312340.16066@blonde.anvils>
+Message-ID: <Pine.LNX.4.64.0812102043060.25282@blonde.anvils>
+References: <1228855666.6379.84.camel@lts-notebook>
+ <Pine.LNX.4.64.0812101312340.16066@blonde.anvils>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rob Fowler <rjf@renci.org>
-Cc: eranian@gmail.com, linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>, Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Eric Dumazet <dada1@cosmosbay.com>, Andrew Morton <akpm@linux-foundation.org>, Paul Mackerras <paulus@samba.org>, Peter Anvin <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, perfmon2-devel <perfmon2-devel@lists.sourceforge.net>, Arjan van de Veen <arjan@infradead.org>
-Message-ID: <20081210171106.SbKhzCpuuRkpxF7zfNMNaA9mIlmnsagFyMh3a0dTbQ4@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Lee Schermerhorn <Lee.Schermerhorn@hp.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stable@kernel.org
+Message-ID: <20081210204852.0NID3kcA2nD5xU-ZmrSqkegUGvD4aYFolxCE6UZT4O4@z>
 
-Rob Fowler <rjf@renci.org> writes:
->
-> -- Can it supplant or support oprofile by supporting the tools (Code Analyst, etc) that
->     depend on it?
+Lee Schermerhorn noticed yesterday that I broke the mapping_writably_mapped
+test in 2.6.7!  Bad bad bug, good good find.
 
-There's no need to supplant/support oprofile really because at least
-short term oprofile will not go away.
+The i_mmap_writable count must be incremented for VM_SHARED (just as
+i_writecount is for VM_DENYWRITE, but while holding the i_mmap_lock)
+when dup_mmap() copies the vma for fork: it has its own more optimal
+version of __vma_link_file(), and I missed this out.  So the count
+was later going down to 0 (dangerous) when one end unmapped, then
+wrapping negative (inefficient) when the other end unmapped.
 
--Andi
+The only impact on x86 would have been that setting a mandatory lock on
+a file which has at some time been opened O_RDWR and mapped MAP_SHARED
+(but not necessarily PROT_WRITE) across a fork, might fail with -EAGAIN
+when it should succeed, or succeed when it should fail.
 
--- 
-ak@linux.intel.com
+But those architectures which rely on flush_dcache_page() to flush
+userspace modifications back into the page before the kernel reads it,
+may in some cases have skipped the flush after such a fork - though any
+repetitive test will soon wrap the count negative, in which case it will
+flush_dcache_page() unnecessarily.
+
+Fix would be a two-liner, but mapping variable added, and comment moved.
+
+Reported-by: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
+Signed-off-by: Hugh Dickins <hugh@veritas.com>
+---
+
+ kernel/fork.c |   15 +++++++++------
+ 1 file changed, 9 insertions(+), 6 deletions(-)
+
+--- 2.6.28-rc7/kernel/fork.c	2008-11-15 23:09:30.000000000 +0000
++++ linux/kernel/fork.c	2008-12-10 12:49:13.000000000 +0000
+@@ -315,17 +315,20 @@ static int dup_mmap(struct mm_struct *mm
+ 		file = tmp->vm_file;
+ 		if (file) {
+ 			struct inode *inode = file->f_path.dentry->d_inode;
++			struct address_space *mapping = file->f_mapping;
++
+ 			get_file(file);
+ 			if (tmp->vm_flags & VM_DENYWRITE)
+ 				atomic_dec(&inode->i_writecount);
+-
+-			/* insert tmp into the share list, just after mpnt */
+-			spin_lock(&file->f_mapping->i_mmap_lock);
++			spin_lock(&mapping->i_mmap_lock);
++			if (tmp->vm_flags & VM_SHARED)
++				mapping->i_mmap_writable++;
+ 			tmp->vm_truncate_count = mpnt->vm_truncate_count;
+-			flush_dcache_mmap_lock(file->f_mapping);
++			flush_dcache_mmap_lock(mapping);
++			/* insert tmp into the share list, just after mpnt */
+ 			vma_prio_tree_add(tmp, mpnt);
+-			flush_dcache_mmap_unlock(file->f_mapping);
+-			spin_unlock(&file->f_mapping->i_mmap_lock);
++			flush_dcache_mmap_unlock(mapping);
++			spin_unlock(&mapping->i_mmap_lock);
+ 		}
+ 
+ 		/*
