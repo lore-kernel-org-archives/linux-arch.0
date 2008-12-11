@@ -1,56 +1,105 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH] make INIT_FS use the __RW_LOCK_UNLOCKED initialization
-Date: Thu, 11 Dec 2008 02:34:39 +0000
-Message-ID: <20081211023439.GJ28946@ZenIV.linux.org.uk>
-References: <alpine.DEB.1.10.0812101832200.21545@gandalf.stny.rr.com> <20081210234307.GI28946@ZenIV.linux.org.uk> <8bd0f97a0812101707p7df7745dk9840b05c0b26184b@mail.gmail.com> <alpine.DEB.1.10.0812102010100.29200@gandalf.stny.rr.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: [RFC PATCH 00/19] unify init_task
+Date: Thu, 11 Dec 2008 03:52:38 +0000
+Message-ID: <cover.1228966585.git.kyle@mcmartin.ca>
+References: <cover.1228966585.git.kyle@mcmartin.ca>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:43339 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754429AbYLKCen (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Dec 2008 21:34:43 -0500
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.1.10.0812102010100.29200@gandalf.stny.rr.com>
+Received: from hera.kernel.org ([140.211.167.34]:57593 "EHLO hera.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752500AbYLKDxB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 Dec 2008 22:53:01 -0500
+In-Reply-To: <cover.1228966585.git.kyle@mcmartin.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Mike Frysinger <vapier.adi@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>
+To: linux-arch@vger.kernel.org
+Cc: Kyle McMartin <kyle@mcmartin.ca>
 
-On Wed, Dec 10, 2008 at 08:11:02PM -0500, Steven Rostedt wrote:
-> 
-> On Wed, 10 Dec 2008, Mike Frysinger wrote:
-> 
-> > On Wed, Dec 10, 2008 at 18:43, Al Viro wrote:
-> > > On Wed, Dec 10, 2008 at 06:37:28PM -0500, Steven Rostedt wrote:
-> > >>
-> > >> The following patch is in:
-> > >>
-> > >>   git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/linux-2.6-trace.git
-> > >>
-> > >>     branch: cleanups
-> > >
-> > > Would be better to take init_fs to something in fs/ or kernel/ and kill
-> > > the duplicates, along with INIT_FS macro itself...
-> > 
-> > how about the next level: unify init_task.c.  a quick check shows that
-> > like 90% of the stuff in there is the same for everyone ...
-> > -mike
-> 
-> I could probably do it for x86 and PPC, but beyond that, each arch 
-> maintainer will have to do it separately. That's a change that would need 
-> testing.
-> 
-> These changes are trivial (something I need to get RT working).
+Create a common kernel/init_task.c, and convert low hanging fruit to
+use it. Architecture maintainers will need to ensure that I didn't
+break anything before applying the init_task removal patch to their
+arch.
 
-Guys, let's not take it to init/main.c, please.  That file is basically
-a trashcan and I'd rather take that stuff to more or less relevant places
-in kernel/* and fs/*.  FWIW, I've done that with init_files (fs/file.c)
-some time ago.  For init_fs...  Hell knows.  Might make sense to take
-that to separate file, actually (kernel/exit.c and kernel/fork.c bits
-related to fs_struct).
+A few architectures appear to possibly rely on link-ordering (with
+an extra-y makefile rule) and may need additional linker script rules.
 
-BTW, why does sparc64 export put_fs_struct?  And is there any good reason
-for doing copy_fs_struct() in nfsd instead of just teaching kthread_create()
-how to create threads without sharing fs_struct (or descriptors, while we
-are at it)?
+Unconverted architectures so far are m68k (because it doesn't use an explicit
+init_task.c), ia64 (because it faffs about with init_thread_union), and
+sparc{,64} (which appear to rely on some magic.)
+
+The other open question is what to do about init_mm, which was supposed to be
+removed in 2.6.26...
+
+Kyle McMartin (19):
+  add HAVE_ARCH_INIT_TASK
+  add generic kernel/init_task.c
+  x86: convert to generic init_task.c
+  alpha: rename .data.init_thread to .data.init_task
+  alpha: convert to generic init_task.c
+  arm: convert to generic init_task.c
+  avr32: convert to generic init_task.c
+  blackfin: convert to generic init_task.c
+  frv: convert to generic init_task.c
+  h8300: convert to generic init_task.c
+  m32r: convert to generic init_task.c
+  m68knommu: convert to generic init_task.c
+  mips: convert to generic init_task.c
+  mn10300: convert to generic init_task.c
+  parisc: convert to generic init_task.c
+  powerpc: convert to generic init_task.c
+  s390: convert to generic init_task.c
+  sh: convert to generic init_task.c
+  xtensa: convert to generic init_task.c
+
+ arch/Kconfig                      |    9 +++++
+ arch/alpha/kernel/Makefile        |    2 +-
+ arch/alpha/kernel/init_task.c     |   22 -------------
+ arch/alpha/kernel/vmlinux.lds.S   |    4 +-
+ arch/arm/kernel/Makefile          |    2 +-
+ arch/arm/kernel/init_task.c       |   43 --------------------------
+ arch/avr32/kernel/Makefile        |    2 +-
+ arch/avr32/kernel/init_task.c     |   37 ----------------------
+ arch/blackfin/kernel/Makefile     |    2 +-
+ arch/blackfin/kernel/init_task.c  |   60 -------------------------------------
+ arch/cris/Kconfig                 |    1 +
+ arch/frv/kernel/Makefile          |    2 +-
+ arch/frv/kernel/init_task.c       |   38 -----------------------
+ arch/h8300/kernel/Makefile        |    2 +-
+ arch/h8300/kernel/init_task.c     |   42 --------------------------
+ arch/ia64/Kconfig                 |    1 +
+ arch/m32r/kernel/Makefile         |    2 +-
+ arch/m32r/kernel/init_task.c      |   40 ------------------------
+ arch/m68k/Kconfig                 |    1 +
+ arch/m68knommu/kernel/Makefile    |    2 +-
+ arch/m68knommu/kernel/init_task.c |   42 --------------------------
+ arch/mips/kernel/Makefile         |    2 +-
+ arch/mips/kernel/init_task.c      |   41 -------------------------
+ arch/mn10300/kernel/Makefile      |    2 +-
+ arch/mn10300/kernel/init_task.c   |   44 ---------------------------
+ arch/parisc/kernel/init_task.c    |   28 -----------------
+ arch/powerpc/kernel/Makefile      |    2 +-
+ arch/powerpc/kernel/init_task.c   |   35 ---------------------
+ arch/s390/kernel/Makefile         |    2 +-
+ arch/s390/kernel/init_task.c      |   44 ---------------------------
+ arch/sh/kernel/init_task.c        |   25 ---------------
+ arch/sparc/Kconfig                |    1 +
+ arch/sparc64/Kconfig              |    1 +
+ arch/x86/kernel/init_task.c       |   25 ---------------
+ arch/xtensa/kernel/Makefile       |    2 +-
+ arch/xtensa/kernel/init_task.c    |   37 ----------------------
+ kernel/Makefile                   |    4 ++
+ kernel/init_task.c                |   36 ++++++++++++++++++++++
+ 38 files changed, 69 insertions(+), 618 deletions(-)
+ delete mode 100644 arch/alpha/kernel/init_task.c
+ delete mode 100644 arch/arm/kernel/init_task.c
+ delete mode 100644 arch/avr32/kernel/init_task.c
+ delete mode 100644 arch/blackfin/kernel/init_task.c
+ delete mode 100644 arch/frv/kernel/init_task.c
+ delete mode 100644 arch/h8300/kernel/init_task.c
+ delete mode 100644 arch/m32r/kernel/init_task.c
+ delete mode 100644 arch/m68knommu/kernel/init_task.c
+ delete mode 100644 arch/mips/kernel/init_task.c
+ delete mode 100644 arch/mn10300/kernel/init_task.c
+ delete mode 100644 arch/powerpc/kernel/init_task.c
+ delete mode 100644 arch/s390/kernel/init_task.c
+ delete mode 100644 arch/xtensa/kernel/init_task.c
+ create mode 100644 kernel/init_task.c
