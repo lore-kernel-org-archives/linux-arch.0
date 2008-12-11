@@ -1,36 +1,73 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 13/19] mips: convert to generic init_task.c
-Date: Thu, 11 Dec 2008 14:04:25 +0100
-Message-ID: <200812111404.25597.arnd@arndb.de>
-References: <cover.1228966585.git.kyle@mcmartin.ca> <c89dc10c8a51d3f0f014dcdd86b70ef253b22710.1228966585.git.kyle@mcmartin.ca> <e7880c938229e333f2c0dbe34eee62257c159a5e.1228966585.git.kyle@mcmartin.ca>
+Subject: Re: [RFC PATCH 00/19] unify init_task
+Date: Thu, 11 Dec 2008 14:10:31 +0100
+Message-ID: <200812111410.31837.arnd@arndb.de>
+References: <cover.1228966585.git.kyle@mcmartin.ca> <cover.1228966585.git.kyle@mcmartin.ca>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.177]:58228 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.186]:54725 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754765AbYLKNFH convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2008 08:05:07 -0500
-In-Reply-To: <e7880c938229e333f2c0dbe34eee62257c159a5e.1228966585.git.kyle@mcmartin.ca>
+	with ESMTP id S1755569AbYLKNKr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2008 08:10:47 -0500
+In-Reply-To: <cover.1228966585.git.kyle@mcmartin.ca>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kyle McMartin <kyle@mcmartin.ca>
-Cc: linux-arch@vger.kernel.org, ralf@linux-mips.org, Kyle McMartin <kyle@redhat.com>
+To: Kyle McMartin <kyle@mcmartin.ca>, Jeff Dike <jdike@addtoit.com>
+Cc: linux-arch@vger.kernel.org
 
+Leave arch/x86/kernel/init_task.c hanging around with the cpu0_irqstack
+definition in it, a later patch can move it to an appropriate place and
+nuke the file.
+
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
 On Thursday 11 December 2008, Kyle McMartin wrote:
-> - */
-> -union thread_union init_thread_union
-> -=A0=A0=A0=A0=A0=A0=A0__attribute__((__section__(".data.init_task"),
-> -=A0=A0=A0=A0=A0=A0=A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 __aligned__(THREAD=
-_SIZE))) =3D
-> -=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0{ INIT_THREAD_INFO(init=
-_task) };
-> -
 
-The __aligned__(THREAD_SIZE) is only present in sparc, mips and
-parisc (though the latter uses 128 byte align). I guess you
-verified that dropping it is ok for parisc, but is that also
-true for mips and sparc?
+> Unconverted architectures so far are m68k (because it doesn't use an explicit
+> init_task.c), ia64 (because it faffs about with init_thread_union), and
+> sparc{,64} (which appear to rely on some magic.)
 
-	Arnd <><
+Apparently, you also forget arch/um. It is similar to the x86 version.
+
+--- a/arch/um/kernel/init_task.c
++++ b/arch/um/kernel/init_task.c
+@@ -10,34 +10,10 @@
+ #include "linux/mqueue.h"
+ #include "asm/uaccess.h"
+ 
+-static struct fs_struct init_fs = INIT_FS;
+-struct mm_struct init_mm = INIT_MM(init_mm);
+-static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
+-static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
+-EXPORT_SYMBOL(init_mm);
+-
+-/*
+- * Initial task structure.
+- *
+- * All other task structs will be allocated on slabs in fork.c
+- */
+-
+-struct task_struct init_task = INIT_TASK(init_task);
+-
+-EXPORT_SYMBOL(init_task);
+-
+ /*
+- * Initial thread structure.
+- *
+- * We need to make sure that this is aligned due to the
+- * way process stacks are handled. This is done by having a special
+- * "init_task" linker map entry..
++ * This definition is left over from the move to kernel/init_task.c
+  */
+ 
+-union thread_union init_thread_union
+-	__attribute__((__section__(".data.init_task"))) =
+-		{ INIT_THREAD_INFO(init_task) };
+-
+ union thread_union cpu0_irqstack
+ 	__attribute__((__section__(".data.init_irqstack"))) =
+ 		{ INIT_THREAD_INFO(init_task) };
