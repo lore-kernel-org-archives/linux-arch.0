@@ -1,72 +1,47 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH] cris: convert to generic init_task
-Date: Thu, 11 Dec 2008 14:26:24 +0100
-Message-ID: <200812111426.24751.arnd@arndb.de>
-References: <cover.1228966585.git.kyle@mcmartin.ca> <cover.1228966585.git.kyle@mcmartin.ca>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [RFC PATCH 00/19] unify init_task
+Date: Thu, 11 Dec 2008 15:02:54 +0100 (CET)
+Message-ID: <Pine.LNX.4.64.0812111501360.13379@anakin>
+References: <cover.1228966585.git.kyle@mcmartin.ca> <Pine.LNX.4.64.0812110956410.7310@anakin>
+ <200812111421.46688.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:51758 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755300AbYLKNbf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2008 08:31:35 -0500
-In-Reply-To: <cover.1228966585.git.kyle@mcmartin.ca>
-Content-Disposition: inline
+Received: from edna.telenet-ops.be ([195.130.132.58]:52150 "EHLO
+	edna.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755834AbYLKOC4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2008 09:02:56 -0500
+In-Reply-To: <200812111421.46688.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kyle McMartin <kyle@mcmartin.ca>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, dev-etrax@axis.com
-Cc: linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-arch@vger.kernel.org
 
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Jesper Nilsson <jesper.nilsson@axis.com>
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+On Thu, 11 Dec 2008, Arnd Bergmann wrote:
+> On Thursday 11 December 2008, Geert Uytterhoeven wrote:
+> > > Unconverted architectures so far are m68k (because it doesn't use an explicit
+> > > init_task.c), ia64 (because it faffs about with init_thread_union), and
+> > > sparc{,64} (which appear to rely on some magic.)
+> > 
+> > m68k just has the same code as anyone else embedded in
+> > arch/m68k/kernel/process.c.
+> 
+> There is an extra aligned(THREAD_SIZE))) attribute in the m68k thread_info
+> definition, just like sparc and mips. Are you sure that removing it is
+> safe on m68k?
 
----
+Thanks, I missed that one. I should have launched `diff' instead of my own
+eyes...
 
-This assumes that the kernel/init_task.c file is already present.
+Wondering, would it harm a lot having the aligned(THREAD_SIZE) everywhere?
 
---- a/arch/cris/kernel/process.c
-+++ b/arch/cris/kernel/process.c
-@@ -31,40 +31,6 @@
- //#define DEBUG
- 
- /*
-- * Initial task structure. Make this a per-architecture thing,
-- * because different architectures tend to have different
-- * alignment requirements and potentially different initial
-- * setup.
-- */
--
--static struct fs_struct init_fs = INIT_FS;
--static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
--static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
--struct mm_struct init_mm = INIT_MM(init_mm);
--
--EXPORT_SYMBOL(init_mm);
--
--/*
-- * Initial thread structure.
-- *
-- * We need to make sure that this is 8192-byte aligned due to the
-- * way process stacks are handled. This is done by having a special
-- * "init_task" linker map entry..
-- */
--union thread_union init_thread_union 
--	__attribute__((__section__(".data.init_task"))) =
--		{ INIT_THREAD_INFO(init_task) };
--
--/*
-- * Initial task structure.
-- *
-- * All other task structs will be allocated on slabs in fork.c
-- */
--struct task_struct init_task = INIT_TASK(init_task);
--
--EXPORT_SYMBOL(init_task);
--
--/*
-  * The hlt_counter, disable_hlt and enable_hlt is just here as a hook if
-  * there would ever be a halt sequence (for power save when idle) with
-  * some largish delay when halting or resuming *and* a driver that can't
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
