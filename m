@@ -1,7 +1,7 @@
 From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: [PATCH 16/19] powerpc: convert to generic init_task.c
-Date: Thu, 11 Dec 2008 03:52:54 +0000
-Message-ID: <f44a6af7a78f7e8a00e3752ffff91ca4efc8ab39.1228966585.git.kyle@mcmartin.ca>
+Subject: [PATCH 17/19] s390: convert to generic init_task.c
+Date: Thu, 11 Dec 2008 03:52:55 +0000
+Message-ID: <3079779dc9d85bd0fa806e05fe4c0199ca22c624.1228966585.git.kyle@mcmartin.ca>
 References: <cover.1228966585.git.kyle@mcmartin.ca>
  <cover.1228966585.git.kyle@mcmartin.ca>
  <5b8db15f02f2016c2c89df205920f082360f0b7f.1228966585.git.kyle@mcmartin.ca>
@@ -19,67 +19,77 @@ References: <cover.1228966585.git.kyle@mcmartin.ca>
  <e7880c938229e333f2c0dbe34eee62257c159a5e.1228966585.git.kyle@mcmartin.ca>
  <c69d1bb5f1e3ae73b0cf1fa9cede84033f996ca3.1228966585.git.kyle@mcmartin.ca>
  <8309dc46f45b9b653f23db3ea3865167f4b1d852.1228966585.git.kyle@mcmartin.ca>
+ <f44a6af7a78f7e8a00e3752ffff91ca4efc8ab39.1228966585.git.kyle@mcmartin.ca>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:57802 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:57781 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751027AbYLKDyK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 Dec 2008 22:54:10 -0500
-In-Reply-To: <8309dc46f45b9b653f23db3ea3865167f4b1d852.1228966585.git.kyle@mcmartin.ca>
+	id S1754569AbYLKDxy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 Dec 2008 22:53:54 -0500
+In-Reply-To: <f44a6af7a78f7e8a00e3752ffff91ca4efc8ab39.1228966585.git.kyle@mcmartin.ca>
 In-Reply-To: <cover.1228966585.git.kyle@mcmartin.ca>
 References: <cover.1228966585.git.kyle@mcmartin.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: Kyle McMartin <kyle@mcmartin.ca>, paulus@samba.org, Kyle McMartin <kyle@redhat.com>
+Cc: Kyle McMartin <kyle@mcmartin.ca>, schwidefsky@de.ibm.com, Kyle McMartin <kyle@redhat.com>
 
-Cc: paulus@samba.org
+Cc: schwidefsky@de.ibm.com
 Signed-off-by: Kyle McMartin <kyle@redhat.com>
 ---
- arch/powerpc/Kconfig            |    1 -
- arch/powerpc/kernel/Makefile    |    2 +-
- arch/powerpc/kernel/init_task.c |   35 -----------------------------------
- 3 files changed, 1 insertions(+), 37 deletions(-)
- delete mode 100644 arch/powerpc/kernel/init_task.c
+ arch/s390/Kconfig            |    1 -
+ arch/s390/kernel/Makefile    |    2 +-
+ arch/s390/kernel/init_task.c |   44 ------------------------------------------
+ 3 files changed, 1 insertions(+), 46 deletions(-)
+ delete mode 100644 arch/s390/kernel/init_task.c
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 9f1db45..525c13a 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -121,7 +121,6 @@ config PPC
- 	select HAVE_DMA_ATTRS if PPC64
- 	select USE_GENERIC_SMP_HELPERS if SMP
- 	select HAVE_OPROFILE
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index 4381302..8116a33 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -75,7 +75,6 @@ config S390
+ 	select HAVE_KRETPROBES
+ 	select HAVE_KVM if 64BIT
+ 	select HAVE_ARCH_TRACEHOOK
 -	select HAVE_ARCH_INIT_TASK
  
- config EARLY_PRINTK
- 	bool
-diff --git a/arch/powerpc/kernel/Makefile b/arch/powerpc/kernel/Makefile
-index 92673b4..b329ecb 100644
---- a/arch/powerpc/kernel/Makefile
-+++ b/arch/powerpc/kernel/Makefile
-@@ -27,7 +27,7 @@ endif
+ source "init/Kconfig"
  
- obj-y				:= cputable.o ptrace.o syscalls.o \
- 				   irq.o align.o signal_32.o pmc.o vdso.o \
--				   init_task.o process.o systbl.o idle.o \
-+				   process.o systbl.o idle.o \
- 				   signal.o sysfs.o
- obj-y				+= vdso32/
- obj-$(CONFIG_PPC64)		+= setup_64.o sys_ppc32.o \
-diff --git a/arch/powerpc/kernel/init_task.c b/arch/powerpc/kernel/init_task.c
+diff --git a/arch/s390/kernel/Makefile b/arch/s390/kernel/Makefile
+index 50f657e..35331a2 100644
+--- a/arch/s390/kernel/Makefile
++++ b/arch/s390/kernel/Makefile
+@@ -19,7 +19,7 @@ obj-y	:=  bitmap.o traps.o time.o process.o base.o early.o \
+ obj-y	+= $(if $(CONFIG_64BIT),entry64.o,entry.o)
+ obj-y	+= $(if $(CONFIG_64BIT),reipl64.o,reipl.o)
+ 
+-extra-y				+= head.o init_task.o vmlinux.lds
++extra-y				+= head.o vmlinux.lds
+ 
+ obj-$(CONFIG_MODULES)		+= s390_ksyms.o module.o
+ obj-$(CONFIG_SMP)		+= smp.o topology.o
+diff --git a/arch/s390/kernel/init_task.c b/arch/s390/kernel/init_task.c
 deleted file mode 100644
-index 4c85b8d..0000000
---- a/arch/powerpc/kernel/init_task.c
+index e807168..0000000
+--- a/arch/s390/kernel/init_task.c
 +++ /dev/null
-@@ -1,35 +0,0 @@
+@@ -1,44 +0,0 @@
+-/*
+- *  arch/s390/kernel/init_task.c
+- *
+- *  S390 version
+- *
+- *  Derived from "arch/i386/kernel/init_task.c"
+- */
+-
 -#include <linux/mm.h>
+-#include <linux/fs.h>
 -#include <linux/module.h>
 -#include <linux/sched.h>
--#include <linux/init.h>
 -#include <linux/init_task.h>
--#include <linux/fs.h>
 -#include <linux/mqueue.h>
+-
 -#include <asm/uaccess.h>
+-#include <asm/pgtable.h>
 -
 -static struct fs_struct init_fs = INIT_FS;
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
@@ -91,7 +101,7 @@ index 4c85b8d..0000000
 -/*
 - * Initial thread structure.
 - *
-- * We need to make sure that this is 16384-byte aligned due to the
+- * We need to make sure that this is THREAD_SIZE aligned due to the
 - * way process stacks are handled. This is done by having a special
 - * "init_task" linker map entry..
 - */
