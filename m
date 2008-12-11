@@ -1,35 +1,52 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH 00/19] unify init_task
-Date: Thu, 11 Dec 2008 14:21:46 +0100
-Message-ID: <200812111421.46688.arnd@arndb.de>
-References: <cover.1228966585.git.kyle@mcmartin.ca> <Pine.LNX.4.64.0812110956410.7310@anakin>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH 13/19] mips: convert to generic init_task.c
+Date: Thu, 11 Dec 2008 13:21:46 +0000
+Message-ID: <20081211132146.GA17667@linux-mips.org>
+References: <cover.1228966585.git.kyle@mcmartin.ca> <c89dc10c8a51d3f0f014dcdd86b70ef253b22710.1228966585.git.kyle@mcmartin.ca> <e7880c938229e333f2c0dbe34eee62257c159a5e.1228966585.git.kyle@mcmartin.ca> <200812111404.25597.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:56891 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755455AbYLKNVx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2008 08:21:53 -0500
-In-Reply-To: <Pine.LNX.4.64.0812110956410.7310@anakin>
+Received: from h4.dl5rb.org.uk ([81.2.74.4]:45416 "EHLO
+	ditditdahdahdah-dahdahdahditdit.dl5rb.org.uk" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1755480AbYLKNWW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 11 Dec 2008 08:22:22 -0500
 Content-Disposition: inline
+In-Reply-To: <200812111404.25597.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-arch@vger.kernel.org, Kyle McMartin <kyle@redhat.com>
 
-On Thursday 11 December 2008, Geert Uytterhoeven wrote:
+On Thu, Dec 11, 2008 at 02:04:25PM +0100, Arnd Bergmann wrote:
 
-> > Unconverted architectures so far are m68k (because it doesn't use an explicit
-> > init_task.c), ia64 (because it faffs about with init_thread_union), and
-> > sparc{,64} (which appear to rely on some magic.)
-> 
-> m68k just has the same code as anyone else embedded in
-> arch/m68k/kernel/process.c.
+> On Thursday 11 December 2008, Kyle McMartin wrote:
+> > - */
+> > -union thread_union init_thread_union
+> > -=A0=A0=A0=A0=A0=A0=A0__attribute__((__section__(".data.init_task")=
+,
+> > -=A0=A0=A0=A0=A0=A0=A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 __aligned__(THRE=
+AD_SIZE))) =3D
+> > -=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0{ INIT_THREAD_INFO(in=
+it_task) };
+> > -
+>=20
+> The __aligned__(THREAD_SIZE) is only present in sparc, mips and
+> parisc (though the latter uses 128 byte align). I guess you
+> verified that dropping it is ok for parisc, but is that also
+> true for mips and sparc?
 
-There is an extra aligned(THREAD_SIZE))) attribute in the m68k thread_info
-definition, just like sparc and mips. Are you sure that removing it is
-safe on m68k?
+Duhh...  Good point.  The alignment is also enforced or at least should
+be enforced in vmlinux.lds.S.  Which in case of MIPS
 
-	Arnd <><
+[...]
+                . =3D ALIGN(_PAGE_SIZE);
+                *(.data.init_task)
+[...]
+
+only enforces _PAGE_SIZE alignment and _PAGE_SIZE can be less than
+THREAD_SIZE so removing the __aligned__ would have broken things.  Of
+course that's a bug of the linker script not Kyle's patches.
+
+  Ralf
