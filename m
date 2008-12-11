@@ -1,52 +1,56 @@
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH 13/19] mips: convert to generic init_task.c
-Date: Thu, 11 Dec 2008 13:21:46 +0000
-Message-ID: <20081211132146.GA17667@linux-mips.org>
-References: <cover.1228966585.git.kyle@mcmartin.ca> <c89dc10c8a51d3f0f014dcdd86b70ef253b22710.1228966585.git.kyle@mcmartin.ca> <e7880c938229e333f2c0dbe34eee62257c159a5e.1228966585.git.kyle@mcmartin.ca> <200812111404.25597.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC PATCH 00/19] unify init_task
+Date: Thu, 11 Dec 2008 14:23:27 +0100
+Message-ID: <200812111423.27523.arnd@arndb.de>
+References: <cover.1228966585.git.kyle@mcmartin.ca> <cover.1228966585.git.kyle@mcmartin.ca>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from h4.dl5rb.org.uk ([81.2.74.4]:45416 "EHLO
-	ditditdahdahdah-dahdahdahditdit.dl5rb.org.uk" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1755480AbYLKNWW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 11 Dec 2008 08:22:22 -0500
+Received: from moutng.kundenserver.de ([212.227.126.186]:57936 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755487AbYLKNX2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2008 08:23:28 -0500
+In-Reply-To: <cover.1228966585.git.kyle@mcmartin.ca>
 Content-Disposition: inline
-In-Reply-To: <200812111404.25597.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-arch@vger.kernel.org, Kyle McMartin <kyle@redhat.com>
+To: Kyle McMartin <kyle@mcmartin.ca>
+Cc: linux-arch@vger.kernel.org
 
-On Thu, Dec 11, 2008 at 02:04:25PM +0100, Arnd Bergmann wrote:
+On Thursday 11 December 2008, Kyle McMartin wrote:
+> Create a common kernel/init_task.c, and convert low hanging fruit to
+> use it. Architecture maintainers will need to ensure that I didn't
+> break anything before applying the init_task removal patch to their
+> arch.
 
-> On Thursday 11 December 2008, Kyle McMartin wrote:
-> > - */
-> > -union thread_union init_thread_union
-> > -=A0=A0=A0=A0=A0=A0=A0__attribute__((__section__(".data.init_task")=
-,
-> > -=A0=A0=A0=A0=A0=A0=A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 __aligned__(THRE=
-AD_SIZE))) =3D
-> > -=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0{ INIT_THREAD_INFO(in=
-it_task) };
-> > -
->=20
-> The __aligned__(THREAD_SIZE) is only present in sparc, mips and
-> parisc (though the latter uses 128 byte align). I guess you
-> verified that dropping it is ok for parisc, but is that also
-> true for mips and sparc?
+Incidentally, I was working on the same stuff already, just didn't
+get around to posting it before the discussion arose here.
+My patches were largely identical, so I'm just commenting on
+what I found beyond what you did.
 
-Duhh...  Good point.  The alignment is also enforced or at least should
-be enforced in vmlinux.lds.S.  Which in case of MIPS
+The major difference to my patch is that I added a CONFIG_GENERIC_INIT_TASK
+to each architecture I converted rather than remove the HAVE_ARCH_INIT_TASK.
 
-[...]
-                . =3D ALIGN(_PAGE_SIZE);
-                *(.data.init_task)
-[...]
+> A few architectures appear to possibly rely on link-ordering (with
+> an extra-y makefile rule) and may need additional linker script rules.
 
-only enforces _PAGE_SIZE alignment and _PAGE_SIZE can be less than
-THREAD_SIZE so removing the __aligned__ would have broken things.  Of
-course that's a bug of the linker script not Kyle's patches.
+My approach was add "head-y += kernel/init_task" to each architecture
+Makefile in order to keep the link order the same. If it work without
+that, even better.
 
-  Ralf
+> Unconverted architectures so far are m68k (because it doesn't use an explicit
+> init_task.c), ia64 (because it faffs about with init_thread_union), and
+> sparc{,64} (which appear to rely on some magic.)
+
+And you forgot about um and cris. I'll follow up with trivial patches.
+
+> The other open question is what to do about init_mm, which was supposed to be
+> removed in 2.6.26...
+
+Only the EXPORT_SYMBOL was to be removed, not the init_mm itself, because
+it is still referenced by init_task. I'd vote for not putting the export
+into kernel/init_task.c. There are no modular users in the kernel.
+
+	Arnd <><
