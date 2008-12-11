@@ -1,85 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from extu-mxob-2.symantec.com ([216.10.194.135]:42036 "EHLO
-	extu-mxob-2.symantec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755264AbYLJVo4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Dec 2008 16:44:56 -0500
-Received: from [172.20.17.148]([172.20.17.148]) (3469 bytes) by megami.veritas.com
-	via sendmail with P:esmtp/R:smart_host/T:smtp
-	(sender: <hugh@veritas.com>)
-	id <m1LAVyM-0002JTC@megami.veritas.com>
-	for <linux-arch@vger.kernel.org>; Wed, 10 Dec 2008 12:47:54 -0800 (PST)
-	(Smail-3.2.0.101 1997-Dec-17 #15 built 2001-Aug-30)
-Date: Wed, 10 Dec 2008 20:48:52 +0000 (GMT)
-From: Hugh Dickins <hugh@veritas.com>
-Subject: [PATCH] fix mapping_writably_mapped()
-In-Reply-To: <Pine.LNX.4.64.0812101312340.16066@blonde.anvils>
-Message-ID: <Pine.LNX.4.64.0812102043060.25282@blonde.anvils>
-References: <1228855666.6379.84.camel@lts-notebook>
- <Pine.LNX.4.64.0812101312340.16066@blonde.anvils>
+Received: from g4t0014.houston.hp.com ([15.201.24.17]:46936 "EHLO
+	g4t0014.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755779AbYLKQs1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2008 11:48:27 -0500
+From: Bjorn Helgaas <bjorn.helgaas@hp.com>
+Subject: Re: [PATCH 05/12] PCI: add pci_swizzle_interrupt_pin()
+Date: Thu, 11 Dec 2008 09:48:19 -0700
+References: <20081209231202.18153.60227.stgit@bob.kio> <20081209231037.18153.86962.stgit@bob.kio> <23213.1229007624@redhat.com>
+In-Reply-To: <23213.1229007624@redhat.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-ID: <200812110948.20563.bjorn.helgaas@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Lee Schermerhorn <Lee.Schermerhorn@hp.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stable@kernel.org
-Message-ID: <20081210204852.0NID3kcA2nD5xU-ZmrSqkegUGvD4aYFolxCE6UZT4O4@z>
+To: David Howells <dhowells@redhat.com>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Russell King <rmk@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, hpa@zytor.com
+Message-ID: <20081211164819.UpsXUNO29EIZOK7hShLstImOqzo2GEC-CbsfWuGCxzE@z>
 
-Lee Schermerhorn noticed yesterday that I broke the mapping_writably_mapped
-test in 2.6.7!  Bad bad bug, good good find.
+On Thursday 11 December 2008 08:00:24 am David Howells wrote:
+> Bjorn Helgaas <bjorn.helgaas@hp.com> wrote:
+> 
+> >  
+> > +u8 pci_swizzle_interrupt_pin(struct pci_dev *dev, u8 pin)
+> > +{
+> > +	/* This implements Table 9-1 of the PCI-to-PCI bridge spec */
+> > +	return (((pin - 1) + PCI_SLOT(dev->devfn)) % 4) + 1;
+> > +}
+> > +
+> 
+> Can you please add a banner comment to this function that gives at least a
+> quick description of what this function is meant to do?  Feel free to use
+> kerneldoc.
 
-The i_mmap_writable count must be incremented for VM_SHARED (just as
-i_writecount is for VM_DENYWRITE, but while holding the i_mmap_lock)
-when dup_mmap() copies the vma for fork: it has its own more optimal
-version of __vma_link_file(), and I missed this out.  So the count
-was later going down to 0 (dangerous) when one end unmapped, then
-wrapping negative (inefficient) when the other end unmapped.
+I'm not really a fan of comments that are bigger than the code
+and add little or no information, but if you like the following
+better, use it instead :-)
 
-The only impact on x86 would have been that setting a mandatory lock on
-a file which has at some time been opened O_RDWR and mapped MAP_SHARED
-(but not necessarily PROT_WRITE) across a fork, might fail with -EAGAIN
-when it should succeed, or succeed when it should fail.
 
-But those architectures which rely on flush_dcache_page() to flush
-userspace modifications back into the page before the kernel reads it,
-may in some cases have skipped the flush after such a fork - though any
-repetitive test will soon wrap the count negative, in which case it will
-flush_dcache_page() unnecessarily.
+PCI: add pci_swizzle_interrupt_pin()
 
-Fix would be a two-liner, but mapping variable added, and comment moved.
+From: Bjorn Helgaas <bjorn.helgaas@hp.com>
 
-Reported-by: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
-Signed-off-by: Hugh Dickins <hugh@veritas.com>
+This patch adds pci_swizzle_interrupt_pin(), which implements the
+INTx swizzling algorithm specified in Table 9-1 of the "PCI-to-PCI
+Bridge Architecture Specification," revision 1.2.
+
+There are many architecture-specific implementations of this
+swizzle that can be replaced by this common one.
+
+Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 ---
+ drivers/pci/pci.c   |   17 ++++++++++++++++-
+ include/linux/pci.h |    1 +
+ 2 files changed, 17 insertions(+), 1 deletions(-)
 
- kernel/fork.c |   15 +++++++++------
- 1 file changed, 9 insertions(+), 6 deletions(-)
-
---- 2.6.28-rc7/kernel/fork.c	2008-11-15 23:09:30.000000000 +0000
-+++ linux/kernel/fork.c	2008-12-10 12:49:13.000000000 +0000
-@@ -315,17 +315,20 @@ static int dup_mmap(struct mm_struct *mm
- 		file = tmp->vm_file;
- 		if (file) {
- 			struct inode *inode = file->f_path.dentry->d_inode;
-+			struct address_space *mapping = file->f_mapping;
-+
- 			get_file(file);
- 			if (tmp->vm_flags & VM_DENYWRITE)
- 				atomic_dec(&inode->i_writecount);
--
--			/* insert tmp into the share list, just after mpnt */
--			spin_lock(&file->f_mapping->i_mmap_lock);
-+			spin_lock(&mapping->i_mmap_lock);
-+			if (tmp->vm_flags & VM_SHARED)
-+				mapping->i_mmap_writable++;
- 			tmp->vm_truncate_count = mpnt->vm_truncate_count;
--			flush_dcache_mmap_lock(file->f_mapping);
-+			flush_dcache_mmap_lock(mapping);
-+			/* insert tmp into the share list, just after mpnt */
- 			vma_prio_tree_add(tmp, mpnt);
--			flush_dcache_mmap_unlock(file->f_mapping);
--			spin_unlock(&file->f_mapping->i_mmap_lock);
-+			flush_dcache_mmap_unlock(mapping);
-+			spin_unlock(&mapping->i_mmap_lock);
- 		}
+diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+index 46f6821..c14a6b6 100644
+--- a/drivers/pci/pci.c
++++ b/drivers/pci/pci.c
+@@ -1337,6 +1337,21 @@ void pci_enable_ari(struct pci_dev *dev)
+ 	bridge->ari_enabled = 1;
+ }
  
- 		/*
++/**
++ * pci_swizzle_interrupt_pin - swizzle INTx for device behind bridge
++ * @dev: the PCI device
++ * @pin: the INTx pin (1=INTA, 2=INTB, 3=INTD, 4=INTD)
++ *
++ * The PCI-to-PCI bridge specification requires INTx swizzling for
++ * devices behind bridges on add-in cards.  This performs the swizzle
++ * for one level of bridge.
++ */
++u8 pci_swizzle_interrupt_pin(struct pci_dev *dev, u8 pin)
++{
++	/* This implements Table 9-1 of the PCI-to-PCI bridge spec */
++	return (((pin - 1) + PCI_SLOT(dev->devfn)) % 4) + 1;
++}
++
+ int
+ pci_get_interrupt_pin(struct pci_dev *dev, struct pci_dev **bridge)
+ {
+@@ -1347,7 +1362,7 @@ pci_get_interrupt_pin(struct pci_dev *dev, struct pci_dev **bridge)
+ 		return -1;
+ 
+ 	while (dev->bus->self) {
+-		pin = (((pin - 1) + PCI_SLOT(dev->devfn)) % 4) + 1;
++		pin = pci_swizzle_interrupt_pin(dev, pin);
+ 		dev = dev->bus->self;
+ 	}
+ 	*bridge = dev;
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index feb4657..4be596f 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -527,6 +527,7 @@ int __must_check pci_bus_add_device(struct pci_dev *dev);
+ void pci_read_bridge_bases(struct pci_bus *child);
+ struct resource *pci_find_parent_resource(const struct pci_dev *dev,
+ 					  struct resource *res);
++u8 pci_swizzle_interrupt_pin(struct pci_dev *dev, u8 pin);
+ int pci_get_interrupt_pin(struct pci_dev *dev, struct pci_dev **bridge);
+ extern struct pci_dev *pci_dev_get(struct pci_dev *dev);
+ extern void pci_dev_put(struct pci_dev *dev);
