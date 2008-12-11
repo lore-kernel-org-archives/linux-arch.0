@@ -1,7 +1,7 @@
 From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: [PATCH 19/19] xtensa: convert to generic init_task.c
-Date: Thu, 11 Dec 2008 03:52:57 +0000
-Message-ID: <e7f86117303955d38161d4402cf2ff7183338d59.1228966585.git.kyle@mcmartin.ca>
+Subject: [PATCH 18/19] sh: convert to generic init_task.c
+Date: Thu, 11 Dec 2008 03:52:56 +0000
+Message-ID: <01fc6730185fef9895ecf5d6a50f282829e9b7da.1228966585.git.kyle@mcmartin.ca>
 References: <cover.1228966585.git.kyle@mcmartin.ca>
  <cover.1228966585.git.kyle@mcmartin.ca>
  <5b8db15f02f2016c2c89df205920f082360f0b7f.1228966585.git.kyle@mcmartin.ca>
@@ -21,94 +21,72 @@ References: <cover.1228966585.git.kyle@mcmartin.ca>
  <8309dc46f45b9b653f23db3ea3865167f4b1d852.1228966585.git.kyle@mcmartin.ca>
  <f44a6af7a78f7e8a00e3752ffff91ca4efc8ab39.1228966585.git.kyle@mcmartin.ca>
  <3079779dc9d85bd0fa806e05fe4c0199ca22c624.1228966585.git.kyle@mcmartin.ca>
- <01fc6730185fef9895ecf5d6a50f282829e9b7da.1228966585.git.kyle@mcmartin.ca>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:57782 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:57785 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754642AbYLKDxz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 Dec 2008 22:53:55 -0500
-In-Reply-To: <01fc6730185fef9895ecf5d6a50f282829e9b7da.1228966585.git.kyle@mcmartin.ca>
+	id S1754640AbYLKDx5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 Dec 2008 22:53:57 -0500
+In-Reply-To: <3079779dc9d85bd0fa806e05fe4c0199ca22c624.1228966585.git.kyle@mcmartin.ca>
 In-Reply-To: <cover.1228966585.git.kyle@mcmartin.ca>
 References: <cover.1228966585.git.kyle@mcmartin.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: Kyle McMartin <kyle@mcmartin.ca>, chris@zankel.net, Kyle McMartin <kyle@redhat.com>
+Cc: Kyle McMartin <kyle@mcmartin.ca>, lethal@linux-sh.org, Kyle McMartin <kyle@redhat.com>
 
-Cc: chris@zankel.net
+struct pt_regs fake_swapper_regs needs to be moved to a more appropriate
+location before this file can be nuked.
+
+Cc: lethal@linux-sh.org
 Signed-off-by: Kyle McMartin <kyle@redhat.com>
 ---
- arch/xtensa/Kconfig            |    1 -
- arch/xtensa/kernel/Makefile    |    2 +-
- arch/xtensa/kernel/init_task.c |   37 -------------------------------------
- 3 files changed, 1 insertions(+), 39 deletions(-)
- delete mode 100644 arch/xtensa/kernel/init_task.c
+ arch/sh/Kconfig            |    1 -
+ arch/sh/kernel/init_task.c |   25 -------------------------
+ 2 files changed, 0 insertions(+), 26 deletions(-)
 
-diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
-index da236cf..6c873dc 100644
---- a/arch/xtensa/Kconfig
-+++ b/arch/xtensa/Kconfig
-@@ -15,7 +15,6 @@ config XTENSA
- 	bool
- 	default y
- 	select HAVE_IDE
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index 0ac7852..80119b3 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -13,7 +13,6 @@ config SUPERH
+ 	select HAVE_OPROFILE
+ 	select HAVE_GENERIC_DMA_COHERENT
+ 	select HAVE_IOREMAP_PROT if MMU
 -	select HAVE_ARCH_INIT_TASK
  	help
- 	  Xtensa processors are 32-bit RISC machines designed by Tensilica
- 	  primarily for embedded systems.  These processors are both
-diff --git a/arch/xtensa/kernel/Makefile b/arch/xtensa/kernel/Makefile
-index 7419dbc..3ec85cb 100644
---- a/arch/xtensa/kernel/Makefile
-+++ b/arch/xtensa/kernel/Makefile
-@@ -7,7 +7,7 @@ extra-y := head.o vmlinux.lds
+ 	  The SuperH is a RISC processor targeted for use in embedded systems
+ 	  and consumer electronics; it was also used in the Sega Dreamcast
+diff --git a/arch/sh/kernel/init_task.c b/arch/sh/kernel/init_task.c
+index b151a25..47596de 100644
+--- a/arch/sh/kernel/init_task.c
++++ b/arch/sh/kernel/init_task.c
+@@ -7,29 +7,4 @@
+ #include <asm/uaccess.h>
+ #include <asm/pgtable.h>
  
- obj-y := align.o entry.o irq.o coprocessor.o process.o ptrace.o \
- 	 setup.o signal.o syscall.o time.o traps.o vectors.o platform.o  \
--	 pci-dma.o init_task.o io.o
-+	 pci-dma.o io.o
- 
- ## windowspill.o
- 
-diff --git a/arch/xtensa/kernel/init_task.c b/arch/xtensa/kernel/init_task.c
-deleted file mode 100644
-index 3df469d..0000000
---- a/arch/xtensa/kernel/init_task.c
-+++ /dev/null
-@@ -1,37 +0,0 @@
--/*
-- * arch/xtensa/kernel/init_task.c
-- *
-- * Xtensa Processor version.
-- *
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License.  See the file "COPYING" in the main directory of this archive
-- * for more details.
-- *
-- * Copyright (C) 2007 Tensilica Inc.
-- *
-- * Chris Zankel <chris@zankel.net>
-- */
--
--#include <linux/mm.h>
--#include <linux/fs.h>
--#include <linux/init.h>
--#include <linux/init_task.h>
--#include <linux/module.h>
--#include <linux/mqueue.h>
--
--#include <asm/uaccess.h>
--
 -static struct fs_struct init_fs = INIT_FS;
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
 -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
+ struct pt_regs fake_swapper_regs;
 -struct mm_struct init_mm = INIT_MM(init_mm);
--
 -EXPORT_SYMBOL(init_mm);
 -
+-/*
+- * Initial thread structure.
+- *
+- * We need to make sure that this is 8192-byte aligned due to the
+- * way process stacks are handled. This is done by having a special
+- * "init_task" linker map entry..
+- */
 -union thread_union init_thread_union
 -	__attribute__((__section__(".data.init_task"))) =
--{ INIT_THREAD_INFO(init_task) };
+-		{ INIT_THREAD_INFO(init_task) };
 -
+-/*
+- * Initial task structure.
+- *
+- * All other task structs will be allocated on slabs in fork.c
+- */
 -struct task_struct init_task = INIT_TASK(init_task);
 -
 -EXPORT_SYMBOL(init_task);
