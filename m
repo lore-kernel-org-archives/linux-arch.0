@@ -1,33 +1,51 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 05/12] PCI: add pci_swizzle_interrupt_pin()
-Date: Thu, 11 Dec 2008 15:00:24 +0000
-Message-ID: <23213.1229007624@redhat.com>
-References: <20081209231202.18153.60227.stgit@bob.kio> <20081209231037.18153.86962.stgit@bob.kio>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC PATCH 00/19] unify init_task
+Date: Thu, 11 Dec 2008 17:10:54 +0100
+Message-ID: <200812111710.55215.arnd@arndb.de>
+References: <cover.1228966585.git.kyle@mcmartin.ca> <cover.1228966585.git.kyle@mcmartin.ca>
+Mime-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:46014 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755159AbYLKPCN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 11 Dec 2008 10:02:13 -0500
-In-Reply-To: <20081209231202.18153.60227.stgit@bob.kio>
+Received: from moutng.kundenserver.de ([212.227.126.171]:62930 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756233AbYLKQLA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2008 11:11:00 -0500
+In-Reply-To: <cover.1228966585.git.kyle@mcmartin.ca>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Cc: dhowells@redhat.com, Jesse Barnes <jbarnes@virtuousgeek.org>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Russell King <rmk@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, hpa@zytor.com
+To: Kyle McMartin <kyle@mcmartin.ca>
+Cc: linux-arch@vger.kernel.org
 
-Bjorn Helgaas <bjorn.helgaas@hp.com> wrote:
+On Thursday 11 December 2008, Kyle McMartin wrote:
+> Create a common kernel/init_task.c, and convert low hanging fruit to
+> use it. Architecture maintainers will need to ensure that I didn't
+> break anything before applying the init_task removal patch to their
+> arch.
+> 
+> A few architectures appear to possibly rely on link-ordering (with
+> an extra-y makefile rule) and may need additional linker script rules.
 
->  
-> +u8 pci_swizzle_interrupt_pin(struct pci_dev *dev, u8 pin)
-> +{
-> +	/* This implements Table 9-1 of the PCI-to-PCI bridge spec */
-> +	return (((pin - 1) + PCI_SLOT(dev->devfn)) % 4) + 1;
-> +}
-> +
+FWIW, here is the alignment of init_thread_info on all architectures:
 
-Can you please add a banner comment to this function that gives at least a
-quick description of what this function is meant to do?  Feel free to use
-kerneldoc.
+alpha: 2 * PAGE_SIZE
+arm, avr32, frv, mn10300, s390, sh, x86: THREAD_SIZE
+blackfin: THREAD_SIZE, but uses a different section
+cris, m68k-sun3: PAGE_SIZE
+h8300, m32r, m68knommu, ppc32, xtensa, m68k-std: 0x2000/8192
+ia64: PAGE_SIZE (but ia64 is different)
+mips: _PAGE_SIZE
+parisc, ppc64: 16384
+ppc32: 8192
+um: KERNEL_STACK_SIZE
+sparc: PAGE_SIZE with .text section
+sparc64: 16384 (implicit)
 
-Saying table X of document Y isn't immediately helpful.
+This is the same as THREAD_SIZE on all architectures, except for
+mips in certain configurations, which should be fixed.
 
-David
+Maybe we can get all of them to just use THREAD_SIZE in there?
+
+	Arnd <><
