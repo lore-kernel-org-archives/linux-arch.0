@@ -1,89 +1,61 @@
 From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: [PATCH 02/19] add generic kernel/init_task.c
-Date: Thu, 11 Dec 2008 03:52:40 +0000
-Message-ID: <58c9a7705b8b9bf574b9ec8b3aab04d5fd1b3dc3.1228966585.git.kyle@mcmartin.ca>
+Subject: [PATCH 04/19] alpha: rename .data.init_thread to .data.init_task
+Date: Thu, 11 Dec 2008 03:52:42 +0000
+Message-ID: <088318acd2a7993a8334254f2a5f6a57c22a442d.1228966585.git.kyle@mcmartin.ca>
 References: <cover.1228966585.git.kyle@mcmartin.ca>
  <cover.1228966585.git.kyle@mcmartin.ca>
  <5b8db15f02f2016c2c89df205920f082360f0b7f.1228966585.git.kyle@mcmartin.ca>
+ <58c9a7705b8b9bf574b9ec8b3aab04d5fd1b3dc3.1228966585.git.kyle@mcmartin.ca>
+ <d8bf2b2ba6404dccafe2d50698fd13899bcd8a95.1228966585.git.kyle@mcmartin.ca>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:57637 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:57670 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752993AbYLKDxS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 Dec 2008 22:53:18 -0500
-In-Reply-To: <5b8db15f02f2016c2c89df205920f082360f0b7f.1228966585.git.kyle@mcmartin.ca>
+	id S1753232AbYLKDx1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 Dec 2008 22:53:27 -0500
+In-Reply-To: <d8bf2b2ba6404dccafe2d50698fd13899bcd8a95.1228966585.git.kyle@mcmartin.ca>
 In-Reply-To: <cover.1228966585.git.kyle@mcmartin.ca>
 References: <cover.1228966585.git.kyle@mcmartin.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: Kyle McMartin <kyle@mcmartin.ca>, Kyle McMartin <kyle@redhat.com>
+Cc: Kyle McMartin <kyle@mcmartin.ca>, ink@jurassic.park.msu.ru, rth@twiddle.net, Kyle McMartin <kyle@redhat.com>
 
-Add a generic kernel/init_task.c, since it is basically identical across
-all the architectures Linux supports.
+Everyone else calls it .init_task, and it's one less special case
+for a generic kernel/init_task.c...
 
+Cc: ink@jurassic.park.msu.ru
+Cc: rth@twiddle.net
 Signed-off-by: Kyle McMartin <kyle@redhat.com>
 ---
- kernel/Makefile    |    4 ++++
- kernel/init_task.c |   36 ++++++++++++++++++++++++++++++++++++
- 2 files changed, 40 insertions(+), 0 deletions(-)
- create mode 100644 kernel/init_task.c
+ arch/alpha/kernel/init_task.c   |    2 +-
+ arch/alpha/kernel/vmlinux.lds.S |    4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/kernel/Makefile b/kernel/Makefile
-index 19fad00..b370dec 100644
---- a/kernel/Makefile
-+++ b/kernel/Makefile
-@@ -11,6 +11,10 @@ obj-y     = sched.o fork.o exec_domain.o panic.o printk.o \
- 	    hrtimer.o rwsem.o nsproxy.o srcu.o semaphore.o \
- 	    notifier.o ksysfs.o pm_qos_params.o sched_clock.o
+diff --git a/arch/alpha/kernel/init_task.c b/arch/alpha/kernel/init_task.c
+index 1f76218..901a0e2 100644
+--- a/arch/alpha/kernel/init_task.c
++++ b/arch/alpha/kernel/init_task.c
+@@ -18,5 +18,5 @@ EXPORT_SYMBOL(init_mm);
+ EXPORT_SYMBOL(init_task);
  
-+ifneq ($(CONFIG_HAVE_ARCH_INIT_TASK),y)
-+obj-y	+= init_task.o
-+endif
-+
- ifdef CONFIG_FUNCTION_TRACER
- # Do not trace debug files and internal ftrace files
- CFLAGS_REMOVE_lockdep.o = -pg
-diff --git a/kernel/init_task.c b/kernel/init_task.c
-new file mode 100644
-index 0000000..2ebfa81
---- /dev/null
-+++ b/kernel/init_task.c
-@@ -0,0 +1,36 @@
-+#include <linux/mm.h>
-+#include <linux/module.h>
-+#include <linux/sched.h>
-+#include <linux/init.h>
-+#include <linux/init_task.h>
-+#include <linux/fs.h>
-+#include <linux/mqueue.h>
-+
-+#include <asm/uaccess.h>
-+#include <asm/pgtable.h>
-+
-+static struct fs_struct init_fs = INIT_FS;
-+static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
-+static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
-+struct mm_struct init_mm = INIT_MM(init_mm);
-+EXPORT_UNUSED_SYMBOL(init_mm); /* will be removed in 2.6.26 */
-+
-+/*
-+ * Initial thread structure.
-+ *
-+ * We need to make sure that this is THREAD_SIZE aligned due to the
-+ * way process stacks are handled. This is done by having a special
-+ * "init_task" linker map entry..
-+ */
-+union thread_union init_thread_union
-+	__attribute__((__section__(".data.init_task"))) =
-+		{ INIT_THREAD_INFO(init_task) };
-+
-+/*
-+ * Initial task structure.
-+ *
-+ * All other task structs will be allocated on slabs in fork.c
-+ */
-+struct task_struct init_task = INIT_TASK(init_task);
-+EXPORT_SYMBOL(init_task);
-+
+ union thread_union init_thread_union
+-	__attribute__((section(".data.init_thread")))
++	__attribute__((section(".data.init_task")))
+ 	= { INIT_THREAD_INFO(init_task) };
+diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
+index ef37fc1..563c8d1 100644
+--- a/arch/alpha/kernel/vmlinux.lds.S
++++ b/arch/alpha/kernel/vmlinux.lds.S
+@@ -93,8 +93,8 @@ SECTIONS
+ 	/* Freed after init ends here */
+ 
+ 	/* Note 2 page alignment above.  */
+-	.data.init_thread : {
+-		*(.data.init_thread)
++	.data.init_task : {
++		*(.data.init_task)
+ 	}
+ 
+ 	. = ALIGN(PAGE_SIZE);
 -- 
 1.6.0.4
