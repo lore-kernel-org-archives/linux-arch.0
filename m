@@ -1,35 +1,34 @@
-From: Matthew Wilcox <matthew@wil.cx>
+From: Gerd Hoffmann <kraxel@redhat.com>
 Subject: Re: [PATCH v2] Add preadv and pwritev system calls.
-Date: Fri, 12 Dec 2008 08:51:13 -0700
-Message-ID: <20081212155113.GO26095@parisc-linux.org>
-References: <1229090440-32120-1-git-send-email-kraxel@redhat.com> <20081212152929.GM26095@parisc-linux.org> <494287D4.2070909@redhat.com>
+Date: Fri, 12 Dec 2008 17:02:05 +0100
+Message-ID: <49428AFD.5090009@redhat.com>
+References: <1229090440-32120-1-git-send-email-kraxel@redhat.com> <20081212152929.GM26095@parisc-linux.org> <494287D4.2070909@redhat.com> <20081212155113.GO26095@parisc-linux.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:50280 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757323AbYLLPvU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Dec 2008 10:51:20 -0500
-Content-Disposition: inline
-In-Reply-To: <494287D4.2070909@redhat.com>
+Received: from mx2.redhat.com ([66.187.237.31]:43506 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757280AbYLLQCV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 12 Dec 2008 11:02:21 -0500
+In-Reply-To: <20081212155113.GO26095@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gerd Hoffmann <kraxel@redhat.com>
+To: Matthew Wilcox <matthew@wil.cx>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ulrich Drepper <drepper@redhat.com>
 
-On Fri, Dec 12, 2008 at 04:48:36PM +0100, Gerd Hoffmann wrote:
-> Hmm.  It is the argument ordering used by NetBSD, thats why I used that
-> too.  It certainly should be the application-visible ordering.  We'll
-> have glibc between apps and kernel though, so I think we can reorder the
-> arguments at syscall level if that helps on these archs.  Cc'ing Ulrich
-> Drepper for comments on that.
+Matthew Wilcox wrote:
+> On the other hand, NetBSD have approximately 0% market share.
+> We shouldn't let them lock us into making a bad decision.  Is there
+> anyone other than NetBSD who has added these syscalls?
 
-On the other hand, NetBSD have approximately 0% market share.
-We shouldn't let them lock us into making a bad decision.  Is there
-anyone other than NetBSD who has added these syscalls?
+Free- and OpenBSD have it too.  For Solaris I've found a feature request
+only.  Dunno about MacOS/Darwin.  Other un*xes which are important these
+days?
 
--- 
-Matthew Wilcox				Intel Open Source Technology Centre
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+I'd *really* hate it to have the same system call with different
+argument ordering on different systems though.  Especially when swapping
+two integer values, so gcc wouldn't error out on wrong usage.
+
+cheers,
+  Gerd
