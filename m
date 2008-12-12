@@ -1,31 +1,38 @@
-From: Sam Ravnborg <sam@ravnborg.org>
+From: David Miller <davem@davemloft.net>
 Subject: Re: [PATCH] make INIT_FS use the __RW_LOCK_UNLOCKED initialization
-Date: Thu, 11 Dec 2008 22:22:28 +0100
-Message-ID: <20081211212228.GB27223@uranus.ravnborg.org>
-References: <alpine.DEB.1.10.0812101832200.21545@gandalf.stny.rr.com> <20081210234307.GI28946@ZenIV.linux.org.uk> <8bd0f97a0812101707p7df7745dk9840b05c0b26184b@mail.gmail.com> <alpine.DEB.1.10.0812102010100.29200@gandalf.stny.rr.com> <20081211023439.GJ28946@ZenIV.linux.org.uk>
+Date: Thu, 11 Dec 2008 20:28:07 -0800 (PST)
+Message-ID: <20081211.202807.55399657.davem@davemloft.net>
+References: <alpine.DEB.1.10.0812102010100.29200@gandalf.stny.rr.com>
+	<20081211023439.GJ28946@ZenIV.linux.org.uk>
+	<20081211212228.GB27223@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepb.post.tele.dk ([195.41.46.236]:52692 "EHLO
-	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756099AbYLKVVC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2008 16:21:02 -0500
-Content-Disposition: inline
-In-Reply-To: <20081211023439.GJ28946@ZenIV.linux.org.uk>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:34032
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1756221AbYLLE2I (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 11 Dec 2008 23:28:08 -0500
+In-Reply-To: <20081211212228.GB27223@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Mike Frysinger <vapier.adi@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>
+To: sam@ravnborg.org
+Cc: viro@ZenIV.linux.org.uk, rostedt@goodmis.org, vapier.adi@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mingo@elte.hu, tglx@linutronix.de
 
-> 
-> Guys, let's not take it to init/main.c, please.  That file is basically
-> a trashcan and I'd rather take that stuff to more or less relevant places
-> in kernel/* and fs/*.  FWIW, I've done that with init_files (fs/file.c)
-> some time ago.  For init_fs...  Hell knows.  Might make sense to take
-> that to separate file, actually (kernel/exit.c and kernel/fork.c bits
-> related to fs_struct).
-> 
-> BTW, why does sparc64 export put_fs_struct?
-I have sent a patch to davem now to get it removed.
+From: Sam Ravnborg <sam@ravnborg.org>
+Date: Thu, 11 Dec 2008 22:22:28 +0100
 
-	Sam
+> > 
+> > Guys, let's not take it to init/main.c, please.  That file is basically
+> > a trashcan and I'd rather take that stuff to more or less relevant places
+> > in kernel/* and fs/*.  FWIW, I've done that with init_files (fs/file.c)
+> > some time ago.  For init_fs...  Hell knows.  Might make sense to take
+> > that to separate file, actually (kernel/exit.c and kernel/fork.c bits
+> > related to fs_struct).
+> > 
+> > BTW, why does sparc64 export put_fs_struct?
+> I have sent a patch to davem now to get it removed.
+
+It was used by the sunos and solaris syscall compat layers, which were
+removed recently.
