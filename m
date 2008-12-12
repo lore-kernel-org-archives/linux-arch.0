@@ -1,38 +1,218 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH] make INIT_FS use the __RW_LOCK_UNLOCKED initialization
-Date: Thu, 11 Dec 2008 20:28:07 -0800 (PST)
-Message-ID: <20081211.202807.55399657.davem@davemloft.net>
-References: <alpine.DEB.1.10.0812102010100.29200@gandalf.stny.rr.com>
-	<20081211023439.GJ28946@ZenIV.linux.org.uk>
-	<20081211212228.GB27223@uranus.ravnborg.org>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+From: Gerd Hoffmann <kraxel@redhat.com>
+Subject: [PATCH v2] Add preadv and pwritev system calls.
+Date: Fri, 12 Dec 2008 15:00:40 +0100
+Message-ID: <1229090440-32120-1-git-send-email-kraxel@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:34032
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1756221AbYLLE2I (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 11 Dec 2008 23:28:08 -0500
-In-Reply-To: <20081211212228.GB27223@uranus.ravnborg.org>
+Received: from mx2.redhat.com ([66.187.237.31]:51580 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758173AbYLLOBj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 12 Dec 2008 09:01:39 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: sam@ravnborg.org
-Cc: viro@ZenIV.linux.org.uk, rostedt@goodmis.org, vapier.adi@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mingo@elte.hu, tglx@linutronix.de
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Gerd Hoffmann <kraxel@redhat.com>
 
-From: Sam Ravnborg <sam@ravnborg.org>
-Date: Thu, 11 Dec 2008 22:22:28 +0100
+This patch adds preadv and pwritev system calls.  These syscalls are a
+pretty straightforward combination of pread and readv (same for write).
+They are quite useful for doing vectored I/O in threaded applications.
+Using lseek+readv instead opens race windows you'll have to plug with
+locking.
 
-> > 
-> > Guys, let's not take it to init/main.c, please.  That file is basically
-> > a trashcan and I'd rather take that stuff to more or less relevant places
-> > in kernel/* and fs/*.  FWIW, I've done that with init_files (fs/file.c)
-> > some time ago.  For init_fs...  Hell knows.  Might make sense to take
-> > that to separate file, actually (kernel/exit.c and kernel/fork.c bits
-> > related to fs_struct).
-> > 
-> > BTW, why does sparc64 export put_fs_struct?
-> I have sent a patch to davem now to get it removed.
+Other systems have such system calls too, for example NetBSD, check
+here: http://www.daemon-systems.org/man/preadv.2.html
 
-It was used by the sunos and solaris syscall compat layers, which were
-removed recently.
+The patch sports the actual system call implementation and the windup in
+the x86 system call tables.  Other archs are TBD.
+
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+---
+ arch/x86/ia32/ia32entry.S          |    2 +
+ arch/x86/include/asm/unistd_32.h   |    2 +
+ arch/x86/include/asm/unistd_64.h   |    4 ++
+ arch/x86/kernel/syscall_table_32.S |    2 +
+ fs/compat.c                        |   61 ++++++++++++++++++++++++++++++++++++
+ fs/read_write.c                    |   48 ++++++++++++++++++++++++++++
+ 6 files changed, 119 insertions(+), 0 deletions(-)
+
+diff --git a/arch/x86/ia32/ia32entry.S b/arch/x86/ia32/ia32entry.S
+index 256b00b..9a8501b 100644
+--- a/arch/x86/ia32/ia32entry.S
++++ b/arch/x86/ia32/ia32entry.S
+@@ -826,4 +826,6 @@ ia32_sys_call_table:
+ 	.quad sys_dup3			/* 330 */
+ 	.quad sys_pipe2
+ 	.quad sys_inotify_init1
++	.quad compat_sys_preadv
++	.quad compat_sys_pwritev
+ ia32_syscall_end:
+diff --git a/arch/x86/include/asm/unistd_32.h b/arch/x86/include/asm/unistd_32.h
+index f2bba78..6e72d74 100644
+--- a/arch/x86/include/asm/unistd_32.h
++++ b/arch/x86/include/asm/unistd_32.h
+@@ -338,6 +338,8 @@
+ #define __NR_dup3		330
+ #define __NR_pipe2		331
+ #define __NR_inotify_init1	332
++#define __NR_preadv		333
++#define __NR_pwritev		334
+ 
+ #ifdef __KERNEL__
+ 
+diff --git a/arch/x86/include/asm/unistd_64.h b/arch/x86/include/asm/unistd_64.h
+index d2e415e..f818294 100644
+--- a/arch/x86/include/asm/unistd_64.h
++++ b/arch/x86/include/asm/unistd_64.h
+@@ -653,6 +653,10 @@ __SYSCALL(__NR_dup3, sys_dup3)
+ __SYSCALL(__NR_pipe2, sys_pipe2)
+ #define __NR_inotify_init1			294
+ __SYSCALL(__NR_inotify_init1, sys_inotify_init1)
++#define __NR_preadv				295
++__SYSCALL(__NR_preadv, sys_preadv)
++#define __NR_pwritev				296
++__SYSCALL(__NR_pwritev, sys_pwritev)
+ 
+ 
+ #ifndef __NO_STUBS
+diff --git a/arch/x86/kernel/syscall_table_32.S b/arch/x86/kernel/syscall_table_32.S
+index d44395f..a1a5506 100644
+--- a/arch/x86/kernel/syscall_table_32.S
++++ b/arch/x86/kernel/syscall_table_32.S
+@@ -332,3 +332,5 @@ ENTRY(sys_call_table)
+ 	.long sys_dup3			/* 330 */
+ 	.long sys_pipe2
+ 	.long sys_inotify_init1
++	.long sys_preadv
++	.long sys_pwritev
+diff --git a/fs/compat.c b/fs/compat.c
+index e5f49f5..3a25cf3 100644
+--- a/fs/compat.c
++++ b/fs/compat.c
+@@ -1214,6 +1214,67 @@ out:
+ 	return ret;
+ }
+ 
++asmlinkage ssize_t
++compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
++                  unsigned long vlen, loff_t pos)
++{
++	struct file *file;
++	ssize_t ret = -EBADF;
++
++	if (pos < 0)
++		return -EINVAL;
++
++	file = fget(fd);
++	if (!file)
++		return -EBADF;
++
++	if (!(file->f_mode & FMODE_READ))
++		goto out;
++
++	ret = -EINVAL;
++	if (!file->f_op || (!file->f_op->aio_read && !file->f_op->read))
++		goto out;
++
++	ret = compat_do_readv_writev(READ, file, vec, vlen, &pos);
++
++out:
++	if (ret > 0)
++		add_rchar(current, ret);
++	inc_syscr(current);
++	fput(file);
++	return ret;
++}
++
++asmlinkage ssize_t
++compat_sys_pwritev(unsigned long fd, const struct compat_iovec __user *vec,
++                   unsigned long vlen, loff_t pos)
++{
++	struct file *file;
++	ssize_t ret = -EBADF;
++
++	if (pos < 0)
++		return -EINVAL;
++
++	file = fget(fd);
++	if (!file)
++		return -EBADF;
++	if (!(file->f_mode & FMODE_WRITE))
++		goto out;
++
++	ret = -EINVAL;
++	if (!file->f_op || (!file->f_op->aio_write && !file->f_op->write))
++		goto out;
++
++	ret = compat_do_readv_writev(WRITE, file, vec, vlen, &pos);
++
++out:
++	if (ret > 0)
++		add_wchar(current, ret);
++	inc_syscw(current);
++	fput(file);
++	return ret;
++}
++
+ asmlinkage long
+ compat_sys_vmsplice(int fd, const struct compat_iovec __user *iov32,
+ 		    unsigned int nr_segs, unsigned int flags)
+diff --git a/fs/read_write.c b/fs/read_write.c
+index 969a6d9..89f273d 100644
+--- a/fs/read_write.c
++++ b/fs/read_write.c
+@@ -701,6 +701,54 @@ sys_writev(unsigned long fd, const struct iovec __user *vec, unsigned long vlen)
+ 	return ret;
+ }
+ 
++asmlinkage ssize_t sys_preadv(unsigned long fd, const struct iovec __user *vec,
++                              unsigned long vlen, loff_t pos)
++{
++	struct file *file;
++	ssize_t ret = -EBADF;
++	int fput_needed;
++
++	if (pos < 0)
++		return -EINVAL;
++
++	file = fget_light(fd, &fput_needed);
++	if (file) {
++		ret = -ESPIPE;
++		if (file->f_mode & FMODE_PREAD)
++			ret = vfs_readv(file, vec, vlen, &pos);
++		fput_light(file, fput_needed);
++	}
++
++	if (ret > 0)
++		add_rchar(current, ret);
++	inc_syscr(current);
++	return ret;
++}
++
++asmlinkage ssize_t sys_pwritev(unsigned long fd, const struct iovec __user *vec,
++                               unsigned long vlen, loff_t pos)
++{
++	struct file *file;
++	ssize_t ret = -EBADF;
++	int fput_needed;
++
++	if (pos < 0)
++		return -EINVAL;
++
++	file = fget_light(fd, &fput_needed);
++	if (file) {
++		ret = -ESPIPE;
++		if (file->f_mode & FMODE_PWRITE)
++			ret = vfs_writev(file, vec, vlen, &pos);
++		fput_light(file, fput_needed);
++	}
++
++	if (ret > 0)
++		add_wchar(current, ret);
++	inc_syscw(current);
++	return ret;
++}
++
+ static ssize_t do_sendfile(int out_fd, int in_fd, loff_t *ppos,
+ 			   size_t count, loff_t max)
+ {
+-- 
+1.5.6.5
