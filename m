@@ -1,55 +1,35 @@
-From: Gerd Hoffmann <kraxel@redhat.com>
+From: Matthew Wilcox <matthew@wil.cx>
 Subject: Re: [PATCH v2] Add preadv and pwritev system calls.
-Date: Fri, 12 Dec 2008 16:48:36 +0100
-Message-ID: <494287D4.2070909@redhat.com>
-References: <1229090440-32120-1-git-send-email-kraxel@redhat.com> <20081212152929.GM26095@parisc-linux.org>
+Date: Fri, 12 Dec 2008 08:51:13 -0700
+Message-ID: <20081212155113.GO26095@parisc-linux.org>
+References: <1229090440-32120-1-git-send-email-kraxel@redhat.com> <20081212152929.GM26095@parisc-linux.org> <494287D4.2070909@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:56025 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757165AbYLLPsx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 12 Dec 2008 10:48:53 -0500
-In-Reply-To: <20081212152929.GM26095@parisc-linux.org>
+Received: from palinux.external.hp.com ([192.25.206.14]:50280 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757323AbYLLPvU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Dec 2008 10:51:20 -0500
+Content-Disposition: inline
+In-Reply-To: <494287D4.2070909@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
+To: Gerd Hoffmann <kraxel@redhat.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ulrich Drepper <drepper@redhat.com>
 
-Matthew Wilcox wrote:
->> +asmlinkage ssize_t sys_preadv(unsigned long fd, const struct iovec __user *vec,
->> +                              unsigned long vlen, loff_t pos)
->> +asmlinkage ssize_t sys_pwritev(unsigned long fd, const struct iovec __user *vec,
->> +                               unsigned long vlen, loff_t pos)
-> 
-> Are these prototypes required?  MIPS and PARISC will need wrappers to
-> fix them if they are.  These two architectures have an ABI which
-> requires 64-bit arguments to be passed in aligned pairs of registers,
-> but glibc doesn't know that (and given the existence of syscall(3),
-> can't do much about it even if it knew), so some of the arguments end up
-> in the wrong registers.
->
-> Things will go much better if we can prototype these as:
->
-> asmlinkage ssize_t sys_preadv(unsigned int fd,
->                               const struct iovec __user *vec,
-> 				loff_t pos, unsigned long vlen);
-> asmlinkage ssize_t sys_pwritev(unsigned int fd,
->                                const struct iovec __user *vec,
-> 				 loff_t pos, unsigned long vlen);
+On Fri, Dec 12, 2008 at 04:48:36PM +0100, Gerd Hoffmann wrote:
+> Hmm.  It is the argument ordering used by NetBSD, thats why I used that
+> too.  It certainly should be the application-visible ordering.  We'll
+> have glibc between apps and kernel though, so I think we can reorder the
+> arguments at syscall level if that helps on these archs.  Cc'ing Ulrich
+> Drepper for comments on that.
 
-Hmm.  It is the argument ordering used by NetBSD, thats why I used that
-too.  It certainly should be the application-visible ordering.  We'll
-have glibc between apps and kernel though, so I think we can reorder the
-arguments at syscall level if that helps on these archs.  Cc'ing Ulrich
-Drepper for comments on that.
+On the other hand, NetBSD have approximately 0% market share.
+We shouldn't let them lock us into making a bad decision.  Is there
+anyone other than NetBSD who has added these syscalls?
 
-> By the way, why did you make 'fd' an unsigned long?  The rest of the
-> kernel uses unsigned int.
-
-sys_{readv,writev} have unsigned long too, this is where I got it from.
- Don't know what the reason for this is, it looks a bit odd indeed.
-
-cheers,
-  Gerd
+-- 
+Matthew Wilcox				Intel Open Source Technology Centre
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
