@@ -1,59 +1,55 @@
-From: Ralf Baechle <ralf@linux-mips.org>
+From: Gerd Hoffmann <kraxel@redhat.com>
 Subject: Re: [PATCH v2] Add preadv and pwritev system calls.
-Date: Fri, 12 Dec 2008 15:40:24 +0000
-Message-ID: <20081212154024.GA31555@linux-mips.org>
-References: <1229090440-32120-1-git-send-email-kraxel@redhat.com>
+Date: Fri, 12 Dec 2008 16:48:36 +0100
+Message-ID: <494287D4.2070909@redhat.com>
+References: <1229090440-32120-1-git-send-email-kraxel@redhat.com> <20081212152929.GM26095@parisc-linux.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from h4.dl5rb.org.uk ([81.2.74.4]:44923 "EHLO
-	ditditdahdahdah-dahdahdahditdit.dl5rb.org.uk" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757314AbYLLPm4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 12 Dec 2008 10:42:56 -0500
-Content-Disposition: inline
-In-Reply-To: <1229090440-32120-1-git-send-email-kraxel@redhat.com>
+Received: from mx2.redhat.com ([66.187.237.31]:56025 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757165AbYLLPsx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 12 Dec 2008 10:48:53 -0500
+In-Reply-To: <20081212152929.GM26095@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gerd Hoffmann <kraxel@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ulrich Drepper <drepper@redhat.com>
 
-On Fri, Dec 12, 2008 at 03:00:40PM +0100, Gerd Hoffmann wrote:
-
-> This patch adds preadv and pwritev system calls.  These syscalls are a
-> pretty straightforward combination of pread and readv (same for write).
-> They are quite useful for doing vectored I/O in threaded applications.
-> Using lseek+readv instead opens race windows you'll have to plug with
-> locking.
+Matthew Wilcox wrote:
+>> +asmlinkage ssize_t sys_preadv(unsigned long fd, const struct iovec __user *vec,
+>> +                              unsigned long vlen, loff_t pos)
+>> +asmlinkage ssize_t sys_pwritev(unsigned long fd, const struct iovec __user *vec,
+>> +                               unsigned long vlen, loff_t pos)
 > 
-> Other systems have such system calls too, for example NetBSD, check
-> here: http://www.daemon-systems.org/man/preadv.2.html
-> 
-> The patch sports the actual system call implementation and the windup in
-> the x86 system call tables.  Other archs are TBD.
+> Are these prototypes required?  MIPS and PARISC will need wrappers to
+> fix them if they are.  These two architectures have an ABI which
+> requires 64-bit arguments to be passed in aligned pairs of registers,
+> but glibc doesn't know that (and given the existence of syscall(3),
+> can't do much about it even if it knew), so some of the arguments end up
+> in the wrong registers.
+>
+> Things will go much better if we can prototype these as:
+>
+> asmlinkage ssize_t sys_preadv(unsigned int fd,
+>                               const struct iovec __user *vec,
+> 				loff_t pos, unsigned long vlen);
+> asmlinkage ssize_t sys_pwritev(unsigned int fd,
+>                                const struct iovec __user *vec,
+> 				 loff_t pos, unsigned long vlen);
 
-> +asmlinkage ssize_t sys_preadv(unsigned long fd, const struct iovec __user *vec,
-> +                              unsigned long vlen, loff_t pos)
+Hmm.  It is the argument ordering used by NetBSD, thats why I used that
+too.  It certainly should be the application-visible ordering.  We'll
+have glibc between apps and kernel though, so I think we can reorder the
+arguments at syscall level if that helps on these archs.  Cc'ing Ulrich
+Drepper for comments on that.
 
-> +asmlinkage ssize_t sys_pwritev(unsigned long fd, const struct iovec __user *vec,
-> +                               unsigned long vlen, loff_t pos)
+> By the way, why did you make 'fd' an unsigned long?  The rest of the
+> kernel uses unsigned int.
 
-As so often before the devil is in the function prototype.  On some
-architectures - 32-bit MIPS and PARISC, maybe others - 64-bit arguments
-such as loff_t need to be passed in an _aligned_ pair of 32-bit
-arguments which effectivly requires another wrapper like this around
-your compat wrapper:
+sys_{readv,writev} have unsigned long too, this is where I got it from.
+ Don't know what the reason for this is, it looks a bit odd indeed.
 
-asmlinkage int sys32_preadv(unsigned long fd,
-       const struct compat_iovec __user *vec,
-       unsigned long vlen, int dummy, unsigned a5, unsigned a6)
-{
-	return compat_sys_preadv(fd, vec, vlen, merge_64(a5, a6));
-}
-
-merge_64() takes two 32-bit halves of a 64-bit argument and combines them
-into a 64-bit argument again.
-
-I wonder, does that merging happen magically on x86 or?
-
-  Ralf
+cheers,
+  Gerd
