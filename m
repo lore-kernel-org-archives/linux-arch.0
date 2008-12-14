@@ -1,56 +1,57 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH v2] Add preadv and pwritev system calls.
-Date: Sun, 14 Dec 2008 12:49:31 +0100
-Message-ID: <20081214114931.GA4556@osiris.boeblingen.de.ibm.com>
-References: <1229090440-32120-1-git-send-email-kraxel@redhat.com> <20081212152929.GM26095@parisc-linux.org>
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: [RFC] remove linux/hardirq.h from asm-generic/local.h
+Date: Sun, 14 Dec 2008 13:39:41 +0000
+Message-ID: <20081214133941.GA18035@flint.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate1.de.ibm.com ([195.212.17.161]:49297 "EHLO
-	mtagate1.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752438AbYLNLte (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Dec 2008 06:49:34 -0500
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:53563 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753291AbYLNNjw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Dec 2008 08:39:52 -0500
 Content-Disposition: inline
-In-Reply-To: <20081212152929.GM26095@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Gerd Hoffmann <kraxel@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Linux Kernel List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-On Fri, Dec 12, 2008 at 08:29:29AM -0700, Matthew Wilcox wrote:
-> On Fri, Dec 12, 2008 at 03:00:40PM +0100, Gerd Hoffmann wrote:
-> > The patch sports the actual system call implementation and the windup in
-> > the x86 system call tables.  Other archs are TBD.
-> 
-> > +asmlinkage ssize_t sys_preadv(unsigned long fd, const struct iovec __user *vec,
-> > +                              unsigned long vlen, loff_t pos)
-> > +asmlinkage ssize_t sys_pwritev(unsigned long fd, const struct iovec __user *vec,
-> > +                               unsigned long vlen, loff_t pos)
-> 
-> Are these prototypes required?  MIPS and PARISC will need wrappers to
-> fix them if they are.  These two architectures have an ABI which
-> requires 64-bit arguments to be passed in aligned pairs of registers,
-> but glibc doesn't know that (and given the existence of syscall(3),
-> can't do much about it even if it knew), so some of the arguments end up
-> in the wrong registers.
-> 
-> Things will go much better if we can prototype these as:
-> 
-> asmlinkage ssize_t sys_preadv(unsigned int fd, const struct iovec __user *vec,
-> 				loff_t pos, unsigned long vlen);
-> asmlinkage ssize_t sys_pwritev(unsigned int fd, const struct iovec __user *vec,
-> 				loff_t pos, unsigned long vlen);
-> 
-> That way 'pos' ends up split between arg2 and arg3 and vlen ends up in
-> arg4 instead of having vlen in arg2 and pos in arg3 and arg4 which then
-> have to be munged to be in arg4 and arg5 by a compat wrapper.
-> 
-> I seem to recall the s390 folks having some concerns with this kind of
-> thing too, but I forget what they are, so I'll let them weigh in on
-> this.
+While looking at reducing the amount of architecture namespace pollution
+in the generic kernel, I found that asm/irq.h is included in the vast
+majority of compilations on ARM (around 650 files.)
 
-I think a lot of stuff that needs to be known for new system calls was
-written up with these two postings:
+Since asm/irq.h includes a sub-architecture include file on ARM, this
+causes a negative impact on the ccache's ability to re-use the build
+results from other sub-architectures, so we have a desire to reduce
+the dependencies on asm/irq.h.
 
-http://marc.info/?l=linux-arch&m=118277150812137&w=2
-http://lkml.org/lkml/2007/8/1/354
+It turns out that a major cause of this is the needless include of
+linux/hardirq.h into asm-generic/local.h.  The patch below removes this
+include, resulting in some 250 to 300 files (around half) of the kernel
+then omitting asm/irq.h.
+
+My test builds still succeed, provided two ARM files are fixed
+(arch/arm/kernel/traps.c and arch/arm/mm/fault.c) - so there may be
+negative impacts for this on other architectures.
+
+Note that x86 does not include asm/irq.h nor linux/hardirq.h in its
+asm/local.h, so this patch can be viewed as bringing the generic version
+into line with the x86 version.
+
+Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
+
+diff --git a/include/asm-generic/local.h b/include/asm-generic/local.h
+index 33d7d04..43c0b81 100644
+--- a/include/asm-generic/local.h
++++ b/include/asm-generic/local.h
+@@ -2,7 +2,6 @@
+ #define _ASM_GENERIC_LOCAL_H
+ 
+ #include <linux/percpu.h>
+-#include <linux/hardirq.h>
+ #include <asm/atomic.h>
+ #include <asm/types.h>
+ 
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
