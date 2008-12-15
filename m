@@ -1,40 +1,47 @@
-From: Pavel Machek <pavel@suse.cz>
-Subject: Re: [PATCH v2] Add preadv and pwritev system calls.
-Date: Sun, 14 Dec 2008 19:19:43 +0100
-Message-ID: <20081214181943.GB1440@ucw.cz>
-References: <1229090440-32120-1-git-send-email-kraxel@redhat.com> <20081212152929.GM26095@parisc-linux.org> <494287D4.2070909@redhat.com> <20081212155113.GO26095@parisc-linux.org> <49428AFD.5090009@redhat.com> <20081212182929.GA9631@pendragon.3leafnetworks.com> <20081212190728.GC5774@flint.arm.linux.org.uk> <4942C1D0.1080009@redhat.com>
+From: Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>
+Subject: Re: [PATCH v3 0/3] preadv & pwritev syscalls.
+Date: Mon, 15 Dec 2008 16:03:11 +0000
+Message-ID: <20081215160311.GA23153@linux-mips.org>
+References: <1229340977-24345-1-git-send-email-kraxel@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753548AbYLOPrX@vger.kernel.org>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <4942C1D0.1080009@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Gerd Hoffmann <kraxel@redhat.com>
-Cc: Scott Lurndal <scott.lurndal@3leafsystems.com>, Matthew Wilcox <matthew@wil.cx>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ulrich Drepper <drepper@redhat.com>
+In-Reply-To: <1229340977-24345-1-git-send-email-kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Gerd Hoffmann <kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri 2008-12-12 20:56:00, Gerd Hoffmann wrote:
-> Russell King wrote:
-> >> should be similar to pread/pwrite, e.g:
-> >>
-> >>     int preadv(fd, iovec, iovec_size, offset)
-> > 
-> > Yes, and that's easy for glibc to achieve.
-> 
-> This hints the ABI problem exists at syscall level only.  Is that
-> correct?  So we can have
-> 
-> 	preadv(fd, vec, vlen, off)
-> 
-> argument ordering at app <-> glibc level and
-> 
-> 	preadv(fd, vec, off, vlen)
-> 
-> ordering at glibc <-> kernel (aka syscall) level and it works fine for
-> ARM + MIPS + PARISC?
+On Mon, Dec 15, 2008 at 12:36:14PM +0100, Gerd Hoffmann wrote:
 
-ltrace and strace would show different values; very misleading :-(.
+> Next revision of the patch series, with the alignment issue fixed by
+> swapping the last two arguments as suggested by arch maintainers.
+> 
+> I've dropped the now-obsolete wrappers for mips.  Ralf, please
+> double-check.
 
--- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+It fixes the alignment issue but still won't work; on MIPS 32-bit userspace
+will pass the 64-bit argument in two registers but the 64-bit kernel code
+will assume it to be passed in a single registers.  It'd be ugly but passing
+a pointer to a 64-bit argument would solve the issue; something like this:
+
+sys_preadv(unsigned long fd, const struct iovec __user *vec,
+                  unsigned long vlen, loff_t __user *pos);
+compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
+                  unsigned long vlen, loff_t __user *pos);
+
+sys_splice uses loff_t __user * arguments as well and that's why it's
+doesn't need any compat wrapper.
+
+I'm surprised this works for x86; does x86-64 code really expect 64-bit
+arguments as 2 32-bit arguments?
+
+Patch 1/3 looks like it's a bug fix and you may want to submit this
+separate from the remainder of the series for 2.6.28?
+
+  Ralf
+--
+To unsubscribe from this list: send the line "unsubscribe linux-api" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
