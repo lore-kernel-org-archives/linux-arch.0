@@ -1,45 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gprs189-60.eurotel.cz ([160.218.189.60]:47238 "EHLO
-	gprs189-60.eurotel.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751510AbYLOPrL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Dec 2008 10:47:11 -0500
-Date: Sun, 14 Dec 2008 19:19:43 +0100
-From: Pavel Machek <pavel@suse.cz>
-Subject: Re: [PATCH v2] Add preadv and pwritev system calls.
-Message-ID: <20081214181943.GB1440@ucw.cz>
-References: <1229090440-32120-1-git-send-email-kraxel@redhat.com> <20081212152929.GM26095@parisc-linux.org> <494287D4.2070909@redhat.com> <20081212155113.GO26095@parisc-linux.org> <49428AFD.5090009@redhat.com> <20081212182929.GA9631@pendragon.3leafnetworks.com> <20081212190728.GC5774@flint.arm.linux.org.uk> <4942C1D0.1080009@redhat.com>
+Received: from h4.dl5rb.org.uk ([81.2.74.4]:36697 "EHLO
+	ditditdahdahdah-dahdahdahditdit.dl5rb.org.uk" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752437AbYLOQDo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Dec 2008 11:03:44 -0500
+Date: Mon, 15 Dec 2008 16:03:11 +0000
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH v3 0/3] preadv & pwritev syscalls.
+Message-ID: <20081215160311.GA23153@linux-mips.org>
+References: <1229340977-24345-1-git-send-email-kraxel@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <4942C1D0.1080009@redhat.com>
+In-Reply-To: <1229340977-24345-1-git-send-email-kraxel@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Gerd Hoffmann <kraxel@redhat.com>
-Cc: Scott Lurndal <scott.lurndal@3leafsystems.com>, Matthew Wilcox <matthew@wil.cx>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ulrich Drepper <drepper@redhat.com>
-Message-ID: <20081214181943.1lEufL2iSjDdYaJoCGdljcA-0HcgsQ0RaYMM2iH4Rlw@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20081215160311.xs-NAu6ws9hp4ku2vAmWgRjzSRFFO3I3K67FL0uqu-I@z>
 
-On Fri 2008-12-12 20:56:00, Gerd Hoffmann wrote:
-> Russell King wrote:
-> >> should be similar to pread/pwrite, e.g:
-> >>
-> >>     int preadv(fd, iovec, iovec_size, offset)
-> > 
-> > Yes, and that's easy for glibc to achieve.
-> 
-> This hints the ABI problem exists at syscall level only.  Is that
-> correct?  So we can have
-> 
-> 	preadv(fd, vec, vlen, off)
-> 
-> argument ordering at app <-> glibc level and
-> 
-> 	preadv(fd, vec, off, vlen)
-> 
-> ordering at glibc <-> kernel (aka syscall) level and it works fine for
-> ARM + MIPS + PARISC?
+On Mon, Dec 15, 2008 at 12:36:14PM +0100, Gerd Hoffmann wrote:
 
-ltrace and strace would show different values; very misleading :-(.
+> Next revision of the patch series, with the alignment issue fixed by
+> swapping the last two arguments as suggested by arch maintainers.
+> 
+> I've dropped the now-obsolete wrappers for mips.  Ralf, please
+> double-check.
 
--- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+It fixes the alignment issue but still won't work; on MIPS 32-bit userspace
+will pass the 64-bit argument in two registers but the 64-bit kernel code
+will assume it to be passed in a single registers.  It'd be ugly but passing
+a pointer to a 64-bit argument would solve the issue; something like this:
+
+sys_preadv(unsigned long fd, const struct iovec __user *vec,
+                  unsigned long vlen, loff_t __user *pos);
+compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
+                  unsigned long vlen, loff_t __user *pos);
+
+sys_splice uses loff_t __user * arguments as well and that's why it's
+doesn't need any compat wrapper.
+
+I'm surprised this works for x86; does x86-64 code really expect 64-bit
+arguments as 2 32-bit arguments?
+
+Patch 1/3 looks like it's a bug fix and you may want to submit this
+separate from the remainder of the series for 2.6.28?
+
+  Ralf
