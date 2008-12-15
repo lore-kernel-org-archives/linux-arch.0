@@ -1,71 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from yorgi.telenet-ops.be ([195.130.133.69]:60405 "EHLO
-	yorgi.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751353AbYLNTxy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Dec 2008 14:53:54 -0500
-Received: from nelson.telenet-ops.be (nelson.telenet-ops.be [195.130.133.66])
-	by yorgi.telenet-ops.be (Postfix) with ESMTP id 1260268043B
-	for <linux-arch@vger.kernel.org>; Sun, 14 Dec 2008 20:53:53 +0100 (CET)
-Date: Sun, 14 Dec 2008 20:53:13 +0100 (CET)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [RFC] remove linux/hardirq.h from asm-generic/local.h
-In-Reply-To: <20081214133941.GA18035@flint.arm.linux.org.uk>
-Message-ID: <Pine.LNX.4.64.0812142050280.5936@anakin>
-References: <20081214133941.GA18035@flint.arm.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from mx2.redhat.com ([66.187.237.31]:35811 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751346AbYLOLib (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Dec 2008 06:38:31 -0500
+From: Gerd Hoffmann <kraxel@redhat.com>
+Subject: [PATCH v3 0/3] preadv & pwritev syscalls.
+Date: Mon, 15 Dec 2008 12:36:14 +0100
+Message-ID: <1229340977-24345-1-git-send-email-kraxel@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: Linux Kernel List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20081214195313.Mlh374Nhhb1tbdt0Vu_YR624C0k6U-77K2YI-E3A2VU@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Cc: Gerd Hoffmann <kraxel@redhat.com>
+Message-ID: <20081215113614.b4PDal_4ihJj6J-sMR7NszqfI3jVU_9wo5zAta9i3WY@z>
 
-On Sun, 14 Dec 2008, Russell King wrote:
-> While looking at reducing the amount of architecture namespace pollution
-> in the generic kernel, I found that asm/irq.h is included in the vast
-> majority of compilations on ARM (around 650 files.)
-> 
-> Since asm/irq.h includes a sub-architecture include file on ARM, this
-> causes a negative impact on the ccache's ability to re-use the build
-> results from other sub-architectures, so we have a desire to reduce
-> the dependencies on asm/irq.h.
-> 
-> It turns out that a major cause of this is the needless include of
-> linux/hardirq.h into asm-generic/local.h.  The patch below removes this
-> include, resulting in some 250 to 300 files (around half) of the kernel
-> then omitting asm/irq.h.
-> 
-> My test builds still succeed, provided two ARM files are fixed
-> (arch/arm/kernel/traps.c and arch/arm/mm/fault.c) - so there may be
-> negative impacts for this on other architectures.
+  Hi,
 
-I gave it a try on m68k/atari_defconfig, but no ill effects.
+Next revision of the patch series, with the alignment issue fixed by
+swapping the last two arguments as suggested by arch maintainers.
 
-> Note that x86 does not include asm/irq.h nor linux/hardirq.h in its
-> asm/local.h, so this patch can be viewed as bringing the generic version
-> into line with the x86 version.
-> 
-> Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
-> 
-> diff --git a/include/asm-generic/local.h b/include/asm-generic/local.h
-> index 33d7d04..43c0b81 100644
-> --- a/include/asm-generic/local.h
-> +++ b/include/asm-generic/local.h
-> @@ -2,7 +2,6 @@
->  #define _ASM_GENERIC_LOCAL_H
->  
->  #include <linux/percpu.h>
-> -#include <linux/hardirq.h>
->  #include <asm/atomic.h>
->  #include <asm/types.h>
+I've dropped the now-obsolete wrappers for mips.  Ralf, please
+double-check.
 
-Gr{oetje,eeting}s,
+thanks,
+  Gerd
 
-						Geert
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+---
+ fs/compat.c |    6 ++++++
+ 1 files changed, 6 insertions(+), 0 deletions(-)
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+diff --git a/fs/compat.c b/fs/compat.c
+index e5f49f5..aab2234 100644
+--- a/fs/compat.c
++++ b/fs/compat.c
+@@ -1187,6 +1187,9 @@ compat_sys_readv(unsigned long fd, const struct compat_iovec __user *vec, unsign
+ 	ret = compat_do_readv_writev(READ, file, vec, vlen, &file->f_pos);
+ 
+ out:
++	if (ret > 0)
++		add_rchar(current, ret);
++	inc_syscr(current);
+ 	fput(file);
+ 	return ret;
+ }
+@@ -1210,6 +1213,9 @@ compat_sys_writev(unsigned long fd, const struct compat_iovec __user *vec, unsig
+ 	ret = compat_do_readv_writev(WRITE, file, vec, vlen, &file->f_pos);
+ 
+ out:
++	if (ret > 0)
++		add_wchar(current, ret);
++	inc_syscw(current);
+ 	fput(file);
+ 	return ret;
+ }
+-- 
+1.5.6.5
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
