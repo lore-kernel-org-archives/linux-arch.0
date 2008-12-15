@@ -1,42 +1,31 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v3 0/3] preadv & pwritev syscalls.
-Date: Mon, 15 Dec 2008 12:02:04 -0800 (PST)
-Message-ID: <20081215.120204.257704544.davem@davemloft.net>
-References: <1229340977-24345-1-git-send-email-kraxel@redhat.com>
-	<20081215160311.GA23153@linux-mips.org>
+From: Gerd Hoffmann <kraxel@redhat.com>
+Subject: Re: [PATCH v2] Add preadv and pwritev system calls.
+Date: Mon, 15 Dec 2008 21:43:12 +0100
+Message-ID: <4946C160.2090505@redhat.com>
+References: <1229090440-32120-1-git-send-email-kraxel@redhat.com>	 <20081212152929.GM26095@parisc-linux.org>	 <494287D4.2070909@redhat.com>	 <20081212155113.GO26095@parisc-linux.org>	 <49428AFD.5090009@redhat.com> <67079b830812150837o12adaa1awe40b0759bbea1f7a@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:46306
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1752783AbYLOUCD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Dec 2008 15:02:03 -0500
-In-Reply-To: <20081215160311.GA23153@linux-mips.org>
+Received: from mx2.redhat.com ([66.187.237.31]:39171 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752783AbYLOUn3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Dec 2008 15:43:29 -0500
+In-Reply-To: <67079b830812150837o12adaa1awe40b0759bbea1f7a@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ralf@linux-mips.org
-Cc: kraxel@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+To: Jennifer Pioch <piochjennifer@googlemail.com>
+Cc: opensolaris-code@opensolaris.org, opensolaris-rfe@opensolaris.org, Matthew Wilcox <matthew@wil.cx>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ulrich Drepper <drepper@redhat.com>
 
-From: Ralf Baechle <ralf@linux-mips.org>
-Date: Mon, 15 Dec 2008 16:03:11 +0000
-
-> On Mon, Dec 15, 2008 at 12:36:14PM +0100, Gerd Hoffmann wrote:
+Jennifer Pioch wrote:
+> On 12/12/08, Gerd Hoffmann <kraxel@redhat.com> wrote:
+>> Free- and OpenBSD have it too.  For Solaris I've found a feature request
+>>  only.  Dunno about MacOS/Darwin.  Other un*xes which are important these
+>>  days?
 > 
-> > Next revision of the patch series, with the alignment issue fixed by
-> > swapping the last two arguments as suggested by arch maintainers.
-> > 
-> > I've dropped the now-obsolete wrappers for mips.  Ralf, please
-> > double-check.
-> 
-> It fixes the alignment issue but still won't work; on MIPS 32-bit userspace
-> will pass the 64-bit argument in two registers but the 64-bit kernel code
-> will assume it to be passed in a single registers.
+> Do you know the ID of the feature request?
 
-Same on 32-bit sparc, and I assume 32-bit powerpc as well.
+#1167819 @ bugs.opensolaris.org
 
-> I'm surprised this works for x86; does x86-64 code really expect 64-bit
-> arguments as 2 32-bit arguments?
-
-Args get pushed onto the stack, so perhaps it works by accident :)
+HTH,
+  Gerd
