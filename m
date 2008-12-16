@@ -1,49 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from h4.dl5rb.org.uk ([81.2.74.4]:36697 "EHLO
-	ditditdahdahdah-dahdahdahditdit.dl5rb.org.uk" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752437AbYLOQDo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Dec 2008 11:03:44 -0500
-Date: Mon, 15 Dec 2008 16:03:11 +0000
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH v3 0/3] preadv & pwritev syscalls.
-Message-ID: <20081215160311.GA23153@linux-mips.org>
-References: <1229340977-24345-1-git-send-email-kraxel@redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Received: from vpn.id2.novell.com ([195.33.99.129]:40883 "EHLO
+	vpn.id2.novell.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753003AbYLPMAU convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Dec 2008 07:00:20 -0500
+Message-ID: <4947A1BB.76E4.0078.0@novell.com>
+Date: Tue, 16 Dec 2008 11:40:27 +0000
+From: "Jan Beulich" <jbeulich@novell.com>
+Subject: [PATCH] allow bug table entries to use relative pointers (and
+	 use it on x86-64)
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8BIT
 Content-Disposition: inline
-In-Reply-To: <1229340977-24345-1-git-send-email-kraxel@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gerd Hoffmann <kraxel@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20081215160311.xs-NAu6ws9hp4ku2vAmWgRjzSRFFO3I3K67FL0uqu-I@z>
+To: mingo@elte.hu, tglx@linutronix.de, linux-kernel@vger.kernel.org, hpa@zytor.com
+Cc: linux-arch@vger.kernel.org
+Message-ID: <20081216114027.FiJD1Ssp-dnYIBzSr2CICdXJVTFCjr6cEm_abhltdRc@z>
 
-On Mon, Dec 15, 2008 at 12:36:14PM +0100, Gerd Hoffmann wrote:
+This allows reducing the bug table size by half. Perhaps there are
+other 64-bit architectures that could also make use of this.
 
-> Next revision of the patch series, with the alignment issue fixed by
-> swapping the last two arguments as suggested by arch maintainers.
-> 
-> I've dropped the now-obsolete wrappers for mips.  Ralf, please
-> double-check.
+Signed-off-by: Jan Beulich <jbeulich@novell.com>
 
-It fixes the alignment issue but still won't work; on MIPS 32-bit userspace
-will pass the 64-bit argument in two registers but the 64-bit kernel code
-will assume it to be passed in a single registers.  It'd be ugly but passing
-a pointer to a 64-bit argument would solve the issue; something like this:
+---
+ arch/x86/Kconfig           |    4 ++++
+ arch/x86/include/asm/bug.h |    2 +-
+ include/asm-generic/bug.h  |    8 ++++++++
+ lib/bug.c                  |   19 +++++++++++++++++--
+ 4 files changed, 30 insertions(+), 3 deletions(-)
 
-sys_preadv(unsigned long fd, const struct iovec __user *vec,
-                  unsigned long vlen, loff_t __user *pos);
-compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
-                  unsigned long vlen, loff_t __user *pos);
+--- linux-2.6.28-rc8/arch/x86/Kconfig	2008-12-11 14:45:37.000000000 +0100
++++ 2.6.28-rc8-x86_64-bug-rel-addr/arch/x86/Kconfig	2008-12-01 14:10:32.000000000 +0100
+@@ -87,6 +87,10 @@ config GENERIC_IOMAP
+ config GENERIC_BUG
+ 	def_bool y
+ 	depends on BUG
++	select GENERIC_BUG_RELATIVE_POINTERS if X86_64
++
++config GENERIC_BUG_RELATIVE_POINTERS
++	bool
+ 
+ config GENERIC_HWEIGHT
+ 	def_bool y
+--- linux-2.6.28-rc8/arch/x86/include/asm/bug.h	2008-12-11 14:45:37.000000000 +0100
++++ 2.6.28-rc8-x86_64-bug-rel-addr/arch/x86/include/asm/bug.h	2008-12-01 14:12:17.000000000 +0100
+@@ -9,7 +9,7 @@
+ #ifdef CONFIG_X86_32
+ # define __BUG_C0	"2:\t.long 1b, %c0\n"
+ #else
+-# define __BUG_C0	"2:\t.quad 1b, %c0\n"
++# define __BUG_C0	"2:\t.long 1b - 2b, %c0 - 2b\n"
+ #endif
+ 
+ #define BUG()							\
+--- linux-2.6.28-rc8/include/asm-generic/bug.h	2008-12-11 14:46:04.000000000 +0100
++++ 2.6.28-rc8-x86_64-bug-rel-addr/include/asm-generic/bug.h	2008-12-01 14:13:35.000000000 +0100
+@@ -8,9 +8,17 @@
+ #ifdef CONFIG_GENERIC_BUG
+ #ifndef __ASSEMBLY__
+ struct bug_entry {
++#ifndef CONFIG_GENERIC_BUG_RELATIVE_POINTERS
+ 	unsigned long	bug_addr;
++#else
++	signed int	bug_addr_disp;
++#endif
+ #ifdef CONFIG_DEBUG_BUGVERBOSE
++#ifndef CONFIG_GENERIC_BUG_RELATIVE_POINTERS
+ 	const char	*file;
++#else
++	signed int	file_disp;
++#endif
+ 	unsigned short	line;
+ #endif
+ 	unsigned short	flags;
+--- linux-2.6.28-rc8/lib/bug.c	2008-07-13 23:51:29.000000000 +0200
++++ 2.6.28-rc8-x86_64-bug-rel-addr/lib/bug.c	2008-12-01 14:18:37.000000000 +0100
+@@ -5,6 +5,8 @@
+ 
+   CONFIG_BUG - emit BUG traps.  Nothing happens without this.
+   CONFIG_GENERIC_BUG - enable this code.
++  CONFIG_GENERIC_BUG_RELATIVE_POINTERS - use 32-bit pointers relative to
++	the containing struct bug_entry for bug_addr and file.
+   CONFIG_DEBUG_BUGVERBOSE - emit full file+line information for each BUG
+ 
+   CONFIG_BUG and CONFIG_DEBUG_BUGVERBOSE are potentially user-settable
+@@ -43,6 +45,15 @@
+ 
+ extern const struct bug_entry __start___bug_table[], __stop___bug_table[];
+ 
++static inline unsigned long bug_addr(const struct bug_entry *bug)
++{
++#ifndef CONFIG_GENERIC_BUG_RELATIVE_POINTERS
++	return bug->bug_addr;
++#else
++	return (unsigned long)bug + bug->bug_addr_disp;
++#endif
++}
++
+ #ifdef CONFIG_MODULES
+ static LIST_HEAD(module_bug_list);
+ 
+@@ -55,7 +66,7 @@ static const struct bug_entry *module_fi
+ 		unsigned i;
+ 
+ 		for (i = 0; i < mod->num_bugs; ++i, ++bug)
+-			if (bugaddr == bug->bug_addr)
++			if (bugaddr == bug_addr(bug))
+ 				return bug;
+ 	}
+ 	return NULL;
+@@ -108,7 +119,7 @@ const struct bug_entry *find_bug(unsigne
+ 	const struct bug_entry *bug;
+ 
+ 	for (bug = __start___bug_table; bug < __stop___bug_table; ++bug)
+-		if (bugaddr == bug->bug_addr)
++		if (bugaddr == bug_addr(bug))
+ 			return bug;
+ 
+ 	return module_find_bug(bugaddr);
+@@ -133,7 +144,11 @@ enum bug_trap_type report_bug(unsigned l
+ 
+ 	if (bug) {
+ #ifdef CONFIG_DEBUG_BUGVERBOSE
++#ifndef CONFIG_GENERIC_BUG_RELATIVE_POINTERS
+ 		file = bug->file;
++#else
++		file = (const char *)bug + bug->file_disp;
++#endif
+ 		line = bug->line;
+ #endif
+ 		warning = (bug->flags & BUGFLAG_WARNING) != 0;
 
-sys_splice uses loff_t __user * arguments as well and that's why it's
-doesn't need any compat wrapper.
 
-I'm surprised this works for x86; does x86-64 code really expect 64-bit
-arguments as 2 32-bit arguments?
 
-Patch 1/3 looks like it's a bug fix and you may want to submit this
-separate from the remainder of the series for 2.6.28?
-
-  Ralf
