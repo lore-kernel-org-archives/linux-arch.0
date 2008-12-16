@@ -1,40 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound-mail-29.bluehost.com ([69.89.17.211]:41643 "HELO
-	outbound-mail-29.bluehost.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1760389AbYLPU0x (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Dec 2008 15:26:53 -0500
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
-Subject: Re: [PATCH 00/12] PCI: unify P2P bridge INTx swizzling
-Date: Tue, 16 Dec 2008 12:20:08 -0800
-References: <20081209231037.18153.86962.stgit@bob.kio>
-In-Reply-To: <20081209231037.18153.86962.stgit@bob.kio>
+Received: from mx2.redhat.com ([66.187.237.31]:60680 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751644AbYLPVfE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Dec 2008 16:35:04 -0500
+Message-ID: <49481EF9.3090304@redhat.com>
+Date: Tue, 16 Dec 2008 22:34:49 +0100
+From: Gerd Hoffmann <kraxel@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
+Subject: Re: [PATCH v3 0/3] preadv & pwritev syscalls.
+References: <1229340977-24345-1-git-send-email-kraxel@redhat.com> <20081215160311.GA23153@linux-mips.org> <4946C4B4.1020605@redhat.com> <20081216160502.GA15331@linux-mips.org> <4947DBFA.9050108@redhat.com> <20081216170209.GC410@bombadil.infradead.org>
+In-Reply-To: <20081216170209.GC410@bombadil.infradead.org>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-ID: <200812161220.10630.jbarnes@virtuousgeek.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Russell King <rmk@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, hpa@zytor.com
-Message-ID: <20081216202008.EBbSI3bqpa6g_mCdui845rPAF0uy3cP1b25kiGkuPFw@z>
+To: Kyle McMartin <kyle@infradead.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20081216213449.0VlqibVrraBhJzjotFnlH76gh65sLtxPLfEO_WckHLQ@z>
 
-On Tuesday, December 9, 2008 3:11 pm Bjorn Helgaas wrote:
-> This series adds a pci_swizzle_interrupt_pin() function in the PCI
-> core.  Most architectures currently implement this independently.
->
-> After this series, many of the callers of pci_swizzle_interrupt_pin()
-> follow a similar pattern.  I'd like to consolidate those callers, too,
-> but I haven't started that yet.
->
-> One strange thing I'd like to understand eventually is why the
-> swizzle in acpi_pci_irq_derive() does something special for CardBus
-> bridges, while no other architecture does.
->
-> Comments welcome.
+Kyle McMartin wrote:
+> On Tue, Dec 16, 2008 at 05:48:58PM +0100, Gerd Hoffmann wrote:
+>> i.e. the ordering of the splitted argument depends on the os endianness?
+>> What is the reason for this?
+> 
+> Eh? The splitting will occur at the C ABI level, not as a result of
+> glibc (though, it could be done that way if you really wanted, but then
+> you're just moving the wrapper up the chain.)
 
-Applied the series to my linux-next branch, thanks a lot for unifying this.
+Ah, ok.  You'll just declare 64bit arg for userspace, gcc splits it into
+two 32bit in native byte order, and then the kernel picks up the two
+32bit values and has to reassemble them correctly, right?
 
-Jesse
+The application-visible API must be compatible to the existing
+implementations, i.e. this ...
+
+   pread(long fd, struct iovec *vec, long vlen, off_t pos);
+
+... prototype with the unaligned 64bit pos argument (in 32compat case).
+
+Looks like there is no way around wrapping stuff then for the archs
+wanting aligned 64bit values.  The only choice we have is to do the
+wrap-o-magic in glibc or in the kernel.
+
+I'd tend handle the wrapping in kernel space then because it is less
+confusing and we have to wrap only in case the ABI for $arch requires it.
+
+Comments?
+
+  Gerd
