@@ -1,78 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:51525 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754436AbYLPQtG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Dec 2008 11:49:06 -0500
-Message-ID: <4947DBFA.9050108@redhat.com>
-Date: Tue, 16 Dec 2008 17:48:58 +0100
-From: Gerd Hoffmann <kraxel@redhat.com>
+Received: from outbound-mail-29.bluehost.com ([69.89.17.211]:41643 "HELO
+	outbound-mail-29.bluehost.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1760389AbYLPU0x (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Dec 2008 15:26:53 -0500
+From: Jesse Barnes <jbarnes@virtuousgeek.org>
+Subject: Re: [PATCH 00/12] PCI: unify P2P bridge INTx swizzling
+Date: Tue, 16 Dec 2008 12:20:08 -0800
+References: <20081209231037.18153.86962.stgit@bob.kio>
+In-Reply-To: <20081209231037.18153.86962.stgit@bob.kio>
 MIME-Version: 1.0
-Subject: Re: [PATCH v3 0/3] preadv & pwritev syscalls.
-References: <1229340977-24345-1-git-send-email-kraxel@redhat.com> <20081215160311.GA23153@linux-mips.org> <4946C4B4.1020605@redhat.com> <20081216160502.GA15331@linux-mips.org>
-In-Reply-To: <20081216160502.GA15331@linux-mips.org>
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain;
+  charset="utf-8"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-ID: <200812161220.10630.jbarnes@virtuousgeek.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20081216164858.PCoTSsBAKZhxYZunrMUMicfA3-DVAGJAVH8ccX_pR0Y@z>
+To: Bjorn Helgaas <bjorn.helgaas@hp.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Russell King <rmk@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, hpa@zytor.com
+Message-ID: <20081216202008.EBbSI3bqpa6g_mCdui845rPAF0uy3cP1b25kiGkuPFw@z>
 
-Ralf Baechle wrote:
-> On Mon, Dec 15, 2008 at 09:57:24PM +0100, Gerd Hoffmann wrote:
-> 
->>> It fixes the alignment issue but still won't work; on MIPS 32-bit userspace
->>> will pass the 64-bit argument in two registers but the 64-bit kernel code
->>> will assume it to be passed in a single registers.  It'd be ugly but passing
->>> a pointer to a 64-bit argument would solve the issue; something like this:
->>>
->>> sys_preadv(unsigned long fd, const struct iovec __user *vec,
->>>                   unsigned long vlen, loff_t __user *pos);
->>> compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
->>>                   unsigned long vlen, loff_t __user *pos);
->> Suggestion from the s390 front was to explicitly pass high and low part
->> of pos as two arguments.  A bit ugly too, but should work fine as well
->> and it avoids the user pointer dereference.  What do you think about this?
-> 
-> That's what the wrapper which you deleted, was doing ;-)  So yes, I like
-> it.
+On Tuesday, December 9, 2008 3:11 pm Bjorn Helgaas wrote:
+> This series adds a pci_swizzle_interrupt_pin() function in the PCI
+> core.  Most architectures currently implement this independently.
+>
+> After this series, many of the callers of pci_swizzle_interrupt_pin()
+> follow a similar pattern.  I'd like to consolidate those callers, too,
+> but I haven't started that yet.
+>
+> One strange thing I'd like to understand eventually is why the
+> swizzle in acpi_pci_irq_derive() does something special for CardBus
+> bridges, while no other architecture does.
+>
+> Comments welcome.
 
-Yep, but I'm trying to find a way to have it work without per-arch
-wrappers ...
+Applied the series to my linux-next branch, thanks a lot for unifying this.
 
-> It just raises one new problem, endianess - are arguments being passed
-> as low/high or high/low?  On MIPS we've been solving the issue with the
-> merge_64() macro which is defined depending on the byte order:
-> 
-> #ifdef __MIPSEB__
-> #define merge_64(r1, r2) ((((r1) & 0xffffffffUL) << 32) + ((r2) & 0xffffffffUL))
-> #endif
-> #ifdef __MIPSEL__
-> #define merge_64(r1, r2) ((((r2) & 0xffffffffUL) << 32) + ((r1) & 0xffffffffUL))
-> #endif
-> 
-> The actual syscall wrapper could use it like:
-> 
-> asmlinkage int compat_sys_pwritev(unsigned long fd,
->        const struct compat_iovec __user *vec,
->        unsigned a3, unsigned a4, unsigned long vlen)
-> {
-> 	loff_t offset = merge_64(a3, a4);
-> ...
-
-i.e. the ordering of the splitted argument depends on the os endianness?
-What is the reason for this?
-
-I'd prefer to have the ordering coded explicitly instead, like this:
-
-asmlinkage int compat_sys_pwritev(unsigned long fd,
-       const struct compat_iovec __user *vec, unsigned long vlen,
-       unsigned pos_low, unsigned pos_high)
-{
-	loff_t pos = pos_low | (loff_t)pos_high << 32;
-        [ ... ]
-
-cheers,
-  Gerd
-
-
+Jesse
