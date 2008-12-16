@@ -1,46 +1,38 @@
-From: Kyle McMartin <kyle@infradead.org>
-Subject: Re: [PATCH v3 0/3] preadv & pwritev syscalls.
-Date: Tue, 16 Dec 2008 12:02:09 -0500
-Message-ID: <20081216170209.GC410@bombadil.infradead.org>
-References: <1229340977-24345-1-git-send-email-kraxel@redhat.com> <20081215160311.GA23153@linux-mips.org> <4946C4B4.1020605@redhat.com> <20081216160502.GA15331@linux-mips.org> <4947DBFA.9050108@redhat.com>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH] allow bug table entries to use relative pointers (and
+	use it on x86-64)
+Date: Tue, 16 Dec 2008 18:40:48 +0100
+Message-ID: <20081216174048.GH11683@elte.hu>
+References: <4947A1BB.76E4.0078.0@novell.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:44889 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754592AbYLPRCK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Dec 2008 12:02:10 -0500
+Received: from mx3.mail.elte.hu ([157.181.1.138]:38795 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751078AbYLPRlA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Dec 2008 12:41:00 -0500
 Content-Disposition: inline
-In-Reply-To: <4947DBFA.9050108@redhat.com>
+In-Reply-To: <4947A1BB.76E4.0078.0@novell.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gerd Hoffmann <kraxel@redhat.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+To: Jan Beulich <jbeulich@novell.com>
+Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org
 
-On Tue, Dec 16, 2008 at 05:48:58PM +0100, Gerd Hoffmann wrote:
-> i.e. the ordering of the splitted argument depends on the os endianness?
-> What is the reason for this?
+
+* Jan Beulich <jbeulich@novell.com> wrote:
+
+> This allows reducing the bug table size by half. Perhaps there are
+> other 64-bit architectures that could also make use of this.
 > 
-
-Eh? The splitting will occur at the C ABI level, not as a result of
-glibc (though, it could be done that way if you really wanted, but then
-you're just moving the wrapper up the chain.)
-
-A 64-bit value on a 32-bit machine will look like, in a register pair,
-like it looks in memory, with MSB/LSB ordering.
-
-> I'd prefer to have the ordering coded explicitly instead, like this:
+> Signed-off-by: Jan Beulich <jbeulich@novell.com>
 > 
-> asmlinkage int compat_sys_pwritev(unsigned long fd,
->        const struct compat_iovec __user *vec, unsigned long vlen,
->        unsigned pos_low, unsigned pos_high)
-> {
-> 	loff_t pos = pos_low | (loff_t)pos_high << 32;
->         [ ... ]
-> 
+> ---
+>  arch/x86/Kconfig           |    4 ++++
+>  arch/x86/include/asm/bug.h |    2 +-
+>  include/asm-generic/bug.h  |    8 ++++++++
+>  lib/bug.c                  |   19 +++++++++++++++++--
+>  4 files changed, 30 insertions(+), 3 deletions(-)
 
-Sadly this isn't possible without a wrapper unless you can guarantee
-it was passed low high instead of high low. Unless you munge it in
-userspace, you can't.
+applied to tip/x86/debug, thanks Jan!
 
-regards, Kyle
+	Ingo
