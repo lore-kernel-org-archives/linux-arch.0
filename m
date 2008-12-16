@@ -1,136 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vpn.id2.novell.com ([195.33.99.129]:40883 "EHLO
-	vpn.id2.novell.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753003AbYLPMAU convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Dec 2008 07:00:20 -0500
-Message-ID: <4947A1BB.76E4.0078.0@novell.com>
-Date: Tue, 16 Dec 2008 11:40:27 +0000
-From: "Jan Beulich" <jbeulich@novell.com>
-Subject: [PATCH] allow bug table entries to use relative pointers (and
-	 use it on x86-64)
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8BIT
-Content-Disposition: inline
+Received: from mx2.redhat.com ([66.187.237.31]:51525 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754436AbYLPQtG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Dec 2008 11:49:06 -0500
+Message-ID: <4947DBFA.9050108@redhat.com>
+Date: Tue, 16 Dec 2008 17:48:58 +0100
+From: Gerd Hoffmann <kraxel@redhat.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH v3 0/3] preadv & pwritev syscalls.
+References: <1229340977-24345-1-git-send-email-kraxel@redhat.com> <20081215160311.GA23153@linux-mips.org> <4946C4B4.1020605@redhat.com> <20081216160502.GA15331@linux-mips.org>
+In-Reply-To: <20081216160502.GA15331@linux-mips.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mingo@elte.hu, tglx@linutronix.de, linux-kernel@vger.kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org
-Message-ID: <20081216114027.FiJD1Ssp-dnYIBzSr2CICdXJVTFCjr6cEm_abhltdRc@z>
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20081216164858.PCoTSsBAKZhxYZunrMUMicfA3-DVAGJAVH8ccX_pR0Y@z>
 
-This allows reducing the bug table size by half. Perhaps there are
-other 64-bit architectures that could also make use of this.
+Ralf Baechle wrote:
+> On Mon, Dec 15, 2008 at 09:57:24PM +0100, Gerd Hoffmann wrote:
+> 
+>>> It fixes the alignment issue but still won't work; on MIPS 32-bit userspace
+>>> will pass the 64-bit argument in two registers but the 64-bit kernel code
+>>> will assume it to be passed in a single registers.  It'd be ugly but passing
+>>> a pointer to a 64-bit argument would solve the issue; something like this:
+>>>
+>>> sys_preadv(unsigned long fd, const struct iovec __user *vec,
+>>>                   unsigned long vlen, loff_t __user *pos);
+>>> compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
+>>>                   unsigned long vlen, loff_t __user *pos);
+>> Suggestion from the s390 front was to explicitly pass high and low part
+>> of pos as two arguments.  A bit ugly too, but should work fine as well
+>> and it avoids the user pointer dereference.  What do you think about this?
+> 
+> That's what the wrapper which you deleted, was doing ;-)  So yes, I like
+> it.
 
-Signed-off-by: Jan Beulich <jbeulich@novell.com>
+Yep, but I'm trying to find a way to have it work without per-arch
+wrappers ...
 
----
- arch/x86/Kconfig           |    4 ++++
- arch/x86/include/asm/bug.h |    2 +-
- include/asm-generic/bug.h  |    8 ++++++++
- lib/bug.c                  |   19 +++++++++++++++++--
- 4 files changed, 30 insertions(+), 3 deletions(-)
+> It just raises one new problem, endianess - are arguments being passed
+> as low/high or high/low?  On MIPS we've been solving the issue with the
+> merge_64() macro which is defined depending on the byte order:
+> 
+> #ifdef __MIPSEB__
+> #define merge_64(r1, r2) ((((r1) & 0xffffffffUL) << 32) + ((r2) & 0xffffffffUL))
+> #endif
+> #ifdef __MIPSEL__
+> #define merge_64(r1, r2) ((((r2) & 0xffffffffUL) << 32) + ((r1) & 0xffffffffUL))
+> #endif
+> 
+> The actual syscall wrapper could use it like:
+> 
+> asmlinkage int compat_sys_pwritev(unsigned long fd,
+>        const struct compat_iovec __user *vec,
+>        unsigned a3, unsigned a4, unsigned long vlen)
+> {
+> 	loff_t offset = merge_64(a3, a4);
+> ...
 
---- linux-2.6.28-rc8/arch/x86/Kconfig	2008-12-11 14:45:37.000000000 +0100
-+++ 2.6.28-rc8-x86_64-bug-rel-addr/arch/x86/Kconfig	2008-12-01 14:10:32.000000000 +0100
-@@ -87,6 +87,10 @@ config GENERIC_IOMAP
- config GENERIC_BUG
- 	def_bool y
- 	depends on BUG
-+	select GENERIC_BUG_RELATIVE_POINTERS if X86_64
-+
-+config GENERIC_BUG_RELATIVE_POINTERS
-+	bool
- 
- config GENERIC_HWEIGHT
- 	def_bool y
---- linux-2.6.28-rc8/arch/x86/include/asm/bug.h	2008-12-11 14:45:37.000000000 +0100
-+++ 2.6.28-rc8-x86_64-bug-rel-addr/arch/x86/include/asm/bug.h	2008-12-01 14:12:17.000000000 +0100
-@@ -9,7 +9,7 @@
- #ifdef CONFIG_X86_32
- # define __BUG_C0	"2:\t.long 1b, %c0\n"
- #else
--# define __BUG_C0	"2:\t.quad 1b, %c0\n"
-+# define __BUG_C0	"2:\t.long 1b - 2b, %c0 - 2b\n"
- #endif
- 
- #define BUG()							\
---- linux-2.6.28-rc8/include/asm-generic/bug.h	2008-12-11 14:46:04.000000000 +0100
-+++ 2.6.28-rc8-x86_64-bug-rel-addr/include/asm-generic/bug.h	2008-12-01 14:13:35.000000000 +0100
-@@ -8,9 +8,17 @@
- #ifdef CONFIG_GENERIC_BUG
- #ifndef __ASSEMBLY__
- struct bug_entry {
-+#ifndef CONFIG_GENERIC_BUG_RELATIVE_POINTERS
- 	unsigned long	bug_addr;
-+#else
-+	signed int	bug_addr_disp;
-+#endif
- #ifdef CONFIG_DEBUG_BUGVERBOSE
-+#ifndef CONFIG_GENERIC_BUG_RELATIVE_POINTERS
- 	const char	*file;
-+#else
-+	signed int	file_disp;
-+#endif
- 	unsigned short	line;
- #endif
- 	unsigned short	flags;
---- linux-2.6.28-rc8/lib/bug.c	2008-07-13 23:51:29.000000000 +0200
-+++ 2.6.28-rc8-x86_64-bug-rel-addr/lib/bug.c	2008-12-01 14:18:37.000000000 +0100
-@@ -5,6 +5,8 @@
- 
-   CONFIG_BUG - emit BUG traps.  Nothing happens without this.
-   CONFIG_GENERIC_BUG - enable this code.
-+  CONFIG_GENERIC_BUG_RELATIVE_POINTERS - use 32-bit pointers relative to
-+	the containing struct bug_entry for bug_addr and file.
-   CONFIG_DEBUG_BUGVERBOSE - emit full file+line information for each BUG
- 
-   CONFIG_BUG and CONFIG_DEBUG_BUGVERBOSE are potentially user-settable
-@@ -43,6 +45,15 @@
- 
- extern const struct bug_entry __start___bug_table[], __stop___bug_table[];
- 
-+static inline unsigned long bug_addr(const struct bug_entry *bug)
-+{
-+#ifndef CONFIG_GENERIC_BUG_RELATIVE_POINTERS
-+	return bug->bug_addr;
-+#else
-+	return (unsigned long)bug + bug->bug_addr_disp;
-+#endif
-+}
-+
- #ifdef CONFIG_MODULES
- static LIST_HEAD(module_bug_list);
- 
-@@ -55,7 +66,7 @@ static const struct bug_entry *module_fi
- 		unsigned i;
- 
- 		for (i = 0; i < mod->num_bugs; ++i, ++bug)
--			if (bugaddr == bug->bug_addr)
-+			if (bugaddr == bug_addr(bug))
- 				return bug;
- 	}
- 	return NULL;
-@@ -108,7 +119,7 @@ const struct bug_entry *find_bug(unsigne
- 	const struct bug_entry *bug;
- 
- 	for (bug = __start___bug_table; bug < __stop___bug_table; ++bug)
--		if (bugaddr == bug->bug_addr)
-+		if (bugaddr == bug_addr(bug))
- 			return bug;
- 
- 	return module_find_bug(bugaddr);
-@@ -133,7 +144,11 @@ enum bug_trap_type report_bug(unsigned l
- 
- 	if (bug) {
- #ifdef CONFIG_DEBUG_BUGVERBOSE
-+#ifndef CONFIG_GENERIC_BUG_RELATIVE_POINTERS
- 		file = bug->file;
-+#else
-+		file = (const char *)bug + bug->file_disp;
-+#endif
- 		line = bug->line;
- #endif
- 		warning = (bug->flags & BUGFLAG_WARNING) != 0;
+i.e. the ordering of the splitted argument depends on the os endianness?
+What is the reason for this?
 
+I'd prefer to have the ordering coded explicitly instead, like this:
+
+asmlinkage int compat_sys_pwritev(unsigned long fd,
+       const struct compat_iovec __user *vec, unsigned long vlen,
+       unsigned pos_low, unsigned pos_high)
+{
+	loff_t pos = pos_low | (loff_t)pos_high << 32;
+        [ ... ]
+
+cheers,
+  Gerd
 
 
