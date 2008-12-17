@@ -1,56 +1,48 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [RFC] remove linux/hardirq.h from asm-generic/local.h
-Date: Wed, 17 Dec 2008 12:42:14 +1100
-Message-ID: <20081217124214.3033bdf3.sfr@canb.auug.org.au>
-References: <20081214133941.GA18035@flint.arm.linux.org.uk>
-	<20081214095803.9d16e85f.akpm@linux-foundation.org>
-	<20081214195116.GB11223@flint.arm.linux.org.uk>
+From: Dan Mick <dan.mick-xsfywfwIY+M@public.gmane.org>
+Subject: Re: [PATCH v2] Add preadv and pwritev system calls.
+Date: Tue, 16 Dec 2008 17:45:45 -0800
+Message-ID: <494859C9.20305@sun.com>
+References: <1229090440-32120-1-git-send-email-kraxel@redhat.com>
+	<67079b830812150837o12adaa1awe40b0759bbea1f7a@mail.gmail.com>
+	<4946C160.2090505@redhat.com> <200812161057.03025.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Wed__17_Dec_2008_12_42_14_+1100_OCr=2B99n1avZvRO"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:59308 "EHLO smtps.tip.net.au"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752040AbYLQBm3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Dec 2008 20:42:29 -0500
-In-Reply-To: <20081214195116.GB11223@flint.arm.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Kernel List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <opensolaris-code-bounces-xZgeD5Kw2fzokhkdeNNY6A@public.gmane.org>
+In-Reply-To: <200812161057.03025.arnd-r2nGTMty4D4@public.gmane.org>
+List-Unsubscribe: <http://mail.opensolaris.org/mailman/listinfo/opensolaris-code>,
+	<mailto:opensolaris-code-request-xZgeD5Kw2fzokhkdeNNY6A@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://mail.opensolaris.org/pipermail/opensolaris-code>
+List-Post: <mailto:opensolaris-code-xZgeD5Kw2fzokhkdeNNY6A@public.gmane.org>
+List-Help: <mailto:opensolaris-code-request-xZgeD5Kw2fzokhkdeNNY6A@public.gmane.org?subject=help>
+List-Subscribe: <http://mail.opensolaris.org/mailman/listinfo/opensolaris-code>,
+	<mailto:opensolaris-code-request-xZgeD5Kw2fzokhkdeNNY6A@public.gmane.org?subject=subscribe>
+Sender: opensolaris-code-bounces-xZgeD5Kw2fzokhkdeNNY6A@public.gmane.org
+Errors-To: opensolaris-code-bounces-xZgeD5Kw2fzokhkdeNNY6A@public.gmane.org
+To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>, opensolaris-code-xZgeD5Kw2fzokhkdeNNY6A@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, opensolaris-rfe-xZgeD5Kw2fzokhkdeNNY6A@public.gmane.org, Gerd Hoffmann <kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ulrich Drepper <drepper-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
---Signature=_Wed__17_Dec_2008_12_42_14_+1100_OCr=2B99n1avZvRO
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Arnd Bergmann wrote:
+> On Monday 15 December 2008, Gerd Hoffmann wrote:
+>> Jennifer Pioch wrote:
+>>> On 12/12/08, Gerd Hoffmann <kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org> wrote:
+>>>> Free- and OpenBSD have it too.  For Solaris I've found a feature request
+>>>>  only.  Dunno about MacOS/Darwin.  Other un*xes which are important these
+>>>>  days?
+>>> Do you know the ID of the feature request?
+>> #1167819 @ bugs.opensolaris.org
+>>
+> 
+> Looks like they've been working on it for some time:
+> "Submit Date   25-MAY-1994"!
+> 
+> 	Arnd <><
 
-Hi Russell,
+No one's expended any serious time on it at all, it looks like, other than 
+discussion.
 
-On Sun, 14 Dec 2008 19:51:16 +0000 Russell King <rmk+lkml@arm.linux.org.uk>=
- wrote:
->
-> Thanks, I've committed to my git tree the addition of linux/hardirq.h to
-> those two files I mentioned above.  I guess at some point you'll pick
-> those up to prevent build errors on ARM?
-
-Andrew will (presumably) get these through linux-next (which he bases the
-mm trees on).
-
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
-
---Signature=_Wed__17_Dec_2008_12_42_14_+1100_OCr=2B99n1avZvRO
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.9 (GNU/Linux)
-
-iEYEARECAAYFAklIWPYACgkQjjKRsyhoI8ybpwCfZJ18zseEcWO3ZBreAD7LPOZJ
-CScAoIWXRk/sy0GH4aIBi7L6uqahbtrv
-=djXG
------END PGP SIGNATURE-----
-
---Signature=_Wed__17_Dec_2008_12_42_14_+1100_OCr=2B99n1avZvRO--
+I see the one comment says that it can be done with lio_listio(3RT) (apparently 
+in LIO_WAIT mode), and that interface does seem to offer all the preadv/pwritev
+functionality.  That's not to say that we shouldn't implement preadv/pwritev 
+literally, just that there should be a way to get that sort of functionality today.
