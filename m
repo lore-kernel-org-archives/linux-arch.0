@@ -1,28 +1,137 @@
-From: David Howells <dhowells@redhat.com>
+From: Alexander van Heukelum <heukelum@mailshack.com>
 Subject: Re: PROC macro to annotate functions in assembly files
-Date: Wed, 17 Dec 2008 10:53:53 +0000
-Message-ID: <1636.1229511233@redhat.com>
-References: <1229505475-10219-1-git-send-email-heukelum@fastmail.fm>
+Date: Wed, 17 Dec 2008 12:12:14 +0100
+Message-ID: <20081217111213.GA8342@mailshack.com>
+References: <1229505475-10219-1-git-send-email-heukelum@fastmail.fm> <1636.1229511233@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:43192 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750923AbYLQKyT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Dec 2008 05:54:19 -0500
-In-Reply-To: <1229505475-10219-1-git-send-email-heukelum@fastmail.fm>
+Received: from triton.rz.uni-saarland.de ([134.96.7.25]:20468 "EHLO
+	triton.rz.uni-saarland.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750923AbYLQLND (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Dec 2008 06:13:03 -0500
+Content-Disposition: inline
+In-Reply-To: <1636.1229511233@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander van Heukelum <heukelum@fastmail.fm>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, Alexander van Heukelum <heukelum@mailshack.com>, Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Cyrill Gorcunov <gorcunov@gmail.com>
+To: David Howells <dhowells@redhat.com>
+Cc: Alexander van Heukelum <heukelum@fastmail.fm>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Cyrill Gorcunov <gorcunov@gmail.com>
 
-Alexander van Heukelum <heukelum@fastmail.fm> wrote:
+On Wed, Dec 17, 2008 at 10:53:53AM +0000, David Howells wrote:
+> Alexander van Heukelum <heukelum@fastmail.fm> wrote:
+> 
+> > The goal is to annotate functions, at least those called
+> > from C code, with PROC at the beginning and ENDPROC at the
+> > end. This is for the benefit of debugging and tracing.
+> 
+> What about asm functions that have multiple entry points?
+> 
+> Take arch/mn10300/mm/cache-flush-mn10300.S for example.  Several functions in
+> there share bodies by virtue of falling through one to another.
+> 
+> David
 
-> The goal is to annotate functions, at least those called
-> from C code, with PROC at the beginning and ENDPROC at the
-> end. This is for the benefit of debugging and tracing.
+Yeah, assembly files contain some interesting nesting. In this
+particular case I think the solution is simple... Just use PROC
+and ENDPROC around the complete functions, and leave the explicit
+.global's for the additional entry points.
 
-What about asm functions that have multiple entry points?
+Have a look at arch/x86/crypto/aes-x86_64-asm_64.S too if you wish ;).
 
-Take arch/mn10300/mm/cache-flush-mn10300.S for example.  Several functions in
-there share bodies by virtue of falling through one to another.
+Greetings,
+	Alexander
 
-David
+ arch/mn10300/mm/cache-flush-mn10300.S |   25 +++++++++++++------------
+ 1 files changed, 13 insertions(+), 12 deletions(-)
+
+diff --git a/arch/mn10300/mm/cache-flush-mn10300.S b/arch/mn10300/mm/cache-flush-mn10300.S
+index c8ed1cb..2c0f26d 100644
+--- a/arch/mn10300/mm/cache-flush-mn10300.S
++++ b/arch/mn10300/mm/cache-flush-mn10300.S
+@@ -16,12 +16,9 @@
+ #include <asm/cache.h>
+ 
+ 	.am33_2
+-	.globl mn10300_dcache_flush
+-	.globl mn10300_dcache_flush_page
++	/* nested entry points */
+ 	.globl mn10300_dcache_flush_range
+ 	.globl mn10300_dcache_flush_range2
+-	.globl mn10300_dcache_flush_inv
+-	.globl mn10300_dcache_flush_inv_page
+ 	.globl mn10300_dcache_flush_inv_range
+ 	.globl mn10300_dcache_flush_inv_range2
+ 
+@@ -31,8 +28,8 @@
+ # Flush the entire data cache back to RAM
+ #
+ ###############################################################################
+-	ALIGN
+-mn10300_dcache_flush:
++
++PROC(mn10300_dcache_flush)
+ 	movhu	(CHCTR),d0
+ 	btst	CHCTR_DCEN,d0
+ 	beq	mn10300_dcache_flush_end
+@@ -59,6 +56,7 @@ mn10300_dcache_flush_skip:
+ 
+ mn10300_dcache_flush_end:
+ 	ret	[],0
++ENDPROC(mn10300_dcache_flush)
+ 
+ ###############################################################################
+ #
+@@ -68,8 +66,8 @@ mn10300_dcache_flush_end:
+ # Flush a range of addresses on a page in the dcache
+ #
+ ###############################################################################
+-	ALIGN
+-mn10300_dcache_flush_page:
++
++PROC(mn10300_dcache_flush_page)
+ 	mov	PAGE_SIZE,d1
+ mn10300_dcache_flush_range2:
+ 	add	d0,d1
+@@ -113,6 +111,7 @@ mn10300_dcache_flush_range_loop:
+ 
+ mn10300_dcache_flush_range_end:
+ 	ret	[d2,d3],8
++ENDPROC(mn10300_dcache_flush_page)
+ 
+ ###############################################################################
+ #
+@@ -120,8 +119,8 @@ mn10300_dcache_flush_range_end:
+ # Flush the entire data cache and invalidate all entries
+ #
+ ###############################################################################
+-	ALIGN
+-mn10300_dcache_flush_inv:
++
++PROC(mn10300_dcache_flush_inv)
+ 	movhu	(CHCTR),d0
+ 	btst	CHCTR_DCEN,d0
+ 	beq	mn10300_dcache_flush_inv_end
+@@ -139,6 +138,7 @@ mn10300_dcache_flush_inv_loop:
+ 
+ mn10300_dcache_flush_inv_end:
+ 	ret	[],0
++ENDPROC(mn10300_dcache_flush_inv)
+ 
+ ###############################################################################
+ #
+@@ -148,8 +148,8 @@ mn10300_dcache_flush_inv_end:
+ # Flush and invalidate a range of addresses on a page in the dcache
+ #
+ ###############################################################################
+-	ALIGN
+-mn10300_dcache_flush_inv_page:
++
++PROC(mn10300_dcache_flush_inv_page)
+ 	mov	PAGE_SIZE,d1
+ mn10300_dcache_flush_inv_range2:
+ 	add	d0,d1
+@@ -190,3 +190,4 @@ mn10300_dcache_flush_inv_range_loop:
+ 
+ mn10300_dcache_flush_inv_range_end:
+ 	ret	[d2,d3],8
++ENDPROC(mn10300_dcache_flush_inv_page)
