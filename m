@@ -1,137 +1,54 @@
-From: Alexander van Heukelum <heukelum@mailshack.com>
-Subject: Re: PROC macro to annotate functions in assembly files
-Date: Wed, 17 Dec 2008 12:12:14 +0100
-Message-ID: <20081217111213.GA8342@mailshack.com>
-References: <1229505475-10219-1-git-send-email-heukelum@fastmail.fm> <1636.1229511233@redhat.com>
+From: "Cyrill Gorcunov" <gorcunov@gmail.com>
+Subject: Re: [PATCH last/many] x86: checking framework for correct use of ENTRY/PROC
+Date: Wed, 17 Dec 2008 14:51:53 +0300
+Message-ID: <aa79d98a0812170351rb64c595gc933456c661317c5@mail.gmail.com>
+References: <1229505475-10219-1-git-send-email-heukelum@fastmail.fm>
+	 <1229505475-10219-2-git-send-email-heukelum@fastmail.fm>
+	 <1229505475-10219-3-git-send-email-heukelum@fastmail.fm>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from triton.rz.uni-saarland.de ([134.96.7.25]:20468 "EHLO
-	triton.rz.uni-saarland.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750923AbYLQLND (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Dec 2008 06:13:03 -0500
+Received: from mail-bw0-f21.google.com ([209.85.218.21]:39088 "EHLO
+	mail-bw0-f21.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751853AbYLQLvz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Dec 2008 06:51:55 -0500
+In-Reply-To: <1229505475-10219-3-git-send-email-heukelum@fastmail.fm>
 Content-Disposition: inline
-In-Reply-To: <1636.1229511233@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Alexander van Heukelum <heukelum@fastmail.fm>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Cyrill Gorcunov <gorcunov@gmail.com>
+To: Alexander van Heukelum <heukelum@fastmail.fm>
+Cc: linux-arch@vger.kernel.org, Alexander van Heukelum <heukelum@mailshack.com>, Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>
 
-On Wed, Dec 17, 2008 at 10:53:53AM +0000, David Howells wrote:
-> Alexander van Heukelum <heukelum@fastmail.fm> wrote:
-> 
-> > The goal is to annotate functions, at least those called
-> > from C code, with PROC at the beginning and ENDPROC at the
-> > end. This is for the benefit of debugging and tracing.
-> 
-> What about asm functions that have multiple entry points?
-> 
-> Take arch/mn10300/mm/cache-flush-mn10300.S for example.  Several functions in
-> there share bodies by virtue of falling through one to another.
-> 
-> David
+On Wed, Dec 17, 2008 at 12:17 PM, Alexander van Heukelum
+<heukelum@fastmail.fm> wrote:
+> [ DO NOT APPLY (yet...) At this point this patch will
+> just cause the build to abort due to annotation errors
+> found. ]
+>
+> Introduce a checking framework to check correct pairing
+> of ENTRY/END and PROC/ENDPROC. It also checks that the
+> annotations are not nested. I have used the ideas and
+> most of the implementation from Cyrill Gorcunov who
+> introduced the framework to check for mismatching
+> KPROBE_ENTRY annotations, which was however soon made
+> obsolete by the removal of KPROBE_ENTRY/KPROBE_END.
+>
+> Checks performed:
+>  o  END must terminate an ENTRY annotation
+>  o  ENDPROC must terminate a PROC annotation
+>  o  ENTRY or PROC cannot be nested inside
+>        another ENTRY or PROC section.
+>
+> Finally the macro ENTRY_PROC_FINAL is introduced to
+> enable checking correct closing of PROC and ENTRY
+> sections at the end of assembly files.
+>
+> Signed-off-by: Alexander van Heukelum <heukelum@fastmail.fm>
+> Cc: Cyrill Gorcunov <gorcunov@gmail.com>
+...
 
-Yeah, assembly files contain some interesting nesting. In this
-particular case I think the solution is simple... Just use PROC
-and ENDPROC around the complete functions, and leave the explicit
-.global's for the additional entry points.
+Thanks Alexander!
 
-Have a look at arch/x86/crypto/aes-x86_64-asm_64.S too if you wish ;).
-
-Greetings,
-	Alexander
-
- arch/mn10300/mm/cache-flush-mn10300.S |   25 +++++++++++++------------
- 1 files changed, 13 insertions(+), 12 deletions(-)
-
-diff --git a/arch/mn10300/mm/cache-flush-mn10300.S b/arch/mn10300/mm/cache-flush-mn10300.S
-index c8ed1cb..2c0f26d 100644
---- a/arch/mn10300/mm/cache-flush-mn10300.S
-+++ b/arch/mn10300/mm/cache-flush-mn10300.S
-@@ -16,12 +16,9 @@
- #include <asm/cache.h>
- 
- 	.am33_2
--	.globl mn10300_dcache_flush
--	.globl mn10300_dcache_flush_page
-+	/* nested entry points */
- 	.globl mn10300_dcache_flush_range
- 	.globl mn10300_dcache_flush_range2
--	.globl mn10300_dcache_flush_inv
--	.globl mn10300_dcache_flush_inv_page
- 	.globl mn10300_dcache_flush_inv_range
- 	.globl mn10300_dcache_flush_inv_range2
- 
-@@ -31,8 +28,8 @@
- # Flush the entire data cache back to RAM
- #
- ###############################################################################
--	ALIGN
--mn10300_dcache_flush:
-+
-+PROC(mn10300_dcache_flush)
- 	movhu	(CHCTR),d0
- 	btst	CHCTR_DCEN,d0
- 	beq	mn10300_dcache_flush_end
-@@ -59,6 +56,7 @@ mn10300_dcache_flush_skip:
- 
- mn10300_dcache_flush_end:
- 	ret	[],0
-+ENDPROC(mn10300_dcache_flush)
- 
- ###############################################################################
- #
-@@ -68,8 +66,8 @@ mn10300_dcache_flush_end:
- # Flush a range of addresses on a page in the dcache
- #
- ###############################################################################
--	ALIGN
--mn10300_dcache_flush_page:
-+
-+PROC(mn10300_dcache_flush_page)
- 	mov	PAGE_SIZE,d1
- mn10300_dcache_flush_range2:
- 	add	d0,d1
-@@ -113,6 +111,7 @@ mn10300_dcache_flush_range_loop:
- 
- mn10300_dcache_flush_range_end:
- 	ret	[d2,d3],8
-+ENDPROC(mn10300_dcache_flush_page)
- 
- ###############################################################################
- #
-@@ -120,8 +119,8 @@ mn10300_dcache_flush_range_end:
- # Flush the entire data cache and invalidate all entries
- #
- ###############################################################################
--	ALIGN
--mn10300_dcache_flush_inv:
-+
-+PROC(mn10300_dcache_flush_inv)
- 	movhu	(CHCTR),d0
- 	btst	CHCTR_DCEN,d0
- 	beq	mn10300_dcache_flush_inv_end
-@@ -139,6 +138,7 @@ mn10300_dcache_flush_inv_loop:
- 
- mn10300_dcache_flush_inv_end:
- 	ret	[],0
-+ENDPROC(mn10300_dcache_flush_inv)
- 
- ###############################################################################
- #
-@@ -148,8 +148,8 @@ mn10300_dcache_flush_inv_end:
- # Flush and invalidate a range of addresses on a page in the dcache
- #
- ###############################################################################
--	ALIGN
--mn10300_dcache_flush_inv_page:
-+
-+PROC(mn10300_dcache_flush_inv_page)
- 	mov	PAGE_SIZE,d1
- mn10300_dcache_flush_inv_range2:
- 	add	d0,d1
-@@ -190,3 +190,4 @@ mn10300_dcache_flush_inv_range_loop:
- 
- mn10300_dcache_flush_inv_range_end:
- 	ret	[d2,d3],8
-+ENDPROC(mn10300_dcache_flush_inv_page)
+You know I think you meant __ASSEMBLY__ while
+were typing __ASSEMBLER__. Don't you? :)
