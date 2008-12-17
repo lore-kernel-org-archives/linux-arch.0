@@ -1,43 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sca-ea-mail-4.Sun.COM ([192.18.43.22]:57797 "EHLO
-	sca-ea-mail-4.sun.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752529AbYLQCM0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Dec 2008 21:12:26 -0500
-Message-ID: <494859C9.20305@sun.com>
-Date: Tue, 16 Dec 2008 17:45:45 -0800
-From: Dan Mick <dan.mick@sun.com>
+Received: from g1t0028.austin.hp.com ([15.216.28.35]:19460 "EHLO
+	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751473AbYLQEhR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Dec 2008 23:37:17 -0500
+From: Bjorn Helgaas <bjorn.helgaas@hp.com>
+Subject: [PATCH 5/6] PCI: sh: use generic INTx swizzle from PCI core
+Date: Tue, 16 Dec 2008 21:37:15 -0700
+Message-ID: <20081217043715.8372.48656.stgit@bob.kio>
+In-Reply-To: <20081217043443.8372.28890.stgit@bob.kio>
+References: <20081217043443.8372.28890.stgit@bob.kio>
 MIME-Version: 1.0
-Subject: Re: [osol-code] [PATCH v2] Add preadv and pwritev system calls.
-References: <1229090440-32120-1-git-send-email-kraxel@redhat.com> <67079b830812150837o12adaa1awe40b0759bbea1f7a@mail.gmail.com> <4946C160.2090505@redhat.com> <200812161057.03025.arnd@arndb.de>
-In-Reply-To: <200812161057.03025.arnd@arndb.de>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Gerd Hoffmann <kraxel@redhat.com>, linux-arch@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, opensolaris-code@opensolaris.org, linux-kernel@vger.kernel.org, opensolaris-rfe@opensolaris.org, Ulrich Drepper <drepper@redhat.com>
-Message-ID: <20081217014545.b75npHKxoXuiVvcMaz_R5ndM0ovTWx0CeiRXneUQV_o@z>
+To: Jesse Barnes <jbarnes@virtuousgeek.org>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Russell King <rmk@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, hpa@zytor.com
+Message-ID: <20081217043715.svYt07j_aF9hQUffGAPuCJt8Bs4-naZKsZKeDDCyId4@z>
 
-Arnd Bergmann wrote:
-> On Monday 15 December 2008, Gerd Hoffmann wrote:
->> Jennifer Pioch wrote:
->>> On 12/12/08, Gerd Hoffmann <kraxel@redhat.com> wrote:
->>>> Free- and OpenBSD have it too.  For Solaris I've found a feature request
->>>>  only.  Dunno about MacOS/Darwin.  Other un*xes which are important these
->>>>  days?
->>> Do you know the ID of the feature request?
->> #1167819 @ bugs.opensolaris.org
->>
-> 
-> Looks like they've been working on it for some time:
-> "Submit Date   25-MAY-1994"!
-> 
-> 	Arnd <><
+Use the generic pci_common_swizzle() instead of arch-specific code.
 
-No one's expended any serious time on it at all, it looks like, other than 
-discussion.
+Note that pci_common_swizzle() loops based on dev->bus->self, not
+dev->bus->parent as the sh simple_swizzle() did.  I think they
+are equivalent for this purpose.
 
-I see the one comment says that it can be done with lio_listio(3RT) (apparently 
-in LIO_WAIT mode), and that interface does seem to offer all the preadv/pwritev
-functionality.  That's not to say that we shouldn't implement preadv/pwritev 
-literally, just that there should be a way to get that sort of functionality today.
+Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
+---
+ arch/sh/drivers/pci/pci.c |   17 +----------------
+ 1 files changed, 1 insertions(+), 16 deletions(-)
+
+diff --git a/arch/sh/drivers/pci/pci.c b/arch/sh/drivers/pci/pci.c
+index aea3b6b..e36c7b8 100644
+--- a/arch/sh/drivers/pci/pci.c
++++ b/arch/sh/drivers/pci/pci.c
+@@ -21,21 +21,6 @@
+ #include <linux/init.h>
+ #include <asm/io.h>
+ 
+-static u8 __init simple_swizzle(struct pci_dev *dev, u8 *pinp)
+-{
+-	u8 pin = *pinp;
+-
+-	while (dev->bus->parent) {
+-		pin = pci_swizzle_interrupt_pin(dev, pin);
+-		/* Move up the chain of bridges. */
+-		dev = dev->bus->self;
+-	}
+-	*pinp = pin;
+-
+-	/* The slot is the slot of the last bridge. */
+-	return PCI_SLOT(dev->devfn);
+-}
+-
+ static int __init pcibios_init(void)
+ {
+ 	struct pci_channel *p;
+@@ -56,7 +41,7 @@ static int __init pcibios_init(void)
+ 		busno = bus->subordinate + 1;
+ 	}
+ 
+-	pci_fixup_irqs(simple_swizzle, pcibios_map_platform_irq);
++	pci_fixup_irqs(pci_common_swizzle, pcibios_map_platform_irq);
+ 
+ 	return 0;
+ }
+
