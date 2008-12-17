@@ -1,16 +1,16 @@
 From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: [PATCH 3/6] PCI: arm: use generic INTx swizzle from PCI core
-Date: Tue, 16 Dec 2008 21:37:05 -0700
-Message-ID: <20081217043705.8372.82025.stgit@bob.kio>
+Subject: [PATCH 4/6] PCI: mips: use generic INTx swizzle from PCI core
+Date: Tue, 16 Dec 2008 21:37:10 -0700
+Message-ID: <20081217043710.8372.4708.stgit@bob.kio>
 References: <20081217043443.8372.28890.stgit@bob.kio>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0015.houston.hp.com ([15.201.24.18]:32304 "EHLO
+Received: from g4t0015.houston.hp.com ([15.201.24.18]:32330 "EHLO
 	g4t0015.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751011AbYLQEhJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Dec 2008 23:37:09 -0500
+	with ESMTP id S1751321AbYLQEhL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Dec 2008 23:37:11 -0500
 In-Reply-To: <20081217043443.8372.28890.stgit@bob.kio>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -19,60 +19,47 @@ Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@
 
 Use the generic pci_common_swizzle() instead of arch-specific code.
 
+Note that pci_common_swizzle() loops based on dev->bus->self, not
+dev->bus->parent as the mips common_swizzle() did.  I think they
+are equivalent for this purpose.
+
 Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 ---
- arch/arm/include/asm/mach/pci.h |    2 +-
- arch/arm/kernel/bios32.c        |   27 ---------------------------
- 2 files changed, 1 insertions(+), 28 deletions(-)
+ arch/mips/pci/pci.c |   17 +----------------
+ 1 files changed, 1 insertions(+), 16 deletions(-)
 
-diff --git a/arch/arm/include/asm/mach/pci.h b/arch/arm/include/asm/mach/pci.h
-index 32da1ae..a38bdc7 100644
---- a/arch/arm/include/asm/mach/pci.h
-+++ b/arch/arm/include/asm/mach/pci.h
-@@ -42,7 +42,7 @@ struct pci_sys_data {
- /*
-  * This is the standard PCI-PCI bridge swizzling algorithm.
-  */
--u8 pci_std_swizzle(struct pci_dev *dev, u8 *pinp);
-+#define pci_std_swizzle pci_common_swizzle
+diff --git a/arch/mips/pci/pci.c b/arch/mips/pci/pci.c
+index fa63dc2..b0eb9e7 100644
+--- a/arch/mips/pci/pci.c
++++ b/arch/mips/pci/pci.c
+@@ -149,21 +149,6 @@ out:
+ 	       "Skipping PCI bus scan due to resource conflict\n");
+ }
  
- /*
-  * Call this with your hw_pci struct to initialise the PCI system.
-diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
-index 5c5a0bc..8096819 100644
---- a/arch/arm/kernel/bios32.c
-+++ b/arch/arm/kernel/bios32.c
-@@ -480,33 +480,6 @@ EXPORT_SYMBOL(pcibios_bus_to_resource);
- #endif
- 
- /*
-- * This is the standard PCI-PCI bridge swizzling algorithm:
-- *
-- *   Dev: 0  1  2  3
-- *    A   A  B  C  D
-- *    B   B  C  D  A
-- *    C   C  D  A  B
-- *    D   D  A  B  C
-- *        ^^^^^^^^^^ irq pin on bridge
-- */
--u8 __devinit pci_std_swizzle(struct pci_dev *dev, u8 *pinp)
+-static u8 __init common_swizzle(struct pci_dev *dev, u8 *pinp)
 -{
--	int pin = *pinp;
+-	u8 pin = *pinp;
 -
--	while (dev->bus->self) {
+-	while (dev->bus->parent) {
 -		pin = pci_swizzle_interrupt_pin(dev, pin);
--		/*
--		 * move up the chain of bridges,
--		 * swizzling as we go.
--		 */
+-		/* Move up the chain of bridges. */
 -		dev = dev->bus->self;
--	}
+-        }
 -	*pinp = pin;
 -
+-	/* The slot is the slot of the last bridge. */
 -	return PCI_SLOT(dev->devfn);
 -}
 -
--/*
-  * Swizzle the device pin each time we cross a bridge.
-  * This might update pin and returns the slot number.
-  */
+ static int __init pcibios_init(void)
+ {
+ 	struct pci_controller *hose;
+@@ -172,7 +157,7 @@ static int __init pcibios_init(void)
+ 	for (hose = hose_head; hose; hose = hose->next)
+ 		pcibios_scanbus(hose);
+ 
+-	pci_fixup_irqs(common_swizzle, pcibios_map_irq);
++	pci_fixup_irqs(pci_common_swizzle, pcibios_map_irq);
+ 
+ 	pci_initialized = 1;
+ 
