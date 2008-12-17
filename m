@@ -1,53 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate2.de.ibm.com ([195.212.17.162]:54622 "EHLO
-	mtagate2.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758597AbYLPWjN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Dec 2008 17:39:13 -0500
-Date: Tue, 16 Dec 2008 23:39:09 +0100
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH v3 0/3] preadv & pwritev syscalls.
-Message-ID: <20081216223909.GB5584@osiris.boeblingen.de.ibm.com>
-References: <1229340977-24345-1-git-send-email-kraxel@redhat.com> <20081215160311.GA23153@linux-mips.org> <4946C4B4.1020605@redhat.com> <20081216160502.GA15331@linux-mips.org> <4947DBFA.9050108@redhat.com> <20081216170209.GC410@bombadil.infradead.org> <49481EF9.3090304@redhat.com>
+Received: from sca-ea-mail-4.Sun.COM ([192.18.43.22]:57797 "EHLO
+	sca-ea-mail-4.sun.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752529AbYLQCM0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Dec 2008 21:12:26 -0500
+Message-ID: <494859C9.20305@sun.com>
+Date: Tue, 16 Dec 2008 17:45:45 -0800
+From: Dan Mick <dan.mick@sun.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <49481EF9.3090304@redhat.com>
+Subject: Re: [osol-code] [PATCH v2] Add preadv and pwritev system calls.
+References: <1229090440-32120-1-git-send-email-kraxel@redhat.com> <67079b830812150837o12adaa1awe40b0759bbea1f7a@mail.gmail.com> <4946C160.2090505@redhat.com> <200812161057.03025.arnd@arndb.de>
+In-Reply-To: <200812161057.03025.arnd@arndb.de>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gerd Hoffmann <kraxel@redhat.com>
-Cc: Kyle McMartin <kyle@infradead.org>, Ralf Baechle <ralf@linux-mips.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20081216223909.AtVmaBTKP1UTOMoFAZP9sa3JUjybgXNK6IQwCOfhvrc@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Gerd Hoffmann <kraxel@redhat.com>, linux-arch@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, opensolaris-code@opensolaris.org, linux-kernel@vger.kernel.org, opensolaris-rfe@opensolaris.org, Ulrich Drepper <drepper@redhat.com>
+Message-ID: <20081217014545.b75npHKxoXuiVvcMaz_R5ndM0ovTWx0CeiRXneUQV_o@z>
 
-On Tue, Dec 16, 2008 at 10:34:49PM +0100, Gerd Hoffmann wrote:
-> Kyle McMartin wrote:
-> > On Tue, Dec 16, 2008 at 05:48:58PM +0100, Gerd Hoffmann wrote:
-> >> i.e. the ordering of the splitted argument depends on the os endianness?
-> >> What is the reason for this?
-> > 
-> > Eh? The splitting will occur at the C ABI level, not as a result of
-> > glibc (though, it could be done that way if you really wanted, but then
-> > you're just moving the wrapper up the chain.)
+Arnd Bergmann wrote:
+> On Monday 15 December 2008, Gerd Hoffmann wrote:
+>> Jennifer Pioch wrote:
+>>> On 12/12/08, Gerd Hoffmann <kraxel@redhat.com> wrote:
+>>>> Free- and OpenBSD have it too.  For Solaris I've found a feature request
+>>>>  only.  Dunno about MacOS/Darwin.  Other un*xes which are important these
+>>>>  days?
+>>> Do you know the ID of the feature request?
+>> #1167819 @ bugs.opensolaris.org
+>>
 > 
-> Ah, ok.  You'll just declare 64bit arg for userspace, gcc splits it into
-> two 32bit in native byte order, and then the kernel picks up the two
-> 32bit values and has to reassemble them correctly, right?
+> Looks like they've been working on it for some time:
+> "Submit Date   25-MAY-1994"!
 > 
-> The application-visible API must be compatible to the existing
-> implementations, i.e. this ...
-> 
->    pread(long fd, struct iovec *vec, long vlen, off_t pos);
-> 
-> ... prototype with the unaligned 64bit pos argument (in 32compat case).
-> 
-> Looks like there is no way around wrapping stuff then for the archs
-> wanting aligned 64bit values.  The only choice we have is to do the
-> wrap-o-magic in glibc or in the kernel.
-> 
-> I'd tend handle the wrapping in kernel space then because it is less
-> confusing and we have to wrap only in case the ABI for $arch requires it.
-> 
-> Comments?
+> 	Arnd <><
 
-Please do it just the way that Arnd suggested: explicitly pass the upper
-and lower part of loff_t as separate arguments.
-It's the most simple approach.
+No one's expended any serious time on it at all, it looks like, other than 
+discussion.
+
+I see the one comment says that it can be done with lio_listio(3RT) (apparently 
+in LIO_WAIT mode), and that interface does seem to offer all the preadv/pwritev
+functionality.  That's not to say that we shouldn't implement preadv/pwritev 
+literally, just that there should be a way to get that sort of functionality today.
