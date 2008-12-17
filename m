@@ -1,52 +1,56 @@
-From: Heiko Carstens <heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH v3 0/3] preadv & pwritev syscalls.
-Date: Tue, 16 Dec 2008 23:39:09 +0100
-Message-ID: <20081216223909.GB5584@osiris.boeblingen.de.ibm.com>
-References: <1229340977-24345-1-git-send-email-kraxel@redhat.com> <20081215160311.GA23153@linux-mips.org> <4946C4B4.1020605@redhat.com> <20081216160502.GA15331@linux-mips.org> <4947DBFA.9050108@redhat.com> <20081216170209.GC410@bombadil.infradead.org> <49481EF9.3090304@redhat.com>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [RFC] remove linux/hardirq.h from asm-generic/local.h
+Date: Wed, 17 Dec 2008 12:42:14 +1100
+Message-ID: <20081217124214.3033bdf3.sfr@canb.auug.org.au>
+References: <20081214133941.GA18035@flint.arm.linux.org.uk>
+	<20081214095803.9d16e85f.akpm@linux-foundation.org>
+	<20081214195116.GB11223@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Wed__17_Dec_2008_12_42_14_+1100_OCr=2B99n1avZvRO"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from chilli.pcug.org.au ([203.10.76.44]:59308 "EHLO smtps.tip.net.au"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752040AbYLQBm3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Dec 2008 20:42:29 -0500
+In-Reply-To: <20081214195116.GB11223@flint.arm.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Kernel List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+
+--Signature=_Wed__17_Dec_2008_12_42_14_+1100_OCr=2B99n1avZvRO
+Content-Type: text/plain; charset=US-ASCII
 Content-Disposition: inline
-In-Reply-To: <49481EF9.3090304-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Gerd Hoffmann <kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: Kyle McMartin <kyle-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
 
-On Tue, Dec 16, 2008 at 10:34:49PM +0100, Gerd Hoffmann wrote:
-> Kyle McMartin wrote:
-> > On Tue, Dec 16, 2008 at 05:48:58PM +0100, Gerd Hoffmann wrote:
-> >> i.e. the ordering of the splitted argument depends on the os endianness?
-> >> What is the reason for this?
-> > 
-> > Eh? The splitting will occur at the C ABI level, not as a result of
-> > glibc (though, it could be done that way if you really wanted, but then
-> > you're just moving the wrapper up the chain.)
-> 
-> Ah, ok.  You'll just declare 64bit arg for userspace, gcc splits it into
-> two 32bit in native byte order, and then the kernel picks up the two
-> 32bit values and has to reassemble them correctly, right?
-> 
-> The application-visible API must be compatible to the existing
-> implementations, i.e. this ...
-> 
->    pread(long fd, struct iovec *vec, long vlen, off_t pos);
-> 
-> ... prototype with the unaligned 64bit pos argument (in 32compat case).
-> 
-> Looks like there is no way around wrapping stuff then for the archs
-> wanting aligned 64bit values.  The only choice we have is to do the
-> wrap-o-magic in glibc or in the kernel.
-> 
-> I'd tend handle the wrapping in kernel space then because it is less
-> confusing and we have to wrap only in case the ABI for $arch requires it.
-> 
-> Comments?
+Hi Russell,
 
-Please do it just the way that Arnd suggested: explicitly pass the upper
-and lower part of loff_t as separate arguments.
-It's the most simple approach.
---
-To unsubscribe from this list: send the line "unsubscribe linux-api" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+On Sun, 14 Dec 2008 19:51:16 +0000 Russell King <rmk+lkml@arm.linux.org.uk>=
+ wrote:
+>
+> Thanks, I've committed to my git tree the addition of linux/hardirq.h to
+> those two files I mentioned above.  I guess at some point you'll pick
+> those up to prevent build errors on ARM?
+
+Andrew will (presumably) get these through linux-next (which he bases the
+mm trees on).
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Wed__17_Dec_2008_12_42_14_+1100_OCr=2B99n1avZvRO
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
+
+iEYEARECAAYFAklIWPYACgkQjjKRsyhoI8ybpwCfZJ18zseEcWO3ZBreAD7LPOZJ
+CScAoIWXRk/sy0GH4aIBi7L6uqahbtrv
+=djXG
+-----END PGP SIGNATURE-----
+
+--Signature=_Wed__17_Dec_2008_12_42_14_+1100_OCr=2B99n1avZvRO--
