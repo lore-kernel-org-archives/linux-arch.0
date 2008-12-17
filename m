@@ -1,61 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0016.houston.hp.com ([15.201.24.19]:30462 "EHLO
-	g4t0016.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751473AbYLQEhV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Dec 2008 23:37:21 -0500
-From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: [PATCH 6/6] PCI: x86/visws: use generic INTx swizzle from PCI core
-Date: Tue, 16 Dec 2008 21:37:20 -0700
-Message-ID: <20081217043720.8372.22899.stgit@bob.kio>
-In-Reply-To: <20081217043443.8372.28890.stgit@bob.kio>
-References: <20081217043443.8372.28890.stgit@bob.kio>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Received: from triton.rz.uni-saarland.de ([134.96.7.25]:5921 "EHLO
+	triton.rz.uni-saarland.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751513AbYLQKAl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Dec 2008 05:00:41 -0500
+From: Alexander van Heukelum <heukelum@fastmail.fm>
+Subject: PROC macro to annotate functions in assembly files
+Date: Wed, 17 Dec 2008 10:17:53 +0100
+Message-ID: <1229505475-10219-1-git-send-email-heukelum@fastmail.fm>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Russell King <rmk@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, hpa@zytor.com
-Message-ID: <20081217043720.Do2rbiVxwVNO1b0lZLKs_zifOif_LpTzahOBDONf6i8@z>
+To: linux-arch@vger.kernel.org, Alexander van Heukelum <heukelum@mailshack.com>, Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Cyrill Gorcunov <gorcunov@gmail.com>, Alexander van Heukelum <heukelum@fastmail.fm>
+Message-ID: <20081217091753.T_T0C-gHwOCNzfJur-44CHplTM_b11vUT4YiupASyog@z>
 
-Use the generic pci_common_swizzle() instead of arch-specific code.
+The first patch introduces the PROC macro in the generic
+header file include/linux/linkage.h to annotate functions
+in assembly files. This is a first step to fully annotate
+functions (procedures) in .S-files. The PROC macro
+complements the already existing and being used ENDPROC
+macro. The generic implementation of PROC is exactly the
+same as ENTRY.
 
-Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
----
- arch/x86/pci/visws.c |   15 +--------------
- 1 files changed, 1 insertions(+), 14 deletions(-)
+The goal is to annotate functions, at least those called
+from C code, with PROC at the beginning and ENDPROC at the
+end. This is for the benefit of debugging and tracing.
 
-diff --git a/arch/x86/pci/visws.c b/arch/x86/pci/visws.c
-index 6b5ed3d..fd7b76f 100644
---- a/arch/x86/pci/visws.c
-+++ b/arch/x86/pci/visws.c
-@@ -25,19 +25,6 @@ static void pci_visws_disable_irq(struct pci_dev *dev) { }
- 
- unsigned int pci_bus0, pci_bus1;
- 
--static u8 __init visws_swizzle(struct pci_dev *dev, u8 *pinp)
--{
--	u8 pin = *pinp;
--
--	while (dev->bus->self) {	/* Move up the chain of bridges. */
--		pin = pci_swizzle_interrupt_pin(dev, pin);
--		dev = dev->bus->self;
--	}
--	*pinp = pin;
--
--	return PCI_SLOT(dev->devfn);
--}
--
- static int __init visws_map_irq(struct pci_dev *dev, u8 slot, u8 pin)
- {
- 	int irq, bus = dev->bus->number;
-@@ -102,7 +89,7 @@ int __init pci_visws_init(void)
- 	raw_pci_ops = &pci_direct_conf1;
- 	pci_scan_bus_with_sysdata(pci_bus0);
- 	pci_scan_bus_with_sysdata(pci_bus1);
--	pci_fixup_irqs(visws_swizzle, visws_map_irq);
-+	pci_fixup_irqs(pci_common_swizzle, visws_map_irq);
- 	pcibios_resource_survey();
- 	return 0;
- }
+The second patch introduces a framework to check for nesting
+problems and missing annotations by overriding ENTRY/END
+and PROC/ENDPROC in x86-specific code. It should not be
+applied at this time, because it will just cause the build
+to fail due to existing annotation problems. I intend to
+fix the annotations for the x86 assembly files in the
+comming months and resubmit this second patch if this
+work is comming to an end.
 
+The first patch touches generic code, but I think it is
+trivial enough that it can be introduced via the x86 tree.
+
+Greetings,
+	Alexander
