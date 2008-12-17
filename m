@@ -1,55 +1,50 @@
-From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: [PATCH 6/6] PCI: x86/visws: use generic INTx swizzle from PCI core
-Date: Tue, 16 Dec 2008 21:37:20 -0700
-Message-ID: <20081217043720.8372.22899.stgit@bob.kio>
-References: <20081217043443.8372.28890.stgit@bob.kio>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [RFC] remove linux/hardirq.h from asm-generic/local.h
+Date: Wed, 17 Dec 2008 06:45:51 +0100
+Message-ID: <20081217054551.GA2983@uranus.ravnborg.org>
+References: <20081214133941.GA18035@flint.arm.linux.org.uk> <20081214095803.9d16e85f.akpm@linux-foundation.org> <20081216184704.GA4976@x200.localdomain> <20081216183547.de79b7f0.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <20081217043443.8372.28890.stgit@bob.kio>
-Sender: linux-pci-owner@vger.kernel.org
-To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Russell King <rmk@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, hpa@zytor.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pfepa.post.tele.dk ([195.41.46.235]:45865 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751207AbYLQFoZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Dec 2008 00:44:25 -0500
+Content-Disposition: inline
+In-Reply-To: <20081216183547.de79b7f0.akpm@linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Alexey Dobriyan <adobriyan@gmail.com>, Russell King <rmk+lkml@arm.linux.org.uk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Use the generic pci_common_swizzle() instead of arch-specific code.
+> > +++ b/arch/sparc64/kernel/mdesc.c
+> > @@ -11,6 +11,7 @@
+> >  #include <linux/mm.h>
+> >  #include <linux/miscdevice.h>
+> >  
+> > +#include <asm/cpudata.h>
+> >  #include <asm/hypervisor.h>
+> >  #include <asm/mdesc.h>
+> >  #include <asm/prom.h>
+> > diff --git a/arch/sparc64/kernel/sysfs.c b/arch/sparc64/kernel/sysfs.c
+> > index 84e5ce1..d28f496 100644
+> > --- a/arch/sparc64/kernel/sysfs.c
+> > +++ b/arch/sparc64/kernel/sysfs.c
+> > @@ -8,6 +8,7 @@
+> >  #include <linux/percpu.h>
+> >  #include <linux/init.h>
+> >  
+> > +#include <asm/cpudata.h>
+> >  #include <asm/hypervisor.h>
+> >  #include <asm/spitfire.h>
+> 
+> hm, the two sparc64 files have just magically disappeared from linux-next.
 
-Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
----
- arch/x86/pci/visws.c |   15 +--------------
- 1 files changed, 1 insertions(+), 14 deletions(-)
+s/magically/by hard work/ ;-)
 
-diff --git a/arch/x86/pci/visws.c b/arch/x86/pci/visws.c
-index 6b5ed3d..fd7b76f 100644
---- a/arch/x86/pci/visws.c
-+++ b/arch/x86/pci/visws.c
-@@ -25,19 +25,6 @@ static void pci_visws_disable_irq(struct pci_dev *dev) { }
- 
- unsigned int pci_bus0, pci_bus1;
- 
--static u8 __init visws_swizzle(struct pci_dev *dev, u8 *pinp)
--{
--	u8 pin = *pinp;
--
--	while (dev->bus->self) {	/* Move up the chain of bridges. */
--		pin = pci_swizzle_interrupt_pin(dev, pin);
--		dev = dev->bus->self;
--	}
--	*pinp = pin;
--
--	return PCI_SLOT(dev->devfn);
--}
--
- static int __init visws_map_irq(struct pci_dev *dev, u8 slot, u8 pin)
- {
- 	int irq, bus = dev->bus->number;
-@@ -102,7 +89,7 @@ int __init pci_visws_init(void)
- 	raw_pci_ops = &pci_direct_conf1;
- 	pci_scan_bus_with_sysdata(pci_bus0);
- 	pci_scan_bus_with_sysdata(pci_bus1);
--	pci_fixup_irqs(visws_swizzle, visws_map_irq);
-+	pci_fixup_irqs(pci_common_swizzle, visws_map_irq);
- 	pcibios_resource_survey();
- 	return 0;
- }
+We have unified sparc and sparc64 so all files lives in
+arch/sparc/* these days.
+Feed the sparc64 bits to davem and he will take care.
+Or I can do it if you like.
+
+	Sam
