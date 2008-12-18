@@ -1,83 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out1.smtp.messagingengine.com ([66.111.4.25]:55456 "EHLO
-	out1.smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752862AbYLRMfE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 18 Dec 2008 07:35:04 -0500
-Message-ID: <1229603702.27623.1290725827@webmail.messagingengine.com>
-From: "Alexander van Heukelum" <heukelum@fastmail.fm>
-Content-Disposition: inline
-Content-Transfer-Encoding: 7bit
-Content-Type: text/plain; charset="UTF-8"
+Received: from mx2.redhat.com ([66.187.237.31]:55631 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750853AbYLRNiE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 18 Dec 2008 08:38:04 -0500
+Message-ID: <494A5235.6090502@redhat.com>
+Date: Thu, 18 Dec 2008 14:37:57 +0100
+From: Gerd Hoffmann <kraxel@redhat.com>
 MIME-Version: 1.0
-References: <1229505475-10219-1-git-send-email-heukelum@fastmail.fm>
- <1636.1229511233@redhat.com> <20081217111213.GA8342@mailshack.com>
- <20081218114427.GD10593@flint.arm.linux.org.uk>
-Subject: Re: PROC macro to annotate functions in assembly files
-In-Reply-To: <20081218114427.GD10593@flint.arm.linux.org.uk>
-Date: Thu, 18 Dec 2008 13:35:02 +0100
+Subject: Re: [PATCH v4 2/3] Add preadv and pwritev system calls.
+References: <1229600542-11585-1-git-send-email-kraxel@redhat.com> <1229600542-11585-3-git-send-email-kraxel@redhat.com> <200812181334.33719.arnd@arndb.de>
+In-Reply-To: <200812181334.33719.arnd@arndb.de>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk+lkml@arm.linux.org.uk>, Alexander van Heukelum <heukelum@mailshack.com>
-Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Cyrill Gorcunov <gorcunov@gmail.com>
-Message-ID: <20081218123502.tM61kU_EZ2Z4OAnugcyS1QBR6cioZgtCMaGxckZve2k@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, aarcange@redhat.com
+Message-ID: <20081218133757.dbtQyGl_vuO-R0X3plX_ay1UiFh__GaOx6T9xlan0yM@z>
 
-On Thu, 18 Dec 2008 11:44:27 +0000, "Russell King"
-<rmk+lkml@arm.linux.org.uk> said:
-> On Wed, Dec 17, 2008 at 12:12:14PM +0100, Alexander van Heukelum wrote:
-> > Yeah, assembly files contain some interesting nesting. In this
-> > particular case I think the solution is simple... Just use PROC
-> > and ENDPROC around the complete functions, and leave the explicit
-> > .global's for the additional entry points.
-> 
-> I'm sorry, that doesn't work in all cases.
-> 
-> On ARM with later toolchains, there's additional metadata associated with
-> every symbol, and it's beginning to matter getting this right.  That
-> metadata includes whether it's a function, and more importantly whether
-> the code pointed to by the symbol is Thumb or ARM.
-> 
-> This leads to:
-> 
-> ENTRY(__ashldi3)
-> ENTRY(__aeabi_llsl)
-> 
-> ...
-> 
-> ENDPROC(__ashldi3)
-> ENDPROC(__aeabi_llsl)
-> 
-> and we want both of those symbols to have exactly the same attributes.
-> 
-> Merely adding a .globl for the second name doesn't do that.  It needs
-> .globl, .size, and .type.
-> 
-> So what you're actually talking about using your approach is enforcing
-> the pairing of the existing ENTRY/ENDPROC and open coding everything
-> else.
+  Hi,
 
-Note that enforcing the pairing will be enabled by ARCH code. Is the
-construct you show here (two symbols covering identical code) the only
-problem you forsee? I don't want to introduce too many macro's to
-handle special cases, but this one should be solved.
+> Please remember to add the function prototypes to
+> include/linux/syscalls.h.
 
-> Forgive me if I think this is a backward step.  It certainly seems to
-> add some insane restrictions.
+Done.
 
-Some restrictions are introduced, indeed. And I agree that evading the
-checking framework by doing things manually should be avoided.
+>> +asmlinkage ssize_t
+>> +compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
+>> +                  unsigned long vlen, u32 pos_high, u32 pos_low)
+>> +{.
+>> +        loff_t pos = ((loff_t)pos_high << 32) | pos_low;
+> 
+> This is whitespace damaged, as are the other four functions in the
+> same place.
 
-Greetings,
-    Alexander
+Fixed.
 
-> -- 
-> Russell King
->  Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
->  maintainer of:
--- 
-  Alexander van Heukelum
-  heukelum@fastmail.fm
+>> +	struct file *file;
+>> +	ssize_t ret = -EBADF;
+>> +
+>> +	if (pos < 0)
+>> +		return -EINVAL;
+>> +
+>> +	file = fget(fd);
+>> +	if (!file)
+>> +		return -EBADF;
+> 
+> Any reason for using fget() here, but fget_light() in sys_preadv?
 
--- 
-http://www.fastmail.fm - The way an email service should be
+Due to the new syscalls being derived from the readv()/preadv()
+versions, which have the same inconsistency.  Dunno why.  I'd suspect
+the reason is that the compat syscalls tend to be overlooked when the
+code is updated.  Proof: patch #1 in this series ...
+
+I'll switch them all over in a separate followup patch.
+
+>> +	if (!(file->f_mode & FMODE_READ))
+>> +		goto out;
+>> +
+>> +	ret = -EINVAL;
+>> +	if (!file->f_op || (!file->f_op->aio_read && !file->f_op->read))
+>> +		goto out;
+> 
+> Maybe this logic could get moved into a compat_readv() function,
+> similar to vfs_readv().
+
+Yes, makes sense.
+
+cheers,
+  Gerd
+
 
