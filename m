@@ -1,48 +1,107 @@
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: PROC macro to annotate functions in assembly files
-Date: Thu, 18 Dec 2008 15:53:29 +0000
-Message-ID: <20081218155329.GA30546@flint.arm.linux.org.uk>
-References: <1229505475-10219-1-git-send-email-heukelum@fastmail.fm> <1636.1229511233@redhat.com> <20081217111213.GA8342@mailshack.com> <20081218114427.GD10593@flint.arm.linux.org.uk> <1229603702.27623.1290725827@webmail.messagingengine.com>
+From: Cyrill Gorcunov <gorcunov@gmail.com>
+Subject: Re: [PATCH 1/many] PROC macro to annotate functions in assembly
+	files
+Date: Thu, 18 Dec 2008 19:05:41 +0300
+Message-ID: <20081218160541.GC12874@localhost>
+References: <1229505475-10219-1-git-send-email-heukelum@fastmail.fm> <1229505475-10219-2-git-send-email-heukelum@fastmail.fm> <20081217172640.GB5436@uranus.ravnborg.org> <20081217173824.GF8078@localhost> <20081217180023.GA5783@uranus.ravnborg.org> <1229593918.31758.1290707307@webmail.messagingengine.com> <aa79d98a0812180403p47c6257r8e48afeff2e9b324@mail.gmail.com> <1229604055.28954.1290728947@webmail.messagingengine.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:57014 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750958AbYLRPyR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Dec 2008 10:54:17 -0500
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1752421AbYLRQF6@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1229603702.27623.1290725827@webmail.messagingengine.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <1229604055.28954.1290728947@webmail.messagingengine.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Alexander van Heukelum <heukelum@fastmail.fm>
-Cc: Alexander van Heukelum <heukelum@mailshack.com>, David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Cyrill Gorcunov <gorcunov@gmail.com>
+Cc: Sam Ravnborg <sam@ravnborg.org>, Jan Beulich <jbeulich@novell.com>, linux-arch@vger.kernel.org, Alexander van Heukelum <heukelum@mailshack.com>, Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 18, 2008 at 01:35:02PM +0100, Alexander van Heukelum wrote:
-> Note that enforcing the pairing will be enabled by ARCH code. Is the
-> construct you show here (two symbols covering identical code) the only
-> problem you forsee? I don't want to introduce too many macro's to
-> handle special cases, but this one should be solved.
+[Alexander van Heukelum - Thu, Dec 18, 2008 at 01:40:55PM +0100]
+| 
+| On Thu, 18 Dec 2008 15:03:25 +0300, "Cyrill Gorcunov"
+| <gorcunov@gmail.com> said:
+| > On Thu, Dec 18, 2008 at 12:51 PM, Alexander van Heukelum
+| > <heukelum@fastmail.fm> wrote:
+| > [...]
+| > >> >
+| > >> > Sam, I think eventually we should get something like this:
+| > >> >
+| > >> > - KPROBE will be eliminated and explicit section descriptions
+| > >> >   are to be used
+| > >> > - ENTRY could be used / or renamed for something more descriptive
+| > >> >   and being used aligned jmp targets or in case of procs with
+| > >> >   shared body
+| > >
+| > > I don't think ENTRY should be used for nested procedures. If the
+| > > author wants to do something like that, he better knew something
+| > > about the assembler anyhow.
+| > 
+| > Author anyway have to knew something. We can't bring some kind
+| > of lexical machine that eliminate this needing :)
+| > 
+| > >
+| > >> > - PROC/ENDPROC are to replace old ENTRY/END for procs being called
+| > >> >   mostly from C code
+| > >
+| > > Currently there is many different patterns. Some functions use ENTRY
+| > > without END, some use ENTRY/ENDPROC, some use ENDPROC without annotation
+| > > at the start...
+| > 
+| > Alexander, I was just trying to say Sam about what we're planning to get
+| > at the end of all this procedure. I mean I know there are some issues to
+| > be fixed first.
+| 
+| I understood, but I wanted to avoid the meme that this procedure is
+| just ebout renaming ENTRY->PROC and END->ENDPROC ;).
 
-Well, there are some cases where we don't have ENTRY but do have ENDPROC:
+I wish it would be just renaming :-)
 
-__pabt_usr:
-        usr_entry
-...
-ENTRY(ret_from_exception)
-...
-ENDPROC(__pabt_usr)
-ENDPROC(ret_from_exception)
+| 
+| > Fix me if I'm wrong.
+| > 
+| > >
+| > >> So what prevents us from extending ENTRY/END instead of introducing
+| > >> another set?
+| > >
+| > > ENTRY/END alone is not enough if one wants to be able to distinguish
+| > > between code (functions) and non-executed data.
+| > >
+| > >> Let us try to extend what we have and not introduce something new.
+| > >
+| > > Agreed. I vote to complement the existing ENDPROC annotation with
+| > > the proposed PROC annotation. Let's call that an extension, not
+| > > something new ;). As it stands it is not impossible to go with
+| > > ENTRY/ENDPROC for code and ENTRY/END for data. However, ENTRY
+| > > implies alignment and the prefered alignment for code and data
+| > > might differ.
+| > 
+| > If ENTRY will be used for data objects it shouldn't contain any kind of
+| > alignment since in general we could have arrays of bytes, words and so
+| > on.
+| 
+| I would suggest using sizeof(long) alignment for data.
 
-        .macro  vector_stub, name, mode, correction=0
-        .align  5
+Maybe we could use more flexible scheme? Lets imagine we could
+need to use not sizeof(long) on x86-64 for example... say in
+boot/compressed/head_64.S... say for boot_heap. Should we use
+DATAENTRY here? Or it's planned to use DATAENTRY for global defs
+only? Alexander, don't get me wrong I'm just starting to confuse
+with ENRTY/PROC/DATAENTRY :)
 
-vector_\name:
-...
-ENDPROC(vector_\name)
-        .endm
+Letme try to classify them a bit (like they would be used in future).
+If we have them classified it would be easier to distinguish their
+usage and how they should be implemented
 
-Not sure if we have any other oddities.
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+- PROC/ENDPROC for "C" callers
+	- they are: aligned, .global, .size and .type and @function
+- DATA/ENDDATA for data objects
+	- they are: aligned as sizeof(long), .global, .size
+
+right?
+
+| 
+| Greetings,
+|    Alexander
+| -- 
+|   Alexander van Heukelum
+|   heukelum@fastmail.fm
+
+		- Cyrill -
