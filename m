@@ -1,54 +1,72 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCH 1/many] PROC macro to annotate functions in assembly
-	files
-Date: Thu, 18 Dec 2008 13:52:15 +0100
-Message-ID: <20081218125215.GB32135@elte.hu>
-References: <1229505475-10219-1-git-send-email-heukelum@fastmail.fm> <1229505475-10219-2-git-send-email-heukelum@fastmail.fm> <20081217172640.GB5436@uranus.ravnborg.org>
+From: Gerd Hoffmann <kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH v4 2/3] Add preadv and pwritev system calls.
+Date: Thu, 18 Dec 2008 14:37:57 +0100
+Message-ID: <494A5235.6090502@redhat.com>
+References: <1229600542-11585-1-git-send-email-kraxel@redhat.com> <1229600542-11585-3-git-send-email-kraxel@redhat.com> <200812181334.33719.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:47065 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751391AbYLRMw2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 18 Dec 2008 07:52:28 -0500
-Content-Disposition: inline
-In-Reply-To: <20081217172640.GB5436@uranus.ravnborg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Alexander van Heukelum <heukelum@fastmail.fm>, linux-arch@vger.kernel.org, Alexander van Heukelum <heukelum@mailshack.com>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Cyrill Gorcunov <gorcunov@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <200812181334.33719.arnd-r2nGTMty4D4@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, aarcange-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
+  Hi,
 
-* Sam Ravnborg <sam@ravnborg.org> wrote:
+> Please remember to add the function prototypes to
+> include/linux/syscalls.h.
 
-> On Wed, Dec 17, 2008 at 10:17:54AM +0100, Alexander van Heukelum wrote:
-> > Introduce the PROC macro in the generic header file
-> > include/linux/linkage.h to annotate functions in assembly
-> > files. This is a first step to fully annotate functions
-> > (procedures) in .S-files. The PROC macro complements the
-> > already existing and being used ENDPROC macro. The generic
-> > implementation of PROC is exactly the same as ENTRY.
-> > 
-> > The goal is to annotate functions, at least those called
-> > from C code, with PROC at the beginning and ENDPROC at the
-> > end. This is for the benefit of debugging and tracing. It
-> > will also allow to introduce a framework to check for
-> > nesting problems and missing annotations in a later stage
-> > by overriding ENTRY/END and PROC/ENDPROC in architecture-
-> > specific code, after the annotation errors have been fixed.
-> > 
-> > Signed-off-by: Alexander van Heukelum <heukelum@fastmail.fm>
-> > Cc: Sam Ravnborg <sam@ravnborg.org>
-> > Cc: Andrew Morton <akpm@linux-foundation.org>
+Done.
+
+>> +asmlinkage ssize_t
+>> +compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
+>> +                  unsigned long vlen, u32 pos_high, u32 pos_low)
+>> +{.
+>> +        loff_t pos = ((loff_t)pos_high << 32) | pos_low;
 > 
-> I understand where you are coming from with these.
-> But what I see now is:
+> This is whitespace damaged, as are the other four functions in the
+> same place.
+
+Fixed.
+
+>> +	struct file *file;
+>> +	ssize_t ret = -EBADF;
+>> +
+>> +	if (pos < 0)
+>> +		return -EINVAL;
+>> +
+>> +	file = fget(fd);
+>> +	if (!file)
+>> +		return -EBADF;
 > 
-> ENTRY/END
-> PROC/ENDPROC
-> KPROBE_ENTRY/KPROBE_END
+> Any reason for using fget() here, but fget_light() in sys_preadv?
 
-btw., KPROBE_ENTRY is an ugly euphemism. It should be renamed to 
-NOKPROBE_ENTRY/NOKPROBE_END.
+Due to the new syscalls being derived from the readv()/preadv()
+versions, which have the same inconsistency.  Dunno why.  I'd suspect
+the reason is that the compat syscalls tend to be overlooked when the
+code is updated.  Proof: patch #1 in this series ...
 
-	Ingo
+I'll switch them all over in a separate followup patch.
+
+>> +	if (!(file->f_mode & FMODE_READ))
+>> +		goto out;
+>> +
+>> +	ret = -EINVAL;
+>> +	if (!file->f_op || (!file->f_op->aio_read && !file->f_op->read))
+>> +		goto out;
+> 
+> Maybe this logic could get moved into a compat_readv() function,
+> similar to vfs_readv().
+
+Yes, makes sense.
+
+cheers,
+  Gerd
+
+
+--
+To unsubscribe from this list: send the line "unsubscribe linux-api" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
