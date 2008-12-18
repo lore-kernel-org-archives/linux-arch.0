@@ -1,72 +1,48 @@
-From: Gerd Hoffmann <kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH v4 2/3] Add preadv and pwritev system calls.
-Date: Thu, 18 Dec 2008 14:37:57 +0100
-Message-ID: <494A5235.6090502@redhat.com>
-References: <1229600542-11585-1-git-send-email-kraxel@redhat.com> <1229600542-11585-3-git-send-email-kraxel@redhat.com> <200812181334.33719.arnd@arndb.de>
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: PROC macro to annotate functions in assembly files
+Date: Thu, 18 Dec 2008 15:53:29 +0000
+Message-ID: <20081218155329.GA30546@flint.arm.linux.org.uk>
+References: <1229505475-10219-1-git-send-email-heukelum@fastmail.fm> <1636.1229511233@redhat.com> <20081217111213.GA8342@mailshack.com> <20081218114427.GD10593@flint.arm.linux.org.uk> <1229603702.27623.1290725827@webmail.messagingengine.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <200812181334.33719.arnd-r2nGTMty4D4@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, aarcange-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:57014 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750958AbYLRPyR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Dec 2008 10:54:17 -0500
+Content-Disposition: inline
+In-Reply-To: <1229603702.27623.1290725827@webmail.messagingengine.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alexander van Heukelum <heukelum@fastmail.fm>
+Cc: Alexander van Heukelum <heukelum@mailshack.com>, David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Cyrill Gorcunov <gorcunov@gmail.com>
 
-  Hi,
+On Thu, Dec 18, 2008 at 01:35:02PM +0100, Alexander van Heukelum wrote:
+> Note that enforcing the pairing will be enabled by ARCH code. Is the
+> construct you show here (two symbols covering identical code) the only
+> problem you forsee? I don't want to introduce too many macro's to
+> handle special cases, but this one should be solved.
 
-> Please remember to add the function prototypes to
-> include/linux/syscalls.h.
+Well, there are some cases where we don't have ENTRY but do have ENDPROC:
 
-Done.
+__pabt_usr:
+        usr_entry
+...
+ENTRY(ret_from_exception)
+...
+ENDPROC(__pabt_usr)
+ENDPROC(ret_from_exception)
 
->> +asmlinkage ssize_t
->> +compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
->> +                  unsigned long vlen, u32 pos_high, u32 pos_low)
->> +{.
->> +        loff_t pos = ((loff_t)pos_high << 32) | pos_low;
-> 
-> This is whitespace damaged, as are the other four functions in the
-> same place.
+        .macro  vector_stub, name, mode, correction=0
+        .align  5
 
-Fixed.
+vector_\name:
+...
+ENDPROC(vector_\name)
+        .endm
 
->> +	struct file *file;
->> +	ssize_t ret = -EBADF;
->> +
->> +	if (pos < 0)
->> +		return -EINVAL;
->> +
->> +	file = fget(fd);
->> +	if (!file)
->> +		return -EBADF;
-> 
-> Any reason for using fget() here, but fget_light() in sys_preadv?
-
-Due to the new syscalls being derived from the readv()/preadv()
-versions, which have the same inconsistency.  Dunno why.  I'd suspect
-the reason is that the compat syscalls tend to be overlooked when the
-code is updated.  Proof: patch #1 in this series ...
-
-I'll switch them all over in a separate followup patch.
-
->> +	if (!(file->f_mode & FMODE_READ))
->> +		goto out;
->> +
->> +	ret = -EINVAL;
->> +	if (!file->f_op || (!file->f_op->aio_read && !file->f_op->read))
->> +		goto out;
-> 
-> Maybe this logic could get moved into a compat_readv() function,
-> similar to vfs_readv().
-
-Yes, makes sense.
-
-cheers,
-  Gerd
-
-
---
-To unsubscribe from this list: send the line "unsubscribe linux-api" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Not sure if we have any other oddities.
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
