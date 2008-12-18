@@ -1,85 +1,68 @@
-From: "Cyrill Gorcunov" <gorcunov@gmail.com>
-Subject: Re: [PATCH 1/many] PROC macro to annotate functions in assembly files
-Date: Thu, 18 Dec 2008 15:03:25 +0300
-Message-ID: <aa79d98a0812180403p47c6257r8e48afeff2e9b324@mail.gmail.com>
-References: <1229505475-10219-1-git-send-email-heukelum@fastmail.fm>
-	 <1229505475-10219-2-git-send-email-heukelum@fastmail.fm>
-	 <20081217172640.GB5436@uranus.ravnborg.org>
-	 <20081217173824.GF8078@localhost>
-	 <20081217180023.GA5783@uranus.ravnborg.org>
-	 <1229593918.31758.1290707307@webmail.messagingengine.com>
+From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Subject: Re: [PATCH v4 2/3] Add preadv and pwritev system calls.
+Date: Thu, 18 Dec 2008 13:34:33 +0100
+Message-ID: <200812181334.33719.arnd@arndb.de>
+References: <1229600542-11585-1-git-send-email-kraxel@redhat.com> <1229600542-11585-3-git-send-email-kraxel@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f21.google.com ([209.85.218.21]:39701 "EHLO
-	mail-bw0-f21.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751210AbYLRMD2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Dec 2008 07:03:28 -0500
-In-Reply-To: <1229593918.31758.1290707307@webmail.messagingengine.com>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1229600542-11585-3-git-send-email-kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alexander van Heukelum <heukelum@fastmail.fm>
-Cc: Sam Ravnborg <sam@ravnborg.org>, Jan Beulich <jbeulich@novell.com>, linux-arch@vger.kernel.org, Alexander van Heukelum <heukelum@mailshack.com>, Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Gerd Hoffmann <kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, aarcange-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 18, 2008 at 12:51 PM, Alexander van Heukelum
-<heukelum@fastmail.fm> wrote:
-[...]
->> >
->> > Sam, I think eventually we should get something like this:
->> >
->> > - KPROBE will be eliminated and explicit section descriptions
->> >   are to be used
->> > - ENTRY could be used / or renamed for something more descriptive
->> >   and being used aligned jmp targets or in case of procs with
->> >   shared body
->
-> I don't think ENTRY should be used for nested procedures. If the
-> author wants to do something like that, he better knew something
-> about the assembler anyhow.
+On Thursday 18 December 2008, Gerd Hoffmann wrote:
+> This prototype has one problem though:  On 32bit archs is the (64bit)
+> offset argument unaligned, which the syscall ABI of several archs
+> doesn't allow to do.  At least s390 needs a wrapper in glibc to handle
+> this.  As we'll need a wrappers in glibc anyway I've decided to push
+> problem to glibc entriely and use a syscall prototype which works
+> without arch-specific wrappers inside the kernel:  The offset argument
+> is explicitly splitted into two 32bit values.
 
-Author anyway have to knew something. We can't bring some kind
-of lexical machine that eliminate this needing :)
+Obviously, the interface looks good to me now.
 
->
->> > - PROC/ENDPROC are to replace old ENTRY/END for procs being called
->> >   mostly from C code
->
-> Currently there is many different patterns. Some functions use ENTRY
-> without END, some use ENTRY/ENDPROC, some use ENDPROC without annotation
-> at the start...
+Please remember to add the function prototypes to
+include/linux/syscalls.h.
 
-Alexander, I was just trying to say Sam about what we're planning to get
-at the end of all this procedure. I mean I know there are some issues to
-be fixed first.
+> +asmlinkage ssize_t
+> +compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
+> +                  unsigned long vlen, u32 pos_high, u32 pos_low)
+> +{
+> +        loff_t pos = ((loff_t)pos_high << 32) | pos_low;
 
-Fix me if I'm wrong.
+This is whitespace damaged, as are the other four functions in the
+same place.
 
->
->> So what prevents us from extending ENTRY/END instead of introducing
->> another set?
->
-> ENTRY/END alone is not enough if one wants to be able to distinguish
-> between code (functions) and non-executed data.
->
->> Let us try to extend what we have and not introduce something new.
->
-> Agreed. I vote to complement the existing ENDPROC annotation with
-> the proposed PROC annotation. Let's call that an extension, not
-> something new ;). As it stands it is not impossible to go with
-> ENTRY/ENDPROC for code and ENTRY/END for data. However, ENTRY
-> implies alignment and the prefered alignment for code and data
-> might differ.
+> +	struct file *file;
+> +	ssize_t ret = -EBADF;
+> +
+> +	if (pos < 0)
+> +		return -EINVAL;
+> +
+> +	file = fget(fd);
+> +	if (!file)
+> +		return -EBADF;
 
-If ENTRY will be used for data objects it shouldn't contain any kind of
-alignment since in general we could have arrays of bytes, words and so on.
+Any reason for using fget() here, but fget_light() in sys_preadv?
 
->
-> Greetings,
->    Alexander
->
->>       Sam
-> --
->  Alexander van Heukelum
->  heukelum@fastmail.fm
+> +	if (!(file->f_mode & FMODE_READ))
+> +		goto out;
+> +
+> +	ret = -EINVAL;
+> +	if (!file->f_op || (!file->f_op->aio_read && !file->f_op->read))
+> +		goto out;
+
+Maybe this logic could get moved into a compat_readv() function,
+similar to vfs_readv(). The advantage would be that we can make
+the native and compat paths more similar.
+
+	Arnd <><
+--
+To unsubscribe from this list: send the line "unsubscribe linux-api" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
