@@ -1,35 +1,41 @@
-From: Gerd Hoffmann <kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH v5 0/6] Add preadv & pwritev system calls.
-Date: Fri, 19 Dec 2008 17:21:03 +0100
-Message-ID: <494BC9EF.60107@redhat.com>
-References: <1229702305-23027-1-git-send-email-y>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Multiple math errors and SIGFPE
+Date: Mon, 22 Dec 2008 08:28:42 -0800
+Message-ID: <494FC03A.3090208@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1229702305-23027-1-git-send-email-y>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, aarcange-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:39535 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750892AbYLVQ2o (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Dec 2008 11:28:44 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
 
-y@redhat.com wrote:
-> From: Gerd Hoffmann <kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+I have received a bug report related to the si_code field of siginfo for
+SIGFPE.  The FPE_ values are (unfortunately) an enumeration rather than
+a bitmask, so we can't just OR them together.  Unfortunately when we get
+multiple unmasked exceptions at least on x86 we leave info.si_code to
+__SI_FAULT, which means it is returned to userspace as zero.  This
+violates POSIX, which states that an si_code <= 0 is a user-generated
+signal.
 
-Damn, acked git-send-email prompting for the email addr with 'y' instead
-of just tapping enter.
+Looking at the code in other architectures, it looks like most of them
+prioritize the faults, but still end up with __SI_FAULT|0 if none of the
+expected conditions are found (which may not be possible, of course.)
+Prioritizing the faults seem like the reasonable thing to do in terms of
+ dealing with the multiple unmasked errors problem.
 
-The bad thing is that 'reply' doesn't work.
+I am wondering if it would make sense to notice the combination
+__SI_FAULT|0 or __SI_FAULT and (short)si_code < 0 and force SI_KERNEL
+into the user-space code field in the generic code.  I am also wondering
+if there is any possibility that there is code out there which relies on
+the current, buggy behaviour.
 
-The good thing is that git-send-email added my address to every mail
-sent out, so you should be able to figure nevertheless.
+	-hpa
 
-Really time for some vacation days.
-
-Happy x-mas everybody and sorry for the inconvenience,
-
-  Gerd
-
---
-To unsubscribe from this list: send the line "unsubscribe linux-api" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
