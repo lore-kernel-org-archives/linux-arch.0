@@ -1,106 +1,252 @@
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH] dmatest: flush and invalidate destination buffer
-	before DMA
-Date: Sun, 11 Jan 2009 18:44:02 +0000
-Message-ID: <20090111184402.GA3810@linux-mips.org>
-References: <20081227111037.3bd13adc@hskinnemoen-d830> <20081229.025352.01917409.anemo@mba.ocn.ne.jp> <e9c3a7c20901051031y528d0d31r18d44c5096c59e0@mail.gmail.com> <20090108.134336.127659765.nemoto@toshiba-tops.co.jp> <20090108093603.691c1200@hskinnemoen-d830> <20090109111936.GB17948@linux-mips.org> <20090109222721.GA3618@flint.arm.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Gerd Hoffmann <kraxel@redhat.com>
+Subject: [PATCH 3/5] Add preadv and pwritev system calls.
+Date: Fri, 16 Jan 2009 17:45:42 +0100
+Message-ID: <1232124344-25892-4-git-send-email-kraxel@redhat.com>
+References: <1232124344-25892-1-git-send-email-kraxel@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from h5.dl5rb.org.uk ([81.2.74.5]:44073 "EHLO mail.linux-mips.net"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751816AbZAKSoW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 11 Jan 2009 13:44:22 -0500
-Content-Disposition: inline
-In-Reply-To: <20090109222721.GA3618@flint.arm.linux.org.uk>
+Received: from mx2.redhat.com ([66.187.237.31]:39231 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755441AbZAPQp6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Jan 2009 11:45:58 -0500
+In-Reply-To: <1232124344-25892-1-git-send-email-kraxel@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>, linux-arch@vger.kernel.org, Atsushi Nemoto <anemo@mba.ocn.ne.jp>, dan.j.williams@intel.com, linux-kernel@vger.kernel.org, maciej.sos
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Cc: aarcange@redhat.com, Gerd Hoffmann <kraxel@redhat.com>
 
-On Fri, Jan 09, 2009 at 10:27:21PM +0000, Russell King wrote:
+This patch adds preadv and pwritev system calls.  These syscalls are a
+pretty straightforward combination of pread and readv (same for write).
+They are quite useful for doing vectored I/O in threaded applications.
+Using lseek+readv instead opens race windows you'll have to plug with
+locking.
 
-> On Fri, Jan 09, 2009 at 11:19:36AM +0000, Ralf Baechle wrote:
-> > On Thu, Jan 08, 2009 at 09:36:03AM +0100, Haavard Skinnemoen wrote:
-> > > In the general case, however, I think MIPS has a bug: I've seen drivers
-> > > DMA to/from tiny buffers stored inside another struct. This is legal
-> > > because the driver can guarantee that the other fields in the struct
-> > > aren't accessed in the mean time, but any fields sharing a cacheline
-> > > with the buffer must be written back before the lines are invalidated.
-> > 
-> > Depending on the implementation details, the use of such a struct might be
-> > relying on implementation-specific behaviour.  This is what
-> > Documentation/DMA-API.txt has to say:
-> > 
-> > [...]
-> > int
-> > dma_get_cache_alignment(void)
-> > 
-> > Returns the processor cache alignment.  This is the absolute minimum
-> > alignment *and* width that you must observe when either mapping
-> > memory or doing partial flushes.
-> > 
-> > Notes: This API may return a number *larger* than the actual cache
-> > line, but it will guarantee that one or more cache lines fit exactly
-> > into the width returned by this call.  It will also always be a power
-> > of two for easy alignment.
-> > [...]
-> > 
-> > Since dma_get_cache_alignment() is a function not a constant its result
-> > can't be used in the definition of a struct unless possibly excessive
-> > padding is used.
-> > 
-> > The debate has shown that we problably need BUG_ON() assertions in the
-> > DMA API implementations to catch this sort of dangerous use.
-> 
-> I really don't think that's a realistic option.  You're asking for
-> every call to the DMA API to ensure that the buffer and length are
-> a multiple of the cache line size.
-> 
-> So, what happens if, eg, SPI wants to send a 16 byte buffer, and your
-> cache lines are 64 bytes?  Does the SPI driver have to kmalloc a new
-> chunk of memory 64 bytes long and copy the data into that before
-> passing it into the DMA API?
-> 
-> If you start enforcing that kind of thing, I think the cache coherent
-> people will take violent exception and refuse to play such games - and
-> quite rightly so.
+Other systems have such system calls too, for example NetBSD, check
+here: http://www.daemon-systems.org/man/preadv.2.html
 
-I only want to force people to be aware of what they're doing.  So far I've
-seen cache lines of up to 256 bytes in size on non-coherent systems.  Be
-paranoid, very paranoid ...
+The application-visible interface provided by glibc should look like
+this to be compatible to the existing implementations in the *BSD family:
 
-Below patch should solve Dan William's concerns.  It will peform a writeback
-and invalidation operation on the first and last cacheline worth of data.
-The instruction costs around a dozen cycles so I won't even try to optimize
-possible double cache operations away; that'd probably be more expensive.
+  ssize_t preadv(int d, const struct iovec *iov, int iovcnt, off_t offset);
+  ssize_t pwritev(int d, const struct iovec *iov, int iovcnt, off_t offset);
 
-  Ralf
+This prototype has one problem though:  On 32bit archs is the (64bit)
+offset argument unaligned, which the syscall ABI of several archs
+doesn't allow to do.  At least s390 needs a wrapper in glibc to handle
+this.  As we'll need a wrappers in glibc anyway I've decided to push
+problem to glibc entriely and use a syscall prototype which works
+without arch-specific wrappers inside the kernel:  The offset argument
+is explicitly splitted into two 32bit values.
 
-Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+The patch sports the actual system call implementation and the windup in
+the x86 system call tables.  Other archs follow as separate patches.
 
-diff --git a/arch/mips/mm/c-r4k.c b/arch/mips/mm/c-r4k.c
-index 6e99665..56290a7 100644
---- a/arch/mips/mm/c-r4k.c
-+++ b/arch/mips/mm/c-r4k.c
-@@ -618,8 +618,11 @@ static void r4k_dma_cache_inv(unsigned long addr, unsigned long size)
- 	if (cpu_has_inclusive_pcaches) {
- 		if (size >= scache_size)
- 			r4k_blast_scache();
--		else
-+		else {
-+			cache_op(Hit_Writeback_Inv_SD, addr);
-+			cache_op(Hit_Writeback_Inv_SD, addr + size - 1);
- 			blast_inv_scache_range(addr, addr + size);
-+		}
- 		return;
- 	}
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+---
+ arch/x86/ia32/ia32entry.S          |    2 +
+ arch/x86/include/asm/unistd_32.h   |    2 +
+ arch/x86/include/asm/unistd_64.h   |    4 +++
+ arch/x86/kernel/syscall_table_32.S |    2 +
+ fs/compat.c                        |   36 ++++++++++++++++++++++++++
+ fs/read_write.c                    |   50 ++++++++++++++++++++++++++++++++++++
+ include/linux/compat.h             |    6 ++++
+ include/linux/syscalls.h           |    4 +++
+ 8 files changed, 106 insertions(+), 0 deletions(-)
+
+diff --git a/arch/x86/ia32/ia32entry.S b/arch/x86/ia32/ia32entry.S
+index 256b00b..9a8501b 100644
+--- a/arch/x86/ia32/ia32entry.S
++++ b/arch/x86/ia32/ia32entry.S
+@@ -826,4 +826,6 @@ ia32_sys_call_table:
+ 	.quad sys_dup3			/* 330 */
+ 	.quad sys_pipe2
+ 	.quad sys_inotify_init1
++	.quad compat_sys_preadv
++	.quad compat_sys_pwritev
+ ia32_syscall_end:
+diff --git a/arch/x86/include/asm/unistd_32.h b/arch/x86/include/asm/unistd_32.h
+index f2bba78..6e72d74 100644
+--- a/arch/x86/include/asm/unistd_32.h
++++ b/arch/x86/include/asm/unistd_32.h
+@@ -338,6 +338,8 @@
+ #define __NR_dup3		330
+ #define __NR_pipe2		331
+ #define __NR_inotify_init1	332
++#define __NR_preadv		333
++#define __NR_pwritev		334
  
-@@ -627,6 +630,8 @@ static void r4k_dma_cache_inv(unsigned long addr, unsigned long size)
- 		r4k_blast_dcache();
- 	} else {
- 		R4600_HIT_CACHEOP_WAR_IMPL;
-+		cache_op(Hit_Writeback_Inv_D, addr);
-+		cache_op(Hit_Writeback_Inv_D, addr + size - 1);
- 		blast_inv_dcache_range(addr, addr + size);
- 	}
+ #ifdef __KERNEL__
  
+diff --git a/arch/x86/include/asm/unistd_64.h b/arch/x86/include/asm/unistd_64.h
+index d2e415e..f818294 100644
+--- a/arch/x86/include/asm/unistd_64.h
++++ b/arch/x86/include/asm/unistd_64.h
+@@ -653,6 +653,10 @@ __SYSCALL(__NR_dup3, sys_dup3)
+ __SYSCALL(__NR_pipe2, sys_pipe2)
+ #define __NR_inotify_init1			294
+ __SYSCALL(__NR_inotify_init1, sys_inotify_init1)
++#define __NR_preadv				295
++__SYSCALL(__NR_preadv, sys_preadv)
++#define __NR_pwritev				296
++__SYSCALL(__NR_pwritev, sys_pwritev)
+ 
+ 
+ #ifndef __NO_STUBS
+diff --git a/arch/x86/kernel/syscall_table_32.S b/arch/x86/kernel/syscall_table_32.S
+index e2e86a0..106204c 100644
+--- a/arch/x86/kernel/syscall_table_32.S
++++ b/arch/x86/kernel/syscall_table_32.S
+@@ -332,3 +332,5 @@ ENTRY(sys_call_table)
+ 	.long sys_dup3			/* 330 */
+ 	.long sys_pipe2
+ 	.long sys_inotify_init1
++	.long sys_preadv
++	.long sys_pwritev
+diff --git a/fs/compat.c b/fs/compat.c
+index 9f20d10..20fec0e 100644
+--- a/fs/compat.c
++++ b/fs/compat.c
+@@ -1202,6 +1202,24 @@ compat_sys_readv(unsigned long fd, const struct compat_iovec __user *vec, unsign
+ 	return ret;
+ }
+ 
++asmlinkage ssize_t
++compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
++                  unsigned long vlen, u32 pos_high, u32 pos_low)
++{
++	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
++	struct file *file;
++	ssize_t ret;
++
++	if (pos < 0)
++		return -EINVAL;
++	file = fget(fd);
++	if (!file)
++		return -EBADF;
++	ret = compat_readv(file, vec, vlen, &pos);
++	fput(file);
++	return ret;
++}
++
+ static size_t compat_writev(struct file *file, const struct compat_iovec __user *vec,
+                             unsigned long vlen, loff_t *pos)
+ {
+@@ -1237,6 +1255,24 @@ compat_sys_writev(unsigned long fd, const struct compat_iovec __user *vec, unsig
+         return ret;
+ }
+ 
++asmlinkage ssize_t
++compat_sys_pwritev(unsigned long fd, const struct compat_iovec __user *vec,
++                   unsigned long vlen, u32 pos_high, u32 pos_low)
++{
++	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
++	struct file *file;
++	ssize_t ret;
++
++	if (pos < 0)
++		return -EINVAL;
++	file = fget(fd);
++	if (!file)
++		return -EBADF;
++	ret = compat_writev(file, vec, vlen, &pos);
++	fput(file);
++	return ret;
++}
++
+ asmlinkage long
+ compat_sys_vmsplice(int fd, const struct compat_iovec __user *iov32,
+ 		    unsigned int nr_segs, unsigned int flags)
+diff --git a/fs/read_write.c b/fs/read_write.c
+index 400fe81..39de95c 100644
+--- a/fs/read_write.c
++++ b/fs/read_write.c
+@@ -731,6 +731,56 @@ SYSCALL_DEFINE3(writev, unsigned long, fd, const struct iovec __user *, vec,
+ 	return ret;
+ }
+ 
++SYSCALL_DEFINE5(preadv, unsigned long, fd, const struct iovec __user *, vec,
++                unsigned long, vlen, u32, pos_high, u32, pos_low)
++{
++	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
++	struct file *file;
++	ssize_t ret = -EBADF;
++	int fput_needed;
++
++	if (pos < 0)
++		return -EINVAL;
++
++	file = fget_light(fd, &fput_needed);
++	if (file) {
++		ret = -ESPIPE;
++		if (file->f_mode & FMODE_PREAD)
++			ret = vfs_readv(file, vec, vlen, &pos);
++		fput_light(file, fput_needed);
++	}
++
++	if (ret > 0)
++		add_rchar(current, ret);
++	inc_syscr(current);
++	return ret;
++}
++
++SYSCALL_DEFINE5(pwritev, unsigned long, fd, const struct iovec __user *, vec,
++                unsigned long, vlen, u32, pos_high, u32, pos_low)
++{
++	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
++	struct file *file;
++	ssize_t ret = -EBADF;
++	int fput_needed;
++
++	if (pos < 0)
++		return -EINVAL;
++
++	file = fget_light(fd, &fput_needed);
++	if (file) {
++		ret = -ESPIPE;
++		if (file->f_mode & FMODE_PWRITE)
++			ret = vfs_writev(file, vec, vlen, &pos);
++		fput_light(file, fput_needed);
++	}
++
++	if (ret > 0)
++		add_wchar(current, ret);
++	inc_syscw(current);
++	return ret;
++}
++
+ static ssize_t do_sendfile(int out_fd, int in_fd, loff_t *ppos,
+ 			   size_t count, loff_t max)
+ {
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 3fd2194..79dba49 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -183,6 +183,12 @@ asmlinkage ssize_t compat_sys_readv(unsigned long fd,
+ 		const struct compat_iovec __user *vec, unsigned long vlen);
+ asmlinkage ssize_t compat_sys_writev(unsigned long fd,
+ 		const struct compat_iovec __user *vec, unsigned long vlen);
++asmlinkage ssize_t compat_sys_preadv(unsigned long fd,
++		const struct compat_iovec __user *vec,
++		unsigned long vlen, u32 pos_high, u32 pos_low);
++asmlinkage ssize_t compat_sys_pwritev(unsigned long fd,
++		const struct compat_iovec __user *vec,
++		unsigned long vlen, u32 pos_high, u32 pos_low);
+ 
+ int compat_do_execve(char * filename, compat_uptr_t __user *argv,
+ 	        compat_uptr_t __user *envp, struct pt_regs * regs);
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 16875f8..333377e 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -456,6 +456,10 @@ asmlinkage long sys_pread64(unsigned int fd, char __user *buf,
+ 			    size_t count, loff_t pos);
+ asmlinkage long sys_pwrite64(unsigned int fd, const char __user *buf,
+ 			     size_t count, loff_t pos);
++asmlinkage long sys_preadv(unsigned long fd, const struct iovec __user *vec,
++                           unsigned long vlen, u32 pos_high, u32 pos_low);
++asmlinkage long sys_pwritev(unsigned long fd, const struct iovec __user *vec,
++                            unsigned long vlen, u32 pos_high, u32 pos_low);
+ asmlinkage long sys_getcwd(char __user *buf, unsigned long size);
+ asmlinkage long sys_mkdir(const char __user *pathname, int mode);
+ asmlinkage long sys_chdir(const char __user *filename);
+-- 
+1.6.1
