@@ -1,107 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from h5.dl5rb.org.uk ([81.2.74.5]:44073 "EHLO mail.linux-mips.net"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751816AbZAKSoW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 11 Jan 2009 13:44:22 -0500
-Date: Sun, 11 Jan 2009 18:44:02 +0000
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH] dmatest: flush and invalidate destination buffer
-	before DMA
-Message-ID: <20090111184402.GA3810@linux-mips.org>
-References: <20081227111037.3bd13adc@hskinnemoen-d830> <20081229.025352.01917409.anemo@mba.ocn.ne.jp> <e9c3a7c20901051031y528d0d31r18d44c5096c59e0@mail.gmail.com> <20090108.134336.127659765.nemoto@toshiba-tops.co.jp> <20090108093603.691c1200@hskinnemoen-d830> <20090109111936.GB17948@linux-mips.org> <20090109222721.GA3618@flint.arm.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20090109222721.GA3618@flint.arm.linux.org.uk>
+Received: from mx2.redhat.com ([66.187.237.31]:39237 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756853AbZAPQqA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Jan 2009 11:46:00 -0500
+From: Gerd Hoffmann <kraxel@redhat.com>
+Subject: [PATCH 5/5] switch compat readv/preadv/writev/pwritev from fget to fget_light
+Date: Fri, 16 Jan 2009 17:45:44 +0100
+Message-ID: <1232124344-25892-6-git-send-email-kraxel@redhat.com>
+In-Reply-To: <1232124344-25892-1-git-send-email-kraxel@redhat.com>
+References: <1232124344-25892-1-git-send-email-kraxel@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>, linux-arch@vger.kernel.org, Atsushi Nemoto <anemo@mba.ocn.ne.jp>, dan.j.williams@intel.com, linux-kernel@vger.kernel.org, maciej.sosnowski@intel.com
-Message-ID: <20090111184402.fZCTdVnx3JUrW4zFjKDUTk_Z3ZPH_kwcul5L6TgrqK0@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Cc: aarcange@redhat.com, Gerd Hoffmann <kraxel@redhat.com>
+Message-ID: <20090116164544.NyD3SrmvTkKXytJIY4CTChrAeBinVNg10UqHC1mGc2g@z>
 
-On Fri, Jan 09, 2009 at 10:27:21PM +0000, Russell King wrote:
 
-> On Fri, Jan 09, 2009 at 11:19:36AM +0000, Ralf Baechle wrote:
-> > On Thu, Jan 08, 2009 at 09:36:03AM +0100, Haavard Skinnemoen wrote:
-> > > In the general case, however, I think MIPS has a bug: I've seen drivers
-> > > DMA to/from tiny buffers stored inside another struct. This is legal
-> > > because the driver can guarantee that the other fields in the struct
-> > > aren't accessed in the mean time, but any fields sharing a cacheline
-> > > with the buffer must be written back before the lines are invalidated.
-> > 
-> > Depending on the implementation details, the use of such a struct might be
-> > relying on implementation-specific behaviour.  This is what
-> > Documentation/DMA-API.txt has to say:
-> > 
-> > [...]
-> > int
-> > dma_get_cache_alignment(void)
-> > 
-> > Returns the processor cache alignment.  This is the absolute minimum
-> > alignment *and* width that you must observe when either mapping
-> > memory or doing partial flushes.
-> > 
-> > Notes: This API may return a number *larger* than the actual cache
-> > line, but it will guarantee that one or more cache lines fit exactly
-> > into the width returned by this call.  It will also always be a power
-> > of two for easy alignment.
-> > [...]
-> > 
-> > Since dma_get_cache_alignment() is a function not a constant its result
-> > can't be used in the definition of a struct unless possibly excessive
-> > padding is used.
-> > 
-> > The debate has shown that we problably need BUG_ON() assertions in the
-> > DMA API implementations to catch this sort of dangerous use.
-> 
-> I really don't think that's a realistic option.  You're asking for
-> every call to the DMA API to ensure that the buffer and length are
-> a multiple of the cache line size.
-> 
-> So, what happens if, eg, SPI wants to send a 16 byte buffer, and your
-> cache lines are 64 bytes?  Does the SPI driver have to kmalloc a new
-> chunk of memory 64 bytes long and copy the data into that before
-> passing it into the DMA API?
-> 
-> If you start enforcing that kind of thing, I think the cache coherent
-> people will take violent exception and refuse to play such games - and
-> quite rightly so.
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+---
+ fs/compat.c |   20 ++++++++++++--------
+ 1 files changed, 12 insertions(+), 8 deletions(-)
 
-I only want to force people to be aware of what they're doing.  So far I've
-seen cache lines of up to 256 bytes in size on non-coherent systems.  Be
-paranoid, very paranoid ...
-
-Below patch should solve Dan William's concerns.  It will peform a writeback
-and invalidation operation on the first and last cacheline worth of data.
-The instruction costs around a dozen cycles so I won't even try to optimize
-possible double cache operations away; that'd probably be more expensive.
-
-  Ralf
-
-Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
-
-diff --git a/arch/mips/mm/c-r4k.c b/arch/mips/mm/c-r4k.c
-index 6e99665..56290a7 100644
---- a/arch/mips/mm/c-r4k.c
-+++ b/arch/mips/mm/c-r4k.c
-@@ -618,8 +618,11 @@ static void r4k_dma_cache_inv(unsigned long addr, unsigned long size)
- 	if (cpu_has_inclusive_pcaches) {
- 		if (size >= scache_size)
- 			r4k_blast_scache();
--		else
-+		else {
-+			cache_op(Hit_Writeback_Inv_SD, addr);
-+			cache_op(Hit_Writeback_Inv_SD, addr + size - 1);
- 			blast_inv_scache_range(addr, addr + size);
-+		}
- 		return;
- 	}
+diff --git a/fs/compat.c b/fs/compat.c
+index 20fec0e..90a10e9 100644
+--- a/fs/compat.c
++++ b/fs/compat.c
+@@ -1192,13 +1192,14 @@ asmlinkage ssize_t
+ compat_sys_readv(unsigned long fd, const struct compat_iovec __user *vec, unsigned long vlen)
+ {
+ 	struct file *file;
++	int fput_needed;
+ 	ssize_t ret;
  
-@@ -627,6 +630,8 @@ static void r4k_dma_cache_inv(unsigned long addr, unsigned long size)
- 		r4k_blast_dcache();
- 	} else {
- 		R4600_HIT_CACHEOP_WAR_IMPL;
-+		cache_op(Hit_Writeback_Inv_D, addr);
-+		cache_op(Hit_Writeback_Inv_D, addr + size - 1);
- 		blast_inv_dcache_range(addr, addr + size);
- 	}
+-	file = fget(fd);
++	file = fget_light(fd, &fput_needed);
+ 	if (!file)
+ 		return -EBADF;
+ 	ret = compat_readv(file, vec, vlen, &file->f_pos);
+-	fput(file);
++	fput_light(file, fput_needed);
+ 	return ret;
+ }
  
+@@ -1208,15 +1209,16 @@ compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
+ {
+ 	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
+ 	struct file *file;
++	int fput_needed;
+ 	ssize_t ret;
+ 
+ 	if (pos < 0)
+ 		return -EINVAL;
+-	file = fget(fd);
++	file = fget_light(fd, &fput_needed);
+ 	if (!file)
+ 		return -EBADF;
+ 	ret = compat_readv(file, vec, vlen, &pos);
+-	fput(file);
++	fput_light(file, fput_needed);
+ 	return ret;
+ }
+ 
+@@ -1245,13 +1247,14 @@ asmlinkage ssize_t
+ compat_sys_writev(unsigned long fd, const struct compat_iovec __user *vec, unsigned long vlen)
+ {
+ 	struct file *file;
++	int fput_needed;
+ 	ssize_t ret;
+ 
+-	file = fget(fd);
++	file = fget_light(fd, &fput_needed);
+ 	if (!file)
+ 		return -EBADF;
+ 	ret = compat_writev(file, vec, vlen, &file->f_pos);
+-        fput(file);
++        fput_light(file, fput_needed);
+         return ret;
+ }
+ 
+@@ -1261,15 +1264,16 @@ compat_sys_pwritev(unsigned long fd, const struct compat_iovec __user *vec,
+ {
+ 	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
+ 	struct file *file;
++	int fput_needed;
+ 	ssize_t ret;
+ 
+ 	if (pos < 0)
+ 		return -EINVAL;
+-	file = fget(fd);
++	file = fget_light(fd, &fput_needed);
+ 	if (!file)
+ 		return -EBADF;
+ 	ret = compat_writev(file, vec, vlen, &pos);
+-	fput(file);
++	fput_light(file, fput_needed);
+ 	return ret;
+ }
+ 
+-- 
+1.6.1
+
