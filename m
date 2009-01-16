@@ -1,61 +1,74 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Ulrich Drepper <drepper@redhat.com>
 Subject: Re: [PATCH v6 0/5] Add preadv & pwritev system calls.
-Date: Fri, 16 Jan 2009 18:52:04 +0100
-Message-ID: <200901161852.04953.arnd@arndb.de>
-References: <1232124344-25892-1-git-send-email-kraxel@redhat.com>
+Date: Fri, 16 Jan 2009 11:20:25 -0800
+Message-ID: <4970DDF9.4090007@redhat.com>
+References: <1232124344-25892-1-git-send-email-kraxel@redhat.com> <200901161852.04953.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.188]:52009 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758124AbZAPRxA convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Jan 2009 12:53:00 -0500
-In-Reply-To: <1232124344-25892-1-git-send-email-kraxel@redhat.com>
-Content-Disposition: inline
+Received: from mx2.redhat.com ([66.187.237.31]:59974 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753635AbZAPTUd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Jan 2009 14:20:33 -0500
+In-Reply-To: <200901161852.04953.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gerd Hoffmann <kraxel@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, aarcange@redhat.com, Ulrich Drepper <drepper@redhat.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Gerd Hoffmann <kraxel@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, aarcange@redhat.com
 
-On Friday 16 January 2009, Gerd Hoffmann wrote:
-> Next round of the preadv & pwritev patch series. =A0Had no review com=
-ments
-> to fix. =A0That means it is ready to be merged, right?
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
 
-In general, getting no feedback does not mean something's ready ;-)
+Arnd Bergmann wrote:
+> Did you get any feedback from Ulrich
+> Drepper as to whether he plans to add support to glibc?
 
-Your patches look pretty polished though, and IIRC the only
-real objection was to whether or not the syscalls should be
-there in the first place. Did you get any feedback from Ulrich
-Drepper as to whether he plans to add support to glibc?
+If they are in the kernel there is no reason not to export them from
+glibc.  But I have a general comment about all kinds of read syscalls.
+If think they have been misdesigned from day one and if we are going to
+add new ones we might want to fix them.
 
-> Changes:
-> =A0- compat_sys_{read,write}v bugfix patch dropped (merged).
-> =A0- rebase to latest git, adapt to CVE-2009-0029 changes.
->=20
-> How to proceed now? =A0Is there a syscall maintainer where I could qu=
-eue
-> up the patches? =A0If not, anyone (akpm?) willng to pick this up? =A0=
-Should
-> I try to send to Linus directly?
->=20
-> What is the usual way to handle the arch-specific syscall windup? =A0=
-I'd
-> prefer to leave that to the arch maintainers as they know best what
-> needs to be done, is that ok? =A0Right now only x86 (/me) and mips (p=
-atch
-> from Ralf Baechle) is covered ...
+The problem is that they don't allow for zero-copy operations in enough
+cases.  The kernel is not free to store the data wherever it wants even
+if the userlevel code is fine with that.  Ideally the program would tel=
+l
+the kernel that it is fine with any addressable address and provides a
+buffer for the kernel to use in case zero-copy into that buffer is
+possible or no zero-copy is possible at all.  An interface could look
+like this:
 
-I'd say get it into linux-next as a git tree, then let the arch maintai=
-ners
-send you the missing patches to hook up the syscalls so that it can go
-in as one chunk.
+   ssize_t readz (int fd, void *buf, size_t len, void **res)
 
-Have you done the glibc patch already? You probably also need to provid=
-e
-an alternative user space implementation based on a pread/pwrite loop f=
-or
-older kernels.
+(and accordingly for similar calls).  The application will then use the
+pointer stored at the address pointed to by the fourth parameter instea=
+d
+of unconditionally using the buffer pointed to by the second parameter.
+ For res=3D=3DNULL the semantics could be the same as the normal read()=
+=2E
 
-	Arnd <><
+This is not the only interface needed to make this work.  Somehow the
+memory used for the zero-copy buffers has to be administrated.  At the
+very least an interface to mark the buffer returned by readz() as unuse=
+d
+is needed.
+
+There is a lot to think about before this can be done (something I
+started back in my 2006 OLS paper [1]).  But I wonder whether it's wort=
+h
+preparing for it and not add yet more interfaces which aren't ready for
+this type of I/O.
+
+
+[1] http://people.redhat.com/drepper/newni.pdf
+
+- --
+=E2=9E=A7 Ulrich Drepper =E2=9E=A7 Red Hat, Inc. =E2=9E=A7 444 Castro S=
+t =E2=9E=A7 Mountain View, CA =E2=9D=96
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
+
+iEYEARECAAYFAklw3bIACgkQ2ijCOnn/RHSutgCgvIZki4gZfuLzwCOGkZqOf97v
+1LYAn3fQj0C8CabsfvaYonFTZQ3oUtSn
+=3DEDYF
+-----END PGP SIGNATURE-----
