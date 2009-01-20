@@ -1,48 +1,69 @@
-From: Gerd Hoffmann <kraxel@redhat.com>
-Subject: Re: [PATCH v6 0/5] Add preadv & pwritev system calls.
-Date: Mon, 19 Jan 2009 15:20:11 +0100
-Message-ID: <49748C1B.8090205@redhat.com>
-References: <1232124344-25892-1-git-send-email-kraxel@redhat.com> <200901161852.04953.arnd@arndb.de> <4970DDF9.4090007@redhat.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: SET_PERSONALITY and TASK_SIZE
+Date: Tue, 20 Jan 2009 08:08:44 -0800
+Message-ID: <20090120080844.d681a750.akpm@linux-foundation.org>
+References: <20090118111831.GA4818@osiris.boeblingen.de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:44696 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753150AbZASOUT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 19 Jan 2009 09:20:19 -0500
-In-Reply-To: <4970DDF9.4090007@redhat.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:59850 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755194AbZATQJx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 Jan 2009 11:09:53 -0500
+In-Reply-To: <20090118111831.GA4818@osiris.boeblingen.de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ulrich Drepper <drepper@redhat.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, aarcange@redhat.com
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, schwidefsky@de.ibm.com
 
-Ulrich Drepper wrote:
-> If they are in the kernel there is no reason not to export them from
-> glibc.
-
-Great.
-
-> But I have a general comment about all kinds of read syscalls.
-> If think they have been misdesigned from day one and if we are going to
-> add new ones we might want to fix them.
+> On Sun, 18 Jan 2009 12:18:31 +0100 Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
+> Hi Andrew,
 > 
-> The problem is that they don't allow for zero-copy operations in enough
-> cases.  The kernel is not free to store the data wherever it wants even
-> if the userlevel code is fine with that.
+> while debugging I noticed the following comment in fs/binfmt_elf.c:
+> 
+> 			/*
+> 			 * The early SET_PERSONALITY here is so that the lookup
+> 			 * for the interpreter happens in the namespace of the 
+> 			 * to-be-execed image.	SET_PERSONALITY can select an
+> 			 * alternate root.
+> 			 *
+> 			 * However, SET_PERSONALITY is NOT allowed to switch
+> 			 * this task into the new images's memory mapping
+> 			 * policy - that is, TASK_SIZE must still evaluate to
+> 			 * that which is appropriate to the execing application.
+> 			 * This is because exit_mmap() needs to have TASK_SIZE
+> 			 * evaluate to the size of the old image.
+> 			 *
+> 			 * So if (say) a 64-bit application is execing a 32-bit
+> 			 * application it is the architecture's responsibility
+> 			 * to defer changing the value of TASK_SIZE until the
+> 			 * switch really is going to happen - do this in
+> 			 * flush_thread().	- akpm
+> 			 */
 
-[ ... more text snipped ... ]
+Cripes, that must have been a different akpm.
 
-I do see the point in adding a interface like this ...
+> At least s390 isn't doing the deferred TASK_SIZE switch. Also it seems like
+> MIPS, PARISC and IA64 don't do it either. However from a quick a view I
+> couldn't see that exit_mmap depends on TASK_SIZE. So is this still necessary?
+> 
+> And the bug I was looking for is this one: in SET_PERSONALITY we do this:
+> 
+> 	if (current->personality != PER_LINUX32)
+> 		set_personality(PER_LINUX);
+> 
+> However we should use the PER_MASK if we want to check for PER_LINUX32,
+> since there are more bits in the personality flags. In case any of the
+> 'extra' bits is set we may incorrectly set personality to PER_LINUX even
+> when we want PER_LINUX32.
+> 
+> Looks like more architectures should do something like:
+> 
+> 	if (personality(current->personality) != PER_LINUX32)
+> 		...
 
->    ssize_t readz (int fd, void *buf, size_t len, void **res)
-
-... to help the kernel do zero-copy I/O.
-
-I think system calls for vector I/O are *not* the right place for that
-though.  Usually applications use vectored I/O because they *do* care
-about the place the data is stored, because vectored I/O allows them to
-avoid copying data within the application.
-
-cheers,
-  Gerd
+I'm stuck in planes and hotels for the rest of the week and don't have a
+git tree to dig through, sorry.  I'd prefer to hold off until next week
+before diving into that one.
