@@ -1,68 +1,39 @@
-From: Gerd Hoffmann <kraxel@redhat.com>
-Subject: Re: [PATCH v6 0/5] Add preadv & pwritev system calls.
-Date: Wed, 21 Jan 2009 10:31:27 +0100
-Message-ID: <4976EB6F.5090503@redhat.com>
-References: <1232124344-25892-1-git-send-email-kraxel@redhat.com> <200901161852.04953.arnd@arndb.de> <4970DDF9.4090007@redhat.com> <49748C1B.8090205@redhat.com> <20090121001131.GF21648@machine.or.cz>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: SET_PERSONALITY and TASK_SIZE
+Date: Thu, 22 Jan 2009 14:28:23 +1100
+Message-ID: <1232594903.23611.96.camel@pasglop>
+References: <20090118111831.GA4818@osiris.boeblingen.de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:60915 "EHLO mx2.redhat.com"
+Received: from gate.crashing.org ([63.228.1.57]:35814 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759467AbZAUJcD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 21 Jan 2009 04:32:03 -0500
-In-Reply-To: <20090121001131.GF21648@machine.or.cz>
+	id S1756203AbZAVD2s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 21 Jan 2009 22:28:48 -0500
+In-Reply-To: <20090118111831.GA4818@osiris.boeblingen.de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Petr Baudis <pasky@suse.cz>
-Cc: Ulrich Drepper <drepper@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, aarcange@redhat.com
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Hugh Dickins <hugh@veritas.com>
 
-Petr Baudis wrote:
-> On Mon, Jan 19, 2009 at 03:20:11PM +0100, Gerd Hoffmann wrote:
->> I do see the point in adding a interface like this ...
->>
->>>    ssize_t readz (int fd, void *buf, size_t len, void **res)
->> ... to help the kernel do zero-copy I/O.
->>
->> I think system calls for vector I/O are *not* the right place for that
->> though.  Usually applications use vectored I/O because they *do* care
->> about the place the data is stored, because vectored I/O allows them to
->> avoid copying data within the application.
+
+> However we should use the PER_MASK if we want to check for PER_LINUX32,
+> since there are more bits in the personality flags. In case any of the
+> 'extra' bits is set we may incorrectly set personality to PER_LINUX even
+> when we want PER_LINUX32.
 > 
-> Can you elaborate on this? An application would have to have quite a
-> contrived design if its pointers simply cannot be updated according
-> to what the kernel returns.
+> Looks like more architectures should do something like:
+> 
+> 	if (personality(current->personality) != PER_LINUX32)
 
-Well.  The "just update the pointers" argument is bogous.  It simply
-doesn't work in general for a number of reasons:
+If you do gitk mm/memory.c, and look at the first 2 or 3 commits from
+Hugh near the botto,, I -think- they may explain why you no longer see
+the use of TASK_SIZE in there, ie, we may have fixed that in 2.6.12...
 
-First, it assumes that there is a pointer you can update in the first place.
+So from that point of view, it's quite possible that we no longer need
+to defer the personality switch, which would allow to simplify things
+quite a bit on ppc64, unless there is some -other- reason here...
 
-Second, it assumes you can easily update all pointer instances pointing
-to your data.  Finding all places which need updating might be
-non-trivial or impossible.  This tends to be true for refcounted data
-structures.
-
-Third, updating pointers can have extra costs, such as locking
-requirements in threaded applications.
-
-Of course there are also tons of applications where it is absolutely no
-problem to just update the pointer.
-
-But I think that applications using the vectored I/O very likely belong
-to the group which can't.  Otherwise there would be little reason to use
-the vectored API in the first place.
-
-> Then again, I'm not sure why wouldn't readv() actually be
-> zerocopy-ready. Just make sure you handle iov_base being NULL gracefully
-> now (EINVAL, with the remark that the kernel can write to the iovec
-> memory area in the future) and later the kernel can in that case set
-> iov_base to the buffer location?
-
-You could (assuming you don't break POSIX along the way).  I don't think
-apps would use such an interface though for the reasons outlined above.
- The readz() prototype by Ullrich (without iovecs being involved) looks
-much more reasonable to me.
-
-cheers,
-  Gerd
+Cheers,
+Ben.
