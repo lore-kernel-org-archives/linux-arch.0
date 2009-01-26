@@ -1,253 +1,265 @@
-From: Gerd Hoffmann <kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: [PATCH v7 3/5] Add preadv and pwritev system calls.
-Date: Mon, 26 Jan 2009 14:26:27 +0100
-Message-ID: <1232976389-13021-4-git-send-email-kraxel@redhat.com>
-References: <1232976389-13021-1-git-send-email-kraxel@redhat.com>
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1232976389-13021-1-git-send-email-kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: aarcange-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, Gerd Hoffmann <kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [git pull] cpus4096 tree, part 3
+Date: Mon, 26 Jan 2009 11:00:54 -0800
+Message-ID: <20090126110054.bdddbf38.akpm@linux-foundation.org>
+References: <alpine.LFD.2.00.0901021149020.5086@localhost.localdomain>
+	<20090102203839.GA26850@elte.hu>
+	<alpine.LFD.2.00.0901021531140.3179@localhost.localdomain>
+	<20090103193859.GB9805@elte.hu>
+	<alpine.LFD.2.00.0901031225020.3179@localhost.localdomain>
+	<20090103203621.GA2491@elte.hu>
+	<20090103213856.GA24138@elte.hu>
+	<alpine.LFD.2.00.0901031347570.3179@localhost.localdomain>
+	<20090103223723.GA17047@elte.hu>
+	<20090105011416.GG32239@wotan.suse.de>
+	<20090105011630.GI32239@wotan.suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:35792 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752811AbZAZTBl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 26 Jan 2009 14:01:41 -0500
+In-Reply-To: <20090105011630.GI32239@wotan.suse.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nick Piggin <npiggin@suse.de>
+Cc: mingo@elte.hu, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, rusty@rustcorp.com.au, travis@sgi.com, linux-kernel@vger.kernel.org, venkatesh.pallipadi@intel.com, suresh.b.siddha@intel.com, arjan@infradead.org, hpa@zytor.com, tglx@linutronix.de
 
-This patch adds preadv and pwritev system calls.  These syscalls are a
-pretty straightforward combination of pread and readv (same for write).
-They are quite useful for doing vectored I/O in threaded applications.
-Using lseek+readv instead opens race windows you'll have to plug with
-locking.
+On Mon, 5 Jan 2009 02:16:30 +0100
+Nick Piggin <npiggin@suse.de> wrote:
 
-Other systems have such system calls too, for example NetBSD, check
-here: http://www.daemon-systems.org/man/preadv.2.html
+> Really cc linux-arch this time
+> 
+> On Mon, Jan 05, 2009 at 02:14:16AM +0100, Nick Piggin wrote:
+> > On Sat, Jan 03, 2009 at 11:37:23PM +0100, Ingo Molnar wrote:
+> > > 
+> > > * Linus Torvalds <torvalds@linux-foundation.org> wrote:
+> > > 
+> > > > What happened to Nick's cleanup patch to do_page_fault (a month or two 
+> > > > ago? I complained about some of the issues in his first version and 
+> > > > asked for some further cleanups, but I think that whole discussion ended 
+> > > > with him saying "I am going to add those changes that you suggested (in 
+> > > > fact, I already have)".
+> > > > 
+> > > > And then I didn't see anything further. Maybe I just missed the end 
+> > > > result. Or maybe we have it in some -mm branch or something?
+> > > 
+> > > they would have been in tip/x86/mm and would be upstream now had Nick 
+> > > re-sent a v2 series but that never happened. I think they might have 
+> > > fallen victim to a serious attention deficit caused by the SLQB patch ;-)
+> > 
+> > Well, I already added Linus's suggestions but didn't submit it because
+> > there was a bit of work going on in that file as far as I could see, both
+> > in the x86 tree and in -mm:
+> > 
+> > (http://www.kernel.org/pub/linux/kernel/people/akpm/patches/2.6/2.6.28-rc2/2.6.28-rc2-mm1/broken-out/mm-invoke-oom-killer-from-page-fault.patch)
+> > 
+> > It isn't a big deal to resolve either way, but I don't want to make Andrew's
+> > life harder.
+> > 
+> > [Yes OK now I'm the guilty one of pushing in an x86 patch not via the
+> > x86 tree ;) This one is easy to break in pieces, but I didn't want
+> > to create a dependency between the trees]
+> > 
+> > I didn't really consider it to be urgent, so I was waiting for that patch
+> > to go in, but I was still hoping to get this into 2.6.29... This is what
+> > it looks like now with your suggestions, and just merged it to your current
+> > tree (untested).
+> > 
+> > I'll cc the linux-arch list here too, because it might be nice to keep these
+> > things as structurally similar as possible (and they'll all want to look at
+> > the -mm patch above, although I'll probably end up having to write the
+> > patches!).
+> 
+> ---
+> Optimise x86's do_page_fault (C entry point for the page fault path).
 
-The application-visible interface provided by glibc should look like
-this to be compatible to the existing implementations in the *BSD family:
+It took rather a lot of hunting to find this email.  Please do try to
+make the email subject match the final patch's title?
 
-  ssize_t preadv(int d, const struct iovec *iov, int iovcnt, off_t offset);
-  ssize_t pwritev(int d, const struct iovec *iov, int iovcnt, off_t offset);
+>   * This routine handles page faults.  It determines the address,
+>   * and the problem, and then passes it off to one of the appropriate
+> @@ -583,16 +796,12 @@ asmlinkage
+>  #endif
+>  void __kprobes do_page_fault(struct pt_regs *regs, unsigned long error_code)
+>  {
+> +	unsigned long address;
+>  	struct task_struct *tsk;
+>  	struct mm_struct *mm;
+>  	struct vm_area_struct *vma;
+> -	unsigned long address;
+> -	int write, si_code;
+> +	int write;
+>  	int fault;
+> -#ifdef CONFIG_X86_64
+> -	unsigned long flags;
+> -	int sig;
+> -#endif
+>  
+>  	tsk = current;
+>  	mm = tsk->mm;
+> @@ -601,9 +810,7 @@ void __kprobes do_page_fault(struct pt_r
+>  	/* get the address */
+>  	address = read_cr2();
+>  
+> -	si_code = SEGV_MAPERR;
+> -
+> -	if (notify_page_fault(regs))
+> +	if (unlikely(notify_page_fault(regs)))
+>  		return;
+>  	if (unlikely(kmmio_fault(regs, address)))
+>  		return;
+> @@ -638,10 +845,10 @@ void __kprobes do_page_fault(struct pt_r
+>  		 * Don't take the mm semaphore here. If we fixup a prefetch
+>  		 * fault we could otherwise deadlock.
+>  		 */
+> -		goto bad_area_nosemaphore;
+> +		bad_area_nosemaphore(regs, error_code, address);
+> +		return;
+>  	}
+>  
+> -
+>  	/*
+>  	 * It's safe to allow irq's after cr2 has been saved and the
+>  	 * vmalloc fault has been handled.
+> @@ -657,17 +864,18 @@ void __kprobes do_page_fault(struct pt_r
+>  
+>  #ifdef CONFIG_X86_64
+>  	if (unlikely(error_code & PF_RSVD))
+> -		pgtable_bad(address, regs, error_code);
+> +		pgtable_bad(regs, error_code, address);
+>  #endif
+>  
+>  	/*
+>  	 * If we're in an interrupt, have no user context or are running in an
+>  	 * atomic region then we must not take the fault.
+>  	 */
+> -	if (unlikely(in_atomic() || !mm))
+> -		goto bad_area_nosemaphore;
+> +	if (unlikely(in_atomic() || !mm)) {
+> +		bad_area_nosemaphore(regs, error_code, address);
+> +		return;
+> +	}
+>  
+> -again:
+>  	/*
+>  	 * When running in the kernel we expect faults to occur only to
+>  	 * addresses in user space.  All other faults represent errors in the
+> @@ -684,20 +892,26 @@ again:
+>  	 * source.  If this is invalid we can skip the address space check,
+>  	 * thus avoiding the deadlock.
+>  	 */
+> -	if (!down_read_trylock(&mm->mmap_sem)) {
+> +	if (unlikely(!down_read_trylock(&mm->mmap_sem))) {
+>  		if ((error_code & PF_USER) == 0 &&
+> -		    !search_exception_tables(regs->ip))
+> -			goto bad_area_nosemaphore;
+> +		    !search_exception_tables(regs->ip)) {
+> +			bad_area_nosemaphore(regs, error_code, address);
+> +			return;
+> +		}
+>  		down_read(&mm->mmap_sem);
+>  	}
+>  
+>  	vma = find_vma(mm, address);
+> -	if (!vma)
+> -		goto bad_area;
+> -	if (vma->vm_start <= address)
+> +	if (unlikely(!vma)) {
+> +		bad_area(regs, error_code, address);
+> +		return;
+> +	}
+> +	if (likely(vma->vm_start <= address))
+>  		goto good_area;
+> -	if (!(vma->vm_flags & VM_GROWSDOWN))
+> -		goto bad_area;
+> +	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN))) {
+> +		bad_area(regs, error_code, address);
+> +		return;
+> +	}
+>  	if (error_code & PF_USER) {
+>  		/*
+>  		 * Accessing the stack below %sp is always a bug.
+> @@ -705,31 +919,25 @@ again:
+>  		 * and pusha to work.  ("enter $65535,$31" pushes
+>  		 * 32 pointers and then decrements %sp by 65535.)
+>  		 */
+> -		if (address + 65536 + 32 * sizeof(unsigned long) < regs->sp)
+> -			goto bad_area;
+> +		if (unlikely(address + 65536 + 32 * sizeof(unsigned long) < regs->sp)) {
+> +			bad_area(regs, error_code, address);
+> +			return;
+> +		}
+>  	}
+> -	if (expand_stack(vma, address))
+> -		goto bad_area;
+> -/*
+> - * Ok, we have a good vm_area for this memory access, so
+> - * we can handle it..
+> - */
+> +	if (unlikely(expand_stack(vma, address))) {
+> +		bad_area(regs, error_code, address);
+> +		return;
+> +	}
+> +
+> +	/*
+> +	 * Ok, we have a good vm_area for this memory access, so
+> +	 * we can handle it..
+> +	 */
+>  good_area:
+> -	si_code = SEGV_ACCERR;
+> -	write = 0;
+> -	switch (error_code & (PF_PROT|PF_WRITE)) {
+> -	default:	/* 3: write, present */
+> -		/* fall through */
+> -	case PF_WRITE:		/* write, not present */
+> -		if (!(vma->vm_flags & VM_WRITE))
+> -			goto bad_area;
+> -		write++;
+> -		break;
+> -	case PF_PROT:		/* read, present */
+> -		goto bad_area;
+> -	case 0:			/* read, not present */
+> -		if (!(vma->vm_flags & (VM_READ | VM_EXEC | VM_WRITE)))
+> -			goto bad_area;
+> +	write = error_code & PF_WRITE;
 
-This prototype has one problem though:  On 32bit archs is the (64bit)
-offset argument unaligned, which the syscall ABI of several archs
-doesn't allow to do.  At least s390 needs a wrapper in glibc to handle
-this.  As we'll need a wrappers in glibc anyway I've decided to push
-problem to glibc entriely and use a syscall prototype which works
-without arch-specific wrappers inside the kernel:  The offset argument
-is explicitly splitted into two 32bit values.
+What's going on here?  We set `error_code' to PF_WRITE, which is some
+x86-specific thing.
 
-The patch sports the actual system call implementation and the windup in
-the x86 system call tables.  Other archs follow as separate patches.
+> +	if (unlikely(access_error(error_code, write, vma))) {
+> +		bad_area_access_error(regs, error_code, address);
+> +		return;
+>  	}
+>  
+>  	/*
+> @@ -739,11 +947,8 @@ good_area:
+>  	 */
+>  	fault = handle_mm_fault(mm, vma, address, write);
 
-Signed-off-by: Gerd Hoffmann <kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
----
- arch/x86/ia32/ia32entry.S          |    2 +
- arch/x86/include/asm/unistd_32.h   |    2 +
- arch/x86/include/asm/unistd_64.h   |    4 +++
- arch/x86/kernel/syscall_table_32.S |    2 +
- fs/compat.c                        |   36 ++++++++++++++++++++++++++
- fs/read_write.c                    |   50 ++++++++++++++++++++++++++++++++++++
- include/linux/compat.h             |    6 ++++
- include/linux/syscalls.h           |    4 +++
- 8 files changed, 106 insertions(+), 0 deletions(-)
+and then pass it into handle_mm_fault(), which is expecting a bunch of
+flags in the FAULT_FLAG_foo domain.
 
-diff --git a/arch/x86/ia32/ia32entry.S b/arch/x86/ia32/ia32entry.S
-index 256b00b..9a8501b 100644
---- a/arch/x86/ia32/ia32entry.S
-+++ b/arch/x86/ia32/ia32entry.S
-@@ -826,4 +826,6 @@ ia32_sys_call_table:
- 	.quad sys_dup3			/* 330 */
- 	.quad sys_pipe2
- 	.quad sys_inotify_init1
-+	.quad compat_sys_preadv
-+	.quad compat_sys_pwritev
- ia32_syscall_end:
-diff --git a/arch/x86/include/asm/unistd_32.h b/arch/x86/include/asm/unistd_32.h
-index f2bba78..6e72d74 100644
---- a/arch/x86/include/asm/unistd_32.h
-+++ b/arch/x86/include/asm/unistd_32.h
-@@ -338,6 +338,8 @@
- #define __NR_dup3		330
- #define __NR_pipe2		331
- #define __NR_inotify_init1	332
-+#define __NR_preadv		333
-+#define __NR_pwritev		334
- 
- #ifdef __KERNEL__
- 
-diff --git a/arch/x86/include/asm/unistd_64.h b/arch/x86/include/asm/unistd_64.h
-index d2e415e..f818294 100644
---- a/arch/x86/include/asm/unistd_64.h
-+++ b/arch/x86/include/asm/unistd_64.h
-@@ -653,6 +653,10 @@ __SYSCALL(__NR_dup3, sys_dup3)
- __SYSCALL(__NR_pipe2, sys_pipe2)
- #define __NR_inotify_init1			294
- __SYSCALL(__NR_inotify_init1, sys_inotify_init1)
-+#define __NR_preadv				295
-+__SYSCALL(__NR_preadv, sys_preadv)
-+#define __NR_pwritev				296
-+__SYSCALL(__NR_pwritev, sys_pwritev)
- 
- 
- #ifndef __NO_STUBS
-diff --git a/arch/x86/kernel/syscall_table_32.S b/arch/x86/kernel/syscall_table_32.S
-index e2e86a0..106204c 100644
---- a/arch/x86/kernel/syscall_table_32.S
-+++ b/arch/x86/kernel/syscall_table_32.S
-@@ -332,3 +332,5 @@ ENTRY(sys_call_table)
- 	.long sys_dup3			/* 330 */
- 	.long sys_pipe2
- 	.long sys_inotify_init1
-+	.long sys_preadv
-+	.long sys_pwritev
-diff --git a/fs/compat.c b/fs/compat.c
-index 4e65644..1a67eee 100644
---- a/fs/compat.c
-+++ b/fs/compat.c
-@@ -1204,6 +1204,24 @@ compat_sys_readv(unsigned long fd, const struct compat_iovec __user *vec,
- 	return ret;
- }
- 
-+asmlinkage ssize_t
-+compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
-+		  unsigned long vlen, u32 pos_high, u32 pos_low)
-+{
-+	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
-+	struct file *file;
-+	ssize_t ret;
-+
-+	if (pos < 0)
-+		return -EINVAL;
-+	file = fget(fd);
-+	if (!file)
-+		return -EBADF;
-+	ret = compat_readv(file, vec, vlen, &pos);
-+	fput(file);
-+	return ret;
-+}
-+
- static size_t compat_writev(struct file *file,
- 			    const struct compat_iovec __user *vec,
- 			    unsigned long vlen, loff_t *pos)
-@@ -1241,6 +1259,24 @@ compat_sys_writev(unsigned long fd, const struct compat_iovec __user *vec,
- 	return ret;
- }
- 
-+asmlinkage ssize_t
-+compat_sys_pwritev(unsigned long fd, const struct compat_iovec __user *vec,
-+		   unsigned long vlen, u32 pos_high, u32 pos_low)
-+{
-+	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
-+	struct file *file;
-+	ssize_t ret;
-+
-+	if (pos < 0)
-+		return -EINVAL;
-+	file = fget(fd);
-+	if (!file)
-+		return -EBADF;
-+	ret = compat_writev(file, vec, vlen, &pos);
-+	fput(file);
-+	return ret;
-+}
-+
- asmlinkage long
- compat_sys_vmsplice(int fd, const struct compat_iovec __user *iov32,
- 		    unsigned int nr_segs, unsigned int flags)
-diff --git a/fs/read_write.c b/fs/read_write.c
-index 400fe81..6d5d8ff 100644
---- a/fs/read_write.c
-+++ b/fs/read_write.c
-@@ -731,6 +731,56 @@ SYSCALL_DEFINE3(writev, unsigned long, fd, const struct iovec __user *, vec,
- 	return ret;
- }
- 
-+SYSCALL_DEFINE5(preadv, unsigned long, fd, const struct iovec __user *, vec,
-+		unsigned long, vlen, u32, pos_high, u32, pos_low)
-+{
-+	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
-+	struct file *file;
-+	ssize_t ret = -EBADF;
-+	int fput_needed;
-+
-+	if (pos < 0)
-+		return -EINVAL;
-+
-+	file = fget_light(fd, &fput_needed);
-+	if (file) {
-+		ret = -ESPIPE;
-+		if (file->f_mode & FMODE_PREAD)
-+			ret = vfs_readv(file, vec, vlen, &pos);
-+		fput_light(file, fput_needed);
-+	}
-+
-+	if (ret > 0)
-+		add_rchar(current, ret);
-+	inc_syscr(current);
-+	return ret;
-+}
-+
-+SYSCALL_DEFINE5(pwritev, unsigned long, fd, const struct iovec __user *, vec,
-+		unsigned long, vlen, u32, pos_high, u32, pos_low)
-+{
-+	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
-+	struct file *file;
-+	ssize_t ret = -EBADF;
-+	int fput_needed;
-+
-+	if (pos < 0)
-+		return -EINVAL;
-+
-+	file = fget_light(fd, &fput_needed);
-+	if (file) {
-+		ret = -ESPIPE;
-+		if (file->f_mode & FMODE_PWRITE)
-+			ret = vfs_writev(file, vec, vlen, &pos);
-+		fput_light(file, fput_needed);
-+	}
-+
-+	if (ret > 0)
-+		add_wchar(current, ret);
-+	inc_syscw(current);
-+	return ret;
-+}
-+
- static ssize_t do_sendfile(int out_fd, int in_fd, loff_t *ppos,
- 			   size_t count, loff_t max)
- {
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index 3fd2194..79dba49 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -183,6 +183,12 @@ asmlinkage ssize_t compat_sys_readv(unsigned long fd,
- 		const struct compat_iovec __user *vec, unsigned long vlen);
- asmlinkage ssize_t compat_sys_writev(unsigned long fd,
- 		const struct compat_iovec __user *vec, unsigned long vlen);
-+asmlinkage ssize_t compat_sys_preadv(unsigned long fd,
-+		const struct compat_iovec __user *vec,
-+		unsigned long vlen, u32 pos_high, u32 pos_low);
-+asmlinkage ssize_t compat_sys_pwritev(unsigned long fd,
-+		const struct compat_iovec __user *vec,
-+		unsigned long vlen, u32 pos_high, u32 pos_low);
- 
- int compat_do_execve(char * filename, compat_uptr_t __user *argv,
- 	        compat_uptr_t __user *envp, struct pt_regs * regs);
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 16875f8..b63e93d 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -456,6 +456,10 @@ asmlinkage long sys_pread64(unsigned int fd, char __user *buf,
- 			    size_t count, loff_t pos);
- asmlinkage long sys_pwrite64(unsigned int fd, const char __user *buf,
- 			     size_t count, loff_t pos);
-+asmlinkage long sys_preadv(unsigned long fd, const struct iovec __user *vec,
-+			   unsigned long vlen, u32 pos_high, u32 pos_low);
-+asmlinkage long sys_pwritev(unsigned long fd, const struct iovec __user *vec,
-+			    unsigned long vlen, u32 pos_high, u32 pos_low);
- asmlinkage long sys_getcwd(char __user *buf, unsigned long size);
- asmlinkage long sys_mkdir(const char __user *pathname, int mode);
- asmlinkage long sys_chdir(const char __user *filename);
--- 
-1.6.1
+IOW, the code will accidentally set FAULT_FLAG_NONLINEAR!.
 
---
-To unsubscribe from this list: send the line "unsubscribe linux-api" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+
+Methinks we want something like this,
+
+--- a/arch/x86/mm/fault.c~fix-x86-optimise-x86s-do_page_fault-c-entry-point-for-the-page-fault-path
++++ a/arch/x86/mm/fault.c
+@@ -942,7 +942,7 @@ void __kprobes do_page_fault(struct pt_r
+ 	 * we can handle it..
+ 	 */
+ good_area:
+-	write = error_code & PF_WRITE;
++	write = (error_code & PF_WRITE) ? FAULT_FLAG_WRITE : 0;
+ 	if (unlikely(access_error(error_code, write, vma))) {
+ 		bad_area_access_error(regs, error_code, address);
+ 		return;
+_
+
+
+but why did the current code pass testing at all??
