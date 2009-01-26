@@ -1,65 +1,85 @@
-From: Andrew Morton <akpm@linux-foundation.org>
+From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [git pull] cpus4096 tree, part 3
-Date: Mon, 26 Jan 2009 11:30:26 -0800
-Message-ID: <20090126113026.4d9682e3.akpm@linux-foundation.org>
-References: <alpine.LFD.2.00.0901021149020.5086@localhost.localdomain>
-	<20090102203839.GA26850@elte.hu>
-	<alpine.LFD.2.00.0901021531140.3179@localhost.localdomain>
-	<20090103193859.GB9805@elte.hu>
-	<alpine.LFD.2.00.0901031225020.3179@localhost.localdomain>
-	<20090103203621.GA2491@elte.hu>
-	<20090103213856.GA24138@elte.hu>
-	<alpine.LFD.2.00.0901031347570.3179@localhost.localdomain>
-	<20090103223723.GA17047@elte.hu>
-	<20090105011416.GG32239@wotan.suse.de>
-	<20090105011630.GI32239@wotan.suse.de>
-	<20090126110054.bdddbf38.akpm@linux-foundation.org>
-	<alpine.LFD.2.00.0901261107280.5284@localhost.localdomain>
+Date: Mon, 26 Jan 2009 21:09:57 +0100
+Message-ID: <20090126200957.GB13471@elte.hu>
+References: <alpine.LFD.2.00.0901021531140.3179@localhost.localdomain> <20090103193859.GB9805@elte.hu> <alpine.LFD.2.00.0901031225020.3179@localhost.localdomain> <20090103203621.GA2491@elte.hu> <20090103213856.GA24138@elte.hu> <alpine.LFD.2.00.0901031347570.3179@localhost.localdomain> <20090103223723.GA17047@elte.hu> <20090105011416.GG32239@wotan.suse.de> <20090105011630.GI32239@wotan.suse.de> <20090126110054.bdddbf38.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:49702 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752718AbZAZTaz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Jan 2009 14:30:55 -0500
-In-Reply-To: <alpine.LFD.2.00.0901261107280.5284@localhost.localdomain>
+Received: from mx3.mail.elte.hu ([157.181.1.138]:48046 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752929AbZAZUK2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 26 Jan 2009 15:10:28 -0500
+Content-Disposition: inline
+In-Reply-To: <20090126110054.bdddbf38.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: npiggin@suse.de, mingo@elte.hu, linux-arch@vger.kernel.org, rusty@rustcorp.com.au, travis@sgi.com, linux-kernel@vger.kernel.org, venkatesh.pallipadi@intel.com, suresh.b.siddha@intel.com, arjan@infradead.org, hpa@zytor.com, tglx@linutronix.de, Ying Han <yinghan@google.com>, Mike Waychison <mikew@google.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Nick Piggin <npiggin@suse.de>, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, rusty@rustcorp.com.au, travis@sgi.com, linux-kernel@vger.kernel.org, venkatesh.pallipadi@intel.com, suresh.b.siddha@intel.com, arjan@infradead.org, hpa@zytor.com, tglx@linutronix.de
 
-On Mon, 26 Jan 2009 11:09:59 -0800 (PST)
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-> 
-> 
-> On Mon, 26 Jan 2009, Andrew Morton wrote:
-> > > +	write = error_code & PF_WRITE;
-> > 
-> > What's going on here?  We set `error_code' to PF_WRITE, which is some
-> > x86-specific thing.
-> 
-> No. We set "write" to non-zero if it was a write fault.
-> 
-> > >  	fault = handle_mm_fault(mm, vma, address, write);
-> > 
-> > and then pass it into handle_mm_fault(), which is expecting a bunch of
-> > flags in the FAULT_FLAG_foo domain.
-> 
-> No. "handle_mm_fault()" takes an integer that is non-zero if it's a write, 
-> zero if it's a read. That's how it has _always_ worked.
-> 
-> I don't see where you find that FAULT_FLAG_foo thing. That's much deeper 
-> down, when people do things like
-> 
->         unsigned int flags = FAULT_FLAG_NONLINEAR |
->                                 (write_access ? FAULT_FLAG_WRITE : 0);
-> 
-> based on that whole "write_access" flag.
-> 
+* Andrew Morton <akpm@linux-foundation.org> wrote:
 
-OK, thanks.  It's actually page_fault-retry-with-nopage_retry.patch
-which got those things confused, and then confused me.  I'll go address
-that in the other thread..
+> but why did the current code pass testing at all??
+
+i queued it up a week ago and beyond a same-day breakage i reported to 
+Nick (and which he fixed) this commit was problem-free and passed all 
+testing here.
+
+Does it cause problems for you? If yes then please describe the kind of 
+problems.
+
+Note: i see that -mm modifies a few other details of the x86 pagefault 
+handling path (there a pagefault-retry patch in there) - so there might be 
+contextual interactions there. But this particular cleanup/improvement 
+from Nick is working fine on a wide range of systems here.
+
+Btw., regarding pagefault retry. The bits that are in -mm currently i 
+find a bit ugly:
+
+> +++ a/arch/x86/mm/fault.c
+> @@ -799,7 +799,7 @@ void __kprobes do_page_fault(struct pt_r
+>  	struct vm_area_struct *vma;
+>  	int write;
+>  	int fault;
+> -	unsigned int retry_flag = FAULT_FLAG_RETRY;
+> +	int retry_flag = 1;
+>  
+>  	tsk = current;
+>  	mm = tsk->mm;
+> @@ -951,6 +951,7 @@ good_area:
+>  	}
+>  
+>  	write |= retry_flag;
+> +
+>  	/*
+>  	 * If for any reason at all we couldn't handle the fault,
+>  	 * make sure we exit gracefully rather than endlessly redo
+> @@ -969,8 +970,8 @@ good_area:
+>  	 * be removed or changed after the retry.
+>  	 */
+>  	if (fault & VM_FAULT_RETRY) {
+> -		if (write & FAULT_FLAG_RETRY) {
+> -			retry_flag &= ~FAULT_FLAG_RETRY;
+> +		if (retry_flag) {
+> +			retry_flag = 0;
+>  			goto retry;
+>  		}
+>  		BUG();
+
+as this complicates every architecture with a 'can the fault be retried' 
+logic and open-coded retry loop.
+
+But that logic is rather repetitive and once an architecture filters out 
+all its special in-kernel sources of faults and the hw quirks it has, the 
+handling of pte faults is rather generic and largely offloaded into 
+handle_pte_fault() already.
+
+So when this patch was submitted a few weeks ago i suggested that retry 
+should be done purely in mm/memory.c instead, and the low level code 
+should at most be refactored to suit this method, but not complicated any 
+further.
+
+Any deep reasons for why such a more generic approach is not desirable?
+
+	Ingo
