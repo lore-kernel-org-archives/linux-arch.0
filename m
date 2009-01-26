@@ -1,168 +1,48 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/1] x86: syscalls: sys_setrlimit64/sys_getrlimit64 calls to provide FSIZE  limits > 2^32-1
-Date: Mon, 26 Jan 2009 20:04:15 +0100
-Message-ID: <200901262004.16364.arnd@arndb.de>
-References: <200901231759.n0NHxKA3009104@eng-pool-55.spikesource.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [git pull] cpus4096 tree, part 3
+Date: Mon, 26 Jan 2009 11:09:59 -0800 (PST)
+Message-ID: <alpine.LFD.2.00.0901261107280.5284@localhost.localdomain>
+References: <alpine.LFD.2.00.0901021149020.5086@localhost.localdomain> <20090102203839.GA26850@elte.hu> <alpine.LFD.2.00.0901021531140.3179@localhost.localdomain> <20090103193859.GB9805@elte.hu> <alpine.LFD.2.00.0901031225020.3179@localhost.localdomain>
+ <20090103203621.GA2491@elte.hu> <20090103213856.GA24138@elte.hu> <alpine.LFD.2.00.0901031347570.3179@localhost.localdomain> <20090103223723.GA17047@elte.hu> <20090105011416.GG32239@wotan.suse.de> <20090105011630.GI32239@wotan.suse.de>
+ <20090126110054.bdddbf38.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.177]:61127 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753258AbZAZTE3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Jan 2009 14:04:29 -0500
-In-Reply-To: <200901231759.n0NHxKA3009104@eng-pool-55.spikesource.com>
-Content-Disposition: inline
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:35832 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753998AbZAZTLF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 26 Jan 2009 14:11:05 -0500
+In-Reply-To: <20090126110054.bdddbf38.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: narendramind@spikesource.com
-Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, torvalds@osdl.org, linux-abi@vger.kernel.org, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Nick Piggin <npiggin@suse.de>, mingo@elte.hu, linux-arch@vger.kernel.org, rusty@rustcorp.com.au, travis@sgi.com, linux-kernel@vger.kernel.org, venkatesh.pallipadi@intel.com, suresh.b.siddha@intel.com, arjan@infradead.org, hpa@zytor.com, tglx@linutronix.de
 
-On Friday 23 January 2009, narendramind@spikesource.com wrote:
+
+
+On Mon, 26 Jan 2009, Andrew Morton wrote:
+> > +	write = error_code & PF_WRITE;
 > 
->   The solution to this problem would require new setrlimit64() and 
->   getrlimit64() system calls on x86, and the existing 32-bit system calls 
->   would need to be retained so that existing binaries would still run.
+> What's going on here?  We set `error_code' to PF_WRITE, which is some
+> x86-specific thing.
 
-When adding new syscalls, please Cc: linux-abi@vger.kernel.org and
-linux-arch@vger.kernel.org to get attention from all parties that are
-involved.
+No. We set "write" to non-zero if it was a write fault.
 
-> diff -uNrp -X linux-2.6.29-rc2/Documentation/dontdiff linux-2.6.29-rc2/arch/x86/kernel/syscall_table_32.S linux-2.6.29-rc2-rlim64/arch/x86/kernel/syscall_table_32.S
-> --- linux-2.6.29-rc2/arch/x86/kernel/syscall_table_32.S	2009-01-17 09:54:06.000000000 +0530
-> +++ linux-2.6.29-rc2-rlim64/arch/x86/kernel/syscall_table_32.S	2009-01-17 19:15:52.000000000 +0530
-> @@ -332,3 +332,5 @@ ENTRY(sys_call_table)
->  	.long sys_dup3			/* 330 */
->  	.long sys_pipe2
->  	.long sys_inotify_init1
-> +	.long sys_setrlimit64
-> +	.long sys_getrlimit64
+> >  	fault = handle_mm_fault(mm, vma, address, write);
+> 
+> and then pass it into handle_mm_fault(), which is expecting a bunch of
+> flags in the FAULT_FLAG_foo domain.
 
-This only adds the calls to the native 32 bit build, but not to
-the 32-on-64 compat code in arch/x86/ia32/ia32entry.S (or any of the
-other architectures.
+No. "handle_mm_fault()" takes an integer that is non-zero if it's a write, 
+zero if it's a read. That's how it has _always_ worked.
 
-> --- linux-2.6.29-rc2/kernel/ChangeLog	1970-01-01 05:30:00.000000000 +0530
-> +++ linux-2.6.29-rc2-rlim64/kernel/ChangeLog	2009-01-17 19:15:50.000000000 +0530
-> @@ -0,0 +1,10 @@
-> +2008-01-17  Narendra Prasad <narendramind@gmail.com>
-> +    Problem Description:
-> +        The following issue affects the setrlimit() and getrlimit() system calls on Linux 2.6.13 (and earlier) on x86.
-> +        The Problem is filed at kernel.org bug 5042 (http://bugzilla.kernel.org/show_bug.cgi?id=5042)
-> +    Design Approach:
-> +        Add two system calls sys_setrlimit64()/sys_getrlimit64().
-> +        And a type 'struct rlimit64' to accomodate more no. of limits <= 2^64-1
-> +    Implementation Details:
-> +        Inclusions: struct rlimit64, struct rlimit64
-> +        rlim64[RLIM64_NRLIMITS] to task_struct
+I don't see where you find that FAULT_FLAG_foo thing. That's much deeper 
+down, when people do things like
 
-The changelog is the git history, please don't add other files for this.
+        unsigned int flags = FAULT_FLAG_NONLINEAR |
+                                (write_access ? FAULT_FLAG_WRITE : 0);
 
-> +SYSCALL_DEFINE2(setrlimit64, unsigned int, resource,
-> +				struct rlimit64 __user *, rlim)
-> +{
-> +	struct rlimit64  new_rlim;
-> +	struct rlimit    *old_rlim, new_value;
-> +	unsigned long    it_prof_secs;
-> +	int              retval;
-> +
-> +	if (resource >= RLIM_NLIMITS)
-> +		return -EINVAL;
-> +	if (copy_from_user(&new_rlim, rlim, sizeof(*rlim)))
-> +		return -EFAULT;
-> +
-> +	if (resource == RLIMIT_FSIZE) {
-> +		struct rlimit64  *old_rlim;
-> +		struct rlimit    *old_value;
-> +
-> +		old_rlim = current->signal->rlim64 + resource;
-> +		if (((new_rlim.rlim64_cur > old_rlim->rlim64_max) ||
-> +			(new_rlim.rlim64_max > old_rlim->rlim64_max)) &&
-> +			!capable(CAP_SYS_RESOURCE))
-> +			return -EPERM;
-> +		*old_rlim = new_rlim;
-> +		if (new_rlim.rlim64_cur > RLIM_INFINITY)
-> +			new_rlim.rlim64_cur = RLIM_INFINITY;
-> +		if (new_rlim.rlim64_max > RLIM_INFINITY)
-> +			new_rlim.rlim64_max = RLIM_INFINITY;
-> +
-> +		task_lock(current->group_leader);
-> +		old_value = (current->signal->rlim + resource);
-> +		old_value->rlim_max = new_rlim.rlim64_max;
-> +		old_value->rlim_cur = new_rlim.rlim64_cur;
-> +		task_unlock(current->group_leader);
-> +
-> +		return 0;
-> +	}
-> +
-> +	old_rlim = current->signal->rlim + resource;
-> +	if (new_rlim.rlim64_cur > RLIM_INFINITY)
-> +		new_rlim.rlim64_cur = RLIM_INFINITY;
-> +	if (new_rlim.rlim64_max > RLIM_INFINITY)
-> +		new_rlim.rlim64_max = RLIM_INFINITY;
-> +	if (((new_rlim.rlim64_cur > old_rlim->rlim_max) ||
-> +		(new_rlim.rlim64_max > old_rlim->rlim_max)) &&
-> +		!capable(CAP_SYS_RESOURCE))
-> +		return -EPERM;
-> +	if (resource == RLIMIT_NOFILE) {
-> +		if (new_rlim.rlim64_cur > INR_OPEN ||
-> +			new_rlim.rlim64_max > INR_OPEN)
-> +			return -EPERM;
-> +	}
-> +	new_value.rlim_max = new_rlim.rlim64_max;
-> +	new_value.rlim_cur = new_rlim.rlim64_cur;
-> +	retval = security_task_setrlimit(resource, &new_value);
-> +	if (retval)
-> +		return retval;
-> +
-> +	if (resource == RLIMIT_CPU && new_value.rlim_cur == 0) {
-> +		/*
-> +		 * The caller is asking for an immediate RLIMIT_CPU
-> +		 * expiry.  But we use the zero value to mean "it was
-> +		 * never set".  So let's cheat and make it one second
-> +		 * instead
-> +		 */
-> +		new_value.rlim_cur = 1;
-> +	}
-> +
-> +	task_lock(current->group_leader);
-> +	*old_rlim = new_value;
-> +	task_unlock(current->group_leader);
-> +
-> +	if (resource != RLIMIT_CPU)
-> +		goto out;
-> +
-> +	/*
-> +	 * RLIMIT_CPU handling.   Note that the kernel fails to return an error
-> +	 * code if it rejected the user's attempt to set RLIMIT_CPU.  This is a
-> +	 * very long-standing error, and fixing it now risks breakage of
-> +	 * applications, so we live with it
-> +	 */
-> +	if (new_value.rlim_cur == RLIM_INFINITY)
-> +		goto out;
-> +
-> +	it_prof_secs = cputime_to_secs(current->signal->it_prof_expires);
-> +	if (it_prof_secs == 0 || new_value.rlim_cur <= it_prof_secs) {
-> +		unsigned long  rlim_cur = new_value.rlim_cur;
-> +		cputime_t      cputime;
-> +
-> +		cputime = secs_to_cputime(rlim_cur);
-> +		read_lock(&tasklist_lock);
-> +		spin_lock_irq(&current->sighand->siglock);
-> +		set_process_cpu_timer(current, CPUCLOCK_PROF, &cputime, NULL);
-> +		spin_unlock_irq(&current->sighand->siglock);
-> +		read_unlock(&tasklist_lock);
-> +	}
-> +out:
-> +	return 0;
-> +}
+based on that whole "write_access" flag.
 
-This function is rather long, and duplicates most of the existing
-set_rlimit syscall. You should consolidate the two so you get no
-duplication. You can probably add a
-static do_setrlimit(unsigned int resource, struct rlimit64 *rlim);
-helper function that gets called by both setrlimit and setrlimit64
-(also compat_sys_setrlimit) after the copy_from_user().
-
-	Arnd <><
+		Linus
