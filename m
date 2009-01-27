@@ -1,58 +1,36 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [git pull] cpus4096 tree, part 3
-Date: Mon, 26 Jan 2009 15:44:27 -0800
-Message-ID: <20090126154427.70e3d594.akpm@linux-foundation.org>
-References: <20090103203621.GA2491@elte.hu>
-	<20090103213856.GA24138@elte.hu>
-	<alpine.LFD.2.00.0901031347570.3179@localhost.localdomain>
-	<20090103223723.GA17047@elte.hu>
-	<20090105011416.GG32239@wotan.suse.de>
-	<20090105011630.GI32239@wotan.suse.de>
-	<20090126110054.bdddbf38.akpm@linux-foundation.org>
-	<20090126200957.GB13471@elte.hu>
-	<20090126124427.6d13f341.akpm@linux-foundation.org>
-	<604427e00901261312w23a1f0f5y61fc5c6cc70297fb@mail.gmail.com>
-	<20090126232139.GA29561@elte.hu>
+From: Michael Kerrisk <mtk.manpages@googlemail.com>
+Subject: Re: [PATCH 1/1] x86: syscalls: sys_setrlimit64/sys_getrlimit64 calls
+ to provide FSIZE  limits > 2^32-1
+Date: Tue, 27 Jan 2009 01:46:23 +0100
+Message-ID: <497E595F.2010708@gmail.com>
+References: <200901231759.n0NHxKA3009104@eng-pool-55.spikesource.com> <200901262004.16364.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-15
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:42489 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751554AbZAZXpQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Jan 2009 18:45:16 -0500
-In-Reply-To: <20090126232139.GA29561@elte.hu>
+Received: from rv-out-0506.google.com ([209.85.198.231]:8108 "EHLO
+	rv-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753288AbZA0AqQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Jan 2009 19:46:16 -0500
+In-Reply-To: <200901262004.16364.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: yinghan@google.com, npiggin@suse.de, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, rusty@rustcorp.com.au, travis@sgi.com, linux-kernel@vger.kernel.org, venkatesh.pallipadi@intel.com, suresh.b.siddha@intel.com, arjan@infradead.org, hpa@zytor.com, tglx@linutronix.de, mikew@google.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: narendramind@spikesource.com, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, torvalds@osdl.org, linux-abi@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, 27 Jan 2009 00:21:39 +0100
-Ingo Molnar <mingo@elte.hu> wrote:
+Arnd Bergmann wrote:
+> On Friday 23 January 2009, narendramind@spikesource.com wrote:
+>>   The solution to this problem would require new setrlimit64() and 
+>>   getrlimit64() system calls on x86, and the existing 32-bit system calls 
+>>   would need to be retained so that existing binaries would still run.
+> 
+> When adding new syscalls, please Cc: linux-abi@vger.kernel.org and
 
-> 
-> * Ying Han <yinghan@google.com> wrote:
-> 
-> > Thank you Ingo and Andrew for the comments. I will take a look into it 
-> > ASAP and updates it here.
-> 
-> Note, my objection wasnt a hard NAK - just an observation. If all things 
-> considered Andrew still favors the VM_FAULT_RETRY approach then that's 
-> fine too i guess.
-> 
-> It's just that a quick look gave me the feeling of a retry flag tacked on 
-> to an existing codepath [and all the micro-overhead and complexity that 
-> this brings], instead of a clean refactoring of pagefault handling 
-> functionality into a higher MM level retry loop.
-> 
-> So the alternative has to be looked at and rejected because it's 
-> technically inferior - not because it's more difficult to implement. 
-> (which it certainly is)
-> 
+Arnd -- I think you meant linux-api, not linux-abi.
 
-I have wobbly feelings about this patch.  There are your issues, and a
-long string of problems and fixes.  And my recent half-assed
-linux-next-related fix which I didn't really think about.
-
-It all needs a revisit/rereview/reunderstand cycle.
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+git://git.kernel.org/pub/scm/docs/man-pages/man-pages.git
+man-pages online: http://www.kernel.org/doc/man-pages/online_pages.html
+Found a bug? http://www.kernel.org/doc/man-pages/reporting_bugs.html
