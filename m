@@ -1,30 +1,43 @@
-From: "ATM PAYMENT CENTER" <mrs_linda_brown2008@hayoo.com.hk>
-Subject: OFFICIAL NOTIFICATION
-Date: Tue, 27 Jan 2009 16:15:32 +0100
-Message-ID: <497f2514.98.3217.1187778321__16731.0803234161$1233069828$gmane$org@webmailforpsi2>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH -mmotm] mm: unify some pmd_*() functions
+Date: Tue, 27 Jan 2009 17:41:58 -0800
+Message-ID: <20090127174158.519e5abd.akpm@linux-foundation.org>
+References: <1232919337-21434-1-git-send-email-righi.andrea@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtpa.forpsi.com ([81.2.195.204]:34623 "HELO psi2.forpsi.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
-	id S1752372AbZA0PWP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Jan 2009 10:22:15 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1232919337-21434-1-git-send-email-righi.andrea@gmail.com>
+Sender: owner-linux-mm@kvack.org
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, righi.andrea@gmail.com, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>
+List-Id: linux-arch.vger.kernel.org
 
-This is to officially inform you that(ATM Card Number;
-4278763100030014)has been accredited with your favor.Your
-Personal Identification Number is 2900. The ATM Card Value
-is $6.8MILLION USD,You have to contact us with the following
-informations:
+On Sun, 25 Jan 2009 22:35:37 +0100
+Andrea Righi <righi.andrea@gmail.com> wrote:
 
-First name:
-Last Name:
-Telephone:
-Nationality::
-Age:
-Occupation:
-address: 
-Email:mrs_linda_brown2008@hayoo.com.hk
-Regards
-Mrs.Linda Brown
+> diff --git a/include/asm-generic/pgtable-nopmd.h b/include/asm-generic/pgtable-nopmd.h
+> index a7cdc48..b132d69 100644
+> --- a/include/asm-generic/pgtable-nopmd.h
+> +++ b/include/asm-generic/pgtable-nopmd.h
+> @@ -4,6 +4,7 @@
+>  #ifndef __ASSEMBLY__
+>  
+>  #include <asm-generic/pgtable-nopud.h>
+> +#include <asm/bug.h>
+>  
+>  struct mm_struct;
+>  
+
+Why not include the preferred <linux/bug.h>?
+
+> BTW, I only tested this on x86 and x86_64. This needs more testing because it
+> touches also a lot of other architectures.
+
+Hopefully Geert, Roman, David and Hirokazu Takata will have time to
+help out here.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
