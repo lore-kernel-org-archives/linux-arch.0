@@ -1,44 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:49991 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751586AbZA1Bmi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Jan 2009 20:42:38 -0500
-Date: Tue, 27 Jan 2009 17:41:58 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
+Received: from yorgi.telenet-ops.be ([195.130.133.69]:53457 "EHLO
+	yorgi.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751879AbZA2UDK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jan 2009 15:03:10 -0500
+Received: from harold.telenet-ops.be (harold.telenet-ops.be [195.130.133.65])
+	by yorgi.telenet-ops.be (Postfix) with ESMTP id 1F79F68095F
+	for <linux-arch@vger.kernel.org>; Thu, 29 Jan 2009 21:03:08 +0100 (CET)
+Date: Thu, 29 Jan 2009 21:02:29 +0100 (CET)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: [PATCH -mmotm] mm: unify some pmd_*() functions
-Message-ID: <20090127174158.519e5abd.akpm@linux-foundation.org>
-In-Reply-To: <1232919337-21434-1-git-send-email-righi.andrea@gmail.com>
+In-Reply-To: <20090127174158.519e5abd.akpm@linux-foundation.org>
+Message-ID: <Pine.LNX.4.64.0901292101430.17617@anakin>
 References: <1232919337-21434-1-git-send-email-righi.andrea@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+ <20090127174158.519e5abd.akpm@linux-foundation.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Righi <righi.andrea@gmail.com>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>
-Message-ID: <20090128014158.fML4NnlVkCKoEwSyBkE2HRHYsshO2chDw81S-cWVatU@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andrea Righi <righi.andrea@gmail.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Roman Zippel <zippel@linux-m68k.org>, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>
+Message-ID: <20090129200229.NC0BcFqkKWStKYRfPAIZxDPK1dDYDPWekDBTvM6xZtQ@z>
 
-On Sun, 25 Jan 2009 22:35:37 +0100
-Andrea Righi <righi.andrea@gmail.com> wrote:
+On Tue, 27 Jan 2009, Andrew Morton wrote:
+> On Sun, 25 Jan 2009 22:35:37 +0100
+> Andrea Righi <righi.andrea@gmail.com> wrote:
+> 
+> > diff --git a/include/asm-generic/pgtable-nopmd.h b/include/asm-generic/pgtable-nopmd.h
+> > index a7cdc48..b132d69 100644
+> > --- a/include/asm-generic/pgtable-nopmd.h
+> > +++ b/include/asm-generic/pgtable-nopmd.h
+> > @@ -4,6 +4,7 @@
+> >  #ifndef __ASSEMBLY__
+> >  
+> >  #include <asm-generic/pgtable-nopud.h>
+> > +#include <asm/bug.h>
+> >  
+> >  struct mm_struct;
+> >  
+> 
+> Why not include the preferred <linux/bug.h>?
+> 
+> > BTW, I only tested this on x86 and x86_64. This needs more testing because it
+> > touches also a lot of other architectures.
+> 
+> Hopefully Geert, Roman, David and Hirokazu Takata will have time to
+> help out here.
 
-> diff --git a/include/asm-generic/pgtable-nopmd.h b/include/asm-generic/pgtable-nopmd.h
-> index a7cdc48..b132d69 100644
-> --- a/include/asm-generic/pgtable-nopmd.h
-> +++ b/include/asm-generic/pgtable-nopmd.h
-> @@ -4,6 +4,7 @@
->  #ifndef __ASSEMBLY__
->  
->  #include <asm-generic/pgtable-nopud.h>
-> +#include <asm/bug.h>
->  
->  struct mm_struct;
->  
+atari_defconfig builds fine and boots on ARAnyM.
 
-Why not include the preferred <linux/bug.h>?
+sun3_defconfig fails with:
 
-> BTW, I only tested this on x86 and x86_64. This needs more testing because it
-> touches also a lot of other architectures.
+|   CC      mm/memory.o
+| mm/memory.c: In function 'free_pmd_range':
+| mm/memory.c:176: error: implicit declaration of function '__pmd_free_tlb'
+| mm/memory.c: In function '__pmd_alloc':
+| mm/memory.c:2903: error: implicit declaration of function 'pmd_alloc_one_bug'
+| mm/memory.c:2903: warning: initialization makes pointer from integer without a cast
+| mm/memory.c:2917: error: implicit declaration of function 'pmd_free'
+| make[3]: *** [mm/memory.o] Error 1
 
-Hopefully Geert, Roman, David and Hirokazu Takata will have time to
-help out here.
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
