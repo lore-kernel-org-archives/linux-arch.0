@@ -1,53 +1,176 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCH -mmotm] mm: unify some pmd_*() functions fix
-Date: Mon, 02 Feb 2009 14:48:46 +0100
-Message-ID: <1233582526.18006.31.camel@localhost>
-References: <1233183874-26066-1-git-send-email-righi.andrea@gmail.com>
-Reply-To: schwidefsky@de.ibm.com
-Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate3.de.ibm.com ([195.212.29.152]:41663 "EHLO
-	mtagate3.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751393AbZBBNst (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Feb 2009 08:48:49 -0500
-In-Reply-To: <1233183874-26066-1-git-send-email-righi.andrea@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Righi <righi.andrea@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>
+From: akpm@linux-foundation.org
+Subject: + preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls.patch added to -mm tree
+Date: Mon, 02 Feb 2009 13:35:39 -0800
+Message-ID: <200902022135.n12LZdx6010816@imap1.linux-foundation.org>
+Reply-To: linux-kernel@vger.kernel.org
+Return-path: <mm-commits-owner@vger.kernel.org>
+Sender: mm-commits-owner@vger.kernel.org
+To: mm-commits@vger.kernel.org
+Cc: ralf@linux-mips.org, arnd@arndb.de, kraxel@redhat.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2009-01-29 at 00:04 +0100, Andrea Righi wrote:
-> Also unify implementations of pmd_*() functions in arch/*.
-> 
-> This patch must be applied on top of mm-unify-some-pmd_-functions.patch.
-> 
-> Signed-off-by: Andrea Righi <righi.andrea@gmail.com>
 
-> diff --git a/arch/s390/include/asm/pgalloc.h b/arch/s390/include/asm/pgalloc.h
-> index b2658b9..6a85281 100644
-> --- a/arch/s390/include/asm/pgalloc.h
-> +++ b/arch/s390/include/asm/pgalloc.h
-> @@ -63,8 +63,7 @@ static inline unsigned long pgd_entry_type(struct mm_struct *mm)
->  #define pud_alloc_one(mm,address)		({ BUG(); ((pud_t *)2); })
->  #define pud_free(mm, x)				do { } while (0)
-> 
-> -#define pmd_alloc_one(mm,address)		({ BUG(); ((pmd_t *)2); })
-> -#define pmd_free(mm, x)				do { } while (0)
-> +#define pmd_alloc_one	pmd_alloc_one_bug
-> 
->  #define pgd_populate(mm, pgd, pud)		BUG()
->  #define pgd_populate_kernel(mm, pgd, pud)	BUG()
+The patch titled
+     preadv/pwritev: MIPS: Add preadv(2) and pwritev(2) syscalls.
+has been added to the -mm tree.  Its filename is
+     preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls.patch
 
-This does not compile for 32 bit s390. With the patches for 'dynamic
-page tables' and '1K/2k page tables' I decided to get completely
-independent from the nopmd/nopud #ifdef hell. The include files from
-asm-generic are simply not used for s390. Please drop the above hunk
-from your patch and leave s390 as it is.
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
 
--- 
-blue skies,
-  Martin.
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
 
-"Reality continues to ruin my life." - Calvin.
+See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
+out what to do about this
+
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: preadv/pwritev: MIPS: Add preadv(2) and pwritev(2) syscalls.
+From: Ralf Baechle <ralf@linux-mips.org>
+
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: <linux-api@vger.kernel.org>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ arch/mips/include/asm/unistd.h |   18 ++++++++++++------
+ arch/mips/kernel/scall32-o32.S |    2 ++
+ arch/mips/kernel/scall64-64.S  |    2 ++
+ arch/mips/kernel/scall64-n32.S |    2 ++
+ arch/mips/kernel/scall64-o32.S |    2 ++
+ 5 files changed, 20 insertions(+), 6 deletions(-)
+
+diff -puN arch/mips/include/asm/unistd.h~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls arch/mips/include/asm/unistd.h
+--- a/arch/mips/include/asm/unistd.h~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls
++++ a/arch/mips/include/asm/unistd.h
+@@ -350,16 +350,18 @@
+ #define __NR_dup3			(__NR_Linux + 327)
+ #define __NR_pipe2			(__NR_Linux + 328)
+ #define __NR_inotify_init1		(__NR_Linux + 329)
++#define __NR_preadv			(__NR_Linux + 330)
++#define __NR_pwritev			(__NR_Linux + 331)
+ 
+ /*
+  * Offset of the last Linux o32 flavoured syscall
+  */
+-#define __NR_Linux_syscalls		329
++#define __NR_Linux_syscalls		331
+ 
+ #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
+ 
+ #define __NR_O32_Linux			4000
+-#define __NR_O32_Linux_syscalls		329
++#define __NR_O32_Linux_syscalls		331
+ 
+ #if _MIPS_SIM == _MIPS_SIM_ABI64
+ 
+@@ -656,16 +658,18 @@
+ #define __NR_dup3			(__NR_Linux + 286)
+ #define __NR_pipe2			(__NR_Linux + 287)
+ #define __NR_inotify_init1		(__NR_Linux + 288)
++#define __NR_preadv			(__NR_Linux + 289)
++#define __NR_pwritev			(__NR_Linux + 290)
+ 
+ /*
+  * Offset of the last Linux 64-bit flavoured syscall
+  */
+-#define __NR_Linux_syscalls		288
++#define __NR_Linux_syscalls		290
+ 
+ #endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
+ 
+ #define __NR_64_Linux			5000
+-#define __NR_64_Linux_syscalls		288
++#define __NR_64_Linux_syscalls		290
+ 
+ #if _MIPS_SIM == _MIPS_SIM_NABI32
+ 
+@@ -966,16 +970,18 @@
+ #define __NR_dup3			(__NR_Linux + 290)
+ #define __NR_pipe2			(__NR_Linux + 291)
+ #define __NR_inotify_init1		(__NR_Linux + 292)
++#define __NR_preadv			(__NR_Linux + 293)
++#define __NR_pwritev			(__NR_Linux + 294)
+ 
+ /*
+  * Offset of the last N32 flavoured syscall
+  */
+-#define __NR_Linux_syscalls		292
++#define __NR_Linux_syscalls		294
+ 
+ #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
+ 
+ #define __NR_N32_Linux			6000
+-#define __NR_N32_Linux_syscalls		292
++#define __NR_N32_Linux_syscalls		294
+ 
+ #ifdef __KERNEL__
+ 
+diff -puN arch/mips/kernel/scall32-o32.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls arch/mips/kernel/scall32-o32.S
+--- a/arch/mips/kernel/scall32-o32.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls
++++ a/arch/mips/kernel/scall32-o32.S
+@@ -650,6 +650,8 @@ einval:	li	v0, -ENOSYS
+ 	sys	sys_dup3		3
+ 	sys	sys_pipe2		2
+ 	sys	sys_inotify_init1	1
++	sys	sys_preadv		6	/* 4330 */
++	sys	sys_pwritev		6
+ 	.endm
+ 
+ 	/* We pre-compute the number of _instruction_ bytes needed to
+diff -puN arch/mips/kernel/scall64-64.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls arch/mips/kernel/scall64-64.S
+--- a/arch/mips/kernel/scall64-64.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls
++++ a/arch/mips/kernel/scall64-64.S
+@@ -487,4 +487,6 @@ sys_call_table:
+ 	PTR	sys_dup3
+ 	PTR	sys_pipe2
+ 	PTR	sys_inotify_init1
++	PTR	sys_preadv
++	PTR	sys_pwritev			/* 5390 */
+ 	.size	sys_call_table,.-sys_call_table
+diff -puN arch/mips/kernel/scall64-n32.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls arch/mips/kernel/scall64-n32.S
+--- a/arch/mips/kernel/scall64-n32.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls
++++ a/arch/mips/kernel/scall64-n32.S
+@@ -413,4 +413,6 @@ EXPORT(sysn32_call_table)
+ 	PTR	sys_dup3			/* 5290 */
+ 	PTR	sys_pipe2
+ 	PTR	sys_inotify_init1
++	PTR	sys_preadv
++	PTR	sys_pwritev
+ 	.size	sysn32_call_table,.-sysn32_call_table
+diff -puN arch/mips/kernel/scall64-o32.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls arch/mips/kernel/scall64-o32.S
+--- a/arch/mips/kernel/scall64-o32.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls
++++ a/arch/mips/kernel/scall64-o32.S
+@@ -533,4 +533,6 @@ sys_call_table:
+ 	PTR	sys_dup3
+ 	PTR	sys_pipe2
+ 	PTR	sys_inotify_init1
++	PTR	compat_sys_preadv		/* 4330 */
++	PTR	compat_sys_pwritev
+ 	.size	sys_call_table,.-sys_call_table
+_
+
+Patches currently in -mm which might be from ralf@linux-mips.org are
+
+origin.patch
+linux-next.patch
+mtd-txx9-add-ndfmc-support.patch
+mtd-rbtx4939-add-mtd-support.patch
+mtd-rbtx4939-add-mtd-support-fix.patch
+mtd-txx9-soc-nand-flash-memory-controller-driver.patch
+mtd-rbtx4939-map-driver.patch
+mm-unify-some-pmd_-functions-fix.patch
+preadv-pwritev-create-compat_readv.patch
+preadv-pwritev-create-compat_writev.patch
+preadv-pwritev-add-preadv-and-pwritev-system-calls.patch
+preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls.patch
+preadv-pwritev-switch-compat-readv-preadv-writev-pwritev-from-fget-to-fget_light.patch
+
