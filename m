@@ -1,75 +1,81 @@
 From: Alexey Dobriyan <adobriyan@gmail.com>
-Subject: irqflags.h changes
-Date: Sat, 14 Feb 2009 03:23:24 +0300
-Message-ID: <20090214002324.GA22590@x200.localdomain>
+Subject: Re: irqflags.h changes
+Date: Sat, 14 Feb 2009 03:32:10 +0300
+Message-ID: <20090214003210.GB22590@x200.localdomain>
+References: <20090214002324.GA22590@x200.localdomain>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fg-out-1718.google.com ([72.14.220.152]:7810 "EHLO
+Received: from fg-out-1718.google.com ([72.14.220.152]:9428 "EHLO
 	fg-out-1718.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751967AbZBNARK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Feb 2009 19:17:10 -0500
+	with ESMTP id S1751469AbZBNAZ4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Feb 2009 19:25:56 -0500
 Content-Disposition: inline
+In-Reply-To: <20090214002324.GA22590@x200.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org
 Cc: akpm@linux-foundation.org, mingo@elte.hu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srostedt@redhat.com
 
-Currently, linux/irqflags.h defines local_irq_enable() and friends
-through raw_* counterparts.
+On Sat, Feb 14, 2009 at 03:23:24AM +0300, Alexey Dobriyan wrote:
+> Currently, linux/irqflags.h defines local_irq_enable() and friends
+> through raw_* counterparts.
+> 
+> Sometimes it defines raw_* counterparts through local_irq_enable() and
+> friends.
+> 
+> I'm going to end this subtle joke and make on all archs:
+> 
+> 	local_irq_enable()	via	raw_local_irq_enable()
+> 	local_irq_disable()	via	raw_local_irq_disable()
+> 	local_irq_save()	via	raw_local_irq_save()
+> 	local_irq_restore()	via	raw_local_irq_restore() + stuff
+> 	local_save_flags()	via	raw_local_save_flags()
+> 	irqs_disabled()		via	raw_irqs_disabled_flags() + stuff
+> 
+> linux/irqflags.h will include asm/irqflags.h unconditionally.
+> Arches that don't have asm/irqflags.h will get it through extraction
+> from asm/system.h or whatever.
+> 
+> Users will just include <linux/irqflags.h>
+> 
+> Irq tracing will remain the same (it's nop depending on config option,
+> after all).
+> 
+> Typechecking will be preserved.
+> 
+> Compilation will be fixed.
+> 
+> And possibly changing some defines into static inlines.
+> 
+> OK?
+> 
+> 
+> All of this is orthogonal to irq_flags_t stuff, but I'd like to do this
+> first.
+> 
+> Below is patch for alpha and fallout:
 
-Sometimes it defines raw_* counterparts through local_irq_enable() and
-friends.
+New patch with asm/irqflags.h actually included:
 
-I'm going to end this subtle joke and make on all archs:
-
-	local_irq_enable()	via	raw_local_irq_enable()
-	local_irq_disable()	via	raw_local_irq_disable()
-	local_irq_save()	via	raw_local_irq_save()
-	local_irq_restore()	via	raw_local_irq_restore() + stuff
-	local_save_flags()	via	raw_local_save_flags()
-	irqs_disabled()		via	raw_irqs_disabled_flags() + stuff
-
-linux/irqflags.h will include asm/irqflags.h unconditionally.
-Arches that don't have asm/irqflags.h will get it through extraction
-from asm/system.h or whatever.
-
-Users will just include <linux/irqflags.h>
-
-Irq tracing will remain the same (it's nop depending on config option,
-after all).
-
-Typechecking will be preserved.
-
-Compilation will be fixed.
-
-And possibly changing some defines into static inlines.
-
-OK?
-
-
-All of this is orthogonal to irq_flags_t stuff, but I'd like to do this
-first.
-
-Below is patch for alpha and fallout:
-
- arch/alpha/include/asm/io.h      |    1 
- arch/alpha/include/asm/system.h  |    8 ---
- drivers/base/devres.c            |    1 
- drivers/input/joystick/gamecon.c |    1 
- include/linux/irqflags.h         |   81 +++++++++++++++------------------------
- include/linux/kfifo.h            |    1 
- include/linux/proportions.h      |    1 
- include/linux/spinlock_api_up.h  |    2 
- include/linux/spinlock_up.h      |    2 
- kernel/notifier.c                |    1 
- kernel/params.c                  |    1 
- kernel/smp.c                     |    1 
- lib/idr.c                        |    1 
- lib/ratelimit.c                  |    1 
- mm/internal.h                    |    1 
- mm/page_isolation.c              |    2 
- 16 files changed, 49 insertions(+), 57 deletions(-)
+ arch/alpha/include/asm/io.h       |    1 
+ arch/alpha/include/asm/irqflags.h |   14 ++++++
+ arch/alpha/include/asm/system.h   |    8 ---
+ drivers/base/devres.c             |    1 
+ drivers/input/joystick/gamecon.c  |    1 
+ include/linux/irqflags.h          |   81 +++++++++++++++-----------------------
+ include/linux/kfifo.h             |    1 
+ include/linux/proportions.h       |    1 
+ include/linux/spinlock_api_up.h   |    2 
+ include/linux/spinlock_up.h       |    2 
+ kernel/notifier.c                 |    1 
+ kernel/params.c                   |    1 
+ kernel/smp.c                      |    1 
+ lib/idr.c                         |    1 
+ lib/ratelimit.c                   |    1 
+ mm/internal.h                     |    1 
+ mm/page_isolation.c               |    2 
+ 17 files changed, 63 insertions(+), 57 deletions(-)
 
 diff --git a/arch/alpha/include/asm/io.h b/arch/alpha/include/asm/io.h
 index eda9b90..b435d35 100644
@@ -83,6 +89,26 @@ index eda9b90..b435d35 100644
  #include <linux/kernel.h>
  #include <linux/mm.h>
  #include <asm/compiler.h>
+diff --git a/arch/alpha/include/asm/irqflags.h b/arch/alpha/include/asm/irqflags.h
+new file mode 100644
+index 0000000..dd3946c
+--- /dev/null
++++ b/arch/alpha/include/asm/irqflags.h
+@@ -0,0 +1,14 @@
++#ifndef __ALPHA_IRQFLAGS_H
++#define __ALPHA_IRQFLAGS_H
++#include <asm/system.h>
++
++#define raw_local_irq_disable()		do { setipl(IPL_MAX); barrier(); } while(0)
++#define raw_local_irq_enable()		do { barrier(); setipl(IPL_MIN); } while(0)
++#define raw_local_save_flags(flags)	((flags) = rdps())
++#define raw_local_irq_save(flags)	do { (flags) = swpipl(IPL_MAX); barrier(); } while(0)
++#define raw_local_irq_restore(flags)	do { barrier(); setipl(flags); barrier(); } while(0)
++
++#define raw_irqs_disabled()		(getipl() == IPL_MAX)
++#define raw_irqs_disabled_flags(flags)	((flags) == IPL_MAX)
++
++#endif
 diff --git a/arch/alpha/include/asm/system.h b/arch/alpha/include/asm/system.h
 index afe20fa..6384be8 100644
 --- a/arch/alpha/include/asm/system.h
