@@ -1,30 +1,39 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: Q: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove
- single ipi fallback for smp_call_function_many())
-Date: Tue, 17 Feb 2009 12:48:02 +0100
-Message-ID: <1234871282.4744.88.camel@laptop>
-References: <20090216204902.GA6924@redhat.com>
-	 <1234818201.30178.386.camel@laptop> <20090216213205.GA9098@redhat.com>
-	 <1234820704.30178.396.camel@laptop> <20090216220214.GA10093@redhat.com>
-	 <1234823097.30178.406.camel@laptop> <20090216231946.GA12009@redhat.com>
-	 <1234862974.4744.31.camel@laptop> <20090217101130.GA8660@wotan.suse.de>
-	 <1234866453.4744.58.camel@laptop>  <20090217112657.GE26402@wotan.suse.de>
+	single ipi fallback for smp_call_function_many())
+Date: Tue, 17 Feb 2009 07:51:47 -0800
+Message-ID: <20090217155147.GE6761@linux.vnet.ibm.com>
+References: <1234818201.30178.386.camel@laptop> <20090216213205.GA9098@redhat.com> <1234820704.30178.396.camel@laptop> <20090216220214.GA10093@redhat.com> <1234823097.30178.406.camel@laptop> <20090216231946.GA12009@redhat.com> <1234862974.4744.31.camel@laptop> <20090217101130.GA8660@wotan.suse.de> <1234866453.4744.58.camel@laptop> <20090217112657.GE26402@wotan.suse.de>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:39670 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750814AbZBQLs0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Feb 2009 06:48:26 -0500
+Received: from e2.ny.us.ibm.com ([32.97.182.142]:33943 "EHLO e2.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751499AbZBQPvv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 Feb 2009 10:51:51 -0500
+Content-Disposition: inline
 In-Reply-To: <20090217112657.GE26402@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nick Piggin <npiggin@suse.de>
-Cc: Oleg Nesterov <oleg@redhat.com>, Jens Axboe <jens.axboe@oracle.com>, Suresh Siddha <suresh.b.siddha@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Oleg Nesterov <oleg@redhat.com>, Jens Axboe <jens.axboe@oracle.com>, Suresh Siddha <suresh.b.siddha@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, 2009-02-17 at 12:26 +0100, Nick Piggin wrote:
-
+On Tue, Feb 17, 2009 at 12:26:57PM +0100, Nick Piggin wrote:
+> cc linux-arch
+> 
+> On Tue, Feb 17, 2009 at 11:27:33AM +0100, Peter Zijlstra wrote:
+> > > But hmm, why even bother with all this complexity? Why not just
+> > > remove the outer loop completely? Do the lock and the list_replace_init
+> > > unconditionally. It would turn tricky lockless code into simple locked
+> > > code... we've already taken an interrupt anyway, so chances are pretty
+> > > high that we have work here to do, right?
+> > 
+> > Well, that's a practical suggestion, and I agree.
+> 
+> How's this?
+> 
+> --
 > Simplify the barriers in generic remote function call interrupt code.
 > 
 > Firstly, just unconditionally take the lock and check the list in the
@@ -56,11 +65,7 @@ On Tue, 2009-02-17 at 12:26 +0100, Nick Piggin wrote:
 > the past.
 > 
 > Signed-off-by: Nick Piggin <npiggin@suse.de>
-
-Looks sane, barring any funny arch details,
-
-Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-
+> 
 > ---
 >  kernel/smp.c |   83 +++++++++++++++++++++++++++++++----------------------------
 >  1 file changed, 44 insertions(+), 39 deletions(-)
@@ -71,7 +76,7 @@ Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 > +++ linux-2.6/kernel/smp.c
 > @@ -74,9 +74,16 @@ static void generic_exec_single(int cpu,
 >  	spin_unlock_irqrestore(&dst->lock, flags);
->  
+> 
 >  	/*
 > -	 * Make the list addition visible before sending the ipi.
 > +	 * The list addition should be visible before sending the IPI
@@ -85,12 +90,12 @@ Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 > +	 * to do the right thing...
 >  	 */
 > -	smp_mb();
->  
+> 
 >  	if (ipi)
 >  		arch_send_call_function_single_ipi(cpu);
 > @@ -104,6 +111,14 @@ void generic_smp_call_function_interrupt
 >  	int cpu = get_cpu();
->  
+> 
 >  	/*
 > +	 * Ensure entry is visible on call_function_queue after we have
 > +	 * entered the IPI. See comment in smp_call_function_many.
@@ -108,7 +113,7 @@ Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 >  	struct call_single_queue *q = &__get_cpu_var(call_single_queue);
 >  	LIST_HEAD(list);
 > +	unsigned int data_flags;
->  
+> 
 > -	/*
 > -	 * Need to see other stores to list head for checking whether
 > -	 * list is empty without holding q->lock
@@ -130,7 +135,15 @@ Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 > +	spin_lock(&q->lock);
 > +	list_replace_init(&q->list, &list);
 > +	spin_unlock(&q->lock);
->  
+
+OK, I'll bite...
+
+How do we avoid deadlock in the case where a pair of CPUs send to each
+other concurrently?
+
+							Thanx, Paul
+
+> 
 > -			/*
 > -			 * 'data' can be invalid after this call if
 > -			 * flags == 0 (when called through
@@ -140,12 +153,12 @@ Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 > -			data_flags = data->flags;
 > +	while (!list_empty(&list)) {
 > +		struct call_single_data *data;
->  
+> 
 > -			data->func(data->info);
 > +		data = list_entry(list.next, struct call_single_data,
 > +					list);
 > +		list_del(&data->list);
->  
+> 
 > -			if (data_flags & CSD_FLAG_WAIT) {
 > -				smp_wmb();
 > -				data->flags &= ~CSD_FLAG_WAIT;
@@ -177,13 +190,13 @@ Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 > +			kfree(data);
 >  	}
 >  }
->  
+> 
 > @@ -375,6 +378,8 @@ void smp_call_function_many(const struct
->  
+> 
 >  	/*
 >  	 * Make the list addition visible before sending the ipi.
 > +	 * (IPIs must obey or appear to obey normal Linux cache coherency
 > +	 * rules -- see comment in generic_exec_single).
 >  	 */
 >  	smp_mb();
->  
+> 
