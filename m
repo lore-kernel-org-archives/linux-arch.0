@@ -1,61 +1,18 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: irqflags.h changes
-Date: Sun, 15 Feb 2009 00:22:17 +0100
-Message-ID: <20090214232217.GF20477@elte.hu>
-References: <20090214002324.GA22590@x200.localdomain>
+From: "Septimus Zuniga" <lucianoromano@cnc.fr>
+Subject: Your intimate source of pleasure.
+Date: Tue, 17 Feb 2009 03:20:46 -0600
+Message-ID: <20090217032046.1030704@cnc.fr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:58810 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759376AbZBNXWq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 14 Feb 2009 18:22:46 -0500
-Content-Disposition: inline
-In-Reply-To: <20090214002324.GA22590@x200.localdomain>
+Received: from nat-128-42-153-145.rice.edu ([128.42.153.145]:3343 "HELO
+	nat-128-42-153-145.rice.edu" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1751098AbZBQJ1v (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 Feb 2009 04:27:51 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Dobriyan <adobriyan@gmail.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srostedt@redhat.com
+To: linux-arch@vger.kernel.org
 
-
-* Alexey Dobriyan <adobriyan@gmail.com> wrote:
-
-> Currently, linux/irqflags.h defines local_irq_enable() and friends
-> through raw_* counterparts.
-> 
-> Sometimes it defines raw_* counterparts through local_irq_enable() and
-> friends.
-> 
-> I'm going to end this subtle joke and make on all archs:
-> 
-> 	local_irq_enable()	via	raw_local_irq_enable()
-> 	local_irq_disable()	via	raw_local_irq_disable()
-> 	local_irq_save()	via	raw_local_irq_save()
-> 	local_irq_restore()	via	raw_local_irq_restore() + stuff
-> 	local_save_flags()	via	raw_local_save_flags()
-> 	irqs_disabled()		via	raw_irqs_disabled_flags() + stuff
-> 
-> linux/irqflags.h will include asm/irqflags.h unconditionally.
-> Arches that don't have asm/irqflags.h will get it through extraction
-> from asm/system.h or whatever.
-> 
-> Users will just include <linux/irqflags.h>
-> 
-> Irq tracing will remain the same (it's nop depending on config option,
-> after all).
-> 
-> Typechecking will be preserved.
-> 
-> Compilation will be fixed.
-> 
-> And possibly changing some defines into static inlines.
-> 
-> OK?
-
-This is a much welcome cleanup!
-
-Since if this causes a regression anywhere that's going to be lockdep,
-can we pick this up into the locking tree - or would you like to carry
-it in a separate tree? (the procfs tree isnt appropriate for it i guess)
-
-	Ingo
+Make your intimate world more colourful. http://eiho.ridebehind.com/
