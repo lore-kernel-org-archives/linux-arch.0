@@ -1,50 +1,67 @@
 From: Nick Piggin <npiggin@suse.de>
-Subject: Re: Q: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove single ipi fallback for smp_call_function_many())
-Date: Wed, 18 Feb 2009 14:52:12 +0100
-Message-ID: <20090218135212.GB23125@wotan.suse.de>
-References: <1234823097.30178.406.camel@laptop> <20090216231946.GA12009@redhat.com> <1234862974.4744.31.camel@laptop> <20090217101130.GA8660@wotan.suse.de> <1234866453.4744.58.camel@laptop> <20090217112657.GE26402@wotan.suse.de> <20090217192810.GA4980@redhat.com> <20090217213256.GJ6761@linux.vnet.ibm.com> <20090217214518.GA13189@redhat.com> <20090217223910.GM6761@linux.vnet.ibm.com>
+Subject: Re: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove single ipi fallback for smp_call_function_many())
+Date: Wed, 18 Feb 2009 14:59:45 +0100
+Message-ID: <20090218135945.GC23125@wotan.suse.de>
+References: <20090216213205.GA9098@redhat.com> <1234820704.30178.396.camel@laptop> <20090216220214.GA10093@redhat.com> <1234823097.30178.406.camel@laptop> <20090216231946.GA12009@redhat.com> <1234862974.4744.31.camel@laptop> <20090217101130.GA8660@wotan.suse.de> <1234866453.4744.58.camel@laptop> <20090217112657.GE26402@wotan.suse.de> <1234923702.29823.7.camel@vayu>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:36757 "EHLO mx2.suse.de"
+Received: from cantor2.suse.de ([195.135.220.15]:36991 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750953AbZBRNwR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Feb 2009 08:52:17 -0500
+	id S1751170AbZBRN7s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Feb 2009 08:59:48 -0500
 Content-Disposition: inline
-In-Reply-To: <20090217223910.GM6761@linux.vnet.ibm.com>
+In-Reply-To: <1234923702.29823.7.camel@vayu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Jens Axboe <jens.axboe@oracle.com>, Suresh Siddha <suresh.b.siddha@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Suresh Siddha <suresh.b.siddha@intel.com>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Oleg Nesterov <oleg@redhat.com>, Jens Axboe <jens.axboe@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Tue, Feb 17, 2009 at 02:39:10PM -0800, Paul E. McKenney wrote:
-> On Tue, Feb 17, 2009 at 10:45:18PM +0100, Oleg Nesterov wrote:
-> > > If all of the above is executed by the same task, tripping the BUG_ON()
-> > > means either a compiler or CPU bug.
+On Tue, Feb 17, 2009 at 06:21:42PM -0800, Suresh B wrote:
+> On Tue, 2009-02-17 at 03:26 -0800, Nick Piggin wrote:
+> > --
+> > Simplify the barriers in generic remote function call interrupt code.
 > > 
-> > I think you misunderstood...
+> > Firstly, just unconditionally take the lock and check the list in the
+> > generic_call_function_single_interrupt IPI handler. As we've just taken
+> > an IPI here, the chances are fairly high that there will be work on the
+> > list for us, so do the locking unconditionally. This removes the tricky
+> > lockless list_empty check and dubious barriers. The change looks bigger
+> > than it is because it is just removing an outer loop.
 > > 
-> > smp_send_xxx() sends the ipi to another CPU, and smp_xxx_interrupt() is
-> > the handler.
+> > Secondly, clarify architecture specific IPI locking rules. Generic code
+> > has no tools to impose any sane ordering on IPIs if they go outside
+> > normal cache coherency, ergo the arch code must make them appear to
+> > obey cache coherency as a "memory operation" to initiate an IPI, and
+> > a "memory operation" to receive one. This way at least they can be
+> > reasoned about in generic code, and smp_mb used to provide ordering. 
+> > 
+> > The combination of these two changes means that explict barriers can
+> > be taken out of queue handling for the single case -- shared data is
+> > explicitly locked, and ipi ordering must conform to that, so no
+> > barriers needed. An extra barrier is needed in the many handler, so
+> > as to ensure we load the list element after the IPI is received.
+> > 
+> > Does any architecture actually needs barriers? For the initiator I
+> > could see it, but for the handler I would be surprised. The other
+> > thing we could do for simplicity is just to require that a full
+> > barrier is required before generating an IPI, and after receiving an
+> > IPI. We can't just do that in generic code without auditing
+> > architectures. There have been subtle hangs here on some archs in
+> > the past.
 > 
-> You are right, I did miss that completely.  :-/
+> x2apic register reads/writes don't have serializing semantics, as
+> opposed to uncached xapic accesses, which are inherently serializing.
 > 
-> I have seen hardware in which the IPI could beat the cache invalidation
-> from the sending CPU to the interrupted CPU, and in which one or both of
-> the CPUs would have to execute special cache-flush/invalidation/whatever
-> instructions for the interrupted CPU to have a consistent view of the
-> data (in your example, "COND").
-> 
-> But we had a little chat with the hardware designers, and in subsequent
-> hardware, the IPI interacted with the cache-coherence protocol so as to
-> prevent the above bug from firing.  However, this was x86-based hardware,
-> which orders writes.  Weakly ordered systems would likely need a memory
-> barrier somewhere, whether as shown above or buried in the smp_send_xxx()
-> primitive.
+> With this patch, we need to fix the corresponding x2apic IPI operations.
+> I will take a look at it.
 
-I agree with you both that we *should* make arch interrupt code
-do the ordering, but given the subtle lockups on some architectures
-in this new code, I didn't want to make it significantly weaker...
+You're saying the problem is in generic_exec_single because I've
+removed the smp_mb that inadvertently also serialises memory with
+the x2apic on x86?
 
-Though perhaps it appears that I have, if I have removed an smp_mb
-that x86 was relying on to emit an mfence to serialise the apic.
+Indeed that could cause problems on some architectures which I
+had hoped to avoid. So the patch is probably better off to first
+add the smp_mb() to arch_send_call_function_xxx arch code, unless
+it is immediately obvious or confirmed by arch maintainer that
+such barrier is not required.
