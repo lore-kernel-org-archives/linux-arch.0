@@ -1,42 +1,183 @@
-From: Harvey Harrison <harvey.harrison@gmail.com>
-Subject: [RFC PATCH] kernel: add -D__CHECK_ENDIAN__ by default
-Date: Wed, 18 Feb 2009 13:33:01 -0800
-Message-ID: <1234992781.31073.192.camel@brick>
+From: Suresh Siddha <suresh.b.siddha@intel.com>
+Subject: Re: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove single
+	ipi fallback for smp_call_function_many())
+Date: Wed, 18 Feb 2009 15:55:14 -0800
+Message-ID: <1235001314.14523.2.camel@vayu>
+References: <20090216220214.GA10093@redhat.com>
+	 <1234823097.30178.406.camel@laptop> <20090216231946.GA12009@redhat.com>
+	 <1234862974.4744.31.camel@laptop> <20090217101130.GA8660@wotan.suse.de>
+	 <1234866453.4744.58.camel@laptop> <20090217112657.GE26402@wotan.suse.de>
+	 <1234923702.29823.7.camel@vayu> <20090218135945.GC23125@wotan.suse.de>
+	 <1234982620.29823.22.camel@vayu>  <20090218191757.GD8889@elte.hu>
+Reply-To: Suresh Siddha <suresh.b.siddha@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wf-out-1314.google.com ([209.85.200.170]:18817 "EHLO
-	wf-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752611AbZBRVdE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Feb 2009 16:33:04 -0500
+Received: from mga14.intel.com ([143.182.124.37]:7529 "EHLO mga14.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751209AbZBRX4l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Feb 2009 18:56:41 -0500
+In-Reply-To: <20090218191757.GD8889@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Al Viro <viro@ZenIV.linux.org.uk>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Oleg Nesterov <oleg@redhat.com>, Jens Axboe <jens.axboe@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-The noise level with endian checking is getting to the point where
-having this enabled by default wouldn't be too bad.  If this were to
-go in for the 2.6.30 devel cycle it may motivate the last sections that
-are still particularly noisy (sound/, drivers/scsi/ come to mind)
+On Wed, 2009-02-18 at 11:17 -0800, Ingo Molnar wrote: 
+> * Suresh Siddha <suresh.b.siddha@intel.com> wrote:
+> 
+> > > Indeed that could cause problems on some architectures which I
+> > > had hoped to avoid. So the patch is probably better off to first
+> > > add the smp_mb() to arch_send_call_function_xxx arch code, unless
+> > > it is immediately obvious or confirmed by arch maintainer that
+> > > such barrier is not required.
+> > 
+> > For x2apic specific operations we should add the smp_mb() sequence. But
+> > we need to make sure that we don't end up doing it twice (once in
+> > generic code and another in arch code) for all the ipi paths.
+> 
+> right now we do have an smp_mb() due to your fix in November.
+> 
+> So what should happen is to move that smp_mb() from the x86 
+> generic IPI path to the x86 x2apic IPI path. (and turn it into 
+> an smp_wmb() - that should be enough - we dont care about future 
+> reads being done sooner than this point.)
 
-Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
+Ingo, smp_wmb() won't help. x2apic register writes can still go ahead of
+the sfence. According to the SDM, we need a serializing instruction or
+mfence. Our internal experiments also proved this.
+
+Appended is the x86 portion of the patch:
 ---
- Makefile |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index 96628d0..4d4e400 100644
---- a/Makefile
-+++ b/Makefile
-@@ -326,7 +326,7 @@ PERL		= perl
- CHECK		= sparse
+From: Suresh Siddha <suresh.b.siddha@intel.com>
+Subject: x86: move smp_mb() in x86 flush tlb path to x2apic specific IPI
+paths
+
+uncached MMIO accesses for xapic are inherently serializing and hence
+we don't need explicit barriers for xapic IPI paths.
+
+x2apic MSR writes/reads don't have serializing semantics and hence need
+a serializing instruction or mfence, to make all the previous memory
+stores
+globally visisble before the x2apic msr write for IPI.
+
+And hence move smp_mb() in x86 flush tlb path to x2apic specific paths.
+
+Signed-off-by: Suresh Siddha <suresh.b.siddha@intel.com>
+---
+
+diff --git a/arch/x86/kernel/genx2apic_cluster.c
+b/arch/x86/kernel/genx2apic_cluster.c
+index 7c87156..b237248 100644
+--- a/arch/x86/kernel/genx2apic_cluster.c
++++ b/arch/x86/kernel/genx2apic_cluster.c
+@@ -60,6 +60,13 @@ static void x2apic_send_IPI_mask(const struct cpumask
+*mask, int vector)
+ 	unsigned long query_cpu;
+ 	unsigned long flags;
  
- CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
--		  -Wbitwise -Wno-return-void $(CF)
-+		  -D__CHECK_ENDIAN__ -Wbitwise -Wno-return-void $(CF)
- MODFLAGS	= -DMODULE
- CFLAGS_MODULE   = $(MODFLAGS)
- AFLAGS_MODULE   = $(MODFLAGS)
--- 
-1.6.2.rc1.175.g96b8a
++	/*
++	 * Make previous memory operations globally visible before
++	 * sending the IPI. We need a serializing instruction or mfence
++	 * for this.
++	 */
++	smp_mb();
++
+ 	local_irq_save(flags);
+ 	for_each_cpu(query_cpu, mask) {
+ 		__x2apic_send_IPI_dest(
+@@ -76,6 +83,13 @@ static void
+ 	unsigned long query_cpu;
+ 	unsigned long flags;
+ 
++	/*
++	 * Make previous memory operations globally visible before
++	 * sending the IPI. We need a serializing instruction or mfence
++	 * for this.
++	 */
++	smp_mb();
++
+ 	local_irq_save(flags);
+ 	for_each_cpu(query_cpu, mask) {
+ 		if (query_cpu == this_cpu)
+@@ -93,6 +107,13 @@ static void x2apic_send_IPI_allbutself(int vector)
+ 	unsigned long query_cpu;
+ 	unsigned long flags;
+ 
++	/*
++	 * Make previous memory operations globally visible before
++	 * sending the IPI. We need a serializing instruction or mfence
++	 * for this.
++	 */
++	smp_mb();
++
+ 	local_irq_save(flags);
+ 	for_each_online_cpu(query_cpu) {
+ 		if (query_cpu == this_cpu)
+diff --git a/arch/x86/kernel/genx2apic_phys.c
+b/arch/x86/kernel/genx2apic_phys.c
+index 5cbae8a..f48f282 100644
+--- a/arch/x86/kernel/genx2apic_phys.c
++++ b/arch/x86/kernel/genx2apic_phys.c
+@@ -58,6 +58,13 @@ static void x2apic_send_IPI_mask(const struct cpumask
+*mask, int vector)
+ 	unsigned long query_cpu;
+ 	unsigned long flags;
+ 
++	/*
++	 * Make previous memory operations globally visible before
++	 * sending the IPI. We need a serializing instruction or mfence
++	 * for this.
++	 */
++	smp_mb();
++
+ 	local_irq_save(flags);
+ 	for_each_cpu(query_cpu, mask) {
+ 		__x2apic_send_IPI_dest(per_cpu(x86_cpu_to_apicid, query_cpu),
+@@ -73,6 +80,13 @@ static void
+ 	unsigned long query_cpu;
+ 	unsigned long flags;
+ 
++	/*
++	 * Make previous memory operations globally visible before
++	 * sending the IPI. We need a serializing instruction or mfence
++	 * for this.
++	 */
++	smp_mb();
++
+ 	local_irq_save(flags);
+ 	for_each_cpu(query_cpu, mask) {
+ 		if (query_cpu != this_cpu)
+@@ -89,6 +103,13 @@ static void x2apic_send_IPI_allbutself(int vector)
+ 	unsigned long query_cpu;
+ 	unsigned long flags;
+ 
++	/*
++	 * Make previous memory operations globally visible before
++	 * sending the IPI. We need a serializing instruction or mfence
++	 * for this.
++	 */
++	smp_mb();
++
+ 	local_irq_save(flags);
+ 	for_each_online_cpu(query_cpu) {
+ 		if (query_cpu == this_cpu)
+diff --git a/arch/x86/mm/tlb.c b/arch/x86/mm/tlb.c
+index 14c5af4..de14557 100644
+--- a/arch/x86/mm/tlb.c
++++ b/arch/x86/mm/tlb.c
+@@ -188,11 +188,6 @@ static void flush_tlb_others_ipi(const struct
+cpumask *cpumask,
+ 		       cpumask, cpumask_of(smp_processor_id()));
+ 
+ 	/*
+-	 * Make the above memory operations globally visible before
+-	 * sending the IPI.
+-	 */
+-	smp_mb();
+-	/*
+ 	 * We have to send the IPI only to
+ 	 * CPUs affected.
+ 	 */
