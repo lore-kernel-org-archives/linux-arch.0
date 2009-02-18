@@ -1,39 +1,50 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove single
-	ipi fallback for smp_call_function_many())
-Date: Tue, 17 Feb 2009 18:40:25 -0800
-Message-ID: <20090218024025.GB7459@linux.vnet.ibm.com>
-References: <1234820704.30178.396.camel@laptop> <20090216220214.GA10093@redhat.com> <1234823097.30178.406.camel@laptop> <20090216231946.GA12009@redhat.com> <1234862974.4744.31.camel@laptop> <20090217101130.GA8660@wotan.suse.de> <1234866453.4744.58.camel@laptop> <20090217112657.GE26402@wotan.suse.de> <20090217155147.GE6761@linux.vnet.ibm.com> <1234923331.29823.2.camel@vayu>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: Q: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove single ipi fallback for smp_call_function_many())
+Date: Wed, 18 Feb 2009 14:52:12 +0100
+Message-ID: <20090218135212.GB23125@wotan.suse.de>
+References: <1234823097.30178.406.camel@laptop> <20090216231946.GA12009@redhat.com> <1234862974.4744.31.camel@laptop> <20090217101130.GA8660@wotan.suse.de> <1234866453.4744.58.camel@laptop> <20090217112657.GE26402@wotan.suse.de> <20090217192810.GA4980@redhat.com> <20090217213256.GJ6761@linux.vnet.ibm.com> <20090217214518.GA13189@redhat.com> <20090217223910.GM6761@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e8.ny.us.ibm.com ([32.97.182.138]:34505 "EHLO e8.ny.us.ibm.com"
+Received: from ns2.suse.de ([195.135.220.15]:36757 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751051AbZBRCk3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 Feb 2009 21:40:29 -0500
+	id S1750953AbZBRNwR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Feb 2009 08:52:17 -0500
 Content-Disposition: inline
-In-Reply-To: <1234923331.29823.2.camel@vayu>
+In-Reply-To: <20090217223910.GM6761@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Suresh Siddha <suresh.b.siddha@intel.com>
-Cc: Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Oleg Nesterov <oleg@redhat.com>, Jens Axboe <jens.axboe@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Jens Axboe <jens.axboe@oracle.com>, Suresh Siddha <suresh.b.siddha@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, Feb 17, 2009 at 06:15:31PM -0800, Suresh Siddha wrote:
-> On Tue, 2009-02-17 at 07:51 -0800, Paul E. McKenney wrote:
-> > On Tue, Feb 17, 2009 at 12:26:57PM +0100, Nick Piggin wrote:
-> > > +	spin_lock(&q->lock);
-> > > +	list_replace_init(&q->list, &list);
-> > > +	spin_unlock(&q->lock);
+On Tue, Feb 17, 2009 at 02:39:10PM -0800, Paul E. McKenney wrote:
+> On Tue, Feb 17, 2009 at 10:45:18PM +0100, Oleg Nesterov wrote:
+> > > If all of the above is executed by the same task, tripping the BUG_ON()
+> > > means either a compiler or CPU bug.
 > > 
-> > OK, I'll bite...
+> > I think you misunderstood...
 > > 
-> > How do we avoid deadlock in the case where a pair of CPUs send to each
-> > other concurrently?
+> > smp_send_xxx() sends the ipi to another CPU, and smp_xxx_interrupt() is
+> > the handler.
 > 
-> Sender takes the lock with interrupts-disabled. That should prevent any
-> deadlock, right?
+> You are right, I did miss that completely.  :-/
+> 
+> I have seen hardware in which the IPI could beat the cache invalidation
+> from the sending CPU to the interrupted CPU, and in which one or both of
+> the CPUs would have to execute special cache-flush/invalidation/whatever
+> instructions for the interrupted CPU to have a consistent view of the
+> data (in your example, "COND").
+> 
+> But we had a little chat with the hardware designers, and in subsequent
+> hardware, the IPI interacted with the cache-coherence protocol so as to
+> prevent the above bug from firing.  However, this was x86-based hardware,
+> which orders writes.  Weakly ordered systems would likely need a memory
+> barrier somewhere, whether as shown above or buried in the smp_send_xxx()
+> primitive.
 
-You are of course correct!  Apologies for my confusion!!!
+I agree with you both that we *should* make arch interrupt code
+do the ordering, but given the subtle lockups on some architectures
+in this new code, I didn't want to make it significantly weaker...
 
-							Thanx, Paul
+Though perhaps it appears that I have, if I have removed an smp_mb
+that x86 was relying on to emit an mfence to serialise the apic.
