@@ -1,44 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:32784 "EHLO mx2.mail.elte.hu"
+Received: from mx2.mail.elte.hu ([157.181.151.9]:49979 "EHLO mx2.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752156AbZBML7g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 13 Feb 2009 06:59:36 -0500
-Date: Fri, 13 Feb 2009 12:58:51 +0100
+	id S1753027AbZBRQWP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Feb 2009 11:22:15 -0500
+Date: Wed, 18 Feb 2009 17:21:16 +0100
 From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [git pull] preempt-count: force hardirq-count to max of 10
-Message-ID: <20090213115851.GK15679@elte.hu>
-References: <alpine.DEB.1.10.0902121139230.15469@gandalf.stny.rr.com>
+Subject: Re: Q: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove
+	single ipi fallback for smp_call_function_many())
+Message-ID: <20090218162116.GC29863@elte.hu>
+References: <1234862974.4744.31.camel@laptop> <20090217101130.GA8660@wotan.suse.de> <1234866453.4744.58.camel@laptop> <20090217112657.GE26402@wotan.suse.de> <20090217192810.GA4980@redhat.com> <20090217213256.GJ6761@linux.vnet.ibm.com> <20090217214518.GA13189@redhat.com> <20090217223910.GM6761@linux.vnet.ibm.com> <20090218135212.GB23125@wotan.suse.de> <alpine.LFD.2.00.0902180744520.21686@localhost.localdomain>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <alpine.DEB.1.10.0902121139230.15469@gandalf.stny.rr.com>
+In-Reply-To: <alpine.LFD.2.00.0902180744520.21686@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-m68k@vger.kernel.org, linux-ia64@vger.kernel.org, kernel@avr32linux.org, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, =?iso-8859-1?Q?Fr=E9d=E9ric?= Weisbecker <fweisbec@gmail.com>, Kenji Kaneshige <kaneshige.kenji@jp.fujitsu.com>, Tony Luck <tony.luck@intel.com>, Mike Travis <travis@sgi.com>, isimatu.yasuaki@jp.fujitsu.com
-Message-ID: <20090213115851.hJ3HENpy68O7HWeibvSU3ZqjYNUSsm75H5z85YAuhYI@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Suresh Siddha <suresh.b.siddha@intel.com>, "Pallipadi, Venkatesh" <venkatesh.pallipadi@intel.com>, Yinghai Lu <yinghai@kernel.org>
+Cc: Nick Piggin <npiggin@suse.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Jens Axboe <jens.axboe@oracle.com>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20090218162116.NDJpvq0SJgNasVAstNY9GyEp6gnO1tpC-PFeEL-Pd14@z>
 
 
-* Steven Rostedt <rostedt@goodmis.org> wrote:
+* Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-> Ingo,
+> On Wed, 18 Feb 2009, Nick Piggin wrote:
+> > 
+> > I agree with you both that we *should* make arch interrupt code
+> > do the ordering, but given the subtle lockups on some architectures
+> > in this new code, I didn't want to make it significantly weaker...
+> > 
+> > Though perhaps it appears that I have, if I have removed an smp_mb
+> > that x86 was relying on to emit an mfence to serialise the apic.
 > 
-> Please pull the latest tip/tracing/core tree, which can be found at:
+> The thing is, if the architecture doesn't order IPI wrt cache coherency, 
+> then the "smp_mb()" doesn't really do so _either_. 
 > 
->   git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/linux-2.6-trace.git
-> tip/tracing/core
+> It might hide some architecture-specific implementation issue, of course, 
+> so random amounts of "smp_mb()"s sprinkled around might well make some 
+> architecture "work", but it's in no way guaranteed. A smp_mb() does not 
+> guarantee that some separate IPI network is ordered - that may well take 
+> some random machine-specific IO cycle.
 > 
+> That said, at least on x86, taking an interrupt should be a serializing 
+> event, so there should be no reason for anything on the receiving side. 
+> The _sending_ side might need to make sure that there is serialization 
+> when generating the IPI (so that the IPI cannot happen while the writes 
+> are still in some per-CPU write buffer and haven't become part of the 
+> cache coherency domain).
 > 
-> Steven Rostedt (1):
->       preempt-count: force hardirq-count to max of 10
-> 
-> ----
->  arch/alpha/include/asm/hardirq.h |   13 ----------
->  arch/avr32/include/asm/hardirq.h |   11 --------
->  arch/ia64/include/asm/hardirq.h  |   10 --------
->  include/linux/hardirq.h          |   48 +++++++++++++++++++-------------------
->  4 files changed, 24 insertions(+), 58 deletions(-)
+> And at least on x86 it's actually pretty hard to generate out-of-order 
+> accesses to begin with (_regardless_ of any issues external to the CPU). 
+> You have to work at it, and use a WC memory area, and I'm pretty sure we 
+> use UC for the apic accesses.
 
-Pulled, thanks Steve.
+yeah, we do. I do remember one x2apic related memory ordering 
+bug though which happened in the past 6 months or so, lemme find 
+the commit.
+
+This one is it:
+
+  d6f0f39: x86: add smp_mb() before sending INVALIDATE_TLB_VECTOR
+
+attached below.
+
+The reason for that is that x2apic changes the access sequence 
+from mmio (which old lapic used to be, and which was mapped UC), 
+to an MSR sequence:
+
+ static inline void native_x2apic_icr_write(u32 low, u32 id)
+ {
+         wrmsrl(APIC_BASE_MSR + (APIC_ICR >> 4), ((__u64) id) << 32 | low);
+ }
+
+But ... WRMSR should already be serializing - it is documented 
+as a serializing instruction.
+
+I've cc:-ed Suresh & other APIC experts - exactly what type of 
+hang did that patch fix? Do certain CPUs perhaps cut 
+serialization corners, to speed up x2apic accesses?
 
 	Ingo
+
+------------------->
+From d6f0f39b7d05e62b347c4352d070e4afb3ade4b5 Mon Sep 17 00:00:00 2001
+From: Suresh Siddha <suresh.b.siddha@intel.com>
+Date: Tue, 4 Nov 2008 13:53:04 -0800
+Subject: [PATCH] x86: add smp_mb() before sending INVALIDATE_TLB_VECTOR
+
+Impact: fix rare x2apic hang
+
+On x86, x2apic mode accesses for sending IPI's don't have serializing
+semantics. If the IPI receivner refers(in lock-free fashion) to some
+memory setup by the sender, the need for smp_mb() before sending the
+IPI becomes critical in x2apic mode.
+
+Add the smp_mb() in native_flush_tlb_others() before sending the IPI.
+
+Signed-off-by: Suresh Siddha <suresh.b.siddha@intel.com>
+Signed-off-by: Ingo Molnar <mingo@elte.hu>
+---
+ arch/x86/kernel/tlb_32.c |    6 ++++++
+ arch/x86/kernel/tlb_64.c |    5 +++++
+ 2 files changed, 11 insertions(+), 0 deletions(-)
+
+diff --git a/arch/x86/kernel/tlb_32.c b/arch/x86/kernel/tlb_32.c
+index e00534b..f4049f3 100644
+--- a/arch/x86/kernel/tlb_32.c
++++ b/arch/x86/kernel/tlb_32.c
+@@ -154,6 +154,12 @@ void native_flush_tlb_others(const cpumask_t *cpumaskp, struct mm_struct *mm,
+ 	flush_mm = mm;
+ 	flush_va = va;
+ 	cpus_or(flush_cpumask, cpumask, flush_cpumask);
++
++	/*
++	 * Make the above memory operations globally visible before
++	 * sending the IPI.
++	 */
++	smp_mb();
+ 	/*
+ 	 * We have to send the IPI only to
+ 	 * CPUs affected.
+diff --git a/arch/x86/kernel/tlb_64.c b/arch/x86/kernel/tlb_64.c
+index dcbf7a1..8f919ca 100644
+--- a/arch/x86/kernel/tlb_64.c
++++ b/arch/x86/kernel/tlb_64.c
+@@ -183,6 +183,11 @@ void native_flush_tlb_others(const cpumask_t *cpumaskp, struct mm_struct *mm,
+ 	cpus_or(f->flush_cpumask, cpumask, f->flush_cpumask);
+ 
+ 	/*
++	 * Make the above memory operations globally visible before
++	 * sending the IPI.
++	 */
++	smp_mb();
++	/*
+ 	 * We have to send the IPI only to
+ 	 * CPUs affected.
+ 	 */
