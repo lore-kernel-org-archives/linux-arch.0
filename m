@@ -1,55 +1,65 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: Q: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove
- single ipi fallback for smp_call_function_many())
-Date: Thu, 19 Feb 2009 17:47:20 +1100
-Message-ID: <1235026040.8805.3.camel@pasglop>
-References: <1234823097.30178.406.camel@laptop>
-	 <20090216231946.GA12009@redhat.com> <1234862974.4744.31.camel@laptop>
-	 <20090217101130.GA8660@wotan.suse.de> <1234866453.4744.58.camel@laptop>
-	 <20090217112657.GE26402@wotan.suse.de> <20090217192810.GA4980@redhat.com>
-	 <20090217213256.GJ6761@linux.vnet.ibm.com>
-	 <20090217214518.GA13189@redhat.com>
-	 <20090217223910.GM6761@linux.vnet.ibm.com>
-	 <20090218135212.GB23125@wotan.suse.de>
-	 <alpine.LFD.2.00.0902180744520.21686@localhost.localdomain>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove single
+	ipi fallback for smp_call_function_many())
+Date: Thu, 19 Feb 2009 13:20:31 +0100
+Message-ID: <20090219122031.GC1703@elte.hu>
+References: <20090216231946.GA12009@redhat.com> <1234862974.4744.31.camel@laptop> <20090217101130.GA8660@wotan.suse.de> <1234866453.4744.58.camel@laptop> <20090217112657.GE26402@wotan.suse.de> <1234923702.29823.7.camel@vayu> <20090218135945.GC23125@wotan.suse.de> <1234982620.29823.22.camel@vayu> <20090218191757.GD8889@elte.hu> <1235001314.14523.2.camel@vayu>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:43198 "EHLO gate.crashing.org"
+Received: from mx3.mail.elte.hu ([157.181.1.138]:58038 "EHLO mx3.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753220AbZBSGtH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 19 Feb 2009 01:49:07 -0500
-In-Reply-To: <alpine.LFD.2.00.0902180744520.21686@localhost.localdomain>
+	id S1753578AbZBSMVU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Feb 2009 07:21:20 -0500
+Content-Disposition: inline
+In-Reply-To: <1235001314.14523.2.camel@vayu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Nick Piggin <npiggin@suse.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Jens Axboe <jens.axboe@oracle.com>, Suresh Siddha <suresh.b.siddha@intel.com>, Ingo Molnar <mingo@elte.hu>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Suresh Siddha <suresh.b.siddha@intel.com>
+Cc: Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Oleg Nesterov <oleg@redhat.com>, Jens Axboe <jens.axboe@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
 
-> It might hide some architecture-specific implementation issue, of course, 
-> so random amounts of "smp_mb()"s sprinkled around might well make some 
-> architecture "work", but it's in no way guaranteed. A smp_mb() does not 
-> guarantee that some separate IPI network is ordered - that may well take 
-> some random machine-specific IO cycle.
+* Suresh Siddha <suresh.b.siddha@intel.com> wrote:
+
+> On Wed, 2009-02-18 at 11:17 -0800, Ingo Molnar wrote: 
+> > * Suresh Siddha <suresh.b.siddha@intel.com> wrote:
+> > 
+> > > > Indeed that could cause problems on some architectures which I
+> > > > had hoped to avoid. So the patch is probably better off to first
+> > > > add the smp_mb() to arch_send_call_function_xxx arch code, unless
+> > > > it is immediately obvious or confirmed by arch maintainer that
+> > > > such barrier is not required.
+> > > 
+> > > For x2apic specific operations we should add the smp_mb() sequence. But
+> > > we need to make sure that we don't end up doing it twice (once in
+> > > generic code and another in arch code) for all the ipi paths.
+> > 
+> > right now we do have an smp_mb() due to your fix in November.
+> > 
+> > So what should happen is to move that smp_mb() from the x86 
+> > generic IPI path to the x86 x2apic IPI path. (and turn it into 
+> > an smp_wmb() - that should be enough - we dont care about future 
+> > reads being done sooner than this point.)
 > 
-> That said, at least on x86, taking an interrupt should be a serializing 
-> event, so there should be no reason for anything on the receiving side. 
-> The _sending_ side might need to make sure that there is serialization 
-> when generating the IPI (so that the IPI cannot happen while the writes 
-> are still in some per-CPU write buffer and haven't become part of the 
-> cache coherency domain).
+> Ingo, smp_wmb() won't help. x2apic register writes can still 
+> go ahead of the sfence. According to the SDM, we need a 
+> serializing instruction or mfence. Our internal experiments 
+> also proved this.
+
+ah, yes - i got confused about how an x2apic write can pass a 
+_store_ fence.
+
+The reason is that an MSR write is a register->register move 
+(not a memory write), so it it not part of the generic memory 
+ordering machinery. So a serializing instruction it has to be.
+
+> Appended is the x86 portion of the patch: ---
 > 
-> And at least on x86 it's actually pretty hard to generate out-of-order 
-> accesses to begin with (_regardless_ of any issues external to the CPU). 
-> You have to work at it, and use a WC memory area, and I'm pretty sure we 
-> use UC for the apic accesses.
+> From: Suresh Siddha <suresh.b.siddha@intel.com>
+> Subject: x86: move smp_mb() in x86 flush tlb path to x2apic specific IPI
+> paths
 
-On powerpc, I suspect an smp_mb() on the sender would be useful... it
-mostly depends how the IPI is generated but in most case it's going to
-be an MMIO write, ie non-cached write which isn't ordered vs. any
-previous cached store except using a full sync (which is what smp_mb()
-does).
+Could you please refresh this patch to latest tip:master? The 
+APIC drivers moved to arch/x86/kernel/apic/.
 
-Cheers,
-Ben.
+	Ingo
