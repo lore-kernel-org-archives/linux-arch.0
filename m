@@ -1,48 +1,156 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: Q: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove
- single ipi fallback for smp_call_function_many())
-Date: Fri, 20 Feb 2009 08:49:25 +1100
-Message-ID: <1235080165.8805.48.camel@pasglop>
-References: <1234866453.4744.58.camel@laptop>
-	 <20090217112657.GE26402@wotan.suse.de> <20090217192810.GA4980@redhat.com>
-	 <20090217213256.GJ6761@linux.vnet.ibm.com>
-	 <20090217214518.GA13189@redhat.com>
-	 <20090217223910.GM6761@linux.vnet.ibm.com>
-	 <20090218135212.GB23125@wotan.suse.de>
-	 <alpine.LFD.2.00.0902180744520.21686@localhost.localdomain>
-	 <1235026040.8805.3.camel@pasglop> <20090219131107.GD1747@wotan.suse.de>
-	 <20090219150619.GB22611@elte.hu>
+From: Suresh Siddha <suresh.b.siddha@intel.com>
+Subject: Re: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove single
+	ipi fallback for smp_call_function_many())
+Date: Thu, 19 Feb 2009 14:00:24 -0800
+Message-ID: <1235080824.14523.19.camel@vayu>
+References: <20090216231946.GA12009@redhat.com>
+	 <1234862974.4744.31.camel@laptop> <20090217101130.GA8660@wotan.suse.de>
+	 <1234866453.4744.58.camel@laptop> <20090217112657.GE26402@wotan.suse.de>
+	 <1234923702.29823.7.camel@vayu> <20090218135945.GC23125@wotan.suse.de>
+	 <1234982620.29823.22.camel@vayu> <20090218191757.GD8889@elte.hu>
+	 <1235001314.14523.2.camel@vayu>  <20090219122031.GC1703@elte.hu>
+Reply-To: Suresh Siddha <suresh.b.siddha@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:59371 "EHLO gate.crashing.org"
+Received: from mga14.intel.com ([143.182.124.37]:49259 "EHLO mga14.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757680AbZBSVu5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 19 Feb 2009 16:50:57 -0500
-In-Reply-To: <20090219150619.GB22611@elte.hu>
+	id S1752141AbZBSWBw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Feb 2009 17:01:52 -0500
+In-Reply-To: <20090219122031.GC1703@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>
-Cc: Nick Piggin <npiggin@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Jens Axboe <jens.axboe@oracle.com>, Suresh Siddha <suresh.b.siddha@intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Oleg Nesterov <oleg@redhat.com>, Jens Axboe <jens.axboe@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Thu, 2009-02-19 at 16:06 +0100, Ingo Molnar wrote:
-> > So your arch_send_call_function_single_ipi etc need to ensure 
-> > this, right?  Generic code obviously has no idea about how to 
-> > do it.
-> 
-> The thing is, the most widespread way to send IPIs (x86 
-> non-x2apic local APIC) does not need any barriers in the generic 
-> code or elsewhere, because the local APIC is mapped uncached so 
-> it's implicitly ordered.
-> 
-> So the right solution is to add barriers to those IPI 
-> implementations that need it. This means that the generic code 
-> should not have a barrier for IPI sending.
+On Thu, 2009-02-19 at 04:20 -0800, Ingo Molnar wrote:
+> Could you please refresh this patch to latest tip:master? The 
+> APIC drivers moved to arch/x86/kernel/apic/.
 
-I agree. In fact, our current code should be fine in any case because
-our writel() which will be used to generate the IPI has a sync in it
-anyway for other reasons.
+Appended the refreshed patch. Thanks.
+---
 
-Cheers,
-Ben.
+From: Suresh Siddha <suresh.b.siddha@intel.com>
+Subject: x86: move smp_mb() in flush tlb path to x2apic specific paths
+
+uncached MMIO accesses for xapic are inherently serializing and hence
+we don't need explicit barriers for xapic IPI paths.
+
+x2apic MSR writes/reads don't have serializing semantics and hence need
+a serializing instruction or mfence, to make all the previous memory
+stores globally visisble before the x2apic msr write for IPI.
+
+And hence move smp_mb() in x86 flush tlb path to x2apic specific paths.
+
+Signed-off-by: Suresh Siddha <suresh.b.siddha@intel.com>
+---
+
+diff --git a/arch/x86/kernel/apic/x2apic_cluster.c b/arch/x86/kernel/apic/x2apic_cluster.c
+index 3f7df23..c54fffe 100644
+--- a/arch/x86/kernel/apic/x2apic_cluster.c
++++ b/arch/x86/kernel/apic/x2apic_cluster.c
+@@ -63,6 +63,13 @@ static void x2apic_send_IPI_mask(const struct cpumask *mask, int vector)
+ 	unsigned long query_cpu;
+ 	unsigned long flags;
+ 
++	/*
++	 * Make previous memory operations globally visible before
++	 * sending the IPI. We need a serializing instruction or mfence
++	 * for this.
++	 */
++	smp_mb();
++
+ 	local_irq_save(flags);
+ 	for_each_cpu(query_cpu, mask) {
+ 		__x2apic_send_IPI_dest(
+@@ -79,6 +86,13 @@ static void
+ 	unsigned long query_cpu;
+ 	unsigned long flags;
+ 
++	/*
++	 * Make previous memory operations globally visible before
++	 * sending the IPI. We need a serializing instruction or mfence
++	 * for this.
++	 */
++	smp_mb();
++
+ 	local_irq_save(flags);
+ 	for_each_cpu(query_cpu, mask) {
+ 		if (query_cpu == this_cpu)
+@@ -96,6 +110,13 @@ static void x2apic_send_IPI_allbutself(int vector)
+ 	unsigned long query_cpu;
+ 	unsigned long flags;
+ 
++	/*
++	 * Make previous memory operations globally visible before
++	 * sending the IPI. We need a serializing instruction or mfence
++	 * for this.
++	 */
++	smp_mb();
++
+ 	local_irq_save(flags);
+ 	for_each_online_cpu(query_cpu) {
+ 		if (query_cpu == this_cpu)
+diff --git a/arch/x86/kernel/apic/x2apic_phys.c b/arch/x86/kernel/apic/x2apic_phys.c
+index d2d52eb..84cc2f3 100644
+--- a/arch/x86/kernel/apic/x2apic_phys.c
++++ b/arch/x86/kernel/apic/x2apic_phys.c
+@@ -58,6 +58,13 @@ static void x2apic_send_IPI_mask(const struct cpumask *mask, int vector)
+ 	unsigned long query_cpu;
+ 	unsigned long flags;
+ 
++	/*
++	 * Make previous memory operations globally visible before
++	 * sending the IPI. We need a serializing instruction or mfence
++	 * for this.
++	 */
++	smp_mb();
++
+ 	local_irq_save(flags);
+ 	for_each_cpu(query_cpu, mask) {
+ 		__x2apic_send_IPI_dest(per_cpu(x86_cpu_to_apicid, query_cpu),
+@@ -73,6 +80,13 @@ static void
+ 	unsigned long query_cpu;
+ 	unsigned long flags;
+ 
++	/*
++	 * Make previous memory operations globally visible before
++	 * sending the IPI. We need a serializing instruction or mfence
++	 * for this.
++	 */
++	smp_mb();
++
+ 	local_irq_save(flags);
+ 	for_each_cpu(query_cpu, mask) {
+ 		if (query_cpu != this_cpu)
+@@ -89,6 +103,13 @@ static void x2apic_send_IPI_allbutself(int vector)
+ 	unsigned long query_cpu;
+ 	unsigned long flags;
+ 
++	/*
++	 * Make previous memory operations globally visible before
++	 * sending the IPI. We need a serializing instruction or mfence
++	 * for this.
++	 */
++	smp_mb();
++
+ 	local_irq_save(flags);
+ 	for_each_online_cpu(query_cpu) {
+ 		if (query_cpu == this_cpu)
+diff --git a/arch/x86/mm/tlb.c b/arch/x86/mm/tlb.c
+index a654d59..821e970 100644
+--- a/arch/x86/mm/tlb.c
++++ b/arch/x86/mm/tlb.c
+@@ -187,11 +187,6 @@ static void flush_tlb_others_ipi(const struct cpumask *cpumask,
+ 		       cpumask, cpumask_of(smp_processor_id()));
+ 
+ 	/*
+-	 * Make the above memory operations globally visible before
+-	 * sending the IPI.
+-	 */
+-	smp_mb();
+-	/*
+ 	 * We have to send the IPI only to
+ 	 * CPUs affected.
+ 	 */
