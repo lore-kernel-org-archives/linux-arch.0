@@ -1,49 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:49607 "EHLO mx1.suse.de"
+Received: from mga03.intel.com ([143.182.124.21]:30730 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751238AbZBSNLK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 19 Feb 2009 08:11:10 -0500
-Date: Thu, 19 Feb 2009 14:11:07 +0100
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: Q: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove single ipi fallback for smp_call_function_many())
-Message-ID: <20090219131107.GD1747@wotan.suse.de>
-References: <20090217101130.GA8660@wotan.suse.de> <1234866453.4744.58.camel@laptop> <20090217112657.GE26402@wotan.suse.de> <20090217192810.GA4980@redhat.com> <20090217213256.GJ6761@linux.vnet.ibm.com> <20090217214518.GA13189@redhat.com> <20090217223910.GM6761@linux.vnet.ibm.com> <20090218135212.GB23125@wotan.suse.de> <alpine.LFD.2.00.0902180744520.21686@localhost.localdomain> <1235026040.8805.3.camel@pasglop>
+	id S1752957AbZBTS6g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Feb 2009 13:58:36 -0500
+Subject: Re: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove single
+	ipi fallback for smp_call_function_many())
+From: Suresh Siddha <suresh.b.siddha@intel.com>
+Reply-To: Suresh Siddha <suresh.b.siddha@intel.com>
+In-Reply-To: <20090220105640.GE28581@elte.hu>
+References: <20090217101130.GA8660@wotan.suse.de>
+	 <1234866453.4744.58.camel@laptop> <20090217112657.GE26402@wotan.suse.de>
+	 <1234923702.29823.7.camel@vayu> <20090218135945.GC23125@wotan.suse.de>
+	 <1234982620.29823.22.camel@vayu> <20090218191757.GD8889@elte.hu>
+	 <1235001314.14523.2.camel@vayu> <20090219122031.GC1703@elte.hu>
+	 <1235080824.14523.19.camel@vayu>  <20090220105640.GE28581@elte.hu>
+Content-Type: text/plain
+Date: Fri, 20 Feb 2009 10:56:54 -0800
+Message-ID: <1235156214.14523.54.camel@vayu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1235026040.8805.3.camel@pasglop>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Jens Axboe <jens.axboe@oracle.com>, Suresh Siddha <suresh.b.siddha@intel.com>, Ingo Molnar <mingo@elte.hu>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20090219131107.NymqIHoqsxp7xbTlZWscna_Cb2RbJGjRCsPhKLswKz0@z>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Oleg Nesterov <oleg@redhat.com>, Jens Axboe <jens.axboe@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, steiner@sgi.com
+Message-ID: <20090220185654.HlT_3W55p-8fooiTb76vUnCjSrlH47-vODm8sL2wDRI@z>
 
-On Thu, Feb 19, 2009 at 05:47:20PM +1100, Benjamin Herrenschmidt wrote:
+On Fri, 2009-02-20 at 02:56 -0800, Ingo Molnar wrote:
+> * Suresh Siddha <suresh.b.siddha@intel.com> wrote:
 > 
-> > It might hide some architecture-specific implementation issue, of course, 
-> > so random amounts of "smp_mb()"s sprinkled around might well make some 
-> > architecture "work", but it's in no way guaranteed. A smp_mb() does not 
-> > guarantee that some separate IPI network is ordered - that may well take 
-> > some random machine-specific IO cycle.
+> > On Thu, 2009-02-19 at 04:20 -0800, Ingo Molnar wrote:
+> > > Could you please refresh this patch to latest tip:master? The 
+> > > APIC drivers moved to arch/x86/kernel/apic/.
 > > 
-> > That said, at least on x86, taking an interrupt should be a serializing 
-> > event, so there should be no reason for anything on the receiving side. 
-> > The _sending_ side might need to make sure that there is serialization 
-> > when generating the IPI (so that the IPI cannot happen while the writes 
-> > are still in some per-CPU write buffer and haven't become part of the 
-> > cache coherency domain).
-> > 
-> > And at least on x86 it's actually pretty hard to generate out-of-order 
-> > accesses to begin with (_regardless_ of any issues external to the CPU). 
-> > You have to work at it, and use a WC memory area, and I'm pretty sure we 
-> > use UC for the apic accesses.
+> > Appended the refreshed patch. Thanks.
 > 
-> On powerpc, I suspect an smp_mb() on the sender would be useful... it
-> mostly depends how the IPI is generated but in most case it's going to
-> be an MMIO write, ie non-cached write which isn't ordered vs. any
-> previous cached store except using a full sync (which is what smp_mb()
-> does).
+> thanks. Two details i noticed:
+> 
+> Firstly:
+> 
+> > +++ b/arch/x86/kernel/apic/x2apic_cluster.c
+> > +++ b/arch/x86/kernel/apic/x2apic_phys.c
+> 
+> how about x2apic_uv.c? It uses uv_write_global_mmr64() in its 
+> IPI sending method, which uses:
+> 
+> static inline void uv_write_global_mmr64(int pnode, unsigned long offset,
+>                                 unsigned long val)
+> {
+>         *uv_global_mmr64_address(pnode, offset) = val;
+> }
+> 
+> which uses ->mmr_base, which is mapped via:
+> 
+>         init_extra_mapping_uc(UV_LOCAL_MMR_BASE, UV_LOCAL_MMR_SIZE);
+>
+> so it should be fine because uncached - but at minimum we should 
+> put a comment into x2apic_uv.c that the generic IPI code relies 
+> on the lowlevel code serializing - i.e. relies on the UC PAT 
+> attribute.
 
-So your arch_send_call_function_single_ipi etc need to ensure this,
-right?  Generic code obviously has no idea about how to do it.
+Oops. I forgot to mention that and copy Jack to confirm our
+understanding. I can send a followup patch adding the comments for UV.
+Jack, are you ok?
+
+> 
+> Secondly, you added smp_mb(), which will translate to an MFENCE. 
+> 
+> But in theory it should be enough to have a wmb() here. [Note, 
+> not an smp_wmb() that i suggested before.] That will translate 
+> to an SFENCE - which will serialize writes but still allows 
+> reads/prefetches to pass.
+> 
+> So the question is, is an SFENCE there enough to serialize the 
+> WRMSR with previous memory-writes? It's not specified in the 
+> x2apic docs as far as i could see.
+
+No. sfence is not enough (wrmsr to x2apic regs was still passing ahead).
+We have done a small experiment to demonstrate the issue and adding
+mfence fixes the issue but not sfence. We need a serializing instruction
+or mfence. I will try to get the SDM updated.
+
+thanks,
+suresh
 
