@@ -1,7 +1,7 @@
 From: Hitoshi Mitake <h.mitake@gmail.com>
 Subject: Re: [PATCH 1/1] edac x38: new MC driver module
-Date: Sun, 22 Feb 2009 23:16:52 +0900
-Message-ID: <20090222231652.2eb64c14.h.mitake@gmail.com>
+Date: Sun, 22 Feb 2009 23:18:11 +0900
+Message-ID: <20090222231811.7174bf05.h.mitake@gmail.com>
 References: <20081129180144.GA15533@uranus.ravnborg.org>
 	<20081130171604.dc3c8715.h.mitake@gmail.com>
 	<20081130083700.GA31644@elte.hu>
@@ -17,10 +17,10 @@ Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ti-out-0910.google.com ([209.85.142.188]:21202 "EHLO
+Received: from ti-out-0910.google.com ([209.85.142.189]:28792 "EHLO
 	ti-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752742AbZBVOQ7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2009 09:16:59 -0500
+	with ESMTP id S1752069AbZBVOSR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2009 09:18:17 -0500
 In-Reply-To: <20090221130937.GA31562@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -53,23 +53,23 @@ Sam Ravnborg <sam@ravnborg.org> wrote:
 > 
 > 	Sam
 
+Signed-off-by: Hitoshi Mitake <h.mitake@gmail.com>
+
 description of the patch: Adding HAVE_READQ, HAVE_WRITEQ and their help texts
 to each architecture's Kconfig file which have readq() and writeq().
 
-Signed-off-by: Hitoshi Mitake <h.mitake@gmail.com>
-
 ---
- arch/ia64/Kconfig |   18 ++++++++++++++++++
+ arch/mips/Kconfig |   18 ++++++++++++++++++
  1 files changed, 18 insertions(+), 0 deletions(-)
 
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 6183aec..2e035b0 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -691,3 +691,21 @@ config IOMMU_HELPER
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index 600eef3..44aeeff 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -2132,3 +2132,21 @@ source "security/Kconfig"
+ source "crypto/Kconfig"
  
- config IOMMU_API
- 	def_bool (DMAR)
+ source "lib/Kconfig"
 +
 +config HAVE_READQ
 +	def_bool y
