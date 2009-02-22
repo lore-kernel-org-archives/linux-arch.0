@@ -1,7 +1,7 @@
 From: Hitoshi Mitake <h.mitake@gmail.com>
 Subject: Re: [PATCH 1/1] edac x38: new MC driver module
-Date: Sun, 22 Feb 2009 23:19:34 +0900
-Message-ID: <20090222231934.e972ed50.h.mitake@gmail.com>
+Date: Sun, 22 Feb 2009 23:20:26 +0900
+Message-ID: <20090222232026.9f47d55e.h.mitake@gmail.com>
 References: <20081129180144.GA15533@uranus.ravnborg.org>
 	<20081130171604.dc3c8715.h.mitake@gmail.com>
 	<20081130083700.GA31644@elte.hu>
@@ -17,14 +17,14 @@ Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ti-out-0910.google.com ([209.85.142.190]:23577 "EHLO
+Received: from ti-out-0910.google.com ([209.85.142.189]:28949 "EHLO
 	ti-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752365AbZBVOTm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2009 09:19:42 -0500
+	with ESMTP id S1752614AbZBVOUc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2009 09:20:32 -0500
 In-Reply-To: <20090221130937.GA31562@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>, benh@kernel.crashing.org
+To: Sam Ravnborg <sam@ravnborg.org>, lethal@linux-sh.org
 Cc: Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
 On Sat, 21 Feb 2009 14:09:37 +0100
@@ -59,17 +59,17 @@ to each architecture's Kconfig file which have readq() and writeq().
 Signed-off-by: Hitoshi Mitake <h.mitake@gmail.com>
 
 ---
- arch/powerpc/Kconfig |   18 ++++++++++++++++++
+ arch/sh/Kconfig |   18 ++++++++++++++++++
  1 files changed, 18 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 74cc312..a517a8f 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -900,3 +900,21 @@ config PPC_LIB_RHEAP
- 	bool
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index ebabe51..7b1f664 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -699,3 +699,21 @@ source "security/Kconfig"
+ source "crypto/Kconfig"
  
- source "arch/powerpc/kvm/Kconfig"
+ source "lib/Kconfig"
 +
 +config HAVE_READQ
 +	def_bool y
