@@ -1,85 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([143.182.124.21]:30730 "EHLO mga03.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752957AbZBTS6g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Feb 2009 13:58:36 -0500
-Subject: Re: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove single
-	ipi fallback for smp_call_function_many())
-From: Suresh Siddha <suresh.b.siddha@intel.com>
-Reply-To: Suresh Siddha <suresh.b.siddha@intel.com>
-In-Reply-To: <20090220105640.GE28581@elte.hu>
-References: <20090217101130.GA8660@wotan.suse.de>
-	 <1234866453.4744.58.camel@laptop> <20090217112657.GE26402@wotan.suse.de>
-	 <1234923702.29823.7.camel@vayu> <20090218135945.GC23125@wotan.suse.de>
-	 <1234982620.29823.22.camel@vayu> <20090218191757.GD8889@elte.hu>
-	 <1235001314.14523.2.camel@vayu> <20090219122031.GC1703@elte.hu>
-	 <1235080824.14523.19.camel@vayu>  <20090220105640.GE28581@elte.hu>
-Content-Type: text/plain
-Date: Fri, 20 Feb 2009 10:56:54 -0800
-Message-ID: <1235156214.14523.54.camel@vayu>
+Received: from ti-out-0910.google.com ([209.85.142.188]:21202 "EHLO
+	ti-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752742AbZBVOQ7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2009 09:16:59 -0500
+Date: Sun, 22 Feb 2009 23:16:52 +0900
+From: Hitoshi Mitake <h.mitake@gmail.com>
+Subject: Re: [PATCH 1/1] edac x38: new MC driver module
+Message-ID: <20090222231652.2eb64c14.h.mitake@gmail.com>
+In-Reply-To: <20090221130937.GA31562@uranus.ravnborg.org>
+References: <20081129180144.GA15533@uranus.ravnborg.org>
+	<20081130171604.dc3c8715.h.mitake@gmail.com>
+	<20081130083700.GA31644@elte.hu>
+	<20081130092407.GA10802@elte.hu>
+	<20081201002056.d9f9204c.h.mitake@gmail.com>
+	<20081130161504.GA25627@elte.hu>
+	<a6b9f31a0812010551h28c0841fxa2a26af4645df64@mail.gmail.com>
+	<20081201135922.GA30068@elte.hu>
+	<a6b9f31a0812011558o373edbd3r9690efe539d43ca0@mail.gmail.com>
+	<20090221191101.62945118.h.mitake@gmail.com>
+	<20090221130937.GA31562@uranus.ravnborg.org>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Oleg Nesterov <oleg@redhat.com>, Jens Axboe <jens.axboe@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, steiner@sgi.com
-Message-ID: <20090220185654.HlT_3W55p-8fooiTb76vUnCjSrlH47-vODm8sL2wDRI@z>
+To: Sam Ravnborg <sam@ravnborg.org>, tony.luck@intel.com
+Cc: Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20090222141652.5SignsMm3sKvEXZs34sXxRpej5UAu_kXKXW4K10hgfU@z>
 
-On Fri, 2009-02-20 at 02:56 -0800, Ingo Molnar wrote:
-> * Suresh Siddha <suresh.b.siddha@intel.com> wrote:
-> 
-> > On Thu, 2009-02-19 at 04:20 -0800, Ingo Molnar wrote:
-> > > Could you please refresh this patch to latest tip:master? The 
-> > > APIC drivers moved to arch/x86/kernel/apic/.
+On Sat, 21 Feb 2009 14:09:37 +0100
+Sam Ravnborg <sam@ravnborg.org> wrote:
+
+> > Hi,
 > > 
-> > Appended the refreshed patch. Thanks.
+> > Very sorry for long distance between my previous post and this...
+> > 
+> > I wrote a patch to add HAVE_READQ and HAVE_WRITEQ to each architecture's Kconfig file
+> > which have readq() and writeq().
+> > 
+> > But there is problem.
+> > I wrote helps for HAVE_READQ and HAVE_WRITEQ in Kconfig file
+> > accodring to the advice by Russell King ( http://marc.info/?l=linux-kernel&m=122701161824218&w=2 ),
+> > but these helps are invisible when I doing menuconfig.
+> > (when type '/' and search readq string, HAVE_READQ found, but
+> > help string is not printed...)
+> > 
+> > Do you have some nice technique that make these helps visible easily?
 > 
-> thanks. Two details i noticed:
+> The options are not visible in menuconfig and therefore the is not
+> much point in displaying help for them thre when you search for the symbol.
+> But the help contained in the KConfig file is fully justified as it is
+> now documented why/when to select these options.
 > 
-> Firstly:
-> 
-> > +++ b/arch/x86/kernel/apic/x2apic_cluster.c
-> > +++ b/arch/x86/kernel/apic/x2apic_phys.c
-> 
-> how about x2apic_uv.c? It uses uv_write_global_mmr64() in its 
-> IPI sending method, which uses:
-> 
-> static inline void uv_write_global_mmr64(int pnode, unsigned long offset,
->                                 unsigned long val)
-> {
->         *uv_global_mmr64_address(pnode, offset) = val;
-> }
-> 
-> which uses ->mmr_base, which is mapped via:
-> 
->         init_extra_mapping_uc(UV_LOCAL_MMR_BASE, UV_LOCAL_MMR_SIZE);
->
-> so it should be fine because uncached - but at minimum we should 
-> put a comment into x2apic_uv.c that the generic IPI code relies 
-> on the lowlevel code serializing - i.e. relies on the UC PAT 
-> attribute.
+> 	Sam
 
-Oops. I forgot to mention that and copy Jack to confirm our
-understanding. I can send a followup patch adding the comments for UV.
-Jack, are you ok?
+description of the patch: Adding HAVE_READQ, HAVE_WRITEQ and their help texts
+to each architecture's Kconfig file which have readq() and writeq().
 
-> 
-> Secondly, you added smp_mb(), which will translate to an MFENCE. 
-> 
-> But in theory it should be enough to have a wmb() here. [Note, 
-> not an smp_wmb() that i suggested before.] That will translate 
-> to an SFENCE - which will serialize writes but still allows 
-> reads/prefetches to pass.
-> 
-> So the question is, is an SFENCE there enough to serialize the 
-> WRMSR with previous memory-writes? It's not specified in the 
-> x2apic docs as far as i could see.
+Signed-off-by: Hitoshi Mitake <h.mitake@gmail.com>
 
-No. sfence is not enough (wrmsr to x2apic regs was still passing ahead).
-We have done a small experiment to demonstrate the issue and adding
-mfence fixes the issue but not sfence. We need a serializing instruction
-or mfence. I will try to get the SDM updated.
+---
+ arch/ia64/Kconfig |   18 ++++++++++++++++++
+ 1 files changed, 18 insertions(+), 0 deletions(-)
 
-thanks,
-suresh
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 6183aec..2e035b0 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -691,3 +691,21 @@ config IOMMU_HELPER
+ 
+ config IOMMU_API
+ 	def_bool (DMAR)
++
++config HAVE_READQ
++	def_bool y
++	help
++	  This is a sign to represent that this architecture provides
++	  readq() function. readq() is a function to read 8 bytes from
++	  I/O space. Each drivers use readq() must depend on this symbol.
++	  Because lots of little private readq() implementations
++	  all over the tree is sucks.
++
++config HAVE_WRITEQ
++	def_bool y
++	help
++	  This is a sign to represent that this architecture provides
++	  writeq() function. writeq() is a function to read 8 bytes from
++	  I/O space. Each drivers use writeq() must depend on this symbol.
++	  Because lots of little private writeq() implementations
++	  all over the tree is sucks.
+-- 
+1.6.1.2
 
