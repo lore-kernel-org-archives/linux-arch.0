@@ -1,41 +1,96 @@
-From: Sam Ravnborg <sam@ravnborg.org>
+From: Hitoshi Mitake <h.mitake@gmail.com>
 Subject: Re: [PATCH 1/1] edac x38: new MC driver module
-Date: Sat, 21 Feb 2009 14:09:37 +0100
-Message-ID: <20090221130937.GA31562@uranus.ravnborg.org>
-References: <20081129180144.GA15533@uranus.ravnborg.org> <20081130171604.dc3c8715.h.mitake@gmail.com> <20081130083700.GA31644@elte.hu> <20081130092407.GA10802@elte.hu> <20081201002056.d9f9204c.h.mitake@gmail.com> <20081130161504.GA25627@elte.hu> <a6b9f31a0812010551h28c0841fxa2a26af4645df64@mail.gmail.com> <20081201135922.GA30068@elte.hu> <a6b9f31a0812011558o373edbd3r9690efe539d43ca0@mail.gmail.com> <20090221191101.62945118.h.mitake@gmail.com>
+Date: Sun, 22 Feb 2009 23:15:46 +0900
+Message-ID: <20090222231546.5d84eafc.h.mitake@gmail.com>
+References: <20081129180144.GA15533@uranus.ravnborg.org>
+	<20081130171604.dc3c8715.h.mitake@gmail.com>
+	<20081130083700.GA31644@elte.hu>
+	<20081130092407.GA10802@elte.hu>
+	<20081201002056.d9f9204c.h.mitake@gmail.com>
+	<20081130161504.GA25627@elte.hu>
+	<a6b9f31a0812010551h28c0841fxa2a26af4645df64@mail.gmail.com>
+	<20081201135922.GA30068@elte.hu>
+	<a6b9f31a0812011558o373edbd3r9690efe539d43ca0@mail.gmail.com>
+	<20090221191101.62945118.h.mitake@gmail.com>
+	<20090221130937.GA31562@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepb.post.tele.dk ([195.41.46.236]:37806 "EHLO
-	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752668AbZBUNHq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 21 Feb 2009 08:07:46 -0500
-Content-Disposition: inline
-In-Reply-To: <20090221191101.62945118.h.mitake@gmail.com>
+Received: from ti-out-0910.google.com ([209.85.142.184]:22438 "EHLO
+	ti-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753189AbZBVOPx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2009 09:15:53 -0500
+In-Reply-To: <20090221130937.GA31562@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hitoshi Mitake <h.mitake@gmail.com>
+To: Sam Ravnborg <sam@ravnborg.org>, rth@twiddle.net
 Cc: Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-> Hi,
-> 
-> Very sorry for long distance between my previous post and this...
-> 
-> I wrote a patch to add HAVE_READQ and HAVE_WRITEQ to each architecture's Kconfig file
-> which have readq() and writeq().
-> 
-> But there is problem.
-> I wrote helps for HAVE_READQ and HAVE_WRITEQ in Kconfig file
-> accodring to the advice by Russell King ( http://marc.info/?l=linux-kernel&m=122701161824218&w=2 ),
-> but these helps are invisible when I doing menuconfig.
-> (when type '/' and search readq string, HAVE_READQ found, but
-> help string is not printed...)
-> 
-> Do you have some nice technique that make these helps visible easily?
+On Sat, 21 Feb 2009 14:09:37 +0100
+Sam Ravnborg <sam@ravnborg.org> wrote:
 
-The options are not visible in menuconfig and therefore the is not
-much point in displaying help for them thre when you search for the symbol.
-But the help contained in the KConfig file is fully justified as it is
-now documented why/when to select these options.
+> > Hi,
+> > 
+> > Very sorry for long distance between my previous post and this...
+> > 
+> > I wrote a patch to add HAVE_READQ and HAVE_WRITEQ to each architecture's Kconfig file
+> > which have readq() and writeq().
+> > 
+> > But there is problem.
+> > I wrote helps for HAVE_READQ and HAVE_WRITEQ in Kconfig file
+> > accodring to the advice by Russell King ( http://marc.info/?l=linux-kernel&m=122701161824218&w=2 ),
+> > but these helps are invisible when I doing menuconfig.
+> > (when type '/' and search readq string, HAVE_READQ found, but
+> > help string is not printed...)
+> > 
+> > Do you have some nice technique that make these helps visible easily?
+> 
 
-	Sam
+Thank you for your replying, Russell and Sam.
+
+> The options are not visible in menuconfig and therefore the is not
+> much point in displaying help for them thre when you search for the symbol.
+> But the help contained in the KConfig file is fully justified as it is
+> now documented why/when to select these options.
+> 
+> 	Sam
+
+Hmm, so I try to send my patches to each maintainers of architectures.
+
+description of the patch: Adding HAVE_READQ, HAVE_WRITEQ and their help texts
+to each architecture's Kconfig file which have readq() and writeq().
+
+Signed-off-by: Hitoshi Mitake <h.mitake@gmail.com>
+
+---
+ arch/alpha/Kconfig |   17 +++++++++++++++++
+ 1 files changed, 17 insertions(+), 0 deletions(-)
+
+diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
+index 9fb8aae..ecca919 100644
+--- a/arch/alpha/Kconfig
++++ b/arch/alpha/Kconfig
+@@ -672,3 +672,20 @@ source "crypto/Kconfig"
+ 
+ source "lib/Kconfig"
+ 
++config HAVE_READQ
++	def_bool y
++	help
++	  This is a sign to represent that this architecture provides
++	  readq() function. readq() is a function to read 8 bytes from
++	  I/O space. Each drivers use readq() must depend on this symbol.
++	  Because lots of little private readq() implementations
++	  all over the tree is sucks.
++
++config HAVE_WRITEQ
++	def_bool y
++	help
++	  This is a sign to represent that this architecture provides
++	  writeq() function. writeq() is a function to read 8 bytes from
++	  I/O space. Each drivers use writeq() must depend on this symbol.
++	  Because lots of little private writeq() implementations
++	  all over the tree is sucks.
+-- 
+1.6.1.2
