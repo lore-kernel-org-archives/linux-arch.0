@@ -1,7 +1,7 @@
 From: Hitoshi Mitake <h.mitake@gmail.com>
 Subject: Re: [PATCH 1/1] edac x38: new MC driver module
-Date: Sun, 22 Feb 2009 23:15:46 +0900
-Message-ID: <20090222231546.5d84eafc.h.mitake@gmail.com>
+Date: Sun, 22 Feb 2009 23:16:52 +0900
+Message-ID: <20090222231652.2eb64c14.h.mitake@gmail.com>
 References: <20081129180144.GA15533@uranus.ravnborg.org>
 	<20081130171604.dc3c8715.h.mitake@gmail.com>
 	<20081130083700.GA31644@elte.hu>
@@ -17,14 +17,14 @@ Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ti-out-0910.google.com ([209.85.142.184]:22438 "EHLO
+Received: from ti-out-0910.google.com ([209.85.142.188]:21202 "EHLO
 	ti-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753189AbZBVOPx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2009 09:15:53 -0500
+	with ESMTP id S1752742AbZBVOQ7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2009 09:16:59 -0500
 In-Reply-To: <20090221130937.GA31562@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>, rth@twiddle.net
+To: Sam Ravnborg <sam@ravnborg.org>
 Cc: Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
 On Sat, 21 Feb 2009 14:09:37 +0100
@@ -46,9 +46,6 @@ Sam Ravnborg <sam@ravnborg.org> wrote:
 > > 
 > > Do you have some nice technique that make these helps visible easily?
 > 
-
-Thank you for your replying, Russell and Sam.
-
 > The options are not visible in menuconfig and therefore the is not
 > much point in displaying help for them thre when you search for the symbol.
 > But the help contained in the KConfig file is fully justified as it is
@@ -56,25 +53,24 @@ Thank you for your replying, Russell and Sam.
 > 
 > 	Sam
 
-Hmm, so I try to send my patches to each maintainers of architectures.
-
 description of the patch: Adding HAVE_READQ, HAVE_WRITEQ and their help texts
 to each architecture's Kconfig file which have readq() and writeq().
 
 Signed-off-by: Hitoshi Mitake <h.mitake@gmail.com>
 
 ---
- arch/alpha/Kconfig |   17 +++++++++++++++++
- 1 files changed, 17 insertions(+), 0 deletions(-)
+ arch/ia64/Kconfig |   18 ++++++++++++++++++
+ 1 files changed, 18 insertions(+), 0 deletions(-)
 
-diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-index 9fb8aae..ecca919 100644
---- a/arch/alpha/Kconfig
-+++ b/arch/alpha/Kconfig
-@@ -672,3 +672,20 @@ source "crypto/Kconfig"
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 6183aec..2e035b0 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -691,3 +691,21 @@ config IOMMU_HELPER
  
- source "lib/Kconfig"
- 
+ config IOMMU_API
+ 	def_bool (DMAR)
++
 +config HAVE_READQ
 +	def_bool y
 +	help
