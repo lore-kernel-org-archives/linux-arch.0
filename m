@@ -1,94 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ti-out-0910.google.com ([209.85.142.189]:28792 "EHLO
-	ti-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752069AbZBVOSR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2009 09:18:17 -0500
-Date: Sun, 22 Feb 2009 23:18:11 +0900
-From: Hitoshi Mitake <h.mitake@gmail.com>
-Subject: Re: [PATCH 1/1] edac x38: new MC driver module
-Message-ID: <20090222231811.7174bf05.h.mitake@gmail.com>
-In-Reply-To: <20090221130937.GA31562@uranus.ravnborg.org>
-References: <20081129180144.GA15533@uranus.ravnborg.org>
-	<20081130171604.dc3c8715.h.mitake@gmail.com>
-	<20081130083700.GA31644@elte.hu>
-	<20081130092407.GA10802@elte.hu>
-	<20081201002056.d9f9204c.h.mitake@gmail.com>
-	<20081130161504.GA25627@elte.hu>
-	<a6b9f31a0812010551h28c0841fxa2a26af4645df64@mail.gmail.com>
-	<20081201135922.GA30068@elte.hu>
-	<a6b9f31a0812011558o373edbd3r9690efe539d43ca0@mail.gmail.com>
-	<20090221191101.62945118.h.mitake@gmail.com>
-	<20090221130937.GA31562@uranus.ravnborg.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Received: from mail-qy0-f11.google.com ([209.85.221.11]:64600 "EHLO
+	mail-qy0-f11.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751412AbZBWCnh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2009 21:43:37 -0500
+Received: by qyk4 with SMTP id 4so2615269qyk.13
+        for <linux-arch@vger.kernel.org>; Sun, 22 Feb 2009 18:43:36 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <20090223014224.GB13157@bombadil.infradead.org>
+References: <200902222252.45051.sf@sfritsch.de>
+	 <20090222224924.GA13157@bombadil.infradead.org>
+	 <20090223014224.GB13157@bombadil.infradead.org>
+Date: Sun, 22 Feb 2009 21:43:36 -0500
+Message-ID: <119aab440902221843y7e664581w99a9d44257672ae2@mail.gmail.com>
+Subject: Re: flock, FAGAIN, and FWOULDBLOCK
+From: "Carlos O'Donell" <carlos@systemhalted.org>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>, ralf@linux-mips.org
-Cc: Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20090222141811.ihusdksJ_6fW1-Vl26sOH_4r-gZzYU6QDw1RyKj5A6g@z>
+To: Kyle McMartin <kyle@infradead.org>
+Cc: linux-arch@vger.kernel.org, Stefan Fritsch <sf@sfritsch.de>, debian-hppa@lists.debian.org
+Message-ID: <20090223024336.LvgGVLwg5dlY3lVMb-1sEypdvxunCfsKhM1AISZz10w@z>
 
-On Sat, 21 Feb 2009 14:09:37 +0100
-Sam Ravnborg <sam@ravnborg.org> wrote:
+On Sun, Feb 22, 2009 at 8:42 PM, Kyle McMartin <kyle@infradead.org> wrote:
+>> Definitely a kernel bug, if posix says it should return EWOULDBLOCK...
 
-> > Hi,
-> > 
-> > Very sorry for long distance between my previous post and this...
-> > 
-> > I wrote a patch to add HAVE_READQ and HAVE_WRITEQ to each architecture's Kconfig file
-> > which have readq() and writeq().
-> > 
-> > But there is problem.
-> > I wrote helps for HAVE_READQ and HAVE_WRITEQ in Kconfig file
-> > accodring to the advice by Russell King ( http://marc.info/?l=linux-kernel&m=122701161824218&w=2 ),
-> > but these helps are invisible when I doing menuconfig.
-> > (when type '/' and search readq string, HAVE_READQ found, but
-> > help string is not printed...)
-> > 
-> > Do you have some nice technique that make these helps visible easily?
-> 
-> The options are not visible in menuconfig and therefore the is not
-> much point in displaying help for them thre when you search for the symbol.
-> But the help contained in the KConfig file is fully justified as it is
-> now documented why/when to select these options.
-> 
-> 	Sam
+flock is not POSIX, it's an interface invented by 4.2BSD, and was
+previously emulated by glibc. The glibc wrapper implemented flock with
+fcntl and made sure to return EWOULDBLOCK.
 
-Signed-off-by: Hitoshi Mitake <h.mitake@gmail.com>
+> This is really going to suck, it looks like a lot of the locking
+> primitives used EAGAIN and EWOULDBLOCK interchangeably... The fcntl
+> manpage says 'EAGAIN or EWOULDBLOCK' so is flock(2) the only problem
+> here? From a quick glance at posix, fcntl(2) returning EAGAIN is
+> correct.
 
-description of the patch: Adding HAVE_READQ, HAVE_WRITEQ and their help texts
-to each architecture's Kconfig file which have readq() and writeq().
+I would warn you that the linux man pages are often incorrect.
 
----
- arch/mips/Kconfig |   18 ++++++++++++++++++
- 1 files changed, 18 insertions(+), 0 deletions(-)
+I use http://www.opengroup.org/onlinepubs/009695399/ for check POSIX
+requirements.
 
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index 600eef3..44aeeff 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -2132,3 +2132,21 @@ source "security/Kconfig"
- source "crypto/Kconfig"
- 
- source "lib/Kconfig"
-+
-+config HAVE_READQ
-+	def_bool y
-+	help
-+	  This is a sign to represent that this architecture provides
-+	  readq() function. readq() is a function to read 8 bytes from
-+	  I/O space. Each drivers use readq() must depend on this symbol.
-+	  Because lots of little private readq() implementations
-+	  all over the tree is sucks.
-+
-+config HAVE_WRITEQ
-+	def_bool y
-+	help
-+	  This is a sign to represent that this architecture provides
-+	  writeq() function. writeq() is a function to read 8 bytes from
-+	  I/O space. Each drivers use writeq() must depend on this symbol.
-+	  Because lots of little private writeq() implementations
-+	  all over the tree is sucks.
--- 
-1.6.1.2
+> diff --git a/arch/parisc/kernel/sys_parisc.c b/arch/parisc/kernel/sys_parisc.c
+> index 71b3195..18e8542 100644
+> --- a/arch/parisc/kernel/sys_parisc.c
+> +++ b/arch/parisc/kernel/sys_parisc.c
+> @@ -156,6 +156,17 @@ asmlinkage unsigned long sys_mmap(unsigned long addr, unsigned long len,
+>
+>  /* Fucking broken ABI */
+>
+> +asmlinkage long parisc_flock(unsigned int fd, unsigned int cmd)
+> +{
+> +       long ret;
+> +
+> +       ret = sys_flock(fd, cmd);
+> +       if (ret == -EAGAIN)
+> +               ret = -EWOULDBLOCK;     /* fuck you HPUX */
 
+A more robust solution would be?
+
+if ((ret == -EAGAIN) || (ret == -EWOULDBLOK))
+        ret = -EWOULDBLOCK
+
+This covers our ass since POSIX says that EAGAIN and EWOULDBLOCK *may*
+be the same.
+
+> but somehow I suspect this interchangeable use of EAGAIN and EWOULDBLOCK
+> is going to reveal latent problems in this part of the kernel I would
+> rather not delve into...
+
+The ABI is fixed, so all we can do is cleanup the uses in the kernel,
+and make sure we adhere to the documented APIs.
+
+Don't get too upset ;-)
+
+Cheers,
+Carlos.
