@@ -1,94 +1,85 @@
-From: Hitoshi Mitake <h.mitake@gmail.com>
-Subject: Re: [PATCH 1/1] edac x38: new MC driver module
-Date: Sun, 22 Feb 2009 23:21:14 +0900
-Message-ID: <20090222232114.803fe032.h.mitake@gmail.com>
-References: <20081129180144.GA15533@uranus.ravnborg.org>
-	<20081130171604.dc3c8715.h.mitake@gmail.com>
-	<20081130083700.GA31644@elte.hu>
-	<20081130092407.GA10802@elte.hu>
-	<20081201002056.d9f9204c.h.mitake@gmail.com>
-	<20081130161504.GA25627@elte.hu>
-	<a6b9f31a0812010551h28c0841fxa2a26af4645df64@mail.gmail.com>
-	<20081201135922.GA30068@elte.hu>
-	<a6b9f31a0812011558o373edbd3r9690efe539d43ca0@mail.gmail.com>
-	<20090221191101.62945118.h.mitake@gmail.com>
-	<20090221130937.GA31562@uranus.ravnborg.org>
+From: Kyle McMartin <kyle@infradead.org>
+Subject: Re: flock, FAGAIN, and FWOULDBLOCK
+Date: Sun, 22 Feb 2009 20:42:24 -0500
+Message-ID: <20090223014224.GB13157@bombadil.infradead.org>
+References: <200902222252.45051.sf@sfritsch.de> <20090222224924.GA13157@bombadil.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ti-out-0910.google.com ([209.85.142.190]:23714 "EHLO
-	ti-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752069AbZBVOVU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2009 09:21:20 -0500
-In-Reply-To: <20090221130937.GA31562@uranus.ravnborg.org>
+Received: from bombadil.infradead.org ([18.85.46.34]:37463 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751771AbZBWBmZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2009 20:42:25 -0500
+Content-Disposition: inline
+In-Reply-To: <20090222224924.GA13157@bombadil.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>, davem@davemloft.net
-Cc: Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "Luck, Tony" <tony.luck@intel.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, Doug Thompson <norsk5@yahoo.com>, dougthompson@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org
+Cc: Stefan Fritsch <sf@sfritsch.de>, debian-hppa@lists.debian.org
 
-On Sat, 21 Feb 2009 14:09:37 +0100
-Sam Ravnborg <sam@ravnborg.org> wrote:
-
-> > Hi,
+On Sun, Feb 22, 2009 at 05:49:24PM -0500, Kyle McMartin wrote:
+> > according to the flock(2) man page, flock should return EWOULDBLOCK 
+> > when a file is locked and the LOCK_NB flag was selected. But on hppa, 
+> > it seems to return EAGAIN which is not the same. Where is the bug 
+> > here? In the kernel, glibc, or manpages-dev?
 > > 
-> > Very sorry for long distance between my previous post and this...
+> > This causes problems in apr since it only checks for EWOULDBLOCK.
 > > 
-> > I wrote a patch to add HAVE_READQ and HAVE_WRITEQ to each architecture's Kconfig file
-> > which have readq() and writeq().
-> > 
-> > But there is problem.
-> > I wrote helps for HAVE_READQ and HAVE_WRITEQ in Kconfig file
-> > accodring to the advice by Russell King ( http://marc.info/?l=linux-kernel&m=122701161824218&w=2 ),
-> > but these helps are invisible when I doing menuconfig.
-> > (when type '/' and search readq string, HAVE_READQ found, but
-> > help string is not printed...)
-> > 
-> > Do you have some nice technique that make these helps visible easily?
 > 
-> The options are not visible in menuconfig and therefore the is not
-> much point in displaying help for them thre when you search for the symbol.
-> But the help contained in the KConfig file is fully justified as it is
-> now documented why/when to select these options.
+> Ugh. Fail.
 > 
-> 	Sam
+> EWOULDBLOCK is defined to be EAGAIN on every architecture but parisc,
+> since HPUX has different errno values for EAGAIN and EWOULDBLOCK.
+> 
+> Definitely a kernel bug, if posix says it should return EWOULDBLOCK...
+> 
 
-description of the patch: Adding HAVE_READQ, HAVE_WRITEQ and their help texts
-to each architecture's Kconfig file which have readq() and writeq().
+This is really going to suck, it looks like a lot of the locking
+primitives used EAGAIN and EWOULDBLOCK interchangeably... The fcntl
+manpage says 'EAGAIN or EWOULDBLOCK' so is flock(2) the only problem
+here? From a quick glance at posix, fcntl(2) returning EAGAIN is
+correct.
 
-Signed-off-by: Hitoshi Mitake <h.mitake@gmail.com>
+My guess is, I'll be able to sort this out with a simple
 
----
- arch/sparc/Kconfig |   20 ++++++++++++++++++++
- 1 files changed, 20 insertions(+), 0 deletions(-)
-
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index c3ea215..eb5efa3 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -527,3 +527,23 @@ source "security/Kconfig"
- source "crypto/Kconfig"
+diff --git a/arch/parisc/kernel/sys_parisc.c b/arch/parisc/kernel/sys_parisc.c
+index 71b3195..18e8542 100644
+--- a/arch/parisc/kernel/sys_parisc.c
++++ b/arch/parisc/kernel/sys_parisc.c
+@@ -156,6 +156,17 @@ asmlinkage unsigned long sys_mmap(unsigned long addr, unsigned long len,
  
- source "lib/Kconfig"
+ /* Fucking broken ABI */
+ 
++asmlinkage long parisc_flock(unsigned int fd, unsigned int cmd)
++{
++	long ret;
 +
-+config HAVE_READQ
-+	def_bool y
-+	depends on SPARC64
-+	help
-+	  This is a sign to represent that this architecture provides
-+	  readq() function. readq() is a function to read 8 bytes from
-+	  I/O space. Each drivers use readq() must depend on this symbol.
-+	  Because lots of little private readq() implementations
-+	  all over the tree is sucks.
++	ret = sys_flock(fd, cmd);
++	if (ret == -EAGAIN)
++		ret = -EWOULDBLOCK;	/* fuck you HPUX */
 +
-+config HAVE_WRITEQ
-+	def_bool y
-+	depends on SPARC64
-+	help
-+	  This is a sign to represent that this architecture provides
-+	  writeq() function. writeq() is a function to read 8 bytes from
-+	  I/O space. Each drivers use writeq() must depend on this symbol.
-+	  Because lots of little private writeq() implementations
-+	  all over the tree is sucks.
--- 
-1.6.1.2
++	return ret;
++}
++
+ #ifdef CONFIG_64BIT
+ asmlinkage long parisc_truncate64(const char __user * path,
+ 					unsigned int high, unsigned int low)
+diff --git a/arch/parisc/kernel/syscall_table.S b/arch/parisc/kernel/syscall_table.S
+index 303d2b6..8c62951 100644
+--- a/arch/parisc/kernel/syscall_table.S
++++ b/arch/parisc/kernel/syscall_table.S
+@@ -226,7 +226,7 @@
+ 	/* it is POSSIBLE that select will be OK because even though fd_set
+ 	 * contains longs, the macros and sizes are clever. */
+ 	ENTRY_COMP(select)
+-	ENTRY_SAME(flock)
++	ENTRY_OURS(flock)
+ 	ENTRY_SAME(msync)
+ 	/* struct iovec contains pointers */
+ 	ENTRY_COMP(readv)		/* 145 */
+
+but somehow I suspect this interchangeable use of EAGAIN and EWOULDBLOCK
+is going to reveal latent problems in this part of the kernel I would
+rather not delve into...
+
+cheers, Kyle
