@@ -1,73 +1,144 @@
-From: Matthew Wilcox <matthew@wil.cx>
+From: Michael Kerrisk <mtk.manpages@googlemail.com>
 Subject: Re: flock, FAGAIN, and FWOULDBLOCK
-Date: Sun, 22 Feb 2009 20:03:15 -0700
-Message-ID: <20090223030315.GC16891@parisc-linux.org>
-References: <200902222252.45051.sf@sfritsch.de> <20090222224924.GA13157@bombadil.infradead.org> <20090223014224.GB13157@bombadil.infradead.org> <119aab440902221843y7e664581w99a9d44257672ae2@mail.gmail.com>
+Date: Mon, 23 Feb 2009 16:20:53 +1300
+Message-ID: <cfd18e0f0902221920o3fafe56w73e3534dfe355abb@mail.gmail.com>
+References: <200902222252.45051.sf@sfritsch.de>
+	 <20090222224924.GA13157@bombadil.infradead.org>
+	 <20090223014224.GB13157@bombadil.infradead.org>
+Reply-To: mtk.manpages@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:38770 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750895AbZBWDDR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2009 22:03:17 -0500
-Content-Disposition: inline
-In-Reply-To: <119aab440902221843y7e664581w99a9d44257672ae2@mail.gmail.com>
+Received: from rv-out-0506.google.com ([209.85.198.230]:26247 "EHLO
+	rv-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751146AbZBWDUy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2009 22:20:54 -0500
+Received: by rv-out-0506.google.com with SMTP id g37so1740641rvb.1
+        for <linux-arch@vger.kernel.org>; Sun, 22 Feb 2009 19:20:53 -0800 (PST)
+In-Reply-To: <20090223014224.GB13157@bombadil.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Carlos O'Donell <carlos@systemhalted.org>
-Cc: Kyle McMartin <kyle@infradead.org>, linux-arch@vger.kernel.org, Stefan Fritsch <sf@sfritsch.de>, debian-hppa@lists.debian.org
+To: Kyle McMartin <kyle@infradead.org>
+Cc: linux-arch@vger.kernel.org, Stefan Fritsch <sf@sfritsch.de>, debian-hppa@lists.debian.org
 
-On Sun, Feb 22, 2009 at 09:43:36PM -0500, Carlos O'Donell wrote:
-> flock is not POSIX, it's an interface invented by 4.2BSD, and was
-> previously emulated by glibc. The glibc wrapper implemented flock with
-> fcntl and made sure to return EWOULDBLOCK.
+Hi Kyle,
 
-glibc's emulation of flock() using fcntl() really belongs to the Dark
-Ages of Linux.  According to the comments in the kernel, flock(2) was
-added in June 1995.  That's four years before parisc-linux really got
-going.
+On 2/23/09, Kyle McMartin <kyle@infradead.org> wrote:
+> On Sun, Feb 22, 2009 at 05:49:24PM -0500, Kyle McMartin wrote:
+>> > according to the flock(2) man page, flock should return EWOULDBLOCK
+>> > when a file is locked and the LOCK_NB flag was selected. But on hppa,
+>> > it seems to return EAGAIN which is not the same. Where is the bug
+>> > here? In the kernel, glibc, or manpages-dev?
+>> >
+>> > This causes problems in apr since it only checks for EWOULDBLOCK.
+>> >
+>>
+>> Ugh. Fail.
+>>
+>> EWOULDBLOCK is defined to be EAGAIN on every architecture but parisc,
+>> since HPUX has different errno values for EAGAIN and EWOULDBLOCK.
+>>
+>> Definitely a kernel bug, if posix says it should return EWOULDBLOCK...
 
-The semantics of flock-locks and fcntl-locks are really, really
-different.  Emulating one with the other was a really bad idea.
+Note the following:
 
-> > +       ret = sys_flock(fd, cmd);
-> > +       if (ret == -EAGAIN)
-> > +               ret = -EWOULDBLOCK;     /* fuck you HPUX */
-> 
-> A more robust solution would be?
-> 
-> if ((ret == -EAGAIN) || (ret == -EWOULDBLOK))
->         ret = -EWOULDBLOCK
+* POSIX has no specification of flock() (only fcntl() locking is
+specified by POSIX.1).
 
-How would that differ from what Kyle wrote?  Why would you want to
-assign -EWOULDBLOCK to ret if ret is already -EWOULDBLOCK?
+* My understanding is that EAGAIN originated on System V, and was the
+error returned instead of blocking for system calls performing I/O,
+semaphore operations, message queue operations, and (fcntl()) file
+locking.  EWOULDBLOCK originated on BSD, and was returned by (flock())
+file locking and socket-related system calls.
 
-> This covers our ass since POSIX says that EAGAIN and EWOULDBLOCK *may*
-> be the same.
+* flock() is a BSDism, and the associated error was EWOULDBLOCK.
 
-That's irrelevant.  The only thing that matters is what the kernel does.
+* Generally POSIX requires that each error name must have  distinct
+associated value.  EAGAIN and EWOULDBLOCK are one of the few
+exceptions: POSIX permits, but does not require, that these error
+constants have the same value.  On most systems they of course do have
+the same value.  HP-UX is the most notable exception.
 
-> > but somehow I suspect this interchangeable use of EAGAIN and EWOULDBLOCK
-> > is going to reveal latent problems in this part of the kernel I would
-> > rather not delve into...
-> 
-> The ABI is fixed, so all we can do is cleanup the uses in the kernel,
-> and make sure we adhere to the documented APIs.
+> This is really going to suck, it looks like a lot of the locking
+> primitives used EAGAIN and EWOULDBLOCK interchangeably...  The fcntl
+> manpage says 'EAGAIN or EWOULDBLOCK'
 
-We actually can do better than this ...
+Whoa -- that text in fcntl(2) relates to non-blocking I/O -- not file locking.
+(There is a different mess for fcntl() file locking: if a non-blocking
+log request is made (F_SETLK), then the call fails with the error
+EACCES of EAGAIN -- POSIX explicitly allows this since there was
+historical variation across systems.)
 
-#ifdef __KERNEL__
-#define EWOULDBLOCK	EAGAIN
-#else
-#define EWOULDBLOCK	/* whatever the fuck HPUX uses */
-#endif
+> so is flock(2) the only problem
+> here? From a quick glance at posix, fcntl(2) returning EAGAIN is
+> correct.
 
-Now our kernel never returns -EWOULDBLOCK, only -EAGAIN.  Correct
-applications must check for both.  Incorrect applications tend to only
-check for AGAIN, not WOULDBLOCK.  Problem solved.
+Returning EAGIN is correct, but returning EACCES is also permitted, as
+noted above.
+
+> My guess is, I'll be able to sort this out with a simple
+
+Maybe.  I suppose that it depends on what (broken) userland apps expect.
+
+Cheers,
+
+Michael
+
+> diff --git a/arch/parisc/kernel/sys_parisc.c
+> b/arch/parisc/kernel/sys_parisc.c
+> index 71b3195..18e8542 100644
+> --- a/arch/parisc/kernel/sys_parisc.c
+> +++ b/arch/parisc/kernel/sys_parisc.c
+> @@ -156,6 +156,17 @@ asmlinkage unsigned long sys_mmap(unsigned long addr,
+> unsigned long len,
+>
+>  /* Fucking broken ABI */
+>
+> +asmlinkage long parisc_flock(unsigned int fd, unsigned int cmd)
+> +{
+> +	long ret;
+> +
+> +	ret = sys_flock(fd, cmd);
+> +	if (ret == -EAGAIN)
+> +		ret = -EWOULDBLOCK;	/* fuck you HPUX */
+> +
+> +	return ret;
+> +}
+> +
+>  #ifdef CONFIG_64BIT
+>  asmlinkage long parisc_truncate64(const char __user * path,
+>  					unsigned int high, unsigned int low)
+> diff --git a/arch/parisc/kernel/syscall_table.S
+> b/arch/parisc/kernel/syscall_table.S
+> index 303d2b6..8c62951 100644
+> --- a/arch/parisc/kernel/syscall_table.S
+> +++ b/arch/parisc/kernel/syscall_table.S
+> @@ -226,7 +226,7 @@
+>  	/* it is POSSIBLE that select will be OK because even though fd_set
+>  	 * contains longs, the macros and sizes are clever. */
+>  	ENTRY_COMP(select)
+> -	ENTRY_SAME(flock)
+> +	ENTRY_OURS(flock)
+>  	ENTRY_SAME(msync)
+>  	/* struct iovec contains pointers */
+>  	ENTRY_COMP(readv)		/* 145 */
+>
+> but somehow I suspect this interchangeable use of EAGAIN and EWOULDBLOCK
+> is going to reveal latent problems in this part of the kernel I would
+> rather not delve into...
+>
+> cheers, Kyle
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>
+
 
 -- 
-Matthew Wilcox				Intel Open Source Technology Centre
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+git://git.kernel.org/pub/scm/docs/man-pages/man-pages.git
+man-pages online: http://www.kernel.org/doc/man-pages/online_pages.html
+Found a bug? http://www.kernel.org/doc/man-pages/reporting_bugs.html
