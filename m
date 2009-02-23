@@ -1,52 +1,44 @@
-From: Geert Uytterhoeven <geert.uytterhoeven@gmail.com>
+From: Helge Deller <deller@gmx.de>
 Subject: Re: flock, FAGAIN, and FWOULDBLOCK
-Date: Mon, 23 Feb 2009 09:23:50 +0100
-Message-ID: <10f740e80902230023y201612e3j3dc5850055deb507@mail.gmail.com>
-References: <200902222252.45051.sf@sfritsch.de>
-	 <20090222224924.GA13157@bombadil.infradead.org>
-	 <20090223014224.GB13157@bombadil.infradead.org>
-	 <cfd18e0f0902221920o3fafe56w73e3534dfe355abb@mail.gmail.com>
+Date: Mon, 23 Feb 2009 18:49:24 +0100
+Message-ID: <49A2E1A4.8010607@gmx.de>
+References: <200902222252.45051.sf@sfritsch.de> <20090222224924.GA13157@bombadil.infradead.org> <20090223014224.GB13157@bombadil.infradead.org> <119aab440902221843y7e664581w99a9d44257672ae2@mail.gmail.com> <20090223030315.GC16891@parisc-linux.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f167.google.com ([209.85.220.167]:60678 "EHLO
-	mail-fx0-f167.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750828AbZBWIXx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Feb 2009 03:23:53 -0500
-Received: by fxm11 with SMTP id 11so1460300fxm.13
-        for <linux-arch@vger.kernel.org>; Mon, 23 Feb 2009 00:23:50 -0800 (PST)
-In-Reply-To: <cfd18e0f0902221920o3fafe56w73e3534dfe355abb@mail.gmail.com>
+Received: from mail.gmx.net ([213.165.64.20]:51278 "HELO mail.gmx.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
+	id S1752119AbZBWRtc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 Feb 2009 12:49:32 -0500
+In-Reply-To: <20090223030315.GC16891@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mtk.manpages@gmail.com
-Cc: Kyle McMartin <kyle@infradead.org>, linux-arch@vger.kernel.org, Stefan Fritsch <sf@sfritsch.de>, debian-hppa@lists.debian.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Carlos O'Donell <carlos@systemhalted.org>, Kyle McMartin <kyle@infradead.org>, linux-arch@vger.kernel.org, Stefan Fritsch <sf@sfritsch.de>, debian-hppa@lists.debian.org
 
-On Mon, Feb 23, 2009 at 04:20, Michael Kerrisk
-<mtk.manpages@googlemail.com> wrote:
-> * Generally POSIX requires that each error name must have  distinct
-> associated value.  EAGAIN and EWOULDBLOCK are one of the few
-> exceptions: POSIX permits, but does not require, that these error
-> constants have the same value.  On most systems they of course do have
-> the same value.  HP-UX is the most notable exception.
+Matthew Wilcox wrote:
+> On Sun, Feb 22, 2009 at 09:43:36PM -0500, Carlos O'Donell wrote:
+>>> ...
+>>> but somehow I suspect this interchangeable use of EAGAIN and EWOULDBLOCK
+>>> is going to reveal latent problems in this part of the kernel I would
+>>> rather not delve into...
+>> The ABI is fixed, so all we can do is cleanup the uses in the kernel,
+>> and make sure we adhere to the documented APIs.
+> 
+> We actually can do better than this ...
+> 
+> #ifdef __KERNEL__
+> #define EWOULDBLOCK	EAGAIN
+> #else
+> #define EWOULDBLOCK	/* whatever the fuck HPUX uses */
+> #endif
 
-And VxWorks (which is probably used more than HP-UX).
+Wouldn't this hurt us if we at some point in time want to finish 
+the HPUX/Linux compat code in the parisc kernel?
 
-Causes interesting compiler problems when porting code from VxWorks to
-Linux that has
+Helge
 
-     case -EGAIN:
-     case -EWOULDBLOCK:
-
-Oops, duplicate case value...
-
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+> Now our kernel never returns -EWOULDBLOCK, only -EAGAIN.  Correct
+> applications must check for both.  Incorrect applications tend to only
+> check for AGAIN, not WOULDBLOCK.  Problem solved.
