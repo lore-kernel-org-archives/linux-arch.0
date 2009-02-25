@@ -1,55 +1,81 @@
-From: Stefan Fritsch <sf@sfritsch.de>
-Subject: Re: flock, EAGAIN, and EWOULDBLOCK
-Date: Mon, 23 Feb 2009 20:31:18 +0100
-Message-ID: <200902232031.18702.sf@sfritsch.de>
-References: <200902222252.45051.sf@sfritsch.de> <119aab440902221843y7e664581w99a9d44257672ae2@mail.gmail.com> <20090223030315.GC16891@parisc-linux.org>
-Reply-To: sf@sfritsch.de,
- debian-hppa@lists.debian.org,
- linux-arch@vger.kernel.org
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove single ipi fallback for smp_call_function_many())
+Date: Wed, 25 Feb 2009 04:32:30 +0100
+Message-ID: <20090225033230.GA4611@wotan.suse.de>
+References: <20090217112657.GE26402@wotan.suse.de> <1234923702.29823.7.camel@vayu> <20090218135945.GC23125@wotan.suse.de> <1234982620.29823.22.camel@vayu> <20090218191757.GD8889@elte.hu> <1235001314.14523.2.camel@vayu> <20090219122031.GC1703@elte.hu> <1235080824.14523.19.camel@vayu> <20090220105640.GE28581@elte.hu> <1235156214.14523.54.camel@vayu>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <bounce-debian-hppa=debian-hppa=m.gmane.org@lists.debian.org>
-In-Reply-To: <20090223030315.GC16891@parisc-linux.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ns1.suse.de ([195.135.220.2]:60241 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755405AbZBYDch (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 24 Feb 2009 22:32:37 -0500
 Content-Disposition: inline
-Resent-Message-ID: <NslwCX8WBiM.A.HwG.k5voJB@liszt>
-List-Post: <mailto:debian-hppa@lists.debian.org>
-List-Help: <mailto:debian-hppa-request@lists.debian.org?subject=help>
-List-Subscribe: <mailto:debian-hppa-request@lists.debian.org?subject=subscribe>
-List-Unsubscribe: <mailto:debian-hppa-request@lists.debian.org?subject=unsubscribe>
-To: debian-hppa@lists.debian.org
-Cc: linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1235156214.14523.54.camel@vayu>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Suresh Siddha <suresh.b.siddha@intel.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Oleg Nesterov <oleg@redhat.com>, Jens Axboe <jens.axboe@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, steiner@sgi.com
 
-On Monday 23 February 2009, Matthew Wilcox wrote:
-> On Sun, Feb 22, 2009 at 09:43:36PM -0500, Carlos O'Donell wrote:
-> > flock is not POSIX, it's an interface invented by 4.2BSD, and was
-> > previously emulated by glibc. The glibc wrapper implemented flock
-> > with fcntl and made sure to return EWOULDBLOCK.
+On Fri, Feb 20, 2009 at 10:56:54AM -0800, Suresh B wrote:
+> On Fri, 2009-02-20 at 02:56 -0800, Ingo Molnar wrote:
+> > * Suresh Siddha <suresh.b.siddha@intel.com> wrote:
+> > 
+> > > On Thu, 2009-02-19 at 04:20 -0800, Ingo Molnar wrote:
+> > > > Could you please refresh this patch to latest tip:master? The 
+> > > > APIC drivers moved to arch/x86/kernel/apic/.
+> > > 
+> > > Appended the refreshed patch. Thanks.
+> > 
+> > thanks. Two details i noticed:
+> > 
+> > Firstly:
+> > 
+> > > +++ b/arch/x86/kernel/apic/x2apic_cluster.c
+> > > +++ b/arch/x86/kernel/apic/x2apic_phys.c
+> > 
+> > how about x2apic_uv.c? It uses uv_write_global_mmr64() in its 
+> > IPI sending method, which uses:
+> > 
+> > static inline void uv_write_global_mmr64(int pnode, unsigned long offset,
+> >                                 unsigned long val)
+> > {
+> >         *uv_global_mmr64_address(pnode, offset) = val;
+> > }
+> > 
+> > which uses ->mmr_base, which is mapped via:
+> > 
+> >         init_extra_mapping_uc(UV_LOCAL_MMR_BASE, UV_LOCAL_MMR_SIZE);
+> >
+> > so it should be fine because uncached - but at minimum we should 
+> > put a comment into x2apic_uv.c that the generic IPI code relies 
+> > on the lowlevel code serializing - i.e. relies on the UC PAT 
+> > attribute.
+> 
+> Oops. I forgot to mention that and copy Jack to confirm our
+> understanding. I can send a followup patch adding the comments for UV.
+> Jack, are you ok?
+> 
+> > 
+> > Secondly, you added smp_mb(), which will translate to an MFENCE. 
+> > 
+> > But in theory it should be enough to have a wmb() here. [Note, 
+> > not an smp_wmb() that i suggested before.] That will translate 
+> > to an SFENCE - which will serialize writes but still allows 
+> > reads/prefetches to pass.
+> > 
+> > So the question is, is an SFENCE there enough to serialize the 
+> > WRMSR with previous memory-writes? It's not specified in the 
+> > x2apic docs as far as i could see.
+> 
+> No. sfence is not enough (wrmsr to x2apic regs was still passing ahead).
+> We have done a small experiment to demonstrate the issue and adding
+> mfence fixes the issue but not sfence. We need a serializing instruction
+> or mfence. I will try to get the SDM updated.
 
-As an additional data point, openbsd's flock man page also says it 
-should return EWOULDBLOCK.
-
-> We actually can do better than this ...
->
-> #ifdef __KERNEL__
-> #define EWOULDBLOCK	EAGAIN
-> #else
-> #define EWOULDBLOCK	/* whatever the fuck HPUX uses */
-> #endif
->
-> Now our kernel never returns -EWOULDBLOCK, only -EAGAIN.  Correct
-> applications must check for both.  Incorrect applications tend to
-> only check for AGAIN, not WOULDBLOCK.  Problem solved.
-
-This seems to be the current behaviour WRT flock(). But this is 
-broken. An application (like apr in this case) that checks for the 
-documented and well established return code is _not_ incorrect.
-
-For apr in Debian, I will simply add the check for EAGAIN. But this is 
-cannot be the general solution.
-
-
-Cheers,
-Stefan
+Just if I may add something -- I would probably slightly prefer if
+you explicitly used an sfence or other serializing instruction rather
+than smp_mb(). Maybe call it wrmsr_fence() or something. Apart from
+being self documenting, and less confusing (wrmsr is not part of
+normal ordering), I assume you technically also need it on UP
+systems?
