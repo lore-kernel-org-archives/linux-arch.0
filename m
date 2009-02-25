@@ -1,138 +1,97 @@
-From: Justin Chen <jchen@hpdst41.cup.hp.com>
-Subject: [PATCH 14/15 v2] bitops: Change the bitmap index from int to unsigned long [frv]
-Date: Wed, 25 Feb 2009 12:03:45 -0800 (PST)
-Message-ID: <200902252003.MAA12219@hpdst41.cup.hp.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH] Make exported headers use strict posix types
+Date: Wed, 25 Feb 2009 21:11:31 +0100
+Message-ID: <20090225201131.GA26110@uranus.ravnborg.org>
+References: <20090225032553.GD6690@bombadil.infradead.org> <49A4F051.3000706@zytor.com> <20090225072202.GI6690@bombadil.infradead.org> <200902251917.49017.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1760240AbZBYUC0@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: bjorn.helgaas@hp.com, dhowells@redhat.com, justin.chen@hp.com, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pfepb.post.tele.dk ([195.41.46.236]:57141 "EHLO
+	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757459AbZBYUJk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 15:09:40 -0500
+Content-Disposition: inline
+In-Reply-To: <200902251917.49017.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Kyle McMartin <kyle@infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@elte.hu>, Jaswinder Singh Rajput <jaswinderrajput@gmail.com>, mingo@redhat.com, dwmw2@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Change the index to be unsigned long in all bitops for [frv]
+On Wed, Feb 25, 2009 at 07:17:47PM +0100, Arnd Bergmann wrote:
+> A number of standard posix types are used in exported headers, which
+> is not allowed if __STRICT_KERNEL_NAMES is defined. In order to
+> get rid of the non-__STRICT_KERNEL_NAMES part and to make sane headers
+> the default, we have to change them all to safe types.
+> 
+> There are also still some leftovers in reiserfs_fs.h, elfcore.h
+> and coda.h, but these files have not compiled in user space for
+> a long time.
+> 
+> This leaves out the various integer types (u_int32_t, uint32_t, u32,
+> uint and the signed and 8/16/64 bit variants thereof), which we may
+> want to do in an automated script instead.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+> 
+> This is my previous patch, ported to today's git. It's my last day
+> before my vacation, so I can't do the usual testing etc. on it.
+> Hopefully somebody else can take care of this.
 
-Signed-off-by: Justin Chen <justin.chen@hp.com>
-Reviewed-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
----
- include/asm-frv/bitops.h |   29 +++++++++++++++--------------
- 1 file changed, 15 insertions(+), 14 deletions(-)
-diff -Nru a/include/asm-frv/bitops.h b/include/asm-frv/bitops.h
---- a/include/asm-frv/bitops.h	2009-02-22 20:19:40.000000000 -0800
-+++ b/include/asm-frv/bitops.h	2009-02-25 11:29:20.000000000 -0800
-@@ -112,7 +112,7 @@
- #define atomic_clear_mask(mask, v)	atomic_test_and_ANDNOT_mask((mask), (v))
- #define atomic_set_mask(mask, v)	atomic_test_and_OR_mask((mask), (v))
- 
--static inline int test_and_clear_bit(int nr, volatile void *addr)
-+static inline int test_and_clear_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *ptr = addr;
- 	unsigned long mask = 1UL << (nr & 31);
-@@ -120,7 +120,7 @@
- 	return (atomic_test_and_ANDNOT_mask(mask, ptr) & mask) != 0;
- }
- 
--static inline int test_and_set_bit(int nr, volatile void *addr)
-+static inline int test_and_set_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *ptr = addr;
- 	unsigned long mask = 1UL << (nr & 31);
-@@ -128,7 +128,7 @@
- 	return (atomic_test_and_OR_mask(mask, ptr) & mask) != 0;
- }
- 
--static inline int test_and_change_bit(int nr, volatile void *addr)
-+static inline int test_and_change_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *ptr = addr;
- 	unsigned long mask = 1UL << (nr & 31);
-@@ -136,22 +136,22 @@
- 	return (atomic_test_and_XOR_mask(mask, ptr) & mask) != 0;
- }
- 
--static inline void clear_bit(int nr, volatile void *addr)
-+static inline void clear_bit(unsigned long nr, volatile void *addr)
- {
- 	test_and_clear_bit(nr, addr);
- }
- 
--static inline void set_bit(int nr, volatile void *addr)
-+static inline void set_bit(unsigned long nr, volatile void *addr)
- {
- 	test_and_set_bit(nr, addr);
- }
- 
--static inline void change_bit(int nr, volatile void * addr)
-+static inline void change_bit(unsigned long nr, volatile void *addr)
- {
- 	test_and_change_bit(nr, addr);
- }
- 
--static inline void __clear_bit(int nr, volatile void * addr)
-+static inline void __clear_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask;
-@@ -161,7 +161,7 @@
- 	*a &= ~mask;
- }
- 
--static inline void __set_bit(int nr, volatile void * addr)
-+static inline void __set_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask;
-@@ -171,7 +171,7 @@
- 	*a |= mask;
- }
- 
--static inline void __change_bit(int nr, volatile void *addr)
-+static inline void __change_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask;
-@@ -181,7 +181,7 @@
- 	*a ^= mask;
- }
- 
--static inline int __test_and_clear_bit(int nr, volatile void * addr)
-+static inline int __test_and_clear_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask, retval;
-@@ -193,7 +193,7 @@
- 	return retval;
- }
- 
--static inline int __test_and_set_bit(int nr, volatile void * addr)
-+static inline int __test_and_set_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask, retval;
-@@ -205,7 +205,7 @@
- 	return retval;
- }
- 
--static inline int __test_and_change_bit(int nr, volatile void * addr)
-+static inline int __test_and_change_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask, retval;
-@@ -220,12 +220,13 @@
- /*
-  * This routine doesn't need to be atomic.
-  */
--static inline int __constant_test_bit(int nr, const volatile void * addr)
-+static inline
-+int __constant_test_bit(unsigned long nr, const volatile void *addr)
- {
- 	return ((1UL << (nr & 31)) & (((const volatile unsigned int *) addr)[nr >> 5])) != 0;
- }
- 
--static inline int __test_bit(int nr, const volatile void * addr)
-+static inline int __test_bit(unsigned long nr, const volatile void *addr)
- {
- 	int 	* a = (int *) addr;
- 	int	mask;
+I hesitate to put it in kbuild.git... Any better place?
+
+> diff --git a/include/linux/coda_psdev.h b/include/linux/coda_psdev.h
+> index 07ae8f8..ebdc055 100644
+> --- a/include/linux/coda_psdev.h
+> +++ b/include/linux/coda_psdev.h
+> @@ -6,6 +6,7 @@
+>  #define CODA_PSDEV_MAJOR 67
+>  #define MAX_CODADEVS  5	   /* how many do we allow */
+>  
+> +#ifdef __KERNEL__
+>  struct kstatfs;
+>  
+>  /* communication pending/processing queues */
+> @@ -89,4 +90,5 @@ struct upc_req {
+>  
+>  extern struct venus_comm coda_comms[];
+>  
+> +#endif /* __KERNEL__ */
+>  #endif
+
+Does this change really belong in this patchset?
+
+> diff --git a/include/linux/compiler-gcc4.h b/include/linux/compiler-gcc4.h
+> index 0999271..f6dcc29 100644
+> --- a/include/linux/compiler-gcc4.h
+> +++ b/include/linux/compiler-gcc4.h
+> @@ -4,7 +4,7 @@
+>  
+>  /* GCC 4.1.[01] miscompiles __weak */
+>  #if __GNUC_MINOR__ == 1 && __GNUC_PATCHLEVEL__ <= 1
+> -# error Your version of gcc miscompiles the __weak directive
+> +// # error Your version of gcc miscompiles the __weak directive
+>  #endif
+>  
+>  #define __used			__attribute__((__used__))
+
+Yes - I can build kernels again. But I think we should skip this change..
+
+> diff --git a/include/linux/mroute6.h b/include/linux/mroute6.h
+> index 5375fac..43dc97e 100644
+> --- a/include/linux/mroute6.h
+> +++ b/include/linux/mroute6.h
+> @@ -65,7 +65,7 @@ struct mif6ctl {
+>  	mifi_t	mif6c_mifi;		/* Index of MIF */
+>  	unsigned char mif6c_flags;	/* MIFF_ flags */
+>  	unsigned char vifc_threshold;	/* ttl limit */
+> -	u_short	 mif6c_pifi;		/* the index of the physical IF */
+> +	__u16	 mif6c_pifi;		/* the index of the physical IF */
+>  	unsigned int vifc_rate_limit;	/* Rate limiter values (NI) */
+>  };
+>  
+This change looks correct - but I assume this is a separate patch.
+
+Rest looks good.
+
+	Sam
