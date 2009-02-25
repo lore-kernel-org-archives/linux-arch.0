@@ -1,55 +1,187 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from eru.sfritsch.de ([88.198.11.6]:33470 "EHLO eru.sfritsch.de"
+Received: from cantor2.suse.de ([195.135.220.15]:49318 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757784AbZBWUDX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 Feb 2009 15:03:23 -0500
-From: Stefan Fritsch <sf@sfritsch.de>
-Reply-To: sf@sfritsch.de, debian-hppa@lists.debian.org,
-	  linux-arch@vger.kernel.org
-Subject: Re: flock, EAGAIN, and EWOULDBLOCK
-Date: Mon, 23 Feb 2009 20:31:18 +0100
-References: <200902222252.45051.sf@sfritsch.de> <119aab440902221843y7e664581w99a9d44257672ae2@mail.gmail.com> <20090223030315.GC16891@parisc-linux.org>
-In-Reply-To: <20090223030315.GC16891@parisc-linux.org>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+	id S1751529AbZBYFWu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Feb 2009 00:22:50 -0500
+Date: Wed, 25 Feb 2009 06:22:45 +0100
+From: Nick Piggin <npiggin@suse.de>
+Subject: [patch] generic IPI: simplify barriers and locking
+Message-ID: <20090225052244.GB22785@wotan.suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-ID: <200902232031.18702.sf@sfritsch.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: debian-hppa@lists.debian.org
+To: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Linus Torvalds <torvalds@linux-foundation.org>, Jens Axboe <jens.axboe@oracle.com>, Oleg Nesterov <oleg@redhat.com>, Suresh Siddha <suresh.b.siddha@intel.com>, linux-arch@vger.kernel.org
+Message-ID: <20090225052245.PpqaKV-uGHvEiPZH5vy1oV9NVzw7VYVLgO05PzXp5j4@z>
+
+OK, shall we go ahead with this? Only objection from arch guys came from
+x86, which has since fixed up ordering of IPIs versus memory operations.
+
+It simplifies things quite a bit and I think Peter is using it as a base
+under his remove kmalloc patchset..
+--
+Simplify the barriers in generic remote function call interrupt code.
+
+Firstly, just unconditionally take the lock and check the list in the
+generic_call_function_single_interrupt IPI handler. As we've just taken an IPI
+here, the chances are fairly high that there will be work on the list for us,
+so do the locking unconditionally. This removes the tricky lockless list_empty
+check and dubious barriers. The change looks bigger than it is because it is
+just removing an outer loop.
+
+Secondly, clarify architecture specific IPI locking rules. Generic code has no
+tools to impose any sane ordering on IPIs if they go outside normal cache
+coherency, ergo the arch code must make them appear to obey cache coherency as
+a "memory operation" to initiate an IPI, and a "memory operation" to receive
+one. This way at least they can be reasoned about in generic code, and smp_mb
+used to provide ordering. 
+
+The combination of these two changes means that explict barriers can be taken
+out of queue handling for the single case -- shared data is explicitly locked,
+and ipi ordering must conform to that, so no barriers needed. An extra barrier
+is needed in the many handler, so as to ensure we load the list element after
+the IPI is received.
+
+Does any architecture actually *need* these barriers? For the initiator I
+could see it, but for the handler I would be surprised. So the other thing we
+could do for simplicity is just to require that, rather than just matching
+with cache coherency, we just require a full barrier before generating an
+IPI, and after receiving an IPI. In which case, the smp_mb()s can go away.
+But just for now, we'll be on the safe side and use the barriers (they're
+in the slow case anyway).
+
 Cc: linux-arch@vger.kernel.org
-Message-ID: <20090223193118.hOET74pkH04hAR_R7ucQwFmPAVbde4Zcp9U8OaRomd8@z>
+Cc: Jens Axboe <jens.axboe@oracle.com>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Suresh Siddha <suresh.b.siddha@intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Signed-off-by: Nick Piggin <npiggin@suse.de>
 
-On Monday 23 February 2009, Matthew Wilcox wrote:
-> On Sun, Feb 22, 2009 at 09:43:36PM -0500, Carlos O'Donell wrote:
-> > flock is not POSIX, it's an interface invented by 4.2BSD, and was
-> > previously emulated by glibc. The glibc wrapper implemented flock
-> > with fcntl and made sure to return EWOULDBLOCK.
+---
+ kernel/smp.c |   83 +++++++++++++++++++++++++++++++----------------------------
+ 1 file changed, 44 insertions(+), 39 deletions(-)
 
-As an additional data point, openbsd's flock man page also says it 
-should return EWOULDBLOCK.
-
-> We actually can do better than this ...
->
-> #ifdef __KERNEL__
-> #define EWOULDBLOCK	EAGAIN
-> #else
-> #define EWOULDBLOCK	/* whatever the fuck HPUX uses */
-> #endif
->
-> Now our kernel never returns -EWOULDBLOCK, only -EAGAIN.  Correct
-> applications must check for both.  Incorrect applications tend to
-> only check for AGAIN, not WOULDBLOCK.  Problem solved.
-
-This seems to be the current behaviour WRT flock(). But this is 
-broken. An application (like apr in this case) that checks for the 
-documented and well established return code is _not_ incorrect.
-
-For apr in Debian, I will simply add the check for EAGAIN. But this is 
-cannot be the general solution.
-
-
-Cheers,
-Stefan
+Index: linux-2.6/kernel/smp.c
+===================================================================
+--- linux-2.6.orig/kernel/smp.c
++++ linux-2.6/kernel/smp.c
+@@ -74,9 +74,16 @@ static void generic_exec_single(int cpu,
+ 	spin_unlock_irqrestore(&dst->lock, flags);
+ 
+ 	/*
+-	 * Make the list addition visible before sending the ipi.
++	 * The list addition should be visible before sending the IPI
++	 * handler locks the list to pull the entry off it because of
++	 * normal cache coherency rules implied by spinlocks.
++	 *
++	 * If IPIs can go out of order to the cache coherency protocol
++	 * in an architecture, sufficient synchronisation should be added
++	 * to arch code to make it appear to obey cache coherency WRT
++	 * locking and barrier primitives. Generic code isn't really equipped
++	 * to do the right thing...
+ 	 */
+-	smp_mb();
+ 
+ 	if (ipi)
+ 		arch_send_call_function_single_ipi(cpu);
+@@ -104,6 +111,14 @@ void generic_smp_call_function_interrupt
+ 	int cpu = get_cpu();
+ 
+ 	/*
++	 * Ensure entry is visible on call_function_queue after we have
++	 * entered the IPI. See comment in smp_call_function_many.
++	 * If we don't have this, then we may miss an entry on the list
++	 * and never get another IPI to process it.
++	 */
++	smp_mb();
++
++	/*
+ 	 * It's ok to use list_for_each_rcu() here even though we may delete
+ 	 * 'pos', since list_del_rcu() doesn't clear ->next
+ 	 */
+@@ -154,49 +169,37 @@ void generic_smp_call_function_single_in
+ {
+ 	struct call_single_queue *q = &__get_cpu_var(call_single_queue);
+ 	LIST_HEAD(list);
++	unsigned int data_flags;
+ 
+-	/*
+-	 * Need to see other stores to list head for checking whether
+-	 * list is empty without holding q->lock
+-	 */
+-	smp_read_barrier_depends();
+-	while (!list_empty(&q->list)) {
+-		unsigned int data_flags;
+-
+-		spin_lock(&q->lock);
+-		list_replace_init(&q->list, &list);
+-		spin_unlock(&q->lock);
+-
+-		while (!list_empty(&list)) {
+-			struct call_single_data *data;
+-
+-			data = list_entry(list.next, struct call_single_data,
+-						list);
+-			list_del(&data->list);
++	spin_lock(&q->lock);
++	list_replace_init(&q->list, &list);
++	spin_unlock(&q->lock);
+ 
+-			/*
+-			 * 'data' can be invalid after this call if
+-			 * flags == 0 (when called through
+-			 * generic_exec_single(), so save them away before
+-			 * making the call.
+-			 */
+-			data_flags = data->flags;
++	while (!list_empty(&list)) {
++		struct call_single_data *data;
+ 
+-			data->func(data->info);
++		data = list_entry(list.next, struct call_single_data,
++					list);
++		list_del(&data->list);
+ 
+-			if (data_flags & CSD_FLAG_WAIT) {
+-				smp_wmb();
+-				data->flags &= ~CSD_FLAG_WAIT;
+-			} else if (data_flags & CSD_FLAG_LOCK) {
+-				smp_wmb();
+-				data->flags &= ~CSD_FLAG_LOCK;
+-			} else if (data_flags & CSD_FLAG_ALLOC)
+-				kfree(data);
+-		}
+ 		/*
+-		 * See comment on outer loop
++		 * 'data' can be invalid after this call if
++		 * flags == 0 (when called through
++		 * generic_exec_single(), so save them away before
++		 * making the call.
+ 		 */
+-		smp_read_barrier_depends();
++		data_flags = data->flags;
++
++		data->func(data->info);
++
++		if (data_flags & CSD_FLAG_WAIT) {
++			smp_wmb();
++			data->flags &= ~CSD_FLAG_WAIT;
++		} else if (data_flags & CSD_FLAG_LOCK) {
++			smp_wmb();
++			data->flags &= ~CSD_FLAG_LOCK;
++		} else if (data_flags & CSD_FLAG_ALLOC)
++			kfree(data);
+ 	}
+ }
+ 
+@@ -375,6 +378,8 @@ void smp_call_function_many(const struct
+ 
+ 	/*
+ 	 * Make the list addition visible before sending the ipi.
++	 * (IPIs must obey or appear to obey normal Linux cache coherency
++	 * rules -- see comment in generic_exec_single).
+ 	 */
+ 	smp_mb();
+ 
