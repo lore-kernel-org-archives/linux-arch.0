@@ -1,143 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0015.houston.hp.com ([15.201.24.18]:21940 "EHLO
-	g4t0015.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756746AbZBYUCM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 15:02:12 -0500
-Date: Wed, 25 Feb 2009 12:03:45 -0800 (PST)
-From: Justin Chen <jchen@hpdst41.cup.hp.com>
-Message-ID: <200902252003.MAA12219@hpdst41.cup.hp.com>
-Subject: [PATCH 14/15 v2] bitops: Change the bitmap index from int to unsigned long [frv]
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Received: from terminus.zytor.com ([198.137.202.10]:41000 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757121AbZBYXMh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 18:12:37 -0500
+Message-ID: <49A5CF2E.6050306@zytor.com>
+Date: Wed, 25 Feb 2009 15:07:26 -0800
+From: "H. Peter Anvin" <hpa@zytor.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH] Make exported headers use strict posix types
+References: <20090225032553.GD6690@bombadil.infradead.org> <49A4F051.3000706@zytor.com> <20090225072202.GI6690@bombadil.infradead.org> <200902251917.49017.arnd@arndb.de> <20090225201131.GA26110@uranus.ravnborg.org>
+In-Reply-To: <20090225201131.GA26110@uranus.ravnborg.org>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: bjorn.helgaas@hp.com, dhowells@redhat.com, justin.chen@hp.com, linux-kernel@vger.kernel.org
-Message-ID: <20090225200345.9ejf81cVrfqmaoHQ-TSxun8r9sndhDLE_AF4Dj18HQw@z>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Kyle McMartin <kyle@infradead.org>, Ingo Molnar <mingo@elte.hu>, Jaswinder Singh Rajput <jaswinderrajput@gmail.com>, mingo@redhat.com, dwmw2@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20090225230726.nbFuFFzfI-xfM-VJvlNF2qz4rfmx-OdfarBby6JqH4c@z>
 
-Change the index to be unsigned long in all bitops for [frv]
+Sam Ravnborg wrote:
+>>
+>> This is my previous patch, ported to today's git. It's my last day
+>> before my vacation, so I can't do the usual testing etc. on it.
+>> Hopefully somebody else can take care of this.
+> 
+> I hesitate to put it in kbuild.git... Any better place?
+> 
 
-Signed-off-by: Justin Chen <justin.chen@hp.com>
-Reviewed-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
----
- include/asm-frv/bitops.h |   29 +++++++++++++++--------------
- 1 file changed, 15 insertions(+), 14 deletions(-)
-diff -Nru a/include/asm-frv/bitops.h b/include/asm-frv/bitops.h
---- a/include/asm-frv/bitops.h	2009-02-22 20:19:40.000000000 -0800
-+++ b/include/asm-frv/bitops.h	2009-02-25 11:29:20.000000000 -0800
-@@ -112,7 +112,7 @@
- #define atomic_clear_mask(mask, v)	atomic_test_and_ANDNOT_mask((mask), (v))
- #define atomic_set_mask(mask, v)	atomic_test_and_OR_mask((mask), (v))
- 
--static inline int test_and_clear_bit(int nr, volatile void *addr)
-+static inline int test_and_clear_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *ptr = addr;
- 	unsigned long mask = 1UL << (nr & 31);
-@@ -120,7 +120,7 @@
- 	return (atomic_test_and_ANDNOT_mask(mask, ptr) & mask) != 0;
- }
- 
--static inline int test_and_set_bit(int nr, volatile void *addr)
-+static inline int test_and_set_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *ptr = addr;
- 	unsigned long mask = 1UL << (nr & 31);
-@@ -128,7 +128,7 @@
- 	return (atomic_test_and_OR_mask(mask, ptr) & mask) != 0;
- }
- 
--static inline int test_and_change_bit(int nr, volatile void *addr)
-+static inline int test_and_change_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *ptr = addr;
- 	unsigned long mask = 1UL << (nr & 31);
-@@ -136,22 +136,22 @@
- 	return (atomic_test_and_XOR_mask(mask, ptr) & mask) != 0;
- }
- 
--static inline void clear_bit(int nr, volatile void *addr)
-+static inline void clear_bit(unsigned long nr, volatile void *addr)
- {
- 	test_and_clear_bit(nr, addr);
- }
- 
--static inline void set_bit(int nr, volatile void *addr)
-+static inline void set_bit(unsigned long nr, volatile void *addr)
- {
- 	test_and_set_bit(nr, addr);
- }
- 
--static inline void change_bit(int nr, volatile void * addr)
-+static inline void change_bit(unsigned long nr, volatile void *addr)
- {
- 	test_and_change_bit(nr, addr);
- }
- 
--static inline void __clear_bit(int nr, volatile void * addr)
-+static inline void __clear_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask;
-@@ -161,7 +161,7 @@
- 	*a &= ~mask;
- }
- 
--static inline void __set_bit(int nr, volatile void * addr)
-+static inline void __set_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask;
-@@ -171,7 +171,7 @@
- 	*a |= mask;
- }
- 
--static inline void __change_bit(int nr, volatile void *addr)
-+static inline void __change_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask;
-@@ -181,7 +181,7 @@
- 	*a ^= mask;
- }
- 
--static inline int __test_and_clear_bit(int nr, volatile void * addr)
-+static inline int __test_and_clear_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask, retval;
-@@ -193,7 +193,7 @@
- 	return retval;
- }
- 
--static inline int __test_and_set_bit(int nr, volatile void * addr)
-+static inline int __test_and_set_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask, retval;
-@@ -205,7 +205,7 @@
- 	return retval;
- }
- 
--static inline int __test_and_change_bit(int nr, volatile void * addr)
-+static inline int __test_and_change_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask, retval;
-@@ -220,12 +220,13 @@
- /*
-  * This routine doesn't need to be atomic.
-  */
--static inline int __constant_test_bit(int nr, const volatile void * addr)
-+static inline
-+int __constant_test_bit(unsigned long nr, const volatile void *addr)
- {
- 	return ((1UL << (nr & 31)) & (((const volatile unsigned int *) addr)[nr >> 5])) != 0;
- }
- 
--static inline int __test_bit(int nr, const volatile void * addr)
-+static inline int __test_bit(unsigned long nr, const volatile void *addr)
- {
- 	int 	* a = (int *) addr;
- 	int	mask;
+I'll put it in tip:core/headers-fixes.
+
+	-hpa
