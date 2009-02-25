@@ -1,31 +1,27 @@
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: [PATCH 02/15] bitops: Change the bitmap index from int to unsigned long [arm]
-Date: Wed, 25 Feb 2009 22:41:15 +0000
-Message-ID: <20090225224115.GD18712@flint.arm.linux.org.uk>
-References: <200902250442.UAA12563@hpdst41.cup.hp.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH] Make exported headers use strict posix types
+Date: Wed, 25 Feb 2009 15:07:26 -0800
+Message-ID: <49A5CF2E.6050306@zytor.com>
+References: <20090225032553.GD6690@bombadil.infradead.org> <49A4F051.3000706@zytor.com> <20090225072202.GI6690@bombadil.infradead.org> <200902251917.49017.arnd@arndb.de> <20090225201131.GA26110@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:52388 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761872AbZBYWok (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 17:44:40 -0500
-Content-Disposition: inline
-In-Reply-To: <200902250442.UAA12563@hpdst41.cup.hp.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Justin Chen <jchen@hpdst41.cup.hp.com>
-Cc: linux-arch@vger.kernel.org, ben-linux@fluff.org, bjorn.helgaas@hp.com, dan.j.williams@intel.com, justin.chen@hp.com, kernel@pengutronix.de, kernel@wantstofly.org, linux-kernel@vger.kernel.org, linux@maxim.org.za, mcuos.com@gmail.com
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1763880AbZBYXM7@vger.kernel.org>
+In-Reply-To: <20090225201131.GA26110@uranus.ravnborg.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Kyle McMartin <kyle@infradead.org>, Ingo Molnar <mingo@elte.hu>, Jaswinder Singh Rajput <jaswinderrajput@gmail.com>, mingo@redhat.com, dwmw2@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 24, 2009 at 08:42:52PM -0800, Justin Chen wrote:
-> Change the index to unsigned long in all bitops for [arm]
+Sam Ravnborg wrote:
+>>
+>> This is my previous patch, ported to today's git. It's my last day
+>> before my vacation, so I can't do the usual testing etc. on it.
+>> Hopefully somebody else can take care of this.
 > 
-> Signed-off-by: Justin Chen <justin.chen@hp.com>
-> Reviewed-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
+> I hesitate to put it in kbuild.git... Any better place?
+> 
 
-Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
+I'll put it in tip:core/headers-fixes.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+	-hpa
