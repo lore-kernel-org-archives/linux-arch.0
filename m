@@ -1,81 +1,75 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove single ipi fallback for smp_call_function_many())
-Date: Wed, 25 Feb 2009 04:32:30 +0100
-Message-ID: <20090225033230.GA4611@wotan.suse.de>
-References: <20090217112657.GE26402@wotan.suse.de> <1234923702.29823.7.camel@vayu> <20090218135945.GC23125@wotan.suse.de> <1234982620.29823.22.camel@vayu> <20090218191757.GD8889@elte.hu> <1235001314.14523.2.camel@vayu> <20090219122031.GC1703@elte.hu> <1235080824.14523.19.camel@vayu> <20090220105640.GE28581@elte.hu> <1235156214.14523.54.camel@vayu>
+From: Justin Chen <jchen@hpdst41.cup.hp.com>
+Subject: [PATCH 00/15] bitops: Change bitmap index from int to unsigned long
+Date: Tue, 24 Feb 2009 20:41:15 -0800 (PST)
+Message-ID: <200902250441.UAA12527@hpdst41.cup.hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.suse.de ([195.135.220.2]:60241 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755405AbZBYDch (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Feb 2009 22:32:37 -0500
-Content-Disposition: inline
-In-Reply-To: <1235156214.14523.54.camel@vayu>
+Received: from g5t0007.atlanta.hp.com ([15.192.0.44]:7294 "EHLO
+	g5t0007.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751540AbZBYEjM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Feb 2009 23:39:12 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Suresh Siddha <suresh.b.siddha@intel.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Oleg Nesterov <oleg@redhat.com>, Jens Axboe <jens.axboe@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, steiner@sgi.com
+To: linux-arch@vger.kernel.org
+Cc: bjorn.helgaas@hp.com, justin.chen@hp.com, linux-kernel@vger.kernel.org
 
-On Fri, Feb 20, 2009 at 10:56:54AM -0800, Suresh B wrote:
-> On Fri, 2009-02-20 at 02:56 -0800, Ingo Molnar wrote:
-> > * Suresh Siddha <suresh.b.siddha@intel.com> wrote:
-> > 
-> > > On Thu, 2009-02-19 at 04:20 -0800, Ingo Molnar wrote:
-> > > > Could you please refresh this patch to latest tip:master? The 
-> > > > APIC drivers moved to arch/x86/kernel/apic/.
-> > > 
-> > > Appended the refreshed patch. Thanks.
-> > 
-> > thanks. Two details i noticed:
-> > 
-> > Firstly:
-> > 
-> > > +++ b/arch/x86/kernel/apic/x2apic_cluster.c
-> > > +++ b/arch/x86/kernel/apic/x2apic_phys.c
-> > 
-> > how about x2apic_uv.c? It uses uv_write_global_mmr64() in its 
-> > IPI sending method, which uses:
-> > 
-> > static inline void uv_write_global_mmr64(int pnode, unsigned long offset,
-> >                                 unsigned long val)
-> > {
-> >         *uv_global_mmr64_address(pnode, offset) = val;
-> > }
-> > 
-> > which uses ->mmr_base, which is mapped via:
-> > 
-> >         init_extra_mapping_uc(UV_LOCAL_MMR_BASE, UV_LOCAL_MMR_SIZE);
-> >
-> > so it should be fine because uncached - but at minimum we should 
-> > put a comment into x2apic_uv.c that the generic IPI code relies 
-> > on the lowlevel code serializing - i.e. relies on the UC PAT 
-> > attribute.
-> 
-> Oops. I forgot to mention that and copy Jack to confirm our
-> understanding. I can send a followup patch adding the comments for UV.
-> Jack, are you ok?
-> 
-> > 
-> > Secondly, you added smp_mb(), which will translate to an MFENCE. 
-> > 
-> > But in theory it should be enough to have a wmb() here. [Note, 
-> > not an smp_wmb() that i suggested before.] That will translate 
-> > to an SFENCE - which will serialize writes but still allows 
-> > reads/prefetches to pass.
-> > 
-> > So the question is, is an SFENCE there enough to serialize the 
-> > WRMSR with previous memory-writes? It's not specified in the 
-> > x2apic docs as far as i could see.
-> 
-> No. sfence is not enough (wrmsr to x2apic regs was still passing ahead).
-> We have done a small experiment to demonstrate the issue and adding
-> mfence fixes the issue but not sfence. We need a serializing instruction
-> or mfence. I will try to get the SDM updated.
+This patch is to change the bitmap index in the bitops from "int" to "unsigned long".
 
-Just if I may add something -- I would probably slightly prefer if
-you explicitly used an sfence or other serializing instruction rather
-than smp_mb(). Maybe call it wrmsr_fence() or something. Apart from
-being self documenting, and less confusing (wrmsr is not part of
-normal ordering), I assume you technically also need it on UP
-systems?
+In many bitops implementations, the bitmap index is a signed int.  If the caller passes a large unsigned integer and we interpret it as being negative, we compute an address outside the bitmap.  This can cause memory corruption or other errors.
+
+The issue that triggered me to do this change is the routine mark_bootmem_node() while we ran on an ia64 box with large memory.  As long as the EFI maps the available memory chunk at the physical address 0x200000000000 (or above), the routine mark_bootmem_node() will get the start PFN>=0x80000000.  While it calls the __free() with this sidx=0x80000000 (bit31 set), the bitops (test_and_clear_bit) will treat this idx as a negative number since it accepts it as an "int".  It turns out the memory outside the bitmap will be corrupted.
+
+Following 15 patches will change all the bitmap index "nr" in all bitops from "int" to "unsigned long".
+
+The patch is based on 2.6.29-rc6
+
+Please comment -
+
+--jchen
+
+(00/15): intro
+(01/15): generic
+(02/15): arm
+(03/15): avr32
+(04/15): blackfin
+(05/15): cris
+(06/15): h8300
+(07/15): ia64
+(08/15): m68k
+(09/15): mn10300
+(10/15): parisc
+(11/15): powerpc
+(12/15): sh
+(13/15): x86
+(14/15): frv
+(15/15): m32r
+
+ arch/arm/include/asm/bitops.h           |   39 +++++++++-------
+ arch/arm/lib/changebit.S                |    2 
+ arch/arm/lib/clearbit.S                 |    2 
+ arch/arm/lib/setbit.S                   |    2 
+ arch/avr32/include/asm/bitops.h         |   12 ++---
+ arch/blackfin/include/asm/bitops.h      |   74 +++++++++++++++++++-------------
+ arch/cris/include/asm/bitops.h          |    9 ++-
+ arch/h8300/include/asm/bitops.h         |    8 +-
+ arch/ia64/include/asm/bitops.h          |   30 ++++++------
+ arch/ia64/include/asm/sync_bitops.h     |   21 ++++++---
+ arch/m68k/include/asm/bitops_mm.h       |   63 ++++++++++++++++-----------
+ arch/m68k/include/asm/bitops_no.h       |   34 +++++++++-----
+ arch/mn10300/lib/bitops.c               |    4 -
+ arch/parisc/include/asm/bitops.h        |   12 ++---
+ arch/powerpc/include/asm/bitops.h       |   14 +++---
+ arch/sh/include/asm/bitops-grb.h        |   12 ++---
+ arch/sh/include/asm/bitops-llsc.h       |   12 ++---
+ arch/sh/include/asm/bitops-op32.h       |   19 ++++----
+ arch/x86/boot/bitops.h                  |    6 +-
+ arch/x86/include/asm/bitops.h           |   48 +++++++++++++-------
+ arch/x86/include/asm/sync_bitops.h      |   18 +++++--
+ include/asm-frv/bitops.h                |   29 ++++++------
+ include/asm-generic/bitops/atomic.h     |   17 ++++---
+ include/asm-generic/bitops/non-atomic.h |   19 ++++----
+ include/asm-m32r/bitops.h               |   14 +++---
+ include/asm-mn10300/bitops.h            |   12 ++---
+ 26 files changed, 307 insertions(+), 219 deletions(-)
