@@ -1,36 +1,31 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 14/15] bitops: Change the bitmap index from int to unsigned
- long [frv]
-Date: Wed, 25 Feb 2009 14:33:56 -0800
-Message-ID: <49A5C754.7000408@zytor.com>
-References: <200902250452.UAA12902@hpdst41.cup.hp.com> <16693.1235565430@redhat.com>
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [PATCH 02/15] bitops: Change the bitmap index from int to unsigned long [arm]
+Date: Wed, 25 Feb 2009 22:41:15 +0000
+Message-ID: <20090225224115.GD18712@flint.arm.linux.org.uk>
+References: <200902250442.UAA12563@hpdst41.cup.hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:45441 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755919AbZBYWkf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 17:40:35 -0500
-In-Reply-To: <16693.1235565430@redhat.com>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:52388 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761872AbZBYWok (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 17:44:40 -0500
+Content-Disposition: inline
+In-Reply-To: <200902250442.UAA12563@hpdst41.cup.hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Justin Chen <jchen@hpdst41.cup.hp.com>, linux-arch@vger.kernel.org, bjorn.helgaas@hp.com, justin.chen@hp.com, linux-kernel@vger.kernel.org
+To: Justin Chen <jchen@hpdst41.cup.hp.com>
+Cc: linux-arch@vger.kernel.org, ben-linux@fluff.org, bjorn.helgaas@hp.com, dan.j.williams@intel.com, justin.chen@hp.com, kernel@pengutronix.de, kernel@wantstofly.org, linux-kernel@vger.kernel.org, linux@maxim.org.za, mcuos.com@gmail.com
 
-David Howells wrote:
+On Tue, Feb 24, 2009 at 08:42:52PM -0800, Justin Chen wrote:
+> Change the index to unsigned long in all bitops for [arm]
 > 
->> -static inline int __constant_test_bit(int nr, const volatile void * addr)
->> +static inline int
->> +__constant_test_bit(unsigned long nr, const volatile void *addr)
-> 
-> Please move the return type onto the next line also.  Other than that:
-> 
-> Acked-by: David Howells <dhowells@redhat.com>
+> Signed-off-by: Justin Chen <justin.chen@hp.com>
+> Reviewed-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 
-What makes you say that, in particular?   A casual grep finds no less 
-than 3524 instances of "static inline <type>" -- presumably with a 
-function name following -- and only 447 instances of "static inline" 
-without a type in the kernel.
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
 
-	-hpa
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
