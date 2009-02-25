@@ -1,39 +1,138 @@
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: RE: smp.c && barriers (Was: [PATCH 1/4] generic-smp: remove single
- ipi fallback for smp_call_function_many())
-Date: Wed, 25 Feb 2009 10:25:04 -0800
-Message-ID: <57C9024A16AD2D4C97DC78E552063EA36199197B@orsmsx505.amr.corp.intel.com>
-References: <20090217112657.GE26402@wotan.suse.de>
- <1234923702.29823.7.camel@vayu> <20090218135945.GC23125@wotan.suse.de>
- <1234982620.29823.22.camel@vayu> <20090218191757.GD8889@elte.hu>
- <1235001314.14523.2.camel@vayu> <20090219122031.GC1703@elte.hu>
- <1235080824.14523.19.camel@vayu> <20090220105640.GE28581@elte.hu>
- <1235156214.14523.54.camel@vayu> <20090225033230.GA4611@wotan.suse.de>
+From: Justin Chen <jchen@hpdst41.cup.hp.com>
+Subject: [PATCH 14/15 v2] bitops: Change the bitmap index from int to unsigned long [frv]
+Date: Wed, 25 Feb 2009 12:03:45 -0800 (PST)
+Message-ID: <200902252003.MAA12219@hpdst41.cup.hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([143.182.124.37]:39315 "EHLO mga14.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758539AbZBYSn4 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 13:43:56 -0500
-In-Reply-To: <20090225033230.GA4611@wotan.suse.de>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>, "Siddha, Suresh B" <suresh.b.siddha@intel.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Oleg Nesterov <oleg@redhat.com>, Jens Axboe <jens.axboe@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "steiner@sgi.com" <steiner@sgi.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1760240AbZBYUC0@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org
+Cc: bjorn.helgaas@hp.com, dhowells@redhat.com, justin.chen@hp.com, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-> Just if I may add something -- I would probably slightly prefer if
-> you explicitly used an sfence or other serializing instruction rather
-> than smp_mb(). Maybe call it wrmsr_fence() or something. Apart from
-> being self documenting, and less confusing (wrmsr is not part of
-> normal ordering), I assume you technically also need it on UP
-> systems?
+Change the index to be unsigned long in all bitops for [frv]
 
-Maybe I lost track of this thread ... but isn't this code for the
-"send ipi" path?  On a UP system do we use IPI to interrupt ourself?
-Even if we did, presumably we can't get inconsistencies if there is
-only one cpu.
-
--Tony
+Signed-off-by: Justin Chen <justin.chen@hp.com>
+Reviewed-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
+---
+ include/asm-frv/bitops.h |   29 +++++++++++++++--------------
+ 1 file changed, 15 insertions(+), 14 deletions(-)
+diff -Nru a/include/asm-frv/bitops.h b/include/asm-frv/bitops.h
+--- a/include/asm-frv/bitops.h	2009-02-22 20:19:40.000000000 -0800
++++ b/include/asm-frv/bitops.h	2009-02-25 11:29:20.000000000 -0800
+@@ -112,7 +112,7 @@
+ #define atomic_clear_mask(mask, v)	atomic_test_and_ANDNOT_mask((mask), (v))
+ #define atomic_set_mask(mask, v)	atomic_test_and_OR_mask((mask), (v))
+ 
+-static inline int test_and_clear_bit(int nr, volatile void *addr)
++static inline int test_and_clear_bit(unsigned long nr, volatile void *addr)
+ {
+ 	volatile unsigned long *ptr = addr;
+ 	unsigned long mask = 1UL << (nr & 31);
+@@ -120,7 +120,7 @@
+ 	return (atomic_test_and_ANDNOT_mask(mask, ptr) & mask) != 0;
+ }
+ 
+-static inline int test_and_set_bit(int nr, volatile void *addr)
++static inline int test_and_set_bit(unsigned long nr, volatile void *addr)
+ {
+ 	volatile unsigned long *ptr = addr;
+ 	unsigned long mask = 1UL << (nr & 31);
+@@ -128,7 +128,7 @@
+ 	return (atomic_test_and_OR_mask(mask, ptr) & mask) != 0;
+ }
+ 
+-static inline int test_and_change_bit(int nr, volatile void *addr)
++static inline int test_and_change_bit(unsigned long nr, volatile void *addr)
+ {
+ 	volatile unsigned long *ptr = addr;
+ 	unsigned long mask = 1UL << (nr & 31);
+@@ -136,22 +136,22 @@
+ 	return (atomic_test_and_XOR_mask(mask, ptr) & mask) != 0;
+ }
+ 
+-static inline void clear_bit(int nr, volatile void *addr)
++static inline void clear_bit(unsigned long nr, volatile void *addr)
+ {
+ 	test_and_clear_bit(nr, addr);
+ }
+ 
+-static inline void set_bit(int nr, volatile void *addr)
++static inline void set_bit(unsigned long nr, volatile void *addr)
+ {
+ 	test_and_set_bit(nr, addr);
+ }
+ 
+-static inline void change_bit(int nr, volatile void * addr)
++static inline void change_bit(unsigned long nr, volatile void *addr)
+ {
+ 	test_and_change_bit(nr, addr);
+ }
+ 
+-static inline void __clear_bit(int nr, volatile void * addr)
++static inline void __clear_bit(unsigned long nr, volatile void *addr)
+ {
+ 	volatile unsigned long *a = addr;
+ 	int mask;
+@@ -161,7 +161,7 @@
+ 	*a &= ~mask;
+ }
+ 
+-static inline void __set_bit(int nr, volatile void * addr)
++static inline void __set_bit(unsigned long nr, volatile void *addr)
+ {
+ 	volatile unsigned long *a = addr;
+ 	int mask;
+@@ -171,7 +171,7 @@
+ 	*a |= mask;
+ }
+ 
+-static inline void __change_bit(int nr, volatile void *addr)
++static inline void __change_bit(unsigned long nr, volatile void *addr)
+ {
+ 	volatile unsigned long *a = addr;
+ 	int mask;
+@@ -181,7 +181,7 @@
+ 	*a ^= mask;
+ }
+ 
+-static inline int __test_and_clear_bit(int nr, volatile void * addr)
++static inline int __test_and_clear_bit(unsigned long nr, volatile void *addr)
+ {
+ 	volatile unsigned long *a = addr;
+ 	int mask, retval;
+@@ -193,7 +193,7 @@
+ 	return retval;
+ }
+ 
+-static inline int __test_and_set_bit(int nr, volatile void * addr)
++static inline int __test_and_set_bit(unsigned long nr, volatile void *addr)
+ {
+ 	volatile unsigned long *a = addr;
+ 	int mask, retval;
+@@ -205,7 +205,7 @@
+ 	return retval;
+ }
+ 
+-static inline int __test_and_change_bit(int nr, volatile void * addr)
++static inline int __test_and_change_bit(unsigned long nr, volatile void *addr)
+ {
+ 	volatile unsigned long *a = addr;
+ 	int mask, retval;
+@@ -220,12 +220,13 @@
+ /*
+  * This routine doesn't need to be atomic.
+  */
+-static inline int __constant_test_bit(int nr, const volatile void * addr)
++static inline
++int __constant_test_bit(unsigned long nr, const volatile void *addr)
+ {
+ 	return ((1UL << (nr & 31)) & (((const volatile unsigned int *) addr)[nr >> 5])) != 0;
+ }
+ 
+-static inline int __test_bit(int nr, const volatile void * addr)
++static inline int __test_bit(unsigned long nr, const volatile void *addr)
+ {
+ 	int 	* a = (int *) addr;
+ 	int	mask;
