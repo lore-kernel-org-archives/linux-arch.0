@@ -1,43 +1,29 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [patch 0/7] Use strict kernel types to fix the world
-Date: Wed, 25 Feb 2009 16:30:07 -0800
-Message-ID: <49A5E28F.5050209@zytor.com>
-References: <20090225235138.062045835@arndb.de> <49A5DC30.4080803@zytor.com> <200902260124.13641.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [patch 3/7] make MTD headers use strict integer types
+Date: Thu, 26 Feb 2009 01:34:53 +0100
+Message-ID: <200902260134.54361.arnd@arndb.de>
+References: <20090225235138.062045835@arndb.de> <20090225235515.357247809@arndb.de> <82ecf08e0902251632k550156e5k471fc2cab5e9a0fd@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36735 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752269AbZBZAdu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 19:33:50 -0500
-In-Reply-To: <200902260124.13641.arnd@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.17.9]:57914 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751880AbZBZAfw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 19:35:52 -0500
+In-Reply-To: <82ecf08e0902251632k550156e5k471fc2cab5e9a0fd@mail.gmail.com>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Sam Ravnborg <sam@ravnborg.org>, Kyle McMartin <kyle@infradead.org>, Ingo Molnar <mingo@elte.hu>, Jaswinder Singh Rajput <jaswinderrajput@gmail.com>, mingo@redhat.com, dwmw2@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Thiago Galesi <thiagogalesi@gmail.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Sam Ravnborg <sam@ravnborg.org>, Kyle McMartin <kyle@infradead.org>, Ingo Molnar <mingo@elte.hu>, Jaswinder Singh Rajput <jaswinderrajput@gmail.com>, mingo@redhat.com, dwmw2@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Arnd Bergmann wrote:
-> On Thursday 26 February 2009, H. Peter Anvin wrote:
->>> I split out netfilter, DRM and MTD, because of both
->>> size and potentially controversial changes.
->> I take it this supercedes your previous monolithic patch?
-> 
-> Patch 1/7 supercedes my previous patch and is still as monolithic,
-> except for the separate 6/7 hunk. I only split the integer type
-> patches by subsystem, but I did these from scratch now.
-> 
-> Patch 7/7 is a new one, based on your input from the last time
-> we discussed it.
+On Thursday 26 February 2009, Thiago Galesi wrote:
+> I don't know if the idea is to do all at once, but MTD has a lot of
+> things like u_char as well
 
-6/7 we already had in -tip, apparently.
+I could not find any of those in the exported parts of the MTD headers,
+only inside of #ifdef __KERNEL__, where it doesn't do any harm.
 
-I'm really of two minds regarding the patches that replace pure data 
-types (2/7-5/7).  Part of me thinks it would be better to do this via a 
-script in make headers_install, but another part of me thinks that that 
-is a recipe for missing includes.
-
-However, if subsystem maintainers are sharing headers with other 
-platforms, it's probably the only sane road to go.
-
-	-hpa
+	Arnd <><
