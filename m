@@ -1,40 +1,32 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [patch 5/7] make netfilter use strict integer types
-Date: Wed, 25 Feb 2009 17:02:22 -0800
-Message-ID: <49A5EA1E.5@zytor.com>
-References: <20090225235138.062045835@arndb.de> <20090225235515.682333715@arndb.de> <alpine.LSU.2.00.0902260104220.20789@fbirervta.pbzchgretzou.qr> <49A5DECD.7090809@zytor.com> <alpine.LSU.2.00.0902260137001.23768@fbirervta.pbzchgretzou.qr>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 14/15] bitops: Change the bitmap index from int to unsigned long [frv]
+Date: Thu, 26 Feb 2009 01:37:48 +0000
+Message-ID: <9679.1235612268@redhat.com>
+References: <49A5E876.1000501@zytor.com> <49A5C754.7000408@zytor.com> <200902250452.UAA12902@hpdst41.cup.hp.com> <16693.1235565430@redhat.com> <7355.1235605851@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:34429 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752964AbZBZBJd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 20:09:33 -0500
-In-Reply-To: <alpine.LSU.2.00.0902260137001.23768@fbirervta.pbzchgretzou.qr>
+Received: from mx2.redhat.com ([66.187.237.31]:52251 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752227AbZBZBjx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Feb 2009 20:39:53 -0500
+In-Reply-To: <49A5E876.1000501@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jan Engelhardt <jengelh@medozas.de>
-Cc: arnd@arndb.de, Sam Ravnborg <sam@ravnborg.org>, Kyle McMartin <kyle@infradead.org>, Ingo Molnar <mingo@elte.hu>, Jaswinder Singh Rajput <jaswinderrajput@gmail.com>, mingo@redhat.com, dwmw2@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: dhowells@redhat.com, Justin Chen <jchen@hpdst41.cup.hp.com>, linux-arch@vger.kernel.org, bjorn.helgaas@hp.com, justin.chen@hp.com, linux-kernel@vger.kernel.org
 
-Jan Engelhardt wrote:
-> On Thursday 2009-02-26 01:14, H. Peter Anvin wrote:
->>> [...]
->>> IMHO, __uXX should be replaced by uintX_t, but a move this great I
->>> will leave to future generations because there is just too much
->>> persisting opinions wrt. such proposal. As such I'd like to join
->>> and persist on my position and that uintX that we have should be kept.
->> We *CAN'T* replace __uXX with uintX_t.  Period, full stop, end of story.
+H. Peter Anvin <hpa@zytor.com> wrote:
+
+> > But how does it break down between "static inline type\nfunction_name" and
+> > "static inline\ntype function_name"?  That's more to the point.
+> >
 > 
-> Would the mindful master please elaborate why this is so, if it is
-> indeed not a personal decision.
+> I believe that is the breakdown is roughly what you see above, i.e. over 8:1;
+> the pattern I used was looking for "^static inline[^;(]*$", and a visual
+> examination of the results shows that even if my line count is slighly off the
+> lopsidedness is still dramatic.
 
-POSIX has strict rules as to what symbols you are allowed to present 
-into the user-visible namespace.  This means you can't use these types 
-for any header that may be indirectly included.
+Sorry, I meant:
 
-Since we can't use them in general, it's silly to use them for a 
-minority of headers, which would then have different exposure rules than 
-people otherwise can expect.
+"static inline type\nfunction_name" vs "static inline type function_name"
 
-	-hpa
+David
