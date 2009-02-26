@@ -1,31 +1,55 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH] Make exported headers use strict posix types
-Date: Wed, 25 Feb 2009 16:04:07 -0800
-Message-ID: <49A5DC77.2060009@zytor.com>
-References: <20090225032553.GD6690@bombadil.infradead.org> <20090225201131.GA26110@uranus.ravnborg.org> <49A5CF2E.6050306@zytor.com> <200902260101.31580.arnd@arndb.de>
+From: Jan Engelhardt <jengelh@medozas.de>
+Subject: Re: [patch 5/7] make netfilter use strict integer types
+Date: Thu, 26 Feb 2009 01:10:25 +0100 (CET)
+Message-ID: <alpine.LSU.2.00.0902260104220.20789@fbirervta.pbzchgretzou.qr>
+References: <20090225235138.062045835@arndb.de> <20090225235515.682333715@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:56368 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753995AbZBZAHh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 19:07:37 -0500
-In-Reply-To: <200902260101.31580.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Sam Ravnborg <sam@ravnborg.org>, Kyle McMartin <kyle@infradead.org>, Ingo Molnar <mingo@elte.hu>, Jaswinder Singh Rajput <jaswinderrajput@gmail.com>, mingo@redhat.com, dwmw2@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <netfilter-devel-owner@vger.kernel.org>
+In-Reply-To: <20090225235515.682333715@arndb.de>
+Sender: netfilter-devel-owner@vger.kernel.org
+To: arnd@arndb.de
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Sam Ravnborg <sam@ravnborg.org>, Kyle McMartin <kyle@infradead.org>, Ingo Molnar <mingo@elte.hu>, Jaswinder Singh Rajput <jaswinderrajput@gmail.com>, mingo@redhat.com, dwmw2@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org
+List-Id: linux-arch.vger.kernel.org
 
-Arnd Bergmann wrote:
-> 
-> Just in the minute I notice a bug :(
-> 
-> Unfortunately, I mistakenly replaced uid_t with __kernel_uid_t when
-> it had to be __kernel_uid32_t. New series follows, including the
-> changes for all integer types.
-> 
 
-S'okay... it's easy enough to back out at this time.
+On Thursday 2009-02-26 00:51, arnd@arndb.de wrote:
 
-	-hpa
+>Netfilter traditionally uses BSD integer types in its
+>interface headers. This changes it to use the Linux
+>strict integer types, like everyone else.
+
+I _strongly disagree_ with this move. Userspace also has the uintX
+types via <stdint.h>/<cstdint>, and now you are adding a dependency
+on linux/types.h, not to mention that your step can lead to compile
+time piling up.
+
+IMHO, __uXX should be replaced by uintX_t, but a move this great I
+will leave to future generations because there is just too much
+persisting opinions wrt. such proposal. As such I'd like to join
+and persist on my position and that uintX that we have should be kept.
+
+
+>index a049df4..3066789 100644
+>--- a/include/linux/netfilter/nf_conntrack_tcp.h
+>+++ b/include/linux/netfilter/nf_conntrack_tcp.h
+>@@ -2,6 +2,8 @@
+> #define _NF_CONNTRACK_TCP_H
+> /* TCP tracking. */
+> 
+>+#include <linux/types.h>
+>+
+> /* This is exposed to userspace (ctnetlink) */
+> enum tcp_conntrack {
+> 	TCP_CONNTRACK_NONE,
+>@@ -34,8 +36,8 @@ enum tcp_conntrack {
+> #define IP_CT_TCP_FLAG_DATA_UNACKNOWLEDGED	0x10
+> 
+> struct nf_ct_tcp_flags {
+>-	u_int8_t flags;
+>-	u_int8_t mask;
+>+	__u8 flags;
+>+	__u8 mask;
+> };
+> 
+> #ifdef __KERNEL__
