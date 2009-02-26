@@ -1,42 +1,36 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [patch 5/7] make netfilter use strict integer types
-Date: Wed, 25 Feb 2009 16:59:40 -0800 (PST)
-Message-ID: <20090225.165940.116607063.davem@davemloft.net>
-References: <alpine.LSU.2.00.0902260104220.20789@fbirervta.pbzchgretzou.qr>
-	<20090225.165552.32040707.davem@davemloft.net>
-	<49A5E92E.8080505@zytor.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 14/15] bitops: Change the bitmap index from int to unsigned
+ long [frv]
+Date: Wed, 25 Feb 2009 16:55:18 -0800
+Message-ID: <49A5E876.1000501@zytor.com>
+References: <49A5C754.7000408@zytor.com> <200902250452.UAA12902@hpdst41.cup.hp.com> <16693.1235565430@redhat.com> <7355.1235605851@redhat.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:50014
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1752731AbZBZA75 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Feb 2009 19:59:57 -0500
-In-Reply-To: <49A5E92E.8080505@zytor.com>
+Received: from terminus.zytor.com ([198.137.202.10]:36029 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752745AbZBZBCC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 20:02:02 -0500
+In-Reply-To: <7355.1235605851@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: hpa@zytor.com
-Cc: jengelh@medozas.de, arnd@arndb.de, sam@ravnborg.org, kyle@infradead.org, mingo@elte.hu, jaswinderrajput@gmail.com, mingo@redhat.com, dwmw2@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org
+To: David Howells <dhowells@redhat.com>
+Cc: Justin Chen <jchen@hpdst41.cup.hp.com>, linux-arch@vger.kernel.org, bjorn.helgaas@hp.com, justin.chen@hp.com, linux-kernel@vger.kernel.org
 
-From: "H. Peter Anvin" <hpa@zytor.com>
-Date: Wed, 25 Feb 2009 16:58:22 -0800
-
-> David Miller wrote:
-> > Disagreed, I think we should have done what Arnd is doing
-> > a long time ago.
-> > Ending up with linux/types.h in userspace for these kinds of
-> > interfaces is already a fore-gone conclusion, it happens
-> > already whether you like it or not.
-> > And existing apps will work just fine, since they are already
-> > getting stdint.h
-> > As for compile time, since you're already getting linux/types.h
-> > in your apps it's a non-argument.  But even if it was, what
-> > are you compiling netfilter utilities on?  A VAX?
+David Howells wrote:
 > 
-> I take it that you're OK that we merge Arnd's patchset?
+>> A casual grep finds no less than 3524 instances of "static inline <type>" --
+>> presumably with a function name following -- and only 447 instances of
+>> "static inline" without a type in the kernel.
+> 
+> But how does it break down between "static inline type\nfunction_name" and
+> "static inline\ntype function_name"?  That's more to the point.
+> 
 
-Yes, ignore Jan, I think he forgot to take his medication today:
+I believe that is the breakdown is roughly what you see above, i.e. over 
+8:1; the pattern I used was looking for "^static inline[^;(]*$", and a 
+visual examination of the results shows that even if my line count is 
+slighly off the lopsidedness is still dramatic.
 
-Acked-by: David S. Miller <davem@davemloft.net>
+	-hpa
