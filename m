@@ -1,60 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sovereign.computergmbh.de ([85.214.69.204]:37360 "EHLO
-	sovereign.computergmbh.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753377AbZBZAK2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 19:10:28 -0500
-Date: Thu, 26 Feb 2009 01:10:25 +0100 (CET)
-From: Jan Engelhardt <jengelh@medozas.de>
-Subject: Re: [patch 5/7] make netfilter use strict integer types
-In-Reply-To: <20090225235515.682333715@arndb.de>
-Message-ID: <alpine.LSU.2.00.0902260104220.20789@fbirervta.pbzchgretzou.qr>
-References: <20090225235138.062045835@arndb.de> <20090225235515.682333715@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.126.171]:50927 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751451AbZBZAY7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 19:24:59 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [patch 0/7] Use strict kernel types to fix the world
+Date: Thu, 26 Feb 2009 01:24:12 +0100
+References: <20090225235138.062045835@arndb.de> <49A5DC30.4080803@zytor.com>
+In-Reply-To: <49A5DC30.4080803@zytor.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-ID: <200902260124.13641.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Sam Ravnborg <sam@ravnborg.org>, Kyle McMartin <kyle@infradead.org>, Ingo Molnar <mingo@elte.hu>, Jaswinder Singh Rajput <jaswinderrajput@gmail.com>, mingo@redhat.com, dwmw2@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org
-Message-ID: <20090226001025.H3cK_FVBqxAS6UrM-93t5zWCFu92Y_F35Es6GGR9bzg@z>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Sam Ravnborg <sam@ravnborg.org>, Kyle McMartin <kyle@infradead.org>, Ingo Molnar <mingo@elte.hu>, Jaswinder Singh Rajput <jaswinderrajput@gmail.com>, mingo@redhat.com, dwmw2@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20090226002412.zx_BKIRNjsiPllylj-tvg7MsAlgmpUi1rDA5FFZ5NYA@z>
 
-
-On Thursday 2009-02-26 00:51, arnd@arndb.de wrote:
-
->Netfilter traditionally uses BSD integer types in its
->interface headers. This changes it to use the Linux
->strict integer types, like everyone else.
-
-I _strongly disagree_ with this move. Userspace also has the uintX
-types via <stdint.h>/<cstdint>, and now you are adding a dependency
-on linux/types.h, not to mention that your step can lead to compile
-time piling up.
-
-IMHO, __uXX should be replaced by uintX_t, but a move this great I
-will leave to future generations because there is just too much
-persisting opinions wrt. such proposal. As such I'd like to join
-and persist on my position and that uintX that we have should be kept.
-
-
->index a049df4..3066789 100644
->--- a/include/linux/netfilter/nf_conntrack_tcp.h
->+++ b/include/linux/netfilter/nf_conntrack_tcp.h
->@@ -2,6 +2,8 @@
-> #define _NF_CONNTRACK_TCP_H
-> /* TCP tracking. */
+On Thursday 26 February 2009, H. Peter Anvin wrote:
 > 
->+#include <linux/types.h>
->+
-> /* This is exposed to userspace (ctnetlink) */
-> enum tcp_conntrack {
-> 	TCP_CONNTRACK_NONE,
->@@ -34,8 +36,8 @@ enum tcp_conntrack {
-> #define IP_CT_TCP_FLAG_DATA_UNACKNOWLEDGED	0x10
+> > I split out netfilter, DRM and MTD, because of both
+> > size and potentially controversial changes.
 > 
-> struct nf_ct_tcp_flags {
->-	u_int8_t flags;
->-	u_int8_t mask;
->+	__u8 flags;
->+	__u8 mask;
-> };
-> 
-> #ifdef __KERNEL__
+> I take it this supercedes your previous monolithic patch?
+
+Patch 1/7 supercedes my previous patch and is still as monolithic,
+except for the separate 6/7 hunk. I only split the integer type
+patches by subsystem, but I did these from scratch now.
+
+Patch 7/7 is a new one, based on your input from the last time
+we discussed it.
+
+	Arnd <><
