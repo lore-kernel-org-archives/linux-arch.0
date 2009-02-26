@@ -1,32 +1,45 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [patch 0/7] Use strict kernel types to fix the world
-Date: Thu, 26 Feb 2009 01:24:12 +0100
-Message-ID: <200902260124.13641.arnd@arndb.de>
-References: <20090225235138.062045835@arndb.de> <49A5DC30.4080803@zytor.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [patch 5/7] make netfilter use strict integer types
+Date: Wed, 25 Feb 2009 16:24:38 -0800
+Message-ID: <49A5E146.4060208@zytor.com>
+References: <20090225235138.062045835@arndb.de> <20090225235515.682333715@arndb.de> <alpine.LSU.2.00.0902260104220.20789@fbirervta.pbzchgretzou.qr>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1754201AbZBZAZV@vger.kernel.org>
-In-Reply-To: <49A5DC30.4080803@zytor.com>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Sam Ravnborg <sam@ravnborg.org>, Kyle McMartin <kyle@infradead.org>, Ingo Molnar <mingo@elte.hu>, Jaswinder Singh Rajput <jaswinderrajput@gmail.com>, mingo@redhat.com, dwmw2@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:36721 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751978AbZBZAbj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2009 19:31:39 -0500
+In-Reply-To: <alpine.LSU.2.00.0902260104220.20789@fbirervta.pbzchgretzou.qr>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jan Engelhardt <jengelh@medozas.de>
+Cc: arnd@arndb.de, Sam Ravnborg <sam@ravnborg.org>, Kyle McMartin <kyle@infradead.org>, Ingo Molnar <mingo@elte.hu>, Jaswinder Singh Rajput <jaswinderrajput@gmail.com>, mingo@redhat.com, dwmw2@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org
 
-On Thursday 26 February 2009, H. Peter Anvin wrote:
+Jan Engelhardt wrote:
+> On Thursday 2009-02-26 00:51, arnd@arndb.de wrote:
 > 
-> > I split out netfilter, DRM and MTD, because of both
-> > size and potentially controversial changes.
+>> Netfilter traditionally uses BSD integer types in its
+>> interface headers. This changes it to use the Linux
+>> strict integer types, like everyone else.
 > 
-> I take it this supercedes your previous monolithic patch?
+> I _strongly disagree_ with this move. Userspace also has the uintX
+> types via <stdint.h>/<cstdint>, and now you are adding a dependency
+> on linux/types.h, not to mention that your step can lead to compile
+> time piling up.
+> 
+> IMHO, __uXX should be replaced by uintX_t, but a move this great I
+> will leave to future generations because there is just too much
+> persisting opinions wrt. such proposal. As such I'd like to join
+> and persist on my position and that uintX that we have should be kept.
+> 
+>> -	u_int8_t flags;
+>> -	u_int8_t mask;
+>> +	__u8 flags;
+>> +	__u8 mask;
 
-Patch 1/7 supercedes my previous patch and is still as monolithic,
-except for the separate 6/7 hunk. I only split the integer type
-patches by subsystem, but I did these from scratch now.
-
-Patch 7/7 is a new one, based on your input from the last time
-we discussed it.
-
-	Arnd <><
+Not to mention the fact that the standard type is uint8_t, not u_int8_t 
+as the file currently have, which makes it double broken.
+	
+	-hpa
