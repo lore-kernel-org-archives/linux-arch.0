@@ -1,59 +1,45 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Bartlomiej Zolnierkiewicz <bzolnier@gmail.com>
 Subject: Re: [RFC][PATCH] irq: remove IRQF_DISABLED
-Date: Mon, 02 Mar 2009 19:10:28 +0100
-Message-ID: <1236017428.5330.1021.camel@laptop>
-References: <1235996477.5330.174.camel@laptop>
-	 <20090302095553.8204d808.akpm@linux-foundation.org>
+Date: Mon, 2 Mar 2009 19:27:22 +0100
+Message-ID: <200903021927.22781.bzolnier@gmail.com>
+References: <1235996477.5330.174.camel@laptop> <200903021855.02765.bzolnier@gmail.com> <1236017249.5330.1011.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:58186 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751362AbZCBSKt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2009 13:10:49 -0500
-In-Reply-To: <20090302095553.8204d808.akpm@linux-foundation.org>
+Received: from mu-out-0910.google.com ([209.85.134.188]:8158 "EHLO
+	mu-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751960AbZCBSZZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2009 13:25:25 -0500
+In-Reply-To: <1236017249.5330.1011.camel@laptop>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
 
-On Mon, 2009-03-02 at 09:55 -0800, Andrew Morton wrote:
-> On Mon, 02 Mar 2009 13:21:17 +0100 Peter Zijlstra <peterz@infradead.org> wrote:
+On Monday 02 March 2009, Peter Zijlstra wrote:
+> On Mon, 2009-03-02 at 18:55 +0100, Bartlomiej Zolnierkiewicz wrote:
+> > > Could we make just the IDE driver itself enable interrupts? Sure. But that 
+> > 
+> > Actually it has been doing it for years (some host drivers don't do this by
+> > default and still need "hdparm -u" or equivalent but I was planning to change
+> > it for 2.6.30).
 > 
-> > 
-> > People are playing odd games with IRQF_DISABLED, remove it.
-> > 
-> > Its not reliable, since shared interrupt lines could disable it for you,
-> > and its possible and allowed for archs to disable IRQs to limit IRQ nesting.
-> > 
-> > Therefore, simply mandate that _ALL_ IRQ handlers are run with IRQs disabled.
-> > 
-> > [ This _should_ not break anything, since we've mandated that IRQ handlers
-> >   _must_ be able to deal with this for a _long_ time ]
-> > 
-> > IRQ handlers should be fast, no if buts and any other exceptions. We also have
-> > plenty instrumentation to find any offending IRQ latency sources.
+> What does it use to do that? A local_irq_enable() in hardirq context
+> will make lockdep yell bloody murder :-).
 > 
-> Changelog is a bit cruddy.  What are these "odd games" and why are they
-> so serious as to warrant a fairly drastic-looking patch?
+> Then there is local_irq_enable_in_hardirq(), which plain simply lies
+> when lockdep is enabled -- IOW it would generate horrid irq latencies.
+> 
+> Not having to deal with IRQ recursion in lockdep helps.
 
-See for example the stuff David Brownell was trying to pull off.
+Lockdep problems are the least of our worries here (please read Linus'
+original mail for details).  If you're asking why it is not handled in
+softirq -- that's solely because of the historical reasons and I have
+high hopes w.r.t. threaded IRQs work here [that it will allow us to
+address this issue without too much pain].
 
-I was -- naively it turns out -- hoping it would be a simple matter of
-cleaning up, as lockdep has been doing this for a long while now.
-
-> Where are these odd games being played, and what are the implications
-> to those codesites of having their ball taken away?  etc.
-
-Generation of terrible IRQ latency, or in David's case, more pain for
-the abuse of the genirq layer.
-
-> wrt the patch itself - it would make life easier if we were to leave
-> the IRQF_DISABLED definition in place for a while.  I'm counting 47 new
-> additions of references to IRQF_DISABLED in linux-next/-mm.  It would
-> grease the wheels a bit were these things (and out-of-tree drivers) to
-> not instabreak.  One could add a nice runtime warning at request_irq()
-> time, leave that in place until everything is fixed up.
-
-Sure, can do.
+Thanks,
+Bart
