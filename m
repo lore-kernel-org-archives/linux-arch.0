@@ -1,53 +1,31 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Matthew Wilcox <matthew@wil.cx>
 Subject: Re: [RFC][PATCH] irq: remove IRQF_DISABLED
-Date: Mon, 02 Mar 2009 16:59:48 +0100
-Message-ID: <1236009588.5330.729.camel@laptop>
-References: <1235996477.5330.174.camel@laptop>
-	 <20090302144303.GA30136@elte.hu>  <20090302154748.GB14217@parisc-linux.org>
+Date: Mon, 2 Mar 2009 09:32:16 -0700
+Message-ID: <20090302163215.GD14217@parisc-linux.org>
+References: <1235996477.5330.174.camel@laptop> <20090302144303.GA30136@elte.hu> <20090302154748.GB14217@parisc-linux.org> <1236009588.5330.729.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:50623 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753487AbZCBQAF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2009 11:00:05 -0500
-In-Reply-To: <20090302154748.GB14217@parisc-linux.org>
+Received: from palinux.external.hp.com ([192.25.206.14]:53681 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753482AbZCBQcd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2009 11:32:33 -0500
+Content-Disposition: inline
+In-Reply-To: <1236009588.5330.729.camel@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
 
-On Mon, 2009-03-02 at 08:47 -0700, Matthew Wilcox wrote:
-> On Mon, Mar 02, 2009 at 03:43:03PM +0100, Ingo Molnar wrote:
-> > * Peter Zijlstra <peterz@infradead.org> wrote:
-> > > Hi Linus,
-> > > 
-> > > Would you be willing to take such a patch?
-> > > 
-> > > Its a rather big one, but if you think its a good idea, I can 
-> > > generate one against whatever tree is needed.
-> > > 
-> > > Provided I didn't break any !genirq stuff.. then again, that 
-> > > might be a nice incentive to fix up those last few archs.
-> > 
-> > look good IMO. If there are no objections, and given that it 
-> 
-> Perhaps someone could explain why we want to remove it?  I just added
-> it to AHCI for good reason, so I'd like to know why we think it should
-> be taken away.
-> 
-> I added it because I was adding support for per-port interrupts.
-> In the interrupt handler, we take the *host* lock (not the port lock).
-> With multiple interrupt handlers per host, we would have to disable
-> interrupts in the interrupt handler before taking the lock.  Which is
-> foolish because we've just re-enabled interrupts in the genirq code.
-> Specifying IRQF_DISABLED means we just run with interrupts disabled.
-> 
-> You can argue that libata/ahci should be using a per-port lock, and
-> I wouldn't disagree.  But I'd still like to know why IRQF_DISABLED is
-> being removed.
+On Mon, Mar 02, 2009 at 04:59:48PM +0100, Peter Zijlstra wrote:
+> The idea is to mandate IRQF_DISABLED for everybody, and since it doesn't
+> do any good to have it a flag if you have it always enabled, remove
+> it ;-)
 
-The idea is to mandate IRQF_DISABLED for everybody, and since it doesn't
-do any good to have it a flag if you have it always enabled, remove
-it ;-)
+I don't have a problem with that.
+
+-- 
+Matthew Wilcox				Intel Open Source Technology Centre
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
