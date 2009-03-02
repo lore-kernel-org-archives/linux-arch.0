@@ -1,37 +1,41 @@
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
 Subject: Re: [RFC][PATCH] irq: remove IRQF_DISABLED
-Date: Mon, 2 Mar 2009 21:01:58 +0000
-Message-ID: <20090302210158.GA18479@flint.arm.linux.org.uk>
-References: <1235996477.5330.174.camel@laptop> <20090302144303.GA30136@elte.hu> <20090302154748.GB14217@parisc-linux.org> <1236009588.5330.729.camel@laptop>
+Date: Mon, 2 Mar 2009 21:17:55 +0000
+Message-ID: <20090302211755.24a58ec9@lxorguk.ukuu.org.uk>
+References: <1235996477.5330.174.camel@laptop>
+	<alpine.LFD.2.00.0903020852220.3111@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:53515 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752757AbZCBVDX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2009 16:03:23 -0500
-Content-Disposition: inline
-In-Reply-To: <1236009588.5330.729.camel@laptop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1756565AbZCBVSn@vger.kernel.org>
+In-Reply-To: <alpine.LFD.2.00.0903020852220.3111@localhost.localdomain>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 02, 2009 at 04:59:48PM +0100, Peter Zijlstra wrote:
-> The idea is to mandate IRQF_DISABLED for everybody, and since it doesn't
-> do any good to have it a flag if you have it always enabled, remove
-> it ;-)
+> Now, IDE controllers that we end up using PIO on all tend to be pretty 
+> old, but admittedly even the old ones are faster than the worst-case 
+> timings, so in practice you're not looking quite at that kind of horror 
+> case, but you're still looking at each sector transfer (256 16-bit words) 
+> taking on the order of tens of us.
 
-Bad.  Very bad.
+The worst case timings are far worse because of IORDY. 
 
-So, when I use PIO IDE on embedded platforms, I have to have all other
-interrupts locked out for things like serial ports, network interfaces
-with small packet buffers, etc and I can't specify IRQF_DISABLE on
-such network interfaces anymore?
+> Now: I suspect you don't have a single machine that does PIO by default, 
+> and you probably haven't had any for the last ten years. These things 
+> _are_ old. But they do exist. 
 
-No, this is a step backwards.  Please don't go there.
+I bet you do for some stuff. Most CF cards are PIO only. Several
+controllers need to do PIO for some corner cases. Almost all pre-AHCI
+controllers issue command blocks via PIO.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Worse still of course some controllers have an erratum where touching
+some of the other registers during a transfer [which is what you need to
+do to see if you are the IRQ source] corrupts the transfer. Not all
+devices honour the IRQ masking bit on the device either. That makes the
+generalised case of doing both unmasked transfers after an IRQ and the
+errata cases of handling IRQs you can't mask and must leave disabled
+rather more exciting than is nice.
+
+Alan
