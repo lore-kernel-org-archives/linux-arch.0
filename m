@@ -1,45 +1,56 @@
 From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC][PATCH] irq: remove IRQF_DISABLED
-Date: Mon, 2 Mar 2009 10:54:35 -0800 (PST)
-Message-ID: <alpine.LFD.2.00.0903021048570.3111@localhost.localdomain>
-References: <1235996477.5330.174.camel@laptop> <alpine.LFD.2.00.0903020852220.3111@localhost.localdomain> <200903021045.20723.vlobanov@speakeasy.net>
+Date: Mon, 2 Mar 2009 11:06:39 -0800 (PST)
+Message-ID: <alpine.LFD.2.00.0903021101460.3111@localhost.localdomain>
+References: <1235996477.5330.174.camel@laptop> <200903021855.02765.bzolnier@gmail.com> <alpine.LFD.2.00.0903021012080.3111@localhost.localdomain> <200903021948.51500.bzolnier@gmail.com>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:45343 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:45252 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758572AbZCBSza (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2009 13:55:30 -0500
-In-Reply-To: <200903021045.20723.vlobanov@speakeasy.net>
+	by vger.kernel.org with ESMTP id S1750910AbZCBTHl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2009 14:07:41 -0500
+In-Reply-To: <200903021948.51500.bzolnier@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vadim Lobanov <vlobanov@speakeasy.net>
+To: Bartlomiej Zolnierkiewicz <bzolnier@gmail.com>
 Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
 
 
 
-On Mon, 2 Mar 2009, Vadim Lobanov wrote:
+On Mon, 2 Mar 2009, Bartlomiej Zolnierkiewicz wrote:
+>
+> Hmm, I said nothing about how it is implemented in the IDE code itself. :)
 
-> On Monday 02 March 2009 09:11:54 Linus Torvalds wrote:
-> > The thing is, with PIO, a 512-byte disk read ends up doing 256 16-bit word
-> > reads from the controller, each potentially up to 600ns long (PIO0
-> > timings). That's 150ms - for a single sector!
-> 
-> Out of curiosity, the peanut gallery wishes to ask:
-> Is the above supposed to be 600us (*1000), or 150us (/1000)? Probably the 
-> latter.
+Bart, you're missing the point. I'm _also_ not at all interested in how 
+it's implemented in the IDE code.
 
-Sorry, I was off by a lot. Yes. /1000. The end result ends up being lots 
-better (and I should have realized I did my conversion wrong, because the 
-times ended up being _so_ big), but not better enough - we've had dropped 
-timer interrupts etc on those kinds of machines unless you use "hdparm -u1".
+The whole - and only - point is that there are drivers that are _known_ to 
+require non-IRQF_DISABLED semantics. IDE is one such one.
 
-Although it porbably does mean that the problem tends to be more in the 
-really bad mode0 case (600ns -> 150us/sector -> milliseconds for 
-multi-sector transfers).
+> Fixing this is on long-term TODO (there was just a ton of more high-prio
+> stuff to take care of first).
 
-I forget what our multi-sector limit is, I think it tends to be 16. So 
-you'll never get _really_ long irq-off times, but "several ms" is still 
-pretty damn bad. 
+Even if you can fix IDE to do everything using softirq's or other tricks 
+(threads, whatever), nothing really changes. It just means that now there 
+is one less driver that may need the non-IRQF_DISABLED semantics.
+
+So I'm perfectly happy with
+
+ - making IRQF_DISABLED the _default_ (and make the value of the flag be 
+   0, for example, so that people can still _use_ it)
+
+ - but when we find a driver that depended on irq's being on, have a new 
+   flag like IRQF_REENABLE, which has the semantics of the current default 
+   of !IRQF_DISABLED
+
+but I don't think it's reasonable to just drop the support. IDE requires 
+it, and it's been a known requirement for basically forever. Other drivers 
+with similar issues? Who the heck knows? 
+
+I do know that the _generic_ SCSI layer used to have some insane reset 
+timeouts inside the interrupt handler, and literally *depended* on timer 
+interrupts happening while inside the SCSI interrupt. I'm hoping that's no 
+longer the case. But this is the kind of thing that has been going on.
 
 			Linus
