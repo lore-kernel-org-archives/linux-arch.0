@@ -1,48 +1,30 @@
-From: Andrew Morton <akpm@linux-foundation.org>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [RFC][PATCH] irq: remove IRQF_DISABLED
-Date: Mon, 2 Mar 2009 09:55:53 -0800
-Message-ID: <20090302095553.8204d808.akpm@linux-foundation.org>
+Date: Mon, 02 Mar 2009 18:56:51 +0100
+Message-ID: <1236016611.5330.971.camel@laptop>
 References: <1235996477.5330.174.camel@laptop>
+	 <alpine.LFD.2.00.0903020852220.3111@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:40714 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754140AbZCBR4Z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2009 12:56:25 -0500
-In-Reply-To: <1235996477.5330.174.camel@laptop>
+Received: from casper.infradead.org ([85.118.1.10]:53849 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754397AbZCBR5D (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2009 12:57:03 -0500
+In-Reply-To: <alpine.LFD.2.00.0903020852220.3111@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
 
-On Mon, 02 Mar 2009 13:21:17 +0100 Peter Zijlstra <peterz@infradead.org> wrote:
+On Mon, 2009-03-02 at 09:11 -0800, Linus Torvalds wrote:
 
-> 
-> People are playing odd games with IRQF_DISABLED, remove it.
-> 
-> Its not reliable, since shared interrupt lines could disable it for you,
-> and its possible and allowed for archs to disable IRQs to limit IRQ nesting.
-> 
-> Therefore, simply mandate that _ALL_ IRQ handlers are run with IRQs disabled.
-> 
-> [ This _should_ not break anything, since we've mandated that IRQ handlers
->   _must_ be able to deal with this for a _long_ time ]
-> 
-> IRQ handlers should be fast, no if buts and any other exceptions. We also have
-> plenty instrumentation to find any offending IRQ latency sources.
+<story about how PIO IDE sucks>
 
-Changelog is a bit cruddy.  What are these "odd games" and why are they
-so serious as to warrant a fairly drastic-looking patch?
+> So this is not as simple as your patch. Not even _nearly_.
 
-Where are these odd games being played, and what are the implications
-to those codesites of having their ball taken away?  etc.
+Yuckness, yes that does complicate matters significantly. 
 
-
-wrt the patch itself - it would make life easier if we were to leave
-the IRQF_DISABLED definition in place for a while.  I'm counting 47 new
-additions of references to IRQF_DISABLED in linux-next/-mm.  It would
-grease the wheels a bit were these things (and out-of-tree drivers) to
-not instabreak.  One could add a nice runtime warning at request_irq()
-time, leave that in place until everything is fixed up.
+That leaves us trying to find all request_irq() invocations that do not
+have IRQF_DISABLED.. /me puts it on the todo list.
