@@ -1,43 +1,21 @@
-From: Jiri Slaby <jirislaby@gmail.com>
+From: Andrew Morton <akpm@linux-foundation.org>
 Subject: Re: [PATCH] generic debug pagealloc
-Date: Tue, 03 Mar 2009 17:12:35 +0100
-Message-ID: <49AD56F3.6020305@gmail.com>
+Date: Tue, 3 Mar 2009 13:36:10 -0800
+Message-ID: <20090303133610.cb771fef.akpm@linux-foundation.org>
 References: <20090303160103.GB5812@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-2022-jp
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20090303160103.GB5812@localhost.localdomain>
 Sender: owner-linux-mm@kvack.org
 To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-On 3.3.2009 17:01, Akinobu Mita wrote:
-...
-> +static void dump_broken_mem(unsigned char *mem)
-> +{
-> +	int i;
-> +	int start = 0;
-> +	int end = PAGE_SIZE - 1;
-> +
-> +	for (i = 0; i<  PAGE_SIZE; i++) {
-> +		if (mem[i] != PAGE_POISON) {
-> +			start = i;
-> +			break;
-> +		}
-> +	}
-> +	for (i = PAGE_SIZE - 1; i>= start; i--) {
-> +		if (mem[i] != PAGE_POISON) {
-> +			end = i;
-> +			break;
-> +		}
-> +	}
-> +	printk(KERN_ERR "Page corruption: %p-%p\n", mem + start, mem + end);
-> +	print_hex_dump(KERN_ERR, "", DUMP_PREFIX_ADDRESS, 16, 1, mem + start,
-> +			end - start + 1, 1);
-> +}
-> +
+On Wed, 4 Mar 2009 01:01:04 +0900
+Akinobu Mita <akinobu.mita@gmail.com> wrote:
+
 > +static void unpoison_page(struct page *page)
 > +{
 > +	unsigned char *mem;
@@ -47,18 +25,67 @@ On 3.3.2009 17:01, Akinobu Mita wrote:
 > +		return;
 > +
 > +	mem = kmap_atomic(page, KM_USER0);
-> +	for (i = 0; i<  PAGE_SIZE; i++) {
+> +	for (i = 0; i < PAGE_SIZE; i++) {
 > +		if (mem[i] != PAGE_POISON) {
 > +			dump_broken_mem(mem);
-
-Just an optimisation: pass the i to the dump_broken_mem as a start index.
-
 > +			break;
 > +		}
 > +	}
 > +	kunmap_atomic(mem, KM_USER0);
 > +	page->poison = false;
 > +}
+> +
+> +static void unpoison_pages(struct page *page, int n)
+> +{
+> +	int i;
+> +
+> +	for (i = 0; i < n; i++)
+> +		unpoison_page(page + i);
+> +}
+> +
+> +void kernel_map_pages(struct page *page, int numpages, int enable)
+> +{
+> +	if (!debug_pagealloc_enabled)
+> +		return;
+> +
+> +	if (enable)
+> +		unpoison_pages(page, numpages);
+> +	else
+> +		poison_pages(page, numpages);
+> +}
+
+kernel_map_pages() is called from the memory-allocation and
+memory-freeing paths.  Hence it can be called from interrupt contexts.
+
+KM_USER0 must not be used from interrupt context - it will corrupt the
+non-interrupt context's pte, causing unpleasing very hard to track down
+memory corruption.  Often memory which is getting written to the user's
+disk.  This makes users unhappy.
+
+We could use KM_IRQ0 here.  The code should disable local interrupts
+when holding a KM_IRQ0 kmap.
+
+If this code were to switch to using KM_IRQ0 then we still have a
+problem - if any other place in the kernel does a memory allcoation or
+free while holding a KM_IRQ0 kmap, then this new code will corrupt the
+caller's pte.
+
+So I guess we'll need to create a new kmap_atomic slot for this
+application.  It will need interrupt protection - the page allocator can
+be called from interrupt context while it is already running in
+non-interrupt context.
+
+
+Alternatively, we could just not do the kmap_atomic() at all.  i386
+won't be using this code and IIRC the only other highmem architecture
+is powerpc32, and ppc32 appears to also have its own DEBUG_PAGEALLOC
+implementation.  So you could remove the kmap_atomic() stuff and put
+
+#ifdef CONFIG_HIGHMEM
+#error i goofed
+#endif
+
+in there.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
