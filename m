@@ -1,91 +1,37 @@
-From: Andrew Morton <akpm@linux-foundation.org>
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [PATCH] generic debug pagealloc
-Date: Tue, 3 Mar 2009 13:36:10 -0800
-Message-ID: <20090303133610.cb771fef.akpm@linux-foundation.org>
-References: <20090303160103.GB5812@localhost.localdomain>
+Date: Tue, 3 Mar 2009 22:07:14 +0000
+Message-ID: <20090303220713.GC31911@flint.arm.linux.org.uk>
+References: <20090303160103.GB5812@localhost.localdomain> <20090303133610.cb771fef.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20090303160103.GB5812@localhost.localdomain>
+Content-Disposition: inline
+In-Reply-To: <20090303133610.cb771fef.akpm@linux-foundation.org>
 Sender: owner-linux-mm@kvack.org
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 4 Mar 2009 01:01:04 +0900
-Akinobu Mita <akinobu.mita@gmail.com> wrote:
+On Tue, Mar 03, 2009 at 01:36:10PM -0800, Andrew Morton wrote:
+> Alternatively, we could just not do the kmap_atomic() at all.  i386
+> won't be using this code and IIRC the only other highmem architecture
+> is powerpc32, and ppc32 appears to also have its own DEBUG_PAGEALLOC
+> implementation.  So you could remove the kmap_atomic() stuff and put
 
-> +static void unpoison_page(struct page *page)
-> +{
-> +	unsigned char *mem;
-> +	int i;
-> +
-> +	if (!page->poison)
-> +		return;
-> +
-> +	mem = kmap_atomic(page, KM_USER0);
-> +	for (i = 0; i < PAGE_SIZE; i++) {
-> +		if (mem[i] != PAGE_POISON) {
-> +			dump_broken_mem(mem);
-> +			break;
-> +		}
-> +	}
-> +	kunmap_atomic(mem, KM_USER0);
-> +	page->poison = false;
-> +}
-> +
-> +static void unpoison_pages(struct page *page, int n)
-> +{
-> +	int i;
-> +
-> +	for (i = 0; i < n; i++)
-> +		unpoison_page(page + i);
-> +}
-> +
-> +void kernel_map_pages(struct page *page, int numpages, int enable)
-> +{
-> +	if (!debug_pagealloc_enabled)
-> +		return;
-> +
-> +	if (enable)
-> +		unpoison_pages(page, numpages);
-> +	else
-> +		poison_pages(page, numpages);
-> +}
+ARM will also be joining the highmem club in due course, maybe during
+the next merge window depending on how things pan out.
 
-kernel_map_pages() is called from the memory-allocation and
-memory-freeing paths.  Hence it can be called from interrupt contexts.
+The biggest issue we have is with kmaps interacting with ARM's DMA API
+code.  Nicolas Pitre currently has a work-around for it, but I believe
+it can be better handled by extending the generic kmap infrastructure
+to be able to grab a reference on an already kmapped page.  I've asked
+Nicolas to discuss this aspect of his patch set on lkml.
 
-KM_USER0 must not be used from interrupt context - it will corrupt the
-non-interrupt context's pte, causing unpleasing very hard to track down
-memory corruption.  Often memory which is getting written to the user's
-disk.  This makes users unhappy.
-
-We could use KM_IRQ0 here.  The code should disable local interrupts
-when holding a KM_IRQ0 kmap.
-
-If this code were to switch to using KM_IRQ0 then we still have a
-problem - if any other place in the kernel does a memory allcoation or
-free while holding a KM_IRQ0 kmap, then this new code will corrupt the
-caller's pte.
-
-So I guess we'll need to create a new kmap_atomic slot for this
-application.  It will need interrupt protection - the page allocator can
-be called from interrupt context while it is already running in
-non-interrupt context.
-
-
-Alternatively, we could just not do the kmap_atomic() at all.  i386
-won't be using this code and IIRC the only other highmem architecture
-is powerpc32, and ppc32 appears to also have its own DEBUG_PAGEALLOC
-implementation.  So you could remove the kmap_atomic() stuff and put
-
-#ifdef CONFIG_HIGHMEM
-#error i goofed
-#endif
-
-in there.
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
