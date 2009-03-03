@@ -1,46 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:37600 "EHLO
-	www.etchedpixels.co.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1756002AbZCBVSN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2009 16:18:13 -0500
-Date: Mon, 2 Mar 2009 21:17:55 +0000
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: [RFC][PATCH] irq: remove IRQF_DISABLED
-Message-ID: <20090302211755.24a58ec9@lxorguk.ukuu.org.uk>
-In-Reply-To: <alpine.LFD.2.00.0903020852220.3111@localhost.localdomain>
-References: <1235996477.5330.174.camel@laptop>
-	<alpine.LFD.2.00.0903020852220.3111@localhost.localdomain>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Received: from fg-out-1718.google.com ([72.14.220.152]:34555 "EHLO
+	fg-out-1718.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756229AbZCCQMl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Mar 2009 11:12:41 -0500
+Message-ID: <49AD56F3.6020305@gmail.com>
+Date: Tue, 03 Mar 2009 17:12:35 +0100
+From: Jiri Slaby <jirislaby@gmail.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH] generic debug pagealloc
+References: <20090303160103.GB5812@localhost.localdomain>
+In-Reply-To: <20090303160103.GB5812@localhost.localdomain>
+Content-Type: text/plain; charset=iso-2022-jp
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20090302211755.z5HOOI-0Se50PuxNXG0AKQiAMNaYURSBuGskx5rPGiA@z>
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org
+Message-ID: <20090303161235.88M6ZMwpa6tdTG3vBkQgqYFHfZ3rT-_0xh4xT7ONflw@z>
 
-> Now, IDE controllers that we end up using PIO on all tend to be pretty 
-> old, but admittedly even the old ones are faster than the worst-case 
-> timings, so in practice you're not looking quite at that kind of horror 
-> case, but you're still looking at each sector transfer (256 16-bit words) 
-> taking on the order of tens of us.
+On 3.3.2009 17:01, Akinobu Mita wrote:
+...
+> +static void dump_broken_mem(unsigned char *mem)
+> +{
+> +	int i;
+> +	int start = 0;
+> +	int end = PAGE_SIZE - 1;
+> +
+> +	for (i = 0; i<  PAGE_SIZE; i++) {
+> +		if (mem[i] != PAGE_POISON) {
+> +			start = i;
+> +			break;
+> +		}
+> +	}
+> +	for (i = PAGE_SIZE - 1; i>= start; i--) {
+> +		if (mem[i] != PAGE_POISON) {
+> +			end = i;
+> +			break;
+> +		}
+> +	}
+> +	printk(KERN_ERR "Page corruption: %p-%p\n", mem + start, mem + end);
+> +	print_hex_dump(KERN_ERR, "", DUMP_PREFIX_ADDRESS, 16, 1, mem + start,
+> +			end - start + 1, 1);
+> +}
+> +
+> +static void unpoison_page(struct page *page)
+> +{
+> +	unsigned char *mem;
+> +	int i;
+> +
+> +	if (!page->poison)
+> +		return;
+> +
+> +	mem = kmap_atomic(page, KM_USER0);
+> +	for (i = 0; i<  PAGE_SIZE; i++) {
+> +		if (mem[i] != PAGE_POISON) {
+> +			dump_broken_mem(mem);
 
-The worst case timings are far worse because of IORDY. 
+Just an optimisation: pass the i to the dump_broken_mem as a start index.
 
-> Now: I suspect you don't have a single machine that does PIO by default, 
-> and you probably haven't had any for the last ten years. These things 
-> _are_ old. But they do exist. 
-
-I bet you do for some stuff. Most CF cards are PIO only. Several
-controllers need to do PIO for some corner cases. Almost all pre-AHCI
-controllers issue command blocks via PIO.
-
-Worse still of course some controllers have an erratum where touching
-some of the other registers during a transfer [which is what you need to
-do to see if you are the IRQ source] corrupts the transfer. Not all
-devices honour the IRQ masking bit on the device either. That makes the
-generalised case of doing both unmasked transfers after an IRQ and the
-errata cases of handling IRQs you can't mask and must leave disabled
-rather more exciting than is nice.
-
-Alan
+> +			break;
+> +		}
+> +	}
+> +	kunmap_atomic(mem, KM_USER0);
+> +	page->poison = false;
+> +}
