@@ -1,23 +1,46 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
 Subject: Re: [PATCH] generic debug pagealloc
-Date: Wed, 4 Mar 2009 23:13:44 +0900
-Message-ID: <20090304141343.GB7168@localhost.localdomain>
-References: <20090303160103.GB5812@localhost.localdomain> <49AD56F3.6020305@gmail.com>
+Date: Wed, 4 Mar 2009 23:17:23 +0900
+Message-ID: <20090304141721.GC7168@localhost.localdomain>
+References: <20090303160103.GB5812@localhost.localdomain> <20090303133610.cb771fef.akpm@linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=iso-2022-jp
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rv-out-0506.google.com ([209.85.198.226]:32018 "EHLO
-	rv-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752780AbZCDONv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Mar 2009 09:13:51 -0500
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <49AD56F3.6020305@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jirislaby@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org
+In-Reply-To: <20090303133610.cb771fef.akpm@linux-foundation.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 03, 2009 at 05:12:35PM +0100, Jiri Slaby wrote:
-> Just an optimisation: pass the i to the dump_broken_mem as a start index.
+On Tue, Mar 03, 2009 at 01:36:10PM -0800, Andrew Morton wrote:
+> Alternatively, we could just not do the kmap_atomic() at all.  i386
+> won't be using this code and IIRC the only other highmem architecture
+> is powerpc32, and ppc32 appears to also have its own DEBUG_PAGEALLOC
+> implementation.  So you could remove the kmap_atomic() stuff and put
+> 
+> #ifdef CONFIG_HIGHMEM
+> #error i goofed
+> #endif
+> 
+> in there.
 
-OK. I'll remove that redundancy in next verserion.
+I'll take the variant of this. Then poison_page() will be
+
+static void poison_page(struct page *page)
+{
+        void *addr;
+
+        if (PageHighmem(page))
+                return; // i goofed
+
+       page->poison = true;
+       addr = page_address(page);
+       memset(addr, PAGE_POISON, PAGE_SIZE);
+}
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
