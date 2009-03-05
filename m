@@ -1,38 +1,98 @@
-From: Mark Lord <lkml@rtr.ca>
-Subject: Re: [RFC][PATCH] irq: remove IRQF_DISABLED
-Date: Thu, 05 Mar 2009 10:40:44 -0500
-Message-ID: <49AFF27C.1020001@rtr.ca>
-References: <1235996477.5330.174.camel@laptop> <alpine.LFD.2.00.0903020852220.3111@localhost.localdomain> <200903021045.20723.vlobanov@speakeasy.net> <alpine.LFD.2.00.0903021048570.3111@localhost.localdomain>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH] generic debug pagealloc (-v2)
+Date: Thu, 5 Mar 2009 14:31:50 -0800
+Message-ID: <20090305143150.136e2708.akpm@linux-foundation.org>
+References: <20090305145926.GA27015@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rtr.ca ([76.10.145.34]:46243 "EHLO mail.rtr.ca"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754886AbZCEPks (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 5 Mar 2009 10:40:48 -0500
-In-Reply-To: <alpine.LFD.2.00.0903021048570.3111@localhost.localdomain>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Vadim Lobanov <vlobanov@speakeasy.net>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20090305145926.GA27015@localhost.localdomain>
+Sender: owner-linux-mm@kvack.org
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, mingo@elte.hu, jirislaby@gmail.com, rmk+lkml@arm.linux.org.uk
+List-Id: linux-arch.vger.kernel.org
 
-Linus Torvalds wrote:
+On Thu, 5 Mar 2009 23:59:27 +0900
+Akinobu Mita <akinobu.mita@gmail.com> wrote:
+
+> CONFIG_DEBUG_PAGEALLOC is now supported by x86, powerpc, sparc (64bit),
+> and s390. This patch implements it for the rest of the architectures
+> by filling the pages with poison byte patterns after free_pages() and
+> verifying the poison patterns before alloc_pages().
+> 
+> This generic one cannot detect invalid read accesses and it can only
+> detect invalid write accesses after a long delay. But it is a feasible way
+> for nommu architectures.
+> 
+> ...
 >
-> Although it porbably does mean that the problem tends to be more in the 
-> really bad mode0 case (600ns -> 150us/sector -> milliseconds for 
-> multi-sector transfers).
-..
+> +#include <linux/kernel.h>
+> +#include <linux/mm.h>
+> +
+> +static void poison_page(struct page *page)
+> +{
+> +	void *addr;
+> +
+> +	if (PageHighMem(page))
+> +		return; /* i goofed */
 
-Heh.. it's worse that that: even with commonplace mode4 (120ns) transfers,
-each PCI bus transaction from start to finish often takes about 1us,
-so for a 16-sector multi-sector read, that means 4ms+ with interrupts off.
+heh.  A more complete comment would be needed here.
 
-> I forget what our multi-sector limit is, I think it tends to be 16. So 
-> you'll never get _really_ long irq-off times, but "several ms" is still 
-> pretty damn bad. 
-..
+Also, as this is a kernel bug, perhaps some sort of runtime warning?
 
-It's a device limit, usually 8 or 16 sectors for nearly all drives now.
+> +	page->poison = true;
+> +	addr = page_address(page);
+> +	memset(addr, PAGE_POISON, PAGE_SIZE);
+> +}
+> +
+> +static void poison_pages(struct page *page, int n)
+> +{
+> +	int i;
+> +
+> +	for (i = 0; i < n; i++)
+> +		poison_page(page + i);
+> +}
+> +
+> +static void check_poison_mem(unsigned char *mem, size_t bytes)
+> +{
+> +	unsigned char *start;
+> +	unsigned char *end;
+> +
+> +	for (start = mem; start < mem + bytes; start++) {
+> +		if (*start != PAGE_POISON)
+> +			break;
+> +	}
+> +	if (start == mem + bytes)
+> +		return;
+> +
+> +	for (end = mem + bytes - 1; end > start; end--) {
+> +		if (*end != PAGE_POISON)
+> +			break;
+> +	}
+> +	printk(KERN_ERR "Page corruption: %p-%p\n", start, end);
+> +	print_hex_dump(KERN_ERR, "", DUMP_PREFIX_ADDRESS, 16, 1, start,
+> +			end - start + 1, 1);
+> +}
+> +
+> +static void unpoison_page(struct page *page)
+> +{
+> +	void *addr;
+> +
 
-Cheers
+Shouldn't we check PageHighmem() here also?
+
+> +	if (!page->poison)
+> +		return;
+> +
+> +	addr = page_address(page);
+> +	check_poison_mem(addr, PAGE_SIZE);
+> +	page->poison = false;
+> +}
+> +
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
