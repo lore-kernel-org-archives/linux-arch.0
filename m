@@ -1,45 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ti-out-0910.google.com ([209.85.142.188]:44596 "EHLO
-	ti-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752661AbZCDORb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Mar 2009 09:17:31 -0500
-Date: Wed, 4 Mar 2009 23:17:23 +0900
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: Re: [PATCH] generic debug pagealloc
-Message-ID: <20090304141721.GC7168@localhost.localdomain>
-References: <20090303160103.GB5812@localhost.localdomain> <20090303133610.cb771fef.akpm@linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-2022-jp
-Content-Disposition: inline
-In-Reply-To: <20090303133610.cb771fef.akpm@linux-foundation.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:50013 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752925AbZCEWcw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Mar 2009 17:32:52 -0500
+Date: Thu, 5 Mar 2009 14:31:50 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH] generic debug pagealloc (-v2)
+Message-ID: <20090305143150.136e2708.akpm@linux-foundation.org>
+In-Reply-To: <20090305145926.GA27015@localhost.localdomain>
+References: <20090305145926.GA27015@localhost.localdomain>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20090304141723.5lmJDDMh9j5OoFK0rF1tTpYGQUGbk8hmJNjuBheYJfo@z>
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, mingo@elte.hu, jirislaby@gmail.com, rmk+lkml@arm.linux.org.uk
+Message-ID: <20090305223150.Eqy0MoF4Szhi7mcDkTO6eC5Uo_7k3t5GJcGLdyqwsLU@z>
 
-On Tue, Mar 03, 2009 at 01:36:10PM -0800, Andrew Morton wrote:
-> Alternatively, we could just not do the kmap_atomic() at all.  i386
-> won't be using this code and IIRC the only other highmem architecture
-> is powerpc32, and ppc32 appears to also have its own DEBUG_PAGEALLOC
-> implementation.  So you could remove the kmap_atomic() stuff and put
+On Thu, 5 Mar 2009 23:59:27 +0900
+Akinobu Mita <akinobu.mita@gmail.com> wrote:
+
+> CONFIG_DEBUG_PAGEALLOC is now supported by x86, powerpc, sparc (64bit),
+> and s390. This patch implements it for the rest of the architectures
+> by filling the pages with poison byte patterns after free_pages() and
+> verifying the poison patterns before alloc_pages().
 > 
-> #ifdef CONFIG_HIGHMEM
-> #error i goofed
-> #endif
+> This generic one cannot detect invalid read accesses and it can only
+> detect invalid write accesses after a long delay. But it is a feasible way
+> for nommu architectures.
 > 
-> in there.
+> ...
+>
+> +#include <linux/kernel.h>
+> +#include <linux/mm.h>
+> +
+> +static void poison_page(struct page *page)
+> +{
+> +	void *addr;
+> +
+> +	if (PageHighMem(page))
+> +		return; /* i goofed */
 
-I'll take the variant of this. Then poison_page() will be
+heh.  A more complete comment would be needed here.
 
-static void poison_page(struct page *page)
-{
-        void *addr;
+Also, as this is a kernel bug, perhaps some sort of runtime warning?
 
-        if (PageHighmem(page))
-                return; // i goofed
+> +	page->poison = true;
+> +	addr = page_address(page);
+> +	memset(addr, PAGE_POISON, PAGE_SIZE);
+> +}
+> +
+> +static void poison_pages(struct page *page, int n)
+> +{
+> +	int i;
+> +
+> +	for (i = 0; i < n; i++)
+> +		poison_page(page + i);
+> +}
+> +
+> +static void check_poison_mem(unsigned char *mem, size_t bytes)
+> +{
+> +	unsigned char *start;
+> +	unsigned char *end;
+> +
+> +	for (start = mem; start < mem + bytes; start++) {
+> +		if (*start != PAGE_POISON)
+> +			break;
+> +	}
+> +	if (start == mem + bytes)
+> +		return;
+> +
+> +	for (end = mem + bytes - 1; end > start; end--) {
+> +		if (*end != PAGE_POISON)
+> +			break;
+> +	}
+> +	printk(KERN_ERR "Page corruption: %p-%p\n", start, end);
+> +	print_hex_dump(KERN_ERR, "", DUMP_PREFIX_ADDRESS, 16, 1, start,
+> +			end - start + 1, 1);
+> +}
+> +
+> +static void unpoison_page(struct page *page)
+> +{
+> +	void *addr;
+> +
 
-       page->poison = true;
-       addr = page_address(page);
-       memset(addr, PAGE_POISON, PAGE_SIZE);
-}
+Shouldn't we check PageHighmem() here also?
+
+> +	if (!page->poison)
+> +		return;
+> +
+> +	addr = page_address(page);
+> +	check_poison_mem(addr, PAGE_SIZE);
+> +	page->poison = false;
+> +}
+> +
+
