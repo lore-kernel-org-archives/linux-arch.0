@@ -1,34 +1,50 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH] generic debug pagealloc
-Date: Fri, 06 Mar 2009 20:14:20 +1100
-Message-ID: <1236330860.7260.128.camel@pasglop>
-References: <20090303160103.GB5812@localhost.localdomain>
-	 <20090303133610.cb771fef.akpm@linux-foundation.org>
+Subject: Re: [RFC][PATCH] irq: remove IRQF_DISABLED
+Date: Fri, 06 Mar 2009 20:59:03 +1100
+Message-ID: <1236333543.7260.138.camel@pasglop>
+References: <1235996477.5330.174.camel@laptop>
+	 <alpine.LFD.2.00.0903020852220.3111@localhost.localdomain>
+	 <1236329922.7260.127.camel@pasglop>  <1236330733.6326.15.camel@laptop>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20090303133610.cb771fef.akpm@linux-foundation.org>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:49287 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750902AbZCFJ7b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 6 Mar 2009 04:59:31 -0500
+In-Reply-To: <1236330733.6326.15.camel@laptop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
 
-On Tue, 2009-03-03 at 13:36 -0800, Andrew Morton wrote:
-> Alternatively, we could just not do the kmap_atomic() at all.  i386
-> won't be using this code and IIRC the only other highmem architecture
-> is powerpc32, and ppc32 appears to also have its own DEBUG_PAGEALLOC
-> implementation.  So you could remove the kmap_atomic() stuff and put
+
+> If you have distinct interrupt priorities, you can
 > 
-Actually, ppc32 DEBUG_PAGEALLOC is busted in several ways and probably
-unfixable (though this is still being debated).
+> 1) provide an interrupt stack for each priority
+> 2) mask all lower priorities when handling one
+> 
+> Would that not work?
+
+The PIC does that already. IE. it will only interrupt again before
+->eoi() for an interrupt of a higher priority. But by using
+IRQF_DISABLED, you mask interrupts in the core, and thus effectively
+completely prevents the whole thing.
+
+> The problems with enabling irqs in hardirq handlers are that you get
+> unlimited irq nesting, which is bad for your stack, furthermore, somehow
+> people thing it makes things 'faster' because the irq-off latency goes
+> down.
+
+No, you don't get unlimited IRQ nesting, at least not on sane archs with
+a decent PIC that does things like what I described above :-)
+
+> The latter just isn't true, as you still have preemption disabled, so
+> everything but irqs still suffers.
+> 
+> The only way to make things low-latency is to pull work out of
+> non-preemptable context. Using threaded IRQs is one way to do that.
 
 Cheers,
 Ben.
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
