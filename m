@@ -1,152 +1,75 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH] generic debug pagealloc (-v3)
-Date: Fri, 6 Mar 2009 12:45:51 -0800
-Message-ID: <20090306124551.beb5b131.akpm@linux-foundation.org>
-References: <20090305145926.GA27015@localhost.localdomain>
-	<20090305143150.136e2708.akpm@linux-foundation.org>
-	<20090306032814.GA9874@localhost.localdomain>
-	<20090306153943.GB6915@localhost.localdomain>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [RFC][PATCH] irq: remove IRQF_DISABLED
+Date: Sat, 07 Mar 2009 08:40:36 +1100
+Message-ID: <1236375636.7260.160.camel@pasglop>
+References: <1235996477.5330.174.camel@laptop>
+	 <alpine.LFD.2.00.0903020852220.3111@localhost.localdomain>
+	 <1236329922.7260.127.camel@pasglop>  <1236330733.6326.15.camel@laptop>
+	 <1236333543.7260.138.camel@pasglop>  <1236335049.6326.114.camel@laptop>
+	 <1236358944.6326.538.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:41123 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754374AbZCFUqX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2009 15:46:23 -0500
-In-Reply-To: <20090306153943.GB6915@localhost.localdomain>
+Received: from gate.crashing.org ([63.228.1.57]:53303 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751937AbZCFVlP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 6 Mar 2009 16:41:15 -0500
+In-Reply-To: <1236358944.6326.538.camel@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, mingo@elte.hu, jirislaby@gmail.com, rmk+lkml@arm.linux.org.uk
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Tho mas Gleixner <tglx@linutronix.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
 
-On Sat, 7 Mar 2009 00:39:45 +0900
-Akinobu Mita <akinobu.mita@gmail.com> wrote:
 
-> CONFIG_DEBUG_PAGEALLOC is now supported by x86, powerpc, sparc64, and s390.
-> This patch implements it for the rest of the architectures by filling the
-> pages with poison byte patterns after free_pages() and verifying the poison
-> patterns before alloc_pages().
+> Ok, people put me straight here. Since linux not support interrupt
+> priorities, wouldn't it simply be a matter of implementing
+> local_irq_en/dis-able() as masking the lowest level you use to run
+> normal interrupts on?
 > 
-> This generic one cannot detect invalid page accesses immediately but invalid
-> read access may cause invalid dereference by poisoned memory and invalid write
-> access can be detected after a long delay.
-> 
-> ...
->
-> +static void poison_page(struct page *page)
-> +{
-> +	void *addr;
-> +
-> +	if (PageHighMem(page)) {
-> +		/*
-> +		 * Skip poisoning for highmem pages
-> +		 */
+> That will leave your other interrupt level available as NMI/debug
+> thingies.
 
-This isn't a good comment - what it tells us is already utterly obvious
-from the code, and the reader is left with no clue as to _why_ the code
-does this.
+No, you are missing some subtle things here.
 
-> +		return;
-> +	}
-> +	page->poison = true;
-> +	addr = page_address(page);
-> +	memset(addr, PAGE_POISON, PAGE_SIZE);
-> +}
-> +
-> +static void poison_pages(struct page *page, int n)
-> +{
-> +	int i;
-> +
-> +	for (i = 0; i < n; i++)
-> +		poison_page(page + i);
-> +}
-> +
-> +static bool single_bit_flip(unsigned char a, unsigned char b)
-> +{
-> +	unsigned char error = a ^ b;
-> +
-> +	return error && !(error & (error - 1));
-> +}
-> +
-> +static void check_poison_mem(unsigned char *mem, size_t bytes)
-> +{
-> +	unsigned char *start;
-> +	unsigned char *end;
-> +
-> +	for (start = mem; start < mem + bytes; start++) {
-> +		if (*start != PAGE_POISON)
-> +			break;
-> +	}
-> +	if (start == mem + bytes)
-> +		return;
-> +
-> +	for (end = mem + bytes - 1; end > start; end--) {
-> +		if (*end != PAGE_POISON)
-> +			break;
-> +	}
-> +	if (start == end && single_bit_flip(*start, PAGE_POISON))
-> +		printk(KERN_ERR "Single bit error: %p\n", start);
-> +	else
-> +		printk(KERN_ERR "Page corruption: %p-%p\n", start, end);
-> +
-> +	print_hex_dump(KERN_ERR, "", DUMP_PREFIX_ADDRESS, 16, 1, start,
-> +			end - start + 1, 1);
+local_irq_enable/disable() is about masking interrupts at the core
+level. This will, on archs like powerpc, mask them -all- including the
+timer for example, which is not sourced externally for us but comes from
+a specific CPU facility and generates a different exception vector from
+external interrupts. It also include to some extent perfmon interrupts
+etc...
 
-These messages should be self-identifying in some fashion.  A message
-like "Single bit error" could come from almost any part of the kernel. 
-Something like "pagealloc: single bit error", perhaps?
+Now, once you get to -external- interrupts, there is one input line per
+core/thread (some archs have more, and some powerpc variants also have a
+second one for "critical" interrupts but let's not go there for now).
+This line is controlled by a PIC, which can be one of many sorts, such
+as the OpenMPIC (aka MPIC, popular on macs among other things), XICS
+(newer pseries), etc...
 
-There's a decent chance that if this warning triggers once, it will
-trigger a thousand times, depending upon the nature of the fault.  So
-it would be sensible to put some constraint upon the reporting.  That
-could be time-based (include/linux/ratelimit.h) or perhaps just stop at
-ten or whatever.
+Those PICs have a concept of priority (they don't all do, but on powerpc
+it happens that a good chunk of them do). IE. individual external
+interrupts can be prioritized. Also, because some of these are "smart"
+PICs, (they use a fasteoi flow handler), they know whether an interrupt
+is still being serviced and can handle priorities at eoi time. They
+typically maintain a per-cpu current priority register internally,
+raised when a CPU gets/acks an interrupt and lowered when that CPU does
+an EOI).
 
-If this message ever comes out, the chances are high that we'll really
-really want to know which kernel subsystem owned that page.  Because if
-it's a software fault, this will help us find the bug.  A suitable way
-of doing this is to run dump_stack().  This will also cause the reports
-to be tracked by kerneloops.org.
+So basically, you not only have the ability to control what interrupts
+can nest what interrupts, but you -know- that at equal priorities, no
+nesting will occur, which allows to fairly easily limit the amount of
+nesting overall.
 
-> --- 2.6-poison.orig/include/linux/mm_types.h
-> +++ 2.6-poison/include/linux/mm_types.h
-> @@ -94,6 +94,10 @@ struct page {
->  	void *virtual;			/* Kernel virtual address (NULL if
->  					   not kmapped, ie. highmem) */
->  #endif /* WANT_PAGE_VIRTUAL */
-> +
-> +#ifdef CONFIG_PAGE_POISONING
-> +	bool poison;
-> +#endif /* CONFIG_PAGE_POISONING */
->  };
->  
+Hence, there is effectively no risk of uncontrolled nesting (unless it's
+configured like shit which is always a possibility);
 
-Adding 32 bits to the pageframe for a single feature which needs one
-bit is rather sad.  Sure, this is a super-slow feature and nobody will
-be turning it on in production.  But I wonder if we can do better.
+Now, as I proposed in an earlier email (maybe it got lost), if
+uncontrolled nesting is what motivates you here, why not just change the
+test of IRQF_DISABLED to also test for an arch hook, let's call it
+arch_nest_irq(). Archs can hard wire that to 0 effectively enforcing
+IRQF_DISABLED semantics on all interrupts. But you can be smarter and
+look at how much stack space remains on your interrupt stack, and only
+allow nesting if it's for example more than a couple of KBs.
 
-
-#ifdef CONFIG_WANT_PAGE_DEBUG_FLAGS
-	unsigned long debug_flags;	/* Use atomic bitops on this */
-#endif
-};
-
-#define PAGE_DEBUG_FLAG_PAGEALLOC	0
-#define PAGE_DEBUG_SOMETHING_ELSE	1
-etc
-
-
-Now, your feature needs to turn on CONFIG_WANT_PAGE_DEBUG_FLAGS.  Other
-debug features can do so as well.
-
-But we do need to ensure that CONFIG_WANT_PAGE_DEBUG_FLAGS reliably
-gets turned off when no debug features are enabling it!  It would be
-sad if a developer were to enable your feature, then disable it, then
-run `oldconfig', then have a pageframe which contains an extra unused
-long.  I don't trust the Kconfig system ;)
-
-
-Maybe this is all a bit overdesigned, dunno.  If someone else later
-comes along wanting to add more debug stuff then they'll need to
-do this, might as well do it now?
+Cheers,
+Ben.
