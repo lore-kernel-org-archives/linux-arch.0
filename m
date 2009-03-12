@@ -1,23 +1,44 @@
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH 1/2] introduce debug_kmap_atomic
-Date: Fri, 13 Mar 2009 00:16:18 +0900
-Message-ID: <20090312151617.GA3904@localhost.localdomain>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-2022-jp
+From: akpm@linux-foundation.org
+Subject: + introduce-debug_kmap_atomic.patch added to -mm tree
+Date: Thu, 12 Mar 2009 15:31:51 -0700
+Message-ID: <200903122231.n2CMVqh0012276@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ti-out-0910.google.com ([209.85.142.189]:52963 "EHLO
-	ti-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755673AbZCLPQv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2009 11:16:51 -0400
-Content-Disposition: inline
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:54987 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753346AbZCLWey (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 12 Mar 2009 18:34:54 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: mm-commits@vger.kernel.org
+Cc: akinobu.mita@gmail.com, hpa@zytor.com, linux-arch@vger.kernel.org, mingo@redhat.com, tglx@linutronix.de
 
-x86 has debug_kmap_atomic_prot() which is error checking function
-for kmap_atomic. It is usefull for the other architectures, although it
-needs CONFIG_TRACE_IRQFLAGS_SUPPORT.
+
+The patch titled
+     mm: introduce debug_kmap_atomic
+has been added to the -mm tree.  Its filename is
+     introduce-debug_kmap_atomic.patch
+
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
+
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
+out what to do about this
+
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: mm: introduce debug_kmap_atomic
+From: Akinobu Mita <akinobu.mita@gmail.com>
+
+x86 has debug_kmap_atomic_prot() which is error checking function for
+kmap_atomic.  It is usefull for the other architectures, although it needs
+CONFIG_TRACE_IRQFLAGS_SUPPORT.
 
 This patch exposes it to the other architectures.
 
@@ -25,18 +46,18 @@ Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: <x86@kernel.org>
 Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
- arch/x86/mm/highmem_32.c |   45 +--------------------------------------------
- include/linux/highmem.h  |   12 ++++++++++++
- mm/highmem.c             |   45 +++++++++++++++++++++++++++++++++++++++++++++
+
+ arch/x86/mm/highmem_32.c |   45 -------------------------------------
+ include/linux/highmem.h  |   12 +++++++++
+ mm/highmem.c             |   45 +++++++++++++++++++++++++++++++++++++
  3 files changed, 58 insertions(+), 44 deletions(-)
 
-Index: 2.6-mmotm/arch/x86/mm/highmem_32.c
-===================================================================
---- 2.6-mmotm.orig/arch/x86/mm/highmem_32.c
-+++ 2.6-mmotm/arch/x86/mm/highmem_32.c
+diff -puN arch/x86/mm/highmem_32.c~introduce-debug_kmap_atomic arch/x86/mm/highmem_32.c
+--- a/arch/x86/mm/highmem_32.c~introduce-debug_kmap_atomic
++++ a/arch/x86/mm/highmem_32.c
 @@ -19,49 +19,6 @@ void kunmap(struct page *page)
  	kunmap_high(page);
  }
@@ -96,10 +117,9 @@ Index: 2.6-mmotm/arch/x86/mm/highmem_32.c
  
  	idx = type + KM_TYPE_NR*smp_processor_id();
  	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
-Index: 2.6-mmotm/include/linux/highmem.h
-===================================================================
---- 2.6-mmotm.orig/include/linux/highmem.h
-+++ 2.6-mmotm/include/linux/highmem.h
+diff -puN include/linux/highmem.h~introduce-debug_kmap_atomic include/linux/highmem.h
+--- a/include/linux/highmem.h~introduce-debug_kmap_atomic
++++ a/include/linux/highmem.h
 @@ -187,4 +187,16 @@ static inline void copy_highpage(struct 
  	kunmap_atomic(vto, KM_USER1);
  }
@@ -117,10 +137,9 @@ Index: 2.6-mmotm/include/linux/highmem.h
 +#endif
 +
  #endif /* _LINUX_HIGHMEM_H */
-Index: 2.6-mmotm/mm/highmem.c
-===================================================================
---- 2.6-mmotm.orig/mm/highmem.c
-+++ 2.6-mmotm/mm/highmem.c
+diff -puN mm/highmem.c~introduce-debug_kmap_atomic mm/highmem.c
+--- a/mm/highmem.c~introduce-debug_kmap_atomic
++++ a/mm/highmem.c
 @@ -373,3 +373,48 @@ void __init page_address_init(void)
  }
  
@@ -170,3 +189,13 @@ Index: 2.6-mmotm/mm/highmem.c
 +}
 +
 +#endif
+_
+
+Patches currently in -mm which might be from akinobu.mita@gmail.com are
+
+generic-debug-pagealloc-v4.patch
+generic-debug-pagealloc-depend-on-config_debug_kernel.patch
+generic-debug-pagealloc-cannot-depend-on-hibernation.patch
+introduce-debug_kmap_atomic.patch
+use-debug_kmap_atomic.patch
+loop-add-ioctl-to-resize-a-loop-device.patch
