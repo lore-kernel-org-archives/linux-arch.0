@@ -1,231 +1,158 @@
-From: Bharata B Rao <bharata@linux.vnet.ibm.com>
-Subject: [RFC PATCH -tip] cpuacct: per-cgroup utime/stime statistics - v2
-Date: Thu, 12 Mar 2009 16:39:24 +0530
-Message-ID: <20090312110924.GC3344@in.ibm.com>
-Reply-To: bharata@linux.vnet.ibm.com
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH 2/2] use debug_kmap_atomic
+Date: Fri, 13 Mar 2009 00:19:33 +0900
+Message-ID: <20090312151932.GB3904@localhost.localdomain>
+References: <20090312151617.GA3904@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e36.co.us.ibm.com ([32.97.110.154]:54220 "EHLO
-	e36.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752710AbZCLLJO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2009 07:09:14 -0400
+Content-Type: text/plain; charset=iso-2022-jp
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757319AbZCLPU1@vger.kernel.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <20090312151617.GA3904@localhost.localdomain>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Balaji Rao <balajirrao@gmail.com>, Dhaval Giani <dhaval@linux.vnet.ibm.com>, Balbir Singh <balbir@linux.vnet.ibm.com>, Li Zefan <lizf@cn.fujitsu.com>, Paul Menage <menage@google.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-Here is the 2nd version of the cpuacct statistics patch. Copying
-linux-arch list also this time to check if archs which define
-CONFIG_VIRT_CPU_ACCOUNTING are ok with this change.
+Use debug_kmap_atomic in kmap_atomic, kmap_atomic_pfn,
+and iomap_atomic_prot_pfn.
 
-Changes for v2:
-- stime and utime now exported in clock_t units instead of msecs.
-- Addressed the code review comments from Balbir and Li Zefan.
-- Moved to -tip tree.
-
-v1:
-- http://lkml.org/lkml/2009/3/10/150
-
-
-cpuacct: Add stime and utime statistics
-
-Add per-cgroup cpuacct controller statistics like the system and user
-time consumed by the group of tasks.
-
-Signed-off-by: Bharata B Rao <bharata@linux.vnet.ibm.com>
-Signed-off-by: Balaji Rao <balajirrao@gmail.com>
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: <x86@kernel.org>
+Cc: <linux-arch@vger.kernel.org>
 ---
- Documentation/cgroups/cpuacct.txt |   17 +++++++
- kernel/sched.c                    |   86 +++++++++++++++++++++++++++++++++++---
- 2 files changed, 97 insertions(+), 6 deletions(-)
+ arch/mips/mm/highmem.c             |    2 ++
+ arch/powerpc/include/asm/highmem.h |    2 ++
+ arch/sparc/mm/highmem.c            |    1 +
+ arch/x86/mm/highmem_32.c           |    1 +
+ arch/x86/mm/iomap_32.c             |    2 ++
+ include/asm-frv/highmem.h          |    2 ++
+ include/asm-mn10300/highmem.h      |    2 ++
+ 7 files changed, 12 insertions(+)
 
---- a/Documentation/cgroups/cpuacct.txt
-+++ b/Documentation/cgroups/cpuacct.txt
-@@ -30,3 +30,20 @@ The above steps create a new group g1 an
- process (bash) into it. CPU time consumed by this bash and its children
- can be obtained from g1/cpuacct.usage and the same is accumulated in
- /cgroups/cpuacct.usage also.
-+
-+cpuacct.stat file lists a few statistics which further divide the
-+CPU time obtained by the cgroup into user and system times. Currently
-+the following statistics are supported:
-+
-+utime: Time spent by tasks of the cgroup in user mode.
-+stime: Time spent by tasks of the cgroup in kernel mode.
-+
-+utime and stime are in USER_HZ unit.
-+
-+cpuacct controller uses percpu_counter interface to collect utime and
-+stime. This causes two side effects:
-+
-+- It is theoritically possible to see wrong values for stime and utime.
-+  This is because percpu_counter_read() on 32bit systems is broken.
-+- It is possible to see slightly outdated values for stime and utime
-+  due to the batch processing nature of percpu_counter.
---- a/kernel/sched.c
-+++ b/kernel/sched.c
-@@ -1434,10 +1434,22 @@ iter_move_one_task(struct rq *this_rq, i
- 		   struct rq_iterator *iterator);
- #endif
+Index: 2.6-mmotm/arch/x86/mm/highmem_32.c
+===================================================================
+--- 2.6-mmotm.orig/arch/x86/mm/highmem_32.c
++++ 2.6-mmotm/arch/x86/mm/highmem_32.c
+@@ -88,6 +88,7 @@ void *kmap_atomic_pfn(unsigned long pfn,
  
-+/* Time spent by the tasks of the cpu accounting group executing in ... */
-+enum cpuacct_stat_index {
-+	CPUACCT_STAT_UTIME,	/* ... user mode */
-+	CPUACCT_STAT_STIME,	/* ... kernel mode */
-+
-+	CPUACCT_STAT_NSTATS,
-+};
-+
- #ifdef CONFIG_CGROUP_CPUACCT
- static void cpuacct_charge(struct task_struct *tsk, u64 cputime);
-+static void cpuacct_update_stats(struct task_struct *tsk,
-+		enum cpuacct_stat_index idx, cputime_t val);
- #else
- static inline void cpuacct_charge(struct task_struct *tsk, u64 cputime) {}
-+static void cpuacct_update_stats(struct task_struct *tsk,
-+		enum cpuacct_stat_index idx, cputime_t val) {}
- #endif
+ 	pagefault_disable();
  
- static inline void inc_cpu_load(struct rq *rq, unsigned long load)
-@@ -4379,6 +4391,8 @@ void account_user_time(struct task_struc
- 		cpustat->nice = cputime64_add(cpustat->nice, tmp);
- 	else
- 		cpustat->user = cputime64_add(cpustat->user, tmp);
-+
-+	cpuacct_update_stats(p, CPUACCT_STAT_UTIME, cputime);
- 	/* Account for user time used */
- 	acct_update_integrals(p);
- }
-@@ -4440,6 +4454,8 @@ void account_system_time(struct task_str
- 	else
- 		cpustat->system = cputime64_add(cpustat->system, tmp);
++	debug_kmap_atomic(type);
+ 	idx = type + KM_TYPE_NR*smp_processor_id();
+ 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
+ 	set_pte(kmap_pte-idx, pfn_pte(pfn, kmap_prot));
+Index: 2.6-mmotm/arch/x86/mm/iomap_32.c
+===================================================================
+--- 2.6-mmotm.orig/arch/x86/mm/iomap_32.c
++++ 2.6-mmotm/arch/x86/mm/iomap_32.c
+@@ -19,6 +19,7 @@
+ #include <asm/iomap.h>
+ #include <asm/pat.h>
+ #include <linux/module.h>
++#include <linux/highmem.h>
  
-+	cpuacct_update_stats(p, CPUACCT_STAT_STIME, cputime);
-+
- 	/* Account for system time used */
- 	acct_update_integrals(p);
- }
-@@ -9723,6 +9739,7 @@ struct cpuacct {
- 	struct cgroup_subsys_state css;
- 	/* cpuusage holds pointer to a u64-type object on every cpu */
- 	u64 *cpuusage;
-+	struct percpu_counter cpustat[CPUACCT_STAT_NSTATS];
- 	struct cpuacct *parent;
- };
- 
-@@ -9747,20 +9764,33 @@ static struct cgroup_subsys_state *cpuac
- 	struct cgroup_subsys *ss, struct cgroup *cgrp)
+ int is_io_mapping_possible(resource_size_t base, unsigned long size)
  {
- 	struct cpuacct *ca = kzalloc(sizeof(*ca), GFP_KERNEL);
-+	int i;
+@@ -41,6 +42,7 @@ iomap_atomic_prot_pfn(unsigned long pfn,
  
- 	if (!ca)
--		return ERR_PTR(-ENOMEM);
-+		goto out;
+ 	pagefault_disable();
  
- 	ca->cpuusage = alloc_percpu(u64);
--	if (!ca->cpuusage) {
--		kfree(ca);
--		return ERR_PTR(-ENOMEM);
--	}
-+	if (!ca->cpuusage)
-+		goto out_free_ca;
-+
-+	for (i = 0; i < CPUACCT_STAT_NSTATS; i++)
-+		if (percpu_counter_init(&ca->cpustat[i], 0))
-+			goto out_free_counters;
++	debug_kmap_atomic(type);
+ 	/*
+ 	 * For non-PAT systems, promote PAGE_KERNEL_WC to PAGE_KERNEL_UC_MINUS.
+ 	 * PAGE_KERNEL_WC maps to PWT, which translates to uncached if the
+Index: 2.6-mmotm/arch/mips/mm/highmem.c
+===================================================================
+--- 2.6-mmotm.orig/arch/mips/mm/highmem.c
++++ 2.6-mmotm/arch/mips/mm/highmem.c
+@@ -43,6 +43,7 @@ void *__kmap_atomic(struct page *page, e
+ 	if (!PageHighMem(page))
+ 		return page_address(page);
  
- 	if (cgrp->parent)
- 		ca->parent = cgroup_ca(cgrp->parent);
++	debug_kmap_atomic(type);
+ 	idx = type + KM_TYPE_NR*smp_processor_id();
+ 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
+ #ifdef CONFIG_DEBUG_HIGHMEM
+@@ -91,6 +92,7 @@ void *kmap_atomic_pfn(unsigned long pfn,
  
- 	return &ca->css;
-+
-+out_free_counters:
-+	i--;
-+	while (i-- >= 0)
-+		percpu_counter_destroy(&ca->cpustat[i]);
-+	free_percpu(ca->cpuusage);
-+out_free_ca:
-+	kfree(ca);
-+out:
-+	return ERR_PTR(-ENOMEM);
- }
+ 	pagefault_disable();
  
- /* destroy an existing cpu accounting group */
-@@ -9768,7 +9798,10 @@ static void
- cpuacct_destroy(struct cgroup_subsys *ss, struct cgroup *cgrp)
- {
- 	struct cpuacct *ca = cgroup_ca(cgrp);
-+	int i;
++	debug_kmap_atomic(type);
+ 	idx = type + KM_TYPE_NR*smp_processor_id();
+ 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
+ 	set_pte(kmap_pte-idx, pfn_pte(pfn, kmap_prot));
+Index: 2.6-mmotm/arch/powerpc/include/asm/highmem.h
+===================================================================
+--- 2.6-mmotm.orig/arch/powerpc/include/asm/highmem.h
++++ 2.6-mmotm/arch/powerpc/include/asm/highmem.h
+@@ -24,6 +24,7 @@
  
-+	for (i = 0; i < CPUACCT_STAT_NSTATS; i++)
-+		percpu_counter_destroy(&ca->cpustat[i]);
- 	free_percpu(ca->cpuusage);
- 	kfree(ca);
- }
-@@ -9855,6 +9888,25 @@ static int cpuacct_percpu_seq_read(struc
- 	return 0;
- }
+ #include <linux/init.h>
+ #include <linux/interrupt.h>
++#include <linux/highmem.h>
+ #include <asm/kmap_types.h>
+ #include <asm/tlbflush.h>
+ #include <asm/page.h>
+@@ -94,6 +95,7 @@ static inline void *kmap_atomic_prot(str
+ 	if (!PageHighMem(page))
+ 		return page_address(page);
  
-+static const char *cpuacct_stat_desc[] = {
-+	[CPUACCT_STAT_UTIME] = "utime",
-+	[CPUACCT_STAT_STIME] = "stime",
-+};
-+
-+static int cpuacct_stats_show(struct cgroup *cgrp, struct cftype *cft,
-+		struct cgroup_map_cb *cb)
-+{
-+	struct cpuacct *ca = cgroup_ca(cgrp);
-+	int i;
-+
-+	for (i = 0; i < CPUACCT_STAT_NSTATS; i++) {
-+		s64 val = percpu_counter_read(&ca->cpustat[i]);
-+		val = cputime_to_clock_t(val);
-+		cb->fill(cb, cpuacct_stat_desc[i], val);
-+	}
-+	return 0;
-+}
-+
- static struct cftype files[] = {
- 	{
- 		.name = "usage",
-@@ -9865,7 +9917,10 @@ static struct cftype files[] = {
- 		.name = "usage_percpu",
- 		.read_seq_string = cpuacct_percpu_seq_read,
- 	},
--
-+	{
-+		.name = "stat",
-+		.read_map = cpuacct_stats_show,
-+	},
- };
++	debug_kmap_atomic(type);
+ 	idx = type + KM_TYPE_NR*smp_processor_id();
+ 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
+ #ifdef CONFIG_DEBUG_HIGHMEM
+Index: 2.6-mmotm/arch/sparc/mm/highmem.c
+===================================================================
+--- 2.6-mmotm.orig/arch/sparc/mm/highmem.c
++++ 2.6-mmotm/arch/sparc/mm/highmem.c
+@@ -39,6 +39,7 @@ void *kmap_atomic(struct page *page, enu
+ 	if (!PageHighMem(page))
+ 		return page_address(page);
  
- static int cpuacct_populate(struct cgroup_subsys *ss, struct cgroup *cgrp)
-@@ -9895,6 +9950,25 @@ static void cpuacct_charge(struct task_s
- 	}
- }
++	debug_kmap_atomic(type);
+ 	idx = type + KM_TYPE_NR*smp_processor_id();
+ 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
  
-+/*
-+ * Account the system/user time to the task's accounting group.
-+ */
-+static void cpuacct_update_stats(struct task_struct *tsk,
-+		enum cpuacct_stat_index idx, cputime_t val)
-+{
-+	struct cpuacct *ca;
-+
-+	if (unlikely(!cpuacct_subsys.active))
-+		return;
-+
-+	ca = task_ca(tsk);
-+
-+	do {
-+		percpu_counter_add(&ca->cpustat[idx], val);
-+		ca = ca->parent;
-+	} while (ca);
-+}
-+
- struct cgroup_subsys cpuacct_subsys = {
- 	.name = "cpuacct",
- 	.create = cpuacct_create,
+Index: 2.6-mmotm/include/asm-frv/highmem.h
+===================================================================
+--- 2.6-mmotm.orig/include/asm-frv/highmem.h
++++ 2.6-mmotm/include/asm-frv/highmem.h
+@@ -18,6 +18,7 @@
+ #ifdef __KERNEL__
+ 
+ #include <linux/init.h>
++#include <linux/highmem.h>
+ #include <asm/mem-layout.h>
+ #include <asm/spr-regs.h>
+ #include <asm/mb-regs.h>
+@@ -116,6 +117,7 @@ static inline void *kmap_atomic(struct p
+ 	unsigned long paddr;
+ 
+ 	pagefault_disable();
++	debug_kmap_atomic(type);
+ 	paddr = page_to_phys(page);
+ 
+ 	switch (type) {
+Index: 2.6-mmotm/include/asm-mn10300/highmem.h
+===================================================================
+--- 2.6-mmotm.orig/include/asm-mn10300/highmem.h
++++ 2.6-mmotm/include/asm-mn10300/highmem.h
+@@ -16,6 +16,7 @@
+ 
+ #include <linux/init.h>
+ #include <linux/interrupt.h>
++#include <linux/highmem.h>
+ #include <asm/kmap_types.h>
+ #include <asm/pgtable.h>
+ 
+@@ -77,6 +78,7 @@ static inline unsigned long kmap_atomic(
+ 	if (page < highmem_start_page)
+ 		return page_address(page);
+ 
++	debug_kmap_atomic(type);
+ 	idx = type + KM_TYPE_NR * smp_processor_id();
+ 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
+ #if HIGHMEM_DEBUG
