@@ -1,187 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:60716 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753085AbZCLWez (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 12 Mar 2009 18:34:55 -0400
-Message-ID: <200903122231.n2CMVtLT012279@imap1.linux-foundation.org>
-Subject: + use-debug_kmap_atomic.patch added to -mm tree
-From: akpm@linux-foundation.org
-Date: Thu, 12 Mar 2009 15:31:54 -0700
+Received: from cn.fujitsu.com ([222.73.24.84]:58957 "EHLO song.cn.fujitsu.com"
+	rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org with ESMTP
+	id S1755975AbZCPI6k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 16 Mar 2009 04:58:40 -0400
+Message-ID: <49BE14C5.2020109@cn.fujitsu.com>
+Date: Mon, 16 Mar 2009 16:58:45 +0800
+From: Li Zefan <lizf@cn.fujitsu.com>
+MIME-Version: 1.0
+Subject: Re: [RFC PATCH -tip] cpuacct: per-cgroup utime/stime statistics -
+ v2
+References: <20090312110924.GC3344@in.ibm.com> <20090316103517.b0f8a20c.kamezawa.hiroyu@jp.fujitsu.com> <20090316043754.GA3449@in.ibm.com> <49BDFC22.6090202@cn.fujitsu.com> <20090316084756.GD3449@in.ibm.com>
+In-Reply-To: <20090316084756.GD3449@in.ibm.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mm-commits@vger.kernel.org
-Cc: akinobu.mita@gmail.com, hpa@zytor.com, linux-arch@vger.kernel.org, mingo@redhat.com, tglx@linutronix.de
-Message-ID: <20090312223154.iU2geKL3iXcPuaE6UR_0BicDb9wI4NsvMt-ZpDaWt_c@z>
+To: bharata@linux.vnet.ibm.com
+Cc: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-kernel@vger.kernel.org, Balaji Rao <balajirrao@gmail.com>, Dhaval Giani <dhaval@linux.vnet.ibm.com>, Balbir Singh <balbir@linux.vnet.ibm.com>, Paul Menage <menage@google.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-arch@vger.kernel.org
+Message-ID: <20090316085845.PRQk2aBy9d4X1SaLpMi0w5jkSjCtKcpSqJujPwxtHNY@z>
 
+Bharata B Rao wrote:
+> On Mon, Mar 16, 2009 at 03:13:38PM +0800, Li Zefan wrote:
+>>>>> +/*
+>>>>> + * Account the system/user time to the task's accounting group.
+>>>>> + */
+>>>>> +static void cpuacct_update_stats(struct task_struct *tsk,
+>>>>> +		enum cpuacct_stat_index idx, cputime_t val)
+>>>>> +{
+>>>>> +	struct cpuacct *ca;
+>>>>> +
+>>>>> +	if (unlikely(!cpuacct_subsys.active))
+>>>>> +		return;
+>>>>> +
+>>>>> +	ca = task_ca(tsk);
+>>>>> +
+>>>>> +	do {
+>>>>> +		percpu_counter_add(&ca->cpustat[idx], val);
+>>>>> +		ca = ca->parent;
+>>>>> +	} while (ca);
+>>>>> +}
+>>>>> +
+>>>> IIUC, to make sure accessing "ca" to be safe, we need some condition.
+>>>> (task_lock() or some other.....
+>>> task_lock() protects tsk->cgroups->subsys[]. So can we hold task_lock()
+>>> to protect this walk ? But we do this cpuacct hierarchy walk for the
+>>> current task here. So can a current task's ca or ca's parents disappear
+>>> from under us ?
+>>>
+>> task_ca() should be protected by task_lock() or rcu_read_lock(), otherwise
+>> there is a very small race:
+>>
+>>   ca = task_ca(tsk)
+>> 				move @tsk to another cgroup
+>> 				rmdir old_cgrp (thus ca is freed)
+>>   ca->cpustat <--- accessing freed memory
+>>
+>> As KAMEZAWA-san said all updates are called under preempt-disabled, and
+>> classic and tree rcu's rcu_read_lock does preempt disable only, so above
+>> code is ok, except for rcupreempt.
+> 
+> So I will protect task_ca() and ca hierarchy walk with explicit
+> rcu_read_lock() to be fully safe.
+> 
 
-The patch titled
-     mm: use debug_kmap_atomic
-has been added to the -mm tree.  Its filename is
-     use-debug_kmap_atomic.patch
+either:
 
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
+rcu_read_lock();
+ca = task_ca(tsk);
+do {
+	percpu_counter_add(&ca->cpustat[idx], val);
+	ca = ca->parent;
+} while (ca);
+rcu_read_unlock();
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+or:
 
-See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
-out what to do about this
+rcu_read_lock();
+ca = task_ca(tsk);
+css_get(&ca->css);
+rcu_read_unlock();
+do {
+	percpu_counter_add(&ca->cpustat[idx], val);
+	ca = ca->parent;
+} while (ca);
+css_put(&ca->css);
 
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+which is more efficient?
 
-------------------------------------------------------
-Subject: mm: use debug_kmap_atomic
-From: Akinobu Mita <akinobu.mita@gmail.com>
+> By the same logic, hierarchy walk in cpuacct_charge() is also
+> not safe with rcupreempt. It is under preempt disabled section due
+> to rq->lock. Does cpuacct_charge() also need a fix then ?
+> 
 
-Use debug_kmap_atomic in kmap_atomic, kmap_atomic_pfn, and
-iomap_atomic_prot_pfn.
-
-Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- arch/mips/mm/highmem.c             |    2 ++
- arch/powerpc/include/asm/highmem.h |    2 ++
- arch/sparc/mm/highmem.c            |    1 +
- arch/x86/mm/highmem_32.c           |    1 +
- arch/x86/mm/iomap_32.c             |    2 ++
- include/asm-frv/highmem.h          |    2 ++
- include/asm-mn10300/highmem.h      |    2 ++
- 7 files changed, 12 insertions(+)
-
-diff -puN arch/mips/mm/highmem.c~use-debug_kmap_atomic arch/mips/mm/highmem.c
---- a/arch/mips/mm/highmem.c~use-debug_kmap_atomic
-+++ a/arch/mips/mm/highmem.c
-@@ -43,6 +43,7 @@ void *__kmap_atomic(struct page *page, e
- 	if (!PageHighMem(page))
- 		return page_address(page);
- 
-+	debug_kmap_atomic(type);
- 	idx = type + KM_TYPE_NR*smp_processor_id();
- 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- #ifdef CONFIG_DEBUG_HIGHMEM
-@@ -91,6 +92,7 @@ void *kmap_atomic_pfn(unsigned long pfn,
- 
- 	pagefault_disable();
- 
-+	debug_kmap_atomic(type);
- 	idx = type + KM_TYPE_NR*smp_processor_id();
- 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- 	set_pte(kmap_pte-idx, pfn_pte(pfn, kmap_prot));
-diff -puN arch/powerpc/include/asm/highmem.h~use-debug_kmap_atomic arch/powerpc/include/asm/highmem.h
---- a/arch/powerpc/include/asm/highmem.h~use-debug_kmap_atomic
-+++ a/arch/powerpc/include/asm/highmem.h
-@@ -24,6 +24,7 @@
- 
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/highmem.h>
- #include <asm/kmap_types.h>
- #include <asm/tlbflush.h>
- #include <asm/page.h>
-@@ -94,6 +95,7 @@ static inline void *kmap_atomic_prot(str
- 	if (!PageHighMem(page))
- 		return page_address(page);
- 
-+	debug_kmap_atomic(type);
- 	idx = type + KM_TYPE_NR*smp_processor_id();
- 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- #ifdef CONFIG_DEBUG_HIGHMEM
-diff -puN arch/sparc/mm/highmem.c~use-debug_kmap_atomic arch/sparc/mm/highmem.c
---- a/arch/sparc/mm/highmem.c~use-debug_kmap_atomic
-+++ a/arch/sparc/mm/highmem.c
-@@ -39,6 +39,7 @@ void *kmap_atomic(struct page *page, enu
- 	if (!PageHighMem(page))
- 		return page_address(page);
- 
-+	debug_kmap_atomic(type);
- 	idx = type + KM_TYPE_NR*smp_processor_id();
- 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- 
-diff -puN arch/x86/mm/highmem_32.c~use-debug_kmap_atomic arch/x86/mm/highmem_32.c
---- a/arch/x86/mm/highmem_32.c~use-debug_kmap_atomic
-+++ a/arch/x86/mm/highmem_32.c
-@@ -88,6 +88,7 @@ void *kmap_atomic_pfn(unsigned long pfn,
- 
- 	pagefault_disable();
- 
-+	debug_kmap_atomic(type);
- 	idx = type + KM_TYPE_NR*smp_processor_id();
- 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- 	set_pte(kmap_pte-idx, pfn_pte(pfn, kmap_prot));
-diff -puN arch/x86/mm/iomap_32.c~use-debug_kmap_atomic arch/x86/mm/iomap_32.c
---- a/arch/x86/mm/iomap_32.c~use-debug_kmap_atomic
-+++ a/arch/x86/mm/iomap_32.c
-@@ -19,6 +19,7 @@
- #include <asm/iomap.h>
- #include <asm/pat.h>
- #include <linux/module.h>
-+#include <linux/highmem.h>
- 
- int is_io_mapping_possible(resource_size_t base, unsigned long size)
- {
-@@ -41,6 +42,7 @@ iomap_atomic_prot_pfn(unsigned long pfn,
- 
- 	pagefault_disable();
- 
-+	debug_kmap_atomic(type);
- 	/*
- 	 * For non-PAT systems, promote PAGE_KERNEL_WC to PAGE_KERNEL_UC_MINUS.
- 	 * PAGE_KERNEL_WC maps to PWT, which translates to uncached if the
-diff -puN include/asm-frv/highmem.h~use-debug_kmap_atomic include/asm-frv/highmem.h
---- a/include/asm-frv/highmem.h~use-debug_kmap_atomic
-+++ a/include/asm-frv/highmem.h
-@@ -18,6 +18,7 @@
- #ifdef __KERNEL__
- 
- #include <linux/init.h>
-+#include <linux/highmem.h>
- #include <asm/mem-layout.h>
- #include <asm/spr-regs.h>
- #include <asm/mb-regs.h>
-@@ -116,6 +117,7 @@ static inline void *kmap_atomic(struct p
- 	unsigned long paddr;
- 
- 	pagefault_disable();
-+	debug_kmap_atomic(type);
- 	paddr = page_to_phys(page);
- 
- 	switch (type) {
-diff -puN include/asm-mn10300/highmem.h~use-debug_kmap_atomic include/asm-mn10300/highmem.h
---- a/include/asm-mn10300/highmem.h~use-debug_kmap_atomic
-+++ a/include/asm-mn10300/highmem.h
-@@ -16,6 +16,7 @@
- 
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/highmem.h>
- #include <asm/kmap_types.h>
- #include <asm/pgtable.h>
- 
-@@ -77,6 +78,7 @@ static inline unsigned long kmap_atomic(
- 	if (page < highmem_start_page)
- 		return page_address(page);
- 
-+	debug_kmap_atomic(type);
- 	idx = type + KM_TYPE_NR * smp_processor_id();
- 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- #if HIGHMEM_DEBUG
-_
-
-Patches currently in -mm which might be from akinobu.mita@gmail.com are
-
-generic-debug-pagealloc-v4.patch
-generic-debug-pagealloc-depend-on-config_debug_kernel.patch
-generic-debug-pagealloc-cannot-depend-on-hibernation.patch
-introduce-debug_kmap_atomic.patch
-use-debug_kmap_atomic.patch
-loop-add-ioctl-to-resize-a-loop-device.patch
-
+I guess so..
