@@ -1,41 +1,65 @@
-From: Michal Simek <michal.simek@petalogix.com>
-Subject: Microblaze arch merging
-Date: Tue, 17 Mar 2009 10:01:30 +0100
-Message-ID: <49BF66EA.9030101@petalogix.com>
-Reply-To: michal.simek@petalogix.com
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: Microblaze arch merging
+Date: Tue, 17 Mar 2009 23:26:52 +1100
+Message-ID: <20090317232652.8fe9dc30.sfr@canb.auug.org.au>
+References: <49BF66EA.9030101@petalogix.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f176.google.com ([209.85.220.176]:62672 "EHLO
-	mail-fx0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752049AbZCQJBg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2009 05:01:36 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-next@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, lkml <linux-arch@vger.kernel.org>
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Tue__17_Mar_2009_23_26_52_+1100_40MP9NSbUau766cZ"
+Return-path: <linux-next-owner@vger.kernel.org>
+In-Reply-To: <49BF66EA.9030101@petalogix.com>
+Sender: linux-next-owner@vger.kernel.org
+To: michal.simek@petalogix.com
+Cc: linux-next@vger.kernel.org, lkml <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Stephen and others,
+--Signature=_Tue__17_Mar_2009_23_26_52_+1100_40MP9NSbUau766cZ
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-I am preparing first pack for Microblaze CPU (If you want to review I
-can send bunch of patches very soon).
-This pack was reviewed in past on LKML and of course I have done some
-changes there and move to latest kernel code.
+Hi Michal,
 
-Could you tell me what the right way is for adding to Microblaze code to
-linux-next for testing and merging?
-I don't expect that microblaze code break any other arch because all the
-code is in arch/microblaze folder + some minor changes in
-Kconfig for drivers.
+On Tue, 17 Mar 2009 10:01:30 +0100 Michal Simek <michal.simek@petalogix.com=
+> wrote:
+>
+> We have ready git server for pushing too.
+> What is the best way for you? Code based on current linus-head on based
+> on linux-next?
 
-We have ready git server for pushing too.
-What is the best way for you? Code based on current linus-head on based
-on linux-next?
+All trees included in linux-next should be based on Linus' tree (unless
+there is a good reason for a dependency on another tree).
 
-Thanks,
-Michal
+What I tell everyone: all patches/commits in the tree/series must
+have been:
 
--- 
-Michal Simek, Ing. (M.Eng)
-PetaLogix - Linux Solutions for a Reconfigurable World
-w: www.petalogix.com p: +61-7-30090663,+42-0-721842854 f: +61-7-30090663
+	posted to a relevant mailing list
+	reviewed
+	unit tested
+	destined for the next merge window (or the current release)
+
+*before* they are included.  The linux-next tree is for integration
+testing and to lower the impact of conflicts between subsystems in the
+next merge window.
+
+Basically, this should be just what you would send to Linus (or ask him
+to fetch).  It is allowed to be rebased if you deem it necessary.
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Tue__17_Mar_2009_23_26_52_+1100_40MP9NSbUau766cZ
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
+
+iEYEARECAAYFAkm/lwwACgkQjjKRsyhoI8xjvwCfevYdKr2ChJXCDrWZU/iesOnh
+an0AoIJTAJ1MBrQRJp2i7pz8vGFIUe1k
+=0mtc
+-----END PGP SIGNATURE-----
+
+--Signature=_Tue__17_Mar_2009_23_26_52_+1100_40MP9NSbUau766cZ--
