@@ -1,108 +1,41 @@
-From: Bharata B Rao <bharata@linux.vnet.ibm.com>
-Subject: Re: [RFC PATCH -tip] cpuacct: per-cgroup utime/stime statistics -
-	v2
-Date: Tue, 17 Mar 2009 11:53:46 +0530
-Message-ID: <20090317062346.GF3314@in.ibm.com>
-References: <20090312110924.GC3344@in.ibm.com> <20090316103517.b0f8a20c.kamezawa.hiroyu@jp.fujitsu.com> <20090316043754.GA3449@in.ibm.com> <49BDFC22.6090202@cn.fujitsu.com> <20090316084756.GD3449@in.ibm.com> <49BE14C5.2020109@cn.fujitsu.com>
-Reply-To: bharata@linux.vnet.ibm.com
+From: Michal Simek <michal.simek@petalogix.com>
+Subject: Microblaze arch merging
+Date: Tue, 17 Mar 2009 10:01:30 +0100
+Message-ID: <49BF66EA.9030101@petalogix.com>
+Reply-To: michal.simek@petalogix.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e4.ny.us.ibm.com ([32.97.182.144]:49164 "EHLO e4.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752450AbZCQGXV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 Mar 2009 02:23:21 -0400
-Content-Disposition: inline
-In-Reply-To: <49BE14C5.2020109@cn.fujitsu.com>
+Received: from mail-fx0-f176.google.com ([209.85.220.176]:62672 "EHLO
+	mail-fx0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752049AbZCQJBg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2009 05:01:36 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Li Zefan <lizf@cn.fujitsu.com>
-Cc: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-kernel@vger.kernel.org, Balaji Rao <balajirrao@gmail.com>, Dhaval Giani <dhaval@linux.vnet.ibm.com>, Balbir Singh <balbir@linux.vnet.ibm.com>, Paul Menage <menage@google.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-arch@vger.kernel.org
+To: linux-next@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, lkml <linux-arch@vger.kernel.org>
 
-On Mon, Mar 16, 2009 at 04:58:45PM +0800, Li Zefan wrote:
-> Bharata B Rao wrote:
-> > On Mon, Mar 16, 2009 at 03:13:38PM +0800, Li Zefan wrote:
-> >>>>> +/*
-> >>>>> + * Account the system/user time to the task's accounting group.
-> >>>>> + */
-> >>>>> +static void cpuacct_update_stats(struct task_struct *tsk,
-> >>>>> +		enum cpuacct_stat_index idx, cputime_t val)
-> >>>>> +{
-> >>>>> +	struct cpuacct *ca;
-> >>>>> +
-> >>>>> +	if (unlikely(!cpuacct_subsys.active))
-> >>>>> +		return;
-> >>>>> +
-> >>>>> +	ca = task_ca(tsk);
-> >>>>> +
-> >>>>> +	do {
-> >>>>> +		percpu_counter_add(&ca->cpustat[idx], val);
-> >>>>> +		ca = ca->parent;
-> >>>>> +	} while (ca);
-> >>>>> +}
-> >>>>> +
-> >>>> IIUC, to make sure accessing "ca" to be safe, we need some condition.
-> >>>> (task_lock() or some other.....
-> >>> task_lock() protects tsk->cgroups->subsys[]. So can we hold task_lock()
-> >>> to protect this walk ? But we do this cpuacct hierarchy walk for the
-> >>> current task here. So can a current task's ca or ca's parents disappear
-> >>> from under us ?
-> >>>
-> >> task_ca() should be protected by task_lock() or rcu_read_lock(), otherwise
-> >> there is a very small race:
-> >>
-> >>   ca = task_ca(tsk)
-> >> 				move @tsk to another cgroup
-> >> 				rmdir old_cgrp (thus ca is freed)
-> >>   ca->cpustat <--- accessing freed memory
-> >>
-> >> As KAMEZAWA-san said all updates are called under preempt-disabled, and
-> >> classic and tree rcu's rcu_read_lock does preempt disable only, so above
-> >> code is ok, except for rcupreempt.
-> > 
-> > So I will protect task_ca() and ca hierarchy walk with explicit
-> > rcu_read_lock() to be fully safe.
-> > 
-> 
-> either:
-> 
-> rcu_read_lock();
-> ca = task_ca(tsk);
-> do {
-> 	percpu_counter_add(&ca->cpustat[idx], val);
-> 	ca = ca->parent;
-> } while (ca);
-> rcu_read_unlock();
-> 
-> or:
-> 
-> rcu_read_lock();
-> ca = task_ca(tsk);
-> css_get(&ca->css);
-> rcu_read_unlock();
-> do {
-> 	percpu_counter_add(&ca->cpustat[idx], val);
-> 	ca = ca->parent;
-> } while (ca);
-> css_put(&ca->css);
-> 
-> which is more efficient?
+Hi Stephen and others,
 
-Went with the first one in my next version of cpuacct stats patch
-as I felt it is better than the 2nd version which needs 2 atomic
-operations.
+I am preparing first pack for Microblaze CPU (If you want to review I
+can send bunch of patches very soon).
+This pack was reviewed in past on LKML and of course I have done some
+changes there and move to latest kernel code.
 
-> 
-> > By the same logic, hierarchy walk in cpuacct_charge() is also
-> > not safe with rcupreempt. It is under preempt disabled section due
-> > to rq->lock. Does cpuacct_charge() also need a fix then ?
-> > 
-> 
-> I guess so..
+Could you tell me what the right way is for adding to Microblaze code to
+linux-next for testing and merging?
+I don't expect that microblaze code break any other arch because all the
+code is in arch/microblaze folder + some minor changes in
+Kconfig for drivers.
 
-Sent a separate fix for this.
+We have ready git server for pushing too.
+What is the best way for you? Code based on current linus-head on based
+on linux-next?
 
-Thanks for your review and suggestions.
+Thanks,
+Michal
 
-Regards,
-Bharata.
+-- 
+Michal Simek, Ing. (M.Eng)
+PetaLogix - Linux Solutions for a Reconfigurable World
+w: www.petalogix.com p: +61-7-30090663,+42-0-721842854 f: +61-7-30090663
