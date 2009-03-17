@@ -1,95 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cn.fujitsu.com ([222.73.24.84]:58957 "EHLO song.cn.fujitsu.com"
-	rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org with ESMTP
-	id S1755975AbZCPI6k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Mar 2009 04:58:40 -0400
-Message-ID: <49BE14C5.2020109@cn.fujitsu.com>
-Date: Mon, 16 Mar 2009 16:58:45 +0800
-From: Li Zefan <lizf@cn.fujitsu.com>
-MIME-Version: 1.0
-Subject: Re: [RFC PATCH -tip] cpuacct: per-cgroup utime/stime statistics -
- v2
-References: <20090312110924.GC3344@in.ibm.com> <20090316103517.b0f8a20c.kamezawa.hiroyu@jp.fujitsu.com> <20090316043754.GA3449@in.ibm.com> <49BDFC22.6090202@cn.fujitsu.com> <20090316084756.GD3449@in.ibm.com>
-In-Reply-To: <20090316084756.GD3449@in.ibm.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Received: from chilli.pcug.org.au ([203.10.76.44]:56695 "EHLO smtps.tip.net.au"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755511AbZCQM1D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 Mar 2009 08:27:03 -0400
+Date: Tue, 17 Mar 2009 23:26:52 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: Microblaze arch merging
+Message-ID: <20090317232652.8fe9dc30.sfr@canb.auug.org.au>
+In-Reply-To: <49BF66EA.9030101@petalogix.com>
+References: <49BF66EA.9030101@petalogix.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Tue__17_Mar_2009_23_26_52_+1100_40MP9NSbUau766cZ"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: bharata@linux.vnet.ibm.com
-Cc: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-kernel@vger.kernel.org, Balaji Rao <balajirrao@gmail.com>, Dhaval Giani <dhaval@linux.vnet.ibm.com>, Balbir Singh <balbir@linux.vnet.ibm.com>, Paul Menage <menage@google.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-arch@vger.kernel.org
-Message-ID: <20090316085845.PRQk2aBy9d4X1SaLpMi0w5jkSjCtKcpSqJujPwxtHNY@z>
+To: michal.simek@petalogix.com
+Cc: linux-next@vger.kernel.org, lkml <linux-arch@vger.kernel.org>
+Message-ID: <20090317122652.INPXEwTFTyMyDZ3259MqcjhtD9zjhwfS3tO_ntCw79c@z>
 
-Bharata B Rao wrote:
-> On Mon, Mar 16, 2009 at 03:13:38PM +0800, Li Zefan wrote:
->>>>> +/*
->>>>> + * Account the system/user time to the task's accounting group.
->>>>> + */
->>>>> +static void cpuacct_update_stats(struct task_struct *tsk,
->>>>> +		enum cpuacct_stat_index idx, cputime_t val)
->>>>> +{
->>>>> +	struct cpuacct *ca;
->>>>> +
->>>>> +	if (unlikely(!cpuacct_subsys.active))
->>>>> +		return;
->>>>> +
->>>>> +	ca = task_ca(tsk);
->>>>> +
->>>>> +	do {
->>>>> +		percpu_counter_add(&ca->cpustat[idx], val);
->>>>> +		ca = ca->parent;
->>>>> +	} while (ca);
->>>>> +}
->>>>> +
->>>> IIUC, to make sure accessing "ca" to be safe, we need some condition.
->>>> (task_lock() or some other.....
->>> task_lock() protects tsk->cgroups->subsys[]. So can we hold task_lock()
->>> to protect this walk ? But we do this cpuacct hierarchy walk for the
->>> current task here. So can a current task's ca or ca's parents disappear
->>> from under us ?
->>>
->> task_ca() should be protected by task_lock() or rcu_read_lock(), otherwise
->> there is a very small race:
->>
->>   ca = task_ca(tsk)
->> 				move @tsk to another cgroup
->> 				rmdir old_cgrp (thus ca is freed)
->>   ca->cpustat <--- accessing freed memory
->>
->> As KAMEZAWA-san said all updates are called under preempt-disabled, and
->> classic and tree rcu's rcu_read_lock does preempt disable only, so above
->> code is ok, except for rcupreempt.
-> 
-> So I will protect task_ca() and ca hierarchy walk with explicit
-> rcu_read_lock() to be fully safe.
-> 
+--Signature=_Tue__17_Mar_2009_23_26_52_+1100_40MP9NSbUau766cZ
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-either:
+Hi Michal,
 
-rcu_read_lock();
-ca = task_ca(tsk);
-do {
-	percpu_counter_add(&ca->cpustat[idx], val);
-	ca = ca->parent;
-} while (ca);
-rcu_read_unlock();
+On Tue, 17 Mar 2009 10:01:30 +0100 Michal Simek <michal.simek@petalogix.com=
+> wrote:
+>
+> We have ready git server for pushing too.
+> What is the best way for you? Code based on current linus-head on based
+> on linux-next?
 
-or:
+All trees included in linux-next should be based on Linus' tree (unless
+there is a good reason for a dependency on another tree).
 
-rcu_read_lock();
-ca = task_ca(tsk);
-css_get(&ca->css);
-rcu_read_unlock();
-do {
-	percpu_counter_add(&ca->cpustat[idx], val);
-	ca = ca->parent;
-} while (ca);
-css_put(&ca->css);
+What I tell everyone: all patches/commits in the tree/series must
+have been:
 
-which is more efficient?
+	posted to a relevant mailing list
+	reviewed
+	unit tested
+	destined for the next merge window (or the current release)
 
-> By the same logic, hierarchy walk in cpuacct_charge() is also
-> not safe with rcupreempt. It is under preempt disabled section due
-> to rq->lock. Does cpuacct_charge() also need a fix then ?
-> 
+*before* they are included.  The linux-next tree is for integration
+testing and to lower the impact of conflicts between subsystems in the
+next merge window.
 
-I guess so..
+Basically, this should be just what you would send to Linus (or ask him
+to fetch).  It is allowed to be rebased if you deem it necessary.
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Tue__17_Mar_2009_23_26_52_+1100_40MP9NSbUau766cZ
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
+
+iEYEARECAAYFAkm/lwwACgkQjjKRsyhoI8xjvwCfevYdKr2ChJXCDrWZU/iesOnh
+an0AoIJTAJ1MBrQRJp2i7pz8vGFIUe1k
+=0mtc
+-----END PGP SIGNATURE-----
+
+--Signature=_Tue__17_Mar_2009_23_26_52_+1100_40MP9NSbUau766cZ--
