@@ -1,23 +1,16 @@
 From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Sign extension problem in llseek(2)
-Date: Tue, 24 Mar 2009 19:24:18 +0100
-Message-ID: <20090324182418.GC6509@linux-mips.org>
+Subject: [PATCH 1/2] fs: Fix sign extension problem in sys_llseek
+Date: Wed, 25 Mar 2009 01:13:03 +0100
+Message-ID: <20090325001303.GB24026@linux-mips.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([213.58.128.207]:33844 "EHLO
-	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757327AbZCXSYf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Mar 2009 14:24:35 -0400
-Received: from localhost.localdomain ([127.0.0.1]:40639 "EHLO h5.dl5rb.org.uk")
-	by ftp.linux-mips.org with ESMTP id S21368290AbZCXSYY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Mar 2009 18:24:24 +0000
+Return-path: <linux-mips-bounce@linux-mips.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: dann frazier <dannf@dannf.org>, linux-mips@linux-mips.org
+List-Id: linux-arch.vger.kernel.org
 
 In fs/read_write.c:
 
@@ -25,18 +18,14 @@ SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned long, offset_high,
                 unsigned long, offset_low, loff_t __user *, result,
                 unsigned int, origin)
 ...
-	offset = vfs_llseek(file, ((loff_t) offset_high << 32) | offset_low,
+   	offset = vfs_llseek(file, ((loff_t) offset_high << 32) | offset_low,
                         origin);
- 
+
 On a 64-bit system that define CONFIG_HAVE_SYSCALL_WRAPPERS SYSCALL_DEFINEx
 will truncate long arguments to 32-bit and on some architectures such as
 MIPS sign-extended to 64-bit again.  On such architectures passing a
 value with bit 31 in offset_low set will result in a huge 64-bit offset
 being passed to vfs_llseek() and it failiing with EINVAL.
-
-MIPS is affected by this issue.  Other 64-bit architectures which also
-set CONFIG_HAVE_SYSCALL_WRAPPERS and __ARCH_WANT_SYS_LLSEEK are PowerPC,
-S390 and sparc.
 
 The issue was discovered on Debian's MIPS infrastructure machines running
 e2fsck:
@@ -50,4 +39,42 @@ with errors like:
   from scan.  Ignore error<y>?
 [...]
 
-  Ralf
+Fixed by changing the prototype to use 32-bit arguments for the higher
+and lower half of offset of sys_llseek.
+
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+
+ fs/read_write.c          |    4 ++--
+ include/linux/syscalls.h |    4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/fs/read_write.c b/fs/read_write.c
+index 400fe81..2fb171e 100644
+--- a/fs/read_write.c
++++ b/fs/read_write.c
+@@ -171,8 +171,8 @@ bad:
+ }
+ 
+ #ifdef __ARCH_WANT_SYS_LLSEEK
+-SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned long, offset_high,
+-		unsigned long, offset_low, loff_t __user *, result,
++SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
++		unsigned int, offset_low, loff_t __user *, result,
+ 		unsigned int, origin)
+ {
+ 	int retval;
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index f9f900c..5c593d4 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -444,8 +444,8 @@ asmlinkage long sys_utimes(char __user *filename,
+ 				struct timeval __user *utimes);
+ asmlinkage long sys_lseek(unsigned int fd, off_t offset,
+ 			  unsigned int origin);
+-asmlinkage long sys_llseek(unsigned int fd, unsigned long offset_high,
+-			unsigned long offset_low, loff_t __user *result,
++asmlinkage long sys_llseek(unsigned int fd, unsigned int offset_high,
++			unsigned int offset_low, loff_t __user *result,
+ 			unsigned int origin);
+ asmlinkage long sys_read(unsigned int fd, char __user *buf, size_t count);
+ asmlinkage long sys_readahead(int fd, loff_t offset, size_t count);
