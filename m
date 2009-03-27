@@ -1,38 +1,77 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [PATCH 7/13] score - New architecure port to SunplusCT S+CORE
-	processor
-Date: Fri, 27 Mar 2009 13:09:03 -0400
-Message-ID: <20090327170903.GC29999@bombadil.infradead.org>
-References: <OF67FB031C.57858745-ON48257586.000915EE-48257586.00097F4B@sunplusct.com> <200903271705.29903.arnd@arndb.de>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 4/13] score - New architecure port to SunplusCT S+CORE processor
+Date: Fri, 27 Mar 2009 19:34:35 +0100
+Message-ID: <20090327183435.GA21149@uranus.ravnborg.org>
+References: <OF7C8E38E6.732D64E1-ON48257586.0008A8A3-48257586.0008F44B@sunplusct.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:51105 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753417AbZC0RJG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2009 13:09:06 -0400
+Received: from pfepb.post.tele.dk ([195.41.46.236]:58309 "EHLO
+	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752856AbZC0Scg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2009 14:32:36 -0400
 Content-Disposition: inline
-In-Reply-To: <200903271705.29903.arnd@arndb.de>
+In-Reply-To: <OF7C8E38E6.732D64E1-ON48257586.0008A8A3-48257586.0008F44B@sunplusct.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: liqin.chen@sunplusct.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, monstr@monstr.eu, john.williams@petalogix.com
+To: liqin.chen@sunplusct.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
 
-On Fri, Mar 27, 2009 at 05:05:29PM +0100, arnd@arndb.de wrote:
-> > +config MACH_SPCT6600
-> > +       bool "SPCT6600 series based machines"
-> > +       select SYS_SUPPORTS_32BIT_KERNEL
-> > +       select SYS_SUPPORTS_LITTLE_ENDIAN
-> > +       select CPU_SCORE7
-> > +       select GENERIC_HAS_IOMAP
-> > +
+Hi Chen Liqin.
 
-Huh, is it intended to add big endian support? <asm/byteorder.h>
-was just including <asm-generic/little_endian.h> and should probably
-be conditional on your SYS_SUPPROTS_BIG_ENDIAN if so...
+I have browsed throug the code and it generally looks good, especially
+for a first posting to lkml.
 
-I've dug a bit at your code for this, and can't see where you obviously
-set a byte order bit in a control register... is it hard wired on the
-board?
+I will not repeat the advices from Arnd and others.
+But only add to that that running your patches through checkpatch
+and with a critical mind fix the errors/warnings.
+Especially for arch code you cannot blindly assume checkpatch is always right!
 
-regards, Kyle
+A few comments below.
+
+	Sam
+
+> diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
+> linux-2.6-git.ori/arch/score/include/asm/pgtable-32.h 
+> linux-2.6-git.new/arch/score/include/asm/pgtable-32.h
+> --- linux-2.6-git.ori/arch/score/include/asm/pgtable-32.h       1970-01-01 
+> 08:00:00.000000000 +0800
+> +++ linux-2.6-git.new/arch/score/include/asm/pgtable-32.h       2009-03-23 
+> 17:47:05.000000000 +0800
+> @@ -0,0 +1,122 @@
+> +#ifndef _ASM_PGTABLE_32_H
+> +#define _ASM_PGTABLE_32_H
+> +
+> +#include <linux/linkage.h>
+> +#include <asm-generic/pgtable-nopmd.h>
+> +#include <asm/page.h>
+> +#include <asm/fixmap.h>
+> +
+> +/* PGDIR_SHIFT determines what a third-level page table entry can map */
+> +#define PGDIR_SHIFT    22
+> +#define PGDIR_SIZE     (1UL << PGDIR_SHIFT)
+> +#define PGDIR_MASK     (~(PGDIR_SIZE-1))
+
+If you include <linux/const.h> then you can use:
+#define PGDIR_SIZE (_AC(1,UL) << PGDIR_SHIFT)
+This has the advantage that your headerfile is compatible with
+assembler and you can use the symbol in your linker scrip too.
+
+> +++ linux-2.6-git.new/arch/score/include/asm/scoreregs.h        2009-03-20 
+> 10:43:48.000000000 +0800
+> @@ -0,0 +1,65 @@
+> +#include <linux/linkage.h>
+> +
+> +#define IRQ_TIMER (7)  /* IRQ  number of SPG300 */
+> +
+> +/* TIMER register */
+> +#define TIME0Base      0x96080000
+> +#define rTIMER0C       (*(volatile unsigned *)(TIME0Base+0x00))
+> +#define rTIMER0CPPC    (*(volatile unsigned *)(TIME0Base+0x04))
+> +#define rTIMER0CPR     (*(volatile unsigned *)(TIME0Base+0x08))
+> +#define rTIMER0CPPR    (*(volatile unsigned *)(TIME0Base+0x0C))
+> +#define rTIMER0UC      (*(volatile unsigned *)(TIME0Base+0x10))
+
+The general opinion is that if you say volatile your are doing something
+wrong. Explicit memory barriers is the right way to deal with things.
+There are longer threads about that you should be able to google.
