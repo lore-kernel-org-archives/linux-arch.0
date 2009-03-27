@@ -1,15 +1,15 @@
 From: liqin.chen@sunplusct.com
-Subject: Re: [PATCH 6/13] score - New architecure port to SunplusCT S+CORE
+Subject: Re: [PATCH 9/13] score - New architecure port to SunplusCT S+CORE
   processor
-Date: Fri, 27 Mar 2009 09:39:09 +0800
-Message-ID: <OF48378D81.6667BB0D-ON48257586.0008F474-48257586.00093CBC@sunplusct.com>
+Date: Fri, 27 Mar 2009 09:44:17 +0800
+Message-ID: <OFC61CF3EE.B8C7C9BC-ON48257586.000970FB-48257586.0009B501@sunplusct.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="US-ASCII"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:40069 "EHLO
+Received: from 60-248-182-106.HINET-IP.hinet.net ([60.248.182.106]:39359 "EHLO
 	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759706AbZC0BlZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Mar 2009 21:41:25 -0400
+	with ESMTP id S1759219AbZC0Bq4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Mar 2009 21:46:56 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
@@ -19,855 +19,1040 @@ linux/score lastest patch place at
 http://www.sunplusct.com/images/linux-score-patch/linux-score-20090324.patch
 
 diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/include/asm/thread_info.h 
-linux-2.6-git.new/arch/score/include/asm/thread_info.h
---- linux-2.6-git.ori/arch/score/include/asm/thread_info.h      1970-01-01 
+linux-2.6-git.ori/arch/score/kernel/irq.c 
+linux-2.6-git.new/arch/score/kernel/irq.c
+--- linux-2.6-git.ori/arch/score/kernel/irq.c   1970-01-01 
 08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/include/asm/thread_info.h      2009-03-23 
-15:02:37.000000000 +0800
-@@ -0,0 +1,97 @@
-+#ifndef _ASM_THREAD_INFO_H
-+#define _ASM_THREAD_INFO_H
++++ linux-2.6-git.new/arch/score/kernel/irq.c   2009-03-23 
+13:43:34.000000000 +0800
+@@ -0,0 +1,142 @@
++/*
++ * arch/score/kernel/irq.c
++ *
++ * Score Processor version.
++ *
++ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
++ *  Chen Liqin <liqin.chen@sunplusct.com>
++ *  Lennox Wu <lennox.wu@sunplusct.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ */
 +
-+#ifdef __KERNEL__
++#include <linux/init.h>
++#include <linux/interrupt.h>
++#include <linux/irq.h>
++#include <linux/kernel_stat.h>
++#include <linux/proc_fs.h>
++#include <linux/seq_file.h>
 +
-+#define KU_MASK        0x08
-+#define KU_USER        0x08
-+#define KU_KERN        0x00
-+
-+#ifndef __ASSEMBLY__
-+
-+#include <asm/processor.h>
++extern void interrupt_exception_vector(void);
 +
 +/*
-+ * low level task data that entry.S needs immediate access to
-+ * - this struct should fit entirely inside of one cache line
-+ * - this struct shares the supervisor stack pages
-+ * - if the contents of this structure are changed, the assembly 
-constants
-+ *   must also be changed
++ * handles all normal device IRQs
 + */
-+struct thread_info {
-+       struct task_struct      *task;          /* main task structure */
-+       struct exec_domain      *exec_domain;   /* execution domain */
-+       unsigned long           flags;          /* low level flags */
-+       unsigned long           tp_value;       /* thread pointer */
-+       __u32                   cpu;            /* current CPU */
-+       int                     preempt_count;  /* 0 => preemptable, <0 => 
-BUG */
-+       mm_segment_t            addr_limit;     /* thread address space:
-+                                                  0-0xBFFFFFFF for 
-user-thead
-+                                                  0-0xFFFFFFFF for 
-kernel-thread
-+                                               */
-+       struct restart_block    restart_block;
-+       struct pt_regs          *regs;
++asmlinkage void do_IRQ(int irq)
++{
++       irq_enter();
++       generic_handle_irq(irq);
++       irq_exit();
++}
++
++/*
++ * on-CPU PIC operations
++ */
++void ack_bad_irq(unsigned int irq)
++{
++       printk("unexpected IRQ # %d\n", irq);
++}
++
++static void score_mask(unsigned int irq_nr)
++{
++       unsigned int irq_source = 63 - irq_nr;
++ 
++       if (irq_source < 32)
++               rIMASK_L |= 1 << irq_source;
++       else
++               rIMASK_H |= 1 << (irq_source - 32);
++}
++
++static void score_unmask(unsigned int irq_nr)
++{
++       unsigned int irq_source = 63 - irq_nr;
++ 
++       if (irq_source < 32)
++               rIMASK_L &= ~(1 << irq_source);
++       else
++               rIMASK_H &= ~(1 << (irq_source - 32));
++}
++
++struct irq_chip score_irq_chip = {
++       .name           = "Score7-level",
++       .mask           = score_mask,
++       .mask_ack       = score_mask,
++       .unmask         = score_unmask,
++       .end            = score_mask,
 +};
 +
 +/*
-+ * macros/functions for gaining access to the thread information 
-structure
-+ *
-+ * preempt_count needs to be 1 initially, until the scheduler is 
-functional.
++ * initialise the interrupt system
 + */
-+#define INIT_THREAD_INFO(tsk)                  \
-+{                                              \
-+       .task           = &tsk,                 \
-+       .exec_domain    = &default_exec_domain, \
-+       .cpu            = 0,                    \
-+       .preempt_count  = 1,                    \
-+       .addr_limit     = KERNEL_DS,            \
-+       .restart_block  = {                     \
-+               .fn = do_no_restart_syscall,    \
-+       },                                      \
++void __init init_IRQ(void)
++{
++       int index;
++       unsigned long target_addr; 
++ 
++       for (index = 0; index < NR_IRQS; ++index)
++               set_irq_chip_and_handler(index, &score_irq_chip,
++                                        handle_level_irq);
++
++       for (target_addr = IRQ_VECTOR_BASE_ADDR;
++               target_addr <= IRQ_VECTOR_END_ADDR;
++               target_addr += 0x10)
++               memcpy((void*)target_addr, interrupt_exception_vector, 
+0x10);
++ 
++       rIMASK_L=0xffffffff;
++       rIMASK_H=0xffffffff;
++
++       __asm__ __volatile__(
++               "mtcr   %0,cr3\n\t"
++               :: "r" (EXCEPTION_VECTOR_BASE_ADDR | 1));
 +}
 +
-+#define init_thread_info       (init_thread_union.thread_info)
-+#define init_stack             (init_thread_union.stack)
-+
-+/* How to get the thread information struct from C.  */
-+register struct thread_info *__current_thread_info __asm__("r28");
-+#define current_thread_info()  __current_thread_info
-+
-+/* thread information allocation */
-+#define THREAD_SIZE_ORDER      (1)
-+#define THREAD_SIZE            (PAGE_SIZE << THREAD_SIZE_ORDER)
-+#define THREAD_MASK            (THREAD_SIZE - 1UL)
-+#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
-+
-+#define alloc_thread_info(tsk) kmalloc(THREAD_SIZE, GFP_KERNEL)
-+#define free_thread_info(info) kfree(info)
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+#define PREEMPT_ACTIVE         0x10000000
-+
 +/*
-+ * thread information flags
-+ * - these are process state flags that various assembly files may need 
-to
-+ *   access
-+ * - pending work-to-be-done flags are in LSW
-+ * - other flags in MSW
++ * Generic, controller-independent functions:
 + */
-+#define TIF_SYSCALL_TRACE      0       /* syscall trace active */
-+#define TIF_SIGPENDING         1       /* signal pending */
-+#define TIF_NEED_RESCHED       2       /* rescheduling necessary */
-+#define TIF_RESTORE_SIGMASK    9       /* restore signal mask in 
-do_signal() */
-+#define TIF_POLLING_NRFLAG     17      /* true if poll_idle() is polling 
-TIF_NEED_RESCHED */
-+#define TIF_MEMDIE             18
++int show_interrupts(struct seq_file *p, void *v)
++{
++       int i = *(loff_t *)v, cpu;
++       struct irqaction *action;
++       unsigned long flags;
 +
-+#define _TIF_SYSCALL_TRACE     (1<<TIF_SYSCALL_TRACE)
-+#define _TIF_SIGPENDING                (1<<TIF_SIGPENDING)
-+#define _TIF_NEED_RESCHED      (1<<TIF_NEED_RESCHED)
-+#define _TIF_RESTORE_SIGMASK   (1<<TIF_RESTORE_SIGMASK)
-+#define _TIF_POLLING_NRFLAG    (1<<TIF_POLLING_NRFLAG)
++       if (i == 0) {
++               seq_puts(p, "           ");
++               for_each_online_cpu(cpu)
++                       seq_printf(p, "CPU%d       ", cpu);
++               seq_putc(p, '\n');
++       }
 +
-+#define _TIF_WORK_MASK         (0x0000ffff)
++       if (i < NR_IRQS) {
++               spin_lock_irqsave(&irq_desc[i].lock, flags);
++               action = irq_desc[i].action;
++               if (!action)
++                       goto unlock;
 +
-+#endif /* __KERNEL__ */
++               seq_printf(p, "%3d: ", i);
++               for_each_online_cpu(cpu)
++                       seq_printf(p, "%10u ", kstat_cpu(cpu).irqs[i]);
++               seq_printf(p, " %8s", irq_desc[i].chip->name ? : "-");
++               seq_printf(p, "  %s", action->name);
++               for (action = action->next; action; action = action->next)
++                       seq_printf(p, ", %s", action->name);
 +
-+#endif /* _ASM_THREAD_INFO_H */
++               seq_putc(p, '\n');
++       unlock:
++               spin_unlock_irqrestore(&irq_desc[i].lock, flags);
++       }
++
++       return 0;
++}
 diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/include/asm/timex.h 
-linux-2.6-git.new/arch/score/include/asm/timex.h
---- linux-2.6-git.ori/arch/score/include/asm/timex.h    1970-01-01 
+linux-2.6-git.ori/arch/score/kernel/Makefile 
+linux-2.6-git.new/arch/score/kernel/Makefile
+--- linux-2.6-git.ori/arch/score/kernel/Makefile        1970-01-01 
 08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/include/asm/timex.h    2009-03-13 
-14:26:33.000000000 +0800
-@@ -0,0 +1,34 @@
-+#ifndef _ASM_TIMEX_H
-+#define _ASM_TIMEX_H
++++ linux-2.6-git.new/arch/score/kernel/Makefile        2009-03-26 
+14:00:11.000000000 +0800
+@@ -0,0 +1,12 @@
++#
++# Makefile for the Linux/SCORE kernel.
++#
 +
-+#ifdef __KERNEL__
++extra-y                := head.o init_task.o vmlinux.lds
 +
++obj-y          += entry.o irq.o process.o ptrace.o setup.o \
++                   signal.o sys-score.o time.o traps.o syscalls.o
++
++obj-$(CONFIG_MODULES)  += module.o
++
++EXTRA_CFLAGS +=
+diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
+linux-2.6-git.ori/arch/score/kernel/module.c 
+linux-2.6-git.new/arch/score/kernel/module.c
+--- linux-2.6-git.ori/arch/score/kernel/module.c        1970-01-01 
+08:00:00.000000000 +0800
++++ linux-2.6-git.new/arch/score/kernel/module.c        2009-03-23 
+17:52:46.000000000 +0800
+@@ -0,0 +1,172 @@
 +/*
-+ * This is the clock rate of the i8253 PIT.  A SCORE system may not have
-+ * a PIT by the symbol is used all over the kernel including some APIs.
-+ * So keeping it defined to the number for the PIT is the only sane thing
-+ * for now.
-+ */
-+#define CLOCK_TICK_RATE 1193182
-+
-+/*
-+ * Standard way to access the cycle counter.
-+ * Currently only used on SMP for scheduling.
++ * arch/score/kernel/module.c
 + *
-+ * Only the low 32 bits are available as a continuously counting entity.
-+ * But this only means we'll force a reschedule every 8 seconds or so,
-+ * which isn't an evil thing.
++ * Score Processor version.
 + *
-+ * We know that all SMP capable CPUs have cycle counters.
++ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
++ *  Chen Liqin <liqin.chen@sunplusct.com>
++ *  Lennox Wu <lennox.wu@sunplusct.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 + */
 +
-+typedef unsigned int cycles_t;
++#include <linux/elf.h>
++#include <linux/mm.h>
++#include <linux/vmalloc.h>
++#include <linux/module.h>
 +
-+static inline cycles_t get_cycles(void)
++void *module_alloc(unsigned long size)
++{
++       if(size != 0)
++               return vmalloc(size);
++       else
++               return 0;
++}
++
++/* Free memory returned from module_alloc */
++void module_free(struct module *mod, void *module_region)
++{
++       vfree(module_region);
++}
++
++int module_frob_arch_sections(Elf_Ehdr *hdr, Elf_Shdr *sechdrs,
++                             char *secstrings, struct module *mod)
 +{
 +       return 0;
 +}
 +
-+#endif /* __KERNEL__ */
++int apply_relocate(Elf_Shdr *sechdrs, const char *strtab,
++                  unsigned int symindex, unsigned int relindex,
++                  struct module *me)
++{
++       Elf32_Shdr *symsec = sechdrs + symindex;
++       Elf32_Shdr *relsec = sechdrs + relindex;
++       Elf32_Shdr *dstsec = sechdrs + relsec->sh_info;
++       Elf32_Rel *rel = (void *)relsec->sh_addr;
++       unsigned int i;
 +
-+#endif /*  _ASM_TIMEX_H */
++       for (i = 0; i < relsec->sh_size / sizeof(Elf32_Rel); i++, rel++) {
++               unsigned long loc;
++               Elf32_Sym *sym;
++               s32 offset;
++
++               offset = ELF32_R_SYM(rel->r_info);
++               if ((offset < 0) ||
++                   (offset > (symsec->sh_size / sizeof(Elf32_Sym)))) {
++                       printk(KERN_ERR "%s: bad relocation, section %d 
+reloc %d\n",
++                               me->name, relindex, i);
++                               return -ENOEXEC;
++               }
++
++               sym = ((Elf32_Sym *)symsec->sh_addr) + offset;
++
++               if ((rel->r_offset < 0) ||
++                   (rel->r_offset > dstsec->sh_size - sizeof(u32))) {
++                       printk(KERN_ERR "%s: out of bounds relocation, "
++                               "section %d reloc %d offset %d size %d\n",
++                               me->name, relindex, i, rel->r_offset,
++                               dstsec->sh_size);
++                       return -ENOEXEC;
++               }
++
++               loc = dstsec->sh_addr + rel->r_offset;
++               switch (ELF32_R_TYPE(rel->r_info)) {
++               case R_SCORE_NONE:
++                       break;
++               case R_SCORE_ABS32:
++                       *(unsigned long *)loc += sym->st_value;
++                       break;
++               case R_SCORE_HI16:
++                       break;
++               case R_SCORE_LO16: {
++                       unsigned long hi16_offset, offset;
++                       unsigned long uvalue;
++                       unsigned long temp,temp_hi;
++                       temp_hi=*((unsigned long *)loc-1);
++                       temp = *(unsigned long*)loc;
++
++                       hi16_offset = (((((temp_hi) >> 16) & 0x3) << 15) |
++                                       ((temp_hi) & 0x7fff)) >> 1;
++                       offset = ((temp >> 16 & 0x03) << 15) |
++                                       ((temp & 0x7fff) >> 1);
++                       offset = (hi16_offset << 16) | (offset & 0xffff);
++                       uvalue = sym->st_value + offset;
++                       hi16_offset = (uvalue >> 16) << 1;
++
++                       temp_hi = ((temp_hi) & (~(0x37fff)))|
++                                       (hi16_offset & 0x7fff) |
++                                       ((hi16_offset << 1) & 0x30000);
++                       *((unsigned long *)loc - 1) = temp_hi; 
++
++                       offset = (uvalue & 0xffff) << 1;
++                       temp = (temp & (~(0x37fff)))| (offset & 0x7fff) |
++                               ((offset << 1) & 0x30000);
++                       *(unsigned long *)loc = temp;
++                       break;
++               }
++               case R_SCORE_24:
++               {
++                       unsigned long hi16_offset, offset;
++                       unsigned long uvalue;
++                       unsigned long temp;
++
++                       temp = *(unsigned long *)loc;
++                       offset = (temp & 0x03FF7FFE);
++                       hi16_offset = (offset & 0xFFFF0000);
++                       offset = (hi16_offset | ((offset & 0xFFFF) << 1)) 
+>> 2;
++ 
++                       uvalue = (sym->st_value + offset) >> 1;
++                       uvalue = uvalue & 0x00ffffff;
++
++                       temp = (temp & 0xfc008001) |
++                               ((uvalue << 2) & 0x3ff0000) |
++                               ((uvalue & 0x3fff) << 1);
++                       *(unsigned long *)loc = temp;
++                       break;
++               }
++               default:
++                       printk(KERN_ERR "%s: unknown relocation: %u\n",
++                               me->name, ELF32_R_TYPE(rel->r_info));
++                       return -ENOEXEC;
++               }
++       }
++
++       return 0;
++}
++
++int apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
++                      unsigned int symindex, unsigned int relsec,
++                      struct module *me)
++{
++       return 0;
++}
++
++/* Given an address, look for it in the module exception tables. */
++const struct exception_table_entry *search_module_dbetables(unsigned long 
+addr)
++{
++       return 0;
++}
++
++/* Put in dbe list if necessary. */
++int module_finalize(const Elf_Ehdr *hdr,
++                   const Elf_Shdr *sechdrs,
++                   struct module *me)
++{
++       return 0;
++}
++
++void module_arch_cleanup(struct module *mod)
++{}
 diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/include/asm/tlbflush.h 
-linux-2.6-git.new/arch/score/include/asm/tlbflush.h
---- linux-2.6-git.ori/arch/score/include/asm/tlbflush.h 1970-01-01 
+linux-2.6-git.ori/arch/score/kernel/process.c 
+linux-2.6-git.new/arch/score/kernel/process.c
+--- linux-2.6-git.ori/arch/score/kernel/process.c       1970-01-01 
 08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/include/asm/tlbflush.h 2009-03-14 
-14:04:05.000000000 +0800
-@@ -0,0 +1,142 @@
-+#ifndef __ASM_TLBFLUSH_H
-+#define __ASM_TLBFLUSH_H
-+
-+#include <linux/mm.h>
-+
++++ linux-2.6-git.new/arch/score/kernel/process.c       2009-03-23 
+17:53:11.000000000 +0800
+@@ -0,0 +1,181 @@
 +/*
-+ * TLB flushing:
++ * arch/score/kernel/process.c
 + *
-+ *  - flush_tlb_all() flushes all processes TLB entries
-+ *  - flush_tlb_mm(mm) flushes the specified mm context TLB entries
-+ *  - flush_tlb_page(vma, vmaddr) flushes one page
-+ *  - flush_tlb_range(vma, start, end) flushes a range of pages
-+ *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
++ * Score Processor version.
++ *
++ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
++ *  Chen Liqin <liqin.chen@sunplusct.com>
++ *  Lennox Wu <lennox.wu@sunplusct.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 + */
-+extern void local_flush_tlb_all(void);
-+extern void local_flush_tlb_mm(struct mm_struct *mm);
-+extern void local_flush_tlb_range(struct vm_area_struct *vma,
-+       unsigned long start, unsigned long end);
-+extern void local_flush_tlb_kernel_range(unsigned long start,
-+       unsigned long end);
-+extern void local_flush_tlb_page(struct vm_area_struct *vma,
-+       unsigned long page);
-+extern void local_flush_tlb_one(unsigned long vaddr);
 +
-+#define flush_tlb_all()                        local_flush_tlb_all()
-+#define flush_tlb_mm(mm)               local_flush_tlb_mm(mm)
-+#define flush_tlb_range(vma, vmaddr, end) \
-+       local_flush_tlb_range(vma, vmaddr, end)
-+#define flush_tlb_kernel_range(vmaddr,end) \
-+       local_flush_tlb_kernel_range(vmaddr, end)
-+#define flush_tlb_page(vma, page)      local_flush_tlb_page(vma, page)
-+#define flush_tlb_one(vaddr)           local_flush_tlb_one(vaddr)
++#include <linux/sched.h>
++#include <linux/kallsyms.h>
++#include <linux/pm.h>
++#include <asm/processor.h>
++#include <asm/uaccess.h>
++#include <asm/elf.h>
 +
-+#ifndef __ASSEMBLY__
++void (*cpu_wait)() = NULL;
++void (*pm_power_off)(void);
++EXPORT_SYMBOL(pm_power_off);
 +
-+static inline unsigned long get_PEVN(void)
-+{
-+       unsigned long val;
++/* If or when software machine-restart is implemented, add code here. */
++void machine_restart(char *command)
++{}
 +
-+       __asm__ __volatile__(
-+               "mfcr %0, cr11\n"
-+               "nop\nnop\n"
-+               : "=r" (val));
++/* If or when software machine-halt is implemented, add code here. */
++void machine_halt(void)
++{}
 +
-+       return val;
-+}
-+
-+static inline void set_PEVN(unsigned long val)
-+{
-+       __asm__ __volatile__(
-+               "mtcr %0, cr11\n"
-+               "nop\nnop\nnop\nnop\nnop\n"
-+       : : "r" (val));
-+}
-+
-+static inline void set_PECTX(unsigned long val)
-+{
-+       __asm__ __volatile__(
-+               "mtcr %0, cr12\n"
-+               "nop\nnop\nnop\nnop\nnop\n"
-+       :: "r" (val));
-+}
-+
-+static inline unsigned long get_PECTX(void)
-+{
-+       unsigned long val;
-+       __asm__ __volatile__(
-+               "mfcr %0, cr12\n"
-+               "nop\nnop\n"
-+       : "=r" (val));
-+       return val;
-+}
-+static inline unsigned long get_TLBLOCK(void)
-+{
-+       unsigned long val;
-+
-+       __asm__ __volatile__(
-+               "mfcr %0, cr7\n"
-+               "nop\nnop\n"
-+       : "=r" (val));
-+       return val;
-+}
-+static inline void set_TLBLOCK(unsigned long val)
-+{
-+       __asm__ __volatile__(
-+               "mtcr %0, cr7\n"
-+               "nop\nnop\nnop\nnop\nnop\n"
-+       : : "r" (val));
-+}
-+
-+static inline void set_TLBPT(unsigned long val)
-+{
-+       __asm__ __volatile__(
-+               "mtcr %0, cr8\n"
-+               "nop\nnop\nnop\nnop\nnop\n"
-+               :: "r" (val));
-+}
-+
-+static inline long get_TLBPT(void)
-+{
-+       long val;
-+
-+       __asm__ __volatile__(
-+               "mfcr %0, cr8\n"
-+               "nop\nnop\n"
-+               : "=r" (val));
-+
-+       return val;
-+}
-+
-+static inline void set_PEADDR(unsigned long val)
-+{
-+       __asm__ __volatile__(
-+               "mtcr %0, cr9\n"
-+               "nop\nnop\nnop\nnop\nnop\n"
-+               :: "r" (val));
-+}
-+
-+/* TLB operations. */
-+static inline void tlb_probe(void)
-+{
-+       __asm__ __volatile__("stlb;nop;nop;nop;nop;nop");
-+}
-+
-+static inline void tlb_read(void)
-+{
-+       __asm__ __volatile__("mftlb;nop;nop;nop;nop;nop");
-+}
-+
-+static inline void tlb_write_indexed(void)
-+{
-+       __asm__ __volatile__("mtptlb;nop;nop;nop;nop;nop");
-+}
-+
-+static inline void tlb_write_random(void)
-+{
-+       __asm__ __volatile__("mtrtlb;nop;nop;nop;nop;nop");
-+}
-+
-+#endif /* Not __ASSEMBLY__ */
-+
-+#endif /* __ASM_TLBFLUSH_H */
-diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/include/asm/tlb.h 
-linux-2.6-git.new/arch/score/include/asm/tlb.h
---- linux-2.6-git.ori/arch/score/include/asm/tlb.h      1970-01-01 
-08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/include/asm/tlb.h      2009-03-23 
-15:03:16.000000000 +0800
-@@ -0,0 +1,15 @@
-+#ifndef __ASM_TLB_H
-+#define __ASM_TLB_H
++/* If or when software machine-power-off is implemented, add code here. 
+*/
++void machine_power_off(void)
++{}
 +
 +/*
-+ * SCORE doesn't need any special per-pte or per-vma handling, except
-+ * we need to flush cache for area to be unmapped.
++ * The idle thread. There's no useful work to be
++ * done, so just try to conserve power and have a
++ * low exit latency (ie sit in a loop waiting for
++ * somebody to say that they'd like to reschedule)
 + */
-+#define tlb_start_vma(tlb, vma)                do {} while (0)
-+#define tlb_end_vma(tlb, vma)          do {} while (0)
-+#define __tlb_remove_tlb_entry(tlb, ptep, address) do {} while (0)
-+#define tlb_flush(tlb)                 flush_tlb_mm((tlb)->mm)
++void __noreturn cpu_idle(void)
++{
++       /* endless idle loop with no priority at all */
++       while (1) {
++               while (!need_resched()) {
++                       if (cpu_wait)
++                               (*cpu_wait)();
++               }
++               preempt_enable_no_resched();
++               schedule();
++               preempt_disable();
++       }
++}
 +
-+#include <asm-generic/tlb.h>
++asmlinkage void ret_from_fork(void);
 +
-+#endif /* __ASM_TLB_H */
-diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/include/asm/topology.h 
-linux-2.6-git.new/arch/score/include/asm/topology.h
---- linux-2.6-git.ori/arch/score/include/asm/topology.h 1970-01-01 
-08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/include/asm/topology.h 2009-03-13 
-14:26:33.000000000 +0800
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_TOPOLOGY_H
-+#define __ASM_TOPOLOGY_H
++void start_thread(struct pt_regs *regs, unsigned long pc, unsigned long 
+sp)
++{
++       unsigned long status;
 +
-+#include <asm-generic/topology.h>
++       /* New thread loses kernel privileges. */
++       status = regs->cp0_psr & ~(KU_MASK);
++       status |= KU_USER;
++       regs->cp0_psr = status;
++       regs->cp0_epc = pc;
++       regs->regs[0] = sp;
++}
 +
-+#endif /* __ASM_TOPOLOGY_H */
-diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/include/asm/types.h 
-linux-2.6-git.new/arch/score/include/asm/types.h
---- linux-2.6-git.ori/arch/score/include/asm/types.h    1970-01-01 
-08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/include/asm/types.h    2009-03-23 
-15:03:24.000000000 +0800
-@@ -0,0 +1,24 @@
-+#ifndef _ASM_TYPES_H
-+#define _ASM_TYPES_H
-+
-+#include <asm-generic/int-ll64.h>
-+
-+#ifndef __ASSEMBLY__
-+typedef unsigned short umode_t;
-+#endif /* __ASSEMBLY__ */
-+
-+#ifdef __KERNEL__
-+#define BITS_PER_LONG  32
-+#ifndef __ASSEMBLY__
-+
-+typedef u32 dma_addr_t;
-+typedef u64 dma64_addr_t;
++void exit_thread(void)
++{}
 +
 +/*
-+ * Don't use phys_t. You've been warned.
++ * When a process does an "exec", machine state like FPU and debug
++ * registers need to be reset.  This is a hook function for that.
++ * Currently we don't have any such state to reset, so this is empty.
 + */
-+typedef unsigned long phys_t;
++void flush_thread(void)
++{}
 +
-+#endif /* __ASSEMBLY__ */
-+#endif /* __KERNEL__ */
-+#endif /* _ASM_TYPES_H */
++/*
++ * set up the kernel stack and exception frames for a new process
++ */
++int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
++       unsigned long stk_sz, struct task_struct *p, struct pt_regs *regs)
++{
++       struct thread_info *ti = task_thread_info(p);
++       struct pt_regs *childregs = task_pt_regs(p);
++
++       p->set_child_tid = p->clear_child_tid = NULL;
++
++       *childregs = *regs;
++       childregs->regs[7] = 0;                 /* Clear error flag */
++       childregs->regs[4] = 0;                 /* Child gets zero as 
+return value */
++       regs->regs[4] = p->pid;
++
++       if (childregs->cp0_psr & 0x8)           /* test kernel fork or 
+user fork */
++               childregs->regs[0] = usp;               /* user fork */
++       else {
++               childregs->regs[28] = (unsigned long) ti; /* kernel fork 
+*/
++               childregs->regs[0] = (unsigned long) childregs;
++       }
++       p->thread.reg0 = (unsigned long) childregs;
++       p->thread.reg3 = (unsigned long) ret_from_fork;
++       p->thread.cp0_psr = 0;
++
++       return 0;
++}
++
++/* Fill in the fpu structure for a core dump. */
++int dump_fpu(struct pt_regs *regs, elf_fpregset_t *r)
++{
++       return 1;
++}
++
++void elf_dump_regs(elf_greg_t *gp, struct pt_regs *regs)
++{}
++
++int dump_task_regs(struct task_struct *tsk, elf_gregset_t *regs)
++{
++       return 1;
++}
++
++static void __noreturn kernel_thread_helper(void *unused0, int (*fn)(void 
+*), void *arg, void *unused1)
++{
++       do_exit(fn(arg));
++}
++
++/*
++ * Create a kernel thread.
++ */
++long kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
++{
++       struct pt_regs regs;
++
++       memset(&regs, 0, sizeof(regs));
++
++       regs.regs[6] = (unsigned long) arg;
++       regs.regs[5] = (unsigned long) fn;
++       regs.cp0_epc = (unsigned long) kernel_thread_helper;
++       regs.cp0_psr = (regs.cp0_psr & ~(0x1|0x4|0x8)) | (regs.cp0_psr & 
+0x3) <<2;
++
++       return do_fork(flags | CLONE_VM | CLONE_UNTRACED, 0, &regs, 0, 
+NULL, NULL);
++}
++
++unsigned long thread_saved_pc(struct task_struct *tsk)
++{
++       return task_pt_regs(tsk)->cp0_epc;
++}
++
++unsigned long get_wchan(struct task_struct *task)
++{
++       unsigned long pc = 0;
++
++       if (!task || task == current || task->state == TASK_RUNNING)
++               goto out;
++       if (!task_stack_page(task))
++               goto out;
++
++       pc = task_pt_regs(task)->cp0_epc;
++out:
++       return pc;
++}
++
++unsigned long arch_align_stack(unsigned long sp)
++{
++       return sp;
++}
 diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/include/asm/uaccess.h 
-linux-2.6-git.new/arch/score/include/asm/uaccess.h
---- linux-2.6-git.ori/arch/score/include/asm/uaccess.h  1970-01-01 
+linux-2.6-git.ori/arch/score/kernel/ptrace.c 
+linux-2.6-git.new/arch/score/kernel/ptrace.c
+--- linux-2.6-git.ori/arch/score/kernel/ptrace.c        1970-01-01 
 08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/include/asm/uaccess.h  2009-03-23 
-17:35:07.000000000 +0800
-@@ -0,0 +1,405 @@
-+#ifndef _ASM_UACCESS_H
-+#define _ASM_UACCESS_H
++++ linux-2.6-git.new/arch/score/kernel/ptrace.c        2009-03-23 
+17:35:37.000000000 +0800
+@@ -0,0 +1,459 @@
++/*
++ * arch/score/kernel/ptrace.c
++ *
++ * Score Processor version.
++ *
++ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
++ *  Chen Liqin <liqin.chen@sunplusct.com>
++ *  Lennox Wu <lennox.wu@sunplusct.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ */
 +
 +#include <linux/kernel.h>
++#include <linux/mm.h>
 +#include <linux/errno.h>
-+#include <linux/thread_info.h>
-+#include <asm-generic/uaccess.h>
++#include <linux/ptrace.h>
++#include <asm/asm-offsets.h>
++#include <asm/page.h>
++#include <asm/uaccess.h>
 +
-+#define __UA_LIMIT     0x80000000UL
-+#define KERNEL_DS      ((mm_segment_t) { 0UL })
-+#define USER_DS                ((mm_segment_t) { __UA_LIMIT })
-+
-+#define VERIFY_READ    0
-+#define VERIFY_WRITE   1
-+
-+#define get_ds()       (KERNEL_DS)
-+#define get_fs()       (current_thread_info()->addr_limit)
-+#define set_fs(x)      (current_thread_info()->addr_limit = (x))
-+#define segment_eq(a, b)       ((a).seg == (b).seg)
-+
-+/*
-+ * Is a address valid? This does a straighforward calculation rather
-+ * than tests.
-+ *
-+ * Address valid if:
-+ *  - "addr" doesn't have any high-bits set
-+ *  - AND "size" doesn't have any high-bits set
-+ *  - AND "addr+size" doesn't have any high-bits set
-+ *  - OR we are in kernel mode.
-+ *
-+ * __ua_size() is a trick to avoid runtime checking of positive constant
-+ * sizes; for those we already know at compile time that the size is ok.
-+ */
-+#define __ua_size(size) \
-+       ((__builtin_constant_p(size) && (signed long) (size) > 0) ? 0 : 
-(size))
-+
-+/*
-+ * access_ok: - Checks if a user space pointer is valid
-+ * @type: Type of access: %VERIFY_READ or %VERIFY_WRITE.  Note that
-+ *        %VERIFY_WRITE is a superset of %VERIFY_READ - if it is safe
-+ *        to write to a block, it is always safe to read from it.
-+ * @addr: User space pointer to start of block to check
-+ * @size: Size of block to check
-+ *
-+ * Context: User context only.  This function may sleep.
-+ *
-+ * Checks if a pointer to a block of memory in user space is valid.
-+ *
-+ * Returns true (nonzero) if the memory block may be valid, false (zero)
-+ * if it is definitely invalid.
-+ *
-+ * Note that, depending on architecture, this function probably just
-+ * checks that the pointer is in the user space range - after calling
-+ * this function, memory access functions may still return -EFAULT.
-+ */
-+
-+#define __access_mask get_fs().seg
-+
-+#define __access_ok(addr, size, mask)                                  \
-+       (((signed long)((mask) & ((addr) | ((addr) + (size)) | 
-__ua_size(size)))) == 0)
-+
-+#define access_ok(type, addr, size)                                    \
-+       likely(__access_ok((unsigned long)(addr), (size), __access_mask))
-+
-+/*
-+ * put_user: - Write a simple value into user space.
-+ * @x:   Value to copy to user space.
-+ * @ptr: Destination address, in user space.
-+ *
-+ * Context: User context only.  This function may sleep.
-+ *
-+ * This macro copies a single simple value from kernel space to user
-+ * space.  It supports simple types like char and int, but not larger
-+ * data types like structures or arrays.
-+ *
-+ * @ptr must have pointer-to-simple-variable type, and @x must be 
-assignable
-+ * to the result of dereferencing @ptr.
-+ *
-+ * Returns zero on success, or -EFAULT on error.
-+ */
-+#define put_user(x,ptr) __put_user_check((x), (ptr), sizeof(*(ptr)))
-+
-+/*
-+ * get_user: - Get a simple variable from user space.
-+ * @x:   Variable to store result.
-+ * @ptr: Source address, in user space.
-+ *
-+ * Context: User context only.  This function may sleep.
-+ *
-+ * This macro copies a single simple variable from user space to kernel
-+ * space.  It supports simple types like char and int, but not larger
-+ * data types like structures or arrays.
-+ *
-+ * @ptr must have pointer-to-simple-variable type, and the result of
-+ * dereferencing @ptr must be assignable to @x without a cast.
-+ *
-+ * Returns zero on success, or -EFAULT on error.
-+ * On error, the variable @x is set to zero.
-+ */
-+#define get_user(x,ptr) __get_user_check((x), (ptr), sizeof(*(ptr)))
-+
-+/*
-+ * __put_user: - Write a simple value into user space, with less 
-checking.
-+ * @x:   Value to copy to user space.
-+ * @ptr: Destination address, in user space.
-+ *
-+ * Context: User context only.  This function may sleep.
-+ *
-+ * This macro copies a single simple value from kernel space to user
-+ * space.  It supports simple types like char and int, but not larger
-+ * data types like structures or arrays.
-+ *
-+ * @ptr must have pointer-to-simple-variable type, and @x must be 
-assignable
-+ * to the result of dereferencing @ptr.
-+ *
-+ * Caller must check the pointer with access_ok() before calling this
-+ * function.
-+ *
-+ * Returns zero on success, or -EFAULT on error.
-+ */
-+#define __put_user(x,ptr) __put_user_nocheck((x), (ptr), sizeof(*(ptr)))
-+
-+/*
-+ * __get_user: - Get a simple variable from user space, with less 
-checking.
-+ * @x:   Variable to store result.
-+ * @ptr: Source address, in user space.
-+ *
-+ * Context: User context only.  This function may sleep.
-+ *
-+ * This macro copies a single simple variable from user space to kernel
-+ * space.  It supports simple types like char and int, but not larger
-+ * data types like structures or arrays.
-+ *
-+ * @ptr must have pointer-to-simple-variable type, and the result of
-+ * dereferencing @ptr must be assignable to @x without a cast.
-+ *
-+ * Caller must check the pointer with access_ok() before calling this
-+ * function.
-+ *
-+ * Returns zero on success, or -EFAULT on error.
-+ * On error, the variable @x is set to zero.
-+ */
-+#define __get_user(x,ptr) __get_user_nocheck((x), (ptr), sizeof(*(ptr)))
-+
-+struct __large_struct { unsigned long buf[100]; };
-+#define __m(x) (*(struct __large_struct __user *)(x))
-+
-+/*
-+ * Yuck.  We need two variants, one for 64bit operation and one
-+ * for 32 bit mode and old iron.
-+ */
-+extern void __get_user_unknown(void);
-+
-+#define __get_user_common(val, size, ptr)                              \
-+do {                                                                   \
-+       switch (size) {                                                 \
-+       case 1: __get_user_asm(val, "lb", ptr); break;                  \
-+       case 2: __get_user_asm(val, "lh", ptr); break;                  \
-+       case 4: __get_user_asm(val, "lw", ptr); break;                  \
-+       case 8:                                                         \
-+               if((copy_from_user((void *)&val, ptr, 8)) == 0)         \
-+                       __gu_err = 0;                                   \
-+               else                                                    \
-+                       __gu_err = -EFAULT;                             \
-+               break;                                                  \
-+       default: __get_user_unknown(); break;                           \
-+       }                                                               \
-+} while (0)
-+
-+#define __get_user_nocheck(x, ptr, size)                               \
-+({                                                                     \
-+       long __gu_err = 0;                                              \
-+       __get_user_common((x), size, ptr);                              \
-+       __gu_err;                                                       \
-+})
-+
-+#define __get_user_check(x, ptr, size)                                 \
-+({                                                                     \
-+       long __gu_err = -EFAULT;                                        \
-+       const __typeof__(*(ptr)) __user *__gu_ptr = (ptr);              \
-+                                                                       \
-+       if (likely(access_ok(VERIFY_READ, __gu_ptr, size)))             \
-+               __get_user_common((x), size, __gu_ptr);                 \
-+                                                                       \
-+       __gu_err;                                                       \
-+})
-+
-+#define __get_user_asm(val, insn, addr) \
-+{                                                                      \
-+       long __gu_tmp;                                                  \
-+                                                                       \
-+       __asm__ __volatile__(                                           \
-+               "1:" insn " %1, %3\n"                                   \
-+               "2:\n"                                                  \
-+               ".section .fixup,\"ax\"\n"                              \
-+               "3:li   %0, %4\n"                                       \
-+               "j      2b\n"                                           \
-+               ".previous\n"                                           \
-+               ".section __ex_table,\"a\"\n"                           \
-+               ".word  1b, 3b\n"                                       \
-+               ".previous\n"                                           \
-+               : "=r" (__gu_err), "=r" (__gu_tmp)                      \
-+               : "0" (0), "o" (__m(addr)), "i" (-EFAULT));             \
-+                                                                       \
-+               (val) = (__typeof__(*(addr))) __gu_tmp;                 \
++static int is_16bitinsn(unsigned long insn)
++{
++       if ((insn & INSN32_MASK) == INSN32_MASK)
++               return 0;
++       else
++               return 1;
 +}
 +
-+/*
-+ * Yuck.  We need two variants, one for 64bit operation and one
-+ * for 32 bit mode and old iron.
-+ */
-+#define __put_user_nocheck(val, ptr, size)                             \
-+({                                                                     \
-+       __typeof__(*(ptr)) __pu_val;                                    \
-+       long __pu_err = 0;                                              \
-+                                                                       \
-+       __pu_val = (val);                                               \
-+       switch (size) {                                                 \
-+       case 1: __put_user_asm("sb", ptr); break;                       \
-+       case 2: __put_user_asm("sh", ptr); break;                       \
-+       case 4: __put_user_asm("sw", ptr); break;                       \
-+       case 8:                                                         \
-+               if((__copy_to_user((void *)ptr, &__pu_val, 8)) == 0)    \
-+                       __pu_err = 0;                                   \
-+               else                                                    \
-+                       __pu_err = -EFAULT;                             \
-+               break;                                                  \
-+       default: __put_user_unknown(); break;                           \
-+       }                                                               \
-+       __pu_err;                                                       \
-+})
-+
-+
-+#define __put_user_check(val, ptr, size)                               \
-+({                                                                     \
-+       __typeof__(*(ptr)) __user *__pu_addr = (ptr);                   \
-+       __typeof__(*(ptr)) __pu_val = (val);                            \
-+       long __pu_err = -EFAULT;                                        \
-+                                                                       \
-+       if (likely(access_ok(VERIFY_WRITE, __pu_addr, size))) { \
-+               switch (size) {                                         \
-+               case 1: __put_user_asm("sb", __pu_addr); break;         \
-+               case 2: __put_user_asm("sh", __pu_addr); break;         \
-+               case 4: __put_user_asm("sw", __pu_addr); break;         \
-+               case 8:                                                 \
-+                       if ((__copy_to_user((void *)__pu_addr, &__pu_val, 
-8)) == 0)\
-+                               __pu_err = 0;                           \
-+                       else                                            \
-+                               __pu_err = -EFAULT;                     \
-+                       break;                                          \
-+               default: __put_user_unknown(); break;                   \
-+               }                                                       \
-+       }                                                               \
-+       __pu_err;                                                       \
-+})
-+
-+#define __put_user_asm(insn,ptr)                                       \
-+       __asm__ __volatile__(                                           \
-+               "1:" insn " %2, %3\n"                                   \
-+               "2:\n"                                                  \
-+               ".section .fixup,\"ax\"\n"                              \
-+               "3:li %0, %4\n"                                         \
-+               "j 2b\n"                                                \
-+               ".previous\n"                                           \
-+               ".section __ex_table,\"a\"\n"                           \
-+               ".word 1b, 3b\n"                                        \
-+               ".previous\n"                                           \
-+               : "=r" (__pu_err)                                       \
-+               : "0" (0), "r" (__pu_val), "o" (__m(ptr)),              \
-+                 "i" (-EFAULT));
-+
-+extern void __put_user_unknown(void);
-+
-+extern int __copy_tofrom_user(void *to, const void *from, unsigned long 
-len);
-+
-+static inline unsigned long copy_from_user(void *to, const void *from, 
-unsigned long len)
++int
++read_tsk_long(struct task_struct *child, unsigned long addr, unsigned 
+long *res)
 +{
-+       unsigned long over;
-+       if(access_ok(VERIFY_READ, from, len))
-+               return __copy_tofrom_user(to, from, len);
-+       if ((unsigned long)from < TASK_SIZE) {
-+               over = (unsigned long)from + len - TASK_SIZE;
-+               return __copy_tofrom_user(to, from, len - over) + over;
++       int copied;
++
++       copied = access_process_vm(child, addr, res, sizeof(*res), 0);
++
++       return copied != sizeof(*res) ? -EIO : 0;
++}
++
++int
++read_tsk_short(struct task_struct *child, unsigned long addr, unsigned 
+short *res)
++{
++       int copied;
++
++       copied = access_process_vm(child, addr, res, sizeof(*res), 0);
++
++       return copied != sizeof(*res) ? -EIO : 0;
++}
++
++static int
++write_tsk_short(struct task_struct *child, unsigned long addr, unsigned 
+short val)
++{
++       int copied;
++
++       copied = access_process_vm(child, addr, &val, sizeof(val), 1);
++
++       return copied != sizeof(val) ? -EIO : 0;
++}
++
++static int
++write_tsk_long(struct task_struct *child, unsigned long addr, unsigned 
+long val)
++{
++       int copied;
++
++       copied = access_process_vm(child, addr, &val, sizeof(val), 1);
++
++       return copied != sizeof(val) ? -EIO : 0;
++}
++
++void set_single_step(struct task_struct *child)
++{
++       unsigned int epc,far_epc = 0;           /* far_epc is the target 
+of branch */
++       unsigned long epc_insn,far_epc_insn;
++       int ninsn_type;                         /* next insn type 0=16b, 
+1=32b */
++       unsigned int tmp ,tmp2;
++       struct pt_regs *regs =task_pt_regs(child);
++       child->thread.single_step = 1;
++       child->thread.ss_nextcnt= 1;
++       epc = regs->cp0_epc;
++
++       read_tsk_long(child, epc, &epc_insn);
++
++       if (is_16bitinsn(epc_insn)) {
++               if ((epc_insn & J16M) == J16) {
++                       tmp = epc_insn & 0xFFE;
++                       epc = (epc & 0xFFFFF000) | tmp;
++               }
++               else if ((epc_insn & B16M) == B16) {
++                       child->thread.ss_nextcnt = 2;
++                       tmp = (epc_insn & 0xFF) << 1;
++                       tmp = tmp << 23;
++                       tmp = (unsigned int)((int) tmp >> 23);
++                       far_epc = epc + tmp;
++                       epc += 2;
++               } else if ((epc_insn & BR16M) == BR16) {
++                       child->thread.ss_nextcnt = 2;
++                       tmp = (epc_insn >> 4) & 0xF;
++                       far_epc = regs->regs[tmp];
++                       epc += 2;
++               } else
++                       epc += 2;
++       } else {
++               if ((epc_insn & J32M) == J32) {
++                       tmp = epc_insn & 0x03FFFFFE;
++                       tmp2 = tmp & 0x7FFF;
++                       tmp = (((tmp >> 16) & 0x3FF) << 15) | tmp2;
++                       epc = (epc & 0xFFC00000) | tmp;
++               } else if ((epc_insn & B32M) == B32) {
++                       child->thread.ss_nextcnt= 2;
++                       tmp = epc_insn & 0x03FFFFFE;    /* discard LK bit 
+*/
++                       tmp2 = tmp & 0x3FF;
++                       tmp = (((tmp >> 16) & 0x3FF) << 10) | tmp2; /* 
+20bit */
++                       tmp = tmp << 12;
++                       tmp = (unsigned int)((int) tmp >> 12) ;
++                       far_epc = epc + tmp;
++                       epc += 4;
++               } else if ((epc_insn & BR32M) == BR32) {
++                       child->thread.ss_nextcnt = 2;
++                       tmp = (epc_insn >> 16) & 0x1F;
++                       far_epc = regs->regs[tmp];
++                       epc += 4;
++               } else
++                       epc +=4;
 +       }
-+       return len;
-+}
 +
-+static inline unsigned long copy_to_user(void *to, const void *from, 
-unsigned long len)
-+{
-+       unsigned long over;
++       if(child->thread.ss_nextcnt == 1) {
++               read_tsk_long(child, epc, &epc_insn);
 +
-+       if (access_ok(VERIFY_WRITE, to, len))
-+               return __copy_tofrom_user(to, from, len);
-+       if ((unsigned long)to < TASK_SIZE) {
-+               over = (unsigned long)to + len - TASK_SIZE;
-+               return __copy_tofrom_user(to, from, len - over) + over;
++               if (is_16bitinsn(epc_insn)) {
++                       write_tsk_short(child, epc, SINGLESTEP16_INSN);
++                       ninsn_type = 0;
++               } else {
++                       write_tsk_long(child, epc, SINGLESTEP32_INSN);
++                       ninsn_type = 1;
++               }
++
++               if (ninsn_type == 0) {  /* 16bits */
++                       child->thread.insn1_type = 0;
++                       child->thread.addr1 = epc;
++                        /* the insn may have 32bit data */
++                       child->thread.insn1 = (short)epc_insn;
++               } else {
++                       child->thread.insn1_type = 1;
++                       child->thread.addr1 = epc;
++                       child->thread.insn1 = epc_insn;
++               }
++       } else {
++               /* branch! have two target child->thread.ss_nextcnt=2 */
++               read_tsk_long(child, epc, &epc_insn);
++               read_tsk_long(child, far_epc, &far_epc_insn);
++               if (is_16bitinsn(epc_insn)) {
++                       write_tsk_short(child, epc, SINGLESTEP16_INSN);
++                       ninsn_type = 0;
++               } else {
++                       write_tsk_long(child, epc, SINGLESTEP32_INSN);
++                       ninsn_type = 1;
++               }
++
++               if (ninsn_type == 0) {  /* 16bits */
++                       child->thread.insn1_type = 0;
++                       child->thread.addr1 = epc;
++                        /* the insn may have 32bit data */
++                       child->thread.insn1 = (short)epc_insn;
++               } else {
++                       child->thread.insn1_type = 1;
++                       child->thread.addr1 = epc;
++                       child->thread.insn1 = epc_insn;
++               }
++
++               if (is_16bitinsn(far_epc_insn)) {
++                       write_tsk_short(child, far_epc, 
+SINGLESTEP16_INSN);
++                       ninsn_type = 0;
++               } else {
++                       write_tsk_long(child, far_epc, SINGLESTEP32_INSN);
++                       ninsn_type = 1;
++               }
++
++               if (ninsn_type == 0) {  /* 16bits */
++                       child->thread.insn2_type = 0;
++                       child->thread.addr2 = far_epc;
++                        /* the insn may have 32bit data */
++                       child->thread.insn2 = (short)far_epc_insn;
++               } else {
++                       child->thread.insn2_type = 1;
++                       child->thread.addr2 = far_epc;
++                       child->thread.insn2 = far_epc_insn;
++               }
 +       }
-+       return len;
 +}
 +
-+#define __copy_from_user(to, from, len)        \
-+               __copy_tofrom_user((to), (from), (len))
-+
-+#define __copy_to_user(to, from, len)          \
-+               __copy_tofrom_user((to), (from), (len))
-+
-+
-+static inline unsigned long
-+__copy_to_user_inatomic(void *to, const void *from, unsigned long len)
++void clear_single_step(struct task_struct *child)
 +{
-+       return __copy_to_user(to, from, len);
++       if (child->thread.insn1_type == 0)
++               write_tsk_short(child, child->thread.addr1, 
+child->thread.insn1);
++
++       if (child->thread.insn1_type == 1)
++               write_tsk_long(child, child->thread.addr1, 
+child->thread.insn1);
++
++       if (child->thread.ss_nextcnt == 2) {    /* branch */
++               if (child->thread.insn1_type == 0)
++                       write_tsk_short(child, child->thread.addr1, 
+child->thread.insn1);
++               if (child->thread.insn1_type == 1)
++                       write_tsk_long(child, child->thread.addr1, 
+child->thread.insn1);
++               if (child->thread.insn2_type == 0)
++                       write_tsk_short(child, child->thread.addr2, 
+child->thread.insn2);
++               if (child->thread.insn2_type == 1)
++                       write_tsk_long(child, child->thread.addr2, 
+child->thread.insn2);
++       }
++
++       child->thread.single_step = 0;
++       child->thread.ss_nextcnt = 0;
 +}
 +
-+static inline unsigned long
-+__copy_from_user_inatomic(void *to, const void *from, unsigned long len)
-+{
-+       return __copy_from_user(to, from, len);
-+}
 +
-+#define __copy_in_user(to, from, len)  __copy_from_user(to, from, len)
++void ptrace_disable(struct task_struct *child)
++{}
 +
-+static inline unsigned long
-+copy_in_user(void *to, const void *from, unsigned long len)
++long arch_ptrace(struct task_struct *child, long request, long addr, long 
+data)
 +{
-+       if (access_ok(VERIFY_READ, from, len) &&
-+                     access_ok(VERFITY_WRITE, to, len))
-+               return copy_from_user(to, from, len);
++       int ret;
++
++       if (request == PTRACE_TRACEME) {
++               /* are we already being traced? */
++               if (current->ptrace & PT_PTRACED) {
++                       ret = -EPERM;
++                       goto out;
++               }
++               /* set the ptrace bit in the process flags. */
++               current->ptrace |= PT_PTRACED;
++               ret = 0;
++               goto out;
++       }
++       ret = -ESRCH;
++       if (!child)
++               goto out;
++
++       ret = -EPERM;
++
++       if (request == PTRACE_ATTACH) {
++               ret = ptrace_attach(child);
++               goto out;
++       }
++
++       ret = ptrace_check_attach(child, request == PTRACE_KILL);
++       if (ret < 0)
++               goto out;
++
++       switch (request) {
++       case PTRACE_PEEKTEXT: /* read word at location addr. */
++       case PTRACE_PEEKDATA: {
++               unsigned long tmp;
++               int copied;
++
++               copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 
+0);
++               ret = -EIO;
++               if (copied != sizeof(tmp))
++                       break;
++
++               ret = put_user(tmp,(unsigned long *) data);
++               goto out;
++               }
++
++       /* Read the word at location addr in the USER area.  */
++       case PTRACE_PEEKUSR: {
++               struct pt_regs *regs;
++               unsigned long tmp;
++
++               regs =task_pt_regs(child);
++
++               tmp = 0;  /* Default return value. */
++               switch(addr) {
++               case 0 ... 31:
++                       tmp = regs->regs[addr];
++                       break;
++               case PC:
++                       tmp = regs->cp0_epc;
++                       break;
++               case ECR:
++                       tmp = regs->cp0_ecr;
++                       break;
++               case EMA:
++                       tmp = regs->cp0_ema;
++                       break;
++               case CEH:
++                       tmp = regs->ceh;
++                       break;
++               case CEL:
++                       tmp = regs->cel;
++                       break;
++               case CONDITION:
++                       tmp = regs->cp0_condition;
++                       break;
++               case PSR:
++                       tmp = regs->cp0_psr;
++                       break;
++               case COUNTER:
++                       tmp = regs->sr0;
++                       break;
++               case LDCR:
++                       tmp = regs->sr1;
++                       break;
++               case STCR:
++                       tmp = regs->sr2;
++                       break;
++               default:
++                       tmp = 0;
++                       ret = -EIO;
++                       goto out;
++               }
++
++               ret = put_user(tmp, (unsigned long *) data);
++               goto out;
++       }
++
++       case PTRACE_POKETEXT: /* write the word at location addr. */
++       case PTRACE_POKEDATA:
++               ret = 0;
++               if (access_process_vm(child, addr, &data, sizeof(data), 1)
++                       == sizeof(data))
++                       break;
++               ret = -EIO;
++               goto out;
++
++       case PTRACE_POKEUSR: {
++               struct pt_regs *regs;
++               ret = 0;
++               regs =task_pt_regs(child);
++
++               switch (addr) {
++               case 0 ... 31:
++                       regs->regs[addr] = data;
++                       break;
++               case PC:
++                       regs->cp0_epc = data;
++                       break;
++               case CEH:
++                       regs->ceh = data;
++                       break;
++               case CEL:
++                       regs->cel = data;
++                       break;
++               case CONDITION:
++                       regs->cp0_condition = data;
++                       break;
++               case PSR:
++               case COUNTER:
++               case STCR:
++               case LDCR:
++                       break; /* user can't write the reg */
++               default:
++                       /* The rest are not allowed. */
++                       ret = -EIO;
++                       break;
++               }
++               break;
++       }
++
++       case PTRACE_SYSCALL: /* continue and stop at next (return from) 
+syscall */
++       case PTRACE_CONT: { /* restart after signal. */
++               ret = -EIO;
++               if (!valid_signal(data))
++                       break;
++               if (request == PTRACE_SYSCALL)
++                       set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
++               else
++                       clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
++
++               child->exit_code = data;
++               wake_up_process(child);
++               ret = 0;
++               break;
++       }
++
++       /*
++        * make the child exit.  Best I can do is send it a sigkill.
++        * perhaps it should be put in the status that it wants to
++        * exit.
++        */
++       case PTRACE_KILL:
++               ret = 0;
++               if (child->state == EXIT_ZOMBIE)        /* already dead */
++                       break;
++               child->exit_code = SIGKILL;
++               clear_single_step(child);
++               wake_up_process(child);
++               break;
++
++       case PTRACE_SINGLESTEP: {  /* set the trap flag. */
++               ret = -EIO;
++               if ((unsigned long) data > _NSIG)
++                       break;
++               clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
++               set_single_step(child);
++               child->exit_code = data;
++               /* give it a chance to run. */
++               wake_up_process(child);
++               ret = 0;
++               break;
++       }
++
++       case PTRACE_DETACH: /* detach a process that was attached. */
++               ret = ptrace_detach(child, data);
++               break;
++
++       case PTRACE_SETOPTIONS:
++               if (data & PTRACE_O_TRACESYSGOOD)
++                       child->ptrace |= PT_TRACESYSGOOD;
++               else
++                       child->ptrace &= ~PT_TRACESYSGOOD;
++               ret = 0;
++               break;
++
++       default:
++               ret = -EIO;
++               goto out;
++       }
++out:
++       return ret;
 +}
 +
 +/*
-+ * __clear_user: - Zero a block of memory in user space, with less 
-checking.
-+ * @to:   Destination address, in user space.
-+ * @n:    Number of bytes to zero.
-+ *
-+ * Zero a block of memory in user space.  Caller must check
-+ * the specified block with access_ok() before calling this function.
-+ *
-+ * Returns number of bytes that could not be cleared.
-+ * On success, this will be zero.
++ * Notification of system call entry/exit
++ * - triggered by current->work.syscall_trace
 + */
-+extern unsigned long __clear_user(char *src, unsigned long size);
-+
-+static inline unsigned long clear_user(char *src, unsigned long size)
++asmlinkage void do_syscall_trace(struct pt_regs *regs, int entryexit)
 +{
-+       if (access_ok(VERIFY_WRITE, src, size))
-+               return __clear_user(src, size);
-+       return -EFAULT;
++       if (!(current->ptrace & PT_PTRACED))
++               return;
++
++       if (!test_thread_flag(TIF_SYSCALL_TRACE))
++               return;
++
++       /* The 0x80 provides a way for the tracing parent to distinguish
++          between a syscall stop and SIGTRAP delivery */
++       ptrace_notify(SIGTRAP | ((current->ptrace & PT_TRACESYSGOOD) ?
++                       0x80 : 0));
++
++       /*
++        * this isn't the same as continuing with a signal, but it will do
++        * for normal use.  strace only continues with a signal if the
++        * stopping signal is not SIGTRAP.  -brl
++        */
++       if (current->exit_code) {
++               send_sig(current->exit_code, current, 1);
++               current->exit_code = 0;
++       }
 +}
-+
-+
-+/*
-+ * __strncpy_from_user: - Copy a NUL terminated string from userspace, 
-with less checking.
-+ * @dst:   Destination address, in kernel space.  This buffer must be at
-+ *         least @count bytes long.
-+ * @src:   Source address, in user space.
-+ * @count: Maximum number of bytes to copy, including the trailing NUL.
-+ *
-+ * Copies a NUL-terminated string from userspace to kernel space.
-+ * Caller must check the specified block with access_ok() before calling
-+ * this function.
-+ *
-+ * On success, returns the length of the string (not including the 
-trailing
-+ * NUL).
-+ *
-+ * If access to userspace fails, returns -EFAULT (some data may have been
-+ * copied).
-+ *
-+ * If @count is smaller than the length of the string, copies @count 
-bytes
-+ * and returns @count.
-+ */
-+extern int __strncpy_from_user(char *dst, const char *src, long len);
-+
-+static inline int strncpy_from_user(char *dst, const char *src, long len)
-+{
-+       if (access_ok(VERIFY_READ, src, 1))
-+               return __strncpy_from_user(dst, src, len);
-+       return -EFAULT;
-+}
-+
-+
-+extern int __strlen_user(const char *src);
-+static inline long strlen_user(const char __user *src)
-+{
-+       return __strlen_user(src);
-+}
-+
-+
-+extern int __strnlen_user(const char *str, long len);
-+static inline long strnlen_user(const char __user *str, long len)
-+{
-+       if (access_ok(VERIFY_READ, str, len));
-+               return __strnlen_user(str, len);
-+       return -EFAULT;
-+}
-+
-+struct exception_table_entry
-+{
-+       unsigned long insn;
-+       unsigned long nextinsn;
-+};
-+
-+extern int fixup_exception(struct pt_regs *regs);
-+
-+#endif /* _ASM_UACCESS_H */
-+
-diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/include/asm/ucontext.h 
-linux-2.6-git.new/arch/score/include/asm/ucontext.h
---- linux-2.6-git.ori/arch/score/include/asm/ucontext.h 1970-01-01 
-08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/include/asm/ucontext.h 2009-03-23 
-15:07:20.000000000 +0800
-@@ -0,0 +1,12 @@
-+#ifndef _ASM_UCONTEXT_H
-+#define _ASM_UCONTEXT_H
-+
-+struct ucontext {
-+       unsigned long   uc_flags;
-+       struct ucontext *uc_link;
-+       stack_t         uc_stack;
-+       struct sigcontext uc_mcontext;
-+       sigset_t        uc_sigmask;     /* mask last for extensibility */
-+};
-+
-+#endif /* _ASM_UCONTEXT_H */
-diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/include/asm/unaligned.h 
-linux-2.6-git.new/arch/score/include/asm/unaligned.h
---- linux-2.6-git.ori/arch/score/include/asm/unaligned.h        1970-01-01 
-08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/include/asm/unaligned.h        2009-03-23 
-15:07:26.000000000 +0800
-@@ -0,0 +1,21 @@
-+#ifndef _ASM_SCORE_UNALIGNED_H
-+#define _ASM_SCORE_UNALIGNED_H
-+
-+#include <linux/compiler.h>
-+#if defined(__SCOREEB__)
-+# include <linux/unaligned/be_struct.h>
-+# include <linux/unaligned/le_byteshift.h>
-+# include <linux/unaligned/generic.h>
-+# define get_unaligned __get_unaligned_be
-+# define put_unaligned __put_unaligned_be
-+#elif defined(__SCOREEL__)
-+# include <linux/unaligned/le_struct.h>
-+# include <linux/unaligned/be_byteshift.h>
-+# include <linux/unaligned/generic.h>
-+# define get_unaligned __get_unaligned_le
-+# define put_unaligned __put_unaligned_le
-+#else
-+# error "SCORE, but neither __SCOREEB__, nor __SCOREEL__???"
-+#endif
-+
-+#endif /* _ASM_SCORE_UNALIGNED_H */
 
 Signed off by: Chen Liqin <liqin.chen@sunplusct.com>
