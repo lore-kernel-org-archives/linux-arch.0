@@ -1,154 +1,228 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from va3ehsobe003.messaging.microsoft.com ([216.32.180.13]:11107
-	"EHLO VA3EHSOBE003.bigfish.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1756068AbZC0Nfi convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Mar 2009 09:35:38 -0400
-Content-Class: urn:content-classes:message
+Received: from e34.co.us.ibm.com ([32.97.110.152]:43652 "EHLO
+	e34.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752598AbZC0QFq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2009 12:05:46 -0400
+From: arnd@arndb.de
+Subject: Re: [PATCH 7/13] score - New architecure port to SunplusCT S+CORE processor
+Date: Fri, 27 Mar 2009 17:05:29 +0100
+References: <OF67FB031C.57858745-ON48257586.000915EE-48257586.00097F4B@sunplusct.com>
+In-Reply-To: <OF67FB031C.57858745-ON48257586.000915EE-48257586.00097F4B@sunplusct.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Subject: RE: [GIT PULL] Microblaze initial pack
-Date: Fri, 27 Mar 2009 07:20:27 -0600
-In-Reply-To: <20090327122518.GB23023@elte.hu>
-References: <49CC8A41.4060503@monstr.eu> <20090327103032.GA12485@elte.hu> <49CCBA3F.6040703@petalogix.com> <20090327122518.GB23023@elte.hu>
-From: John Linn <John.Linn@xilinx.com>
-Message-ID: <20090327132029.3DE1613C005E@mail159-va3.bigfish.com>
+Content-Disposition: inline
+Message-ID: <200903271705.29903.arnd@arndb.de>
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Michal Simek <michal.simek@petalogix.com>
-Cc: Michal Simek <monstr@monstr.eu>, Alan Cox <alan@lxorguk.ukuu.org.uk>, torvalds@linux-foundation.org, Linux Kernel list <linux-kernel@vger.kernel.org>, lkml <linux-arch@vger.kernel.org>, microblaze-uclinux@itee.uq.edu.au, Andrew Morton <akpm@linux-foundation.org>, John Williams <john.williams@petalogix.com>, Stephen Neuendorffer <stephenn@xilinx.com>, Thomas Gleixner <tglx@linutronix.de>, Randy Dunlap <randy.dunlap@oracle.com>, Arnd Bergmann <arnd@arndb.de>, Peter Korsgaard <jacmet@sunsite.dk>
-Message-ID: <20090327132027.UraTEgijR0Ym5mI9UooZzPBzQ3CJoGsc7DiQdZEQ-tk@z>
+To: liqin.chen@sunplusct.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, monstr@monstr.eu, john.williams@petalogix.com
+Message-ID: <20090327160529._tJiz7gNzNowXFD6SydxzFOpR6Zdflr6wUvjnm3hXr4@z>
 
-Sure of course you can change it.  We're just putting in GPL license in
-our current code.
+On Friday 27 March 2009, liqin.chen@sunplusct.com wrote:
 
--- John
+> +#define __NR_Linux                     0
+> +#define __NR_syscall                   (__NR_Linux +   0)
+> +#define __NR_exit                      (__NR_Linux +   1)
+> +#define __NR_fork                      (__NR_Linux +   2)
+> +#define __NR_read                      (__NR_Linux +   3)
+> +#define __NR_write                     (__NR_Linux +   4)
+> +#define __NR_open                      (__NR_Linux +   5)
+> +#define __NR_close                     (__NR_Linux +   6)
+> +#define __NR_waitpid                   (__NR_Linux +   7)
+> +#define __NR_creat                     (__NR_Linux +   8)
+> +#define __NR_link                      (__NR_Linux +   9)
+> +#define __NR_unlink                    (__NR_Linux +  10)
+> +#define __NR_execve                    (__NR_Linux +  11)
+> +#define __NR_chdir                     (__NR_Linux +  12)
+> +#define __NR_time                      (__NR_Linux +  13)
+> +#define __NR_mknod                     (__NR_Linux +  14)
+> +#define __NR_chmod                     (__NR_Linux +  15)
+> +#define __NR_lchown                    (__NR_Linux +  16)
+> +#define __NR_break                     (__NR_Linux +  17)
+> +#define __NR_unused18                  (__NR_Linux +  18)
 
-> -----Original Message-----
-> From: Ingo Molnar [mailto:mingo@elte.hu]
-> Sent: Friday, March 27, 2009 6:25 AM
-> To: Michal Simek
-> Cc: Michal Simek; Alan Cox; torvalds@linux-foundation.org; Linux
-Kernel list; lkml; microblaze-
-> uclinux@itee.uq.edu.au; Andrew Morton; John Williams; John Linn;
-Stephen Neuendorffer; Thomas
-> Gleixner; Randy Dunlap; Arnd Bergmann; Peter Korsgaard
-> Subject: Re: [GIT PULL] Microblaze initial pack
-> 
-> 
-> * Michal Simek <michal.simek@petalogix.com> wrote:
-> 
-> > > I've also done a (quick) license scan and there's this one file i
-> > > found:
-> > >
-> > >   arch/microblaze/kernel/hw_exception_handler.S
-> > >
-> > >    * Copyright (C) 2004 Xilinx, Inc. All rights reserved.
-> > >    *
-> > >    * Xilinx, Inc.
-> > >    * XILINX IS PROVIDING THIS DESIGN, CODE, OR INFORMATION "AS IS"
-AS A
-> > >    * COURTESY TO YOU.BY PROVIDING THIS DESIGN, CODE, OR
-INFORMATION AS
-> > >    * ONE POSSIBLE IMPLEMENTATION OF THIS FEATURE, APPLICATION OR
-> > >    * STANDARD, XILINX IS MAKING NO REPRESENTATION THAT THIS
-IMPLEMENTATION
-> > >    * IS FREE FROM ANY CLAIMS OF INFRINGEMENT, AND YOU ARE
-RESPONSIBLE
-> > >    * FOR OBTAINING ANY RIGHTS YOU MAY REQUIRE FOR YOUR
-IMPLEMENTATION.
-> > >
-> > > That is an all rights reserved copyrighted file, and i'm not sure
-> > > the above constitutes a GPLv2 compatible license. It would be less
-> > > ambigious to add what you do in the other places instead,
-something
-> > > like:
-> > >
-> > >  * (C) Copyright 2004 Xilinx, Inc.
-> > >  *
-> > >  * This program is free software; you can redistribute it and/or
-modify it
-> > >  * under the terms of the GNU General Public License version 2 as
-published
-> > >  * by the Free Software Foundation.
-> > >
-> > This is no my license. I'll ask a Xilinx guys for permission to
-change
-> > it for this file.
-> > John L, Stephen: Could I change the license as Ingo suggested?
-> 
-> Note that there's a couple of other Xilinx files in the upstream
-> kernel tree already that could serve as a template:
-> 
->  drivers/char/xilinx_hwicap/buffer_icap.c: *     XILINX IS PROVIDING
-THIS DESIGN, CODE, OR
-> INFORMATION "AS IS"
->  drivers/char/xilinx_hwicap/buffer_icap.h: *     XILINX IS PROVIDING
-THIS DESIGN, CODE, OR
-> INFORMATION "AS IS"
->  drivers/char/xilinx_hwicap/fifo_icap.c: *     XILINX IS PROVIDING
-THIS DESIGN, CODE, OR INFORMATION
-> "AS IS"
->  drivers/char/xilinx_hwicap/fifo_icap.h: *     XILINX IS PROVIDING
-THIS DESIGN, CODE, OR INFORMATION
-> "AS IS"
->  drivers/char/xilinx_hwicap/xilinx_hwicap.c: *     XILINX IS PROVIDING
-THIS DESIGN, CODE, OR
-> INFORMATION "AS IS"
->  drivers/char/xilinx_hwicap/xilinx_hwicap.h: *     XILINX IS PROVIDING
-THIS DESIGN, CODE, OR
-> INFORMATION "AS IS"
-> 
-> Those files carry this as-is no-warrantes notice plus also a GPLv2
-> notice:
-> 
->
-/***********************************************************************
-******
->  *
->  *     Author: Xilinx, Inc.
->  *
->  *     This program is free software; you can redistribute it and/or
-modify it
->  *     under the terms of the GNU General Public License as published
-by the
->  *     Free Software Foundation; either version 2 of the License, or
-(at your
->  *     option) any later version.
->  *
->  *     XILINX IS PROVIDING THIS DESIGN, CODE, OR INFORMATION "AS IS"
->  *     AS A COURTESY TO YOU, SOLELY FOR USE IN DEVELOPING PROGRAMS AND
->  *     SOLUTIONS FOR XILINX DEVICES.  BY PROVIDING THIS DESIGN, CODE,
->  *     OR INFORMATION AS ONE POSSIBLE IMPLEMENTATION OF THIS FEATURE,
->  *     APPLICATION OR STANDARD, XILINX IS MAKING NO REPRESENTATION
->  *     THAT THIS IMPLEMENTATION IS FREE FROM ANY CLAIMS OF
-INFRINGEMENT,
->  *     AND YOU ARE RESPONSIBLE FOR OBTAINING ANY RIGHTS YOU MAY
-REQUIRE
->  *     FOR YOUR IMPLEMENTATION.  XILINX EXPRESSLY DISCLAIMS ANY
->  *     WARRANTY WHATSOEVER WITH RESPECT TO THE ADEQUACY OF THE
->  *     IMPLEMENTATION, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OR
->  *     REPRESENTATIONS THAT THIS IMPLEMENTATION IS FREE FROM CLAIMS OF
->  *     INFRINGEMENT, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
->  *     FOR A PARTICULAR PURPOSE.
->  *
->  *     (c) Copyright 2003-2008 Xilinx Inc.
->  *     All rights reserved.
->  *
->  *     You should have received a copy of the GNU General Public
-License along
->  *     with this program; if not, write to the Free Software
-Foundation, Inc.,
->  *     675 Mass Ave, Cambridge, MA 02139, USA.
->  *
->
-************************************************************************
-*****/
-> 
-> 	Ingo
+Do you need to keep backwards compatiblity with existing user
+space code? The microblaze developers decided to do a clean
+cut for merging their code into Linux, which I think is a good
+idea in order to limit the system calls that you need to provide
+for backwards compatibility, and to remove all the "unused" ones.
 
+Note that you could also remove some of the traditional ones
+like 'open' 'mknod' or 'link' because they implement a subset
+of the newer 'openat', 'mknodat' and 'linkat' calls. There
+are many other examples. The recommended way for these is to
+have your libc wrap the system calls.
 
-This email and any attachments are intended for the sole use of the named recipient(s) and contain(s) confidential information that may be proprietary, privileged or copyrighted under applicable law. If you are not the intended recipient, do not read, copy, or forward this email message or any attachments. Delete this email message and any attachments immediately.
+I actually hope that we can come up with a minimal list of syscalls
+that we can put into asm-generic/unistd.h and share with microblaze
+and all future architectures. Unfortunately, the same is not
+possible with the existing architectures because of binary
+compatibility with existing user binaries.
 
+> +#define __NR_sigsuspend                        (__NR_Linux +  72)
+> +#define __NR_sigpending                        (__NR_Linux +  73)
 
+All the 'sig*' syscalls can be left out, in favour of the 'rt_sig*'
+variants.
+
+> +#define __NR_profil                    (__NR_Linux +  98)
+
+What is this one?
+
+> +#define __NR_statfs                    (__NR_Linux +  99)
+> +#define __NR_fstatfs                   (__NR_Linux + 100)
+> +#define __NR_ioperm                    (__NR_Linux + 101)
+> +#define __NR_socketcall                        (__NR_Linux + 102)
+
+You should not have socketcall and ipc, but rather use
+their subcalls directly. See e.g. how blackfin does it.
+
+> +#define __NR_iopl                      (__NR_Linux + 110)
+> +#define __NR_vhangup                   (__NR_Linux + 111)
+> +#define __NR_idle                      (__NR_Linux + 112)
+> +#define __NR_vm86                      (__NR_Linux + 113)
+
+iopl and vm86 are x86 specific, you should not have them.
+sys_idle has been removed a long time ago.
+
+> +#define __NR_create_module             (__NR_Linux + 127)
+> +#define __NR_init_module               (__NR_Linux + 128)
+> +#define __NR_delete_module             (__NR_Linux + 129)
+
+create_module is long gone as well.
+
+> +#define __NR_get_kernel_syms           (__NR_Linux + 130)
+> +#define __NR_quotactl                  (__NR_Linux + 131)
+> +#define __NR_getpgid                   (__NR_Linux + 132)
+> +#define __NR_fchdir                    (__NR_Linux + 133)
+> +#define __NR_bdflush                   (__NR_Linux + 134)
+> +#define __NR_sysfs                     (__NR_Linux + 135)
+
+bdflush is not a nop, sysfs (the syscall, not the file system)
+is deprecated.
+
+> +#define __NR_cacheflush                        (__NR_Linux + 147)
+> +#define __NR_cachectl                  (__NR_Linux + 148)
+> +#define __NR_sysscore                  (__NR_Linux + 149)
+
+Are these your own? Do you really need them?
+
+> +#define _syscall0(type,name)                           \
+> +type name(void)                                                \
+> +{                                                      \
+> +       register unsigned long __v0;                    \
+> +       register unsigned long __a3;                    \
+> +                                                       \
+> +       __asm__ volatile (                              \
+> +       "ldi\tr27, %2\n\t"                              \
+> +       "syscall\n\t"                                   \
+> +       "mv\t%0, r4\n\t"                                \
+> +       "mv\t%1, r7\n\t"                                \
+> +       : "=&r" (__v0), "=r" (__a3)                     \
+> +       : "i" (__NR_##name)                             \
+> +       : "r4","r7", "r8", "r9", "r10", "r11", "r22", "r23", "r24", "r25", 
+> "r26", "r27");  \
+> +                                                       \
+> +       if (__a3 == 0)                                  \
+> +               return (type) __v0;                     \
+> +       errno = __v0; \
+> +       return -1; \
+> +}
+
+These macros were traditionally part of the kernel headers, but are
+no more, you should remove them here.
+
+> +#define __ARCH_WANT_SYS_FADVISE64
+> +#define __ARCH_OMIT_COMPAT_SYS_GETDENTS64
+> +#define __ARCH_WANT_IPC_PARSE_VERSION
+> +#define __ARCH_WANT_OLD_READDIR
+> +#define __ARCH_WANT_SYS_ALARM
+> +#define __ARCH_WANT_SYS_GETHOSTNAME
+> +#define __ARCH_WANT_SYS_PAUSE
+> +#define __ARCH_WANT_SYS_SGETMASK
+> +#define __ARCH_WANT_SYS_UTIME
+> +#define __ARCH_WANT_SYS_WAITPID
+> +#define __ARCH_WANT_SYS_SOCKETCALL
+> +#define __ARCH_WANT_SYS_GETPGRP
+> +#define __ARCH_WANT_SYS_LLSEEK
+> +#define __ARCH_WANT_SYS_NICE
+> +#define __ARCH_WANT_SYS_OLD_GETRLIMIT
+> +#define __ARCH_WANT_SYS_OLDUMOUNT
+> +#define __ARCH_WANT_SYS_SIGPENDING
+> +#define __ARCH_WANT_SYS_SIGPROCMASK
+> +#define __ARCH_WANT_SYS_RT_SIGACTION
+> +#define __ARCH_WANT_STAT64
+> +#define __ARCH_WANT_SYS_TIME
+
+This list should be empty. A new architecture should
+not need any of them, because they have all been
+superceded. I'm trying to clean this list up to make
+sure it is up-to-date and you also don't get other
+syscalls that you don't need any more.
+
+> +/* whitelists for checksyscalls */
+> +#define __IGNORE_select
+> +#define __IGNORE_vfork
+> +#define __IGNORE_time
+> +#define __IGNORE_uselib
+
+It's good that you don't implement these syscalls, because they
+have been superceded, but the right solution would be to change
+checksyscalls to no longer require them.
+
+> +#define __IGNORE_fadvise64_64
+> +#define __IGNORE_getdents64
+
+I believe you actually need these two syscalls.
+
+> +menu "Machine selection"
+> +
+> +choice
+> +       prompt "System type"
+> +       default MACH_SPCT6600
+> +
+> +config MACH_SPCT6600
+> +       bool "SPCT6600 series based machines"
+> +       select SYS_SUPPORTS_32BIT_KERNEL
+> +       select SYS_SUPPORTS_LITTLE_ENDIAN
+> +       select CPU_SCORE7
+> +       select GENERIC_HAS_IOMAP
+> +
+> +config MACH_SPG300
+> +       bool "SPG300 series based machines"
+> +       select SYS_SUPPORTS_32BIT_KERNEL
+> +       select SYS_SUPPORTS_LITTLE_ENDIAN
+> +       select CPU_SCORE7
+> +       select GENERIC_HAS_IOMAP
+> +
+> +config SCORE_SIM
+> +       bool "Score simulator"
+> +       select SYS_SUPPORTS_32BIT_KERNEL
+> +       select SYS_SUPPORTS_LITTLE_ENDIAN
+> +       select CPU_SCORE7
+> +       select GENERIC_HAS_IOMAP
+> +endchoice
+
+On powerpc and x86, we found it very helpful to be able to build a
+kernel that actually runs on all the machines, rather than a subset.
+
+You may want to think about changing your code to enable that as
+well, though that is not something you should do before merging
+your tree.
+
+> +config HZ
+> +       int
+> +       default 48 if HZ_48
+> +       default 100 if HZ_100
+> +       default 128 if HZ_128
+> +       default 250 if HZ_250
+> +       default 256 if HZ_256
+
+This is an unusual selection of clock tick frequencies. Are you
+limited by the hardware implementation here?
+If not, you should consider implementing tickless operation, which
+is often more efficient.
+
+	Arnd <><
