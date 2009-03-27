@@ -1,98 +1,103 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [GIT PULL] Microblaze initial pack
-Date: Fri, 27 Mar 2009 13:25:18 +0100
-Message-ID: <20090327122518.GB23023@elte.hu>
-References: <49CC8A41.4060503@monstr.eu> <20090327103032.GA12485@elte.hu> <49CCBA3F.6040703@petalogix.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/13] score - New architecure port to SunplusCT S+CORE processor
+Date: Fri, 27 Mar 2009 13:50:44 +0100
+Message-ID: <200903271350.45045.arnd@arndb.de>
+References: <OF05CD1996.00155773-ON48257586.0007E097-48257586.0008511F@sunplusct.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:55451 "EHLO mx3.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751317AbZC0MZt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Mar 2009 08:25:49 -0400
+Received: from moutng.kundenserver.de ([212.227.126.171]:63895 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751520AbZC0Mu7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2009 08:50:59 -0400
+In-Reply-To: <OF05CD1996.00155773-ON48257586.0007E097-48257586.0008511F@sunplusct.com>
 Content-Disposition: inline
-In-Reply-To: <49CCBA3F.6040703@petalogix.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <michal.simek@petalogix.com>
-Cc: Michal Simek <monstr@monstr.eu>, Alan Cox <alan@lxorguk.ukuu.org.uk>, torvalds@linux-foundation.org, Linux Kernel list <linux-kernel@vger.kernel.org>, lkml <linux-arch@vger.kernel.org>, microblaze-uclinux@itee.uq.edu.au, Andrew Morton <akpm@linux-foundation.org>, John Williams <john.williams@petalogix.com>, John Linn <John.Linn@xilinx.com>, Stephen Neuendorffer <stephenn@xilinx.com>, Thomas Gleixner <tglx@linutronix.de>, Randy Dunlap <randy.dunlap@oracle.com>, Arnd Bergmann <arnd@arndb.de>, Peter Korsgaard <jacmet@sunsite.dk>
+To: liqin.chen@sunplusct.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
 
+On Friday 27 March 2009, liqin.chen@sunplusct.com wrote:
+> linux/score lastest patch place at 
+> http://www.sunplusct.com/images/linux-score-patch/linux-score-20090324.patch
+> 
+> diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
 
-* Michal Simek <michal.simek@petalogix.com> wrote:
+First of all, welcome here and thanks for your first posting of
+patches to the Linux kernel. I'll start looking through your
+code soon, but would like to give you some generic advices first.
 
-> > I've also done a (quick) license scan and there's this one file i 
-> > found:
-> >
-> >   arch/microblaze/kernel/hw_exception_handler.S
-> >
-> >    * Copyright (C) 2004 Xilinx, Inc. All rights reserved.
-> >    *
-> >    * Xilinx, Inc.
-> >    * XILINX IS PROVIDING THIS DESIGN, CODE, OR INFORMATION "AS IS" AS A
-> >    * COURTESY TO YOU.BY PROVIDING THIS DESIGN, CODE, OR INFORMATION AS
-> >    * ONE POSSIBLE IMPLEMENTATION OF THIS FEATURE, APPLICATION OR
-> >    * STANDARD, XILINX IS MAKING NO REPRESENTATION THAT THIS IMPLEMENTATION
-> >    * IS FREE FROM ANY CLAIMS OF INFRINGEMENT, AND YOU ARE RESPONSIBLE
-> >    * FOR OBTAINING ANY RIGHTS YOU MAY REQUIRE FOR YOUR IMPLEMENTATION.
-> >
-> > That is an all rights reserved copyrighted file, and i'm not sure 
-> > the above constitutes a GPLv2 compatible license. It would be less 
-> > ambigious to add what you do in the other places instead, something 
-> > like:
-> >
-> >  * (C) Copyright 2004 Xilinx, Inc.
-> >  *
-> >  * This program is free software; you can redistribute it and/or modify it
-> >  * under the terms of the GNU General Public License version 2 as published
-> >  * by the Free Software Foundation.
-> >   
-> This is no my license. I'll ask a Xilinx guys for permission to change
-> it for this file.
-> John L, Stephen: Could I change the license as Ingo suggested?
+It may be a lot of things to learn at the beginning but you've already
+taken the biggest step of coming out to the public with your patches.
 
-Note that there's a couple of other Xilinx files in the upstream 
-kernel tree already that could serve as a template:
+It seems that you are not using a specific tool to post your
+patches, while we have git and quilt (amongst others) that help
+you prepare the patch files for submission.
 
- drivers/char/xilinx_hwicap/buffer_icap.c: *     XILINX IS PROVIDING THIS DESIGN, CODE, OR INFORMATION "AS IS"
- drivers/char/xilinx_hwicap/buffer_icap.h: *     XILINX IS PROVIDING THIS DESIGN, CODE, OR INFORMATION "AS IS"
- drivers/char/xilinx_hwicap/fifo_icap.c: *     XILINX IS PROVIDING THIS DESIGN, CODE, OR INFORMATION "AS IS"
- drivers/char/xilinx_hwicap/fifo_icap.h: *     XILINX IS PROVIDING THIS DESIGN, CODE, OR INFORMATION "AS IS"
- drivers/char/xilinx_hwicap/xilinx_hwicap.c: *     XILINX IS PROVIDING THIS DESIGN, CODE, OR INFORMATION "AS IS"
- drivers/char/xilinx_hwicap/xilinx_hwicap.h: *     XILINX IS PROVIDING THIS DESIGN, CODE, OR INFORMATION "AS IS"
+Most of the points should be listed in Documentation/SubmittingPatches,
+including
 
-Those files carry this as-is no-warrantes notice plus also a GPLv2 
-notice:
+* specific subject lines in each mail
+* threaded mails so that all of them show up together
+* line wrapping
+* a multiline patch description in each mail
 
-/*****************************************************************************
- *
- *     Author: Xilinx, Inc.
- *
- *     This program is free software; you can redistribute it and/or modify it
- *     under the terms of the GNU General Public License as published by the
- *     Free Software Foundation; either version 2 of the License, or (at your
- *     option) any later version.
- *
- *     XILINX IS PROVIDING THIS DESIGN, CODE, OR INFORMATION "AS IS"
- *     AS A COURTESY TO YOU, SOLELY FOR USE IN DEVELOPING PROGRAMS AND
- *     SOLUTIONS FOR XILINX DEVICES.  BY PROVIDING THIS DESIGN, CODE,
- *     OR INFORMATION AS ONE POSSIBLE IMPLEMENTATION OF THIS FEATURE,
- *     APPLICATION OR STANDARD, XILINX IS MAKING NO REPRESENTATION
- *     THAT THIS IMPLEMENTATION IS FREE FROM ANY CLAIMS OF INFRINGEMENT,
- *     AND YOU ARE RESPONSIBLE FOR OBTAINING ANY RIGHTS YOU MAY REQUIRE
- *     FOR YOUR IMPLEMENTATION.  XILINX EXPRESSLY DISCLAIMS ANY
- *     WARRANTY WHATSOEVER WITH RESPECT TO THE ADEQUACY OF THE
- *     IMPLEMENTATION, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OR
- *     REPRESENTATIONS THAT THIS IMPLEMENTATION IS FREE FROM CLAIMS OF
- *     INFRINGEMENT, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- *     FOR A PARTICULAR PURPOSE.
- *
- *     (c) Copyright 2003-2008 Xilinx Inc.
- *     All rights reserved.
- *
- *     You should have received a copy of the GNU General Public License along
- *     with this program; if not, write to the Free Software Foundation, Inc.,
- *     675 Mass Ave, Cambridge, MA 02139, USA.
- *
- *****************************************************************************/
+Since the kernel development cycle has entered the merge window
+for 2.6.30, you should not expect the architecture to go into
+2.6.30 but you have enough time for addressing all review comments
+before 2.6.31, as long as you keep posting updates. Specific
+comments about code that should be done differently don't mean
+that you made a mistake, because any way you do it, you will
+get complaints from somebody ;-)
 
-	Ingo
+Ideally, you should provide a git tree or a patch set so it
+can be included in linux-next at first. Please just ask if you 
+need help setting up a git server.
+
+Do you have a cross-compiler tool chain for x86 hosts somewhere
+for download?
+
+> --- linux-2.6-git.ori/arch/score/include/asm/a.out.h    1970-01-01 
+> 08:00:00.000000000 +0800
+> +++ linux-2.6-git.new/arch/score/include/asm/a.out.h    2009-03-13 
+> 14:26:33.000000000 +0800
+> @@ -0,0 +1,23 @@
+> +#ifndef _ASM_A_OUT_H
+> +#define _ASM_A_OUT_H
+> +
+> +struct exec
+> +{
+> +       unsigned long a_info;   /* Use macros N_MAGIC, etc for access */
+> +       unsigned a_text;        /* length of text, in bytes */
+> +       unsigned a_data;        /* length of data, in bytes */
+> +       unsigned a_bss;         /* length of uninitialized data area for
+> +                                   file, in bytes */
+> +       unsigned a_syms;        /* length of symbol table data in file,
+> +                                  in bytes */
+> +       unsigned a_entry;       /* start address */
+> +       unsigned a_trsize;      /* length of relocation info for text, in
+> +                                   bytes */
+> +       unsigned a_drsize;      /* length of relocation info for data, in 
+> bytes */
+> +};
+> +
+> +#define N_TRSIZE(a)    ((a).a_trsize)
+> +#define N_DRSIZE(a)    ((a).a_drsize)
+> +#define N_SYMSIZE(a)   ((a).a_syms)
+> +
+> +#endif /* _ASM_A_OUT_H */
+
+New architectures normally don't need a.out support any more, so this
+could be left out.
+
+> linux-2.6-git.ori/arch/score/include/asm/atomic.h 
+
+> linux-2.6-git.new/arch/score/include/asm/bitops.h
+
+For these files (and many more), I have done a generic version that I
+guess I should really post now so that you and the microblaze guys can just
+use those files instead of copying new ones.
+
+	Arnd <><
