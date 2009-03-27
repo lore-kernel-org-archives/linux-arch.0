@@ -1,45 +1,38 @@
 From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [PATCH 10/13] score - New architecure port to SunplusCT S+CORE
+Subject: Re: [PATCH 7/13] score - New architecure port to SunplusCT S+CORE
 	processor
-Date: Fri, 27 Mar 2009 13:05:05 -0400
-Message-ID: <20090327170505.GB29999@bombadil.infradead.org>
-References: <OF23D2A1D1.74CB7871-ON48257586.00098D8A-48257586.0009CE62@sunplusct.com> <200903271626.20863.arnd@arndb.de>
+Date: Fri, 27 Mar 2009 13:09:03 -0400
+Message-ID: <20090327170903.GC29999@bombadil.infradead.org>
+References: <OF67FB031C.57858745-ON48257586.000915EE-48257586.00097F4B@sunplusct.com> <200903271705.29903.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:50859 "EHLO
+Received: from bombadil.infradead.org ([18.85.46.34]:51105 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752178AbZC0RFK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2009 13:05:10 -0400
+	with ESMTP id S1753417AbZC0RJG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2009 13:09:06 -0400
 Content-Disposition: inline
-In-Reply-To: <200903271626.20863.arnd@arndb.de>
+In-Reply-To: <200903271705.29903.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: liqin.chen@sunplusct.com
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
+To: arnd@arndb.de
+Cc: liqin.chen@sunplusct.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, monstr@monstr.eu, john.williams@petalogix.com
 
-Hi Liqin,
+On Fri, Mar 27, 2009 at 05:05:29PM +0100, arnd@arndb.de wrote:
+> > +config MACH_SPCT6600
+> > +       bool "SPCT6600 series based machines"
+> > +       select SYS_SUPPORTS_32BIT_KERNEL
+> > +       select SYS_SUPPORTS_LITTLE_ENDIAN
+> > +       select CPU_SCORE7
+> > +       select GENERIC_HAS_IOMAP
+> > +
 
-On Fri, Mar 27, 2009 at 04:26:20PM +0100, Arnd Bergmann wrote:
-> <lots of good stuff here.>
+Huh, is it intended to add big endian support? <asm/byteorder.h>
+was just including <asm-generic/little_endian.h> and should probably
+be conditional on your SYS_SUPPROTS_BIG_ENDIAN if so...
 
-It looks like virtually all of this port has been cribbed from MIPS, which is
-possibly not the wisest move...
-
-(Not that it's bad, or wrong, but simply because MIPS was one of the
-first Linux ports, and has... compatibility constraints because of it
-that new ports don't need to be compatible with.)
-
-You may want to look at avr32 and blackfin, which are both 'newer'
-ports. I imagine a lot of the early discussion around their merging will
-be relevant to the score port as well.
-
-Particularly eye their syscall table...
-
-(sys_cacheflush? seriously? :)
-
-I went through your patch when you posted it last week and made some
-comments, I'll post them this weekend if I don't see them brought up by
-Arnd or others.
+I've dug a bit at your code for this, and can't see where you obviously
+set a byte order bit in a control register... is it hard wired on the
+board?
 
 regards, Kyle
