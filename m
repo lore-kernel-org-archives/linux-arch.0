@@ -1,223 +1,45 @@
-From: arnd@arndb.de
-Subject: Re: [PATCH 7/13] score - New architecure port to SunplusCT S+CORE processor
-Date: Fri, 27 Mar 2009 17:05:29 +0100
-Message-ID: <200903271705.29903.arnd@arndb.de>
-References: <OF67FB031C.57858745-ON48257586.000915EE-48257586.00097F4B@sunplusct.com>
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [PATCH 10/13] score - New architecure port to SunplusCT S+CORE
+	processor
+Date: Fri, 27 Mar 2009 13:05:05 -0400
+Message-ID: <20090327170505.GB29999@bombadil.infradead.org>
+References: <OF23D2A1D1.74CB7871-ON48257586.00098D8A-48257586.0009CE62@sunplusct.com> <200903271626.20863.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757204AbZC0QGD@vger.kernel.org>
-In-Reply-To: <OF67FB031C.57858745-ON48257586.000915EE-48257586.00097F4B@sunplusct.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([18.85.46.34]:50859 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752178AbZC0RFK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2009 13:05:10 -0400
 Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
+In-Reply-To: <200903271626.20863.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: liqin.chen@sunplusct.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, monstr@monstr.eu, john.williams@petalogix.com
-List-Id: linux-arch.vger.kernel.org
+Cc: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
 
-On Friday 27 March 2009, liqin.chen@sunplusct.com wrote:
+Hi Liqin,
 
-> +#define __NR_Linux                     0
-> +#define __NR_syscall                   (__NR_Linux +   0)
-> +#define __NR_exit                      (__NR_Linux +   1)
-> +#define __NR_fork                      (__NR_Linux +   2)
-> +#define __NR_read                      (__NR_Linux +   3)
-> +#define __NR_write                     (__NR_Linux +   4)
-> +#define __NR_open                      (__NR_Linux +   5)
-> +#define __NR_close                     (__NR_Linux +   6)
-> +#define __NR_waitpid                   (__NR_Linux +   7)
-> +#define __NR_creat                     (__NR_Linux +   8)
-> +#define __NR_link                      (__NR_Linux +   9)
-> +#define __NR_unlink                    (__NR_Linux +  10)
-> +#define __NR_execve                    (__NR_Linux +  11)
-> +#define __NR_chdir                     (__NR_Linux +  12)
-> +#define __NR_time                      (__NR_Linux +  13)
-> +#define __NR_mknod                     (__NR_Linux +  14)
-> +#define __NR_chmod                     (__NR_Linux +  15)
-> +#define __NR_lchown                    (__NR_Linux +  16)
-> +#define __NR_break                     (__NR_Linux +  17)
-> +#define __NR_unused18                  (__NR_Linux +  18)
+On Fri, Mar 27, 2009 at 04:26:20PM +0100, Arnd Bergmann wrote:
+> <lots of good stuff here.>
 
-Do you need to keep backwards compatiblity with existing user
-space code? The microblaze developers decided to do a clean
-cut for merging their code into Linux, which I think is a good
-idea in order to limit the system calls that you need to provide
-for backwards compatibility, and to remove all the "unused" ones.
+It looks like virtually all of this port has been cribbed from MIPS, which is
+possibly not the wisest move...
 
-Note that you could also remove some of the traditional ones
-like 'open' 'mknod' or 'link' because they implement a subset
-of the newer 'openat', 'mknodat' and 'linkat' calls. There
-are many other examples. The recommended way for these is to
-have your libc wrap the system calls.
+(Not that it's bad, or wrong, but simply because MIPS was one of the
+first Linux ports, and has... compatibility constraints because of it
+that new ports don't need to be compatible with.)
 
-I actually hope that we can come up with a minimal list of syscalls
-that we can put into asm-generic/unistd.h and share with microblaze
-and all future architectures. Unfortunately, the same is not
-possible with the existing architectures because of binary
-compatibility with existing user binaries.
+You may want to look at avr32 and blackfin, which are both 'newer'
+ports. I imagine a lot of the early discussion around their merging will
+be relevant to the score port as well.
 
-> +#define __NR_sigsuspend                        (__NR_Linux +  72)
-> +#define __NR_sigpending                        (__NR_Linux +  73)
+Particularly eye their syscall table...
 
-All the 'sig*' syscalls can be left out, in favour of the 'rt_sig*'
-variants.
+(sys_cacheflush? seriously? :)
 
-> +#define __NR_profil                    (__NR_Linux +  98)
+I went through your patch when you posted it last week and made some
+comments, I'll post them this weekend if I don't see them brought up by
+Arnd or others.
 
-What is this one?
-
-> +#define __NR_statfs                    (__NR_Linux +  99)
-> +#define __NR_fstatfs                   (__NR_Linux + 100)
-> +#define __NR_ioperm                    (__NR_Linux + 101)
-> +#define __NR_socketcall                        (__NR_Linux + 102)
-
-You should not have socketcall and ipc, but rather use
-their subcalls directly. See e.g. how blackfin does it.
-
-> +#define __NR_iopl                      (__NR_Linux + 110)
-> +#define __NR_vhangup                   (__NR_Linux + 111)
-> +#define __NR_idle                      (__NR_Linux + 112)
-> +#define __NR_vm86                      (__NR_Linux + 113)
-
-iopl and vm86 are x86 specific, you should not have them.
-sys_idle has been removed a long time ago.
-
-> +#define __NR_create_module             (__NR_Linux + 127)
-> +#define __NR_init_module               (__NR_Linux + 128)
-> +#define __NR_delete_module             (__NR_Linux + 129)
-
-create_module is long gone as well.
-
-> +#define __NR_get_kernel_syms           (__NR_Linux + 130)
-> +#define __NR_quotactl                  (__NR_Linux + 131)
-> +#define __NR_getpgid                   (__NR_Linux + 132)
-> +#define __NR_fchdir                    (__NR_Linux + 133)
-> +#define __NR_bdflush                   (__NR_Linux + 134)
-> +#define __NR_sysfs                     (__NR_Linux + 135)
-
-bdflush is not a nop, sysfs (the syscall, not the file system)
-is deprecated.
-
-> +#define __NR_cacheflush                        (__NR_Linux + 147)
-> +#define __NR_cachectl                  (__NR_Linux + 148)
-> +#define __NR_sysscore                  (__NR_Linux + 149)
-
-Are these your own? Do you really need them?
-
-> +#define _syscall0(type,name)                           \
-> +type name(void)                                                \
-> +{                                                      \
-> +       register unsigned long __v0;                    \
-> +       register unsigned long __a3;                    \
-> +                                                       \
-> +       __asm__ volatile (                              \
-> +       "ldi\tr27, %2\n\t"                              \
-> +       "syscall\n\t"                                   \
-> +       "mv\t%0, r4\n\t"                                \
-> +       "mv\t%1, r7\n\t"                                \
-> +       : "=&r" (__v0), "=r" (__a3)                     \
-> +       : "i" (__NR_##name)                             \
-> +       : "r4","r7", "r8", "r9", "r10", "r11", "r22", "r23", "r24", "r25", 
-> "r26", "r27");  \
-> +                                                       \
-> +       if (__a3 == 0)                                  \
-> +               return (type) __v0;                     \
-> +       errno = __v0; \
-> +       return -1; \
-> +}
-
-These macros were traditionally part of the kernel headers, but are
-no more, you should remove them here.
-
-> +#define __ARCH_WANT_SYS_FADVISE64
-> +#define __ARCH_OMIT_COMPAT_SYS_GETDENTS64
-> +#define __ARCH_WANT_IPC_PARSE_VERSION
-> +#define __ARCH_WANT_OLD_READDIR
-> +#define __ARCH_WANT_SYS_ALARM
-> +#define __ARCH_WANT_SYS_GETHOSTNAME
-> +#define __ARCH_WANT_SYS_PAUSE
-> +#define __ARCH_WANT_SYS_SGETMASK
-> +#define __ARCH_WANT_SYS_UTIME
-> +#define __ARCH_WANT_SYS_WAITPID
-> +#define __ARCH_WANT_SYS_SOCKETCALL
-> +#define __ARCH_WANT_SYS_GETPGRP
-> +#define __ARCH_WANT_SYS_LLSEEK
-> +#define __ARCH_WANT_SYS_NICE
-> +#define __ARCH_WANT_SYS_OLD_GETRLIMIT
-> +#define __ARCH_WANT_SYS_OLDUMOUNT
-> +#define __ARCH_WANT_SYS_SIGPENDING
-> +#define __ARCH_WANT_SYS_SIGPROCMASK
-> +#define __ARCH_WANT_SYS_RT_SIGACTION
-> +#define __ARCH_WANT_STAT64
-> +#define __ARCH_WANT_SYS_TIME
-
-This list should be empty. A new architecture should
-not need any of them, because they have all been
-superceded. I'm trying to clean this list up to make
-sure it is up-to-date and you also don't get other
-syscalls that you don't need any more.
-
-> +/* whitelists for checksyscalls */
-> +#define __IGNORE_select
-> +#define __IGNORE_vfork
-> +#define __IGNORE_time
-> +#define __IGNORE_uselib
-
-It's good that you don't implement these syscalls, because they
-have been superceded, but the right solution would be to change
-checksyscalls to no longer require them.
-
-> +#define __IGNORE_fadvise64_64
-> +#define __IGNORE_getdents64
-
-I believe you actually need these two syscalls.
-
-> +menu "Machine selection"
-> +
-> +choice
-> +       prompt "System type"
-> +       default MACH_SPCT6600
-> +
-> +config MACH_SPCT6600
-> +       bool "SPCT6600 series based machines"
-> +       select SYS_SUPPORTS_32BIT_KERNEL
-> +       select SYS_SUPPORTS_LITTLE_ENDIAN
-> +       select CPU_SCORE7
-> +       select GENERIC_HAS_IOMAP
-> +
-> +config MACH_SPG300
-> +       bool "SPG300 series based machines"
-> +       select SYS_SUPPORTS_32BIT_KERNEL
-> +       select SYS_SUPPORTS_LITTLE_ENDIAN
-> +       select CPU_SCORE7
-> +       select GENERIC_HAS_IOMAP
-> +
-> +config SCORE_SIM
-> +       bool "Score simulator"
-> +       select SYS_SUPPORTS_32BIT_KERNEL
-> +       select SYS_SUPPORTS_LITTLE_ENDIAN
-> +       select CPU_SCORE7
-> +       select GENERIC_HAS_IOMAP
-> +endchoice
-
-On powerpc and x86, we found it very helpful to be able to build a
-kernel that actually runs on all the machines, rather than a subset.
-
-You may want to think about changing your code to enable that as
-well, though that is not something you should do before merging
-your tree.
-
-> +config HZ
-> +       int
-> +       default 48 if HZ_48
-> +       default 100 if HZ_100
-> +       default 128 if HZ_128
-> +       default 250 if HZ_250
-> +       default 256 if HZ_256
-
-This is an unusual selection of clock tick frequencies. Are you
-limited by the hardware implementation here?
-If not, you should consider implementing tickless operation, which
-is often more efficient.
-
-	Arnd <><
+regards, Kyle
