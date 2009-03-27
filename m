@@ -1,15 +1,15 @@
 From: liqin.chen@sunplusct.com
-Subject: Re: [PATCH 8/13] score - New architecure port to SunplusCT S+CORE
+Subject: Re: [PATCH 7/13] score - New architecure port to SunplusCT S+CORE
   processor
-Date: Fri, 27 Mar 2009 09:43:03 +0800
-Message-ID: <OF783FC82E.93AFD3FD-ON48257586.000958A4-48257586.00099867@sunplusct.com>
+Date: Fri, 27 Mar 2009 09:41:59 +0800
+Message-ID: <OF67FB031C.57858745-ON48257586.000915EE-48257586.00097F4B@sunplusct.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="US-ASCII"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:36913 "EHLO
+Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:37110 "EHLO
 	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759408AbZC0CD7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Mar 2009 22:03:59 -0400
+	with ESMTP id S1752838AbZC0CGO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Mar 2009 22:06:14 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
@@ -19,1009 +19,1046 @@ linux/score lastest patch place at
 http://www.sunplusct.com/images/linux-score-patch/linux-score-20090324.patch
 
 diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/kernel/asm-offsets.c 
-linux-2.6-git.new/arch/score/kernel/asm-offsets.c
---- linux-2.6-git.ori/arch/score/kernel/asm-offsets.c   1970-01-01 
+linux-2.6-git.ori/arch/score/include/asm/unistd.h 
+linux-2.6-git.new/arch/score/include/asm/unistd.h
+--- linux-2.6-git.ori/arch/score/include/asm/unistd.h   1970-01-01 
 08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/kernel/asm-offsets.c   2009-03-23 
-16:53:28.000000000 +0800
-@@ -0,0 +1,218 @@
++++ linux-2.6-git.new/arch/score/include/asm/unistd.h   2009-03-26 
+16:12:25.000000000 +0800
+@@ -0,0 +1,612 @@
++#ifndef _ASM_UNISTD_H
++#define _ASM_UNISTD_H
++
++#define __NR_Linux                     0
++#define __NR_syscall                   (__NR_Linux +   0)
++#define __NR_exit                      (__NR_Linux +   1)
++#define __NR_fork                      (__NR_Linux +   2)
++#define __NR_read                      (__NR_Linux +   3)
++#define __NR_write                     (__NR_Linux +   4)
++#define __NR_open                      (__NR_Linux +   5)
++#define __NR_close                     (__NR_Linux +   6)
++#define __NR_waitpid                   (__NR_Linux +   7)
++#define __NR_creat                     (__NR_Linux +   8)
++#define __NR_link                      (__NR_Linux +   9)
++#define __NR_unlink                    (__NR_Linux +  10)
++#define __NR_execve                    (__NR_Linux +  11)
++#define __NR_chdir                     (__NR_Linux +  12)
++#define __NR_time                      (__NR_Linux +  13)
++#define __NR_mknod                     (__NR_Linux +  14)
++#define __NR_chmod                     (__NR_Linux +  15)
++#define __NR_lchown                    (__NR_Linux +  16)
++#define __NR_break                     (__NR_Linux +  17)
++#define __NR_unused18                  (__NR_Linux +  18)
++#define __NR_lseek                     (__NR_Linux +  19)
++#define __NR_getpid                    (__NR_Linux +  20)
++#define __NR_mount                     (__NR_Linux +  21)
++#define __NR_umount                    (__NR_Linux +  22)
++#define __NR_setuid                    (__NR_Linux +  23)
++#define __NR_getuid                    (__NR_Linux +  24)
++#define __NR_stime                     (__NR_Linux +  25)
++#define __NR_ptrace                    (__NR_Linux +  26)
++#define __NR_alarm                     (__NR_Linux +  27)
++#define __NR_unused28                  (__NR_Linux +  28)
++#define __NR_pause                     (__NR_Linux +  29)
++#define __NR_utime                     (__NR_Linux +  30)
++#define __NR_stty                      (__NR_Linux +  31)
++#define __NR_gtty                      (__NR_Linux +  32)
++#define __NR_access                    (__NR_Linux +  33)
++#define __NR_nice                      (__NR_Linux +  34)
++#define __NR_ftime                     (__NR_Linux +  35)
++#define __NR_sync                      (__NR_Linux +  36)
++#define __NR_kill                      (__NR_Linux +  37)
++#define __NR_rename                    (__NR_Linux +  38)
++#define __NR_mkdir                     (__NR_Linux +  39)
++#define __NR_rmdir                     (__NR_Linux +  40)
++#define __NR_dup                       (__NR_Linux +  41)
++#define __NR_pipe                      (__NR_Linux +  42)
++#define __NR_times                     (__NR_Linux +  43)
++#define __NR_prof                      (__NR_Linux +  44)
++#define __NR_brk                       (__NR_Linux +  45)
++#define __NR_setgid                    (__NR_Linux +  46)
++#define __NR_getgid                    (__NR_Linux +  47)
++#define __NR_signal                    (__NR_Linux +  48)
++#define __NR_geteuid                   (__NR_Linux +  49)
++#define __NR_getegid                   (__NR_Linux +  50)
++#define __NR_acct                      (__NR_Linux +  51)
++#define __NR_umount2                   (__NR_Linux +  52)
++#define __NR_lock                      (__NR_Linux +  53)
++#define __NR_ioctl                     (__NR_Linux +  54)
++#define __NR_fcntl                     (__NR_Linux +  55)
++#define __NR_mpx                       (__NR_Linux +  56)
++#define __NR_setpgid                   (__NR_Linux +  57)
++#define __NR_ulimit                    (__NR_Linux +  58)
++#define __NR_unused59                  (__NR_Linux +  59)
++#define __NR_umask                     (__NR_Linux +  60)
++#define __NR_chroot                    (__NR_Linux +  61)
++#define __NR_ustat                     (__NR_Linux +  62)
++#define __NR_dup2                      (__NR_Linux +  63)
++#define __NR_getppid                   (__NR_Linux +  64)
++#define __NR_getpgrp                   (__NR_Linux +  65)
++#define __NR_setsid                    (__NR_Linux +  66)
++#define __NR_sigaction                 (__NR_Linux +  67)
++#define __NR_sgetmask                  (__NR_Linux +  68)
++#define __NR_ssetmask                  (__NR_Linux +  69)
++#define __NR_setreuid                  (__NR_Linux +  70)
++#define __NR_setregid                  (__NR_Linux +  71)
++#define __NR_sigsuspend                        (__NR_Linux +  72)
++#define __NR_sigpending                        (__NR_Linux +  73)
++#define __NR_sethostname               (__NR_Linux +  74)
++#define __NR_setrlimit                 (__NR_Linux +  75)
++#define __NR_getrlimit                 (__NR_Linux +  76)
++#define __NR_getrusage                 (__NR_Linux +  77)
++#define __NR_gettimeofday              (__NR_Linux +  78)
++#define __NR_settimeofday              (__NR_Linux +  79)
++#define __NR_getgroups                 (__NR_Linux +  80)
++#define __NR_setgroups                 (__NR_Linux +  81)
++#define __NR_reserved82                        (__NR_Linux +  82)
++#define __NR_symlink                   (__NR_Linux +  83)
++#define __NR_unused84                  (__NR_Linux +  84)
++#define __NR_readlink                  (__NR_Linux +  85)
++#define __NR_uselib                    (__NR_Linux +  86)
++#define __NR_swapon                    (__NR_Linux +  87)
++#define __NR_reboot                    (__NR_Linux +  88)
++#define __NR_readdir                   (__NR_Linux +  89)
++#define __NR_mmap                      (__NR_Linux +  90)
++#define __NR_munmap                    (__NR_Linux +  91)
++#define __NR_truncate                  (__NR_Linux +  92)
++#define __NR_ftruncate                 (__NR_Linux +  93)
++#define __NR_fchmod                    (__NR_Linux +  94)
++#define __NR_fchown                    (__NR_Linux +  95)
++#define __NR_getpriority               (__NR_Linux +  96)
++#define __NR_setpriority               (__NR_Linux +  97)
++#define __NR_profil                    (__NR_Linux +  98)
++#define __NR_statfs                    (__NR_Linux +  99)
++#define __NR_fstatfs                   (__NR_Linux + 100)
++#define __NR_ioperm                    (__NR_Linux + 101)
++#define __NR_socketcall                        (__NR_Linux + 102)
++#define __NR_syslog                    (__NR_Linux + 103)
++#define __NR_setitimer                 (__NR_Linux + 104)
++#define __NR_getitimer                 (__NR_Linux + 105)
++#define __NR_stat                      (__NR_Linux + 106)
++#define __NR_lstat                     (__NR_Linux + 107)
++#define __NR_fstat                     (__NR_Linux + 108)
++#define __NR_unused109                 (__NR_Linux + 109)
++#define __NR_iopl                      (__NR_Linux + 110)
++#define __NR_vhangup                   (__NR_Linux + 111)
++#define __NR_idle                      (__NR_Linux + 112)
++#define __NR_vm86                      (__NR_Linux + 113)
++#define __NR_wait4                     (__NR_Linux + 114)
++#define __NR_swapoff                   (__NR_Linux + 115)
++#define __NR_sysinfo                   (__NR_Linux + 116)
++#define __NR_ipc                       (__NR_Linux + 117)
++#define __NR_fsync                     (__NR_Linux + 118)
++#define __NR_sigreturn                 (__NR_Linux + 119)
++#define __NR_clone                     (__NR_Linux + 120)
++#define __NR_setdomainname             (__NR_Linux + 121)
++#define __NR_uname                     (__NR_Linux + 122)
++#define __NR_modify_ldt                        (__NR_Linux + 123)
++#define __NR_adjtimex                  (__NR_Linux + 124)
++#define __NR_mprotect                  (__NR_Linux + 125)
++#define __NR_sigprocmask               (__NR_Linux + 126)
++#define __NR_create_module             (__NR_Linux + 127)
++#define __NR_init_module               (__NR_Linux + 128)
++#define __NR_delete_module             (__NR_Linux + 129)
++#define __NR_get_kernel_syms           (__NR_Linux + 130)
++#define __NR_quotactl                  (__NR_Linux + 131)
++#define __NR_getpgid                   (__NR_Linux + 132)
++#define __NR_fchdir                    (__NR_Linux + 133)
++#define __NR_bdflush                   (__NR_Linux + 134)
++#define __NR_sysfs                     (__NR_Linux + 135)
++#define __NR_personality               (__NR_Linux + 136)
++#define __NR_afs_syscall               (__NR_Linux + 137) /* Syscall for 
+Andrew File System */
++#define __NR_setfsuid                  (__NR_Linux + 138)
++#define __NR_setfsgid                  (__NR_Linux + 139)
++#define __NR__llseek                   (__NR_Linux + 140)
++#define __NR_getdents                  (__NR_Linux + 141)
++#define __NR__newselect                        (__NR_Linux + 142)
++#define __NR_flock                     (__NR_Linux + 143)
++#define __NR_msync                     (__NR_Linux + 144)
++#define __NR_readv                     (__NR_Linux + 145)
++#define __NR_writev                    (__NR_Linux + 146)
++#define __NR_cacheflush                        (__NR_Linux + 147)
++#define __NR_cachectl                  (__NR_Linux + 148)
++#define __NR_sysscore                  (__NR_Linux + 149)
++#define __NR_unused150                 (__NR_Linux + 150)
++#define __NR_getsid                    (__NR_Linux + 151)
++#define __NR_fdatasync                 (__NR_Linux + 152)
++#define __NR__sysctl                   (__NR_Linux + 153)
++#define __NR_mlock                     (__NR_Linux + 154)
++#define __NR_munlock                   (__NR_Linux + 155)
++#define __NR_mlockall                  (__NR_Linux + 156)
++#define __NR_munlockall                        (__NR_Linux + 157)
++#define __NR_sched_setparam            (__NR_Linux + 158)
++#define __NR_sched_getparam            (__NR_Linux + 159)
++#define __NR_sched_setscheduler                (__NR_Linux + 160)
++#define __NR_sched_getscheduler                (__NR_Linux + 161)
++#define __NR_sched_yield               (__NR_Linux + 162)
++#define __NR_sched_get_priority_max    (__NR_Linux + 163)
++#define __NR_sched_get_priority_min    (__NR_Linux + 164)
++#define __NR_sched_rr_get_interval     (__NR_Linux + 165)
++#define __NR_nanosleep                 (__NR_Linux + 166)
++#define __NR_mremap                    (__NR_Linux + 167)
++#define __NR_accept                    (__NR_Linux + 168)
++#define __NR_bind                      (__NR_Linux + 169)
++#define __NR_connect                   (__NR_Linux + 170)
++#define __NR_getpeername               (__NR_Linux + 171)
++#define __NR_getsockname               (__NR_Linux + 172)
++#define __NR_getsockopt                        (__NR_Linux + 173)
++#define __NR_listen                    (__NR_Linux + 174)
++#define __NR_recv                      (__NR_Linux + 175)
++#define __NR_recvfrom                  (__NR_Linux + 176)
++#define __NR_recvmsg                   (__NR_Linux + 177)
++#define __NR_send                      (__NR_Linux + 178)
++#define __NR_sendmsg                   (__NR_Linux + 179)
++#define __NR_sendto                    (__NR_Linux + 180)
++#define __NR_setsockopt                        (__NR_Linux + 181)
++#define __NR_shutdown                  (__NR_Linux + 182)
++#define __NR_socket                    (__NR_Linux + 183)
++#define __NR_socketpair                        (__NR_Linux + 184)
++#define __NR_setresuid                 (__NR_Linux + 185)
++#define __NR_getresuid                 (__NR_Linux + 186)
++#define __NR_query_module              (__NR_Linux + 187)
++#define __NR_poll                      (__NR_Linux + 188)
++#define __NR_nfsservctl                        (__NR_Linux + 189)
++#define __NR_setresgid                 (__NR_Linux + 190)
++#define __NR_getresgid                 (__NR_Linux + 191)
++#define __NR_prctl                     (__NR_Linux + 192)
++#define __NR_rt_sigreturn              (__NR_Linux + 193)
++#define __NR_rt_sigaction              (__NR_Linux + 194)
++#define __NR_rt_sigprocmask            (__NR_Linux + 195)
++#define __NR_rt_sigpending             (__NR_Linux + 196)
++#define __NR_rt_sigtimedwait           (__NR_Linux + 197)
++#define __NR_rt_sigqueueinfo           (__NR_Linux + 198)
++#define __NR_rt_sigsuspend             (__NR_Linux + 199)
++#define __NR_pread64                   (__NR_Linux + 200)
++#define __NR_pwrite64                  (__NR_Linux + 201)
++#define __NR_chown                     (__NR_Linux + 202)
++#define __NR_getcwd                    (__NR_Linux + 203)
++#define __NR_capget                    (__NR_Linux + 204)
++#define __NR_capset                    (__NR_Linux + 205)
++#define __NR_sigaltstack               (__NR_Linux + 206)
++#define __NR_sendfile                  (__NR_Linux + 207)
++#define __NR_getpmsg                   (__NR_Linux + 208)
++#define __NR_putpmsg                   (__NR_Linux + 209)
++#define __NR_mmap2                     (__NR_Linux + 210)
++#define __NR_truncate64                        (__NR_Linux + 211)
++#define __NR_ftruncate64               (__NR_Linux + 212)
++#define __NR_stat64                    (__NR_Linux + 213)
++#define __NR_lstat64                   (__NR_Linux + 214)
++#define __NR_fstat64                   (__NR_Linux + 215)
++#define __NR_pivot_root                        (__NR_Linux + 216)
++#define __NR_mincore                   (__NR_Linux + 217)
++#define __NR_madvise                   (__NR_Linux + 218)
++#define __NR_getdents64                        (__NR_Linux + 219)
++#define __NR_fcntl64                   (__NR_Linux + 220)
++#define __NR_reserved221               (__NR_Linux + 221)
++#define __NR_gettid                    (__NR_Linux + 222)
++#define __NR_readahead                 (__NR_Linux + 223)
++#define __NR_setxattr                  (__NR_Linux + 224)
++#define __NR_lsetxattr                 (__NR_Linux + 225)
++#define __NR_fsetxattr                 (__NR_Linux + 226)
++#define __NR_getxattr                  (__NR_Linux + 227)
++#define __NR_lgetxattr                 (__NR_Linux + 228)
++#define __NR_fgetxattr                 (__NR_Linux + 229)
++#define __NR_listxattr                 (__NR_Linux + 230)
++#define __NR_llistxattr                        (__NR_Linux + 231)
++#define __NR_flistxattr                        (__NR_Linux + 232)
++#define __NR_removexattr               (__NR_Linux + 233)
++#define __NR_lremovexattr              (__NR_Linux + 234)
++#define __NR_fremovexattr              (__NR_Linux + 235)
++#define __NR_tkill                     (__NR_Linux + 236)
++#define __NR_sendfile64                        (__NR_Linux + 237)
++#define __NR_futex                     (__NR_Linux + 238)
++#define __NR_sched_setaffinity         (__NR_Linux + 239)
++#define __NR_sched_getaffinity         (__NR_Linux + 240)
++#define __NR_io_setup                  (__NR_Linux + 241)
++#define __NR_io_destroy                        (__NR_Linux + 242)
++#define __NR_io_getevents              (__NR_Linux + 243)
++#define __NR_io_submit                 (__NR_Linux + 244)
++#define __NR_io_cancel                 (__NR_Linux + 245)
++#define __NR_exit_group                        (__NR_Linux + 246)
++#define __NR_lookup_dcookie            (__NR_Linux + 247)
++#define __NR_epoll_create              (__NR_Linux + 248)
++#define __NR_epoll_ctl                 (__NR_Linux + 249)
++#define __NR_epoll_wait                        (__NR_Linux + 250)
++#define __NR_remap_file_pages          (__NR_Linux + 251)
++#define __NR_set_tid_address           (__NR_Linux + 252)
++#define __NR_restart_syscall           (__NR_Linux + 253)
++#define __NR_fadvise64                 (__NR_Linux + 254)
++#define __NR_statfs64                  (__NR_Linux + 255)
++#define __NR_fstatfs64                 (__NR_Linux + 256)
++#define __NR_timer_create              (__NR_Linux + 257)
++#define __NR_timer_settime             (__NR_Linux + 258)
++#define __NR_timer_gettime             (__NR_Linux + 259)
++#define __NR_timer_getoverrun          (__NR_Linux + 260)
++#define __NR_timer_delete              (__NR_Linux + 261)
++#define __NR_clock_settime             (__NR_Linux + 262)
++#define __NR_clock_gettime             (__NR_Linux + 263)
++#define __NR_clock_getres              (__NR_Linux + 264)
++#define __NR_clock_nanosleep           (__NR_Linux + 265)
++#define __NR_tgkill                    (__NR_Linux + 266)
++#define __NR_utimes                    (__NR_Linux + 267)
++#define __NR_mbind                     (__NR_Linux + 268)
++#define __NR_get_mempolicy             (__NR_Linux + 269)
++#define __NR_set_mempolicy             (__NR_Linux + 270)
++#define __NR_mq_open                   (__NR_Linux + 271)
++#define __NR_mq_unlink                 (__NR_Linux + 272)
++#define __NR_mq_timedsend              (__NR_Linux + 273)
++#define __NR_mq_timedreceive           (__NR_Linux + 274)
++#define __NR_mq_notify                 (__NR_Linux + 275)
++#define __NR_mq_getsetattr             (__NR_Linux + 276)
++#define __NR_vserver                   (__NR_Linux + 277)
++#define __NR_waitid                    (__NR_Linux + 278)
++/* #define __NR_sys_setaltroot         (__NR_Linux + 279) */
++#define __NR_add_key                   (__NR_Linux + 280)
++#define __NR_request_key               (__NR_Linux + 281)
++#define __NR_keyctl                    (__NR_Linux + 282)
++#define __NR_set_thread_area           (__NR_Linux + 283)
++#define __NR_inotify_init              (__NR_Linux + 284)
++#define __NR_inotify_add_watch         (__NR_Linux + 285)
++#define __NR_inotify_rm_watch          (__NR_Linux + 286)
++#define __NR_migrate_pages             (__NR_Linux + 287)
++#define __NR_openat                    (__NR_Linux + 288)
++#define __NR_mkdirat                   (__NR_Linux + 289)
++#define __NR_mknodat                   (__NR_Linux + 290)
++#define __NR_fchownat                  (__NR_Linux + 291)
++#define __NR_futimesat                 (__NR_Linux + 292)
++#define __NR_fstatat64                 (__NR_Linux + 293)
++#define __NR_unlinkat                  (__NR_Linux + 294)
++#define __NR_renameat                  (__NR_Linux + 295)
++#define __NR_linkat                    (__NR_Linux + 296)
++#define __NR_symlinkat                 (__NR_Linux + 297)
++#define __NR_readlinkat                        (__NR_Linux + 298)
++#define __NR_fchmodat                  (__NR_Linux + 299)
++#define __NR_faccessat                 (__NR_Linux + 300)
++#define __NR_pselect6                  (__NR_Linux + 301)
++#define __NR_ppoll                     (__NR_Linux + 302)
++#define __NR_unshare                   (__NR_Linux + 303)
++#define __NR_splice                    (__NR_Linux + 304)
++#define __NR_sync_file_range           (__NR_Linux + 305)
++#define __NR_tee                       (__NR_Linux + 306)
++#define __NR_vmsplice                  (__NR_Linux + 307)
++#define __NR_move_pages                        (__NR_Linux + 308)
++#define __NR_set_robust_list           (__NR_Linux + 309)
++#define __NR_get_robust_list           (__NR_Linux + 310)
++#define __NR_kexec_load                        (__NR_Linux + 311)
++#define __NR_getcpu                    (__NR_Linux + 312)
++#define __NR_epoll_pwait               (__NR_Linux + 313)
++#define __NR_ioprio_set                        (__NR_Linux + 314)
++#define __NR_ioprio_get                        (__NR_Linux + 315)
++#define __NR_utimensat                 (__NR_Linux + 316)
++#define __NR_signalfd                  (__NR_Linux + 317)
++#define __NR_timerfd                   (__NR_Linux + 318)
++#define __NR_eventfd                   (__NR_Linux + 319)
++#define __NR_fallocate                 (__NR_Linux + 320)
++#define __NR_timerfd_create            (__NR_Linux + 321)
++#define __NR_timerfd_gettime           (__NR_Linux + 322)
++#define __NR_timerfd_settime           (__NR_Linux + 323)
++#define __NR_signalfd4                 (__NR_Linux + 324)
++#define __NR_eventfd2                  (__NR_Linux + 325)
++#define __NR_epoll_create1             (__NR_Linux + 326)
++#define __NR_dup3                      (__NR_Linux + 327)
++#define __NR_pipe2                     (__NR_Linux + 328)
++#define __NR_inotify_init1             (__NR_Linux + 329)
++
++#define __NR_Linux_syscalls            329
++
++#ifndef __ASSEMBLY__
++
++#define _syscall0(type,name)                           \
++type name(void)                                                \
++{                                                      \
++       register unsigned long __v0;                    \
++       register unsigned long __a3;                    \
++                                                       \
++       __asm__ volatile (                              \
++       "ldi\tr27, %2\n\t"                              \
++       "syscall\n\t"                                   \
++       "mv\t%0, r4\n\t"                                \
++       "mv\t%1, r7\n\t"                                \
++       : "=&r" (__v0), "=r" (__a3)                     \
++       : "i" (__NR_##name)                             \
++       : "r4","r7", "r8", "r9", "r10", "r11", "r22", "r23", "r24", "r25", 
+"r26", "r27");  \
++                                                       \
++       if (__a3 == 0)                                  \
++               return (type) __v0;                     \
++       errno = __v0; \
++       return -1; \
++}
++
 +/*
-+ * arch/score/kernel/asm-offsets.c
-+ *
-+ * Score Processor version.
-+ *
-+ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
-+ *  Chen Liqin <liqin.chen@sunplusct.com>
-+ *  Lennox Wu <lennox.wu@sunplusct.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.,
-+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ * DANGER: This macro isn't usable for the pipe(2) call
++ * which has a unusual return convention.
++ */
++#define _syscall1(type,name,atype,a)                   \
++type name(atype a)                                     \
++{                                                      \
++       register unsigned long __v0;                    \
++       register unsigned long __a3;                    \
++                                                       \
++       __asm__ volatile (                              \
++       "mv\tr4, %3\n\t"                                \
++       "ldi\tr27, %2\n\t"                              \
++       "syscall\n\t"                                   \
++       "mv\t%0, r4\n\t"                                \
++       "mv\t%1, r7\n\t"                                \
++       : "=&r" (__v0), "=r" (__a3)                     \
++       : "i" (__NR_##name), "r" ((unsigned long) (a))  \
++       : "r4", "r7", "r8", "r9", "r10", "r11", "r22", "r23", \
++         "r24", "r25", "r26", "r27");                  \
++                                                       \
++       if (__a3 == 0)                                  \
++               return (type) __v0;                     \
++       errno = __v0;                                   \
++       return -1;                                      \
++}
++
++#define _syscall2(type,name,atype,a,btype,b)           \
++type name(atype a, btype b)                            \
++{                                                      \
++       register unsigned long __v0;                    \
++       register unsigned long __a3;                    \
++                                                       \
++       __asm__ volatile (                              \
++       "mv\tr4, %3\n\t"                                \
++       "mv\tr5, %4\n\t"                                \
++       "ldi\tr27, %2\n\t"                              \
++       "syscall\n\t"                                   \
++       "mv\t%0, r4\n\t"                                \
++       "mv\t%1, r7\n\t"                                \
++       : "=&r" (__v0), "=r" (__a3)                     \
++       : "i" (__NR_##name), "r" ((unsigned long) (a)), "r" ((unsigned 
+long) (b))                      \
++       : "r4", "r5", "r7", "r8", "r9", "r10", "r11", "r22", "r23", \
++         "r24", "r25", "r26", "r27");                  \
++                                                       \
++       if (__a3 == 0)                                  \
++               return (type) __v0;                     \
++       errno = __v0;                                   \
++       return -1;                                      \
++}
++
++#define _syscall3(type,name,atype,a,btype,b,ctype,c)   \
++type name(atype a, btype b, ctype c)                   \
++{                                                      \
++       register unsigned long __v0;                    \
++       register unsigned long __a3;                    \
++                                                       \
++       __asm__ volatile (                              \
++       "mv\tr4, %3\n\t"                                \
++       "mv\tr5, %4\n\t"                                \
++       "mv\tr6, %5\n\t"                                \
++       "ldi\tr27, %2\n\t"                              \
++       "syscall\n\t"                                   \
++       "mv\t%0, r4\n\t"                                \
++       "mv\t%1, r7\n\t"                                \
++       : "=&r" (__v0), "=r" (__a3)                     \
++       : "i" (__NR_##name), "r" ((unsigned long) (a)), \
++         "r" ((unsigned long) (b)), "r" ((unsigned long) (c))          \
++       : "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r22", "r23",\
++         "r24", "r25", "r26", "r27");                  \
++                                                       \
++       if (__a3 == 0)                                  \
++               return (type) __v0;                     \
++       errno = __v0;                                   \
++       return -1;                                      \
++}
++
++#define _syscall4(type,name,atype,a,btype,b,ctype,c,dtype,d)   \
++type name(atype a, btype b, ctype c, dtype d)                  \
++{                                                              \
++       register unsigned long __v0;                            \
++       register unsigned long __a3;                            \
++                                                               \
++       __asm__ volatile (                                      \
++       "mv\tr4, %3\n\t"                                        \
++       "mv\tr5, %4\n\t"                                        \
++       "mv\tr6, %5\n\t"                                        \
++       "mv\tr7, %6\n\t"                                        \
++       "ldi\tr27, %2\n\t"                                      \
++       "syscall\n\t"                                           \
++       "mv\t%0, r4\n\t"                                        \
++       "mv\t%1, r7\n\t"                                        \
++       : "=&r" (__v0), "=r" (__a3)                             \
++       : "i" (__NR_##name), "r" ((unsigned long) (a)), "r" ((unsigned 
+long) (b)),     \
++        "r" ((unsigned long) (c)), "r"((unsigned long) (d))    \
++       : "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r22", "r23", 
+\
++         "r24", "r25", "r26", "r27");                          \
++                                                               \
++       if (__a3 == 0)                                          \
++               return (type) __v0;                             \
++       errno = __v0;                                           \
++       return -1;                                              \
++}
++
++/*
++ * Using those means your brain needs more than an oil change ;-)
 + */
 +
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/interrupt.h>
-+#include <linux/kbuild.h>
-+
-+void output_ptreg_defines(void)
-+{
-+       COMMENT("SCORE pt_regs offsets.");
-+       OFFSET(PT_R0, pt_regs, regs[0]);
-+       OFFSET(PT_R1, pt_regs, regs[1]);
-+       OFFSET(PT_R2, pt_regs, regs[2]);
-+       OFFSET(PT_R3, pt_regs, regs[3]);
-+       OFFSET(PT_R4, pt_regs, regs[4]);
-+       OFFSET(PT_R5, pt_regs, regs[5]);
-+       OFFSET(PT_R6, pt_regs, regs[6]);
-+       OFFSET(PT_R7, pt_regs, regs[7]);
-+       OFFSET(PT_R8, pt_regs, regs[8]);
-+       OFFSET(PT_R9, pt_regs, regs[9]);
-+       OFFSET(PT_R10, pt_regs, regs[10]);
-+       OFFSET(PT_R11, pt_regs, regs[11]);
-+       OFFSET(PT_R12, pt_regs, regs[12]);
-+       OFFSET(PT_R13, pt_regs, regs[13]);
-+       OFFSET(PT_R14, pt_regs, regs[14]);
-+       OFFSET(PT_R15, pt_regs, regs[15]);
-+       OFFSET(PT_R16, pt_regs, regs[16]);
-+       OFFSET(PT_R17, pt_regs, regs[17]);
-+       OFFSET(PT_R18, pt_regs, regs[18]);
-+       OFFSET(PT_R19, pt_regs, regs[19]);
-+       OFFSET(PT_R20, pt_regs, regs[20]);
-+       OFFSET(PT_R21, pt_regs, regs[21]);
-+       OFFSET(PT_R22, pt_regs, regs[22]);
-+       OFFSET(PT_R23, pt_regs, regs[23]);
-+       OFFSET(PT_R24, pt_regs, regs[24]);
-+       OFFSET(PT_R25, pt_regs, regs[25]);
-+       OFFSET(PT_R26, pt_regs, regs[26]);
-+       OFFSET(PT_R27, pt_regs, regs[27]);
-+       OFFSET(PT_R28, pt_regs, regs[28]);
-+       OFFSET(PT_R29, pt_regs, regs[29]);
-+       OFFSET(PT_R30, pt_regs, regs[30]);
-+       OFFSET(PT_R31, pt_regs, regs[31]);
-+
-+       OFFSET(PT_ORIG_R4, pt_regs, orig_r4);
-+       OFFSET(PT_ORIG_R7, pt_regs, orig_r7);
-+       OFFSET(PT_CEL, pt_regs, cel);
-+       OFFSET(PT_CEH, pt_regs, ceh);
-+       OFFSET(PT_SR0, pt_regs, sr0);
-+       OFFSET(PT_SR1, pt_regs, sr1);
-+       OFFSET(PT_SR2, pt_regs, sr2);
-+       OFFSET(PT_EPC, pt_regs, cp0_epc);
-+       OFFSET(PT_EMA, pt_regs, cp0_ema);
-+       OFFSET(PT_PSR, pt_regs, cp0_psr);
-+       OFFSET(PT_ECR, pt_regs, cp0_ecr);
-+       OFFSET(PT_CONDITION, pt_regs, cp0_condition);
-+       OFFSET(PT_IS_SYSCALL, pt_regs, is_syscall);
-+ 
-+       DEFINE(PT_SIZE, sizeof(struct pt_regs));
-+       BLANK();
++#define _syscall5(type,name,atype,a,btype,b,ctype,c,dtype,d,etype,e)   \
++type name(atype a, btype b, ctype c, dtype d, etype e)                 \
++{                                                                      \
++       register unsigned long __v0;                                    \
++       register unsigned long __a3;                                    \
++                                                                       \
++       __asm__ volatile (                                              \
++       "mv\tr4, %3\n\t"                                                \
++       "mv\tr5, %4\n\t"                                                \
++       "mv\tr6, %5\n\t"                                                \
++       "mv\tr7, %6\n\t"                                                \
++       "addi\tr0, -32\n\t"                                             \
++       "sw\t%7, [r0, 16]\n\t"                                          \
++       "ldi\tr27, %2\n\t"                                              \
++       "syscall\n\t"                                                   \
++       "addi\tr0, 32\n\t"                                              \
++       "mv\t%0, r4\n\t"                                                \
++       "mv\t%1, r7\n\t"                                                \
++       : "=&r" (__v0), "=r" (__a3)                                     \
++       : "i" (__NR_##name), "r" ((unsigned long) (a)),                 \
++         "r" ((unsigned long) (b)), "r" ((unsigned long) (c)),         \
++         "r"((unsigned long) (d)), "r"((unsigned long) (e))            \
++       : "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r22", "r23", 
+\
++         "r24", "r25", "r26", "r27");                                  \
++                                                                       \
++       if (__a3 == 0)                                                  \
++               return (type) __v0;                                     \
++       errno = __v0;                                                   \
++       return -1;                                                      \
 +}
 +
-+void output_task_defines(void)
-+{
-+       COMMENT("SCORE task_struct offsets.");
-+       OFFSET(TASK_STATE, task_struct, state);
-+       OFFSET(TASK_THREAD_INFO, task_struct, stack);
-+       OFFSET(TASK_FLAGS, task_struct, flags);
-+       OFFSET(TASK_MM, task_struct, mm);
-+       OFFSET(TASK_PID, task_struct, pid);
-+       DEFINE(TASK_STRUCT_SIZE, sizeof(struct task_struct));
-+       BLANK();
++#define 
+_syscall6(type,name,atype,a,btype,b,ctype,c,dtype,d,etype,e,ftype,f)    \
++type name(atype a, btype b, ctype c, dtype d, etype e, ftype f)        \
++{ \
++       register unsigned long __v0; \
++       register unsigned long __a3; \
++ \
++       __asm__ volatile ( \
++       "mv\tr4, %3\n\t" \
++       "mv\tr5, %4\n\t" \
++       "mv\tr6, %5\n\t" \
++       "mv\tr7, %6\n\t" \
++       "addi\tr0, -32\n\t" \
++       "sw\t%7, [r0, 16]\n\t" \
++       "sw\t%8, [r0, 20]\n\t" \
++       "ldi\tr27, %2\n\t" \
++       "syscall\n\t" \
++       "addi\tr0, 32\n\t" \
++       "mv\t%0, r4\n\t" \
++       "mv\t%1, r7\n\t" \
++       : "=&r" (__v0), "=r" (__a3) \
++       : "i" (__NR_##name), "r" ((unsigned long) (a)), \
++         "r" ((unsigned long) (b)), "r" ((unsigned long) (c)), \
++         "r"((unsigned long) (d)), "r"((unsigned long) (e)), 
+"r"((unsigned long) (f))        \
++       : "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r22", "r23", 
+\
++         "r24", "r25", "r26", "r27"); \
++ \
++       if (__a3 == 0) \
++               return (type) __v0; \
++       errno = __v0; \
++       return -1; \
 +}
 +
-+void output_thread_info_defines(void)
-+{
-+       COMMENT("SCORE thread_info offsets.");
-+       OFFSET(TI_TASK, thread_info, task);
-+       OFFSET(TI_EXEC_DOMAIN, thread_info, exec_domain);
-+       OFFSET(TI_FLAGS, thread_info, flags);
-+       OFFSET(TI_TP_VALUE, thread_info, tp_value);
-+       OFFSET(TI_CPU, thread_info, cpu);
-+       OFFSET(TI_PRE_COUNT, thread_info, preempt_count);
-+       OFFSET(TI_ADDR_LIMIT, thread_info, addr_limit);
-+       OFFSET(TI_RESTART_BLOCK, thread_info, restart_block);
-+       OFFSET(TI_REGS, thread_info, regs);
-+       DEFINE(KERNEL_STACK_SIZE, THREAD_SIZE);
-+       DEFINE(KERNEL_STACK_MASK, THREAD_MASK);
-+       BLANK();
++#define 
+_syscall7(type,name,atype,a,btype,b,ctype,c,dtype,d,etype,e,ftype,f,gtype,g) 
+\
++type name(atype a, btype b, ctype c, dtype d, etype e, ftype f, gtype g)  
+\
++{      \
++       register unsigned long __v0;    \
++       register unsigned long __a3;    \
++       \
++       __asm__ volatile (      \
++       "mv\tr4, %3\n\t"        \
++       "mv\tr5, %4\n\t"        \
++       "mv\tr6, %5\n\t"        \
++       "mv\tr7, %6\n\t"        \
++       "addi\tr0, -32\n\t"     \
++       "sw\t%7, [r0, 16]\n\t"  \
++       "sw\t%8, [r0, 20]\n\t"  \
++       "sw\t%9, [r0, 24]\n\t"  \
++       "ldi\tr27, %2\n\t"      \
++       "syscall\n\t"   \
++       "addi\tr0, 32\n\t"      \
++       "mv\t%0, r4\n\t"        \
++       "mv\t%1, r7\n\t"        \
++       : "=&r" (__v0), "=r" (__a3)     \
++       : "i" (__NR_##name), "r" ((unsigned long) (a)),         \
++         "r" ((unsigned long) (b)), "r" ((unsigned long) (c)),         \
++         "r"((unsigned long) (d)), "r"((unsigned long) (e)),   \
++         "r"((unsigned long) (f)), "r" ((unsigned long) (g))   \
++       : "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r22", "r23",  
+\
++         "r24", "r25", "r26", "r27");  \
++       \
++       if (__a3 == 0)  \
++               return (type) __v0;     \
++       errno = __v0;   \
++       return -1;      \
 +}
++#endif /* !__ASSEMBLY__ */
 +
-+void output_thread_defines(void)
-+{
-+       COMMENT("SCORE specific thread_struct offsets.");
-+       OFFSET(THREAD_REG0, task_struct, thread.reg0);
-+       OFFSET(THREAD_REG2, task_struct, thread.reg2);
-+       OFFSET(THREAD_REG3, task_struct, thread.reg3);
-+       OFFSET(THREAD_REG12, task_struct, thread.reg12);
-+       OFFSET(THREAD_REG13, task_struct, thread.reg13);
-+       OFFSET(THREAD_REG14, task_struct, thread.reg14);
-+       OFFSET(THREAD_REG15, task_struct, thread.reg15);
-+       OFFSET(THREAD_REG16, task_struct, thread.reg16);
-+       OFFSET(THREAD_REG17, task_struct, thread.reg17);
-+       OFFSET(THREAD_REG18, task_struct, thread.reg18);
-+       OFFSET(THREAD_REG19, task_struct, thread.reg19);
-+       OFFSET(THREAD_REG20, task_struct, thread.reg20);
-+       OFFSET(THREAD_REG21, task_struct, thread.reg21);
-+       OFFSET(THREAD_REG29, task_struct, thread.reg29);
-+ 
-+       OFFSET(THREAD_PSR, task_struct, thread.cp0_psr);
-+       OFFSET(THREAD_EMA, task_struct, thread.cp0_ema);
-+       OFFSET(THREAD_BADUADDR, task_struct, thread.cp0_baduaddr);
-+       OFFSET(THREAD_ECODE, task_struct, thread.error_code);
-+       OFFSET(THREAD_TRAPNO, task_struct, thread.trap_no);
-+       BLANK();
-+}
++#ifdef __KERNEL__
 +
-+void output_mm_defines(void)
-+{
-+       COMMENT("Size of struct page");
-+       DEFINE(STRUCT_PAGE_SIZE, sizeof(struct page));
-+       BLANK();
-+       COMMENT("Linux mm_struct offsets.");
-+       OFFSET(MM_USERS, mm_struct, mm_users);
-+       OFFSET(MM_PGD, mm_struct, pgd);
-+       OFFSET(MM_CONTEXT, mm_struct, context);
-+       BLANK();
-+       DEFINE(_PAGE_SIZE, PAGE_SIZE);
-+       DEFINE(_PAGE_SHIFT, PAGE_SHIFT);
-+       BLANK();
-+       DEFINE(_PGD_T_SIZE, sizeof(pgd_t));
-+       DEFINE(_PMD_T_SIZE, sizeof(pmd_t));
-+       DEFINE(_PTE_T_SIZE, sizeof(pte_t));
-+       BLANK();
-+       DEFINE(_PGD_ORDER, PGD_ORDER);
-+       DEFINE(_PTE_ORDER, PTE_ORDER);
-+       BLANK();
-+       DEFINE(_PMD_SHIFT, PMD_SHIFT);
-+       DEFINE(_PGDIR_SHIFT, PGDIR_SHIFT);
-+       BLANK();
-+       DEFINE(_PTRS_PER_PGD, PTRS_PER_PGD);
-+       DEFINE(_PTRS_PER_PMD, PTRS_PER_PMD);
-+       DEFINE(_PTRS_PER_PTE, PTRS_PER_PTE);
-+       BLANK();
-+}
++#ifndef __ASSEMBLY__
 +
-+void output_sc_defines(void)
-+{
-+       COMMENT("Linux sigcontext offsets.");
-+       OFFSET(SC_REGS, sigcontext, sc_regs);
-+       OFFSET(SC_MDCEH, sigcontext, sc_mdceh);
-+       OFFSET(SC_MDCEL, sigcontext, sc_mdcel);
-+       OFFSET(SC_PC, sigcontext, sc_pc);
-+       OFFSET(SC_PSR, sigcontext, sc_psr);
-+       OFFSET(SC_ECR, sigcontext, sc_ecr);
-+       OFFSET(SC_EMA, sigcontext, sc_ema);
-+       BLANK();
-+}
++#define __ARCH_WANT_SYS_FADVISE64
++#define __ARCH_OMIT_COMPAT_SYS_GETDENTS64
++#define __ARCH_WANT_IPC_PARSE_VERSION
++#define __ARCH_WANT_OLD_READDIR
++#define __ARCH_WANT_SYS_ALARM
++#define __ARCH_WANT_SYS_GETHOSTNAME
++#define __ARCH_WANT_SYS_PAUSE
++#define __ARCH_WANT_SYS_SGETMASK
++#define __ARCH_WANT_SYS_UTIME
++#define __ARCH_WANT_SYS_WAITPID
++#define __ARCH_WANT_SYS_SOCKETCALL
++#define __ARCH_WANT_SYS_GETPGRP
++#define __ARCH_WANT_SYS_LLSEEK
++#define __ARCH_WANT_SYS_NICE
++#define __ARCH_WANT_SYS_OLD_GETRLIMIT
++#define __ARCH_WANT_SYS_OLDUMOUNT
++#define __ARCH_WANT_SYS_SIGPENDING
++#define __ARCH_WANT_SYS_SIGPROCMASK
++#define __ARCH_WANT_SYS_RT_SIGACTION
++#define __ARCH_WANT_STAT64
++#define __ARCH_WANT_SYS_TIME
 +
-+void output_signal_defined(void)
-+{
-+       COMMENT("Linux signal numbers.");
-+       DEFINE(_SIGHUP, SIGHUP);
-+       DEFINE(_SIGINT, SIGINT);
-+       DEFINE(_SIGQUIT, SIGQUIT);
-+       DEFINE(_SIGILL, SIGILL);
-+       DEFINE(_SIGTRAP, SIGTRAP);
-+       DEFINE(_SIGIOT, SIGIOT);
-+       DEFINE(_SIGABRT, SIGABRT);
-+       DEFINE(_SIGEMT, SIGEMT);
-+       DEFINE(_SIGFPE, SIGFPE);
-+       DEFINE(_SIGKILL, SIGKILL);
-+       DEFINE(_SIGBUS, SIGBUS);
-+       DEFINE(_SIGSEGV, SIGSEGV);
-+       DEFINE(_SIGSYS, SIGSYS);
-+       DEFINE(_SIGPIPE, SIGPIPE);
-+       DEFINE(_SIGALRM, SIGALRM);
-+       DEFINE(_SIGTERM, SIGTERM);
-+       DEFINE(_SIGUSR1, SIGUSR1);
-+       DEFINE(_SIGUSR2, SIGUSR2);
-+       DEFINE(_SIGCHLD, SIGCHLD);
-+       DEFINE(_SIGPWR, SIGPWR);
-+       DEFINE(_SIGWINCH, SIGWINCH);
-+       DEFINE(_SIGURG, SIGURG);
-+       DEFINE(_SIGIO, SIGIO);
-+       DEFINE(_SIGSTOP, SIGSTOP);
-+       DEFINE(_SIGTSTP, SIGTSTP);
-+       DEFINE(_SIGCONT, SIGCONT);
-+       DEFINE(_SIGTTIN, SIGTTIN);
-+       DEFINE(_SIGTTOU, SIGTTOU);
-+       DEFINE(_SIGVTALRM, SIGVTALRM);
-+       DEFINE(_SIGPROF, SIGPROF);
-+       DEFINE(_SIGXCPU, SIGXCPU);
-+       DEFINE(_SIGXFSZ, SIGXFSZ);
-+       BLANK();
-+}
++/* whitelists for checksyscalls */
++#define __IGNORE_select
++#define __IGNORE_vfork
++#define __IGNORE_time
++#define __IGNORE_uselib
++#define __IGNORE_fadvise64_64
++#define __IGNORE_getdents64
++
++#endif /* !__ASSEMBLY__ */
++
++/*
++ * "Conditional" syscalls
++ *
++ * What we want is __attribute__((weak,alias("sys_ni_syscall"))),
++ * but it doesn't work on all toolchains, so we just do it by hand
++ */
++#define cond_syscall(x) asm(".weak\t" #x "\n" #x "\t=\tsys_ni_syscall")
++
++#endif /* __KERNEL__ */
++#endif /* _ASM_UNISTD_H */
 diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/kernel/entry.S 
-linux-2.6-git.new/arch/score/kernel/entry.S
---- linux-2.6-git.ori/arch/score/kernel/entry.S 1970-01-01 
+linux-2.6-git.ori/arch/score/include/asm/user.h 
+linux-2.6-git.new/arch/score/include/asm/user.h
+--- linux-2.6-git.ori/arch/score/include/asm/user.h     1970-01-01 
 08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/kernel/entry.S 2009-03-26 
-15:33:08.000000000 +0800
-@@ -0,0 +1,622 @@
-+/*
-+ * arch/score/kernel/entry.S
-+ *
-+ * Score Processor version.
-+ *
-+ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
-+ *  Chen Liqin <liqin.chen@sunplusct.com>
-+ *  Lennox Wu <lennox.wu@sunplusct.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.,
-+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-+ */
-+
-+#include <linux/errno.h>
-+
-+#include <asm/asm.h>
-+#include <asm/unistd.h>
-+#include <asm/thread_info.h>
-+
-+/*
-+ * disable interrupts.
-+ */
-+.macro disable_irq
-+       mfcr    r8, cr0
-+       srli    r8, r8, 1
-+       slli    r8, r8, 1
-+       mtcr    r8, cr0
-+       nop
-+       nop
-+       nop
-+       nop
-+       nop
-+.endm
-+
-+/*
-+ * enable interrupts.
-+ */
-+.macro enable_irq
-+       mfcr    r8, cr0
-+       ori     r8, 1
-+       mtcr    r8, cr0
-+       nop
-+       nop
-+       nop
-+       nop
-+       nop
-+.endm
-+
-+       .section ".text.init", "ax"
-+       .align  2;
-+       .globl  debug_exception_vector;         # should move to addr 
-0x1fc
-+debug_exception_vector:
-+       nop!
-+       nop!
-+       nop!
-+       nop!
-+       nop!
-+       nop!
-+       nop!
-+       nop!
-+
-+       .globl  general_exception_vector;       # should move to addr 
-0x200
-+general_exception_vector:
-+       j       general_exception
-+       nop!
-+       nop!
-+       nop!
-+       nop!
-+       nop!
-+       nop!
-+
-+       .globl  interrupt_exception_vector;     # should move to addr 
-0x210
-+interrupt_exception_vector:
-+       j       interrupt_exception
-+       nop!
-+       nop!
-+       nop!
-+       nop!
-+       nop!
-+       nop!
-+ 
-+       .section ".text", "ax"
-+       .align  2;
-+general_exception:
-+       mfcr    r31, cr2
-+       nop
-+       la      r30, exception_handlers
-+       andi    r31, 0x1f                       # get ecr.exc_code
-+       slli    r31, r31, 2
-+       add     r30, r30, r31
-+       lw      r30, [r30]
-+       br      r30
-+
-+interrupt_exception:
-+       SAVE_ALL
-+       mfcr    r4, cr2
-+       nop
-+       lw      r16, [r28, TI_REGS]
-+       sw      r0, [r28, TI_REGS]
-+       la      r3, ret_from_irq
-+       srli    r4, r4, 18                      # get ecr.ip[7:2], 
-interrupt No.
-+       mv      r5, r0
-+       j       do_IRQ
-+
-+       .globl  handle_nmi;                     # NMI #1
-+handle_nmi:
-+       SAVE_ALL
-+       mv      r4, r0
-+       la      r8, nmi_exception_handler
-+       brl     r8
-+       j       restore_all
-+
-+       .globl  handle_adelinsn;        # AdEL-instruction #2
-+handle_adelinsn:
-+       SAVE_ALL
-+       mfcr    r8, cr6
-+       nop
-+       nop
-+       sw      r8, [r0, PT_EMA]
-+       mv      r4, r0
-+       la      r8, do_adelinsn
-+       brl     r8
-+       mv      r4, r0
-+       j       ret_from_exception
-+       nop
-+
-+       .globl  handle_ibe;             # BusEL-instruction #5
-+handle_ibe:
-+       SAVE_ALL
-+       mv      r4, r0
-+       la      r8, do_be
-+       brl     r8
-+       mv      r4, r0
-+       j       ret_from_exception
-+       nop
-+
-+       .globl  handle_pel;             # P-EL #6
-+handle_pel:
-+       SAVE_ALL
-+       mv      r4, r0
-+       la      r8, do_pel
-+       brl     r8
-+       mv      r4, r0
-+       j       ret_from_exception
-+       nop
-+
-+       .globl  handle_ccu;             # CCU #8
-+handle_ccu:
-+       SAVE_ALL
-+       mv      r4, r0
-+       la      r8, do_ccu
-+       brl     r8
-+       mv      r4, r0
-+       j       ret_from_exception
-+       nop
-+
-+       .globl  handle_ri;              # RI #9
-+handle_ri:
-+       SAVE_ALL
-+       mv      r4, r0
-+       la      r8, do_ri
-+       brl     r8
-+       mv      r4, r0
-+       j       ret_from_exception
-+       nop
-+
-+       .globl  handle_tr;              # Trap #10
-+handle_tr:
-+       SAVE_ALL
-+       mv      r4, r0
-+       la      r8, do_tr
-+       brl     r8
-+       mv      r4, r0
-+       j       ret_from_exception
-+       nop
-+
-+       .globl  handle_adedata;         # AdES-instruction #12
-+handle_adedata:
-+       SAVE_ALL
-+       mfcr    r8, cr6
-+       nop
-+       nop
-+       sw      r8, [r0, PT_EMA]
-+       mv      r4, r0
-+       la      r8, do_adedata
-+       brl     r8
-+       mv      r4, r0
-+       j       ret_from_exception
-+       nop
-+
-+       .globl  handle_cee;             # CeE #16
-+handle_cee:
-+       SAVE_ALL
-+       mv      r4, r0
-+       la      r8, do_cee
-+       brl     r8
-+       mv      r4, r0
-+       j       ret_from_exception
-+       nop
-+
-+       .globl  handle_cpe;             # CpE #17
-+handle_cpe:
-+       SAVE_ALL
-+       mv      r4, r0
-+       la      r8, do_cpe
-+       brl     r8
-+       mv      r4, r0
-+       j       ret_from_exception
-+       nop
-+
-+       .globl  handle_dbe;             # BusEL-data #18
-+handle_dbe:
-+       SAVE_ALL
-+       mv      r4, r0
-+       la      r8, do_be
-+       brl     r8
-+       mv      r4, r0
-+       j       ret_from_exception
-+       nop
-+
-+       .globl  handle_reserved;        # others
-+handle_reserved:
-+       SAVE_ALL
-+       mv      r4, r0
-+       la      r8, do_reserved
-+       brl     r8
-+       mv      r4, r0
-+       j       ret_from_exception
-+       nop
-+
-+#ifndef CONFIG_PREEMPT
-+#define resume_kernel  restore_all
-+#else
-+#define __ret_from_irq ret_from_exception
-+#endif
-+
-+       .align  2
-+#ifndef CONFIG_PREEMPT
-+       .globl  ret_from_exception
-+       .type   ret_from_exception, @function
-+ret_from_exception:
-+       disable_irq                     # preempt stop
-+       nop
-+       j       __ret_from_irq
-+       nop
-+#endif
-+
-+       .globl  ret_from_irq
-+       .type   ret_from_irq, @function
-+ret_from_irq:
-+       sw      r16, [r28, TI_REGS]
-+
-+       .globl  __ret_from_irq
-+       .type   __ret_from_irq, @function
-+__ret_from_irq:
-+       lw      r8, [r0, PT_PSR]        # returning to kernel mode?
-+       andri.c r8, r8, KU_USER
-+       beq     resume_kernel
-+
-+resume_userspace:
-+       disable_irq
-+       lw      r6, [r28, TI_FLAGS]     # current->work
-+       li      r8, _TIF_WORK_MASK
-+       and.c   r8, r8, r6              # ignoring syscall_trace
-+       bne     work_pending
-+       nop
-+       j       restore_all
-+       nop
-+
-+#ifdef CONFIG_PREEMPT
-+resume_kernel:
-+       disable_irq
-+       lw      r8, [r28, TI_PRE_COUNT]
-+       cmpz.c  r8
-+       bne     r8, restore_all
-+need_resched:
-+       lw      r8, [r28, TI_FLAGS]
-+       andri.c r9, r8, _TIF_NEED_RESCHED
-+       beq     restore_all
-+       lw      r8, [r28, PT_PSR]               # Interrupts off?
-+       andri.c r8, r8, 1
-+       beq     restore_all
-+       bl      preempt_schedule_irq
-+       nop
-+       j       need_resched
-+       nop
-+#endif
-+
-+       .globl  ret_from_fork
-+       .type   ret_from_fork, @function
-+ret_from_fork:
-+       bl      schedule_tail                   # r4=struct task_struct 
-*prev
-+
-+       .globl  syscall_exit
-+       .type   syscall_exit, @function
-+syscall_exit:
-+       nop
-+       disable_irq
-+       lw      r6, [r28, TI_FLAGS]             # current->work
-+       li      r8, _TIF_WORK_MASK
-+       and.c   r8, r6, r8
-+       bne     syscall_exit_work
-+
-+       .globl  restore_all
-+       .type   restore_all, @function
-+restore_all:                                   # restore full frame
-+       RESTORE_ALL_AND_RET
-+ 
-+work_pending:
-+       andri.c r8, r6, _TIF_NEED_RESCHED # r6 is preloaded with TI_FLAGS
-+       beq     work_notifysig
-+work_resched:
-+       bl      schedule
-+       nop
-+       disable_irq
-+       lw      r6, [r28, TI_FLAGS]
-+       li      r8, _TIF_WORK_MASK
-+       and.c   r8, r6, r8      # is there any work to be done
-+                               # other than syscall tracing?
-+       beq     restore_all
-+       andri.c r8, r6, _TIF_NEED_RESCHED
-+       bne     work_resched
-+
-+work_notifysig:
-+       mv      r4, r0
-+       li      r5, 0
-+       bl      do_notify_resume        # r6 already loaded
-+       nop
-+       j       resume_userspace
-+       nop
-+
-+       .globl  syscall_exit_work
-+       .type   syscall_exit_work, @function
-+syscall_exit_work:
-+       li      r8, _TIF_SYSCALL_TRACE
-+       and.c   r8, r8, r6              # r6 is preloaded with TI_FLAGS
-+       beq     work_pending            # trace bit set?
-+       nop
-+       enable_irq
-+       mv      r4, r0
-+       li      r5, 1
-+       bl      do_syscall_trace
-+       nop
-+       b       resume_userspace
-+       nop
-+
-+.macro save_context    reg
-+       sw      r12, [\reg, THREAD_REG12];
-+       sw      r13, [\reg, THREAD_REG13];
-+       sw      r14, [\reg, THREAD_REG14];
-+       sw      r15, [\reg, THREAD_REG15];
-+       sw      r16, [\reg, THREAD_REG16];
-+       sw      r17, [\reg, THREAD_REG17];
-+       sw      r18, [\reg, THREAD_REG18];
-+       sw      r19, [\reg, THREAD_REG19];
-+       sw      r20, [\reg, THREAD_REG20];
-+       sw      r21, [\reg, THREAD_REG21];
-+       sw      r29, [\reg, THREAD_REG29];
-+       sw      r2, [\reg, THREAD_REG2] ;
-+       sw      r0, [\reg, THREAD_REG0]
-+.endm
-+
-+.macro restore_context reg
-+       lw      r12, [\reg, THREAD_REG12];
-+       lw      r13, [\reg, THREAD_REG13];
-+       lw      r14, [\reg, THREAD_REG14];
-+       lw      r15, [\reg, THREAD_REG15];
-+       lw      r16, [\reg, THREAD_REG16];
-+       lw      r17, [\reg, THREAD_REG17];
-+       lw      r18, [\reg, THREAD_REG18];
-+       lw      r19, [\reg, THREAD_REG19];
-+       lw      r20, [\reg, THREAD_REG20];
-+       lw      r21, [\reg, THREAD_REG21];
-+       lw      r29, [\reg, THREAD_REG29];
-+       lw      r0, [\reg, THREAD_REG0];
-+       lw      r2, [\reg, THREAD_REG2];
-+       lw      r3, [\reg, THREAD_REG3]
-+.endm
-+
-+/*
-+ * task_struct *resume(task_struct *prev, task_struct *next,
-+ *                     struct thread_info *next_ti)
-+ */
-+       .globl  resume;
-+       .type   resume, @function
-+resume:
-+       mfcr    r9, cr0
-+       nop
-+       nop
-+       sw      r9, [r4, THREAD_PSR]
-+       save_context    r4
-+       sw      r3, [r4, THREAD_REG3]
-+ 
-+       mv      r28, r6
-+       restore_context r5
-+       mv      r8, r6
-+       addi    r8, KERNEL_STACK_SIZE
-+       subi    r8, 32
-+       la      r9, kernelsp;
-+       sw      r8, [r9];
-+ 
-+       mfcr    r9, cr0
-+       ldis    r7, 0x00ff
-+       nop
-+       and     r9, r9, r7
-+       lw      r6, [r5, THREAD_PSR]
-+       not     r7, r7
-+       and     r6, r6, r7
-+       or      r6, r6, r9
-+       mtcr    r6, cr0
-+       nop; nop; nop; nop; nop
-+       br      r3
-+
-+       .globl  handle_sys
-+       .type   handle_sys, @function
-+handle_sys:
-+       SAVE_ALL
-+       enable_irq
-+
-+       sw      r4, [r0, PT_ORIG_R4]    #for restart syscall
-+       sw      r7, [r0, PT_ORIG_R7]    #for restart syscall
-+       sw      r27, [r0, PT_IS_SYSCALL] # it from syscall
-+
-+       lw      r9, [r0, PT_EPC]        # skip syscall on return
-+       addi    r9, 4
-+       sw      r9, [r0, PT_EPC]
-+
-+       cmpi.c  r27, __NR_Linux_syscalls # check syscall number
-+       bgtu    illegal_syscall
-+
-+       slli    r8, r27, 3              # get syscall routine
-+       la      r11, sys_call_table
-+       add     r11, r11, r8
-+       lw      r10, [r11]              # get syscall entry
-+       lw      r11, [r11, 4]           # get number of args
-+
-+       cmpz.c  r10
-+       beq     illegal_syscall
-+
-+       cmpi.c  r11, 4                  # more than 4 arguments?
-+       bgtu    stackargs
-+
-+stack_done:
-+       lw      r8, [r28, TI_FLAGS]
-+       li      r9, _TIF_SYSCALL_TRACE
-+       and.c   r8, r8, r9
-+       bne     syscall_trace_entry
-+
-+       brl     r10                     # Do The Real system call
-+
-+       cmpi.c  r4, 0
-+       blt     1f
-+       ldi     r8, 0
-+       sw      r8, [r0, PT_R7]
-+       b 2f
-+1:
-+       cmpi.c  r4, -EMAXERRNO-1        # -EMAXERRNO - 1=-1134
-+       ble     2f
-+       ldi     r8, 0x1;
-+       sw      r8, [r0, PT_R7]
-+       neg     r4, r4
-+2:
-+       sw      r4, [r0, PT_R4]         # save result
-+
-+syscall_return:
-+       disable_irq
-+       lw      r6, [r28, TI_FLAGS]     # current->work
-+       li      r8, _TIF_WORK_MASK
-+       and.c   r8, r6, r8
-+       bne     syscall_return_work
-+       j       restore_all
-+
-+syscall_return_work:
-+       j       syscall_exit_work
-+
-+syscall_trace_entry:
-+       mv      r16, r10
-+       mv      r4, r0
-+       li      r5, 0
-+       bl      do_syscall_trace
-+
-+       mv      r8, r16
-+       lw      r4, [r0, PT_R4]         # Restore argument registers
-+       lw      r5, [r0, PT_R5]
-+       lw      r6, [r0, PT_R6]
-+       lw      r7, [r0, PT_R7]
-+       brl     r8
-+
-+       li      r8, -EMAXERRNO - 1      # error?
-+       sw      r8, [r0, PT_R7]         # set error flag
-+
-+       neg     r4, r4                  # error
-+       sw      r4, [r0, PT_R0]         # set flag for syscall
-+                                       # restarting
-+1:     sw      r4, [r0, PT_R2]         # result
-+       j       syscall_exit
-+
-+stackargs:
-+       lw      r8, [r0, PT_R0]
-+       andri.c r9, r8, 3               # test whether user sp is align a 
-word
-+       bne     bad_stack
-+       subi    r11, 5
-+       slli    r9, r11, 2
-+       add.c   r9, r9, r8
-+
-+       bmi     bad_stack
-+       la      r9, 3f                  # calculate branch address
-+       slli    r11, r11, 3
-+       sub     r9, r9, r11
-+       br      r9
-+
-+2:     lw      r9, [r8, 20]            # argument 6 from usp
-+       sw      r9, [r0, 20]
-+
-+3:     lw      r9, [r8, 16]            # argument 5 from usp
-+       sw      r9, [r0, 16]
-+       j       stack_done
-+
-+       .section __ex_table,"a"
-+       .word   2b, bad_stack
-+       .word   3b, bad_stack
-+       .previous
-+
-+       /*
-+        * The stackpointer for a call with more than 4 arguments is bad.
-+        * We probably should handle this case a bit more drastic.
-+        */
-+bad_stack:
-+       neg     r27, r27                # error
-+       sw      r27, [r0, PT_ORIG_R4]
-+       sw      r27, [r0, PT_R4]
-+       ldi     r8, 1                   # set error flag
-+       sw      r8, [r0, PT_R7]
-+       j       syscall_return
-+
-+illegal_syscall:
-+       ldi     r4, -ENOSYS             # error
-+       sw      r4, [r0, PT_ORIG_R4]
-+       sw      r4, [r0, PT_R4]
-+       ldi     r9, 1                   # set error flag
-+       sw      r9, [r0, PT_R7]
-+       j       syscall_return
-+
-+       .globl  sys_fork_wrapper
-+sys_fork_wrapper:
-+       mv      r4, r0
-+       la      r8, sys_fork
-+       br      r8
-+
-+       .globl  sys_execve_wrapper
-+sys_execve_wrapper:
-+       mv      r4, r0
-+       la      r8, sys_execve
-+       br      r8
-+
-+       .globl  sys_clone_wrapper
-+sys_clone_wrapper:
-+       mv      r4, r0
-+       la      r8, sys_clone
-+       br      r8
-+
-+       .globl  sys_rt_sigsuspend_wrapper
-+sys_rt_sigsuspend_wrapper:
-+       mv      r4, r0
-+       la      r8, sys_rt_sigsuspend
-+       br      r8
-+
-+       .globl  sys_rt_sigreturn_wrapper
-+sys_rt_sigreturn_wrapper:
-+       mv      r4, r0
-+       la      r8, sys_rt_sigreturn
-+       br      r8
-+
-+       .globl  sys_sigaltstack_wrapper
-+sys_sigaltstack_wrapper:
-+       mv      r4, r0
-+       la      r8, sys_sigaltstack
-+       br      r8
-+
-+       .globl  sys_syscall
-+       .type   sys_syscall, @function
-+sys_syscall:
-+       cmpi.c  r4, __NR_Linux_syscalls # check syscall number
-+       bgtu    illegal_syscall
-+
-+       slli    r8, r4, 3               # get syscall routine
-+       la      r11, sys_call_table
-+       add     r11, r11, r8
-+       lw      r10, [r11]              # get syscall entry
-+       mv      r4, r5
-+       mv      r5, r6
-+       mv      r6, r7
-+       lw      r8, [r0, PT_R0]
-+       andri.c r9, r8, 3               # test whether user sp is align a 
-word
-+       bne     bad_stack
-+       lw      r7, [r8, 16]
-+       lw      r22, [r8, 20]
-+       lw      r23, [r8, 24]
-+       lw      r24, [r8, 28]
-+       sw      r22, [r0, 16]
-+       sw      r23, [r0, 20]
-+       sw      r24, [r0, 24]
-+       sw      r4, [r0, PT_R4]
-+       sw      r5, [r0, PT_R5]
-+       sw      r6, [r0, PT_R6]
-+       sw      r7, [r0, PT_R7]
-+       sw      r7, [r0, PT_R31]
-+       br      r10
-+einval:        li      r4, -EINVAL
-+       br      r3
++++ linux-2.6-git.new/arch/score/include/asm/user.h     2009-03-13 
+14:26:33.000000000 +0800
+@@ -0,0 +1,4 @@
++#ifndef _ASM_USER_H
++#define _ASM_USER_H
++
++#endif /* _ASM_USER_H */
 diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/kernel/head.S 
-linux-2.6-git.new/arch/score/kernel/head.S
---- linux-2.6-git.ori/arch/score/kernel/head.S  1970-01-01 
+linux-2.6-git.ori/arch/score/Kconfig linux-2.6-git.new/arch/score/Kconfig
+--- linux-2.6-git.ori/arch/score/Kconfig        1970-01-01 
 08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/kernel/head.S  2009-03-23 
-17:52:04.000000000 +0800
-@@ -0,0 +1,71 @@
-+/*
-+ * arch/score/kernel/head.S
-+ *
-+ * Score Processor version.
-+ *
-+ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
-+ *  Chen Liqin <liqin.chen@sunplusct.com>
-+ *  Lennox Wu <lennox.wu@sunplusct.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.,
-+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-+ */
++++ linux-2.6-git.new/arch/score/Kconfig        2009-03-26 
+13:50:16.000000000 +0800
+@@ -0,0 +1,320 @@
++config SCORE
++       bool
++       default y
++       select EMBEDDED
 +
-+#include <linux/init.h>
-+#include <asm/asm-offsets.h>
++mainmenu "Linux/SCORE Kernel Configuration"
 +
-+       .extern start_kernel
-+       .global init_thread_union
-+       .global kernelsp
++menu "Machine selection"
++
++choice
++       prompt "System type"
++       default MACH_SPCT6600
++
++config MACH_SPCT6600
++       bool "SPCT6600 series based machines"
++       select SYS_SUPPORTS_32BIT_KERNEL
++       select SYS_SUPPORTS_LITTLE_ENDIAN
++       select CPU_SCORE7
++       select GENERIC_HAS_IOMAP
++
++config MACH_SPG300
++       bool "SPG300 series based machines"
++       select SYS_SUPPORTS_32BIT_KERNEL
++       select SYS_SUPPORTS_LITTLE_ENDIAN
++       select CPU_SCORE7
++       select GENERIC_HAS_IOMAP
++
++config SCORE_SIM
++       bool "Score simulator"
++       select SYS_SUPPORTS_32BIT_KERNEL
++       select SYS_SUPPORTS_LITTLE_ENDIAN
++       select CPU_SCORE7
++       select GENERIC_HAS_IOMAP
++endchoice
++
++endmenu
++
++config CPU_SCORE7
++       bool
++
++config GENERIC_IOMAP
++       bool
++       default y
++
++config RWSEM_GENERIC_SPINLOCK
++       bool
++       default y
++
++config GENERIC_FIND_NEXT_BIT
++       bool
++       default y
++
++config GENERIC_HWEIGHT
++       bool
++       default y
++
++config GENERIC_CALIBRATE_DELAY
++       bool
++       default y
++
++config GENERIC_CLOCKEVENTS
++       bool
++       default y
++
++config GENERIC_TIME
++       bool
++       default y
++
++config SCHED_NO_NO_OMIT_FRAME_POINTER
++       bool
++       default y
++
++config GENERIC_HARDIRQS_NO__DO_IRQ
++       bool
++       default y
++
++config EARLY_PRINTK
++       bool "Early printk" if EMBEDDED
++       depends on SYS_HAS_EARLY_PRINTK
++       default y
++       help
++         This option enables special console drivers which allow the 
+kernel
++         to print messages very early in the bootup process.
++
++         This is useful for kernel debugging when your machine crashes 
+very
++         early before the console code is initialized. For normal 
+operation,
++         it is not recommended because it looks ugly on some machines and
++         doesn't cooperate with an X server. You should normally say N 
+here,
++         unless you want to debug such a crash.
++
++config SYS_HAS_EARLY_PRINTK
++       bool
++
++#
++# Endianess selection.  Sufficiently obscure so many users don't know 
+what to
++# answer,so we try hard to limit the available choices.  Also the use of 
+a
++# choice statement should be more obvious to the user.
++#
++choice
++       prompt "Endianess selection"
++       help
++         Some SCORE machines can be configured for either little or big 
+endian
++         byte order. These modes require different kernels and a 
+different
++         Linux distribution.  In general there is one preferred byteorder 
+for a
++         particular system but some systems are just as commonly used in 
+the
++         one or the other endianness.
++
++config CPU_BIG_ENDIAN
++       bool "Big endian"
++       depends on SYS_SUPPORTS_BIG_ENDIAN
++
++config CPU_LITTLE_ENDIAN
++       bool "Little endian"
++       depends on SYS_SUPPORTS_LITTLE_ENDIAN
++
++endchoice
++
++config SYS_SUPPORTS_BIG_ENDIAN
++       bool
++
++config SYS_SUPPORTS_LITTLE_ENDIAN
++       bool
++
++config SCORE_L1_CACHE_SHIFT
++       int
++       default "5"
++
++menu "Kernel type"
++
++config 32BIT
++       bool
++       default y
++
++config PAGE_SIZE_4KB
++       bool
++       default y
++
++config GENERIC_HARDIRQS
++       bool
++       default y
++
++config ARCH_FLATMEM_ENABLE
++       bool
++       default y
++
++config ARCH_POPULATES_NODE_MAP
++       bool
++       default y
++
++source "mm/Kconfig"
++
++config MEMORY_START
++       hex
++       default 0xa0000000
 + 
-+       .section .init.text, "ax"
-+       .align  2;
-+       .globl  _stext;
-+_stext:
-+       la      r30, __bss_start        /* initialize BSS segment. */
-+       la      r31, _end
-+       xor     r8, r8, r8
++source "kernel/time/Kconfig"
 +
-+1:     cmp.c   r31, r30
-+       beq     2f
-+ 
-+       sw      r8, [r30]               /* clean memory. */
-+       addi    r30, 4
-+       b       1b
++#
++# Timer Interrupt Frequency Configuration
++#
 +
-+2:     la      r28, init_thread_union  /* set kernel stack. */
-+       mv      r0, r28
-+       addi    r0, KERNEL_STACK_SIZE - 32
-+       la      r30, kernelsp
-+       sw      r0, [r30]
-+       subi    r0, 4*4
-+       xor     r30, r30, r30
-+       ori     r30, 0x02               /* enable MMU. */
-+       mtcr    r30, cr4
-+       nop
-+       nop
-+       nop
-+       nop
-+       nop
-+       nop
-+       nop
-+ 
-+       /* there is no parameter */
-+       xor     r4, r4, r4
-+       xor     r5, r5, r5
-+       xor     r6, r6, r6
-+       xor     r7, r7, r7
-+       la      r30, start_kernel       /* jump to init_arch */
-+       br      r30
++choice
++       prompt "Timer frequency"
++       default HZ_250
++       help
++        Allows the configuration of the timer frequency.
++
++       config HZ_48
++               bool "48 HZ" if SYS_SUPPORTS_48HZ || SYS_SUPPORTS_ARBIT_HZ
++
++       config HZ_100
++               bool "100 HZ" if SYS_SUPPORTS_100HZ || 
+SYS_SUPPORTS_ARBIT_HZ
++
++       config HZ_128
++               bool "128 HZ" if SYS_SUPPORTS_128HZ || 
+SYS_SUPPORTS_ARBIT_HZ
++
++       config HZ_250
++               bool "250 HZ" if SYS_SUPPORTS_250HZ || 
+SYS_SUPPORTS_ARBIT_HZ
++
++       config HZ_256
++               bool "256 HZ" if SYS_SUPPORTS_256HZ || 
+SYS_SUPPORTS_ARBIT_HZ
++
++endchoice
++
++config SYS_SUPPORTS_48HZ
++       bool
++
++config SYS_SUPPORTS_100HZ
++       bool
++
++config SYS_SUPPORTS_128HZ
++       bool
++
++config SYS_SUPPORTS_250HZ
++       bool
++
++config SYS_SUPPORTS_256HZ
++       bool
++
++config SYS_SUPPORTS_ARBIT_HZ
++       bool
++       default y if !SYS_SUPPORTS_48HZ && !SYS_SUPPORTS_100HZ && \
++                    !SYS_SUPPORTS_128HZ && !SYS_SUPPORTS_250HZ && \
++                    !SYS_SUPPORTS_256HZ
++
++config HZ
++       int
++       default 48 if HZ_48
++       default 100 if HZ_100
++       default 128 if HZ_128
++       default 250 if HZ_250
++       default 256 if HZ_256
++
++source "kernel/Kconfig.preempt"
++
++config KEXEC
++       bool "Kexec system call (EXPERIMENTAL)"
++       depends on EXPERIMENTAL
++       help
++         kexec is a system call that implements the ability to shutdown 
+your
++         current kernel, and to start another kernel.  It is like a 
+reboot
++         but it is independent of the system firmware.   And like a 
+reboot
++         you can start any kernel with it, not just Linux.
++
++         The name comes from the similarity to the exec system call.
++
++         It is an ongoing process to be certain the hardware in a machine
++         is properly shutdown, so do not be surprised if this code does 
+not
++         initially work for you.  It may help to enable device 
+hotplugging
++         support.  As of this writing the exact hardware interface is
++         strongly in flux, so no good recommendation can be made.
++
++config SECCOMP
++       bool "Enable seccomp to safely compute untrusted bytecode"
++       depends on PROC_FS
++       default y
++       help
++         This kernel feature is useful for number crunching applications
++         that may need to compute untrusted bytecode during their
++         execution. By using pipes or other transports made available to
++         the process as file descriptors supporting the read/write
++         syscalls, it's possible to isolate those applications in
++         their own address space using seccomp. Once seccomp is
++         enabled via /proc/<pid>/seccomp, it cannot be disabled
++         and the task is only allowed to execute a few safe syscalls
++         defined by each seccomp mode.
++
++         If unsure, say Y. Only embedded should say N here.
++
++endmenu
++
++config RWSEM_GENERIC_SPINLOCK
++       bool
++       default y
++
++config LOCKDEP_SUPPORT
++       bool
++       default y
++
++config STACKTRACE_SUPPORT
++       bool
++       default y
++
++source "init/Kconfig"
++
++config PROBE_INITRD_HEADER
++       bool "Probe initrd header created by addinitrd"
++       depends on BLK_DEV_INITRD
++       help
++         Probe initrd header at the last page of kernel image.
++         Say Y here if you are using arch/score/boot/addinitrd.c to
++         add initrd or initramfs image to the kernel image.
++         Otherwise, say N.
++
++menu "Bus options (PCI, PCMCIA, EISA, ISA, TC)"
++
++config MMU
++       bool
++       default y
++
++source "drivers/pcmcia/Kconfig"
++
++source "drivers/pci/hotplug/Kconfig"
++
++endmenu
++
++menu "Executable file formats"
++
++source "fs/Kconfig.binfmt"
++
++config SYSVIPC_COMPAT
++       bool
++       depends on COMPAT && SYSVIPC
++       default y
++
++endmenu
++
++menu "Power management options"
++
++config ARCH_SUSPEND_POSSIBLE
++       def_bool y
++       depends on !SMP
++
++source "kernel/power/Kconfig"
++
++endmenu
++
++source "net/Kconfig"
++
++source "drivers/Kconfig"
++
++source "fs/Kconfig"
++
++source "arch/score/Kconfig.debug"
++
++source "security/Kconfig"
++
++source "crypto/Kconfig"
++
++source "lib/Kconfig"
 diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/kernel/init_task.c 
-linux-2.6-git.new/arch/score/kernel/init_task.c
---- linux-2.6-git.ori/arch/score/kernel/init_task.c     1970-01-01 
+linux-2.6-git.ori/arch/score/Kconfig.debug 
+linux-2.6-git.new/arch/score/Kconfig.debug
+--- linux-2.6-git.ori/arch/score/Kconfig.debug  1970-01-01 
 08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/kernel/init_task.c     2009-03-26 
-14:52:19.000000000 +0800
-@@ -0,0 +1,54 @@
-+/*
-+ * arch/score/kernel/init_task.c
-+ *
-+ * Score Processor version.
-+ *
-+ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.,
-+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-+ */
++++ linux-2.6-git.new/arch/score/Kconfig.debug  2009-03-13 
+14:26:33.000000000 +0800
+@@ -0,0 +1,37 @@
++menu "Kernel hacking"
 +
-+#include <linux/mm.h>
-+#include <linux/fs.h>
-+#include <linux/init.h>
-+#include <linux/init_task.h>
-+#include <linux/module.h>
-+#include <linux/mqueue.h>
-+#include <asm/uaccess.h>
++config TRACE_IRQFLAGS_SUPPORT
++       bool
++       default y
 +
-+static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
-+static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
-+struct mm_struct init_mm = INIT_MM(init_mm);
-+EXPORT_SYMBOL(init_mm);
++source "lib/Kconfig.debug"
 +
-+/*
-+ * Initial thread structure.
-+ *
-+ * We need to make sure that this is THREAD_SIZE aligned due to the
-+ * way process stacks are handled. This is done by having a special
-+ * "init_task" linker map entry..
-+ */
-+union thread_union init_thread_union
-+       __attribute__((__section__(".data.init_task"), 
-__aligned__(THREAD_SIZE))) =
-+               { INIT_THREAD_INFO(init_task) };
++config CMDLINE
++       string "Default kernel command string"
++       default ""
++       help
++         On some platforms, there is currently no way for the boot loader 
+to
++         pass arguments to the kernel. For these platforms, you can 
+supply
++         some command-line options at build time by entering them here. 
+In
++         other cases you can specify kernel args so that you don't have
++         to set them up in board prom initialization routines.
 +
-+/*
-+ * Initial task structure.
-+ *
-+ * All other task structs will be allocated on slabs in fork.c
-+ */
-+struct task_struct init_task = INIT_TASK(init_task);
-+EXPORT_SYMBOL(init_task);
++config DEBUG_STACK_USAGE
++       bool "Enable stack utilization instrumentation"
++       depends on DEBUG_KERNEL
++       help
++         Enables the display of the minimum amount of free stack which 
+each
++         task has ever had available in the sysrq-T and sysrq-P debug 
+output.
++
++         This option will slow down process creation somewhat.
++
++config RUNTIME_DEBUG
++       bool "Enable run-time debugging"
++       depends on DEBUG_KERNEL
++       help
++         If you say Y here, some debugging macros will do run-time 
+checking.
++         If you say N here, those macros will mostly turn to no-ops.  See
++         include/asm-score/debug.h for debuging macros.
++         If unsure, say N.
++
++endmenu
 
 Signed off by: Chen Liqin <liqin.chen@sunplusct.com>
