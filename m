@@ -1,77 +1,60 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 4/13] score - New architecure port to SunplusCT S+CORE processor
-Date: Fri, 27 Mar 2009 19:34:35 +0100
-Message-ID: <20090327183435.GA21149@uranus.ravnborg.org>
-References: <OF7C8E38E6.732D64E1-ON48257586.0008A8A3-48257586.0008F44B@sunplusct.com>
+Subject: Re: [PATCH 5/13] score - New architecure port to SunplusCT S+CORE processor
+Date: Fri, 27 Mar 2009 19:40:13 +0100
+Message-ID: <20090327184013.GB21149@uranus.ravnborg.org>
+References: <OFE9A5E3A2.37B73BA8-ON48257586.0008CFAC-48257586.00091B05@sunplusct.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepb.post.tele.dk ([195.41.46.236]:58309 "EHLO
-	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752856AbZC0Scg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2009 14:32:36 -0400
+Received: from pfepa.post.tele.dk ([195.41.46.235]:42150 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751332AbZC0SiN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2009 14:38:13 -0400
 Content-Disposition: inline
-In-Reply-To: <OF7C8E38E6.732D64E1-ON48257586.0008A8A3-48257586.0008F44B@sunplusct.com>
+In-Reply-To: <OFE9A5E3A2.37B73BA8-ON48257586.0008CFAC-48257586.00091B05@sunplusct.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: liqin.chen@sunplusct.com
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
 
-Hi Chen Liqin.
+> +
+> +#endif /* __SETUP_H */
+> diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
+> linux-2.6-git.ori/arch/score/include/asm/shmbuf.h 
+> linux-2.6-git.new/arch/score/include/asm/shmbuf.h
+> --- linux-2.6-git.ori/arch/score/include/asm/shmbuf.h   1970-01-01 
+> 08:00:00.000000000 +0800
+> +++ linux-2.6-git.new/arch/score/include/asm/shmbuf.h   2009-03-13 
+> 14:26:33.000000000 +0800
+> @@ -0,0 +1,29 @@
+> +#ifndef _ASM_SHMBUF_H
+> +#define _ASM_SHMBUF_H
+> +
+> +struct shmid64_ds {
+> +       struct ipc64_perm       shm_perm;       /* operation perms */
+> +       size_t                  shm_segsz;      /* size of segment (bytes) 
+> */
+> +       __kernel_time_t         shm_atime;      /* last attach time */
+> +       __kernel_time_t         shm_dtime;      /* last detach time */
+> +       __kernel_time_t         shm_ctime;      /* last change time */
+> +       __kernel_pid_t          shm_cpid;       /* pid of creator */
+> +       __kernel_pid_t          shm_lpid;       /* pid of last operator */
+> +       unsigned long           shm_nattch;     /* no. of current attaches 
+> */
+> +       unsigned long           __unused1;
+> +       unsigned long           __unused2;
+> +};
 
-I have browsed throug the code and it generally looks good, especially
-for a first posting to lkml.
+This is an exported header and you mix wide specific and generic types.
+The recommended way is to stick to the __[u]{32,64}int versions + the kernel
+specific types as __kernel_pid_t.
+In other words avoid use of int, long etc in your exported headers.
 
-I will not repeat the advices from Arnd and others.
-But only add to that that running your patches through checkpatch
-and with a critical mind fix the errors/warnings.
-Especially for arch code you cannot blindly assume checkpatch is always right!
+For good measure try "make headers_check" and fix all warnings.
+But that will NOT find uses of int/long so here you rely on a manual process.
 
-A few comments below.
+The above is one of several files where this is used.
+See full list of arch specific headers that are exported in the file:
+include/asm-generic/Kbuild.asm
 
 	Sam
-
-> diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-> linux-2.6-git.ori/arch/score/include/asm/pgtable-32.h 
-> linux-2.6-git.new/arch/score/include/asm/pgtable-32.h
-> --- linux-2.6-git.ori/arch/score/include/asm/pgtable-32.h       1970-01-01 
-> 08:00:00.000000000 +0800
-> +++ linux-2.6-git.new/arch/score/include/asm/pgtable-32.h       2009-03-23 
-> 17:47:05.000000000 +0800
-> @@ -0,0 +1,122 @@
-> +#ifndef _ASM_PGTABLE_32_H
-> +#define _ASM_PGTABLE_32_H
-> +
-> +#include <linux/linkage.h>
-> +#include <asm-generic/pgtable-nopmd.h>
-> +#include <asm/page.h>
-> +#include <asm/fixmap.h>
-> +
-> +/* PGDIR_SHIFT determines what a third-level page table entry can map */
-> +#define PGDIR_SHIFT    22
-> +#define PGDIR_SIZE     (1UL << PGDIR_SHIFT)
-> +#define PGDIR_MASK     (~(PGDIR_SIZE-1))
-
-If you include <linux/const.h> then you can use:
-#define PGDIR_SIZE (_AC(1,UL) << PGDIR_SHIFT)
-This has the advantage that your headerfile is compatible with
-assembler and you can use the symbol in your linker scrip too.
-
-> +++ linux-2.6-git.new/arch/score/include/asm/scoreregs.h        2009-03-20 
-> 10:43:48.000000000 +0800
-> @@ -0,0 +1,65 @@
-> +#include <linux/linkage.h>
-> +
-> +#define IRQ_TIMER (7)  /* IRQ  number of SPG300 */
-> +
-> +/* TIMER register */
-> +#define TIME0Base      0x96080000
-> +#define rTIMER0C       (*(volatile unsigned *)(TIME0Base+0x00))
-> +#define rTIMER0CPPC    (*(volatile unsigned *)(TIME0Base+0x04))
-> +#define rTIMER0CPR     (*(volatile unsigned *)(TIME0Base+0x08))
-> +#define rTIMER0CPPR    (*(volatile unsigned *)(TIME0Base+0x0C))
-> +#define rTIMER0UC      (*(volatile unsigned *)(TIME0Base+0x10))
-
-The general opinion is that if you say volatile your are doing something
-wrong. Explicit memory barriers is the right way to deal with things.
-There are longer threads about that you should be able to google.
