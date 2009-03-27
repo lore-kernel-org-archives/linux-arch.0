@@ -1,82 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate4.de.ibm.com ([195.212.29.153]:40720 "EHLO
-	mtagate4.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757700AbZCYR3K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Mar 2009 13:29:10 -0400
-Date: Wed, 25 Mar 2009 18:29:05 +0100
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH 2/2] MIPS: o32: Get rid of useless wrapper for llseek
-Message-ID: <20090325182905.5fbca9df@osiris.boeblingen.de.ibm.com>
-In-Reply-To: <20090325001555.GA1357@linux-mips.org>
-References: <20090325001555.GA1357@linux-mips.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:45547 "EHLO
+	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757686AbZC0Bt6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Mar 2009 21:49:58 -0400
+In-Reply-To: <87a5b0800903250501k3884dfb5qa09c67d209f80a05@mail.gmail.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH 0/13] score - New architecure port to SunplusCT S+CORE
+  processor
+Message-ID: <OF39905543.8F85F55B-ON48257586.000793DC-48257586.0007F946@sunplusct.com>
+From: liqin.chen@sunplusct.com
+Date: Fri, 27 Mar 2009 09:25:21 +0800
+Content-Type: text/plain; charset="GB2312"
+Content-Transfer-Encoding: base64
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dann frazier <dannf@dannf.org>, linux-mips@linux-mips.org
-Message-ID: <20090325172905.XRFopQexmLzfVlWrRy7o7e5dMa1RjLGhCdQVByvJoAE@z>
+To: Will Newton <will.newton@gmail.com>, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
+Message-ID: <20090327012521.KN3oGnMFU3RCLsvyQZG9lstcv5itglPoOjLM-iY-7qA@z>
 
-On Wed, 25 Mar 2009 01:15:55 +0100
-Ralf Baechle <ralf@linux-mips.org> wrote:
-
-> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
-> 
->  arch/mips/kernel/linux32.c     |    7 -------
->  arch/mips/kernel/scall64-o32.S |    2 +-
->  2 files changed, 1 insertions(+), 8 deletions(-)
-> 
-> diff --git a/arch/mips/kernel/linux32.c b/arch/mips/kernel/linux32.c
-> index 49aac6e..ab2da41 100644
-> --- a/arch/mips/kernel/linux32.c
-> +++ b/arch/mips/kernel/linux32.c
-> @@ -133,13 +133,6 @@ SYSCALL_DEFINE4(32_ftruncate64, unsigned long, fd, unsigned long, __dummy,
->  	return sys_ftruncate(fd, merge_64(a2, a3));
->  }
-> 
-> -SYSCALL_DEFINE5(32_llseek, unsigned long, fd, unsigned long, offset_high,
-> -	unsigned long, offset_low, loff_t __user *, result,
-> -	unsigned long, origin)
-> -{
-> -	return sys_llseek(fd, offset_high, offset_low, result, origin);
-> -}
-> -
-
-Ah.. this hunk seems to be the origin of the bug. git commit
-dbda6ac0897603f6c6dfadbbc37f9882177ec7ac "MIPS: CVE-2009-0029: Enable
-syscall wrappers." contains this:
-
--asmlinkage int sys32_llseek(unsigned int fd, unsigned int offset_high,
--			    unsigned int offset_low, loff_t __user * result,
--			    unsigned int origin)
-+SYSCALL_DEFINE5(32_llseek, unsigned long, fd, unsigned long, offset_high,
-+	unsigned long, offset_low, loff_t __user *, result,
-+	unsigned long, origin)
-
-Here you converted offset_low from unsigned int to unsigned long. Hence
-you lost the clearing of the upper 32 bits. That would explain the bug.
-Any chance the process where the bug was seen was a compat process?
-
-Patch below would probably fix it.
-
-Btw. there are a lot of int->long conversions in the git commit
-mentioned above. AFAICS all(?) of the conversions are wrong.
-
-diff --git a/arch/mips/kernel/linux32.c b/arch/mips/kernel/linux32.c
-index 1a86f84..5abcc7f 100644
---- a/arch/mips/kernel/linux32.c
-+++ b/arch/mips/kernel/linux32.c
-@@ -134,9 +134,9 @@ SYSCALL_DEFINE4(32_ftruncate64, unsigned long, fd, unsigned long, __dummy,
- 	return sys_ftruncate(fd, merge_64(a2, a3));
- }
- 
--SYSCALL_DEFINE5(32_llseek, unsigned long, fd, unsigned long, offset_high,
--	unsigned long, offset_low, loff_t __user *, result,
--	unsigned long, origin)
-+SYSCALL_DEFINE5(32_llseek, unsigned int, fd, unsigned int, offset_high,
-+		unsigned int, offset_low, loff_t __user *, result,
-+		unsigned int, origin)
- {
- 	return sys_llseek(fd, offset_high, offset_low, result, origin);
- }
+V2lsbCBOZXd0b24gPHdpbGwubmV3dG9uQGdtYWlsLmNvbT4g0LTT2iAyMDA5LTAzLTI1IDIwOjAx
+OjAyOg0KDQo+IDIwMDkvMy8yNSAgPGxpcWluLmNoZW5Ac3VucGx1c2N0LmNvbT46DQo+ID4+DQo+
+ID4+IFRvIGFsbG93IHBlb3BsZSB0byBtb3JlIGVhc2lseSByZXZpZXcgeW91ciBwYXRjaGVzIGl0
+IGlzIHJlY29tbWVuZGVkDQo+ID4+IHRvIHNwaXQgdGhlbSB1cCBpbnRvIHNtYWxsZXIgcGllY2Vz
+IGFuZCBzdWJtaXQgdGhlbSB0byB0aGUgbWFpbGluZw0KPiA+PiBsaXN0Lg0KPiA+DQo+ID4gQWNj
+b3JkaW5nIHRvIHRoZSAiVGhlIGxpbnV4LWtlcm5lbCBtYWlsaW5nIGxpc3QgRkFRIiBhbmQNCj4g
+PiAiRG9jdW1lbnRhdGlvbi9TdWJtaXR0aW5nUGF0Y2hlcyIsDQo+ID4gRS1tYWlsIHNpemUgZXhj
+ZWVkcyA0MCBrQiwgIml0IGlzIHByZWZlcnJlZCB0aGF0IHlvdSBzdG9yZQ0KPiA+IHlvdXIgcGF0
+Y2ggb24gYW4gSW50ZXJuZXQtYWNjZXNzaWJsZXNlcnZlciwgYW5kIHByb3ZpZGUNCj4gPiAgaW5z
+dGVhZCBhIFVSTCAobGluaykgcG9pbnRpbmcgdG8geW91ciBwYXRjaC4iDQo+ID4gbGludXgvc2Nv
+cmUgcGF0Y2ggc2l6ZSBvdmVyIDQwMCBrQiwgc28gd2Ugb25seSBwcm92aWRlDQo+ID4gdGhlIFVS
+TCAobGluaykgaW4gbWFpbC4NCj4gDQo+IFllcywgdGhhdCdzIHRydWUuIEhvd2V2ZXIgaWYgeW91
+IHNwbGl0IHRoYXQgdXAgaW50byAxMC0yMCBzZXBhcmF0ZQ0KPiBlbWFpbHMgdGhlbiBpdCdzIHF1
+aXRlIG1hbmFnZWFibGUuIFRoZSBhZHZhbnRhZ2Ugb2YgcG9zdGluZyB0byB0aGUNCj4gbGlzdCBp
+cyB0aGF0IG1hbnkgbW9yZSBwZW9wbGUgd2lsbCByZXZpZXcgeW91ciBjb2RlLg0KPiANCj4gWW91
+IGNvdWxkIGFsc28gY2MgdGhlIGxpbnV4LWFyY2ggbWFpbGluZyBsaXN0Lg0KPiANCj4gPiBCdXQg
+aWYgb3RoZXIgcGVyc29uIG9yIExpbnVzIGFsc28gdGhpbmsgd2Ugc2hvdWxkIHNwaXQgdGhlbSB1
+cA0KPiA+IGludG8gc21hbGxlciBwaWVjZXMsIHdlIHdpbGwgZG8gaXQuDQo+ID4NCj4gPj4NCj4g
+Pj4gWW91ciBwb3J0IGxvb2tzIHJlbGF0aXZlbHkgY2xlYW4gYnV0IGl0IGxvb2tzIGxpa2UgaXQg
+aXMgYm9ycm93aW5nDQo+ID4+IGhlYXZpbHkgZnJvbSB0aGUgbWlwcyBwb3J0IGFuZCB5b3UgbWF5
+IGhhdmUgYSBmZXcgbGVmdG92ZXJzIGZyb20gdGhhdA0KPiA+PiBlLmcuOg0KPiA+Pg0KPiA+DQo+
+ID4gWWVzLCB3ZSB1c2UgbGludXgvbWlwcyBhcyByZWZlcmVuY2UgZm9yIGxpbnV4L3Njb3JlIHBs
+YXRmb3JtLg0KPiA+IEluIG9yZGVyIHRvIG1ha2UgdGhlIHBhdGNoIGNsZWFyLCB3ZSB1c2VkIG1v
+cmUgQyBjb2RlIGluc3RlYWQgb2YNCj4gPiBhc3NlbWJsZXIgY29kZS4gQWZ0ZXIgcGF0Y2ggbWVy
+Z2UgdG8gdGhlIG1haW5saW5lLA0KPiA+IHdlIHdpbGwgcHJvdmlkZSBvcHRpbWl6ZWQgYXNzZW1i
+bGVyIGNvZGUgb25lIGJ5IG9uZS4NCj4gPg0KPiA+PiAtIG1lbnRpb25zIG9mIG8zMiAodW5sZXNz
+IFMrQ09SRSBoYXMgYW4gbzMyIEFCST8pDQo+ID4+IC0gZG9lcyBTQ09SRSsgaGF2ZSBsbC9zYyBp
+bnN0cnVjdGlvbnMgb3IgaXMgdGhhdCBhbm90aGVyIGxlZnRvdmVyIA0KZnJvbQ0KPiA+IE1JUFM/
+DQo+ID4NCj4gPiBObywgSSBoYWQgcmVtb3ZlZCB0aGVzZSBsZWZ0b3ZlciBjb2RlLg0KPiA+DQo+
+ID4+IC0gY29tcGF0aWJpbGl0eSBzeXNjYWxscywgc3lzX2lwYywgb2xkLXN0eWxlIHNpZ25hbCBo
+YW5kbGluZy4gQXJlDQo+ID4+IHRoZXNlIHJlYWxseSBuZWVkZWQgZm9yIGEgbmV3IGFyY2g/DQo+
+ID4NCj4gPiBCZWNhdXNlIHdlIHVzZSBnbGliYy0yLjMuNiBhcyBiYXNlIGxpYnJhcnksIExUUCBh
+bmQgbWFueSBhcHBsaWNhdGlvbnMNCj4gPiBhcmUgYWxsIHJ1bm5pbmcgb24gaXQuIHNvIHdlIGxl
+YXZlIG1hbnkgb2xkIHN5c2NhbGwgaW4gc2NvcmUgY29kZSwNCj4gPiBvbmNlIHdlIGFyZSBzdXJl
+IGl0J3Mgbm90IG5lY2Vzc2FyeSwgd2Ugd2lsbCByZW1vdmUgdGhlc2Ugc3lzY2FsbC4NCj4gDQo+
+IE9uY2UgY29kZSBpcyBtZXJnZWQgaW50byBtYWlubGluZSBpdCBiZWNvbWVzIGEgbG90IGhhcmRl
+ciB0byBqdXN0aWZ5DQo+IG1ha2luZyBjaGFuZ2VzIHRoYXQgYnJlYWsgYmFja3dhcmRzIGNvbXBh
+dGliaWxpdHkgc3VjaCBhcyByZW1vdmluZw0KPiBzeXN0ZW0gY2FsbHMuIEl0J3MgZWFzaWVyIGlu
+IHRoZSBsb25nIHRlcm0gdG8gbWFrZSBzdXJlIHlvdXIgc3lzdGVtDQo+IGNhbGwgaW50ZXJmYWNl
+IGlzIGNsZWFuZWQgdXAgbm93IHJhdGhlciB0aGFuIGxhdGVyLg0KPiANCj4gSGF2ZSB5b3UgY29t
+ZSBhY3Jvc3MgQXJuZCBCZXJnbWFubidzIHdvcmsgb24gY3JlYXRpbmcgYSBnZW5lcmljIGFyY2gN
+Cj4gZm9yIHBvcnRpbmc/DQo+IA0KPiBodHRwOi8vbHduLm5ldC9BcnRpY2xlcy8zMDc3MTMvDQo+
+IA0KPiBJdCdzIGEgZ29vZCByZWZlcmVuY2UgdG8gY2hlY2sgd2hpY2ggc3lzdGVtIGNhbGxzIGFy
+ZSBjb25zaWRlcmVkDQo+IGN1cnJlbnQgYW5kIHdoaWNoIGhlYWRlcnMgYXJlIGdlbmVyaWMgaW4g
+bmV3IHBvcnRzIGV0Yy4NCj4gDQoNCkhhZCByZW1vdmVkIGNvbXBhdGliaWxpdHkgc3lzY2FsbHMg
+ZnJvbSB0aGUgY29kZS4NCmxhc3QgcGF0Y2ggc3RpbGwgcGxhY2VkIGF0DQpodHRwOi8vd3d3LnN1
+bnBsdXNjdC5jb20vaW1hZ2VzL2xpbnV4LXNjb3JlLXBhdGNoL2xpbnV4LXNjb3JlLTIwMDkwMzI0
+LnBhdGNoDQoNCj4gPj4gLSBkb2VzIHlvdXIgcG9ydCBzdXBwb3J0IFNNUD8NCj4gPg0KPiA+IE5v
+LCBidXQgd2UgY29uc2lkZXIgdG9kbyBpdCBuZXh0IHN0ZXAuDQo+ID4NCj4gPiBXZSBoYXZlIHVw
+ZGF0ZWQgdGhlIHBhdGNoIHVzZSB0aGUgc2FtZSBVUkwobGluaykNCj4gPiANCmh0dHA6Ly93d3cu
+c3VucGx1c2N0LmNvbS9pbWFnZXMvbGludXgtc2NvcmUtcGF0Y2gvbGludXgtc2NvcmUtMjAwOTAz
+MjQucGF0Y2gNCj4gPiBpZiBvdGhlciBwZXJzb24gdGhpbmsgaXQgc2hvdWxkIGJlIHNwbGl0ZWQg
+aW50byBzbWFsbGVyIHBpZWNlcywNCj4gPiBwbGVhc2UgbGV0IG1lIGtub3cuDQo+ID4NCj4gPiBU
+aGFua3MgV2lsbCBOZXd0b24NCj4gPiAtLQ0KPiA+IGxpcWluDQo+ID4NCj4gPiBXaWxsIE5ld3Rv
+biA8d2lsbC5uZXd0b25AZ21haWwuY29tPiDQtNPaIDIwMDktMDMtMjQgMTk6MDA6MDU6DQo+ID4N
+Cj4gPj4gT24gVHVlLCBNYXIgMjQsIDIwMDkgYXQgMzo0NiBBTSwgIDxsaXFpbkBzdW5ub3J0aC5j
+b20uY24+IHdyb3RlOg0KPiA+PiA+IEhlbGxvLCBMaW51cyBhbmQgZm9sa3MsDQo+ID4+ID4NCj4g
+Pj4gPiBXZSBoYXZlIHBvcnRlZCBMaW51eCB0byB0aGUgUytDT1JFIHByb2Nlc3Nvciwgd2hpY2gg
+aXMgYSAzMi1iaXQgDQpSSVNDDQo+ID4+ID4gZW1iZWRkZWQNCj4gPj4gPiBtaWNyb3Byb2Nlc3Nv
+ciBvZiBTdW5wbHVzIENvcmUgVGVjaG5vbG9neS4NCj4gPj4gPg0KPiA+PiA+IFNQRzI5WCwgU1BH
+MzAwKHNjb3JlIGNvcmUpIHByb2Nlc3NvciBoYXZlIGJlZW4gdXNlZCBpbiBnYW1lIA0KcHJvZHVj
+dHMuDQo+ID4+ID4gYW5kIHNjb3JlIHRvb2xjaGFpbiBoYXZlIGNvbW1pdCB0byBnbnUgaW4gMjAw
+Ni4gV2UgaGF2ZSBhIHRlYW0gdG8NCj4gPiBtYWludGFpbg0KPiA+PiA+IHNjb3JlIGNvZGUgZm9y
+IGxpbnV4IGtlcm5lbC4NCj4gPj4gPg0KPiA+PiA+IFdlIHdvdWxkIGxpa2UgdG8gcmVsZWFzZSBh
+IHBhdGNoIGZvciBrZXJuZWwgMi42LjI5LXJjOC4NCj4gPj4gPiBUaGlzIHBhdGNoIGluY2x1ZGUg
+c2NvcmUgaGVhZGVyIGZpbGVzLCBhcmNoIGZpbGVzIGFuZCBzZXJpYWwgZHJpdmVyDQo+ID4gZm9y
+DQo+ID4+ID4gc3BjdDY2MDAoc2NvcmUgY29yZSkgcGxhdGZvcm0uDQo+ID4+ID4NCj4gPj4gPiBG
+b3IgdGhlIG90aGVyIGRyaXZlciBwYXRjaGVzLCBJJ2xsIHNlbmQgdGhlbSBvbmUgYnkgb25lIGlu
+DQo+ID4+ID4gc21hbGwgc2l6ZSBsYXR0ZXIuIFRoYW5rcyENCj4gPj4gPg0KPiA+PiA+IFdvdWxk
+IHlvdSBtZXJnZSB0aGVtIHRvIHRoZSBzdG9jayBrZXJuZWw/DQo+ID4+ID4NCj4gPj4gPiBQYXRj
+aCBpbmZvcm1hdGlvbiBpcyBzbGlnaHRseSBiaWdnZXIsIHNvIEkgcGxhY2VkIGl0IG9uIG91ciAN
+ClN1bnBsdXNDVA0KPiA+IHdlYg0KPiA+PiA+IHNpdGUuDQo+ID4+ID4NCj4gPiANCmh0dHA6Ly93
+d3cuc3VucGx1c2N0LmNvbS9pbWFnZXMvbGludXgtc2NvcmUtcGF0Y2gvbGludXgtc2NvcmUtMjAw
+OTAzMjQucGF0Y2gNCj4gPj4gPg0KPiA+PiA+IFNpZ25lZCBvZmYgYnk6IENoZW4gTGlxaW4gPGxp
+cWluLmNoZW5Ac3VucGx1c2N0LmNvbSwNCj4gPj4gPiBsaXFpbkBzdW5ub3J0aC5jb20uY24+DQo+
+ID4NCg0K
