@@ -1,85 +1,66 @@
-From: Sam Ravnborg <sam@ravnborg.org>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH 5/13] score - New architecure port to SunplusCT S+CORE processor
-Date: Fri, 27 Mar 2009 21:26:14 +0100
-Message-ID: <20090327202614.GA22054@uranus.ravnborg.org>
-References: <OFE9A5E3A2.37B73BA8-ON48257586.0008CFAC-48257586.00091B05@sunplusct.com> <20090327184013.GB21149@uranus.ravnborg.org> <200903272019.53689.arnd@arndb.de>
+Date: Fri, 27 Mar 2009 21:53:05 +0100
+Message-ID: <200903272153.05622.arnd@arndb.de>
+References: <OFE9A5E3A2.37B73BA8-ON48257586.0008CFAC-48257586.00091B05@sunplusct.com> <200903272019.53689.arnd@arndb.de> <20090327202614.GA22054@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepa.post.tele.dk ([195.41.46.235]:59598 "EHLO
-	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754555AbZC0UYO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2009 16:24:14 -0400
+Received: from moutng.kundenserver.de ([212.227.126.186]:64194 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755436AbZC0UxP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2009 16:53:15 -0400
+In-Reply-To: <20090327202614.GA22054@uranus.ravnborg.org>
 Content-Disposition: inline
-In-Reply-To: <200903272019.53689.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: Sam Ravnborg <sam@ravnborg.org>
 Cc: liqin.chen@sunplusct.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
 
-On Fri, Mar 27, 2009 at 08:19:53PM +0100, Arnd Bergmann wrote:
-> On Friday 27 March 2009, Sam Ravnborg wrote:
-> > > +struct shmid64_ds {
-> > > + =A0 =A0 =A0 struct ipc64_perm =A0 =A0 =A0 shm_perm; =A0 =A0 =A0=
- /* operation perms */
-> > > + =A0 =A0 =A0 size_t =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0shm_segsz=
-; =A0 =A0 =A0/* size of segment (bytes)=20
-> > > */
-> > > + =A0 =A0 =A0 __kernel_time_t =A0 =A0 =A0 =A0 shm_atime; =A0 =A0 =
-=A0/* last attach time */
-> > > + =A0 =A0 =A0 __kernel_time_t =A0 =A0 =A0 =A0 shm_dtime; =A0 =A0 =
-=A0/* last detach time */
-> > > + =A0 =A0 =A0 __kernel_time_t =A0 =A0 =A0 =A0 shm_ctime; =A0 =A0 =
-=A0/* last change time */
-> > > + =A0 =A0 =A0 __kernel_pid_t =A0 =A0 =A0 =A0 =A0shm_cpid; =A0 =A0=
- =A0 /* pid of creator */
-> > > + =A0 =A0 =A0 __kernel_pid_t =A0 =A0 =A0 =A0 =A0shm_lpid; =A0 =A0=
- =A0 /* pid of last operator */
-> > > + =A0 =A0 =A0 unsigned long =A0 =A0 =A0 =A0 =A0 shm_nattch; =A0 =A0=
- /* no. of current attaches=20
-> > > */
-> > > + =A0 =A0 =A0 unsigned long =A0 =A0 =A0 =A0 =A0 __unused1;
-> > > + =A0 =A0 =A0 unsigned long =A0 =A0 =A0 =A0 =A0 __unused2;
-> > > +};
-> >=20
-> > This is an exported header and you mix wide specific and generic ty=
-pes.
-> > The recommended way is to stick to the __[u]{32,64}int versions + t=
-he kernel
-> > specific types as __kernel_pid_t.
-> > In other words avoid use of int, long etc in your exported headers.
-> >=20
->=20
-> This is correct in general, but in this particular case (SysV IPC) it=
- is
-> exactly what most of the other architectures do. It's basically impos=
-sible
-> to get this right, so simply doing the same as x86 is the best option
-> I found (unlike most of the other headers).
+On Friday 27 March 2009, Sam Ravnborg wrote:
 
-Thats strange indeed.
-This structure will then change layout depending on the target bit-size
-of the compiler.
+> Thats strange indeed.
+> This structure will then change layout depending on the target bit-size
+> of the compiler.
+> 
+> From x86:
+> #ifdef __i386__
+>         unsigned long           __unused1;
+> #endif
+>         __kernel_time_t         shm_dtime;      /* last detach time */
+> #ifdef __i386__
+>         unsigned long           __unused2;
+> #endif
+> 
+> long is 64 bit in one case and 32 bit in another case.
+> I'm confused..
 
-=46rom x86:
-#ifdef __i386__
-        unsigned long           __unused1;
-#endif
-        __kernel_time_t         shm_dtime;      /* last detach time */
-#ifdef __i386__
-        unsigned long           __unused2;
-#endif
+The idea here is to have the same layout for both by adding
+long (32 bit) padding between 32 bit members on i386 and not
+having the padding along the __kernel_time_t (which is also
+long) members on x86_64. The problem is that some architectures
+copying this didn't understand the part about the padding,
+while others (big-endian ones) put the padding in the wrong
+place by copying from i386.
 
-long is 64 bit in one case and 32 bit in another case.
-I'm confused..
+By now, most of the existing architectures copied the i386
+file, which is at least consistent and we've learned to
+deal with it. I recommend just using this one as the
+asm-generic version and letting all new archs fall back
+to that.
 
-I would expect it to be safer to be bit-size neutral in our
-exported headers.
-But the score people know there userlend best so let them decide.
+> I would expect it to be safer to be bit-size neutral in our
+> exported headers.
+> But the score people know there userlend best so let them decide.
+ 
+> Still they should audit all their exported headers.
+> They cannot assume it was right because they copied them from
+> somewhere.
 
-Still they should audit all their exported headers.
-They cannot assume it was right because they copied them from
-somewhere.
+Yes, I agree. Hopefully I'll manage to get my patches into
+shape to post the generic versions in the next days so we can use
+them on microblaze and score as well as all future versions.
 
-	Sam
+	Arnd <><
