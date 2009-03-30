@@ -1,53 +1,55 @@
-From: Michal Simek <michal.simek@petalogix.com>
-Subject: Re: [PATCH 5/13] score - New architecure port to SunplusCT S+CORE
- processor
-Date: Sun, 29 Mar 2009 15:46:30 +0200
-Message-ID: <49CF7BB6.2010609@petalogix.com>
-References: <OFE9A5E3A2.37B73BA8-ON48257586.0008CFAC-48257586.00091B05@sunplusct.com> <200903272019.53689.arnd@arndb.de> <20090327202614.GA22054@uranus.ravnborg.org> <200903272153.05622.arnd@arndb.de> <20090327212251.GA22518@uranus.ravnborg.org>
-Reply-To: michal.simek@petalogix.com
+From: liqin.chen@sunplusct.com
+Subject: Re: [PATCH 5/13] score - New architecure port to SunplusCT S+CORE processor
+Date: Mon, 30 Mar 2009 10:25:26 +0800
+Message-ID: <OFBA5A0860.CDC7D821-ON48257589.000CDE82-48257589.000D7C1F@sunplusct.com>
+References: <200903272153.05622.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="GB2312"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fg-out-1718.google.com ([72.14.220.156]:33990 "EHLO
-	fg-out-1718.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753890AbZC2Nqg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 29 Mar 2009 09:46:36 -0400
-In-Reply-To: <20090327212251.GA22518@uranus.ravnborg.org>
+Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:53446 "EHLO
+	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756525AbZC3C2U (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 29 Mar 2009 22:28:20 -0400
+In-Reply-To: <200903272153.05622.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, liqin.chen@sunplusct.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
+To: Arnd Bergmann <arnd@arndb.de>, Sam Ravnborg <sam@ravnborg.org>, Thomas Gleixner <tglx@linutronix.de>, Kyle McMartin <kyle@mcmartin.ca>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
 
-Sam Ravnborg wrote:
->> Yes, I agree. Hopefully I'll manage to get my patches into
->> shape to post the generic versions in the next days so we can use
->> them on microblaze and score as well as all future versions.
->>     
->
-> That would be gret.
-> And I need to take a critical look at the patch from Remis Lima Baima -
-> this would help those guys too.
->   
-yes. I am open to it too. We can clean it and I'll test it and create
-new toolchain for it too.
-I hope we can reach generic solution which can be pattern for another archs.
-
-Thanks,
-Michal
-
-P.S.: I am at LKML but please cc me (the best monstr@monstr.eu) for
-every discuss around microblaze.
-
-> 	Sam
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
->   
-
-
--- 
-Michal Simek, Ing. (M.Eng)
-PetaLogix - Linux Solutions for a Reconfigurable World
-w: www.petalogix.com p: +61-7-30090663,+42-0-721842854 f: +61-7-30090663
+SGkgdGdseCwgQXJuZCwgS3lsZSBhbmQgU2FtLA0KDQogICAgICAgIFRoYW5rIHlvdSBmb3IgeW91
+ciBraW5kbHkgcmVwbHksIEkgd2lsbCB1cGRhdGUgDQogICAgICAgIHRoZSBjb2RlIGFjY29yZGlu
+ZyB0byB5b3VyIGNvbW1lbnRzLg0KICAgICAgICBUaGUgZml4ZWQgcGF0Y2hlcyB3aWxsIGJlIHNl
+bnQgb3V0IHNvb24uDQoNCi0tIA0KQmVzdCByZWdhcmRzDQpMaXFpbg0KbGlxaW4uY2hlbkBzdW5w
+bHVzY3QuY29tDQoNCkFybmQgQmVyZ21hbm4gPGFybmRAYXJuZGIuZGU+INC009ogMjAwOS0wMy0y
+OCAwNDo1MzowNToNCg0KPiBPbiBGcmlkYXkgMjcgTWFyY2ggMjAwOSwgU2FtIFJhdm5ib3JnIHdy
+b3RlOg0KPiANCj4gPiBUaGF0cyBzdHJhbmdlIGluZGVlZC4NCj4gPiBUaGlzIHN0cnVjdHVyZSB3
+aWxsIHRoZW4gY2hhbmdlIGxheW91dCBkZXBlbmRpbmcgb24gdGhlIHRhcmdldCANCmJpdC1zaXpl
+DQo+ID4gb2YgdGhlIGNvbXBpbGVyLg0KPiA+IA0KPiA+IEZyb20geDg2Og0KPiA+ICNpZmRlZiBf
+X2kzODZfXw0KPiA+ICAgICAgICAgdW5zaWduZWQgbG9uZyAgICAgICAgICAgX191bnVzZWQxOw0K
+PiA+ICNlbmRpZg0KPiA+ICAgICAgICAgX19rZXJuZWxfdGltZV90ICAgICAgICAgc2htX2R0aW1l
+OyAgICAgIC8qIGxhc3QgZGV0YWNoIHRpbWUgKi8NCj4gPiAjaWZkZWYgX19pMzg2X18NCj4gPiAg
+ICAgICAgIHVuc2lnbmVkIGxvbmcgICAgICAgICAgIF9fdW51c2VkMjsNCj4gPiAjZW5kaWYNCj4g
+PiANCj4gPiBsb25nIGlzIDY0IGJpdCBpbiBvbmUgY2FzZSBhbmQgMzIgYml0IGluIGFub3RoZXIg
+Y2FzZS4NCj4gPiBJJ20gY29uZnVzZWQuLg0KPiANCj4gVGhlIGlkZWEgaGVyZSBpcyB0byBoYXZl
+IHRoZSBzYW1lIGxheW91dCBmb3IgYm90aCBieSBhZGRpbmcNCj4gbG9uZyAoMzIgYml0KSBwYWRk
+aW5nIGJldHdlZW4gMzIgYml0IG1lbWJlcnMgb24gaTM4NiBhbmQgbm90DQo+IGhhdmluZyB0aGUg
+cGFkZGluZyBhbG9uZyB0aGUgX19rZXJuZWxfdGltZV90ICh3aGljaCBpcyBhbHNvDQo+IGxvbmcp
+IG1lbWJlcnMgb24geDg2XzY0LiBUaGUgcHJvYmxlbSBpcyB0aGF0IHNvbWUgYXJjaGl0ZWN0dXJl
+cw0KPiBjb3B5aW5nIHRoaXMgZGlkbid0IHVuZGVyc3RhbmQgdGhlIHBhcnQgYWJvdXQgdGhlIHBh
+ZGRpbmcsDQo+IHdoaWxlIG90aGVycyAoYmlnLWVuZGlhbiBvbmVzKSBwdXQgdGhlIHBhZGRpbmcg
+aW4gdGhlIHdyb25nDQo+IHBsYWNlIGJ5IGNvcHlpbmcgZnJvbSBpMzg2Lg0KPiANCj4gQnkgbm93
+LCBtb3N0IG9mIHRoZSBleGlzdGluZyBhcmNoaXRlY3R1cmVzIGNvcGllZCB0aGUgaTM4Ng0KPiBm
+aWxlLCB3aGljaCBpcyBhdCBsZWFzdCBjb25zaXN0ZW50IGFuZCB3ZSd2ZSBsZWFybmVkIHRvDQo+
+IGRlYWwgd2l0aCBpdC4gSSByZWNvbW1lbmQganVzdCB1c2luZyB0aGlzIG9uZSBhcyB0aGUNCj4g
+YXNtLWdlbmVyaWMgdmVyc2lvbiBhbmQgbGV0dGluZyBhbGwgbmV3IGFyY2hzIGZhbGwgYmFjaw0K
+PiB0byB0aGF0Lg0KPiANCj4gPiBJIHdvdWxkIGV4cGVjdCBpdCB0byBiZSBzYWZlciB0byBiZSBi
+aXQtc2l6ZSBuZXV0cmFsIGluIG91cg0KPiA+IGV4cG9ydGVkIGhlYWRlcnMuDQo+ID4gQnV0IHRo
+ZSBzY29yZSBwZW9wbGUga25vdyB0aGVyZSB1c2VybGVuZCBiZXN0IHNvIGxldCB0aGVtIGRlY2lk
+ZS4NCj4gDQo+ID4gU3RpbGwgdGhleSBzaG91bGQgYXVkaXQgYWxsIHRoZWlyIGV4cG9ydGVkIGhl
+YWRlcnMuDQo+ID4gVGhleSBjYW5ub3QgYXNzdW1lIGl0IHdhcyByaWdodCBiZWNhdXNlIHRoZXkg
+Y29waWVkIHRoZW0gZnJvbQ0KPiA+IHNvbWV3aGVyZS4NCj4gDQo+IFllcywgSSBhZ3JlZS4gSG9w
+ZWZ1bGx5IEknbGwgbWFuYWdlIHRvIGdldCBteSBwYXRjaGVzIGludG8NCj4gc2hhcGUgdG8gcG9z
+dCB0aGUgZ2VuZXJpYyB2ZXJzaW9ucyBpbiB0aGUgbmV4dCBkYXlzIHNvIHdlIGNhbiB1c2UNCj4g
+dGhlbSBvbiBtaWNyb2JsYXplIGFuZCBzY29yZSBhcyB3ZWxsIGFzIGFsbCBmdXR1cmUgdmVyc2lv
+bnMuDQo+IA0KPiAgICBBcm5kIDw+PA0KDQo=
