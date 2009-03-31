@@ -1,24 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:34658 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:50677 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760187AbZCaXrK (ORCPT
+	by vger.kernel.org with ESMTP id S1757909AbZCaXrI (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 31 Mar 2009 19:47:10 -0400
-Message-ID: <200903312342.n2VNg3da012224@imap1.linux-foundation.org>
-Subject: + signals-implement-sys_rt_tgsigqueueinfo.patch added to -mm tree
+	Tue, 31 Mar 2009 19:47:08 -0400
+Message-ID: <200903312342.n2VNg0mD012174@imap1.linux-foundation.org>
+Subject: + signals-split-do_tkill.patch added to -mm tree
 From: akpm@linux-foundation.org
-Date: Tue, 31 Mar 2009 16:42:02 -0700
+Date: Tue, 31 Mar 2009 16:42:00 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mm-commits@vger.kernel.org
 Cc: tglx@linutronix.de, drepper@redhat.com, linux-abi@vger.kernel.org, linux-arch@vger.kernel.org, oleg@redhat.com, roland@redhat.com
-Message-ID: <20090331234202.xMbapQnqrfkeY1tuD7VkSFu2TDmZTEV0RsqtssI7RWM@z>
+Message-ID: <20090331234200.J-SJtlHqQCRk89HLIbF1LpaIu1wO31Q8N6sT1a3TWNk@z>
 
 
 The patch titled
-     signals: implement sys_rt_tgsigqueueinfo
+     signals: split do_tkill
 has been added to the -mm tree.  Its filename is
-     signals-implement-sys_rt_tgsigqueueinfo.patch
+     signals-split-do_tkill.patch
 
 Before you just go and hit "reply", please:
    a) Consider who else should be cc'ed
@@ -34,13 +34,24 @@ out what to do about this
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: signals: implement sys_rt_tgsigqueueinfo
+Subject: signals: split do_tkill
 From: Thomas Gleixner <tglx@linutronix.de>
 
-sys_kill has the per thread counterpart sys_tgkill.  sigqueueinfo is
-missing a thread directed counterpart.  Such an interface is important for
-migrating applications from other OSes which have the per thread delivery
-implemented.
+sys_kill() has a counterpart sys_tgkill which allows to send signals to a
+particular thread.  sys_rt_sigqueueinfo is lacking such a counterpart.
+
+Aside of the asymmetry it is a show stopper for migrating applications
+from other unix-alike RTOSes.
+
+The following patch series implements rt_tgsigqueueinfo and hooks it up
+for x86.
+
+
+
+This patch:
+
+Split out the code from do_tkill to make it reusable by the follow up
+patch which implements sys_rt_tgsigqueueinfo
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Reviewed-by: Oleg Nesterov <oleg@redhat.com>
@@ -51,93 +62,70 @@ Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- include/linux/compat.h |    2 ++
- include/linux/signal.h |    2 ++
- kernel/compat.c        |   11 +++++++++++
- kernel/signal.c        |   26 ++++++++++++++++++++++++++
- 4 files changed, 41 insertions(+)
+ kernel/signal.c |   30 ++++++++++++++++++------------
+ 1 file changed, 18 insertions(+), 12 deletions(-)
 
-diff -puN include/linux/compat.h~signals-implement-sys_rt_tgsigqueueinfo include/linux/compat.h
---- a/include/linux/compat.h~signals-implement-sys_rt_tgsigqueueinfo
-+++ a/include/linux/compat.h
-@@ -216,6 +216,8 @@ int copy_siginfo_from_user32(siginfo_t *
- int copy_siginfo_to_user32(struct compat_siginfo __user *to, siginfo_t *from);
- int get_compat_sigevent(struct sigevent *event,
- 		const struct compat_sigevent __user *u_event);
-+long compat_sys_rt_tgsigqueueinfo(compat_pid_t tgid, compat_pid_t pid, int sig,
-+				  struct compat_siginfo __user *uinfo);
- 
- static inline int compat_timeval_compare(struct compat_timeval *lhs,
- 					struct compat_timeval *rhs)
-diff -puN include/linux/signal.h~signals-implement-sys_rt_tgsigqueueinfo include/linux/signal.h
---- a/include/linux/signal.h~signals-implement-sys_rt_tgsigqueueinfo
-+++ a/include/linux/signal.h
-@@ -235,6 +235,8 @@ static inline int valid_signal(unsigned 
- extern int next_signal(struct sigpending *pending, sigset_t *mask);
- extern int group_send_sig_info(int sig, struct siginfo *info, struct task_struct *p);
- extern int __group_send_sig_info(int, struct siginfo *, struct task_struct *);
-+extern long do_rt_tgsigqueueinfo(pid_t tgid, pid_t pid, int sig,
-+				 siginfo_t *info);
- extern long do_sigpending(void __user *, unsigned long);
- extern int sigprocmask(int, sigset_t *, sigset_t *);
- extern int show_unhandled_signals;
-diff -puN kernel/compat.c~signals-implement-sys_rt_tgsigqueueinfo kernel/compat.c
---- a/kernel/compat.c~signals-implement-sys_rt_tgsigqueueinfo
-+++ a/kernel/compat.c
-@@ -882,6 +882,17 @@ compat_sys_rt_sigtimedwait (compat_sigse
- 
- }
- 
-+asmlinkage long
-+compat_sys_rt_tgsigqueueinfo(compat_pid_t tgid, compat_pid_t pid, int sig,
-+			     struct compat_siginfo __user *uinfo)
-+{
-+	siginfo_t info;
-+
-+	if (copy_siginfo_from_user32(&info, uinfo))
-+		return -EFAULT;
-+	return do_rt_tgsigqueueinfo(tgid, pid, sig, &info);
-+}
-+
- #ifdef __ARCH_WANT_COMPAT_SYS_TIME
- 
- /* compat_time_t is a 32 bit "long" and needs to get converted. */
-diff -puN kernel/signal.c~signals-implement-sys_rt_tgsigqueueinfo kernel/signal.c
---- a/kernel/signal.c~signals-implement-sys_rt_tgsigqueueinfo
+diff -puN kernel/signal.c~signals-split-do_tkill kernel/signal.c
+--- a/kernel/signal.c~signals-split-do_tkill
 +++ a/kernel/signal.c
-@@ -2369,6 +2369,32 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
- 	return kill_proc_info(sig, &info, pid);
+@@ -2278,24 +2278,17 @@ SYSCALL_DEFINE2(kill, pid_t, pid, int, s
+ 	return kill_something_info(sig, &info, pid);
  }
  
-+long do_rt_tgsigqueueinfo(pid_t tgid, pid_t pid, int sig, siginfo_t *info)
-+{
-+	/* This is only valid for single tasks */
-+	if (pid <= 0 || tgid <= 0)
-+		return -EINVAL;
-+
-+	/* Not even root can pretend to send signals from the kernel.
-+	   Nor can they impersonate a kill(), which adds source info.  */
-+	if (info->si_code >= 0)
-+		return -EPERM;
-+	info->si_signo = sig;
-+
-+	return do_send_specific(tgid, pid, sig, info);
-+}
-+
-+SYSCALL_DEFINE4(rt_tgsigqueueinfo, pid_t, tgid, pid_t, pid, int, sig,
-+		siginfo_t __user *, uinfo)
-+{
-+	siginfo_t info;
-+
-+	if (copy_from_user(&info, uinfo, sizeof(siginfo_t)))
-+		return -EFAULT;
-+
-+	return do_rt_tgsigqueueinfo(tgid, pid, sig, &info);
-+}
-+
- int do_sigaction(int sig, struct k_sigaction *act, struct k_sigaction *oact)
+-static int do_tkill(pid_t tgid, pid_t pid, int sig)
++static int
++do_send_specific(pid_t tgid, pid_t pid, int sig, struct siginfo *info)
  {
- 	struct task_struct *t = current;
+-	int error;
+-	struct siginfo info;
+ 	struct task_struct *p;
+ 	unsigned long flags;
+-
+-	error = -ESRCH;
+-	info.si_signo = sig;
+-	info.si_errno = 0;
+-	info.si_code = SI_TKILL;
+-	info.si_pid = task_tgid_vnr(current);
+-	info.si_uid = current_uid();
++	int error = -ESRCH;
+ 
+ 	rcu_read_lock();
+ 	p = find_task_by_vpid(pid);
+ 	if (p && (tgid <= 0 || task_tgid_vnr(p) == tgid)) {
+-		error = check_kill_permission(sig, &info, p);
++		error = check_kill_permission(sig, info, p);
+ 		/*
+ 		 * The null signal is a permissions and process existence
+ 		 * probe.  No signal is actually delivered.
+@@ -2305,7 +2298,7 @@ static int do_tkill(pid_t tgid, pid_t pi
+ 		 * signal is private anyway.
+ 		 */
+ 		if (!error && sig && lock_task_sighand(p, &flags)) {
+-			error = specific_send_sig_info(sig, &info, p);
++			error = specific_send_sig_info(sig, info, p);
+ 			unlock_task_sighand(p, &flags);
+ 		}
+ 	}
+@@ -2314,6 +2307,19 @@ static int do_tkill(pid_t tgid, pid_t pi
+ 	return error;
+ }
+ 
++static int do_tkill(pid_t tgid, pid_t pid, int sig)
++{
++	struct siginfo info;
++
++	info.si_signo = sig;
++	info.si_errno = 0;
++	info.si_code = SI_TKILL;
++	info.si_pid = task_tgid_vnr(current);
++	info.si_uid = current_uid();
++
++	return do_send_specific(tgid, pid, sig, &info);
++}
++
+ /**
+  *  sys_tgkill - send signal to one specific thread
+  *  @tgid: the thread group ID of the thread
 _
 
 Patches currently in -mm which might be from tglx@linutronix.de are
