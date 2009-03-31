@@ -1,46 +1,120 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:59861 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753202AbZCaA0e (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2009 20:26:34 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: Removing __kernel_old_uid_t, git_t, dev_t
-Date: Tue, 31 Mar 2009 02:26:26 +0200
-References: <200903301558.10598.arnd@arndb.de> <200903301717.57184.arnd@arndb.de> <20090330.141156.62568451.davem@davemloft.net>
-In-Reply-To: <20090330.141156.62568451.davem@davemloft.net>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-ID: <200903310226.27480.arnd@arndb.de>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:43669 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756346AbZCaXrI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 31 Mar 2009 19:47:08 -0400
+Message-ID: <200903312342.n2VNg5Vq012229@imap1.linux-foundation.org>
+Subject: + x86-hookup-sys_rt_tgsigqueueinfo.patch added to -mm tree
+From: akpm@linux-foundation.org
+Date: Tue, 31 Mar 2009 16:42:05 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: geert.uytterhoeven@gmail.com, michal.simek@petalogix.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20090331002626.oHvtIqhWyeH5ngRN2khiD-4P9cHIyL9-mAGvecP2mg0@z>
+To: mm-commits@vger.kernel.org
+Cc: tglx@linutronix.de, drepper@redhat.com, linux-abi@vger.kernel.org, linux-arch@vger.kernel.org, oleg@redhat.com, roland@redhat.com
+Message-ID: <20090331234205.YU6bQ1vlh6RKT3PxazCUqtDTqdCGHT9bdhAtBhnLN0E@z>
 
-On Monday 30 March 2009, David Miller wrote:
-> There is no reason to use anything larger than a 32-bit DMA address
-> type on sparc64, and using 32-bit saves lots of space in many
-> data structures so I am unlikely to ever change this. :-)
 
-Ok, fair enough. So I'll change my asm-generic/types.h to use
+The patch titled
+     x86: hook up sys_rt_tgsigqueueinfo
+has been added to the -mm tree.  Its filename is
+     x86-hookup-sys_rt_tgsigqueueinfo.patch
 
-#ifndef dma_addr_t
-#ifdef CONFIG_PHYS_ADDR_T_64BIT
-typedef u64 dma_addr_t;
-#else
-typedef u32 dma_addr_t;
-#endif /* CONFIG_PHYS_ADDR_T_64BIT */
-#endif /* dma_addr_t */
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
 
-If you eventually want to use the the generic version, you
-just need to add
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
 
-#define dma_addr_t dma_addr_t
+See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
+out what to do about this
 
-before the #include. Or you just ignore the asm-generic version
-and don't have to do anything.
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
-	Arnd <><
+------------------------------------------------------
+Subject: x86: hook up sys_rt_tgsigqueueinfo
+From: Thomas Gleixner <tglx@linutronix.de>
+
+Make the new sys_rt_tgsigqueueinfo available for x86.
+
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Reviewed-by: Oleg Nesterov <oleg@redhat.com>
+Cc: Roland McGrath <roland@redhat.com>
+Cc: Ulrich Drepper <drepper@redhat.com>
+Cc: <linux-abi@vger.kernel.org>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ arch/x86/ia32/ia32entry.S          |    1 +
+ arch/x86/include/asm/unistd_32.h   |    1 +
+ arch/x86/include/asm/unistd_64.h   |    2 ++
+ arch/x86/kernel/syscall_table_32.S |    1 +
+ 4 files changed, 5 insertions(+)
+
+diff -puN arch/x86/ia32/ia32entry.S~x86-hookup-sys_rt_tgsigqueueinfo arch/x86/ia32/ia32entry.S
+--- a/arch/x86/ia32/ia32entry.S~x86-hookup-sys_rt_tgsigqueueinfo
++++ a/arch/x86/ia32/ia32entry.S
+@@ -828,4 +828,5 @@ ia32_sys_call_table:
+ 	.quad sys_dup3			/* 330 */
+ 	.quad sys_pipe2
+ 	.quad sys_inotify_init1
++	.quad compat_sys_rt_tgsigqueueinfo
+ ia32_syscall_end:
+diff -puN arch/x86/include/asm/unistd_32.h~x86-hookup-sys_rt_tgsigqueueinfo arch/x86/include/asm/unistd_32.h
+--- a/arch/x86/include/asm/unistd_32.h~x86-hookup-sys_rt_tgsigqueueinfo
++++ a/arch/x86/include/asm/unistd_32.h
+@@ -338,6 +338,7 @@
+ #define __NR_dup3		330
+ #define __NR_pipe2		331
+ #define __NR_inotify_init1	332
++#define __NR_rt_tgsigqueueinfo	333
+ 
+ #ifdef __KERNEL__
+ 
+diff -puN arch/x86/include/asm/unistd_64.h~x86-hookup-sys_rt_tgsigqueueinfo arch/x86/include/asm/unistd_64.h
+--- a/arch/x86/include/asm/unistd_64.h~x86-hookup-sys_rt_tgsigqueueinfo
++++ a/arch/x86/include/asm/unistd_64.h
+@@ -653,6 +653,8 @@ __SYSCALL(__NR_dup3, sys_dup3)
+ __SYSCALL(__NR_pipe2, sys_pipe2)
+ #define __NR_inotify_init1			294
+ __SYSCALL(__NR_inotify_init1, sys_inotify_init1)
++#define __NR_rt_tgsigqueueinfo			295
++__SYSCALL(__NR_rt_tgsigqueueinfo, sys_rt_tgsigqueueinfo)
+ 
+ 
+ #ifndef __NO_STUBS
+diff -puN arch/x86/kernel/syscall_table_32.S~x86-hookup-sys_rt_tgsigqueueinfo arch/x86/kernel/syscall_table_32.S
+--- a/arch/x86/kernel/syscall_table_32.S~x86-hookup-sys_rt_tgsigqueueinfo
++++ a/arch/x86/kernel/syscall_table_32.S
+@@ -332,3 +332,4 @@ ENTRY(sys_call_table)
+ 	.long sys_dup3			/* 330 */
+ 	.long sys_pipe2
+ 	.long sys_inotify_init1
++	.long sys_rt_tgsigqueueinfo
+_
+
+Patches currently in -mm which might be from tglx@linutronix.de are
+
+origin.patch
+introduce-debug_kmap_atomic.patch
+use-debug_kmap_atomic.patch
+linux-next.patch
+thinkpad-acpi-split-delayed-leds-stuff-clean-up-code.patch
+x86-simplify-highmem-related-kconfig-entries.patch
+clocksource-pass-clocksource-to-read-callback.patch
+clocksource-add-enable-and-disable-callbacks.patch
+clocksource-sanity-check-sysfs-clocksource-changes.patch
+kernel-time-tick-broadcastc-tick_broadcast_device-can-become-static.patch
+scsi-mpt-suppress-debugobjects-warning.patch
+signals-remove-handler-parameter-to-tracehook-functions.patch
+signals-split-do_tkill.patch
+signals-implement-sys_rt_tgsigqueueinfo.patch
+x86-hookup-sys_rt_tgsigqueueinfo.patch
+sgi-gru-exclude-uv-definitions-on-32-bit-x86.patch
+sgi-gru-add-definitions-of-x86_64-gru-mmrs.patch
+sgi-gru-add-macros-for-using-the-uv-hub-to-send-interrupts.patch
+preadv-pwritev-add-preadv-and-pwritev-system-calls.patch
+
