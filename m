@@ -1,167 +1,34 @@
-From: akpm@linux-foundation.org
-Subject: [merged] use-debug_kmap_atomic.patch removed from -mm tree
-Date: Wed, 01 Apr 2009 11:38:45 -0700
-Message-ID: <200904011838.n31Icj1l008373@imap1.linux-foundation.org>
-Reply-To: linux-kernel@vger.kernel.org
-Return-path: <mm-commits-owner@vger.kernel.org>
-Sender: mm-commits-owner@vger.kernel.org
-To: akinobu.mita@gmail.com, hpa@zytor.com, linux-arch@vger.kernel.org, mingo@redhat.com, tglx@linutronix.de, mm-commits@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [RFC] asm-generic/{unistd,types,posix_types}.h for new arch
+Date: Wed, 01 Apr 2009 14:20:58 -0700
+Message-ID: <49D3DABA.2050001@zytor.com>
+References: <49D071A8.4010703@petalogix.com> <200904011611.53355.arnd@arndb.de> <87a5b0800904010739g3564eb1fhf32afcfee4936c4b@mail.gmail.com> <200904011704.13581.arnd@arndb.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:51216 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753036AbZDAVXI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Apr 2009 17:23:08 -0400
+In-Reply-To: <200904011704.13581.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Will Newton <will.newton@gmail.com>, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, michal.simek@petalogix.com, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Chen Liqin <liqin.chen@sunplusct.com>
 
+Arnd Bergmann wrote:
+> 
+> Unfortunately, there is no generic way to detect the word size yet,
+> but every architecture uses its own preprocessor macro (__x86_64__,
+> __s390x__, __ppc64__). We also can't use CONFIG_64BIT in an user-exported
+> interface header file, because the use space can also be compiled for
+> 32 bits when the kernel uses 64 bits.
+> 
 
-The patch titled
-     mm: use debug_kmap_atomic
-has been removed from the -mm tree.  Its filename was
-     use-debug_kmap_atomic.patch
+Actually, gcc does have the _LP64 and __SIZEOF_POINTER__ macros (as well 
+as __CHAR_BIT__), although I don't know how far back it does have that. 
+     If it has been with us for long enough it might be possible to 
+switch over to using panarch macros.
 
-This patch was dropped because it was merged into mainline or a subsystem tree
-
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: mm: use debug_kmap_atomic
-From: Akinobu Mita <akinobu.mita@gmail.com>
-
-Use debug_kmap_atomic in kmap_atomic, kmap_atomic_pfn, and
-iomap_atomic_prot_pfn.
-
-Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- arch/mips/mm/highmem.c             |    2 ++
- arch/powerpc/include/asm/highmem.h |    2 ++
- arch/sparc/mm/highmem.c            |    1 +
- arch/x86/mm/highmem_32.c           |    1 +
- arch/x86/mm/iomap_32.c             |    2 ++
- include/asm-frv/highmem.h          |    2 ++
- include/asm-mn10300/highmem.h      |    2 ++
- 7 files changed, 12 insertions(+)
-
-diff -puN arch/mips/mm/highmem.c~use-debug_kmap_atomic arch/mips/mm/highmem.c
---- a/arch/mips/mm/highmem.c~use-debug_kmap_atomic
-+++ a/arch/mips/mm/highmem.c
-@@ -42,6 +42,7 @@ void *__kmap_atomic(struct page *page, e
- 	if (!PageHighMem(page))
- 		return page_address(page);
- 
-+	debug_kmap_atomic(type);
- 	idx = type + KM_TYPE_NR*smp_processor_id();
- 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- #ifdef CONFIG_DEBUG_HIGHMEM
-@@ -88,6 +89,7 @@ void *kmap_atomic_pfn(unsigned long pfn,
- 
- 	pagefault_disable();
- 
-+	debug_kmap_atomic(type);
- 	idx = type + KM_TYPE_NR*smp_processor_id();
- 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- 	set_pte(kmap_pte-idx, pfn_pte(pfn, kmap_prot));
-diff -puN arch/powerpc/include/asm/highmem.h~use-debug_kmap_atomic arch/powerpc/include/asm/highmem.h
---- a/arch/powerpc/include/asm/highmem.h~use-debug_kmap_atomic
-+++ a/arch/powerpc/include/asm/highmem.h
-@@ -24,6 +24,7 @@
- 
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/highmem.h>
- #include <asm/kmap_types.h>
- #include <asm/tlbflush.h>
- #include <asm/page.h>
-@@ -94,6 +95,7 @@ static inline void *kmap_atomic_prot(str
- 	if (!PageHighMem(page))
- 		return page_address(page);
- 
-+	debug_kmap_atomic(type);
- 	idx = type + KM_TYPE_NR*smp_processor_id();
- 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- #ifdef CONFIG_DEBUG_HIGHMEM
-diff -puN arch/sparc/mm/highmem.c~use-debug_kmap_atomic arch/sparc/mm/highmem.c
---- a/arch/sparc/mm/highmem.c~use-debug_kmap_atomic
-+++ a/arch/sparc/mm/highmem.c
-@@ -39,6 +39,7 @@ void *kmap_atomic(struct page *page, enu
- 	if (!PageHighMem(page))
- 		return page_address(page);
- 
-+	debug_kmap_atomic(type);
- 	idx = type + KM_TYPE_NR*smp_processor_id();
- 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- 
-diff -puN arch/x86/mm/highmem_32.c~use-debug_kmap_atomic arch/x86/mm/highmem_32.c
---- a/arch/x86/mm/highmem_32.c~use-debug_kmap_atomic
-+++ a/arch/x86/mm/highmem_32.c
-@@ -40,6 +40,7 @@ void *kmap_atomic_prot(struct page *page
- 
- 	debug_kmap_atomic(type);
- 
-+	debug_kmap_atomic(type);
- 	idx = type + KM_TYPE_NR*smp_processor_id();
- 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- 	BUG_ON(!pte_none(*(kmap_pte-idx)));
-diff -puN arch/x86/mm/iomap_32.c~use-debug_kmap_atomic arch/x86/mm/iomap_32.c
---- a/arch/x86/mm/iomap_32.c~use-debug_kmap_atomic
-+++ a/arch/x86/mm/iomap_32.c
-@@ -19,6 +19,7 @@
- #include <asm/iomap.h>
- #include <asm/pat.h>
- #include <linux/module.h>
-+#include <linux/highmem.h>
- 
- int is_io_mapping_possible(resource_size_t base, unsigned long size)
- {
-@@ -71,6 +72,7 @@ iounmap_atomic(void *kvaddr, enum km_typ
- 	unsigned long vaddr = (unsigned long) kvaddr & PAGE_MASK;
- 	enum fixed_addresses idx = type + KM_TYPE_NR*smp_processor_id();
- 
-+	debug_kmap_atomic(type);
- 	/*
- 	 * Force other mappings to Oops if they'll try to access this pte
- 	 * without first remap it.  Keeping stale mappings around is a bad idea
-diff -puN include/asm-frv/highmem.h~use-debug_kmap_atomic include/asm-frv/highmem.h
---- a/include/asm-frv/highmem.h~use-debug_kmap_atomic
-+++ a/include/asm-frv/highmem.h
-@@ -18,6 +18,7 @@
- #ifdef __KERNEL__
- 
- #include <linux/init.h>
-+#include <linux/highmem.h>
- #include <asm/mem-layout.h>
- #include <asm/spr-regs.h>
- #include <asm/mb-regs.h>
-@@ -116,6 +117,7 @@ static inline void *kmap_atomic(struct p
- 	unsigned long paddr;
- 
- 	pagefault_disable();
-+	debug_kmap_atomic(type);
- 	paddr = page_to_phys(page);
- 
- 	switch (type) {
-diff -puN include/asm-mn10300/highmem.h~use-debug_kmap_atomic include/asm-mn10300/highmem.h
---- a/include/asm-mn10300/highmem.h~use-debug_kmap_atomic
-+++ a/include/asm-mn10300/highmem.h
-@@ -16,6 +16,7 @@
- 
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/highmem.h>
- #include <asm/kmap_types.h>
- #include <asm/pgtable.h>
- 
-@@ -77,6 +78,7 @@ static inline unsigned long kmap_atomic(
- 	if (page < highmem_start_page)
- 		return page_address(page);
- 
-+	debug_kmap_atomic(type);
- 	idx = type + KM_TYPE_NR * smp_processor_id();
- 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- #if HIGHMEM_DEBUG
-_
-
-Patches currently in -mm which might be from akinobu.mita@gmail.com are
-
-origin.patch
-
+	-hpa
