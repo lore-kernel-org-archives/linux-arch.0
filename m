@@ -1,269 +1,80 @@
-From: Remis Lima Baima <remis.developer@googlemail.com>
-Subject: [PATCH 26/27] microblaze: make io.h use asm-generic/io.h
-Date: Mon, 27 Apr 2009 13:10:07 +0200
-Message-ID: <b706800daf2ce3bb0197bbbe187ac0f94942cced.1241105648.git.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 19/27] microblaze: make syscall_table implementation generic
+Date: Wed, 1 Apr 2009 14:35:15 +0200
+Message-ID: <11ab265138d74f0cbf08cc7bfc8db5ff2a5ae518.1241105648.git.arnd@arndb.de>
 References: <cover.1241105648.git.arnd@arndb.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:64765 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.177]:61138 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932417AbZD3PmI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2009 11:42:08 -0400
+	with ESMTP id S932399AbZD3PmG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2009 11:42:06 -0400
 In-Reply-To: <cover.1241105648.git.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
-Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/microblaze/include/asm/io.h |  240 +++++---------------------------------
- 1 files changed, 32 insertions(+), 208 deletions(-)
- rewrite arch/microblaze/include/asm/io.h (94%)
+ arch/microblaze/Kconfig                            |    3 +++
+ arch/microblaze/kernel/Makefile                    |    2 +-
+ kernel/Makefile                                    |    1 +
+ {arch/microblaze/kernel => kernel}/syscall_table.c |    2 +-
+ 4 files changed, 6 insertions(+), 2 deletions(-)
+ rename {arch/microblaze/kernel => kernel}/syscall_table.c (82%)
 
-diff --git a/arch/microblaze/include/asm/io.h b/arch/microblaze/include/asm/io.h
-dissimilarity index 94%
-index 8b5853e..1c2dffd 100644
---- a/arch/microblaze/include/asm/io.h
-+++ b/arch/microblaze/include/asm/io.h
-@@ -1,208 +1,32 @@
--/*
-- * Copyright (C) 2006 Atmark Techno, Inc.
-- *
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License. See the file "COPYING" in the main directory of this archive
-- * for more details.
-- */
--
--#ifndef _ASM_MICROBLAZE_IO_H
--#define _ASM_MICROBLAZE_IO_H
--
--#include <asm/byteorder.h>
--#include <asm/page.h>
--#include <linux/types.h>
--
--#define IO_SPACE_LIMIT (0xFFFFFFFF)
--
--static inline unsigned char __raw_readb(const volatile void __iomem *addr)
--{
--	return *(volatile unsigned char __force *)addr;
--}
--static inline unsigned short __raw_readw(const volatile void __iomem *addr)
--{
--	return *(volatile unsigned short __force *)addr;
--}
--static inline unsigned int __raw_readl(const volatile void __iomem *addr)
--{
--	return *(volatile unsigned int __force *)addr;
--}
--static inline unsigned long __raw_readq(const volatile void __iomem *addr)
--{
--	return *(volatile unsigned long __force *)addr;
--}
--static inline void __raw_writeb(unsigned char v, volatile void __iomem *addr)
--{
--	*(volatile unsigned char __force *)addr = v;
--}
--static inline void __raw_writew(unsigned short v, volatile void __iomem *addr)
--{
--	*(volatile unsigned short __force *)addr = v;
--}
--static inline void __raw_writel(unsigned int v, volatile void __iomem *addr)
--{
--	*(volatile unsigned int __force *)addr = v;
--}
--static inline void __raw_writeq(unsigned long v, volatile void __iomem *addr)
--{
--	*(volatile unsigned long __force *)addr = v;
--}
--
--/*
-- * read (readb, readw, readl, readq) and write (writeb, writew,
-- * writel, writeq) accessors are for PCI and thus littel endian.
-- * Linux 2.4 for Microblaze had this wrong.
-- */
--static inline unsigned char readb(const volatile void __iomem *addr)
--{
--	return *(volatile unsigned char __force *)addr;
--}
--static inline unsigned short readw(const volatile void __iomem *addr)
--{
--	return le16_to_cpu(*(volatile unsigned short __force *)addr);
--}
--static inline unsigned int readl(const volatile void __iomem *addr)
--{
--	return le32_to_cpu(*(volatile unsigned int __force *)addr);
--}
--static inline void writeb(unsigned char v, volatile void __iomem *addr)
--{
--	*(volatile unsigned char __force *)addr = v;
--}
--static inline void writew(unsigned short v, volatile void __iomem *addr)
--{
--	*(volatile unsigned short __force *)addr = cpu_to_le16(v);
--}
--static inline void writel(unsigned int v, volatile void __iomem *addr)
--{
--	*(volatile unsigned int __force *)addr = cpu_to_le32(v);
--}
--
--/* ioread and iowrite variants. thease are for now same as __raw_
-- * variants of accessors. we might check for endianess in the feature
-- */
--#define ioread8(addr)		__raw_readb((u8 *)(addr))
--#define ioread16(addr)		__raw_readw((u16 *)(addr))
--#define ioread32(addr)		__raw_readl((u32 *)(addr))
--#define iowrite8(v, addr)	__raw_writeb((u8)(v), (u8 *)(addr))
--#define iowrite16(v, addr)	__raw_writew((u16)(v), (u16 *)(addr))
--#define iowrite32(v, addr)	__raw_writel((u32)(v), (u32 *)(addr))
--
--/* These are the definitions for the x86 IO instructions
-- * inb/inw/inl/outb/outw/outl, the "string" versions
-- * insb/insw/insl/outsb/outsw/outsl, and the "pausing" versions
-- * inb_p/inw_p/...
-- * The macros don't do byte-swapping.
-- */
--#define inb(port)		readb((u8 *)((port)))
--#define outb(val, port)		writeb((val), (u8 *)((unsigned long)(port)))
--#define inw(port)		readw((u16 *)((port)))
--#define outw(val, port)		writew((val), (u16 *)((unsigned long)(port)))
--#define inl(port)		readl((u32 *)((port)))
--#define outl(val, port)		writel((val), (u32 *)((unsigned long)(port)))
--
--#define inb_p(port)		inb((port))
--#define outb_p(val, port)	outb((val), (port))
--#define inw_p(port)		inw((port))
--#define outw_p(val, port)	outw((val), (port))
--#define inl_p(port)		inl((port))
--#define outl_p(val, port)	outl((val), (port))
--
--#define memset_io(a, b, c)	memset((void *)(a), (b), (c))
--#define memcpy_fromio(a, b, c)	memcpy((a), (void *)(b), (c))
--#define memcpy_toio(a, b, c)	memcpy((void *)(a), (b), (c))
--
--/**
-- *	virt_to_phys - map virtual addresses to physical
-- *	@address: address to remap
-- *
-- *	The returned physical address is the physical (CPU) mapping for
-- *	the memory address given. It is only valid to use this function on
-- *	addresses directly mapped or allocated via kmalloc.
-- *
-- *	This function does not give bus mappings for DMA transfers. In
-- *	almost all conceivable cases a device driver should not be using
-- *	this function
-- */
--static inline unsigned long __iomem virt_to_phys(volatile void *address)
--{
--	return __pa((unsigned long)address);
--}
--
--#define virt_to_bus virt_to_phys
--
--/**
-- *	phys_to_virt - map physical address to virtual
-- *	@address: address to remap
-- *
-- *	The returned virtual address is a current CPU mapping for
-- *	the memory address given. It is only valid to use this function on
-- *	addresses that have a kernel mapping
-- *
-- *	This function does not handle bus mappings for DMA transfers. In
-- *	almost all conceivable cases a device driver should not be using
-- *	this function
-- */
--static inline void *phys_to_virt(unsigned long address)
--{
--	return (void *)__va(address);
--}
--
--#define bus_to_virt(a) phys_to_virt(a)
--
--static inline void __iomem *__ioremap(phys_addr_t address, unsigned long size,
--			unsigned long flags)
--{
--	return (void *)address;
--}
--
--#define ioremap(physaddr, size)	((void __iomem *)(unsigned long)(physaddr))
--#define iounmap(addr)		((void)0)
--#define ioremap_nocache(physaddr, size)	ioremap(physaddr, size)
--
--/*
-- * Convert a physical pointer to a virtual kernel pointer for /dev/mem
-- * access
-- */
--#define xlate_dev_mem_ptr(p)	__va(p)
--
--/*
-- * Convert a virtual cached pointer to an uncached pointer
-- */
--#define xlate_dev_kmem_ptr(p)	p
--
--/*
-- * Big Endian
-- */
--#define out_be32(a, v) __raw_writel((v), (void __iomem __force *)(a))
--#define out_be16(a, v) __raw_writew((v), (a))
--
--#define in_be32(a) __raw_readl((const void __iomem __force *)(a))
--#define in_be16(a) __raw_readw(a)
--
--/*
-- * Little endian
-- */
--
--#define out_le32(a, v) __raw_writel(__cpu_to_le32(v), (a));
--#define out_le16(a, v) __raw_writew(__cpu_to_le16(v), (a))
--
--#define in_le32(a) __le32_to_cpu(__raw_readl(a))
--#define in_le16(a) __le16_to_cpu(__raw_readw(a))
--
--/* Byte ops */
--#define out_8(a, v) __raw_writeb((v), (a))
--#define in_8(a) __raw_readb(a)
--
--/* FIXME */
--static inline void __iomem *ioport_map(unsigned long port, unsigned int len)
--{
--	return (void __iomem *) (port);
--}
--
--static inline void ioport_unmap(void __iomem *addr)
--{
--	/* Nothing to do */
--}
--
--#endif /* _ASM_MICROBLAZE_IO_H */
-+/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+#ifndef _ASM_MICROBLAZE_IO_H
-+#define _ASM_MICROBLAZE_IO_H
+diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+index 8cc312b..47c161a 100644
+--- a/arch/microblaze/Kconfig
++++ b/arch/microblaze/Kconfig
+@@ -49,6 +49,9 @@ config GENERIC_CLOCKEVENTS
+ config GENERIC_HARDIRQS_NO__DO_IRQ
+ 	def_bool y
+ 
++config GENERIC_SYSCALL_TABLE
++	def_bool y
 +
-+#include <asm-generic/io.h>
-+
-+#define virt_to_bus	virt_to_phys
-+#define bus_to_virt	phys_to_virt
-+
-+/* Big Endian */
-+#define out_be32(a, v)	__raw_writel((v), (void __iomem __force *)(a))
-+#define out_be16(a, v)	__raw_writew((v), (a))
-+#define in_be32(a)	__raw_readl((const void __iomem __force *)(a))
-+#define in_be16(a)	__raw_readw(a)
-+
-+/* Little endian */
-+#define out_le32(a, v)	__raw_writel(__cpu_to_le32(v), (a));
-+#define out_le16(a, v)	__raw_writew(__cpu_to_le16(v), (a))
-+#define in_le32(a)	__le32_to_cpu(__raw_readl(a))
-+#define in_le16(a)	__le16_to_cpu(__raw_readw(a))
-+
-+/* Byte ops */
-+#define out_8(a, v)	__raw_writeb((v), (a))
-+#define in_8(a)		__raw_readb(a)
-+
-+#endif /* _ASM_MICROBLAZE_IO_H */
+ config PCI
+ 	depends on !MMU
+ 	def_bool n
+diff --git a/arch/microblaze/kernel/Makefile b/arch/microblaze/kernel/Makefile
+index 8dd4728..da94bec 100644
+--- a/arch/microblaze/kernel/Makefile
++++ b/arch/microblaze/kernel/Makefile
+@@ -7,7 +7,7 @@ extra-y := head.o vmlinux.lds
+ obj-y += exceptions.o \
+ 	hw_exception_handler.o init_task.o intc.o irq.o of_device.o \
+ 	of_platform.o process.o prom.o prom_parse.o ptrace.o \
+-	setup.o signal.o sys_microblaze.o timer.o traps.o syscall_table.o
++	setup.o signal.o sys_microblaze.o timer.o traps.o
+ 
+ obj-y += cpu/
+ 
+diff --git a/kernel/Makefile b/kernel/Makefile
+index 4242366..647d8d9 100644
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -95,6 +95,7 @@ obj-$(CONFIG_FUNCTION_TRACER) += trace/
+ obj-$(CONFIG_TRACING) += trace/
+ obj-$(CONFIG_SMP) += sched_cpupri.o
+ obj-$(CONFIG_SLOW_WORK) += slow-work.o
++obj-$(CONFIG_GENERIC_SYSCALL_TABLE) += syscall_table.o
+ 
+ ifneq ($(CONFIG_SCHED_OMIT_FRAME_POINTER),y)
+ # According to Alan Modra <alan@linuxcare.com.au>, the -fno-omit-frame-pointer is
+diff --git a/arch/microblaze/kernel/syscall_table.c b/kernel/syscall_table.c
+similarity index 82%
+rename from arch/microblaze/kernel/syscall_table.c
+rename to kernel/syscall_table.c
+index cfc35fa..a2da111 100644
+--- a/arch/microblaze/kernel/syscall_table.c
++++ b/kernel/syscall_table.c
+@@ -7,6 +7,6 @@
+ #undef __SYSCALL
+ #define __SYSCALL(nr, call) [nr] (call),
+ 
+-void *sys_call_table[__NR_syscalls] = {
++void *sys_call_table[] = {
+ #include <asm/unistd.h>
+ };
 -- 
 1.5.6.3
