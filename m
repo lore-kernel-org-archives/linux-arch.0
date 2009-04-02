@@ -1,32 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ew0-f165.google.com ([209.85.219.165]:35507 "EHLO
-	mail-ew0-f165.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S935984AbZDBLV3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2009 07:21:29 -0400
+Received: from moutng.kundenserver.de ([212.227.126.177]:57760 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750843AbZDBNG1 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2009 09:06:27 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC] asm-generic/{unistd,types,posix_types}.h for new arch
+Date: Thu, 2 Apr 2009 15:06:12 +0200
+References: <49D071A8.4010703@petalogix.com> <49D3DABA.2050001@zytor.com> <20090401213219.7B324FC3AB@magilla.sf.frob.com>
+In-Reply-To: <20090401213219.7B324FC3AB@magilla.sf.frob.com>
 MIME-Version: 1.0
-Date: Thu, 2 Apr 2009 15:21:25 +0400
-Message-ID: <a4423d670904020421k7395e11dwe70d4223cb817e0a@mail.gmail.com>
-Subject: next-0402: build fails at mm/debug-pagealloc.c
-From: Alexander Beregalov <a.beregalov@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
+Message-ID: <200904021506.13942.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-next@vger.kernel.org" <linux-next@vger.kernel.org>, Akinobu Mita <akinobu.mita@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20090402112125.CTxtSUzmExwPJ_DEcTLgJryWMJJpkis39HzE0og37fk@z>
+To: Roland McGrath <roland@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Will Newton <will.newton@gmail.com>, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, michal.simek@petalogix.com, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Chen Liqin <liqin.chen@sunplusct.com>
+Message-ID: <20090402130612.1fOxjH9z4U5OJ68iIN_9IOC_LuZqQYMWyNEUFxB9QMw@z>
 
-mm/debug-pagealloc.c: In function 'set_page_poison':
-mm/debug-pagealloc.c:8: error: 'struct page' has no member named 'debug_flags'
-mm/debug-pagealloc.c: In function 'clear_page_poison':
-mm/debug-pagealloc.c:13: error: 'struct page' has no member named 'debug_flags'
-mm/debug-pagealloc.c: In function 'page_poison':
-mm/debug-pagealloc.c:18: error: 'struct page' has no member named 'debug_flags'
-mm/debug-pagealloc.c: At top level:
-mm/debug-pagealloc.c:120: error: redefinition of 'kernel_map_pages'
-include/linux/mm.h:1278: error: previous definition of
-'kernel_map_pages' was here
-mm/debug-pagealloc.c: In function 'kernel_map_pages':
-mm/debug-pagealloc.c:122: error: 'debug_pagealloc_enabled' undeclared
-(first use in this function)
+On Wednesday 01 April 2009, Roland McGrath wrote:
+> > Actually, gcc does have the _LP64 and __SIZEOF_POINTER__ macros (as well 
+> > as __CHAR_BIT__), although I don't know how far back it does have that. 
+> >      If it has been with us for long enough it might be possible to 
+> > switch over to using panarch macros.
 
-Should debug_flags really be in vm_area_struct instead of `struct page` ?
+For user space, we also need to consider non-gcc compilers that could have
+a different set of macros. As long as we don't start relying on any new
+ones besides those we already use (__x86_64__, __s390x__, __powerpc64__,
+__mips64, __arch64__), we at least don't break anything accidentally.
+
+> Worst case the oldest compilers had <limits.h> and 
+> "#if ULONG_MAX == 0xffffffffUL", though I wouldn't like
+> myself to be using a setup where <limits.h> got pulled in.
+
+That would of course work with non-gcc, but we are really not allowed
+to pull in <limits.h> from places like <types.h> where it would be needed
+then.
+
+	Arnd <><
