@@ -1,97 +1,152 @@
 From: akpm@linux-foundation.org
-Subject: [patch 1/3] Factor out #ifdefs from kernel/spinlock.c to LOCK_CONTENDED_FLAGS
-Date: Thu, 02 Apr 2009 15:20:33 -0700
-Message-ID: <200904022220.n32MKX4b026291@imap1.linux-foundation.org>
+Subject: [patch 3/3] ia64: implement interrupt-enabling rwlocks
+Date: Thu, 02 Apr 2009 15:20:36 -0700
+Message-ID: <200904022220.n32MKa4L026323@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:49973 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:51168 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1762411AbZDBWZT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2009 18:25:19 -0400
+	by vger.kernel.org with ESMTP id S1756776AbZDBWZ7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2009 18:25:59 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@elte.hu
-Cc: akpm@linux-foundation.org, holt@sgi.com, a.p.zijlstra@chello.nl, linux-arch@vger.kernel.org, ptesarik@suse.cz, tony.luck@intel.com
+Cc: akpm@linux-foundation.org, holt@sgi.com, a.p.zijlstra@chello.nl, kosaki.motohiro@jp.fujitsu.com, linux-arch@vger.kernel.org, ptesarik@suse.cz, tony.luck@intel.com
 
 From: Robin Holt <holt@sgi.com>
 
-SGI has observed that on large systems, interrupts are not serviced for a
-long period of time when waiting for a rwlock.  The following patch series
-re-enables irqs while waiting for the lock, resembling the code which is
-already there for spinlocks.
+Implement __raw_read_lock_flags and __raw_write_lock_flags for the ia64
+architecture.
 
-I only made the ia64 version, because the patch adds some overhead to the
-fast path.  I assume there is currently no demand to have this for other
-architectures, because the systems are not so large.  Of course, the
-possibility to implement raw_{read|write}_lock_flags for any architecture
-is still there.
-
-
-This patch:
-
-The new macro LOCK_CONTENDED_FLAGS expands to the correct implementation
-depending on the config options, so that IRQ's are re-enabled when
-possible, but they remain disabled if CONFIG_LOCKDEP is set.
-
+[kosaki.motohiro@jp.fujitsu.com: typo fix]
 Signed-off-by: Petr Tesarik <ptesarik@suse.cz>
 Signed-off-by: Robin Holt <holt@sgi.com>
 Cc: <linux-arch@vger.kernel.org>
 Cc: Ingo Molnar <mingo@elte.hu>
 Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: "Luck, Tony" <tony.luck@intel.com>
+Acked-by: Tony Luck <tony.luck@intel.com>
+Signed-off-by: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- include/linux/lockdep.h |   17 +++++++++++++++++
- kernel/spinlock.c       |   12 ++----------
- 2 files changed, 19 insertions(+), 10 deletions(-)
+ arch/ia64/include/asm/spinlock.h |   80 ++++++++++++++++++++++-------
+ 1 file changed, 63 insertions(+), 17 deletions(-)
 
-diff -puN include/linux/lockdep.h~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags include/linux/lockdep.h
---- a/include/linux/lockdep.h~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags
-+++ a/include/linux/lockdep.h
-@@ -364,6 +364,23 @@ do {								\
+diff -puN arch/ia64/include/asm/spinlock.h~ia64-implement-interrupt-enabling-rwlocks arch/ia64/include/asm/spinlock.h
+--- a/arch/ia64/include/asm/spinlock.h~ia64-implement-interrupt-enabling-rwlocks
++++ a/arch/ia64/include/asm/spinlock.h
+@@ -120,6 +120,38 @@ do {											\
+ #define __raw_read_can_lock(rw)		(*(volatile int *)(rw) >= 0)
+ #define __raw_write_can_lock(rw)	(*(volatile int *)(rw) == 0)
  
- #endif /* CONFIG_LOCK_STAT */
++#ifdef ASM_SUPPORTED
++
++static __always_inline void
++__raw_read_lock_flags(raw_rwlock_t *lock, unsigned long flags)
++{
++	__asm__ __volatile__ (
++		"tbit.nz p6, p0 = %1,%2\n"
++		"br.few 3f\n"
++		"1:\n"
++		"fetchadd4.rel r2 = [%0], -1;;\n"
++		"(p6) ssm psr.i\n"
++		"2:\n"
++		"hint @pause\n"
++		"ld4 r2 = [%0];;\n"
++		"cmp4.lt p7,p0 = r2, r0\n"
++		"(p7) br.cond.spnt.few 2b\n"
++		"(p6) rsm psr.i\n"
++		";;\n"
++		"3:\n"
++		"fetchadd4.acq r2 = [%0], 1;;\n"
++		"cmp4.lt p7,p0 = r2, r0\n"
++		"(p7) br.cond.spnt.few 1b\n"
++		: : "r"(lock), "r"(flags), "i"(IA64_PSR_I_BIT)
++		: "p6", "p7", "r2", "memory");
++}
++
++#define __raw_read_lock(lock) __raw_read_lock_flags(lock, 0)
++
++#else /* !ASM_SUPPORTED */
++
++#define __raw_read_lock_flags(rw, flags) __raw_read_lock(rw)
++
+ #define __raw_read_lock(rw)								\
+ do {											\
+ 	raw_rwlock_t *__read_lock_ptr = (rw);						\
+@@ -131,6 +163,8 @@ do {											\
+ 	}										\
+ } while (0)
  
-+#ifdef CONFIG_LOCKDEP
++#endif /* !ASM_SUPPORTED */
 +
-+/*
-+ * On lockdep we dont want the hand-coded irq-enable of
-+ * _raw_*_lock_flags() code, because lockdep assumes
-+ * that interrupts are not re-enabled during lock-acquire:
-+ */
-+#define LOCK_CONTENDED_FLAGS(_lock, try, lock, lockfl, flags) \
-+	LOCK_CONTENDED((_lock), (try), (lock))
+ #define __raw_read_unlock(rw)					\
+ do {								\
+ 	raw_rwlock_t *__read_lock_ptr = (rw);			\
+@@ -138,20 +172,33 @@ do {								\
+ } while (0)
+ 
+ #ifdef ASM_SUPPORTED
+-#define __raw_write_lock(rw)							\
+-do {										\
+- 	__asm__ __volatile__ (							\
+-		"mov ar.ccv = r0\n"						\
+-		"dep r29 = -1, r0, 31, 1;;\n"					\
+-		"1:\n"								\
+-		"ld4 r2 = [%0];;\n"						\
+-		"cmp4.eq p0,p7 = r0,r2\n"					\
+-		"(p7) br.cond.spnt.few 1b \n"					\
+-		"cmpxchg4.acq r2 = [%0], r29, ar.ccv;;\n"			\
+-		"cmp4.eq p0,p7 = r0, r2\n"					\
+-		"(p7) br.cond.spnt.few 1b;;\n"					\
+-		:: "r"(rw) : "ar.ccv", "p7", "r2", "r29", "memory");		\
+-} while(0)
 +
-+#else /* CONFIG_LOCKDEP */
++static __always_inline void
++__raw_write_lock_flags(raw_rwlock_t *lock, unsigned long flags)
++{
++	__asm__ __volatile__ (
++		"tbit.nz p6, p0 = %1, %2\n"
++		"mov ar.ccv = r0\n"
++		"dep r29 = -1, r0, 31, 1\n"
++		"br.few 3f;;\n"
++		"1:\n"
++		"(p6) ssm psr.i\n"
++		"2:\n"
++		"hint @pause\n"
++		"ld4 r2 = [%0];;\n"
++		"cmp4.eq p0,p7 = r0, r2\n"
++		"(p7) br.cond.spnt.few 2b\n"
++		"(p6) rsm psr.i\n"
++		";;\n"
++		"3:\n"
++		"cmpxchg4.acq r2 = [%0], r29, ar.ccv;;\n"
++		"cmp4.eq p0,p7 = r0, r2\n"
++		"(p7) br.cond.spnt.few 1b;;\n"
++		: : "r"(lock), "r"(flags), "i"(IA64_PSR_I_BIT)
++		: "ar.ccv", "p6", "p7", "r2", "r29", "memory");
++}
 +
-+#define LOCK_CONTENDED_FLAGS(_lock, try, lock, lockfl, flags) \
-+	lockfl((_lock), (flags))
++#define __raw_write_lock(rw) __raw_write_lock_flags(rw, 0)
+ 
+ #define __raw_write_trylock(rw)							\
+ ({										\
+@@ -174,6 +221,8 @@ static inline void __raw_write_unlock(ra
+ 
+ #else /* !ASM_SUPPORTED */
+ 
++#define __raw_write_lock_flags(l, flags) __raw_write_lock(l)
 +
-+#endif /* CONFIG_LOCKDEP */
-+
- #ifdef CONFIG_GENERIC_HARDIRQS
- extern void early_init_irq_lock_class(void);
- #else
-diff -puN kernel/spinlock.c~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags kernel/spinlock.c
---- a/kernel/spinlock.c~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags
-+++ a/kernel/spinlock.c
-@@ -299,16 +299,8 @@ unsigned long __lockfunc _spin_lock_irqs
- 	local_irq_save(flags);
- 	preempt_disable();
- 	spin_acquire(&lock->dep_map, subclass, 0, _RET_IP_);
--	/*
--	 * On lockdep we dont want the hand-coded irq-enable of
--	 * _raw_spin_lock_flags() code, because lockdep assumes
--	 * that interrupts are not re-enabled during lock-acquire:
--	 */
--#ifdef CONFIG_LOCKDEP
--	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
--#else
--	_raw_spin_lock_flags(lock, &flags);
--#endif
-+	LOCK_CONTENDED_FLAGS(lock, _raw_spin_trylock, _raw_spin_lock,
-+				_raw_spin_lock_flags, &flags);
- 	return flags;
+ #define __raw_write_lock(l)								\
+ ({											\
+ 	__u64 ia64_val, ia64_set_val = ia64_dep_mi(-1, 0, 31, 1);			\
+@@ -213,9 +262,6 @@ static inline int __raw_read_trylock(raw
+ 	return (u32)ia64_cmpxchg4_acq((__u32 *)(x), new.word, old.word) == old.word;
  }
- EXPORT_SYMBOL(_spin_lock_irqsave_nested);
+ 
+-#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
+-#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
+-
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
 _
