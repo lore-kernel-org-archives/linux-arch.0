@@ -1,97 +1,214 @@
 From: akpm@linux-foundation.org
-Subject: [patch 163/166] Factor out #ifdefs from kernel/spinlock.c to LOCK_CONTENDED_FLAGS
-Date: Thu, 02 Apr 2009 16:59:45 -0700
-Message-ID: <200904022359.n32Nxj3u023000@imap1.linux-foundation.org>
+Subject: [patch 141/166] preadv/pwritev: create compat_readv()
+Date: Thu, 02 Apr 2009 16:59:20 -0700
+Message-ID: <200904022359.n32NxLhX022785@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:58148 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:53371 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757774AbZDCAEc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2009 20:04:32 -0400
+	by vger.kernel.org with ESMTP id S1753642AbZDCAEQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2009 20:04:16 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, holt@sgi.com, a.p.zijlstra@chello.nl, linux-arch@vger.kernel.org, mingo@elte.hu, ptesarik@suse.cz, tony.luck@intel.com
+Cc: akpm@linux-foundation.org, kraxel@redhat.com, arnd@arndb.de, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, ralf@linux-mips.org, viro@zeniv.linux.org.uk
 
-From: Robin Holt <holt@sgi.com>
+From: Gerd Hoffmann <kraxel@redhat.com>
 
-SGI has observed that on large systems, interrupts are not serviced for a
-long period of time when waiting for a rwlock.  The following patch series
-re-enables irqs while waiting for the lock, resembling the code which is
-already there for spinlocks.
+This patch series:
 
-I only made the ia64 version, because the patch adds some overhead to the
-fast path.  I assume there is currently no demand to have this for other
-architectures, because the systems are not so large.  Of course, the
-possibility to implement raw_{read|write}_lock_flags for any architecture
-is still there.
+Implement the preadv() and pwritev() syscalls.  *BSD has this syscall for
+quite some time.
+
+Test code:
+
+#if 0
+set -x
+gcc -Wall -O2 -o preadv $0
+exit 0
+#endif
+/*
+ * preadv demo / test
+ *
+ * (c) 2008 Gerd Hoffmann <kraxel@redhat.com>
+ *
+ * build with "sh $thisfile"
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <inttypes.h>
+#include <sys/uio.h>
+
+/* ----------------------------------------------------------------- */
+/* syscall windup                                                    */
+
+#include <sys/syscall.h>
+#if 0
+/* WARNING: Be sure you know what you are doing if you enable this.
+ * linux syscall code isn't upstream yet, syscall numbers are subject
+ * to change */
+# ifndef __NR_preadv
+#  ifdef __i386__
+#   define __NR_preadv  333
+#   define __NR_pwritev 334
+#  endif
+#  ifdef __x86_64__
+#   define __NR_preadv  295
+#   define __NR_pwritev 296
+#  endif
+# endif
+#endif
+#ifndef __NR_preadv
+# error preadv/pwritev syscall numbers are unknown
+#endif
+
+static ssize_t preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)
+{
+    uint32_t pos_high = (offset >> 32) & 0xffffffff;
+    uint32_t pos_low  =  offset        & 0xffffffff;
+
+    return syscall(__NR_preadv, fd, iov, iovcnt, pos_high, pos_low);
+}
+
+static ssize_t pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
+{
+    uint32_t pos_high = (offset >> 32) & 0xffffffff;
+    uint32_t pos_low  =  offset        & 0xffffffff;
+
+    return syscall(__NR_pwritev, fd, iov, iovcnt, pos_high, pos_low);
+}
+
+/* ----------------------------------------------------------------- */
+/* demo/test app                                                     */
+
+static char filename[] = "/tmp/preadv-XXXXXX";
+static char outbuf[11] = "0123456789";
+static char inbuf[11]  = "----------";
+
+static struct iovec ovec[2] = {{
+        .iov_base = outbuf + 5,
+        .iov_len  = 5,
+    },{
+        .iov_base = outbuf + 0,
+        .iov_len  = 5,
+    }};
+
+static struct iovec ivec[3] = {{
+        .iov_base = inbuf + 6,
+        .iov_len  = 2,
+    },{
+        .iov_base = inbuf + 4,
+        .iov_len  = 2,
+    },{
+        .iov_base = inbuf + 2,
+        .iov_len  = 2,
+    }};
+
+void cleanup(void)
+{
+    unlink(filename);
+}
+
+int main(int argc, char **argv)
+{
+    int fd, rc;
+
+    fd = mkstemp(filename);
+    if (-1 == fd) {
+        perror("mkstemp");
+        exit(1);
+    }
+    atexit(cleanup);
+
+    /* write to file: "56789-01234" */
+    rc = pwritev(fd, ovec, 2, 0);
+    if (rc < 0) {
+        perror("pwritev");
+        exit(1);
+    }
+
+    /* read from file: "78-90-12" */
+    rc = preadv(fd, ivec, 3, 2);
+    if (rc < 0) {
+        perror("preadv");
+        exit(1);
+    }
+
+    printf("result  : %s\n", inbuf);
+    printf("expected: %s\n", "--129078--");
+    exit(0);
+}
 
 
 This patch:
 
-The new macro LOCK_CONTENDED_FLAGS expands to the correct implementation
-depending on the config options, so that IRQ's are re-enabled when
-possible, but they remain disabled if CONFIG_LOCKDEP is set.
+Factor out some code from compat_sys_readv() which can be shared with the
+upcoming compat_sys_preadv().
 
-Signed-off-by: Petr Tesarik <ptesarik@suse.cz>
-Signed-off-by: Robin Holt <holt@sgi.com>
+
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: <linux-api@vger.kernel.org>
 Cc: <linux-arch@vger.kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: "Luck, Tony" <tony.luck@intel.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- include/linux/lockdep.h |   17 +++++++++++++++++
- kernel/spinlock.c       |   12 ++----------
- 2 files changed, 19 insertions(+), 10 deletions(-)
+ fs/compat.c |   26 ++++++++++++++++++--------
+ 1 file changed, 18 insertions(+), 8 deletions(-)
 
-diff -puN include/linux/lockdep.h~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags include/linux/lockdep.h
---- a/include/linux/lockdep.h~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags
-+++ a/include/linux/lockdep.h
-@@ -364,6 +364,23 @@ do {								\
- 
- #endif /* CONFIG_LOCK_STAT */
- 
-+#ifdef CONFIG_LOCKDEP
-+
-+/*
-+ * On lockdep we dont want the hand-coded irq-enable of
-+ * _raw_*_lock_flags() code, because lockdep assumes
-+ * that interrupts are not re-enabled during lock-acquire:
-+ */
-+#define LOCK_CONTENDED_FLAGS(_lock, try, lock, lockfl, flags) \
-+	LOCK_CONTENDED((_lock), (try), (lock))
-+
-+#else /* CONFIG_LOCKDEP */
-+
-+#define LOCK_CONTENDED_FLAGS(_lock, try, lock, lockfl, flags) \
-+	lockfl((_lock), (flags))
-+
-+#endif /* CONFIG_LOCKDEP */
-+
- #ifdef CONFIG_GENERIC_HARDIRQS
- extern void early_init_irq_lock_class(void);
- #else
-diff -puN kernel/spinlock.c~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags kernel/spinlock.c
---- a/kernel/spinlock.c~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags
-+++ a/kernel/spinlock.c
-@@ -299,16 +299,8 @@ unsigned long __lockfunc _spin_lock_irqs
- 	local_irq_save(flags);
- 	preempt_disable();
- 	spin_acquire(&lock->dep_map, subclass, 0, _RET_IP_);
--	/*
--	 * On lockdep we dont want the hand-coded irq-enable of
--	 * _raw_spin_lock_flags() code, because lockdep assumes
--	 * that interrupts are not re-enabled during lock-acquire:
--	 */
--#ifdef CONFIG_LOCKDEP
--	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
--#else
--	_raw_spin_lock_flags(lock, &flags);
--#endif
-+	LOCK_CONTENDED_FLAGS(lock, _raw_spin_trylock, _raw_spin_lock,
-+				_raw_spin_lock_flags, &flags);
- 	return flags;
+diff -puN fs/compat.c~preadv-pwritev-create-compat_readv fs/compat.c
+--- a/fs/compat.c~preadv-pwritev-create-compat_readv
++++ a/fs/compat.c
+@@ -1195,16 +1195,12 @@ out:
+ 	return ret;
  }
- EXPORT_SYMBOL(_spin_lock_irqsave_nested);
+ 
+-asmlinkage ssize_t
+-compat_sys_readv(unsigned long fd, const struct compat_iovec __user *vec, unsigned long vlen)
++static size_t compat_readv(struct file *file,
++			   const struct compat_iovec __user *vec,
++			   unsigned long vlen, loff_t *pos)
+ {
+-	struct file *file;
+ 	ssize_t ret = -EBADF;
+ 
+-	file = fget(fd);
+-	if (!file)
+-		return -EBADF;
+-
+ 	if (!(file->f_mode & FMODE_READ))
+ 		goto out;
+ 
+@@ -1212,12 +1208,26 @@ compat_sys_readv(unsigned long fd, const
+ 	if (!file->f_op || (!file->f_op->aio_read && !file->f_op->read))
+ 		goto out;
+ 
+-	ret = compat_do_readv_writev(READ, file, vec, vlen, &file->f_pos);
++	ret = compat_do_readv_writev(READ, file, vec, vlen, pos);
+ 
+ out:
+ 	if (ret > 0)
+ 		add_rchar(current, ret);
+ 	inc_syscr(current);
++	return ret;
++}
++
++asmlinkage ssize_t
++compat_sys_readv(unsigned long fd, const struct compat_iovec __user *vec,
++		 unsigned long vlen)
++{
++	struct file *file;
++	ssize_t ret;
++
++	file = fget(fd);
++	if (!file)
++		return -EBADF;
++	ret = compat_readv(file, vec, vlen, &file->f_pos);
+ 	fput(file);
+ 	return ret;
+ }
 _
