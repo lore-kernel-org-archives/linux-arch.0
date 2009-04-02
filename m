@@ -1,89 +1,269 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH] build fix for generic debug pagealloc
-Date: Thu, 2 Apr 2009 09:45:22 -0700
-Message-ID: <20090402094522.b29004c8.akpm@linux-foundation.org>
-References: <a4423d670904020421k7395e11dwe70d4223cb817e0a@mail.gmail.com>
-	<20090402163145.GA28728@localhost.localdomain>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+From: akpm@linux-foundation.org
+Subject: [patch 2/3] Allow rwlocks to re-enable interrupts
+Date: Thu, 02 Apr 2009 15:20:35 -0700
+Message-ID: <200904022220.n32MKZgS026320@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:57759 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:53895 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1765822AbZDBQxw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2009 12:53:52 -0400
-In-Reply-To: <20090402163145.GA28728@localhost.localdomain>
+	by vger.kernel.org with ESMTP id S1758126AbZDBWZO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2009 18:25:14 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Alexander Beregalov <a.beregalov@gmail.com>, "linux-next@vger.kernel.org" <linux-next@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+To: mingo@elte.hu
+Cc: akpm@linux-foundation.org, holt@sgi.com, a.p.zijlstra@chello.nl, linux-arch@vger.kernel.org, ptesarik@suse.cz, tony.luck@intel.com
 
-On Fri, 3 Apr 2009 01:31:52 +0900 Akinobu Mita <akinobu.mita@gmail.com> wrote:
+From: Robin Holt <holt@sgi.com>
 
-> > mm/debug-pagealloc.c: In function 'set_page_poison':
-> > mm/debug-pagealloc.c:8: error: 'struct page' has no member named 'debug_flags'
-> > mm/debug-pagealloc.c: In function 'clear_page_poison':
-> > mm/debug-pagealloc.c:13: error: 'struct page' has no member named 'debug_flags'
-> > mm/debug-pagealloc.c: In function 'page_poison':
-> > mm/debug-pagealloc.c:18: error: 'struct page' has no member named 'debug_flags'
-> > mm/debug-pagealloc.c: At top level:
-> > mm/debug-pagealloc.c:120: error: redefinition of 'kernel_map_pages'
-> > include/linux/mm.h:1278: error: previous definition of
-> > 'kernel_map_pages' was here
-> > mm/debug-pagealloc.c: In function 'kernel_map_pages':
-> > mm/debug-pagealloc.c:122: error: 'debug_pagealloc_enabled' undeclared
-> > (first use in this function)
-> 
-> This patch fixes build failure with generic debug pagealloc:
-> 
->  - debug_flags should be in struct page
->  - define DEBUG_PAGEALLOC config option for all architectures
->
-> ...
->
->  	bool "Debug access to per_cpu maps"
->  	depends on DEBUG_KERNEL
-> diff --git a/include/linux/mm_types.h b/include/linux/mm_types.h
-> index ddadb4d..0e80e26 100644
-> --- a/include/linux/mm_types.h
-> +++ b/include/linux/mm_types.h
-> @@ -95,6 +95,9 @@ struct page {
->  	void *virtual;			/* Kernel virtual address (NULL if
->  					   not kmapped, ie. highmem) */
->  #endif /* WANT_PAGE_VIRTUAL */
-> +#ifdef CONFIG_WANT_PAGE_DEBUG_FLAGS
-> +	unsigned long debug_flags;	/* Use atomic bitops on this */
-> +#endif
->  };
->  
->  /*
-> @@ -175,9 +178,6 @@ struct vm_area_struct {
->  #ifdef CONFIG_NUMA
->  	struct mempolicy *vm_policy;	/* NUMA policy for the VMA */
->  #endif
-> -#ifdef CONFIG_WANT_PAGE_DEBUG_FLAGS
-> -	unsigned long debug_flags;	/* Use atomic bitops on this */
-> -#endif
->  };
+Pass the original flags to rwlock arch-code, so that it can re-enable
+interrupts if implemented for that architecture.
 
-dammit.
+Initially, make __raw_read_lock_flags and __raw_write_lock_flags stubs
+which just do the same thing as non-flags variants.
 
->  struct core_thread {
-> diff --git a/mm/Kconfig.debug b/mm/Kconfig.debug
-> index c8d62d4..bb01e29 100644
-> --- a/mm/Kconfig.debug
-> +++ b/mm/Kconfig.debug
-> @@ -1,3 +1,12 @@
-> +config DEBUG_PAGEALLOC
-> +	bool "Debug page memory allocations"
-> +	depends on DEBUG_KERNEL && ARCH_SUPPORTS_DEBUG_PAGEALLOC
-> +	depends on !HIBERNATION || !PPC && !SPARC
-> +	---help---
-> +	  Unmap pages from the kernel linear mapping after free_pages().
-> +	  This results in a large slowdown, but helps to find certain types
-> +	  of memory corruptions.
-> +
+Signed-off-by: Petr Tesarik <ptesarik@suse.cz>
+Signed-off-by: Robin Holt <holt@sgi.com>
+Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: <linux-arch@vger.kernel.org>
+Acked-by: Ingo Molnar <mingo@elte.hu>
+Cc: "Luck, Tony" <tony.luck@intel.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
 
-I guess this is why it wasn't discovered in my compile testing.  It's
-quite regrettable that `make allmodconfig' didn't enable the feature. 
-That's what allmodconfig is for.
+ arch/alpha/include/asm/spinlock.h          |    3 +++
+ arch/arm/include/asm/spinlock.h            |    3 +++
+ arch/cris/include/arch-v32/arch/spinlock.h |    2 ++
+ arch/ia64/include/asm/spinlock.h           |    3 +++
+ arch/mips/include/asm/spinlock.h           |    2 ++
+ arch/parisc/include/asm/spinlock.h         |    3 +++
+ arch/powerpc/include/asm/spinlock.h        |    3 +++
+ arch/s390/include/asm/spinlock.h           |    3 +++
+ arch/sh/include/asm/spinlock.h             |    3 +++
+ arch/sparc/include/asm/spinlock_32.h       |    2 ++
+ arch/sparc/include/asm/spinlock_64.h       |    2 ++
+ arch/x86/include/asm/spinlock.h            |    3 +++
+ include/asm-m32r/spinlock.h                |    3 +++
+ include/linux/spinlock.h                   |    6 ++++++
+ kernel/spinlock.c                          |    6 ++++--
+ 15 files changed, 45 insertions(+), 2 deletions(-)
+
+diff -puN arch/alpha/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/alpha/include/asm/spinlock.h
+--- a/arch/alpha/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/alpha/include/asm/spinlock.h
+@@ -166,6 +166,9 @@ static inline void __raw_write_unlock(ra
+ 	lock->lock = 0;
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+diff -puN arch/arm/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/arm/include/asm/spinlock.h
+--- a/arch/arm/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/arm/include/asm/spinlock.h
+@@ -217,6 +217,9 @@ static inline int __raw_read_trylock(raw
+ /* read_can_lock - would read_trylock() succeed? */
+ #define __raw_read_can_lock(x)		((x)->lock < 0x80000000)
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+diff -puN arch/cris/include/arch-v32/arch/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/cris/include/arch-v32/arch/spinlock.h
+--- a/arch/cris/include/arch-v32/arch/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/cris/include/arch-v32/arch/spinlock.h
+@@ -121,6 +121,8 @@ static  inline int __raw_write_trylock(r
+ 	return 1;
+ }
+ 
++#define _raw_read_lock_flags(lock, flags) _raw_read_lock(lock)
++#define _raw_write_lock_flags(lock, flags) _raw_write_lock(lock)
+ 
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+diff -puN arch/ia64/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/ia64/include/asm/spinlock.h
+--- a/arch/ia64/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/ia64/include/asm/spinlock.h
+@@ -213,6 +213,9 @@ static inline int __raw_read_trylock(raw
+ 	return (u32)ia64_cmpxchg4_acq((__u32 *)(x), new.word, old.word) == old.word;
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+diff -puN arch/mips/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/mips/include/asm/spinlock.h
+--- a/arch/mips/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/mips/include/asm/spinlock.h
+@@ -480,6 +480,8 @@ static inline int __raw_write_trylock(ra
+ 	return ret;
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
+ 
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+diff -puN arch/parisc/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/parisc/include/asm/spinlock.h
+--- a/arch/parisc/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/parisc/include/asm/spinlock.h
+@@ -187,6 +187,9 @@ static __inline__ int __raw_write_can_lo
+ 	return !rw->counter;
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+diff -puN arch/powerpc/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/powerpc/include/asm/spinlock.h
+--- a/arch/powerpc/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/powerpc/include/asm/spinlock.h
+@@ -287,6 +287,9 @@ static inline void __raw_write_unlock(ra
+ 	rw->lock = 0;
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	__spin_yield(lock)
+ #define _raw_read_relax(lock)	__rw_yield(lock)
+ #define _raw_write_relax(lock)	__rw_yield(lock)
+diff -puN arch/s390/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/s390/include/asm/spinlock.h
+--- a/arch/s390/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/s390/include/asm/spinlock.h
+@@ -172,6 +172,9 @@ static inline int __raw_write_trylock(ra
+ 	return _raw_write_trylock_retry(rw);
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+ 
+diff -puN arch/sh/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/sh/include/asm/spinlock.h
+--- a/arch/sh/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/sh/include/asm/spinlock.h
+@@ -216,6 +216,9 @@ static inline int __raw_write_trylock(ra
+ 	return (oldval > (RW_LOCK_BIAS - 1));
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+diff -puN arch/sparc/include/asm/spinlock_32.h~allow-rwlocks-to-re-enable-interrupts arch/sparc/include/asm/spinlock_32.h
+--- a/arch/sparc/include/asm/spinlock_32.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/sparc/include/asm/spinlock_32.h
+@@ -177,6 +177,8 @@ static inline int __read_trylock(raw_rwl
+ #define __raw_write_unlock(rw)	do { (rw)->lock = 0; } while(0)
+ 
+ #define __raw_spin_lock_flags(lock, flags) __raw_spin_lock(lock)
++#define __raw_read_lock_flags(rw, flags)   __raw_read_lock(rw)
++#define __raw_write_lock_flags(rw, flags)  __raw_write_lock(rw)
+ 
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+diff -puN arch/sparc/include/asm/spinlock_64.h~allow-rwlocks-to-re-enable-interrupts arch/sparc/include/asm/spinlock_64.h
+--- a/arch/sparc/include/asm/spinlock_64.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/sparc/include/asm/spinlock_64.h
+@@ -211,9 +211,11 @@ static int inline __write_trylock(raw_rw
+ }
+ 
+ #define __raw_read_lock(p)	__read_lock(p)
++#define __raw_read_lock_flags(p, f) __read_lock(p)
+ #define __raw_read_trylock(p)	__read_trylock(p)
+ #define __raw_read_unlock(p)	__read_unlock(p)
+ #define __raw_write_lock(p)	__write_lock(p)
++#define __raw_write_lock_flags(p, f) __write_lock(p)
+ #define __raw_write_unlock(p)	__write_unlock(p)
+ #define __raw_write_trylock(p)	__write_trylock(p)
+ 
+diff -puN arch/x86/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/x86/include/asm/spinlock.h
+--- a/arch/x86/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/x86/include/asm/spinlock.h
+@@ -295,6 +295,9 @@ static inline void __raw_write_unlock(ra
+ 		     : "+m" (rw->lock) : "i" (RW_LOCK_BIAS) : "memory");
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+diff -puN include/asm-m32r/spinlock.h~allow-rwlocks-to-re-enable-interrupts include/asm-m32r/spinlock.h
+--- a/include/asm-m32r/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/include/asm-m32r/spinlock.h
+@@ -316,6 +316,9 @@ static inline int __raw_write_trylock(ra
+ 	return 0;
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+diff -puN include/linux/spinlock.h~allow-rwlocks-to-re-enable-interrupts include/linux/spinlock.h
+--- a/include/linux/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/include/linux/spinlock.h
+@@ -153,9 +153,11 @@ do {								\
+  extern int _raw_spin_trylock(spinlock_t *lock);
+  extern void _raw_spin_unlock(spinlock_t *lock);
+  extern void _raw_read_lock(rwlock_t *lock);
++#define _raw_read_lock_flags(lock, flags) _raw_read_lock(lock)
+  extern int _raw_read_trylock(rwlock_t *lock);
+  extern void _raw_read_unlock(rwlock_t *lock);
+  extern void _raw_write_lock(rwlock_t *lock);
++#define _raw_write_lock_flags(lock, flags) _raw_write_lock(lock)
+  extern int _raw_write_trylock(rwlock_t *lock);
+  extern void _raw_write_unlock(rwlock_t *lock);
+ #else
+@@ -165,9 +167,13 @@ do {								\
+ # define _raw_spin_trylock(lock)	__raw_spin_trylock(&(lock)->raw_lock)
+ # define _raw_spin_unlock(lock)		__raw_spin_unlock(&(lock)->raw_lock)
+ # define _raw_read_lock(rwlock)		__raw_read_lock(&(rwlock)->raw_lock)
++# define _raw_read_lock_flags(lock, flags) \
++		__raw_read_lock_flags(&(lock)->raw_lock, *(flags))
+ # define _raw_read_trylock(rwlock)	__raw_read_trylock(&(rwlock)->raw_lock)
+ # define _raw_read_unlock(rwlock)	__raw_read_unlock(&(rwlock)->raw_lock)
+ # define _raw_write_lock(rwlock)	__raw_write_lock(&(rwlock)->raw_lock)
++# define _raw_write_lock_flags(lock, flags) \
++		__raw_write_lock_flags(&(lock)->raw_lock, *(flags))
+ # define _raw_write_trylock(rwlock)	__raw_write_trylock(&(rwlock)->raw_lock)
+ # define _raw_write_unlock(rwlock)	__raw_write_unlock(&(rwlock)->raw_lock)
+ #endif
+diff -puN kernel/spinlock.c~allow-rwlocks-to-re-enable-interrupts kernel/spinlock.c
+--- a/kernel/spinlock.c~allow-rwlocks-to-re-enable-interrupts
++++ a/kernel/spinlock.c
+@@ -121,7 +121,8 @@ unsigned long __lockfunc _read_lock_irqs
+ 	local_irq_save(flags);
+ 	preempt_disable();
+ 	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
++	LOCK_CONTENDED_FLAGS(lock, _raw_read_trylock, _raw_read_lock,
++			     _raw_read_lock_flags, &flags);
+ 	return flags;
+ }
+ EXPORT_SYMBOL(_read_lock_irqsave);
+@@ -151,7 +152,8 @@ unsigned long __lockfunc _write_lock_irq
+ 	local_irq_save(flags);
+ 	preempt_disable();
+ 	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
++	LOCK_CONTENDED_FLAGS(lock, _raw_write_trylock, _raw_write_lock,
++			     _raw_write_lock_flags, &flags);
+ 	return flags;
+ }
+ EXPORT_SYMBOL(_write_lock_irqsave);
+_
