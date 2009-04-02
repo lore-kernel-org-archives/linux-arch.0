@@ -1,141 +1,97 @@
-From: akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
-Subject: [patch 144/166] preadv/pwritev: MIPS: Add preadv(2) and pwritev(2) syscalls.
-Date: Thu, 02 Apr 2009 16:59:24 -0700
-Message-ID: <200904022359.n32NxONl022839@imap1.linux-foundation.org>
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
-Cc: akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+From: akpm@linux-foundation.org
+Subject: [patch 163/166] Factor out #ifdefs from kernel/spinlock.c to LOCK_CONTENDED_FLAGS
+Date: Thu, 02 Apr 2009 16:59:45 -0700
+Message-ID: <200904022359.n32Nxj3u023000@imap1.linux-foundation.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:58148 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757774AbZDCAEc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2009 20:04:32 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org, holt@sgi.com, a.p.zijlstra@chello.nl, linux-arch@vger.kernel.org, mingo@elte.hu, ptesarik@suse.cz, tony.luck@intel.com
 
-From: Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>
+From: Robin Holt <holt@sgi.com>
 
-Signed-off-by: Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>
-Signed-off-by: Gerd Hoffmann <kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>
-Cc: <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Cc: <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Signed-off-by: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+SGI has observed that on large systems, interrupts are not serviced for a
+long period of time when waiting for a rwlock.  The following patch series
+re-enables irqs while waiting for the lock, resembling the code which is
+already there for spinlocks.
+
+I only made the ia64 version, because the patch adds some overhead to the
+fast path.  I assume there is currently no demand to have this for other
+architectures, because the systems are not so large.  Of course, the
+possibility to implement raw_{read|write}_lock_flags for any architecture
+is still there.
+
+
+This patch:
+
+The new macro LOCK_CONTENDED_FLAGS expands to the correct implementation
+depending on the config options, so that IRQ's are re-enabled when
+possible, but they remain disabled if CONFIG_LOCKDEP is set.
+
+Signed-off-by: Petr Tesarik <ptesarik@suse.cz>
+Signed-off-by: Robin Holt <holt@sgi.com>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: "Luck, Tony" <tony.luck@intel.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/mips/include/asm/unistd.h |   18 ++++++++++++------
- arch/mips/kernel/scall32-o32.S |    2 ++
- arch/mips/kernel/scall64-64.S  |    2 ++
- arch/mips/kernel/scall64-n32.S |    2 ++
- arch/mips/kernel/scall64-o32.S |    2 ++
- 5 files changed, 20 insertions(+), 6 deletions(-)
+ include/linux/lockdep.h |   17 +++++++++++++++++
+ kernel/spinlock.c       |   12 ++----------
+ 2 files changed, 19 insertions(+), 10 deletions(-)
 
-diff -puN arch/mips/include/asm/unistd.h~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls arch/mips/include/asm/unistd.h
---- a/arch/mips/include/asm/unistd.h~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls
-+++ a/arch/mips/include/asm/unistd.h
-@@ -350,16 +350,18 @@
- #define __NR_dup3			(__NR_Linux + 327)
- #define __NR_pipe2			(__NR_Linux + 328)
- #define __NR_inotify_init1		(__NR_Linux + 329)
-+#define __NR_preadv			(__NR_Linux + 330)
-+#define __NR_pwritev			(__NR_Linux + 331)
+diff -puN include/linux/lockdep.h~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags include/linux/lockdep.h
+--- a/include/linux/lockdep.h~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags
++++ a/include/linux/lockdep.h
+@@ -364,6 +364,23 @@ do {								\
  
- /*
-  * Offset of the last Linux o32 flavoured syscall
-  */
--#define __NR_Linux_syscalls		329
-+#define __NR_Linux_syscalls		331
+ #endif /* CONFIG_LOCK_STAT */
  
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
- 
- #define __NR_O32_Linux			4000
--#define __NR_O32_Linux_syscalls		329
-+#define __NR_O32_Linux_syscalls		331
- 
- #if _MIPS_SIM == _MIPS_SIM_ABI64
- 
-@@ -656,16 +658,18 @@
- #define __NR_dup3			(__NR_Linux + 286)
- #define __NR_pipe2			(__NR_Linux + 287)
- #define __NR_inotify_init1		(__NR_Linux + 288)
-+#define __NR_preadv			(__NR_Linux + 289)
-+#define __NR_pwritev			(__NR_Linux + 290)
- 
- /*
-  * Offset of the last Linux 64-bit flavoured syscall
-  */
--#define __NR_Linux_syscalls		288
-+#define __NR_Linux_syscalls		290
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
- 
- #define __NR_64_Linux			5000
--#define __NR_64_Linux_syscalls		288
-+#define __NR_64_Linux_syscalls		290
- 
- #if _MIPS_SIM == _MIPS_SIM_NABI32
- 
-@@ -966,16 +970,18 @@
- #define __NR_dup3			(__NR_Linux + 290)
- #define __NR_pipe2			(__NR_Linux + 291)
- #define __NR_inotify_init1		(__NR_Linux + 292)
-+#define __NR_preadv			(__NR_Linux + 293)
-+#define __NR_pwritev			(__NR_Linux + 294)
- 
- /*
-  * Offset of the last N32 flavoured syscall
-  */
--#define __NR_Linux_syscalls		292
-+#define __NR_Linux_syscalls		294
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
- 
- #define __NR_N32_Linux			6000
--#define __NR_N32_Linux_syscalls		292
-+#define __NR_N32_Linux_syscalls		294
- 
- #ifdef __KERNEL__
- 
-diff -puN arch/mips/kernel/scall32-o32.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls arch/mips/kernel/scall32-o32.S
---- a/arch/mips/kernel/scall32-o32.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls
-+++ a/arch/mips/kernel/scall32-o32.S
-@@ -650,6 +650,8 @@ einval:	li	v0, -ENOSYS
- 	sys	sys_dup3		3
- 	sys	sys_pipe2		2
- 	sys	sys_inotify_init1	1
-+	sys	sys_preadv		6	/* 4330 */
-+	sys	sys_pwritev		6
- 	.endm
- 
- 	/* We pre-compute the number of _instruction_ bytes needed to
-diff -puN arch/mips/kernel/scall64-64.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls arch/mips/kernel/scall64-64.S
---- a/arch/mips/kernel/scall64-64.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls
-+++ a/arch/mips/kernel/scall64-64.S
-@@ -487,4 +487,6 @@ sys_call_table:
- 	PTR	sys_dup3
- 	PTR	sys_pipe2
- 	PTR	sys_inotify_init1
-+	PTR	sys_preadv
-+	PTR	sys_pwritev			/* 5390 */
- 	.size	sys_call_table,.-sys_call_table
-diff -puN arch/mips/kernel/scall64-n32.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls arch/mips/kernel/scall64-n32.S
---- a/arch/mips/kernel/scall64-n32.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls
-+++ a/arch/mips/kernel/scall64-n32.S
-@@ -413,4 +413,6 @@ EXPORT(sysn32_call_table)
- 	PTR	sys_dup3			/* 5290 */
- 	PTR	sys_pipe2
- 	PTR	sys_inotify_init1
-+	PTR	sys_preadv
-+	PTR	sys_pwritev
- 	.size	sysn32_call_table,.-sysn32_call_table
-diff -puN arch/mips/kernel/scall64-o32.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls arch/mips/kernel/scall64-o32.S
---- a/arch/mips/kernel/scall64-o32.S~preadv-pwritev-mips-add-preadv2-and-pwritev2-syscalls
-+++ a/arch/mips/kernel/scall64-o32.S
-@@ -533,4 +533,6 @@ sys_call_table:
- 	PTR	sys_dup3
- 	PTR	sys_pipe2
- 	PTR	sys_inotify_init1
-+	PTR	compat_sys_preadv		/* 4330 */
-+	PTR	compat_sys_pwritev
- 	.size	sys_call_table,.-sys_call_table
++#ifdef CONFIG_LOCKDEP
++
++/*
++ * On lockdep we dont want the hand-coded irq-enable of
++ * _raw_*_lock_flags() code, because lockdep assumes
++ * that interrupts are not re-enabled during lock-acquire:
++ */
++#define LOCK_CONTENDED_FLAGS(_lock, try, lock, lockfl, flags) \
++	LOCK_CONTENDED((_lock), (try), (lock))
++
++#else /* CONFIG_LOCKDEP */
++
++#define LOCK_CONTENDED_FLAGS(_lock, try, lock, lockfl, flags) \
++	lockfl((_lock), (flags))
++
++#endif /* CONFIG_LOCKDEP */
++
+ #ifdef CONFIG_GENERIC_HARDIRQS
+ extern void early_init_irq_lock_class(void);
+ #else
+diff -puN kernel/spinlock.c~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags kernel/spinlock.c
+--- a/kernel/spinlock.c~factor-out-ifdefs-from-kernel-spinlockc-to-lock_contended_flags
++++ a/kernel/spinlock.c
+@@ -299,16 +299,8 @@ unsigned long __lockfunc _spin_lock_irqs
+ 	local_irq_save(flags);
+ 	preempt_disable();
+ 	spin_acquire(&lock->dep_map, subclass, 0, _RET_IP_);
+-	/*
+-	 * On lockdep we dont want the hand-coded irq-enable of
+-	 * _raw_spin_lock_flags() code, because lockdep assumes
+-	 * that interrupts are not re-enabled during lock-acquire:
+-	 */
+-#ifdef CONFIG_LOCKDEP
+-	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
+-#else
+-	_raw_spin_lock_flags(lock, &flags);
+-#endif
++	LOCK_CONTENDED_FLAGS(lock, _raw_spin_trylock, _raw_spin_lock,
++				_raw_spin_lock_flags, &flags);
+ 	return flags;
+ }
+ EXPORT_SYMBOL(_spin_lock_irqsave_nested);
 _
---
-To unsubscribe from this list: send the line "unsubscribe linux-api" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
