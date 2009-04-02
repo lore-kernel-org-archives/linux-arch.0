@@ -1,214 +1,269 @@
 From: akpm@linux-foundation.org
-Subject: [patch 141/166] preadv/pwritev: create compat_readv()
-Date: Thu, 02 Apr 2009 16:59:20 -0700
-Message-ID: <200904022359.n32NxLhX022785@imap1.linux-foundation.org>
+Subject: [patch 164/166] Allow rwlocks to re-enable interrupts
+Date: Thu, 02 Apr 2009 16:59:46 -0700
+Message-ID: <200904022359.n32NxkWW023004@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:53371 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:60370 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753642AbZDCAEQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2009 20:04:16 -0400
+	by vger.kernel.org with ESMTP id S1758042AbZDCAEd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2009 20:04:33 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, kraxel@redhat.com, arnd@arndb.de, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, ralf@linux-mips.org, viro@zeniv.linux.org.uk
+Cc: akpm@linux-foundation.org, holt@sgi.com, a.p.zijlstra@chello.nl, linux-arch@vger.kernel.org, mingo@elte.hu, ptesarik@suse.cz, tony.luck@intel.com
 
-From: Gerd Hoffmann <kraxel@redhat.com>
+From: Robin Holt <holt@sgi.com>
 
-This patch series:
+Pass the original flags to rwlock arch-code, so that it can re-enable
+interrupts if implemented for that architecture.
 
-Implement the preadv() and pwritev() syscalls.  *BSD has this syscall for
-quite some time.
+Initially, make __raw_read_lock_flags and __raw_write_lock_flags stubs
+which just do the same thing as non-flags variants.
 
-Test code:
-
-#if 0
-set -x
-gcc -Wall -O2 -o preadv $0
-exit 0
-#endif
-/*
- * preadv demo / test
- *
- * (c) 2008 Gerd Hoffmann <kraxel@redhat.com>
- *
- * build with "sh $thisfile"
- */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <inttypes.h>
-#include <sys/uio.h>
-
-/* ----------------------------------------------------------------- */
-/* syscall windup                                                    */
-
-#include <sys/syscall.h>
-#if 0
-/* WARNING: Be sure you know what you are doing if you enable this.
- * linux syscall code isn't upstream yet, syscall numbers are subject
- * to change */
-# ifndef __NR_preadv
-#  ifdef __i386__
-#   define __NR_preadv  333
-#   define __NR_pwritev 334
-#  endif
-#  ifdef __x86_64__
-#   define __NR_preadv  295
-#   define __NR_pwritev 296
-#  endif
-# endif
-#endif
-#ifndef __NR_preadv
-# error preadv/pwritev syscall numbers are unknown
-#endif
-
-static ssize_t preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)
-{
-    uint32_t pos_high = (offset >> 32) & 0xffffffff;
-    uint32_t pos_low  =  offset        & 0xffffffff;
-
-    return syscall(__NR_preadv, fd, iov, iovcnt, pos_high, pos_low);
-}
-
-static ssize_t pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
-{
-    uint32_t pos_high = (offset >> 32) & 0xffffffff;
-    uint32_t pos_low  =  offset        & 0xffffffff;
-
-    return syscall(__NR_pwritev, fd, iov, iovcnt, pos_high, pos_low);
-}
-
-/* ----------------------------------------------------------------- */
-/* demo/test app                                                     */
-
-static char filename[] = "/tmp/preadv-XXXXXX";
-static char outbuf[11] = "0123456789";
-static char inbuf[11]  = "----------";
-
-static struct iovec ovec[2] = {{
-        .iov_base = outbuf + 5,
-        .iov_len  = 5,
-    },{
-        .iov_base = outbuf + 0,
-        .iov_len  = 5,
-    }};
-
-static struct iovec ivec[3] = {{
-        .iov_base = inbuf + 6,
-        .iov_len  = 2,
-    },{
-        .iov_base = inbuf + 4,
-        .iov_len  = 2,
-    },{
-        .iov_base = inbuf + 2,
-        .iov_len  = 2,
-    }};
-
-void cleanup(void)
-{
-    unlink(filename);
-}
-
-int main(int argc, char **argv)
-{
-    int fd, rc;
-
-    fd = mkstemp(filename);
-    if (-1 == fd) {
-        perror("mkstemp");
-        exit(1);
-    }
-    atexit(cleanup);
-
-    /* write to file: "56789-01234" */
-    rc = pwritev(fd, ovec, 2, 0);
-    if (rc < 0) {
-        perror("pwritev");
-        exit(1);
-    }
-
-    /* read from file: "78-90-12" */
-    rc = preadv(fd, ivec, 3, 2);
-    if (rc < 0) {
-        perror("preadv");
-        exit(1);
-    }
-
-    printf("result  : %s\n", inbuf);
-    printf("expected: %s\n", "--129078--");
-    exit(0);
-}
-
-
-This patch:
-
-Factor out some code from compat_sys_readv() which can be shared with the
-upcoming compat_sys_preadv().
-
-
-Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: <linux-api@vger.kernel.org>
+Signed-off-by: Petr Tesarik <ptesarik@suse.cz>
+Signed-off-by: Robin Holt <holt@sgi.com>
+Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: <linux-arch@vger.kernel.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
+Acked-by: Ingo Molnar <mingo@elte.hu>
+Cc: "Luck, Tony" <tony.luck@intel.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/compat.c |   26 ++++++++++++++++++--------
- 1 file changed, 18 insertions(+), 8 deletions(-)
+ arch/alpha/include/asm/spinlock.h          |    3 +++
+ arch/arm/include/asm/spinlock.h            |    3 +++
+ arch/cris/include/arch-v32/arch/spinlock.h |    2 ++
+ arch/ia64/include/asm/spinlock.h           |    3 +++
+ arch/mips/include/asm/spinlock.h           |    2 ++
+ arch/parisc/include/asm/spinlock.h         |    3 +++
+ arch/powerpc/include/asm/spinlock.h        |    3 +++
+ arch/s390/include/asm/spinlock.h           |    3 +++
+ arch/sh/include/asm/spinlock.h             |    3 +++
+ arch/sparc/include/asm/spinlock_32.h       |    2 ++
+ arch/sparc/include/asm/spinlock_64.h       |    2 ++
+ arch/x86/include/asm/spinlock.h            |    3 +++
+ include/asm-m32r/spinlock.h                |    3 +++
+ include/linux/spinlock.h                   |    6 ++++++
+ kernel/spinlock.c                          |    6 ++++--
+ 15 files changed, 45 insertions(+), 2 deletions(-)
 
-diff -puN fs/compat.c~preadv-pwritev-create-compat_readv fs/compat.c
---- a/fs/compat.c~preadv-pwritev-create-compat_readv
-+++ a/fs/compat.c
-@@ -1195,16 +1195,12 @@ out:
+diff -puN arch/alpha/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/alpha/include/asm/spinlock.h
+--- a/arch/alpha/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/alpha/include/asm/spinlock.h
+@@ -166,6 +166,9 @@ static inline void __raw_write_unlock(ra
+ 	lock->lock = 0;
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+diff -puN arch/arm/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/arm/include/asm/spinlock.h
+--- a/arch/arm/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/arm/include/asm/spinlock.h
+@@ -217,6 +217,9 @@ static inline int __raw_read_trylock(raw
+ /* read_can_lock - would read_trylock() succeed? */
+ #define __raw_read_can_lock(x)		((x)->lock < 0x80000000)
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+diff -puN arch/cris/include/arch-v32/arch/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/cris/include/arch-v32/arch/spinlock.h
+--- a/arch/cris/include/arch-v32/arch/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/cris/include/arch-v32/arch/spinlock.h
+@@ -121,6 +121,8 @@ static  inline int __raw_write_trylock(r
+ 	return 1;
+ }
+ 
++#define _raw_read_lock_flags(lock, flags) _raw_read_lock(lock)
++#define _raw_write_lock_flags(lock, flags) _raw_write_lock(lock)
+ 
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+diff -puN arch/ia64/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/ia64/include/asm/spinlock.h
+--- a/arch/ia64/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/ia64/include/asm/spinlock.h
+@@ -213,6 +213,9 @@ static inline int __raw_read_trylock(raw
+ 	return (u32)ia64_cmpxchg4_acq((__u32 *)(x), new.word, old.word) == old.word;
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+diff -puN arch/mips/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/mips/include/asm/spinlock.h
+--- a/arch/mips/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/mips/include/asm/spinlock.h
+@@ -480,6 +480,8 @@ static inline int __raw_write_trylock(ra
  	return ret;
  }
  
--asmlinkage ssize_t
--compat_sys_readv(unsigned long fd, const struct compat_iovec __user *vec, unsigned long vlen)
-+static size_t compat_readv(struct file *file,
-+			   const struct compat_iovec __user *vec,
-+			   unsigned long vlen, loff_t *pos)
- {
--	struct file *file;
- 	ssize_t ret = -EBADF;
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
  
--	file = fget(fd);
--	if (!file)
--		return -EBADF;
--
- 	if (!(file->f_mode & FMODE_READ))
- 		goto out;
- 
-@@ -1212,12 +1208,26 @@ compat_sys_readv(unsigned long fd, const
- 	if (!file->f_op || (!file->f_op->aio_read && !file->f_op->read))
- 		goto out;
- 
--	ret = compat_do_readv_writev(READ, file, vec, vlen, &file->f_pos);
-+	ret = compat_do_readv_writev(READ, file, vec, vlen, pos);
- 
- out:
- 	if (ret > 0)
- 		add_rchar(current, ret);
- 	inc_syscr(current);
-+	return ret;
-+}
-+
-+asmlinkage ssize_t
-+compat_sys_readv(unsigned long fd, const struct compat_iovec __user *vec,
-+		 unsigned long vlen)
-+{
-+	struct file *file;
-+	ssize_t ret;
-+
-+	file = fget(fd);
-+	if (!file)
-+		return -EBADF;
-+	ret = compat_readv(file, vec, vlen, &file->f_pos);
- 	fput(file);
- 	return ret;
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+diff -puN arch/parisc/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/parisc/include/asm/spinlock.h
+--- a/arch/parisc/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/parisc/include/asm/spinlock.h
+@@ -187,6 +187,9 @@ static __inline__ int __raw_write_can_lo
+ 	return !rw->counter;
  }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+diff -puN arch/powerpc/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/powerpc/include/asm/spinlock.h
+--- a/arch/powerpc/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/powerpc/include/asm/spinlock.h
+@@ -287,6 +287,9 @@ static inline void __raw_write_unlock(ra
+ 	rw->lock = 0;
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	__spin_yield(lock)
+ #define _raw_read_relax(lock)	__rw_yield(lock)
+ #define _raw_write_relax(lock)	__rw_yield(lock)
+diff -puN arch/s390/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/s390/include/asm/spinlock.h
+--- a/arch/s390/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/s390/include/asm/spinlock.h
+@@ -172,6 +172,9 @@ static inline int __raw_write_trylock(ra
+ 	return _raw_write_trylock_retry(rw);
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+ 
+diff -puN arch/sh/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/sh/include/asm/spinlock.h
+--- a/arch/sh/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/sh/include/asm/spinlock.h
+@@ -216,6 +216,9 @@ static inline int __raw_write_trylock(ra
+ 	return (oldval > (RW_LOCK_BIAS - 1));
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+diff -puN arch/sparc/include/asm/spinlock_32.h~allow-rwlocks-to-re-enable-interrupts arch/sparc/include/asm/spinlock_32.h
+--- a/arch/sparc/include/asm/spinlock_32.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/sparc/include/asm/spinlock_32.h
+@@ -177,6 +177,8 @@ static inline int __read_trylock(raw_rwl
+ #define __raw_write_unlock(rw)	do { (rw)->lock = 0; } while(0)
+ 
+ #define __raw_spin_lock_flags(lock, flags) __raw_spin_lock(lock)
++#define __raw_read_lock_flags(rw, flags)   __raw_read_lock(rw)
++#define __raw_write_lock_flags(rw, flags)  __raw_write_lock(rw)
+ 
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+diff -puN arch/sparc/include/asm/spinlock_64.h~allow-rwlocks-to-re-enable-interrupts arch/sparc/include/asm/spinlock_64.h
+--- a/arch/sparc/include/asm/spinlock_64.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/sparc/include/asm/spinlock_64.h
+@@ -211,9 +211,11 @@ static int inline __write_trylock(raw_rw
+ }
+ 
+ #define __raw_read_lock(p)	__read_lock(p)
++#define __raw_read_lock_flags(p, f) __read_lock(p)
+ #define __raw_read_trylock(p)	__read_trylock(p)
+ #define __raw_read_unlock(p)	__read_unlock(p)
+ #define __raw_write_lock(p)	__write_lock(p)
++#define __raw_write_lock_flags(p, f) __write_lock(p)
+ #define __raw_write_unlock(p)	__write_unlock(p)
+ #define __raw_write_trylock(p)	__write_trylock(p)
+ 
+diff -puN arch/x86/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts arch/x86/include/asm/spinlock.h
+--- a/arch/x86/include/asm/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/arch/x86/include/asm/spinlock.h
+@@ -295,6 +295,9 @@ static inline void __raw_write_unlock(ra
+ 		     : "+m" (rw->lock) : "i" (RW_LOCK_BIAS) : "memory");
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+diff -puN include/asm-m32r/spinlock.h~allow-rwlocks-to-re-enable-interrupts include/asm-m32r/spinlock.h
+--- a/include/asm-m32r/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/include/asm-m32r/spinlock.h
+@@ -316,6 +316,9 @@ static inline int __raw_write_trylock(ra
+ 	return 0;
+ }
+ 
++#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
++#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
++
+ #define _raw_spin_relax(lock)	cpu_relax()
+ #define _raw_read_relax(lock)	cpu_relax()
+ #define _raw_write_relax(lock)	cpu_relax()
+diff -puN include/linux/spinlock.h~allow-rwlocks-to-re-enable-interrupts include/linux/spinlock.h
+--- a/include/linux/spinlock.h~allow-rwlocks-to-re-enable-interrupts
++++ a/include/linux/spinlock.h
+@@ -153,9 +153,11 @@ do {								\
+  extern int _raw_spin_trylock(spinlock_t *lock);
+  extern void _raw_spin_unlock(spinlock_t *lock);
+  extern void _raw_read_lock(rwlock_t *lock);
++#define _raw_read_lock_flags(lock, flags) _raw_read_lock(lock)
+  extern int _raw_read_trylock(rwlock_t *lock);
+  extern void _raw_read_unlock(rwlock_t *lock);
+  extern void _raw_write_lock(rwlock_t *lock);
++#define _raw_write_lock_flags(lock, flags) _raw_write_lock(lock)
+  extern int _raw_write_trylock(rwlock_t *lock);
+  extern void _raw_write_unlock(rwlock_t *lock);
+ #else
+@@ -165,9 +167,13 @@ do {								\
+ # define _raw_spin_trylock(lock)	__raw_spin_trylock(&(lock)->raw_lock)
+ # define _raw_spin_unlock(lock)		__raw_spin_unlock(&(lock)->raw_lock)
+ # define _raw_read_lock(rwlock)		__raw_read_lock(&(rwlock)->raw_lock)
++# define _raw_read_lock_flags(lock, flags) \
++		__raw_read_lock_flags(&(lock)->raw_lock, *(flags))
+ # define _raw_read_trylock(rwlock)	__raw_read_trylock(&(rwlock)->raw_lock)
+ # define _raw_read_unlock(rwlock)	__raw_read_unlock(&(rwlock)->raw_lock)
+ # define _raw_write_lock(rwlock)	__raw_write_lock(&(rwlock)->raw_lock)
++# define _raw_write_lock_flags(lock, flags) \
++		__raw_write_lock_flags(&(lock)->raw_lock, *(flags))
+ # define _raw_write_trylock(rwlock)	__raw_write_trylock(&(rwlock)->raw_lock)
+ # define _raw_write_unlock(rwlock)	__raw_write_unlock(&(rwlock)->raw_lock)
+ #endif
+diff -puN kernel/spinlock.c~allow-rwlocks-to-re-enable-interrupts kernel/spinlock.c
+--- a/kernel/spinlock.c~allow-rwlocks-to-re-enable-interrupts
++++ a/kernel/spinlock.c
+@@ -121,7 +121,8 @@ unsigned long __lockfunc _read_lock_irqs
+ 	local_irq_save(flags);
+ 	preempt_disable();
+ 	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
++	LOCK_CONTENDED_FLAGS(lock, _raw_read_trylock, _raw_read_lock,
++			     _raw_read_lock_flags, &flags);
+ 	return flags;
+ }
+ EXPORT_SYMBOL(_read_lock_irqsave);
+@@ -151,7 +152,8 @@ unsigned long __lockfunc _write_lock_irq
+ 	local_irq_save(flags);
+ 	preempt_disable();
+ 	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
++	LOCK_CONTENDED_FLAGS(lock, _raw_write_trylock, _raw_write_lock,
++			     _raw_write_lock_flags, &flags);
+ 	return flags;
+ }
+ EXPORT_SYMBOL(_write_lock_irqsave);
 _
