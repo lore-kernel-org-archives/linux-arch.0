@@ -1,62 +1,51 @@
-From: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Subject: Re: [patch 143/166] preadv/pwritev: Add preadv and pwritev system
- calls.
-Date: Fri, 3 Apr 2009 13:08:59 -0700 (PDT)
-Message-ID: <alpine.LFD.2.00.0904031303200.4015@localhost.localdomain>
-References: <200904022359.n32NxNYu022834@imap1.linux-foundation.org> <alpine.LFD.2.00.0904021839390.15441@localhost.localdomain> <49D5CA58.20908@redhat.com> <alpine.LFD.2.00.0904030739540.4130@localhost.localdomain> <49D66A22.7090909@redhat.com>
+From: "Rafael J. Wysocki" <rjw@sisk.pl>
+Subject: Re: [PATCH] build fix for generic debug pagealloc
+Date: Fri, 3 Apr 2009 22:38:53 +0200
+Message-ID: <200904032238.55438.rjw@sisk.pl>
+References: <a4423d670904020421k7395e11dwe70d4223cb817e0a@mail.gmail.com> <20090402094522.b29004c8.akpm@linux-foundation.org> <20090403164450.GC3047@elte.hu>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <49D66A22.7090909-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Gerd Hoffmann <kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, arnd-r2nGTMty4D4@public.gmane.org, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ogre.sisk.pl ([217.79.144.158]:35923 "EHLO ogre.sisk.pl"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759249AbZDCUiv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Apr 2009 16:38:51 -0400
+In-Reply-To: <20090403164450.GC3047@elte.hu>
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Akinobu Mita <akinobu.mita@gmail.com>, Alexander Beregalov <a.beregalov@gmail.com>, "linux-next@vger.kernel.org" <linux-next@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 
-
-
-On Fri, 3 Apr 2009, Gerd Hoffmann wrote:
+On Friday 03 April 2009, Ingo Molnar wrote:
 > 
-> The whole point of the HALF_BITS thing is just to kill the gcc "hey your
-> shift is greater than bitsize of $type" warning, right?
-
-No, it's literally a corectness issue.
-
-If you do
-
-	offset = ((loff_t) high) << BITS_IN_LONG;
-
-then that is literally undefined behavior in C (if "loff_t" and "long" are 
-the same size), and a lot of C compilers will end up just optimizing it 
-away entirely.
-
-Even if they don't optimize it away, and if they actually generate the 
-instruction for it, architectures will not actually do what you think they 
-do. At least on x86, shift counts are fundamentally limited to the low 
-bits, so if you do 
-
-	movl $64,%ecx
-	shlq %ecx,reg
-
-then an x86 will literally shift 'reg' by _zero_, because the count is 
-masked by 6 bits (or 5, in the 32-bit case).
-
-So literally, if gcc were to generate the obvious (stupid) code, it would 
-give the wrong value.
-
-With the double shift, we have well-defined behavior.
-
-> I really like it.  Except for the low/high ordering it is basically
-> identical to the patch I've mailed.
+> * Andrew Morton <akpm@linux-foundation.org> wrote:
 > 
-> While hashing out all the issues I've learned alot about arch specific
-> ABIs.  I can't see possible trouble spots and don't expect vetos from
-> arch maintainers.
+> > > +config DEBUG_PAGEALLOC
+> > > +	bool "Debug page memory allocations"
+> > > +	depends on DEBUG_KERNEL && ARCH_SUPPORTS_DEBUG_PAGEALLOC
+> > > +	depends on !HIBERNATION || !PPC && !SPARC
+> > > +	---help---
+> > > +	  Unmap pages from the kernel linear mapping after free_pages().
+> > > +	  This results in a large slowdown, but helps to find certain types
+> > > +	  of memory corruptions.
+> > > +
+> > 
+> > I guess this is why it wasn't discovered in my compile testing.  
+> > It's quite regrettable that `make allmodconfig' didn't enable the 
+> > feature. That's what allmodconfig is for.
+> 
+> Hm, i _do_ remember some hibernation magic fix from Rafael, in the 
+> area of debugalloc. Many months ago.
+> 
+> Rafael, is it supposed to work? If yes, i think we should unblock 
+> it.
 
-Ok, a few more ack's, and I can commit it. Anybody disagree?
+Yes, it is, at least on x86.
 
-			Linus
---
-To unsubscribe from this list: send the line "unsubscribe linux-api" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+ISTR using DEBUG_PAGEALLOC with hibernation quite some time ago already.
+
+Thanks,
+Rafael
