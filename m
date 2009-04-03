@@ -1,52 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:35683 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755548AbZDCRAI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2009 13:00:08 -0400
-Message-ID: <49D6400D.7040001@zytor.com>
-Date: Fri, 03 Apr 2009 09:57:49 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
-MIME-Version: 1.0
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:57527 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S936756AbZDCUQZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2009 16:16:25 -0400
+Date: Fri, 3 Apr 2009 13:08:59 -0700 (PDT)
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [patch 143/166] preadv/pwritev: Add preadv and pwritev system
  calls.
-References: <200904022359.n32NxNYu022834@imap1.linux-foundation.org> <alpine.LFD.2.00.0904021839390.15441@localhost.localdomain>
-In-Reply-To: <alpine.LFD.2.00.0904021839390.15441@localhost.localdomain>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <49D66A22.7090909@redhat.com>
+Message-ID: <alpine.LFD.2.00.0904031303200.4015@localhost.localdomain>
+References: <200904022359.n32NxNYu022834@imap1.linux-foundation.org> <alpine.LFD.2.00.0904021839390.15441@localhost.localdomain> <49D5CA58.20908@redhat.com> <alpine.LFD.2.00.0904030739540.4130@localhost.localdomain> <49D66A22.7090909@redhat.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, kraxel@redhat.com, arnd@arndb.de, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, ralf@linux-mips.org, tglx@linutronix.de, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20090403165749.TI25c72dWVaHVdn9q8EbF9si9ZNswvuwJxbWVdanZRA@z>
+To: Gerd Hoffmann <kraxel@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, arnd@arndb.de, "H. Peter Anvin" <hpa@zytor.com>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, ralf@linux-mips.org, tglx@linutronix.de, Al Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20090403200859.5CtVHCp3VDcVe13lkSriQwqyos9lKiumbhHDUqa_VOs@z>
 
-Linus Torvalds wrote:
-> 
-> Grr. That may make sense on 32-bit architectures, but makes no sense 
-> what-so-ever on 64-bit ones.
-> 
-> Why not just say that it's two "unsigned long" arguments, and split it by 
-> "sizeof unsigned long". And then, on 64-bit architectures, the high bits 
-> can be ignored. You can even get gcc to optimize it all away by doing 
-> something like
-> 
-> 	#define HALF_LONG (BITS_IN_LONG / 2)
-> 
-> 	offset = (((loff_t)high << HALF_LONG) << HALF_LONG) | low;
-> 
-> and then gcc should automaticaly notice that shifting up that way is just 
-> a fancy way of saying "0", and ignore the high bits.
-> 
-> How married are people to this crazy 2x "32 bits" model?
-> 
 
-I certainly am *not* happy with it, and said so when it was first
-posted.  My main complaint with it is that it introduces yet another
-special case in the kernel<->userspace ABI, because although we've had
-this problem before, it has been hacked around a different way every time.
 
-	-hpa
+On Fri, 3 Apr 2009, Gerd Hoffmann wrote:
+> 
+> The whole point of the HALF_BITS thing is just to kill the gcc "hey your
+> shift is greater than bitsize of $type" warning, right?
 
--- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+No, it's literally a corectness issue.
 
+If you do
+
+	offset = ((loff_t) high) << BITS_IN_LONG;
+
+then that is literally undefined behavior in C (if "loff_t" and "long" are 
+the same size), and a lot of C compilers will end up just optimizing it 
+away entirely.
+
+Even if they don't optimize it away, and if they actually generate the 
+instruction for it, architectures will not actually do what you think they 
+do. At least on x86, shift counts are fundamentally limited to the low 
+bits, so if you do 
+
+	movl $64,%ecx
+	shlq %ecx,reg
+
+then an x86 will literally shift 'reg' by _zero_, because the count is 
+masked by 6 bits (or 5, in the 32-bit case).
+
+So literally, if gcc were to generate the obvious (stupid) code, it would 
+give the wrong value.
+
+With the double shift, we have well-defined behavior.
+
+> I really like it.  Except for the low/high ordering it is basically
+> identical to the patch I've mailed.
+> 
+> While hashing out all the issues I've learned alot about arch specific
+> ABIs.  I can't see possible trouble spots and don't expect vetos from
+> arch maintainers.
+
+Ok, a few more ack's, and I can commit it. Anybody disagree?
+
+			Linus
