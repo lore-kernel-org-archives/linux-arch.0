@@ -1,162 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:45126 "EHLO mx2.redhat.com"
+Received: from mx3.mail.elte.hu ([157.181.1.138]:42728 "EHLO mx3.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751079AbZDCLzH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Apr 2009 07:55:07 -0400
-Message-ID: <49D5F8AC.6040608@redhat.com>
-Date: Fri, 03 Apr 2009 13:53:16 +0200
-From: Gerd Hoffmann <kraxel@redhat.com>
+	id S933576AbZDCQqS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Apr 2009 12:46:18 -0400
+Date: Fri, 3 Apr 2009 18:44:50 +0200
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH] build fix for generic debug pagealloc
+Message-ID: <20090403164450.GC3047@elte.hu>
+References: <a4423d670904020421k7395e11dwe70d4223cb817e0a@mail.gmail.com> <20090402163145.GA28728@localhost.localdomain> <20090402094522.b29004c8.akpm@linux-foundation.org>
 MIME-Version: 1.0
-Subject: Re: [patch 143/166] preadv/pwritev: Add preadv and pwritev system
- calls.
-References: <200904022359.n32NxNYu022834@imap1.linux-foundation.org> <alpine.LFD.2.00.0904021839390.15441@localhost.localdomain> <49D5CA58.20908@redhat.com> <49D5D609.7030400@redhat.com>
-In-Reply-To: <49D5D609.7030400@redhat.com>
-Content-Type: multipart/mixed;
- boundary="------------030909000609080900040506"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20090402094522.b29004c8.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, arnd@arndb.de, "H. Peter Anvin" <hpa@zytor.com>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, ralf@linux-mips.org, tglx@linutronix.de, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20090403115316.DX5j3j6UshMqKDHon2vtJSYWBSVx8U9gj3W1-qoxrTw@z>
-
-This is a multi-part message in MIME format.
---------------030909000609080900040506
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-
-Gerd Hoffmann wrote:
-
-> Patch attached for comments (builds, but otherwise not tested yet).
-
-New patch, updates compat_sys_writev() which was incomplete in the
-previous version.  Now tested on x86_64, both 32 and 64-bit binaries.
-
-cheers,
-  Gerd
+To: Andrew Morton <akpm@linux-foundation.org>, "Rafael J. Wysocki" <rjw@sisk.pl>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Alexander Beregalov <a.beregalov@gmail.com>, "linux-next@vger.kernel.org" <linux-next@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20090403164450.aKA87jh4-KHqwMtH3PbHhV36tejhWOQebHAZUTk_KO4@z>
 
 
---------------030909000609080900040506
-Content-Type: text/plain;
- name="0001-preadv-pwritev-tweak-interface.patch"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline;
- filename="0001-preadv-pwritev-tweak-interface.patch"
+* Andrew Morton <akpm@linux-foundation.org> wrote:
 
-From fc35c3cee3c3f821c39359fa6b33198d1a0219e6 Mon Sep 17 00:00:00 2001
-From: Gerd Hoffmann <kraxel@redhat.com>
-Date: Fri, 3 Apr 2009 11:08:00 +0200
-Subject: [PATCH] preadv/pwritev: tweak interface.
+> > +config DEBUG_PAGEALLOC
+> > +	bool "Debug page memory allocations"
+> > +	depends on DEBUG_KERNEL && ARCH_SUPPORTS_DEBUG_PAGEALLOC
+> > +	depends on !HIBERNATION || !PPC && !SPARC
+> > +	---help---
+> > +	  Unmap pages from the kernel linear mapping after free_pages().
+> > +	  This results in a large slowdown, but helps to find certain types
+> > +	  of memory corruptions.
+> > +
+> 
+> I guess this is why it wasn't discovered in my compile testing.  
+> It's quite regrettable that `make allmodconfig' didn't enable the 
+> feature. That's what allmodconfig is for.
 
-Go from "u32" to "unsigned long" for the pos_{high,low} syscall
-arguments.  That way we avoid the 32/32 split for 64bit archs,
-and we still side-step the ABI issue with unaligned 64bit args
-on a number of 32bit archs.  pos_high on 64bit is unused for
-the time being. Some day we might be happy to have it though ;)
+Hm, i _do_ remember some hibernation magic fix from Rafael, in the 
+area of debugalloc. Many months ago.
 
-Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
----
- fs/compat.c              |    8 ++++----
- fs/read_write.c          |   12 ++++++++----
- include/linux/compat.h   |    4 ++--
- include/linux/syscalls.h |    4 ++--
- 4 files changed, 16 insertions(+), 12 deletions(-)
+Rafael, is it supposed to work? If yes, i think we should unblock 
+it.
 
-diff --git a/fs/compat.c b/fs/compat.c
-index 1c859da..17e1dd1 100644
---- a/fs/compat.c
-+++ b/fs/compat.c
-@@ -1236,9 +1236,9 @@ compat_sys_readv(unsigned long fd, const struct compat_iovec __user *vec,
- 
- asmlinkage ssize_t
- compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
--		  unsigned long vlen, u32 pos_high, u32 pos_low)
-+		  unsigned long vlen, unsigned long pos_high, unsigned long pos_low)
- {
--	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
-+	loff_t pos = ((loff_t)pos_high << BITS_PER_COMPAT_LONG) | pos_low;
- 	struct file *file;
- 	int fput_needed;
- 	ssize_t ret;
-@@ -1293,9 +1293,9 @@ compat_sys_writev(unsigned long fd, const struct compat_iovec __user *vec,
- 
- asmlinkage ssize_t
- compat_sys_pwritev(unsigned long fd, const struct compat_iovec __user *vec,
--		   unsigned long vlen, u32 pos_high, u32 pos_low)
-+		   unsigned long vlen, unsigned long pos_high, unsigned long pos_low)
- {
--	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
-+	loff_t pos = ((loff_t)pos_high << BITS_PER_COMPAT_LONG) | pos_low;
- 	struct file *file;
- 	int fput_needed;
- 	ssize_t ret;
-diff --git a/fs/read_write.c b/fs/read_write.c
-index 6d5d8ff..8201e60 100644
---- a/fs/read_write.c
-+++ b/fs/read_write.c
-@@ -731,10 +731,14 @@ SYSCALL_DEFINE3(writev, unsigned long, fd, const struct iovec __user *, vec,
- 	return ret;
- }
- 
-+#define HALF_LONG (BITS_PER_LONG / 2)
-+
- SYSCALL_DEFINE5(preadv, unsigned long, fd, const struct iovec __user *, vec,
--		unsigned long, vlen, u32, pos_high, u32, pos_low)
-+		unsigned long, vlen, unsigned long, pos_high, unsigned long, pos_low)
- {
--	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
-+	/* gcc optimizes away the shifts for
-+	 * sizeof(pos_high) == sizeof(pos), i.e. on 64bit archs */
-+	loff_t pos = (((loff_t)pos_high << HALF_LONG) << HALF_LONG) | pos_low;
- 	struct file *file;
- 	ssize_t ret = -EBADF;
- 	int fput_needed;
-@@ -757,9 +761,9 @@ SYSCALL_DEFINE5(preadv, unsigned long, fd, const struct iovec __user *, vec,
- }
- 
- SYSCALL_DEFINE5(pwritev, unsigned long, fd, const struct iovec __user *, vec,
--		unsigned long, vlen, u32, pos_high, u32, pos_low)
-+		unsigned long, vlen, unsigned long, pos_high, unsigned long, pos_low)
- {
--	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
-+	loff_t pos = (((loff_t)pos_high << HALF_LONG) << HALF_LONG) | pos_low;
- 	struct file *file;
- 	ssize_t ret = -EBADF;
- 	int fput_needed;
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index 9723edd..f4b607e 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -193,10 +193,10 @@ asmlinkage ssize_t compat_sys_writev(unsigned long fd,
- 		const struct compat_iovec __user *vec, unsigned long vlen);
- asmlinkage ssize_t compat_sys_preadv(unsigned long fd,
- 		const struct compat_iovec __user *vec,
--		unsigned long vlen, u32 pos_high, u32 pos_low);
-+		unsigned long vlen, unsigned long pos_high, unsigned long pos_low);
- asmlinkage ssize_t compat_sys_pwritev(unsigned long fd,
- 		const struct compat_iovec __user *vec,
--		unsigned long vlen, u32 pos_high, u32 pos_low);
-+		unsigned long vlen, unsigned long pos_high, unsigned long pos_low);
- 
- int compat_do_execve(char * filename, compat_uptr_t __user *argv,
- 	        compat_uptr_t __user *envp, struct pt_regs * regs);
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index b299a82..25e60b0 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -462,9 +462,9 @@ asmlinkage long sys_pread64(unsigned int fd, char __user *buf,
- asmlinkage long sys_pwrite64(unsigned int fd, const char __user *buf,
- 			     size_t count, loff_t pos);
- asmlinkage long sys_preadv(unsigned long fd, const struct iovec __user *vec,
--			   unsigned long vlen, u32 pos_high, u32 pos_low);
-+			   unsigned long vlen, unsigned long pos_high, unsigned long pos_low);
- asmlinkage long sys_pwritev(unsigned long fd, const struct iovec __user *vec,
--			    unsigned long vlen, u32 pos_high, u32 pos_low);
-+			    unsigned long vlen, unsigned long pos_high, unsigned long pos_low);
- asmlinkage long sys_getcwd(char __user *buf, unsigned long size);
- asmlinkage long sys_mkdir(const char __user *pathname, int mode);
- asmlinkage long sys_chdir(const char __user *filename);
--- 
-1.6.1.3
-
-
---------------030909000609080900040506--
+	Ingo
