@@ -1,39 +1,51 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCH] build fix for generic debug pagealloc
-Date: Fri, 3 Apr 2009 18:44:50 +0200
-Message-ID: <20090403164450.GC3047@elte.hu>
-References: <a4423d670904020421k7395e11dwe70d4223cb817e0a@mail.gmail.com> <20090402163145.GA28728@localhost.localdomain> <20090402094522.b29004c8.akpm@linux-foundation.org>
+From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Subject: Re: [patch 143/166] preadv/pwritev: Add preadv and pwritev system
+ calls.
+Date: Fri, 03 Apr 2009 09:57:49 -0700
+Message-ID: <49D6400D.7040001@zytor.com>
+References: <200904022359.n32NxNYu022834@imap1.linux-foundation.org> <alpine.LFD.2.00.0904021839390.15441@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S934928AbZDCQrG@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20090402094522.b29004c8.akpm@linux-foundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>, "Rafael J. Wysocki" <rjw@sisk.pl>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Alexander Beregalov <a.beregalov@gmail.com>, "linux-next@vger.kernel.org" <linux-next@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <alpine.LFD.2.00.0904021839390.15441-bi+AKbBUZKY6gyzm1THtWbp2dZbC/Bob@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, kraxel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-
-* Andrew Morton <akpm@linux-foundation.org> wrote:
-
-> > +config DEBUG_PAGEALLOC
-> > +	bool "Debug page memory allocations"
-> > +	depends on DEBUG_KERNEL && ARCH_SUPPORTS_DEBUG_PAGEALLOC
-> > +	depends on !HIBERNATION || !PPC && !SPARC
-> > +	---help---
-> > +	  Unmap pages from the kernel linear mapping after free_pages().
-> > +	  This results in a large slowdown, but helps to find certain types
-> > +	  of memory corruptions.
-> > +
+Linus Torvalds wrote:
 > 
-> I guess this is why it wasn't discovered in my compile testing.  
-> It's quite regrettable that `make allmodconfig' didn't enable the 
-> feature. That's what allmodconfig is for.
+> Grr. That may make sense on 32-bit architectures, but makes no sense 
+> what-so-ever on 64-bit ones.
+> 
+> Why not just say that it's two "unsigned long" arguments, and split it by 
+> "sizeof unsigned long". And then, on 64-bit architectures, the high bits 
+> can be ignored. You can even get gcc to optimize it all away by doing 
+> something like
+> 
+> 	#define HALF_LONG (BITS_IN_LONG / 2)
+> 
+> 	offset = (((loff_t)high << HALF_LONG) << HALF_LONG) | low;
+> 
+> and then gcc should automaticaly notice that shifting up that way is just 
+> a fancy way of saying "0", and ignore the high bits.
+> 
+> How married are people to this crazy 2x "32 bits" model?
+> 
 
-Hm, i _do_ remember some hibernation magic fix from Rafael, in the 
-area of debugalloc. Many months ago.
+I certainly am *not* happy with it, and said so when it was first
+posted.  My main complaint with it is that it introduces yet another
+special case in the kernel<->userspace ABI, because although we've had
+this problem before, it has been hacked around a different way every time.
 
-Rafael, is it supposed to work? If yes, i think we should unblock 
-it.
+	-hpa
 
-	Ingo
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
+
+--
+To unsubscribe from this list: send the line "unsubscribe linux-api" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
