@@ -1,44 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:42728 "EHLO mx3.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933576AbZDCQqS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Apr 2009 12:46:18 -0400
-Date: Fri, 3 Apr 2009 18:44:50 +0200
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCH] build fix for generic debug pagealloc
-Message-ID: <20090403164450.GC3047@elte.hu>
-References: <a4423d670904020421k7395e11dwe70d4223cb817e0a@mail.gmail.com> <20090402163145.GA28728@localhost.localdomain> <20090402094522.b29004c8.akpm@linux-foundation.org>
+Received: from terminus.zytor.com ([198.137.202.10]:35683 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755548AbZDCRAI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2009 13:00:08 -0400
+Message-ID: <49D6400D.7040001@zytor.com>
+Date: Fri, 03 Apr 2009 09:57:49 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20090402094522.b29004c8.akpm@linux-foundation.org>
+Subject: Re: [patch 143/166] preadv/pwritev: Add preadv and pwritev system
+ calls.
+References: <200904022359.n32NxNYu022834@imap1.linux-foundation.org> <alpine.LFD.2.00.0904021839390.15441@localhost.localdomain>
+In-Reply-To: <alpine.LFD.2.00.0904021839390.15441@localhost.localdomain>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, "Rafael J. Wysocki" <rjw@sisk.pl>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Alexander Beregalov <a.beregalov@gmail.com>, "linux-next@vger.kernel.org" <linux-next@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20090403164450.aKA87jh4-KHqwMtH3PbHhV36tejhWOQebHAZUTk_KO4@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, kraxel@redhat.com, arnd@arndb.de, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, ralf@linux-mips.org, tglx@linutronix.de, Al Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20090403165749.TI25c72dWVaHVdn9q8EbF9si9ZNswvuwJxbWVdanZRA@z>
 
-
-* Andrew Morton <akpm@linux-foundation.org> wrote:
-
-> > +config DEBUG_PAGEALLOC
-> > +	bool "Debug page memory allocations"
-> > +	depends on DEBUG_KERNEL && ARCH_SUPPORTS_DEBUG_PAGEALLOC
-> > +	depends on !HIBERNATION || !PPC && !SPARC
-> > +	---help---
-> > +	  Unmap pages from the kernel linear mapping after free_pages().
-> > +	  This results in a large slowdown, but helps to find certain types
-> > +	  of memory corruptions.
-> > +
+Linus Torvalds wrote:
 > 
-> I guess this is why it wasn't discovered in my compile testing.  
-> It's quite regrettable that `make allmodconfig' didn't enable the 
-> feature. That's what allmodconfig is for.
+> Grr. That may make sense on 32-bit architectures, but makes no sense 
+> what-so-ever on 64-bit ones.
+> 
+> Why not just say that it's two "unsigned long" arguments, and split it by 
+> "sizeof unsigned long". And then, on 64-bit architectures, the high bits 
+> can be ignored. You can even get gcc to optimize it all away by doing 
+> something like
+> 
+> 	#define HALF_LONG (BITS_IN_LONG / 2)
+> 
+> 	offset = (((loff_t)high << HALF_LONG) << HALF_LONG) | low;
+> 
+> and then gcc should automaticaly notice that shifting up that way is just 
+> a fancy way of saying "0", and ignore the high bits.
+> 
+> How married are people to this crazy 2x "32 bits" model?
+> 
 
-Hm, i _do_ remember some hibernation magic fix from Rafael, in the 
-area of debugalloc. Many months ago.
+I certainly am *not* happy with it, and said so when it was first
+posted.  My main complaint with it is that it introduces yet another
+special case in the kernel<->userspace ABI, because although we've had
+this problem before, it has been hacked around a different way every time.
 
-Rafael, is it supposed to work? If yes, i think we should unblock 
-it.
+	-hpa
 
-	Ingo
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
+
