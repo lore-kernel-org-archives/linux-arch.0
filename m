@@ -1,254 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:57335 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:56563 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758130AbZDCAGY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2009 20:06:24 -0400
-Message-ID: <200904022359.n32NxNYu022834@imap1.linux-foundation.org>
-Subject: [patch 143/166] preadv/pwritev: Add preadv and pwritev system calls.
-From: akpm@linux-foundation.org
-Date: Thu, 02 Apr 2009 16:59:23 -0700
+	by vger.kernel.org with ESMTP id S1751861AbZDCBtO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2009 21:49:14 -0400
+Date: Thu, 2 Apr 2009 18:43:08 -0700 (PDT)
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [patch 143/166] preadv/pwritev: Add preadv and pwritev system
+ calls.
+In-Reply-To: <200904022359.n32NxNYu022834@imap1.linux-foundation.org>
+Message-ID: <alpine.LFD.2.00.0904021839390.15441@localhost.localdomain>
+References: <200904022359.n32NxNYu022834@imap1.linux-foundation.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, kraxel@redhat.com, arnd@arndb.de, hpa@zytor.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, ralf@linux-mips.org, tglx@linutronix.de, viro@zeniv.linux.org.uk
-Message-ID: <20090402235923.8SUsHxEdULMQrE01pcTamq9gfoZ_Feau7Jo_w7jMZFs@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: kraxel@redhat.com, arnd@arndb.de, "H. Peter Anvin" <hpa@zytor.com>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, ralf@linux-mips.org, tglx@linutronix.de, Al Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20090403014308.wCDDzE9tCmTRsOPIGXUvkd7ZpXBqtn35-o28J1tid_s@z>
 
-From: Gerd Hoffmann <kraxel@redhat.com>
 
-This patch adds preadv and pwritev system calls.  These syscalls are a
-pretty straightforward combination of pread and readv (same for write). 
-They are quite useful for doing vectored I/O in threaded applications. 
-Using lseek+readv instead opens race windows you'll have to plug with
-locking.
 
-Other systems have such system calls too, for example NetBSD, check
-here: http://www.daemon-systems.org/man/preadv.2.html
+On Thu, 2 Apr 2009, akpm@linux-foundation.org wrote:
+>
+> glibc entriely and use a syscall prototype which works without
+> arch-specific wrappers inside the kernel: The offset argument is
+> explicitly split into two 32bit values.
 
-The application-visible interface provided by glibc should look like
-this to be compatible to the existing implementations in the *BSD family:
+Grr. That may make sense on 32-bit architectures, but makes no sense 
+what-so-ever on 64-bit ones.
 
-  ssize_t preadv(int d, const struct iovec *iov, int iovcnt, off_t offset);
-  ssize_t pwritev(int d, const struct iovec *iov, int iovcnt, off_t offset);
+Why not just say that it's two "unsigned long" arguments, and split it by 
+"sizeof unsigned long". And then, on 64-bit architectures, the high bits 
+can be ignored. You can even get gcc to optimize it all away by doing 
+something like
 
-This prototype has one problem though: On 32bit archs is the (64bit)
-offset argument unaligned, which the syscall ABI of several archs doesn't
-allow to do.  At least s390 needs a wrapper in glibc to handle this.  As
-we'll need a wrappers in glibc anyway I've decided to push problem to
-glibc entriely and use a syscall prototype which works without
-arch-specific wrappers inside the kernel: The offset argument is
-explicitly splitted into two 32bit values.
+	#define HALF_LONG (BITS_IN_LONG / 2)
 
-The patch sports the actual system call implementation and the windup in
-the x86 system call tables.  Other archs follow as separate patches.
+	offset = (((loff_t)high << HALF_LONG) << HALF_LONG) | low;
 
-Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: <linux-api@vger.kernel.org>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+and then gcc should automaticaly notice that shifting up that way is just 
+a fancy way of saying "0", and ignore the high bits.
 
- arch/x86/ia32/ia32entry.S          |    2 +
- arch/x86/include/asm/unistd_32.h   |    2 +
- arch/x86/include/asm/unistd_64.h   |    4 ++
- arch/x86/kernel/syscall_table_32.S |    2 +
- fs/compat.c                        |   36 +++++++++++++++++++
- fs/read_write.c                    |   50 +++++++++++++++++++++++++++
- include/linux/compat.h             |    6 +++
- include/linux/syscalls.h           |    4 ++
- 8 files changed, 106 insertions(+)
+How married are people to this crazy 2x "32 bits" model?
 
-diff -puN arch/x86/ia32/ia32entry.S~preadv-pwritev-add-preadv-and-pwritev-system-calls arch/x86/ia32/ia32entry.S
---- a/arch/x86/ia32/ia32entry.S~preadv-pwritev-add-preadv-and-pwritev-system-calls
-+++ a/arch/x86/ia32/ia32entry.S
-@@ -828,4 +828,6 @@ ia32_sys_call_table:
- 	.quad sys_dup3			/* 330 */
- 	.quad sys_pipe2
- 	.quad sys_inotify_init1
-+	.quad compat_sys_preadv
-+	.quad compat_sys_pwritev
- ia32_syscall_end:
-diff -puN arch/x86/include/asm/unistd_32.h~preadv-pwritev-add-preadv-and-pwritev-system-calls arch/x86/include/asm/unistd_32.h
---- a/arch/x86/include/asm/unistd_32.h~preadv-pwritev-add-preadv-and-pwritev-system-calls
-+++ a/arch/x86/include/asm/unistd_32.h
-@@ -338,6 +338,8 @@
- #define __NR_dup3		330
- #define __NR_pipe2		331
- #define __NR_inotify_init1	332
-+#define __NR_preadv		333
-+#define __NR_pwritev		334
- 
- #ifdef __KERNEL__
- 
-diff -puN arch/x86/include/asm/unistd_64.h~preadv-pwritev-add-preadv-and-pwritev-system-calls arch/x86/include/asm/unistd_64.h
---- a/arch/x86/include/asm/unistd_64.h~preadv-pwritev-add-preadv-and-pwritev-system-calls
-+++ a/arch/x86/include/asm/unistd_64.h
-@@ -653,6 +653,10 @@ __SYSCALL(__NR_dup3, sys_dup3)
- __SYSCALL(__NR_pipe2, sys_pipe2)
- #define __NR_inotify_init1			294
- __SYSCALL(__NR_inotify_init1, sys_inotify_init1)
-+#define __NR_preadv				295
-+__SYSCALL(__NR_preadv, sys_preadv)
-+#define __NR_pwritev				296
-+__SYSCALL(__NR_pwritev, sys_pwritev)
- 
- 
- #ifndef __NO_STUBS
-diff -puN arch/x86/kernel/syscall_table_32.S~preadv-pwritev-add-preadv-and-pwritev-system-calls arch/x86/kernel/syscall_table_32.S
---- a/arch/x86/kernel/syscall_table_32.S~preadv-pwritev-add-preadv-and-pwritev-system-calls
-+++ a/arch/x86/kernel/syscall_table_32.S
-@@ -332,3 +332,5 @@ ENTRY(sys_call_table)
- 	.long sys_dup3			/* 330 */
- 	.long sys_pipe2
- 	.long sys_inotify_init1
-+	.long sys_preadv
-+	.long sys_pwritev
-diff -puN fs/compat.c~preadv-pwritev-add-preadv-and-pwritev-system-calls fs/compat.c
---- a/fs/compat.c~preadv-pwritev-add-preadv-and-pwritev-system-calls
-+++ a/fs/compat.c
-@@ -1232,6 +1232,24 @@ compat_sys_readv(unsigned long fd, const
- 	return ret;
- }
- 
-+asmlinkage ssize_t
-+compat_sys_preadv(unsigned long fd, const struct compat_iovec __user *vec,
-+		  unsigned long vlen, u32 pos_high, u32 pos_low)
-+{
-+	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
-+	struct file *file;
-+	ssize_t ret;
-+
-+	if (pos < 0)
-+		return -EINVAL;
-+	file = fget(fd);
-+	if (!file)
-+		return -EBADF;
-+	ret = compat_readv(file, vec, vlen, &pos);
-+	fput(file);
-+	return ret;
-+}
-+
- static size_t compat_writev(struct file *file,
- 			    const struct compat_iovec __user *vec,
- 			    unsigned long vlen, loff_t *pos)
-@@ -1269,6 +1287,24 @@ compat_sys_writev(unsigned long fd, cons
- 	return ret;
- }
- 
-+asmlinkage ssize_t
-+compat_sys_pwritev(unsigned long fd, const struct compat_iovec __user *vec,
-+		   unsigned long vlen, u32 pos_high, u32 pos_low)
-+{
-+	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
-+	struct file *file;
-+	ssize_t ret;
-+
-+	if (pos < 0)
-+		return -EINVAL;
-+	file = fget(fd);
-+	if (!file)
-+		return -EBADF;
-+	ret = compat_writev(file, vec, vlen, &pos);
-+	fput(file);
-+	return ret;
-+}
-+
- asmlinkage long
- compat_sys_vmsplice(int fd, const struct compat_iovec __user *iov32,
- 		    unsigned int nr_segs, unsigned int flags)
-diff -puN fs/read_write.c~preadv-pwritev-add-preadv-and-pwritev-system-calls fs/read_write.c
---- a/fs/read_write.c~preadv-pwritev-add-preadv-and-pwritev-system-calls
-+++ a/fs/read_write.c
-@@ -731,6 +731,56 @@ SYSCALL_DEFINE3(writev, unsigned long, f
- 	return ret;
- }
- 
-+SYSCALL_DEFINE5(preadv, unsigned long, fd, const struct iovec __user *, vec,
-+		unsigned long, vlen, u32, pos_high, u32, pos_low)
-+{
-+	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
-+	struct file *file;
-+	ssize_t ret = -EBADF;
-+	int fput_needed;
-+
-+	if (pos < 0)
-+		return -EINVAL;
-+
-+	file = fget_light(fd, &fput_needed);
-+	if (file) {
-+		ret = -ESPIPE;
-+		if (file->f_mode & FMODE_PREAD)
-+			ret = vfs_readv(file, vec, vlen, &pos);
-+		fput_light(file, fput_needed);
-+	}
-+
-+	if (ret > 0)
-+		add_rchar(current, ret);
-+	inc_syscr(current);
-+	return ret;
-+}
-+
-+SYSCALL_DEFINE5(pwritev, unsigned long, fd, const struct iovec __user *, vec,
-+		unsigned long, vlen, u32, pos_high, u32, pos_low)
-+{
-+	loff_t pos = ((loff_t)pos_high << 32) | pos_low;
-+	struct file *file;
-+	ssize_t ret = -EBADF;
-+	int fput_needed;
-+
-+	if (pos < 0)
-+		return -EINVAL;
-+
-+	file = fget_light(fd, &fput_needed);
-+	if (file) {
-+		ret = -ESPIPE;
-+		if (file->f_mode & FMODE_PWRITE)
-+			ret = vfs_writev(file, vec, vlen, &pos);
-+		fput_light(file, fput_needed);
-+	}
-+
-+	if (ret > 0)
-+		add_wchar(current, ret);
-+	inc_syscw(current);
-+	return ret;
-+}
-+
- static ssize_t do_sendfile(int out_fd, int in_fd, loff_t *ppos,
- 			   size_t count, loff_t max)
- {
-diff -puN include/linux/compat.h~preadv-pwritev-add-preadv-and-pwritev-system-calls include/linux/compat.h
---- a/include/linux/compat.h~preadv-pwritev-add-preadv-and-pwritev-system-calls
-+++ a/include/linux/compat.h
-@@ -191,6 +191,12 @@ asmlinkage ssize_t compat_sys_readv(unsi
- 		const struct compat_iovec __user *vec, unsigned long vlen);
- asmlinkage ssize_t compat_sys_writev(unsigned long fd,
- 		const struct compat_iovec __user *vec, unsigned long vlen);
-+asmlinkage ssize_t compat_sys_preadv(unsigned long fd,
-+		const struct compat_iovec __user *vec,
-+		unsigned long vlen, u32 pos_high, u32 pos_low);
-+asmlinkage ssize_t compat_sys_pwritev(unsigned long fd,
-+		const struct compat_iovec __user *vec,
-+		unsigned long vlen, u32 pos_high, u32 pos_low);
- 
- int compat_do_execve(char * filename, compat_uptr_t __user *argv,
- 	        compat_uptr_t __user *envp, struct pt_regs * regs);
-diff -puN include/linux/syscalls.h~preadv-pwritev-add-preadv-and-pwritev-system-calls include/linux/syscalls.h
---- a/include/linux/syscalls.h~preadv-pwritev-add-preadv-and-pwritev-system-calls
-+++ a/include/linux/syscalls.h
-@@ -461,6 +461,10 @@ asmlinkage long sys_pread64(unsigned int
- 			    size_t count, loff_t pos);
- asmlinkage long sys_pwrite64(unsigned int fd, const char __user *buf,
- 			     size_t count, loff_t pos);
-+asmlinkage long sys_preadv(unsigned long fd, const struct iovec __user *vec,
-+			   unsigned long vlen, u32 pos_high, u32 pos_low);
-+asmlinkage long sys_pwritev(unsigned long fd, const struct iovec __user *vec,
-+			    unsigned long vlen, u32 pos_high, u32 pos_low);
- asmlinkage long sys_getcwd(char __user *buf, unsigned long size);
- asmlinkage long sys_mkdir(const char __user *pathname, int mode);
- asmlinkage long sys_chdir(const char __user *filename);
-_
+			Linus
