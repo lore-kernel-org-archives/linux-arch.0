@@ -1,51 +1,58 @@
-From: "Rafael J. Wysocki" <rjw@sisk.pl>
-Subject: Re: [PATCH] build fix for generic debug pagealloc
-Date: Fri, 3 Apr 2009 22:38:53 +0200
-Message-ID: <200904032238.55438.rjw@sisk.pl>
-References: <a4423d670904020421k7395e11dwe70d4223cb817e0a@mail.gmail.com> <20090402094522.b29004c8.akpm@linux-foundation.org> <20090403164450.GC3047@elte.hu>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [patch 143/166] preadv/pwritev: Add preadv and pwritev system
+ calls.
+Date: Sat, 4 Apr 2009 10:38:30 -0700
+Message-ID: <20090404103830.56f66e13.akpm@linux-foundation.org>
+References: <200904022359.n32NxNYu022834@imap1.linux-foundation.org>
+	<alpine.LFD.2.00.0904021839390.15441@localhost.localdomain>
+	<49D5CA58.20908@redhat.com>
+	<alpine.LFD.2.00.0904030739540.4130@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ogre.sisk.pl ([217.79.144.158]:35923 "EHLO ogre.sisk.pl"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759249AbZDCUiv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Apr 2009 16:38:51 -0400
-In-Reply-To: <20090403164450.GC3047@elte.hu>
-Content-Disposition: inline
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:35402 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751291AbZDDRp0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 4 Apr 2009 13:45:26 -0400
+In-Reply-To: <alpine.LFD.2.00.0904030739540.4130@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Akinobu Mita <akinobu.mita@gmail.com>, Alexander Beregalov <a.beregalov@gmail.com>, "linux-next@vger.kernel.org" <linux-next@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Gerd Hoffmann <kraxel@redhat.com>, arnd@arndb.de, "H. Peter Anvin" <hpa@zytor.com>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, ralf@linux-mips.org, tglx@linutronix.de, Al Viro <viro@zeniv.linux.org.uk>
 
-On Friday 03 April 2009, Ingo Molnar wrote:
-> 
-> * Andrew Morton <akpm@linux-foundation.org> wrote:
-> 
-> > > +config DEBUG_PAGEALLOC
-> > > +	bool "Debug page memory allocations"
-> > > +	depends on DEBUG_KERNEL && ARCH_SUPPORTS_DEBUG_PAGEALLOC
-> > > +	depends on !HIBERNATION || !PPC && !SPARC
-> > > +	---help---
-> > > +	  Unmap pages from the kernel linear mapping after free_pages().
-> > > +	  This results in a large slowdown, but helps to find certain types
-> > > +	  of memory corruptions.
-> > > +
-> > 
-> > I guess this is why it wasn't discovered in my compile testing.  
-> > It's quite regrettable that `make allmodconfig' didn't enable the 
-> > feature. That's what allmodconfig is for.
-> 
-> Hm, i _do_ remember some hibernation magic fix from Rafael, in the 
-> area of debugalloc. Many months ago.
-> 
-> Rafael, is it supposed to work? If yes, i think we should unblock 
-> it.
+On Fri, 3 Apr 2009 08:03:22 -0700 (PDT) Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-Yes, it is, at least on x86.
+> +static inline loff_t pos_from_hilo(unsigned long high, unsigned long low)
+> +{
+> +#define HALF_LONG_BITS (BITS_PER_LONG / 2)
+> +	return ((high << HALF_LONG_BITS) << HALF_LONG_BITS) | low;
+> +}
 
-ISTR using DEBUG_PAGEALLOC with hibernation quite some time ago already.
+Does C promote the `unsigned long high' beforehand, or will the
+intermediate expression overflow?
 
-Thanks,
-Rafael
+<does it the old-fashioned way>
+
+y:/home/akpm> cat t.c
+
+#define HALF_LONG_BITS 16
+
+main()
+{
+        unsigned hi = 0x43;
+        unsigned lo = 0x42;
+        unsigned long long res;
+	
+        res = ((hi << 16) << 16) | lo;
+        printf("%llx\n", res);
+}
+y:/home/akpm> gcc -O t.c
+y:/home/akpm> ./a.out
+42
+
+I think it's wrong on 32-bit?
+
+Also, HALF_LONG_BITS is 32 on 64-bit, so "high" gets shifted to zero. 
+It's unclear whether this was deliberate, but either way, it's a sneaky
+trick and deserves a code comment!
