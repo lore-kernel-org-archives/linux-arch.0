@@ -1,406 +1,230 @@
 From: akpm@linux-foundation.org
-Subject: [merged] simplify-copy_thread.patch removed from -mm tree
-Date: Mon, 06 Apr 2009 12:33:21 -0700
-Message-ID: <200904061933.n36JXLHb011071@imap1.linux-foundation.org>
-Reply-To: linux-kernel@vger.kernel.org
-Return-path: <mm-commits-owner@vger.kernel.org>
-Sender: mm-commits-owner@vger.kernel.org
-To: adobriyan@gmail.com, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Subject: [merged] preadv-pwritev-create-compat_readv.patch removed from -mm tree
+Date: Mon, 06 Apr 2009 12:37:53 -0700
+Message-ID: <200904061937.n36JbrsD013127@imap1.linux-foundation.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:56902 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756249AbZDFTnO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Apr 2009 15:43:14 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: kraxel@redhat.com, arnd@arndb.de, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, ralf@linux-mips.org, viro@zeniv.linux.org.uk, mm-commits@vger.kernel.org
 
 
 The patch titled
-     Simplify copy_thread()
+     preadv/pwritev: create compat_readv()
 has been removed from the -mm tree.  Its filename was
-     simplify-copy_thread.patch
+     preadv-pwritev-create-compat_readv.patch
 
 This patch was dropped because it was merged into mainline or a subsystem tree
 
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: Simplify copy_thread()
-From: Alexey Dobriyan <adobriyan@gmail.com>
+Subject: preadv/pwritev: create compat_readv()
+From: Gerd Hoffmann <kraxel@redhat.com>
 
-First argument unused since 2.3.11.
+This patch series:
 
-[akpm@linux-foundation.org: coding-style fixes]
-Signed-off-by: Alexey Dobriyan <adobriyan@gmail.com>
+Implement the preadv() and pwritev() syscalls.  *BSD has this syscall for
+quite some time.
+
+Test code:
+
+#if 0
+set -x
+gcc -Wall -O2 -o preadv $0
+exit 0
+#endif
+/*
+ * preadv demo / test
+ *
+ * (c) 2008 Gerd Hoffmann <kraxel@redhat.com>
+ *
+ * build with "sh $thisfile"
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <inttypes.h>
+#include <sys/uio.h>
+
+/* ----------------------------------------------------------------- */
+/* syscall windup                                                    */
+
+#include <sys/syscall.h>
+#if 0
+/* WARNING: Be sure you know what you are doing if you enable this.
+ * linux syscall code isn't upstream yet, syscall numbers are subject
+ * to change */
+# ifndef __NR_preadv
+#  ifdef __i386__
+#   define __NR_preadv  333
+#   define __NR_pwritev 334
+#  endif
+#  ifdef __x86_64__
+#   define __NR_preadv  295
+#   define __NR_pwritev 296
+#  endif
+# endif
+#endif
+#ifndef __NR_preadv
+# error preadv/pwritev syscall numbers are unknown
+#endif
+
+static ssize_t preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)
+{
+    uint32_t pos_high = (offset >> 32) & 0xffffffff;
+    uint32_t pos_low  =  offset        & 0xffffffff;
+
+    return syscall(__NR_preadv, fd, iov, iovcnt, pos_high, pos_low);
+}
+
+static ssize_t pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
+{
+    uint32_t pos_high = (offset >> 32) & 0xffffffff;
+    uint32_t pos_low  =  offset        & 0xffffffff;
+
+    return syscall(__NR_pwritev, fd, iov, iovcnt, pos_high, pos_low);
+}
+
+/* ----------------------------------------------------------------- */
+/* demo/test app                                                     */
+
+static char filename[] = "/tmp/preadv-XXXXXX";
+static char outbuf[11] = "0123456789";
+static char inbuf[11]  = "----------";
+
+static struct iovec ovec[2] = {{
+        .iov_base = outbuf + 5,
+        .iov_len  = 5,
+    },{
+        .iov_base = outbuf + 0,
+        .iov_len  = 5,
+    }};
+
+static struct iovec ivec[3] = {{
+        .iov_base = inbuf + 6,
+        .iov_len  = 2,
+    },{
+        .iov_base = inbuf + 4,
+        .iov_len  = 2,
+    },{
+        .iov_base = inbuf + 2,
+        .iov_len  = 2,
+    }};
+
+void cleanup(void)
+{
+    unlink(filename);
+}
+
+int main(int argc, char **argv)
+{
+    int fd, rc;
+
+    fd = mkstemp(filename);
+    if (-1 == fd) {
+        perror("mkstemp");
+        exit(1);
+    }
+    atexit(cleanup);
+
+    /* write to file: "56789-01234" */
+    rc = pwritev(fd, ovec, 2, 0);
+    if (rc < 0) {
+        perror("pwritev");
+        exit(1);
+    }
+
+    /* read from file: "78-90-12" */
+    rc = preadv(fd, ivec, 3, 2);
+    if (rc < 0) {
+        perror("preadv");
+        exit(1);
+    }
+
+    printf("result  : %s\n", inbuf);
+    printf("expected: %s\n", "--129078--");
+    exit(0);
+}
+
+
+This patch:
+
+Factor out some code from compat_sys_readv() which can be shared with the
+upcoming compat_sys_preadv().
+
+
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: <linux-api@vger.kernel.org>
 Cc: <linux-arch@vger.kernel.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/alpha/kernel/process.c         |    2 +-
- arch/arm/kernel/process.c           |    2 +-
- arch/avr32/kernel/process.c         |    2 +-
- arch/blackfin/kernel/process.c      |    2 +-
- arch/cris/arch-v10/kernel/process.c |    2 +-
- arch/cris/arch-v32/kernel/process.c |    2 +-
- arch/frv/kernel/process.c           |    2 +-
- arch/h8300/kernel/process.c         |    2 +-
- arch/ia64/kernel/process.c          |    2 +-
- arch/m32r/kernel/process.c          |    2 +-
- arch/m68k/kernel/process.c          |    2 +-
- arch/m68knommu/kernel/process.c     |    2 +-
- arch/mips/kernel/process.c          |    2 +-
- arch/mn10300/kernel/process.c       |    2 +-
- arch/parisc/kernel/process.c        |    2 +-
- arch/powerpc/kernel/process.c       |    2 +-
- arch/s390/kernel/process.c          |    2 +-
- arch/sh/kernel/process_32.c         |    2 +-
- arch/sh/kernel/process_64.c         |    2 +-
- arch/sparc/kernel/process_32.c      |    2 +-
- arch/sparc/kernel/process_64.c      |    2 +-
- arch/um/kernel/process.c            |    2 +-
- arch/x86/kernel/process_32.c        |    2 +-
- arch/x86/kernel/process_64.c        |    2 +-
- arch/xtensa/kernel/process.c        |    2 +-
- include/linux/sched.h               |    3 ++-
- kernel/fork.c                       |    2 +-
- 27 files changed, 28 insertions(+), 27 deletions(-)
+ fs/compat.c |   26 ++++++++++++++++++--------
+ 1 file changed, 18 insertions(+), 8 deletions(-)
 
-diff -puN arch/alpha/kernel/process.c~simplify-copy_thread arch/alpha/kernel/process.c
---- a/arch/alpha/kernel/process.c~simplify-copy_thread
-+++ a/arch/alpha/kernel/process.c
-@@ -272,7 +272,7 @@ alpha_vfork(struct pt_regs *regs)
-  */
- 
- int
--copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
-+copy_thread(unsigned long clone_flags, unsigned long usp,
- 	    unsigned long unused,
- 	    struct task_struct * p, struct pt_regs * regs)
- {
-diff -puN arch/arm/kernel/process.c~simplify-copy_thread arch/arm/kernel/process.c
---- a/arch/arm/kernel/process.c~simplify-copy_thread
-+++ a/arch/arm/kernel/process.c
-@@ -301,7 +301,7 @@ void release_thread(struct task_struct *
- asmlinkage void ret_from_fork(void) __asm__("ret_from_fork");
- 
- int
--copy_thread(int nr, unsigned long clone_flags, unsigned long stack_start,
-+copy_thread(unsigned long clone_flags, unsigned long stack_start,
- 	    unsigned long stk_sz, struct task_struct *p, struct pt_regs *regs)
- {
- 	struct thread_info *thread = task_thread_info(p);
-diff -puN arch/avr32/kernel/process.c~simplify-copy_thread arch/avr32/kernel/process.c
---- a/arch/avr32/kernel/process.c~simplify-copy_thread
-+++ a/arch/avr32/kernel/process.c
-@@ -332,7 +332,7 @@ int dump_fpu(struct pt_regs *regs, elf_f
- 
- asmlinkage void ret_from_fork(void);
- 
--int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
-+int copy_thread(unsigned long clone_flags, unsigned long usp,
- 		unsigned long unused,
- 		struct task_struct *p, struct pt_regs *regs)
- {
-diff -puN arch/blackfin/kernel/process.c~simplify-copy_thread arch/blackfin/kernel/process.c
---- a/arch/blackfin/kernel/process.c~simplify-copy_thread
-+++ a/arch/blackfin/kernel/process.c
-@@ -193,7 +193,7 @@ asmlinkage int bfin_clone(struct pt_regs
+diff -puN fs/compat.c~preadv-pwritev-create-compat_readv fs/compat.c
+--- a/fs/compat.c~preadv-pwritev-create-compat_readv
++++ a/fs/compat.c
+@@ -1195,16 +1195,12 @@ out:
+ 	return ret;
  }
  
- int
--copy_thread(int nr, unsigned long clone_flags,
-+copy_thread(unsigned long clone_flags,
- 	    unsigned long usp, unsigned long topstk,
- 	    struct task_struct *p, struct pt_regs *regs)
+-asmlinkage ssize_t
+-compat_sys_readv(unsigned long fd, const struct compat_iovec __user *vec, unsigned long vlen)
++static size_t compat_readv(struct file *file,
++			   const struct compat_iovec __user *vec,
++			   unsigned long vlen, loff_t *pos)
  {
-diff -puN arch/cris/arch-v10/kernel/process.c~simplify-copy_thread arch/cris/arch-v10/kernel/process.c
---- a/arch/cris/arch-v10/kernel/process.c~simplify-copy_thread
-+++ a/arch/cris/arch-v10/kernel/process.c
-@@ -115,7 +115,7 @@ int kernel_thread(int (*fn)(void *), voi
-  */
- asmlinkage void ret_from_fork(void);
+-	struct file *file;
+ 	ssize_t ret = -EBADF;
  
--int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
-+int copy_thread(unsigned long clone_flags, unsigned long usp,
- 		unsigned long unused,
- 		struct task_struct *p, struct pt_regs *regs)
- {
-diff -puN arch/cris/arch-v32/kernel/process.c~simplify-copy_thread arch/cris/arch-v32/kernel/process.c
---- a/arch/cris/arch-v32/kernel/process.c~simplify-copy_thread
-+++ a/arch/cris/arch-v32/kernel/process.c
-@@ -131,7 +131,7 @@ kernel_thread(int (*fn)(void *), void * 
- extern asmlinkage void ret_from_fork(void);
+-	file = fget(fd);
+-	if (!file)
+-		return -EBADF;
+-
+ 	if (!(file->f_mode & FMODE_READ))
+ 		goto out;
  
- int
--copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
-+copy_thread(unsigned long clone_flags, unsigned long usp,
- 	unsigned long unused,
- 	struct task_struct *p, struct pt_regs *regs)
- {
-diff -puN arch/frv/kernel/process.c~simplify-copy_thread arch/frv/kernel/process.c
---- a/arch/frv/kernel/process.c~simplify-copy_thread
-+++ a/arch/frv/kernel/process.c
-@@ -204,7 +204,7 @@ void prepare_to_copy(struct task_struct 
- /*
-  * set up the kernel stack and exception frames for a new process
-  */
--int copy_thread(int nr, unsigned long clone_flags,
-+int copy_thread(unsigned long clone_flags,
- 		unsigned long usp, unsigned long topstk,
- 		struct task_struct *p, struct pt_regs *regs)
- {
-diff -puN arch/h8300/kernel/process.c~simplify-copy_thread arch/h8300/kernel/process.c
---- a/arch/h8300/kernel/process.c~simplify-copy_thread
-+++ a/arch/h8300/kernel/process.c
-@@ -191,7 +191,7 @@ asmlinkage int h8300_clone(struct pt_reg
+@@ -1212,12 +1208,26 @@ compat_sys_readv(unsigned long fd, const
+ 	if (!file->f_op || (!file->f_op->aio_read && !file->f_op->read))
+ 		goto out;
  
+-	ret = compat_do_readv_writev(READ, file, vec, vlen, &file->f_pos);
++	ret = compat_do_readv_writev(READ, file, vec, vlen, pos);
+ 
+ out:
+ 	if (ret > 0)
+ 		add_rchar(current, ret);
+ 	inc_syscr(current);
++	return ret;
++}
++
++asmlinkage ssize_t
++compat_sys_readv(unsigned long fd, const struct compat_iovec __user *vec,
++		 unsigned long vlen)
++{
++	struct file *file;
++	ssize_t ret;
++
++	file = fget(fd);
++	if (!file)
++		return -EBADF;
++	ret = compat_readv(file, vec, vlen, &file->f_pos);
+ 	fput(file);
+ 	return ret;
  }
- 
--int copy_thread(int nr, unsigned long clone_flags,
-+int copy_thread(unsigned long clone_flags,
-                 unsigned long usp, unsigned long topstk,
- 		 struct task_struct * p, struct pt_regs * regs)
- {
-diff -puN arch/ia64/kernel/process.c~simplify-copy_thread arch/ia64/kernel/process.c
---- a/arch/ia64/kernel/process.c~simplify-copy_thread
-+++ a/arch/ia64/kernel/process.c
-@@ -413,7 +413,7 @@ ia64_load_extra (struct task_struct *tas
-  * so there is nothing to worry about.
-  */
- int
--copy_thread (int nr, unsigned long clone_flags,
-+copy_thread(unsigned long clone_flags,
- 	     unsigned long user_stack_base, unsigned long user_stack_size,
- 	     struct task_struct *p, struct pt_regs *regs)
- {
-diff -puN arch/m32r/kernel/process.c~simplify-copy_thread arch/m32r/kernel/process.c
---- a/arch/m32r/kernel/process.c~simplify-copy_thread
-+++ a/arch/m32r/kernel/process.c
-@@ -225,7 +225,7 @@ int dump_fpu(struct pt_regs *regs, elf_f
- 	return 0; /* Task didn't use the fpu at all. */
- }
- 
--int copy_thread(int nr, unsigned long clone_flags, unsigned long spu,
-+int copy_thread(unsigned long clone_flags, unsigned long spu,
- 	unsigned long unused, struct task_struct *tsk, struct pt_regs *regs)
- {
- 	struct pt_regs *childregs = task_pt_regs(tsk);
-diff -puN arch/m68k/kernel/process.c~simplify-copy_thread arch/m68k/kernel/process.c
---- a/arch/m68k/kernel/process.c~simplify-copy_thread
-+++ a/arch/m68k/kernel/process.c
-@@ -233,7 +233,7 @@ asmlinkage int m68k_clone(struct pt_regs
- 		       parent_tidptr, child_tidptr);
- }
- 
--int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
-+int copy_thread(unsigned long clone_flags, unsigned long usp,
- 		 unsigned long unused,
- 		 struct task_struct * p, struct pt_regs * regs)
- {
-diff -puN arch/m68knommu/kernel/process.c~simplify-copy_thread arch/m68knommu/kernel/process.c
---- a/arch/m68knommu/kernel/process.c~simplify-copy_thread
-+++ a/arch/m68knommu/kernel/process.c
-@@ -199,7 +199,7 @@ asmlinkage int m68k_clone(struct pt_regs
-         return do_fork(clone_flags, newsp, regs, 0, NULL, NULL);
- }
- 
--int copy_thread(int nr, unsigned long clone_flags,
-+int copy_thread(unsigned long clone_flags,
- 		unsigned long usp, unsigned long topstk,
- 		struct task_struct * p, struct pt_regs * regs)
- {
-diff -puN arch/mips/kernel/process.c~simplify-copy_thread arch/mips/kernel/process.c
---- a/arch/mips/kernel/process.c~simplify-copy_thread
-+++ a/arch/mips/kernel/process.c
-@@ -99,7 +99,7 @@ void flush_thread(void)
- {
- }
- 
--int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
-+int copy_thread(unsigned long clone_flags, unsigned long usp,
- 	unsigned long unused, struct task_struct *p, struct pt_regs *regs)
- {
- 	struct thread_info *ti = task_thread_info(p);
-diff -puN arch/mn10300/kernel/process.c~simplify-copy_thread arch/mn10300/kernel/process.c
---- a/arch/mn10300/kernel/process.c~simplify-copy_thread
-+++ a/arch/mn10300/kernel/process.c
-@@ -193,7 +193,7 @@ void prepare_to_copy(struct task_struct 
-  * set up the kernel stack for a new thread and copy arch-specific thread
-  * control information
-  */
--int copy_thread(int nr, unsigned long clone_flags,
-+int copy_thread(unsigned long clone_flags,
- 		unsigned long c_usp, unsigned long ustk_size,
- 		struct task_struct *p, struct pt_regs *kregs)
- {
-diff -puN arch/parisc/kernel/process.c~simplify-copy_thread arch/parisc/kernel/process.c
---- a/arch/parisc/kernel/process.c~simplify-copy_thread
-+++ a/arch/parisc/kernel/process.c
-@@ -263,7 +263,7 @@ sys_vfork(struct pt_regs *regs)
- }
- 
- int
--copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
-+copy_thread(unsigned long clone_flags, unsigned long usp,
- 	    unsigned long unused,	/* in ia64 this is "user_stack_size" */
- 	    struct task_struct * p, struct pt_regs * pregs)
- {
-diff -puN arch/powerpc/kernel/process.c~simplify-copy_thread arch/powerpc/kernel/process.c
---- a/arch/powerpc/kernel/process.c~simplify-copy_thread
-+++ a/arch/powerpc/kernel/process.c
-@@ -598,7 +598,7 @@ void prepare_to_copy(struct task_struct 
- /*
-  * Copy a thread..
-  */
--int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
-+int copy_thread(unsigned long clone_flags, unsigned long usp,
- 		unsigned long unused, struct task_struct *p,
- 		struct pt_regs *regs)
- {
-diff -puN arch/s390/kernel/process.c~simplify-copy_thread arch/s390/kernel/process.c
---- a/arch/s390/kernel/process.c~simplify-copy_thread
-+++ a/arch/s390/kernel/process.c
-@@ -160,7 +160,7 @@ void release_thread(struct task_struct *
- {
- }
- 
--int copy_thread(int nr, unsigned long clone_flags, unsigned long new_stackp,
-+int copy_thread(unsigned long clone_flags, unsigned long new_stackp,
- 		unsigned long unused,
- 		struct task_struct *p, struct pt_regs *regs)
- {
-diff -puN arch/sh/kernel/process_32.c~simplify-copy_thread arch/sh/kernel/process_32.c
---- a/arch/sh/kernel/process_32.c~simplify-copy_thread
-+++ a/arch/sh/kernel/process_32.c
-@@ -170,7 +170,7 @@ int dump_fpu(struct pt_regs *regs, elf_f
- 
- asmlinkage void ret_from_fork(void);
- 
--int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
-+int copy_thread(unsigned long clone_flags, unsigned long usp,
- 		unsigned long unused,
- 		struct task_struct *p, struct pt_regs *regs)
- {
-diff -puN arch/sh/kernel/process_64.c~simplify-copy_thread arch/sh/kernel/process_64.c
---- a/arch/sh/kernel/process_64.c~simplify-copy_thread
-+++ a/arch/sh/kernel/process_64.c
-@@ -425,7 +425,7 @@ int dump_fpu(struct pt_regs *regs, elf_f
- 
- asmlinkage void ret_from_fork(void);
- 
--int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
-+int copy_thread(unsigned long clone_flags, unsigned long usp,
- 		unsigned long unused,
- 		struct task_struct *p, struct pt_regs *regs)
- {
-diff -puN arch/sparc/kernel/process_32.c~simplify-copy_thread arch/sparc/kernel/process_32.c
---- a/arch/sparc/kernel/process_32.c~simplify-copy_thread
-+++ a/arch/sparc/kernel/process_32.c
-@@ -455,7 +455,7 @@ asmlinkage int sparc_do_fork(unsigned lo
-  */
- extern void ret_from_fork(void);
- 
--int copy_thread(int nr, unsigned long clone_flags, unsigned long sp,
-+int copy_thread(unsigned long clone_flags, unsigned long sp,
- 		unsigned long unused,
- 		struct task_struct *p, struct pt_regs *regs)
- {
-diff -puN arch/sparc/kernel/process_64.c~simplify-copy_thread arch/sparc/kernel/process_64.c
---- a/arch/sparc/kernel/process_64.c~simplify-copy_thread
-+++ a/arch/sparc/kernel/process_64.c
-@@ -561,7 +561,7 @@ asmlinkage long sparc_do_fork(unsigned l
-  * Parent -->  %o0 == childs  pid, %o1 == 0
-  * Child  -->  %o0 == parents pid, %o1 == 1
-  */
--int copy_thread(int nr, unsigned long clone_flags, unsigned long sp,
-+int copy_thread(unsigned long clone_flags, unsigned long sp,
- 		unsigned long unused,
- 		struct task_struct *p, struct pt_regs *regs)
- {
-diff -puN arch/um/kernel/process.c~simplify-copy_thread arch/um/kernel/process.c
---- a/arch/um/kernel/process.c~simplify-copy_thread
-+++ a/arch/um/kernel/process.c
-@@ -179,7 +179,7 @@ void fork_handler(void)
- 	userspace(&current->thread.regs.regs);
- }
- 
--int copy_thread(int nr, unsigned long clone_flags, unsigned long sp,
-+int copy_thread(unsigned long clone_flags, unsigned long sp,
- 		unsigned long stack_top, struct task_struct * p,
- 		struct pt_regs *regs)
- {
-diff -puN arch/x86/kernel/process_32.c~simplify-copy_thread arch/x86/kernel/process_32.c
---- a/arch/x86/kernel/process_32.c~simplify-copy_thread
-+++ a/arch/x86/kernel/process_32.c
-@@ -245,7 +245,7 @@ void prepare_to_copy(struct task_struct 
- 	unlazy_fpu(tsk);
- }
- 
--int copy_thread(int nr, unsigned long clone_flags, unsigned long sp,
-+int copy_thread(unsigned long clone_flags, unsigned long sp,
- 	unsigned long unused,
- 	struct task_struct *p, struct pt_regs *regs)
- {
-diff -puN arch/x86/kernel/process_64.c~simplify-copy_thread arch/x86/kernel/process_64.c
---- a/arch/x86/kernel/process_64.c~simplify-copy_thread
-+++ a/arch/x86/kernel/process_64.c
-@@ -278,7 +278,7 @@ void prepare_to_copy(struct task_struct 
- 	unlazy_fpu(tsk);
- }
- 
--int copy_thread(int nr, unsigned long clone_flags, unsigned long sp,
-+int copy_thread(unsigned long clone_flags, unsigned long sp,
- 		unsigned long unused,
- 	struct task_struct *p, struct pt_regs *regs)
- {
-diff -puN arch/xtensa/kernel/process.c~simplify-copy_thread arch/xtensa/kernel/process.c
---- a/arch/xtensa/kernel/process.c~simplify-copy_thread
-+++ a/arch/xtensa/kernel/process.c
-@@ -172,7 +172,7 @@ void prepare_to_copy(struct task_struct 
-  *       childregs.
-  */
- 
--int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
-+int copy_thread(unsigned long clone_flags, unsigned long usp,
- 		unsigned long unused,
-                 struct task_struct * p, struct pt_regs * regs)
- {
-diff -puN include/linux/sched.h~simplify-copy_thread include/linux/sched.h
---- a/include/linux/sched.h~simplify-copy_thread
-+++ a/include/linux/sched.h
-@@ -1975,7 +1975,8 @@ extern void mm_release(struct task_struc
- /* Allocate a new mm structure and copy contents from tsk->mm */
- extern struct mm_struct *dup_mm(struct task_struct *tsk);
- 
--extern int  copy_thread(int, unsigned long, unsigned long, unsigned long, struct task_struct *, struct pt_regs *);
-+extern int copy_thread(unsigned long, unsigned long, unsigned long,
-+			struct task_struct *, struct pt_regs *);
- extern void flush_thread(void);
- extern void exit_thread(void);
- 
-diff -puN kernel/fork.c~simplify-copy_thread kernel/fork.c
---- a/kernel/fork.c~simplify-copy_thread
-+++ a/kernel/fork.c
-@@ -1125,7 +1125,7 @@ static struct task_struct *copy_process(
- 		goto bad_fork_cleanup_mm;
- 	if ((retval = copy_io(clone_flags, p)))
- 		goto bad_fork_cleanup_namespaces;
--	retval = copy_thread(0, clone_flags, stack_start, stack_size, p, regs);
-+	retval = copy_thread(clone_flags, stack_start, stack_size, p, regs);
- 	if (retval)
- 		goto bad_fork_cleanup_io;
- 
 _
 
-Patches currently in -mm which might be from adobriyan@gmail.com are
+Patches currently in -mm which might be from kraxel@redhat.com are
 
 origin.patch
 linux-next.patch
-sysctl-dont-take-the-use-count-of-multiple-heads-at-a-time.patch
-sysctl-lockdep-support-for-sysctl-reference-counting.patch
-softirq-introduce-statistics-for-softirq.patch
-proc-export-statistics-for-softirq-to-proc.patch
-proc-update-document-for-proc-softirqs-and-proc-stat.patch
-namespaces-move-proc_net_get_sb-to-a-generic-fs-superc-helper.patch
-namespaces-move-proc_net_get_sb-to-a-generic-fs-superc-helper-fix.patch
-namespaces-mqueue-ns-move-mqueue_mnt-into-struct-ipc_namespace.patch
-namespaces-ipc-namespaces-implement-support-for-posix-msqueues.patch
-namespaces-ipc-namespaces-implement-support-for-posix-msqueues-initialize-init_ipc_nscount-to-1.patch
-namespaces-mqueue-namespace-adapt-sysctl.patch
-namespaces-mqueue-namespace-adapt-sysctl-update.patch
-namespaces-mqueue-namespace-adapt-sysctl-update-fix.patch
-
