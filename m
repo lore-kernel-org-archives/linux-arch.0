@@ -1,441 +1,406 @@
-From: Michal Simek <michal.simek@petalogix.com>
-Subject: Re: [GIT PULL] Microblaze initial pack v2
-Date: Mon, 06 Apr 2009 08:43:49 +0200
-Message-ID: <49D9A4A5.5070202@petalogix.com>
-References: <49CE0345.1000604@monstr.eu>
-Reply-To: michal.simek@petalogix.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f169.google.com ([209.85.218.169]:59837 "EHLO
-	mail-bw0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752507AbZDFGn4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Apr 2009 02:43:56 -0400
-In-Reply-To: <49CE0345.1000604@monstr.eu>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: monstr@monstr.eu
-Cc: torvalds@linux-foundation.org, Linux Kernel list <linux-kernel@vger.kernel.org>, lkml <linux-arch@vger.kernel.org>, microblaze-uclinux@itee.uq.edu.au, Andrew Morton <akpm@linux-foundation.org>, John Williams <john.williams@petalogix.com>, John Linn <John.Linn@xilinx.com>, Stephen Neuendorffer <stephenn@xilinx.com>, Thomas Gleixner <tglx@linutronix.de>, Randy Dunlap <randy.dunlap@oracle.com>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@elte.hu>, Peter Korsgaard <jacmet@sunsite.dk>, Alan Cox <alan@lxorguk.ukuu.org.uk>
-
-Hi Linus,
-
-Could you please pull Microblaze cpu to your repo?
-I checked that Microblaze is still not there.
-
-Is it anything wrong with my pack?
-
-Thanks,
-Michal
-
-> Hi Linus,
->
-> This pack v2 contains initial pack for Xilinx Microblaze CPU.
->
-> Please pull
->     git://git.monstr.eu/linux-2.6-microblaze.git for-linus
->
->
-> Changes in v2:
-> Ingo reviewed it and I fixed one license issue + I added my Signed-off-by line.
->
->
-> Thanks,
-> Michal
->
-> -----
->
-> The following changes since commit 8e0ee43bc2c3e19db56a4adaa9a9b04ce885cd84:
->   Linus Torvalds (1):
->         Linux 2.6.29
->
-> are available in the git repository at:
->
->   git://git.monstr.eu/linux-2.6-microblaze.git for-linus
->
-> Michal Simek (60):
->       microblaze_v8: Cpuinfo handling
->       microblaze_v8: Open firmware files
->       microblaze_v8: Platform bus registration
->       microblaze_v8: exception handling
->       microblaze_v8: Signal support
->       microblaze_v8: Selfmodified code
->       microblaze_v8: cache support
->       microblaze_v8: Generic dts file for platforms
->       microblaze_v8: kernel modules support
->       microblaze_v8: lmb include file
->       microblaze_v8: PVR support, cpuinfo support
->       microblaze_v8: defconfig file
->       microblaze_v8: assembler files head.S, entry-nommu.S, syscall_table.S
->       microblaze_v8: vmlinux.lds.S - linker script
->       microblaze_v8: supported function for memory - kernel/lib
->       microblaze_v8: checksum support
->       microblaze_v8: early_printk support
->       microblaze_v8: uaccess files
->       microblaze_v8: heartbeat file
->       microblaze_v8: setup.c, setup.h - system setting
->       microblaze_v8: asm-offsets.c
->       microblaze_v8: process and init task function
->       microblaze_v8: delay.h, timex.h
->       microblaze_v8: ptrace support
->       microblaze_v8: IPC support
->       microblaze_v8: traps support
->       microblaze_v8: memory inicialization, MMU, TLB
->       microblaze_v8: page.h, segment.h, unaligned.h
->       microblaze_v8: includes SHM*, msgbuf
->       microblaze_v8: bug headers files
->       microblaze_v8: definitions of types
->       microblaze_v8: ioctl support
->       microblaze_v8: io.h IO operations
->       microblaze_v8: headers for executables format FLAT, ELF
->       microblaze_v8: dma support
->       microblaze_v8: headers for irq
->       microblaze_v8: atomic.h bitops.h swab.h byteorder.h
->       microblaze_v8: headers pgalloc.h pgtable.h
->       microblaze_v8: system.h processor.h
->       microblaze_v8: clinkage.h linkage.h sections.h kmap_types.h
->       microblaze_v8: stats headers
->       microblaze_v8: termbits.h termios.h
->       microblaze_v8: sigcontext.h siginfo.h
->       microblaze_v8: headers simple files - empty or redirect to asm-generic
->       microblaze_v8: gpio.h, serial.h
->       microblaze_v8: namei.h
->       microblaze_v8: headers files entry.h current.h mman.h registers.h sembuf.h
->       microblaze_v8: device.h param.h topology.h
->       microblaze_v8: pool.h socket.h
->       microblaze_v8: fcntl.h sockios.h ucontext.h
->       microblaze_v8: unistd.h
->       microblaze_v8: string.h thread_info.h
->       microblaze_v8: Kbuild file
->       microblaze_v8: pci headers
->       microblaze_v8: syscalls.h
->       microblaze_v8: Interrupt handling and timer support
->       microblaze_v8: Kconfig patches
->       microblaze_v8: Makefiles for Microblaze cpu
->       microblaze_v8: Uartlite for Microblaze
->       microblaze_v8: Add MAINTAINERS fragment
->
->  MAINTAINERS                                     |    8 +
->  arch/microblaze/Kconfig                         |  141 +++
->  arch/microblaze/Kconfig.debug                   |   26 +
->  arch/microblaze/Makefile                        |   69 ++
->  arch/microblaze/boot/Makefile                   |   17 +
->  arch/microblaze/configs/nommu_defconfig         |  804 ++++++++++++++++
->  arch/microblaze/include/asm/Kbuild              |   26 +
->  arch/microblaze/include/asm/atomic.h            |  123 +++
->  arch/microblaze/include/asm/bitops.h            |   27 +
->  arch/microblaze/include/asm/bug.h               |   15 +
->  arch/microblaze/include/asm/bugs.h              |   17 +
->  arch/microblaze/include/asm/byteorder.h         |    6 +
->  arch/microblaze/include/asm/cache.h             |   45 +
->  arch/microblaze/include/asm/cacheflush.h        |   85 ++
->  arch/microblaze/include/asm/checksum.h          |   98 ++
->  arch/microblaze/include/asm/clinkage.h          |    1 +
->  arch/microblaze/include/asm/cpuinfo.h           |  102 ++
->  arch/microblaze/include/asm/cputime.h           |    1 +
->  arch/microblaze/include/asm/current.h           |   21 +
->  arch/microblaze/include/asm/delay.h             |   72 ++
->  arch/microblaze/include/asm/device.h            |   21 +
->  arch/microblaze/include/asm/div64.h             |    1 +
->  arch/microblaze/include/asm/dma-mapping.h       |  129 +++
->  arch/microblaze/include/asm/dma.h               |   16 +
->  arch/microblaze/include/asm/elf.h               |   30 +
->  arch/microblaze/include/asm/emergency-restart.h |    1 +
->  arch/microblaze/include/asm/entry.h             |   35 +
->  arch/microblaze/include/asm/errno.h             |    1 +
->  arch/microblaze/include/asm/exceptions.h        |   96 ++
->  arch/microblaze/include/asm/fcntl.h             |    1 +
->  arch/microblaze/include/asm/flat.h              |   90 ++
->  arch/microblaze/include/asm/futex.h             |    1 +
->  arch/microblaze/include/asm/gpio.h              |   56 ++
->  arch/microblaze/include/asm/hardirq.h           |   29 +
->  arch/microblaze/include/asm/io.h                |  209 ++++
->  arch/microblaze/include/asm/ioctl.h             |    1 +
->  arch/microblaze/include/asm/ioctls.h            |   91 ++
->  arch/microblaze/include/asm/ipc.h               |    1 +
->  arch/microblaze/include/asm/ipcbuf.h            |   36 +
->  arch/microblaze/include/asm/irq.h               |   47 +
->  arch/microblaze/include/asm/irq_regs.h          |    1 +
->  arch/microblaze/include/asm/irqflags.h          |  123 +++
->  arch/microblaze/include/asm/kdebug.h            |    1 +
->  arch/microblaze/include/asm/kmap_types.h        |   29 +
->  arch/microblaze/include/asm/linkage.h           |   15 +
->  arch/microblaze/include/asm/lmb.h               |   17 +
->  arch/microblaze/include/asm/local.h             |    1 +
->  arch/microblaze/include/asm/mman.h              |   25 +
->  arch/microblaze/include/asm/mmu.h               |   19 +
->  arch/microblaze/include/asm/mmu_context.h       |   21 +
->  arch/microblaze/include/asm/module.h            |   37 +
->  arch/microblaze/include/asm/msgbuf.h            |   31 +
->  arch/microblaze/include/asm/mutex.h             |    1 +
->  arch/microblaze/include/asm/namei.h             |   22 +
->  arch/microblaze/include/asm/of_device.h         |   45 +
->  arch/microblaze/include/asm/of_platform.h       |   64 ++
->  arch/microblaze/include/asm/page.h              |  140 +++
->  arch/microblaze/include/asm/param.h             |   30 +
->  arch/microblaze/include/asm/pci-bridge.h        |    1 +
->  arch/microblaze/include/asm/pci.h               |    1 +
->  arch/microblaze/include/asm/percpu.h            |    1 +
->  arch/microblaze/include/asm/pgalloc.h           |   14 +
->  arch/microblaze/include/asm/pgtable.h           |   54 ++
->  arch/microblaze/include/asm/poll.h              |    1 +
->  arch/microblaze/include/asm/posix_types.h       |   73 ++
->  arch/microblaze/include/asm/processor.h         |   93 ++
->  arch/microblaze/include/asm/prom.h              |  313 ++++++
->  arch/microblaze/include/asm/ptrace.h            |   68 ++
->  arch/microblaze/include/asm/pvr.h               |  209 ++++
->  arch/microblaze/include/asm/registers.h         |   33 +
->  arch/microblaze/include/asm/resource.h          |    1 +
->  arch/microblaze/include/asm/scatterlist.h       |   28 +
->  arch/microblaze/include/asm/sections.h          |   25 +
->  arch/microblaze/include/asm/segment.h           |   43 +
->  arch/microblaze/include/asm/selfmod.h           |   24 +
->  arch/microblaze/include/asm/sembuf.h            |   34 +
->  arch/microblaze/include/asm/serial.h            |   14 +
->  arch/microblaze/include/asm/setup.h             |   44 +
->  arch/microblaze/include/asm/shmbuf.h            |   42 +
->  arch/microblaze/include/asm/shmparam.h          |    6 +
->  arch/microblaze/include/asm/sigcontext.h        |   20 +
->  arch/microblaze/include/asm/siginfo.h           |   15 +
->  arch/microblaze/include/asm/signal.h            |  165 ++++
->  arch/microblaze/include/asm/socket.h            |   66 ++
->  arch/microblaze/include/asm/sockios.h           |   23 +
->  arch/microblaze/include/asm/stat.h              |   73 ++
->  arch/microblaze/include/asm/statfs.h            |    1 +
->  arch/microblaze/include/asm/string.h            |   24 +
->  arch/microblaze/include/asm/swab.h              |    8 +
->  arch/microblaze/include/asm/syscalls.h          |   45 +
->  arch/microblaze/include/asm/system.h            |   91 ++
->  arch/microblaze/include/asm/termbits.h          |  203 ++++
->  arch/microblaze/include/asm/termios.h           |   88 ++
->  arch/microblaze/include/asm/thread_info.h       |  159 ++++
->  arch/microblaze/include/asm/timex.h             |   18 +
->  arch/microblaze/include/asm/tlb.h               |   16 +
->  arch/microblaze/include/asm/tlbflush.h          |   20 +
->  arch/microblaze/include/asm/topology.h          |   11 +
->  arch/microblaze/include/asm/types.h             |   38 +
->  arch/microblaze/include/asm/uaccess.h           |  134 +++
->  arch/microblaze/include/asm/ucontext.h          |   22 +
->  arch/microblaze/include/asm/unaligned.h         |   22 +
->  arch/microblaze/include/asm/unistd.h            |  421 +++++++++
->  arch/microblaze/include/asm/xor.h               |    1 +
->  arch/microblaze/kernel/Makefile                 |   19 +
->  arch/microblaze/kernel/asm-offsets.c            |  115 +++
->  arch/microblaze/kernel/cpu/Makefile             |    8 +
->  arch/microblaze/kernel/cpu/cache.c              |  258 +++++
->  arch/microblaze/kernel/cpu/cpuinfo-pvr-full.c   |  101 ++
->  arch/microblaze/kernel/cpu/cpuinfo-static.c     |  144 +++
->  arch/microblaze/kernel/cpu/cpuinfo.c            |   86 ++
->  arch/microblaze/kernel/cpu/mb.c                 |  148 +++
->  arch/microblaze/kernel/cpu/pvr.c                |   81 ++
->  arch/microblaze/kernel/early_printk.c           |  107 +++
->  arch/microblaze/kernel/entry-nommu.S            |  596 ++++++++++++
->  arch/microblaze/kernel/exceptions.c             |  124 +++
->  arch/microblaze/kernel/head.S                   |   56 ++
->  arch/microblaze/kernel/heartbeat.c              |   67 ++
->  arch/microblaze/kernel/hw_exception_handler.S   |  458 +++++++++
->  arch/microblaze/kernel/init_task.c              |   29 +
->  arch/microblaze/kernel/intc.c                   |  172 ++++
->  arch/microblaze/kernel/irq.c                    |  104 ++
->  arch/microblaze/kernel/microblaze_ksyms.c       |   47 +
->  arch/microblaze/kernel/module.c                 |  151 +++
->  arch/microblaze/kernel/of_device.c              |  115 +++
->  arch/microblaze/kernel/of_platform.c            |  201 ++++
->  arch/microblaze/kernel/process.c                |  187 ++++
->  arch/microblaze/kernel/prom.c                   | 1147 +++++++++++++++++++++++
->  arch/microblaze/kernel/prom_parse.c             | 1025 ++++++++++++++++++++
->  arch/microblaze/kernel/ptrace.c                 |  182 ++++
->  arch/microblaze/kernel/selfmod.c                |   81 ++
->  arch/microblaze/kernel/setup.c                  |  199 ++++
->  arch/microblaze/kernel/signal.c                 |  538 +++++++++++
->  arch/microblaze/kernel/sys_microblaze.c         |  227 +++++
->  arch/microblaze/kernel/syscall_table.S          |  365 +++++++
->  arch/microblaze/kernel/timer.c                  |  262 ++++++
->  arch/microblaze/kernel/traps.c                  |  107 +++
->  arch/microblaze/kernel/vmlinux.lds.S            |  163 ++++
->  arch/microblaze/lib/Makefile                    |   13 +
->  arch/microblaze/lib/checksum.c                  |  163 ++++
->  arch/microblaze/lib/fastcopy.S                  |  662 +++++++++++++
->  arch/microblaze/lib/memcpy.c                    |  161 ++++
->  arch/microblaze/lib/memmove.c                   |  175 ++++
->  arch/microblaze/lib/memset.c                    |   82 ++
->  arch/microblaze/lib/uaccess.c                   |   41 +
->  arch/microblaze/mm/Makefile                     |    5 +
->  arch/microblaze/mm/init.c                       |  201 ++++
->  arch/microblaze/platform/Kconfig.platform       |   85 ++
->  arch/microblaze/platform/Makefile               |    6 +
->  arch/microblaze/platform/generic/Kconfig.auto   |   62 ++
->  arch/microblaze/platform/generic/Makefile       |    3 +
->  arch/microblaze/platform/generic/system.dts     |  332 +++++++
->  arch/microblaze/platform/platform.c             |   31 +
->  drivers/serial/Kconfig                          |    4 +-
->  154 files changed, 15718 insertions(+), 2 deletions(-)
->  create mode 100644 arch/microblaze/Kconfig
->  create mode 100644 arch/microblaze/Kconfig.debug
->  create mode 100644 arch/microblaze/Makefile
->  create mode 100644 arch/microblaze/boot/Makefile
->  create mode 100644 arch/microblaze/configs/nommu_defconfig
->  create mode 100644 arch/microblaze/include/asm/Kbuild
->  create mode 100644 arch/microblaze/include/asm/atomic.h
->  create mode 100644 arch/microblaze/include/asm/auxvec.h
->  create mode 100644 arch/microblaze/include/asm/bitops.h
->  create mode 100644 arch/microblaze/include/asm/bug.h
->  create mode 100644 arch/microblaze/include/asm/bugs.h
->  create mode 100644 arch/microblaze/include/asm/byteorder.h
->  create mode 100644 arch/microblaze/include/asm/cache.h
->  create mode 100644 arch/microblaze/include/asm/cacheflush.h
->  create mode 100644 arch/microblaze/include/asm/checksum.h
->  create mode 100644 arch/microblaze/include/asm/clinkage.h
->  create mode 100644 arch/microblaze/include/asm/cpuinfo.h
->  create mode 100644 arch/microblaze/include/asm/cputable.h
->  create mode 100644 arch/microblaze/include/asm/cputime.h
->  create mode 100644 arch/microblaze/include/asm/current.h
->  create mode 100644 arch/microblaze/include/asm/delay.h
->  create mode 100644 arch/microblaze/include/asm/device.h
->  create mode 100644 arch/microblaze/include/asm/div64.h
->  create mode 100644 arch/microblaze/include/asm/dma-mapping.h
->  create mode 100644 arch/microblaze/include/asm/dma.h
->  create mode 100644 arch/microblaze/include/asm/elf.h
->  create mode 100644 arch/microblaze/include/asm/emergency-restart.h
->  create mode 100644 arch/microblaze/include/asm/entry.h
->  create mode 100644 arch/microblaze/include/asm/errno.h
->  create mode 100644 arch/microblaze/include/asm/exceptions.h
->  create mode 100644 arch/microblaze/include/asm/fcntl.h
->  create mode 100644 arch/microblaze/include/asm/flat.h
->  create mode 100644 arch/microblaze/include/asm/futex.h
->  create mode 100644 arch/microblaze/include/asm/gpio.h
->  create mode 100644 arch/microblaze/include/asm/hardirq.h
->  create mode 100644 arch/microblaze/include/asm/hw_irq.h
->  create mode 100644 arch/microblaze/include/asm/io.h
->  create mode 100644 arch/microblaze/include/asm/ioctl.h
->  create mode 100644 arch/microblaze/include/asm/ioctls.h
->  create mode 100644 arch/microblaze/include/asm/ipc.h
->  create mode 100644 arch/microblaze/include/asm/ipcbuf.h
->  create mode 100644 arch/microblaze/include/asm/irq.h
->  create mode 100644 arch/microblaze/include/asm/irq_regs.h
->  create mode 100644 arch/microblaze/include/asm/irqflags.h
->  create mode 100644 arch/microblaze/include/asm/kdebug.h
->  create mode 100644 arch/microblaze/include/asm/kmap_types.h
->  create mode 100644 arch/microblaze/include/asm/linkage.h
->  create mode 100644 arch/microblaze/include/asm/lmb.h
->  create mode 100644 arch/microblaze/include/asm/local.h
->  create mode 100644 arch/microblaze/include/asm/mman.h
->  create mode 100644 arch/microblaze/include/asm/mmu.h
->  create mode 100644 arch/microblaze/include/asm/mmu_context.h
->  create mode 100644 arch/microblaze/include/asm/module.h
->  create mode 100644 arch/microblaze/include/asm/msgbuf.h
->  create mode 100644 arch/microblaze/include/asm/mutex.h
->  create mode 100644 arch/microblaze/include/asm/namei.h
->  create mode 100644 arch/microblaze/include/asm/of_device.h
->  create mode 100644 arch/microblaze/include/asm/of_platform.h
->  create mode 100644 arch/microblaze/include/asm/page.h
->  create mode 100644 arch/microblaze/include/asm/param.h
->  create mode 100644 arch/microblaze/include/asm/pci-bridge.h
->  create mode 100644 arch/microblaze/include/asm/pci.h
->  create mode 100644 arch/microblaze/include/asm/percpu.h
->  create mode 100644 arch/microblaze/include/asm/pgalloc.h
->  create mode 100644 arch/microblaze/include/asm/pgtable.h
->  create mode 100644 arch/microblaze/include/asm/poll.h
->  create mode 100644 arch/microblaze/include/asm/posix_types.h
->  create mode 100644 arch/microblaze/include/asm/processor.h
->  create mode 100644 arch/microblaze/include/asm/prom.h
->  create mode 100644 arch/microblaze/include/asm/ptrace.h
->  create mode 100644 arch/microblaze/include/asm/pvr.h
->  create mode 100644 arch/microblaze/include/asm/registers.h
->  create mode 100644 arch/microblaze/include/asm/resource.h
->  create mode 100644 arch/microblaze/include/asm/scatterlist.h
->  create mode 100644 arch/microblaze/include/asm/sections.h
->  create mode 100644 arch/microblaze/include/asm/segment.h
->  create mode 100644 arch/microblaze/include/asm/selfmod.h
->  create mode 100644 arch/microblaze/include/asm/sembuf.h
->  create mode 100644 arch/microblaze/include/asm/serial.h
->  create mode 100644 arch/microblaze/include/asm/setup.h
->  create mode 100644 arch/microblaze/include/asm/shmbuf.h
->  create mode 100644 arch/microblaze/include/asm/shmparam.h
->  create mode 100644 arch/microblaze/include/asm/sigcontext.h
->  create mode 100644 arch/microblaze/include/asm/siginfo.h
->  create mode 100644 arch/microblaze/include/asm/signal.h
->  create mode 100644 arch/microblaze/include/asm/socket.h
->  create mode 100644 arch/microblaze/include/asm/sockios.h
->  create mode 100644 arch/microblaze/include/asm/stat.h
->  create mode 100644 arch/microblaze/include/asm/statfs.h
->  create mode 100644 arch/microblaze/include/asm/string.h
->  create mode 100644 arch/microblaze/include/asm/swab.h
->  create mode 100644 arch/microblaze/include/asm/syscalls.h
->  create mode 100644 arch/microblaze/include/asm/system.h
->  create mode 100644 arch/microblaze/include/asm/termbits.h
->  create mode 100644 arch/microblaze/include/asm/termios.h
->  create mode 100644 arch/microblaze/include/asm/thread_info.h
->  create mode 100644 arch/microblaze/include/asm/timex.h
->  create mode 100644 arch/microblaze/include/asm/tlb.h
->  create mode 100644 arch/microblaze/include/asm/tlbflush.h
->  create mode 100644 arch/microblaze/include/asm/topology.h
->  create mode 100644 arch/microblaze/include/asm/types.h
->  create mode 100644 arch/microblaze/include/asm/uaccess.h
->  create mode 100644 arch/microblaze/include/asm/ucontext.h
->  create mode 100644 arch/microblaze/include/asm/unaligned.h
->  create mode 100644 arch/microblaze/include/asm/unistd.h
->  create mode 100644 arch/microblaze/include/asm/user.h
->  create mode 100644 arch/microblaze/include/asm/vga.h
->  create mode 100644 arch/microblaze/include/asm/xor.h
->  create mode 100644 arch/microblaze/kernel/Makefile
->  create mode 100644 arch/microblaze/kernel/asm-offsets.c
->  create mode 100644 arch/microblaze/kernel/cpu/Makefile
->  create mode 100644 arch/microblaze/kernel/cpu/cache.c
->  create mode 100644 arch/microblaze/kernel/cpu/cpuinfo-pvr-full.c
->  create mode 100644 arch/microblaze/kernel/cpu/cpuinfo-static.c
->  create mode 100644 arch/microblaze/kernel/cpu/cpuinfo.c
->  create mode 100644 arch/microblaze/kernel/cpu/mb.c
->  create mode 100644 arch/microblaze/kernel/cpu/pvr.c
->  create mode 100644 arch/microblaze/kernel/early_printk.c
->  create mode 100644 arch/microblaze/kernel/entry-nommu.S
->  create mode 100644 arch/microblaze/kernel/exceptions.c
->  create mode 100644 arch/microblaze/kernel/head.S
->  create mode 100644 arch/microblaze/kernel/heartbeat.c
->  create mode 100644 arch/microblaze/kernel/hw_exception_handler.S
->  create mode 100644 arch/microblaze/kernel/init_task.c
->  create mode 100644 arch/microblaze/kernel/intc.c
->  create mode 100644 arch/microblaze/kernel/irq.c
->  create mode 100644 arch/microblaze/kernel/microblaze_ksyms.c
->  create mode 100644 arch/microblaze/kernel/module.c
->  create mode 100644 arch/microblaze/kernel/of_device.c
->  create mode 100644 arch/microblaze/kernel/of_platform.c
->  create mode 100644 arch/microblaze/kernel/process.c
->  create mode 100644 arch/microblaze/kernel/prom.c
->  create mode 100644 arch/microblaze/kernel/prom_parse.c
->  create mode 100644 arch/microblaze/kernel/ptrace.c
->  create mode 100644 arch/microblaze/kernel/selfmod.c
->  create mode 100644 arch/microblaze/kernel/setup.c
->  create mode 100644 arch/microblaze/kernel/signal.c
->  create mode 100644 arch/microblaze/kernel/sys_microblaze.c
->  create mode 100644 arch/microblaze/kernel/syscall_table.S
->  create mode 100644 arch/microblaze/kernel/timer.c
->  create mode 100644 arch/microblaze/kernel/traps.c
->  create mode 100644 arch/microblaze/kernel/vmlinux.lds.S
->  create mode 100644 arch/microblaze/lib/Makefile
->  create mode 100644 arch/microblaze/lib/checksum.c
->  create mode 100644 arch/microblaze/lib/fastcopy.S
->  create mode 100644 arch/microblaze/lib/memcpy.c
->  create mode 100644 arch/microblaze/lib/memmove.c
->  create mode 100644 arch/microblaze/lib/memset.c
->  create mode 100644 arch/microblaze/lib/uaccess.c
->  create mode 100644 arch/microblaze/mm/Makefile
->  create mode 100644 arch/microblaze/mm/init.c
->  create mode 100644 arch/microblaze/platform/Kconfig.platform
->  create mode 100644 arch/microblaze/platform/Makefile
->  create mode 100644 arch/microblaze/platform/generic/Kconfig.auto
->  create mode 100644 arch/microblaze/platform/generic/Makefile
->  create mode 100644 arch/microblaze/platform/generic/system.dts
->  create mode 100644 arch/microblaze/platform/platform.c
->
->
->
->
->
->   
+From: akpm@linux-foundation.org
+Subject: [merged] simplify-copy_thread.patch removed from -mm tree
+Date: Mon, 06 Apr 2009 12:33:21 -0700
+Message-ID: <200904061933.n36JXLHb011071@imap1.linux-foundation.org>
+Reply-To: linux-kernel@vger.kernel.org
+Return-path: <mm-commits-owner@vger.kernel.org>
+Sender: mm-commits-owner@vger.kernel.org
+To: adobriyan@gmail.com, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 
--- 
-Michal Simek, Ing. (M.Eng)
-PetaLogix - Linux Solutions for a Reconfigurable World
-w: www.petalogix.com p: +61-7-30090663,+42-0-721842854 f: +61-7-30090663
+The patch titled
+     Simplify copy_thread()
+has been removed from the -mm tree.  Its filename was
+     simplify-copy_thread.patch
+
+This patch was dropped because it was merged into mainline or a subsystem tree
+
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: Simplify copy_thread()
+From: Alexey Dobriyan <adobriyan@gmail.com>
+
+First argument unused since 2.3.11.
+
+[akpm@linux-foundation.org: coding-style fixes]
+Signed-off-by: Alexey Dobriyan <adobriyan@gmail.com>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ arch/alpha/kernel/process.c         |    2 +-
+ arch/arm/kernel/process.c           |    2 +-
+ arch/avr32/kernel/process.c         |    2 +-
+ arch/blackfin/kernel/process.c      |    2 +-
+ arch/cris/arch-v10/kernel/process.c |    2 +-
+ arch/cris/arch-v32/kernel/process.c |    2 +-
+ arch/frv/kernel/process.c           |    2 +-
+ arch/h8300/kernel/process.c         |    2 +-
+ arch/ia64/kernel/process.c          |    2 +-
+ arch/m32r/kernel/process.c          |    2 +-
+ arch/m68k/kernel/process.c          |    2 +-
+ arch/m68knommu/kernel/process.c     |    2 +-
+ arch/mips/kernel/process.c          |    2 +-
+ arch/mn10300/kernel/process.c       |    2 +-
+ arch/parisc/kernel/process.c        |    2 +-
+ arch/powerpc/kernel/process.c       |    2 +-
+ arch/s390/kernel/process.c          |    2 +-
+ arch/sh/kernel/process_32.c         |    2 +-
+ arch/sh/kernel/process_64.c         |    2 +-
+ arch/sparc/kernel/process_32.c      |    2 +-
+ arch/sparc/kernel/process_64.c      |    2 +-
+ arch/um/kernel/process.c            |    2 +-
+ arch/x86/kernel/process_32.c        |    2 +-
+ arch/x86/kernel/process_64.c        |    2 +-
+ arch/xtensa/kernel/process.c        |    2 +-
+ include/linux/sched.h               |    3 ++-
+ kernel/fork.c                       |    2 +-
+ 27 files changed, 28 insertions(+), 27 deletions(-)
+
+diff -puN arch/alpha/kernel/process.c~simplify-copy_thread arch/alpha/kernel/process.c
+--- a/arch/alpha/kernel/process.c~simplify-copy_thread
++++ a/arch/alpha/kernel/process.c
+@@ -272,7 +272,7 @@ alpha_vfork(struct pt_regs *regs)
+  */
+ 
+ int
+-copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
++copy_thread(unsigned long clone_flags, unsigned long usp,
+ 	    unsigned long unused,
+ 	    struct task_struct * p, struct pt_regs * regs)
+ {
+diff -puN arch/arm/kernel/process.c~simplify-copy_thread arch/arm/kernel/process.c
+--- a/arch/arm/kernel/process.c~simplify-copy_thread
++++ a/arch/arm/kernel/process.c
+@@ -301,7 +301,7 @@ void release_thread(struct task_struct *
+ asmlinkage void ret_from_fork(void) __asm__("ret_from_fork");
+ 
+ int
+-copy_thread(int nr, unsigned long clone_flags, unsigned long stack_start,
++copy_thread(unsigned long clone_flags, unsigned long stack_start,
+ 	    unsigned long stk_sz, struct task_struct *p, struct pt_regs *regs)
+ {
+ 	struct thread_info *thread = task_thread_info(p);
+diff -puN arch/avr32/kernel/process.c~simplify-copy_thread arch/avr32/kernel/process.c
+--- a/arch/avr32/kernel/process.c~simplify-copy_thread
++++ a/arch/avr32/kernel/process.c
+@@ -332,7 +332,7 @@ int dump_fpu(struct pt_regs *regs, elf_f
+ 
+ asmlinkage void ret_from_fork(void);
+ 
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
++int copy_thread(unsigned long clone_flags, unsigned long usp,
+ 		unsigned long unused,
+ 		struct task_struct *p, struct pt_regs *regs)
+ {
+diff -puN arch/blackfin/kernel/process.c~simplify-copy_thread arch/blackfin/kernel/process.c
+--- a/arch/blackfin/kernel/process.c~simplify-copy_thread
++++ a/arch/blackfin/kernel/process.c
+@@ -193,7 +193,7 @@ asmlinkage int bfin_clone(struct pt_regs
+ }
+ 
+ int
+-copy_thread(int nr, unsigned long clone_flags,
++copy_thread(unsigned long clone_flags,
+ 	    unsigned long usp, unsigned long topstk,
+ 	    struct task_struct *p, struct pt_regs *regs)
+ {
+diff -puN arch/cris/arch-v10/kernel/process.c~simplify-copy_thread arch/cris/arch-v10/kernel/process.c
+--- a/arch/cris/arch-v10/kernel/process.c~simplify-copy_thread
++++ a/arch/cris/arch-v10/kernel/process.c
+@@ -115,7 +115,7 @@ int kernel_thread(int (*fn)(void *), voi
+  */
+ asmlinkage void ret_from_fork(void);
+ 
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
++int copy_thread(unsigned long clone_flags, unsigned long usp,
+ 		unsigned long unused,
+ 		struct task_struct *p, struct pt_regs *regs)
+ {
+diff -puN arch/cris/arch-v32/kernel/process.c~simplify-copy_thread arch/cris/arch-v32/kernel/process.c
+--- a/arch/cris/arch-v32/kernel/process.c~simplify-copy_thread
++++ a/arch/cris/arch-v32/kernel/process.c
+@@ -131,7 +131,7 @@ kernel_thread(int (*fn)(void *), void * 
+ extern asmlinkage void ret_from_fork(void);
+ 
+ int
+-copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
++copy_thread(unsigned long clone_flags, unsigned long usp,
+ 	unsigned long unused,
+ 	struct task_struct *p, struct pt_regs *regs)
+ {
+diff -puN arch/frv/kernel/process.c~simplify-copy_thread arch/frv/kernel/process.c
+--- a/arch/frv/kernel/process.c~simplify-copy_thread
++++ a/arch/frv/kernel/process.c
+@@ -204,7 +204,7 @@ void prepare_to_copy(struct task_struct 
+ /*
+  * set up the kernel stack and exception frames for a new process
+  */
+-int copy_thread(int nr, unsigned long clone_flags,
++int copy_thread(unsigned long clone_flags,
+ 		unsigned long usp, unsigned long topstk,
+ 		struct task_struct *p, struct pt_regs *regs)
+ {
+diff -puN arch/h8300/kernel/process.c~simplify-copy_thread arch/h8300/kernel/process.c
+--- a/arch/h8300/kernel/process.c~simplify-copy_thread
++++ a/arch/h8300/kernel/process.c
+@@ -191,7 +191,7 @@ asmlinkage int h8300_clone(struct pt_reg
+ 
+ }
+ 
+-int copy_thread(int nr, unsigned long clone_flags,
++int copy_thread(unsigned long clone_flags,
+                 unsigned long usp, unsigned long topstk,
+ 		 struct task_struct * p, struct pt_regs * regs)
+ {
+diff -puN arch/ia64/kernel/process.c~simplify-copy_thread arch/ia64/kernel/process.c
+--- a/arch/ia64/kernel/process.c~simplify-copy_thread
++++ a/arch/ia64/kernel/process.c
+@@ -413,7 +413,7 @@ ia64_load_extra (struct task_struct *tas
+  * so there is nothing to worry about.
+  */
+ int
+-copy_thread (int nr, unsigned long clone_flags,
++copy_thread(unsigned long clone_flags,
+ 	     unsigned long user_stack_base, unsigned long user_stack_size,
+ 	     struct task_struct *p, struct pt_regs *regs)
+ {
+diff -puN arch/m32r/kernel/process.c~simplify-copy_thread arch/m32r/kernel/process.c
+--- a/arch/m32r/kernel/process.c~simplify-copy_thread
++++ a/arch/m32r/kernel/process.c
+@@ -225,7 +225,7 @@ int dump_fpu(struct pt_regs *regs, elf_f
+ 	return 0; /* Task didn't use the fpu at all. */
+ }
+ 
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long spu,
++int copy_thread(unsigned long clone_flags, unsigned long spu,
+ 	unsigned long unused, struct task_struct *tsk, struct pt_regs *regs)
+ {
+ 	struct pt_regs *childregs = task_pt_regs(tsk);
+diff -puN arch/m68k/kernel/process.c~simplify-copy_thread arch/m68k/kernel/process.c
+--- a/arch/m68k/kernel/process.c~simplify-copy_thread
++++ a/arch/m68k/kernel/process.c
+@@ -233,7 +233,7 @@ asmlinkage int m68k_clone(struct pt_regs
+ 		       parent_tidptr, child_tidptr);
+ }
+ 
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
++int copy_thread(unsigned long clone_flags, unsigned long usp,
+ 		 unsigned long unused,
+ 		 struct task_struct * p, struct pt_regs * regs)
+ {
+diff -puN arch/m68knommu/kernel/process.c~simplify-copy_thread arch/m68knommu/kernel/process.c
+--- a/arch/m68knommu/kernel/process.c~simplify-copy_thread
++++ a/arch/m68knommu/kernel/process.c
+@@ -199,7 +199,7 @@ asmlinkage int m68k_clone(struct pt_regs
+         return do_fork(clone_flags, newsp, regs, 0, NULL, NULL);
+ }
+ 
+-int copy_thread(int nr, unsigned long clone_flags,
++int copy_thread(unsigned long clone_flags,
+ 		unsigned long usp, unsigned long topstk,
+ 		struct task_struct * p, struct pt_regs * regs)
+ {
+diff -puN arch/mips/kernel/process.c~simplify-copy_thread arch/mips/kernel/process.c
+--- a/arch/mips/kernel/process.c~simplify-copy_thread
++++ a/arch/mips/kernel/process.c
+@@ -99,7 +99,7 @@ void flush_thread(void)
+ {
+ }
+ 
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
++int copy_thread(unsigned long clone_flags, unsigned long usp,
+ 	unsigned long unused, struct task_struct *p, struct pt_regs *regs)
+ {
+ 	struct thread_info *ti = task_thread_info(p);
+diff -puN arch/mn10300/kernel/process.c~simplify-copy_thread arch/mn10300/kernel/process.c
+--- a/arch/mn10300/kernel/process.c~simplify-copy_thread
++++ a/arch/mn10300/kernel/process.c
+@@ -193,7 +193,7 @@ void prepare_to_copy(struct task_struct 
+  * set up the kernel stack for a new thread and copy arch-specific thread
+  * control information
+  */
+-int copy_thread(int nr, unsigned long clone_flags,
++int copy_thread(unsigned long clone_flags,
+ 		unsigned long c_usp, unsigned long ustk_size,
+ 		struct task_struct *p, struct pt_regs *kregs)
+ {
+diff -puN arch/parisc/kernel/process.c~simplify-copy_thread arch/parisc/kernel/process.c
+--- a/arch/parisc/kernel/process.c~simplify-copy_thread
++++ a/arch/parisc/kernel/process.c
+@@ -263,7 +263,7 @@ sys_vfork(struct pt_regs *regs)
+ }
+ 
+ int
+-copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
++copy_thread(unsigned long clone_flags, unsigned long usp,
+ 	    unsigned long unused,	/* in ia64 this is "user_stack_size" */
+ 	    struct task_struct * p, struct pt_regs * pregs)
+ {
+diff -puN arch/powerpc/kernel/process.c~simplify-copy_thread arch/powerpc/kernel/process.c
+--- a/arch/powerpc/kernel/process.c~simplify-copy_thread
++++ a/arch/powerpc/kernel/process.c
+@@ -598,7 +598,7 @@ void prepare_to_copy(struct task_struct 
+ /*
+  * Copy a thread..
+  */
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
++int copy_thread(unsigned long clone_flags, unsigned long usp,
+ 		unsigned long unused, struct task_struct *p,
+ 		struct pt_regs *regs)
+ {
+diff -puN arch/s390/kernel/process.c~simplify-copy_thread arch/s390/kernel/process.c
+--- a/arch/s390/kernel/process.c~simplify-copy_thread
++++ a/arch/s390/kernel/process.c
+@@ -160,7 +160,7 @@ void release_thread(struct task_struct *
+ {
+ }
+ 
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long new_stackp,
++int copy_thread(unsigned long clone_flags, unsigned long new_stackp,
+ 		unsigned long unused,
+ 		struct task_struct *p, struct pt_regs *regs)
+ {
+diff -puN arch/sh/kernel/process_32.c~simplify-copy_thread arch/sh/kernel/process_32.c
+--- a/arch/sh/kernel/process_32.c~simplify-copy_thread
++++ a/arch/sh/kernel/process_32.c
+@@ -170,7 +170,7 @@ int dump_fpu(struct pt_regs *regs, elf_f
+ 
+ asmlinkage void ret_from_fork(void);
+ 
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
++int copy_thread(unsigned long clone_flags, unsigned long usp,
+ 		unsigned long unused,
+ 		struct task_struct *p, struct pt_regs *regs)
+ {
+diff -puN arch/sh/kernel/process_64.c~simplify-copy_thread arch/sh/kernel/process_64.c
+--- a/arch/sh/kernel/process_64.c~simplify-copy_thread
++++ a/arch/sh/kernel/process_64.c
+@@ -425,7 +425,7 @@ int dump_fpu(struct pt_regs *regs, elf_f
+ 
+ asmlinkage void ret_from_fork(void);
+ 
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
++int copy_thread(unsigned long clone_flags, unsigned long usp,
+ 		unsigned long unused,
+ 		struct task_struct *p, struct pt_regs *regs)
+ {
+diff -puN arch/sparc/kernel/process_32.c~simplify-copy_thread arch/sparc/kernel/process_32.c
+--- a/arch/sparc/kernel/process_32.c~simplify-copy_thread
++++ a/arch/sparc/kernel/process_32.c
+@@ -455,7 +455,7 @@ asmlinkage int sparc_do_fork(unsigned lo
+  */
+ extern void ret_from_fork(void);
+ 
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long sp,
++int copy_thread(unsigned long clone_flags, unsigned long sp,
+ 		unsigned long unused,
+ 		struct task_struct *p, struct pt_regs *regs)
+ {
+diff -puN arch/sparc/kernel/process_64.c~simplify-copy_thread arch/sparc/kernel/process_64.c
+--- a/arch/sparc/kernel/process_64.c~simplify-copy_thread
++++ a/arch/sparc/kernel/process_64.c
+@@ -561,7 +561,7 @@ asmlinkage long sparc_do_fork(unsigned l
+  * Parent -->  %o0 == childs  pid, %o1 == 0
+  * Child  -->  %o0 == parents pid, %o1 == 1
+  */
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long sp,
++int copy_thread(unsigned long clone_flags, unsigned long sp,
+ 		unsigned long unused,
+ 		struct task_struct *p, struct pt_regs *regs)
+ {
+diff -puN arch/um/kernel/process.c~simplify-copy_thread arch/um/kernel/process.c
+--- a/arch/um/kernel/process.c~simplify-copy_thread
++++ a/arch/um/kernel/process.c
+@@ -179,7 +179,7 @@ void fork_handler(void)
+ 	userspace(&current->thread.regs.regs);
+ }
+ 
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long sp,
++int copy_thread(unsigned long clone_flags, unsigned long sp,
+ 		unsigned long stack_top, struct task_struct * p,
+ 		struct pt_regs *regs)
+ {
+diff -puN arch/x86/kernel/process_32.c~simplify-copy_thread arch/x86/kernel/process_32.c
+--- a/arch/x86/kernel/process_32.c~simplify-copy_thread
++++ a/arch/x86/kernel/process_32.c
+@@ -245,7 +245,7 @@ void prepare_to_copy(struct task_struct 
+ 	unlazy_fpu(tsk);
+ }
+ 
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long sp,
++int copy_thread(unsigned long clone_flags, unsigned long sp,
+ 	unsigned long unused,
+ 	struct task_struct *p, struct pt_regs *regs)
+ {
+diff -puN arch/x86/kernel/process_64.c~simplify-copy_thread arch/x86/kernel/process_64.c
+--- a/arch/x86/kernel/process_64.c~simplify-copy_thread
++++ a/arch/x86/kernel/process_64.c
+@@ -278,7 +278,7 @@ void prepare_to_copy(struct task_struct 
+ 	unlazy_fpu(tsk);
+ }
+ 
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long sp,
++int copy_thread(unsigned long clone_flags, unsigned long sp,
+ 		unsigned long unused,
+ 	struct task_struct *p, struct pt_regs *regs)
+ {
+diff -puN arch/xtensa/kernel/process.c~simplify-copy_thread arch/xtensa/kernel/process.c
+--- a/arch/xtensa/kernel/process.c~simplify-copy_thread
++++ a/arch/xtensa/kernel/process.c
+@@ -172,7 +172,7 @@ void prepare_to_copy(struct task_struct 
+  *       childregs.
+  */
+ 
+-int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
++int copy_thread(unsigned long clone_flags, unsigned long usp,
+ 		unsigned long unused,
+                 struct task_struct * p, struct pt_regs * regs)
+ {
+diff -puN include/linux/sched.h~simplify-copy_thread include/linux/sched.h
+--- a/include/linux/sched.h~simplify-copy_thread
++++ a/include/linux/sched.h
+@@ -1975,7 +1975,8 @@ extern void mm_release(struct task_struc
+ /* Allocate a new mm structure and copy contents from tsk->mm */
+ extern struct mm_struct *dup_mm(struct task_struct *tsk);
+ 
+-extern int  copy_thread(int, unsigned long, unsigned long, unsigned long, struct task_struct *, struct pt_regs *);
++extern int copy_thread(unsigned long, unsigned long, unsigned long,
++			struct task_struct *, struct pt_regs *);
+ extern void flush_thread(void);
+ extern void exit_thread(void);
+ 
+diff -puN kernel/fork.c~simplify-copy_thread kernel/fork.c
+--- a/kernel/fork.c~simplify-copy_thread
++++ a/kernel/fork.c
+@@ -1125,7 +1125,7 @@ static struct task_struct *copy_process(
+ 		goto bad_fork_cleanup_mm;
+ 	if ((retval = copy_io(clone_flags, p)))
+ 		goto bad_fork_cleanup_namespaces;
+-	retval = copy_thread(0, clone_flags, stack_start, stack_size, p, regs);
++	retval = copy_thread(clone_flags, stack_start, stack_size, p, regs);
+ 	if (retval)
+ 		goto bad_fork_cleanup_io;
+ 
+_
+
+Patches currently in -mm which might be from adobriyan@gmail.com are
+
+origin.patch
+linux-next.patch
+sysctl-dont-take-the-use-count-of-multiple-heads-at-a-time.patch
+sysctl-lockdep-support-for-sysctl-reference-counting.patch
+softirq-introduce-statistics-for-softirq.patch
+proc-export-statistics-for-softirq-to-proc.patch
+proc-update-document-for-proc-softirqs-and-proc-stat.patch
+namespaces-move-proc_net_get_sb-to-a-generic-fs-superc-helper.patch
+namespaces-move-proc_net_get_sb-to-a-generic-fs-superc-helper-fix.patch
+namespaces-mqueue-ns-move-mqueue_mnt-into-struct-ipc_namespace.patch
+namespaces-ipc-namespaces-implement-support-for-posix-msqueues.patch
+namespaces-ipc-namespaces-implement-support-for-posix-msqueues-initialize-init_ipc_nscount-to-1.patch
+namespaces-mqueue-namespace-adapt-sysctl.patch
+namespaces-mqueue-namespace-adapt-sysctl-update.patch
+namespaces-mqueue-namespace-adapt-sysctl-update-fix.patch
+
