@@ -1,1167 +1,346 @@
 From: liqin.chen@sunplusct.com
-Subject: [PATCH 10/14] score - New architecure port to SunplusCT S+CORE
-Date: Wed, 8 Apr 2009 15:28:34 +0800
-Message-ID: <OF2105AD3B.51B1C200-ON48257592.0029010D-48257592.0029439F@sunplusct.com>
+Subject: [PATCH 11/14] score - New architecure port to SunplusCT S+CORE
+Date: Wed, 8 Apr 2009 15:29:18 +0800
+Message-ID: <OF59471ADD.3D343341-ON48257592.002912F7-48257592.00295402@sunplusct.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="US-ASCII"
+Content-Type: text/plain; charset="GB2312"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:38388 "EHLO
+Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:38483 "EHLO
 	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1763422AbZDHHbZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2009 03:31:25 -0400
+	with ESMTP id S1761105AbZDHHcE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2009 03:32:04 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: torvalds@linux-foundation.org, Arnd Bergmann <arnd@arndb.de>, Sam Ravnborg <sam@ravnborg.org>, Thomas Gleixner <tglx@linutronix.de>, Kyle McMartin <kyle@mcmartin.ca>
 
-From: Chen Liqin <liqin.chen@sunplusct.com>
-
-kernel/signal.c, kernel/syscalls.S, kernel/sys-score.c,
-kernel/time.c for the score architecture.
-
-Signed off by: Chen Liqin <liqin.chen@sunplusct.com>
-Signed off by: Lennox Wu <lennox.wu@sunplusct.com>
---
-
-diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/kernel/signal.c 
-linux-2.6-git.new/arch/score/kernel/signal.c
---- linux-2.6-git.ori/arch/score/kernel/signal.c        1970-01-01 
-08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/kernel/signal.c        2009-04-07 
-21:47:02.000000000 +0800
-@@ -0,0 +1,380 @@
-+/*
-+ * arch/score/kernel/signal.c
-+ *
-+ * Score Processor version.
-+ *
-+ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
-+ *  Chen Liqin <liqin.chen@sunplusct.com>
-+ *  Lennox Wu <lennox.wu@sunplusct.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.,
-+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-+ */
-+
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/signal.h>
-+#include <linux/errno.h>
-+#include <linux/ptrace.h>
-+#include <linux/unistd.h>
-+#include <linux/uaccess.h>
-+#include <asm/cacheflush.h>
-+#include <asm/ucontext.h>
-+
-+#define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
-+
-+struct rt_sigframe {
-+       u32 rs_ass[4];          /* argument save space */
-+       u32 rs_code[2];         /* signal trampoline */
-+       struct siginfo rs_info;
-+       struct ucontext rs_uc;
-+};
-+
-+int setup_sigcontext(struct pt_regs *regs, struct sigcontext __user *sc)
-+{
-+       int err = 0;
-+       unsigned long reg;
-+
-+       reg = regs->cp0_epc; err |= __put_user(reg, &sc->sc_pc);
-+       err |= __put_user(regs->cp0_psr, &sc->sc_psr);
-+       err |= __put_user(regs->cp0_condition, &sc->sc_condition);
-+
-+
-+#define save_gp_reg(i) {                               \
-+       reg = regs->regs[i];                            \
-+       err |= __put_user(reg, &sc->sc_regs[i]);        \
-+} while (0)
-+       save_gp_reg(0); save_gp_reg(1); save_gp_reg(2);
-+       save_gp_reg(3); save_gp_reg(4); save_gp_reg(5); save_gp_reg(6);
-+       save_gp_reg(7); save_gp_reg(8); save_gp_reg(9); save_gp_reg(10);
-+       save_gp_reg(11); save_gp_reg(12); save_gp_reg(13); 
-save_gp_reg(14);
-+       save_gp_reg(15); save_gp_reg(16); save_gp_reg(17); 
-save_gp_reg(18);
-+       save_gp_reg(19); save_gp_reg(20); save_gp_reg(21); 
-save_gp_reg(22);
-+       save_gp_reg(23); save_gp_reg(24); save_gp_reg(25); 
-save_gp_reg(26);
-+       save_gp_reg(27); save_gp_reg(28); save_gp_reg(29);
-+#undef save_gp_reg
-+
-+       reg = regs->ceh; err |= __put_user(reg, &sc->sc_mdceh);
-+       reg = regs->cel; err |= __put_user(reg, &sc->sc_mdcel);
-+       err |= __put_user(regs->cp0_ecr, &sc->sc_ecr);
-+       err |= __put_user(regs->cp0_ema, &sc->sc_ema);
-+
-+       return err;
-+}
-+
-+int restore_sigcontext(struct pt_regs *regs, struct sigcontext __user 
-*sc)
-+{
-+       int err = 0;
-+       u32 reg;
-+
-+       err |= __get_user(regs->cp0_epc, &sc->sc_pc);
-+       err |= __get_user(regs->cp0_condition, &sc->sc_condition);
-+
-+       err |= __get_user(reg, &sc->sc_mdceh);
-+       regs->ceh = (int) reg;
-+       err |= __get_user(reg, &sc->sc_mdcel);
-+       regs->cel = (int) reg;
-+
-+       err |= __get_user(reg, &sc->sc_psr);
-+       regs->cp0_psr = (int) reg;
-+       err |= __get_user(reg, &sc->sc_ecr);
-+       regs->cp0_ecr = (int) reg;
-+       err |= __get_user(reg, &sc->sc_ema);
-+       regs->cp0_ema = (int) reg;
-+
-+#define restore_gp_reg(i) do {                         \
-+       err |= __get_user(reg, &sc->sc_regs[i]);        \
-+       regs->regs[i] = reg;                            \
-+} while (0)
-+       restore_gp_reg(0); restore_gp_reg(1); restore_gp_reg(2); 
-restore_gp_reg(3);
-+       restore_gp_reg(4); restore_gp_reg(5); restore_gp_reg(6); 
-restore_gp_reg(7);
-+       restore_gp_reg(8); restore_gp_reg(9); restore_gp_reg(10); 
-restore_gp_reg(11);
-+       restore_gp_reg(12); restore_gp_reg(13); restore_gp_reg(14); 
-restore_gp_reg(15);
-+       restore_gp_reg(16); restore_gp_reg(17); restore_gp_reg(18); 
-restore_gp_reg(19);
-+       restore_gp_reg(20); restore_gp_reg(21); restore_gp_reg(22); 
-restore_gp_reg(23);
-+       restore_gp_reg(24); restore_gp_reg(25); restore_gp_reg(26); 
-restore_gp_reg(27);
-+       restore_gp_reg(28); restore_gp_reg(29);
-+#undef restore_gp_reg
-+
-+       return err;
-+}
-+
-+/*
-+ * Determine which stack to use..
-+ */
-+void __user *get_sigframe(struct k_sigaction *ka, struct pt_regs *regs,
-+                         size_t frame_size)
-+{
-+       unsigned long sp;
-+
-+       /* Default to using normal stack */
-+       sp = regs->regs[0];
-+       sp -= 32;
-+
-+       /* This is the X/Open sanctioned signal stack switching.  */
-+       if ((ka->sa.sa_flags & SA_ONSTACK) && (!on_sig_stack(sp)))
-+               sp = current->sas_ss_sp + current->sas_ss_size;
-+
-+       return (void *)((sp - frame_size) & ~7);
-+}
-+
-+asmlinkage int sys_rt_sigsuspend(struct pt_regs *regs)
-+{
-+       sigset_t newset;
-+       sigset_t __user *unewset;
-+       size_t sigsetsize;
-+
-+       sigsetsize = regs->regs[5];
-+       if (sigsetsize != sizeof(sigset_t))
-+               return -EINVAL;
-+
-+       unewset = (sigset_t __user *) regs->regs[4];
-+       if (copy_from_user(&newset, unewset, sizeof(newset)))
-+               return -EFAULT;
-+
-+       sigdelsetmask(&newset, ~_BLOCKABLE);
-+
-+       spin_lock_irq(&current->sighand->siglock);
-+       current->saved_sigmask = current->blocked;
-+       current->blocked = newset;
-+       recalc_sigpending();
-+       spin_unlock_irq(&current->sighand->siglock);
-+
-+       current->state = TASK_INTERRUPTIBLE;
-+       schedule();
-+       set_thread_flag(TIF_RESTORE_SIGMASK);
-+       return -ERESTARTNOHAND;
-+}
-+
-+asmlinkage int sys_sigaltstack(struct pt_regs *regs)
-+{
-+       const stack_t *uss = (const stack_t *) regs->regs[4];
-+       stack_t *uoss = (stack_t *) regs->regs[5];
-+       unsigned long usp = regs->regs[0];
-+
-+       return do_sigaltstack(uss, uoss, usp);
-+}
-+
-+asmlinkage void sys_rt_sigreturn(struct pt_regs *regs)
-+{
-+       struct rt_sigframe __user *frame;
-+       sigset_t set;
-+       stack_t st;
-+       int sig;
-+
-+       frame = (struct rt_sigframe __user *) regs->regs[0];
-+       if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
-+               goto badframe;
-+       if (__copy_from_user(&set, &frame->rs_uc.uc_sigmask, sizeof(set)))
-+               goto badframe;
-+
-+       sigdelsetmask(&set, ~_BLOCKABLE);
-+       spin_lock_irq(&current->sighand->siglock);
-+       current->blocked = set;
-+       recalc_sigpending();
-+       spin_unlock_irq(&current->sighand->siglock);
-+
-+       sig = restore_sigcontext(regs, &frame->rs_uc.uc_mcontext);
-+       if (sig < 0)
-+               goto badframe;
-+       else if (sig)
-+               force_sig(sig, current);
-+
-+       if (__copy_from_user(&st, &frame->rs_uc.uc_stack, sizeof(st)))
-+               goto badframe;
-+
-+       /* It is more difficult to avoid calling this function than to
-+          call it and ignore errors.  */
-+       do_sigaltstack((stack_t __user *)&st, NULL, regs->regs[0]);
-+
-+       __asm__ __volatile__(
-+               "mv\tr0, %0\n\t"
-+               "la\tr8, syscall_exit\n\t"
-+               "br\tr8\n\t"
-+               : : "r" (regs) : "r8");
-+
-+badframe:
-+       force_sig(SIGSEGV, current);
-+}
-+
-+int setup_rt_frame(struct k_sigaction *ka, struct pt_regs *regs,
-+       int signr, sigset_t *set, siginfo_t *info)
-+{
-+       struct rt_sigframe *frame;
-+       int err = 0;
-+
-+       frame = get_sigframe(ka, regs, sizeof(*frame));
-+       if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
-+               goto give_sigsegv;
-+
-+       /*
-+        * Set up the return code ...
-+        *
-+        *         li      v0, __NR_rt_sigreturn
-+        *         syscall
-+        */
-+       err |= __put_user(0x87788000 + __NR_rt_sigreturn*2, frame->rs_code 
-+ 0);
-+       err |= __put_user(0x80008002, frame->rs_code + 1);
-+       flush_cache_sigtramp((unsigned long) frame->rs_code);
-+
-+       err |= copy_siginfo_to_user(&frame->rs_info, info);
-+       err |= __put_user(0, &frame->rs_uc.uc_flags);
-+       err |= __put_user(0, &frame->rs_uc.uc_link);
-+       err |= __put_user((void *)current->sas_ss_sp,
-+                               &frame->rs_uc.uc_stack.ss_sp);
-+       err |= __put_user(sas_ss_flags(regs->regs[0]),
-+                               &frame->rs_uc.uc_stack.ss_flags);
-+       err |= __put_user(current->sas_ss_size,
-+                               &frame->rs_uc.uc_stack.ss_size);
-+       err |= setup_sigcontext(regs, &frame->rs_uc.uc_mcontext);
-+       err |= __copy_to_user(&frame->rs_uc.uc_sigmask, set, 
-sizeof(*set));
-+
-+       if (err)
-+               goto give_sigsegv;
-+
-+       regs->regs[0] = (unsigned long) frame;
-+       regs->regs[3] = (unsigned long) frame->rs_code;
-+       regs->regs[4] = signr;
-+       regs->regs[5] = (unsigned long) &frame->rs_info;
-+       regs->regs[6] = (unsigned long) &frame->rs_uc;
-+       regs->regs[29] = (unsigned long) ka->sa.sa_handler;
-+       regs->cp0_epc = (unsigned long) ka->sa.sa_handler;
-+
-+       return 0;
-+
-+give_sigsegv:
-+       if (signr == SIGSEGV)
-+               ka->sa.sa_handler = SIG_DFL;
-+       force_sig(SIGSEGV, current);
-+       return -EFAULT;
-+}
-+
-+int handle_signal(unsigned long sig, siginfo_t *info,
-+       struct k_sigaction *ka, sigset_t *oldset, struct pt_regs *regs)
-+{
-+       int ret;
-+
-+       if (regs->is_syscall) {
-+               switch (regs->regs[4]) {
-+               case ERESTART_RESTARTBLOCK:
-+               case ERESTARTNOHAND:
-+                       regs->regs[4] = EINTR;
-+                       break;
-+               case ERESTARTSYS:
-+                       if (!(ka->sa.sa_flags & SA_RESTART)) {
-+                               regs->regs[4] = EINTR;
-+                               break;
-+                       }
-+               case ERESTARTNOINTR:
-+                       regs->regs[4] = regs->orig_r4;
-+                       regs->regs[7] = regs->orig_r7;
-+                       regs->cp0_epc -= 8;
-+               }
-+
-+               regs->is_syscall = 0;
-+       }
-+
-+       /*
-+        * Set up the stack frame
-+        */
-+       ret = setup_rt_frame(ka, regs, sig, oldset, info);
-+
-+       spin_lock_irq(&current->sighand->siglock);
-+       sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
-+       if (!(ka->sa.sa_flags & SA_NODEFER))
-+               sigaddset(&current->blocked, sig);
-+       recalc_sigpending();
-+       spin_unlock_irq(&current->sighand->siglock);
-+
-+       return ret;
-+}
-+
-+asmlinkage void do_signal(struct pt_regs *regs)
-+{
-+       struct k_sigaction ka;
-+       sigset_t *oldset;
-+       siginfo_t info;
-+       int signr;
-+
-+       /*
-+        * We want the common case to go fast, which is why we may in 
-certain
-+        * cases get here from kernel mode. Just return without doing 
-anything
-+        * if so.
-+        */
-+       if (!user_mode(regs))
-+               return;
-+
-+       if (test_thread_flag(TIF_RESTORE_SIGMASK))
-+               oldset = &current->saved_sigmask;
-+       else
-+               oldset = &current->blocked;
-+
-+       signr = get_signal_to_deliver(&info, &ka, regs, NULL);
-+       if (signr > 0) {
-+               /* Actually deliver the signal.  */
-+               if (handle_signal(signr, &info, &ka, oldset, regs) == 0) {
-+                       /*
-+                        * A signal was successfully delivered; the saved
-+                        * sigmask will have been stored in the signal 
-frame,
-+                        * and will be restored by sigreturn, so we can 
-simply
-+                        * clear the TIF_RESTORE_SIGMASK flag.
-+                        */
-+                       if (test_thread_flag(TIF_RESTORE_SIGMASK))
-+                               clear_thread_flag(TIF_RESTORE_SIGMASK);
-+               }
-+
-+               return;
-+       }
-+
-+       if (regs->is_syscall) {
-+               if (regs->regs[4] == ERESTARTNOHAND ||
-+                   regs->regs[4] == ERESTARTSYS ||
-+                   regs->regs[4] == ERESTARTNOINTR) {
-+                       regs->regs[4] = regs->orig_r4;
-+                       regs->regs[7] = regs->orig_r7;
-+                       regs->cp0_epc -= 8;
-+               }
-+
-+               if (regs->regs[4] == ERESTART_RESTARTBLOCK) {
-+                       regs->regs[27] = __NR_restart_syscall;
-+                       regs->regs[4] = regs->orig_r4;
-+                       regs->regs[7] = regs->orig_r7;
-+                       regs->cp0_epc -= 8;
-+               }
-+
-+               regs->is_syscall = 0;   /* Don't deal with this again.  */
-+       }
-+
-+       /*
-+        * If there's no signal to deliver, we just put the saved sigmask
-+        * back
-+        */
-+       if (test_thread_flag(TIF_RESTORE_SIGMASK)) {
-+               clear_thread_flag(TIF_RESTORE_SIGMASK);
-+               sigprocmask(SIG_SETMASK, &current->saved_sigmask, NULL);
-+       }
-+}
-+
-+/*
-+ * notification of userspace execution resumption
-+ * - triggered by the TIF_WORK_MASK flags
-+ */
-+asmlinkage void do_notify_resume(struct pt_regs *regs, void *unused,
-+                               __u32 thread_info_flags)
-+{
-+       /* deal with pending signal delivery */
-+       if (thread_info_flags & (_TIF_SIGPENDING | _TIF_RESTORE_SIGMASK))
-+               do_signal(regs);
-+}
-diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/kernel/syscalls.S 
-linux-2.6-git.new/arch/score/kernel/syscalls.S
---- linux-2.6-git.ori/arch/score/kernel/syscalls.S      1970-01-01 
-08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/kernel/syscalls.S      2009-04-02 
-15:09:33.000000000 +0800
-@@ -0,0 +1,372 @@
-+/*
-+ * arch/score/kernel/syscalls.S
-+ *
-+ * Score Processor version.
-+ *
-+ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
-+ *  Chen Liqin <liqin.chen@sunplusct.com>
-+ *  Lennox Wu <lennox.wu@sunplusct.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.,
-+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-+ */
-+
-+       .macro  syscalltable
-+       sys     sys_restart_syscall     0       /* 0 */
-+       sys     sys_exit                1
-+       sys     sys_fork_wrapper        0
-+       sys     sys_read                3
-+       sys     sys_write               3
-+       sys     sys_open                3       /* 5 */
-+       sys     sys_close               1
-+       sys     sys_waitpid             3
-+       sys     sys_creat               2
-+       sys     sys_link                2
-+       sys     sys_unlink              1       /* 10 */
-+       sys     sys_execve_wrapper      0
-+       sys     sys_chdir               1
-+       sys     sys_time                1
-+       sys     sys_mknod               3
-+       sys     sys_chmod               2       /* 15 */
-+       sys     sys_lchown              3
-+       sys     sys_ni_syscall          0
-+       sys     sys_ni_syscall          0       /* old stat */
-+       sys     sys_lseek               3
-+       sys     sys_getpid              0       /* 20 */
-+       sys     sys_mount               5
-+       sys     sys_ni_syscall          0       /* old umount */
-+       sys     sys_setuid              1
-+       sys     sys_getuid              0
-+       sys     sys_stime               1       /* 25 */
-+       sys     sys_ptrace              4
-+       sys     sys_alarm               1
-+       sys     sys_ni_syscall          0       /* old fstat */
-+       sys     sys_pause               0
-+       sys     sys_ni_syscall          0       /* 30 old utime */
-+       sys     sys_ni_syscall          0       /* old stty */
-+       sys     sys_ni_syscall          0       /* old gtty */
-+       sys     sys_access              2
-+       sys     sys_nice                1
-+       sys     sys_ni_syscall          0       /* 35 old ftime */
-+       sys     sys_sync                0
-+       sys     sys_kill                2
-+       sys     sys_rename              2
-+       sys     sys_mkdir               2
-+       sys     sys_rmdir               1       /* 40 */
-+       sys     sys_dup                 1
-+       sys     sys_pipe                0
-+       sys     sys_times               1
-+       sys     sys_ni_syscall          0       /* old prof */
-+       sys     sys_brk                 1       /* 45 */
-+       sys     sys_setgid              1
-+       sys     sys_getgid              0
-+       sys     sys_ni_syscall          0       /* old signal */
-+       sys     sys_geteuid             0
-+       sys     sys_getegid             0       /* 50 */
-+       sys     sys_acct                1
-+       sys     sys_umount              2
-+       sys     sys_ni_syscall          0       /* old lock */
-+       sys     sys_ioctl               3
-+       sys     sys_fcntl               3       /* 55 */
-+       sys     sys_ni_syscall          2
-+       sys     sys_setpgid             2
-+       sys     sys_ni_syscall          0       /* old ulimit */
-+       sys     sys_ni_syscall          0       /* old uname */
-+       sys     sys_umask               1       /* 60 */
-+       sys     sys_chroot              1
-+       sys     sys_ustat               2
-+       sys     sys_dup2                2
-+       sys     sys_getppid             0
-+       sys     sys_getpgrp             0       /* 65 */
-+       sys     sys_setsid              0
-+       sys     sys_ni_syscall          0       /* old sigaction */
-+       sys     sys_sgetmask            0
-+       sys     sys_ssetmask            1
-+       sys     sys_setreuid            2       /* 70 */
-+       sys     sys_setregid            2
-+       sys     sys_ni_syscall          0       /* old sigsuspend */
-+       sys     sys_ni_syscall          0       /* old sigpending */
-+       sys     sys_sethostname         2
-+       sys     sys_setrlimit           2       /* 75 */
-+       sys     sys_ni_syscall          0       /* old getrlimit */
-+       sys     sys_getrusage           2
-+       sys     sys_gettimeofday        2
-+       sys     sys_settimeofday        2
-+       sys     sys_getgroups           2       /* 80 */
-+       sys     sys_setgroups           2
-+       sys     sys_ni_syscall          0       /* old_select */
-+       sys     sys_symlink             2
-+       sys     sys_ni_syscall          0       /* old lstat */
-+       sys     sys_readlink            3       /* 85 */
-+       sys     sys_uselib              1
-+       sys     sys_ni_syscall          0       /* sys_swapon */
-+       sys     sys_reboot              3
-+       sys     sys_ni_syscall          0       /* old_readdir */
-+       sys     sys_ni_syscall          0       /* 90 sys_mmap */
-+       sys     sys_munmap              2
-+       sys     sys_truncate            2
-+       sys     sys_ftruncate           2
-+       sys     sys_fchmod              2
-+       sys     sys_fchown              3       /* 95 */
-+       sys     sys_getpriority         2
-+       sys     sys_setpriority         3
-+       sys     sys_ni_syscall          0       /* old profil */
-+       sys     sys_statfs              2
-+       sys     sys_fstatfs             2       /* 100 */
-+       sys     sys_ni_syscall          0       /* old ioperm */
-+       sys     sys_ni_syscall          0       /* old socketcall */
-+       sys     sys_syslog              3
-+       sys     sys_setitimer           3
-+       sys     sys_getitimer           2       /* 105 */
-+       sys     sys_newstat             2
-+       sys     sys_newlstat            2
-+       sys     sys_newfstat            2
-+       sys     sys_ni_syscall          0       /* old uname */
-+       sys     sys_ni_syscall          0       /* 110 */
-+       sys     sys_vhangup             0
-+       sys     sys_ni_syscall          0       /* old idle */
-+       sys     sys_ni_syscall          0       /* old vm86 */
-+       sys     sys_wait4               4
-+       sys     sys_ni_syscall          0       /* 115 swapoff */
-+       sys     sys_sysinfo             1
-+       sys     sys_ni_syscall          0       /* old ipc */
-+       sys     sys_fsync               1
-+       sys     sys_ni_syscall          0       /* old sigreturn */
-+       sys     sys_clone_wrapper       0       /* 120 */
-+       sys     sys_setdomainname       2
-+       sys     sys_newuname            1
-+       sys     sys_ni_syscall          0       /* old modify_ldt */
-+       sys     sys_adjtimex            1
-+       sys     sys_ni_syscall          0       /* 125 old mprotect */
-+       sys     sys_ni_syscall          0       /* old sigprocmask */
-+       sys     sys_ni_syscall          0       /* old create_module */
-+       sys     sys_init_module         5
-+       sys     sys_delete_module       1
-+       sys     sys_ni_syscall          0       /* 130 old get_kernel_syms 
-*/
-+       sys     sys_quotactl            4
-+       sys     sys_getpgid             1
-+       sys     sys_fchdir              1
-+       sys     sys_bdflush             2
-+       sys     sys_ni_syscall          0       /* 135 old sysfs */
-+       sys     sys_personality         1
-+       sys     sys_ni_syscall          0       /* for afs_syscall */
-+       sys     sys_setfsuid            1
-+       sys     sys_setfsgid            1
-+       sys     sys_llseek              5       /* 140 */
-+       sys     sys_getdents            3
-+       sys     sys_ni_syscall          0       /* old select */
-+       sys     sys_flock               2
-+       sys     sys_ni_syscall          0       /* old msync */
-+       sys     sys_readv               3       /* 145 */
-+       sys     sys_writev              3
-+       sys     sys_ni_syscall          0
-+       sys     sys_ni_syscall          0
-+       sys     sys_ni_syscall          0
-+       sys     sys_ni_syscall          0       /* 150 */
-+       sys     sys_getsid              1
-+       sys     sys_fdatasync           1
-+       sys     sys_sysctl              1
-+       sys     sys_ni_syscall          0       /* old mlock */
-+       sys     sys_ni_syscall          0       /* 155 old munlock */
-+       sys     sys_ni_syscall          0       /* old mlockall */
-+       sys     sys_ni_syscall          0       /* old munlockall */
-+       sys     sys_sched_setparam      2
-+       sys     sys_sched_getparam      2
-+       sys     sys_sched_setscheduler  3       /* 160 */
-+       sys     sys_sched_getscheduler  1
-+       sys     sys_sched_yield         0
-+       sys     sys_sched_get_priority_max 1
-+       sys     sys_sched_get_priority_min 1
-+       sys     sys_sched_rr_get_interval 2     /* 165 */
-+       sys     sys_nanosleep,          2
-+       sys     sys_mremap,             5
-+       sys     sys_accept              3
-+       sys     sys_bind                3
-+       sys     sys_connect             3       /* 170 */
-+       sys     sys_getpeername         3
-+       sys     sys_getsockname         3
-+       sys     sys_getsockopt          5
-+       sys     sys_listen              2
-+       sys     sys_recv                4       /* 175 */
-+       sys     sys_recvfrom            6
-+       sys     sys_recvmsg             3
-+       sys     sys_send                4
-+       sys     sys_sendmsg             3
-+       sys     sys_sendto              6       /* 180 */
-+       sys     sys_setsockopt          5
-+       sys     sys_shutdown            2
-+       sys     sys_socket              3
-+       sys     sys_socketpair          4
-+       sys     sys_setresuid           3       /* 185 */
-+       sys     sys_getresuid           3
-+       sys     sys_ni_syscall          0       /* old query_module */
-+       sys     sys_ni_syscall          0       /* old poll */
-+       sys     sys_nfsservctl          3
-+       sys     sys_setresgid           3       /* 190 */
-+       sys     sys_getresgid           3
-+       sys     sys_prctl               5
-+       sys     sys_rt_sigreturn_wrapper        0
-+       sys     sys_rt_sigaction        4
-+       sys     sys_rt_sigprocmask      4       /* 195 */
-+       sys     sys_rt_sigpending       2
-+       sys     sys_rt_sigtimedwait     4
-+       sys     sys_rt_sigqueueinfo     3
-+       sys     sys_rt_sigsuspend_wrapper       0
-+       sys     sys_pread64_wrapper     6       /* 200 */
-+       sys     sys_pwrite64_wrapper    6
-+       sys     sys_chown               3
-+       sys     sys_getcwd              2
-+       sys     sys_capget              2
-+       sys     sys_capset              2       /* 205 */
-+       sys     sys_sigaltstack_wrapper 0
-+       sys     sys_sendfile            4
-+       sys     sys_ni_syscall          0
-+       sys     sys_ni_syscall          0
-+       sys     sys_mmap2               6       /* 210 */
-+       sys     sys_truncate64          4
-+       sys     sys_ftruncate64         4
-+       sys     sys_stat64              2
-+       sys     sys_lstat64             2
-+       sys     sys_fstat64             2       /* 215 */
-+       sys     sys_pivot_root          2
-+       sys     sys_ni_syscall          0       /* old mincore */
-+       sys     sys_ni_syscall          0       /* old madvise */
-+       sys     sys_getdents64          3
-+       sys     sys_fcntl64             3       /* 220 */
-+       sys     sys_ni_syscall          0
-+       sys     sys_gettid              0
-+       sys     sys_readahead           5
-+       sys     sys_setxattr            5
-+       sys     sys_lsetxattr           5       /* 225 */
-+       sys     sys_fsetxattr           5
-+       sys     sys_getxattr            4
-+       sys     sys_lgetxattr           4
-+       sys     sys_fgetxattr           4
-+       sys     sys_listxattr           3       /* 230 */
-+       sys     sys_llistxattr          3
-+       sys     sys_flistxattr          3
-+       sys     sys_removexattr         2
-+       sys     sys_lremovexattr        2
-+       sys     sys_fremovexattr        2       /* 235 */
-+       sys     sys_tkill               2
-+       sys     sys_sendfile64          5
-+       sys     sys_futex               6
-+       sys     sys_sched_setaffinity   3
-+       sys     sys_sched_getaffinity   3       /* 240 */
-+       sys     sys_io_setup            2
-+       sys     sys_io_destroy          1
-+       sys     sys_io_getevents        5
-+       sys     sys_io_submit           3
-+       sys     sys_io_cancel           3       /* 245 */
-+       sys     sys_exit_group          1
-+       sys     sys_lookup_dcookie      4
-+       sys     sys_epoll_create        1
-+       sys     sys_epoll_ctl           4
-+       sys     sys_epoll_wait          3       /* 250 */
-+       sys     sys_ni_syscall          0       /* old remap_file_pages */
-+       sys     sys_set_tid_address     1
-+       sys     sys_ni_syscall          0
-+       sys     sys_fadvise64_64_wrapper        6
-+       sys     sys_statfs64            3       /* 255 */
-+       sys     sys_fstatfs64           2
-+       sys     sys_timer_create        3
-+       sys     sys_timer_settime       4
-+       sys     sys_timer_gettime       2
-+       sys     sys_timer_getoverrun    1       /* 260 */
-+       sys     sys_timer_delete        1
-+       sys     sys_clock_settime       2
-+       sys     sys_clock_gettime       2
-+       sys     sys_clock_getres        2
-+       sys     sys_clock_nanosleep     4       /* 265 */
-+       sys     sys_tgkill              3
-+       sys     sys_utimes              2
-+       sys     sys_ni_syscall          0       /* old mbind */
-+       sys     sys_ni_syscall          0       /* old get_mempolicy */
-+       sys     sys_ni_syscall          0       /* 270 old set_mempolicy 
-*/
-+       sys     sys_mq_open             4
-+       sys     sys_mq_unlink           1
-+       sys     sys_mq_timedsend        5
-+       sys     sys_mq_timedreceive     5
-+       sys     sys_mq_notify           2       /* 275 */
-+       sys     sys_mq_getsetattr       3
-+       sys     sys_ni_syscall          0       /* sys_vserver */
-+       sys     sys_waitid              5
-+       sys     sys_ni_syscall          0
-+       sys     sys_add_key             5       /* 280 */
-+       sys     sys_request_key         4
-+       sys     sys_keyctl              5
-+       sys     sys_ni_syscall          0       /* old set_thread_area */
-+       sys     sys_inotify_init        0
-+       sys     sys_inotify_add_watch   3       /* 285 */
-+       sys     sys_inotify_rm_watch    2
-+       sys     sys_ni_syscall          0       /* old migrate_pages */
-+       sys     sys_openat              4
-+       sys     sys_mkdirat             3
-+       sys     sys_mknodat             4       /* 290 */
-+       sys     sys_fchownat            5
-+       sys     sys_futimesat           3
-+       sys     sys_fstatat64           4
-+       sys     sys_unlinkat            3
-+       sys     sys_renameat            4       /* 295 */
-+       sys     sys_linkat              5
-+       sys     sys_symlinkat           3
-+       sys     sys_readlinkat          4
-+       sys     sys_fchmodat            3
-+       sys     sys_faccessat           3       /* 300 */
-+       sys     sys_pselect6            6
-+       sys     sys_ppoll               5
-+       sys     sys_unshare             1
-+       sys     sys_splice              4
-+       sys     sys_sync_file_range     7       /* 305 */
-+       sys     sys_tee                 4
-+       sys     sys_vmsplice            4
-+       sys     sys_move_pages          6
-+       sys     sys_set_robust_list     2
-+       sys     sys_get_robust_list     3       /* 310 */
-+       sys     sys_kexec_load          4
-+       sys     sys_getcpu              3
-+       sys     sys_epoll_pwait         6
-+       sys     sys_ioprio_set          3
-+       sys     sys_ioprio_get          2       /* 315 */
-+       sys     sys_utimensat           4
-+       sys     sys_signalfd            3
-+       sys     sys_ni_syscall          0
-+       sys     sys_eventfd             1
-+       sys     sys_fallocate           6       /* 320 */
-+       sys     sys_timerfd_create      2
-+       sys     sys_timerfd_gettime     2
-+       sys     sys_timerfd_settime     4
-+       sys     sys_signalfd4           4
-+       sys     sys_eventfd2            2       /* 325 */
-+       sys     sys_epoll_create1       1
-+       sys     sys_dup3                3
-+       sys     sys_pipe2               2
-+       sys     sys_inotify_init1       1
-+       .endm
-+
-+       /* We pre-compute the number of _instruction_ bytes needed to
-+          load or store the arguments 6-8. Negative values are ignored. 
-*/
-+
-+       .macro  sys function, nargs
-+       .word   \function
-+       .word   \nargs
-+       .endm
-+
-+       .align  2
-+       .globl  sys_call_table
-+       .type   sys_call_table, @object
-+sys_call_table:
-+       syscalltable
-+       .size   sys_call_table, . - sys_call_table
-diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/kernel/sys-score.c 
-linux-2.6-git.new/arch/score/kernel/sys-score.c
---- linux-2.6-git.ori/arch/score/kernel/sys-score.c     1970-01-01 
-08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/kernel/sys-score.c     2009-04-07 
-21:21:20.000000000 +0800
-@@ -0,0 +1,178 @@
-+/*
-+ * arch/score/kernel/syscall.c
-+ *
-+ * Score Processor version.
-+ *
-+ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
-+ *  Chen Liqin <liqin.chen@sunplusct.com>
-+ *  Lennox Wu <lennox.wu@sunplusct.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.,
-+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-+ */
-+
-+#include <linux/fs.h>
-+#include <linux/mman.h>
-+#include <linux/syscalls.h>
-+#include <linux/file.h>
-+#include <linux/utsname.h>
-+#include <linux/unistd.h>
-+#include <linux/shm.h>
-+#include <linux/module.h>
-+#include <asm/uaccess.h>
-+
-+unsigned long shm_align_mask = PAGE_SIZE - 1;
-+EXPORT_SYMBOL(shm_align_mask);
-+
-+asmlinkage unsigned long
-+sys_mmap2(unsigned long addr, unsigned long len, unsigned long prot,
-+         unsigned long flags, unsigned long fd, unsigned long pgoff)
-+{
-+       int error = -EBADF;
-+       struct file *file = NULL;
-+
-+       if (pgoff & (~PAGE_MASK >> 12))
-+               return -EINVAL;
-+
-+       flags &= ~(MAP_EXECUTABLE | MAP_DENYWRITE);
-+       if (!(flags & MAP_ANONYMOUS)) {
-+               file = fget(fd);
-+               if (!file)
-+                       return error;
-+       }
-+
-+       down_write(&current->mm->mmap_sem);
-+       error = do_mmap_pgoff(file, addr, len, prot, flags, pgoff >> 
-(PAGE_SHIFT-12));
-+       up_write(&current->mm->mmap_sem);
-+
-+       if (file)
-+               fput(file);
-+
-+       return error;
-+}
-+
-+/*
-+ * Fork a new task - this creates a new program thread.
-+ * This is called indirectly via a small wrapper
-+ */
-+asmlinkage int
-+sys_fork(struct pt_regs *regs)
-+{
-+       return do_fork(SIGCHLD, regs->regs[0], regs, 0, NULL, NULL);
-+}
-+
-+/*
-+ * Clone a task - this clones the calling program thread.
-+ * This is called indirectly via a small wrapper
-+ */
-+asmlinkage int
-+sys_clone(struct pt_regs *regs)
-+{
-+       unsigned long clone_flags;
-+       unsigned long newsp;
-+       int __user *parent_tidptr, *child_tidptr;
-+
-+       clone_flags = regs->regs[4];
-+       newsp = regs->regs[5];
-+       if (!newsp)
-+               newsp = regs->regs[0];
-+       parent_tidptr = (int __user *)regs->regs[6];
-+
-+       child_tidptr = NULL;
-+       if (clone_flags & (CLONE_CHILD_SETTID | CLONE_CHILD_CLEARTID)) {
-+               int __user *__user *usp = (int __user *__user 
-*)regs->regs[0];
-+
-+               if (get_user(child_tidptr, &usp[4]))
-+                       return -EFAULT;
-+       }
-+
-+       return do_fork(clone_flags, newsp, regs, 0,
-+                       parent_tidptr, child_tidptr);
-+}
-+
-+/*
-+ * sys_execve() executes a new program.
-+ * This is called indirectly via a small wrapper
-+ */
-+asmlinkage int sys_execve(struct pt_regs *regs)
-+{
-+       int error;
-+       char *filename;
-+
-+       filename = getname((char *) (long) regs->regs[4]);
-+       error = PTR_ERR(filename);
-+       if (IS_ERR(filename))
-+               return error;
-+
-+       error = do_execve(filename, (char **) (long) regs->regs[5],
-+                         (char **) (long) regs->regs[6], regs);
-+
-+       putname(filename);
-+       return error;
-+}
-+
-+/*
-+ * If we ever come here the user sp is bad.  Zap the process right away.
-+ * Due to the bad stack signaling wouldn't work.
-+ */
-+asmlinkage void bad_stack(void)
-+{
-+       do_exit(SIGSEGV);
-+}
-+
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, char *const argv[], char *const 
-envp[])
-+{
-+       register unsigned long __r4 asm("r4") = (unsigned long) filename;
-+       register unsigned long __r5 asm("r5") = (unsigned long) argv;
-+       register unsigned long __r6 asm("r6") = (unsigned long) envp;
-+       register unsigned long __r7 asm("r7");
-+
-+       __asm__ volatile ("     \n"
-+               "ldi    r27, %5         \n"
-+               "syscall                \n"
-+               "mv     %0, r4          \n"
-+               "mv     %1, r7          \n"
-+               : "=&r" (__r4), "=r" (__r7)
-+               : "r" (__r4), "r" (__r5), "r" (__r6), "i" (__NR_execve)
-+               : "r8", "r9", "r10", "r11", "r22", "r23", "r24", "r25",
-+                 "r26", "r27", "memory");
-+
-+       if (__r7 == 0)
-+               return __r4;
-+
-+       return -__r4;
-+}
-+
-+asmlinkage ssize_t sys_pwrite64_wrapper(unsigned int fd, const char *buf,
-+                                       long long count, loff_t pos)
-+{
-+       return sys_pwrite64(fd, buf, (long) count, pos);
-+}
-+
-+asmlinkage ssize_t sys_pread64_wrapper(unsigned int fd, char *buf,
-+                                       long long count, loff_t pos)
-+{
-+       return sys_pread64(fd, buf, (long) count, pos);
-+}
-+
-+asmlinkage long
-+sys_fadvise64_64_wrapper(int fd, int unused, loff_t offset, size_t len, 
-int advice)
-+{
-+       return sys_fadvise64(fd, offset, len, advice);
-+}
-diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-linux-2.6-git.ori/arch/score/kernel/time.c 
-linux-2.6-git.new/arch/score/kernel/time.c
---- linux-2.6-git.ori/arch/score/kernel/time.c  1970-01-01 
-08:00:00.000000000 +0800
-+++ linux-2.6-git.new/arch/score/kernel/time.c  2009-04-07 
-21:21:49.000000000 +0800
-@@ -0,0 +1,144 @@
-+/*
-+ * arch/score/kernel/time.c
-+ *
-+ * Score Processor version.
-+ *
-+ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
-+ *  Chen Liqin <liqin.chen@sunplusct.com>
-+ *  Lennox Wu <lennox.wu@sunplusct.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.,
-+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-+ */
-+
-+#include <linux/interrupt.h>
-+#include <linux/clocksource.h>
-+#include <linux/clockchips.h>
-+#include <asm/scoreregs.h>
-+
-+int timer_interrupt(int irq, void *dev_id)
-+{
-+       struct clock_event_device *evdev = dev_id;
-+
-+       __raw_writel(1, P_TIMER0_CPP_REG);      /* clear timer interrupt 
-flag */
-+       evdev->event_handler(evdev);
-+
-+       return IRQ_HANDLED;
-+}
-+
-+static struct irqaction timer_irq = {
-+       .handler = timer_interrupt,
-+       .flags = IRQF_DISABLED | IRQF_TIMER,
-+       .mask = CPU_MASK_NONE,
-+       .name = "timer",
-+};
-+
-+static int comparator_next_event(unsigned long delta,
-+               struct clock_event_device *evdev)
-+{
-+       unsigned long   flags;
-+
-+       raw_local_irq_save(flags);
-+
-+       __raw_writel((TMR_M_PERIODIC | TMR_IE_ENABLE), P_TIMER0_CTRL);
-+       __raw_writel(delta, P_TIMER0_PRELOAD);
-+       __raw_writel(__raw_readl(P_TIMER0_CTRL) | TMR_ENABLE, 
-P_TIMER0_CTRL);
-+
-+       raw_local_irq_restore(flags);
-+
-+       return 0;
-+}
-+
-+static void comparator_mode(enum clock_event_mode mode,
-+               struct clock_event_device *evdev)
-+{
-+       unsigned long   flags;
-+
-+       switch (mode) {
-+       case CLOCK_EVT_MODE_PERIODIC:
-+               raw_local_irq_save(flags);
-+               __raw_writel((TMR_M_PERIODIC | TMR_IE_ENABLE), 
-P_TIMER0_CTRL);
-+               __raw_writel(SYSTEM_CLOCK/100, P_TIMER0_PRELOAD);
-+               __raw_writel(__raw_readl(P_TIMER0_CTRL) | TMR_ENABLE, 
-P_TIMER0_CTRL);
-+               raw_local_irq_restore(flags);
-+               break;
-+       case CLOCK_EVT_MODE_ONESHOT:
-+       case CLOCK_EVT_MODE_RESUME:
-+       case CLOCK_EVT_MODE_UNUSED:
-+       case CLOCK_EVT_MODE_SHUTDOWN:
-+               break;
-+       default:
-+               BUG();
-+       }
-+}
-+
-+static struct clock_event_device comparator = {
-+       .name           = "avr32_comparator",
-+       .features       = CLOCK_EVT_FEAT_PERIODIC | 
-CLOCK_EVT_FEAT_ONESHOT,
-+       .shift          = 16,
-+       .set_next_event = comparator_next_event,
-+       .set_mode       = comparator_mode,
-+};
-+
-+static u32 score_tick_cnt;
-+
-+static cycle_t score_read_clk(void)
-+{
-+       unsigned long flags;
-+
-+       local_irq_save(flags);
-+       score_tick_cnt += SYSTEM_CLOCK/100;
-+       local_irq_restore(flags);
-+
-+       return score_tick_cnt;
-+}
-+
-+static struct clocksource score_clk = {
-+       .name   = "timer",
-+       .rating = 250,
-+       .read   = score_read_clk,
-+       .shift  = 20,
-+       .mask   = CLOCKSOURCE_MASK(32),
-+       .flags  = CLOCK_SOURCE_IS_CONTINUOUS,
-+};
-+
-+void __init time_init(void)
-+{
-+       xtime.tv_sec = mktime(2009, 1, 1, 0, 0, 0);
-+       xtime.tv_nsec = 0;
-+
-+       set_normalized_timespec(&wall_to_monotonic, -xtime.tv_sec, 
--xtime.tv_nsec);
-+
-+       /* disable timer, timer interrupt enable */
-+       __raw_writel((TMR_M_PERIODIC | TMR_IE_ENABLE), P_TIMER0_CTRL);
-+       __raw_writel(SYSTEM_CLOCK/100, P_TIMER0_PRELOAD);       /* 10ms */
-+
-+       /* start timer */
-+       __raw_writel(__raw_readl(P_TIMER0_CTRL) | TMR_ENABLE, 
-P_TIMER0_CTRL);
-+
-+       score_clk.mult = clocksource_hz2mult(SYSTEM_CLOCK, 
-score_clk.shift);
-+       clocksource_register(&score_clk);
-+
-+       /* setup COMPARE clockevent */
-+       comparator.mult = div_sc(SYSTEM_CLOCK, NSEC_PER_SEC, 
-comparator.shift);
-+       comparator.max_delta_ns = clockevent_delta2ns((u32)~0, 
-&comparator);
-+       comparator.min_delta_ns = clockevent_delta2ns(50, &comparator) + 
-1;
-+       comparator.cpumask = cpumask_of(0);
-+
-+       timer_irq.dev_id = &comparator;
-+       setup_irq(IRQ_TIMER , &timer_irq);
-+
-+       clockevents_register_device(&comparator);
-+}
+RnJvbTogQ2hlbiBMaXFpbiA8bGlxaW4uY2hlbkBzdW5wbHVzY3QuY29tPg0KDQprZXJuZWwvdHJh
+cHMuYyBhbmQga2VybmVsL3ZtbGludXgubGRzLlMNCmZvciB0aGUgc2NvcmUgYXJjaGl0ZWN0dXJl
+Lg0KDQpTaWduZWQgb2ZmIGJ5OiBDaGVuIExpcWluIDxsaXFpbi5jaGVuQHN1bnBsdXNjdC5jb20+
+DQpTaWduZWQgb2ZmIGJ5OiBMZW5ub3ggV3UgPGxlbm5veC53dUBzdW5wbHVzY3QuY29tPg0KLS0N
+Cg0KZGlmZiAtdXByTiAteCBsaW51eC0yLjYtZ2l0Lm9yaS9Eb2N1bWVudGF0aW9uL2RvbnRkaWZm
+IA0KbGludXgtMi42LWdpdC5vcmkvYXJjaC9zY29yZS9rZXJuZWwvdHJhcHMuYyANCmxpbnV4LTIu
+Ni1naXQubmV3L2FyY2gvc2NvcmUva2VybmVsL3RyYXBzLmMNCi0tLSBsaW51eC0yLjYtZ2l0Lm9y
+aS9hcmNoL3Njb3JlL2tlcm5lbC90cmFwcy5jIDE5NzAtMDEtMDEgDQowODowMDowMC4wMDAwMDAw
+MDAgKzA4MDANCisrKyBsaW51eC0yLjYtZ2l0Lm5ldy9hcmNoL3Njb3JlL2tlcm5lbC90cmFwcy5j
+IDIwMDktMDQtMDcgDQoyMTo0ODozNC4wMDAwMDAwMDAgKzA4MDANCkBAIC0wLDAgKzEsMzQ5IEBA
+DQorLyoNCisgKiBhcmNoL3Njb3JlL2tlcm5lbC90cmFwcy5jDQorICoNCisgKiBTY29yZSBQcm9j
+ZXNzb3IgdmVyc2lvbi4NCisgKg0KKyAqIENvcHlyaWdodCAoQykgMjAwOSBTdW5wbHVzIENvcmUg
+VGVjaG5vbG9neSBDby4sIEx0ZC4NCisgKiAgQ2hlbiBMaXFpbiA8bGlxaW4uY2hlbkBzdW5wbHVz
+Y3QuY29tPg0KKyAqICBMZW5ub3ggV3UgPGxlbm5veC53dUBzdW5wbHVzY3QuY29tPg0KKyAqDQor
+ICogVGhpcyBwcm9ncmFtIGlzIGZyZWUgc29mdHdhcmU7IHlvdSBjYW4gcmVkaXN0cmlidXRlIGl0
+IGFuZC9vciBtb2RpZnkNCisgKiBpdCB1bmRlciB0aGUgdGVybXMgb2YgdGhlIEdOVSBHZW5lcmFs
+IFB1YmxpYyBMaWNlbnNlIGFzIHB1Ymxpc2hlZCBieQ0KKyAqIHRoZSBGcmVlIFNvZnR3YXJlIEZv
+dW5kYXRpb247IGVpdGhlciB2ZXJzaW9uIDIgb2YgdGhlIExpY2Vuc2UsIG9yDQorICogKGF0IHlv
+dXIgb3B0aW9uKSBhbnkgbGF0ZXIgdmVyc2lvbi4NCisgKg0KKyAqIFRoaXMgcHJvZ3JhbSBpcyBk
+aXN0cmlidXRlZCBpbiB0aGUgaG9wZSB0aGF0IGl0IHdpbGwgYmUgdXNlZnVsLA0KKyAqIGJ1dCBX
+SVRIT1VUIEFOWSBXQVJSQU5UWTsgd2l0aG91dCBldmVuIHRoZSBpbXBsaWVkIHdhcnJhbnR5IG9m
+DQorICogTUVSQ0hBTlRBQklMSVRZIG9yIEZJVE5FU1MgRk9SIEEgUEFSVElDVUxBUiBQVVJQT1NF
+LiAgU2VlIHRoZQ0KKyAqIEdOVSBHZW5lcmFsIFB1YmxpYyBMaWNlbnNlIGZvciBtb3JlIGRldGFp
+bHMuDQorICoNCisgKiBZb3Ugc2hvdWxkIGhhdmUgcmVjZWl2ZWQgYSBjb3B5IG9mIHRoZSBHTlUg
+R2VuZXJhbCBQdWJsaWMgTGljZW5zZQ0KKyAqIGFsb25nIHdpdGggdGhpcyBwcm9ncmFtOyBpZiBu
+b3QsIHNlZSB0aGUgZmlsZSBDT1BZSU5HLCBvciB3cml0ZQ0KKyAqIHRvIHRoZSBGcmVlIFNvZnR3
+YXJlIEZvdW5kYXRpb24sIEluYy4sDQorICogNTEgRnJhbmtsaW4gU3QsIEZpZnRoIEZsb29yLCBC
+b3N0b24sIE1BICAwMjExMC0xMzAxICBVU0ENCisgKi8NCisNCisjaW5jbHVkZSA8bGludXgvbW9k
+dWxlLmg+DQorI2luY2x1ZGUgPGxpbnV4L3NjaGVkLmg+DQorI2luY2x1ZGUgPGFzbS9jYWNoZWZs
+dXNoLmg+DQorI2luY2x1ZGUgPGFzbS9wdHJhY2UuaD4NCisjaW5jbHVkZSA8YXNtL3NldHVwLmg+
+DQorI2luY2x1ZGUgPGFzbS9pcnEuaD4NCisjaW5jbHVkZSA8YXNtL2lycV9yZWdzLmg+DQorDQor
+dW5zaWduZWQgbG9uZyBleGNlcHRpb25faGFuZGxlcnNbMzJdOw0KKw0KKy8qDQorICogVGhlIGFy
+Y2hpdGVjdHVyZS1pbmRlcGVuZGVudCBzaG93X3N0YWNrIGdlbmVyYXRvcg0KKyAqLw0KK3ZvaWQg
+c2hvd19zdGFjayhzdHJ1Y3QgdGFza19zdHJ1Y3QgKnRhc2ssIHVuc2lnbmVkIGxvbmcgKnNwKQ0K
+K3sNCisgICAgICAgaW50IGk7DQorICAgICAgIGxvbmcgc3RhY2tkYXRhOw0KKw0KKyAgICAgICBz
+cCA9IHNwID8gc3AgOiAodW5zaWduZWQgbG9uZyAqKSZzcDsNCisNCisgICAgICAgcHJpbnRrKCJT
+dGFjazogICAiKTsNCisgICAgICAgaSA9IDE7DQorICAgICAgIHdoaWxlICgobG9uZykgc3AgJiAo
+UEFHRV9TSVpFIC0gMSkpIHsNCisgICAgICAgICAgICAgICBpZiAoaSAmJiAoKGkgJSA4KSA9PSAw
+KSkNCisgICAgICAgICAgICAgICAgICAgICAgIHByaW50aygiXG4iKTsNCisgICAgICAgICAgICAg
+ICBpZiAoaSA+IDQwKSB7DQorICAgICAgICAgICAgICAgICAgICAgICBwcmludGsoIiAuLi4iKTsN
+CisgICAgICAgICAgICAgICAgICAgICAgIGJyZWFrOw0KKyAgICAgICAgICAgICAgIH0NCisNCisg
+ICAgICAgICAgICAgICBpZiAoX19nZXRfdXNlcihzdGFja2RhdGEsIHNwKyspKSB7DQorICAgICAg
+ICAgICAgICAgICAgICAgICBwcmludGsoIiAoQmFkIHN0YWNrIGFkZHJlc3MpIik7DQorICAgICAg
+ICAgICAgICAgICAgICAgICBicmVhazsNCisgICAgICAgICAgICAgICB9DQorDQorICAgICAgICAg
+ICAgICAgcHJpbnRrKCIgJTA4bHgiLCBzdGFja2RhdGEpOw0KKyAgICAgICAgICAgICAgIGkrKzsN
+CisgICAgICAgfQ0KKyAgICAgICBwcmludGsoIlxuIik7DQorfQ0KKw0KK3N0YXRpYyB2b2lkIHNo
+b3dfdHJhY2UobG9uZyAqc3ApDQorew0KKyAgICAgICBpbnQgaTsNCisgICAgICAgbG9uZyBhZGRy
+Ow0KKw0KKyAgICAgICBzcCA9IHNwID8gc3AgOiAobG9uZyAqKSAmc3A7DQorDQorICAgICAgIHBy
+aW50aygiQ2FsbCBUcmFjZTogICIpOw0KKyAgICAgICBpID0gMTsNCisgICAgICAgd2hpbGUgKChs
+b25nKSBzcCAmIChQQUdFX1NJWkUgLSAxKSkgew0KKyAgICAgICAgICAgICAgIGlmIChfX2dldF91
+c2VyKGFkZHIsIHNwKyspKSB7DQorICAgICAgICAgICAgICAgICAgICAgICBpZiAoaSAmJiAoKGkg
+JSA2KSA9PSAwKSkNCisgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJpbnRrKCJcbiIp
+Ow0KKyAgICAgICAgICAgICAgICAgICAgICAgcHJpbnRrKCIgKEJhZCBzdGFjayBhZGRyZXNzKVxu
+Iik7DQorICAgICAgICAgICAgICAgICAgICAgICBicmVhazsNCisgICAgICAgICAgICAgICB9DQor
+DQorICAgICAgICAgICAgICAgaWYgKGtlcm5lbF90ZXh0X2FkZHJlc3MoYWRkcikpIHsNCisgICAg
+ICAgICAgICAgICAgICAgICAgIGlmIChpICYmICgoaSAlIDYpID09IDApKQ0KKyAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICBwcmludGsoIlxuIik7DQorICAgICAgICAgICAgICAgICAgICAg
+ICBpZiAoaSA+IDQwKSB7DQorICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByaW50aygi
+IC4uLiIpOw0KKyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBicmVhazsNCisgICAgICAg
+ICAgICAgICAgICAgICAgIH0NCisNCisgICAgICAgICAgICAgICAgICAgICAgIHByaW50aygiIFs8
+JTA4bHg+XSIsIGFkZHIpOw0KKyAgICAgICAgICAgICAgICAgICAgICAgaSsrOw0KKyAgICAgICAg
+ICAgICAgIH0NCisgICAgICAgfQ0KKyAgICAgICBwcmludGsoIlxuIik7DQorfQ0KKw0KK3N0YXRp
+YyB2b2lkIHNob3dfY29kZSh1bnNpZ25lZCBpbnQgKnBjKQ0KK3sNCisgICAgICAgbG9uZyBpOw0K
+Kw0KKyAgICAgICBwcmludGsoIlxuQ29kZToiKTsNCisNCisgICAgICAgZm9yIChpID0gLTM7IGkg
+PCA2OyBpKyspIHsNCisgICAgICAgICAgICAgICB1bnNpZ25lZCBsb25nIGluc247DQorICAgICAg
+ICAgICAgICAgaWYgKF9fZ2V0X3VzZXIoaW5zbiwgcGMgKyBpKSkgew0KKyAgICAgICAgICAgICAg
+ICAgICAgICAgcHJpbnRrKCIgKEJhZCBhZGRyZXNzIGluIGVwYylcbiIpOw0KKyAgICAgICAgICAg
+ICAgICAgICAgICAgYnJlYWs7DQorICAgICAgICAgICAgICAgfQ0KKyAgICAgICAgICAgICAgIHBy
+aW50aygiJWMlMDhseCVjIiwgKGkgPyAnICcgOiAnPCcpLCBpbnNuLCAoaSA/ICcgJyA6IA0KJz4n
+KSk7DQorICAgICAgIH0NCit9DQorDQorLyoNCisgKiBGSVhNRTogcmVhbGx5IHRoZSBnZW5lcmlj
+IHNob3dfcmVncyBzaG91bGQgdGFrZSBhIGNvbnN0IHBvaW50ZXIgDQphcmd1bWVudC4NCisgKi8N
+Cit2b2lkIHNob3dfcmVncyhzdHJ1Y3QgcHRfcmVncyAqcmVncykNCit7DQorICAgICAgIHByaW50
+aygicjAgOiAlMDhseCAlMDhseCAlMDhseCAlMDhseCAlMDhseCAlMDhseCAlMDhseCAlMDhseFxu
+IiwNCisgICAgICAgICAgICAgICByZWdzLT5yZWdzWzBdLCByZWdzLT5yZWdzWzFdLCByZWdzLT5y
+ZWdzWzJdLCANCnJlZ3MtPnJlZ3NbM10sDQorICAgICAgICAgICAgICAgcmVncy0+cmVnc1s0XSwg
+cmVncy0+cmVnc1s1XSwgcmVncy0+cmVnc1s2XSwgDQpyZWdzLT5yZWdzWzddKTsNCisgICAgICAg
+cHJpbnRrKCJyOCA6ICUwOGx4ICUwOGx4ICUwOGx4ICUwOGx4ICUwOGx4ICUwOGx4ICUwOGx4ICUw
+OGx4XG4iLA0KKyAgICAgICAgICAgICAgIHJlZ3MtPnJlZ3NbOF0sIHJlZ3MtPnJlZ3NbOV0sIHJl
+Z3MtPnJlZ3NbMTBdLCANCnJlZ3MtPnJlZ3NbMTFdLA0KKyAgICAgICAgICAgICAgIHJlZ3MtPnJl
+Z3NbMTJdLCByZWdzLT5yZWdzWzEzXSwgcmVncy0+cmVnc1sxNF0sIA0KcmVncy0+cmVnc1sxNV0p
+Ow0KKyAgICAgICBwcmludGsoInIxNjogJTA4bHggJTA4bHggJTA4bHggJTA4bHggJTA4bHggJTA4
+bHggJTA4bHggJTA4bHhcbiIsDQorICAgICAgICAgICAgICAgcmVncy0+cmVnc1sxNl0sIHJlZ3Mt
+PnJlZ3NbMTddLCByZWdzLT5yZWdzWzE4XSwgDQpyZWdzLT5yZWdzWzE5XSwNCisgICAgICAgICAg
+ICAgICByZWdzLT5yZWdzWzIwXSwgcmVncy0+cmVnc1syMV0sIHJlZ3MtPnJlZ3NbMjJdLCANCnJl
+Z3MtPnJlZ3NbMjNdKTsNCisgICAgICAgcHJpbnRrKCJyMjQ6ICUwOGx4ICUwOGx4ICUwOGx4ICUw
+OGx4ICUwOGx4ICUwOGx4ICUwOGx4ICUwOGx4XG4iLA0KKyAgICAgICAgICAgICAgIHJlZ3MtPnJl
+Z3NbMjRdLCByZWdzLT5yZWdzWzI1XSwgcmVncy0+cmVnc1syNl0sIA0KcmVncy0+cmVnc1syN10s
+DQorICAgICAgICAgICAgICAgcmVncy0+cmVnc1syOF0sIHJlZ3MtPnJlZ3NbMjldLCByZWdzLT5y
+ZWdzWzMwXSwgDQpyZWdzLT5yZWdzWzMxXSk7DQorDQorICAgICAgIHByaW50aygiQ0VIIDogJTA4
+bHhcbiIsIHJlZ3MtPmNlaCk7DQorICAgICAgIHByaW50aygiQ0VMIDogJTA4bHhcbiIsIHJlZ3Mt
+PmNlbCk7DQorDQorICAgICAgIHByaW50aygiRU1BOiUwOGx4LCBlcGM6JTA4bHggICVzXG5QU1I6
+ICUwOGx4XG5FQ1I6JTA4bHhcbkNvbmRpdGlvbiANCjogJTA4bHhcbiIsDQorICAgICAgICAgICAg
+ICAgcmVncy0+Y3AwX2VtYSwgcmVncy0+Y3AwX2VwYywgcHJpbnRfdGFpbnRlZCgpLCANCnJlZ3Mt
+PmNwMF9wc3IsDQorICAgICAgICAgICAgICAgcmVncy0+Y3AwX2VjciwgcmVncy0+Y3AwX2NvbmRp
+dGlvbik7DQorfQ0KKw0KK3N0YXRpYyB2b2lkIHNob3dfcmVnaXN0ZXJzKHN0cnVjdCBwdF9yZWdz
+ICpyZWdzKQ0KK3sNCisgICAgICAgc2hvd19yZWdzKHJlZ3MpOw0KKyAgICAgICBwcmludGsoIlBy
+b2Nlc3MgJXMgKHBpZDogJWQsIHN0YWNrcGFnZT0lMDhseClcbiIsDQorICAgICAgICAgICAgICAg
+Y3VycmVudC0+Y29tbSwgY3VycmVudC0+cGlkLCAodW5zaWduZWQgbG9uZykgY3VycmVudCk7DQor
+ICAgICAgIHNob3dfc3RhY2soY3VycmVudF90aHJlYWRfaW5mbygpLT50YXNrLCAobG9uZyAqKSBy
+ZWdzLT5yZWdzWzBdKTsNCisgICAgICAgc2hvd190cmFjZSgobG9uZyAqKSByZWdzLT5yZWdzWzBd
+KTsNCisgICAgICAgc2hvd19jb2RlKCh1bnNpZ25lZCBpbnQgKikgcmVncy0+Y3AwX2VwYyk7DQor
+ICAgICAgIHByaW50aygiXG4iKTsNCit9DQorDQorLyoNCisgKiBUaGUgYXJjaGl0ZWN0dXJlLWlu
+ZGVwZW5kZW50IGR1bXBfc3RhY2sgZ2VuZXJhdG9yDQorICovDQordm9pZCBkdW1wX3N0YWNrKHZv
+aWQpDQorew0KKyAgICAgICBzaG93X3N0YWNrKGN1cnJlbnRfdGhyZWFkX2luZm8oKS0+dGFzaywN
+CisgICAgICAgICAgICAgICAgICAobG9uZyAqKSBnZXRfaXJxX3JlZ3MoKS0+cmVnc1swXSk7DQor
+fQ0KK0VYUE9SVF9TWU1CT0woZHVtcF9zdGFjayk7DQorDQordm9pZCBfX2RpZShjb25zdCBjaGFy
+ICpzdHIsIHN0cnVjdCBwdF9yZWdzICpyZWdzLCBjb25zdCBjaGFyICpmaWxlLA0KKyAgICAgICAg
+ICBjb25zdCBjaGFyICpmdW5jLCB1bnNpZ25lZCBsb25nIGxpbmUpDQorew0KKyAgICAgICBjb25z
+b2xlX3ZlcmJvc2UoKTsNCisgICAgICAgcHJpbnRrKCIlcyIsIHN0cik7DQorICAgICAgIGlmIChm
+aWxlICYmIGZ1bmMpDQorICAgICAgICAgICAgICAgcHJpbnRrKCIgaW4gJXM6JXMsIGxpbmUgJWxk
+IiwgZmlsZSwgZnVuYywgbGluZSk7DQorICAgICAgIHByaW50aygiOlxuIik7DQorICAgICAgIHNo
+b3dfcmVnaXN0ZXJzKHJlZ3MpOw0KKyAgICAgICBkb19leGl0KFNJR1NFR1YpOw0KK30NCisNCit2
+b2lkIF9fZGllX2lmX2tlcm5lbChjb25zdCBjaGFyICpzdHIsIHN0cnVjdCBwdF9yZWdzICpyZWdz
+LA0KKyAgICAgICAgICAgICAgICAgICAgY29uc3QgY2hhciAqZmlsZSwgY29uc3QgY2hhciAqZnVu
+YywgdW5zaWduZWQgbG9uZyANCmxpbmUpDQorew0KKyAgICAgICBpZiAoIXVzZXJfbW9kZShyZWdz
+KSkNCisgICAgICAgICAgICAgICBfX2RpZShzdHIsIHJlZ3MsIGZpbGUsIGZ1bmMsIGxpbmUpOw0K
+K30NCisNCithc21saW5rYWdlIHZvaWQgZG9fYWRlbGluc24oc3RydWN0IHB0X3JlZ3MgKnJlZ3Mp
+DQorew0KKyAgICAgICBwcmludGsoImRvX0FERS1saW5zbjplbWE6MHglMDhseDplcGM6MHglMDhs
+eFxuIiwNCisgICAgICAgICAgICAgICAgcmVncy0+Y3AwX2VtYSwgcmVncy0+Y3AwX2VwYyk7DQor
+ICAgICAgIGRpZV9pZl9rZXJuZWwoImRvX2FkZSBleGVjdXRpb24gRXhjZXB0aW9uXG4iLCByZWdz
+KTsNCisgICAgICAgZm9yY2Vfc2lnKFNJR0JVUywgY3VycmVudCk7DQorfQ0KKw0KK2FzbWxpbmth
+Z2Ugdm9pZCBkb19hZGVkYXRhKHN0cnVjdCBwdF9yZWdzICpyZWdzKQ0KK3sNCisgICAgICAgY29u
+c3Qgc3RydWN0IGV4Y2VwdGlvbl90YWJsZV9lbnRyeSAqZml4dXA7DQorICAgICAgIGZpeHVwID0g
+c2VhcmNoX2V4Y2VwdGlvbl90YWJsZXMocmVncy0+Y3AwX2VwYyk7DQorICAgICAgIGlmIChmaXh1
+cCkgew0KKyAgICAgICAgICAgICAgIHJlZ3MtPmNwMF9lcGMgPSBmaXh1cC0+bmV4dGluc247DQor
+ICAgICAgICAgICAgICAgcmV0dXJuOw0KKyAgICAgICB9DQorICAgICAgIHByaW50aygiZG9fQURF
+LWRhdGE6ZW1hOjB4JTA4bHg6ZXBjOjB4JTA4bHhcbiIsDQorICAgICAgICAgICAgICAgIHJlZ3Mt
+PmNwMF9lbWEsIHJlZ3MtPmNwMF9lcGMpOw0KKyAgICAgICBkaWVfaWZfa2VybmVsKCJkb19hZGUg
+ZXhlY3V0aW9uIEV4Y2VwdGlvblxuIiwgcmVncyk7DQorICAgICAgIGZvcmNlX3NpZyhTSUdCVVMs
+IGN1cnJlbnQpOw0KK30NCisNCithc21saW5rYWdlIHZvaWQgZG9fcGVsKHN0cnVjdCBwdF9yZWdz
+ICpyZWdzKQ0KK3sNCisgICAgICAgZGllX2lmX2tlcm5lbCgiZG9fcGVsIGV4ZWN1dGlvbiBFeGNl
+cHRpb24iLCByZWdzKTsNCisgICAgICAgZm9yY2Vfc2lnKFNJR0ZQRSwgY3VycmVudCk7DQorfQ0K
+Kw0KK2FzbWxpbmthZ2Ugdm9pZCBkb19jZWUoc3RydWN0IHB0X3JlZ3MgKnJlZ3MpDQorew0KKyAg
+ICAgICBkaWVfaWZfa2VybmVsKCJkb19jZWUgZXhlY3V0aW9uIEV4Y2VwdGlvbiIsIHJlZ3MpOw0K
+KyAgICAgICBmb3JjZV9zaWcoU0lHRlBFLCBjdXJyZW50KTsNCit9DQorDQorYXNtbGlua2FnZSB2
+b2lkIGRvX2NwZShzdHJ1Y3QgcHRfcmVncyAqcmVncykNCit7DQorICAgICAgIGRpZV9pZl9rZXJu
+ZWwoImRvX2NwZSBleGVjdXRpb24gRXhjZXB0aW9uIiwgcmVncyk7DQorICAgICAgIGZvcmNlX3Np
+ZyhTSUdGUEUsIGN1cnJlbnQpOw0KK30NCisNCithc21saW5rYWdlIHZvaWQgZG9fYmUoc3RydWN0
+IHB0X3JlZ3MgKnJlZ3MpDQorew0KKyAgICAgICBkaWVfaWZfa2VybmVsKCJkb19iZSBleGVjdXRp
+b24gRXhjZXB0aW9uIiwgcmVncyk7DQorICAgICAgIGZvcmNlX3NpZyhTSUdCVVMsIGN1cnJlbnQp
+Ow0KK30NCisNCithc21saW5rYWdlIHZvaWQgZG9fb3Yoc3RydWN0IHB0X3JlZ3MgKnJlZ3MpDQor
+ew0KKyAgICAgICBzaWdpbmZvX3QgaW5mbzsNCisNCisgICAgICAgZGllX2lmX2tlcm5lbCgiZG9f
+b3YgZXhlY3V0aW9uIEV4Y2VwdGlvbiIsIHJlZ3MpOw0KKw0KKyAgICAgICBpbmZvLnNpX2NvZGUg
+PSBGUEVfSU5UT1ZGOw0KKyAgICAgICBpbmZvLnNpX3NpZ25vID0gU0lHRlBFOw0KKyAgICAgICBp
+bmZvLnNpX2Vycm5vID0gMDsNCisgICAgICAgaW5mby5zaV9hZGRyID0gKHZvaWQgKilyZWdzLT5j
+cDBfZXBjOw0KKyAgICAgICBmb3JjZV9zaWdfaW5mbyhTSUdGUEUsICZpbmZvLCBjdXJyZW50KTsN
+Cit9DQorDQorYXNtbGlua2FnZSB2b2lkIGRvX3RyKHN0cnVjdCBwdF9yZWdzICpyZWdzKQ0KK3sN
+CisgICAgICAgZGllX2lmX2tlcm5lbCgiZG9fdHIgZXhlY3V0aW9uIEV4Y2VwdGlvbiIsIHJlZ3Mp
+Ow0KKyAgICAgICBmb3JjZV9zaWcoU0lHVFJBUCwgY3VycmVudCk7DQorfQ0KKw0KK2FzbWxpbmth
+Z2Ugdm9pZCBkb19yaShzdHJ1Y3QgcHRfcmVncyAqcmVncykNCit7DQorICAgICAgIHVuc2lnbmVk
+IGxvbmcgZXBjX2luc247DQorICAgICAgIHVuc2lnbmVkIGxvbmcgZXBjID0gcmVncy0+Y3AwX2Vw
+YzsNCisNCisgICAgICAgcmVhZF90c2tfbG9uZyhjdXJyZW50LCBlcGMsICZlcGNfaW5zbik7DQor
+ICAgICAgIGlmIChjdXJyZW50LT50aHJlYWQuc2luZ2xlX3N0ZXAgPT0gMSkgew0KKyAgICAgICAg
+ICAgICAgIGlmICgoZXBjID09IGN1cnJlbnQtPnRocmVhZC5hZGRyMSkgfHwNCisgICAgICAgICAg
+ICAgICAgICAgKGVwYyA9PSBjdXJyZW50LT50aHJlYWQuYWRkcjIpKSB7DQorICAgICAgICAgICAg
+ICAgICAgICAgICBjbGVhcl9zaW5nbGVfc3RlcChjdXJyZW50KTsNCisgICAgICAgICAgICAgICAg
+ICAgICAgIGZvcmNlX3NpZyhTSUdUUkFQLCBjdXJyZW50KTsNCisgICAgICAgICAgICAgICAgICAg
+ICAgIHJldHVybjsNCisgICAgICAgICAgICAgICB9IGVsc2UNCisgICAgICAgICAgICAgICAgICAg
+ICAgIEJVRygpOw0KKyAgICAgICB9IGVsc2UgaWYgKChlcGNfaW5zbiA9PSBCUkVBS1BPSU5UMzJf
+SU5TTikgfHwNCisgICAgICAgICAgICAgICAgICAoKGVwY19pbnNuICYgMHgwMDAwRkZGRikgPT0g
+MHg3MDAyKSB8fA0KKyAgICAgICAgICAgICAgICAgICgoZXBjX2luc24gJiAweEZGRkYwMDAwKSA9
+PSAweDcwMDIwMDAwKSkgew0KKyAgICAgICAgICAgICAgICAgICAgICAgZm9yY2Vfc2lnKFNJR1RS
+QVAsIGN1cnJlbnQpOw0KKyAgICAgICAgICAgICAgICAgICAgICAgcmV0dXJuOw0KKyAgICAgICB9
+IGVsc2Ugew0KKyAgICAgICAgICAgICAgIGRpZV9pZl9rZXJuZWwoImRvX3JpIGV4ZWN1dGlvbiBF
+eGNlcHRpb24iLCByZWdzKTsNCisgICAgICAgICAgICAgICBmb3JjZV9zaWcoU0lHSUxMLCBjdXJy
+ZW50KTsNCisgICAgICAgfQ0KK30NCisNCithc21saW5rYWdlIHZvaWQgZG9fY2N1KHN0cnVjdCBw
+dF9yZWdzICpyZWdzKQ0KK3sNCisgICAgICAgZGllX2lmX2tlcm5lbCgiZG9fY2N1IGV4ZWN1dGlv
+biBFeGNlcHRpb24iLCByZWdzKTsNCisgICAgICAgZm9yY2Vfc2lnKFNJR0lMTCwgY3VycmVudCk7
+DQorfQ0KKw0KK2FzbWxpbmthZ2Ugdm9pZCBkb19yZXNlcnZlZChzdHJ1Y3QgcHRfcmVncyAqcmVn
+cykNCit7DQorICAgICAgIC8qDQorICAgICAgICAqIEdhbWUgb3ZlciAtIG5vIHdheSB0byBoYW5k
+bGUgdGhpcyBpZiBpdCBldmVyIG9jY3Vycy4gIE1vc3QgDQpwcm9iYWJseQ0KKyAgICAgICAgKiBj
+YXVzZWQgYnkgYSBuZXcgdW5rbm93biBjcHUgdHlwZSBvciBhZnRlciBhbm90aGVyIGRlYWRseQ0K
+KyAgICAgICAgKiBoYXJkL3NvZnR3YXJlIGVycm9yLg0KKyAgICAgICAgKi8NCisgICAgICAgZGll
+X2lmX2tlcm5lbCgiZG9fcmVzZXJ2ZWQgZXhlY3V0aW9uIEV4Y2VwdGlvbiIsIHJlZ3MpOw0KKyAg
+ICAgICBzaG93X3JlZ3MocmVncyk7DQorICAgICAgIHBhbmljKCJDYXVnaHQgcmVzZXJ2ZWQgZXhj
+ZXB0aW9uIC0gc2hvdWxkIG5vdCBoYXBwZW4uIik7DQorfQ0KKw0KKy8qDQorICogTk1JIGV4Y2Vw
+dGlvbiBoYW5kbGVyLg0KKyAqLw0KK3ZvaWQgbm1pX2V4Y2VwdGlvbl9oYW5kbGVyKHN0cnVjdCBw
+dF9yZWdzICpyZWdzKQ0KK3sNCisgICAgICAgZGllX2lmX2tlcm5lbCgibm1pX2V4Y2VwdGlvbl9o
+YW5kbGVyIGV4ZWN1dGlvbiBFeGNlcHRpb24iLCByZWdzKTsNCisgICAgICAgZGllKCJOTUkiLCBy
+ZWdzKTsNCit9DQorDQorLyogSW5zdGFsbCBDUFUgZXhjZXB0aW9uIGhhbmRsZXIgKi8NCit2b2lk
+ICpzZXRfZXhjZXB0X3ZlY3RvcihpbnQgbiwgdm9pZCAqYWRkcikNCit7DQorICAgICAgIHVuc2ln
+bmVkIGxvbmcgaGFuZGxlciA9ICh1bnNpZ25lZCBsb25nKSBhZGRyOw0KKyAgICAgICB1bnNpZ25l
+ZCBsb25nIG9sZF9oYW5kbGVyID0gZXhjZXB0aW9uX2hhbmRsZXJzW25dOw0KKw0KKyAgICAgICBl
+eGNlcHRpb25faGFuZGxlcnNbbl0gPSBoYW5kbGVyOw0KKyAgICAgICByZXR1cm4gKHZvaWQgKilv
+bGRfaGFuZGxlcjsNCit9DQorDQordm9pZCBfX2luaXQgdHJhcF9pbml0KHZvaWQpDQorew0KKyAg
+ICAgICBpbnQgaTsNCisNCisgICAgICAgcGdkX2N1cnJlbnQgPSAodW5zaWduZWQgbG9uZylpbml0
+X21tLnBnZDsNCisgICAgICAgLyogREVCVUcgRVhDRVBUSU9OICovDQorICAgICAgIG1lbWNweSgo
+dm9pZCAqKSBERUJVR19WRUNUT1JfQkFTRV9BRERSLA0KKyAgICAgICAgICAgICAgICAgICAgICAg
+JmRlYnVnX2V4Y2VwdGlvbl92ZWN0b3IsIERFQlVHX1ZFQ1RPUl9TSVpFKTsNCisgICAgICAgLyog
+Tk1JIEVYQ0VQVElPTiAqLw0KKyAgICAgICBtZW1jcHkoKHZvaWQgKikgR0VORVJBTF9WRUNUT1Jf
+QkFTRV9BRERSLA0KKyAgICAgICAgICAgICAgICAgICAgICAgJmdlbmVyYWxfZXhjZXB0aW9uX3Zl
+Y3RvciwgR0VORVJBTF9WRUNUT1JfU0laRSk7DQorDQorICAgICAgIC8qDQorICAgICAgICAqIElu
+aXRpYWxpc2UgZXhjZXB0aW9uIGhhbmRsZXJzDQorICAgICAgICAqLw0KKyAgICAgICBmb3IgKGkg
+PSAwOyBpIDw9IDMxOyBpKyspDQorICAgICAgICAgICAgICAgc2V0X2V4Y2VwdF92ZWN0b3IoaSwg
+aGFuZGxlX3Jlc2VydmVkKTsNCisNCisgICAgICAgc2V0X2V4Y2VwdF92ZWN0b3IoMSwgaGFuZGxl
+X25taSk7DQorICAgICAgIHNldF9leGNlcHRfdmVjdG9yKDIsIGhhbmRsZV9hZGVsaW5zbik7DQor
+ICAgICAgIHNldF9leGNlcHRfdmVjdG9yKDMsIGhhbmRsZV90bGJfcmVmaWxsKTsNCisgICAgICAg
+c2V0X2V4Y2VwdF92ZWN0b3IoNCwgaGFuZGxlX3RsYl9pbnZhaWxkKTsNCisgICAgICAgc2V0X2V4
+Y2VwdF92ZWN0b3IoNSwgaGFuZGxlX2liZSk7DQorICAgICAgIHNldF9leGNlcHRfdmVjdG9yKDYs
+IGhhbmRsZV9wZWwpOw0KKyAgICAgICBzZXRfZXhjZXB0X3ZlY3Rvcig3LCBoYW5kbGVfc3lzKTsN
+CisgICAgICAgc2V0X2V4Y2VwdF92ZWN0b3IoOCwgaGFuZGxlX2NjdSk7DQorICAgICAgIHNldF9l
+eGNlcHRfdmVjdG9yKDksIGhhbmRsZV9yaSk7DQorICAgICAgIHNldF9leGNlcHRfdmVjdG9yKDEw
+LCBoYW5kbGVfdHIpOw0KKyAgICAgICBzZXRfZXhjZXB0X3ZlY3RvcigxMSwgaGFuZGxlX2FkZWRh
+dGEpOw0KKyAgICAgICBzZXRfZXhjZXB0X3ZlY3RvcigxMiwgaGFuZGxlX2FkZWRhdGEpOw0KKyAg
+ICAgICBzZXRfZXhjZXB0X3ZlY3RvcigxMywgaGFuZGxlX3RsYl9yZWZpbGwpOw0KKyAgICAgICBz
+ZXRfZXhjZXB0X3ZlY3RvcigxNCwgaGFuZGxlX3RsYl9pbnZhaWxkKTsNCisgICAgICAgc2V0X2V4
+Y2VwdF92ZWN0b3IoMTUsIGhhbmRsZV9tb2QpOw0KKyAgICAgICBzZXRfZXhjZXB0X3ZlY3Rvcigx
+NiwgaGFuZGxlX2NlZSk7DQorICAgICAgIHNldF9leGNlcHRfdmVjdG9yKDE3LCBoYW5kbGVfY3Bl
+KTsNCisgICAgICAgc2V0X2V4Y2VwdF92ZWN0b3IoMTgsIGhhbmRsZV9kYmUpOw0KKyAgICAgICBm
+bHVzaF9pY2FjaGVfcmFuZ2UoREVCVUdfVkVDVE9SX0JBU0VfQUREUiwgSVJRX1ZFQ1RPUl9CQVNF
+X0FERFIpOw0KKw0KKyAgICAgICBhdG9taWNfaW5jKCZpbml0X21tLm1tX2NvdW50KTsNCisgICAg
+ICAgY3VycmVudC0+YWN0aXZlX21tID0gJmluaXRfbW07DQorICAgICAgIGNwdV9jYWNoZV9pbml0
+KCk7DQorfQ0KZGlmZiAtdXByTiAteCBsaW51eC0yLjYtZ2l0Lm9yaS9Eb2N1bWVudGF0aW9uL2Rv
+bnRkaWZmIA0KbGludXgtMi42LWdpdC5vcmkvYXJjaC9zY29yZS9rZXJuZWwvdm1saW51eC5sZHMu
+UyANCmxpbnV4LTIuNi1naXQubmV3L2FyY2gvc2NvcmUva2VybmVsL3ZtbGludXgubGRzLlMNCi0t
+LSBsaW51eC0yLjYtZ2l0Lm9yaS9hcmNoL3Njb3JlL2tlcm5lbC92bWxpbnV4Lmxkcy5TICAgMTk3
+MC0wMS0wMSANCjA4OjAwOjAwLjAwMDAwMDAwMCArMDgwMA0KKysrIGxpbnV4LTIuNi1naXQubmV3
+L2FyY2gvc2NvcmUva2VybmVsL3ZtbGludXgubGRzLlMgICAyMDA5LTA0LTAxIA0KMTY6MzU6MDEu
+MDAwMDAwMDAwICswODAwDQpAQCAtMCwwICsxLDIxOSBAQA0KKy8qDQorICogYXJjaC9zY29yZS9r
+ZXJuZWwvdm1saW51eC5sZHMuUw0KKyAqDQorICogU2NvcmUgUHJvY2Vzc29yIHZlcnNpb24uDQor
+ICoNCisgKiBDb3B5cmlnaHQgKEMpIDIwMDkgU3VucGx1cyBDb3JlIFRlY2hub2xvZ3kgQ28uLCBM
+dGQuDQorICogIENoZW4gTGlxaW4gPGxpcWluLmNoZW5Ac3VucGx1c2N0LmNvbT4NCisgKiAgTGVu
+bm94IFd1IDxsZW5ub3gud3VAc3VucGx1c2N0LmNvbT4NCisgKg0KKyAqIFRoaXMgcHJvZ3JhbSBp
+cyBmcmVlIHNvZnR3YXJlOyB5b3UgY2FuIHJlZGlzdHJpYnV0ZSBpdCBhbmQvb3IgbW9kaWZ5DQor
+ICogaXQgdW5kZXIgdGhlIHRlcm1zIG9mIHRoZSBHTlUgR2VuZXJhbCBQdWJsaWMgTGljZW5zZSBh
+cyBwdWJsaXNoZWQgYnkNCisgKiB0aGUgRnJlZSBTb2Z0d2FyZSBGb3VuZGF0aW9uOyBlaXRoZXIg
+dmVyc2lvbiAyIG9mIHRoZSBMaWNlbnNlLCBvcg0KKyAqIChhdCB5b3VyIG9wdGlvbikgYW55IGxh
+dGVyIHZlcnNpb24uDQorICoNCisgKiBUaGlzIHByb2dyYW0gaXMgZGlzdHJpYnV0ZWQgaW4gdGhl
+IGhvcGUgdGhhdCBpdCB3aWxsIGJlIHVzZWZ1bCwNCisgKiBidXQgV0lUSE9VVCBBTlkgV0FSUkFO
+VFk7IHdpdGhvdXQgZXZlbiB0aGUgaW1wbGllZCB3YXJyYW50eSBvZg0KKyAqIE1FUkNIQU5UQUJJ
+TElUWSBvciBGSVRORVNTIEZPUiBBIFBBUlRJQ1VMQVIgUFVSUE9TRS4gIFNlZSB0aGUNCisgKiBH
+TlUgR2VuZXJhbCBQdWJsaWMgTGljZW5zZSBmb3IgbW9yZSBkZXRhaWxzLg0KKyAqDQorICogWW91
+IHNob3VsZCBoYXZlIHJlY2VpdmVkIGEgY29weSBvZiB0aGUgR05VIEdlbmVyYWwgUHVibGljIExp
+Y2Vuc2UNCisgKiBhbG9uZyB3aXRoIHRoaXMgcHJvZ3JhbTsgaWYgbm90LCBzZWUgdGhlIGZpbGUg
+Q09QWUlORywgb3Igd3JpdGUNCisgKiB0byB0aGUgRnJlZSBTb2Z0d2FyZSBGb3VuZGF0aW9uLCBJ
+bmMuLA0KKyAqIDUxIEZyYW5rbGluIFN0LCBGaWZ0aCBGbG9vciwgQm9zdG9uLCBNQSAgMDIxMTAt
+MTMwMSAgVVNBDQorICovDQorDQorI2luY2x1ZGUgPGFzbS9hc20tb2Zmc2V0cy5oPg0KKyNpbmNs
+dWRlIDxhc20tZ2VuZXJpYy92bWxpbnV4Lmxkcy5oPg0KKw0KK09VVFBVVF9BUkNIKHNjb3JlKQ0K
+K0VOVFJZKF9zdGV4dCkNCitQSERSUyB7DQorICAgICAgIHRleHQgUFRfTE9BRCBGTEFHUyg3KTsg
+IC8qIFJXWCAqLw0KKyAgICAgICBub3RlIFBUX05PVEUgRkxBR1MoNCk7ICAvKiBSX18gKi8NCit9
+DQoramlmZmllcyA9IGppZmZpZXNfNjQ7DQorDQorU0VDVElPTlMNCit7DQorICAgICAgIC4gPSBD
+T05GSUdfTUVNT1JZX1NUQVJUICsgMHgyMDAwOw0KKyAgICAgICAvKiByZWFkLW9ubHkgKi8NCisg
+ICAgICAgX3RleHQgPSAuOyAgICAgIC8qIFRleHQgYW5kIHJlYWQtb25seSBkYXRhICovDQorICAg
+ICAgIC50ZXh0IDogew0KKyAgICAgICAgICAgICAgIFRFWFRfVEVYVA0KKyAgICAgICAgICAgICAg
+IFNDSEVEX1RFWFQNCisgICAgICAgICAgICAgICBMT0NLX1RFWFQNCisgICAgICAgICAgICAgICBL
+UFJPQkVTX1RFWFQNCisgICAgICAgICAgICAgICAqKC50ZXh0LiopDQorICAgICAgICAgICAgICAg
+KiguZml4dXApDQorICAgICAgICAgICAgICAgKiguZ251Lndhcm5pbmcpDQorICAgICAgIH0gOnRl
+eHQgPSAwDQorICAgICAgIF9ldGV4dCA9IC47ICAgICAvKiBFbmQgb2YgdGV4dCBzZWN0aW9uICov
+DQorDQorICAgICAgIC8qIEV4Y2VwdGlvbiB0YWJsZSAqLw0KKyAgICAgICAuID0gQUxJR04oMTYp
+Ow0KKyAgICAgICBfX2V4X3RhYmxlIDogew0KKyAgICAgICAgICAgICAgIF9fc3RhcnRfX19leF90
+YWJsZSA9IC47DQorICAgICAgICAgICAgICAgKihfX2V4X3RhYmxlKQ0KKyAgICAgICAgICAgICAg
+IF9fc3RvcF9fX2V4X3RhYmxlID0gLjsNCisgICAgICAgfQ0KKw0KKyAgICAgICAvKiBFeGNlcHRp
+b24gdGFibGUgZm9yIGRhdGEgYnVzIGVycm9ycyAqLw0KKyAgICAgICBfX2RiZV90YWJsZSA6IHsN
+CisgICAgICAgICAgICAgICBfX3N0YXJ0X19fZGJlX3RhYmxlID0gLjsNCisgICAgICAgICAgICAg
+ICAqKF9fZGJlX3RhYmxlKQ0KKyAgICAgICAgICAgICAgIF9fc3RvcF9fX2RiZV90YWJsZSA9IC47
+DQorICAgICAgIH0NCisNCisgICAgICAgTk9URVMgOnRleHQgOm5vdGUNCisgICAgICAgLmR1bW15
+IDogeyAqKC5kdW1teSkgfSA6dGV4dA0KKw0KKyAgICAgICBST0RBVEENCisNCisgICAgICAgLyog
+d3JpdGVhYmxlICovDQorICAgICAgIC5kYXRhIDogeyAgICAgICAvKiBEYXRhICovDQorICAgICAg
+ICAgICAgICAgLyoNCisgICAgICAgICAgICAgICAgKiBUaGlzIEFMSUdOIGlzIG5lZWRlZCBhcyBh
+IHdvcmthcm91bmQgZm9yIGEgYnVnIGENCisgICAgICAgICAgICAgICAgKiBnY2MgYnVnIHVwdG8g
+NC4xIHdoaWNoIGxpbWl0cyB0aGUgbWF4aW11bSBhbGlnbm1lbnQNCisgICAgICAgICAgICAgICAg
+KiB0byBhdCBtb3N0IDMya0IgYW5kIHJlc3VsdHMgaW4gdGhlIGZvbGxvd2luZw0KKyAgICAgICAg
+ICAgICAgICAqIHdhcm5pbmc6DQorICAgICAgICAgICAgICAgICoNCisgICAgICAgICAgICAgICAg
+KiAgQ0MgICAgICBhcmNoL3Njb3JlL2tlcm5lbC9pbml0X3Rhc2subw0KKyAgICAgICAgICAgICAg
+ICAqIGFyY2gvc2NvcmUva2VybmVsL2luaXRfdGFzay5jOjMwOiB3YXJuaW5nOiBhbGlnbm1lbnQN
+CisgICAgICAgICAgICAgICAgKiBvZiDigJhpbml0X3RocmVhZF91bmlvbuKAofZpcyBncmVhdGVy
+IHRoYW4gbWF4aW11bQ0KKyAgICAgICAgICAgICAgICAqIG9iamVjdCBmaWxlIGFsaWdubWVudC4g
+IFVzaW5nIDMyNzY4DQorICAgICAgICAgICAgICAgICovDQorICAgICAgICAgICAgICAgLiA9IEFM
+SUdOKF9QQUdFX1NJWkUpOw0KKyAgICAgICAgICAgICAgICooLmRhdGEuaW5pdF90YXNrKQ0KKw0K
+KyAgICAgICAgICAgICAgIERBVEFfREFUQQ0KKyAgICAgICAgICAgICAgIENPTlNUUlVDVE9SUw0K
+KyAgICAgICB9DQorICAgICAgIF9ncCA9IC4gKyAweDgwMDA7DQorICAgICAgIC5saXQ4IDogew0K
+KyAgICAgICAgICAgICAgICooLmxpdDgpDQorICAgICAgIH0NCisgICAgICAgLmxpdDQgOiB7DQor
+ICAgICAgICAgICAgICAgKigubGl0NCkNCisgICAgICAgfQ0KKyAgICAgICAvKiBXZSB3YW50IHRo
+ZSBzbWFsbCBkYXRhIHNlY3Rpb25zIHRvZ2V0aGVyLCBzbyBzaW5nbGUtaW5zdHJ1Y3Rpb24gDQpv
+ZmZzZXRzDQorICAgICAgICAgIGNhbiBhY2Nlc3MgdGhlbSBhbGwsIGFuZCBpbml0aWFsaXplZCBk
+YXRhIGFsbCBiZWZvcmUgDQp1bmluaXRpYWxpemVkLCBzbw0KKyAgICAgICAgICB3ZSBjYW4gc2hv
+cnRlbiB0aGUgb24tZGlzayBzZWdtZW50IHNpemUuICAqLw0KKyAgICAgICAuc2RhdGEgOiB7DQor
+ICAgICAgICAgICAgICAgKiguc2RhdGEpDQorICAgICAgIH0NCisNCisgICAgICAgLiA9IEFMSUdO
+KF9QQUdFX1NJWkUpOw0KKyAgICAgICAuZGF0YV9ub3NhdmUgOiB7DQorICAgICAgICAgICAgICAg
+X19ub3NhdmVfYmVnaW4gPSAuOw0KKyAgICAgICAgICAgICAgICooLmRhdGEubm9zYXZlKQ0KKyAg
+ICAgICB9DQorICAgICAgIC4gPSBBTElHTihfUEFHRV9TSVpFKTsNCisgICAgICAgX19ub3NhdmVf
+ZW5kID0gLjsNCisNCisgICAgICAgLiA9IEFMSUdOKDMyKTsNCisgICAgICAgLmRhdGEuY2FjaGVs
+aW5lX2FsaWduZWQgOiB7DQorICAgICAgICAgICAgICAgKiguZGF0YS5jYWNoZWxpbmVfYWxpZ25l
+ZCkNCisgICAgICAgfQ0KKyAgICAgICBfZWRhdGEgPSAgLjsgICAgICAgICAgICAgICAgICAgIC8q
+IEVuZCBvZiBkYXRhIHNlY3Rpb24gKi8NCisNCisgICAgICAgLyogd2lsbCBiZSBmcmVlZCBhZnRl
+ciBpbml0ICovDQorICAgICAgIC4gPSBBTElHTihfUEFHRV9TSVpFKTsgICAgICAgICAgLyogSW5p
+dCBjb2RlIGFuZCBkYXRhICovDQorICAgICAgIF9faW5pdF9iZWdpbiA9IC47DQorICAgICAgIC5p
+bml0LnRleHQgOiB7DQorICAgICAgICAgICAgICAgX3Npbml0dGV4dCA9IC47DQorICAgICAgICAg
+ICAgICAgSU5JVF9URVhUDQorICAgICAgICAgICAgICAgX2Vpbml0dGV4dCA9IC47DQorICAgICAg
+IH0NCisgICAgICAgLmluaXQuZGF0YSA6IHsNCisgICAgICAgICAgICAgICBJTklUX0RBVEENCisg
+ICAgICAgfQ0KKyAgICAgICAuID0gQUxJR04oMTYpOw0KKyAgICAgICAuaW5pdC5zZXR1cCA6IHsN
+CisgICAgICAgICAgICAgICBfX3NldHVwX3N0YXJ0ID0gLjsNCisgICAgICAgICAgICAgICAqKC5p
+bml0LnNldHVwKQ0KKyAgICAgICAgICAgICAgIF9fc2V0dXBfZW5kID0gLjsNCisgICAgICAgfQ0K
+Kw0KKyAgICAgICAuaW5pdGNhbGwuaW5pdCA6IHsNCisgICAgICAgICAgICAgICBfX2luaXRjYWxs
+X3N0YXJ0ID0gLjsNCisgICAgICAgICAgICAgICBJTklUQ0FMTFMNCisgICAgICAgICAgICAgICBf
+X2luaXRjYWxsX2VuZCA9IC47DQorICAgICAgIH0NCisNCisgICAgICAgLmNvbl9pbml0Y2FsbC5p
+bml0IDogew0KKyAgICAgICAgICAgICAgIF9fY29uX2luaXRjYWxsX3N0YXJ0ID0gLjsNCisgICAg
+ICAgICAgICAgICAqKC5jb25faW5pdGNhbGwuaW5pdCkNCisgICAgICAgICAgICAgICBfX2Nvbl9p
+bml0Y2FsbF9lbmQgPSAuOw0KKyAgICAgICB9DQorICAgICAgIFNFQ1VSSVRZX0lOSVQNCisNCisg
+ICAgICAgLyogLmV4aXQudGV4dCBpcyBkaXNjYXJkZWQgYXQgcnVudGltZSwgbm90IGxpbmsgdGlt
+ZSwgdG8gZGVhbCB3aXRoDQorICAgICAgICAqIHJlZmVyZW5jZXMgZnJvbSAucm9kYXRhDQorICAg
+ICAgICAqLw0KKyAgICAgICAuZXhpdC50ZXh0IDogew0KKyAgICAgICAgICAgICAgIEVYSVRfVEVY
+VA0KKyAgICAgICB9DQorICAgICAgIC5leGl0LmRhdGEgOiB7DQorICAgICAgICAgICAgICAgRVhJ
+VF9EQVRBDQorICAgICAgIH0NCisjaWYgZGVmaW5lZChDT05GSUdfQkxLX0RFVl9JTklUUkQpDQor
+ICAgICAgIC4gPSBBTElHTihfUEFHRV9TSVpFKTsNCisgICAgICAgLmluaXQucmFtZnMgOiB7DQor
+ICAgICAgICAgICAgICAgX19pbml0cmFtZnNfc3RhcnQgPSAuOw0KKyAgICAgICAgICAgICAgICoo
+LmluaXQucmFtZnMpDQorICAgICAgICAgICAgICAgX19pbml0cmFtZnNfZW5kID0gLjsNCisgICAg
+ICAgfQ0KKyNlbmRpZg0KKyAgICAgICBQRVJDUFUoX1BBR0VfU0laRSkNCisgICAgICAgLiA9IEFM
+SUdOKF9QQUdFX1NJWkUpOw0KKyAgICAgICBfX2luaXRfZW5kID0gLjsNCisgICAgICAgLyogZnJl
+ZWQgYWZ0ZXIgaW5pdCBlbmRzIGhlcmUgKi8NCisNCisgICAgICAgX19ic3Nfc3RhcnQgPSAuOyAg
+ICAgICAgLyogQlNTICovDQorICAgICAgIC5zYnNzICA6IHsNCisgICAgICAgICAgICAgICAqKC5z
+YnNzKQ0KKyAgICAgICAgICAgICAgICooLnNjb21tb24pDQorICAgICAgIH0NCisgICAgICAgLmJz
+cyA6IHsNCisgICAgICAgICAgICAgICAqKC5ic3MpDQorICAgICAgICAgICAgICAgKihDT01NT04p
+DQorICAgICAgIH0NCisgICAgICAgX19ic3Nfc3RvcCA9IC47DQorDQorICAgICAgIF9lbmQgPSAu
+Ow0KKw0KKyAgICAgICAvKiBTZWN0aW9ucyB0byBiZSBkaXNjYXJkZWQgKi8NCisgICAgICAgL0RJ
+U0NBUkQvIDogew0KKyAgICAgICAgICAgICAgICooLmV4aXRjYWxsLmV4aXQpDQorDQorICAgICAg
+ICAgICAgICAgLyogQUJJIGNyYXAgc3RhcnRzIGhlcmUgKi8NCisgICAgICAgICAgICAgICAqKC5T
+Q09SRS5vcHRpb25zKQ0KKyAgICAgICAgICAgICAgICooLm9wdGlvbnMpDQorICAgICAgICAgICAg
+ICAgKigucGRyKQ0KKyAgICAgICAgICAgICAgICooLnJlZ2luZm8pDQorICAgICAgIH0NCisNCisg
+ICAgICAgLyogVGhlc2UgbWFyayB0aGUgQUJJIG9mIHRoZSBrZXJuZWwgZm9yIGRlYnVnZ2Vycy4g
+ICovDQorICAgICAgIC5tZGVidWcuYWJpMzIgOiB7DQorICAgICAgICAgICAgICAgS0VFUCgqKC5t
+ZGVidWcuYWJpMzIpKQ0KKyAgICAgICB9DQorDQorICAgICAgIC8qIFRoaXMgaXMgdGhlIHNjb3Jl
+IHNwZWNpZmljIG1kZWJ1ZyBzZWN0aW9uLiAgKi8NCisgICAgICAgLm1kZWJ1ZyA6IHsNCisgICAg
+ICAgICAgICAgICAqKC5tZGVidWcpDQorICAgICAgIH0NCisNCisgICAgICAgU1RBQlNfREVCVUcN
+CisgICAgICAgRFdBUkZfREVCVUcNCisNCisgICAgICAgLyogVGhlc2UgbXVzdCBhcHBlYXIgcmVn
+YXJkbGVzcyBvZiAgLiAgKi8NCisgICAgICAgLmdwdGFiLnNkYXRhIDogew0KKyAgICAgICAgICAg
+ICAgICooLmdwdGFiLmRhdGEpDQorICAgICAgICAgICAgICAgKiguZ3B0YWIuc2RhdGEpDQorICAg
+ICAgIH0NCisgICAgICAgLmdwdGFiLnNic3MgOiB7DQorICAgICAgICAgICAgICAgKiguZ3B0YWIu
+YnNzKQ0KKyAgICAgICAgICAgICAgICooLmdwdGFiLnNic3MpDQorICAgICAgIH0NCit9DQo=
