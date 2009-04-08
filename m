@@ -1,346 +1,890 @@
 From: liqin.chen@sunplusct.com
-Subject: [PATCH 11/14] score - New architecure port to SunplusCT S+CORE
-Date: Wed, 8 Apr 2009 15:29:18 +0800
-Message-ID: <OF59471ADD.3D343341-ON48257592.002912F7-48257592.00295402@sunplusct.com>
+Subject: [PATCH 12/14] score - New architecure port to SunplusCT S+CORE
+Date: Wed, 8 Apr 2009 15:30:13 +0800
+Message-ID: <OF852183EE.3194C313-ON48257592.002922D6-48257592.00296960@sunplusct.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="GB2312"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="US-ASCII"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:38483 "EHLO
+Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:36456 "EHLO
 	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761105AbZDHHcE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2009 03:32:04 -0400
+	with ESMTP id S1762888AbZDHHeR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2009 03:34:17 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: torvalds@linux-foundation.org, Arnd Bergmann <arnd@arndb.de>, Sam Ravnborg <sam@ravnborg.org>, Thomas Gleixner <tglx@linutronix.de>, Kyle McMartin <kyle@mcmartin.ca>
 
-RnJvbTogQ2hlbiBMaXFpbiA8bGlxaW4uY2hlbkBzdW5wbHVzY3QuY29tPg0KDQprZXJuZWwvdHJh
-cHMuYyBhbmQga2VybmVsL3ZtbGludXgubGRzLlMNCmZvciB0aGUgc2NvcmUgYXJjaGl0ZWN0dXJl
-Lg0KDQpTaWduZWQgb2ZmIGJ5OiBDaGVuIExpcWluIDxsaXFpbi5jaGVuQHN1bnBsdXNjdC5jb20+
-DQpTaWduZWQgb2ZmIGJ5OiBMZW5ub3ggV3UgPGxlbm5veC53dUBzdW5wbHVzY3QuY29tPg0KLS0N
-Cg0KZGlmZiAtdXByTiAteCBsaW51eC0yLjYtZ2l0Lm9yaS9Eb2N1bWVudGF0aW9uL2RvbnRkaWZm
-IA0KbGludXgtMi42LWdpdC5vcmkvYXJjaC9zY29yZS9rZXJuZWwvdHJhcHMuYyANCmxpbnV4LTIu
-Ni1naXQubmV3L2FyY2gvc2NvcmUva2VybmVsL3RyYXBzLmMNCi0tLSBsaW51eC0yLjYtZ2l0Lm9y
-aS9hcmNoL3Njb3JlL2tlcm5lbC90cmFwcy5jIDE5NzAtMDEtMDEgDQowODowMDowMC4wMDAwMDAw
-MDAgKzA4MDANCisrKyBsaW51eC0yLjYtZ2l0Lm5ldy9hcmNoL3Njb3JlL2tlcm5lbC90cmFwcy5j
-IDIwMDktMDQtMDcgDQoyMTo0ODozNC4wMDAwMDAwMDAgKzA4MDANCkBAIC0wLDAgKzEsMzQ5IEBA
-DQorLyoNCisgKiBhcmNoL3Njb3JlL2tlcm5lbC90cmFwcy5jDQorICoNCisgKiBTY29yZSBQcm9j
-ZXNzb3IgdmVyc2lvbi4NCisgKg0KKyAqIENvcHlyaWdodCAoQykgMjAwOSBTdW5wbHVzIENvcmUg
-VGVjaG5vbG9neSBDby4sIEx0ZC4NCisgKiAgQ2hlbiBMaXFpbiA8bGlxaW4uY2hlbkBzdW5wbHVz
-Y3QuY29tPg0KKyAqICBMZW5ub3ggV3UgPGxlbm5veC53dUBzdW5wbHVzY3QuY29tPg0KKyAqDQor
-ICogVGhpcyBwcm9ncmFtIGlzIGZyZWUgc29mdHdhcmU7IHlvdSBjYW4gcmVkaXN0cmlidXRlIGl0
-IGFuZC9vciBtb2RpZnkNCisgKiBpdCB1bmRlciB0aGUgdGVybXMgb2YgdGhlIEdOVSBHZW5lcmFs
-IFB1YmxpYyBMaWNlbnNlIGFzIHB1Ymxpc2hlZCBieQ0KKyAqIHRoZSBGcmVlIFNvZnR3YXJlIEZv
-dW5kYXRpb247IGVpdGhlciB2ZXJzaW9uIDIgb2YgdGhlIExpY2Vuc2UsIG9yDQorICogKGF0IHlv
-dXIgb3B0aW9uKSBhbnkgbGF0ZXIgdmVyc2lvbi4NCisgKg0KKyAqIFRoaXMgcHJvZ3JhbSBpcyBk
-aXN0cmlidXRlZCBpbiB0aGUgaG9wZSB0aGF0IGl0IHdpbGwgYmUgdXNlZnVsLA0KKyAqIGJ1dCBX
-SVRIT1VUIEFOWSBXQVJSQU5UWTsgd2l0aG91dCBldmVuIHRoZSBpbXBsaWVkIHdhcnJhbnR5IG9m
-DQorICogTUVSQ0hBTlRBQklMSVRZIG9yIEZJVE5FU1MgRk9SIEEgUEFSVElDVUxBUiBQVVJQT1NF
-LiAgU2VlIHRoZQ0KKyAqIEdOVSBHZW5lcmFsIFB1YmxpYyBMaWNlbnNlIGZvciBtb3JlIGRldGFp
-bHMuDQorICoNCisgKiBZb3Ugc2hvdWxkIGhhdmUgcmVjZWl2ZWQgYSBjb3B5IG9mIHRoZSBHTlUg
-R2VuZXJhbCBQdWJsaWMgTGljZW5zZQ0KKyAqIGFsb25nIHdpdGggdGhpcyBwcm9ncmFtOyBpZiBu
-b3QsIHNlZSB0aGUgZmlsZSBDT1BZSU5HLCBvciB3cml0ZQ0KKyAqIHRvIHRoZSBGcmVlIFNvZnR3
-YXJlIEZvdW5kYXRpb24sIEluYy4sDQorICogNTEgRnJhbmtsaW4gU3QsIEZpZnRoIEZsb29yLCBC
-b3N0b24sIE1BICAwMjExMC0xMzAxICBVU0ENCisgKi8NCisNCisjaW5jbHVkZSA8bGludXgvbW9k
-dWxlLmg+DQorI2luY2x1ZGUgPGxpbnV4L3NjaGVkLmg+DQorI2luY2x1ZGUgPGFzbS9jYWNoZWZs
-dXNoLmg+DQorI2luY2x1ZGUgPGFzbS9wdHJhY2UuaD4NCisjaW5jbHVkZSA8YXNtL3NldHVwLmg+
-DQorI2luY2x1ZGUgPGFzbS9pcnEuaD4NCisjaW5jbHVkZSA8YXNtL2lycV9yZWdzLmg+DQorDQor
-dW5zaWduZWQgbG9uZyBleGNlcHRpb25faGFuZGxlcnNbMzJdOw0KKw0KKy8qDQorICogVGhlIGFy
-Y2hpdGVjdHVyZS1pbmRlcGVuZGVudCBzaG93X3N0YWNrIGdlbmVyYXRvcg0KKyAqLw0KK3ZvaWQg
-c2hvd19zdGFjayhzdHJ1Y3QgdGFza19zdHJ1Y3QgKnRhc2ssIHVuc2lnbmVkIGxvbmcgKnNwKQ0K
-K3sNCisgICAgICAgaW50IGk7DQorICAgICAgIGxvbmcgc3RhY2tkYXRhOw0KKw0KKyAgICAgICBz
-cCA9IHNwID8gc3AgOiAodW5zaWduZWQgbG9uZyAqKSZzcDsNCisNCisgICAgICAgcHJpbnRrKCJT
-dGFjazogICAiKTsNCisgICAgICAgaSA9IDE7DQorICAgICAgIHdoaWxlICgobG9uZykgc3AgJiAo
-UEFHRV9TSVpFIC0gMSkpIHsNCisgICAgICAgICAgICAgICBpZiAoaSAmJiAoKGkgJSA4KSA9PSAw
-KSkNCisgICAgICAgICAgICAgICAgICAgICAgIHByaW50aygiXG4iKTsNCisgICAgICAgICAgICAg
-ICBpZiAoaSA+IDQwKSB7DQorICAgICAgICAgICAgICAgICAgICAgICBwcmludGsoIiAuLi4iKTsN
-CisgICAgICAgICAgICAgICAgICAgICAgIGJyZWFrOw0KKyAgICAgICAgICAgICAgIH0NCisNCisg
-ICAgICAgICAgICAgICBpZiAoX19nZXRfdXNlcihzdGFja2RhdGEsIHNwKyspKSB7DQorICAgICAg
-ICAgICAgICAgICAgICAgICBwcmludGsoIiAoQmFkIHN0YWNrIGFkZHJlc3MpIik7DQorICAgICAg
-ICAgICAgICAgICAgICAgICBicmVhazsNCisgICAgICAgICAgICAgICB9DQorDQorICAgICAgICAg
-ICAgICAgcHJpbnRrKCIgJTA4bHgiLCBzdGFja2RhdGEpOw0KKyAgICAgICAgICAgICAgIGkrKzsN
-CisgICAgICAgfQ0KKyAgICAgICBwcmludGsoIlxuIik7DQorfQ0KKw0KK3N0YXRpYyB2b2lkIHNo
-b3dfdHJhY2UobG9uZyAqc3ApDQorew0KKyAgICAgICBpbnQgaTsNCisgICAgICAgbG9uZyBhZGRy
-Ow0KKw0KKyAgICAgICBzcCA9IHNwID8gc3AgOiAobG9uZyAqKSAmc3A7DQorDQorICAgICAgIHBy
-aW50aygiQ2FsbCBUcmFjZTogICIpOw0KKyAgICAgICBpID0gMTsNCisgICAgICAgd2hpbGUgKChs
-b25nKSBzcCAmIChQQUdFX1NJWkUgLSAxKSkgew0KKyAgICAgICAgICAgICAgIGlmIChfX2dldF91
-c2VyKGFkZHIsIHNwKyspKSB7DQorICAgICAgICAgICAgICAgICAgICAgICBpZiAoaSAmJiAoKGkg
-JSA2KSA9PSAwKSkNCisgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJpbnRrKCJcbiIp
-Ow0KKyAgICAgICAgICAgICAgICAgICAgICAgcHJpbnRrKCIgKEJhZCBzdGFjayBhZGRyZXNzKVxu
-Iik7DQorICAgICAgICAgICAgICAgICAgICAgICBicmVhazsNCisgICAgICAgICAgICAgICB9DQor
-DQorICAgICAgICAgICAgICAgaWYgKGtlcm5lbF90ZXh0X2FkZHJlc3MoYWRkcikpIHsNCisgICAg
-ICAgICAgICAgICAgICAgICAgIGlmIChpICYmICgoaSAlIDYpID09IDApKQ0KKyAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICBwcmludGsoIlxuIik7DQorICAgICAgICAgICAgICAgICAgICAg
-ICBpZiAoaSA+IDQwKSB7DQorICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByaW50aygi
-IC4uLiIpOw0KKyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBicmVhazsNCisgICAgICAg
-ICAgICAgICAgICAgICAgIH0NCisNCisgICAgICAgICAgICAgICAgICAgICAgIHByaW50aygiIFs8
-JTA4bHg+XSIsIGFkZHIpOw0KKyAgICAgICAgICAgICAgICAgICAgICAgaSsrOw0KKyAgICAgICAg
-ICAgICAgIH0NCisgICAgICAgfQ0KKyAgICAgICBwcmludGsoIlxuIik7DQorfQ0KKw0KK3N0YXRp
-YyB2b2lkIHNob3dfY29kZSh1bnNpZ25lZCBpbnQgKnBjKQ0KK3sNCisgICAgICAgbG9uZyBpOw0K
-Kw0KKyAgICAgICBwcmludGsoIlxuQ29kZToiKTsNCisNCisgICAgICAgZm9yIChpID0gLTM7IGkg
-PCA2OyBpKyspIHsNCisgICAgICAgICAgICAgICB1bnNpZ25lZCBsb25nIGluc247DQorICAgICAg
-ICAgICAgICAgaWYgKF9fZ2V0X3VzZXIoaW5zbiwgcGMgKyBpKSkgew0KKyAgICAgICAgICAgICAg
-ICAgICAgICAgcHJpbnRrKCIgKEJhZCBhZGRyZXNzIGluIGVwYylcbiIpOw0KKyAgICAgICAgICAg
-ICAgICAgICAgICAgYnJlYWs7DQorICAgICAgICAgICAgICAgfQ0KKyAgICAgICAgICAgICAgIHBy
-aW50aygiJWMlMDhseCVjIiwgKGkgPyAnICcgOiAnPCcpLCBpbnNuLCAoaSA/ICcgJyA6IA0KJz4n
-KSk7DQorICAgICAgIH0NCit9DQorDQorLyoNCisgKiBGSVhNRTogcmVhbGx5IHRoZSBnZW5lcmlj
-IHNob3dfcmVncyBzaG91bGQgdGFrZSBhIGNvbnN0IHBvaW50ZXIgDQphcmd1bWVudC4NCisgKi8N
-Cit2b2lkIHNob3dfcmVncyhzdHJ1Y3QgcHRfcmVncyAqcmVncykNCit7DQorICAgICAgIHByaW50
-aygicjAgOiAlMDhseCAlMDhseCAlMDhseCAlMDhseCAlMDhseCAlMDhseCAlMDhseCAlMDhseFxu
-IiwNCisgICAgICAgICAgICAgICByZWdzLT5yZWdzWzBdLCByZWdzLT5yZWdzWzFdLCByZWdzLT5y
-ZWdzWzJdLCANCnJlZ3MtPnJlZ3NbM10sDQorICAgICAgICAgICAgICAgcmVncy0+cmVnc1s0XSwg
-cmVncy0+cmVnc1s1XSwgcmVncy0+cmVnc1s2XSwgDQpyZWdzLT5yZWdzWzddKTsNCisgICAgICAg
-cHJpbnRrKCJyOCA6ICUwOGx4ICUwOGx4ICUwOGx4ICUwOGx4ICUwOGx4ICUwOGx4ICUwOGx4ICUw
-OGx4XG4iLA0KKyAgICAgICAgICAgICAgIHJlZ3MtPnJlZ3NbOF0sIHJlZ3MtPnJlZ3NbOV0sIHJl
-Z3MtPnJlZ3NbMTBdLCANCnJlZ3MtPnJlZ3NbMTFdLA0KKyAgICAgICAgICAgICAgIHJlZ3MtPnJl
-Z3NbMTJdLCByZWdzLT5yZWdzWzEzXSwgcmVncy0+cmVnc1sxNF0sIA0KcmVncy0+cmVnc1sxNV0p
-Ow0KKyAgICAgICBwcmludGsoInIxNjogJTA4bHggJTA4bHggJTA4bHggJTA4bHggJTA4bHggJTA4
-bHggJTA4bHggJTA4bHhcbiIsDQorICAgICAgICAgICAgICAgcmVncy0+cmVnc1sxNl0sIHJlZ3Mt
-PnJlZ3NbMTddLCByZWdzLT5yZWdzWzE4XSwgDQpyZWdzLT5yZWdzWzE5XSwNCisgICAgICAgICAg
-ICAgICByZWdzLT5yZWdzWzIwXSwgcmVncy0+cmVnc1syMV0sIHJlZ3MtPnJlZ3NbMjJdLCANCnJl
-Z3MtPnJlZ3NbMjNdKTsNCisgICAgICAgcHJpbnRrKCJyMjQ6ICUwOGx4ICUwOGx4ICUwOGx4ICUw
-OGx4ICUwOGx4ICUwOGx4ICUwOGx4ICUwOGx4XG4iLA0KKyAgICAgICAgICAgICAgIHJlZ3MtPnJl
-Z3NbMjRdLCByZWdzLT5yZWdzWzI1XSwgcmVncy0+cmVnc1syNl0sIA0KcmVncy0+cmVnc1syN10s
-DQorICAgICAgICAgICAgICAgcmVncy0+cmVnc1syOF0sIHJlZ3MtPnJlZ3NbMjldLCByZWdzLT5y
-ZWdzWzMwXSwgDQpyZWdzLT5yZWdzWzMxXSk7DQorDQorICAgICAgIHByaW50aygiQ0VIIDogJTA4
-bHhcbiIsIHJlZ3MtPmNlaCk7DQorICAgICAgIHByaW50aygiQ0VMIDogJTA4bHhcbiIsIHJlZ3Mt
-PmNlbCk7DQorDQorICAgICAgIHByaW50aygiRU1BOiUwOGx4LCBlcGM6JTA4bHggICVzXG5QU1I6
-ICUwOGx4XG5FQ1I6JTA4bHhcbkNvbmRpdGlvbiANCjogJTA4bHhcbiIsDQorICAgICAgICAgICAg
-ICAgcmVncy0+Y3AwX2VtYSwgcmVncy0+Y3AwX2VwYywgcHJpbnRfdGFpbnRlZCgpLCANCnJlZ3Mt
-PmNwMF9wc3IsDQorICAgICAgICAgICAgICAgcmVncy0+Y3AwX2VjciwgcmVncy0+Y3AwX2NvbmRp
-dGlvbik7DQorfQ0KKw0KK3N0YXRpYyB2b2lkIHNob3dfcmVnaXN0ZXJzKHN0cnVjdCBwdF9yZWdz
-ICpyZWdzKQ0KK3sNCisgICAgICAgc2hvd19yZWdzKHJlZ3MpOw0KKyAgICAgICBwcmludGsoIlBy
-b2Nlc3MgJXMgKHBpZDogJWQsIHN0YWNrcGFnZT0lMDhseClcbiIsDQorICAgICAgICAgICAgICAg
-Y3VycmVudC0+Y29tbSwgY3VycmVudC0+cGlkLCAodW5zaWduZWQgbG9uZykgY3VycmVudCk7DQor
-ICAgICAgIHNob3dfc3RhY2soY3VycmVudF90aHJlYWRfaW5mbygpLT50YXNrLCAobG9uZyAqKSBy
-ZWdzLT5yZWdzWzBdKTsNCisgICAgICAgc2hvd190cmFjZSgobG9uZyAqKSByZWdzLT5yZWdzWzBd
-KTsNCisgICAgICAgc2hvd19jb2RlKCh1bnNpZ25lZCBpbnQgKikgcmVncy0+Y3AwX2VwYyk7DQor
-ICAgICAgIHByaW50aygiXG4iKTsNCit9DQorDQorLyoNCisgKiBUaGUgYXJjaGl0ZWN0dXJlLWlu
-ZGVwZW5kZW50IGR1bXBfc3RhY2sgZ2VuZXJhdG9yDQorICovDQordm9pZCBkdW1wX3N0YWNrKHZv
-aWQpDQorew0KKyAgICAgICBzaG93X3N0YWNrKGN1cnJlbnRfdGhyZWFkX2luZm8oKS0+dGFzaywN
-CisgICAgICAgICAgICAgICAgICAobG9uZyAqKSBnZXRfaXJxX3JlZ3MoKS0+cmVnc1swXSk7DQor
-fQ0KK0VYUE9SVF9TWU1CT0woZHVtcF9zdGFjayk7DQorDQordm9pZCBfX2RpZShjb25zdCBjaGFy
-ICpzdHIsIHN0cnVjdCBwdF9yZWdzICpyZWdzLCBjb25zdCBjaGFyICpmaWxlLA0KKyAgICAgICAg
-ICBjb25zdCBjaGFyICpmdW5jLCB1bnNpZ25lZCBsb25nIGxpbmUpDQorew0KKyAgICAgICBjb25z
-b2xlX3ZlcmJvc2UoKTsNCisgICAgICAgcHJpbnRrKCIlcyIsIHN0cik7DQorICAgICAgIGlmIChm
-aWxlICYmIGZ1bmMpDQorICAgICAgICAgICAgICAgcHJpbnRrKCIgaW4gJXM6JXMsIGxpbmUgJWxk
-IiwgZmlsZSwgZnVuYywgbGluZSk7DQorICAgICAgIHByaW50aygiOlxuIik7DQorICAgICAgIHNo
-b3dfcmVnaXN0ZXJzKHJlZ3MpOw0KKyAgICAgICBkb19leGl0KFNJR1NFR1YpOw0KK30NCisNCit2
-b2lkIF9fZGllX2lmX2tlcm5lbChjb25zdCBjaGFyICpzdHIsIHN0cnVjdCBwdF9yZWdzICpyZWdz
-LA0KKyAgICAgICAgICAgICAgICAgICAgY29uc3QgY2hhciAqZmlsZSwgY29uc3QgY2hhciAqZnVu
-YywgdW5zaWduZWQgbG9uZyANCmxpbmUpDQorew0KKyAgICAgICBpZiAoIXVzZXJfbW9kZShyZWdz
-KSkNCisgICAgICAgICAgICAgICBfX2RpZShzdHIsIHJlZ3MsIGZpbGUsIGZ1bmMsIGxpbmUpOw0K
-K30NCisNCithc21saW5rYWdlIHZvaWQgZG9fYWRlbGluc24oc3RydWN0IHB0X3JlZ3MgKnJlZ3Mp
-DQorew0KKyAgICAgICBwcmludGsoImRvX0FERS1saW5zbjplbWE6MHglMDhseDplcGM6MHglMDhs
-eFxuIiwNCisgICAgICAgICAgICAgICAgcmVncy0+Y3AwX2VtYSwgcmVncy0+Y3AwX2VwYyk7DQor
-ICAgICAgIGRpZV9pZl9rZXJuZWwoImRvX2FkZSBleGVjdXRpb24gRXhjZXB0aW9uXG4iLCByZWdz
-KTsNCisgICAgICAgZm9yY2Vfc2lnKFNJR0JVUywgY3VycmVudCk7DQorfQ0KKw0KK2FzbWxpbmth
-Z2Ugdm9pZCBkb19hZGVkYXRhKHN0cnVjdCBwdF9yZWdzICpyZWdzKQ0KK3sNCisgICAgICAgY29u
-c3Qgc3RydWN0IGV4Y2VwdGlvbl90YWJsZV9lbnRyeSAqZml4dXA7DQorICAgICAgIGZpeHVwID0g
-c2VhcmNoX2V4Y2VwdGlvbl90YWJsZXMocmVncy0+Y3AwX2VwYyk7DQorICAgICAgIGlmIChmaXh1
-cCkgew0KKyAgICAgICAgICAgICAgIHJlZ3MtPmNwMF9lcGMgPSBmaXh1cC0+bmV4dGluc247DQor
-ICAgICAgICAgICAgICAgcmV0dXJuOw0KKyAgICAgICB9DQorICAgICAgIHByaW50aygiZG9fQURF
-LWRhdGE6ZW1hOjB4JTA4bHg6ZXBjOjB4JTA4bHhcbiIsDQorICAgICAgICAgICAgICAgIHJlZ3Mt
-PmNwMF9lbWEsIHJlZ3MtPmNwMF9lcGMpOw0KKyAgICAgICBkaWVfaWZfa2VybmVsKCJkb19hZGUg
-ZXhlY3V0aW9uIEV4Y2VwdGlvblxuIiwgcmVncyk7DQorICAgICAgIGZvcmNlX3NpZyhTSUdCVVMs
-IGN1cnJlbnQpOw0KK30NCisNCithc21saW5rYWdlIHZvaWQgZG9fcGVsKHN0cnVjdCBwdF9yZWdz
-ICpyZWdzKQ0KK3sNCisgICAgICAgZGllX2lmX2tlcm5lbCgiZG9fcGVsIGV4ZWN1dGlvbiBFeGNl
-cHRpb24iLCByZWdzKTsNCisgICAgICAgZm9yY2Vfc2lnKFNJR0ZQRSwgY3VycmVudCk7DQorfQ0K
-Kw0KK2FzbWxpbmthZ2Ugdm9pZCBkb19jZWUoc3RydWN0IHB0X3JlZ3MgKnJlZ3MpDQorew0KKyAg
-ICAgICBkaWVfaWZfa2VybmVsKCJkb19jZWUgZXhlY3V0aW9uIEV4Y2VwdGlvbiIsIHJlZ3MpOw0K
-KyAgICAgICBmb3JjZV9zaWcoU0lHRlBFLCBjdXJyZW50KTsNCit9DQorDQorYXNtbGlua2FnZSB2
-b2lkIGRvX2NwZShzdHJ1Y3QgcHRfcmVncyAqcmVncykNCit7DQorICAgICAgIGRpZV9pZl9rZXJu
-ZWwoImRvX2NwZSBleGVjdXRpb24gRXhjZXB0aW9uIiwgcmVncyk7DQorICAgICAgIGZvcmNlX3Np
-ZyhTSUdGUEUsIGN1cnJlbnQpOw0KK30NCisNCithc21saW5rYWdlIHZvaWQgZG9fYmUoc3RydWN0
-IHB0X3JlZ3MgKnJlZ3MpDQorew0KKyAgICAgICBkaWVfaWZfa2VybmVsKCJkb19iZSBleGVjdXRp
-b24gRXhjZXB0aW9uIiwgcmVncyk7DQorICAgICAgIGZvcmNlX3NpZyhTSUdCVVMsIGN1cnJlbnQp
-Ow0KK30NCisNCithc21saW5rYWdlIHZvaWQgZG9fb3Yoc3RydWN0IHB0X3JlZ3MgKnJlZ3MpDQor
-ew0KKyAgICAgICBzaWdpbmZvX3QgaW5mbzsNCisNCisgICAgICAgZGllX2lmX2tlcm5lbCgiZG9f
-b3YgZXhlY3V0aW9uIEV4Y2VwdGlvbiIsIHJlZ3MpOw0KKw0KKyAgICAgICBpbmZvLnNpX2NvZGUg
-PSBGUEVfSU5UT1ZGOw0KKyAgICAgICBpbmZvLnNpX3NpZ25vID0gU0lHRlBFOw0KKyAgICAgICBp
-bmZvLnNpX2Vycm5vID0gMDsNCisgICAgICAgaW5mby5zaV9hZGRyID0gKHZvaWQgKilyZWdzLT5j
-cDBfZXBjOw0KKyAgICAgICBmb3JjZV9zaWdfaW5mbyhTSUdGUEUsICZpbmZvLCBjdXJyZW50KTsN
-Cit9DQorDQorYXNtbGlua2FnZSB2b2lkIGRvX3RyKHN0cnVjdCBwdF9yZWdzICpyZWdzKQ0KK3sN
-CisgICAgICAgZGllX2lmX2tlcm5lbCgiZG9fdHIgZXhlY3V0aW9uIEV4Y2VwdGlvbiIsIHJlZ3Mp
-Ow0KKyAgICAgICBmb3JjZV9zaWcoU0lHVFJBUCwgY3VycmVudCk7DQorfQ0KKw0KK2FzbWxpbmth
-Z2Ugdm9pZCBkb19yaShzdHJ1Y3QgcHRfcmVncyAqcmVncykNCit7DQorICAgICAgIHVuc2lnbmVk
-IGxvbmcgZXBjX2luc247DQorICAgICAgIHVuc2lnbmVkIGxvbmcgZXBjID0gcmVncy0+Y3AwX2Vw
-YzsNCisNCisgICAgICAgcmVhZF90c2tfbG9uZyhjdXJyZW50LCBlcGMsICZlcGNfaW5zbik7DQor
-ICAgICAgIGlmIChjdXJyZW50LT50aHJlYWQuc2luZ2xlX3N0ZXAgPT0gMSkgew0KKyAgICAgICAg
-ICAgICAgIGlmICgoZXBjID09IGN1cnJlbnQtPnRocmVhZC5hZGRyMSkgfHwNCisgICAgICAgICAg
-ICAgICAgICAgKGVwYyA9PSBjdXJyZW50LT50aHJlYWQuYWRkcjIpKSB7DQorICAgICAgICAgICAg
-ICAgICAgICAgICBjbGVhcl9zaW5nbGVfc3RlcChjdXJyZW50KTsNCisgICAgICAgICAgICAgICAg
-ICAgICAgIGZvcmNlX3NpZyhTSUdUUkFQLCBjdXJyZW50KTsNCisgICAgICAgICAgICAgICAgICAg
-ICAgIHJldHVybjsNCisgICAgICAgICAgICAgICB9IGVsc2UNCisgICAgICAgICAgICAgICAgICAg
-ICAgIEJVRygpOw0KKyAgICAgICB9IGVsc2UgaWYgKChlcGNfaW5zbiA9PSBCUkVBS1BPSU5UMzJf
-SU5TTikgfHwNCisgICAgICAgICAgICAgICAgICAoKGVwY19pbnNuICYgMHgwMDAwRkZGRikgPT0g
-MHg3MDAyKSB8fA0KKyAgICAgICAgICAgICAgICAgICgoZXBjX2luc24gJiAweEZGRkYwMDAwKSA9
-PSAweDcwMDIwMDAwKSkgew0KKyAgICAgICAgICAgICAgICAgICAgICAgZm9yY2Vfc2lnKFNJR1RS
-QVAsIGN1cnJlbnQpOw0KKyAgICAgICAgICAgICAgICAgICAgICAgcmV0dXJuOw0KKyAgICAgICB9
-IGVsc2Ugew0KKyAgICAgICAgICAgICAgIGRpZV9pZl9rZXJuZWwoImRvX3JpIGV4ZWN1dGlvbiBF
-eGNlcHRpb24iLCByZWdzKTsNCisgICAgICAgICAgICAgICBmb3JjZV9zaWcoU0lHSUxMLCBjdXJy
-ZW50KTsNCisgICAgICAgfQ0KK30NCisNCithc21saW5rYWdlIHZvaWQgZG9fY2N1KHN0cnVjdCBw
-dF9yZWdzICpyZWdzKQ0KK3sNCisgICAgICAgZGllX2lmX2tlcm5lbCgiZG9fY2N1IGV4ZWN1dGlv
-biBFeGNlcHRpb24iLCByZWdzKTsNCisgICAgICAgZm9yY2Vfc2lnKFNJR0lMTCwgY3VycmVudCk7
-DQorfQ0KKw0KK2FzbWxpbmthZ2Ugdm9pZCBkb19yZXNlcnZlZChzdHJ1Y3QgcHRfcmVncyAqcmVn
-cykNCit7DQorICAgICAgIC8qDQorICAgICAgICAqIEdhbWUgb3ZlciAtIG5vIHdheSB0byBoYW5k
-bGUgdGhpcyBpZiBpdCBldmVyIG9jY3Vycy4gIE1vc3QgDQpwcm9iYWJseQ0KKyAgICAgICAgKiBj
-YXVzZWQgYnkgYSBuZXcgdW5rbm93biBjcHUgdHlwZSBvciBhZnRlciBhbm90aGVyIGRlYWRseQ0K
-KyAgICAgICAgKiBoYXJkL3NvZnR3YXJlIGVycm9yLg0KKyAgICAgICAgKi8NCisgICAgICAgZGll
-X2lmX2tlcm5lbCgiZG9fcmVzZXJ2ZWQgZXhlY3V0aW9uIEV4Y2VwdGlvbiIsIHJlZ3MpOw0KKyAg
-ICAgICBzaG93X3JlZ3MocmVncyk7DQorICAgICAgIHBhbmljKCJDYXVnaHQgcmVzZXJ2ZWQgZXhj
-ZXB0aW9uIC0gc2hvdWxkIG5vdCBoYXBwZW4uIik7DQorfQ0KKw0KKy8qDQorICogTk1JIGV4Y2Vw
-dGlvbiBoYW5kbGVyLg0KKyAqLw0KK3ZvaWQgbm1pX2V4Y2VwdGlvbl9oYW5kbGVyKHN0cnVjdCBw
-dF9yZWdzICpyZWdzKQ0KK3sNCisgICAgICAgZGllX2lmX2tlcm5lbCgibm1pX2V4Y2VwdGlvbl9o
-YW5kbGVyIGV4ZWN1dGlvbiBFeGNlcHRpb24iLCByZWdzKTsNCisgICAgICAgZGllKCJOTUkiLCBy
-ZWdzKTsNCit9DQorDQorLyogSW5zdGFsbCBDUFUgZXhjZXB0aW9uIGhhbmRsZXIgKi8NCit2b2lk
-ICpzZXRfZXhjZXB0X3ZlY3RvcihpbnQgbiwgdm9pZCAqYWRkcikNCit7DQorICAgICAgIHVuc2ln
-bmVkIGxvbmcgaGFuZGxlciA9ICh1bnNpZ25lZCBsb25nKSBhZGRyOw0KKyAgICAgICB1bnNpZ25l
-ZCBsb25nIG9sZF9oYW5kbGVyID0gZXhjZXB0aW9uX2hhbmRsZXJzW25dOw0KKw0KKyAgICAgICBl
-eGNlcHRpb25faGFuZGxlcnNbbl0gPSBoYW5kbGVyOw0KKyAgICAgICByZXR1cm4gKHZvaWQgKilv
-bGRfaGFuZGxlcjsNCit9DQorDQordm9pZCBfX2luaXQgdHJhcF9pbml0KHZvaWQpDQorew0KKyAg
-ICAgICBpbnQgaTsNCisNCisgICAgICAgcGdkX2N1cnJlbnQgPSAodW5zaWduZWQgbG9uZylpbml0
-X21tLnBnZDsNCisgICAgICAgLyogREVCVUcgRVhDRVBUSU9OICovDQorICAgICAgIG1lbWNweSgo
-dm9pZCAqKSBERUJVR19WRUNUT1JfQkFTRV9BRERSLA0KKyAgICAgICAgICAgICAgICAgICAgICAg
-JmRlYnVnX2V4Y2VwdGlvbl92ZWN0b3IsIERFQlVHX1ZFQ1RPUl9TSVpFKTsNCisgICAgICAgLyog
-Tk1JIEVYQ0VQVElPTiAqLw0KKyAgICAgICBtZW1jcHkoKHZvaWQgKikgR0VORVJBTF9WRUNUT1Jf
-QkFTRV9BRERSLA0KKyAgICAgICAgICAgICAgICAgICAgICAgJmdlbmVyYWxfZXhjZXB0aW9uX3Zl
-Y3RvciwgR0VORVJBTF9WRUNUT1JfU0laRSk7DQorDQorICAgICAgIC8qDQorICAgICAgICAqIElu
-aXRpYWxpc2UgZXhjZXB0aW9uIGhhbmRsZXJzDQorICAgICAgICAqLw0KKyAgICAgICBmb3IgKGkg
-PSAwOyBpIDw9IDMxOyBpKyspDQorICAgICAgICAgICAgICAgc2V0X2V4Y2VwdF92ZWN0b3IoaSwg
-aGFuZGxlX3Jlc2VydmVkKTsNCisNCisgICAgICAgc2V0X2V4Y2VwdF92ZWN0b3IoMSwgaGFuZGxl
-X25taSk7DQorICAgICAgIHNldF9leGNlcHRfdmVjdG9yKDIsIGhhbmRsZV9hZGVsaW5zbik7DQor
-ICAgICAgIHNldF9leGNlcHRfdmVjdG9yKDMsIGhhbmRsZV90bGJfcmVmaWxsKTsNCisgICAgICAg
-c2V0X2V4Y2VwdF92ZWN0b3IoNCwgaGFuZGxlX3RsYl9pbnZhaWxkKTsNCisgICAgICAgc2V0X2V4
-Y2VwdF92ZWN0b3IoNSwgaGFuZGxlX2liZSk7DQorICAgICAgIHNldF9leGNlcHRfdmVjdG9yKDYs
-IGhhbmRsZV9wZWwpOw0KKyAgICAgICBzZXRfZXhjZXB0X3ZlY3Rvcig3LCBoYW5kbGVfc3lzKTsN
-CisgICAgICAgc2V0X2V4Y2VwdF92ZWN0b3IoOCwgaGFuZGxlX2NjdSk7DQorICAgICAgIHNldF9l
-eGNlcHRfdmVjdG9yKDksIGhhbmRsZV9yaSk7DQorICAgICAgIHNldF9leGNlcHRfdmVjdG9yKDEw
-LCBoYW5kbGVfdHIpOw0KKyAgICAgICBzZXRfZXhjZXB0X3ZlY3RvcigxMSwgaGFuZGxlX2FkZWRh
-dGEpOw0KKyAgICAgICBzZXRfZXhjZXB0X3ZlY3RvcigxMiwgaGFuZGxlX2FkZWRhdGEpOw0KKyAg
-ICAgICBzZXRfZXhjZXB0X3ZlY3RvcigxMywgaGFuZGxlX3RsYl9yZWZpbGwpOw0KKyAgICAgICBz
-ZXRfZXhjZXB0X3ZlY3RvcigxNCwgaGFuZGxlX3RsYl9pbnZhaWxkKTsNCisgICAgICAgc2V0X2V4
-Y2VwdF92ZWN0b3IoMTUsIGhhbmRsZV9tb2QpOw0KKyAgICAgICBzZXRfZXhjZXB0X3ZlY3Rvcigx
-NiwgaGFuZGxlX2NlZSk7DQorICAgICAgIHNldF9leGNlcHRfdmVjdG9yKDE3LCBoYW5kbGVfY3Bl
-KTsNCisgICAgICAgc2V0X2V4Y2VwdF92ZWN0b3IoMTgsIGhhbmRsZV9kYmUpOw0KKyAgICAgICBm
-bHVzaF9pY2FjaGVfcmFuZ2UoREVCVUdfVkVDVE9SX0JBU0VfQUREUiwgSVJRX1ZFQ1RPUl9CQVNF
-X0FERFIpOw0KKw0KKyAgICAgICBhdG9taWNfaW5jKCZpbml0X21tLm1tX2NvdW50KTsNCisgICAg
-ICAgY3VycmVudC0+YWN0aXZlX21tID0gJmluaXRfbW07DQorICAgICAgIGNwdV9jYWNoZV9pbml0
-KCk7DQorfQ0KZGlmZiAtdXByTiAteCBsaW51eC0yLjYtZ2l0Lm9yaS9Eb2N1bWVudGF0aW9uL2Rv
-bnRkaWZmIA0KbGludXgtMi42LWdpdC5vcmkvYXJjaC9zY29yZS9rZXJuZWwvdm1saW51eC5sZHMu
-UyANCmxpbnV4LTIuNi1naXQubmV3L2FyY2gvc2NvcmUva2VybmVsL3ZtbGludXgubGRzLlMNCi0t
-LSBsaW51eC0yLjYtZ2l0Lm9yaS9hcmNoL3Njb3JlL2tlcm5lbC92bWxpbnV4Lmxkcy5TICAgMTk3
-MC0wMS0wMSANCjA4OjAwOjAwLjAwMDAwMDAwMCArMDgwMA0KKysrIGxpbnV4LTIuNi1naXQubmV3
-L2FyY2gvc2NvcmUva2VybmVsL3ZtbGludXgubGRzLlMgICAyMDA5LTA0LTAxIA0KMTY6MzU6MDEu
-MDAwMDAwMDAwICswODAwDQpAQCAtMCwwICsxLDIxOSBAQA0KKy8qDQorICogYXJjaC9zY29yZS9r
-ZXJuZWwvdm1saW51eC5sZHMuUw0KKyAqDQorICogU2NvcmUgUHJvY2Vzc29yIHZlcnNpb24uDQor
-ICoNCisgKiBDb3B5cmlnaHQgKEMpIDIwMDkgU3VucGx1cyBDb3JlIFRlY2hub2xvZ3kgQ28uLCBM
-dGQuDQorICogIENoZW4gTGlxaW4gPGxpcWluLmNoZW5Ac3VucGx1c2N0LmNvbT4NCisgKiAgTGVu
-bm94IFd1IDxsZW5ub3gud3VAc3VucGx1c2N0LmNvbT4NCisgKg0KKyAqIFRoaXMgcHJvZ3JhbSBp
-cyBmcmVlIHNvZnR3YXJlOyB5b3UgY2FuIHJlZGlzdHJpYnV0ZSBpdCBhbmQvb3IgbW9kaWZ5DQor
-ICogaXQgdW5kZXIgdGhlIHRlcm1zIG9mIHRoZSBHTlUgR2VuZXJhbCBQdWJsaWMgTGljZW5zZSBh
-cyBwdWJsaXNoZWQgYnkNCisgKiB0aGUgRnJlZSBTb2Z0d2FyZSBGb3VuZGF0aW9uOyBlaXRoZXIg
-dmVyc2lvbiAyIG9mIHRoZSBMaWNlbnNlLCBvcg0KKyAqIChhdCB5b3VyIG9wdGlvbikgYW55IGxh
-dGVyIHZlcnNpb24uDQorICoNCisgKiBUaGlzIHByb2dyYW0gaXMgZGlzdHJpYnV0ZWQgaW4gdGhl
-IGhvcGUgdGhhdCBpdCB3aWxsIGJlIHVzZWZ1bCwNCisgKiBidXQgV0lUSE9VVCBBTlkgV0FSUkFO
-VFk7IHdpdGhvdXQgZXZlbiB0aGUgaW1wbGllZCB3YXJyYW50eSBvZg0KKyAqIE1FUkNIQU5UQUJJ
-TElUWSBvciBGSVRORVNTIEZPUiBBIFBBUlRJQ1VMQVIgUFVSUE9TRS4gIFNlZSB0aGUNCisgKiBH
-TlUgR2VuZXJhbCBQdWJsaWMgTGljZW5zZSBmb3IgbW9yZSBkZXRhaWxzLg0KKyAqDQorICogWW91
-IHNob3VsZCBoYXZlIHJlY2VpdmVkIGEgY29weSBvZiB0aGUgR05VIEdlbmVyYWwgUHVibGljIExp
-Y2Vuc2UNCisgKiBhbG9uZyB3aXRoIHRoaXMgcHJvZ3JhbTsgaWYgbm90LCBzZWUgdGhlIGZpbGUg
-Q09QWUlORywgb3Igd3JpdGUNCisgKiB0byB0aGUgRnJlZSBTb2Z0d2FyZSBGb3VuZGF0aW9uLCBJ
-bmMuLA0KKyAqIDUxIEZyYW5rbGluIFN0LCBGaWZ0aCBGbG9vciwgQm9zdG9uLCBNQSAgMDIxMTAt
-MTMwMSAgVVNBDQorICovDQorDQorI2luY2x1ZGUgPGFzbS9hc20tb2Zmc2V0cy5oPg0KKyNpbmNs
-dWRlIDxhc20tZ2VuZXJpYy92bWxpbnV4Lmxkcy5oPg0KKw0KK09VVFBVVF9BUkNIKHNjb3JlKQ0K
-K0VOVFJZKF9zdGV4dCkNCitQSERSUyB7DQorICAgICAgIHRleHQgUFRfTE9BRCBGTEFHUyg3KTsg
-IC8qIFJXWCAqLw0KKyAgICAgICBub3RlIFBUX05PVEUgRkxBR1MoNCk7ICAvKiBSX18gKi8NCit9
-DQoramlmZmllcyA9IGppZmZpZXNfNjQ7DQorDQorU0VDVElPTlMNCit7DQorICAgICAgIC4gPSBD
-T05GSUdfTUVNT1JZX1NUQVJUICsgMHgyMDAwOw0KKyAgICAgICAvKiByZWFkLW9ubHkgKi8NCisg
-ICAgICAgX3RleHQgPSAuOyAgICAgIC8qIFRleHQgYW5kIHJlYWQtb25seSBkYXRhICovDQorICAg
-ICAgIC50ZXh0IDogew0KKyAgICAgICAgICAgICAgIFRFWFRfVEVYVA0KKyAgICAgICAgICAgICAg
-IFNDSEVEX1RFWFQNCisgICAgICAgICAgICAgICBMT0NLX1RFWFQNCisgICAgICAgICAgICAgICBL
-UFJPQkVTX1RFWFQNCisgICAgICAgICAgICAgICAqKC50ZXh0LiopDQorICAgICAgICAgICAgICAg
-KiguZml4dXApDQorICAgICAgICAgICAgICAgKiguZ251Lndhcm5pbmcpDQorICAgICAgIH0gOnRl
-eHQgPSAwDQorICAgICAgIF9ldGV4dCA9IC47ICAgICAvKiBFbmQgb2YgdGV4dCBzZWN0aW9uICov
-DQorDQorICAgICAgIC8qIEV4Y2VwdGlvbiB0YWJsZSAqLw0KKyAgICAgICAuID0gQUxJR04oMTYp
-Ow0KKyAgICAgICBfX2V4X3RhYmxlIDogew0KKyAgICAgICAgICAgICAgIF9fc3RhcnRfX19leF90
-YWJsZSA9IC47DQorICAgICAgICAgICAgICAgKihfX2V4X3RhYmxlKQ0KKyAgICAgICAgICAgICAg
-IF9fc3RvcF9fX2V4X3RhYmxlID0gLjsNCisgICAgICAgfQ0KKw0KKyAgICAgICAvKiBFeGNlcHRp
-b24gdGFibGUgZm9yIGRhdGEgYnVzIGVycm9ycyAqLw0KKyAgICAgICBfX2RiZV90YWJsZSA6IHsN
-CisgICAgICAgICAgICAgICBfX3N0YXJ0X19fZGJlX3RhYmxlID0gLjsNCisgICAgICAgICAgICAg
-ICAqKF9fZGJlX3RhYmxlKQ0KKyAgICAgICAgICAgICAgIF9fc3RvcF9fX2RiZV90YWJsZSA9IC47
-DQorICAgICAgIH0NCisNCisgICAgICAgTk9URVMgOnRleHQgOm5vdGUNCisgICAgICAgLmR1bW15
-IDogeyAqKC5kdW1teSkgfSA6dGV4dA0KKw0KKyAgICAgICBST0RBVEENCisNCisgICAgICAgLyog
-d3JpdGVhYmxlICovDQorICAgICAgIC5kYXRhIDogeyAgICAgICAvKiBEYXRhICovDQorICAgICAg
-ICAgICAgICAgLyoNCisgICAgICAgICAgICAgICAgKiBUaGlzIEFMSUdOIGlzIG5lZWRlZCBhcyBh
-IHdvcmthcm91bmQgZm9yIGEgYnVnIGENCisgICAgICAgICAgICAgICAgKiBnY2MgYnVnIHVwdG8g
-NC4xIHdoaWNoIGxpbWl0cyB0aGUgbWF4aW11bSBhbGlnbm1lbnQNCisgICAgICAgICAgICAgICAg
-KiB0byBhdCBtb3N0IDMya0IgYW5kIHJlc3VsdHMgaW4gdGhlIGZvbGxvd2luZw0KKyAgICAgICAg
-ICAgICAgICAqIHdhcm5pbmc6DQorICAgICAgICAgICAgICAgICoNCisgICAgICAgICAgICAgICAg
-KiAgQ0MgICAgICBhcmNoL3Njb3JlL2tlcm5lbC9pbml0X3Rhc2subw0KKyAgICAgICAgICAgICAg
-ICAqIGFyY2gvc2NvcmUva2VybmVsL2luaXRfdGFzay5jOjMwOiB3YXJuaW5nOiBhbGlnbm1lbnQN
-CisgICAgICAgICAgICAgICAgKiBvZiDigJhpbml0X3RocmVhZF91bmlvbuKAofZpcyBncmVhdGVy
-IHRoYW4gbWF4aW11bQ0KKyAgICAgICAgICAgICAgICAqIG9iamVjdCBmaWxlIGFsaWdubWVudC4g
-IFVzaW5nIDMyNzY4DQorICAgICAgICAgICAgICAgICovDQorICAgICAgICAgICAgICAgLiA9IEFM
-SUdOKF9QQUdFX1NJWkUpOw0KKyAgICAgICAgICAgICAgICooLmRhdGEuaW5pdF90YXNrKQ0KKw0K
-KyAgICAgICAgICAgICAgIERBVEFfREFUQQ0KKyAgICAgICAgICAgICAgIENPTlNUUlVDVE9SUw0K
-KyAgICAgICB9DQorICAgICAgIF9ncCA9IC4gKyAweDgwMDA7DQorICAgICAgIC5saXQ4IDogew0K
-KyAgICAgICAgICAgICAgICooLmxpdDgpDQorICAgICAgIH0NCisgICAgICAgLmxpdDQgOiB7DQor
-ICAgICAgICAgICAgICAgKigubGl0NCkNCisgICAgICAgfQ0KKyAgICAgICAvKiBXZSB3YW50IHRo
-ZSBzbWFsbCBkYXRhIHNlY3Rpb25zIHRvZ2V0aGVyLCBzbyBzaW5nbGUtaW5zdHJ1Y3Rpb24gDQpv
-ZmZzZXRzDQorICAgICAgICAgIGNhbiBhY2Nlc3MgdGhlbSBhbGwsIGFuZCBpbml0aWFsaXplZCBk
-YXRhIGFsbCBiZWZvcmUgDQp1bmluaXRpYWxpemVkLCBzbw0KKyAgICAgICAgICB3ZSBjYW4gc2hv
-cnRlbiB0aGUgb24tZGlzayBzZWdtZW50IHNpemUuICAqLw0KKyAgICAgICAuc2RhdGEgOiB7DQor
-ICAgICAgICAgICAgICAgKiguc2RhdGEpDQorICAgICAgIH0NCisNCisgICAgICAgLiA9IEFMSUdO
-KF9QQUdFX1NJWkUpOw0KKyAgICAgICAuZGF0YV9ub3NhdmUgOiB7DQorICAgICAgICAgICAgICAg
-X19ub3NhdmVfYmVnaW4gPSAuOw0KKyAgICAgICAgICAgICAgICooLmRhdGEubm9zYXZlKQ0KKyAg
-ICAgICB9DQorICAgICAgIC4gPSBBTElHTihfUEFHRV9TSVpFKTsNCisgICAgICAgX19ub3NhdmVf
-ZW5kID0gLjsNCisNCisgICAgICAgLiA9IEFMSUdOKDMyKTsNCisgICAgICAgLmRhdGEuY2FjaGVs
-aW5lX2FsaWduZWQgOiB7DQorICAgICAgICAgICAgICAgKiguZGF0YS5jYWNoZWxpbmVfYWxpZ25l
-ZCkNCisgICAgICAgfQ0KKyAgICAgICBfZWRhdGEgPSAgLjsgICAgICAgICAgICAgICAgICAgIC8q
-IEVuZCBvZiBkYXRhIHNlY3Rpb24gKi8NCisNCisgICAgICAgLyogd2lsbCBiZSBmcmVlZCBhZnRl
-ciBpbml0ICovDQorICAgICAgIC4gPSBBTElHTihfUEFHRV9TSVpFKTsgICAgICAgICAgLyogSW5p
-dCBjb2RlIGFuZCBkYXRhICovDQorICAgICAgIF9faW5pdF9iZWdpbiA9IC47DQorICAgICAgIC5p
-bml0LnRleHQgOiB7DQorICAgICAgICAgICAgICAgX3Npbml0dGV4dCA9IC47DQorICAgICAgICAg
-ICAgICAgSU5JVF9URVhUDQorICAgICAgICAgICAgICAgX2Vpbml0dGV4dCA9IC47DQorICAgICAg
-IH0NCisgICAgICAgLmluaXQuZGF0YSA6IHsNCisgICAgICAgICAgICAgICBJTklUX0RBVEENCisg
-ICAgICAgfQ0KKyAgICAgICAuID0gQUxJR04oMTYpOw0KKyAgICAgICAuaW5pdC5zZXR1cCA6IHsN
-CisgICAgICAgICAgICAgICBfX3NldHVwX3N0YXJ0ID0gLjsNCisgICAgICAgICAgICAgICAqKC5p
-bml0LnNldHVwKQ0KKyAgICAgICAgICAgICAgIF9fc2V0dXBfZW5kID0gLjsNCisgICAgICAgfQ0K
-Kw0KKyAgICAgICAuaW5pdGNhbGwuaW5pdCA6IHsNCisgICAgICAgICAgICAgICBfX2luaXRjYWxs
-X3N0YXJ0ID0gLjsNCisgICAgICAgICAgICAgICBJTklUQ0FMTFMNCisgICAgICAgICAgICAgICBf
-X2luaXRjYWxsX2VuZCA9IC47DQorICAgICAgIH0NCisNCisgICAgICAgLmNvbl9pbml0Y2FsbC5p
-bml0IDogew0KKyAgICAgICAgICAgICAgIF9fY29uX2luaXRjYWxsX3N0YXJ0ID0gLjsNCisgICAg
-ICAgICAgICAgICAqKC5jb25faW5pdGNhbGwuaW5pdCkNCisgICAgICAgICAgICAgICBfX2Nvbl9p
-bml0Y2FsbF9lbmQgPSAuOw0KKyAgICAgICB9DQorICAgICAgIFNFQ1VSSVRZX0lOSVQNCisNCisg
-ICAgICAgLyogLmV4aXQudGV4dCBpcyBkaXNjYXJkZWQgYXQgcnVudGltZSwgbm90IGxpbmsgdGlt
-ZSwgdG8gZGVhbCB3aXRoDQorICAgICAgICAqIHJlZmVyZW5jZXMgZnJvbSAucm9kYXRhDQorICAg
-ICAgICAqLw0KKyAgICAgICAuZXhpdC50ZXh0IDogew0KKyAgICAgICAgICAgICAgIEVYSVRfVEVY
-VA0KKyAgICAgICB9DQorICAgICAgIC5leGl0LmRhdGEgOiB7DQorICAgICAgICAgICAgICAgRVhJ
-VF9EQVRBDQorICAgICAgIH0NCisjaWYgZGVmaW5lZChDT05GSUdfQkxLX0RFVl9JTklUUkQpDQor
-ICAgICAgIC4gPSBBTElHTihfUEFHRV9TSVpFKTsNCisgICAgICAgLmluaXQucmFtZnMgOiB7DQor
-ICAgICAgICAgICAgICAgX19pbml0cmFtZnNfc3RhcnQgPSAuOw0KKyAgICAgICAgICAgICAgICoo
-LmluaXQucmFtZnMpDQorICAgICAgICAgICAgICAgX19pbml0cmFtZnNfZW5kID0gLjsNCisgICAg
-ICAgfQ0KKyNlbmRpZg0KKyAgICAgICBQRVJDUFUoX1BBR0VfU0laRSkNCisgICAgICAgLiA9IEFM
-SUdOKF9QQUdFX1NJWkUpOw0KKyAgICAgICBfX2luaXRfZW5kID0gLjsNCisgICAgICAgLyogZnJl
-ZWQgYWZ0ZXIgaW5pdCBlbmRzIGhlcmUgKi8NCisNCisgICAgICAgX19ic3Nfc3RhcnQgPSAuOyAg
-ICAgICAgLyogQlNTICovDQorICAgICAgIC5zYnNzICA6IHsNCisgICAgICAgICAgICAgICAqKC5z
-YnNzKQ0KKyAgICAgICAgICAgICAgICooLnNjb21tb24pDQorICAgICAgIH0NCisgICAgICAgLmJz
-cyA6IHsNCisgICAgICAgICAgICAgICAqKC5ic3MpDQorICAgICAgICAgICAgICAgKihDT01NT04p
-DQorICAgICAgIH0NCisgICAgICAgX19ic3Nfc3RvcCA9IC47DQorDQorICAgICAgIF9lbmQgPSAu
-Ow0KKw0KKyAgICAgICAvKiBTZWN0aW9ucyB0byBiZSBkaXNjYXJkZWQgKi8NCisgICAgICAgL0RJ
-U0NBUkQvIDogew0KKyAgICAgICAgICAgICAgICooLmV4aXRjYWxsLmV4aXQpDQorDQorICAgICAg
-ICAgICAgICAgLyogQUJJIGNyYXAgc3RhcnRzIGhlcmUgKi8NCisgICAgICAgICAgICAgICAqKC5T
-Q09SRS5vcHRpb25zKQ0KKyAgICAgICAgICAgICAgICooLm9wdGlvbnMpDQorICAgICAgICAgICAg
-ICAgKigucGRyKQ0KKyAgICAgICAgICAgICAgICooLnJlZ2luZm8pDQorICAgICAgIH0NCisNCisg
-ICAgICAgLyogVGhlc2UgbWFyayB0aGUgQUJJIG9mIHRoZSBrZXJuZWwgZm9yIGRlYnVnZ2Vycy4g
-ICovDQorICAgICAgIC5tZGVidWcuYWJpMzIgOiB7DQorICAgICAgICAgICAgICAgS0VFUCgqKC5t
-ZGVidWcuYWJpMzIpKQ0KKyAgICAgICB9DQorDQorICAgICAgIC8qIFRoaXMgaXMgdGhlIHNjb3Jl
-IHNwZWNpZmljIG1kZWJ1ZyBzZWN0aW9uLiAgKi8NCisgICAgICAgLm1kZWJ1ZyA6IHsNCisgICAg
-ICAgICAgICAgICAqKC5tZGVidWcpDQorICAgICAgIH0NCisNCisgICAgICAgU1RBQlNfREVCVUcN
-CisgICAgICAgRFdBUkZfREVCVUcNCisNCisgICAgICAgLyogVGhlc2UgbXVzdCBhcHBlYXIgcmVn
-YXJkbGVzcyBvZiAgLiAgKi8NCisgICAgICAgLmdwdGFiLnNkYXRhIDogew0KKyAgICAgICAgICAg
-ICAgICooLmdwdGFiLmRhdGEpDQorICAgICAgICAgICAgICAgKiguZ3B0YWIuc2RhdGEpDQorICAg
-ICAgIH0NCisgICAgICAgLmdwdGFiLnNic3MgOiB7DQorICAgICAgICAgICAgICAgKiguZ3B0YWIu
-YnNzKQ0KKyAgICAgICAgICAgICAgICooLmdwdGFiLnNic3MpDQorICAgICAgIH0NCit9DQo=
+From: Chen Liqin <liqin.chen@sunplusct.com>
+
+lib/ashldi3.c, lib/ashrdi3.c, lib/checksum_copy.c,
+lib/checksum.S, lib/cmpdi2.c, lib/libgcc.h, lib/lshrdi3.c,
+lib/Makefile, lib/string.S and lib/ucmpdi2.c
+for the score architecture.
+
+Signed off by: Chen Liqin <liqin.chen@sunplusct.com>
+Signed off by: Lennox Wu <lennox.wu@sunplusct.com>
+--
+
+diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
+linux-2.6-git.ori/arch/score/lib/ashldi3.c 
+linux-2.6-git.new/arch/score/lib/ashldi3.c
+--- linux-2.6-git.ori/arch/score/lib/ashldi3.c  1970-01-01 
+08:00:00.000000000 +0800
++++ linux-2.6-git.new/arch/score/lib/ashldi3.c  2009-03-23 
+14:15:24.000000000 +0800
+@@ -0,0 +1,46 @@
++/*
++ * arch/score/lib/ashldi3.c
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ */
++
++#include <linux/module.h>
++#include "libgcc.h"
++
++long long __ashldi3(long long u, word_type b)
++{
++       DWunion uu, w;
++       word_type bm;
++
++       if (b == 0)
++               return u;
++
++       uu.ll = u;
++       bm = 32 - b;
++
++       if (bm <= 0) {
++               w.s.low = 0;
++               w.s.high = (unsigned int) uu.s.low << -bm;
++       } else {
++               const unsigned int carries = (unsigned int) uu.s.low >> 
+bm;
++
++               w.s.low = (unsigned int) uu.s.low << b;
++               w.s.high = ((unsigned int) uu.s.high << b) | carries;
++       }
++
++       return w.ll;
++}
++EXPORT_SYMBOL(__ashldi3);
+diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
+linux-2.6-git.ori/arch/score/lib/ashrdi3.c 
+linux-2.6-git.new/arch/score/lib/ashrdi3.c
+--- linux-2.6-git.ori/arch/score/lib/ashrdi3.c  1970-01-01 
+08:00:00.000000000 +0800
++++ linux-2.6-git.new/arch/score/lib/ashrdi3.c  2009-03-23 
+14:15:28.000000000 +0800
+@@ -0,0 +1,48 @@
++/*
++ * arch/score/lib/ashrdi3.c
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ */
++
++#include <linux/module.h>
++#include "libgcc.h"
++
++long long __ashrdi3(long long u, word_type b)
++{
++       DWunion uu, w;
++       word_type bm;
++
++       if (b == 0)
++               return u;
++
++       uu.ll = u;
++       bm = 32 - b;
++
++       if (bm <= 0) {
++               /* w.s.high = 1..1 or 0..0 */
++               w.s.high =
++                   uu.s.high >> 31;
++               w.s.low = uu.s.high >> -bm;
++       } else {
++               const unsigned int carries = (unsigned int) uu.s.high << 
+bm;
++
++               w.s.high = uu.s.high >> b;
++               w.s.low = ((unsigned int) uu.s.low >> b) | carries;
++       }
++
++       return w.ll;
++}
++EXPORT_SYMBOL(__ashrdi3);
+diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
+linux-2.6-git.ori/arch/score/lib/checksum_copy.c 
+linux-2.6-git.new/arch/score/lib/checksum_copy.c
+--- linux-2.6-git.ori/arch/score/lib/checksum_copy.c    1970-01-01 
+08:00:00.000000000 +0800
++++ linux-2.6-git.new/arch/score/lib/checksum_copy.c    2009-04-07 
+21:25:41.000000000 +0800
+@@ -0,0 +1,51 @@
++/*
++ * arch/score/lib/csum_partial_copy.c
++ *
++ * Score Processor version.
++ *
++ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
++ *  Lennox Wu <lennox.wu@sunplusct.com>
++ *  Chen Liqin <liqin.chen@sunplusct.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ */
++
++#include <net/checksum.h>
++#include <asm/uaccess.h>
++
++unsigned int csum_partial_copy(const char *src, char *dst,
++                               int len, unsigned int sum)
++{
++       sum = csum_partial(src, len, sum);
++       memcpy(dst, src, len);
++
++       return sum;
++}
++
++unsigned int csum_partial_copy_from_user(const char *src, char *dst,
++                                       int len, unsigned int sum,
++                                       int *err_ptr)
++{
++       int missing;
++
++       missing = copy_from_user(dst, src, len);
++       if (missing) {
++               memset(dst + len - missing, 0, missing);
++               *err_ptr = -EFAULT;
++       }
++
++       return csum_partial(dst, len, sum);
++}
+diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
+linux-2.6-git.ori/arch/score/lib/checksum.S 
+linux-2.6-git.new/arch/score/lib/checksum.S
+--- linux-2.6-git.ori/arch/score/lib/checksum.S 1970-01-01 
+08:00:00.000000000 +0800
++++ linux-2.6-git.new/arch/score/lib/checksum.S 2009-04-07 
+21:26:07.000000000 +0800
+@@ -0,0 +1,257 @@
++/*
++ * arch/score/lib/csum_partial.S
++ *
++ * Score Processor version.
++ *
++ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
++ *  Lennox Wu <lennox.wu@sunplusct.com>
++ *  Chen Liqin <liqin.chen@sunplusct.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ */
++
++#define ADDC(sum,reg)                  \
++       add     sum, sum, reg;          \
++       cmp.c   reg, sum;               \
++       bleu    9f;                     \
++       addi    sum, 0x1;               \
++9:
++
++#define CSUM_BIGCHUNK(src, offset, sum)                \
++       lw      r8, [src, offset + 0x00];       \
++       lw      r9, [src, offset + 0x04];       \
++       lw      r10, [src, offset + 0x08];      \
++       lw      r11, [src, offset + 0x0c];      \
++       ADDC(sum, r8);                          \
++       ADDC(sum, r9);                          \
++       ADDC(sum, r10);                         \
++       ADDC(sum, r11);                         \
++       lw      r8, [src, offset + 0x10];       \
++       lw      r9, [src, offset + 0x14];       \
++       lw      r10, [src, offset + 0x18];      \
++       lw      r11, [src, offset + 0x1c];      \
++       ADDC(sum, r8);                          \
++       ADDC(sum, r9);                          \
++       ADDC(sum, r10);                         \
++       ADDC(sum, r11);                         \
++
++#define src r4
++#define dest r5
++#define sum r27
++
++       .text
++/* unknown src alignment and < 8 bytes to go */
++small_csumcpy:
++       mv      r5, r10
++       ldi     r9, 0x0
++       cmpi.c  r25, 0x1
++       beq pass_small_set_t7   /*already set, jump to pass_small_set_t7*/
++       andri.c r25,r4 , 0x1    /*Is src 2 bytes aligned?*/
++
++pass_small_set_t7:
++       beq     aligned
++       cmpi.c  r5, 0x0
++       beq     fold
++       lbu     r9, [src]
++       slli    r9,r9, 0x8      /*Little endian*/
++       ADDC(sum, r9)
++       addi    src, 0x1
++       subi.c  r5, 0x1
++
++       /*len still a full word */
++aligned:
++       andri.c r8, r5, 0x4     /*Len >= 4?*/
++       beq     len_less_4bytes
++
++       /* Still a full word (4byte) to go,and the src is word aligned.*/
++       andri.c r8, src, 0x3    /*src is 4bytes aligned, so use LW!!*/
++       beq     four_byte_aligned
++       lhu     r9, [src]
++       addi    src, 2
++       ADDC(sum, r9)
++       lhu     r9, [src]
++       addi    src, 2
++       ADDC(sum, r9)
++       b len_less_4bytes
++
++four_byte_aligned:             /* Len >=4 and four byte aligned */
++       lw      r9, [src]
++       addi    src, 4
++       ADDC(sum, r9)
++
++len_less_4bytes:               /* 2 byte aligned aligned and length<4B */
++       andri.c r8, r5, 0x2
++       beq     len_less_2bytes
++       lhu     r9, [src]
++       addi    src, 0x2        /* src+=2 */
++       ADDC(sum, r9)
++
++len_less_2bytes:               /* len = 1 */
++       andri.c r8, r5, 0x1
++       beq     fold            /* less than 2 and not equal 1--> len=0 -> 
+fold */
++       lbu     r9, [src]
++
++fold_ADDC:
++       ADDC(sum, r9)
++fold:
++       /* fold checksum */
++       slli    r26, sum, 16
++       add     sum, sum, r26
++       cmp.c   r26, sum
++       srli    sum, sum, 16
++       bleu    1f              /* if r26<=sum */
++       addi    sum, 0x1        /* r26>sum */
++1:
++       /* odd buffer alignment? r25 was set in csum_partial */
++       cmpi.c  r25, 0x0
++       beq     1f
++       slli    r26, sum, 8
++       srli    sum, sum, 8
++       or      sum, sum, r26
++       andi    sum, 0xffff
++1:
++       .set    optimize
++       /* Add the passed partial csum. */
++       ADDC(sum, r6)
++       mv      r4, sum
++       br      r3
++       .set    volatile
++
++       .align  5
++       .globl  csum_partial
++       .type   csum_partial, @function
++       .ent    csum_partial, 0
++csum_partial:  .frame  sp, 0, r3
++       ldi sum, 0
++       ldi r25, 0
++       mv r10, r5
++       cmpi.c  r5, 0x8
++       blt     small_csumcpy           /* < 8(singed) bytes to copy */
++       cmpi.c  r5, 0x0
++       beq     out
++       andri.c r25, src, 0x1           /* odd buffer? */
++
++       beq     word_align
++hword_align:                           /* 1 byte */
++       lbu     r8, [src]
++       subi    r5, 0x1
++       slli    r8, r8, 8
++       ADDC(sum, r8)
++       addi    src, 0x1
++
++word_align:                            /* 2 bytes */
++       andri.c r8, src, 0x2            /* 4bytes(dword)_aligned? */
++       beq     dword_align             /* not, maybe dword_align */
++       lhu     r8, [src]
++       subi    r5, 0x2
++       ADDC(sum, r8)
++       addi    src, 0x2
++
++dword_align:                           /* 4bytes */
++       mv      r26, r5                 /* maybe useless when len >=56 */
++       ldi     r8, 56
++       cmp.c   r8, r5
++       bgtu    do_end_words            /* if a1(len)<t0(56) ,unsigned */
++       andri.c r26, src, 0x4
++       beq     qword_align
++       lw      r8, [src]
++       subi    r5, 0x4
++       ADDC(sum, r8)
++       addi    src, 0x4
++
++qword_align:                           /* 8 bytes */
++       andri.c r26, src, 0x8
++       beq     oword_align
++       lw      r8, [src, 0x0]
++       lw      r9, [src, 0x4]
++       subi    r5, 0x8                 /* len-=0x8 */
++       ADDC(sum, r8)
++       ADDC(sum, r9)
++       addi    src, 0x8
++
++oword_align:                           /* 16bytes */
++       andri.c r26, src, 0x10
++       beq     begin_movement
++       lw      r10, [src, 0x08]
++       lw      r11, [src, 0x0c]
++       lw      r8, [src, 0x00]
++       lw      r9, [src, 0x04]
++       ADDC(sum, r10)
++       ADDC(sum, r11)
++       ADDC(sum, r8)
++       ADDC(sum, r9)
++       subi    r5, 0x10
++       addi    src, 0x10
++
++begin_movement:
++       srli.c  r26, r5, 0x7            /* len>=128? */
++       beq     1f                      /* len<128 */
++
++/* r26 is the result that computed in oword_align */
++move_128bytes:
++       CSUM_BIGCHUNK(src, 0x00, sum)
++       CSUM_BIGCHUNK(src, 0x20, sum)
++       CSUM_BIGCHUNK(src, 0x40, sum)
++       CSUM_BIGCHUNK(src, 0x60, sum)
++       subi.c  r26, 0x01               /* r26 equals len/128 */
++       addi    src, 0x80
++       bne     move_128bytes
++
++1:     /* len<128,we process 64byte here */
++       andri.c r10, r5, 0x40
++       beq     1f
++
++move_64bytes:
++       CSUM_BIGCHUNK(src, 0x00, sum)
++       CSUM_BIGCHUNK(src, 0x20, sum)
++       addi    src, 0x40
++
++1:                                     /* len<64 */
++       andri   r26, r5, 0x1c           /* 0x1c=28 */
++       andri.c r10, r5, 0x20
++       beq     do_end_words            /* decided by andri */
++
++move_32bytes:
++       CSUM_BIGCHUNK(src, 0x00, sum)
++       andri   r26, r5, 0x1c
++       addri   src, src, 0x20
++
++do_end_words:                          /* len<32 */
++       /* r26 was set already in dword_align */
++       cmpi.c  r26, 0x0
++       beq     maybe_end_cruft         /* len<28 or len<56 */
++       srli    r26, r26, 0x2
++
++end_words:
++       lw      r8, [src]
++       subi.c  r26, 0x1                /* unit is 4 byte */
++       ADDC(sum, r8)
++       addi    src, 0x4
++       cmpi.c  r26, 0x0
++       bne     end_words               /* r26!=0 */
++
++maybe_end_cruft:                       /* len<4 */
++       andri   r10, r5, 0x3
++
++small_memcpy:
++       mv      r5, r10
++       j       small_csumcpy
++
++out:
++       mv      r4, sum
++       br      r3
++       .end    csum_partial
++       .size   csum_partial, .-csum_partial
+diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
+linux-2.6-git.ori/arch/score/lib/cmpdi2.c 
+linux-2.6-git.new/arch/score/lib/cmpdi2.c
+--- linux-2.6-git.ori/arch/score/lib/cmpdi2.c   1970-01-01 
+08:00:00.000000000 +0800
++++ linux-2.6-git.new/arch/score/lib/cmpdi2.c   2009-03-23 
+14:15:37.000000000 +0800
+@@ -0,0 +1,44 @@
++/*
++ * arch/score/lib/cmpdi2.c
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ */
++
++#include <linux/module.h>
++#include "libgcc.h"
++
++word_type __cmpdi2(long long a, long long b)
++{
++       const DWunion au = {
++               .ll = a
++       };
++       const DWunion bu = {
++               .ll = b
++       };
++
++       if (au.s.high < bu.s.high)
++               return 0;
++       else if (au.s.high > bu.s.high)
++               return 2;
++
++       if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
++               return 0;
++       else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
++               return 2;
++
++       return 1;
++}
++EXPORT_SYMBOL(__cmpdi2);
+diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
+linux-2.6-git.ori/arch/score/lib/libgcc.h 
+linux-2.6-git.new/arch/score/lib/libgcc.h
+--- linux-2.6-git.ori/arch/score/lib/libgcc.h   1970-01-01 
+08:00:00.000000000 +0800
++++ linux-2.6-git.new/arch/score/lib/libgcc.h   2009-04-07 
+21:49:18.000000000 +0800
+@@ -0,0 +1,37 @@
++/*
++ * arch/score/lib/libgcc.h
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ */
++
++
++#ifndef __ASM_LIBGCC_H
++#define __ASM_LIBGCC_H
++
++#include <asm/byteorder.h>
++
++typedef int word_type __attribute__((mode(__word__)));
++
++struct DWstruct {
++       int low, high;
++};
++
++typedef union {
++       struct DWstruct s;
++       long long ll;
++} DWunion;
++
++#endif /* __ASM_LIBGCC_H */
+diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
+linux-2.6-git.ori/arch/score/lib/lshrdi3.c 
+linux-2.6-git.new/arch/score/lib/lshrdi3.c
+--- linux-2.6-git.ori/arch/score/lib/lshrdi3.c  1970-01-01 
+08:00:00.000000000 +0800
++++ linux-2.6-git.new/arch/score/lib/lshrdi3.c  2009-03-23 
+14:15:42.000000000 +0800
+@@ -0,0 +1,47 @@
++/*
++ * arch/score/lib/lshrdi3.c
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ */
++
++
++#include <linux/module.h>
++#include "libgcc.h"
++
++long long __lshrdi3(long long u, word_type b)
++{
++       DWunion uu, w;
++       word_type bm;
++
++       if (b == 0)
++               return u;
++
++       uu.ll = u;
++       bm = 32 - b;
++
++       if (bm <= 0) {
++               w.s.high = 0;
++               w.s.low = (unsigned int) uu.s.high >> -bm;
++       } else {
++               const unsigned int carries = (unsigned int) uu.s.high << 
+bm;
++
++               w.s.high = (unsigned int) uu.s.high >> b;
++               w.s.low = ((unsigned int) uu.s.low >> b) | carries;
++       }
++
++       return w.ll;
++}
++EXPORT_SYMBOL(__lshrdi3);
+diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
+linux-2.6-git.ori/arch/score/lib/Makefile 
+linux-2.6-git.new/arch/score/lib/Makefile
+--- linux-2.6-git.ori/arch/score/lib/Makefile   1970-01-01 
+08:00:00.000000000 +0800
++++ linux-2.6-git.new/arch/score/lib/Makefile   2009-03-24 
+08:58:50.000000000 +0800
+@@ -0,0 +1,8 @@
++#
++# Makefile for SCORE-specific library files..
++#
++
++lib-y  += string.o checksum.o checksum_copy.o
++
++# libgcc-style stuff needed in the kernel
++obj-y  += ashldi3.o ashrdi3.o cmpdi2.o lshrdi3.o ucmpdi2.o
+diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
+linux-2.6-git.ori/arch/score/lib/string.S 
+linux-2.6-git.new/arch/score/lib/string.S
+--- linux-2.6-git.ori/arch/score/lib/string.S   1970-01-01 
+08:00:00.000000000 +0800
++++ linux-2.6-git.new/arch/score/lib/string.S   2009-04-07 
+21:28:28.000000000 +0800
+@@ -0,0 +1,203 @@
++/*
++ * arch/score/lib/string.S
++ *
++ * Score Processor version.
++ *
++ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
++ *  Chen Liqin <liqin.chen@sunplusct.com>
++ *  Lennox Wu <lennox.wu@sunplusct.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ */
++
++#include <asm/errno.h>
++
++       .text
++       .globl  __strncpy_from_user
++       .align 2
++__strncpy_from_user:
++       cmpi.c  r6, 0
++       mv      r9, r6
++       ble     .L2
++0:     lbu     r7, [r5]
++       ldi     r8, 0
++1:     sb      r7, [r4]
++2:     lb      r6, [r5]
++       cmp.c   r6, r8
++       beq     .L2
++
++.L5:
++       addi    r8, 1
++       cmp.c   r8, r9
++       beq     .L7
++3:     lbu     r6, [r5, 1]+
++4:     sb      r6, [r4, 1]+
++5:     lb      r7, [r5]
++       cmpi.c  r7, 0
++       bne     .L5
++.L7:
++       mv      r4, r8
++       br      r3
++.L2:
++       ldi     r8, 0
++       mv      r4, r8
++       br      r3
++       .section .fixup, "ax"
++99:
++       ldi     r4, -EFAULT
++       br      r3
++       .previous
++       .section __ex_table, "a"
++       .align  2
++       .word   0b ,99b
++       .word   1b ,99b
++       .word   2b ,99b
++       .word   3b ,99b
++       .word   4b ,99b
++       .word   5b ,99b
++       .previous
++
++       .globl __strnlen_user
++       .align 2
++__strnlen_user:
++       cmpi.c  r5, 0
++       ble     .L11
++0:     lb      r6, [r4]
++       ldi     r7, 0
++       cmp.c   r6, r7
++       beq     .L11
++.L15:
++       addi    r7, 1
++       cmp.c   r7, r5
++       beq     .L23
++1:     lb      r6, [r4,1]+
++       cmpi.c  r6, 0
++       bne     .L15
++.L23:
++       addri   r4, r7, 1
++       br      r3
++
++.L11:
++       ldi     r4, 1
++       br      r3
++       .section .fixup, "ax"
++99:
++       ldi     r4, 0
++       br      r3
++
++       .section __ex_table,"a"
++       .align 2
++       .word   0b, 99b
++       .word   1b, 99b
++       .previous
++
++       .globl  __strlen_user
++       .align 2
++__strlen_user:
++0:     lb      r6, [r4]
++       mv      r7, r4
++       extsb   r6, r6
++       cmpi.c  r6, 0
++       mv      r4, r6
++       beq     .L27
++.L28:
++1:     lb      r6, [r7, 1]+
++       addi    r6, 1
++       cmpi.c  r6, 0
++       bne     .L28
++.L27:
++       br      r3
++       .section .fixup, "ax"
++       ldi     r4, 0x0
++       br      r3
++99:
++       ldi     r4, 0
++       br      r3
++       .previous
++       .section __ex_table, "a"
++       .align  2
++       .word   0b ,99b
++       .word   1b ,99b
++       .previous
++
++       .globl  __copy_tofrom_user
++       .align 2
++__copy_tofrom_user:
++       cmpi.c  r6, 0
++       mv      r10,r6
++       beq     .L32
++       ldi     r9, 0
++.L34:
++       add     r6, r5, r9
++0:     lbu     r8, [r6]
++       add     r7, r4, r9
++1:     sb      r8, [r7]
++       addi    r9, 1
++       cmp.c   r9, r10
++       bne     .L34
++.L32:
++       ldi     r4, 0
++       br      r3
++       .section .fixup, "ax"
++99:
++       sub     r4, r10, r9
++       br      r3
++       .previous
++       .section __ex_table, "a"
++       .align  2
++       .word   0b, 99b
++       .word   1b, 99b
++       .previous
++
++       .globl __clear_user
++       .align 2
++__clear_user:
++       cmpi.c  r5, 0
++       beq     .L38
++       ldi     r6, 0
++       mv      r7, r6
++.L40:
++       addi    r6, 1
++0:     sb      r7, [r4]+, 1
++       cmp.c   r6, r5
++       bne     .L40
++.L38:
++       ldi     r4, 0
++       br      r3
++
++       .section .fixup, "ax"
++       br      r3
++       .previous
++       .section __ex_table, "a"
++       .align  2
++99:
++       .word   0b, 99b
++       .previous
++
++       .align  2
++       .globl  __put_user_unknown
++__put_user_unknown:
++       .set volatile
++       ldi     r4, -EFAULT
++       br      r3
++
++       .align  2
++       .globl  __get_user_unknown
++       .set volatile
++__get_user_unknown:
++       ldi     r5, 0
++       ldi     r4, -EFAULT
++       br      r3
+diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
+linux-2.6-git.ori/arch/score/lib/ucmpdi2.c 
+linux-2.6-git.new/arch/score/lib/ucmpdi2.c
+--- linux-2.6-git.ori/arch/score/lib/ucmpdi2.c  1970-01-01 
+08:00:00.000000000 +0800
++++ linux-2.6-git.new/arch/score/lib/ucmpdi2.c  2009-03-23 
+14:15:20.000000000 +0800
+@@ -0,0 +1,38 @@
++/*
++ * arch/score/lib/ucmpdi2.c
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ */
++
++#include <linux/module.h>
++#include "libgcc.h"
++
++word_type __ucmpdi2(unsigned long long a, unsigned long long b)
++{
++       const DWunion au = {.ll = a};
++       const DWunion bu = {.ll = b};
++
++       if ((unsigned int) au.s.high < (unsigned int) bu.s.high)
++               return 0;
++       else if ((unsigned int) au.s.high > (unsigned int) bu.s.high)
++               return 2;
++       if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
++               return 0;
++       else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
++               return 2;
++       return 1;
++}
++EXPORT_SYMBOL(__ucmpdi2);
