@@ -1,227 +1,136 @@
-From: Andrew Morton <akpm@linux-foundation.org>
+From: liqin.chen@sunplusct.com
 Subject: Re: [PATCH 4/14] score - New architecure port to SunplusCT S+CORE
-Date: Thu, 9 Apr 2009 23:29:57 -0700
-Message-ID: <20090409232957.b97dd46e.akpm@linux-foundation.org>
-References: <OF37DA4769.A6BC9B10-ON48257592.00287E6E-48257592.0028CC22@sunplusct.com>
+Date: Mon, 13 Apr 2009 10:45:54 +0800
+Message-ID: <OF43EC993E.C89EBBA3-ON48257597.000E9F34-48257597.000F6685@sunplusct.com>
+References: <20090409232957.b97dd46e.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="GB2312"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:53265 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754019AbZDJGeq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Apr 2009 02:34:46 -0400
-In-Reply-To: <OF37DA4769.A6BC9B10-ON48257592.00287E6E-48257592.0028CC22@sunplusct.com>
+Received: from 219-87-157-179.static.tfn.net.tw ([219.87.157.179]:39215 "EHLO
+	mswedge1.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753471AbZDMDKP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 12 Apr 2009 23:10:15 -0400
+In-Reply-To: <20090409232957.b97dd46e.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: liqin.chen@sunplusct.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, Arnd Bergmann <arnd@arndb.de>, Sam Ravnborg <sam@ravnborg.org>, Thomas Gleixner <tglx@linutronix.de>, Kyle McMartin <kyle@mcmartin.ca>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Kyle McMartin <kyle@mcmartin.ca>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Thomas Gleixner <tglx@linutronix.de>, torvalds@linux-foundation.org
 
-On Wed, 8 Apr 2009 15:23:28 +0800 liqin.chen@sunplusct.com wrote:
-
-> From: Chen Liqin <liqin.chen@sunplusct.com>
-> 
-> asm/kmap_types.h, asm/linkage.h, asm/local.h, asm/mman.h, 
-> asm/mmu_context.h,
-> asm/mmu.h, asm/module.h, asm/msgbuf.h, asm/mutex.h, asm/page.h, 
-> asm/param.h,
-> asm/pci.h, asm/percpu.h, asm/pgalloc.h, asm/pgtable-32.h, 
-> asm/pgtable-bits.h,
-> asm/pgtable.h, asm/poll.h, asm/posix_types.h and asm/processor.h
-> for the score architecture.
->
-> ...
->
-> --- linux-2.6-git.ori/arch/score/include/asm/kmap_types.h       1970-01-01 
-> 08:00:00.000000000 +0800
-> +++ linux-2.6-git.new/arch/score/include/asm/kmap_types.h       2009-04-03 
-> 17:01:04.000000000 +0800
-> @@ -0,0 +1,21 @@
-> +#ifndef __SCORE_KMAP_TYPES_H
-> +#define __SCORE_KMAP_TYPES_H
-> +
-> +enum km_type {
-> +       KM_BOUNCE_READ,
-> +       KM_SKB_SUNRPC_DATA,
-> +       KM_SKB_DATA_SOFTIRQ,
-> +       KM_USER0,
-> +       KM_USER1,
-> +       KM_BIO_SRC_IRQ,
-> +       KM_BIO_DST_IRQ,
-> +       KM_PTE0,
-> +       KM_PTE1,
-> +       KM_IRQ0,
-> +       KM_IRQ1,
-> +       KM_SOFTIRQ0,
-> +       KM_SOFTIRQ1,
-> +       KM_TYPE_NR
-> +};
-
-hm.  Our nineteenth copy of kmap_types.h, all of them basically the
-same.
-
-That's not a problem for this patchset, but we suck.
-
->
-> ...
->
-> +static inline void
-> +get_new_mmu_context(struct mm_struct *mm, unsigned long cpu)
-> +{
-> +       unsigned long asid = asid_cache(0);
-> +
-> +       if (!((asid = asid + ASID_INC) & ASID_MASK)) {
-
-ick.  Complex statements likethis are to be avoided, please.
-
-	unsigned long asid = asid_cache(0) + ASID_INC;
-
-	if (!(asid & ASID_MASK)) {
-
-is nicer, no?
-
-> +               local_flush_tlb_all();          /* start new asid cycle */
-> +               if (!asid)                      /* fix version if needed 
-> */
-> +                       asid = ASID_FIRST_VERSION;
-> +       }
-> +       cpu_context(0, mm) = asid_cache(0) = asid;
-
-This style causes less concern, but some would even prefer
-
-	cpu_context(0, mm) = asid;
-	asid_cache(0) = asid;
-
-C lets you perform lots of weird shortcuts and tricks, but we actively
-avoid many of them in the kernel.
-
-> +}
-> +
-> +/*
-> + * Initialize the context related info for a new mm_struct
-> + * instance.
-> + */
-> +static inline int
-> +init_new_context(struct task_struct *tsk, struct mm_struct *mm)
-> +{
-> +       cpu_context(0, mm) = 0;
-
-More stylistic whining - this is one of my pet peeves.  It's just a
-meaningless absurdity to call a function and to then modify its return
-value.
-
-So cpu_context() _has_ to be a macro which evaluates to an lvalue. 
-Which wrecks any concept of encapsulation. 
-Macros-which-look-like-functions should be interchangesable with
-functions, but this one isn't.
-
-I mean, the above statement jusst isn't C.  Whereas
-
-	set_cpu_context(0, mm0, 0);
-
-_is_ C.  See what I mean.
-
-Anwyay.  I'm not saying you should go off and change everything.  But
-it's daft.
-
-> +       return 0;
-> +}
-> +
-> +static inline void switch_mm(struct mm_struct *prev, struct mm_struct 
-> *next,
-> +                               struct task_struct *tsk)
-> +{
-> +       unsigned long flags;
-> +
-> +       local_irq_save(flags);
-> +       if ((cpu_context(0, next) ^ asid_cache(0)) & ASID_VERSION_MASK)
-> +               get_new_mmu_context(next, 0);
-> +       set_PEVN(cpu_context(0, next));
-> +       TLBMISS_HANDLER_SETUP_PGD(next->pgd);
-
-Some macros are all-lower-case.
-
-Some macros are part-lower-case and part-upper-case.
-
-Some macros are all-upper-case.
-
-Is there any sense behind it all?
-
-> +       local_irq_restore(flags);
-> +}
-> +
-> +/*
-> + * Destroy context related info for an mm_struct that is about
-> + * to be put to rest.
-> + */
-> +static inline void destroy_context(struct mm_struct *mm)
-> +{}
-> +
-> +#define deactivate_mm(tsk, mm) do {} while (0)
-
-static inline void deactivate_mm(struct task_struct *task, struct mm_struct *mm)
-
-is nicer.  It isn't a macro, and it provides typechecking and sometimes
-it can fix an unused-variable warning at callsites.
-
-Probably you copied this from somewhere else.  Sigh.
-
-> +/*
-> + * After we have set current->mm to a new value, this activates
-> + * the context for the new mm so we see the new mappings.
-> + */
-> +static inline void
-> +activate_mm(struct mm_struct *prev, struct mm_struct *next)
-> +{
-> +       unsigned long flags;
-> +
-> +       local_irq_save(flags);
-> +       get_new_mmu_context(next, 0);
-> +       set_PEVN(cpu_context(0, next));
-> +       TLBMISS_HANDLER_SETUP_PGD(next->pgd);
-> +       local_irq_restore(flags);
-> +}
-> +
-> +#endif /* __SCORE_MMU_CONTEXT_H */
-> diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
-> linux-2.6-git.ori/arch/score/include/asm/mmu.h 
-> linux-2.6-git.new/arch/score/include/asm/mmu.h
-> --- linux-2.6-git.ori/arch/score/include/asm/mmu.h      1970-01-01 
-> 08:00:00.000000000 +0800
-> +++ linux-2.6-git.new/arch/score/include/asm/mmu.h      2009-04-08 
-> 10:51:34.000000000 +0800
-> @@ -0,0 +1,6 @@
-> +#ifndef __SCORE_MMU_H
-> +#define __SCORE_MMU_H
-> +
-> +typedef unsigned long mm_context_t[NR_CPUS];
-
-hm.  Is this an SMP-capable architecture?
-
-> +#endif /* __SCORE_MMU_H */
-> diff -uprN -x linux-2.6-git.ori/Documentation/dontdiff 
->
-> ...
->
-> +#ifdef CONFIG_CPU_SCORE7
-> +#define MODULE_PROC_FAMILY "SCORE7"
-> +#else
-> +#error MODULE_PROC_FAMILY undefined for your processor configuration
-> +#endif
-
-Is the #error necessary?  If it triggers, that indicates a bug in
-Kconfig, no?
-
->
-> ...
->
-> +#define ARCH_PFN_OFFSET                PFN_UP(PHYS_OFFSET)
-> +
-> +#define clear_page(page)       memset((void *)(page), 0, PAGE_SIZE)
-> +#define copy_page(to, from)    memcpy((to), (from), PAGE_SIZE)
-> +
-> +#define clear_user_page(page, vaddr, pg)       clear_page(page)
-> +#define copy_user_page(to, from, vaddr, pg)    copy_page(to, from)
-
-Well that's nice and simple ;)
+SGkgQW5kcmV3IE1vcnRvbiwNCg0KICAgICAgICBZb3Ugb25seSBjb21tZW50ZWQgNCBwYXRjaGVz
+LA0KICAgICAgICBob3cgYWJvdXQgb3RoZXJzPw0KDQogICAgICAgIFdlIHdhbnQgdG8gdXBkYXRl
+IHRoZSBjb2RlIGFmdGVyIHlvdSBmaW5pc2hlZCBpdC4NCg0KQmVzdCBSZWdhcmRzDQpMaXFpbg0K
+DQpBbmRyZXcgTW9ydG9uIDxha3BtQGxpbnV4LWZvdW5kYXRpb24ub3JnPiDQtNPaIDIwMDktMDQt
+MTAgMTQ6Mjk6NTc6DQoNCj4gT24gV2VkLCA4IEFwciAyMDA5IDE1OjIzOjI4ICswODAwIGxpcWlu
+LmNoZW5Ac3VucGx1c2N0LmNvbSB3cm90ZToNCj4gDQo+ID4gRnJvbTogQ2hlbiBMaXFpbiA8bGlx
+aW4uY2hlbkBzdW5wbHVzY3QuY29tPg0KPiA+IA0KPiA+IGFzbS9rbWFwX3R5cGVzLmgsIGFzbS9s
+aW5rYWdlLmgsIGFzbS9sb2NhbC5oLCBhc20vbW1hbi5oLCANCj4gPiBhc20vbW11X2NvbnRleHQu
+aCwNCj4gPiBhc20vbW11LmgsIGFzbS9tb2R1bGUuaCwgYXNtL21zZ2J1Zi5oLCBhc20vbXV0ZXgu
+aCwgYXNtL3BhZ2UuaCwgDQo+ID4gYXNtL3BhcmFtLmgsDQo+ID4gYXNtL3BjaS5oLCBhc20vcGVy
+Y3B1LmgsIGFzbS9wZ2FsbG9jLmgsIGFzbS9wZ3RhYmxlLTMyLmgsIA0KPiA+IGFzbS9wZ3RhYmxl
+LWJpdHMuaCwNCj4gPiBhc20vcGd0YWJsZS5oLCBhc20vcG9sbC5oLCBhc20vcG9zaXhfdHlwZXMu
+aCBhbmQgYXNtL3Byb2Nlc3Nvci5oDQo+ID4gZm9yIHRoZSBzY29yZSBhcmNoaXRlY3R1cmUuDQo+
+ID4NCj4gPiAuLi4NCj4gPg0KPiA+IC0tLSBsaW51eC0yLjYtZ2l0Lm9yaS9hcmNoL3Njb3JlL2lu
+Y2x1ZGUvYXNtL2ttYXBfdHlwZXMuaCAxOTcwLTAxLTAxIA0KPiA+IDA4OjAwOjAwLjAwMDAwMDAw
+MCArMDgwMA0KPiA+ICsrKyBsaW51eC0yLjYtZ2l0Lm5ldy9hcmNoL3Njb3JlL2luY2x1ZGUvYXNt
+L2ttYXBfdHlwZXMuaCAyMDA5LTA0LTAzIA0KPiA+IDE3OjAxOjA0LjAwMDAwMDAwMCArMDgwMA0K
+PiA+IEBAIC0wLDAgKzEsMjEgQEANCj4gPiArI2lmbmRlZiBfX1NDT1JFX0tNQVBfVFlQRVNfSA0K
+PiA+ICsjZGVmaW5lIF9fU0NPUkVfS01BUF9UWVBFU19IDQo+ID4gKw0KPiA+ICtlbnVtIGttX3R5
+cGUgew0KPiA+ICsgICAgICAgS01fQk9VTkNFX1JFQUQsDQo+ID4gKyAgICAgICBLTV9TS0JfU1VO
+UlBDX0RBVEEsDQo+ID4gKyAgICAgICBLTV9TS0JfREFUQV9TT0ZUSVJRLA0KPiA+ICsgICAgICAg
+S01fVVNFUjAsDQo+ID4gKyAgICAgICBLTV9VU0VSMSwNCj4gPiArICAgICAgIEtNX0JJT19TUkNf
+SVJRLA0KPiA+ICsgICAgICAgS01fQklPX0RTVF9JUlEsDQo+ID4gKyAgICAgICBLTV9QVEUwLA0K
+PiA+ICsgICAgICAgS01fUFRFMSwNCj4gPiArICAgICAgIEtNX0lSUTAsDQo+ID4gKyAgICAgICBL
+TV9JUlExLA0KPiA+ICsgICAgICAgS01fU09GVElSUTAsDQo+ID4gKyAgICAgICBLTV9TT0ZUSVJR
+MSwNCj4gPiArICAgICAgIEtNX1RZUEVfTlINCj4gPiArfTsNCj4gDQo+IGhtLiAgT3VyIG5pbmV0
+ZWVudGggY29weSBvZiBrbWFwX3R5cGVzLmgsIGFsbCBvZiB0aGVtIGJhc2ljYWxseSB0aGUNCj4g
+c2FtZS4NCj4gDQo+IFRoYXQncyBub3QgYSBwcm9ibGVtIGZvciB0aGlzIHBhdGNoc2V0LCBidXQg
+d2Ugc3Vjay4NCj4gDQo+ID4NCj4gPiAuLi4NCj4gPg0KPiA+ICtzdGF0aWMgaW5saW5lIHZvaWQN
+Cj4gPiArZ2V0X25ld19tbXVfY29udGV4dChzdHJ1Y3QgbW1fc3RydWN0ICptbSwgdW5zaWduZWQg
+bG9uZyBjcHUpDQo+ID4gK3sNCj4gPiArICAgICAgIHVuc2lnbmVkIGxvbmcgYXNpZCA9IGFzaWRf
+Y2FjaGUoMCk7DQo+ID4gKw0KPiA+ICsgICAgICAgaWYgKCEoKGFzaWQgPSBhc2lkICsgQVNJRF9J
+TkMpICYgQVNJRF9NQVNLKSkgew0KPiANCj4gaWNrLiAgQ29tcGxleCBzdGF0ZW1lbnRzIGxpa2V0
+aGlzIGFyZSB0byBiZSBhdm9pZGVkLCBwbGVhc2UuDQo+IA0KPiAgICB1bnNpZ25lZCBsb25nIGFz
+aWQgPSBhc2lkX2NhY2hlKDApICsgQVNJRF9JTkM7DQo+IA0KPiAgICBpZiAoIShhc2lkICYgQVNJ
+RF9NQVNLKSkgew0KPiANCj4gaXMgbmljZXIsIG5vPw0KPiANCj4gPiArICAgICAgICAgICAgICAg
+bG9jYWxfZmx1c2hfdGxiX2FsbCgpOyAgICAgICAgICAvKiBzdGFydCBuZXcgYXNpZCANCmN5Y2xl
+ICovDQo+ID4gKyAgICAgICAgICAgICAgIGlmICghYXNpZCkgICAgICAgICAgICAgICAgICAgICAg
+LyogZml4IHZlcnNpb24gaWYgDQpuZWVkZWQgDQo+ID4gKi8NCj4gPiArICAgICAgICAgICAgICAg
+ICAgICAgICBhc2lkID0gQVNJRF9GSVJTVF9WRVJTSU9OOw0KPiA+ICsgICAgICAgfQ0KPiA+ICsg
+ICAgICAgY3B1X2NvbnRleHQoMCwgbW0pID0gYXNpZF9jYWNoZSgwKSA9IGFzaWQ7DQo+IA0KPiBU
+aGlzIHN0eWxlIGNhdXNlcyBsZXNzIGNvbmNlcm4sIGJ1dCBzb21lIHdvdWxkIGV2ZW4gcHJlZmVy
+DQo+IA0KPiAgICBjcHVfY29udGV4dCgwLCBtbSkgPSBhc2lkOw0KPiAgICBhc2lkX2NhY2hlKDAp
+ID0gYXNpZDsNCj4gDQo+IEMgbGV0cyB5b3UgcGVyZm9ybSBsb3RzIG9mIHdlaXJkIHNob3J0Y3V0
+cyBhbmQgdHJpY2tzLCBidXQgd2UgYWN0aXZlbHkNCj4gYXZvaWQgbWFueSBvZiB0aGVtIGluIHRo
+ZSBrZXJuZWwuDQo+IA0KPiA+ICt9DQo+ID4gKw0KPiA+ICsvKg0KPiA+ICsgKiBJbml0aWFsaXpl
+IHRoZSBjb250ZXh0IHJlbGF0ZWQgaW5mbyBmb3IgYSBuZXcgbW1fc3RydWN0DQo+ID4gKyAqIGlu
+c3RhbmNlLg0KPiA+ICsgKi8NCj4gPiArc3RhdGljIGlubGluZSBpbnQNCj4gPiAraW5pdF9uZXdf
+Y29udGV4dChzdHJ1Y3QgdGFza19zdHJ1Y3QgKnRzaywgc3RydWN0IG1tX3N0cnVjdCAqbW0pDQo+
+ID4gK3sNCj4gPiArICAgICAgIGNwdV9jb250ZXh0KDAsIG1tKSA9IDA7DQo+IA0KPiBNb3JlIHN0
+eWxpc3RpYyB3aGluaW5nIC0gdGhpcyBpcyBvbmUgb2YgbXkgcGV0IHBlZXZlcy4gIEl0J3MganVz
+dCBhDQo+IG1lYW5pbmdsZXNzIGFic3VyZGl0eSB0byBjYWxsIGEgZnVuY3Rpb24gYW5kIHRvIHRo
+ZW4gbW9kaWZ5IGl0cyByZXR1cm4NCj4gdmFsdWUuDQo+IA0KPiBTbyBjcHVfY29udGV4dCgpIF9o
+YXNfIHRvIGJlIGEgbWFjcm8gd2hpY2ggZXZhbHVhdGVzIHRvIGFuIGx2YWx1ZS4gDQo+IFdoaWNo
+IHdyZWNrcyBhbnkgY29uY2VwdCBvZiBlbmNhcHN1bGF0aW9uLiANCj4gTWFjcm9zLXdoaWNoLWxv
+b2stbGlrZS1mdW5jdGlvbnMgc2hvdWxkIGJlIGludGVyY2hhbmdlc2FibGUgd2l0aA0KPiBmdW5j
+dGlvbnMsIGJ1dCB0aGlzIG9uZSBpc24ndC4NCj4gDQo+IEkgbWVhbiwgdGhlIGFib3ZlIHN0YXRl
+bWVudCBqdXNzdCBpc24ndCBDLiAgV2hlcmVhcw0KPiANCj4gICAgc2V0X2NwdV9jb250ZXh0KDAs
+IG1tMCwgMCk7DQo+IA0KPiBfaXNfIEMuICBTZWUgd2hhdCBJIG1lYW4uDQo+IA0KPiBBbnd5YXku
+ICBJJ20gbm90IHNheWluZyB5b3Ugc2hvdWxkIGdvIG9mZiBhbmQgY2hhbmdlIGV2ZXJ5dGhpbmcu
+ICBCdXQNCj4gaXQncyBkYWZ0Lg0KPiANCj4gPiArICAgICAgIHJldHVybiAwOw0KPiA+ICt9DQo+
+ID4gKw0KPiA+ICtzdGF0aWMgaW5saW5lIHZvaWQgc3dpdGNoX21tKHN0cnVjdCBtbV9zdHJ1Y3Qg
+KnByZXYsIHN0cnVjdCBtbV9zdHJ1Y3QgDQoNCj4gPiAqbmV4dCwNCj4gPiArICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgIHN0cnVjdCB0YXNrX3N0cnVjdCAqdHNrKQ0KPiA+ICt7DQo+ID4g
+KyAgICAgICB1bnNpZ25lZCBsb25nIGZsYWdzOw0KPiA+ICsNCj4gPiArICAgICAgIGxvY2FsX2ly
+cV9zYXZlKGZsYWdzKTsNCj4gPiArICAgICAgIGlmICgoY3B1X2NvbnRleHQoMCwgbmV4dCkgXiBh
+c2lkX2NhY2hlKDApKSAmIA0KQVNJRF9WRVJTSU9OX01BU0spDQo+ID4gKyAgICAgICAgICAgICAg
+IGdldF9uZXdfbW11X2NvbnRleHQobmV4dCwgMCk7DQo+ID4gKyAgICAgICBzZXRfUEVWTihjcHVf
+Y29udGV4dCgwLCBuZXh0KSk7DQo+ID4gKyAgICAgICBUTEJNSVNTX0hBTkRMRVJfU0VUVVBfUEdE
+KG5leHQtPnBnZCk7DQo+IA0KPiBTb21lIG1hY3JvcyBhcmUgYWxsLWxvd2VyLWNhc2UuDQo+IA0K
+PiBTb21lIG1hY3JvcyBhcmUgcGFydC1sb3dlci1jYXNlIGFuZCBwYXJ0LXVwcGVyLWNhc2UuDQo+
+IA0KPiBTb21lIG1hY3JvcyBhcmUgYWxsLXVwcGVyLWNhc2UuDQo+IA0KPiBJcyB0aGVyZSBhbnkg
+c2Vuc2UgYmVoaW5kIGl0IGFsbD8NCj4gDQo+ID4gKyAgICAgICBsb2NhbF9pcnFfcmVzdG9yZShm
+bGFncyk7DQo+ID4gK30NCj4gPiArDQo+ID4gKy8qDQo+ID4gKyAqIERlc3Ryb3kgY29udGV4dCBy
+ZWxhdGVkIGluZm8gZm9yIGFuIG1tX3N0cnVjdCB0aGF0IGlzIGFib3V0DQo+ID4gKyAqIHRvIGJl
+IHB1dCB0byByZXN0Lg0KPiA+ICsgKi8NCj4gPiArc3RhdGljIGlubGluZSB2b2lkIGRlc3Ryb3lf
+Y29udGV4dChzdHJ1Y3QgbW1fc3RydWN0ICptbSkNCj4gPiAre30NCj4gPiArDQo+ID4gKyNkZWZp
+bmUgZGVhY3RpdmF0ZV9tbSh0c2ssIG1tKSBkbyB7fSB3aGlsZSAoMCkNCj4gDQo+IHN0YXRpYyBp
+bmxpbmUgdm9pZCBkZWFjdGl2YXRlX21tKHN0cnVjdCB0YXNrX3N0cnVjdCAqdGFzaywgc3RydWN0
+IA0KPiBtbV9zdHJ1Y3QgKm1tKQ0KPiANCj4gaXMgbmljZXIuICBJdCBpc24ndCBhIG1hY3JvLCBh
+bmQgaXQgcHJvdmlkZXMgdHlwZWNoZWNraW5nIGFuZCBzb21ldGltZXMNCj4gaXQgY2FuIGZpeCBh
+biB1bnVzZWQtdmFyaWFibGUgd2FybmluZyBhdCBjYWxsc2l0ZXMuDQo+IA0KPiBQcm9iYWJseSB5
+b3UgY29waWVkIHRoaXMgZnJvbSBzb21ld2hlcmUgZWxzZS4gIFNpZ2guDQo+IA0KPiA+ICsvKg0K
+PiA+ICsgKiBBZnRlciB3ZSBoYXZlIHNldCBjdXJyZW50LT5tbSB0byBhIG5ldyB2YWx1ZSwgdGhp
+cyBhY3RpdmF0ZXMNCj4gPiArICogdGhlIGNvbnRleHQgZm9yIHRoZSBuZXcgbW0gc28gd2Ugc2Vl
+IHRoZSBuZXcgbWFwcGluZ3MuDQo+ID4gKyAqLw0KPiA+ICtzdGF0aWMgaW5saW5lIHZvaWQNCj4g
+PiArYWN0aXZhdGVfbW0oc3RydWN0IG1tX3N0cnVjdCAqcHJldiwgc3RydWN0IG1tX3N0cnVjdCAq
+bmV4dCkNCj4gPiArew0KPiA+ICsgICAgICAgdW5zaWduZWQgbG9uZyBmbGFnczsNCj4gPiArDQo+
+ID4gKyAgICAgICBsb2NhbF9pcnFfc2F2ZShmbGFncyk7DQo+ID4gKyAgICAgICBnZXRfbmV3X21t
+dV9jb250ZXh0KG5leHQsIDApOw0KPiA+ICsgICAgICAgc2V0X1BFVk4oY3B1X2NvbnRleHQoMCwg
+bmV4dCkpOw0KPiA+ICsgICAgICAgVExCTUlTU19IQU5ETEVSX1NFVFVQX1BHRChuZXh0LT5wZ2Qp
+Ow0KPiA+ICsgICAgICAgbG9jYWxfaXJxX3Jlc3RvcmUoZmxhZ3MpOw0KPiA+ICt9DQo+ID4gKw0K
+PiA+ICsjZW5kaWYgLyogX19TQ09SRV9NTVVfQ09OVEVYVF9IICovDQo+ID4gZGlmZiAtdXByTiAt
+eCBsaW51eC0yLjYtZ2l0Lm9yaS9Eb2N1bWVudGF0aW9uL2RvbnRkaWZmIA0KPiA+IGxpbnV4LTIu
+Ni1naXQub3JpL2FyY2gvc2NvcmUvaW5jbHVkZS9hc20vbW11LmggDQo+ID4gbGludXgtMi42LWdp
+dC5uZXcvYXJjaC9zY29yZS9pbmNsdWRlL2FzbS9tbXUuaA0KPiA+IC0tLSBsaW51eC0yLjYtZ2l0
+Lm9yaS9hcmNoL3Njb3JlL2luY2x1ZGUvYXNtL21tdS5oICAgICAgMTk3MC0wMS0wMSANCj4gPiAw
+ODowMDowMC4wMDAwMDAwMDAgKzA4MDANCj4gPiArKysgbGludXgtMi42LWdpdC5uZXcvYXJjaC9z
+Y29yZS9pbmNsdWRlL2FzbS9tbXUuaCAgICAgIDIwMDktMDQtMDggDQo+ID4gMTA6NTE6MzQuMDAw
+MDAwMDAwICswODAwDQo+ID4gQEAgLTAsMCArMSw2IEBADQo+ID4gKyNpZm5kZWYgX19TQ09SRV9N
+TVVfSA0KPiA+ICsjZGVmaW5lIF9fU0NPUkVfTU1VX0gNCj4gPiArDQo+ID4gK3R5cGVkZWYgdW5z
+aWduZWQgbG9uZyBtbV9jb250ZXh0X3RbTlJfQ1BVU107DQo+IA0KPiBobS4gIElzIHRoaXMgYW4g
+U01QLWNhcGFibGUgYXJjaGl0ZWN0dXJlPw0KPiANCj4gPiArI2VuZGlmIC8qIF9fU0NPUkVfTU1V
+X0ggKi8NCj4gPiBkaWZmIC11cHJOIC14IGxpbnV4LTIuNi1naXQub3JpL0RvY3VtZW50YXRpb24v
+ZG9udGRpZmYgDQo+ID4NCj4gPiAuLi4NCj4gPg0KPiA+ICsjaWZkZWYgQ09ORklHX0NQVV9TQ09S
+RTcNCj4gPiArI2RlZmluZSBNT0RVTEVfUFJPQ19GQU1JTFkgIlNDT1JFNyINCj4gPiArI2Vsc2UN
+Cj4gPiArI2Vycm9yIE1PRFVMRV9QUk9DX0ZBTUlMWSB1bmRlZmluZWQgZm9yIHlvdXIgcHJvY2Vz
+c29yIGNvbmZpZ3VyYXRpb24NCj4gPiArI2VuZGlmDQo+IA0KPiBJcyB0aGUgI2Vycm9yIG5lY2Vz
+c2FyeT8gIElmIGl0IHRyaWdnZXJzLCB0aGF0IGluZGljYXRlcyBhIGJ1ZyBpbg0KPiBLY29uZmln
+LCBubz8NCj4gDQo+ID4NCj4gPiAuLi4NCj4gPg0KPiA+ICsjZGVmaW5lIEFSQ0hfUEZOX09GRlNF
+VCAgICAgICAgICAgICAgICBQRk5fVVAoUEhZU19PRkZTRVQpDQo+ID4gKw0KPiA+ICsjZGVmaW5l
+IGNsZWFyX3BhZ2UocGFnZSkgICAgICAgbWVtc2V0KCh2b2lkICopKHBhZ2UpLCAwLCBQQUdFX1NJ
+WkUpDQo+ID4gKyNkZWZpbmUgY29weV9wYWdlKHRvLCBmcm9tKSAgICBtZW1jcHkoKHRvKSwgKGZy
+b20pLCBQQUdFX1NJWkUpDQo+ID4gKw0KPiA+ICsjZGVmaW5lIGNsZWFyX3VzZXJfcGFnZShwYWdl
+LCB2YWRkciwgcGcpICAgICAgIGNsZWFyX3BhZ2UocGFnZSkNCj4gPiArI2RlZmluZSBjb3B5X3Vz
+ZXJfcGFnZSh0bywgZnJvbSwgdmFkZHIsIHBnKSAgICBjb3B5X3BhZ2UodG8sIGZyb20pDQo+IA0K
+PiBXZWxsIHRoYXQncyBuaWNlIGFuZCBzaW1wbGUgOykNCj4gDQo+IA0KDQo=
