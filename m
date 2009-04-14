@@ -1,101 +1,109 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [GIT PULL, v3] Microblaze architecture (arch/microblaze/)
-	support
-Date: Tue, 14 Apr 2009 03:39:48 +0200
-Message-ID: <20090414013948.GA30336@elte.hu>
-References: <49DC4024.6090800@petalogix.com> <alpine.LFD.2.00.0904131818050.26713@localhost.localdomain>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: [RFC][PATCH] /proc/stat idle field for idle cpus
+Date: Tue, 14 Apr 2009 14:18:51 +0200
+Message-ID: <20090414141851.3174f880@skybase>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:51780 "EHLO mx3.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751268AbZDNBkn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Apr 2009 21:40:43 -0400
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.0904131818050.26713@localhost.localdomain>
+Received: from mtagate1.de.ibm.com ([195.212.17.161]:38543 "EHLO
+	mtagate1.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753937AbZDNMTA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Apr 2009 08:19:00 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Michal Simek <michal.simek@petalogix.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, lkml <linux-arch@vger.kernel.org>, microblaze-uclinux@itee.uq.edu.au, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, John Williams <john.williams@petalogix.com>, John Linn <John.Linn@xilinx.com>, Stephen Neuendorffer <stephenn@xilinx.com>, Thomas Gleixner <tglx@linutronix.de>, Randy Dunlap <randy.dunlap@oracle.com>, Peter Korsgaard <jacmet@sunsite.dk>, Alan Cox <alan@lxorguk.ukuu.org.uk>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, Tony Luck <tony.luck@intel.com>, Hidetoshi Seto <seto.hidetoshi@jp.fujitsu.com>, Jeremy Fitzhardinge <jeremy@xensource.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Ingo Molnar <mingo@elte.hu>
 
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-* Linus Torvalds <torvalds@linux-foundation.org> wrote:
+The cpu idle field in the output of /proc/stat is too small for cpus
+that have been idle for more than a tick. Add the architecture hook
+arch_idle_time that allows to add the not accounted idle time of a
+sleeping cpu without waking the cpu.
 
-> On Wed, 8 Apr 2009, Michal Simek wrote:
-> > 
-> > This repository contains Linux support for Xilinx Microblaze CPU.
-> > 
-> > Please pull
-> >     git://git.monstr.eu/linux-2.6-microblaze.git for-linus
-> 
-> So I pulled, but I notice that there's a few empty header files.
-> 
-> That looks intentional (they came in through a commit that says 
-> "headers simple files - empty or redirect to asm-generic"), but it 
-> means that "make distclean" will remove them. So if you really 
-> want an empty header file, you should really make it not 
-> _completely_ empty - add a comment to it or something.
+The s390 implementation of arch_idle_time uses the already existing
+s390_idle_data per_cpu variable to find the sleep time of a neighboring
+idle cpu.
 
-FYI, there's a patch queued up by Michal for this - see below. It's 
-Tested-by Jeff as well. You might want to apply this from email if 
-you want a distclean-correct -rc2 ?
-
-	Ingo
-
------ Forwarded message from monstr@monstr.eu -----
-
-Date: Mon, 13 Apr 2009 20:56:57 +0200
-From: monstr@monstr.eu
-To: jeff@garzik.org
-Subject: [PATCH 1/1] microblaze: Fix problem with removing zero length files
-Cc: mingo@elte.hu, linux-kernel@vger.kernel.org,
-	Michal Simek <monstr@monstr.eu>
-
-From: Michal Simek <monstr@monstr.eu>
-
-Adding one new line was recommended solution.
-Test with make distclean
-
-Signed-off-by: Michal Simek <monstr@monstr.eu>
+Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 ---
- arch/microblaze/include/asm/auxvec.h   |    1 +
- arch/microblaze/include/asm/cputable.h |    1 +
- arch/microblaze/include/asm/hw_irq.h   |    1 +
- arch/microblaze/include/asm/user.h     |    1 +
- arch/microblaze/include/asm/vga.h      |    1 +
- 5 files changed, 5 insertions(+), 0 deletions(-)
 
-diff --git a/arch/microblaze/include/asm/auxvec.h b/arch/microblaze/include/asm/auxvec.h
-index e69de29..8b13789 100644
---- a/arch/microblaze/include/asm/auxvec.h
-+++ b/arch/microblaze/include/asm/auxvec.h
-@@ -0,0 +1 @@
-+
-diff --git a/arch/microblaze/include/asm/cputable.h b/arch/microblaze/include/asm/cputable.h
-index e69de29..8b13789 100644
---- a/arch/microblaze/include/asm/cputable.h
-+++ b/arch/microblaze/include/asm/cputable.h
-@@ -0,0 +1 @@
-+
-diff --git a/arch/microblaze/include/asm/hw_irq.h b/arch/microblaze/include/asm/hw_irq.h
-index e69de29..8b13789 100644
---- a/arch/microblaze/include/asm/hw_irq.h
-+++ b/arch/microblaze/include/asm/hw_irq.h
-@@ -0,0 +1 @@
-+
-diff --git a/arch/microblaze/include/asm/user.h b/arch/microblaze/include/asm/user.h
-index e69de29..8b13789 100644
---- a/arch/microblaze/include/asm/user.h
-+++ b/arch/microblaze/include/asm/user.h
-@@ -0,0 +1 @@
-+
-diff --git a/arch/microblaze/include/asm/vga.h b/arch/microblaze/include/asm/vga.h
-index e69de29..8b13789 100644
---- a/arch/microblaze/include/asm/vga.h
-+++ b/arch/microblaze/include/asm/vga.h
-@@ -0,0 +1 @@
-+
--- 
-1.5.5.1
+ arch/s390/include/asm/cputime.h |    4 ++++
+ arch/s390/kernel/vtime.c        |   16 ++++++++++++++++
+ fs/proc/stat.c                  |    8 ++++++--
+ 3 files changed, 26 insertions(+), 2 deletions(-)
 
------ End forwarded message -----
+Index: linux-2.6/arch/s390/include/asm/cputime.h
+===================================================================
+--- linux-2.6.orig/arch/s390/include/asm/cputime.h
++++ linux-2.6/arch/s390/include/asm/cputime.h
+@@ -174,4 +174,8 @@ cputime64_to_clock_t(cputime64_t cputime
+        return __div(cputime, 4096000000ULL / USER_HZ);
+ }
+ 
++cputime64_t s390_get_idle_time(int cpu);
++
++#define arch_idle_time(cpu) s390_get_idle_time(cpu)
++
+ #endif /* _S390_CPUTIME_H */
+Index: linux-2.6/arch/s390/kernel/vtime.c
+===================================================================
+--- linux-2.6.orig/arch/s390/kernel/vtime.c
++++ linux-2.6/arch/s390/kernel/vtime.c
+@@ -238,6 +238,22 @@ void vtime_stop_cpu(void)
+ 	}
+ }
+ 
++cputime64_t s390_get_idle_time(int cpu)
++{
++	struct s390_idle_data *idle;
++	unsigned long long now, idle_time, idle_enter;
++
++	idle = &per_cpu(s390_idle, cpu);
++	spin_lock(&idle->lock);
++	now = get_clock();
++	idle_time = 0;
++	idle_enter = idle->idle_enter;
++	if (idle_enter != 0ULL && idle_enter < now)
++		idle_time = now - idle_enter;
++	spin_unlock(&idle->lock);
++	return idle_time;
++}
++
+ /*
+  * Sorted add to a list. List is linear searched until first bigger
+  * element is found.
+Index: linux-2.6/fs/proc/stat.c
+===================================================================
+--- linux-2.6.orig/fs/proc/stat.c
++++ linux-2.6/fs/proc/stat.c
+@@ -18,6 +18,9 @@
+ #ifndef arch_irq_stat
+ #define arch_irq_stat() 0
+ #endif
++#ifndef arch_idle_time
++#define arch_idle_time(cpu) 0
++#endif
+ 
+ static int show_stat(struct seq_file *p, void *v)
+ {
+@@ -39,7 +42,8 @@ static int show_stat(struct seq_file *p,
+ 		user = cputime64_add(user, kstat_cpu(i).cpustat.user);
+ 		nice = cputime64_add(nice, kstat_cpu(i).cpustat.nice);
+ 		system = cputime64_add(system, kstat_cpu(i).cpustat.system);
+-		idle = cputime64_add(idle, kstat_cpu(i).cpustat.idle);
++		idle = cputime64_add(idle, kstat_cpu(i).cpustat.idle +
++				     arch_idle_time(i));
+ 		iowait = cputime64_add(iowait, kstat_cpu(i).cpustat.iowait);
+ 		irq = cputime64_add(irq, kstat_cpu(i).cpustat.irq);
+ 		softirq = cputime64_add(softirq, kstat_cpu(i).cpustat.softirq);
+@@ -68,7 +72,7 @@ static int show_stat(struct seq_file *p,
+ 		user = kstat_cpu(i).cpustat.user;
+ 		nice = kstat_cpu(i).cpustat.nice;
+ 		system = kstat_cpu(i).cpustat.system;
+-		idle = kstat_cpu(i).cpustat.idle;
++		idle = kstat_cpu(i).cpustat.idle + arch_idle_time(i);
+ 		iowait = kstat_cpu(i).cpustat.iowait;
+ 		irq = kstat_cpu(i).cpustat.irq;
+ 		softirq = kstat_cpu(i).cpustat.softirq;
