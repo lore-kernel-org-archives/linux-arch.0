@@ -1,29 +1,38 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 4/14] score - New architecure port to SunplusCT S+CORE
-Date: Sun, 12 Apr 2009 21:59:53 -0700
-Message-ID: <20090412215953.9be8b921.akpm@linux-foundation.org>
-References: <20090409232957.b97dd46e.akpm@linux-foundation.org>
-	<OF43EC993E.C89EBBA3-ON48257597.000E9F34-48257597.000F6685@sunplusct.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [GIT PULL, v3] Microblaze architecture (arch/microblaze/)
+ support
+Date: Mon, 13 Apr 2009 18:19:38 -0700 (PDT)
+Message-ID: <alpine.LFD.2.00.0904131818050.26713@localhost.localdomain>
+References: <49DC4024.6090800@petalogix.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:51833 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:57755 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752167AbZDMFFt (ORCPT
+	by vger.kernel.org with ESMTP id S1751705AbZDNB2b (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Apr 2009 01:05:49 -0400
-In-Reply-To: <OF43EC993E.C89EBBA3-ON48257597.000E9F34-48257597.000F6685@sunplusct.com>
+	Mon, 13 Apr 2009 21:28:31 -0400
+In-Reply-To: <49DC4024.6090800@petalogix.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: liqin.chen@sunplusct.com
-Cc: Arnd Bergmann <arnd@arndb.de>, Kyle McMartin <kyle@mcmartin.ca>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Thomas Gleixner <tglx@linutronix.de>, torvalds@linux-foundation.org
+To: Michal Simek <michal.simek@petalogix.com>
+Cc: Linux Kernel list <linux-kernel@vger.kernel.org>, lkml <linux-arch@vger.kernel.org>, microblaze-uclinux@itee.uq.edu.au, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, John Williams <john.williams@petalogix.com>, John Linn <John.Linn@xilinx.com>, Stephen Neuendorffer <stephenn@xilinx.com>, Thomas Gleixner <tglx@linutronix.de>, Randy Dunlap <randy.dunlap@oracle.com>, Ingo Molnar <mingo@elte.hu>, Peter Korsgaard <jacmet@sunsite.dk>, Alan Cox <alan@lxorguk.ukuu.org.uk>
 
-On Mon, 13 Apr 2009 10:45:54 +0800 liqin.chen@sunplusct.com wrote:
 
->         You only commented 4 patches,
->         how about others?
 
-I'm a slow reader ;)
+On Wed, 8 Apr 2009, Michal Simek wrote:
+> 
+> This repository contains Linux support for Xilinx Microblaze CPU.
+> 
+> Please pull
+>     git://git.monstr.eu/linux-2.6-microblaze.git for-linus
 
-Maybe later in the week.
+So I pulled, but I notice that there's a few empty header files.
+
+That looks intentional (they came in through a commit that says "headers 
+simple files - empty or redirect to asm-generic"), but it means that "make 
+distclean" will remove them. So if you really want an empty header file, 
+you should really make it not _completely_ empty - add a comment to it or 
+something.
+
+		Linus
