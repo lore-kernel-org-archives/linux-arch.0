@@ -1,23 +1,58 @@
-From: Winfred Bard <myway.com-kelly_spencer@myway.com>
-Subject: =?windows-1251?B?QSBSZWFsIFN5c3RlbSBZb3UgQ2FuIFVzZSBmb3IgRGFpbHkgSW5jb21l?=
-Date: Fri, 17 Apr 2009 11:39:14 +0700
-Message-ID: <20774.6804379441$1239947510@news.gmane.org>
-Reply-To: Winfred Bard <wagar.amanda19928@gmail.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [RFC][PATCH] /proc/stat idle field for idle cpus
+Date: Fri, 17 Apr 2009 16:02:11 -0700
+Message-ID: <20090417160211.4fa36fb7.akpm@linux-foundation.org>
+References: <20090414141851.3174f880@skybase>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1251
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from google-58-137-222-2.google.com ([58.137.222.2]:40887 "HELO
-	your.mail.server.name.com" rhost-flags-OK-FAIL-OK-FAIL)
-	by vger.kernel.org with SMTP id S1751929AbZDQFuS (ORCPT
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:55904 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752849AbZDQXKM (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Apr 2009 01:50:18 -0400
+	Fri, 17 Apr 2009 19:10:12 -0400
+In-Reply-To: <20090414141851.3174f880@skybase>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, paulus@samba.org, tony.luck@intel.com, seto.hidetoshi@jp.fujitsu.com, jeremy@xensource.com, a.p.zijlstra@chello.nl, mingo@elte.hu, Alexey Dobriyan <adobriyan@gmail.com>
 
-QXJlIHlvdSB1c2VkIHRvIHRoaW5rIHRoYXQgYWxsIHdvcmsgYXQgaG9tZSBvcHBvcnR1bml0aWVzIG9uIHRoZSBJbnRlcm5ldCBhcmUganVzdCBzY2FtIGFydGlzdHMgdHJ5aW5nIHRvIHN0ZWFsIHlvdXIgbW9uZXkuIFdpdGggeW91ciBsYXN0IGJpdCBvZiBob3BlLCB5b3UgY2FuIHRyeSBvdXIgb2ZmZXIsIHdlIGFyZSBoZXJlIHRvIHByZXNlbnQgdG8geW91ciBhdHRlbnRpb24gdG9kYXksIGFuZCB5b3Ugd2lsbCBiZSBnbGFkIHlvdSBkaWQhIEl0IG1heSB0b29rIGEgY291cGxlIG9mIGRheXMgdG8gcmVhbGx5IGdldCB0aGUgaGFuZyBvZiB0aGUgc3lzdGVtLCBidXQgdGhlbiB5b3Ugd2lsbCBiZSB1cCB0byAkMTAwIHBlciBkYXkgaW4gZWFybmluZ3MsIGFuZCBjbGltYmluZyENCg0KV2UgYXJlIHJlY2VpdmluZyBodW5kcmVkcyBvZiBlbWFpbHMgZWFjaCBkYXkgZnJvbSBvdXIgbWVtYmVycywgdGhhbmtpbmcgdXMgZm9yIHByb3ZpZGluZyBzdWNoIGEgZ3JlYXQgcmVzb3VyY2UgdG8gYWN0dWFsbHkgZWFybiBhIHJlYWwgaW5jb21lIG9ubGluZS4NCg0KSWYgeW91IGFyZSBpbnRlcmVzdGVkIGluIHJlY2VpdmluZyBtb3JlIGluZm9ybWF0aW9uIGFib3V0
- IG91ciB3b3JrIGZyb20gaG9tZSBvZmZlcnMsIGFuZCBwcm9iYWJseSBqb2luIHdpdGggdXMsIHBsZWFzZSBzZW5kIGFuIGVtYWlsIGJhY2sgdG8ga29tc3Rob2VmdGFtYXJhbnRoYTE3MjBAZ21haWwuY29tIGFuZCB3ZSB3aWxsIGdldCBpbiB0b3VjaCB3aXRoIHlvdSBhZ2Fpbi4NCg0KVGhhbmtzIGZvciB5b3VyIHRpbWUhDQoNCkxlZ2l0IEpvYnMgT25saW5lCgoKCgoKCgoKCgoKLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tClRoaXMgZW1haWwgaGFzIGJlZW4gd3JpdHRlbiBhbmQgcHJvdmVkIHRvIGJlIGluIGNvbXBsaWFuY2Ugd2l0aCB0aGUgcmVjZW50bHkgZXN0YWJsaXNoZWQgY2FuLXNwYW0gYWN0IGxhdyBpbiBVUy4gV2UgYXJlIG5vdCBwcm92b2tpbmcgb3IgZm9yY2luZyBhbnkgcGVyc29uIGluIGFueSB3YXkgdG8gcGFydGljaXBhdGUgaW4gb3VyIHByb2dyYW1zLiBUbyBwYXJ0aWNpcGF0ZSBpcyB5b3VyIG93biBkZWNpc2lvbiBhbmQgeW91IGNhcnJ5IHRoZSByZXNwb25zaWJpbGl0eSBvZiB0YWtpbmcgZnVydGhlciBwYXJ0IGluIHRoaXMgcHJvbW90aW9uLiBBbnl3YX
- ksIGlmIHlvdSBkb24ndCB3YW50IHRvIHJlY2VpdmUgbW9yZSBnb29kIG9mZmVycyBmcm9tIHVzLCB5b3UgY2FuIHNpbXBseSBVbnN1YnNjcmliZSBieSBzZW5kaW5nIHVzIGEgbm90aWZpY2F0aW9uIGVtYWlsIHRvIGdldC5vdXRfZnJvbV9saXN0QHlhaG9vLmNvbSB3aXRoIGEgbWFpbC1zdWJqZWN0IGFuZCB0ZXh0ICJVbnN1YnNjcmliZSBtZSIsIGFuZCB3ZSB3aWxsIGdldCB5b3VyIGVtYWlsIG91dCBvZiBvdXIgbGlzdCB3aXRoaW4gMTAgZGF5cy4KClRoaXMgbWVzc2FnZSBpcyBTVFJJQ1RMWSBDT05GSURFTlRJQUwgYW5kIGlzIHNvbGVseSBmb3IgdGhlIGluZGl2aWR1YWwgb3Igb3JnYW5pc2F0aW9uIHRvIHdob20gaXQgaXMgYWRkcmVzc2VkLiBJdCBtYXkgY29udGFpbiBQUklWSUxFR0VEIGFuZCBDT05GSURFTlRJQUwgaW5mb3JtYXRpb24uIElmIHlvdSBhcmUgbm90IHRoZSBpbnRlbmRlZCByZWNpcGllbnQsIHlvdSBhcmUgaGVyZWJ5IG5vdGlmaWVkIHRoYXQgYW55IGRpc3NlbWluYXRpb24sIGRpc3RyaWJ1dGlvbiBvciBjb3B5aW5nIG9mIHRoaXMgY29tbXVuaWNhdGlvbiBhbmQgaXRzIGNvbnRlbnRzIGlzIHN0cmljdGx5IHByb2hpYml0ZWQu
- IElmIHlvdSBhcmUgbm90IHRoZSBpbnRlbmRlZCByZWNpcGllbnQgeW91IHNob3VsZCBub3QgcmVhZCwgY29weSwgZGlzdHJpYnV0ZSwgZGlzY2xvc2Ugb3Igb3RoZXJ3aXNlIHVzZSB0aGUgaW5mb3JtYXRpb24gaW4gdGhpcyBlbWFpbC4gRW1haWwgbWF5IGJlIHN1c2NlcHRpYmxlIHRvIGRhdGEgY29ycnVwdGlvbiwgaW50ZXJjZXB0aW9uIGFuZCB1bmF1dGhvcmlzZWQgYW1lbmRtZW50LCBhbmQgd2UgZG8gbm90IGFjY2VwdCBsaWFiaWxpdHkgZm9yIGFueSBzdWNoIGNvcnJ1cHRpb24sIGludGVyY2VwdGlvbiBvciBhbWVuZG1lbnQgb3IgdGhlIGNvbnNlcXVlbmNlcyB0aGVyZW9mIG9yIHlvdXIgcmVsaWFuY2Ugb24gYW55IGluZm9ybWF0aW9uIGNvbnRhaW5lZCB0aGVyZWluIGlmIHlvdSBhcmUgbm90IHRoZSBpbnRlbmRlZCByZWNpcGllbnQuIElmIHlvdSBhcmUgbm90IGludGVyZXN0ZWQgaW4gdGhlIG9mZmVyZWQgcHJvbW90aW9ucywgcGxlYXNlIGp1c3QgZG9uJ3QgYW5zd2VyLiBJZiB5b3UgdGhpbmsgeW91IGhhdmUgcmVjZWl2ZWQgdGhpcyBtZXNzYWdlIGFuZCBpdHMgY29udGVudHMgaW4gZXJyb3IsIHBsZWFzZSBkZWxldGUgaXQgZnJvbSB5b3
- VyIGNvbXB1dGVyLCBvciBmb2xsb3cgdGhlIHVuc3Vic2NyaWJpbmcgcHJvY2VkdXJlIHNob3duIGFib3ZlLgotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KCQk=
+On Tue, 14 Apr 2009 14:18:51 +0200
+Martin Schwidefsky <schwidefsky@de.ibm.com> wrote:
+
+> --- linux-2.6.orig/fs/proc/stat.c
+> +++ linux-2.6/fs/proc/stat.c
+> @@ -18,6 +18,9 @@
+>  #ifndef arch_irq_stat
+>  #define arch_irq_stat() 0
+>  #endif
+> +#ifndef arch_idle_time
+> +#define arch_idle_time(cpu) 0
+> +#endif
+>  
+>  static int show_stat(struct seq_file *p, void *v)
+>  {
+> @@ -39,7 +42,8 @@ static int show_stat(struct seq_file *p,
+>  		user = cputime64_add(user, kstat_cpu(i).cpustat.user);
+>  		nice = cputime64_add(nice, kstat_cpu(i).cpustat.nice);
+>  		system = cputime64_add(system, kstat_cpu(i).cpustat.system);
+> -		idle = cputime64_add(idle, kstat_cpu(i).cpustat.idle);
+> +		idle = cputime64_add(idle, kstat_cpu(i).cpustat.idle +
+> +				     arch_idle_time(i));
+>  		iowait = cputime64_add(iowait, kstat_cpu(i).cpustat.iowait);
+>  		irq = cputime64_add(irq, kstat_cpu(i).cpustat.irq);
+>  		softirq = cputime64_add(softirq, kstat_cpu(i).cpustat.softirq);
+> @@ -68,7 +72,7 @@ static int show_stat(struct seq_file *p,
+>  		user = kstat_cpu(i).cpustat.user;
+>  		nice = kstat_cpu(i).cpustat.nice;
+>  		system = kstat_cpu(i).cpustat.system;
+> -		idle = kstat_cpu(i).cpustat.idle;
+> +		idle = kstat_cpu(i).cpustat.idle + arch_idle_time(i);
+>  		iowait = kstat_cpu(i).cpustat.iowait;
+>  		irq = kstat_cpu(i).cpustat.irq;
+>  		softirq = kstat_cpu(i).cpustat.softirq;
+
+Looks OK to me.  Please merge it via the s390 tree.
+
+Do other architectures need to fix this?
