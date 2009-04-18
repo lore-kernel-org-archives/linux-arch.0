@@ -1,589 +1,103 @@
-From: Randy Dunlap <randy.dunlap@oracle.com>
-Subject: [PATCH] kmap_types: make most arches use generic header file
-Date: Fri, 17 Apr 2009 18:32:10 -0700
-Message-ID: <20090417183210.6b704b24.randy.dunlap@oracle.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: kbuild - introduce support for subdir-ccflags-y
+Date: Sat, 18 Apr 2009 14:51:59 +0200
+Message-ID: <20090418125159.GA23008@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet12.oracle.com ([148.87.113.124]:26688 "EHLO
-	rgminet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752038AbZDRBcl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Apr 2009 21:32:41 -0400
+Received: from pfepa.post.tele.dk ([195.41.46.235]:36807 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750702AbZDRMty (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 18 Apr 2009 08:49:54 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: lkml <linux-kernel@vger.kernel.org>
-Cc: akpm <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
+To: linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>
 
-From: Randy Dunlap <randy.dunlap@oracle.com>
+Following patch introduce support for setting options
+to gcc that has effect for current directory and all
+subdirectories.
 
-Convert most arch-es to use asm-generic/kmap_types.h.
 
-Move the KM_FENCE_ macro additions into asm-generic/kmap_types.h,
-controlled by __WITH_KM_FENCE from each arch's kmap_types.h file.
+The typical use cases are an architecture or a subsystem that
+decide to cover all files with -Werror.
+Today alpha, mips and sparc uses -Werror in almost all their
+Makefile - with subdir-ccflag-y it is now simpler to do so
+as only the top-level directories needs to be covered.
 
-Would be nice to be able to add custom KM_types per arch, but I
-don't yet see a nice, clean way to do that.
+Likewise if we decide to cover a full subsystem such
+as net/ with -Werror this is done by adding a single
+line to net/Makefile.
 
-Built on x86_64, i386, mips, sparc, alpha(tonyb), powerpc(tonyb),
-and 68k(tonyb).
+The feature is added because the x86 guys are planning
+to (conditionally) cover all of arch/x86/ with -Werrror
+and adding this statement in each single Makefile
+was *the wrong way* to do so.
 
-Note: avr32 should be able to remove KM_PTE2 (since it's not used) and then
-just use the generic kmap_types.h file.  Get avr32 maintainer approval.
+	Sam
 
-Signed-off-by: Randy Dunlap <randy.dunlap@oracle.com>
-cc: linux-arch@vger.kernel.org
----
- arch/alpha/include/asm/kmap_types.h      |   24 +++---------------------
- arch/blackfin/include/asm/kmap_types.h   |   17 +----------------
- arch/cris/include/asm/kmap_types.h       |   17 +----------------
- arch/h8300/include/asm/kmap_types.h      |   17 +----------------
- arch/ia64/include/asm/kmap_types.h       |   24 +++---------------------
- arch/m68k/include/asm/kmap_types.h       |   17 +----------------
- arch/microblaze/include/asm/kmap_types.h |   25 +------------------------
- arch/mips/include/asm/kmap_types.h       |   24 +++---------------------
- arch/mn10300/include/asm/kmap_types.h    |   27 +--------------------------
- arch/parisc/include/asm/kmap_types.h     |   24 +++---------------------
- arch/s390/include/asm/kmap_types.h       |   17 +----------------
- arch/sh/include/asm/kmap_types.h         |   24 +++---------------------
- arch/sparc/include/asm/kmap_types.h      |   17 +----------------
- arch/x86/include/asm/kmap_types.h        |   23 +++--------------------
- arch/xtensa/include/asm/kmap_types.h     |   27 +--------------------------
- include/asm-generic/kmap_types.h         |   29 +++++++++++++++++++++++++++++
- include/asm-m32r/kmap_types.h            |   23 +++--------------------
- 17 files changed, 59 insertions(+), 317 deletions(-)
-
---- linux-2.6.30-rc2-git1.orig/arch/blackfin/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/blackfin/include/asm/kmap_types.h
-@@ -1,21 +1,6 @@
- #ifndef _ASM_KMAP_TYPES_H
- #define _ASM_KMAP_TYPES_H
+diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+index d4b0567..d76cfd8 100644
+--- a/Documentation/kbuild/makefiles.txt
++++ b/Documentation/kbuild/makefiles.txt
+@@ -316,6 +316,16 @@ more details, with real examples.
+ 		#arch/m68k/fpsp040/Makefile
+ 		ldflags-y := -x
  
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif
---- linux-2.6.30-rc2-git1.orig/arch/cris/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/cris/include/asm/kmap_types.h
-@@ -5,21 +5,6 @@
-  * is actually used on cris. 
-  */
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif
---- linux-2.6.30-rc2-git1.orig/arch/h8300/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/h8300/include/asm/kmap_types.h
-@@ -1,21 +1,6 @@
- #ifndef _ASM_H8300_KMAP_TYPES_H
- #define _ASM_H8300_KMAP_TYPES_H
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif
---- linux-2.6.30-rc2-git1.orig/arch/m68k/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/m68k/include/asm/kmap_types.h
-@@ -1,21 +1,6 @@
- #ifndef __ASM_M68K_KMAP_TYPES_H
- #define __ASM_M68K_KMAP_TYPES_H
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif	/* __ASM_M68K_KMAP_TYPES_H */
---- linux-2.6.30-rc2-git1.orig/arch/microblaze/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/microblaze/include/asm/kmap_types.h
-@@ -1,29 +1,6 @@
--/*
-- * Copyright (C) 2006 Atmark Techno, Inc.
-- *
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License. See the file "COPYING" in the main directory of this archive
-- * for more details.
-- */
--
- #ifndef _ASM_MICROBLAZE_KMAP_TYPES_H
- #define _ASM_MICROBLAZE_KMAP_TYPES_H
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR,
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif /* _ASM_MICROBLAZE_KMAP_TYPES_H */
---- linux-2.6.30-rc2-git1.orig/arch/mn10300/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/mn10300/include/asm/kmap_types.h
-@@ -1,31 +1,6 @@
--/* MN10300 kmap_atomic() slot IDs
-- *
-- * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-- * Written by David Howells (dhowells@redhat.com)
-- *
-- * This program is free software; you can redistribute it and/or
-- * modify it under the terms of the GNU General Public Licence
-- * as published by the Free Software Foundation; either version
-- * 2 of the Licence, or (at your option) any later version.
-- */
- #ifndef _ASM_KMAP_TYPES_H
- #define _ASM_KMAP_TYPES_H
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif /* _ASM_KMAP_TYPES_H */
---- linux-2.6.30-rc2-git1.orig/arch/s390/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/s390/include/asm/kmap_types.h
-@@ -2,22 +2,7 @@
- #ifndef _ASM_KMAP_TYPES_H
- #define _ASM_KMAP_TYPES_H
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,	
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif
- #endif /* __KERNEL__ */
---- linux-2.6.30-rc2-git1.orig/arch/sparc/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/sparc/include/asm/kmap_types.h
-@@ -5,21 +5,6 @@
-  * is actually used on sparc.  -DaveM
-  */
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif
---- linux-2.6.30-rc2-git1.orig/arch/xtensa/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/xtensa/include/asm/kmap_types.h
-@@ -1,31 +1,6 @@
--/*
-- * include/asm-xtensa/kmap_types.h
-- *
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License.  See the file "COPYING" in the main directory of this archive
-- * for more details.
-- *
-- * Copyright (C) 2001 - 2005 Tensilica Inc.
-- */
--
- #ifndef _XTENSA_KMAP_TYPES_H
- #define _XTENSA_KMAP_TYPES_H
- 
--enum km_type {
--  KM_BOUNCE_READ,
--  KM_SKB_SUNRPC_DATA,
--  KM_SKB_DATA_SOFTIRQ,
--  KM_USER0,
--  KM_USER1,
--  KM_BIO_SRC_IRQ,
--  KM_BIO_DST_IRQ,
--  KM_PTE0,
--  KM_PTE1,
--  KM_IRQ0,
--  KM_IRQ1,
--  KM_SOFTIRQ0,
--  KM_SOFTIRQ1,
--  KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif	/* _XTENSA_KMAP_TYPES_H */
---- /dev/null
-+++ linux-2.6.30-rc2-git1/include/asm-generic/kmap_types.h
-@@ -0,0 +1,29 @@
-+#ifndef _ASM_GENERIC_KMAP_TYPES_H
-+#define _ASM_GENERIC_KMAP_TYPES_H
++    subdir-ccflags-y, subdir-asflags-y
++	The two flags listed above are similar to ccflags-y and as-falgs-y.
++	The difference is that the subdir- variants has effect for the kbuild
++	file where tey are present and all subdirectories.
++	Options specified using subdir-* are added to the commandline before
++	the options specified using the non-subdir variants.
 +
-+#ifdef __WITH_KM_FENCE
-+# define D(n) __KM_FENCE_##n ,
-+#else
-+# define D(n)
-+#endif
++	Example:
++		subdir-ccflags-y := -Werror
 +
-+enum km_type {
-+D(0)	KM_BOUNCE_READ,
-+D(1)	KM_SKB_SUNRPC_DATA,
-+D(2)	KM_SKB_DATA_SOFTIRQ,
-+D(3)	KM_USER0,
-+D(4)	KM_USER1,
-+D(5)	KM_BIO_SRC_IRQ,
-+D(6)	KM_BIO_DST_IRQ,
-+D(7)	KM_PTE0,
-+D(8)	KM_PTE1,
-+D(9)	KM_IRQ0,
-+D(10)	KM_IRQ1,
-+D(11)	KM_SOFTIRQ0,
-+D(12)	KM_SOFTIRQ1,
-+D(13)	KM_TYPE_NR
-+};
+     CFLAGS_$@, AFLAGS_$@
+ 
+ 	CFLAGS_$@ and AFLAGS_$@ only apply to commands in current
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index 39a9642..5c4b7a4 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -27,6 +27,9 @@ ccflags-y  :=
+ cppflags-y :=
+ ldflags-y  :=
+ 
++subdir-asflags-y :=
++subdir-ccflags-y :=
 +
-+#undef D
+ # Read auto.conf if it exists, otherwise ignore
+ -include include/config/auto.conf
+ 
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 9796195..cba61ca 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -4,6 +4,11 @@ ccflags-y  += $(EXTRA_CFLAGS)
+ cppflags-y += $(EXTRA_CPPFLAGS)
+ ldflags-y  += $(EXTRA_LDFLAGS)
+ 
++#
++# flags that take effect in sub directories
++export KBUILD_SUBDIR_ASFLAGS := $(KBUILD_SUBDIR_ASFLAGS) $(subdir-asflags-y)
++export KBUILD_SUBDIR_CCFLAGS := $(KBUILD_SUBDIR_CCFLAGS) $(subdir-ccflags-y)
 +
-+#endif
---- linux-2.6.30-rc2-git1.orig/arch/alpha/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/alpha/include/asm/kmap_types.h
-@@ -3,30 +3,12 @@
+ # Figure out what we need to build from the various variables
+ # ===========================================================================
  
- /* Dummy header just to define km_type. */
+@@ -104,10 +109,10 @@ else
+ debug_flags =
+ endif
  
--
- #ifdef CONFIG_DEBUG_HIGHMEM
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
-+#define  __WITH_KM_FENCE
- #endif
+-orig_c_flags   = $(KBUILD_CPPFLAGS) $(KBUILD_CFLAGS)                     \
++orig_c_flags   = $(KBUILD_CPPFLAGS) $(KBUILD_CFLAGS) $(KBUILD_SUBDIR_CCFLAGS) \
+                  $(ccflags-y) $(CFLAGS_$(basetarget).o)
+ _c_flags       = $(filter-out $(CFLAGS_REMOVE_$(basetarget).o), $(orig_c_flags))
+-_a_flags       = $(KBUILD_CPPFLAGS) $(KBUILD_AFLAGS)                     \
++_a_flags       = $(KBUILD_CPPFLAGS) $(KBUILD_AFLAGS) $(KBUILD_SUBDIR_ASFLAGS) \
+                  $(asflags-y) $(AFLAGS_$(basetarget).o)
+ _cpp_flags     = $(KBUILD_CPPFLAGS) $(cppflags-y) $(CPPFLAGS_$(@F))
  
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_IRQ0,
--D(10)	KM_IRQ1,
--D(11)	KM_SOFTIRQ0,
--D(12)	KM_SOFTIRQ1,
--D(13)	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
--#undef D
-+#undef __WITH_KM_FENCE
- 
- #endif
---- linux-2.6.30-rc2-git1.orig/arch/ia64/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/ia64/include/asm/kmap_types.h
-@@ -1,30 +1,12 @@
- #ifndef _ASM_IA64_KMAP_TYPES_H
- #define _ASM_IA64_KMAP_TYPES_H
- 
--
- #ifdef CONFIG_DEBUG_HIGHMEM
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
-+#define  __WITH_KM_FENCE
- #endif
- 
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_IRQ0,
--D(10)	KM_IRQ1,
--D(11)	KM_SOFTIRQ0,
--D(12)	KM_SOFTIRQ1,
--D(13)	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
--#undef D
-+#undef __WITH_KM_FENCE
- 
- #endif /* _ASM_IA64_KMAP_TYPES_H */
---- linux-2.6.30-rc2-git1.orig/arch/mips/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/mips/include/asm/kmap_types.h
-@@ -1,30 +1,12 @@
- #ifndef _ASM_KMAP_TYPES_H
- #define _ASM_KMAP_TYPES_H
- 
--
- #ifdef CONFIG_DEBUG_HIGHMEM
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
-+#define  __WITH_KM_FENCE
- #endif
- 
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_IRQ0,
--D(10)	KM_IRQ1,
--D(11)	KM_SOFTIRQ0,
--D(12)	KM_SOFTIRQ1,
--D(13)	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
--#undef D
-+#undef __WITH_KM_FENCE
- 
- #endif
---- linux-2.6.30-rc2-git1.orig/arch/parisc/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/parisc/include/asm/kmap_types.h
-@@ -1,30 +1,12 @@
- #ifndef _ASM_KMAP_TYPES_H
- #define _ASM_KMAP_TYPES_H
- 
--
- #ifdef CONFIG_DEBUG_HIGHMEM
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
-+#define  __WITH_KM_FENCE
- #endif
- 
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_IRQ0,
--D(10)	KM_IRQ1,
--D(11)	KM_SOFTIRQ0,
--D(12)	KM_SOFTIRQ1,
--D(13)	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
--#undef D
-+#undef __WITH_KM_FENCE
- 
- #endif
---- linux-2.6.30-rc2-git1.orig/arch/sh/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/sh/include/asm/kmap_types.h
-@@ -3,30 +3,12 @@
- 
- /* Dummy header just to define km_type. */
- 
--
- #ifdef CONFIG_DEBUG_HIGHMEM
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
-+#define  __WITH_KM_FENCE
- #endif
- 
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_IRQ0,
--D(10)	KM_IRQ1,
--D(11)	KM_SOFTIRQ0,
--D(12)	KM_SOFTIRQ1,
--D(13)	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
--#undef D
-+#undef __WITH_KM_FENCE
- 
- #endif
---- linux-2.6.30-rc2-git1.orig/arch/x86/include/asm/kmap_types.h
-+++ linux-2.6.30-rc2-git1/arch/x86/include/asm/kmap_types.h
-@@ -2,28 +2,11 @@
- #define _ASM_X86_KMAP_TYPES_H
- 
- #if defined(CONFIG_X86_32) && defined(CONFIG_DEBUG_HIGHMEM)
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
-+#define  __WITH_KM_FENCE
- #endif
- 
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_IRQ0,
--D(10)	KM_IRQ1,
--D(11)	KM_SOFTIRQ0,
--D(12)	KM_SOFTIRQ1,
--D(13)	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
--#undef D
-+#undef __WITH_KM_FENCE
- 
- #endif /* _ASM_X86_KMAP_TYPES_H */
---- linux-2.6.30-rc2-git1.orig/include/asm-m32r/kmap_types.h
-+++ linux-2.6.30-rc2-git1/include/asm-m32r/kmap_types.h
-@@ -2,28 +2,11 @@
- #define __M32R_KMAP_TYPES_H
- 
- #ifdef CONFIG_DEBUG_HIGHMEM
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
-+#define  __WITH_KM_FENCE
- #endif
- 
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_IRQ0,
--D(10)	KM_IRQ1,
--D(11)	KM_SOFTIRQ0,
--D(12)	KM_SOFTIRQ1,
--D(13)	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
--#undef D
-+#undef __WITH_KM_FENCE
- 
- #endif /* __M32R_KMAP_TYPES_H */
