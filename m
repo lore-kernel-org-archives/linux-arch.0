@@ -1,51 +1,663 @@
-From: Mike Frysinger <vapier.adi@gmail.com>
-Subject: Re: [PATCH] kmap_types: make most arches use generic header file
-Date: Mon, 20 Apr 2009 10:38:21 -0400
-Message-ID: <8bd0f97a0904200738m355642ebqaf682cf9c66d3b4b@mail.gmail.com>
-References: <20090417183210.6b704b24.randy.dunlap@oracle.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+From: akpm@linux-foundation.org
+Subject: + kmap_types-make-most-arches-use-generic-header-file.patch added to -mm tree
+Date: Mon, 20 Apr 2009 15:08:33 -0700
+Message-ID: <200904202208.n3KM8XCa023020@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from yx-out-2324.google.com ([74.125.44.28]:42109 "EHLO
-	yx-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755498AbZDTOiW convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Apr 2009 10:38:22 -0400
-In-Reply-To: <20090417183210.6b704b24.randy.dunlap@oracle.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:33097 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1758549AbZDTWYd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Apr 2009 18:24:33 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Randy Dunlap <randy.dunlap@oracle.com>
-Cc: lkml <linux-kernel@vger.kernel.org>, akpm <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
+To: mm-commits@vger.kernel.org
+Cc: randy.dunlap@oracle.com, cooloney@kernel.org, davem@davemloft.net, dhowells@redhat.com, geert@linux-m68k.org, hpa@zytor.com, ink@jurassic.park.msu.ru, kyle@mcmartin.ca, lethal@linux-sh.org, linux-arch@vger.kernel.org, mingo@elte.hu, ralf@linux-mips.org, rth@twiddle.net, schwidefsky@de.ibm.com, starvik@axis.com, takata@linux-m32r.org, tglx@linutronix.de, tony.luck@intel.com, vapier@gentoo.org
 
-On Fri, Apr 17, 2009 at 21:32, Randy Dunlap wrote:
-> --- linux-2.6.30-rc2-git1.orig/arch/blackfin/include/asm/kmap_types.h
-> +++ linux-2.6.30-rc2-git1/arch/blackfin/include/asm/kmap_types.h
-> @@ -1,21 +1,6 @@
-> =C2=A0#ifndef _ASM_KMAP_TYPES_H
-> =C2=A0#define _ASM_KMAP_TYPES_H
->
-> -enum km_type {
-> - =C2=A0 =C2=A0 =C2=A0 KM_BOUNCE_READ,
-> - =C2=A0 =C2=A0 =C2=A0 KM_SKB_SUNRPC_DATA,
-> - =C2=A0 =C2=A0 =C2=A0 KM_SKB_DATA_SOFTIRQ,
-> - =C2=A0 =C2=A0 =C2=A0 KM_USER0,
-> - =C2=A0 =C2=A0 =C2=A0 KM_USER1,
-> - =C2=A0 =C2=A0 =C2=A0 KM_BIO_SRC_IRQ,
-> - =C2=A0 =C2=A0 =C2=A0 KM_BIO_DST_IRQ,
-> - =C2=A0 =C2=A0 =C2=A0 KM_PTE0,
-> - =C2=A0 =C2=A0 =C2=A0 KM_PTE1,
-> - =C2=A0 =C2=A0 =C2=A0 KM_IRQ0,
-> - =C2=A0 =C2=A0 =C2=A0 KM_IRQ1,
-> - =C2=A0 =C2=A0 =C2=A0 KM_SOFTIRQ0,
-> - =C2=A0 =C2=A0 =C2=A0 KM_SOFTIRQ1,
-> - =C2=A0 =C2=A0 =C2=A0 KM_TYPE_NR
-> -};
-> +#include <asm-generic/kmap_types.h>
->
-> =C2=A0#endif
 
-if the header is only there to redirect to the generic one, seems like
-we could drop the #ifdef protection
+The patch titled
+     kmap_types: make most arches use generic header file
+has been added to the -mm tree.  Its filename is
+     kmap_types-make-most-arches-use-generic-header-file.patch
 
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
+
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
+out what to do about this
+
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: kmap_types: make most arches use generic header file
+From: Randy Dunlap <randy.dunlap@oracle.com>
+
+Convert most arches to use asm-generic/kmap_types.h.
+
+Move the KM_FENCE_ macro additions into asm-generic/kmap_types.h,
+controlled by __WITH_KM_FENCE from each arch's kmap_types.h file.
+
+Would be nice to be able to add custom KM_types per arch, but I don't yet
+see a nice, clean way to do that.
+
+Built on x86_64, i386, mips, sparc, alpha(tonyb), powerpc(tonyb), and
+68k(tonyb).
+
+Note: avr32 should be able to remove KM_PTE2 (since it's not used) and
+then just use the generic kmap_types.h file.  Get avr32 maintainer
+approval.
+
+Signed-off-by: Randy Dunlap <randy.dunlap@oracle.com>
+Cc: <linux-arch@vger.kernel.org>
 Acked-by: Mike Frysinger <vapier@gentoo.org>
--mike
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Bryan Wu <cooloney@kernel.org>
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: "Luck Tony" <tony.luck@intel.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Kyle McMartin <kyle@mcmartin.ca>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ arch/alpha/include/asm/kmap_types.h      |   24 ++---------------
+ arch/blackfin/include/asm/kmap_types.h   |   17 ------------
+ arch/cris/include/asm/kmap_types.h       |   17 ------------
+ arch/h8300/include/asm/kmap_types.h      |   17 ------------
+ arch/ia64/include/asm/kmap_types.h       |   24 ++---------------
+ arch/m32r/include/asm/kmap_types.h       |   23 ++--------------
+ arch/m68k/include/asm/kmap_types.h       |   17 ------------
+ arch/microblaze/include/asm/kmap_types.h |   25 ------------------
+ arch/mips/include/asm/kmap_types.h       |   24 ++---------------
+ arch/mn10300/include/asm/kmap_types.h    |   27 -------------------
+ arch/parisc/include/asm/kmap_types.h     |   24 ++---------------
+ arch/s390/include/asm/kmap_types.h       |   17 ------------
+ arch/sh/include/asm/kmap_types.h         |   24 ++---------------
+ arch/sparc/include/asm/kmap_types.h      |   17 ------------
+ arch/x86/include/asm/kmap_types.h        |   23 ++--------------
+ arch/xtensa/include/asm/kmap_types.h     |   27 -------------------
+ include/asm-generic/kmap_types.h         |   29 +++++++++++++++++++++
+ 17 files changed, 59 insertions(+), 317 deletions(-)
+
+diff -puN arch/alpha/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/alpha/include/asm/kmap_types.h
+--- a/arch/alpha/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/alpha/include/asm/kmap_types.h
+@@ -3,30 +3,12 @@
+ 
+ /* Dummy header just to define km_type. */
+ 
+-
+ #ifdef CONFIG_DEBUG_HIGHMEM
+-# define D(n) __KM_FENCE_##n ,
+-#else
+-# define D(n)
++#define  __WITH_KM_FENCE
+ #endif
+ 
+-enum km_type {
+-D(0)	KM_BOUNCE_READ,
+-D(1)	KM_SKB_SUNRPC_DATA,
+-D(2)	KM_SKB_DATA_SOFTIRQ,
+-D(3)	KM_USER0,
+-D(4)	KM_USER1,
+-D(5)	KM_BIO_SRC_IRQ,
+-D(6)	KM_BIO_DST_IRQ,
+-D(7)	KM_PTE0,
+-D(8)	KM_PTE1,
+-D(9)	KM_IRQ0,
+-D(10)	KM_IRQ1,
+-D(11)	KM_SOFTIRQ0,
+-D(12)	KM_SOFTIRQ1,
+-D(13)	KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+-#undef D
++#undef __WITH_KM_FENCE
+ 
+ #endif
+diff -puN arch/blackfin/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/blackfin/include/asm/kmap_types.h
+--- a/arch/blackfin/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/blackfin/include/asm/kmap_types.h
+@@ -1,21 +1,6 @@
+ #ifndef _ASM_KMAP_TYPES_H
+ #define _ASM_KMAP_TYPES_H
+ 
+-enum km_type {
+-	KM_BOUNCE_READ,
+-	KM_SKB_SUNRPC_DATA,
+-	KM_SKB_DATA_SOFTIRQ,
+-	KM_USER0,
+-	KM_USER1,
+-	KM_BIO_SRC_IRQ,
+-	KM_BIO_DST_IRQ,
+-	KM_PTE0,
+-	KM_PTE1,
+-	KM_IRQ0,
+-	KM_IRQ1,
+-	KM_SOFTIRQ0,
+-	KM_SOFTIRQ1,
+-	KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+ #endif
+diff -puN arch/cris/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/cris/include/asm/kmap_types.h
+--- a/arch/cris/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/cris/include/asm/kmap_types.h
+@@ -5,21 +5,6 @@
+  * is actually used on cris. 
+  */
+ 
+-enum km_type {
+-	KM_BOUNCE_READ,
+-	KM_SKB_SUNRPC_DATA,
+-	KM_SKB_DATA_SOFTIRQ,
+-	KM_USER0,
+-	KM_USER1,
+-	KM_BIO_SRC_IRQ,
+-	KM_BIO_DST_IRQ,
+-	KM_PTE0,
+-	KM_PTE1,
+-	KM_IRQ0,
+-	KM_IRQ1,
+-	KM_SOFTIRQ0,
+-	KM_SOFTIRQ1,
+-	KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+ #endif
+diff -puN arch/h8300/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/h8300/include/asm/kmap_types.h
+--- a/arch/h8300/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/h8300/include/asm/kmap_types.h
+@@ -1,21 +1,6 @@
+ #ifndef _ASM_H8300_KMAP_TYPES_H
+ #define _ASM_H8300_KMAP_TYPES_H
+ 
+-enum km_type {
+-	KM_BOUNCE_READ,
+-	KM_SKB_SUNRPC_DATA,
+-	KM_SKB_DATA_SOFTIRQ,
+-	KM_USER0,
+-	KM_USER1,
+-	KM_BIO_SRC_IRQ,
+-	KM_BIO_DST_IRQ,
+-	KM_PTE0,
+-	KM_PTE1,
+-	KM_IRQ0,
+-	KM_IRQ1,
+-	KM_SOFTIRQ0,
+-	KM_SOFTIRQ1,
+-	KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+ #endif
+diff -puN arch/ia64/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/ia64/include/asm/kmap_types.h
+--- a/arch/ia64/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/ia64/include/asm/kmap_types.h
+@@ -1,30 +1,12 @@
+ #ifndef _ASM_IA64_KMAP_TYPES_H
+ #define _ASM_IA64_KMAP_TYPES_H
+ 
+-
+ #ifdef CONFIG_DEBUG_HIGHMEM
+-# define D(n) __KM_FENCE_##n ,
+-#else
+-# define D(n)
++#define  __WITH_KM_FENCE
+ #endif
+ 
+-enum km_type {
+-D(0)	KM_BOUNCE_READ,
+-D(1)	KM_SKB_SUNRPC_DATA,
+-D(2)	KM_SKB_DATA_SOFTIRQ,
+-D(3)	KM_USER0,
+-D(4)	KM_USER1,
+-D(5)	KM_BIO_SRC_IRQ,
+-D(6)	KM_BIO_DST_IRQ,
+-D(7)	KM_PTE0,
+-D(8)	KM_PTE1,
+-D(9)	KM_IRQ0,
+-D(10)	KM_IRQ1,
+-D(11)	KM_SOFTIRQ0,
+-D(12)	KM_SOFTIRQ1,
+-D(13)	KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+-#undef D
++#undef __WITH_KM_FENCE
+ 
+ #endif /* _ASM_IA64_KMAP_TYPES_H */
+diff -puN arch/m32r/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/m32r/include/asm/kmap_types.h
+--- a/arch/m32r/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/m32r/include/asm/kmap_types.h
+@@ -2,28 +2,11 @@
+ #define __M32R_KMAP_TYPES_H
+ 
+ #ifdef CONFIG_DEBUG_HIGHMEM
+-# define D(n) __KM_FENCE_##n ,
+-#else
+-# define D(n)
++#define  __WITH_KM_FENCE
+ #endif
+ 
+-enum km_type {
+-D(0)	KM_BOUNCE_READ,
+-D(1)	KM_SKB_SUNRPC_DATA,
+-D(2)	KM_SKB_DATA_SOFTIRQ,
+-D(3)	KM_USER0,
+-D(4)	KM_USER1,
+-D(5)	KM_BIO_SRC_IRQ,
+-D(6)	KM_BIO_DST_IRQ,
+-D(7)	KM_PTE0,
+-D(8)	KM_PTE1,
+-D(9)	KM_IRQ0,
+-D(10)	KM_IRQ1,
+-D(11)	KM_SOFTIRQ0,
+-D(12)	KM_SOFTIRQ1,
+-D(13)	KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+-#undef D
++#undef __WITH_KM_FENCE
+ 
+ #endif /* __M32R_KMAP_TYPES_H */
+diff -puN arch/m68k/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/m68k/include/asm/kmap_types.h
+--- a/arch/m68k/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/m68k/include/asm/kmap_types.h
+@@ -1,21 +1,6 @@
+ #ifndef __ASM_M68K_KMAP_TYPES_H
+ #define __ASM_M68K_KMAP_TYPES_H
+ 
+-enum km_type {
+-	KM_BOUNCE_READ,
+-	KM_SKB_SUNRPC_DATA,
+-	KM_SKB_DATA_SOFTIRQ,
+-	KM_USER0,
+-	KM_USER1,
+-	KM_BIO_SRC_IRQ,
+-	KM_BIO_DST_IRQ,
+-	KM_PTE0,
+-	KM_PTE1,
+-	KM_IRQ0,
+-	KM_IRQ1,
+-	KM_SOFTIRQ0,
+-	KM_SOFTIRQ1,
+-	KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+ #endif	/* __ASM_M68K_KMAP_TYPES_H */
+diff -puN arch/microblaze/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/microblaze/include/asm/kmap_types.h
+--- a/arch/microblaze/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/microblaze/include/asm/kmap_types.h
+@@ -1,29 +1,6 @@
+-/*
+- * Copyright (C) 2006 Atmark Techno, Inc.
+- *
+- * This file is subject to the terms and conditions of the GNU General Public
+- * License. See the file "COPYING" in the main directory of this archive
+- * for more details.
+- */
+-
+ #ifndef _ASM_MICROBLAZE_KMAP_TYPES_H
+ #define _ASM_MICROBLAZE_KMAP_TYPES_H
+ 
+-enum km_type {
+-	KM_BOUNCE_READ,
+-	KM_SKB_SUNRPC_DATA,
+-	KM_SKB_DATA_SOFTIRQ,
+-	KM_USER0,
+-	KM_USER1,
+-	KM_BIO_SRC_IRQ,
+-	KM_BIO_DST_IRQ,
+-	KM_PTE0,
+-	KM_PTE1,
+-	KM_IRQ0,
+-	KM_IRQ1,
+-	KM_SOFTIRQ0,
+-	KM_SOFTIRQ1,
+-	KM_TYPE_NR,
+-};
++#include <asm-generic/kmap_types.h>
+ 
+ #endif /* _ASM_MICROBLAZE_KMAP_TYPES_H */
+diff -puN arch/mips/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/mips/include/asm/kmap_types.h
+--- a/arch/mips/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/mips/include/asm/kmap_types.h
+@@ -1,30 +1,12 @@
+ #ifndef _ASM_KMAP_TYPES_H
+ #define _ASM_KMAP_TYPES_H
+ 
+-
+ #ifdef CONFIG_DEBUG_HIGHMEM
+-# define D(n) __KM_FENCE_##n ,
+-#else
+-# define D(n)
++#define  __WITH_KM_FENCE
+ #endif
+ 
+-enum km_type {
+-D(0)	KM_BOUNCE_READ,
+-D(1)	KM_SKB_SUNRPC_DATA,
+-D(2)	KM_SKB_DATA_SOFTIRQ,
+-D(3)	KM_USER0,
+-D(4)	KM_USER1,
+-D(5)	KM_BIO_SRC_IRQ,
+-D(6)	KM_BIO_DST_IRQ,
+-D(7)	KM_PTE0,
+-D(8)	KM_PTE1,
+-D(9)	KM_IRQ0,
+-D(10)	KM_IRQ1,
+-D(11)	KM_SOFTIRQ0,
+-D(12)	KM_SOFTIRQ1,
+-D(13)	KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+-#undef D
++#undef __WITH_KM_FENCE
+ 
+ #endif
+diff -puN arch/mn10300/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/mn10300/include/asm/kmap_types.h
+--- a/arch/mn10300/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/mn10300/include/asm/kmap_types.h
+@@ -1,31 +1,6 @@
+-/* MN10300 kmap_atomic() slot IDs
+- *
+- * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
+- * Written by David Howells (dhowells@redhat.com)
+- *
+- * This program is free software; you can redistribute it and/or
+- * modify it under the terms of the GNU General Public Licence
+- * as published by the Free Software Foundation; either version
+- * 2 of the Licence, or (at your option) any later version.
+- */
+ #ifndef _ASM_KMAP_TYPES_H
+ #define _ASM_KMAP_TYPES_H
+ 
+-enum km_type {
+-	KM_BOUNCE_READ,
+-	KM_SKB_SUNRPC_DATA,
+-	KM_SKB_DATA_SOFTIRQ,
+-	KM_USER0,
+-	KM_USER1,
+-	KM_BIO_SRC_IRQ,
+-	KM_BIO_DST_IRQ,
+-	KM_PTE0,
+-	KM_PTE1,
+-	KM_IRQ0,
+-	KM_IRQ1,
+-	KM_SOFTIRQ0,
+-	KM_SOFTIRQ1,
+-	KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+ #endif /* _ASM_KMAP_TYPES_H */
+diff -puN arch/parisc/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/parisc/include/asm/kmap_types.h
+--- a/arch/parisc/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/parisc/include/asm/kmap_types.h
+@@ -1,30 +1,12 @@
+ #ifndef _ASM_KMAP_TYPES_H
+ #define _ASM_KMAP_TYPES_H
+ 
+-
+ #ifdef CONFIG_DEBUG_HIGHMEM
+-# define D(n) __KM_FENCE_##n ,
+-#else
+-# define D(n)
++#define  __WITH_KM_FENCE
+ #endif
+ 
+-enum km_type {
+-D(0)	KM_BOUNCE_READ,
+-D(1)	KM_SKB_SUNRPC_DATA,
+-D(2)	KM_SKB_DATA_SOFTIRQ,
+-D(3)	KM_USER0,
+-D(4)	KM_USER1,
+-D(5)	KM_BIO_SRC_IRQ,
+-D(6)	KM_BIO_DST_IRQ,
+-D(7)	KM_PTE0,
+-D(8)	KM_PTE1,
+-D(9)	KM_IRQ0,
+-D(10)	KM_IRQ1,
+-D(11)	KM_SOFTIRQ0,
+-D(12)	KM_SOFTIRQ1,
+-D(13)	KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+-#undef D
++#undef __WITH_KM_FENCE
+ 
+ #endif
+diff -puN arch/s390/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/s390/include/asm/kmap_types.h
+--- a/arch/s390/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/s390/include/asm/kmap_types.h
+@@ -2,22 +2,7 @@
+ #ifndef _ASM_KMAP_TYPES_H
+ #define _ASM_KMAP_TYPES_H
+ 
+-enum km_type {
+-	KM_BOUNCE_READ,
+-	KM_SKB_SUNRPC_DATA,
+-	KM_SKB_DATA_SOFTIRQ,
+-	KM_USER0,
+-	KM_USER1,
+-	KM_BIO_SRC_IRQ,
+-	KM_BIO_DST_IRQ,
+-	KM_PTE0,
+-	KM_PTE1,
+-	KM_IRQ0,
+-	KM_IRQ1,
+-	KM_SOFTIRQ0,
+-	KM_SOFTIRQ1,	
+-	KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+ #endif
+ #endif /* __KERNEL__ */
+diff -puN arch/sh/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/sh/include/asm/kmap_types.h
+--- a/arch/sh/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/sh/include/asm/kmap_types.h
+@@ -3,30 +3,12 @@
+ 
+ /* Dummy header just to define km_type. */
+ 
+-
+ #ifdef CONFIG_DEBUG_HIGHMEM
+-# define D(n) __KM_FENCE_##n ,
+-#else
+-# define D(n)
++#define  __WITH_KM_FENCE
+ #endif
+ 
+-enum km_type {
+-D(0)	KM_BOUNCE_READ,
+-D(1)	KM_SKB_SUNRPC_DATA,
+-D(2)	KM_SKB_DATA_SOFTIRQ,
+-D(3)	KM_USER0,
+-D(4)	KM_USER1,
+-D(5)	KM_BIO_SRC_IRQ,
+-D(6)	KM_BIO_DST_IRQ,
+-D(7)	KM_PTE0,
+-D(8)	KM_PTE1,
+-D(9)	KM_IRQ0,
+-D(10)	KM_IRQ1,
+-D(11)	KM_SOFTIRQ0,
+-D(12)	KM_SOFTIRQ1,
+-D(13)	KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+-#undef D
++#undef __WITH_KM_FENCE
+ 
+ #endif
+diff -puN arch/sparc/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/sparc/include/asm/kmap_types.h
+--- a/arch/sparc/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/sparc/include/asm/kmap_types.h
+@@ -5,21 +5,6 @@
+  * is actually used on sparc.  -DaveM
+  */
+ 
+-enum km_type {
+-	KM_BOUNCE_READ,
+-	KM_SKB_SUNRPC_DATA,
+-	KM_SKB_DATA_SOFTIRQ,
+-	KM_USER0,
+-	KM_USER1,
+-	KM_BIO_SRC_IRQ,
+-	KM_BIO_DST_IRQ,
+-	KM_PTE0,
+-	KM_PTE1,
+-	KM_IRQ0,
+-	KM_IRQ1,
+-	KM_SOFTIRQ0,
+-	KM_SOFTIRQ1,
+-	KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+ #endif
+diff -puN arch/x86/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/x86/include/asm/kmap_types.h
+--- a/arch/x86/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/x86/include/asm/kmap_types.h
+@@ -2,28 +2,11 @@
+ #define _ASM_X86_KMAP_TYPES_H
+ 
+ #if defined(CONFIG_X86_32) && defined(CONFIG_DEBUG_HIGHMEM)
+-# define D(n) __KM_FENCE_##n ,
+-#else
+-# define D(n)
++#define  __WITH_KM_FENCE
+ #endif
+ 
+-enum km_type {
+-D(0)	KM_BOUNCE_READ,
+-D(1)	KM_SKB_SUNRPC_DATA,
+-D(2)	KM_SKB_DATA_SOFTIRQ,
+-D(3)	KM_USER0,
+-D(4)	KM_USER1,
+-D(5)	KM_BIO_SRC_IRQ,
+-D(6)	KM_BIO_DST_IRQ,
+-D(7)	KM_PTE0,
+-D(8)	KM_PTE1,
+-D(9)	KM_IRQ0,
+-D(10)	KM_IRQ1,
+-D(11)	KM_SOFTIRQ0,
+-D(12)	KM_SOFTIRQ1,
+-D(13)	KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+-#undef D
++#undef __WITH_KM_FENCE
+ 
+ #endif /* _ASM_X86_KMAP_TYPES_H */
+diff -puN arch/xtensa/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/xtensa/include/asm/kmap_types.h
+--- a/arch/xtensa/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
++++ a/arch/xtensa/include/asm/kmap_types.h
+@@ -1,31 +1,6 @@
+-/*
+- * include/asm-xtensa/kmap_types.h
+- *
+- * This file is subject to the terms and conditions of the GNU General Public
+- * License.  See the file "COPYING" in the main directory of this archive
+- * for more details.
+- *
+- * Copyright (C) 2001 - 2005 Tensilica Inc.
+- */
+-
+ #ifndef _XTENSA_KMAP_TYPES_H
+ #define _XTENSA_KMAP_TYPES_H
+ 
+-enum km_type {
+-  KM_BOUNCE_READ,
+-  KM_SKB_SUNRPC_DATA,
+-  KM_SKB_DATA_SOFTIRQ,
+-  KM_USER0,
+-  KM_USER1,
+-  KM_BIO_SRC_IRQ,
+-  KM_BIO_DST_IRQ,
+-  KM_PTE0,
+-  KM_PTE1,
+-  KM_IRQ0,
+-  KM_IRQ1,
+-  KM_SOFTIRQ0,
+-  KM_SOFTIRQ1,
+-  KM_TYPE_NR
+-};
++#include <asm-generic/kmap_types.h>
+ 
+ #endif	/* _XTENSA_KMAP_TYPES_H */
+diff -puN /dev/null include/asm-generic/kmap_types.h
+--- /dev/null
++++ a/include/asm-generic/kmap_types.h
+@@ -0,0 +1,29 @@
++#ifndef _ASM_GENERIC_KMAP_TYPES_H
++#define _ASM_GENERIC_KMAP_TYPES_H
++
++#ifdef __WITH_KM_FENCE
++# define D(n) __KM_FENCE_##n ,
++#else
++# define D(n)
++#endif
++
++enum km_type {
++D(0)	KM_BOUNCE_READ,
++D(1)	KM_SKB_SUNRPC_DATA,
++D(2)	KM_SKB_DATA_SOFTIRQ,
++D(3)	KM_USER0,
++D(4)	KM_USER1,
++D(5)	KM_BIO_SRC_IRQ,
++D(6)	KM_BIO_DST_IRQ,
++D(7)	KM_PTE0,
++D(8)	KM_PTE1,
++D(9)	KM_IRQ0,
++D(10)	KM_IRQ1,
++D(11)	KM_SOFTIRQ0,
++D(12)	KM_SOFTIRQ1,
++D(13)	KM_TYPE_NR
++};
++
++#undef D
++
++#endif
+_
+
+Patches currently in -mm which might be from randy.dunlap@oracle.com are
+
+origin.patch
+linux-next.patch
+es-input-allow-certain-ev_abs-events-to-bypass-all-filtering-fix.patch
+input-drivers-input-xpadc-improve-xbox-360-wireless-support-and-add-sysfs-interface-fix.patch
+input-drivers-input-xpadc-improve-xbox-360-wireless-support-and-add-sysfs-interface-add-missing-prototype-and-update-history.patch
+e1000e-make-e1000e-default-to-the-same-kconfig-setting-as-e1000.patch
+pci-docbooks-add-fix-pci-kernel-doc.patch
+qla2x-fix-printk-format-warnings.patch
+kmap_types-make-most-arches-use-generic-header-file.patch
+irqs-add-irqf_sample_random-to-the-feature-removal-scheduletxt-deprecated-list.patch
+cs553x-gpio-add-amd-cs5535-cs5536-gpio-driver-support.patch
+alsa-cs5535audio-free-olpc-quirks-from-reliance-on-mgeode_lx-cpu-optimization.patch
+linuxpps-core-support.patch
+reiser4-export-remove_from_page_cache-fix.patch
