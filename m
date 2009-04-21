@@ -1,64 +1,91 @@
-From: Ralf Baechle <ralf@linux-mips.org>
+From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: introduce arch/$ARCH/Kbuild ?
-Date: Tue, 21 Apr 2009 15:14:30 +0200
-Message-ID: <20090421131430.GA25098@linux-mips.org>
-References: <20090416183701.GA5810@uranus.ravnborg.org>
+Date: Tue, 21 Apr 2009 21:43:43 +0200
+Message-ID: <20090421194343.GA24535@uranus.ravnborg.org>
+References: <20090416183701.GA5810@uranus.ravnborg.org> <20090421131430.GA25098@linux-mips.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([213.58.128.207]:52399 "EHLO
-	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751984AbZDUPPc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Apr 2009 11:15:32 -0400
-Received: from localhost.localdomain ([127.0.0.1]:29101 "EHLO h5.dl5rb.org.uk")
-	by ftp.linux-mips.org with ESMTP id S20025219AbZDUNOf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Apr 2009 14:14:35 +0100
+Received: from pfepb.post.tele.dk ([195.41.46.236]:47537 "EHLO
+	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751673AbZDUTlg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Apr 2009 15:41:36 -0400
 Content-Disposition: inline
-In-Reply-To: <20090416183701.GA5810@uranus.ravnborg.org>
+In-Reply-To: <20090421131430.GA25098@linux-mips.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
+To: Ralf Baechle <ralf@linux-mips.org>
 Cc: linux-arch@vger.kernel.org
 
-On Thu, Apr 16, 2009 at 08:37:01PM +0200, Sam Ravnborg wrote:
+> 
+> Most of arch/mips uses -Werror these days and while painful at times it
+> keeps everybody on their toes hopefully cleaner, less buggy code.  So if
+> your solution allows adding -Werror to all subdirs automatically with
+> a mechanism to remove -Werror from a few selected dirs then I'm interested.
 
-> We have discussed privately the possiblity to cover
-> all of arch/x86/* with -Werror and I came up with some
-> suggestions so we could cover all subdirectories
-> with a simple:
-> 
->     subdir-ccflags-y := -Werror
-> 
-> I will sent a separate post on this when I have a patch ready..
-> 
-> But doing so required us to modify a lot of Makefiles
-> in arch/x86 - too much for my taste.
-> 
-> Looking futher I realised that we could move all the core-y
-> stuff to a separate Kbuild file as done by the appended patch.
-> We would then cover all the directories with a single:
-> 
->     subdir-ccflags-y := -Werror
-> 
-> 
-> This has the added benefit that you can now do:
-> 
->     make arch/x86/
-> 
-> And you will build most (but not all) of the x86 files.
-> That alone was enough rationale for Ingo to apply it (and I agree).
-> 
-> What remains are the libs-y and driver-y parts.
-> There is no way to specify these today.
-> 
-> If you think this looks wortwhile for your architecture I
-> will be glad to help cook up a patch - albeit it is trivial
-> to do so yourself.
+It is already present in mainline - so go wild.
 
-Most of arch/mips uses -Werror these days and while painful at times it
-keeps everybody on their toes hopefully cleaner, less buggy code.  So if
-your solution allows adding -Werror to all subdirs automatically with
-a mechanism to remove -Werror from a few selected dirs then I'm interested.
+I took a look at mips.
+mips supports an impressive amount of platform/boards.
+The has resulted in lines like the following in the arch Makefile:
 
-  Ralf
+core-$(CONFIG_SGI_IP32)         += arch/mips/sgi-ip32/
+cflags-$(CONFIG_SGI_IP32)       += -I$(srctree)/arch/mips/include/asm/mach-ip32
+load-$(CONFIG_SGI_IP32)         += 0xffffffff80004000
+
+But this is less then optimal. If two people add a paltform you will
+have a merge issue.
+And centralize information like that is also questionable.
+
+mips would be better suited if you had all sgi_ip32 information located
+in a single directory.
+
+How about a setup like this:
+
+arch/mips/sgi_ip32/Platform:
+platfrom-y                      += arch/mips/sgi-ip32/
+cflags-$(CONFIG_SGI_IP32)       += -I$(srctree)/arch/mips/include/asm/mach-ip32
+load-$(CONFIG_SGI_IP32)         += 0xffffffff80004000
+
+
+arch/mips/Kbuild.platforms:
+#All platforms listed in alphabetic order
+platforms-y += lasat/
+platforms-y += sgi_ip32/
+
+#include the platform specific files
+include $(patsubst %, arch/misp/%Platform)
+
+
+arch/mips/Kbuild:
+subdir-ccflags-y := -Werror
+
+include arch/mips/Kbuild.platforms
+obj-y += $(platform-y)
+
+obj-y +=  arch/mips/kernel/ arch/mips/mm/ arch/mips/math-emu/
+
+
+arch/mips/Makefile:
+core-y += arch/mips/
+include arch/mips/Kbuild.platforms
+
+
+
+The above does a few things:
+1) It decentralize the plaform stuff (to the Platform files)
+2) In troduces a arch/mips/Kbuild file that specify everything
+   that is linked in as core-y
+3) It adds a single subdir-ccflags-y := -Werror that covers
+   all platforms and the core part of the kernel
+   (Everything specified in arch/mips/Kbuild)
+4) It reuses Kbuild.platforms in Kbuild and
+   in Makefile.
+   In Makefile it is used to find ccflags-y
+   and load-y definitions.
+   In Kbuild it is used to find the objects to add to obj-y.
+
+
+The above is entirely untested - but I hope to have adressed the principles.
+
+	Sam
