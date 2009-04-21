@@ -1,15 +1,15 @@
-From: Paul Mundt <lethal@linux-sh.org>
+From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: Microblaze noMMU/MMU merge
-Date: Tue, 21 Apr 2009 16:57:39 +0900
-Message-ID: <20090421075738.GC15167@linux-sh.org>
+Date: Tue, 21 Apr 2009 10:25:23 +0200
+Message-ID: <20090421082523.GA19864@uranus.ravnborg.org>
 References: <49ED79AB.10004@petalogix.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:54287 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752211AbZDUICu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Apr 2009 04:02:50 -0400
+Received: from pfepb.post.tele.dk ([195.41.46.236]:34652 "EHLO
+	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750884AbZDUIXR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Apr 2009 04:23:17 -0400
 Content-Disposition: inline
 In-Reply-To: <49ED79AB.10004@petalogix.com>
 Sender: linux-arch-owner@vger.kernel.org
@@ -18,6 +18,8 @@ To: Michal Simek <michal.simek@petalogix.com>
 Cc: Ingo Molnar <mingo@elte.hu>, lkml <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Linux Kernel list <linux-kernel@vger.kernel.org>
 
 On Tue, Apr 21, 2009 at 09:45:47AM +0200, Michal Simek wrote:
+> Hi All,
+> 
 > I would like to say your opinion about putting together Microblaze MMU
 > arch to noMMU version.
 > 
@@ -38,16 +40,16 @@ On Tue, Apr 21, 2009 at 09:45:47AM +0200, Michal Simek wrote:
 > #include "page_mm.h"-> MMU specific
 > #endif
 > #endif /* _ASM_MICROBLAZE_PAGE_H */
-> 
-There's really not that much code that you need to change in order to
-support nommu, as long as you designed your architecture port to be
-fairly compartmentalized. Take a look at some of the other architectures
-in-tree that support both in the same architecture backend. sh was the
-first to support a configurable CONFIG_MMU during the 2.5 days, but there
-are others now as well (though I don't know how actively the others are
-maintained -- nommu people tend to be even worse (!) than general
-embedded people at hanging around).
 
-In addition to sh, at least frv, m32r, and arm support a configurable
-CONFIG_MMU these days. xtensa seems to have just recently joined the
-club, too.
+Use dedicated header files for nommu / mmu only when it is really necessary.
+
+In headers that are _NOT_ exported you can use CONFIG_MMU to test
+if you are building for MMU or not - which is more readable.
+ 
+The reason why you cannot use CONFIG_MMU in exported headers
+are that CONFIG_MMU is not valid in the userspace headers (not set/unset).
+
+In the optimal case you have no conditionals in the exported haders
+and then just use CONFIG_MMU all over.
+
+	Sam
