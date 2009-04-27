@@ -1,61 +1,40 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re:
-Date: Mon, 27 Apr 2009 16:50:50 +0200
-Message-ID: <10f740e80904270750n6f9bb593r8c2b6a257b034cea@mail.gmail.com>
-References: <20090427143737.584097988@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ew0-f176.google.com ([209.85.219.176]:45455 "EHLO
-	mail-ew0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758835AbZD0Ouw convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2009 10:50:52 -0400
-Received: by ewy24 with SMTP id 24so2194901ewy.37
-        for <linux-arch@vger.kernel.org>; Mon, 27 Apr 2009 07:50:50 -0700 (PDT)
-In-Reply-To: <20090427143737.584097988@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: linux-arch@vger.kernel.org
+From: arnd-r2nGTMty4D4@public.gmane.org
+Subject: [RFC 00/17] asm-generic ABI files for microblaze
+Date: Mon, 27 Apr 2009 17:01:14 +0200
+Message-ID: <20090427142010.587518220@arndb.de>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: john.williams-g5w7nrANp4BDPfheJLI6IQ@public.gmane.org, monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, liqin.chen-+XGAvkf1AAHby3iVrkZq2A@public.gmane.org, Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org>, Remis Lima Baima <remis.developer-gM/Ye1E23mwN+BqQ9rBEUg@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-[bummer, reply-to-all broken]
+This is my attempt to do a generic system call ABI for
+all new architectures, including a port for microblaze,
+which has recently been merged into 2.6.30. The next
+architecture that is about to get merged will be score,
+so it would be good if they can move to the same ABI.
 
-On Mon, Apr 27, 2009 at 16:41,  <arnd@arndb.de> wrote:
-> Subject: [RFC 06/17] asm-generic: add a complete signal.h
+Please review the files and (in case of microblaze
+and score maintainers) test them on your architecture.
 
-> There used to be an asm-generic/signal.h, but not one that
-> could be used out of the box. This renames the existing file
-> to asm-generic/signal-defs.h and adds a new asm-generic/signal.h
+The one part I'm not yet completely happy with is signal
+handling, I had to massage the microblaze code quite a
+bit to get the old-style siginfo out of it, which may
+not yet work.
 
-The rename was done in another patch, but you forgot to update this
-patch description?
+Sam also mentioned that it might be good to consistently
+use the __u32 and similar types everywhere in asm-generic
+exported headers, which I might be doing as a next step
+(including the existing files).
 
-> with common definitions for sigaction and sigaltstack, but
-> not for the old-style signal handlers.
->
-> New architectures should only implement rt-signals and use this
-> generic header.
->
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
-> ---
-> ---
-> =C2=A0include/asm-generic/Kbuild =C2=A0 | =C2=A0 =C2=A01 =C2=A0 =C2=A0=
-1 + =C2=A0 =C2=A0 0 - =C2=A0 =C2=A0 0 !
-> =C2=A0include/asm-generic/signal.h | =C2=A0131 =C2=A0 =C2=A0131 + =C2=
-=A0 0 - =C2=A0 =C2=A0 0 !
+Special thanks to Remis Baima, who has done some significant
+work cleaning up my patches.
+Sorry for spamming everyone with the broken mail headers.
+I hope this resend does fly better.
 
-Gr{oetje,eeting}s,
-
-						Geert
+	Arnd <><
 
 --
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-							    -- Linus Torvalds
+To unsubscribe from this list: send the line "unsubscribe linux-api" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
