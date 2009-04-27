@@ -1,36 +1,180 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 21/27] microblaze: use generic swab.h
-Date: Mon, 27 Apr 2009 17:18:05 +0200
-Message-ID: <4f8f43d8ba5606f043db577c896ab88b8cf21cd7.1241105648.git.arnd@arndb.de>
+From: Remis Lima Baima <remis.developer@googlemail.com>
+Subject: [PATCH 27/27] microblaze: use generic system.h
+Date: Mon, 27 Apr 2009 14:42:48 +0200
+Message-ID: <4fbdd954c63426e1fae6d26108ef744cc10d842a.1241105648.git.arnd@arndb.de>
 References: <cover.1241105648.git.arnd@arndb.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.177]:62905 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.187]:51594 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932402AbZD3PmG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2009 11:42:06 -0400
+	with ESMTP id S932411AbZD3PmI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2009 11:42:08 -0400
 In-Reply-To: <cover.1241105648.git.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
+Parts of the microblaze system.h can be removed by
+falling back to the asm-generic version.
+
+Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/microblaze/include/asm/swab.h |    9 +--------
- 1 files changed, 1 insertions(+), 8 deletions(-)
+ arch/microblaze/include/asm/cmpxchg-local.h |    1 +
+ arch/microblaze/include/asm/irqflags.h      |    2 +-
+ arch/microblaze/include/asm/system.h        |  124 +++++++--------------------
+ 3 files changed, 32 insertions(+), 95 deletions(-)
+ create mode 100644 arch/microblaze/include/asm/cmpxchg-local.h
+ rewrite arch/microblaze/include/asm/system.h (67%)
 
-diff --git a/arch/microblaze/include/asm/swab.h b/arch/microblaze/include/asm/swab.h
-index b375d7b..7847e56 100644
---- a/arch/microblaze/include/asm/swab.h
-+++ b/arch/microblaze/include/asm/swab.h
-@@ -1,8 +1 @@
--#ifndef _ASM_MICROBLAZE_SWAB_H
--#define _ASM_MICROBLAZE_SWAB_H
+diff --git a/arch/microblaze/include/asm/cmpxchg-local.h b/arch/microblaze/include/asm/cmpxchg-local.h
+new file mode 100644
+index 0000000..d3358a3
+--- /dev/null
++++ b/arch/microblaze/include/asm/cmpxchg-local.h
+@@ -0,0 +1 @@
++#include <asm-generic/cmpxchg-local.h>
+diff --git a/arch/microblaze/include/asm/irqflags.h b/arch/microblaze/include/asm/irqflags.h
+index dea6564..a6dbdee 100644
+--- a/arch/microblaze/include/asm/irqflags.h
++++ b/arch/microblaze/include/asm/irqflags.h
+@@ -9,7 +9,7 @@
+ #ifndef _ASM_MICROBLAZE_IRQFLAGS_H
+ #define _ASM_MICROBLAZE_IRQFLAGS_H
+ 
+-#include <linux/irqflags.h>
++#include <asm/registers.h>
+ 
+ # if CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR
+ 
+diff --git a/arch/microblaze/include/asm/system.h b/arch/microblaze/include/asm/system.h
+dissimilarity index 67%
+index b1ed615..a26ef8e 100644
+--- a/arch/microblaze/include/asm/system.h
++++ b/arch/microblaze/include/asm/system.h
+@@ -1,94 +1,30 @@
+-/*
+- * Copyright (C) 2006 Atmark Techno, Inc.
+- *
+- * This file is subject to the terms and conditions of the GNU General Public
+- * License. See the file "COPYING" in the main directory of this archive
+- * for more details.
+- */
 -
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__) || defined(__KERNEL__)
--#define __SWAB_64_THRU_32__
+-#ifndef _ASM_MICROBLAZE_SYSTEM_H
+-#define _ASM_MICROBLAZE_SYSTEM_H
+-
+-#include <asm/registers.h>
+-#include <asm/setup.h>
+-#include <asm/irqflags.h>
+-
+-#include <asm-generic/cmpxchg.h>
+-#include <asm-generic/cmpxchg-local.h>
+-
+-struct task_struct;
+-struct thread_info;
+-
+-extern struct task_struct *_switch_to(struct thread_info *prev,
+-					struct thread_info *next);
+-
+-#define switch_to(prev, next, last)					\
+-	do {								\
+-		(last) = _switch_to(task_thread_info(prev),		\
+-					task_thread_info(next));	\
+-	} while (0)
+-
+-#define smp_read_barrier_depends()	do {} while (0)
+-#define read_barrier_depends()		do {} while (0)
+-
+-#define nop()			asm volatile ("nop")
+-#define mb()			barrier()
+-#define rmb()			mb()
+-#define wmb()			mb()
+-#define set_mb(var, value)	do { var = value; mb(); } while (0)
+-#define set_wmb(var, value)	do { var = value; wmb(); } while (0)
+-
+-#define smp_mb()		mb()
+-#define smp_rmb()		rmb()
+-#define smp_wmb()		wmb()
+-
+-void show_trace(struct task_struct *task, unsigned long *stack);
+-void __bad_xchg(volatile void *ptr, int size);
+-
+-static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
+-								int size)
+-{
+-	unsigned long ret;
+-	unsigned long flags;
+-
+-	switch (size) {
+-	case 1:
+-		local_irq_save(flags);
+-		ret = *(volatile unsigned char *)ptr;
+-		*(volatile unsigned char *)ptr = x;
+-		local_irq_restore(flags);
+-		break;
+-
+-	case 4:
+-		local_irq_save(flags);
+-		ret = *(volatile unsigned long *)ptr;
+-		*(volatile unsigned long *)ptr = x;
+-		local_irq_restore(flags);
+-		break;
+-	default:
+-		__bad_xchg(ptr, size), ret = 0;
+-		break;
+-	}
+-
+-	return ret;
+-}
+-
+-void disable_hlt(void);
+-void enable_hlt(void);
+-void default_idle(void);
+-
+-#define xchg(ptr, x) \
+-	((__typeof__(*(ptr))) __xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
+-
+-void free_init_pages(char *what, unsigned long begin, unsigned long end);
+-void free_initmem(void);
+-extern char *klimit;
+-extern void ret_from_fork(void);
+-
+-#ifdef CONFIG_DEBUG_FS
+-extern struct dentry *of_debugfs_root;
 -#endif
 -
--#endif /* _ASM_MICROBLAZE_SWAB_H */
-+#include <asm-generic/swab.h>
+-#define arch_align_stack(x) (x)
+-
+-#endif /* _ASM_MICROBLAZE_SYSTEM_H */
++/*
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++#ifndef _ASM_MICROBLAZE_SYSTEM_H
++#define _ASM_MICROBLAZE_SYSTEM_H
++
++#define __switch_to	_switch_to
++
++#include <asm/irqflags.h>
++#include <asm-generic/system.h>
++
++#ifdef CONFIG_DEBUG_FS
++extern struct dentry *of_debugfs_root;
++#endif
++
++void show_trace(struct task_struct *task, unsigned long *stack);
++void disable_hlt(void);
++void enable_hlt(void);
++void default_idle(void);
++void free_init_pages(char *what, unsigned long begin, unsigned long end);
++void free_initmem(void);
++
++extern char *klimit;
++extern void ret_from_fork(void);
++
++#endif /* _ASM_MICROBLAZE_SYSTEM_H */
 -- 
 1.5.6.3
