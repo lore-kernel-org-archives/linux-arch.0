@@ -1,19 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.177]:64077 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.187]:62929 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757334AbZD0OmR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2009 10:42:17 -0400
-Message-ID: <20090427143737.079735707@arndb.de>
+	with ESMTP id S1757078AbZD0OlR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2009 10:41:17 -0400
+Message-Id: <20090427143737.584097988@arndb.de>
 From: <arnd@arndb.de>
-Date: Mon, 27 Apr 2009 10:42:17 -0400
+Date: Mon, 27 Apr 2009 10:41:17 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20090427144217.rCo9coxkb8LD-4Y1rDJtuWFW0xR17VuLE-XGLlo95kg@z>
 
 From arnd@arndb.de Mon Apr 27 16:28:40 2009
 References: <20090427142010.587518220@arndb.de>
 User-Agent: quilt/0.46-1
-Date: Mon, 27 Apr 2009 16:20:13 +0200
+Date: Mon, 27 Apr 2009 16:20:16 +0200
 From: arnd@arndb.de
 To: linux-kernel@vger.kernel.org
 Cc: john.williams@petalogix.com,
@@ -23,327 +22,177 @@ Cc: john.williams@petalogix.com,
  liqin.chen@sunplusct.com,
  Sam Ravnborg <sam@ravnborg.org>,
  Remis Lima Baima <remis.developer@googlemail.com>
-Subject: [RFC 03/17] asm-generic: rename mman.h to mman-common.h
-Content-Disposition: inline; filename=0018-asm-generic-make-generic-mman.h-header-generic.patch
-X-Provags-ID: V01U2FsdGVkX18Xnuysx4P/H1PKB8mb4S4lLJMdyLe5LlF6OUh
- uTtfXAZra+pmP0gOZM6rzVh4tacTrkmdtFLejvlgSM/Qgihyd6
- qGAlBbr5jRJrP5qkXAUFA==
+Subject: [RFC 06/17] asm-generic: add a complete signal.h
+Content-Disposition: inline; filename=add-generic-signal-h.patch
+X-Provags-ID: V01U2FsdGVkX1+9fyV5xiB/uv57e+JOHz1p/SO7dXImpty2qjk
+ qJlT1Ill8RsfbwF39tmrVDe2R5QILPHgAXX1/8KQ3m3F7IAuZ2
+ mpIv26Pn+3mqK9UXgjM9g==
 
-The existing asm-generic/mman.h is incomplete and included
-by some architectures. New architectures should be able
-to use a generic version, so rename the existing file and
-change all users, which lets us add the new file.
+There used to be an asm-generic/signal.h, but not one that
+could be used out of the box. This renames the existing file
+to asm-generic/signal-defs.h and adds a new asm-generic/signal.h
+with common definitions for sigaction and sigaltstack, but
+not for the old-style signal handlers.
+
+New architectures should only implement rt-signals and use this
+generic header.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
 ---
- arch/arm/include/asm/mman.h       |    2 	1 +	1 -	0 !
- arch/avr32/include/asm/mman.h     |    2 	1 +	1 -	0 !
- arch/cris/include/asm/mman.h      |    2 	1 +	1 -	0 !
- arch/frv/include/asm/mman.h       |    2 	1 +	1 -	0 !
- arch/h8300/include/asm/mman.h     |    2 	1 +	1 -	0 !
- arch/ia64/include/asm/mman.h      |    2 	1 +	1 -	0 !
- arch/m32r/include/asm/mman.h      |    2 	1 +	1 -	0 !
- arch/m68k/include/asm/mman.h      |    2 	1 +	1 -	0 !
- arch/mn10300/include/asm/mman.h   |    2 	1 +	1 -	0 !
- arch/powerpc/include/asm/mman.h   |    2 	1 +	1 -	0 !
- arch/s390/include/asm/mman.h      |    2 	1 +	1 -	0 !
- arch/sh/include/asm/mman.h        |    2 	1 +	1 -	0 !
- arch/sparc/include/asm/mman.h     |    2 	1 +	1 -	0 !
- arch/x86/include/asm/mman.h       |    2 	1 +	1 -	0 !
- include/asm-generic/Kbuild        |    2 	1 +	1 -	0 !
- include/asm-generic/mman-common.h |   41 	41 +	0 -	0 !
- include/asm-generic/mman.h        |   41 	0 +	41 -	0 !
- 17 files changed, 56 insertions(+), 56 deletions(-)
- create mode 100644 include/asm-generic/mman-common.h
+---
+ include/asm-generic/Kbuild   |    1 	1 +	0 -	0 !
+ include/asm-generic/signal.h |  131 	131 +	0 -	0 !
+ 2 files changed, 132 insertions(+)
 
-Index: linux-2.6/arch/arm/include/asm/mman.h
-===================================================================
---- linux-2.6.orig/arch/arm/include/asm/mman.h
-+++ linux-2.6/arch/arm/include/asm/mman.h
-@@ -1,7 +1,7 @@
- #ifndef __ARM_MMAN_H__
- #define __ARM_MMAN_H__
- 
--#include <asm-generic/mman.h>
-+#include <asm-generic/mman-common.h>
- 
- #define MAP_GROWSDOWN	0x0100		/* stack-like segment */
- #define MAP_DENYWRITE	0x0800		/* ETXTBSY */
-Index: linux-2.6/arch/avr32/include/asm/mman.h
-===================================================================
---- linux-2.6.orig/arch/avr32/include/asm/mman.h
-+++ linux-2.6/arch/avr32/include/asm/mman.h
-@@ -1,7 +1,7 @@
- #ifndef __ASM_AVR32_MMAN_H__
- #define __ASM_AVR32_MMAN_H__
- 
--#include <asm-generic/mman.h>
-+#include <asm-generic/mman-common.h>
- 
- #define MAP_GROWSDOWN	0x0100		/* stack-like segment */
- #define MAP_DENYWRITE	0x0800		/* ETXTBSY */
-Index: linux-2.6/arch/cris/include/asm/mman.h
-===================================================================
---- linux-2.6.orig/arch/cris/include/asm/mman.h
-+++ linux-2.6/arch/cris/include/asm/mman.h
-@@ -3,7 +3,7 @@
- 
- /* verbatim copy of asm-i386/ version */
- 
--#include <asm-generic/mman.h>
-+#include <asm-generic/mman-common.h>
- 
- #define MAP_GROWSDOWN	0x0100		/* stack-like segment */
- #define MAP_DENYWRITE	0x0800		/* ETXTBSY */
-Index: linux-2.6/arch/frv/include/asm/mman.h
-===================================================================
---- linux-2.6.orig/arch/frv/include/asm/mman.h
-+++ linux-2.6/arch/frv/include/asm/mman.h
-@@ -1,7 +1,7 @@
- #ifndef __ASM_MMAN_H__
- #define __ASM_MMAN_H__
- 
--#include <asm-generic/mman.h>
-+#include <asm-generic/mman-common.h>
- 
- #define MAP_GROWSDOWN	0x0100		/* stack-like segment */
- #define MAP_DENYWRITE	0x0800		/* ETXTBSY */
-Index: linux-2.6/arch/h8300/include/asm/mman.h
-===================================================================
---- linux-2.6.orig/arch/h8300/include/asm/mman.h
-+++ linux-2.6/arch/h8300/include/asm/mman.h
-@@ -1,7 +1,7 @@
- #ifndef __H8300_MMAN_H__
- #define __H8300_MMAN_H__
- 
--#include <asm-generic/mman.h>
-+#include <asm-generic/mman-common.h>
- 
- #define MAP_GROWSDOWN	0x0100		/* stack-like segment */
- #define MAP_DENYWRITE	0x0800		/* ETXTBSY */
-Index: linux-2.6/arch/ia64/include/asm/mman.h
-===================================================================
---- linux-2.6.orig/arch/ia64/include/asm/mman.h
-+++ linux-2.6/arch/ia64/include/asm/mman.h
-@@ -8,7 +8,7 @@
-  *	David Mosberger-Tang <davidm@hpl.hp.com>, Hewlett-Packard Co
-  */
- 
--#include <asm-generic/mman.h>
-+#include <asm-generic/mman-common.h>
- 
- #define MAP_GROWSDOWN	0x00100		/* stack-like segment */
- #define MAP_GROWSUP	0x00200		/* register stack-like segment */
-Index: linux-2.6/arch/m68k/include/asm/mman.h
-===================================================================
---- linux-2.6.orig/arch/m68k/include/asm/mman.h
-+++ linux-2.6/arch/m68k/include/asm/mman.h
-@@ -1,7 +1,7 @@
- #ifndef __M68K_MMAN_H__
- #define __M68K_MMAN_H__
- 
--#include <asm-generic/mman.h>
-+#include <asm-generic/mman-common.h>
- 
- #define MAP_GROWSDOWN	0x0100		/* stack-like segment */
- #define MAP_DENYWRITE	0x0800		/* ETXTBSY */
-Index: linux-2.6/arch/mn10300/include/asm/mman.h
-===================================================================
---- linux-2.6.orig/arch/mn10300/include/asm/mman.h
-+++ linux-2.6/arch/mn10300/include/asm/mman.h
-@@ -12,7 +12,7 @@
- #ifndef _ASM_MMAN_H
- #define _ASM_MMAN_H
- 
--#include <asm-generic/mman.h>
-+#include <asm-generic/mman-common.h>
- 
- #define MAP_GROWSDOWN	0x0100		/* stack-like segment */
- #define MAP_DENYWRITE	0x0800		/* ETXTBSY */
-Index: linux-2.6/arch/powerpc/include/asm/mman.h
-===================================================================
---- linux-2.6.orig/arch/powerpc/include/asm/mman.h
-+++ linux-2.6/arch/powerpc/include/asm/mman.h
-@@ -1,7 +1,7 @@
- #ifndef _ASM_POWERPC_MMAN_H
- #define _ASM_POWERPC_MMAN_H
- 
--#include <asm-generic/mman.h>
-+#include <asm-generic/mman-common.h>
- 
- /*
-  * This program is free software; you can redistribute it and/or
-Index: linux-2.6/arch/s390/include/asm/mman.h
-===================================================================
---- linux-2.6.orig/arch/s390/include/asm/mman.h
-+++ linux-2.6/arch/s390/include/asm/mman.h
-@@ -9,7 +9,7 @@
- #ifndef __S390_MMAN_H__
- #define __S390_MMAN_H__
- 
--#include <asm-generic/mman.h>
-+#include <asm-generic/mman-common.h>
- 
- #define MAP_GROWSDOWN	0x0100		/* stack-like segment */
- #define MAP_DENYWRITE	0x0800		/* ETXTBSY */
-Index: linux-2.6/arch/sh/include/asm/mman.h
-===================================================================
---- linux-2.6.orig/arch/sh/include/asm/mman.h
-+++ linux-2.6/arch/sh/include/asm/mman.h
-@@ -1,7 +1,7 @@
- #ifndef __ASM_SH_MMAN_H
- #define __ASM_SH_MMAN_H
- 
--#include <asm-generic/mman.h>
-+#include <asm-generic/mman-common.h>
- 
- #define MAP_GROWSDOWN	0x0100		/* stack-like segment */
- #define MAP_DENYWRITE	0x0800		/* ETXTBSY */
-Index: linux-2.6/arch/sparc/include/asm/mman.h
-===================================================================
---- linux-2.6.orig/arch/sparc/include/asm/mman.h
-+++ linux-2.6/arch/sparc/include/asm/mman.h
-@@ -1,7 +1,7 @@
- #ifndef __SPARC_MMAN_H__
- #define __SPARC_MMAN_H__
- 
--#include <asm-generic/mman.h>
-+#include <asm-generic/mman-common.h>
- 
- /* SunOS'ified... */
- 
-Index: linux-2.6/arch/x86/include/asm/mman.h
-===================================================================
---- linux-2.6.orig/arch/x86/include/asm/mman.h
-+++ linux-2.6/arch/x86/include/asm/mman.h
-@@ -1,7 +1,7 @@
- #ifndef _ASM_X86_MMAN_H
- #define _ASM_X86_MMAN_H
- 
--#include <asm-generic/mman.h>
-+#include <asm-generic/mman-common.h>
- 
- #define MAP_32BIT	0x40		/* only give out 32bit addresses */
- 
-Index: linux-2.6/include/asm-generic/mman-common.h
+Index: linux-2.6/include/asm-generic/signal.h
 ===================================================================
 --- /dev/null
-+++ linux-2.6/include/asm-generic/mman-common.h
-@@ -0,0 +1,41 @@
-+#ifndef __ASM_GENERIC_MMAN_COMMON_H
-+#define __ASM_GENERIC_MMAN_COMMON_H
++++ linux-2.6/include/asm-generic/signal.h
+@@ -0,0 +1,131 @@
++#ifndef __ASM_GENERIC_SIGNAL_H
++#define __ASM_GENERIC_SIGNAL_H
++
++#include <linux/types.h>
++
++#define _NSIG		64
++#define _NSIG_BPW	__BITS_PER_LONG
++#define _NSIG_WORDS	(_NSIG / _NSIG_BPW)
++
++#define SIGHUP		 1
++#define SIGINT		 2
++#define SIGQUIT		 3
++#define SIGILL		 4
++#define SIGTRAP		 5
++#define SIGABRT		 6
++#define SIGIOT		 6
++#define SIGBUS		 7
++#define SIGFPE		 8
++#define SIGKILL		 9
++#define SIGUSR1		10
++#define SIGSEGV		11
++#define SIGUSR2		12
++#define SIGPIPE		13
++#define SIGALRM		14
++#define SIGTERM		15
++#define SIGSTKFLT	16
++#define SIGCHLD		17
++#define SIGCONT		18
++#define SIGSTOP		19
++#define SIGTSTP		20
++#define SIGTTIN		21
++#define SIGTTOU		22
++#define SIGURG		23
++#define SIGXCPU		24
++#define SIGXFSZ		25
++#define SIGVTALRM	26
++#define SIGPROF		27
++#define SIGWINCH	28
++#define SIGIO		29
++#define SIGPOLL		SIGIO
++/*
++#define SIGLOST		29
++*/
++#define SIGPWR		30
++#define SIGSYS		31
++#define	SIGUNUSED	31
++
++/* These should not be considered constants from userland.  */
++#define SIGRTMIN	32
++#ifndef SIGRTMAX
++#define SIGRTMAX	_NSIG
++#endif
 +
 +/*
-+ Author: Michael S. Tsirkin <mst@mellanox.co.il>, Mellanox Technologies Ltd.
-+ Based on: asm-xxx/mman.h
-+*/
++ * SA_FLAGS values:
++ *
++ * SA_ONSTACK indicates that a registered stack_t will be used.
++ * SA_RESTART flag to get restarting signals (which were the default long ago)
++ * SA_NOCLDSTOP flag to turn off SIGCHLD when children stop.
++ * SA_RESETHAND clears the handler when the signal is delivered.
++ * SA_NOCLDWAIT flag on SIGCHLD to inhibit zombies.
++ * SA_NODEFER prevents the current signal from being masked in the handler.
++ *
++ * SA_ONESHOT and SA_NOMASK are the historical Linux names for the Single
++ * Unix names RESETHAND and NODEFER respectively.
++ */
++#define SA_NOCLDSTOP	0x00000001
++#define SA_NOCLDWAIT	0x00000002
++#define SA_SIGINFO	0x00000004
++#define SA_ONSTACK	0x08000000
++#define SA_RESTART	0x10000000
++#define SA_NODEFER	0x40000000
++#define SA_RESETHAND	0x80000000
 +
-+#define PROT_READ	0x1		/* page can be read */
-+#define PROT_WRITE	0x2		/* page can be written */
-+#define PROT_EXEC	0x4		/* page can be executed */
-+#define PROT_SEM	0x8		/* page may be used for atomic ops */
-+#define PROT_NONE	0x0		/* page can not be accessed */
-+#define PROT_GROWSDOWN	0x01000000	/* mprotect flag: extend change to start of growsdown vma */
-+#define PROT_GROWSUP	0x02000000	/* mprotect flag: extend change to end of growsup vma */
++#define SA_NOMASK	SA_NODEFER
++#define SA_ONESHOT	SA_RESETHAND
 +
-+#define MAP_SHARED	0x01		/* Share changes */
-+#define MAP_PRIVATE	0x02		/* Changes are private */
-+#define MAP_TYPE	0x0f		/* Mask for type of mapping */
-+#define MAP_FIXED	0x10		/* Interpret addr exactly */
-+#define MAP_ANONYMOUS	0x20		/* don't use a file */
++/*
++ * New architectures should not define the obsolete
++ *	SA_RESTORER	0x04000000
++ */
 +
-+#define MS_ASYNC	1		/* sync memory asynchronously */
-+#define MS_INVALIDATE	2		/* invalidate the caches */
-+#define MS_SYNC		4		/* synchronous memory sync */
++/*
++ * sigaltstack controls
++ */
++#define SS_ONSTACK	1
++#define SS_DISABLE	2
 +
-+#define MADV_NORMAL	0		/* no further special treatment */
-+#define MADV_RANDOM	1		/* expect random page references */
-+#define MADV_SEQUENTIAL	2		/* expect sequential page references */
-+#define MADV_WILLNEED	3		/* will need these pages */
-+#define MADV_DONTNEED	4		/* don't need these pages */
++#define MINSIGSTKSZ	2048
++#define SIGSTKSZ	8192
 +
-+/* common parameters: try to keep these consistent across architectures */
-+#define MADV_REMOVE	9		/* remove these pages & resources */
-+#define MADV_DONTFORK	10		/* don't inherit across fork */
-+#define MADV_DOFORK	11		/* do inherit across fork */
++#ifndef __ASSEMBLY__
++typedef struct {
++	unsigned long sig[_NSIG_WORDS];
++} sigset_t;
 +
-+/* compatibility flags */
-+#define MAP_FILE	0
++/* not actually used, but required for linux/syscalls.h */
++typedef unsigned long old_sigset_t;
 +
-+#endif /* __ASM_GENERIC_MMAN_COMMON_H */
-Index: linux-2.6/include/asm-generic/mman.h
-===================================================================
---- linux-2.6.orig/include/asm-generic/mman.h
-+++ /dev/null
-@@ -1,41 +0,0 @@
--#ifndef _ASM_GENERIC_MMAN_H
--#define _ASM_GENERIC_MMAN_H
--
--/*
-- Author: Michael S. Tsirkin <mst@mellanox.co.il>, Mellanox Technologies Ltd.
-- Based on: asm-xxx/mman.h
--*/
--
--#define PROT_READ	0x1		/* page can be read */
--#define PROT_WRITE	0x2		/* page can be written */
--#define PROT_EXEC	0x4		/* page can be executed */
--#define PROT_SEM	0x8		/* page may be used for atomic ops */
--#define PROT_NONE	0x0		/* page can not be accessed */
--#define PROT_GROWSDOWN	0x01000000	/* mprotect flag: extend change to start of growsdown vma */
--#define PROT_GROWSUP	0x02000000	/* mprotect flag: extend change to end of growsup vma */
--
--#define MAP_SHARED	0x01		/* Share changes */
--#define MAP_PRIVATE	0x02		/* Changes are private */
--#define MAP_TYPE	0x0f		/* Mask for type of mapping */
--#define MAP_FIXED	0x10		/* Interpret addr exactly */
--#define MAP_ANONYMOUS	0x20		/* don't use a file */
--
--#define MS_ASYNC	1		/* sync memory asynchronously */
--#define MS_INVALIDATE	2		/* invalidate the caches */
--#define MS_SYNC		4		/* synchronous memory sync */
--
--#define MADV_NORMAL	0		/* no further special treatment */
--#define MADV_RANDOM	1		/* expect random page references */
--#define MADV_SEQUENTIAL	2		/* expect sequential page references */
--#define MADV_WILLNEED	3		/* will need these pages */
--#define MADV_DONTNEED	4		/* don't need these pages */
--
--/* common parameters: try to keep these consistent across architectures */
--#define MADV_REMOVE	9		/* remove these pages & resources */
--#define MADV_DONTFORK	10		/* don't inherit across fork */
--#define MADV_DOFORK	11		/* do inherit across fork */
--
--/* compatibility flags */
--#define MAP_FILE	0
--
--#endif
-Index: linux-2.6/arch/m32r/include/asm/mman.h
-===================================================================
---- linux-2.6.orig/arch/m32r/include/asm/mman.h
-+++ linux-2.6/arch/m32r/include/asm/mman.h
-@@ -1,7 +1,7 @@
- #ifndef __M32R_MMAN_H__
- #define __M32R_MMAN_H__
- 
--#include <asm-generic/mman.h>
-+#include <asm-generic/mman-common.h>
- 
- #define MAP_GROWSDOWN	0x0100		/* stack-like segment */
- #define MAP_DENYWRITE	0x0800		/* ETXTBSY */
++#include <asm-generic/signal-defs.h>
++
++struct sigaction {
++	__sighandler_t sa_handler;
++	unsigned long sa_flags;
++#ifdef SA_RESTORER
++	__sigrestore_t sa_restorer;
++#endif
++	sigset_t sa_mask;		/* mask last for extensibility */
++};
++
++struct k_sigaction {
++	struct sigaction sa;
++};
++
++typedef struct sigaltstack {
++	void __user *ss_sp;
++	int ss_flags;
++	size_t ss_size;
++} stack_t;
++
++#ifdef __KERNEL__
++
++#include <asm/sigcontext.h>
++#undef __HAVE_ARCH_SIG_BITOPS
++
++#define ptrace_signal_deliver(regs, cookie) do { } while (0)
++
++#endif /* __KERNEL__ */
++#endif /* __ASSEMBLY__ */
++
++#endif /* _ASM_GENERIC_SIGNAL_H */
 Index: linux-2.6/include/asm-generic/Kbuild
 ===================================================================
 --- linux-2.6.orig/include/asm-generic/Kbuild
 +++ linux-2.6/include/asm-generic/Kbuild
-@@ -2,7 +2,7 @@ header-y += errno-base.h
- header-y += errno.h
- header-y += fcntl.h
- header-y += ioctl.h
--header-y += mman.h
-+header-y += mman-common.h
+@@ -5,6 +5,7 @@ header-y += ioctl.h
+ header-y += mman-common.h
  header-y += poll.h
  header-y += signal-defs.h
++header-y += signal.h
  header-y += statfs.h
+ header-y += termios.h
+ 
 
 -- 
 
