@@ -1,40 +1,81 @@
-From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Subject: [RFC 00/17] asm-generic ABI files for microblaze
-Date: Mon, 27 Apr 2009 16:40:43 +0200
-Message-ID: <200904271640.44445.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: john.williams-g5w7nrANp4BDPfheJLI6IQ@public.gmane.org, monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, liqin.chen-+XGAvkf1AAHby3iVrkZq2A@public.gmane.org, Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org>, Remis Lima Baima <remis.developer-gM/Ye1E23mwN+BqQ9rBEUg@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+From: <arnd@arndb.de>
+Subject: (unknown)
+Date: Mon, 27 Apr 2009 10:41:18 -0400
+Message-ID: <20090427143737.748969927__35491.3860247054$1240843296$gmane$org@arndb.de>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.186]:62327 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756815AbZD0OlS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2009 10:41:18 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-This is my attempt to do a generic system call ABI for
-all new architectures, including a port for microblaze,
-which has recently been merged into 2.6.30. The next
-architecture that is about to get merged will be score,
-so it would be good if they can move to the same ABI.
+From arnd@arndb.de Mon Apr 27 16:28:40 2009
+References: <20090427142010.587518220@arndb.de>
+User-Agent: quilt/0.46-1
+Date: Mon, 27 Apr 2009 16:20:17 +0200
+From: arnd@arndb.de
+To: linux-kernel@vger.kernel.org
+Cc: john.williams@petalogix.com,
+ monstr@monstr.eu,
+ linux-api@vger.kernel.org,
+ linux-arch@vger.kernel.org,
+ liqin.chen@sunplusct.com,
+ Sam Ravnborg <sam@ravnborg.org>,
+ Remis Lima Baima <remis.developer@googlemail.com>
+Subject: [RFC 07/17] asm-generic: make generic mman.h header generic
+Content-Disposition: inline; filename=add-generic-mman-h.patch
+X-Provags-ID: V01U2FsdGVkX19IU2MJc665e95jGBVpW8SuRMZdefJXXc5QAgD
+ xnKqfDZvOGCeXFGyQ076PtX6UL3+Fulj7xqbS/Hj/kXij0w62N
+ ua/vtP6sGyl+F5NSGKs/A==
 
-Please review the files and (in case of microblaze
-and score maintainers) test them on your architecture.
+The existing asm-generic/mman.h file is missing some definitions
+if you want to use it out of the box. This renames the old file
+and adds a new one based on the x86 implementation that can be
+used for most architectures that copied from x86.
 
-The one part I'm not yet completely happy with is signal
-handling, I had to massage the microblaze code quite a
-bit to get the old-style siginfo out of it, which may
-not yet work.
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
+---
+---
+ include/asm-generic/Kbuild |    1 	1 +	0 -	0 !
+ include/asm-generic/mman.h |   18 	18 +	0 -	0 !
+ 2 files changed, 19 insertions(+)
 
-Sam also mentioned that it might be good to consistently
-use the __u32 and similar types everywhere in asm-generic
-exported headers, which I might be doing as a next step
-(including the existing files).
+Index: linux-2.6/include/asm-generic/mman.h
+===================================================================
+--- /dev/null
++++ linux-2.6/include/asm-generic/mman.h
+@@ -0,0 +1,18 @@
++#ifndef __ASM_GENERIC_MMAN_H
++#define __ASM_GENERIC_MMAN_H
++
++#include <asm-generic/mman-common.h>
++
++#define MAP_GROWSDOWN	0x0100		/* stack-like segment */
++#define MAP_DENYWRITE	0x0800		/* ETXTBSY */
++#define MAP_EXECUTABLE	0x1000		/* mark it as an executable */
++#define MAP_LOCKED	0x2000		/* pages are locked */
++#define MAP_NORESERVE	0x4000		/* don't check for reservations */
++#define MAP_POPULATE	0x8000		/* populate (prefault) pagetables */
++#define MAP_NONBLOCK	0x10000		/* do not block on IO */
++#define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
++
++#define MCL_CURRENT	1		/* lock all current mappings */
++#define MCL_FUTURE	2		/* lock all future mappings */
++
++#endif /* __ASM_GENERIC_MMAN_H */
+Index: linux-2.6/include/asm-generic/Kbuild
+===================================================================
+--- linux-2.6.orig/include/asm-generic/Kbuild
++++ linux-2.6/include/asm-generic/Kbuild
+@@ -3,6 +3,7 @@ header-y += errno.h
+ header-y += fcntl.h
+ header-y += ioctl.h
+ header-y += mman-common.h
++header-y += mman.h
+ header-y += poll.h
+ header-y += signal-defs.h
+ header-y += signal.h
 
-Special thanks to Remis Baima, who has done some significant
-work cleaning up my patches.
-
-	Arnd <><
---
-To unsubscribe from this list: send the line "unsubscribe linux-api" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+-- 
