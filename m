@@ -1,53 +1,61 @@
-From: <arnd@arndb.de>
-Subject: (unknown)
-Date: Mon, 27 Apr 2009 10:42:16 -0400
-Message-ID: <20090427143739.584082891__42559.8710695796$1240843471$gmane$org@arndb.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re:
+Date: Mon, 27 Apr 2009 16:50:50 +0200
+Message-ID: <10f740e80904270750n6f9bb593r8c2b6a257b034cea@mail.gmail.com>
+References: <20090427143737.584097988@arndb.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:61010 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757133AbZD0OmQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2009 10:42:16 -0400
+Received: from mail-ew0-f176.google.com ([209.85.219.176]:45455 "EHLO
+	mail-ew0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758835AbZD0Ouw convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2009 10:50:52 -0400
+Received: by ewy24 with SMTP id 24so2194901ewy.37
+        for <linux-arch@vger.kernel.org>; Mon, 27 Apr 2009 07:50:50 -0700 (PDT)
+In-Reply-To: <20090427143737.584097988@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: arnd@arndb.de
+Cc: linux-arch@vger.kernel.org
 
-From arnd@arndb.de Mon Apr 27 16:28:40 2009
-References: <20090427142010.587518220@arndb.de>
-User-Agent: quilt/0.46-1
-Date: Mon, 27 Apr 2009 16:20:24 +0200
-From: arnd@arndb.de
-To: linux-kernel@vger.kernel.org
-Cc: john.williams@petalogix.com,
- monstr@monstr.eu,
- linux-api@vger.kernel.org,
- linux-arch@vger.kernel.org,
- liqin.chen@sunplusct.com,
- Sam Ravnborg <sam@ravnborg.org>
-Subject: [RFC 14/17] syscalls.h add the missing sys_pipe2 declaration
-Content-Disposition: inline; filename=0034-Add-the-missing-sys_pipe2-declaration.patch
-X-Provags-ID: V01U2FsdGVkX18BNhYLkO16wJIO7fZdR0d6C1KKxWKU4X9yTw1
- kHYWFxFh/i+KLpzMQTnyQq6hXXodV+gYI/28GueZLh1YDCU7wt
- Ve65kcnRHOC2kZYsfpLWg==
+[bummer, reply-to-all broken]
 
-In order to build the generic syscall table, we need a declaration
-for every system call. sys_pipe2 was added without a proper declaration,
-so add this to syscalls.h now.
+On Mon, Apr 27, 2009 at 16:41,  <arnd@arndb.de> wrote:
+> Subject: [RFC 06/17] asm-generic: add a complete signal.h
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- include/linux/syscalls.h |    1 	1 +	0 -	0 !
- 1 file changed, 1 insertion(+)
+> There used to be an asm-generic/signal.h, but not one that
+> could be used out of the box. This renames the existing file
+> to asm-generic/signal-defs.h and adds a new asm-generic/signal.h
 
-Index: linux-2.6/include/linux/syscalls.h
-===================================================================
---- linux-2.6.orig/include/linux/syscalls.h
-+++ linux-2.6/include/linux/syscalls.h
-@@ -433,6 +433,7 @@ asmlinkage long sys_fcntl(unsigned int f
- asmlinkage long sys_fcntl64(unsigned int fd,
- 				unsigned int cmd, unsigned long arg);
- #endif
-+asmlinkage long sys_pipe2(int __user *fildes, int flags);
- asmlinkage long sys_dup(unsigned int fildes);
- asmlinkage long sys_dup2(unsigned int oldfd, unsigned int newfd);
- asmlinkage long sys_dup3(unsigned int oldfd, unsigned int newfd, int flags);
+The rename was done in another patch, but you forgot to update this
+patch description?
 
--- 
+> with common definitions for sigaction and sigaltstack, but
+> not for the old-style signal handlers.
+>
+> New architectures should only implement rt-signals and use this
+> generic header.
+>
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
+> ---
+> ---
+> =C2=A0include/asm-generic/Kbuild =C2=A0 | =C2=A0 =C2=A01 =C2=A0 =C2=A0=
+1 + =C2=A0 =C2=A0 0 - =C2=A0 =C2=A0 0 !
+> =C2=A0include/asm-generic/signal.h | =C2=A0131 =C2=A0 =C2=A0131 + =C2=
+=A0 0 - =C2=A0 =C2=A0 0 !
+
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+							    -- Linus Torvalds
