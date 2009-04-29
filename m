@@ -1,44 +1,208 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 15/27] asm-generic: Add missing generic tlb_flush definition
-Date: Sat, 8 Nov 2008 11:37:51 +0100
-Message-ID: <1fe78b00ce976fdcdd9f4a347bf4310a011b2c60.1241105648.git.arnd@arndb.de>
+Subject: [PATCH 13/27] asm-generic: make uaccess.h usable by mmu archs
+Date: Wed, 29 Apr 2009 15:33:19 +0200
+Message-ID: <d68ce366f118ca01abaabbb2ee88dea34bc8ba71.1241105648.git.arnd@arndb.de>
 References: <cover.1241105648.git.arnd@arndb.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:58458 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.188]:61248 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932388AbZD3PmE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2009 11:42:04 -0400
+	with ESMTP id S932372AbZD3PmD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2009 11:42:03 -0400
 In-Reply-To: <cover.1241105648.git.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
-All architectures with an MMU define tlb_flush as
-flush_tlb_mm((tlb)->mm). This adds it as a default
-implementation in asm-generic/tlb.h so that new nommu
-architectures can simply use the header as is and
-others can stop defining it themselves.
+Make it possible to override some functions from uaccess.h
+so that architectures with an mmu can provide assembly
+versions of the functions with their own fixup logic.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
 ---
- include/asm-generic/tlb.h |    4 ++++
- 1 files changed, 4 insertions(+), 0 deletions(-)
+ include/asm-generic/uaccess.h |  102 +++++++++++++++++++++++++---------------
+ 1 files changed, 64 insertions(+), 38 deletions(-)
 
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index f490e43..3a65502 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -47,6 +47,10 @@ struct mmu_gather {
- /* Users of the generic TLB shootdown code must declare this storage space. */
- DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
+diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
+index ebeacd9..e05f6a9 100644
+--- a/include/asm-generic/uaccess.h
++++ b/include/asm-generic/uaccess.h
+@@ -31,14 +31,14 @@ static inline void set_fs(mm_segment_t fs)
+ #define VERIFY_READ	0
+ #define VERIFY_WRITE	1
  
-+#ifndef tlb_flush
-+#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
+-#define access_ok(type, addr, size) _access_ok((unsigned long)(addr),(size))
++#define access_ok(type, addr, size) __access_ok((unsigned long)(addr),(size))
+ 
+ /*
+  * The architecture should really override this if possible, at least
+  * doing a check on the get_fs()
+  */
+-#ifndef _access_ok
+-static inline int _access_ok(unsigned long addr, unsigned long size)
++#ifndef __access_ok
++static inline int __access_ok(unsigned long addr, unsigned long size)
+ {
+ 	return 1;
+ }
+@@ -93,7 +93,7 @@ extern int __put_user_bad(void);
+ #endif
+ 
+ #define put_user(x, ptr) (				\
+-	access_ok(VERIFY_WRITE, ptr, sizeof (*ptr)) ?	\
++	__access_ok(ptr, sizeof (*ptr)) ?		\
+ 		__put_user(x, ptr) :			\
+ 		-EFAULT)
+ 
+@@ -120,45 +120,62 @@ extern int __get_user_bad(void);
+ #endif
+ 
+ #define get_user(x, ptr) (				\
+-	access_ok(VERIFY_READ, ptr, sizeof (*ptr)) ?	\
++	__access_ok(ptr, sizeof (*ptr)) ?		\
+ 		__get_user(x, ptr) :			\
+ 		-EFAULT)
+ 
+-#define __copy_from_user(to, from, n) (memcpy(to, from, n), 0)
+-#define __copy_to_user(to, from, n) (memcpy(to, from, n), 0)
+-#define __copy_to_user_inatomic __copy_to_user
+-#define __copy_from_user_inatomic __copy_from_user
++#ifndef __copy_from_user
++static inline __must_check long __copy_from_user(void *to,
++		const void __user *from, unsigned long n)
++{
++	memcpy(to, (const void __force *)from, n);
++	return 0;
++}
++#endif
+ 
+-#define copy_to_user_ret(to,from,n,retval) ({ if (copy_to_user(to,from,n)) return retval; })
++#ifndef __copy_to_user
++static inline __must_check long __copy_to_user(void __user *to,
++		const void *from, unsigned long n)
++{
++	memcpy((void __force *)to, from, n);
++	return 0;
++}
 +#endif
 +
- /* tlb_gather_mmu
-  *	Return a pointer to an initialized struct mmu_gather.
++#ifndef __copy_from_user_inatomic
++#define __copy_from_user_inatomic __copy_from_user
++#endif
+ 
+-#define copy_from_user_ret(to,from,n,retval) ({ if (copy_from_user(to,from,n)) return retval; })
++#ifndef __copy_to_user_inatomic
++#define __copy_to_user_inatomic __copy_to_user
++#endif
+ 
+ static inline long copy_from_user(void *to,
+-				  const void __user * from, unsigned long n)
++		const void __user * from, unsigned long n)
+ {
+-	if (access_ok(VERIFY_READ, from, n))
+-		__copy_from_user(to, from, n);
++	might_sleep();
++	if (__access_ok(from, n))
++		return __copy_from_user(to, from, n);
+ 	else
+ 		return n;
+-	return 0;
+ }
+ 
+-static inline long copy_to_user(void *to,
+-				const void __user * from, unsigned long n)
++static inline long copy_to_user(void __user *to,
++		const void *from, unsigned long n)
+ {
+-	if (access_ok(VERIFY_WRITE, to, n))
+-		__copy_to_user(to, from, n);
++	might_sleep();
++	if (__access_ok(to, n))
++		return __copy_to_user(to, from, n);
+ 	else
+ 		return n;
+-	return 0;
+ }
+ 
+ /*
+  * Copy a null terminated string from userspace.
   */
+-
++#ifndef __strncpy_from_user
+ static inline long
+-__do_strncpy_from_user(char *dst, const char __user *src, long count)
++__strncpy_from_user(char *dst, const char __user *src, long count)
+ {
+ 	char *tmp;
+ 	strncpy(dst, src, count);
+@@ -166,19 +183,14 @@ __do_strncpy_from_user(char *dst, const char __user *src, long count)
+ 		;
+ 	return (tmp - dst);
+ }
++#endif
+ 
+ static inline long
+ strncpy_from_user(char *dst, const char __user *src, long count)
+ {
+-	if (!access_ok(VERIFY_READ, src, 1))
++	if (!__access_ok(src, 1))
+ 		return -EFAULT;
+-	return __do_strncpy_from_user(dst, src, count);
+-}
+-
+-static inline long
+-__strncpy_from_user(char *dst, const char __user *src, long count)
+-{
+-	return __do_strncpy_from_user(dst, src, count);
++	return __strncpy_from_user(dst, src, count);
+ }
+ 
+ /*
+@@ -186,24 +198,38 @@ __strncpy_from_user(char *dst, const char __user *src, long count)
+  *
+  * Return 0 on exception, a value greater than N if too long
+  */
+-static inline long strnlen_user(const char *src, long n)
++#ifndef strnlen_user
++static inline long strnlen_user(const char __user *src, long n)
+ {
+-	return strlen(src) + 1;
++	return strlen((void * __force)src) + 1;
+ }
++#endif
+ 
+-#define strlen_user(str) strnlen_user(str, 32767)
++static inline long strlen_user(const char __user *src)
++{
++	return strnlen_user(src, 32767);
++}
+ 
+ /*
+  * Zero Userspace
+  */
+-
+-static inline unsigned long
+-__clear_user(void *to, unsigned long n)
++#ifndef __clear_user
++static inline __must_check unsigned long
++__clear_user(void __user *to, unsigned long n)
+ {
+-	memset(to, 0, n);
++	memset((void __force *)to, 0, n);
+ 	return 0;
+ }
++#endif
+ 
+-#define clear_user(to, n) __clear_user(to, n)
++static inline __must_check unsigned long
++clear_user(void __user *to, unsigned long n)
++{
++	might_sleep();
++	if (!__access_ok(to, n))
++		return n;
++
++	return __clear_user(to, n);
++}
+ 
+ #endif /* __ASM_GENERIC_UACCESS_H */
 -- 
 1.5.6.3
