@@ -1,208 +1,134 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 13/27] asm-generic: make uaccess.h usable by mmu archs
-Date: Wed, 29 Apr 2009 15:33:19 +0200
-Message-ID: <d68ce366f118ca01abaabbb2ee88dea34bc8ba71.1241105648.git.arnd@arndb.de>
+Subject: [PATCH 11/27] asm-generic: add generic page.h
+Date: Wed, 29 Apr 2009 16:55:36 +0200
+Message-ID: <821a570574a4dadc0c0c838f90f41dd5df81f090.1241105648.git.arnd@arndb.de>
 References: <cover.1241105648.git.arnd@arndb.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.188]:61248 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.187]:52632 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932372AbZD3PmD (ORCPT
+	with ESMTP id S932367AbZD3PmD (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2009 11:42:03 -0400
 In-Reply-To: <cover.1241105648.git.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
-Make it possible to override some functions from uaccess.h
-so that architectures with an mmu can provide assembly
-versions of the functions with their own fixup logic.
+Architectures that have no mmu should not have to
+describe their page tables. This adds a new page.h
+file based on the existing nommu architectures
+that adds a lot of dummy definitions to let you
+correctly compile a nommu kernel.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/uaccess.h |  102 +++++++++++++++++++++++++---------------
- 1 files changed, 64 insertions(+), 38 deletions(-)
+ include/asm-generic/page.h |   99 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 99 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/page.h
 
-diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
-index ebeacd9..e05f6a9 100644
---- a/include/asm-generic/uaccess.h
-+++ b/include/asm-generic/uaccess.h
-@@ -31,14 +31,14 @@ static inline void set_fs(mm_segment_t fs)
- #define VERIFY_READ	0
- #define VERIFY_WRITE	1
- 
--#define access_ok(type, addr, size) _access_ok((unsigned long)(addr),(size))
-+#define access_ok(type, addr, size) __access_ok((unsigned long)(addr),(size))
- 
- /*
-  * The architecture should really override this if possible, at least
-  * doing a check on the get_fs()
-  */
--#ifndef _access_ok
--static inline int _access_ok(unsigned long addr, unsigned long size)
-+#ifndef __access_ok
-+static inline int __access_ok(unsigned long addr, unsigned long size)
- {
- 	return 1;
- }
-@@ -93,7 +93,7 @@ extern int __put_user_bad(void);
- #endif
- 
- #define put_user(x, ptr) (				\
--	access_ok(VERIFY_WRITE, ptr, sizeof (*ptr)) ?	\
-+	__access_ok(ptr, sizeof (*ptr)) ?		\
- 		__put_user(x, ptr) :			\
- 		-EFAULT)
- 
-@@ -120,45 +120,62 @@ extern int __get_user_bad(void);
- #endif
- 
- #define get_user(x, ptr) (				\
--	access_ok(VERIFY_READ, ptr, sizeof (*ptr)) ?	\
-+	__access_ok(ptr, sizeof (*ptr)) ?		\
- 		__get_user(x, ptr) :			\
- 		-EFAULT)
- 
--#define __copy_from_user(to, from, n) (memcpy(to, from, n), 0)
--#define __copy_to_user(to, from, n) (memcpy(to, from, n), 0)
--#define __copy_to_user_inatomic __copy_to_user
--#define __copy_from_user_inatomic __copy_from_user
-+#ifndef __copy_from_user
-+static inline __must_check long __copy_from_user(void *to,
-+		const void __user *from, unsigned long n)
-+{
-+	memcpy(to, (const void __force *)from, n);
-+	return 0;
-+}
-+#endif
- 
--#define copy_to_user_ret(to,from,n,retval) ({ if (copy_to_user(to,from,n)) return retval; })
-+#ifndef __copy_to_user
-+static inline __must_check long __copy_to_user(void __user *to,
-+		const void *from, unsigned long n)
-+{
-+	memcpy((void __force *)to, from, n);
-+	return 0;
-+}
+diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
+new file mode 100644
+index 0000000..75fec18
+--- /dev/null
++++ b/include/asm-generic/page.h
+@@ -0,0 +1,99 @@
++#ifndef __ASM_GENERIC_PAGE_H
++#define __ASM_GENERIC_PAGE_H
++/*
++ * Generic page.h implementation, for NOMMU architectures.
++ * This provides the dummy definitions for the memory management.
++ */
++
++#ifdef CONFIG_MMU
++#error need to prove a real asm/page.h
 +#endif
 +
-+#ifndef __copy_from_user_inatomic
-+#define __copy_from_user_inatomic __copy_from_user
-+#endif
- 
--#define copy_from_user_ret(to,from,n,retval) ({ if (copy_from_user(to,from,n)) return retval; })
-+#ifndef __copy_to_user_inatomic
-+#define __copy_to_user_inatomic __copy_to_user
-+#endif
- 
- static inline long copy_from_user(void *to,
--				  const void __user * from, unsigned long n)
-+		const void __user * from, unsigned long n)
- {
--	if (access_ok(VERIFY_READ, from, n))
--		__copy_from_user(to, from, n);
-+	might_sleep();
-+	if (__access_ok(from, n))
-+		return __copy_from_user(to, from, n);
- 	else
- 		return n;
--	return 0;
- }
- 
--static inline long copy_to_user(void *to,
--				const void __user * from, unsigned long n)
-+static inline long copy_to_user(void __user *to,
-+		const void *from, unsigned long n)
- {
--	if (access_ok(VERIFY_WRITE, to, n))
--		__copy_to_user(to, from, n);
-+	might_sleep();
-+	if (__access_ok(to, n))
-+		return __copy_to_user(to, from, n);
- 	else
- 		return n;
--	return 0;
- }
- 
- /*
-  * Copy a null terminated string from userspace.
-  */
--
-+#ifndef __strncpy_from_user
- static inline long
--__do_strncpy_from_user(char *dst, const char __user *src, long count)
-+__strncpy_from_user(char *dst, const char __user *src, long count)
- {
- 	char *tmp;
- 	strncpy(dst, src, count);
-@@ -166,19 +183,14 @@ __do_strncpy_from_user(char *dst, const char __user *src, long count)
- 		;
- 	return (tmp - dst);
- }
-+#endif
- 
- static inline long
- strncpy_from_user(char *dst, const char __user *src, long count)
- {
--	if (!access_ok(VERIFY_READ, src, 1))
-+	if (!__access_ok(src, 1))
- 		return -EFAULT;
--	return __do_strncpy_from_user(dst, src, count);
--}
--
--static inline long
--__strncpy_from_user(char *dst, const char __user *src, long count)
--{
--	return __do_strncpy_from_user(dst, src, count);
-+	return __strncpy_from_user(dst, src, count);
- }
- 
- /*
-@@ -186,24 +198,38 @@ __strncpy_from_user(char *dst, const char __user *src, long count)
-  *
-  * Return 0 on exception, a value greater than N if too long
-  */
--static inline long strnlen_user(const char *src, long n)
-+#ifndef strnlen_user
-+static inline long strnlen_user(const char __user *src, long n)
- {
--	return strlen(src) + 1;
-+	return strlen((void * __force)src) + 1;
- }
-+#endif
- 
--#define strlen_user(str) strnlen_user(str, 32767)
-+static inline long strlen_user(const char __user *src)
-+{
-+	return strnlen_user(src, 32767);
-+}
- 
- /*
-  * Zero Userspace
-  */
--
--static inline unsigned long
--__clear_user(void *to, unsigned long n)
-+#ifndef __clear_user
-+static inline __must_check unsigned long
-+__clear_user(void __user *to, unsigned long n)
- {
--	memset(to, 0, n);
-+	memset((void __force *)to, 0, n);
- 	return 0;
- }
-+#endif
- 
--#define clear_user(to, n) __clear_user(to, n)
-+static inline __must_check unsigned long
-+clear_user(void __user *to, unsigned long n)
-+{
-+	might_sleep();
-+	if (!__access_ok(to, n))
-+		return n;
 +
-+	return __clear_user(to, n);
-+}
- 
- #endif /* __ASM_GENERIC_UACCESS_H */
++/* PAGE_SHIFT determines the page size */
++
++#define PAGE_SHIFT	12
++#ifdef __ASSEMBLY__
++#define PAGE_SIZE	(1 << PAGE_SHIFT)
++#else
++#define PAGE_SIZE	(1UL << PAGE_SHIFT)
++#endif
++#define PAGE_MASK	(~(PAGE_SIZE-1))
++
++#include <asm/setup.h>
++
++#ifndef __ASSEMBLY__
++
++#define get_user_page(vaddr)		__get_free_page(GFP_KERNEL)
++#define free_user_page(page, addr)	free_page(addr)
++
++#define clear_page(page)	memset((page), 0, PAGE_SIZE)
++#define copy_page(to,from)	memcpy((to), (from), PAGE_SIZE)
++
++#define clear_user_page(page, vaddr, pg)	clear_page(page)
++#define copy_user_page(to, from, vaddr, pg)	copy_page(to, from)
++
++/*
++ * These are used to make use of C type-checking..
++ */
++typedef struct {
++	unsigned long pte;
++} pte_t;
++typedef struct {
++	unsigned long pmd[16];
++} pmd_t;
++typedef struct {
++	unsigned long pgd;
++} pgd_t;
++typedef struct {
++	unsigned long pgprot;
++} pgprot_t;
++typedef struct page *pgtable_t;
++
++#define pte_val(x)	((x).pte)
++#define pmd_val(x)	((&x)->pmd[0])
++#define pgd_val(x)	((x).pgd)
++#define pgprot_val(x)	((x).pgprot)
++
++#define __pte(x)	((pte_t) { (x) } )
++#define __pmd(x)	((pmd_t) { (x) } )
++#define __pgd(x)	((pgd_t) { (x) } )
++#define __pgprot(x)	((pgprot_t) { (x) } )
++
++extern unsigned long memory_start;
++extern unsigned long memory_end;
++
++#endif /* !__ASSEMBLY__ */
++
++#ifdef CONFIG_KERNEL_RAM_BASE_ADDRESS
++#define PAGE_OFFSET		(CONFIG_KERNEL_RAM_BASE_ADDRESS)
++#else
++#define PAGE_OFFSET		(0)
++#endif
++
++#ifndef __ASSEMBLY__
++
++#define __va(x) ((void *)((unsigned long)(x) + PAGE_OFFSET))
++#define __pa(x) ((unsigned long) (x) - PAGE_OFFSET)
++
++#define virt_to_pfn(kaddr)	(__pa(kaddr) >> PAGE_SHIFT)
++#define pfn_to_virt(pfn)	__va((pfn) << PAGE_SHIFT)
++
++#define virt_to_page(addr)	(mem_map + (((unsigned long)(addr)-PAGE_OFFSET) >> PAGE_SHIFT))
++#define page_to_virt(page)	((((page) - mem_map) << PAGE_SHIFT) + PAGE_OFFSET)
++
++#ifndef page_to_phys
++#define page_to_phys(page)      ((dma_addr_t)page_to_pfn(page) << PAGE_SHIFT)
++#endif
++
++#define pfn_valid(pfn)		((pfn) < max_mapnr)
++
++#define	virt_addr_valid(kaddr)	(((void *)(kaddr) >= (void *)PAGE_OFFSET) && \
++				((void *)(kaddr) < (void *)memory_end))
++
++#endif /* __ASSEMBLY__ */
++
++#include <asm-generic/memory_model.h>
++#include <asm-generic/getorder.h>
++
++#endif /* __ASM_GENERIC_PAGE_H */
 -- 
 1.5.6.3
