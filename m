@@ -1,95 +1,80 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v2 4/9] asm-generic: make pci.h usable directly
-Date: Thu, 30 Apr 2009 20:56:32 +0200
-Message-ID: <20090430185716.955681783@arndb.de>
+Subject: [PATCH v2 3/9] asm-generic: rename uaccess.h to uaccess-unaligned.h
+Date: Thu, 30 Apr 2009 20:56:31 +0200
+Message-ID: <20090430185716.784575576@arndb.de>
 References: <20090430185628.866082445@arndb.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.188]:63277 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.171]:56049 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761552AbZD3TC5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2009 15:02:57 -0400
-Content-Disposition: inline; filename=0004-asm-generic-make-pci.h-usable-directly.patch
+	with ESMTP id S1759859AbZD3TC4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2009 15:02:56 -0400
+Content-Disposition: inline; filename=0003-asm-generic-rename-uaccess.h-to-uaccess-unaligned.h.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>
 
-Some generic code is using the horribly misnamed PCI_DMA_BUS_IS_PHYS
-from asm/pci.h. This makes sure that an architecture without PCI
-support does not have to define this itself but can rely on the
-asm-generic version.
+The asm-generic/uaccess.h file is only implementing
+unaligned accesses. Rename it to uaccess-unaligned.h
+so we can replace it with a generic uaccess.h for
+all NOMMU architectures.
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/frv/include/asm/pci.h  |   13 +++----------
- arch/m32r/include/asm/pci.h |    2 --
- include/asm-generic/pci.h   |    8 ++++++++
- 3 files changed, 11 insertions(+), 12 deletions(-)
+ arch/parisc/include/asm/uaccess.h                  |    2 +-
+ arch/sparc/include/asm/uaccess_64.h                |    2 +-
+ .../asm-generic/{uaccess.h => uaccess-unaligned.h} |    6 +++---
+ 3 files changed, 5 insertions(+), 5 deletions(-)
+ rename include/asm-generic/{uaccess.h => uaccess-unaligned.h} (82%)
 
-diff --git a/arch/frv/include/asm/pci.h b/arch/frv/include/asm/pci.h
-index 585d9b4..3ce227b 100644
---- a/arch/frv/include/asm/pci.h
-+++ b/arch/frv/include/asm/pci.h
-@@ -10,8 +10,8 @@
-  * 2 of the License, or (at your option) any later version.
-  */
+diff --git a/arch/parisc/include/asm/uaccess.h b/arch/parisc/include/asm/uaccess.h
+index cd4c0b2..7cf799d 100644
+--- a/arch/parisc/include/asm/uaccess.h
++++ b/arch/parisc/include/asm/uaccess.h
+@@ -7,7 +7,7 @@
+ #include <asm/page.h>
+ #include <asm/system.h>
+ #include <asm/cache.h>
+-#include <asm-generic/uaccess.h>
++#include <asm-generic/uaccess-unaligned.h>
  
--#ifndef ASM_PCI_H
--#define	ASM_PCI_H
-+#ifndef _ASM_FRV_PCI_H
-+#define _ASM_FRV_PCI_H
- 
- #include <linux/mm.h>
- #include <asm/scatterlist.h>
-@@ -43,12 +43,6 @@ extern void pci_free_consistent(struct pci_dev *hwdev, size_t size,
- /* Return the index of the PCI controller for device PDEV. */
- #define pci_controller_num(PDEV)	(0)
- 
--/* The PCI address space does equal the physical memory
-- * address space.  The networking and block device layers use
-- * this boolean for bounce buffer decisions.
-- */
--#define PCI_DMA_BUS_IS_PHYS	(1)
--
- /* pci_unmap_{page,single} is a nop so... */
- #define DECLARE_PCI_UNMAP_ADDR(ADDR_NAME)
- #define DECLARE_PCI_UNMAP_LEN(LEN_NAME)
-@@ -114,5 +108,4 @@ static inline void pci_dma_sync_sg(struct pci_dev *hwdev,
- 				    sg_dma_address(&sg[i])+sg_dma_len(&sg[i]));
- }
- 
--
--#endif
-+#endif /* _ASM_FRV_PCI_H */
-diff --git a/arch/m32r/include/asm/pci.h b/arch/m32r/include/asm/pci.h
-index fe785d1..07d3834 100644
---- a/arch/m32r/include/asm/pci.h
-+++ b/arch/m32r/include/asm/pci.h
-@@ -3,6 +3,4 @@
- 
- #include <asm-generic/pci.h>
- 
--#define PCI_DMA_BUS_IS_PHYS	(1)
--
- #endif /* _ASM_M32R_PCI_H */
-diff --git a/include/asm-generic/pci.h b/include/asm-generic/pci.h
-index c36a77d..515c6e2 100644
---- a/include/asm-generic/pci.h
-+++ b/include/asm-generic/pci.h
-@@ -52,4 +52,12 @@ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
- }
- #endif /* HAVE_ARCH_PCI_GET_LEGACY_IDE_IRQ */
- 
-+/*
-+ * By default, assume that no iommu is in use and that the PCI
-+ * space is mapped to address physical 0.
-+ */
-+#ifndef PCI_DMA_BUS_IS_PHYS
-+#define PCI_DMA_BUS_IS_PHYS	(1)
+ #define VERIFY_READ 0
+ #define VERIFY_WRITE 1
+diff --git a/arch/sparc/include/asm/uaccess_64.h b/arch/sparc/include/asm/uaccess_64.h
+index c64e767..a38c032 100644
+--- a/arch/sparc/include/asm/uaccess_64.h
++++ b/arch/sparc/include/asm/uaccess_64.h
+@@ -12,7 +12,7 @@
+ #include <asm/asi.h>
+ #include <asm/system.h>
+ #include <asm/spitfire.h>
+-#include <asm-generic/uaccess.h>
++#include <asm-generic/uaccess-unaligned.h>
  #endif
-+
-+#endif /* _ASM_GENERIC_PCI_H */
+ 
+ #ifndef __ASSEMBLY__
+diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess-unaligned.h
+similarity index 82%
+rename from include/asm-generic/uaccess.h
+rename to include/asm-generic/uaccess-unaligned.h
+index 549cb3a..67deb89 100644
+--- a/include/asm-generic/uaccess.h
++++ b/include/asm-generic/uaccess-unaligned.h
+@@ -1,5 +1,5 @@
+-#ifndef _ASM_GENERIC_UACCESS_H_
+-#define _ASM_GENERIC_UACCESS_H_
++#ifndef __ASM_GENERIC_UACCESS_UNALIGNED_H
++#define __ASM_GENERIC_UACCESS_UNALIGNED_H
+ 
+ /*
+  * This macro should be used instead of __get_user() when accessing
+@@ -23,4 +23,4 @@
+ 	__copy_to_user((ptr), &__x, sizeof(*(ptr))) ? -EFAULT : 0;	\
+ })
+ 
+-#endif /* _ASM_GENERIC_UACCESS_H */
++#endif /* __ASM_GENERIC_UACCESS_UNALIGNED_H */
 -- 
 1.5.6.3
 
