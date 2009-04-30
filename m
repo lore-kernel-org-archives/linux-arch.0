@@ -1,41 +1,51 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 08/27] asm-generic: add generic versions of common
- headers
-Date: Thu, 30 Apr 2009 10:39:13 -0700 (PDT)
-Message-ID: <20090430.103913.173722554.davem@davemloft.net>
-References: <200904301907.46515.arnd@arndb.de>
-	<20090430.101231.27030060.davem@davemloft.net>
-	<200904301934.59415.arnd@arndb.de>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 08/27] asm-generic: add generic versions of common headers
+Date: Thu, 30 Apr 2009 20:01:04 +0200
+Message-ID: <20090430180104.GB9894@uranus.ravnborg.org>
+References: <cover.1241105648.git.arnd@arndb.de> <265d330107973ffda3b4b8a3c26ec93f31dfdf00.1241105648.git.arnd@arndb.de> <20090430.094129.39981996.davem@davemloft.net> <200904301849.45543.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:42610
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S933588AbZD3RjU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Apr 2009 13:39:20 -0400
-In-Reply-To: <200904301934.59415.arnd@arndb.de>
+Received: from pfepb.post.tele.dk ([195.41.46.236]:34518 "EHLO
+	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934336AbZD3R6y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2009 13:58:54 -0400
+Content-Disposition: inline
+In-Reply-To: <200904301849.45543.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: linux-arch@vger.kernel.org, monstr@monstr.eu, remis.developer@googlemail.com, linux-kernel@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, monstr@monstr.eu, remis.developer@googlemail.com, linux-kernel@vger.kernel.org
 
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 30 Apr 2009 19:34:58 +0200
-
+On Thu, Apr 30, 2009 at 06:49:44PM +0200, Arnd Bergmann wrote:
 > On Thursday 30 April 2009, David Miller wrote:
->> You didn't read what I said.
->> 
->> I extract the commit messages and patches using "git format-patch"
->> merely as a formality, then I hand craft every aspect of the emails.
+> > Many sites are bouncing because the date on your emails is
+> > as much as two days in the past.
 > 
-> Right, this is what I do for smaller sets of patches, but I was
-> hoping for something slightly simpler when sending out my 27 (plus
-> the previous 18) patches.
+> Any suggestions on which tool I should use? I've been burned by
+> both 'quilt mail' and 'git-format-patch' this week and don't want
+> to make any more experiments. I looked at git-send-email, but
+> I'm sure I'd screw up even more with that because it directly
+> sends out the patches rather than giving me an mbox file to look
+> at.
 
-You shouldn't be bombing the list with so many patches at once,
-another good reason to do it by hand :-)
+I have been very pleased with git send-email.
 
-Either consolidate or send in multiple phases after the initial
-patches of infrastructure and examples are OK'd by everyone.
+I always send out the initial mail by hand "[PATCH 0/nn] xxx".
+When it has arrived I create a small shell script
+so I can handcraft the options.
+Typical shell script looks like this:
+
+git send-email --quiet --no-chain-reply-to \
+--in-reply-to "<20090429073510.GA26386@uranus.ravnborg.org>" \
+--to "Ingo Molnar <mingo@elte.hu>" \
+--to "LKML <linux-kernel@vger.kernel.org>" \
+00*
+
+This works well when I have longer series of mail.
+And you can split it up so you do it in smaller
+groups of say 10 mails.
+
+For a single patch or two I always do it manually.
+
+	Sam
