@@ -1,524 +1,41 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v2 6/9] asm-generic: add generic versions of common headers
-Date: Thu, 30 Apr 2009 20:56:34 +0200
-Message-ID: <20090430185717.339071969@arndb.de>
+Subject: [PATCH v2 8/9] asm-generic: add generic atomic.h and io.h
+Date: Thu, 30 Apr 2009 20:56:36 +0200
+Message-ID: <20090430185717.674624337@arndb.de>
 References: <20090430185628.866082445@arndb.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:51391 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.186]:49801 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1763597AbZD3TC6 (ORCPT
+	with ESMTP id S1764229AbZD3TC6 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2009 15:02:58 -0400
-Content-Disposition: inline; filename=0006-asm-generic-add-generic-versions-of-common-headers.patch
+Content-Disposition: inline; filename=0008-asm-generic-add-generic-atomic.h-and-io.h.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>
 
-These are all kernel internal interfaces that get copied
-around a lot. In most cases, architectures can provide
-their own optimized versions, but these generic versions
-can work as well.
+atomic.h and io.h are based on the mn10300 architecture,
+which is already pretty generic and can be used by
+other architectures that do not have hardware support
+for atomic operations or out-of-order I/O access.
 
-I have tried to use the most common contents of each
-header to allow existing architectures to migrate easily.
-
-Thanks to Remis for suggesting a number of cleanups.
-
-Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/bugs.h        |   10 +++
- include/asm-generic/current.h     |    9 ++
- include/asm-generic/delay.h       |    9 ++
- include/asm-generic/fb.h          |   12 +++
- include/asm-generic/hardirq.h     |   34 ++++++++
- include/asm-generic/irq.h         |   18 ++++
- include/asm-generic/irqflags.h    |   72 ++++++++++++++++
- include/asm-generic/kmap_types.h  |   29 +++++++
- include/asm-generic/linkage.h     |    8 ++
- include/asm-generic/module.h      |   22 +++++
- include/asm-generic/mutex.h       |    9 ++
- include/asm-generic/scatterlist.h |   43 ++++++++++
- include/asm-generic/spinlock.h    |   11 +++
- include/asm-generic/string.h      |   10 +++
- include/asm-generic/syscalls.h    |   60 ++++++++++++++
- include/asm-generic/system.h      |  161 +++++++++++++++++++++++++++++++++++++
- include/asm-generic/user.h        |    8 ++
- 17 files changed, 525 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/bugs.h
- create mode 100644 include/asm-generic/current.h
- create mode 100644 include/asm-generic/delay.h
- create mode 100644 include/asm-generic/fb.h
- create mode 100644 include/asm-generic/hardirq.h
- create mode 100644 include/asm-generic/irq.h
- create mode 100644 include/asm-generic/irqflags.h
- create mode 100644 include/asm-generic/kmap_types.h
- create mode 100644 include/asm-generic/linkage.h
- create mode 100644 include/asm-generic/module.h
- create mode 100644 include/asm-generic/mutex.h
- create mode 100644 include/asm-generic/scatterlist.h
- create mode 100644 include/asm-generic/spinlock.h
- create mode 100644 include/asm-generic/string.h
- create mode 100644 include/asm-generic/syscalls.h
- create mode 100644 include/asm-generic/system.h
- create mode 100644 include/asm-generic/user.h
+ include/asm-generic/atomic.h |  165 +++++++++++++++++++++++
+ include/asm-generic/io.h     |  300 ++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 465 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/atomic.h
+ create mode 100644 include/asm-generic/io.h
 
-diff --git a/include/asm-generic/bugs.h b/include/asm-generic/bugs.h
+diff --git a/include/asm-generic/atomic.h b/include/asm-generic/atomic.h
 new file mode 100644
-index 0000000..6c4f62e
+index 0000000..f4bc212
 --- /dev/null
-+++ b/include/asm-generic/bugs.h
-@@ -0,0 +1,10 @@
-+#ifndef __ASM_GENERIC_BUGS_H
-+#define __ASM_GENERIC_BUGS_H
++++ b/include/asm-generic/atomic.h
+@@ -0,0 +1,165 @@
 +/*
-+ * This file is included by 'init/main.c' to check for
-+ * architecture-dependent bugs.
-+ */
-+
-+static inline void check_bugs(void) { }
-+
-+#endif	/* __ASM_GENERIC_BUGS_H */
-diff --git a/include/asm-generic/current.h b/include/asm-generic/current.h
-new file mode 100644
-index 0000000..5e86f6a
---- /dev/null
-+++ b/include/asm-generic/current.h
-@@ -0,0 +1,9 @@
-+#ifndef __ASM_GENERIC_CURRENT_H
-+#define __ASM_GENERIC_CURRENT_H
-+
-+#include <linux/thread_info.h>
-+
-+#define get_current() (current_thread_info()->task)
-+#define current get_current()
-+
-+#endif /* __ASM_GENERIC_CURRENT_H */
-diff --git a/include/asm-generic/delay.h b/include/asm-generic/delay.h
-new file mode 100644
-index 0000000..4586fec
---- /dev/null
-+++ b/include/asm-generic/delay.h
-@@ -0,0 +1,9 @@
-+#ifndef __ASM_GENERIC_DELAY_H
-+#define __ASM_GENERIC_DELAY_H
-+
-+extern void __udelay(unsigned long usecs);
-+extern void __delay(unsigned long loops);
-+
-+#define udelay(n) __udelay(n)
-+
-+#endif /* __ASM_GENERIC_DELAY_H */
-diff --git a/include/asm-generic/fb.h b/include/asm-generic/fb.h
-new file mode 100644
-index 0000000..fe8ca7f
---- /dev/null
-+++ b/include/asm-generic/fb.h
-@@ -0,0 +1,12 @@
-+#ifndef __ASM_GENERIC_FB_H_
-+#define __ASM_GENERIC_FB_H_
-+#include <linux/fb.h>
-+
-+#define fb_pgprotect(...) do {} while (0)
-+
-+static inline int fb_is_primary_device(struct fb_info *info)
-+{
-+	return 0;
-+}
-+
-+#endif /* __ASM_GENERIC_FB_H_ */
-diff --git a/include/asm-generic/hardirq.h b/include/asm-generic/hardirq.h
-new file mode 100644
-index 0000000..3d5d2c9
---- /dev/null
-+++ b/include/asm-generic/hardirq.h
-@@ -0,0 +1,34 @@
-+#ifndef __ASM_GENERIC_HARDIRQ_H
-+#define __ASM_GENERIC_HARDIRQ_H
-+
-+#include <linux/cache.h>
-+#include <linux/threads.h>
-+#include <linux/irq.h>
-+
-+typedef struct {
-+	unsigned long __softirq_pending;
-+} ____cacheline_aligned irq_cpustat_t;
-+
-+#include <linux/irq_cpustat.h>	/* Standard mappings for irq_cpustat_t above */
-+
-+#ifndef HARDIRQ_BITS
-+#define HARDIRQ_BITS	8
-+#endif
-+
-+/*
-+ * The hardirq mask has to be large enough to have
-+ * space for potentially all IRQ sources in the system
-+ * nesting on a single CPU:
-+ */
-+#if (1 << HARDIRQ_BITS) < NR_IRQS
-+# error HARDIRQ_BITS is too low!
-+#endif
-+
-+#ifndef ack_bad_irq
-+static inline void ack_bad_irq(unsigned int irq)
-+{
-+	printk(KERN_CRIT "unexpected IRQ trap at vector %02x\n", irq);
-+}
-+#endif
-+
-+#endif /* __ASM_GENERIC_HARDIRQ_H */
-diff --git a/include/asm-generic/irq.h b/include/asm-generic/irq.h
-new file mode 100644
-index 0000000..b90ec0b
---- /dev/null
-+++ b/include/asm-generic/irq.h
-@@ -0,0 +1,18 @@
-+#ifndef __ASM_GENERIC_IRQ_H
-+#define __ASM_GENERIC_IRQ_H
-+
-+/*
-+ * NR_IRQS is the upper bound of how many interrupts can be handled
-+ * in the platform. It is used to size the static irq_map array,
-+ * so don't make it too big.
-+ */
-+#ifndef NR_IRQS
-+#define NR_IRQS 64
-+#endif
-+
-+static inline int irq_canonicalize(int irq)
-+{
-+	return irq;
-+}
-+
-+#endif /* __ASM_GENERIC_IRQ_H */
-diff --git a/include/asm-generic/irqflags.h b/include/asm-generic/irqflags.h
-new file mode 100644
-index 0000000..9aebf61
---- /dev/null
-+++ b/include/asm-generic/irqflags.h
-@@ -0,0 +1,72 @@
-+#ifndef __ASM_GENERIC_IRQFLAGS_H
-+#define __ASM_GENERIC_IRQFLAGS_H
-+
-+/*
-+ * All architectures should implement at least the first two functions,
-+ * usually inline assembly will be the best way.
-+ */
-+#ifndef RAW_IRQ_DISABLED
-+#define RAW_IRQ_DISABLED 0
-+#define RAW_IRQ_ENABLED 1
-+#endif
-+
-+/* read interrupt enabled status */
-+#ifndef __raw_local_save_flags
-+unsigned long __raw_local_save_flags(void);
-+#endif
-+
-+/* set interrupt enabled status */
-+#ifndef raw_local_irq_restore
-+void raw_local_irq_restore(unsigned long flags);
-+#endif
-+
-+/* get status and disable interrupts */
-+#ifndef __raw_local_irq_save
-+static inline unsigned long __raw_local_irq_save(void)
-+{
-+	unsigned long flags;
-+	flags = __raw_local_save_flags();
-+	raw_local_irq_restore(RAW_IRQ_DISABLED);
-+	return flags;
-+}
-+#endif
-+
-+/* test flags */
-+#ifndef raw_irqs_disabled_flags
-+static inline int raw_irqs_disabled_flags(unsigned long flags)
-+{
-+	return flags == RAW_IRQ_DISABLED;
-+}
-+#endif
-+
-+/* unconditionally enable interrupts */
-+#ifndef raw_local_irq_enable
-+static inline void raw_local_irq_enable(void)
-+{
-+	raw_local_irq_restore(RAW_IRQ_ENABLED);
-+}
-+#endif
-+
-+/* unconditionally disable interrupts */
-+#ifndef raw_local_irq_disable
-+static inline void raw_local_irq_disable(void)
-+{
-+	raw_local_irq_restore(RAW_IRQ_DISABLED);
-+}
-+#endif
-+
-+/* test hardware interrupt enable bit */
-+#ifndef raw_irqs_disabled
-+static inline int raw_irqs_disabled(void)
-+{
-+	return raw_irqs_disabled_flags(__raw_local_save_flags());
-+}
-+#endif
-+
-+#define raw_local_save_flags(flags) \
-+	do { (flags) = __raw_local_save_flags(); } while (0)
-+
-+#define raw_local_irq_save(flags) \
-+	do { (flags) = __raw_local_irq_save(); } while (0)
-+
-+#endif /* __ASM_GENERIC_IRQFLAGS_H */
-diff --git a/include/asm-generic/kmap_types.h b/include/asm-generic/kmap_types.h
-new file mode 100644
-index 0000000..36996bc
---- /dev/null
-+++ b/include/asm-generic/kmap_types.h
-@@ -0,0 +1,29 @@
-+#ifndef __ASM_GENERIC_KMAP_TYPES_H
-+#define __ASM_GENERIC_KMAP_TYPES_H
-+
-+#ifdef CONFIG_DEBUG_HIGHMEM
-+# define D(n) __KM_FENCE_##n ,
-+#else
-+# define D(n)
-+#endif
-+
-+enum km_type {
-+D(0)	KM_BOUNCE_READ,
-+D(1)	KM_SKB_SUNRPC_DATA,
-+D(2)	KM_SKB_DATA_SOFTIRQ,
-+D(3)	KM_USER0,
-+D(4)	KM_USER1,
-+D(5)	KM_BIO_SRC_IRQ,
-+D(6)	KM_BIO_DST_IRQ,
-+D(7)	KM_PTE0,
-+D(8)	KM_PTE1,
-+D(9)	KM_IRQ0,
-+D(10)	KM_IRQ1,
-+D(11)	KM_SOFTIRQ0,
-+D(12)	KM_SOFTIRQ1,
-+D(13)	KM_TYPE_NR
-+};
-+
-+#undef D
-+
-+#endif /* __ASM_GENERIC_KMAP_TYPES_H */
-diff --git a/include/asm-generic/linkage.h b/include/asm-generic/linkage.h
-new file mode 100644
-index 0000000..fef7a01
---- /dev/null
-+++ b/include/asm-generic/linkage.h
-@@ -0,0 +1,8 @@
-+#ifndef __ASM_GENERIC_LINKAGE_H
-+#define __ASM_GENERIC_LINKAGE_H
-+/*
-+ * linux/linkage.h provides reasonable defaults.
-+ * an architecture can override them by providing its own version.
-+ */
-+
-+#endif /* __ASM_GENERIC_LINKAGE_H */
-diff --git a/include/asm-generic/module.h b/include/asm-generic/module.h
-new file mode 100644
-index 0000000..ed5b44d
---- /dev/null
-+++ b/include/asm-generic/module.h
-@@ -0,0 +1,22 @@
-+#ifndef __ASM_GENERIC_MODULE_H
-+#define __ASM_GENERIC_MODULE_H
-+
-+/*
-+ * Many architectures just need a simple module
-+ * loader without arch specific data.
-+ */
-+struct mod_arch_specific
-+{
-+};
-+
-+#ifdef CONFIG_64BIT
-+#define Elf_Shdr Elf64_Shdr
-+#define Elf_Sym Elf64_Sym
-+#define Elf_Ehdr Elf64_Ehdr
-+#else
-+#define Elf_Shdr Elf32_Shdr
-+#define Elf_Sym Elf32_Sym
-+#define Elf_Ehdr Elf32_Ehdr
-+#endif
-+
-+#endif /* __ASM_GENERIC_MODULE_H */
-diff --git a/include/asm-generic/mutex.h b/include/asm-generic/mutex.h
-new file mode 100644
-index 0000000..fe91ab5
---- /dev/null
-+++ b/include/asm-generic/mutex.h
-@@ -0,0 +1,9 @@
-+#ifndef __ASM_GENERIC_MUTEX_H
-+#define __ASM_GENERIC_MUTEX_H
-+/*
-+ * Pull in the generic implementation for the mutex fastpath,
-+ * which is a reasonable default on many architectures.
-+ */
-+
-+#include <asm-generic/mutex-dec.h>
-+#endif /* __ASM_GENERIC_MUTEX_H */
-diff --git a/include/asm-generic/scatterlist.h b/include/asm-generic/scatterlist.h
-new file mode 100644
-index 0000000..8b94544
---- /dev/null
-+++ b/include/asm-generic/scatterlist.h
-@@ -0,0 +1,43 @@
-+#ifndef __ASM_GENERIC_SCATTERLIST_H
-+#define __ASM_GENERIC_SCATTERLIST_H
-+
-+#include <linux/types.h>
-+
-+struct scatterlist {
-+#ifdef CONFIG_DEBUG_SG
-+	unsigned long	sg_magic;
-+#endif
-+	unsigned long	page_link;
-+	unsigned int	offset;
-+	unsigned int	length;
-+	dma_addr_t	dma_address;
-+	unsigned int	dma_length;
-+};
-+
-+/*
-+ * These macros should be used after a dma_map_sg call has been done
-+ * to get bus addresses of each of the SG entries and their lengths.
-+ * You should only work with the number of sg entries pci_map_sg
-+ * returns, or alternatively stop on the first sg_dma_len(sg) which
-+ * is 0.
-+ */
-+#define sg_dma_address(sg)	((sg)->dma_address)
-+#ifndef sg_dma_len
-+/*
-+ * Normally, you have an iommu on 64 bit machines, but not on 32 bit
-+ * machines. Architectures that are differnt should override this.
-+ */
-+#if __BITS_PER_LONG == 64
-+#define sg_dma_len(sg)		((sg)->dma_length)
-+#else
-+#define sg_dma_len(sg)		((sg)->length)
-+#endif /* 64 bit */
-+#endif /* sg_dma_len */
-+
-+#ifndef ISA_DMA_THRESHOLD
-+#define ISA_DMA_THRESHOLD	(~0UL)
-+#endif
-+
-+#define ARCH_HAS_SG_CHAIN
-+
-+#endif /* __ASM_GENERIC_SCATTERLIST_H */
-diff --git a/include/asm-generic/spinlock.h b/include/asm-generic/spinlock.h
-new file mode 100644
-index 0000000..1547a03
---- /dev/null
-+++ b/include/asm-generic/spinlock.h
-@@ -0,0 +1,11 @@
-+#ifndef __ASM_GENERIC_SPINLOCK_H
-+#define __ASM_GENERIC_SPINLOCK_H
-+/*
-+ * You need to implement asm/spinlock.h for SMP support. The generic
-+ * version does not handle SMP.
-+ */
-+#ifdef CONFIG_SMP
-+#error need an architecture specific asm/spinlock.h
-+#endif
-+
-+#endif /* __ASM_GENERIC_SPINLOCK_H */
-diff --git a/include/asm-generic/string.h b/include/asm-generic/string.h
-new file mode 100644
-index 0000000..de5e020
---- /dev/null
-+++ b/include/asm-generic/string.h
-@@ -0,0 +1,10 @@
-+#ifndef __ASM_GENERIC_STRING_H
-+#define __ASM_GENERIC_STRING_H
-+/*
-+ * The kernel provides all required functions in lib/string.c
-+ *
-+ * Architectures probably want to provide at least their own optimized
-+ * memcpy and memset functions though.
-+ */
-+
-+#endif /* __ASM_GENERIC_STRING_H */
-diff --git a/include/asm-generic/syscalls.h b/include/asm-generic/syscalls.h
-new file mode 100644
-index 0000000..df84e3b
---- /dev/null
-+++ b/include/asm-generic/syscalls.h
-@@ -0,0 +1,60 @@
-+#ifndef __ASM_GENERIC_SYSCALLS_H
-+#define __ASM_GENERIC_SYSCALLS_H
-+
-+#include <linux/compiler.h>
-+#include <linux/linkage.h>
-+
-+/*
-+ * Calling conventions for these system calls can differ, so
-+ * it's possible to override them.
-+ */
-+#ifndef sys_clone
-+asmlinkage long sys_clone(unsigned long clone_flags, unsigned long newsp,
-+			void __user *parent_tid, void __user *child_tid,
-+			struct pt_regs *regs);
-+#endif
-+
-+#ifndef sys_fork
-+asmlinkage long sys_fork(struct pt_regs *regs);
-+#endif
-+
-+#ifndef sys_vfork
-+asmlinkage long sys_vfork(struct pt_regs *regs);
-+#endif
-+
-+#ifndef sys_execve
-+asmlinkage long sys_execve(char __user *filename, char __user * __user *argv,
-+			char __user * __user *envp, struct pt_regs *regs);
-+#endif
-+
-+#ifndef sys_mmap2
-+asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
-+			unsigned long prot, unsigned long flags,
-+			unsigned long fd, unsigned long pgoff);
-+#endif
-+
-+#ifndef sys_mmap
-+asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
-+			unsigned long prot, unsigned long flags,
-+			unsigned long fd, off_t pgoff);
-+#endif
-+
-+#ifndef sys_sigaltstack
-+asmlinkage long sys_sigaltstack(const stack_t __user *, stack_t __user *,
-+			struct pt_regs *);
-+#endif
-+
-+#ifndef sys_rt_sigreturn
-+asmlinkage long sys_rt_sigreturn(struct pt_regs *regs);
-+#endif
-+
-+#ifndef sys_rt_sigsuspend
-+asmlinkage long sys_rt_sigsuspend(sigset_t __user *unewset, size_t sigsetsize);
-+#endif
-+
-+#ifndef sys_rt_sigaction
-+asmlinkage long sys_rt_sigaction(int sig, const struct sigaction __user *act,
-+			 struct sigaction __user *oact, size_t sigsetsize);
-+#endif
-+
-+#endif /* __ASM_GENERIC_SYSCALLS_H */
-diff --git a/include/asm-generic/system.h b/include/asm-generic/system.h
-new file mode 100644
-index 0000000..efa403b
---- /dev/null
-+++ b/include/asm-generic/system.h
-@@ -0,0 +1,161 @@
-+/* Generic system definitions, based on MN10300 definitions.
-+ *
-+ * It should be possible to use these on really simple architectures,
-+ * but it serves more as a starting point for new ports.
++ * Generic C implementation of atomic counter operations
++ * Originally implemented for MN10300.
 + *
 + * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
 + * Written by David Howells (dhowells@redhat.com)
@@ -528,168 +45,465 @@ index 0000000..efa403b
 + * as published by the Free Software Foundation; either version
 + * 2 of the Licence, or (at your option) any later version.
 + */
-+#ifndef __ASM_GENERIC_SYSTEM_H
-+#define __ASM_GENERIC_SYSTEM_H
-+
-+#ifdef __KERNEL__
-+#ifndef __ASSEMBLY__
-+
-+#include <linux/types.h>
-+#include <linux/irqflags.h>
-+
-+#include <asm/cmpxchg-local.h>
-+
-+struct task_struct;
-+
-+/* context switching is now performed out-of-line in switch_to.S */
-+extern struct task_struct *__switch_to(struct task_struct *,
-+		struct task_struct *);
-+#define switch_to(prev, next, last)					\
-+	do {								\
-+		((last) = __switch_to((prev), (next)));			\
-+	} while (0)
-+
-+#define arch_align_stack(x) (x)
-+
-+#define nop() asm volatile ("nop")
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+/*
-+ * Force strict CPU ordering.
-+ * And yes, this is required on UP too when we're talking
-+ * to devices.
-+ *
-+ * This implementation only contains a compiler barrier.
-+ */
-+
-+#define mb()	asm volatile ("": : :"memory")
-+#define rmb()	mb()
-+#define wmb()	asm volatile ("": : :"memory")
++#ifndef __ASM_GENERIC_ATOMIC_H
++#define __ASM_GENERIC_ATOMIC_H
 +
 +#ifdef CONFIG_SMP
-+#define smp_mb()	mb()
-+#define smp_rmb()	rmb()
-+#define smp_wmb()	wmb()
-+#else
-+#define smp_mb()	barrier()
-+#define smp_rmb()	barrier()
-+#define smp_wmb()	barrier()
++#error not SMP safe
 +#endif
 +
-+#define set_mb(var, value)  do { var = value;  mb(); } while (0)
-+#define set_wmb(var, value) do { var = value; wmb(); } while (0)
-+
-+#define read_barrier_depends()		do {} while (0)
-+#define smp_read_barrier_depends()	do {} while (0)
-+
 +/*
-+ * we make sure local_irq_enable() doesn't cause priority inversion
++ * Atomic operations that C can't guarantee us.  Useful for
++ * resource counting etc..
 + */
-+#ifndef __ASSEMBLY__
 +
-+/* This function doesn't exist, so you'll get a linker error
-+ *    if something tries to do an invalid xchg().  */
-+extern void __xchg_called_with_bad_pointer(void);
++#define ATOMIC_INIT(i)	{ (i) }
 +
-+static inline
-+unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
++#ifdef __KERNEL__
++
++/**
++ * atomic_read - read atomic variable
++ * @v: pointer of type atomic_t
++ *
++ * Atomically reads the value of @v.  Note that the guaranteed
++ * useful range of an atomic_t is only 24 bits.
++ */
++#define atomic_read(v)	((v)->counter)
++
++/**
++ * atomic_set - set atomic variable
++ * @v: pointer of type atomic_t
++ * @i: required value
++ *
++ * Atomically sets the value of @v to @i.  Note that the guaranteed
++ * useful range of an atomic_t is only 24 bits.
++ */
++#define atomic_set(v, i) (((v)->counter) = (i))
++
++#include <asm/system.h>
++
++/**
++ * atomic_add_return - add integer to atomic variable
++ * @i: integer value to add
++ * @v: pointer of type atomic_t
++ *
++ * Atomically adds @i to @v and returns the result
++ * Note that the guaranteed useful range of an atomic_t is only 24 bits.
++ */
++static inline int atomic_add_return(int i, atomic_t *v)
 +{
-+	unsigned long ret, flags;
++	unsigned long flags;
++	int temp;
 +
-+	switch (size) {
-+	case 1:
-+#ifdef __xchg_u8
-+		return __xchg_u8(x, ptr);
-+#else
-+		local_irq_save(flags);
-+		ret = *(volatile u8 *)ptr;
-+		*(volatile u8 *)ptr = x;
-+		local_irq_restore(flags);
-+		return ret;
-+#endif /* __xchg_u8 */
++	local_irq_save(flags);
++	temp = v->counter;
++	temp += i;
++	v->counter = temp;
++	local_irq_restore(flags);
 +
-+	case 2:
-+#ifdef __xchg_u16
-+		return __xchg_u16(x, ptr);
-+#else
-+		local_irq_save(flags);
-+		ret = *(volatile u16 *)ptr;
-+		*(volatile u16 *)ptr = x;
-+		local_irq_restore(flags);
-+		return ret;
-+#endif /* __xchg_u16 */
++	return temp;
++}
 +
-+	case 4:
-+#ifdef __xchg_u32
-+		return __xchg_u32(x, ptr);
-+#else
-+		local_irq_save(flags);
-+		ret = *(volatile u32 *)ptr;
-+		*(volatile u32 *)ptr = x;
-+		local_irq_restore(flags);
-+		return ret;
-+#endif /* __xchg_u32 */
++/**
++ * atomic_sub_return - subtract integer from atomic variable
++ * @i: integer value to subtract
++ * @v: pointer of type atomic_t
++ *
++ * Atomically subtracts @i from @v and returns the result
++ * Note that the guaranteed useful range of an atomic_t is only 24 bits.
++ */
++static inline int atomic_sub_return(int i, atomic_t *v)
++{
++	unsigned long flags;
++	int temp;
++
++	local_irq_save(flags);
++	temp = v->counter;
++	temp -= i;
++	v->counter = temp;
++	local_irq_restore(flags);
++
++	return temp;
++}
++
++static inline int atomic_add_negative(int i, atomic_t *v)
++{
++	return atomic_add_return(i, v) < 0;
++}
++
++static inline void atomic_add(int i, atomic_t *v)
++{
++	atomic_add_return(i, v);
++}
++
++static inline void atomic_sub(int i, atomic_t *v)
++{
++	atomic_sub_return(i, v);
++}
++
++static inline void atomic_inc(atomic_t *v)
++{
++	atomic_add_return(1, v);
++}
++
++static inline void atomic_dec(atomic_t *v)
++{
++	atomic_sub_return(1, v);
++}
++
++#define atomic_dec_return(v)		atomic_sub_return(1, (v))
++#define atomic_inc_return(v)		atomic_add_return(1, (v))
++
++#define atomic_sub_and_test(i, v)	(atomic_sub_return((i), (v)) == 0)
++#define atomic_dec_and_test(v)		(atomic_sub_return(1, (v)) == 0)
++#define atomic_inc_and_test(v)		(atomic_add_return(1, (v)) == 0)
++
++#define atomic_add_unless(v, a, u)				\
++({								\
++	int c, old;						\
++	c = atomic_read(v);					\
++	while (c != (u) && (old = atomic_cmpxchg((v), c, c + (a))) != c) \
++		c = old;					\
++	c != (u);						\
++})
++
++#define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
++
++static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
++{
++	unsigned long flags;
++
++	mask = ~mask;
++	local_irq_save(flags);
++	*addr &= mask;
++	local_irq_restore(flags);
++}
++
++#define atomic_xchg(ptr, v)		(xchg(&(ptr)->counter, (v)))
++#define atomic_cmpxchg(v, old, new)	(cmpxchg(&((v)->counter), (old), (new)))
++
++#define cmpxchg_local(ptr, o, n)				  	       \
++	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
++			(unsigned long)(n), sizeof(*(ptr))))
++
++#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
++
++/* Atomic operations are already serializing on MN10300??? */
++#define smp_mb__before_atomic_dec()	barrier()
++#define smp_mb__after_atomic_dec()	barrier()
++#define smp_mb__before_atomic_inc()	barrier()
++#define smp_mb__after_atomic_inc()	barrier()
++
++#include <asm-generic/atomic-long.h>
++
++#endif /* __KERNEL__ */
++#endif /* __ASM_GENERIC_ATOMIC_H */
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+new file mode 100644
+index 0000000..5ae45e5
+--- /dev/null
++++ b/include/asm-generic/io.h
+@@ -0,0 +1,300 @@
++/* Generic I/O port emulation, based on MN10300 code
++ *
++ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
++ * Written by David Howells (dhowells@redhat.com)
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public Licence
++ * as published by the Free Software Foundation; either version
++ * 2 of the Licence, or (at your option) any later version.
++ */
++#ifndef __ASM_GENERIC_IO_H
++#define __ASM_GENERIC_IO_H
++
++#include <asm/page.h> /* I/O is all done through memory accesses */
++#include <asm/cacheflush.h>
++#include <linux/types.h>
++
++#ifdef CONFIG_GENERIC_IOMAP
++#include <asm-generic/iomap.h>
++#endif
++
++#define mmiowb() do {} while (0)
++
++/*****************************************************************************/
++/*
++ * readX/writeX() are used to access memory mapped devices. On some
++ * architectures the memory mapped IO stuff needs to be accessed
++ * differently. On the simple architectures, we just read/write the
++ * memory location directly.
++ */
++static inline u8 __raw_readb(const volatile void __iomem *addr)
++{
++	return *(const volatile u8 __force *) addr;
++}
++
++static inline u16 __raw_readw(const volatile void __iomem *addr)
++{
++	return *(const volatile u16 __force *) addr;
++}
++
++static inline u32 __raw_readl(const volatile void __iomem *addr)
++{
++	return *(const volatile u32 __force *) addr;
++}
++
++#define readb __raw_readb
++#define readw(addr) __le16_to_cpu(__raw_readw(addr))
++#define readl(addr) __le32_to_cpu(__raw_readl(addr))
++
++static inline void __raw_writeb(u8 b, volatile void __iomem *addr)
++{
++	*(volatile u8 __force *) addr = b;
++}
++
++static inline void __raw_writew(u16 b, volatile void __iomem *addr)
++{
++	*(volatile u16 __force *) addr = b;
++}
++
++static inline void __raw_writel(u32 b, volatile void __iomem *addr)
++{
++	*(volatile u32 __force *) addr = b;
++}
++
++#define writeb __raw_writeb
++#define writew(b,addr) __raw_writew(__cpu_to_le16(b),addr)
++#define writel(b,addr) __raw_writel(__cpu_to_le32(b),addr)
 +
 +#ifdef CONFIG_64BIT
-+	case 8:
-+#ifdef __xchg_u64
-+		return __xchg_u64(x, ptr);
-+#else
-+		local_irq_save(flags);
-+		ret = *(volatile u64 *)ptr;
-+		*(volatile u64 *)ptr = x;
-+		local_irq_restore(flags);
-+		return ret;
-+#endif /* __xchg_u64 */
-+#endif /* CONFIG_64BIT */
++static inline u64 __raw_readq(const volatile void __iomem *addr)
++{
++	return *(const volatile u64 __force *) addr;
++}
++#define readq(addr) __le64_to_cpu(__raw_readq(addr))
 +
-+	default:
-+		__xchg_called_with_bad_pointer();
-+		return x;
++static inline void __raw_writeq(u64 b, volatile void __iomem *addr)
++{
++	*(volatile u64 __force *) addr = b;
++}
++#define writeq(b,addr) __raw_writeq(__cpu_to_le64(b),addr)
++#endif
++
++/*****************************************************************************/
++/*
++ * traditional input/output functions
++ */
++
++static inline u8 inb(unsigned long addr)
++{
++	return readb((volatile void __iomem *) addr);
++}
++
++static inline u16 inw(unsigned long addr)
++{
++	return readw((volatile void __iomem *) addr);
++}
++
++static inline u32 inl(unsigned long addr)
++{
++	return readl((volatile void __iomem *) addr);
++}
++
++static inline void outb(u8 b, unsigned long addr)
++{
++	writeb(b, (volatile void __iomem *) addr);
++}
++
++static inline void outw(u16 b, unsigned long addr)
++{
++	writew(b, (volatile void __iomem *) addr);
++}
++
++static inline void outl(u32 b, unsigned long addr)
++{
++	writel(b, (volatile void __iomem *) addr);
++}
++
++#define inb_p(addr)	inb(addr)
++#define inw_p(addr)	inw(addr)
++#define inl_p(addr)	inl(addr)
++#define outb_p(x, addr)	outb((x), (addr))
++#define outw_p(x, addr)	outw((x), (addr))
++#define outl_p(x, addr)	outl((x), (addr))
++
++static inline void insb(unsigned long addr, void *buffer, int count)
++{
++	if (count) {
++		u8 *buf = buffer;
++		do {
++			u8 x = inb(addr);
++			*buf++ = x;
++		} while (--count);
 +	}
 +}
 +
-+#define xchg(ptr, x) \
-+	((__typeof__(*(ptr))) __xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
-+
-+static inline unsigned long __cmpxchg(volatile unsigned long *m,
-+				      unsigned long old, unsigned long new)
++static inline void insw(unsigned long addr, void *buffer, int count)
 +{
-+	unsigned long retval;
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	retval = *m;
-+	if (retval == old)
-+		*m = new;
-+	local_irq_restore(flags);
-+	return retval;
++	if (count) {
++		u16 *buf = buffer;
++		do {
++			u16 x = inw(addr);
++			*buf++ = x;
++		} while (--count);
++	}
 +}
 +
-+#define cmpxchg(ptr, o, n)					\
-+	((__typeof__(*(ptr))) __cmpxchg((unsigned long *)(ptr), \
-+					(unsigned long)(o),	\
-+					(unsigned long)(n)))
++static inline void insl(unsigned long addr, void *buffer, int count)
++{
++	if (count) {
++		u32 *buf = buffer;
++		do {
++			u32 x = inl(addr);
++			*buf++ = x;
++		} while (--count);
++	}
++}
 +
-+#endif /* !__ASSEMBLY__ */
++static inline void outsb(unsigned long addr, const void *buffer, int count)
++{
++	if (count) {
++		const u8 *buf = buffer;
++		do {
++			outb(*buf++, addr);
++		} while (--count);
++	}
++}
++
++static inline void outsw(unsigned long addr, const void *buffer, int count)
++{
++	if (count) {
++		const u16 *buf = buffer;
++		do {
++			outw(*buf++, addr);
++		} while (--count);
++	}
++}
++
++static inline void outsl(unsigned long addr, const void *buffer, int count)
++{
++	if (count) {
++		const u32 *buf = buffer;
++		do {
++			outl(*buf++, addr);
++		} while (--count);
++	}
++}
++
++#ifndef CONFIG_GENERIC_IOMAP
++#define ioread8(addr)		readb(addr)
++#define ioread16(addr)		readw(addr)
++#define ioread32(addr)		readl(addr)
++
++#define iowrite8(v, addr)	writeb((v), (addr))
++#define iowrite16(v, addr)	writew((v), (addr))
++#define iowrite32(v, addr)	writel((v), (addr))
++
++#define ioread8_rep(p, dst, count) \
++	insb((unsigned long) (p), (dst), (count))
++#define ioread16_rep(p, dst, count) \
++	insw((unsigned long) (p), (dst), (count))
++#define ioread32_rep(p, dst, count) \
++	insl((unsigned long) (p), (dst), (count))
++
++#define iowrite8_rep(p, src, count) \
++	outsb((unsigned long) (p), (src), (count))
++#define iowrite16_rep(p, src, count) \
++	outsw((unsigned long) (p), (src), (count))
++#define iowrite32_rep(p, src, count) \
++	outsl((unsigned long) (p), (src), (count))
++#endif /* CONFIG_GENERIC_IOMAP */
++
++
++#define IO_SPACE_LIMIT 0xffffffff
++
++#ifdef __KERNEL__
++
++#include <linux/vmalloc.h>
++#define __io_virt(x) ((void *) (x))
++
++#ifndef CONFIG_GENERIC_IOMAP
++/* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
++struct pci_dev;
++extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
++static inline void pci_iounmap(struct pci_dev *dev, void __iomem *p)
++{
++}
++#endif /* CONFIG_GENERIC_IOMAP */
++
++/*
++ * Change virtual addresses to physical addresses and vv.
++ * These are pretty trivial
++ */
++static inline unsigned long virt_to_phys(volatile void *address)
++{
++	return __pa((unsigned long)address);
++}
++
++static inline void *phys_to_virt(unsigned long address)
++{
++	return __va(address);
++}
++
++/*
++ * Change "struct page" to physical address.
++ */
++static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
++{
++	return (void *) offset;
++}
++
++#define __ioremap(offset, size, flags)	ioremap(offset, size)
++
++#ifndef ioremap_nocache
++#define ioremap_nocache ioremap
++#endif
++
++#ifndef ioremap_wc
++#define ioremap_wc ioremap_nocache
++#endif
++
++static inline void iounmap(void *addr)
++{
++}
++
++#ifndef CONFIG_GENERIC_IOMAP
++static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
++{
++	return (void __iomem *) port;
++}
++
++static inline void ioport_unmap(void __iomem *p)
++{
++}
++#else /* CONFIG_GENERIC_IOMAP */
++extern void __iomem *ioport_map(unsigned long port, unsigned int nr);
++extern void ioport_unmap(void __iomem *p);
++#endif /* CONFIG_GENERIC_IOMAP */
++
++#define xlate_dev_kmem_ptr(p)	p
++#define xlate_dev_mem_ptr(p)	((void *) (p))
++
++#ifndef virt_to_bus
++static inline unsigned long virt_to_bus(volatile void *address)
++{
++	return ((unsigned long) address);
++}
++
++static inline void *bus_to_virt(unsigned long address)
++{
++	return (void *) address;
++}
++#endif
++
++#define memset_io(a, b, c)	memset(__io_virt(a), (b), (c))
++#define memcpy_fromio(a, b, c)	memcpy((a), __io_virt(b), (c))
++#define memcpy_toio(a, b, c)	memcpy(__io_virt(a), (b), (c))
 +
 +#endif /* __KERNEL__ */
-+#endif /* __ASM_GENERIC_SYSTEM_H */
-diff --git a/include/asm-generic/user.h b/include/asm-generic/user.h
-new file mode 100644
-index 0000000..8b9c3c9
---- /dev/null
-+++ b/include/asm-generic/user.h
-@@ -0,0 +1,8 @@
-+#ifndef __ASM_GENERIC_USER_H
-+#define __ASM_GENERIC_USER_H
-+/*
-+ * This file may define a 'struct user' structure. However, it it only
-+ * used for a.out file, which are not supported on new architectures.
-+ */
 +
-+#endif	/* __ASM_GENERIC_USER_H */
++#endif /* __ASM_GENERIC_IO_H */
 -- 
 1.5.6.3
 
