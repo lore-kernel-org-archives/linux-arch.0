@@ -1,47 +1,59 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
 Subject: Re: [PATCH 04/27] asm-generic: add legacy I/O header files
-Date: Fri, 1 May 2009 14:53:31 +0200
-Message-ID: <200905011453.32006.arnd@arndb.de>
-References: <cover.1241105648.git.arnd@arndb.de> <49FAEA2A.50504@monstr.eu> <20090501123728.GC27799@flint.arm.linux.org.uk>
+Date: Fri, 1 May 2009 14:09:04 +0100
+Message-ID: <20090501140904.69f44406@lxorguk.ukuu.org.uk>
+References: <cover.1241105648.git.arnd@arndb.de>
+	<10b3a32656e5552458db7412ef9ff8530d5f92aa.1241105648.git.arnd@arndb.de>
+	<c1a198be0904302309w4154f97dqddd0b2df1924a821@mail.gmail.com>
+	<200905011422.29753.arnd@arndb.de>
+	<49FAEA2A.50504@monstr.eu>
+	<20090501123728.GC27799@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.177]:61798 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753181AbZEAMxo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 08:53:44 -0400
+Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:38036 "EHLO
+	www.etchedpixels.co.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1754194AbZEANIX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 09:08:23 -0400
 In-Reply-To: <20090501123728.GC27799@flint.arm.linux.org.uk>
-Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: Michal Simek <monstr@monstr.eu>, linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
+Cc: Michal Simek <monstr@monstr.eu>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
-On Friday 01 May 2009, Russell King wrote:
-> > > All of these are either PC-specific, or they don't actually care
-> > > about the specific value. Most architectures just use the
-> > > value from the IBM PC, so we might as well make that the generic
-> > > default.
-> > 
-> > ok. Let's move out from arch to generic location.
-> 
-> That's only possible once the users have been fixed - otherwise the ARM
-> stuff listed above _will_ break.
+On Fri, 1 May 2009 13:37:28 +0100
+Russell King <rmk+lkml@arm.linux.org.uk> wrote:
 
-My idea was to just add a fallback of
+> On Fri, May 01, 2009 at 02:25:14PM +0200, Michal Simek wrote:
+> > Arnd Bergmann wrote:
+> > > On Friday 01 May 2009, Michal Simek wrote:
+> > >>> +/*
+> > >>> + * CLOCK_TICK_RATE is highly PC-specific and should not
+> > >>> + * be used in portable code. 1193182 is the value for the
+> > >>> + * original i8253 PIC.
+> > >>> + */
+> > >>> +#ifndef CLOCK_TICK_RATE
+> > >>> +#define CLOCK_TICK_RATE                1193182
+> > >>> +#endif
+> > >>
+> > >> Why is this in generic code?
+> > > 
+> > > CLOCK_TICK_RATE is only used in a few places:
 
-#ifndef CLOCK_TICK_RATE
-#define CLOCK_TICK_RATE                1193182
-#endif
+Joining in late but its not at all highly PC specific. The same frequency
+is used for a whole pile of setups (Alpha etc). It's not well named but
+there are good sound reasons the PC chose 1193182 and while those reasons
+have long lapsed its a good frequency for other reasons nowdays.
 
-to include/linux/timex.h. Since al existing architectures already define
-CLOCK_TICK_RATE as a macro, I don't see anything changing for them.
+The clock isn't for the PIC either - its for the PIT (although its used
+to clock various other things).
 
-The only difference would be that all architectures that use the default
-value can have an empty timex.h.
+We actually have a define of PIT_TICK_RATE internal to the x86 port for
+those x86 cases that can use it.
 
-Am I missing something?
 
-	Arnd <><
+
+
+
+Alan
