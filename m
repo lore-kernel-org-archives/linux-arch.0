@@ -1,34 +1,46 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 07/27] asm-generic: add minimal cache description
-Date: Fri, 1 May 2009 14:27:04 +0200
-Message-ID: <200905011427.05099.arnd@arndb.de>
-References: <cover.1241105648.git.arnd@arndb.de> <2d8ccc76119d2379859480dbb8f7562743a1de58.1241105648.git.arnd@arndb.de> <c1a198be0904302303h73c5168fi73f8dc24dc677965@mail.gmail.com>
+Subject: Re: [PATCH 12/27] asm-generic: add a NOMMU uaccess.h
+Date: Fri, 1 May 2009 14:36:04 +0200
+Message-ID: <200905011436.05204.arnd@arndb.de>
+References: <cover.1241105648.git.arnd@arndb.de> <45b4644e80c27b9d042b3960e3d99f0d444e0d92.1241105648.git.arnd@arndb.de> <c1a198be0904302337x714621d8xc4685a634c5cf222@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:51946 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.188]:56832 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751539AbZEAM1J convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 08:27:09 -0400
-In-Reply-To: <c1a198be0904302303h73c5168fi73f8dc24dc677965@mail.gmail.com>
+	with ESMTP id S1751815AbZEAMgM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 08:36:12 -0400
+In-Reply-To: <c1a198be0904302337x714621d8xc4685a634c5cf222@mail.gmail.com>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Michal Simek <monstr@monstr.eu>
 Cc: linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
-On Friday 01 May 2009, Michal Simek wrote:
-> > +#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
-> > + =A0 =A0 =A0 memcpy(dst, src, len)
-> > +#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
-> > + =A0 =A0 =A0 memcpy(dst, src, len)
->=20
->=20
-> IMHO these two macros will generate cast errors.
-
-I did not see errors here, can you clarify? Note that despite the name,
-they don't take a __user pointer. Maybe they should be inline functions
-to make that more obvious.
-
-	Arnd <><
+T24gRnJpZGF5IDAxIE1heSAyMDA5LCBNaWNoYWwgU2ltZWsgd3JvdGU6Cj4gPiArI2lmbmRlZiBf
+X3B1dF91c2VyCj4gPiArI2RlZmluZSBfX3B1dF91c2VyKHgsIHB0cikgoCCgIKAgoCCgIKAgoCCg
+IKAgoCCgIKAgoCCgIFwKPiA+ICsoeyCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAg
+oCCgIKAgoCCgIKAgoCCgIKAgXAo+ID4gKyCgIKAgoCBpbnQgX19wdV9lcnIgPSAwOyCgIKAgoCCg
+IKAgoCCgIKAgoCCgIKAgoCCgIKAgoCBcCj4gPiArIKAgoCCgIHR5cGVvZigqKHB0cikpIF9fcHVf
+dmFsID0gKHgpOyCgIKAgoCCgIKAgoCCgIKAgoFwKPiA+ICsgoCCgIKAgc3dpdGNoIChzaXplb2Yg
+KCoocHRyKSkpIHsgoCCgIKAgoCCgIKAgoCCgIKAgoCCgXAo+ID4gKyCgIKAgoCBjYXNlIDE6IKAg
+oCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCBcCj4gPiArIKAgoCCgIGNhc2Ug
+MjogoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIFwKPiA+ICsgoCCgIKAg
+Y2FzZSA0OiCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgXAo+ID4gKyCg
+IKAgoCCgIKAgoCCgICoocHRyKSA9IChfX3B1X3ZhbCk7IKAgoCCgIKAgoCCgIKAgoCCgIKBcCj4g
+PiArIKAgoCCgIKAgoCCgIKAgYnJlYWs7IKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAg
+oFwKPiA+ICsgoCCgIKAgY2FzZSA4OiCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAg
+oCCgIKAgXAo+ID4gKyCgIKAgoCCgIKAgoCCgIG1lbWNweShwdHIsICZfX3B1X3ZhbCwgc2l6ZW9m
+ICgqKHB0cikpKTtcCj4gCj4gCj4gcG90ZW50aWFsIGNhc3QgcHJvYmxlbQoKWWVzLCBJJ20gbG9v
+a2luZyBpbnRvIHRoaXMgYWxyZWFkeSwgcHJvYmFibHkgd2lsbCBkbyBzb21ldGhpbmcKYmFzZWQg
+b24gdGhlIHMzOTAgY29kZSwgd2hpY2ggc2VlbXMgdG8gZG8gdGhpcyBjb3JyZWN0bHkuCgo+ID4g
+KyNkZWZpbmUgcHV0X3VzZXIoeCwgcHRyKSAoIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCBc
+Cj4gPiArIKAgoCCgIGFjY2Vzc19vayhWRVJJRllfV1JJVEUsIHB0ciwgc2l6ZW9mICgqcHRyKSkg
+PyCgIFwKPiA+ICsgoCCgIKAgoCCgIKAgoCBfX3B1dF91c2VyKHgsIHB0cikgOiCgIKAgoCCgIKAg
+oCCgIKAgoCCgXAo+ID4gKyCgIKAgoCCgIKAgoCCgIC1FRkFVTFQpCj4gCj4gCj4gSU1ITyB3cml0
+ZSBpdCBhcyBpbmxpbmUgZnVuY3Rpb24gd2l0aCB0eXBlIGNoZWNraW5nLgoKVW5mb3J0dW5hdGVs
+eSwgdGhpcyBkb2Vzbid0IHdvcmsgYmVjYXVzZSBvZiB0aGUgY2FsbGluCmNvbnZlbnRpb25zOiBf
+X3B1dF91c2VyIG5lZWRzIHRvIGtub3cgdGhlIHR5cGUgb2YgcHRyLApzbyBpdCBoYXMgdG8gYmUg
+YSBtYWNyby4KCglBcm5kIDw+PAo=
