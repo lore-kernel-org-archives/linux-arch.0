@@ -1,13 +1,13 @@
 From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: [RFC][PATCH 23/35] factor x86 pte mapping code
-Date: Fri, 01 May 2009 07:42:37 -0700
-Message-ID: <20090501144237.DB774DDC@kernel>
+Subject: [RFC][PATCH 27/35] m32r: use pte_offset_kernel() as base for pte_offset_map*()
+Date: Fri, 01 May 2009 07:42:43 -0700
+Message-ID: <20090501144243.33BDCFD4@kernel>
 References: <20090501144201.D31EF417@kernel>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e3.ny.us.ibm.com ([32.97.182.143]:58303 "EHLO e3.ny.us.ibm.com"
+Received: from e8.ny.us.ibm.com ([32.97.182.138]:57883 "EHLO e8.ny.us.ibm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1761304AbZEAOmj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 1 May 2009 10:42:39 -0400
+	id S1761319AbZEAOmp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 May 2009 10:42:45 -0400
 In-Reply-To: <20090501144201.D31EF417@kernel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -15,67 +15,36 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Dave Hansen <dave@linux.vnet.ibm.com>
 
 
-x86 contains three separate pte_offset_map() implementations:
-1. 32-bit highpte
-2. 32-bit direct mapped
-3. 64-bit direct mapped
+Some architectures use pte_offset_map() as a basis for
+pte_offset_kernel().  Others do the inverse.
 
-This patch consolidates the 32-bit direct map and 64-bit
-implementations.  You can look back at the 00 patch in this
-series to see a bit of proof about why
+Although arbitrary, Using pte_offset_kernel() as the base
+seems a wee bit more popular and it also fits in well
+with the way I'm breaking out the headers.
 
-#define pte_offset_map(dir, address)                                   \
-	((pte_t *)page_address(pmd_page(*(dir))) + pte_index((address)))
-
-and
-
-#define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
-
-are actually interchangable.
+Instead of coding the same implementation twice, this
+makes pte_offset_map{,_nested}() call pte_offset_kernel()
+directly.
 
 Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
 ---
 
- linux-2.6.git-dave/arch/x86/include/asm/ptemap.h |   17 +++--------------
- 1 file changed, 3 insertions(+), 14 deletions(-)
+ linux-2.6.git-dave/arch/m32r/include/asm/ptemap.h |    5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
 
-diff -puN arch/x86/include/asm/ptemap.h~factor-x86 arch/x86/include/asm/ptemap.h
---- linux-2.6.git/arch/x86/include/asm/ptemap.h~factor-x86	2009-04-30 15:11:06.000000000 -0700
-+++ linux-2.6.git-dave/arch/x86/include/asm/ptemap.h	2009-04-30 15:11:06.000000000 -0700
-@@ -1,10 +1,7 @@
- #ifndef _X86_ASM_PTEMAP_H
- #define _X86_ASM_PTEMAP_H
+diff -puN arch/m32r/include/asm/ptemap.h~m32r-pte_offset_kernel arch/m32r/include/asm/ptemap.h
+--- linux-2.6.git/arch/m32r/include/asm/ptemap.h~m32r-pte_offset_kernel	2009-04-30 15:11:08.000000000 -0700
++++ linux-2.6.git-dave/arch/m32r/include/asm/ptemap.h	2009-04-30 15:11:08.000000000 -0700
+@@ -1,9 +1,8 @@
+ #ifndef _M32R_ASM_PTEMAP_H
+ #define _M32R_ASM_PTEMAP_H
  
--#ifdef CONFIG_X86_32
--
- #if defined(CONFIG_HIGHPTE)
--
- #define pte_offset_map(dir, address)					\
- 	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE0) +		\
- 	 pte_index((address)))
-@@ -13,21 +10,13 @@
- 	 pte_index((address)))
- #define pte_unmap(pte) kunmap_atomic((pte), KM_PTE0)
- #define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
--#else
--#define pte_offset_map(dir, address)					\
--	((pte_t *)page_address(pmd_page(*(dir))) + pte_index((address)))
--#define pte_offset_map_nested(dir, address) pte_offset_map((dir), (address))
--#define pte_unmap(pte) do { } while (0)
--#define pte_unmap_nested(pte) do { } while (0)
--#endif
- 
--#else /* x86-64 */
-+#else /* !CONFIG_HIGHPTE */
- 
--/* x86-64 always has all page tables mapped. */
- #define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
- #define pte_offset_map_nested(dir, address) pte_offset_kernel((dir), (address))
--#define pte_unmap(pte) /* NOP */
--#define pte_unmap_nested(pte) /* NOP */
-+#define pte_unmap(pte) do { } while (0)
-+#define pte_unmap_nested(pte) do { } while (0)
- 
- #endif
+-#define pte_offset_map(dir, address)	\
+-	((pte_t *)page_address(pmd_page(*(dir))) + pte_index(address))
+-#define pte_offset_map_nested(dir, address)	pte_offset_map(dir, address)
++#define pte_offset_map(dir, address)	pte_offset_kernel(dir, address)
++#define pte_offset_map_nested(dir, address)	pte_offset_kernel(dir, address)
+ #define pte_unmap(pte)		do { } while (0)
+ #define pte_unmap_nested(pte)	do { } while (0)
  
 _
