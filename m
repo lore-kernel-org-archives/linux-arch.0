@@ -1,13 +1,13 @@
 From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: [RFC][PATCH 28/35] mips: use pte_offset_kernel() as base for pte_offset_map*()
-Date: Fri, 01 May 2009 07:42:45 -0700
-Message-ID: <20090501144245.4BB57D7C@kernel>
+Subject: [RFC][PATCH 19/35] x86: create ptemap.h
+Date: Fri, 01 May 2009 07:42:31 -0700
+Message-ID: <20090501144231.7851A761@kernel>
 References: <20090501144201.D31EF417@kernel>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e3.ny.us.ibm.com ([32.97.182.143]:58343 "EHLO e3.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1761365AbZEAOmq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 1 May 2009 10:42:46 -0400
+Received: from e38.co.us.ibm.com ([32.97.110.159]:41651 "EHLO
+	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1763679AbZEAOn5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 10:43:57 -0400
 In-Reply-To: <20090501144201.D31EF417@kernel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -15,80 +15,94 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Dave Hansen <dave@linux.vnet.ibm.com>
 
 
-Some architectures use pte_offset_map() as a basis for
-pte_offset_kernel().  Others do the inverse.
-
-Although arbitrary, Using pte_offset_kernel() as the base
-seems a wee bit more popular and it also fits in well
-with the way I'm breaking out the headers.
-
-Instead of coding the same implementation twice, this
-makes pte_offset_map{,_nested}() call pte_offset_kernel()
-directly.
-
-On MIPS, it is also obvious at this point that the 32 and
-64-bit implementations are identical.  Coalesce them.
 
 Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
 ---
 
- linux-2.6.git-dave/arch/mips/include/asm/pgtable-32.h |    3 +--
- linux-2.6.git-dave/arch/mips/include/asm/pgtable-64.h |    3 +--
- linux-2.6.git-dave/arch/mips/include/asm/ptemap.h     |   17 ++---------------
- 3 files changed, 4 insertions(+), 19 deletions(-)
+ linux-2.6.git-dave/arch/x86/include/asm/pgtable_32.h |   17 ---------
+ linux-2.6.git-dave/arch/x86/include/asm/pgtable_64.h |    6 ---
+ linux-2.6.git-dave/arch/x86/include/asm/ptemap.h     |   34 +++++++++++++++++++
+ 3 files changed, 36 insertions(+), 21 deletions(-)
 
-diff -puN arch/mips/include/asm/pgtable-32.h~mips-pte_offset_kernel arch/mips/include/asm/pgtable-32.h
---- linux-2.6.git/arch/mips/include/asm/pgtable-32.h~mips-pte_offset_kernel	2009-04-30 15:11:09.000000000 -0700
-+++ linux-2.6.git-dave/arch/mips/include/asm/pgtable-32.h	2009-04-30 15:11:09.000000000 -0700
-@@ -149,8 +149,7 @@ pfn_pte(unsigned long pfn, pgprot_t prot
- 	(((address) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
- #define pte_offset(dir, address)					\
- 	((pte_t *) pmd_page_vaddr(*(dir)) + __pte_offset(address))
--#define pte_offset_kernel(dir, address)					\
--	((pte_t *) pmd_page_vaddr(*(dir)) + __pte_offset(address))
-+#define pte_offset_kernel(dir, address) pte_offset(dir, address)
- #include <asm/ptemap.h>
+diff -puN arch/x86/include/asm/pgtable_32.h~x86-ptemaph arch/x86/include/asm/pgtable_32.h
+--- linux-2.6.git/arch/x86/include/asm/pgtable_32.h~x86-ptemaph	2009-04-30 15:11:03.000000000 -0700
++++ linux-2.6.git-dave/arch/x86/include/asm/pgtable_32.h	2009-04-30 15:11:03.000000000 -0700
+@@ -48,22 +48,7 @@ extern void set_pmd_pfn(unsigned long, u
+ # include <asm/pgtable-2level.h>
+ #endif
  
- #if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX)
-diff -puN arch/mips/include/asm/pgtable-64.h~mips-pte_offset_kernel arch/mips/include/asm/pgtable-64.h
---- linux-2.6.git/arch/mips/include/asm/pgtable-64.h~mips-pte_offset_kernel	2009-04-30 15:11:09.000000000 -0700
-+++ linux-2.6.git-dave/arch/mips/include/asm/pgtable-64.h	2009-04-30 15:11:09.000000000 -0700
-@@ -213,8 +213,7 @@ static inline pmd_t *pmd_offset(pud_t * 
- 	(((address) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
- #define pte_offset(dir, address)					\
- 	((pte_t *) pmd_page_vaddr(*(dir)) + __pte_offset(address))
--#define pte_offset_kernel(dir, address)					\
--	((pte_t *) pmd_page_vaddr(*(dir)) + __pte_offset(address))
-+#define pte_offset_kernel(dir, address)	pte_offset(dir, address)
- #include <asm/ptemap.h>
- /*
-  * Initialize a new pgd / pmd table with invalid pointers.
-diff -puN arch/mips/include/asm/ptemap.h~mips-pte_offset_kernel arch/mips/include/asm/ptemap.h
---- linux-2.6.git/arch/mips/include/asm/ptemap.h~mips-pte_offset_kernel	2009-04-30 15:11:09.000000000 -0700
-+++ linux-2.6.git-dave/arch/mips/include/asm/ptemap.h	2009-04-30 15:11:09.000000000 -0700
-@@ -1,22 +1,9 @@
- #ifndef _MIPS_ASM_PTEMAP_H
- #define _MIPS_ASM_PTEMAP_H
- 
--#ifdef CONFIG_32BIT
--#define pte_offset_map(dir, address)                                    \
--	((pte_t *)page_address(pmd_page(*(dir))) + __pte_offset(address))
--#define pte_offset_map_nested(dir, address)                             \
--	((pte_t *)page_address(pmd_page(*(dir))) + __pte_offset(address))
-+#define pte_offset_map(dir, address) pte_offset_kernel(dir, address)
-+#define pte_offset_map_nested(dir, address) pte_offset_kernel(dir, address)
- #define pte_unmap(pte) ((void)(pte))
- #define pte_unmap_nested(pte) ((void)(pte))
--#endif
--
--#ifdef CONFIG_64BIT
+-#if defined(CONFIG_HIGHPTE)
 -#define pte_offset_map(dir, address)					\
--	((pte_t *)page_address(pmd_page(*(dir))) + __pte_offset(address))
+-	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE0) +		\
+-	 pte_index((address)))
 -#define pte_offset_map_nested(dir, address)				\
--	((pte_t *)page_address(pmd_page(*(dir))) + __pte_offset(address))
--#define pte_unmap(pte) ((void)(pte))
--#define pte_unmap_nested(pte) ((void)(pte))
+-	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE1) +		\
+-	 pte_index((address)))
+-#define pte_unmap(pte) kunmap_atomic((pte), KM_PTE0)
+-#define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
+-#else
+-#define pte_offset_map(dir, address)					\
+-	((pte_t *)page_address(pmd_page(*(dir))) + pte_index((address)))
+-#define pte_offset_map_nested(dir, address) pte_offset_map((dir), (address))
+-#define pte_unmap(pte) do { } while (0)
+-#define pte_unmap_nested(pte) do { } while (0)
 -#endif
++#include <asm/ptemap.h>
  
- #endif /* _MIPS_ASM_PTEMAP_H */
+ /* Clear a kernel PTE and flush it from the TLB */
+ #define kpte_clear_flush(ptep, vaddr)		\
+diff -puN arch/x86/include/asm/pgtable_64.h~x86-ptemaph arch/x86/include/asm/pgtable_64.h
+--- linux-2.6.git/arch/x86/include/asm/pgtable_64.h~x86-ptemaph	2009-04-30 15:11:03.000000000 -0700
++++ linux-2.6.git-dave/arch/x86/include/asm/pgtable_64.h	2009-04-30 15:11:03.000000000 -0700
+@@ -127,11 +127,7 @@ static inline int pgd_large(pgd_t pgd) {
+ 
+ /* PTE - Level 1 access. */
+ 
+-/* x86-64 always has all page tables mapped. */
+-#define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
+-#define pte_offset_map_nested(dir, address) pte_offset_kernel((dir), (address))
+-#define pte_unmap(pte) /* NOP */
+-#define pte_unmap_nested(pte) /* NOP */
++#include <asm/ptemap.h>
+ 
+ #define update_mmu_cache(vma, address, pte) do { } while (0)
+ 
+diff -puN /dev/null arch/x86/include/asm/ptemap.h
+--- /dev/null	2008-09-02 09:40:19.000000000 -0700
++++ linux-2.6.git-dave/arch/x86/include/asm/ptemap.h	2009-04-30 15:11:03.000000000 -0700
+@@ -0,0 +1,34 @@
++#ifndef _X86_ASM_PTEMAP_H
++#define _X86_ASM_PTEMAP_H
++
++#ifdef CONFIG_X86_32
++
++#if defined(CONFIG_HIGHPTE)
++
++#define pte_offset_map(dir, address)					\
++	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE0) +		\
++	 pte_index((address)))
++#define pte_offset_map_nested(dir, address)				\
++	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE1) +		\
++	 pte_index((address)))
++#define pte_unmap(pte) kunmap_atomic((pte), KM_PTE0)
++#define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
++#else
++#define pte_offset_map(dir, address)					\
++	((pte_t *)page_address(pmd_page(*(dir))) + pte_index((address)))
++#define pte_offset_map_nested(dir, address) pte_offset_map((dir), (address))
++#define pte_unmap(pte) do { } while (0)
++#define pte_unmap_nested(pte) do { } while (0)
++#endif
++
++#else /* x86-64 */
++
++/* x86-64 always has all page tables mapped. */
++#define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
++#define pte_offset_map_nested(dir, address) pte_offset_kernel((dir), (address))
++#define pte_unmap(pte) /* NOP */
++#define pte_unmap_nested(pte) /* NOP */
++
++#endif
++
++#endif /* _X86_ASM_PTEMAP_H */
 _
