@@ -1,46 +1,42 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 12/27] asm-generic: add a NOMMU uaccess.h
-Date: Fri, 1 May 2009 14:36:04 +0200
-Message-ID: <200905011436.05204.arnd@arndb.de>
-References: <cover.1241105648.git.arnd@arndb.de> <45b4644e80c27b9d042b3960e3d99f0d444e0d92.1241105648.git.arnd@arndb.de> <c1a198be0904302337x714621d8xc4685a634c5cf222@mail.gmail.com>
+From: Russell King <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 04/27] asm-generic: add legacy I/O header files
+Date: Fri, 1 May 2009 13:36:45 +0100
+Message-ID: <20090501123645.GB27799@flint.arm.linux.org.uk>
+References: <cover.1241105648.git.arnd@arndb.de> <10b3a32656e5552458db7412ef9ff8530d5f92aa.1241105648.git.arnd@arndb.de> <c1a198be0904302309w4154f97dqddd0b2df1924a821@mail.gmail.com> <200905011422.29753.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.188]:56832 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751815AbZEAMgM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 08:36:12 -0400
-In-Reply-To: <c1a198be0904302337x714621d8xc4685a634c5cf222@mail.gmail.com>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:58459 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752620AbZEAMg6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 08:36:58 -0400
 Content-Disposition: inline
+In-Reply-To: <200905011422.29753.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <monstr@monstr.eu>
-Cc: linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.arm.linux.org.uk
+Cc: Michal Simek <monstr@monstr.eu>, linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
-T24gRnJpZGF5IDAxIE1heSAyMDA5LCBNaWNoYWwgU2ltZWsgd3JvdGU6Cj4gPiArI2lmbmRlZiBf
-X3B1dF91c2VyCj4gPiArI2RlZmluZSBfX3B1dF91c2VyKHgsIHB0cikgoCCgIKAgoCCgIKAgoCCg
-IKAgoCCgIKAgoCCgIFwKPiA+ICsoeyCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAg
-oCCgIKAgoCCgIKAgoCCgIKAgXAo+ID4gKyCgIKAgoCBpbnQgX19wdV9lcnIgPSAwOyCgIKAgoCCg
-IKAgoCCgIKAgoCCgIKAgoCCgIKAgoCBcCj4gPiArIKAgoCCgIHR5cGVvZigqKHB0cikpIF9fcHVf
-dmFsID0gKHgpOyCgIKAgoCCgIKAgoCCgIKAgoFwKPiA+ICsgoCCgIKAgc3dpdGNoIChzaXplb2Yg
-KCoocHRyKSkpIHsgoCCgIKAgoCCgIKAgoCCgIKAgoCCgXAo+ID4gKyCgIKAgoCBjYXNlIDE6IKAg
-oCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCBcCj4gPiArIKAgoCCgIGNhc2Ug
-MjogoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIFwKPiA+ICsgoCCgIKAg
-Y2FzZSA0OiCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgXAo+ID4gKyCg
-IKAgoCCgIKAgoCCgICoocHRyKSA9IChfX3B1X3ZhbCk7IKAgoCCgIKAgoCCgIKAgoCCgIKBcCj4g
-PiArIKAgoCCgIKAgoCCgIKAgYnJlYWs7IKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAg
-oFwKPiA+ICsgoCCgIKAgY2FzZSA4OiCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAg
-oCCgIKAgXAo+ID4gKyCgIKAgoCCgIKAgoCCgIG1lbWNweShwdHIsICZfX3B1X3ZhbCwgc2l6ZW9m
-ICgqKHB0cikpKTtcCj4gCj4gCj4gcG90ZW50aWFsIGNhc3QgcHJvYmxlbQoKWWVzLCBJJ20gbG9v
-a2luZyBpbnRvIHRoaXMgYWxyZWFkeSwgcHJvYmFibHkgd2lsbCBkbyBzb21ldGhpbmcKYmFzZWQg
-b24gdGhlIHMzOTAgY29kZSwgd2hpY2ggc2VlbXMgdG8gZG8gdGhpcyBjb3JyZWN0bHkuCgo+ID4g
-KyNkZWZpbmUgcHV0X3VzZXIoeCwgcHRyKSAoIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCCgIKAgoCBc
-Cj4gPiArIKAgoCCgIGFjY2Vzc19vayhWRVJJRllfV1JJVEUsIHB0ciwgc2l6ZW9mICgqcHRyKSkg
-PyCgIFwKPiA+ICsgoCCgIKAgoCCgIKAgoCBfX3B1dF91c2VyKHgsIHB0cikgOiCgIKAgoCCgIKAg
-oCCgIKAgoCCgXAo+ID4gKyCgIKAgoCCgIKAgoCCgIC1FRkFVTFQpCj4gCj4gCj4gSU1ITyB3cml0
-ZSBpdCBhcyBpbmxpbmUgZnVuY3Rpb24gd2l0aCB0eXBlIGNoZWNraW5nLgoKVW5mb3J0dW5hdGVs
-eSwgdGhpcyBkb2Vzbid0IHdvcmsgYmVjYXVzZSBvZiB0aGUgY2FsbGluCmNvbnZlbnRpb25zOiBf
-X3B1dF91c2VyIG5lZWRzIHRvIGtub3cgdGhlIHR5cGUgb2YgcHRyLApzbyBpdCBoYXMgdG8gYmUg
-YSBtYWNyby4KCglBcm5kIDw+PAo=
+On Fri, May 01, 2009 at 02:22:29PM +0200, Arnd Bergmann wrote:
+> drivers/rtc/rtc-pxa.c:#define TIMER_FREQ                CLOCK_TICK_RATE
+
+Needs to use some separate definition, this is not related in any way
+to the ISA timer stuff.
+
+> drivers/serial/serial_ks8695.c:         .uartclk        = CLOCK_TICK_RATE * 16,
+
+Ditto.
+
+> drivers/watchdog/davinci_wdt.c: timer_margin = (((u64)heartbeat * CLOCK_TICK_RATE) & 0xffffffff);
+> drivers/watchdog/davinci_wdt.c: timer_margin = (((u64)heartbeat * CLOCK_TICK_RATE) >> 32);
+
+Ditto.
+
+> drivers/watchdog/ks8695_wdt.c:  unsigned long tval = wdt_time * CLOCK_TICK_RATE;
+
+Ditto.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
