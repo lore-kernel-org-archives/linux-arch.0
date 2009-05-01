@@ -1,45 +1,47 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH 07/27] asm-generic: add minimal cache description
-Date: Fri, 01 May 2009 14:52:04 +0200
-Message-ID: <49FAF074.9080202@monstr.eu>
-References: <cover.1241105648.git.arnd@arndb.de> <2d8ccc76119d2379859480dbb8f7562743a1de58.1241105648.git.arnd@arndb.de> <c1a198be0904302303h73c5168fi73f8dc24dc677965@mail.gmail.com> <200905011427.05099.arnd@arndb.de>
-Reply-To: monstr@monstr.eu
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 04/27] asm-generic: add legacy I/O header files
+Date: Fri, 1 May 2009 14:53:31 +0200
+Message-ID: <200905011453.32006.arnd@arndb.de>
+References: <cover.1241105648.git.arnd@arndb.de> <49FAEA2A.50504@monstr.eu> <20090501123728.GC27799@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f158.google.com ([209.85.220.158]:52084 "EHLO
-	mail-fx0-f158.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751746AbZEAMwH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 08:52:07 -0400
-In-Reply-To: <200905011427.05099.arnd@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.126.177]:61798 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753181AbZEAMxo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 08:53:44 -0400
+In-Reply-To: <20090501123728.GC27799@flint.arm.linux.org.uk>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: Michal Simek <monstr@monstr.eu>, linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
-Arnd Bergmann wrote:
-> On Friday 01 May 2009, Michal Simek wrote:
->>> +#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
->>> +       memcpy(dst, src, len)
->>> +#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
->>> +       memcpy(dst, src, len)
->>
->> IMHO these two macros will generate cast errors.
+On Friday 01 May 2009, Russell King wrote:
+> > > All of these are either PC-specific, or they don't actually care
+> > > about the specific value. Most architectures just use the
+> > > value from the IBM PC, so we might as well make that the generic
+> > > default.
+> > 
+> > ok. Let's move out from arch to generic location.
 > 
-> I did not see errors here, can you clarify? Note that despite the name,
-> they don't take a __user pointer. Maybe they should be inline functions
-> to make that more obvious.
+> That's only possible once the users have been fixed - otherwise the ARM
+> stuff listed above _will_ break.
 
-you are right here with __user.
-x86 use it as inline function.
+My idea was to just add a fallback of
 
-Michal
+#ifndef CLOCK_TICK_RATE
+#define CLOCK_TICK_RATE                1193182
+#endif
 
-> 
-> 	Arnd <><
+to include/linux/timex.h. Since al existing architectures already define
+CLOCK_TICK_RATE as a macro, I don't see anything changing for them.
 
+The only difference would be that all architectures that use the default
+value can have an empty timex.h.
 
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
+Am I missing something?
+
+	Arnd <><
