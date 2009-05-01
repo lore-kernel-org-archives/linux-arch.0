@@ -1,28 +1,111 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 04/27] asm-generic: add legacy I/O header files
-Date: Fri, 1 May 2009 16:07:48 +0200
-Message-ID: <200905011607.49522.arnd@arndb.de>
-References: <cover.1241105648.git.arnd@arndb.de> <200905011556.39437.arnd@arndb.de> <20090501150319.192f6dce@lxorguk.ukuu.org.uk>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH V3] asm-generic: add a generic uaccess.h
+Date: Fri, 01 May 2009 16:11:27 +0200
+Message-ID: <49FB030F.8060300@monstr.eu>
+References: <cover.1241105648.git.arnd@arndb.de> <200905011513.25344.arnd@arndb.de> <49FAFD63.2080102@monstr.eu> <200905011606.05319.arnd@arndb.de>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=ISO-8859-15
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:54504 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751495AbZEAOHu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 10:07:50 -0400
-In-Reply-To: <20090501150319.192f6dce@lxorguk.ukuu.org.uk>
-Content-Disposition: inline
+Received: from mail-fx0-f158.google.com ([209.85.220.158]:43599 "EHLO
+	mail-fx0-f158.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751539AbZEAOLa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 10:11:30 -0400
+In-Reply-To: <200905011606.05319.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Michal Simek <monstr@monstr.eu>, linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org, Russell King <rmk+lkml@arm.linux.org.uk>
 
-On Friday 01 May 2009, Alan Cox wrote:
-> So we now have at least two conflicting meanings for CLOCK_TICK_RATE
-> which again says it needs fixing not wallpapering over.
+Arnd Bergmann wrote:
+> On Friday 01 May 2009, Michal Simek wrote:
+>> Arnd Bergmann wrote:
+>>> +
+>>> +#include <asm/segment.h>
+>>> +
+>>> +#ifndef get_fs
+>>> +#define MAKE_MM_SEG(s)	((mm_segment_t) { (s) })
+>> one line above -> get_fs could be defined in different space
+>> and this arch could use MAKE_MM_SEG too -> for example powerpc.
+> 
+> I don't think I understand what you are trying to tell me.
+> How do you think this should look?
 
-Right, I agree. I'll look into it next week.
+I meant move MAKE_MM_SEG macro to this position because this macro could be use
+with arch which define different get_fs.
 
-	Arnd <><
+#define MAKE_MM_SEG(s)	((mm_segment_t) { (s) })
+#ifndef get_fs
+...
+
+
+> 
+>>> +
+>>> +#define VERIFY_READ	0
+>>> +#define VERIFY_WRITE	1
+>>> +
+>>
+>> Not sure if any arch do READ/WRITE check but if yes.
+> 
+> I could not find any architecture using it either, but the
+> API is defined this way.
+> 
+>> #ifndef access_ok
+>>
+>>> +#define access_ok(type, addr, size) __access_ok((unsigned long)(addr),(size))
+>> #endif
+> 
+> right, will change.
+> 
+>>> +
+>>> +/*
+>>> + * The architecture should really override this if possible, at least
+>>> + * doing a check on the get_fs()
+>>> + */
+>> If they should really override it but why write it here.
+> 
+> Mostly for documentation purposes, so that an architecture maintainer
+> can copy the prototype. I see the asm-generic headers as both fallbacks
+> for architectures and as templates of what should be implemented.
+> 
+>>> +#define get_user(x, ptr)					\
+>>> +({								\
+>>> +	might_sleep();						\
+>>> +	__access_ok(ptr, sizeof (*ptr)) ?			\
+>>> +		__get_user(x, ptr) :				\
+>>> +		-EFAULT;					\
+>>> +})
+>> I am getting here (for put_user macro too) any error on noMMU. :-(
+> 
+> What kind of error do you see?
+
+System is getting crazy with -> I am debugging it.
+
+
+>  
+>>> +static inline long
+>>> +strncpy_from_user(char *dst, const char __user *src, long count)
+>>> +{
+>>> +	if (!__access_ok(src, 1))
+>>> +		return -EFAULT;
+>>> +	return __strncpy_from_user(dst, src, count);
+>>> +}
+>> Is it a good place to add might_sleep() and unlikely(+ some other cases) too?
+>> We have almost the same code.
+> 
+> Yes, I think so. The unlikely() can probably go into __access_ok() though,
+> so we don't have to write it every time.
+
+ok
+
+Michal
+
+
+> 
+> 	Arnd <><
+
+
+-- 
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
