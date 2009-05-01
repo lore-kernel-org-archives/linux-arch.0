@@ -1,36 +1,43 @@
-From: Andreas Schwab <schwab@linux-m68k.org>
+From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: "N" symbols and System.map
-Date: Sat, 02 May 2009 01:10:18 +0200
-Message-ID: <m2preso1wl.fsf@igel.home>
-References: <49FB7692.2000508@linux.intel.com>
+Date: Sat, 2 May 2009 01:21:49 +0200
+Message-ID: <20090501232149.GA28888@uranus.ravnborg.org>
+References: <49FB7692.2000508@linux.intel.com> <m2preso1wl.fsf@igel.home>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-out.m-online.net ([212.18.0.9]:35446 "EHLO
-	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754269AbZEAXKW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 19:10:22 -0400
-In-Reply-To: <49FB7692.2000508@linux.intel.com> (H. Peter Anvin's message of
-	"Fri, 01 May 2009 15:24:18 -0700")
+Received: from pfepb.post.tele.dk ([195.41.46.236]:48995 "EHLO
+	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753549AbZEAXTk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 19:19:40 -0400
+Content-Disposition: inline
+In-Reply-To: <m2preso1wl.fsf@igel.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@linux.intel.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
+To: Andreas Schwab <schwab@linux-m68k.org>
+Cc: "H. Peter Anvin" <hpa@linux.intel.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
-"H. Peter Anvin" <hpa@linux.intel.com> writes:
+On Sat, May 02, 2009 at 01:10:18AM +0200, Andreas Schwab wrote:
+> "H. Peter Anvin" <hpa@linux.intel.com> writes:
+> 
+> > right now, we filter out symbols that nm tag N, meaning "debugging
+> > symbols", from System.map.  However, at least on x86, the linker-generated
+> > symbol _end is tagged N, and in fact is the only N in the entire image.
+> >
+> > Are there other architectures which would suffer if N were included in
+> > System.map, or would that be a reasonable thing to do?
+> 
+> There should not be any N symbols unless you are using stabs debugging.
 
-> right now, we filter out symbols that nm tag N, meaning "debugging
-> symbols", from System.map.  However, at least on x86, the linker-generated
-> symbol _end is tagged N, and in fact is the only N in the entire image.
->
-> Are there other architectures which would suffer if N were included in
-> System.map, or would that be a reasonable thing to do?
+We have in vmlinux:
+        .end : AT(ADDR(.end) - LOAD_OFFSET) {
+                _end = .;
+        }
 
-There should not be any N symbols unless you are using stabs debugging.
 
-Andreas.
+And I see:
+c1834000 N _end
 
--- 
-Andreas Schwab, schwab@linux-m68k.org
-GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
-"And now for something completely different."
+This is the _only_ 'N' symbol in my vmlinux.
+
+	Sam
