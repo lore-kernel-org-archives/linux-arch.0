@@ -1,48 +1,43 @@
 From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: Re: [RFC][PATCH 32/35] Move users to asm-generic/ptemap.h
-Date: Fri, 01 May 2009 11:08:58 -0700
-Message-ID: <1241201338.29485.205.camel@nimitz>
+Subject: RE: [RFC][PATCH 33/35] asm-generic/ptemap.h for HIGHPTE users
+Date: Fri, 01 May 2009 11:10:52 -0700
+Message-ID: <1241201452.29485.206.camel@nimitz>
 References: <20090501144201.D31EF417@kernel>
-	 <20090501144251.62441D55@kernel>  <20090501174331.GA8104@infradead.org>
+	 <20090501144252.A2BDDE6B@kernel>
+	 <57C9024A16AD2D4C97DC78E552063EA39EF467E5@orsmsx505.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e1.ny.us.ibm.com ([32.97.182.141]:48199 "EHLO e1.ny.us.ibm.com"
+Received: from e1.ny.us.ibm.com ([32.97.182.141]:48774 "EHLO e1.ny.us.ibm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755527AbZEASJB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 1 May 2009 14:09:01 -0400
-In-Reply-To: <20090501174331.GA8104@infradead.org>
+	id S1759822AbZEASKy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 May 2009 14:10:54 -0400
+In-Reply-To: <57C9024A16AD2D4C97DC78E552063EA39EF467E5@orsmsx505.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Fri, 2009-05-01 at 13:43 -0400, Christoph Hellwig wrote:
-> On Fri, May 01, 2009 at 07:42:51AM -0700, Dave Hansen wrote:
-> > Now that we have everyone using pte_offset_kernel(),
-> > we can plainy see that almost all the users are
-> > exactly the same.
-> > 
-> > This takes all of those users and moves them over to
-> > using asm-generic/ptemap.h instead.
+On Fri, 2009-05-01 at 10:51 -0700, Luck, Tony wrote:
+> > diff -puN include/asm-generic/ptemap.h~asm-generic-ptemap-h-highpte include/asm-generic/ptemap.h
+> > +#ifdef CONFIG_HIGHPTE
+> > +#include <asm/highmem.h>
+> > +#define pte_offset_map(dir, address) \
+> > +     ((pte_t *)kmap_atomic(pmd_page(*(dir)),KM_PTE0) + pte_index(address))
+> > +#define pte_offset_map_nested(dir, address) \
+> > +     ((pte_t *)kmap_atomic(pmd_page(*(dir)),KM_PTE1) + pte_index(address))
+> > +#define pte_unmap(pte) kunmap_atomic(pte, KM_PTE0)
+> > +#define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
+> > +
+> > +#else /* !CONFIG_HIGHPTE */
+> > +
+> > #define pte_offset_map(dir,addr)      pte_offset_kernel((dir),(addr))
+> > #define pte_offset_map_nested(dir,addr)       pte_offset_kernel((dir),(addr))
+> > #define pte_unmap(pte)                        do { } while (0)
 > 
-> s/users/implementations/g ?
+> You need to add a closing #endif here.
 
-Yeah, that's clearer.
-
-> Also asm-generic/ptemap.h really wants a comment when architectures
-> can use this generic version.
-
-/*
- * If your architecture has direct-mapped PTE pages (no HIGHPTE)
- * then you just need to implement pte_offset_kernel() and include
- * this in your asm/ptemap.h.
- *
- * To support HIGHPTE, you need to have implementations of
- * kmap_atomic_pte() (which usually just calls kmap_atomic()),
- * pmd_page() and pmd_index().
- */
-
+Fixed, thanks.
 
 -- Dave
