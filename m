@@ -1,111 +1,74 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH V3] asm-generic: add a generic uaccess.h
-Date: Fri, 01 May 2009 16:11:27 +0200
-Message-ID: <49FB030F.8060300@monstr.eu>
-References: <cover.1241105648.git.arnd@arndb.de> <200905011513.25344.arnd@arndb.de> <49FAFD63.2080102@monstr.eu> <200905011606.05319.arnd@arndb.de>
-Reply-To: monstr@monstr.eu
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15
-Content-Transfer-Encoding: 7bit
+From: Dave Hansen <dave@linux.vnet.ibm.com>
+Subject: [RFC][PATCH 02/35] rework sparc pte functions to be consistent with other arches
+Date: Fri, 01 May 2009 07:42:04 -0700
+Message-ID: <20090501144204.7D02F25C@kernel>
+References: <20090501144201.D31EF417@kernel>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f158.google.com ([209.85.220.158]:43599 "EHLO
-	mail-fx0-f158.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751539AbZEAOLa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 10:11:30 -0400
-In-Reply-To: <200905011606.05319.arnd@arndb.de>
+Received: from e6.ny.us.ibm.com ([32.97.182.146]:49041 "EHLO e6.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753070AbZEAOmG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 May 2009 10:42:06 -0400
+In-Reply-To: <20090501144201.D31EF417@kernel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org, Russell King <rmk+lkml@arm.linux.org.uk>
-
-Arnd Bergmann wrote:
-> On Friday 01 May 2009, Michal Simek wrote:
->> Arnd Bergmann wrote:
->>> +
->>> +#include <asm/segment.h>
->>> +
->>> +#ifndef get_fs
->>> +#define MAKE_MM_SEG(s)	((mm_segment_t) { (s) })
->> one line above -> get_fs could be defined in different space
->> and this arch could use MAKE_MM_SEG too -> for example powerpc.
-> 
-> I don't think I understand what you are trying to tell me.
-> How do you think this should look?
-
-I meant move MAKE_MM_SEG macro to this position because this macro could be use
-with arch which define different get_fs.
-
-#define MAKE_MM_SEG(s)	((mm_segment_t) { (s) })
-#ifndef get_fs
-...
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Dave Hansen <dave@linux.vnet.ibm.com>
 
 
-> 
->>> +
->>> +#define VERIFY_READ	0
->>> +#define VERIFY_WRITE	1
->>> +
->>
->> Not sure if any arch do READ/WRITE check but if yes.
-> 
-> I could not find any architecture using it either, but the
-> API is defined this way.
-> 
->> #ifndef access_ok
->>
->>> +#define access_ok(type, addr, size) __access_ok((unsigned long)(addr),(size))
->> #endif
-> 
-> right, will change.
-> 
->>> +
->>> +/*
->>> + * The architecture should really override this if possible, at least
->>> + * doing a check on the get_fs()
->>> + */
->> If they should really override it but why write it here.
-> 
-> Mostly for documentation purposes, so that an architecture maintainer
-> can copy the prototype. I see the asm-generic headers as both fallbacks
-> for architectures and as templates of what should be implemented.
-> 
->>> +#define get_user(x, ptr)					\
->>> +({								\
->>> +	might_sleep();						\
->>> +	__access_ok(ptr, sizeof (*ptr)) ?			\
->>> +		__get_user(x, ptr) :				\
->>> +		-EFAULT;					\
->>> +})
->> I am getting here (for put_user macro too) any error on noMMU. :-(
-> 
-> What kind of error do you see?
+sparc64 has a unique unusual pte_index().  All other architectures
+just take a virtual address and give back the offset inside the
+pte page of that address's pte.
 
-System is getting crazy with -> I am debugging it.
+The sparc64 one actually takes both the pmd_t and the virtual
+address and returns the pte_t itself.  This is more akin to what
+pte_offset_map() does on all the other implementations.
 
+This patch adds a new implementations of pte_index() and
+pmd_page_vaddr() which are pretty straighforward and just copied
+from other architectures.
 
->  
->>> +static inline long
->>> +strncpy_from_user(char *dst, const char __user *src, long count)
->>> +{
->>> +	if (!__access_ok(src, 1))
->>> +		return -EFAULT;
->>> +	return __strncpy_from_user(dst, src, count);
->>> +}
->> Is it a good place to add might_sleep() and unlikely(+ some other cases) too?
->> We have almost the same code.
-> 
-> Yes, I think so. The unlikely() can probably go into __access_ok() though,
-> so we don't have to write it every time.
+Then, we use the new functions in pte_offset_kernel().  We use
+pte_offset_kernel() as the base from which we define 
+pte_offset_map() and pte_offset_map_nested().  
 
-ok
+All of this brings sparc64 back inline with what all the other
+architectures are doing and prepares it for things to come. :)
 
-Michal
+Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
+---
 
+ linux-2.6.git-dave/arch/sparc/include/asm/pgtable_64.h |   13 +++++++------
+ 1 file changed, 7 insertions(+), 6 deletions(-)
 
-> 
-> 	Arnd <><
-
-
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
+diff -puN arch/sparc/include/asm/pgtable_64.h~rename-sparc-pte_index arch/sparc/include/asm/pgtable_64.h
+--- linux-2.6.git/arch/sparc/include/asm/pgtable_64.h~rename-sparc-pte_index	2009-04-30 15:10:53.000000000 -0700
++++ linux-2.6.git-dave/arch/sparc/include/asm/pgtable_64.h	2009-04-30 15:10:53.000000000 -0700
+@@ -619,6 +619,7 @@ static inline int pte_special(pte_t pte)
+ #define __pmd_page(pmd)		\
+ 	((unsigned long) __va((((unsigned long)pmd_val(pmd))<<11UL)))
+ #define pmd_page(pmd) 			virt_to_page((void *)__pmd_page(pmd))
++#define pmd_page_vaddr(pmd) ((unsigned long) __va(pmd_val(pmd) & PAGE_MASK))
+ #define pud_page_vaddr(pud)		\
+ 	((unsigned long) __va((((unsigned long)pud_val(pud))<<11UL)))
+ #define pud_page(pud) 			virt_to_page((void *)pud_page_vaddr(pud))
+@@ -646,13 +647,13 @@ static inline int pte_special(pte_t pte)
+ 	((pmd_t *) pud_page_vaddr(*(pudp)) + \
+ 	 (((address) >> PMD_SHIFT) & (PTRS_PER_PMD-1)))
+ 
++#define pte_index(address) (((address) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
++
+ /* Find an entry in the third-level page table.. */
+-#define pte_index(dir, address)	\
+-	((pte_t *) __pmd_page(*(dir)) + \
+-	 ((address >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)))
+-#define pte_offset_kernel		pte_index
+-#define pte_offset_map			pte_index
+-#define pte_offset_map_nested		pte_index
++#define pte_offset_kernel(dir, address)	\
++	((pte_t *)pmd_page_vaddr(*(dir)) + pte_index(address))
++#define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
++#define pte_offset_map_nested(dir, address) pte_offset_kernel((dir), (address))
+ #define pte_unmap(pte)			do { } while (0)
+ #define pte_unmap_nested(pte)		do { } while (0)
+ 
+_
