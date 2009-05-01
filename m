@@ -1,86 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from lug-owl.de ([195.71.106.12]:54777 "EHLO lug-owl.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750727AbZD3Wne (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Apr 2009 18:43:34 -0400
-Date: Fri, 1 May 2009 00:35:47 +0200
-From: Jan-Benedict Glaw <jbglaw@lug-owl.de>
-Subject: Re: [PATCH 17/27] add generic lib/checksum.c
-Message-ID: <20090430223547.GO12974@lug-owl.de>
-References: <cover.1241105648.git.arnd@arndb.de> <cda5746ab12cf9d6bcb7803a3667c92250a29784.1241105648.git.arnd@arndb.de>
+Received: from mail-fx0-f158.google.com ([209.85.220.158]:51493 "EHLO
+	mail-fx0-f158.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755529AbZEAMiP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 08:38:15 -0400
+Message-ID: <49FAED34.5000701@monstr.eu>
+Date: Fri, 01 May 2009 14:38:12 +0200
+From: Michal Simek <monstr@monstr.eu>
+Reply-To: monstr@monstr.eu
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="6iXXu7NwgEt9u5a7"
-Content-Disposition: inline
-In-Reply-To: <cda5746ab12cf9d6bcb7803a3667c92250a29784.1241105648.git.arnd@arndb.de>
+Subject: Re: [PATCH 12/27] asm-generic: add a NOMMU uaccess.h
+References: <cover.1241105648.git.arnd@arndb.de> <45b4644e80c27b9d042b3960e3d99f0d444e0d92.1241105648.git.arnd@arndb.de> <c1a198be0904302337x714621d8xc4685a634c5cf222@mail.gmail.com> <200905011436.05204.arnd@arndb.de>
+In-Reply-To: <200905011436.05204.arnd@arndb.de>
+Content-Type: text/plain; charset=ISO-8859-15
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
-Message-ID: <20090430223547.gAXM_1LmPfbHyA9rqGW_42EZ3P_a8ZcOwhSn1VM0c4I@z>
+Cc: linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
+Message-ID: <20090501123812.Y_p4NN_yPQWFxnSk04WNqikgmH0Glld6dhX1jgxKm3Y@z>
+
+Arnd Bergmann wrote:
+> On Friday 01 May 2009, Michal Simek wrote:
+>>> +#ifndef __put_user
+>>> +#define __put_user(x, ptr)                             \
+>>> +({                                                     \
+>>> +       int __pu_err = 0;                               \
+>>> +       typeof(*(ptr)) __pu_val = (x);                  \
+>>> +       switch (sizeof (*(ptr))) {                      \
+>>> +       case 1:                                         \
+>>> +       case 2:                                         \
+>>> +       case 4:                                         \
+>>> +               *(ptr) = (__pu_val);                    \
+>>> +               break;                                  \
+>>> +       case 8:                                         \
+>>> +               memcpy(ptr, &__pu_val, sizeof (*(ptr)));\
+>>
+>> potential cast problem
+> 
+> Yes, I'm looking into this already, probably will do something
+> based on the s390 code, which seems to do this correctly.
+> 
+>>> +#define put_user(x, ptr) (                             \
+>>> +       access_ok(VERIFY_WRITE, ptr, sizeof (*ptr)) ?   \
+>>> +               __put_user(x, ptr) :                    \
+>>> +               -EFAULT)
+>>
+>> IMHO write it as inline function with type checking.
+> 
+> Unfortunately, this doesn't work because of the callin
+> conventions: __put_user needs to know the type of ptr,
+> so it has to be a macro.
+
+yes, I am looking on it too.
+
+Michal
+
+> 
+> 	Arnd <><
 
 
---6iXXu7NwgEt9u5a7
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-On Tue, 2009-03-31 15:30:31 +0200, Arnd Bergmann <arnd@arndb.de> wrote:
-> Add a generic (unoptimized) implementation of checksum.c in pure C
-> for use by all architectures.
->=20
-> Based on microblaze code by Michal Simek <monstr@monstr.eu>
->=20
-> Cc: Michal Simek <monstr@monstr.eu>
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
-> ---
->  include/asm-generic/checksum.h |   79 +++++++++++++++++
->  lib/Makefile                   |    2 +
->  lib/checksum.c                 |  188 ++++++++++++++++++++++++++++++++++=
-++++++
->  3 files changed, 269 insertions(+), 0 deletions(-)
->  create mode 100644 include/asm-generic/checksum.h
->  create mode 100644 lib/checksum.c
->=20
-> diff --git a/lib/checksum.c b/lib/checksum.c
-                                ^^^^^^^^^^^^^^
-> new file mode 100644
-> index 0000000..4f80a4d
-> --- /dev/null
-> +++ b/lib/checksum.c
-> @@ -0,0 +1,188 @@
-> +/*
-> + * arch/microblaze/lib/checksum.c
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> + *
-> + * Copyright (C) 2008 Michal Simek <monstr@monstr.eu>
-
-I haven't looked at the code in detail, but it would be nice to see it
-show up soon. Just faced the IP checksumming code while resurrecting
-the VAX port.
-
-MfG, JBG
-
---=20
-      Jan-Benedict Glaw      jbglaw@lug-owl.de              +49-172-7608481
-Signature of:         "really soon now":      an unspecified period of time=
-, likly to
-the second  :                                 be greater than any reasonabl=
-e definition
-                                              of "soon".
-
---6iXXu7NwgEt9u5a7
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-Content-Disposition: inline
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.9 (GNU/Linux)
-
-iEYEARECAAYFAkn6J8MACgkQHb1edYOZ4buZlQCggtMS918rOtWzi8mC+00TL7ob
-VD0AnjW16QiZ/8f/6yASMg128dfmMXzq
-=OBwo
------END PGP SIGNATURE-----
-
---6iXXu7NwgEt9u5a7--
+-- 
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
