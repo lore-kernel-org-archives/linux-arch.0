@@ -1,66 +1,59 @@
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: [PATCH 04/27] asm-generic: add legacy I/O header files
-Date: Fri, 1 May 2009 13:37:28 +0100
-Message-ID: <20090501123728.GC27799@flint.arm.linux.org.uk>
-References: <cover.1241105648.git.arnd@arndb.de> <10b3a32656e5552458db7412ef9ff8530d5f92aa.1241105648.git.arnd@arndb.de> <c1a198be0904302309w4154f97dqddd0b2df1924a821@mail.gmail.com> <200905011422.29753.arnd@arndb.de> <49FAEA2A.50504@monstr.eu>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH 12/27] asm-generic: add a NOMMU uaccess.h
+Date: Fri, 01 May 2009 14:38:12 +0200
+Message-ID: <49FAED34.5000701@monstr.eu>
+References: <cover.1241105648.git.arnd@arndb.de> <45b4644e80c27b9d042b3960e3d99f0d444e0d92.1241105648.git.arnd@arndb.de> <c1a198be0904302337x714621d8xc4685a634c5cf222@mail.gmail.com> <200905011436.05204.arnd@arndb.de>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:58465 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754368AbZEAMhk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 08:37:40 -0400
-Content-Disposition: inline
-In-Reply-To: <49FAEA2A.50504@monstr.eu>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <monstr@monstr.eu>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-15
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1760245AbZEAMim@vger.kernel.org>
+In-Reply-To: <200905011436.05204.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, May 01, 2009 at 02:25:14PM +0200, Michal Simek wrote:
-> Arnd Bergmann wrote:
-> > On Friday 01 May 2009, Michal Simek wrote:
-> >>> +/*
-> >>> + * CLOCK_TICK_RATE is highly PC-specific and should not
-> >>> + * be used in portable code. 1193182 is the value for the
-> >>> + * original i8253 PIC.
-> >>> + */
-> >>> +#ifndef CLOCK_TICK_RATE
-> >>> +#define CLOCK_TICK_RATE                1193182
-> >>> +#endif
-> >>
-> >> Why is this in generic code?
-> > 
-> > CLOCK_TICK_RATE is only used in a few places:
-> > 
-> > drivers/char/vt_ioctl.c:                        arg = CLOCK_TICK_RATE / arg;
-> > drivers/char/vt_ioctl.c:                        count = CLOCK_TICK_RATE / count;
-> > drivers/clocksource/acpi_pm.c:  ((CALIBRATE_LATCH * (PMTMR_TICKS_PER_SEC >> 10)) / (CLOCK_TICK_RATE>>10))
-> > drivers/input/joystick/analog.c:#define DELTA(x,y)      (cpu_has_tsc ? ((y) - (x)) : ((x) - (y) + ((x) < (y) ? CLOCK_TICK_RATE / HZ : 0
-> > drivers/rtc/rtc-pxa.c:#define TIMER_FREQ                CLOCK_TICK_RATE
-> > drivers/serial/serial_ks8695.c:         .uartclk        = CLOCK_TICK_RATE * 16,
-> > drivers/watchdog/davinci_wdt.c: timer_margin = (((u64)heartbeat * CLOCK_TICK_RATE) & 0xffffffff);
-> > drivers/watchdog/davinci_wdt.c: timer_margin = (((u64)heartbeat * CLOCK_TICK_RATE) >> 32);
-> > drivers/watchdog/ks8695_wdt.c:  unsigned long tval = wdt_time * CLOCK_TICK_RATE;
-> > include/linux/jiffies.h:#define LATCH  ((CLOCK_TICK_RATE + HZ/2) / HZ)  /* For divider */
-> > include/linux/jiffies.h:#define ACTHZ (SH_DIV (CLOCK_TICK_RATE, LATCH, 8))
-> > include/linux/timex.h: *        Moved CLOCK_TICK_RATE, CLOCK_TICK_FACTOR and FINETUNE to asm/timex.h
-> > sound/oss/pas2_pcm.c:           foo = ((CLOCK_TICK_RATE / 2) + (arg / 2)) / arg;
-> > sound/oss/pas2_pcm.c:           arg = ((CLOCK_TICK_RATE / 2) + (foo / 2)) / foo;
-> > sound/oss/pas2_pcm.c:           foo = (CLOCK_TICK_RATE + (arg / 2)) / arg;
-> > sound/oss/pas2_pcm.c:           arg = (CLOCK_TICK_RATE + (foo / 2)) / foo;
-> > 
-> > All of these are either PC-specific, or they don't actually care
-> > about the specific value. Most architectures just use the
-> > value from the IBM PC, so we might as well make that the generic
-> > default.
+Arnd Bergmann wrote:
+> On Friday 01 May 2009, Michal Simek wrote:
+>>> +#ifndef __put_user
+>>> +#define __put_user(x, ptr)                             \
+>>> +({                                                     \
+>>> +       int __pu_err = 0;                               \
+>>> +       typeof(*(ptr)) __pu_val = (x);                  \
+>>> +       switch (sizeof (*(ptr))) {                      \
+>>> +       case 1:                                         \
+>>> +       case 2:                                         \
+>>> +       case 4:                                         \
+>>> +               *(ptr) = (__pu_val);                    \
+>>> +               break;                                  \
+>>> +       case 8:                                         \
+>>> +               memcpy(ptr, &__pu_val, sizeof (*(ptr)));\
+>>
+>> potential cast problem
 > 
-> ok. Let's move out from arch to generic location.
+> Yes, I'm looking into this already, probably will do something
+> based on the s390 code, which seems to do this correctly.
+> 
+>>> +#define put_user(x, ptr) (                             \
+>>> +       access_ok(VERIFY_WRITE, ptr, sizeof (*ptr)) ?   \
+>>> +               __put_user(x, ptr) :                    \
+>>> +               -EFAULT)
+>>
+>> IMHO write it as inline function with type checking.
+> 
+> Unfortunately, this doesn't work because of the callin
+> conventions: __put_user needs to know the type of ptr,
+> so it has to be a macro.
 
-That's only possible once the users have been fixed - otherwise the ARM
-stuff listed above _will_ break.
+yes, I am looking on it too.
+
+Michal
+
+> 
+> 	Arnd <><
+
 
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
