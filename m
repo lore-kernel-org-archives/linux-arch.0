@@ -1,52 +1,38 @@
 From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH 12/27] asm-generic: add a NOMMU uaccess.h
-Date: Fri, 01 May 2009 14:38:12 +0200
-Message-ID: <49FAED34.5000701@monstr.eu>
-References: <cover.1241105648.git.arnd@arndb.de> <45b4644e80c27b9d042b3960e3d99f0d444e0d92.1241105648.git.arnd@arndb.de> <c1a198be0904302337x714621d8xc4685a634c5cf222@mail.gmail.com> <200905011436.05204.arnd@arndb.de>
+Subject: Re: [PATCH 07/27] asm-generic: add minimal cache description
+Date: Fri, 01 May 2009 14:52:04 +0200
+Message-ID: <49FAF074.9080202@monstr.eu>
+References: <cover.1241105648.git.arnd@arndb.de> <2d8ccc76119d2379859480dbb8f7562743a1de58.1241105648.git.arnd@arndb.de> <c1a198be0904302303h73c5168fi73f8dc24dc677965@mail.gmail.com> <200905011427.05099.arnd@arndb.de>
 Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1760245AbZEAMim@vger.kernel.org>
-In-Reply-To: <200905011436.05204.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-fx0-f158.google.com ([209.85.220.158]:52084 "EHLO
+	mail-fx0-f158.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751746AbZEAMwH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 08:52:07 -0400
+In-Reply-To: <200905011427.05099.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 Arnd Bergmann wrote:
 > On Friday 01 May 2009, Michal Simek wrote:
->>> +#ifndef __put_user
->>> +#define __put_user(x, ptr)                             \
->>> +({                                                     \
->>> +       int __pu_err = 0;                               \
->>> +       typeof(*(ptr)) __pu_val = (x);                  \
->>> +       switch (sizeof (*(ptr))) {                      \
->>> +       case 1:                                         \
->>> +       case 2:                                         \
->>> +       case 4:                                         \
->>> +               *(ptr) = (__pu_val);                    \
->>> +               break;                                  \
->>> +       case 8:                                         \
->>> +               memcpy(ptr, &__pu_val, sizeof (*(ptr)));\
+>>> +#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
+>>> +       memcpy(dst, src, len)
+>>> +#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
+>>> +       memcpy(dst, src, len)
 >>
->> potential cast problem
+>> IMHO these two macros will generate cast errors.
 > 
-> Yes, I'm looking into this already, probably will do something
-> based on the s390 code, which seems to do this correctly.
-> 
->>> +#define put_user(x, ptr) (                             \
->>> +       access_ok(VERIFY_WRITE, ptr, sizeof (*ptr)) ?   \
->>> +               __put_user(x, ptr) :                    \
->>> +               -EFAULT)
->>
->> IMHO write it as inline function with type checking.
-> 
-> Unfortunately, this doesn't work because of the callin
-> conventions: __put_user needs to know the type of ptr,
-> so it has to be a macro.
+> I did not see errors here, can you clarify? Note that despite the name,
+> they don't take a __user pointer. Maybe they should be inline functions
+> to make that more obvious.
 
-yes, I am looking on it too.
+you are right here with __user.
+x86 use it as inline function.
 
 Michal
 
