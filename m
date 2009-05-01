@@ -1,45 +1,51 @@
-From: Michal Simek <monstr@monstr.eu>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH 17/27] add generic lib/checksum.c
-Date: Fri, 01 May 2009 11:23:24 +0200
-Message-ID: <49FABF8C.7000505@monstr.eu>
+Date: Fri, 1 May 2009 11:35:14 +0200
+Message-ID: <200905011135.15137.arnd@arndb.de>
 References: <cover.1241105648.git.arnd@arndb.de> <cda5746ab12cf9d6bcb7803a3667c92250a29784.1241105648.git.arnd@arndb.de> <20090501092027.GA29366@flint.arm.linux.org.uk>
-Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f163.google.com ([209.85.218.163]:52355 "EHLO
-	mail-bw0-f163.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752099AbZEAJXb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 05:23:31 -0400
+Received: from moutng.kundenserver.de ([212.227.126.188]:50824 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752054AbZEAJf0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 05:35:26 -0400
 In-Reply-To: <20090501092027.GA29366@flint.arm.linux.org.uk>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
-Russell King wrote:
-> On Tue, Mar 31, 2009 at 03:30:31PM +0200, Arnd Bergmann wrote:
->> +/*
->> + * copy from fs while checksumming, otherwise like csum_partial
->> + */
->> +__wsum
->> +csum_partial_copy_from_user(const void __user *src, void *dst, int len,
->> +						__wsum sum, int *csum_err)
->> +{
->> +	if (csum_err)
->> +		*csum_err = 0;
->> +	memcpy(dst, src, len);
-> 
+On Friday 01 May 2009, Russell King wrote:
 > Since when has 'memcpy' been valid from user addresses?
-> 
-yes, that's wrong
 
-copy_from_user(dst, src, len);
+It's an artifact from the microblaze code, I found it after
+submitting the patches when running sparse over it (yes, I
+know I should do these things in a different order).
 
-should be there
+The s390 version seems to get this right, so I'll use this:
 
-Michal
+static inline __wsum
+csum_partial_copy_from_user(const void __user *src, void *dst,
+                                          int len, __wsum sum,
+                                          int *err_ptr)
+{
+	int missing;
 
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
+	missing = copy_from_user(dst, src, len);
+	if (missing) {
+		memset(dst + len - missing, 0, missing);
+		*err_ptr = -EFAULT;
+	}
+
+	return csum_partial(dst, len, sum);
+}
+
+On microblaze, the old code was only correct for NOMMU.
+
+Thanks,
+
+	Arnd <><
