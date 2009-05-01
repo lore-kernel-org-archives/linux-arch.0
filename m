@@ -1,108 +1,33 @@
-From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: [RFC][PATCH 19/35] x86: create ptemap.h
-Date: Fri, 01 May 2009 07:42:31 -0700
-Message-ID: <20090501144231.7851A761@kernel>
-References: <20090501144201.D31EF417@kernel>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [RFC][PATCH 35/35] remove old ptemap.h includes
+Date: Fri, 1 May 2009 16:59:17 +0200
+Message-ID: <20090501145917.GB7618@elte.hu>
+References: <20090501144201.D31EF417@kernel> <20090501144255.35FCBB72@kernel>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e38.co.us.ibm.com ([32.97.110.159]:41651 "EHLO
-	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1763679AbZEAOn5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 10:43:57 -0400
-In-Reply-To: <20090501144201.D31EF417@kernel>
+Received: from mx3.mail.elte.hu ([157.181.1.138]:47709 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1765294AbZEAO7U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 May 2009 10:59:20 -0400
+Content-Disposition: inline
+In-Reply-To: <20090501144255.35FCBB72@kernel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Dave Hansen <dave@linux.vnet.ibm.com>
+To: Dave Hansen <dave@linux.vnet.ibm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
 
+* Dave Hansen <dave@linux.vnet.ibm.com> wrote:
 
-Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
----
+> +++ linux-2.6.git-dave/arch/alpha/include/asm/pgtable.h	2009-04-30 15:11:13.000000000 -0700
+> @@ -317,7 +317,7 @@ extern inline pte_t * pte_offset_kernel(
+>  	return ret;
+>  }
+>  
+> -#inclue <asm/ptemap.h>
+> +#include <asm/ptemap.h>
 
- linux-2.6.git-dave/arch/x86/include/asm/pgtable_32.h |   17 ---------
- linux-2.6.git-dave/arch/x86/include/asm/pgtable_64.h |    6 ---
- linux-2.6.git-dave/arch/x86/include/asm/ptemap.h     |   34 +++++++++++++++++++
- 3 files changed, 36 insertions(+), 21 deletions(-)
+that typo fix should be backmerged to earlier in the series i guess.
 
-diff -puN arch/x86/include/asm/pgtable_32.h~x86-ptemaph arch/x86/include/asm/pgtable_32.h
---- linux-2.6.git/arch/x86/include/asm/pgtable_32.h~x86-ptemaph	2009-04-30 15:11:03.000000000 -0700
-+++ linux-2.6.git-dave/arch/x86/include/asm/pgtable_32.h	2009-04-30 15:11:03.000000000 -0700
-@@ -48,22 +48,7 @@ extern void set_pmd_pfn(unsigned long, u
- # include <asm/pgtable-2level.h>
- #endif
- 
--#if defined(CONFIG_HIGHPTE)
--#define pte_offset_map(dir, address)					\
--	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE0) +		\
--	 pte_index((address)))
--#define pte_offset_map_nested(dir, address)				\
--	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE1) +		\
--	 pte_index((address)))
--#define pte_unmap(pte) kunmap_atomic((pte), KM_PTE0)
--#define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
--#else
--#define pte_offset_map(dir, address)					\
--	((pte_t *)page_address(pmd_page(*(dir))) + pte_index((address)))
--#define pte_offset_map_nested(dir, address) pte_offset_map((dir), (address))
--#define pte_unmap(pte) do { } while (0)
--#define pte_unmap_nested(pte) do { } while (0)
--#endif
-+#include <asm/ptemap.h>
- 
- /* Clear a kernel PTE and flush it from the TLB */
- #define kpte_clear_flush(ptep, vaddr)		\
-diff -puN arch/x86/include/asm/pgtable_64.h~x86-ptemaph arch/x86/include/asm/pgtable_64.h
---- linux-2.6.git/arch/x86/include/asm/pgtable_64.h~x86-ptemaph	2009-04-30 15:11:03.000000000 -0700
-+++ linux-2.6.git-dave/arch/x86/include/asm/pgtable_64.h	2009-04-30 15:11:03.000000000 -0700
-@@ -127,11 +127,7 @@ static inline int pgd_large(pgd_t pgd) {
- 
- /* PTE - Level 1 access. */
- 
--/* x86-64 always has all page tables mapped. */
--#define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
--#define pte_offset_map_nested(dir, address) pte_offset_kernel((dir), (address))
--#define pte_unmap(pte) /* NOP */
--#define pte_unmap_nested(pte) /* NOP */
-+#include <asm/ptemap.h>
- 
- #define update_mmu_cache(vma, address, pte) do { } while (0)
- 
-diff -puN /dev/null arch/x86/include/asm/ptemap.h
---- /dev/null	2008-09-02 09:40:19.000000000 -0700
-+++ linux-2.6.git-dave/arch/x86/include/asm/ptemap.h	2009-04-30 15:11:03.000000000 -0700
-@@ -0,0 +1,34 @@
-+#ifndef _X86_ASM_PTEMAP_H
-+#define _X86_ASM_PTEMAP_H
-+
-+#ifdef CONFIG_X86_32
-+
-+#if defined(CONFIG_HIGHPTE)
-+
-+#define pte_offset_map(dir, address)					\
-+	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE0) +		\
-+	 pte_index((address)))
-+#define pte_offset_map_nested(dir, address)				\
-+	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE1) +		\
-+	 pte_index((address)))
-+#define pte_unmap(pte) kunmap_atomic((pte), KM_PTE0)
-+#define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
-+#else
-+#define pte_offset_map(dir, address)					\
-+	((pte_t *)page_address(pmd_page(*(dir))) + pte_index((address)))
-+#define pte_offset_map_nested(dir, address) pte_offset_map((dir), (address))
-+#define pte_unmap(pte) do { } while (0)
-+#define pte_unmap_nested(pte) do { } while (0)
-+#endif
-+
-+#else /* x86-64 */
-+
-+/* x86-64 always has all page tables mapped. */
-+#define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
-+#define pte_offset_map_nested(dir, address) pte_offset_kernel((dir), (address))
-+#define pte_unmap(pte) /* NOP */
-+#define pte_unmap_nested(pte) /* NOP */
-+
-+#endif
-+
-+#endif /* _X86_ASM_PTEMAP_H */
-_
+	Ingo
