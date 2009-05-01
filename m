@@ -1,64 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f158.google.com ([209.85.220.158]:51493 "EHLO
-	mail-fx0-f158.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755529AbZEAMiP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 08:38:15 -0400
-Message-ID: <49FAED34.5000701@monstr.eu>
-Date: Fri, 01 May 2009 14:38:12 +0200
-From: Michal Simek <monstr@monstr.eu>
-Reply-To: monstr@monstr.eu
+Received: from moutng.kundenserver.de ([212.227.126.188]:51241 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760319AbZEANUf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 09:20:35 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 04/27] asm-generic: add legacy I/O header files
+Date: Fri, 1 May 2009 15:20:33 +0200
+References: <cover.1241105648.git.arnd@arndb.de> <200905011453.32006.arnd@arndb.de> <20090501141414.4adfe4ab@lxorguk.ukuu.org.uk>
+In-Reply-To: <20090501141414.4adfe4ab@lxorguk.ukuu.org.uk>
 MIME-Version: 1.0
-Subject: Re: [PATCH 12/27] asm-generic: add a NOMMU uaccess.h
-References: <cover.1241105648.git.arnd@arndb.de> <45b4644e80c27b9d042b3960e3d99f0d444e0d92.1241105648.git.arnd@arndb.de> <c1a198be0904302337x714621d8xc4685a634c5cf222@mail.gmail.com> <200905011436.05204.arnd@arndb.de>
-In-Reply-To: <200905011436.05204.arnd@arndb.de>
-Content-Type: text/plain; charset=ISO-8859-15
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-ID: <200905011520.34097.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
-Message-ID: <20090501123812.Y_p4NN_yPQWFxnSk04WNqikgmH0Glld6dhX1jgxKm3Y@z>
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Michal Simek <monstr@monstr.eu>, linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
+Message-ID: <20090501132033.HTYbbXPezlvNoCjd8XrGVU9rGmDfboK_THFGEV4nJds@z>
 
-Arnd Bergmann wrote:
-> On Friday 01 May 2009, Michal Simek wrote:
->>> +#ifndef __put_user
->>> +#define __put_user(x, ptr)                             \
->>> +({                                                     \
->>> +       int __pu_err = 0;                               \
->>> +       typeof(*(ptr)) __pu_val = (x);                  \
->>> +       switch (sizeof (*(ptr))) {                      \
->>> +       case 1:                                         \
->>> +       case 2:                                         \
->>> +       case 4:                                         \
->>> +               *(ptr) = (__pu_val);                    \
->>> +               break;                                  \
->>> +       case 8:                                         \
->>> +               memcpy(ptr, &__pu_val, sizeof (*(ptr)));\
->>
->> potential cast problem
+On Friday 01 May 2009, Alan Cox wrote:
+> Currently if you create a new architecture you have to figure out what
+> your equivalent tick rate is or you get an error for not defining it.
+> Ditto if you try to build code using it on platforms that it is
+> meaningless (eg S/390) you get an error.
 > 
-> Yes, I'm looking into this already, probably will do something
-> based on the s390 code, which seems to do this correctly.
-> 
->>> +#define put_user(x, ptr) (                             \
->>> +       access_ok(VERIFY_WRITE, ptr, sizeof (*ptr)) ?   \
->>> +               __put_user(x, ptr) :                    \
->>> +               -EFAULT)
->>
->> IMHO write it as inline function with type checking.
-> 
-> Unfortunately, this doesn't work because of the callin
-> conventions: __put_user needs to know the type of ptr,
-> so it has to be a macro.
+> You'd lose that rather useful property.
 
-yes, I am looking on it too.
+In that case, I still think it would be good to have it in asm-generic.
+Half the architectures define it in this way currently, and new architectures
+would still have to think about it before falling back on the default.
 
-Michal
-
-> 
-> 	Arnd <><
-
-
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
+	Arnd <><
