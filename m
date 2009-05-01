@@ -1,13 +1,13 @@
 From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: [RFC][PATCH 25/35] cris: use pte_offset_kernel() as base for pte_offset_map*()
-Date: Fri, 01 May 2009 07:42:40 -0700
-Message-ID: <20090501144240.C3F1A3B9@kernel>
+Subject: [RFC][PATCH 33/35] asm-generic/ptemap.h for HIGHPTE users
+Date: Fri, 01 May 2009 07:42:52 -0700
+Message-ID: <20090501144252.A2BDDE6B@kernel>
 References: <20090501144201.D31EF417@kernel>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:36969 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761307AbZEAOmo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 10:42:44 -0400
+Received: from e35.co.us.ibm.com ([32.97.110.153]:60812 "EHLO
+	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761365AbZEAOmz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 10:42:55 -0400
 In-Reply-To: <20090501144201.D31EF417@kernel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -15,37 +15,82 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Dave Hansen <dave@linux.vnet.ibm.com>
 
 
-Some architectures use pte_offset_map() as a basis for
-pte_offset_kernel().  Others do the inverse.
-
-Although arbitrary, Using pte_offset_kernel() as the base
-seems a wee bit more popular and it also fits in well
-with the way I'm breaking out the headers.
-
-Instead of coding the same implementation twice, this
-makes pte_offset_map{,_nested}() call pte_offset_kernel()
-directly.
+x86 and frv have identical CONFIG_HIGHPTE implementations
+of the pte mapping functions.  Consolidate and move these
+to asm-generic/ptemap.h.
 
 Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
 ---
 
- linux-2.6.git-dave/arch/cris/include/asm/ptemap.h |    6 ++----
- 1 file changed, 2 insertions(+), 4 deletions(-)
+ linux-2.6.git-dave/arch/frv/include/asm/ptemap.h |   14 --------------
+ linux-2.6.git-dave/arch/x86/include/asm/ptemap.h |   19 -------------------
+ linux-2.6.git-dave/include/asm-generic/ptemap.h  |   13 +++++++++++++
+ 3 files changed, 13 insertions(+), 33 deletions(-)
 
-diff -puN arch/cris/include/asm/ptemap.h~cris-pte_offset_kernel arch/cris/include/asm/ptemap.h
---- linux-2.6.git/arch/cris/include/asm/ptemap.h~cris-pte_offset_kernel	2009-04-30 15:11:07.000000000 -0700
-+++ linux-2.6.git-dave/arch/cris/include/asm/ptemap.h	2009-04-30 15:11:07.000000000 -0700
-@@ -1,10 +1,8 @@
- #ifndef _CRIS_ASM_PTEMAP_H
- #define _CRIS_ASM_PTEMAP_H
- 
--#define pte_offset_map(dir, address) \
--	((pte_t *)page_address(pmd_page(*(dir))) + __pte_offset(address))
--#define pte_offset_map_nested(dir, address) pte_offset_map(dir, address)
+diff -puN arch/frv/include/asm/ptemap.h~asm-generic-ptemap-h-highpte arch/frv/include/asm/ptemap.h
+--- linux-2.6.git/arch/frv/include/asm/ptemap.h~asm-generic-ptemap-h-highpte	2009-04-30 15:11:12.000000000 -0700
++++ linux-2.6.git-dave/arch/frv/include/asm/ptemap.h	2009-04-30 15:11:12.000000000 -0700
+@@ -1,15 +1 @@
+-#ifndef _FRV_ASM_PTEMAP_H
+-#define _FRV_ASM_PTEMAP_H
 -
-+#define pte_offset_map(dir, address) pte_offset_kernel(dir, address)
-+#define pte_offset_map_nested(dir, address) pte_offset_kernel(dir, address)
- #define pte_unmap(pte) do { } while (0)
- #define pte_unmap_nested(pte) do { } while (0)
+-#if defined(CONFIG_HIGHPTE)
+-#define pte_offset_map(dir, address) \
+-	((pte_t *)kmap_atomic(pmd_page(*(dir)),KM_PTE0) + pte_index(address))
+-#define pte_offset_map_nested(dir, address) \
+-	((pte_t *)kmap_atomic(pmd_page(*(dir)),KM_PTE1) + pte_index(address))
+-#define pte_unmap(pte) kunmap_atomic(pte, KM_PTE0)
+-#define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
+-#else
+ #include <asm-generic/ptemap.h>
+-#endif
+-
+-#endif /* _FRV_ASM_PTEMAP_H */
+diff -puN arch/x86/include/asm/ptemap.h~asm-generic-ptemap-h-highpte arch/x86/include/asm/ptemap.h
+--- linux-2.6.git/arch/x86/include/asm/ptemap.h~asm-generic-ptemap-h-highpte	2009-04-30 15:11:12.000000000 -0700
++++ linux-2.6.git-dave/arch/x86/include/asm/ptemap.h	2009-04-30 15:11:12.000000000 -0700
+@@ -1,20 +1 @@
+-#ifndef _X86_ASM_PTEMAP_H
+-#define _X86_ASM_PTEMAP_H
+-
+-#if defined(CONFIG_HIGHPTE)
+-#define pte_offset_map(dir, address)					\
+-	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE0) +		\
+-	 pte_index((address)))
+-#define pte_offset_map_nested(dir, address)				\
+-	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE1) +		\
+-	 pte_index((address)))
+-#define pte_unmap(pte) kunmap_atomic((pte), KM_PTE0)
+-#define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
+-
+-#else /* !CONFIG_HIGHPTE */
+-
+ #include <asm-generic/ptemap.h>
+-
+-#endif
+-
+-#endif /* _X86_ASM_PTEMAP_H */
+diff -puN include/asm-generic/ptemap.h~asm-generic-ptemap-h-highpte include/asm-generic/ptemap.h
+--- linux-2.6.git/include/asm-generic/ptemap.h~asm-generic-ptemap-h-highpte	2009-04-30 15:11:12.000000000 -0700
++++ linux-2.6.git-dave/include/asm-generic/ptemap.h	2009-04-30 15:11:12.000000000 -0700
+@@ -1,6 +1,19 @@
+ #ifndef _ASM_GENERIC_PTEMAP_H
+ #define _ASM_GENERIC_PTEMAP_H
  
++#include <linux/mm.h>
++
++#ifdef CONFIG_HIGHPTE
++#include <asm/highmem.h>
++#define pte_offset_map(dir, address) \
++	((pte_t *)kmap_atomic(pmd_page(*(dir)),KM_PTE0) + pte_index(address))
++#define pte_offset_map_nested(dir, address) \
++	((pte_t *)kmap_atomic(pmd_page(*(dir)),KM_PTE1) + pte_index(address))
++#define pte_unmap(pte) kunmap_atomic(pte, KM_PTE0)
++#define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
++
++#else /* !CONFIG_HIGHPTE */
++
+ #define pte_offset_map(dir,addr)	pte_offset_kernel((dir),(addr))
+ #define pte_offset_map_nested(dir,addr)	pte_offset_kernel((dir),(addr))
+ #define pte_unmap(pte)			do { } while (0)
 _
