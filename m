@@ -1,39 +1,37 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [PATCH 17/27] add generic lib/checksum.c
-Date: Fri, 1 May 2009 11:14:18 +0200
-Message-ID: <200905011114.18880.arnd@arndb.de>
-References: <cover.1241105648.git.arnd@arndb.de> <cda5746ab12cf9d6bcb7803a3667c92250a29784.1241105648.git.arnd@arndb.de> <20090430223547.GO12974@lug-owl.de>
+Date: Fri, 1 May 2009 10:20:27 +0100
+Message-ID: <20090501092027.GA29366@flint.arm.linux.org.uk>
+References: <cover.1241105648.git.arnd@arndb.de> <cda5746ab12cf9d6bcb7803a3667c92250a29784.1241105648.git.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:63885 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750727AbZEAJOb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 05:14:31 -0400
-In-Reply-To: <20090430223547.GO12974@lug-owl.de>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:33267 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754720AbZEAJUi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 05:20:38 -0400
 Content-Disposition: inline
+In-Reply-To: <cda5746ab12cf9d6bcb7803a3667c92250a29784.1241105648.git.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jan-Benedict Glaw <jbglaw@lug-owl.de>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
-On Friday 01 May 2009, Jan-Benedict Glaw wrote:
-> I haven't looked at the code in detail, but it would be nice to see it
-> show up soon. Just faced the IP checksumming code while resurrecting
-> the VAX port.
+On Tue, Mar 31, 2009 at 03:30:31PM +0200, Arnd Bergmann wrote:
+> +/*
+> + * copy from fs while checksumming, otherwise like csum_partial
+> + */
+> +__wsum
+> +csum_partial_copy_from_user(const void __user *src, void *dst, int len,
+> +						__wsum sum, int *csum_err)
+> +{
+> +	if (csum_err)
+> +		*csum_err = 0;
+> +	memcpy(dst, src, len);
 
-I hope my other header changes are helping you as well, that
-was the main point. The checksum code was one of the hardest
-to consolidate because every architecture tries to optimize
-this in a different way. After merging all the different
-approaches and throwing away all the assembly code from
-each of them, I made the code practically identical to
-Michals version.
+Since when has 'memcpy' been valid from user addresses?
 
-Please tell me if you need more hooks in the checksum
-code for VAX optimizations. You might want to try overriding
-the csum_fold function.
-
-	Arnd <><
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
