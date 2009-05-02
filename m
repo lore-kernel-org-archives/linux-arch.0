@@ -1,78 +1,36 @@
-From: Kay Sievers <kay.sievers@vrfy.org>
-Subject: Re: [PATCH] driver-core: devtmpfs - driver core maintained /dev tmpfs
-Date: Sat, 2 May 2009 13:34:42 +0200
-Message-ID: <ac3eb2510905020434k57b561f7ld3db423f3dba26f0@mail.gmail.com>
-References: <1241097822.2516.3.camel@poy> <20090502071636.GA9487@infradead.org>
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [RFC][PATCH 13/35] parisc: create ptemap.h
+Date: Sat, 2 May 2009 10:29:39 -0400
+Message-ID: <20090502142939.GD28342@bombadil.infradead.org>
+References: <20090501144201.D31EF417@kernel> <20090501144221.4C7F3D79@kernel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fg-out-1718.google.com ([72.14.220.152]:28025 "EHLO
-	fg-out-1718.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751776AbZEBLe6 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 May 2009 07:34:58 -0400
-In-Reply-To: <20090502071636.GA9487@infradead.org>
+Received: from bombadil.infradead.org ([18.85.46.34]:43051 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756059AbZEBO3k (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 May 2009 10:29:40 -0400
+Content-Disposition: inline
+In-Reply-To: <20090501144221.4C7F3D79@kernel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: linux-kernel <linux-kernel@vger.kernel.org>, Greg KH <greg@kroah.com>, Jan Blunck <jblunck@suse.de>, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, torvalds@osdl.org, akpm@osdl.org, adam@yggdrasil.com
+To: Dave Hansen <dave@linux.vnet.ibm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Sat, May 2, 2009 at 09:16, Christoph Hellwig <hch@infradead.org> wro=
-te:
-> >After the rootfs is mounted by the kernel, the
->> populated tmpfs is mounted at /dev. In initramfs, it can be moved
->> to the manually mounted root filesystem before /sbin/init is
->> executed.
->
-> That for example is something that is not acceptable. =C2=A0We really=
- don't
-> want the kernel to mess with the initial namespace in such a major wa=
-y.
+On Fri, May 01, 2009 at 07:42:21AM -0700, Dave Hansen wrote:
+> +#ifndef _PARISC_ASM_PTEMAP_H
+> +#define _PARISC_ASM_PTEMAP_H
+> +
+> +#define pte_offset_map(pmd, address) pte_offset_kernel(pmd, address)
+> +#define pte_offset_map_nested(pmd, address) pte_offset_kernel(pmd, address)
+> +#define pte_unmap(pte) do { } while (0)
+> +#define pte_unmap_nested(pte) do { } while (0)
+> +
+> +#define pte_unmap(pte)			do { } while (0)
+> +#define pte_unmap_nested(pte)		do { } while (0)
+> +
+> +#endif /* _PARISC_ASM_PTEMAP_H */
 
-There is nothing like "mess around", it's not mounted at all, until
-the kernel mounts the root filesystem at /, then devtmpfs is mounted
-the first time, and only if it's compiled in because you asked for it.
-Also, just try:
-  egrep 'mknod|create_dev' init/*.c
-and see what we currently do.
+You have duplicate definitiosn of pte_unmap{,_nested}?
 
-> Counter-proposal: =C2=A0Re-introduce a proper mini-devfs. =C2=A0All n=
-odes in there
-> are kernel-created and not changeable which sorts out that whole
-> mess of both drivers and userspace messing with tree topology we had
-> both in original devfs and this new devtmpfs. =C2=A0Single-instance s=
-o it can be
-> populated before it's actually mounted somewhere, that way the kernel
-> doesn't have to do any policy devicision on where it's mounted.
-
-That sounds worse than devtpfs, and does not help for most of the
-mentioned problems we are trying to solve here.
-
-> Mount
-> point would usually be /dev/something so /dev can remaining udev-mana=
-ged
-> tmpfs or even manually maintained and symlinks can point into
-> /dev/something.
-
-And that would solve what? init=3D/bin/sh would still not work, you can
-not bring your box up with that, and you have some pretty useless
-unchangeable stuff hanging around in a /dev subdirectory?
-
->> @@ -1082,6 +1087,7 @@ static int __init bsg_init(void)
->> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 ret =3D PTR_ERR(bsg=
-_class);
->> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 goto destroy_kmemca=
-che;
->> =C2=A0 =C2=A0 =C2=A0 }
->> + =C2=A0 =C2=A0 bsg_class->nodename =3D bsg_nodename;
->
-> And adding this gunk to every driver is really ugly. =C2=A0Must say
-> late-devfs version of the same defintively was more pretty.
-
-There are only a very few places who need this, there nothing ever
-like "every driver". It's a very few subsystems, not even the drivers,
-if they have more than one. Most device nodes do not have a
-subdirectory and don't have that at all.
-
-Thanks,
-Kay
+cheers, Kyle
