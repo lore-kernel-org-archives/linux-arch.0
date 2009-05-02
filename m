@@ -1,36 +1,42 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [RFC][PATCH 13/35] parisc: create ptemap.h
-Date: Sat, 2 May 2009 10:29:39 -0400
-Message-ID: <20090502142939.GD28342@bombadil.infradead.org>
-References: <20090501144201.D31EF417@kernel> <20090501144221.4C7F3D79@kernel>
+From: Jeff Garzik <jeff@garzik.org>
+Subject: Re: [PATCH] driver-core: devtmpfs - driver core maintained /dev	tmpfs
+Date: Sat, 02 May 2009 12:59:33 -0400
+Message-ID: <49FC7BF5.8080502@garzik.org>
+References: <1241097822.2516.3.camel@poy> <20090502071636.GA9487@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:43051 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756059AbZEBO3k (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 May 2009 10:29:40 -0400
-Content-Disposition: inline
-In-Reply-To: <20090501144221.4C7F3D79@kernel>
+Received: from srv5.dvmed.net ([207.36.208.214]:50984 "EHLO mail.dvmed.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753369AbZEBQ7l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 2 May 2009 12:59:41 -0400
+In-Reply-To: <20090502071636.GA9487@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave@linux.vnet.ibm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Kay Sievers <kay.sievers@vrfy.org>, linux-kernel <linux-kernel@vger.kernel.org>, Greg KH <greg@kroah.com>, Jan Blunck <jblunck@suse.de>, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, torvalds@osdl.org, akpm@osdl.org, adam@yggdrasil.com
 
-On Fri, May 01, 2009 at 07:42:21AM -0700, Dave Hansen wrote:
-> +#ifndef _PARISC_ASM_PTEMAP_H
-> +#define _PARISC_ASM_PTEMAP_H
-> +
-> +#define pte_offset_map(pmd, address) pte_offset_kernel(pmd, address)
-> +#define pte_offset_map_nested(pmd, address) pte_offset_kernel(pmd, address)
-> +#define pte_unmap(pte) do { } while (0)
-> +#define pte_unmap_nested(pte) do { } while (0)
-> +
-> +#define pte_unmap(pte)			do { } while (0)
-> +#define pte_unmap_nested(pte)		do { } while (0)
-> +
-> +#endif /* _PARISC_ASM_PTEMAP_H */
+Christoph Hellwig wrote:
+> On Thu, Apr 30, 2009 at 03:23:42PM +0200, Kay Sievers wrote:
+>> From: Kay Sievers <kay.sievers@vrfy.org>
+>> Subject: driver-core: devtmpfs - driver core maintained /dev tmpfs
+> 
+> Umm, guys this needs much broader discussion than just sneaking in
+> a patch under the covers.
+> 
+> It basically does re-introduce devfs under a different name, and from
+> looking at the implementation it might not be quite as bad a Gooch's
+> original, but it's certainly worse than Adam Richters rewrite the we
+> never ended up merging.
 
-You have duplicate definitiosn of pte_unmap{,_nested}?
+I was interested in this Richter devfs rewrite, since I was unfamiliar 
+with it.
 
-cheers, Kyle
+For the benefit of the thread, here is a URL that people can examine:
+
+	http://marc.info/?l=linux-kernel&m=104138806530375&w=2
+
+Regards,
+
+	Jeff
