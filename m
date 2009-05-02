@@ -1,100 +1,116 @@
-From: Tim Abbott <tabbott@MIT.EDU>
-Subject: Re: [PATCH v2 0/6] macros for section name cleanup
-Date: Fri, 1 May 2009 20:48:53 -0400 (EDT)
-Message-ID: <alpine.DEB.1.10.0905011916530.10966@vinegar-pot.mit.edu>
-References: <1241121253-32341-1-git-send-email-tabbott@mit.edu> <20090501213118.GA28126@uranus.ravnborg.org>
+From: "Daniel K." <dk@uw.no>
+Subject: Re: [RFC][PATCH 17/35] sparc: create ptemap.h
+Date: Sat, 02 May 2009 07:02:39 +0000
+Message-ID: <49FBF00F.5030700@uw.no>
+References: <20090501144201.D31EF417@kernel> <20090501144227.3FFE505C@kernel>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from BISCAYNE-ONE-STATION.MIT.EDU ([18.7.7.80]:32981 "EHLO
-	biscayne-one-station.mit.edu" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751745AbZEBAs5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 20:48:57 -0400
-In-Reply-To: <20090501213118.GA28126@uranus.ravnborg.org>
+Received: from in.cluded.net ([195.159.98.120]:47245 "EHLO in.cluded.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751544AbZEBHKg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 2 May 2009 03:10:36 -0400
+In-Reply-To: <20090501144227.3FFE505C@kernel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Linux kernel mailing list <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Anders Kaseorg <andersk@mit.edu>
+To: Dave Hansen <dave@linux.vnet.ibm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, 1 May 2009, Sam Ravnborg wrote:
+Dave Hansen wrote:
+> Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
+> ---
+> 
+>  linux-2.6.git-dave/arch/sparc/include/asm/pgtable_32.h |   15 --------
+>  linux-2.6.git-dave/arch/sparc/include/asm/pgtable_64.h |    5 --
+>  linux-2.6.git-dave/arch/sparc/include/asm/ptemap.h     |   29 +++++++++++++++++
+>  3 files changed, 31 insertions(+), 18 deletions(-)
+> 
+> diff -puN arch/sparc/include/asm/pgtable_32.h~sparc-ptemaph arch/sparc/include/asm/pgtable_32.h
+> --- linux-2.6.git/arch/sparc/include/asm/pgtable_32.h~sparc-ptemaph	2009-04-30 15:11:02.000000000 -0700
+> +++ linux-2.6.git-dave/arch/sparc/include/asm/pgtable_32.h	2009-04-30 15:11:02.000000000 -0700
+> @@ -300,20 +300,7 @@ BTFIXUPDEF_CALL(pmd_t *, pmd_offset, pgd
+>  BTFIXUPDEF_CALL(pte_t *, pte_offset_kernel, pmd_t *, unsigned long)
+>  #define pte_offset_kernel(dir,addr) BTFIXUP_CALL(pte_offset_kernel)(dir,addr)
+>  
+> -/*
+> - * This shortcut works on sun4m (and sun4d) because the nocache area is static,
+> - * and sun4c is guaranteed to have no highmem anyway.
+> - */
+> -#define pte_offset_map(d, a)		pte_offset_kernel(d,a)
+> -#define pte_offset_map_nested(d, a)	pte_offset_kernel(d,a)
+> -
+> -#define pte_unmap(pte)		do{}while(0)
+> -#define pte_unmap_nested(pte)	do{}while(0)
+> -
+> -/* Certain architectures need to do special things when pte's
+> - * within a page table are directly modified.  Thus, the following
+> - * hook is made available.
+> - */
 
-> This is the way I want to go where we have more complete
-> definitions in the shared file and we try to keep the arch
-> linker scripts to the arch specifc stuff.
+This is FUBAR'ed, The comment refers to the BTFIXUPDEF_CALL below, and should not
+be moved to asm/ptemap.h 
 
-I like the general look of this.  Indeed, I was planning to work on 
-something like this as a follow-on to the linker script cleanup work I've 
-done so far.
-
-Some comments on the details are below.
-
-> +#define PAGE_ALIGNED_DATA(page_align)                                \
-> +     . = ALIGN((page_align));                                        \
-> +     *(.data.page_aligned)
-
-Why does this need an argument?  You should be able to just align to 
-PAGE_SIZE.
-
-Also, I'm not sure what you're trying to do with the double parentheses 
-here (it also appears inconsistently in several other places in this 
-patch).
-
-> +/* use 0 as page_align if page_aligned data is not used */ 
-> +#define RW_DATA(page_align, readmostly_align, cache_align)           \
-> +     . = ALIGN(PAGE_SIZE);                                           \
-> +     .data : AT(ADDR(.data) - LOAD_OFFSET) {                         \
-> +             DATA_DATA                                               \
-> +             CONSTRUCTORS                                            \
-> +             NOSAVE_DATA                                             \
-> +             PAGE_ALIGNED_DATA(page_align)                           \
-> +             READMOSTLY_DATA((readmostly_align))                     \
-> +             CACHELINE_ALIGNED_DATA((cache_align))                   \
-> +     }
-
-I think there are several architectures that have some other stuff in 
-their .data output section (e.g. powerpc, frv, ia64), so we won't be able 
-to use this on all architectures.  
-
-Perhaps we want an intermediate macro between DATA_DATA and RW_DATA that 
-is just the contents of .data here that those architectuere can use?
-
-> +#define INITDATA(initsetup_align)					\
-> +	.init.data : AT(ADDR(.init.data) - LOAD_OFFSET) {		\
-> +		INIT_DATA						\
-> +		. = ALIGN(initsetup_align);				\
-> +               VMLINUX_SYMBOL(__setup_start) = .;                    \
-> +               *(.init.setup)                                        \
-[...]
-> +#define INITDATA(initdata_align)					\
-> +	. = ALIGN((initdata_align));					\
-> +	.init.data : AT(ADDR(.init.data) - LOAD_OFFSET) {		\
-> +		INIT_DATA						\
-> +	}
-
-You define two different macros called INITDATA; I'm not sure what the 
-intention is here.
-
-> +#define INIT_TASK                                                    \
-> +     *(.data.init_task)
-> +             
-> +#define INIT_TASK_DATA(align)                                                
-> +     . = ALIGN((align));                                             \
-> +     .data.init_task : {                                             \
-> +             INIT_TASK                                               \
-> +     }
+> +#include <asm/ptemap.h>
+>  
+>  BTFIXUPDEF_CALL(void, set_pte, pte_t *, pte_t)
+>  
+> diff -puN arch/sparc/include/asm/pgtable_64.h~sparc-ptemaph arch/sparc/include/asm/pgtable_64.h
+> --- linux-2.6.git/arch/sparc/include/asm/pgtable_64.h~sparc-ptemaph	2009-04-30 15:11:02.000000000 -0700
+> +++ linux-2.6.git-dave/arch/sparc/include/asm/pgtable_64.h	2009-04-30 15:11:02.000000000 -0700
+> @@ -652,10 +652,7 @@ static inline int pte_special(pte_t pte)
+>  /* Find an entry in the third-level page table.. */
+>  #define pte_offset_kernel(dir, address)	\
+>  	((pte_t *)pmd_page_vaddr(*(dir)) + pte_index(address))
+> -#define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
+> -#define pte_offset_map_nested(dir, address) pte_offset_kernel((dir), (address))
+> -#define pte_unmap(pte)			do { } while (0)
+> -#define pte_unmap_nested(pte)		do { } while (0)
+> +#include <asm/ptemap.h>
+>  
+>  /* Actual page table PTE updates.  */
+>  extern void tlb_batch_add(struct mm_struct *mm, unsigned long vaddr, pte_t *ptep, pte_t orig);
+> diff -puN /dev/null arch/sparc/include/asm/ptemap.h
+> --- /dev/null	2008-09-02 09:40:19.000000000 -0700
+> +++ linux-2.6.git-dave/arch/sparc/include/asm/ptemap.h	2009-04-30 15:11:02.000000000 -0700
+> @@ -0,0 +1,29 @@
+> +#ifndef _SPARC_ASM_PTEMAP_H
+> +#define _SPARC_ASM_PTEMAP_H
 > +
+> +#if defined(__sparc__) && defined(__arch64__)
+> +
+> +/* Certain architectures need to do special things when pte's
+> + * within a page table are directly modified.  Thus, the following
+> + * hook is made available.
+> + */
+> +
+> +#define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
+> +#define pte_offset_map_nested(dir, address) pte_offset_kernel((dir), (address))
+> +#define pte_unmap(pte)			do { } while (0)
+> +#define pte_unmap_nested(pte)		do { } while (0)
+> +
+> +#else
+> +
+> + * This shortcut works on sun4m (and sun4d) because the nocache area is static,
+> + * and sun4c is guaranteed to have no highmem anyway.
+> + */
 
-You mentioned elsewhere you thought .data.init_task needs to be its own 
-output section rather than part of the .data output section; why is that?  
-There are several architectures on which it is part of the .data output 
-section (e.g. sh, um, avr32).
+Broken comment.
 
-Also, I think it is possible that INIT_TASK_DATA could just align to 
-THREAD_SIZE rather than taking an argument.  While working on my patches 
-for this I noticed there were only a couple of architectures where the 
-alignment wasn't THREAD_SIZE (or a value equal to THREAD_SIZE was used).  
-One exception was parisc, where the aligment is 16384 and THREAD_SIZE is 
-always at least that but could be bigger in some configs where PAGE_SIZE 
-is bigger.  I'm not sure whether this one exception is a bug.
+> +#define pte_offset_map(d, a)		pte_offset_kernel(d,a)
+> +#define pte_offset_map_nested(d, a)	pte_offset_kernel(d,a)
+> +
+> +#define pte_unmap(pte)		do{}while(0)
+> +#define pte_unmap_nested(pte)	do{}while(0)
+> +
+> +#endif
+> +
+> +#endif /* _SPARC_ASM_PTEMAP_H *//*
 
-	-Tim Abbott
+Broken comment.
+
+I realize this is going away in the end, but all the interim steps should
+compile, to aid bisection.
+
+
+Daniel K.
