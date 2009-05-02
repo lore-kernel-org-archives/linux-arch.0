@@ -1,71 +1,62 @@
-From: Kay Sievers <kay.sievers@vrfy.org>
+From: Alan Jenkins <sourcejedi.lkml@googlemail.com>
 Subject: Re: [PATCH] driver-core: devtmpfs - driver core maintained /dev tmpfs
-Date: Sat, 2 May 2009 19:57:23 +0200
-Message-ID: <ac3eb2510905021057s520b27dr632cb8a1ac92f730@mail.gmail.com>
+Date: Sat, 2 May 2009 21:22:44 +0100
+Message-ID: <9b2b86520905021322l31845d2dubad98d78380aa1d5@mail.gmail.com>
 References: <1241097822.2516.3.camel@poy> <20090502071636.GA9487@infradead.org>
-	<49FC7BF5.8080502@garzik.org>
+	 <ac3eb2510905020434k57b561f7ld3db423f3dba26f0@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fg-out-1718.google.com ([72.14.220.158]:55326 "EHLO
-	fg-out-1718.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753360AbZEBR5j convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 May 2009 13:57:39 -0400
-In-Reply-To: <49FC7BF5.8080502@garzik.org>
+Received: from mail-fx0-f158.google.com ([209.85.220.158]:43823 "EHLO
+	mail-fx0-f158.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756838AbZEBUWq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 May 2009 16:22:46 -0400
+In-Reply-To: <ac3eb2510905020434k57b561f7ld3db423f3dba26f0@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeff Garzik <jeff@garzik.org>
+To: Kay Sievers <kay.sievers@vrfy.org>
 Cc: Christoph Hellwig <hch@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, Greg KH <greg@kroah.com>, Jan Blunck <jblunck@suse.de>, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, torvalds@osdl.org, akpm@osdl.org, adam@yggdrasil.com
 
-On Sat, May 2, 2009 at 18:59, Jeff Garzik <jeff@garzik.org> wrote:
-> Christoph Hellwig wrote:
-
->> It basically does re-introduce devfs under a different name, and fro=
-m
->> looking at the implementation it might not be quite as bad a Gooch's
->> original, but it's certainly worse than Adam Richters rewrite the we
->> never ended up merging.
+On 5/2/09, Kay Sievers <kay.sievers@vrfy.org> wrote:
+> On Sat, May 2, 2009 at 09:16, Christoph Hellwig <hch@infradead.org> wrote:
+>> >After the rootfs is mounted by the kernel, the
+>>> populated tmpfs is mounted at /dev. In initramfs, it can be moved
+>>> to the manually mounted root filesystem before /sbin/init is
+>>> executed.
+>>
+>> That for example is something that is not acceptable.  We really don't
+>> want the kernel to mess with the initial namespace in such a major way.
 >
-> I was interested in this Richter devfs rewrite, since I was unfamilia=
-r with
-> it.
+> There is nothing like "mess around", it's not mounted at all, until
+> the kernel mounts the root filesystem at /, then devtmpfs is mounted
+> the first time, and only if it's compiled in because you asked for it.
+> Also, just try:
+>   egrep 'mknod|create_dev' init/*.c
+> and see what we currently do.
 >
-> For the benefit of the thread, here is a URL that people can examine:
+>> Counter-proposal:  Re-introduce a proper mini-devfs.  All nodes in there
+>> are kernel-created and not changeable which sorts out that whole
+>> mess of both drivers and userspace messing with tree topology we had
+>> both in original devfs and this new devtmpfs.  Single-instance so it can
+>> be
+>> populated before it's actually mounted somewhere, that way the kernel
+>> doesn't have to do any policy devicision on where it's mounted.
 >
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0http://marc.info/?l=3Dlinux-kernel&m=3D104=
-138806530375&w=3D2
+> That sounds worse than devtpfs, and does not help for most of the
+> mentioned problems we are trying to solve here.
 
-And it did:
-  - the crazy devfs naming scheme with:
-      /dev/ide/host0/bus0/target0/lun0/part1, /dev/tty/0,
-    and it did not even create our current names by default
-  - path lookup interception and called modprobe behind your back
-  - call_usermodhelper() from the kernel to name devices
-  - introduced a new filesystem type and a bunch of
-    new datatypes
-  - and so on ...
+On a narrow issue: do you really object to moving the "mount dev -t
+devfs2 /dev" into userspace (and therefore giving it a user-visible
+name)??  That would address Cristophs particular objection about
+"messing around" with the initial namespace.  It means I can be 100%
+sure I can boot an old initramfs with this option enabled.  And it
+gives a nice clean way for new initramfs' to test for this feature -
+when they try to mount it, it fails.  It would seem to make for a
+rather smoother migration path.
 
-I don't think anybody else besides Christoph would call devtmpfs
-"seriously worse" than this. :) None of these "features" are needed
-today, or even close to even worth to think about it.
+It shouldn't mean too many more LOC, you're already doing the "single
+instance" thing.
 
-And for the "policy in kernel department" which will be the next naive
-argument: The kernel carries the policy today for 98% of the devices,
-if you change any driver given name, it will no longer show up in /dev
-with the current name. That's the reality since years, and will not be
-different anytime soon, there is no real naming policy besides the
-current kernel supplied names.
-
-Now that we managed to define a common set of /dev names we all share
-across distros, it's time to let the kernel know about the remaining
-2% and let it pre-create the device nodes itself for userspace to pick
-up, with all the earlier mentioned opportunities it offers.
-
-The final policy will still live in udev which sets ownership and
-mode, and possibly overwrites the node name. Nothing really has
-changed, it can just be made faster, and it is much more reliable if
-stuff in userspace goes wrong.
-
-Thanks,
-Kay
+Thanks
+Alan
