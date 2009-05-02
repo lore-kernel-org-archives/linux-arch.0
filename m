@@ -1,47 +1,100 @@
-From: "H. Peter Anvin" <hpa@linux.intel.com>
-Subject: Re: "N" symbols and System.map
-Date: Fri, 01 May 2009 17:00:39 -0700
-Message-ID: <49FB8D27.3000305@linux.intel.com>
-References: <49FB7692.2000508@linux.intel.com> <m2preso1wl.fsf@igel.home> <20090501232149.GA28888@uranus.ravnborg.org>
+From: Tim Abbott <tabbott@MIT.EDU>
+Subject: Re: [PATCH v2 0/6] macros for section name cleanup
+Date: Fri, 1 May 2009 20:48:53 -0400 (EDT)
+Message-ID: <alpine.DEB.1.10.0905011916530.10966@vinegar-pot.mit.edu>
+References: <1241121253-32341-1-git-send-email-tabbott@mit.edu> <20090501213118.GA28126@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.89]:45210 "EHLO
-	fmsmga101.fm.intel.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752703AbZEBAAj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 20:00:39 -0400
-In-Reply-To: <20090501232149.GA28888@uranus.ravnborg.org>
+Received: from BISCAYNE-ONE-STATION.MIT.EDU ([18.7.7.80]:32981 "EHLO
+	biscayne-one-station.mit.edu" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751745AbZEBAs5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 20:48:57 -0400
+In-Reply-To: <20090501213118.GA28126@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Andreas Schwab <schwab@linux-m68k.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Cc: Linux kernel mailing list <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Anders Kaseorg <andersk@mit.edu>
 
-Sam Ravnborg wrote:
-> On Sat, May 02, 2009 at 01:10:18AM +0200, Andreas Schwab wrote:
->> "H. Peter Anvin" <hpa@linux.intel.com> writes:
->>
->>> right now, we filter out symbols that nm tag N, meaning "debugging
->>> symbols", from System.map.  However, at least on x86, the linker-generated
->>> symbol _end is tagged N, and in fact is the only N in the entire image.
->>>
->>> Are there other architectures which would suffer if N were included in
->>> System.map, or would that be a reasonable thing to do?
->> There should not be any N symbols unless you are using stabs debugging.
-> 
-> We have in vmlinux:
->         .end : AT(ADDR(.end) - LOAD_OFFSET) {
->                 _end = .;
->         }
-> 
-> 
-> And I see:
-> c1834000 N _end
-> 
-> This is the _only_ 'N' symbol in my vmlinux.
-> 
+On Fri, 1 May 2009, Sam Ravnborg wrote:
 
-Yup, this is what happens.  I don't know why the linker does this, and 
-if there is a way around it.
+> This is the way I want to go where we have more complete
+> definitions in the shared file and we try to keep the arch
+> linker scripts to the arch specifc stuff.
 
-	-hpa
+I like the general look of this.  Indeed, I was planning to work on 
+something like this as a follow-on to the linker script cleanup work I've 
+done so far.
+
+Some comments on the details are below.
+
+> +#define PAGE_ALIGNED_DATA(page_align)                                \
+> +     . = ALIGN((page_align));                                        \
+> +     *(.data.page_aligned)
+
+Why does this need an argument?  You should be able to just align to 
+PAGE_SIZE.
+
+Also, I'm not sure what you're trying to do with the double parentheses 
+here (it also appears inconsistently in several other places in this 
+patch).
+
+> +/* use 0 as page_align if page_aligned data is not used */ 
+> +#define RW_DATA(page_align, readmostly_align, cache_align)           \
+> +     . = ALIGN(PAGE_SIZE);                                           \
+> +     .data : AT(ADDR(.data) - LOAD_OFFSET) {                         \
+> +             DATA_DATA                                               \
+> +             CONSTRUCTORS                                            \
+> +             NOSAVE_DATA                                             \
+> +             PAGE_ALIGNED_DATA(page_align)                           \
+> +             READMOSTLY_DATA((readmostly_align))                     \
+> +             CACHELINE_ALIGNED_DATA((cache_align))                   \
+> +     }
+
+I think there are several architectures that have some other stuff in 
+their .data output section (e.g. powerpc, frv, ia64), so we won't be able 
+to use this on all architectures.  
+
+Perhaps we want an intermediate macro between DATA_DATA and RW_DATA that 
+is just the contents of .data here that those architectuere can use?
+
+> +#define INITDATA(initsetup_align)					\
+> +	.init.data : AT(ADDR(.init.data) - LOAD_OFFSET) {		\
+> +		INIT_DATA						\
+> +		. = ALIGN(initsetup_align);				\
+> +               VMLINUX_SYMBOL(__setup_start) = .;                    \
+> +               *(.init.setup)                                        \
+[...]
+> +#define INITDATA(initdata_align)					\
+> +	. = ALIGN((initdata_align));					\
+> +	.init.data : AT(ADDR(.init.data) - LOAD_OFFSET) {		\
+> +		INIT_DATA						\
+> +	}
+
+You define two different macros called INITDATA; I'm not sure what the 
+intention is here.
+
+> +#define INIT_TASK                                                    \
+> +     *(.data.init_task)
+> +             
+> +#define INIT_TASK_DATA(align)                                                
+> +     . = ALIGN((align));                                             \
+> +     .data.init_task : {                                             \
+> +             INIT_TASK                                               \
+> +     }
+> +
+
+You mentioned elsewhere you thought .data.init_task needs to be its own 
+output section rather than part of the .data output section; why is that?  
+There are several architectures on which it is part of the .data output 
+section (e.g. sh, um, avr32).
+
+Also, I think it is possible that INIT_TASK_DATA could just align to 
+THREAD_SIZE rather than taking an argument.  While working on my patches 
+for this I noticed there were only a couple of architectures where the 
+alignment wasn't THREAD_SIZE (or a value equal to THREAD_SIZE was used).  
+One exception was parisc, where the aligment is 16384 and THREAD_SIZE is 
+always at least that but could be bigger in some configs where PAGE_SIZE 
+is bigger.  I'm not sure whether this one exception is a bug.
+
+	-Tim Abbott
