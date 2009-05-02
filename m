@@ -1,46 +1,39 @@
-From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: Re: [RFC][PATCH 13/35] parisc: create ptemap.h
-Date: Sat, 02 May 2009 14:45:59 -0700
-Message-ID: <1241300759.9131.4.camel@localhost.localdomain>
-References: <20090501144201.D31EF417@kernel>
-	 <20090501144221.4C7F3D79@kernel>
-	 <20090502142939.GD28342@bombadil.infradead.org>
+From: Greg KH <greg@kroah.com>
+Subject: Re: [PATCH] driver-core: devtmpfs - driver core maintained /dev
+	tmpfs
+Date: Sat, 2 May 2009 14:54:34 -0700
+Message-ID: <20090502215434.GB17622@kroah.com>
+References: <1241097822.2516.3.camel@poy> <20090502071636.GA9487@infradead.org> <ac3eb2510905020434k57b561f7ld3db423f3dba26f0@mail.gmail.com> <9b2b86520905021322l31845d2dubad98d78380aa1d5@mail.gmail.com> <9b2b86520905021441r76ba0b73u1ef02b5aa855a02b@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e5.ny.us.ibm.com ([32.97.182.145]:60173 "EHLO e5.ny.us.ibm.com"
+Received: from kroah.org ([198.145.64.141]:48476 "EHLO coco.kroah.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753247AbZEBVqB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 2 May 2009 17:46:01 -0400
-In-Reply-To: <20090502142939.GD28342@bombadil.infradead.org>
+	id S1755360AbZEBV5u (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 2 May 2009 17:57:50 -0400
+Content-Disposition: inline
+In-Reply-To: <9b2b86520905021441r76ba0b73u1ef02b5aa855a02b@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kyle McMartin <kyle@mcmartin.ca>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Alan Jenkins <sourcejedi.lkml@googlemail.com>
+Cc: Kay Sievers <kay.sievers@vrfy.org>, Christoph Hellwig <hch@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, Jan Blunck <jblunck@suse.de>, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, torvalds@osdl.org, akpm@osdl.org, adam@yggdrasil.com
 
-On Sat, 2009-05-02 at 10:29 -0400, Kyle McMartin wrote:
-> On Fri, May 01, 2009 at 07:42:21AM -0700, Dave Hansen wrote:
-> > +#ifndef _PARISC_ASM_PTEMAP_H
-> > +#define _PARISC_ASM_PTEMAP_H
-> > +
-> > +#define pte_offset_map(pmd, address) pte_offset_kernel(pmd, address)
-> > +#define pte_offset_map_nested(pmd, address) pte_offset_kernel(pmd, address)
-> > +#define pte_unmap(pte) do { } while (0)
-> > +#define pte_unmap_nested(pte) do { } while (0)
-> > +
-> > +#define pte_unmap(pte)			do { } while (0)
-> > +#define pte_unmap_nested(pte)		do { } while (0)
-> > +
-> > +#endif /* _PARISC_ASM_PTEMAP_H */
+On Sat, May 02, 2009 at 10:41:50PM +0100, Alan Jenkins wrote:
 > 
-> You have duplicate definitiosn of pte_unmap{,_nested}?
+> But is read-only so bad?  You just have to copy it over to a tmpfs and
+> then mount that on top of /dev.  That's atomic, so it won't interfere
+> with parallel early init.
 
-Heh.  I actually just copied this verbatim from the existing parisc
-header.  It already had a duplicate. :)
+The copy would not be atomic.
 
-Anyway, I've made sure not to copy the dup and added a note in the patch
-description so that it is much more clear.  I'll show up in the next
-post.  Thanks for the review!
+> I sympathize, devtmpfs is a really neat hack that does exactly what
+> udev needs.  But you have to admit, it doesn't fit in _quite_ as well
+> with the kernel status quo.
 
--- Dave
+I disagree, it mirrors exactly what we are doing today from userspace,
+which is quite the "status quo" in that distros have been doing that for
+years now :)
+
+thanks,
+
+greg k-h
