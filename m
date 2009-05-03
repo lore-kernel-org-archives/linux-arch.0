@@ -1,48 +1,38 @@
-From: Michael Tokarev <mjt@tls.msk.ru>
-Subject: Re: [PATCH] driver-core: devtmpfs - driver core maintained /dev tmpfs
-Date: Sun, 03 May 2009 11:29:20 +0400
-Message-ID: <49FD47D0.2070802@msgid.tls.msk.ru>
-References: <1241097822.2516.3.camel@poy> <20090502071636.GA9487@infradead.org>	 <ac3eb2510905020434k57b561f7ld3db423f3dba26f0@mail.gmail.com>	 <9b2b86520905021322l31845d2dubad98d78380aa1d5@mail.gmail.com>	 <ac3eb2510905021439r2cef54fbja601f140d76ad623@mail.gmail.com> <9b2b86520905021504r3d32045ke1c14ffff1ffc898@mail.gmail.com>
+From: Geert Uytterhoeven <geert.uytterhoeven@gmail.com>
+Subject: Re: [PATCH 00/27] more non-ABI asm-generic headers
+Date: Sun, 3 May 2009 13:17:52 +0200
+Message-ID: <10f740e80905030417m3b67da38uecd6bd008b4c7e3f@mail.gmail.com>
+References: <cover.1241105648.git.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from isrv.corpit.ru ([81.13.33.159]:46737 "EHLO isrv.corpit.ru"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751693AbZECH3W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 3 May 2009 03:29:22 -0400
-In-Reply-To: <9b2b86520905021504r3d32045ke1c14ffff1ffc898@mail.gmail.com>
+Received: from mail-ew0-f224.google.com ([209.85.219.224]:40712 "EHLO
+	mail-ew0-f224.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752272AbZECLRx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 May 2009 07:17:53 -0400
+In-Reply-To: <cover.1241105648.git.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Jenkins <sourcejedi.lkml@googlemail.com>
-Cc: Kay Sievers <kay.sievers@vrfy.org>, Christoph Hellwig <hch@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, Greg KH <greg@kroah.com>, Jan Blunck <jblunck@suse.de>, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, torvalds@osdl.org, akpm@osdl.org, adam@yggdrasil.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
-Alan Jenkins wrote:
-> On 5/2/09, Kay Sievers <kay.sievers@vrfy.org> wrote:
-[]
->>> And it
->>> gives a nice clean way for new initramfs' to test for this feature -
->>> when they try to mount it, it fails.  It would seem to make for a
->>> rather smoother migration path.
->> I think that is all covered just fine.
-> 
-> Oh, I see.
-> 
-> grep "/dev" /proc/mounts > /dev/null
+On Thu, Apr 30, 2009 at 17:34, Arnd Bergmann <arnd@arndb.de> wrote:
+> To avoid trouble with quilt mail, I'm now trying
+> git-format-patch to generate them, hopefully this
+> works a little better. Can anyone tell me why I can't
+> add a 'To' header rather than just 'Cc' in
+> git-format-patch?
 
-Oh no.  This one will match all your /dev/sda1 etc too :)
-What yo want to do is either
+I always specify the --to with git send-email.
 
-   grep -w /dev /proc/mount
+Gr{oetje,eeting}s,
 
-or
+						Geert
 
-  awk '$2 == "/dev" { exit 0; } END { exit 1; }' /proc/mounts
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-or something similar.  To distinguish between the following
-two cases:
-
-/dev/sda1 / ext3 rw,noatime,data=ordered 0 0
-devfs /dev tmpfs rw,nosuid,size=512k,mode=755 0 0
-
-/mjt
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
