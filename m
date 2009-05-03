@@ -1,83 +1,48 @@
-From: Alan Jenkins <sourcejedi.lkml@googlemail.com>
+From: Michael Tokarev <mjt@tls.msk.ru>
 Subject: Re: [PATCH] driver-core: devtmpfs - driver core maintained /dev tmpfs
-Date: Sat, 2 May 2009 23:04:20 +0100
-Message-ID: <9b2b86520905021504r3d32045ke1c14ffff1ffc898@mail.gmail.com>
-References: <1241097822.2516.3.camel@poy> <20090502071636.GA9487@infradead.org>
-	 <ac3eb2510905020434k57b561f7ld3db423f3dba26f0@mail.gmail.com>
-	 <9b2b86520905021322l31845d2dubad98d78380aa1d5@mail.gmail.com>
-	 <ac3eb2510905021439r2cef54fbja601f140d76ad623@mail.gmail.com>
+Date: Sun, 03 May 2009 11:29:20 +0400
+Message-ID: <49FD47D0.2070802@msgid.tls.msk.ru>
+References: <1241097822.2516.3.camel@poy> <20090502071636.GA9487@infradead.org>	 <ac3eb2510905020434k57b561f7ld3db423f3dba26f0@mail.gmail.com>	 <9b2b86520905021322l31845d2dubad98d78380aa1d5@mail.gmail.com>	 <ac3eb2510905021439r2cef54fbja601f140d76ad623@mail.gmail.com> <9b2b86520905021504r3d32045ke1c14ffff1ffc898@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f158.google.com ([209.85.220.158]:40398 "EHLO
-	mail-fx0-f158.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757340AbZEBWEV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 May 2009 18:04:21 -0400
-In-Reply-To: <ac3eb2510905021439r2cef54fbja601f140d76ad623@mail.gmail.com>
+Received: from isrv.corpit.ru ([81.13.33.159]:46737 "EHLO isrv.corpit.ru"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751693AbZECH3W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 3 May 2009 03:29:22 -0400
+In-Reply-To: <9b2b86520905021504r3d32045ke1c14ffff1ffc898@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kay Sievers <kay.sievers@vrfy.org>
-Cc: Christoph Hellwig <hch@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, Greg KH <greg@kroah.com>, Jan Blunck <jblunck@suse.de>, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, torvalds@osdl.org, akpm@osdl.org, adam@yggdrasil.com
+To: Alan Jenkins <sourcejedi.lkml@googlemail.com>
+Cc: Kay Sievers <kay.sievers@vrfy.org>, Christoph Hellwig <hch@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, Greg KH <greg@kroah.com>, Jan Blunck <jblunck@suse.de>, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, torvalds@osdl.org, akpm@osdl.org, adam@yggdrasil.com
 
-On 5/2/09, Kay Sievers <kay.sievers@vrfy.org> wrote:
-> On Sat, May 2, 2009 at 22:22, Alan Jenkins
-> <sourcejedi.lkml@googlemail.com> wrote:
->
->> On a narrow issue: do you really object to moving the "mount dev -t
->> devfs2 /dev" into userspace (and therefore giving it a user-visible
->> name)??  That would address Cristophs particular objection about
->> "messing around" with the initial namespace.
->
-> An argument which does not stand at all, there is no mess, it is not
-> mounted at all until we are ready with initializing the kernel. And
-> instead of creating some random nodes in /dev like we do today, we
-> mount it, and it contains a node for every device. I hardly see any of
-> the mentioned "namespace mess" here, it's just the simplest, most
-> robust, and most efficient thing we can do. :)
->
->> It means I can be 100%
->> sure I can boot an old initramfs with this option enabled.
->
-> Oh, it does not change anything for an existing initramfs, if that
-> option enabled. After initramfs found and mounted the real rootfs at
-> /root, your are totally free to call:
->   mount --move /dev/ /root/dev
-> or not to do that, like we do today.
+Alan Jenkins wrote:
+> On 5/2/09, Kay Sievers <kay.sievers@vrfy.org> wrote:
+[]
+>>> And it
+>>> gives a nice clean way for new initramfs' to test for this feature -
+>>> when they try to mount it, it fails.  It would seem to make for a
+>>> rather smoother migration path.
+>> I think that is all covered just fine.
+> 
+> Oh, I see.
+> 
+> grep "/dev" /proc/mounts > /dev/null
 
-Sorry, you're right.  I should go to bed :-).
+Oh no.  This one will match all your /dev/sda1 etc too :)
+What yo want to do is either
 
-It would matter if you had a different naming scheme for /dev than the
-kernel, and you were trying to get away with a static /dev.  I can't
-believe anyone important does that though :-).
+   grep -w /dev /proc/mount
 
->> And it
->> gives a nice clean way for new initramfs' to test for this feature -
->> when they try to mount it, it fails.  It would seem to make for a
->> rather smoother migration path.
->
-> I think that is all covered just fine.
+or
 
-Oh, I see.
+  awk '$2 == "/dev" { exit 0; } END { exit 1; }' /proc/mounts
 
-grep "/dev" /proc/mounts > /dev/null
+or something similar.  To distinguish between the following
+two cases:
 
-> One thing that I tried to solve by doing a kernel mounted fs, is that
-> /dev on the rootfs is completely empty, it is that way on some distros
-> today, and if you do init=/bin/sh, it will not work, because
-> /dev/console is missing.
->
-> Another thing, why I would like to avoid a new fstype is that
-> userspace checks if /dev is a tmpfs to find out if it's a dynamic /dev
-> - nothing really that should prevent us from doing a new filesystem,
-> but we should need a good reason to do it, I think.
+/dev/sda1 / ext3 rw,noatime,data=ordered 0 0
+devfs /dev tmpfs rw,nosuid,size=512k,mode=755 0 0
 
-I thought udev was documented somewhere as compatible with a non-tmpfs
-/dev, in a "just because you could" sort of way.  I've seen something
-test for tmpfs... nevermind, it's probably something different.  (Just
-the init script that checks whether /dev has been mounted that way by
-an initramfs, or the user decided to do without intramfs'  so the
-rootfs gets to mount it instead).
-
-Good night
-Alan
+/mjt
