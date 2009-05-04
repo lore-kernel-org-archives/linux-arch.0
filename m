@@ -1,44 +1,109 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 00/27] more non-ABI asm-generic headers
-Date: Mon, 4 May 2009 16:32:27 +0200
-Message-ID: <200905041632.28026.arnd@arndb.de>
-References: <cover.1241105648.git.arnd@arndb.de> <10f740e80905030417m3b67da38uecd6bd008b4c7e3f@mail.gmail.com>
+From: Tim Abbott <tabbott@MIT.EDU>
+Subject: Re: [PATCH v2 0/6] macros for section name cleanup
+Date: Mon, 4 May 2009 12:32:51 -0400 (EDT)
+Message-ID: <alpine.DEB.1.10.0905041209570.10610@vinegar-pot.mit.edu>
+References: <1241121253-32341-1-git-send-email-tabbott@mit.edu> <20090501213118.GA28126@uranus.ravnborg.org> <alpine.DEB.1.10.0905011916530.10966@vinegar-pot.mit.edu> <20090502220132.GA4130@uranus.ravnborg.org> <20090504142732.GA8237@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:58185 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753831AbZEDOcc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2009 10:32:32 -0400
-In-Reply-To: <10f740e80905030417m3b67da38uecd6bd008b4c7e3f@mail.gmail.com>
-Content-Disposition: inline
+Received: from BISCAYNE-ONE-STATION.MIT.EDU ([18.7.7.80]:47391 "EHLO
+	biscayne-one-station.mit.edu" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755126AbZEDQdM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2009 12:33:12 -0400
+In-Reply-To: <20090504142732.GA8237@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert.uytterhoeven@gmail.com>
-Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Linux kernel mailing list <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Anders Kaseorg <andersk@mit.edu>
 
-On Sunday 03 May 2009, Geert Uytterhoeven wrote:
-> On Thu, Apr 30, 2009 at 17:34, Arnd Bergmann <arnd@arndb.de> wrote:
-> > To avoid trouble with quilt mail, I'm now trying
-> > git-format-patch to generate them, hopefully this
-> > works a little better. Can anyone tell me why I can't
-> > add a 'To' header rather than just 'Cc' in
-> > git-format-patch?
-> 
-> I always specify the --to with git send-email.
+On Mon, 4 May 2009, Sam Ravnborg wrote:
 
-I haven't tried using git send-email yet, because it does not let
-me inspect mails after changing the headers but before sending
-them out.
+> I'm especially fond of the "minimal" linker script
+> contained in the beginning of the file.
 
-I have now gone back to my old method of
+I like this a lot too.
 
-rm -rf patches
-mkdir -p patches
-git-format-patch -o patches | cut -f 2- -d/ > patches/series
-quilt mail --mbox ~/Mail/outbox
-#manually edit outbox if necessary, then hit send button in mail client.
+> + *   /DISCARD/ : {  
+> + *           EXIT_TEXT
+> + *           EXIT_DATA
+> + *           *(.exitcall.exit)
+> + *   }
 
-	Arnd <><
+You may want to create an EXIT_CALL macro, to remove the explicit mention 
+of .exitcall.exit, which is the only input section referenced directly in 
+the example script.
+
+> +#define READ_MOSTLY_DATA(align)					\
+> +	. = ALIGN(align);						\
+> +	*(.data.read_mostly)
+
+Should READ_MOSTLY_DATA have an ALIGN(align) at the end as well?  If the 
+goal is to isolate READ_MOSTLY_DATA from other data at the given alignment 
+level, this would seem appropriate.  Something similar may apply to 
+CACHELINE_ALIGNED_DATA as well.
+
+> +/*
+> + * bss (Block started by Symbol) - uninitialized data
+> + * zeroed during startup
+> + */
+> +#define SBSS								\
+> +	.sbss : AT(ADDR(.sbss) - LOAD_OFFSET) {				\
+> +		*(.sbss)						\
+> +		*(.scommon)						\
+> +	}
+
+I notice that s390 and powerpc reference a ".dynsbss"; does that belong 
+here?
+
+> +#ifdef CONFIG_BLK_DEV_INITRD
+> +#define INIT_RAM_FS							\
+> +	. = ALIGN(PAGE_SIZE);						\
+> +	VMLINUX_SYMBOL(__initramfs_start) = .;				\
+> +	*(.init.ramfs)							\
+> +	VMLINUX_SYMBOL(__initramfs_end) = .;
+> +#else
+> +#define INITRAMFS
+> +#endif
+
+I think you want the #else clause to be INIT_RAM_FS here.
+
+> +/*
+> + * Definition of the high level *_SECTION macros
+> + * They will fit only a subset of the architectures
+> + */
+
+Do we want a TEXT_SECTION macro here as well that looks like what appears 
+above in the example script?
+
+> +#define RW_DATA_SECTION(page_align, readmostly_align, cache_align, 
+inittask_align) \
+> +     . = ALIGN(PAGE_SIZE);                                           \
+> +     .data : AT(ADDR(.data) - LOAD_OFFSET) {                         \
+> +             DATA_DATA                                               \
+> +             CONSTRUCTORS                                            \
+> +             NOSAVE_DATA                                             \
+> +             PAGE_ALIGNED_DATA(page_align)                           \
+> +             READMOSTLY_DATA(readmostly_align)                       \
+> +             CACHELINE_ALIGNED_DATA(cache_align)                     \
+> +             INIT_TASK(inittask_align)                               \
+> +     }       
+
+How did you pick the order of the sections here?  I would think that to 
+pack the .data section efficiently, you'd want to sort by alignment 
+requirements so that e.g. all the at-least-page aligned sections are 
+adjacent (INIT_TASK and the page-aligned sections are separated by some 
+much smaller aligments here).  So it would like either the following or 
+the following reversed:
+
+     . = ALIGN(PAGE_SIZE);                                           \
+     .data : AT(ADDR(.data) - LOAD_OFFSET) {                         \
+             INIT_TASK(inittask_align)                               \
+             NOSAVE_DATA                                             \
+             PAGE_ALIGNED_DATA(page_align)                           \
+             READMOSTLY_DATA(readmostly_align)                       \
+             CACHELINE_ALIGNED_DATA(cache_align)                     \
+             DATA_DATA                                               \
+             CONSTRUCTORS                                            \
+     }       
+
+	-Tim Abbott
