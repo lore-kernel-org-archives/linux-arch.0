@@ -1,109 +1,54 @@
-From: Tim Abbott <tabbott@MIT.EDU>
+From: Mike Frysinger <vapier.adi@gmail.com>
 Subject: Re: [PATCH v2 0/6] macros for section name cleanup
-Date: Mon, 4 May 2009 12:32:51 -0400 (EDT)
-Message-ID: <alpine.DEB.1.10.0905041209570.10610@vinegar-pot.mit.edu>
-References: <1241121253-32341-1-git-send-email-tabbott@mit.edu> <20090501213118.GA28126@uranus.ravnborg.org> <alpine.DEB.1.10.0905011916530.10966@vinegar-pot.mit.edu> <20090502220132.GA4130@uranus.ravnborg.org> <20090504142732.GA8237@uranus.ravnborg.org>
+Date: Mon, 4 May 2009 13:42:08 -0400
+Message-ID: <8bd0f97a0905041042g71af324eo1d38e35799836c86@mail.gmail.com>
+References: <1241121253-32341-1-git-send-email-tabbott@mit.edu>
+	 <20090501213118.GA28126@uranus.ravnborg.org>
+	 <alpine.DEB.1.10.0905011916530.10966@vinegar-pot.mit.edu>
+	 <20090502220132.GA4130@uranus.ravnborg.org>
+	 <20090504142732.GA8237@uranus.ravnborg.org>
+	 <alpine.DEB.1.10.0905041209570.10610@vinegar-pot.mit.edu>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from BISCAYNE-ONE-STATION.MIT.EDU ([18.7.7.80]:47391 "EHLO
-	biscayne-one-station.mit.edu" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755126AbZEDQdM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2009 12:33:12 -0400
-In-Reply-To: <20090504142732.GA8237@uranus.ravnborg.org>
+Received: from mail-gx0-f166.google.com ([209.85.217.166]:53318 "EHLO
+	mail-gx0-f166.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752264AbZEDRmJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2009 13:42:09 -0400
+In-Reply-To: <alpine.DEB.1.10.0905041209570.10610@vinegar-pot.mit.edu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Linux kernel mailing list <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Anders Kaseorg <andersk@mit.edu>
+To: Tim Abbott <tabbott@mit.edu>
+Cc: Sam Ravnborg <sam@ravnborg.org>, Linux kernel mailing list <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Anders Kaseorg <andersk@mit.edu>
 
-On Mon, 4 May 2009, Sam Ravnborg wrote:
-
-> I'm especially fond of the "minimal" linker script
-> contained in the beginning of the file.
-
-I like this a lot too.
-
-> + *   /DISCARD/ : {  
-> + *           EXIT_TEXT
-> + *           EXIT_DATA
-> + *           *(.exitcall.exit)
-> + *   }
-
-You may want to create an EXIT_CALL macro, to remove the explicit mention 
-of .exitcall.exit, which is the only input section referenced directly in 
-the example script.
-
-> +#define READ_MOSTLY_DATA(align)					\
-> +	. = ALIGN(align);						\
-> +	*(.data.read_mostly)
-
-Should READ_MOSTLY_DATA have an ALIGN(align) at the end as well?  If the 
-goal is to isolate READ_MOSTLY_DATA from other data at the given alignment 
-level, this would seem appropriate.  Something similar may apply to 
-CACHELINE_ALIGNED_DATA as well.
-
-> +/*
-> + * bss (Block started by Symbol) - uninitialized data
-> + * zeroed during startup
-> + */
-> +#define SBSS								\
-> +	.sbss : AT(ADDR(.sbss) - LOAD_OFFSET) {				\
-> +		*(.sbss)						\
-> +		*(.scommon)						\
-> +	}
-
-I notice that s390 and powerpc reference a ".dynsbss"; does that belong 
-here?
-
-> +#ifdef CONFIG_BLK_DEV_INITRD
-> +#define INIT_RAM_FS							\
-> +	. = ALIGN(PAGE_SIZE);						\
-> +	VMLINUX_SYMBOL(__initramfs_start) = .;				\
-> +	*(.init.ramfs)							\
-> +	VMLINUX_SYMBOL(__initramfs_end) = .;
-> +#else
-> +#define INITRAMFS
-> +#endif
-
-I think you want the #else clause to be INIT_RAM_FS here.
-
-> +/*
-> + * Definition of the high level *_SECTION macros
-> + * They will fit only a subset of the architectures
-> + */
-
-Do we want a TEXT_SECTION macro here as well that looks like what appears 
-above in the example script?
-
-> +#define RW_DATA_SECTION(page_align, readmostly_align, cache_align, 
-inittask_align) \
-> +     . = ALIGN(PAGE_SIZE);                                           \
-> +     .data : AT(ADDR(.data) - LOAD_OFFSET) {                         \
-> +             DATA_DATA                                               \
-> +             CONSTRUCTORS                                            \
-> +             NOSAVE_DATA                                             \
-> +             PAGE_ALIGNED_DATA(page_align)                           \
-> +             READMOSTLY_DATA(readmostly_align)                       \
-> +             CACHELINE_ALIGNED_DATA(cache_align)                     \
-> +             INIT_TASK(inittask_align)                               \
-> +     }       
-
-How did you pick the order of the sections here?  I would think that to 
-pack the .data section efficiently, you'd want to sort by alignment 
-requirements so that e.g. all the at-least-page aligned sections are 
-adjacent (INIT_TASK and the page-aligned sections are separated by some 
-much smaller aligments here).  So it would like either the following or 
-the following reversed:
-
-     . = ALIGN(PAGE_SIZE);                                           \
-     .data : AT(ADDR(.data) - LOAD_OFFSET) {                         \
-             INIT_TASK(inittask_align)                               \
-             NOSAVE_DATA                                             \
-             PAGE_ALIGNED_DATA(page_align)                           \
-             READMOSTLY_DATA(readmostly_align)                       \
-             CACHELINE_ALIGNED_DATA(cache_align)                     \
-             DATA_DATA                                               \
-             CONSTRUCTORS                                            \
-     }       
-
-	-Tim Abbott
+T24gTW9uLCBNYXkgNCwgMjAwOSBhdCAxMjozMiwgVGltIEFiYm90dCB3cm90ZToKPiBPbiBNb24s
+IDQgTWF5IDIwMDksIFNhbSBSYXZuYm9yZyB3cm90ZToKPj4gKyNkZWZpbmUgUldfREFUQV9TRUNU
+SU9OKHBhZ2VfYWxpZ24sIHJlYWRtb3N0bHlfYWxpZ24sIGNhY2hlX2FsaWduLAo+PiAgIGluaXR0
+YXNrX2FsaWduKSBcCj4+ICsgwqAgwqAgLiA9IEFMSUdOKFBBR0VfU0laRSk7IMKgIMKgIMKgIMKg
+IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIFwKPj4g
+KyDCoCDCoCAuZGF0YSA6IEFUKEFERFIoLmRhdGEpIC0gTE9BRF9PRkZTRVQpIHsgwqAgwqAgwqAg
+wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgXAo+PiArIMKgIMKgIMKgIMKgIMKgIMKgIERBVEFf
+REFUQSDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDC
+oCDCoCDCoCDCoCDCoCDCoCBcCj4+ICsgwqAgwqAgwqAgwqAgwqAgwqAgQ09OU1RSVUNUT1JTIMKg
+IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKg
+IMKgIMKgXAo+PiArIMKgIMKgIMKgIMKgIMKgIMKgIE5PU0FWRV9EQVRBIMKgIMKgIMKgIMKgIMKg
+IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIFwKPj4g
+KyDCoCDCoCDCoCDCoCDCoCDCoCBQQUdFX0FMSUdORURfREFUQShwYWdlX2FsaWduKSDCoCDCoCDC
+oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCBcCj4+ICsgwqAgwqAgwqAgwqAgwqAgwqAg
+UkVBRE1PU1RMWV9EQVRBKHJlYWRtb3N0bHlfYWxpZ24pIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKg
+IMKgIMKgIMKgIFwKPj4gKyDCoCDCoCDCoCDCoCDCoCDCoCBDQUNIRUxJTkVfQUxJR05FRF9EQVRB
+KGNhY2hlX2FsaWduKSDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCBcCj4+ICsgwqAgwqAg
+wqAgwqAgwqAgwqAgSU5JVF9UQVNLKGluaXR0YXNrX2FsaWduKSDCoCDCoCDCoCDCoCDCoCDCoCDC
+oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCBcCj4+ICsgwqAgwqAgfQo+Cj4gSG93IGRpZCB5b3Ug
+cGljayB0aGUgb3JkZXIgb2YgdGhlIHNlY3Rpb25zIGhlcmU/IMKgSSB3b3VsZCB0aGluayB0aGF0
+IHRvCj4gcGFjayB0aGUgLmRhdGEgc2VjdGlvbiBlZmZpY2llbnRseSwgeW91J2Qgd2FudCB0byBz
+b3J0IGJ5IGFsaWdubWVudAo+IHJlcXVpcmVtZW50cyBzbyB0aGF0IGUuZy4gYWxsIHRoZSBhdC1s
+ZWFzdC1wYWdlIGFsaWduZWQgc2VjdGlvbnMgYXJlCj4gYWRqYWNlbnQgKElOSVRfVEFTSyBhbmQg
+dGhlIHBhZ2UtYWxpZ25lZCBzZWN0aW9ucyBhcmUgc2VwYXJhdGVkIGJ5IHNvbWUKPiBtdWNoIHNt
+YWxsZXIgYWxpZ21lbnRzIGhlcmUpLgoKaWYgdGhpcyB3ZXJlIGFjdHVhbGx5IHRoZSBjYXNlLCB0
+aGVyZSBzaG91bGQgb2YgY291cnNlIGJlIHNvbWUgLyoKY29tbWVudHMgKi8gYWJvdmUgdGhlIGRl
+ZmluZSBleHBsYWluaW5nIHRoYXQgdGhlIG9yZGVyIHdhc250CmFyYml0cmFyaWx5IHB1bGxlZCBs
+aWtlIGEgcmFiYml0IGZyb20gYW4gb3JpZmljZS4gIGlmIHlvdSdyZQpzY3JhdGNoaW5nIHlvdXIg
+aGVhZCwgdGhlbiB0aGVyZSdzIGdvaW5nIHRvIGJlIHBsZW50eSBtb3JlIHBlb3BsZSB3aG8KbmV2
+ZXIgYXNrIGJ1dCB0cmVhdCBpdCBsaWtlIHVudG91Y2hhYmxlIHZvb2Rvby4KLW1pa2UK
