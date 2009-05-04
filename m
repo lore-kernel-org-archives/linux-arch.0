@@ -1,35 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.188]:51241 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760319AbZEANUf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2009 09:20:35 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 04/27] asm-generic: add legacy I/O header files
-Date: Fri, 1 May 2009 15:20:33 +0200
-References: <cover.1241105648.git.arnd@arndb.de> <200905011453.32006.arnd@arndb.de> <20090501141414.4adfe4ab@lxorguk.ukuu.org.uk>
-In-Reply-To: <20090501141414.4adfe4ab@lxorguk.ukuu.org.uk>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Received: from pfepa.post.tele.dk ([195.41.46.235]:47119 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751448AbZEDTb0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2009 15:31:26 -0400
+Date: Mon, 4 May 2009 21:33:36 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: "N" symbols and System.map
+Message-ID: <20090504193336.GA10453@uranus.ravnborg.org>
+References: <49FB7692.2000508@linux.intel.com> <m2preso1wl.fsf@igel.home> <20090501232149.GA28888@uranus.ravnborg.org> <49FB8D27.3000305@linux.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-ID: <200905011520.34097.arnd@arndb.de>
+In-Reply-To: <49FB8D27.3000305@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Michal Simek <monstr@monstr.eu>, linux-arch@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
-Message-ID: <20090501132033.HTYbbXPezlvNoCjd8XrGVU9rGmDfboK_THFGEV4nJds@z>
+To: "H. Peter Anvin" <hpa@linux.intel.com>, Andreas Schwab <schwab@linux-m68k.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20090504193336.TRtJdTrsQw7xS_xxDMlwk-zFqLREHAOicNITXqj_fFQ@z>
 
-On Friday 01 May 2009, Alan Cox wrote:
-> Currently if you create a new architecture you have to figure out what
-> your equivalent tick rate is or you get an error for not defining it.
-> Ditto if you try to build code using it on platforms that it is
-> meaningless (eg S/390) you get an error.
+On Fri, May 01, 2009 at 05:00:39PM -0700, H. Peter Anvin wrote:
+> Sam Ravnborg wrote:
+> >On Sat, May 02, 2009 at 01:10:18AM +0200, Andreas Schwab wrote:
+> >>"H. Peter Anvin" <hpa@linux.intel.com> writes:
+> >>
+> >>>right now, we filter out symbols that nm tag N, meaning "debugging
+> >>>symbols", from System.map.  However, at least on x86, the 
+> >>>linker-generated
+> >>>symbol _end is tagged N, and in fact is the only N in the entire image.
+> >>>
+> >>>Are there other architectures which would suffer if N were included in
+> >>>System.map, or would that be a reasonable thing to do?
+> >>There should not be any N symbols unless you are using stabs debugging.
+> >
+> >We have in vmlinux:
+> >        .end : AT(ADDR(.end) - LOAD_OFFSET) {
+> >                _end = .;
+> >        }
+> >
+> >
+> >And I see:
+> >c1834000 N _end
+> >
+> >This is the _only_ 'N' symbol in my vmlinux.
+> >
 > 
-> You'd lose that rather useful property.
+> Yup, this is what happens.  I don't know why the linker does this, and 
+> if there is a way around it.
 
-In that case, I still think it would be good to have it in asm-generic.
-Half the architectures define it in this way currently, and new architectures
-would still have to think about it before falling back on the default.
+Andreas - can you explain what is happning here?
+I can include 'N' symbols in System.map - but I have not yet reached
+a level of understanding that make me go and do it.
 
-	Arnd <><
+	Sam
