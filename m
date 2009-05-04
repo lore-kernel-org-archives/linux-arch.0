@@ -1,53 +1,38 @@
-From: Sam Ravnborg <sam@ravnborg.org>
+From: Andreas Schwab <schwab@linux-m68k.org>
 Subject: Re: "N" symbols and System.map
-Date: Mon, 4 May 2009 21:33:36 +0200
-Message-ID: <20090504193336.GA10453@uranus.ravnborg.org>
-References: <49FB7692.2000508@linux.intel.com> <m2preso1wl.fsf@igel.home> <20090501232149.GA28888@uranus.ravnborg.org> <49FB8D27.3000305@linux.intel.com>
+Date: Mon, 04 May 2009 23:19:45 +0200
+Message-ID: <m2skjkzhu6.fsf@igel.home>
+References: <49FB7692.2000508@linux.intel.com> <m2preso1wl.fsf@igel.home>
+	<20090501232149.GA28888@uranus.ravnborg.org>
+	<49FB8D27.3000305@linux.intel.com>
+	<20090504193336.GA10453@uranus.ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepa.post.tele.dk ([195.41.46.235]:47119 "EHLO
-	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751448AbZEDTb0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2009 15:31:26 -0400
-Content-Disposition: inline
-In-Reply-To: <49FB8D27.3000305@linux.intel.com>
+Received: from mail-out.m-online.net ([212.18.0.9]:54833 "EHLO
+	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753268AbZEDVTw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2009 17:19:52 -0400
+In-Reply-To: <20090504193336.GA10453@uranus.ravnborg.org> (Sam Ravnborg's
+	message of "Mon, 4 May 2009 21:33:36 +0200")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@linux.intel.com>
-Cc: Andreas Schwab <schwab@linux-m68k.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: "H. Peter Anvin" <hpa@linux.intel.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
-On Fri, May 01, 2009 at 05:00:39PM -0700, H. Peter Anvin wrote:
-> Sam Ravnborg wrote:
-> >On Sat, May 02, 2009 at 01:10:18AM +0200, Andreas Schwab wrote:
-> >>"H. Peter Anvin" <hpa@linux.intel.com> writes:
-> >>
-> >>>right now, we filter out symbols that nm tag N, meaning "debugging
-> >>>symbols", from System.map.  However, at least on x86, the 
-> >>>linker-generated
-> >>>symbol _end is tagged N, and in fact is the only N in the entire image.
-> >>>
-> >>>Are there other architectures which would suffer if N were included in
-> >>>System.map, or would that be a reasonable thing to do?
-> >>There should not be any N symbols unless you are using stabs debugging.
-> >
-> >We have in vmlinux:
-> >        .end : AT(ADDR(.end) - LOAD_OFFSET) {
-> >                _end = .;
-> >        }
-> >
-> >
-> >And I see:
-> >c1834000 N _end
-> >
-> >This is the _only_ 'N' symbol in my vmlinux.
-> >
-> 
-> Yup, this is what happens.  I don't know why the linker does this, and 
-> if there is a way around it.
+Sam Ravnborg <sam@ravnborg.org> writes:
 
-Andreas - can you explain what is happning here?
-I can include 'N' symbols in System.map - but I have not yet reached
-a level of understanding that make me go and do it.
+> Andreas - can you explain what is happning here?
 
-	Sam
+My best guess would be that it has to do with the fact that the _end
+symbol is attached to the .end section which is located before the debug
+sections, but the .end section is empty, so the symbol has the same
+address as the following debug section.  The ppc linker script does not
+attach the _end symbol to any section, so it becomes an absolute symbol.
+
+Andreas.
+
+-- 
+Andreas Schwab, schwab@linux-m68k.org
+GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
+"And now for something completely different."
