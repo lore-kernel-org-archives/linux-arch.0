@@ -1,70 +1,76 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 05/27] asm-generic: add generic io.h
-Date: Mon, 4 May 2009 09:07:23 +0200
-Message-ID: <10f740e80905040007x38dfcdc5i4a7d351e59db71e9@mail.gmail.com>
+Subject: Re: [PATCH 11/27] asm-generic: add generic page.h
+Date: Mon, 4 May 2009 09:11:33 +0200
+Message-ID: <10f740e80905040011u57e17420w9df8758f87027328@mail.gmail.com>
 References: <cover.1241105648.git.arnd@arndb.de>
-	 <19d8a91dbf3456f9eb0b0bb2f92b302b88a1c672.1241105648.git.arnd@arndb.de>
+	 <821a570574a4dadc0c0c838f90f41dd5df81f090.1241105648.git.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ew0-f224.google.com ([209.85.219.224]:41432 "EHLO
-	mail-ew0-f224.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752590AbZEDHHZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2009 03:07:25 -0400
-In-Reply-To: <19d8a91dbf3456f9eb0b0bb2f92b302b88a1c672.1241105648.git.arnd@arndb.de>
+Received: from ey-out-2122.google.com ([74.125.78.27]:47836 "EHLO
+	ey-out-2122.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752243AbZEDHLe convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2009 03:11:34 -0400
+In-Reply-To: <821a570574a4dadc0c0c838f90f41dd5df81f090.1241105648.git.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
-T24gVGh1LCBOb3YgNiwgMjAwOCBhdCAxNTozOCwgQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5k
-ZT4gd3JvdGU6Cj4gLS0tIC9kZXYvbnVsbAo+ICsrKyBiL2luY2x1ZGUvYXNtLWdlbmVyaWMvaW8u
-aAoKPiArc3RhdGljIGlubGluZSB2b2lkIGluc2IodW5zaWduZWQgbG9uZyBhZGRyLCB2b2lkICpi
-dWZmZXIsIGludCBjb3VudCkKPiArewo+ICsgwqAgwqAgwqAgaWYgKGNvdW50KSB7Cj4gKyDCoCDC
-oCDCoCDCoCDCoCDCoCDCoCB1OCAqYnVmID0gYnVmZmVyOwo+ICsgwqAgwqAgwqAgwqAgwqAgwqAg
-wqAgZG8gewo+ICsgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgdTggeCA9IGluYihh
-ZGRyKTsKPiArIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgICpidWYrKyA9IHg7Cj4g
-KyDCoCDCoCDCoCDCoCDCoCDCoCDCoCB9IHdoaWxlICgtLWNvdW50KTsKPiArIMKgIMKgIMKgIH0K
-PiArfQo+ICsKPiArc3RhdGljIGlubGluZSB2b2lkIGluc3codW5zaWduZWQgbG9uZyBhZGRyLCB2
-b2lkICpidWZmZXIsIGludCBjb3VudCkKPiArewo+ICsgwqAgwqAgwqAgaWYgKGNvdW50KSB7Cj4g
-KyDCoCDCoCDCoCDCoCDCoCDCoCDCoCB1MTYgKmJ1ZiA9IGJ1ZmZlcjsKPiArIMKgIMKgIMKgIMKg
-IMKgIMKgIMKgIGRvIHsKPiArIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIHUxNiB4
-ID0gaW53KGFkZHIpOwo+ICsgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgKmJ1Zisr
-ID0geDsKPiArIMKgIMKgIMKgIMKgIMKgIMKgIMKgIH0gd2hpbGUgKC0tY291bnQpOwo+ICsgwqAg
-wqAgwqAgfQo+ICt9Cj4gKwo+ICtzdGF0aWMgaW5saW5lIHZvaWQgaW5zbCh1bnNpZ25lZCBsb25n
-IGFkZHIsIHZvaWQgKmJ1ZmZlciwgaW50IGNvdW50KQo+ICt7Cj4gKyDCoCDCoCDCoCBpZiAoY291
-bnQpIHsKPiArIMKgIMKgIMKgIMKgIMKgIMKgIMKgIHUzMiAqYnVmID0gYnVmZmVyOwo+ICsgwqAg
-wqAgwqAgwqAgwqAgwqAgwqAgZG8gewo+ICsgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
-wqAgdTMyIHggPSBpbmwoYWRkcik7Cj4gKyDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDC
-oCAqYnVmKysgPSB4Owo+ICsgwqAgwqAgwqAgwqAgwqAgwqAgwqAgfSB3aGlsZSAoLS1jb3VudCk7
-Cj4gKyDCoCDCoCDCoCB9Cj4gK30KPiArCj4gK3N0YXRpYyBpbmxpbmUgdm9pZCBvdXRzYih1bnNp
-Z25lZCBsb25nIGFkZHIsIGNvbnN0IHZvaWQgKmJ1ZmZlciwgaW50IGNvdW50KQo+ICt7Cj4gKyDC
-oCDCoCDCoCBpZiAoY291bnQpIHsKPiArIMKgIMKgIMKgIMKgIMKgIMKgIMKgIGNvbnN0IHU4ICpi
-dWYgPSBidWZmZXI7Cj4gKyDCoCDCoCDCoCDCoCDCoCDCoCDCoCBkbyB7Cj4gKyDCoCDCoCDCoCDC
-oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCBvdXRiKCpidWYrKywgYWRkcik7Cj4gKyDCoCDCoCDCoCDC
-oCDCoCDCoCDCoCB9IHdoaWxlICgtLWNvdW50KTsKPiArIMKgIMKgIMKgIH0KPiArfQo+ICsKPiAr
-c3RhdGljIGlubGluZSB2b2lkIG91dHN3KHVuc2lnbmVkIGxvbmcgYWRkciwgY29uc3Qgdm9pZCAq
-YnVmZmVyLCBpbnQgY291bnQpCj4gK3sKPiArIMKgIMKgIMKgIGlmIChjb3VudCkgewo+ICsgwqAg
-wqAgwqAgwqAgwqAgwqAgwqAgY29uc3QgdTE2ICpidWYgPSBidWZmZXI7Cj4gKyDCoCDCoCDCoCDC
-oCDCoCDCoCDCoCBkbyB7Cj4gKyDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCBvdXR3
-KCpidWYrKywgYWRkcik7Cj4gKyDCoCDCoCDCoCDCoCDCoCDCoCDCoCB9IHdoaWxlICgtLWNvdW50
-KTsKPiArIMKgIMKgIMKgIH0KPiArfQo+ICsKPiArc3RhdGljIGlubGluZSB2b2lkIG91dHNsKHVu
-c2lnbmVkIGxvbmcgYWRkciwgY29uc3Qgdm9pZCAqYnVmZmVyLCBpbnQgY291bnQpCj4gK3sKPiAr
-IMKgIMKgIMKgIGlmIChjb3VudCkgewo+ICsgwqAgwqAgwqAgwqAgwqAgwqAgwqAgY29uc3QgdTMy
-ICpidWYgPSBidWZmZXI7Cj4gKyDCoCDCoCDCoCDCoCDCoCDCoCDCoCBkbyB7Cj4gKyDCoCDCoCDC
-oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCBvdXRsKCpidWYrKywgYWRkcik7Cj4gKyDCoCDCoCDC
-oCDCoCDCoCDCoCDCoCB9IHdoaWxlICgtLWNvdW50KTsKPiArIMKgIMKgIMKgIH0KPiArfQoKRG8g
-d2UgZXZlciBjYWxsIHRoZXNlIHdpdGggY291bnQgPT0gMD8KCj4gKy8qCj4gKyAqIENoYW5nZSAi
-c3RydWN0IHBhZ2UiIHRvIHBoeXNpY2FsIGFkZHJlc3MuCj4gKyAqLwoKV2hpY2ggYHN0cnVjdCBw
-YWdlJz8KCj4gK3N0YXRpYyBpbmxpbmUgdm9pZCAqX19pb3JlbWFwKHVuc2lnbmVkIGxvbmcgb2Zm
-c2V0LCB1bnNpZ25lZCBsb25nIHNpemUsCj4gKyDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDC
-oCDCoCDCoCDCoCDCoCB1bnNpZ25lZCBsb25nIGZsYWdzKQo+ICt7Cj4gKyDCoCDCoCDCoCByZXR1
-cm4gKHZvaWQgKikgb2Zmc2V0Owo+ICt9Cj4gKwo+ICtzdGF0aWMgaW5saW5lIHZvaWQgKmlvcmVt
-YXAodW5zaWduZWQgbG9uZyBvZmZzZXQsIHVuc2lnbmVkIGxvbmcgc2l6ZSkKPiArewo+ICsgwqAg
-wqAgwqAgcmV0dXJuICh2b2lkICopIG9mZnNldDsKPiArfQoKR3J7b2V0amUsZWV0aW5nfXMsCgoJ
-CQkJCQlHZWVydAoKLS0KR2VlcnQgVXl0dGVyaG9ldmVuIC0tIFRoZXJlJ3MgbG90cyBvZiBMaW51
-eCBiZXlvbmQgaWEzMiAtLSBnZWVydEBsaW51eC1tNjhrLm9yZwoKSW4gcGVyc29uYWwgY29udmVy
-c2F0aW9ucyB3aXRoIHRlY2huaWNhbCBwZW9wbGUsIEkgY2FsbCBteXNlbGYgYSBoYWNrZXIuIEJ1
-dAp3aGVuIEknbSB0YWxraW5nIHRvIGpvdXJuYWxpc3RzIEkganVzdCBzYXkgInByb2dyYW1tZXIi
-IG9yIHNvbWV0aGluZyBsaWtlIHRoYXQuCgkJCQkJCQkgICAgLS0gTGludXMgVG9ydmFsZHMK
+On Wed, Apr 29, 2009 at 16:55, Arnd Bergmann <arnd@arndb.de> wrote:
+> Architectures that have no mmu should not have to
+> describe their page tables. This adds a new page.h
+> file based on the existing nommu architectures
+> that adds a lot of dummy definitions to let you
+> correctly compile a nommu kernel.
+>
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+> =C2=A0include/asm-generic/page.h | =C2=A0 99 ++++++++++++++++++++++++=
+++++++++++++++++++++
+> =C2=A01 files changed, 99 insertions(+), 0 deletions(-)
+> =C2=A0create mode 100644 include/asm-generic/page.h
+>
+> diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
+> new file mode 100644
+> index 0000000..75fec18
+> --- /dev/null
+> +++ b/include/asm-generic/page.h
+> @@ -0,0 +1,99 @@
+> +#ifndef __ASM_GENERIC_PAGE_H
+> +#define __ASM_GENERIC_PAGE_H
+> +/*
+> + * Generic page.h implementation, for NOMMU architectures.
+> + * This provides the dummy definitions for the memory management.
+> + */
+> +
+> +#ifdef CONFIG_MMU
+> +#error need to prove a real asm/page.h
+> +#endif
+> +
+> +
+> +/* PAGE_SHIFT determines the page size */
+> +
+> +#define PAGE_SHIFT =C2=A0 =C2=A0 12
+> +#ifdef __ASSEMBLY__
+> +#define PAGE_SIZE =C2=A0 =C2=A0 =C2=A0(1 << PAGE_SHIFT)
+> +#else
+> +#define PAGE_SIZE =C2=A0 =C2=A0 =C2=A0(1UL << PAGE_SHIFT)
+> +#endif
+
+#include <linux/const.h> and use (_AC(1, UL) << PAGE_SHIFT)
+
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+							    -- Linus Torvalds
