@@ -1,46 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:36605 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:53684 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754887AbZEGTWE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 May 2009 15:22:04 -0400
-Message-ID: <200905071916.n47JGqrY020684@imap1.linux-foundation.org>
-Subject: [merged] signals-split-do_tkill.patch removed from -mm tree
+	by vger.kernel.org with ESMTP id S1754887AbZEGTWI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 May 2009 15:22:08 -0400
+Message-ID: <200905071916.n47JGu46020732@imap1.linux-foundation.org>
+Subject: [merged] x86-hookup-sys_rt_tgsigqueueinfo.patch removed from -mm tree
 From: akpm@linux-foundation.org
-Date: Thu, 07 May 2009 12:16:52 -0700
+Date: Thu, 07 May 2009 12:16:56 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, drepper@redhat.com, linux-abi@vger.kernel.org, linux-arch@vger.kernel.org, oleg@redhat.com, roland@redhat.com, mm-commits@vger.kernel.org
-Message-ID: <20090507191652.J4oL8cOr4wgN-r7CJWO15j9glL8dqz2vRVU37ab0lXc@z>
+Message-ID: <20090507191656.IY5qCm5qHJOKGiAMs_GKPorCs62yRN8dJHn_pWLE0N0@z>
 
 
 The patch titled
-     signals: split do_tkill
+     x86: hook up sys_rt_tgsigqueueinfo
 has been removed from the -mm tree.  Its filename was
-     signals-split-do_tkill.patch
+     x86-hookup-sys_rt_tgsigqueueinfo.patch
 
 This patch was dropped because it was merged into mainline or a subsystem tree
 
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: signals: split do_tkill
+Subject: x86: hook up sys_rt_tgsigqueueinfo
 From: Thomas Gleixner <tglx@linutronix.de>
 
-sys_kill() has a counterpart sys_tgkill which allows to send signals to a
-particular thread.  sys_rt_sigqueueinfo is lacking such a counterpart.
-
-Aside of the asymmetry it is a show stopper for migrating applications
-from other unix-alike RTOSes.
-
-The following patch series implements rt_tgsigqueueinfo and hooks it up
-for x86.
-
-
-
-This patch:
-
-Split out the code from do_tkill to make it reusable by the follow up
-patch which implements sys_rt_tgsigqueueinfo
+Make the new sys_rt_tgsigqueueinfo available for x86.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Reviewed-by: Oleg Nesterov <oleg@redhat.com>
@@ -51,70 +37,52 @@ Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- kernel/signal.c |   30 ++++++++++++++++++------------
- 1 file changed, 18 insertions(+), 12 deletions(-)
+ arch/x86/ia32/ia32entry.S          |    1 +
+ arch/x86/include/asm/unistd_32.h   |    1 +
+ arch/x86/include/asm/unistd_64.h   |    2 ++
+ arch/x86/kernel/syscall_table_32.S |    1 +
+ 4 files changed, 5 insertions(+)
 
-diff -puN kernel/signal.c~signals-split-do_tkill kernel/signal.c
---- a/kernel/signal.c~signals-split-do_tkill
-+++ a/kernel/signal.c
-@@ -2278,24 +2278,17 @@ SYSCALL_DEFINE2(kill, pid_t, pid, int, s
- 	return kill_something_info(sig, &info, pid);
- }
+diff -puN arch/x86/ia32/ia32entry.S~x86-hookup-sys_rt_tgsigqueueinfo arch/x86/ia32/ia32entry.S
+--- a/arch/x86/ia32/ia32entry.S~x86-hookup-sys_rt_tgsigqueueinfo
++++ a/arch/x86/ia32/ia32entry.S
+@@ -830,4 +830,5 @@ ia32_sys_call_table:
+ 	.quad sys_inotify_init1
+ 	.quad compat_sys_preadv
+ 	.quad compat_sys_pwritev
++	.quad compat_sys_rt_tgsigqueueinfo	/* 335 */
+ ia32_syscall_end:
+diff -puN arch/x86/include/asm/unistd_32.h~x86-hookup-sys_rt_tgsigqueueinfo arch/x86/include/asm/unistd_32.h
+--- a/arch/x86/include/asm/unistd_32.h~x86-hookup-sys_rt_tgsigqueueinfo
++++ a/arch/x86/include/asm/unistd_32.h
+@@ -340,6 +340,7 @@
+ #define __NR_inotify_init1	332
+ #define __NR_preadv		333
+ #define __NR_pwritev		334
++#define __NR_rt_tgsigqueueinfo	335
  
--static int do_tkill(pid_t tgid, pid_t pid, int sig)
-+static int
-+do_send_specific(pid_t tgid, pid_t pid, int sig, struct siginfo *info)
- {
--	int error;
--	struct siginfo info;
- 	struct task_struct *p;
- 	unsigned long flags;
--
--	error = -ESRCH;
--	info.si_signo = sig;
--	info.si_errno = 0;
--	info.si_code = SI_TKILL;
--	info.si_pid = task_tgid_vnr(current);
--	info.si_uid = current_uid();
-+	int error = -ESRCH;
+ #ifdef __KERNEL__
  
- 	rcu_read_lock();
- 	p = find_task_by_vpid(pid);
- 	if (p && (tgid <= 0 || task_tgid_vnr(p) == tgid)) {
--		error = check_kill_permission(sig, &info, p);
-+		error = check_kill_permission(sig, info, p);
- 		/*
- 		 * The null signal is a permissions and process existence
- 		 * probe.  No signal is actually delivered.
-@@ -2305,7 +2298,7 @@ static int do_tkill(pid_t tgid, pid_t pi
- 		 * signal is private anyway.
- 		 */
- 		if (!error && sig && lock_task_sighand(p, &flags)) {
--			error = specific_send_sig_info(sig, &info, p);
-+			error = specific_send_sig_info(sig, info, p);
- 			unlock_task_sighand(p, &flags);
- 		}
- 	}
-@@ -2314,6 +2307,19 @@ static int do_tkill(pid_t tgid, pid_t pi
- 	return error;
- }
+diff -puN arch/x86/include/asm/unistd_64.h~x86-hookup-sys_rt_tgsigqueueinfo arch/x86/include/asm/unistd_64.h
+--- a/arch/x86/include/asm/unistd_64.h~x86-hookup-sys_rt_tgsigqueueinfo
++++ a/arch/x86/include/asm/unistd_64.h
+@@ -657,6 +657,8 @@ __SYSCALL(__NR_inotify_init1, sys_inotif
+ __SYSCALL(__NR_preadv, sys_preadv)
+ #define __NR_pwritev				296
+ __SYSCALL(__NR_pwritev, sys_pwritev)
++#define __NR_rt_tgsigqueueinfo			297
++__SYSCALL(__NR_rt_tgsigqueueinfo, sys_rt_tgsigqueueinfo)
  
-+static int do_tkill(pid_t tgid, pid_t pid, int sig)
-+{
-+	struct siginfo info;
-+
-+	info.si_signo = sig;
-+	info.si_errno = 0;
-+	info.si_code = SI_TKILL;
-+	info.si_pid = task_tgid_vnr(current);
-+	info.si_uid = current_uid();
-+
-+	return do_send_specific(tgid, pid, sig, &info);
-+}
-+
- /**
-  *  sys_tgkill - send signal to one specific thread
-  *  @tgid: the thread group ID of the thread
+ 
+ #ifndef __NO_STUBS
+diff -puN arch/x86/kernel/syscall_table_32.S~x86-hookup-sys_rt_tgsigqueueinfo arch/x86/kernel/syscall_table_32.S
+--- a/arch/x86/kernel/syscall_table_32.S~x86-hookup-sys_rt_tgsigqueueinfo
++++ a/arch/x86/kernel/syscall_table_32.S
+@@ -334,3 +334,4 @@ ENTRY(sys_call_table)
+ 	.long sys_inotify_init1
+ 	.long sys_preadv
+ 	.long sys_pwritev
++	.long sys_rt_tgsigqueueinfo	/* 335 */
 _
 
 Patches currently in -mm which might be from tglx@linutronix.de are
