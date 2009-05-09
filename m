@@ -1,48 +1,93 @@
-From: Geert Uytterhoeven <geert.uytterhoeven@gmail.com>
-Subject: Re: [PATCH 00/27] more non-ABI asm-generic headers
-Date: Fri, 8 May 2009 16:04:15 +0200
-Message-ID: <10f740e80905080704q4d2336b2v8ec851d0c87c6cda@mail.gmail.com>
-References: <cover.1241105648.git.arnd@arndb.de>
-	 <10f740e80905030417m3b67da38uecd6bd008b4c7e3f@mail.gmail.com>
-	 <200905041632.28026.arnd@arndb.de>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Minimal linker script
+Date: Sat, 9 May 2009 10:00:06 +0200
+Message-ID: <20090509080006.GA22617@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ew0-f176.google.com ([209.85.219.176]:34583 "EHLO
-	mail-ew0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760543AbZEHOEQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 May 2009 10:04:16 -0400
-In-Reply-To: <200905041632.28026.arnd@arndb.de>
+Received: from pfepa.post.tele.dk ([195.41.46.235]:38582 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750826AbZEIH5z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 May 2009 03:57:55 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
+To: linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Cc: Tim Abbott <tabbott@mit.edu>
 
-On Mon, May 4, 2009 at 16:32, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Sunday 03 May 2009, Geert Uytterhoeven wrote:
->> On Thu, Apr 30, 2009 at 17:34, Arnd Bergmann <arnd@arndb.de> wrote:
->> > To avoid trouble with quilt mail, I'm now trying
->> > git-format-patch to generate them, hopefully this
->> > works a little better. Can anyone tell me why I can't
->> > add a 'To' header rather than just 'Cc' in
->> > git-format-patch?
->>
->> I always specify the --to with git send-email.
->
-> I haven't tried using git send-email yet, because it does not let
-> me inspect mails after changing the headers but before sending
-> them out.
+While trying to address the common patters in our
+linker scripts I made a sketch of a minimal linker script.
 
-The --dry-run option is not sufficient for you?
+As this will be the basis for my continued effort to create
+a set of defines that can be used by all architectues I would like
+to receive some feedback.
 
-Gr{oetje,eeting}s,
+/*
+ * Helper macros to support writing architecture specific
+ * linker scripts.
+ *
+ * A minimal linker scripts has following content:
+ *
+ * OUTPUT_FORMAT(...)
+ * OUTPUT_ARCH(...)
+ * ENTRY(...)
+ * SECTIONS
+ * {
+ *      . = START;
+ *      __init_begin = .;
+ *      HEAD_SECTION
+ *      INIT_TEXT_SECTION(PAGE_SIZE)
+ *      INIT_DATA_SECTION(...)
+ *      PERCPU(PAGE_SIZE)
+ *      __init_end = .;
+ *
+ *      _stext = .;
+ *      TEXT_SECTION = 0
+ *      _etext = .;
+ *
+ *      _sdata = .;
+ *      RO_DATA_SECTION(PAGE_SIZE)
+ *      RW_DATA_SECTION(...)
+ *      _edata = .;
+ *
+ *      EXCEPTION_TABLE(...)
+ *      NOTES
+ *
+ *      __bss_start = .;
+ *      BSS_SECTION(0, 0)
+ *      __bss_stop = .;
+ *      _end = .;
+ *
+ *      /DISCARD/ : {
+ *              EXIT_TEXT
+ *              EXIT_DATA
+ *              *(.exitcall.exit)
+ *      }
+ *      STABS_DEBUG
+ *      DWARF_DEBUG
+ * }
+ *
+ * [__init_begin, __init_end] is the init section that may be freed after init
+ * [_stext, _etext] is the text section
+ * [_sdata, _edata] is the data section
+ *
+ * Some of the included output section include their own set of constants.
+ * Examples are: [__initramfs_start, __initramfs_end] for initramfs and
+ *               [__nosave_begin, __nosave_end] for the nosave data
+ */
 
-						Geert
+There is one majot issue in the minimal script I need to address.
+All symbols are absolute (__init_begin, _stext etc) - I need to find a nice
+way to make them non-absolute.
+For now I and more interested in comments on the structure and the coverage
+of the symbols.
+I strikes me that [_stext, _etext] do not cover text in the init section.
+And does [_sdata, _edata] cover RO_DATA?
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+What abut the order of the sections - are they significant for any archtecture?
+I have used an order used by some of the embedded targets that allows
+a maximum of code to reside inisde [__init_begin, __init_end].
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+Comments appreciated!
+
+	Sam
