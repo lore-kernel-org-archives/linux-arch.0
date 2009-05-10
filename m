@@ -1,80 +1,36 @@
-From: Sam Ravnborg <sam@ravnborg.org>
+From: "H. Peter Anvin" <hpa@zytor.com>
 Subject: Re: Minimal linker script
-Date: Sun, 10 May 2009 10:55:04 +0200
-Message-ID: <20090510085504.GA18719@uranus.ravnborg.org>
-References: <20090509080006.GA22617@uranus.ravnborg.org> <4A061158.3010604@zytor.com>
+Date: Sun, 10 May 2009 10:53:57 -0700
+Message-ID: <4A0714B5.40402@zytor.com>
+References: <20090509080006.GA22617@uranus.ravnborg.org> <4A061158.3010604@zytor.com> <20090510085504.GA18719@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepa.post.tele.dk ([195.41.46.235]:40769 "EHLO
-	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751081AbZEJIwx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2009 04:52:53 -0400
-Content-Disposition: inline
-In-Reply-To: <4A061158.3010604@zytor.com>
+Received: from terminus.zytor.com ([198.137.202.10]:60958 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751480AbZEJRyI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2009 13:54:08 -0400
+In-Reply-To: <20090510085504.GA18719@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
+To: Sam Ravnborg <sam@ravnborg.org>
 Cc: linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Tim Abbott <tabbott@mit.edu>
 
-On Sat, May 09, 2009 at 04:27:20PM -0700, H. Peter Anvin wrote:
-> Sam Ravnborg wrote:
-> >  *      . = START;
-> >  *      __init_begin = .;
-> >  *      HEAD_SECTION
-> >  *      INIT_TEXT_SECTION(PAGE_SIZE)
-> >  *      INIT_DATA_SECTION(...)
-> >  *      PERCPU(PAGE_SIZE)
-> >  *      __init_end = .;
-> >  *
-> >  *      __text_begin = .;
-> >  *      TEXT_SECTION = 0
-> >  *      __text_end = .;
-> >  *
-> >  *      __data_begin = .;
-> >  *      RO_DATA_SECTION(PAGE_SIZE)
-> >  *      RW_DATA_SECTION(...)
-> >  *      __data_end = .;
-> >  *
-> >  *      EXCEPTION_TABLE(...)
-> >  *      NOTES
-> >  *
-> >  *      __bss_start = .;
-> >  *      BSS_SECTION(0, 0)
-> >  *      __bss_end = .;
-> >  *      _end = .;
-> >  *
-> >  *
-> >  * [__init_begin, __init_end] is the init section that may be freed after init
-> >  * [_stext, _etext] is the text section
-> >  * [_sdata, _edata] is the data section
-> >  *
-> >  * Some of the included output section include their own set of constants.
-> >  * Examples are: [__initramfs_start, __initramfs_end] for initramfs and
-> >  *               [__nosave_begin, __nosave_end] for the nosave data
-> >  */
-> > 
+Sam Ravnborg wrote:
 > 
-> It seems rather disturbing to me that different sections have different
-> start and end symbols.  I realize this is largely for historical
-> reasons, but if we used a single pattern (e.g. something like
-> __text_start, __text_end for the .text section)
+> Do you then say that i386 could allow us to use absolute symbols,
+> and we could adjust in the code instead?
+> 
+> That would make the linker script nicer but with added
+> complexity in the code..
+> 
 
-The 'oldish' names were kept only because they are widely used.
-I agree to be consistent is better so will change it to be so.
+Correct.  The key, obviously, is to make sure we don't end up having to
+adjust in multiple places all the time.
 
-I edited the sample above to consistently use __<section>_{begin,end}.
+	-hpa
 
-For now I kept '_end' as I had no better name for it.
-
-> then at least in the
-> i386 case we could easily recognize those as relocatable symbols even if
-> they show up as absolute.
-
-Do you then say that i386 could allow us to use absolute symbols,
-and we could adjust in the code instead?
-
-That would make the linker script nicer but with added
-complexity in the code..
-
-	Sam
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
