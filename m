@@ -1,38 +1,35 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] move PIT_TICK_RATE to linux/timex.h
-Date: Tue, 12 May 2009 02:36:35 +0200
-Message-ID: <200905120236.36242.arnd@arndb.de>
-References: <20090511222702.352192505@arndb.de> <200905112255.37215.arnd@arndb.de> <20090511170146.143a1551.akpm@linux-foundation.org>
+Subject: Re: [PATCH v2] x86: fix ktermios-termio conversion
+Date: Tue, 12 May 2009 13:42:18 +0200
+Message-ID: <200905121342.19093.arnd@arndb.de>
+References: <20090511222702.352192505@arndb.de> <200905121104.31275.arnd@arndb.de> <20090512091010.GD18004@elte.hu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:56169 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.177]:58945 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752569AbZELAhz convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2009 20:37:55 -0400
-In-Reply-To: <20090511170146.143a1551.akpm@linux-foundation.org>
+	with ESMTP id S1751174AbZELLne (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 May 2009 07:43:34 -0400
+In-Reply-To: <20090512091010.GD18004@elte.hu>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, rth@twiddle.net, ralf@linux-mips.org, tiwai@suse.de, dmitry.torokhov@gmail.com, mingo@elte.hu, linux-kernel@vger.kernel.org, alan@lxorguk.ukuu.org.uk
+To: Ingo Molnar <mingo@elte.hu>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, Remis Lima Baima <remis.developer@googlemail.com>, linux-arch@vger.kernel.org
 
-On Tuesday 12 May 2009, Andrew Morton wrote:
-> So the type got changed in arch/x86/include/asm/timex.h. =A0Did you c=
-heck
-> whether that changes anything? I did a quick check and didn't see any
-> obvious problems..
+On Tuesday 12 May 2009, Ingo Molnar wrote:
+> hm, on x86 you could use get_user_try / get_user_ex() / 
+> get_user_catch() approach to linearize the dependencies and reduce 
+> register pressure.
 
-I did not check if the object file changes, just checked that the
-macro is not used in assembly code, which would break.
+Yes, but that would not help my intention of making the file more
+generic. The x86 code was copied into a number of architectures, and
+at least arm, m32r, parisc, sh and xtensa have big-endian configurations
+where the implementation is wrong.
 
-Note that for Alpha, the actual value changed from 1193182UL to
-1193180UL. This is unlikely to make a difference, and probably
-can only improve accuracy. There was a discussion on the correct
-value of CLOCK_TICK_RATE a few years ago, after which every existing
-instance was getting changed to 1193182. According to the specification=
-,
-it should be 1193181.818181...
+I only realized that while writing this email though and I guess I
+need to fix those as well now ;-) 
 
 	Arnd <><
