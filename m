@@ -1,508 +1,336 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 12/15] asm-generic: add generic atomic.h and io.h
-Date: Wed, 13 May 2009 22:56:35 +0000
-Message-ID: <1242255398-23779-13-git-send-email-arnd@arndb.de>
+Subject: [PATCH 13/15] asm-generic: add generic NOMMU versions of some headers
+Date: Wed, 13 May 2009 22:56:36 +0000
+Message-ID: <1242255398-23779-14-git-send-email-arnd@arndb.de>
 References: <1242255398-23779-1-git-send-email-arnd@arndb.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:63280 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.171]:60326 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760762AbZEMW4x (ORCPT
+	with ESMTP id S1760857AbZEMW4x (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2009 18:56:53 -0400
 In-Reply-To: <1242255398-23779-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Remis Lima Baima <remis.developer@googlemail.com>
 
-atomic.h and io.h are based on the mn10300 architecture,
-which is already pretty generic and can be used by
-other architectures that do not have hardware support
-for atomic operations or out-of-order I/O access.
+Memory management in generic is highly architecture specific,
+but on NOMMU architectures, it is mostly trivial, so just
+add a default implementation in asm-generic that applies
+to all NOMMU architectures.
 
+The two files cache.h and cacheflush.h can possibly also
+be used by architectures that have an MMU but never require
+flushing the cache or have cache lines larger than 32 bytes.
+
+Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/atomic.h |  165 +++++++++++++++++++++++
- include/asm-generic/io.h     |  300 ++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 465 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/atomic.h
- create mode 100644 include/asm-generic/io.h
+ include/asm-generic/cache.h       |   12 +++++
+ include/asm-generic/cacheflush.h  |   30 +++++++++++
+ include/asm-generic/mmu.h         |   15 ++++++
+ include/asm-generic/mmu_context.h |   45 +++++++++++++++++
+ include/asm-generic/page.h        |   99 +++++++++++++++++++++++++++++++++++++
+ include/asm-generic/pgalloc.h     |   12 +++++
+ include/asm-generic/segment.h     |    9 +++
+ include/asm-generic/tlbflush.h    |   18 +++++++
+ 8 files changed, 240 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/cache.h
+ create mode 100644 include/asm-generic/cacheflush.h
+ create mode 100644 include/asm-generic/mmu.h
+ create mode 100644 include/asm-generic/mmu_context.h
+ create mode 100644 include/asm-generic/page.h
+ create mode 100644 include/asm-generic/pgalloc.h
+ create mode 100644 include/asm-generic/segment.h
+ create mode 100644 include/asm-generic/tlbflush.h
 
-diff --git a/include/asm-generic/atomic.h b/include/asm-generic/atomic.h
+diff --git a/include/asm-generic/cache.h b/include/asm-generic/cache.h
 new file mode 100644
-index 0000000..c99c64d
+index 0000000..1bfcfe5
 --- /dev/null
-+++ b/include/asm-generic/atomic.h
-@@ -0,0 +1,165 @@
++++ b/include/asm-generic/cache.h
+@@ -0,0 +1,12 @@
++#ifndef __ASM_GENERIC_CACHE_H
++#define __ASM_GENERIC_CACHE_H
 +/*
-+ * Generic C implementation of atomic counter operations
-+ * Originally implemented for MN10300.
-+ *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
-+ */
-+#ifndef __ASM_GENERIC_ATOMIC_H
-+#define __ASM_GENERIC_ATOMIC_H
-+
-+#ifdef CONFIG_SMP
-+#error not SMP safe
-+#endif
-+
-+/*
-+ * Atomic operations that C can't guarantee us.  Useful for
-+ * resource counting etc..
++ * 32 bytes appears to be the most common cache line size,
++ * so make that the default here. Architectures with larger
++ * cache lines need to provide their own cache.h.
 + */
 +
-+#define ATOMIC_INIT(i)	{ (i) }
++#define L1_CACHE_SHIFT		5
++#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
 +
-+#ifdef __KERNEL__
-+
-+/**
-+ * atomic_read - read atomic variable
-+ * @v: pointer of type atomic_t
-+ *
-+ * Atomically reads the value of @v.  Note that the guaranteed
-+ * useful range of an atomic_t is only 24 bits.
-+ */
-+#define atomic_read(v)	((v)->counter)
-+
-+/**
-+ * atomic_set - set atomic variable
-+ * @v: pointer of type atomic_t
-+ * @i: required value
-+ *
-+ * Atomically sets the value of @v to @i.  Note that the guaranteed
-+ * useful range of an atomic_t is only 24 bits.
-+ */
-+#define atomic_set(v, i) (((v)->counter) = (i))
-+
-+#include <asm/system.h>
-+
-+/**
-+ * atomic_add_return - add integer to atomic variable
-+ * @i: integer value to add
-+ * @v: pointer of type atomic_t
-+ *
-+ * Atomically adds @i to @v and returns the result
-+ * Note that the guaranteed useful range of an atomic_t is only 24 bits.
-+ */
-+static inline int atomic_add_return(int i, atomic_t *v)
-+{
-+	unsigned long flags;
-+	int temp;
-+
-+	local_irq_save(flags);
-+	temp = v->counter;
-+	temp += i;
-+	v->counter = temp;
-+	local_irq_restore(flags);
-+
-+	return temp;
-+}
-+
-+/**
-+ * atomic_sub_return - subtract integer from atomic variable
-+ * @i: integer value to subtract
-+ * @v: pointer of type atomic_t
-+ *
-+ * Atomically subtracts @i from @v and returns the result
-+ * Note that the guaranteed useful range of an atomic_t is only 24 bits.
-+ */
-+static inline int atomic_sub_return(int i, atomic_t *v)
-+{
-+	unsigned long flags;
-+	int temp;
-+
-+	local_irq_save(flags);
-+	temp = v->counter;
-+	temp -= i;
-+	v->counter = temp;
-+	local_irq_restore(flags);
-+
-+	return temp;
-+}
-+
-+static inline int atomic_add_negative(int i, atomic_t *v)
-+{
-+	return atomic_add_return(i, v) < 0;
-+}
-+
-+static inline void atomic_add(int i, atomic_t *v)
-+{
-+	atomic_add_return(i, v);
-+}
-+
-+static inline void atomic_sub(int i, atomic_t *v)
-+{
-+	atomic_sub_return(i, v);
-+}
-+
-+static inline void atomic_inc(atomic_t *v)
-+{
-+	atomic_add_return(1, v);
-+}
-+
-+static inline void atomic_dec(atomic_t *v)
-+{
-+	atomic_sub_return(1, v);
-+}
-+
-+#define atomic_dec_return(v)		atomic_sub_return(1, (v))
-+#define atomic_inc_return(v)		atomic_add_return(1, (v))
-+
-+#define atomic_sub_and_test(i, v)	(atomic_sub_return((i), (v)) == 0)
-+#define atomic_dec_and_test(v)		(atomic_sub_return(1, (v)) == 0)
-+#define atomic_inc_and_test(v)		(atomic_add_return(1, (v)) == 0)
-+
-+#define atomic_add_unless(v, a, u)				\
-+({								\
-+	int c, old;						\
-+	c = atomic_read(v);					\
-+	while (c != (u) && (old = atomic_cmpxchg((v), c, c + (a))) != c) \
-+		c = old;					\
-+	c != (u);						\
-+})
-+
-+#define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
-+
-+static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
-+{
-+	unsigned long flags;
-+
-+	mask = ~mask;
-+	local_irq_save(flags);
-+	*addr &= mask;
-+	local_irq_restore(flags);
-+}
-+
-+#define atomic_xchg(ptr, v)		(xchg(&(ptr)->counter, (v)))
-+#define atomic_cmpxchg(v, old, new)	(cmpxchg(&((v)->counter), (old), (new)))
-+
-+#define cmpxchg_local(ptr, o, n)				  	       \
-+	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
-+			(unsigned long)(n), sizeof(*(ptr))))
-+
-+#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
-+
-+/* Assume that atomic operations are already serializing */
-+#define smp_mb__before_atomic_dec()	barrier()
-+#define smp_mb__after_atomic_dec()	barrier()
-+#define smp_mb__before_atomic_inc()	barrier()
-+#define smp_mb__after_atomic_inc()	barrier()
-+
-+#include <asm-generic/atomic-long.h>
-+
-+#endif /* __KERNEL__ */
-+#endif /* __ASM_GENERIC_ATOMIC_H */
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
++#endif /* __ASM_GENERIC_CACHE_H */
+diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cacheflush.h
 new file mode 100644
-index 0000000..bcee636
+index 0000000..ba4ec39
 --- /dev/null
-+++ b/include/asm-generic/io.h
-@@ -0,0 +1,300 @@
-+/* Generic I/O port emulation, based on MN10300 code
++++ b/include/asm-generic/cacheflush.h
+@@ -0,0 +1,30 @@
++#ifndef __ASM_CACHEFLUSH_H
++#define __ASM_CACHEFLUSH_H
++
++/* Keep includes the same across arches.  */
++#include <linux/mm.h>
++
++/*
++ * The cache doesn't need to be flushed when TLB entries change when
++ * the cache is mapped to physical memory, not virtual memory
++ */
++#define flush_cache_all()			do { } while (0)
++#define flush_cache_mm(mm)			do { } while (0)
++#define flush_cache_dup_mm(mm)			do { } while (0)
++#define flush_cache_range(vma, start, end)	do { } while (0)
++#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
++#define flush_dcache_page(page)			do { } while (0)
++#define flush_dcache_mmap_lock(mapping)		do { } while (0)
++#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
++#define flush_icache_range(start, end)		do { } while (0)
++#define flush_icache_page(vma,pg)		do { } while (0)
++#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
++#define flush_cache_vmap(start, end)		do { } while (0)
++#define flush_cache_vunmap(start, end)		do { } while (0)
++
++#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
++	memcpy(dst, src, len)
++#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
++	memcpy(dst, src, len)
++
++#endif /* __ASM_CACHEFLUSH_H */
+diff --git a/include/asm-generic/mmu.h b/include/asm-generic/mmu.h
+new file mode 100644
+index 0000000..4f4aa56
+--- /dev/null
++++ b/include/asm-generic/mmu.h
+@@ -0,0 +1,15 @@
++#ifndef __ASM_GENERIC_MMU_H
++#define __ASM_GENERIC_MMU_H
++
++/*
++ * This is the mmu.h header for nommu implementations.
++ * Architectures with an MMU need something more complex.
++ */
++#ifndef __ASSEMBLY__
++typedef struct {
++	struct vm_list_struct	*vmlist;
++	unsigned long		end_brk;
++} mm_context_t;
++#endif
++
++#endif /* __ASM_GENERIC_MMU_H */
+diff --git a/include/asm-generic/mmu_context.h b/include/asm-generic/mmu_context.h
+new file mode 100644
+index 0000000..a7eec91
+--- /dev/null
++++ b/include/asm-generic/mmu_context.h
+@@ -0,0 +1,45 @@
++#ifndef __ASM_GENERIC_MMU_CONTEXT_H
++#define __ASM_GENERIC_MMU_CONTEXT_H
++
++/*
++ * Generic hooks for NOMMU architectures, which do not need to do
++ * anything special here.
++ */
++
++#include <asm-generic/mm_hooks.h>
++
++struct task_struct;
++struct mm_struct;
++
++static inline void enter_lazy_tlb(struct mm_struct *mm,
++			struct task_struct *tsk)
++{
++}
++
++static inline int init_new_context(struct task_struct *tsk,
++			struct mm_struct *mm)
++{
++	return 0;
++}
++
++static inline void destroy_context(struct mm_struct *mm)
++{
++}
++
++static inline void deactivate_mm(struct task_struct *task,
++			struct mm_struct *mm)
++{
++}
++
++static inline void switch_mm(struct mm_struct *prev,
++			struct mm_struct *next,
++			struct task_struct *tsk)
++{
++}
++
++static inline void activate_mm(struct mm_struct *prev_mm,
++			       struct mm_struct *next_mm)
++{
++}
++
++#endif /* __ASM_GENERIC_MMU_CONTEXT_H */
+diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
+new file mode 100644
+index 0000000..75fec18
+--- /dev/null
++++ b/include/asm-generic/page.h
+@@ -0,0 +1,99 @@
++#ifndef __ASM_GENERIC_PAGE_H
++#define __ASM_GENERIC_PAGE_H
++/*
++ * Generic page.h implementation, for NOMMU architectures.
++ * This provides the dummy definitions for the memory management.
++ */
++
++#ifdef CONFIG_MMU
++#error need to prove a real asm/page.h
++#endif
++
++
++/* PAGE_SHIFT determines the page size */
++
++#define PAGE_SHIFT	12
++#ifdef __ASSEMBLY__
++#define PAGE_SIZE	(1 << PAGE_SHIFT)
++#else
++#define PAGE_SIZE	(1UL << PAGE_SHIFT)
++#endif
++#define PAGE_MASK	(~(PAGE_SIZE-1))
++
++#include <asm/setup.h>
++
++#ifndef __ASSEMBLY__
++
++#define get_user_page(vaddr)		__get_free_page(GFP_KERNEL)
++#define free_user_page(page, addr)	free_page(addr)
++
++#define clear_page(page)	memset((page), 0, PAGE_SIZE)
++#define copy_page(to,from)	memcpy((to), (from), PAGE_SIZE)
++
++#define clear_user_page(page, vaddr, pg)	clear_page(page)
++#define copy_user_page(to, from, vaddr, pg)	copy_page(to, from)
++
++/*
++ * These are used to make use of C type-checking..
++ */
++typedef struct {
++	unsigned long pte;
++} pte_t;
++typedef struct {
++	unsigned long pmd[16];
++} pmd_t;
++typedef struct {
++	unsigned long pgd;
++} pgd_t;
++typedef struct {
++	unsigned long pgprot;
++} pgprot_t;
++typedef struct page *pgtable_t;
++
++#define pte_val(x)	((x).pte)
++#define pmd_val(x)	((&x)->pmd[0])
++#define pgd_val(x)	((x).pgd)
++#define pgprot_val(x)	((x).pgprot)
++
++#define __pte(x)	((pte_t) { (x) } )
++#define __pmd(x)	((pmd_t) { (x) } )
++#define __pgd(x)	((pgd_t) { (x) } )
++#define __pgprot(x)	((pgprot_t) { (x) } )
++
++extern unsigned long memory_start;
++extern unsigned long memory_end;
++
++#endif /* !__ASSEMBLY__ */
++
++#ifdef CONFIG_KERNEL_RAM_BASE_ADDRESS
++#define PAGE_OFFSET		(CONFIG_KERNEL_RAM_BASE_ADDRESS)
++#else
++#define PAGE_OFFSET		(0)
++#endif
++
++#ifndef __ASSEMBLY__
++
++#define __va(x) ((void *)((unsigned long)(x) + PAGE_OFFSET))
++#define __pa(x) ((unsigned long) (x) - PAGE_OFFSET)
++
++#define virt_to_pfn(kaddr)	(__pa(kaddr) >> PAGE_SHIFT)
++#define pfn_to_virt(pfn)	__va((pfn) << PAGE_SHIFT)
++
++#define virt_to_page(addr)	(mem_map + (((unsigned long)(addr)-PAGE_OFFSET) >> PAGE_SHIFT))
++#define page_to_virt(page)	((((page) - mem_map) << PAGE_SHIFT) + PAGE_OFFSET)
++
++#ifndef page_to_phys
++#define page_to_phys(page)      ((dma_addr_t)page_to_pfn(page) << PAGE_SHIFT)
++#endif
++
++#define pfn_valid(pfn)		((pfn) < max_mapnr)
++
++#define	virt_addr_valid(kaddr)	(((void *)(kaddr) >= (void *)PAGE_OFFSET) && \
++				((void *)(kaddr) < (void *)memory_end))
++
++#endif /* __ASSEMBLY__ */
++
++#include <asm-generic/memory_model.h>
++#include <asm-generic/getorder.h>
++
++#endif /* __ASM_GENERIC_PAGE_H */
+diff --git a/include/asm-generic/pgalloc.h b/include/asm-generic/pgalloc.h
+new file mode 100644
+index 0000000..9e429d0
+--- /dev/null
++++ b/include/asm-generic/pgalloc.h
+@@ -0,0 +1,12 @@
++#ifndef __ASM_GENERIC_PGALLOC_H
++#define __ASM_GENERIC_PGALLOC_H
++/*
++ * an empty file is enough for a nommu architecture
++ */
++#ifdef CONFIG_MMU
++#error need to implement an architecture specific asm/pgalloc.h
++#endif
++
++#define check_pgt_cache()          do { } while (0)
++
++#endif /* __ASM_GENERIC_PGALLOC_H */
+diff --git a/include/asm-generic/segment.h b/include/asm-generic/segment.h
+new file mode 100644
+index 0000000..5580eac
+--- /dev/null
++++ b/include/asm-generic/segment.h
+@@ -0,0 +1,9 @@
++#ifndef __ASM_GENERIC_SEGMENT_H
++#define __ASM_GENERIC_SEGMENT_H
++/*
++ * Only here because we have some old header files that expect it...
 + *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
++ * New architectures probably don't want to have their own version.
 + */
-+#ifndef __ASM_GENERIC_IO_H
-+#define __ASM_GENERIC_IO_H
 +
-+#include <asm/page.h> /* I/O is all done through memory accesses */
-+#include <asm/cacheflush.h>
-+#include <linux/types.h>
-+
-+#ifdef CONFIG_GENERIC_IOMAP
-+#include <asm-generic/iomap.h>
-+#endif
-+
-+#define mmiowb() do {} while (0)
-+
-+/*****************************************************************************/
++#endif /* __ASM_GENERIC_SEGMENT_H */
+diff --git a/include/asm-generic/tlbflush.h b/include/asm-generic/tlbflush.h
+new file mode 100644
+index 0000000..c7af037
+--- /dev/null
++++ b/include/asm-generic/tlbflush.h
+@@ -0,0 +1,18 @@
++#ifndef __ASM_GENERIC_TLBFLUSH_H
++#define __ASM_GENERIC_TLBFLUSH_H
 +/*
-+ * readX/writeX() are used to access memory mapped devices. On some
-+ * architectures the memory mapped IO stuff needs to be accessed
-+ * differently. On the simple architectures, we just read/write the
-+ * memory location directly.
++ * This is a dummy tlbflush implementation that can be used on all
++ * nommu architectures.
++ * If you have an MMU, you need to write your own functions.
 + */
-+static inline u8 __raw_readb(const volatile void __iomem *addr)
-+{
-+	return *(const volatile u8 __force *) addr;
-+}
-+
-+static inline u16 __raw_readw(const volatile void __iomem *addr)
-+{
-+	return *(const volatile u16 __force *) addr;
-+}
-+
-+static inline u32 __raw_readl(const volatile void __iomem *addr)
-+{
-+	return *(const volatile u32 __force *) addr;
-+}
-+
-+#define readb __raw_readb
-+#define readw(addr) __le16_to_cpu(__raw_readw(addr))
-+#define readl(addr) __le32_to_cpu(__raw_readl(addr))
-+
-+static inline void __raw_writeb(u8 b, volatile void __iomem *addr)
-+{
-+	*(volatile u8 __force *) addr = b;
-+}
-+
-+static inline void __raw_writew(u16 b, volatile void __iomem *addr)
-+{
-+	*(volatile u16 __force *) addr = b;
-+}
-+
-+static inline void __raw_writel(u32 b, volatile void __iomem *addr)
-+{
-+	*(volatile u32 __force *) addr = b;
-+}
-+
-+#define writeb __raw_writeb
-+#define writew(b,addr) __raw_writew(__cpu_to_le16(b),addr)
-+#define writel(b,addr) __raw_writel(__cpu_to_le32(b),addr)
-+
-+#ifdef CONFIG_64BIT
-+static inline u64 __raw_readq(const volatile void __iomem *addr)
-+{
-+	return *(const volatile u64 __force *) addr;
-+}
-+#define readq(addr) __le64_to_cpu(__raw_readq(addr))
-+
-+static inline void __raw_writeq(u64 b, volatile void __iomem *addr)
-+{
-+	*(volatile u64 __force *) addr = b;
-+}
-+#define writeq(b,addr) __raw_writeq(__cpu_to_le64(b),addr)
++#ifdef CONFIG_MMU
++#error need to implement an architecture specific asm/tlbflush.h
 +#endif
 +
-+/*****************************************************************************/
-+/*
-+ * traditional input/output functions
-+ */
-+
-+static inline u8 inb(unsigned long addr)
++static inline void flush_tlb_mm(struct mm_struct *mm)
 +{
-+	return readb((volatile void __iomem *) addr);
++	BUG();
 +}
 +
-+static inline u16 inw(unsigned long addr)
-+{
-+	return readw((volatile void __iomem *) addr);
-+}
 +
-+static inline u32 inl(unsigned long addr)
-+{
-+	return readl((volatile void __iomem *) addr);
-+}
-+
-+static inline void outb(u8 b, unsigned long addr)
-+{
-+	writeb(b, (volatile void __iomem *) addr);
-+}
-+
-+static inline void outw(u16 b, unsigned long addr)
-+{
-+	writew(b, (volatile void __iomem *) addr);
-+}
-+
-+static inline void outl(u32 b, unsigned long addr)
-+{
-+	writel(b, (volatile void __iomem *) addr);
-+}
-+
-+#define inb_p(addr)	inb(addr)
-+#define inw_p(addr)	inw(addr)
-+#define inl_p(addr)	inl(addr)
-+#define outb_p(x, addr)	outb((x), (addr))
-+#define outw_p(x, addr)	outw((x), (addr))
-+#define outl_p(x, addr)	outl((x), (addr))
-+
-+static inline void insb(unsigned long addr, void *buffer, int count)
-+{
-+	if (count) {
-+		u8 *buf = buffer;
-+		do {
-+			u8 x = inb(addr);
-+			*buf++ = x;
-+		} while (--count);
-+	}
-+}
-+
-+static inline void insw(unsigned long addr, void *buffer, int count)
-+{
-+	if (count) {
-+		u16 *buf = buffer;
-+		do {
-+			u16 x = inw(addr);
-+			*buf++ = x;
-+		} while (--count);
-+	}
-+}
-+
-+static inline void insl(unsigned long addr, void *buffer, int count)
-+{
-+	if (count) {
-+		u32 *buf = buffer;
-+		do {
-+			u32 x = inl(addr);
-+			*buf++ = x;
-+		} while (--count);
-+	}
-+}
-+
-+static inline void outsb(unsigned long addr, const void *buffer, int count)
-+{
-+	if (count) {
-+		const u8 *buf = buffer;
-+		do {
-+			outb(*buf++, addr);
-+		} while (--count);
-+	}
-+}
-+
-+static inline void outsw(unsigned long addr, const void *buffer, int count)
-+{
-+	if (count) {
-+		const u16 *buf = buffer;
-+		do {
-+			outw(*buf++, addr);
-+		} while (--count);
-+	}
-+}
-+
-+static inline void outsl(unsigned long addr, const void *buffer, int count)
-+{
-+	if (count) {
-+		const u32 *buf = buffer;
-+		do {
-+			outl(*buf++, addr);
-+		} while (--count);
-+	}
-+}
-+
-+#ifndef CONFIG_GENERIC_IOMAP
-+#define ioread8(addr)		readb(addr)
-+#define ioread16(addr)		readw(addr)
-+#define ioread32(addr)		readl(addr)
-+
-+#define iowrite8(v, addr)	writeb((v), (addr))
-+#define iowrite16(v, addr)	writew((v), (addr))
-+#define iowrite32(v, addr)	writel((v), (addr))
-+
-+#define ioread8_rep(p, dst, count) \
-+	insb((unsigned long) (p), (dst), (count))
-+#define ioread16_rep(p, dst, count) \
-+	insw((unsigned long) (p), (dst), (count))
-+#define ioread32_rep(p, dst, count) \
-+	insl((unsigned long) (p), (dst), (count))
-+
-+#define iowrite8_rep(p, src, count) \
-+	outsb((unsigned long) (p), (src), (count))
-+#define iowrite16_rep(p, src, count) \
-+	outsw((unsigned long) (p), (src), (count))
-+#define iowrite32_rep(p, src, count) \
-+	outsl((unsigned long) (p), (src), (count))
-+#endif /* CONFIG_GENERIC_IOMAP */
-+
-+
-+#define IO_SPACE_LIMIT 0xffffffff
-+
-+#ifdef __KERNEL__
-+
-+#include <linux/vmalloc.h>
-+#define __io_virt(x) ((void __force *) (x))
-+
-+#ifndef CONFIG_GENERIC_IOMAP
-+/* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
-+struct pci_dev;
-+extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
-+static inline void pci_iounmap(struct pci_dev *dev, void __iomem *p)
-+{
-+}
-+#endif /* CONFIG_GENERIC_IOMAP */
-+
-+/*
-+ * Change virtual addresses to physical addresses and vv.
-+ * These are pretty trivial
-+ */
-+static inline unsigned long virt_to_phys(volatile void *address)
-+{
-+	return __pa((unsigned long)address);
-+}
-+
-+static inline void *phys_to_virt(unsigned long address)
-+{
-+	return __va(address);
-+}
-+
-+/*
-+ * Change "struct page" to physical address.
-+ */
-+static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
-+{
-+	return (void __iomem*) (unsigned long)offset;
-+}
-+
-+#define __ioremap(offset, size, flags)	ioremap(offset, size)
-+
-+#ifndef ioremap_nocache
-+#define ioremap_nocache ioremap
-+#endif
-+
-+#ifndef ioremap_wc
-+#define ioremap_wc ioremap_nocache
-+#endif
-+
-+static inline void iounmap(void *addr)
-+{
-+}
-+
-+#ifndef CONFIG_GENERIC_IOMAP
-+static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
-+{
-+	return (void __iomem *) port;
-+}
-+
-+static inline void ioport_unmap(void __iomem *p)
-+{
-+}
-+#else /* CONFIG_GENERIC_IOMAP */
-+extern void __iomem *ioport_map(unsigned long port, unsigned int nr);
-+extern void ioport_unmap(void __iomem *p);
-+#endif /* CONFIG_GENERIC_IOMAP */
-+
-+#define xlate_dev_kmem_ptr(p)	p
-+#define xlate_dev_mem_ptr(p)	((void *) (p))
-+
-+#ifndef virt_to_bus
-+static inline unsigned long virt_to_bus(volatile void *address)
-+{
-+	return ((unsigned long) address);
-+}
-+
-+static inline void *bus_to_virt(unsigned long address)
-+{
-+	return (void *) address;
-+}
-+#endif
-+
-+#define memset_io(a, b, c)	memset(__io_virt(a), (b), (c))
-+#define memcpy_fromio(a, b, c)	memcpy((a), __io_virt(b), (c))
-+#define memcpy_toio(a, b, c)	memcpy(__io_virt(a), (b), (c))
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* __ASM_GENERIC_IO_H */
++#endif /* __ASM_GENERIC_TLBFLUSH_H */
 -- 
 1.6.0.4
