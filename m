@@ -1,188 +1,94 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 11/15] asm-generic: add legacy I/O header files
-Date: Wed, 13 May 2009 22:56:34 +0000
-Message-ID: <1242255398-23779-12-git-send-email-arnd@arndb.de>
+Subject: [PATCH 08/15] asm-generic: make pci.h usable directly
+Date: Wed, 13 May 2009 22:56:31 +0000
+Message-ID: <1242255398-23779-9-git-send-email-arnd@arndb.de>
 References: <1242255398-23779-1-git-send-email-arnd@arndb.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:62669 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.177]:57478 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760526AbZEMW4w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2009 18:56:52 -0400
+	with ESMTP id S1756980AbZEMW4u (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2009 18:56:50 -0400
 In-Reply-To: <1242255398-23779-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Remis Lima Baima <remis.developer@googlemail.com>
 
-The dma.h, hw_irq.h, serial.h and timex.h files originally
-described PC-style i8237, i8259A, i8250, i8253 and i8255 chips
-as well as the VGA style text mode graphics.
-
-Modern architectures live happily without these specific
-interfaces, but a few definitions from these headers keep
-getting used in common code.
-
-The new generic headers are what most architectures use
-anyway nowadays, just implementing the minimal definitions.
+Some generic code is using the horribly misnamed PCI_DMA_BUS_IS_PHYS
+from asm/pci.h. This makes sure that an architecture without PCI
+support does not have to define this itself but can rely on the
+asm-generic version.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
 ---
- include/asm-generic/dma.h     |   15 +++++++++++++++
- include/asm-generic/hw_irq.h  |    9 +++++++++
- include/asm-generic/parport.h |   23 +++++++++++++++++++++++
- include/asm-generic/serial.h  |   13 +++++++++++++
- include/asm-generic/timex.h   |   22 ++++++++++++++++++++++
- include/asm-generic/vga.h     |   24 ++++++++++++++++++++++++
- 6 files changed, 106 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/dma.h
- create mode 100644 include/asm-generic/hw_irq.h
- create mode 100644 include/asm-generic/parport.h
- create mode 100644 include/asm-generic/serial.h
- create mode 100644 include/asm-generic/timex.h
- create mode 100644 include/asm-generic/vga.h
+ arch/frv/include/asm/pci.h  |   13 +++----------
+ arch/m32r/include/asm/pci.h |    2 --
+ include/asm-generic/pci.h   |    8 ++++++++
+ 3 files changed, 11 insertions(+), 12 deletions(-)
 
-diff --git a/include/asm-generic/dma.h b/include/asm-generic/dma.h
-new file mode 100644
-index 0000000..9dfc3a7
---- /dev/null
-+++ b/include/asm-generic/dma.h
-@@ -0,0 +1,15 @@
-+#ifndef __ASM_GENERIC_DMA_H
-+#define __ASM_GENERIC_DMA_H
+diff --git a/arch/frv/include/asm/pci.h b/arch/frv/include/asm/pci.h
+index 585d9b4..3ce227b 100644
+--- a/arch/frv/include/asm/pci.h
++++ b/arch/frv/include/asm/pci.h
+@@ -10,8 +10,8 @@
+  * 2 of the License, or (at your option) any later version.
+  */
+ 
+-#ifndef ASM_PCI_H
+-#define	ASM_PCI_H
++#ifndef _ASM_FRV_PCI_H
++#define _ASM_FRV_PCI_H
+ 
+ #include <linux/mm.h>
+ #include <asm/scatterlist.h>
+@@ -43,12 +43,6 @@ extern void pci_free_consistent(struct pci_dev *hwdev, size_t size,
+ /* Return the index of the PCI controller for device PDEV. */
+ #define pci_controller_num(PDEV)	(0)
+ 
+-/* The PCI address space does equal the physical memory
+- * address space.  The networking and block device layers use
+- * this boolean for bounce buffer decisions.
+- */
+-#define PCI_DMA_BUS_IS_PHYS	(1)
+-
+ /* pci_unmap_{page,single} is a nop so... */
+ #define DECLARE_PCI_UNMAP_ADDR(ADDR_NAME)
+ #define DECLARE_PCI_UNMAP_LEN(LEN_NAME)
+@@ -114,5 +108,4 @@ static inline void pci_dma_sync_sg(struct pci_dev *hwdev,
+ 				    sg_dma_address(&sg[i])+sg_dma_len(&sg[i]));
+ }
+ 
+-
+-#endif
++#endif /* _ASM_FRV_PCI_H */
+diff --git a/arch/m32r/include/asm/pci.h b/arch/m32r/include/asm/pci.h
+index fe785d1..07d3834 100644
+--- a/arch/m32r/include/asm/pci.h
++++ b/arch/m32r/include/asm/pci.h
+@@ -3,6 +3,4 @@
+ 
+ #include <asm-generic/pci.h>
+ 
+-#define PCI_DMA_BUS_IS_PHYS	(1)
+-
+ #endif /* _ASM_M32R_PCI_H */
+diff --git a/include/asm-generic/pci.h b/include/asm-generic/pci.h
+index c36a77d..515c6e2 100644
+--- a/include/asm-generic/pci.h
++++ b/include/asm-generic/pci.h
+@@ -52,4 +52,12 @@ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
+ }
+ #endif /* HAVE_ARCH_PCI_GET_LEGACY_IDE_IRQ */
+ 
 +/*
-+ * This file traditionally describes the i8237 PC style DMA controller.
-+ * Most architectures don't have these any more and can get the minimal
-+ * implementation from kernel/dma.c by not defining MAX_DMA_CHANNELS.
-+ *
-+ * Some code relies on seeing MAX_DMA_ADDRESS though.
++ * By default, assume that no iommu is in use and that the PCI
++ * space is mapped to address physical 0.
 + */
-+#define MAX_DMA_ADDRESS PAGE_OFFSET
++#ifndef PCI_DMA_BUS_IS_PHYS
++#define PCI_DMA_BUS_IS_PHYS	(1)
+ #endif
 +
-+extern int request_dma(unsigned int dmanr, const char *device_id);
-+extern void free_dma(unsigned int dmanr);
-+
-+#endif /* __ASM_GENERIC_DMA_H */
-diff --git a/include/asm-generic/hw_irq.h b/include/asm-generic/hw_irq.h
-new file mode 100644
-index 0000000..89036d7
---- /dev/null
-+++ b/include/asm-generic/hw_irq.h
-@@ -0,0 +1,9 @@
-+#ifndef __ASM_GENERIC_HW_IRQ_H
-+#define __ASM_GENERIC_HW_IRQ_H
-+/*
-+ * hw_irq.h has internal declarations for the low-level interrupt
-+ * controller, like the original i8259A.
-+ * In general, this is not needed for new architectures.
-+ */
-+
-+#endif /* __ASM_GENERIC_HW_IRQ_H */
-diff --git a/include/asm-generic/parport.h b/include/asm-generic/parport.h
-new file mode 100644
-index 0000000..40528cb
---- /dev/null
-+++ b/include/asm-generic/parport.h
-@@ -0,0 +1,23 @@
-+#ifndef __ASM_GENERIC_PARPORT_H
-+#define __ASM_GENERIC_PARPORT_H
-+
-+/*
-+ * An ISA bus may have i8255 parallel ports at well-known
-+ * locations in the I/O space, which are scanned by
-+ * parport_pc_find_isa_ports.
-+ *
-+ * Without ISA support, the driver will only attach
-+ * to devices on the PCI bus.
-+ */
-+
-+static int __devinit parport_pc_find_isa_ports(int autoirq, int autodma);
-+static int __devinit parport_pc_find_nonpci_ports(int autoirq, int autodma)
-+{
-+#ifdef CONFIG_ISA
-+	return parport_pc_find_isa_ports(autoirq, autodma);
-+#else
-+	return 0;
-+#endif
-+}
-+
-+#endif /* __ASM_GENERIC_PARPORT_H */
-diff --git a/include/asm-generic/serial.h b/include/asm-generic/serial.h
-new file mode 100644
-index 0000000..5e29109
---- /dev/null
-+++ b/include/asm-generic/serial.h
-@@ -0,0 +1,13 @@
-+#ifndef __ASM_GENERIC_SERIAL_H
-+#define __ASM_GENERIC_SERIAL_H
-+
-+/*
-+ * This should not be an architecture specific #define, oh well.
-+ *
-+ * Traditionally, it just describes i8250 and related serial ports
-+ * that have this clock rate.
-+ */
-+
-+#define BASE_BAUD (1843200 / 16)
-+
-+#endif /* __ASM_GENERIC_SERIAL_H */
-diff --git a/include/asm-generic/timex.h b/include/asm-generic/timex.h
-new file mode 100644
-index 0000000..b2243cb
---- /dev/null
-+++ b/include/asm-generic/timex.h
-@@ -0,0 +1,22 @@
-+#ifndef __ASM_GENERIC_TIMEX_H
-+#define __ASM_GENERIC_TIMEX_H
-+
-+/*
-+ * If you have a cycle counter, return the value here.
-+ */
-+typedef unsigned long cycles_t;
-+#ifndef get_cycles
-+static inline cycles_t get_cycles(void)
-+{
-+	return 0;
-+}
-+#endif
-+
-+/*
-+ * Architectures are encouraged to implement read_current_timer
-+ * and define this in order to avoid the expensive delay loop
-+ * calibration during boot.
-+ */
-+#undef ARCH_HAS_READ_CURRENT_TIMER
-+
-+#endif /* __ASM_GENERIC_TIMEX_H */
-diff --git a/include/asm-generic/vga.h b/include/asm-generic/vga.h
-new file mode 100644
-index 0000000..36c8ff5
---- /dev/null
-+++ b/include/asm-generic/vga.h
-@@ -0,0 +1,24 @@
-+/*
-+ *	Access to VGA videoram
-+ *
-+ *	(c) 1998 Martin Mares <mj@ucw.cz>
-+ */
-+#ifndef __ASM_GENERIC_VGA_H
-+#define __ASM_GENERIC_VGA_H
-+
-+/*
-+ *	On most architectures that support VGA, we can just
-+ *	recalculate addresses and then access the videoram
-+ *	directly without any black magic.
-+ *
-+ *	Everyone else needs to ioremap the address and use
-+ *	proper I/O accesses.
-+ */
-+#ifndef VGA_MAP_MEM
-+#define VGA_MAP_MEM(x, s) (unsigned long)phys_to_virt(x)
-+#endif
-+
-+#define vga_readb(x) (*(x))
-+#define vga_writeb(x, y) (*(y) = (x))
-+
-+#endif /* _ASM_GENERIC_VGA_H */
++#endif /* _ASM_GENERIC_PCI_H */
 -- 
 1.6.0.4
