@@ -1,552 +1,1222 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 02/15] asm-generic: introduce asm/bitsperlong.h
-Date: Wed, 13 May 2009 22:56:25 +0000
-Message-ID: <1242255398-23779-3-git-send-email-arnd@arndb.de>
+Subject: [PATCH 04/15] asm-generic: add generic ABI headers
+Date: Wed, 13 May 2009 22:56:27 +0000
+Message-ID: <1242255398-23779-5-git-send-email-arnd@arndb.de>
 References: <1242255398-23779-1-git-send-email-arnd@arndb.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:51308 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.171]:59785 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751051AbZEMW4q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2009 18:56:46 -0400
+	with ESMTP id S1753292AbZEMW4s (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2009 18:56:48 -0400
 In-Reply-To: <1242255398-23779-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Remis Lima Baima <remis.developer@googlemail.com>
 
-This provides a reliable way for asm-generic/types.h and other
-files to find out if it is running on a 32 or 64 bit platform.
+These header files are typically copied from an existing architecture
+into any new one, slightly modified and then remain untouched until
+the end of time in the name of ABI stability.
 
-We cannot use CONFIG_64BIT for this in headers that are included
-from user space because CONFIG symbols are not available there.
-We also cannot do it inside of asm/types.h because some headers
-need the word size but cannot include types.h.
-
-The solution is to introduce a new header <asm/bitsperlong.h>
-that defines both __BITS_PER_LONG for user space and
-BITS_PER_LONG for usage in the kernel. The asm-generic
-version falls back to 32 bit unless the architecture overrides
-it, which I did for all 64 bit platforms.
+To make it easier for future architectures, provide a sane generic
+version here. In cases where multiple architectures already use
+identical code, I used the most common version. In cases like
+stat.h that are more or less broken everywhere, I provide a
+version that is meant to be ideal for new architectures.
 
 Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/alpha/include/asm/bitsperlong.h      |    8 +++++++
- arch/alpha/include/asm/types.h            |    3 --
- arch/arm/include/asm/bitsperlong.h        |    1 +
- arch/avr32/include/asm/bitsperlong.h      |    1 +
- arch/blackfin/include/asm/bitsperlong.h   |    1 +
- arch/cris/include/asm/bitsperlong.h       |    1 +
- arch/frv/include/asm/bitsperlong.h        |    1 +
- arch/h8300/include/asm/bitsperlong.h      |    1 +
- arch/ia64/include/asm/bitsperlong.h       |    8 +++++++
- arch/ia64/include/asm/types.h             |    7 ------
- arch/m32r/include/asm/bitsperlong.h       |    1 +
- arch/m68k/include/asm/bitsperlong.h       |    1 +
- arch/microblaze/include/asm/bitsperlong.h |    1 +
- arch/mips/include/asm/bitsperlong.h       |    8 +++++++
- arch/mips/include/asm/types.h             |    3 --
- arch/mn10300/include/asm/bitsperlong.h    |    1 +
- arch/parisc/include/asm/bitsperlong.h     |   20 ++++++++++++++++++
- arch/parisc/include/asm/types.h           |    8 -------
- arch/powerpc/include/asm/bitsperlong.h    |   12 ++++++++++
- arch/powerpc/include/asm/types.h          |    9 --------
- arch/s390/include/asm/bitsperlong.h       |   13 +++++++++++
- arch/s390/include/asm/types.h             |    6 -----
- arch/sh/include/asm/bitsperlong.h         |    1 +
- arch/sparc/include/asm/bitsperlong.h      |   13 +++++++++++
- arch/sparc/include/asm/types.h            |    4 ---
- arch/x86/include/asm/bitsperlong.h        |   13 +++++++++++
- arch/x86/include/asm/types.h              |    6 -----
- arch/xtensa/include/asm/bitsperlong.h     |    1 +
- include/asm-generic/Kbuild                |    1 +
- include/asm-generic/Kbuild.asm            |    1 +
- include/asm-generic/bitsperlong.h         |   32 +++++++++++++++++++++++++++++
- include/asm-generic/int-l64.h             |    2 +
- include/asm-generic/int-ll64.h            |    2 +
- 33 files changed, 145 insertions(+), 46 deletions(-)
- create mode 100644 arch/alpha/include/asm/bitsperlong.h
- create mode 100644 arch/arm/include/asm/bitsperlong.h
- create mode 100644 arch/avr32/include/asm/bitsperlong.h
- create mode 100644 arch/blackfin/include/asm/bitsperlong.h
- create mode 100644 arch/cris/include/asm/bitsperlong.h
- create mode 100644 arch/frv/include/asm/bitsperlong.h
- create mode 100644 arch/h8300/include/asm/bitsperlong.h
- create mode 100644 arch/ia64/include/asm/bitsperlong.h
- create mode 100644 arch/m32r/include/asm/bitsperlong.h
- create mode 100644 arch/m68k/include/asm/bitsperlong.h
- create mode 100644 arch/microblaze/include/asm/bitsperlong.h
- create mode 100644 arch/mips/include/asm/bitsperlong.h
- create mode 100644 arch/mn10300/include/asm/bitsperlong.h
- create mode 100644 arch/parisc/include/asm/bitsperlong.h
- create mode 100644 arch/powerpc/include/asm/bitsperlong.h
- create mode 100644 arch/s390/include/asm/bitsperlong.h
- create mode 100644 arch/sh/include/asm/bitsperlong.h
- create mode 100644 arch/sparc/include/asm/bitsperlong.h
- create mode 100644 arch/x86/include/asm/bitsperlong.h
- create mode 100644 arch/xtensa/include/asm/bitsperlong.h
- create mode 100644 include/asm-generic/bitsperlong.h
+ include/asm-generic/Kbuild        |   15 +++
+ include/asm-generic/auxvec.h      |    8 ++
+ include/asm-generic/ioctls.h      |  110 ++++++++++++++++++++
+ include/asm-generic/mman.h        |   18 ++++
+ include/asm-generic/param.h       |   24 +++++
+ include/asm-generic/posix_types.h |  165 ++++++++++++++++++++++++++++++
+ include/asm-generic/setup.h       |    6 +
+ include/asm-generic/signal.h      |  131 ++++++++++++++++++++++++
+ include/asm-generic/socket.h      |   60 +++++++++++
+ include/asm-generic/sockios.h     |   13 +++
+ include/asm-generic/stat.h        |   72 +++++++++++++
+ include/asm-generic/swab.h        |   18 ++++
+ include/asm-generic/termbits.h    |  198 +++++++++++++++++++++++++++++++++++++
+ include/asm-generic/termios.h     |  154 ++++++++++++++++++++++++++++
+ include/asm-generic/types.h       |   42 ++++++++
+ include/asm-generic/ucontext.h    |   12 +++
+ 16 files changed, 1046 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/auxvec.h
+ create mode 100644 include/asm-generic/ioctls.h
+ create mode 100644 include/asm-generic/mman.h
+ create mode 100644 include/asm-generic/param.h
+ create mode 100644 include/asm-generic/posix_types.h
+ create mode 100644 include/asm-generic/setup.h
+ create mode 100644 include/asm-generic/signal.h
+ create mode 100644 include/asm-generic/socket.h
+ create mode 100644 include/asm-generic/sockios.h
+ create mode 100644 include/asm-generic/stat.h
+ create mode 100644 include/asm-generic/swab.h
+ create mode 100644 include/asm-generic/termbits.h
+ create mode 100644 include/asm-generic/termios.h
+ create mode 100644 include/asm-generic/types.h
+ create mode 100644 include/asm-generic/ucontext.h
 
-diff --git a/arch/alpha/include/asm/bitsperlong.h b/arch/alpha/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..ad57f78
---- /dev/null
-+++ b/arch/alpha/include/asm/bitsperlong.h
-@@ -0,0 +1,8 @@
-+#ifndef __ASM_ALPHA_BITSPERLONG_H
-+#define __ASM_ALPHA_BITSPERLONG_H
-+
-+#define __BITS_PER_LONG 64
-+
-+#include <asm-generic/bitsperlong.h>
-+
-+#endif /* __ASM_ALPHA_BITSPERLONG_H */
-diff --git a/arch/alpha/include/asm/types.h b/arch/alpha/include/asm/types.h
-index f072f34..bd621ec 100644
---- a/arch/alpha/include/asm/types.h
-+++ b/arch/alpha/include/asm/types.h
-@@ -25,9 +25,6 @@ typedef unsigned int umode_t;
-  * These aren't exported outside the kernel to avoid name space clashes
-  */
- #ifdef __KERNEL__
--
--#define BITS_PER_LONG 64
--
- #ifndef __ASSEMBLY__
- 
- typedef u64 dma_addr_t;
-diff --git a/arch/arm/include/asm/bitsperlong.h b/arch/arm/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..6dc0bb0
---- /dev/null
-+++ b/arch/arm/include/asm/bitsperlong.h
-@@ -0,0 +1 @@
-+#include <asm-generic/bitsperlong.h>
-diff --git a/arch/avr32/include/asm/bitsperlong.h b/arch/avr32/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..6dc0bb0
---- /dev/null
-+++ b/arch/avr32/include/asm/bitsperlong.h
-@@ -0,0 +1 @@
-+#include <asm-generic/bitsperlong.h>
-diff --git a/arch/blackfin/include/asm/bitsperlong.h b/arch/blackfin/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..6dc0bb0
---- /dev/null
-+++ b/arch/blackfin/include/asm/bitsperlong.h
-@@ -0,0 +1 @@
-+#include <asm-generic/bitsperlong.h>
-diff --git a/arch/cris/include/asm/bitsperlong.h b/arch/cris/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..6dc0bb0
---- /dev/null
-+++ b/arch/cris/include/asm/bitsperlong.h
-@@ -0,0 +1 @@
-+#include <asm-generic/bitsperlong.h>
-diff --git a/arch/frv/include/asm/bitsperlong.h b/arch/frv/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..6dc0bb0
---- /dev/null
-+++ b/arch/frv/include/asm/bitsperlong.h
-@@ -0,0 +1 @@
-+#include <asm-generic/bitsperlong.h>
-diff --git a/arch/h8300/include/asm/bitsperlong.h b/arch/h8300/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..6dc0bb0
---- /dev/null
-+++ b/arch/h8300/include/asm/bitsperlong.h
-@@ -0,0 +1 @@
-+#include <asm-generic/bitsperlong.h>
-diff --git a/arch/ia64/include/asm/bitsperlong.h b/arch/ia64/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..ec4db3c
---- /dev/null
-+++ b/arch/ia64/include/asm/bitsperlong.h
-@@ -0,0 +1,8 @@
-+#ifndef __ASM_IA64_BITSPERLONG_H
-+#define __ASM_IA64_BITSPERLONG_H
-+
-+#define __BITS_PER_LONG 64
-+
-+#include <asm-generic/bitsperlong.h>
-+
-+#endif /* __ASM_IA64_BITSPERLONG_H */
-diff --git a/arch/ia64/include/asm/types.h b/arch/ia64/include/asm/types.h
-index e36b371..fbf1ed3 100644
---- a/arch/ia64/include/asm/types.h
-+++ b/arch/ia64/include/asm/types.h
-@@ -19,10 +19,6 @@
- # define __IA64_UL(x)		(x)
- # define __IA64_UL_CONST(x)	x
- 
--# ifdef __KERNEL__
--#  define BITS_PER_LONG 64
--# endif
--
- #else
- # define __IA64_UL(x)		((unsigned long)(x))
- # define __IA64_UL_CONST(x)	x##UL
-@@ -34,10 +30,7 @@ typedef unsigned int umode_t;
-  */
- # ifdef __KERNEL__
- 
--#define BITS_PER_LONG 64
--
- /* DMA addresses are 64-bits wide, in general.  */
--
- typedef u64 dma_addr_t;
- 
- # endif /* __KERNEL__ */
-diff --git a/arch/m32r/include/asm/bitsperlong.h b/arch/m32r/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..6dc0bb0
---- /dev/null
-+++ b/arch/m32r/include/asm/bitsperlong.h
-@@ -0,0 +1 @@
-+#include <asm-generic/bitsperlong.h>
-diff --git a/arch/m68k/include/asm/bitsperlong.h b/arch/m68k/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..6dc0bb0
---- /dev/null
-+++ b/arch/m68k/include/asm/bitsperlong.h
-@@ -0,0 +1 @@
-+#include <asm-generic/bitsperlong.h>
-diff --git a/arch/microblaze/include/asm/bitsperlong.h b/arch/microblaze/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..6dc0bb0
---- /dev/null
-+++ b/arch/microblaze/include/asm/bitsperlong.h
-@@ -0,0 +1 @@
-+#include <asm-generic/bitsperlong.h>
-diff --git a/arch/mips/include/asm/bitsperlong.h b/arch/mips/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..3e4c10a
---- /dev/null
-+++ b/arch/mips/include/asm/bitsperlong.h
-@@ -0,0 +1,8 @@
-+#ifndef __ASM_MIPS_BITSPERLONG_H
-+#define __ASM_MIPS_BITSPERLONG_H
-+
-+#define __BITS_PER_LONG _MIPS_SZLONG
-+
-+#include <asm-generic/bitsperlong.h>
-+
-+#endif /* __ASM_MIPS_BITSPERLONG_H */
-diff --git a/arch/mips/include/asm/types.h b/arch/mips/include/asm/types.h
-index 7956e69..544a285 100644
---- a/arch/mips/include/asm/types.h
-+++ b/arch/mips/include/asm/types.h
-@@ -31,9 +31,6 @@ typedef unsigned short umode_t;
-  * These aren't exported outside the kernel to avoid name space clashes
-  */
- #ifdef __KERNEL__
--
--#define BITS_PER_LONG _MIPS_SZLONG
--
- #ifndef __ASSEMBLY__
- 
- #if (defined(CONFIG_HIGHMEM) && defined(CONFIG_64BIT_PHYS_ADDR)) \
-diff --git a/arch/mn10300/include/asm/bitsperlong.h b/arch/mn10300/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..6dc0bb0
---- /dev/null
-+++ b/arch/mn10300/include/asm/bitsperlong.h
-@@ -0,0 +1 @@
-+#include <asm-generic/bitsperlong.h>
-diff --git a/arch/parisc/include/asm/bitsperlong.h b/arch/parisc/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..75196b4
---- /dev/null
-+++ b/arch/parisc/include/asm/bitsperlong.h
-@@ -0,0 +1,20 @@
-+#ifndef __ASM_PARISC_BITSPERLONG_H
-+#define __ASM_PARISC_BITSPERLONG_H
-+
-+/*
-+ * using CONFIG_* outside of __KERNEL__ is wrong,
-+ * __LP64__ was also removed from headers, so what
-+ * is the right approach on parisc?
-+ *	-arnd
-+ */
-+#if (defined(__KERNEL__) && defined(CONFIG_64BIT)) || defined (__LP64__)
-+#define __BITS_PER_LONG 64
-+#define SHIFT_PER_LONG 6
-+#else
-+#define __BITS_PER_LONG 32
-+#define SHIFT_PER_LONG 5
-+#endif
-+
-+#include <asm-generic/bitsperlong.h>
-+
-+#endif /* __ASM_PARISC_BITSPERLONG_H */
-diff --git a/arch/parisc/include/asm/types.h b/arch/parisc/include/asm/types.h
-index 7f5a39b..20135cc 100644
---- a/arch/parisc/include/asm/types.h
-+++ b/arch/parisc/include/asm/types.h
-@@ -14,14 +14,6 @@ typedef unsigned short umode_t;
-  */
- #ifdef __KERNEL__
- 
--#ifdef CONFIG_64BIT
--#define BITS_PER_LONG 64
--#define SHIFT_PER_LONG 6
--#else
--#define BITS_PER_LONG 32
--#define SHIFT_PER_LONG 5
--#endif
--
- #ifndef __ASSEMBLY__
- 
- /* Dma addresses are 32-bits wide.  */
-diff --git a/arch/powerpc/include/asm/bitsperlong.h b/arch/powerpc/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..5f16590
---- /dev/null
-+++ b/arch/powerpc/include/asm/bitsperlong.h
-@@ -0,0 +1,12 @@
-+#ifndef __ASM_POWERPC_BITSPERLONG_H
-+#define __ASM_POWERPC_BITSPERLONG_H
-+
-+#if defined(__powerpc64__)
-+# define __BITS_PER_LONG 64
-+#else
-+# define __BITS_PER_LONG 32
-+#endif
-+
-+#include <asm-generic/bitsperlong.h>
-+
-+#endif /* __ASM_POWERPC_BITSPERLONG_H */
-diff --git a/arch/powerpc/include/asm/types.h b/arch/powerpc/include/asm/types.h
-index 7ce27a5..a5aea0c 100644
---- a/arch/powerpc/include/asm/types.h
-+++ b/arch/powerpc/include/asm/types.h
-@@ -40,15 +40,6 @@ typedef struct {
- #endif /* __ASSEMBLY__ */
- 
- #ifdef __KERNEL__
--/*
-- * These aren't exported outside the kernel to avoid name space clashes
-- */
--#ifdef __powerpc64__
--#define BITS_PER_LONG 64
--#else
--#define BITS_PER_LONG 32
--#endif
--
- #ifndef __ASSEMBLY__
- 
- typedef __vector128 vector128;
-diff --git a/arch/s390/include/asm/bitsperlong.h b/arch/s390/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..6b235ae
---- /dev/null
-+++ b/arch/s390/include/asm/bitsperlong.h
-@@ -0,0 +1,13 @@
-+#ifndef __ASM_S390_BITSPERLONG_H
-+#define __ASM_S390_BITSPERLONG_H
-+
-+#ifndef __s390x__
-+#define __BITS_PER_LONG 32
-+#else
-+#define __BITS_PER_LONG 64
-+#endif
-+
-+#include <asm-generic/bitsperlong.h>
-+
-+#endif /* __ASM_S390_BITSPERLONG_H */
-+
-diff --git a/arch/s390/include/asm/types.h b/arch/s390/include/asm/types.h
-index 3dc3fc2..04d6b95 100644
---- a/arch/s390/include/asm/types.h
-+++ b/arch/s390/include/asm/types.h
-@@ -28,12 +28,6 @@ typedef __signed__ long saddr_t;
-  */
- #ifdef __KERNEL__
- 
--#ifndef __s390x__
--#define BITS_PER_LONG 32
--#else
--#define BITS_PER_LONG 64
--#endif
--
- #ifndef __ASSEMBLY__
- 
- typedef u64 dma64_addr_t;
-diff --git a/arch/sh/include/asm/bitsperlong.h b/arch/sh/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..6dc0bb0
---- /dev/null
-+++ b/arch/sh/include/asm/bitsperlong.h
-@@ -0,0 +1 @@
-+#include <asm-generic/bitsperlong.h>
-diff --git a/arch/sparc/include/asm/bitsperlong.h b/arch/sparc/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..40dcaa3
---- /dev/null
-+++ b/arch/sparc/include/asm/bitsperlong.h
-@@ -0,0 +1,13 @@
-+#ifndef __ASM_ALPHA_BITSPERLONG_H
-+#define __ASM_ALPHA_BITSPERLONG_H
-+
-+#if defined(__sparc__) && defined(__arch64__)
-+#define __BITS_PER_LONG 64
-+#else
-+#define __BITS_PER_LONG 32
-+#endif
-+
-+#include <asm-generic/bitsperlong.h>
-+
-+#endif /* __ASM_ALPHA_BITSPERLONG_H */
-+
-diff --git a/arch/sparc/include/asm/types.h b/arch/sparc/include/asm/types.h
-index 2237118..de671d7 100644
---- a/arch/sparc/include/asm/types.h
-+++ b/arch/sparc/include/asm/types.h
-@@ -21,8 +21,6 @@ typedef unsigned short umode_t;
- 
- #ifdef __KERNEL__
- 
--#define BITS_PER_LONG 64
--
- #ifndef __ASSEMBLY__
- 
- /* Dma addresses come in generic and 64-bit flavours.  */
-@@ -46,8 +44,6 @@ typedef unsigned short umode_t;
- 
- #ifdef __KERNEL__
- 
--#define BITS_PER_LONG 32
--
- #ifndef __ASSEMBLY__
- 
- typedef u32 dma_addr_t;
-diff --git a/arch/x86/include/asm/bitsperlong.h b/arch/x86/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..b0ae1c4
---- /dev/null
-+++ b/arch/x86/include/asm/bitsperlong.h
-@@ -0,0 +1,13 @@
-+#ifndef __ASM_X86_BITSPERLONG_H
-+#define __ASM_X86_BITSPERLONG_H
-+
-+#ifdef __x86_64__
-+# define __BITS_PER_LONG 64
-+#else
-+# define __BITS_PER_LONG 32
-+#endif
-+
-+#include <asm-generic/bitsperlong.h>
-+
-+#endif /* __ASM_X86_BITSPERLONG_H */
-+
-diff --git a/arch/x86/include/asm/types.h b/arch/x86/include/asm/types.h
-index e6f7363..09b9774 100644
---- a/arch/x86/include/asm/types.h
-+++ b/arch/x86/include/asm/types.h
-@@ -14,12 +14,6 @@ typedef unsigned short umode_t;
-  */
- #ifdef __KERNEL__
- 
--#ifdef CONFIG_X86_32
--# define BITS_PER_LONG 32
--#else
--# define BITS_PER_LONG 64
--#endif
--
- #ifndef __ASSEMBLY__
- 
- typedef u64 dma64_addr_t;
-diff --git a/arch/xtensa/include/asm/bitsperlong.h b/arch/xtensa/include/asm/bitsperlong.h
-new file mode 100644
-index 0000000..6dc0bb0
---- /dev/null
-+++ b/arch/xtensa/include/asm/bitsperlong.h
-@@ -0,0 +1 @@
-+#include <asm-generic/bitsperlong.h>
 diff --git a/include/asm-generic/Kbuild b/include/asm-generic/Kbuild
-index 460b08d..cbb4378 100644
+index fd7a9c4..11a78b8 100644
 --- a/include/asm-generic/Kbuild
 +++ b/include/asm-generic/Kbuild
-@@ -1,3 +1,4 @@
-+header-y += bitsperlong.h
+@@ -1,17 +1,32 @@
++header-y += auxvec.h
+ header-y += bitsperlong.h
  header-y += errno-base.h
  header-y += errno.h
  header-y += fcntl.h
-diff --git a/include/asm-generic/Kbuild.asm b/include/asm-generic/Kbuild.asm
-index 70d1855..290910e 100644
---- a/include/asm-generic/Kbuild.asm
-+++ b/include/asm-generic/Kbuild.asm
-@@ -9,6 +9,7 @@ unifdef-y += a.out.h
- endif
- unifdef-y += auxvec.h
- unifdef-y += byteorder.h
-+unifdef-y += bitsperlong.h
- unifdef-y += errno.h
- unifdef-y += fcntl.h
- unifdef-y += ioctl.h
-diff --git a/include/asm-generic/bitsperlong.h b/include/asm-generic/bitsperlong.h
+ header-y += ioctl.h
++header-y += ioctls.h
+ header-y += ipcbuf.h
+ header-y += mman-common.h
++header-y += mman.h
+ header-y += msgbuf.h
++header-y += param.h
+ header-y += poll.h
++header-y += posix_types.h
+ header-y += sembuf.h
++header-y += setup.h
+ header-y += shmbuf.h
+ header-y += shmparam.h
+ header-y += signal-defs.h
++header-y += signal.h
++header-y += socket.h
++header-y += sockios.h
++header-y += stat.h
+ header-y += statfs.h
++header-y += swab.h
++header-y += termbits.h
++header-y += termios.h
++header-y += types.h
++header-y += ucontext.h
+ 
+ unifdef-y += int-l64.h
+ unifdef-y += int-ll64.h
+diff --git a/include/asm-generic/auxvec.h b/include/asm-generic/auxvec.h
 new file mode 100644
-index 0000000..4ae54e0
+index 0000000..b99573b
 --- /dev/null
-+++ b/include/asm-generic/bitsperlong.h
-@@ -0,0 +1,32 @@
-+#ifndef __ASM_GENERIC_BITS_PER_LONG
-+#define __ASM_GENERIC_BITS_PER_LONG
++++ b/include/asm-generic/auxvec.h
+@@ -0,0 +1,8 @@
++#ifndef __ASM_GENERIC_AUXVEC_H
++#define __ASM_GENERIC_AUXVEC_H
++/*
++ * Not all architectures need their own auxvec.h, the most
++ * common definitions are already in linux/auxvec.h.
++ */
++
++#endif /* __ASM_GENERIC_AUXVEC_H */
+diff --git a/include/asm-generic/ioctls.h b/include/asm-generic/ioctls.h
+new file mode 100644
+index 0000000..a799e20
+--- /dev/null
++++ b/include/asm-generic/ioctls.h
+@@ -0,0 +1,110 @@
++#ifndef __ASM_GENERIC_IOCTLS_H
++#define __ASM_GENERIC_IOCTLS_H
++
++#include <linux/ioctl.h>
 +
 +/*
-+ * There seems to be no way of detecting this automatically from user
-+ * space, so 64 bit architectures should override this in their
-+ * bitsperlong.h. In particular, an architecture that supports
-+ * both 32 and 64 bit user space must not rely on CONFIG_64BIT
-+ * to decide it, but rather check a compiler provided macro.
++ * These are the most common definitions for tty ioctl numbers.
++ * Most of them do not use the recommended _IOC(), but there is
++ * probably some source code out there hardcoding the number,
++ * so we might as well use them for all new platforms.
++ *
++ * The architectures that use different values here typically
++ * try to be compatible with some Unix variants for the same
++ * architecture.
 + */
-+#ifndef __BITS_PER_LONG
-+#define __BITS_PER_LONG 32
++
++/* 0x54 is just a magic number to make these relatively unique ('T') */
++
++#define TCGETS		0x5401
++#define TCSETS		0x5402
++#define TCSETSW		0x5403
++#define TCSETSF		0x5404
++#define TCGETA		0x5405
++#define TCSETA		0x5406
++#define TCSETAW		0x5407
++#define TCSETAF		0x5408
++#define TCSBRK		0x5409
++#define TCXONC		0x540A
++#define TCFLSH		0x540B
++#define TIOCEXCL	0x540C
++#define TIOCNXCL	0x540D
++#define TIOCSCTTY	0x540E
++#define TIOCGPGRP	0x540F
++#define TIOCSPGRP	0x5410
++#define TIOCOUTQ	0x5411
++#define TIOCSTI		0x5412
++#define TIOCGWINSZ	0x5413
++#define TIOCSWINSZ	0x5414
++#define TIOCMGET	0x5415
++#define TIOCMBIS	0x5416
++#define TIOCMBIC	0x5417
++#define TIOCMSET	0x5418
++#define TIOCGSOFTCAR	0x5419
++#define TIOCSSOFTCAR	0x541A
++#define FIONREAD	0x541B
++#define TIOCINQ		FIONREAD
++#define TIOCLINUX	0x541C
++#define TIOCCONS	0x541D
++#define TIOCGSERIAL	0x541E
++#define TIOCSSERIAL	0x541F
++#define TIOCPKT		0x5420
++#define FIONBIO		0x5421
++#define TIOCNOTTY	0x5422
++#define TIOCSETD	0x5423
++#define TIOCGETD	0x5424
++#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
++#define TIOCSBRK	0x5427  /* BSD compatibility */
++#define TIOCCBRK	0x5428  /* BSD compatibility */
++#define TIOCGSID	0x5429  /* Return the session ID of FD */
++#define TCGETS2		_IOR('T', 0x2A, struct termios2)
++#define TCSETS2		_IOW('T', 0x2B, struct termios2)
++#define TCSETSW2	_IOW('T', 0x2C, struct termios2)
++#define TCSETSF2	_IOW('T', 0x2D, struct termios2)
++#define TIOCGRS485	0x542E
++#define TIOCSRS485	0x542F
++#define TIOCGPTN	_IOR('T', 0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
++#define TIOCSPTLCK	_IOW('T', 0x31, int)  /* Lock/unlock Pty */
++#define TCGETX		0x5432 /* SYS5 TCGETX compatibility */
++#define TCSETX		0x5433
++#define TCSETXF		0x5434
++#define TCSETXW		0x5435
++
++#define FIONCLEX	0x5450
++#define FIOCLEX		0x5451
++#define FIOASYNC	0x5452
++#define TIOCSERCONFIG	0x5453
++#define TIOCSERGWILD	0x5454
++#define TIOCSERSWILD	0x5455
++#define TIOCGLCKTRMIOS	0x5456
++#define TIOCSLCKTRMIOS	0x5457
++#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
++#define TIOCSERGETLSR   0x5459 /* Get line status register */
++#define TIOCSERGETMULTI 0x545A /* Get multiport config  */
++#define TIOCSERSETMULTI 0x545B /* Set multiport config */
++
++#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
++#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
++
++/*
++ * some architectures define FIOQSIZE as 0x545E, which is used for
++ * TIOCGHAYESESP on others
++ */
++#ifndef FIOQSIZE
++# define TIOCGHAYESESP	0x545E  /* Get Hayes ESP configuration */
++# define TIOCSHAYESESP	0x545F  /* Set Hayes ESP configuration */
++# define FIOQSIZE	0x5460
 +#endif
++
++/* Used for packet mode */
++#define TIOCPKT_DATA		 0
++#define TIOCPKT_FLUSHREAD	 1
++#define TIOCPKT_FLUSHWRITE	 2
++#define TIOCPKT_STOP		 4
++#define TIOCPKT_START		 8
++#define TIOCPKT_NOSTOP		16
++#define TIOCPKT_DOSTOP		32
++
++#define TIOCSER_TEMT	0x01	/* Transmitter physically empty */
++
++#endif /* __ASM_GENERIC_IOCTLS_H */
+diff --git a/include/asm-generic/mman.h b/include/asm-generic/mman.h
+new file mode 100644
+index 0000000..7cab4de
+--- /dev/null
++++ b/include/asm-generic/mman.h
+@@ -0,0 +1,18 @@
++#ifndef __ASM_GENERIC_MMAN_H
++#define __ASM_GENERIC_MMAN_H
++
++#include <asm-generic/mman-common.h>
++
++#define MAP_GROWSDOWN	0x0100		/* stack-like segment */
++#define MAP_DENYWRITE	0x0800		/* ETXTBSY */
++#define MAP_EXECUTABLE	0x1000		/* mark it as an executable */
++#define MAP_LOCKED	0x2000		/* pages are locked */
++#define MAP_NORESERVE	0x4000		/* don't check for reservations */
++#define MAP_POPULATE	0x8000		/* populate (prefault) pagetables */
++#define MAP_NONBLOCK	0x10000		/* do not block on IO */
++#define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
++
++#define MCL_CURRENT	1		/* lock all current mappings */
++#define MCL_FUTURE	2		/* lock all future mappings */
++
++#endif /* __ASM_GENERIC_MMAN_H */
+diff --git a/include/asm-generic/param.h b/include/asm-generic/param.h
+new file mode 100644
+index 0000000..cdf8251
+--- /dev/null
++++ b/include/asm-generic/param.h
+@@ -0,0 +1,24 @@
++#ifndef __ASM_GENERIC_PARAM_H
++#define __ASM_GENERIC_PARAM_H
++
++#ifdef __KERNEL__
++# define HZ		CONFIG_HZ	/* Internal kernel timer frequency */
++# define USER_HZ	100		/* some user interfaces are */
++# define CLOCKS_PER_SEC	(USER_HZ)       /* in "ticks" like times() */
++#endif
++
++#ifndef HZ
++#define HZ 100
++#endif
++
++#ifndef EXEC_PAGESIZE
++#define EXEC_PAGESIZE	4096
++#endif
++
++#ifndef NOGROUP
++#define NOGROUP		(-1)
++#endif
++
++#define MAXHOSTNAMELEN	64	/* max length of hostname */
++
++#endif /* __ASM_GENERIC_PARAM_H */
+diff --git a/include/asm-generic/posix_types.h b/include/asm-generic/posix_types.h
+new file mode 100644
+index 0000000..3dab008
+--- /dev/null
++++ b/include/asm-generic/posix_types.h
+@@ -0,0 +1,165 @@
++#ifndef __ASM_GENERIC_POSIX_TYPES_H
++#define __ASM_GENERIC_POSIX_TYPES_H
++
++#include <asm/bitsperlong.h>
++/*
++ * This file is generally used by user-level software, so you need to
++ * be a little careful about namespace pollution etc.
++ *
++ * First the types that are often defined in different ways across
++ * architectures, so that you can override them.
++ */
++
++#ifndef __kernel_ino_t
++typedef unsigned long	__kernel_ino_t;
++#endif
++
++#ifndef __kernel_mode_t
++typedef unsigned int	__kernel_mode_t;
++#endif
++
++#ifndef __kernel_nlink_t
++typedef unsigned long	__kernel_nlink_t;
++#endif
++
++#ifndef __kernel_pid_t
++typedef int		__kernel_pid_t;
++#endif
++
++#ifndef __kernel_ipc_pid_t
++typedef int		__kernel_ipc_pid_t;
++#endif
++
++#ifndef __kernel_uid_t
++typedef unsigned int	__kernel_uid_t;
++typedef unsigned int	__kernel_gid_t;
++#endif
++
++#ifndef __kernel_suseconds_t
++typedef long		__kernel_suseconds_t;
++#endif
++
++#ifndef __kernel_daddr_t
++typedef int		__kernel_daddr_t;
++#endif
++
++#ifndef __kernel_uid32_t
++typedef __kernel_uid_t	__kernel_uid32_t;
++typedef __kernel_gid_t	__kernel_gid32_t;
++#endif
++
++#ifndef __kernel_old_uid_t
++typedef __kernel_uid_t	__kernel_old_uid_t;
++typedef __kernel_gid_t	__kernel_old_gid_t;
++#endif
++
++#ifndef __kernel_old_dev_t
++typedef unsigned int	__kernel_old_dev_t;
++#endif
++
++/*
++ * Most 32 bit architectures use "unsigned int" size_t,
++ * and all 64 bit architectures use "unsigned long" size_t.
++ */
++#ifndef __kernel_size_t
++#if __BITS_PER_LONG != 64
++typedef unsigned int	__kernel_size_t;
++typedef int		__kernel_ssize_t;
++typedef int		__kernel_ptrdiff_t;
++#else
++typedef unsigned long	__kernel_size_t;
++typedef long		__kernel_ssize_t;
++typedef long		__kernel_ptrdiff_t;
++#endif
++#endif
++
++/*
++ * anything below here should be completely generic
++ */
++typedef long		__kernel_off_t;
++typedef long long	__kernel_loff_t;
++typedef long		__kernel_time_t;
++typedef long		__kernel_clock_t;
++typedef int		__kernel_timer_t;
++typedef int		__kernel_clockid_t;
++typedef char *		__kernel_caddr_t;
++typedef unsigned short	__kernel_uid16_t;
++typedef unsigned short	__kernel_gid16_t;
++
++typedef struct {
++	int	val[2];
++} __kernel_fsid_t;
 +
 +#ifdef __KERNEL__
 +
-+#ifdef CONFIG_64BIT
-+#define BITS_PER_LONG 64
-+#else
-+#define BITS_PER_LONG 32
-+#endif /* CONFIG_64BIT */
++#undef __FD_SET
++static inline void __FD_SET(unsigned long __fd, __kernel_fd_set *__fdsetp)
++{
++	unsigned long __tmp = __fd / __NFDBITS;
++	unsigned long __rem = __fd % __NFDBITS;
++	__fdsetp->fds_bits[__tmp] |= (1UL<<__rem);
++}
++
++#undef __FD_CLR
++static inline void __FD_CLR(unsigned long __fd, __kernel_fd_set *__fdsetp)
++{
++	unsigned long __tmp = __fd / __NFDBITS;
++	unsigned long __rem = __fd % __NFDBITS;
++	__fdsetp->fds_bits[__tmp] &= ~(1UL<<__rem);
++}
++
++#undef __FD_ISSET
++static inline int __FD_ISSET(unsigned long __fd, const __kernel_fd_set *__p)
++{
++	unsigned long __tmp = __fd / __NFDBITS;
++	unsigned long __rem = __fd % __NFDBITS;
++	return (__p->fds_bits[__tmp] & (1UL<<__rem)) != 0;
++}
 +
 +/*
-+ * FIXME: The check currently breaks x86-64 build, so it's
-+ * temporarily disabled. Please fix x86-64 and reenable
++ * This will unroll the loop for the normal constant case (8 ints,
++ * for a 256-bit fd_set)
 + */
-+#if 0 && BITS_PER_LONG != __BITS_PER_LONG
-+#error Inconsistent word size. Check asm/bitsperlong.h
-+#endif
++#undef __FD_ZERO
++static inline void __FD_ZERO(__kernel_fd_set *__p)
++{
++	unsigned long *__tmp = __p->fds_bits;
++	int __i;
++
++	if (__builtin_constant_p(__FDSET_LONGS)) {
++		switch (__FDSET_LONGS) {
++		case 16:
++			__tmp[ 0] = 0; __tmp[ 1] = 0;
++			__tmp[ 2] = 0; __tmp[ 3] = 0;
++			__tmp[ 4] = 0; __tmp[ 5] = 0;
++			__tmp[ 6] = 0; __tmp[ 7] = 0;
++			__tmp[ 8] = 0; __tmp[ 9] = 0;
++			__tmp[10] = 0; __tmp[11] = 0;
++			__tmp[12] = 0; __tmp[13] = 0;
++			__tmp[14] = 0; __tmp[15] = 0;
++			return;
++
++		case 8:
++			__tmp[ 0] = 0; __tmp[ 1] = 0;
++			__tmp[ 2] = 0; __tmp[ 3] = 0;
++			__tmp[ 4] = 0; __tmp[ 5] = 0;
++			__tmp[ 6] = 0; __tmp[ 7] = 0;
++			return;
++
++		case 4:
++			__tmp[ 0] = 0; __tmp[ 1] = 0;
++			__tmp[ 2] = 0; __tmp[ 3] = 0;
++			return;
++		}
++	}
++	__i = __FDSET_LONGS;
++	while (__i) {
++		__i--;
++		*__tmp = 0;
++		__tmp++;
++	}
++}
 +
 +#endif /* __KERNEL__ */
-+#endif /* __ASM_GENERIC_BITS_PER_LONG */
-diff --git a/include/asm-generic/int-l64.h b/include/asm-generic/int-l64.h
-index 2af9b75..1ca3efc 100644
---- a/include/asm-generic/int-l64.h
-+++ b/include/asm-generic/int-l64.h
-@@ -8,6 +8,8 @@
- #ifndef _ASM_GENERIC_INT_L64_H
- #define _ASM_GENERIC_INT_L64_H
- 
++
++#endif /* __ASM_GENERIC_POSIX_TYPES_H */
+diff --git a/include/asm-generic/setup.h b/include/asm-generic/setup.h
+new file mode 100644
+index 0000000..6fc26a5
+--- /dev/null
++++ b/include/asm-generic/setup.h
+@@ -0,0 +1,6 @@
++#ifndef __ASM_GENERIC_SETUP_H
++#define __ASM_GENERIC_SETUP_H
++
++#define COMMAND_LINE_SIZE	512
++
++#endif	/* __ASM_GENERIC_SETUP_H */
+diff --git a/include/asm-generic/signal.h b/include/asm-generic/signal.h
+new file mode 100644
+index 0000000..555c0ae
+--- /dev/null
++++ b/include/asm-generic/signal.h
+@@ -0,0 +1,131 @@
++#ifndef __ASM_GENERIC_SIGNAL_H
++#define __ASM_GENERIC_SIGNAL_H
++
++#include <linux/types.h>
++
++#define _NSIG		64
++#define _NSIG_BPW	__BITS_PER_LONG
++#define _NSIG_WORDS	(_NSIG / _NSIG_BPW)
++
++#define SIGHUP		 1
++#define SIGINT		 2
++#define SIGQUIT		 3
++#define SIGILL		 4
++#define SIGTRAP		 5
++#define SIGABRT		 6
++#define SIGIOT		 6
++#define SIGBUS		 7
++#define SIGFPE		 8
++#define SIGKILL		 9
++#define SIGUSR1		10
++#define SIGSEGV		11
++#define SIGUSR2		12
++#define SIGPIPE		13
++#define SIGALRM		14
++#define SIGTERM		15
++#define SIGSTKFLT	16
++#define SIGCHLD		17
++#define SIGCONT		18
++#define SIGSTOP		19
++#define SIGTSTP		20
++#define SIGTTIN		21
++#define SIGTTOU		22
++#define SIGURG		23
++#define SIGXCPU		24
++#define SIGXFSZ		25
++#define SIGVTALRM	26
++#define SIGPROF		27
++#define SIGWINCH	28
++#define SIGIO		29
++#define SIGPOLL		SIGIO
++/*
++#define SIGLOST		29
++*/
++#define SIGPWR		30
++#define SIGSYS		31
++#define	SIGUNUSED	31
++
++/* These should not be considered constants from userland.  */
++#define SIGRTMIN	32
++#ifndef SIGRTMAX
++#define SIGRTMAX	_NSIG
++#endif
++
++/*
++ * SA_FLAGS values:
++ *
++ * SA_ONSTACK indicates that a registered stack_t will be used.
++ * SA_RESTART flag to get restarting signals (which were the default long ago)
++ * SA_NOCLDSTOP flag to turn off SIGCHLD when children stop.
++ * SA_RESETHAND clears the handler when the signal is delivered.
++ * SA_NOCLDWAIT flag on SIGCHLD to inhibit zombies.
++ * SA_NODEFER prevents the current signal from being masked in the handler.
++ *
++ * SA_ONESHOT and SA_NOMASK are the historical Linux names for the Single
++ * Unix names RESETHAND and NODEFER respectively.
++ */
++#define SA_NOCLDSTOP	0x00000001
++#define SA_NOCLDWAIT	0x00000002
++#define SA_SIGINFO	0x00000004
++#define SA_ONSTACK	0x08000000
++#define SA_RESTART	0x10000000
++#define SA_NODEFER	0x40000000
++#define SA_RESETHAND	0x80000000
++
++#define SA_NOMASK	SA_NODEFER
++#define SA_ONESHOT	SA_RESETHAND
++
++/*
++ * New architectures should not define the obsolete
++ *	SA_RESTORER	0x04000000
++ */
++
++/*
++ * sigaltstack controls
++ */
++#define SS_ONSTACK	1
++#define SS_DISABLE	2
++
++#define MINSIGSTKSZ	2048
++#define SIGSTKSZ	8192
++
++#ifndef __ASSEMBLY__
++typedef struct {
++	unsigned long sig[_NSIG_WORDS];
++} sigset_t;
++
++/* not actually used, but required for linux/syscalls.h */
++typedef unsigned long old_sigset_t;
++
++#include <asm-generic/signal-defs.h>
++
++struct sigaction {
++	__sighandler_t sa_handler;
++	unsigned long sa_flags;
++#ifdef SA_RESTORER
++	__sigrestore_t sa_restorer;
++#endif
++	sigset_t sa_mask;		/* mask last for extensibility */
++};
++
++struct k_sigaction {
++	struct sigaction sa;
++};
++
++typedef struct sigaltstack {
++	void __user *ss_sp;
++	int ss_flags;
++	size_t ss_size;
++} stack_t;
++
++#ifdef __KERNEL__
++
++#include <asm/sigcontext.h>
++#undef __HAVE_ARCH_SIG_BITOPS
++
++#define ptrace_signal_deliver(regs, cookie) do { } while (0)
++
++#endif /* __KERNEL__ */
++#endif /* __ASSEMBLY__ */
++
++#endif /* _ASM_GENERIC_SIGNAL_H */
+diff --git a/include/asm-generic/socket.h b/include/asm-generic/socket.h
+new file mode 100644
+index 0000000..d4ae42a
+--- /dev/null
++++ b/include/asm-generic/socket.h
+@@ -0,0 +1,60 @@
++#ifndef __ASM_GENERIC_SOCKET_H
++#define __ASM_GENERIC_SOCKET_H
++
++#include <asm/sockios.h>
++
++/* For setsockopt(2) */
++#define SOL_SOCKET	1
++
++#define SO_DEBUG	1
++#define SO_REUSEADDR	2
++#define SO_TYPE		3
++#define SO_ERROR	4
++#define SO_DONTROUTE	5
++#define SO_BROADCAST	6
++#define SO_SNDBUF	7
++#define SO_RCVBUF	8
++#define SO_SNDBUFFORCE	32
++#define SO_RCVBUFFORCE	33
++#define SO_KEEPALIVE	9
++#define SO_OOBINLINE	10
++#define SO_NO_CHECK	11
++#define SO_PRIORITY	12
++#define SO_LINGER	13
++#define SO_BSDCOMPAT	14
++/* To add :#define SO_REUSEPORT 15 */
++#define SO_PASSCRED	16
++#define SO_PEERCRED	17
++#define SO_RCVLOWAT	18
++#define SO_SNDLOWAT	19
++#define SO_RCVTIMEO	20
++#define SO_SNDTIMEO	21
++
++/* Security levels - as per NRL IPv6 - don't actually do anything */
++#define SO_SECURITY_AUTHENTICATION		22
++#define SO_SECURITY_ENCRYPTION_TRANSPORT	23
++#define SO_SECURITY_ENCRYPTION_NETWORK		24
++
++#define SO_BINDTODEVICE	25
++
++/* Socket filtering */
++#define SO_ATTACH_FILTER	26
++#define SO_DETACH_FILTER	27
++
++#define SO_PEERNAME		28
++#define SO_TIMESTAMP		29
++#define SCM_TIMESTAMP		SO_TIMESTAMP
++
++#define SO_ACCEPTCONN		30
++
++#define SO_PEERSEC		31
++#define SO_PASSSEC		34
++#define SO_TIMESTAMPNS		35
++#define SCM_TIMESTAMPNS		SO_TIMESTAMPNS
++
++#define SO_MARK			36
++
++#define SO_TIMESTAMPING		37
++#define SCM_TIMESTAMPING	SO_TIMESTAMPING
++
++#endif /* __ASM_GENERIC_SOCKET_H */
+diff --git a/include/asm-generic/sockios.h b/include/asm-generic/sockios.h
+new file mode 100644
+index 0000000..9a61a36
+--- /dev/null
++++ b/include/asm-generic/sockios.h
+@@ -0,0 +1,13 @@
++#ifndef __ASM_GENERIC_SOCKIOS_H
++#define __ASM_GENERIC_SOCKIOS_H
++
++/* Socket-level I/O control calls. */
++#define FIOSETOWN	0x8901
++#define SIOCSPGRP	0x8902
++#define FIOGETOWN	0x8903
++#define SIOCGPGRP	0x8904
++#define SIOCATMARK	0x8905
++#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
++#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
++
++#endif /* __ASM_GENERIC_SOCKIOS_H */
+diff --git a/include/asm-generic/stat.h b/include/asm-generic/stat.h
+new file mode 100644
+index 0000000..47e6417
+--- /dev/null
++++ b/include/asm-generic/stat.h
+@@ -0,0 +1,72 @@
++#ifndef __ASM_GENERIC_STAT_H
++#define __ASM_GENERIC_STAT_H
++
++/*
++ * Everybody gets this wrong and has to stick with it for all
++ * eternity. Hopefully, this version gets used by new architectures
++ * so they don't fall into the same traps.
++ *
++ * stat64 is copied from powerpc64, with explicit padding added.
++ * stat is the same structure layout on 64-bit, without the 'long long'
++ * types.
++ *
++ * By convention, 64 bit architectures use the stat interface, while
++ * 32 bit architectures use the stat64 interface. Note that we don't
++ * provide an __old_kernel_stat here, which new architecture should
++ * not have to start with.
++ */
++
 +#include <asm/bitsperlong.h>
 +
- #ifndef __ASSEMBLY__
- /*
-  * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
-diff --git a/include/asm-generic/int-ll64.h b/include/asm-generic/int-ll64.h
-index f9bc9ac..f394147 100644
---- a/include/asm-generic/int-ll64.h
-+++ b/include/asm-generic/int-ll64.h
-@@ -8,6 +8,8 @@
- #ifndef _ASM_GENERIC_INT_LL64_H
- #define _ASM_GENERIC_INT_LL64_H
- 
++#define STAT_HAVE_NSEC 1
++
++struct stat {
++	unsigned long	st_dev;		/* Device.  */
++	unsigned long	st_ino;		/* File serial number.  */
++	unsigned int	st_mode;	/* File mode.  */
++	unsigned int	st_nlink;	/* Link count.  */
++	unsigned int	st_uid;		/* User ID of the file's owner.  */
++	unsigned int	st_gid;		/* Group ID of the file's group. */
++	unsigned long	st_rdev;	/* Device number, if device.  */
++	unsigned long	__pad1;
++	long		st_size;	/* Size of file, in bytes.  */
++	int		st_blksize;	/* Optimal block size for I/O.  */
++	int		__pad2;
++	long		st_blocks;	/* Number 512-byte blocks allocated. */
++	int		st_atime;	/* Time of last access.  */
++	unsigned int	st_atime_nsec;
++	int		st_mtime;	/* Time of last modification.  */
++	unsigned int	st_mtime_nsec;
++	int		st_ctime;	/* Time of last status change.  */
++	unsigned int	st_ctime_nsec;
++	unsigned int	__unused4;
++	unsigned int	__unused5;
++};
++
++#if __BITS_PER_LONG != 64
++/* This matches struct stat64 in glibc2.1. Only used for 32 bit. */
++struct stat64 {
++	unsigned long long st_dev;	/* Device.  */
++	unsigned long long st_ino;	/* File serial number.  */
++	unsigned int	st_mode;	/* File mode.  */
++	unsigned int	st_nlink;	/* Link count.  */
++	unsigned int	st_uid;		/* User ID of the file's owner.  */
++	unsigned int	st_gid;		/* Group ID of the file's group. */
++	unsigned long long st_rdev;	/* Device number, if device.  */
++	unsigned long long __pad1;
++	long long	st_size;	/* Size of file, in bytes.  */
++	int		st_blksize;	/* Optimal block size for I/O.  */
++	int		__pad2;
++	long long	st_blocks;	/* Number 512-byte blocks allocated. */
++	int		st_atime;	/* Time of last access.  */
++	unsigned int	st_atime_nsec;
++	int		st_mtime;	/* Time of last modification.  */
++	unsigned int	st_mtime_nsec;
++	int		st_ctime;	/* Time of last status change.  */
++	unsigned int	st_ctime_nsec;
++	unsigned int	__unused4;
++	unsigned int	__unused5;
++};
++#endif
++
++#endif /* __ASM_GENERIC_STAT_H */
+diff --git a/include/asm-generic/swab.h b/include/asm-generic/swab.h
+new file mode 100644
+index 0000000..a8e9029
+--- /dev/null
++++ b/include/asm-generic/swab.h
+@@ -0,0 +1,18 @@
++#ifndef _ASM_GENERIC_SWAB_H
++#define _ASM_GENERIC_SWAB_H
++
 +#include <asm/bitsperlong.h>
 +
- #ifndef __ASSEMBLY__
- /*
-  * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
++/*
++ * 32 bit architectures typically (but not always) want to
++ * set __SWAB_64_THRU_32__. In user space, this is only
++ * valid if the compiler supports 64 bit data types.
++ */
++
++#if __BITS_PER_LONG == 32
++#if defined(__GNUC__) && !defined(__STRICT_ANSI__) || defined(__KERNEL__)
++#define __SWAB_64_THRU_32__
++#endif
++#endif
++
++#endif /* _ASM_GENERIC_SWAB_H */
+diff --git a/include/asm-generic/termbits.h b/include/asm-generic/termbits.h
+new file mode 100644
+index 0000000..1c9773d
+--- /dev/null
++++ b/include/asm-generic/termbits.h
+@@ -0,0 +1,198 @@
++#ifndef __ASM_GENERIC_TERMBITS_H
++#define __ASM_GENERIC_TERMBITS_H
++
++#include <linux/posix_types.h>
++
++typedef unsigned char	cc_t;
++typedef unsigned int	speed_t;
++typedef unsigned int	tcflag_t;
++
++#define NCCS 19
++struct termios {
++	tcflag_t c_iflag;		/* input mode flags */
++	tcflag_t c_oflag;		/* output mode flags */
++	tcflag_t c_cflag;		/* control mode flags */
++	tcflag_t c_lflag;		/* local mode flags */
++	cc_t c_line;			/* line discipline */
++	cc_t c_cc[NCCS];		/* control characters */
++};
++
++struct termios2 {
++	tcflag_t c_iflag;		/* input mode flags */
++	tcflag_t c_oflag;		/* output mode flags */
++	tcflag_t c_cflag;		/* control mode flags */
++	tcflag_t c_lflag;		/* local mode flags */
++	cc_t c_line;			/* line discipline */
++	cc_t c_cc[NCCS];		/* control characters */
++	speed_t c_ispeed;		/* input speed */
++	speed_t c_ospeed;		/* output speed */
++};
++
++struct ktermios {
++	tcflag_t c_iflag;		/* input mode flags */
++	tcflag_t c_oflag;		/* output mode flags */
++	tcflag_t c_cflag;		/* control mode flags */
++	tcflag_t c_lflag;		/* local mode flags */
++	cc_t c_line;			/* line discipline */
++	cc_t c_cc[NCCS];		/* control characters */
++	speed_t c_ispeed;		/* input speed */
++	speed_t c_ospeed;		/* output speed */
++};
++
++/* c_cc characters */
++#define VINTR 0
++#define VQUIT 1
++#define VERASE 2
++#define VKILL 3
++#define VEOF 4
++#define VTIME 5
++#define VMIN 6
++#define VSWTC 7
++#define VSTART 8
++#define VSTOP 9
++#define VSUSP 10
++#define VEOL 11
++#define VREPRINT 12
++#define VDISCARD 13
++#define VWERASE 14
++#define VLNEXT 15
++#define VEOL2 16
++
++/* c_iflag bits */
++#define IGNBRK	0000001
++#define BRKINT	0000002
++#define IGNPAR	0000004
++#define PARMRK	0000010
++#define INPCK	0000020
++#define ISTRIP	0000040
++#define INLCR	0000100
++#define IGNCR	0000200
++#define ICRNL	0000400
++#define IUCLC	0001000
++#define IXON	0002000
++#define IXANY	0004000
++#define IXOFF	0010000
++#define IMAXBEL	0020000
++#define IUTF8	0040000
++
++/* c_oflag bits */
++#define OPOST	0000001
++#define OLCUC	0000002
++#define ONLCR	0000004
++#define OCRNL	0000010
++#define ONOCR	0000020
++#define ONLRET	0000040
++#define OFILL	0000100
++#define OFDEL	0000200
++#define NLDLY	0000400
++#define   NL0	0000000
++#define   NL1	0000400
++#define CRDLY	0003000
++#define   CR0	0000000
++#define   CR1	0001000
++#define   CR2	0002000
++#define   CR3	0003000
++#define TABDLY	0014000
++#define   TAB0	0000000
++#define   TAB1	0004000
++#define   TAB2	0010000
++#define   TAB3	0014000
++#define   XTABS	0014000
++#define BSDLY	0020000
++#define   BS0	0000000
++#define   BS1	0020000
++#define VTDLY	0040000
++#define   VT0	0000000
++#define   VT1	0040000
++#define FFDLY	0100000
++#define   FF0	0000000
++#define   FF1	0100000
++
++/* c_cflag bit meaning */
++#define CBAUD	0010017
++#define  B0	0000000		/* hang up */
++#define  B50	0000001
++#define  B75	0000002
++#define  B110	0000003
++#define  B134	0000004
++#define  B150	0000005
++#define  B200	0000006
++#define  B300	0000007
++#define  B600	0000010
++#define  B1200	0000011
++#define  B1800	0000012
++#define  B2400	0000013
++#define  B4800	0000014
++#define  B9600	0000015
++#define  B19200	0000016
++#define  B38400	0000017
++#define EXTA B19200
++#define EXTB B38400
++#define CSIZE	0000060
++#define   CS5	0000000
++#define   CS6	0000020
++#define   CS7	0000040
++#define   CS8	0000060
++#define CSTOPB	0000100
++#define CREAD	0000200
++#define PARENB	0000400
++#define PARODD	0001000
++#define HUPCL	0002000
++#define CLOCAL	0004000
++#define CBAUDEX 0010000
++#define    BOTHER 0010000
++#define    B57600 0010001
++#define   B115200 0010002
++#define   B230400 0010003
++#define   B460800 0010004
++#define   B500000 0010005
++#define   B576000 0010006
++#define   B921600 0010007
++#define  B1000000 0010010
++#define  B1152000 0010011
++#define  B1500000 0010012
++#define  B2000000 0010013
++#define  B2500000 0010014
++#define  B3000000 0010015
++#define  B3500000 0010016
++#define  B4000000 0010017
++#define CIBAUD	  002003600000	/* input baud rate */
++#define CMSPAR	  010000000000	/* mark or space (stick) parity */
++#define CRTSCTS	  020000000000	/* flow control */
++
++#define IBSHIFT	  16		/* Shift from CBAUD to CIBAUD */
++
++/* c_lflag bits */
++#define ISIG	0000001
++#define ICANON	0000002
++#define XCASE	0000004
++#define ECHO	0000010
++#define ECHOE	0000020
++#define ECHOK	0000040
++#define ECHONL	0000100
++#define NOFLSH	0000200
++#define TOSTOP	0000400
++#define ECHOCTL	0001000
++#define ECHOPRT	0002000
++#define ECHOKE	0004000
++#define FLUSHO	0010000
++#define PENDIN	0040000
++#define IEXTEN	0100000
++
++/* tcflow() and TCXONC use these */
++#define	TCOOFF		0
++#define	TCOON		1
++#define	TCIOFF		2
++#define	TCION		3
++
++/* tcflush() and TCFLSH use these */
++#define	TCIFLUSH	0
++#define	TCOFLUSH	1
++#define	TCIOFLUSH	2
++
++/* tcsetattr uses these */
++#define	TCSANOW		0
++#define	TCSADRAIN	1
++#define	TCSAFLUSH	2
++
++#endif /* __ASM_GENERIC_TERMBITS_H */
+diff --git a/include/asm-generic/termios.h b/include/asm-generic/termios.h
+new file mode 100644
+index 0000000..d0922ad
+--- /dev/null
++++ b/include/asm-generic/termios.h
+@@ -0,0 +1,154 @@
++#ifndef _ASM_GENERIC_TERMIOS_H
++#define _ASM_GENERIC_TERMIOS_H
++/*
++ * Most architectures have straight copies of the x86 code, with
++ * varying levels of bug fixes on top. Usually it's a good idea
++ * to use this generic version instead, but be careful to avoid
++ * ABI changes.
++ * New architectures should not provide their own version.
++ */
++
++#include <asm/termbits.h>
++#include <asm/ioctls.h>
++
++struct winsize {
++	unsigned short ws_row;
++	unsigned short ws_col;
++	unsigned short ws_xpixel;
++	unsigned short ws_ypixel;
++};
++
++#define NCC 8
++struct termio {
++	unsigned short c_iflag;		/* input mode flags */
++	unsigned short c_oflag;		/* output mode flags */
++	unsigned short c_cflag;		/* control mode flags */
++	unsigned short c_lflag;		/* local mode flags */
++	unsigned char c_line;		/* line discipline */
++	unsigned char c_cc[NCC];	/* control characters */
++};
++
++/* modem lines */
++#define TIOCM_LE	0x001
++#define TIOCM_DTR	0x002
++#define TIOCM_RTS	0x004
++#define TIOCM_ST	0x008
++#define TIOCM_SR	0x010
++#define TIOCM_CTS	0x020
++#define TIOCM_CAR	0x040
++#define TIOCM_RNG	0x080
++#define TIOCM_DSR	0x100
++#define TIOCM_CD	TIOCM_CAR
++#define TIOCM_RI	TIOCM_RNG
++#define TIOCM_OUT1	0x2000
++#define TIOCM_OUT2	0x4000
++#define TIOCM_LOOP	0x8000
++
++/* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
++
++#ifdef __KERNEL__
++
++#include <asm/uaccess.h>
++
++/*	intr=^C		quit=^\		erase=del	kill=^U
++	eof=^D		vtime=\0	vmin=\1		sxtc=\0
++	start=^Q	stop=^S		susp=^Z		eol=\0
++	reprint=^R	discard=^U	werase=^W	lnext=^V
++	eol2=\0
++*/
++#define INIT_C_CC "\003\034\177\025\004\0\1\0\021\023\032\0\022\017\027\026\0"
++
++/*
++ * Translate a "termio" structure into a "termios". Ugh.
++ */
++static inline int user_termio_to_kernel_termios(struct ktermios *termios,
++						const struct termio __user *termio)
++{
++	unsigned short tmp;
++
++	if (get_user(tmp, &termio->c_iflag) < 0)
++		goto fault;
++	termios->c_iflag = (0xffff0000 & termios->c_iflag) | tmp;
++
++	if (get_user(tmp, &termio->c_oflag) < 0)
++		goto fault;
++	termios->c_oflag = (0xffff0000 & termios->c_oflag) | tmp;
++
++	if (get_user(tmp, &termio->c_cflag) < 0)
++		goto fault;
++	termios->c_cflag = (0xffff0000 & termios->c_cflag) | tmp;
++
++	if (get_user(tmp, &termio->c_lflag) < 0)
++		goto fault;
++	termios->c_lflag = (0xffff0000 & termios->c_lflag) | tmp;
++
++	if (get_user(termios->c_line, &termio->c_line) < 0)
++		goto fault;
++
++	if (copy_from_user(termios->c_cc, termio->c_cc, NCC) != 0)
++		goto fault;
++
++	return 0;
++
++ fault:
++	return -EFAULT;
++}
++
++/*
++ * Translate a "termios" structure into a "termio". Ugh.
++ */
++static inline int kernel_termios_to_user_termio(struct termio __user *termio,
++						struct ktermios *termios)
++{
++	if (put_user(termios->c_iflag, &termio->c_iflag) < 0 ||
++	    put_user(termios->c_oflag, &termio->c_oflag) < 0 ||
++	    put_user(termios->c_cflag, &termio->c_cflag) < 0 ||
++	    put_user(termios->c_lflag, &termio->c_lflag) < 0 ||
++	    put_user(termios->c_line,  &termio->c_line) < 0 ||
++	    copy_to_user(termio->c_cc, termios->c_cc, NCC) != 0)
++		return -EFAULT;
++
++	return 0;
++}
++
++#ifdef TCGETS2
++static inline int user_termios_to_kernel_termios(struct ktermios *k,
++						 struct termios2 __user *u)
++{
++	return copy_from_user(k, u, sizeof(struct termios2));
++}
++
++static inline int kernel_termios_to_user_termios(struct termios2 __user *u,
++						 struct ktermios *k)
++{
++	return copy_to_user(u, k, sizeof(struct termios2));
++}
++
++static inline int user_termios_to_kernel_termios_1(struct ktermios *k,
++						   struct termios __user *u)
++{
++	return copy_from_user(k, u, sizeof(struct termios));
++}
++
++static inline int kernel_termios_to_user_termios_1(struct termios __user *u,
++						   struct ktermios *k)
++{
++	return copy_to_user(u, k, sizeof(struct termios));
++}
++#else /* TCGETS2 */
++static inline int user_termios_to_kernel_termios(struct ktermios *k,
++						 struct termios __user *u)
++{
++	return copy_from_user(k, u, sizeof(struct termios));
++}
++
++static inline int kernel_termios_to_user_termios(struct termios __user *u,
++						 struct ktermios *k)
++{
++	return copy_to_user(u, k, sizeof(struct termios));
++}
++#endif /* TCGETS2 */
++
++#endif	/* __KERNEL__ */
++
++#endif /* _ASM_GENERIC_TERMIOS_H */
+diff --git a/include/asm-generic/types.h b/include/asm-generic/types.h
+new file mode 100644
+index 0000000..fba7d33
+--- /dev/null
++++ b/include/asm-generic/types.h
+@@ -0,0 +1,42 @@
++#ifndef _ASM_GENERIC_TYPES_H
++#define _ASM_GENERIC_TYPES_H
++/*
++ * int-ll64 is used practically everywhere now,
++ * so use it as a reasonable default.
++ */
++#include <asm-generic/int-ll64.h>
++
++#ifndef __ASSEMBLY__
++
++typedef unsigned short umode_t;
++
++#endif /* __ASSEMBLY__ */
++
++/*
++ * These aren't exported outside the kernel to avoid name space clashes
++ */
++#ifdef __KERNEL__
++#ifndef __ASSEMBLY__
++/*
++ * DMA addresses may be very different from physical addresses
++ * and pointers. i386 and powerpc may have 64 bit DMA on 32 bit
++ * systems, while sparc64 uses 32 bit DMA addresses for 64 bit
++ * physical addresses.
++ * This default defines dma_addr_t to have the same size as
++ * phys_addr_t, which is the most common way.
++ * Do not define the dma64_addr_t type, which never really
++ * worked.
++ */
++#ifndef dma_addr_t
++#ifdef CONFIG_PHYS_ADDR_T_64BIT
++typedef u64 dma_addr_t;
++#else
++typedef u32 dma_addr_t;
++#endif /* CONFIG_PHYS_ADDR_T_64BIT */
++#endif /* dma_addr_t */
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __KERNEL__ */
++
++#endif /* _ASM_GENERIC_TYPES_H */
+diff --git a/include/asm-generic/ucontext.h b/include/asm-generic/ucontext.h
+new file mode 100644
+index 0000000..ad77343
+--- /dev/null
++++ b/include/asm-generic/ucontext.h
+@@ -0,0 +1,12 @@
++#ifndef __ASM_GENERIC_UCONTEXT_H
++#define __ASM_GENERIC_UCONTEXT_H
++
++struct ucontext {
++	unsigned long	  uc_flags;
++	struct ucontext  *uc_link;
++	stack_t		  uc_stack;
++	struct sigcontext uc_mcontext;
++	sigset_t	  uc_sigmask;	/* mask last for extensibility */
++};
++
++#endif /* __ASM_GENERIC_UCONTEXT_H */
 -- 
 1.6.0.4
