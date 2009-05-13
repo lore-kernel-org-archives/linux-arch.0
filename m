@@ -1,732 +1,331 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 10/15] asm-generic: add generic versions of common headers
-Date: Wed, 13 May 2009 22:56:33 +0000
-Message-ID: <1242255398-23779-11-git-send-email-arnd@arndb.de>
+Subject: [PATCH 15/15] add generic lib/checksum.c
+Date: Wed, 13 May 2009 22:56:38 +0000
+Message-ID: <1242255398-23779-16-git-send-email-arnd@arndb.de>
 References: <1242255398-23779-1-git-send-email-arnd@arndb.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.177]:53969 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.187]:65073 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760528AbZEMW4w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2009 18:56:52 -0400
+	with ESMTP id S1751199AbZEMW4z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2009 18:56:55 -0400
 In-Reply-To: <1242255398-23779-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Remis Lima Baima <remis.developer@googlemail.com>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>
 
-These are all kernel internal interfaces that get copied
-around a lot. In most cases, architectures can provide
-their own optimized versions, but these generic versions
-can work as well.
+Add a generic (unoptimized) implementation of checksum.c in pure C
+for use by all architectures.
 
-I have tried to use the most common contents of each
-header to allow existing architectures to migrate easily.
+Based on microblaze code by Michal Simek <monstr@monstr.eu>
 
-Thanks to Remis for suggesting a number of cleanups.
-
+Cc: Michal Simek <monstr@monstr.eu>
 Signed-off-by: Remis Lima Baima <remis.developer@googlemail.com>
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/bugs.h        |   10 +++
- include/asm-generic/current.h     |    9 ++
- include/asm-generic/delay.h       |    9 ++
- include/asm-generic/fb.h          |   12 +++
- include/asm-generic/hardirq.h     |   34 ++++++++
- include/asm-generic/irq.h         |   18 ++++
- include/asm-generic/irqflags.h    |   72 ++++++++++++++++
- include/asm-generic/kmap_types.h  |   29 +++++++
- include/asm-generic/linkage.h     |    8 ++
- include/asm-generic/module.h      |   22 +++++
- include/asm-generic/mutex.h       |    9 ++
- include/asm-generic/scatterlist.h |   43 ++++++++++
- include/asm-generic/spinlock.h    |   11 +++
- include/asm-generic/string.h      |   10 +++
- include/asm-generic/syscalls.h    |   60 ++++++++++++++
- include/asm-generic/system.h      |  161 +++++++++++++++++++++++++++++++++++++
- include/asm-generic/unaligned.h   |   30 +++++++
- include/asm-generic/user.h        |    8 ++
- 18 files changed, 555 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/bugs.h
- create mode 100644 include/asm-generic/current.h
- create mode 100644 include/asm-generic/delay.h
- create mode 100644 include/asm-generic/fb.h
- create mode 100644 include/asm-generic/hardirq.h
- create mode 100644 include/asm-generic/irq.h
- create mode 100644 include/asm-generic/irqflags.h
- create mode 100644 include/asm-generic/kmap_types.h
- create mode 100644 include/asm-generic/linkage.h
- create mode 100644 include/asm-generic/module.h
- create mode 100644 include/asm-generic/mutex.h
- create mode 100644 include/asm-generic/scatterlist.h
- create mode 100644 include/asm-generic/spinlock.h
- create mode 100644 include/asm-generic/string.h
- create mode 100644 include/asm-generic/syscalls.h
- create mode 100644 include/asm-generic/system.h
- create mode 100644 include/asm-generic/unaligned.h
- create mode 100644 include/asm-generic/user.h
+ include/asm-generic/checksum.h |   79 ++++++++++++++++
+ lib/Makefile                   |    2 +
+ lib/checksum.c                 |  193 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 274 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/checksum.h
+ create mode 100644 lib/checksum.c
 
-diff --git a/include/asm-generic/bugs.h b/include/asm-generic/bugs.h
+diff --git a/include/asm-generic/checksum.h b/include/asm-generic/checksum.h
 new file mode 100644
-index 0000000..6c4f62e
+index 0000000..4647c76
 --- /dev/null
-+++ b/include/asm-generic/bugs.h
-@@ -0,0 +1,10 @@
-+#ifndef __ASM_GENERIC_BUGS_H
-+#define __ASM_GENERIC_BUGS_H
-+/*
-+ * This file is included by 'init/main.c' to check for
-+ * architecture-dependent bugs.
-+ */
-+
-+static inline void check_bugs(void) { }
-+
-+#endif	/* __ASM_GENERIC_BUGS_H */
-diff --git a/include/asm-generic/current.h b/include/asm-generic/current.h
-new file mode 100644
-index 0000000..5e86f6a
---- /dev/null
-+++ b/include/asm-generic/current.h
-@@ -0,0 +1,9 @@
-+#ifndef __ASM_GENERIC_CURRENT_H
-+#define __ASM_GENERIC_CURRENT_H
-+
-+#include <linux/thread_info.h>
-+
-+#define get_current() (current_thread_info()->task)
-+#define current get_current()
-+
-+#endif /* __ASM_GENERIC_CURRENT_H */
-diff --git a/include/asm-generic/delay.h b/include/asm-generic/delay.h
-new file mode 100644
-index 0000000..4586fec
---- /dev/null
-+++ b/include/asm-generic/delay.h
-@@ -0,0 +1,9 @@
-+#ifndef __ASM_GENERIC_DELAY_H
-+#define __ASM_GENERIC_DELAY_H
-+
-+extern void __udelay(unsigned long usecs);
-+extern void __delay(unsigned long loops);
-+
-+#define udelay(n) __udelay(n)
-+
-+#endif /* __ASM_GENERIC_DELAY_H */
-diff --git a/include/asm-generic/fb.h b/include/asm-generic/fb.h
-new file mode 100644
-index 0000000..fe8ca7f
---- /dev/null
-+++ b/include/asm-generic/fb.h
-@@ -0,0 +1,12 @@
-+#ifndef __ASM_GENERIC_FB_H_
-+#define __ASM_GENERIC_FB_H_
-+#include <linux/fb.h>
-+
-+#define fb_pgprotect(...) do {} while (0)
-+
-+static inline int fb_is_primary_device(struct fb_info *info)
-+{
-+	return 0;
-+}
-+
-+#endif /* __ASM_GENERIC_FB_H_ */
-diff --git a/include/asm-generic/hardirq.h b/include/asm-generic/hardirq.h
-new file mode 100644
-index 0000000..3d5d2c9
---- /dev/null
-+++ b/include/asm-generic/hardirq.h
-@@ -0,0 +1,34 @@
-+#ifndef __ASM_GENERIC_HARDIRQ_H
-+#define __ASM_GENERIC_HARDIRQ_H
-+
-+#include <linux/cache.h>
-+#include <linux/threads.h>
-+#include <linux/irq.h>
-+
-+typedef struct {
-+	unsigned long __softirq_pending;
-+} ____cacheline_aligned irq_cpustat_t;
-+
-+#include <linux/irq_cpustat.h>	/* Standard mappings for irq_cpustat_t above */
-+
-+#ifndef HARDIRQ_BITS
-+#define HARDIRQ_BITS	8
-+#endif
++++ b/include/asm-generic/checksum.h
+@@ -0,0 +1,79 @@
++#ifndef __ASM_GENERIC_CHECKSUM_H
++#define __ASM_GENERIC_CHECKSUM_H
 +
 +/*
-+ * The hardirq mask has to be large enough to have
-+ * space for potentially all IRQ sources in the system
-+ * nesting on a single CPU:
-+ */
-+#if (1 << HARDIRQ_BITS) < NR_IRQS
-+# error HARDIRQ_BITS is too low!
-+#endif
-+
-+#ifndef ack_bad_irq
-+static inline void ack_bad_irq(unsigned int irq)
-+{
-+	printk(KERN_CRIT "unexpected IRQ trap at vector %02x\n", irq);
-+}
-+#endif
-+
-+#endif /* __ASM_GENERIC_HARDIRQ_H */
-diff --git a/include/asm-generic/irq.h b/include/asm-generic/irq.h
-new file mode 100644
-index 0000000..b90ec0b
---- /dev/null
-+++ b/include/asm-generic/irq.h
-@@ -0,0 +1,18 @@
-+#ifndef __ASM_GENERIC_IRQ_H
-+#define __ASM_GENERIC_IRQ_H
-+
-+/*
-+ * NR_IRQS is the upper bound of how many interrupts can be handled
-+ * in the platform. It is used to size the static irq_map array,
-+ * so don't make it too big.
-+ */
-+#ifndef NR_IRQS
-+#define NR_IRQS 64
-+#endif
-+
-+static inline int irq_canonicalize(int irq)
-+{
-+	return irq;
-+}
-+
-+#endif /* __ASM_GENERIC_IRQ_H */
-diff --git a/include/asm-generic/irqflags.h b/include/asm-generic/irqflags.h
-new file mode 100644
-index 0000000..9aebf61
---- /dev/null
-+++ b/include/asm-generic/irqflags.h
-@@ -0,0 +1,72 @@
-+#ifndef __ASM_GENERIC_IRQFLAGS_H
-+#define __ASM_GENERIC_IRQFLAGS_H
-+
-+/*
-+ * All architectures should implement at least the first two functions,
-+ * usually inline assembly will be the best way.
-+ */
-+#ifndef RAW_IRQ_DISABLED
-+#define RAW_IRQ_DISABLED 0
-+#define RAW_IRQ_ENABLED 1
-+#endif
-+
-+/* read interrupt enabled status */
-+#ifndef __raw_local_save_flags
-+unsigned long __raw_local_save_flags(void);
-+#endif
-+
-+/* set interrupt enabled status */
-+#ifndef raw_local_irq_restore
-+void raw_local_irq_restore(unsigned long flags);
-+#endif
-+
-+/* get status and disable interrupts */
-+#ifndef __raw_local_irq_save
-+static inline unsigned long __raw_local_irq_save(void)
-+{
-+	unsigned long flags;
-+	flags = __raw_local_save_flags();
-+	raw_local_irq_restore(RAW_IRQ_DISABLED);
-+	return flags;
-+}
-+#endif
-+
-+/* test flags */
-+#ifndef raw_irqs_disabled_flags
-+static inline int raw_irqs_disabled_flags(unsigned long flags)
-+{
-+	return flags == RAW_IRQ_DISABLED;
-+}
-+#endif
-+
-+/* unconditionally enable interrupts */
-+#ifndef raw_local_irq_enable
-+static inline void raw_local_irq_enable(void)
-+{
-+	raw_local_irq_restore(RAW_IRQ_ENABLED);
-+}
-+#endif
-+
-+/* unconditionally disable interrupts */
-+#ifndef raw_local_irq_disable
-+static inline void raw_local_irq_disable(void)
-+{
-+	raw_local_irq_restore(RAW_IRQ_DISABLED);
-+}
-+#endif
-+
-+/* test hardware interrupt enable bit */
-+#ifndef raw_irqs_disabled
-+static inline int raw_irqs_disabled(void)
-+{
-+	return raw_irqs_disabled_flags(__raw_local_save_flags());
-+}
-+#endif
-+
-+#define raw_local_save_flags(flags) \
-+	do { (flags) = __raw_local_save_flags(); } while (0)
-+
-+#define raw_local_irq_save(flags) \
-+	do { (flags) = __raw_local_irq_save(); } while (0)
-+
-+#endif /* __ASM_GENERIC_IRQFLAGS_H */
-diff --git a/include/asm-generic/kmap_types.h b/include/asm-generic/kmap_types.h
-new file mode 100644
-index 0000000..36996bc
---- /dev/null
-+++ b/include/asm-generic/kmap_types.h
-@@ -0,0 +1,29 @@
-+#ifndef __ASM_GENERIC_KMAP_TYPES_H
-+#define __ASM_GENERIC_KMAP_TYPES_H
-+
-+#ifdef CONFIG_DEBUG_HIGHMEM
-+# define D(n) __KM_FENCE_##n ,
-+#else
-+# define D(n)
-+#endif
-+
-+enum km_type {
-+D(0)	KM_BOUNCE_READ,
-+D(1)	KM_SKB_SUNRPC_DATA,
-+D(2)	KM_SKB_DATA_SOFTIRQ,
-+D(3)	KM_USER0,
-+D(4)	KM_USER1,
-+D(5)	KM_BIO_SRC_IRQ,
-+D(6)	KM_BIO_DST_IRQ,
-+D(7)	KM_PTE0,
-+D(8)	KM_PTE1,
-+D(9)	KM_IRQ0,
-+D(10)	KM_IRQ1,
-+D(11)	KM_SOFTIRQ0,
-+D(12)	KM_SOFTIRQ1,
-+D(13)	KM_TYPE_NR
-+};
-+
-+#undef D
-+
-+#endif /* __ASM_GENERIC_KMAP_TYPES_H */
-diff --git a/include/asm-generic/linkage.h b/include/asm-generic/linkage.h
-new file mode 100644
-index 0000000..fef7a01
---- /dev/null
-+++ b/include/asm-generic/linkage.h
-@@ -0,0 +1,8 @@
-+#ifndef __ASM_GENERIC_LINKAGE_H
-+#define __ASM_GENERIC_LINKAGE_H
-+/*
-+ * linux/linkage.h provides reasonable defaults.
-+ * an architecture can override them by providing its own version.
-+ */
-+
-+#endif /* __ASM_GENERIC_LINKAGE_H */
-diff --git a/include/asm-generic/module.h b/include/asm-generic/module.h
-new file mode 100644
-index 0000000..ed5b44d
---- /dev/null
-+++ b/include/asm-generic/module.h
-@@ -0,0 +1,22 @@
-+#ifndef __ASM_GENERIC_MODULE_H
-+#define __ASM_GENERIC_MODULE_H
-+
-+/*
-+ * Many architectures just need a simple module
-+ * loader without arch specific data.
-+ */
-+struct mod_arch_specific
-+{
-+};
-+
-+#ifdef CONFIG_64BIT
-+#define Elf_Shdr Elf64_Shdr
-+#define Elf_Sym Elf64_Sym
-+#define Elf_Ehdr Elf64_Ehdr
-+#else
-+#define Elf_Shdr Elf32_Shdr
-+#define Elf_Sym Elf32_Sym
-+#define Elf_Ehdr Elf32_Ehdr
-+#endif
-+
-+#endif /* __ASM_GENERIC_MODULE_H */
-diff --git a/include/asm-generic/mutex.h b/include/asm-generic/mutex.h
-new file mode 100644
-index 0000000..fe91ab5
---- /dev/null
-+++ b/include/asm-generic/mutex.h
-@@ -0,0 +1,9 @@
-+#ifndef __ASM_GENERIC_MUTEX_H
-+#define __ASM_GENERIC_MUTEX_H
-+/*
-+ * Pull in the generic implementation for the mutex fastpath,
-+ * which is a reasonable default on many architectures.
-+ */
-+
-+#include <asm-generic/mutex-dec.h>
-+#endif /* __ASM_GENERIC_MUTEX_H */
-diff --git a/include/asm-generic/scatterlist.h b/include/asm-generic/scatterlist.h
-new file mode 100644
-index 0000000..8b94544
---- /dev/null
-+++ b/include/asm-generic/scatterlist.h
-@@ -0,0 +1,43 @@
-+#ifndef __ASM_GENERIC_SCATTERLIST_H
-+#define __ASM_GENERIC_SCATTERLIST_H
-+
-+#include <linux/types.h>
-+
-+struct scatterlist {
-+#ifdef CONFIG_DEBUG_SG
-+	unsigned long	sg_magic;
-+#endif
-+	unsigned long	page_link;
-+	unsigned int	offset;
-+	unsigned int	length;
-+	dma_addr_t	dma_address;
-+	unsigned int	dma_length;
-+};
-+
-+/*
-+ * These macros should be used after a dma_map_sg call has been done
-+ * to get bus addresses of each of the SG entries and their lengths.
-+ * You should only work with the number of sg entries pci_map_sg
-+ * returns, or alternatively stop on the first sg_dma_len(sg) which
-+ * is 0.
-+ */
-+#define sg_dma_address(sg)	((sg)->dma_address)
-+#ifndef sg_dma_len
-+/*
-+ * Normally, you have an iommu on 64 bit machines, but not on 32 bit
-+ * machines. Architectures that are differnt should override this.
-+ */
-+#if __BITS_PER_LONG == 64
-+#define sg_dma_len(sg)		((sg)->dma_length)
-+#else
-+#define sg_dma_len(sg)		((sg)->length)
-+#endif /* 64 bit */
-+#endif /* sg_dma_len */
-+
-+#ifndef ISA_DMA_THRESHOLD
-+#define ISA_DMA_THRESHOLD	(~0UL)
-+#endif
-+
-+#define ARCH_HAS_SG_CHAIN
-+
-+#endif /* __ASM_GENERIC_SCATTERLIST_H */
-diff --git a/include/asm-generic/spinlock.h b/include/asm-generic/spinlock.h
-new file mode 100644
-index 0000000..1547a03
---- /dev/null
-+++ b/include/asm-generic/spinlock.h
-@@ -0,0 +1,11 @@
-+#ifndef __ASM_GENERIC_SPINLOCK_H
-+#define __ASM_GENERIC_SPINLOCK_H
-+/*
-+ * You need to implement asm/spinlock.h for SMP support. The generic
-+ * version does not handle SMP.
-+ */
-+#ifdef CONFIG_SMP
-+#error need an architecture specific asm/spinlock.h
-+#endif
-+
-+#endif /* __ASM_GENERIC_SPINLOCK_H */
-diff --git a/include/asm-generic/string.h b/include/asm-generic/string.h
-new file mode 100644
-index 0000000..de5e020
---- /dev/null
-+++ b/include/asm-generic/string.h
-@@ -0,0 +1,10 @@
-+#ifndef __ASM_GENERIC_STRING_H
-+#define __ASM_GENERIC_STRING_H
-+/*
-+ * The kernel provides all required functions in lib/string.c
++ * computes the checksum of a memory block at buff, length len,
++ * and adds in "sum" (32-bit)
 + *
-+ * Architectures probably want to provide at least their own optimized
-+ * memcpy and memset functions though.
++ * returns a 32-bit number suitable for feeding into itself
++ * or csum_tcpudp_magic
++ *
++ * this function must be called with even lengths, except
++ * for the last fragment, which may be odd
++ *
++ * it's best to have buff aligned on a 32-bit boundary
 + */
-+
-+#endif /* __ASM_GENERIC_STRING_H */
-diff --git a/include/asm-generic/syscalls.h b/include/asm-generic/syscalls.h
-new file mode 100644
-index 0000000..df84e3b
---- /dev/null
-+++ b/include/asm-generic/syscalls.h
-@@ -0,0 +1,60 @@
-+#ifndef __ASM_GENERIC_SYSCALLS_H
-+#define __ASM_GENERIC_SYSCALLS_H
-+
-+#include <linux/compiler.h>
-+#include <linux/linkage.h>
++extern __wsum csum_partial(const void *buff, int len, __wsum sum);
 +
 +/*
-+ * Calling conventions for these system calls can differ, so
-+ * it's possible to override them.
++ * the same as csum_partial, but copies from src while it
++ * checksums
++ *
++ * here even more important to align src and dst on a 32-bit (or even
++ * better 64-bit) boundary
 + */
-+#ifndef sys_clone
-+asmlinkage long sys_clone(unsigned long clone_flags, unsigned long newsp,
-+			void __user *parent_tid, void __user *child_tid,
-+			struct pt_regs *regs);
-+#endif
-+
-+#ifndef sys_fork
-+asmlinkage long sys_fork(struct pt_regs *regs);
-+#endif
-+
-+#ifndef sys_vfork
-+asmlinkage long sys_vfork(struct pt_regs *regs);
-+#endif
-+
-+#ifndef sys_execve
-+asmlinkage long sys_execve(char __user *filename, char __user * __user *argv,
-+			char __user * __user *envp, struct pt_regs *regs);
-+#endif
-+
-+#ifndef sys_mmap2
-+asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
-+			unsigned long prot, unsigned long flags,
-+			unsigned long fd, unsigned long pgoff);
-+#endif
-+
-+#ifndef sys_mmap
-+asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
-+			unsigned long prot, unsigned long flags,
-+			unsigned long fd, off_t pgoff);
-+#endif
-+
-+#ifndef sys_sigaltstack
-+asmlinkage long sys_sigaltstack(const stack_t __user *, stack_t __user *,
-+			struct pt_regs *);
-+#endif
-+
-+#ifndef sys_rt_sigreturn
-+asmlinkage long sys_rt_sigreturn(struct pt_regs *regs);
-+#endif
-+
-+#ifndef sys_rt_sigsuspend
-+asmlinkage long sys_rt_sigsuspend(sigset_t __user *unewset, size_t sigsetsize);
-+#endif
-+
-+#ifndef sys_rt_sigaction
-+asmlinkage long sys_rt_sigaction(int sig, const struct sigaction __user *act,
-+			 struct sigaction __user *oact, size_t sigsetsize);
-+#endif
-+
-+#endif /* __ASM_GENERIC_SYSCALLS_H */
-diff --git a/include/asm-generic/system.h b/include/asm-generic/system.h
-new file mode 100644
-index 0000000..efa403b
---- /dev/null
-+++ b/include/asm-generic/system.h
-@@ -0,0 +1,161 @@
-+/* Generic system definitions, based on MN10300 definitions.
-+ *
-+ * It should be possible to use these on really simple architectures,
-+ * but it serves more as a starting point for new ports.
-+ *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
-+ */
-+#ifndef __ASM_GENERIC_SYSTEM_H
-+#define __ASM_GENERIC_SYSTEM_H
-+
-+#ifdef __KERNEL__
-+#ifndef __ASSEMBLY__
-+
-+#include <linux/types.h>
-+#include <linux/irqflags.h>
-+
-+#include <asm/cmpxchg-local.h>
-+
-+struct task_struct;
-+
-+/* context switching is now performed out-of-line in switch_to.S */
-+extern struct task_struct *__switch_to(struct task_struct *,
-+		struct task_struct *);
-+#define switch_to(prev, next, last)					\
-+	do {								\
-+		((last) = __switch_to((prev), (next)));			\
-+	} while (0)
-+
-+#define arch_align_stack(x) (x)
-+
-+#define nop() asm volatile ("nop")
-+
-+#endif /* !__ASSEMBLY__ */
++extern __wsum csum_partial_copy(const void *src, void *dst, int len, __wsum sum);
 +
 +/*
-+ * Force strict CPU ordering.
-+ * And yes, this is required on UP too when we're talking
-+ * to devices.
++ * the same as csum_partial_copy, but copies from user space.
 + *
-+ * This implementation only contains a compiler barrier.
++ * here even more important to align src and dst on a 32-bit (or even
++ * better 64-bit) boundary
 + */
++extern __wsum csum_partial_copy_from_user(const void __user *src, void *dst,
++					int len, __wsum sum, int *csum_err);
 +
-+#define mb()	asm volatile ("": : :"memory")
-+#define rmb()	mb()
-+#define wmb()	asm volatile ("": : :"memory")
-+
-+#ifdef CONFIG_SMP
-+#define smp_mb()	mb()
-+#define smp_rmb()	rmb()
-+#define smp_wmb()	wmb()
-+#else
-+#define smp_mb()	barrier()
-+#define smp_rmb()	barrier()
-+#define smp_wmb()	barrier()
-+#endif
-+
-+#define set_mb(var, value)  do { var = value;  mb(); } while (0)
-+#define set_wmb(var, value) do { var = value; wmb(); } while (0)
-+
-+#define read_barrier_depends()		do {} while (0)
-+#define smp_read_barrier_depends()	do {} while (0)
++#define csum_partial_copy_nocheck(src, dst, len, sum)	\
++	csum_partial_copy((src), (dst), (len), (sum))
 +
 +/*
-+ * we make sure local_irq_enable() doesn't cause priority inversion
++ * This is a version of ip_compute_csum() optimized for IP headers,
++ * which always checksum on 4 octet boundaries.
 + */
-+#ifndef __ASSEMBLY__
++extern __sum16 ip_fast_csum(const void *iph, unsigned int ihl);
 +
-+/* This function doesn't exist, so you'll get a linker error
-+ *    if something tries to do an invalid xchg().  */
-+extern void __xchg_called_with_bad_pointer(void);
-+
-+static inline
-+unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
++/*
++ * Fold a partial checksum
++ */
++static inline __sum16 csum_fold(__wsum csum)
 +{
-+	unsigned long ret, flags;
-+
-+	switch (size) {
-+	case 1:
-+#ifdef __xchg_u8
-+		return __xchg_u8(x, ptr);
-+#else
-+		local_irq_save(flags);
-+		ret = *(volatile u8 *)ptr;
-+		*(volatile u8 *)ptr = x;
-+		local_irq_restore(flags);
-+		return ret;
-+#endif /* __xchg_u8 */
-+
-+	case 2:
-+#ifdef __xchg_u16
-+		return __xchg_u16(x, ptr);
-+#else
-+		local_irq_save(flags);
-+		ret = *(volatile u16 *)ptr;
-+		*(volatile u16 *)ptr = x;
-+		local_irq_restore(flags);
-+		return ret;
-+#endif /* __xchg_u16 */
-+
-+	case 4:
-+#ifdef __xchg_u32
-+		return __xchg_u32(x, ptr);
-+#else
-+		local_irq_save(flags);
-+		ret = *(volatile u32 *)ptr;
-+		*(volatile u32 *)ptr = x;
-+		local_irq_restore(flags);
-+		return ret;
-+#endif /* __xchg_u32 */
-+
-+#ifdef CONFIG_64BIT
-+	case 8:
-+#ifdef __xchg_u64
-+		return __xchg_u64(x, ptr);
-+#else
-+		local_irq_save(flags);
-+		ret = *(volatile u64 *)ptr;
-+		*(volatile u64 *)ptr = x;
-+		local_irq_restore(flags);
-+		return ret;
-+#endif /* __xchg_u64 */
-+#endif /* CONFIG_64BIT */
-+
-+	default:
-+		__xchg_called_with_bad_pointer();
-+		return x;
-+	}
++	u32 sum = (__force u32)csum;
++	sum = (sum & 0xffff) + (sum >> 16);
++	sum = (sum & 0xffff) + (sum >> 16);
++	return (__force __sum16)~sum;
 +}
 +
-+#define xchg(ptr, x) \
-+	((__typeof__(*(ptr))) __xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
++#ifndef csum_tcpudp_nofold
++/*
++ * computes the checksum of the TCP/UDP pseudo-header
++ * returns a 16-bit checksum, already complemented
++ */
++extern __wsum
++csum_tcpudp_nofold(__be32 saddr, __be32 daddr, unsigned short len,
++		unsigned short proto, __wsum sum);
++#endif
 +
-+static inline unsigned long __cmpxchg(volatile unsigned long *m,
-+				      unsigned long old, unsigned long new)
++static inline __sum16
++csum_tcpudp_magic(__be32 saddr, __be32 daddr, unsigned short len,
++		  unsigned short proto, __wsum sum)
 +{
-+	unsigned long retval;
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	retval = *m;
-+	if (retval == old)
-+		*m = new;
-+	local_irq_restore(flags);
-+	return retval;
++	return csum_fold(csum_tcpudp_nofold(saddr, daddr, len, proto, sum));
 +}
 +
-+#define cmpxchg(ptr, o, n)					\
-+	((__typeof__(*(ptr))) __cmpxchg((unsigned long *)(ptr), \
-+					(unsigned long)(o),	\
-+					(unsigned long)(n)))
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+#endif /* __KERNEL__ */
-+#endif /* __ASM_GENERIC_SYSTEM_H */
-diff --git a/include/asm-generic/unaligned.h b/include/asm-generic/unaligned.h
-new file mode 100644
-index 0000000..03cf593
---- /dev/null
-+++ b/include/asm-generic/unaligned.h
-@@ -0,0 +1,30 @@
-+#ifndef __ASM_GENERIC_UNALIGNED_H
-+#define __ASM_GENERIC_UNALIGNED_H
-+
 +/*
-+ * This is the most generic implementation of unaligned accesses
-+ * and should work almost anywhere.
-+ *
-+ * If an architecture can handle unaligned accesses in hardware,
-+ * it may want to use the linux/unaligned/access_ok.h implementation
-+ * instead.
++ * this routine is used for miscellaneous IP-like checksums, mainly
++ * in icmp.c
 + */
++extern __sum16 ip_compute_csum(const void *buff, int len);
++
++#endif /* __ASM_GENERIC_CHECKSUM_H */
+diff --git a/lib/Makefile b/lib/Makefile
+index 33a40e4..b6869e1 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -92,6 +92,8 @@ obj-$(CONFIG_NLATTR) += nlattr.o
+ 
+ obj-$(CONFIG_DMA_API_DEBUG) += dma-debug.o
+ 
++obj-$(CONFIG_GENERIC_CSUM) += checksum.o
++
+ hostprogs-y	:= gen_crc32table
+ clean-files	:= crc32table.h
+ 
+diff --git a/lib/checksum.c b/lib/checksum.c
+new file mode 100644
+index 0000000..12e5a1c
+--- /dev/null
++++ b/lib/checksum.c
+@@ -0,0 +1,193 @@
++/*
++ *
++ * INET		An implementation of the TCP/IP protocol suite for the LINUX
++ *		operating system.  INET is implemented using the  BSD Socket
++ *		interface as the means of communication with the user level.
++ *
++ *		IP/TCP/UDP checksumming routines
++ *
++ * Authors:	Jorge Cwik, <jorge@laser.satlink.net>
++ *		Arnt Gulbrandsen, <agulbra@nvg.unit.no>
++ *		Tom May, <ftom@netcom.com>
++ *		Andreas Schwab, <schwab@issan.informatik.uni-dortmund.de>
++ *		Lots of code moved from tcp.c and ip.c; see those files
++ *		for more names.
++ *
++ * 03/02/96	Jes Sorensen, Andreas Schwab, Roman Hodek:
++ *		Fixed some nasty bugs, causing some horrible crashes.
++ *		A: At some points, the sum (%0) was used as
++ *		length-counter instead of the length counter
++ *		(%1). Thanks to Roman Hodek for pointing this out.
++ *		B: GCC seems to mess up if one uses too many
++ *		data-registers to hold input values and one tries to
++ *		specify d0 and d1 as scratch registers. Letting gcc
++ *		choose these registers itself solves the problem.
++ *
++ *		This program is free software; you can redistribute it and/or
++ *		modify it under the terms of the GNU General Public License
++ *		as published by the Free Software Foundation; either version
++ *		2 of the License, or (at your option) any later version.
++ */
++
++/* Revised by Kenneth Albanowski for m68knommu. Basic problem: unaligned access
++ kills, so most of the assembly has to go. */
++
++#include <linux/module.h>
++#include <net/checksum.h>
++
 +#include <asm/byteorder.h>
 +
-+#if defined(__LITTLE_ENDIAN)
-+# include <linux/unaligned/le_struct.h>
-+# include <linux/unaligned/be_byteshift.h>
-+# include <linux/unaligned/generic.h>
-+# define get_unaligned	__get_unaligned_le
-+# define put_unaligned	__put_unaligned_le
-+#elif defined(__BIG_ENDIAN)
-+# include <linux/unaligned/be_struct.h>
-+# include <linux/unaligned/le_byteshift.h>
-+# include <linux/unaligned/generic.h>
-+# define get_unaligned	__get_unaligned_be
-+# define put_unaligned	__put_unaligned_be
-+#else
-+# error need to define endianess
-+#endif
++static inline unsigned short from32to16(unsigned long x)
++{
++	/* add up 16-bit and 16-bit for 16+c bit */
++	x = (x & 0xffff) + (x >> 16);
++	/* add up carry.. */
++	x = (x & 0xffff) + (x >> 16);
++	return x;
++}
 +
-+#endif /* __ASM_GENERIC_UNALIGNED_H */
-diff --git a/include/asm-generic/user.h b/include/asm-generic/user.h
-new file mode 100644
-index 0000000..8b9c3c9
---- /dev/null
-+++ b/include/asm-generic/user.h
-@@ -0,0 +1,8 @@
-+#ifndef __ASM_GENERIC_USER_H
-+#define __ASM_GENERIC_USER_H
++static unsigned int do_csum(const unsigned char *buff, int len)
++{
++	int odd, count;
++	unsigned long result = 0;
++
++	if (len <= 0)
++		goto out;
++	odd = 1 & (unsigned long) buff;
++	if (odd) {
++		result = *buff;
++		len--;
++		buff++;
++	}
++	count = len >> 1;		/* nr of 16-bit words.. */
++	if (count) {
++		if (2 & (unsigned long) buff) {
++			result += *(unsigned short *) buff;
++			count--;
++			len -= 2;
++			buff += 2;
++		}
++		count >>= 1;		/* nr of 32-bit words.. */
++		if (count) {
++			unsigned long carry = 0;
++			do {
++				unsigned long w = *(unsigned long *) buff;
++				count--;
++				buff += 4;
++				result += carry;
++				result += w;
++				carry = (w > result);
++			} while (count);
++			result += carry;
++			result = (result & 0xffff) + (result >> 16);
++		}
++		if (len & 2) {
++			result += *(unsigned short *) buff;
++			buff += 2;
++		}
++	}
++	if (len & 1)
++		result += (*buff << 8);
++	result = from32to16(result);
++	if (odd)
++		result = ((result >> 8) & 0xff) | ((result & 0xff) << 8);
++out:
++	return result;
++}
++
 +/*
-+ * This file may define a 'struct user' structure. However, it it only
-+ * used for a.out file, which are not supported on new architectures.
++ *	This is a version of ip_compute_csum() optimized for IP headers,
++ *	which always checksum on 4 octet boundaries.
 + */
++__sum16 ip_fast_csum(const void *iph, unsigned int ihl)
++{
++	return (__force __sum16)~do_csum(iph, ihl*4);
++}
++EXPORT_SYMBOL(ip_fast_csum);
 +
-+#endif	/* __ASM_GENERIC_USER_H */
++/*
++ * computes the checksum of a memory block at buff, length len,
++ * and adds in "sum" (32-bit)
++ *
++ * returns a 32-bit number suitable for feeding into itself
++ * or csum_tcpudp_magic
++ *
++ * this function must be called with even lengths, except
++ * for the last fragment, which may be odd
++ *
++ * it's best to have buff aligned on a 32-bit boundary
++ */
++__wsum csum_partial(const void *buff, int len, __wsum wsum)
++{
++	unsigned int sum = (__force unsigned int)wsum;
++	unsigned int result = do_csum(buff, len);
++
++	/* add in old sum, and carry.. */
++	result += sum;
++	if (sum > result)
++		result += 1;
++	return (__force __wsum)result;
++}
++EXPORT_SYMBOL(csum_partial);
++
++/*
++ * this routine is used for miscellaneous IP-like checksums, mainly
++ * in icmp.c
++ */
++__sum16 ip_compute_csum(const void *buff, int len)
++{
++	return (__force __sum16)~do_csum(buff, len);
++}
++EXPORT_SYMBOL(ip_compute_csum);
++
++/*
++ * copy from fs while checksumming, otherwise like csum_partial
++ */
++__wsum
++csum_partial_copy_from_user(const void __user *src, void *dst, int len,
++						__wsum sum, int *csum_err)
++{
++	int missing;
++
++	missing = __copy_from_user(dst, src, len);
++	if (missing) {
++		memset(dst + len - missing, 0, missing);
++		*csum_err = -EFAULT;
++	} else
++		*csum_err = 0;
++
++	return csum_partial(dst, len, sum);
++}
++EXPORT_SYMBOL(csum_partial_copy_from_user);
++
++/*
++ * copy from ds while checksumming, otherwise like csum_partial
++ */
++__wsum
++csum_partial_copy(const void *src, void *dst, int len, __wsum sum)
++{
++	memcpy(dst, src, len);
++	return csum_partial(dst, len, sum);
++}
++EXPORT_SYMBOL(csum_partial_copy);
++
++#ifndef csum_tcpudp_nofold
++__wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
++			unsigned short len,
++			unsigned short proto,
++			__wsum sum)
++{
++	unsigned long long s = (__force u32)sum;
++
++	s += (__force u32)saddr;
++	s += (__force u32)daddr;
++#ifdef __BIG_ENDIAN
++	s += proto + len;
++#else
++	s += (proto + len) << 8;
++#endif
++	s += (s >> 32);
++	return (__force __wsum)s;
++}
++EXPORT_SYMBOL(csum_tcpudp_nofold);
++#endif
 -- 
 1.6.0.4
