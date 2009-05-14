@@ -1,58 +1,42 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH 00/16] asm-generic headers, v4
-Date: Thu, 14 May 2009 17:48:56 +1000
-Message-ID: <20090514174856.f49fac96.sfr@canb.auug.org.au>
-References: <1242255398-23779-1-git-send-email-arnd@arndb.de>
-	<20090514164521.c2b61893.sfr@canb.auug.org.au>
-	<200905140928.01861.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 0/14] score - New architecure port to SunplusCT S+CORE
+Date: Thu, 14 May 2009 10:44:55 +0200
+Message-ID: <200905141044.56426.arnd@arndb.de>
+References: <OFC83335DE.A18F9B53-ON48257592.00273C99-48257592.002856A8@sunplusct.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Thu__14_May_2009_17_48_56_+1000_He73o=JXrw+Da.y9"
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:58661 "EHLO smtps.tip.net.au"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755053AbZENHtC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 14 May 2009 03:49:02 -0400
-In-Reply-To: <200905140928.01861.arnd@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.126.187]:63199 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751423AbZENIpH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 May 2009 04:45:07 -0400
+In-Reply-To: <OFC83335DE.A18F9B53-ON48257592.00273C99-48257592.002856A8@sunplusct.com>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Chen Liqin <liqin.chen@sunplusct.com>
+To: liqin.chen@sunplusct.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, Sam Ravnborg <sam@ravnborg.org>, Thomas Gleixner <tglx@linutronix.de>, Kyle McMartin <kyle@mcmartin.ca>
 
---Signature=_Thu__14_May_2009_17_48_56_+1000_He73o=JXrw+Da.y9
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Hi Liquin,
 
-Hi Arnd,
+Have you had a chance to look at the asm-generic header files I posted
+a few times?
 
-On Thu, 14 May 2009 09:28:01 +0200 Arnd Bergmann <arnd@arndb.de> wrote:
->
-> I've tried to make this patch set as non-invasive as possible, basically
-> just adding files and making single line changes to existing files
-> where necessary. I've never seen conflicts when I tried merging
-> with linux-next/master.
+I think it would be ideal if you can change your code to use the
+asm-generic version whereever possible, by replacing your files
+with something like
 
-Yeah, I just did a test merge and no conflicts at all!  A test merge
-against mmotm seems to get conflicts only in files not modified by your
-patches.
+arch/score/include/asm/foo.h:
+#include <asm-generic/foo.h>
 
-Looks good from that point of view.
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+In particular, all of the exported header files that get included
+in user space should use only the asm-generic version, with the
+exception of byteorder.h, elf.h and ptrace.h, which are by definition
+architecture specific.
 
---Signature=_Thu__14_May_2009_17_48_56_+1000_He73o=JXrw+Da.y9
-Content-Type: application/pgp-signature
+Please tell me if you find problems in the generic header files during
+the conversion.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.9 (GNU/Linux)
-
-iEYEARECAAYFAkoLzOgACgkQjjKRsyhoI8yC/wCgug97kq1eb225v6aTS6RMKzlX
-gWYAoLe5MDpUiHt7lXcgMI9ql+3nitYX
-=JV9z
------END PGP SIGNATURE-----
-
---Signature=_Thu__14_May_2009_17_48_56_+1000_He73o=JXrw+Da.y9--
+	Arnd <><
