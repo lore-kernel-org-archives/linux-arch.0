@@ -1,42 +1,35 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 0/14] score - New architecure port to SunplusCT S+CORE
-Date: Thu, 14 May 2009 10:44:55 +0200
-Message-ID: <200905141044.56426.arnd@arndb.de>
-References: <OFC83335DE.A18F9B53-ON48257592.00273C99-48257592.002856A8@sunplusct.com>
+Subject: Re: [PATCH 00/27] more non-ABI asm-generic headers
+Date: Thu, 14 May 2009 13:59:59 +0200
+Message-ID: <200905141359.59897.arnd@arndb.de>
+References: <cover.1241105648.git.arnd@arndb.de> <200905041632.28026.arnd@arndb.de> <10f740e80905080704q4d2336b2v8ec851d0c87c6cda@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain;
-  charset="iso-8859-1"
+  charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:63199 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.187]:52424 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751423AbZENIpH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 May 2009 04:45:07 -0400
-In-Reply-To: <OFC83335DE.A18F9B53-ON48257592.00273C99-48257592.002856A8@sunplusct.com>
+	with ESMTP id S1755046AbZENMAG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 May 2009 08:00:06 -0400
+In-Reply-To: <10f740e80905080704q4d2336b2v8ec851d0c87c6cda@mail.gmail.com>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: liqin.chen@sunplusct.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, Sam Ravnborg <sam@ravnborg.org>, Thomas Gleixner <tglx@linutronix.de>, Kyle McMartin <kyle@mcmartin.ca>
+To: Geert Uytterhoeven <geert.uytterhoeven@gmail.com>
+Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org
 
-Hi Liquin,
+On Friday 08 May 2009, Geert Uytterhoeven wrote:
+> On Mon, May 4, 2009 at 16:32, Arnd Bergmann <arnd@arndb.de> wrote:
+> > I haven't tried using git send-email yet, because it does not let
+> > me inspect mails after changing the headers but before sending
+> > them out.
+> 
+> The --dry-run option is not sufficient for you?
 
-Have you had a chance to look at the asm-generic header files I posted
-a few times?
-
-I think it would be ideal if you can change your code to use the
-asm-generic version whereever possible, by replacing your files
-with something like
-
-arch/score/include/asm/foo.h:
-#include <asm-generic/foo.h>
-
-In particular, all of the exported header files that get included
-in user space should use only the asm-generic version, with the
-exception of byteorder.h, elf.h and ptrace.h, which are by definition
-architecture specific.
-
-Please tell me if you find problems in the generic header files during
-the conversion.
+I've now started using git-send-email after yet another screwup
+with quilt+kmail. I now played around using '--suppress-cc all' sending
+patches to myself and fixed the problems I found there, which gave
+me enough confidence in the general procedure.
 
 	Arnd <><
