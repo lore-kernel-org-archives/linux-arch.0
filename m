@@ -1,45 +1,58 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
 Subject: Re: [PATCH 00/16] asm-generic headers, v4
-Date: Thu, 14 May 2009 09:28:01 +0200
-Message-ID: <200905140928.01861.arnd@arndb.de>
-References: <1242255398-23779-1-git-send-email-arnd@arndb.de> <20090514164521.c2b61893.sfr@canb.auug.org.au>
+Date: Thu, 14 May 2009 17:48:56 +1000
+Message-ID: <20090514174856.f49fac96.sfr@canb.auug.org.au>
+References: <1242255398-23779-1-git-send-email-arnd@arndb.de>
+	<20090514164521.c2b61893.sfr@canb.auug.org.au>
+	<200905140928.01861.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1760488AbZENH2Z@vger.kernel.org>
-In-Reply-To: <20090514164521.c2b61893.sfr@canb.auug.org.au>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: Stephen Rothwell <sfr@canb.auug.org.au>
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Thu__14_May_2009_17_48_56_+1000_He73o=JXrw+Da.y9"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from chilli.pcug.org.au ([203.10.76.44]:58661 "EHLO smtps.tip.net.au"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755053AbZENHtC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 May 2009 03:49:02 -0400
+In-Reply-To: <200905140928.01861.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Chen Liqin <liqin.chen@sunplusct.com>
-List-Id: linux-arch.vger.kernel.org
 
-On Thursday 14 May 2009, Stephen Rothwell wrote:
-> Hi Arnd,
-> 
-> On Wed, 13 May 2009 22:56:23 +0000 Arnd Bergmann <arnd@arndb.de> wrote:
-> >
-> > Stephen, can you add
-> > git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic next
-> > to linux-next?
-> 
-> I will try this tomorrow.  It will be interesting to see just how many
-> conflicts we get.
+--Signature=_Thu__14_May_2009_17_48_56_+1000_He73o=JXrw+Da.y9
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Thanks!
+Hi Arnd,
 
-I've tried to make this patch set as non-invasive as possible, basically
-just adding files and making single line changes to existing files
-where necessary. I've never seen conflicts when I tried merging
-with linux-next/master.
+On Thu, 14 May 2009 09:28:01 +0200 Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> I've tried to make this patch set as non-invasive as possible, basically
+> just adding files and making single line changes to existing files
+> where necessary. I've never seen conflicts when I tried merging
+> with linux-next/master.
 
-In the beginning, I was thinking about doing one series per file,
-adding the asm-generic version in one patch and changing the per-arch
-versions to use it in follow-on patches.
-Hopefully, the way I'm doing it now turns out to be less time consuming,
-as I can add all the generic headers once without impacting any of the
-architectures, and the next patches can easily be done in the
-arch maintainer tree for all files at once.
+Yeah, I just did a test merge and no conflicts at all!  A test merge
+against mmotm seems to get conflicts only in files not modified by your
+patches.
 
-	Arnd <><
+Looks good from that point of view.
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Thu__14_May_2009_17_48_56_+1000_He73o=JXrw+Da.y9
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
+
+iEYEARECAAYFAkoLzOgACgkQjjKRsyhoI8yC/wCgug97kq1eb225v6aTS6RMKzlX
+gWYAoLe5MDpUiHt7lXcgMI9ql+3nitYX
+=JV9z
+-----END PGP SIGNATURE-----
+
+--Signature=_Thu__14_May_2009_17_48_56_+1000_He73o=JXrw+Da.y9--
