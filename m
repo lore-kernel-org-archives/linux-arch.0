@@ -1,13 +1,13 @@
 From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: [RFC v2][PATCH 25/35] cris: use pte_offset_kernel() as base for pte_offset_map*()
-Date: Wed, 20 May 2009 11:25:24 -0700
-Message-ID: <20090520182524.0C2C8B66@kernel>
+Subject: [RFC v2][PATCH 31/35] mn10300: use pte_offset_kernel() as base for pte_offset_map*()
+Date: Wed, 20 May 2009 11:25:34 -0700
+Message-ID: <20090520182534.5FF7F8D3@kernel>
 References: <20090520182445.D7B49A7C@kernel>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e2.ny.us.ibm.com ([32.97.182.142]:43106 "EHLO e2.ny.us.ibm.com"
+Received: from e1.ny.us.ibm.com ([32.97.182.141]:35181 "EHLO e1.ny.us.ibm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756336AbZETSZZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 May 2009 14:25:25 -0400
+	id S1756336AbZETSZe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 May 2009 14:25:34 -0400
 In-Reply-To: <20090520182445.D7B49A7C@kernel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -29,23 +29,22 @@ directly.
 Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
 ---
 
- linux-2.6.git-dave/arch/cris/include/asm/ptemap.h |    6 ++----
- 1 file changed, 2 insertions(+), 4 deletions(-)
+ linux-2.6.git-dave/arch/mn10300/include/asm/ptemap.h |    5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
 
-diff -puN arch/cris/include/asm/ptemap.h~cris-pte_offset_kernel arch/cris/include/asm/ptemap.h
---- linux-2.6.git/arch/cris/include/asm/ptemap.h~cris-pte_offset_kernel	2009-04-30 15:11:07.000000000 -0700
-+++ linux-2.6.git-dave/arch/cris/include/asm/ptemap.h	2009-04-30 15:11:07.000000000 -0700
-@@ -1,10 +1,8 @@
- #ifndef _CRIS_ASM_PTEMAP_H
- #define _CRIS_ASM_PTEMAP_H
+diff -puN arch/mn10300/include/asm/ptemap.h~mn10300-pte_offset_kernel arch/mn10300/include/asm/ptemap.h
+--- linux-2.6.git/arch/mn10300/include/asm/ptemap.h~mn10300-pte_offset_kernel	2009-04-30 15:11:11.000000000 -0700
++++ linux-2.6.git-dave/arch/mn10300/include/asm/ptemap.h	2009-04-30 15:11:11.000000000 -0700
+@@ -1,9 +1,8 @@
+ #ifndef _MN10300_ASM_PTEMAP_H
+ #define _MN10300_ASM_PTEMAP_H
  
 -#define pte_offset_map(dir, address) \
--	((pte_t *)page_address(pmd_page(*(dir))) + __pte_offset(address))
+-	((pte_t *) page_address(pmd_page(*(dir))) + pte_index(address))
 -#define pte_offset_map_nested(dir, address) pte_offset_map(dir, address)
--
 +#define pte_offset_map(dir, address) pte_offset_kernel(dir, address)
 +#define pte_offset_map_nested(dir, address) pte_offset_kernel(dir, address)
- #define pte_unmap(pte) do { } while (0)
- #define pte_unmap_nested(pte) do { } while (0)
+ #define pte_unmap(pte)		do {} while (0)
+ #define pte_unmap_nested(pte)	do {} while (0)
  
 _
