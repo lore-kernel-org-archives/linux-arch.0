@@ -1,13 +1,13 @@
 From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: [RFC v2][PATCH 09/35] m32r: create ptemap.h
-Date: Wed, 20 May 2009 11:24:59 -0700
-Message-ID: <20090520182459.32EECE8F@kernel>
+Subject: [RFC v2][PATCH 06/35] cris: create ptemap.h
+Date: Wed, 20 May 2009 11:24:54 -0700
+Message-ID: <20090520182454.FF554665@kernel>
 References: <20090520182445.D7B49A7C@kernel>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e8.ny.us.ibm.com ([32.97.182.138]:59025 "EHLO e8.ny.us.ibm.com"
+Received: from e6.ny.us.ibm.com ([32.97.182.146]:34111 "EHLO e6.ny.us.ibm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756041AbZETSZA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 May 2009 14:25:00 -0400
+	id S1756207AbZETSY4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 May 2009 14:24:56 -0400
 In-Reply-To: <20090520182445.D7B49A7C@kernel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -19,38 +19,40 @@ Cc: linux-kernel@vger.kernel.org, Dave Hansen <dave@linux.vnet.ibm.com>
 Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
 ---
 
- linux-2.6.git-dave/arch/m32r/include/asm/pgtable.h |    6 +-----
- linux-2.6.git-dave/arch/m32r/include/asm/ptemap.h  |   10 ++++++++++
- 2 files changed, 11 insertions(+), 5 deletions(-)
+ linux-2.6.git-dave/arch/cris/include/asm/pgtable.h |    7 +------
+ linux-2.6.git-dave/arch/cris/include/asm/ptemap.h  |   11 +++++++++++
+ 2 files changed, 12 insertions(+), 6 deletions(-)
 
-diff -puN arch/m32r/include/asm/pgtable.h~m32r-ptemaph arch/m32r/include/asm/pgtable.h
---- linux-2.6.git/arch/m32r/include/asm/pgtable.h~m32r-ptemaph	2009-04-30 15:10:57.000000000 -0700
-+++ linux-2.6.git-dave/arch/m32r/include/asm/pgtable.h	2009-04-30 15:10:57.000000000 -0700
-@@ -330,11 +330,7 @@ static inline void pmd_set(pmd_t * pmdp,
+diff -puN arch/cris/include/asm/pgtable.h~cris-ptemaph arch/cris/include/asm/pgtable.h
+--- linux-2.6.git/arch/cris/include/asm/pgtable.h~cris-ptemaph	2009-04-30 15:10:56.000000000 -0700
++++ linux-2.6.git-dave/arch/cris/include/asm/pgtable.h	2009-04-30 15:10:56.000000000 -0700
+@@ -244,12 +244,7 @@ static inline pgd_t * pgd_offset(const s
  	(((address) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
- #define pte_offset_kernel(dir, address)	\
- 	((pte_t *)pmd_page_vaddr(*(dir)) + pte_index(address))
--#define pte_offset_map(dir, address)	\
--	((pte_t *)page_address(pmd_page(*(dir))) + pte_index(address))
--#define pte_offset_map_nested(dir, address)	pte_offset_map(dir, address)
--#define pte_unmap(pte)		do { } while (0)
--#define pte_unmap_nested(pte)	do { } while (0)
+ #define pte_offset_kernel(dir, address) \
+ 	((pte_t *) pmd_page_vaddr(*(dir)) +  __pte_offset(address))
+-#define pte_offset_map(dir, address) \
+-	((pte_t *)page_address(pmd_page(*(dir))) + __pte_offset(address))
+-#define pte_offset_map_nested(dir, address) pte_offset_map(dir, address)
+-
+-#define pte_unmap(pte) do { } while (0)
+-#define pte_unmap_nested(pte) do { } while (0)
 +#include <asm/ptemap.h>
+ #define pte_pfn(x)		((unsigned long)(__va((x).pte)) >> PAGE_SHIFT)
+ #define pfn_pte(pfn, prot)	__pte(((pfn) << PAGE_SHIFT) | pgprot_val(prot))
  
- /* Encode and de-code a swap entry */
- #define __swp_type(x)			(((x).val >> 2) & 0x1f)
-diff -puN arch/m32r/include/asm/ptemap.h~m32r-ptemaph arch/m32r/include/asm/ptemap.h
---- linux-2.6.git/arch/m32r/include/asm/ptemap.h~m32r-ptemaph	2009-04-30 15:10:57.000000000 -0700
-+++ linux-2.6.git-dave/arch/m32r/include/asm/ptemap.h	2009-04-30 15:10:57.000000000 -0700
-@@ -0,0 +1,10 @@
-+#ifndef _M32R_ASM_PTEMAP_H
-+#define _M32R_ASM_PTEMAP_H
+diff -puN arch/cris/include/asm/ptemap.h~cris-ptemaph arch/cris/include/asm/ptemap.h
+--- linux-2.6.git/arch/cris/include/asm/ptemap.h~cris-ptemaph	2009-04-30 15:10:56.000000000 -0700
++++ linux-2.6.git-dave/arch/cris/include/asm/ptemap.h	2009-04-30 15:10:56.000000000 -0700
+@@ -0,0 +1,11 @@
++#ifndef _CRIS_ASM_PTEMAP_H
++#define _CRIS_ASM_PTEMAP_H
 +
-+#define pte_offset_map(dir, address)	\
-+	((pte_t *)page_address(pmd_page(*(dir))) + pte_index(address))
-+#define pte_offset_map_nested(dir, address)	pte_offset_map(dir, address)
-+#define pte_unmap(pte)		do { } while (0)
-+#define pte_unmap_nested(pte)	do { } while (0)
++#define pte_offset_map(dir, address) \
++	((pte_t *)page_address(pmd_page(*(dir))) + __pte_offset(address))
++#define pte_offset_map_nested(dir, address) pte_offset_map(dir, address)
 +
-+#endif /* _M32R_ASM_PTEMAP_H */
++#define pte_unmap(pte) do { } while (0)
++#define pte_unmap_nested(pte) do { } while (0)
++
++#endif /* _CRIS_ASM_PTEMAP_H */
 _
