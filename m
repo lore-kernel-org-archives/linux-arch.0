@@ -1,13 +1,13 @@
 From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: [RFC v2][PATCH 16/35] sh: create ptemap.h
-Date: Wed, 20 May 2009 11:25:10 -0700
-Message-ID: <20090520182510.B0551105@kernel>
+Subject: [RFC v2][PATCH 17/35] sparc: create ptemap.h
+Date: Wed, 20 May 2009 11:25:12 -0700
+Message-ID: <20090520182512.B53B8D2E@kernel>
 References: <20090520182445.D7B49A7C@kernel>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e7.ny.us.ibm.com ([32.97.182.137]:52022 "EHLO e7.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756598AbZETSZK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 May 2009 14:25:10 -0400
+Received: from e31.co.us.ibm.com ([32.97.110.149]:47859 "EHLO
+	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756505AbZETSZM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 May 2009 14:25:12 -0400
 In-Reply-To: <20090520182445.D7B49A7C@kernel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -19,53 +19,72 @@ Cc: linux-kernel@vger.kernel.org, Dave Hansen <dave@linux.vnet.ibm.com>
 Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
 ---
 
- linux-2.6.git-dave/arch/sh/include/asm/pgtable_32.h |    6 +-----
- linux-2.6.git-dave/arch/sh/include/asm/pgtable_64.h |    5 +----
- linux-2.6.git-dave/arch/sh/include/asm/ptemap.h     |    9 +++++++++
- 3 files changed, 11 insertions(+), 9 deletions(-)
+ linux-2.6.git-dave/arch/sparc/include/asm/pgtable_32.h |   10 -------
+ linux-2.6.git-dave/arch/sparc/include/asm/pgtable_64.h |    5 ---
+ linux-2.6.git-dave/arch/sparc/include/asm/ptemap.h     |   24 +++++++++++++++++
+ 3 files changed, 26 insertions(+), 13 deletions(-)
 
-diff -puN arch/sh/include/asm/pgtable_32.h~sh-ptemaph arch/sh/include/asm/pgtable_32.h
---- linux-2.6.git/arch/sh/include/asm/pgtable_32.h~sh-ptemaph	2009-04-30 15:11:01.000000000 -0700
-+++ linux-2.6.git-dave/arch/sh/include/asm/pgtable_32.h	2009-04-30 15:11:01.000000000 -0700
-@@ -403,11 +403,7 @@ static inline pte_t pte_modify(pte_t pte
- #define pte_index(address)	((address >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
- #define pte_offset_kernel(dir, address) \
- 	((pte_t *) pmd_page_vaddr(*(dir)) + pte_index(address))
--#define pte_offset_map(dir, address)		pte_offset_kernel(dir, address)
--#define pte_offset_map_nested(dir, address)	pte_offset_kernel(dir, address)
+diff -puN arch/sparc/include/asm/pgtable_32.h~sparc-ptemaph arch/sparc/include/asm/pgtable_32.h
+--- linux-2.6.git/arch/sparc/include/asm/pgtable_32.h~sparc-ptemaph	2009-05-02 14:39:54.000000000 -0700
++++ linux-2.6.git-dave/arch/sparc/include/asm/pgtable_32.h	2009-05-02 14:40:38.000000000 -0700
+@@ -300,15 +300,7 @@ BTFIXUPDEF_CALL(pmd_t *, pmd_offset, pgd
+ BTFIXUPDEF_CALL(pte_t *, pte_offset_kernel, pmd_t *, unsigned long)
+ #define pte_offset_kernel(dir,addr) BTFIXUP_CALL(pte_offset_kernel)(dir,addr)
+ 
+-/*
+- * This shortcut works on sun4m (and sun4d) because the nocache area is static,
+- * and sun4c is guaranteed to have no highmem anyway.
+- */
+-#define pte_offset_map(d, a)		pte_offset_kernel(d,a)
+-#define pte_offset_map_nested(d, a)	pte_offset_kernel(d,a)
 -
--#define pte_unmap(pte)		do { } while (0)
--#define pte_unmap_nested(pte)	do { } while (0)
+-#define pte_unmap(pte)		do{}while(0)
+-#define pte_unmap_nested(pte)	do{}while(0)
 +#include <asm/ptemap.h>
  
- #ifdef CONFIG_X2TLB
- #define pte_ERROR(e) \
-diff -puN arch/sh/include/asm/pgtable_64.h~sh-ptemaph arch/sh/include/asm/pgtable_64.h
---- linux-2.6.git/arch/sh/include/asm/pgtable_64.h~sh-ptemaph	2009-04-30 15:11:01.000000000 -0700
-+++ linux-2.6.git-dave/arch/sh/include/asm/pgtable_64.h	2009-04-30 15:11:01.000000000 -0700
-@@ -83,10 +83,7 @@ static __inline__ void pmd_set(pmd_t *pm
- #define pte_offset_kernel(dir, addr) \
- 		((pte_t *) ((pmd_val(*(dir))) & PAGE_MASK) + pte_index((addr)))
- 
--#define pte_offset_map(dir,addr)	pte_offset_kernel(dir, addr)
--#define pte_offset_map_nested(dir,addr)	pte_offset_kernel(dir, addr)
--#define pte_unmap(pte)		do { } while (0)
--#define pte_unmap_nested(pte)	do { } while (0)
+ /* Certain architectures need to do special things when pte's
+  * within a page table are directly modified.  Thus, the following
+diff -puN arch/sparc/include/asm/pgtable_64.h~sparc-ptemaph arch/sparc/include/asm/pgtable_64.h
+--- linux-2.6.git/arch/sparc/include/asm/pgtable_64.h~sparc-ptemaph	2009-05-02 14:39:54.000000000 -0700
++++ linux-2.6.git-dave/arch/sparc/include/asm/pgtable_64.h	2009-05-02 14:39:54.000000000 -0700
+@@ -652,10 +652,7 @@ static inline int pte_special(pte_t pte)
+ /* Find an entry in the third-level page table.. */
+ #define pte_offset_kernel(dir, address)	\
+ 	((pte_t *)pmd_page_vaddr(*(dir)) + pte_index(address))
+-#define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
+-#define pte_offset_map_nested(dir, address) pte_offset_kernel((dir), (address))
+-#define pte_unmap(pte)			do { } while (0)
+-#define pte_unmap_nested(pte)		do { } while (0)
 +#include <asm/ptemap.h>
  
- #ifndef __ASSEMBLY__
- #define IOBASE_VADDR	0xff000000
-diff -puN /dev/null arch/sh/include/asm/ptemap.h
+ /* Actual page table PTE updates.  */
+ extern void tlb_batch_add(struct mm_struct *mm, unsigned long vaddr, pte_t *ptep, pte_t orig);
+diff -puN /dev/null arch/sparc/include/asm/ptemap.h
 --- /dev/null	2008-09-02 09:40:19.000000000 -0700
-+++ linux-2.6.git-dave/arch/sh/include/asm/ptemap.h	2009-04-30 15:11:01.000000000 -0700
-@@ -0,0 +1,9 @@
-+#ifndef _SH_ASM_PTEMAP_H
-+#define _SH_ASM_PTEMAP_H
++++ linux-2.6.git-dave/arch/sparc/include/asm/ptemap.h	2009-05-02 14:41:35.000000000 -0700
+@@ -0,0 +1,24 @@
++#ifndef _SPARC_ASM_PTEMAP_H
++#define _SPARC_ASM_PTEMAP_H
 +
-+#define pte_offset_map(dir, address)		pte_offset_kernel(dir, address)
-+#define pte_offset_map_nested(dir, address)	pte_offset_kernel(dir, address)
-+#define pte_unmap(pte)		do { } while (0)
-+#define pte_unmap_nested(pte)	do { } while (0)
++#if defined(__sparc__) && defined(__arch64__)
 +
-+#endif /* _SH_ASM_PTEMAP_H */
++#define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
++#define pte_offset_map_nested(dir, address) pte_offset_kernel((dir), (address))
++#define pte_unmap(pte)			do { } while (0)
++#define pte_unmap_nested(pte)		do { } while (0)
++
++#else
++/*
++ * This shortcut works on sun4m (and sun4d) because the nocache area is static,
++ * and sun4c is guaranteed to have no highmem anyway.
++ */
++#define pte_offset_map(d, a)		pte_offset_kernel(d,a)
++#define pte_offset_map_nested(d, a)	pte_offset_kernel(d,a)
++
++#define pte_unmap(pte)		do{}while(0)
++#define pte_unmap_nested(pte)	do{}while(0)
++
++#endif
++
++#endif /* _SPARC_ASM_PTEMAP_H */
 _
