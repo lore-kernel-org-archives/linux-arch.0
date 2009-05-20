@@ -1,13 +1,13 @@
 From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: [RFC v2][PATCH 23/35] factor x86 pte mapping code
-Date: Wed, 20 May 2009 11:25:21 -0700
-Message-ID: <20090520182521.8F55793E@kernel>
+Subject: [RFC v2][PATCH 14/35] powerpc: create ptemap.h
+Date: Wed, 20 May 2009 11:25:07 -0700
+Message-ID: <20090520182507.3317D55D@kernel>
 References: <20090520182445.D7B49A7C@kernel>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e8.ny.us.ibm.com ([32.97.182.138]:59094 "EHLO e8.ny.us.ibm.com"
+Received: from e1.ny.us.ibm.com ([32.97.182.141]:35144 "EHLO e1.ny.us.ibm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756243AbZETSZW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 May 2009 14:25:22 -0400
+	id S1756601AbZETSZX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 May 2009 14:25:23 -0400
 In-Reply-To: <20090520182445.D7B49A7C@kernel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -15,67 +15,73 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Dave Hansen <dave@linux.vnet.ibm.com>
 
 
-x86 contains three separate pte_offset_map() implementations:
-1. 32-bit highpte
-2. 32-bit direct mapped
-3. 64-bit direct mapped
-
-This patch consolidates the 32-bit direct map and 64-bit
-implementations.  You can look back at the 00 patch in this
-series to see a bit of proof about why
-
-#define pte_offset_map(dir, address)                                   \
-	((pte_t *)page_address(pmd_page(*(dir))) + pte_index((address)))
-
-and
-
-#define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
-
-are actually interchangable.
 
 Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
 ---
 
- linux-2.6.git-dave/arch/x86/include/asm/ptemap.h |   17 +++--------------
- 1 file changed, 3 insertions(+), 14 deletions(-)
+ linux-2.6.git-dave/arch/powerpc/include/asm/pgtable-ppc32.h |    8 ----
+ linux-2.6.git-dave/arch/powerpc/include/asm/pgtable-ppc64.h |    5 --
+ linux-2.6.git-dave/arch/powerpc/include/asm/ptemap.h        |   23 ++++++++++++
+ 3 files changed, 24 insertions(+), 12 deletions(-)
 
-diff -puN arch/x86/include/asm/ptemap.h~factor-x86 arch/x86/include/asm/ptemap.h
---- linux-2.6.git/arch/x86/include/asm/ptemap.h~factor-x86	2009-04-30 15:11:06.000000000 -0700
-+++ linux-2.6.git-dave/arch/x86/include/asm/ptemap.h	2009-04-30 15:11:06.000000000 -0700
-@@ -1,10 +1,7 @@
- #ifndef _X86_ASM_PTEMAP_H
- #define _X86_ASM_PTEMAP_H
- 
--#ifdef CONFIG_X86_32
+diff -puN arch/powerpc/include/asm/pgtable-ppc32.h~powerpc-ptemaph arch/powerpc/include/asm/pgtable-ppc32.h
+--- linux-2.6.git/arch/powerpc/include/asm/pgtable-ppc32.h~powerpc-ptemaph	2009-04-30 15:11:00.000000000 -0700
++++ linux-2.6.git-dave/arch/powerpc/include/asm/pgtable-ppc32.h	2009-04-30 15:11:00.000000000 -0700
+@@ -284,14 +284,6 @@ static inline void __ptep_set_access_fla
+ 	(((address) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
+ #define pte_offset_kernel(dir, addr)	\
+ 	((pte_t *) pmd_page_vaddr(*(dir)) + pte_index(addr))
+-#define pte_offset_map(dir, addr)		\
+-	((pte_t *) kmap_atomic(pmd_page(*(dir)), KM_PTE0) + pte_index(addr))
+-#define pte_offset_map_nested(dir, addr)	\
+-	((pte_t *) kmap_atomic(pmd_page(*(dir)), KM_PTE1) + pte_index(addr))
 -
- #if defined(CONFIG_HIGHPTE)
+-#define pte_unmap(pte)		kunmap_atomic(pte, KM_PTE0)
+-#define pte_unmap_nested(pte)	kunmap_atomic(pte, KM_PTE1)
 -
- #define pte_offset_map(dir, address)					\
- 	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE0) +		\
- 	 pte_index((address)))
-@@ -13,21 +10,13 @@
- 	 pte_index((address)))
- #define pte_unmap(pte) kunmap_atomic((pte), KM_PTE0)
- #define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
--#else
--#define pte_offset_map(dir, address)					\
--	((pte_t *)page_address(pmd_page(*(dir))) + pte_index((address)))
--#define pte_offset_map_nested(dir, address) pte_offset_map((dir), (address))
--#define pte_unmap(pte) do { } while (0)
--#define pte_unmap_nested(pte) do { } while (0)
--#endif
+ /*
+  * Encode and decode a swap entry.
+  * Note that the bits we use in a PTE for representing a swap entry
+diff -puN arch/powerpc/include/asm/pgtable-ppc64.h~powerpc-ptemaph arch/powerpc/include/asm/pgtable-ppc64.h
+--- linux-2.6.git/arch/powerpc/include/asm/pgtable-ppc64.h~powerpc-ptemaph	2009-04-30 15:11:00.000000000 -0700
++++ linux-2.6.git-dave/arch/powerpc/include/asm/pgtable-ppc64.h	2009-04-30 15:11:00.000000000 -0700
+@@ -162,10 +162,7 @@
+ #define pte_offset_kernel(dir,addr) \
+   (((pte_t *) pmd_page_vaddr(*(dir))) + (((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)))
  
--#else /* x86-64 */
-+#else /* !CONFIG_HIGHPTE */
+-#define pte_offset_map(dir,addr)	pte_offset_kernel((dir), (addr))
+-#define pte_offset_map_nested(dir,addr)	pte_offset_kernel((dir), (addr))
+-#define pte_unmap(pte)			do { } while(0)
+-#define pte_unmap_nested(pte)		do { } while(0)
++#include <asm/ptemap.h>
  
--/* x86-64 always has all page tables mapped. */
- #define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
- #define pte_offset_map_nested(dir, address) pte_offset_kernel((dir), (address))
--#define pte_unmap(pte) /* NOP */
--#define pte_unmap_nested(pte) /* NOP */
-+#define pte_unmap(pte) do { } while (0)
-+#define pte_unmap_nested(pte) do { } while (0)
- 
- #endif
- 
+ /* to find an entry in a kernel page-table-directory */
+ /* This now only contains the vmalloc pages */
+diff -puN /dev/null arch/powerpc/include/asm/ptemap.h
+--- /dev/null	2008-09-02 09:40:19.000000000 -0700
++++ linux-2.6.git-dave/arch/powerpc/include/asm/ptemap.h	2009-04-30 15:11:00.000000000 -0700
+@@ -0,0 +1,23 @@
++#ifndef _POWERPC_ASM_PTEMAP_H
++#define _POWERPC_ASM_PTEMAP_H
++
++#ifndef __powerpc64__
++
++#define pte_offset_map(dir, addr)		\
++	((pte_t *) kmap_atomic(pmd_page(*(dir)), KM_PTE0) + pte_index(addr))
++#define pte_offset_map_nested(dir, addr)	\
++	((pte_t *) kmap_atomic(pmd_page(*(dir)), KM_PTE1) + pte_index(addr))
++
++#define pte_unmap(pte)		kunmap_atomic(pte, KM_PTE0)
++#define pte_unmap_nested(pte)	kunmap_atomic(pte, KM_PTE1)
++
++#else /* __powerpc64__ */
++
++#define pte_offset_map(dir,addr)	pte_offset_kernel((dir), (addr))
++#define pte_offset_map_nested(dir,addr)	pte_offset_kernel((dir), (addr))
++#define pte_unmap(pte)			do { } while(0)
++#define pte_unmap_nested(pte)		do { } while(0)
++
++#endif
++
++#endif /* _POWERPC_ASM_PTEMAP_H */
 _
