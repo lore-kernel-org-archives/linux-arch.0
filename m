@@ -1,13 +1,13 @@
 From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: [RFC v2][PATCH 34/35] powerpc use generic ptemap.h
-Date: Wed, 20 May 2009 11:25:38 -0700
-Message-ID: <20090520182538.3CAE37FD@kernel>
+Subject: [RFC v2][PATCH 33/35] asm-generic/ptemap.h for HIGHPTE implementations
+Date: Wed, 20 May 2009 11:25:37 -0700
+Message-ID: <20090520182537.AB63BEB5@kernel>
 References: <20090520182445.D7B49A7C@kernel>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e38.co.us.ibm.com ([32.97.110.159]:44499 "EHLO
-	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756761AbZETSZj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 May 2009 14:25:39 -0400
+Received: from e39.co.us.ibm.com ([32.97.110.160]:58025 "EHLO
+	e39.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756791AbZETSZp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 May 2009 14:25:45 -0400
 In-Reply-To: <20090520182445.D7B49A7C@kernel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -15,88 +15,95 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Dave Hansen <dave@linux.vnet.ibm.com>
 
 
-powerpc is a bid of an oddball here.  It seems to have CONFIG_HIGHPTE
-behavior at all times when compiled as 32-bit.  There's even an
-#ifdef CONFIG_HIGHPTE in arch/powerpc/mm/pgtable_32.c, but there's no
-trace of HIGHPTE in Kconfig anywhere.
-
-This gives ppc32 an explicit HIGHPTE in Kconfig so that we can use
-the #ifdef in asm-generic/ptemap.h and let ppc use the generic code
-with x86 and frv.
-
-It also removes the HIGHPTE #ifdef on ppc32 since it will be on
-unconditionally.
+x86 and frv have identical CONFIG_HIGHPTE implementations
+of the pte mapping functions.  Consolidate and move these
+to asm-generic/ptemap.h.
 
 Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
 ---
 
- linux-2.6.git-dave/arch/powerpc/Kconfig              |   14 ++++++++++++++
- linux-2.6.git-dave/arch/powerpc/include/asm/ptemap.h |   14 ++------------
- linux-2.6.git-dave/arch/powerpc/mm/pgtable_32.c      |    4 ----
- linux-2.6.git-dave/orphan.dir/ptemap-overview.txt    |    5 +++++
- 4 files changed, 21 insertions(+), 16 deletions(-)
+ linux-2.6.git-dave/arch/frv/include/asm/ptemap.h  |   14 --------------
+ linux-2.6.git-dave/arch/x86/include/asm/ptemap.h  |   19 -------------------
+ linux-2.6.git-dave/include/asm-generic/ptemap.h   |   20 ++++++++++++++++++++
+ linux-2.6.git-dave/orphan.dir/ptemap-overview.txt |   12 ++++++++++++
+ 4 files changed, 32 insertions(+), 33 deletions(-)
 
-diff -puN arch/powerpc/include/asm/ptemap.h~powerpc-pte_offset_kernel arch/powerpc/include/asm/ptemap.h
---- linux-2.6.git/arch/powerpc/include/asm/ptemap.h~powerpc-pte_offset_kernel	2009-05-20 10:58:56.000000000 -0700
-+++ linux-2.6.git-dave/arch/powerpc/include/asm/ptemap.h	2009-05-20 10:58:56.000000000 -0700
-@@ -2,19 +2,9 @@
- #define _POWERPC_ASM_PTEMAP_H
- 
- #ifndef __powerpc64__
+diff -puN arch/frv/include/asm/ptemap.h~asm-generic-ptemap-h-highpte arch/frv/include/asm/ptemap.h
+--- linux-2.6.git/arch/frv/include/asm/ptemap.h~asm-generic-ptemap-h-highpte	2009-05-20 10:58:55.000000000 -0700
++++ linux-2.6.git-dave/arch/frv/include/asm/ptemap.h	2009-05-20 10:58:55.000000000 -0700
+@@ -1,15 +1 @@
+-#ifndef _FRV_ASM_PTEMAP_H
+-#define _FRV_ASM_PTEMAP_H
 -
--#define pte_offset_map(dir, addr)		\
--	((pte_t *) kmap_atomic(pmd_page(*(dir)), KM_PTE0) + pte_index(addr))
--#define pte_offset_map_nested(dir, addr)	\
--	((pte_t *) kmap_atomic(pmd_page(*(dir)), KM_PTE1) + pte_index(addr))
--
--#define pte_unmap(pte)		kunmap_atomic(pte, KM_PTE0)
--#define pte_unmap_nested(pte)	kunmap_atomic(pte, KM_PTE1)
--
--#else /* __powerpc64__ */
-+#define kmap_atomic_pte(page, type) kmap_atomic(page, type)
-+#endif
- 
- #include <asm-generic/ptemap.h>
- 
--#endif
--
- #endif /* _POWERPC_ASM_PTEMAP_H */
-diff -puN arch/powerpc/Kconfig~powerpc-pte_offset_kernel arch/powerpc/Kconfig
---- linux-2.6.git/arch/powerpc/Kconfig~powerpc-pte_offset_kernel	2009-05-20 10:58:56.000000000 -0700
-+++ linux-2.6.git-dave/arch/powerpc/Kconfig	2009-05-20 11:05:58.000000000 -0700
-@@ -248,6 +248,20 @@ config HIGHMEM
- 	bool "High memory support"
- 	depends on PPC32
- 
-+config HIGHPTE
-+	bool "Put PTE pages in high memory"
-+	default n
-+	depends on HIGHMEM && 6xx && EXPERIMENTAL
-+	---help---
-+	  The VM uses one page table entry for each page of physical memory.
-+	  For 32-bit systems with a lot of RAM, this can be wasteful of
-+	  precious low memory.  Setting this option will put user-space page
-+	  table entries in high memory.
-+
-+	  This option is highly experimental.  Do not enable unless you are
-+	  testing the VM.
-+
-+
- source kernel/time/Kconfig
- source kernel/Kconfig.hz
- source kernel/Kconfig.preempt
-diff -puN arch/powerpc/mm/pgtable_32.c~powerpc-pte_offset_kernel arch/powerpc/mm/pgtable_32.c
---- linux-2.6.git/arch/powerpc/mm/pgtable_32.c~powerpc-pte_offset_kernel	2009-05-20 10:58:56.000000000 -0700
-+++ linux-2.6.git-dave/arch/powerpc/mm/pgtable_32.c	2009-05-20 10:58:56.000000000 -0700
-@@ -114,11 +114,7 @@ pgtable_t pte_alloc_one(struct mm_struct
- {
- 	struct page *ptepage;
- 
--#ifdef CONFIG_HIGHPTE
- 	gfp_t flags = GFP_KERNEL | __GFP_HIGHMEM | __GFP_REPEAT | __GFP_ZERO;
+-#if defined(CONFIG_HIGHPTE)
+-#define pte_offset_map(dir, address) \
+-	((pte_t *)kmap_atomic(pmd_page(*(dir)),KM_PTE0) + pte_index(address))
+-#define pte_offset_map_nested(dir, address) \
+-	((pte_t *)kmap_atomic(pmd_page(*(dir)),KM_PTE1) + pte_index(address))
+-#define pte_unmap(pte) kunmap_atomic(pte, KM_PTE0)
+-#define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
 -#else
--	gfp_t flags = GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO;
+ #include <asm-generic/ptemap.h>
 -#endif
+-
+-#endif /* _FRV_ASM_PTEMAP_H */
+diff -puN arch/x86/include/asm/ptemap.h~asm-generic-ptemap-h-highpte arch/x86/include/asm/ptemap.h
+--- linux-2.6.git/arch/x86/include/asm/ptemap.h~asm-generic-ptemap-h-highpte	2009-05-20 10:58:55.000000000 -0700
++++ linux-2.6.git-dave/arch/x86/include/asm/ptemap.h	2009-05-20 10:58:55.000000000 -0700
+@@ -1,20 +1 @@
+-#ifndef _X86_ASM_PTEMAP_H
+-#define _X86_ASM_PTEMAP_H
+-
+-#if defined(CONFIG_HIGHPTE)
+-#define pte_offset_map(dir, address)					\
+-	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE0) +		\
+-	 pte_index((address)))
+-#define pte_offset_map_nested(dir, address)				\
+-	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE1) +		\
+-	 pte_index((address)))
+-#define pte_unmap(pte) kunmap_atomic((pte), KM_PTE0)
+-#define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
+-
+-#else /* !CONFIG_HIGHPTE */
+-
+ #include <asm-generic/ptemap.h>
+-
+-#endif
+-
+-#endif /* _X86_ASM_PTEMAP_H */
+diff -puN include/asm-generic/ptemap.h~asm-generic-ptemap-h-highpte include/asm-generic/ptemap.h
+--- linux-2.6.git/include/asm-generic/ptemap.h~asm-generic-ptemap-h-highpte	2009-05-20 10:58:55.000000000 -0700
++++ linux-2.6.git-dave/include/asm-generic/ptemap.h	2009-05-20 10:59:13.000000000 -0700
+@@ -5,11 +5,31 @@
+  * If your architecture has direct-mapped pte pages (no HIGHPTE)
+  * then you just need to implement pte_offset_kernel() and include
+  * this in your asm/ptemap.h.
++ *
++ * To support HIGHPTE, you need to have implementations of
++ * kmap_atomic_pte() (which usually just calls kmap_atomic()),
++ * pmd_page() and pmd_index().
+  */
  
- 	ptepage = alloc_pages(flags, 0);
- 	if (!ptepage)
++#include <linux/mm.h>
++
++#ifdef CONFIG_HIGHPTE
++
++#include <asm/highmem.h>
++#define pte_offset_map(dir, address) \
++	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)),KM_PTE0) + pte_index(address))
++#define pte_offset_map_nested(dir, address) \
++	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)),KM_PTE1) + pte_index(address))
++#define pte_unmap(pte) kunmap_atomic(pte, KM_PTE0)
++#define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
++
++#else /* !CONFIG_HIGHPTE */
++
+ #define pte_offset_map(dir,addr)	pte_offset_kernel((dir),(addr))
+ #define pte_offset_map_nested(dir,addr)	pte_offset_kernel((dir),(addr))
+ #define pte_unmap(pte)			do { } while (0)
+ #define pte_unmap_nested(pte)		do { } while (0)
+ 
++#endif /* CONFIG_HIGHPTE */
++
+ #endif /* _ASM_GENERIC_PTEMAP_H */
+diff -puN orphan.dir/ptemap-overview.txt~asm-generic-ptemap-h-highpte orphan.dir/ptemap-overview.txt
