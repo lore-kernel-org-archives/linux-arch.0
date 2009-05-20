@@ -1,13 +1,13 @@
 From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: [RFC v2][PATCH 19/35] x86: create ptemap.h
-Date: Wed, 20 May 2009 11:25:15 -0700
-Message-ID: <20090520182515.159B1E09@kernel>
+Subject: [RFC v2][PATCH 21/35] create linux/ptemap.h for arch-independent pte mapping funcs
+Date: Wed, 20 May 2009 11:25:18 -0700
+Message-ID: <20090520182518.38E9659D@kernel>
 References: <20090520182445.D7B49A7C@kernel>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e35.co.us.ibm.com ([32.97.110.153]:35464 "EHLO
-	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756620AbZETSZ1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 May 2009 14:25:27 -0400
+Received: from e5.ny.us.ibm.com ([32.97.182.145]:52720 "EHLO e5.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756300AbZETSZ3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 May 2009 14:25:29 -0400
 In-Reply-To: <20090520182445.D7B49A7C@kernel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -15,94 +15,94 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Dave Hansen <dave@linux.vnet.ibm.com>
 
 
+linux/mm.h has a couple of completely arch-independent 
+pte mapping functions.  Let's move them to their own header
+to help separate out their dependencies from the rest of
+mm.h.
+
+I'll get the callsites in the next patch.  For now, just
+include the new header where its functions used to be.
+I'll remove this in the next patch.
 
 Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
 ---
 
- linux-2.6.git-dave/arch/x86/include/asm/pgtable_32.h |   17 ---------
- linux-2.6.git-dave/arch/x86/include/asm/pgtable_64.h |    6 ---
- linux-2.6.git-dave/arch/x86/include/asm/ptemap.h     |   34 +++++++++++++++++++
- 3 files changed, 36 insertions(+), 21 deletions(-)
+ linux-2.6.git-dave/include/linux/mm.h     |   26 ----------------------
+ linux-2.6.git-dave/include/linux/ptemap.h |   34 ++++++++++++++++++++++++++++++
+ 2 files changed, 34 insertions(+), 26 deletions(-)
 
-diff -puN arch/x86/include/asm/pgtable_32.h~x86-ptemaph arch/x86/include/asm/pgtable_32.h
---- linux-2.6.git/arch/x86/include/asm/pgtable_32.h~x86-ptemaph	2009-04-30 15:11:03.000000000 -0700
-+++ linux-2.6.git-dave/arch/x86/include/asm/pgtable_32.h	2009-04-30 15:11:03.000000000 -0700
-@@ -48,22 +48,7 @@ extern void set_pmd_pfn(unsigned long, u
- # include <asm/pgtable-2level.h>
- #endif
+diff -puN include/linux/mm.h~linux-ptemap-h include/linux/mm.h
+--- linux-2.6.git/include/linux/mm.h~linux-ptemap-h	2009-04-30 15:11:04.000000000 -0700
++++ linux-2.6.git-dave/include/linux/mm.h	2009-04-30 15:11:04.000000000 -0700
+@@ -969,32 +969,6 @@ static inline void pgtable_page_dtor(str
+ 	dec_zone_page_state(page, NR_PAGETABLE);
+ }
  
--#if defined(CONFIG_HIGHPTE)
--#define pte_offset_map(dir, address)					\
--	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE0) +		\
--	 pte_index((address)))
--#define pte_offset_map_nested(dir, address)				\
--	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE1) +		\
--	 pte_index((address)))
--#define pte_unmap(pte) kunmap_atomic((pte), KM_PTE0)
--#define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
--#else
--#define pte_offset_map(dir, address)					\
--	((pte_t *)page_address(pmd_page(*(dir))) + pte_index((address)))
--#define pte_offset_map_nested(dir, address) pte_offset_map((dir), (address))
--#define pte_unmap(pte) do { } while (0)
--#define pte_unmap_nested(pte) do { } while (0)
--#endif
-+#include <asm/ptemap.h>
- 
- /* Clear a kernel PTE and flush it from the TLB */
- #define kpte_clear_flush(ptep, vaddr)		\
-diff -puN arch/x86/include/asm/pgtable_64.h~x86-ptemaph arch/x86/include/asm/pgtable_64.h
---- linux-2.6.git/arch/x86/include/asm/pgtable_64.h~x86-ptemaph	2009-04-30 15:11:03.000000000 -0700
-+++ linux-2.6.git-dave/arch/x86/include/asm/pgtable_64.h	2009-04-30 15:11:03.000000000 -0700
-@@ -127,11 +127,7 @@ static inline int pgd_large(pgd_t pgd) {
- 
- /* PTE - Level 1 access. */
- 
--/* x86-64 always has all page tables mapped. */
--#define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
--#define pte_offset_map_nested(dir, address) pte_offset_kernel((dir), (address))
--#define pte_unmap(pte) /* NOP */
--#define pte_unmap_nested(pte) /* NOP */
-+#include <asm/ptemap.h>
- 
- #define update_mmu_cache(vma, address, pte) do { } while (0)
- 
-diff -puN /dev/null arch/x86/include/asm/ptemap.h
---- /dev/null	2008-09-02 09:40:19.000000000 -0700
-+++ linux-2.6.git-dave/arch/x86/include/asm/ptemap.h	2009-04-30 15:11:03.000000000 -0700
+-#define pte_offset_map_lock(mm, pmd, address, ptlp)	\
+-({							\
+-	spinlock_t *__ptl = pte_lockptr(mm, pmd);	\
+-	pte_t *__pte = pte_offset_map(pmd, address);	\
+-	*(ptlp) = __ptl;				\
+-	spin_lock(__ptl);				\
+-	__pte;						\
+-})
+-
+-#define pte_unmap_unlock(pte, ptl)	do {		\
+-	spin_unlock(ptl);				\
+-	pte_unmap(pte);					\
+-} while (0)
+-
+-#define pte_alloc_map(mm, pmd, address)			\
+-	((unlikely(!pmd_present(*(pmd))) && __pte_alloc(mm, pmd, address))? \
+-		NULL: pte_offset_map(pmd, address))
+-
+-#define pte_alloc_map_lock(mm, pmd, address, ptlp)	\
+-	((unlikely(!pmd_present(*(pmd))) && __pte_alloc(mm, pmd, address))? \
+-		NULL: pte_offset_map_lock(mm, pmd, address, ptlp))
+-
+-#define pte_alloc_kernel(pmd, address)			\
+-	((unlikely(!pmd_present(*(pmd))) && __pte_alloc_kernel(pmd, address))? \
+-		NULL: pte_offset_kernel(pmd, address))
+-
+ extern void free_area_init(unsigned long * zones_size);
+ extern void free_area_init_node(int nid, unsigned long * zones_size,
+ 		unsigned long zone_start_pfn, unsigned long *zholes_size);
+diff -puN include/linux/ptemap.h~linux-ptemap-h include/linux/ptemap.h
+--- linux-2.6.git/include/linux/ptemap.h~linux-ptemap-h	2009-04-30 15:11:04.000000000 -0700
++++ linux-2.6.git-dave/include/linux/ptemap.h	2009-04-30 15:11:04.000000000 -0700
 @@ -0,0 +1,34 @@
-+#ifndef _X86_ASM_PTEMAP_H
-+#define _X86_ASM_PTEMAP_H
++#ifndef _LINUX_PTE_MAP_H
++#define _LINUX_PTE_MAP_H
 +
-+#ifdef CONFIG_X86_32
++#include <linux/mm.h>
++#include <asm/ptemap.h>
 +
-+#if defined(CONFIG_HIGHPTE)
++#define pte_offset_map_lock(mm, pmd, address, ptlp)	\
++({							\
++	spinlock_t *__ptl = pte_lockptr(mm, pmd);	\
++	pte_t *__pte = pte_offset_map(pmd, address);	\
++	*(ptlp) = __ptl;				\
++	spin_lock(__ptl);				\
++	__pte;						\
++})
 +
-+#define pte_offset_map(dir, address)					\
-+	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE0) +		\
-+	 pte_index((address)))
-+#define pte_offset_map_nested(dir, address)				\
-+	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE1) +		\
-+	 pte_index((address)))
-+#define pte_unmap(pte) kunmap_atomic((pte), KM_PTE0)
-+#define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
-+#else
-+#define pte_offset_map(dir, address)					\
-+	((pte_t *)page_address(pmd_page(*(dir))) + pte_index((address)))
-+#define pte_offset_map_nested(dir, address) pte_offset_map((dir), (address))
-+#define pte_unmap(pte) do { } while (0)
-+#define pte_unmap_nested(pte) do { } while (0)
-+#endif
++#define pte_unmap_unlock(pte, ptl)	do {		\
++	spin_unlock(ptl);				\
++	pte_unmap(pte);					\
++} while (0)
 +
-+#else /* x86-64 */
++#define pte_alloc_map(mm, pmd, address)			\
++	((unlikely(!pmd_present(*(pmd))) && __pte_alloc(mm, pmd, address))? \
++		NULL: pte_offset_map(pmd, address))
 +
-+/* x86-64 always has all page tables mapped. */
-+#define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
-+#define pte_offset_map_nested(dir, address) pte_offset_kernel((dir), (address))
-+#define pte_unmap(pte) /* NOP */
-+#define pte_unmap_nested(pte) /* NOP */
++#define pte_alloc_map_lock(mm, pmd, address, ptlp)	\
++	((unlikely(!pmd_present(*(pmd))) && __pte_alloc(mm, pmd, address))? \
++		NULL: pte_offset_map_lock(mm, pmd, address, ptlp))
 +
-+#endif
++#define pte_alloc_kernel(pmd, address)			\
++	((unlikely(!pmd_present(*(pmd))) && __pte_alloc_kernel(pmd, address))? \
++		NULL: pte_offset_kernel(pmd, address))
 +
-+#endif /* _X86_ASM_PTEMAP_H */
++
++#endif /* _LINUX_PTE_MAP_H */
 _
