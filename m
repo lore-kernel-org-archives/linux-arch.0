@@ -1,50 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.188]:53286 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753859AbZENH2L (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 May 2009 03:28:11 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 00/16] asm-generic headers, v4
-Date: Thu, 14 May 2009 09:28:01 +0200
-References: <1242255398-23779-1-git-send-email-arnd@arndb.de> <20090514164521.c2b61893.sfr@canb.auug.org.au>
-In-Reply-To: <20090514164521.c2b61893.sfr@canb.auug.org.au>
+Received: from claw.goop.org ([74.207.240.146]:58526 "EHLO claw.goop.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754387AbZETWRo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 May 2009 18:17:44 -0400
+Message-ID: <4A147EEC.4000807@goop.org>
+Date: Wed, 20 May 2009 15:06:36 -0700
+From: Jeremy Fitzhardinge <jeremy@goop.org>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
+Subject: Re: [RFC v2][PATCH 00/35] consolidate pte mapping functions across
+ all architectures
+References: <20090520182445.D7B49A7C@kernel>
+In-Reply-To: <20090520182445.D7B49A7C@kernel>
+Content-Type: text/plain; charset=ISO-8859-15; format=flowed
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-ID: <200905140928.01861.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Chen Liqin <liqin.chen@sunplusct.com>
-Message-ID: <20090514072801.KjrG9iHmktnc-HkecIvzdxxOM52XgNktIlze_XfP2zY@z>
+To: Dave Hansen <dave@linux.vnet.ibm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20090520220636.ecTnE8giQda1ZJNBN5-l2jO7ddXsZconAB5LgAPRVu8@z>
 
-On Thursday 14 May 2009, Stephen Rothwell wrote:
-> Hi Arnd,
-> 
-> On Wed, 13 May 2009 22:56:23 +0000 Arnd Bergmann <arnd@arndb.de> wrote:
-> >
-> > Stephen, can you add
-> > git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic next
-> > to linux-next?
-> 
-> I will try this tomorrow.  It will be interesting to see just how many
-> conflicts we get.
+Dave Hansen wrote:
+> The steps are as follows, and should be bisectable:
+> 1. Break out all the functions into a new asm/ptemap.h and
+>    include it in place of the original functions.
+> 2. Move linux/mm.h arch-independent pte mapping code to
+>    linux/ptemap.h, include asm/ptemap.h there
+> 3. Include linux/ptemap.h directly at all use sites
+>    (only 39 of these kernel-wide)
+> 4. Standardize all the implementations to use
+>    pte_offset_kernel() as the basis for pte_offset_map()
+>    whenever possible.
+> 5. Create asm-generic/ptemap.h and consolidate all the
+>    architectures that share the pte_offset_kernel()
+>    implementations.
+> 6. Consolidate the three HIGHPTE implementations (x86,
+>    frv, ppc64) in asm-generic/ptemap.h.  
+> 7. Remove the direct asm/ptemap.h includes.
+>   
 
-Thanks!
+This is a nice cleanup.  Did you consider going an extra step and 
+converting all the macros into #defines?
 
-I've tried to make this patch set as non-invasive as possible, basically
-just adding files and making single line changes to existing files
-where necessary. I've never seen conflicts when I tried merging
-with linux-next/master.
-
-In the beginning, I was thinking about doing one series per file,
-adding the asm-generic version in one patch and changing the per-arch
-versions to use it in follow-on patches.
-Hopefully, the way I'm doing it now turns out to be less time consuming,
-as I can add all the generic headers once without impacting any of the
-architectures, and the next patches can easily be done in the
-arch maintainer tree for all files at once.
-
-	Arnd <><
+    J
