@@ -1,24 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:55835 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:43790 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757766AbZEZTgm (ORCPT
+	by vger.kernel.org with ESMTP id S1750811AbZE1Veo (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 26 May 2009 15:36:42 -0400
-Message-Id: <200905261931.n4QJVumL003871@imap1.linux-foundation.org>
-Subject: [wrecked] kmap_types-make-most-arches-use-generic-header-file.patch removed from -mm tree
+	Thu, 28 May 2009 17:34:44 -0400
+Message-ID: <200905282131.n4SLV7rj025720@imap1.linux-foundation.org>
+Subject: + kmap_types-make-most-arches-use-generic-header-file.patch added to -mm tree
 From: akpm@linux-foundation.org
-Date: Tue, 26 May 2009 12:31:56 -0700
+Date: Thu, 28 May 2009 14:31:06 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: randy.dunlap@oracle.com, cooloney@kernel.org, davem@davemloft.net, dhowells@redhat.com, geert@linux-m68k.org, hpa@zytor.com, ink@jurassic.park.msu.ru, kyle@mcmartin.ca, lethal@linux-sh.org, linux-arch@vger.kernel.org, mingo@elte.hu, ralf@linux-mips.org, rth@twiddle.net, schwidefsky@de.ibm.com, starvik@axis.com, takata@linux-m32r.org, tglx@linutronix.de, tony.luck@intel.com, vapier@gentoo.org, mm-commits@vger.kernel.org
+To: mm-commits@vger.kernel.org
+Cc: randy.dunlap@oracle.com, arnd@arndb.de, cooloney@kernel.org, davem@davemloft.net, dhowells@redhat.com, geert@linux-m68k.org, hpa@zytor.com, ink@jurassic.park.msu.ru, kyle@mcmartin.ca, lethal@linux-sh.org, linux-arch@vger.kernel.org, mingo@elte.hu, ralf@linux-mips.org, rth@twiddle.net, schwidefsky@de.ibm.com, starvik@axis.com, takata@linux-m32r.org, tglx@linutronix.de, tony.luck@intel.com, vapier@gentoo.org
+Message-ID: <20090528213106.u1XLXaUsxXwqJvNH0zGFwQDN6Dl_w2YZLKqjgHIYEw0@z>
 
 
 The patch titled
      kmap_types: make most arches use generic header file
-has been removed from the -mm tree.  Its filename was
+has been added to the -mm tree.  Its filename is
      kmap_types-make-most-arches-use-generic-header-file.patch
 
-This patch was dropped because other changes were merged, which wrecked this patch
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
+
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
+out what to do about this
 
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
@@ -60,27 +71,28 @@ Cc: "David S. Miller" <davem@davemloft.net>
 Cc: Ingo Molnar <mingo@elte.hu>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/alpha/include/asm/kmap_types.h      |   24 ++---------------
- arch/blackfin/include/asm/kmap_types.h   |   17 ------------
- arch/cris/include/asm/kmap_types.h       |   17 ------------
- arch/h8300/include/asm/kmap_types.h      |   17 ------------
- arch/ia64/include/asm/kmap_types.h       |   24 ++---------------
- arch/m32r/include/asm/kmap_types.h       |   23 ++--------------
- arch/m68k/include/asm/kmap_types.h       |   17 ------------
- arch/microblaze/include/asm/kmap_types.h |   25 ------------------
- arch/mips/include/asm/kmap_types.h       |   24 ++---------------
- arch/mn10300/include/asm/kmap_types.h    |   27 -------------------
- arch/parisc/include/asm/kmap_types.h     |   24 ++---------------
- arch/s390/include/asm/kmap_types.h       |   17 ------------
- arch/sh/include/asm/kmap_types.h         |   24 ++---------------
- arch/sparc/include/asm/kmap_types.h      |   17 ------------
- arch/x86/include/asm/kmap_types.h        |   23 ++--------------
- arch/xtensa/include/asm/kmap_types.h     |   27 -------------------
- include/asm-generic/kmap_types.h         |   29 +++++++++++++++++++++
- 17 files changed, 59 insertions(+), 317 deletions(-)
+ arch/alpha/include/asm/kmap_types.h      |   24 ++----------------
+ arch/blackfin/include/asm/kmap_types.h   |   17 -------------
+ arch/cris/include/asm/kmap_types.h       |   17 -------------
+ arch/h8300/include/asm/kmap_types.h      |   17 -------------
+ arch/ia64/include/asm/kmap_types.h       |   24 ++----------------
+ arch/m32r/include/asm/kmap_types.h       |   23 ++---------------
+ arch/m68k/include/asm/kmap_types.h       |   17 -------------
+ arch/microblaze/include/asm/kmap_types.h |   25 -------------------
+ arch/mips/include/asm/kmap_types.h       |   24 ++----------------
+ arch/mn10300/include/asm/kmap_types.h    |   27 ---------------------
+ arch/parisc/include/asm/kmap_types.h     |   24 ++----------------
+ arch/s390/include/asm/kmap_types.h       |   17 -------------
+ arch/sh/include/asm/kmap_types.h         |   24 ++----------------
+ arch/sparc/include/asm/kmap_types.h      |   17 -------------
+ arch/x86/include/asm/kmap_types.h        |   23 ++---------------
+ arch/xtensa/include/asm/kmap_types.h     |   27 ---------------------
+ include/asm-generic/kmap_types.h         |    8 +++---
+ 17 files changed, 34 insertions(+), 321 deletions(-)
 
 diff -puN arch/alpha/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file arch/alpha/include/asm/kmap_types.h
 --- a/arch/alpha/include/asm/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
@@ -600,49 +612,37 @@ diff -puN arch/xtensa/include/asm/kmap_types.h~kmap_types-make-most-arches-use-g
 +#include <asm-generic/kmap_types.h>
  
  #endif	/* _XTENSA_KMAP_TYPES_H */
-diff -puN /dev/null include/asm-generic/kmap_types.h
---- /dev/null
+diff -puN include/asm-generic/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file include/asm-generic/kmap_types.h
+--- a/include/asm-generic/kmap_types.h~kmap_types-make-most-arches-use-generic-header-file
 +++ a/include/asm-generic/kmap_types.h
-@@ -0,0 +1,29 @@
+@@ -1,7 +1,7 @@
+-#ifndef __ASM_GENERIC_KMAP_TYPES_H
+-#define __ASM_GENERIC_KMAP_TYPES_H
 +#ifndef _ASM_GENERIC_KMAP_TYPES_H
 +#define _ASM_GENERIC_KMAP_TYPES_H
-+
+ 
+-#ifdef CONFIG_DEBUG_HIGHMEM
 +#ifdef __WITH_KM_FENCE
-+# define D(n) __KM_FENCE_##n ,
-+#else
-+# define D(n)
-+#endif
-+
-+enum km_type {
-+D(0)	KM_BOUNCE_READ,
-+D(1)	KM_SKB_SUNRPC_DATA,
-+D(2)	KM_SKB_DATA_SOFTIRQ,
-+D(3)	KM_USER0,
-+D(4)	KM_USER1,
-+D(5)	KM_BIO_SRC_IRQ,
-+D(6)	KM_BIO_DST_IRQ,
-+D(7)	KM_PTE0,
-+D(8)	KM_PTE1,
-+D(9)	KM_IRQ0,
-+D(10)	KM_IRQ1,
-+D(11)	KM_SOFTIRQ0,
-+D(12)	KM_SOFTIRQ1,
-+D(13)	KM_TYPE_NR
-+};
-+
-+#undef D
-+
+ # define D(n) __KM_FENCE_##n ,
+ #else
+ # define D(n)
+@@ -26,4 +26,4 @@ D(13)	KM_TYPE_NR
+ 
+ #undef D
+ 
+-#endif /* __ASM_GENERIC_KMAP_TYPES_H */
 +#endif
 _
 
 Patches currently in -mm which might be from randy.dunlap@oracle.com are
 
 linux-next.patch
+x86-platform-oqo-select-input_polldev.patch
 input-drivers-input-xpadc-improve-xbox-360-wireless-support-and-add-sysfs-interface.patch
 menu-fix-embedded-menu-presentation.patch
 e1000e-make-e1000e-default-to-the-same-kconfig-setting-as-e1000.patch
 qla2x-fix-printk-format-warnings.patch
-lockd-fix-file_locking=n-build-error.patch
+hexdump-remove-the-trailing-space.patch
 kmap_types-make-most-arches-use-generic-header-file.patch
 irqs-add-irqf_sample_random-to-the-feature-removal-scheduletxt-deprecated-list.patch
 cgroups-make-messages-more-readable.patch
