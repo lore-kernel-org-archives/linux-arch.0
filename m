@@ -1,71 +1,80 @@
-From: Randy Dunlap <randy.dunlap@oracle.com>
-Subject: Re: + kmap_types-make-most-arches-use-generic-header-file.patch added
- to -mm tree
-Date: Thu, 28 May 2009 15:54:06 -0700
-Message-ID: <4A1F160E.8060209@oracle.com>
-References: <200905282131.n4SLV7rj025720@imap1.linux-foundation.org> <200905282211.58997.arnd@arndb.de>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH -tip v8 5/7] x86: add pt_regs register and stack access
+	APIs
+Date: Sat, 30 May 2009 04:13:03 -0400
+Message-ID: <20090530081303.GB15755@infradead.org>
+References: <20090529000326.17532.70868.stgit@localhost.localdomain> <20090529000347.17532.34038.stgit@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet11.oracle.com ([141.146.126.233]:17771 "EHLO
-	acsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751514AbZE1W4a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 May 2009 18:56:30 -0400
-In-Reply-To: <200905282211.58997.arnd@arndb.de>
+Received: from bombadil.infradead.org ([18.85.46.34]:43139 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751181AbZE3INI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 30 May 2009 04:13:08 -0400
+Content-Disposition: inline
+In-Reply-To: <20090529000347.17532.34038.stgit@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: akpm@linux-foundation.org, mm-commits@vger.kernel.org, cooloney@kernel.org, davem@davemloft.net, dhowells@redhat.com, geert@linux-m68k.org, hpa@zytor.com, ink@jurassic.park.msu.ru, kyle@mcmartin.ca, lethal@linux-sh.org, linux-arch@vger.kernel.org, mingo@elte.hu, ralf@linux-mips.org, rth@twiddle.net, schwidefsky@de.ibm.com, starvik@axis.com, takata@linux-m32r.org, tglx@linutronix.de, tony.luck@intel.com, vapier@gentoo.org
+To: Masami Hiramatsu <mhiramat@redhat.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Steven Rostedt <rostedt@goodmis.org>, lkml <linux-kernel@vger.kernel.org>, systemtap <systemtap@sources.redhat.com>, kvm <kvm@vger.kernel.org>, DLE <dle-develop@lists.sourceforge.net>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Frederic Weisbecker <fweisbec@gmail.com>, Roland McGrath <roland@redhat.com>, linux-arch@vger.kernel.org
 
-Arnd Bergmann wrote:
-> On Thursday 28 May 2009 21:31:06 akpm@linux-foundation.org wrote:
->> The patch titled
->>      kmap_types: make most arches use generic header file
->> has been added to the -mm tree.  Its filename is
->>      kmap_types-make-most-arches-use-generic-header-file.patch
-> 
-> Thanks for adding it back.
-> 
->> Move the KM_FENCE_ macro additions into asm-generic/kmap_types.h,
->> controlled by __WITH_KM_FENCE from each arch's kmap_types.h file.
-> 
-> I completely missed this part of the patch before. Is this actually useful?
-> All architectures that define it (x86 with a twist, the check for X86_32 is
-> an artifact from the x86 arch merge) do
-> 
-> #ifdef CONFIG_DEBUG_HIGHMEM
-> #define  __WITH_KM_FENCE
-> #endif
-> 
-> However: alpha, ia64, m32r, parisc and sh don't even support CONFIG_HIGHMEM
-> and therefore also can't set CONFIG_DEBUG_HIGHMEM. Conversely, mn10300 and
-> sparc can set CONFIG_DEBUG_HIGHMEM but don't get the extra checking
-> from KM_FENCE without this.
-> 
-> It seems to me that it would be at least as correct but simpler to just
-> leave the check for CONFIG_DEBUG_HIGHMEM.
+You might want to run this past linux-arch to make sure this is suitable
+for other architectures.
 
-Yes, I noticed that's how it was in your patch.
- 
->> Would be nice to be able to add custom KM_types per arch, but I don't yet
->> see a nice, clean way to do that.
-> 
-> FWIW, the only types that are not in the generic file right now are
-> 
-> arm: KM_L2_CACHE
-> powerpc: KM_PPC_SYNC_ICACHE, KM_PPC_SYNC_PAGE
-> um: KM_UML_USERCOPY
-> 
-> We could easily add these as KM_SYNC_ICACHE, KM_SYNC_DCACHE and
-> KM_UML_USERCOPY in the generic file and get rid of all architecture
-> specific types here.
+> --- a/arch/x86/include/asm/ptrace.h
+> +++ b/arch/x86/include/asm/ptrace.h
+> @@ -7,6 +7,7 @@
+>  
+>  #ifdef __KERNEL__
+>  #include <asm/segment.h>
+> +#include <asm/page_types.h>
+>  #endif
 
-OK by me.  I'll update it...
+I really wonder if we should split asm/ptrace.h into one file
+just defining pt_regs both for userspace and the kernel, and one with
+all kinds of register access helpers and maybe another one for the
+ptrace architecture interface.
 
-Thanks for looking.
+Unforuntately we would have to keep the ptrace.h name for the one
+carrying pt_regs as it's exposed to userland.
 
--- 
-~Randy
-LPC 2009, Sept. 23-25, Portland, Oregon
-http://linuxplumbersconf.org/2009/
+> +static inline unsigned long get_register(struct pt_regs *regs, unsigned offset)
+> +{
+
+I woner if all these names aren't a bit generic.  Shoud we maybe add a
+regs_ prefix to make it clear it operates on a pt_regs register set?
+
+Also some kerneldoc documentation for all these helpers would be nice.
+
+> +/* Get Nth argument at function call */
+> +static inline unsigned long get_argument_nth(struct pt_regs *regs, unsigned n)
+> +{
+> +#ifdef CONFIG_X86_32
+> +#define NR_REGPARMS 3
+
+I think completely separate version for 32 vs 64 bit for this one would
+be cleaner.
+
+> +	if (n < NR_REGPARMS) {
+> +		switch (n) {
+> +		case 0: return regs->ax;
+> +		case 1: return regs->dx;
+> +		case 2: return regs->cx;
+> +		}
+
+Normal kernel style would be
+
+		switch (n) {
+		case 0:
+			return regs->ax;
+		case 1:
+			return regs->dx;
+		case 2:
+			return regs->cx;
+		}
+
+> +#define REG_OFFSET(r) offsetof(struct pt_regs, r)
+> +#define REG_OFFSET_NAME(r) {.name = #r, .offset = REG_OFFSET(r)}
+> +#define REG_OFFSET_END {.name = NULL, .offset = 0}
+
+At least the REG_OFFSET macro seems superflous to me.
