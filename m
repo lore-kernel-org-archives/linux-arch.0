@@ -1,116 +1,36 @@
-From: Masami Hiramatsu <mhiramat@redhat.com>
-Subject: Re: [PATCH -tip v8 5/7] x86: add pt_regs register and stack access
- APIs
-Date: Sat, 30 May 2009 10:48:51 -0400
-Message-ID: <4A214753.8080005@redhat.com>
-References: <20090529000326.17532.70868.stgit@localhost.localdomain> <20090529000347.17532.34038.stgit@localhost.localdomain> <20090530081303.GB15755@infradead.org>
+From: liqin.chen@sunplusct.com
+Subject: Re: [PATCH 0/14] score - New architecure port to SunplusCT S+CORE
+Date: Sun, 31 May 2009 17:59:27 +0800
+Message-ID: <OFFD33A4F9.B19BF27B-ON482575C7.0036D2B4-482575C7.00373F30@sunplusct.com>
+References: <200905141044.56426.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="US-ASCII"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:49065 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758744AbZE3OsQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 30 May 2009 10:48:16 -0400
-In-Reply-To: <20090530081303.GB15755@infradead.org>
+Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:59201 "EHLO
+	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758178AbZEaKZs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 31 May 2009 06:25:48 -0400
+In-Reply-To: <200905141044.56426.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Steven Rostedt <rostedt@goodmis.org>, lkml <linux-kernel@vger.kernel.org>, systemtap <systemtap@sources.redhat.com>, kvm <kvm@vger.kernel.org>, DLE <dle-develop@lists.sourceforge.net>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Frederic Weisbecker <fweisbec@gmail.com>, Roland McGrath <roland@redhat.com>, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Thomas Gleixner <tglx@linutronix.de>, torvalds@linux-foundation.org
 
-Hi Christoph,
+Hi Arnd,
 
-Thank you for review.
-
-Christoph Hellwig wrote:
-> You might want to run this past linux-arch to make sure this is suitable
-> for other architectures.
-
-Frankly, I'm not sure about linux-arch, could you explain it?
-Anyway, I'm interested in that idea.
-
->> --- a/arch/x86/include/asm/ptrace.h
->> +++ b/arch/x86/include/asm/ptrace.h
->> @@ -7,6 +7,7 @@
->>  
->>  #ifdef __KERNEL__
->>  #include <asm/segment.h>
->> +#include <asm/page_types.h>
->>  #endif
+> Have you had a chance to look at the asm-generic header files I posted
+> a few times?
 > 
-> I really wonder if we should split asm/ptrace.h into one file
-> just defining pt_regs both for userspace and the kernel, and one with
-> all kinds of register access helpers and maybe another one for the
-> ptrace architecture interface.
-
-Agreed, pt_regs is used more broadly than ptrace itself in kernel.
-
-> Unforuntately we would have to keep the ptrace.h name for the one
-> carrying pt_regs as it's exposed to userland.
-
-Perhaps, we should split pt_regs from ptrace.h, like as ptrace-regs.h.
-
->> +static inline unsigned long get_register(struct pt_regs *regs, unsigned offset)
->> +{
-> 
-> I woner if all these names aren't a bit generic.  Shoud we maybe add a
-> regs_ prefix to make it clear it operates on a pt_regs register set?
-
-Indeed.
-
-> Also some kerneldoc documentation for all these helpers would be nice.
-
-Sure.
-
->> +/* Get Nth argument at function call */
->> +static inline unsigned long get_argument_nth(struct pt_regs *regs, unsigned n)
->> +{
->> +#ifdef CONFIG_X86_32
->> +#define NR_REGPARMS 3
-> 
-> I think completely separate version for 32 vs 64 bit for this one would
-> be cleaner.
-
-Agreed,
-
-> 
->> +	if (n < NR_REGPARMS) {
->> +		switch (n) {
->> +		case 0: return regs->ax;
->> +		case 1: return regs->dx;
->> +		case 2: return regs->cx;
->> +		}
-> 
-> Normal kernel style would be
-> 
-> 		switch (n) {
-> 		case 0:
-> 			return regs->ax;
-> 		case 1:
-> 			return regs->dx;
-> 		case 2:
-> 			return regs->cx;
-> 		}
-
-Oops, thanks,
-
-> 
->> +#define REG_OFFSET(r) offsetof(struct pt_regs, r)
->> +#define REG_OFFSET_NAME(r) {.name = #r, .offset = REG_OFFSET(r)}
->> +#define REG_OFFSET_END {.name = NULL, .offset = 0}
-> 
-> At least the REG_OFFSET macro seems superflous to me.
+> ...
+> Please tell me if you find problems in the generic header files during
+> the conversion.
 > 
 
-Exactly.
+I can't clone the linux/kernel/git/arnd/asm-generic.git repository, 
+and have not test score arch code until now.
 
-Thank you again!
+In addition, next time I send the patches mail should base on
+linux/kernel/git/arnd/asm-generic.git or
+linux/kernel/git/sfr/linux-next.git?
 
--- 
-Masami Hiramatsu
-
-Software Engineer
-Hitachi Computer Products (America) Inc.
-Software Solutions Division
-
-e-mail: mhiramat@redhat.com
+Liqin
