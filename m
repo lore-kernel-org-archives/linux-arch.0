@@ -1,59 +1,40 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] asm-generic: add dma-mapping-linear.h
-Date: Mon, 1 Jun 2009 17:45:58 +0100
-Message-ID: <200906011745.59793.arnd@arndb.de>
-References: <200905282104.55818.arnd@arndb.de> <200906011111.28521.arnd@arndb.de> <4A23D2C7.6070400@petalogix.com>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH -tip v8 5/7] x86: add pt_regs register and stack access
+	APIs
+Date: Tue, 2 Jun 2009 01:40:06 +0200
+Message-ID: <20090601234006.GA12629@elte.hu>
+References: <20090529000326.17532.70868.stgit@localhost.localdomain> <20090529000347.17532.34038.stgit@localhost.localdomain> <20090530081303.GB15755@infradead.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:59599 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752774AbZFAQqO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jun 2009 12:46:14 -0400
-In-Reply-To: <4A23D2C7.6070400@petalogix.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: michal.simek@petalogix.com
-Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, lethal@linux-sh.org, chris@zankel.net, John Williams <john.williams@petalogix.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kvm-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20090530081303.GB15755@infradead.org>
+Sender: kvm-owner@vger.kernel.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Masami Hiramatsu <mhiramat@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, lkml <linux-kernel@vger.kernel.org>, systemtap <systemtap@sources.redhat.com>, kvm <kvm@vger.kernel.org>, DLE <dle-develop@lists.sourceforge.net>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Frederic Weisbecker <fweisbec@gmail.com>, Roland McGrath <roland@redhat.com>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Monday 01 June 2009, Michal Simek wrote:
 
-> Microblaze have it but it is not cleared(checked) and not in mainline -
-> I want to look at it when mmu is in mainline.
-> As I wrote before  you can use Microblaze as tested arch.
+* Christoph Hellwig <hch@infradead.org> wrote:
 
-Ok. It should become really easy once the asm-generic version is there.
-Do you know if all DMA capable devices on microblaze are coherent
-(or if all of them are noncoherent)?
+> > +	if (n < NR_REGPARMS) {
+> > +		switch (n) {
+> > +		case 0: return regs->ax;
+> > +		case 1: return regs->dx;
+> > +		case 2: return regs->cx;
+> > +		}
+> 
+> Normal kernel style would be
+> 
+> 		switch (n) {
+> 		case 0:
+> 			return regs->ax;
+> 		case 1:
+> 			return regs->dx;
+> 		case 2:
+> 			return regs->cx;
+> 		}
 
-If it is indeed coherent, the below code should be enough, otherwise
-you need to add some cache flushes in the functions below.
+the original single-line shortcut is acceptable too.
 
-	Arnd <><
-
----
-#ifndef _ASM_MICROBLAZE_DMA_MAPPING_H
-#define _ASM_MICROBLAZE_DMA_MAPPING_H
-
-static inline int
-__dma_coherent_dev(struct device *dev)
-{
-	return 1;
-}
-
-static inline void
-dma_cache_sync(struct device *dev, void *cpu_addr, size_t size,
-	       enum dma_data_direction direction)
-{
-}
-
-static inline int dma_get_cache_alignment(void)
-{
-	return 1 << L1_CACHE_SHIFT;
-}
-
-#include <asm-generic/dma-mapping-linear.h>
-
-#endif _ASM_MICROBLAZE_DMA_MAPPING_H
+	Ingo
