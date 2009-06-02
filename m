@@ -1,95 +1,48 @@
-From: David VomLehn <dvomlehn@cisco.com>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
 Subject: Re: Representing Embedded Architectures at the Kernel Summit
-Date: Tue, 2 Jun 2009 10:45:38 -0700
-Message-ID: <20090602174538.GA10973@cuplxvomd02.corp.sa.net>
-References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com> <fa686aa40906021029macf3c72g5261f8d4dbea935a@mail.gmail.com>
+Date: Tue, 02 Jun 2009 13:25:32 -0500
+Message-ID: <1243967132.4280.11.camel@mulgrave.site>
+References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com>
+	 <20090602172941.GL3095@hansolo.jdub.homelinux.org>
+	 <1243964577.4229.49.camel@mulgrave.int.hansenpartnership.com>
+	 <20090602175244.GB10973@cuplxvomd02.corp.sa.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-embedded-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <fa686aa40906021029macf3c72g5261f8d4dbea935a@mail.gmail.com>
+In-Reply-To: <20090602175244.GB10973@cuplxvomd02.corp.sa.net>
 Sender: linux-embedded-owner@vger.kernel.org
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Tim Bird <tim.bird@am.sony.com>
+To: David VomLehn <dvomlehn@cisco.com>
+Cc: Josh Boyer <jwboyer@linux.vnet.ibm.com>, ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 02, 2009 at 11:29:46AM -0600, Grant Likely wrote:
-> On Tue, Jun 2, 2009 at 9:22 AM, James Bottomley
-> <James.Bottomley@hansenpartnership.com> wrote:
-> > Hi All,
-> >
-> > We've got to the point where there are simply too many embedded
-> > architectures to invite all the arch maintainers to the kernel summ=
-it.
-> > So, this year, we thought we'd do embedded via topic driven invitat=
-ions
-> > instead. =A0So what we're looking for is a proposal to discuss the =
-issues
-> > most affecting embedded architectures, or preview any features affe=
-cting
-> > the main kernel which embedded architectures might need ... or any =
-other
-> > topics from embedded architectures which might need discussion or
-> > debate. =A0If you'd like to do this, could you either reply to this=
- email,
-> > or send proposals to:
-> >
-> > ksummit-2009-discuss@lists.linux-foundation.org
->=20
-> Hi James,
->=20
-> One topic that seems to garner debate is the issue of decoupling the
-> kernel image from the target platform.
-=2E..
-> Embedded PowerPC and Microblaze has tackled this problem with the
-> "Flattened Device Tree" data format which is derived from the
-> OpenFirmware specifications, and there is some interest and debate (a=
-s
-> discussed recently on the ARM mailing list) about making flattened
-> device tree usable by ARM also (which I'm currently
-> proof-of-concepting).  Josh Boyer has already touched on discussing
-> flattened device tree support at kernel summit in an email to the
-> ksummit list last week (quoted below), and I'm wondering if a broader
-> discussing would be warranted.
+On Tue, 2009-06-02 at 10:52 -0700, David VomLehn wrote:
+> On Tue, Jun 02, 2009 at 12:42:57PM -0500, James Bottomley wrote:
+> > On Tue, 2009-06-02 at 13:29 -0400, Josh Boyer wrote:
+> > > Which leads me to suggest that it is at least worth having someone with an
+> > > embedded focus at KS to simply keep an eye out for impacts of generic changes.
+> > > "Feature parity" is something I often deal with in trying to keep ppc4xx up to
+> > > speed with the rest of the archs in the kernel.
+> > 
+> > We're fine with this, if that's how the embedded guys would like to do
+> > it ... how do you want to nominate the "someone with an embedded focus"?
+> > We chose the topic driven approach because that's the one it's easiest
+> > for the Kernel Summit Programme Committee to look at and make attendance
+> > decisions based upon.  However, if all the embedded people want to
+> > choose their own representatives, that's fine by us too ... as long as
+> > you can devise a fair process.
+> 
+> Now, James, I think you haven't been paying attention to the embedded Linux
+> world...asking us to devise *any* process is much more chaotic than herding
+> cats. Expecting something everyone agrees is fair would probably take until
+> at least KS 2010. That being said, we have three people who are listed in
+> MAINTAINERS under embedded Linux. We might start by seeing which of them
+> might take up the mantle and vote on the linux-embedded mailing list.
 
-I absolutely agree with this. We have been using the flattened device t=
-ree
-on our MIPS platform to support multiple systems, and are close to post=
-ing
-a patch to the MIPS Linux mailing list. At least one other MIPS platfor=
-m
-has indicated that they want to use the device tree.
+Even for someone as inattentive as me, the general problems of getting
+embedded people to agree the sky is blue did impinge on the peripheral
+consciousness.  Thus: If you can come up with such a process in a timely
+fashion then fine ... if not, we'll do the topic based one suggested by
+the PC.
 
-> I think that in the absence of any established standard like the PC
-> BIOS/EFI or a real Open Firmware interface, then the kernel should at
-> least offer a recommended interface so that multiplatform kernels are
-> possible without explicitly having the machine layout described to it
-> at compile time.  I know that some of the embedded distros are
-> interested in such a thing since it gets them away from shipping
-> separate images for each supported board.  ie. It's really hard to do
-> a generic live-cd without some form of multiplatform.  FDT is a great
-> approach, but it probably isn't the only option.  It would be worth
-> debating.
-
-Is there another possibility besides the device tree that people are us=
-ing
-on 4 different architectures? We can't mandate support of the device tr=
-ee
-for any particular architecture or platform, but we can make sure the d=
-evice
-tree infrastructure is supported well enough that any architecture can =
-pick
-it up easily. Doing so will also encourage support in bootloaders which=
- may
-not currently do so.
-
-Should we decide to go this way, there probably a next step wherein we
-standardize the device tree entries for those devices that are shared a=
-cross
-multiple architectures and platorms. This will likely be a never-ending
-and mostly thankless task, but will again make things easier in the lon=
-g run.
-
-> Grant Likely, B.Sc., P.Eng.
-> Secret Lab Technologies Ltd.
+James
