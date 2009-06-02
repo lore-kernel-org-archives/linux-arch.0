@@ -1,41 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:53027 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753555AbZFBRsl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jun 2009 13:48:41 -0400
+Received: from sj-iport-4.cisco.com ([171.68.10.86]:55183 "EHLO
+	sj-iport-4.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756604AbZFBRzH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jun 2009 13:55:07 -0400
+Date: Tue, 2 Jun 2009 10:45:38 -0700
+From: David VomLehn <dvomlehn@cisco.com>
 Subject: Re: Representing Embedded Architectures at the Kernel Summit
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Message-ID: <20090602174538.GA10973@cuplxvomd02.corp.sa.net>
+References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com> <fa686aa40906021029macf3c72g5261f8d4dbea935a@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
 In-Reply-To: <fa686aa40906021029macf3c72g5261f8d4dbea935a@mail.gmail.com>
-References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com>
-	 <fa686aa40906021029macf3c72g5261f8d4dbea935a@mail.gmail.com>
-Content-Type: text/plain
-Date: Tue, 02 Jun 2009 17:48:37 +0000
-Message-ID: <1243964917.4229.54.camel@mulgrave.int.hansenpartnership.com>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Grant Likely <grant.likely@secretlab.ca>
-Cc: ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Tim Bird <tim.bird@am.sony.com>
-Message-ID: <20090602174837.QWlSQpCrQa1ATj9QzYkZQjJwapPPhe7TVyadFngrD7U@z>
+Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Tim Bird <tim.bird@am.sony.com>
+Message-ID: <20090602174538.WrCfE9KRbdIli4hsJtPXPvAwrpJojqcHGtUpCvCXWYU@z>
 
-On Tue, 2009-06-02 at 11:29 -0600, Grant Likely wrote:
+On Tue, Jun 02, 2009 at 11:29:46AM -0600, Grant Likely wrote:
+> On Tue, Jun 2, 2009 at 9:22 AM, James Bottomley
+> <James.Bottomley@hansenpartnership.com> wrote:
+> > Hi All,
+> >
+> > We've got to the point where there are simply too many embedded
+> > architectures to invite all the arch maintainers to the kernel summit.
+> > So, this year, we thought we'd do embedded via topic driven invitations
+> > instead.  So what we're looking for is a proposal to discuss the issues
+> > most affecting embedded architectures, or preview any features affecting
+> > the main kernel which embedded architectures might need ... or any other
+> > topics from embedded architectures which might need discussion or
+> > debate.  If you'd like to do this, could you either reply to this email,
+> > or send proposals to:
+> >
+> > ksummit-2009-discuss@lists.linux-foundation.org
+> 
+> Hi James,
+> 
 > One topic that seems to garner debate is the issue of decoupling the
-> kernel image from the target platform.  ie. On x86, PowerPC and Sparc
-> a kernel image will boot on any machine (assuming the needed drivers
-> are enabled), but this is rarely the case in embedded.  Most embedded
-> kernels require explicit board support selected at compile time with
-> no way to produce a generic kernel which will boot on a whole family
-> of devices, let alone the whole architecture.  Part of this is a
-> firmware issue, where existing firmware passes very little in the way
-> of hardware description to the kernel, but part is also not making
-> available any form of common language for describing the machine.
-
-OK, so my minimal understanding in this area lead me to believe this was
-because most embedded systems didn't have properly discoverable busses
-and therefore you had to tailor the kernel configuration exactly to the
-devices the system had.
-
+> kernel image from the target platform.
+...
 > Embedded PowerPC and Microblaze has tackled this problem with the
 > "Flattened Device Tree" data format which is derived from the
 > OpenFirmware specifications, and there is some interest and debate (as
@@ -45,7 +50,12 @@ devices the system had.
 > flattened device tree support at kernel summit in an email to the
 > ksummit list last week (quoted below), and I'm wondering if a broader
 > discussing would be warranted.
-> 
+
+I absolutely agree with this. We have been using the flattened device tree
+on our MIPS platform to support multiple systems, and are close to posting
+a patch to the MIPS Linux mailing list. At least one other MIPS platform
+has indicated that they want to use the device tree.
+
 > I think that in the absence of any established standard like the PC
 > BIOS/EFI or a real Open Firmware interface, then the kernel should at
 > least offer a recommended interface so that multiplatform kernels are
@@ -57,17 +67,17 @@ devices the system had.
 > approach, but it probably isn't the only option.  It would be worth
 > debating.
 
-It sounds interesting ... however, it also sounds like an area which
-might not impact the core kernel much ... or am I wrong about that?  The
-topics we're really looking for the Kernel Summit are ones that require
-cross system input and which can't simply be sorted out by organising an
-Embedded mini-summit.
+Is there another possibility besides the device tree that people are using
+on 4 different architectures? We can't mandate support of the device tree
+for any particular architecture or platform, but we can make sure the device
+tree infrastructure is supported well enough that any architecture can pick
+it up easily. Doing so will also encourage support in bootloaders which may
+not currently do so.
 
-Now if flattened device tree could help us out with BIOS, ACPI, EFI and
-the other myriad boot and identification standards that seem designed to
-hide system information rather than reveal it, then we might be all
-ears ...
+Should we decide to go this way, there probably a next step wherein we
+standardize the device tree entries for those devices that are shared across
+multiple architectures and platorms. This will likely be a never-ending
+and mostly thankless task, but will again make things easier in the long run.
 
-James
-
-
+> Grant Likely, B.Sc., P.Eng.
+> Secret Lab Technologies Ltd.
