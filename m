@@ -1,37 +1,37 @@
 From: Robert Schwebel <r.schwebel@pengutronix.de>
-Subject: Re: [Ksummit-2009-discuss] Representing Embedded Architectures at
-	the Kernel Summit
-Date: Tue, 2 Jun 2009 23:34:52 +0200
-Message-ID: <20090602213452.GK32630@pengutronix.de>
-References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com> <20090602172941.GL3095@hansolo.jdub.homelinux.org> <1243964577.4229.49.camel@mulgrave.int.hansenpartnership.com> <20090602175244.GB10973@cuplxvomd02.corp.sa.net> <20090602185143.GA8655@zod.rchland.ibm.com> <4A257DF0.6040607@am.sony.com> <1243975064.6342.10.camel@mulgrave.site>
+Subject: Re: Representing Embedded Architectures at the Kernel Summit
+Date: Tue, 2 Jun 2009 23:40:05 +0200
+Message-ID: <20090602214005.GL32630@pengutronix.de>
+References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com> <fa686aa40906021029macf3c72g5261f8d4dbea935a@mail.gmail.com> <20090602211057.GA10800@flint.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-15
-Return-path: <linux-embedded-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from metis.ext.pengutronix.de ([92.198.50.35]:57424 "EHLO
+	metis.ext.pengutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752824AbZFBVkH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jun 2009 17:40:07 -0400
 Content-Disposition: inline
-In-Reply-To: <1243975064.6342.10.camel@mulgrave.site>
-Sender: linux-embedded-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Tim Bird <tim.bird@am.sony.com>, Josh Boyer <jwboyer@linux.vnet.ibm.com>, linux-arch@vger.kernel.org, ksummit-2009-discuss@lists.linux-foundation.org, linux-embedded@vger.kernel.org, David VomLehn <dvomlehn@cisco.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20090602211057.GA10800@flint.arm.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Grant Likely <grant.likely@secretlab.ca>, James Bottomley <James.Bottomley@hansenpartnership.com>, ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-e
 
-On Tue, Jun 02, 2009 at 03:37:44PM -0500, James Bottomley wrote:
-> The topic of "flattened device tree" look interesting to me (perhaps
-> because I'm a hardened device driver person and things like that
-> always look interesting to me) ...
+On Tue, Jun 02, 2009 at 10:10:58PM +0100, Russell King wrote:
+> I really don't think combining SoC support is going to be realistic,
+> device tree or not.  When we had just four machine types (RiscPC,
+> EBSA110, EBSA285, Netwinder) I did look into this and came to the
+> conclusion that it would be far too inefficient for there to be any
+> win.
+>
+> The big problem we have is that the only commonality between different
+> SoCs is that the CPU executes ARM instructions.  Everything else is
+> entirely up to the SoC designer - eg location of memory, spacing of
+> memory banks, type of interrupt controller, etc is all highly SoC
+> specific.  Nothing outside of the ARM CPU itself is standardized.
 
-The recent oftree activities look indeed very promising; the different
-boot-information-passing methods, mainly in powerpc and arm land, is
-IMHO and important field where a generic kernel infrastructure would
-make sense for the embedded people. Taken that oftree has created
-robustness and compatiblity problems in the past but seems to move into
-a good direction recently, feedback from core kernel developers would
-certainly be a good thing.
-
-> if we can get a few more like that out of the woodwork, this approach
-> might end up being successful.
-
-Could flickerfree-bootsplash be a topic? Or is that completely pushed
-into the userspace these fastboot days?
+And even with the cpu core, we usually build kernels with optimized
+toolchains for their cpu family. But nevertheless - describing hardware
+inside a mach* makes sense.
 
 rsc
 -- 
