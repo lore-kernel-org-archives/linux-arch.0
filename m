@@ -1,36 +1,71 @@
-From: Russell King <rmk@arm.linux.org.uk>
+From: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
 Subject: Re: Representing Embedded Architectures at the Kernel Summit
-Date: Tue, 2 Jun 2009 22:48:40 +0100
-Message-ID: <20090602214840.GB10800@flint.arm.linux.org.uk>
-References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com> <fa686aa40906021029macf3c72g5261f8d4dbea935a@mail.gmail.com> <20090602211057.GA10800@flint.arm.linux.org.uk> <20090602214005.GL32630@pengutronix.de>
+Date: Wed, 3 Jun 2009 00:21:32 +0200
+Message-ID: <20090602222132.GK6399@game.jcrosoft.org>
+References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com> <20090602172941.GL3095@hansolo.jdub.homelinux.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:60000 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752912AbZFBVtc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jun 2009 17:49:32 -0400
+Received: from 42.mail-out.ovh.net ([213.251.189.42]:52164 "HELO
+	42.mail-out.ovh.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1753050AbZFBWlg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jun 2009 18:41:36 -0400
 Content-Disposition: inline
-In-Reply-To: <20090602214005.GL32630@pengutronix.de>
+In-Reply-To: <20090602172941.GL3095@hansolo.jdub.homelinux.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robert Schwebel <r.schwebel@pengutronix.de>
-Cc: Grant Likely <grant.likely@secretlab.ca>, James Bottomley <James.Bottomley@hansenpartnership.com>, ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Tim Bird <tim.bird@am.sony.com>
+To: Josh Boyer <jwboyer@linux.vnet.ibm.com>
+Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org
 
-On Tue, Jun 02, 2009 at 11:40:05PM +0200, Robert Schwebel wrote:
-> And even with the cpu core, we usually build kernels with optimized
-> toolchains for their cpu family.
+On 13:29 Tue 02 Jun     , Josh Boyer wrote:
+> On Tue, Jun 02, 2009 at 03:22:20PM +0000, James Bottomley wrote:
+> >Hi All,
+> >
+> >We've got to the point where there are simply too many embedded
+> >architectures to invite all the arch maintainers to the kernel summit.
+> >So, this year, we thought we'd do embedded via topic driven invitations
+> >instead.  So what we're looking for is a proposal to discuss the issues
+> >most affecting embedded architectures, or preview any features affecting
+> >the main kernel which embedded architectures might need ... or any other
+> >topics from embedded architectures which might need discussion or
+> >debate.  If you'd like to do this, could you either reply to this email,
+> >or send proposals to:
+> >
+> >ksummit-2009-discuss@lists.linux-foundation.org
+> 
+> For those not following the ksummit list, below is the current list of
+> suggested topics:
+> 
+> PROPOSER        TOPIC
+> 
+> Jon Corbet      How much do we owe sloppy application writers
+> Jon Corbet      The containers end game and how we get there
+> Balbir Singh    The Hacking Hour
+> Rafael Wysocki  Regression tracking and kernel quality
+> Jon Corbet      Criteria for acceptance of kernel tracepoints
+> Jesse Barnes    Profiling and performance counters
+> Eric Biederman  Procedures for dealing with patent problems
+> John Linville   Patch review checklist
+> Matthew Wilcox  How to handle style-only patches
+> Dan Williams    RAID unification / stacked block devices
+> Jiri Kosina     User-space drivers - worth encouraging?
+> Sam Ravnborg    Shipping user-space components in the kernel
+> Kay Sievers     Establishment/maintenance of per-subsystem todo lists
+> Steve Rostedt   Improving changelogs
+> Jon Corbet      I/O bandwidth controllers (maybe minisummit report)
+> Ted Ts'o        PulseAudio and kernel interface issues
+> Greg KH         Generic architecture support and arch layer cleanup
+>                 (Josh Boyer: add device tree discussion?)
+> Dave Jones      cpumasks, churn, and unending API changes
+> Dirk Hohndel    Issues related to wireless technologies
+> Jon Corbet      Tracing:
+>                         Merging utrace
+>                         Ftrace mainline v. private debugging tools
+>                         Non-ftrace visibility infrastructure
+>                         Systemtap for kernel developers
+> Marcel Holtmann         Tracing and protocol dumping
+I'd like to propose AMP and kernel relocate
+as more and SoC will came with multiple core with or without the same arch
 
-I'm afraid that doesn't make a blind bit of difference to the kernel -
-it passes the relevent optimization flags to gcc which tell the compiler
-which instructions to use (based upon the CPU architecture) and how to
-schedule those instructions (based upon the CPU type(s) chosen in the
-kernel configuration.)
-
-All that an "optimized" toolchain is is a toolchain with a different
-default optimization selected.
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Best Regards,
+J.
