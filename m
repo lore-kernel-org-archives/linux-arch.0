@@ -1,65 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cassiel.sirena.org.uk ([80.68.93.111]:53271 "EHLO
-	cassiel.sirena.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754047AbZFCMRM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2009 08:17:12 -0400
-Date: Wed, 3 Jun 2009 13:17:10 +0100
-From: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Subject: Re: Representing Embedded Architectures at the Kernel Summit
-Message-ID: <20090603121710.GF11507@sirena.org.uk>
-References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com> <fa686aa40906021029macf3c72g5261f8d4dbea935a@mail.gmail.com> <1243964917.4229.54.camel@mulgrave.int.hansenpartnership.com>
+Received: from 42.mail-out.ovh.net ([213.251.189.42]:38269 "HELO
+	42.mail-out.ovh.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1754638AbZFCOU1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2009 10:20:27 -0400
+Date: Wed, 3 Jun 2009 16:06:54 +0200
+From: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
+Subject: Re: [Ksummit-2009-discuss] Representing Embedded Architectures at
+	the Kernel Summit
+Message-ID: <20090603140654.GA17962@game.jcrosoft.org>
+References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com> <1244034286.24482.84.camel@pc1117.cambridge.arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1243964917.4229.54.camel@mulgrave.int.hansenpartnership.com>
+In-Reply-To: <1244034286.24482.84.camel@pc1117.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Grant Likely <grant.likely@secretlab.ca>, ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Tim Bird <tim.bird@am.sony.com>
-Message-ID: <20090603121710.JECyk0W1Uwfecy3xSoOKu0jl1WdoiqcqKBydqTZHRnk@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org
+Message-ID: <20090603140654.eiL1Q_XTogkPwadNLWhy9ScspbL0kSpX-tuUzJKwnb8@z>
 
-On Tue, Jun 02, 2009 at 05:48:37PM +0000, James Bottomley wrote:
-> On Tue, 2009-06-02 at 11:29 -0600, Grant Likely wrote:
+> 
+>       * Asymmetric MP:
+>               * Different CPU frequencies
+>               * Different CPU features (e.g. floating point only one
+>                 some CPUs): scheduler awareness, per-CPU hwcap bits (in
+>                 case user space wants to set the affinity) 
+>               * Asymmetric workload balancing for power consumption (may
+>                 be better to load 1 CPU at 60% than 4 at 15%) 
+I'll add
+		* Different Core ARCH
+		* FDT or similar to describe I/O (MEM, PCI, GPIO) acessible for
+		  each instance
+		* Mailbox Architecture
+		* boot preocedure (bootloader as example done by Kumar Gala
+		  for the mpc8572ds in linux & U-Boot)
+		* sharing rootfs (RO) (reduce the rootfs size on embedded)
 
-> > firmware issue, where existing firmware passes very little in the way
-> > of hardware description to the kernel, but part is also not making
-> > available any form of common language for describing the machine.
-
-> OK, so my minimal understanding in this area lead me to believe this was
-> because most embedded systems didn't have properly discoverable busses
-> and therefore you had to tailor the kernel configuration exactly to the
-> devices the system had.
-
-Ish; essentially it's pushing the description of the non-enumerable bits
-of the hardware out of kernel code and into a separate bit of data that
-can be passed in to the kernel.
-
-> It sounds interesting ... however, it also sounds like an area which
-> might not impact the core kernel much ... or am I wrong about that?  The
-> topics we're really looking for the Kernel Summit are ones that require
-> cross system input and which can't simply be sorted out by organising an
-> Embedded mini-summit.
-
-One issue that does have wider impact is that the OpenFirmware bindings
-can affect any driver level code - it means that drivers may need to
-parse configuration out of the device tree as well as the mechanisms
-they normally use.  This is already happening due to the current use but
-will become more visible if more platforms adopt the device tree.  As
-someone primarily working on driver/subsystem side stuff this is my
-primary concern with expanded use of device tree - it's another set of
-platform data code that needs writing in addition to the other schemes
-currently in use.
-
-On the other hand, if all the embedded architectures got together and
-agreeded to move in this direction it'd be pretty much equivalent to
-some new BIOS standard being introduced for PCs so perhaps not worth
-worrying about at a general kernel level.
-
-> Now if flattened device tree could help us out with BIOS, ACPI, EFI and
-> the other myriad boot and identification standards that seem designed to
-> hide system information rather than reveal it, then we might be all
-> ears ...
-
-Well, you could potentially try to render other BIOS data tables into
-device tree format.  I'm not sure that the translation would be less
-effort than parsing the existing data, though.
+Best Regards,
+J.
