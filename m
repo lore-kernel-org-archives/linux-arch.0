@@ -1,51 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:48968 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752823AbZFCSoN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2009 14:44:13 -0400
-Date: Wed, 3 Jun 2009 11:43:44 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:50845 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756826AbZFCTBD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2009 15:01:03 -0400
 Subject: Re: [Ksummit-2009-discuss] Representing Embedded Architectures at
  the Kernel Summit
-Message-ID: <20090603114344.bf852654.akpm@linux-foundation.org>
-In-Reply-To: <20090603170925.GA8330@flint.arm.linux.org.uk>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <20090603114344.bf852654.akpm@linux-foundation.org>
 References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com>
-	<1244034286.24482.84.camel@pc1117.cambridge.arm.com>
-	<1244045997.21423.303.camel@mulgrave.site>
-	<20090603170925.GA8330@flint.arm.linux.org.uk>
+	 <1244034286.24482.84.camel@pc1117.cambridge.arm.com>
+	 <1244045997.21423.303.camel@mulgrave.site>
+	 <20090603170925.GA8330@flint.arm.linux.org.uk>
+	 <20090603114344.bf852654.akpm@linux-foundation.org>
+Content-Type: text/plain
+Date: Wed, 03 Jun 2009 19:01:02 +0000
+Message-ID: <1244055662.3527.14.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk@arm.linux.org.uk>
-Cc: James.Bottomley@HansenPartnership.com, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, ksummit-2009-discuss@lists.linux-foundation.org
-Message-ID: <20090603184344.IvdBvQnifO9FzkObgBNN0Qp9XmEatdWyFmT8JYBfpoQ@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Russell King <rmk@arm.linux.org.uk>, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, ksummit-2009-discuss@lists.linux-foundation.org
+Message-ID: <20090603190102.YG4o3Dae9QgY9svut6NUpcJ8n1VPAP9b_tj4EOQ8CJo@z>
 
-On Wed, 3 Jun 2009 18:09:25 +0100
-Russell King <rmk@arm.linux.org.uk> wrote:
-
-> In
-> fact, on ARM the DMA mask is exactly that - it's a 100% proper mask.  It's
-> not a bunch of zeros in the MSB followed by a bunch of ones down to the
-> LSB.  It can be a bunch of ones, a bunch of zeros, followed by a bunch of
-> ones.
+On Wed, 2009-06-03 at 11:43 -0700, Andrew Morton wrote:
+> On Wed, 3 Jun 2009 18:09:25 +0100
+> Russell King <rmk@arm.linux.org.uk> wrote:
 > 
-> The way we occasionally have to deal with this is to trial an allocation,
-> see if the physical address fits, if not free the page and try again with
-> GFP_DMA set.
+> > In
+> > fact, on ARM the DMA mask is exactly that - it's a 100% proper mask.  It's
+> > not a bunch of zeros in the MSB followed by a bunch of ones down to the
+> > LSB.  It can be a bunch of ones, a bunch of zeros, followed by a bunch of
+> > ones.
+> > 
+> > The way we occasionally have to deal with this is to trial an allocation,
+> > see if the physical address fits, if not free the page and try again with
+> > GFP_DMA set.
+> 
+> A couple of times I've suggested that we have the ability to allocate
+> one zone per address bit, so a 32-bit machine with 4k pages would end
+> up having 20 zones.  Then, your funny DMA mask can be directly passed
+> into the page allocator as a zone mask and voila, I think.
 
-A couple of times I've suggested that we have the ability to allocate
-one zone per address bit, so a 32-bit machine with 4k pages would end
-up having 20 zones.  Then, your funny DMA mask can be directly passed
-into the page allocator as a zone mask and voila, I think.
+The objection I heard to that one is that the zone machinery works
+better with fewer zones ... but we could certainly align them along
+known boundaries for allocations (if it's only bit X that's the problem,
+say, you only need an additional zone covering that one).
 
-> There's many stories I've heard on what is supposed to take care of the
-> coherency that I now just close my ears to the problem and chant "it
-> doesn't exist, people aren't seeing it, mainline folk just don't give
-> a damn".  Really.  It is a problem on _some_ ARM devices and has been
-> for several years now, and I've 100% given up caring about it.
+Based on this, I dug up the initial proposal, it was the Ottawa Kernel
+Summit in 2005 (I'm a packrat; I keep all my old presentations):
 
-I wasn't even aware that there was an issue here.  Please don't blame
-"mainline folk" for something they weren't told about!
+http://www.hansenpartnership.com/sites/hansenpartnership.com/files/jejb/kernel_summit_iommu.pdf
+
+kmalloc_mask() is right at the end.  It basically died for lack of
+interest and the fact that GFP_DMA32 satisfied 99% of the actual use
+cases.
+
+James
+
 
