@@ -1,67 +1,42 @@
 From: Ralf Baechle <ralf@linux-mips.org>
 Subject: Re: [Ksummit-2009-discuss] Representing Embedded Architectures at
 	the Kernel Summit
-Date: Wed, 3 Jun 2009 07:53:55 +0100
-Message-ID: <20090603065355.GC23561@linux-mips.org>
-References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com> <fa686aa40906021029macf3c72g5261f8d4dbea935a@mail.gmail.com>
+Date: Wed, 3 Jun 2009 08:07:39 +0100
+Message-ID: <20090603070739.GD23561@linux-mips.org>
+References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com> <fa686aa40906021029macf3c72g5261f8d4dbea935a@mail.gmail.com> <20090602211057.GA10800@flint.arm.linux.org.uk> <10f740e80906021418i1d58f5eer940e7a8ec9fb8b9e@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from h5.dl5rb.org.uk ([81.2.74.5]:41503 "EHLO h5.dl5rb.org.uk"
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:35642 "EHLO h5.dl5rb.org.uk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751619AbZFCGyc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 3 Jun 2009 02:54:32 -0400
+	id S1752794AbZFCHIu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 3 Jun 2009 03:08:50 -0400
 Content-Disposition: inline
-In-Reply-To: <fa686aa40906021029macf3c72g5261f8d4dbea935a@mail.gmail.com>
+In-Reply-To: <10f740e80906021418i1d58f5eer940e7a8ec9fb8b9e@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, linux-arch@vger.kernel.org, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Tim Bird <tim.bird@am.sony.com>, linux-embedded@vger.kernel.org, ksummit-2009-discuss@lists.linux-foundation.org
+To: Geert Uytterhoeven <geert.uytterhoeven@gmail.com>
+Cc: Grant Likely <grant.likely@secretlab.ca>, James Bottomley <James.Bottomley@hansenpartnership.com>, ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Tim Bird <tim.bird@am.sony.com>
 
-On Tue, Jun 02, 2009 at 11:29:46AM -0600, Grant Likely wrote:
+On Tue, Jun 02, 2009 at 11:18:04PM +0200, Geert Uytterhoeven wrote:
 
-> One topic that seems to garner debate is the issue of decoupling the
-> kernel image from the target platform.  ie. On x86, PowerPC and Sparc
-> a kernel image will boot on any machine (assuming the needed drivers
-> are enabled), but this is rarely the case in embedded.  Most embedded
-> kernels require explicit board support selected at compile time with
-> no way to produce a generic kernel which will boot on a whole family
-> of devices, let alone the whole architecture.  Part of this is a
-> firmware issue, where existing firmware passes very little in the way
-> of hardware description to the kernel, but part is also not making
-> available any form of common language for describing the machine.
+> > The big problem we have is that the only commonality between differ=
+ent
+> > SoCs is that the CPU executes ARM instructions. =A0Everything else =
+is
+> > entirely up to the SoC designer - eg location of memory, spacing of
+> > memory banks, type of interrupt controller, etc is all highly SoC
+> > specific. =A0Nothing outside of the ARM CPU itself is standardized.
+>=20
+> That sounds very similar to m68k, which does support generic kernels
+> (except for Sun-3, which uses a completely different MMU)?
 
-Hardware is simple to incompatible to allow the generation of a single
-"one size fits all" image.  To list a few reasons from the MIPS world:
-
-  o little vs. big endian
-  o 32-bit vs. 64-bit
-  o different system firmwares
-  o processors and peripherals requiring creative workarounds which for
-    code size or performance reasons want to limit to those systems
-    suffering from the issue.
-  o often claustrophobically small memory sizes.
-  o exactly no communality across all systems except the processor
-    architecture.
-  o vendors coming up with their own instruction set enhancements not
-    supported by any competitor and insisting on their use for the extra
-    bit of performance and product differenciation.
-  o many users have a long standing "roll your own" attitude.
-  o peripherals that are even less probeable than ISA cards
-
-"Flattened Device Tree" can tackle only a small part of this but its a
-step.
-
-> Embedded PowerPC and Microblaze has tackled this problem with the
-> "Flattened Device Tree" data format which is derived from the
-> OpenFirmware specifications, and there is some interest and debate (as
-> discussed recently on the ARM mailing list) about making flattened
-> device tree usable by ARM also (which I'm currently
-> proof-of-concepting).  Josh Boyer has already touched on discussing
-> flattened device tree support at kernel summit in an email to the
-> ksummit list last week (quoted below), and I'm wondering if a broader
-> discussing would be warranted.
-
-Agreed.
+=46or MIPS we currently have a concept of system families.  The user se=
+lects
+one in the "System type" Kconfig menu.  With few exceptions that are no=
+t
+worth considering these system types are incompatible so there are
+currently 37 families of incompatible platforms with more being added.
 
   Ralf
