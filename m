@@ -1,61 +1,52 @@
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH] asm-generic: add dma-mapping-linear.h
-Date: Thu, 4 Jun 2009 13:51:19 +0100
-Message-ID: <20090604125119.GB24491@flint.arm.linux.org.uk>
-References: <200905282104.55818.arnd@arndb.de> <200906011111.28521.arnd@arndb.de> <20090604165703N.fujita.tomonori@lab.ntt.co.jp> <200906041235.34686.arnd@arndb.de>
+Date: Thu, 4 Jun 2009 14:42:52 +0100
+Message-ID: <200906041442.53170.arnd@arndb.de>
+References: <200905282104.55818.arnd@arndb.de> <200906041235.34686.arnd@arndb.de> <20090604125119.GB24491@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:49325 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756872AbZFDMvh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jun 2009 08:51:37 -0400
-Content-Disposition: inline
-In-Reply-To: <200906041235.34686.arnd@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.126.186]:53892 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751650AbZFDNnH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jun 2009 09:43:07 -0400
+In-Reply-To: <20090604125119.GB24491@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: Russell King <rmk+lkml@arm.linux.org.uk>
 Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, Jun 04, 2009 at 12:35:34PM +0000, Arnd Bergmann wrote:
-> static inline int
-> dma_supported(struct device *dev, u64 mask)
-> {
-> 	/*
-> 	 * dma_supported means that dma_alloc_{non,}coherent
-> 	 * will succeed in finding an addressable page.
-> 	 */
-> 	u64 zone_dma_max_pfn;
-> 	struct pgdat *pgdat;
-> 	struct zone *zone;
+On Thursday 04 June 2009, Russell King wrote:
+> And here we go promoting dma-mask-is-not-a-mask-but-a-limit (which I
+> brought up in the KS thread on linux-arch.)
 > 
-> 	for_each_online_pgdat(pgdat) {
-> 		/* the first zone on each node is most likely to fit in the mask */
-> 		zone = pgdat->node_zones[0];
-> 		if (populated_zone(zone) {
-> 			max_dma_pfn = zone->zone_start_pfn + zone->spanned_pages);
-> 			/* max_dma_pfn is actually constant, we could store it
-> 			    somewhere instead of looking it up every time. */
-> 			if (mask < (max_dma_pfn << PAGE_SHIFT))
+> It's fine if your DMA-able memory starts at physical address 0 and ends
+> somewhere else, but this is no longer the case with embedded platforms.
+> As pointed out in the other thread, there are platforms which have two
+> separate banks of memory, the one at the lower physical address is not
+> DMA capable.
 
-And here we go promoting dma-mask-is-not-a-mask-but-a-limit (which I
-brought up in the KS thread on linux-arch.)
+The dma-mapping-linear.h only cares about the platforms that have a
+linear contigous mapping between DMA and phys addresses. Other
+platforms will have to do something more fancy in their dma mapping
+implementation.
 
-It's fine if your DMA-able memory starts at physical address 0 and ends
-somewhere else, but this is no longer the case with embedded platforms.
-As pointed out in the other thread, there are platforms which have two
-separate banks of memory, the one at the lower physical address is not
-DMA capable.
+The device sets a mask (really a limit) of the address ranges it can
+handle. Basically every user in the kernel currently passes DMA_BIT_MASK()
+limit into {dma,pci}_set_mask,  and I am not aware of any driver
+that needs something more fancy. If you know one, please tell us.
 
-This means that treating the DMA mask as a limit does not work for these
-platforms (and, sometimes, treating it as a real mask also doesn't work.)
+The DMA-capable addresses of the platform are a completely different
+issue and these should not be confused. Some architecture solve this
+by bus-specific mapping operations, which sounds like what you would
+need here as well. The bus is the only instance in the system that knows
+how the device-visible DMA space maps into the physical memory space,
+and it needs to be the instance checking the mask.
 
-A good step forward would be to get a concensus on this stupid DMA mask
-thing.  Is it a _mask_, or is it a _limit_?  If it's a mask then let's
-start treating it as such throughout the kernel code.  If it's a limit,
-let's rename the damned thing so everyone knows that.
+The only place where the mask is really used later is dma_alloc_coherent,
+which can also be bus specific, and should know how to interpret the
+mask.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+	Arnd <><
