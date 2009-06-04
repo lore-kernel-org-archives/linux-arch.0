@@ -1,118 +1,238 @@
-From: Mel Gorman <mel@csn.ul.ie>
-Subject: Re: [Ksummit-2009-discuss] Representing Embedded Architectures at
-	the Kernel Summit
-Date: Thu, 4 Jun 2009 10:23:48 +0100
-Message-ID: <20090604092348.GC17321@csn.ul.ie>
-References: <20090603114344.bf852654.akpm@linux-foundation.org> <FF038EB85946AA46B18DFEE6E6F8A2890151520C@xmb-rtp-218.amer.cisco.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] asm-generic: add dma-mapping-linear.h
+Date: Thu, 4 Jun 2009 12:35:34 +0000
+Message-ID: <200906041235.34686.arnd@arndb.de>
+References: <200905282104.55818.arnd@arndb.de> <200906011111.28521.arnd@arndb.de> <20090604165703N.fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
-Return-path: <linux-embedded-owner@vger.kernel.org>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.177]:57684 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752743AbZFDMfq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jun 2009 08:35:46 -0400
+In-Reply-To: <20090604165703N.fujita.tomonori@lab.ntt.co.jp>
 Content-Disposition: inline
-In-Reply-To: <FF038EB85946AA46B18DFEE6E6F8A2890151520C@xmb-rtp-218.amer.cisco.com>
-Sender: linux-embedded-owner@vger.kernel.org
-To: "David VomLehn (dvomlehn)" <dvomlehn@cisco.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <rmk@arm.linux.org.uk>, James.Bottomley@hansenpartnership.com, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, ksummit-2009-discuss@lists.linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wed, Jun 03, 2009 at 11:11:13PM -0400, David VomLehn (dvomlehn) wrote:
-> David Delaney has a proof-of-concept of an idea of his which was
-> presented at the last CELF, which is basically to put the kernel and
-> loadable kernel modules closely enough together that you can avoid the
-> use of long jumps. He sees a better than 1% improvement in performance,
-> which we've duplicated using a slightly different approach. This is nice
-> payback for little work and, though it doesn't help on all processors,
-> it helps on several.
+On Thursday 04 June 2009 07:57:12 FUJITA Tomonori wrote:
+> On Mon, 1 Jun 2009 11:11:27 +0100 Arnd Bergmann <arnd@arndb.de> wrote:
+> > I've deliberately kept my asm-generic tree free from architecture specific
+> > code for now, in order to make the merging process much easier.
 > 
-> The problem is: how do you allocate memory with the magical "close to
-> the kernel" attribute? We have something that adds a new ZONE_KERNEL
-> (this name has some problems, actually).
+> I understand what you mean however we need to merge something
+> useful. I don't say that you need to merge everything together however
+> we can't know if this is useful or not unless you show how some
+> architectures use it.
 
-As this is about addresses of text, I imagine that you really care about the
-virtual address the module is loaded at which is what the virtual address
-space is responsible for and not the physical addresses which zones are
-concerned with. Would that be right?
+ok. 
 
-If that was the case, this could be potentially be done by moving where
-the vmalloc address space is located or possibly splitting it in two. By
-locating some portion of the vmalloc address space above the kernel
-image, the kernel modules could be loaded in there.
-
-It's different for the DMA problem, it really requires particular physical
-addresses. No one trying to implementat Andrew's suggestion is a bit of a
-surprise because basically, it'd do the job as far as I can see but is not
-an issue that hurts me so I never sat down to try implementing it. Granted,
-increasing the number of zones adds its own problem but it's for large numbers
-of zones and there are other things that could be done to the allocator to
-reduce its cache footprint. The big plus is that it plays very well with
-reclaim and I would expect it to perform better than than searching the
-free lists for a suitable page which would be a bit of a hatchet job.
-
-> It seems like a pretty good
-> solution if you look at zones as conceptually concentric usages, but
-> with the current zone implementation, each zone must be contiguous. So,
-> if we're talking about changing what zones are done, I'd like to throw
-> this into the pot.
 > 
-> > -----Original Message-----
-> > From: linux-embedded-owner@vger.kernel.org 
-> > [mailto:linux-embedded-owner@vger.kernel.org] On Behalf Of 
-> > Andrew Morton
-> > Sent: Wednesday, June 03, 2009 11:44 AM
-> > To: Russell King
-> > Cc: James.Bottomley@HansenPartnership.com; 
-> > linux-arch@vger.kernel.org; linux-embedded@vger.kernel.org; 
-> > ksummit-2009-discuss@lists.linux-foundation.org
-> > Subject: Re: [Ksummit-2009-discuss] Representing Embedded 
-> > Architectures at the Kernel Summit
+> > I do have branches in there that convert x86 and microblaze to use
+> 
+> x86? How can it use asm-generic-linear.h?
+
+Not dma-mapping-linear.h, but a lot of other files in asm-generic. I have
+a set of all the common header files in my tree, and x86 can e.g. use
+ioctls.h, ipcbuf.h, mman.h, or types.h. For x86, it amounts to 15 files,
+microblaze can use almost 50 of the generic files.
+
+> > I made this up in order to deal with the different requirements of
+> > the architectures I converted. In SH, it's truly device specific
+> > (pci may be coherent, others are never), on cris it returns false
+> > and on most others always true.
+> 
+> I know what you are trying here.
+> 
+> However, dma_cache_sync() is an exported function to drivers; which
+> should be used only with a buffer returned by dma_alloc_noncoherent()
+> (see DMA-API.txt). So using dma_cache_sync() in this way is confusing
+> to me.
+
+I think it is technically correct, but there are two plausible ways of
+doing it, I chose the one that requires slightly less code.
+
+I call dma_cache_sync() for streaming mappings on dma_map_* and
+dma_sync_*_for_device iff the mapping is noncoherent. AFAICT, this
+is the same case as dma_alloc_noncoherent, which is expected to give
+out a noncoherent mapping.
+
+It is done the same way in the existing code for avr32 and sh. The
+alternative (implemented in mn10300, and xtensa) is to define a
+new function for flushing a data range before a DMA and call that
+unconditionally from dma_cache_sync and for noncoherent mappings
+in dma_map* and dma_sync_*_for_device.
+ 
+> > Architectures like x86 and frv could use this hook to do th
+> > global flush_write_buffers() but still return zero so that
+> > dma_sync_sg_for_device does not have to iterate all SG
+> > elements doing nothing for them.
 > > 
-> > On Wed, 3 Jun 2009 18:09:25 +0100
-> > Russell King <rmk@arm.linux.org.uk> wrote:
+> > Maybe it should be named __dma_coherent_dev() to make clear
+> > that it is a helper internal to dma_mapping.h and not supposed to
+> > be used by device drivers.
+> 
+> Might be. However, we have dma_is_consistent() for a different purpose
+
+I tried (ab)using that, but since dma_is_consistent takes a memory range,
+dma_sync_sg_for_device would have to use less efficient code:
+
+(1)
+static inline void
+dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
+                      int nents, enum dma_data_direction direction)
+{
+       struct scatterlist *sg;
+       int i;
+
+       if (!dma_coherent_dev(dev))
+               for_each_sg(sglist, sg, nents, i)
+                       dma_cache_sync(dev, sg_virt(sg), sg->length, direction);
+
+       debug_dma_sync_sg_for_device(dev, sg, nents, direction);
+}
+
+(2)
+static inline void
+dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
+                      int nents, enum dma_data_direction direction)
+{
+       struct scatterlist *sg;
+       int i;
+
+       for_each_sg(sglist, sg, nents, i)
+               if (!dma_is_consistent(dev, sg_virt(sg)))
+                      dma_cache_sync(dev, sg_virt(sg), sg->length, direction);
+
+       debug_dma_sync_sg_for_device(dev, sg, nents, direction);
+}
+
+In (1), gcc can completely eliminate the object code if dma_coherent_dev()
+returns 1, or do a single branch on a nonconstant return value. In (2), we will
+walk the full sg list. In some cases, gcc may be able to optimize this as well,
+but not in general.
+
+> > It took me a while to find out what the architectures do in case of
+> > dma_sync_single_for_*. The noncoherent implementations all flush
+> > and invalidate the dcache in _for_device, which seems reasonable.
 > > 
-> > > In
-> > > fact, on ARM the DMA mask is exactly that - it's a 100% 
-> > proper mask.  It's
-> > > not a bunch of zeros in the MSB followed by a bunch of ones 
-> > down to the
-> > > LSB.  It can be a bunch of ones, a bunch of zeros, followed 
-> > by a bunch of
-> > > ones.
+> > In arch/sh and arch/xtensa, we also flush and invalidate the
+> > dcache in *_for_cpu.
+> > This does not seem to make sense to me, because there should
+> > not be any valid cache lines for that region at that time. My plan 
+> > was to submit patches to sh and xtensa to no longer flush the
+> > dcache in _for_cpu with that argument before submitting the patch
+> > to use the common code. Maybe Paul or Chris can comment on
+> > whether there is any reason for the dma flush here, if there is
+> > one, we probably should also flush in dma_unmap_*.
+> > 
+> > AFAICT, the _for_cpu hooks are only required for swiotlb
+> > or for an obscure HW implementation of an IOMMU.
+> 
+> ? Why we don't need to remove stale cache after DMA_FROM_DEVICE
+> transfer?
+
+The way that the existing architectures handle this case is to
+invalidate the cache before DMA_FROM_DEVICE transfers.
+This only works if the CPU is forbidden from touching the buffer
+between dma_map_*/dma_sync_*_for_device and
+dma_unmap_*/dma_sync_*_for_cpu, while the device is forbidden
+to touch it at any other time. I believe this is what we are expecting
+the driver to enforce.
+
+In fact, the documentation of dma_sync_single_for_cpu tells exactly that:
+
+/*
+ * Make physical memory consistent for a single streaming mode DMA
+ * translation after a transfer.
+ *
+ * If you perform a dma_map_single() but wish to interrogate the
+ * buffer using the cpu, yet do not wish to teardown the DMA mapping,
+ * you must call this function before doing so.  At the next point you
+ * give the DMA address back to the card, you must first perform a
+ * dma_sync_single_for_device, and then the device again owns the
+ * buffer.
+ */
+
+> > > > +static inline int
+> > > > +dma_supported(struct device *dev, u64 mask)
+> > > > +{
+> > > > +	/*
+> > > > +	 * we fall back to GFP_DMA when the mask isn't all 1s,
+> > > > +	 * so we can't guarantee allocations that must be
+> > > > +	 * within a tighter range than GFP_DMA.
+> > > > +	 */
+> > > > +	if (mask < 0x00ffffff)
+> > > > +		return 0;
 > > > 
-> > > The way we occasionally have to deal with this is to trial 
-> > an allocation,
-> > > see if the physical address fits, if not free the page and 
-> > try again with
-> > > GFP_DMA set.
+> > > I think that this is pretty architecture specific.
 > > 
-> > A couple of times I've suggested that we have the ability to allocate
-> > one zone per address bit, so a 32-bit machine with 4k pages would end
-> > up having 20 zones.  Then, your funny DMA mask can be directly passed
-> > into the page allocator as a zone mask and voila, I think.
-> > 
-> > > There's many stories I've heard on what is supposed to take 
-> > care of the
-> > > coherency that I now just close my ears to the problem and chant "it
-> > > doesn't exist, people aren't seeing it, mainline folk just 
-> > don't give
-> > > a damn".  Really.  It is a problem on _some_ ARM devices 
-> > and has been
-> > > for several years now, and I've 100% given up caring about it.
-> > 
-> > I wasn't even aware that there was an issue here.  Please don't blame
-> > "mainline folk" for something they weren't told about!
-> > 
-> > --
-> > To unsubscribe from this list: send the line "unsubscribe 
-> > linux-embedded" in
-> > the body of a message to majordomo@vger.kernel.org
-> > More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> > 
-> _______________________________________________
-> Ksummit-2009-discuss mailing list
-> Ksummit-2009-discuss@lists.linux-foundation.org
-> https://lists.linux-foundation.org/mailman/listinfo/ksummit-2009-discuss
+> > Yes, I wondered about this one. I suspect that the same code got
+> > copied blindly from x86 into all the other architectures. The
+> > same code exists in arm, cris, frv and mn10300, while avr32, sh
+> > and xtensa seem to assume that nobody passes a smaller than
+> > 24-bit mask in there and always return 1. They clearly could not
+> > handle that situation either, so the version I chose is the
+> > conservative approach.
 > 
+> I think that it's better not have this in
+> dma-mapping-linear.h. Everyone blindly copies it from x86 but they are
+> not correct.
 
--- 
-Mel Gorman
-Part-time Phd Student                          Linux Technology Center
-University of Limerick                         IBM Dublin Software Lab
+If all the architectures are wrong, then I see this as even more reason
+to put a correct version into dma-mapping-linear.h. 
+
+The existing implementations that check for 0x00ffffff all seem to
+assume that dma_supported() returns whether or not
+dma_alloc_consistent() will work, falling back to GFP_DMA if necessary.
+In this case, we would need to check the maximum address of ZONE_DMA,
+ZONE_DMA32 or ZONE_NORMAL (whichever comes first) for correctness:
+
+static inline int
+dma_supported(struct device *dev, u64 mask)
+{
+	/*
+	 * dma_supported means that dma_alloc_{non,}coherent
+	 * will succeed in finding an addressable page.
+	 */
+	u64 zone_dma_max_pfn;
+	struct pgdat *pgdat;
+	struct zone *zone;
+
+	for_each_online_pgdat(pgdat) {
+		/* the first zone on each node is most likely to fit in the mask */
+		zone = pgdat->node_zones[0];
+		if (populated_zone(zone) {
+			max_dma_pfn = zone->zone_start_pfn + zone->spanned_pages);
+			/* max_dma_pfn is actually constant, we could store it
+			    somewhere instead of looking it up every time. */
+			if (mask < (max_dma_pfn << PAGE_SHIFT))
+				return 0;
+		}
+	}
+	return 1;
+}
+
+The other interpretation is to tread dma_supported as meaning that dma_map_*
+can succeed. Right now, we assume that it always will on the present
+architectures I copied from, but that is not necessarily true if mask is smaller
+than the highest physical page that can be passed into dma_map_*.
+
+static inline int
+dma_supported(struct device *dev, u64 mask)
+{
+	/*
+	 * dma_supported means that dma_map_page and others
+	 * can make any RAM address in the system visible to the device.
+	 */
+	if (mask < (max_pfn << PAGE_SHIFT))
+		return 0;
+
+	return 1;
+}
+
+	Arnd <><
