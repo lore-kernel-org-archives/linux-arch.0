@@ -1,123 +1,195 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gir.skynet.ie ([193.1.99.77]:36642 "EHLO gir.skynet.ie"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750829AbZFDJXu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 4 Jun 2009 05:23:50 -0400
-Date: Thu, 4 Jun 2009 10:23:48 +0100
-From: Mel Gorman <mel@csn.ul.ie>
-Subject: Re: [Ksummit-2009-discuss] Representing Embedded Architectures at
-	the Kernel Summit
-Message-ID: <20090604092348.GC17321@csn.ul.ie>
-References: <20090603114344.bf852654.akpm@linux-foundation.org> <FF038EB85946AA46B18DFEE6E6F8A2890151520C@xmb-rtp-218.amer.cisco.com>
+Received: from qw-out-2122.google.com ([74.125.92.24]:8637 "EHLO
+	qw-out-2122.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752229AbZFDSS4 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jun 2009 14:18:56 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
-Content-Disposition: inline
-In-Reply-To: <FF038EB85946AA46B18DFEE6E6F8A2890151520C@xmb-rtp-218.amer.cisco.com>
+In-Reply-To: <1243964917.4229.54.camel@mulgrave.int.hansenpartnership.com>
+References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com>
+	<fa686aa40906021029macf3c72g5261f8d4dbea935a@mail.gmail.com>
+	<1243964917.4229.54.camel@mulgrave.int.hansenpartnership.com>
+From: Grant Likely <grant.likely@secretlab.ca>
+Date: Thu, 4 Jun 2009 12:18:38 -0600
+Message-ID: <fa686aa40906041118x1ababaeeuaaca9c6a7e94fcb9@mail.gmail.com>
+Subject: Re: Representing Embedded Architectures at the Kernel Summit
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "David VomLehn (dvomlehn)" <dvomlehn@cisco.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <rmk@arm.linux.org.uk>, James.Bottomley@hansenpartnership.com, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, ksummit-2009-discuss@lists.linux-foundation.org
-Message-ID: <20090604092348.NkVAynqx2VWndGTgMMLWZw6eNX55m4zmcED2w3W1HL4@z>
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Tim Bird <tim.bird@am.sony.com>, Greg KH <greg@kroah.com>
+Message-ID: <20090604181838.RhAzlVfZrOXVux7MP8n1L0v2noAJJDBzatvw9vT7IqQ@z>
 
-On Wed, Jun 03, 2009 at 11:11:13PM -0400, David VomLehn (dvomlehn) wrote:
-> David Delaney has a proof-of-concept of an idea of his which was
-> presented at the last CELF, which is basically to put the kernel and
-> loadable kernel modules closely enough together that you can avoid the
-> use of long jumps. He sees a better than 1% improvement in performance,
-> which we've duplicated using a slightly different approach. This is nice
-> payback for little work and, though it doesn't help on all processors,
-> it helps on several.
-> 
-> The problem is: how do you allocate memory with the magical "close to
-> the kernel" attribute? We have something that adds a new ZONE_KERNEL
-> (this name has some problems, actually).
+On Tue, Jun 2, 2009 at 11:48 AM, James Bottomley
+<James.Bottomley@hansenpartnership.com> wrote:
+> On Tue, 2009-06-02 at 11:29 -0600, Grant Likely wrote:
+>> One topic that seems to garner debate is the issue of decoupling the
+>> kernel image from the target platform.  ie. On x86, PowerPC and Sparc
+>> a kernel image will boot on any machine (assuming the needed drivers
+>> are enabled), but this is rarely the case in embedded.  Most embedded
+>> kernels require explicit board support selected at compile time with
+>> no way to produce a generic kernel which will boot on a whole family
+>> of devices, let alone the whole architecture.  Part of this is a
+>> firmware issue, where existing firmware passes very little in the way
+>> of hardware description to the kernel, but part is also not making
+>> available any form of common language for describing the machine.
+>
+> OK, so my minimal understanding in this area lead me to believe this was
+> because most embedded systems didn't have properly discoverable busses
+> and therefore you had to tailor the kernel configuration exactly to the
+> devices the system had.
 
-As this is about addresses of text, I imagine that you really care about the
-virtual address the module is loaded at which is what the virtual address
-space is responsible for and not the physical addresses which zones are
-concerned with. Would that be right?
+Yes, mostly true.  The kernel must be explicitly told the layout of
+the non-discoverable busses and interconnects.  One method is to use
+per-machine statically compiled tables of platform devices, but
+nothing forces embedded to do it that way...
 
-If that was the case, this could be potentially be done by moving where
-the vmalloc address space is located or possibly splitting it in two. By
-locating some portion of the vmalloc address space above the kernel
-image, the kernel modules could be loaded in there.
+>> I think that in the absence of any established standard like the PC
+>> BIOS/EFI or a real Open Firmware interface, then the kernel should at
+>> least offer a recommended interface so that multiplatform kernels are
+>> possible without explicitly having the machine layout described to it
+>> at compile time.  I know that some of the embedded distros are
+>> interested in such a thing since it gets them away from shipping
+>> separate images for each supported board.  ie. It's really hard to do
+>> a generic live-cd without some form of multiplatform.  FDT is a great
+>> approach, but it probably isn't the only option.  It would be worth
+>> debating.
+>
+> It sounds interesting ... however, it also sounds like an area which
+> might not impact the core kernel much ... or am I wrong about that?  The
+> topics we're really looking for the Kernel Summit are ones that require
+> cross system input and which can't simply be sorted out by organising an
+> Embedded mini-summit.
 
-It's different for the DMA problem, it really requires particular physical
-addresses. No one trying to implementat Andrew's suggestion is a bit of a
-surprise because basically, it'd do the job as far as I can see but is not
-an issue that hurts me so I never sat down to try implementing it. Granted,
-increasing the number of zones adds its own problem but it's for large numbers
-of zones and there are other things that could be done to the allocator to
-reduce its cache footprint. The big plus is that it plays very well with
-reclaim and I would expect it to perform better than than searching the
-free lists for a suitable page which would be a bit of a hatchet job.
+Hmmm... in reading this thread and thinking about it more, I'm
+beginning to think that it might really be a core kernel issue; or at
+least a device driver policy one.  Regardless of architecture, at boot
+time Linux must use some method to discover the system layout, be it:
+1) Reading BIOS/EFI/ACPI/OpenFirmware/FDT data
+2) Probing the bus (PCI, USB, etc)
+3) Compiled into the kernel (tables of platform devices, machine specific code)
 
-> It seems like a pretty good
-> solution if you look at zones as conceptually concentric usages, but
-> with the current zone implementation, each zone must be contiguous. So,
-> if we're talking about changing what zones are done, I'd like to throw
-> this into the pot.
-> 
-> > -----Original Message-----
-> > From: linux-embedded-owner@vger.kernel.org 
-> > [mailto:linux-embedded-owner@vger.kernel.org] On Behalf Of 
-> > Andrew Morton
-> > Sent: Wednesday, June 03, 2009 11:44 AM
-> > To: Russell King
-> > Cc: James.Bottomley@HansenPartnership.com; 
-> > linux-arch@vger.kernel.org; linux-embedded@vger.kernel.org; 
-> > ksummit-2009-discuss@lists.linux-foundation.org
-> > Subject: Re: [Ksummit-2009-discuss] Representing Embedded 
-> > Architectures at the Kernel Summit
-> > 
-> > On Wed, 3 Jun 2009 18:09:25 +0100
-> > Russell King <rmk@arm.linux.org.uk> wrote:
-> > 
-> > > In
-> > > fact, on ARM the DMA mask is exactly that - it's a 100% 
-> > proper mask.  It's
-> > > not a bunch of zeros in the MSB followed by a bunch of ones 
-> > down to the
-> > > LSB.  It can be a bunch of ones, a bunch of zeros, followed 
-> > by a bunch of
-> > > ones.
-> > > 
-> > > The way we occasionally have to deal with this is to trial 
-> > an allocation,
-> > > see if the physical address fits, if not free the page and 
-> > try again with
-> > > GFP_DMA set.
-> > 
-> > A couple of times I've suggested that we have the ability to allocate
-> > one zone per address bit, so a 32-bit machine with 4k pages would end
-> > up having 20 zones.  Then, your funny DMA mask can be directly passed
-> > into the page allocator as a zone mask and voila, I think.
-> > 
-> > > There's many stories I've heard on what is supposed to take 
-> > care of the
-> > > coherency that I now just close my ears to the problem and chant "it
-> > > doesn't exist, people aren't seeing it, mainline folk just 
-> > don't give
-> > > a damn".  Really.  It is a problem on _some_ ARM devices 
-> > and has been
-> > > for several years now, and I've 100% given up caring about it.
-> > 
-> > I wasn't even aware that there was an issue here.  Please don't blame
-> > "mainline folk" for something they weren't told about!
-> > 
-> > --
-> > To unsubscribe from this list: send the line "unsubscribe 
-> > linux-embedded" in
-> > the body of a message to majordomo@vger.kernel.org
-> > More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> > 
-> _______________________________________________
-> Ksummit-2009-discuss mailing list
-> Ksummit-2009-discuss@lists.linux-foundation.org
-> https://lists.linux-foundation.org/mailman/listinfo/ksummit-2009-discuss
-> 
+Many types of devices could be end up being discovered using any of
+the above methods.  Ignoring for the time being the complexities and
+history of the Linux UART drivers, I'm going to use 16550 serial ports
+for an example.  On ARM, a platform device for an 16550 serial port
+may be instantiated by machine specific init code, on PowerPC it will
+be discovered by a device tree parser, on a PC it could be a legacy
+port, and on all three it could hang off a PCI device.  The bus
+connection and source of data are different in each case, but the same
+core driver will handle all of them.  The real differences are in
+discovery and decoding the configuration.
+
+SPI devices (struct spi_device) is possibly a better example.
+spi_device drivers that need additional configuration go looking at
+the platform_data pointer in the struct device.  This is easy when the
+device is hard coded into the kernel because the correct pdata struct
+is initialized statically at build time.  When the device is
+discovered via one of the other mechanisms, the question remains of
+where should the code live that does the translation and fills in the
+correct pdata?  The mmc_spi driver handles this by calling out to an
+mmc_spi_get_pdata() function (drivers/spi/{mmc_spi,mmc_spi_of}.c.  If
+running on an OF platform, mmc_spi_get_pdata() has the knowledge to
+decode the device tree data and munge it into the pdata form needed by
+the driver.  Both statically compiled and Device Tree described
+mmc_spi configurations must be handled, and driver specific decode
+methods must exist, but there I don't think there is any desire to
+write multiple probe routines for each device driver.  The same issue
+stands for i2c, MMIO, and other non-discoverable busses.
+
+For drivers which require pdata, writing decode functions is
+unavoidable, but it is unclear how to hook in that code with as little
+impact on a device driver as possible.  To me the issue is, where
+should that code live? and how should it get executed?  (which is why
+I think it is a device driver policy issue)  I've used the example of
+OF device tree bindings vs. static configuration, but it applies just
+as readily to something like UEFI (ie. I see that ARM is a member of
+the UEFI forum).  Here are some of my unsorted thoughts on the issue:
+
+- Translation code is driver specific, so it should live as part of,
+or in the vicinity of, the driver it works with
+- My guess is that The Future(tm) will probably bring more methods of
+describing machine configuration, not less;  It is worth debating now
+about how to have multiple decoders for a single device driver.
+- Devices on non-discoverable busses appear in both desktop and
+embedded machines.  (sensors anyone?)  This is not just an embedded
+issue.
+- driver authors will probably implement only the decode methods that
+they actually need.  It is likely that different people will develop
+additional decoders.  These will need to co-exist peacefully.
+- Some things are just hard and just require machine specific setup
+code.  Things like weird CS selections on SPI busses, or clock
+routing.  Decoding to pdata won't always be feasible and sometime
+machine specific hooks must be used.  Need a method for machine setup
+code to provide pdata.
+- Binding algorithms are problematic.  Naming convention in the data
+source won't always match Linux internal kernel naming so there must
+be some logic for matching to the correct drivers.  Currently, an
+exceptions table is used for i2c and spi busses (drivers/of/base.c:
+of_modalias_table).  There aren't many entries in there now, but I'm
+not sure it is a scalable solution in the long term.
+
+And some possible approaches:
+1) One option is to link a list of per-device decoder methods into the
+kernel so that generic bus discovery code and call the correct pdata
+decoder for each device when it is discovered.  Doing this ensures
+that pdata is available before the driver's probe method is called and
+completely isolates the driver code from the decode method.  However,
+it also means that the entire list of decoders must be statically
+linked into the kernel, and it is of no use at all to out-of-tree
+drivers because it provides no method of linking in additional decode
+hooks.  Many drivers used to do this in arch/powerpc, but we moved
+away from it for the problems listed above.
+2) It could be handled with wrapper drivers which have their own
+struct device and get bound to data elements within the Device Tree or
+other data source.  The wrapper driver could generate the pdata and
+register a child platform device which gets bound to the generic
+driver.  Doing it this way lets a decode method live in a module.
+This works well for things which are currently struct platform_device,
+and ensures that all data is available at driver probe time, but
+doesn't fit well into the structure of other bus types (SPI, I2C,
+MDIO, etc) without creating an indirection layer for decoding on each
+bus.  It also means that for every real device, 2 struct device get
+registered; one to bind against the decoder, and one to bind against
+the real driver.  Maybe this isn't a significant memory consumption;
+but it doesn't *feel* right to me.
+3) The decoders could be linked into the drivers themselves.  The
+mmc_spi driver uses this approach, though it is a bit crude, and the
+mmc_spi_get_pdata routine must be modified for each.  I've been
+thinking about the possibility of have a decoder function list
+attached to the driver and use a common helper function to walk the
+list until one of them is able to provide valid pdata.  This would
+keep the decode method with the device driver (where it belongs
+IMNSHO), but minimize the impact on the core of the driver as a whole
+(only a function would be added).  But, this is still impact on the
+driver which there may be resistance to.
+4) write separate probe() routines for each type of discovery (static
+pdata, device tree, etc).  Solves same problems as 3, but I think
+results in more code and possibly a bunch of #ifdef'ry
+5) other options I haven't thought of? ....
+
+All of this options listed above have been talked about and
+implemented to a lesser or greater degree without really coming to
+much of a conclusion on how it should be approached and what the
+impact on device drivers will be.  It is worth some debate.
+
+> Now if flattened device tree could help us out with BIOS, ACPI, EFI and
+> the other myriad boot and identification standards that seem designed to
+> hide system information rather than reveal it, then we might be all
+> ears ...
+
+:-)
+
+Interesting, but probably not much help here.  This would just be
+translating (and imperfectly at that) from one machine representation
+to another without a whole lot of benefit.  It is conceivable that
+data sourced from multiple locations (probing, ACPI, EFI, and known
+quirks) could be all funneled into a single FDT image and then that
+data used for creating and registering device structures, but I don't
+really see any benefit here.
+
+g.
 
 -- 
-Mel Gorman
-Part-time Phd Student                          Linux Technology Center
-University of Limerick                         IBM Dublin Software Lab
+Grant Likely, B.Sc., P.Eng.
+Secret Lab Technologies Ltd.
