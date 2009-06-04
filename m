@@ -1,788 +1,208 @@
-From: Randy Dunlap <randy.dunlap@oracle.com>
-Subject: [PATCH v2] kmap_types: convert most arches to a single header file
-Date: Thu, 04 Jun 2009 11:00:16 -0700
-Message-ID: <4A280BB0.4030805@oracle.com>
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: Representing Embedded Architectures at the Kernel Summit
+Date: Thu, 4 Jun 2009 12:18:38 -0600
+Message-ID: <fa686aa40906041118x1ababaeeuaaca9c6a7e94fcb9@mail.gmail.com>
+References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com>
+	<fa686aa40906021029macf3c72g5261f8d4dbea935a@mail.gmail.com>
+	<1243964917.4229.54.camel@mulgrave.int.hansenpartnership.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet11.oracle.com ([148.87.113.123]:41275 "EHLO
-	rgminet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750984AbZFDR75 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jun 2009 13:59:57 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Cc: Mike Frysinger <vapier@gentoo.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Bryan Wu <cooloney@kernel.org>, Mikael Starvik <starvik@axis.com>, Hirokazu Takata <takata@linux-m32r.org>, Luck Tony <tony.luck@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Kyle McMartin <kyle@mcmartin.ca>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-embedded-owner@vger.kernel.org>
+In-Reply-To: <1243964917.4229.54.camel@mulgrave.int.hansenpartnership.com>
+Sender: linux-embedded-owner@vger.kernel.org
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, Josh Boyer <jwboyer@linux.vnet.ibm.com>, Tim Bird <tim.bird@am.sony.com>, Greg KH <greg@kroah.com>
+List-Id: linux-arch.vger.kernel.org
 
-From: Randy Dunlap <randy.dunlap@oracle.com>
-Subject: kmap_types: make most arches use generic header file
+On Tue, Jun 2, 2009 at 11:48 AM, James Bottomley
+<James.Bottomley@hansenpartnership.com> wrote:
+> On Tue, 2009-06-02 at 11:29 -0600, Grant Likely wrote:
+>> One topic that seems to garner debate is the issue of decoupling the
+>> kernel image from the target platform. =A0ie. On x86, PowerPC and Sp=
+arc
+>> a kernel image will boot on any machine (assuming the needed drivers
+>> are enabled), but this is rarely the case in embedded. =A0Most embed=
+ded
+>> kernels require explicit board support selected at compile time with
+>> no way to produce a generic kernel which will boot on a whole family
+>> of devices, let alone the whole architecture. =A0Part of this is a
+>> firmware issue, where existing firmware passes very little in the wa=
+y
+>> of hardware description to the kernel, but part is also not making
+>> available any form of common language for describing the machine.
+>
+> OK, so my minimal understanding in this area lead me to believe this =
+was
+> because most embedded systems didn't have properly discoverable busse=
+s
+> and therefore you had to tailor the kernel configuration exactly to t=
+he
+> devices the system had.
 
-Convert most arches (*except frv*) to use asm-generic/kmap_types.h.
-Each arch still has its own kmap_types.h for customization if
-needed (like frv).
+Yes, mostly true.  The kernel must be explicitly told the layout of
+the non-discoverable busses and interconnects.  One method is to use
+per-machine statically compiled tables of platform devices, but
+nothing forces embedded to do it that way...
 
-KM_FENCE is now controlled by CONFIG_HIGHMEM.
+>> I think that in the absence of any established standard like the PC
+>> BIOS/EFI or a real Open Firmware interface, then the kernel should a=
+t
+>> least offer a recommended interface so that multiplatform kernels ar=
+e
+>> possible without explicitly having the machine layout described to i=
+t
+>> at compile time. =A0I know that some of the embedded distros are
+>> interested in such a thing since it gets them away from shipping
+>> separate images for each supported board. =A0ie. It's really hard to=
+ do
+>> a generic live-cd without some form of multiplatform. =A0FDT is a gr=
+eat
+>> approach, but it probably isn't the only option. =A0It would be wort=
+h
+>> debating.
+>
+> It sounds interesting ... however, it also sounds like an area which
+> might not impact the core kernel much ... or am I wrong about that? =A0=
+The
+> topics we're really looking for the Kernel Summit are ones that requi=
+re
+> cross system input and which can't simply be sorted out by organising=
+ an
+> Embedded mini-summit.
 
-Built on x86_64, i386, mips, sparc32, sparc64,
-alpha, powerpc64, ia64, and m68k.
+Hmmm... in reading this thread and thinking about it more, I'm
+beginning to think that it might really be a core kernel issue; or at
+least a device driver policy one.  Regardless of architecture, at boot
+time Linux must use some method to discover the system layout, be it:
+1) Reading BIOS/EFI/ACPI/OpenFirmware/FDT data
+2) Probing the bus (PCI, USB, etc)
+3) Compiled into the kernel (tables of platform devices, machine specif=
+ic code)
 
-Note: Removed KM_PTE2 from generic kmap_types.h file; it was defined
-but not used by avr32.
+Many types of devices could be end up being discovered using any of
+the above methods.  Ignoring for the time being the complexities and
+history of the Linux UART drivers, I'm going to use 16550 serial ports
+for an example.  On ARM, a platform device for an 16550 serial port
+may be instantiated by machine specific init code, on PowerPC it will
+be discovered by a device tree parser, on a PC it could be a legacy
+port, and on all three it could hang off a PCI device.  The bus
+connection and source of data are different in each case, but the same
+core driver will handle all of them.  The real differences are in
+discovery and decoding the configuration.
 
-Signed-off-by: Randy Dunlap <randy.dunlap@oracle.com>
-Cc: <linux-arch@vger.kernel.org>
-Acked-by: Mike Frysinger <vapier@gentoo.org>
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Bryan Wu <cooloney@kernel.org>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: "Luck Tony" <tony.luck@intel.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Kyle McMartin <kyle@mcmartin.ca>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
----
- arch/alpha/include/asm/kmap_types.h      |   26 -------------------------
- arch/arm/include/asm/kmap_types.h        |   21 --------------------
- arch/arm/mm/cache-feroceon-l2.c          |    2 -
- arch/arm/mm/cache-xsc3l2.c               |    2 -
- arch/avr32/include/asm/kmap_types.h      |   26 -------------------------
- arch/blackfin/include/asm/kmap_types.h   |   17 ----------------
- arch/cris/include/asm/kmap_types.h       |   17 ----------------
- arch/h8300/include/asm/kmap_types.h      |   17 ----------------
- arch/ia64/include/asm/kmap_types.h       |   26 -------------------------
- arch/m32r/include/asm/kmap_types.h       |   25 ------------------------
- arch/m68k/include/asm/kmap_types.h       |   17 ----------------
- arch/microblaze/include/asm/kmap_types.h |   25 ------------------------
- arch/mips/include/asm/kmap_types.h       |   26 -------------------------
- arch/mn10300/include/asm/kmap_types.h    |   27 --------------------------
- arch/parisc/include/asm/kmap_types.h     |   26 -------------------------
- arch/powerpc/include/asm/kmap_types.h    |   26 -------------------------
- arch/powerpc/mm/dma-noncoherent.c        |    4 +--
- arch/powerpc/mm/mem.c                    |    4 +--
- arch/s390/include/asm/kmap_types.h       |   17 ----------------
- arch/sh/include/asm/kmap_types.h         |   26 -------------------------
- arch/sparc/include/asm/kmap_types.h      |   17 ----------------
- arch/um/include/asm/kmap_types.h         |   25 ------------------------
- arch/x86/include/asm/kmap_types.h        |   25 ------------------------
- arch/xtensa/include/asm/kmap_types.h     |   27 --------------------------
- include/asm-generic/kmap_types.h         |   32 +++++++++++++++++++++++++++++++
- 25 files changed, 58 insertions(+), 445 deletions(-)
+SPI devices (struct spi_device) is possibly a better example.
+spi_device drivers that need additional configuration go looking at
+the platform_data pointer in the struct device.  This is easy when the
+device is hard coded into the kernel because the correct pdata struct
+is initialized statically at build time.  When the device is
+discovered via one of the other mechanisms, the question remains of
+where should the code live that does the translation and fills in the
+correct pdata?  The mmc_spi driver handles this by calling out to an
+mmc_spi_get_pdata() function (drivers/spi/{mmc_spi,mmc_spi_of}.c.  If
+running on an OF platform, mmc_spi_get_pdata() has the knowledge to
+decode the device tree data and munge it into the pdata form needed by
+the driver.  Both statically compiled and Device Tree described
+mmc_spi configurations must be handled, and driver specific decode
+methods must exist, but there I don't think there is any desire to
+write multiple probe routines for each device driver.  The same issue
+stands for i2c, MMIO, and other non-discoverable busses.
 
---- lnx-2630-rc8-kmaptypes.orig/arch/alpha/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/alpha/include/asm/kmap_types.h
-@@ -3,30 +3,6 @@
- 
- /* Dummy header just to define km_type. */
- 
--
--#ifdef CONFIG_DEBUG_HIGHMEM
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
--#endif
--
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_IRQ0,
--D(10)	KM_IRQ1,
--D(11)	KM_SOFTIRQ0,
--D(12)	KM_SOFTIRQ1,
--D(13)	KM_TYPE_NR
--};
--
--#undef D
-+#include <asm-generic/kmap_types.h>
- 
- #endif
---- lnx-2630-rc8-kmaptypes.orig/arch/arm/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/arm/include/asm/kmap_types.h
-@@ -1,25 +1,6 @@
- #ifndef __ARM_KMAP_TYPES_H
- #define __ARM_KMAP_TYPES_H
- 
--/*
-- * This is the "bare minimum".  AIO seems to require this.
-- */
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_L2_CACHE,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif
---- lnx-2630-rc8-kmaptypes.orig/arch/arm/mm/cache-feroceon-l2.c
-+++ lnx-2630-rc8-kmaptypes/arch/arm/mm/cache-feroceon-l2.c
-@@ -50,7 +50,7 @@ static inline unsigned long l2_start_va(
- 	 * memory mapping.  This is protected with the disabling of
- 	 * interrupts by the caller.
- 	 */
--	unsigned long idx = KM_L2_CACHE + KM_TYPE_NR * smp_processor_id();
-+	unsigned long idx = KM_SYNC_ICACHE + KM_TYPE_NR * smp_processor_id();
- 	unsigned long vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- 	set_pte_ext(TOP_PTE(vaddr), pfn_pte(paddr >> PAGE_SHIFT, PAGE_KERNEL), 0);
- 	local_flush_tlb_kernel_page(vaddr);
---- lnx-2630-rc8-kmaptypes.orig/arch/arm/mm/cache-xsc3l2.c
-+++ lnx-2630-rc8-kmaptypes/arch/arm/mm/cache-xsc3l2.c
-@@ -95,7 +95,7 @@ static inline unsigned long l2_map_va(un
- 		 */
- 		unsigned long idx;
- 		raw_local_irq_restore(flags);
--		idx = KM_L2_CACHE + KM_TYPE_NR * smp_processor_id();
-+		idx = KM_SYNC_ICACHE + KM_TYPE_NR * smp_processor_id();
- 		va = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- 		raw_local_irq_restore(flags | PSR_I_BIT);
- 		set_pte_ext(TOP_PTE(va), pfn_pte(pa >> PAGE_SHIFT, PAGE_KERNEL), 0);
---- lnx-2630-rc8-kmaptypes.orig/arch/avr32/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/avr32/include/asm/kmap_types.h
-@@ -1,30 +1,6 @@
- #ifndef __ASM_AVR32_KMAP_TYPES_H
- #define __ASM_AVR32_KMAP_TYPES_H
- 
--#ifdef CONFIG_DEBUG_HIGHMEM
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
--#endif
--
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_PTE2,
--D(10)	KM_IRQ0,
--D(11)	KM_IRQ1,
--D(12)	KM_SOFTIRQ0,
--D(13)	KM_SOFTIRQ1,
--D(14)	KM_TYPE_NR
--};
--
--#undef D
-+#include <asm-generic/kmap_types.h>
- 
- #endif /* __ASM_AVR32_KMAP_TYPES_H */
---- lnx-2630-rc8-kmaptypes.orig/arch/blackfin/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/blackfin/include/asm/kmap_types.h
-@@ -1,21 +1,6 @@
- #ifndef _ASM_KMAP_TYPES_H
- #define _ASM_KMAP_TYPES_H
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif
---- lnx-2630-rc8-kmaptypes.orig/arch/cris/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/cris/include/asm/kmap_types.h
-@@ -5,21 +5,6 @@
-  * is actually used on cris. 
-  */
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif
---- lnx-2630-rc8-kmaptypes.orig/arch/h8300/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/h8300/include/asm/kmap_types.h
-@@ -1,21 +1,6 @@
- #ifndef _ASM_H8300_KMAP_TYPES_H
- #define _ASM_H8300_KMAP_TYPES_H
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif
---- lnx-2630-rc8-kmaptypes.orig/arch/ia64/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/ia64/include/asm/kmap_types.h
-@@ -1,30 +1,6 @@
- #ifndef _ASM_IA64_KMAP_TYPES_H
- #define _ASM_IA64_KMAP_TYPES_H
- 
--
--#ifdef CONFIG_DEBUG_HIGHMEM
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
--#endif
--
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_IRQ0,
--D(10)	KM_IRQ1,
--D(11)	KM_SOFTIRQ0,
--D(12)	KM_SOFTIRQ1,
--D(13)	KM_TYPE_NR
--};
--
--#undef D
-+#include <asm-generic/kmap_types.h>
- 
- #endif /* _ASM_IA64_KMAP_TYPES_H */
---- lnx-2630-rc8-kmaptypes.orig/arch/m32r/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/m32r/include/asm/kmap_types.h
-@@ -1,29 +1,6 @@
- #ifndef __M32R_KMAP_TYPES_H
- #define __M32R_KMAP_TYPES_H
- 
--#ifdef CONFIG_DEBUG_HIGHMEM
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
--#endif
--
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_IRQ0,
--D(10)	KM_IRQ1,
--D(11)	KM_SOFTIRQ0,
--D(12)	KM_SOFTIRQ1,
--D(13)	KM_TYPE_NR
--};
--
--#undef D
-+#include <asm-generic/kmap_types.h>
- 
- #endif /* __M32R_KMAP_TYPES_H */
---- lnx-2630-rc8-kmaptypes.orig/arch/m68k/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/m68k/include/asm/kmap_types.h
-@@ -1,21 +1,6 @@
- #ifndef __ASM_M68K_KMAP_TYPES_H
- #define __ASM_M68K_KMAP_TYPES_H
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif	/* __ASM_M68K_KMAP_TYPES_H */
---- lnx-2630-rc8-kmaptypes.orig/arch/microblaze/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/microblaze/include/asm/kmap_types.h
-@@ -1,29 +1,6 @@
--/*
-- * Copyright (C) 2006 Atmark Techno, Inc.
-- *
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License. See the file "COPYING" in the main directory of this archive
-- * for more details.
-- */
--
- #ifndef _ASM_MICROBLAZE_KMAP_TYPES_H
- #define _ASM_MICROBLAZE_KMAP_TYPES_H
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR,
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif /* _ASM_MICROBLAZE_KMAP_TYPES_H */
---- lnx-2630-rc8-kmaptypes.orig/arch/mips/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/mips/include/asm/kmap_types.h
-@@ -1,30 +1,6 @@
- #ifndef _ASM_KMAP_TYPES_H
- #define _ASM_KMAP_TYPES_H
- 
--
--#ifdef CONFIG_DEBUG_HIGHMEM
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
--#endif
--
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_IRQ0,
--D(10)	KM_IRQ1,
--D(11)	KM_SOFTIRQ0,
--D(12)	KM_SOFTIRQ1,
--D(13)	KM_TYPE_NR
--};
--
--#undef D
-+#include <asm-generic/kmap_types.h>
- 
- #endif
---- lnx-2630-rc8-kmaptypes.orig/arch/mn10300/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/mn10300/include/asm/kmap_types.h
-@@ -1,31 +1,6 @@
--/* MN10300 kmap_atomic() slot IDs
-- *
-- * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-- * Written by David Howells (dhowells@redhat.com)
-- *
-- * This program is free software; you can redistribute it and/or
-- * modify it under the terms of the GNU General Public Licence
-- * as published by the Free Software Foundation; either version
-- * 2 of the Licence, or (at your option) any later version.
-- */
- #ifndef _ASM_KMAP_TYPES_H
- #define _ASM_KMAP_TYPES_H
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif /* _ASM_KMAP_TYPES_H */
---- lnx-2630-rc8-kmaptypes.orig/arch/parisc/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/parisc/include/asm/kmap_types.h
-@@ -1,30 +1,6 @@
- #ifndef _ASM_KMAP_TYPES_H
- #define _ASM_KMAP_TYPES_H
- 
--
--#ifdef CONFIG_DEBUG_HIGHMEM
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
--#endif
--
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_IRQ0,
--D(10)	KM_IRQ1,
--D(11)	KM_SOFTIRQ0,
--D(12)	KM_SOFTIRQ1,
--D(13)	KM_TYPE_NR
--};
--
--#undef D
-+#include <asm-generic/kmap_types.h>
- 
- #endif
---- lnx-2630-rc8-kmaptypes.orig/arch/powerpc/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/powerpc/include/asm/kmap_types.h
-@@ -3,31 +3,7 @@
- 
- #ifdef __KERNEL__
- 
--/*
-- * This program is free software; you can redistribute it and/or
-- * modify it under the terms of the GNU General Public License
-- * as published by the Free Software Foundation; either version
-- * 2 of the License, or (at your option) any later version.
-- */
--
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_PPC_SYNC_PAGE,
--	KM_PPC_SYNC_ICACHE,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif	/* __KERNEL__ */
- #endif	/* _ASM_POWERPC_KMAP_TYPES_H */
---- lnx-2630-rc8-kmaptypes.orig/arch/powerpc/mm/dma-noncoherent.c
-+++ lnx-2630-rc8-kmaptypes/arch/powerpc/mm/dma-noncoherent.c
-@@ -364,11 +364,11 @@ static inline void __dma_sync_page_highm
- 
- 	do {
- 		start = (unsigned long)kmap_atomic(page + seg_nr,
--				KM_PPC_SYNC_PAGE) + seg_offset;
-+				KM_SYNC_DCACHE) + seg_offset;
- 
- 		/* Sync this buffer segment */
- 		__dma_sync((void *)start, seg_size, direction);
--		kunmap_atomic((void *)start, KM_PPC_SYNC_PAGE);
-+		kunmap_atomic((void *)start, KM_SYNC_DACHE);
- 		seg_nr++;
- 
- 		/* Calculate next buffer segment size */
---- lnx-2630-rc8-kmaptypes.orig/arch/powerpc/mm/mem.c
-+++ lnx-2630-rc8-kmaptypes/arch/powerpc/mm/mem.c
-@@ -418,9 +418,9 @@ EXPORT_SYMBOL(flush_dcache_page);
- void flush_dcache_icache_page(struct page *page)
- {
- #ifdef CONFIG_BOOKE
--	void *start = kmap_atomic(page, KM_PPC_SYNC_ICACHE);
-+	void *start = kmap_atomic(page, KM_SYNC_ICACHE);
- 	__flush_dcache_icache(start);
--	kunmap_atomic(start, KM_PPC_SYNC_ICACHE);
-+	kunmap_atomic(start, KM_SYNC_ICACHE);
- #elif defined(CONFIG_8xx) || defined(CONFIG_PPC64)
- 	/* On 8xx there is no need to kmap since highmem is not supported */
- 	__flush_dcache_icache(page_address(page)); 
---- lnx-2630-rc8-kmaptypes.orig/arch/s390/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/s390/include/asm/kmap_types.h
-@@ -2,22 +2,7 @@
- #ifndef _ASM_KMAP_TYPES_H
- #define _ASM_KMAP_TYPES_H
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,	
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif
- #endif /* __KERNEL__ */
---- lnx-2630-rc8-kmaptypes.orig/arch/sh/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/sh/include/asm/kmap_types.h
-@@ -3,30 +3,6 @@
- 
- /* Dummy header just to define km_type. */
- 
--
--#ifdef CONFIG_DEBUG_HIGHMEM
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
--#endif
--
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_IRQ0,
--D(10)	KM_IRQ1,
--D(11)	KM_SOFTIRQ0,
--D(12)	KM_SOFTIRQ1,
--D(13)	KM_TYPE_NR
--};
--
--#undef D
-+#include <asm-generic/kmap_types.h>
- 
- #endif
---- lnx-2630-rc8-kmaptypes.orig/arch/sparc/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/sparc/include/asm/kmap_types.h
-@@ -5,21 +5,6 @@
-  * is actually used on sparc.  -DaveM
-  */
- 
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif
---- lnx-2630-rc8-kmaptypes.orig/arch/um/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/um/include/asm/kmap_types.h
-@@ -1,29 +1,6 @@
--/* 
-- * Copyright (C) 2002 Jeff Dike (jdike@karaya.com)
-- * Licensed under the GPL
-- */
--
- #ifndef __UM_KMAP_TYPES_H
- #define __UM_KMAP_TYPES_H
- 
--/* No more #include "asm/arch/kmap_types.h" ! */
--
--enum km_type {
--	KM_BOUNCE_READ,
--	KM_SKB_SUNRPC_DATA,
--	KM_SKB_DATA_SOFTIRQ,
--	KM_USER0,
--	KM_USER1,
--	KM_UML_USERCOPY,	/* UML specific, for copy_*_user - used in do_op_one_page */
--	KM_BIO_SRC_IRQ,
--	KM_BIO_DST_IRQ,
--	KM_PTE0,
--	KM_PTE1,
--	KM_IRQ0,
--	KM_IRQ1,
--	KM_SOFTIRQ0,
--	KM_SOFTIRQ1,
--	KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif
---- lnx-2630-rc8-kmaptypes.orig/arch/x86/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/x86/include/asm/kmap_types.h
-@@ -1,29 +1,6 @@
- #ifndef _ASM_X86_KMAP_TYPES_H
- #define _ASM_X86_KMAP_TYPES_H
- 
--#if defined(CONFIG_X86_32) && defined(CONFIG_DEBUG_HIGHMEM)
--# define D(n) __KM_FENCE_##n ,
--#else
--# define D(n)
--#endif
--
--enum km_type {
--D(0)	KM_BOUNCE_READ,
--D(1)	KM_SKB_SUNRPC_DATA,
--D(2)	KM_SKB_DATA_SOFTIRQ,
--D(3)	KM_USER0,
--D(4)	KM_USER1,
--D(5)	KM_BIO_SRC_IRQ,
--D(6)	KM_BIO_DST_IRQ,
--D(7)	KM_PTE0,
--D(8)	KM_PTE1,
--D(9)	KM_IRQ0,
--D(10)	KM_IRQ1,
--D(11)	KM_SOFTIRQ0,
--D(12)	KM_SOFTIRQ1,
--D(13)	KM_TYPE_NR
--};
--
--#undef D
-+#include <asm-generic/kmap_types.h>
- 
- #endif /* _ASM_X86_KMAP_TYPES_H */
---- lnx-2630-rc8-kmaptypes.orig/arch/xtensa/include/asm/kmap_types.h
-+++ lnx-2630-rc8-kmaptypes/arch/xtensa/include/asm/kmap_types.h
-@@ -1,31 +1,6 @@
--/*
-- * include/asm-xtensa/kmap_types.h
-- *
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License.  See the file "COPYING" in the main directory of this archive
-- * for more details.
-- *
-- * Copyright (C) 2001 - 2005 Tensilica Inc.
-- */
--
- #ifndef _XTENSA_KMAP_TYPES_H
- #define _XTENSA_KMAP_TYPES_H
- 
--enum km_type {
--  KM_BOUNCE_READ,
--  KM_SKB_SUNRPC_DATA,
--  KM_SKB_DATA_SOFTIRQ,
--  KM_USER0,
--  KM_USER1,
--  KM_BIO_SRC_IRQ,
--  KM_BIO_DST_IRQ,
--  KM_PTE0,
--  KM_PTE1,
--  KM_IRQ0,
--  KM_IRQ1,
--  KM_SOFTIRQ0,
--  KM_SOFTIRQ1,
--  KM_TYPE_NR
--};
-+#include <asm-generic/kmap_types.h>
- 
- #endif	/* _XTENSA_KMAP_TYPES_H */
---- /dev/null
-+++ lnx-2630-rc8-kmaptypes/include/asm-generic/kmap_types.h
-@@ -0,0 +1,32 @@
-+#ifndef _ASM_GENERIC_KMAP_TYPES_H
-+#define _ASM_GENERIC_KMAP_TYPES_H
-+
-+#ifdef CONFIG_DEBUG_HIGHMEM
-+# define D(n) __KM_FENCE_##n ,
-+#else
-+# define D(n)
-+#endif
-+
-+enum km_type {
-+D(0)	KM_BOUNCE_READ,
-+D(1)	KM_SKB_SUNRPC_DATA,
-+D(2)	KM_SKB_DATA_SOFTIRQ,
-+D(3)	KM_USER0,
-+D(4)	KM_USER1,
-+D(5)	KM_BIO_SRC_IRQ,
-+D(6)	KM_BIO_DST_IRQ,
-+D(7)	KM_PTE0,
-+D(8)	KM_PTE1,
-+D(9)	KM_IRQ0,
-+D(10)	KM_IRQ1,
-+D(11)	KM_SOFTIRQ0,
-+D(12)	KM_SOFTIRQ1,
-+D(13)	KM_SYNC_ICACHE,
-+D(14)	KM_SYNC_DCACHE,
-+D(15)	KM_UML_USERCOPY, /* UML specific, for copy_*_user - used in do_op_one_page */
-+D(16)	KM_TYPE_NR
-+};
-+
-+#undef D
-+
-+#endif
+=46or drivers which require pdata, writing decode functions is
+unavoidable, but it is unclear how to hook in that code with as little
+impact on a device driver as possible.  To me the issue is, where
+should that code live? and how should it get executed?  (which is why
+I think it is a device driver policy issue)  I've used the example of
+OF device tree bindings vs. static configuration, but it applies just
+as readily to something like UEFI (ie. I see that ARM is a member of
+the UEFI forum).  Here are some of my unsorted thoughts on the issue:
+
+- Translation code is driver specific, so it should live as part of,
+or in the vicinity of, the driver it works with
+- My guess is that The Future(tm) will probably bring more methods of
+describing machine configuration, not less;  It is worth debating now
+about how to have multiple decoders for a single device driver.
+- Devices on non-discoverable busses appear in both desktop and
+embedded machines.  (sensors anyone?)  This is not just an embedded
+issue.
+- driver authors will probably implement only the decode methods that
+they actually need.  It is likely that different people will develop
+additional decoders.  These will need to co-exist peacefully.
+- Some things are just hard and just require machine specific setup
+code.  Things like weird CS selections on SPI busses, or clock
+routing.  Decoding to pdata won't always be feasible and sometime
+machine specific hooks must be used.  Need a method for machine setup
+code to provide pdata.
+- Binding algorithms are problematic.  Naming convention in the data
+source won't always match Linux internal kernel naming so there must
+be some logic for matching to the correct drivers.  Currently, an
+exceptions table is used for i2c and spi busses (drivers/of/base.c:
+of_modalias_table).  There aren't many entries in there now, but I'm
+not sure it is a scalable solution in the long term.
+
+And some possible approaches:
+1) One option is to link a list of per-device decoder methods into the
+kernel so that generic bus discovery code and call the correct pdata
+decoder for each device when it is discovered.  Doing this ensures
+that pdata is available before the driver's probe method is called and
+completely isolates the driver code from the decode method.  However,
+it also means that the entire list of decoders must be statically
+linked into the kernel, and it is of no use at all to out-of-tree
+drivers because it provides no method of linking in additional decode
+hooks.  Many drivers used to do this in arch/powerpc, but we moved
+away from it for the problems listed above.
+2) It could be handled with wrapper drivers which have their own
+struct device and get bound to data elements within the Device Tree or
+other data source.  The wrapper driver could generate the pdata and
+register a child platform device which gets bound to the generic
+driver.  Doing it this way lets a decode method live in a module.
+This works well for things which are currently struct platform_device,
+and ensures that all data is available at driver probe time, but
+doesn't fit well into the structure of other bus types (SPI, I2C,
+MDIO, etc) without creating an indirection layer for decoding on each
+bus.  It also means that for every real device, 2 struct device get
+registered; one to bind against the decoder, and one to bind against
+the real driver.  Maybe this isn't a significant memory consumption;
+but it doesn't *feel* right to me.
+3) The decoders could be linked into the drivers themselves.  The
+mmc_spi driver uses this approach, though it is a bit crude, and the
+mmc_spi_get_pdata routine must be modified for each.  I've been
+thinking about the possibility of have a decoder function list
+attached to the driver and use a common helper function to walk the
+list until one of them is able to provide valid pdata.  This would
+keep the decode method with the device driver (where it belongs
+IMNSHO), but minimize the impact on the core of the driver as a whole
+(only a function would be added).  But, this is still impact on the
+driver which there may be resistance to.
+4) write separate probe() routines for each type of discovery (static
+pdata, device tree, etc).  Solves same problems as 3, but I think
+results in more code and possibly a bunch of #ifdef'ry
+5) other options I haven't thought of? ....
+
+All of this options listed above have been talked about and
+implemented to a lesser or greater degree without really coming to
+much of a conclusion on how it should be approached and what the
+impact on device drivers will be.  It is worth some debate.
+
+> Now if flattened device tree could help us out with BIOS, ACPI, EFI a=
+nd
+> the other myriad boot and identification standards that seem designed=
+ to
+> hide system information rather than reveal it, then we might be all
+> ears ...
+
+:-)
+
+Interesting, but probably not much help here.  This would just be
+translating (and imperfectly at that) from one machine representation
+to another without a whole lot of benefit.  It is conceivable that
+data sourced from multiple locations (probing, ACPI, EFI, and known
+quirks) could be all funneled into a single FDT image and then that
+data used for creating and registering device structures, but I don't
+really see any benefit here.
+
+g.
+
+--=20
+Grant Likely, B.Sc., P.Eng.
+Secret Lab Technologies Ltd.
