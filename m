@@ -1,110 +1,71 @@
 From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH] asm-generic: add dma-mapping-linear.h
-Date: Thu, 4 Jun 2009 17:29:08 +0100
-Message-ID: <200906041729.10513.arnd@arndb.de>
-References: <200905282104.55818.arnd@arndb.de> <20090604143803.GD24491@flint.arm.linux.org.uk> <20090604144909.GE24491@flint.arm.linux.org.uk>
+Date: Thu, 4 Jun 2009 17:47:03 +0100
+Message-ID: <200906041747.04310.arnd@arndb.de>
+References: <200906011111.28521.arnd@arndb.de> <200906041235.34686.arnd@arndb.de> <20090605000424E.fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:49614 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.177]:56485 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760117AbZFDQ3V (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jun 2009 12:29:21 -0400
-In-Reply-To: <20090604144909.GE24491@flint.arm.linux.org.uk>
+	with ESMTP id S1755394AbZFDQrO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jun 2009 12:47:14 -0400
+In-Reply-To: <20090605000424E.fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thursday 04 June 2009, Russell King wrote:
-> The following assumption has been made by the kernel:
+On Thursday 04 June 2009, FUJITA Tomonori wrote:
+> On Thu, 4 Jun 2009 12:35:34 +0000
+> Arnd Bergmann <arnd@arndb.de> wrote:
 > 
-> 	maximum_physical_address = dma_mask
+> > > > I do have branches in there that convert x86 and microblaze to use
+> > > 
+> > > x86? How can it use asm-generic-linear.h?
+> > 
+> > Not dma-mapping-linear.h, but a lot of other files in asm-generic. I have
+> > a set of all the common header files in my tree, and x86 can e.g. use
+> > ioctls.h, ipcbuf.h, mman.h, or types.h. For x86, it amounts to 15 files,
+> > microblaze can use almost 50 of the generic files.
 > 
-> Yes, that's _physical_ address, not bus specific DMA address:
+> I see, but I'm not sure why dma-mapping-linear needs to be merged with
+> them together.
 
-Right, this is an oversimplification that I did not expect the kernel
-to make, and it seems to stem from the days before we had the dma
-mapping API.
- 
-> void blk_queue_bounce_limit(struct request_queue *q, u64 dma_mask)
-> {
->         unsigned long b_pfn = dma_mask >> PAGE_SHIFT;
-> ...
->         q->bounce_pfn = b_pfn;
-> }
+It doesn't need to, but it would be much more convenient for me having
+to go through the architectures only once. Some of the arch maintainers
+are harder to get hold of than others.
+
+> > 
+> > I think it is technically correct, but there are two plausible ways of
+> > doing it, I chose the one that requires slightly less code.
+> > 
+> > I call dma_cache_sync() for streaming mappings on dma_map_* and
+> > dma_sync_*_for_device iff the mapping is noncoherent. AFAICT, this
+> > is the same case as dma_alloc_noncoherent, which is expected to give
+> > out a noncoherent mapping.
 > 
-> static unsigned int __blk_recalc_rq_segments(struct request_queue *q,
->                                              struct bio *bio)
-> {
-> ...
->                         high = page_to_pfn(bv->bv_page) > q->bounce_pfn;
-> }
-> 
-> It's not "is this page DMA-able according to the DMA mask" it's effectively
-> "is this page's physical address greater than the maximum physical address
-> that can be DMA'd from".
-> 
-> As I've already pointed out, there are ARM platforms where this is just
-> a total nonsense.
+> If I correctly understand DMA-API.txt, dma_alloc_noncoherent can
+> return either consistent or non-consistent memory. On architectures
+> that return consistent memory via dma_alloc_noncoherent,
+> dma_cache_sync should be null. dma_cache_sync() is supposed to be used
+> only with the returned buffers of dma_alloc_noncoherent().
 
-Agreed. I still think that a per-device limit combined with the set of
-per-bus remapping rules should handle all cases right, but the block
-bounce buffer handling seems to prevent that. Looking at
-scsi_cacluclate_bounce_limit:
+Good point. This is unfortunately not what is implemented on many
+architectures, which #define dma_alloc_noncoherent dma_alloc_coherent
+but still provide a synchronizing operation in dma_cache_sync().
 
-u64 scsi_calculate_bounce_limit(struct Scsi_Host *shost)
-{
-	struct device *host_dev;
-	u64 bounce_limit = 0xffffffff;
+dma_alloc_noncoherent is actually only implemented on parisc, mips
+and m68k.
 
-	if (shost->unchecked_isa_dma)
-		return BLK_BOUNCE_ISA;
-	/*
-	 * Platforms with virtual-DMA translation
-	 * hardware have no practical limit.
-	 */
-	if (!PCI_DMA_BUS_IS_PHYS)
-		return BLK_BOUNCE_ANY;
-
-	host_dev = scsi_get_device(shost);
-	if (host_dev && host_dev->dma_mask)
-		bounce_limit = *host_dev->dma_mask;
-
-	return bounce_limit;
-}
-
-This is more or less hardcoding all the common cases
-(ISA, PCI with IOMMU, and phys address limit per device),
-but not the one you are interested in.
-
-The bounce buffer handling is more or less an older and simpler
-way of doing the swiotlb, maybe you can simply unset the
-(horribly misnamed) PCI_DMA_BUS_IS_PHYS in order to effectively
-disable bounce buffers at the block layer and instead do them
-in the dma mapping layer in the form of swiotlb.
-
-Are there similar problems outside of the block layer?
-It seems that in networking, device drivers themselves are
-always in charge of the allocation, so unlike block drivers,
-they can do the right thing on all platforms that have this
-problem.
-
-> As I say, what is the DMA mask?  Is it really a limit?
-
-I still don't think this is the right question to ask. The way that
-the code is structured, it's very clear that it treats a mask and
-a limit the same way. Simply assuming that it's a mask that can contain
-zeroes gets you into trouble.
-
-> Is it really supposed to be a mask?
-
-Would it solve any problem if it were a mask? All uses essentially
-come down to the point where you allocate memory and decide between
-GFP_DMA, GFP_DMA32, GFP_NORMAL or GFP_HIGHMEM. If none of them
-fit into the mask, you still lose. Also, a bitmask is not enough
-to encode a range, as I mentioned before.
+However, I don't think I have the energy to fix this problem, but
+I agree that it should be fixed eventually. I can leave out
+the declarations of dma_{free,alloc}_coherent from dma-mapping-linear.h
+so that the broken code remains in the architecture specific
+files, and change all references to dma_cache_sync to something
+else. The best I can think of is __dma_cache_sync() with the same
+calling conventions as dma_cache_sync(). Does that make sense?
 
 	Arnd <><
