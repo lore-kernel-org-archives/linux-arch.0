@@ -1,62 +1,122 @@
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
 Subject: Re: [PATCH] asm-generic: add dma-mapping-linear.h
-Date: Thu, 4 Jun 2009 15:49:09 +0100
-Message-ID: <20090604144909.GE24491@flint.arm.linux.org.uk>
-References: <200905282104.55818.arnd@arndb.de> <200906041235.34686.arnd@arndb.de> <20090604125119.GB24491@flint.arm.linux.org.uk> <200906041442.53170.arnd@arndb.de> <20090604143803.GD24491@flint.arm.linux.org.uk>
+Date: Fri, 5 Jun 2009 00:05:10 +0900
+Message-ID: <20090605000424E.fujita.tomonori@lab.ntt.co.jp>
+References: <200906011111.28521.arnd@arndb.de>
+	<20090604165703N.fujita.tomonori@lab.ntt.co.jp>
+	<200906041235.34686.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:43896 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754004AbZFDOtU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jun 2009 10:49:20 -0400
-Content-Disposition: inline
-In-Reply-To: <20090604143803.GD24491@flint.arm.linux.org.uk>
+Received: from sh.osrg.net ([192.16.179.4]:35545 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752653AbZFDPFP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 4 Jun 2009 11:05:15 -0400
+In-Reply-To: <200906041235.34686.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: arnd@arndb.de
+Cc: fujita.tomonori@lab.ntt.co.jp, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, Jun 04, 2009 at 03:38:03PM +0100, Russell King wrote:
-> On Thu, Jun 04, 2009 at 02:42:52PM +0100, Arnd Bergmann wrote:
-> > The device sets a mask (really a limit) of the address ranges it can
-> > handle. Basically every user in the kernel currently passes DMA_BIT_MASK()
-> > limit into {dma,pci}_set_mask,  and I am not aware of any driver
-> > that needs something more fancy. If you know one, please tell us.
+On Thu, 4 Jun 2009 12:35:34 +0000
+Arnd Bergmann <arnd@arndb.de> wrote:
 
-BTW, I don't think you really got my point about DMA mask being a mask
-or being a limit.
+> > > I do have branches in there that convert x86 and microblaze to use
+> > 
+> > x86? How can it use asm-generic-linear.h?
+> 
+> Not dma-mapping-linear.h, but a lot of other files in asm-generic. I have
+> a set of all the common header files in my tree, and x86 can e.g. use
+> ioctls.h, ipcbuf.h, mman.h, or types.h. For x86, it amounts to 15 files,
+> microblaze can use almost 50 of the generic files.
 
-The following assumption has been made by the kernel:
+I see, but I'm not sure why dma-mapping-linear needs to be merged with
+them together.
 
-	maximum_physical_address = dma_mask
 
-Yes, that's _physical_ address, not bus specific DMA address:
+> > > I made this up in order to deal with the different requirements of
+> > > the architectures I converted. In SH, it's truly device specific
+> > > (pci may be coherent, others are never), on cris it returns false
+> > > and on most others always true.
+> > 
+> > I know what you are trying here.
+> > 
+> > However, dma_cache_sync() is an exported function to drivers; which
+> > should be used only with a buffer returned by dma_alloc_noncoherent()
+> > (see DMA-API.txt). So using dma_cache_sync() in this way is confusing
+> > to me.
+> 
+> I think it is technically correct, but there are two plausible ways of
+> doing it, I chose the one that requires slightly less code.
+> 
+> I call dma_cache_sync() for streaming mappings on dma_map_* and
+> dma_sync_*_for_device iff the mapping is noncoherent. AFAICT, this
+> is the same case as dma_alloc_noncoherent, which is expected to give
+> out a noncoherent mapping.
 
-void blk_queue_bounce_limit(struct request_queue *q, u64 dma_mask)
-{
-        unsigned long b_pfn = dma_mask >> PAGE_SHIFT;
-...
-        q->bounce_pfn = b_pfn;
-}
+If I correctly understand DMA-API.txt, dma_alloc_noncoherent can
+return either consistent or non-consistent memory. On architectures
+that return consistent memory via dma_alloc_noncoherent,
+dma_cache_sync should be null. dma_cache_sync() is supposed to be used
+only with the returned buffers of dma_alloc_noncoherent().
 
-static unsigned int __blk_recalc_rq_segments(struct request_queue *q,
-                                             struct bio *bio)
-{
-...
-                        high = page_to_pfn(bv->bv_page) > q->bounce_pfn;
-}
 
-It's not "is this page DMA-able according to the DMA mask" it's effectively
-"is this page's physical address greater than the maximum physical address
-that can be DMA'd from".
+> It is done the same way in the existing code for avr32 and sh. The
+> alternative (implemented in mn10300, and xtensa) is to define a
+> new function for flushing a data range before a DMA and call that
+> unconditionally from dma_cache_sync and for noncoherent mappings
+> in dma_map* and dma_sync_*_for_device.
+>  
+> > > Architectures like x86 and frv could use this hook to do th
+> > > global flush_write_buffers() but still return zero so that
+> > > dma_sync_sg_for_device does not have to iterate all SG
+> > > elements doing nothing for them.
+> > > 
+> > > Maybe it should be named __dma_coherent_dev() to make clear
+> > > that it is a helper internal to dma_mapping.h and not supposed to
+> > > be used by device drivers.
+> > 
+> > Might be. However, we have dma_is_consistent() for a different purpose
+> 
+> I tried (ab)using that, but since dma_is_consistent takes a memory range,
+> dma_sync_sg_for_device would have to use less efficient code:
+> 
+> (1)
+> static inline void
+> dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
+>                       int nents, enum dma_data_direction direction)
+> {
+>        struct scatterlist *sg;
+>        int i;
+> 
+>        if (!dma_coherent_dev(dev))
+>                for_each_sg(sglist, sg, nents, i)
+>                        dma_cache_sync(dev, sg_virt(sg), sg->length, direction);
+> 
+>        debug_dma_sync_sg_for_device(dev, sg, nents, direction);
+> }
+> 
+> (2)
+> static inline void
+> dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
+>                       int nents, enum dma_data_direction direction)
+> {
+>        struct scatterlist *sg;
+>        int i;
+> 
+>        for_each_sg(sglist, sg, nents, i)
+>                if (!dma_is_consistent(dev, sg_virt(sg)))
+>                       dma_cache_sync(dev, sg_virt(sg), sg->length, direction);
 
-As I've already pointed out, there are ARM platforms where this is just
-a total nonsense.
+I don't think you can do such; dma_is_consistent can be used only with
+dma_alloc_noncoherent.
 
-As I say, what is the DMA mask?  Is it really a limit?  Is it really
-supposed to be a mask?
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+> 
+>        debug_dma_sync_sg_for_device(dev, sg, nents, direction);
+> }
+> 
+> In (1), gcc can completely eliminate the object code if dma_coherent_dev()
+> returns 1, or do a single branch on a nonconstant return value. In (2), we will
+> walk the full sg list. In some cases, gcc may be able to optimize this as well,
+> but not in general.
