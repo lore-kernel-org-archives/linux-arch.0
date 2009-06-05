@@ -1,67 +1,61 @@
-From: Randy Dunlap <randy.dunlap@oracle.com>
+From: Amerigo Wang <xiyou.wangcong@gmail.com>
 Subject: Re: [PATCH v2] kmap_types: convert most arches to a single header
- file
-Date: Thu, 04 Jun 2009 16:07:07 -0700
-Message-ID: <4A28539B.5050200@oracle.com>
-References: <4A280BB0.4030805@oracle.com> <200906042228.36571.arnd@arndb.de>
+	file
+Date: Fri, 5 Jun 2009 08:43:29 +0800
+Message-ID: <20090605004329.GA7653@cr0.nay.redhat.com>
+References: <4A280BB0.4030805@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet11.oracle.com ([141.146.126.233]:52794 "EHLO
-	acsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751775AbZFDXG3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jun 2009 19:06:29 -0400
-In-Reply-To: <200906042228.36571.arnd@arndb.de>
+Received: from mail-px0-f182.google.com ([209.85.216.182]:37872 "EHLO
+	mail-px0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751228AbZFEAlW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jun 2009 20:41:22 -0400
+Content-Disposition: inline
+In-Reply-To: <4A280BB0.4030805@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Bryan Wu <cooloney@kernel.org>, Mikael Starvik <starvik@axis.com>, Hirokazu Takata <takata@linux-m32r.org>, Luck Tony <tony.luck@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Kyle McMartin <kyle@mcmartin.ca>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Russell King <rmk@arm.linux.org.uk>
+To: Randy Dunlap <randy.dunlap@oracle.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Bryan Wu <cooloney@kernel.org>, Mikael Starvik <starvik@axis.com>, Hirokazu Takata <takata@linux-m32r.org>, Luck Tony <tony.luck@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Kyle McMartin <kyle@mcmartin.ca>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
 
-Arnd Bergmann wrote:
-> On Thursday 04 June 2009, Randy Dunlap wrote:
->> From: Randy Dunlap <randy.dunlap@oracle.com>
->> Subject: kmap_types: make most arches use generic header file
->>
->> Convert most arches (*except frv*) to use asm-generic/kmap_types.h.
->> Each arch still has its own kmap_types.h for customization if
->> needed (like frv).
->>
->> KM_FENCE is now controlled by CONFIG_HIGHMEM.
->>
->> Built on x86_64, i386, mips, sparc32, sparc64,
->> alpha, powerpc64, ia64, and m68k.
->>
->> Note: Removed KM_PTE2 from generic kmap_types.h file; it was defined
->> but not used by avr32.
-> 
-> Every change in here looks good to me now, so
-> 
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-> 
-> Two questions though:
-> 
-> 1. The patch still conflicts with mine from the asm-generic
-> tree. Yours is better in multiple ways (cleans up all the
-> archs, adds the necessary types for ppc and arm), so should
-> I drop mine now? I guess I can also make my file identical
-> to yours so independent of who gets in first, there should be
-> a clean merge?
+On Thu, Jun 04, 2009 at 11:00:16AM -0700, Randy Dunlap wrote:
+>From: Randy Dunlap <randy.dunlap@oracle.com>
+>Subject: kmap_types: make most arches use generic header file
+>
+>Convert most arches (*except frv*) to use asm-generic/kmap_types.h.
+>Each arch still has its own kmap_types.h for customization if
+>needed (like frv).
+>
+>KM_FENCE is now controlled by CONFIG_HIGHMEM.
+>
+>Built on x86_64, i386, mips, sparc32, sparc64,
+>alpha, powerpc64, ia64, and m68k.
+>
+>Note: Removed KM_PTE2 from generic kmap_types.h file; it was defined
+>but not used by avr32.
+>
+>Signed-off-by: Randy Dunlap <randy.dunlap@oracle.com>
+>Cc: <linux-arch@vger.kernel.org>
+>Acked-by: Mike Frysinger <vapier@gentoo.org>
+>Cc: Richard Henderson <rth@twiddle.net>
+>Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+>Cc: Bryan Wu <cooloney@kernel.org>
+>Cc: Mikael Starvik <starvik@axis.com>
+>Cc: Hirokazu Takata <takata@linux-m32r.org>
+>Cc: "Luck Tony" <tony.luck@intel.com>
+>Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+>Cc: Ralf Baechle <ralf@linux-mips.org>
+>Cc: David Howells <dhowells@redhat.com>
+>Cc: Kyle McMartin <kyle@mcmartin.ca>
+>Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+>Cc: Paul Mundt <lethal@linux-sh.org>
+>Cc: "David S. Miller" <davem@davemloft.net>
+>Cc: Ingo Molnar <mingo@elte.hu>
+>Cc: Thomas Gleixner <tglx@linutronix.de>
+>Cc: "H. Peter Anvin" <hpa@zytor.com>
+>Cc: Arnd Bergmann <arnd@arndb.de>
 
-or you can take my patch into your asm-generic patchset.  :)
+UML only uses KM_TYPE_NR and KM_UML_USERCOPY, so
+this patch should be fine for UML.
 
-> 2. should the asm and powerpc bits go through the arch maintainer
-
-                arm
-
-> trees? I guess since they are slightly more than an obvious
-> consolidation, at least an Ack from BenH and Russell would be
-> appropriate.
-
-Sure, acks from lots of arch maintainers would be Good,
-esp. BenH and Russell.
-
--- 
-~Randy
-LPC 2009, Sept. 23-25, Portland, Oregon
-http://linuxplumbersconf.org/2009/
+Acked-by: WANG Cong <xiyou.wangcong@gmail.com>
