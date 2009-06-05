@@ -1,20 +1,38 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [PATCH v2] kmap_types: convert most arches to a single header
-	file
-Date: Fri, 5 Jun 2009 10:59:41 -0400
-Message-ID: <20090605145941.GA12216@bombadil.infradead.org>
-References: <4A280BB0.4030805@oracle.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: "N" symbols and System.map
+Date: Sat, 6 Jun 2009 00:26:50 +0200
+Message-ID: <20090605222650.GM29008@uranus.ravnborg.org>
+References: <49FB7692.2000508@linux.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1756548AbZFEPAH@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pfepa.post.tele.dk ([195.41.46.235]:37604 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751247AbZFEWYe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jun 2009 18:24:34 -0400
 Content-Disposition: inline
-In-Reply-To: <4A280BB0.4030805@oracle.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Randy Dunlap <randy.dunlap@oracle.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Bryan Wu <cooloney@kernel.org>, Mikael Starvik <starvik@axis.com>, Hirokazu Takata <takata@linux-m32r.org>, Luck Tony <tony.luck@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Kyle McMartin <kyle@mcmartin.ca>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <49FB7692.2000508@linux.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "H. Peter Anvin" <hpa@linux.intel.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
-On Thu, Jun 04, 2009 at 11:00:16AM -0700, Randy Dunlap wrote:
-> Cc: Kyle McMartin <kyle@mcmartin.ca>
+On Fri, May 01, 2009 at 03:24:18PM -0700, H. Peter Anvin wrote:
+> Hi all,
+> 
+> right now, we filter out symbols that nm tag N, meaning "debugging 
+> symbols", from System.map.  However, at least on x86, the 
+> linker-generated symbol _end is tagged N, and in fact is the only N in 
+> the entire image.
+> 
+> Are there other architectures which would suffer if N were included in 
+> System.map, or would that be a reasonable thing to do?
 
-Acked-by: Kyle McMartin <kyle@mcmartin.ca>
+Peter - what is status here?
+
+Do you see _end tagged N with -tip?
+We landed a lot of changes to vmlinux.lds there.
+
+Needless to say I have not included N symbols for now.
+
+	Sam
