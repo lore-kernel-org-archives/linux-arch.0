@@ -1,33 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.177]:59395 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753962AbZFHIta (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jun 2009 04:49:30 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] asm-generic: add dma-mapping-linear.h
-Date: Mon, 8 Jun 2009 10:49:22 +0200
-References: <200906041747.04310.arnd@arndb.de> <200906081003.59171.arnd@arndb.de> <20090608172200A.fujita.tomonori@lab.ntt.co.jp>
-In-Reply-To: <20090608172200A.fujita.tomonori@lab.ntt.co.jp>
+Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:58426 "EHLO
+	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755925AbZFIGif (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 02:38:35 -0400
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-ID: <200906081049.23045.arnd@arndb.de>
+Subject: [PATCH 18/27] score: create head files uaccess.h unaligned.h unistd.h
+ user.h
+Message-ID: <OF596C037E.9CF83913-ON482575D0.0024055D-482575D0.002476E7@sunplusct.com>
+From: liqin.chen@sunplusct.com
+Date: Tue, 9 Jun 2009 14:34:00 +0800
+Content-Type: text/plain; charset="US-ASCII"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20090608084922.39aVbmA-jKUWInn_2-gJBug2dztJhmg2hl96UskpGw0@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org
+Message-ID: <20090609063400.TyGk9ljf0WBo4dtHXQg9fgMmDBz2qQiMih2mM6Ibyjo@z>
 
-On Monday 08 June 2009, FUJITA Tomonori wrote:
+From dccb8b53daf3a5a6e312aabcabdab42b558f95e6 Mon Sep 17 00:00:00 2001
+From: Chen Liqin <liqin.chen@sunplusct.com>
+Date: Tue, 9 Jun 2009 13:43:15 +0800
+Subject: [PATCH 18/27] score: create head files uaccess.h unaligned.h 
+unistd.h user.h
 
-> If you don't clean up them, I think that it's better to leave out
-> asm-generic/dma-generic-linear.h for
-> now. asm-generic/dma-generic-linear.h is supposed to clean up the
-> mess; unify (generalize, or fix) some architecture. It's not supported
-> to add another temporary hack that should be removed.
 
-Ok. I have no more ideas on how to do that in a cleaner way
-than what I suggested, so I'll stop bothering you with it.
+Signed-off-by: Chen Liqin <liqin.chen@sunplusct.com>
+---
+ arch/score/include/asm/uaccess.h   |   27 +++++++++++++++++++++++++++
+ arch/score/include/asm/unaligned.h |   11 +++++++++++
+ arch/score/include/asm/unistd.h    |   12 ++++++++++++
+ arch/score/include/asm/user.h      |    4 ++++
+ 4 files changed, 54 insertions(+), 0 deletions(-)
+ create mode 100644 arch/score/include/asm/uaccess.h
+ create mode 100644 arch/score/include/asm/unaligned.h
+ create mode 100644 arch/score/include/asm/unistd.h
+ create mode 100644 arch/score/include/asm/user.h
 
-	Arnd <><
+diff --git a/arch/score/include/asm/uaccess.h 
+b/arch/score/include/asm/uaccess.h
+new file mode 100644
+index 0000000..43ce28a
+--- /dev/null
++++ b/arch/score/include/asm/uaccess.h
+@@ -0,0 +1,27 @@
++#ifndef _ASM_SCORE_UACCESS_H
++#define _ASM_SCORE_UACCESS_H
++/*
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General 
+Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++struct pt_regs;
++extern int fixup_exception(struct pt_regs *regs);
++
++#ifndef __ASSEMBLY__
++
++#define __range_ok(addr, size)                                 \
++       ((((unsigned long)(addr) >= 0x80000000)                 \
++       || ((unsigned long)(size) > 0x80000000)                 \
++       || (((unsigned long)(addr) + (unsigned long)(size)) > 
+0x80000000)))
++
++#define __access_ok(addr, size) \
++       (__range_ok((addr), (size)) == 0)
++
++#include <asm-generic/uaccess.h>
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* _ASM_SCORE_UACCESS_H */
+diff --git a/arch/score/include/asm/unaligned.h 
+b/arch/score/include/asm/unaligned.h
+new file mode 100644
+index 0000000..4b8fec0
+--- /dev/null
++++ b/arch/score/include/asm/unaligned.h
+@@ -0,0 +1,11 @@
++#ifndef _ASM_SCORE_UNALIGNED_H
++#define _ASM_SCORE_UNALIGNED_H
++
++#include <linux/unaligned/le_struct.h>
++#include <linux/unaligned/be_byteshift.h>
++#include <linux/unaligned/generic.h>
++
++#define get_unaligned  __get_unaligned_le
++#define put_unaligned  __put_unaligned_le
++
++#endif /* _ASM_SCORE_UNALIGNED_H */
+diff --git a/arch/score/include/asm/unistd.h 
+b/arch/score/include/asm/unistd.h
+new file mode 100644
+index 0000000..0cbfef8
+--- /dev/null
++++ b/arch/score/include/asm/unistd.h
+@@ -0,0 +1,12 @@
++#ifndef _ASM_SCORE_UNISTD_H
++#define _ASM_SCORE_UNISTD_H
++
++#define __ARCH_HAVE_MMU
++#define __ARCH_WANT_SYSCALL_NO_AT
++#define __ARCH_WANT_SYSCALL_NO_FLAGS
++#define __ARCH_WANT_SYSCALL_OFF_T
++#define __ARCH_WANT_SYSCALL_DEPRECATED
++
++#include <asm-generic/unistd.h>
++
++#endif /* _ASM_SCORE_UNISTD_H */
+diff --git a/arch/score/include/asm/user.h b/arch/score/include/asm/user.h
+new file mode 100644
+index 0000000..3cf7572
+--- /dev/null
++++ b/arch/score/include/asm/user.h
+@@ -0,0 +1,4 @@
++#ifndef _ASM_SCORE_USER_H
++#define _ASM_SCORE_USER_H
++
++#endif /* _ASM_SCORE_USER_H */
+-- 
+1.6.2
+
