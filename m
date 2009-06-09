@@ -1,123 +1,172 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:58426 "EHLO
-	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755925AbZFIGif (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 02:38:35 -0400
+Received: from 219-87-157-179.static.tfn.net.tw ([219.87.157.179]:53666 "EHLO
+	mswedge1.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755245AbZFIGyo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 02:54:44 -0400
 MIME-Version: 1.0
-Subject: [PATCH 18/27] score: create head files uaccess.h unaligned.h unistd.h
- user.h
-Message-ID: <OF596C037E.9CF83913-ON482575D0.0024055D-482575D0.002476E7@sunplusct.com>
+Subject: [PATCH 07/27] score: create head files elf.h emergency-restart.h errno.h
+Message-ID: <OF1B185198.8D225D85-ON482575D0.00235FF4-482575D0.0023D06F@sunplusct.com>
 From: liqin.chen@sunplusct.com
-Date: Tue, 9 Jun 2009 14:34:00 +0800
+Date: Tue, 9 Jun 2009 14:26:53 +0800
 Content-Type: text/plain; charset="US-ASCII"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org
-Message-ID: <20090609063400.TyGk9ljf0WBo4dtHXQg9fgMmDBz2qQiMih2mM6Ibyjo@z>
+Message-ID: <20090609062653.YcDHiKcAgmtbIutSeiatTFJl8D1PJKpdC0duHf9rQTU@z>
 
-From dccb8b53daf3a5a6e312aabcabdab42b558f95e6 Mon Sep 17 00:00:00 2001
+From 92de1d59c5c52dc1d64a9f6918b46afa4135afa3 Mon Sep 17 00:00:00 2001
 From: Chen Liqin <liqin.chen@sunplusct.com>
-Date: Tue, 9 Jun 2009 13:43:15 +0800
-Subject: [PATCH 18/27] score: create head files uaccess.h unaligned.h 
-unistd.h user.h
+Date: Tue, 9 Jun 2009 13:43:08 +0800
+
 
 
 Signed-off-by: Chen Liqin <liqin.chen@sunplusct.com>
 ---
- arch/score/include/asm/uaccess.h   |   27 +++++++++++++++++++++++++++
- arch/score/include/asm/unaligned.h |   11 +++++++++++
- arch/score/include/asm/unistd.h    |   12 ++++++++++++
- arch/score/include/asm/user.h      |    4 ++++
- 4 files changed, 54 insertions(+), 0 deletions(-)
- create mode 100644 arch/score/include/asm/uaccess.h
- create mode 100644 arch/score/include/asm/unaligned.h
- create mode 100644 arch/score/include/asm/unistd.h
- create mode 100644 arch/score/include/asm/user.h
+ arch/score/include/asm/elf.h               |   99 
+++++++++++++++++++++++++++++
+ arch/score/include/asm/emergency-restart.h |    6 ++
+ arch/score/include/asm/errno.h             |    7 ++
+ 3 files changed, 112 insertions(+), 0 deletions(-)
+ create mode 100644 arch/score/include/asm/elf.h
+ create mode 100644 arch/score/include/asm/emergency-restart.h
+ create mode 100644 arch/score/include/asm/errno.h
 
-diff --git a/arch/score/include/asm/uaccess.h 
-b/arch/score/include/asm/uaccess.h
+diff --git a/arch/score/include/asm/elf.h b/arch/score/include/asm/elf.h
 new file mode 100644
-index 0000000..43ce28a
+index 0000000..8324363
 --- /dev/null
-+++ b/arch/score/include/asm/uaccess.h
-@@ -0,0 +1,27 @@
-+#ifndef _ASM_SCORE_UACCESS_H
-+#define _ASM_SCORE_UACCESS_H
++++ b/arch/score/include/asm/elf.h
+@@ -0,0 +1,99 @@
++#ifndef _ASM_SCORE_ELF_H
++#define _ASM_SCORE_ELF_H
++
++/* ELF register definitions */
++#define ELF_NGREG      45
++#define ELF_NFPREG     33
++#define EM_SCORE7      135
++
++/* Relocation types. */
++#define R_SCORE_NONE           0
++#define R_SCORE_HI16           1
++#define R_SCORE_LO16           2
++#define R_SCORE_BCMP           3
++#define R_SCORE_24             4
++#define R_SCORE_PC19           5
++#define R_SCORE16_11           6
++#define R_SCORE16_PC8          7
++#define R_SCORE_ABS32          8
++#define R_SCORE_ABS16          9
++#define R_SCORE_DUMMY2         10
++#define R_SCORE_GP15           11
++#define R_SCORE_GNU_VTINHERIT  12
++#define R_SCORE_GNU_VTENTRY    13
++#define R_SCORE_GOT15          14
++#define R_SCORE_GOT_LO16       15
++#define R_SCORE_CALL15         16
++#define R_SCORE_GPREL32                17
++#define R_SCORE_REL32          18
++#define R_SCORE_DUMMY_HI16     19
++#define R_SCORE_IMM30          20
++#define R_SCORE_IMM32          21
++
++typedef unsigned long elf_greg_t;
++typedef elf_greg_t elf_gregset_t[ELF_NGREG];
++
++typedef double elf_fpreg_t;
++typedef elf_fpreg_t elf_fpregset_t[ELF_NFPREG];
++
++#define elf_check_arch(x)      ((x)->e_machine == EM_SCORE7)
++
 +/*
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General 
-Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * These are used to set parameters in the core dumps.
 + */
++#define ELF_CLASS      ELFCLASS32
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_DATA       ELFDATA2LSB
++#define ELF_ARCH       EM_SCORE7
++
++#define SET_PERSONALITY(ex)                                    \
++do {                                                           \
++       set_personality(PER_LINUX);                             \
++} while (0)
++
++struct task_struct;
 +struct pt_regs;
-+extern int fixup_exception(struct pt_regs *regs);
 +
-+#ifndef __ASSEMBLY__
++#define USE_ELF_CORE_DUMP
++#define ELF_EXEC_PAGESIZE      PAGE_SIZE
 +
-+#define __range_ok(addr, size)                                 \
-+       ((((unsigned long)(addr) >= 0x80000000)                 \
-+       || ((unsigned long)(size) > 0x80000000)                 \
-+       || (((unsigned long)(addr) + (unsigned long)(size)) > 
-0x80000000)))
++/* This yields a mask that user programs can use to figure out what
++   instruction set this cpu supports.  This could be done in userspace,
++   but it's not easy, and we've already done it here.  */
 +
-+#define __access_ok(addr, size) \
-+       (__range_ok((addr), (size)) == 0)
++#define ELF_HWCAP      (0)
 +
-+#include <asm-generic/uaccess.h>
++/* This yields a string that ld.so will use to load implementation
++   specific libraries for optimization.  This is more specific in
++   intent than poking at uname or /proc/cpuinfo.
 +
-+#endif /* __ASSEMBLY__ */
++   For the moment, we have only optimizations for the Intel generations,
++   but that could change... */
 +
-+#endif /* _ASM_SCORE_UACCESS_H */
-diff --git a/arch/score/include/asm/unaligned.h 
-b/arch/score/include/asm/unaligned.h
++#define ELF_PLATFORM   (NULL)
++
++#define ELF_PLAT_INIT(_r, load_addr)                                   \
++do {                                                                   \
++       _r->regs[1] = _r->regs[2] = _r->regs[3] = _r->regs[4] = 0;      \
++       _r->regs[5] = _r->regs[6] = _r->regs[7] = _r->regs[8] = 0;      \
++       _r->regs[9] = _r->regs[10] = _r->regs[11] = _r->regs[12] = 0;   \
++       _r->regs[13] = _r->regs[14] = _r->regs[15] = _r->regs[16] = 0;  \
++       _r->regs[17] = _r->regs[18] = _r->regs[19] = _r->regs[20] = 0;  \
++       _r->regs[21] = _r->regs[22] = _r->regs[23] = _r->regs[24] = 0;  \
++       _r->regs[25] = _r->regs[26] = _r->regs[27] = _r->regs[28] = 0;  \
++       _r->regs[30] = _r->regs[31] = 0;                                \
++} while (0)
++
++/* This is the location that an ET_DYN program is loaded if exec'ed. 
+Typical
++   use of this is to invoke "./ld.so someprog" to test out a new version 
+of
++   the loader.  We need to make sure that it is out of the way of the 
+program
++   that it will "exec", and that there is sufficient room for the brk. */
++
++#ifndef ELF_ET_DYN_BASE
++#define ELF_ET_DYN_BASE                (TASK_SIZE / 3 * 2)
++#endif
++
++#endif /* _ASM_SCORE_ELF_H */
+diff --git a/arch/score/include/asm/emergency-restart.h 
+b/arch/score/include/asm/emergency-restart.h
 new file mode 100644
-index 0000000..4b8fec0
+index 0000000..ca31e98
 --- /dev/null
-+++ b/arch/score/include/asm/unaligned.h
-@@ -0,0 +1,11 @@
-+#ifndef _ASM_SCORE_UNALIGNED_H
-+#define _ASM_SCORE_UNALIGNED_H
++++ b/arch/score/include/asm/emergency-restart.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_SCORE_EMERGENCY_RESTART_H
++#define _ASM_SCORE_EMERGENCY_RESTART_H
 +
-+#include <linux/unaligned/le_struct.h>
-+#include <linux/unaligned/be_byteshift.h>
-+#include <linux/unaligned/generic.h>
++#include <asm-generic/emergency-restart.h>
 +
-+#define get_unaligned  __get_unaligned_le
-+#define put_unaligned  __put_unaligned_le
-+
-+#endif /* _ASM_SCORE_UNALIGNED_H */
-diff --git a/arch/score/include/asm/unistd.h 
-b/arch/score/include/asm/unistd.h
++#endif /* _ASM_SCORE_EMERGENCY_RESTART_H */
+diff --git a/arch/score/include/asm/errno.h 
+b/arch/score/include/asm/errno.h
 new file mode 100644
-index 0000000..0cbfef8
+index 0000000..7cd3e1f
 --- /dev/null
-+++ b/arch/score/include/asm/unistd.h
-@@ -0,0 +1,12 @@
-+#ifndef _ASM_SCORE_UNISTD_H
-+#define _ASM_SCORE_UNISTD_H
++++ b/arch/score/include/asm/errno.h
+@@ -0,0 +1,7 @@
++#ifndef _ASM_SCORE_ERRNO_H
++#define _ASM_SCORE_ERRNO_H
 +
-+#define __ARCH_HAVE_MMU
-+#define __ARCH_WANT_SYSCALL_NO_AT
-+#define __ARCH_WANT_SYSCALL_NO_FLAGS
-+#define __ARCH_WANT_SYSCALL_OFF_T
-+#define __ARCH_WANT_SYSCALL_DEPRECATED
++#include <asm-generic/errno.h>
++#define EMAXERRNO 1024
 +
-+#include <asm-generic/unistd.h>
-+
-+#endif /* _ASM_SCORE_UNISTD_H */
-diff --git a/arch/score/include/asm/user.h b/arch/score/include/asm/user.h
-new file mode 100644
-index 0000000..3cf7572
---- /dev/null
-+++ b/arch/score/include/asm/user.h
-@@ -0,0 +1,4 @@
-+#ifndef _ASM_SCORE_USER_H
-+#define _ASM_SCORE_USER_H
-+
-+#endif /* _ASM_SCORE_USER_H */
++#endif /* _ASM_SCORE_ERRNO_H */
 -- 
 1.6.2
 
