@@ -1,180 +1,52 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 22/27] score: create kernel files signal.c sys_score.c
- time.c
-Date: Tue, 9 Jun 2009 10:51:13 +0200 (CEST)
-Message-ID: <alpine.LFD.2.00.0906091028020.3351@localhost.localdomain>
-References: <OF32AB4A20.4574C065-ON482575D0.00243CB1-482575D0.0024AD26@sunplusct.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 0/14] score - New architecure port to SunplusCT S+CORE
+Date: Tue, 9 Jun 2009 18:37:28 +0200
+Message-ID: <200906091837.28897.arnd@arndb.de>
+References: <OF47CBE0C5.C2291ED8-ON482575CF.00287989-482575CF.0028F312@sunplusct.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:44080 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759434AbZFIIwk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 9 Jun 2009 04:52:40 -0400
-In-Reply-To: <OF32AB4A20.4574C065-ON482575D0.00243CB1-482575D0.0024AD26@sunplusct.com>
+Received: from moutng.kundenserver.de ([212.227.126.186]:54002 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756149AbZFIQjJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 12:39:09 -0400
+In-Reply-To: <OF47CBE0C5.C2291ED8-ON482575CF.00287989-482575CF.0028F312@sunplusct.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: liqin.chen@sunplusct.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org
+Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-arch@vger.kernel.org, linux-arch-owner@vger.kernel.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Thomas Gleixner <tglx@linutronix.de>, torvalds@linux-foundation.org
 
-Chen,
+On Monday 08 June 2009, liqin.chen@sunplusct.com wrote:
+> Thanks Arnd, our MIS help me solve the download problem.
+> 
+> > Feel free to base you code on top of asm-generic.git#next, but tell me
+> > when you intend to do that so I can warn you of possibly rebases.
+> 
+> Last week, I had updated score code base on asm-generic.git#next.
+> 
+> and I will apply a account on kernel.org, But before I get the account,
+> can you let score code merge in asm-generic.git?
 
-On Tue, 9 Jun 2009, liqin.chen@sunplusct.com wrote:
+I can take your patches and apply them to a new branch in my tree
+if that helps. I hope that Linus can pull my tree early in the
+merge window so your architecture port and the microblaze changes
+based on it can also get in soon.
 
-> +static struct irqaction timer_irq = {
-> +       .handler = timer_interrupt,
-> +       .flags = IRQF_DISABLED | IRQF_TIMER,
-> +       .mask = CPU_MASK_NONE,
-> +       .name = "timer",
-> +};
-> +
-> +static int comparator_next_event(unsigned long delta,
-> +               struct clock_event_device *evdev)
-> +{
-> +       unsigned long   flags;
-> +
-> +       raw_local_irq_save(flags);
+I guess for the new architecture, it makes sense to combine all
+your patches into a single changeset in git, since they don't
+make sense until you have the complete set, and your changeset
+comments are rather boring so far anyway.
 
+Can you write a few paragraphs of text about your architecture
+for the initial changeset comment? I think it would be good
+to permanently store some facts in there, e.g. in which ways
+the architecture is different from others, where to get a
+toolchain and what kinds of hardware exist for it.
 
-  This function is always called with interrupts disabled.
+I'll go through the patches once more and see if I find anything
+that should still be changed before the code goes in, but
+from a brief look, the code looks pretty good now.
 
-> +       __raw_writel((TMR_M_PERIODIC | TMR_IE_ENABLE), (void *)P_TIMER0_CTRL);
-
-  Can you please move the type cast to the define or better have a:
-
-  static const __iomem void *timer_ctrl = .....;
-
-  somehwere at the top of the file/
-
-> +       __raw_writel(delta, (void *)P_TIMER0_PRELOAD);
-> +       __raw_writel(__raw_readl((void *)P_TIMER0_CTRL) | TMR_ENABLE,
-> +               (void *)P_TIMER0_CTRL);
-> +
-> +       raw_local_irq_restore(flags);
-> +
-> +       return 0;
-> +}
-> +
-> +static void comparator_mode(enum clock_event_mode mode,
-> +               struct clock_event_device *evdev)
-> +{
-> +       unsigned long   flags;
-> +
-> +       switch (mode) {
-> +       case CLOCK_EVT_MODE_PERIODIC:
-> +               raw_local_irq_save(flags);
-
-  This function is also called with interrupts disabled.
-
-
-> +               __raw_writel((TMR_M_PERIODIC | TMR_IE_ENABLE),
-> +                       (void *)P_TIMER0_CTRL);
-> +               __raw_writel(SYSTEM_CLOCK/100, (void *)P_TIMER0_PRELOAD);
-
-  shouldn't 100 be replaced by HZ ?
-
-> +               __raw_writel(__raw_readl((void *)P_TIMER0_CTRL) | 
-> TMR_ENABLE,
-> +                       (void *)P_TIMER0_CTRL);
-> +               raw_local_irq_restore(flags);
-> +               break;
-> +       case CLOCK_EVT_MODE_ONESHOT:
-> +       case CLOCK_EVT_MODE_RESUME:
-> +       case CLOCK_EVT_MODE_UNUSED:
-> +       case CLOCK_EVT_MODE_SHUTDOWN:
-> +               break;
-> +       default:
-> +               BUG();
-> +       }
-> +}
-> +
-> +static struct clock_event_device comparator = {
-> +       .name           = "avr32_comparator",
-> +       .features       = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
-> +       .shift          = 16,
-> +       .set_next_event = comparator_next_event,
-> +       .set_mode       = comparator_mode,
-> +};
-> +
-> +static u32 score_tick_cnt;
-> +
-> +static cycle_t score_read_clk(struct clocksource *cs)
-> +{
-> +       unsigned long flags;
-> +
-> +       local_irq_save(flags);
-> +       score_tick_cnt += SYSTEM_CLOCK/100;
-> +       local_irq_restore(flags);
-
-  How is that supposed to work ? read_clk() is called from various
-  places in the kernel and you seem to add some constant value to it
-  on every call. That can not work at all. You need a counter which
-  is incrementing at a constant rate and can be read out.
-
-  If you do not have a continous counter then you should not provide a
-  clock source. The generic code will then provide the jiffies clock
-  source. In that case you need to disable the oneshot mode of your
-  clock event device as well.
-
-> +
-> +       return score_tick_cnt;
-> +}
-> +
-> +static struct clocksource score_clk = {
-> +       .name   = "timer",
-> +       .rating = 250,
-> +       .read   = score_read_clk,
-> +       .shift  = 20,
-> +       .mask   = CLOCKSOURCE_MASK(32),
-> +       .flags  = CLOCK_SOURCE_IS_CONTINUOUS,
-
-  yeah, continuously wrong :)
-
-> +};
-> +
-> +void __init time_init(void)
-> +{
-> +       xtime.tv_sec = mktime(2009, 1, 1, 0, 0, 0);
-> +       xtime.tv_nsec = 0;
-> +
-> +       set_normalized_timespec(&wall_to_monotonic, -xtime.tv_sec,
-> +                               -xtime.tv_nsec);
-
-  xtime setup is done in the generic time keeping code already. Please
-  remove.
-
-> +       /* disable timer, timer interrupt enable */
-> +       __raw_writel((TMR_M_PERIODIC | TMR_IE_ENABLE), (void 
-> *)P_TIMER0_CTRL);
-> +       __raw_writel(SYSTEM_CLOCK/100, (void *)P_TIMER0_PRELOAD); /* 10ms 
-> */
-> +
-> +       /* start timer */
-> +       __raw_writel(__raw_readl((void *)P_TIMER0_CTRL) | TMR_ENABLE,
-> +               (void *)P_TIMER0_CTRL);
-
-  No need to start the timer here. When you register your clock event
-  device the set_mode function is called and the timer is started.
-
-  Your implementation is not going to work at all.
-
-  A clock event device is a device which delivers either periodic or
-  one shot interrupts. It is registered with the generic clockevents
-  layer which takes care of setting up the device via the set_mode
-  call back.
-
-  The clock source device is a device which provides a monotonic
-  increasing counter which can wrap around at some point. The wrap
-  around point has to be power of 2 and is defined via the .mask
-  member of the clock source device structure. The generic time
-  keeping code takes care of the conversion to nsec based time and
-  handles NTP and other adjustments.
-
-  So in practice you need either two hardware devices (counter and
-  interrupt generator) or a device which has a monotonic increasing
-  counter and a match register which generates an interrupt when the
-  counter value and the match register are the same.
-
-Thanks,
-
-	tglx
+	Arnd <><
