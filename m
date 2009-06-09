@@ -1,262 +1,112 @@
 From: liqin.chen@sunplusct.com
-Subject: [PATCH 13/27] score: create head files mman.h mmu_context.h mmu.h module.h
- msgbug.h mutex.h
-Date: Tue, 9 Jun 2009 14:30:26 +0800
-Message-ID: <OF5DFE8AEA.A76450A1-ON482575D0.0023B236-482575D0.002423A3@sunplusct.com>
+Subject: [PATCH 04/27] score: create head files bitops.h bitsperlong.h bug.h bugs.h
+ byteorder.h
+Date: Tue, 9 Jun 2009 14:25:08 +0800
+Message-ID: <OFBB948A5B.D38E1AE1-ON482575D0.00233280-482575D0.0023A73C@sunplusct.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="US-ASCII"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 219-87-157-179.static.tfn.net.tw ([219.87.157.179]:54418 "EHLO
-	mswedge1.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754136AbZFIG7a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 02:59:30 -0400
+Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:58710 "EHLO
+	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753761AbZFIHKc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 03:10:32 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org
 
-From ac497b397052e5d65fe21c2748dc230362dc6eb0 Mon Sep 17 00:00:00 2001
+From ea24b4bd75b80d22203139a9aab7872be284d52d Mon Sep 17 00:00:00 2001
 From: Chen Liqin <liqin.chen@sunplusct.com>
-Date: Tue, 9 Jun 2009 13:43:11 +0800
+Date: Tue, 9 Jun 2009 13:43:06 +0800
 
 
 
 Signed-off-by: Chen Liqin <liqin.chen@sunplusct.com>
 ---
- arch/score/include/asm/mman.h        |    6 ++
- arch/score/include/asm/mmu.h         |    6 ++
- arch/score/include/asm/mmu_context.h |  113 
-++++++++++++++++++++++++++++++++++
- arch/score/include/asm/module.h      |   39 ++++++++++++
- arch/score/include/asm/msgbuf.h      |    6 ++
- arch/score/include/asm/mutex.h       |    6 ++
- 6 files changed, 176 insertions(+), 0 deletions(-)
- create mode 100644 arch/score/include/asm/mman.h
- create mode 100644 arch/score/include/asm/mmu.h
- create mode 100644 arch/score/include/asm/mmu_context.h
- create mode 100644 arch/score/include/asm/module.h
- create mode 100644 arch/score/include/asm/msgbuf.h
- create mode 100644 arch/score/include/asm/mutex.h
+ arch/score/include/asm/bitops.h      |   16 ++++++++++++++++
+ arch/score/include/asm/bitsperlong.h |    6 ++++++
+ arch/score/include/asm/bug.h         |    6 ++++++
+ arch/score/include/asm/bugs.h        |    6 ++++++
+ arch/score/include/asm/byteorder.h   |    6 ++++++
+ 5 files changed, 40 insertions(+), 0 deletions(-)
+ create mode 100644 arch/score/include/asm/bitops.h
+ create mode 100644 arch/score/include/asm/bitsperlong.h
+ create mode 100644 arch/score/include/asm/bug.h
+ create mode 100644 arch/score/include/asm/bugs.h
+ create mode 100644 arch/score/include/asm/byteorder.h
 
-diff --git a/arch/score/include/asm/mman.h b/arch/score/include/asm/mman.h
+diff --git a/arch/score/include/asm/bitops.h 
+b/arch/score/include/asm/bitops.h
 new file mode 100644
-index 0000000..84d85dd
+index 0000000..2763b05
 --- /dev/null
-+++ b/arch/score/include/asm/mman.h
++++ b/arch/score/include/asm/bitops.h
+@@ -0,0 +1,16 @@
++#ifndef _ASM_SCORE_BITOPS_H
++#define _ASM_SCORE_BITOPS_H
++
++#include <asm/byteorder.h> /* swab32 */
++#include <asm/system.h> /* save_flags */
++
++/*
++ * clear_bit() doesn't provide any barrier for the compiler.
++ */
++#define smp_mb__before_clear_bit()     barrier()
++#define smp_mb__after_clear_bit()      barrier()
++
++#include <asm-generic/bitops.h>
++#include <asm-generic/bitops/__fls.h>
++
++#endif /* _ASM_SCORE_BITOPS_H */
+diff --git a/arch/score/include/asm/bitsperlong.h 
+b/arch/score/include/asm/bitsperlong.h
+new file mode 100644
+index 0000000..86ff337
+--- /dev/null
++++ b/arch/score/include/asm/bitsperlong.h
 @@ -0,0 +1,6 @@
-+#ifndef _ASM_SCORE_MMAN_H
-+#define _ASM_SCORE_MMAN_H
++#ifndef _ASM_SCORE_BITSPERLONG_H
++#define _ASM_SCORE_BITSPERLONG_H
 +
-+#include <asm-generic/mman.h>
++#include <asm-generic/bitsperlong.h>
 +
-+#endif /* _ASM_SCORE_MMAN_H */
-diff --git a/arch/score/include/asm/mmu.h b/arch/score/include/asm/mmu.h
++#endif /* _ASM_SCORE_BITSPERLONG_H */
+diff --git a/arch/score/include/asm/bug.h b/arch/score/include/asm/bug.h
 new file mode 100644
-index 0000000..676828e
+index 0000000..bb76a33
 --- /dev/null
-+++ b/arch/score/include/asm/mmu.h
++++ b/arch/score/include/asm/bug.h
 @@ -0,0 +1,6 @@
-+#ifndef _ASM_SCORE_MMU_H
-+#define _ASM_SCORE_MMU_H
++#ifndef _ASM_SCORE_BUG_H
++#define _ASM_SCORE_BUG_H
 +
-+typedef unsigned long mm_context_t;
++#include <asm-generic/bug.h>
 +
-+#endif /* _ASM_SCORE_MMU_H */
-diff --git a/arch/score/include/asm/mmu_context.h 
-b/arch/score/include/asm/mmu_context.h
++#endif /* _ASM_SCORE_BUG_H */
+diff --git a/arch/score/include/asm/bugs.h b/arch/score/include/asm/bugs.h
 new file mode 100644
-index 0000000..2644577
+index 0000000..a062e10
 --- /dev/null
-+++ b/arch/score/include/asm/mmu_context.h
-@@ -0,0 +1,113 @@
-+#ifndef _ASM_SCORE_MMU_CONTEXT_H
-+#define _ASM_SCORE_MMU_CONTEXT_H
-+
-+#include <linux/errno.h>
-+#include <linux/sched.h>
-+#include <linux/slab.h>
-+#include <asm-generic/mm_hooks.h>
-+
-+#include <asm/cacheflush.h>
-+#include <asm/tlbflush.h>
-+#include <asm/scoreregs.h>
-+
-+/*
-+ * For the fast tlb miss handlers, we keep a per cpu array of pointers
-+ * to the current pgd for each processor. Also, the proc. id is stuffed
-+ * into the context register.
-+ */
-+extern unsigned long asid_cache;
-+extern unsigned long pgd_current;
-+
-+#define TLBMISS_HANDLER_SETUP_PGD(pgd) (pgd_current = (unsigned 
-long)(pgd))
-+
-+#define TLBMISS_HANDLER_SETUP()                                \
-+do {                                                   \
-+       write_c0_context(0);                            \
-+       TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir)       \
-+} while (0)
-+
-+/*
-+ * All unused by hardware upper bits will be considered
-+ * as a software asid extension.
-+ */
-+#define ASID_VERSION_MASK      0xfffff000
-+#define ASID_FIRST_VERSION     0x1000
-+
-+/* PEVN    --------- VPN ---------- --ASID--- -NA- */
-+/* binary: 0000 0000 0000 0000 0000 0000 0001 0000 */
-+/* binary: 0000 0000 0000 0000 0000 1111 1111 0000 */
-+#define ASID_INC       0x10
-+#define ASID_MASK      0xff0
-+
-+static inline void enter_lazy_tlb(struct mm_struct *mm,
-+                               struct task_struct *tsk)
-+{}
-+
-+static inline void
-+get_new_mmu_context(struct mm_struct *mm)
-+{
-+       unsigned long asid = asid_cache + ASID_INC;
-+
-+       if (!(asid & ASID_MASK)) {
-+               local_flush_tlb_all();          /* start new asid cycle */
-+               if (!asid)                      /* fix version if needed 
-*/
-+                       asid = ASID_FIRST_VERSION;
-+       }
-+
-+       mm->context = asid;
-+       asid_cache = asid;
-+}
-+
-+/*
-+ * Initialize the context related info for a new mm_struct
-+ * instance.
-+ */
-+static inline int
-+init_new_context(struct task_struct *tsk, struct mm_struct *mm)
-+{
-+       mm->context = 0;
-+       return 0;
-+}
-+
-+static inline void switch_mm(struct mm_struct *prev, struct mm_struct 
-*next,
-+                       struct task_struct *tsk)
-+{
-+       unsigned long flags;
-+
-+       local_irq_save(flags);
-+       if ((next->context ^ asid_cache) & ASID_VERSION_MASK)
-+               get_new_mmu_context(next);
-+
-+       pevn_set(next->context);
-+       TLBMISS_HANDLER_SETUP_PGD(next->pgd);
-+       local_irq_restore(flags);
-+}
-+
-+/*
-+ * Destroy context related info for an mm_struct that is about
-+ * to be put to rest.
-+ */
-+static inline void destroy_context(struct mm_struct *mm)
-+{}
-+
-+static inline void
-+deactivate_mm(struct task_struct *task, struct mm_struct *mm)
-+{}
-+
-+/*
-+ * After we have set current->mm to a new value, this activates
-+ * the context for the new mm so we see the new mappings.
-+ */
-+static inline void
-+activate_mm(struct mm_struct *prev, struct mm_struct *next)
-+{
-+       unsigned long flags;
-+
-+       local_irq_save(flags);
-+       get_new_mmu_context(next);
-+       pevn_set(next->context);
-+       TLBMISS_HANDLER_SETUP_PGD(next->pgd);
-+       local_irq_restore(flags);
-+}
-+
-+#endif /* _ASM_SCORE_MMU_CONTEXT_H */
-diff --git a/arch/score/include/asm/module.h 
-b/arch/score/include/asm/module.h
-new file mode 100644
-index 0000000..f0b5dc0
---- /dev/null
-+++ b/arch/score/include/asm/module.h
-@@ -0,0 +1,39 @@
-+#ifndef _ASM_SCORE_MODULE_H
-+#define _ASM_SCORE_MODULE_H
-+
-+#include <linux/list.h>
-+#include <asm/uaccess.h>
-+
-+struct mod_arch_specific {
-+       /* Data Bus Error exception tables */
-+       struct list_head dbe_list;
-+       const struct exception_table_entry *dbe_start;
-+       const struct exception_table_entry *dbe_end;
-+};
-+
-+typedef uint8_t Elf64_Byte;            /* Type for a 8-bit quantity. */
-+
-+#define Elf_Shdr       Elf32_Shdr
-+#define Elf_Sym                Elf32_Sym
-+#define Elf_Ehdr       Elf32_Ehdr
-+#define Elf_Addr       Elf32_Addr
-+
-+/* Given an address, look for it in the exception tables. */
-+#ifdef CONFIG_MODULES
-+const struct exception_table_entry *search_module_dbetables(unsigned long 
-addr);
-+#else
-+static inline const struct exception_table_entry
-+*search_module_dbetables(unsigned long addr)
-+{
-+       return NULL;
-+}
-+#endif
-+
-+#define MODULE_PROC_FAMILY "SCORE7"
-+#define MODULE_KERNEL_TYPE "32BIT "
-+#define MODULE_KERNEL_SMTC ""
-+
-+#define MODULE_ARCH_VERMAGIC \
-+       MODULE_PROC_FAMILY MODULE_KERNEL_TYPE MODULE_KERNEL_SMTC
-+
-+#endif /* _ASM_SCORE_MODULE_H */
-diff --git a/arch/score/include/asm/msgbuf.h 
-b/arch/score/include/asm/msgbuf.h
-new file mode 100644
-index 0000000..7506721
---- /dev/null
-+++ b/arch/score/include/asm/msgbuf.h
++++ b/arch/score/include/asm/bugs.h
 @@ -0,0 +1,6 @@
-+#ifndef _ASM_SCORE_MSGBUF_H
-+#define _ASM_SCORE_MSGBUF_H
++#ifndef _ASM_SCORE_BUGS_H
++#define _ASM_SCORE_BUGS_H
 +
-+#include <asm-generic/msgbuf.h>
++#include <asm-generic/bugs.h>
 +
-+#endif /* _ASM_SCORE_MSGBUF_H */
-diff --git a/arch/score/include/asm/mutex.h 
-b/arch/score/include/asm/mutex.h
++#endif /* _ASM_SCORE_BUGS_H */
+diff --git a/arch/score/include/asm/byteorder.h 
+b/arch/score/include/asm/byteorder.h
 new file mode 100644
-index 0000000..10d48fe
+index 0000000..88cbebc
 --- /dev/null
-+++ b/arch/score/include/asm/mutex.h
++++ b/arch/score/include/asm/byteorder.h
 @@ -0,0 +1,6 @@
-+#ifndef _ASM_SCORE_MUTEX_H
-+#define _ASM_SCORE_MUTEX_H
++#ifndef _ASM_SCORE_BYTEORDER_H
++#define _ASM_SCORE_BYTEORDER_H
 +
-+#include <asm-generic/mutex-dec.h>
++#include <linux/byteorder/little_endian.h>
 +
-+#endif /* _ASM_SCORE_MUTEX_H */
++#endif /* _ASM_SCORE_BYTEORDER_H */
 -- 
 1.6.2
