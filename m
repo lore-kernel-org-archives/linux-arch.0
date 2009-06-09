@@ -1,55 +1,143 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 00/27] score arch files for linux
-Date: Tue, 9 Jun 2009 20:19:06 +0200
-Message-ID: <200906092019.06812.arnd@arndb.de>
-References: <OF54D30DF0.6974DE98-ON482575D0.0021670B-482575D0.00234606@sunplusct.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 01/27] score: create Kconfig Kconfig.debug Makefile
+Date: Tue, 9 Jun 2009 21:12:26 +0200
+Message-ID: <20090609191226.GB7181@uranus.ravnborg.org>
+References: <OF2086513E.4B4F803C-ON482575D0.0022E294-482575D0.0023688F@sunplusct.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.188]:63907 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754104AbZFISTt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 14:19:49 -0400
-In-Reply-To: <OF54D30DF0.6974DE98-ON482575D0.0021670B-482575D0.00234606@sunplusct.com>
+Received: from pfepb.post.tele.dk ([195.41.46.236]:46091 "EHLO
+	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753911AbZFITKK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 15:10:10 -0400
+Content-Disposition: inline
+In-Reply-To: <OF2086513E.4B4F803C-ON482575D0.0022E294-482575D0.0023688F@sunplusct.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: liqin.chen@sunplusct.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org
 
-On Tuesday 09 June 2009, liqin.chen@sunplusct.com wrote:
-> Hi Arnd, Andrew Morton and linus,
-> 
-> According to your comment on score arch code, 
-> we update score code base on asm-generic#next repository.
-> use arch microblaze and blackfin as reference.
+Some comments below.
+Mostly nitpicking.
 
-Ok, just finished looking over the patches and I am generally
-very happy about their quality, it usually takes much longer
-for a submission of this size to get into a mergeable shape.
+	Sam
 
-The only thing that I think needs to be fixed before a
-2.6.31 release is my comment about unistd.h still containing
-the __ARCH_WANT_SYSCALL_* #defines. I consider that my fault
-because I did not make it clear enough what those are meant
-for in asm-generic/unistd.h.
+> +
+> +config GENERIC_IOMAP
+> +       bool
+> +       default y
 
-One more general thought: I noticed that you split the header
-files by alphabetical ordering. While there is no good way to
-split a set of interdependent files, a logical grouping
-(e.g. ABI, memory management, device, cpu) would be nice.
+The preference these days is the shorter:
+config GENERIC_IOMAP
+	def_bool y
 
-Everything else I found are only polite suggestions of what
-can still be improved, not issues that I think need to
-be addressed immediately. I especially love how the work
-that Remis and I put into the generic header files starts
-paying off, because it makes reviewing an architecture so
-much simpler.
+Note that default for bool is n,
+so a standalone "bool" is the same as "def_bool n".
 
-Please add my 'Reviewed-by: Arnd Bergmann <arnd@arndb.de>'
-to your patches.
 
-Thanks,
+This comment applies to all symbols
+listed below this one.
 
-	Arnd <><
+> +config EARLY_PRINTK
+> +       bool "Early printk" if EMBEDDED
+> +       depends on SYS_HAS_EARLY_PRINTK
+
+Arnd already commented on your "select EMBEDDED".
+We usually hide "expert only" options behind EMBEDDED.
+
+Do you really consider EARLY_PRINTK an expert only option?
+
+> +config PAGE_SIZE_4KB
+> +       bool
+> +       default y
+
+I see no need for this symbol unless you plan to support other
+page sizes. "PAGE_SIZE_4KB" is not used outside arch/*
+
+
+> diff --git a/arch/score/Makefile b/arch/score/Makefile
+> new file mode 100644
+> index 0000000..b86ec22
+> --- /dev/null
+> +++ b/arch/score/Makefile
+> @@ -0,0 +1,50 @@
+> +#
+> +# arch/score/Makefile
+> +#
+> +# This file is subject to the terms and conditions of the GNU General 
+> Public
+> +# License.  See the file "COPYING" in the main directory of this archive
+> +# for more details.
+> +#
+> +
+> +KBUILD_DEFCONFIG := spct6600_defconfig
+> +CROSS_COMPILE := score-linux-
+
+This is a bit brutal to always assume a specific CROSS_COMPILE setting.
+Consider using cc-cross-prefix - see arch/m68k/Makefile +
+Documentation/kbuild/makefiles.txt
+
+
+> +
+> +#
+> +# CPU-dependent compiler/assembler options for optimization.
+> +#
+> +cflags-y += -g -O2 -G0 -pipe -mel -mnhwloop -D__SCOREEL__ \
+> +       -D__linux__ -ffunction-sections -ffreestanding
+
+-g is picked up using a kernel option (CONFIG_DEBUG_ something).
+Do not hard code it.
+
+-O2 setting likewise - CONFIG_CC_OPTIMIZE_FOR_SIZE
+-G0 ??
+-ffunction-sections - Does this really work for you?
+                      We have potential conflicts with
+                      hardcoded section names.
+
+
+> +#
+> +# Board-dependent options and extra files
+> +#
+> +KBUILD_AFLAGS += $(cflags-y)
+> +KBUILD_CFLAGS += $(cflags-y)
+> +MODFLAGS += -mlong-calls
+
+Grepping it is a mess how we do this today.
+So MODFLAGS usage is as good as the other ways we do this.
+I may clean this up one day.
+
+> +LDFLAGS += --oformat elf32-littlescore
+> +LDFLAGS_vmlinux        += -G0 -static -nostdlib
+
+> +CLEAN_FILES += arch/score/kernel/vmlinux.lds
+This is not needed.
+
+> +
+> +#
+> +# Choosing incompatible machines durings configuration will result in
+> +# error messages during linking.  Select a default linkscript if
+> +# none has been choosen above.
+> +#
+Bogus comment?
+
+> +
+> +head-y := arch/score/kernel/head.o
+> +libs-y += arch/score/lib/
+> +core-y += arch/score/kernel/ arch/score/mm/
+> +
+> +boot := arch/score/boot
+> +
+> +vmlinux.bin: vmlinux
+> +       $(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
+> +
+> +archclean:
+> +       @$(MAKE) $(clean)=$(boot)
+> +
+> +define archhelp
+> +       echo '  vmlinux.bin          - Raw binary boot image'
+> +       echo
+> +       echo '  These will be default as apropriate for a configured 
+> platform.'
+> +endef
+
+	Sam
