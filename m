@@ -1,166 +1,262 @@
 From: liqin.chen@sunplusct.com
-Subject: [PATCH 07/27] score: create head files elf.h emergency-restart.h errno.h
-Date: Tue, 9 Jun 2009 14:26:53 +0800
-Message-ID: <OF1B185198.8D225D85-ON482575D0.00235FF4-482575D0.0023D06F@sunplusct.com>
+Subject: [PATCH 13/27] score: create head files mman.h mmu_context.h mmu.h module.h
+ msgbug.h mutex.h
+Date: Tue, 9 Jun 2009 14:30:26 +0800
+Message-ID: <OF5DFE8AEA.A76450A1-ON482575D0.0023B236-482575D0.002423A3@sunplusct.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="US-ASCII"
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1758659AbZFIGyz@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 219-87-157-179.static.tfn.net.tw ([219.87.157.179]:54418 "EHLO
+	mswedge1.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754136AbZFIG7a (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 02:59:30 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
 
-From 92de1d59c5c52dc1d64a9f6918b46afa4135afa3 Mon Sep 17 00:00:00 2001
+From ac497b397052e5d65fe21c2748dc230362dc6eb0 Mon Sep 17 00:00:00 2001
 From: Chen Liqin <liqin.chen@sunplusct.com>
-Date: Tue, 9 Jun 2009 13:43:08 +0800
+Date: Tue, 9 Jun 2009 13:43:11 +0800
 
 
 
 Signed-off-by: Chen Liqin <liqin.chen@sunplusct.com>
 ---
- arch/score/include/asm/elf.h               |   99 
-++++++++++++++++++++++++++++
- arch/score/include/asm/emergency-restart.h |    6 ++
- arch/score/include/asm/errno.h             |    7 ++
- 3 files changed, 112 insertions(+), 0 deletions(-)
- create mode 100644 arch/score/include/asm/elf.h
- create mode 100644 arch/score/include/asm/emergency-restart.h
- create mode 100644 arch/score/include/asm/errno.h
+ arch/score/include/asm/mman.h        |    6 ++
+ arch/score/include/asm/mmu.h         |    6 ++
+ arch/score/include/asm/mmu_context.h |  113 
+++++++++++++++++++++++++++++++++++
+ arch/score/include/asm/module.h      |   39 ++++++++++++
+ arch/score/include/asm/msgbuf.h      |    6 ++
+ arch/score/include/asm/mutex.h       |    6 ++
+ 6 files changed, 176 insertions(+), 0 deletions(-)
+ create mode 100644 arch/score/include/asm/mman.h
+ create mode 100644 arch/score/include/asm/mmu.h
+ create mode 100644 arch/score/include/asm/mmu_context.h
+ create mode 100644 arch/score/include/asm/module.h
+ create mode 100644 arch/score/include/asm/msgbuf.h
+ create mode 100644 arch/score/include/asm/mutex.h
 
-diff --git a/arch/score/include/asm/elf.h b/arch/score/include/asm/elf.h
+diff --git a/arch/score/include/asm/mman.h b/arch/score/include/asm/mman.h
 new file mode 100644
-index 0000000..8324363
+index 0000000..84d85dd
 --- /dev/null
-+++ b/arch/score/include/asm/elf.h
-@@ -0,0 +1,99 @@
-+#ifndef _ASM_SCORE_ELF_H
-+#define _ASM_SCORE_ELF_H
++++ b/arch/score/include/asm/mman.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_SCORE_MMAN_H
++#define _ASM_SCORE_MMAN_H
 +
-+/* ELF register definitions */
-+#define ELF_NGREG      45
-+#define ELF_NFPREG     33
-+#define EM_SCORE7      135
++#include <asm-generic/mman.h>
 +
-+/* Relocation types. */
-+#define R_SCORE_NONE           0
-+#define R_SCORE_HI16           1
-+#define R_SCORE_LO16           2
-+#define R_SCORE_BCMP           3
-+#define R_SCORE_24             4
-+#define R_SCORE_PC19           5
-+#define R_SCORE16_11           6
-+#define R_SCORE16_PC8          7
-+#define R_SCORE_ABS32          8
-+#define R_SCORE_ABS16          9
-+#define R_SCORE_DUMMY2         10
-+#define R_SCORE_GP15           11
-+#define R_SCORE_GNU_VTINHERIT  12
-+#define R_SCORE_GNU_VTENTRY    13
-+#define R_SCORE_GOT15          14
-+#define R_SCORE_GOT_LO16       15
-+#define R_SCORE_CALL15         16
-+#define R_SCORE_GPREL32                17
-+#define R_SCORE_REL32          18
-+#define R_SCORE_DUMMY_HI16     19
-+#define R_SCORE_IMM30          20
-+#define R_SCORE_IMM32          21
++#endif /* _ASM_SCORE_MMAN_H */
+diff --git a/arch/score/include/asm/mmu.h b/arch/score/include/asm/mmu.h
+new file mode 100644
+index 0000000..676828e
+--- /dev/null
++++ b/arch/score/include/asm/mmu.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_SCORE_MMU_H
++#define _ASM_SCORE_MMU_H
 +
-+typedef unsigned long elf_greg_t;
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
++typedef unsigned long mm_context_t;
 +
-+typedef double elf_fpreg_t;
-+typedef elf_fpreg_t elf_fpregset_t[ELF_NFPREG];
++#endif /* _ASM_SCORE_MMU_H */
+diff --git a/arch/score/include/asm/mmu_context.h 
+b/arch/score/include/asm/mmu_context.h
+new file mode 100644
+index 0000000..2644577
+--- /dev/null
++++ b/arch/score/include/asm/mmu_context.h
+@@ -0,0 +1,113 @@
++#ifndef _ASM_SCORE_MMU_CONTEXT_H
++#define _ASM_SCORE_MMU_CONTEXT_H
 +
-+#define elf_check_arch(x)      ((x)->e_machine == EM_SCORE7)
++#include <linux/errno.h>
++#include <linux/sched.h>
++#include <linux/slab.h>
++#include <asm-generic/mm_hooks.h>
++
++#include <asm/cacheflush.h>
++#include <asm/tlbflush.h>
++#include <asm/scoreregs.h>
 +
 +/*
-+ * These are used to set parameters in the core dumps.
++ * For the fast tlb miss handlers, we keep a per cpu array of pointers
++ * to the current pgd for each processor. Also, the proc. id is stuffed
++ * into the context register.
 + */
-+#define ELF_CLASS      ELFCLASS32
++extern unsigned long asid_cache;
++extern unsigned long pgd_current;
++
++#define TLBMISS_HANDLER_SETUP_PGD(pgd) (pgd_current = (unsigned 
+long)(pgd))
++
++#define TLBMISS_HANDLER_SETUP()                                \
++do {                                                   \
++       write_c0_context(0);                            \
++       TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir)       \
++} while (0)
 +
 +/*
-+ * These are used to set parameters in the core dumps.
++ * All unused by hardware upper bits will be considered
++ * as a software asid extension.
 + */
-+#define ELF_DATA       ELFDATA2LSB
-+#define ELF_ARCH       EM_SCORE7
++#define ASID_VERSION_MASK      0xfffff000
++#define ASID_FIRST_VERSION     0x1000
 +
-+#define SET_PERSONALITY(ex)                                    \
-+do {                                                           \
-+       set_personality(PER_LINUX);                             \
-+} while (0)
++/* PEVN    --------- VPN ---------- --ASID--- -NA- */
++/* binary: 0000 0000 0000 0000 0000 0000 0001 0000 */
++/* binary: 0000 0000 0000 0000 0000 1111 1111 0000 */
++#define ASID_INC       0x10
++#define ASID_MASK      0xff0
 +
-+struct task_struct;
-+struct pt_regs;
++static inline void enter_lazy_tlb(struct mm_struct *mm,
++                               struct task_struct *tsk)
++{}
 +
-+#define USE_ELF_CORE_DUMP
-+#define ELF_EXEC_PAGESIZE      PAGE_SIZE
++static inline void
++get_new_mmu_context(struct mm_struct *mm)
++{
++       unsigned long asid = asid_cache + ASID_INC;
 +
-+/* This yields a mask that user programs can use to figure out what
-+   instruction set this cpu supports.  This could be done in userspace,
-+   but it's not easy, and we've already done it here.  */
++       if (!(asid & ASID_MASK)) {
++               local_flush_tlb_all();          /* start new asid cycle */
++               if (!asid)                      /* fix version if needed 
+*/
++                       asid = ASID_FIRST_VERSION;
++       }
 +
-+#define ELF_HWCAP      (0)
++       mm->context = asid;
++       asid_cache = asid;
++}
 +
-+/* This yields a string that ld.so will use to load implementation
-+   specific libraries for optimization.  This is more specific in
-+   intent than poking at uname or /proc/cpuinfo.
++/*
++ * Initialize the context related info for a new mm_struct
++ * instance.
++ */
++static inline int
++init_new_context(struct task_struct *tsk, struct mm_struct *mm)
++{
++       mm->context = 0;
++       return 0;
++}
 +
-+   For the moment, we have only optimizations for the Intel generations,
-+   but that could change... */
++static inline void switch_mm(struct mm_struct *prev, struct mm_struct 
+*next,
++                       struct task_struct *tsk)
++{
++       unsigned long flags;
 +
-+#define ELF_PLATFORM   (NULL)
++       local_irq_save(flags);
++       if ((next->context ^ asid_cache) & ASID_VERSION_MASK)
++               get_new_mmu_context(next);
 +
-+#define ELF_PLAT_INIT(_r, load_addr)                                   \
-+do {                                                                   \
-+       _r->regs[1] = _r->regs[2] = _r->regs[3] = _r->regs[4] = 0;      \
-+       _r->regs[5] = _r->regs[6] = _r->regs[7] = _r->regs[8] = 0;      \
-+       _r->regs[9] = _r->regs[10] = _r->regs[11] = _r->regs[12] = 0;   \
-+       _r->regs[13] = _r->regs[14] = _r->regs[15] = _r->regs[16] = 0;  \
-+       _r->regs[17] = _r->regs[18] = _r->regs[19] = _r->regs[20] = 0;  \
-+       _r->regs[21] = _r->regs[22] = _r->regs[23] = _r->regs[24] = 0;  \
-+       _r->regs[25] = _r->regs[26] = _r->regs[27] = _r->regs[28] = 0;  \
-+       _r->regs[30] = _r->regs[31] = 0;                                \
-+} while (0)
++       pevn_set(next->context);
++       TLBMISS_HANDLER_SETUP_PGD(next->pgd);
++       local_irq_restore(flags);
++}
 +
-+/* This is the location that an ET_DYN program is loaded if exec'ed. 
-Typical
-+   use of this is to invoke "./ld.so someprog" to test out a new version 
-of
-+   the loader.  We need to make sure that it is out of the way of the 
-program
-+   that it will "exec", and that there is sufficient room for the brk. */
++/*
++ * Destroy context related info for an mm_struct that is about
++ * to be put to rest.
++ */
++static inline void destroy_context(struct mm_struct *mm)
++{}
 +
-+#ifndef ELF_ET_DYN_BASE
-+#define ELF_ET_DYN_BASE                (TASK_SIZE / 3 * 2)
++static inline void
++deactivate_mm(struct task_struct *task, struct mm_struct *mm)
++{}
++
++/*
++ * After we have set current->mm to a new value, this activates
++ * the context for the new mm so we see the new mappings.
++ */
++static inline void
++activate_mm(struct mm_struct *prev, struct mm_struct *next)
++{
++       unsigned long flags;
++
++       local_irq_save(flags);
++       get_new_mmu_context(next);
++       pevn_set(next->context);
++       TLBMISS_HANDLER_SETUP_PGD(next->pgd);
++       local_irq_restore(flags);
++}
++
++#endif /* _ASM_SCORE_MMU_CONTEXT_H */
+diff --git a/arch/score/include/asm/module.h 
+b/arch/score/include/asm/module.h
+new file mode 100644
+index 0000000..f0b5dc0
+--- /dev/null
++++ b/arch/score/include/asm/module.h
+@@ -0,0 +1,39 @@
++#ifndef _ASM_SCORE_MODULE_H
++#define _ASM_SCORE_MODULE_H
++
++#include <linux/list.h>
++#include <asm/uaccess.h>
++
++struct mod_arch_specific {
++       /* Data Bus Error exception tables */
++       struct list_head dbe_list;
++       const struct exception_table_entry *dbe_start;
++       const struct exception_table_entry *dbe_end;
++};
++
++typedef uint8_t Elf64_Byte;            /* Type for a 8-bit quantity. */
++
++#define Elf_Shdr       Elf32_Shdr
++#define Elf_Sym                Elf32_Sym
++#define Elf_Ehdr       Elf32_Ehdr
++#define Elf_Addr       Elf32_Addr
++
++/* Given an address, look for it in the exception tables. */
++#ifdef CONFIG_MODULES
++const struct exception_table_entry *search_module_dbetables(unsigned long 
+addr);
++#else
++static inline const struct exception_table_entry
++*search_module_dbetables(unsigned long addr)
++{
++       return NULL;
++}
 +#endif
 +
-+#endif /* _ASM_SCORE_ELF_H */
-diff --git a/arch/score/include/asm/emergency-restart.h 
-b/arch/score/include/asm/emergency-restart.h
++#define MODULE_PROC_FAMILY "SCORE7"
++#define MODULE_KERNEL_TYPE "32BIT "
++#define MODULE_KERNEL_SMTC ""
++
++#define MODULE_ARCH_VERMAGIC \
++       MODULE_PROC_FAMILY MODULE_KERNEL_TYPE MODULE_KERNEL_SMTC
++
++#endif /* _ASM_SCORE_MODULE_H */
+diff --git a/arch/score/include/asm/msgbuf.h 
+b/arch/score/include/asm/msgbuf.h
 new file mode 100644
-index 0000000..ca31e98
+index 0000000..7506721
 --- /dev/null
-+++ b/arch/score/include/asm/emergency-restart.h
++++ b/arch/score/include/asm/msgbuf.h
 @@ -0,0 +1,6 @@
-+#ifndef _ASM_SCORE_EMERGENCY_RESTART_H
-+#define _ASM_SCORE_EMERGENCY_RESTART_H
++#ifndef _ASM_SCORE_MSGBUF_H
++#define _ASM_SCORE_MSGBUF_H
 +
-+#include <asm-generic/emergency-restart.h>
++#include <asm-generic/msgbuf.h>
 +
-+#endif /* _ASM_SCORE_EMERGENCY_RESTART_H */
-diff --git a/arch/score/include/asm/errno.h 
-b/arch/score/include/asm/errno.h
++#endif /* _ASM_SCORE_MSGBUF_H */
+diff --git a/arch/score/include/asm/mutex.h 
+b/arch/score/include/asm/mutex.h
 new file mode 100644
-index 0000000..7cd3e1f
+index 0000000..10d48fe
 --- /dev/null
-+++ b/arch/score/include/asm/errno.h
-@@ -0,0 +1,7 @@
-+#ifndef _ASM_SCORE_ERRNO_H
-+#define _ASM_SCORE_ERRNO_H
++++ b/arch/score/include/asm/mutex.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_SCORE_MUTEX_H
++#define _ASM_SCORE_MUTEX_H
 +
-+#include <asm-generic/errno.h>
-+#define EMAXERRNO 1024
++#include <asm-generic/mutex-dec.h>
 +
-+#endif /* _ASM_SCORE_ERRNO_H */
++#endif /* _ASM_SCORE_MUTEX_H */
 -- 
 1.6.2
