@@ -1,57 +1,55 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 22/27] score: create kernel files signal.c sys_score.c time.c
-Date: Tue, 9 Jun 2009 19:52:47 +0200
-Message-ID: <200906091952.47842.arnd@arndb.de>
-References: <OF32AB4A20.4574C065-ON482575D0.00243CB1-482575D0.0024AD26@sunplusct.com>
+Subject: Re: [PATCH 00/27] score arch files for linux
+Date: Tue, 9 Jun 2009 20:19:06 +0200
+Message-ID: <200906092019.06812.arnd@arndb.de>
+References: <OF54D30DF0.6974DE98-ON482575D0.0021670B-482575D0.00234606@sunplusct.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757955AbZFIRxS@vger.kernel.org>
-In-Reply-To: <OF32AB4A20.4574C065-ON482575D0.00243CB1-482575D0.0024AD26@sunplusct.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.188]:63907 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754104AbZFISTt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 14:19:49 -0400
+In-Reply-To: <OF54D30DF0.6974DE98-ON482575D0.0021670B-482575D0.00234606@sunplusct.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: liqin.chen@sunplusct.com
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
 
 On Tuesday 09 June 2009, liqin.chen@sunplusct.com wrote:
-> +asmlinkage long sys_mmap(unsigned long addr, size_t len,
-> +                       unsigned long prot, unsigned long flags,
-> +                       unsigned long fd, off_t offset)
-> +{
-> +       int err = -EINVAL;
-> +
-> +       if (offset & ~PAGE_MASK) {
-> +               printk(KERN_INFO "no pagemask in mmap\r\n");
-> +               goto out;
-> +       }
-> +
-> +       err = sys_mmap2(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
-> +out:
-> +       return err;
-> +}
+> Hi Arnd, Andrew Morton and linus,
+> 
+> According to your comment on score arch code, 
+> we update score code base on asm-generic#next repository.
+> use arch microblaze and blackfin as reference.
 
-A 32 bit kernel should only need sys_mmap2, not sys_mmap, because it is
-trivial to convert in user space.
+Ok, just finished looking over the patches and I am generally
+very happy about their quality, it usually takes much longer
+for a submission of this size to get into a mergeable shape.
 
-> +
-> +asmlinkage long score_vfork(struct pt_regs *regs)
-> +{
-> +       return do_fork(CLONE_VFORK | CLONE_VM | SIGCHLD, regs->regs[0],
-> +                                               regs, 0, NULL, NULL);
-> +}
-> +
-> +/*
-> + * Fork a new task - this creates a new program thread.
-> + * This is called indirectly via a small wrapper
-> + */
-> +asmlinkage int
-> +score_fork(struct pt_regs *regs)
-> +{
-> +       return do_fork(SIGCHLD, regs->regs[0], regs, 0, NULL, NULL);
-> +}
+The only thing that I think needs to be fixed before a
+2.6.31 release is my comment about unistd.h still containing
+the __ARCH_WANT_SYSCALL_* #defines. I consider that my fault
+because I did not make it clear enough what those are meant
+for in asm-generic/unistd.h.
 
-Similarly, you should not need vfork and fork any more, because they can
-be handled in user space through clone().
+One more general thought: I noticed that you split the header
+files by alphabetical ordering. While there is no good way to
+split a set of interdependent files, a logical grouping
+(e.g. ABI, memory management, device, cpu) would be nice.
+
+Everything else I found are only polite suggestions of what
+can still be improved, not issues that I think need to
+be addressed immediately. I especially love how the work
+that Remis and I put into the generic header files starts
+paying off, because it makes reviewing an architecture so
+much simpler.
+
+Please add my 'Reviewed-by: Arnd Bergmann <arnd@arndb.de>'
+to your patches.
+
+Thanks,
 
 	Arnd <><
