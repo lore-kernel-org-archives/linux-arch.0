@@ -1,68 +1,46 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 01/27] score: create Kconfig Kconfig.debug Makefile
-Date: Tue, 9 Jun 2009 21:12:26 +0200
-Message-ID: <20090609191226.GB7181@uranus.ravnborg.org>
-References: <OF2086513E.4B4F803C-ON482575D0.0022E294-482575D0.0023688F@sunplusct.com>
+Subject: Re: [PATCH 02/27] score: create boot/Makefile configs/spct6600_defconfig
+Date: Tue, 9 Jun 2009 21:14:17 +0200
+Message-ID: <20090609191417.GC7181@uranus.ravnborg.org>
+References: <OF27AB920F.5CDB40B4-ON482575D0.00230527-482575D0.00237FF4@sunplusct.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepb.post.tele.dk ([195.41.46.236]:46091 "EHLO
-	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753911AbZFITKK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 15:10:10 -0400
+Received: from pfepa.post.tele.dk ([195.41.46.235]:38543 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755474AbZFITMA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 15:12:00 -0400
 Content-Disposition: inline
-In-Reply-To: <OF2086513E.4B4F803C-ON482575D0.0022E294-482575D0.0023688F@sunplusct.com>
+In-Reply-To: <OF27AB920F.5CDB40B4-ON482575D0.00230527-482575D0.00237FF4@sunplusct.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: liqin.chen@sunplusct.com
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org
 
-Some comments below.
-Mostly nitpicking.
-
-	Sam
-
-> +
-> +config GENERIC_IOMAP
-> +       bool
-> +       default y
-
-The preference these days is the shorter:
-config GENERIC_IOMAP
-	def_bool y
-
-Note that default for bool is n,
-so a standalone "bool" is the same as "def_bool n".
-
-
-This comment applies to all symbols
-listed below this one.
-
-> +config EARLY_PRINTK
-> +       bool "Early printk" if EMBEDDED
-> +       depends on SYS_HAS_EARLY_PRINTK
-
-Arnd already commented on your "select EMBEDDED".
-We usually hide "expert only" options behind EMBEDDED.
-
-Do you really consider EARLY_PRINTK an expert only option?
-
-> +config PAGE_SIZE_4KB
-> +       bool
-> +       default y
-
-I see no need for this symbol unless you plan to support other
-page sizes. "PAGE_SIZE_4KB" is not used outside arch/*
-
-
-> diff --git a/arch/score/Makefile b/arch/score/Makefile
+On Tue, Jun 09, 2009 at 02:23:27PM +0800, liqin.chen@sunplusct.com wrote:
+> >From 2beb0093ab93e3d7bbf6928fb28b620718afbb9f Mon Sep 17 00:00:00 2001
+> From: Chen Liqin <liqin.chen@sunplusct.com>
+> Date: Tue, 9 Jun 2009 13:43:05 +0800
+> 
+> 
+> 
+> Signed-off-by: Chen Liqin <liqin.chen@sunplusct.com>
+> ---
+>  arch/score/boot/Makefile              |   15 +
+>  arch/score/configs/spct6600_defconfig |  726 
+> +++++++++++++++++++++++++++++++++
+>  2 files changed, 741 insertions(+), 0 deletions(-)
+>  create mode 100644 arch/score/boot/Makefile
+>  create mode 100644 arch/score/configs/spct6600_defconfig
+> 
+> diff --git a/arch/score/boot/Makefile b/arch/score/boot/Makefile
 > new file mode 100644
-> index 0000000..b86ec22
+> index 0000000..c3376b1
 > --- /dev/null
-> +++ b/arch/score/Makefile
-> @@ -0,0 +1,50 @@
+> +++ b/arch/score/boot/Makefile
+> @@ -0,0 +1,15 @@
 > +#
-> +# arch/score/Makefile
+> +# arch/score/boot/Makefile
 > +#
 > +# This file is subject to the terms and conditions of the GNU General 
 > Public
@@ -70,74 +48,15 @@ page sizes. "PAGE_SIZE_4KB" is not used outside arch/*
 > +# for more details.
 > +#
 > +
-> +KBUILD_DEFCONFIG := spct6600_defconfig
-> +CROSS_COMPILE := score-linux-
-
-This is a bit brutal to always assume a specific CROSS_COMPILE setting.
-Consider using cc-cross-prefix - see arch/m68k/Makefile +
-Documentation/kbuild/makefiles.txt
-
-
+> +targets        := vmlinux.bin
 > +
-> +#
-> +# CPU-dependent compiler/assembler options for optimization.
-> +#
-> +cflags-y += -g -O2 -G0 -pipe -mel -mnhwloop -D__SCOREEL__ \
-> +       -D__linux__ -ffunction-sections -ffreestanding
-
--g is picked up using a kernel option (CONFIG_DEBUG_ something).
-Do not hard code it.
-
--O2 setting likewise - CONFIG_CC_OPTIMIZE_FOR_SIZE
--G0 ??
--ffunction-sections - Does this really work for you?
-                      We have potential conflicts with
-                      hardcoded section names.
-
-
-> +#
-> +# Board-dependent options and extra files
-> +#
-> +KBUILD_AFLAGS += $(cflags-y)
-> +KBUILD_CFLAGS += $(cflags-y)
-> +MODFLAGS += -mlong-calls
-
-Grepping it is a mess how we do this today.
-So MODFLAGS usage is as good as the other ways we do this.
-I may clean this up one day.
-
-> +LDFLAGS += --oformat elf32-littlescore
-> +LDFLAGS_vmlinux        += -G0 -static -nostdlib
-
-> +CLEAN_FILES += arch/score/kernel/vmlinux.lds
-This is not needed.
-
+> +$(obj)/vmlinux.bin: vmlinux FORCE
+> +       $(call if_changed,objcopy)
+> +       @echo 'Kernel: $@ is ready' ' (#'`cat .version`')'
 > +
-> +#
-> +# Choosing incompatible machines durings configuration will result in
-> +# error messages during linking.  Select a default linkscript if
-> +# none has been choosen above.
-> +#
-Bogus comment?
+> +clean-kernel += vmlinux.bin
+I think you wanted to say: clean-files here?
 
-> +
-> +head-y := arch/score/kernel/head.o
-> +libs-y += arch/score/lib/
-> +core-y += arch/score/kernel/ arch/score/mm/
-> +
-> +boot := arch/score/boot
-> +
-> +vmlinux.bin: vmlinux
-> +       $(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
-> +
-> +archclean:
-> +       @$(MAKE) $(clean)=$(boot)
-> +
-> +define archhelp
-> +       echo '  vmlinux.bin          - Raw binary boot image'
-> +       echo
-> +       echo '  These will be default as apropriate for a configured 
-> platform.'
-> +endef
+[yeah, microblaze has same bug..]
 
 	Sam
