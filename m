@@ -1,80 +1,51 @@
-From: "H. Peter Anvin" <hpa@linux.intel.com>
-Subject: RFC: x86: cap iomem_resource to addressable physical memory
-Date: Tue, 09 Jun 2009 18:32:53 -0700
-Message-ID: <4A2F0D45.2040602@linux.intel.com>
+From: liqin.chen@sunplusct.com
+Subject: Re: [PATCH 0/14] score - New architecure port to SunplusCT S+CORE
+Date: Wed, 10 Jun 2009 10:14:34 +0800
+Message-ID: <OF02E4B434.8757FEB7-ON482575D1.000B2BB7-482575D1.000CB7AE@sunplusct.com>
+References: <200906091837.28897.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: multipart/mixed;
- boundary="------------080009000602050700000706"
+Content-Type: text/plain; charset="GB2312"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga10.intel.com ([192.55.52.92]:60035 "EHLO
-	fmsmga102.fm.intel.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1754058AbZFJBcv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 21:32:51 -0400
+Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:51021 "EHLO
+	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752441AbZFJCmN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 22:42:13 -0400
+In-Reply-To: <200906091837.28897.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>, Jesse Barnes <jbarnes@virtuousgeek.org>, Martin Mares <mj@ucw.cz>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.orgthe
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-arch@vger.kernel.org, linux-arch-owner@vger.kernel.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Thomas Gleixner <tglx@linutronix.de>, torvalds@linux-foundation.org
 
-This is a multi-part message in MIME format.
---------------080009000602050700000706
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-
-x86 cannot generate full 64-bit addresses; this patch clamps iomem
-addresses to the accessible range.
-
-I wanted to post it for review before committing it, however; comments
-would be appreciated, especially of the kind "this is done too early/too
-late/in the wrong place/incorrectly".
-
-	-hpa
-
---------------080009000602050700000706
-Content-Type: text/x-patch;
- name="0001-x86-cap-iomem_resource-to-addressable-physical-memo.patch"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline;
- filename*0="0001-x86-cap-iomem_resource-to-addressable-physical-memo.pat";
- filename*1="ch"
-
-From 8dd8d59d1d1586b350401d6a5f8c7a9e30f142d4 Mon Sep 17 00:00:00 2001
-From: H. Peter Anvin <hpa@zytor.com>
-Date: Tue, 9 Jun 2009 18:20:39 -0700
-Subject: [PATCH] x86: cap iomem_resource to addressable physical memory
-
-iomem_resource is by default initialized to -1, which means 64 bits of
-physical address space if 64-bit resources are enabled.  However, x86
-CPUs cannot address 64 bits of physical address space.  Thus, we want
-to cap the physical address space to what the union of all CPU can
-actually address.
-
-Without this patch, we may end up assigning inaccessible values to
-uninitialized 64-bit PCI memory resources.
-
-Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Cc: Matthew Wilcox <matthew@wil.cx>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: Martin Mares <mj@ucw.cz>
-Cc: stable@kernel.org
----
- arch/x86/kernel/cpu/common.c |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
-
-diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
-index 77848d9..de8a49c 100644
---- a/arch/x86/kernel/cpu/common.c
-+++ b/arch/x86/kernel/cpu/common.c
-@@ -839,6 +839,9 @@ static void __cpuinit identify_cpu(struct cpuinfo_x86 *c)
- #if defined(CONFIG_NUMA) && defined(CONFIG_X86_64)
- 	numa_add_cpu(smp_processor_id());
- #endif
-+
-+	/* Cap the iomem address space to what is addressable on all CPUs */
-+	iomem_resource.end &= (1ULL << c->x86_phys_bits) - 1;
- }
- 
- #ifdef CONFIG_X86_64
--- 
-1.6.0.6
-
-
---------------080009000602050700000706--
+VGhhbmtzIEFybmQsIHRnbHgsIFNhbSBhbmQgYWxsIHdobyBwYXkgYXR0ZW50aW9uIHRvIHNjb3Jl
+IGNvZGUuDQoNCldlIHdpbGwgdXBkYXRlIHNjb3JlIGFyY2ggY29kZSB0byBjYXRjaCB1cCB0aGUg
+DQpsaW51eC9rZXJuZWwgY29kZSBsZXZlbC4gVGhlIG5leHQgcGF0Y2hlcyB3aWxsDQpzZW5kIG91
+dCBzb29uLg0KDQpCZXN0IFJlZ2FyZHMNCmxpcWluDQoNCi0tDQoNCg0KQXJuZCBCZXJnbWFubiA8
+YXJuZEBhcm5kYi5kZT4g0LTT2iAyMDA5LTA2LTEwIDAwOjM3OjI4Og0KDQo+IE9uIE1vbmRheSAw
+OCBKdW5lIDIwMDksIGxpcWluLmNoZW5Ac3VucGx1c2N0LmNvbSB3cm90ZToNCj4gPiBUaGFua3Mg
+QXJuZCwgb3VyIE1JUyBoZWxwIG1lIHNvbHZlIHRoZSBkb3dubG9hZCBwcm9ibGVtLg0KPiA+IA0K
+PiA+ID4gRmVlbCBmcmVlIHRvIGJhc2UgeW91IGNvZGUgb24gdG9wIG9mIGFzbS1nZW5lcmljLmdp
+dCNuZXh0LCBidXQgdGVsbCANCm1lDQo+ID4gPiB3aGVuIHlvdSBpbnRlbmQgdG8gZG8gdGhhdCBz
+byBJIGNhbiB3YXJuIHlvdSBvZiBwb3NzaWJseSByZWJhc2VzLg0KPiA+IA0KPiA+IExhc3Qgd2Vl
+aywgSSBoYWQgdXBkYXRlZCBzY29yZSBjb2RlIGJhc2Ugb24gYXNtLWdlbmVyaWMuZ2l0I25leHQu
+DQo+ID4gDQo+ID4gYW5kIEkgd2lsbCBhcHBseSBhIGFjY291bnQgb24ga2VybmVsLm9yZywgQnV0
+IGJlZm9yZSBJIGdldCB0aGUgDQphY2NvdW50LA0KPiA+IGNhbiB5b3UgbGV0IHNjb3JlIGNvZGUg
+bWVyZ2UgaW4gYXNtLWdlbmVyaWMuZ2l0Pw0KPiANCj4gSSBjYW4gdGFrZSB5b3VyIHBhdGNoZXMg
+YW5kIGFwcGx5IHRoZW0gdG8gYSBuZXcgYnJhbmNoIGluIG15IHRyZWUNCj4gaWYgdGhhdCBoZWxw
+cy4gSSBob3BlIHRoYXQgTGludXMgY2FuIHB1bGwgbXkgdHJlZSBlYXJseSBpbiB0aGUNCj4gbWVy
+Z2Ugd2luZG93IHNvIHlvdXIgYXJjaGl0ZWN0dXJlIHBvcnQgYW5kIHRoZSBtaWNyb2JsYXplIGNo
+YW5nZXMNCj4gYmFzZWQgb24gaXQgY2FuIGFsc28gZ2V0IGluIHNvb24uDQo+IA0KPiBJIGd1ZXNz
+IGZvciB0aGUgbmV3IGFyY2hpdGVjdHVyZSwgaXQgbWFrZXMgc2Vuc2UgdG8gY29tYmluZSBhbGwN
+Cj4geW91ciBwYXRjaGVzIGludG8gYSBzaW5nbGUgY2hhbmdlc2V0IGluIGdpdCwgc2luY2UgdGhl
+eSBkb24ndA0KPiBtYWtlIHNlbnNlIHVudGlsIHlvdSBoYXZlIHRoZSBjb21wbGV0ZSBzZXQsIGFu
+ZCB5b3VyIGNoYW5nZXNldA0KPiBjb21tZW50cyBhcmUgcmF0aGVyIGJvcmluZyBzbyBmYXIgYW55
+d2F5Lg0KPiANCj4gQ2FuIHlvdSB3cml0ZSBhIGZldyBwYXJhZ3JhcGhzIG9mIHRleHQgYWJvdXQg
+eW91ciBhcmNoaXRlY3R1cmUNCj4gZm9yIHRoZSBpbml0aWFsIGNoYW5nZXNldCBjb21tZW50PyBJ
+IHRoaW5rIGl0IHdvdWxkIGJlIGdvb2QNCj4gdG8gcGVybWFuZW50bHkgc3RvcmUgc29tZSBmYWN0
+cyBpbiB0aGVyZSwgZS5nLiBpbiB3aGljaCB3YXlzDQo+IHRoZSBhcmNoaXRlY3R1cmUgaXMgZGlm
+ZmVyZW50IGZyb20gb3RoZXJzLCB3aGVyZSB0byBnZXQgYQ0KPiB0b29sY2hhaW4gYW5kIHdoYXQg
+a2luZHMgb2YgaGFyZHdhcmUgZXhpc3QgZm9yIGl0Lg0KPiANCj4gSSdsbCBnbyB0aHJvdWdoIHRo
+ZSBwYXRjaGVzIG9uY2UgbW9yZSBhbmQgc2VlIGlmIEkgZmluZCBhbnl0aGluZw0KPiB0aGF0IHNo
+b3VsZCBzdGlsbCBiZSBjaGFuZ2VkIGJlZm9yZSB0aGUgY29kZSBnb2VzIGluLCBidXQNCj4gZnJv
+bSBhIGJyaWVmIGxvb2ssIHRoZSBjb2RlIGxvb2tzIHByZXR0eSBnb29kIG5vdy4NCj4gDQo+ICAg
+IEFybmQgPD48DQoNCg==
