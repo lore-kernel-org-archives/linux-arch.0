@@ -1,51 +1,72 @@
-From: liqin.chen@sunplusct.com
-Subject: Re: [PATCH 0/14] score - New architecure port to SunplusCT S+CORE
-Date: Wed, 10 Jun 2009 10:14:34 +0800
-Message-ID: <OF02E4B434.8757FEB7-ON482575D1.000B2BB7-482575D1.000CB7AE@sunplusct.com>
-References: <200906091837.28897.arnd@arndb.de>
+From: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
+Subject: Re: [Ksummit-2009-discuss] Representing Embedded Architectures at
+ the Kernel Summit
+Date: Wed, 10 Jun 2009 11:42:00 +0200
+Message-ID: <20090610114200.7db59b00@surf>
+References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com>
+	<1244034286.24482.84.camel@pc1117.cambridge.arm.com>
+	<1244045997.21423.303.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="GB2312"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:51021 "EHLO
-	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752441AbZFJCmN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2009 22:42:13 -0400
-In-Reply-To: <200906091837.28897.arnd@arndb.de>
+Received: from ns6.enix.org ([193.19.211.1]:46534 "EHLO the-doors.enix.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754650AbZFJJvD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 Jun 2009 05:51:03 -0400
+In-Reply-To: <1244045997.21423.303.camel@mulgrave.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-arch@vger.kernel.org, linux-arch-owner@vger.kernel.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Thomas Gleixner <tglx@linutronix.de>, torvalds@linux-foundation.org
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org
 
-VGhhbmtzIEFybmQsIHRnbHgsIFNhbSBhbmQgYWxsIHdobyBwYXkgYXR0ZW50aW9uIHRvIHNjb3Jl
-IGNvZGUuDQoNCldlIHdpbGwgdXBkYXRlIHNjb3JlIGFyY2ggY29kZSB0byBjYXRjaCB1cCB0aGUg
-DQpsaW51eC9rZXJuZWwgY29kZSBsZXZlbC4gVGhlIG5leHQgcGF0Y2hlcyB3aWxsDQpzZW5kIG91
-dCBzb29uLg0KDQpCZXN0IFJlZ2FyZHMNCmxpcWluDQoNCi0tDQoNCg0KQXJuZCBCZXJnbWFubiA8
-YXJuZEBhcm5kYi5kZT4g0LTT2iAyMDA5LTA2LTEwIDAwOjM3OjI4Og0KDQo+IE9uIE1vbmRheSAw
-OCBKdW5lIDIwMDksIGxpcWluLmNoZW5Ac3VucGx1c2N0LmNvbSB3cm90ZToNCj4gPiBUaGFua3Mg
-QXJuZCwgb3VyIE1JUyBoZWxwIG1lIHNvbHZlIHRoZSBkb3dubG9hZCBwcm9ibGVtLg0KPiA+IA0K
-PiA+ID4gRmVlbCBmcmVlIHRvIGJhc2UgeW91IGNvZGUgb24gdG9wIG9mIGFzbS1nZW5lcmljLmdp
-dCNuZXh0LCBidXQgdGVsbCANCm1lDQo+ID4gPiB3aGVuIHlvdSBpbnRlbmQgdG8gZG8gdGhhdCBz
-byBJIGNhbiB3YXJuIHlvdSBvZiBwb3NzaWJseSByZWJhc2VzLg0KPiA+IA0KPiA+IExhc3Qgd2Vl
-aywgSSBoYWQgdXBkYXRlZCBzY29yZSBjb2RlIGJhc2Ugb24gYXNtLWdlbmVyaWMuZ2l0I25leHQu
-DQo+ID4gDQo+ID4gYW5kIEkgd2lsbCBhcHBseSBhIGFjY291bnQgb24ga2VybmVsLm9yZywgQnV0
-IGJlZm9yZSBJIGdldCB0aGUgDQphY2NvdW50LA0KPiA+IGNhbiB5b3UgbGV0IHNjb3JlIGNvZGUg
-bWVyZ2UgaW4gYXNtLWdlbmVyaWMuZ2l0Pw0KPiANCj4gSSBjYW4gdGFrZSB5b3VyIHBhdGNoZXMg
-YW5kIGFwcGx5IHRoZW0gdG8gYSBuZXcgYnJhbmNoIGluIG15IHRyZWUNCj4gaWYgdGhhdCBoZWxw
-cy4gSSBob3BlIHRoYXQgTGludXMgY2FuIHB1bGwgbXkgdHJlZSBlYXJseSBpbiB0aGUNCj4gbWVy
-Z2Ugd2luZG93IHNvIHlvdXIgYXJjaGl0ZWN0dXJlIHBvcnQgYW5kIHRoZSBtaWNyb2JsYXplIGNo
-YW5nZXMNCj4gYmFzZWQgb24gaXQgY2FuIGFsc28gZ2V0IGluIHNvb24uDQo+IA0KPiBJIGd1ZXNz
-IGZvciB0aGUgbmV3IGFyY2hpdGVjdHVyZSwgaXQgbWFrZXMgc2Vuc2UgdG8gY29tYmluZSBhbGwN
-Cj4geW91ciBwYXRjaGVzIGludG8gYSBzaW5nbGUgY2hhbmdlc2V0IGluIGdpdCwgc2luY2UgdGhl
-eSBkb24ndA0KPiBtYWtlIHNlbnNlIHVudGlsIHlvdSBoYXZlIHRoZSBjb21wbGV0ZSBzZXQsIGFu
-ZCB5b3VyIGNoYW5nZXNldA0KPiBjb21tZW50cyBhcmUgcmF0aGVyIGJvcmluZyBzbyBmYXIgYW55
-d2F5Lg0KPiANCj4gQ2FuIHlvdSB3cml0ZSBhIGZldyBwYXJhZ3JhcGhzIG9mIHRleHQgYWJvdXQg
-eW91ciBhcmNoaXRlY3R1cmUNCj4gZm9yIHRoZSBpbml0aWFsIGNoYW5nZXNldCBjb21tZW50PyBJ
-IHRoaW5rIGl0IHdvdWxkIGJlIGdvb2QNCj4gdG8gcGVybWFuZW50bHkgc3RvcmUgc29tZSBmYWN0
-cyBpbiB0aGVyZSwgZS5nLiBpbiB3aGljaCB3YXlzDQo+IHRoZSBhcmNoaXRlY3R1cmUgaXMgZGlm
-ZmVyZW50IGZyb20gb3RoZXJzLCB3aGVyZSB0byBnZXQgYQ0KPiB0b29sY2hhaW4gYW5kIHdoYXQg
-a2luZHMgb2YgaGFyZHdhcmUgZXhpc3QgZm9yIGl0Lg0KPiANCj4gSSdsbCBnbyB0aHJvdWdoIHRo
-ZSBwYXRjaGVzIG9uY2UgbW9yZSBhbmQgc2VlIGlmIEkgZmluZCBhbnl0aGluZw0KPiB0aGF0IHNo
-b3VsZCBzdGlsbCBiZSBjaGFuZ2VkIGJlZm9yZSB0aGUgY29kZSBnb2VzIGluLCBidXQNCj4gZnJv
-bSBhIGJyaWVmIGxvb2ssIHRoZSBjb2RlIGxvb2tzIHByZXR0eSBnb29kIG5vdy4NCj4gDQo+ICAg
-IEFybmQgPD48DQoNCg==
+Le Wed, 03 Jun 2009 12:19:57 -0400,
+James Bottomley <James.Bottomley@HansenPartnership.com> a =C3=A9crit :
+
+> So ZONE_DMA and coherent memory allocation as represented by the
+> coherent mask are really totally separate things.  The idea of
+> ZONE_DMA was really that if you had an ISA device, allocations from
+> ZONE_DMA would be able to access the allocated memory without
+> bouncing.  Since ISA is really going away, this definition has been
+> hijacked.  If your problem is just that you need memory allocated on
+> a certain physical mask and neither GFP_DMA or GFP_DMA32 cut it for
+> you, then we could revisit the kmalloc_mask() proposal again ... but
+> the consensus last time was that no-one really had a compelling use
+> case that couldn't be covered by GFP_DMA32.
+
+Back a few years ago, I was working on a MIPS platform which had 256 MB
+of RAM attached to the CPU memory controller and 128 MB attached to an
+external memory controller. The layout of the memories was: 256 MB
+CPU-attached memory first, and then the 128 MB
+external-controller-attached memory.
+
+Now, back to the DMA discussion: the Ethernet controller, which was
+part of that external controller also driving the 128 MB bank of
+memory, could only DMA to and from memory controlled by that same
+controller (i.e only to the *top* 128 MB of the physical address
+space). I'm by far not an mm expert, but as far as I could understand
+the zone mechanism, it was not possible to describe such a
+physical memory configuration where DMA-able memory is only at the top.
+
+In the end, I ended up passing mem=3D..., managing manually a few
+megabytes of memory at the top of the physical address space, and
+hacking the Ethernet driver to copy back and forth the skb contents
+between the main memory and the DMA-reserved memory.
+
+So when Calatalin Marinas says =C2=AB currently ZONE_DMA is assumed to =
+be in
+the bottom part of the memory which isn't always the case =C2=BB, I can=
+not
+agree more.
+
+Reference:
+http://www.linux-mips.org/archives/linux-mips/2004-09/msg00152.html
+
+Sincerly,
+
+Thomas
+--=20
+Thomas Petazzoni, Free Electrons
+Kernel, drivers and embedded Linux development,
+consulting, training and support.
+http://free-electrons.com
