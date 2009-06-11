@@ -1,30 +1,34 @@
-From: Kumar Gala <galak@kernel.crashing.org>
-Subject: Re: Representing Embedded Architectures at the Kernel Summit
-Date: Wed, 10 Jun 2009 18:13:32 -0500
-Message-ID: <1B5FD82F-79A5-4FD1-BA99-59F3041B0470@kernel.crashing.org>
-References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com> <20090602172941.GL3095@hansolo.jdub.homelinux.org> <20090602222132.GK6399@game.jcrosoft.org>
-Mime-Version: 1.0 (Apple Message framework v935.3)
-Content-Type: text/plain; charset=US-ASCII; format=flowed; delsp=yes
+From: Jesse Barnes <jbarnes@virtuousgeek.org>
+Subject: Re: RFC: x86: cap iomem_resource to addressable physical memory
+Date: Thu, 11 Jun 2009 12:17:42 -0700
+Message-ID: <20090611121742.2c0fae8d@jbarnes-g45>
+References: <4A2F0D45.2040602@linux.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:49959 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755653AbZFJXOL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 Jun 2009 19:14:11 -0400
-In-Reply-To: <20090602222132.GK6399@game.jcrosoft.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
-Cc: Josh Boyer <jwboyer@linux.vnet.ibm.com>, James Bottomley <James.Bottomley@HansenPartnership.com>, ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <4A2F0D45.2040602@linux.intel.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: "H. Peter Anvin" <hpa@linux.intel.com>
+Cc: Matthew Wilcox <matthew@wil.cx>, Martin Mares <mj@ucw.cz>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, David Woodhouse <dwmw2@infradead.org>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
+On Tue, 09 Jun 2009 18:32:53 -0700
+"H. Peter Anvin" <hpa@linux.intel.com> wrote:
 
-On Jun 2, 2009, at 5:21 PM, Jean-Christophe PLAGNIOL-VILLARD wrote:
+> x86 cannot generate full 64-bit addresses; this patch clamps iomem
+> addresses to the accessible range.
+> 
+> I wanted to post it for review before committing it, however; comments
+> would be appreciated, especially of the kind "this is done too
+> early/too late/in the wrong place/incorrectly".
+> 
+> 	-hpa
 
-> I'd like to propose AMP and kernel relocate
-> as more and SoC will came with multiple core with or without the  
-> same arch
+Seems reasonable, since the iomem_resource describes the CPU's view of
+MMIO space it should probably reflect what it can actually access.
 
-I think AMP or at least the idea of the kernel communicating with  
-other OSes on the same SoC in multi-core systems is interesting.
+Reviewed-by: Jesse Barnes <jbarnes@virtuousgeek.org>
 
-- k
+-- 
+Jesse Barnes, Intel Open Source Technology Center
