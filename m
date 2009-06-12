@@ -1,33 +1,57 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [GIT PULL] new files form asm-generic
-Date: Fri, 12 Jun 2009 10:39:55 +0200
-Message-ID: <200906121039.57970.arnd@arndb.de>
-References: <200906112146.32441.arnd@arndb.de>
+From: Tim Abbott <tabbott@ksplice.com>
+Subject: Re: [PATCH] Improve vmlinux.lds.h support for arch specific linker
+ scripts
+Date: Fri, 12 Jun 2009 10:52:06 -0400 (EDT)
+Message-ID: <alpine.DEB.1.10.0906112032560.9154@vinegar-pot.mit.edu>
+References: <20090607185430.GA15299@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:56658 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932835AbZFLIkL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jun 2009 04:40:11 -0400
-In-Reply-To: <200906112146.32441.arnd@arndb.de>
+Received: from BISCAYNE-ONE-STATION.MIT.EDU ([18.7.7.80]:45387 "EHLO
+	biscayne-one-station.mit.edu" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756533AbZFLOw1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 12 Jun 2009 10:52:27 -0400
+In-Reply-To: <20090607185430.GA15299@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Remis Lima Baima <remis.developer@googlemail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Chen Liqin <liqin.chen@sunplusct.com>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Anders Kaseorg <andersk@ksplice.com>
 
-On Thursday 11 June 2009, Arnd Bergmann wrote:
-> This is a series of patches that adds a mostly-complete set of generic
-> header files in the include/asm-generic hierarchy.
-> 
-> Please pull
-> git://git.kernel.org:/pub/scm/linux/kernel/git/arnd/asm-generic.git for-linus
-> 
+On Sun, 7 Jun 2009, Sam Ravnborg wrote:
 
-The tree did not merge cleanly as of yesterday because of a conflict with
-the perfcounters changes. I pulled the latest linux-2.6.git master
-to resolve the conflict.
+> Please review and comment..
+> It will be part of kbuild-next.git
 
-	Arnd <><
+This patch looks great.  I have a few very minor comments.
+
+> + *	/DISCARD/ : {
+> + *		EXIT_TEXT
+> + *		EXIT_DATA
+> + *		*(.exitcall.exit)
+> + *	}
+
+I recommend adding
+
+#define EXIT_CALL *(.exitcall.exit)
+
+and using it in the DISCARD section of the sample linker script so that 
+the sample linker script doesn't use any raw section names.
+
+> +#define BSS_SECTION(sbss_align, bss_align)				\
+> +	SBSS								\
+> +	BSS(bss_align)							\
+> +	. = ALIGN(4);							\
+
+This macro should end with the 'ALIGN(4);' -- there's an extra backslash 
+at the end of the line.
+
+I recommend changing HEAD_SECTION to HEAD_TEXT_SECTION to better fit the 
+naming scheme.  This would involve deleting the recently added 
+include/linux/section-names.h and going back to hardcoding .head.text in 
+include/linux/init.h (given the way these macros have turned out, 
+include/linux/section-names.h doesn't really make sense).
+
+Also, the commit message misspells 'alignment', 'linker', and 'Abbott'.
+
+	-Tim Abbott
