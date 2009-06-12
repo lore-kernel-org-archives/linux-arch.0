@@ -1,32 +1,290 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.21]:40547 "EHLO
-	orsmga101.jf.intel.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751641AbZFKUqu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jun 2009 16:46:50 -0400
-Message-ID: <4A316D3C.7080403@linux.intel.com>
-Date: Thu, 11 Jun 2009 13:46:52 -0700
-From: "H. Peter Anvin" <hpa@linux.intel.com>
+Received: from mx2.redhat.com ([66.187.237.31]:55174 "EHLO mx2.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1764877AbZFLWo3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 12 Jun 2009 18:44:29 -0400
+From: Masami Hiramatsu <mhiramat@redhat.com>
+Subject: [RESEND][ PATCH -tip -v9 5/7] x86: add pt_regs register and stack
+	access APIs
+Date: Fri, 12 Jun 2009 18:45:22 -0400
+Message-ID: <20090612224521.17311.6655.stgit@localhost.localdomain>
+In-Reply-To: <20090612224447.17311.72404.stgit@localhost.localdomain>
+References: <20090612224447.17311.72404.stgit@localhost.localdomain>
 MIME-Version: 1.0
-Subject: Re: RFC: x86: cap iomem_resource to addressable physical memory
-References: <4A2F0D45.2040602@linux.intel.com> <86802c440906111343g513a2ceau1e2bfdf14c295b2d@mail.gmail.com>
-In-Reply-To: <86802c440906111343g513a2ceau1e2bfdf14c295b2d@mail.gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yhlu.kernel@gmail.com>
-Cc: Matthew Wilcox <matthew@wil.cx>, Jesse Barnes <jbarnes@virtuousgeek.org>, Martin Mares <mj@ucw.cz>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, David Woodhouse <dwmw2@infradead.org>, linux-arch@vger.kernel.org
-Message-ID: <20090611204652.v8ZxldXWp3C9F1QnTtOh1c3ykT6WPwC7IxchinZmGBc@z>
+To: Ingo Molnar <mingo@elte.hu>, Steven Rostedt <rostedt@goodmis.org>, lkml <linux-kernel@vger.kernel.org>
+Cc: systemtap <systemtap@sources.redhat.com>, kvm <kvm@vger.kernel.org>, DLE <dle-develop@lists.sourceforge.net>, Masami Hiramatsu <mhiramat@redhat.com>, Christoph Hellwig <hch@infradead.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Frederic Weisbecker <fweisbec@gmail.com>, Roland McGrath <roland@redhat.com>, linux-arch@vger.kernel.org
+Message-ID: <20090612224522.IAVq5SFoyUWPLcAfbvzaZfWMiGJwRv9uOUxC62IuTqY@z>
 
-Yinghai Lu wrote:
-> 
-> do we need do that on every cpu?
-> 
-> looks like we could do that in identify_boot_cpu.
-> 
+Add following APIs for accessing registers and stack entries from pt_regs.
 
-What if the CPUs are heterogenous?  It's obviously a suboptimal
-situation, but it doesn't seem like something we can rely on.
+- regs_query_register_offset(const char *name)
+   Query the offset of "name" register.
 
-	-hpa
+- regs_query_register_name(unsigned offset)
+   Query the name of register by its offset.
 
+- regs_get_register(struct pt_regs *regs, unsigned offset)
+   Get the value of a register by its offset.
+
+- regs_within_kernel_stack(struct pt_regs *regs, unsigned long addr)
+   Check the address is in the kernel stack.
+
+- regs_get_kernel_stack_nth(struct pt_regs *reg, unsigned nth)
+   Get Nth entry of the kernel stack. (N >= 0)
+
+- regs_get_argument_nth(struct pt_regs *reg, unsigned nth)
+   Get Nth argument at function call. (N >= 0)
+
+
+Signed-off-by: Masami Hiramatsu <mhiramat@redhat.com>
+Cc: Christoph Hellwig <hch@infradead.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Roland McGrath <roland@redhat.com>
+Cc: linux-arch@vger.kernel.org
+---
+
+ arch/x86/include/asm/ptrace.h |  122 +++++++++++++++++++++++++++++++++++++++++
+ arch/x86/kernel/ptrace.c      |   73 +++++++++++++++++++++++++
+ 2 files changed, 195 insertions(+), 0 deletions(-)
+
+diff --git a/arch/x86/include/asm/ptrace.h b/arch/x86/include/asm/ptrace.h
+index 0f0d908..2fd3ea3 100644
+--- a/arch/x86/include/asm/ptrace.h
++++ b/arch/x86/include/asm/ptrace.h
+@@ -7,6 +7,7 @@
+ 
+ #ifdef __KERNEL__
+ #include <asm/segment.h>
++#include <asm/page_types.h>
+ #endif
+ 
+ #ifndef __ASSEMBLY__
+@@ -216,6 +217,127 @@ static inline unsigned long user_stack_pointer(struct pt_regs *regs)
+ 	return regs->sp;
+ }
+ 
++/* Query offset/name of register from its name/offset */
++extern int regs_query_register_offset(const char *name);
++extern const char *regs_query_register_name(unsigned offset);
++#define MAX_REG_OFFSET (offsetof(struct pt_regs, ss))
++
++/**
++ * regs_get_regsiter() - get register value from its offset
++ * @regs:	pt_regs from which register value is gotten.
++ * @offset:	offset number of the register.
++ *
++ * regs_get_register returns the value of a register whose offset from @regs
++ * is @offset. The @offset is the offset of the register in struct pt_regs.
++ * If @offset is bigger than MAX_REG_OFFSET, this returns 0.
++ */
++static inline unsigned long regs_get_register(struct pt_regs *regs,
++					      unsigned offset)
++{
++	if (unlikely(offset > MAX_REG_OFFSET))
++		return 0;
++	return *(unsigned long *)((unsigned long)regs + offset);
++}
++
++/**
++ * regs_within_kernel_stack() - check the address in the stack
++ * @regs:	pt_regs which contains kernel stack pointer.
++ * @addr:	address which is checked.
++ *
++ * regs_within_kenel_stack() checks @addr is within the kernel stack page(s).
++ * If @addr is within the kernel stack, it returns true. If not, returns false.
++ */
++static inline int regs_within_kernel_stack(struct pt_regs *regs,
++					   unsigned long addr)
++{
++	return ((addr & ~(THREAD_SIZE - 1))  ==
++		(kernel_stack_pointer(regs) & ~(THREAD_SIZE - 1)));
++}
++
++/**
++ * regs_get_kernel_stack_nth() - get Nth entry of the stack
++ * @regs:	pt_regs which contains kernel stack pointer.
++ * @n:		stack entry number.
++ *
++ * regs_get_kernel_stack_nth() returns @n th entry of the kernel stack which
++ * is specifined by @regs. If the @n th entry is NOT in the kernel stack,
++ * this returns 0.
++ */
++static inline unsigned long regs_get_kernel_stack_nth(struct pt_regs *regs,
++						      unsigned n)
++{
++	unsigned long *addr = (unsigned long *)kernel_stack_pointer(regs);
++	addr += n;
++	if (regs_within_kernel_stack(regs, (unsigned long)addr))
++		return *addr;
++	else
++		return 0;
++}
++
++/**
++ * regs_get_argument_nth() - get Nth argument at function call
++ * @regs:	pt_regs which contains registers at function entry.
++ * @n:		argument number.
++ *
++ * regs_get_argument_nth() returns @n th argument of a function call.
++ * Since usually the kernel stack will be changed right after function entry,
++ * you must use this at function entry. If the @n th entry is NOT in the
++ * kernel stack or pt_regs, this returns 0.
++ */
++#ifdef CONFIG_X86_32
++#define NR_REGPARMS 3
++static inline unsigned long regs_get_argument_nth(struct pt_regs *regs,
++						  unsigned n)
++{
++	if (n < NR_REGPARMS) {
++		switch (n) {
++		case 0:
++			return regs->ax;
++		case 1:
++			return regs->dx;
++		case 2:
++			return regs->cx;
++		}
++		return 0;
++	} else {
++		/*
++		 * The typical case: arg n is on the stack.
++		 * (Note: stack[0] = return address, so skip it)
++		 */
++		return regs_get_kernel_stack_nth(regs, 1 + n - NR_REGPARMS);
++	}
++}
++#else /* CONFIG_X86_64 */
++#define NR_REGPARMS 6
++static inline unsigned long regs_get_argument_nth(struct pt_regs *regs,
++						  unsigned n)
++{
++	if (n < NR_REGPARMS) {
++		switch (n) {
++		case 0:
++			return regs->di;
++		case 1:
++			return regs->si;
++		case 2:
++			return regs->dx;
++		case 3:
++			return regs->cx;
++		case 4:
++			return regs->r8;
++		case 5:
++			return regs->r9;
++		}
++		return 0;
++	} else {
++		/*
++		 * The typical case: arg n is on the stack.
++		 * (Note: stack[0] = return address, so skip it)
++		 */
++		return regs_get_kernel_stack_nth(regs, 1 + n - NR_REGPARMS);
++	}
++}
++#endif
++
+ /*
+  * These are defined as per linux/ptrace.h, which see.
+  */
+diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
+index b457f78..2944d3a 100644
+--- a/arch/x86/kernel/ptrace.c
++++ b/arch/x86/kernel/ptrace.c
+@@ -49,6 +49,79 @@ enum x86_regset {
+ 	REGSET_IOPERM32,
+ };
+ 
++struct pt_regs_offset {
++	const char *name;
++	int offset;
++};
++
++#define REG_OFFSET_NAME(r) {.name = #r, .offset = offsetof(struct pt_regs, r)}
++#define REG_OFFSET_END {.name = NULL, .offset = 0}
++
++static const struct pt_regs_offset regoffset_table[] = {
++#ifdef CONFIG_X86_64
++	REG_OFFSET_NAME(r15),
++	REG_OFFSET_NAME(r14),
++	REG_OFFSET_NAME(r13),
++	REG_OFFSET_NAME(r12),
++	REG_OFFSET_NAME(r11),
++	REG_OFFSET_NAME(r10),
++	REG_OFFSET_NAME(r9),
++	REG_OFFSET_NAME(r8),
++#endif
++	REG_OFFSET_NAME(bx),
++	REG_OFFSET_NAME(cx),
++	REG_OFFSET_NAME(dx),
++	REG_OFFSET_NAME(si),
++	REG_OFFSET_NAME(di),
++	REG_OFFSET_NAME(bp),
++	REG_OFFSET_NAME(ax),
++#ifdef CONFIG_X86_32
++	REG_OFFSET_NAME(ds),
++	REG_OFFSET_NAME(es),
++	REG_OFFSET_NAME(fs),
++	REG_OFFSET_NAME(gs),
++#endif
++	REG_OFFSET_NAME(orig_ax),
++	REG_OFFSET_NAME(ip),
++	REG_OFFSET_NAME(cs),
++	REG_OFFSET_NAME(flags),
++	REG_OFFSET_NAME(sp),
++	REG_OFFSET_NAME(ss),
++	REG_OFFSET_END,
++};
++
++/**
++ * regs_query_register_offset() - query register offset from its name
++ * @name:	the name of a register
++ *
++ * regs_query_register_offset() returns the offset of a register in struct
++ * pt_regs from its name. If the name is invalid, this returns -EINVAL;
++ */
++int regs_query_register_offset(const char *name)
++{
++	const struct pt_regs_offset *roff;
++	for (roff = regoffset_table; roff->name != NULL; roff++)
++		if (!strcmp(roff->name, name))
++			return roff->offset;
++	return -EINVAL;
++}
++
++/**
++ * regs_query_register_name() - query register name from its offset
++ * @offset:	the offset of a register in struct pt_regs.
++ *
++ * regs_query_register_name() returns the name of a register from its
++ * offset in struct pt_regs. If the @offset is invalid, this returns NULL;
++ */
++const char *regs_query_register_name(unsigned offset)
++{
++	const struct pt_regs_offset *roff;
++	for (roff = regoffset_table; roff->name != NULL; roff++)
++		if (roff->offset == offset)
++			return roff->name;
++	return NULL;
++}
++
+ /*
+  * does not yet catch signals sent when the child dies.
+  * in exit.c or in signal.c.
+
+
+-- 
+Masami Hiramatsu
+
+Software Engineer
+Hitachi Computer Products (America), Inc.
+Software Solutions Division
+
+e-mail: mhiramat@redhat.com
