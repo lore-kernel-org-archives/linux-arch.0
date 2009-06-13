@@ -1,290 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:55174 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1764877AbZFLWo3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 12 Jun 2009 18:44:29 -0400
-From: Masami Hiramatsu <mhiramat@redhat.com>
-Subject: [RESEND][ PATCH -tip -v9 5/7] x86: add pt_regs register and stack
-	access APIs
-Date: Fri, 12 Jun 2009 18:45:22 -0400
-Message-ID: <20090612224521.17311.6655.stgit@localhost.localdomain>
-In-Reply-To: <20090612224447.17311.72404.stgit@localhost.localdomain>
-References: <20090612224447.17311.72404.stgit@localhost.localdomain>
+Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:57568 "EHLO
+	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754521AbZFMGt3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Jun 2009 02:49:29 -0400
+In-Reply-To: <alpine.LFD.2.00.0906091028020.3351@localhost.localdomain>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Subject: Re: [PATCH 22/27] score: create kernel files signal.c sys_score.c time.c
+Message-ID: <OFEC1BACBF.E1025EE1-ON482575D4.0022F1FA-482575D4.0023C068@sunplusct.com>
+From: liqin.chen@sunplusct.com
+Date: Sat, 13 Jun 2009 14:26:02 +0800
+Content-Type: text/plain; charset="GB2312"
+Content-Transfer-Encoding: base64
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Steven Rostedt <rostedt@goodmis.org>, lkml <linux-kernel@vger.kernel.org>
-Cc: systemtap <systemtap@sources.redhat.com>, kvm <kvm@vger.kernel.org>, DLE <dle-develop@lists.sourceforge.net>, Masami Hiramatsu <mhiramat@redhat.com>, Christoph Hellwig <hch@infradead.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Frederic Weisbecker <fweisbec@gmail.com>, Roland McGrath <roland@redhat.com>, linux-arch@vger.kernel.org
-Message-ID: <20090612224522.IAVq5SFoyUWPLcAfbvzaZfWMiGJwRv9uOUxC62IuTqY@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arch-owner@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
+Message-ID: <20090613062602.2akNftmMPFm57za6UlMsZKgr_dhgA8D9B_lY0C1fQFc@z>
 
-Add following APIs for accessing registers and stack entries from pt_regs.
-
-- regs_query_register_offset(const char *name)
-   Query the offset of "name" register.
-
-- regs_query_register_name(unsigned offset)
-   Query the name of register by its offset.
-
-- regs_get_register(struct pt_regs *regs, unsigned offset)
-   Get the value of a register by its offset.
-
-- regs_within_kernel_stack(struct pt_regs *regs, unsigned long addr)
-   Check the address is in the kernel stack.
-
-- regs_get_kernel_stack_nth(struct pt_regs *reg, unsigned nth)
-   Get Nth entry of the kernel stack. (N >= 0)
-
-- regs_get_argument_nth(struct pt_regs *reg, unsigned nth)
-   Get Nth argument at function call. (N >= 0)
-
-
-Signed-off-by: Masami Hiramatsu <mhiramat@redhat.com>
-Cc: Christoph Hellwig <hch@infradead.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Roland McGrath <roland@redhat.com>
-Cc: linux-arch@vger.kernel.org
----
-
- arch/x86/include/asm/ptrace.h |  122 +++++++++++++++++++++++++++++++++++++++++
- arch/x86/kernel/ptrace.c      |   73 +++++++++++++++++++++++++
- 2 files changed, 195 insertions(+), 0 deletions(-)
-
-diff --git a/arch/x86/include/asm/ptrace.h b/arch/x86/include/asm/ptrace.h
-index 0f0d908..2fd3ea3 100644
---- a/arch/x86/include/asm/ptrace.h
-+++ b/arch/x86/include/asm/ptrace.h
-@@ -7,6 +7,7 @@
- 
- #ifdef __KERNEL__
- #include <asm/segment.h>
-+#include <asm/page_types.h>
- #endif
- 
- #ifndef __ASSEMBLY__
-@@ -216,6 +217,127 @@ static inline unsigned long user_stack_pointer(struct pt_regs *regs)
- 	return regs->sp;
- }
- 
-+/* Query offset/name of register from its name/offset */
-+extern int regs_query_register_offset(const char *name);
-+extern const char *regs_query_register_name(unsigned offset);
-+#define MAX_REG_OFFSET (offsetof(struct pt_regs, ss))
-+
-+/**
-+ * regs_get_regsiter() - get register value from its offset
-+ * @regs:	pt_regs from which register value is gotten.
-+ * @offset:	offset number of the register.
-+ *
-+ * regs_get_register returns the value of a register whose offset from @regs
-+ * is @offset. The @offset is the offset of the register in struct pt_regs.
-+ * If @offset is bigger than MAX_REG_OFFSET, this returns 0.
-+ */
-+static inline unsigned long regs_get_register(struct pt_regs *regs,
-+					      unsigned offset)
-+{
-+	if (unlikely(offset > MAX_REG_OFFSET))
-+		return 0;
-+	return *(unsigned long *)((unsigned long)regs + offset);
-+}
-+
-+/**
-+ * regs_within_kernel_stack() - check the address in the stack
-+ * @regs:	pt_regs which contains kernel stack pointer.
-+ * @addr:	address which is checked.
-+ *
-+ * regs_within_kenel_stack() checks @addr is within the kernel stack page(s).
-+ * If @addr is within the kernel stack, it returns true. If not, returns false.
-+ */
-+static inline int regs_within_kernel_stack(struct pt_regs *regs,
-+					   unsigned long addr)
-+{
-+	return ((addr & ~(THREAD_SIZE - 1))  ==
-+		(kernel_stack_pointer(regs) & ~(THREAD_SIZE - 1)));
-+}
-+
-+/**
-+ * regs_get_kernel_stack_nth() - get Nth entry of the stack
-+ * @regs:	pt_regs which contains kernel stack pointer.
-+ * @n:		stack entry number.
-+ *
-+ * regs_get_kernel_stack_nth() returns @n th entry of the kernel stack which
-+ * is specifined by @regs. If the @n th entry is NOT in the kernel stack,
-+ * this returns 0.
-+ */
-+static inline unsigned long regs_get_kernel_stack_nth(struct pt_regs *regs,
-+						      unsigned n)
-+{
-+	unsigned long *addr = (unsigned long *)kernel_stack_pointer(regs);
-+	addr += n;
-+	if (regs_within_kernel_stack(regs, (unsigned long)addr))
-+		return *addr;
-+	else
-+		return 0;
-+}
-+
-+/**
-+ * regs_get_argument_nth() - get Nth argument at function call
-+ * @regs:	pt_regs which contains registers at function entry.
-+ * @n:		argument number.
-+ *
-+ * regs_get_argument_nth() returns @n th argument of a function call.
-+ * Since usually the kernel stack will be changed right after function entry,
-+ * you must use this at function entry. If the @n th entry is NOT in the
-+ * kernel stack or pt_regs, this returns 0.
-+ */
-+#ifdef CONFIG_X86_32
-+#define NR_REGPARMS 3
-+static inline unsigned long regs_get_argument_nth(struct pt_regs *regs,
-+						  unsigned n)
-+{
-+	if (n < NR_REGPARMS) {
-+		switch (n) {
-+		case 0:
-+			return regs->ax;
-+		case 1:
-+			return regs->dx;
-+		case 2:
-+			return regs->cx;
-+		}
-+		return 0;
-+	} else {
-+		/*
-+		 * The typical case: arg n is on the stack.
-+		 * (Note: stack[0] = return address, so skip it)
-+		 */
-+		return regs_get_kernel_stack_nth(regs, 1 + n - NR_REGPARMS);
-+	}
-+}
-+#else /* CONFIG_X86_64 */
-+#define NR_REGPARMS 6
-+static inline unsigned long regs_get_argument_nth(struct pt_regs *regs,
-+						  unsigned n)
-+{
-+	if (n < NR_REGPARMS) {
-+		switch (n) {
-+		case 0:
-+			return regs->di;
-+		case 1:
-+			return regs->si;
-+		case 2:
-+			return regs->dx;
-+		case 3:
-+			return regs->cx;
-+		case 4:
-+			return regs->r8;
-+		case 5:
-+			return regs->r9;
-+		}
-+		return 0;
-+	} else {
-+		/*
-+		 * The typical case: arg n is on the stack.
-+		 * (Note: stack[0] = return address, so skip it)
-+		 */
-+		return regs_get_kernel_stack_nth(regs, 1 + n - NR_REGPARMS);
-+	}
-+}
-+#endif
-+
- /*
-  * These are defined as per linux/ptrace.h, which see.
-  */
-diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index b457f78..2944d3a 100644
---- a/arch/x86/kernel/ptrace.c
-+++ b/arch/x86/kernel/ptrace.c
-@@ -49,6 +49,79 @@ enum x86_regset {
- 	REGSET_IOPERM32,
- };
- 
-+struct pt_regs_offset {
-+	const char *name;
-+	int offset;
-+};
-+
-+#define REG_OFFSET_NAME(r) {.name = #r, .offset = offsetof(struct pt_regs, r)}
-+#define REG_OFFSET_END {.name = NULL, .offset = 0}
-+
-+static const struct pt_regs_offset regoffset_table[] = {
-+#ifdef CONFIG_X86_64
-+	REG_OFFSET_NAME(r15),
-+	REG_OFFSET_NAME(r14),
-+	REG_OFFSET_NAME(r13),
-+	REG_OFFSET_NAME(r12),
-+	REG_OFFSET_NAME(r11),
-+	REG_OFFSET_NAME(r10),
-+	REG_OFFSET_NAME(r9),
-+	REG_OFFSET_NAME(r8),
-+#endif
-+	REG_OFFSET_NAME(bx),
-+	REG_OFFSET_NAME(cx),
-+	REG_OFFSET_NAME(dx),
-+	REG_OFFSET_NAME(si),
-+	REG_OFFSET_NAME(di),
-+	REG_OFFSET_NAME(bp),
-+	REG_OFFSET_NAME(ax),
-+#ifdef CONFIG_X86_32
-+	REG_OFFSET_NAME(ds),
-+	REG_OFFSET_NAME(es),
-+	REG_OFFSET_NAME(fs),
-+	REG_OFFSET_NAME(gs),
-+#endif
-+	REG_OFFSET_NAME(orig_ax),
-+	REG_OFFSET_NAME(ip),
-+	REG_OFFSET_NAME(cs),
-+	REG_OFFSET_NAME(flags),
-+	REG_OFFSET_NAME(sp),
-+	REG_OFFSET_NAME(ss),
-+	REG_OFFSET_END,
-+};
-+
-+/**
-+ * regs_query_register_offset() - query register offset from its name
-+ * @name:	the name of a register
-+ *
-+ * regs_query_register_offset() returns the offset of a register in struct
-+ * pt_regs from its name. If the name is invalid, this returns -EINVAL;
-+ */
-+int regs_query_register_offset(const char *name)
-+{
-+	const struct pt_regs_offset *roff;
-+	for (roff = regoffset_table; roff->name != NULL; roff++)
-+		if (!strcmp(roff->name, name))
-+			return roff->offset;
-+	return -EINVAL;
-+}
-+
-+/**
-+ * regs_query_register_name() - query register name from its offset
-+ * @offset:	the offset of a register in struct pt_regs.
-+ *
-+ * regs_query_register_name() returns the name of a register from its
-+ * offset in struct pt_regs. If the @offset is invalid, this returns NULL;
-+ */
-+const char *regs_query_register_name(unsigned offset)
-+{
-+	const struct pt_regs_offset *roff;
-+	for (roff = regoffset_table; roff->name != NULL; roff++)
-+		if (roff->offset == offset)
-+			return roff->name;
-+	return NULL;
-+}
-+
- /*
-  * does not yet catch signals sent when the child dies.
-  * in exit.c or in signal.c.
-
-
--- 
-Masami Hiramatsu
-
-Software Engineer
-Hitachi Computer Products (America), Inc.
-Software Solutions Division
-
-e-mail: mhiramat@redhat.com
+SGksIHRnbHgsDQoNCmxpbnV4LWFyY2gtb3duZXJAdmdlci5rZXJuZWwub3JnINC009ogMjAwOS0w
+Ni0wOSAxNjo1MToxMzoNCg0KPiAgIFRoZSBjbG9jayBzb3VyY2UgZGV2aWNlIGlzIGEgZGV2aWNl
+IHdoaWNoIHByb3ZpZGVzIGEgbW9ub3RvbmljDQo+ICAgaW5jcmVhc2luZyBjb3VudGVyIHdoaWNo
+IGNhbiB3cmFwIGFyb3VuZCBhdCBzb21lIHBvaW50LiBUaGUgd3JhcA0KPiAgIGFyb3VuZCBwb2lu
+dCBoYXMgdG8gYmUgcG93ZXIgb2YgMiBhbmQgaXMgZGVmaW5lZCB2aWEgdGhlIC5tYXNrDQo+ICAg
+bWVtYmVyIG9mIHRoZSBjbG9jayBzb3VyY2UgZGV2aWNlIHN0cnVjdHVyZS4gVGhlIGdlbmVyaWMg
+dGltZQ0KPiAgIGtlZXBpbmcgY29kZSB0YWtlcyBjYXJlIG9mIHRoZSBjb252ZXJzaW9uIHRvIG5z
+ZWMgYmFzZWQgdGltZSBhbmQNCj4gICBoYW5kbGVzIE5UUCBhbmQgb3RoZXIgYWRqdXN0bWVudHMu
+DQo+IA0KPiAgIFNvIGluIHByYWN0aWNlIHlvdSBuZWVkIGVpdGhlciB0d28gaGFyZHdhcmUgZGV2
+aWNlcyAoY291bnRlciBhbmQNCj4gICBpbnRlcnJ1cHQgZ2VuZXJhdG9yKSBvciBhIGRldmljZSB3
+aGljaCBoYXMgYSBtb25vdG9uaWMgaW5jcmVhc2luZw0KPiAgIGNvdW50ZXIgYW5kIGEgbWF0Y2gg
+cmVnaXN0ZXIgd2hpY2ggZ2VuZXJhdGVzIGFuIGludGVycnVwdCB3aGVuIHRoZQ0KPiAgIGNvdW50
+ZXIgdmFsdWUgYW5kIHRoZSBtYXRjaCByZWdpc3RlciBhcmUgdGhlIHNhbWUuDQo+IA0KDQpJIHVw
+ZGF0ZSB0aW1lLmggbGlrZSBiZWxvdy4gVGhhbmtzIHlvdXIgY29tbWVudC4NCg0KQmVzdCBSZWdh
+cmRzDQpsaXFpbg0KDQotLQ0KZGlmZiAtLWdpdCBhL2FyY2gvc2NvcmUva2VybmVsL3RpbWUuYyBi
+L2FyY2gvc2NvcmUva2VybmVsL3RpbWUuYw0KbmV3IGZpbGUgbW9kZSAxMDA2NDQNCmluZGV4IDAw
+MDAwMDAuLmNkNjZiYTMNCi0tLSAvZGV2L251bGwNCisrKyBiL2FyY2gvc2NvcmUva2VybmVsL3Rp
+bWUuYw0KQEAgLTAsMCArMSw5OSBAQA0KKy8qDQorICogYXJjaC9zY29yZS9rZXJuZWwvdGltZS5j
+DQorICoNCisgKiBTY29yZSBQcm9jZXNzb3IgdmVyc2lvbi4NCisgKg0KKyAqIENvcHlyaWdodCAo
+QykgMjAwOSBTdW5wbHVzIENvcmUgVGVjaG5vbG9neSBDby4sIEx0ZC4NCisgKiAgQ2hlbiBMaXFp
+biA8bGlxaW4uY2hlbkBzdW5wbHVzY3QuY29tPg0KKyAqICBMZW5ub3ggV3UgPGxlbm5veC53dUBz
+dW5wbHVzY3QuY29tPg0KKyAqDQorICogVGhpcyBwcm9ncmFtIGlzIGZyZWUgc29mdHdhcmU7IHlv
+dSBjYW4gcmVkaXN0cmlidXRlIGl0IGFuZC9vciBtb2RpZnkNCisgKiBpdCB1bmRlciB0aGUgdGVy
+bXMgb2YgdGhlIEdOVSBHZW5lcmFsIFB1YmxpYyBMaWNlbnNlIGFzIHB1Ymxpc2hlZCBieQ0KKyAq
+IHRoZSBGcmVlIFNvZnR3YXJlIEZvdW5kYXRpb247IGVpdGhlciB2ZXJzaW9uIDIgb2YgdGhlIExp
+Y2Vuc2UsIG9yDQorICogKGF0IHlvdXIgb3B0aW9uKSBhbnkgbGF0ZXIgdmVyc2lvbi4NCisgKg0K
+KyAqIFRoaXMgcHJvZ3JhbSBpcyBkaXN0cmlidXRlZCBpbiB0aGUgaG9wZSB0aGF0IGl0IHdpbGwg
+YmUgdXNlZnVsLA0KKyAqIGJ1dCBXSVRIT1VUIEFOWSBXQVJSQU5UWTsgd2l0aG91dCBldmVuIHRo
+ZSBpbXBsaWVkIHdhcnJhbnR5IG9mDQorICogTUVSQ0hBTlRBQklMSVRZIG9yIEZJVE5FU1MgRk9S
+IEEgUEFSVElDVUxBUiBQVVJQT1NFLiAgU2VlIHRoZQ0KKyAqIEdOVSBHZW5lcmFsIFB1YmxpYyBM
+aWNlbnNlIGZvciBtb3JlIGRldGFpbHMuDQorICoNCisgKiBZb3Ugc2hvdWxkIGhhdmUgcmVjZWl2
+ZWQgYSBjb3B5IG9mIHRoZSBHTlUgR2VuZXJhbCBQdWJsaWMgTGljZW5zZQ0KKyAqIGFsb25nIHdp
+dGggdGhpcyBwcm9ncmFtOyBpZiBub3QsIHNlZSB0aGUgZmlsZSBDT1BZSU5HLCBvciB3cml0ZQ0K
+KyAqIHRvIHRoZSBGcmVlIFNvZnR3YXJlIEZvdW5kYXRpb24sIEluYy4sDQorICogNTEgRnJhbmts
+aW4gU3QsIEZpZnRoIEZsb29yLCBCb3N0b24sIE1BICAwMjExMC0xMzAxICBVU0ENCisgKi8NCisN
+CisjaW5jbHVkZSA8bGludXgvY2xvY2tjaGlwcy5oPg0KKyNpbmNsdWRlIDxsaW51eC9pbnRlcnJ1
+cHQuaD4NCisNCisjaW5jbHVkZSA8YXNtL3Njb3JlcmVncy5oPg0KKw0KK2lycXJldHVybl90IHRp
+bWVyX2ludGVycnVwdChpbnQgaXJxLCB2b2lkICpkZXZfaWQpDQorew0KKyAgICAgICBzdHJ1Y3Qg
+Y2xvY2tfZXZlbnRfZGV2aWNlICpldmRldiA9IGRldl9pZDsNCisNCisgICAgICAgLyogY2xlYXIg
+dGltZXIgaW50ZXJydXB0IGZsYWcgKi8NCisgICAgICAgb3V0bCgxLCBQX1RJTUVSMF9DUFBfUkVH
+KTsNCisgICAgICAgZXZkZXYtPmV2ZW50X2hhbmRsZXIoZXZkZXYpOw0KKw0KKyAgICAgICByZXR1
+cm4gSVJRX0hBTkRMRUQ7DQorfQ0KKw0KK3N0YXRpYyBzdHJ1Y3QgaXJxYWN0aW9uIHRpbWVyX2ly
+cSA9IHsNCisgICAgICAgLmhhbmRsZXIgPSB0aW1lcl9pbnRlcnJ1cHQsDQorICAgICAgIC5mbGFn
+cyA9IElSUUZfRElTQUJMRUQgfCBJUlFGX1RJTUVSLA0KKyAgICAgICAubmFtZSA9ICJ0aW1lciIs
+DQorfTsNCisNCitzdGF0aWMgaW50IHNjb3JlX3RpbWVyX3NldF9uZXh0X2V2ZW50KHVuc2lnbmVk
+IGxvbmcgZGVsdGEsDQorICAgICAgICAgICAgICAgc3RydWN0IGNsb2NrX2V2ZW50X2RldmljZSAq
+ZXZkZXYpDQorew0KKyAgICAgICBvdXRsKChUTVJfTV9QRVJJT0RJQyB8IFRNUl9JRV9FTkFCTEUp
+LCBQX1RJTUVSMF9DVFJMKTsNCisgICAgICAgb3V0bChkZWx0YSwgUF9USU1FUjBfUFJFTE9BRCk7
+DQorICAgICAgIG91dGwoaW5sKFBfVElNRVIwX0NUUkwpIHwgVE1SX0VOQUJMRSwgUF9USU1FUjBf
+Q1RSTCk7DQorDQorICAgICAgIHJldHVybiAwOw0KK30NCisNCitzdGF0aWMgdm9pZCBzY29yZV90
+aW1lcl9zZXRfbW9kZShlbnVtIGNsb2NrX2V2ZW50X21vZGUgbW9kZSwNCisgICAgICAgICAgICAg
+ICBzdHJ1Y3QgY2xvY2tfZXZlbnRfZGV2aWNlICpldmRldikNCit7DQorICAgICAgIHN3aXRjaCAo
+bW9kZSkgew0KKyAgICAgICBjYXNlIENMT0NLX0VWVF9NT0RFX1BFUklPRElDOg0KKyAgICAgICAg
+ICAgICAgIG91dGwoKFRNUl9NX1BFUklPRElDIHwgVE1SX0lFX0VOQUJMRSksIFBfVElNRVIwX0NU
+UkwpOw0KKyAgICAgICAgICAgICAgIG91dGwoU1lTVEVNX0NMT0NLL0haLCBQX1RJTUVSMF9QUkVM
+T0FEKTsNCisgICAgICAgICAgICAgICBvdXRsKGlubChQX1RJTUVSMF9DVFJMKSB8IFRNUl9FTkFC
+TEUsIFBfVElNRVIwX0NUUkwpOw0KKyAgICAgICAgICAgICAgIGJyZWFrOw0KKyAgICAgICBjYXNl
+IENMT0NLX0VWVF9NT0RFX09ORVNIT1Q6DQorICAgICAgIGNhc2UgQ0xPQ0tfRVZUX01PREVfU0hV
+VERPV046DQorICAgICAgIGNhc2UgQ0xPQ0tfRVZUX01PREVfUkVTVU1FOg0KKyAgICAgICBjYXNl
+IENMT0NLX0VWVF9NT0RFX1VOVVNFRDoNCisgICAgICAgICAgICAgICBicmVhazsNCisgICAgICAg
+ZGVmYXVsdDoNCisgICAgICAgICAgICAgICBCVUcoKTsNCisgICAgICAgfQ0KK30NCisNCitzdGF0
+aWMgc3RydWN0IGNsb2NrX2V2ZW50X2RldmljZSBzY29yZV9jbG9ja2V2ZW50ID0gew0KKyAgICAg
+ICAubmFtZSAgICAgICAgICAgPSAic2NvcmVfY2xvY2tldmVudCIsDQorICAgICAgIC5mZWF0dXJl
+cyAgICAgICA9IENMT0NLX0VWVF9GRUFUX1BFUklPRElDLA0KKyAgICAgICAuc2hpZnQgICAgICAg
+ICAgPSAxNiwNCisgICAgICAgLnNldF9uZXh0X2V2ZW50ID0gc2NvcmVfdGltZXJfc2V0X25leHRf
+ZXZlbnQsDQorICAgICAgIC5zZXRfbW9kZSAgICAgICA9IHNjb3JlX3RpbWVyX3NldF9tb2RlLA0K
+K307DQorDQordm9pZCBfX2luaXQgdGltZV9pbml0KHZvaWQpDQorew0KKyAgICAgICB0aW1lcl9p
+cnEuZGV2X2lkID0gJnNjb3JlX2Nsb2NrZXZlbnQ7DQorICAgICAgIHNldHVwX2lycShJUlFfVElN
+RVIgLCAmdGltZXJfaXJxKTsNCisNCisgICAgICAgLyogc2V0dXAgQ09NUEFSRSBjbG9ja2V2ZW50
+ICovDQorICAgICAgIHNjb3JlX2Nsb2NrZXZlbnQubXVsdCA9IGRpdl9zYyhTWVNURU1fQ0xPQ0ss
+IE5TRUNfUEVSX1NFQywNCisgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBz
+Y29yZV9jbG9ja2V2ZW50LnNoaWZ0KTsNCisgICAgICAgc2NvcmVfY2xvY2tldmVudC5tYXhfZGVs
+dGFfbnMgPSBjbG9ja2V2ZW50X2RlbHRhMm5zKCh1MzIpfjAsDQorICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgJnNjb3JlX2Nsb2NrZXZlbnQpOw0KKyAgICAgICBzY29yZV9j
+bG9ja2V2ZW50Lm1pbl9kZWx0YV9ucyA9IGNsb2NrZXZlbnRfZGVsdGEybnMoNTAsDQorICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAmc2NvcmVfY2xvY2tldmVu
+dCkgKyAxOw0KKyAgICAgICBzY29yZV9jbG9ja2V2ZW50LmNwdW1hc2sgPSBjcHVtYXNrX29mKDAp
+Ow0KKyAgICAgICBjbG9ja2V2ZW50c19yZWdpc3Rlcl9kZXZpY2UoJnNjb3JlX2Nsb2NrZXZlbnQp
+Ow0KK30NCg==
