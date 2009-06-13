@@ -1,59 +1,62 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 06/27] score: create head files delay.h device.h div64.h dma-mapping.h dma.h
-Date: Sun, 14 Jun 2009 00:31:54 +0200
-Message-ID: <200906140031.55091.arnd@arndb.de>
-References: <OF676F75F6.AE51CF2E-ON482575D4.00241202-482575D4.0024AEE4@sunplusct.com>
+Subject: Re: [PATCH 05/27] score: create head files cache.h cacheflush.h checksum.h cputime.h current.h
+Date: Sun, 14 Jun 2009 00:40:05 +0200
+Message-ID: <200906140040.06017.arnd@arndb.de>
+References: <OF3577968C.E669F4B8-ON482575D4.0023707C-482575D4.0024726F@sunplusct.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=gb2312
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: Text/Plain;
+  charset="gb2312"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.188]:60609 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.171]:63716 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753250AbZFMWch (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Jun 2009 18:32:37 -0400
-In-Reply-To: <OF676F75F6.AE51CF2E-ON482575D4.00241202-482575D4.0024AEE4@sunplusct.com>
+	with ESMTP id S1760326AbZFMWkd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Jun 2009 18:40:33 -0400
+In-Reply-To: <OF3577968C.E669F4B8-ON482575D4.0023707C-482575D4.0024726F@sunplusct.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: liqin.chen@sunplusct.com
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
 
 On Saturday 13 June 2009, liqin.chen@sunplusct.com wrote:
-> Arnd Bergmann <arnd@arndb.de> =D0=B4=D3=DA 2009-06-10 01:18:20:
->=20
-> > On Tuesday 09 June 2009, liqin.chen@sunplusct.com wrote:
-> >=20
-> > Having a working udelay() function is required for many
-> > drivers that are sensitive to timing, you should probably
-> > implement that at some point in the future.
->=20
-> Add udelay() implement in code.
+> 
+> > This is a somewhat unusual way to express these functions. It seems
+> > that you only have one implementation for each of them, so I wonder
+> > why you keep them as function pointers. Do you plan to add more CPUs
+> > in the future that do these differently?
+> > 
+> 
+> S+core series have score7 core and score3 core, they use different ISA,
+> this patch only include score7 code. We will provide score3 code latter.
 
-so you use=20
+Ok. Is the ISA similar enough that you still intend to provide binary
+kernels that work on both, with just overriding a few functions?
+If a kernel gets built only for one architecture or another, a compile-time
+switch would be quicker than a runtime switch here.
 
-static inline void __delay(unsigned long loops)
+A common way to express this kind of runtime dependency is to put all
+the function pointers into a single data structure and just flip a
+single pointer at boot time, e.g.
+
+struct score_cpu_ops {
+	void (*flush_cache_all)(void);
+	void (*flush_cache_mm)(struct mm_struct *mm);
+	void (*flush_cache_range)(struct vm_area_struct *vma,
+	                            unsigned long start, unsigned long end);
+	void (*flush_cache_page)(struct vm_area_struct *vma,
+                           unsigned long page, unsigned long pfn);
+	void (*flush_cache_sigtramp)(unsigned long addr);
+	void (*flush_icache_all)(void);
+	void (*flush_icache_range)(unsigned long start, unsigned long end);
+	void (*flush_data_cache_page)(unsigned long addr);
+};
+
+extern struct score_cpu_ops *score_cpu_ops;
+
+static inline flush_cache_all(void)
 {
-        __asm__ __volatile__ (
-                "1:\tsubi\t%0,1\n\t"
-                "cmpz.c\t%0\n\t"
-                "bne\t1b\n\t"
-                : "=3Dr" (loops)
-                : "0" (loops));
+	return score_cpu_ops->flush_cache_all();
 }
-
-static inline void __udelay(unsigned long usecs)
-{
-        __delay(usecs);
-}
-
-
-This is much better than before, but is far from exact in the __udelay(=
-)
-case. Please take a look at init/calibrate.c and how other architecture=
-s
-use loops_per_jiffy if you don't have an exact time source you can use.
-
-If you have a time source with microsecond resolution or better, just l=
-oop
-until the amount of microseconds has expired.
+...
 
 	Arnd <><
