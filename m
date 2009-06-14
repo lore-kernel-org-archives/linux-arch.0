@@ -1,59 +1,56 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: __get_user_unaligned return value
-Date: Sun, 14 Jun 2009 21:44:23 +0200
-Message-ID: <200906142144.24487.arnd@arndb.de>
-References: <alpine.DEB.2.00.0906141211590.24169@vinegar-pot.mit.edu>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH] Improve vmlinux.lds.h support for arch specific linker scripts
+Date: Sun, 14 Jun 2009 22:22:44 +0200
+Message-ID: <20090614202244.GA2951@uranus.ravnborg.org>
+References: <20090607185430.GA15299@uranus.ravnborg.org> <alpine.DEB.1.10.0906112032560.9154@vinegar-pot.mit.edu>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:61049 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752773AbZFNTo2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Jun 2009 15:44:28 -0400
-In-Reply-To: <alpine.DEB.2.00.0906141211590.24169@vinegar-pot.mit.edu>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Anders Kaseorg <andersk@mit.edu>
-Cc: Arun Sharma <arun.sharma@intel.com>, "David S. Miller" <davem@nuts.davemloft.net>, linux-arch@vger.kernel.org, tony.luck@intel.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.1.10.0906112032560.9154@vinegar-pot.mit.edu>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Tim Abbott <tabbott@ksplice.com>
+Cc: linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Anders Kaseorg <andersk@ksplice.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Sunday 14 June 2009, Anders Kaseorg wrote:
-> The __get_user_unaligned macro in include/asm/uaccess-unaligned.h ret=
-urns=20
-> the wrong value, since the ? -EFAULT : 0 is not on the last line of t=
-he=20
-> statement expression:
->=20
-> #define __get_user_unaligned(x, ptr)                                 =
-   \
-> ({                                                                   =
-   \
->         __typeof__ (*(ptr)) __x;                                     =
-   \
->         __copy_from_user(&__x, (ptr), sizeof(*(ptr))) ? -EFAULT : 0; =
-   \
->         (x) =3D __x;                                                 =
-     \
-> })
->=20
-> I couldn=E2=80=99t find any callers, so I=E2=80=99m not sure whether =
-the macro should be=20
-> patched or just removed.
+On Fri, Jun 12, 2009 at 10:52:06AM -0400, Tim Abbott wrote:
+> On Sun, 7 Jun 2009, Sam Ravnborg wrote:
+> 
+> > Please review and comment..
+> > It will be part of kbuild-next.git
+> 
+> This patch looks great.  I have a few very minor comments.
+> 
+> > + *	/DISCARD/ : {
+> > + *		EXIT_TEXT
+> > + *		EXIT_DATA
+> > + *		*(.exitcall.exit)
+> > + *	}
+> 
+> I recommend adding
+> 
+> #define EXIT_CALL *(.exitcall.exit)
+> 
+> and using it in the DISCARD section of the sample linker script so that 
+> the sample linker script doesn't use any raw section names.
+> 
+> > +#define BSS_SECTION(sbss_align, bss_align)				\
+> > +	SBSS								\
+> > +	BSS(bss_align)							\
+> > +	. = ALIGN(4);							\
+> 
+> This macro should end with the 'ALIGN(4);' -- there's an extra backslash 
+> at the end of the line.
+> 
+> I recommend changing HEAD_SECTION to HEAD_TEXT_SECTION to better fit the 
+> naming scheme.  This would involve deleting the recently added 
+> include/linux/section-names.h and going back to hardcoding .head.text in 
+> include/linux/init.h (given the way these macros have turned out, 
+> include/linux/section-names.h doesn't really make sense).
+> 
+I fixed the above in a separate commit, so
 
-Not sure either. __put_user_unaligned() still only has the one user tha=
-t
-Arun added back in 2.6.9, and I don't think we ever added any code that=
- used
-__get_user_unaligned(). That bug would probably have been noticed.
+> Also, the commit message misspells 'alignment', 'linker', and 'Abbott'.
+these were not addressed.
 
-Even __put_user_unaligned only matters on ia64, because the only user o=
-f
-that function is actually accessing aligned data on everything besides
-x86-64 and ia64, and x86-64 does not even care.
-
-I'm tempted to just rip out both _unaligned functions and to add a new
-put_user_compat_u64() on ia64, and put a default into include/linux/uac=
-cess.h
-that just calls put_user() for everyone else.
-
-	Arnd <><
+	Sam
