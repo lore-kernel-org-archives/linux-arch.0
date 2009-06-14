@@ -1,98 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:57568 "EHLO
-	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754521AbZFMGt3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Jun 2009 02:49:29 -0400
-In-Reply-To: <alpine.LFD.2.00.0906091028020.3351@localhost.localdomain>
-MIME-Version: 1.0
-Subject: Re: [PATCH 22/27] score: create kernel files signal.c sys_score.c time.c
-Message-ID: <OFEC1BACBF.E1025EE1-ON482575D4.0022F1FA-482575D4.0023C068@sunplusct.com>
-From: liqin.chen@sunplusct.com
-Date: Sat, 13 Jun 2009 14:26:02 +0800
-Content-Type: text/plain; charset="GB2312"
-Content-Transfer-Encoding: base64
+Received: from pfepa.post.tele.dk ([195.41.46.235]:59718 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754623AbZFNUUZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Jun 2009 16:20:25 -0400
+Date: Sun, 14 Jun 2009 22:22:44 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH] Improve vmlinux.lds.h support for arch specific linker scripts
+Message-ID: <20090614202244.GA2951@uranus.ravnborg.org>
+References: <20090607185430.GA15299@uranus.ravnborg.org> <alpine.DEB.1.10.0906112032560.9154@vinegar-pot.mit.edu>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.1.10.0906112032560.9154@vinegar-pot.mit.edu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arch-owner@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
-Message-ID: <20090613062602.2akNftmMPFm57za6UlMsZKgr_dhgA8D9B_lY0C1fQFc@z>
+To: Tim Abbott <tabbott@ksplice.com>
+Cc: linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Anders Kaseorg <andersk@ksplice.com>
+Message-ID: <20090614202244.-A98rysmRBm8efMMsZuTyRnBpsnlTJEYCpttvzCYqb8@z>
 
-SGksIHRnbHgsDQoNCmxpbnV4LWFyY2gtb3duZXJAdmdlci5rZXJuZWwub3JnINC009ogMjAwOS0w
-Ni0wOSAxNjo1MToxMzoNCg0KPiAgIFRoZSBjbG9jayBzb3VyY2UgZGV2aWNlIGlzIGEgZGV2aWNl
-IHdoaWNoIHByb3ZpZGVzIGEgbW9ub3RvbmljDQo+ICAgaW5jcmVhc2luZyBjb3VudGVyIHdoaWNo
-IGNhbiB3cmFwIGFyb3VuZCBhdCBzb21lIHBvaW50LiBUaGUgd3JhcA0KPiAgIGFyb3VuZCBwb2lu
-dCBoYXMgdG8gYmUgcG93ZXIgb2YgMiBhbmQgaXMgZGVmaW5lZCB2aWEgdGhlIC5tYXNrDQo+ICAg
-bWVtYmVyIG9mIHRoZSBjbG9jayBzb3VyY2UgZGV2aWNlIHN0cnVjdHVyZS4gVGhlIGdlbmVyaWMg
-dGltZQ0KPiAgIGtlZXBpbmcgY29kZSB0YWtlcyBjYXJlIG9mIHRoZSBjb252ZXJzaW9uIHRvIG5z
-ZWMgYmFzZWQgdGltZSBhbmQNCj4gICBoYW5kbGVzIE5UUCBhbmQgb3RoZXIgYWRqdXN0bWVudHMu
-DQo+IA0KPiAgIFNvIGluIHByYWN0aWNlIHlvdSBuZWVkIGVpdGhlciB0d28gaGFyZHdhcmUgZGV2
-aWNlcyAoY291bnRlciBhbmQNCj4gICBpbnRlcnJ1cHQgZ2VuZXJhdG9yKSBvciBhIGRldmljZSB3
-aGljaCBoYXMgYSBtb25vdG9uaWMgaW5jcmVhc2luZw0KPiAgIGNvdW50ZXIgYW5kIGEgbWF0Y2gg
-cmVnaXN0ZXIgd2hpY2ggZ2VuZXJhdGVzIGFuIGludGVycnVwdCB3aGVuIHRoZQ0KPiAgIGNvdW50
-ZXIgdmFsdWUgYW5kIHRoZSBtYXRjaCByZWdpc3RlciBhcmUgdGhlIHNhbWUuDQo+IA0KDQpJIHVw
-ZGF0ZSB0aW1lLmggbGlrZSBiZWxvdy4gVGhhbmtzIHlvdXIgY29tbWVudC4NCg0KQmVzdCBSZWdh
-cmRzDQpsaXFpbg0KDQotLQ0KZGlmZiAtLWdpdCBhL2FyY2gvc2NvcmUva2VybmVsL3RpbWUuYyBi
-L2FyY2gvc2NvcmUva2VybmVsL3RpbWUuYw0KbmV3IGZpbGUgbW9kZSAxMDA2NDQNCmluZGV4IDAw
-MDAwMDAuLmNkNjZiYTMNCi0tLSAvZGV2L251bGwNCisrKyBiL2FyY2gvc2NvcmUva2VybmVsL3Rp
-bWUuYw0KQEAgLTAsMCArMSw5OSBAQA0KKy8qDQorICogYXJjaC9zY29yZS9rZXJuZWwvdGltZS5j
-DQorICoNCisgKiBTY29yZSBQcm9jZXNzb3IgdmVyc2lvbi4NCisgKg0KKyAqIENvcHlyaWdodCAo
-QykgMjAwOSBTdW5wbHVzIENvcmUgVGVjaG5vbG9neSBDby4sIEx0ZC4NCisgKiAgQ2hlbiBMaXFp
-biA8bGlxaW4uY2hlbkBzdW5wbHVzY3QuY29tPg0KKyAqICBMZW5ub3ggV3UgPGxlbm5veC53dUBz
-dW5wbHVzY3QuY29tPg0KKyAqDQorICogVGhpcyBwcm9ncmFtIGlzIGZyZWUgc29mdHdhcmU7IHlv
-dSBjYW4gcmVkaXN0cmlidXRlIGl0IGFuZC9vciBtb2RpZnkNCisgKiBpdCB1bmRlciB0aGUgdGVy
-bXMgb2YgdGhlIEdOVSBHZW5lcmFsIFB1YmxpYyBMaWNlbnNlIGFzIHB1Ymxpc2hlZCBieQ0KKyAq
-IHRoZSBGcmVlIFNvZnR3YXJlIEZvdW5kYXRpb247IGVpdGhlciB2ZXJzaW9uIDIgb2YgdGhlIExp
-Y2Vuc2UsIG9yDQorICogKGF0IHlvdXIgb3B0aW9uKSBhbnkgbGF0ZXIgdmVyc2lvbi4NCisgKg0K
-KyAqIFRoaXMgcHJvZ3JhbSBpcyBkaXN0cmlidXRlZCBpbiB0aGUgaG9wZSB0aGF0IGl0IHdpbGwg
-YmUgdXNlZnVsLA0KKyAqIGJ1dCBXSVRIT1VUIEFOWSBXQVJSQU5UWTsgd2l0aG91dCBldmVuIHRo
-ZSBpbXBsaWVkIHdhcnJhbnR5IG9mDQorICogTUVSQ0hBTlRBQklMSVRZIG9yIEZJVE5FU1MgRk9S
-IEEgUEFSVElDVUxBUiBQVVJQT1NFLiAgU2VlIHRoZQ0KKyAqIEdOVSBHZW5lcmFsIFB1YmxpYyBM
-aWNlbnNlIGZvciBtb3JlIGRldGFpbHMuDQorICoNCisgKiBZb3Ugc2hvdWxkIGhhdmUgcmVjZWl2
-ZWQgYSBjb3B5IG9mIHRoZSBHTlUgR2VuZXJhbCBQdWJsaWMgTGljZW5zZQ0KKyAqIGFsb25nIHdp
-dGggdGhpcyBwcm9ncmFtOyBpZiBub3QsIHNlZSB0aGUgZmlsZSBDT1BZSU5HLCBvciB3cml0ZQ0K
-KyAqIHRvIHRoZSBGcmVlIFNvZnR3YXJlIEZvdW5kYXRpb24sIEluYy4sDQorICogNTEgRnJhbmts
-aW4gU3QsIEZpZnRoIEZsb29yLCBCb3N0b24sIE1BICAwMjExMC0xMzAxICBVU0ENCisgKi8NCisN
-CisjaW5jbHVkZSA8bGludXgvY2xvY2tjaGlwcy5oPg0KKyNpbmNsdWRlIDxsaW51eC9pbnRlcnJ1
-cHQuaD4NCisNCisjaW5jbHVkZSA8YXNtL3Njb3JlcmVncy5oPg0KKw0KK2lycXJldHVybl90IHRp
-bWVyX2ludGVycnVwdChpbnQgaXJxLCB2b2lkICpkZXZfaWQpDQorew0KKyAgICAgICBzdHJ1Y3Qg
-Y2xvY2tfZXZlbnRfZGV2aWNlICpldmRldiA9IGRldl9pZDsNCisNCisgICAgICAgLyogY2xlYXIg
-dGltZXIgaW50ZXJydXB0IGZsYWcgKi8NCisgICAgICAgb3V0bCgxLCBQX1RJTUVSMF9DUFBfUkVH
-KTsNCisgICAgICAgZXZkZXYtPmV2ZW50X2hhbmRsZXIoZXZkZXYpOw0KKw0KKyAgICAgICByZXR1
-cm4gSVJRX0hBTkRMRUQ7DQorfQ0KKw0KK3N0YXRpYyBzdHJ1Y3QgaXJxYWN0aW9uIHRpbWVyX2ly
-cSA9IHsNCisgICAgICAgLmhhbmRsZXIgPSB0aW1lcl9pbnRlcnJ1cHQsDQorICAgICAgIC5mbGFn
-cyA9IElSUUZfRElTQUJMRUQgfCBJUlFGX1RJTUVSLA0KKyAgICAgICAubmFtZSA9ICJ0aW1lciIs
-DQorfTsNCisNCitzdGF0aWMgaW50IHNjb3JlX3RpbWVyX3NldF9uZXh0X2V2ZW50KHVuc2lnbmVk
-IGxvbmcgZGVsdGEsDQorICAgICAgICAgICAgICAgc3RydWN0IGNsb2NrX2V2ZW50X2RldmljZSAq
-ZXZkZXYpDQorew0KKyAgICAgICBvdXRsKChUTVJfTV9QRVJJT0RJQyB8IFRNUl9JRV9FTkFCTEUp
-LCBQX1RJTUVSMF9DVFJMKTsNCisgICAgICAgb3V0bChkZWx0YSwgUF9USU1FUjBfUFJFTE9BRCk7
-DQorICAgICAgIG91dGwoaW5sKFBfVElNRVIwX0NUUkwpIHwgVE1SX0VOQUJMRSwgUF9USU1FUjBf
-Q1RSTCk7DQorDQorICAgICAgIHJldHVybiAwOw0KK30NCisNCitzdGF0aWMgdm9pZCBzY29yZV90
-aW1lcl9zZXRfbW9kZShlbnVtIGNsb2NrX2V2ZW50X21vZGUgbW9kZSwNCisgICAgICAgICAgICAg
-ICBzdHJ1Y3QgY2xvY2tfZXZlbnRfZGV2aWNlICpldmRldikNCit7DQorICAgICAgIHN3aXRjaCAo
-bW9kZSkgew0KKyAgICAgICBjYXNlIENMT0NLX0VWVF9NT0RFX1BFUklPRElDOg0KKyAgICAgICAg
-ICAgICAgIG91dGwoKFRNUl9NX1BFUklPRElDIHwgVE1SX0lFX0VOQUJMRSksIFBfVElNRVIwX0NU
-UkwpOw0KKyAgICAgICAgICAgICAgIG91dGwoU1lTVEVNX0NMT0NLL0haLCBQX1RJTUVSMF9QUkVM
-T0FEKTsNCisgICAgICAgICAgICAgICBvdXRsKGlubChQX1RJTUVSMF9DVFJMKSB8IFRNUl9FTkFC
-TEUsIFBfVElNRVIwX0NUUkwpOw0KKyAgICAgICAgICAgICAgIGJyZWFrOw0KKyAgICAgICBjYXNl
-IENMT0NLX0VWVF9NT0RFX09ORVNIT1Q6DQorICAgICAgIGNhc2UgQ0xPQ0tfRVZUX01PREVfU0hV
-VERPV046DQorICAgICAgIGNhc2UgQ0xPQ0tfRVZUX01PREVfUkVTVU1FOg0KKyAgICAgICBjYXNl
-IENMT0NLX0VWVF9NT0RFX1VOVVNFRDoNCisgICAgICAgICAgICAgICBicmVhazsNCisgICAgICAg
-ZGVmYXVsdDoNCisgICAgICAgICAgICAgICBCVUcoKTsNCisgICAgICAgfQ0KK30NCisNCitzdGF0
-aWMgc3RydWN0IGNsb2NrX2V2ZW50X2RldmljZSBzY29yZV9jbG9ja2V2ZW50ID0gew0KKyAgICAg
-ICAubmFtZSAgICAgICAgICAgPSAic2NvcmVfY2xvY2tldmVudCIsDQorICAgICAgIC5mZWF0dXJl
-cyAgICAgICA9IENMT0NLX0VWVF9GRUFUX1BFUklPRElDLA0KKyAgICAgICAuc2hpZnQgICAgICAg
-ICAgPSAxNiwNCisgICAgICAgLnNldF9uZXh0X2V2ZW50ID0gc2NvcmVfdGltZXJfc2V0X25leHRf
-ZXZlbnQsDQorICAgICAgIC5zZXRfbW9kZSAgICAgICA9IHNjb3JlX3RpbWVyX3NldF9tb2RlLA0K
-K307DQorDQordm9pZCBfX2luaXQgdGltZV9pbml0KHZvaWQpDQorew0KKyAgICAgICB0aW1lcl9p
-cnEuZGV2X2lkID0gJnNjb3JlX2Nsb2NrZXZlbnQ7DQorICAgICAgIHNldHVwX2lycShJUlFfVElN
-RVIgLCAmdGltZXJfaXJxKTsNCisNCisgICAgICAgLyogc2V0dXAgQ09NUEFSRSBjbG9ja2V2ZW50
-ICovDQorICAgICAgIHNjb3JlX2Nsb2NrZXZlbnQubXVsdCA9IGRpdl9zYyhTWVNURU1fQ0xPQ0ss
-IE5TRUNfUEVSX1NFQywNCisgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBz
-Y29yZV9jbG9ja2V2ZW50LnNoaWZ0KTsNCisgICAgICAgc2NvcmVfY2xvY2tldmVudC5tYXhfZGVs
-dGFfbnMgPSBjbG9ja2V2ZW50X2RlbHRhMm5zKCh1MzIpfjAsDQorICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgJnNjb3JlX2Nsb2NrZXZlbnQpOw0KKyAgICAgICBzY29yZV9j
-bG9ja2V2ZW50Lm1pbl9kZWx0YV9ucyA9IGNsb2NrZXZlbnRfZGVsdGEybnMoNTAsDQorICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAmc2NvcmVfY2xvY2tldmVu
-dCkgKyAxOw0KKyAgICAgICBzY29yZV9jbG9ja2V2ZW50LmNwdW1hc2sgPSBjcHVtYXNrX29mKDAp
-Ow0KKyAgICAgICBjbG9ja2V2ZW50c19yZWdpc3Rlcl9kZXZpY2UoJnNjb3JlX2Nsb2NrZXZlbnQp
-Ow0KK30NCg==
+On Fri, Jun 12, 2009 at 10:52:06AM -0400, Tim Abbott wrote:
+> On Sun, 7 Jun 2009, Sam Ravnborg wrote:
+> 
+> > Please review and comment..
+> > It will be part of kbuild-next.git
+> 
+> This patch looks great.  I have a few very minor comments.
+> 
+> > + *	/DISCARD/ : {
+> > + *		EXIT_TEXT
+> > + *		EXIT_DATA
+> > + *		*(.exitcall.exit)
+> > + *	}
+> 
+> I recommend adding
+> 
+> #define EXIT_CALL *(.exitcall.exit)
+> 
+> and using it in the DISCARD section of the sample linker script so that 
+> the sample linker script doesn't use any raw section names.
+> 
+> > +#define BSS_SECTION(sbss_align, bss_align)				\
+> > +	SBSS								\
+> > +	BSS(bss_align)							\
+> > +	. = ALIGN(4);							\
+> 
+> This macro should end with the 'ALIGN(4);' -- there's an extra backslash 
+> at the end of the line.
+> 
+> I recommend changing HEAD_SECTION to HEAD_TEXT_SECTION to better fit the 
+> naming scheme.  This would involve deleting the recently added 
+> include/linux/section-names.h and going back to hardcoding .head.text in 
+> include/linux/init.h (given the way these macros have turned out, 
+> include/linux/section-names.h doesn't really make sense).
+> 
+I fixed the above in a separate commit, so
+
+> Also, the commit message misspells 'alignment', 'linker', and 'Abbott'.
+these were not addressed.
+
+	Sam
