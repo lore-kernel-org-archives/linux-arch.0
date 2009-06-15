@@ -1,41 +1,43 @@
-From: liqin.chen@sunplusct.com
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH] asm-generic: add EMAXERRNO
-Date: Mon, 15 Jun 2009 21:33:21 +0800
-Message-ID: <OF3F5B9A42.51E93417-ON482575D6.004A27E1-482575D6.004AE1D9@sunplusct.com>
-References: <200906151530.10299.arnd@arndb.de>
+Date: Mon, 15 Jun 2009 16:02:42 +0200
+Message-ID: <200906151602.42873.arnd@arndb.de>
+References: <OF48364F7F.ED6F93C7-ON482575D6.0042A7E0-482575D6.0043654D@sunplusct.com> <200906151530.10299.arnd@arndb.de> <20090615133151.GI19977@parisc-linux.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="GB2312"
-Content-Transfer-Encoding: base64
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:48554 "EHLO
-	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751604AbZFONiN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2009 09:38:13 -0400
-In-Reply-To: <200906151530.10299.arnd@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.126.187]:49527 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751573AbZFOODt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2009 10:03:49 -0400
+In-Reply-To: <20090615133151.GI19977@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-arch-owner@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: liqin.chen@sunplusct.com, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
 
-bGludXgtYXJjaC1vd25lckB2Z2VyLmtlcm5lbC5vcmcg0LTT2iAyMDA5LTA2LTE1IDIxOjMwOjA5
-Og0KDQo+IFNvbWUgYXJjaGl0ZWN0dXJlcyB3YW50IHRvIGZsYWcgZXJyb3IgcmV0dXJucyBmcm9t
-IGEgc3lzY2FsbCBiYXNlZCBvbg0KPiB0aGUgcmV0dXJuIHZhbHVlLiBUaGUgcmFuZ2UgZnJvbSB6
-ZXJvIHRvIC01MTEgaXMgZm9yIGVycm9ycyB0aGF0DQo+IHdlIGNhbiByZXR1cm4gdG8gdXNlciBz
-cGFjZSwgc28gYWRkIGEgI2RlZmluZSBmb3IgdGhpcyB0bw0KPiBpbmNsdWRlL2FzbS1nZW5lcmlj
-L2Vycm5vLmguDQo+IA0KPiBSZXBvcnRlZC1ieTogQ2hlbiBMaXF1aW4gPGxpcWluLmNoZW5Ac3Vu
-cGx1c2N0LmNvbT4NCj4gU2lnbmVkLW9mZi1ieTogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5k
-ZT4NCj4gLS0tDQo+ICBpbmNsdWRlL2FzbS1nZW5lcmljL2Vycm5vLmggfCAgICA0ICsrKysNCj4g
-IDEgZmlsZXMgY2hhbmdlZCwgNCBpbnNlcnRpb25zKCspLCAwIGRlbGV0aW9ucygtKQ0KPiANCj4g
-T24gTW9uZGF5IDE1IEp1bmUgMjAwOSwgbGlxaW4uY2hlbkBzdW5wbHVzY3QuY29tIHdyb3RlOg0K
-PiANCj4gPiBNYXliZSBJIGNhbiBkb24ndCB1c2UgRU1BWEVSUk5PIGluIHNjb3JlIGNvZGUuIEJ1
-dCBJIHRoaW5rIGRlZmluZSBhIA0KPiA+IG1heGltdW0gZXJyb3IgbnVtYmVyIGluIGFzbS1nZW5l
-cmljL2Vycm5vLmggaXMgYmV0dGVyLg0KPiA+IA0KPiANCj4gSG93IGFib3V0IHRoaXMgb25lPw0K
-PiANCj4gZGlmZiAtLWdpdCBhL2luY2x1ZGUvYXNtLWdlbmVyaWMvZXJybm8uaCBiL2luY2x1ZGUv
-YXNtLWdlbmVyaWMvZXJybm8uaA0KPiBpbmRleCBlODg1MmMwLi4xNmJiMzFkIDEwMDY0NA0KPiAt
-LS0gYS9pbmNsdWRlL2FzbS1nZW5lcmljL2Vycm5vLmgNCj4gKysrIGIvaW5jbHVkZS9hc20tZ2Vu
-ZXJpYy9lcnJuby5oDQo+IEBAIC0xMDYsNCArMTA2LDggQEANCj4gICNkZWZpbmUgICBFT1dORVJE
-RUFEICAgMTMwICAgLyogT3duZXIgZGllZCAqLw0KPiAgI2RlZmluZSAgIEVOT1RSRUNPVkVSQUJM
-RSAgIDEzMSAgIC8qIFN0YXRlIG5vdCByZWNvdmVyYWJsZSAqLw0KPiANCj4gKyNpZmRlZiBfX0tF
-Uk5FTF9fDQo+ICsjZGVmaW5lICAgRU1BWEVSUk5PICAgNTExICAgLyogbWF4aW11bSBlcnJubyB2
-YWx1ZSB3ZSByZXR1cm4gdG8gdXNlciAqLw0KPiArI2VuZGlmDQo+ICsNCj4gICNlbmRpZg0KPiAt
-LSANCk9LLCBpdCBpcyBlYXN5IHRvIHVzZS4NCg==
+On Monday 15 June 2009, Matthew Wilcox wrote:
+> On Mon, Jun 15, 2009 at 03:30:09PM +0200, Arnd Bergmann wrote:
+> > Some architectures want to flag error returns from a syscall based on
+> > the return value. The range from zero to -511 is for errors that
+> > we can return to user space, so add a #define for this to
+> > include/asm-generic/errno.h.
+> 
+> I thought we could return anything up to -4095.
+
+Sort of, yes. Internally to the kernel, we use anything up to 4095,
+that's e.g. IS_ERR_VALUE checks for.
+
+Error numbers from 512 to 4095 are internal and should never be seen
+by the user.
+
+In reality, it probably does not matter at all because we know what
+error numbers we use. Now that you pointed me to include/linux/err.h,
+that already defines MAX_ERRNO.
+
+Liqin, I think I'd prefer to just drop my patch again, and you can
+use MAX_ERRNO, which is defined in err.h.
+
+	Arnd <><
