@@ -1,34 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from BISCAYNE-ONE-STATION.MIT.EDU ([18.7.7.80]:34570 "EHLO
-	biscayne-one-station.mit.edu" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758022AbZFNWPp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 14 Jun 2009 18:15:45 -0400
-Date: Sun, 14 Jun 2009 18:15:36 -0400 (EDT)
-From: Tim Abbott <tabbott@ksplice.com>
-Subject: Re: [PATCH] Improve vmlinux.lds.h support for arch specific linker
- scripts
-In-Reply-To: <20090614202244.GA2951@uranus.ravnborg.org>
-Message-ID: <alpine.DEB.1.10.0906141621550.24859@vinegar-pot.mit.edu>
-References: <20090607185430.GA15299@uranus.ravnborg.org> <alpine.DEB.1.10.0906112032560.9154@vinegar-pot.mit.edu> <20090614202244.GA2951@uranus.ravnborg.org>
+Received: from mail2.shareable.org ([80.68.89.115]:58330 "EHLO
+	mail2.shareable.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752577AbZFPSTk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jun 2009 14:19:40 -0400
+Date: Tue, 16 Jun 2009 19:18:55 +0100
+From: Jamie Lokier <jamie@shareable.org>
+Subject: Re: Representing Embedded Architectures at the Kernel Summit
+Message-ID: <20090616181855.GF11893@shareable.org>
+References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com> <4A373EE6.6070201@compulab.co.il> <8bd0f97a0906160106g333eb222idd0d694f452650ff@mail.gmail.com> <fa686aa40906160906i7a05fc77jd1b2b920a1680812@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <fa686aa40906160906i7a05fc77jd1b2b920a1680812@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Anders Kaseorg <andersk@ksplice.com>
-Message-ID: <20090614221536.SsbXxLqq66WKZPeLzmJX6MmnOwyPIKT2wxlhU92nUH4@z>
+To: Grant Likely <grant.likely@secretlab.ca>
+Cc: Mike Frysinger <vapier.adi@gmail.com>, Mike Rapoport <mike@compulab.co.il>, James Bottomley <James.Bottomley@hansenpartnership.com>, ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org
+Message-ID: <20090616181855.jOzCNHy17sJ4I00IIgb3-LqYKYp7sGUR6ucmwC2_VVA@z>
 
-On Sun, 14 Jun 2009, Sam Ravnborg wrote:
+Grant Likely wrote:
+> http://patchwork.ozlabs.org/patch/24152/
+> 
+> I never actually pushed through and finished it because it turned out
+> to be a non-issue for Ethernet devices in the end.  However, I can see
+> the value.  With this approach, a driver can use a
+> bus_register_notifier() variant without caring about the device
+> registration order, and the drivers notifier callback will get called
+> at the appropriate time.
+> 
+> In your example case I could see the framebuffer driver deferring the
+> final part of its initialization until the needed i2c device shows up.
 
-> On Fri, Jun 12, 2009 at 10:52:06AM -0400, Tim Abbott wrote:
-> > This patch looks great.  I have a few very minor comments.
-> I fixed the above in a separate commit, so
+It makes drivers more complicated and larger than necessary, though,
+having to add more functions and register more callbacks.
 
-I've looked at the new commit in kbuild-next.git, and it looks good.  You 
-should feel free to add my ack to both patches (or a combined patch if 
-they end up being squashed together).
+Something which lets you specify a dependency in a one-line
+MODULE_INIT_PREREQS() macro would be much nicer.
 
-Acked-by: Tim Abbott <tabbott@ksplice.com>
+I can see the callbacks being useful, and necessary, for drivers which
+need to interleave their initialisation.  E.g. need to initialise an
+external framebuffer chip before you can use it's I2C GPIOs, but then
+need to initialise an I2C driver before you can read the framebuffer
+parameters to finish setting up the framebuffer.
 
-	-Tim Abbott
+-- Jamie
+
