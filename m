@@ -1,61 +1,62 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 7/7] x86: ensure percpu lpage doesn't consume too much vmalloc space
-Date: Wed, 17 Jun 2009 12:52:19 +0900
-Message-ID: <1245210739-25699-8-git-send-email-tj@kernel.org>
-References: <1245210739-25699-1-git-send-email-tj@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:49533 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1764370AbZFQDxD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Jun 2009 23:53:03 -0400
-In-Reply-To: <1245210739-25699-1-git-send-email-tj@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, JBeulich@novell.com, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de
-Cc: Tejun Heo <tj@kernel.org>
+Subject: [GIT PATCH core/percpu] x86,percpu: generalize 4k and lpage allocator
+Date: Wed, 17 Jun 2009 13:04:30 +0900
+Message-ID: <1245211476-27015-1-git-send-email-tj@kernel.org>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1752648AbZFQEFc@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de
+List-Id: linux-arch.vger.kernel.org
 
-On extreme configuration (e.g. 32bit 32-way NUMA machine), lpage
-percpu first chunk allocator can consume too much of vmalloc space.
-Make it fall back to 4k allocator if the consumption goes over 20%.
 
-[ Impact: add sanity check for lpage percpu first chunk allocator ]
+Hello,
 
-Signed-off-by: Tejun Heo <tj@kernel.org>
-Reported-by: Jan Beulich <JBeulich@novell.com>
-Cc: Andi Kleen <andi@firstfloor.org>
-Cc: Ingo Molnar <mingo@elte.hu>
----
- arch/x86/kernel/setup_percpu.c |   18 +++++++++++++++---
- 1 files changed, 15 insertions(+), 3 deletions(-)
+Upon ack, please pull from the following git tree.
 
-diff --git a/arch/x86/kernel/setup_percpu.c b/arch/x86/kernel/setup_percpu.c
-index 165ebd5..29a3eef 100644
---- a/arch/x86/kernel/setup_percpu.c
-+++ b/arch/x86/kernel/setup_percpu.c
-@@ -163,9 +163,21 @@ static ssize_t __init setup_pcpu_lpage(size_t static_size, bool chosen)
- 	int i, j;
- 	ssize_t ret;
- 
--	/* on non-NUMA, embedding is better */
--	if (!chosen && !pcpu_need_numa())
--		return -EINVAL;
-+	if (!chosen) {
-+		size_t vm_size = VMALLOC_END - VMALLOC_START;
-+		size_t tot_size = num_possible_cpus() * PMD_SIZE;
-+
-+		/* on non-NUMA, embedding is better */
-+		if (!pcpu_need_numa())
-+			return -EINVAL;
-+
-+		/* don't consume more than 20% of vmalloc area */
-+		if (tot_size > vm_size / 5) {
-+			pr_info("PERCPU: too large chunk size %zuMB for "
-+				"large page remap\n", tot_size >> 20);
-+			return -EINVAL;
-+		}
-+	}
- 
- 	/* need PSE */
- 	if (!cpu_has_pse) {
--- 
-1.6.0.2
+  git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git tj-percpu-make-allocators-generic
+
+This patchset generalizes 4k and lpage first chunk allocators and
+makes x86 call these generic helpers.  This will help converting other
+architectures to dynamic percpu and be the basis for further first
+chunk allocator improvements by standardizing how the first chunk is
+allocated.
+
+This patchset contains the following six patches.
+
+ 0001-x86-make-pcpu_chunk_addr_search-matching-stricter.patch
+ 0002-percpu-drop-unit_size-from-embed-first-chunk-alloc.patch
+ 0003-x86-percpu-generalize-4k-first-chunk-allocator.patch
+ 0004-percpu-make-4k-first-chunk-allocator-map-memory.patch
+ 0005-x86-percpu-generalize-lpage-first-chunk-allocator.patch
+ 0006-percpu-simplify-pcpu_setup_first_chunk.patch
+
+0001 and 0002 are cleanups which don't make any functional difference.
+
+0003-0004 generalizes 4k allocator and makes its behavior more uniform
+with other allocators.  0005 generalizes lpage allocator.
+
+As 0004 makes generic alloc/map handling in pcpu_setup_first_chunk()
+unnecessary, 0006 drops it.  This simplification will allow dropping
+pcpu_chunk->page[] by later patchset.
+
+This patchset is on top of
+
+linus-2.6#master (300df7dc89cc276377fc020704e34875d5c473b6)
++ [1] tj-percpu-convert-most-archs, take#3
++ [2] x86-percpu-fix-pageattr, take#4
+
+and contains the following changes.
+
+ arch/x86/include/asm/percpu.h  |    9 
+ arch/x86/kernel/setup_percpu.c |  247 ++--------------------
+ arch/x86/mm/pageattr.c         |    1 
+ include/linux/percpu.h         |   44 +++
+ mm/percpu.c                    |  455 ++++++++++++++++++++++++++++++++---------
+ 5 files changed, 433 insertions(+), 323 deletions(-)
+
+Thanks.
+
+--
+tejun
+
+[1] http://thread.gmane.org/gmane.linux.kernel.cross-arch/3818
+[2] http://thread.gmane.org/gmane.linux.kernel.cross-arch/3825
