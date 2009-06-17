@@ -1,61 +1,184 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 7/9] alpha: kill unnecessary __used attribute in PER_CPU_ATTRIBUTES
-Date: Wed, 17 Jun 2009 12:40:58 +0900
-Message-ID: <1245210060-24344-8-git-send-email-tj@kernel.org>
+Subject: [PATCH 8/9] alpha: switch to dynamic percpu allocator
+Date: Wed, 17 Jun 2009 12:40:59 +0900
+Message-ID: <1245210060-24344-9-git-send-email-tj@kernel.org>
 References: <1245210060-24344-1-git-send-email-tj@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:48447 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:48462 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758514AbZFQDmR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Jun 2009 23:42:17 -0400
+	id S932318AbZFQDmZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Jun 2009 23:42:25 -0400
 In-Reply-To: <1245210060-24344-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, kyle@mcmartin.ca, cl@linux-foundation.org, Jesper.Nilsson@axis.com, benh@kernel.crashing.org
-Cc: Tejun Heo <tj@kernel.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Richard Henderson <rth@twiddle.net>
+Cc: Tejun Heo <tj@kernel.org>, Richard Henderson <rth@twiddle.net>
 
-With the previous percpu variable definition change, all percpu
-variables are global and there's no need to specify __used, which only
-triggers on recent compilers anyway.  Kill it.
+Alpha implements custom SHIFT_PERCPU_PTR for modules because percpu
+area can be located far away from the 4G area where the module text is
+located.  The custom SHIFT_PERCPU_PTR forces GOT usage using ldq
+instruction with literal relocation; however, the relocation can't be
+used with dynamically allocatd percpu variables.  Fortunately, similar
+result can be achieved using weak attribute on percpu variable
+declarations and definitions, which is allowed with previous changes.
 
-[ Impact: remove unnecessary percpu attribute ]
+This patch makes alpha use weak attribute instead and switch to
+dynamic percpu allocator.
+
+asm/tlbflush.h was getting linux/sched.h via asm/percpu.h which no
+longer needs it.  Include linux/sched.h directly in asm/tlbflush.h.
+
+Compile tested.  Generation of litereal relocation verified.
+
+This patch is based on Ivan Kokshaysky's alpha percpu patch.
+
+[ Impact: use dynamic percpu allocator ]
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Acked-by: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
 Cc: Richard Henderson <rth@twiddle.net>
 ---
- arch/alpha/include/asm/percpu.h |    5 -----
- 1 files changed, 0 insertions(+), 5 deletions(-)
+ arch/alpha/Kconfig                |    3 -
+ arch/alpha/include/asm/percpu.h   |   96 ++++---------------------------------
+ arch/alpha/include/asm/tlbflush.h |    1 +
+ 3 files changed, 10 insertions(+), 90 deletions(-)
 
+diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
+index 05d8640..9fb8aae 100644
+--- a/arch/alpha/Kconfig
++++ b/arch/alpha/Kconfig
+@@ -70,9 +70,6 @@ config AUTO_IRQ_AFFINITY
+ 	depends on SMP
+ 	default y
+ 
+-config HAVE_LEGACY_PER_CPU_AREA
+-	def_bool y
+-
+ source "init/Kconfig"
+ source "kernel/Kconfig.freezer"
+ 
 diff --git a/arch/alpha/include/asm/percpu.h b/arch/alpha/include/asm/percpu.h
-index 06c5c7a..7f0a9c4 100644
+index 7f0a9c4..2b0c79c 100644
 --- a/arch/alpha/include/asm/percpu.h
 +++ b/arch/alpha/include/asm/percpu.h
-@@ -30,7 +30,6 @@ extern unsigned long __per_cpu_offset[NR_CPUS];
+@@ -1,97 +1,19 @@
+ #ifndef __ALPHA_PERCPU_H
+ #define __ALPHA_PERCPU_H
  
- #ifndef MODULE
- #define SHIFT_PERCPU_PTR(var, offset) RELOC_HIDE(&per_cpu_var(var), (offset))
--#define PER_CPU_ATTRIBUTES
- #else
- /*
-  * To calculate addresses of locally defined variables, GCC uses 32-bit
-@@ -49,8 +48,6 @@ extern unsigned long __per_cpu_offset[NR_CPUS];
- 		: "=&r"(__ptr), "=&r"(tmp_gp));		\
- 	(typeof(&per_cpu_var(var)))(__ptr + (offset)); })
- 
--#define PER_CPU_ATTRIBUTES	__used
+-#include <linux/compiler.h>
+-#include <linux/threads.h>
+-#include <linux/percpu-defs.h>
 -
- #endif /* MODULE */
- 
  /*
-@@ -71,8 +68,6 @@ extern unsigned long __per_cpu_offset[NR_CPUS];
- #define __get_cpu_var(var)		per_cpu_var(var)
- #define __raw_get_cpu_var(var)		per_cpu_var(var)
+- * Determine the real variable name from the name visible in the
+- * kernel sources.
+- */
+-#define per_cpu_var(var) per_cpu__##var
+-
+-#ifdef CONFIG_SMP
+-
+-/*
+- * per_cpu_offset() is the offset that has to be added to a
+- * percpu variable to get to the instance for a certain processor.
+- */
+-extern unsigned long __per_cpu_offset[NR_CPUS];
+-
+-#define per_cpu_offset(x) (__per_cpu_offset[x])
+-
+-#define __my_cpu_offset per_cpu_offset(raw_smp_processor_id())
+-#ifdef CONFIG_DEBUG_PREEMPT
+-#define my_cpu_offset per_cpu_offset(smp_processor_id())
+-#else
+-#define my_cpu_offset __my_cpu_offset
+-#endif
+-
+-#ifndef MODULE
+-#define SHIFT_PERCPU_PTR(var, offset) RELOC_HIDE(&per_cpu_var(var), (offset))
+-#else
+-/*
+- * To calculate addresses of locally defined variables, GCC uses 32-bit
+- * displacement from the GP. Which doesn't work for per cpu variables in
+- * modules, as an offset to the kernel per cpu area is way above 4G.
++ * To calculate addresses of locally defined variables, GCC uses
++ * 32-bit displacement from the GP. Which doesn't work for per cpu
++ * variables in modules, as an offset to the kernel per cpu area is
++ * way above 4G.
+  *
+- * This forces allocation of a GOT entry for per cpu variable using
+- * ldq instruction with a 'literal' relocation.
+- */
+-#define SHIFT_PERCPU_PTR(var, offset) ({		\
+-	extern int simple_identifier_##var(void);	\
+-	unsigned long __ptr, tmp_gp;			\
+-	asm (  "br	%1, 1f		  	      \n\
+-	1:	ldgp	%1, 0(%1)	    	      \n\
+-		ldq %0, per_cpu__" #var"(%1)\t!literal"		\
+-		: "=&r"(__ptr), "=&r"(tmp_gp));		\
+-	(typeof(&per_cpu_var(var)))(__ptr + (offset)); })
+-
+-#endif /* MODULE */
+-
+-/*
+- * A percpu variable may point to a discarded regions. The following are
+- * established ways to produce a usable pointer from the percpu variable
+- * offset.
++ * Use "weak" attribute to force the compiler to generate external
++ * reference.
+  */
+-#define per_cpu(var, cpu) \
+-	(*SHIFT_PERCPU_PTR(var, per_cpu_offset(cpu)))
+-#define __get_cpu_var(var) \
+-	(*SHIFT_PERCPU_PTR(var, my_cpu_offset))
+-#define __raw_get_cpu_var(var) \
+-	(*SHIFT_PERCPU_PTR(var, __my_cpu_offset))
+-
+-#else /* ! SMP */
+-
+-#define per_cpu(var, cpu)		(*((void)(cpu), &per_cpu_var(var)))
+-#define __get_cpu_var(var)		per_cpu_var(var)
+-#define __raw_get_cpu_var(var)		per_cpu_var(var)
+-
+-#endif /* SMP */
+-
+-#ifdef CONFIG_SMP
+-#define PER_CPU_BASE_SECTION ".data.percpu"
+-#else
+-#define PER_CPU_BASE_SECTION ".data"
+-#endif
+-
+-#ifdef CONFIG_SMP
+-
+-#ifdef MODULE
+-#define PER_CPU_SHARED_ALIGNED_SECTION ""
+-#else
+-#define PER_CPU_SHARED_ALIGNED_SECTION ".shared_aligned"
+-#endif
+-#define PER_CPU_FIRST_SECTION ".first"
+-
+-#else
+-
+-#define PER_CPU_SHARED_ALIGNED_SECTION ""
+-#define PER_CPU_FIRST_SECTION ""
+-
++#if defined(MODULE) && defined(CONFIG_SMP)
++#define PER_CPU_ATTRIBUTES	__attribute__((weak))
+ #endif
  
 -#define PER_CPU_ATTRIBUTES
--
- #endif /* SMP */
++#include <asm-generic/percpu.h>
  
- #ifdef CONFIG_SMP
+ #endif /* __ALPHA_PERCPU_H */
+diff --git a/arch/alpha/include/asm/tlbflush.h b/arch/alpha/include/asm/tlbflush.h
+index 9d87aaa..e89e0c2 100644
+--- a/arch/alpha/include/asm/tlbflush.h
++++ b/arch/alpha/include/asm/tlbflush.h
+@@ -2,6 +2,7 @@
+ #define _ALPHA_TLBFLUSH_H
+ 
+ #include <linux/mm.h>
++#include <linux/sched.h>
+ #include <asm/compiler.h>
+ #include <asm/pgalloc.h>
+ 
 -- 
 1.6.0.2
