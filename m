@@ -1,28 +1,21 @@
-From: Kumar Gala <galak@kernel.crashing.org>
-Subject: Re: Representing Embedded Architectures at the Kernel Summit
-Date: Wed, 17 Jun 2009 09:31:48 -0500
-Message-ID: <BE4622E9-611A-4D56-BB54-3C7786939CF2@kernel.crashing.org>
-References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com>
-Mime-Version: 1.0 (Apple Message framework v935.3)
-Content-Type: text/plain; charset=US-ASCII; format=flowed; delsp=yes
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-embedded-owner@vger.kernel.org>
-In-Reply-To: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com>
-Sender: linux-embedded-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Christoph Lameter <cl@linux-foundation.org>
+Subject: Re: [PATCH 4/9] percpu: cleanup percpu array definitions
+Date: Wed, 17 Jun 2009 12:57:37 -0400 (EDT)
+Message-ID: <alpine.DEB.1.10.0906171257130.1695@gentwo.org>
+References: <1245210060-24344-1-git-send-email-tj@kernel.org> <1245210060-24344-5-git-send-email-tj@kernel.org>
+Mime-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp3.ultrahosting.com ([74.213.175.254]:38691 "EHLO
+	smtp.ultrahosting.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753029AbZFQQ61 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jun 2009 12:58:27 -0400
+In-Reply-To: <1245210060-24344-5-git-send-email-tj@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tejun Heo <tj@kernel.org>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, kyle@mcmartin.ca, Jesper.Nilsson@axis.com, benh@kernel.crashing.org, paulmck@linux.vnet.ibm.com, Tony Luck <tony.luck@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Jeremy Fitzhardinge <jeremy@xensource.com>, linux-mm@kvack.org, "David S. Miller" <davem@davemloft.net>
 
-One topic that was partially touched on was dealing with various  
-memories on embedded systems.  We have several sram based allocators  
-in the kernel for various different arch's:
 
-- Blackfin sram allocator arch/blackfin/mm/sram-alloc.c
-- Lite5200(b) sram allocator arch/powerpc/sysdev/bestcomm/sram.c
-- AVR32 sram allocator arch/avr32/mach-at32ap/at32ap700x.c and arch/ 
-avr32/mach-at32ap/include/mach/sram.h
-- Potential davinci sram allocator
 
-There maybe others.
-
-- k
+Reviewed-by: Christoph Lameter <cl@linux-foundation.org>
