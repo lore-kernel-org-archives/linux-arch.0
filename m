@@ -1,63 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:48447 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:41978 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758514AbZFQDmR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Jun 2009 23:42:17 -0400
+	id S1754682AbZFQEFG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Jun 2009 00:05:06 -0400
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 7/9] alpha: kill unnecessary __used attribute in PER_CPU_ATTRIBUTES
-Date: Wed, 17 Jun 2009 12:40:58 +0900
-Message-ID: <1245210060-24344-8-git-send-email-tj@kernel.org>
-In-Reply-To: <1245210060-24344-1-git-send-email-tj@kernel.org>
-References: <1245210060-24344-1-git-send-email-tj@kernel.org>
+Subject: [GIT PATCH core/percpu] x86,percpu: generalize 4k and lpage allocator
+Date: Wed, 17 Jun 2009 13:04:30 +0900
+Message-ID: <1245211476-27015-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, kyle@mcmartin.ca, cl@linux-foundation.org, Jesper.Nilsson@axis.com, benh@kernel.crashing.org, paulmck@linux.vnet.ibm.com
-Cc: Tejun Heo <tj@kernel.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Richard Henderson <rth@twiddle.net>
-Message-ID: <20090617034058.CSFyAQt7UFtmntNxLbxK3nCZQmodCWzQgj6wuuyFue0@z>
+To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de
+Message-ID: <20090617040430.OrUHbm29D1dAL4DQ4EWdLKnCse8fsKyn3vaISyUSQIk@z>
 
-With the previous percpu variable definition change, all percpu
-variables are global and there's no need to specify __used, which only
-triggers on recent compilers anyway.  Kill it.
 
-[ Impact: remove unnecessary percpu attribute ]
+Hello,
 
-Signed-off-by: Tejun Heo <tj@kernel.org>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Richard Henderson <rth@twiddle.net>
----
- arch/alpha/include/asm/percpu.h |    5 -----
- 1 files changed, 0 insertions(+), 5 deletions(-)
+Upon ack, please pull from the following git tree.
 
-diff --git a/arch/alpha/include/asm/percpu.h b/arch/alpha/include/asm/percpu.h
-index 06c5c7a..7f0a9c4 100644
---- a/arch/alpha/include/asm/percpu.h
-+++ b/arch/alpha/include/asm/percpu.h
-@@ -30,7 +30,6 @@ extern unsigned long __per_cpu_offset[NR_CPUS];
- 
- #ifndef MODULE
- #define SHIFT_PERCPU_PTR(var, offset) RELOC_HIDE(&per_cpu_var(var), (offset))
--#define PER_CPU_ATTRIBUTES
- #else
- /*
-  * To calculate addresses of locally defined variables, GCC uses 32-bit
-@@ -49,8 +48,6 @@ extern unsigned long __per_cpu_offset[NR_CPUS];
- 		: "=&r"(__ptr), "=&r"(tmp_gp));		\
- 	(typeof(&per_cpu_var(var)))(__ptr + (offset)); })
- 
--#define PER_CPU_ATTRIBUTES	__used
--
- #endif /* MODULE */
- 
- /*
-@@ -71,8 +68,6 @@ extern unsigned long __per_cpu_offset[NR_CPUS];
- #define __get_cpu_var(var)		per_cpu_var(var)
- #define __raw_get_cpu_var(var)		per_cpu_var(var)
- 
--#define PER_CPU_ATTRIBUTES
--
- #endif /* SMP */
- 
- #ifdef CONFIG_SMP
--- 
-1.6.0.2
+  git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git tj-percpu-make-allocators-generic
 
+This patchset generalizes 4k and lpage first chunk allocators and
+makes x86 call these generic helpers.  This will help converting other
+architectures to dynamic percpu and be the basis for further first
+chunk allocator improvements by standardizing how the first chunk is
+allocated.
+
+This patchset contains the following six patches.
+
+ 0001-x86-make-pcpu_chunk_addr_search-matching-stricter.patch
+ 0002-percpu-drop-unit_size-from-embed-first-chunk-alloc.patch
+ 0003-x86-percpu-generalize-4k-first-chunk-allocator.patch
+ 0004-percpu-make-4k-first-chunk-allocator-map-memory.patch
+ 0005-x86-percpu-generalize-lpage-first-chunk-allocator.patch
+ 0006-percpu-simplify-pcpu_setup_first_chunk.patch
+
+0001 and 0002 are cleanups which don't make any functional difference.
+
+0003-0004 generalizes 4k allocator and makes its behavior more uniform
+with other allocators.  0005 generalizes lpage allocator.
+
+As 0004 makes generic alloc/map handling in pcpu_setup_first_chunk()
+unnecessary, 0006 drops it.  This simplification will allow dropping
+pcpu_chunk->page[] by later patchset.
+
+This patchset is on top of
+
+linus-2.6#master (300df7dc89cc276377fc020704e34875d5c473b6)
++ [1] tj-percpu-convert-most-archs, take#3
++ [2] x86-percpu-fix-pageattr, take#4
+
+and contains the following changes.
+
+ arch/x86/include/asm/percpu.h  |    9 
+ arch/x86/kernel/setup_percpu.c |  247 ++--------------------
+ arch/x86/mm/pageattr.c         |    1 
+ include/linux/percpu.h         |   44 +++
+ mm/percpu.c                    |  455 ++++++++++++++++++++++++++++++++---------
+ 5 files changed, 433 insertions(+), 323 deletions(-)
+
+Thanks.
+
+--
+tejun
+
+[1] http://thread.gmane.org/gmane.linux.kernel.cross-arch/3818
+[2] http://thread.gmane.org/gmane.linux.kernel.cross-arch/3825
