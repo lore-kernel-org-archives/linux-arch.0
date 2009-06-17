@@ -1,70 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f173.google.com ([209.85.210.173]:63330 "EHLO
-	mail-yx0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754064AbZFPTeu convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jun 2009 15:34:50 -0400
-MIME-Version: 1.0
-In-Reply-To: <20090616181855.GF11893@shareable.org>
-References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com>
-	<4A373EE6.6070201@compulab.co.il> <8bd0f97a0906160106g333eb222idd0d694f452650ff@mail.gmail.com>
-	<fa686aa40906160906i7a05fc77jd1b2b920a1680812@mail.gmail.com>
-	<20090616181855.GF11893@shareable.org>
-From: Grant Likely <grant.likely@secretlab.ca>
-Date: Tue, 16 Jun 2009 13:28:40 -0600
-Message-ID: <fa686aa40906161228o569fa75fp60cdfc450ccbb5ea@mail.gmail.com>
-Subject: Re: Representing Embedded Architectures at the Kernel Summit
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from hera.kernel.org ([140.211.167.34]:57196 "EHLO hera.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752950AbZFQDlc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Jun 2009 23:41:32 -0400
+From: Tejun Heo <tj@kernel.org>
+Subject: [PATCH 3/9] CRIS: Change DEFINE_PER_CPU of current_pgd to be non volatile.
+Date: Wed, 17 Jun 2009 12:40:54 +0900
+Message-ID: <1245210060-24344-4-git-send-email-tj@kernel.org>
+In-Reply-To: <1245210060-24344-1-git-send-email-tj@kernel.org>
+References: <1245210060-24344-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jamie Lokier <jamie@shareable.org>
-Cc: Mike Frysinger <vapier.adi@gmail.com>, Mike Rapoport <mike@compulab.co.il>, James Bottomley <James.Bottomley@hansenpartnership.com>, ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org
-Message-ID: <20090616192840.f2Fz8vequlAdMl8kh9wctDHu9cxqcdAnn3aQN04poUY@z>
+To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, kyle@mcmartin.ca, cl@linux-foundation.org, Jesper.Nilsson@axis.com, benh@kernel.crashing.org, paulmck@linux.vnet.ibm.com
+Cc: Jesper Nilsson <jesper.nilsson@axis.com>, Tejun Heo <tj@kernel.org>
+Message-ID: <20090617034054.KZouIuVM1GFwdV8r5Scwmoy0_16osN7rckRYoY0JfoQ@z>
 
-On Tue, Jun 16, 2009 at 12:18 PM, Jamie Lokier<jamie@shareable.org> wrote:
-> Grant Likely wrote:
->> http://patchwork.ozlabs.org/patch/24152/
->>
->> I never actually pushed through and finished it because it turned out
->> to be a non-issue for Ethernet devices in the end.  However, I can see
->> the value.  With this approach, a driver can use a
->> bus_register_notifier() variant without caring about the device
->> registration order, and the drivers notifier callback will get called
->> at the appropriate time.
->>
->> In your example case I could see the framebuffer driver deferring the
->> final part of its initialization until the needed i2c device shows up.
->
-> It makes drivers more complicated and larger than necessary, though,
-> having to add more functions and register more callbacks.
->
-> Something which lets you specify a dependency in a one-line
-> MODULE_INIT_PREREQS() macro would be much nicer.
+From: Jesper Nilsson <jesper.nilsson@axis.com>
 
-That would work for some cases, but a lot of cases the problem is not
-module init order, but rather driver the probe order.  ie. In the
-Ethernet case I was working on the mac cannot be opened before the
-phy_device is registered.  Or another example is GPIOs.  An GPIO
-driven SPI or MDIO bus cannot be probed before all the devices
-providing the GPIOs are probed (right now GPIOs are 'special' and
-probed early, but this is ugly and there is no reason it couldn't be
-handled within the Linux driver model.
+The DEFINE_PER_CPU of current_pgd was on CRIS defined using volatile,
+which is not needed. Remove volatile.
 
-I could see some form of .probe_prereqs member of a device driver, but
-what form should it take?  Callback?  Data structure?  The field of
-prereqs (or rather figuring out the prereqs) is so large that I don't
-feel confident trying to define something.  A callback is probably the
-most flexible if it could be called after each probe or registration
-event on other devices.  The idea being that if the prereq call fails,
-then it will be tried again later.  Or, thinking further, perhaps
-instead of a .probe_prereq, just have .probe returns -ETRYAGAIN and
-make the driver core put the device on the end of the queue of devices
-to get probed.  This could get ugly in the driver core though.
+Tested on an ARTPEC-3 (CRISv32) board.
 
-Needs more thought....
+[ Impact: code cleanup ]
 
-g.
+Signed-off-by: Jesper Nilsson <jesper.nilsson@axis.com>
+Signed-off-by: Tejun Heo <tj@kernel.org>
+---
+ arch/cris/include/asm/mmu_context.h |    3 ++-
+ arch/cris/mm/fault.c                |    2 +-
+ 2 files changed, 3 insertions(+), 2 deletions(-)
 
+diff --git a/arch/cris/include/asm/mmu_context.h b/arch/cris/include/asm/mmu_context.h
+index 72ba08d..476cd9e 100644
+--- a/arch/cris/include/asm/mmu_context.h
++++ b/arch/cris/include/asm/mmu_context.h
+@@ -17,7 +17,8 @@ extern void switch_mm(struct mm_struct *prev, struct mm_struct *next,
+  * registers like cr3 on the i386
+  */
+ 
+-extern volatile DEFINE_PER_CPU(pgd_t *,current_pgd); /* defined in arch/cris/mm/fault.c */
++/* defined in arch/cris/mm/fault.c */
++extern DEFINE_PER_CPU(pgd_t *, current_pgd);
+ 
+ static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
+ {
+diff --git a/arch/cris/mm/fault.c b/arch/cris/mm/fault.c
+index c4c76db..84d22ae 100644
+--- a/arch/cris/mm/fault.c
++++ b/arch/cris/mm/fault.c
+@@ -29,7 +29,7 @@ extern void die_if_kernel(const char *, struct pt_regs *, long);
+ 
+ /* current active page directory */
+ 
+-volatile DEFINE_PER_CPU(pgd_t *,current_pgd);
++DEFINE_PER_CPU(pgd_t *, current_pgd);
+ unsigned long cris_signal_return_page;
+ 
+ /*
 -- 
-Grant Likely, B.Sc., P.Eng.
-Secret Lab Technologies Ltd.
+1.6.0.2
+
