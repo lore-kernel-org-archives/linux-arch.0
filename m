@@ -1,42 +1,68 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: Representing Embedded Architectures at the Kernel Summit
-Date: Thu, 18 Jun 2009 12:05:19 +0900
-Message-ID: <20090618030519.GC26531@linux-sh.org>
-References: <1243956140.4229.25.camel@mulgrave.int.hansenpartnership.com> <4A373EE6.6070201@compulab.co.il>
+From: Tejun Heo <tj@kernel.org>
+Subject: [UPDATED PATCH 3/9] CRIS: Change DEFINE_PER_CPU of current_pgd to
+ be non volatile.
+Date: Thu, 18 Jun 2009 16:27:05 +0900
+Message-ID: <4A39EC49.6060709@kernel.org>
+References: <1245210060-24344-1-git-send-email-tj@kernel.org> <1245210060-24344-4-git-send-email-tj@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:37197 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752220AbZFRDGJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jun 2009 23:06:09 -0400
-Content-Disposition: inline
-In-Reply-To: <4A373EE6.6070201@compulab.co.il>
+Received: from hera.kernel.org ([140.211.167.34]:50805 "EHLO hera.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755100AbZFRH0P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 18 Jun 2009 03:26:15 -0400
+In-Reply-To: <1245210060-24344-4-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Rapoport <mike@compulab.co.il>
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, ksummit-2009-discuss@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org
+To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, kyle@mcmartin.ca, cl@linux-foundation.org, Jesper.Nilsson@axis.com, benh@kernel.crashing.org
 
-On Tue, Jun 16, 2009 at 09:42:46AM +0300, Mike Rapoport wrote:
-> James Bottomley wrote:
-> > We've got to the point where there are simply too many embedded
-> > architectures to invite all the arch maintainers to the kernel summit.
-> > So, this year, we thought we'd do embedded via topic driven invitations
-> > instead.  So what we're looking for is a proposal to discuss the issues
-> > most affecting embedded architectures, or preview any features affecting
-> > the main kernel which embedded architectures might need ... or any other
-> > topics from embedded architectures which might need discussion or
-> > debate.
-> 
-> Another issue that affects embedded architectures is drivers initialization
-> order. There are a lot of cases when you need the drivers to be initialized in
-> particular order, and current initcalls scheme does not allow fine grained
-> control for it.
-> 
-Look at the early platform device abstraction, this allows specific
-fine-grained control over when certain drivers are initialized, well
-before the driver core is available. On SH this is how we deal with 
-our system timers as clockevents/clocksources while just using regular
-platform devices, and having no other abstraction. You can read more in
-Documentation/driver-model/platform.txt.  For an example,  you can grep
-for earlytimer in arch/sh as well as in drivers/clocksource.
+From: Jesper Nilsson <jesper.nilsson@axis.com>
+Subject: CRIS: Change DEFINE_PER_CPU of current_pgd to be non volatile.
+
+The DEFINE_PER_CPU of current_pgd was on CRIS defined using volatile,
+which is not needed. Remove volatile.
+
+Tested on an ARTPEC-3 (CRISv32) board.
+
+tj: extern DEFINE_PER_CPU() replaced with DECLARE_PER_CPU()
+
+[ Impact: code cleanup ]
+
+Signed-off-by: Jesper Nilsson <jesper.nilsson@axis.com>
+Signed-off-by: Tejun Heo <tj@kernel.org>
+---
+Updated such that extern DEFINE -> DECLARE change is done here not
+later in the series as suggested by Christoph Lameter.
+
+ arch/cris/include/asm/mmu_context.h |    3 ++-
+ arch/cris/mm/fault.c                |    2 +-
+ 2 files changed, 3 insertions(+), 2 deletions(-)
+
+Index: work/arch/cris/include/asm/mmu_context.h
+===================================================================
+--- work.orig/arch/cris/include/asm/mmu_context.h
++++ work/arch/cris/include/asm/mmu_context.h
+@@ -17,7 +17,8 @@ extern void switch_mm(struct mm_struct *
+  * registers like cr3 on the i386
+  */
+ 
+-extern volatile DEFINE_PER_CPU(pgd_t *,current_pgd); /* defined in arch/cris/mm/fault.c */
++/* defined in arch/cris/mm/fault.c */
++DECLARE_PER_CPU(pgd_t *, current_pgd);
+ 
+ static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
+ {
+Index: work/arch/cris/mm/fault.c
+===================================================================
+--- work.orig/arch/cris/mm/fault.c
++++ work/arch/cris/mm/fault.c
+@@ -29,7 +29,7 @@ extern void die_if_kernel(const char *,
+ 
+ /* current active page directory */
+ 
+-volatile DEFINE_PER_CPU(pgd_t *,current_pgd);
++DEFINE_PER_CPU(pgd_t *, current_pgd);
+ unsigned long cris_signal_return_page;
+ 
+ /*
