@@ -1,39 +1,51 @@
-From: "H. Peter Anvin" <hpa@linux.intel.com>
-Subject: Re: RFC: x86: cap iomem_resource to addressable physical memory
-Date: Sun, 21 Jun 2009 00:40:35 -0700
-Message-ID: <4A3DE3F3.4000100@linux.intel.com>
-References: <4A2F0D45.2040602@linux.intel.com> <86802c440906111343g513a2ceau1e2bfdf14c295b2d@mail.gmail.com> <4A316D3C.7080403@linux.intel.com> <20090621064201.GD1656@ucw.cz>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: handle_mm_fault() calling convention cleanup..
+Date: Sun, 21 Jun 2009 13:42:35 -0700 (PDT)
+Message-ID: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([143.182.124.22]:26546 "EHLO
-	azsmga101.ch.intel.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751399AbZFUHkz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 21 Jun 2009 03:40:55 -0400
-In-Reply-To: <20090621064201.GD1656@ucw.cz>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Pavel Machek <pavel@ucw.cz>
-Cc: Yinghai Lu <yhlu.kernel@gmail.com>, Matthew Wilcox <matthew@wil.cx>, Jesse Barnes <jbarnes@virtuousgeek.org>, Martin Mares <mj@ucw.cz>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, David Woodhouse <dwmw2@infradead.org>, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-arch@vger.kernel.org
+Cc: Hugh Dickins <hugh@veritas.com>, Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Wu Fengguang <fengguang.wu@intel.com>, Ingo Molnar <mingo@elte.hu>
+List-Id: linux-arch.vger.kernel.org
 
-Pavel Machek wrote:
-> On Thu 2009-06-11 13:46:52, H. Peter Anvin wrote:
->> Yinghai Lu wrote:
->>> do we need do that on every cpu?
->>>
->>> looks like we could do that in identify_boot_cpu.
->>>
->> What if the CPUs are heterogenous?  It's obviously a suboptimal
->> situation, but it doesn't seem like something we can rely on.
-> 
-> Is it ok if that changes during runtime? What if someone hotplugs
-> heterogenous cpu? I'd say basing it on boot cpu seems simplest.
-> 									Pavel
-> 
 
-If someone hotplugs heterogenous CPUs it should do the right thing if 
-the right thing is possible to do.  If you already have resource 
-assignments that are unfulfillable you're screwed anyway.
+Just a heads up that I committed the patches that I sent out two months 
+ago to make the fault handling routines use the finer-grained fault flags 
+(FAULT_FLAG_xyzzy) rather than passing in a boolean for "write".
 
-	-hpa
+That was originally for the NOPAGE_RETRY patches, but it's a general 
+cleanup too. I have this suspicion that we should extend this to 
+"get_user_pages()" too, instead of having those boolean "write" and 
+"force" flags (and GUP_FLAGS_xyzzy as opposed to FAULT_FLAGS_yyzzy).
+
+We should probably also get rid of the insane FOLL_xyz flags too. Right 
+now the code in fact depends on FOLL_WRITE being the same as 
+FAULT_FLAGS_WRITE, and while that is a simple dependency, it's just crazy 
+how we have all these different flags for what ends up often boiling down 
+to the same fundamental issue in the end (even if not all versions of the 
+flags are necessarily always valid for all uses).
+
+I fixed up all architectures that I noticed (at least microblaze had been 
+added since the original patches in April), but arch maintainers should 
+double-check. Arch maintainers might also want to check whether the 
+mindless conversion of
+
+	'is_write' => 'is_write ? FAULT_FLAGS_WRITE : 0'
+
+might perhaps be written in some more natural way (for example, maybe 
+you'd like to get rid of 'iswrite' as a variable entirely, and replace it 
+with a 'fault_flags' variable).
+
+It's pushed out and tested on x86-64, but it really was such a mindless 
+conversion that I hope it works on all architectures. But I thought I'd 
+better give people a shout-out regardless.
+
+		Linus
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
