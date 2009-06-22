@@ -1,42 +1,248 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: handle_mm_fault() calling convention cleanup..
-Date: Mon, 22 Jun 2009 11:26:09 +0200
-Message-ID: <20090622112609.118f53ae@skybase>
-References: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
+From: Alex Chiang <achiang@hp.com>
+Subject: [PATCH] PCI: remove pcibios_scan_all_fns()
+Date: Mon, 22 Jun 2009 08:08:07 -0600
+Message-ID: <20090622140807.25509.54448.stgit@bob.kio>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate4.de.ibm.com ([195.212.29.153]:36281 "EHLO
-	mtagate4.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753541AbZFVJ0U (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2009 05:26:20 -0400
-Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
-	by mtagate4.de.ibm.com (8.14.3/8.13.8) with ESMTP id n5M9QC9P229976
-	for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2009 09:26:12 GMT
-Received: from d12av02.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
-	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v9.2) with ESMTP id n5M9QBb32887820
-	for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2009 11:26:12 +0200
-Received: from d12av02.megacenter.de.ibm.com (loopback [127.0.0.1])
-	by d12av02.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n5M9QApY018180
-	for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2009 11:26:11 +0200
-In-Reply-To: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
+Received: from g1t0027.austin.hp.com ([15.216.28.34]:36812 "EHLO
+	g1t0027.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751255AbZFVOIM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2009 10:08:12 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, Hugh Dickins <hugh@veritas.com>, Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Wu Fengguang <fengguang.wu@intel.com>, Ingo Molnar <mingo@elte.hu>
+To: jbarnes@virtuousgeek.org
+Cc: linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, Tony Luck <tony.luck@intel.com>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Yoshinori Sato <ysato@users.sourceforge.jp>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Paul Mundt <lethal@linux-sh.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>
 
-On Sun, 21 Jun 2009 13:42:35 -0700 (PDT)
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
+This was #define'd as 0 on all platforms, so let's get rid of it.
 
-> Just a heads up that I committed the patches that I sent out two months 
-> ago to make the fault handling routines use the finer-grained fault flags 
-> (FAULT_FLAG_xyzzy) rather than passing in a boolean for "write".
+This change makes pci_scan_slot() slightly easier to read.
 
-Todays git tree still works on s390.
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Kyle McMartin <kyle@mcmartin.ca>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Alex Chiang <achiang@hp.com>
+---
 
--- 
-blue skies,
-   Martin.
+ arch/alpha/include/asm/pci.h    |    1 -
+ arch/arm/include/asm/pci.h      |    2 --
+ arch/h8300/include/asm/pci.h    |    1 -
+ arch/ia64/include/asm/pci.h     |    3 ---
+ arch/mips/include/asm/pci.h     |    2 --
+ arch/mn10300/include/asm/pci.h  |    2 --
+ arch/parisc/include/asm/pci.h   |    1 -
+ arch/powerpc/include/asm/pci.h  |    1 -
+ arch/sh/include/asm/pci.h       |    1 -
+ arch/sparc/include/asm/pci_32.h |    1 -
+ arch/sparc/include/asm/pci_64.h |    1 -
+ arch/um/include/asm/pci.h       |    1 -
+ arch/x86/include/asm/pci.h      |    1 -
+ drivers/pci/probe.c             |    3 +--
+ include/asm-generic/pci.h       |    2 --
+ 15 files changed, 1 insertions(+), 22 deletions(-)
 
-"Reality continues to ruin my life." - Calvin.
+diff --git a/arch/alpha/include/asm/pci.h b/arch/alpha/include/asm/pci.h
+index d22ace9..dd8dcab 100644
+--- a/arch/alpha/include/asm/pci.h
++++ b/arch/alpha/include/asm/pci.h
+@@ -52,7 +52,6 @@ struct pci_controller {
+    bus numbers.  */
+ 
+ #define pcibios_assign_all_busses()	1
+-#define pcibios_scan_all_fns(a, b)	0
+ 
+ #define PCIBIOS_MIN_IO		alpha_mv.min_io_address
+ #define PCIBIOS_MIN_MEM		alpha_mv.min_mem_address
+diff --git a/arch/arm/include/asm/pci.h b/arch/arm/include/asm/pci.h
+index 0abf386..226cddd 100644
+--- a/arch/arm/include/asm/pci.h
++++ b/arch/arm/include/asm/pci.h
+@@ -6,8 +6,6 @@
+ 
+ #include <mach/hardware.h> /* for PCIBIOS_MIN_* */
+ 
+-#define pcibios_scan_all_fns(a, b)	0
+-
+ #ifdef CONFIG_PCI_HOST_ITE8152
+ /* ITE bridge requires setting latency timer to avoid early bus access
+    termination by PIC bus mater devices
+diff --git a/arch/h8300/include/asm/pci.h b/arch/h8300/include/asm/pci.h
+index 97389b3..cc97620 100644
+--- a/arch/h8300/include/asm/pci.h
++++ b/arch/h8300/include/asm/pci.h
+@@ -8,7 +8,6 @@
+  */
+ 
+ #define pcibios_assign_all_busses()	0
+-#define pcibios_scan_all_fns(a, b)	0
+ 
+ static inline void pcibios_set_master(struct pci_dev *dev)
+ {
+diff --git a/arch/ia64/include/asm/pci.h b/arch/ia64/include/asm/pci.h
+index fcfca56..ceb1db1 100644
+--- a/arch/ia64/include/asm/pci.h
++++ b/arch/ia64/include/asm/pci.h
+@@ -17,7 +17,6 @@
+  * loader.
+  */
+ #define pcibios_assign_all_busses()     0
+-#define pcibios_scan_all_fns(a, b)	0
+ 
+ #define PCIBIOS_MIN_IO		0x1000
+ #define PCIBIOS_MIN_MEM		0x10000000
+@@ -135,8 +134,6 @@ extern void pcibios_resource_to_bus(struct pci_dev *dev,
+ extern void pcibios_bus_to_resource(struct pci_dev *dev,
+ 		struct resource *res, struct pci_bus_region *region);
+ 
+-#define pcibios_scan_all_fns(a, b)	0
+-
+ #define HAVE_ARCH_PCI_GET_LEGACY_IDE_IRQ
+ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
+ {
+diff --git a/arch/mips/include/asm/pci.h b/arch/mips/include/asm/pci.h
+index a68d111..5ebf825 100644
+--- a/arch/mips/include/asm/pci.h
++++ b/arch/mips/include/asm/pci.h
+@@ -65,8 +65,6 @@ extern int pcibios_map_irq(const struct pci_dev *dev, u8 slot, u8 pin);
+ 
+ extern unsigned int pcibios_assign_all_busses(void);
+ 
+-#define pcibios_scan_all_fns(a, b)	0
+-
+ extern unsigned long PCIBIOS_MIN_IO;
+ extern unsigned long PCIBIOS_MIN_MEM;
+ 
+diff --git a/arch/mn10300/include/asm/pci.h b/arch/mn10300/include/asm/pci.h
+index e58b9a4..c001149 100644
+--- a/arch/mn10300/include/asm/pci.h
++++ b/arch/mn10300/include/asm/pci.h
+@@ -106,8 +106,6 @@ extern void pcibios_bus_to_resource(struct pci_dev *dev,
+ 				    struct resource *res,
+ 				    struct pci_bus_region *region);
+ 
+-#define pcibios_scan_all_fns(a, b)	0
+-
+ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
+ {
+ 	return channel ? 15 : 14;
+diff --git a/arch/parisc/include/asm/pci.h b/arch/parisc/include/asm/pci.h
+index 7d842d6..64c7aa5 100644
+--- a/arch/parisc/include/asm/pci.h
++++ b/arch/parisc/include/asm/pci.h
+@@ -233,7 +233,6 @@ static inline void pcibios_register_hba(struct pci_hba_data *x)
+  *   rp7420/8420 boxes and then revisit this issue.
+  */
+ #define pcibios_assign_all_busses()     (1)
+-#define pcibios_scan_all_fns(a, b)	(0)
+ 
+ #define PCIBIOS_MIN_IO          0x10
+ #define PCIBIOS_MIN_MEM         0x1000 /* NBPG - but pci/setup-res.c dies */
+diff --git a/arch/powerpc/include/asm/pci.h b/arch/powerpc/include/asm/pci.h
+index d9483c5..36057c8 100644
+--- a/arch/powerpc/include/asm/pci.h
++++ b/arch/powerpc/include/asm/pci.h
+@@ -40,7 +40,6 @@ struct pci_dev;
+  */
+ #define pcibios_assign_all_busses() \
+ 	(ppc_pci_has_flag(PPC_PCI_REASSIGN_ALL_BUS))
+-#define pcibios_scan_all_fns(a, b)	0
+ 
+ static inline void pcibios_set_master(struct pci_dev *dev)
+ {
+diff --git a/arch/sh/include/asm/pci.h b/arch/sh/include/asm/pci.h
+index d3633f5..4163950 100644
+--- a/arch/sh/include/asm/pci.h
++++ b/arch/sh/include/asm/pci.h
+@@ -10,7 +10,6 @@
+    or architectures with incomplete PCI setup by the loader */
+ 
+ #define pcibios_assign_all_busses()	1
+-#define pcibios_scan_all_fns(a, b)	0
+ 
+ /*
+  * A board can define one or more PCI channels that represent built-in (or
+diff --git a/arch/sparc/include/asm/pci_32.h b/arch/sparc/include/asm/pci_32.h
+index b41c4c1..810d924 100644
+--- a/arch/sparc/include/asm/pci_32.h
++++ b/arch/sparc/include/asm/pci_32.h
+@@ -10,7 +10,6 @@
+  * or architectures with incomplete PCI setup by the loader.
+  */
+ #define pcibios_assign_all_busses()	0
+-#define pcibios_scan_all_fns(a, b)	0
+ 
+ #define PCIBIOS_MIN_IO		0UL
+ #define PCIBIOS_MIN_MEM		0UL
+diff --git a/arch/sparc/include/asm/pci_64.h b/arch/sparc/include/asm/pci_64.h
+index 7a1e356..a329708 100644
+--- a/arch/sparc/include/asm/pci_64.h
++++ b/arch/sparc/include/asm/pci_64.h
+@@ -10,7 +10,6 @@
+  * or architectures with incomplete PCI setup by the loader.
+  */
+ #define pcibios_assign_all_busses()	0
+-#define pcibios_scan_all_fns(a, b)	0
+ 
+ #define PCIBIOS_MIN_IO		0UL
+ #define PCIBIOS_MIN_MEM		0UL
+diff --git a/arch/um/include/asm/pci.h b/arch/um/include/asm/pci.h
+index 5992319..b44cf59 100644
+--- a/arch/um/include/asm/pci.h
++++ b/arch/um/include/asm/pci.h
+@@ -2,6 +2,5 @@
+ #define __UM_PCI_H
+ 
+ #define PCI_DMA_BUS_IS_PHYS     (1)
+-#define pcibios_scan_all_fns(a, b)	0
+ 
+ #endif
+diff --git a/arch/x86/include/asm/pci.h b/arch/x86/include/asm/pci.h
+index b51a1e8..73cd31c 100644
+--- a/arch/x86/include/asm/pci.h
++++ b/arch/x86/include/asm/pci.h
+@@ -48,7 +48,6 @@ extern unsigned int pcibios_assign_all_busses(void);
+ #else
+ #define pcibios_assign_all_busses()	0
+ #endif
+-#define pcibios_scan_all_fns(a, b)	0
+ 
+ extern unsigned long pci_mem_start;
+ #define PCIBIOS_MIN_IO		0x1000
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index f1ae247..b613cad 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -1056,8 +1056,7 @@ int pci_scan_slot(struct pci_bus *bus, int devfn)
+ 	if (dev && !dev->is_added)	/* new device? */
+ 		nr++;
+ 
+-	if ((dev && dev->multifunction) ||
+-	    (!dev && pcibios_scan_all_fns(bus, devfn))) {
++	if (dev && dev->multifunction) {
+ 		for (fn = 1; fn < 8; fn++) {
+ 			dev = pci_scan_single_device(bus, devfn + fn);
+ 			if (dev) {
+diff --git a/include/asm-generic/pci.h b/include/asm-generic/pci.h
+index b4326b5..1a1496f 100644
+--- a/include/asm-generic/pci.h
++++ b/include/asm-generic/pci.h
+@@ -30,8 +30,6 @@ pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
+ 	res->end = region->end;
+ }
+ 
+-#define pcibios_scan_all_fns(a, b)	0
+-
+ #ifndef HAVE_ARCH_PCI_GET_LEGACY_IDE_IRQ
+ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
+ {
