@@ -1,55 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:34156 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752463AbZFVOec (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2009 10:34:32 -0400
-Date: Mon, 22 Jun 2009 08:34:31 -0600
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: [PATCH] PCI: remove pcibios_scan_all_fns()
-Message-ID: <20090622143431.GT19977@parisc-linux.org>
-References: <20090622140807.25509.54448.stgit@bob.kio>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20090622140807.25509.54448.stgit@bob.kio>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:46787 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751497AbZFVO6F (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Jun 2009 10:58:05 -0400
+Subject: Re: handle_mm_fault() calling convention cleanup..
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
+References: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
+Content-Type: text/plain
+Date: Mon, 22 Jun 2009 09:58:01 -0500
+Message-ID: <1245682681.6901.2.camel@mulgrave.site>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Chiang <achiang@hp.com>
-Cc: jbarnes@virtuousgeek.org, linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, Tony Luck <tony.luck@intel.com>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Yoshinori Sato <ysato@users.sourceforge.jp>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Paul Mundt <lethal@linux-sh.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20090622143431.KBEpIla-FbNtIJ5uZR8EfgLPEht8gmpOuHz2PKr_F3I@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Hugh Dickins <hugh@veritas.com>, Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Wu Fengguang <fengguang.wu@intel.com>, Ingo Molnar <mingo@elte.hu>
+Message-ID: <20090622145801.tWWYVtxd340yQ4XcWAgRVJqiUaFv5Hy3NNEE2yRehTQ@z>
 
-On Mon, Jun 22, 2009 at 08:08:07AM -0600, Alex Chiang wrote:
-> This was #define'd as 0 on all platforms, so let's get rid of it.
-> 
-> This change makes pci_scan_slot() slightly easier to read.
+On Sun, 2009-06-21 at 13:42 -0700, Linus Torvalds wrote:
+> I hope it works on all architectures. But I thought I'd 
+> better give people a shout-out regardless.
 
-> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-> index f1ae247..b613cad 100644
-> --- a/drivers/pci/probe.c
-> +++ b/drivers/pci/probe.c
-> @@ -1056,8 +1056,7 @@ int pci_scan_slot(struct pci_bus *bus, int devfn)
->  	if (dev && !dev->is_added)	/* new device? */
->  		nr++;
->  
-> -	if ((dev && dev->multifunction) ||
-> -	    (!dev && pcibios_scan_all_fns(bus, devfn))) {
-> +	if (dev && dev->multifunction) {
->  		for (fn = 1; fn < 8; fn++) {
->  			dev = pci_scan_single_device(bus, devfn + fn);
->  			if (dev) {
+Works on parisc.
 
-What a good idea.  I was just looking at making this more complicated
-(due to the ARI capability).
+James
 
-I'd like to know what the KVM / Xen / ... people think about this.
-I don't know if they rely on function 5 being able to show up out of
-the blue.
 
-Anyway,
-Reviewed-by: Matthew Wilcox <willy@linux.intel.com>
-
--- 
-Matthew Wilcox				Intel Open Source Technology Centre
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
