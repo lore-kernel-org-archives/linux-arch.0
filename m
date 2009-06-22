@@ -1,40 +1,40 @@
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: RFC: x86: cap iomem_resource to addressable physical memory
-Date: Sun, 21 Jun 2009 22:55:34 +0200
-Message-ID: <20090621205534.GA4324@elf.ucw.cz>
-References: <4A2F0D45.2040602@linux.intel.com> <86802c440906111343g513a2ceau1e2bfdf14c295b2d@mail.gmail.com> <4A316D3C.7080403@linux.intel.com> <20090621064201.GD1656@ucw.cz> <4A3DE3F3.4000100@linux.intel.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: handle_mm_fault() calling convention cleanup..
+Date: Sun, 21 Jun 2009 19:20:01 -0700 (PDT)
+Message-ID: <20090621.192001.46889618.davem@davemloft.net>
+References: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-pci-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <4A3DE3F3.4000100@linux.intel.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: "H. Peter Anvin" <hpa@linux.intel.com>
-Cc: Yinghai Lu <yhlu.kernel@gmail.com>, Matthew Wilcox <matthew@wil.cx>, Jesse Barnes <jbarnes@virtuousgeek.org>, Martin Mares <mj@ucw.cz>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, David Woodhouse <dwmw2@infradead.org>, linux-arch@vger.kernel.org
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
+Sender: owner-linux-mm@kvack.org
+To: torvalds@linux-foundation.org
+Cc: linux-arch@vger.kernel.org, hugh@veritas.com, npiggin@suse.de, akpm@linux-foundation.org, linux-mm@kvack.org, fengguang.wu@intel.com, mingo@elte.hu
 List-Id: linux-arch.vger.kernel.org
 
-On Sun 2009-06-21 00:40:35, H. Peter Anvin wrote:
-> Pavel Machek wrote:
->> On Thu 2009-06-11 13:46:52, H. Peter Anvin wrote:
->>> Yinghai Lu wrote:
->>>> do we need do that on every cpu?
->>>>
->>>> looks like we could do that in identify_boot_cpu.
->>>>
->>> What if the CPUs are heterogenous?  It's obviously a suboptimal
->>> situation, but it doesn't seem like something we can rely on.
->>
->> Is it ok if that changes during runtime? What if someone hotplugs
->> heterogenous cpu? I'd say basing it on boot cpu seems simplest.
->
-> If someone hotplugs heterogenous CPUs it should do the right thing if  
-> the right thing is possible to do.  If you already have resource  
-> assignments that are unfulfillable you're screwed anyway.
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Sun, 21 Jun 2009 13:42:35 -0700 (PDT)
 
-Ok... and is there enough locking in there so that it is actually ok
-to change mask during hotplug? (Is it okay because it is single long
-and all the writers are somehow serialized by hotplug mechanism?)
-									Pavel
--- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+> I fixed up all architectures that I noticed (at least microblaze had been 
+> added since the original patches in April), but arch maintainers should 
+> double-check. Arch maintainers might also want to check whether the 
+> mindless conversion of
+> 
+> 	'is_write' => 'is_write ? FAULT_FLAGS_WRITE : 0'
+> 
+> might perhaps be written in some more natural way (for example, maybe 
+> you'd like to get rid of 'iswrite' as a variable entirely, and replace it 
+> with a 'fault_flags' variable).
+> 
+> It's pushed out and tested on x86-64, but it really was such a mindless 
+> conversion that I hope it works on all architectures. But I thought I'd 
+> better give people a shout-out regardless.
+
+Sparc looks good, and sparc64 seems to work fine.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
