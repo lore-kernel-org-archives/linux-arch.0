@@ -1,35 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:12212 "EHLO mga09.intel.com"
+Received: from mx3.mail.elte.hu ([157.181.1.138]:51377 "EHLO mx3.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752374AbZFVHyM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Jun 2009 03:54:12 -0400
-Message-ID: <4A3F38A6.80906@linux.intel.com>
-Date: Mon, 22 Jun 2009 00:54:14 -0700
-From: "H. Peter Anvin" <hpa@linux.intel.com>
+	id S1751169AbZFVIK6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Jun 2009 04:10:58 -0400
+Date: Mon, 22 Jun 2009 10:10:45 +0200
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: handle_mm_fault() calling convention cleanup..
+Message-ID: <20090622081045.GB11041@elte.hu>
+References: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
 MIME-Version: 1.0
-Subject: Re: RFC: x86: cap iomem_resource to addressable physical memory
-References: <4A2F0D45.2040602@linux.intel.com> <86802c440906111343g513a2ceau1e2bfdf14c295b2d@mail.gmail.com> <4A316D3C.7080403@linux.intel.com> <20090621064201.GD1656@ucw.cz> <4A3DE3F3.4000100@linux.intel.com> <20090621205534.GA4324@elf.ucw.cz>
-In-Reply-To: <20090621205534.GA4324@elf.ucw.cz>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Pavel Machek <pavel@ucw.cz>
-Cc: Yinghai Lu <yhlu.kernel@gmail.com>, Matthew Wilcox <matthew@wil.cx>, Jesse Barnes <jbarnes@virtuousgeek.org>, Martin Mares <mj@ucw.cz>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, David Woodhouse <dwmw2@infradead.org>, linux-arch@vger.kernel.org
-Message-ID: <20090622075414.9bI82D-BJtXqGnv8sp41aaZb-xUL5i1iWSy2EliGa_c@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Hugh Dickins <hugh@veritas.com>, Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Wu Fengguang <fengguang.wu@intel.com>
+Message-ID: <20090622081045.E5s8xRMhxQi12jGDADjhAGfu6VQH8B_eBK6CIZAXZ_Q@z>
 
-Pavel Machek wrote:
-> 
-> Ok... and is there enough locking in there so that it is actually ok
-> to change mask during hotplug? (Is it okay because it is single long
-> and all the writers are somehow serialized by hotplug mechanism?)
-> 									Pavel
 
-Making it a locked reference probably would be a good idea (although I 
-personally think it will never actually matter in practice).  Although 
-on 32 bits (PAE) it can be more than one long, it doesn't matter because 
-only the upper long can actually be modified.  It does, however, 
-complicate the actual code somewhat... I'll look at it tomorrow.
+* Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-	-hpa
+> Just a heads up that I committed the patches that I sent out two 
+> months ago to make the fault handling routines use the 
+> finer-grained fault flags (FAULT_FLAG_xyzzy) rather than passing 
+> in a boolean for "write".
 
+All is fine on x86.
+
+	Ingo
