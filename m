@@ -1,23 +1,27 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [PATCH] PCI: remove pcibios_scan_all_fns()
-Date: Mon, 22 Jun 2009 10:21:11 -0400
-Message-ID: <20090622142111.GA20800@bombadil.infradead.org>
-References: <20090622140807.25509.54448.stgit@bob.kio>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:48073 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751857AbZFVOVP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2009 10:21:15 -0400
-Content-Disposition: inline
-In-Reply-To: <20090622140807.25509.54448.stgit@bob.kio>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alex Chiang <achiang@hp.com>
-Cc: jbarnes@virtuousgeek.org, linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, Tony Luck <tony.luck@intel.com>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Yoshinori Sato <ysato@users.sourceforge.jp>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Paul Mundt <lethal@linux-sh.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: handle_mm_fault() calling convention cleanup..
+Date: Mon, 22 Jun 2009 15:22:01 +0100
+Message-ID: <3241.1245680521@redhat.com>
+References: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, Hugh Dickins <hugh@veritas.com>, Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Wu Fengguang <fengguang.wu@intel.com>, Ingo Molnar <mingo@elte.hu>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 22, 2009 at 08:08:07AM -0600, Alex Chiang wrote:
-> Cc: Kyle McMartin <kyle@mcmartin.ca>
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-Acked-by: Kyle McMartin <kyle@mcmartin.ca>
+> It's pushed out and tested on x86-64, but it really was such a mindless 
+> conversion that I hope it works on all architectures. But I thought I'd 
+> better give people a shout-out regardless.
+
+Works on FRV and MN10300.
+
+David
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
