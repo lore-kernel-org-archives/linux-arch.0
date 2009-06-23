@@ -1,73 +1,36 @@
-From: Jeremy Fitzhardinge <jeremy@goop.org>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: [PATCH] PCI: remove pcibios_scan_all_fns()
-Date: Mon, 22 Jun 2009 16:55:37 -0700
-Message-ID: <4A4019F9.4020702@goop.org>
-References: <20090622140807.25509.54448.stgit@bob.kio> <20090622143431.GT19977@parisc-linux.org> <4A3FCB68.3030004@goop.org> <20090622183056.GY19977@parisc-linux.org>
+Date: Tue, 23 Jun 2009 10:33:53 +1000
+Message-ID: <1245717233.4017.21.camel@pasglop>
+References: <20090622140807.25509.54448.stgit@bob.kio>
+	 <20090622143431.GT19977@parisc-linux.org> <4A3FCB68.3030004@goop.org>
+	 <20090622183056.GY19977@parisc-linux.org>  <4A4019F9.4020702@goop.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from claw.goop.org ([74.207.240.146]:60429 "EHLO claw.goop.org"
+Received: from gate.crashing.org ([63.228.1.57]:44744 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751955AbZFVXzm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Jun 2009 19:55:42 -0400
-In-Reply-To: <20090622183056.GY19977@parisc-linux.org>
+	id S1751313AbZFWB3r (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Jun 2009 21:29:47 -0400
+In-Reply-To: <4A4019F9.4020702@goop.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Alex Chiang <achiang@hp.com>, jbarnes@virtuousgeek.org, linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, Tony Luck <tony.luck@intel.com>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Yoshinori Sato <ysato@users.sourceforge.jp>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Paul Mundt <lethal@linux-sh.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>, Avi Kivity <avi@redhat.com>
+To: Jeremy Fitzhardinge <jeremy@goop.org>
+Cc: Matthew Wilcox <matthew@wil.cx>, Alex Chiang <achiang@hp.com>, jbarnes@virtuousgeek.org, linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, Tony Luck <tony.luck@intel.com>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Paul Mundt <lethal@linux-sh.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>, Avi Kivity <avi@redhat.com>
 
-On 06/22/09 11:30, Matthew Wilcox wrote:
-> On Mon, Jun 22, 2009 at 11:20:24AM -0700, Jeremy Fitzhardinge wrote:
->   
->>> I'd like to know what the KVM / Xen / ... people think about this.
->>> I don't know if they rely on function 5 being able to show up out of
->>> the blue.
->>>       
->> We want to be able to export specific functions to a particular domain,
->> so it might see a PCI device with only function 5.
->>
->> It looks like we lose that ability with this patch, is that right?
->>     
->
-> That would be correct.  I'm guessing your out-of-tree code sets
-> pcibios_scan_all_fns()?
->   
+On Mon, 2009-06-22 at 16:55 -0700, Jeremy Fitzhardinge wrote:
+> 
+> I wonder if that would upset drivers.  Assuming they can cope with just
+> being given some functions, how could one generically make a function
+> look present-but-dummy enough to not upset the driver?
 
-Yes.
+Well, the dummy function would have a totally different vid/did, I think
+that would work. In general, while I've seen drivers that -do- need to
+know their real function number to get to the right registers, I haven't
+seen much that also need to see function 0 "right" (or if they do, then
+function 0 just needs to be plugged in the same partition and the whole
+problem is somewhat moot).
 
-> Now, there are various options.  One is that you could remap config
-> space accesses -- domain:bus:dev.fn in the guest don't have to match
-> domain:bus:dev.fn in the host.  That's a certain amount of overhead in
-> every config space access, but it doesn't have to be a large one.
->   
-
-I think the problem with that is that certain devices have fixed
-functions at fixed function numbers, so the drivers just expect the
-function to be there and nowhere else (AFAIK there's no way to do
-discovery on functions).  Now perhaps you'd never export just some
-functions to such devices, but that was the answer when I proposed doing
-this.
-
-And if we did want to do this, would it be acceptible to put config
-space remapping in?  I presume that's something that would have to be in
-the generic pci library?
-
-> Another would be that you could create dummy devices in the guest at
-> function 0, and then the guest would scan all the functions.  A little
-> ugly, perhaps.
->   
-
-I wonder if that would upset drivers.  Assuming they can cope with just
-being given some functions, how could one generically make a function
-look present-but-dummy enough to not upset the driver?
-
-> A third would be for guests to not do this scanning at all.  You could
-> present the devices through something like the openfirmware tree, and
-> create them insteaqd of scanning for them.  If you care about startup
-> time, this is probably the way to go.
->   
-
-I don't think startup time is an overriding concern.
-
-    J
+Cheers,
+Ben.
