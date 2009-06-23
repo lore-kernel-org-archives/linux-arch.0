@@ -1,108 +1,136 @@
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: [PATCH] PCI: remove pcibios_scan_all_fns()
-Date: Tue, 23 Jun 2009 13:08:27 -0600
-Message-ID: <20090623190826.GJ19977@parisc-linux.org>
-References: <20090622140807.25509.54448.stgit@bob.kio> <20090622143431.GT19977@parisc-linux.org> <4A3FCB68.3030004@goop.org> <20090622183056.GY19977@parisc-linux.org> <1245714008.4017.7.camel@pasglop>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [GIT PULL] asm-generic fixes
+Date: Tue, 23 Jun 2009 21:56:45 +0200
+Message-ID: <200906232156.46865.arnd@arndb.de>
+References: <200906231720.38105.arnd@arndb.de> <alpine.LFD.2.01.0906231126460.3240@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:42852 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750845AbZFWTI0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2009 15:08:26 -0400
-Content-Disposition: inline
-In-Reply-To: <1245714008.4017.7.camel@pasglop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Alex Chiang <achiang@hp.com>, jbarnes@virtuousgeek.org, linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, Tony Luck <tony.luck@intel.com>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Paul Mundt <lethal@linux-sh.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>, Avi Kivity <avi@redhat.com>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1756104AbZFWT5o@vger.kernel.org>
+In-Reply-To: <alpine.LFD.2.01.0906231126460.3240@localhost.localdomain>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Paul Mundt <lethal@linux-sh.org>, Magnus Damm <magnus.damm@gmail.com>, Richard Henderson <rth@twiddle.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 23, 2009 at 09:40:08AM +1000, Benjamin Herrenschmidt wrote:
-> On Mon, 2009-06-22 at 12:30 -0600, Matthew Wilcox wrote:
-> > 
-> > That would be correct.  I'm guessing your out-of-tree code sets
-> > pcibios_scan_all_fns()?
-> > 
-> > Now, there are various options.  One is that you could remap config
-> > space accesses -- domain:bus:dev.fn in the guest don't have to match
-> > domain:bus:dev.fn in the host.  That's a certain amount of overhead in
-> > every config space access, but it doesn't have to be a large one.
-> > 
-> That's tricky. Some devices have internal registers that -do- depend on
-> what function they are on. In fact, I remember seeing that in
-> multifunction devices that are meant to be virtualized but still need to
-> have some registers be accessed differently depending on the function
-> (ugh) though don't ask me who that was ...
+On Tuesday 23 June 2009, Linus Torvalds wrote:
+> You might need to make 'result', 'carry', and 'w' be 'unsigned int' too.
 
-That's pretty horrific.  PA-RISC has a NS87415 superio chip that is
-full of that kind of bogosity, but nobody's ever suggested it should
-support v12n.
+Yes, you're right.
 
-> > Another would be that you could create dummy devices in the guest at
-> > function 0, and then the guest would scan all the functions.  A little
-> > ugly, perhaps.
-> 
-> But less ugly than the above.
+> Now, it's possible (even likely) that even with a 64-bit word, we'll never 
+> actually do large enough areas that 'result' would ever have very many 
+> bits set in the 32+ bit region, and since we do end up folding to 16 bits 
+> twice (once after the loop and once at the end), it probably gets things 
+> right in most cases. But I doubt "probably" is strong enough. Somebody 
+> should check.
 
-There's some nastiness when you want to later migrate function 0 into
-the VM, and it looks a little ugly to have a fake func 0 in the VM with
-nothing attached to it.
+I think it would overrun only if we have more than 65536 u32 words of
+0xffffffff in a single IP packet, on a 64 bit machine. A more obvious
+reason to change it is that it relies on from32to16() actually behaving
+like a from47to16() function on 64-bit. Changing it to use unsigned int
+throughout makes it both more obvious and more consistent between
+32 and 64 bit unsigned long types.
 
-> > A third would be for guests to not do this scanning at all.  You could
-> > present the devices through something like the openfirmware tree, and
-> > create them insteaqd of scanning for them.  If you care about startup
-> > time, this is probably the way to go.
-> 
-> Which is what we do on powerpc nowadays. In fact, this code is currently
-> inside arch/powerpc and arch/sparc (2 copies slightly diverged) but I
-> had plans to make it common at move it over to either drivers/of or
-> drivers/pci (most probably the later).
+> Or just see arch/alpha/lib/checksum.c, which does the whole 64-bit case.
+> Maybe lib/checksum.c should be lib/checksum_{32,64}.c.
 
-I'd support a drivers/pci/of.c.  Definitely better than having two copies
-of it under arch/, and you'd be well within your rights to complain if
-we changed something and didn't fix it up.
+Mike Frysinger earlier suggested just making the do_csum function optional
+in this file because this is the one that most architectures would override.
 
-> > There's probably other ways I haven't thought of ...
-> 
-> Well, making up the devices without actual config space probing is nice
-> and fast but I don't think we want to see too many occurences of such
-> code in the kernel. We already had breakage once in powerpc land iirc
-> due to changes in drivers/pci/probe.c that we didn't reflect properly. I
-> think the normal and OF methods should be enough.
+The alpha code is the only 64-bit platform implementing do_csum in C, so
+if Richard wants to use the generic code in its current form, he could simply
+override the do_csum implementation.
 
-Particularly since we have these people creating fake OF trees for
-embedded platforms so we don't have to probe them.  The v12n people
-should definitely take advantage of this work.
+I've now added these two patches:
 
-> At this stage, it does look to me like a trivial tweak like
-> pcibios_scan_all_fns() but maybe done a bit nicely, would still be the
-> simplest solution in term of amount of code involved etc...
-> 
-> Maybe something like
-> 
-> pcibios_get_slot_fn_mask() which returns a bitmask of functions to be
-> scanned, whose default implementation (weak) would basically check
-> the header type for function 0 ? As I said, I don't -need- that right
-> now on powerpc "server" platforms but heh... 
+commit 217a8c7b6af924379a2083439b4bb606f332e7b1
+Author: Arnd Bergmann <arnd@arndb.de>
+Date:   Tue Jun 23 21:37:26 2009 +0200
 
-So we need to tweak this code anyway for Alternate RoutingID Interpretation,
-and what I've ended up doing is creating a bunch of different functions that
-can be called to determine what the next function to probe should be, given
-the current device and function.
+    lib/checksum.c: make do_csum optional
+    
+    Mike Frysinger suggested that do_csum should be optional
+    so that an architecture can use the generic checksum code
+    but still provide an optimized fast-path for the most
+    critical function.
+    
+    This can mean an implementation using inline assembly,
+    or in case of Alpha one using 64-bit arithmetic in C.
+    
+    Cc: Mike Frysinger <vapier@gentoo.org>
+    Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-Take a look: http://marc.info/?l=linux-pci&m=124578246906927&w=2
+diff --git a/lib/checksum.c b/lib/checksum.c
+index 886b48d..b08c2d0 100644
+--- a/lib/checksum.c
++++ b/lib/checksum.c
+@@ -37,6 +37,7 @@
+ 
+ #include <asm/byteorder.h>
+ 
++#ifndef do_csum
+ static inline unsigned short from32to16(unsigned int x)
+ {
+ 	/* add up 16-bit and 16-bit for 16+c bit */
+@@ -102,6 +103,7 @@ static unsigned int do_csum(const unsigned char *buff, int len)
+ out:
+ 	return result;
+ }
++#endif
+ 
+ /*
+  *	This is a version of ip_compute_csum() optimized for IP headers,
 
-It wouldn't be hard to continue supporting pcibios_scan_all_fns() with
-this scheme; it's an extra two lines:
+commit 5cb59758c3e2170b24e9c0d659eb6c03872155c0
+Author: Arnd Bergmann <arnd@arndb.de>
+Date:   Tue Jun 23 21:22:58 2009 +0200
 
-+	else if (pcibios_scan_all_fns())
-+		next_fn = next_trad_fn;
+    lib/checksum.c: use 32-bit arithmetic consistently
+    
+    The use of 'unsigned long' variables in the 32-bit part of do_csum()
+    is confusing at best, and potentially broken for long input on 64-bit
+    machines.
+    
+    This changes the code to use 'unsigned int' instead, which makes
+    the code behave in the same (correct) way on both 32 and 64 bit
+    machines.
+    
+    Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
+    Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-I think simply materialising them, either the way the OF code does,
-or the way the IOV code does is the best route forwards.
-
--- 
-Matthew Wilcox				Intel Open Source Technology Centre
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+diff --git a/lib/checksum.c b/lib/checksum.c
+index b2e2fd4..886b48d 100644
+--- a/lib/checksum.c
++++ b/lib/checksum.c
+@@ -37,7 +37,7 @@
+ 
+ #include <asm/byteorder.h>
+ 
+-static inline unsigned short from32to16(unsigned long x)
++static inline unsigned short from32to16(unsigned int x)
+ {
+ 	/* add up 16-bit and 16-bit for 16+c bit */
+ 	x = (x & 0xffff) + (x >> 16);
+@@ -49,7 +49,7 @@ static inline unsigned short from32to16(unsigned long x)
+ static unsigned int do_csum(const unsigned char *buff, int len)
+ {
+ 	int odd, count;
+-	unsigned long result = 0;
++	unsigned int result = 0;
+ 
+ 	if (len <= 0)
+ 		goto out;
+@@ -73,9 +73,9 @@ static unsigned int do_csum(const unsigned char *buff, int len)
+ 		}
+ 		count >>= 1;		/* nr of 32-bit words.. */
+ 		if (count) {
+-			unsigned long carry = 0;
++			unsigned int carry = 0;
+ 			do {
+-				unsigned long w = *(unsigned int *) buff;
++				unsigned int w = *(unsigned int *) buff;
+ 				count--;
+ 				buff += 4;
+ 				result += carry;
