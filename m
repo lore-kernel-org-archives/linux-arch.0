@@ -1,14 +1,14 @@
 From: liqin.chen@sunplusct.com
-Subject: [GIT PULL] S+core architecture (arch/score/) support files
-Date: Tue, 23 Jun 2009 16:39:42 +0800
-Message-ID: <OF794AB897.C1350D4E-ON482575DE.002F6386-482575DE.00300631@sunplusct.com>
+Subject: S+core architecture (arch/score/) support files
+Date: Tue, 23 Jun 2009 16:37:07 +0800
+Message-ID: <OF318304AE.9C3DA8BC-ON482575DE.002B7553-482575DE.002FC96B@sunplusct.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="US-ASCII"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:36685 "EHLO
-	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751682AbZFWIo7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2009 04:44:59 -0400
+Received: from 219-87-157-179.static.tfn.net.tw ([219.87.157.179]:46413 "EHLO
+	mswedge1.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751497AbZFWJDy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2009 05:03:54 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
