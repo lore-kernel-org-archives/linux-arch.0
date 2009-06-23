@@ -1,55 +1,50 @@
-From: Avi Kivity <avi@redhat.com>
-Subject: Re: [PATCH] PCI: remove pcibios_scan_all_fns()
-Date: Tue, 23 Jun 2009 21:29:40 +0300
-Message-ID: <4A411F14.1080406@redhat.com>
-References: <20090622140807.25509.54448.stgit@bob.kio> <20090622143431.GT19977@parisc-linux.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [GIT PULL] asm-generic fixes
+Date: Tue, 23 Jun 2009 11:33:56 -0700 (PDT)
+Message-ID: <alpine.LFD.2.01.0906231126460.3240@localhost.localdomain>
+References: <200906231720.38105.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:39315 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755370AbZFWSbK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Jun 2009 14:31:10 -0400
-In-Reply-To: <20090622143431.GT19977@parisc-linux.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:36379 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752878AbZFWSea (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Jun 2009 14:34:30 -0400
+In-Reply-To: <200906231720.38105.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Alex Chiang <achiang@hp.com>, jbarnes@virtuousgeek.org, linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, Tony Luck <tony.luck@intel.com>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Yoshinori Sato <ysato@users.sourceforge.jp>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Paul Mundt <lethal@linux-sh.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Paul Mundt <lethal@linux-sh.org>, Magnus Damm <magnus.damm@gmail.com>
 
-On 06/22/2009 05:34 PM, Matthew Wilcox wrote:
->
->> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
->> index f1ae247..b613cad 100644
->> --- a/drivers/pci/probe.c
->> +++ b/drivers/pci/probe.c
->> @@ -1056,8 +1056,7 @@ int pci_scan_slot(struct pci_bus *bus, int devfn)
->>   	if (dev&&  !dev->is_added)	/* new device? */
->>   		nr++;
->>
->> -	if ((dev&&  dev->multifunction) ||
->> -	    (!dev&&  pcibios_scan_all_fns(bus, devfn))) {
->> +	if (dev&&  dev->multifunction) {
->>   		for (fn = 1; fn<  8; fn++) {
->>   			dev = pci_scan_single_device(bus, devfn + fn);
->>   			if (dev) {
->>      
->
-> What a good idea.  I was just looking at making this more complicated
-> (due to the ARI capability).
->
-> I'd like to know what the KVM / Xen / ... people think about this.
-> I don't know if they rely on function 5 being able to show up out of
-> the blue.
->
->    
 
-You mean have a function 5 without a function 0?  This doesn't impact 
-kvm at all.
 
-Moreover, I see pcibios_scan_all_fns() uniformly defined as 0, so this 
-patch doesn't change much, does it?
+On Tue, 23 Jun 2009, Arnd Bergmann wrote:
+> @@ -71,7 +75,7 @@ static unsigned int do_csum(const unsigned char *buff, int len)
+>  		if (count) {
+>  			unsigned long carry = 0;
+>  			do {
+> -				unsigned long w = *(unsigned long *) buff;
+> +				unsigned long w = *(unsigned int *) buff;
+>  				count--;
+>  				buff += 4;
+>  				result += carry;
 
--- 
-I have a truly marvellous patch that fixes the bug which this
-signature is too narrow to contain.
+I don't think this is sufficient.
+
+You might need to make 'result', 'carry', and 'w' be 'unsigned int' too.
+
+Why? Because the final folding is only doen from 32-bit to 16 bit, we 
+don't do the whole 64-bit to 32-bit to 16-bit chain.
+
+Now, it's possible (even likely) that even with a 64-bit word, we'll never 
+actually do large enough areas that 'result' would ever have very many 
+bits set in the 32+ bit region, and since we do end up folding to 16 bits 
+twice (once after the loop and once at the end), it _probably_ gets things 
+right in most cases. But I doubt "probably" is strong enough. Somebody 
+should check.
+
+Or just see arch/alpha/lib/checksum.c, which does the whole 64-bit case.
+Maybe lib/checksum.c should be lib/checksum_{32,64}.c.
+
+		Linus
