@@ -1,33 +1,141 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:33181 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752995AbZFWHSr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Jun 2009 03:18:47 -0400
-Date: Tue, 23 Jun 2009 09:18:48 +0200
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: handle_mm_fault() calling convention cleanup..
-Message-ID: <20090623071848.GC21180@wotan.suse.de>
-References: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
+Received: from moutng.kundenserver.de ([212.227.17.10]:59086 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754167AbZFWUDH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2009 16:03:07 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [GIT PULL] asm-generic fixes
+Date: Tue, 23 Jun 2009 21:56:45 +0200
+References: <200906231720.38105.arnd@arndb.de> <alpine.LFD.2.01.0906231126460.3240@localhost.localdomain>
+In-Reply-To: <alpine.LFD.2.01.0906231126460.3240@localhost.localdomain>
+MIME-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <200906232156.46865.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, Hugh Dickins <hugh@veritas.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Wu Fengguang <fengguang.wu@intel.com>, Ingo Molnar <mingo@elte.hu>
-Message-ID: <20090623071848.fLK8a4KDzlDB-D7ClRKH_uu3w5NDWg74LcDcNuk2ap0@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Paul Mundt <lethal@linux-sh.org>, Magnus Damm <magnus.damm@gmail.com>, Richard Henderson <rth@twiddle.net>
+Message-ID: <20090623195645.5bRGuiawVNZPSUfWCcyx_lQZoCZexuopbNFQBpxuZSo@z>
 
-On Sun, Jun 21, 2009 at 01:42:35PM -0700, Linus Torvalds wrote:
-> 
-> Just a heads up that I committed the patches that I sent out two months 
-> ago to make the fault handling routines use the finer-grained fault flags 
-> (FAULT_FLAG_xyzzy) rather than passing in a boolean for "write".
+On Tuesday 23 June 2009, Linus Torvalds wrote:
+> You might need to make 'result', 'carry', and 'w' be 'unsigned int' too.
 
-While you've got everyone's attention, may I just remind arch
-maintainers to consider using pagefault_out_of_memory() rather
-than unconditional kill current in the pagefault OOM case. See
-x86.
+Yes, you're right.
 
-Thanks,
-Nick
+> Now, it's possible (even likely) that even with a 64-bit word, we'll never 
+> actually do large enough areas that 'result' would ever have very many 
+> bits set in the 32+ bit region, and since we do end up folding to 16 bits 
+> twice (once after the loop and once at the end), it probably gets things 
+> right in most cases. But I doubt "probably" is strong enough. Somebody 
+> should check.
+
+I think it would overrun only if we have more than 65536 u32 words of
+0xffffffff in a single IP packet, on a 64 bit machine. A more obvious
+reason to change it is that it relies on from32to16() actually behaving
+like a from47to16() function on 64-bit. Changing it to use unsigned int
+throughout makes it both more obvious and more consistent between
+32 and 64 bit unsigned long types.
+
+> Or just see arch/alpha/lib/checksum.c, which does the whole 64-bit case.
+> Maybe lib/checksum.c should be lib/checksum_{32,64}.c.
+
+Mike Frysinger earlier suggested just making the do_csum function optional
+in this file because this is the one that most architectures would override.
+
+The alpha code is the only 64-bit platform implementing do_csum in C, so
+if Richard wants to use the generic code in its current form, he could simply
+override the do_csum implementation.
+
+I've now added these two patches:
+
+commit 217a8c7b6af924379a2083439b4bb606f332e7b1
+Author: Arnd Bergmann <arnd@arndb.de>
+Date:   Tue Jun 23 21:37:26 2009 +0200
+
+    lib/checksum.c: make do_csum optional
+    
+    Mike Frysinger suggested that do_csum should be optional
+    so that an architecture can use the generic checksum code
+    but still provide an optimized fast-path for the most
+    critical function.
+    
+    This can mean an implementation using inline assembly,
+    or in case of Alpha one using 64-bit arithmetic in C.
+    
+    Cc: Mike Frysinger <vapier@gentoo.org>
+    Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+
+diff --git a/lib/checksum.c b/lib/checksum.c
+index 886b48d..b08c2d0 100644
+--- a/lib/checksum.c
++++ b/lib/checksum.c
+@@ -37,6 +37,7 @@
+ 
+ #include <asm/byteorder.h>
+ 
++#ifndef do_csum
+ static inline unsigned short from32to16(unsigned int x)
+ {
+ 	/* add up 16-bit and 16-bit for 16+c bit */
+@@ -102,6 +103,7 @@ static unsigned int do_csum(const unsigned char *buff, int len)
+ out:
+ 	return result;
+ }
++#endif
+ 
+ /*
+  *	This is a version of ip_compute_csum() optimized for IP headers,
+
+commit 5cb59758c3e2170b24e9c0d659eb6c03872155c0
+Author: Arnd Bergmann <arnd@arndb.de>
+Date:   Tue Jun 23 21:22:58 2009 +0200
+
+    lib/checksum.c: use 32-bit arithmetic consistently
+    
+    The use of 'unsigned long' variables in the 32-bit part of do_csum()
+    is confusing at best, and potentially broken for long input on 64-bit
+    machines.
+    
+    This changes the code to use 'unsigned int' instead, which makes
+    the code behave in the same (correct) way on both 32 and 64 bit
+    machines.
+    
+    Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
+    Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+
+diff --git a/lib/checksum.c b/lib/checksum.c
+index b2e2fd4..886b48d 100644
+--- a/lib/checksum.c
++++ b/lib/checksum.c
+@@ -37,7 +37,7 @@
+ 
+ #include <asm/byteorder.h>
+ 
+-static inline unsigned short from32to16(unsigned long x)
++static inline unsigned short from32to16(unsigned int x)
+ {
+ 	/* add up 16-bit and 16-bit for 16+c bit */
+ 	x = (x & 0xffff) + (x >> 16);
+@@ -49,7 +49,7 @@ static inline unsigned short from32to16(unsigned long x)
+ static unsigned int do_csum(const unsigned char *buff, int len)
+ {
+ 	int odd, count;
+-	unsigned long result = 0;
++	unsigned int result = 0;
+ 
+ 	if (len <= 0)
+ 		goto out;
+@@ -73,9 +73,9 @@ static unsigned int do_csum(const unsigned char *buff, int len)
+ 		}
+ 		count >>= 1;		/* nr of 32-bit words.. */
+ 		if (count) {
+-			unsigned long carry = 0;
++			unsigned int carry = 0;
+ 			do {
+-				unsigned long w = *(unsigned int *) buff;
++				unsigned int w = *(unsigned int *) buff;
+ 				count--;
+ 				buff += 4;
+ 				result += carry;
