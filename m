@@ -1,37 +1,34 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH] PCI: remove pcibios_scan_all_fns()
-Date: Tue, 23 Jun 2009 12:22:09 +1000
-Message-ID: <1245723729.4017.31.camel@pasglop>
-References: <20090622140807.25509.54448.stgit@bob.kio>
-	 <20090622143431.GT19977@parisc-linux.org>
-	 <20090623014322.GA6729@sequoia.sous-sol.org>
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: handle_mm_fault() calling convention cleanup..
+Date: Tue, 23 Jun 2009 09:18:48 +0200
+Message-ID: <20090623071848.GC21180@wotan.suse.de>
+References: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:54328 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751979AbZFWCXh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Jun 2009 22:23:37 -0400
-In-Reply-To: <20090623014322.GA6729@sequoia.sous-sol.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Wright <chrisw@sous-sol.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, Alex Chiang <achiang@hp.com>, jbarnes@virtuousgeek.org, linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, Tony Luck <tony.luck@intel.com>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Paul Mundt <lethal@linux-sh.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Hugh Dickins <hugh@veritas.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Wu Fengguang <fengguang.wu@intel.com>, Ingo Molnar <mingo@elte.hu>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2009-06-22 at 18:43 -0700, Chris Wright wrote:
-> > I'd like to know what the KVM / Xen / ... people think about this.
-> > I don't know if they rely on function 5 being able to show up out of
-> > the blue.
+On Sun, Jun 21, 2009 at 01:42:35PM -0700, Linus Torvalds wrote:
 > 
-> KVM does not rely on this.  Typically a multi-function device's BDF
-> gets
-> remapped between host and guest (usually becoming a single function,
-> function 0).
+> Just a heads up that I committed the patches that I sent out two months 
+> ago to make the fault handling routines use the finer-grained fault flags 
+> (FAULT_FLAG_xyzzy) rather than passing in a boolean for "write".
 
-I'm surprised you don't hit problems with some devices/drivers here,
-I have distinct memories of seeing such things as drivers who need
-to know their own function number reliably.
+While you've got everyone's attention, may I just remind arch
+maintainers to consider using pagefault_out_of_memory() rather
+than unconditional kill current in the pagefault OOM case. See
+x86.
 
-Cheers,
-Ben.
+Thanks,
+Nick
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
