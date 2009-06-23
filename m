@@ -1,41 +1,36 @@
-From: Andi Kleen <andi@firstfloor.org>
+From: Christoph Hellwig <hch@infradead.org>
 Subject: Re: S+core architecture (arch/score/) support files
-Date: Tue, 23 Jun 2009 16:30:12 +0200
-Message-ID: <20090623143012.GF6760@one.firstfloor.org>
-References: <OF318304AE.9C3DA8BC-ON482575DE.002B7553-482575DE.002FC96B@sunplusct.com> <200906231143.22985.arnd@arndb.de> <87zlbz17fb.fsf@basil.nowhere.org> <200906231555.54887.arnd@arndb.de>
+Date: Tue, 23 Jun 2009 10:50:59 -0400
+Message-ID: <20090623145059.GA6478@infradead.org>
+References: <OF318304AE.9C3DA8BC-ON482575DE.002B7553-482575DE.002FC96B@sunplusct.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:50674 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756285AbZFWOaN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2009 10:30:13 -0400
+Received: from bombadil.infradead.org ([18.85.46.34]:46232 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756654AbZFWOvU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2009 10:51:20 -0400
 Content-Disposition: inline
-In-Reply-To: <200906231555.54887.arnd@arndb.de>
+In-Reply-To: <OF318304AE.9C3DA8BC-ON482575DE.002B7553-482575DE.002FC96B@sunplusct.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andi Kleen <andi@firstfloor.org>, liqin.chen@sunplusct.com, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: liqin.chen@sunplusct.com
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, Jun 23, 2009 at 03:55:54PM +0200, Arnd Bergmann wrote:
-> On Tuesday 23 June 2009, Andi Kleen wrote:
-> > IMHO a full successfull LTP run should be minimal criterium for
-> > merging an architecture. That should catch most of the possible
-> > "simple" mistakes in the syscall ABI. I would suggest to wait to after
-> > this has been done.
+On Tue, Jun 23, 2009 at 04:37:07PM +0800, liqin.chen@sunplusct.com wrote:
+> Hi Linus,
 > 
-> I agree in general, but in this case the ABI is essentially defined
-> through the asm-generic headers, with the exception of the functions
+> This repository contains Linux support for S+core CPU.
+> 
+> Please pull
+> git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git score
+> 
+> Changes in v3:
+> Sending pull request again.
+> 
+> Changes in v2:
+> Christoph Hellwig and Arnd review it.
 
-What I meant LTP would test if what you implemented works. Not that
-you implement a particular ABI, just that the source level interface
-works.
-
-It's not a full test of course, but it's a reasonable sanity check over a wide
-range of interfaces. When I was working on my architecture I found
-it very helpful.
-
--Andi
-
--- 
-ak@linux.intel.com -- Speaking for myself only.
+Still doesn't seem to be quite uptodate in the ptrace area, e.g. not
+using regsets at all.  It would be really helpful if the final ptrace
+code could be ran past Roland McGrath as the ptrace maintainer.
