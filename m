@@ -1,56 +1,58 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: liqin.chen@sunplusct.com
 Subject: Re: S+core architecture (arch/score/) support files
-Date: Tue, 23 Jun 2009 11:43:22 +0200
-Message-ID: <200906231143.22985.arnd@arndb.de>
-References: <OF318304AE.9C3DA8BC-ON482575DE.002B7553-482575DE.002FC96B@sunplusct.com>
+Date: Tue, 23 Jun 2009 18:51:47 +0800
+Message-ID: <OFF803D403.C007681C-ON482575DE.003B06AD-482575DE.003C1D98@sunplusct.com>
+References: <200906231143.22985.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="GB2312"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:64275 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751642AbZFWJnn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2009 05:43:43 -0400
-In-Reply-To: <OF318304AE.9C3DA8BC-ON482575DE.002B7553-482575DE.002FC96B@sunplusct.com>
+Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:49005 "EHLO
+	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753201AbZFWK5E (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2009 06:57:04 -0400
+In-Reply-To: <200906231143.22985.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: liqin.chen@sunplusct.com
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Tuesday 23 June 2009, liqin.chen@sunplusct.com wrote:
-> Hi Linus,
-> 
-> This repository contains Linux support for S+core CPU.
-> 
-> Please pull
-> git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git score
-
-I've helped Liquin getting this into a state for inclusion,
-so I'll share my observations about the submission.
-
-The code looks very clean for a new architecture support, with the
-exception of a few misformatted comments and similar minor issues.
-By using the asm-generic headers that are now in 2.6.31, the amount
-of copy-paste programming was reduced to a minimum, the total amount
-of code added is much less than any other architecture (200kb score,
-290kb h8300, 570kb microblaze are the smallest ones).
-Fixes for any issues noted during review usually came in quickly.
-
-S+core is now the first architecture to use the ABI defined in
-asm-generic, which means it can serve as an example for other
-architectures that want to merge their code in the future.
-
-Unfortunately, I don't think that the score glibc has been fully
-ported to support this, so it also means that the version that is
-being submitted has undergone any run-time testing. I did check
-that it compiles fine but could not do more in lack of hardware
-or even just a user space distro.
-
-Another small negative is that Liquin is still unexperienced with
-the procedures we use in Linux. I've helped out by providing
-my git tree, but am not planning to do that beyond 2.6.31.
-Given that he has also been upstream gcc maintainer for S+core
-for well over 2 years, I believe merging it now will work out well.
-
-	Arnd <><
+QXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4g0LTT2iAyMDA5LTA2LTIzIDE3OjQzOjIyOg0K
+DQo+IE9uIFR1ZXNkYXkgMjMgSnVuZSAyMDA5LCBsaXFpbi5jaGVuQHN1bnBsdXNjdC5jb20gd3Jv
+dGU6DQo+ID4gSGkgTGludXMsDQo+ID4gDQo+ID4gVGhpcyByZXBvc2l0b3J5IGNvbnRhaW5zIExp
+bnV4IHN1cHBvcnQgZm9yIFMrY29yZSBDUFUuDQo+ID4gDQo+ID4gUGxlYXNlIHB1bGwNCj4gPiBn
+aXQ6Ly9naXQua2VybmVsLm9yZy9wdWIvc2NtL2xpbnV4L2tlcm5lbC9naXQvYXJuZC9hc20tZ2Vu
+ZXJpYy5naXQgDQpzY29yZQ0KPiANCj4gSSd2ZSBoZWxwZWQgTGlxdWluIGdldHRpbmcgdGhpcyBp
+bnRvIGEgc3RhdGUgZm9yIGluY2x1c2lvbiwNCj4gc28gSSdsbCBzaGFyZSBteSBvYnNlcnZhdGlv
+bnMgYWJvdXQgdGhlIHN1Ym1pc3Npb24uDQo+IA0KPiBUaGUgY29kZSBsb29rcyB2ZXJ5IGNsZWFu
+IGZvciBhIG5ldyBhcmNoaXRlY3R1cmUgc3VwcG9ydCwgd2l0aCB0aGUNCj4gZXhjZXB0aW9uIG9m
+IGEgZmV3IG1pc2Zvcm1hdHRlZCBjb21tZW50cyBhbmQgc2ltaWxhciBtaW5vciBpc3N1ZXMuDQo+
+IEJ5IHVzaW5nIHRoZSBhc20tZ2VuZXJpYyBoZWFkZXJzIHRoYXQgYXJlIG5vdyBpbiAyLjYuMzEs
+IHRoZSBhbW91bnQNCj4gb2YgY29weS1wYXN0ZSBwcm9ncmFtbWluZyB3YXMgcmVkdWNlZCB0byBh
+IG1pbmltdW0sIHRoZSB0b3RhbCBhbW91bnQNCj4gb2YgY29kZSBhZGRlZCBpcyBtdWNoIGxlc3Mg
+dGhhbiBhbnkgb3RoZXIgYXJjaGl0ZWN0dXJlICgyMDBrYiBzY29yZSwNCj4gMjkwa2IgaDgzMDAs
+IDU3MGtiIG1pY3JvYmxhemUgYXJlIHRoZSBzbWFsbGVzdCBvbmVzKS4NCj4gRml4ZXMgZm9yIGFu
+eSBpc3N1ZXMgbm90ZWQgZHVyaW5nIHJldmlldyB1c3VhbGx5IGNhbWUgaW4gcXVpY2tseS4NCj4g
+DQo+IFMrY29yZSBpcyBub3cgdGhlIGZpcnN0IGFyY2hpdGVjdHVyZSB0byB1c2UgdGhlIEFCSSBk
+ZWZpbmVkIGluDQo+IGFzbS1nZW5lcmljLCB3aGljaCBtZWFucyBpdCBjYW4gc2VydmUgYXMgYW4g
+ZXhhbXBsZSBmb3Igb3RoZXINCj4gYXJjaGl0ZWN0dXJlcyB0aGF0IHdhbnQgdG8gbWVyZ2UgdGhl
+aXIgY29kZSBpbiB0aGUgZnV0dXJlLg0KPiANCj4gVW5mb3J0dW5hdGVseSwgSSBkb24ndCB0aGlu
+ayB0aGF0IHRoZSBzY29yZSBnbGliYyBoYXMgYmVlbiBmdWxseQ0KPiBwb3J0ZWQgdG8gc3VwcG9y
+dCB0aGlzLCBzbyBpdCBhbHNvIG1lYW5zIHRoYXQgdGhlIHZlcnNpb24gdGhhdCBpcw0KPiBiZWlu
+ZyBzdWJtaXR0ZWQgaGFzIHVuZGVyZ29uZSBhbnkgcnVuLXRpbWUgdGVzdGluZy4gSSBkaWQgY2hl
+Y2sNCj4gdGhhdCBpdCBjb21waWxlcyBmaW5lIGJ1dCBjb3VsZCBub3QgZG8gbW9yZSBpbiBsYWNr
+IG9mIGhhcmR3YXJlDQo+IG9yIGV2ZW4ganVzdCBhIHVzZXIgc3BhY2UgZGlzdHJvLg0KPiANCj4g
+QW5vdGhlciBzbWFsbCBuZWdhdGl2ZSBpcyB0aGF0IExpcXVpbiBpcyBzdGlsbCB1bmV4cGVyaWVu
+Y2VkIHdpdGgNCj4gdGhlIHByb2NlZHVyZXMgd2UgdXNlIGluIExpbnV4LiBJJ3ZlIGhlbHBlZCBv
+dXQgYnkgcHJvdmlkaW5nDQo+IG15IGdpdCB0cmVlLCBidXQgYW0gbm90IHBsYW5uaW5nIHRvIGRv
+IHRoYXQgYmV5b25kIDIuNi4zMS4NCj4gR2l2ZW4gdGhhdCBoZSBoYXMgYWxzbyBiZWVuIHVwc3Ry
+ZWFtIGdjYyBtYWludGFpbmVyIGZvciBTK2NvcmUNCj4gZm9yIHdlbGwgb3ZlciAyIHllYXJzLCBJ
+IGJlbGlldmUgbWVyZ2luZyBpdCBub3cgd2lsbCB3b3JrIG91dCB3ZWxsLg0KPiANCg0KVGhhbmtz
+IEFybmQuDQpXaXRoIHRoZSBoZWxwIG9mIEFybmQsIGxpbnV4L3Njb3JlIGNvZGUgYmVjb21lIG1v
+cmUgYW5kIG1vcmUgY2xlYXIuDQoNCkJlZm9yZSB3ZSBjb21taXQgdGhlIGNvZGUgdG8gbGludXgu
+b3JnLCANCkxpbnV4IGhhZCBydW4gb24gc3BjdDY2MDAgc2NvcmUgcGxhdGZvcm0gd2VsbC4gDQpJ
+dCBoYWQgcGFzc2VkIExUUCB0ZXN0IGFuZCBjb3VsZCBydW4gbWFueSBnZW5lcmFsIGFwcGxpY2F0
+aW9ucy4NClMrY29yZSBhcHBsaWNhdGlvbiBkZXBlbmQgb24gZ2xpYmMtMi4zLjYsIHdoaWNoIHN1
+cHBvcnQgc3RhdGljDQphbmQgZHluYW1pYyBhcHBsaWNhdGlvbnMuDQoNCldlIHdpbGwgdXBncmFk
+ZSBnbGliYyB0byBjYXRjaCB1cCB3aXRoIHRoZSBsaW51eC9zY29yZSB1cGRhdGluZy4NCg0KQmVz
+dCBSZWdhcmRzDQpMaXFpbg0KLS0tDQo=
