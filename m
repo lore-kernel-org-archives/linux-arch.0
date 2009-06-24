@@ -1,141 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:59086 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754167AbZFWUDH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2009 16:03:07 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [GIT PULL] asm-generic fixes
-Date: Tue, 23 Jun 2009 21:56:45 +0200
-References: <200906231720.38105.arnd@arndb.de> <alpine.LFD.2.01.0906231126460.3240@localhost.localdomain>
-In-Reply-To: <alpine.LFD.2.01.0906231126460.3240@localhost.localdomain>
-MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-ID: <200906232156.46865.arnd@arndb.de>
+Received: from hera.kernel.org ([140.211.167.34]:57012 "EHLO hera.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752905AbZFXGqE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Jun 2009 02:46:04 -0400
+From: Tejun Heo <tj@kernel.org>
+Subject: [PATCH 03/10] CRIS: Change DEFINE_PER_CPU of current_pgd to be non volatile.
+Date: Wed, 24 Jun 2009 15:45:17 +0900
+Message-ID: <1245825924-30412-4-git-send-email-tj@kernel.org>
+In-Reply-To: <1245825924-30412-1-git-send-email-tj@kernel.org>
+References: <1245825924-30412-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Paul Mundt <lethal@linux-sh.org>, Magnus Damm <magnus.damm@gmail.com>, Richard Henderson <rth@twiddle.net>
-Message-ID: <20090623195645.5bRGuiawVNZPSUfWCcyx_lQZoCZexuopbNFQBpxuZSo@z>
+To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, kyle@mcmartin.ca, cl@linux-foundation.org, Jesper.Nilsson@axis.com, benh@kernel.crashing.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, torvalds@linux-foundation.org, akpm@linux-foundation.org
+Cc: Jesper Nilsson <jesper.nilsson@axis.com>, Tejun Heo <tj@kernel.org>
+Message-ID: <20090624064517.LMKCCl_PIObZHd492TYkAllh9PV0Z5Y9RY3Pc6Lzpb8@z>
 
-On Tuesday 23 June 2009, Linus Torvalds wrote:
-> You might need to make 'result', 'carry', and 'w' be 'unsigned int' too.
+From: Jesper Nilsson <jesper.nilsson@axis.com>
 
-Yes, you're right.
+The DEFINE_PER_CPU of current_pgd was on CRIS defined using volatile,
+which is not needed. Remove volatile.
 
-> Now, it's possible (even likely) that even with a 64-bit word, we'll never 
-> actually do large enough areas that 'result' would ever have very many 
-> bits set in the 32+ bit region, and since we do end up folding to 16 bits 
-> twice (once after the loop and once at the end), it probably gets things 
-> right in most cases. But I doubt "probably" is strong enough. Somebody 
-> should check.
+Tested on an ARTPEC-3 (CRISv32) board.
 
-I think it would overrun only if we have more than 65536 u32 words of
-0xffffffff in a single IP packet, on a 64 bit machine. A more obvious
-reason to change it is that it relies on from32to16() actually behaving
-like a from47to16() function on 64-bit. Changing it to use unsigned int
-throughout makes it both more obvious and more consistent between
-32 and 64 bit unsigned long types.
+tj: extern DEFINE_PER_CPU() replaced with DECLARE_PER_CPU()
 
-> Or just see arch/alpha/lib/checksum.c, which does the whole 64-bit case.
-> Maybe lib/checksum.c should be lib/checksum_{32,64}.c.
+[ Impact: code cleanup ]
 
-Mike Frysinger earlier suggested just making the do_csum function optional
-in this file because this is the one that most architectures would override.
+Signed-off-by: Jesper Nilsson <jesper.nilsson@axis.com>
+Signed-off-by: Tejun Heo <tj@kernel.org>
+---
+ arch/cris/include/asm/mmu_context.h |    3 ++-
+ arch/cris/mm/fault.c                |    2 +-
+ 2 files changed, 3 insertions(+), 2 deletions(-)
 
-The alpha code is the only 64-bit platform implementing do_csum in C, so
-if Richard wants to use the generic code in its current form, he could simply
-override the do_csum implementation.
-
-I've now added these two patches:
-
-commit 217a8c7b6af924379a2083439b4bb606f332e7b1
-Author: Arnd Bergmann <arnd@arndb.de>
-Date:   Tue Jun 23 21:37:26 2009 +0200
-
-    lib/checksum.c: make do_csum optional
-    
-    Mike Frysinger suggested that do_csum should be optional
-    so that an architecture can use the generic checksum code
-    but still provide an optimized fast-path for the most
-    critical function.
-    
-    This can mean an implementation using inline assembly,
-    or in case of Alpha one using 64-bit arithmetic in C.
-    
-    Cc: Mike Frysinger <vapier@gentoo.org>
-    Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-
-diff --git a/lib/checksum.c b/lib/checksum.c
-index 886b48d..b08c2d0 100644
---- a/lib/checksum.c
-+++ b/lib/checksum.c
-@@ -37,6 +37,7 @@
+diff --git a/arch/cris/include/asm/mmu_context.h b/arch/cris/include/asm/mmu_context.h
+index 72ba08d..1d45fd6 100644
+--- a/arch/cris/include/asm/mmu_context.h
++++ b/arch/cris/include/asm/mmu_context.h
+@@ -17,7 +17,8 @@ extern void switch_mm(struct mm_struct *prev, struct mm_struct *next,
+  * registers like cr3 on the i386
+  */
  
- #include <asm/byteorder.h>
+-extern volatile DEFINE_PER_CPU(pgd_t *,current_pgd); /* defined in arch/cris/mm/fault.c */
++/* defined in arch/cris/mm/fault.c */
++DECLARE_PER_CPU(pgd_t *, current_pgd);
  
-+#ifndef do_csum
- static inline unsigned short from32to16(unsigned int x)
+ static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
  {
- 	/* add up 16-bit and 16-bit for 16+c bit */
-@@ -102,6 +103,7 @@ static unsigned int do_csum(const unsigned char *buff, int len)
- out:
- 	return result;
- }
-+#endif
+diff --git a/arch/cris/mm/fault.c b/arch/cris/mm/fault.c
+index f925115..4a7cdd9 100644
+--- a/arch/cris/mm/fault.c
++++ b/arch/cris/mm/fault.c
+@@ -29,7 +29,7 @@ extern void die_if_kernel(const char *, struct pt_regs *, long);
+ 
+ /* current active page directory */
+ 
+-volatile DEFINE_PER_CPU(pgd_t *,current_pgd);
++DEFINE_PER_CPU(pgd_t *, current_pgd);
+ unsigned long cris_signal_return_page;
  
  /*
-  *	This is a version of ip_compute_csum() optimized for IP headers,
+-- 
+1.6.0.2
 
-commit 5cb59758c3e2170b24e9c0d659eb6c03872155c0
-Author: Arnd Bergmann <arnd@arndb.de>
-Date:   Tue Jun 23 21:22:58 2009 +0200
-
-    lib/checksum.c: use 32-bit arithmetic consistently
-    
-    The use of 'unsigned long' variables in the 32-bit part of do_csum()
-    is confusing at best, and potentially broken for long input on 64-bit
-    machines.
-    
-    This changes the code to use 'unsigned int' instead, which makes
-    the code behave in the same (correct) way on both 32 and 64 bit
-    machines.
-    
-    Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
-    Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-
-diff --git a/lib/checksum.c b/lib/checksum.c
-index b2e2fd4..886b48d 100644
---- a/lib/checksum.c
-+++ b/lib/checksum.c
-@@ -37,7 +37,7 @@
- 
- #include <asm/byteorder.h>
- 
--static inline unsigned short from32to16(unsigned long x)
-+static inline unsigned short from32to16(unsigned int x)
- {
- 	/* add up 16-bit and 16-bit for 16+c bit */
- 	x = (x & 0xffff) + (x >> 16);
-@@ -49,7 +49,7 @@ static inline unsigned short from32to16(unsigned long x)
- static unsigned int do_csum(const unsigned char *buff, int len)
- {
- 	int odd, count;
--	unsigned long result = 0;
-+	unsigned int result = 0;
- 
- 	if (len <= 0)
- 		goto out;
-@@ -73,9 +73,9 @@ static unsigned int do_csum(const unsigned char *buff, int len)
- 		}
- 		count >>= 1;		/* nr of 32-bit words.. */
- 		if (count) {
--			unsigned long carry = 0;
-+			unsigned int carry = 0;
- 			do {
--				unsigned long w = *(unsigned int *) buff;
-+				unsigned int w = *(unsigned int *) buff;
- 				count--;
- 				buff += 4;
- 				result += carry;
