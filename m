@@ -1,415 +1,402 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 01/10] percpu: use dynamic percpu allocator as the default percpu allocator
-Date: Wed, 24 Jun 2009 15:45:15 +0900
-Message-ID: <1245825924-30412-2-git-send-email-tj@kernel.org>
+Subject: [PATCH 02/10] linker script: throw away .discard section
+Date: Wed, 24 Jun 2009 15:45:16 +0900
+Message-ID: <1245825924-30412-3-git-send-email-tj@kernel.org>
 References: <1245825924-30412-1-git-send-email-tj@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:57107 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:51699 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754228AbZFXGq2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Jun 2009 02:46:28 -0400
+	id S1751981AbZFXGuz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Jun 2009 02:50:55 -0400
 In-Reply-To: <1245825924-30412-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, kyle@mcmartin.ca, cl@linux-foundation.org, Jesper.Nilsson@axis.com, benh@kernel.crashing.org
-Cc: Tejun Heo <tj@kernel.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <rmk@arm.linux.org.uk>, Mikael Starvik <starvik@axis.com>, Ralf Baechle <ralf@linux-mips.org>, Bryan Wu <cooloney@kernel.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Hirokazu Takata <takata@linux-m32r.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Tejun Heo <tj@kernel.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Richard Henderson <rth@twiddle.net>, Russell King <linux@arm.linux.org.uk>, Haavard Skinnemoen <hskinnemoen@atmel.com>, Bryan Wu <cooloney@kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Tony Luck <tony.luck@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Chris Zankel <chris@zankel.net>
 
-This patch makes most !CONFIG_HAVE_SETUP_PER_CPU_AREA archs use
-dynamic percpu allocator.  The first chunk is allocated using
-embedding helper and 8k is reserved for modules.  This ensures that
-the new allocator behaves almost identically to the original allocator
-as long as static percpu variables are concerned, so it shouldn't
-introduce much breakage.
+x86 throws away .discard section but no other archs do.  Also,
+.discard is not thrown away while linking modules.  Make every arch
+and module linking throw it away.  This will be used to define dummy
+variables for percpu declarations and definitions.
 
-s390 and alpha use custom SHIFT_PERCPU_PTR() to work around addressing
-range limit the addressing model imposes.  Unfortunately, this breaks
-if the address is specified using a variable, so for now, the two
-archs aren't converted.
+This patch is based on Ivan Kokshaysky's alpha percpu patch.
 
-The following architectures are affected by this change.
-
-* sh
-* arm
-* cris
-* mips
-* sparc(32)
-* blackfin
-* avr32
-* parisc (broken, under investigation)
-* m32r
-* powerpc(32)
-
-As this change makes the dynamic allocator the default one,
-CONFIG_HAVE_DYNAMIC_PER_CPU_AREA is replaced with its invert -
-CONFIG_HAVE_LEGACY_PER_CPU_AREA, which is added to yet-to-be converted
-archs.  These archs implement their own setup_per_cpu_areas() and the
-conversion is not trivial.
-
-* powerpc(64)
-* sparc(64)
-* ia64
-* alpha
-* s390
-
-Boot and batch alloc/free tests on x86_32 with debug code (x86_32
-doesn't use default first chunk initialization).  Compile tested on
-sparc(32), powerpc(32), arm and alpha.
-
-Kyle McMartin reported that this change breaks parisc.  The problem is
-still under investigation and he is okay with pushing this patch
-forward and fixing parisc later.
-
-[ Impact: use dynamic allocator for most archs w/o custom percpu setup ]
+[ Impact: always throw away everything in .discard ]
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
-Acked-by: Rusty Russell <rusty@rustcorp.com.au>
-Acked-by: David S. Miller <davem@davemloft.net>
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reviewed-by: Christoph Lameter <cl@linux.com>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Cc: Russell King <rmk@arm.linux.org.uk>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Bryan Wu <cooloney@kernel.org>
-Cc: Kyle McMartin <kyle@mcmartin.ca>
-Cc: Matthew Wilcox <matthew@wil.cx>
-Cc: Grant Grundler <grundler@parisc-linux.org>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: Richard Henderson <rth@twiddle.net>
 Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Haavard Skinnemoen <hskinnemoen@atmel.com>
+Cc: Bryan Wu <cooloney@kernel.org>
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Michal Simek <monstr@monstr.eu>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Kyle McMartin <kyle@mcmartin.ca>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: David S. Miller <davem@davemloft.net>
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Chris Zankel <chris@zankel.net>
+Cc: Rusty Russell <rusty@rustcorp.com.au>
 Cc: Ingo Molnar <mingo@elte.hu>
 ---
- arch/alpha/Kconfig     |    3 +++
- arch/ia64/Kconfig      |    3 +++
- arch/powerpc/Kconfig   |    3 +++
- arch/s390/Kconfig      |    3 +++
- arch/sparc/Kconfig     |    3 +++
- arch/x86/Kconfig       |    3 ---
- include/linux/percpu.h |   12 +++++++++---
- init/main.c            |   24 ------------------------
- kernel/module.c        |    6 +++---
- mm/Makefile            |    2 +-
- mm/allocpercpu.c       |   28 ++++++++++++++++++++++++++++
- mm/percpu.c            |   40 +++++++++++++++++++++++++++++++++++++++-
- 12 files changed, 95 insertions(+), 35 deletions(-)
+ Makefile                             |    2 +-
+ arch/alpha/kernel/vmlinux.lds.S      |    1 +
+ arch/arm/kernel/vmlinux.lds.S        |    1 +
+ arch/avr32/kernel/vmlinux.lds.S      |    1 +
+ arch/blackfin/kernel/vmlinux.lds.S   |    1 +
+ arch/cris/kernel/vmlinux.lds.S       |    1 +
+ arch/frv/kernel/vmlinux.lds.S        |    2 ++
+ arch/h8300/kernel/vmlinux.lds.S      |    1 +
+ arch/ia64/kernel/vmlinux.lds.S       |    1 +
+ arch/m32r/kernel/vmlinux.lds.S       |    1 +
+ arch/m68k/kernel/vmlinux-std.lds     |    1 +
+ arch/m68k/kernel/vmlinux-sun3.lds    |    1 +
+ arch/m68knommu/kernel/vmlinux.lds.S  |    1 +
+ arch/microblaze/kernel/vmlinux.lds.S |    2 ++
+ arch/mips/kernel/vmlinux.lds.S       |    1 +
+ arch/mn10300/kernel/vmlinux.lds.S    |    1 +
+ arch/parisc/kernel/vmlinux.lds.S     |    1 +
+ arch/powerpc/kernel/vmlinux.lds.S    |    1 +
+ arch/s390/kernel/vmlinux.lds.S       |    1 +
+ arch/sh/kernel/vmlinux.lds.S         |    1 +
+ arch/sparc/kernel/vmlinux.lds.S      |    1 +
+ arch/um/kernel/dyn.lds.S             |    2 ++
+ arch/um/kernel/uml.lds.S             |    2 ++
+ arch/xtensa/kernel/vmlinux.lds.S     |    1 +
+ include/asm-generic/vmlinux.lds.h    |    8 ++++++++
+ scripts/module-common.lds            |    8 ++++++++
+ 26 files changed, 44 insertions(+), 1 deletions(-)
+ create mode 100644 scripts/module-common.lds
 
-diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-index 9fb8aae..05d8640 100644
---- a/arch/alpha/Kconfig
-+++ b/arch/alpha/Kconfig
-@@ -70,6 +70,9 @@ config AUTO_IRQ_AFFINITY
- 	depends on SMP
- 	default y
+diff --git a/Makefile b/Makefile
+index 46e1c9d..12245be 100644
+--- a/Makefile
++++ b/Makefile
+@@ -327,7 +327,7 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
+ MODFLAGS	= -DMODULE
+ CFLAGS_MODULE   = $(MODFLAGS)
+ AFLAGS_MODULE   = $(MODFLAGS)
+-LDFLAGS_MODULE  =
++LDFLAGS_MODULE  = -T $(srctree)/scripts/module-common.lds
+ CFLAGS_KERNEL	=
+ AFLAGS_KERNEL	=
+ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
+diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
+index b9d6568..75fe1d6 100644
+--- a/arch/alpha/kernel/vmlinux.lds.S
++++ b/arch/alpha/kernel/vmlinux.lds.S
+@@ -139,6 +139,7 @@ SECTIONS
+ 		EXIT_TEXT
+ 		EXIT_DATA
+ 		*(.exitcall.exit)
++		*(.discard)
+ 	}
  
-+config HAVE_LEGACY_PER_CPU_AREA
-+	def_bool y
+ 	.mdebug 0 : {
+diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
+index 6c07797..e256c57 100644
+--- a/arch/arm/kernel/vmlinux.lds.S
++++ b/arch/arm/kernel/vmlinux.lds.S
+@@ -82,6 +82,7 @@ SECTIONS
+ 		EXIT_TEXT
+ 		EXIT_DATA
+ 		*(.exitcall.exit)
++		*(.discard)
+ 		*(.ARM.exidx.exit.text)
+ 		*(.ARM.extab.exit.text)
+ #ifndef CONFIG_MMU
+diff --git a/arch/avr32/kernel/vmlinux.lds.S b/arch/avr32/kernel/vmlinux.lds.S
+index 7910d41..b832460 100644
+--- a/arch/avr32/kernel/vmlinux.lds.S
++++ b/arch/avr32/kernel/vmlinux.lds.S
+@@ -131,6 +131,7 @@ SECTIONS
+ 	/DISCARD/       	: {
+ 		EXIT_DATA
+ 		*(.exitcall.exit)
++		*(.discard)
+ 	}
+ 
+ 	DWARF_DEBUG
+diff --git a/arch/blackfin/kernel/vmlinux.lds.S b/arch/blackfin/kernel/vmlinux.lds.S
+index 6ac307c..6e8eabd 100644
+--- a/arch/blackfin/kernel/vmlinux.lds.S
++++ b/arch/blackfin/kernel/vmlinux.lds.S
+@@ -280,5 +280,6 @@ SECTIONS
+ 	/DISCARD/ :
+ 	{
+ 		*(.exitcall.exit)
++		*(.discard)
+ 	}
+ }
+diff --git a/arch/cris/kernel/vmlinux.lds.S b/arch/cris/kernel/vmlinux.lds.S
+index 0d2adfc..a3175eb 100644
+--- a/arch/cris/kernel/vmlinux.lds.S
++++ b/arch/cris/kernel/vmlinux.lds.S
+@@ -145,6 +145,7 @@ SECTIONS
+ 		EXIT_TEXT
+ 		EXIT_DATA
+ 		*(.exitcall.exit)
++		*(.discard)
+         }
+ 
+ 	dram_end = dram_start + (CONFIG_ETRAX_DRAM_SIZE - __CONFIG_ETRAX_VMEM_SIZE)*1024*1024;
+diff --git a/arch/frv/kernel/vmlinux.lds.S b/arch/frv/kernel/vmlinux.lds.S
+index 22d9787..64b5a5e 100644
+--- a/arch/frv/kernel/vmlinux.lds.S
++++ b/arch/frv/kernel/vmlinux.lds.S
+@@ -177,6 +177,8 @@ SECTIONS
+   .debug_ranges		0 : { *(.debug_ranges) }
+ 
+   .comment 0 : { *(.comment) }
 +
- source "init/Kconfig"
- source "kernel/Kconfig.freezer"
- 
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 170042b..328d2f8 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -89,6 +89,9 @@ config GENERIC_TIME_VSYSCALL
- 	bool
- 	default y
- 
-+config HAVE_LEGACY_PER_CPU_AREA
-+	def_bool y
-+
- config HAVE_SETUP_PER_CPU_AREA
- 	def_bool y
- 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index bf6cedf..a774c2a 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -46,6 +46,9 @@ config GENERIC_HARDIRQS_NO__DO_IRQ
- 	bool
- 	default y
- 
-+config HAVE_LEGACY_PER_CPU_AREA
-+	def_bool PPC64
-+
- config HAVE_SETUP_PER_CPU_AREA
- 	def_bool PPC64
- 
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index a14dba0..f4a3cc6 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -75,6 +75,9 @@ config VIRT_CPU_ACCOUNTING
- config ARCH_SUPPORTS_DEBUG_PAGEALLOC
- 	def_bool y
- 
-+config HAVE_LEGACY_PER_CPU_AREA
-+	def_bool y
-+
- mainmenu "Linux Kernel Configuration"
- 
- config S390
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index 3f8b6a9..7a8698b 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -92,6 +92,9 @@ config AUDIT_ARCH
- 	bool
- 	default y
- 
-+config HAVE_LEGACY_PER_CPU_AREA
-+	def_bool y if SPARC64
-+
- config HAVE_SETUP_PER_CPU_AREA
- 	def_bool y if SPARC64
- 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index d1430ef..a48a900 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -149,9 +149,6 @@ config ARCH_HAS_CACHE_LINE_SIZE
- config HAVE_SETUP_PER_CPU_AREA
- 	def_bool y
- 
--config HAVE_DYNAMIC_PER_CPU_AREA
--	def_bool y
--
- config HAVE_CPUMASK_OF_CPU_MAP
- 	def_bool X86_64_SMP
- 
-diff --git a/include/linux/percpu.h b/include/linux/percpu.h
-index 26fd9d1..e500034 100644
---- a/include/linux/percpu.h
-+++ b/include/linux/percpu.h
-@@ -34,7 +34,7 @@
- 
- #ifdef CONFIG_SMP
- 
--#ifdef CONFIG_HAVE_DYNAMIC_PER_CPU_AREA
-+#ifndef CONFIG_HAVE_LEGACY_PER_CPU_AREA
- 
- /* minimum unit size, also is the maximum supported allocation size */
- #define PCPU_MIN_UNIT_SIZE		PFN_ALIGN(64 << 10)
-@@ -80,7 +80,7 @@ extern ssize_t __init pcpu_embed_first_chunk(
- 
- extern void *__alloc_reserved_percpu(size_t size, size_t align);
- 
--#else /* CONFIG_HAVE_DYNAMIC_PER_CPU_AREA */
-+#else /* CONFIG_HAVE_LEGACY_PER_CPU_AREA */
- 
- struct percpu_data {
- 	void *ptrs[1];
-@@ -99,11 +99,15 @@ struct percpu_data {
-         (__typeof__(ptr))__p->ptrs[(cpu)];				\
- })
- 
--#endif /* CONFIG_HAVE_DYNAMIC_PER_CPU_AREA */
-+#endif /* CONFIG_HAVE_LEGACY_PER_CPU_AREA */
- 
- extern void *__alloc_percpu(size_t size, size_t align);
- extern void free_percpu(void *__pdata);
- 
-+#ifndef CONFIG_HAVE_SETUP_PER_CPU_AREA
-+extern void __init setup_per_cpu_areas(void);
-+#endif
-+
- #else /* CONFIG_SMP */
- 
- #define per_cpu_ptr(ptr, cpu) ({ (void)(cpu); (ptr); })
-@@ -124,6 +128,8 @@ static inline void free_percpu(void *p)
- 	kfree(p);
++  /DISCARD/ : { *(.discard) }
  }
  
-+static inline void __init setup_per_cpu_areas(void) { }
-+
- #endif /* CONFIG_SMP */
+ __kernel_image_size_no_bss = __bss_start - __kernel_image_start;
+diff --git a/arch/h8300/kernel/vmlinux.lds.S b/arch/h8300/kernel/vmlinux.lds.S
+index 43a87b9..03d6c0d 100644
+--- a/arch/h8300/kernel/vmlinux.lds.S
++++ b/arch/h8300/kernel/vmlinux.lds.S
+@@ -154,6 +154,7 @@ SECTIONS
+ 	}
+ 	/DISCARD/ : {
+ 		*(.exitcall.exit)
++		*(.discard)
+ 	}
+         .romfs :	
+ 	{
+diff --git a/arch/ia64/kernel/vmlinux.lds.S b/arch/ia64/kernel/vmlinux.lds.S
+index 4a95e86..13d9589 100644
+--- a/arch/ia64/kernel/vmlinux.lds.S
++++ b/arch/ia64/kernel/vmlinux.lds.S
+@@ -29,6 +29,7 @@ SECTIONS
+ 	EXIT_TEXT
+ 	EXIT_DATA
+ 	*(.exitcall.exit)
++	*(.discard)
+ 	*(.IA_64.unwind.exit.text)
+ 	*(.IA_64.unwind_info.exit.text)
+ 	}
+diff --git a/arch/m32r/kernel/vmlinux.lds.S b/arch/m32r/kernel/vmlinux.lds.S
+index 4179adf..480a499 100644
+--- a/arch/m32r/kernel/vmlinux.lds.S
++++ b/arch/m32r/kernel/vmlinux.lds.S
+@@ -125,6 +125,7 @@ SECTIONS
+ 	EXIT_TEXT
+ 	EXIT_DATA
+ 	*(.exitcall.exit)
++	*(.discard)
+ 	}
  
- #define alloc_percpu(type)	(type *)__alloc_percpu(sizeof(type), \
-diff --git a/init/main.c b/init/main.c
-index 09131ec..602d724 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -357,7 +357,6 @@ static void __init smp_init(void)
- #define smp_init()	do { } while (0)
+   /* Stabs debugging sections.  */
+diff --git a/arch/m68k/kernel/vmlinux-std.lds b/arch/m68k/kernel/vmlinux-std.lds
+index 01d212b..905a797 100644
+--- a/arch/m68k/kernel/vmlinux-std.lds
++++ b/arch/m68k/kernel/vmlinux-std.lds
+@@ -87,6 +87,7 @@ SECTIONS
+ 	EXIT_TEXT
+ 	EXIT_DATA
+ 	*(.exitcall.exit)
++	*(.discard)
+ 	}
+ 
+   /* Stabs debugging sections.  */
+diff --git a/arch/m68k/kernel/vmlinux-sun3.lds b/arch/m68k/kernel/vmlinux-sun3.lds
+index c192f77..47d04be 100644
+--- a/arch/m68k/kernel/vmlinux-sun3.lds
++++ b/arch/m68k/kernel/vmlinux-sun3.lds
+@@ -82,6 +82,7 @@ __init_begin = .;
+ 	EXIT_TEXT
+ 	EXIT_DATA
+ 	*(.exitcall.exit)
++	*(.discard)
+ 	}
+ 
+   .crap : {
+diff --git a/arch/m68knommu/kernel/vmlinux.lds.S b/arch/m68knommu/kernel/vmlinux.lds.S
+index b7fe505..68111a6 100644
+--- a/arch/m68knommu/kernel/vmlinux.lds.S
++++ b/arch/m68knommu/kernel/vmlinux.lds.S
+@@ -188,6 +188,7 @@ SECTIONS {
+ 		EXIT_TEXT
+ 		EXIT_DATA
+ 		*(.exitcall.exit)
++		*(.discard)
+ 	}
+ 
+ 	.bss : {
+diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
+index d34d38d..a207543 100644
+--- a/arch/microblaze/kernel/vmlinux.lds.S
++++ b/arch/microblaze/kernel/vmlinux.lds.S
+@@ -162,4 +162,6 @@ SECTIONS {
+ 	}
+ 	. = ALIGN(4096);
+ 	_end = .;
++
++	/DISCARD/ : { *(.discard) }
+ }
+diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.S
+index 58738c8..4590160 100644
+--- a/arch/mips/kernel/vmlinux.lds.S
++++ b/arch/mips/kernel/vmlinux.lds.S
+@@ -179,6 +179,7 @@ SECTIONS
+ 	/* Sections to be discarded */
+ 	/DISCARD/ : {
+ 		*(.exitcall.exit)
++		*(.discard)
+ 
+ 		/* ABI crap starts here */
+ 		*(.MIPS.options)
+diff --git a/arch/mn10300/kernel/vmlinux.lds.S b/arch/mn10300/kernel/vmlinux.lds.S
+index 24de6b9..5d9f2f9 100644
+--- a/arch/mn10300/kernel/vmlinux.lds.S
++++ b/arch/mn10300/kernel/vmlinux.lds.S
+@@ -146,6 +146,7 @@ SECTIONS
+   /* Sections to be discarded */
+   /DISCARD/ : {
+ 	*(.exitcall.exit)
++	*(.discard)
+ 	}
+ 
+   STABS_DEBUG
+diff --git a/arch/parisc/kernel/vmlinux.lds.S b/arch/parisc/kernel/vmlinux.lds.S
+index fd2cc4f..ccf5834 100644
+--- a/arch/parisc/kernel/vmlinux.lds.S
++++ b/arch/parisc/kernel/vmlinux.lds.S
+@@ -240,6 +240,7 @@ SECTIONS
+ 	/* Sections to be discarded */
+ 	/DISCARD/ : {
+ 		*(.exitcall.exit)
++		*(.discard)
+ #ifdef CONFIG_64BIT
+ 		/* temporary hack until binutils is fixed to not emit these
+ 	 	 * for static binaries
+diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+index 8ef8a14..7fca935 100644
+--- a/arch/powerpc/kernel/vmlinux.lds.S
++++ b/arch/powerpc/kernel/vmlinux.lds.S
+@@ -40,6 +40,7 @@ SECTIONS
+ 	/* Sections to be discarded. */
+ 	/DISCARD/ : {
+ 	*(.exitcall.exit)
++	*(.discard)
+ 	EXIT_DATA
+ 	}
+ 
+diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
+index a53db23..98867df 100644
+--- a/arch/s390/kernel/vmlinux.lds.S
++++ b/arch/s390/kernel/vmlinux.lds.S
+@@ -161,6 +161,7 @@ SECTIONS
+ 	/DISCARD/ : {
+ 		EXIT_DATA
+ 		*(.exitcall.exit)
++		*(.discard)
+ 	}
+ 
+ 	/* Debugging sections.	*/
+diff --git a/arch/sh/kernel/vmlinux.lds.S b/arch/sh/kernel/vmlinux.lds.S
+index f53c76a..766976d 100644
+--- a/arch/sh/kernel/vmlinux.lds.S
++++ b/arch/sh/kernel/vmlinux.lds.S
+@@ -171,6 +171,7 @@ SECTIONS
+ 	 */
+ 	/DISCARD/ : {
+ 		*(.exitcall.exit)
++		*(.discard)
+ 	}
+ 
+ 	STABS_DEBUG
+diff --git a/arch/sparc/kernel/vmlinux.lds.S b/arch/sparc/kernel/vmlinux.lds.S
+index fcbbd00..d63cf91 100644
+--- a/arch/sparc/kernel/vmlinux.lds.S
++++ b/arch/sparc/kernel/vmlinux.lds.S
+@@ -175,6 +175,7 @@ SECTIONS
+ 		EXIT_TEXT
+ 		EXIT_DATA
+ 		*(.exitcall.exit)
++		*(.discard)
+ 	}
+ 
+ 	STABS_DEBUG
+diff --git a/arch/um/kernel/dyn.lds.S b/arch/um/kernel/dyn.lds.S
+index 9975e1a..2916d6e 100644
+--- a/arch/um/kernel/dyn.lds.S
++++ b/arch/um/kernel/dyn.lds.S
+@@ -156,4 +156,6 @@ SECTIONS
+   STABS_DEBUG
+ 
+   DWARF_DEBUG
++
++  /DISCARD/	: { *(.discard) }
+ }
+diff --git a/arch/um/kernel/uml.lds.S b/arch/um/kernel/uml.lds.S
+index 11b8352..1f8a622 100644
+--- a/arch/um/kernel/uml.lds.S
++++ b/arch/um/kernel/uml.lds.S
+@@ -100,4 +100,6 @@ SECTIONS
+   STABS_DEBUG
+ 
+   DWARF_DEBUG
++
++  /DISCARD/	: { *(.discard) }
+ }
+diff --git a/arch/xtensa/kernel/vmlinux.lds.S b/arch/xtensa/kernel/vmlinux.lds.S
+index 41c159c..b1e2463 100644
+--- a/arch/xtensa/kernel/vmlinux.lds.S
++++ b/arch/xtensa/kernel/vmlinux.lds.S
+@@ -287,6 +287,7 @@ SECTIONS
+ 	EXIT_TEXT
+ 	EXIT_DATA
+         *(.exitcall.exit)
++	*(.discard)
+   }
+ 
+   .xt.lit : { *(.xt.lit) }
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 55413e5..a19120c 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -628,6 +628,14 @@
+ #define INITRAMFS
  #endif
  
--static inline void setup_per_cpu_areas(void) { }
- static inline void setup_nr_cpu_ids(void) { }
- static inline void smp_prepare_cpus(unsigned int maxcpus) { }
- 
-@@ -378,29 +377,6 @@ static void __init setup_nr_cpu_ids(void)
- 	nr_cpu_ids = find_last_bit(cpumask_bits(cpu_possible_mask),NR_CPUS) + 1;
- }
- 
--#ifndef CONFIG_HAVE_SETUP_PER_CPU_AREA
--unsigned long __per_cpu_offset[NR_CPUS] __read_mostly;
--
--EXPORT_SYMBOL(__per_cpu_offset);
--
--static void __init setup_per_cpu_areas(void)
--{
--	unsigned long size, i;
--	char *ptr;
--	unsigned long nr_possible_cpus = num_possible_cpus();
--
--	/* Copy section for each CPU (we discard the original) */
--	size = ALIGN(PERCPU_ENOUGH_ROOM, PAGE_SIZE);
--	ptr = alloc_bootmem_pages(size * nr_possible_cpus);
--
--	for_each_possible_cpu(i) {
--		__per_cpu_offset[i] = ptr - __per_cpu_start;
--		memcpy(ptr, __per_cpu_start, __per_cpu_end - __per_cpu_start);
--		ptr += size;
--	}
--}
--#endif /* CONFIG_HAVE_SETUP_PER_CPU_AREA */
--
- /* Called by boot processor to activate the rest. */
- static void __init smp_init(void)
- {
-diff --git a/kernel/module.c b/kernel/module.c
-index 38928fc..f593495 100644
---- a/kernel/module.c
-+++ b/kernel/module.c
-@@ -364,7 +364,7 @@ EXPORT_SYMBOL_GPL(find_module);
- 
- #ifdef CONFIG_SMP
- 
--#ifdef CONFIG_HAVE_DYNAMIC_PER_CPU_AREA
-+#ifndef CONFIG_HAVE_LEGACY_PER_CPU_AREA
- 
- static void *percpu_modalloc(unsigned long size, unsigned long align,
- 			     const char *name)
-@@ -389,7 +389,7 @@ static void percpu_modfree(void *freeme)
- 	free_percpu(freeme);
- }
- 
--#else /* ... !CONFIG_HAVE_DYNAMIC_PER_CPU_AREA */
-+#else /* ... CONFIG_HAVE_LEGACY_PER_CPU_AREA */
- 
- /* Number of blocks used and allocated. */
- static unsigned int pcpu_num_used, pcpu_num_allocated;
-@@ -535,7 +535,7 @@ static int percpu_modinit(void)
- }
- __initcall(percpu_modinit);
- 
--#endif /* CONFIG_HAVE_DYNAMIC_PER_CPU_AREA */
-+#endif /* CONFIG_HAVE_LEGACY_PER_CPU_AREA */
- 
- static unsigned int find_pcpusec(Elf_Ehdr *hdr,
- 				 Elf_Shdr *sechdrs,
-diff --git a/mm/Makefile b/mm/Makefile
-index 5e0bd64..c77c648 100644
---- a/mm/Makefile
-+++ b/mm/Makefile
-@@ -33,7 +33,7 @@ obj-$(CONFIG_FAILSLAB) += failslab.o
- obj-$(CONFIG_MEMORY_HOTPLUG) += memory_hotplug.o
- obj-$(CONFIG_FS_XIP) += filemap_xip.o
- obj-$(CONFIG_MIGRATION) += migrate.o
--ifdef CONFIG_HAVE_DYNAMIC_PER_CPU_AREA
-+ifndef CONFIG_HAVE_LEGACY_PER_CPU_AREA
- obj-$(CONFIG_SMP) += percpu.o
- else
- obj-$(CONFIG_SMP) += allocpercpu.o
-diff --git a/mm/allocpercpu.c b/mm/allocpercpu.c
-index dfdee6a..df34cea 100644
---- a/mm/allocpercpu.c
-+++ b/mm/allocpercpu.c
-@@ -5,6 +5,8 @@
-  */
- #include <linux/mm.h>
- #include <linux/module.h>
-+#include <linux/bootmem.h>
-+#include <asm/sections.h>
- 
- #ifndef cache_line_size
- #define cache_line_size()	L1_CACHE_BYTES
-@@ -147,3 +149,29 @@ void free_percpu(void *__pdata)
- 	kfree(__percpu_disguise(__pdata));
- }
- EXPORT_SYMBOL_GPL(free_percpu);
-+
-+/*
-+ * Generic percpu area setup.
-+ */
-+#ifndef CONFIG_HAVE_SETUP_PER_CPU_AREA
-+unsigned long __per_cpu_offset[NR_CPUS] __read_mostly;
-+
-+EXPORT_SYMBOL(__per_cpu_offset);
-+
-+void __init setup_per_cpu_areas(void)
-+{
-+	unsigned long size, i;
-+	char *ptr;
-+	unsigned long nr_possible_cpus = num_possible_cpus();
-+
-+	/* Copy section for each CPU (we discard the original) */
-+	size = ALIGN(PERCPU_ENOUGH_ROOM, PAGE_SIZE);
-+	ptr = alloc_bootmem_pages(size * nr_possible_cpus);
-+
-+	for_each_possible_cpu(i) {
-+		__per_cpu_offset[i] = ptr - __per_cpu_start;
-+		memcpy(ptr, __per_cpu_start, __per_cpu_end - __per_cpu_start);
-+		ptr += size;
++#define DISCARDS							\
++	/DISCARD/ : {							\
++	EXIT_TEXT							\
++	EXIT_DATA							\
++	*(.exitcall.exit)						\
++	*(.discard)							\
 +	}
-+}
-+#endif /* CONFIG_HAVE_SETUP_PER_CPU_AREA */
-diff --git a/mm/percpu.c b/mm/percpu.c
-index b70f2ac..b149845 100644
---- a/mm/percpu.c
-+++ b/mm/percpu.c
-@@ -43,7 +43,7 @@
-  *
-  * To use this allocator, arch code should do the followings.
-  *
-- * - define CONFIG_HAVE_DYNAMIC_PER_CPU_AREA
-+ * - drop CONFIG_HAVE_LEGACY_PER_CPU_AREA
-  *
-  * - define __addr_to_pcpu_ptr() and __pcpu_ptr_to_addr() to translate
-  *   regular address to percpu pointer and back if they need to be
-@@ -1275,3 +1275,41 @@ ssize_t __init pcpu_embed_first_chunk(size_t static_size, size_t reserved_size,
- 				      reserved_size, dyn_size,
- 				      pcpue_unit_size, pcpue_ptr, NULL);
- }
 +
+ /**
+  * PERCPU_VADDR - define output section for percpu area
+  * @vaddr: explicit base address (optional)
+diff --git a/scripts/module-common.lds b/scripts/module-common.lds
+new file mode 100644
+index 0000000..47a1f9a
+--- /dev/null
++++ b/scripts/module-common.lds
+@@ -0,0 +1,8 @@
 +/*
-+ * Generic percpu area setup.
-+ *
-+ * The embedding helper is used because its behavior closely resembles
-+ * the original non-dynamic generic percpu area setup.  This is
-+ * important because many archs have addressing restrictions and might
-+ * fail if the percpu area is located far away from the previous
-+ * location.  As an added bonus, in non-NUMA cases, embedding is
-+ * generally a good idea TLB-wise because percpu area can piggy back
-+ * on the physical linear memory mapping which uses large page
-+ * mappings on applicable archs.
++ * Common module linker script, always used when linking a module.
++ * Archs are free to supply their own linker scripts.  ld will
++ * combine them automatically.
 + */
-+#ifndef CONFIG_HAVE_SETUP_PER_CPU_AREA
-+unsigned long __per_cpu_offset[NR_CPUS] __read_mostly;
-+EXPORT_SYMBOL(__per_cpu_offset);
-+
-+void __init setup_per_cpu_areas(void)
-+{
-+	size_t static_size = __per_cpu_end - __per_cpu_start;
-+	ssize_t unit_size;
-+	unsigned long delta;
-+	unsigned int cpu;
-+
-+	/*
-+	 * Always reserve area for module percpu variables.  That's
-+	 * what the legacy allocator did.
-+	 */
-+	unit_size = pcpu_embed_first_chunk(static_size, PERCPU_MODULE_RESERVE,
-+					   PERCPU_DYNAMIC_RESERVE, -1);
-+	if (unit_size < 0)
-+		panic("Failed to initialized percpu areas.");
-+
-+	delta = (unsigned long)pcpu_base_addr - (unsigned long)__per_cpu_start;
-+	for_each_possible_cpu(cpu)
-+		__per_cpu_offset[cpu] = delta + cpu * unit_size;
++SECTIONS {
++	/DISCARD/ : { *(.discard) }
 +}
-+#endif /* CONFIG_HAVE_SETUP_PER_CPU_AREA */
 -- 
 1.6.0.2
