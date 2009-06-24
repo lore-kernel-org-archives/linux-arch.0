@@ -1,82 +1,180 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:50444 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:50492 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751301AbZFXNan (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Jun 2009 09:30:43 -0400
+	id S1757536AbZFXNaz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Jun 2009 09:30:55 -0400
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCHSET] percpu: generalize first chunk allocators and improve lpage NUMA support
-Date: Wed, 24 Jun 2009 22:30:06 +0900
-Message-ID: <1245850216-31653-1-git-send-email-tj@kernel.org>
+Subject: [PATCH 04/10] percpu: make 4k first chunk allocator map memory
+Date: Wed, 24 Jun 2009 22:30:10 +0900
+Message-ID: <1245850216-31653-5-git-send-email-tj@kernel.org>
+In-Reply-To: <1245850216-31653-1-git-send-email-tj@kernel.org>
+References: <1245850216-31653-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de, cl@linux-foundation.org, akpm@linux-foundation.org
-Message-ID: <20090624133006.h3xU9JyQv2z5E538dCWwB9fv1Gc7QWx6lC_MN9m5g7Q@z>
+Cc: Tejun Heo <tj@kernel.org>
+Message-ID: <20090624133010.4chSQIyurW2TUaOtU8PLepiBrgOGrJcOSGQ5Imj_oxY@z>
 
-Hello,
+At first, percpu first chunk was always setup page-by-page by the
+generic code.  To add other allocators, different parts of the generic
+initialization was made optional.  Now we have three allocators -
+embed, remap and 4k.  embed and remap fully handle allocation and
+mapping of the first chunk while 4k still depends on generic code for
+those.  This makes the generic alloc/map paths specifci to 4k and
+makes the code unnecessary complicated with optional generic
+behaviors.
 
-This patchset is combination of the following two patchsets.
+This patch makes the 4k allocator to allocate and map memory directly
+instead of depending on the generic code.  The only outside visible
+change is that now dynamic area in the first chunk is allocated
+up-front instead of on-demand.  This doesn't make any meaningful
+difference as the area is minimal (usually less than a page, just
+enough to fill the alignment) on 4k allocator.  Plus, dynamic area in
+the first chunk usually gets fully used anyway.
 
-[1] x86,percpu: generalize 4k and lpage allocator
-[2] percpu: teach lpage allocator about NUMA
+This will allow simplification of pcpu_setpu_first_chunk() and removal
+of chunk->page array.
 
-Changes from the last postings are
+[ Impact: no outside visible change other than up-front allocation of dyn area ]
 
-* updated to be on top of the current percpu#for-next(bf4bb2b1)
+Signed-off-by: Tejun Heo <tj@kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+---
+ mm/percpu.c |   71 ++++++++++++++++++++++++++++++++++++++++++++--------------
+ 1 files changed, 54 insertions(+), 17 deletions(-)
 
-* sparc64 was converted to dynamic percpu allocator and using
-  pcpu_setup_first_chunk() which is changed by this patchset.  sparc64
-  updated accordingly.
+diff --git a/mm/percpu.c b/mm/percpu.c
+index 39f4022..c173763 100644
+--- a/mm/percpu.c
++++ b/mm/percpu.c
+@@ -632,6 +632,13 @@ static void pcpu_depopulate_chunk(struct pcpu_chunk *chunk, int off, int size,
+ 		pcpu_unmap(chunk, unmap_start, unmap_end, flush);
+ }
+ 
++static int __pcpu_map_pages(unsigned long addr, struct page **pages,
++			    int nr_pages)
++{
++	return map_kernel_range_noflush(addr, nr_pages << PAGE_SHIFT,
++					PAGE_KERNEL, pages);
++}
++
+ /**
+  * pcpu_map - map pages into a pcpu_chunk
+  * @chunk: chunk of interest
+@@ -651,11 +658,9 @@ static int pcpu_map(struct pcpu_chunk *chunk, int page_start, int page_end)
+ 	WARN_ON(chunk->immutable);
+ 
+ 	for_each_possible_cpu(cpu) {
+-		err = map_kernel_range_noflush(
+-				pcpu_chunk_addr(chunk, cpu, page_start),
+-				(page_end - page_start) << PAGE_SHIFT,
+-				PAGE_KERNEL,
+-				pcpu_chunk_pagep(chunk, cpu, page_start));
++		err = __pcpu_map_pages(pcpu_chunk_addr(chunk, cpu, page_start),
++				       pcpu_chunk_pagep(chunk, cpu, page_start),
++				       page_end - page_start);
+ 		if (err < 0)
+ 			return err;
+ 	}
+@@ -1274,12 +1279,12 @@ ssize_t __init pcpu_embed_first_chunk(size_t static_size, size_t reserved_size,
+  * 4k page first chunk setup helper.
+  */
+ static struct page **pcpu4k_pages __initdata;
+-static int pcpu4k_nr_static_pages __initdata;
++static int pcpu4k_unit_pages __initdata;
+ 
+ static struct page * __init pcpu4k_get_page(unsigned int cpu, int pageno)
+ {
+-	if (pageno < pcpu4k_nr_static_pages)
+-		return pcpu4k_pages[cpu * pcpu4k_nr_static_pages + pageno];
++	if (pageno < pcpu4k_unit_pages)
++		return pcpu4k_pages[cpu * pcpu4k_unit_pages + pageno];
+ 	return NULL;
+ }
+ 
+@@ -1306,22 +1311,24 @@ ssize_t __init pcpu_4k_first_chunk(size_t static_size, size_t reserved_size,
+ 				   pcpu_fc_free_fn_t free_fn,
+ 				   pcpu_fc_populate_pte_fn_t populate_pte_fn)
+ {
++	static struct vm_struct vm;
+ 	size_t pages_size;
+ 	unsigned int cpu;
+ 	int i, j;
+ 	ssize_t ret;
+ 
+-	pcpu4k_nr_static_pages = PFN_UP(static_size);
++	pcpu4k_unit_pages = PFN_UP(max_t(size_t, static_size + reserved_size,
++					 PCPU_MIN_UNIT_SIZE));
+ 
+ 	/* unaligned allocations can't be freed, round up to page size */
+-	pages_size = PFN_ALIGN(pcpu4k_nr_static_pages * num_possible_cpus() *
++	pages_size = PFN_ALIGN(pcpu4k_unit_pages * num_possible_cpus() *
+ 			       sizeof(pcpu4k_pages[0]));
+ 	pcpu4k_pages = alloc_bootmem(pages_size);
+ 
+-	/* allocate and copy */
++	/* allocate pages */
+ 	j = 0;
+ 	for_each_possible_cpu(cpu)
+-		for (i = 0; i < pcpu4k_nr_static_pages; i++) {
++		for (i = 0; i < pcpu4k_unit_pages; i++) {
+ 			void *ptr;
+ 
+ 			ptr = alloc_fn(cpu, PAGE_SIZE);
+@@ -1330,18 +1337,48 @@ ssize_t __init pcpu_4k_first_chunk(size_t static_size, size_t reserved_size,
+ 					   "4k page for cpu%u\n", cpu);
+ 				goto enomem;
+ 			}
+-
+-			memcpy(ptr, __per_cpu_load + i * PAGE_SIZE, PAGE_SIZE);
+ 			pcpu4k_pages[j++] = virt_to_page(ptr);
+ 		}
+ 
++	/* allocate vm area, map the pages and copy static data */
++	vm.flags = VM_ALLOC;
++	vm.size = num_possible_cpus() * pcpu4k_unit_pages << PAGE_SHIFT;
++	vm_area_register_early(&vm, PAGE_SIZE);
++
++	for_each_possible_cpu(cpu) {
++		unsigned long unit_addr = (unsigned long)vm.addr +
++			(cpu * pcpu4k_unit_pages << PAGE_SHIFT);
++
++		for (i = 0; i < pcpu4k_unit_pages; i++)
++			populate_pte_fn(unit_addr + (i << PAGE_SHIFT));
++
++		/* pte already populated, the following shouldn't fail */
++		ret = __pcpu_map_pages(unit_addr,
++				       &pcpu4k_pages[cpu * pcpu4k_unit_pages],
++				       pcpu4k_unit_pages);
++		if (ret < 0)
++			panic("failed to map percpu area, err=%zd\n", ret);
++
++		/*
++		 * FIXME: Archs with virtual cache should flush local
++		 * cache for the linear mapping here - something
++		 * equivalent to flush_cache_vmap() on the local cpu.
++		 * flush_cache_vmap() can't be used as most supporting
++		 * data structures are not set up yet.
++		 */
++
++		/* copy static data */
++		memcpy((void *)unit_addr, __per_cpu_load, static_size);
++	}
++
+ 	/* we're ready, commit */
+-	pr_info("PERCPU: Allocated %d 4k pages, static data %zu bytes\n",
+-		pcpu4k_nr_static_pages, static_size);
++	pr_info("PERCPU: %d 4k pages per cpu, static data %zu bytes\n",
++		pcpu4k_unit_pages, static_size);
+ 
+ 	ret = pcpu_setup_first_chunk(pcpu4k_get_page, static_size,
+ 				     reserved_size, -1,
+-				     -1, NULL, populate_pte_fn);
++				     pcpu4k_unit_pages << PAGE_SHIFT, vm.addr,
++				     NULL);
+ 	goto out_free_ar;
+ 
+ enomem:
+-- 
+1.6.0.2
 
-This patchset contains the following patches.
-
-  0001-x86-make-pcpu_chunk_addr_search-matching-stricter.patch
-  0002-percpu-drop-unit_size-from-embed-first-chunk-alloc.patch
-  0003-x86-percpu-generalize-4k-first-chunk-allocator.patch
-  0004-percpu-make-4k-first-chunk-allocator-map-memory.patch
-  0005-x86-percpu-generalize-lpage-first-chunk-allocator.patch
-  0006-percpu-simplify-pcpu_setup_first_chunk.patch
-  0007-percpu-reorder-a-few-functions-in-mm-percpu.c.patch
-  0008-percpu-drop-pcpu_chunk-page.patch
-  0009-percpu-allow-non-linear-sparse-cpu-unit-mappin.patch
-  0010-percpu-teach-large-page-allocator-about-NUMA.patch
-
-0001-0006 generalizes first chunk allocators.  0007-0010 improves
-lpage allocator such that NUMA is handled more intelligently.
-
-This patchset first generalizes first chunk allocators, makes the
-percpu allocator to be able to use non-linear and/or sparse cpu ->
-unit mapping and then make lpage allocator consider CPU topology and
-group CPUs in LOCAL_DISTANCE into the same large pages.  For example,
-on an 4/4 NUMA machine, the original code used up 16MB for each chunk
-but the new code uses only 4MB - one large page for each NUMA node.
-The grouping code is quite robust and will try to minimize space
-wastage even when the CPU topology is asymmetric.
-
-David, sparc64 should be able to use lpage (renamed from remap)
-allocator the same way x86_64 does.  Well, at least that was my
-intention, if something doesn't work or needs improvements for
-sparc64, please let me know.
-
-This patchset is available in the following git tree and will be
-published in for-next if there's no major objection.  It might get
-rebased before going into for-next.
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/tj/percpu.git lpage-numa
-
-diffstat follows.
-
- arch/sparc/kernel/smp_64.c     |   42 -
- arch/x86/include/asm/percpu.h  |    9 
- arch/x86/kernel/setup_percpu.c |  297 ++-------
- arch/x86/mm/pageattr.c         |    1 
- include/linux/percpu.h         |   68 +-
- mm/percpu.c                    | 1276 +++++++++++++++++++++++++++++++----------
- 6 files changed, 1139 insertions(+), 554 deletions(-)
-
-Thanks.
-
---
-tejun
-
-[1] http://thread.gmane.org/gmane.linux.kernel/853114
-[2] http://lkml.org/lkml/2009/6/17/14
