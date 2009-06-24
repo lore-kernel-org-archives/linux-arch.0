@@ -1,154 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:50494 "EHLO hera.kernel.org"
+Received: from mga11.intel.com ([192.55.52.93]:45325 "EHLO mga11.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757703AbZFXNa4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Jun 2009 09:30:56 -0400
-From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 07/10] percpu: reorder a few functions in mm/percpu.c
-Date: Wed, 24 Jun 2009 22:30:13 +0900
-Message-ID: <1245850216-31653-8-git-send-email-tj@kernel.org>
-In-Reply-To: <1245850216-31653-1-git-send-email-tj@kernel.org>
-References: <1245850216-31653-1-git-send-email-tj@kernel.org>
+	id S1754163AbZFXRUQ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2009 13:20:16 -0400
+From: "Luck, Tony" <tony.luck@intel.com>
+Date: Wed, 24 Jun 2009 10:20:17 -0700
+Subject: RE: [PATCH 02/10] linker script: throw away .discard section
+Message-ID: <57C9024A16AD2D4C97DC78E552063EA3A8C95D49@orsmsx505.amr.corp.intel.com>
+References: <1245825924-30412-1-git-send-email-tj@kernel.org>
+ <1245825924-30412-3-git-send-email-tj@kernel.org>
+In-Reply-To: <1245825924-30412-3-git-send-email-tj@kernel.org>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de, cl@linux-foundation.org, akpm@linux-foundation.org
-Cc: Tejun Heo <tj@kernel.org>
-Message-ID: <20090624133013.8JQws4naq853yuNYOI79GKyoUzsT4dcru1TrjnrNaiY@z>
+To: Tejun Heo <tj@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mingo@elte.hu" <mingo@elte.hu>, "kyle@mcmartin.ca" <kyle@mcmartin.ca>, "cl@linux-foundation.org" <cl@linux-foundation.org>, "Jesper.Nilsson@axis.com" <Jesper.Nilsson@axis.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rusty@rustcorp.com.au" <rusty@rustcorp.com.au>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Richard Henderson <rth@twiddle.net>, Russell King <linux@arm.linux.org.uk>, Haavard Skinnemoen <hskinnemoen@atmel.com>, Bryan Wu <cooloney@kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Chris Zankel <chris@zankel.net>
+Message-ID: <20090624172017.dudT3IeWy-fj6NXisnymofUyxThuzeMElnQvmzLh6G8@z>
 
-(de)populate functions are about to be reimplemented to drop
-pcpu_chunk->page array.  Move a few functions so that the rewrite
-patch doesn't have code movement making it more difficult to read.
+> x86 throws away .discard section but no other archs do.  Also,
+> .discard is not thrown away while linking modules.  Make every arch
+> and module linking throw it away.  This will be used to define dummy
+> variables for percpu declarations and definitions.
 
-[ Impact: code movement ]
+Seems harmless on ia64.  Kernel still builds, boots and loads
+modules.
 
-Signed-off-by: Tejun Heo <tj@kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>
----
- mm/percpu.c |   90 +++++++++++++++++++++++++++++-----------------------------
- 1 files changed, 45 insertions(+), 45 deletions(-)
+Tested-by: Tony Luck <tony.luck@intel.com>
 
-diff --git a/mm/percpu.c b/mm/percpu.c
-index 452d3f3..770db98 100644
---- a/mm/percpu.c
-+++ b/mm/percpu.c
-@@ -181,12 +181,6 @@ static int pcpu_page_idx(unsigned int cpu, int page_idx)
- 	return cpu * pcpu_unit_pages + page_idx;
- }
- 
--static struct page **pcpu_chunk_pagep(struct pcpu_chunk *chunk,
--				      unsigned int cpu, int page_idx)
--{
--	return &chunk->page[pcpu_page_idx(cpu, page_idx)];
--}
--
- static unsigned long pcpu_chunk_addr(struct pcpu_chunk *chunk,
- 				     unsigned int cpu, int page_idx)
- {
-@@ -194,6 +188,12 @@ static unsigned long pcpu_chunk_addr(struct pcpu_chunk *chunk,
- 		(pcpu_page_idx(cpu, page_idx) << PAGE_SHIFT);
- }
- 
-+static struct page **pcpu_chunk_pagep(struct pcpu_chunk *chunk,
-+				      unsigned int cpu, int page_idx)
-+{
-+	return &chunk->page[pcpu_page_idx(cpu, page_idx)];
-+}
-+
- static bool pcpu_chunk_page_occupied(struct pcpu_chunk *chunk,
- 				     int page_idx)
- {
-@@ -583,6 +583,45 @@ static void pcpu_unmap(struct pcpu_chunk *chunk, int page_start, int page_end,
- 				       pcpu_chunk_addr(chunk, last, page_end));
- }
- 
-+static int __pcpu_map_pages(unsigned long addr, struct page **pages,
-+			    int nr_pages)
-+{
-+	return map_kernel_range_noflush(addr, nr_pages << PAGE_SHIFT,
-+					PAGE_KERNEL, pages);
-+}
-+
-+/**
-+ * pcpu_map - map pages into a pcpu_chunk
-+ * @chunk: chunk of interest
-+ * @page_start: page index of the first page to map
-+ * @page_end: page index of the last page to map + 1
-+ *
-+ * For each cpu, map pages [@page_start,@page_end) into @chunk.
-+ * vcache is flushed afterwards.
-+ */
-+static int pcpu_map(struct pcpu_chunk *chunk, int page_start, int page_end)
-+{
-+	unsigned int last = num_possible_cpus() - 1;
-+	unsigned int cpu;
-+	int err;
-+
-+	/* map must not be done on immutable chunk */
-+	WARN_ON(chunk->immutable);
-+
-+	for_each_possible_cpu(cpu) {
-+		err = __pcpu_map_pages(pcpu_chunk_addr(chunk, cpu, page_start),
-+				       pcpu_chunk_pagep(chunk, cpu, page_start),
-+				       page_end - page_start);
-+		if (err < 0)
-+			return err;
-+	}
-+
-+	/* flush at once, please read comments in pcpu_unmap() */
-+	flush_cache_vmap(pcpu_chunk_addr(chunk, 0, page_start),
-+			 pcpu_chunk_addr(chunk, last, page_end));
-+	return 0;
-+}
-+
- /**
-  * pcpu_depopulate_chunk - depopulate and unmap an area of a pcpu_chunk
-  * @chunk: chunk to depopulate
-@@ -632,45 +671,6 @@ static void pcpu_depopulate_chunk(struct pcpu_chunk *chunk, int off, int size,
- 		pcpu_unmap(chunk, unmap_start, unmap_end, flush);
- }
- 
--static int __pcpu_map_pages(unsigned long addr, struct page **pages,
--			    int nr_pages)
--{
--	return map_kernel_range_noflush(addr, nr_pages << PAGE_SHIFT,
--					PAGE_KERNEL, pages);
--}
--
--/**
-- * pcpu_map - map pages into a pcpu_chunk
-- * @chunk: chunk of interest
-- * @page_start: page index of the first page to map
-- * @page_end: page index of the last page to map + 1
-- *
-- * For each cpu, map pages [@page_start,@page_end) into @chunk.
-- * vcache is flushed afterwards.
-- */
--static int pcpu_map(struct pcpu_chunk *chunk, int page_start, int page_end)
--{
--	unsigned int last = num_possible_cpus() - 1;
--	unsigned int cpu;
--	int err;
--
--	/* map must not be done on immutable chunk */
--	WARN_ON(chunk->immutable);
--
--	for_each_possible_cpu(cpu) {
--		err = __pcpu_map_pages(pcpu_chunk_addr(chunk, cpu, page_start),
--				       pcpu_chunk_pagep(chunk, cpu, page_start),
--				       page_end - page_start);
--		if (err < 0)
--			return err;
--	}
--
--	/* flush at once, please read comments in pcpu_unmap() */
--	flush_cache_vmap(pcpu_chunk_addr(chunk, 0, page_start),
--			 pcpu_chunk_addr(chunk, last, page_end));
--	return 0;
--}
--
- /**
-  * pcpu_populate_chunk - populate and map an area of a pcpu_chunk
-  * @chunk: chunk of interest
--- 
-1.6.0.2
-
+-Tony
