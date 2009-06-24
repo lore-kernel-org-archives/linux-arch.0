@@ -1,52 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp02.citrix.com ([66.165.176.63]:6271 "EHLO SMTP02.CITRIX.COM"
+Received: from hera.kernel.org ([140.211.167.34]:50442 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750818AbZFXKmN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Jun 2009 06:42:13 -0400
-Subject: Re: [PATCH] PCI: remove pcibios_scan_all_fns()
-From: Ian Campbell <Ian.Campbell@eu.citrix.com>
-In-Reply-To: <4A413C66.5010306@goop.org>
-References: <20090622140807.25509.54448.stgit@bob.kio>
-	 <20090622143431.GT19977@parisc-linux.org> <4A3FCB68.3030004@goop.org>
-	 <20090622183056.GY19977@parisc-linux.org> <1245714008.4017.7.camel@pasglop>
-	 <20090623190826.GJ19977@parisc-linux.org>  <4A413C66.5010306@goop.org>
-Content-Type: text/plain
-Date: Wed, 24 Jun 2009 11:30:54 +0100
-Message-ID: <1245839454.31273.40.camel@zakaz.uk.xensource.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+	id S1751240AbZFXNam (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Jun 2009 09:30:42 -0400
+From: Tejun Heo <tj@kernel.org>
+Subject: [PATCH 02/10] percpu: drop @unit_size from embed first chunk allocator
+Date: Wed, 24 Jun 2009 22:30:08 +0900
+Message-ID: <1245850216-31653-3-git-send-email-tj@kernel.org>
+In-Reply-To: <1245850216-31653-1-git-send-email-tj@kernel.org>
+References: <1245850216-31653-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeremy Fitzhardinge <jeremy@goop.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Alex Chiang <achiang@hp.com>, jbarnes@virtuousgeek.org, linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, Tony Luck <tony.luck@intel.com>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Paul Mundt <lethal@linux-sh.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>, Avi Kivity <avi@redhat.com>
-Message-ID: <20090624103054.MG4fEGNjAUJzqlXvZLlz9TkvF2iO-UsBwUVR6QgsZqA@z>
+To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de, cl@linux-foundation.org, akpm@linux-foundation.org
+Cc: Tejun Heo <tj@kernel.org>
+Message-ID: <20090624133008.IpWsFAVXaVrO3PTUo529brWVWU3Yayb8fWJ1bJBZJMo@z>
 
-On Tue, 2009-06-23 at 13:34 -0700, Jeremy Fitzhardinge wrote:
-> On 06/23/09 12:08, Matthew Wilcox wrote:
-> > I think simply materialising them, either the way the OF code does,
-> > or the way the IOV code does is the best route forwards.
-> >   
-> 
-> On reflection, I think this will work.  We have a Xen pci passthrough
-> driver which gets told about the passed-through devices via xenbus, and
-> does the appropriate setup.  At first glance, there doesn't seem to be
-> any problem with that code just explicitly instantiate the devices at
-> the PCI level in the same way pci_scan_device does (ie,
-> alloc_pci_device, initalize the dev struct, pci_setup_device).
-> 
-> Is that what you mean?
-> 
-> IanC has looked at that code more closely, so perhaps he can confirm
-> that this will work on our side.
+The only extra feature @unit_size provides is making dead space at the
+end of the first chunk which doesn't have any valid usecase.  Drop the
+parameter.  This will increase consistency with generalized 4k
+allocator.
 
-I'm not 100% familiar with this stuff but pcifront_rescan_root()
-currently iterates over all devfns for a bus and calls
-pci_scan_single_device(). I don't see where we call pci_scan_slot()
-which I think would be the only way pcibios_scan_all_fns() would matter
-to us so I'm not sure why we have that patch. It's possible all this has
-changed since AlexN originally did the work? It was quite a long time
-ago now.
+[ Impact: drop unused code path ]
 
-Ian.
+Signed-off-by: Tejun Heo <tj@kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+---
+ arch/x86/kernel/setup_percpu.c |    2 +-
+ include/linux/percpu.h         |    2 +-
+ mm/percpu.c                    |   16 +++++-----------
+ 3 files changed, 7 insertions(+), 13 deletions(-)
 
+diff --git a/arch/x86/kernel/setup_percpu.c b/arch/x86/kernel/setup_percpu.c
+index 29a3eef..1472820 100644
+--- a/arch/x86/kernel/setup_percpu.c
++++ b/arch/x86/kernel/setup_percpu.c
+@@ -342,7 +342,7 @@ static ssize_t __init setup_pcpu_embed(size_t static_size, bool chosen)
+ 		return -EINVAL;
+ 
+ 	return pcpu_embed_first_chunk(static_size, PERCPU_FIRST_CHUNK_RESERVE,
+-				      reserve - PERCPU_FIRST_CHUNK_RESERVE, -1);
++				      reserve - PERCPU_FIRST_CHUNK_RESERVE);
+ }
+ 
+ /*
+diff --git a/include/linux/percpu.h b/include/linux/percpu.h
+index e500034..83bff05 100644
+--- a/include/linux/percpu.h
++++ b/include/linux/percpu.h
+@@ -69,7 +69,7 @@ extern size_t __init pcpu_setup_first_chunk(pcpu_get_page_fn_t get_page_fn,
+ 
+ extern ssize_t __init pcpu_embed_first_chunk(
+ 				size_t static_size, size_t reserved_size,
+-				ssize_t dyn_size, ssize_t unit_size);
++				ssize_t dyn_size);
+ 
+ /*
+  * Use this to get to a cpu's version of the per-cpu object
+diff --git a/mm/percpu.c b/mm/percpu.c
+index 19dd83b..fe34b6b 100644
+--- a/mm/percpu.c
++++ b/mm/percpu.c
+@@ -1207,7 +1207,6 @@ static struct page * __init pcpue_get_page(unsigned int cpu, int pageno)
+  * @static_size: the size of static percpu area in bytes
+  * @reserved_size: the size of reserved percpu area in bytes
+  * @dyn_size: free size for dynamic allocation in bytes, -1 for auto
+- * @unit_size: unit size in bytes, must be multiple of PAGE_SIZE, -1 for auto
+  *
+  * This is a helper to ease setting up embedded first percpu chunk and
+  * can be called where pcpu_setup_first_chunk() is expected.
+@@ -1219,9 +1218,9 @@ static struct page * __init pcpue_get_page(unsigned int cpu, int pageno)
+  * page size.
+  *
+  * When @dyn_size is positive, dynamic area might be larger than
+- * specified to fill page alignment.  Also, when @dyn_size is auto,
+- * @dyn_size does not fill the whole first chunk but only what's
+- * necessary for page alignment after static and reserved areas.
++ * specified to fill page alignment.  When @dyn_size is auto,
++ * @dyn_size is just big enough to fill page alignment after static
++ * and reserved areas.
+  *
+  * If the needed size is smaller than the minimum or specified unit
+  * size, the leftover is returned to the bootmem allocator.
+@@ -1231,7 +1230,7 @@ static struct page * __init pcpue_get_page(unsigned int cpu, int pageno)
+  * percpu access on success, -errno on failure.
+  */
+ ssize_t __init pcpu_embed_first_chunk(size_t static_size, size_t reserved_size,
+-				      ssize_t dyn_size, ssize_t unit_size)
++				      ssize_t dyn_size)
+ {
+ 	size_t chunk_size;
+ 	unsigned int cpu;
+@@ -1242,12 +1241,7 @@ ssize_t __init pcpu_embed_first_chunk(size_t static_size, size_t reserved_size,
+ 	if (dyn_size != 0)
+ 		dyn_size = pcpue_size - static_size - reserved_size;
+ 
+-	if (unit_size >= 0) {
+-		BUG_ON(unit_size < pcpue_size);
+-		pcpue_unit_size = unit_size;
+-	} else
+-		pcpue_unit_size = max_t(size_t, pcpue_size, PCPU_MIN_UNIT_SIZE);
+-
++	pcpue_unit_size = max_t(size_t, pcpue_size, PCPU_MIN_UNIT_SIZE);
+ 	chunk_size = pcpue_unit_size * num_possible_cpus();
+ 
+ 	pcpue_ptr = __alloc_bootmem_nopanic(chunk_size, PAGE_SIZE,
+-- 
+1.6.0.2
 
