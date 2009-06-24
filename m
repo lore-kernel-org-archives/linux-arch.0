@@ -1,53 +1,47 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH 01/10] percpu: use dynamic percpu allocator as the
- default percpu allocator
-Date: Wed, 24 Jun 2009 18:47:55 -0500
-Message-ID: <1245887275.4022.619.camel@mulgrave.site>
-References: <1245825924-30412-1-git-send-email-tj@kernel.org>
-	 <1245825924-30412-2-git-send-email-tj@kernel.org>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and
+ improve lpage NUMA support
+Date: Wed, 24 Jun 2009 16:55:08 -0700
+Message-ID: <20090624165508.30b88343.akpm@linux-foundation.org>
+References: <1245850216-31653-1-git-send-email-tj@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:34180 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751898AbZFXXsA (ORCPT
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:44259 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751898AbZFXX4m (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Jun 2009 19:48:00 -0400
-In-Reply-To: <1245825924-30412-2-git-send-email-tj@kernel.org>
+	Wed, 24 Jun 2009 19:56:42 -0400
+In-Reply-To: <1245850216-31653-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, kyle@mcmartin.ca, cl@linux-foundation.org, Jesper.Nilsson@axis.com, benh@kernel.crashing.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, torvalds@linux-foundation.org, akpm@linux-foundation.org, Paul Mundt <lethal@linux-sh.org>, Russell King <rmk@arm.linux.org.uk>, Mikael Starvik <starvik@axis.com>, Ralf Baechle <ralf@linux-mips.org>, Bryan Wu <cooloney@kernel.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Hirokazu Takata <takata@linux-m32r.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de, cl@linux-foundation.org
 
-On Wed, 2009-06-24 at 15:45 +0900, Tejun Heo wrote:
-> This patch makes most !CONFIG_HAVE_SETUP_PER_CPU_AREA archs use
-> dynamic percpu allocator.  The first chunk is allocated using
-> embedding helper and 8k is reserved for modules.  This ensures that
-> the new allocator behaves almost identically to the original allocator
-> as long as static percpu variables are concerned, so it shouldn't
-> introduce much breakage.
+On Wed, 24 Jun 2009 22:30:06 +0900
+Tejun Heo <tj@kernel.org> wrote:
+
+> This patchset is available in the following git tree and will be
+> published in for-next if there's no major objection.  It might get
+> rebased before going into for-next.
 > 
-> s390 and alpha use custom SHIFT_PERCPU_PTR() to work around addressing
-> range limit the addressing model imposes.  Unfortunately, this breaks
-> if the address is specified using a variable, so for now, the two
-> archs aren't converted.
-> 
-> The following architectures are affected by this change.
-> 
-> * sh
-> * arm
-> * cris
-> * mips
-> * sparc(32)
-> * blackfin
-> * avr32
-> * parisc (broken, under investigation)
+>   git://git.kernel.org/pub/scm/linux/kernel/git/tj/percpu.git lpage-numa
 
-OK, I thought I'd investigate this.  Unfortunately, your git tree
-doesn't build when pulled into head ... could you update?
+<tries to read the patches>
 
-mm/percpu.c: In function 'setup_per_cpu_areas':
-mm/percpu.c:2007: error: too many arguments to function 'pcpu_embed_first_chunk'
+Boy, this stuff is complicated.  Does it all work?
 
-James
+The Impact: lines were useful :)
+
+
+I assume from the tremendous number of for_each_possible_cpu()s that
+CPU hotplug awareness won't be happening.
+
+Do we have a feeling for the amount of wastage here?  If
+
+	num_possible_cpus() - num_online_cpus() == N
+
+and N is large, what did it cost?
+
+And what are reasonable values of N?
