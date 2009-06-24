@@ -1,45 +1,152 @@
-From: Ian Campbell <Ian.Campbell@eu.citrix.com>
-Subject: Re: [PATCH] PCI: remove pcibios_scan_all_fns()
-Date: Wed, 24 Jun 2009 11:30:54 +0100
-Message-ID: <1245839454.31273.40.camel@zakaz.uk.xensource.com>
-References: <20090622140807.25509.54448.stgit@bob.kio>
-	 <20090622143431.GT19977@parisc-linux.org> <4A3FCB68.3030004@goop.org>
-	 <20090622183056.GY19977@parisc-linux.org> <1245714008.4017.7.camel@pasglop>
-	 <20090623190826.GJ19977@parisc-linux.org>  <4A413C66.5010306@goop.org>
-Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1751936AbZFXKbU@vger.kernel.org>
-In-Reply-To: <4A413C66.5010306@goop.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jeremy Fitzhardinge <jeremy@goop.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Alex Chiang <achiang@hp.com>, jbarnes@virtuousgeek.org, linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, Tony Luck <tony.luck@intel.com>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Paul Mundt <lethal@linux-sh.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>, Avi Kivity <avi@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+From: Tejun Heo <tj@kernel.org>
+Subject: [PATCH 07/10] percpu: reorder a few functions in mm/percpu.c
+Date: Wed, 24 Jun 2009 22:30:13 +0900
+Message-ID: <1245850216-31653-8-git-send-email-tj@kernel.org>
+References: <1245850216-31653-1-git-send-email-tj@kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from hera.kernel.org ([140.211.167.34]:50494 "EHLO hera.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757703AbZFXNa4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Jun 2009 09:30:56 -0400
+In-Reply-To: <1245850216-31653-1-git-send-email-tj@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de, cl@linux-foundation.org, akpm@linux-fo
+Cc: Tejun Heo <tj@kernel.org>
 
-On Tue, 2009-06-23 at 13:34 -0700, Jeremy Fitzhardinge wrote:
-> On 06/23/09 12:08, Matthew Wilcox wrote:
-> > I think simply materialising them, either the way the OF code does,
-> > or the way the IOV code does is the best route forwards.
-> >   
-> 
-> On reflection, I think this will work.  We have a Xen pci passthrough
-> driver which gets told about the passed-through devices via xenbus, and
-> does the appropriate setup.  At first glance, there doesn't seem to be
-> any problem with that code just explicitly instantiate the devices at
-> the PCI level in the same way pci_scan_device does (ie,
-> alloc_pci_device, initalize the dev struct, pci_setup_device).
-> 
-> Is that what you mean?
-> 
-> IanC has looked at that code more closely, so perhaps he can confirm
-> that this will work on our side.
+(de)populate functions are about to be reimplemented to drop
+pcpu_chunk->page array.  Move a few functions so that the rewrite
+patch doesn't have code movement making it more difficult to read.
 
-I'm not 100% familiar with this stuff but pcifront_rescan_root()
-currently iterates over all devfns for a bus and calls
-pci_scan_single_device(). I don't see where we call pci_scan_slot()
-which I think would be the only way pcibios_scan_all_fns() would matter
-to us so I'm not sure why we have that patch. It's possible all this has
-changed since AlexN originally did the work? It was quite a long time
-ago now.
+[ Impact: code movement ]
 
-Ian.
+Signed-off-by: Tejun Heo <tj@kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+---
+ mm/percpu.c |   90 +++++++++++++++++++++++++++++-----------------------------
+ 1 files changed, 45 insertions(+), 45 deletions(-)
+
+diff --git a/mm/percpu.c b/mm/percpu.c
+index 452d3f3..770db98 100644
+--- a/mm/percpu.c
++++ b/mm/percpu.c
+@@ -181,12 +181,6 @@ static int pcpu_page_idx(unsigned int cpu, int page_idx)
+ 	return cpu * pcpu_unit_pages + page_idx;
+ }
+ 
+-static struct page **pcpu_chunk_pagep(struct pcpu_chunk *chunk,
+-				      unsigned int cpu, int page_idx)
+-{
+-	return &chunk->page[pcpu_page_idx(cpu, page_idx)];
+-}
+-
+ static unsigned long pcpu_chunk_addr(struct pcpu_chunk *chunk,
+ 				     unsigned int cpu, int page_idx)
+ {
+@@ -194,6 +188,12 @@ static unsigned long pcpu_chunk_addr(struct pcpu_chunk *chunk,
+ 		(pcpu_page_idx(cpu, page_idx) << PAGE_SHIFT);
+ }
+ 
++static struct page **pcpu_chunk_pagep(struct pcpu_chunk *chunk,
++				      unsigned int cpu, int page_idx)
++{
++	return &chunk->page[pcpu_page_idx(cpu, page_idx)];
++}
++
+ static bool pcpu_chunk_page_occupied(struct pcpu_chunk *chunk,
+ 				     int page_idx)
+ {
+@@ -583,6 +583,45 @@ static void pcpu_unmap(struct pcpu_chunk *chunk, int page_start, int page_end,
+ 				       pcpu_chunk_addr(chunk, last, page_end));
+ }
+ 
++static int __pcpu_map_pages(unsigned long addr, struct page **pages,
++			    int nr_pages)
++{
++	return map_kernel_range_noflush(addr, nr_pages << PAGE_SHIFT,
++					PAGE_KERNEL, pages);
++}
++
++/**
++ * pcpu_map - map pages into a pcpu_chunk
++ * @chunk: chunk of interest
++ * @page_start: page index of the first page to map
++ * @page_end: page index of the last page to map + 1
++ *
++ * For each cpu, map pages [@page_start,@page_end) into @chunk.
++ * vcache is flushed afterwards.
++ */
++static int pcpu_map(struct pcpu_chunk *chunk, int page_start, int page_end)
++{
++	unsigned int last = num_possible_cpus() - 1;
++	unsigned int cpu;
++	int err;
++
++	/* map must not be done on immutable chunk */
++	WARN_ON(chunk->immutable);
++
++	for_each_possible_cpu(cpu) {
++		err = __pcpu_map_pages(pcpu_chunk_addr(chunk, cpu, page_start),
++				       pcpu_chunk_pagep(chunk, cpu, page_start),
++				       page_end - page_start);
++		if (err < 0)
++			return err;
++	}
++
++	/* flush at once, please read comments in pcpu_unmap() */
++	flush_cache_vmap(pcpu_chunk_addr(chunk, 0, page_start),
++			 pcpu_chunk_addr(chunk, last, page_end));
++	return 0;
++}
++
+ /**
+  * pcpu_depopulate_chunk - depopulate and unmap an area of a pcpu_chunk
+  * @chunk: chunk to depopulate
+@@ -632,45 +671,6 @@ static void pcpu_depopulate_chunk(struct pcpu_chunk *chunk, int off, int size,
+ 		pcpu_unmap(chunk, unmap_start, unmap_end, flush);
+ }
+ 
+-static int __pcpu_map_pages(unsigned long addr, struct page **pages,
+-			    int nr_pages)
+-{
+-	return map_kernel_range_noflush(addr, nr_pages << PAGE_SHIFT,
+-					PAGE_KERNEL, pages);
+-}
+-
+-/**
+- * pcpu_map - map pages into a pcpu_chunk
+- * @chunk: chunk of interest
+- * @page_start: page index of the first page to map
+- * @page_end: page index of the last page to map + 1
+- *
+- * For each cpu, map pages [@page_start,@page_end) into @chunk.
+- * vcache is flushed afterwards.
+- */
+-static int pcpu_map(struct pcpu_chunk *chunk, int page_start, int page_end)
+-{
+-	unsigned int last = num_possible_cpus() - 1;
+-	unsigned int cpu;
+-	int err;
+-
+-	/* map must not be done on immutable chunk */
+-	WARN_ON(chunk->immutable);
+-
+-	for_each_possible_cpu(cpu) {
+-		err = __pcpu_map_pages(pcpu_chunk_addr(chunk, cpu, page_start),
+-				       pcpu_chunk_pagep(chunk, cpu, page_start),
+-				       page_end - page_start);
+-		if (err < 0)
+-			return err;
+-	}
+-
+-	/* flush at once, please read comments in pcpu_unmap() */
+-	flush_cache_vmap(pcpu_chunk_addr(chunk, 0, page_start),
+-			 pcpu_chunk_addr(chunk, last, page_end));
+-	return 0;
+-}
+-
+ /**
+  * pcpu_populate_chunk - populate and map an area of a pcpu_chunk
+  * @chunk: chunk of interest
+-- 
+1.6.0.2
