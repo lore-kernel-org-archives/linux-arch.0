@@ -1,58 +1,58 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH] PCI: remove pcibios_scan_all_fns()
-Date: Wed, 24 Jun 2009 10:02:29 +1000
-Message-ID: <1245801749.10356.46.camel@pasglop>
-References: <20090622140807.25509.54448.stgit@bob.kio>
-	 <20090622143431.GT19977@parisc-linux.org> <4A3FCB68.3030004@goop.org>
-	 <20090622183056.GY19977@parisc-linux.org> <1245714008.4017.7.camel@pasglop>
-	 <20090623190826.GJ19977@parisc-linux.org>  <4A413C66.5010306@goop.org>
-	 <1245793758.10356.27.camel@pasglop>  <4A41562F.1040901@goop.org>
-	 <1245796916.10356.40.camel@pasglop>  <4A415CDC.2090700@goop.org>
+From: liqin.chen@sunplusct.com
+Subject: Re: S+core architecture (arch/score/) support files
+Date: Wed, 24 Jun 2009 11:22:44 +0800
+Message-ID: <OF06F6A918.AA4716A4-ON482575DF.000B4993-482575DF.0013010F@sunplusct.com>
+References: <87zlbz17fb.fsf@basil.nowhere.org>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="GB2312"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:57407 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753836AbZFXAEO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Jun 2009 20:04:14 -0400
-In-Reply-To: <4A415CDC.2090700@goop.org>
+Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:38215 "EHLO
+	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752090AbZFXD2r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2009 23:28:47 -0400
+In-Reply-To: <87zlbz17fb.fsf@basil.nowhere.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeremy Fitzhardinge <jeremy@goop.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, Alex Chiang <achiang@hp.com>, jbarnes@virtuousgeek.org, linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, Tony Luck <tony.luck@intel.com>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Paul Mundt <lethal@linux-sh.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>, Avi Kivity <avi@redhat.com>, Ian Campbell <Ian.Campbell@eu.citrix.com>
+To: Andi Kleen <andi@firstfloor.org>, Christoph Hellwig <hch@infradead.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Tue, 2009-06-23 at 15:53 -0700, Jeremy Fitzhardinge wrote:
-> On 06/23/09 15:41, Benjamin Herrenschmidt wrote:
-> >> Do you have any other cases in mind where it would be helpful?
-> >>     
-> >
-> > Well, it might be for virtual device discovery etc... but don't bother
-> > now. We might talk about it at KS for those interested. It's more
-> > something we see as useful for embedded archs at the moment but in the
-> > long run it might make sense for hypervisors as well.
-> >   
-> 
-> Perhaps.  We have Xenbus - which is  a little bit like OF in that it has
-> data in a hierarchical namespace - and I guess it might be possible to
-> find a mapping onto some generic OF-like interface.
-
-Which is sort-of what we did. IE. We disconnected the device-tree itself
-from the underlying firmware, using the device-tree and OF-style
-bindings (in some case simplified) as a basis for representing devices
-but without the need for an actual open firmware underneath.
-
-> However, Xenbus is an active communication channel between virtual machines
-> rather than a
-> static representation of a machine configuration (for example, you can
-> put a watch on a particular path to get a notification of when someone
-> else changes it).
-
-On ppc64 too, the HV can feed us with new tree nodes or remove some, it
-doesn't have to be static. Though we mostly use it as a static tree on
-embedded.
-
-> But, yes, this is a good KS hallway track subject.
-
-Cheers,
-Ben.
+QW5kaSBLbGVlbiA8YW5kaUBmaXJzdGZsb29yLm9yZz4g0LTT2iAyMDA5LTA2LTIzIDIwOjA2OjAw
+Og0KDQo+IElNSE8gYSBmdWxsIHN1Y2Nlc3NmdWxsIExUUCBydW4gc2hvdWxkIGJlIG1pbmltYWwg
+Y3JpdGVyaXVtIGZvcg0KPiBtZXJnaW5nIGFuIGFyY2hpdGVjdHVyZS4gVGhhdCBzaG91bGQgY2F0
+Y2ggbW9zdCBvZiB0aGUgcG9zc2libGUNCj4gInNpbXBsZSIgbWlzdGFrZXMgaW4gdGhlIHN5c2Nh
+bGwgQUJJLiBJIHdvdWxkIHN1Z2dlc3QgdG8gd2FpdCB0byBhZnRlcg0KPiB0aGlzIGhhcyBiZWVu
+IGRvbmUuDQoNCk9oLCBBbmRpLCBpdCBpc24ndCBhIHNob3J0IHRpbWUgd29yay4gZXNwZWNpYWxs
+eSB3ZSB1c2UgDQphc20tZ2VuZXJpYy91bmlzdGQuaCBpbnN0ZWFkIG9mIHNjb3JlIG9sZCBhc20v
+dW5pc3RkLmguDQpZb3Ugc2VlLCB0aGUgbW9zdCB3b3JrIHdhcyBmb2N1cyBvbiBnbGliYy9hcHBs
+aWNhdGlvbnMuDQoNCmxpbnV4LWFyY2gtb3duZXJAdmdlci5rZXJuZWwub3JnINC009ogMjAwOS0w
+Ni0yMyAxODo1MTo0NzoNCg0KPiBCZWZvcmUgd2UgY29tbWl0IHRoZSBjb2RlIHRvIGxpbnV4Lm9y
+ZywgDQo+IExpbnV4IGhhZCBydW4gb24gc3BjdDY2MDAgc2NvcmUgcGxhdGZvcm0gd2VsbC4gDQo+
+IEl0IGhhZCBwYXNzZWQgTFRQIHRlc3QgYW5kIGNvdWxkIHJ1biBtYW55IGdlbmVyYWwgYXBwbGlj
+YXRpb25zLg0KPiBTK2NvcmUgYXBwbGljYXRpb24gZGVwZW5kIG9uIGdsaWJjLTIuMy42LCB3aGlj
+aCBzdXBwb3J0IHN0YXRpYw0KPiBhbmQgZHluYW1pYyBhcHBsaWNhdGlvbnMuDQoNCnZvaWQgbWVy
+Z2Vfc2NvcmVfdG9fdXBzdHJlYW0odm9pZCkNCnsNCiAgICAgICAgaWYgKGFzbS1nZW5lcmljIGlz
+IHRoZSByaWdodCBkaXJlY3Rpb24gZm9yIGFsbCBsaW51eCBhcmNoKSB7DQogICAgICAgICAgICAg
+ICAgaWYgKG1lcmdlIHNjb3JlIGNvZGUpIHsNCiAgICAgICAgICAgICAgICAgICAgICAgIEl0J3Mg
+ZWFzeSBmb3IgdXMgdG8gdXBkYXRlIHNjb3JlIGNvZGUgYW5kDQogICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgIGNvbW1pdCB0aGUgYXNtLWdlbmVyaWMgcHJvYmxlbXMgd2UgbWVldC4NCiAg
+ICAgICAgICAgICAgICB9IGVsc2Ugew0KICAgICAgICAgICAgICAgICAgICAgICAgUGVvcGxlIHdp
+bGwgcGF5IG5vIGF0dGF0aW9uIHRvIHNjb3JlL2FzbS1nZW5lcmljDQogICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgIHByb2JsZW1zLg0KICAgICAgICAgICAgICAgICAgICAgICAgcHJpbnRr
+KCJpdCBoYXZlbid0IGhlbHAgYXNtLWdlbmVyaWMgdG8gc3RhYmxlLiIpOw0KICAgICAgICAgICAg
+ICAgIH0NCiAgICAgICAgZWxzZSB7DQogICAgICAgICAgICAgICAgd2UgY291bGQgdXNlIHNjb3Jl
+IG9sZCBhc20vdW5pc3RkLmggaW5zdGVhZC4NCiAgICAgICAgfQ0KfQ0KDQpJIHRoaW5rIG1lcmdl
+IHNjb3JlIHRvIHVwc3RyZWFtIHdpbGwgYmUgbm8gaGFybSB0byBsaW51eCBrZXJuZWwuDQoNCkNo
+cmlzdG9waCBIZWxsd2lnIDxoY2hAaW5mcmFkZWFkLm9yZz4g0LTT2iAyMDA5LTA2LTIzIDIyOjUw
+OjU5Og0KDQo+IFN0aWxsIGRvZXNuJ3Qgc2VlbSB0byBiZSBxdWl0ZSB1cHRvZGF0ZSBpbiB0aGUg
+cHRyYWNlIGFyZWEsIGUuZy4gbm90DQo+IHVzaW5nIHJlZ3NldHMgYXQgYWxsLiAgSXQgd291bGQg
+YmUgcmVhbGx5IGhlbHBmdWwgaWYgdGhlIGZpbmFsIHB0cmFjZQ0KPiBjb2RlIGNvdWxkIGJlIHJh
+biBwYXN0IFJvbGFuZCBNY0dyYXRoIGFzIHRoZSBwdHJhY2UgbWFpbnRhaW5lci4NCg0KQXMgYSBu
+ZXcgY29tZXIsIHdlIGRvbid0IGtub3cgd2hhdCB3ZSBzaG91bGQgb3Igc2hvdWxkbid0IGRvLA0K
+U2luY2Ugd2UgYmVnaW4gdG8gY29tbWl0IGxpbnV4L3Njb3JlIGNvZGUgdG8gbGludXgub3JnLCB3
+ZSBmb3VuZA0KdGhlIGJlc3Qgd2F5IGlzIGFzIHNpbXBsZSBhcyBwb3NzaWJsZSwgYmVjYXVzZSBp
+biBsaW51eCB3b3JsZA0KcGVvcGxlIGFsc28gaGF2ZSB0aGUgZGlmZmVyZW50IHN1Z2dlc3Rpb25z
+LCBpdCB3aWxsIG1ha2UgdXMgDQpjb25mdXNlZCBhbmQgZG9uJ3Qga25vdyB3aGF0IHRvZG8gbmV4
+dCBzb29uLg0KDQpUaGUgc2ltcGxlIGNvZGUgaGFzIGxpdHRsZSBlcnJvci4gV2UgdGhpbmsgaXQg
+aXNuJ3QgdGhlIHJpZ2h0DQp0aW1lIHRvIGFkZCB1dHJhY2UgY29kZSBzbyB3ZSBkb24ndCBkbyBp
+dC4NCg0KQmVzdCBSZWdhcmRzDQpMaXFpbg0KLS0tDQo=
