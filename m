@@ -1,107 +1,41 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 02/10] percpu: drop @unit_size from embed first chunk allocator
-Date: Wed, 24 Jun 2009 22:30:08 +0900
-Message-ID: <1245850216-31653-3-git-send-email-tj@kernel.org>
+Subject: [PATCH 01/10] x86: make pcpu_chunk_addr_search() matching stricter
+Date: Wed, 24 Jun 2009 22:30:07 +0900
+Message-ID: <1245850216-31653-2-git-send-email-tj@kernel.org>
 References: <1245850216-31653-1-git-send-email-tj@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:50442 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751240AbZFXNam (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Jun 2009 09:30:42 -0400
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1759218AbZFXNbu@vger.kernel.org>
 In-Reply-To: <1245850216-31653-1-git-send-email-tj@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de, cl@linux-foundation.org, akpm@linux-fo
 Cc: Tejun Heo <tj@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-The only extra feature @unit_size provides is making dead space at the
-end of the first chunk which doesn't have any valid usecase.  Drop the
-parameter.  This will increase consistency with generalized 4k
-allocator.
+The @addr passed into pcpu_chunk_addr_search() is unit0 based address
+and thus should be matched inside unit0 area.  Currently, when it uses
+chunk size when determining whether the address falls in the first
+chunk.  Addresses in unitN where N>0 shouldn't be passed in anyway, so
+this doesn't cause any malfunction but fix it for consistency.
 
-[ Impact: drop unused code path ]
+[ Impact: mostly cleanup ]
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Ingo Molnar <mingo@elte.hu>
 ---
- arch/x86/kernel/setup_percpu.c |    2 +-
- include/linux/percpu.h         |    2 +-
- mm/percpu.c                    |   16 +++++-----------
- 3 files changed, 7 insertions(+), 13 deletions(-)
+ mm/percpu.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/arch/x86/kernel/setup_percpu.c b/arch/x86/kernel/setup_percpu.c
-index 29a3eef..1472820 100644
---- a/arch/x86/kernel/setup_percpu.c
-+++ b/arch/x86/kernel/setup_percpu.c
-@@ -342,7 +342,7 @@ static ssize_t __init setup_pcpu_embed(size_t static_size, bool chosen)
- 		return -EINVAL;
- 
- 	return pcpu_embed_first_chunk(static_size, PERCPU_FIRST_CHUNK_RESERVE,
--				      reserve - PERCPU_FIRST_CHUNK_RESERVE, -1);
-+				      reserve - PERCPU_FIRST_CHUNK_RESERVE);
- }
- 
- /*
-diff --git a/include/linux/percpu.h b/include/linux/percpu.h
-index e500034..83bff05 100644
---- a/include/linux/percpu.h
-+++ b/include/linux/percpu.h
-@@ -69,7 +69,7 @@ extern size_t __init pcpu_setup_first_chunk(pcpu_get_page_fn_t get_page_fn,
- 
- extern ssize_t __init pcpu_embed_first_chunk(
- 				size_t static_size, size_t reserved_size,
--				ssize_t dyn_size, ssize_t unit_size);
-+				ssize_t dyn_size);
- 
- /*
-  * Use this to get to a cpu's version of the per-cpu object
 diff --git a/mm/percpu.c b/mm/percpu.c
-index 19dd83b..fe34b6b 100644
+index b149845..19dd83b 100644
 --- a/mm/percpu.c
 +++ b/mm/percpu.c
-@@ -1207,7 +1207,6 @@ static struct page * __init pcpue_get_page(unsigned int cpu, int pageno)
-  * @static_size: the size of static percpu area in bytes
-  * @reserved_size: the size of reserved percpu area in bytes
-  * @dyn_size: free size for dynamic allocation in bytes, -1 for auto
-- * @unit_size: unit size in bytes, must be multiple of PAGE_SIZE, -1 for auto
-  *
-  * This is a helper to ease setting up embedded first percpu chunk and
-  * can be called where pcpu_setup_first_chunk() is expected.
-@@ -1219,9 +1218,9 @@ static struct page * __init pcpue_get_page(unsigned int cpu, int pageno)
-  * page size.
-  *
-  * When @dyn_size is positive, dynamic area might be larger than
-- * specified to fill page alignment.  Also, when @dyn_size is auto,
-- * @dyn_size does not fill the whole first chunk but only what's
-- * necessary for page alignment after static and reserved areas.
-+ * specified to fill page alignment.  When @dyn_size is auto,
-+ * @dyn_size is just big enough to fill page alignment after static
-+ * and reserved areas.
-  *
-  * If the needed size is smaller than the minimum or specified unit
-  * size, the leftover is returned to the bootmem allocator.
-@@ -1231,7 +1230,7 @@ static struct page * __init pcpue_get_page(unsigned int cpu, int pageno)
-  * percpu access on success, -errno on failure.
-  */
- ssize_t __init pcpu_embed_first_chunk(size_t static_size, size_t reserved_size,
--				      ssize_t dyn_size, ssize_t unit_size)
-+				      ssize_t dyn_size)
- {
- 	size_t chunk_size;
- 	unsigned int cpu;
-@@ -1242,12 +1241,7 @@ ssize_t __init pcpu_embed_first_chunk(size_t static_size, size_t reserved_size,
- 	if (dyn_size != 0)
- 		dyn_size = pcpue_size - static_size - reserved_size;
+@@ -290,7 +290,7 @@ static struct pcpu_chunk *pcpu_chunk_addr_search(void *addr)
+ 	void *first_start = pcpu_first_chunk->vm->addr;
  
--	if (unit_size >= 0) {
--		BUG_ON(unit_size < pcpue_size);
--		pcpue_unit_size = unit_size;
--	} else
--		pcpue_unit_size = max_t(size_t, pcpue_size, PCPU_MIN_UNIT_SIZE);
--
-+	pcpue_unit_size = max_t(size_t, pcpue_size, PCPU_MIN_UNIT_SIZE);
- 	chunk_size = pcpue_unit_size * num_possible_cpus();
- 
- 	pcpue_ptr = __alloc_bootmem_nopanic(chunk_size, PAGE_SIZE,
+ 	/* is it in the first chunk? */
+-	if (addr >= first_start && addr < first_start + pcpu_chunk_size) {
++	if (addr >= first_start && addr < first_start + pcpu_unit_size) {
+ 		/* is it in the reserved area? */
+ 		if (addr < first_start + pcpu_reserved_chunk_limit)
+ 			return pcpu_reserved_chunk;
 -- 
 1.6.0.2
