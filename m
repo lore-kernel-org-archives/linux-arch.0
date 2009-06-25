@@ -1,48 +1,56 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH 01/10] percpu: use dynamic percpu allocator as the default percpu allocator
-Date: Thu, 25 Jun 2009 13:44:44 +0900
-Message-ID: <20090625044444.GA19871@linux-sh.org>
-References: <1245825924-30412-1-git-send-email-tj@kernel.org> <1245825924-30412-2-git-send-email-tj@kernel.org>
+From: Andi Kleen <andi@firstfloor.org>
+Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and improve lpage NUMA support
+Date: Thu, 25 Jun 2009 11:19:39 +0200
+Message-ID: <20090625091939.GS6760@one.firstfloor.org>
+References: <1245850216-31653-1-git-send-email-tj@kernel.org> <20090624165508.30b88343.akpm@linux-foundation.org> <20090625000202.GR6760@one.firstfloor.org> <4A42C131.6040007@zytor.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:56630 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750731AbZFYEpq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jun 2009 00:45:46 -0400
+Received: from one.firstfloor.org ([213.235.205.2]:38137 "EHLO
+	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751321AbZFYJTh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jun 2009 05:19:37 -0400
 Content-Disposition: inline
-In-Reply-To: <1245825924-30412-2-git-send-email-tj@kernel.org>
+In-Reply-To: <4A42C131.6040007@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, kyle@mcmartin.ca, cl@linux-foundation.org, Jesper.Nilsson@axis.com, benh@kernel.crashing.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, torvalds@linux-foundation.org, akpm@linux-foundation.org, Russell King <rmk@arm.linux.org.uk>, Mikael Starvik <starvik@axis.com>, Ralf Baechle <ralf@linux-mips.org>, Bryan Wu <cooloney@kernel.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Hirokazu Takata <takata@linux-m32r.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Heiko Carstens <heiko.carstens@de.ibm.com>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <andi@firstfloor.org>, Andrew Morton <akpm@linux-foundation.org>, Tejun Heo <tj@kernel.org>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, cl@linux-foundation.org
 
-On Wed, Jun 24, 2009 at 03:45:15PM +0900, Tejun Heo wrote:
-> This patch makes most !CONFIG_HAVE_SETUP_PER_CPU_AREA archs use
-> dynamic percpu allocator.  The first chunk is allocated using
-> embedding helper and 8k is reserved for modules.  This ensures that
-> the new allocator behaves almost identically to the original allocator
-> as long as static percpu variables are concerned, so it shouldn't
-> introduce much breakage.
+On Wed, Jun 24, 2009 at 05:13:37PM -0700, H. Peter Anvin wrote:
+> Andi Kleen wrote:
+> > 
+> > Haven't read the new patches, but per cpu data always was sized
+> > for all possible CPUs.
+> > 
+> >> and N is large, what did it cost?
+> > 
+> >> And what are reasonable values of N?
+> > 
+> > N should normally not be large anymore, since num_possible_cpus() 
+> > is sized based on firmware information now.
+> > 
 > 
-> s390 and alpha use custom SHIFT_PERCPU_PTR() to work around addressing
-> range limit the addressing model imposes.  Unfortunately, this breaks
-> if the address is specified using a variable, so for now, the two
-> archs aren't converted.
-> 
-> The following architectures are affected by this change.
-> 
-> * sh
-> * arm
-> * cris
-> * mips
-> * sparc(32)
-> * blackfin
-> * avr32
-> * parisc (broken, under investigation)
-> * m32r
-> * powerpc(32)
-> 
-No problems on sh.
+> *Ahem* virtual machines *ahem*...
 
-Acked-by: Paul Mundt <lethal@linux-sh.org>
+And? Even there's not that big typically. 
+
+The traditional problem was just for 128 NR_CPUs kernel were nothing
+was sized based on machine capacity.
+
+Also on large systems the VMs shouldn't be sized for full capacity.
+
+> 
+> I have discussed this with Tejun, and the plan is to allocate the percpu
+> information when a processor is first brought online (but not removed
+> when it is offlined again.)  It's a real problem for 32-bit VMs, so it's
+> more important than you'd think.
+
+You have to rewrite all code that does for_each_possible_cpu (x) 
+in initialization then to use callbacks. It would be a gigantic change
+all over the tree.
+
+-Andi
+
+-- 
+ak@linux.intel.com -- Speaking for myself only.
