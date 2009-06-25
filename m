@@ -1,37 +1,48 @@
-From: liqin.chen@sunplusct.com
-Subject: Re: S+core architecture (arch/score/) support files
-Date: Thu, 25 Jun 2009 11:00:22 +0800
-Message-ID: <OFBE328A69.2A153130-ON482575E0.000D6758-482575E0.0010F631@sunplusct.com>
-References: <20090624070708.GI6760@one.firstfloor.org>
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH 01/10] percpu: use dynamic percpu allocator as the default percpu allocator
+Date: Thu, 25 Jun 2009 13:44:44 +0900
+Message-ID: <20090625044444.GA19871@linux-sh.org>
+References: <1245825924-30412-1-git-send-email-tj@kernel.org> <1245825924-30412-2-git-send-email-tj@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="GB2312"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:38134 "EHLO
-	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751548AbZFYDF5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2009 23:05:57 -0400
-In-Reply-To: <20090624070708.GI6760@one.firstfloor.org>
+Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:56630 "EHLO
+	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750731AbZFYEpq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jun 2009 00:45:46 -0400
+Content-Disposition: inline
+In-Reply-To: <1245825924-30412-2-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <andi@firstfloor.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, linux-arch@vger.kernel.org, linux-arch-owner@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+To: Tejun Heo <tj@kernel.org>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, kyle@mcmartin.ca, cl@linux-foundation.org, Jesper.Nilsson@axis.com, benh@kernel.crashing.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, torvalds@linux-foundation.org, akpm@linux-foundation.org, Russell King <rmk@arm.linux.org.uk>, Mikael Starvik <starvik@axis.com>, Ralf Baechle <ralf@linux-mips.org>, Bryan Wu <cooloney@kernel.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Hirokazu Takata <takata@linux-m32r.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-bGludXgtYXJjaC1vd25lckB2Z2VyLmtlcm5lbC5vcmcg0LTT2iAyMDA5LTA2LTI0IDE1OjA3OjA4
-Og0KDQo+IFRoZSBwcm9ibGVtIGlzIGp1c3QgdGhhdCBpZiB0aGUgY29kZSBpcyBub3QgdGVzdGVk
-IGluIGl0cw0KPiBjdXJyZW50IGNvbmZpZ3VyYXRpb24gaXQgd2lsbCBtb3N0IGxpa2VseSBub3Qg
-d29yayAodW5sZXNzIHlvdSdyZSBhIA0KcGVyZmVjdCANCj4gY29kZXIsIGJ1dCBtb3N0IG9mIHVz
-IGFyZSBub3QpLiBBbmQgbWVyZ2luZyBjb2RlIHRoYXQgZG9lc24ndCB3b3JrIA0KZG9lc24ndA0K
-PiBtYWtlIHNlbnNlLg0KPiANCj4gVGhlIG5lZWQgZm9yIGEgZnVsbCByZXRlc3QgYWZ0ZXIgdGhl
-IGNoYW5nZXMgaW5zcGlyZWQgYnkgcmV2aWV3DQo+IGZlZWRiYWNrIGlzIHNvbWV3aGF0IGFubm95
-aW5nIC0tIEkgYWdyZWUgLS0gYnV0IHRoZXJlJ3MgcmVhbGx5DQo+IG5vIHdheSBhcm91bmQgaXQg
-dGhhdCBJIGtub3cuDQo+IA0KPiBCVFcgSSdtIG5vdCBzYXlpbmcgdGhhdCBMVFAgaXMgdGhlIHBl
-cmZlY3QgdXNlciB0ZXN0IChpdCdzIGRlZmluaXRlbHkNCj4gbm90KSwgYnV0IGl0J3MgYSByZWxh
-dGl2ZWx5IHVzZWZ1bCBiYXNpYyBzYW5pdHkgY2hlY2sgYW5kIHlvdQ0KPiBzaG91bGQgcGFzcyBz
-b21ldGhpbmcgbGlrZSB0aGlzIGF0IGxlYXN0LiBPdGhlciByZWFsIHVzZXIgdGVzdGluZyB3b3Vs
-ZA0KPiBiZSBzdGlsbCBuZWVkZWQgdG9vIG9mIGNvdXJzZSB0aGVuLg0KDQpUaGFua3MgQW5kaSwN
-Cg0KSW4gZmFjdCwgd2hhdCBJIHdvcnJ5IGFib3V0IGlzIGxlYXZpbmcgc2NvcmUgb3V0c2lkZSB1
-cHN0cmVhbSwNCkZldyBwZXJzb24gd2lsbCBwYXkgYXR0YXRpb24gdG8gYXNtLWdlbmVyaWMvc2Nv
-cmUgcGF0Y2hlcy4NCldoZW4gc2NvcmUga2VybmVsL2dsaWJjIGZpbmlzaCBpdHMgdXBkYXRlIGFu
-ZCBwYXNzZWQgTFRQLA0KV2Ugc3RpbGwgY291bGQgbm90IGNhdGNoIHVwIHBlb3BsZSdzIHN1Z2dl
-c3Rpb24uDQoNCkJlc3QgUmVnYXJkcw0KTGlxaW4NCg0K
+On Wed, Jun 24, 2009 at 03:45:15PM +0900, Tejun Heo wrote:
+> This patch makes most !CONFIG_HAVE_SETUP_PER_CPU_AREA archs use
+> dynamic percpu allocator.  The first chunk is allocated using
+> embedding helper and 8k is reserved for modules.  This ensures that
+> the new allocator behaves almost identically to the original allocator
+> as long as static percpu variables are concerned, so it shouldn't
+> introduce much breakage.
+> 
+> s390 and alpha use custom SHIFT_PERCPU_PTR() to work around addressing
+> range limit the addressing model imposes.  Unfortunately, this breaks
+> if the address is specified using a variable, so for now, the two
+> archs aren't converted.
+> 
+> The following architectures are affected by this change.
+> 
+> * sh
+> * arm
+> * cris
+> * mips
+> * sparc(32)
+> * blackfin
+> * avr32
+> * parisc (broken, under investigation)
+> * m32r
+> * powerpc(32)
+> 
+No problems on sh.
+
+Acked-by: Paul Mundt <lethal@linux-sh.org>
