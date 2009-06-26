@@ -1,38 +1,39 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and improve
- lpage NUMA support
-Date: Thu, 25 Jun 2009 19:02:48 -0700
-Message-ID: <4A442C48.6060308@zytor.com>
+From: Andi Kleen <andi@firstfloor.org>
+Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and improve lpage NUMA support
+Date: Fri, 26 Jun 2009 08:54:23 +0200
+Message-ID: <20090626065423.GY6760@one.firstfloor.org>
 References: <1245850216-31653-1-git-send-email-tj@kernel.org> <20090624165508.30b88343.akpm@linux-foundation.org> <20090625000202.GR6760@one.firstfloor.org> <4A42C131.6040007@zytor.com> <20090625091939.GS6760@one.firstfloor.org> <4A43871F.9030507@zytor.com> <20090625195408.GW6760@one.firstfloor.org> <4A43DAFD.90409@zytor.com> <20090625202642.GX6760@one.firstfloor.org> <4A4418EA.9000705@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:39746 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752431AbZFZCEs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jun 2009 22:04:48 -0400
+Received: from one.firstfloor.org ([213.235.205.2]:43964 "EHLO
+	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750853AbZFZGyW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Jun 2009 02:54:22 -0400
+Content-Disposition: inline
 In-Reply-To: <4A4418EA.9000705@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: Andi Kleen <andi@firstfloor.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, cl@linux-foundation.org
+Cc: Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, cl@linux-foundation.org
 
-Tejun Heo wrote:
+On Fri, Jun 26, 2009 at 09:40:10AM +0900, Tejun Heo wrote:
 > Andi Kleen wrote:
->>> I don't know why, but in the configuration I saw each percpu area was
->>> something like 1.8 MB.
->> That sounds like something that needs to be investigated and fixed then.
->> In a sense per cpu space is precious like stack space and shouldn't 
->> be wasted.
+> >> I don't know why, but in the configuration I saw each percpu area was
+> >> something like 1.8 MB.
+> > 
+> > That sounds like something that needs to be investigated and fixed then.
+> > In a sense per cpu space is precious like stack space and shouldn't 
+> > be wasted.
 > 
 > The large percpu space is most likely from lockdep.
-> 
 
-That makes sense.
+It would be better then to fix lockdep then to add weird hacks for that
+elsewhere.
 
-	-hpa
+e.g. it could just allocate buffers in a cpu up/down callback and 
+only put a pointer to these buffers into percpu.
 
+-Andi
 -- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+ak@linux.intel.com -- Speaking for myself only.
