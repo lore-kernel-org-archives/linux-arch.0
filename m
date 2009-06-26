@@ -1,39 +1,76 @@
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and improve lpage NUMA support
-Date: Fri, 26 Jun 2009 08:54:23 +0200
-Message-ID: <20090626065423.GY6760@one.firstfloor.org>
-References: <1245850216-31653-1-git-send-email-tj@kernel.org> <20090624165508.30b88343.akpm@linux-foundation.org> <20090625000202.GR6760@one.firstfloor.org> <4A42C131.6040007@zytor.com> <20090625091939.GS6760@one.firstfloor.org> <4A43871F.9030507@zytor.com> <20090625195408.GW6760@one.firstfloor.org> <4A43DAFD.90409@zytor.com> <20090625202642.GX6760@one.firstfloor.org> <4A4418EA.9000705@kernel.org>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: [PATCH 01/10] percpu: use dynamic percpu allocator as the
+ default percpu allocator
+Date: Fri, 26 Jun 2009 10:13:49 -0500
+Message-ID: <1246029229.3925.20.camel@mulgrave.site>
+References: <1245825924-30412-1-git-send-email-tj@kernel.org>
+	 <1245825924-30412-2-git-send-email-tj@kernel.org>
+	 <1245887275.4022.619.camel@mulgrave.site>  <4A42E72D.2060904@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:43964 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750853AbZFZGyW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Jun 2009 02:54:22 -0400
-Content-Disposition: inline
-In-Reply-To: <4A4418EA.9000705@kernel.org>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:37233 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751269AbZFZPNz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 26 Jun 2009 11:13:55 -0400
+In-Reply-To: <4A42E72D.2060904@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, cl@linux-foundation.org
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, kyle@mcmartin.ca, cl@linux-foundation.org, Jesper.Nilsson@axis.com, benh@kernel.crashing.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, torvalds@linux-foundation.org, akpm@linux-foundation.org, Paul Mundt <lethal@linux-sh.org>, Russell King <rmk@arm.linux.org.uk>, Mikael Starvik <starvik@axis.com>, Ralf Baechle <ralf@linux-mips.org>, Bryan Wu <cooloney@kernel.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Hirokazu Takata <takata@linux-m32r.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-On Fri, Jun 26, 2009 at 09:40:10AM +0900, Tejun Heo wrote:
-> Andi Kleen wrote:
-> >> I don't know why, but in the configuration I saw each percpu area was
-> >> something like 1.8 MB.
+On Thu, 2009-06-25 at 11:55 +0900, Tejun Heo wrote:
+> James Bottomley wrote:
+> > On Wed, 2009-06-24 at 15:45 +0900, Tejun Heo wrote:
+> >> This patch makes most !CONFIG_HAVE_SETUP_PER_CPU_AREA archs use
+> >> dynamic percpu allocator.  The first chunk is allocated using
+> >> embedding helper and 8k is reserved for modules.  This ensures that
+> >> the new allocator behaves almost identically to the original allocator
+> >> as long as static percpu variables are concerned, so it shouldn't
+> >> introduce much breakage.
+> >>
+> >> s390 and alpha use custom SHIFT_PERCPU_PTR() to work around addressing
+> >> range limit the addressing model imposes.  Unfortunately, this breaks
+> >> if the address is specified using a variable, so for now, the two
+> >> archs aren't converted.
+> >>
+> >> The following architectures are affected by this change.
+> >>
+> >> * sh
+> >> * arm
+> >> * cris
+> >> * mips
+> >> * sparc(32)
+> >> * blackfin
+> >> * avr32
+> >> * parisc (broken, under investigation)
 > > 
-> > That sounds like something that needs to be investigated and fixed then.
-> > In a sense per cpu space is precious like stack space and shouldn't 
-> > be wasted.
+> > OK, I thought I'd investigate this.  Unfortunately, your git tree
+> > doesn't build when pulled into head ... could you update?
+> > 
+> > mm/percpu.c: In function 'setup_per_cpu_areas':
+> > mm/percpu.c:2007: error: too many arguments to function 'pcpu_embed_first_chunk'
 > 
-> The large percpu space is most likely from lockdep.
+> Hmm... strange.  I don't see such failures.  Can you please try the
+> following git tree?
+> 
+>   git://git.kernel.org/pub/scm/linux/kernel/git/tj/percpu.git for-james
+> 
+> The contains all posted percpu patches and pulls in the current
+> linus#master (rc1).
 
-It would be better then to fix lockdep then to add weird hacks for that
-elsewhere.
+It still fails with the above error.
 
-e.g. it could just allocate buffers in a cpu up/down callback and 
-only put a pointer to these buffers into percpu.
+If you look at your own file:
 
--Andi
--- 
-ak@linux.intel.com -- Speaking for myself only.
+http://git.kernel.org/?p=linux/kernel/git/tj/percpu.git;a=blob;f=mm/percpu.c;h=b11ae7af3f7a214717d6670edb2985368efa8391;hb=for-james
+
+on line 1456 pcpu_embed_first_chunk is defined with *three* arguments
+
+on line 2006 it's used with *four* arguments
+
+This is what the compiler doesn't like.
+
+James
