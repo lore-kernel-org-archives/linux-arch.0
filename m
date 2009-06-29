@@ -1,45 +1,46 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH] percpu: use __weak only in the definition of weak percpu
- variables
-Date: Mon, 29 Jun 2009 17:53:24 +0900
-Message-ID: <4A488104.3080801@kernel.org>
+From: Jesse Barnes <jesse.barnes@intel.com>
+Subject: Re: [PATCH] PCI: remove pcibios_scan_all_fns()
+Date: Mon, 29 Jun 2009 13:33:50 -0700
+Message-ID: <20090629133350.66024000@jbarnes-g45>
+References: <20090622140807.25509.54448.stgit@bob.kio>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:38453 "EHLO hera.kernel.org"
+Received: from mga11.intel.com ([192.55.52.93]:49006 "EHLO mga11.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752714AbZF2Ixl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Jun 2009 04:53:41 -0400
+	id S1751295AbZF2Udt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Jun 2009 16:33:49 -0400
+In-Reply-To: <20090622140807.25509.54448.stgit@bob.kio>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linux Kernel <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ivan
+To: Alex Chiang <achiang@hp.com>
+Cc: linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, Tony Luck <tony.luck@intel.com>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Yoshinori Sato <ysato@users.sourceforge.jp>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Paul Mundt <lethal@linux-sh.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>
 
-__weak is necessary only for definition and might even not work in
-declaration.  Drop it from declaration.
+On Mon, 22 Jun 2009 08:08:07 -0600
+Alex Chiang <achiang@hp.com> wrote:
 
-This change was suggested by Ivan Kokshaysky.
+> This was #define'd as 0 on all platforms, so let's get rid of it.
+> 
+> This change makes pci_scan_slot() slightly easier to read.
+> 
+> Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+> Cc: Russell King <linux@arm.linux.org.uk>
+> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+> Cc: Tony Luck <tony.luck@intel.com>
+> Cc: Ralf Baechle <ralf@linux-mips.org>
+> Cc: David Howells <dhowells@redhat.com>
+> Cc: Kyle McMartin <kyle@mcmartin.ca>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Paul Mundt <lethal@linux-sh.org>
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: Jeff Dike <jdike@addtoit.com>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Alex Chiang <achiang@hp.com>
+> ---
 
-Signed-off-by: Tejun Heo <tj@kernel.org>
-Acked-by: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
----
-Committed to percpu#for-next.  Thanks.
+Applied this to my linux-next tree, thanks.
 
- include/linux/percpu-defs.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
-
-diff --git a/include/linux/percpu-defs.h b/include/linux/percpu-defs.h
-index cf32838..9b7a53c 100644
---- a/include/linux/percpu-defs.h
-+++ b/include/linux/percpu-defs.h
-@@ -56,7 +56,7 @@
-  */
- #define DECLARE_PER_CPU_SECTION(type, name, sec)			\
- 	extern __PCPU_DUMMY_ATTRS char __pcpu_scope_##name;		\
--	extern __PCPU_ATTRS(sec) __weak __typeof__(type) per_cpu__##name
-+	extern __PCPU_ATTRS(sec) __typeof__(type) per_cpu__##name
- 
- #define DEFINE_PER_CPU_SECTION(type, name, sec)				\
- 	__PCPU_DUMMY_ATTRS char __pcpu_scope_##name;			\
 -- 
-1.6.0.2
+Jesse Barnes, Intel Open Source Technology Center
