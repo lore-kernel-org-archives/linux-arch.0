@@ -1,35 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:35316 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:38453 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753903AbZF0D0m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 26 Jun 2009 23:26:42 -0400
-Message-ID: <4A459142.60301@kernel.org>
-Date: Sat, 27 Jun 2009 12:25:54 +0900
+	id S1752714AbZF2Ixl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Jun 2009 04:53:41 -0400
+Message-ID: <4A488104.3080801@kernel.org>
+Date: Mon, 29 Jun 2009 17:53:24 +0900
 From: Tejun Heo <tj@kernel.org>
 MIME-Version: 1.0
-Subject: Re: [PATCHSET core/percpu] percpu: convert most archs to dynamic
- percpu, take#4
-References: <1245825924-30412-1-git-send-email-tj@kernel.org> <4A459075.4010709@kernel.org>
-In-Reply-To: <4A459075.4010709@kernel.org>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: [PATCH] percpu: use __weak only in the definition of weak percpu
+ variables
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, kyle@mcmartin.ca, cl@linux-foundation.org, Jesper.Nilsson@axis.com, benh@kernel.crashing.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, torvalds@linux-foundation.org, akpm@linux-foundation.org
-Message-ID: <20090627032554.MT1l-KI-FBCXp_erGH6HY1IKZVAqFUVgBilkptZ-9UU@z>
+To: Linux Kernel <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Message-ID: <20090629085324.QgipnrMrDkKWPcHrIqsslKgKNma0I_eRi4ZcePQmBdU@z>
 
-Tejun Heo wrote:
-> Tejun Heo wrote:
->>   git://git.kernel.org/pub/scm/linux/kernel/git/tj/percpu.git convert-most-archs
-> 
-> Rebased tree w/ the build breakage James spotted fixed pulled into
-> #for-next.  It won't be rebased from now on unless something drastic
-> happens.
+__weak is necessary only for definition and might even not work in
+declaration.  Drop it from declaration.
 
-Eh... after hitting send I realized alpha was still broken.  It'll go
-through another revision.
+This change was suggested by Ivan Kokshaysky.
 
-Thanks.
+Signed-off-by: Tejun Heo <tj@kernel.org>
+Acked-by: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+---
+Committed to percpu#for-next.  Thanks.
 
+ include/linux/percpu-defs.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/include/linux/percpu-defs.h b/include/linux/percpu-defs.h
+index cf32838..9b7a53c 100644
+--- a/include/linux/percpu-defs.h
++++ b/include/linux/percpu-defs.h
+@@ -56,7 +56,7 @@
+  */
+ #define DECLARE_PER_CPU_SECTION(type, name, sec)			\
+ 	extern __PCPU_DUMMY_ATTRS char __pcpu_scope_##name;		\
+-	extern __PCPU_ATTRS(sec) __weak __typeof__(type) per_cpu__##name
++	extern __PCPU_ATTRS(sec) __typeof__(type) per_cpu__##name
+ 
+ #define DEFINE_PER_CPU_SECTION(type, name, sec)				\
+ 	__PCPU_DUMMY_ATTRS char __pcpu_scope_##name;			\
 -- 
-tejun
+1.6.0.2
+
