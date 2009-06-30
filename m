@@ -1,45 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:59214 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752342AbZF3TPg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 30 Jun 2009 15:15:36 -0400
-Date: Tue, 30 Jun 2009 21:15:17 +0200
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and
-	improve lpage NUMA support
-Message-ID: <20090630191517.GB20567@elte.hu>
-References: <1245850216-31653-1-git-send-email-tj@kernel.org> <20090624165508.30b88343.akpm@linux-foundation.org> <alpine.DEB.1.10.0906291920100.32637@gentwo.org> <20090629163937.94c8cedd.akpm@linux-foundation.org>
+Received: from smtp3.ultrahosting.com ([74.213.175.254]:46181 "EHLO
+	smtp.ultrahosting.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1759410AbZF3W4J (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Jun 2009 18:56:09 -0400
+Date: Tue, 30 Jun 2009 18:55:55 -0400 (EDT)
+From: Christoph Lameter <cl@linux-foundation.org>
+Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and improve
+ lpage NUMA support
+In-Reply-To: <20090630223138.GH1241@elte.hu>
+Message-ID: <alpine.DEB.1.10.0906301847260.19482@gentwo.org>
+References: <1245850216-31653-1-git-send-email-tj@kernel.org> <20090624165508.30b88343.akpm@linux-foundation.org> <alpine.DEB.1.10.0906291920100.32637@gentwo.org> <20090629163937.94c8cedd.akpm@linux-foundation.org> <20090630191517.GB20567@elte.hu>
+ <alpine.DEB.1.10.0906301533400.29795@gentwo.org> <20090630213146.GA17492@elte.hu> <alpine.DEB.1.10.0906301809330.11362@gentwo.org> <20090630223138.GH1241@elte.hu>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20090629163937.94c8cedd.akpm@linux-foundation.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Christoph Lameter <cl@linux-foundation.org>, tj@kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Andrew Morton <akpm@linux-foundation.org>, tj@kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de
+Message-ID: <20090630225555.ikqMl5v3JFCnwQIfs22jkQrDwuixFWyfV56zeGMTrmo@z>
 
+On Wed, 1 Jul 2009, Ingo Molnar wrote:
 
-* Andrew Morton <akpm@linux-foundation.org> wrote:
+> The usecase i'm talking about is to boot a generic,
+> many-CPUs-capable kernel in a guest image.
 
-> On Mon, 29 Jun 2009 19:20:53 -0400 (EDT)
-> Christoph Lameter <cl@linux-foundation.org> wrote:
-> 
-> > On Wed, 24 Jun 2009, Andrew Morton wrote:
-> > 
-> > > I assume from the tremendous number of 
-> > > for_each_possible_cpu()s that CPU hotplug awareness won't be 
-> > > happening.
-> > 
-> > Per cpu areas are allocated for all possible processors. No need 
-> > to handle offlining and onlining them.
-> 
-> Well yes.  My point is that this is a bug-not-a-feature ;)
+The many-cpu-capable kernel is not the issue. The number of potential cpus
+is config information provided by the hardware. In your case the host
+system provides the number of possible processors.
 
-Yeah, it's a bug for something like a virtual environment which 
-boots generic kernels that might have 64 possible CPUs (on a true 
-64-way system), but which will have fewer in practice.
+> How would you allow that guest to stay on 2 virtual CPUs but still
+> be able to hot-plug many other CPUs if the guest context rises above
+> its original CPU utilization?
 
-It's pretty basic stuff: the on-demand allocation of percpu 
-resources.
+The use case is a guest that needs to add a couple of thousand processors?
 
-	Ingo
+That will require lots of memory and special configuration of the guest
+environment simulated. Yes that is an extreme case that will require lots
+of per cpu memory.
+
