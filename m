@@ -1,43 +1,34 @@
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and improve lpage NUMA support
-Date: Wed, 1 Jul 2009 00:40:18 +0200
-Message-ID: <20090630224018.GJ6760@one.firstfloor.org>
-References: <1245850216-31653-1-git-send-email-tj@kernel.org> <20090624165508.30b88343.akpm@linux-foundation.org> <alpine.DEB.1.10.0906291920100.32637@gentwo.org> <20090629163937.94c8cedd.akpm@linux-foundation.org> <20090630191517.GB20567@elte.hu> <alpine.DEB.1.10.0906301533400.29795@gentwo.org> <20090630213146.GA17492@elte.hu> <alpine.DEB.1.10.0906301809330.11362@gentwo.org> <20090630223138.GH1241@elte.hu>
+From: Christoph Lameter <cl@linux-foundation.org>
+Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and improve
+ lpage NUMA support
+Date: Tue, 30 Jun 2009 18:55:55 -0400 (EDT)
+Message-ID: <alpine.DEB.1.10.0906301847260.19482@gentwo.org>
+References: <1245850216-31653-1-git-send-email-tj@kernel.org> <20090624165508.30b88343.akpm@linux-foundation.org> <alpine.DEB.1.10.0906291920100.32637@gentwo.org> <20090629163937.94c8cedd.akpm@linux-foundation.org> <20090630191517.GB20567@elte.hu>
+ <alpine.DEB.1.10.0906301533400.29795@gentwo.org> <20090630213146.GA17492@elte.hu> <alpine.DEB.1.10.0906301809330.11362@gentwo.org> <20090630223138.GH1241@elte.hu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:54034 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752569AbZF3WkU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Jun 2009 18:40:20 -0400
-Content-Disposition: inline
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1759949AbZF3W4r@vger.kernel.org>
 In-Reply-To: <20090630223138.GH1241@elte.hu>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@elte.hu>
-Cc: Christoph Lameter <cl@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, tj@kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de
+Cc: Andrew Morton <akpm@linux-foundation.org>, tj@kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de
+List-Id: linux-arch.vger.kernel.org
 
-> How would you allow that guest to stay on 2 virtual CPUs but still 
-> be able to hot-plug many other CPUs if the guest context rises above 
+On Wed, 1 Jul 2009, Ingo Molnar wrote:
+
+> The usecase i'm talking about is to boot a generic,
+> many-CPUs-capable kernel in a guest image.
+
+The many-cpu-capable kernel is not the issue. The number of potential cpus
+is config information provided by the hardware. In your case the host
+system provides the number of possible processors.
+
+> How would you allow that guest to stay on 2 virtual CPUs but still
+> be able to hot-plug many other CPUs if the guest context rises above
 > its original CPU utilization?
 
-(unless you're planning to rewrite lots of possible cpu users all over
-the tree) -- the only way is to keep the percpu area small and preallocate. 
+The use case is a guest that needs to add a couple of thousand processors?
 
-As long as the per cpu data size stays reasonable (not more than a 100-200k)
-that's very doable. It probably won't work with 4096 guest CPUs without
-wasting too much memory, but then I don't think we have any Hypervisor
-that scales to that many CPUs anyways, so it's not the biggest
-concern. For the 128CPU case it works (although i might need
-to enlarge vmalloc area a bit on 32bit) 
-
-Unfortunately a few debugging subsystems seem to currently eat
-much more, but those just need to be fixed to only allocate
-state for actually running CPUs, not just possible ones.
-
-I suspect we need a scripts/percpubloat.pl
-
--Andi
-
--- 
-ak@linux.intel.com -- Speaking for myself only.
+That will require lots of memory and special configuration of the guest
+environment simulated. Yes that is an extreme case that will require lots
+of per cpu memory.
