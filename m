@@ -1,58 +1,60 @@
-From: Scott Lurndal <scott.lurndal@3leafsystems.com>
-Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and improve lpage NUMA support
-Date: Tue, 30 Jun 2009 13:21:53 -0700
-Message-ID: <20090630202153.GB28043@pendragon.3leafnetworks.com>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and
+	improve lpage NUMA support
+Date: Tue, 30 Jun 2009 23:31:46 +0200
+Message-ID: <20090630213146.GA17492@elte.hu>
 References: <1245850216-31653-1-git-send-email-tj@kernel.org> <20090624165508.30b88343.akpm@linux-foundation.org> <alpine.DEB.1.10.0906291920100.32637@gentwo.org> <20090629163937.94c8cedd.akpm@linux-foundation.org> <20090630191517.GB20567@elte.hu> <alpine.DEB.1.10.0906301533400.29795@gentwo.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 65-115-68-195.dia.static.qwest.net ([65.115.68.195]:39929 "EHLO
-	chronus.3leafnetworks.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752165AbZF3UhC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 30 Jun 2009 16:37:02 -0400
+Received: from mx2.mail.elte.hu ([157.181.151.9]:53993 "EHLO mx2.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754156AbZF3Vcy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 30 Jun 2009 17:32:54 -0400
 Content-Disposition: inline
 In-Reply-To: <alpine.DEB.1.10.0906301533400.29795@gentwo.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Lameter <cl@linux-foundation.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, tj@kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de
+Cc: Andrew Morton <akpm@linux-foundation.org>, tj@kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de
 
-On Tue, Jun 30, 2009 at 03:39:52PM -0400, Christoph Lameter wrote:
+
+* Christoph Lameter <cl@linux-foundation.org> wrote:
+
 > On Tue, 30 Jun 2009, Ingo Molnar wrote:
 > 
-> > Yeah, it's a bug for something like a virtual environment which
-> > boots generic kernels that might have 64 possible CPUs (on a true
-> > 64-way system), but which will have fewer in practice.
+> > Yeah, it's a bug for something like a virtual environment which 
+> > boots generic kernels that might have 64 possible CPUs (on a 
+> > true 64-way system), but which will have fewer in practice.
+
+i think this bit should be quoted too, because it is the crux of the 
+issue:
+
+> > It's pretty basic stuff: the on-demand allocation of percpu 
+> > resources.
+
+> A machine (and a virtual environment) can indicate via the BIOS 
+> tables or ACPI that there are less "possible" cpus. That is 
+> actually very common.
 > 
-> A machine (and a virtual environment) can indicate via the BIOS tables or
-> ACPI that there are less "possible" cpus. That is actually very common.
-> 
-> The difference between actual and possible cpus only has to be the number
-> of processors that could be brought up later. In a regular system that is
-> pretty much zero. In a fancy system with actual hotpluggable cpus there
-> would be a difference but usually the number of hotpluggable cpus is
-> minimal.
+> The difference between actual and possible cpus only has to be the 
+> number of processors that could be brought up later. In a regular 
+> system that is pretty much zero. In a fancy system with actual 
+> hotpluggable cpus there would be a difference but usually the 
+> number of hotpluggable cpus is minimal.
 
-A hypervisor running on a 4-socket Beckton platform will have 32
-(without hyperthreading) or 64 (with hyperthreading) CPUs to
-allocate 1Q2010.   A hypervisor supporting ACPI hot-plug would be able
-then to hot-plug from one to 64 cores into a single linux guest if it
-wanted to (and didn't overcommit, so gang-scheduling wasn't required).
+You are arguing against the concept of the demand-allocation of 
+resources, and i dont think that technical argument can be won.
 
-Such a hypervisor might typically pass the maximum number of
-CPUs in via the guest ACPI tables when the guest boots, to provide
-the maximum flexibility in being able to grow and shrink the guest,
-with only a subset marked as initially present.
+Sure you dont have to demand-allocate if you know the demand 
+beforehand and can preallocate and size accordingly.
 
-I've been working recently with a 128 (shanghai) / 192 (istanbul)
-core shared memory system which supports hot plugging CPUs into Linux,
-and the feature would be less useful if a hot-plug event could fail
-because the per-cpu area couldn't be allocated at the time of the
-event (which argues for pre-allocation, if a large physically contiguous
-region is required).
+But what if not? What if the kernel can run on up to 4096 CPUs and 
+runs on a big box. Why should a virtual machine have the illogical 
+choice between either wasting a lot of RAM preallocating stuff, or 
+limiting its own extendability.
 
-That said, I don't see much use for 32-bit kernels in environments with
-such CPU counts.
+In other words: your proposed change in essence reduces the utility 
+of CPU hotplug. It's a bad idea.
 
-scott
+	Ingo
