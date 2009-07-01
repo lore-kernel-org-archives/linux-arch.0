@@ -1,100 +1,80 @@
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and improve lpage NUMA support
-Date: Wed, 1 Jul 2009 14:23:12 +0200
-Message-ID: <20090701122312.GP6760@one.firstfloor.org>
-References: <20090624165508.30b88343.akpm@linux-foundation.org> <alpine.DEB.1.10.0906291920100.32637@gentwo.org> <20090629163937.94c8cedd.akpm@linux-foundation.org> <20090630191517.GB20567@elte.hu> <alpine.DEB.1.10.0906301533400.29795@gentwo.org> <20090630213146.GA17492@elte.hu> <alpine.DEB.1.10.0906301809330.11362@gentwo.org> <4A4A9DC6.6020003@kernel.org> <20090701064250.GM6760@one.firstfloor.org> <4A4B38C5.1070504@kernel.org>
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and improve
+ lpage NUMA support
+Date: Wed, 01 Jul 2009 21:53:06 +0900
+Message-ID: <4A4B5C32.1010009@kernel.org>
+References: <20090624165508.30b88343.akpm@linux-foundation.org> <alpine.DEB.1.10.0906291920100.32637@gentwo.org> <20090629163937.94c8cedd.akpm@linux-foundation.org> <20090630191517.GB20567@elte.hu> <alpine.DEB.1.10.0906301533400.29795@gentwo.org> <20090630213146.GA17492@elte.hu> <alpine.DEB.1.10.0906301809330.11362@gentwo.org> <4A4A9DC6.6020003@kernel.org> <20090701064250.GM6760@one.firstfloor.org> <4A4B38C5.1070504@kernel.org> <20090701122312.GP6760@one.firstfloor.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:40855 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751242AbZGAMXL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Jul 2009 08:23:11 -0400
-Content-Disposition: inline
-In-Reply-To: <4A4B38C5.1070504@kernel.org>
+Received: from hera.kernel.org ([140.211.167.34]:49960 "EHLO hera.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750782AbZGAMve (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 1 Jul 2009 08:51:34 -0400
+In-Reply-To: <20090701122312.GP6760@one.firstfloor.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: Andi Kleen <andi@firstfloor.org>, Christoph Lameter <cl@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, hpa@zytor.com, tglx@linutronix.de
+To: Andi Kleen <andi@firstfloor.org>
+Cc: Christoph Lameter <cl@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, hpa@zytor.com, tglx@linutronix.de
 
-On Wed, Jul 01, 2009 at 07:21:57PM +0900, Tejun Heo wrote:
-> > using possible per cpu data I picked in current git: icmp.c
+Hello, Andi.
+
+Andi Kleen wrote:
+> On Wed, Jul 01, 2009 at 07:21:57PM +0900, Tejun Heo wrote:
+>>> using possible per cpu data I picked in current git: icmp.c
+>> I was talking about percpu allocator proper.  Yeap, the major work
+>> would be in auditing and converting for_each_possible_cpu() users.
 > 
-> I was talking about percpu allocator proper.  Yeap, the major work
-> would be in auditing and converting for_each_possible_cpu() users.
+> and testing. that's the hard part. cpu hotplug is normally not well
+> tested. Any code change that requires lots of new code for 
+> it will be a problem because that code will then likely bitrot.
 
-and testing. that's the hard part. cpu hotplug is normally not well
-tested. Any code change that requires lots of new code for 
-it will be a problem because that code will then likely bitrot.
+It would be nice to have something to test cpu on/offlining
+automatically.  Something which keeps bringing cpus up and down as the
+system goes through stress testing.
 
-> >         kfree(net->ipv4.icmp_sk);
-> >         net->ipv4.icmp_sk = NULL;
-> > }
-> > 
-> > You would need to convert that to use a CPU notifier and callbacks
-> > setting up the sockets. Then make sure there are no races in all of
-> > this. And get it somehow tested (where is the user base who
-> > tests cpu hotplug?) 
+[--snip--]
+>> too difficult.  I wouldn't know for sure before I actually try tho.
 > 
-> Maybe it would be better to allocate percpu sockets as proper percpu
-> variables.  
+> I think it's clear that you haven't tried yet :)
 
-That would be like percpu dentries.
+No I haven't yet.  I had a pretty good idea about how to implement it
+in percpu allocator but haven't really looked at the users.  So, yeap,
+it's quite possible that I'm under estimating the problem.  Oh well,
+let's see.  Thanks for the warnings.
 
-A socket is a very complex structure. Trying to pull it out 
-of its normal allocators would be a bad idea.
+> I wrote quite a few per cpu callback handlers over the years and
+> in my experience they are all nasty code with subtle races. The problem
+> is that instead of having a single subset init function which
+> is just single threaded and doesn't need to worry about races
+> you now have multi threaded init, which tends to be a can of worms.
 
-I actually had a patch some time ago to move this one over
-to callbacks, but it was already difficult, and I dropped
-it.
+I tried a couple (didn't end up sending them out) and yeah they could
+be quite painful.  Bringing up part usually isn't as painful as the
+other way tho.
 
-> Initialization would still need callback mechanism tho.  I
-> was thinking about adding @init callback to percpu_alloc(), which
-> would be much simpler than doing full cpu hotplug callback.
+> I think a far saner strategy than rewriting every user of DEFINE_PER_CPU,
+> ending up with lots of badly tested code is to:
 
-I'm not sure it will be actually simpler. It's not just
-initializing the structure, but all the other set up to make
-it known to the world.
+But I don't think it would be that drastic.  Most users are quite
+simple.
 
-> 
-> > And there is lots of similar code all over the tree
-> 
-> For static percpu variables, it'll be mostly about converting
-> for_each_possible_cpu() to for_each_used_cpu() as both allocation and
-> initialization can be handled by percpu proper.  For dynamic areas,
+> - Fix the few large size percpu pigs that are problematic today to
+> allocate in a callback.
+> - Then once the per cpu data in all configurations is <200k (better
+> <100 in the non debug builds) again just keep pre-allocating like we
+> always did
+> - Possibly adjust the vmalloc area on 32bit based on the possible
+> CPU map at the cost of the direct mapping, to make sure there's
+> always enough mapping space.
 
-That's the easy part, but you would still need all the callbacks 
-for the extension case.
+I think it's something we eventually need to do.  There already are
+cases where lack of scalable and performant percpu allocation leads to
+design restrictions and between many core cpus and virtualization the
+requirements are becoming more varied.
 
-> allocation can be handled by percpu proper but cpus coming online
-> would need more work to convert.  It'll take some effort but there
-> aren't too many alloc_percpu() users yet and I don't think it will be
-
-alloc_percpu()? It affects all DEFINE_PER_CPU users. My current
-tree has hundreds.
-
-> too difficult.  I wouldn't know for sure before I actually try tho.
-
-I think it's clear that you haven't tried yet :)
-
-I wrote quite a few per cpu callback handlers over the years and
-in my experience they are all nasty code with subtle races. The problem
-is that instead of having a single subset init function which
-is just single threaded and doesn't need to worry about races
-you now have multi threaded init, which tends to be a can of worms.
-
-I think a far saner strategy than rewriting every user of DEFINE_PER_CPU,
-ending up with lots of badly tested code is to:
-
-- Fix the few large size percpu pigs that are problematic today to
-allocate in a callback.
-- Then once the per cpu data in all configurations is <200k (better
-<100 in the non debug builds) again just keep pre-allocating like we always did
-- Possibly adjust the vmalloc area on 32bit based on the possible
-CPU map at the cost of the direct mapping, to make sure there's always enough 
-mapping space.
-
--Andi
+Thanks.
 
 -- 
-ak@linux.intel.com -- Speaking for myself only.
+tejun
