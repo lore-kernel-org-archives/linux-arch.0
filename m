@@ -1,59 +1,41 @@
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and improve lpage NUMA support
-Date: Wed, 1 Jul 2009 08:42:50 +0200
-Message-ID: <20090701064250.GM6760@one.firstfloor.org>
-References: <1245850216-31653-1-git-send-email-tj@kernel.org> <20090624165508.30b88343.akpm@linux-foundation.org> <alpine.DEB.1.10.0906291920100.32637@gentwo.org> <20090629163937.94c8cedd.akpm@linux-foundation.org> <20090630191517.GB20567@elte.hu> <alpine.DEB.1.10.0906301533400.29795@gentwo.org> <20090630213146.GA17492@elte.hu> <alpine.DEB.1.10.0906301809330.11362@gentwo.org> <4A4A9DC6.6020003@kernel.org>
+From: "Jan Beulich" <JBeulich@novell.com>
+Subject: Re: [PATCH] reduce export symbol CRC table size on 64-bit
+	 archs
+Date: Wed, 01 Jul 2009 08:00:26 +0100
+Message-ID: <4A4B25AA020000780000861D@vpn.id2.novell.com>
+References: <4A4A18780200007800008345@vpn.id2.novell.com>
+ <200907011430.29524.rusty@rustcorp.com.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:53370 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751571AbZGAGmr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Jul 2009 02:42:47 -0400
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753287AbZGAHAf@vger.kernel.org>
+In-Reply-To: <200907011430.29524.rusty@rustcorp.com.au>
 Content-Disposition: inline
-In-Reply-To: <4A4A9DC6.6020003@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: Christoph Lameter <cl@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de
+Sender: linux-kernel-owner@vger.kernel.org
+To: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Ingo Molnar <mingo@elte.hu>, tony.luck@intel.com, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, hpa@zytor.com
+List-Id: linux-arch.vger.kernel.org
 
-> I don't think it will be too complex.  The necessary bits are already
-> there and they are necessary for other stuff too, so...
+>>> Rusty Russell <rusty@rustcorp.com.au> 01.07.09 07:00 >>>
+>On Tue, 30 Jun 2009 09:21:52 pm Jan Beulich wrote:
+>> Since these CRCs are really only 32-bit quantities, there's no need to
+>> store them in 64-bit slots. Since, however, gcc doesn't allow
+>> respective initializations, asm() constructs get used to create the CRC
+>> tables (and its for that reason that the patch only makes x86-64 and
+>> ia64 utilize that functionality, as I can't verify this doesn't break
+>> in some subtle way elsewhere).
+>
+>Hmm, can we change the build system to just link this in as a normal table, 
+>rather than use linker tricks?
+>
+>Then genksyms would just spit out a C file we could compile and link into final 
+>vmlinux.
 
-Are we looking at a different source base? Here's a random example
-using possible per cpu data I picked in current git: icmp.c
+That's going to be non-trivial, because of the ordering that's required to be
+identical between the symbol and the CRC tables. Basically that would mean
+that genksyms would need to look at either the assembly output or the
+object file, which would further slow down the build process. Compared to
+that the asm() solution in the patch sent seems more strait forward (despite
+it possibly looking convoluted at the first glance).
 
-static int __net_init icmp_sk_init(struct net *net)
-{
-        int i, err;
-
-        net->ipv4.icmp_sk =
-                kzalloc(nr_cpu_ids * sizeof(struct sock *), GFP_KERNEL);
-        if (net->ipv4.icmp_sk == NULL)
-                return -ENOMEM;
-
-        for_each_possible_cpu(i) {
-		... allocate per cpu socket and some other setup ...
-	}
-} 
-
-static void __net_exit icmp_sk_exit(struct net *net)
-{
-        int i;
-
-        for_each_possible_cpu(i)
-                inet_ctl_sock_destroy(net->ipv4.icmp_sk[i]);
-        kfree(net->ipv4.icmp_sk);
-        net->ipv4.icmp_sk = NULL;
-}
-
-You would need to convert that to use a CPU notifier and callbacks
-setting up the sockets. Then make sure there are no races in all of
-this. And get it somehow tested (where is the user base who
-tests cpu hotplug?) 
-
-And there is lots of similar code all over the tree
-
--Andi
--- 
-ak@linux.intel.com -- Speaking for myself only.
+Jan
