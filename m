@@ -1,44 +1,75 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and improve
- lpage NUMA support
-Date: Thu, 02 Jul 2009 07:42:18 +0900
-Message-ID: <4A4BE64A.3050805@kernel.org>
-References: <20090629163937.94c8cedd.akpm@linux-foundation.org> <20090630191517.GB20567@elte.hu> <alpine.DEB.1.10.0906301533400.29795@gentwo.org> <20090630213146.GA17492@elte.hu> <alpine.DEB.1.10.0906301809330.11362@gentwo.org> <4A4A9DC6.6020003@kernel.org> <20090701064250.GM6760@one.firstfloor.org> <4A4B38C5.1070504@kernel.org> <20090701122312.GP6760@one.firstfloor.org> <4A4B5C32.1010009@kernel.org> <20090701131146.GR6760@one.firstfloor.org> <alpine.DEB.1.10.0907011330450.9522@gentwo.org>
+From: Michal Marek <mmarek-AlSwsSmVLrQ@public.gmane.org>
+Subject: Re: [PATCH] reduce export symbol CRC table size on 64-bit archs
+Date: Fri, 03 Jul 2009 22:16:28 +0200
+Message-ID: <4A4E671C.2090201@suse.cz>
+References: <4A4A18780200007800008345@vpn.id2.novell.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:42610 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752448AbZGAWne (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 1 Jul 2009 18:43:34 -0400
-In-Reply-To: <alpine.DEB.1.10.0907011330450.9522@gentwo.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux-foundation.org>
-Cc: Andi Kleen <andi@firstfloor.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, hpa@zytor.com, tglx@linutronix.de
+Return-path: <linux-modules-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <4A4A18780200007800008345-Qfbpwmsw6RoS3W1tAdPHOtBPR1lH4CV8@public.gmane.org>
+Sender: linux-modules-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Jan Beulich <JBeulich-Et1tbQHTxzrQT0dZR+AlfA@public.gmane.org>
+Cc: Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Rusty Russell <rusty-8n+1lVoiYb80n/F98K4Iww@public.gmane.org>, hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-modules-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-Christoph Lameter wrote:
-> On Wed, 1 Jul 2009, Andi Kleen wrote:
+Jan Beulich napsal(a):
+> Since these CRCs are really only 32-bit quantities, there's no need to
+> store them in 64-bit slots. Since, however, gcc doesn't allow
+> respective initializations, asm() constructs get used to create the CRC
+> tables (and its for that reason that the patch only makes x86-64 and
+> ia64 utilize that functionality, as I can't verify this doesn't break
+> in some subtle way elsewhere).
 > 
->> And it's imho unclear if that is all worth it just to avoid
->> wasting some memory in the "256 possible CPUs" case (which
->> I doubt is particularly realistic anyways, at least I don't
->> know of any Hypervisor today that scales to 256 CPUs)
-> 
-> I basically agree. Its not worth it given the rare cases where this
-> matters. It will be a lot of code with callbacks in each subsystem.
-> 
-> One of the motivations of working on revising the percpu handling for
-> me was that we could get rid of these screwy callbacks that are rarely
-> tested and cause all sorts of other issues with locking and serialization.
+...
+>  struct modversion_info
+>  {
+> -	unsigned long crc;
+> +	ksym_crc_t crc;
+>  	char name[MODULE_NAME_LEN];
+>  };
 
-Hmmm.... yeah.  I have to agree that callbacks are nasty and requiring
-all users to use callbacks wouldn't be very nice.  Once the current
-dust settles down, I'll look around and see whether this can be solved
-in some reasonable way.
+This change breaks module-init-tools:
+Before:
+$ /sbin/modprobe --dump-modversions _build/drivers/usb/core/usbcore.ko
+| head
+0xb49b735a      module_layout
+0xdb7e6a70      bus_register
+0xe3a25bcc      device_remove_file
+0x1fedf0f4      __request_region
+0x37429b3b      device_remove_bin_file
+0x27ac237c      cdev_del
+0xf3be63b3      per_cpu__current_task
+0x26b76a45      kmalloc_caches
+0x5a34a45c      __kmalloc
+0x1c820358      cdev_init
 
-Thanks.
+After:
+$ /sbin/modprobe --dump-modversions
+_build-crc-int/drivers/usb/core/usbcore.ko  | head
+0x75646f6d91ea7b5c      le_layout
+0x5f7375623e215f43      register
+0x69766564848c67e2      ce_remove_file
+0x65725f5f1fedf0f4      quest_region
+0x69766564a0c29c25      ce_remove_bin_file
+0x766564633ce98bc2      _del
+0x5f72657012c9615b      cpu__current_task
+0x6c616d6b6ea6c464      loc_caches
+0x6d6b5f5f5a34a45c      alloc
+0x766564631e5d885b      _init
 
--- 
-tejun
+It also breaks the newly added depmod -E option (check symbol versions),
+which also reads the struct modversion_info array (*). Is it possible
+name the section differently (__versions2?) on those architectures where
+the size changes, so that it is possible to fix m-i-t in a
+backwards-compatible manner?
+
+Michal
+
+
+(*) dump_modvers() and load_symbols() in
+http://git.kernel.org/?p=utils/kernel/module-init-tools/module-init-tools.git;a=blob;f=elfops_core.c;hb=HEAD
+--
+To unsubscribe from this list: send the line "unsubscribe linux-modules" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
