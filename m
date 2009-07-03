@@ -1,34 +1,71 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCHSET] percpu: generalize first chunk allocators and improve
- lpage NUMA support
-Date: Sat, 04 Jul 2009 08:14:21 +0900
-Message-ID: <4A4E90CD.6070905@kernel.org>
-References: <1245850216-31653-1-git-send-email-tj@kernel.org>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: handle_mm_fault() calling convention cleanup..
+Date: Sat, 04 Jul 2009 09:35:07 +1000
+Message-ID: <1246664107.7551.11.camel@pasglop>
+References: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:44714 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752434AbZGCXPC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Jul 2009 19:15:02 -0400
-In-Reply-To: <1245850216-31653-1-git-send-email-tj@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, andi@firstfloor.org, hpa@zytor.com, tglx@linutronix.de, cl@linux-foundation.org, akpm@linux-fo
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Hugh Dickins <hugh@veritas.com>, Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Wu Fengguang <fengguang.wu@intel.com>, Ingo Molnar <mingo@elte.hu>
+List-Id: linux-arch.vger.kernel.org
 
-Tejun Heo wrote:
-> Hello,
+On Sun, 2009-06-21 at 13:42 -0700, Linus Torvalds wrote:
+> Just a heads up that I committed the patches that I sent out two months 
+> ago to make the fault handling routines use the finer-grained fault flags 
+> (FAULT_FLAG_xyzzy) rather than passing in a boolean for "write".
 > 
-> This patchset is combination of the following two patchsets.
+> That was originally for the NOPAGE_RETRY patches, but it's a general 
+> cleanup too. I have this suspicion that we should extend this to 
+> "get_user_pages()" too, instead of having those boolean "write" and 
+> "force" flags (and GUP_FLAGS_xyzzy as opposed to FAULT_FLAGS_yyzzy).
+
+BTW. I'd like to extend these if there's no objection one of these days
+to also pass whether it was an exec fault, and pass the full flags to
+ptep_set_access_flags().
+
+That would (finally) give us a better hook for architectures that need
+to do it to handle i$/d$ coherency. Right now, I go dig for the current
+fault type inside the current pt_regs from ptep_set_access_flags() which
+is positively ugly.
+
+Ben.
+
+> We should probably also get rid of the insane FOLL_xyz flags too. Right 
+> now the code in fact depends on FOLL_WRITE being the same as 
+> FAULT_FLAGS_WRITE, and while that is a simple dependency, it's just crazy 
+> how we have all these different flags for what ends up often boiling down 
+> to the same fundamental issue in the end (even if not all versions of the 
+> flags are necessarily always valid for all uses).
 > 
-> [1] x86,percpu: generalize 4k and lpage allocator
-> [2] percpu: teach lpage allocator about NUMA
+> I fixed up all architectures that I noticed (at least microblaze had been 
+> added since the original patches in April), but arch maintainers should 
+> double-check. Arch maintainers might also want to check whether the 
+> mindless conversion of
+> 
+> 	'is_write' => 'is_write ? FAULT_FLAGS_WRITE : 0'
+> 
+> might perhaps be written in some more natural way (for example, maybe 
+> you'd like to get rid of 'iswrite' as a variable entirely, and replace it 
+> with a 'fault_flags' variable).
+> 
+> It's pushed out and tested on x86-64, but it really was such a mindless 
+> conversion that I hope it works on all architectures. But I thought I'd 
+> better give people a shout-out regardless.
+> 
+> 		Linus
+> 
+> --
+> To unsubscribe, send a message with 'unsubscribe linux-mm' in
+> the body to majordomo@kvack.org.  For more info on Linux MM,
+> see: http://www.linux-mm.org/ .
+> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
 
-Alpha changes from linus#master pulled into #for-next and this
-patchset has been published in #for-next on top of that.
-
-Thanks.
-
--- 
-tejun
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
