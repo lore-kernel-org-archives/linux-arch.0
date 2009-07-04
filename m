@@ -1,660 +1,79 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: [RFC PATCH] linker script: unify usage of discard definition
-Date: Sat, 04 Jul 2009 08:37:28 +0900
-Message-ID: <4A4E9638.20304@kernel.org>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: linux-next submission requirements (Was: [RFC PATCH] linker script:
+ unify usage of discard definition)
+Date: Sat, 4 Jul 2009 11:34:48 +1000
+Message-ID: <20090704113448.49a722d2.sfr@canb.auug.org.au>
+References: <4A4E9638.20304@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Sat__4_Jul_2009_11_34_48_+1000_QBZZTiTMXj1Oap5R"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:57816 "EHLO hera.kernel.org"
+Received: from chilli.pcug.org.au ([203.10.76.44]:35093 "EHLO smtps.tip.net.au"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751407AbZGCXh5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Jul 2009 19:37:57 -0400
+	id S1753823AbZGDBet (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Jul 2009 21:34:49 -0400
+In-Reply-To: <4A4E9638.20304@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au, Sam
+To: Tejun Heo <tj@kernel.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org
 
-Discarded sections in different archs share some commonality but have
-considerable differences.  This led to linker script for each arch
-implementing its own /DISCARD/ definition, which makes maintaining
-tedious and adding new entries error-prone.
+--Signature=_Sat__4_Jul_2009_11_34_48_+1000_QBZZTiTMXj1Oap5R
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-This patch makes all linker scripts to move discard definitions to the
-end of the linker script and use the common DISCARDS macro.  As ld
-uses the first matching section definition, archs can include default
-discarded sections by including them earlier in the linker script.
+Hi Tejun,
 
-On x86-64 which explicitly includes EXIT_TEXT, this produces identical
-output as before and all but one archs included directives (include or
-discard) for all default discarded sections, so this patch shouldn't
-cause any behavior difference.
+[This is not aimed just at you ... this patch just gave me an
+opportunity to point this out again.]
 
-The only problem case is microblaze, which didn't explicitly included
-EXIT_TEXT and DATA but didn't discard them either leaving ld to create
-identically names output sections for them.  This patch will make the
-end result different by throwing away exit text and data.  It looks
-like the ommission was accidental and throwing away is the right thing
-to do, but I won't push it till someone who knows microblaze confirms
-it.
+On Sat, 04 Jul 2009 08:37:28 +0900 Tejun Heo <tj@kernel.org> wrote:
+>
+> This patch is on top of the current percpu#for-next.
+>=20
+>   git://git.kernel.org/pub/scm/linux/kernel/git/tj/percpu.git for-next
+>=20
+> Thanks.
+>=20
+> NOT_SIGNED_OFF_YET
 
-This patch is on top of the current percpu#for-next.
+Well, given no SOB and that this is a RFC patch, it should *not* be in a
+branch that is pulled into linux-next.
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/tj/percpu.git for-next
+This is what I send to any maintainer that submits a tree for linux-next
+inclusion (and before anyone else points it out: this was not true early
+on):
 
-Thanks.
+"all patches/commits in the tree/series must have been:
 
-NOT_SIGNED_OFF_YET
-Cc: linux-arch@vger.kernel.org
-Cc: Michal Simek <monstr@monstr.eu>
-Cc: microblaze-uclinux@itee.uq.edu.au
-Cc: Sam Ravnborg <sam@ravnborg.org>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Cc: Tony Luck <tony.luck@intel.com>
----
- arch/alpha/kernel/vmlinux.lds.S      |   10 ++--------
- arch/avr32/kernel/vmlinux.lds.S      |   10 +++-------
- arch/blackfin/kernel/vmlinux.lds.S   |    6 +-----
- arch/cris/kernel/vmlinux.lds.S       |   10 ++--------
- arch/frv/kernel/vmlinux.lds.S        |    2 +-
- arch/h8300/kernel/vmlinux.lds.S      |    6 ++----
- arch/ia64/kernel/vmlinux.lds.S       |   22 +++++++++-------------
- arch/m32r/kernel/vmlinux.lds.S       |   11 +++--------
- arch/m68k/kernel/vmlinux-std.lds     |   11 +++--------
- arch/m68k/kernel/vmlinux-sun3.lds    |   10 ++--------
- arch/m68knommu/kernel/vmlinux.lds.S  |    8 +-------
- arch/microblaze/kernel/vmlinux.lds.S |    2 +-
- arch/mips/kernel/vmlinux.lds.S       |   22 ++++++++++------------
- arch/mn10300/kernel/vmlinux.lds.S    |    9 +++------
- arch/parisc/kernel/vmlinux.lds.S     |    9 ++++-----
- arch/powerpc/kernel/vmlinux.lds.S    |   10 +++-------
- arch/s390/kernel/vmlinux.lds.S       |   10 +++-------
- arch/sh/kernel/vmlinux.lds.S         |   11 ++++-------
- arch/sparc/kernel/vmlinux.lds.S      |    9 ++-------
- arch/um/include/asm/common.lds.S     |    5 -----
- arch/um/kernel/dyn.lds.S             |    2 +-
- arch/um/kernel/uml.lds.S             |    2 +-
- arch/x86/kernel/vmlinux.lds.S        |   11 ++++-------
- arch/xtensa/kernel/vmlinux.lds.S     |   14 ++++----------
- include/asm-generic/vmlinux.lds.h    |   14 ++++++++------
- 25 files changed, 77 insertions(+), 159 deletions(-)
+	posted to a relevant mailing list
+	reviewed
+	unit tested
+	destined for the next merge window (or the current release)
 
-Index: work/arch/alpha/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/alpha/kernel/vmlinux.lds.S
-+++ work/arch/alpha/kernel/vmlinux.lds.S
-@@ -134,14 +134,6 @@ SECTIONS
- 	__bss_stop = .;
- 	_end = .;
- 
--	/* Sections to be discarded */
--	/DISCARD/ : {
--		EXIT_TEXT
--		EXIT_DATA
--		*(.exitcall.exit)
--		*(.discard)
--	}
--
- 	.mdebug 0 : {
- 		*(.mdebug)
- 	}
-@@ -151,4 +143,6 @@ SECTIONS
- 
- 	STABS_DEBUG
- 	DWARF_DEBUG
-+
-+	DISCARDS
- }
-Index: work/arch/avr32/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/avr32/kernel/vmlinux.lds.S
-+++ work/arch/avr32/kernel/vmlinux.lds.S
-@@ -124,15 +124,11 @@ SECTIONS
- 		_end = .;
- 	}
- 
-+	DWARF_DEBUG
-+
- 	/* When something in the kernel is NOT compiled as a module, the module
- 	 * cleanup code and data are put into these segments. Both can then be
- 	 * thrown away, as cleanup code is never called unless it's a module.
- 	 */
--	/DISCARD/       	: {
--		EXIT_DATA
--		*(.exitcall.exit)
--		*(.discard)
--	}
--
--	DWARF_DEBUG
-+	DISCARDS
- }
-Index: work/arch/blackfin/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/blackfin/kernel/vmlinux.lds.S
-+++ work/arch/blackfin/kernel/vmlinux.lds.S
-@@ -277,9 +277,5 @@ SECTIONS
- 
- 	DWARF_DEBUG
- 
--	/DISCARD/ :
--	{
--		*(.exitcall.exit)
--		*(.discard)
--	}
-+	DISCARDS
- }
-Index: work/arch/cris/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/cris/kernel/vmlinux.lds.S
-+++ work/arch/cris/kernel/vmlinux.lds.S
-@@ -140,13 +140,7 @@ SECTIONS
- 	_end = .;
- 	__end = .;
- 
--	/* Sections to be discarded */
--	/DISCARD/ : {
--		EXIT_TEXT
--		EXIT_DATA
--		*(.exitcall.exit)
--		*(.discard)
--        }
--
- 	dram_end = dram_start + (CONFIG_ETRAX_DRAM_SIZE - __CONFIG_ETRAX_VMEM_SIZE)*1024*1024;
-+
-+	DISCARDS
- }
-Index: work/arch/frv/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/frv/kernel/vmlinux.lds.S
-+++ work/arch/frv/kernel/vmlinux.lds.S
-@@ -178,7 +178,7 @@ SECTIONS
- 
-   .comment 0 : { *(.comment) }
- 
--  /DISCARD/ : { *(.discard) }
-+  DISCARDS
- }
- 
- __kernel_image_size_no_bss = __bss_start - __kernel_image_start;
-Index: work/arch/h8300/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/h8300/kernel/vmlinux.lds.S
-+++ work/arch/h8300/kernel/vmlinux.lds.S
-@@ -152,10 +152,6 @@ SECTIONS
- 	__end = . ;
- 	__ramstart = .;
- 	}
--	/DISCARD/ : {
--		*(.exitcall.exit)
--		*(.discard)
--	}
-         .romfs :	
- 	{
- 		*(.romfs*)
-@@ -166,4 +162,6 @@ SECTIONS
- 	COMMAND_START = . - 0x200 ;
- 	__ramend = . ;
- 	}
-+
-+	DISCARDS
- }
-Index: work/arch/ia64/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/ia64/kernel/vmlinux.lds.S
-+++ work/arch/ia64/kernel/vmlinux.lds.S
-@@ -24,16 +24,6 @@ PHDRS {
- }
- SECTIONS
- {
--  /* Sections to be discarded */
--  /DISCARD/ : {
--	EXIT_TEXT
--	EXIT_DATA
--	*(.exitcall.exit)
--	*(.discard)
--	*(.IA_64.unwind.exit.text)
--	*(.IA_64.unwind_info.exit.text)
--	}
--
-   v = PAGE_OFFSET;	/* this symbol is here to make debugging easier... */
-   phys_start = _start - LOAD_OFFSET;
- 
-@@ -317,7 +307,13 @@ SECTIONS
-   .debug_funcnames 0 : { *(.debug_funcnames) }
-   .debug_typenames 0 : { *(.debug_typenames) }
-   .debug_varnames  0 : { *(.debug_varnames) }
--  /* These must appear regardless of  .  */
--  /DISCARD/ : { *(.comment) }
--  /DISCARD/ : { *(.note) }
-+
-+  /* Sections to be discarded */
-+  DISCARDS
-+  /DISCARD/ : {
-+	*(.IA_64.unwind.exit.text)
-+	*(.IA_64.unwind_info.exit.text)
-+	*(.comment)
-+	*(.note)
-+	}
- }
-Index: work/arch/m32r/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/m32r/kernel/vmlinux.lds.S
-+++ work/arch/m32r/kernel/vmlinux.lds.S
-@@ -120,14 +120,6 @@ SECTIONS
- 
-   _end = . ;
- 
--  /* Sections to be discarded */
--  /DISCARD/ : {
--	EXIT_TEXT
--	EXIT_DATA
--	*(.exitcall.exit)
--	*(.discard)
--	}
--
-   /* Stabs debugging sections.  */
-   .stab 0 : { *(.stab) }
-   .stabstr 0 : { *(.stabstr) }
-@@ -136,4 +128,7 @@ SECTIONS
-   .stab.index 0 : { *(.stab.index) }
-   .stab.indexstr 0 : { *(.stab.indexstr) }
-   .comment 0 : { *(.comment) }
-+
-+  /* Sections to be discarded */
-+  DISCARDS
- }
-Index: work/arch/m68knommu/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/m68knommu/kernel/vmlinux.lds.S
-+++ work/arch/m68knommu/kernel/vmlinux.lds.S
-@@ -184,13 +184,6 @@ SECTIONS {
- 		__init_end = .;
- 	} > INIT
- 
--	/DISCARD/ : {
--		EXIT_TEXT
--		EXIT_DATA
--		*(.exitcall.exit)
--		*(.discard)
--	}
--
- 	.bss : {
- 		. = ALIGN(4);
- 		_sbss = . ;
-@@ -201,5 +194,6 @@ SECTIONS {
- 	 	_end = . ;
- 	} > BSS
- 
-+	DISCARDS
- }
- 
-Index: work/arch/microblaze/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/microblaze/kernel/vmlinux.lds.S
-+++ work/arch/microblaze/kernel/vmlinux.lds.S
-@@ -163,5 +163,5 @@ SECTIONS {
- 	. = ALIGN(4096);
- 	_end = .;
- 
--	/DISCARD/ : { *(.discard) }
-+	DISCARDS
- }
-Index: work/arch/mips/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/mips/kernel/vmlinux.lds.S
-+++ work/arch/mips/kernel/vmlinux.lds.S
-@@ -176,18 +176,6 @@ SECTIONS
- 
- 	_end = . ;
- 
--	/* Sections to be discarded */
--	/DISCARD/ : {
--		*(.exitcall.exit)
--		*(.discard)
--
--		/* ABI crap starts here */
--		*(.MIPS.options)
--		*(.options)
--		*(.pdr)
--		*(.reginfo)
--	}
--
- 	/* These mark the ABI of the kernel for debuggers.  */
- 	.mdebug.abi32 : {
- 		KEEP(*(.mdebug.abi32))
-@@ -213,4 +201,14 @@ SECTIONS
- 		*(.gptab.bss)
- 		*(.gptab.sbss)
- 	}
-+
-+	/* Sections to be discarded */
-+	DISCARDS
-+	/DISCARD/ : {
-+		/* ABI crap starts here */
-+		*(.MIPS.options)
-+		*(.options)
-+		*(.pdr)
-+		*(.reginfo)
-+	}
- }
-Index: work/arch/mn10300/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/mn10300/kernel/vmlinux.lds.S
-+++ work/arch/mn10300/kernel/vmlinux.lds.S
-@@ -115,13 +115,10 @@ SECTIONS
-   . = ALIGN(PAGE_SIZE);
-   pg0 = .;
- 
--  /* Sections to be discarded */
--  /DISCARD/ : {
--	EXIT_CALL
--	*(.discard)
--	}
--
-   STABS_DEBUG
- 
-   DWARF_DEBUG
-+
-+  /* Sections to be discarded */
-+  DISCARDS
- }
-Index: work/arch/parisc/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/parisc/kernel/vmlinux.lds.S
-+++ work/arch/parisc/kernel/vmlinux.lds.S
-@@ -237,10 +237,12 @@ SECTIONS
- 	/* freed after init ends here */
- 	_end = . ;
- 
-+	STABS_DEBUG
-+	.note 0 : { *(.note) }
-+
- 	/* Sections to be discarded */
-+	DISCARDS
- 	/DISCARD/ : {
--		*(.exitcall.exit)
--		*(.discard)
- #ifdef CONFIG_64BIT
- 		/* temporary hack until binutils is fixed to not emit these
- 	 	 * for static binaries
-@@ -253,7 +255,4 @@ SECTIONS
- 		*(.gnu.hash)
- #endif
- 	}
--
--	STABS_DEBUG
--	.note 0 : { *(.note) }	
- }
-Index: work/arch/powerpc/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/powerpc/kernel/vmlinux.lds.S
-+++ work/arch/powerpc/kernel/vmlinux.lds.S
-@@ -37,13 +37,6 @@ jiffies = jiffies_64 + 4;
- #endif
- SECTIONS
- {
--	/* Sections to be discarded. */
--	/DISCARD/ : {
--	*(.exitcall.exit)
--	*(.discard)
--	EXIT_DATA
--	}
--
- 	. = KERNELBASE;
- 
- /*
-@@ -299,4 +292,7 @@ SECTIONS
- 	. = ALIGN(PAGE_SIZE);
- 	_end = . ;
- 	PROVIDE32 (end = .);
-+
-+	/* Sections to be discarded. */
-+	DISCARDS
- }
-Index: work/arch/s390/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/s390/kernel/vmlinux.lds.S
-+++ work/arch/s390/kernel/vmlinux.lds.S
-@@ -157,14 +157,10 @@ SECTIONS
- 
- 	_end = . ;
- 
--	/* Sections to be discarded */
--	/DISCARD/ : {
--		EXIT_DATA
--		*(.exitcall.exit)
--		*(.discard)
--	}
--
- 	/* Debugging sections.	*/
- 	STABS_DEBUG
- 	DWARF_DEBUG
-+
-+	/* Sections to be discarded */
-+	DISCARDS
- }
-Index: work/arch/sh/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/sh/kernel/vmlinux.lds.S
-+++ work/arch/sh/kernel/vmlinux.lds.S
-@@ -163,17 +163,14 @@ SECTIONS
- 		_end = . ;
- 	}
- 
-+	STABS_DEBUG
-+	DWARF_DEBUG
-+
- 	/*
- 	 * When something in the kernel is NOT compiled as a module, the
- 	 * module cleanup code and data are put into these segments. Both
- 	 * can then be thrown away, as cleanup code is never called unless
- 	 * it's a module.
- 	 */
--	/DISCARD/ : {
--		*(.exitcall.exit)
--		*(.discard)
--	}
--
--	STABS_DEBUG
--	DWARF_DEBUG
-+	DISCARDS
- }
-Index: work/arch/sparc/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/sparc/kernel/vmlinux.lds.S
-+++ work/arch/sparc/kernel/vmlinux.lds.S
-@@ -171,13 +171,8 @@ SECTIONS
- 	}
- 	_end = . ;
- 
--	/DISCARD/ : {
--		EXIT_TEXT
--		EXIT_DATA
--		*(.exitcall.exit)
--		*(.discard)
--	}
--
- 	STABS_DEBUG
- 	DWARF_DEBUG
-+
-+	DISCARDS
- }
-Index: work/arch/x86/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/x86/kernel/vmlinux.lds.S
-+++ work/arch/x86/kernel/vmlinux.lds.S
-@@ -387,15 +387,12 @@ SECTIONS
- 		_end = .;
- 	}
- 
--	/* Sections to be discarded */
--	/DISCARD/ : {
--		*(.exitcall.exit)
--		*(.eh_frame)
--		*(.discard)
--	}
--
-         STABS_DEBUG
-         DWARF_DEBUG
-+
-+	/* Sections to be discarded */
-+	DISCARDS
-+	/DISCARD/ : { *(.eh_frame) }
- }
- 
- 
-Index: work/arch/xtensa/kernel/vmlinux.lds.S
-===================================================================
---- work.orig/arch/xtensa/kernel/vmlinux.lds.S
-+++ work/arch/xtensa/kernel/vmlinux.lds.S
-@@ -280,16 +280,6 @@ SECTIONS
-     *(.ResetVector.text)
-   }
- 
--  /* Sections to be discarded */
--  /DISCARD/ :
--  {
--	*(.exit.literal)
--	EXIT_TEXT
--	EXIT_DATA
--        *(.exitcall.exit)
--	*(.discard)
--  }
--
-   .xt.lit : { *(.xt.lit) }
-   .xt.prop : { *(.xt.prop) }
- 
-@@ -322,4 +312,8 @@ SECTIONS
-     *(.xt.lit)
-     *(.gnu.linkonce.p*)
-   }
-+
-+  /* Sections to be discarded */
-+  DISCARDS
-+  /DISCARD/ : { *(.exit.literal) }
- }
-Index: work/include/asm-generic/vmlinux.lds.h
-===================================================================
---- work.orig/include/asm-generic/vmlinux.lds.h
-+++ work/include/asm-generic/vmlinux.lds.h
-@@ -35,13 +35,10 @@
-  *	__bss_stop = .;
-  *	_end = .;
-  *
-- *	/DISCARD/ : {
-- *		EXIT_TEXT
-- *		EXIT_DATA
-- *		EXIT_CALL
-- *	}
-  *	STABS_DEBUG
-  *	DWARF_DEBUG
-+ *
-+ *	DISCARDS		// must be the last
-  * }
-  *
-  * [__init_begin, __init_end] is the init section that may be freed after init
-@@ -629,11 +626,16 @@
- #define INIT_RAM_FS
- #endif
- 
-+/*
-+ * DISCARDS must be the last and archs which want some of the default
-+ * discarded sections in the kernel image can do so by putting them in
-+ * earlier section definition.
-+ */
- #define DISCARDS							\
- 	/DISCARD/ : {							\
- 	EXIT_TEXT							\
- 	EXIT_DATA							\
--	*(.exitcall.exit)						\
-+	EXIT_CALL							\
- 	*(.discard)							\
- 	}
- 
-Index: work/arch/m68k/kernel/vmlinux-std.lds
-===================================================================
---- work.orig/arch/m68k/kernel/vmlinux-std.lds
-+++ work/arch/m68k/kernel/vmlinux-std.lds
-@@ -82,14 +82,6 @@ SECTIONS
- 
-   _end = . ;
- 
--  /* Sections to be discarded */
--  /DISCARD/ : {
--	EXIT_TEXT
--	EXIT_DATA
--	*(.exitcall.exit)
--	*(.discard)
--	}
--
-   /* Stabs debugging sections.  */
-   .stab 0 : { *(.stab) }
-   .stabstr 0 : { *(.stabstr) }
-@@ -98,4 +90,7 @@ SECTIONS
-   .stab.index 0 : { *(.stab.index) }
-   .stab.indexstr 0 : { *(.stab.indexstr) }
-   .comment 0 : { *(.comment) }
-+
-+  /* Sections to be discarded */
-+  DISCARDS
- }
-Index: work/arch/m68k/kernel/vmlinux-sun3.lds
-===================================================================
---- work.orig/arch/m68k/kernel/vmlinux-sun3.lds
-+++ work/arch/m68k/kernel/vmlinux-sun3.lds
-@@ -77,14 +77,6 @@ __init_begin = .;
- 
-   _end = . ;
- 
--  /* Sections to be discarded */
--  /DISCARD/ : {
--	EXIT_TEXT
--	EXIT_DATA
--	*(.exitcall.exit)
--	*(.discard)
--	}
--
-   .crap : {
- 	/* Stabs debugging sections.  */
- 	*(.stab)
-@@ -97,4 +89,6 @@ __init_begin = .;
- 	*(.note)
-   }
- 
-+  /* Sections to be discarded */
-+  DISCARDS
- }
-Index: work/arch/um/include/asm/common.lds.S
-===================================================================
---- work.orig/arch/um/include/asm/common.lds.S
-+++ work/arch/um/include/asm/common.lds.S
-@@ -123,8 +123,3 @@
- 	__initramfs_end = .;
-   }
- 
--  /* Sections to be discarded */
--  /DISCARD/ : {
-- 	*(.exitcall.exit)
--  }
--
-Index: work/arch/um/kernel/dyn.lds.S
-===================================================================
---- work.orig/arch/um/kernel/dyn.lds.S
-+++ work/arch/um/kernel/dyn.lds.S
-@@ -157,5 +157,5 @@ SECTIONS
- 
-   DWARF_DEBUG
- 
--  /DISCARD/	: { *(.discard) }
-+  DISCARDS
- }
-Index: work/arch/um/kernel/uml.lds.S
-===================================================================
---- work.orig/arch/um/kernel/uml.lds.S
-+++ work/arch/um/kernel/uml.lds.S
-@@ -101,5 +101,5 @@ SECTIONS
- 
-   DWARF_DEBUG
- 
--  /DISCARD/	: { *(.discard) }
-+  DISCARDS
- }
+*before* they are included.  The linux-next tree is for integration
+testing and to lower the impact of conflicts between subsystems in the
+next merge window.
+
+Basically, this should be just what you would send to Linus (or ask him
+to fetch).  It is allowed to be rebased if you deem it necessary."
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Sat__4_Jul_2009_11_34_48_+1000_QBZZTiTMXj1Oap5R
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
+
+iEYEARECAAYFAkpOsbgACgkQjjKRsyhoI8zDlQCffuNpjxFX4EkBaMMY5yRd8jDA
+/VAAn2ToZp0b2MgZJ0KP4bcUgvPcB/Ri
+=c8C+
+-----END PGP SIGNATURE-----
+
+--Signature=_Sat__4_Jul_2009_11_34_48_+1000_QBZZTiTMXj1Oap5R--
