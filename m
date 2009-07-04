@@ -1,47 +1,67 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: handle_mm_fault() calling convention cleanup..
-Date: Sat, 4 Jul 2009 09:44:38 -0700 (PDT)
-Message-ID: <alpine.LFD.2.01.0907040937040.3210@localhost.localdomain>
-References: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain> <1246664107.7551.11.camel@pasglop>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [microblaze-uclinux] [RFC PATCH] linker script: unify usage of
+ discard definition
+Date: Sat, 04 Jul 2009 20:40:18 +0200
+Message-ID: <4A4FA212.8030506@monstr.eu>
+References: <4A4E9638.20304@kernel.org>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1246664107.7551.11.camel@pasglop>
-Sender: owner-linux-mm@kvack.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: linux-arch@vger.kernel.org, Hugh Dickins <hugh@veritas.com>, Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Wu Fengguang <fengguang.wu@intel.com>, Ingo Molnar <mingo@elte.hu>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-fx0-f218.google.com ([209.85.220.218]:51944 "EHLO
+	mail-fx0-f218.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752216AbZGDSkX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 4 Jul 2009 14:40:23 -0400
+In-Reply-To: <4A4E9638.20304@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: microblaze-uclinux@itee.uq.edu.au
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Sam Ravnborg <sam@ravnborg.org>, Paul Mundt <lethal@linux-sh.org>, Tony Luck <tony.luck@intel.com>, tj@kernel.org
 
 
 
-On Sat, 4 Jul 2009, Benjamin Herrenschmidt wrote:
+Tejun Heo wrote:
+> Discarded sections in different archs share some commonality but have
+> considerable differences.  This led to linker script for each arch
+> implementing its own /DISCARD/ definition, which makes maintaining
+> tedious and adding new entries error-prone.
 > 
-> BTW. I'd like to extend these if there's no objection one of these days
-> to also pass whether it was an exec fault, and pass the full flags to
-> ptep_set_access_flags().
+> This patch makes all linker scripts to move discard definitions to the
+> end of the linker script and use the common DISCARDS macro.  As ld
+> uses the first matching section definition, archs can include default
+> discarded sections by including them earlier in the linker script.
+> 
+> On x86-64 which explicitly includes EXIT_TEXT, this produces identical
+> output as before and all but one archs included directives (include or
+> discard) for all default discarded sections, so this patch shouldn't
+> cause any behavior difference.
+> 
+> The only problem case is microblaze, which didn't explicitly included
+> EXIT_TEXT and DATA but didn't discard them either leaving ld to create
+> identically names output sections for them.  This patch will make the
+> end result different by throwing away exit text and data.  It looks
+> like the ommission was accidental and throwing away is the right thing
+> to do, but I won't push it till someone who knows microblaze confirms
+> it.
 
-Sure. No problem, and sounds sane.
+As you expected noMMU Microblaze kernel has some problems with that patch. (MMU version is fine)
+I'll take a look at it closer yesterday.
 
-Just a tiny word of warning: right now, the conversion I did pretty much 
-depended on the fact that even if I missed a spot, it wouldn't actually 
-make any difference. If somebody used "flags" as a binary value (ie like 
-the old "write_access" kind of semantics), things would still all work, 
-because it was still a "zero-vs-nonzero" issue wrt writes.
+Thanks,
+Michal
 
-And there were cases in the hugepage handling that I had missed, that 
-Hugh picked up. Maybe he picked them all - but be careful.
 
-I didn't add any flags (like the FAULT_FLAG_RETRY thing that started it 
-all) that would actually _require_ everybody to always treat it as a 
-bitmask. And some places still pass the flags down as basically just the 
-"write or not" thing. ptep_set_access_flags() stands out as one of them 
-(and I think your suggestion would actually clean things up), but there 
-are probably others.
 
-		Linus
+> ___________________________
+> microblaze-uclinux mailing list
+> microblaze-uclinux@itee.uq.edu.au
+> Project Home Page : http://www.itee.uq.edu.au/~jwilliams/mblaze-uclinux
+> Mailing List Archive : http://www.itee.uq.edu.au/~listarch/microblaze-uclinux/
+> 
+> 
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+
+-- 
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
