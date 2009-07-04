@@ -1,67 +1,38 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [microblaze-uclinux] [RFC PATCH] linker script: unify usage of
- discard definition
-Date: Sat, 04 Jul 2009 20:40:18 +0200
-Message-ID: <4A4FA212.8030506@monstr.eu>
-References: <4A4E9638.20304@kernel.org>
-Reply-To: monstr@monstr.eu
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: handle_mm_fault() calling convention cleanup..
+Date: Sun, 05 Jul 2009 07:08:38 +1000
+Message-ID: <1246741718.7551.22.camel@pasglop>
+References: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain>
+	 <1246664107.7551.11.camel@pasglop>
+	 <alpine.LFD.2.01.0907040937040.3210@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f218.google.com ([209.85.220.218]:51944 "EHLO
-	mail-fx0-f218.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752216AbZGDSkX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 4 Jul 2009 14:40:23 -0400
-In-Reply-To: <4A4E9638.20304@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: microblaze-uclinux@itee.uq.edu.au
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Sam Ravnborg <sam@ravnborg.org>, Paul Mundt <lethal@linux-sh.org>, Tony Luck <tony.luck@intel.com>, tj@kernel.org
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <alpine.LFD.2.01.0907040937040.3210@localhost.localdomain>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Hugh Dickins <hugh@veritas.com>, Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Wu Fengguang <fengguang.wu@intel.com>, Ingo Molnar <mingo@elte.hu>
+List-Id: linux-arch.vger.kernel.org
 
+On Sat, 2009-07-04 at 09:44 -0700, Linus Torvalds wrote:
 
+> Just a tiny word of warning: right now, the conversion I did pretty much 
+> depended on the fact that even if I missed a spot, it wouldn't actually 
+> make any difference. If somebody used "flags" as a binary value (ie like 
+> the old "write_access" kind of semantics), things would still all work, 
+> because it was still a "zero-vs-nonzero" issue wrt writes.
 
-Tejun Heo wrote:
-> Discarded sections in different archs share some commonality but have
-> considerable differences.  This led to linker script for each arch
-> implementing its own /DISCARD/ definition, which makes maintaining
-> tedious and adding new entries error-prone.
-> 
-> This patch makes all linker scripts to move discard definitions to the
-> end of the linker script and use the common DISCARDS macro.  As ld
-> uses the first matching section definition, archs can include default
-> discarded sections by including them earlier in the linker script.
-> 
-> On x86-64 which explicitly includes EXIT_TEXT, this produces identical
-> output as before and all but one archs included directives (include or
-> discard) for all default discarded sections, so this patch shouldn't
-> cause any behavior difference.
-> 
-> The only problem case is microblaze, which didn't explicitly included
-> EXIT_TEXT and DATA but didn't discard them either leaving ld to create
-> identically names output sections for them.  This patch will make the
-> end result different by throwing away exit text and data.  It looks
-> like the ommission was accidental and throwing away is the right thing
-> to do, but I won't push it till someone who knows microblaze confirms
-> it.
+ .../...
 
-As you expected noMMU Microblaze kernel has some problems with that patch. (MMU version is fine)
-I'll take a look at it closer yesterday.
+Right. Oh well.. we'll see when I get to it. I have a few higher
+priority things on my pile at the moment.
 
-Thanks,
-Michal
+Cheers,
+Ben.
 
-
-
-> ___________________________
-> microblaze-uclinux mailing list
-> microblaze-uclinux@itee.uq.edu.au
-> Project Home Page : http://www.itee.uq.edu.au/~jwilliams/mblaze-uclinux
-> Mailing List Archive : http://www.itee.uq.edu.au/~listarch/microblaze-uclinux/
-> 
-> 
-
-
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
