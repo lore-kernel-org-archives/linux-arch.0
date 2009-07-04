@@ -1,40 +1,47 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [RFC PATCH] linker script: unify usage of discard definition
-Date: Sun, 5 Jul 2009 00:37:17 +0900
-Message-ID: <20090704153717.GA9933@linux-sh.org>
-References: <4A4E9638.20304@kernel.org> <8bd0f97a0907032251p753527e1oac25ea1740a1bfdb@mail.gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: handle_mm_fault() calling convention cleanup..
+Date: Sat, 4 Jul 2009 09:44:38 -0700 (PDT)
+Message-ID: <alpine.LFD.2.01.0907040937040.3210@localhost.localdomain>
+References: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain> <1246664107.7551.11.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:36449 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750832AbZGDPhY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 4 Jul 2009 11:37:24 -0400
-Content-Disposition: inline
-In-Reply-To: <8bd0f97a0907032251p753527e1oac25ea1740a1bfdb@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier.adi@gmail.com>
-Cc: Tejun Heo <tj@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au, Sam Ravnborg <sam@ravnborg.org>, Tony Luck <tony.luck@intel.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1246664107.7551.11.camel@pasglop>
+Sender: owner-linux-mm@kvack.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: linux-arch@vger.kernel.org, Hugh Dickins <hugh@veritas.com>, Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Wu Fengguang <fengguang.wu@intel.com>, Ingo Molnar <mingo@elte.hu>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jul 04, 2009 at 01:51:04AM -0400, Mike Frysinger wrote:
-> On Fri, Jul 3, 2009 at 19:37, Tejun Heo wrote:
-> > +/*
-> > + * DISCARDS must be the last and archs which want some of the default
-> > + * discarded sections in the kernel image can do so by putting them in
-> > + * earlier section definition.
-> > + */
-> 
-> i would add to the comment that some people want to discard exit
-> text/data at runtime rather than link time due to cross-section
-> references such as alt instructions, bug table, eh_frame, etc...
-> 
-> otherwise, looks good to me.  thanks !
-> 
-> Acked-by: Mike Frysinger <vapier@gentoo.org>
 
-Agreed, as this was a source of confusion initially it is certainly worth
-documenting the next time someone is scratching their head thinking about
-the variations ;-)
 
-Acked-by: Paul Mundt <lethal@linux-sh.org>
+On Sat, 4 Jul 2009, Benjamin Herrenschmidt wrote:
+> 
+> BTW. I'd like to extend these if there's no objection one of these days
+> to also pass whether it was an exec fault, and pass the full flags to
+> ptep_set_access_flags().
+
+Sure. No problem, and sounds sane.
+
+Just a tiny word of warning: right now, the conversion I did pretty much 
+depended on the fact that even if I missed a spot, it wouldn't actually 
+make any difference. If somebody used "flags" as a binary value (ie like 
+the old "write_access" kind of semantics), things would still all work, 
+because it was still a "zero-vs-nonzero" issue wrt writes.
+
+And there were cases in the hugepage handling that I had missed, that 
+Hugh picked up. Maybe he picked them all - but be careful.
+
+I didn't add any flags (like the FAULT_FLAG_RETRY thing that started it 
+all) that would actually _require_ everybody to always treat it as a 
+bitmask. And some places still pass the flags down as basically just the 
+"write or not" thing. ptep_set_access_flags() stands out as one of them 
+(and I think your suggestion would actually clean things up), but there 
+are probably others.
+
+		Linus
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
