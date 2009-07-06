@@ -1,42 +1,63 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: handle_mm_fault() calling convention cleanup..
-Date: Mon, 6 Jul 2009 13:53:58 +0200
-Message-ID: <20090706115358.GO2714@wotan.suse.de>
-References: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain> <1246664107.7551.11.camel@pasglop> <alpine.LFD.2.01.0907040937040.3210@localhost.localdomain> <1246741718.7551.22.camel@pasglop> <20090706073148.GJ2714@wotan.suse.de> <1246877776.22625.39.camel@pasglop>
+From: Andi Kleen <andi@firstfloor.org>
+Subject: Re: [PATCH -tip -v10 5/7] x86: add pt_regs register and stack access APIs
+Date: Mon, 06 Jul 2009 16:34:53 +0200
+Message-ID: <871votop6a.fsf@basil.nowhere.org>
+References: <20090701010838.32547.62843.stgit@localhost.localdomain>
+	<20090701010911.32547.1313.stgit@localhost.localdomain>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1246877776.22625.39.camel@pasglop>
-Sender: owner-linux-mm@kvack.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Hugh Dickins <hugh@veritas.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Wu Fengguang <fengguang.wu@intel.com>, Ingo Molnar <mingo@elte.hu>
+Return-path: <kvm-owner@vger.kernel.org>
+In-Reply-To: <20090701010911.32547.1313.stgit@localhost.localdomain> (Masami Hiramatsu's message of "Tue, 30 Jun 2009 21:09:11 -0400")
+Sender: kvm-owner@vger.kernel.org
+To: Masami Hiramatsu <mhiramat@redhat.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Steven Rostedt <rostedt@goodmis.org>, lkml <linux-kernel@vger.kernel.org>, systemtap <systemtap@sources.redhat.com>, kvm <kvm@vger.kernel.org>, DLE <dle-develop@lists.sourceforge.net>, Christoph Hellwig <hch@infradead.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Frederic Weisbecker <fweisbec@gmail.com>, Roland McGrath <roland@redhat.com>, Srikar Dronamraju <srikar@linux.vnet.ibm.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 06, 2009 at 08:56:16PM +1000, Benjamin Herrenschmidt wrote:
-> On Mon, 2009-07-06 at 09:31 +0200, Nick Piggin wrote:
-> > I have no problems with that. I'd always intended to have flags
-> > go further up the call chain like Linus did (since we'd discussed
-> > perhaps making faults interruptible and requiring an extra flag
-> > to distinguish get_user_pages callers that were not interruptible).
-> > 
-> > So yes adding more flags to improve code or make things simpler
-> > is fine by me :)
-> > 
-> That's before you see my evil plan of bringing the flags all the way
-> down to set_pte_at() :-)
+Masami Hiramatsu <mhiramat@redhat.com> writes:
 
-So long as it can be nooped out of x86 I don't see it being
-a problem.
+> Add following APIs for accessing registers and stack entries from pt_regs.
 
-One problem x86 has with the mm/memory.c code is that it
-runs out of registers (especially in fork/exit iirc). So
-I wouldn't like to add unnecessary arguments to functions
-if they cannot be optimised away.
+You forgot to state who calls these functions/why are they added?
+Who only has strings for registers?
+
+I can see the point of having a function for nth argument though,
+that's useful.
+
+> +static inline unsigned long regs_get_argument_nth(struct pt_regs *regs,
+> +						  unsigned n)
+> +{
+> +	if (n < NR_REGPARMS) {
+> +		switch (n) {
+> +		case 0:
+> +			return regs->ax;
+> +		case 1:
+> +			return regs->dx;
+> +		case 2:
+> +			return regs->cx;
 
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+[....]
+
+That could be done shorter with a offsetof table.
+
+> +	if (n < NR_REGPARMS) {
+> +		switch (n) {
+> +		case 0:
+> +			return regs->di;
+> +		case 1:
+> +			return regs->si;
+> +		case 2:
+> +			return regs->dx;
+> +		case 3:
+> +			return regs->cx;
+> +		case 4:
+> +			return regs->r8;
+> +		case 5:
+> +			return regs->r9;
+
+and that too.
+
+
+-Andi
+-- 
+ak@linux.intel.com -- Speaking for myself only.
