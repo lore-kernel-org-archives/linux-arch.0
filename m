@@ -1,75 +1,43 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [microblaze-uclinux] [RFC PATCH] linker script: unify usage of
- discard definition
-Date: Mon, 06 Jul 2009 08:17:44 +0200
-Message-ID: <4A519708.80608@monstr.eu>
-References: <4A4E9638.20304@kernel.org>
-Reply-To: monstr@monstr.eu
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: handle_mm_fault() calling convention cleanup..
+Date: Mon, 6 Jul 2009 09:31:48 +0200
+Message-ID: <20090706073148.GJ2714@wotan.suse.de>
+References: <alpine.LFD.2.01.0906211331480.3240@localhost.localdomain> <1246664107.7551.11.camel@pasglop> <alpine.LFD.2.01.0907040937040.3210@localhost.localdomain> <1246741718.7551.22.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f225.google.com ([209.85.218.225]:57602 "EHLO
-	mail-bw0-f225.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757458AbZGFGRq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jul 2009 02:17:46 -0400
-In-Reply-To: <4A4E9638.20304@kernel.org>
+Received: from cantor2.suse.de ([195.135.220.15]:57361 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750824AbZGFHbr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 6 Jul 2009 03:31:47 -0400
+Content-Disposition: inline
+In-Reply-To: <1246741718.7551.22.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: microblaze-uclinux@itee.uq.edu.au
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Sam Ravnborg <sam@ravnborg.org>, Paul Mundt <lethal@linux-sh.org>, Tony Luck <tony.luck@intel.com>, John Williams <john.williams@petalogix.com>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Hugh Dickins <hugh@veritas.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Wu Fengguang <fengguang.wu@intel.com>, Ingo Molnar <mingo@elte.hu>
 
-
-
-Tejun Heo wrote:
-> Discarded sections in different archs share some commonality but have
-> considerable differences.  This led to linker script for each arch
-> implementing its own /DISCARD/ definition, which makes maintaining
-> tedious and adding new entries error-prone.
+On Sun, Jul 05, 2009 at 07:08:38AM +1000, Benjamin Herrenschmidt wrote:
+> On Sat, 2009-07-04 at 09:44 -0700, Linus Torvalds wrote:
 > 
-> This patch makes all linker scripts to move discard definitions to the
-> end of the linker script and use the common DISCARDS macro.  As ld
-> uses the first matching section definition, archs can include default
-> discarded sections by including them earlier in the linker script.
+> > Just a tiny word of warning: right now, the conversion I did pretty much 
+> > depended on the fact that even if I missed a spot, it wouldn't actually 
+> > make any difference. If somebody used "flags" as a binary value (ie like 
+> > the old "write_access" kind of semantics), things would still all work, 
+> > because it was still a "zero-vs-nonzero" issue wrt writes.
 > 
-> On x86-64 which explicitly includes EXIT_TEXT, this produces identical
-> output as before and all but one archs included directives (include or
-> discard) for all default discarded sections, so this patch shouldn't
-> cause any behavior difference.
+>  .../...
 > 
-> The only problem case is microblaze, which didn't explicitly included
-> EXIT_TEXT and DATA but didn't discard them either leaving ld to create
-> identically names output sections for them.  This patch will make the
-> end result different by throwing away exit text and data.  It looks
-> like the ommission was accidental and throwing away is the right thing
-> to do, but I won't push it till someone who knows microblaze confirms
-> it.
+> Right. Oh well.. we'll see when I get to it. I have a few higher
+> priority things on my pile at the moment.
 
-Please include EXIT_TEXT to .text section. EXIT_DATA can be discard. Patch is below.
+I have no problems with that. I'd always intended to have flags
+go further up the call chain like Linus did (since we'd discussed
+perhaps making faults interruptible and requiring an extra flag
+to distinguish get_user_pages callers that were not interruptible).
 
-Tested-by: Michal Simek <monstr@monstr.eu>
+So yes adding more flags to improve code or make things simpler
+is fine by me :)
 
 Thanks,
-Michal
-
-
-diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
-index aa5b0e9..39c0d0b 100644
---- a/arch/microblaze/kernel/vmlinux.lds.S
-+++ b/arch/microblaze/kernel/vmlinux.lds.S
-@@ -23,8 +23,8 @@ SECTIONS {
-                _stext = . ;
-                *(.text .text.*)
-                *(.fixup)
--
--               *(.exitcall.exit)
-+               EXIT_TEXT
-+               EXIT_CALL
-                SCHED_TEXT
-                LOCK_TEXT
-                KPROBES_TEXT
-
-
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
+Nick
