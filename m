@@ -1,301 +1,75 @@
-From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: Re: [PATCH -tip -v10 5/7] x86: add pt_regs register and stack
-	access APIs
-Date: Mon, 6 Jul 2009 03:42:07 +0200
-Message-ID: <20090706014204.GB20897@nowhere>
-References: <20090701010838.32547.62843.stgit@localhost.localdomain> <20090701010911.32547.1313.stgit@localhost.localdomain>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [microblaze-uclinux] [RFC PATCH] linker script: unify usage of
+ discard definition
+Date: Mon, 06 Jul 2009 08:17:44 +0200
+Message-ID: <4A519708.80608@monstr.eu>
+References: <4A4E9638.20304@kernel.org>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <kvm-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20090701010911.32547.1313.stgit@localhost.localdomain>
-Sender: kvm-owner@vger.kernel.org
-To: Masami Hiramatsu <mhiramat@redhat.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Steven Rostedt <rostedt@goodmis.org>, lkml <linux-kernel@vger.kernel.org>, systemtap <systemtap@sources.redhat.com>, kvm <kvm@vger.kernel.org>, DLE <dle-develop@lists.sourceforge.net>, Christoph Hellwig <hch@infradead.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Roland McGrath <roland@redhat.com>, Srikar Dronamraju <srikar@linux.vnet.ibm.com>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
-
-On Tue, Jun 30, 2009 at 09:09:11PM -0400, Masami Hiramatsu wrote:
-> Add following APIs for accessing registers and stack entries from pt_regs.
-> 
-> - regs_query_register_offset(const char *name)
->    Query the offset of "name" register.
-> 
-> - regs_query_register_name(unsigned offset)
->    Query the name of register by its offset.
-> 
-> - regs_get_register(struct pt_regs *regs, unsigned offset)
->    Get the value of a register by its offset.
-> 
-> - regs_within_kernel_stack(struct pt_regs *regs, unsigned long addr)
->    Check the address is in the kernel stack.
-> 
-> - regs_get_kernel_stack_nth(struct pt_regs *reg, unsigned nth)
->    Get Nth entry of the kernel stack. (N >= 0)
-> 
-> - regs_get_argument_nth(struct pt_regs *reg, unsigned nth)
->    Get Nth argument at function call. (N >= 0)
-> 
-> Changes from v9:
->  -Fix a typo in a comment.
-> 
-> Signed-off-by: Masami Hiramatsu <mhiramat@redhat.com>
-> Cc: Christoph Hellwig <hch@infradead.org>
-> Cc: Steven Rostedt <rostedt@goodmis.org>
-> Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
-> Cc: Ingo Molnar <mingo@elte.hu>
-> Cc: Frederic Weisbecker <fweisbec@gmail.com>
-> Cc: Roland McGrath <roland@redhat.com>
-> Cc: Srikar Dronamraju <srikar@linux.vnet.ibm.com>
-> Cc: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-bw0-f225.google.com ([209.85.218.225]:57602 "EHLO
+	mail-bw0-f225.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757458AbZGFGRq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jul 2009 02:17:46 -0400
+In-Reply-To: <4A4E9638.20304@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: microblaze-uclinux@itee.uq.edu.au
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Sam Ravnborg <sam@ravnborg.org>, Paul Mundt <lethal@linux-sh.org>, Tony Luck <tony.luck@intel.com>, John Williams <john.williams@petalogix.com>
 
 
 
-Looks good!
-
-Reviewed-by: Frederic Weisbecker <fweisbec@gmail.com>
-
-Frederic.
-
-
-
-> ---
+Tejun Heo wrote:
+> Discarded sections in different archs share some commonality but have
+> considerable differences.  This led to linker script for each arch
+> implementing its own /DISCARD/ definition, which makes maintaining
+> tedious and adding new entries error-prone.
 > 
->  arch/x86/include/asm/ptrace.h |  122 +++++++++++++++++++++++++++++++++++++++++
->  arch/x86/kernel/ptrace.c      |   73 +++++++++++++++++++++++++
->  2 files changed, 195 insertions(+), 0 deletions(-)
+> This patch makes all linker scripts to move discard definitions to the
+> end of the linker script and use the common DISCARDS macro.  As ld
+> uses the first matching section definition, archs can include default
+> discarded sections by including them earlier in the linker script.
 > 
-> diff --git a/arch/x86/include/asm/ptrace.h b/arch/x86/include/asm/ptrace.h
-> index 0f0d908..d5e3b3b 100644
-> --- a/arch/x86/include/asm/ptrace.h
-> +++ b/arch/x86/include/asm/ptrace.h
-> @@ -7,6 +7,7 @@
->  
->  #ifdef __KERNEL__
->  #include <asm/segment.h>
-> +#include <asm/page_types.h>
->  #endif
->  
->  #ifndef __ASSEMBLY__
-> @@ -216,6 +217,127 @@ static inline unsigned long user_stack_pointer(struct pt_regs *regs)
->  	return regs->sp;
->  }
->  
-> +/* Query offset/name of register from its name/offset */
-> +extern int regs_query_register_offset(const char *name);
-> +extern const char *regs_query_register_name(unsigned offset);
-> +#define MAX_REG_OFFSET (offsetof(struct pt_regs, ss))
-> +
-> +/**
-> + * regs_get_register() - get register value from its offset
-> + * @regs:	pt_regs from which register value is gotten.
-> + * @offset:	offset number of the register.
-> + *
-> + * regs_get_register returns the value of a register whose offset from @regs
-> + * is @offset. The @offset is the offset of the register in struct pt_regs.
-> + * If @offset is bigger than MAX_REG_OFFSET, this returns 0.
-> + */
-> +static inline unsigned long regs_get_register(struct pt_regs *regs,
-> +					      unsigned offset)
-> +{
-> +	if (unlikely(offset > MAX_REG_OFFSET))
-> +		return 0;
-> +	return *(unsigned long *)((unsigned long)regs + offset);
-> +}
-> +
-> +/**
-> + * regs_within_kernel_stack() - check the address in the stack
-> + * @regs:	pt_regs which contains kernel stack pointer.
-> + * @addr:	address which is checked.
-> + *
-> + * regs_within_kenel_stack() checks @addr is within the kernel stack page(s).
-> + * If @addr is within the kernel stack, it returns true. If not, returns false.
-> + */
-> +static inline int regs_within_kernel_stack(struct pt_regs *regs,
-> +					   unsigned long addr)
-> +{
-> +	return ((addr & ~(THREAD_SIZE - 1))  ==
-> +		(kernel_stack_pointer(regs) & ~(THREAD_SIZE - 1)));
-> +}
-> +
-> +/**
-> + * regs_get_kernel_stack_nth() - get Nth entry of the stack
-> + * @regs:	pt_regs which contains kernel stack pointer.
-> + * @n:		stack entry number.
-> + *
-> + * regs_get_kernel_stack_nth() returns @n th entry of the kernel stack which
-> + * is specifined by @regs. If the @n th entry is NOT in the kernel stack,
-> + * this returns 0.
-> + */
-> +static inline unsigned long regs_get_kernel_stack_nth(struct pt_regs *regs,
-> +						      unsigned n)
-> +{
-> +	unsigned long *addr = (unsigned long *)kernel_stack_pointer(regs);
-> +	addr += n;
-> +	if (regs_within_kernel_stack(regs, (unsigned long)addr))
-> +		return *addr;
-> +	else
-> +		return 0;
-> +}
-> +
-> +/**
-> + * regs_get_argument_nth() - get Nth argument at function call
-> + * @regs:	pt_regs which contains registers at function entry.
-> + * @n:		argument number.
-> + *
-> + * regs_get_argument_nth() returns @n th argument of a function call.
-> + * Since usually the kernel stack will be changed right after function entry,
-> + * you must use this at function entry. If the @n th entry is NOT in the
-> + * kernel stack or pt_regs, this returns 0.
-> + */
-> +#ifdef CONFIG_X86_32
-> +#define NR_REGPARMS 3
-> +static inline unsigned long regs_get_argument_nth(struct pt_regs *regs,
-> +						  unsigned n)
-> +{
-> +	if (n < NR_REGPARMS) {
-> +		switch (n) {
-> +		case 0:
-> +			return regs->ax;
-> +		case 1:
-> +			return regs->dx;
-> +		case 2:
-> +			return regs->cx;
-> +		}
-> +		return 0;
-> +	} else {
-> +		/*
-> +		 * The typical case: arg n is on the stack.
-> +		 * (Note: stack[0] = return address, so skip it)
-> +		 */
-> +		return regs_get_kernel_stack_nth(regs, 1 + n - NR_REGPARMS);
-> +	}
-> +}
-> +#else /* CONFIG_X86_64 */
-> +#define NR_REGPARMS 6
-> +static inline unsigned long regs_get_argument_nth(struct pt_regs *regs,
-> +						  unsigned n)
-> +{
-> +	if (n < NR_REGPARMS) {
-> +		switch (n) {
-> +		case 0:
-> +			return regs->di;
-> +		case 1:
-> +			return regs->si;
-> +		case 2:
-> +			return regs->dx;
-> +		case 3:
-> +			return regs->cx;
-> +		case 4:
-> +			return regs->r8;
-> +		case 5:
-> +			return regs->r9;
-> +		}
-> +		return 0;
-> +	} else {
-> +		/*
-> +		 * The typical case: arg n is on the stack.
-> +		 * (Note: stack[0] = return address, so skip it)
-> +		 */
-> +		return regs_get_kernel_stack_nth(regs, 1 + n - NR_REGPARMS);
-> +	}
-> +}
-> +#endif
-> +
->  /*
->   * These are defined as per linux/ptrace.h, which see.
->   */
-> diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-> index b457f78..2944d3a 100644
-> --- a/arch/x86/kernel/ptrace.c
-> +++ b/arch/x86/kernel/ptrace.c
-> @@ -49,6 +49,79 @@ enum x86_regset {
->  	REGSET_IOPERM32,
->  };
->  
-> +struct pt_regs_offset {
-> +	const char *name;
-> +	int offset;
-> +};
-> +
-> +#define REG_OFFSET_NAME(r) {.name = #r, .offset = offsetof(struct pt_regs, r)}
-> +#define REG_OFFSET_END {.name = NULL, .offset = 0}
-> +
-> +static const struct pt_regs_offset regoffset_table[] = {
-> +#ifdef CONFIG_X86_64
-> +	REG_OFFSET_NAME(r15),
-> +	REG_OFFSET_NAME(r14),
-> +	REG_OFFSET_NAME(r13),
-> +	REG_OFFSET_NAME(r12),
-> +	REG_OFFSET_NAME(r11),
-> +	REG_OFFSET_NAME(r10),
-> +	REG_OFFSET_NAME(r9),
-> +	REG_OFFSET_NAME(r8),
-> +#endif
-> +	REG_OFFSET_NAME(bx),
-> +	REG_OFFSET_NAME(cx),
-> +	REG_OFFSET_NAME(dx),
-> +	REG_OFFSET_NAME(si),
-> +	REG_OFFSET_NAME(di),
-> +	REG_OFFSET_NAME(bp),
-> +	REG_OFFSET_NAME(ax),
-> +#ifdef CONFIG_X86_32
-> +	REG_OFFSET_NAME(ds),
-> +	REG_OFFSET_NAME(es),
-> +	REG_OFFSET_NAME(fs),
-> +	REG_OFFSET_NAME(gs),
-> +#endif
-> +	REG_OFFSET_NAME(orig_ax),
-> +	REG_OFFSET_NAME(ip),
-> +	REG_OFFSET_NAME(cs),
-> +	REG_OFFSET_NAME(flags),
-> +	REG_OFFSET_NAME(sp),
-> +	REG_OFFSET_NAME(ss),
-> +	REG_OFFSET_END,
-> +};
-> +
-> +/**
-> + * regs_query_register_offset() - query register offset from its name
-> + * @name:	the name of a register
-> + *
-> + * regs_query_register_offset() returns the offset of a register in struct
-> + * pt_regs from its name. If the name is invalid, this returns -EINVAL;
-> + */
-> +int regs_query_register_offset(const char *name)
-> +{
-> +	const struct pt_regs_offset *roff;
-> +	for (roff = regoffset_table; roff->name != NULL; roff++)
-> +		if (!strcmp(roff->name, name))
-> +			return roff->offset;
-> +	return -EINVAL;
-> +}
-> +
-> +/**
-> + * regs_query_register_name() - query register name from its offset
-> + * @offset:	the offset of a register in struct pt_regs.
-> + *
-> + * regs_query_register_name() returns the name of a register from its
-> + * offset in struct pt_regs. If the @offset is invalid, this returns NULL;
-> + */
-> +const char *regs_query_register_name(unsigned offset)
-> +{
-> +	const struct pt_regs_offset *roff;
-> +	for (roff = regoffset_table; roff->name != NULL; roff++)
-> +		if (roff->offset == offset)
-> +			return roff->name;
-> +	return NULL;
-> +}
-> +
->  /*
->   * does not yet catch signals sent when the child dies.
->   * in exit.c or in signal.c.
+> On x86-64 which explicitly includes EXIT_TEXT, this produces identical
+> output as before and all but one archs included directives (include or
+> discard) for all default discarded sections, so this patch shouldn't
+> cause any behavior difference.
 > 
-> 
-> -- 
-> Masami Hiramatsu
-> 
-> Software Engineer
-> Hitachi Computer Products (America), Inc.
-> Software Solutions Division
-> 
-> e-mail: mhiramat@redhat.com
+> The only problem case is microblaze, which didn't explicitly included
+> EXIT_TEXT and DATA but didn't discard them either leaving ld to create
+> identically names output sections for them.  This patch will make the
+> end result different by throwing away exit text and data.  It looks
+> like the ommission was accidental and throwing away is the right thing
+> to do, but I won't push it till someone who knows microblaze confirms
+> it.
 
+Please include EXIT_TEXT to .text section. EXIT_DATA can be discard. Patch is below.
+
+Tested-by: Michal Simek <monstr@monstr.eu>
+
+Thanks,
+Michal
+
+
+diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
+index aa5b0e9..39c0d0b 100644
+--- a/arch/microblaze/kernel/vmlinux.lds.S
++++ b/arch/microblaze/kernel/vmlinux.lds.S
+@@ -23,8 +23,8 @@ SECTIONS {
+                _stext = . ;
+                *(.text .text.*)
+                *(.fixup)
+-
+-               *(.exitcall.exit)
++               EXIT_TEXT
++               EXIT_CALL
+                SCHED_TEXT
+                LOCK_TEXT
+                KPROBES_TEXT
+
+
+-- 
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
