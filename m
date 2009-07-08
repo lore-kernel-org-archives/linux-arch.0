@@ -1,71 +1,158 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH percpu 1/2] microblaze: include EXIT_TEXT to _stext
-Date: Wed, 08 Jul 2009 12:37:06 +0200
-Message-ID: <4A5476D2.7040709@monstr.eu>
-References: <4A546646.70305@kernel.org>
-Reply-To: monstr@monstr.eu
+From: liqin.chen@sunplusct.com
+Subject: [PATCH] score: add regsets support for score
+Date: Wed, 8 Jul 2009 18:53:12 +0800
+Message-ID: <OF5282122C.261603C7-ON482575ED.003A86FA-482575ED.003C4AEE@sunplusct.com>
+References: <20090623145059.GA6478@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="US-ASCII"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f218.google.com ([209.85.220.218]:56612 "EHLO
-	mail-fx0-f218.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752619AbZGHKhK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2009 06:37:10 -0400
-In-Reply-To: <4A546646.70305@kernel.org>
+Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:41979 "EHLO
+	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753540AbZGHLnt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2009 07:43:49 -0400
+In-Reply-To: <20090623145059.GA6478@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel <linux-kernel@vger.kernel.org>, microblaze-uclinux@itee.uq.edu.au, Sam Ravnborg <sam@ravnborg.org>, Paul Mundt <lethal@linux-sh.org>, Tony Luck <tony.luck@intel.com>, Mike Frysinger <vapier@gentoo.org>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
 
-Tejun Heo wrote:
-> From: Michal Simek <monstr@monstr.eu>
-> 
-> Microblaze wants to throw out EXIT_TEXT during runtime too.  This
-> hasn't caused trouble till now because the linker script didn't
-> discard EXIT_TEXT and it ended up in its default output section.  As
-> discard definition is about to be unified, include EXIT_TEXT into
-> _stext explicitly and while at it replace explicit exitcall definition
-> to EXIT_CALL.
-> 
-> Signed-off-by: Michal Simek <monstr@monstr.eu>
-> Signed-off-by: Tejun Heo <tj@kernel.org>
-> ---
-> Michal, I added the commit messaeg and SOB.  If you don't like it
-> please let me know.
+ptrace.c add register sets support for score architecture.
 
-It is ok. I rechecked it and works.
+- genregs_get(struct task_struct *target,
+               const struct user_regset *regset,
+               unsigned int pos, unsigned int count,
+               void *kbuf, void __user *ubuf)
+        Retrieve the contents of score userspace general registers.
 
-Thanks,
-Michal
+- genregs_set(struct task_struct *target,
+               const struct user_regset *regset,
+               unsigned int pos, unsigned int count,
+               const void *kbuf, const void __user *ubuf)
+        Update the contents of the score userspace general registers.
 
+Signed-off-by: Chen Liqin <liqin.chen@sunplusct.com>
+---
+ arch/score/include/asm/elf.h |    3 +-
+ arch/score/kernel/ptrace.c   |   78 
+++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 80 insertions(+), 1 deletions(-)
 
-> 
-> If there's no further objection, I'll commit this and the next patch
-> to percpu#for-next.
-> 
-> Thanks.
-> 
->  arch/microblaze/kernel/vmlinux.lds.S |    4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
-> 
-> Index: work/arch/microblaze/kernel/vmlinux.lds.S
-> ===================================================================
-> --- work.orig/arch/microblaze/kernel/vmlinux.lds.S
-> +++ work/arch/microblaze/kernel/vmlinux.lds.S
-> @@ -23,8 +23,8 @@ SECTIONS {
->  		_stext = . ;
->  		*(.text .text.*)
->  		*(.fixup)
-> -
-> -		*(.exitcall.exit)
-> +               EXIT_TEXT
-> +               EXIT_CALL
->  		SCHED_TEXT
->  		LOCK_TEXT
->  		KPROBES_TEXT
-
-
+diff --git a/arch/score/include/asm/elf.h b/arch/score/include/asm/elf.h
+index 8324363..d69668c 100644
+--- a/arch/score/include/asm/elf.h
++++ b/arch/score/include/asm/elf.h
+@@ -2,7 +2,7 @@
+ #define _ASM_SCORE_ELF_H
+ 
+ /* ELF register definitions */
+-#define ELF_NGREG      45
++#define ELF_NGREG      42
+ #define ELF_NFPREG     33
+ #define EM_SCORE7      135
+ 
+@@ -57,6 +57,7 @@ do { \
+ struct task_struct;
+ struct pt_regs;
+ 
++#define CORE_DUMP_USE_REGSET
+ #define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE      PAGE_SIZE
+ 
+diff --git a/arch/score/kernel/ptrace.c b/arch/score/kernel/ptrace.c
+index 1db876b..9eec6a2 100644
+--- a/arch/score/kernel/ptrace.c
++++ b/arch/score/kernel/ptrace.c
+@@ -23,11 +23,89 @@
+  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+  */
+ 
++#include <linux/elf.h>
+ #include <linux/kernel.h>
+ #include <linux/ptrace.h>
++#include <linux/regset.h>
+ 
+ #include <asm/uaccess.h>
+ 
++/*
++ * retrieve the contents of SCORE userspace general registers
++ */
++static int genregs_get(struct task_struct *target,
++                      const struct user_regset *regset,
++                      unsigned int pos, unsigned int count,
++                      void *kbuf, void __user *ubuf)
++{
++       const struct pt_regs *regs = task_pt_regs(target);
++       int end_pos = sizeof(struct pt_regs) - 9 * sizeof(long);
++       int ret;
++
++       ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++                                 regs->regs,
++                                 offsetof(struct pt_regs, regs),
++                                 end_pos);
++       if (!ret)
++               ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
++                                               end_pos, -1);
++
++       return ret;
++}
++
++/*
++ * update the contents of the SCORE userspace general registers
++ */
++static int genregs_set(struct task_struct *target,
++                      const struct user_regset *regset,
++                      unsigned int pos, unsigned int count,
++                      const void *kbuf, const void __user *ubuf)
++{
++       struct pt_regs *regs = task_pt_regs(target);
++       int end_pos = sizeof(struct pt_regs) - 9 * sizeof(long);
++       int ret;
++
++       ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++                                regs->regs,
++                                offsetof(struct pt_regs, regs),
++                                end_pos);
++       if (!ret)
++               ret = user_regset_copyin_ignore(&pos, &count, &kbuf, 
+&ubuf,
++                                               end_pos, -1);
++
++       return ret;
++}
++
++/*
++ * Define the register sets available on the score7 under Linux
++ */
++enum score7_regset {
++       REGSET_GENERAL,
++};
++
++static const struct user_regset score7_regsets[] = {
++       [REGSET_GENERAL] = {
++               .core_note_type = NT_PRSTATUS,
++               .n              = ELF_NGREG,
++               .size           = sizeof(long),
++               .align          = sizeof(long),
++               .get            = genregs_get,
++               .set            = genregs_set,
++       },
++};
++
++static const struct user_regset_view user_score_native_view = {
++       .name           = "score7",
++       .e_machine      = EM_SCORE7,
++       .regsets        = score7_regsets,
++       .n              = ARRAY_SIZE(score7_regsets),
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct 
+*task)
++{
++       return &user_score_native_view;
++}
++
+ static int is_16bitinsn(unsigned long insn)
+ {
+        if ((insn & INSN32_MASK) == INSN32_MASK)
 -- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
+1.6.2
