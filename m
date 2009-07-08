@@ -1,44 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f225.google.com ([209.85.218.225]:52704 "EHLO
-	mail-bw0-f225.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753848AbZGHRDR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2009 13:03:17 -0400
-Message-ID: <4A54D14F.9090101@petalogix.com>
-Date: Wed, 08 Jul 2009 19:03:11 +0200
-From: Michal Simek <michal.simek@petalogix.com>
-Reply-To: michal.simek@petalogix.com
-MIME-Version: 1.0
-Subject: mmap hw behavior
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:46098
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754007AbZGHSGW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2009 14:06:22 -0400
+Date: Wed, 08 Jul 2009 11:06:24 -0700 (PDT)
+Message-ID: <20090708.110624.104984745.davem@davemloft.net>
+Subject: Re: mmap hw behavior
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <4A54DF6F.1010405@petalogix.com>
+References: <4A54D14F.9090101@petalogix.com>
+	<20090708.103520.193697491.davem@davemloft.net>
+	<4A54DF6F.1010405@petalogix.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linux Kernel list <linux-kernel@vger.kernel.org>, lkml <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Arnd Bergmann <arnd@arndb.de>, Paul Mundt <lethal@linux-sh.org>, LTP <ltp-list@lists.sourceforge.net>
-Message-ID: <20090708170311.tlksI1Ks7GRan4wAeJXDVdknCYjZ461WpXWgPhAmOvE@z>
+To: michal.simek@petalogix.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, arnd@arndb.de, lethal@linux-sh.org, ltp-list@lists.sourceforge.net
+Message-ID: <20090708180624.vP1ha-54Ke16S0LsNh-7vswEw1oJrWeVcYoM5LVHphQ@z>
 
-Hi All,
+From: Michal Simek <michal.simek@petalogix.com>
+Date: Wed, 08 Jul 2009 20:03:27 +0200
 
-I wrote one email about my problem with mmap on Microblaze. (Especially
-mmap01 ltp test)
-I need to know how mmap should work with MMU or what the correct steps are.
+> David Miller wrote:
+>> From: Michal Simek <michal.simek@petalogix.com>
+>> Date: Wed, 08 Jul 2009 19:03:11 +0200
+>>
+>>   
+>>> When I call mmap for that open file with pointer to calloc place
+>>> (first parameter, + length zero) it should be one tlb invalidation
+>>> for calloc and new tlb which connect open file.  We check it and we
+>>> don't have any tlb invalidation that's why I think that kernel do
+>>> different thigs.  Or is it there any copying? Or anything different?
+>>>     
+>>
+>> There is no need to tlb flush the calloc area unless that memory area
+>> is actually touched by the user application and thus the page is
+>> faulted in.
+>>   
+> That calloc area is filled by any value (in that test). Is it mean that
+> for this case when calloc area is touched
+> there must be tlb invalidation + remapping?
 
-When I open temp file in application is the kernel create file descriptor table and kernel take
-care about setup tlb which are needed. Application get back just file descriptor.
-
-When I call calloc it is called brk kernel syscall and is created one tlb for this place. 
-Brk allocate more memory than is requested by calloc. Application got pointer to that memory place.
-
-
-When I call mmap for that open file with pointer to calloc place (first parameter, + length zero)
-it should be one tlb invalidation for calloc and new tlb which connect open file. 
-We check it and we don't have any tlb invalidation that's why I think that kernel do different thigs.
-Or is it there any copying? Or anything different?
-
-Thanks for clarification,
-Michal
-
--- 
-Michal Simek, Ing. (M.Eng)
-PetaLogix - Linux Solutions for a Reconfigurable World
-w: www.petalogix.com p: +61-7-30090663,+42-0-721842854 f: +61-7-30090663
-
+Yes, if the calloc area is written to by the application, there
+should be a tlb flush when the mmap() overrides that virtual region
+with a different mapping.
