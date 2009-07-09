@@ -1,48 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:46098
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754007AbZGHSGW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2009 14:06:22 -0400
-Date: Wed, 08 Jul 2009 11:06:24 -0700 (PDT)
-Message-ID: <20090708.110624.104984745.davem@davemloft.net>
-Subject: Re: mmap hw behavior
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <4A54DF6F.1010405@petalogix.com>
-References: <4A54D14F.9090101@petalogix.com>
-	<20090708.103520.193697491.davem@davemloft.net>
-	<4A54DF6F.1010405@petalogix.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Received: from ozlabs.org ([203.10.76.45]:50494 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753821AbZGILOa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Jul 2009 07:14:30 -0400
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH] reduce export symbol CRC table size on 64-bit archs
+Date: Thu, 9 Jul 2009 20:44:21 +0930
+References: <4A4A18780200007800008345@vpn.id2.novell.com> <4A4E671C.2090201@suse.cz> <4A51C71B0200007800008EE2@vpn.id2.novell.com>
+In-Reply-To: <4A51C71B0200007800008EE2@vpn.id2.novell.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Message-ID: <200907092044.22108.rusty@rustcorp.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: michal.simek@petalogix.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, arnd@arndb.de, lethal@linux-sh.org, ltp-list@lists.sourceforge.net
-Message-ID: <20090708180624.vP1ha-54Ke16S0LsNh-7vswEw1oJrWeVcYoM5LVHphQ@z>
+To: Jan Beulich <JBeulich@novell.com>
+Cc: Michal Marek <mmarek@suse.cz>, Ingo Molnar <mingo@elte.hu>, tony.luck@intel.com, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-modules@vger.kernel.org, hpa@zytor.com, Jon Masters <jonathan@jonmasters.org>
+Message-ID: <20090709111421.9EXTjAdbhVg5gjw2_fzSdjSEpr4DusYOHJkr393gj6U@z>
 
-From: Michal Simek <michal.simek@petalogix.com>
-Date: Wed, 08 Jul 2009 20:03:27 +0200
+On Mon, 6 Jul 2009 05:12:51 pm Jan Beulich wrote:
+> >Jan Beulich napsal(a):
+> >> Since these CRCs are really only 32-bit quantities, there's no need to
+> >> store them in 64-bit slots. Since, however, gcc doesn't allow
+> >> respective initializations, asm() constructs get used to create the CRC
+> >> tables (and its for that reason that the patch only makes x86-64 and
+> >> ia64 utilize that functionality, as I can't verify this doesn't break
+> >> in some subtle way elsewhere).
+> >
+> >...
+> >
+> >>  struct modversion_info
+> >>  {
+> >> -	unsigned long crc;
+> >> +	ksym_crc_t crc;
+> >>  	char name[MODULE_NAME_LEN];
+> >>  };
+> >
+> >This change breaks module-init-tools:
+> >Before:
+> >$ /sbin/modprobe --dump-modversions _build/drivers/usb/core/usbcore.ko
+> >
+> >| head
+> >
+> >0xb49b735a      module_layout
+> >0xdb7e6a70      bus_register
+> >...
+> >After:
+> >$ /sbin/modprobe --dump-modversions
+> >_build-crc-int/drivers/usb/core/usbcore.ko  | head
+> >0x75646f6d91ea7b5c      le_layout
+> >0x5f7375623e215f43      register
+> >...
+> >It also breaks the newly added depmod -E option (check symbol versions),
+> >which also reads the struct modversion_info array (*). Is it possible
+> >name the section differently (__versions2?) on those architectures where
+> >the size changes, so that it is possible to fix m-i-t in a
+> >backwards-compatible manner?
+>
+> First of all I'd view it as a design bug if user mode code assumptions
+> prevent changes to the kernel.
 
-> David Miller wrote:
->> From: Michal Simek <michal.simek@petalogix.com>
->> Date: Wed, 08 Jul 2009 19:03:11 +0200
->>
->>   
->>> When I call mmap for that open file with pointer to calloc place
->>> (first parameter, + length zero) it should be one tlb invalidation
->>> for calloc and new tlb which connect open file.  We check it and we
->>> don't have any tlb invalidation that's why I think that kernel do
->>> different thigs.  Or is it there any copying? Or anything different?
->>>     
->>
->> There is no need to tlb flush the calloc area unless that memory area
->> is actually touched by the user application and thus the page is
->> faulted in.
->>   
-> That calloc area is filled by any value (in that test). Is it mean that
-> for this case when calloc area is touched
-> there must be tlb invalidation + remapping?
+Yes, but unfortunately it happens.  We do it much less than we used to, but 
+there are limits.
 
-Yes, if the calloc area is written to by the application, there
-should be a tlb flush when the mmap() overrides that virtual region
-with a different mapping.
+> But taking this as an uncorrectable fact, I'd think that renaming the
+> section would certainly be an option (though I'm unsure whether that would
+> have other consequences - Rusty?), however I could also imagine other means
+> to communicate to user land the width of a CRC value (e.g. adding an
+> absolute symbol during the .ko linking stage).
+
+No, just break it once.  And I still like the idea that we should do something 
+more radical if we're going to break this anyway, rather than these nasty asm 
+hacks.
+
+Thanks,
+Rusty.
+
