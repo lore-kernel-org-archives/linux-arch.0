@@ -1,29 +1,43 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCH percpu 1/2] microblaze: include EXIT_TEXT to _stext
-Date: Thu, 09 Jul 2009 11:28:49 +0900
-Message-ID: <4A5555E1.7000601@kernel.org>
-References: <4A546646.70305@kernel.org> <4A5476D2.7040709@monstr.eu>
+From: Michal Simek <michal.simek@petalogix.com>
+Subject: Re: mmap hw behavior
+Date: Thu, 09 Jul 2009 07:40:46 +0200
+Message-ID: <4A5582DE.9010501@petalogix.com>
+References: <4A54DF6F.1010405@petalogix.com>	<20090708.110624.104984745.davem@davemloft.net>	<4A54FFFE.10306@petalogix.com> <20090708.181551.189345850.davem@davemloft.net>
+Reply-To: michal.simek@petalogix.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:57285 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755573AbZGIC3D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Jul 2009 22:29:03 -0400
-In-Reply-To: <4A5476D2.7040709@monstr.eu>
+Received: from mail-fx0-f218.google.com ([209.85.220.218]:50753 "EHLO
+	mail-fx0-f218.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750924AbZGIFkv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2009 01:40:51 -0400
+In-Reply-To: <20090708.181551.189345850.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@monstr.eu
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel <linux-kernel@vger.kernel.org>, microblaze-uclinux@itee.uq.edu.au, Sam Ravnborg <sam@ravnborg.org>, Paul Mundt <lethal@linux-sh.org>, Tony Luck <tony.luck@intel.com>, Mike Frysinger <vapier@gentoo.org>
+To: David Miller <davem@davemloft.net>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, arnd@arndb.de, lethal@linux-sh.org, ltp-list@lists.sourceforge.net
 
-Michal Simek wrote:
->> Michal, I added the commit messaeg and SOB.  If you don't like it
->> please let me know.
-> 
-> It is ok. I rechecked it and works.
+David Miller wrote:
+> From: Michal Simek <michal.simek@petalogix.com>
+> Date: Wed, 08 Jul 2009 22:22:22 +0200
+>
+>   
+>> Can you please point me to any code which exactly do this? (for example
+>> file mm/mmap.c line from ... to ... )
+>>     
+>
+> Sorry I don't have time to read the source code for you.
+> I'd have to look it up too, just like you.
+>   
+It is ok - I didn't want to read the code from - just if you know any
+functions which
+could help me.
 
-Thanks.  Patches committed to percpu#for-next.
+Thank you very much,
+Michal
 
 -- 
-tejun
+Michal Simek, Ing. (M.Eng)
+PetaLogix - Linux Solutions for a Reconfigurable World
+w: www.petalogix.com p: +61-7-30090663,+42-0-721842854 f: +61-7-30090663
