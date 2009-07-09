@@ -1,41 +1,79 @@
-From: Michal Simek <michal.simek@petalogix.com>
-Subject: Re: mmap hw behavior
-Date: Thu, 09 Jul 2009 10:57:47 +0200
-Message-ID: <4A55B10B.7010200@petalogix.com>
-References: <4A54DF6F.1010405@petalogix.com>	<20090708.110624.104984745.davem@davemloft.net>	<4A54FFFE.10306@petalogix.com> <20090708.181551.189345850.davem@davemloft.net>
-Reply-To: michal.simek@petalogix.com
+From: Rusty Russell <rusty-8n+1lVoiYb80n/F98K4Iww@public.gmane.org>
+Subject: Re: [PATCH] reduce export symbol CRC table size on 64-bit archs
+Date: Thu, 9 Jul 2009 20:44:21 +0930
+Message-ID: <200907092044.22108.rusty@rustcorp.com.au>
+References: <4A4A18780200007800008345@vpn.id2.novell.com> <4A4E671C.2090201@suse.cz> <4A51C71B0200007800008EE2@vpn.id2.novell.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from an-out-0708.google.com ([209.85.132.240]:45148 "EHLO
-	an-out-0708.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754234AbZGII5z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2009 04:57:55 -0400
-In-Reply-To: <20090708.181551.189345850.davem@davemloft.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, arnd@arndb.de, lethal@linux-sh.org, ltp-list@lists.sourceforge.net
+Return-path: <linux-modules-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <4A51C71B0200007800008EE2-Qfbpwmsw6RoS3W1tAdPHOtBPR1lH4CV8@public.gmane.org>
+Content-Disposition: inline
+Sender: linux-modules-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Jan Beulich <JBeulich-Et1tbQHTxzrQT0dZR+AlfA@public.gmane.org>
+Cc: Michal Marek <mmarek-AlSwsSmVLrQ@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-modules-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org, Jon Masters <jonathan-Zp4isUonpHBD60Wz+7aTrA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-David Miller wrote:
-> From: Michal Simek <michal.simek@petalogix.com>
-> Date: Wed, 08 Jul 2009 22:22:22 +0200
+On Mon, 6 Jul 2009 05:12:51 pm Jan Beulich wrote:
+> >Jan Beulich napsal(a):
+> >> Since these CRCs are really only 32-bit quantities, there's no need to
+> >> store them in 64-bit slots. Since, however, gcc doesn't allow
+> >> respective initializations, asm() constructs get used to create the CRC
+> >> tables (and its for that reason that the patch only makes x86-64 and
+> >> ia64 utilize that functionality, as I can't verify this doesn't break
+> >> in some subtle way elsewhere).
+> >
+> >...
+> >
+> >>  struct modversion_info
+> >>  {
+> >> -	unsigned long crc;
+> >> +	ksym_crc_t crc;
+> >>  	char name[MODULE_NAME_LEN];
+> >>  };
+> >
+> >This change breaks module-init-tools:
+> >Before:
+> >$ /sbin/modprobe --dump-modversions _build/drivers/usb/core/usbcore.ko
+> >
+> >| head
+> >
+> >0xb49b735a      module_layout
+> >0xdb7e6a70      bus_register
+> >...
+> >After:
+> >$ /sbin/modprobe --dump-modversions
+> >_build-crc-int/drivers/usb/core/usbcore.ko  | head
+> >0x75646f6d91ea7b5c      le_layout
+> >0x5f7375623e215f43      register
+> >...
+> >It also breaks the newly added depmod -E option (check symbol versions),
+> >which also reads the struct modversion_info array (*). Is it possible
+> >name the section differently (__versions2?) on those architectures where
+> >the size changes, so that it is possible to fix m-i-t in a
+> >backwards-compatible manner?
 >
->   
->> Can you please point me to any code which exactly do this? (for example
->> file mm/mmap.c line from ... to ... )
->>     
->
-> Sorry I don't have time to read the source code for you.
-> I'd have to look it up too, just like you.
->   
-I found it - Microblaze hasn't defined tlb_flush macro.
+> First of all I'd view it as a design bug if user mode code assumptions
+> prevent changes to the kernel.
 
-Thanks for your help,
-Michal
+Yes, but unfortunately it happens.  We do it much less than we used to, but 
+there are limits.
 
--- 
-Michal Simek, Ing. (M.Eng)
-PetaLogix - Linux Solutions for a Reconfigurable World
-w: www.petalogix.com p: +61-7-30090663,+42-0-721842854 f: +61-7-30090663
+> But taking this as an uncorrectable fact, I'd think that renaming the
+> section would certainly be an option (though I'm unsure whether that would
+> have other consequences - Rusty?), however I could also imagine other means
+> to communicate to user land the width of a CRC value (e.g. adding an
+> absolute symbol during the .ko linking stage).
+
+No, just break it once.  And I still like the idea that we should do something 
+more radical if we're going to break this anyway, rather than these nasty asm 
+hacks.
+
+Thanks,
+Rusty.
+
+--
+To unsubscribe from this list: send the line "unsubscribe linux-modules" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
