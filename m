@@ -1,277 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:41303 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755579AbZGIUUS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Jul 2009 16:20:18 -0400
-From: Masami Hiramatsu <mhiramat@redhat.com>
-Subject: [PATCH -tip -v11 05/11] x86: add pt_regs register and stack access
-	APIs
-Date: Thu, 09 Jul 2009 16:22:52 -0400
-Message-ID: <20090709202252.13223.99247.stgit@localhost.localdomain>
-In-Reply-To: <20090709202220.13223.97114.stgit@localhost.localdomain>
-References: <20090709202220.13223.97114.stgit@localhost.localdomain>
+Received: from terminus.zytor.com ([198.137.202.10]:58058 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751718AbZGJOjD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2009 10:39:03 -0400
+Message-ID: <4A575202.40407@zytor.com>
+Date: Fri, 10 Jul 2009 07:36:50 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Subject: Re: [PATCH] reduce export symbol CRC table size on 64-bit	 archs
+References: <4A4A18780200007800008345@vpn.id2.novell.com> <4A4E671C.2090201@suse.cz> <4A51C71B0200007800008EE2@vpn.id2.novell.com> <200907092044.22108.rusty@rustcorp.com.au> <4A57089B0200007800009C0E@vpn.id2.novell.com>
+In-Reply-To: <4A57089B0200007800009C0E@vpn.id2.novell.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Steven Rostedt <rostedt@goodmis.org>, lkml <linux-kernel@vger.kernel.org>
-Cc: systemtap <systemtap@sources.redhat.com>, kvm <kvm@vger.kernel.org>, DLE <dle-develop@lists.sourceforge.net>, Masami Hiramatsu <mhiramat@redhat.com>, Andi Kleen <andi@firstfloor.org>, Christoph Hellwig <hch@infradead.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Frederic Weisbecker <fweisbec@gmail.com>, Roland McGrath <roland@redhat.com>, Srikar Dronamraju <srikar@linux.vnet.ibm.com>, linux-arch@vger.kernel.org
-Message-ID: <20090709202252.5cx5raNrwcjVA2ZSWr4JV2ZVQrAeLFdFe3s8Adw8GfM@z>
+To: Jan Beulich <JBeulich@novell.com>
+Cc: Rusty Russell <rusty@rustcorp.com.au>, Michal Marek <mmarek@suse.cz>, Ingo Molnar <mingo@elte.hu>, tony.luck@intel.com, Jon Masters <jonathan@jonmasters.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-modules@vger.kernel.org
+Message-ID: <20090710143650.2V0cvcUeqshc6KFcZPv8mmwQMkYMFSl2qCmW5Gm3RGw@z>
 
-Add following APIs for accessing registers and stack entries from pt_regs.
-These APIs are required by kprobes-based event tracer on ftrace.
-Some other debugging tools might be able to use it too.
+Jan Beulich wrote:
+> 
+> Actually I meanwhile think that module-init-tools can easily detect the changed
+> layout without any further kernel side adjustments: Since it is known that a
+> CRC always is a 32-bit value, simply checking whether the so-far-used 64-bit
+> value has more than 32 significant bits should suffice: If so, the new layout
+> is being used (with the symbol name starting at offset 4), else the old one is
+> in effect (name at offset 8). This ought to be a pretty trivial change to that
+> code.
+> 
 
-- regs_query_register_offset(const char *name)
-   Query the offset of "name" register.
+If we're changing module-init-tools, it seems changing the section name
+would be cleaner anyway.
 
-- regs_query_register_name(unsigned int offset)
-   Query the name of register by its offset.
-
-- regs_get_register(struct pt_regs *regs, unsigned int offset)
-   Get the value of a register by its offset.
-
-- regs_within_kernel_stack(struct pt_regs *regs, unsigned long addr)
-   Check the address is in the kernel stack.
-
-- regs_get_kernel_stack_nth(struct pt_regs *reg, unsigned int nth)
-   Get Nth entry of the kernel stack. (N >= 0)
-
-- regs_get_argument_nth(struct pt_regs *reg, unsigned int nth)
-   Get Nth argument at function call. (N >= 0)
-
-Changes from v10:
- - Use an offsetof table in regs_get_argument_nth().
- - Use "unsigned int" instead of "unsigned".
-
-Signed-off-by: Masami Hiramatsu <mhiramat@redhat.com>
-Reviewed-by: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Andi Kleen <andi@firstfloor.org>
-Cc: Christoph Hellwig <hch@infradead.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Roland McGrath <roland@redhat.com>
-Cc: Srikar Dronamraju <srikar@linux.vnet.ibm.com>
-Cc: linux-arch@vger.kernel.org
----
-
- arch/x86/include/asm/ptrace.h |   62 +++++++++++++++++++++++
- arch/x86/kernel/ptrace.c      |  112 +++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 174 insertions(+), 0 deletions(-)
-
-diff --git a/arch/x86/include/asm/ptrace.h b/arch/x86/include/asm/ptrace.h
-index 0f0d908..a3d49dd 100644
---- a/arch/x86/include/asm/ptrace.h
-+++ b/arch/x86/include/asm/ptrace.h
-@@ -7,6 +7,7 @@
- 
- #ifdef __KERNEL__
- #include <asm/segment.h>
-+#include <asm/page_types.h>
- #endif
- 
- #ifndef __ASSEMBLY__
-@@ -216,6 +217,67 @@ static inline unsigned long user_stack_pointer(struct pt_regs *regs)
- 	return regs->sp;
- }
- 
-+/* Query offset/name of register from its name/offset */
-+extern int regs_query_register_offset(const char *name);
-+extern const char *regs_query_register_name(unsigned int offset);
-+#define MAX_REG_OFFSET (offsetof(struct pt_regs, ss))
-+
-+/**
-+ * regs_get_register() - get register value from its offset
-+ * @regs:	pt_regs from which register value is gotten.
-+ * @offset:	offset number of the register.
-+ *
-+ * regs_get_register returns the value of a register whose offset from @regs
-+ * is @offset. The @offset is the offset of the register in struct pt_regs.
-+ * If @offset is bigger than MAX_REG_OFFSET, this returns 0.
-+ */
-+static inline unsigned long regs_get_register(struct pt_regs *regs,
-+					      unsigned int offset)
-+{
-+	if (unlikely(offset > MAX_REG_OFFSET))
-+		return 0;
-+	return *(unsigned long *)((unsigned long)regs + offset);
-+}
-+
-+/**
-+ * regs_within_kernel_stack() - check the address in the stack
-+ * @regs:	pt_regs which contains kernel stack pointer.
-+ * @addr:	address which is checked.
-+ *
-+ * regs_within_kenel_stack() checks @addr is within the kernel stack page(s).
-+ * If @addr is within the kernel stack, it returns true. If not, returns false.
-+ */
-+static inline int regs_within_kernel_stack(struct pt_regs *regs,
-+					   unsigned long addr)
-+{
-+	return ((addr & ~(THREAD_SIZE - 1))  ==
-+		(kernel_stack_pointer(regs) & ~(THREAD_SIZE - 1)));
-+}
-+
-+/**
-+ * regs_get_kernel_stack_nth() - get Nth entry of the stack
-+ * @regs:	pt_regs which contains kernel stack pointer.
-+ * @n:		stack entry number.
-+ *
-+ * regs_get_kernel_stack_nth() returns @n th entry of the kernel stack which
-+ * is specifined by @regs. If the @n th entry is NOT in the kernel stack,
-+ * this returns 0.
-+ */
-+static inline unsigned long regs_get_kernel_stack_nth(struct pt_regs *regs,
-+						      unsigned int n)
-+{
-+	unsigned long *addr = (unsigned long *)kernel_stack_pointer(regs);
-+	addr += n;
-+	if (regs_within_kernel_stack(regs, (unsigned long)addr))
-+		return *addr;
-+	else
-+		return 0;
-+}
-+
-+/* Get Nth argument at function call */
-+extern unsigned long regs_get_argument_nth(struct pt_regs *regs,
-+					   unsigned int n);
-+
- /*
-  * These are defined as per linux/ptrace.h, which see.
-  */
-diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index cabdabc..32729ec 100644
---- a/arch/x86/kernel/ptrace.c
-+++ b/arch/x86/kernel/ptrace.c
-@@ -49,6 +49,118 @@ enum x86_regset {
- 	REGSET_IOPERM32,
- };
- 
-+struct pt_regs_offset {
-+	const char *name;
-+	int offset;
-+};
-+
-+#define REG_OFFSET_NAME(r) {.name = #r, .offset = offsetof(struct pt_regs, r)}
-+#define REG_OFFSET_END {.name = NULL, .offset = 0}
-+
-+static const struct pt_regs_offset regoffset_table[] = {
-+#ifdef CONFIG_X86_64
-+	REG_OFFSET_NAME(r15),
-+	REG_OFFSET_NAME(r14),
-+	REG_OFFSET_NAME(r13),
-+	REG_OFFSET_NAME(r12),
-+	REG_OFFSET_NAME(r11),
-+	REG_OFFSET_NAME(r10),
-+	REG_OFFSET_NAME(r9),
-+	REG_OFFSET_NAME(r8),
-+#endif
-+	REG_OFFSET_NAME(bx),
-+	REG_OFFSET_NAME(cx),
-+	REG_OFFSET_NAME(dx),
-+	REG_OFFSET_NAME(si),
-+	REG_OFFSET_NAME(di),
-+	REG_OFFSET_NAME(bp),
-+	REG_OFFSET_NAME(ax),
-+#ifdef CONFIG_X86_32
-+	REG_OFFSET_NAME(ds),
-+	REG_OFFSET_NAME(es),
-+	REG_OFFSET_NAME(fs),
-+	REG_OFFSET_NAME(gs),
-+#endif
-+	REG_OFFSET_NAME(orig_ax),
-+	REG_OFFSET_NAME(ip),
-+	REG_OFFSET_NAME(cs),
-+	REG_OFFSET_NAME(flags),
-+	REG_OFFSET_NAME(sp),
-+	REG_OFFSET_NAME(ss),
-+	REG_OFFSET_END,
-+};
-+
-+/**
-+ * regs_query_register_offset() - query register offset from its name
-+ * @name:	the name of a register
-+ *
-+ * regs_query_register_offset() returns the offset of a register in struct
-+ * pt_regs from its name. If the name is invalid, this returns -EINVAL;
-+ */
-+int regs_query_register_offset(const char *name)
-+{
-+	const struct pt_regs_offset *roff;
-+	for (roff = regoffset_table; roff->name != NULL; roff++)
-+		if (!strcmp(roff->name, name))
-+			return roff->offset;
-+	return -EINVAL;
-+}
-+
-+/**
-+ * regs_query_register_name() - query register name from its offset
-+ * @offset:	the offset of a register in struct pt_regs.
-+ *
-+ * regs_query_register_name() returns the name of a register from its
-+ * offset in struct pt_regs. If the @offset is invalid, this returns NULL;
-+ */
-+const char *regs_query_register_name(unsigned int offset)
-+{
-+	const struct pt_regs_offset *roff;
-+	for (roff = regoffset_table; roff->name != NULL; roff++)
-+		if (roff->offset == offset)
-+			return roff->name;
-+	return NULL;
-+}
-+
-+static const int arg_offs_table[] = {
-+#ifdef CONFIG_X86_32
-+	[0] = offsetof(struct pt_regs, ax),
-+	[1] = offsetof(struct pt_regs, dx),
-+	[2] = offsetof(struct pt_regs, cx)
-+#else /* CONFIG_X86_64 */
-+	[0] = offsetof(struct pt_regs, di),
-+	[1] = offsetof(struct pt_regs, si),
-+	[2] = offsetof(struct pt_regs, dx),
-+	[3] = offsetof(struct pt_regs, cx),
-+	[4] = offsetof(struct pt_regs, r8),
-+	[5] = offsetof(struct pt_regs, r9)
-+#endif
-+};
-+
-+/**
-+ * regs_get_argument_nth() - get Nth argument at function call
-+ * @regs:	pt_regs which contains registers at function entry.
-+ * @n:		argument number.
-+ *
-+ * regs_get_argument_nth() returns @n th argument of a function call.
-+ * Since usually the kernel stack will be changed right after function entry,
-+ * you must use this at function entry. If the @n th entry is NOT in the
-+ * kernel stack or pt_regs, this returns 0.
-+ */
-+unsigned long regs_get_argument_nth(struct pt_regs *regs, unsigned int n)
-+{
-+	if (n < ARRAY_SIZE(arg_offs_table))
-+		return *((unsigned long *)regs + arg_offs_table[n]);
-+	else {
-+		/*
-+		 * The typical case: arg n is on the stack.
-+		 * (Note: stack[0] = return address, so skip it)
-+		 */
-+		n -= ARRAY_SIZE(arg_offs_table);
-+		return regs_get_kernel_stack_nth(regs, 1 + n);
-+	}
-+}
-+
- /*
-  * does not yet catch signals sent when the child dies.
-  * in exit.c or in signal.c.
-
+	-hpa
 
 -- 
-Masami Hiramatsu
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
 
-Software Engineer
-Hitachi Computer Products (America), Inc.
-Software Solutions Division
-
-e-mail: mhiramat@redhat.com
