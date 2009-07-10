@@ -1,114 +1,41 @@
-From: Matt Mackall <mpm@selenic.com>
-Subject: Re: [PATCH 2/2] sched: optimize cond_resched()
-Date: Fri, 10 Jul 2009 12:12:49 -0500
-Message-ID: <1247245969.21295.1057.camel@calx>
-References: <20090710125755.559739294@chello.nl>
-	 <20090710130125.160337304@chello.nl>
+From: Russell King <rmk@arm.linux.org.uk>
+Subject: Re: [PATCH 3/8] parisc: implement dma_mmap_coherent()
+Date: Fri, 10 Jul 2009 19:16:20 +0100
+Message-ID: <20090710181620.GA1019@flint.arm.linux.org.uk>
+References: <s5hprc8n0od.wl%tiwai@suse.de> <s5hljmwn0iw.wl%tiwai@suse.de> <1247238689.3936.16.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from waste.org ([66.93.16.53]:51478 "EHLO waste.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751474AbZGJROs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Jul 2009 13:14:48 -0400
-In-Reply-To: <20090710130125.160337304@chello.nl>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:59765 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751718AbZGJSQh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2009 14:16:37 -0400
+Content-Disposition: inline
+In-Reply-To: <1247238689.3936.16.camel@mulgrave.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Anton Vorontsov <avorontsov@ru.mvista.com>, Andrew Morton <akpm@linux-foundation.org>, oleg@redhat.com, mingo@elte.hu
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: Takashi Iwai <tiwai@suse.de>, linux-arch@vger.kernel.org, Gerhard Pircher <gerhard_pircher@gmx.net>, Parisc List <linux-parisc@vger.kernel.org>
 
-On Fri, 2009-07-10 at 14:57 +0200, Peter Zijlstra wrote:
-> plain text document attachment (sched_opt_cond_resched.patch)
-> Optimize cond_resched() by removing one conditional.
-> 
-> Currently cond_resched() checks system_state ==
-> SYSTEM_RUNNING in order to avoid scheduling before the
-> scheduler is running.
-> 
-> We can however, as per suggestion of Matt, use
-> PREEMPT_ACTIVE to accomplish that very same.
+On Fri, Jul 10, 2009 at 03:11:29PM +0000, James Bottomley wrote:
+> The design of coherent memory was for memory based device mailboxes
+> managed by the kernel ... trying to give userspace coherent access to
+> the same mailbox is problematic because it gives a direct way for the
+> process to interfere with a device function ... shouldn't whatever
+> you're trying to do be better accomplished by using an API to control
+> the device and keeping the coherent mailbox fully in the kernel address
+> space?
 
-Pedantically, introducing should_resched should be its own patch, but
-other than that, these two patches look good.
+As far as sound DMA goes, it's not about mailboxes.  It's about a circular
+buffer which you want the device to DMA from direct to/from the DAC/ADC
+and have the application write/read data directly to/from that same
+buffer.
 
-Acked-by: Matt Mackall <mpm@selenic.com>
-
-> Suggested-by: Matt Mackall <mpm@selenic.com>
-> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> ---
->  include/linux/sched.h |    5 ++++-
->  kernel/sched.c        |   14 +++++++++-----
->  2 files changed, 13 insertions(+), 6 deletions(-)
-> 
-> Index: linux-2.6/include/linux/sched.h
-> ===================================================================
-> --- linux-2.6.orig/include/linux/sched.h
-> +++ linux-2.6/include/linux/sched.h
-> @@ -503,8 +503,11 @@ struct task_cputime {
->  /*
->   * Disable preemption until the scheduler is running.
->   * Reset by start_kernel()->sched_init()->init_idle().
-> + *
-> + * We include PREEMPT_ACTIVE to avoid cond_resched() from working
-> + * before the scheduler is active -- see should_resched().
->   */
-> -#define INIT_PREEMPT_COUNT	(1)
-> +#define INIT_PREEMPT_COUNT	(1 + PREEMPT_ACTIVE)
->  
->  /**
->   * struct thread_group_cputimer - thread group interval timer counts
-> Index: linux-2.6/kernel/sched.c
-> ===================================================================
-> --- linux-2.6.orig/kernel/sched.c
-> +++ linux-2.6/kernel/sched.c
-> @@ -6580,6 +6580,11 @@ SYSCALL_DEFINE0(sched_yield)
->  	return 0;
->  }
->  
-> +static inline int should_resched(void)
-> +{
-> +	return need_resched() && !(preempt_count() & PREEMPT_ACTIVE);
-> +}
-> +
->  static void __cond_resched(void)
->  {
->  #ifdef CONFIG_DEBUG_SPINLOCK_SLEEP
-> @@ -6599,8 +6604,7 @@ static void __cond_resched(void)
->  
->  int __sched _cond_resched(void)
->  {
-> -	if (need_resched() && !(preempt_count() & PREEMPT_ACTIVE) &&
-> -					system_state == SYSTEM_RUNNING) {
-> +	if (should_resched()) {
->  		__cond_resched();
->  		return 1;
->  	}
-> @@ -6618,12 +6622,12 @@ EXPORT_SYMBOL(_cond_resched);
->   */
->  int cond_resched_lock(spinlock_t *lock)
->  {
-> -	int resched = need_resched() && system_state == SYSTEM_RUNNING;
-> +	int resched = should_resched();
->  	int ret = 0;
->  
->  	if (spin_needbreak(lock) || resched) {
->  		spin_unlock(lock);
-> -		if (resched && need_resched())
-> +		if (resched)
->  			__cond_resched();
->  		else
->  			cpu_relax();
-> @@ -6638,7 +6642,7 @@ int __sched cond_resched_softirq(void)
->  {
->  	BUG_ON(!in_softirq());
->  
-> -	if (need_resched() && system_state == SYSTEM_RUNNING) {
-> +	if (should_resched()) {
->  		local_bh_enable();
->  		__cond_resched();
->  		local_bh_disable();
-> 
+Without this, you end up having to copy the sound data - at something
+around 200KB/s from applications into a driver managed buffer, which is
+quite an unnecessary overhead for the CPU.
 
 -- 
-http://selenic.com : development and support for Mercurial and Linux
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
