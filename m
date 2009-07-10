@@ -1,41 +1,274 @@
-From: liqin.chen@sunplusct.com
-Subject: Re: [PATCH] score: add regsets support for score
-Date: Fri, 10 Jul 2009 17:06:27 +0800
-Message-ID: <OFE8F25211.6F919E29-ON482575EF.0031BE0C-482575EF.00328689@sunplusct.com>
-References: <20090709210356.B1FD96BA56@magilla.sf.frob.com>
+From: "liqin.chen" <liqin.chen@sunplusct.com>
+Subject: [PATCH V2] score: add regset support
+Date: Fri, 10 Jul 2009 17:13:52 +0800
+Message-ID: <4A570650.3060309@sunplusct.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="GB2312"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:33769 "EHLO
-	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751045AbZGJJMw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2009 05:12:52 -0400
-In-Reply-To: <20090709210356.B1FD96BA56@magilla.sf.frob.com>
+Received: from 219-87-157-179.static.tfn.net.tw ([219.87.157.179]:35180 "EHLO
+	mswedge1.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751049AbZGJJj3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2009 05:39:29 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Roland McGrath <roland@redhat.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, linux-arch@vger.kernel.org, linux-arch-owner@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
 
-Um9sYW5kIE1jR3JhdGggPHJvbGFuZEByZWRoYXQuY29tPiDQtNPaIDIwMDktMDctMTAgMDU6MDM6
-NTY6DQoNCj4gPiA+ICsgICAgICAgcmV0ID0gdXNlcl9yZWdzZXRfY29weW91dCgmcG9zLCAmY291
-bnQsICZrYnVmLCAmdWJ1ZiwNCj4gPiA+ICsgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICByZWdzLT5yZWdzLA0KPiA+ID4gKyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIG9m
-ZnNldG9mKHN0cnVjdCBwdF9yZWdzLCByZWdzKSwNCj4gPiA+ICsgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICBlbmRfcG9zKTsNCj4gDQo+IFRoaXMgbG9va3Mgb2RkIHRvIG1lLiAgVGhl
-IGxhc3QgdHdvIGFyZ3VtZW50cyBoZXJlIGFyZSBvZmZzZXRzIGludG8NCj4gdGhlIHVzZXJsYW5k
-IEFCSSBmb3JtYXQgZGVmaW5lZCBieSB0aGUgdXNlcl9yZWdzZXQgbGF5b3V0LiAgVW5sZXNzDQo+
-IG9mZnNldG9mKHN0cnVjdCBwdF9yZWdzLCByZWdzKSBpcyB6ZXJvLCB0aGVuIHlvdSBuZWVkIHRv
-IHByZWNlZGUNCj4gdGhpcyBjYWxsIHdpdGggb25lIHRoYXQgZmlsbHMgaW4gdGhlIGluaXRpYWwg
-c3RyZXRjaCBvZiB0aGUgdXNlcmxhbmQNCj4gZm9ybWF0IGxheW91dCBmcm9tIGl0cyAwIHVwIHRv
-IG9mZnNldG9mKHN0cnVjdCBwdF9yZWdzLCByZWdzKS4gIElmDQo+IGluIGZhY3Qgb2Zmc2V0b2Yo
-c3RydWN0IHB0X3JlZ3MsIHJlZ3MpIGlzIHplcm8sIHRoZW4gaXQgd291bGQgYmUgZmFyDQo+IGxl
-c3MgY29uZnVzaW5nIHRvIGp1c3Qgd3JpdGUgMCB0aGVyZSBJTUhPLiAgVXNpbmcgb2Zmc2V0b2Yg
-b24NCj4gcHRfcmVncyBhdCBhbGwgaGVyZSBpcyB2ZXJ5IGNvbmZ1c2luZyB0byBtZSB1bmxlc3Mg
-cHRfcmVncyBkZXNjcmliZXMNCj4gdGhlIHVzZXJsYW5kIEFCSSBsYXlvdXQgKGluIHdoaWNoIGNh
-c2UgdGhlIHVzZSBoZXJlIHN0aWxsIGRvZXNuJ3QNCj4gbWFrZSBzZW5zZSkuDQoNClRoYW5rcyBS
-b2xhbmQsDQoNCk1heWJlIEkgbWlzdW5kZXJzdGFuZCB0aGUgYXJndW1lbnRzIG1lYW5pbmcgb2YN
-CnVzZXJfcmVnc2V0X2NvcHkoaW4vb3V0KSwgSSByZXdyaXRlIHRoZXNlIGNvZGUsDQp1c2UgdXNl
-cmxhbmQgQUJJIGZvcm1hdCB0aGUgc2FtZSBhcyBzY29yZSdzIHB0X3JlZ3MsIA0KanVzdCBsaWtl
-IHNoIGFyY2ggZG8sIG1heWJlIGl0J3MgZWFzeSB0byB1bmRlcnN0YW5kLg0KSXQgd2lsbCBiZSBz
-ZW50IG91dCBsYXR0ZXIuDQoNCkJlc3QgUmVnYXJkcw0KTGlxaW4NCg==
+ptrace.c add register sets support for score architecture.
+
+- genregs_get(struct task_struct *target,
+           const struct user_regset *regset,
+           unsigned int pos, unsigned int count,
+           void *kbuf, void __user *ubuf)
+    Retrieve the contents of score userspace general registers.
+
+- genregs_set(struct task_struct *target,
+           const struct user_regset *regset,
+           unsigned int pos, unsigned int count,
+           const void *kbuf, const void __user *ubuf)
+    Update the contents of the score userspace general registers.
+
+Signed-off-by: Chen Liqin <liqin.chen@sunplusct.com>
+---
+ arch/score/include/asm/elf.h    |   18 +++--
+ arch/score/include/asm/ptrace.h |    2 +
+ arch/score/kernel/ptrace.c      |  140 
+++++++++++++++++++++++++++++++--------
+ 3 files changed, 123 insertions(+), 37 deletions(-)
+
+diff --git a/arch/score/include/asm/elf.h b/arch/score/include/asm/elf.h
+index 8324363..43526d9 100644
+--- a/arch/score/include/asm/elf.h
++++ b/arch/score/include/asm/elf.h
+@@ -1,9 +1,8 @@
+ #ifndef _ASM_SCORE_ELF_H
+ #define _ASM_SCORE_ELF_H
+ 
+-/* ELF register definitions */
+-#define ELF_NGREG    45
+-#define ELF_NFPREG    33
++#include <linux/ptrace.h>
++
+ #define EM_SCORE7    135
+ 
+ /* Relocation types. */
+@@ -30,11 +29,15 @@
+ #define R_SCORE_IMM30        20
+ #define R_SCORE_IMM32        21
+ 
+-typedef unsigned long elf_greg_t;
+-typedef elf_greg_t elf_gregset_t[ELF_NGREG];
++/* ELF register definitions */
++typedef unsigned long    elf_greg_t;
++
++#define ELF_NGREG    (sizeof(struct pt_regs) / sizeof(elf_greg_t))
++typedef elf_greg_t    elf_gregset_t[ELF_NGREG];
+ 
+-typedef double elf_fpreg_t;
+-typedef elf_fpreg_t elf_fpregset_t[ELF_NFPREG];
++/* Score does not have fp regs. */
++typedef double        elf_fpreg_t;
++typedef elf_fpreg_t    elf_fpregset_t;
+ 
+ #define elf_check_arch(x)    ((x)->e_machine == EM_SCORE7)
+ 
+@@ -57,6 +60,7 @@ do {                                \
+ struct task_struct;
+ struct pt_regs;
+ 
++#define CORE_DUMP_USE_REGSET
+ #define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE    PAGE_SIZE
+ 
+diff --git a/arch/score/include/asm/ptrace.h 
+b/arch/score/include/asm/ptrace.h
+index 66b14c8..19ce850 100644
+--- a/arch/score/include/asm/ptrace.h
++++ b/arch/score/include/asm/ptrace.h
+@@ -74,6 +74,8 @@ struct pt_regs {
+ 
+ #ifdef __KERNEL__
+ 
++struct task_struct;
++
+ /*
+  * Does the process account for user or for system time?
+  */
+diff --git a/arch/score/kernel/ptrace.c b/arch/score/kernel/ptrace.c
+index 1db876b..43784d8 100644
+--- a/arch/score/kernel/ptrace.c
++++ b/arch/score/kernel/ptrace.c
+@@ -23,11 +23,113 @@
+  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+  */
+ 
++#include <linux/elf.h>
+ #include <linux/kernel.h>
+ #include <linux/ptrace.h>
++#include <linux/regset.h>
+ 
+ #include <asm/uaccess.h>
+ 
++/*
++ * retrieve the contents of SCORE userspace general registers
++ */
++static int genregs_get(struct task_struct *target,
++               const struct user_regset *regset,
++               unsigned int pos, unsigned int count,
++               void *kbuf, void __user *ubuf)
++{
++    const struct pt_regs *regs = task_pt_regs(target);
++    int ret;
++
++    /* skip 8 * sizeof(unsigned long) not use for pt_regs */
++    ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
++                    0, offsetof(struct pt_regs, regs));
++
++    /* r0 - r31 */
++    ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++                  regs->regs,
++                  offsetof(struct pt_regs, regs),
++                  offsetof(struct pt_regs, cel));
++
++    if (!ret)
++        /* cel, ceh, sr0, sr1, sr2, epc, ema, psr, ecr, condition */
++        ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++                    &regs->cel,
++                    offsetof(struct pt_regs, cel),
++                    offsetof(struct pt_regs, is_syscall));
++
++    if (!ret)
++        ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
++                        sizeof(struct pt_regs), -1);
++
++    return ret;
++}
++
++/*
++ * update the contents of the SCORE userspace general registers
++ */
++static int genregs_set(struct task_struct *target,
++               const struct user_regset *regset,
++               unsigned int pos, unsigned int count,
++               const void *kbuf, const void __user *ubuf)
++{
++    struct pt_regs *regs = task_pt_regs(target);
++    int ret;
++
++    /* skip 8 * sizeof(unsigned long) */
++    ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
++                    0, offsetof(struct pt_regs, regs));
++
++    /* r0 - r31 */
++    ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++                  regs->regs,
++                  offsetof(struct pt_regs, regs),
++                  offsetof(struct pt_regs, cel));
++
++    if (!ret)
++        /* cel, ceh, sr0, sr1, sr2, epc, ema, psr, ecr, condition */
++        ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++                    &regs->cel,
++                    offsetof(struct pt_regs, cel),
++                    offsetof(struct pt_regs, is_syscall));
++
++    if (!ret)
++        ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
++                        sizeof(struct pt_regs), -1);
++
++    return ret;
++}
++
++/*
++ * Define the register sets available on the score7 under Linux
++ */
++enum score7_regset {
++    REGSET_GENERAL,
++};
++
++static const struct user_regset score7_regsets[] = {
++    [REGSET_GENERAL] = {
++        .core_note_type    = NT_PRSTATUS,
++        .n        = ELF_NGREG,
++        .size        = sizeof(long),
++        .align        = sizeof(long),
++        .get        = genregs_get,
++        .set        = genregs_set,
++    },
++};
++
++static const struct user_regset_view user_score_native_view = {
++    .name        = "score7",
++    .e_machine    = EM_SCORE7,
++    .regsets    = score7_regsets,
++    .n        = ARRAY_SIZE(score7_regsets),
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct 
+*task)
++{
++    return &user_score_native_view;
++}
++
+ static int is_16bitinsn(unsigned long insn)
+ {
+     if ((insn & INSN32_MASK) == INSN32_MASK)
+@@ -80,34 +182,6 @@ write_tsk_long(struct task_struct *child,
+     return copied != sizeof(val) ? -EIO : 0;
+ }
+ 
+-/*
+- * Get all user integer registers.
+- */
+-static int ptrace_getregs(struct task_struct *tsk, void __user *uregs)
+-{
+-    struct pt_regs *regs = task_pt_regs(tsk);
+-
+-    return copy_to_user(uregs, regs, sizeof(struct pt_regs)) ? -EFAULT : 0;
+-}
+-
+-/*
+- * Set all user integer registers.
+- */
+-static int ptrace_setregs(struct task_struct *tsk, void __user *uregs)
+-{
+-    struct pt_regs newregs;
+-    int ret;
+-
+-    ret = -EFAULT;
+-    if (copy_from_user(&newregs, uregs, sizeof(struct pt_regs)) == 0) {
+-        struct pt_regs *regs = task_pt_regs(tsk);
+-        *regs = newregs;
+-        ret = 0;
+-    }
+-
+-    return ret;
+-}
+-
+ void user_enable_single_step(struct task_struct *child)
+ {
+     /* far_epc is the target of branch */
+@@ -356,11 +430,17 @@ arch_ptrace(struct task_struct *child, long 
+request, long addr, long data)
+     }
+ 
+     case PTRACE_GETREGS:
+-        ret = ptrace_getregs(child, (void __user *)datap);
++        return copy_regset_to_user(child, &user_score_native_view,
++                        REGSET_GENERAL,
++                        0, sizeof(struct pt_regs),
++                        (void __user *)datap);
+         break;
+ 
+     case PTRACE_SETREGS:
+-        ret = ptrace_setregs(child, (void __user *)datap);
++        return copy_regset_from_user(child, &user_score_native_view,
++                        REGSET_GENERAL,
++                        0, sizeof(struct pt_regs),
++                        (const void __user *)datap);
+         break;
+ 
+     default:
+-- 
+1.6.2
