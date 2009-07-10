@@ -1,56 +1,39 @@
-From: Valdis.Kletnieks@vt.edu
-Subject: Re: [PATCH 1/2] sched: INIT_PREEMPT_COUNT
-Date: Fri, 10 Jul 2009 11:42:26 -0400
-Message-ID: <17047.1247240546@turing-police.cc.vt.edu>
-References: <20090710125755.559739294@chello.nl>
-            <20090710130125.037018244@chello.nl>
+From: Jon Masters <jonathan-Zp4isUonpHBD60Wz+7aTrA@public.gmane.org>
+Subject: Re: [PATCH] reduce export symbol CRC table size on 64-bit archs
+Date: Fri, 10 Jul 2009 11:50:01 -0400
+Message-ID: <1247241001.5006.11.camel@localhost.localdomain>
+References: <4A4A18780200007800008345@vpn.id2.novell.com>
+	 <4A4E671C.2090201@suse.cz> <4A51C71B0200007800008EE2@vpn.id2.novell.com>
+	 <200907092044.22108.rusty@rustcorp.com.au>
+	 <4A57089B0200007800009C0E@vpn.id2.novell.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="==_Exmh_1247240546_3858P";
-	 micalg=pgp-sha1; protocol="application/pgp-signature"
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from turing-police.cc.vt.edu ([128.173.14.107]:60772 "EHLO
-	turing-police.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751376AbZGJPrN (ORCPT
-	<RFC822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2009 11:47:13 -0400
-In-Reply-To: Your message of "Fri, 10 Jul 2009 14:57:56 +0200."
-             <20090710130125.037018244@chello.nl>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Matt Mackall <mpm@selenic.com>, Anton Vorontsov <avorontsov@ru.mvista.com>, Andrew Morton <akpm@linux-foundation.org>, oleg@redhat.com, mingo@elte.hu, tony.luck@intel.com, rth@twiddle.net, geert@linux-m68k.org
+Return-path: <linux-modules-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <4A57089B0200007800009C0E-Qfbpwmsw6RoS3W1tAdPHOtBPR1lH4CV8@public.gmane.org>
+Sender: linux-modules-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Jan Beulich <JBeulich-Et1tbQHTxzrQT0dZR+AlfA@public.gmane.org>
+Cc: Rusty Russell <rusty-8n+1lVoiYb80n/F98K4Iww@public.gmane.org>, Michal Marek <mmarek-AlSwsSmVLrQ@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-modules-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
---==_Exmh_1247240546_3858P
-Content-Type: text/plain; charset=us-ascii
+On Fri, 2009-07-10 at 08:23 +0100, Jan Beulich wrote:
 
-On Fri, 10 Jul 2009 14:57:56 +0200, Peter Zijlstra said:
+> Actually I meanwhile think that module-init-tools can easily detect the changed
+> layout without any further kernel side adjustments: Since it is known that a
+> CRC always is a 32-bit value, simply checking whether the so-far-used 64-bit
+> value has more than 32 significant bits should suffice: If so, the new layout
+> is being used (with the symbol name starting at offset 4), else the old one is
+> in effect (name at offset 8). This ought to be a pretty trivial change to that
+> code.
 
-> +/*
-> + * Disable preemption until the scheduler is running.
-> + * Reset by start_kernel()->sched_init()->init_idle().
-> + */
-> +#define INIT_PREEMPT_COUNT	(1)
-> +
+Agreed. That can be done. I won't get chance to do that until Sunday
+though because I'm about to be on a plane back from Tokyo to Boston and
+I expect a day of living hell with jetlag/email craziness.
 
-I had to look at this for quite some time before it sank in that it wasn't
-a reset of a #define, or a reset of (1) (anybody else remember changing the
-value of '5' in a Fortran program?).  Especially when stuck in with a bunch
-of cputimer defines. Would have taken even longer if I was looking in sched.h
-for something and not looking at this patch at the same time.
+Jon.
 
-Can we fix this comment to mention it's thread_info.preempt_count that
-needs the reset?
 
---==_Exmh_1247240546_3858P
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.9 (GNU/Linux)
-Comment: Exmh version 2.5 07/13/2001
-
-iD8DBQFKV2FicC3lWbTT17ARAnoRAJ4qyvpK+r/gaFG63FLWMt2ZqXjl7ACfSveu
-PlK95waFksNCIHON+oex5JI=
-=E2Xr
------END PGP SIGNATURE-----
-
---==_Exmh_1247240546_3858P--
+--
+To unsubscribe from this list: send the line "unsubscribe linux-modules" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
