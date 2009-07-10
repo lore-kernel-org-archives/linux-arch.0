@@ -1,61 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from viefep32-int.chello.at ([62.179.121.50]:56865 "EHLO
-	viefep32-int.chello.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754761AbZGJQI2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2009 12:08:28 -0400
-Subject: Re: [PATCH 1/2] sched: INIT_PREEMPT_COUNT
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-In-Reply-To: <17047.1247240546@turing-police.cc.vt.edu>
-References: <20090710125755.559739294@chello.nl>
-	 <20090710130125.037018244@chello.nl>
-	 <17047.1247240546@turing-police.cc.vt.edu>
-Content-Type: text/plain
-Date: Fri, 10 Jul 2009 17:51:06 +0200
-Message-ID: <1247241066.7529.50.camel@twins>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:40831 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750991AbZGJSjk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2009 14:39:40 -0400
+Date: Fri, 10 Jul 2009 19:39:26 +0100
+From: Russell King <rmk@arm.linux.org.uk>
+Subject: Re: [PATCH 3/8] parisc: implement dma_mmap_coherent()
+Message-ID: <20090710183925.GB1019@flint.arm.linux.org.uk>
+References: <s5hprc8n0od.wl%tiwai@suse.de> <s5hljmwn0iw.wl%tiwai@suse.de> <1247238689.3936.16.camel@mulgrave.site> <20090710181620.GA1019@flint.arm.linux.org.uk> <1247250650.3936.48.camel@mulgrave.site>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1247250650.3936.48.camel@mulgrave.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Valdis.Kletnieks@vt.edu
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Matt Mackall <mpm@selenic.com>, Anton Vorontsov <avorontsov@ru.mvista.com>, Andrew Morton <akpm@linux-foundation.org>, oleg@redhat.com, mingo@elte.hu, tony.luck@intel.com, rth@twiddle.net, geert@linux-m68k.org
-Message-ID: <20090710155106.R1u7GE6POQ5AFaOzudX4BB43PLNUZywDtNKafa1oWpA@z>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: Takashi Iwai <tiwai@suse.de>, linux-arch@vger.kernel.org, Gerhard Pircher <gerhard_pircher@gmx.net>, Parisc List <linux-parisc@vger.kernel.org>
+Message-ID: <20090710183926._SnbHYLuLg6L_hfOka-ah7H3uNQiwWMQu4TK3SZCAQ0@z>
 
-On Fri, 2009-07-10 at 11:42 -0400, Valdis.Kletnieks@vt.edu wrote:
-> On Fri, 10 Jul 2009 14:57:56 +0200, Peter Zijlstra said:
+On Fri, Jul 10, 2009 at 06:30:50PM +0000, James Bottomley wrote:
+> On Fri, 2009-07-10 at 19:16 +0100, Russell King wrote:
+> > As far as sound DMA goes, it's not about mailboxes.  It's about a circular
+> > buffer which you want the device to DMA from direct to/from the DAC/ADC
+> > and have the application write/read data directly to/from that same
+> > buffer.
 > 
-> > +/*
-> > + * Disable preemption until the scheduler is running.
-> > + * Reset by start_kernel()->sched_init()->init_idle().
-> > + */
-> > +#define INIT_PREEMPT_COUNT	(1)
-> > +
-> 
-> I had to look at this for quite some time before it sank in that it wasn't
-> a reset of a #define, or a reset of (1) (anybody else remember changing the
-> value of '5' in a Fortran program?).  Especially when stuck in with a bunch
-> of cputimer defines. Would have taken even longer if I was looking in sched.h
-> for something and not looking at this patch at the same time.
-> 
-> Can we fix this comment to mention it's thread_info.preempt_count that
-> needs the reset?
+> But that makes it sound like ordinary streaming DMA from a device to
+> user space ... that's what the dma_map_xx APIs are already designed to
+> handle:  I don't understand why you need coherent memory for this (which
+> can be a scarce resource on some platforms).
 
-Something along the lines of the below?
+The streaming APIs are inefficient for this.  Consider the overhead of
+having to writeback and invalidate caches at 200KB/s (which is what
+you're requiring ARM to do).  That's far too much CPU overhead.
 
----
-Index: linux-2.6/include/linux/sched.h
-===================================================================
---- linux-2.6.orig/include/linux/sched.h
-+++ linux-2.6/include/linux/sched.h
-@@ -502,7 +502,9 @@ struct task_cputime {
- 
- /*
-  * Disable preemption until the scheduler is running.
-- * Reset by start_kernel()->sched_init()->init_idle().
-+ *
-+ * We reset this initial offset of init_thread_info.preempt_count in:
-+ *     start_kernel()->sched_init()->init_idle().
-  */
- #define INIT_PREEMPT_COUNT	(1)
- 
+It's much more efficient to use non-cached memory for this on ARM.
 
+We've been doing this for years and years, it's well proven.
 
+> Why?  The dma_map_xx API is designed to be zero copy.
+
+Except with a rather large overhead of repetitive cache handling.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
