@@ -1,60 +1,25 @@
-From: Valdis.Kletnieks@vt.edu
+From: Bjorn Helgaas <bjorn.helgaas@hp.com>
 Subject: Re: [PATCH 1/2] sched: INIT_PREEMPT_COUNT
-Date: Fri, 10 Jul 2009 16:24:13 -0400
-Message-ID: <47357.1247257453@turing-police.cc.vt.edu>
-References: <20090710125755.559739294@chello.nl> <20090710130125.037018244@chello.nl> <17047.1247240546@turing-police.cc.vt.edu>
-            <1247241066.7529.50.camel@twins>
+Date: Fri, 10 Jul 2009 15:18:13 -0600
+Message-ID: <200907101518.13894.bjorn.helgaas@hp.com>
+References: <20090710125755.559739294@chello.nl> <20090710130125.037018244@chello.nl>
 Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="==_Exmh_1247257453_3858P";
-	 micalg=pgp-sha1; protocol="application/pgp-signature"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-15
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from turing-police.cc.vt.edu ([128.173.14.107]:57788 "EHLO
-	turing-police.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756099AbZGJUZT (ORCPT
-	<RFC822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2009 16:25:19 -0400
-In-Reply-To: Your message of "Fri, 10 Jul 2009 17:51:06 +0200."
-             <1247241066.7529.50.camel@twins>
+Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:46576 "EHLO
+	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751449AbZGJVST (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2009 17:18:19 -0400
+In-Reply-To: <20090710130125.037018244@chello.nl>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Matt Mackall <mpm@selenic.com>, Anton Vorontsov <avorontsov@ru.mvista.com>, Andrew Morton <akpm@linux-foundation.org>, oleg@redhat.com, mingo@elte.hu, tony.luck@intel.com, rth@twiddle.net, geert@linux-m68k.org
 
---==_Exmh_1247257453_3858P
-Content-Type: text/plain; charset=us-ascii
+On Friday 10 July 2009 06:57:56 am Peter Zijlstra wrote:
+> +#define INIT_PREEMPT_COUNT=A0=A0=A0=A0=A0(1)
 
-On Fri, 10 Jul 2009 17:51:06 +0200, Peter Zijlstra said:
-
-> Something along the lines of the below?
-> 
-> ---
-> Index: linux-2.6/include/linux/sched.h
-> ===================================================================
-> --- linux-2.6.orig/include/linux/sched.h
-> +++ linux-2.6/include/linux/sched.h
-> @@ -502,7 +502,9 @@ struct task_cputime {
->  
->  /*
->   * Disable preemption until the scheduler is running.
-> - * Reset by start_kernel()->sched_init()->init_idle().
-> + *
-> + * We reset this initial offset of init_thread_info.preempt_count in:
-> + *     start_kernel()->sched_init()->init_idle().
->   */
->  #define INIT_PREEMPT_COUNT	(1)
-
-Works for me, thanks...
-
---==_Exmh_1247257453_3858P
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.9 (GNU/Linux)
-Comment: Exmh version 2.5 07/13/2001
-
-iD8DBQFKV6NtcC3lWbTT17ARAmvFAJ4nO7b0ABq9AyeGxd6WenWLuIf2fQCg0Fwh
-r0VnakKSjRIusnawKBOjLho=
-=NwLF
------END PGP SIGNATURE-----
-
---==_Exmh_1247257453_3858P--
+If the parentheses are useful or necessary, I need to be
+educated about why.  They look like superfluous paranoia to me.
