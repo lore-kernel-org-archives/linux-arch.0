@@ -1,88 +1,41 @@
-From: "Jan Beulich" <JBeulich@novell.com>
-Subject: Re: [PATCH] reduce export symbol CRC table size on 64-bit
-	 archs
-Date: Fri, 10 Jul 2009 08:23:39 +0100
-Message-ID: <4A57089B0200007800009C0E@vpn.id2.novell.com>
-References: <4A4A18780200007800008345@vpn.id2.novell.com>
- <4A4E671C.2090201@suse.cz> <4A51C71B0200007800008EE2@vpn.id2.novell.com>
- <200907092044.22108.rusty@rustcorp.com.au>
+From: liqin.chen@sunplusct.com
+Subject: Re: [PATCH] score: add regsets support for score
+Date: Fri, 10 Jul 2009 17:06:27 +0800
+Message-ID: <OFE8F25211.6F919E29-ON482575EF.0031BE0C-482575EF.00328689@sunplusct.com>
+References: <20090709210356.B1FD96BA56@magilla.sf.frob.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="GB2312"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from vpn.id2.novell.com ([195.33.99.129]:32305 "EHLO
-	vpn.id2.novell.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751843AbZGJHXu convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2009 03:23:50 -0400
-In-Reply-To: <200907092044.22108.rusty@rustcorp.com.au>
-Content-Disposition: inline
+Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:33769 "EHLO
+	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751045AbZGJJMw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2009 05:12:52 -0400
+In-Reply-To: <20090709210356.B1FD96BA56@magilla.sf.frob.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rusty Russell <rusty@rustcorp.com.au>, Michal Marek <mmarek@suse.cz>
-Cc: Ingo Molnar <mingo@elte.hu>, tony.luck@intel.com, Jon Masters <jonathan@jonmasters.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-modules@vger.kernel.org, hpa@zytor.com
+To: Roland McGrath <roland@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
 
->>> Rusty Russell <rusty@rustcorp.com.au> 09.07.09 13:14 >>>
->On Mon, 6 Jul 2009 05:12:51 pm Jan Beulich wrote:
->> >Jan Beulich napsal(a):
->> >> Since these CRCs are really only 32-bit quantities, there's no need to
->> >> store them in 64-bit slots. Since, however, gcc doesn't allow
->> >> respective initializations, asm() constructs get used to create the CRC
->> >> tables (and its for that reason that the patch only makes x86-64 and
->> >> ia64 utilize that functionality, as I can't verify this doesn't break
->> >> in some subtle way elsewhere).
->> >
->> >...
->> >
->> >>  struct modversion_info
->> >>  {
->> >> -	unsigned long crc;
->> >> +	ksym_crc_t crc;
->> >>  	char name[MODULE_NAME_LEN];
->> >>  };
->> >
->> >This change breaks module-init-tools:
->> >Before:
->> >$ /sbin/modprobe --dump-modversions _build/drivers/usb/core/usbcore.ko
->> >
->> >| head
->> >
->> >0xb49b735a      module_layout
->> >0xdb7e6a70      bus_register
->> >...
->> >After:
->> >$ /sbin/modprobe --dump-modversions
->> >_build-crc-int/drivers/usb/core/usbcore.ko  | head
->> >0x75646f6d91ea7b5c      le_layout
->> >0x5f7375623e215f43      register
->> >...
->> >It also breaks the newly added depmod -E option (check symbol versions),
->> >which also reads the struct modversion_info array (*). Is it possible
->> >name the section differently (__versions2?) on those architectures where
->> >the size changes, so that it is possible to fix m-i-t in a
->> >backwards-compatible manner?
->>
->> First of all I'd view it as a design bug if user mode code assumptions
->> prevent changes to the kernel.
->
->Yes, but unfortunately it happens.  We do it much less than we used to, but 
->there are limits.
->
->> But taking this as an uncorrectable fact, I'd think that renaming the
->> section would certainly be an option (though I'm unsure whether that would
->> have other consequences - Rusty?), however I could also imagine other means
->> to communicate to user land the width of a CRC value (e.g. adding an
->> absolute symbol during the .ko linking stage).
->
->No, just break it once.  And I still like the idea that we should do something 
->more radical if we're going to break this anyway, rather than these nasty asm 
->hacks.
-
-Actually I meanwhile think that module-init-tools can easily detect the changed
-layout without any further kernel side adjustments: Since it is known that a
-CRC always is a 32-bit value, simply checking whether the so-far-used 64-bit
-value has more than 32 significant bits should suffice: If so, the new layout
-is being used (with the symbol name starting at offset 4), else the old one is
-in effect (name at offset 8). This ought to be a pretty trivial change to that
-code.
-
-Jan
+Um9sYW5kIE1jR3JhdGggPHJvbGFuZEByZWRoYXQuY29tPiDQtNPaIDIwMDktMDctMTAgMDU6MDM6
+NTY6DQoNCj4gPiA+ICsgICAgICAgcmV0ID0gdXNlcl9yZWdzZXRfY29weW91dCgmcG9zLCAmY291
+bnQsICZrYnVmLCAmdWJ1ZiwNCj4gPiA+ICsgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICByZWdzLT5yZWdzLA0KPiA+ID4gKyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIG9m
+ZnNldG9mKHN0cnVjdCBwdF9yZWdzLCByZWdzKSwNCj4gPiA+ICsgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICBlbmRfcG9zKTsNCj4gDQo+IFRoaXMgbG9va3Mgb2RkIHRvIG1lLiAgVGhl
+IGxhc3QgdHdvIGFyZ3VtZW50cyBoZXJlIGFyZSBvZmZzZXRzIGludG8NCj4gdGhlIHVzZXJsYW5k
+IEFCSSBmb3JtYXQgZGVmaW5lZCBieSB0aGUgdXNlcl9yZWdzZXQgbGF5b3V0LiAgVW5sZXNzDQo+
+IG9mZnNldG9mKHN0cnVjdCBwdF9yZWdzLCByZWdzKSBpcyB6ZXJvLCB0aGVuIHlvdSBuZWVkIHRv
+IHByZWNlZGUNCj4gdGhpcyBjYWxsIHdpdGggb25lIHRoYXQgZmlsbHMgaW4gdGhlIGluaXRpYWwg
+c3RyZXRjaCBvZiB0aGUgdXNlcmxhbmQNCj4gZm9ybWF0IGxheW91dCBmcm9tIGl0cyAwIHVwIHRv
+IG9mZnNldG9mKHN0cnVjdCBwdF9yZWdzLCByZWdzKS4gIElmDQo+IGluIGZhY3Qgb2Zmc2V0b2Yo
+c3RydWN0IHB0X3JlZ3MsIHJlZ3MpIGlzIHplcm8sIHRoZW4gaXQgd291bGQgYmUgZmFyDQo+IGxl
+c3MgY29uZnVzaW5nIHRvIGp1c3Qgd3JpdGUgMCB0aGVyZSBJTUhPLiAgVXNpbmcgb2Zmc2V0b2Yg
+b24NCj4gcHRfcmVncyBhdCBhbGwgaGVyZSBpcyB2ZXJ5IGNvbmZ1c2luZyB0byBtZSB1bmxlc3Mg
+cHRfcmVncyBkZXNjcmliZXMNCj4gdGhlIHVzZXJsYW5kIEFCSSBsYXlvdXQgKGluIHdoaWNoIGNh
+c2UgdGhlIHVzZSBoZXJlIHN0aWxsIGRvZXNuJ3QNCj4gbWFrZSBzZW5zZSkuDQoNClRoYW5rcyBS
+b2xhbmQsDQoNCk1heWJlIEkgbWlzdW5kZXJzdGFuZCB0aGUgYXJndW1lbnRzIG1lYW5pbmcgb2YN
+CnVzZXJfcmVnc2V0X2NvcHkoaW4vb3V0KSwgSSByZXdyaXRlIHRoZXNlIGNvZGUsDQp1c2UgdXNl
+cmxhbmQgQUJJIGZvcm1hdCB0aGUgc2FtZSBhcyBzY29yZSdzIHB0X3JlZ3MsIA0KanVzdCBsaWtl
+IHNoIGFyY2ggZG8sIG1heWJlIGl0J3MgZWFzeSB0byB1bmRlcnN0YW5kLg0KSXQgd2lsbCBiZSBz
+ZW50IG91dCBsYXR0ZXIuDQoNCkJlc3QgUmVnYXJkcw0KTGlxaW4NCg==
