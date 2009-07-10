@@ -1,82 +1,88 @@
-From: Roland McGrath <roland@redhat.com>
-Subject: Re: [PATCH] score: add regsets support for score
-Date: Thu,  9 Jul 2009 14:03:56 -0700 (PDT)
-Message-ID: <20090709210356.B1FD96BA56@magilla.sf.frob.com>
-References: <OF5282122C.261603C7-ON482575ED.003A86FA-482575ED.003C4AEE@sunplusct.com>
-	<200907091708.54468.arnd@arndb.de>
+From: "Jan Beulich" <JBeulich@novell.com>
+Subject: Re: [PATCH] reduce export symbol CRC table size on 64-bit
+	 archs
+Date: Fri, 10 Jul 2009 08:23:39 +0100
+Message-ID: <4A57089B0200007800009C0E@vpn.id2.novell.com>
+References: <4A4A18780200007800008345@vpn.id2.novell.com>
+ <4A4E671C.2090201@suse.cz> <4A51C71B0200007800008EE2@vpn.id2.novell.com>
+ <200907092044.22108.rusty@rustcorp.com.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:55497 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753737AbZGIVE7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Jul 2009 17:04:59 -0400
-In-Reply-To: Arnd Bergmann's message of  Thursday, 9 July 2009 17:08:54 +0200 <200907091708.54468.arnd@arndb.de>
+Received: from vpn.id2.novell.com ([195.33.99.129]:32305 "EHLO
+	vpn.id2.novell.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751843AbZGJHXu convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2009 03:23:50 -0400
+In-Reply-To: <200907092044.22108.rusty@rustcorp.com.au>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: liqin.chen@sunplusct.com, Christoph Hellwig <hch@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+To: Rusty Russell <rusty@rustcorp.com.au>, Michal Marek <mmarek@suse.cz>
+Cc: Ingo Molnar <mingo@elte.hu>, tony.luck@intel.com, Jon Masters <jonathan@jonmasters.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-modules@vger.kernel.org, hpa@zytor.com
 
-> The code you add looks ok to me, but it appears you forgot to hook
-> it up to the ptrace logic. Some architectures use it only for
-> PTRACE_{GET,SET}REGS, others also use it in PTRACE_{PEEK,POKE}USR,
-> I'm not sure what the right approach is for new architectures.
-> Should a new architecture actually implement both of those
-> interfaces?
+>>> Rusty Russell <rusty@rustcorp.com.au> 09.07.09 13:14 >>>
+>On Mon, 6 Jul 2009 05:12:51 pm Jan Beulich wrote:
+>> >Jan Beulich napsal(a):
+>> >> Since these CRCs are really only 32-bit quantities, there's no need to
+>> >> store them in 64-bit slots. Since, however, gcc doesn't allow
+>> >> respective initializations, asm() constructs get used to create the CRC
+>> >> tables (and its for that reason that the patch only makes x86-64 and
+>> >> ia64 utilize that functionality, as I can't verify this doesn't break
+>> >> in some subtle way elsewhere).
+>> >
+>> >...
+>> >
+>> >>  struct modversion_info
+>> >>  {
+>> >> -	unsigned long crc;
+>> >> +	ksym_crc_t crc;
+>> >>  	char name[MODULE_NAME_LEN];
+>> >>  };
+>> >
+>> >This change breaks module-init-tools:
+>> >Before:
+>> >$ /sbin/modprobe --dump-modversions _build/drivers/usb/core/usbcore.ko
+>> >
+>> >| head
+>> >
+>> >0xb49b735a      module_layout
+>> >0xdb7e6a70      bus_register
+>> >...
+>> >After:
+>> >$ /sbin/modprobe --dump-modversions
+>> >_build-crc-int/drivers/usb/core/usbcore.ko  | head
+>> >0x75646f6d91ea7b5c      le_layout
+>> >0x5f7375623e215f43      register
+>> >...
+>> >It also breaks the newly added depmod -E option (check symbol versions),
+>> >which also reads the struct modversion_info array (*). Is it possible
+>> >name the section differently (__versions2?) on those architectures where
+>> >the size changes, so that it is possible to fix m-i-t in a
+>> >backwards-compatible manner?
+>>
+>> First of all I'd view it as a design bug if user mode code assumptions
+>> prevent changes to the kernel.
+>
+>Yes, but unfortunately it happens.  We do it much less than we used to, but 
+>there are limits.
+>
+>> But taking this as an uncorrectable fact, I'd think that renaming the
+>> section would certainly be an option (though I'm unsure whether that would
+>> have other consequences - Rusty?), however I could also imagine other means
+>> to communicate to user land the width of a CRC value (e.g. adding an
+>> absolute symbol during the .ko linking stage).
+>
+>No, just break it once.  And I still like the idea that we should do something 
+>more radical if we're going to break this anyway, rather than these nasty asm 
+>hacks.
 
-I would not recommend adding PTRACE_{PEEK,POKE}USR to an ABI that
-doesn't have it already.  It only exists on other arch's for past
-compatibility; it's the poorest interface for this.
+Actually I meanwhile think that module-init-tools can easily detect the changed
+layout without any further kernel side adjustments: Since it is known that a
+CRC always is a 32-bit value, simply checking whether the so-far-used 64-bit
+value has more than 32 significant bits should suffice: If so, the new layout
+is being used (with the symbol name starting at offset 4), else the old one is
+in effect (name at offset 8). This ought to be a pretty trivial change to that
+code.
 
-If you are starting from scratch, then you should define your arch's
-user_regset layouts so that everything is nicely represented in one
-regset or another.  Then for ptrace, define a PTRACE_{GET,SET}REGS
-that exactly matches your regset 0, plus a *FPREGS for your FP regset
-or one each such pair of ptrace requests for each extra user_regset
-you have (if any).  arch_ptrace in arch/x86/kernel/ptrace.c shows an
-example where *REGS are implemented in this trivial way.
-
-> > +       ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-> > +                                 regs->regs,
-> > +                                 offsetof(struct pt_regs, regs),
-> > +                                 end_pos);
-
-This looks odd to me.  The last two arguments here are offsets into
-the userland ABI format defined by the user_regset layout.  Unless
-offsetof(struct pt_regs, regs) is zero, then you need to precede
-this call with one that fills in the initial stretch of the userland
-format layout from its 0 up to offsetof(struct pt_regs, regs).  If
-in fact offsetof(struct pt_regs, regs) is zero, then it would be far
-less confusing to just write 0 there IMHO.  Using offsetof on
-pt_regs at all here is very confusing to me unless pt_regs describes
-the userland ABI layout (in which case the use here still doesn't
-make sense).
-
-If what's instead the case is that the userland ABI format matches
-just the pt_regs.regs field and nothing more, then what you want is:
-
-	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-				  regs->regs, 0, sizeof(regs->regs));
-
-I gather that you then have some reserved zero-fill words at the end
-of the userland format (preparation for future use I presume).  So it's:
-
-	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-				  regs->regs, 0, sizeof(regs->regs));
-	if (!ret)
-		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-					       sizeof(regs->regs), -1);
-
-Et voila.
-
-But I may be misunderstanding what the intended userland ABI format is
-here.  I'd advise you to make sure that everything that can affect
-user-mode instructions (condition codes, etc.) is exposed via some
-user_regset layouts, or else you'll eventually have userland debugger
-folks coming back to have you cram them in somehow later (and it won't
-wind up as pretty).
-
-
-Thanks,
-Roland
+Jan
