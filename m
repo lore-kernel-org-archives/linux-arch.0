@@ -1,47 +1,31 @@
-From: liqin.chen@sunplusct.com
-Subject: Re: [PATCH V2] score: add regset support
-Date: Mon, 13 Jul 2009 13:56:22 +0800
-Message-ID: <OF43365008.5559F266-ON482575F2.001F17EE-482575F2.00212259@sunplusct.com>
-References: <200907101449.45286.arnd@arndb.de>
+From: Michal Marek <mmarek-AlSwsSmVLrQ@public.gmane.org>
+Subject: Re: [PATCH] reduce export symbol CRC table size on 64-bit	 archs
+Date: Mon, 13 Jul 2009 10:11:40 +0200
+Message-ID: <4A5AEC3C.2060608@suse.cz>
+References: <4A4A18780200007800008345@vpn.id2.novell.com> <4A4E671C.2090201@suse.cz> <4A51C71B0200007800008EE2@vpn.id2.novell.com> <200907092044.22108.rusty@rustcorp.com.au> <4A57089B0200007800009C0E@vpn.id2.novell.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="GB2312"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 219-87-157-169.static.tfn.net.tw ([219.87.157.169]:58668 "EHLO
-	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751757AbZGMGDI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2009 02:03:08 -0400
-In-Reply-To: <200907101449.45286.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@infradead.org>, linux-arch@vger.kernel.org, linux-arch-owner@vger.kernel.org, linux-kernel@vger.kernel.org, Roland McGrath <roland@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-modules-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <4A57089B0200007800009C0E-Qfbpwmsw6RoS3W1tAdPHOtBPR1lH4CV8@public.gmane.org>
+Sender: linux-modules-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Jan Beulich <JBeulich-Et1tbQHTxzrQT0dZR+AlfA@public.gmane.org>
+Cc: Rusty Russell <rusty-8n+1lVoiYb80n/F98K4Iww@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, Jon Masters <jonathan-Zp4isUonpHBD60Wz+7aTrA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-modules-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-bGludXgtYXJjaC1vd25lckB2Z2VyLmtlcm5lbC5vcmcg0LTT2iAyMDA5LTA3LTEwIDIwOjQ5OjQ0
-Og0KDQo+IHN0cnVjdCBwdF9yZWdzIHsNCj4gICAgICAgIHVuc2lnbmVkIGxvbmcgcGFkMFs2XTsN
-Cj4gICAgICAgIHVuc2lnbmVkIGxvbmcgb3JpZ19yNDsNCj4gICAgICAgIHVuc2lnbmVkIGxvbmcg
-b3JpZ19yNzsNCj4gICAgICAgIHVuc2lnbmVkIGxvbmcgcmVnc1szMl07DQo+IA0KPiAgICAgICAg
-dW5zaWduZWQgbG9uZyBjZWw7DQo+ICAgICAgICB1bnNpZ25lZCBsb25nIGNlaDsNCj4gDQo+ICAg
-ICAgICB1bnNpZ25lZCBsb25nIHNyMDsgICAgICAvKiBjbnQgKi8NCj4gICAgICAgIHVuc2lnbmVk
-IGxvbmcgc3IxOyAgICAgIC8qIGxjciAqLw0KPiAgICAgICAgdW5zaWduZWQgbG9uZyBzcjI7ICAg
-ICAgLyogc2NyICovDQo+IA0KPiAgICAgICAgdW5zaWduZWQgbG9uZyBjcDBfZXBjOw0KPiAgICAg
-ICAgdW5zaWduZWQgbG9uZyBjcDBfZW1hOw0KPiAgICAgICAgdW5zaWduZWQgbG9uZyBjcDBfcHNy
-Ow0KPiAgICAgICAgdW5zaWduZWQgbG9uZyBjcDBfZWNyOw0KPiAgICAgICAgdW5zaWduZWQgbG9u
-ZyBjcDBfY29uZGl0aW9uOw0KPiANCj4gICAgICAgIGxvbmcgaXNfc3lzY2FsbDsNCj4gfTsNCj4g
-DQo+IHRvDQo+IA0KPiBzdHJ1Y3QgcHRfcmVncyB7DQo+ICAgICAgICB1bnNpZ25lZCBsb25nIHJl
-Z3NbMzJdOw0KPiANCj4gICAgICAgIHVuc2lnbmVkIGxvbmcgY2VsOw0KPiAgICAgICAgdW5zaWdu
-ZWQgbG9uZyBjZWg7DQo+IA0KPiAgICAgICAgdW5zaWduZWQgbG9uZyBzcjA7ICAgICAgLyogY250
-ICovDQo+ICAgICAgICB1bnNpZ25lZCBsb25nIHNyMTsgICAgICAvKiBsY3IgKi8NCj4gICAgICAg
-IHVuc2lnbmVkIGxvbmcgc3IyOyAgICAgIC8qIHNjciAqLw0KPiANCj4gICAgICAgIHVuc2lnbmVk
-IGxvbmcgY3AwX2VwYzsNCj4gICAgICAgIHVuc2lnbmVkIGxvbmcgY3AwX2VtYTsNCj4gICAgICAg
-IHVuc2lnbmVkIGxvbmcgY3AwX3BzcjsNCj4gICAgICAgIHVuc2lnbmVkIGxvbmcgY3AwX2VjcjsN
-Cj4gICAgICAgIHVuc2lnbmVkIGxvbmcgY3AwX2NvbmRpdGlvbjsNCj4gI2lmZGVmIF9fS0VSTkVM
-X18NCj4gICAgICAgIHVuc2lnbmVkIGxvbmcgb3JpZ19yNDsNCj4gICAgICAgIHVuc2lnbmVkIGxv
-bmcgb3JpZ19yNzsNCj4gICAgICAgIGxvbmcgaXNfc3lzY2FsbDsNCj4gICAgICAgIHVuc2lnbmVk
-IGxvbmcgcGFkMFszXTsNCj4gI2Vsc2UNCj4gICAgICAgIHVuc2lnbmVkIGxvbmcgcGFkMFs2XTsN
-Cj4gI2VuZGlmDQo+IH07DQo+IA0KDQp1bnNpZ25lZCBsb25nIHBhZDBbNl07DQoNCndhcyBwbGFj
-ZSBhdCB0aGUgc3RhcnQgb2YgcHRfcmVncyB1c2UgDQp0byBob2xkIHRoZSBhcmd1bWVudHMgZnJv
-bSB1c2VybGFuZC4NCmNhbGxlcihleGNlcHRpb24gaGFuZGxlcikgbm90IG5lZWQgdG8NCmNoYW5n
-ZSBzdGFjayBwb2ludGVyLg0KDQp1bnNpZ25lZCBsb25nIG9yaWdfcjQ7DQp1bnNpZ25lZCBsb25n
-IG9yaWdfcjc7DQptb3ZlIHRvIGVuZCBvZiB0aGUgcHRfcmVncyBoYXZlbid0IA0KcHJvYmxlbS4N
-Cg0KVGhhbmtzLA0KTGlxaW4NCg0K
+Jan Beulich napsal(a):
+> Actually I meanwhile think that module-init-tools can easily detect the changed
+> layout without any further kernel side adjustments: Since it is known that a
+> CRC always is a 32-bit value, simply checking whether the so-far-used 64-bit
+> value has more than 32 significant bits should suffice: If so, the new layout
+> is being used (with the symbol name starting at offset 4), else the old one is
+> in effect (name at offset 8). This ought to be a pretty trivial change to that
+> code.
+
+But old module-init-tools will continue reading garbage in this case.
+
+Michal
+--
+To unsubscribe from this list: send the line "unsubscribe linux-modules" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
