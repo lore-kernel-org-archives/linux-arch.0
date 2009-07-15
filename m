@@ -1,51 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from attila.bofh.it ([213.92.8.2]:49512 "EHLO attila.bofh.it"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751142AbZGNKz0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Jul 2009 06:55:26 -0400
-Date: Tue, 14 Jul 2009 12:44:41 +0200
-Subject: Re: [PATCH] reduce export symbol CRC table size on 64-bit  archs
-Message-ID: <20090714104440.GA2113@bongo.bofh.it>
-References: <4A4A18780200007800008345@vpn.id2.novell.com> <4A4E671C.2090201@suse.cz> <4A51C71B0200007800008EE2@vpn.id2.novell.com> <200907092044.22108.rusty@rustcorp.com.au> <4A57089B0200007800009C0E@vpn.id2.novell.com> <4A5AEC3C.2060608@suse.cz> <4A5B101E020000780000A284@vpn.id2.novell.com> <1247567372.31188.229.camel@perihelion.bos.jonmasters.org>
+Received: from mail-bw0-f228.google.com ([209.85.218.228]:49086 "EHLO
+	mail-bw0-f228.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753094AbZGOHjK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jul 2009 03:39:10 -0400
+Message-ID: <4A5D8797.10004@petalogix.com>
+Date: Wed, 15 Jul 2009 09:39:03 +0200
+From: Michal Simek <michal.simek@petalogix.com>
+Reply-To: michal.simek@petalogix.com
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="dDRMvlgZJXvWKvBx"
-Content-Disposition: inline
-In-Reply-To: <1247567372.31188.229.camel@perihelion.bos.jonmasters.org>
-From: md@Linux.IT (Marco d'Itri)
+Subject: asm-generic pgtable.h
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jon Masters <jonathan@jonmasters.org>
-Cc: Jan Beulich <JBeulich@novell.com>, Michal Marek <mmarek@suse.cz>, Ingo Molnar <mingo@elte.hu>, tony.luck@intel.com, Thomas Gleixner <tglx@linutronix.de>, Rusty Russell <rusty@rustcorp.com.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-modules@vger.kernel.org, hpa@zytor.com
-Message-ID: <20090714104441.IbycIZfeNyrGsshUa9P25Gefp7JAqsQucc2dNlbQAWk@z>
+To: Arnd Bergmann <arnd@arndb.de>, Linux Kernel list <linux-kernel@vger.kernel.org>, lkml <linux-arch@vger.kernel.org>
+Message-ID: <20090715073903.EmQuOjrRvhHw0uF8wJAOU7K53AIqfM25ffbiG5K53lI@z>
 
+Hi Arnd,
 
---dDRMvlgZJXvWKvBx
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+I found that we should simplify pgtable.h. There are a lot of generic
+functions which use
+all archs. Have you look at it or not?
 
-On Jul 14, Jon Masters <jonathan@jonmasters.org> wrote:
+Thanks,
+Michal
 
-> Most of the distros can fix that with a dependency on the kernel package
-> in the absolute worst case, not that I love that idea, but it happens. I
-FYI, Debian cannot do this.
+-- 
+Michal Simek, Ing. (M.Eng)
+PetaLogix - Linux Solutions for a Reconfigurable World
+w: www.petalogix.com p: +61-7-30090663,+42-0-721842854 f: +61-7-30090663
 
---=20
-ciao,
-Marco
-
---dDRMvlgZJXvWKvBx
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-Content-Disposition: inline
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.9 (GNU/Linux)
-
-iEYEARECAAYFAkpcYZgACgkQFGfw2OHuP7FG3QCgop6K0zGmrfxAysZPMTIBtekN
-j2YAoIhEPx0CgeKJoc8aE1ti81wr40Dc
-=+0pl
------END PGP SIGNATURE-----
-
---dDRMvlgZJXvWKvBx--
