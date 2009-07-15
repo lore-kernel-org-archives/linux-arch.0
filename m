@@ -1,63 +1,32 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [RFC/PATCH] mm: Pass virtual address to [__]p{te, ud,
-	md}_free_tlb()
-Date: Wed, 15 Jul 2009 15:56:20 +0200
-Message-ID: <20090715135620.GD7298@wotan.suse.de>
-References: <20090715074952.A36C7DDDB2@ozlabs.org>
+From: Roland McGrath <roland@redhat.com>
+Subject: Re: [PATCH V2] score: add regset support
+Date: Wed, 15 Jul 2009 13:18:17 -0700 (PDT)
+Message-ID: <20090715201817.9FF0840F7F@magilla.sf.frob.com>
+References: <OF43365008.5559F266-ON482575F2.001F17EE-482575F2.00212259@sunplusct.com>
+	<200907131624.28286.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-Content-Disposition: inline
-In-Reply-To: <20090715074952.A36C7DDDB2@ozlabs.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Linux Memory Management <linux-mm@kvack.org>, Hugh Dickins <hugh@tiscali.co.uk>, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([66.187.233.31]:50325 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932142AbZGOUS7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Jul 2009 16:18:59 -0400
+In-Reply-To: Arnd Bergmann's message of  Monday, 13 July 2009 16:24:28 +0200 <200907131624.28286.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: liqin.chen@sunplusct.com, Christoph Hellwig <hch@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Wed, Jul 15, 2009 at 05:49:47PM +1000, Benjamin Herrenschmidt wrote:
-> Upcoming paches to support the new 64-bit "BookE" powerpc architecture
-> will need to have the virtual address corresponding to PTE page when
-> freeing it, due to the way the HW table walker works.
-> 
-> Basically, the TLB can be loaded with "large" pages that cover the whole
-> virtual space (well, sort-of, half of it actually) represented by a PTE
-> page, and which contain an "indirect" bit indicating that this TLB entry
-> RPN points to an array of PTEs from which the TLB can then create direct
-> entries.
+IMHO it is certainly a wise choice to have some struct (be it called
+user_regs_struct or whatever) that describes the exact userland layout.
+(I think it's also fine to just call that elf_gregset_t and have it be an
+array, with REG_* defines/enum somewhere to document its indices.  It's
+just a matter of taste for the arch folks.)
 
-RPN is PFN in ppc speak, right?
+Given such a struct, the regset code can refer to it (with offsetof, e.g.)
+and that will make it far easier to read, understand, and review.
 
 
-> Thus, in order to invalidate those when PTE pages are deleted,
-> we need the virtual address to pass to tlbilx or tlbivax instructions.
-
-Interesting arrangement. So are these last level ptes modifieable
-from userspace or something? If not, I wonder if you could manage
-them as another level of pointers with the existing pagetable
-functions?
- 
-
-> The old trick of sticking it somewhere in the PTE page struct page sucks
-> too much, the address is almost readily available in all call sites and
-> almost everybody implemets these as macros, so we may as well add the
-> argument everywhere. I added it to the pmd and pud variants for consistency.
-> 
-> Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> ---
-> 
-> I would like to merge the new support that depends on this in 2.6.32,
-> so unless there's major objections, I'd like this to go in early during
-> the merge window. We can sort out separately how to carry the patch
-> around in -next until then since the powerpc tree will have a dependency
-> on it.
-
-Can't see any problem with that.
+Thanks,
+Roland
