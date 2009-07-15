@@ -1,32 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f228.google.com ([209.85.218.228]:49086 "EHLO
-	mail-bw0-f228.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753094AbZGOHjK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jul 2009 03:39:10 -0400
-Message-ID: <4A5D8797.10004@petalogix.com>
-Date: Wed, 15 Jul 2009 09:39:03 +0200
-From: Michal Simek <michal.simek@petalogix.com>
-Reply-To: michal.simek@petalogix.com
-MIME-Version: 1.0
-Subject: asm-generic pgtable.h
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Received: from cantor2.suse.de ([195.135.220.15]:36824 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754780AbZGON4W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Jul 2009 09:56:22 -0400
+Date: Wed, 15 Jul 2009 15:56:20 +0200
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [RFC/PATCH] mm: Pass virtual address to [__]p{te,ud,md}_free_tlb()
+Message-ID: <20090715135620.GD7298@wotan.suse.de>
+References: <20090715074952.A36C7DDDB2@ozlabs.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20090715074952.A36C7DDDB2@ozlabs.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Linux Kernel list <linux-kernel@vger.kernel.org>, lkml <linux-arch@vger.kernel.org>
-Message-ID: <20090715073903.EmQuOjrRvhHw0uF8wJAOU7K53AIqfM25ffbiG5K53lI@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Linux Memory Management <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, Hugh Dickins <hugh@tiscali.co.uk>
+Message-ID: <20090715135620.GMFLanR4ZDf9pwT7WtmvEdIF8GZ-mfVpHftB4gEntK0@z>
 
-Hi Arnd,
+On Wed, Jul 15, 2009 at 05:49:47PM +1000, Benjamin Herrenschmidt wrote:
+> Upcoming paches to support the new 64-bit "BookE" powerpc architecture
+> will need to have the virtual address corresponding to PTE page when
+> freeing it, due to the way the HW table walker works.
+> 
+> Basically, the TLB can be loaded with "large" pages that cover the whole
+> virtual space (well, sort-of, half of it actually) represented by a PTE
+> page, and which contain an "indirect" bit indicating that this TLB entry
+> RPN points to an array of PTEs from which the TLB can then create direct
+> entries.
 
-I found that we should simplify pgtable.h. There are a lot of generic
-functions which use
-all archs. Have you look at it or not?
+RPN is PFN in ppc speak, right?
 
-Thanks,
-Michal
 
--- 
-Michal Simek, Ing. (M.Eng)
-PetaLogix - Linux Solutions for a Reconfigurable World
-w: www.petalogix.com p: +61-7-30090663,+42-0-721842854 f: +61-7-30090663
+> Thus, in order to invalidate those when PTE pages are deleted,
+> we need the virtual address to pass to tlbilx or tlbivax instructions.
+
+Interesting arrangement. So are these last level ptes modifieable
+from userspace or something? If not, I wonder if you could manage
+them as another level of pointers with the existing pagetable
+functions?
+ 
+
+> The old trick of sticking it somewhere in the PTE page struct page sucks
+> too much, the address is almost readily available in all call sites and
+> almost everybody implemets these as macros, so we may as well add the
+> argument everywhere. I added it to the pmd and pud variants for consistency.
+> 
+> Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> ---
+> 
+> I would like to merge the new support that depends on this in 2.6.32,
+> so unless there's major objections, I'd like this to go in early during
+> the merge window. We can sort out separately how to carry the patch
+> around in -next until then since the powerpc tree will have a dependency
+> on it.
+
+Can't see any problem with that.
 
