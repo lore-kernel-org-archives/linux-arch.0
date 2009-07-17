@@ -1,277 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:58170 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932584AbZGPPyx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Jul 2009 11:54:53 -0400
-From: Masami Hiramatsu <mhiramat@redhat.com>
-Subject: [PATCH -tip -v12 05/11] x86: add pt_regs register and stack access
-	APIs
-Date: Thu, 16 Jul 2009 11:57:24 -0400
-Message-ID: <20090716155723.6266.50713.stgit@localhost.localdomain>
-In-Reply-To: <20090716155652.6266.39970.stgit@localhost.localdomain>
-References: <20090716155652.6266.39970.stgit@localhost.localdomain>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:33212 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752648AbZGQTzw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Jul 2009 15:55:52 -0400
+Subject: Re: [PATCH 3/8] parisc: implement dma_mmap_coherent()
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <s5hljmn8kjg.wl%tiwai@suse.de>
+References: <s5hprc8n0od.wl%tiwai@suse.de> <s5hljmwn0iw.wl%tiwai@suse.de>
+	 <1247238689.3936.16.camel@mulgrave.site>
+	 <20090710181620.GA1019@flint.arm.linux.org.uk>
+	 <1247250650.3936.48.camel@mulgrave.site>
+	 <20090710183925.GB1019@flint.arm.linux.org.uk>
+	 <1247252363.3936.52.camel@mulgrave.site>  <s5hljmn8kjg.wl%tiwai@suse.de>
+Content-Type: text/plain
+Date: Fri, 17 Jul 2009 19:16:49 +0000
+Message-ID: <1247858209.7319.35.camel@mulgrave.site>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Steven Rostedt <rostedt@goodmis.org>, lkml <linux-kernel@vger.kernel.org>
-Cc: systemtap <systemtap@sources.redhat.com>, kvm <kvm@vger.kernel.org>, DLE <dle-develop@lists.sourceforge.net>, Masami Hiramatsu <mhiramat@redhat.com>, Andi Kleen <andi@firstfloor.org>, Christoph Hellwig <hch@infradead.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Frederic Weisbecker <fweisbec@gmail.com>, Roland McGrath <roland@redhat.com>, Srikar Dronamraju <srikar@linux.vnet.ibm.com>, linux-arch@vger.kernel.org
-Message-ID: <20090716155724.nCZpWZWUCH9vY-9XrhtjozI1EF39mkLaXaoTiosZXlo@z>
+To: Takashi Iwai <tiwai@suse.de>
+Cc: Russell King <rmk@arm.linux.org.uk>, linux-arch@vger.kernel.org, Gerhard Pircher <gerhard_pircher@gmx.net>, Parisc List <linux-parisc@vger.kernel.org>
+Message-ID: <20090717191649.cNVAhfi1VBreckSIbNpT32DZVV5oG2nlUaIzPSghQS4@z>
 
-Add following APIs for accessing registers and stack entries from pt_regs.
-These APIs are required by kprobes-based event tracer on ftrace.
-Some other debugging tools might be able to use it too.
+On Fri, 2009-07-17 at 16:13 +0200, Takashi Iwai wrote:
+> [Sorry for the late follow-up as I've been absent]
+> 
+> At Fri, 10 Jul 2009 18:59:23 +0000,
+> James Bottomley wrote:
+> > 
+> > On Fri, 2009-07-10 at 19:39 +0100, Russell King wrote:
+> > > On Fri, Jul 10, 2009 at 06:30:50PM +0000, James Bottomley wrote:
+> > > > On Fri, 2009-07-10 at 19:16 +0100, Russell King wrote:
+> > > > > As far as sound DMA goes, it's not about mailboxes.  It's about a circular
+> > > > > buffer which you want the device to DMA from direct to/from the DAC/ADC
+> > > > > and have the application write/read data directly to/from that same
+> > > > > buffer.
+> > > > 
+> > > > But that makes it sound like ordinary streaming DMA from a device to
+> > > > user space ... that's what the dma_map_xx APIs are already designed to
+> > > > handle:  I don't understand why you need coherent memory for this (which
+> > > > can be a scarce resource on some platforms).
+> > 
+> > > The streaming APIs are inefficient for this.  Consider the overhead of
+> > > having to writeback and invalidate caches at 200KB/s (which is what
+> > > you're requiring ARM to do).  That's far too much CPU overhead.
+> > 
+> > Um, but streaming APIs are what we use for all block and network I/O
+> > from user space ... we don't see huge performance problems running up to
+> > gigabits.  Even on parisc where we have to flush several times to make
+> > this happen we can get up to several hundred megabytes per second.
+> 
+> Well, the requirement of the non-streaming mmap is rather a historical
+> reason.  From the fairly early time, the sound driver provided the
+> mmap of a whole ring buffer since it's practical and efficient for
+> real-time sound processes.  But, usually the mmap mode is optional.
+> If it's not supported, apps should fall back to the normal read/write
+> mode.
 
-- regs_query_register_offset(const char *name)
-   Query the offset of "name" register.
+But what I don't understand is why you can't treat the ring buffer as
+streaming.  Sure, you have a head pointer and a tail pointer, but
+everything between head and tail is owned by the device and everything
+between tail and head is owned by the kernel, surely?  In that case, you
+can manipulate head and tail movements simply via the streaming API?
+(when head moves, map the delta to the device; when tail moves, map the
+delta to the kernel) and we can simply then use the standard APIs?
 
-- regs_query_register_name(unsigned int offset)
-   Query the name of register by its offset.
+> Now, the problem is that we have no way to tell whether the DMA
+> ring-buffer mmap is available or not on each architecture.  So, my
+> proposal has basically two meanings:
+> 
+> - clarify which arch / platform supports the coherent DMA mapping
+>   of a whole ring-buffer
+> - provide the same API to cover the possible archs / platforms
+> 
+> In that sense, if a few (or all) PA-RISC platforms don't give the
+> proper coherent mapping that the sound apps require, it's OK.  We
+> just drop the flag in the driver as "unsupported", then.
 
-- regs_get_register(struct pt_regs *regs, unsigned int offset)
-   Get the value of a register by its offset.
+That would work for us too ... I can see that x86 will have little
+problem with this, but I can predict that most other architectures will
+have some difficulty.
 
-- regs_within_kernel_stack(struct pt_regs *regs, unsigned long addr)
-   Check the address is in the kernel stack.
+> So... before going to the detail of PA-RISC implementation, I'd like
+> to know your opinions: whether applying dma_mmap_coherent() to
+> possible archs/platforms is a reasonable solution for such a
+> scenario.
 
-- regs_get_kernel_stack_nth(struct pt_regs *reg, unsigned int nth)
-   Get Nth entry of the kernel stack. (N >= 0)
+Realistically, the only way to make it work as you want on parisc is to
+have a kernel/user congruence (it's an address rule [virtual addresses
+are equal modulo the congruence step, which is 4MB]) which would ensure
+this would work without flushing ... that's hard for the kernel to make
+happen on its own.
 
-- regs_get_argument_nth(struct pt_regs *reg, unsigned int nth)
-   Get Nth argument at function call. (N >= 0)
+> [Why not using the standard map->sync procedure is another level of
+>  question :)  My goal here is to improve the current (partly broken)
+>  situation in a minimal effort.  The change of mmap procedure would
+>  lead to major rewrites of API, and thus has to be discussed more
+>  deeply.]
 
-Changes from v10:
- - Use an offsetof table in regs_get_argument_nth().
- - Use "unsigned int" instead of "unsigned".
+So, yes, there is an equivalent used by the frame buffer which basically
+tries to place a dma mapped page into a user address space ... that
+might also work in this case.
 
-Signed-off-by: Masami Hiramatsu <mhiramat@redhat.com>
-Reviewed-by: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Andi Kleen <andi@firstfloor.org>
-Cc: Christoph Hellwig <hch@infradead.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Roland McGrath <roland@redhat.com>
-Cc: Srikar Dronamraju <srikar@linux.vnet.ibm.com>
-Cc: linux-arch@vger.kernel.org
----
+> Any comments appreciated.
 
- arch/x86/include/asm/ptrace.h |   62 +++++++++++++++++++++++
- arch/x86/kernel/ptrace.c      |  112 +++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 174 insertions(+), 0 deletions(-)
-
-diff --git a/arch/x86/include/asm/ptrace.h b/arch/x86/include/asm/ptrace.h
-index 0f0d908..a3d49dd 100644
---- a/arch/x86/include/asm/ptrace.h
-+++ b/arch/x86/include/asm/ptrace.h
-@@ -7,6 +7,7 @@
- 
- #ifdef __KERNEL__
- #include <asm/segment.h>
-+#include <asm/page_types.h>
- #endif
- 
- #ifndef __ASSEMBLY__
-@@ -216,6 +217,67 @@ static inline unsigned long user_stack_pointer(struct pt_regs *regs)
- 	return regs->sp;
- }
- 
-+/* Query offset/name of register from its name/offset */
-+extern int regs_query_register_offset(const char *name);
-+extern const char *regs_query_register_name(unsigned int offset);
-+#define MAX_REG_OFFSET (offsetof(struct pt_regs, ss))
-+
-+/**
-+ * regs_get_register() - get register value from its offset
-+ * @regs:	pt_regs from which register value is gotten.
-+ * @offset:	offset number of the register.
-+ *
-+ * regs_get_register returns the value of a register whose offset from @regs
-+ * is @offset. The @offset is the offset of the register in struct pt_regs.
-+ * If @offset is bigger than MAX_REG_OFFSET, this returns 0.
-+ */
-+static inline unsigned long regs_get_register(struct pt_regs *regs,
-+					      unsigned int offset)
-+{
-+	if (unlikely(offset > MAX_REG_OFFSET))
-+		return 0;
-+	return *(unsigned long *)((unsigned long)regs + offset);
-+}
-+
-+/**
-+ * regs_within_kernel_stack() - check the address in the stack
-+ * @regs:	pt_regs which contains kernel stack pointer.
-+ * @addr:	address which is checked.
-+ *
-+ * regs_within_kenel_stack() checks @addr is within the kernel stack page(s).
-+ * If @addr is within the kernel stack, it returns true. If not, returns false.
-+ */
-+static inline int regs_within_kernel_stack(struct pt_regs *regs,
-+					   unsigned long addr)
-+{
-+	return ((addr & ~(THREAD_SIZE - 1))  ==
-+		(kernel_stack_pointer(regs) & ~(THREAD_SIZE - 1)));
-+}
-+
-+/**
-+ * regs_get_kernel_stack_nth() - get Nth entry of the stack
-+ * @regs:	pt_regs which contains kernel stack pointer.
-+ * @n:		stack entry number.
-+ *
-+ * regs_get_kernel_stack_nth() returns @n th entry of the kernel stack which
-+ * is specifined by @regs. If the @n th entry is NOT in the kernel stack,
-+ * this returns 0.
-+ */
-+static inline unsigned long regs_get_kernel_stack_nth(struct pt_regs *regs,
-+						      unsigned int n)
-+{
-+	unsigned long *addr = (unsigned long *)kernel_stack_pointer(regs);
-+	addr += n;
-+	if (regs_within_kernel_stack(regs, (unsigned long)addr))
-+		return *addr;
-+	else
-+		return 0;
-+}
-+
-+/* Get Nth argument at function call */
-+extern unsigned long regs_get_argument_nth(struct pt_regs *regs,
-+					   unsigned int n);
-+
- /*
-  * These are defined as per linux/ptrace.h, which see.
-  */
-diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index cabdabc..32729ec 100644
---- a/arch/x86/kernel/ptrace.c
-+++ b/arch/x86/kernel/ptrace.c
-@@ -49,6 +49,118 @@ enum x86_regset {
- 	REGSET_IOPERM32,
- };
- 
-+struct pt_regs_offset {
-+	const char *name;
-+	int offset;
-+};
-+
-+#define REG_OFFSET_NAME(r) {.name = #r, .offset = offsetof(struct pt_regs, r)}
-+#define REG_OFFSET_END {.name = NULL, .offset = 0}
-+
-+static const struct pt_regs_offset regoffset_table[] = {
-+#ifdef CONFIG_X86_64
-+	REG_OFFSET_NAME(r15),
-+	REG_OFFSET_NAME(r14),
-+	REG_OFFSET_NAME(r13),
-+	REG_OFFSET_NAME(r12),
-+	REG_OFFSET_NAME(r11),
-+	REG_OFFSET_NAME(r10),
-+	REG_OFFSET_NAME(r9),
-+	REG_OFFSET_NAME(r8),
-+#endif
-+	REG_OFFSET_NAME(bx),
-+	REG_OFFSET_NAME(cx),
-+	REG_OFFSET_NAME(dx),
-+	REG_OFFSET_NAME(si),
-+	REG_OFFSET_NAME(di),
-+	REG_OFFSET_NAME(bp),
-+	REG_OFFSET_NAME(ax),
-+#ifdef CONFIG_X86_32
-+	REG_OFFSET_NAME(ds),
-+	REG_OFFSET_NAME(es),
-+	REG_OFFSET_NAME(fs),
-+	REG_OFFSET_NAME(gs),
-+#endif
-+	REG_OFFSET_NAME(orig_ax),
-+	REG_OFFSET_NAME(ip),
-+	REG_OFFSET_NAME(cs),
-+	REG_OFFSET_NAME(flags),
-+	REG_OFFSET_NAME(sp),
-+	REG_OFFSET_NAME(ss),
-+	REG_OFFSET_END,
-+};
-+
-+/**
-+ * regs_query_register_offset() - query register offset from its name
-+ * @name:	the name of a register
-+ *
-+ * regs_query_register_offset() returns the offset of a register in struct
-+ * pt_regs from its name. If the name is invalid, this returns -EINVAL;
-+ */
-+int regs_query_register_offset(const char *name)
-+{
-+	const struct pt_regs_offset *roff;
-+	for (roff = regoffset_table; roff->name != NULL; roff++)
-+		if (!strcmp(roff->name, name))
-+			return roff->offset;
-+	return -EINVAL;
-+}
-+
-+/**
-+ * regs_query_register_name() - query register name from its offset
-+ * @offset:	the offset of a register in struct pt_regs.
-+ *
-+ * regs_query_register_name() returns the name of a register from its
-+ * offset in struct pt_regs. If the @offset is invalid, this returns NULL;
-+ */
-+const char *regs_query_register_name(unsigned int offset)
-+{
-+	const struct pt_regs_offset *roff;
-+	for (roff = regoffset_table; roff->name != NULL; roff++)
-+		if (roff->offset == offset)
-+			return roff->name;
-+	return NULL;
-+}
-+
-+static const int arg_offs_table[] = {
-+#ifdef CONFIG_X86_32
-+	[0] = offsetof(struct pt_regs, ax),
-+	[1] = offsetof(struct pt_regs, dx),
-+	[2] = offsetof(struct pt_regs, cx)
-+#else /* CONFIG_X86_64 */
-+	[0] = offsetof(struct pt_regs, di),
-+	[1] = offsetof(struct pt_regs, si),
-+	[2] = offsetof(struct pt_regs, dx),
-+	[3] = offsetof(struct pt_regs, cx),
-+	[4] = offsetof(struct pt_regs, r8),
-+	[5] = offsetof(struct pt_regs, r9)
-+#endif
-+};
-+
-+/**
-+ * regs_get_argument_nth() - get Nth argument at function call
-+ * @regs:	pt_regs which contains registers at function entry.
-+ * @n:		argument number.
-+ *
-+ * regs_get_argument_nth() returns @n th argument of a function call.
-+ * Since usually the kernel stack will be changed right after function entry,
-+ * you must use this at function entry. If the @n th entry is NOT in the
-+ * kernel stack or pt_regs, this returns 0.
-+ */
-+unsigned long regs_get_argument_nth(struct pt_regs *regs, unsigned int n)
-+{
-+	if (n < ARRAY_SIZE(arg_offs_table))
-+		return *((unsigned long *)regs + arg_offs_table[n]);
-+	else {
-+		/*
-+		 * The typical case: arg n is on the stack.
-+		 * (Note: stack[0] = return address, so skip it)
-+		 */
-+		n -= ARRAY_SIZE(arg_offs_table);
-+		return regs_get_kernel_stack_nth(regs, 1 + n);
-+	}
-+}
-+
- /*
-  * does not yet catch signals sent when the child dies.
-  * in exit.c or in signal.c.
+James
 
 
--- 
-Masami Hiramatsu
-
-Software Engineer
-Hitachi Computer Products (America), Inc.
-Software Solutions Division
-
-e-mail: mhiramat@redhat.com
