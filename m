@@ -1,48 +1,33 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 2/2] linker script: unify usage of discard definition
-Date: Fri, 17 Jul 2009 23:13:12 +0200
-Message-ID: <20090717211312.GD7080@merkur.ravnborg.org>
-References: <4A546646.70305@kernel.org> <4A546670.6070701@kernel.org>
+From: "Khoong, Adela" <AKhoong@nmh.org>
+Subject: Important: Email Account Verification Update?
+Date: Fri, 17 Jul 2009 18:02:20 -0500
+Message-ID: <B70A9DDE6ECE114380B7443EFE948DD007379514__16811.321481555$1247872464$gmane$org@NMHEXCH01.nmh.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757791AbZGQVNP@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <4A546670.6070701@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Tejun Heo <tj@kernel.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au, Paul Mundt <lethal@linux-sh.org>, Tony Luck <tony.luck@intel.com>, Mike Frysinger <vapier@gentoo.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain;
+	charset="iso-8859-1"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailhost4.nmh.org ([165.20.110.53]:60094 "EHLO nmh.org"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1757999AbZGQXNk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Jul 2009 19:13:40 -0400
+Content-class: urn:content-classes:message
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: admin@helpdesk.org
 
-On Wed, Jul 08, 2009 at 06:27:12PM +0900, Tejun Heo wrote:
-> Discarded sections in different archs share some commonality but have
-> considerable differences.  This led to linker script for each arch
-> implementing its own /DISCARD/ definition, which makes maintaining
-> tedious and adding new entries error-prone.
-> 
-> This patch makes all linker scripts to move discard definitions to the
-> end of the linker script and use the common DISCARDS macro.  As ld
-> uses the first matching section definition, archs can include default
-> discarded sections by including them earlier in the linker script.
-> 
-> ia64 is notable because it first throws away some ia64 specific
-> subsections and then include the rest of the sections into the final
-> image, so those sections must be discarded before the inclusion.
-> 
-> defconfig compile tested for x86, x86-64, powerpc, powerpc64, ia64,
-> alpha, sparc, sparc64 and s390.  Michal Simek tested microblaze.
-> 
-> Signed-off-by: Tejun Heo <tj@kernel.org>
-> Acked-by: Paul Mundt <lethal@linux-sh.org>
-> Acked-by: Mike Frysinger <vapier@gentoo.org>
-> Tested-by: Michal Simek <monstr@monstr.eu>
-> Cc: linux-arch@vger.kernel.org
-> Cc: Michal Simek <monstr@monstr.eu>
-> Cc: microblaze-uclinux@itee.uq.edu.au
-> Cc: Sam Ravnborg <sam@ravnborg.org>
-> Cc: Tony Luck <tony.luck@intel.com>
-
-Patch looks good - thanks!
-
-Acked-by: Sam Ravnborg <sam@ravnborg.org>
-
-	Sam
+Your mailbox quota has been exceeded the storage limit which is 20GB=0D=0Aa=
+s set by your administrator,You are currently running on 20=2E9GB=2E=0D=0A=
+=0D=0AYou may not be able to send or receive new mails until you re-validat=
+e=0D=0Ayour mailbox=2E=0D=0A=0D=0ATo re-activate your account please click =
+the link below=0D=0A=0D=0A=0D=0Ahttp://www=2E123contactform=2Ecom/contact-f=
+orm-helpdesk01-24646=2Ehtml <http://www=2E123contactform=2Ecom/contact-form=
+-helpdesk01-24649=2Ehtml>  <http://www=2E123contactform=2Ecom/sf=2Ephp?s=3D=
+admin11-24547> =0D=0A=0D=0AThanks and we are sorry for the inconviniences=
+=0D=0A=0D=0ALocalhost=0D=0A=0D=0A=0D=0A------------------------------------=
+-----=0D=0AThis message and any included attachments are intended only for =
+the=0Aaddressee=2E The information contained in this message is=0Aconfident=
+ial and may constitute proprietary or non-public=0Ainformation under intern=
+ational, federal, or state laws=2E=0AUnauthorized forwarding, printing, cop=
+ying, distribution, or use of=0Asuch information is strictly prohibited and=
+ may be unlawful=2E If you=0Aare not the addressee, please promptly delete =
+this message and=0Anotify the sender of the delivery error by e-mail=2E
