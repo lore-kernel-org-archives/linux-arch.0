@@ -1,44 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:42388 "EHLO gate.crashing.org"
+Received: from mx2.redhat.com ([66.187.237.31]:34322 "EHLO mx2.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753152AbZGTKLN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Jul 2009 06:11:13 -0400
-Subject: Re: [RFC/PATCH] mm: Pass virtual address to
- [__]p{te,ud,md}_free_tlb()
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <20090720081054.GH7298@wotan.suse.de>
+	id S1750779AbZGTMqR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Jul 2009 08:46:17 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20090715074952.A36C7DDDB2@ozlabs.org>
 References: <20090715074952.A36C7DDDB2@ozlabs.org>
-	 <20090715135620.GD7298@wotan.suse.de> <1247709255.27937.5.camel@pasglop>
-	 <20090720081054.GH7298@wotan.suse.de>
-Content-Type: text/plain
-Date: Mon, 20 Jul 2009 20:00:41 +1000
-Message-ID: <1248084041.30899.7.camel@pasglop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Subject: Re: [RFC/PATCH] mm: Pass virtual address to [__]p{te,ud,md}_free_tlb()
+Date: Mon, 20 Jul 2009 13:46:03 +0100
+Message-ID: <13548.1248093963@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Linux Memory Management <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, Hugh Dickins <hugh@tiscali.co.uk>
-Message-ID: <20090720100041.6YBoioQduIFtIkyKLkLV7WJTVHYd93FcKJMqJpdC52A@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: dhowells@redhat.com, Linux Memory Management <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, Hugh Dickins <hugh@tiscali.co.uk>, Nick Piggin <npiggin@suse.de>
+Message-ID: <20090720124603.5obCBMAMPzGcVeDh7AlNfMAFl8nWcc7RPLsCDcdiklM@z>
 
-On Mon, 2009-07-20 at 10:10 +0200, Nick Piggin wrote:
+Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
+
+> Upcoming paches to support the new 64-bit "BookE" powerpc architecture
+> will need to have the virtual address corresponding to PTE page when
+> freeing it, due to the way the HW table walker works.
 > 
-> Maybe I don't understand your description correctly. The TLB contains
-> PMDs, but you say the HW still logically performs another translation
-> step using entries in the PMD pages? If I understand that correctly,
-> then generic mm does not actually care and would logically fit better
-> if those entries were "linux ptes". 
+> Basically, the TLB can be loaded with "large" pages that cover the whole
+> virtual space (well, sort-of, half of it actually) represented by a PTE
+> page, and which contain an "indirect" bit indicating that this TLB entry
+> RPN points to an array of PTEs from which the TLB can then create direct
+> entries. Thus, in order to invalidate those when PTE pages are deleted,
+> we need the virtual address to pass to tlbilx or tlbivax instructions.
+>
+> The old trick of sticking it somewhere in the PTE page struct page sucks
+> too much, the address is almost readily available in all call sites and
+> almost everybody implemets these as macros, so we may as well add the
+> argument everywhere. I added it to the pmd and pud variants for consistency.
+> 
+> Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-They are :-)
-
-> The pte invalidation routines
-> give the virtual address, which you could use to invalidate the TLB.
-
-For PTEs, yes, but not for those PMD entries. IE. I need the virtual
-address when destroying PMDs so that I can invalidate those "indirect"
-pages. PTEs are already taken care of by existing mechanisms.
-
-Cheers,
-Ben.
- 
-
+Acked-by: David Howells <dhowells@redhat.com> [MN10300 & FRV]
