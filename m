@@ -1,24 +1,19 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [RFC/PATCH] mm: Pass virtual address to
- [__]p{te,ud,md}_free_tlb()
-Date: Mon, 20 Jul 2009 09:48:18 +0200
-Message-ID: <20090720094818.641e6375@skybase>
-References: <20090715074952.A36C7DDDB2@ozlabs.org>
-	<20090715135620.GD7298@wotan.suse.de>
-	<1248073873.13067.31.camel@pasglop>
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [RFC/PATCH] mm: Pass virtual address to [__]p{te,ud,md}_free_tlb()
+Date: Mon, 20 Jul 2009 10:05:02 +0200
+Message-ID: <20090720080502.GG7298@wotan.suse.de>
+References: <20090715074952.A36C7DDDB2@ozlabs.org> <20090715135620.GD7298@wotan.suse.de> <1248073873.13067.31.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1752899AbZGTIFH@vger.kernel.org>
+Content-Disposition: inline
 In-Reply-To: <1248073873.13067.31.camel@pasglop>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Nick Piggin <npiggin@suse.de>, Linux Memory Management <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, Hugh Dickins <hugh@tiscali.co.uk>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linux Memory Management <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, Hugh Dickins <hugh@tiscali.co.uk>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 20 Jul 2009 17:11:13 +1000
-Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
-
+On Mon, Jul 20, 2009 at 05:11:13PM +1000, Benjamin Herrenschmidt wrote:
 > On Wed, 2009-07-15 at 15:56 +0200, Nick Piggin wrote:
 > > > I would like to merge the new support that depends on this in 2.6.32,
 > > > so unless there's major objections, I'd like this to go in early during
@@ -39,17 +34,10 @@ Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
 > I also didn't have any formal Ack from anybody, neither mm folks nor
 > arch maintainers :-)
 
-Well the change is trivial, it just adds another unused argument to the
-macros. For the records: it still compiles on s390.
+Yeah, if you think it helps, Acked-by: Nick Piggin <npiggin@suse.de> is
+fine ;)
 
--- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Unless anybody has other preferences, just send it straight to Linus in
+the next merge window -- if any conflicts did come up anyway they would
+be trivial. You could just check against linux-next before doing so, and
+should see if it is going to cause problems for any arch pull...
