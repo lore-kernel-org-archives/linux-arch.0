@@ -1,50 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:59847 "EHLO mx2.suse.de"
+Received: from gate.crashing.org ([63.228.1.57]:33338 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752188AbZGTIFE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Jul 2009 04:05:04 -0400
-Date: Mon, 20 Jul 2009 10:05:02 +0200
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [RFC/PATCH] mm: Pass virtual address to [__]p{te,ud,md}_free_tlb()
-Message-ID: <20090720080502.GG7298@wotan.suse.de>
-References: <20090715074952.A36C7DDDB2@ozlabs.org> <20090715135620.GD7298@wotan.suse.de> <1248073873.13067.31.camel@pasglop>
+	id S1752016AbZGTJ7s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Jul 2009 05:59:48 -0400
+Subject: Re: [RFC/PATCH] mm: Pass virtual address to
+ [__]p{te,ud,md}_free_tlb()
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <20090720080502.GG7298@wotan.suse.de>
+References: <20090715074952.A36C7DDDB2@ozlabs.org>
+	 <20090715135620.GD7298@wotan.suse.de> <1248073873.13067.31.camel@pasglop>
+	 <20090720080502.GG7298@wotan.suse.de>
+Content-Type: text/plain
+Date: Mon, 20 Jul 2009 19:59:21 +1000
+Message-ID: <1248083961.30899.5.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1248073873.13067.31.camel@pasglop>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Nick Piggin <npiggin@suse.de>
 Cc: Linux Memory Management <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, Hugh Dickins <hugh@tiscali.co.uk>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20090720080502.3xY69Z0yzRP6plkkg2P1hJVGNztoCKux_qfM53LnqFU@z>
+Message-ID: <20090720095921.VQV28x5UtC3-NMPsQY0SDJdPC9keBAuVgFG1rZhPCiE@z>
 
-On Mon, Jul 20, 2009 at 05:11:13PM +1000, Benjamin Herrenschmidt wrote:
-> On Wed, 2009-07-15 at 15:56 +0200, Nick Piggin wrote:
-> > > I would like to merge the new support that depends on this in 2.6.32,
-> > > so unless there's major objections, I'd like this to go in early during
-> > > the merge window. We can sort out separately how to carry the patch
-> > > around in -next until then since the powerpc tree will have a dependency
-> > > on it.
-> > 
-> > Can't see any problem with that.
+On Mon, 2009-07-20 at 10:05 +0200, Nick Piggin wrote:
 > 
-> CC'ing Linus here. How do you want to proceed with that merge ? (IE. so
-> far nobody objected to the patch itself)
-> 
-> IE. The patch affects all archs, though it's a trivial change every
-> time, but I'll have stuff in powerpc-next that depends on it, and so I'm
-> not sure what the right approach is here. Should I put it in the powerpc
-> tree ?
-> 
-> I also didn't have any formal Ack from anybody, neither mm folks nor
-> arch maintainers :-)
+> Unless anybody has other preferences, just send it straight to Linus in
+> the next merge window -- if any conflicts did come up anyway they would
+> be trivial. You could just check against linux-next before doing so, and
+> should see if it is going to cause problems for any arch pull...
 
-Yeah, if you think it helps, Acked-by: Nick Piggin <npiggin@suse.de> is
-fine ;)
+Well, the problem is that powerpc-next will need that patch, which means
+that if I don't put it in my tree, Steven won't be able to build
+powerpc-next as part of linux-next until the patch is merged. Hence my
+question, what's the best way to handle that :-) There isn't an mm-next
+is there ? If there was, I could tell Steven to always pull powerpc
+after mm for example. Or I can put it in a git tree of its own with a
+dependency for Steven to pull.
 
-Unless anybody has other preferences, just send it straight to Linus in
-the next merge window -- if any conflicts did come up anyway they would
-be trivial. You could just check against linux-next before doing so, and
-should see if it is going to cause problems for any arch pull...
-
+Cheers,
+Ben.
 
