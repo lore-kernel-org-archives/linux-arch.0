@@ -1,76 +1,82 @@
-From: "Yu, Fenghua" <fenghua.yu@intel.com>
-Subject: RE: [RFC PATCH] ia64: convert to dynamic percpu allocator
-Date: Tue, 21 Jul 2009 11:17:20 -0700
-Message-ID: <A6AD88C3F2289247BE726C37303E1EB8B097D4C5@orsmsx505.amr.corp.intel.com>
-References: <4A65B0AB.5000608@kernel.org>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: [PATCH/RFC] Move generated files to include/generated
+Date: Tue, 21 Jul 2009 23:10:40 +0200
+Message-ID: <20090721211040.GA7688@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([143.182.124.21]:17131 "EHLO mga03.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751650AbZGUSR1 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2009 14:17:27 -0400
-In-Reply-To: <4A65B0AB.5000608@kernel.org>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: 'Tejun Heo' <tj@kernel.org>, "Luck, Tony" <tony.luck@intel.com>, 'lkml' <linux-kernel@vger.kernel.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, 'linux-ia64@vger.
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Disposition: inline
+Sender: linux-kbuild-owner@vger.kernel.org
+To: linux-kbuild <linux-kbuild@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>
+List-Id: linux-arch.vger.kernel.org
 
->
->As allocation and initialization are done by the arch code, all that
->setup_per_cpu_areas() needs to do is communicating the determined
->layout to the percpu allocator.  This patch implements
->setup_per_cpu_areas() for both contig and discontig memory models and
->drops HAVE_LEGACY_PER_CPU_AREA.
->
->NOT_SIGNED_OFF_YET
->Cc: Tony Luck <tony.luck@intel.com>
->Cc: Fenghua Yu <fenghua.yu@intel.com>
->---
->I don't have access to an ia64 machine so I could only test with ski.
->With sim_defconfig, it boots but I didn't have any userland.
->discontig configuration builds fine but I couldn't test it.
->
->Can you guys please verify this patch?
->
->This patch is available in the following git tree.
->
->  git://git.kernel.org/pub/scm/linux/kernel/git/tj/percpu.git review-ia64
->
->Thanks.
->
+In 2.6.30 we introduced support for adding generated
+files to a dedicated directory named "include/generated".
 
-Is this patch against the latest linux-next? It's applied cleanly on linux-next. But compilation reports undefined function pcpu_alloc_alloc_info() in both contig.c and discontig.c.
+This had a number of benefits:
 
-arch/ia64/mm/contig.c: In function 'setup_per_cpu_areas':
-arch/ia64/mm/contig.c:208: error: implicit declaration of function 'pcpu_alloc_al
-loc_info'
-arch/ia64/mm/contig.c:208: warning: assignment makes pointer from integer without
- a cast
-arch/ia64/mm/contig.c:211: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:225: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:226: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:227: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:228: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:229: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:230: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:236: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:237: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:237: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:238: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:239: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:240: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:244: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:244: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:245: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:246: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:247: error: dereferencing pointer to incomplete type
-arch/ia64/mm/contig.c:250: warning: passing argument 1 of 'pcpu_setup_first_chunk
-' makes integer from pointer without a cast
-arch/ia64/mm/contig.c:250: warning: passing argument 2 of 'pcpu_setup_first_chunk
-' makes integer from pointer without a cast
-arch/ia64/mm/contig.c:250: error: too few arguments to function 'pcpu_setup_first
-_chunk'
-arch/ia64/mm/contig.c:254: error: implicit declaration of function 'pcpu_free_all
-oc_info'
+  - avoid mixing generated and normal files
+  - allow us to finally kill the asm symlink
+  - simpler .gitignore rules
+  - simpler list of mrproper files
+
+The following patchset introduces use of include/generated
+in several places as documented by the shortlog:
+
+Sam Ravnborg (10):
+      kbuild: move bounds.h to include/generated
+      kbuild: move asm-offsets.h to include/generated
+      ia64: move nr-irqs.h to include/generated
+      sh: move machtypes.h to include/generated
+      arm: move mach-types to include/generated
+      kbuild: drop asm symlink
+      kbuild: move compile.h to include/generated
+      drop unneeded include of autoconf.h
+      kbuild: move autoconf.h to include/generated
+      kbuild: move utsrelease.h to include/generated
+
+We are left with version.h that is still generated in
+include/linux.
+
+And there may be a few architecture specific files I have missed.
+
+This patch serie has a few shortcomings...
+
+1)
+After applying one _must_ do a "make clean" to get
+a buildable kernel.
+This is because we change the path of autoconf.h but
+the patch does not include anything to force a new
+autoconf.h to be created.
+Another workaround is to use a simple "make oldconfig".
+
+2)
+All files will be rebuild.
+We change an option to gcc due to path change of autoconf.h
+so all files will be rebuild.
+
+3)
+If some files are left in include/asm/ we may still
+pick them up.
+This is relevant for asm-offsets.h where we have
+a lot of "#include <asm/asm-offsets.h>".
+And include/asm comes before arch/$ARCH/include/asm
+in the search order.
+
+4)
+We loose the check if this is the correct ARCH we are
+building for as we can no longer check the asm symlink.
+This shortcoming is addressed by another patch that saves
+ARCH and CROSS_COMPILE. But it is not part of this serie.
+
+Individual patches will follow.
+Patches are based on todays mainline.
+
+It is also available at:
+
+    git://git.kernel.org/pub/scm/linux/kernel/git/sam/generated.git
+
+Comments welcome!
+
+	Sam
+
