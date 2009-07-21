@@ -1,151 +1,125 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 07/20] percpu: make @dyn_size mandatory for pcpu_setup_first_chunk()
-Date: Tue, 21 Jul 2009 19:26:06 +0900
-Message-ID: <1248171979-29166-8-git-send-email-tj@kernel.org>
+Subject: [PATCH 20/20] powerpc64: convert to dynamic percpu allocator
+Date: Tue, 21 Jul 2009 19:26:19 +0900
+Message-ID: <1248171979-29166-21-git-send-email-tj@kernel.org>
 References: <1248171979-29166-1-git-send-email-tj@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:37109 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754802AbZGUK2K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jul 2009 06:28:10 -0400
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1755299AbZGUKbG@vger.kernel.org>
 In-Reply-To: <1248171979-29166-1-git-send-email-tj@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, benh@kernel.crashing.org, davem@davemloft.net, dhowells@redhat.com, npiggin@suse.de, JBeulich@novell.comc
 Cc: Tejun Heo <tj@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Now that all actual first chunk allocation and copying happen in the
-first chunk allocators and helpers, there's no reason for
-pcpu_setup_first_chunk() to try to determine @dyn_size automatically.
-The only left user is page first chunk allocator.  Make it determine
-dyn_size like other allocators and make @dyn_size mandatory for
-pcpu_setup_first_chunk().
+Now that percpu allows arbitrary embedding of the first chunk,
+powerpc64 can easily be converted to dynamic percpu allocator.
+Convert it.  powerpc supports several large page sizes.  Cap atom_size
+at 1M.  There isn't much to gain by going above that anyway.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- include/linux/percpu.h |    2 +-
- mm/percpu.c            |   39 +++++++++++++++++++--------------------
- 2 files changed, 20 insertions(+), 21 deletions(-)
+ arch/powerpc/Kconfig           |    4 +-
+ arch/powerpc/kernel/setup_64.c |   61 +++++++++++++++++++++++++++++----------
+ 2 files changed, 47 insertions(+), 18 deletions(-)
 
-diff --git a/include/linux/percpu.h b/include/linux/percpu.h
-index be2fc8f..0cfdd14 100644
---- a/include/linux/percpu.h
-+++ b/include/linux/percpu.h
-@@ -79,7 +79,7 @@ typedef void (*pcpu_fc_map_fn_t)(void *ptr, size_t size, void *addr);
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 61bbffa..2c42e15 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -46,10 +46,10 @@ config GENERIC_HARDIRQS_NO__DO_IRQ
+ 	bool
+ 	default y
  
- extern size_t __init pcpu_setup_first_chunk(
- 				size_t static_size, size_t reserved_size,
--				ssize_t dyn_size, size_t unit_size,
-+				size_t dyn_size, size_t unit_size,
- 				void *base_addr, const int *unit_map);
+-config HAVE_LEGACY_PER_CPU_AREA
++config HAVE_SETUP_PER_CPU_AREA
+ 	def_bool PPC64
  
- #ifdef CONFIG_NEED_PER_CPU_EMBED_FIRST_CHUNK
-diff --git a/mm/percpu.c b/mm/percpu.c
-index e9f45ab..3177cf6 100644
---- a/mm/percpu.c
-+++ b/mm/percpu.c
-@@ -1235,7 +1235,7 @@ EXPORT_SYMBOL_GPL(free_percpu);
-  * pcpu_setup_first_chunk - initialize the first percpu chunk
-  * @static_size: the size of static percpu area in bytes
-  * @reserved_size: the size of reserved percpu area in bytes, 0 for none
-- * @dyn_size: free size for dynamic allocation in bytes, -1 for auto
-+ * @dyn_size: free size for dynamic allocation in bytes
-  * @unit_size: unit size in bytes, must be multiple of PAGE_SIZE
-  * @base_addr: mapped address
-  * @unit_map: cpu -> unit map, NULL for sequential mapping
-@@ -1252,10 +1252,9 @@ EXPORT_SYMBOL_GPL(free_percpu);
-  * limited offset range for symbol relocations to guarantee module
-  * percpu symbols fall inside the relocatable range.
-  *
-- * @dyn_size, if non-negative, determines the number of bytes
-- * available for dynamic allocation in the first chunk.  Specifying
-- * non-negative value makes percpu leave alone the area beyond
-- * @static_size + @reserved_size + @dyn_size.
-+ * @dyn_size determines the number of bytes available for dynamic
-+ * allocation in the first chunk.  The area between @static_size +
-+ * @reserved_size + @dyn_size and @unit_size is unused.
-  *
-  * @unit_size specifies unit size and must be aligned to PAGE_SIZE and
-  * equal to or larger than @static_size + @reserved_size + if
-@@ -1276,13 +1275,12 @@ EXPORT_SYMBOL_GPL(free_percpu);
-  * percpu access.
-  */
- size_t __init pcpu_setup_first_chunk(size_t static_size, size_t reserved_size,
--				     ssize_t dyn_size, size_t unit_size,
-+				     size_t dyn_size, size_t unit_size,
- 				     void *base_addr, const int *unit_map)
+-config HAVE_SETUP_PER_CPU_AREA
++config NEED_PER_CPU_EMBED_FIRST_CHUNK
+ 	def_bool PPC64
+ 
+ config IRQ_PER_CPU
+diff --git a/arch/powerpc/kernel/setup_64.c b/arch/powerpc/kernel/setup_64.c
+index 1f68160..aa6e450 100644
+--- a/arch/powerpc/kernel/setup_64.c
++++ b/arch/powerpc/kernel/setup_64.c
+@@ -57,6 +57,7 @@
+ #include <asm/cache.h>
+ #include <asm/page.h>
+ #include <asm/mmu.h>
++#include <asm/mmu-hash64.h>
+ #include <asm/firmware.h>
+ #include <asm/xmon.h>
+ #include <asm/udbg.h>
+@@ -569,25 +570,53 @@ void cpu_die(void)
+ }
+ 
+ #ifdef CONFIG_SMP
+-void __init setup_per_cpu_areas(void)
++#define PCPU_DYN_SIZE		()
++
++static void * __init pcpu_fc_alloc(unsigned int cpu, size_t size, size_t align)
  {
- 	static struct vm_struct first_vm;
- 	static int smap[2], dmap[2];
--	size_t size_sum = static_size + reserved_size +
--			  (dyn_size >= 0 ? dyn_size : 0);
-+	size_t size_sum = static_size + reserved_size + dyn_size;
- 	struct pcpu_chunk *schunk, *dchunk = NULL;
- 	unsigned int cpu, tcpu;
- 	int i;
-@@ -1345,9 +1343,6 @@ size_t __init pcpu_setup_first_chunk(size_t static_size, size_t reserved_size,
- 	pcpu_chunk_struct_size = sizeof(struct pcpu_chunk) +
- 		BITS_TO_LONGS(pcpu_unit_pages) * sizeof(unsigned long);
- 
--	if (dyn_size < 0)
--		dyn_size = pcpu_unit_size - static_size - reserved_size;
+-	int i;
+-	unsigned long size;
+-	char *ptr;
 -
- 	first_vm.flags = VM_ALLOC;
- 	first_vm.size = pcpu_chunk_size;
- 	first_vm.addr = base_addr;
-@@ -1557,6 +1552,8 @@ ssize_t __init pcpu_page_first_chunk(size_t reserved_size,
- {
- 	static struct vm_struct vm;
- 	const size_t static_size = __per_cpu_end - __per_cpu_start;
-+	ssize_t dyn_size = -1;
-+	size_t size_sum, unit_size;
- 	char psize_str[16];
- 	int unit_pages;
- 	size_t pages_size;
-@@ -1567,8 +1564,9 @@ ssize_t __init pcpu_page_first_chunk(size_t reserved_size,
+-	/* Copy section for each CPU (we discard the original) */
+-	size = ALIGN(__per_cpu_end - __per_cpu_start, PAGE_SIZE);
+-#ifdef CONFIG_MODULES
+-	if (size < PERCPU_ENOUGH_ROOM)
+-		size = PERCPU_ENOUGH_ROOM;
+-#endif
++	return __alloc_bootmem_node(NODE_DATA(cpu_to_node(cpu)), size, align,
++				    __pa(MAX_DMA_ADDRESS));
++}
  
- 	snprintf(psize_str, sizeof(psize_str), "%luK", PAGE_SIZE >> 10);
+-	for_each_possible_cpu(i) {
+-		ptr = alloc_bootmem_pages_node(NODE_DATA(cpu_to_node(i)), size);
++static void __init pcpu_fc_free(void *ptr, size_t size)
++{
++	free_bootmem(__pa(ptr), size);
++}
  
--	unit_pages = PFN_UP(max_t(size_t, static_size + reserved_size,
--				  PCPU_MIN_UNIT_SIZE));
-+	size_sum = pcpu_calc_fc_sizes(static_size, reserved_size, &dyn_size);
-+	unit_size = max_t(size_t, size_sum, PCPU_MIN_UNIT_SIZE);
-+	unit_pages = unit_size >> PAGE_SHIFT;
+-		paca[i].data_offset = ptr - __per_cpu_start;
+-		memcpy(ptr, __per_cpu_start, __per_cpu_end - __per_cpu_start);
+-	}
++static int pcpu_cpu_distance(unsigned int from, unsigned int to)
++{
++	if (cpu_to_node(from) == cpu_to_node(to))
++		return LOCAL_DISTANCE;
++	else
++		return REMOTE_DISTANCE;
++}
++
++void __init setup_per_cpu_areas(void)
++{
++	const size_t dyn_size = PERCPU_MODULE_RESERVE + PERCPU_DYNAMIC_RESERVE;
++	size_t atom_size;
++	unsigned long delta;
++	unsigned int cpu;
++	int rc;
++
++	/*
++	 * Linear mapping is one of 4K, 1M and 16M.  For 4K, no need
++	 * to group units.  For larger mappings, use 1M atom which
++	 * should be large enough to contain a number of units.
++	 */
++	if (mmu_linear_psize == MMU_PAGE_4K)
++		atom_size = PAGE_SIZE;
++	else
++		atom_size = 1 << 20;
++
++	rc = pcpu_embed_first_chunk(0, dyn_size, atom_size, pcpu_cpu_distance,
++				    pcpu_fc_alloc, pcpu_fc_free);
++	if (rc < 0)
++		panic("cannot initialize percpu area (err=%d)", rc);
++
++	delta = (unsigned long)pcpu_base_addr - (unsigned long)__per_cpu_start;
++	for_each_possible_cpu(cpu)
++		paca[cpu].data_offset = delta + pcpu_unit_offsets[cpu];
+ }
+ #endif
  
- 	/* unaligned allocations can't be freed, round up to page size */
- 	pages_size = PFN_ALIGN(unit_pages * nr_cpu_ids * sizeof(pages[0]));
-@@ -1591,12 +1589,12 @@ ssize_t __init pcpu_page_first_chunk(size_t reserved_size,
- 
- 	/* allocate vm area, map the pages and copy static data */
- 	vm.flags = VM_ALLOC;
--	vm.size = nr_cpu_ids * unit_pages << PAGE_SHIFT;
-+	vm.size = nr_cpu_ids * unit_size;
- 	vm_area_register_early(&vm, PAGE_SIZE);
- 
- 	for_each_possible_cpu(cpu) {
--		unsigned long unit_addr = (unsigned long)vm.addr +
--			(cpu * unit_pages << PAGE_SHIFT);
-+		unsigned long unit_addr =
-+			(unsigned long)vm.addr + cpu * unit_size;
- 
- 		for (i = 0; i < unit_pages; i++)
- 			populate_pte_fn(unit_addr + (i << PAGE_SHIFT));
-@@ -1620,11 +1618,12 @@ ssize_t __init pcpu_page_first_chunk(size_t reserved_size,
- 	}
- 
- 	/* we're ready, commit */
--	pr_info("PERCPU: %d %s pages/cpu @%p s%zu r%zu\n",
--		unit_pages, psize_str, vm.addr, static_size, reserved_size);
-+	pr_info("PERCPU: %d %s pages/cpu @%p s%zu r%zu d%zu\n",
-+		unit_pages, psize_str, vm.addr, static_size, reserved_size,
-+		dyn_size);
- 
--	ret = pcpu_setup_first_chunk(static_size, reserved_size, -1,
--				     unit_pages << PAGE_SHIFT, vm.addr, NULL);
-+	ret = pcpu_setup_first_chunk(static_size, reserved_size, dyn_size,
-+				     unit_size, vm.addr, NULL);
- 	goto out_free_ar;
- 
- enomem:
 -- 
 1.6.0.2
