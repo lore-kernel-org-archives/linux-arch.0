@@ -1,432 +1,270 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 09/20] percpu: move pcpu_lpage_build_unit_map() and pcpul_lpage_dump_cfg() upward
-Date: Tue, 21 Jul 2009 19:26:08 +0900
-Message-ID: <1248171979-29166-10-git-send-email-tj@kernel.org>
-References: <1248171979-29166-1-git-send-email-tj@kernel.org>
+Subject: [RFC PATCH] ia64: convert to dynamic percpu allocator
+Date: Tue, 21 Jul 2009 21:12:27 +0900
+Message-ID: <4A65B0AB.5000608@kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:37065 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:48627 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755075AbZGUK2C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jul 2009 06:28:02 -0400
-In-Reply-To: <1248171979-29166-1-git-send-email-tj@kernel.org>
+	id S1753640AbZGUMMf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Jul 2009 08:12:35 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, benh@kernel.crashing.org, davem@davemloft.net, dhowells@redhat.com, npiggin@suse.de, JBeulich@novell.comc
-Cc: Tejun Heo <tj@kernel.org>
+To: Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, lkml <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org
 
-Unit map handling will be generalized and extended and used for
-embedding sparse first chunk and other purposes.  Relocate two
-unit_map related functions upward in preparation.  This patch just
-moves the code without any actual change.
+Unlike other archs, ia64 reserves space for percpu areas during early
+memory initialization.  The space for cpu0 is reserved separate in the
+linker script.  Other cpus occupy a contiguous region indexed by cpu
+number on contiguous memory model or are grouped by node on
+discontiguous memory model.
 
-Signed-off-by: Tejun Heo <tj@kernel.org>
+As allocation and initialization are done by the arch code, all that
+setup_per_cpu_areas() needs to do is communicating the determined
+layout to the percpu allocator.  This patch implements
+setup_per_cpu_areas() for both contig and discontig memory models and
+drops HAVE_LEGACY_PER_CPU_AREA.
+
+NOT_SIGNED_OFF_YET
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
 ---
- include/linux/percpu.h |   14 +-
- mm/percpu.c            |  339 ++++++++++++++++++++++++------------------------
- 2 files changed, 180 insertions(+), 173 deletions(-)
+I don't have access to an ia64 machine so I could only test with ski.
+With sim_defconfig, it boots but I didn't have any userland.
+discontig configuration builds fine but I couldn't test it.
 
-diff --git a/include/linux/percpu.h b/include/linux/percpu.h
-index d385dbc..570fb18 100644
---- a/include/linux/percpu.h
-+++ b/include/linux/percpu.h
-@@ -78,6 +78,14 @@ typedef void (*pcpu_fc_populate_pte_fn_t)(unsigned long addr);
- typedef int (pcpu_fc_cpu_distance_fn_t)(unsigned int from, unsigned int to);
- typedef void (*pcpu_fc_map_fn_t)(void *ptr, size_t size, void *addr);
+Can you guys please verify this patch?
+
+This patch is available in the following git tree.
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/tj/percpu.git review-ia64
+
+Thanks.
+
+ arch/ia64/Kconfig        |    3 -
+ arch/ia64/kernel/setup.c |   12 ------
+ arch/ia64/mm/contig.c    |   67 +++++++++++++++++++++++++++++++++
+ arch/ia64/mm/discontig.c |   94 +++++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 161 insertions(+), 15 deletions(-)
+
+Index: work/arch/ia64/Kconfig
+===================================================================
+--- work.orig/arch/ia64/Kconfig
++++ work/arch/ia64/Kconfig
+@@ -89,9 +89,6 @@ config GENERIC_TIME_VSYSCALL
+ 	bool
+ 	default y
  
-+#ifdef CONFIG_NEED_PER_CPU_LPAGE_FIRST_CHUNK
-+extern int __init pcpu_lpage_build_unit_map(
-+				size_t reserved_size, ssize_t *dyn_sizep,
-+				size_t *unit_sizep, size_t lpage_size,
-+				int *unit_map,
-+				pcpu_fc_cpu_distance_fn_t cpu_distance_fn);
-+#endif
-+
- extern size_t __init pcpu_setup_first_chunk(
- 				size_t static_size, size_t reserved_size,
- 				size_t dyn_size, size_t unit_size,
-@@ -97,12 +105,6 @@ extern ssize_t __init pcpu_page_first_chunk(
- #endif
- 
- #ifdef CONFIG_NEED_PER_CPU_LPAGE_FIRST_CHUNK
--extern int __init pcpu_lpage_build_unit_map(
--				size_t reserved_size, ssize_t *dyn_sizep,
--				size_t *unit_sizep, size_t lpage_size,
--				int *unit_map,
--				pcpu_fc_cpu_distance_fn_t cpu_distance_fn);
+-config HAVE_LEGACY_PER_CPU_AREA
+-	def_bool y
 -
- extern ssize_t __init pcpu_lpage_first_chunk(
- 				size_t reserved_size, size_t dyn_size,
- 				size_t unit_size, size_t lpage_size,
-diff --git a/mm/percpu.c b/mm/percpu.c
-index cfdc03e..b3d0ca0 100644
---- a/mm/percpu.c
-+++ b/mm/percpu.c
-@@ -1231,6 +1231,178 @@ void free_percpu(void *ptr)
- }
- EXPORT_SYMBOL_GPL(free_percpu);
+ config HAVE_SETUP_PER_CPU_AREA
+ 	def_bool y
  
-+static inline size_t pcpu_calc_fc_sizes(size_t static_size,
-+					size_t reserved_size,
-+					ssize_t *dyn_sizep)
-+{
-+	size_t size_sum;
+Index: work/arch/ia64/mm/contig.c
+===================================================================
+--- work.orig/arch/ia64/mm/contig.c
++++ work/arch/ia64/mm/contig.c
+@@ -186,6 +186,73 @@ alloc_per_cpu_data(void)
+ 	cpu_data = __alloc_bootmem(PERCPU_PAGE_SIZE * NR_CPUS-1,
+ 				   PERCPU_PAGE_SIZE, __pa(MAX_DMA_ADDRESS));
+ }
 +
-+	size_sum = PFN_ALIGN(static_size + reserved_size +
-+			     (*dyn_sizep >= 0 ? *dyn_sizep : 0));
-+	if (*dyn_sizep != 0)
-+		*dyn_sizep = size_sum - static_size - reserved_size;
-+
-+	return size_sum;
-+}
-+
-+#ifdef CONFIG_NEED_PER_CPU_LPAGE_FIRST_CHUNK
 +/**
-+ * pcpu_lpage_build_unit_map - build unit_map for large page remapping
-+ * @reserved_size: the size of reserved percpu area in bytes
-+ * @dyn_sizep: in/out parameter for dynamic size, -1 for auto
-+ * @unit_sizep: out parameter for unit size
-+ * @unit_map: unit_map to be filled
-+ * @cpu_distance_fn: callback to determine distance between cpus
++ * setup_per_cpu_areas - setup percpu areas
 + *
-+ * This function builds cpu -> unit map and determine other parameters
-+ * considering needed percpu size, large page size and distances
-+ * between CPUs in NUMA.
-+ *
-+ * CPUs which are of LOCAL_DISTANCE both ways are grouped together and
-+ * may share units in the same large page.  The returned configuration
-+ * is guaranteed to have CPUs on different nodes on different large
-+ * pages and >=75% usage of allocated virtual address space.
-+ *
-+ * RETURNS:
-+ * On success, fills in @unit_map, sets *@dyn_sizep, *@unit_sizep and
-+ * returns the number of units to be allocated.  -errno on failure.
++ * Arch code has already allocated and initialized percpu areas.  All
++ * this function has to do is to teach the determined layout to the
++ * dynamic percpu allocator, which happens to be more complex than
++ * creating whole new ones using helpers.
 + */
-+int __init pcpu_lpage_build_unit_map(size_t reserved_size, ssize_t *dyn_sizep,
-+				     size_t *unit_sizep, size_t lpage_size,
-+				     int *unit_map,
-+				     pcpu_fc_cpu_distance_fn_t cpu_distance_fn)
++void __init
++setup_per_cpu_areas(void)
 +{
-+	static int group_map[NR_CPUS] __initdata;
-+	static int group_cnt[NR_CPUS] __initdata;
-+	const size_t static_size = __per_cpu_end - __per_cpu_start;
-+	int group_cnt_max = 0;
-+	size_t size_sum, min_unit_size, alloc_size;
-+	int upa, max_upa, uninitialized_var(best_upa);	/* units_per_alloc */
-+	int last_allocs;
-+	unsigned int cpu, tcpu;
-+	int group, unit;
-+
-+	/*
-+	 * Determine min_unit_size, alloc_size and max_upa such that
-+	 * alloc_size is multiple of lpage_size and is the smallest
-+	 * which can accomodate 4k aligned segments which are equal to
-+	 * or larger than min_unit_size.
-+	 */
-+	size_sum = pcpu_calc_fc_sizes(static_size, reserved_size, dyn_sizep);
-+	min_unit_size = max_t(size_t, size_sum, PCPU_MIN_UNIT_SIZE);
-+
-+	alloc_size = roundup(min_unit_size, lpage_size);
-+	upa = alloc_size / min_unit_size;
-+	while (alloc_size % upa || ((alloc_size / upa) & ~PAGE_MASK))
-+		upa--;
-+	max_upa = upa;
-+
-+	/* group cpus according to their proximity */
-+	for_each_possible_cpu(cpu) {
-+		group = 0;
-+	next_group:
-+		for_each_possible_cpu(tcpu) {
-+			if (cpu == tcpu)
-+				break;
-+			if (group_map[tcpu] == group &&
-+			    (cpu_distance_fn(cpu, tcpu) > LOCAL_DISTANCE ||
-+			     cpu_distance_fn(tcpu, cpu) > LOCAL_DISTANCE)) {
-+				group++;
-+				goto next_group;
-+			}
-+		}
-+		group_map[cpu] = group;
-+		group_cnt[group]++;
-+		group_cnt_max = max(group_cnt_max, group_cnt[group]);
-+	}
-+
-+	/*
-+	 * Expand unit size until address space usage goes over 75%
-+	 * and then as much as possible without using more address
-+	 * space.
-+	 */
-+	last_allocs = INT_MAX;
-+	for (upa = max_upa; upa; upa--) {
-+		int allocs = 0, wasted = 0;
-+
-+		if (alloc_size % upa || ((alloc_size / upa) & ~PAGE_MASK))
-+			continue;
-+
-+		for (group = 0; group_cnt[group]; group++) {
-+			int this_allocs = DIV_ROUND_UP(group_cnt[group], upa);
-+			allocs += this_allocs;
-+			wasted += this_allocs * upa - group_cnt[group];
-+		}
-+
-+		/*
-+		 * Don't accept if wastage is over 25%.  The
-+		 * greater-than comparison ensures upa==1 always
-+		 * passes the following check.
-+		 */
-+		if (wasted > num_possible_cpus() / 3)
-+			continue;
-+
-+		/* and then don't consume more memory */
-+		if (allocs > last_allocs)
-+			break;
-+		last_allocs = allocs;
-+		best_upa = upa;
-+	}
-+	*unit_sizep = alloc_size / best_upa;
-+
-+	/* assign units to cpus accordingly */
-+	unit = 0;
-+	for (group = 0; group_cnt[group]; group++) {
-+		for_each_possible_cpu(cpu)
-+			if (group_map[cpu] == group)
-+				unit_map[cpu] = unit++;
-+		unit = roundup(unit, best_upa);
-+	}
-+
-+	return unit;	/* unit contains aligned number of units */
-+}
-+
-+static bool __init pcpul_unit_to_cpu(int unit, const int *unit_map,
-+				     unsigned int *cpup);
-+
-+static void __init pcpul_lpage_dump_cfg(const char *lvl, size_t static_size,
-+					size_t reserved_size, size_t dyn_size,
-+					size_t unit_size, size_t lpage_size,
-+					const int *unit_map, int nr_units)
-+{
-+	int width = 1, v = nr_units;
-+	char empty_str[] = "--------";
-+	int upl, lpl;	/* units per lpage, lpage per line */
++	struct pcpu_alloc_info *ai;
++	struct pcpu_group_info *gi;
++	unsigned int *cpu_map;
 +	unsigned int cpu;
-+	int lpage, unit;
++	void *base, *grp0_base, *grp1_base = NULL;
++	int rc;
 +
-+	while (v /= 10)
-+		width++;
-+	empty_str[min_t(int, width, sizeof(empty_str) - 1)] = '\0';
++	ai = pcpu_alloc_alloc_info(2, nr_cpu_ids);
++	if (!ai)
++		panic("failed to allocate pcpu_alloc_info");
++	cpu_map = ai->groups[0].cpu_map;
 +
-+	upl = max_t(int, lpage_size / unit_size, 1);
-+	lpl = rounddown_pow_of_two(max_t(int, 60 / (upl * (width + 1) + 2), 1));
++	/* cpus are identity mapped to units */
++	for_each_possible_cpu(cpu)
++		cpu_map[cpu] = cpu;
 +
-+	printk("%spcpu-lpage: sta/res/dyn=%zu/%zu/%zu unit=%zu lpage=%zu", lvl,
-+	       static_size, reserved_size, dyn_size, unit_size, lpage_size);
-+
-+	for (lpage = 0, unit = 0; unit < nr_units; unit++) {
-+		if (!(unit % upl)) {
-+			if (!(lpage++ % lpl)) {
-+				printk("\n");
-+				printk("%spcpu-lpage: ", lvl);
-+			} else
-+				printk("| ");
-+		}
-+		if (pcpul_unit_to_cpu(unit, unit_map, &cpu))
-+			printk("%0*d ", width, cpu);
-+		else
-+			printk("%s ", empty_str);
++	/* determine bases */
++	base = grp0_base = __per_cpu_start + __per_cpu_offset[0];
++	if (num_possible_cpus() > 1) {
++		grp1_base = __per_cpu_start + __per_cpu_offset[1];
++		base = min(grp0_base, grp1_base);
 +	}
-+	printk("\n");
++
++	/* set basic parameters */
++	ai->static_size		= __per_cpu_end - __per_cpu_start;
++	ai->reserved_size	= PERCPU_MODULE_RESERVE; /* tj - necessary? */
++	ai->dyn_size		= PERCPU_DYNAMIC_RESERVE;
++	ai->unit_size		= PERCPU_PAGE_SIZE;
++	ai->atom_size		= PAGE_SIZE;
++	ai->alloc_size		= PERCPU_PAGE_SIZE;
++
++	/*
++	 * BSP is always present and occupies separate statically
++	 * reserved area.
++	 */
++	ai->nr_groups = 0;
++	gi = &ai->groups[ai->nr_groups++];
++	gi->nr_units		= 1;
++	gi->base_offset		= grp0_base - base;
++	gi->cpu_map		= &cpu_map[0];
++
++	if (grp1_base) {
++		/* all APs occupy single contiguos region indexed by cpu id */
++		gi = &ai->groups[ai->nr_groups++];
++		gi->nr_units		= nr_cpu_ids - 1;
++		gi->base_offset		= grp1_base - base;
++		gi->cpu_map		= &cpu_map[1];
++	}
++
++	rc = pcpu_setup_first_chunk(ai, base);
++	if (rc)
++		panic("failed to setup percpu area (err=%d)", rc);
++
++	pcpu_free_alloc_info(ai);
++}
+ #else
+ #define alloc_per_cpu_data() do { } while (0)
+ #endif /* CONFIG_SMP */
+Index: work/arch/ia64/mm/discontig.c
+===================================================================
+--- work.orig/arch/ia64/mm/discontig.c
++++ work/arch/ia64/mm/discontig.c
+@@ -159,6 +159,100 @@ static void *per_cpu_node_setup(void *cp
+ 	return cpu_data;
+ }
+ 
++#ifdef CONFIG_SMP
++/**
++ * setup_per_cpu_areas - setup percpu areas
++ *
++ * Arch code has already allocated and initialized percpu areas.  All
++ * this function has to do is to teach the determined layout to the
++ * dynamic percpu allocator, which happens to be more complex than
++ * creating whole new ones using helpers.
++ */
++void __init setup_per_cpu_areas(void)
++{
++	struct pcpu_alloc_info *ai;
++	struct pcpu_group_info *gi;
++	unsigned int *cpu_map;
++	void *base;
++	unsigned long base_offset;
++	unsigned int cpu;
++	int node, prev_node, unit, nr_units, rc;
++
++	ai = pcpu_alloc_alloc_info(MAX_NUMNODES + 1, nr_cpu_ids);
++	if (!ai)
++		panic("failed to allocate pcpu_alloc_info");
++	cpu_map = ai->groups[0].cpu_map;
++
++	/* determine base */
++	base = (void *)ULONG_MAX;
++	for_each_possible_cpu(cpu)
++		base = min(base,
++			   (void *)(__per_cpu_offset[cpu] + __per_cpu_start));
++	base_offset = (void *)__per_cpu_start - base;
++
++	/*
++	 * Build cpu_map.  cpu0 is always mapped to unit0.  The rest
++	 * are grouped by node.
++	 */
++	unit = 0;
++	cpu_map[unit++] = 0;
++	for_each_node(node) {
++		for_each_possible_cpu(cpu) {
++			if (cpu == 0)
++				continue;
++			if (node == node_cpuid[cpu].nid)
++				cpu_map[unit++] = cpu;
++		}
++	}
++	nr_units = unit;
++
++	/* set basic parameters */
++	ai->static_size		= __per_cpu_end - __per_cpu_start;
++	ai->reserved_size	= PERCPU_MODULE_RESERVE; /* tj - necessary? */
++	ai->dyn_size		= PERCPU_DYNAMIC_RESERVE;
++	ai->unit_size		= PERCPU_PAGE_SIZE;
++	ai->atom_size		= PAGE_SIZE;
++	ai->alloc_size		= PERCPU_PAGE_SIZE;
++
++	/*
++	 * BSP is always present and occupies separate statically
++	 * reserved area.
++	 */
++	ai->nr_groups = 0;
++	gi = &ai->groups[ai->nr_groups++];
++	gi->nr_units		= 1;
++	gi->base_offset		= __per_cpu_offset[0] + base_offset;
++	gi->cpu_map		= &cpu_map[0];
++
++	/*
++	 * APs should be put into groups according to node.  Walk
++	 * cpu_map and create new groups at node boundaries.
++	 */
++	prev_node = -1;
++	for (unit = 1; unit < nr_units; unit++) {
++		unsigned int cpu = cpu_map[unit];
++
++		node = node_cpuid[cpu].nid;
++		if (node == prev_node) {
++			gi->nr_units++;
++			continue;
++		}
++		prev_node = node;
++
++		gi = &ai->groups[ai->nr_groups++];
++		gi->nr_units		= 1;
++		gi->base_offset		= __per_cpu_offset[cpu] + base_offset;
++		gi->cpu_map		= &cpu_map[unit];
++	}
++
++	rc = pcpu_setup_first_chunk(ai, base);
++	if (rc)
++		panic("failed to setup percpu area (err=%d)", rc);
++
++	pcpu_free_alloc_info(ai);
 +}
 +#endif
 +
  /**
-  * pcpu_setup_first_chunk - initialize the first percpu chunk
-  * @static_size: the size of static percpu area in bytes
-@@ -1441,20 +1613,6 @@ static int __init percpu_alloc_setup(char *str)
+  * fill_pernode - initialize pernode data.
+  * @node: the node id.
+Index: work/arch/ia64/kernel/setup.c
+===================================================================
+--- work.orig/arch/ia64/kernel/setup.c
++++ work/arch/ia64/kernel/setup.c
+@@ -856,18 +856,6 @@ identify_cpu (struct cpuinfo_ia64 *c)
  }
- early_param("percpu_alloc", percpu_alloc_setup);
  
--static inline size_t pcpu_calc_fc_sizes(size_t static_size,
--					size_t reserved_size,
--					ssize_t *dyn_sizep)
--{
--	size_t size_sum;
--
--	size_sum = PFN_ALIGN(static_size + reserved_size +
--			     (*dyn_sizep >= 0 ? *dyn_sizep : 0));
--	if (*dyn_sizep != 0)
--		*dyn_sizep = size_sum - static_size - reserved_size;
--
--	return size_sum;
--}
--
- #if defined(CONFIG_NEED_PER_CPU_EMBED_FIRST_CHUNK) || \
- 	!defined(CONFIG_HAVE_SETUP_PER_CPU_AREA)
- /**
-@@ -1637,122 +1795,6 @@ out_free_ar:
- #endif /* CONFIG_NEED_PER_CPU_PAGE_FIRST_CHUNK */
- 
- #ifdef CONFIG_NEED_PER_CPU_LPAGE_FIRST_CHUNK
--/**
-- * pcpu_lpage_build_unit_map - build unit_map for large page remapping
-- * @reserved_size: the size of reserved percpu area in bytes
-- * @dyn_sizep: in/out parameter for dynamic size, -1 for auto
-- * @unit_sizep: out parameter for unit size
-- * @unit_map: unit_map to be filled
-- * @cpu_distance_fn: callback to determine distance between cpus
-- *
-- * This function builds cpu -> unit map and determine other parameters
-- * considering needed percpu size, large page size and distances
-- * between CPUs in NUMA.
-- *
-- * CPUs which are of LOCAL_DISTANCE both ways are grouped together and
-- * may share units in the same large page.  The returned configuration
-- * is guaranteed to have CPUs on different nodes on different large
-- * pages and >=75% usage of allocated virtual address space.
-- *
-- * RETURNS:
-- * On success, fills in @unit_map, sets *@dyn_sizep, *@unit_sizep and
-- * returns the number of units to be allocated.  -errno on failure.
+ /*
+- * In UP configuration, setup_per_cpu_areas() is defined in
+- * include/linux/percpu.h
 - */
--int __init pcpu_lpage_build_unit_map(size_t reserved_size, ssize_t *dyn_sizep,
--				     size_t *unit_sizep, size_t lpage_size,
--				     int *unit_map,
--				     pcpu_fc_cpu_distance_fn_t cpu_distance_fn)
+-#ifdef CONFIG_SMP
+-void __init
+-setup_per_cpu_areas (void)
 -{
--	static int group_map[NR_CPUS] __initdata;
--	static int group_cnt[NR_CPUS] __initdata;
--	const size_t static_size = __per_cpu_end - __per_cpu_start;
--	int group_cnt_max = 0;
--	size_t size_sum, min_unit_size, alloc_size;
--	int upa, max_upa, uninitialized_var(best_upa);	/* units_per_alloc */
--	int last_allocs;
--	unsigned int cpu, tcpu;
--	int group, unit;
--
--	/*
--	 * Determine min_unit_size, alloc_size and max_upa such that
--	 * alloc_size is multiple of lpage_size and is the smallest
--	 * which can accomodate 4k aligned segments which are equal to
--	 * or larger than min_unit_size.
--	 */
--	size_sum = pcpu_calc_fc_sizes(static_size, reserved_size, dyn_sizep);
--	min_unit_size = max_t(size_t, size_sum, PCPU_MIN_UNIT_SIZE);
--
--	alloc_size = roundup(min_unit_size, lpage_size);
--	upa = alloc_size / min_unit_size;
--	while (alloc_size % upa || ((alloc_size / upa) & ~PAGE_MASK))
--		upa--;
--	max_upa = upa;
--
--	/* group cpus according to their proximity */
--	for_each_possible_cpu(cpu) {
--		group = 0;
--	next_group:
--		for_each_possible_cpu(tcpu) {
--			if (cpu == tcpu)
--				break;
--			if (group_map[tcpu] == group &&
--			    (cpu_distance_fn(cpu, tcpu) > LOCAL_DISTANCE ||
--			     cpu_distance_fn(tcpu, cpu) > LOCAL_DISTANCE)) {
--				group++;
--				goto next_group;
--			}
--		}
--		group_map[cpu] = group;
--		group_cnt[group]++;
--		group_cnt_max = max(group_cnt_max, group_cnt[group]);
--	}
--
--	/*
--	 * Expand unit size until address space usage goes over 75%
--	 * and then as much as possible without using more address
--	 * space.
--	 */
--	last_allocs = INT_MAX;
--	for (upa = max_upa; upa; upa--) {
--		int allocs = 0, wasted = 0;
--
--		if (alloc_size % upa || ((alloc_size / upa) & ~PAGE_MASK))
--			continue;
--
--		for (group = 0; group_cnt[group]; group++) {
--			int this_allocs = DIV_ROUND_UP(group_cnt[group], upa);
--			allocs += this_allocs;
--			wasted += this_allocs * upa - group_cnt[group];
--		}
--
--		/*
--		 * Don't accept if wastage is over 25%.  The
--		 * greater-than comparison ensures upa==1 always
--		 * passes the following check.
--		 */
--		if (wasted > num_possible_cpus() / 3)
--			continue;
--
--		/* and then don't consume more memory */
--		if (allocs > last_allocs)
--			break;
--		last_allocs = allocs;
--		best_upa = upa;
--	}
--	*unit_sizep = alloc_size / best_upa;
--
--	/* assign units to cpus accordingly */
--	unit = 0;
--	for (group = 0; group_cnt[group]; group++) {
--		for_each_possible_cpu(cpu)
--			if (group_map[cpu] == group)
--				unit_map[cpu] = unit++;
--		unit = roundup(unit, best_upa);
--	}
--
--	return unit;	/* unit contains aligned number of units */
+-	/* start_kernel() requires this... */
 -}
+-#endif
 -
- struct pcpul_ent {
- 	void		*ptr;
- 	void		*map_addr;
-@@ -1778,43 +1820,6 @@ static bool __init pcpul_unit_to_cpu(int unit, const int *unit_map,
- 	return false;
- }
- 
--static void __init pcpul_lpage_dump_cfg(const char *lvl, size_t static_size,
--					size_t reserved_size, size_t dyn_size,
--					size_t unit_size, size_t lpage_size,
--					const int *unit_map, int nr_units)
--{
--	int width = 1, v = nr_units;
--	char empty_str[] = "--------";
--	int upl, lpl;	/* units per lpage, lpage per line */
--	unsigned int cpu;
--	int lpage, unit;
--
--	while (v /= 10)
--		width++;
--	empty_str[min_t(int, width, sizeof(empty_str) - 1)] = '\0';
--
--	upl = max_t(int, lpage_size / unit_size, 1);
--	lpl = rounddown_pow_of_two(max_t(int, 60 / (upl * (width + 1) + 2), 1));
--
--	printk("%spcpu-lpage: sta/res/dyn=%zu/%zu/%zu unit=%zu lpage=%zu", lvl,
--	       static_size, reserved_size, dyn_size, unit_size, lpage_size);
--
--	for (lpage = 0, unit = 0; unit < nr_units; unit++) {
--		if (!(unit % upl)) {
--			if (!(lpage++ % lpl)) {
--				printk("\n");
--				printk("%spcpu-lpage: ", lvl);
--			} else
--				printk("| ");
--		}
--		if (pcpul_unit_to_cpu(unit, unit_map, &cpu))
--			printk("%0*d ", width, cpu);
--		else
--			printk("%s ", empty_str);
--	}
--	printk("\n");
--}
--
- /**
-  * pcpu_lpage_first_chunk - remap the first percpu chunk using large page
-  * @reserved_size: the size of reserved percpu area in bytes
--- 
-1.6.0.2
+-/*
+  * Do the following calculations:
+  *
+  * 1. the max. cache line size.
