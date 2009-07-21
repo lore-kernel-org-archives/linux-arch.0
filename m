@@ -1,139 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:37075 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:37003 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755171AbZGUK2E (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jul 2009 06:28:04 -0400
+	id S1755040AbZGUK1y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Jul 2009 06:27:54 -0400
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 12/20] percpu: add chunk->base_addr
-Date: Tue, 21 Jul 2009 19:26:11 +0900
-Message-ID: <1248171979-29166-13-git-send-email-tj@kernel.org>
+Subject: [PATCH 20/20] powerpc64: convert to dynamic percpu allocator
+Date: Tue, 21 Jul 2009 19:26:19 +0900
+Message-ID: <1248171979-29166-21-git-send-email-tj@kernel.org>
 In-Reply-To: <1248171979-29166-1-git-send-email-tj@kernel.org>
 References: <1248171979-29166-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, benh@kernel.crashing.org, davem@davemloft.net, dhowells@redhat.com, npiggin@suse.de, JBeulich@novell.com, cl@linux-foundation.org, rusty@rustcorp.com.au, hpa@zytor.com, tglx@linutronix.de, akpm@linux-foundation.org, x86@kernel.org, andi@firstfloor.org
 Cc: Tejun Heo <tj@kernel.org>
-Message-ID: <20090721102611.G3l2v8bj5f9muwx8vHVYohjFA8IBVYV0ntWH0jsUHHQ@z>
+Message-ID: <20090721102619.OasEf-8KXfIwNALLYzjTGqPpL0ej6xVHXHO778MQOxI@z>
 
-The only thing percpu allocator wants to know about a vmalloc area is
-the base address.  Instead of requiring chunk->vm, add
-chunk->base_addr which contains the necessary value.  This simplifies
-the code a bit and makes the dummy first_vm unnecessary.  This change
-will ease allowing a chunk to be mapped by multiple vms.
+Now that percpu allows arbitrary embedding of the first chunk,
+powerpc64 can easily be converted to dynamic percpu allocator.
+Convert it.  powerpc supports several large page sizes.  Cap atom_size
+at 1M.  There isn't much to gain by going above that anyway.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- mm/percpu.c |   25 +++++++++++--------------
- 1 files changed, 11 insertions(+), 14 deletions(-)
+ arch/powerpc/Kconfig           |    4 +-
+ arch/powerpc/kernel/setup_64.c |   61 +++++++++++++++++++++++++++++----------
+ 2 files changed, 47 insertions(+), 18 deletions(-)
 
-diff --git a/mm/percpu.c b/mm/percpu.c
-index 8167fb8..7b5e194 100644
---- a/mm/percpu.c
-+++ b/mm/percpu.c
-@@ -94,10 +94,11 @@ struct pcpu_chunk {
- 	struct list_head	list;		/* linked to pcpu_slot lists */
- 	int			free_size;	/* free bytes in the chunk */
- 	int			contig_hint;	/* max contiguous size hint */
--	struct vm_struct	*vm;		/* mapped vmalloc region */
-+	void			*base_addr;	/* base address of this chunk */
- 	int			map_used;	/* # of map entries used */
- 	int			map_alloc;	/* # of map entries allocated */
- 	int			*map;		/* allocation map */
-+	struct vm_struct	*vm;		/* mapped vmalloc region */
- 	bool			immutable;	/* no [de]population allowed */
- 	unsigned long		populated[];	/* populated bitmap */
- };
-@@ -196,7 +197,7 @@ static int pcpu_page_idx(unsigned int cpu, int page_idx)
- static unsigned long pcpu_chunk_addr(struct pcpu_chunk *chunk,
- 				     unsigned int cpu, int page_idx)
- {
--	return (unsigned long)chunk->vm->addr + pcpu_unit_offsets[cpu] +
-+	return (unsigned long)chunk->base_addr + pcpu_unit_offsets[cpu] +
- 		(page_idx << PAGE_SHIFT);
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 61bbffa..2c42e15 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -46,10 +46,10 @@ config GENERIC_HARDIRQS_NO__DO_IRQ
+ 	bool
+ 	default y
+ 
+-config HAVE_LEGACY_PER_CPU_AREA
++config HAVE_SETUP_PER_CPU_AREA
+ 	def_bool PPC64
+ 
+-config HAVE_SETUP_PER_CPU_AREA
++config NEED_PER_CPU_EMBED_FIRST_CHUNK
+ 	def_bool PPC64
+ 
+ config IRQ_PER_CPU
+diff --git a/arch/powerpc/kernel/setup_64.c b/arch/powerpc/kernel/setup_64.c
+index 1f68160..aa6e450 100644
+--- a/arch/powerpc/kernel/setup_64.c
++++ b/arch/powerpc/kernel/setup_64.c
+@@ -57,6 +57,7 @@
+ #include <asm/cache.h>
+ #include <asm/page.h>
+ #include <asm/mmu.h>
++#include <asm/mmu-hash64.h>
+ #include <asm/firmware.h>
+ #include <asm/xmon.h>
+ #include <asm/udbg.h>
+@@ -569,25 +570,53 @@ void cpu_die(void)
  }
  
-@@ -324,7 +325,7 @@ static void pcpu_chunk_relocate(struct pcpu_chunk *chunk, int oslot)
-  */
- static struct pcpu_chunk *pcpu_chunk_addr_search(void *addr)
+ #ifdef CONFIG_SMP
+-void __init setup_per_cpu_areas(void)
++#define PCPU_DYN_SIZE		()
++
++static void * __init pcpu_fc_alloc(unsigned int cpu, size_t size, size_t align)
  {
--	void *first_start = pcpu_first_chunk->vm->addr;
-+	void *first_start = pcpu_first_chunk->base_addr;
- 
- 	/* is it in the first chunk? */
- 	if (addr >= first_start && addr < first_start + pcpu_unit_size) {
-@@ -1014,6 +1015,7 @@ static struct pcpu_chunk *alloc_pcpu_chunk(void)
- 	INIT_LIST_HEAD(&chunk->list);
- 	chunk->free_size = pcpu_unit_size;
- 	chunk->contig_hint = pcpu_unit_size;
-+	chunk->base_addr = chunk->vm->addr;
- 
- 	return chunk;
- }
-@@ -1103,8 +1105,8 @@ area_found:
- 
- 	mutex_unlock(&pcpu_alloc_mutex);
- 
--	/* return address relative to unit0 */
--	return __addr_to_pcpu_ptr(chunk->vm->addr + off);
-+	/* return address relative to base address */
-+	return __addr_to_pcpu_ptr(chunk->base_addr + off);
- 
- fail_unlock:
- 	spin_unlock_irq(&pcpu_lock);
-@@ -1213,7 +1215,7 @@ void free_percpu(void *ptr)
- 	spin_lock_irqsave(&pcpu_lock, flags);
- 
- 	chunk = pcpu_chunk_addr_search(addr);
--	off = addr - chunk->vm->addr;
-+	off = addr - chunk->base_addr;
- 
- 	pcpu_free_area(chunk, off);
- 
-@@ -1565,7 +1567,6 @@ static void pcpu_dump_alloc_info(const char *lvl,
- int __init pcpu_setup_first_chunk(const struct pcpu_alloc_info *ai,
- 				  void *base_addr)
- {
--	static struct vm_struct first_vm;
- 	static int smap[2], dmap[2];
- 	size_t dyn_size = ai->dyn_size;
- 	size_t size_sum = ai->static_size + ai->reserved_size + dyn_size;
-@@ -1629,10 +1630,6 @@ int __init pcpu_setup_first_chunk(const struct pcpu_alloc_info *ai,
- 	pcpu_chunk_struct_size = sizeof(struct pcpu_chunk) +
- 		BITS_TO_LONGS(pcpu_unit_pages) * sizeof(unsigned long);
- 
--	first_vm.flags = VM_ALLOC;
--	first_vm.size = pcpu_chunk_size;
--	first_vm.addr = base_addr;
+-	int i;
+-	unsigned long size;
+-	char *ptr;
 -
- 	/*
- 	 * Allocate chunk slots.  The additional last slot is for
- 	 * empty chunks.
-@@ -1651,7 +1648,7 @@ int __init pcpu_setup_first_chunk(const struct pcpu_alloc_info *ai,
- 	 */
- 	schunk = alloc_bootmem(pcpu_chunk_struct_size);
- 	INIT_LIST_HEAD(&schunk->list);
--	schunk->vm = &first_vm;
-+	schunk->base_addr = base_addr;
- 	schunk->map = smap;
- 	schunk->map_alloc = ARRAY_SIZE(smap);
- 	schunk->immutable = true;
-@@ -1675,7 +1672,7 @@ int __init pcpu_setup_first_chunk(const struct pcpu_alloc_info *ai,
- 	if (dyn_size) {
- 		dchunk = alloc_bootmem(pcpu_chunk_struct_size);
- 		INIT_LIST_HEAD(&dchunk->list);
--		dchunk->vm = &first_vm;
-+		dchunk->base_addr = base_addr;
- 		dchunk->map = dmap;
- 		dchunk->map_alloc = ARRAY_SIZE(dmap);
- 		dchunk->immutable = true;
-@@ -1691,7 +1688,7 @@ int __init pcpu_setup_first_chunk(const struct pcpu_alloc_info *ai,
- 	pcpu_chunk_relocate(pcpu_first_chunk, -1);
+-	/* Copy section for each CPU (we discard the original) */
+-	size = ALIGN(__per_cpu_end - __per_cpu_start, PAGE_SIZE);
+-#ifdef CONFIG_MODULES
+-	if (size < PERCPU_ENOUGH_ROOM)
+-		size = PERCPU_ENOUGH_ROOM;
+-#endif
++	return __alloc_bootmem_node(NODE_DATA(cpu_to_node(cpu)), size, align,
++				    __pa(MAX_DMA_ADDRESS));
++}
  
- 	/* we're done */
--	pcpu_base_addr = schunk->vm->addr;
-+	pcpu_base_addr = base_addr;
- 	return 0;
+-	for_each_possible_cpu(i) {
+-		ptr = alloc_bootmem_pages_node(NODE_DATA(cpu_to_node(i)), size);
++static void __init pcpu_fc_free(void *ptr, size_t size)
++{
++	free_bootmem(__pa(ptr), size);
++}
+ 
+-		paca[i].data_offset = ptr - __per_cpu_start;
+-		memcpy(ptr, __per_cpu_start, __per_cpu_end - __per_cpu_start);
+-	}
++static int pcpu_cpu_distance(unsigned int from, unsigned int to)
++{
++	if (cpu_to_node(from) == cpu_to_node(to))
++		return LOCAL_DISTANCE;
++	else
++		return REMOTE_DISTANCE;
++}
++
++void __init setup_per_cpu_areas(void)
++{
++	const size_t dyn_size = PERCPU_MODULE_RESERVE + PERCPU_DYNAMIC_RESERVE;
++	size_t atom_size;
++	unsigned long delta;
++	unsigned int cpu;
++	int rc;
++
++	/*
++	 * Linear mapping is one of 4K, 1M and 16M.  For 4K, no need
++	 * to group units.  For larger mappings, use 1M atom which
++	 * should be large enough to contain a number of units.
++	 */
++	if (mmu_linear_psize == MMU_PAGE_4K)
++		atom_size = PAGE_SIZE;
++	else
++		atom_size = 1 << 20;
++
++	rc = pcpu_embed_first_chunk(0, dyn_size, atom_size, pcpu_cpu_distance,
++				    pcpu_fc_alloc, pcpu_fc_free);
++	if (rc < 0)
++		panic("cannot initialize percpu area (err=%d)", rc);
++
++	delta = (unsigned long)pcpu_base_addr - (unsigned long)__per_cpu_start;
++	for_each_possible_cpu(cpu)
++		paca[cpu].data_offset = delta + pcpu_unit_offsets[cpu];
  }
+ #endif
  
 -- 
 1.6.0.2
