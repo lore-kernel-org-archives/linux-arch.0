@@ -1,36 +1,32 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [RFC PATCH] ia64: convert to dynamic percpu allocator
-Date: Wed, 22 Jul 2009 07:14:31 +0900
-Message-ID: <4A663DC7.4060600@kernel.org>
-References: <4A65B0AB.5000608@kernel.org> <A6AD88C3F2289247BE726C37303E1EB8B097D4C5@orsmsx505.amr.corp.intel.com>
+From: Christoph Lameter <cl@linux-foundation.org>
+Subject: Re: [PATCH 03/20] percpu: rename 4k first chunk allocator to page
+Date: Tue, 21 Jul 2009 17:47:09 -0400 (EDT)
+Message-ID: <alpine.DEB.1.10.0907211745080.25867@gentwo.org>
+References: <1248171979-29166-1-git-send-email-tj@kernel.org> <1248171979-29166-4-git-send-email-tj@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <A6AD88C3F2289247BE726C37303E1EB8B097D4C5@orsmsx505.amr.corp.intel.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: "Yu, Fenghua" <fenghua.yu@intel.com>
-Cc: "Luck, Tony" <tony.luck@intel.com>, 'lkml' <linux-kernel@vger.kernel.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-ia64@vger.kernel.org'" <linux-ia64@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp3.ultrahosting.com ([74.213.175.254]:50615 "EHLO
+	smtp.ultrahosting.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1755898AbZGUW3B (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2009 18:29:01 -0400
+In-Reply-To: <1248171979-29166-4-git-send-email-tj@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tejun Heo <tj@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, benh@kernel.crashing.org, davem@davemloft.net, dhowells@redhat.com, npiggin@suse.de, JBeulich@novell.com, rusty@rustcorp.com.au, hpa@zytor.com, tglx@linutronix.de, akpm@linux-foundation.org, x86@kernel.org, andi@firstfloor.org
 
-Hello,
 
-Yu, Fenghua wrote:
->> This patch is available in the following git tree.
->>
->>  git://git.kernel.org/pub/scm/linux/kernel/git/tj/percpu.git review-ia64
-> 
-> Is this patch against the latest linux-next? It's applied cleanly on
-> linux-next. But compilation reports undefined function
-> pcpu_alloc_alloc_info() in both contig.c and discontig.c.
+On Tue, 21 Jul 2009, Tejun Heo wrote:
 
-Oh, it's on top of percpu#for-next + 20 patches to implement sparse
-embedding[1].  I think it would be the easiest to fetch the above git
-tree.
+> - * Boring fallback 4k allocator.  This allocator puts more pressure on
+> - * PTE TLBs but other than that behaves nicely on both UMA and NUMA.
+> + * Boring fallback 4k page allocator.  This allocator puts more
 
-Thanks.
+Guess this should not mentione 4k anymroe? page size allocation?
 
--- 
-tejun
+>  				pr_warning("PERCPU: %s allocator failed (%zd), "
+> -					   "falling back to 4k\n",
+> +					   "falling back to page\n",
 
-[1] http://thread.gmane.org/gmane.linux.kernel.cross-arch/4124
+"falling back to page size"?
