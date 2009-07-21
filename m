@@ -1,303 +1,110 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 06/20] percpu: drop @static_size from first chunk allocators
-Date: Tue, 21 Jul 2009 19:26:05 +0900
-Message-ID: <1248171979-29166-7-git-send-email-tj@kernel.org>
+Subject: [PATCH 13/20] vmalloc: separate out insert_vmalloc_vm()
+Date: Tue, 21 Jul 2009 19:26:12 +0900
+Message-ID: <1248171979-29166-14-git-send-email-tj@kernel.org>
 References: <1248171979-29166-1-git-send-email-tj@kernel.org>
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1755182AbZGUK2F@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from hera.kernel.org ([140.211.167.34]:37017 "EHLO hera.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755085AbZGUK14 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Jul 2009 06:27:56 -0400
 In-Reply-To: <1248171979-29166-1-git-send-email-tj@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, benh@kernel.crashing.org, davem@davemloft.net, dhowells@redhat.com, npiggin@suse.de, JBeulich@novell.comc
 Cc: Tejun Heo <tj@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-First chunk allocators assume percpu areas have been linked using one
-of PERCPU_*() macros and depend on __per_cpu_load symbol defined by
-those macros, so there isn't much point in passing in static area size
-explicitly when it can be easily calculated from __per_cpu_start and
-__per_cpu_end.  Drop @static_size from all percpu first chunk
-allocators and helpers.
+Separate out insert_vmalloc_vm() from __get_vm_area_node().
+insert_vmalloc_vm() initializes vm_struct from vmap_area and inserts
+it into vmlist.  insert_vmalloc_vm() only initializes fields which can
+be determined from @vm, @flags and @caller The rest should be
+initialized by the caller.  For __get_vm_area_node(), all other fields
+just need to be cleared and this is done by using kzalloc instead of
+kmalloc.
+
+This will be used to implement pcpu_get_vm_areas().
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
+Cc: Nick Piggin <npiggin@suse.de>
 ---
- arch/x86/kernel/setup_percpu.c |   34 +++++++++++++++-------------------
- include/linux/percpu.h         |   18 ++++++++----------
- mm/percpu.c                    |   29 +++++++++++++----------------
- 3 files changed, 36 insertions(+), 45 deletions(-)
+ mm/vmalloc.c |   45 ++++++++++++++++++++++++---------------------
+ 1 files changed, 24 insertions(+), 21 deletions(-)
 
-diff --git a/arch/x86/kernel/setup_percpu.c b/arch/x86/kernel/setup_percpu.c
-index 7f1e09b..b0e7ac4 100644
---- a/arch/x86/kernel/setup_percpu.c
-+++ b/arch/x86/kernel/setup_percpu.c
-@@ -157,7 +157,7 @@ static int pcpu_lpage_cpu_distance(unsigned int from, unsigned int to)
- 		return REMOTE_DISTANCE;
- }
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index f8189a4..2eb461c 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -1122,13 +1122,34 @@ EXPORT_SYMBOL_GPL(map_vm_area);
+ DEFINE_RWLOCK(vmlist_lock);
+ struct vm_struct *vmlist;
  
--static ssize_t __init setup_pcpu_lpage(size_t static_size, bool chosen)
-+static ssize_t __init setup_pcpu_lpage(bool chosen)
++static void insert_vmalloc_vm(struct vm_struct *vm, struct vmap_area *va,
++			      unsigned long flags, void *caller)
++{
++	struct vm_struct *tmp, **p;
++
++	vm->flags = flags;
++	vm->addr = (void *)va->va_start;
++	vm->size = va->va_end - va->va_start;
++	vm->caller = caller;
++	va->private = vm;
++	va->flags |= VM_VM_AREA;
++
++	write_lock(&vmlist_lock);
++	for (p = &vmlist; (tmp = *p) != NULL; p = &tmp->next) {
++		if (tmp->addr >= vm->addr)
++			break;
++	}
++	vm->next = *p;
++	*p = vm;
++	write_unlock(&vmlist_lock);
++}
++
+ static struct vm_struct *__get_vm_area_node(unsigned long size,
+ 		unsigned long flags, unsigned long start, unsigned long end,
+ 		int node, gfp_t gfp_mask, void *caller)
  {
- 	size_t reserve = PERCPU_MODULE_RESERVE + PERCPU_DYNAMIC_RESERVE;
- 	size_t dyn_size = reserve - PERCPU_FIRST_CHUNK_RESERVE;
-@@ -184,8 +184,7 @@ static ssize_t __init setup_pcpu_lpage(size_t static_size, bool chosen)
- 		return -ENOMEM;
+ 	static struct vmap_area *va;
+ 	struct vm_struct *area;
+-	struct vm_struct *tmp, **p;
+ 	unsigned long align = 1;
+ 
+ 	BUG_ON(in_interrupt());
+@@ -1147,7 +1168,7 @@ static struct vm_struct *__get_vm_area_node(unsigned long size,
+ 	if (unlikely(!size))
+ 		return NULL;
+ 
+-	area = kmalloc_node(sizeof(*area), gfp_mask & GFP_RECLAIM_MASK, node);
++	area = kzalloc_node(sizeof(*area), gfp_mask & GFP_RECLAIM_MASK, node);
+ 	if (unlikely(!area))
+ 		return NULL;
+ 
+@@ -1162,25 +1183,7 @@ static struct vm_struct *__get_vm_area_node(unsigned long size,
+ 		return NULL;
  	}
  
--	ret = pcpu_lpage_build_unit_map(static_size,
--					PERCPU_FIRST_CHUNK_RESERVE,
-+	ret = pcpu_lpage_build_unit_map(PERCPU_FIRST_CHUNK_RESERVE,
- 					&dyn_size, &unit_size, PMD_SIZE,
- 					unit_map, pcpu_lpage_cpu_distance);
- 	if (ret < 0) {
-@@ -208,9 +207,8 @@ static ssize_t __init setup_pcpu_lpage(size_t static_size, bool chosen)
- 		}
- 	}
- 
--	ret = pcpu_lpage_first_chunk(static_size, PERCPU_FIRST_CHUNK_RESERVE,
--				     dyn_size, unit_size, PMD_SIZE,
--				     unit_map, nr_units,
-+	ret = pcpu_lpage_first_chunk(PERCPU_FIRST_CHUNK_RESERVE, dyn_size,
-+				     unit_size, PMD_SIZE, unit_map, nr_units,
- 				     pcpu_fc_alloc, pcpu_fc_free, pcpul_map);
- out_free:
- 	if (ret < 0)
-@@ -218,7 +216,7 @@ out_free:
- 	return ret;
- }
- #else
--static ssize_t __init setup_pcpu_lpage(size_t static_size, bool chosen)
-+static ssize_t __init setup_pcpu_lpage(bool chosen)
- {
- 	return -EINVAL;
- }
-@@ -232,7 +230,7 @@ static ssize_t __init setup_pcpu_lpage(size_t static_size, bool chosen)
-  * mapping so that it can use PMD mapping without additional TLB
-  * pressure.
-  */
--static ssize_t __init setup_pcpu_embed(size_t static_size, bool chosen)
-+static ssize_t __init setup_pcpu_embed(bool chosen)
- {
- 	size_t reserve = PERCPU_MODULE_RESERVE + PERCPU_DYNAMIC_RESERVE;
- 
-@@ -244,7 +242,7 @@ static ssize_t __init setup_pcpu_embed(size_t static_size, bool chosen)
- 	if (!chosen && (!cpu_has_pse || pcpu_need_numa()))
- 		return -EINVAL;
- 
--	return pcpu_embed_first_chunk(static_size, PERCPU_FIRST_CHUNK_RESERVE,
-+	return pcpu_embed_first_chunk(PERCPU_FIRST_CHUNK_RESERVE,
- 				      reserve - PERCPU_FIRST_CHUNK_RESERVE);
+-	area->flags = flags;
+-	area->addr = (void *)va->va_start;
+-	area->size = size;
+-	area->pages = NULL;
+-	area->nr_pages = 0;
+-	area->phys_addr = 0;
+-	area->caller = caller;
+-	va->private = area;
+-	va->flags |= VM_VM_AREA;
+-
+-	write_lock(&vmlist_lock);
+-	for (p = &vmlist; (tmp = *p) != NULL; p = &tmp->next) {
+-		if (tmp->addr >= area->addr)
+-			break;
+-	}
+-	area->next = *p;
+-	*p = area;
+-	write_unlock(&vmlist_lock);
+-
++	insert_vmalloc_vm(area, va, flags, caller);
+ 	return area;
  }
  
-@@ -260,9 +258,9 @@ static void __init pcpup_populate_pte(unsigned long addr)
- 	populate_extra_pte(addr);
- }
- 
--static ssize_t __init setup_pcpu_page(size_t static_size)
-+static ssize_t __init setup_pcpu_page(void)
- {
--	return pcpu_page_first_chunk(static_size, PERCPU_FIRST_CHUNK_RESERVE,
-+	return pcpu_page_first_chunk(PERCPU_FIRST_CHUNK_RESERVE,
- 				     pcpu_fc_alloc, pcpu_fc_free,
- 				     pcpup_populate_pte);
- }
-@@ -282,7 +280,6 @@ static inline void setup_percpu_segment(int cpu)
- 
- void __init setup_per_cpu_areas(void)
- {
--	size_t static_size = __per_cpu_end - __per_cpu_start;
- 	unsigned int cpu;
- 	unsigned long delta;
- 	size_t pcpu_unit_size;
-@@ -300,9 +297,9 @@ void __init setup_per_cpu_areas(void)
- 	if (pcpu_chosen_fc != PCPU_FC_AUTO) {
- 		if (pcpu_chosen_fc != PCPU_FC_PAGE) {
- 			if (pcpu_chosen_fc == PCPU_FC_LPAGE)
--				ret = setup_pcpu_lpage(static_size, true);
-+				ret = setup_pcpu_lpage(true);
- 			else
--				ret = setup_pcpu_embed(static_size, true);
-+				ret = setup_pcpu_embed(true);
- 
- 			if (ret < 0)
- 				pr_warning("PERCPU: %s allocator failed (%zd), "
-@@ -310,15 +307,14 @@ void __init setup_per_cpu_areas(void)
- 					   pcpu_fc_names[pcpu_chosen_fc], ret);
- 		}
- 	} else {
--		ret = setup_pcpu_lpage(static_size, false);
-+		ret = setup_pcpu_lpage(false);
- 		if (ret < 0)
--			ret = setup_pcpu_embed(static_size, false);
-+			ret = setup_pcpu_embed(false);
- 	}
- 	if (ret < 0)
--		ret = setup_pcpu_page(static_size);
-+		ret = setup_pcpu_page();
- 	if (ret < 0)
--		panic("cannot allocate static percpu area (%zu bytes, err=%zd)",
--		      static_size, ret);
-+		panic("cannot initialize percpu area (err=%zd)", ret);
- 
- 	pcpu_unit_size = ret;
- 
-diff --git a/include/linux/percpu.h b/include/linux/percpu.h
-index 9be05cb..be2fc8f 100644
---- a/include/linux/percpu.h
-+++ b/include/linux/percpu.h
-@@ -84,13 +84,12 @@ extern size_t __init pcpu_setup_first_chunk(
- 
- #ifdef CONFIG_NEED_PER_CPU_EMBED_FIRST_CHUNK
- extern ssize_t __init pcpu_embed_first_chunk(
--				size_t static_size, size_t reserved_size,
--				ssize_t dyn_size);
-+				size_t reserved_size, ssize_t dyn_size);
- #endif
- 
- #ifdef CONFIG_NEED_PER_CPU_PAGE_FIRST_CHUNK
- extern ssize_t __init pcpu_page_first_chunk(
--				size_t static_size, size_t reserved_size,
-+				size_t reserved_size,
- 				pcpu_fc_alloc_fn_t alloc_fn,
- 				pcpu_fc_free_fn_t free_fn,
- 				pcpu_fc_populate_pte_fn_t populate_pte_fn);
-@@ -98,16 +97,15 @@ extern ssize_t __init pcpu_page_first_chunk(
- 
- #ifdef CONFIG_NEED_PER_CPU_LPAGE_FIRST_CHUNK
- extern int __init pcpu_lpage_build_unit_map(
--				size_t static_size, size_t reserved_size,
--				ssize_t *dyn_sizep, size_t *unit_sizep,
--				size_t lpage_size, int *unit_map,
-+				size_t reserved_size, ssize_t *dyn_sizep,
-+				size_t *unit_sizep, size_t lpage_size,
-+				int *unit_map,
- 				pcpu_fc_cpu_distance_fn_t cpu_distance_fn);
- 
- extern ssize_t __init pcpu_lpage_first_chunk(
--				size_t static_size, size_t reserved_size,
--				size_t dyn_size, size_t unit_size,
--				size_t lpage_size, const int *unit_map,
--				int nr_units,
-+				size_t reserved_size, size_t dyn_size,
-+				size_t unit_size, size_t lpage_size,
-+				const int *unit_map, int nr_units,
- 				pcpu_fc_alloc_fn_t alloc_fn,
- 				pcpu_fc_free_fn_t free_fn,
- 				pcpu_fc_map_fn_t map_fn);
-diff --git a/mm/percpu.c b/mm/percpu.c
-index 6617020..e9f45ab 100644
---- a/mm/percpu.c
-+++ b/mm/percpu.c
-@@ -1464,7 +1464,6 @@ static inline size_t pcpu_calc_fc_sizes(size_t static_size,
- 	!defined(CONFIG_HAVE_SETUP_PER_CPU_AREA)
- /**
-  * pcpu_embed_first_chunk - embed the first percpu chunk into bootmem
-- * @static_size: the size of static percpu area in bytes
-  * @reserved_size: the size of reserved percpu area in bytes
-  * @dyn_size: free size for dynamic allocation in bytes, -1 for auto
-  *
-@@ -1489,9 +1488,9 @@ static inline size_t pcpu_calc_fc_sizes(size_t static_size,
-  * The determined pcpu_unit_size which can be used to initialize
-  * percpu access on success, -errno on failure.
-  */
--ssize_t __init pcpu_embed_first_chunk(size_t static_size, size_t reserved_size,
--				      ssize_t dyn_size)
-+ssize_t __init pcpu_embed_first_chunk(size_t reserved_size, ssize_t dyn_size)
- {
-+	const size_t static_size = __per_cpu_end - __per_cpu_start;
- 	size_t size_sum, unit_size, chunk_size;
- 	void *base;
- 	unsigned int cpu;
-@@ -1536,7 +1535,6 @@ ssize_t __init pcpu_embed_first_chunk(size_t static_size, size_t reserved_size,
- #ifdef CONFIG_NEED_PER_CPU_PAGE_FIRST_CHUNK
- /**
-  * pcpu_page_first_chunk - map the first chunk using PAGE_SIZE pages
-- * @static_size: the size of static percpu area in bytes
-  * @reserved_size: the size of reserved percpu area in bytes
-  * @alloc_fn: function to allocate percpu page, always called with PAGE_SIZE
-  * @free_fn: funtion to free percpu page, always called with PAGE_SIZE
-@@ -1552,12 +1550,13 @@ ssize_t __init pcpu_embed_first_chunk(size_t static_size, size_t reserved_size,
-  * The determined pcpu_unit_size which can be used to initialize
-  * percpu access on success, -errno on failure.
-  */
--ssize_t __init pcpu_page_first_chunk(size_t static_size, size_t reserved_size,
-+ssize_t __init pcpu_page_first_chunk(size_t reserved_size,
- 				     pcpu_fc_alloc_fn_t alloc_fn,
- 				     pcpu_fc_free_fn_t free_fn,
- 				     pcpu_fc_populate_pte_fn_t populate_pte_fn)
- {
- 	static struct vm_struct vm;
-+	const size_t static_size = __per_cpu_end - __per_cpu_start;
- 	char psize_str[16];
- 	int unit_pages;
- 	size_t pages_size;
-@@ -1641,7 +1640,6 @@ out_free_ar:
- #ifdef CONFIG_NEED_PER_CPU_LPAGE_FIRST_CHUNK
- /**
-  * pcpu_lpage_build_unit_map - build unit_map for large page remapping
-- * @static_size: the size of static percpu area in bytes
-  * @reserved_size: the size of reserved percpu area in bytes
-  * @dyn_sizep: in/out parameter for dynamic size, -1 for auto
-  * @unit_sizep: out parameter for unit size
-@@ -1661,13 +1659,14 @@ out_free_ar:
-  * On success, fills in @unit_map, sets *@dyn_sizep, *@unit_sizep and
-  * returns the number of units to be allocated.  -errno on failure.
-  */
--int __init pcpu_lpage_build_unit_map(size_t static_size, size_t reserved_size,
--				     ssize_t *dyn_sizep, size_t *unit_sizep,
--				     size_t lpage_size, int *unit_map,
-+int __init pcpu_lpage_build_unit_map(size_t reserved_size, ssize_t *dyn_sizep,
-+				     size_t *unit_sizep, size_t lpage_size,
-+				     int *unit_map,
- 				     pcpu_fc_cpu_distance_fn_t cpu_distance_fn)
- {
- 	static int group_map[NR_CPUS] __initdata;
- 	static int group_cnt[NR_CPUS] __initdata;
-+	const size_t static_size = __per_cpu_end - __per_cpu_start;
- 	int group_cnt_max = 0;
- 	size_t size_sum, min_unit_size, alloc_size;
- 	int upa, max_upa, uninitialized_var(best_upa);	/* units_per_alloc */
-@@ -1819,7 +1818,6 @@ static void __init pcpul_lpage_dump_cfg(const char *lvl, size_t static_size,
- 
- /**
-  * pcpu_lpage_first_chunk - remap the first percpu chunk using large page
-- * @static_size: the size of static percpu area in bytes
-  * @reserved_size: the size of reserved percpu area in bytes
-  * @dyn_size: free size for dynamic allocation in bytes
-  * @unit_size: unit size in bytes
-@@ -1850,15 +1848,15 @@ static void __init pcpul_lpage_dump_cfg(const char *lvl, size_t static_size,
-  * The determined pcpu_unit_size which can be used to initialize
-  * percpu access on success, -errno on failure.
-  */
--ssize_t __init pcpu_lpage_first_chunk(size_t static_size, size_t reserved_size,
--				      size_t dyn_size, size_t unit_size,
--				      size_t lpage_size, const int *unit_map,
--				      int nr_units,
-+ssize_t __init pcpu_lpage_first_chunk(size_t reserved_size, size_t dyn_size,
-+				      size_t unit_size, size_t lpage_size,
-+				      const int *unit_map, int nr_units,
- 				      pcpu_fc_alloc_fn_t alloc_fn,
- 				      pcpu_fc_free_fn_t free_fn,
- 				      pcpu_fc_map_fn_t map_fn)
- {
- 	static struct vm_struct vm;
-+	const size_t static_size = __per_cpu_end - __per_cpu_start;
- 	size_t chunk_size = unit_size * nr_units;
- 	size_t map_size;
- 	unsigned int cpu;
-@@ -2037,7 +2035,6 @@ EXPORT_SYMBOL(__per_cpu_offset);
- 
- void __init setup_per_cpu_areas(void)
- {
--	size_t static_size = __per_cpu_end - __per_cpu_start;
- 	ssize_t unit_size;
- 	unsigned long delta;
- 	unsigned int cpu;
-@@ -2046,7 +2043,7 @@ void __init setup_per_cpu_areas(void)
- 	 * Always reserve area for module percpu variables.  That's
- 	 * what the legacy allocator did.
- 	 */
--	unit_size = pcpu_embed_first_chunk(static_size, PERCPU_MODULE_RESERVE,
-+	unit_size = pcpu_embed_first_chunk(PERCPU_MODULE_RESERVE,
- 					   PERCPU_DYNAMIC_RESERVE);
- 	if (unit_size < 0)
- 		panic("Failed to initialized percpu areas.");
 -- 
 1.6.0.2
