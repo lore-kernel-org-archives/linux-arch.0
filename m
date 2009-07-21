@@ -1,125 +1,261 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 20/20] powerpc64: convert to dynamic percpu allocator
-Date: Tue, 21 Jul 2009 19:26:19 +0900
-Message-ID: <1248171979-29166-21-git-send-email-tj@kernel.org>
+Subject: [PATCH 17/20] x86,percpu: use embedding for 64bit NUMA and page for 32bit NUMA
+Date: Tue, 21 Jul 2009 19:26:16 +0900
+Message-ID: <1248171979-29166-18-git-send-email-tj@kernel.org>
 References: <1248171979-29166-1-git-send-email-tj@kernel.org>
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1755299AbZGUKbG@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from hera.kernel.org ([140.211.167.34]:37034 "EHLO hera.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755118AbZGUK16 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Jul 2009 06:27:58 -0400
 In-Reply-To: <1248171979-29166-1-git-send-email-tj@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, benh@kernel.crashing.org, davem@davemloft.net, dhowells@redhat.com, npiggin@suse.de, JBeulich@novell.comc
-Cc: Tejun Heo <tj@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: Tejun Heo <tj@kernel.org>, Ingo Molnar <mingo@elte.hu>
 
-Now that percpu allows arbitrary embedding of the first chunk,
-powerpc64 can easily be converted to dynamic percpu allocator.
-Convert it.  powerpc supports several large page sizes.  Cap atom_size
-at 1M.  There isn't much to gain by going above that anyway.
+Embedding percpu first chunk allocator can now handle very sparse unit
+mapping.  Use embedding allocator instead of lpage for 64bit NUMA.
+This removes extra TLB pressure and the need to do complex and fragile
+dancing when changing page attributes.
+
+For 32bit, using very sparse unit mapping isn't a good idea because
+the vmalloc space is very constrained.  32bit NUMA machines aren't
+exactly the focus of optimization and it isn't very clear whether
+lpage performs better than page.  Use page first chunk allocator for
+32bit NUMAs.
+
+As this leaves setup_pcpu_*() functions pretty much empty, fold them
+into setup_per_cpu_areas().
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Andi Kleen <andi@firstfloor.org>
 ---
- arch/powerpc/Kconfig           |    4 +-
- arch/powerpc/kernel/setup_64.c |   61 +++++++++++++++++++++++++++++----------
- 2 files changed, 47 insertions(+), 18 deletions(-)
+ arch/x86/Kconfig               |    4 -
+ arch/x86/kernel/setup_percpu.c |  155 +++++++--------------------------------
+ 2 files changed, 28 insertions(+), 131 deletions(-)
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 61bbffa..2c42e15 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -46,10 +46,10 @@ config GENERIC_HARDIRQS_NO__DO_IRQ
- 	bool
- 	default y
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 5c0a3b4..96d2044 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -155,10 +155,6 @@ config NEED_PER_CPU_EMBED_FIRST_CHUNK
+ config NEED_PER_CPU_PAGE_FIRST_CHUNK
+ 	def_bool y
  
--config HAVE_LEGACY_PER_CPU_AREA
-+config HAVE_SETUP_PER_CPU_AREA
- 	def_bool PPC64
- 
--config HAVE_SETUP_PER_CPU_AREA
-+config NEED_PER_CPU_EMBED_FIRST_CHUNK
- 	def_bool PPC64
- 
- config IRQ_PER_CPU
-diff --git a/arch/powerpc/kernel/setup_64.c b/arch/powerpc/kernel/setup_64.c
-index 1f68160..aa6e450 100644
---- a/arch/powerpc/kernel/setup_64.c
-+++ b/arch/powerpc/kernel/setup_64.c
-@@ -57,6 +57,7 @@
- #include <asm/cache.h>
- #include <asm/page.h>
- #include <asm/mmu.h>
-+#include <asm/mmu-hash64.h>
- #include <asm/firmware.h>
- #include <asm/xmon.h>
- #include <asm/udbg.h>
-@@ -569,25 +570,53 @@ void cpu_die(void)
- }
- 
- #ifdef CONFIG_SMP
--void __init setup_per_cpu_areas(void)
-+#define PCPU_DYN_SIZE		()
-+
-+static void * __init pcpu_fc_alloc(unsigned int cpu, size_t size, size_t align)
- {
--	int i;
--	unsigned long size;
--	char *ptr;
+-config NEED_PER_CPU_LPAGE_FIRST_CHUNK
+-	def_bool y
+-	depends on NEED_MULTIPLE_NODES
 -
--	/* Copy section for each CPU (we discard the original) */
--	size = ALIGN(__per_cpu_end - __per_cpu_start, PAGE_SIZE);
--#ifdef CONFIG_MODULES
--	if (size < PERCPU_ENOUGH_ROOM)
--		size = PERCPU_ENOUGH_ROOM;
--#endif
-+	return __alloc_bootmem_node(NODE_DATA(cpu_to_node(cpu)), size, align,
-+				    __pa(MAX_DMA_ADDRESS));
-+}
+ config HAVE_CPUMASK_OF_CPU_MAP
+ 	def_bool X86_64_SMP
  
--	for_each_possible_cpu(i) {
--		ptr = alloc_bootmem_pages_node(NODE_DATA(cpu_to_node(i)), size);
-+static void __init pcpu_fc_free(void *ptr, size_t size)
-+{
-+	free_bootmem(__pa(ptr), size);
-+}
- 
--		paca[i].data_offset = ptr - __per_cpu_start;
--		memcpy(ptr, __per_cpu_start, __per_cpu_end - __per_cpu_start);
--	}
-+static int pcpu_cpu_distance(unsigned int from, unsigned int to)
-+{
-+	if (cpu_to_node(from) == cpu_to_node(to))
-+		return LOCAL_DISTANCE;
-+	else
-+		return REMOTE_DISTANCE;
-+}
-+
-+void __init setup_per_cpu_areas(void)
-+{
-+	const size_t dyn_size = PERCPU_MODULE_RESERVE + PERCPU_DYNAMIC_RESERVE;
-+	size_t atom_size;
-+	unsigned long delta;
-+	unsigned int cpu;
-+	int rc;
-+
-+	/*
-+	 * Linear mapping is one of 4K, 1M and 16M.  For 4K, no need
-+	 * to group units.  For larger mappings, use 1M atom which
-+	 * should be large enough to contain a number of units.
-+	 */
-+	if (mmu_linear_psize == MMU_PAGE_4K)
-+		atom_size = PAGE_SIZE;
-+	else
-+		atom_size = 1 << 20;
-+
-+	rc = pcpu_embed_first_chunk(0, dyn_size, atom_size, pcpu_cpu_distance,
-+				    pcpu_fc_alloc, pcpu_fc_free);
-+	if (rc < 0)
-+		panic("cannot initialize percpu area (err=%d)", rc);
-+
-+	delta = (unsigned long)pcpu_base_addr - (unsigned long)__per_cpu_start;
-+	for_each_possible_cpu(cpu)
-+		paca[cpu].data_offset = delta + pcpu_unit_offsets[cpu];
- }
+diff --git a/arch/x86/kernel/setup_percpu.c b/arch/x86/kernel/setup_percpu.c
+index 5b03d7e..4aff7a5 100644
+--- a/arch/x86/kernel/setup_percpu.c
++++ b/arch/x86/kernel/setup_percpu.c
+@@ -55,6 +55,7 @@ EXPORT_SYMBOL(__per_cpu_offset);
+ #define PERCPU_FIRST_CHUNK_RESERVE	0
  #endif
+ 
++#ifdef CONFIG_X86_32
+ /**
+  * pcpu_need_numa - determine percpu allocation needs to consider NUMA
+  *
+@@ -83,6 +84,7 @@ static bool __init pcpu_need_numa(void)
+ #endif
+ 	return false;
+ }
++#endif
+ 
+ /**
+  * pcpu_alloc_bootmem - NUMA friendly alloc_bootmem wrapper for percpu
+@@ -136,128 +138,23 @@ static void __init pcpu_fc_free(void *ptr, size_t size)
+ 	free_bootmem(__pa(ptr), size);
+ }
+ 
+-/*
+- * Large page remapping allocator
+- */
+-#ifdef CONFIG_NEED_MULTIPLE_NODES
+-static void __init pcpul_map(void *ptr, size_t size, void *addr)
+-{
+-	pmd_t *pmd, pmd_v;
+-
+-	pmd = populate_extra_pmd((unsigned long)addr);
+-	pmd_v = pfn_pmd(page_to_pfn(virt_to_page(ptr)), PAGE_KERNEL_LARGE);
+-	set_pmd(pmd, pmd_v);
+-}
+-
+-static int pcpu_lpage_cpu_distance(unsigned int from, unsigned int to)
++static int __init pcpu_cpu_distance(unsigned int from, unsigned int to)
+ {
++#ifdef CONFIG_NEED_MULTIPLE_NODES
+ 	if (early_cpu_to_node(from) == early_cpu_to_node(to))
+ 		return LOCAL_DISTANCE;
+ 	else
+ 		return REMOTE_DISTANCE;
+-}
+-
+-static int __init setup_pcpu_lpage(bool chosen)
+-{
+-	size_t reserve = PERCPU_MODULE_RESERVE + PERCPU_DYNAMIC_RESERVE;
+-	size_t dyn_size = reserve - PERCPU_FIRST_CHUNK_RESERVE;
+-	struct pcpu_alloc_info *ai;
+-	int rc;
+-
+-	/* on non-NUMA, embedding is better */
+-	if (!chosen && !pcpu_need_numa())
+-		return -EINVAL;
+-
+-	/* need PSE */
+-	if (!cpu_has_pse) {
+-		pr_warning("PERCPU: lpage allocator requires PSE\n");
+-		return -EINVAL;
+-	}
+-
+-	/* allocate and build unit_map */
+-	ai = pcpu_build_alloc_info(PERCPU_FIRST_CHUNK_RESERVE, dyn_size,
+-				   PMD_SIZE, pcpu_lpage_cpu_distance);
+-	if (IS_ERR(ai)) {
+-		pr_warning("PERCPU: failed to build unit_map (%ld)\n",
+-			   PTR_ERR(ai));
+-		return PTR_ERR(ai);
+-	}
+-
+-	/* do the parameters look okay? */
+-	if (!chosen) {
+-		size_t vm_size = VMALLOC_END - VMALLOC_START;
+-		size_t tot_size = 0;
+-		int group;
+-
+-		for (group = 0; group < ai->nr_groups; group++)
+-			tot_size += ai->unit_size * ai->groups[group].nr_units;
+-
+-		/* don't consume more than 20% of vmalloc area */
+-		if (tot_size > vm_size / 5) {
+-			pr_info("PERCPU: too large chunk size %zuMB for "
+-				"large page remap\n", tot_size >> 20);
+-			rc = -EINVAL;
+-			goto out_free;
+-		}
+-	}
+-
+-	rc = pcpu_lpage_first_chunk(ai, pcpu_fc_alloc, pcpu_fc_free, pcpul_map);
+-out_free:
+-	pcpu_free_alloc_info(ai);
+-	return rc;
+-}
+ #else
+-static int __init setup_pcpu_lpage(bool chosen)
+-{
+-	return -EINVAL;
+-}
++	return LOCAL_DISTANCE;
+ #endif
+-
+-/*
+- * Embedding allocator
+- *
+- * The first chunk is sized to just contain the static area plus
+- * module and dynamic reserves and embedded into linear physical
+- * mapping so that it can use PMD mapping without additional TLB
+- * pressure.
+- */
+-static int __init setup_pcpu_embed(bool chosen)
+-{
+-	size_t reserve = PERCPU_MODULE_RESERVE + PERCPU_DYNAMIC_RESERVE;
+-
+-	/*
+-	 * If large page isn't supported, there's no benefit in doing
+-	 * this.  Also, embedding allocation doesn't play well with
+-	 * NUMA.
+-	 */
+-	if (!chosen && (!cpu_has_pse || pcpu_need_numa()))
+-		return -EINVAL;
+-
+-	return pcpu_embed_first_chunk(PERCPU_FIRST_CHUNK_RESERVE,
+-				      reserve - PERCPU_FIRST_CHUNK_RESERVE,
+-				      PAGE_SIZE, NULL, pcpu_fc_alloc,
+-				      pcpu_fc_free);
+ }
+ 
+-/*
+- * Page allocator
+- *
+- * Boring fallback 4k page allocator.  This allocator puts more
+- * pressure on PTE TLBs but other than that behaves nicely on both UMA
+- * and NUMA.
+- */
+ static void __init pcpup_populate_pte(unsigned long addr)
+ {
+ 	populate_extra_pte(addr);
+ }
+ 
+-static int __init setup_pcpu_page(void)
+-{
+-	return pcpu_page_first_chunk(PERCPU_FIRST_CHUNK_RESERVE,
+-				     pcpu_fc_alloc, pcpu_fc_free,
+-				     pcpup_populate_pte);
+-}
+-
+ static inline void setup_percpu_segment(int cpu)
+ {
+ #ifdef CONFIG_X86_32
+@@ -281,30 +178,34 @@ void __init setup_per_cpu_areas(void)
+ 		NR_CPUS, nr_cpumask_bits, nr_cpu_ids, nr_node_ids);
+ 
+ 	/*
+-	 * Allocate percpu area.  If PSE is supported, try to make use
+-	 * of large page mappings.  Please read comments on top of
+-	 * each allocator for details.
++	 * Allocate percpu area.  Embedding allocator is our favorite;
++	 * however, on NUMA configurations, it can result in very
++	 * sparse unit mapping and vmalloc area isn't spacious enough
++	 * on 32bit.  Use page in that case.
+ 	 */
++#ifdef CONFIG_X86_32
++	if (pcpu_chosen_fc == PCPU_FC_AUTO && pcpu_need_numa())
++		pcpu_chosen_fc = PCPU_FC_PAGE;
++#endif
+ 	rc = -EINVAL;
+-	if (pcpu_chosen_fc != PCPU_FC_AUTO) {
+-		if (pcpu_chosen_fc != PCPU_FC_PAGE) {
+-			if (pcpu_chosen_fc == PCPU_FC_LPAGE)
+-				rc = setup_pcpu_lpage(true);
+-			else
+-				rc = setup_pcpu_embed(true);
+-
+-			if (rc < 0)
+-				pr_warning("PERCPU: %s allocator failed (%d), "
+-					   "falling back to page\n",
+-					   pcpu_fc_names[pcpu_chosen_fc], rc);
+-		}
+-	} else {
+-		rc = setup_pcpu_lpage(false);
++	if (pcpu_chosen_fc != PCPU_FC_PAGE) {
++		const size_t atom_size = cpu_has_pse ? PMD_SIZE : PAGE_SIZE;
++		const size_t dyn_size = PERCPU_MODULE_RESERVE +
++			PERCPU_DYNAMIC_RESERVE - PERCPU_FIRST_CHUNK_RESERVE;
++
++		rc = pcpu_embed_first_chunk(PERCPU_FIRST_CHUNK_RESERVE,
++					    dyn_size, atom_size,
++					    pcpu_cpu_distance,
++					    pcpu_fc_alloc, pcpu_fc_free);
+ 		if (rc < 0)
+-			rc = setup_pcpu_embed(false);
++			pr_warning("PERCPU: %s allocator failed (%d), "
++				   "falling back to page\n",
++				   pcpu_fc_names[pcpu_chosen_fc], rc);
+ 	}
+ 	if (rc < 0)
+-		rc = setup_pcpu_page();
++		rc = pcpu_page_first_chunk(PERCPU_FIRST_CHUNK_RESERVE,
++					   pcpu_fc_alloc, pcpu_fc_free,
++					   pcpup_populate_pte);
+ 	if (rc < 0)
+ 		panic("cannot initialize percpu area (err=%d)", rc);
  
 -- 
 1.6.0.2
