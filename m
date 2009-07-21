@@ -1,155 +1,151 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCHSET percpu#for-next] implement and use sparse embedding first chunk allocator
-Date: Tue, 21 Jul 2009 19:25:59 +0900
-Message-ID: <1248171979-29166-1-git-send-email-tj@kernel.org>
+Subject: [PATCH 07/20] percpu: make @dyn_size mandatory for pcpu_setup_first_chunk()
+Date: Tue, 21 Jul 2009 19:26:06 +0900
+Message-ID: <1248171979-29166-8-git-send-email-tj@kernel.org>
+References: <1248171979-29166-1-git-send-email-tj@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:37115 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:37109 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754974AbZGUK2M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jul 2009 06:28:12 -0400
+	id S1754802AbZGUK2K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Jul 2009 06:28:10 -0400
+In-Reply-To: <1248171979-29166-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, benh@kernel.crashing.org, davem@davemloft.net, dhowells@redhat.com, npiggin@suse.de, JBeulich@novell.comc
+Cc: Tejun Heo <tj@kernel.org>
 
-Hello, all.
+Now that all actual first chunk allocation and copying happen in the
+first chunk allocators and helpers, there's no reason for
+pcpu_setup_first_chunk() to try to determine @dyn_size automatically.
+The only left user is page first chunk allocator.  Make it determine
+dyn_size like other allocators and make @dyn_size mandatory for
+pcpu_setup_first_chunk().
 
-This patchset teaches percpu allocator how to manage very sparse
-units, vmalloc how to allocate congruent sparse vmap areas and combine
-them to extend the embedding allocator to allow embedding of sparse
-unit addresses.  This basically implements Christoph's sparse
-congruent allocator.
+Signed-off-by: Tejun Heo <tj@kernel.org>
+---
+ include/linux/percpu.h |    2 +-
+ mm/percpu.c            |   39 +++++++++++++++++++--------------------
+ 2 files changed, 20 insertions(+), 21 deletions(-)
 
-This allows NUMA configurations to use bootmem allocated memory
-directly as non-NUMA machines do with the embedding allocator.
-Setting up the first chunk is basically consisted of allocating memory
-for each cpu and then build percpu configuration to so that the first
-chunk is composed of those memory areas, which means that there can be
-huge holes between units and chunks may overlap each other.
-
-When further chunks are necessary pcpu_get_vm_areas() is called with
-parameters to specify how many areas are necessary, how large each
-should be and how apart they're from each other.  The function scans
-vmalloc address space top down looking for matching holes and returns
-array of vmap areas.  As the newly allocated areas are offset exactly
-the same as the first chunk, the rest is pretty straight-forward.
-
-This has the following benefits.
-
-* No special remapping necessary.  Arch codes don't need change its
-  address mapping or anything.  It just needs to inform percpu
-  allocator how percpu areas ends up like.  percpu allocator will
-  take any layout.
-
-* No additional TLB pressure.  Both page and large page remapping adds
-  TLB pressure.  With embedding, there's no overhead.  Whatever
-  translations being used for linear mapping is used as-is.
-
-* Removes dup-mapping.  Large page remapping ends up mapping the same
-  page twice.  This causes subtle problem on x86 when page attribute
-  needs to be changed.  The maps need to be looked up and split into
-  page mappings, which is a bit fragile.  As embedding doesn't remap
-  anything, this problem doesn't exist.
-
-The only restriction is that the vmalloc area needs to be huge - at
-least orders of magnitude larger than the distances between NUMA
-nodes.  For 64bit machines, this isn't a problem but on 32bit NUMA
-machines address space is a scarce resource.  For x86_32 NUMAs, the
-page mapping allocator is used.  The reason for choosing page over
-large page is because page is far simpler and the advantage of large
-page isn't very clear.
-
- 0001-percpu-fix-pcpu_reclaim-locking.patch
- 0002-percpu-improve-boot-messages.patch
- 0003-percpu-rename-4k-first-chunk-allocator-to-page.patch
- 0004-percpu-build-first-chunk-allocators-selectively.patch
- 0005-percpu-generalize-first-chunk-allocator-selection.patch
- 0006-percpu-drop-static_size-from-first-chunk-allocator.patch
- 0007-percpu-make-dyn_size-mandatory-for-pcpu_setup_firs.patch
- 0008-percpu-add-align-to-pcpu_fc_alloc_fn_t.patch
- 0009-percpu-move-pcpu_lpage_build_unit_map-and-pcpul_l.patch
- 0010-percpu-introduce-pcpu_alloc_info-and-pcpu_group_inf.patch
- 0011-percpu-add-pcpu_unit_offsets.patch
- 0012-percpu-add-chunk-base_addr.patch
- 0013-vmalloc-separate-out-insert_vmalloc_vm.patch
- 0014-vmalloc-implement-pcpu_get_vm_areas.patch
- 0015-percpu-use-group-information-to-allocate-vmap-areas.patch
- 0016-percpu-update-embedding-first-chunk-allocator-to-ha.patch
- 0017-x86-percpu-use-embedding-for-64bit-NUMA-and-page-fo.patch
- 0018-percpu-kill-lpage-first-chunk-allocator.patch
- 0019-sparc64-use-embedding-percpu-first-chunk-allocator.patch
- 0020-powerpc64-convert-to-dynamic-percpu-allocator.patch
-
-0001 fixes locking bug on reclaim path which was introduced by
-2f39e637ea240efb74cf807d31c93a71a0b89174.
-
-0002-0007 are misc changes.  4k allocator is renamed to page.
-Messages are made prettier and more informative.  Avoid building
-unused first chunk allocators and so on.  Nothing really drastic but
-small cleanups to ease further changes.
-
-0008-0009 prepares for later changes.  @align is added to
-pcpu_fc_alloc and functions are relocated.
-
-0010 changes how first chunk configuration is passed to
-pcpu_setup_first_chunk().  All information is collected into
-pcpu_alloc_info struct including the unit grouping information which
-used to be lost in the process.  This change allows percpu allocator
-to have enough information to allocate congruent vmap areas.
-
-0011-0012 prepares percpu for sparse groups and units in them.  offset
-information is added and used to calculate addresses.
-
-0013-0014 implement pcpu_get_vm_areas() which allocate congruent vmap
-areas.
-
-0015-0016 teaches percpu how to use multiple vm areas to allow sparse
-groups and extends embedding allocator so that it knows how to embed
-sparse areas.
-
-0017 converts x86_64 NUMA to use embedding and x86_32 NUMA page.
-
-0018 kills now unused lpage allocator and the related page attribute
-code.
-
-0019 converts sparc64 to use embedding allocator.
-
-0020 converts powerpc64 to dynamic percpu allocator using embedding
-allocator.
-
-After this series, only ia64 is left with the static allocator.  I
-have the patch but don't have machine to verify it on.  Will post as
-RFC patch.
-
-This patchset is on top of
-
- linus#master (aea1f7964ae6cba5eb419a958956deb9016b3341)
- + [1] perpcu-fix-sparse-possible-cpu-map-handling patchset
- + pulled into percpu#for-next (457f82bac659745f6d5052e4c493d92d62722c9c)
-
-and available in the following git tree.  Please note that the
-following tree is temporary and will be rebased.
-
- git://git.kernel.org/pub/scm/linux/kernel/git/tj/percpu.git review
-
-Diffstat follows.  Only 112 lines added.  :-)
-
- Documentation/kernel-parameters.txt |   11 
- arch/powerpc/Kconfig                |    4 
- arch/powerpc/kernel/setup_64.c      |   61 +
- arch/sparc/Kconfig                  |    3 
- arch/sparc/kernel/smp_64.c          |  124 ---
- arch/x86/Kconfig                    |    6 
- arch/x86/kernel/setup_percpu.c      |  201 +-----
- arch/x86/mm/pageattr.c              |   20 
- include/linux/percpu.h              |  105 +--
- include/linux/vmalloc.h             |    6 
- mm/percpu.c                         | 1139 +++++++++++++++++-------------------
- mm/vmalloc.c                        |  338 ++++++++++
- 12 files changed, 1065 insertions(+), 953 deletions(-)
-
-Thanks.
-
---
-tejun
-
-[1] http://thread.gmane.org/gmane.linux.kernel/867587
+diff --git a/include/linux/percpu.h b/include/linux/percpu.h
+index be2fc8f..0cfdd14 100644
+--- a/include/linux/percpu.h
++++ b/include/linux/percpu.h
+@@ -79,7 +79,7 @@ typedef void (*pcpu_fc_map_fn_t)(void *ptr, size_t size, void *addr);
+ 
+ extern size_t __init pcpu_setup_first_chunk(
+ 				size_t static_size, size_t reserved_size,
+-				ssize_t dyn_size, size_t unit_size,
++				size_t dyn_size, size_t unit_size,
+ 				void *base_addr, const int *unit_map);
+ 
+ #ifdef CONFIG_NEED_PER_CPU_EMBED_FIRST_CHUNK
+diff --git a/mm/percpu.c b/mm/percpu.c
+index e9f45ab..3177cf6 100644
+--- a/mm/percpu.c
++++ b/mm/percpu.c
+@@ -1235,7 +1235,7 @@ EXPORT_SYMBOL_GPL(free_percpu);
+  * pcpu_setup_first_chunk - initialize the first percpu chunk
+  * @static_size: the size of static percpu area in bytes
+  * @reserved_size: the size of reserved percpu area in bytes, 0 for none
+- * @dyn_size: free size for dynamic allocation in bytes, -1 for auto
++ * @dyn_size: free size for dynamic allocation in bytes
+  * @unit_size: unit size in bytes, must be multiple of PAGE_SIZE
+  * @base_addr: mapped address
+  * @unit_map: cpu -> unit map, NULL for sequential mapping
+@@ -1252,10 +1252,9 @@ EXPORT_SYMBOL_GPL(free_percpu);
+  * limited offset range for symbol relocations to guarantee module
+  * percpu symbols fall inside the relocatable range.
+  *
+- * @dyn_size, if non-negative, determines the number of bytes
+- * available for dynamic allocation in the first chunk.  Specifying
+- * non-negative value makes percpu leave alone the area beyond
+- * @static_size + @reserved_size + @dyn_size.
++ * @dyn_size determines the number of bytes available for dynamic
++ * allocation in the first chunk.  The area between @static_size +
++ * @reserved_size + @dyn_size and @unit_size is unused.
+  *
+  * @unit_size specifies unit size and must be aligned to PAGE_SIZE and
+  * equal to or larger than @static_size + @reserved_size + if
+@@ -1276,13 +1275,12 @@ EXPORT_SYMBOL_GPL(free_percpu);
+  * percpu access.
+  */
+ size_t __init pcpu_setup_first_chunk(size_t static_size, size_t reserved_size,
+-				     ssize_t dyn_size, size_t unit_size,
++				     size_t dyn_size, size_t unit_size,
+ 				     void *base_addr, const int *unit_map)
+ {
+ 	static struct vm_struct first_vm;
+ 	static int smap[2], dmap[2];
+-	size_t size_sum = static_size + reserved_size +
+-			  (dyn_size >= 0 ? dyn_size : 0);
++	size_t size_sum = static_size + reserved_size + dyn_size;
+ 	struct pcpu_chunk *schunk, *dchunk = NULL;
+ 	unsigned int cpu, tcpu;
+ 	int i;
+@@ -1345,9 +1343,6 @@ size_t __init pcpu_setup_first_chunk(size_t static_size, size_t reserved_size,
+ 	pcpu_chunk_struct_size = sizeof(struct pcpu_chunk) +
+ 		BITS_TO_LONGS(pcpu_unit_pages) * sizeof(unsigned long);
+ 
+-	if (dyn_size < 0)
+-		dyn_size = pcpu_unit_size - static_size - reserved_size;
+-
+ 	first_vm.flags = VM_ALLOC;
+ 	first_vm.size = pcpu_chunk_size;
+ 	first_vm.addr = base_addr;
+@@ -1557,6 +1552,8 @@ ssize_t __init pcpu_page_first_chunk(size_t reserved_size,
+ {
+ 	static struct vm_struct vm;
+ 	const size_t static_size = __per_cpu_end - __per_cpu_start;
++	ssize_t dyn_size = -1;
++	size_t size_sum, unit_size;
+ 	char psize_str[16];
+ 	int unit_pages;
+ 	size_t pages_size;
+@@ -1567,8 +1564,9 @@ ssize_t __init pcpu_page_first_chunk(size_t reserved_size,
+ 
+ 	snprintf(psize_str, sizeof(psize_str), "%luK", PAGE_SIZE >> 10);
+ 
+-	unit_pages = PFN_UP(max_t(size_t, static_size + reserved_size,
+-				  PCPU_MIN_UNIT_SIZE));
++	size_sum = pcpu_calc_fc_sizes(static_size, reserved_size, &dyn_size);
++	unit_size = max_t(size_t, size_sum, PCPU_MIN_UNIT_SIZE);
++	unit_pages = unit_size >> PAGE_SHIFT;
+ 
+ 	/* unaligned allocations can't be freed, round up to page size */
+ 	pages_size = PFN_ALIGN(unit_pages * nr_cpu_ids * sizeof(pages[0]));
+@@ -1591,12 +1589,12 @@ ssize_t __init pcpu_page_first_chunk(size_t reserved_size,
+ 
+ 	/* allocate vm area, map the pages and copy static data */
+ 	vm.flags = VM_ALLOC;
+-	vm.size = nr_cpu_ids * unit_pages << PAGE_SHIFT;
++	vm.size = nr_cpu_ids * unit_size;
+ 	vm_area_register_early(&vm, PAGE_SIZE);
+ 
+ 	for_each_possible_cpu(cpu) {
+-		unsigned long unit_addr = (unsigned long)vm.addr +
+-			(cpu * unit_pages << PAGE_SHIFT);
++		unsigned long unit_addr =
++			(unsigned long)vm.addr + cpu * unit_size;
+ 
+ 		for (i = 0; i < unit_pages; i++)
+ 			populate_pte_fn(unit_addr + (i << PAGE_SHIFT));
+@@ -1620,11 +1618,12 @@ ssize_t __init pcpu_page_first_chunk(size_t reserved_size,
+ 	}
+ 
+ 	/* we're ready, commit */
+-	pr_info("PERCPU: %d %s pages/cpu @%p s%zu r%zu\n",
+-		unit_pages, psize_str, vm.addr, static_size, reserved_size);
++	pr_info("PERCPU: %d %s pages/cpu @%p s%zu r%zu d%zu\n",
++		unit_pages, psize_str, vm.addr, static_size, reserved_size,
++		dyn_size);
+ 
+-	ret = pcpu_setup_first_chunk(static_size, reserved_size, -1,
+-				     unit_pages << PAGE_SHIFT, vm.addr, NULL);
++	ret = pcpu_setup_first_chunk(static_size, reserved_size, dyn_size,
++				     unit_size, vm.addr, NULL);
+ 	goto out_free_ar;
+ 
+ enomem:
+-- 
+1.6.0.2
