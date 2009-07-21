@@ -1,260 +1,276 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 02/10] kbuild: move asm-offsets.h to include/generated
-Date: Tue, 21 Jul 2009 23:19:33 +0200
-Message-ID: <1248211181-6757-2-git-send-email-sam@ravnborg.org>
+Subject: [PATCH 10/10] kbuild: move utsrelease.h to include/generated
+Date: Tue, 21 Jul 2009 23:19:41 +0200
+Message-ID: <1248211181-6757-10-git-send-email-sam@ravnborg.org>
 References: <20090721211040.GA7688@merkur.ravnborg.org>
-Return-path: <linux-kbuild-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pfepb.post.tele.dk ([195.41.46.236]:54745 "EHLO
+	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755946AbZGUVP6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2009 17:15:58 -0400
 In-Reply-To: <20090721211040.GA7688@merkur.ravnborg.org>
-Sender: linux-kbuild-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Sam Ravnborg <sam@ravnborg.org>, Al Viro <viro@zeniv.linux.org.uk>
-List-Id: linux-arch.vger.kernel.org
 
-The simplest method was to add an extra asm-offsets.h
-file in arch/$ARCH/include/asm that references the generated file.
-
-We can now migrate the architectures one-by-one to reference
-the generated file direct - and when done we can delete the
-temporary arch/$ARCH/include/asm/asm-offsets.h file.
+Fix up all users of utsrelease.h
 
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
 Cc: Al Viro <viro@zeniv.linux.org.uk>
 ---
- .gitignore                                |    1 -
- Kbuild                                    |    2 +-
- Makefile                                  |    1 -
- arch/alpha/include/asm/asm-offsets.h      |    1 +
- arch/arm/include/asm/asm-offsets.h        |    1 +
- arch/avr32/include/asm/asm-offsets.h      |    1 +
- arch/blackfin/include/asm/asm-offsets.h   |    1 +
- arch/cris/include/asm/asm-offsets.h       |    1 +
- arch/frv/include/asm/asm-offsets.h        |    1 +
- arch/h8300/include/asm/asm-offsets.h      |    1 +
- arch/ia64/include/asm/asm-offsets.h       |    1 +
- arch/m68k/include/asm/asm-offsets.h       |    1 +
- arch/microblaze/include/asm/asm-offsets.h |    1 +
- arch/mips/include/asm/asm-offsets.h       |    1 +
- arch/mn10300/include/asm/asm-offsets.h    |    1 +
- arch/parisc/include/asm/asm-offsets.h     |    1 +
- arch/powerpc/include/asm/asm-offsets.h    |    1 +
- arch/s390/include/asm/asm-offsets.h       |    1 +
- arch/sh/include/asm/asm-offsets.h         |    1 +
- arch/sparc/include/asm/asm-offsets.h      |    1 +
- arch/um/Makefile                          |    2 +-
- arch/um/include/asm/asm-offsets.h         |    1 +
- arch/x86/include/asm/asm-offsets.h        |    1 +
- arch/xtensa/include/asm/asm-offsets.h     |    1 +
- 24 files changed, 22 insertions(+), 4 deletions(-)
- create mode 100644 arch/alpha/include/asm/asm-offsets.h
- create mode 100644 arch/arm/include/asm/asm-offsets.h
- create mode 100644 arch/avr32/include/asm/asm-offsets.h
- create mode 100644 arch/blackfin/include/asm/asm-offsets.h
- create mode 100644 arch/cris/include/asm/asm-offsets.h
- create mode 100644 arch/frv/include/asm/asm-offsets.h
- create mode 100644 arch/h8300/include/asm/asm-offsets.h
- create mode 100644 arch/ia64/include/asm/asm-offsets.h
- create mode 100644 arch/m68k/include/asm/asm-offsets.h
- create mode 100644 arch/microblaze/include/asm/asm-offsets.h
- create mode 100644 arch/mips/include/asm/asm-offsets.h
- create mode 100644 arch/mn10300/include/asm/asm-offsets.h
- create mode 100644 arch/parisc/include/asm/asm-offsets.h
- create mode 100644 arch/powerpc/include/asm/asm-offsets.h
- create mode 100644 arch/s390/include/asm/asm-offsets.h
- create mode 100644 arch/sh/include/asm/asm-offsets.h
- create mode 100644 arch/sparc/include/asm/asm-offsets.h
- create mode 100644 arch/um/include/asm/asm-offsets.h
- create mode 100644 arch/x86/include/asm/asm-offsets.h
- create mode 100644 arch/xtensa/include/asm/asm-offsets.h
+ .gitignore                                   |    1 -
+ Makefile                                     |    5 ++---
+ arch/alpha/boot/bootp.c                      |    2 +-
+ arch/alpha/boot/bootpz.c                     |    2 +-
+ arch/alpha/boot/main.c                       |    2 +-
+ arch/frv/kernel/setup.c                      |    2 +-
+ arch/powerpc/platforms/52xx/efika.c          |    2 +-
+ arch/powerpc/platforms/amigaone/setup.c      |    2 +-
+ arch/powerpc/platforms/chrp/setup.c          |    2 +-
+ arch/powerpc/platforms/powermac/bootx_init.c |    2 +-
+ arch/x86/boot/header.S                       |    2 +-
+ arch/x86/boot/version.c                      |    2 +-
+ drivers/staging/panel/panel.c                |    2 +-
+ include/linux/vermagic.h                     |    2 +-
+ init/version.c                               |    2 +-
+ kernel/kexec.c                               |    2 +-
+ kernel/trace/trace.c                         |    2 +-
+ 17 files changed, 17 insertions(+), 19 deletions(-)
 
 diff --git a/.gitignore b/.gitignore
-index 32855c6..5a5024a 100644
+index 91f8e0c..4980606 100644
 --- a/.gitignore
 +++ b/.gitignore
-@@ -45,7 +45,6 @@ Module.symvers
- # Generated include files
+@@ -46,7 +46,6 @@ Module.symvers
  #
- include/asm
--include/asm-*/asm-offsets.h
  include/config
- include/linux/autoconf.h
- include/linux/compile.h
-diff --git a/Kbuild b/Kbuild
-index 1165d7a..e3737ad 100644
---- a/Kbuild
-+++ b/Kbuild
-@@ -43,7 +43,7 @@ $(obj)/$(bounds-file): kernel/bounds.s Kbuild
- # 2) Generate asm-offsets.h
- #
+ include/linux/version.h
+-include/linux/utsrelease.h
+ include/generated
  
--offsets-file := include/asm/asm-offsets.h
-+offsets-file := include/generated/asm-offsets.h
- 
- always  += $(offsets-file)
- targets += $(offsets-file)
+ # stgit generated dirs
 diff --git a/Makefile b/Makefile
-index 9bd427e..1f6a34c 100644
+index 044a3f4..985e165 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -1197,7 +1197,6 @@ MRPROPER_DIRS  += include/config include2 usr/include include/generated
- MRPROPER_FILES += .config .config.old include/asm .version .old_version \
-                   include/linux/autoconf.h include/linux/version.h      \
-                   include/linux/utsrelease.h                            \
--                  include/asm*/asm-offsets.h                            \
+@@ -963,7 +963,7 @@ endif
+ # prepare2 creates a makefile if using a separate output directory
+ prepare2: prepare3 outputmakefile
+ 
+-prepare1: prepare2 include/linux/version.h include/linux/utsrelease.h \
++prepare1: prepare2 include/linux/version.h include/generated/utsrelease.h \
+                    include/config/auto.conf
+ 	$(cmd_crmodverdir)
+ 
+@@ -1005,7 +1005,7 @@ endef
+ include/linux/version.h: $(srctree)/Makefile FORCE
+ 	$(call filechk,version.h)
+ 
+-include/linux/utsrelease.h: include/config/kernel.release FORCE
++include/generated/utsrelease.h: include/config/kernel.release FORCE
+ 	$(call filechk,utsrelease.h)
+ 
+ PHONY += headerdep
+@@ -1156,7 +1156,6 @@ CLEAN_FILES +=	vmlinux System.map \
+ MRPROPER_DIRS  += include/config usr/include include/generated
+ MRPROPER_FILES += .config .config.old .version .old_version             \
+                   include/linux/version.h                               \
+-                  include/linux/utsrelease.h                            \
  		  Module.symvers Module.markers tags TAGS cscope*
  
  # clean - Delete most, but leave enough to build external modules
-diff --git a/arch/alpha/include/asm/asm-offsets.h b/arch/alpha/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/alpha/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/arm/include/asm/asm-offsets.h b/arch/arm/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/arm/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/avr32/include/asm/asm-offsets.h b/arch/avr32/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/avr32/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/blackfin/include/asm/asm-offsets.h b/arch/blackfin/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/blackfin/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/cris/include/asm/asm-offsets.h b/arch/cris/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/cris/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/frv/include/asm/asm-offsets.h b/arch/frv/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/frv/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/h8300/include/asm/asm-offsets.h b/arch/h8300/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/h8300/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/ia64/include/asm/asm-offsets.h b/arch/ia64/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/ia64/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/m68k/include/asm/asm-offsets.h b/arch/m68k/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/m68k/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/microblaze/include/asm/asm-offsets.h b/arch/microblaze/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/microblaze/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/mips/include/asm/asm-offsets.h b/arch/mips/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/mips/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/mn10300/include/asm/asm-offsets.h b/arch/mn10300/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/mn10300/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/parisc/include/asm/asm-offsets.h b/arch/parisc/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/parisc/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/powerpc/include/asm/asm-offsets.h b/arch/powerpc/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/powerpc/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/s390/include/asm/asm-offsets.h b/arch/s390/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/s390/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/sh/include/asm/asm-offsets.h b/arch/sh/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/sh/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/sparc/include/asm/asm-offsets.h b/arch/sparc/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/sparc/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/um/Makefile b/arch/um/Makefile
-index 0728def..8936057 100644
---- a/arch/um/Makefile
-+++ b/arch/um/Makefile
-@@ -150,6 +150,6 @@ $(SHARED_HEADERS)/user_constants.h: $(ARCH_DIR)/sys-$(SUBARCH)/user-offsets.s
+diff --git a/arch/alpha/boot/bootp.c b/arch/alpha/boot/bootp.c
+index 3af21c7..3c8d1b2 100644
+--- a/arch/alpha/boot/bootp.c
++++ b/arch/alpha/boot/bootp.c
+@@ -9,7 +9,7 @@
+  */
+ #include <linux/kernel.h>
+ #include <linux/string.h>
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ #include <linux/mm.h>
  
- $(SHARED_HEADERS)/kern_constants.h:
- 	$(Q)mkdir -p $(dir $@)
--	$(Q)echo '#include "../../../../include/asm/asm-offsets.h"' >$@
-+	$(Q)echo '#include "../../../../include/generated/asm-offsets.h"' >$@
+ #include <asm/system.h>
+diff --git a/arch/alpha/boot/bootpz.c b/arch/alpha/boot/bootpz.c
+index 1036b51..ade3f12 100644
+--- a/arch/alpha/boot/bootpz.c
++++ b/arch/alpha/boot/bootpz.c
+@@ -11,7 +11,7 @@
+  */
+ #include <linux/kernel.h>
+ #include <linux/string.h>
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ #include <linux/mm.h>
  
- export SUBARCH USER_CFLAGS CFLAGS_NO_HARDENING OS HEADER_ARCH DEV_NULL_PATH
-diff --git a/arch/um/include/asm/asm-offsets.h b/arch/um/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/um/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/x86/include/asm/asm-offsets.h b/arch/x86/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/x86/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/xtensa/include/asm/asm-offsets.h b/arch/xtensa/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/xtensa/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
+ #include <asm/system.h>
+diff --git a/arch/alpha/boot/main.c b/arch/alpha/boot/main.c
+index 89f3be0..644b7db 100644
+--- a/arch/alpha/boot/main.c
++++ b/arch/alpha/boot/main.c
+@@ -7,7 +7,7 @@
+  */
+ #include <linux/kernel.h>
+ #include <linux/string.h>
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ #include <linux/mm.h>
+ 
+ #include <asm/system.h>
+diff --git a/arch/frv/kernel/setup.c b/arch/frv/kernel/setup.c
+index 55e4fab..75cf7f4 100644
+--- a/arch/frv/kernel/setup.c
++++ b/arch/frv/kernel/setup.c
+@@ -10,7 +10,7 @@
+  * 2 of the License, or (at your option) any later version.
+  */
+ 
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ #include <linux/kernel.h>
+ #include <linux/sched.h>
+ #include <linux/delay.h>
+diff --git a/arch/powerpc/platforms/52xx/efika.c b/arch/powerpc/platforms/52xx/efika.c
+index bcc69e1..45c0cb9 100644
+--- a/arch/powerpc/platforms/52xx/efika.c
++++ b/arch/powerpc/platforms/52xx/efika.c
+@@ -10,7 +10,7 @@
+  */
+ 
+ #include <linux/init.h>
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ #include <linux/pci.h>
+ #include <linux/of.h>
+ #include <asm/prom.h>
+diff --git a/arch/powerpc/platforms/amigaone/setup.c b/arch/powerpc/platforms/amigaone/setup.c
+index 4430353..91c55f7 100644
+--- a/arch/powerpc/platforms/amigaone/setup.c
++++ b/arch/powerpc/platforms/amigaone/setup.c
+@@ -14,7 +14,7 @@
+ 
+ #include <linux/kernel.h>
+ #include <linux/seq_file.h>
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ 
+ #include <asm/machdep.h>
+ #include <asm/cputable.h>
+diff --git a/arch/powerpc/platforms/chrp/setup.c b/arch/powerpc/platforms/chrp/setup.c
+index cd4ad9a..0a6f5ab 100644
+--- a/arch/powerpc/platforms/chrp/setup.c
++++ b/arch/powerpc/platforms/chrp/setup.c
+@@ -23,7 +23,7 @@
+ #include <linux/reboot.h>
+ #include <linux/init.h>
+ #include <linux/pci.h>
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ #include <linux/adb.h>
+ #include <linux/module.h>
+ #include <linux/delay.h>
+diff --git a/arch/powerpc/platforms/powermac/bootx_init.c b/arch/powerpc/platforms/powermac/bootx_init.c
+index cf66091..9dd789a 100644
+--- a/arch/powerpc/platforms/powermac/bootx_init.c
++++ b/arch/powerpc/platforms/powermac/bootx_init.c
+@@ -12,7 +12,7 @@
+ #include <linux/kernel.h>
+ #include <linux/string.h>
+ #include <linux/init.h>
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ #include <asm/sections.h>
+ #include <asm/prom.h>
+ #include <asm/page.h>
+diff --git a/arch/x86/boot/header.S b/arch/x86/boot/header.S
+index b31cc54..93e689f 100644
+--- a/arch/x86/boot/header.S
++++ b/arch/x86/boot/header.S
+@@ -16,7 +16,7 @@
+  */
+ 
+ #include <asm/segment.h>
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ #include <asm/boot.h>
+ #include <asm/e820.h>
+ #include <asm/page_types.h>
+diff --git a/arch/x86/boot/version.c b/arch/x86/boot/version.c
+index 4d88763..2b15aa4 100644
+--- a/arch/x86/boot/version.c
++++ b/arch/x86/boot/version.c
+@@ -13,7 +13,7 @@
+  */
+ 
+ #include "boot.h"
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ #include <generated/compile.h>
+ 
+ const char kernel_version[] =
+diff --git a/drivers/staging/panel/panel.c b/drivers/staging/panel/panel.c
+index c2747bc..4b5d243 100644
+--- a/drivers/staging/panel/panel.c
++++ b/drivers/staging/panel/panel.c
+@@ -55,7 +55,7 @@
+ #include <linux/list.h>
+ #include <linux/notifier.h>
+ #include <linux/reboot.h>
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ 
+ #include <linux/io.h>
+ #include <asm/uaccess.h>
+diff --git a/include/linux/vermagic.h b/include/linux/vermagic.h
+index 79b9837..cf97b5b 100644
+--- a/include/linux/vermagic.h
++++ b/include/linux/vermagic.h
+@@ -1,4 +1,4 @@
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ #include <linux/module.h>
+ 
+ /* Simply sanity version stamp for modules. */
+diff --git a/init/version.c b/init/version.c
+index 82328aa..adff586 100644
+--- a/init/version.c
++++ b/init/version.c
+@@ -10,7 +10,7 @@
+ #include <linux/module.h>
+ #include <linux/uts.h>
+ #include <linux/utsname.h>
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ #include <linux/version.h>
+ 
+ #ifndef CONFIG_KALLSYMS
+diff --git a/kernel/kexec.c b/kernel/kexec.c
+index ae1c352..6e11ded 100644
+--- a/kernel/kexec.c
++++ b/kernel/kexec.c
+@@ -21,7 +21,7 @@
+ #include <linux/hardirq.h>
+ #include <linux/elf.h>
+ #include <linux/elfcore.h>
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ #include <linux/utsname.h>
+ #include <linux/numa.h>
+ #include <linux/suspend.h>
+diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
+index 8bc8d8a..35b6bba 100644
+--- a/kernel/trace/trace.c
++++ b/kernel/trace/trace.c
+@@ -12,7 +12,7 @@
+  *  Copyright (C) 2004 William Lee Irwin III
+  */
+ #include <linux/ring_buffer.h>
+-#include <linux/utsrelease.h>
++#include <generated/utsrelease.h>
+ #include <linux/stacktrace.h>
+ #include <linux/writeback.h>
+ #include <linux/kallsyms.h>
 -- 
 1.6.2.5
-
