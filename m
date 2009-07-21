@@ -1,96 +1,106 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 05/10] arm: move mach-types to include/generated
-Date: Tue, 21 Jul 2009 23:19:36 +0200
-Message-ID: <1248211181-6757-5-git-send-email-sam@ravnborg.org>
+Subject: [PATCH 01/10] kbuild: move bounds.h to include/generated
+Date: Tue, 21 Jul 2009 23:19:32 +0200
+Message-ID: <1248211181-6757-1-git-send-email-sam@ravnborg.org>
 References: <20090721211040.GA7688@merkur.ravnborg.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepb.post.tele.dk ([195.41.46.236]:54735 "EHLO
+Received: from pfepb.post.tele.dk ([195.41.46.236]:54718 "EHLO
 	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755105AbZGUVP5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2009 17:15:57 -0400
+	with ESMTP id S1754461AbZGUVP4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2009 17:15:56 -0400
 In-Reply-To: <20090721211040.GA7688@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Sam Ravnborg <sam@ravnborg.org>, Al Viro <viro@zeniv.linux.org.uk>, Russell King <linux@arm.linux.org.uk>
-
-Simplified arch/arm/Makefile by dropping the maketools target
-It was undocumented and not needed
+Cc: Sam Ravnborg <sam@ravnborg.org>, Al Viro <viro@zeniv.linux.org.uk>
 
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
 Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Russell King <linux@arm.linux.org.uk>
 ---
- arch/arm/Makefile                 |   14 ++------------
- arch/arm/include/asm/mach-types.h |    1 +
- arch/arm/tools/Makefile           |    2 +-
- arch/arm/tools/gen-mach-types     |    2 +-
- 4 files changed, 5 insertions(+), 14 deletions(-)
- create mode 100644 arch/arm/include/asm/mach-types.h
+ .gitignore                 |    1 -
+ Kbuild                     |    2 +-
+ Makefile                   |    2 +-
+ include/linux/mmzone.h     |    2 +-
+ include/linux/page-flags.h |    2 +-
+ kernel/bounds.c            |    2 +-
+ 6 files changed, 5 insertions(+), 6 deletions(-)
 
-diff --git a/arch/arm/Makefile b/arch/arm/Makefile
-index c877d6d..8b335bf 100644
---- a/arch/arm/Makefile
-+++ b/arch/arm/Makefile
-@@ -226,15 +226,8 @@ all:	$(KBUILD_IMAGE)
+diff --git a/.gitignore b/.gitignore
+index b93fb7e..32855c6 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -51,7 +51,6 @@ include/linux/autoconf.h
+ include/linux/compile.h
+ include/linux/version.h
+ include/linux/utsrelease.h
+-include/linux/bounds.h
+ include/generated
  
- boot := arch/arm/boot
+ # stgit generated dirs
+diff --git a/Kbuild b/Kbuild
+index f056b4f..1165d7a 100644
+--- a/Kbuild
++++ b/Kbuild
+@@ -8,7 +8,7 @@
+ #####
+ # 1) Generate bounds.h
  
--#	Update machine arch and proc symlinks if something which affects
--#	them changed.  We use .arch to indicate when they were updated
--#	last, otherwise make uses the target directory mtime.
--
--archprepare: maketools
--
--PHONY += maketools FORCE
--maketools: include/linux/version.h FORCE
--	$(Q)$(MAKE) $(build)=arch/arm/tools include/asm-arm/mach-types.h
-+archprepare:
-+	$(Q)$(MAKE) $(build)=arch/arm/tools include/generated/mach-types.h
+-bounds-file := include/linux/bounds.h
++bounds-file := include/generated/bounds.h
  
- # Convert bzImage to zImage
- bzImage: zImage
-@@ -245,9 +238,6 @@ zImage Image xipImage bootpImage uImage: vmlinux
- zinstall install: vmlinux
- 	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $@
+ always  := $(bounds-file)
+ targets := $(bounds-file) kernel/bounds.s
+diff --git a/Makefile b/Makefile
+index 79957b3..9bd427e 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1197,7 +1197,7 @@ MRPROPER_DIRS  += include/config include2 usr/include include/generated
+ MRPROPER_FILES += .config .config.old include/asm .version .old_version \
+                   include/linux/autoconf.h include/linux/version.h      \
+                   include/linux/utsrelease.h                            \
+-                  include/linux/bounds.h include/asm*/asm-offsets.h     \
++                  include/asm*/asm-offsets.h                            \
+ 		  Module.symvers Module.markers tags TAGS cscope*
  
--CLEAN_FILES += include/asm-arm/mach-types.h \
--	       include/asm-arm/arch include/asm-arm/.arch
--
- # We use MRPROPER_FILES and CLEAN_FILES now
- archclean:
- 	$(Q)$(MAKE) $(clean)=$(boot)
-diff --git a/arch/arm/include/asm/mach-types.h b/arch/arm/include/asm/mach-types.h
-new file mode 100644
-index 0000000..948178c
---- /dev/null
-+++ b/arch/arm/include/asm/mach-types.h
-@@ -0,0 +1 @@
-+#include <generated/mach-types.h>
-diff --git a/arch/arm/tools/Makefile b/arch/arm/tools/Makefile
-index 1dbaa29..635cb18 100644
---- a/arch/arm/tools/Makefile
-+++ b/arch/arm/tools/Makefile
-@@ -4,7 +4,7 @@
- # Copyright (C) 2001 Russell King
- #
+ # clean - Delete most, but leave enough to build external modules
+diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
+index 8895985..74800d0 100644
+--- a/include/linux/mmzone.h
++++ b/include/linux/mmzone.h
+@@ -15,7 +15,7 @@
+ #include <linux/seqlock.h>
+ #include <linux/nodemask.h>
+ #include <linux/pageblock-flags.h>
+-#include <linux/bounds.h>
++#include <generated/bounds.h>
+ #include <asm/atomic.h>
+ #include <asm/page.h>
  
--include/asm-arm/mach-types.h: $(src)/gen-mach-types $(src)/mach-types
-+include/generated/mach-types.h: $(src)/gen-mach-types $(src)/mach-types
- 	@echo '  Generating $@'
- 	@mkdir -p $(dir $@)
- 	$(Q)$(AWK) -f $^ > $@ || { rm -f $@; /bin/false; }
-diff --git a/arch/arm/tools/gen-mach-types b/arch/arm/tools/gen-mach-types
-index ce319ef..04fef71 100644
---- a/arch/arm/tools/gen-mach-types
-+++ b/arch/arm/tools/gen-mach-types
-@@ -1,6 +1,6 @@
- #!/bin/awk
- #
--# Awk script to generate include/asm-arm/mach-types.h
-+# Awk script to generate include/generated/mach-types.h
- #
- BEGIN	{ nr = 0 }
- /^#/	{ next }
+diff --git a/include/linux/page-flags.h b/include/linux/page-flags.h
+index e2e5ce5..e99eaac 100644
+--- a/include/linux/page-flags.h
++++ b/include/linux/page-flags.h
+@@ -8,7 +8,7 @@
+ #include <linux/types.h>
+ #ifndef __GENERATING_BOUNDS_H
+ #include <linux/mm_types.h>
+-#include <linux/bounds.h>
++#include <generated/bounds.h>
+ #endif /* !__GENERATING_BOUNDS_H */
+ 
+ /*
+diff --git a/kernel/bounds.c b/kernel/bounds.c
+index 3c53013..98a51f2 100644
+--- a/kernel/bounds.c
++++ b/kernel/bounds.c
+@@ -12,7 +12,7 @@
+ 
+ void foo(void)
+ {
+-	/* The enum constants to put into include/linux/bounds.h */
++	/* The enum constants to put into include/generated/bounds.h */
+ 	DEFINE(NR_PAGEFLAGS, __NR_PAGEFLAGS);
+ 	DEFINE(MAX_NR_ZONES, __MAX_NR_ZONES);
+ 	/* End of constants */
 -- 
 1.6.2.5
