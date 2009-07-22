@@ -1,26 +1,51 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH] mm: Pass virtual address to [__]p{te,ud,md}_free_tlb()
-Date: Wed, 22 Jul 2009 09:09:34 +0100
-Message-ID: <23069.1248250174@redhat.com>
-References: <1248241468.27348.47.camel@pasglop>
+From: Amerigo Wang <xiyou.wangcong@gmail.com>
+Subject: Re: [PATCH/RFC] Move generated files to include/generated
+Date: Wed, 22 Jul 2009 17:58:18 +0800
+Message-ID: <20090722095818.GH6281@cr0.nay.redhat.com>
+References: <20090721211040.GA7688@merkur.ravnborg.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.redhat.com ([66.187.237.31]:45861 "EHLO mx2.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755916AbZGVIKP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Jul 2009 04:10:15 -0400
-In-Reply-To: <1248241468.27348.47.camel@pasglop>
+Received: from wa-out-1112.google.com ([209.85.146.177]:9259 "EHLO
+	wa-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752858AbZGVJ4I (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2009 05:56:08 -0400
+Content-Disposition: inline
+In-Reply-To: <20090721211040.GA7688@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: dhowells@redhat.com, Linus Torvalds <torvalds@linux-foundation.org>, Linux Arch list <linux-arch@vger.kernel.org>, Linux Kernel list <linux-kernel@vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux-kbuild <linux-kbuild@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>
 
-Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
+On Tue, Jul 21, 2009 at 11:10:40PM +0200, Sam Ravnborg wrote:
+>In 2.6.30 we introduced support for adding generated
+>files to a dedicated directory named "include/generated".
+>
 
-> Martin Schwidefsky compile tested on s390 and Michael Ellerman did some
-> test builds on ia64, arm, sparc32, sparc64, i386 and x86_64
-> 
-> Nobody else reacted.
 
-I did tests for MN10300 and FRV.
+Personally, I don't like this, I hate to see
+#include <generated/foo.h>
+.
 
-David
+>This had a number of benefits:
+>
+>  - avoid mixing generated and normal files
+
+I don't think this is an advantage...
+
+
+>  - allow us to finally kill the asm symlink
+
+
+This makes sense, but it looks like only when 'make O=xxx',
+no?
+
+
+>  - simpler .gitignore rules
+>  - simpler list of mrproper files
+
+Neither these two.
+
+The benifits we get is little, I think.
+
+Thanks.
