@@ -1,25 +1,43 @@
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [RFC PATCH] percpu: kill legacy percpu allocator
-Date: Wed, 22 Jul 2009 14:00:19 +0930
-Message-ID: <200907221400.21969.rusty@rustcorp.com.au>
-References: <1248171979-29166-1-git-send-email-tj@kernel.org> <4A65B314.1000907@kernel.org>
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [PATCH 03/20] percpu: rename 4k first chunk allocator to page
+Date: Wed, 22 Jul 2009 13:38:49 +0900
+Message-ID: <4A6697D9.1000704@kernel.org>
+References: <1248171979-29166-1-git-send-email-tj@kernel.org> <1248171979-29166-4-git-send-email-tj@kernel.org> <alpine.DEB.1.10.0907211745080.25867@gentwo.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1751438AbZGVEa2@vger.kernel.org>
-In-Reply-To: <4A65B314.1000907@kernel.org>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: Tejun Heo <tj@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, benh@kernel.crashing.org, davem@davemloft.net, dhowells@redhat.com, npiggin@suse.de, JBeulich@novell.com, cl@linux-foundation.org, hpa@zytor.com, tglx@linutronix.de, akpm@linux-foundation.org, x86@kernel.org, andi@firstfloor.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from hera.kernel.org ([140.211.167.34]:38819 "EHLO hera.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750901AbZGVEkH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Jul 2009 00:40:07 -0400
+In-Reply-To: <alpine.DEB.1.10.0907211745080.25867@gentwo.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Lameter <cl@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, benh@kernel.crashing.org, davem@davemloft.net, dhowells@redhat.com, npiggin@suse.de, JBeulich@novell.com, rusty@rustcorp.com.au, hpa@zytor.com, tglx@linutronix.de, akpm@linux-foundation.org, x86@kernel.org, andi@firstfloor.org
 
-On Tue, 21 Jul 2009 09:52:44 pm Tejun Heo wrote:
->  include/linux/percpu.h |   24 ------
->  kernel/module.c        |  150 -----------------------------------------
+Christoph Lameter wrote:
+> On Tue, 21 Jul 2009, Tejun Heo wrote:
+> 
+>> - * Boring fallback 4k allocator.  This allocator puts more pressure on
+>> - * PTE TLBs but other than that behaves nicely on both UMA and NUMA.
+>> + * Boring fallback 4k page allocator.  This allocator puts more
+> 
+> Guess this should not mentione 4k anymroe? page size allocation?
 
-FWIW, I'm looking fwd to this.  module.c doesn't shrink very often :)
+That's x86 specific code and PAGE_SIZE is always 4k there, so....
+Also, this comment gets completely deleted by later patches anyway.
 
-Thanks,
-Rusty.
+>>  				pr_warning("PERCPU: %s allocator failed (%zd), "
+>> -					   "falling back to 4k\n",
+>> +					   "falling back to page\n",
+> 
+> "falling back to page size"?
+
+So updated.
+
+Thanks.
+
+-- 
+tejun
