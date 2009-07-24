@@ -1,43 +1,42 @@
-From: Kumar Gala <galak@kernel.crashing.org>
-Subject: Re: [RFC/PATCH] mm: Pass virtual address to [__]p{te,ud,md}_free_tlb()
-Date: Wed, 22 Jul 2009 19:59:08 -0500
-Message-ID: <74BA64FD-0DFF-45A2-868D-A001D9BA496F@kernel.crashing.org>
-References: <20090715074952.A36C7DDDB2@ozlabs.org> <20090715135620.GD7298@wotan.suse.de> <1248073873.13067.31.camel@pasglop> <alpine.LFD.2.01.0907220930320.19335@localhost.localdomain> <1248310415.3367.22.camel@pasglop>
-Mime-Version: 1.0 (Apple Message framework v935.3)
-Content-Type: text/plain; charset=US-ASCII; format=flowed; delsp=yes
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1248310415.3367.22.camel@pasglop>
-Sender: owner-linux-mm@kvack.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nick Piggin <npiggin@suse.de>, Linux-Arch <linux-arch@vger.kernel.org>, linuxppc-dev@ozlabs.org, Hugh Dickins <hugh@tiscali.co.uk>, linux-kernel@vger.kernel.org, Linux Memory Management <linux-mm@kvack.org>
-List-Id: linux-arch.vger.kernel.org
+From: "Yu, Fenghua" <fenghua.yu@intel.com>
+Subject: RE: [RFC PATCH] ia64: convert to dynamic percpu allocator
+Date: Thu, 23 Jul 2009 22:07:15 -0700
+Message-ID: <A6AD88C3F2289247BE726C37303E1EB8B0A9115B@orsmsx505.amr.corp.intel.com>
+References: <4A65B0AB.5000608@kernel.org>
+ <A6AD88C3F2289247BE726C37303E1EB8B097D4C5@orsmsx505.amr.corp.intel.com>
+ <4A663DC7.4060600@kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga01.intel.com ([192.55.52.88]:8375 "EHLO mga01.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751622AbZGXFHT convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2009 01:07:19 -0400
+In-Reply-To: <4A663DC7.4060600@kernel.org>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: 'Tejun Heo' <tj@kernel.org>
+Cc: "Luck, Tony" <tony.luck@intel.com>, 'lkml' <linux-kernel@vger.kernel.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-ia64@vger.kernel.org'" <linux-ia64@vger.kernel.org>
 
-
-On Jul 22, 2009, at 7:53 PM, Benjamin Herrenschmidt wrote:
-
-> On Wed, 2009-07-22 at 09:31 -0700, Linus Torvalds wrote:
->>> CC'ing Linus here. How do you want to proceed with that merge ?  
->>> (IE. so
->>> far nobody objected to the patch itself)
+>Yu, Fenghua wrote:
+>>> This patch is available in the following git tree.
+>>>
+>>>  git://git.kernel.org/pub/scm/linux/kernel/git/tj/percpu.git review-ia64
 >>
->> Maybe you can put it as a separate branch in -next, and have it  
->> merged
->> before the stuff that depends on it, and then just sending it to me  
->> (as a
->> git branch or patch or whatever) in the first day of the merge  
->> window?
+>> Is this patch against the latest linux-next? It's applied cleanly on
+>> linux-next. But compilation reports undefined function
+>> pcpu_alloc_alloc_info() in both contig.c and discontig.c.
 >
-> Hrm... my powerpc-next branch will contain stuff that depend on it, so
-> I'll probably have to pull it in though, unless I tell all my
-> sub-maintainers to also pull from that other branch first :-)
+>Oh, it's on top of percpu#for-next + 20 patches to implement sparse
+>embedding[1].  I think it would be the easiest to fetch the above git
+>tree.
 
-Can you not cherry pick it into powerpc-next to 'pull it through'?
+After cloning from git://git.kernel.org/pub/scm/linux/kernel/git/tj/percpu.git, kernel built with CONFIG_DISCONTIGMEM=y boots ok.
 
-- k
+After pulling from review-ia64, kernel built with CONFIG_DISCONTIGMEM=y can not boot on ia64. After loading kernel and initrd, system hangs and doesn't show anything on serial port.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Thanks.
+
+-Fenghua 
