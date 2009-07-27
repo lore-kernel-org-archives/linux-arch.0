@@ -1,36 +1,32 @@
-From: Facebook <notification+kjdmu~3k5di_@facebookmail.com>
-Subject: Cyrus Perse invited you to join the group "Freedom for Iran"...
-Date: Mon, 27 Jul 2009 01:16:50 -0700
-Message-ID: <ed876c318c7a712301acefafe06ae5f6@10.16.160.200>
-Reply-To: noreply <noreply@facebookmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC/PATCH] mm: Pass virtual address to
+ [__]p{te,ud,md}_free_tlb()
+Date: Mon, 27 Jul 2009 12:11:13 -0700 (PDT)
+Message-ID: <alpine.LFD.2.01.0907271210210.25224@localhost.localdomain>
+References: <20090715074952.A36C7DDDB2@ozlabs.org>  <20090715135620.GD7298@wotan.suse.de> <1248073873.13067.31.camel@pasglop>  <alpine.LFD.2.01.0907220930320.19335@localhost.localdomain> <1248310415.3367.22.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from outmail025.snc1.tfbnw.net ([69.63.178.184]:38137 "EHLO
-	mx-out.facebook.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753463AbZG0IVv convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2009 04:21:51 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1248310415.3367.22.camel@pasglop>
+Sender: owner-linux-mm@kvack.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Nick Piggin <npiggin@suse.de>, Linux Memory Management <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, Hugh Dickins <hugh@tiscali.co.uk>
+List-Id: linux-arch.vger.kernel.org
 
-Cyrus invited you to join the Facebook group "Freedom for Iran".
 
-To see more details and confirm this group invitation, follow the link below:
-http://www.facebook.com/p.php?i=668197011&k=Z6FYQ5T33YZ1UCD1QB64PWUZQ3GD
 
-Facebook helps you find and keep in touch with family, friends and colleagues. You can share unlimited photos, plan events and join discussion groups. It's free and everyone can join.
+On Thu, 23 Jul 2009, Benjamin Herrenschmidt wrote:
+> 
+> Hrm... my powerpc-next branch will contain stuff that depend on it, so
+> I'll probably have to pull it in though, unless I tell all my
+> sub-maintainers to also pull from that other branch first :-)
 
-To register, go to:
-http://www.facebook.com/p.php?i=668197011&k=Z6FYQ5T33YZ1UCD1QB64PWUZQ3GD&r
+Ok, I'll just apply the patch. It does look obvious enough.
 
-If you're receiving this email and are already a member of Facebook, please make sure this email address is associated with your Facebook account.
+			Linus
 
-Thanks,
-Freedom for Iran
-
-___________________
-linux-arch@vger.kernel.org was invited to join Facebook by Cyrus Perse. If you do not wish to receive this type of email from Facebook in the future, please click on the link below to unsubscribe.
-http://www.facebook.com/o.php?c&k=93b3c5&u=100000113492947&mid=d75f9fG5af3173e03d3G23deG6
-Facebook's offices are located at 1601 S. California Ave., Palo Alto, CA 94304.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
