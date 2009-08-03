@@ -1,61 +1,331 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:36563 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752368AbZG1AmF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Jul 2009 20:42:05 -0400
-Date: Mon, 27 Jul 2009 17:41:38 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [RFC/PATCH] mm: Pass virtual address to
- [__]p{te,ud,md}_free_tlb()
-In-Reply-To: <20090728002529.GB22668@linux-sh.org>
-Message-ID: <alpine.LFD.2.01.0907271727220.3186@localhost.localdomain>
-References: <20090715074952.A36C7DDDB2@ozlabs.org> <20090715135620.GD7298@wotan.suse.de> <1248073873.13067.31.camel@pasglop> <alpine.LFD.2.01.0907220930320.19335@localhost.localdomain> <1248310415.3367.22.camel@pasglop> <alpine.LFD.2.01.0907271210210.25224@localhost.localdomain>
- <1248740260.30993.26.camel@pasglop> <20090728002529.GB22668@linux-sh.org>
+Received: from vervifontaine.sonytel.be ([80.88.33.193]:57221 "EHLO
+	pophost.sonytel.be" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1755371AbZHCQLo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2009 12:11:44 -0400
+Date: Mon, 3 Aug 2009 18:11:42 +0200 (CEST)
+From: Geert Uytterhoeven <Geert.Uytterhoeven@sonycom.com>
+Subject: [PATCH] Drop superfluous casts in nr_free_pages() callers
+Message-ID: <alpine.LRH.2.00.0908031808440.11620@vixen.sonytel.be>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: TEXT/PLAIN; charset=ISO-8859-15
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Nick Piggin <npiggin@suse.de>, Linux Memory Management <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, Hugh Dickins <hugh@tiscali.co.uk>, ralf <ralf@linux-mips.org>
-Message-ID: <20090728004138.WFZKIIKfaekRIOvpQvRYA-cQ6iwr56gk0iex0TvGjBc@z>
+To: Christoph Lameter <cl@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>
+Message-ID: <20090803161142.h5udk9tcOYai5yQ_zHrA5PS2Tordon654pWB3258TCU@z>
 
+Commit 96177299416dbccb73b54e6b344260154a445375 ("Drop free_pages()")
+modified nr_free_pages() to return 'unsigned long' instead of 'unsigned int'.
+This made the casts to 'unsigned long' in most callers superfluous, hence
+remove them.
 
+Signed-off-by: Geert Uytterhoeven <Geert.Uytterhoeven@sonycom.com>
+---
+Tested on ppc64 only
 
-On Tue, 28 Jul 2009, Paul Mundt wrote:
->
-> Yup, that seems to be what happened. I've never seen a warning about this
-> with any compiler version, otherwise we would have caught this much
-> earlier. As soon as the addr -> a rename took place it blew up
-> immediately as a redefinition. Is there a magical gcc flag we can turn on
-> to warn on identical definitions, even if just for testing?
+ arch/alpha/mm/init.c      |    2 +-
+ arch/alpha/mm/numa.c      |    2 +-
+ arch/arm/mm/init.c        |    4 ++--
+ arch/avr32/mm/init.c      |    2 +-
+ arch/cris/mm/init.c       |    2 +-
+ arch/ia64/mm/init.c       |    2 +-
+ arch/m32r/mm/init.c       |    2 +-
+ arch/m68k/mm/init.c       |    2 +-
+ arch/microblaze/mm/init.c |    2 +-
+ arch/mips/mm/init.c       |    2 +-
+ arch/mn10300/mm/init.c    |    2 +-
+ arch/parisc/mm/init.c     |    2 +-
+ arch/powerpc/mm/mem.c     |    2 +-
+ arch/s390/mm/init.c       |    2 +-
+ arch/sh/mm/init.c         |    2 +-
+ arch/sparc/mm/init_32.c   |    2 +-
+ arch/um/kernel/mem.c      |    2 +-
+ arch/x86/mm/init_32.c     |    2 +-
+ arch/x86/mm/init_64.c     |    2 +-
+ arch/xtensa/mm/init.c     |    2 +-
+ 20 files changed, 21 insertions(+), 21 deletions(-)
 
-No, this is actually defined C behavior - identical macro redefinitions 
-are ok. That's very much on purpose, and allows different header files to 
-use an identical #define to define some common macro.
+diff --git a/arch/alpha/mm/init.c b/arch/alpha/mm/init.c
+index af71d38..a0902c2 100644
+--- a/arch/alpha/mm/init.c
++++ b/arch/alpha/mm/init.c
+@@ -299,7 +299,7 @@ printk_memory_info(void)
+ 	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
+ 
+ 	printk("Memory: %luk/%luk available (%luk kernel code, %luk reserved, %luk data, %luk init)\n",
+-	       (unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
++	       nr_free_pages() << (PAGE_SHIFT-10),
+ 	       max_mapnr << (PAGE_SHIFT-10),
+ 	       codesize >> 10,
+ 	       reservedpages << (PAGE_SHIFT-10),
+diff --git a/arch/alpha/mm/numa.c b/arch/alpha/mm/numa.c
+index 0eab557..10b4035 100644
+--- a/arch/alpha/mm/numa.c
++++ b/arch/alpha/mm/numa.c
+@@ -349,7 +349,7 @@ void __init mem_init(void)
+ 
+ 	printk("Memory: %luk/%luk available (%luk kernel code, %luk reserved, "
+ 	       "%luk data, %luk init)\n",
+-	       (unsigned long)nr_free_pages() << (PAGE_SHIFT-10),
++	       nr_free_pages() << (PAGE_SHIFT-10),
+ 	       num_physpages << (PAGE_SHIFT-10),
+ 	       codesize >> 10,
+ 	       reservedpages << (PAGE_SHIFT-10),
+diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
+index 8277802..bc927ee 100644
+--- a/arch/arm/mm/init.c
++++ b/arch/arm/mm/init.c
+@@ -536,8 +536,8 @@ void __init mem_init(void)
+ 
+ 	printk(KERN_NOTICE "Memory: %luKB available (%dK code, "
+ 		"%dK data, %dK init, %luK highmem)\n",
+-		(unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
+-		codesize >> 10, datasize >> 10, initsize >> 10,
++		nr_free_pages() << (PAGE_SHIFT-10), codesize >> 10,
++		datasize >> 10, initsize >> 10,
+ 		(unsigned long) (totalhigh_pages << (PAGE_SHIFT-10)));
+ 
+ 	if (PAGE_SIZE >= 16384 && num_physpages <= 128) {
+diff --git a/arch/avr32/mm/init.c b/arch/avr32/mm/init.c
+index e819fa6..376f18c 100644
+--- a/arch/avr32/mm/init.c
++++ b/arch/avr32/mm/init.c
+@@ -141,7 +141,7 @@ void __init mem_init(void)
+ 
+ 	printk ("Memory: %luk/%luk available (%dk kernel code, "
+ 		"%dk reserved, %dk data, %dk init)\n",
+-		(unsigned long)nr_free_pages() << (PAGE_SHIFT - 10),
++		nr_free_pages() << (PAGE_SHIFT - 10),
+ 		totalram_pages << (PAGE_SHIFT - 10),
+ 		codesize >> 10,
+ 		reservedpages << (PAGE_SHIFT - 10),
+diff --git a/arch/cris/mm/init.c b/arch/cris/mm/init.c
+index 514f46a..ff68b9f 100644
+--- a/arch/cris/mm/init.c
++++ b/arch/cris/mm/init.c
+@@ -54,7 +54,7 @@ mem_init(void)
+         printk(KERN_INFO
+                "Memory: %luk/%luk available (%dk kernel code, %dk reserved, %dk data, "
+ 	       "%dk init)\n" ,
+-	       (unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
++	       nr_free_pages() << (PAGE_SHIFT-10),
+ 	       max_mapnr << (PAGE_SHIFT-10),
+ 	       codesize >> 10,
+ 	       reservedpages << (PAGE_SHIFT-10),
+diff --git a/arch/ia64/mm/init.c b/arch/ia64/mm/init.c
+index b115b3b..1d28624 100644
+--- a/arch/ia64/mm/init.c
++++ b/arch/ia64/mm/init.c
+@@ -655,7 +655,7 @@ mem_init (void)
+ 	initsize =  (unsigned long) __init_end - (unsigned long) __init_begin;
+ 
+ 	printk(KERN_INFO "Memory: %luk/%luk available (%luk code, %luk reserved, "
+-	       "%luk data, %luk init)\n", (unsigned long) nr_free_pages() << (PAGE_SHIFT - 10),
++	       "%luk data, %luk init)\n", nr_free_pages() << (PAGE_SHIFT - 10),
+ 	       num_physpages << (PAGE_SHIFT - 10), codesize >> 10,
+ 	       reserved_pages << (PAGE_SHIFT - 10), datasize >> 10, initsize >> 10);
+ 
+diff --git a/arch/m32r/mm/init.c b/arch/m32r/mm/init.c
+index 24d429f..9f581df 100644
+--- a/arch/m32r/mm/init.c
++++ b/arch/m32r/mm/init.c
+@@ -171,7 +171,7 @@ void __init mem_init(void)
+ 
+ 	printk(KERN_INFO "Memory: %luk/%luk available (%dk kernel code, "
+ 		"%dk reserved, %dk data, %dk init)\n",
+-		(unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
++		nr_free_pages() << (PAGE_SHIFT-10),
+ 		num_physpages << (PAGE_SHIFT-10),
+ 		codesize >> 10,
+ 		reservedpages << (PAGE_SHIFT-10),
+diff --git a/arch/m68k/mm/init.c b/arch/m68k/mm/init.c
+index 0007b2a..774549a 100644
+--- a/arch/m68k/mm/init.c
++++ b/arch/m68k/mm/init.c
+@@ -126,7 +126,7 @@ void __init mem_init(void)
+ #endif
+ 
+ 	printk("Memory: %luk/%luk available (%dk kernel code, %dk data, %dk init)\n",
+-	       (unsigned long)nr_free_pages() << (PAGE_SHIFT-10),
++	       nr_free_pages() << (PAGE_SHIFT-10),
+ 	       totalram_pages << (PAGE_SHIFT-10),
+ 	       codepages << (PAGE_SHIFT-10),
+ 	       datapages << (PAGE_SHIFT-10),
+diff --git a/arch/microblaze/mm/init.c b/arch/microblaze/mm/init.c
+index 8d92c4e..506df16 100644
+--- a/arch/microblaze/mm/init.c
++++ b/arch/microblaze/mm/init.c
+@@ -204,7 +204,7 @@ void __init mem_init(void)
+ 	totalram_pages += free_all_bootmem();
+ 
+ 	printk(KERN_INFO "Memory: %luk/%luk available\n",
+-	       (unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
++	       nr_free_pages() << (PAGE_SHIFT-10),
+ 	       num_physpages << (PAGE_SHIFT-10));
+ #ifdef CONFIG_MMU
+ 	mem_init_done = 1;
+diff --git a/arch/mips/mm/init.c b/arch/mips/mm/init.c
+index 0e82050..1f9fced 100644
+--- a/arch/mips/mm/init.c
++++ b/arch/mips/mm/init.c
+@@ -417,7 +417,7 @@ void __init mem_init(void)
+ 
+ 	printk(KERN_INFO "Memory: %luk/%luk available (%ldk kernel code, "
+ 	       "%ldk reserved, %ldk data, %ldk init, %ldk highmem)\n",
+-	       (unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
++	       nr_free_pages() << (PAGE_SHIFT-10),
+ 	       ram << (PAGE_SHIFT-10),
+ 	       codesize >> 10,
+ 	       reservedpages << (PAGE_SHIFT-10),
+diff --git a/arch/mn10300/mm/init.c b/arch/mn10300/mm/init.c
+index 8cee387..ec14205 100644
+--- a/arch/mn10300/mm/init.c
++++ b/arch/mn10300/mm/init.c
+@@ -112,7 +112,7 @@ void __init mem_init(void)
+ 	       "Memory: %luk/%luk available"
+ 	       " (%dk kernel code, %dk reserved, %dk data, %dk init,"
+ 	       " %ldk highmem)\n",
+-	       (unsigned long) nr_free_pages() << (PAGE_SHIFT - 10),
++	       nr_free_pages() << (PAGE_SHIFT - 10),
+ 	       max_mapnr << (PAGE_SHIFT - 10),
+ 	       codesize >> 10,
+ 	       reservedpages << (PAGE_SHIFT - 10),
+diff --git a/arch/parisc/mm/init.c b/arch/parisc/mm/init.c
+index b0831d9..d5aca31 100644
+--- a/arch/parisc/mm/init.c
++++ b/arch/parisc/mm/init.c
+@@ -506,7 +506,7 @@ void __init mem_init(void)
+ #endif
+ 
+ 	printk(KERN_INFO "Memory: %luk/%luk available (%dk kernel code, %dk reserved, %dk data, %dk init)\n",
+-		(unsigned long)nr_free_pages() << (PAGE_SHIFT-10),
++		nr_free_pages() << (PAGE_SHIFT-10),
+ 		num_physpages << (PAGE_SHIFT-10),
+ 		codesize >> 10,
+ 		reservedpages << (PAGE_SHIFT-10),
+diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
+index 579382c..0e5c59b 100644
+--- a/arch/powerpc/mm/mem.c
++++ b/arch/powerpc/mm/mem.c
+@@ -372,7 +372,7 @@ void __init mem_init(void)
+ 
+ 	printk(KERN_INFO "Memory: %luk/%luk available (%luk kernel code, "
+ 	       "%luk reserved, %luk data, %luk bss, %luk init)\n",
+-		(unsigned long)nr_free_pages() << (PAGE_SHIFT-10),
++		nr_free_pages() << (PAGE_SHIFT-10),
+ 		num_physpages << (PAGE_SHIFT-10),
+ 		codesize >> 10,
+ 		reservedpages << (PAGE_SHIFT-10),
+diff --git a/arch/s390/mm/init.c b/arch/s390/mm/init.c
+index c634dfb..19f73cb 100644
+--- a/arch/s390/mm/init.c
++++ b/arch/s390/mm/init.c
+@@ -105,7 +105,7 @@ void __init mem_init(void)
+ 	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
+ 	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
+         printk("Memory: %luk/%luk available (%ldk kernel code, %ldk reserved, %ldk data, %ldk init)\n",
+-                (unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
++                nr_free_pages() << (PAGE_SHIFT-10),
+                 max_mapnr << (PAGE_SHIFT-10),
+                 codesize >> 10,
+                 reservedpages << (PAGE_SHIFT-10),
+diff --git a/arch/sh/mm/init.c b/arch/sh/mm/init.c
+index fe532ae..3161a27 100644
+--- a/arch/sh/mm/init.c
++++ b/arch/sh/mm/init.c
+@@ -224,7 +224,7 @@ void __init mem_init(void)
+ 
+ 	printk(KERN_INFO "Memory: %luk/%luk available (%dk kernel code, "
+ 	       "%dk data, %dk init)\n",
+-		(unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
++		nr_free_pages() << (PAGE_SHIFT-10),
+ 		num_physpages << (PAGE_SHIFT-10),
+ 		codesize >> 10,
+ 		datasize >> 10,
+diff --git a/arch/sparc/mm/init_32.c b/arch/sparc/mm/init_32.c
+index 26bb391..ef05f5e 100644
+--- a/arch/sparc/mm/init_32.c
++++ b/arch/sparc/mm/init_32.c
+@@ -468,7 +468,7 @@ void __init mem_init(void)
+ 			reservedpages++;
+ 
+ 	printk(KERN_INFO "Memory: %luk/%luk available (%dk kernel code, %dk reserved, %dk data, %dk init, %ldk highmem)\n",
+-	       (unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
++	       nr_free_pages() << (PAGE_SHIFT-10),
+ 	       num_physpages << (PAGE_SHIFT - 10),
+ 	       codepages << (PAGE_SHIFT-10),
+ 	       reservedpages << (PAGE_SHIFT - 10),
+diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
+index 61d7e61..a5d5e70 100644
+--- a/arch/um/kernel/mem.c
++++ b/arch/um/kernel/mem.c
+@@ -77,7 +77,7 @@ void __init mem_init(void)
+ 	num_physpages = totalram_pages;
+ 	max_pfn = totalram_pages;
+ 	printk(KERN_INFO "Memory: %luk available\n",
+-	       (unsigned long) nr_free_pages() << (PAGE_SHIFT-10));
++	       nr_free_pages() << (PAGE_SHIFT-10));
+ 	kmalloc_ok = 1;
+ 
+ #ifdef CONFIG_HIGHMEM
+diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+index 3cd7711..95e877f 100644
+--- a/arch/x86/mm/init_32.c
++++ b/arch/x86/mm/init_32.c
+@@ -892,7 +892,7 @@ void __init mem_init(void)
+ 
+ 	printk(KERN_INFO "Memory: %luk/%luk available (%dk kernel code, "
+ 			"%dk reserved, %dk data, %dk init, %ldk highmem)\n",
+-		(unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
++		nr_free_pages() << (PAGE_SHIFT-10),
+ 		num_physpages << (PAGE_SHIFT-10),
+ 		codesize >> 10,
+ 		reservedpages << (PAGE_SHIFT-10),
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index 6176fe8..44f82a6 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -687,7 +687,7 @@ void __init mem_init(void)
+ 
+ 	printk(KERN_INFO "Memory: %luk/%luk available (%ldk kernel code, "
+ 			 "%ldk absent, %ldk reserved, %ldk data, %ldk init)\n",
+-		(unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
++		nr_free_pages() << (PAGE_SHIFT-10),
+ 		max_pfn << (PAGE_SHIFT-10),
+ 		codesize >> 10,
+ 		absent_pages << (PAGE_SHIFT-10),
+diff --git a/arch/xtensa/mm/init.c b/arch/xtensa/mm/init.c
+index 427e14f..cdbc27c 100644
+--- a/arch/xtensa/mm/init.c
++++ b/arch/xtensa/mm/init.c
+@@ -203,7 +203,7 @@ void __init mem_init(void)
+ 
+ 	printk("Memory: %luk/%luk available (%ldk kernel code, %ldk reserved, "
+ 	       "%ldk data, %ldk init %ldk highmem)\n",
+-	       (unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
++	       nr_free_pages() << (PAGE_SHIFT-10),
+ 	       ram << (PAGE_SHIFT-10),
+ 	       codesize >> 10,
+ 	       reservedpages << (PAGE_SHIFT-10),
+-- 
+1.6.2.4
 
-Strictly speaking, this is a "safety feature", in that you obviously 
-_could_ just always do a #undef+#define, but such a case would be able to 
-redefine a macro even if the new definition didn't match the old one. So 
-the C pre-processor rules is that you can safely re-define something if 
-you re-define it identically.
+With kind regards,
 
-Of course, we could make the rules for the kernel be stricter, but I don't 
-know if there are any flags to warn about it, since it's such a standard C 
-feature: the lack of warning is _not_ an accident.
+Geert Uytterhoeven
+Software Architect
+Techsoft Centre
 
-It would be trivial to teach sparse to warn about it, of course. Look at 
-sparse/pre-process.c, function do_handle_define(). Notice how it literally 
-checks that any previous #define is identical in both expansion and 
-argument list, with:
+Technology and Software Centre Europe
+The Corporate Village � Da Vincilaan 7-D1 � B-1935 Zaventem � Belgium
 
-		if (token_list_different(sym->expansion, expansion) ||
-		    token_list_different(sym->arglist, arglist)) {
+Phone:    +32 (0)2 700 8453
+Fax:      +32 (0)2 700 8622
+E-mail:   Geert.Uytterhoeven@sonycom.com
+Internet: http://www.sony-europe.com/
 
-and just make token_list_different() always return true (this is the only 
-use of that function).
-
-I haven't checked if such a change would actually result in a lot of 
-warnings.
-
-		Linus
+A division of Sony Europe (Belgium) N.V.
+VAT BE 0413.825.160 � RPR Brussels
+Fortis � BIC GEBABEBB � IBAN BE41293037680010
