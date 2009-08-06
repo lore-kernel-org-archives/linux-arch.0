@@ -1,47 +1,66 @@
-From: Matthew Wilcox <matthew@wil.cx>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Subject: Re: [PATCH] [11/19] HWPOISON: Refactor truncate to allow direct
-	truncating of page v2
-Date: Wed, 5 Aug 2009 09:00:39 -0600
-Message-ID: <20090805150038.GL3711@parisc-linux.org>
-References: <200908051136.682859934@firstfloor.org> <20090805093638.D3754B15D8@basil.firstfloor.org> <20090805102008.GB17190@wotan.suse.de> <20090805134607.GH11385@basil.fritz.box> <20090805140145.GB28563@wotan.suse.de> <20090805141001.GJ11385@basil.fritz.box> <20090805141642.GB23992@wotan.suse.de> <20090805144112.GM11385@basil.fritz.box>
+ truncating of page v2
+Date: Thu, 6 Aug 2009 13:48:30 +0200
+Message-ID: <20090806134830.4f3931d2@skybase>
+References: <200908051136.682859934@firstfloor.org>
+	<20090805093638.D3754B15D8@basil.firstfloor.org>
+	<20090805102008.GB17190@wotan.suse.de>
+	<20090805134607.GH11385@basil.fritz.box>
+	<20090805140145.GB28563@wotan.suse.de>
+	<20090805141001.GJ11385@basil.fritz.box>
+	<20090805141642.GB23992@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:49790 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933075AbZHEPAj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Aug 2009 11:00:39 -0400
-Content-Disposition: inline
-In-Reply-To: <20090805144112.GM11385@basil.fritz.box>
+Received: from mtagate8.de.ibm.com ([195.212.29.157]:57166 "EHLO
+	mtagate8.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752911AbZHFLsi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Aug 2009 07:48:38 -0400
+In-Reply-To: <20090805141642.GB23992@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <andi@firstfloor.org>
-Cc: Nick Piggin <npiggin@suse.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, fengguang.wu@intel.com, hidehiro.kawai.ez@hitachi.com, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Andi Kleen <andi@firstfloor.org>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, fengguang.wu@intel.com, hidehiro.kawai.ez@hitachi.com, linux-arch@vger.kernel.org
 
-On Wed, Aug 05, 2009 at 04:41:12PM +0200, Andi Kleen wrote:
-> > One question I had for the others (Andrew? other mm guys?) what is the
-> > feelings of merging this feature? Leaving aside exact implementation
-> > and just considering the high level design and cost/benefit. Last time
-> > there were some people objecting, so I wonder the situation now? So
-> > does anybody need more convincing? :)
-> 
-> The main objection last time was that it was a bit too late in the 
-> release schedule.
-> 
-> I can't remember anyone really questioning the basic feature itself.
-> 
-> > Also I will just cc linux-arch. It would be interesting to know whether
-> > powerpc, ia64, or s390 or others would be interested to use this feature?
-> 
-> ia64 is interested (but no code so far) I talked to DaveM and he seems to be 
-> interested for sparc too.  I would expect other server architectures to 
-> eventually use it as they get around to writing the necessary architecture 
-> specific glue.
+On Wed, 5 Aug 2009 16:16:42 +0200
+Nick Piggin <npiggin@suse.de> wrote:
 
-parisc could certainly implement this.  Don't know if there's interest.
+> On Wed, Aug 05, 2009 at 04:10:01PM +0200, Andi Kleen wrote:
+> > > I haven't brought up the caller at this point, but IIRC you had
+> > > the page locked and mapping confirmed at this point anyway so
+> > > it would never be an error for your code.
+> > > 
+> > > Probably it would be nice to just force callers to verify the page.
+> > > Normally IMO it is much nicer and clearer to do it at the time the
+> > > page gets locked, unless there is good reason otherwise.
+> > 
+> > Ok. I think I'll just keep it as it is for now.
+> > 
+> > The only reason I added the error code was to make truncate_inode_page
+> > fit into .error_remove_page, but then latter I did another wrapper
+> > so it could be removed again. But it won't hurt to have it either.
+> 
+> OK, it's more of a cleanup/nit.
+> 
+> One question I had for the others (Andrew? other mm guys?) what is the
+> feelings of merging this feature? Leaving aside exact implementation
+> and just considering the high level design and cost/benefit. Last time
+> there were some people objecting, so I wonder the situation now? So
+> does anybody need more convincing? :)
+> 
+> Also I will just cc linux-arch. It would be interesting to know whether
+> powerpc, ia64, or s390 or others would be interested to use this feature?
+
+This is not relevant for s390, as current machines do transparent memory
+sparing if a memory module goes bad. Really old machines reported bad
+memory to the OS by means of a machine check (storage error uncorrected
+and storage error corrected). I have never seen this happen, the level
+below the OS deals with these errors for us.
 
 -- 
-Matthew Wilcox				Intel Open Source Technology Centre
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
