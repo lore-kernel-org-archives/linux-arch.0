@@ -1,23 +1,23 @@
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: [patch 2/4] spinlock: add macro to generate out-of-line variants
-Date: Tue, 11 Aug 2009 14:47:58 +0200
-Message-ID: <20090811124912.494596235@de.ibm.com>
+Subject: [patch 3/4] spinlock: allow inlined spinlocks
+Date: Tue, 11 Aug 2009 14:47:59 +0200
+Message-ID: <20090811124912.944116541@de.ibm.com>
 References: <20090811124756.873490673@de.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate1.uk.ibm.com ([194.196.100.161]:50447 "EHLO
-	mtagate1.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754532AbZHKMtP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Aug 2009 08:49:15 -0400
-Received: from d06nrmr1707.portsmouth.uk.ibm.com (d06nrmr1707.portsmouth.uk.ibm.com [9.149.39.225])
-	by mtagate1.uk.ibm.com (8.13.1/8.13.1) with ESMTP id n7BCnDb4019356
-	for <linux-arch@vger.kernel.org>; Tue, 11 Aug 2009 12:49:13 GMT
-Received: from d06av03.portsmouth.uk.ibm.com (d06av03.portsmouth.uk.ibm.com [9.149.37.213])
-	by d06nrmr1707.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7BCnDmu1569020
+Received: from mtagate5.uk.ibm.com ([195.212.29.138]:48389 "EHLO
+	mtagate5.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752538AbZHKMtu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Aug 2009 08:49:50 -0400
+Received: from d06nrmr1407.portsmouth.uk.ibm.com (d06nrmr1407.portsmouth.uk.ibm.com [9.149.38.185])
+	by mtagate5.uk.ibm.com (8.14.3/8.13.8) with ESMTP id n7BCnEAD203996
+	for <linux-arch@vger.kernel.org>; Tue, 11 Aug 2009 12:49:14 GMT
+Received: from d06av01.portsmouth.uk.ibm.com (d06av01.portsmouth.uk.ibm.com [9.149.37.212])
+	by d06nrmr1407.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7BCnEBn1376282
+	for <linux-arch@vger.kernel.org>; Tue, 11 Aug 2009 13:49:14 +0100
+Received: from d06av01.portsmouth.uk.ibm.com (loopback [127.0.0.1])
+	by d06av01.portsmouth.uk.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7BCnDEa029741
 	for <linux-arch@vger.kernel.org>; Tue, 11 Aug 2009 13:49:13 +0100
-Received: from d06av03.portsmouth.uk.ibm.com (loopback [127.0.0.1])
-	by d06av03.portsmouth.uk.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7BCnC2n020100
-	for <linux-arch@vger.kernel.org>; Tue, 11 Aug 2009 13:49:13 +0100
-Content-Disposition: inline; filename=02_spinlock_macros.diff
+Content-Disposition: inline; filename=03_spinlock_inline.diff
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Ingo Molnar <mingo@elte.hu>
@@ -25,307 +25,121 @@ Cc: linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Hei
 
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
 
-Since the bodies of the spinlock functions are in a header
-file most functions in spinlock.c look like this:
+Add new config option SPINLOCK_INLINE and some defines which depend
+on it in order to generate inlined spinlock code instead of out-of-line
+code.
+Avoiding function calls for spinlocks gives 1%-5% less cpu usage on
+network benchmarks on s390.
 
-int __lockfunc _spin_trylock(spinlock_t *lock)
-{
-	return __spin_trylock(lock);
-}
-EXPORT_SYMBOL(_spin_trylock);
-
-That's just a simple wrapper. Its the same for spin-,
-read- and write-lock. So add an extra macro and generate
-all versions automatically like it is already done for
-the preemption friendly locks.
+Architectures must select HAVE_SPINLOCK_INLINE_SUPPORT to enable this
+config option.
 
 Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 ---
- kernel/spinlock.c |  233 +++++++++++++++---------------------------------------
- 1 file changed, 68 insertions(+), 165 deletions(-)
+ include/linux/spinlock_api_smp.h |   35 +++++++++++++++++++++++++++++++++++
+ kernel/spinlock.c                |    4 ++++
+ lib/Kconfig.debug                |   14 ++++++++++++++
+ 3 files changed, 53 insertions(+)
 
+Index: linux-2.6/include/linux/spinlock_api_smp.h
+===================================================================
+--- linux-2.6.orig/include/linux/spinlock_api_smp.h
++++ linux-2.6/include/linux/spinlock_api_smp.h
+@@ -19,6 +19,8 @@ int in_lock_functions(unsigned long addr
+ 
+ #define assert_spin_locked(x)	BUG_ON(!spin_is_locked(x))
+ 
++#ifndef CONFIG_SPINLOCK_INLINE
++
+ void __lockfunc _spin_lock(spinlock_t *lock)		__acquires(lock);
+ void __lockfunc _spin_lock_nested(spinlock_t *lock, int subclass)
+ 							__acquires(lock);
+@@ -60,6 +62,39 @@ void __lockfunc _read_unlock_irqrestore(
+ void __lockfunc _write_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
+ 							__releases(lock);
+ 
++#else /* CONFIG_HAVE_SPINLOCK_INLINE_SUPPORT */
++
++#define _spin_trylock(lock)	  __spin_trylock(lock)
++#define _read_trylock(lock)	  __read_trylock(lock)
++#define _write_trylock(lock)	  __write_trylock(lock)
++#define _read_lock(lock)	  __read_lock(lock)
++#define _spin_lock_irqsave(lock)  __spin_lock_irqsave(lock)
++#define _spin_lock_irq(lock)	  __spin_lock_irq(lock)
++#define _spin_lock_bh(lock)	  __spin_lock_bh(lock)
++#define _read_lock_irqsave(lock)  __read_lock_irqsave(lock)
++#define _read_lock_irq(lock)	  __read_lock_irq(lock)
++#define _read_lock_bh(lock)	  __read_lock_bh(lock)
++#define _write_lock_irqsave(lock) __write_lock_irqsave(lock)
++#define _write_lock_irq(lock)	  __write_lock_irq(lock)
++#define _write_lock_bh(lock)	  __write_lock_bh(lock)
++#define _spin_lock(lock)	  __spin_lock(lock)
++#define _write_lock(lock)	  __write_lock(lock)
++#define _spin_unlock(lock)	  __spin_unlock(lock)
++#define _write_unlock(lock)	  __write_unlock(lock)
++#define _read_unlock(lock)	  __read_unlock(lock)
++#define _spin_unlock_irq(lock)	  __spin_unlock_irq(lock)
++#define _spin_unlock_bh(lock)	  __spin_unlock_bh(lock)
++#define _read_unlock_irq(lock)	  __read_unlock_irq(lock)
++#define _read_unlock_bh(lock)	  __read_unlock_bh(lock)
++#define _write_unlock_irq(lock)	  __write_unlock_irq(lock)
++#define _write_unlock_bh(lock)	  __write_unlock_bh(lock)
++#define _spin_trylock_bh(lock)	  __spin_trylock_bh(lock)
++#define _spin_unlock_irqrestore(lock, flags)  __spin_unlock_irqrestore(lock, flags)
++#define _read_unlock_irqrestore(lock, flags)  __read_unlock_irqrestore(lock, flags)
++#define _write_unlock_irqrestore(lock, flags) __write_unlock_irqrestore(lock, flags)
++
++#endif /* CONFIG_HAVE_SPINLOCK_INLINE_SUPPORT */
++
+ static inline int __spin_trylock(spinlock_t *lock)
+ {
+ 	preempt_disable();
+Index: linux-2.6/lib/Kconfig.debug
+===================================================================
+--- linux-2.6.orig/lib/Kconfig.debug
++++ linux-2.6/lib/Kconfig.debug
+@@ -879,6 +879,20 @@ config SYSCTL_SYSCALL_CHECK
+ 	  to properly maintain and use. This enables checks that help
+ 	  you to keep things correct.
+ 
++config HAVE_SPINLOCK_INLINE_SUPPORT
++	bool
++
++config SPINLOCK_INLINE
++	bool "Inline spinlock code"
++	depends on HAVE_SPINLOCK_INLINE_SUPPORT
++	depends on !DEBUG_SPINLOCK
++	depends on SMP && !PREEMPT
++	help
++	  Select this option if you want to have inline spinlocks instead of
++	  an out of line implementation.
++	  This will generate a larger kernel image. On some architectures this
++	  increases performance.
++
+ source mm/Kconfig.debug
+ source kernel/trace/Kconfig
+ 
 Index: linux-2.6/kernel/spinlock.c
 ===================================================================
 --- linux-2.6.orig/kernel/spinlock.c
 +++ linux-2.6/kernel/spinlock.c
-@@ -21,23 +21,37 @@
+@@ -21,6 +21,8 @@
  #include <linux/debug_locks.h>
  #include <linux/module.h>
  
--int __lockfunc _spin_trylock(spinlock_t *lock)
--{
--	return __spin_trylock(lock);
--}
--EXPORT_SYMBOL(_spin_trylock);
--
--int __lockfunc _read_trylock(rwlock_t *lock)
--{
--	return __read_trylock(lock);
--}
--EXPORT_SYMBOL(_read_trylock);
--
--int __lockfunc _write_trylock(rwlock_t *lock)
--{
--	return __write_trylock(lock);
--}
--EXPORT_SYMBOL(_write_trylock);
-+#define BUILD_LOCK_OPS_COMMON(op, locktype)				\
-+int __lockfunc _##op##_trylock(locktype##_t *lock)			\
-+{									\
-+	return __##op##_trylock(lock);					\
-+}									\
-+EXPORT_SYMBOL(_##op##_trylock);						\
-+									\
-+void __lockfunc _##op##_unlock(locktype##_t *lock)			\
-+{									\
-+	__##op##_unlock(lock);						\
-+}									\
-+EXPORT_SYMBOL(_##op##_unlock);						\
-+									\
-+void __lockfunc _##op##_unlock_irq(locktype##_t *lock)			\
-+{									\
-+	__##op##_unlock_irq(lock);					\
-+}									\
-+EXPORT_SYMBOL(_##op##_unlock_irq);					\
-+									\
-+void __lockfunc _##op##_unlock_bh(locktype##_t *lock)			\
-+{									\
-+	__##op##_unlock_bh(lock);					\
-+}									\
-+EXPORT_SYMBOL(_##op##_unlock_bh);					\
-+									\
-+void __lockfunc _##op##_unlock_irqrestore(locktype##_t *lock,		\
-+					  unsigned long flags)		\
-+{									\
-+	__##op##_unlock_irqrestore(lock, flags);			\
-+}									\
-+EXPORT_SYMBOL(_##op##_unlock_irqrestore)
- 
- /*
-  * If lockdep is enabled then we use the non-preemption spin-ops
-@@ -46,77 +60,30 @@ EXPORT_SYMBOL(_write_trylock);
-  */
- #if !defined(CONFIG_GENERIC_LOCKBREAK) || defined(CONFIG_DEBUG_LOCK_ALLOC)
- 
--void __lockfunc _read_lock(rwlock_t *lock)
--{
--	__read_lock(lock);
--}
--EXPORT_SYMBOL(_read_lock);
--
--unsigned long __lockfunc _spin_lock_irqsave(spinlock_t *lock)
--{
--	return __spin_lock_irqsave(lock);
--}
--EXPORT_SYMBOL(_spin_lock_irqsave);
--
--void __lockfunc _spin_lock_irq(spinlock_t *lock)
--{
--	__spin_lock_irq(lock);
--}
--EXPORT_SYMBOL(_spin_lock_irq);
--
--void __lockfunc _spin_lock_bh(spinlock_t *lock)
--{
--	__spin_lock_bh(lock);
--}
--EXPORT_SYMBOL(_spin_lock_bh);
--
--unsigned long __lockfunc _read_lock_irqsave(rwlock_t *lock)
--{
--	return __read_lock_irqsave(lock);
--}
--EXPORT_SYMBOL(_read_lock_irqsave);
--
--void __lockfunc _read_lock_irq(rwlock_t *lock)
--{
--	__read_lock_irq(lock);
--}
--EXPORT_SYMBOL(_read_lock_irq);
--
--void __lockfunc _read_lock_bh(rwlock_t *lock)
--{
--	__read_lock_bh(lock);
--}
--EXPORT_SYMBOL(_read_lock_bh);
--
--unsigned long __lockfunc _write_lock_irqsave(rwlock_t *lock)
--{
--	return __write_lock_irqsave(lock);
--}
--EXPORT_SYMBOL(_write_lock_irqsave);
--
--void __lockfunc _write_lock_irq(rwlock_t *lock)
--{
--	__write_lock_irq(lock);
--}
--EXPORT_SYMBOL(_write_lock_irq);
--
--void __lockfunc _write_lock_bh(rwlock_t *lock)
--{
--	__write_lock_bh(lock);
--}
--EXPORT_SYMBOL(_write_lock_bh);
--
--void __lockfunc _spin_lock(spinlock_t *lock)
--{
--	__spin_lock(lock);
--}
--EXPORT_SYMBOL(_spin_lock);
--
--void __lockfunc _write_lock(rwlock_t *lock)
--{
--	__write_lock(lock);
--}
--EXPORT_SYMBOL(_write_lock);
-+#define BUILD_LOCK_OPS_DEP(op, locktype)				\
-+void __lockfunc _##op##_lock(locktype##_t *lock)			\
-+{									\
-+	__##op##_lock(lock);						\
-+}									\
-+EXPORT_SYMBOL(_##op##_lock);						\
-+									\
-+unsigned long __lockfunc _##op##_lock_irqsave(locktype##_t *lock)	\
-+{									\
-+	return __##op##_lock_irqsave(lock);				\
-+}									\
-+EXPORT_SYMBOL(_##op##_lock_irqsave);					\
-+									\
-+void __lockfunc _##op##_lock_irq(locktype##_t *lock)			\
-+{									\
-+	__##op##_lock_irq(lock);					\
-+}									\
-+EXPORT_SYMBOL(_##op##_lock_irq);					\
-+									\
-+void __lockfunc _##op##_lock_bh(locktype##_t *lock)			\
-+{									\
-+	__##op##_lock_bh(lock);						\
-+}									\
-+EXPORT_SYMBOL(_##op##_lock_bh)
- 
- #else /* CONFIG_PREEMPT: */
- 
-@@ -128,7 +95,7 @@ EXPORT_SYMBOL(_write_lock);
-  * (We do this in a function because inlining it would be excessive.)
-  */
- 
--#define BUILD_LOCK_OPS(op, locktype)					\
-+#define BUILD_LOCK_OPS_DEP(op, locktype)				\
- void __lockfunc _##op##_lock(locktype##_t *lock)			\
++#ifndef CONFIG_SPINLOCK_INLINE
++
+ #define BUILD_LOCK_OPS_COMMON(op, locktype)				\
+ int __lockfunc _##op##_trylock(locktype##_t *lock)			\
  {									\
- 	for (;;) {							\
-@@ -193,21 +160,29 @@ void __lockfunc _##op##_lock_bh(locktype
- 									\
- EXPORT_SYMBOL(_##op##_lock_bh)
+@@ -223,6 +225,8 @@ int __lockfunc _spin_trylock_bh(spinlock
+ }
+ EXPORT_SYMBOL(_spin_trylock_bh);
  
-+#endif /* CONFIG_PREEMPT */
++#endif /* CONFIG_HAVE_SPINLOCK_INLINE_SUPPORT */
 +
-+#define BUILD_LOCK_OPS(op, locktype)		\
-+	BUILD_LOCK_OPS_COMMON(op, locktype);	\
-+	BUILD_LOCK_OPS_DEP(op, locktype);
-+
- /*
-- * Build preemption-friendly versions of the following
-- * lock-spinning functions:
-+ * Build versions of the following lock-spinning functions:
-  *
-  *         _[spin|read|write]_lock()
-  *         _[spin|read|write]_lock_irq()
-  *         _[spin|read|write]_lock_irqsave()
-  *         _[spin|read|write]_lock_bh()
-+ *         _[spin|read|write]_trylock()
-+ *         _[spin|read|write]_unlock()
-+ *         _[spin|read|write]_unlock_irq()
-+ *         _[spin|read|write]_unlock_irqrestore()
-+ *         _[spin|read|write]_unlock_bh()
-  */
- BUILD_LOCK_OPS(spin, spinlock);
- BUILD_LOCK_OPS(read, rwlock);
- BUILD_LOCK_OPS(write, rwlock);
- 
--#endif /* CONFIG_PREEMPT */
--
- #ifdef CONFIG_DEBUG_LOCK_ALLOC
- 
- void __lockfunc _spin_lock_nested(spinlock_t *lock, int subclass)
-@@ -242,78 +217,6 @@ EXPORT_SYMBOL(_spin_lock_nest_lock);
- 
- #endif
- 
--void __lockfunc _spin_unlock(spinlock_t *lock)
--{
--	__spin_unlock(lock);
--}
--EXPORT_SYMBOL(_spin_unlock);
--
--void __lockfunc _write_unlock(rwlock_t *lock)
--{
--	__write_unlock(lock);
--}
--EXPORT_SYMBOL(_write_unlock);
--
--void __lockfunc _read_unlock(rwlock_t *lock)
--{
--	__read_unlock(lock);
--}
--EXPORT_SYMBOL(_read_unlock);
--
--void __lockfunc _spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags)
--{
--	__spin_unlock_irqrestore(lock, flags);
--}
--EXPORT_SYMBOL(_spin_unlock_irqrestore);
--
--void __lockfunc _spin_unlock_irq(spinlock_t *lock)
--{
--	__spin_unlock_irq(lock);
--}
--EXPORT_SYMBOL(_spin_unlock_irq);
--
--void __lockfunc _spin_unlock_bh(spinlock_t *lock)
--{
--	__spin_unlock_bh(lock);
--}
--EXPORT_SYMBOL(_spin_unlock_bh);
--
--void __lockfunc _read_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
--{
--	__read_unlock_irqrestore(lock, flags);
--}
--EXPORT_SYMBOL(_read_unlock_irqrestore);
--
--void __lockfunc _read_unlock_irq(rwlock_t *lock)
--{
--	__read_unlock_irq(lock);
--}
--EXPORT_SYMBOL(_read_unlock_irq);
--
--void __lockfunc _read_unlock_bh(rwlock_t *lock)
--{
--	__read_unlock_bh(lock);
--}
--EXPORT_SYMBOL(_read_unlock_bh);
--
--void __lockfunc _write_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
--{
--	__write_unlock_irqrestore(lock, flags);
--}
--EXPORT_SYMBOL(_write_unlock_irqrestore);
--
--void __lockfunc _write_unlock_irq(rwlock_t *lock)
--{
--	__write_unlock_irq(lock);
--}
--EXPORT_SYMBOL(_write_unlock_irq);
--
--void __lockfunc _write_unlock_bh(rwlock_t *lock)
--{
--	__write_unlock_bh(lock);
--}
--EXPORT_SYMBOL(_write_unlock_bh);
--
- int __lockfunc _spin_trylock_bh(spinlock_t *lock)
+ notrace int in_lock_functions(unsigned long addr)
  {
- 	return __spin_trylock_bh(lock);
+ 	/* Linker adds these: start and end of __lockfunc functions */
 
 -- 
