@@ -1,52 +1,52 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [patch 0/4] Allow inlined spinlocks again V2
-Date: Tue, 11 Aug 2009 15:00:49 +0200
-Message-ID: <1249995649.10001.6.camel@twins>
-References: <20090811124756.873490673@de.ibm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [patch 2/4] spinlock: add macro to generate out-of-line variants
+Date: Tue, 11 Aug 2009 15:25:26 +0200
+Message-ID: <200908111525.26379.arnd@arndb.de>
+References: <20090811124756.873490673@de.ibm.com> <20090811124912.494596235@de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from viefep12-int.chello.at ([62.179.121.32]:22425 "EHLO
-	viefep12-int.chello.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753911AbZHKNBO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Aug 2009 09:01:14 -0400
-In-Reply-To: <20090811124756.873490673@de.ibm.com>
+Received: from moutng.kundenserver.de ([212.227.126.186]:57634 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752986AbZHKNZh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Aug 2009 09:25:37 -0400
+In-Reply-To: <20090811124912.494596235@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, David Miller <davem@davemloft.net>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-On Tue, 2009-08-11 at 14:47 +0200, Heiko Carstens wrote:
-> This patch set allows to have inlined spinlocks again.
+On Tuesday 11 August 2009, Heiko Carstens wrote:
+> Since the bodies of the spinlock functions are in a header
+> file most functions in spinlock.c look like this:
 > 
-> V2: rewritten from scratch - now with readable code
+> int __lockfunc _spin_trylock(spinlock_t *lock)
+> {
+>         return __spin_trylock(lock);
+> }
+> EXPORT_SYMBOL(_spin_trylock);
 > 
-> The rationale behind this is that function calls on at least s390 are
-> expensive.
+> That's just a simple wrapper. Its the same for spin-,
+> read- and write-lock. So add an extra macro and generate
+> all versions automatically like it is already done for
+> the preemption friendly locks.
 > 
-> If one considers that server kernels are usually compiled with
-> !CONFIG_PREEMPT a simple spin_lock is just a compare and swap loop.
-> The extra overhead for a function call is significant.
-> With inlined spinlocks overall cpu usage gets reduced by 1%-5% on s390.
-> These numbers were taken with some network benchmarks. However I expect
-> any workload that calls frequently into the kernel and which grabs a few
-> locks to perform better.
-> 
-> The implementation is straight forward: move the function bodies of the
-> locking functions to static inline functions and place them in a header
-> file.
-> Dependent on CONFIG_SPINLOCK_INLINE generate out-of-line or inlined
-> locking functions.
-> 
-> The patches should be self explaining.
+> Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 
-These look lots better than the previous series ;-)
+If you generate function definitions from macros, you break
+ctags support for following the call chain, which is rather
+bad when someone tries to understand what the code does.
 
-Given that you've got a significant performance gain from this and it
-doesn't look too horrible anymore,
+I would just leave out this patch, AFAICT there are no
+dependencies between this and the following patches,
+and the object code remains identical.
 
-Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Alternatively, you could perhaps change scripts/tags.sh so
+that the tags file points to the macro location for
+each _spin_* function.
 
-IIRC sparc64 also has a funny calling convention, so it might be of
-interest to DaveM as well.
+The other patches look good.
+
+	Arnd <><
