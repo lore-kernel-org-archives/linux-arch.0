@@ -1,76 +1,147 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [RFC PATCH] ia64: convert to dynamic percpu allocator
-Date: Wed, 12 Aug 2009 15:56:05 +0900
-Message-ID: <4A826785.4000509@kernel.org>
-References: <4A65B0AB.5000608@kernel.org> <A6AD88C3F2289247BE726C37303E1EB8B097D4C5@orsmsx505.amr.corp.intel.com> <4A663DC7.4060600@kernel.org> <A6AD88C3F2289247BE726C37303E1EB8B0A9115B@orsmsx505.amr.corp.intel.com> <4A695897.2020902@kernel.org> <A6AD88C3F2289247BE726C37303E1EB8B3A85355@orsmsx505.amr.corp.intel.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: [patch 2/3] spinlock: allow inlined spinlocks
+Date: Wed, 12 Aug 2009 20:39:36 +0200
+Message-ID: <20090812184025.269813346@de.ibm.com>
+References: <20090812183934.777715527@de.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:35344 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753051AbZHLG4H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 Aug 2009 02:56:07 -0400
-In-Reply-To: <A6AD88C3F2289247BE726C37303E1EB8B3A85355@orsmsx505.amr.corp.intel.com>
+Received: from mtagate2.uk.ibm.com ([194.196.100.162]:40041 "EHLO
+	mtagate2.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751290AbZHLSk0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Aug 2009 14:40:26 -0400
+Received: from d06nrmr1707.portsmouth.uk.ibm.com (d06nrmr1707.portsmouth.uk.ibm.com [9.149.39.225])
+	by mtagate2.uk.ibm.com (8.13.1/8.13.1) with ESMTP id n7CIeRtU028752
+	for <linux-arch@vger.kernel.org>; Wed, 12 Aug 2009 18:40:27 GMT
+Received: from d06av02.portsmouth.uk.ibm.com (d06av02.portsmouth.uk.ibm.com [9.149.37.228])
+	by d06nrmr1707.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7CIeR651384538
+	for <linux-arch@vger.kernel.org>; Wed, 12 Aug 2009 19:40:27 +0100
+Received: from d06av02.portsmouth.uk.ibm.com (loopback [127.0.0.1])
+	by d06av02.portsmouth.uk.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7CIeQUj015341
+	for <linux-arch@vger.kernel.org>; Wed, 12 Aug 2009 19:40:27 +0100
+Content-Disposition: inline; filename=02_spinlock_inline.diff
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Yu, Fenghua" <fenghua.yu@intel.com>
-Cc: "Luck, Tony" <tony.luck@intel.com>, 'lkml' <linux-kernel@vger.kernel.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-ia64@vger.kernel.org'" <linux-ia64@vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Horst Hartmann <horsth@linux.vnet.ibm.com>, Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>
 
-Yu, Fenghua wrote:
->> Yu, Fenghua wrote:
->>
->>> After cloning from
->>> git://git.kernel.org/pub/scm/linux/kernel/git/tj/percpu.git, kernel
->>> built with CONFIG_DISCONTIGMEM=y boots ok.
->>>
->>> After pulling from review-ia64, kernel built with
->>> CONFIG_DISCONTIGMEM=y can not boot on ia64. After loading kernel and
->>> initrd, system hangs and doesn't show anything on serial port.
->> Heh, I didn't really expect it to work that easily either.  The code
->> builds but is completely untested (I can't test them).  Can you try to
->> track it down?  Serial console should be up and running at that point,
->> no?
->>
->> Thanks.
-> 
-> IA64 kernel boots hit this in mm/percpu.c
-> BUG_ON(ai->unit_size < size_sum);
-> ai->unit_size is PERCPU_PAGE_SIZE which is 64K on IA64. size_sum is
-> relatively smaller than 64K.
-> 
-> Will you define PERCPU_DYNAMIC_RESERVE and PERCPU_MODULE_RESERVE as
-> PAGE_SIZE or the bigger one between the current definition and
-> PAGE_SIZE?
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
 
-Hmmm...
+Add new config option SPINLOCK_INLINE and some defines which depend
+on it in order to generate inlined spinlock code instead of out-of-line
+code.
+Avoiding function calls for spinlocks gives 1%-5% less cpu usage on
+network benchmarks on s390.
 
-* Is ai->reserved_size necessary for ia64?  This is necessary if
-  there's linking range restriction when loading modules.
-  ai->reserved_size guarantees that all static module percpu variables
-  are allocated in the first chunk which will be in the linear address
-  range and very close to __per_cpu_start.  If ai->reserved_size is
-  not set, these areas are likely to end up high in the vmalloc area.
+Architectures must select HAVE_SPINLOCK_INLINE_SUPPORT to enable this
+config option.
 
-  For example, x86_64 assumes 32bit relocations should be enough to
-  link module symbols and thus needs to set reserved_size but x86_32
-  can link to the whole 32bit space and thus can leave reserved_size
-  at zero.
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+---
+ include/linux/spinlock_api_smp.h |   35 +++++++++++++++++++++++++++++++++++
+ kernel/spinlock.c                |    4 ++++
+ lib/Kconfig.debug                |   14 ++++++++++++++
+ 3 files changed, 53 insertions(+)
 
-* After determining the above, we can set ai->dyn_size to be
-
-  ai->dyn_size = min(ai->unit_size - ai->static_size - ai->reserved_size,
-		     PERCPU_DYNAMIC_RESERVE);
-
-Would the above work?
-
-> Even with the above PAGE_SIZE changes, the kernel still reports
-> warning from 952: WARN_ON(chunk->immutable) and then panic.
-
-Hah... strange.  Can you please attach full boot log?  This is
-dicontig configuration, right?
-
-Thanks.
+Index: linux-2.6/include/linux/spinlock_api_smp.h
+===================================================================
+--- linux-2.6.orig/include/linux/spinlock_api_smp.h
++++ linux-2.6/include/linux/spinlock_api_smp.h
+@@ -19,6 +19,8 @@ int in_lock_functions(unsigned long addr
+ 
+ #define assert_spin_locked(x)	BUG_ON(!spin_is_locked(x))
+ 
++#ifndef CONFIG_SPINLOCK_INLINE
++
+ void __lockfunc _spin_lock(spinlock_t *lock)		__acquires(lock);
+ void __lockfunc _spin_lock_nested(spinlock_t *lock, int subclass)
+ 							__acquires(lock);
+@@ -60,6 +62,39 @@ void __lockfunc _read_unlock_irqrestore(
+ void __lockfunc _write_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
+ 							__releases(lock);
+ 
++#else /* CONFIG_HAVE_SPINLOCK_INLINE_SUPPORT */
++
++#define _spin_trylock(lock)	  __spin_trylock(lock)
++#define _read_trylock(lock)	  __read_trylock(lock)
++#define _write_trylock(lock)	  __write_trylock(lock)
++#define _read_lock(lock)	  __read_lock(lock)
++#define _spin_lock_irqsave(lock)  __spin_lock_irqsave(lock)
++#define _spin_lock_irq(lock)	  __spin_lock_irq(lock)
++#define _spin_lock_bh(lock)	  __spin_lock_bh(lock)
++#define _read_lock_irqsave(lock)  __read_lock_irqsave(lock)
++#define _read_lock_irq(lock)	  __read_lock_irq(lock)
++#define _read_lock_bh(lock)	  __read_lock_bh(lock)
++#define _write_lock_irqsave(lock) __write_lock_irqsave(lock)
++#define _write_lock_irq(lock)	  __write_lock_irq(lock)
++#define _write_lock_bh(lock)	  __write_lock_bh(lock)
++#define _spin_lock(lock)	  __spin_lock(lock)
++#define _write_lock(lock)	  __write_lock(lock)
++#define _spin_unlock(lock)	  __spin_unlock(lock)
++#define _write_unlock(lock)	  __write_unlock(lock)
++#define _read_unlock(lock)	  __read_unlock(lock)
++#define _spin_unlock_irq(lock)	  __spin_unlock_irq(lock)
++#define _spin_unlock_bh(lock)	  __spin_unlock_bh(lock)
++#define _read_unlock_irq(lock)	  __read_unlock_irq(lock)
++#define _read_unlock_bh(lock)	  __read_unlock_bh(lock)
++#define _write_unlock_irq(lock)	  __write_unlock_irq(lock)
++#define _write_unlock_bh(lock)	  __write_unlock_bh(lock)
++#define _spin_trylock_bh(lock)	  __spin_trylock_bh(lock)
++#define _spin_unlock_irqrestore(lock, flags)  __spin_unlock_irqrestore(lock, flags)
++#define _read_unlock_irqrestore(lock, flags)  __read_unlock_irqrestore(lock, flags)
++#define _write_unlock_irqrestore(lock, flags) __write_unlock_irqrestore(lock, flags)
++
++#endif /* CONFIG_HAVE_SPINLOCK_INLINE_SUPPORT */
++
+ static inline int __spin_trylock(spinlock_t *lock)
+ {
+ 	preempt_disable();
+Index: linux-2.6/lib/Kconfig.debug
+===================================================================
+--- linux-2.6.orig/lib/Kconfig.debug
++++ linux-2.6/lib/Kconfig.debug
+@@ -879,6 +879,20 @@ config SYSCTL_SYSCALL_CHECK
+ 	  to properly maintain and use. This enables checks that help
+ 	  you to keep things correct.
+ 
++config HAVE_SPINLOCK_INLINE_SUPPORT
++	bool
++
++config SPINLOCK_INLINE
++	bool "Inline spinlock code"
++	depends on HAVE_SPINLOCK_INLINE_SUPPORT
++	depends on !DEBUG_SPINLOCK
++	depends on SMP && !PREEMPT
++	help
++	  Select this option if you want to have inlined spinlock code instead
++	  of an out of line implementation.
++	  This will generate a larger kernel image. On some architectures this
++	  increases performance.
++
+ source mm/Kconfig.debug
+ source kernel/trace/Kconfig
+ 
+Index: linux-2.6/kernel/spinlock.c
+===================================================================
+--- linux-2.6.orig/kernel/spinlock.c
++++ linux-2.6/kernel/spinlock.c
+@@ -21,6 +21,8 @@
+ #include <linux/debug_locks.h>
+ #include <linux/module.h>
+ 
++#ifndef CONFIG_SPINLOCK_INLINE
++
+ int __lockfunc _spin_trylock(spinlock_t *lock)
+ {
+ 	return __spin_trylock(lock);
+@@ -320,6 +322,8 @@ int __lockfunc _spin_trylock_bh(spinlock
+ }
+ EXPORT_SYMBOL(_spin_trylock_bh);
+ 
++#endif /* CONFIG_HAVE_SPINLOCK_INLINE_SUPPORT */
++
+ notrace int in_lock_functions(unsigned long addr)
+ {
+ 	/* Linker adds these: start and end of __lockfunc functions */
 
 -- 
-tejun
