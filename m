@@ -1,44 +1,56 @@
 From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [patch 0/3] Allow inlined spinlocks again V3
-Date: Sun, 16 Aug 2009 22:36:50 +0200
-Message-ID: <20090816203650.GB27764@elte.hu>
-References: <alpine.LFD.2.01.0908140840540.3162@localhost.localdomain> <20090814171308.GA4906@osiris.boeblingen.de.ibm.com> <alpine.LFD.2.01.0908141105230.3162@localhost.localdomain> <20090814.131900.229343660.davem@davemloft.net> <alpine.LFD.2.01.0908141345000.3162@localhost.localdomain> <alpine.LFD.2.01.0908141350420.3162@localhost.localdomain> <20090816182733.GB5808@osiris.boeblingen.de.ibm.com> <alpine.LFD.2.01.0908161143410.3162@localhost.localdomain>
+Subject: Re: [patch 2/3] spinlock: allow inlined spinlocks
+Date: Sun, 16 Aug 2009 22:48:31 +0200
+Message-ID: <20090816204831.GA23773@elte.hu>
+References: <20090814125801.881618121@de.ibm.com> <20090814125857.181021997@de.ibm.com> <20090816175750.GA5808@osiris.boeblingen.de.ibm.com> <20090816180631.GA23448@elte.hu> <20090816184458.GC5808@osiris.boeblingen.de.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:46796 "EHLO mx3.mail.elte.hu"
+Received: from mx2.mail.elte.hu ([157.181.151.9]:36231 "EHLO mx2.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755884AbZHPUhI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 16 Aug 2009 16:37:08 -0400
+	id S1756029AbZHPUso (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 16 Aug 2009 16:48:44 -0400
 Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.01.0908161143410.3162@localhost.localdomain>
+In-Reply-To: <20090816184458.GC5808@osiris.boeblingen.de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, David Miller <davem@davemloft.net>, akpm@linux-foundation.org, a.p.zijlstra@chello.nl, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, arnd@arndb.de, horsth@linux.vnet.ibm.com, ehrhardt@linux.vnet.ibm.com
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Horst Hartmann <horsth@linux.vnet.ibm.com>, Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>, Nick Piggin <nickpiggin@yahoo.com.au>
 
 
-* Linus Torvalds <torvalds@linux-foundation.org> wrote:
+* Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
 
-> On Sun, 16 Aug 2009, Heiko Carstens wrote:
+> On Sun, Aug 16, 2009 at 08:06:31PM +0200, Ingo Molnar wrote:
+> > * Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
+> > > > #define __spin_lock_is_small
 > > 
-> > An allyesconfig (CONFIG_FTRACE disabled) on x86_64 with gcc 
-> > 4.3.2 results in the following vmlinux sizes:
+> > > > +unsigned long __lockfunc _spin_lock_irqsave_nested(spinlock_t *lock, int subclass)
+> > > > +							__acquires(lock);
+> > > > +
+> > > > +#ifdef __spin_lock_is_small
+> > > > +#define _spin_lock(lock) __spin_lock(lock)
+> > > > +#else
+> > > > +void __lockfunc _spin_lock(spinlock_t *lock)		__acquires(lock);
+> > > > +#endif
 > > 
-> > 574152755 2009-08-16 20:05 vmlinux-orig
-> > 574862000 2009-08-16 20:13 vmlinux-skb-inline
+> > Dunno - i'm somewhat wary of introducing a 2^28 variability here. 
+> > (although the number of real variations is much lower - but still).
+> > 
+> > What's the current situation on s390, precisely which of the 28 lock 
+> > functions are a win to be inlined and which ones are a loss? Do you 
+> > have a list/table perhaps?
 > 
-> It's more relevant to look at just code size. BUG_ON() has more of 
-> an impact on data sizes, because it does something like 10-12 
-> bytes of exception data for each bug-on. But that exception data 
-> is out-of-line and not interesting.
-> 
-> If the code size blows up a lot, that's worse than if the data 
-> size expands a bit.
+> No list unfortunately. [...]
 
-Also, allyesconfig isnt really relevant to inlining cost in general 
-as it enables everything. The defconfigs are better (at least on 
-x86) because they tend to be some distro-alike config - i.e. they 
-are closer to what most Linux users will run in the end.
+Well, if you dont know the functions you want to inline, how will 
+you make intelligent use of this facility then in s390?
+
+Btw., i just noticed that s390 has CONFIG_PREEMPT turned on by 
+default in its defconfig. Have you made your measurements with 
+CONFIG_PREEMPT? If yes then the current inlining rules in spinlock.h 
+will turn all the locking APIs into functions.
+
+Could you perhaps re-try your measurements with CONFIG_PREEMPT 
+turned off? I suspect you'll see different behavior.
 
 	Ingo
