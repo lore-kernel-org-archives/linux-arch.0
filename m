@@ -1,181 +1,100 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [patch 0/3] Allow inlined spinlocks again V3
-Date: Sun, 16 Aug 2009 20:27:33 +0200
-Message-ID: <20090816182733.GB5808@osiris.boeblingen.de.ibm.com>
-References: <alpine.LFD.2.01.0908140840540.3162@localhost.localdomain>
- <20090814171308.GA4906@osiris.boeblingen.de.ibm.com>
- <alpine.LFD.2.01.0908141105230.3162@localhost.localdomain>
- <20090814.131900.229343660.davem@davemloft.net>
- <alpine.LFD.2.01.0908141345000.3162@localhost.localdomain>
- <alpine.LFD.2.01.0908141350420.3162@localhost.localdomain>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [patch 2/3] spinlock: allow inlined spinlocks
+Date: Sun, 16 Aug 2009 11:43:03 -0700 (PDT)
+Message-ID: <alpine.LFD.2.01.0908161123250.3162@localhost.localdomain>
+References: <20090814125801.881618121@de.ibm.com> <20090814125857.181021997@de.ibm.com> <20090816175750.GA5808@osiris.boeblingen.de.ibm.com> <20090816180631.GA23448@elte.hu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate4.uk.ibm.com ([195.212.29.137]:45983 "EHLO
-	mtagate4.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753642AbZHPS1o (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Aug 2009 14:27:44 -0400
-Received: from d06nrmr1407.portsmouth.uk.ibm.com (d06nrmr1407.portsmouth.uk.ibm.com [9.149.38.185])
-	by mtagate4.uk.ibm.com (8.14.3/8.13.8) with ESMTP id n7GIRYfr159160
-	for <linux-arch@vger.kernel.org>; Sun, 16 Aug 2009 18:27:34 GMT
-Received: from d06av02.portsmouth.uk.ibm.com (d06av02.portsmouth.uk.ibm.com [9.149.37.228])
-	by d06nrmr1407.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7GIRYBd1818848
-	for <linux-arch@vger.kernel.org>; Sun, 16 Aug 2009 19:27:34 +0100
-Received: from d06av02.portsmouth.uk.ibm.com (loopback [127.0.0.1])
-	by d06av02.portsmouth.uk.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7GIRX7q031635
-	for <linux-arch@vger.kernel.org>; Sun, 16 Aug 2009 19:27:34 +0100
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.01.0908141350420.3162@localhost.localdomain>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:59091 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751846AbZHPSnc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 16 Aug 2009 14:43:32 -0400
+In-Reply-To: <20090816180631.GA23448@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: David Miller <davem@davemloft.net>, akpm@linux-foundation.org, a.p.zijlstra@chello.nl, mingo@elte.hu, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, arnd@arndb.de, horsth@linux.vnet.ibm.com, ehrhardt@linux.vnet.ibm.com
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Horst Hartmann <horsth@linux.vnet.ibm.com>, Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>, Nick Piggin <nickpiggin@yahoo.com.au>
 
-On Fri, Aug 14, 2009 at 02:10:45PM -0700, Linus Torvalds wrote:
-> On Fri, 14 Aug 2009, Linus Torvalds wrote:
-> > 
-> > But not inline in the code, though. So yeah, it has a memory footprint, 
-> > but shouldn't have a cache footprint.
+
+
+On Sun, 16 Aug 2009, Ingo Molnar wrote:
 > 
-> An example of this: stack usage. This is the code with BUG_ON():
-> 
-> 	skb_push:
-> 		push   %rbp
-> 		mov    %esi,%eax
-> 		add    %esi,0x68(%rdi)
-> 		neg    %rax
-> 		mov    %rsp,%rbp
-> 		add    0xd8(%rdi),%rax
-> 		mov    %rax,0xd8(%rdi)
-> 		cmp    0xd0(%rdi),%rax
-> 		jae    2f
-> 		ud2a   
-> 	1:	jmp    1b
-> 	2:	leaveq 
-> 		retq   
+> What's the current situation on s390, precisely which of the 28 lock 
+> functions are a win to be inlined and which ones are a loss? Do you 
+> have a list/table perhaps?
 
-An allyesconfig (CONFIG_FTRACE disabled) on x86_64 with gcc 4.3.2 results in
-the following vmlinux sizes:
+Let's look at x86 instead. 
 
-574152755 2009-08-16 20:05 vmlinux-orig
-574862000 2009-08-16 20:13 vmlinux-skb-inline
+The one I can _guarantee_ is worth inlining is "spin_unlock()", since it 
+just generates a single "incb %m" or whatever. No loops, no conditionals, 
+no nuthing. It's not even a locked instruction. Right now we literally 
+generate this function for it:
 
-The skb-inline variant was created by using your patch and on top of it the
-patch below. Size increased by 692KB (0.12%).
+	0xffffffff81420d74 <_spin_unlock+0>:	push   %rbp
+	0xffffffff81420d75 <_spin_unlock+1>:	mov    %rsp,%rbp
+	0xffffffff81420d78 <_spin_unlock+4>:	incb   (%rdi)
+	0xffffffff81420d7a <_spin_unlock+6>:	leaveq 
+	0xffffffff81420d7b <_spin_unlock+7>:	retq   
 
-Dunno.. is that acceptable?
+iow, the actual "bulk" of that function is a single two-byte instruction. 
+And for that we generate a whole 5-byte "call" instruction, along with all 
+the costs of fixed register scheduling and stupid spilling etc.
 
----
- include/linux/skbuff.h |   35 +++++++++++++++++++++++++++++++++--
- net/core/skbuff.c      |   38 --------------------------------------
- 2 files changed, 33 insertions(+), 40 deletions(-)
+read_unlock and write_unlock are similar, and are
 
-Index: linux-2.6/include/linux/skbuff.h
-===================================================================
---- linux-2.6.orig/include/linux/skbuff.h
-+++ linux-2.6/include/linux/skbuff.h
-@@ -1116,7 +1116,6 @@ static inline void skb_set_tail_pointer(
- /*
-  *	Add data to an sk_buff
-  */
--extern unsigned char *skb_put(struct sk_buff *skb, unsigned int len);
- static inline unsigned char *__skb_put(struct sk_buff *skb, unsigned int len)
- {
- 	unsigned char *tmp = skb_tail_pointer(skb);
-@@ -1126,7 +1125,23 @@ static inline unsigned char *__skb_put(s
- 	return tmp;
- }
- 
--extern unsigned char *skb_push(struct sk_buff *skb, unsigned int len);
-+/**
-+ *	skb_put - add data to a buffer
-+ *	@skb: buffer to use
-+ *	@len: amount of data to add
-+ *
-+ *	This function extends the used data area of the buffer. If this would
-+ *	exceed the total buffer size the kernel will panic. A pointer to the
-+ *	first byte of the extra data is returned.
-+ */
-+static inline unsigned char *skb_put(struct sk_buff *skb, unsigned int len)
-+{
-+	unsigned char *tmp = __skb_put(skb, len);
-+
-+	BUG_ON(skb->tail > skb->end);
-+	return tmp;
-+}
-+
- static inline unsigned char *__skb_push(struct sk_buff *skb, unsigned int len)
- {
- 	skb->data -= len;
-@@ -1134,6 +1149,22 @@ static inline unsigned char *__skb_push(
- 	return skb->data;
- }
- 
-+/**
-+ *	skb_push - add data to the start of a buffer
-+ *	@skb: buffer to use
-+ *	@len: amount of data to add
-+ *
-+ *	This function extends the used data area of the buffer at the buffer
-+ *	start. If this would exceed the total buffer headroom the kernel will
-+ *	panic. A pointer to the first byte of the extra data is returned.
-+ */
-+static inline unsigned char *skb_push(struct sk_buff *skb, unsigned int len)
-+{
-+	__skb_push(skb, len);
-+	BUG_ON(skb->data < skb->head);
-+	return skb->data;
-+}
-+
- extern unsigned char *skb_pull(struct sk_buff *skb, unsigned int len);
- static inline unsigned char *__skb_pull(struct sk_buff *skb, unsigned int len)
- {
-Index: linux-2.6/net/core/skbuff.c
-===================================================================
---- linux-2.6.orig/net/core/skbuff.c
-+++ linux-2.6/net/core/skbuff.c
-@@ -955,44 +955,6 @@ free_skb:
- EXPORT_SYMBOL(skb_pad);
- 
- /**
-- *	skb_put - add data to a buffer
-- *	@skb: buffer to use
-- *	@len: amount of data to add
-- *
-- *	This function extends the used data area of the buffer. If this would
-- *	exceed the total buffer size the kernel will panic. A pointer to the
-- *	first byte of the extra data is returned.
-- */
--unsigned char *skb_put(struct sk_buff *skb, unsigned int len)
--{
--	unsigned char *tmp = skb_tail_pointer(skb);
--	SKB_LINEAR_ASSERT(skb);
--	skb->tail += len;
--	skb->len  += len;
--	BUG_ON(skb->tail > skb->end);
--	return tmp;
--}
--EXPORT_SYMBOL(skb_put);
--
--/**
-- *	skb_push - add data to the start of a buffer
-- *	@skb: buffer to use
-- *	@len: amount of data to add
-- *
-- *	This function extends the used data area of the buffer at the buffer
-- *	start. If this would exceed the total buffer headroom the kernel will
-- *	panic. A pointer to the first byte of the extra data is returned.
-- */
--unsigned char *skb_push(struct sk_buff *skb, unsigned int len)
--{
--	skb->data -= len;
--	skb->len  += len;
--	BUG_ON(skb->data < skb->head);
--	return skb->data;
--}
--EXPORT_SYMBOL(skb_push);
--
--/**
-  *	skb_pull - remove data from the start of a buffer
-  *	@skb: buffer to use
-  *	@len: amount of data to remove
+	lock incl (%rdi)	// 3 bytes
+
+and
+
+	lock addl $0x1000000,(%rdi)	// 7 bytes
+
+respectively. At 7 bytes, write_unlock() is still likely to be smaller 
+inlined (because you avoid the register games).
+
+Other cases on x86 that would be smaller in-lined:
+
+ - _spin_unlock_irq: 3 bytes
+
+	incb   (%rdi)
+	sti
+
+ - _spin_unlock_irqrestore: 4 bytes
+
+	incb   (%rdi)
+	push   %rsi
+	popfq
+
+ - _read_unlock_irq/_read_unlock_irqrestore (4 and 5 bytes respectively):
+
+	lock incl (%rdi)
+	sti / push+popfq
+
+but not, for example, any of the locking functions, nor any of the "_bh" 
+versions (because local_bh_enable ends up pretty complicated, unlike 
+local_bh_disable). Nor even perhaps
+
+ - _write_unlock_irqrestore: (9 bytes)
+
+	lock addl $0x1000000,(%rdi)
+	push   %rsi
+	popfq
+
+which is starting to get to the point where a call _may_ be smaller 
+(largely due to that big constant).
+
+And '_spin_lock()' is already too big to inline:
+
+	mov	$0x100,%eax
+	lock xadd %ax,(%rdi)
+	cmp	%ah,%al
+	je	2f
+	pause
+	mov	(%rdi),%al
+	je	1b
+
+which is 20 bytes or so, and that's the simplest of the locking cases. So 
+you really do have a mix of "want to inline" and "do not want to inline".
+
+			Linus
