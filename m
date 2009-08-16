@@ -1,57 +1,39 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [patch 2/3] spinlock: allow inlined spinlocks
-Date: Sun, 16 Aug 2009 20:44:58 +0200
-Message-ID: <20090816184458.GC5808@osiris.boeblingen.de.ibm.com>
-References: <20090814125801.881618121@de.ibm.com>
- <20090814125857.181021997@de.ibm.com>
- <20090816175750.GA5808@osiris.boeblingen.de.ibm.com>
- <20090816180631.GA23448@elte.hu>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [patch 0/3] Allow inlined spinlocks again V3
+Date: Sun, 16 Aug 2009 11:45:33 -0700 (PDT)
+Message-ID: <alpine.LFD.2.01.0908161143410.3162@localhost.localdomain>
+References: <alpine.LFD.2.01.0908140840540.3162@localhost.localdomain> <20090814171308.GA4906@osiris.boeblingen.de.ibm.com> <alpine.LFD.2.01.0908141105230.3162@localhost.localdomain> <20090814.131900.229343660.davem@davemloft.net>
+ <alpine.LFD.2.01.0908141345000.3162@localhost.localdomain> <alpine.LFD.2.01.0908141350420.3162@localhost.localdomain> <20090816182733.GB5808@osiris.boeblingen.de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate3.de.ibm.com ([195.212.29.152]:42256 "EHLO
-	mtagate3.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750795AbZHPSpI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Aug 2009 14:45:08 -0400
-Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
-	by mtagate3.de.ibm.com (8.14.3/8.13.8) with ESMTP id n7GIix66041078
-	for <linux-arch@vger.kernel.org>; Sun, 16 Aug 2009 18:44:59 GMT
-Received: from d12av03.megacenter.de.ibm.com (d12av03.megacenter.de.ibm.com [9.149.165.213])
-	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7GIixgQ2330724
-	for <linux-arch@vger.kernel.org>; Sun, 16 Aug 2009 20:44:59 +0200
-Received: from d12av03.megacenter.de.ibm.com (loopback [127.0.0.1])
-	by d12av03.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7GIiwlW000666
-	for <linux-arch@vger.kernel.org>; Sun, 16 Aug 2009 20:44:59 +0200
-Content-Disposition: inline
-In-Reply-To: <20090816180631.GA23448@elte.hu>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:39207 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750795AbZHPSpw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 16 Aug 2009 14:45:52 -0400
+In-Reply-To: <20090816182733.GB5808@osiris.boeblingen.de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Horst Hartmann <horsth@linux.vnet.ibm.com>, Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>, Nick Piggin <nickpiggin@yahoo.com.au>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: David Miller <davem@davemloft.net>, akpm@linux-foundation.org, a.p.zijlstra@chello.nl, mingo@elte.hu, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, arnd@arndb.de, horsth@linux.vnet.ibm.com, ehrhardt@linux.vnet.ibm.com
 
-On Sun, Aug 16, 2009 at 08:06:31PM +0200, Ingo Molnar wrote:
-> * Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
-> > > #define __spin_lock_is_small
-> 
-> > > +unsigned long __lockfunc _spin_lock_irqsave_nested(spinlock_t *lock, int subclass)
-> > > +							__acquires(lock);
-> > > +
-> > > +#ifdef __spin_lock_is_small
-> > > +#define _spin_lock(lock) __spin_lock(lock)
-> > > +#else
-> > > +void __lockfunc _spin_lock(spinlock_t *lock)		__acquires(lock);
-> > > +#endif
-> 
-> Dunno - i'm somewhat wary of introducing a 2^28 variability here. 
-> (although the number of real variations is much lower - but still).
-> 
-> What's the current situation on s390, precisely which of the 28 lock 
-> functions are a win to be inlined and which ones are a loss? Do you 
-> have a list/table perhaps?
 
-No list unfortunately. However, the variants we really care about are
-only the spin_locks. The *try_lock variants are also not that important.
-So we end up with eight ifdefs (spin_lock/bh/irq/irq_save + unlock).
 
-I'll change the patches according to Linus' comments and send them
-again.
+On Sun, 16 Aug 2009, Heiko Carstens wrote:
+> 
+> An allyesconfig (CONFIG_FTRACE disabled) on x86_64 with gcc 4.3.2 results in
+> the following vmlinux sizes:
+> 
+> 574152755 2009-08-16 20:05 vmlinux-orig
+> 574862000 2009-08-16 20:13 vmlinux-skb-inline
+
+It's more relevant to look at just code size. BUG_ON() has more of an 
+impact on data sizes, because it does something like 10-12 bytes of 
+exception data for each bug-on. But that exception data is out-of-line and 
+not interesting.
+
+If the code size blows up a lot, that's worse than if the data size 
+expands a bit.
+
+			Linus
