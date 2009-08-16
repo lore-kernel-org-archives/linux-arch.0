@@ -1,66 +1,70 @@
-From: Ingo Molnar <mingo@elte.hu>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
 Subject: Re: [patch 2/3] spinlock: allow inlined spinlocks
-Date: Sun, 16 Aug 2009 23:18:24 +0200
-Message-ID: <20090816211824.GA32652@elte.hu>
-References: <20090814125801.881618121@de.ibm.com> <20090814125857.181021997@de.ibm.com> <20090816175750.GA5808@osiris.boeblingen.de.ibm.com> <20090816180631.GA23448@elte.hu> <alpine.LFD.2.01.0908161123250.3162@localhost.localdomain> <20090816202431.GA27764@elte.hu> <alpine.LFD.2.01.0908161406060.3162@localhost.localdomain>
+Date: Sun, 16 Aug 2009 23:33:43 +0200
+Message-ID: <20090816213343.GA4766@osiris.boeblingen.de.ibm.com>
+References: <20090814125801.881618121@de.ibm.com>
+ <20090814125857.181021997@de.ibm.com>
+ <20090816175750.GA5808@osiris.boeblingen.de.ibm.com>
+ <20090816180631.GA23448@elte.hu>
+ <20090816184458.GC5808@osiris.boeblingen.de.ibm.com>
+ <20090816204831.GA23773@elte.hu>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:33917 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751789AbZHPVSf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 16 Aug 2009 17:18:35 -0400
+Received: from mtagate1.de.ibm.com ([195.212.17.161]:52132 "EHLO
+	mtagate1.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751292AbZHPVdo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Aug 2009 17:33:44 -0400
+Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
+	by mtagate1.de.ibm.com (8.13.1/8.13.1) with ESMTP id n7GLXj22009968
+	for <linux-arch@vger.kernel.org>; Sun, 16 Aug 2009 21:33:45 GMT
+Received: from d12av03.megacenter.de.ibm.com (d12av03.megacenter.de.ibm.com [9.149.165.213])
+	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7GLXjFX2330712
+	for <linux-arch@vger.kernel.org>; Sun, 16 Aug 2009 23:33:45 +0200
+Received: from d12av03.megacenter.de.ibm.com (loopback [127.0.0.1])
+	by d12av03.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7GLXigF001899
+	for <linux-arch@vger.kernel.org>; Sun, 16 Aug 2009 23:33:44 +0200
 Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.01.0908161406060.3162@localhost.localdomain>
+In-Reply-To: <20090816204831.GA23773@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Horst Hartmann <horsth@linux.vnet.ibm.com>, Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>, Nick Piggin <nickpiggin@yahoo.com.au>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Horst Hartmann <horsth@linux.vnet.ibm.com>, Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>, Nick Piggin <nickpiggin@yahoo.com.au>
 
-
-* Linus Torvalds <torvalds@linux-foundation.org> wrote:
-
-> On Sun, 16 Aug 2009, Ingo Molnar wrote:
+On Sun, Aug 16, 2009 at 10:48:31PM +0200, Ingo Molnar wrote:
+> * Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
+> > On Sun, Aug 16, 2009 at 08:06:31PM +0200, Ingo Molnar wrote:
+> > > * Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
+> > > > > #define __spin_lock_is_small
+> > > 
+> > > > > +unsigned long __lockfunc _spin_lock_irqsave_nested(spinlock_t *lock, int subclass)
+> > > > > +							__acquires(lock);
+> > > > > +
+> > > > > +#ifdef __spin_lock_is_small
+> > > > > +#define _spin_lock(lock) __spin_lock(lock)
+> > > > > +#else
+> > > > > +void __lockfunc _spin_lock(spinlock_t *lock)		__acquires(lock);
+> > > > > +#endif
+> > > 
+> > > Dunno - i'm somewhat wary of introducing a 2^28 variability here. 
+> > > (although the number of real variations is much lower - but still).
+> > > 
+> > > What's the current situation on s390, precisely which of the 28 lock 
+> > > functions are a win to be inlined and which ones are a loss? Do you 
+> > > have a list/table perhaps?
 > > 
-> > We do that already for that reason:
+> > No list unfortunately. [...]
 > 
-> Ahh, we do. I was mislead by the fact that we still generate the 
-> out-of-line ones, even though we don't use them. Which is fine, of 
-> course.
-> 
-> It doesn't do the irqrestore versions, but that's probably not a 
-> big deal.
+> Well, if you dont know the functions you want to inline, how will
+> you make intelligent use of this facility then in s390?
 
-i remember having done gradual builds and turning the inlining of 
-various locking functions on/off to see how it impacts the text 
-size, so we were quite close to the optimal setup ... then. (two 
-years ago?)
+What I tried to say: in general we want to have all locking functions inlined.
+This is because all our measurements show if anything gets inlined performance
+improves. This is even true for large functions.
 
-But ... the fact that you didnt notice it shows that the inlining 
-decisions in spinlock.h are less than transparent and not really 
-cleanly done.
+> Btw., i just noticed that s390 has CONFIG_PREEMPT turned on by 
+> default in its defconfig. Have you made your measurements with 
+> CONFIG_PREEMPT? If yes then the current inlining rules in spinlock.h 
+> will turn all the locking APIs into functions.
 
-Even if we dont change a thing on the x86 side the s390 observations 
-are obviously valid, and Heiko's generalization looks more 
-maintainable in terms of tweakability, as it's per function granular 
-and per arch as well.
-
-OTOH, it needs some work: the CONFIG_PREEMPT and 
-CONFIG_DEBUG_SPINLOCKS dependency should be expressed too - and i 
-think CONFIG_PREEMPT is probably was bit s390.
-
-And at that point we've got 2^3 * 2^28 * 20 
-(configs*functions*archs) variants, and i feel a bit uneasy about 
-that kind of complexity (even if the typical cases will be much 
-simpler than that). We wont really get it fully right, we'll just 
-drown in that.
-
-Dammit, why cannot the compiler get this right, working it around in 
-the kernel source makes things so ugly :-(
-
-It's not rocket science to do a good inliner but IMO GCC messed 
-their design up on day one by separating the assembler from the C 
-compiler, hence their inliner cannot really know about how large 
-instructions are. Rather stupid IMHO.
-
-	Ingo
+All measurements were done with CONFIG_PREEMPT off.
