@@ -1,39 +1,63 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [patch 0/3] Allow inlined spinlocks again V3
-Date: Sun, 16 Aug 2009 11:45:33 -0700 (PDT)
-Message-ID: <alpine.LFD.2.01.0908161143410.3162@localhost.localdomain>
-References: <alpine.LFD.2.01.0908140840540.3162@localhost.localdomain> <20090814171308.GA4906@osiris.boeblingen.de.ibm.com> <alpine.LFD.2.01.0908141105230.3162@localhost.localdomain> <20090814.131900.229343660.davem@davemloft.net>
- <alpine.LFD.2.01.0908141345000.3162@localhost.localdomain> <alpine.LFD.2.01.0908141350420.3162@localhost.localdomain> <20090816182733.GB5808@osiris.boeblingen.de.ibm.com>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [patch 2/3] spinlock: allow inlined spinlocks
+Date: Sun, 16 Aug 2009 22:24:31 +0200
+Message-ID: <20090816202431.GA27764@elte.hu>
+References: <20090814125801.881618121@de.ibm.com> <20090814125857.181021997@de.ibm.com> <20090816175750.GA5808@osiris.boeblingen.de.ibm.com> <20090816180631.GA23448@elte.hu> <alpine.LFD.2.01.0908161123250.3162@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:39207 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750795AbZHPSpw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 16 Aug 2009 14:45:52 -0400
-In-Reply-To: <20090816182733.GB5808@osiris.boeblingen.de.ibm.com>
+Received: from mx3.mail.elte.hu ([157.181.1.138]:44077 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755498AbZHPUYo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 16 Aug 2009 16:24:44 -0400
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.01.0908161123250.3162@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: David Miller <davem@davemloft.net>, akpm@linux-foundation.org, a.p.zijlstra@chello.nl, mingo@elte.hu, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, arnd@arndb.de, horsth@linux.vnet.ibm.com, ehrhardt@linux.vnet.ibm.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Horst Hartmann <horsth@linux.vnet.ibm.com>, Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>, Nick Piggin <nickpiggin@yahoo.com.au>
 
 
+* Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-On Sun, 16 Aug 2009, Heiko Carstens wrote:
+> On Sun, 16 Aug 2009, Ingo Molnar wrote:
+> > 
+> > What's the current situation on s390, precisely which of the 28 lock 
+> > functions are a win to be inlined and which ones are a loss? Do you 
+> > have a list/table perhaps?
 > 
-> An allyesconfig (CONFIG_FTRACE disabled) on x86_64 with gcc 4.3.2 results in
-> the following vmlinux sizes:
+> Let's look at x86 instead. 
 > 
-> 574152755 2009-08-16 20:05 vmlinux-orig
-> 574862000 2009-08-16 20:13 vmlinux-skb-inline
+> The one I can _guarantee_ is worth inlining is "spin_unlock()", 
+> since it just generates a single "incb %m" or whatever. [...]
 
-It's more relevant to look at just code size. BUG_ON() has more of an 
-impact on data sizes, because it does something like 10-12 bytes of 
-exception data for each bug-on. But that exception data is out-of-line and 
-not interesting.
+We do that already for that reason:
 
-If the code size blows up a lot, that's worse than if the data size 
-expands a bit.
+/*
+ * We inline the unlock functions in the nondebug case:
+ */
+#if defined(CONFIG_DEBUG_SPINLOCK) || defined(CONFIG_PREEMPT) || \
+        !defined(CONFIG_SMP)
+# define spin_unlock(lock)              _spin_unlock(lock)
+# define read_unlock(lock)              _read_unlock(lock)
+# define write_unlock(lock)             _write_unlock(lock)
+# define spin_unlock_irq(lock)          _spin_unlock_irq(lock)
+# define read_unlock_irq(lock)          _read_unlock_irq(lock)
+# define write_unlock_irq(lock)         _write_unlock_irq(lock)
 
-			Linus
+this works fine here:
+
+ ffffffff8103d359 <finish_task_switch>:
+ ...
+ ffffffff8103d393:	fe 03                	incb   (%rbx)
+ ffffffff8103d395:	fb                   	sti    
+
+that's an inlined spin_unlock_irq() in finish_task_switch().
+
+We dont do this if DEBUG_SPINLOCK is defined (which bloats the 
+function) or if CONFIG_PREEMPT is defined.
+
+Maybe the latter case could be revised although generally it's not 
+worth inlining functions that also touch task-struct / threadinfo.
+
+	Ingo
