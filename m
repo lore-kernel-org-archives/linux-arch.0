@@ -1,47 +1,46 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [RFC PATCH] ia64: convert to dynamic percpu allocator
-Date: Wed, 19 Aug 2009 23:36:21 +0900
-Message-ID: <4A8C0DE5.302@kernel.org>
-References: <4A65B0AB.5000608@kernel.org> <A6AD88C3F2289247BE726C37303E1EB8B097D4C5@orsmsx505.amr.corp.intel.com> <4A663DC7.4060600@kernel.org> <A6AD88C3F2289247BE726C37303E1EB8B0A9115B@orsmsx505.amr.corp.intel.com> <4A695897.2020902@kernel.org> <A6AD88C3F2289247BE726C37303E1EB8B3A85355@orsmsx505.amr.corp.intel.com> <4A826785.4000509@kernel.org>
+From: james micheal <james@hotmail.com>
+Subject: (unknown)
+Date: Wed, 19 Aug 2009 07:47:31 -0500
+Message-ID: <20090819074731.kascjo3ha8w0s4kk__35843.0001688705$1250703537$gmane$org@201.219.3.37>
+Reply-To: red_dot_001serviceunit@9.cn
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain;
+	charset=ISO-8859-15;
+	DelSp="Yes";
+	format="flowed"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <4A826785.4000509@kernel.org>
-Sender: linux-ia64-owner@vger.kernel.org
-To: "Yu, Fenghua" <fenghua.yu@intel.com>
-Cc: "Luck, Tony" <tony.luck@intel.com>, 'lkml' <linux-kernel@vger.kernel.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-ia64@vger.kernel.org'" <linux-ia64@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from miduvi.gov.ec ([201.219.3.37]:47601 "EHLO miduvi.gov.ec"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751066AbZHSRil (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Aug 2009 13:38:41 -0400
+Subject: 
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-Tejun Heo wrote:
-> * Is ai->reserved_size necessary for ia64?  This is necessary if
->   there's linking range restriction when loading modules.
->   ai->reserved_size guarantees that all static module percpu variables
->   are allocated in the first chunk which will be in the linear address
->   range and very close to __per_cpu_start.  If ai->reserved_size is
->   not set, these areas are likely to end up high in the vmalloc area.
-> 
->   For example, x86_64 assumes 32bit relocations should be enough to
->   link module symbols and thus needs to set reserved_size but x86_32
->   can link to the whole 32bit space and thus can leave reserved_size
->   at zero.
-> 
-> * After determining the above, we can set ai->dyn_size to be
-> 
->   ai->dyn_size = min(ai->unit_size - ai->static_size - ai->reserved_size,
-> 		     PERCPU_DYNAMIC_RESERVE);
-> 
-> Would the above work?
-> 
->> Even with the above PAGE_SIZE changes, the kernel still reports
->> warning from 952: WARN_ON(chunk->immutable) and then panic.
-> 
-> Hah... strange.  Can you please attach full boot log?  This is
-> dicontig configuration, right?
 
-Any news?
 
-Thanks.
+We are happy to notify you that your e-mail address
+was selected which won you three hundred thousand dollars
+in our on-going 2009 award presentation.
+Your email was selected from the database of your
+email account provider which was pick-out after a
+random sampling. You were chosen by the Red Dot Company
+Board Committee as one of the recipients of this
+year award to celebrate the success of the Monetary
+and Fiscal year.
+To file for the claim of this award money you are
+therefore advice to reply back with your
+Name....
+Address....
+Occupation....
+phone number.......
+Country......
 
--- 
-tejun
+Upon your response we will give you more details
+on how you are to claim this award.
+Contact email: red_dot_001serviceunit@9.cn
+Regards
+Dr. James Micheal
+http://en.red-dot.org/
