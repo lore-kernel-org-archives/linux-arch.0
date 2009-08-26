@@ -1,303 +1,335 @@
-From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: [PATCH 1/4] tracing: Rename FTRACE_SYSCALLS for tracepoints
-Date: Wed, 26 Aug 2009 03:38:59 +0200
-Message-ID: <1251250742-6458-2-git-send-email-fweisbec@gmail.com>
-References: <1251250742-6458-1-git-send-email-fweisbec@gmail.com>
+From: "Chen Liqin (Gmail)" <liqin.gnu@gmail.com>
+Subject: [GIT PULL, v4] S+core architecture (arch/score) support
+Date: Wed, 26 Aug 2009 13:58:44 +0800
+Message-ID: <1251266324.16454.10.camel@ad3ser01>
+Mime-Version: 1.0
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ey-out-2122.google.com ([74.125.78.25]:57119 "EHLO
-	ey-out-2122.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932631AbZHZBjH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Aug 2009 21:39:07 -0400
-In-Reply-To: <1251250742-6458-1-git-send-email-fweisbec@gmail.com>
+Received: from mail-px0-f182.google.com ([209.85.216.182]:33159 "EHLO
+	mail-px0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756758AbZHZGJN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Aug 2009 02:09:13 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Josh Stone <jistone@redhat.com>, Linux Arch <linux-arch@vger.kernel.org>, Jason Baron <jbaron@redhat.com>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@elte.hu>, Li Zefan <lizf@cn.fujitsu.com>, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <peterz@infradead.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Jiaying Zhang <jiayingz@google.com>, Martin Bligh <mbligh@google.com>, Lai Jiangshan <laijs@cn.fujitsu.com>, Paul Mundt <lethal@linux-sh.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, torvalds@linux-foundation.org
 
-From: Josh Stone <jistone@redhat.com>
+Hi Linus,
 
-s/HAVE_FTRACE_SYSCALLS/HAVE_SYSCALL_TRACEPOINTS/g
-s/TIF_SYSCALL_FTRACE/TIF_SYSCALL_TRACEPOINT/g
+We had setup a git server at gitserver.sunplusct.com,
+This repository contains Linux support for S+core CPU.
+it's base on Linux 2.6.31-rc7 and Arnd asm-generic repository.
 
-The syscall enter/exit tracing is no longer specific to just ftrace, so
-they now have names that reflect their tie to tracepoints instead.
+please pull:
+        git pull git://gitserver.sunplusct.com/linux-2.6-score.git for-linus
 
-Signed-off-by: Josh Stone <jistone@redhat.com>
-Cc: Jason Baron <jbaron@redhat.com>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Li Zefan <lizf@cn.fujitsu.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: Jiaying Zhang <jiayingz@google.com>
-Cc: Martin Bligh <mbligh@google.com>
-Cc: Lai Jiangshan <laijs@cn.fujitsu.com>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-LKML-Reference: <1251150194-1713-2-git-send-email-jistone@redhat.com>
-Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
----
- arch/s390/Kconfig                   |    2 +-
- arch/s390/defconfig                 |    2 +-
- arch/s390/include/asm/thread_info.h |    4 ++--
- arch/s390/kernel/entry.S            |    2 +-
- arch/s390/kernel/entry64.S          |    2 +-
- arch/s390/kernel/ptrace.c           |    4 ++--
- arch/x86/Kconfig                    |    2 +-
- arch/x86/configs/i386_defconfig     |    2 +-
- arch/x86/configs/x86_64_defconfig   |    2 +-
- arch/x86/include/asm/thread_info.h  |   13 +++++++------
- arch/x86/kernel/ptrace.c            |    4 ++--
- kernel/trace/Kconfig                |    4 ++--
- kernel/tracepoint.c                 |    4 ++--
- 13 files changed, 24 insertions(+), 23 deletions(-)
+toolchain for linux/score could be download at:
+        http://www.sunplusct.com/linux-score-patch.html
 
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index 2ae5d72..7238ef4 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -84,7 +84,7 @@ config S390
- 	select HAVE_FUNCTION_TRACER
- 	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
- 	select HAVE_FTRACE_MCOUNT_RECORD
--	select HAVE_FTRACE_SYSCALLS
-+	select HAVE_SYSCALL_TRACEPOINTS
- 	select HAVE_DYNAMIC_FTRACE
- 	select HAVE_FUNCTION_GRAPH_TRACER
- 	select HAVE_DEFAULT_NO_SPIN_MUTEXES
-diff --git a/arch/s390/defconfig b/arch/s390/defconfig
-index fcba206..4e91a25 100644
---- a/arch/s390/defconfig
-+++ b/arch/s390/defconfig
-@@ -900,7 +900,7 @@ CONFIG_HAVE_FUNCTION_GRAPH_TRACER=y
- CONFIG_HAVE_FUNCTION_TRACE_MCOUNT_TEST=y
- CONFIG_HAVE_DYNAMIC_FTRACE=y
- CONFIG_HAVE_FTRACE_MCOUNT_RECORD=y
--CONFIG_HAVE_FTRACE_SYSCALLS=y
-+CONFIG_HAVE_SYSCALL_TRACEPOINTS=y
- CONFIG_TRACING_SUPPORT=y
- CONFIG_FTRACE=y
- # CONFIG_FUNCTION_TRACER is not set
-diff --git a/arch/s390/include/asm/thread_info.h b/arch/s390/include/asm/thread_info.h
-index ba1cab9..07eb61b 100644
---- a/arch/s390/include/asm/thread_info.h
-+++ b/arch/s390/include/asm/thread_info.h
-@@ -92,7 +92,7 @@ static inline struct thread_info *current_thread_info(void)
- #define TIF_SYSCALL_TRACE	8	/* syscall trace active */
- #define TIF_SYSCALL_AUDIT	9	/* syscall auditing active */
- #define TIF_SECCOMP		10	/* secure computing */
--#define TIF_SYSCALL_FTRACE	11	/* ftrace syscall instrumentation */
-+#define TIF_SYSCALL_TRACEPOINT	11	/* syscall tracepoint instrumentation */
- #define TIF_USEDFPU		16	/* FPU was used by this task this quantum (SMP) */
- #define TIF_POLLING_NRFLAG	17	/* true if poll_idle() is polling 
- 					   TIF_NEED_RESCHED */
-@@ -111,7 +111,7 @@ static inline struct thread_info *current_thread_info(void)
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
- #define _TIF_SYSCALL_AUDIT	(1<<TIF_SYSCALL_AUDIT)
- #define _TIF_SECCOMP		(1<<TIF_SECCOMP)
--#define _TIF_SYSCALL_FTRACE	(1<<TIF_SYSCALL_FTRACE)
-+#define _TIF_SYSCALL_TRACEPOINT	(1<<TIF_SYSCALL_TRACEPOINT)
- #define _TIF_USEDFPU		(1<<TIF_USEDFPU)
- #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
- #define _TIF_31BIT		(1<<TIF_31BIT)
-diff --git a/arch/s390/kernel/entry.S b/arch/s390/kernel/entry.S
-index c4c80a2..5d40fce 100644
---- a/arch/s390/kernel/entry.S
-+++ b/arch/s390/kernel/entry.S
-@@ -54,7 +54,7 @@ _TIF_WORK_SVC = (_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_NEED_RESCHED | \
- _TIF_WORK_INT = (_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_NEED_RESCHED | \
- 		 _TIF_MCCK_PENDING)
- _TIF_SYSCALL = (_TIF_SYSCALL_TRACE>>8 | _TIF_SYSCALL_AUDIT>>8 | \
--		_TIF_SECCOMP>>8 | _TIF_SYSCALL_FTRACE>>8)
-+		_TIF_SECCOMP>>8 | _TIF_SYSCALL_TRACEPOINT>>8)
- 
- STACK_SHIFT = PAGE_SHIFT + THREAD_ORDER
- STACK_SIZE  = 1 << STACK_SHIFT
-diff --git a/arch/s390/kernel/entry64.S b/arch/s390/kernel/entry64.S
-index f6618e9..3ceb53c 100644
---- a/arch/s390/kernel/entry64.S
-+++ b/arch/s390/kernel/entry64.S
-@@ -57,7 +57,7 @@ _TIF_WORK_SVC = (_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_NEED_RESCHED | \
- _TIF_WORK_INT = (_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_NEED_RESCHED | \
- 		 _TIF_MCCK_PENDING)
- _TIF_SYSCALL = (_TIF_SYSCALL_TRACE>>8 | _TIF_SYSCALL_AUDIT>>8 | \
--		_TIF_SECCOMP>>8 | _TIF_SYSCALL_FTRACE>>8)
-+		_TIF_SECCOMP>>8 | _TIF_SYSCALL_TRACEPOINT>>8)
- 
- #define BASED(name) name-system_call(%r13)
- 
-diff --git a/arch/s390/kernel/ptrace.c b/arch/s390/kernel/ptrace.c
-index c5e87d8..9d3dcfa 100644
---- a/arch/s390/kernel/ptrace.c
-+++ b/arch/s390/kernel/ptrace.c
-@@ -664,7 +664,7 @@ asmlinkage long do_syscall_trace_enter(struct pt_regs *regs)
- 		ret = -1;
- 	}
- 
--	if (unlikely(test_thread_flag(TIF_SYSCALL_FTRACE)))
-+	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
- 		trace_syscall_enter(regs, regs->gprs[2]);
- 
- 	if (unlikely(current->audit_context))
-@@ -682,7 +682,7 @@ asmlinkage void do_syscall_trace_exit(struct pt_regs *regs)
- 		audit_syscall_exit(AUDITSC_RESULT(regs->gprs[2]),
- 				   regs->gprs[2]);
- 
--	if (unlikely(test_thread_flag(TIF_SYSCALL_FTRACE)))
-+	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
- 		trace_syscall_exit(regs, regs->gprs[2]);
- 
- 	if (test_thread_flag(TIF_SYSCALL_TRACE))
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 738bdc6..d59cbf7 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -37,7 +37,7 @@ config X86
- 	select HAVE_FUNCTION_GRAPH_FP_TEST
- 	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
- 	select HAVE_FTRACE_NMI_ENTER if DYNAMIC_FTRACE
--	select HAVE_FTRACE_SYSCALLS
-+	select HAVE_SYSCALL_TRACEPOINTS
- 	select HAVE_KVM
- 	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_TRACEHOOK
-diff --git a/arch/x86/configs/i386_defconfig b/arch/x86/configs/i386_defconfig
-index edb992e..d28fad1 100644
---- a/arch/x86/configs/i386_defconfig
-+++ b/arch/x86/configs/i386_defconfig
-@@ -2355,7 +2355,7 @@ CONFIG_HAVE_FUNCTION_TRACE_MCOUNT_TEST=y
- CONFIG_HAVE_DYNAMIC_FTRACE=y
- CONFIG_HAVE_FTRACE_MCOUNT_RECORD=y
- CONFIG_HAVE_HW_BRANCH_TRACER=y
--CONFIG_HAVE_FTRACE_SYSCALLS=y
-+CONFIG_HAVE_SYSCALL_TRACEPOINTS=y
- CONFIG_RING_BUFFER=y
- CONFIG_TRACING=y
- CONFIG_TRACING_SUPPORT=y
-diff --git a/arch/x86/configs/x86_64_defconfig b/arch/x86/configs/x86_64_defconfig
-index cee1dd2..6c86acd 100644
---- a/arch/x86/configs/x86_64_defconfig
-+++ b/arch/x86/configs/x86_64_defconfig
-@@ -2329,7 +2329,7 @@ CONFIG_HAVE_FUNCTION_TRACE_MCOUNT_TEST=y
- CONFIG_HAVE_DYNAMIC_FTRACE=y
- CONFIG_HAVE_FTRACE_MCOUNT_RECORD=y
- CONFIG_HAVE_HW_BRANCH_TRACER=y
--CONFIG_HAVE_FTRACE_SYSCALLS=y
-+CONFIG_HAVE_SYSCALL_TRACEPOINTS=y
- CONFIG_RING_BUFFER=y
- CONFIG_TRACING=y
- CONFIG_TRACING_SUPPORT=y
-diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
-index fad7d40..6f7786a 100644
---- a/arch/x86/include/asm/thread_info.h
-+++ b/arch/x86/include/asm/thread_info.h
-@@ -95,7 +95,7 @@ struct thread_info {
- #define TIF_DEBUGCTLMSR		25	/* uses thread_struct.debugctlmsr */
- #define TIF_DS_AREA_MSR		26      /* uses thread_struct.ds_area_msr */
- #define TIF_LAZY_MMU_UPDATES	27	/* task is updating the mmu lazily */
--#define TIF_SYSCALL_FTRACE	28	/* for ftrace syscall instrumentation */
-+#define TIF_SYSCALL_TRACEPOINT	28	/* syscall tracepoint instrumentation */
- 
- #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
- #define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
-@@ -118,17 +118,17 @@ struct thread_info {
- #define _TIF_DEBUGCTLMSR	(1 << TIF_DEBUGCTLMSR)
- #define _TIF_DS_AREA_MSR	(1 << TIF_DS_AREA_MSR)
- #define _TIF_LAZY_MMU_UPDATES	(1 << TIF_LAZY_MMU_UPDATES)
--#define _TIF_SYSCALL_FTRACE	(1 << TIF_SYSCALL_FTRACE)
-+#define _TIF_SYSCALL_TRACEPOINT	(1 << TIF_SYSCALL_TRACEPOINT)
- 
- /* work to do in syscall_trace_enter() */
- #define _TIF_WORK_SYSCALL_ENTRY	\
--	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU | _TIF_SYSCALL_FTRACE |	\
--	 _TIF_SYSCALL_AUDIT | _TIF_SECCOMP | _TIF_SINGLESTEP)
-+	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU | _TIF_SYSCALL_AUDIT |	\
-+	 _TIF_SECCOMP | _TIF_SINGLESTEP | _TIF_SYSCALL_TRACEPOINT)
- 
- /* work to do in syscall_trace_leave() */
- #define _TIF_WORK_SYSCALL_EXIT	\
- 	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | _TIF_SINGLESTEP |	\
--	 _TIF_SYSCALL_FTRACE)
-+	 _TIF_SYSCALL_TRACEPOINT)
- 
- /* work to do on interrupt/exception return */
- #define _TIF_WORK_MASK							\
-@@ -137,7 +137,8 @@ struct thread_info {
- 	   _TIF_SINGLESTEP|_TIF_SECCOMP|_TIF_SYSCALL_EMU))
- 
- /* work to do on any return to user space */
--#define _TIF_ALLWORK_MASK ((0x0000FFFF & ~_TIF_SECCOMP) | _TIF_SYSCALL_FTRACE)
-+#define _TIF_ALLWORK_MASK						\
-+	((0x0000FFFF & ~_TIF_SECCOMP) | _TIF_SYSCALL_TRACEPOINT)
- 
- /* Only used for 64 bit */
- #define _TIF_DO_NOTIFY_MASK						\
-diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index 34dd6f1..a909afe 100644
---- a/arch/x86/kernel/ptrace.c
-+++ b/arch/x86/kernel/ptrace.c
-@@ -1500,7 +1500,7 @@ asmregparm long syscall_trace_enter(struct pt_regs *regs)
- 	    tracehook_report_syscall_entry(regs))
- 		ret = -1L;
- 
--	if (unlikely(test_thread_flag(TIF_SYSCALL_FTRACE)))
-+	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
- 		trace_syscall_enter(regs, regs->orig_ax);
- 
- 	if (unlikely(current->audit_context)) {
-@@ -1526,7 +1526,7 @@ asmregparm void syscall_trace_leave(struct pt_regs *regs)
- 	if (unlikely(current->audit_context))
- 		audit_syscall_exit(AUDITSC_RESULT(regs->ax), regs->ax);
- 
--	if (unlikely(test_thread_flag(TIF_SYSCALL_FTRACE)))
-+	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
- 		trace_syscall_exit(regs, regs->ax);
- 
- 	if (test_thread_flag(TIF_SYSCALL_TRACE))
-diff --git a/kernel/trace/Kconfig b/kernel/trace/Kconfig
-index 019f380..06be85a 100644
---- a/kernel/trace/Kconfig
-+++ b/kernel/trace/Kconfig
-@@ -41,7 +41,7 @@ config HAVE_FTRACE_MCOUNT_RECORD
- config HAVE_HW_BRANCH_TRACER
- 	bool
- 
--config HAVE_FTRACE_SYSCALLS
-+config HAVE_SYSCALL_TRACEPOINTS
- 	bool
- 
- config TRACER_MAX_TRACE
-@@ -211,7 +211,7 @@ config ENABLE_DEFAULT_TRACERS
- 
- config FTRACE_SYSCALLS
- 	bool "Trace syscalls"
--	depends on HAVE_FTRACE_SYSCALLS
-+	depends on HAVE_SYSCALL_TRACEPOINTS
- 	select GENERIC_TRACER
- 	select KALLSYMS
- 	help
-diff --git a/kernel/tracepoint.c b/kernel/tracepoint.c
-index 06f165a..be86b9a 100644
---- a/kernel/tracepoint.c
-+++ b/kernel/tracepoint.c
-@@ -590,7 +590,7 @@ void syscall_regfunc(void)
- 	if (!sys_tracepoint_refcount) {
- 		read_lock_irqsave(&tasklist_lock, flags);
- 		do_each_thread(g, t) {
--			set_tsk_thread_flag(t, TIF_SYSCALL_FTRACE);
-+			set_tsk_thread_flag(t, TIF_SYSCALL_TRACEPOINT);
- 		} while_each_thread(g, t);
- 		read_unlock_irqrestore(&tasklist_lock, flags);
- 	}
-@@ -608,7 +608,7 @@ void syscall_unregfunc(void)
- 	if (!sys_tracepoint_refcount) {
- 		read_lock_irqsave(&tasklist_lock, flags);
- 		do_each_thread(g, t) {
--			clear_tsk_thread_flag(t, TIF_SYSCALL_FTRACE);
-+			clear_tsk_thread_flag(t, TIF_SYSCALL_TRACEPOINT);
- 		} while_each_thread(g, t);
- 		read_unlock_irqrestore(&tasklist_lock, flags);
- 	}
--- 
-1.6.2.3
+Changes in v4:
+Sending pull request again.
+
+Changes in v3:
+With the help of Arnd and Roland.
+
+Changes in v2:
+Christoph Hellwig and Arnd review it.
+
+Thanks,
+Liqin
+
+-----
+
+score: add maintainers for score architecture
+score: create mm/ files extable.c fault.c
+score: create mm/ files init.c cache.c
+score: create mm/ files Makefile pgtable.c and tlb files
+score: create lib/ files ashrdi3.c ashldi3.c lshrdi3.c checksum.S checksum_copy.c
+score: create lib/ files Makefile libgcc.h cmpdi2.c ucmpdi2.c string.S
+score: create kernel/ files ptrace.c signal.c
+score: create kernel/ files module.c process.c
+score: create kernel/ files irq.c time.c traps.c
+score: create kernel/ files sys_call_table.c sys_score.c
+score: create kernel/ files asm-offsets.c init_task.c setup.c
+score: create kernel/ files Makefile head.S entry.S vmlinux.lds.S
+score: create head files linkage.h local.h module.h socket.h sockios.h unaligned.h
+score: create head files fixmap.h param.h resource.h setup.h sections.h segment.h string.h system.h
+score: create head files ipcbuf.h msgbuf.h sembuf.h shmparam.h shmbuf.h
+score: create head files futex.h ftrace.h mutex.h ptarce.h
+score: create head files pci.h processor.h thread_info.h topology.h
+score: create head files current.h device.h percpu.h scatterlist.h scoreregs.h
+score: create head files sigcontext.h siginfo.h signal.h
+score: create head files syscalls.h uaccess.h ucontext.h unistd.h user.h
+score: create head files page.h pgalloc.h pgtable-bits.h pgtable.h
+score: create head files mman.h mmu.h mmu_context.h
+score: create head files hardirq.h hw_irq.h irq.h irqflags.h irq_regs.h
+score: create head files dma.h dma-mapping.h io.h ioctl.h ioctls.h
+score: create head files fcntl.h poll.h stat.h statfs.h termbits.h termios.h
+score: create head files cputime.h delay.h timex.h
+score: create head files cache.h cacheflush.h tlb.h tlbflush.h
+score: create head files emergency-restart.h kdebug.h kmap_types.h posix_types.h swab.h types.h
+score: create head files atomic.h auxvec.h bitops.h bitsperlong.h byteorder.h div64.h elf.h
+score: create head files Kbuild asmmacro.h bug.h bugs.h checksum.h errno.h
+score: defconfig file
+score: Makefile and boot/Makefile for score
+score: Kconfig and Kconfig.debug for score
+
+ MAINTAINERS                                |    8 +
+ arch/score/Kconfig                         |  141 ++++++
+ arch/score/Kconfig.debug                   |   36 ++
+ arch/score/Makefile                        |   43 ++
+ arch/score/boot/Makefile                   |   15 +
+ arch/score/configs/spct6600_defconfig      |  717 ++++++++++++++++++++++++++++
+ arch/score/include/asm/Kbuild              |    3 +
+ arch/score/include/asm/asmmacro.h          |  161 +++++++
+ arch/score/include/asm/atomic.h            |    6 +
+ arch/score/include/asm/auxvec.h            |    4 +
+ arch/score/include/asm/bitops.h            |   16 +
+ arch/score/include/asm/bitsperlong.h       |    6 +
+ arch/score/include/asm/bug.h               |    6 +
+ arch/score/include/asm/bugs.h              |    6 +
+ arch/score/include/asm/byteorder.h         |    6 +
+ arch/score/include/asm/cache.h             |    7 +
+ arch/score/include/asm/cacheflush.h        |   45 ++
+ arch/score/include/asm/checksum.h          |  235 +++++++++
+ arch/score/include/asm/cputime.h           |    6 +
+ arch/score/include/asm/current.h           |    6 +
+ arch/score/include/asm/delay.h             |   26 +
+ arch/score/include/asm/device.h            |    6 +
+ arch/score/include/asm/div64.h             |    6 +
+ arch/score/include/asm/dma-mapping.h       |    6 +
+ arch/score/include/asm/dma.h               |    8 +
+ arch/score/include/asm/elf.h               |  103 ++++
+ arch/score/include/asm/emergency-restart.h |    6 +
+ arch/score/include/asm/errno.h             |    6 +
+ arch/score/include/asm/fcntl.h             |    6 +
+ arch/score/include/asm/fixmap.h            |   82 ++++
+ arch/score/include/asm/ftrace.h            |    4 +
+ arch/score/include/asm/futex.h             |    6 +
+ arch/score/include/asm/hardirq.h           |    6 +
+ arch/score/include/asm/hw_irq.h            |    4 +
+ arch/score/include/asm/io.h                |    9 +
+ arch/score/include/asm/ioctl.h             |    6 +
+ arch/score/include/asm/ioctls.h            |    6 +
+ arch/score/include/asm/ipcbuf.h            |    6 +
+ arch/score/include/asm/irq.h               |   25 +
+ arch/score/include/asm/irq_regs.h          |   11 +
+ arch/score/include/asm/irqflags.h          |  109 +++++
+ arch/score/include/asm/kdebug.h            |    6 +
+ arch/score/include/asm/kmap_types.h        |    6 +
+ arch/score/include/asm/linkage.h           |    7 +
+ arch/score/include/asm/local.h             |    6 +
+ arch/score/include/asm/mman.h              |    6 +
+ arch/score/include/asm/mmu.h               |    6 +
+ arch/score/include/asm/mmu_context.h       |  113 +++++
+ arch/score/include/asm/module.h            |   39 ++
+ arch/score/include/asm/msgbuf.h            |    6 +
+ arch/score/include/asm/mutex.h             |    6 +
+ arch/score/include/asm/page.h              |   92 ++++
+ arch/score/include/asm/param.h             |    6 +
+ arch/score/include/asm/pci.h               |    4 +
+ arch/score/include/asm/percpu.h            |    6 +
+ arch/score/include/asm/pgalloc.h           |   83 ++++
+ arch/score/include/asm/pgtable-bits.h      |   25 +
+ arch/score/include/asm/pgtable.h           |  287 +++++++++++
+ arch/score/include/asm/poll.h              |    6 +
+ arch/score/include/asm/posix_types.h       |    6 +
+ arch/score/include/asm/processor.h         |  106 ++++
+ arch/score/include/asm/ptrace.h            |   97 ++++
+ arch/score/include/asm/resource.h          |    6 +
+ arch/score/include/asm/scatterlist.h       |    6 +
+ arch/score/include/asm/scoreregs.h         |   51 ++
+ arch/score/include/asm/sections.h          |    6 +
+ arch/score/include/asm/segment.h           |   21 +
+ arch/score/include/asm/sembuf.h            |    6 +
+ arch/score/include/asm/setup.h             |   41 ++
+ arch/score/include/asm/shmbuf.h            |    6 +
+ arch/score/include/asm/shmparam.h          |    6 +
+ arch/score/include/asm/sigcontext.h        |   22 +
+ arch/score/include/asm/siginfo.h           |    6 +
+ arch/score/include/asm/signal.h            |    6 +
+ arch/score/include/asm/socket.h            |    6 +
+ arch/score/include/asm/sockios.h           |    6 +
+ arch/score/include/asm/stat.h              |    6 +
+ arch/score/include/asm/statfs.h            |    6 +
+ arch/score/include/asm/string.h            |    8 +
+ arch/score/include/asm/swab.h              |    6 +
+ arch/score/include/asm/syscalls.h          |   11 +
+ arch/score/include/asm/system.h            |   90 ++++
+ arch/score/include/asm/termbits.h          |    6 +
+ arch/score/include/asm/termios.h           |    6 +
+ arch/score/include/asm/thread_info.h       |  103 ++++
+ arch/score/include/asm/timex.h             |    8 +
+ arch/score/include/asm/tlb.h               |   17 +
+ arch/score/include/asm/tlbflush.h          |  142 ++++++
+ arch/score/include/asm/topology.h          |    6 +
+ arch/score/include/asm/types.h             |    6 +
+ arch/score/include/asm/uaccess.h           |   27 +
+ arch/score/include/asm/ucontext.h          |    1 +
+ arch/score/include/asm/unaligned.h         |    6 +
+ arch/score/include/asm/unistd.h            |    8 +
+ arch/score/include/asm/user.h              |   21 +
+ arch/score/kernel/Makefile                 |   11 +
+ arch/score/kernel/asm-offsets.c            |  216 +++++++++
+ arch/score/kernel/entry.S                  |  501 +++++++++++++++++++
+ arch/score/kernel/head.S                   |   70 +++
+ arch/score/kernel/init_task.c              |   47 ++
+ arch/score/kernel/irq.c                    |  148 ++++++
+ arch/score/kernel/module.c                 |  165 +++++++
+ arch/score/kernel/process.c                |  168 +++++++
+ arch/score/kernel/ptrace.c                 |  382 +++++++++++++++
+ arch/score/kernel/setup.c                  |  159 ++++++
+ arch/score/kernel/signal.c                 |  361 ++++++++++++++
+ arch/score/kernel/sys_call_table.c         |   12 +
+ arch/score/kernel/sys_score.c              |  131 +++++
+ arch/score/kernel/time.c                   |   99 ++++
+ arch/score/kernel/traps.c                  |  349 ++++++++++++++
+ arch/score/kernel/vmlinux.lds.S            |  148 ++++++
+ arch/score/lib/Makefile                    |    8 +
+ arch/score/lib/ashldi3.c                   |   46 ++
+ arch/score/lib/ashrdi3.c                   |   48 ++
+ arch/score/lib/checksum.S                  |  255 ++++++++++
+ arch/score/lib/checksum_copy.c             |   52 ++
+ arch/score/lib/cmpdi2.c                    |   44 ++
+ arch/score/lib/libgcc.h                    |   37 ++
+ arch/score/lib/lshrdi3.c                   |   47 ++
+ arch/score/lib/string.S                    |  184 +++++++
+ arch/score/lib/ucmpdi2.c                   |   38 ++
+ arch/score/mm/Makefile                     |    6 +
+ arch/score/mm/cache.c                      |  257 ++++++++++
+ arch/score/mm/extable.c                    |   38 ++
+ arch/score/mm/fault.c                      |  235 +++++++++
+ arch/score/mm/init.c                       |  161 +++++++
+ arch/score/mm/pgtable.c                    |   52 ++
+ arch/score/mm/tlb-miss.S                   |  199 ++++++++
+ arch/score/mm/tlb-score.c                  |  251 ++++++++++
+ 129 files changed, 8443 insertions(+), 0 deletions(-)
+ create mode 100644 arch/score/Kconfig
+ create mode 100644 arch/score/Kconfig.debug
+ create mode 100644 arch/score/Makefile
+ create mode 100644 arch/score/boot/Makefile
+ create mode 100644 arch/score/configs/spct6600_defconfig
+ create mode 100644 arch/score/include/asm/Kbuild
+ create mode 100644 arch/score/include/asm/asmmacro.h
+ create mode 100644 arch/score/include/asm/atomic.h
+ create mode 100644 arch/score/include/asm/auxvec.h
+ create mode 100644 arch/score/include/asm/bitops.h
+ create mode 100644 arch/score/include/asm/bitsperlong.h
+ create mode 100644 arch/score/include/asm/bug.h
+ create mode 100644 arch/score/include/asm/bugs.h
+ create mode 100644 arch/score/include/asm/byteorder.h
+ create mode 100644 arch/score/include/asm/cache.h
+ create mode 100644 arch/score/include/asm/cacheflush.h
+ create mode 100644 arch/score/include/asm/checksum.h
+ create mode 100644 arch/score/include/asm/cputime.h
+ create mode 100644 arch/score/include/asm/current.h
+ create mode 100644 arch/score/include/asm/delay.h
+ create mode 100644 arch/score/include/asm/device.h
+ create mode 100644 arch/score/include/asm/div64.h
+ create mode 100644 arch/score/include/asm/dma-mapping.h
+ create mode 100644 arch/score/include/asm/dma.h
+ create mode 100644 arch/score/include/asm/elf.h
+ create mode 100644 arch/score/include/asm/emergency-restart.h
+ create mode 100644 arch/score/include/asm/errno.h
+ create mode 100644 arch/score/include/asm/fcntl.h
+ create mode 100644 arch/score/include/asm/fixmap.h
+ create mode 100644 arch/score/include/asm/ftrace.h
+ create mode 100644 arch/score/include/asm/futex.h
+ create mode 100644 arch/score/include/asm/hardirq.h
+ create mode 100644 arch/score/include/asm/hw_irq.h
+ create mode 100644 arch/score/include/asm/io.h
+ create mode 100644 arch/score/include/asm/ioctl.h
+ create mode 100644 arch/score/include/asm/ioctls.h
+ create mode 100644 arch/score/include/asm/ipcbuf.h
+ create mode 100644 arch/score/include/asm/irq.h
+ create mode 100644 arch/score/include/asm/irq_regs.h
+ create mode 100644 arch/score/include/asm/irqflags.h
+ create mode 100644 arch/score/include/asm/kdebug.h
+ create mode 100644 arch/score/include/asm/kmap_types.h
+ create mode 100644 arch/score/include/asm/linkage.h
+ create mode 100644 arch/score/include/asm/local.h
+ create mode 100644 arch/score/include/asm/mman.h
+ create mode 100644 arch/score/include/asm/mmu.h
+ create mode 100644 arch/score/include/asm/mmu_context.h
+ create mode 100644 arch/score/include/asm/module.h
+ create mode 100644 arch/score/include/asm/msgbuf.h
+ create mode 100644 arch/score/include/asm/mutex.h
+ create mode 100644 arch/score/include/asm/page.h
+ create mode 100644 arch/score/include/asm/param.h
+ create mode 100644 arch/score/include/asm/pci.h
+ create mode 100644 arch/score/include/asm/percpu.h
+ create mode 100644 arch/score/include/asm/pgalloc.h
+ create mode 100644 arch/score/include/asm/pgtable-bits.h
+ create mode 100644 arch/score/include/asm/pgtable.h
+ create mode 100644 arch/score/include/asm/poll.h
+ create mode 100644 arch/score/include/asm/posix_types.h
+ create mode 100644 arch/score/include/asm/processor.h
+ create mode 100644 arch/score/include/asm/ptrace.h
+ create mode 100644 arch/score/include/asm/resource.h
+ create mode 100644 arch/score/include/asm/scatterlist.h
+ create mode 100644 arch/score/include/asm/scoreregs.h
+ create mode 100644 arch/score/include/asm/sections.h
+ create mode 100644 arch/score/include/asm/segment.h
+ create mode 100644 arch/score/include/asm/sembuf.h
+ create mode 100644 arch/score/include/asm/setup.h
+ create mode 100644 arch/score/include/asm/shmbuf.h
+ create mode 100644 arch/score/include/asm/shmparam.h
+ create mode 100644 arch/score/include/asm/sigcontext.h
+ create mode 100644 arch/score/include/asm/siginfo.h
+ create mode 100644 arch/score/include/asm/signal.h
+ create mode 100644 arch/score/include/asm/socket.h
+ create mode 100644 arch/score/include/asm/sockios.h
+ create mode 100644 arch/score/include/asm/stat.h
+ create mode 100644 arch/score/include/asm/statfs.h
+ create mode 100644 arch/score/include/asm/string.h
+ create mode 100644 arch/score/include/asm/swab.h
+ create mode 100644 arch/score/include/asm/syscalls.h
+ create mode 100644 arch/score/include/asm/system.h
+ create mode 100644 arch/score/include/asm/termbits.h
+ create mode 100644 arch/score/include/asm/termios.h
+ create mode 100644 arch/score/include/asm/thread_info.h
+ create mode 100644 arch/score/include/asm/timex.h
+ create mode 100644 arch/score/include/asm/tlb.h
+ create mode 100644 arch/score/include/asm/tlbflush.h
+ create mode 100644 arch/score/include/asm/topology.h
+ create mode 100644 arch/score/include/asm/types.h
+ create mode 100644 arch/score/include/asm/uaccess.h
+ create mode 100644 arch/score/include/asm/ucontext.h
+ create mode 100644 arch/score/include/asm/unaligned.h
+ create mode 100644 arch/score/include/asm/unistd.h
+ create mode 100644 arch/score/include/asm/user.h
+ create mode 100644 arch/score/kernel/Makefile
+ create mode 100644 arch/score/kernel/asm-offsets.c
+ create mode 100644 arch/score/kernel/entry.S
+ create mode 100644 arch/score/kernel/head.S
+ create mode 100644 arch/score/kernel/init_task.c
+ create mode 100644 arch/score/kernel/irq.c
+ create mode 100644 arch/score/kernel/module.c
+ create mode 100644 arch/score/kernel/process.c
+ create mode 100644 arch/score/kernel/ptrace.c
+ create mode 100644 arch/score/kernel/setup.c
+ create mode 100644 arch/score/kernel/signal.c
+ create mode 100644 arch/score/kernel/sys_call_table.c
+ create mode 100644 arch/score/kernel/sys_score.c
+ create mode 100644 arch/score/kernel/time.c
+ create mode 100644 arch/score/kernel/traps.c
+ create mode 100644 arch/score/kernel/vmlinux.lds.S
+ create mode 100644 arch/score/lib/Makefile
+ create mode 100644 arch/score/lib/ashldi3.c
+ create mode 100644 arch/score/lib/ashrdi3.c
+ create mode 100644 arch/score/lib/checksum.S
+ create mode 100644 arch/score/lib/checksum_copy.c
+ create mode 100644 arch/score/lib/cmpdi2.c
+ create mode 100644 arch/score/lib/libgcc.h
+ create mode 100644 arch/score/lib/lshrdi3.c
+ create mode 100644 arch/score/lib/string.S
+ create mode 100644 arch/score/lib/ucmpdi2.c
+ create mode 100644 arch/score/mm/Makefile
+ create mode 100644 arch/score/mm/cache.c
+ create mode 100644 arch/score/mm/extable.c
+ create mode 100644 arch/score/mm/fault.c
+ create mode 100644 arch/score/mm/init.c
+ create mode 100644 arch/score/mm/pgtable.c
+ create mode 100644 arch/score/mm/tlb-miss.S
+ create mode 100644 arch/score/mm/tlb-score.c
