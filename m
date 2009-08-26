@@ -1,52 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:50750 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752343AbZHSOgg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Aug 2009 10:36:36 -0400
-Message-ID: <4A8C0DE5.302@kernel.org>
-Date: Wed, 19 Aug 2009 23:36:21 +0900
-From: Tejun Heo <tj@kernel.org>
-MIME-Version: 1.0
-Subject: Re: [RFC PATCH] ia64: convert to dynamic percpu allocator
-References: <4A65B0AB.5000608@kernel.org> <A6AD88C3F2289247BE726C37303E1EB8B097D4C5@orsmsx505.amr.corp.intel.com> <4A663DC7.4060600@kernel.org> <A6AD88C3F2289247BE726C37303E1EB8B0A9115B@orsmsx505.amr.corp.intel.com> <4A695897.2020902@kernel.org> <A6AD88C3F2289247BE726C37303E1EB8B3A85355@orsmsx505.amr.corp.intel.com> <4A826785.4000509@kernel.org>
-In-Reply-To: <4A826785.4000509@kernel.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Received: from mail-ew0-f206.google.com ([209.85.219.206]:53554 "EHLO
+	mail-ew0-f206.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932564AbZHZBjF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Aug 2009 21:39:05 -0400
+From: Frederic Weisbecker <fweisbec@gmail.com>
+Subject: [GIT PULL] tracing/syscall for 2.6.32
+Date: Wed, 26 Aug 2009 03:38:58 +0200
+Message-ID: <1251250742-6458-1-git-send-email-fweisbec@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Yu, Fenghua" <fenghua.yu@intel.com>
-Cc: "Luck, Tony" <tony.luck@intel.com>, 'lkml' <linux-kernel@vger.kernel.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-ia64@vger.kernel.org'" <linux-ia64@vger.kernel.org>
-Message-ID: <20090819143621.7khJ_8C2I1m4eZ8S8E67VkPWC4b1P8p6jL8nAREPxDw@z>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: LKML <linux-kernel@vger.kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, Linux Arch <linux-arch@vger.kernel.org>, Jason Baron <jbaron@redhat.com>, Li Zefan <lizf@cn.fujitsu.com>, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <peterz@infradead.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Jiaying Zhang <jiayingz@google.com>, Martin Bligh <mbligh@google.com>, Lai Jiangshan <laijs@cn.fujitsu.com>, Paul Mundt <lethal@linux-sh.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20090826013858.nOoO6unYjzKuckSWyRc_ym_hcsv3cZkaL-pf3u31a68@z>
 
-Tejun Heo wrote:
-> * Is ai->reserved_size necessary for ia64?  This is necessary if
->   there's linking range restriction when loading modules.
->   ai->reserved_size guarantees that all static module percpu variables
->   are allocated in the first chunk which will be in the linear address
->   range and very close to __per_cpu_start.  If ai->reserved_size is
->   not set, these areas are likely to end up high in the vmalloc area.
-> 
->   For example, x86_64 assumes 32bit relocations should be enough to
->   link module symbols and thus needs to set reserved_size but x86_32
->   can link to the whole 32bit space and thus can leave reserved_size
->   at zero.
-> 
-> * After determining the above, we can set ai->dyn_size to be
-> 
->   ai->dyn_size = min(ai->unit_size - ai->static_size - ai->reserved_size,
-> 		     PERCPU_DYNAMIC_RESERVE);
-> 
-> Would the above work?
-> 
->> Even with the above PAGE_SIZE changes, the kernel still reports
->> warning from 952: WARN_ON(chunk->immutable) and then panic.
-> 
-> Hah... strange.  Can you please attach full boot log?  This is
-> dicontig configuration, right?
+Hi Ingo,
 
-Any news?
+Please pull the latest syscall tracing patches from:
 
-Thanks.
+git://git.kernel.org/pub/scm/linux/kernel/git/frederic/random-tracing.git \
+	tracing/core
 
--- 
-tejun
+The tree gathers fixes, renamings and adds a new pair of tracepoints
+for generic sysenter/sysexit tracing.
+
+Some other patches are pending, beeing discussed. So there are probably
+more to come soon.
+
+Josh Stone (4):
+      tracing: Rename FTRACE_SYSCALLS for tracepoints
+      tracing: Make syscall tracepoints conditional
+      tracing: Move tracepoint callbacks from declaration to definition
+      tracing: Create generic syscall TRACE_EVENTs
+
+ arch/s390/Kconfig                   |    2 +-
+ arch/s390/defconfig                 |    2 +-
+ arch/s390/include/asm/thread_info.h |    4 +-
+ arch/s390/kernel/entry.S            |    2 +-
+ arch/s390/kernel/entry64.S          |    2 +-
+ arch/s390/kernel/ptrace.c           |   12 +++---
+ arch/x86/Kconfig                    |    2 +-
+ arch/x86/configs/i386_defconfig     |    2 +-
+ arch/x86/configs/x86_64_defconfig   |    2 +-
+ arch/x86/include/asm/thread_info.h  |   13 +++---
+ arch/x86/kernel/ptrace.c            |   16 +++----
+ include/linux/tracepoint.h          |   46 +++++++++--------------
+ include/trace/define_trace.h        |    5 ++
+ include/trace/events/syscalls.h     |   70 +++++++++++++++++++++++++++++++++++
+ include/trace/ftrace.h              |    9 ++++
+ include/trace/syscall.h             |   17 --------
+ kernel/trace/Kconfig                |    4 +-
+ kernel/trace/trace_syscalls.c       |   17 ++++----
+ kernel/tracepoint.c                 |   20 ++++++----
+ 19 files changed, 154 insertions(+), 93 deletions(-)
+ create mode 100644 include/trace/events/syscalls.h
