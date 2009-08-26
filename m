@@ -1,17 +1,53 @@
-From: "Andrew Grant" <jeano.wilson@ms.k12.il.us>
-Subject: Turn from sparrow to eagle
-Date: Sun, 23 Aug 2009 13:19:19 -0000
-Message-ID: <20090823131919.8040206@ms.k12.il.us>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Frederic Weisbecker <fweisbec@gmail.com>
+Subject: [GIT PULL] tracing/syscall for 2.6.32
+Date: Wed, 26 Aug 2009 03:38:58 +0200
+Message-ID: <1251250742-6458-1-git-send-email-fweisbec@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 213-48-124-24.cable.ubr18.newt.blueyonder.co.uk ([213.48.124.24]:6396
-	"HELO wergvan" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
-	id S1756001AbZHWM2O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 23 Aug 2009 08:28:14 -0400
+Received: from mail-ew0-f206.google.com ([209.85.219.206]:53554 "EHLO
+	mail-ew0-f206.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932564AbZHZBjF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Aug 2009 21:39:05 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Cc: LKML <linux-kernel@vger.kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, Linux Arch <linux-arch@vger.kernel.org>, Jason Baron <jbaron@redhat.com>, Ingo Molnar <mingo@elte.hu>, Li Zefan <lizf@cn.fujitsu.com>, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <peterz@infradead.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Jiaying Zhang <jiayingz@google.com>, Martin Bligh <mbligh@google.com>, Lai Jiangshan <laijs@cn.fujitsu.com>, Paul Mundt <lethal@linux-sh.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-Get faster recharges of your secret weapon! http://rpto.withsimple.com/
+Hi Ingo,
+
+Please pull the latest syscall tracing patches from:
+
+git://git.kernel.org/pub/scm/linux/kernel/git/frederic/random-tracing.git \
+	tracing/core
+
+The tree gathers fixes, renamings and adds a new pair of tracepoints
+for generic sysenter/sysexit tracing.
+
+Some other patches are pending, beeing discussed. So there are probably
+more to come soon.
+
+Josh Stone (4):
+      tracing: Rename FTRACE_SYSCALLS for tracepoints
+      tracing: Make syscall tracepoints conditional
+      tracing: Move tracepoint callbacks from declaration to definition
+      tracing: Create generic syscall TRACE_EVENTs
+
+ arch/s390/Kconfig                   |    2 +-
+ arch/s390/defconfig                 |    2 +-
+ arch/s390/include/asm/thread_info.h |    4 +-
+ arch/s390/kernel/entry.S            |    2 +-
+ arch/s390/kernel/entry64.S          |    2 +-
+ arch/s390/kernel/ptrace.c           |   12 +++---
+ arch/x86/Kconfig                    |    2 +-
+ arch/x86/configs/i386_defconfig     |    2 +-
+ arch/x86/configs/x86_64_defconfig   |    2 +-
+ arch/x86/include/asm/thread_info.h  |   13 +++---
+ arch/x86/kernel/ptrace.c            |   16 +++----
+ include/linux/tracepoint.h          |   46 +++++++++--------------
+ include/trace/define_trace.h        |    5 ++
+ include/trace/events/syscalls.h     |   70 +++++++++++++++++++++++++++++++++++
+ include/trace/ftrace.h              |    9 ++++
+ include/trace/syscall.h             |   17 --------
+ kernel/trace/Kconfig                |    4 +-
+ kernel/trace/trace_syscalls.c       |   17 ++++----
+ kernel/tracepoint.c                 |   20 ++++++----
+ 19 files changed, 154 insertions(+), 93 deletions(-)
+ create mode 100644 include/trace/events/syscalls.h
