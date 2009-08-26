@@ -1,26 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ey-out-2122.google.com ([74.125.78.26]:54708 "EHLO
+Received: from ey-out-2122.google.com ([74.125.78.25]:12877 "EHLO
 	ey-out-2122.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932830AbZHZBjJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Aug 2009 21:39:09 -0400
+	with ESMTP id S932780AbZHZBjM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Aug 2009 21:39:12 -0400
 From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: [PATCH 2/4] tracing: Make syscall tracepoints conditional
-Date: Wed, 26 Aug 2009 03:39:00 +0200
-Message-ID: <1251250742-6458-3-git-send-email-fweisbec@gmail.com>
+Subject: [PATCH 3/4] tracing: Move tracepoint callbacks from declaration to definition
+Date: Wed, 26 Aug 2009 03:39:01 +0200
+Message-ID: <1251250742-6458-4-git-send-email-fweisbec@gmail.com>
 In-Reply-To: <1251250742-6458-1-git-send-email-fweisbec@gmail.com>
 References: <1251250742-6458-1-git-send-email-fweisbec@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>
-Cc: LKML <linux-kernel@vger.kernel.org>, Josh Stone <jistone@redhat.com>, Linux Arch <linux-arch@vger.kernel.org>, Jason Baron <jbaron@redhat.com>, Frederic Weisbecker <fweisbec@gmail.com>, Li Zefan <lizf@cn.fujitsu.com>, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <peterz@infradead.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Jiaying Zhang <jiayingz@google.com>, Martin Bligh <mbligh@google.com>, Lai Jiangshan <laijs@cn.fujitsu.com>
-Message-ID: <20090826013900.3UjnEtUiTm2tcF_dlqNhfrtkH_gci8KNtieIFVKvIJc@z>
+Cc: LKML <linux-kernel@vger.kernel.org>, Josh Stone <jistone@redhat.com>, Linux Arch <linux-arch@vger.kernel.org>, Jason Baron <jbaron@redhat.com>, Frederic Weisbecker <fweisbec@gmail.com>, Li Zefan <lizf@cn.fujitsu.com>, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <peterz@infradead.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Jiaying Zhang <jiayingz@google.com>, Martin Bligh <mbligh@google.com>, Lai Jiangshan <laijs@cn.fujitsu.com>, Paul Mundt <lethal@linux-sh.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20090826013901.VtampLbljhJt01ESu3MLlyi_jBk_SWvWrfwHBC7YBl8@z>
 
 From: Josh Stone <jistone@redhat.com>
 
-The syscall enter/exit tracepoints are only supported on archs that
-HAVE_SYSCALL_TRACEPOINTS, so the declarations should be #ifdef'ed.
-Also, the definition of syscall_regfunc and syscall_unregfunc should
-depend on this same config, rather than the ftrace-specific one.
+It's not strictly correct for the tracepoint reg/unreg callbacks to
+occur when a client is hooking up, because the actual tracepoint may not
+be present yet.  This happens to be fine for syscall, since that's in
+the core kernel, but it would cause problems for tracepoints defined in
+a module that hasn't been loaded yet.  It also means the reg/unreg has
+to be EXPORTed for any modules to use the tracepoint (as in SystemTap).
+
+This patch removes DECLARE_TRACE_WITH_CALLBACK, and instead introduces
+DEFINE_TRACE_FN which stores the callbacks in struct tracepoint.  The
+callbacks are used now when the active state of the tracepoint changes
+in set_tracepoint & disable_tracepoint.
+
+This also introduces TRACE_EVENT_FN, so ftrace events can also provide
+registration callbacks if needed.
 
 Signed-off-by: Josh Stone <jistone@redhat.com>
 Cc: Jason Baron <jbaron@redhat.com>
@@ -33,48 +43,287 @@ Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
 Cc: Jiaying Zhang <jiayingz@google.com>
 Cc: Martin Bligh <mbligh@google.com>
 Cc: Lai Jiangshan <laijs@cn.fujitsu.com>
-LKML-Reference: <1251150194-1713-3-git-send-email-jistone@redhat.com>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+LKML-Reference: <1251150194-1713-4-git-send-email-jistone@redhat.com>
 Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
 ---
- include/trace/syscall.h |    4 ++++
- kernel/tracepoint.c     |    2 +-
- 2 files changed, 5 insertions(+), 1 deletions(-)
+ arch/s390/kernel/ptrace.c    |    4 +-
+ arch/x86/kernel/ptrace.c     |    4 +-
+ include/linux/tracepoint.h   |   46 ++++++++++++++++-------------------------
+ include/trace/define_trace.h |    5 ++++
+ include/trace/ftrace.h       |    9 ++++++++
+ include/trace/syscall.h      |   12 +++-------
+ kernel/tracepoint.c          |   14 ++++++++----
+ 7 files changed, 49 insertions(+), 45 deletions(-)
 
+diff --git a/arch/s390/kernel/ptrace.c b/arch/s390/kernel/ptrace.c
+index 9d3dcfa..c05b44b 100644
+--- a/arch/s390/kernel/ptrace.c
++++ b/arch/s390/kernel/ptrace.c
+@@ -51,8 +51,8 @@
+ #include "compat_ptrace.h"
+ #endif
+ 
+-DEFINE_TRACE(syscall_enter);
+-DEFINE_TRACE(syscall_exit);
++DEFINE_TRACE_FN(syscall_enter, syscall_regfunc, syscall_unregfunc);
++DEFINE_TRACE_FN(syscall_exit, syscall_regfunc, syscall_unregfunc);
+ 
+ enum s390_regset {
+ 	REGSET_GENERAL,
+diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
+index a909afe..31e9b97 100644
+--- a/arch/x86/kernel/ptrace.c
++++ b/arch/x86/kernel/ptrace.c
+@@ -37,8 +37,8 @@
+ 
+ #include <trace/syscall.h>
+ 
+-DEFINE_TRACE(syscall_enter);
+-DEFINE_TRACE(syscall_exit);
++DEFINE_TRACE_FN(syscall_enter, syscall_regfunc, syscall_unregfunc);
++DEFINE_TRACE_FN(syscall_exit, syscall_regfunc, syscall_unregfunc);
+ 
+ #include "tls.h"
+ 
+diff --git a/include/linux/tracepoint.h b/include/linux/tracepoint.h
+index 5984ed0..846a4ae 100644
+--- a/include/linux/tracepoint.h
++++ b/include/linux/tracepoint.h
+@@ -23,6 +23,8 @@ struct tracepoint;
+ struct tracepoint {
+ 	const char *name;		/* Tracepoint name */
+ 	int state;			/* State. */
++	void (*regfunc)(void);
++	void (*unregfunc)(void);
+ 	void **funcs;
+ } __attribute__((aligned(32)));		/*
+ 					 * Aligned on 32 bytes because it is
+@@ -60,10 +62,8 @@ struct tracepoint {
+  * Make sure the alignment of the structure in the __tracepoints section will
+  * not add unwanted padding between the beginning of the section and the
+  * structure. Force alignment to the same alignment as the section start.
+- * An optional set of (un)registration functions can be passed to perform any
+- * additional (un)registration work.
+  */
+-#define DECLARE_TRACE_WITH_CALLBACK(name, proto, args, reg, unreg)	\
++#define DECLARE_TRACE(name, proto, args)				\
+ 	extern struct tracepoint __tracepoint_##name;			\
+ 	static inline void trace_##name(proto)				\
+ 	{								\
+@@ -73,36 +73,23 @@ struct tracepoint {
+ 	}								\
+ 	static inline int register_trace_##name(void (*probe)(proto))	\
+ 	{								\
+-		int ret;						\
+-		void (*func)(void) = reg;				\
+-									\
+-		ret = tracepoint_probe_register(#name, (void *)probe);	\
+-		if (func && !ret)					\
+-			func();						\
+-		return ret;						\
++		return tracepoint_probe_register(#name, (void *)probe);	\
+ 	}								\
+ 	static inline int unregister_trace_##name(void (*probe)(proto))	\
+ 	{								\
+-		int ret;						\
+-		void (*func)(void) = unreg;				\
+-									\
+-		ret = tracepoint_probe_unregister(#name, (void *)probe);\
+-		if (func && !ret)					\
+-			func();						\
+-		return ret;						\
++		return tracepoint_probe_unregister(#name, (void *)probe);\
+ 	}
+ 
+ 
+-#define DECLARE_TRACE(name, proto, args)				 \
+-	DECLARE_TRACE_WITH_CALLBACK(name, TP_PROTO(proto), TP_ARGS(args),\
+-					NULL, NULL);
+-
+-#define DEFINE_TRACE(name)						\
++#define DEFINE_TRACE_FN(name, reg, unreg)				\
+ 	static const char __tpstrtab_##name[]				\
+ 	__attribute__((section("__tracepoints_strings"))) = #name;	\
+ 	struct tracepoint __tracepoint_##name				\
+ 	__attribute__((section("__tracepoints"), aligned(32))) =	\
+-		{ __tpstrtab_##name, 0, NULL }
++		{ __tpstrtab_##name, 0, reg, unreg, NULL }
++
++#define DEFINE_TRACE(name)						\
++	DEFINE_TRACE_FN(name, NULL, NULL);
+ 
+ #define EXPORT_TRACEPOINT_SYMBOL_GPL(name)				\
+ 	EXPORT_SYMBOL_GPL(__tracepoint_##name)
+@@ -113,7 +100,7 @@ extern void tracepoint_update_probe_range(struct tracepoint *begin,
+ 	struct tracepoint *end);
+ 
+ #else /* !CONFIG_TRACEPOINTS */
+-#define DECLARE_TRACE_WITH_CALLBACK(name, proto, args, reg, unreg)	\
++#define DECLARE_TRACE(name, proto, args)				\
+ 	static inline void _do_trace_##name(struct tracepoint *tp, proto) \
+ 	{ }								\
+ 	static inline void trace_##name(proto)				\
+@@ -127,10 +114,7 @@ extern void tracepoint_update_probe_range(struct tracepoint *begin,
+ 		return -ENOSYS;						\
+ 	}
+ 
+-#define DECLARE_TRACE(name, proto, args)				 \
+-	DECLARE_TRACE_WITH_CALLBACK(name, TP_PROTO(proto), TP_ARGS(args),\
+-					NULL, NULL);
+-
++#define DEFINE_TRACE_FN(name, reg, unreg)
+ #define DEFINE_TRACE(name)
+ #define EXPORT_TRACEPOINT_SYMBOL_GPL(name)
+ #define EXPORT_TRACEPOINT_SYMBOL(name)
+@@ -282,10 +266,16 @@ static inline void tracepoint_synchronize_unregister(void)
+  * can also by used by generic instrumentation like SystemTap), and
+  * it is also used to expose a structured trace record in
+  * /sys/kernel/debug/tracing/events/.
++ *
++ * A set of (un)registration functions can be passed to the variant
++ * TRACE_EVENT_FN to perform any (un)registration work.
+  */
+ 
+ #define TRACE_EVENT(name, proto, args, struct, assign, print)	\
+ 	DECLARE_TRACE(name, PARAMS(proto), PARAMS(args))
++#define TRACE_EVENT_FN(name, proto, args, struct,		\
++		assign, print, reg, unreg)			\
++	DECLARE_TRACE(name, PARAMS(proto), PARAMS(args))
+ #endif
+ 
+ #endif
+diff --git a/include/trace/define_trace.h b/include/trace/define_trace.h
+index f7a7ae1..2a96985 100644
+--- a/include/trace/define_trace.h
++++ b/include/trace/define_trace.h
+@@ -26,6 +26,11 @@
+ #define TRACE_EVENT(name, proto, args, tstruct, assign, print)	\
+ 	DEFINE_TRACE(name)
+ 
++#undef TRACE_EVENT_FN
++#define TRACE_EVENT_FN(name, proto, args, tstruct,		\
++		assign, print, reg, unreg)			\
++	DEFINE_TRACE_FN(name, reg, unreg)
++
+ #undef DECLARE_TRACE
+ #define DECLARE_TRACE(name, proto, args)	\
+ 	DEFINE_TRACE(name)
+diff --git a/include/trace/ftrace.h b/include/trace/ftrace.h
+index 1274002..3a0b44b 100644
+--- a/include/trace/ftrace.h
++++ b/include/trace/ftrace.h
+@@ -42,6 +42,15 @@
+ 	};							\
+ 	static struct ftrace_event_call event_##name
+ 
++/* Callbacks are meaningless to ftrace. */
++#undef TRACE_EVENT_FN
++#define TRACE_EVENT_FN(name, proto, args, tstruct,		\
++		assign, print, reg, unreg)			\
++	TRACE_EVENT(name, TP_PROTO(proto), TP_ARGS(args),	\
++		TP_STRUCT__entry(tstruct),			\
++		TP_fast_assign(assign),				\
++		TP_printk(print))
++
+ #include TRACE_INCLUDE(TRACE_INCLUDE_FILE)
+ 
+ 
 diff --git a/include/trace/syscall.h b/include/trace/syscall.h
-index 9661dd4..5dcb7e3 100644
+index 5dcb7e3..4e19430 100644
 --- a/include/trace/syscall.h
 +++ b/include/trace/syscall.h
-@@ -8,6 +8,8 @@
- #include <asm/ptrace.h>
- 
- 
-+#ifdef CONFIG_HAVE_SYSCALL_TRACEPOINTS
-+
+@@ -13,18 +13,14 @@
  extern void syscall_regfunc(void);
  extern void syscall_unregfunc(void);
  
-@@ -25,6 +27,8 @@ DECLARE_TRACE_WITH_CALLBACK(syscall_exit,
- 	syscall_unregfunc
+-DECLARE_TRACE_WITH_CALLBACK(syscall_enter,
++DECLARE_TRACE(syscall_enter,
+ 	TP_PROTO(struct pt_regs *regs, long id),
+-	TP_ARGS(regs, id),
+-	syscall_regfunc,
+-	syscall_unregfunc
++	TP_ARGS(regs, id)
  );
  
-+#endif
-+
- /*
-  * A syscall entry in the ftrace syscalls array.
-  *
+-DECLARE_TRACE_WITH_CALLBACK(syscall_exit,
++DECLARE_TRACE(syscall_exit,
+ 	TP_PROTO(struct pt_regs *regs, long ret),
+-	TP_ARGS(regs, ret),
+-	syscall_regfunc,
+-	syscall_unregfunc
++	TP_ARGS(regs, ret)
+ );
+ 
+ #endif
 diff --git a/kernel/tracepoint.c b/kernel/tracepoint.c
-index be86b9a..9e0a36f 100644
+index 9e0a36f..1a6a453 100644
 --- a/kernel/tracepoint.c
 +++ b/kernel/tracepoint.c
-@@ -576,7 +576,7 @@ __initcall(init_tracepoints);
+@@ -243,6 +243,11 @@ static void set_tracepoint(struct tracepoint_entry **entry,
+ {
+ 	WARN_ON(strcmp((*entry)->name, elem->name) != 0);
  
- #endif /* CONFIG_MODULES */
++	if (elem->regfunc && !elem->state && active)
++		elem->regfunc();
++	else if (elem->unregfunc && elem->state && !active)
++		elem->unregfunc();
++
+ 	/*
+ 	 * rcu_assign_pointer has a smp_wmb() which makes sure that the new
+ 	 * probe callbacks array is consistent before setting a pointer to it.
+@@ -262,6 +267,9 @@ static void set_tracepoint(struct tracepoint_entry **entry,
+  */
+ static void disable_tracepoint(struct tracepoint *elem)
+ {
++	if (elem->unregfunc && elem->state)
++		elem->unregfunc();
++
+ 	elem->state = 0;
+ 	rcu_assign_pointer(elem->funcs, NULL);
+ }
+@@ -578,7 +586,7 @@ __initcall(init_tracepoints);
  
--#ifdef CONFIG_FTRACE_SYSCALLS
-+#ifdef CONFIG_HAVE_SYSCALL_TRACEPOINTS
+ #ifdef CONFIG_HAVE_SYSCALL_TRACEPOINTS
  
- static DEFINE_MUTEX(regfunc_mutex);
+-static DEFINE_MUTEX(regfunc_mutex);
++/* NB: reg/unreg are called while guarded with the tracepoints_mutex */
  static int sys_tracepoint_refcount;
+ 
+ void syscall_regfunc(void)
+@@ -586,7 +594,6 @@ void syscall_regfunc(void)
+ 	unsigned long flags;
+ 	struct task_struct *g, *t;
+ 
+-	mutex_lock(&regfunc_mutex);
+ 	if (!sys_tracepoint_refcount) {
+ 		read_lock_irqsave(&tasklist_lock, flags);
+ 		do_each_thread(g, t) {
+@@ -595,7 +602,6 @@ void syscall_regfunc(void)
+ 		read_unlock_irqrestore(&tasklist_lock, flags);
+ 	}
+ 	sys_tracepoint_refcount++;
+-	mutex_unlock(&regfunc_mutex);
+ }
+ 
+ void syscall_unregfunc(void)
+@@ -603,7 +609,6 @@ void syscall_unregfunc(void)
+ 	unsigned long flags;
+ 	struct task_struct *g, *t;
+ 
+-	mutex_lock(&regfunc_mutex);
+ 	sys_tracepoint_refcount--;
+ 	if (!sys_tracepoint_refcount) {
+ 		read_lock_irqsave(&tasklist_lock, flags);
+@@ -612,6 +617,5 @@ void syscall_unregfunc(void)
+ 		} while_each_thread(g, t);
+ 		read_unlock_irqrestore(&tasklist_lock, flags);
+ 	}
+-	mutex_unlock(&regfunc_mutex);
+ }
+ #endif
 -- 
 1.6.2.3
 
