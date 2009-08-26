@@ -1,106 +1,226 @@
 From: Chen Liqin <liqin.chen@sunplusct.com>
-Subject: Subject: [PATCH 10/33] score: create head files dma.h
-	dma-mapping.h io.h ioctl.h ioctls.h
-Date: Wed, 26 Aug 2009 14:16:41 +0800
-Message-ID: <1251267401.3073.13.camel@ad3ser01>
+Subject: Subject: [PATCH 11/33] score: create head files hardirq.h hw_irq.h
+	irq.h irqflags.h irq_regs.h
+Date: Wed, 26 Aug 2009 14:17:48 +0800
+Message-ID: <1251267468.3073.14.camel@ad3ser01>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124-219-29-227.vdslpro.static.apol.com.tw ([124.219.29.227]:52360
+Received: from 124-219-29-227.vdslpro.static.apol.com.tw ([124.219.29.227]:52548
 	"EHLO mswedge2.sunplus.com" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1752073AbZHZG04 (ORCPT
+	by vger.kernel.org with ESMTP id S1752525AbZHZG2T (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Aug 2009 02:26:56 -0400
+	Wed, 26 Aug 2009 02:28:19 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, torvalds@linux-foundation.org
 
-From 0afc8cdccd048bbd8a17a38bfe4d9d2935f6d61f Mon Sep 17 00:00:00 2001
+From f305766cc791c2e727aa80be85af6df5cf707dd0 Mon Sep 17 00:00:00 2001
 From: Chen Liqin <liqin.chen@sunplusct.com>
-Date: Wed, 26 Aug 2009 10:05:00 +0800
-Subject: [PATCH 10/33] score: create head files dma.h dma-mapping.h io.h ioctl.h ioctls.h
+Date: Wed, 26 Aug 2009 10:05:01 +0800
+Subject: [PATCH 11/33] score: create head files hardirq.h hw_irq.h irq.h irqflags.h irq_regs.h
 
 
 Signed-off-by: Chen Liqin <liqin.chen@sunplusct.com>
 ---
- arch/score/include/asm/dma-mapping.h |    6 ++++++
- arch/score/include/asm/dma.h         |    8 ++++++++
- arch/score/include/asm/io.h          |    9 +++++++++
- arch/score/include/asm/ioctl.h       |    6 ++++++
- arch/score/include/asm/ioctls.h      |    6 ++++++
- 5 files changed, 35 insertions(+), 0 deletions(-)
- create mode 100644 arch/score/include/asm/dma-mapping.h
- create mode 100644 arch/score/include/asm/dma.h
- create mode 100644 arch/score/include/asm/io.h
- create mode 100644 arch/score/include/asm/ioctl.h
- create mode 100644 arch/score/include/asm/ioctls.h
+ arch/score/include/asm/hardirq.h  |    6 ++
+ arch/score/include/asm/hw_irq.h   |    4 ++
+ arch/score/include/asm/irq.h      |   25 +++++++++
+ arch/score/include/asm/irq_regs.h |   11 ++++
+ arch/score/include/asm/irqflags.h |  109 +++++++++++++++++++++++++++++++++++++
+ 5 files changed, 155 insertions(+), 0 deletions(-)
+ create mode 100644 arch/score/include/asm/hardirq.h
+ create mode 100644 arch/score/include/asm/hw_irq.h
+ create mode 100644 arch/score/include/asm/irq.h
+ create mode 100644 arch/score/include/asm/irq_regs.h
+ create mode 100644 arch/score/include/asm/irqflags.h
 
-diff --git a/arch/score/include/asm/dma-mapping.h b/arch/score/include/asm/dma-mapping.h
+diff --git a/arch/score/include/asm/hardirq.h b/arch/score/include/asm/hardirq.h
 new file mode 100644
-index 0000000..f9c0193
+index 0000000..dc932c5
 --- /dev/null
-+++ b/arch/score/include/asm/dma-mapping.h
++++ b/arch/score/include/asm/hardirq.h
 @@ -0,0 +1,6 @@
-+#ifndef _ASM_SCORE_DMA_MAPPING_H
-+#define _ASM_SCORE_DMA_MAPPING_H
++#ifndef _ASM_SCORE_HARDIRQ_H
++#define _ASM_SCORE_HARDIRQ_H
 +
-+#include <asm-generic/dma-mapping-broken.h>
++#include <asm-generic/hardirq.h>
 +
-+#endif /* _ASM_SCORE_DMA_MAPPING_H */
-diff --git a/arch/score/include/asm/dma.h b/arch/score/include/asm/dma.h
++#endif /* _ASM_SCORE_HARDIRQ_H */
+diff --git a/arch/score/include/asm/hw_irq.h b/arch/score/include/asm/hw_irq.h
 new file mode 100644
-index 0000000..9f44185
+index 0000000..4caafb2
 --- /dev/null
-+++ b/arch/score/include/asm/dma.h
-@@ -0,0 +1,8 @@
-+#ifndef _ASM_SCORE_DMA_H
-+#define _ASM_SCORE_DMA_H
++++ b/arch/score/include/asm/hw_irq.h
+@@ -0,0 +1,4 @@
++#ifndef _ASM_SCORE_HW_IRQ_H
++#define _ASM_SCORE_HW_IRQ_H
 +
-+#include <asm/io.h>
-+
-+#define MAX_DMA_ADDRESS		(0)
-+
-+#endif /* _ASM_SCORE_DMA_H */
-diff --git a/arch/score/include/asm/io.h b/arch/score/include/asm/io.h
++#endif /* _ASM_SCORE_HW_IRQ_H */
+diff --git a/arch/score/include/asm/irq.h b/arch/score/include/asm/irq.h
 new file mode 100644
-index 0000000..fbbfd71
+index 0000000..c883f3d
 --- /dev/null
-+++ b/arch/score/include/asm/io.h
-@@ -0,0 +1,9 @@
-+#ifndef _ASM_SCORE_IO_H
-+#define _ASM_SCORE_IO_H
++++ b/arch/score/include/asm/irq.h
+@@ -0,0 +1,25 @@
++#ifndef _ASM_SCORE_IRQ_H
++#define _ASM_SCORE_IRQ_H
 +
-+#include <asm-generic/io.h>
++#define EXCEPTION_VECTOR_BASE_ADDR	0xa0000000
++#define VECTOR_ADDRESS_OFFSET_MODE4	0
++#define VECTOR_ADDRESS_OFFSET_MODE16	1
 +
-+#define virt_to_bus	virt_to_phys
-+#define bus_to_virt	phys_to_virt
++#define DEBUG_VECTOR_SIZE		(0x4)
++#define DEBUG_VECTOR_BASE_ADDR		((EXCEPTION_VECTOR_BASE_ADDR) + 0x1fc)
 +
-+#endif /* _ASM_SCORE_IO_H */
-diff --git a/arch/score/include/asm/ioctl.h b/arch/score/include/asm/ioctl.h
++#define GENERAL_VECTOR_SIZE		(0x10)
++#define GENERAL_VECTOR_BASE_ADDR	((EXCEPTION_VECTOR_BASE_ADDR) + 0x200)
++
++#define NR_IRQS				64
++#define IRQ_VECTOR_SIZE			(0x10)
++#define IRQ_VECTOR_BASE_ADDR		((EXCEPTION_VECTOR_BASE_ADDR) + 0x210)
++#define IRQ_VECTOR_END_ADDR		((EXCEPTION_VECTOR_BASE_ADDR) + 0x5f0)
++
++#define irq_canonicalize(irq)	(irq)
++
++#define IRQ_TIMER (7)		/* Timer IRQ number of SPCT6600 */
++
++extern void interrupt_exception_vector(void);
++
++#endif /* _ASM_SCORE_IRQ_H */
+diff --git a/arch/score/include/asm/irq_regs.h b/arch/score/include/asm/irq_regs.h
 new file mode 100644
-index 0000000..a351d21
+index 0000000..b8e881c
 --- /dev/null
-+++ b/arch/score/include/asm/ioctl.h
-@@ -0,0 +1,6 @@
-+#ifndef _ASM_SCORE_IOCTL_H
-+#define _ASM_SCORE_IOCTL_H
++++ b/arch/score/include/asm/irq_regs.h
+@@ -0,0 +1,11 @@
++#ifndef _ASM_SCORE_IRQ_REGS_H
++#define _ASM_SCORE_IRQ_REGS_H
 +
-+#include <asm-generic/ioctl.h>
++#include <linux/thread_info.h>
 +
-+#endif /* _ASM_SCORE_IOCTL_H */
-diff --git a/arch/score/include/asm/ioctls.h b/arch/score/include/asm/ioctls.h
++static inline struct pt_regs *get_irq_regs(void)
++{
++	return current_thread_info()->regs;
++}
++
++#endif /* _ASM_SCORE_IRQ_REGS_H */
+diff --git a/arch/score/include/asm/irqflags.h b/arch/score/include/asm/irqflags.h
 new file mode 100644
-index 0000000..ed01d2b
+index 0000000..690a6ca
 --- /dev/null
-+++ b/arch/score/include/asm/ioctls.h
-@@ -0,0 +1,6 @@
-+#ifndef _ASM_SCORE_IOCTLS_H
-+#define _ASM_SCORE_IOCTLS_H
++++ b/arch/score/include/asm/irqflags.h
+@@ -0,0 +1,109 @@
++#ifndef _ASM_SCORE_IRQFLAGS_H
++#define _ASM_SCORE_IRQFLAGS_H
 +
-+#include <asm-generic/ioctls.h>
++#ifndef __ASSEMBLY__
 +
-+#endif /* _ASM_SCORE_IOCTLS_H */
++#define raw_local_irq_save(x)			\
++{						\
++	__asm__ __volatile__(			\
++		"mfcr	r8, cr0;"		\
++		"li	r9, 0xfffffffe;"	\
++		"nop;"				\
++		"mv	%0, r8;"		\
++		"and	r8, r8, r9;"		\
++		"mtcr	r8, cr0;"		\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		: "=r" (x)			\
++		:				\
++		: "r8", "r9"			\
++		);				\
++}
++
++#define raw_local_irq_restore(x)		\
++{						\
++	__asm__ __volatile__(			\
++		"mfcr	r8, cr0;"		\
++		"ldi	r9, 0x1;"		\
++		"and	%0, %0, r9;"		\
++		"or	r8, r8, %0;"		\
++		"mtcr	r8, cr0;"		\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		:				\
++		: "r"(x)			\
++		: "r8", "r9"			\
++		);				\
++}
++
++#define raw_local_irq_enable(void)		\
++{						\
++	__asm__ __volatile__(			\
++		"mfcr\tr8,cr0;"			\
++		"nop;"				\
++		"nop;"				\
++		"ori\tr8,0x1;"			\
++		"mtcr\tr8,cr0;"			\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		:				\
++		:				\
++		: "r8");			\
++}
++
++#define raw_local_irq_disable(void)		\
++{						\
++	__asm__ __volatile__(			\
++		"mfcr\tr8,cr0;"			\
++		"nop;"				\
++		"nop;"				\
++		"srli\tr8,r8,1;"		\
++		"slli\tr8,r8,1;"		\
++		"mtcr\tr8,cr0;"			\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		:				\
++		:				\
++		: "r8");			\
++}
++
++#define raw_local_save_flags(x)			\
++{						\
++	__asm__ __volatile__(			\
++		"mfcr	r8, cr0;"		\
++		"nop;"				\
++		"nop;"				\
++		"mv	%0, r8;"		\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		"nop;"				\
++		"ldi	r9, 0x1;"		\
++		"and	%0, %0, r9;"		\
++		: "=r" (x)			\
++		:				\
++		: "r8", "r9"			\
++		);				\
++}
++
++static inline int raw_irqs_disabled_flags(unsigned long flags)
++{
++	return !(flags & 1);
++}
++
++#endif
++
++#endif /* _ASM_SCORE_IRQFLAGS_H */
 -- 
 1.6.2
