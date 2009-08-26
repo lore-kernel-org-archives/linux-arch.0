@@ -1,311 +1,238 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ew0-f206.google.com ([209.85.219.206]:53554 "EHLO
-	mail-ew0-f206.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932821AbZHZBjN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Aug 2009 21:39:13 -0400
-From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: [PATCH 4/4] tracing: Create generic syscall TRACE_EVENTs
-Date: Wed, 26 Aug 2009 03:39:02 +0200
-Message-ID: <1251250742-6458-5-git-send-email-fweisbec@gmail.com>
-In-Reply-To: <1251250742-6458-1-git-send-email-fweisbec@gmail.com>
-References: <1251250742-6458-1-git-send-email-fweisbec@gmail.com>
+Received: from 124-219-29-227.vdslpro.static.apol.com.tw ([124.219.29.227]:43660
+	"EHLO mswedge2.sunplus.com" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1756852AbZHZGkQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Aug 2009 02:40:16 -0400
+Subject: Subject: [PATCH 05/33] score: create head files atomic.h auxvec.h
+	bitops.h bitsperlong.h byteorder.h div64.h elf.h
+From: Chen Liqin <liqin.chen@sunplusct.com>
+Content-Type: text/plain
+Date: Wed, 26 Aug 2009 14:11:02 +0800
+Message-ID: <1251267062.3073.1.camel@ad3ser01>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: LKML <linux-kernel@vger.kernel.org>, Josh Stone <jistone@redhat.com>, Linux Arch <linux-arch@vger.kernel.org>, Jason Baron <jbaron@redhat.com>, Frederic Weisbecker <fweisbec@gmail.com>, Li Zefan <lizf@cn.fujitsu.com>, Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <peterz@infradead.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Jiaying Zhang <jiayingz@google.com>, Martin Bligh <mbligh@google.com>, Lai Jiangshan <laijs@cn.fujitsu.com>, Paul Mundt <lethal@linux-sh.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20090826013902.PhvwHmoObMQEhfCojB7MBBYVoA1E6vGt4QN3r8gEgyc@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, torvalds@linux-foundation.org
+Message-ID: <20090826061102.2Jxw_wOGvPSiVmaFgyDutVLoUMfTJK_2_I-xrvKgBLw@z>
 
-From: Josh Stone <jistone@redhat.com>
+From e54bfb560857f537d13bdb68179e4aca883a8076 Mon Sep 17 00:00:00 2001
+From: Chen Liqin <liqin.chen@sunplusct.com>
+Date: Wed, 26 Aug 2009 10:04:57 +0800
+Subject: [PATCH 05/33] score: create head files atomic.h auxvec.h bitops.h bitsperlong.h byteorder.h div64.h elf.h
 
-This converts the syscall_enter/exit tracepoints into TRACE_EVENTs, so
-you can have generic ftrace events that capture all system calls with
-arguments and return values.  These generic events are also renamed to
-sys_enter/exit, so they're more closely aligned to the specific
-sys_enter_foo events.
 
-Signed-off-by: Josh Stone <jistone@redhat.com>
-Cc: Jason Baron <jbaron@redhat.com>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Li Zefan <lizf@cn.fujitsu.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: Jiaying Zhang <jiayingz@google.com>
-Cc: Martin Bligh <mbligh@google.com>
-Cc: Lai Jiangshan <laijs@cn.fujitsu.com>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-LKML-Reference: <1251150194-1713-5-git-send-email-jistone@redhat.com>
-Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
+Signed-off-by: Chen Liqin <liqin.chen@sunplusct.com>
 ---
- arch/s390/kernel/ptrace.c       |    8 ++--
- arch/x86/kernel/ptrace.c        |   12 +++----
- include/trace/events/syscalls.h |   70 +++++++++++++++++++++++++++++++++++++++
- include/trace/syscall.h         |   17 ---------
- kernel/trace/trace_syscalls.c   |   17 +++++----
- 5 files changed, 88 insertions(+), 36 deletions(-)
- create mode 100644 include/trace/events/syscalls.h
+ arch/score/include/asm/atomic.h      |    6 ++
+ arch/score/include/asm/auxvec.h      |    4 +
+ arch/score/include/asm/bitops.h      |   16 +++++
+ arch/score/include/asm/bitsperlong.h |    6 ++
+ arch/score/include/asm/byteorder.h   |    6 ++
+ arch/score/include/asm/div64.h       |    6 ++
+ arch/score/include/asm/elf.h         |  103 ++++++++++++++++++++++++++++++++++
+ 7 files changed, 147 insertions(+), 0 deletions(-)
+ create mode 100644 arch/score/include/asm/atomic.h
+ create mode 100644 arch/score/include/asm/auxvec.h
+ create mode 100644 arch/score/include/asm/bitops.h
+ create mode 100644 arch/score/include/asm/bitsperlong.h
+ create mode 100644 arch/score/include/asm/byteorder.h
+ create mode 100644 arch/score/include/asm/div64.h
+ create mode 100644 arch/score/include/asm/elf.h
 
-diff --git a/arch/s390/kernel/ptrace.c b/arch/s390/kernel/ptrace.c
-index c05b44b..f3ddd7a 100644
---- a/arch/s390/kernel/ptrace.c
-+++ b/arch/s390/kernel/ptrace.c
-@@ -51,8 +51,8 @@
- #include "compat_ptrace.h"
- #endif
- 
--DEFINE_TRACE_FN(syscall_enter, syscall_regfunc, syscall_unregfunc);
--DEFINE_TRACE_FN(syscall_exit, syscall_regfunc, syscall_unregfunc);
-+#define CREATE_TRACE_POINTS
-+#include <trace/events/syscalls.h>
- 
- enum s390_regset {
- 	REGSET_GENERAL,
-@@ -665,7 +665,7 @@ asmlinkage long do_syscall_trace_enter(struct pt_regs *regs)
- 	}
- 
- 	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
--		trace_syscall_enter(regs, regs->gprs[2]);
-+		trace_sys_enter(regs, regs->gprs[2]);
- 
- 	if (unlikely(current->audit_context))
- 		audit_syscall_entry(is_compat_task() ?
-@@ -683,7 +683,7 @@ asmlinkage void do_syscall_trace_exit(struct pt_regs *regs)
- 				   regs->gprs[2]);
- 
- 	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
--		trace_syscall_exit(regs, regs->gprs[2]);
-+		trace_sys_exit(regs, regs->gprs[2]);
- 
- 	if (test_thread_flag(TIF_SYSCALL_TRACE))
- 		tracehook_report_syscall_exit(regs, 0);
-diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index 31e9b97..8d7d5c9 100644
---- a/arch/x86/kernel/ptrace.c
-+++ b/arch/x86/kernel/ptrace.c
-@@ -35,13 +35,11 @@
- #include <asm/proto.h>
- #include <asm/ds.h>
- 
--#include <trace/syscall.h>
--
--DEFINE_TRACE_FN(syscall_enter, syscall_regfunc, syscall_unregfunc);
--DEFINE_TRACE_FN(syscall_exit, syscall_regfunc, syscall_unregfunc);
--
- #include "tls.h"
- 
-+#define CREATE_TRACE_POINTS
-+#include <trace/events/syscalls.h>
-+
- enum x86_regset {
- 	REGSET_GENERAL,
- 	REGSET_FP,
-@@ -1501,7 +1499,7 @@ asmregparm long syscall_trace_enter(struct pt_regs *regs)
- 		ret = -1L;
- 
- 	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
--		trace_syscall_enter(regs, regs->orig_ax);
-+		trace_sys_enter(regs, regs->orig_ax);
- 
- 	if (unlikely(current->audit_context)) {
- 		if (IS_IA32)
-@@ -1527,7 +1525,7 @@ asmregparm void syscall_trace_leave(struct pt_regs *regs)
- 		audit_syscall_exit(AUDITSC_RESULT(regs->ax), regs->ax);
- 
- 	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
--		trace_syscall_exit(regs, regs->ax);
-+		trace_sys_exit(regs, regs->ax);
- 
- 	if (test_thread_flag(TIF_SYSCALL_TRACE))
- 		tracehook_report_syscall_exit(regs, 0);
-diff --git a/include/trace/events/syscalls.h b/include/trace/events/syscalls.h
+diff --git a/arch/score/include/asm/atomic.h b/arch/score/include/asm/atomic.h
 new file mode 100644
-index 0000000..397dff2
+index 0000000..84eb8dd
 --- /dev/null
-+++ b/include/trace/events/syscalls.h
-@@ -0,0 +1,70 @@
-+#undef TRACE_SYSTEM
-+#define TRACE_SYSTEM syscalls
++++ b/arch/score/include/asm/atomic.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_SCORE_ATOMIC_H
++#define _ASM_SCORE_ATOMIC_H
 +
-+#if !defined(_TRACE_EVENTS_SYSCALLS_H) || defined(TRACE_HEADER_MULTI_READ)
-+#define _TRACE_EVENTS_SYSCALLS_H
++#include <asm-generic/atomic.h>
 +
-+#include <linux/tracepoint.h>
++#endif /* _ASM_SCORE_ATOMIC_H */
+diff --git a/arch/score/include/asm/auxvec.h b/arch/score/include/asm/auxvec.h
+new file mode 100644
+index 0000000..f691515
+--- /dev/null
++++ b/arch/score/include/asm/auxvec.h
+@@ -0,0 +1,4 @@
++#ifndef _ASM_SCORE_AUXVEC_H
++#define _ASM_SCORE_AUXVEC_H
 +
-+#include <asm/ptrace.h>
-+#include <asm/syscall.h>
++#endif /* _ASM_SCORE_AUXVEC_H */
+diff --git a/arch/score/include/asm/bitops.h b/arch/score/include/asm/bitops.h
+new file mode 100644
+index 0000000..2763b05
+--- /dev/null
++++ b/arch/score/include/asm/bitops.h
+@@ -0,0 +1,16 @@
++#ifndef _ASM_SCORE_BITOPS_H
++#define _ASM_SCORE_BITOPS_H
 +
++#include <asm/byteorder.h> /* swab32 */
++#include <asm/system.h> /* save_flags */
 +
-+#ifdef CONFIG_HAVE_SYSCALL_TRACEPOINTS
++/*
++ * clear_bit() doesn't provide any barrier for the compiler.
++ */
++#define smp_mb__before_clear_bit()	barrier()
++#define smp_mb__after_clear_bit()	barrier()
 +
-+extern void syscall_regfunc(void);
-+extern void syscall_unregfunc(void);
++#include <asm-generic/bitops.h>
++#include <asm-generic/bitops/__fls.h>
 +
-+TRACE_EVENT_FN(sys_enter,
++#endif /* _ASM_SCORE_BITOPS_H */
+diff --git a/arch/score/include/asm/bitsperlong.h b/arch/score/include/asm/bitsperlong.h
+new file mode 100644
+index 0000000..86ff337
+--- /dev/null
++++ b/arch/score/include/asm/bitsperlong.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_SCORE_BITSPERLONG_H
++#define _ASM_SCORE_BITSPERLONG_H
 +
-+	TP_PROTO(struct pt_regs *regs, long id),
++#include <asm-generic/bitsperlong.h>
 +
-+	TP_ARGS(regs, id),
++#endif /* _ASM_SCORE_BITSPERLONG_H */
+diff --git a/arch/score/include/asm/byteorder.h b/arch/score/include/asm/byteorder.h
+new file mode 100644
+index 0000000..88cbebc
+--- /dev/null
++++ b/arch/score/include/asm/byteorder.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_SCORE_BYTEORDER_H
++#define _ASM_SCORE_BYTEORDER_H
 +
-+	TP_STRUCT__entry(
-+		__field(	long,		id		)
-+		__array(	unsigned long,	args,	6	)
-+	),
++#include <linux/byteorder/little_endian.h>
 +
-+	TP_fast_assign(
-+		__entry->id	= id;
-+		syscall_get_arguments(current, regs, 0, 6, __entry->args);
-+	),
++#endif /* _ASM_SCORE_BYTEORDER_H */
+diff --git a/arch/score/include/asm/div64.h b/arch/score/include/asm/div64.h
+new file mode 100644
+index 0000000..75fae19
+--- /dev/null
++++ b/arch/score/include/asm/div64.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_SCORE_DIV64_H
++#define _ASM_SCORE_DIV64_H
 +
-+	TP_printk("NR %ld (%lx, %lx, %lx, %lx, %lx, %lx)",
-+		  __entry->id,
-+		  __entry->args[0], __entry->args[1], __entry->args[2],
-+		  __entry->args[3], __entry->args[4], __entry->args[5]),
++#include <asm-generic/div64.h>
 +
-+	syscall_regfunc, syscall_unregfunc
-+);
++#endif /* _ASM_SCORE_DIV64_H */
+diff --git a/arch/score/include/asm/elf.h b/arch/score/include/asm/elf.h
+new file mode 100644
+index 0000000..43526d9
+--- /dev/null
++++ b/arch/score/include/asm/elf.h
+@@ -0,0 +1,103 @@
++#ifndef _ASM_SCORE_ELF_H
++#define _ASM_SCORE_ELF_H
 +
-+TRACE_EVENT_FN(sys_exit,
++#include <linux/ptrace.h>
 +
-+	TP_PROTO(struct pt_regs *regs, long ret),
++#define EM_SCORE7	135
 +
-+	TP_ARGS(regs, ret),
++/* Relocation types. */
++#define R_SCORE_NONE		0
++#define R_SCORE_HI16		1
++#define R_SCORE_LO16		2
++#define R_SCORE_BCMP		3
++#define R_SCORE_24		4
++#define R_SCORE_PC19		5
++#define R_SCORE16_11		6
++#define R_SCORE16_PC8		7
++#define R_SCORE_ABS32		8
++#define R_SCORE_ABS16		9
++#define R_SCORE_DUMMY2		10
++#define R_SCORE_GP15		11
++#define R_SCORE_GNU_VTINHERIT	12
++#define R_SCORE_GNU_VTENTRY	13
++#define R_SCORE_GOT15		14
++#define R_SCORE_GOT_LO16	15
++#define R_SCORE_CALL15		16
++#define R_SCORE_GPREL32		17
++#define R_SCORE_REL32		18
++#define R_SCORE_DUMMY_HI16	19
++#define R_SCORE_IMM30		20
++#define R_SCORE_IMM32		21
 +
-+	TP_STRUCT__entry(
-+		__field(	long,	id	)
-+		__field(	long,	ret	)
-+	),
++/* ELF register definitions */
++typedef unsigned long	elf_greg_t;
 +
-+	TP_fast_assign(
-+		__entry->id	= syscall_get_nr(current, regs);
-+		__entry->ret	= ret;
-+	),
++#define ELF_NGREG	(sizeof(struct pt_regs) / sizeof(elf_greg_t))
++typedef elf_greg_t	elf_gregset_t[ELF_NGREG];
 +
-+	TP_printk("NR %ld = %ld",
-+		  __entry->id, __entry->ret),
++/* Score does not have fp regs. */
++typedef double		elf_fpreg_t;
++typedef elf_fpreg_t	elf_fpregset_t;
 +
-+	syscall_regfunc, syscall_unregfunc
-+);
++#define elf_check_arch(x)	((x)->e_machine == EM_SCORE7)
 +
-+#endif /* CONFIG_HAVE_SYSCALL_TRACEPOINTS */
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_CLASS	ELFCLASS32
 +
-+#endif /* _TRACE_EVENTS_SYSCALLS_H */
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_DATA	ELFDATA2LSB
++#define ELF_ARCH	EM_SCORE7
 +
-+/* This part must be outside protection */
-+#include <trace/define_trace.h>
++#define SET_PERSONALITY(ex)					\
++do {								\
++	set_personality(PER_LINUX);				\
++} while (0)
 +
-diff --git a/include/trace/syscall.h b/include/trace/syscall.h
-index 4e19430..5dc283b 100644
---- a/include/trace/syscall.h
-+++ b/include/trace/syscall.h
-@@ -8,23 +8,6 @@
- #include <asm/ptrace.h>
- 
- 
--#ifdef CONFIG_HAVE_SYSCALL_TRACEPOINTS
--
--extern void syscall_regfunc(void);
--extern void syscall_unregfunc(void);
--
--DECLARE_TRACE(syscall_enter,
--	TP_PROTO(struct pt_regs *regs, long id),
--	TP_ARGS(regs, id)
--);
--
--DECLARE_TRACE(syscall_exit,
--	TP_PROTO(struct pt_regs *regs, long ret),
--	TP_ARGS(regs, ret)
--);
--
--#endif
--
- /*
-  * A syscall entry in the ftrace syscalls array.
-  *
-diff --git a/kernel/trace/trace_syscalls.c b/kernel/trace/trace_syscalls.c
-index 46c1b97..2698fe4 100644
---- a/kernel/trace/trace_syscalls.c
-+++ b/kernel/trace/trace_syscalls.c
-@@ -1,4 +1,5 @@
- #include <trace/syscall.h>
-+#include <trace/events/syscalls.h>
- #include <linux/kernel.h>
- #include <linux/ftrace.h>
- #include <linux/perf_counter.h>
-@@ -286,7 +287,7 @@ int reg_event_syscall_enter(void *ptr)
- 		return -ENOSYS;
- 	mutex_lock(&syscall_trace_lock);
- 	if (!sys_refcount_enter)
--		ret = register_trace_syscall_enter(ftrace_syscall_enter);
-+		ret = register_trace_sys_enter(ftrace_syscall_enter);
- 	if (ret) {
- 		pr_info("event trace: Could not activate"
- 				"syscall entry trace point");
-@@ -311,7 +312,7 @@ void unreg_event_syscall_enter(void *ptr)
- 	sys_refcount_enter--;
- 	clear_bit(num, enabled_enter_syscalls);
- 	if (!sys_refcount_enter)
--		unregister_trace_syscall_enter(ftrace_syscall_enter);
-+		unregister_trace_sys_enter(ftrace_syscall_enter);
- 	mutex_unlock(&syscall_trace_lock);
- }
- 
-@@ -327,7 +328,7 @@ int reg_event_syscall_exit(void *ptr)
- 		return -ENOSYS;
- 	mutex_lock(&syscall_trace_lock);
- 	if (!sys_refcount_exit)
--		ret = register_trace_syscall_exit(ftrace_syscall_exit);
-+		ret = register_trace_sys_exit(ftrace_syscall_exit);
- 	if (ret) {
- 		pr_info("event trace: Could not activate"
- 				"syscall exit trace point");
-@@ -352,7 +353,7 @@ void unreg_event_syscall_exit(void *ptr)
- 	sys_refcount_exit--;
- 	clear_bit(num, enabled_exit_syscalls);
- 	if (!sys_refcount_exit)
--		unregister_trace_syscall_exit(ftrace_syscall_exit);
-+		unregister_trace_sys_exit(ftrace_syscall_exit);
- 	mutex_unlock(&syscall_trace_lock);
- }
- 
-@@ -418,7 +419,7 @@ int reg_prof_syscall_enter(char *name)
- 
- 	mutex_lock(&syscall_trace_lock);
- 	if (!sys_prof_refcount_enter)
--		ret = register_trace_syscall_enter(prof_syscall_enter);
-+		ret = register_trace_sys_enter(prof_syscall_enter);
- 	if (ret) {
- 		pr_info("event trace: Could not activate"
- 				"syscall entry trace point");
-@@ -442,7 +443,7 @@ void unreg_prof_syscall_enter(char *name)
- 	sys_prof_refcount_enter--;
- 	clear_bit(num, enabled_prof_enter_syscalls);
- 	if (!sys_prof_refcount_enter)
--		unregister_trace_syscall_enter(prof_syscall_enter);
-+		unregister_trace_sys_enter(prof_syscall_enter);
- 	mutex_unlock(&syscall_trace_lock);
- }
- 
-@@ -479,7 +480,7 @@ int reg_prof_syscall_exit(char *name)
- 
- 	mutex_lock(&syscall_trace_lock);
- 	if (!sys_prof_refcount_exit)
--		ret = register_trace_syscall_exit(prof_syscall_exit);
-+		ret = register_trace_sys_exit(prof_syscall_exit);
- 	if (ret) {
- 		pr_info("event trace: Could not activate"
- 				"syscall entry trace point");
-@@ -503,7 +504,7 @@ void unreg_prof_syscall_exit(char *name)
- 	sys_prof_refcount_exit--;
- 	clear_bit(num, enabled_prof_exit_syscalls);
- 	if (!sys_prof_refcount_exit)
--		unregister_trace_syscall_exit(prof_syscall_exit);
-+		unregister_trace_sys_exit(prof_syscall_exit);
- 	mutex_unlock(&syscall_trace_lock);
- }
- 
++struct task_struct;
++struct pt_regs;
++
++#define CORE_DUMP_USE_REGSET
++#define USE_ELF_CORE_DUMP
++#define ELF_EXEC_PAGESIZE	PAGE_SIZE
++
++/* This yields a mask that user programs can use to figure out what
++   instruction set this cpu supports.  This could be done in userspace,
++   but it's not easy, and we've already done it here.  */
++
++#define ELF_HWCAP	(0)
++
++/* This yields a string that ld.so will use to load implementation
++   specific libraries for optimization.  This is more specific in
++   intent than poking at uname or /proc/cpuinfo.
++
++   For the moment, we have only optimizations for the Intel generations,
++   but that could change... */
++
++#define ELF_PLATFORM	(NULL)
++
++#define ELF_PLAT_INIT(_r, load_addr)					\
++do {									\
++	_r->regs[1] = _r->regs[2] = _r->regs[3] = _r->regs[4] = 0;	\
++	_r->regs[5] = _r->regs[6] = _r->regs[7] = _r->regs[8] = 0;	\
++	_r->regs[9] = _r->regs[10] = _r->regs[11] = _r->regs[12] = 0;	\
++	_r->regs[13] = _r->regs[14] = _r->regs[15] = _r->regs[16] = 0;	\
++	_r->regs[17] = _r->regs[18] = _r->regs[19] = _r->regs[20] = 0;	\
++	_r->regs[21] = _r->regs[22] = _r->regs[23] = _r->regs[24] = 0;	\
++	_r->regs[25] = _r->regs[26] = _r->regs[27] = _r->regs[28] = 0;	\
++	_r->regs[30] = _r->regs[31] = 0;				\
++} while (0)
++
++/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
++   use of this is to invoke "./ld.so someprog" to test out a new version of
++   the loader.  We need to make sure that it is out of the way of the program
++   that it will "exec", and that there is sufficient room for the brk.  */
++
++#ifndef ELF_ET_DYN_BASE
++#define ELF_ET_DYN_BASE		(TASK_SIZE / 3 * 2)
++#endif
++
++#endif /* _ASM_SCORE_ELF_H */
 -- 
-1.6.2.3
+1.6.2
+
+
 
