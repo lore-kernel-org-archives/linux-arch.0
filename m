@@ -1,417 +1,60 @@
 From: Chen Liqin <liqin.chen@sunplusct.com>
-Subject: Subject: [PATCH 29/33] score: create lib/ files ashrdi3.c
-	ashldi3.c lshrdi3.c checksum.S checksum_copy.c
-Date: Wed, 26 Aug 2009 14:35:38 +0800
-Message-ID: <1251268538.3204.6.camel@ad3ser01>
+Subject: Subject: [PATCH 30/33] score: create mm/ files Makefile pgtable.c
+	and tlb files
+Date: Wed, 26 Aug 2009 14:37:21 +0800
+Message-ID: <1251268641.3293.0.camel@ad3ser01>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124-219-29-227.vdslpro.static.apol.com.tw ([124.219.29.227]:57633
+Received: from 124-219-29-227.vdslpro.static.apol.com.tw ([124.219.29.227]:38607
 	"EHLO mswedge2.sunplus.com" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1755365AbZHZGpw (ORCPT
+	by vger.kernel.org with ESMTP id S1756918AbZHZGsA (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Aug 2009 02:45:52 -0400
+	Wed, 26 Aug 2009 02:48:00 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, torvalds@linux-foundation.org
 
-From 8064145644006b319c7f1b6939b77de849ef802a Mon Sep 17 00:00:00 2001
+From 4fbde449c45846e4d74363c5a45eca2d06cd46ae Mon Sep 17 00:00:00 2001
 From: Chen Liqin <liqin.chen@sunplusct.com>
 Date: Wed, 26 Aug 2009 10:05:11 +0800
-Subject: [PATCH 29/33] score: create lib/ files ashrdi3.c ashldi3.c lshrdi3.c checksum.S checksum_copy.c
+Subject: [PATCH 30/33] score: create mm/ files Makefile pgtable.c and tlb files
 
 
 Signed-off-by: Chen Liqin <liqin.chen@sunplusct.com>
 ---
- arch/score/lib/ashldi3.c       |   46 +++++++
- arch/score/lib/ashrdi3.c       |   48 ++++++++
- arch/score/lib/checksum.S      |  255 ++++++++++++++++++++++++++++++++++++++++
- arch/score/lib/checksum_copy.c |   52 ++++++++
- arch/score/lib/lshrdi3.c       |   47 ++++++++
- 5 files changed, 448 insertions(+), 0 deletions(-)
- create mode 100644 arch/score/lib/ashldi3.c
- create mode 100644 arch/score/lib/ashrdi3.c
- create mode 100644 arch/score/lib/checksum.S
- create mode 100644 arch/score/lib/checksum_copy.c
- create mode 100644 arch/score/lib/lshrdi3.c
+ arch/score/mm/Makefile    |    6 +
+ arch/score/mm/pgtable.c   |   52 +++++++++
+ arch/score/mm/tlb-miss.S  |  199 +++++++++++++++++++++++++++++++++++
+ arch/score/mm/tlb-score.c |  251 +++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 508 insertions(+), 0 deletions(-)
+ create mode 100644 arch/score/mm/Makefile
+ create mode 100644 arch/score/mm/pgtable.c
+ create mode 100644 arch/score/mm/tlb-miss.S
+ create mode 100644 arch/score/mm/tlb-score.c
 
-diff --git a/arch/score/lib/ashldi3.c b/arch/score/lib/ashldi3.c
+diff --git a/arch/score/mm/Makefile b/arch/score/mm/Makefile
 new file mode 100644
-index 0000000..15691a9
+index 0000000..7b1e29b
 --- /dev/null
-+++ b/arch/score/lib/ashldi3.c
-@@ -0,0 +1,46 @@
-+/*
-+ * arch/score/lib/ashldi3.c
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.,
-+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-+ */
++++ b/arch/score/mm/Makefile
+@@ -0,0 +1,6 @@
++#
++# Makefile for the Linux/SCORE-specific parts of the memory manager.
++#
 +
-+#include <linux/module.h>
-+#include "libgcc.h"
-+
-+long long __ashldi3(long long u, word_type b)
-+{
-+	DWunion uu, w;
-+	word_type bm;
-+
-+	if (b == 0)
-+		return u;
-+
-+	uu.ll = u;
-+	bm = 32 - b;
-+
-+	if (bm <= 0) {
-+		w.s.low = 0;
-+		w.s.high = (unsigned int) uu.s.low << -bm;
-+	} else {
-+		const unsigned int carries = (unsigned int) uu.s.low >> bm;
-+
-+		w.s.low = (unsigned int) uu.s.low << b;
-+		w.s.high = ((unsigned int) uu.s.high << b) | carries;
-+	}
-+
-+	return w.ll;
-+}
-+EXPORT_SYMBOL(__ashldi3);
-diff --git a/arch/score/lib/ashrdi3.c b/arch/score/lib/ashrdi3.c
++obj-y += cache.o extable.o fault.o init.o \
++	tlb-miss.o tlb-score.o pgtable.o
+diff --git a/arch/score/mm/pgtable.c b/arch/score/mm/pgtable.c
 new file mode 100644
-index 0000000..d9814a5
+index 0000000..6408bb7
 --- /dev/null
-+++ b/arch/score/lib/ashrdi3.c
-@@ -0,0 +1,48 @@
-+/*
-+ * arch/score/lib/ashrdi3.c
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.,
-+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-+ */
-+
-+#include <linux/module.h>
-+#include "libgcc.h"
-+
-+long long __ashrdi3(long long u, word_type b)
-+{
-+	DWunion uu, w;
-+	word_type bm;
-+
-+	if (b == 0)
-+		return u;
-+
-+	uu.ll = u;
-+	bm = 32 - b;
-+
-+	if (bm <= 0) {
-+		/* w.s.high = 1..1 or 0..0 */
-+		w.s.high =
-+		    uu.s.high >> 31;
-+		w.s.low = uu.s.high >> -bm;
-+	} else {
-+		const unsigned int carries = (unsigned int) uu.s.high << bm;
-+
-+		w.s.high = uu.s.high >> b;
-+		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
-+	}
-+
-+	return w.ll;
-+}
-+EXPORT_SYMBOL(__ashrdi3);
-diff --git a/arch/score/lib/checksum.S b/arch/score/lib/checksum.S
-new file mode 100644
-index 0000000..706157e
---- /dev/null
-+++ b/arch/score/lib/checksum.S
-@@ -0,0 +1,255 @@
-+/*
-+ * arch/score/lib/csum_partial.S
-+ *
-+ * Score Processor version.
-+ *
-+ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
-+ *  Lennox Wu <lennox.wu@sunplusct.com>
-+ *  Chen Liqin <liqin.chen@sunplusct.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.,
-+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-+ */
-+#include <linux/linkage.h>
-+
-+#define ADDC(sum,reg)			\
-+	add	sum, sum, reg;		\
-+	cmp.c	reg, sum;		\
-+	bleu	9f;			\
-+	addi	sum, 0x1;		\
-+9:
-+
-+#define CSUM_BIGCHUNK(src, offset, sum)		\
-+	lw	r8, [src, offset + 0x00];	\
-+	lw	r9, [src, offset + 0x04];	\
-+	lw	r10, [src, offset + 0x08];	\
-+	lw	r11, [src, offset + 0x0c];	\
-+	ADDC(sum, r8);				\
-+	ADDC(sum, r9);				\
-+	ADDC(sum, r10);				\
-+	ADDC(sum, r11);				\
-+	lw	r8, [src, offset + 0x10];	\
-+	lw	r9, [src, offset + 0x14];	\
-+	lw	r10, [src, offset + 0x18]; 	\
-+	lw	r11, [src, offset + 0x1c]; 	\
-+	ADDC(sum, r8);				\
-+	ADDC(sum, r9);				\
-+	ADDC(sum, r10);				\
-+	ADDC(sum, r11);				\
-+
-+#define src r4
-+#define dest r5
-+#define sum r27
-+
-+	.text
-+/* unknown src alignment and < 8 bytes to go */
-+small_csumcpy:
-+	mv	r5, r10
-+	ldi	r9, 0x0
-+	cmpi.c	r25, 0x1
-+	beq pass_small_set_t7	/*already set, jump to pass_small_set_t7*/
-+	andri.c	r25,r4 , 0x1	/*Is src 2 bytes aligned?*/
-+
-+pass_small_set_t7:
-+	beq	aligned
-+	cmpi.c	r5, 0x0
-+	beq	fold
-+	lbu	r9, [src]
-+	slli	r9,r9, 0x8	/*Little endian*/
-+	ADDC(sum, r9)
-+	addi	src, 0x1
-+	subi.c	r5, 0x1
-+
-+	/*len still a full word */
-+aligned:
-+	andri.c r8, r5, 0x4	/*Len >= 4?*/
-+	beq	len_less_4bytes
-+
-+	/* Still a full word (4byte) to go,and the src is word aligned.*/
-+	andri.c	r8, src, 0x3	/*src is 4bytes aligned, so use LW!!*/
-+	beq	four_byte_aligned
-+	lhu 	r9, [src]
-+	addi	src, 2
-+	ADDC(sum, r9)
-+	lhu 	r9, [src]
-+	addi	src, 2
-+	ADDC(sum, r9)
-+	b len_less_4bytes
-+
-+four_byte_aligned:		/* Len >=4 and four byte aligned */
-+	lw	r9, [src]
-+	addi	src, 4
-+	ADDC(sum, r9)
-+
-+len_less_4bytes:		/* 2 byte aligned aligned and length<4B */
-+	andri.c r8, r5, 0x2
-+	beq	len_less_2bytes
-+	lhu	r9, [src]
-+	addi	src, 0x2	/* src+=2 */
-+	ADDC(sum, r9)
-+
-+len_less_2bytes:		/* len = 1 */
-+	andri.c r8, r5, 0x1
-+	beq 	fold		/* less than 2 and not equal 1--> len=0 -> fold */
-+	lbu	r9, [src]
-+
-+fold_ADDC:
-+	ADDC(sum, r9)
-+fold:
-+	/* fold checksum */
-+	slli	r26, sum, 16
-+	add	sum, sum, r26
-+	cmp.c	r26, sum
-+	srli	sum, sum, 16
-+	bleu 	1f 		/* if r26<=sum */
-+	addi	sum, 0x1 	/* r26>sum */
-+1:
-+	/* odd buffer alignment? r25 was set in csum_partial */
-+	cmpi.c	r25, 0x0
-+	beq	1f
-+	slli	r26, sum, 8
-+	srli	sum, sum, 8
-+	or	sum, sum, r26
-+	andi	sum, 0xffff
-+1:
-+	.set	optimize
-+	/* Add the passed partial csum. */
-+	ADDC(sum, r6)
-+	mv	r4, sum
-+	br	r3
-+	.set	volatile
-+
-+	.align	5
-+ENTRY(csum_partial)
-+	ldi sum, 0
-+	ldi r25, 0
-+	mv r10, r5
-+	cmpi.c	r5, 0x8
-+	blt	small_csumcpy		/* < 8(singed) bytes to copy */
-+	cmpi.c	r5, 0x0
-+	beq	out
-+	andri.c	r25, src, 0x1		/* odd buffer? */
-+
-+	beq	word_align
-+hword_align:				/* 1 byte */
-+	lbu	r8, [src]
-+	subi	r5, 0x1
-+	slli	r8, r8, 8
-+	ADDC(sum, r8)
-+	addi	src, 0x1
-+
-+word_align:				/* 2 bytes */
-+	andri.c r8, src, 0x2		/* 4bytes(dword)_aligned? */
-+	beq	dword_align		/* not, maybe dword_align */
-+	lhu	r8, [src]
-+	subi	r5, 0x2
-+	ADDC(sum, r8)
-+	addi	src, 0x2
-+
-+dword_align:				/* 4bytes */
-+	mv 	r26, r5			/* maybe useless when len >=56 */
-+	ldi 	r8, 56
-+	cmp.c	r8, r5
-+	bgtu	do_end_words		/* if a1(len)<t0(56) ,unsigned */
-+	andri.c	r26, src, 0x4
-+	beq	qword_align
-+	lw	r8, [src]
-+	subi	r5, 0x4
-+	ADDC(sum, r8)
-+	addi	src, 0x4
-+
-+qword_align:				/* 8 bytes */
-+	andri.c r26, src, 0x8
-+	beq	oword_align
-+	lw	r8, [src, 0x0]
-+	lw	r9, [src, 0x4]
-+	subi	r5, 0x8			/* len-=0x8 */
-+	ADDC(sum, r8)
-+	ADDC(sum, r9)
-+	addi	src, 0x8
-+
-+oword_align:				/* 16bytes */
-+	andri.c	r26, src, 0x10
-+	beq	begin_movement
-+	lw	r10, [src, 0x08]
-+	lw	r11, [src, 0x0c]
-+	lw	r8, [src, 0x00]
-+	lw	r9, [src, 0x04]
-+	ADDC(sum, r10)
-+	ADDC(sum, r11)
-+	ADDC(sum, r8)
-+	ADDC(sum, r9)
-+	subi	r5, 0x10
-+	addi	src, 0x10
-+
-+begin_movement:
-+	srli.c	r26, r5, 0x7		/* len>=128? */
-+	beq	1f			/* len<128 */
-+
-+/* r26 is the result that computed in oword_align */
-+move_128bytes:
-+	CSUM_BIGCHUNK(src, 0x00, sum)
-+	CSUM_BIGCHUNK(src, 0x20, sum)
-+	CSUM_BIGCHUNK(src, 0x40, sum)
-+	CSUM_BIGCHUNK(src, 0x60, sum)
-+	subi.c	r26, 0x01		/* r26 equals len/128 */
-+	addi	src, 0x80
-+	bne	move_128bytes
-+
-+1:	/* len<128,we process 64byte here */
-+	andri.c	r10, r5, 0x40
-+	beq	1f
-+
-+move_64bytes:
-+	CSUM_BIGCHUNK(src, 0x00, sum)
-+	CSUM_BIGCHUNK(src, 0x20, sum)
-+	addi	src, 0x40
-+
-+1:					/* len<64 */
-+	andri	r26, r5, 0x1c		/* 0x1c=28 */
-+	andri.c	r10, r5, 0x20
-+	beq	do_end_words		/* decided by andri */
-+
-+move_32bytes:
-+	CSUM_BIGCHUNK(src, 0x00, sum)
-+	andri	r26, r5, 0x1c
-+	addri	src, src, 0x20
-+
-+do_end_words:				/* len<32 */
-+	/* r26 was set already in dword_align */
-+	cmpi.c	r26, 0x0
-+	beq	maybe_end_cruft		/* len<28 or len<56 */
-+	srli	r26, r26, 0x2
-+
-+end_words:
-+	lw	r8, [src]
-+	subi.c	r26, 0x1		/* unit is 4 byte */
-+	ADDC(sum, r8)
-+	addi	src, 0x4
-+	cmpi.c	r26, 0x0
-+	bne	end_words		/* r26!=0 */
-+
-+maybe_end_cruft:			/* len<4 */
-+	andri	r10, r5, 0x3
-+
-+small_memcpy:
-+	mv	r5, r10
-+	j	small_csumcpy
-+
-+out:
-+	mv	r4, sum
-+	br	r3
-+
-+END(csum_partial)
-diff --git a/arch/score/lib/checksum_copy.c b/arch/score/lib/checksum_copy.c
-new file mode 100644
-index 0000000..04565dd
---- /dev/null
-+++ b/arch/score/lib/checksum_copy.c
++++ b/arch/score/mm/pgtable.c
 @@ -0,0 +1,52 @@
 +/*
-+ * arch/score/lib/csum_partial_copy.c
++ * arch/score/mm/pgtable-32.c
 + *
 + * Score Processor version.
 + *
@@ -435,41 +78,47 @@ index 0000000..04565dd
 + * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 + */
 +
-+#include <net/checksum.h>
++#include <linux/bootmem.h>
++#include <linux/init.h>
++#include <linux/pfn.h>
++#include <linux/mm.h>
 +
-+#include <asm/uaccess.h>
-+
-+unsigned int csum_partial_copy(const char *src, char *dst,
-+				int len, unsigned int sum)
++void pgd_init(unsigned long page)
 +{
-+	sum = csum_partial(src, len, sum);
-+	memcpy(dst, src, len);
++	unsigned long *p = (unsigned long *) page;
++	int i;
 +
-+	return sum;
-+}
-+
-+unsigned int csum_partial_copy_from_user(const char *src, char *dst,
-+					int len, unsigned int sum,
-+					int *err_ptr)
-+{
-+	int missing;
-+
-+	missing = copy_from_user(dst, src, len);
-+	if (missing) {
-+		memset(dst + len - missing, 0, missing);
-+		*err_ptr = -EFAULT;
++	for (i = 0; i < USER_PTRS_PER_PGD; i += 8) {
++		p[i + 0] = (unsigned long) invalid_pte_table;
++		p[i + 1] = (unsigned long) invalid_pte_table;
++		p[i + 2] = (unsigned long) invalid_pte_table;
++		p[i + 3] = (unsigned long) invalid_pte_table;
++		p[i + 4] = (unsigned long) invalid_pte_table;
++		p[i + 5] = (unsigned long) invalid_pte_table;
++		p[i + 6] = (unsigned long) invalid_pte_table;
++		p[i + 7] = (unsigned long) invalid_pte_table;
 +	}
-+
-+	return csum_partial(dst, len, sum);
 +}
-diff --git a/arch/score/lib/lshrdi3.c b/arch/score/lib/lshrdi3.c
++
++void __init pagetable_init(void)
++{
++	/* Initialize the entire pgd. */
++	pgd_init((unsigned long)swapper_pg_dir);
++}
+diff --git a/arch/score/mm/tlb-miss.S b/arch/score/mm/tlb-miss.S
 new file mode 100644
-index 0000000..ce21175
+index 0000000..f276519
 --- /dev/null
-+++ b/arch/score/lib/lshrdi3.c
-@@ -0,0 +1,47 @@
++++ b/arch/score/mm/tlb-miss.S
+@@ -0,0 +1,199 @@
 +/*
-+ * arch/score/lib/lshrdi3.c
++ * arch/score/mm/tlbex.S
++ *
++ * Score Processor version.
++ *
++ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
++ *  Lennox Wu <lennox.wu@sunplusct.com>
++ *  Chen Liqin <liqin.chen@sunplusct.com>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License as published by
@@ -487,33 +136,436 @@ index 0000000..ce21175
 + * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 + */
 +
++#include <asm/asmmacro.h>
++#include <asm/pgtable-bits.h>
++#include <asm/scoreregs.h>
 +
++/*
++* After this macro runs, the pte faulted on is
++* in register PTE, a ptr into the table in which
++* the pte belongs is in PTR.
++*/
++	.macro	load_pte, pte, ptr
++	la	\ptr, pgd_current
++	lw	\ptr, [\ptr, 0]
++	mfcr	\pte, cr6
++	srli	\pte, \pte, 22
++	slli	\pte, \pte, 2
++	add	\ptr, \ptr, \pte
++	lw	\ptr, [\ptr, 0]
++	mfcr	\pte, cr6
++	srli	\pte, \pte, 10
++	andi	\pte, 0xffc
++	add	\ptr, \ptr, \pte
++	lw	\pte, [\ptr, 0]
++	.endm
++
++	.macro	pte_reload, ptr
++	lw	\ptr, [\ptr, 0]
++	mtcr	\ptr, cr12
++	nop
++	nop
++	nop
++	nop
++	nop
++	.endm
++
++	.macro do_fault, write
++	SAVE_ALL
++	mfcr	r6, cr6
++	mv	r4, r0
++	ldi	r5, \write
++	la	r8, do_page_fault
++	brl	r8
++	j	ret_from_exception
++	.endm
++
++	.macro	pte_writable, pte, ptr, label
++	andi	\pte, 0x280
++	cmpi.c	\pte, 0x280
++	bne	\label
++	lw	\pte, [\ptr, 0]		/*reload PTE*/
++	.endm
++
++/*
++ * Make PTE writable, update software status bits as well,
++ * then store at PTR.
++ */
++	.macro	pte_makewrite, pte, ptr
++	ori	\pte, 0x426
++	sw	\pte, [\ptr, 0]
++	.endm
++
++	.text
++ENTRY(score7_FTLB_refill_Handler)
++	la	r31, pgd_current	/* get pgd pointer */
++	lw	r31, [r31, 0]		/* get the address of PGD */
++	mfcr	r30, cr6
++	srli	r30, r30, 22		/* PGDIR_SHIFT = 22*/
++	slli	r30, r30, 2
++	add	r31, r31, r30
++	lw	r31, [r31, 0]		/* get the address of the start address of PTE table */
++
++	mfcr	r30, cr9
++	andi	r30, 0xfff 		/* equivalent to get PET index and right shift 2 bits */
++	add	r31, r31, r30
++	lw	r30, [r31, 0]		/* load pte entry */
++	mtcr	r30, cr12
++	nop
++	nop
++	nop
++	nop
++	nop
++	mtrtlb
++	nop
++	nop
++	nop
++	nop
++	nop
++	rte				/* 6 cycles to make sure tlb entry works */
++
++ENTRY(score7_KSEG_refill_Handler)
++	la	r31, pgd_current	/* get pgd pointer */
++	lw	r31, [r31, 0]		/* get the address of PGD */
++	mfcr	r30, cr6
++	srli	r30, r30, 22		/* PGDIR_SHIFT = 22 */
++	slli	r30, r30, 2
++	add	r31, r31, r30
++	lw	r31, [r31, 0]		/* get the address of the start address of PTE table */
++
++	mfcr	r30, cr6		/* get Bad VPN */
++	srli	r30, r30, 10
++	andi	r30, 0xffc		/* PTE VPN mask (bit 11~2) */
++
++	add	r31, r31, r30
++	lw	r30, [r31, 0]		/* load pte entry */
++	mtcr	r30, cr12
++	nop
++	nop
++	nop
++	nop
++	nop
++	mtrtlb
++	nop
++	nop
++	nop
++	nop
++	nop
++	rte				/* 6 cycles to make sure tlb entry works */
++
++nopage_tlbl:
++	do_fault	0		/* Read */
++
++ENTRY(handle_tlb_refill)
++	load_pte	r30, r31
++	pte_writable	r30, r31, handle_tlb_refill_nopage
++	pte_makewrite	r30, r31	/* Access|Modify|Dirty|Valid */
++	pte_reload	r31
++	mtrtlb
++	nop
++	nop
++	nop
++	nop
++	nop
++	rte
++handle_tlb_refill_nopage:
++	do_fault	0		/* Read */
++
++ENTRY(handle_tlb_invaild)
++	load_pte	r30, r31
++	stlb				/* find faulting entry */
++	pte_writable	r30, r31, handle_tlb_invaild_nopage
++	pte_makewrite	r30, r31	/* Access|Modify|Dirty|Valid */
++	pte_reload	r31
++	mtptlb
++	nop
++	nop
++	nop
++	nop
++	nop
++	rte
++handle_tlb_invaild_nopage:
++	do_fault	0		/* Read */
++
++ENTRY(handle_mod)
++	load_pte	r30, r31
++	stlb				/* find faulting entry */
++	andi	r30, _PAGE_WRITE	/* Writable? */
++	cmpz.c	r30
++	beq	nowrite_mod
++	lw	r30, [r31, 0]		/* reload into r30 */
++
++	/* Present and writable bits set, set accessed and dirty bits. */
++	pte_makewrite	r30, r31
++
++	/* Now reload the entry into the tlb. */
++	pte_reload	r31
++	mtptlb
++	nop
++	nop
++	nop
++	nop
++	nop
++	rte
++
++nowrite_mod:
++	do_fault	1	/* Write */
+diff --git a/arch/score/mm/tlb-score.c b/arch/score/mm/tlb-score.c
+new file mode 100644
+index 0000000..4fa5aa5
+--- /dev/null
++++ b/arch/score/mm/tlb-score.c
+@@ -0,0 +1,251 @@
++/*
++ * arch/score/mm/tlb-score.c
++ *
++ * Score Processor version.
++ *
++ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
++ *  Lennox Wu <lennox.wu@sunplusct.com>
++ *  Chen Liqin <liqin.chen@sunplusct.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ */
++
++#include <linux/highmem.h>
 +#include <linux/module.h>
-+#include "libgcc.h"
 +
-+long long __lshrdi3(long long u, word_type b)
++#include <asm/irq.h>
++#include <asm/mmu_context.h>
++#include <asm/tlb.h>
++
++#define TLBSIZE 32
++
++unsigned long asid_cache = ASID_FIRST_VERSION;
++EXPORT_SYMBOL(asid_cache);
++
++void local_flush_tlb_all(void)
 +{
-+	DWunion uu, w;
-+	word_type bm;
++	unsigned long flags;
++	unsigned long old_ASID;
++	int entry;
 +
-+	if (b == 0)
-+		return u;
++	local_irq_save(flags);
++	old_ASID = pevn_get() & ASID_MASK;
++	pectx_set(0);			/* invalid */
++	entry = tlblock_get();		/* skip locked entries*/
 +
-+	uu.ll = u;
-+	bm = 32 - b;
++	for (; entry < TLBSIZE; entry++) {
++		tlbpt_set(entry);
++		pevn_set(KSEG1);
++		barrier();
++		tlb_write_indexed();
++	}
++	pevn_set(old_ASID);
++	local_irq_restore(flags);
++}
 +
-+	if (bm <= 0) {
-+		w.s.high = 0;
-+		w.s.low = (unsigned int) uu.s.high >> -bm;
++/*
++ * If mm is currently active_mm, we can't really drop it. Instead,
++ * we will get a new one for it.
++ */
++static inline void
++drop_mmu_context(struct mm_struct *mm)
++{
++	unsigned long flags;
++
++	local_irq_save(flags);
++	get_new_mmu_context(mm);
++	pevn_set(mm->context & ASID_MASK);
++	local_irq_restore(flags);
++}
++
++void local_flush_tlb_mm(struct mm_struct *mm)
++{
++	if (mm->context != 0)
++		drop_mmu_context(mm);
++}
++
++void local_flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
++	unsigned long end)
++{
++	struct mm_struct *mm = vma->vm_mm;
++	unsigned long vma_mm_context = mm->context;
++	if (mm->context != 0) {
++		unsigned long flags;
++		int size;
++
++		local_irq_save(flags);
++		size = (end - start + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
++		if (size <= TLBSIZE) {
++			int oldpid = pevn_get() & ASID_MASK;
++			int newpid = vma_mm_context & ASID_MASK;
++
++			start &= PAGE_MASK;
++			end += (PAGE_SIZE - 1);
++			end &= PAGE_MASK;
++			while (start < end) {
++				int idx;
++
++				pevn_set(start | newpid);
++				start += PAGE_SIZE;
++				barrier();
++				tlb_probe();
++				idx = tlbpt_get();
++				pectx_set(0);
++				pevn_set(KSEG1);
++				if (idx < 0)
++					continue;
++				tlb_write_indexed();
++			}
++			pevn_set(oldpid);
++		} else {
++			/* Bigger than TLBSIZE, get new ASID directly */
++			get_new_mmu_context(mm);
++			if (mm == current->active_mm)
++				pevn_set(vma_mm_context & ASID_MASK);
++		}
++		local_irq_restore(flags);
++	}
++}
++
++void local_flush_tlb_kernel_range(unsigned long start, unsigned long end)
++{
++	unsigned long flags;
++	int size;
++
++	local_irq_save(flags);
++	size = (end - start + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
++	if (size <= TLBSIZE) {
++		int pid = pevn_get();
++
++		start &= PAGE_MASK;
++		end += PAGE_SIZE - 1;
++		end &= PAGE_MASK;
++
++		while (start < end) {
++			long idx;
++
++			pevn_set(start);
++			start += PAGE_SIZE;
++			tlb_probe();
++			idx = tlbpt_get();
++			if (idx < 0)
++				continue;
++			pectx_set(0);
++			pevn_set(KSEG1);
++			barrier();
++			tlb_write_indexed();
++		}
++		pevn_set(pid);
 +	} else {
-+		const unsigned int carries = (unsigned int) uu.s.high << bm;
-+
-+		w.s.high = (unsigned int) uu.s.high >> b;
-+		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
++		local_flush_tlb_all();
 +	}
 +
-+	return w.ll;
++	local_irq_restore(flags);
 +}
-+EXPORT_SYMBOL(__lshrdi3);
++
++void local_flush_tlb_page(struct vm_area_struct *vma, unsigned long page)
++{
++	if (!vma || vma->vm_mm->context != 0) {
++		unsigned long flags;
++		int oldpid, newpid, idx;
++		unsigned long vma_ASID = vma->vm_mm->context;
++
++		newpid = vma_ASID & ASID_MASK;
++		page &= PAGE_MASK;
++		local_irq_save(flags);
++		oldpid = pevn_get() & ASID_MASK;
++		pevn_set(page | newpid);
++		barrier();
++		tlb_probe();
++		idx = tlbpt_get();
++		pectx_set(0);
++		pevn_set(KSEG1);
++		if (idx < 0)		/* p_bit(31) - 1: miss, 0: hit*/
++			goto finish;
++		barrier();
++		tlb_write_indexed();
++finish:
++		pevn_set(oldpid);
++		local_irq_restore(flags);
++	}
++}
++
++/*
++ * This one is only used for pages with the global bit set so we don't care
++ * much about the ASID.
++ */
++void local_flush_tlb_one(unsigned long page)
++{
++	unsigned long flags;
++	int oldpid, idx;
++
++	local_irq_save(flags);
++	oldpid = pevn_get();
++	page &= (PAGE_MASK << 1);
++	pevn_set(page);
++	barrier();
++	tlb_probe();
++	idx = tlbpt_get();
++	pectx_set(0);
++	if (idx >= 0) {
++		/* Make sure all entries differ. */
++		pevn_set(KSEG1);
++		barrier();
++		tlb_write_indexed();
++	}
++	pevn_set(oldpid);
++	local_irq_restore(flags);
++}
++
++void __update_tlb(struct vm_area_struct *vma, unsigned long address, pte_t pte)
++{
++	unsigned long flags;
++	int idx, pid;
++
++	/*
++	 * Handle debugger faulting in for debugee.
++	 */
++	if (current->active_mm != vma->vm_mm)
++		return;
++
++	pid = pevn_get() & ASID_MASK;
++
++	local_irq_save(flags);
++	address &= PAGE_MASK;
++	pevn_set(address | pid);
++	barrier();
++	tlb_probe();
++	idx = tlbpt_get();
++	pectx_set(pte_val(pte));
++	pevn_set(address | pid);
++	if (idx < 0)
++		tlb_write_random();
++	else
++		tlb_write_indexed();
++
++	pevn_set(pid);
++	local_irq_restore(flags);
++}
++
++void __cpuinit tlb_init(void)
++{
++	tlblock_set(0);
++	local_flush_tlb_all();
++	memcpy((void *)(EXCEPTION_VECTOR_BASE_ADDR + 0x100),
++			&score7_FTLB_refill_Handler, 0xFC);
++	flush_icache_range(EXCEPTION_VECTOR_BASE_ADDR + 0x100,
++			EXCEPTION_VECTOR_BASE_ADDR + 0x1FC);
++}
 -- 
 1.6.2
