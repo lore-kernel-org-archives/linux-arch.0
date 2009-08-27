@@ -1,468 +1,279 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 124-219-29-227.vdslpro.static.apol.com.tw ([124.219.29.227]:38707
-	"EHLO mswedge2.sunplus.com" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1756820AbZHZGsl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Aug 2009 02:48:41 -0400
-Subject: Subject: [PATCH 31/33] score: create mm/ files init.c cache.c
-From: Chen Liqin <liqin.chen@sunplusct.com>
-Content-Type: text/plain
-Date: Wed, 26 Aug 2009 14:37:59 +0800
-Message-ID: <1251268679.3293.2.camel@ad3ser01>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-ew0-f206.google.com ([209.85.219.206]:54351 "EHLO
+	mail-ew0-f206.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932094AbZH0Ccd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Aug 2009 22:32:33 -0400
+From: Frederic Weisbecker <fweisbec@gmail.com>
+Subject: [PATCH 05/18] x86: Add pt_regs register and stack access APIs
+Date: Thu, 27 Aug 2009 04:32:04 +0200
+Message-ID: <1251340337-5640-6-git-send-email-fweisbec@gmail.com>
+In-Reply-To: <1251340337-5640-1-git-send-email-fweisbec@gmail.com>
+References: <1251340337-5640-1-git-send-email-fweisbec@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, torvalds@linux-foundation.org
-Message-ID: <20090826063759.BGFQ-MyU057yQxkxOq6iEiIAtBcaYMoiaokNkP3RqHM@z>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: LKML <linux-kernel@vger.kernel.org>, Masami Hiramatsu <mhiramat@redhat.com>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Avi Kivity <avi@redhat.com>, Andi Kleen <ak@linux.intel.com>, Christoph Hellwig <hch@infradead.org>, "Frank Ch. Eigler" <fche@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Jason Baron <jbaron@redhat.com>, Jim Keniston <jkenisto@us.ibm.com>, "K.Prasad" <prasad@linux.vnet.ibm.com>, Lai Jiangshan <laijs@cn.fujitsu.com>, Li Zefan <lizf@cn.fujitsu.com>, =?utf-8?q?Przemys=C5=82aw=20Pawe=C5=82czyk?= <przemyslaw@pawelczyk.it>, Roland McGrath <roland@redhat.com>, Sam Ravnborg <sam@ravnborg.org>, Srikar Dronamraju <srikar@linux.vnet.ibm.com>, Steven Rostedt <rostedt@goodmis.org>, Tom Zanussi <tzanussi@gmail.com>, Vegard Nossum <vegard.nossum@gmail.com>, Frederic Weisbecker <fweisbec@gmail.com>
+Message-ID: <20090827023204.zIsBA30V_lKPEVkZ7iAy0g5wtekrNlF9bQV2_9GPUeQ@z>
 
-From 75ba37513ce4b842c11c1d67dd8b32dd61ef240d Mon Sep 17 00:00:00 2001
-From: Chen Liqin <liqin.chen@sunplusct.com>
-Date: Wed, 26 Aug 2009 10:05:12 +0800
-Subject: [PATCH 31/33] score: create mm/ files init.c cache.c
+From: Masami Hiramatsu <mhiramat@redhat.com>
 
+Add following APIs for accessing registers and stack entries from
+pt_regs.
+These APIs are required by kprobes-based event tracer on ftrace.
+Some other debugging tools might be able to use it too.
 
-Signed-off-by: Chen Liqin <liqin.chen@sunplusct.com>
+- regs_query_register_offset(const char *name)
+   Query the offset of "name" register.
+
+- regs_query_register_name(unsigned int offset)
+   Query the name of register by its offset.
+
+- regs_get_register(struct pt_regs *regs, unsigned int offset)
+   Get the value of a register by its offset.
+
+- regs_within_kernel_stack(struct pt_regs *regs, unsigned long addr)
+   Check the address is in the kernel stack.
+
+- regs_get_kernel_stack_nth(struct pt_regs *reg, unsigned int nth)
+   Get Nth entry of the kernel stack. (N >= 0)
+
+- regs_get_argument_nth(struct pt_regs *reg, unsigned int nth)
+   Get Nth argument at function call. (N >= 0)
+
+Signed-off-by: Masami Hiramatsu <mhiramat@redhat.com>
+Cc: linux-arch@vger.kernel.org
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: Avi Kivity <avi@redhat.com>
+Cc: Andi Kleen <ak@linux.intel.com>
+Cc: Christoph Hellwig <hch@infradead.org>
+Cc: Frank Ch. Eigler <fche@redhat.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Jason Baron <jbaron@redhat.com>
+Cc: Jim Keniston <jkenisto@us.ibm.com>
+Cc: K.Prasad <prasad@linux.vnet.ibm.com>
+Cc: Lai Jiangshan <laijs@cn.fujitsu.com>
+Cc: Li Zefan <lizf@cn.fujitsu.com>
+Cc: Przemysław Pawełczyk <przemyslaw@pawelczyk.it>
+Cc: Roland McGrath <roland@redhat.com>
+Cc: Sam Ravnborg <sam@ravnborg.org>
+Cc: Srikar Dronamraju <srikar@linux.vnet.ibm.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>
+Cc: Tom Zanussi <tzanussi@gmail.com>
+Cc: Vegard Nossum <vegard.nossum@gmail.com>
+LKML-Reference: <20090813203444.31965.26374.stgit@localhost.localdomain>
+Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
 ---
- arch/score/mm/cache.c |  257 +++++++++++++++++++++++++++++++++++++++++++++++++
- arch/score/mm/init.c  |  161 +++++++++++++++++++++++++++++++
- 2 files changed, 418 insertions(+), 0 deletions(-)
- create mode 100644 arch/score/mm/cache.c
- create mode 100644 arch/score/mm/init.c
+ arch/x86/include/asm/ptrace.h |   62 ++++++++++++++++++++++
+ arch/x86/kernel/ptrace.c      |  112 +++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 174 insertions(+), 0 deletions(-)
 
-diff --git a/arch/score/mm/cache.c b/arch/score/mm/cache.c
-new file mode 100644
-index 0000000..dbac9d9
---- /dev/null
-+++ b/arch/score/mm/cache.c
-@@ -0,0 +1,257 @@
-+/*
-+ * arch/score/mm/cache.c
+diff --git a/arch/x86/include/asm/ptrace.h b/arch/x86/include/asm/ptrace.h
+index 0f0d908..a3d49dd 100644
+--- a/arch/x86/include/asm/ptrace.h
++++ b/arch/x86/include/asm/ptrace.h
+@@ -7,6 +7,7 @@
+ 
+ #ifdef __KERNEL__
+ #include <asm/segment.h>
++#include <asm/page_types.h>
+ #endif
+ 
+ #ifndef __ASSEMBLY__
+@@ -216,6 +217,67 @@ static inline unsigned long user_stack_pointer(struct pt_regs *regs)
+ 	return regs->sp;
+ }
+ 
++/* Query offset/name of register from its name/offset */
++extern int regs_query_register_offset(const char *name);
++extern const char *regs_query_register_name(unsigned int offset);
++#define MAX_REG_OFFSET (offsetof(struct pt_regs, ss))
++
++/**
++ * regs_get_register() - get register value from its offset
++ * @regs:	pt_regs from which register value is gotten.
++ * @offset:	offset number of the register.
 + *
-+ * Score Processor version.
-+ *
-+ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
-+ *  Lennox Wu <lennox.wu@sunplusct.com>
-+ *  Chen Liqin <liqin.chen@sunplusct.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.,
-+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ * regs_get_register returns the value of a register whose offset from @regs
++ * is @offset. The @offset is the offset of the register in struct pt_regs.
++ * If @offset is bigger than MAX_REG_OFFSET, this returns 0.
 + */
-+
-+#include <linux/init.h>
-+#include <linux/linkage.h>
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/module.h>
-+#include <linux/sched.h>
-+
-+#include <asm/mmu_context.h>
-+
-+/*
-+Just flush entire Dcache!!
-+You must ensure the page doesn't include instructions, because
-+the function will not flush the Icache.
-+The addr must be cache aligned.
-+*/
-+static void flush_data_cache_page(unsigned long addr)
++static inline unsigned long regs_get_register(struct pt_regs *regs,
++					      unsigned int offset)
 +{
-+	unsigned int i;
-+	for (i = 0; i < (PAGE_SIZE / L1_CACHE_BYTES); i += L1_CACHE_BYTES) {
-+		__asm__ __volatile__(
-+		"cache 0x0e, [%0, 0]\n"
-+		"cache 0x1a, [%0, 0]\n"
-+		"nop\n"
-+		: : "r" (addr));
-+		addr += L1_CACHE_BYTES;
-+	}
++	if (unlikely(offset > MAX_REG_OFFSET))
++		return 0;
++	return *(unsigned long *)((unsigned long)regs + offset);
 +}
 +
-+/* called by update_mmu_cache. */
-+void __update_cache(struct vm_area_struct *vma, unsigned long address,
-+		pte_t pte)
-+{
-+	struct page *page;
-+	unsigned long pfn, addr;
-+	int exec = (vma->vm_flags & VM_EXEC);
-+
-+	pfn = pte_pfn(pte);
-+	if (unlikely(!pfn_valid(pfn)))
-+		return;
-+	page = pfn_to_page(pfn);
-+	if (page_mapping(page) && test_bit(PG_arch_1, &page->flags)) {
-+		addr = (unsigned long) page_address(page);
-+		if (exec)
-+			flush_data_cache_page(addr);
-+		clear_bit(PG_arch_1, &page->flags);
-+	}
-+}
-+
-+static inline void setup_protection_map(void)
-+{
-+	protection_map[0] = PAGE_NONE;
-+	protection_map[1] = PAGE_READONLY;
-+	protection_map[2] = PAGE_COPY;
-+	protection_map[3] = PAGE_COPY;
-+	protection_map[4] = PAGE_READONLY;
-+	protection_map[5] = PAGE_READONLY;
-+	protection_map[6] = PAGE_COPY;
-+	protection_map[7] = PAGE_COPY;
-+	protection_map[8] = PAGE_NONE;
-+	protection_map[9] = PAGE_READONLY;
-+	protection_map[10] = PAGE_SHARED;
-+	protection_map[11] = PAGE_SHARED;
-+	protection_map[12] = PAGE_READONLY;
-+	protection_map[13] = PAGE_READONLY;
-+	protection_map[14] = PAGE_SHARED;
-+	protection_map[15] = PAGE_SHARED;
-+}
-+
-+void __devinit cpu_cache_init(void)
-+{
-+	setup_protection_map();
-+}
-+
-+void flush_icache_all(void)
-+{
-+	__asm__ __volatile__(
-+	"la r8, flush_icache_all\n"
-+	"cache 0x10, [r8, 0]\n"
-+	"nop\nnop\nnop\nnop\nnop\nnop\n"
-+	: : : "r8");
-+}
-+
-+void flush_dcache_all(void)
-+{
-+	__asm__ __volatile__(
-+	"la r8, flush_dcache_all\n"
-+	"cache 0x1f, [r8, 0]\n"
-+	"nop\nnop\nnop\nnop\nnop\nnop\n"
-+	"cache 0x1a, [r8, 0]\n"
-+	"nop\nnop\nnop\nnop\nnop\nnop\n"
-+	: : : "r8");
-+}
-+
-+void flush_cache_all(void)
-+{
-+	__asm__ __volatile__(
-+	"la r8, flush_cache_all\n"
-+	"cache 0x10, [r8, 0]\n"
-+	"nop\nnop\nnop\nnop\nnop\nnop\n"
-+	"cache 0x1f, [r8, 0]\n"
-+	"nop\nnop\nnop\nnop\nnop\nnop\n"
-+	"cache 0x1a, [r8, 0]\n"
-+	"nop\nnop\nnop\nnop\nnop\nnop\n"
-+	: : : "r8");
-+}
-+
-+void flush_cache_mm(struct mm_struct *mm)
-+{
-+	if (!(mm->context))
-+		return;
-+	flush_cache_all();
-+}
-+
-+/*if we flush a range precisely , the processing may be very long.
-+We must check each page in the range whether present. If the page is present,
-+we can flush the range in the page. Be careful, the range may be cross two
-+page, a page is present and another is not present.
-+*/
-+/*
-+The interface is provided in hopes that the port can find
-+a suitably efficient method for removing multiple page
-+sized regions from the cache.
-+*/
-+void flush_cache_range(struct vm_area_struct *vma,
-+		unsigned long start, unsigned long end)
-+{
-+	struct mm_struct *mm = vma->vm_mm;
-+	int exec = vma->vm_flags & VM_EXEC;
-+	pgd_t *pgdp;
-+	pud_t *pudp;
-+	pmd_t *pmdp;
-+	pte_t *ptep;
-+
-+	if (!(mm->context))
-+		return;
-+
-+	pgdp = pgd_offset(mm, start);
-+	pudp = pud_offset(pgdp, start);
-+	pmdp = pmd_offset(pudp, start);
-+	ptep = pte_offset(pmdp, start);
-+
-+	while (start <= end) {
-+		unsigned long tmpend;
-+		pgdp = pgd_offset(mm, start);
-+		pudp = pud_offset(pgdp, start);
-+		pmdp = pmd_offset(pudp, start);
-+		ptep = pte_offset(pmdp, start);
-+
-+		if (!(pte_val(*ptep) & _PAGE_PRESENT)) {
-+			start = (start + PAGE_SIZE) & ~(PAGE_SIZE - 1);
-+			continue;
-+		}
-+		tmpend = (start | (PAGE_SIZE-1)) > end ?
-+				 end : (start | (PAGE_SIZE-1));
-+
-+		flush_dcache_range(start, tmpend);
-+		if (exec)
-+			flush_icache_range(start, tmpend);
-+		start = (start + PAGE_SIZE) & ~(PAGE_SIZE - 1);
-+	}
-+}
-+
-+void flush_cache_page(struct vm_area_struct *vma,
-+		unsigned long addr, unsigned long pfn)
-+{
-+	int exec = vma->vm_flags & VM_EXEC;
-+	unsigned long kaddr = 0xa0000000 | (pfn << PAGE_SHIFT);
-+
-+	flush_dcache_range(kaddr, kaddr + PAGE_SIZE);
-+
-+	if (exec)
-+		flush_icache_range(kaddr, kaddr + PAGE_SIZE);
-+}
-+
-+void flush_cache_sigtramp(unsigned long addr)
-+{
-+	__asm__ __volatile__(
-+	"cache 0x02, [%0, 0]\n"
-+	"nop\nnop\nnop\nnop\nnop\n"
-+	"cache 0x02, [%0, 0x4]\n"
-+	"nop\nnop\nnop\nnop\nnop\n"
-+
-+	"cache 0x0d, [%0, 0]\n"
-+	"nop\nnop\nnop\nnop\nnop\n"
-+	"cache 0x0d, [%0, 0x4]\n"
-+	"nop\nnop\nnop\nnop\nnop\n"
-+
-+	"cache 0x1a, [%0, 0]\n"
-+	"nop\nnop\nnop\nnop\nnop\n"
-+	: : "r" (addr));
-+}
-+
-+/*
-+1. WB and invalid a cache line of Dcache
-+2. Drain Write Buffer
-+the range must be smaller than PAGE_SIZE
-+*/
-+void flush_dcache_range(unsigned long start, unsigned long end)
-+{
-+	int size, i;
-+
-+	start = start & ~(L1_CACHE_BYTES - 1);
-+	end = end & ~(L1_CACHE_BYTES - 1);
-+	size = end - start;
-+	/* flush dcache to ram, and invalidate dcache lines. */
-+	for (i = 0; i < size; i += L1_CACHE_BYTES) {
-+		__asm__ __volatile__(
-+		"cache 0x0e, [%0, 0]\n"
-+		"nop\nnop\nnop\nnop\nnop\n"
-+		"cache 0x1a, [%0, 0]\n"
-+		"nop\nnop\nnop\nnop\nnop\n"
-+		: : "r" (start));
-+		start += L1_CACHE_BYTES;
-+	}
-+}
-+
-+void flush_icache_range(unsigned long start, unsigned long end)
-+{
-+	int size, i;
-+	start = start & ~(L1_CACHE_BYTES - 1);
-+	end = end & ~(L1_CACHE_BYTES - 1);
-+
-+	size = end - start;
-+	/* invalidate icache lines. */
-+	for (i = 0; i < size; i += L1_CACHE_BYTES) {
-+		__asm__ __volatile__(
-+		"cache 0x02, [%0, 0]\n"
-+		"nop\nnop\nnop\nnop\nnop\n"
-+		: : "r" (start));
-+		start += L1_CACHE_BYTES;
-+	}
-+}
-diff --git a/arch/score/mm/init.c b/arch/score/mm/init.c
-new file mode 100644
-index 0000000..4e3dcd0
---- /dev/null
-+++ b/arch/score/mm/init.c
-@@ -0,0 +1,161 @@
-+/*
-+ * arch/score/mm/init.c
++/**
++ * regs_within_kernel_stack() - check the address in the stack
++ * @regs:	pt_regs which contains kernel stack pointer.
++ * @addr:	address which is checked.
 + *
-+ * Score Processor version.
-+ *
-+ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
-+ *  Lennox Wu <lennox.wu@sunplusct.com>
-+ *  Chen Liqin <liqin.chen@sunplusct.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.,
-+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ * regs_within_kenel_stack() checks @addr is within the kernel stack page(s).
++ * If @addr is within the kernel stack, it returns true. If not, returns false.
 + */
-+
-+#include <linux/errno.h>
-+#include <linux/bootmem.h>
-+#include <linux/kernel.h>
-+#include <linux/init.h>
-+#include <linux/mm.h>
-+#include <linux/mman.h>
-+#include <linux/pagemap.h>
-+#include <linux/proc_fs.h>
-+#include <linux/sched.h>
-+#include <linux/initrd.h>
-+
-+#include <asm/sections.h>
-+#include <asm/tlb.h>
-+
-+DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);
-+
-+unsigned long empty_zero_page;
-+EXPORT_SYMBOL_GPL(empty_zero_page);
-+
-+static struct kcore_list kcore_mem, kcore_vmalloc;
-+
-+static unsigned long setup_zero_page(void)
++static inline int regs_within_kernel_stack(struct pt_regs *regs,
++					   unsigned long addr)
 +{
-+	struct page *page;
-+
-+	empty_zero_page = __get_free_pages(GFP_KERNEL | __GFP_ZERO, 0);
-+	if (!empty_zero_page)
-+		panic("Oh boy, that early out of memory?");
-+
-+	page = virt_to_page((void *) empty_zero_page);
-+	SetPageReserved(page);
-+
-+	return 1UL;
++	return ((addr & ~(THREAD_SIZE - 1))  ==
++		(kernel_stack_pointer(regs) & ~(THREAD_SIZE - 1)));
 +}
 +
-+#ifndef CONFIG_NEED_MULTIPLE_NODES
-+static int __init page_is_ram(unsigned long pagenr)
++/**
++ * regs_get_kernel_stack_nth() - get Nth entry of the stack
++ * @regs:	pt_regs which contains kernel stack pointer.
++ * @n:		stack entry number.
++ *
++ * regs_get_kernel_stack_nth() returns @n th entry of the kernel stack which
++ * is specifined by @regs. If the @n th entry is NOT in the kernel stack,
++ * this returns 0.
++ */
++static inline unsigned long regs_get_kernel_stack_nth(struct pt_regs *regs,
++						      unsigned int n)
 +{
-+	if (pagenr >= min_low_pfn && pagenr < max_low_pfn)
-+		return 1;
++	unsigned long *addr = (unsigned long *)kernel_stack_pointer(regs);
++	addr += n;
++	if (regs_within_kernel_stack(regs, (unsigned long)addr))
++		return *addr;
 +	else
 +		return 0;
 +}
 +
-+void __init paging_init(void)
-+{
-+	unsigned long max_zone_pfns[MAX_NR_ZONES];
-+	unsigned long lastpfn;
++/* Get Nth argument at function call */
++extern unsigned long regs_get_argument_nth(struct pt_regs *regs,
++					   unsigned int n);
 +
-+	pagetable_init();
-+	max_zone_pfns[ZONE_NORMAL] = max_low_pfn;
-+	lastpfn = max_low_pfn;
-+	free_area_init_nodes(max_zone_pfns);
-+}
+ /*
+  * These are defined as per linux/ptrace.h, which see.
+  */
+diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
+index 8d7d5c9..a33a17d 100644
+--- a/arch/x86/kernel/ptrace.c
++++ b/arch/x86/kernel/ptrace.c
+@@ -49,6 +49,118 @@ enum x86_regset {
+ 	REGSET_IOPERM32,
+ };
+ 
++struct pt_regs_offset {
++	const char *name;
++	int offset;
++};
 +
-+void __init mem_init(void)
-+{
-+	unsigned long codesize, reservedpages, datasize, initsize;
-+	unsigned long tmp, ram = 0;
++#define REG_OFFSET_NAME(r) {.name = #r, .offset = offsetof(struct pt_regs, r)}
++#define REG_OFFSET_END {.name = NULL, .offset = 0}
 +
-+	max_mapnr = max_low_pfn;
-+	high_memory = (void *) __va(max_low_pfn << PAGE_SHIFT);
-+	totalram_pages += free_all_bootmem();
-+	totalram_pages -= setup_zero_page();	/* Setup zeroed pages. */
-+	reservedpages = 0;
-+
-+	for (tmp = 0; tmp < max_low_pfn; tmp++)
-+		if (page_is_ram(tmp)) {
-+			ram++;
-+			if (PageReserved(pfn_to_page(tmp)))
-+				reservedpages++;
-+		}
-+
-+	num_physpages = ram;
-+	codesize = (unsigned long) &_etext - (unsigned long) &_text;
-+	datasize = (unsigned long) &_edata - (unsigned long) &_etext;
-+	initsize = (unsigned long) &__init_end - (unsigned long) &__init_begin;
-+
-+	kclist_add(&kcore_mem, __va(0), max_low_pfn << PAGE_SHIFT);
-+	kclist_add(&kcore_vmalloc, (void *) VMALLOC_START,
-+			VMALLOC_END - VMALLOC_START);
-+
-+	printk(KERN_INFO "Memory: %luk/%luk available (%ldk kernel code, "
-+			"%ldk reserved, %ldk data, %ldk init, %ldk highmem)\n",
-+			(unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
-+			ram << (PAGE_SHIFT-10), codesize >> 10,
-+			reservedpages << (PAGE_SHIFT-10), datasize >> 10,
-+			initsize >> 10,
-+			(unsigned long) (totalhigh_pages << (PAGE_SHIFT-10)));
-+}
-+#endif /* !CONFIG_NEED_MULTIPLE_NODES */
-+
-+static void free_init_pages(const char *what, unsigned long begin, unsigned long end)
-+{
-+	unsigned long pfn;
-+
-+	for (pfn = PFN_UP(begin); pfn < PFN_DOWN(end); pfn++) {
-+		struct page *page = pfn_to_page(pfn);
-+		void *addr = phys_to_virt(PFN_PHYS(pfn));
-+
-+		ClearPageReserved(page);
-+		init_page_count(page);
-+		memset(addr, POISON_FREE_INITMEM, PAGE_SIZE);
-+		__free_page(page);
-+		totalram_pages++;
-+	}
-+	printk(KERN_INFO "Freeing %s: %ldk freed\n", what, (end - begin) >> 10);
-+}
-+
-+#ifdef CONFIG_BLK_DEV_INITRD
-+void free_initrd_mem(unsigned long start, unsigned long end)
-+{
-+	free_init_pages("initrd memory",
-+		virt_to_phys((void *) start),
-+		virt_to_phys((void *) end));
-+}
++static const struct pt_regs_offset regoffset_table[] = {
++#ifdef CONFIG_X86_64
++	REG_OFFSET_NAME(r15),
++	REG_OFFSET_NAME(r14),
++	REG_OFFSET_NAME(r13),
++	REG_OFFSET_NAME(r12),
++	REG_OFFSET_NAME(r11),
++	REG_OFFSET_NAME(r10),
++	REG_OFFSET_NAME(r9),
++	REG_OFFSET_NAME(r8),
 +#endif
++	REG_OFFSET_NAME(bx),
++	REG_OFFSET_NAME(cx),
++	REG_OFFSET_NAME(dx),
++	REG_OFFSET_NAME(si),
++	REG_OFFSET_NAME(di),
++	REG_OFFSET_NAME(bp),
++	REG_OFFSET_NAME(ax),
++#ifdef CONFIG_X86_32
++	REG_OFFSET_NAME(ds),
++	REG_OFFSET_NAME(es),
++	REG_OFFSET_NAME(fs),
++	REG_OFFSET_NAME(gs),
++#endif
++	REG_OFFSET_NAME(orig_ax),
++	REG_OFFSET_NAME(ip),
++	REG_OFFSET_NAME(cs),
++	REG_OFFSET_NAME(flags),
++	REG_OFFSET_NAME(sp),
++	REG_OFFSET_NAME(ss),
++	REG_OFFSET_END,
++};
 +
-+void __init_refok free_initmem(void)
++/**
++ * regs_query_register_offset() - query register offset from its name
++ * @name:	the name of a register
++ *
++ * regs_query_register_offset() returns the offset of a register in struct
++ * pt_regs from its name. If the name is invalid, this returns -EINVAL;
++ */
++int regs_query_register_offset(const char *name)
 +{
-+	free_init_pages("unused kernel memory",
-+	__pa(&__init_begin),
-+	__pa(&__init_end));
++	const struct pt_regs_offset *roff;
++	for (roff = regoffset_table; roff->name != NULL; roff++)
++		if (!strcmp(roff->name, name))
++			return roff->offset;
++	return -EINVAL;
 +}
 +
-+unsigned long pgd_current;
-+
-+#define __page_aligned(order) __attribute__((__aligned__(PAGE_SIZE<<order)))
-+
-+/*
-+ * gcc 3.3 and older have trouble determining that PTRS_PER_PGD and PGD_ORDER
-+ * are constants.  So we use the variants from asm-offset.h until that gcc
-+ * will officially be retired.
++/**
++ * regs_query_register_name() - query register name from its offset
++ * @offset:	the offset of a register in struct pt_regs.
++ *
++ * regs_query_register_name() returns the name of a register from its
++ * offset in struct pt_regs. If the @offset is invalid, this returns NULL;
 + */
-+pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned(PTE_ORDER);
-+pte_t invalid_pte_table[PTRS_PER_PTE] __page_aligned(PTE_ORDER);
++const char *regs_query_register_name(unsigned int offset)
++{
++	const struct pt_regs_offset *roff;
++	for (roff = regoffset_table; roff->name != NULL; roff++)
++		if (roff->offset == offset)
++			return roff->name;
++	return NULL;
++}
++
++static const int arg_offs_table[] = {
++#ifdef CONFIG_X86_32
++	[0] = offsetof(struct pt_regs, ax),
++	[1] = offsetof(struct pt_regs, dx),
++	[2] = offsetof(struct pt_regs, cx)
++#else /* CONFIG_X86_64 */
++	[0] = offsetof(struct pt_regs, di),
++	[1] = offsetof(struct pt_regs, si),
++	[2] = offsetof(struct pt_regs, dx),
++	[3] = offsetof(struct pt_regs, cx),
++	[4] = offsetof(struct pt_regs, r8),
++	[5] = offsetof(struct pt_regs, r9)
++#endif
++};
++
++/**
++ * regs_get_argument_nth() - get Nth argument at function call
++ * @regs:	pt_regs which contains registers at function entry.
++ * @n:		argument number.
++ *
++ * regs_get_argument_nth() returns @n th argument of a function call.
++ * Since usually the kernel stack will be changed right after function entry,
++ * you must use this at function entry. If the @n th entry is NOT in the
++ * kernel stack or pt_regs, this returns 0.
++ */
++unsigned long regs_get_argument_nth(struct pt_regs *regs, unsigned int n)
++{
++	if (n < ARRAY_SIZE(arg_offs_table))
++		return *((unsigned long *)regs + arg_offs_table[n]);
++	else {
++		/*
++		 * The typical case: arg n is on the stack.
++		 * (Note: stack[0] = return address, so skip it)
++		 */
++		n -= ARRAY_SIZE(arg_offs_table);
++		return regs_get_kernel_stack_nth(regs, 1 + n);
++	}
++}
++
+ /*
+  * does not yet catch signals sent when the child dies.
+  * in exit.c or in signal.c.
 -- 
-1.6.2
-
-
+1.6.2.3
 
