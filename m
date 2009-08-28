@@ -1,94 +1,55 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [GIT PULL, v4] S+core architecture (arch/score) support
-Date: Thu, 27 Aug 2009 16:00:37 +0200
-Message-ID: <200908271600.37569.arnd@arndb.de>
-References: <1251266324.16454.10.camel@ad3ser01> <200908261931.52645.arnd@arndb.de> <1251343739.23810.24.camel@ad3ser01>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: PG_uncached, CONFIG_EXTENDED_PAGEFLAGS and !NUMA
+Date: Fri, 28 Aug 2009 11:59:00 -0700
+Message-ID: <4A9828F4.4040905@zytor.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:59382 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750996AbZH0OB0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2009 10:01:26 -0400
-In-Reply-To: <1251343739.23810.24.camel@ad3ser01>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chen Liqin <liqin.chen@sunplusct.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: "linux-mm@kvack.org" <linux-mm@kvack.org>, linux-arch@vger.kernel.org
+Cc: Suresh Siddha <suresh.b.siddha@intel.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "Pallipadi, Venkatesh" <venkatesh.pallipadi@intel.com>, LKML <linux-kernel@vger.kernel.org>, Jeremy Fitzhardinge <jeremy@goop.org>, Sam Ravnborg <sam@ravnborg.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thursday 27 August 2009, Chen Liqin wrote:
-> On Wed, 2009-08-26 at 19:31 +0200, Arnd Bergmann wrote:
-> >
-> I will remove these changelog from repository.
+Hi all,
 
-ok.
+I am looking at a patchset by Venkatesh Pallipadi which cleans up a lot
+of the corner cases in x86 PAT.
 
-> > What is missing OTOH is a description of changes you made since
-> > the last version you posted, which would be needed to help
-> > people that have already reviewed your code before.
-> > Also, you have dropped the descriptions of changes that I
-> > contributed, committing the changed files as your own. If you
-> > see a need to do that next time, please ask before you do it,
-> > or find a way to keep the original commit logs.
-> 
-> How can I add old commit logs to our repository?
-> Or add people's contribute to the log?
+http://marc.info/?i=cover.1247162373.git.venkatesh.pallipadi@intel.com
 
-If you got a patch, use 'git am -s' to add that patch with it's
-original changelog and signoff, plus your own signoff to the
-git tree.
+This patchset pages PG_uncached available to other architectures than
+IA64 on an opt-in basis.  Unfortunately, it means we run out of page
+flags on X86_32+PAE+SPARSEMEM.
 
-If something is already part of a git repository, the best way
-is to use git to merge that tree with your own, using 'git pull'.
-That will leave all the change history intact. It would be
-good to start with the git tree in the way that is in my
-repository, merge that with 2.6.31-rc6, and add your changes
-on top of that, with proper change descriptions.
+Rather than increasing SECTION_SIZE_BITS further, it seems more
+reasonable to disable CONFIG_EXTENDED_PAGEFLAGS in this case:
 
-> > What is the status of the port now? Do you have a working glibc
-> > and LTP test results, or are do you still need to fix more
-> > bugs that got introduced in the 2.6.30 port?
-> 
-> In fact, we still need define 
-> __ARCH_WANT_SYSCALL_NO_AT,
-> __ARCH_WANT_SYSCALL_NO_FLAGS,
-> __ARCH_WANT_SYSCALL_OFF_T,
-> __ARCH_WANT_SYSCALL_DEPRECATED
-> to make linux/score running, glibc and applictions 
-> need old syscall API.
-> And now it's really have some problems
-> in syscall interface part.
+diff --git a/mm/Kconfig b/mm/Kconfig
+index c948d4c..fe221c7 100644
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -153,7 +153,7 @@ config MEMORY_HOTREMOVE
+ #
+ config PAGEFLAGS_EXTENDED
+        def_bool y
+-       depends on 64BIT || SPARSEMEM_VMEMMAP || !NUMA || !SPARSEMEM
++       depends on 64BIT || SPARSEMEM_VMEMMAP || !SPARSEMEM
 
-ok.
+ # Heavily threaded applications may benefit from splitting the mm-wide
 
-> But if we use our old syscall interface replace the new one,
-> score platform will run well.
-> I am a little confused, whether or not I should commit
-> score code use new or old syscall part?
+Dropping the !NUMA requirement here seems reasonable, since we already
+have generic code that handles removing the node number from the page
+flags when there are too many.
 
-I understand your problem here, and I think it would be good
-to have second opinion from someone else here. The four
-#defines you mention are roughly in reverse order of importance.
+We could make this an x86-specific change, but the above generic change
+would be cleaner in terms of Kconfig complexity.  Would people object to
+this as a general change?
 
-I think you really need to remove __ARCH_WANT_SYSCALL_DEPRECATED
-and get that working. Please tell us if some system call is
-giving you problems and we can find a solution together.
+	-hpa
 
-Removing __ARCH_WANT_SYSCALL_OFF_T should not be too hard, because
-glibc uses the loff_t versions by default anyway. I have not tried
-it though, so it may be more complicated than I thought.
-
-Now, removing __ARCH_WANT_SYSCALL_NO_AT and __ARCH_WANT_SYSCALL_NO_FLAGS
-is a lot of work that I think we need to do, but I understand that you
-might not want to touch all the common glibc code that is involved.
-Ulrich Drepper recommended that new architectures should not have
-these, and I believe that is the correct way forward. You are unfortunate
-because glibc is not at all prepared for that. Nobody else is using
-the generic system call table right now, so I think that if you
-can't find a way to work without __ARCH_WANT_SYSCALL_NO_AT and
-__ARCH_WANT_SYSCALL_NO_FLAGS, we should integrate them into the
-main set of syscalls.
-
-	Arnd <><
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
