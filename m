@@ -1,178 +1,676 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate4.uk.ibm.com ([195.212.29.137]:41951 "EHLO
-	mtagate4.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752072AbZH2KWD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 29 Aug 2009 06:22:03 -0400
+Received: from mtagate8.uk.ibm.com ([195.212.29.141]:48597 "EHLO
+	mtagate8.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751481AbZH2KWX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 29 Aug 2009 06:22:23 -0400
 Received: from d06nrmr1707.portsmouth.uk.ibm.com (d06nrmr1707.portsmouth.uk.ibm.com [9.149.39.225])
-	by mtagate4.uk.ibm.com (8.14.3/8.13.8) with ESMTP id n7TALvml049928
-	for <linux-arch@vger.kernel.org>; Sat, 29 Aug 2009 10:21:57 GMT
-Received: from d06av02.portsmouth.uk.ibm.com (d06av02.portsmouth.uk.ibm.com [9.149.37.228])
-	by d06nrmr1707.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7TALvLs2904164
-	for <linux-arch@vger.kernel.org>; Sat, 29 Aug 2009 11:21:57 +0100
-Received: from d06av02.portsmouth.uk.ibm.com (loopback [127.0.0.1])
-	by d06av02.portsmouth.uk.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7TALtWw001120
-	for <linux-arch@vger.kernel.org>; Sat, 29 Aug 2009 11:21:57 +0100
-Message-ID: <20090829102155.053354161@de.ibm.com>
+	by mtagate8.uk.ibm.com (8.14.3/8.13.8) with ESMTP id n7TAMAcu777502
+	for <linux-arch@vger.kernel.org>; Sat, 29 Aug 2009 10:22:15 GMT
+Received: from d06av04.portsmouth.uk.ibm.com (d06av04.portsmouth.uk.ibm.com [9.149.37.216])
+	by d06nrmr1707.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7TAM0NC3252364
+	for <linux-arch@vger.kernel.org>; Sat, 29 Aug 2009 11:22:00 +0100
+Received: from d06av04.portsmouth.uk.ibm.com (loopback [127.0.0.1])
+	by d06av04.portsmouth.uk.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7TALvVr024354
+	for <linux-arch@vger.kernel.org>; Sat, 29 Aug 2009 11:22:00 +0100
+Message-ID: <20090829102157.395802957@de.ibm.com>
 References: <20090829102115.638224800@de.ibm.com>
-Date: Sat, 29 Aug 2009 12:21:17 +0200
+Date: Sat, 29 Aug 2009 12:21:21 +0200
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: [patch 2/8] sparc: rename __spin_try_lock() and friends
-Content-Disposition: inline; filename=sparc.diff
+Subject: [patch 6/8] spinlock: move spinlock function bodies to header file
+Content-Disposition: inline; filename=01_spinlock_move.diff
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>
 Cc: linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnd Bergmann <arnd@arndb.de>, Nick Piggin <nickpiggin@yahoo.com.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Horst Hartmann <horsth@linux.vnet.ibm.com>, Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20090829102117.6a2uIxKfbb6hv3b_TxSY6yLt01OnxWLidaB8K9CxdCA@z>
+Message-ID: <20090829102121.QkDVmdpd-AvmmhZm1QzvR703uNkqCRoXEGaNv59biuE@z>
 
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
 
-Rename __spin_try_trylock() and friends to arch_spin_try_lock() etc.
+Move spinlock function bodies to header file by creating a
+static inline version of each variant.
+Use the inline version on the out-of-line code. This shouldn't
+make any difference besides that the spinlock code can now
+be used to generate inlined spinlock code.
 
-Needed to avoid namespace conflicts when the common code function
-bodies of _spin_try_lock() etc. are moved to a header file where the
-function name would be __spin_try_lock().
-
-Cc: David S. Miller <davem@davemloft.net>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 ---
- arch/sparc/include/asm/spinlock_32.h |   12 ++++++------
- arch/sparc/include/asm/spinlock_64.h |   28 ++++++++++++++--------------
- 2 files changed, 20 insertions(+), 20 deletions(-)
+ include/linux/spinlock.h         |   18 +-
+ include/linux/spinlock_api_smp.h |  263 +++++++++++++++++++++++++++++++++++++++
+ kernel/spinlock.c                |  174 ++++---------------------
+ 3 files changed, 300 insertions(+), 155 deletions(-)
 
-Index: linux-2.6/arch/sparc/include/asm/spinlock_32.h
+Index: linux-2.6/include/linux/spinlock_api_smp.h
 ===================================================================
---- linux-2.6.orig/arch/sparc/include/asm/spinlock_32.h
-+++ linux-2.6/arch/sparc/include/asm/spinlock_32.h
-@@ -76,7 +76,7 @@ static inline void __raw_spin_unlock(raw
-  *
-  * Unfortunately this scheme limits us to ~16,000,000 cpus.
+--- linux-2.6.orig/include/linux/spinlock_api_smp.h
++++ linux-2.6/include/linux/spinlock_api_smp.h
+@@ -60,4 +60,267 @@ void __lockfunc _read_unlock_irqrestore(
+ void __lockfunc _write_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
+ 							__releases(lock);
+ 
++static inline int __spin_trylock(spinlock_t *lock)
++{
++	preempt_disable();
++	if (_raw_spin_trylock(lock)) {
++		spin_acquire(&lock->dep_map, 0, 1, _RET_IP_);
++		return 1;
++	}
++	preempt_enable();
++	return 0;
++}
++
++static inline int __read_trylock(rwlock_t *lock)
++{
++	preempt_disable();
++	if (_raw_read_trylock(lock)) {
++		rwlock_acquire_read(&lock->dep_map, 0, 1, _RET_IP_);
++		return 1;
++	}
++	preempt_enable();
++	return 0;
++}
++
++static inline int __write_trylock(rwlock_t *lock)
++{
++	preempt_disable();
++	if (_raw_write_trylock(lock)) {
++		rwlock_acquire(&lock->dep_map, 0, 1, _RET_IP_);
++		return 1;
++	}
++	preempt_enable();
++	return 0;
++}
++
++/*
++ * If lockdep is enabled then we use the non-preemption spin-ops
++ * even on CONFIG_PREEMPT, because lockdep assumes that interrupts are
++ * not re-enabled during lock-acquire (which the preempt-spin-ops do):
++ */
++#if !defined(CONFIG_GENERIC_LOCKBREAK) || defined(CONFIG_DEBUG_LOCK_ALLOC)
++
++static inline void __read_lock(rwlock_t *lock)
++{
++	preempt_disable();
++	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
++	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
++}
++
++static inline unsigned long __spin_lock_irqsave(spinlock_t *lock)
++{
++	unsigned long flags;
++
++	local_irq_save(flags);
++	preempt_disable();
++	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
++	/*
++	 * On lockdep we dont want the hand-coded irq-enable of
++	 * _raw_spin_lock_flags() code, because lockdep assumes
++	 * that interrupts are not re-enabled during lock-acquire:
++	 */
++#ifdef CONFIG_LOCKDEP
++	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
++#else
++	_raw_spin_lock_flags(lock, &flags);
++#endif
++	return flags;
++}
++
++static inline void __spin_lock_irq(spinlock_t *lock)
++{
++	local_irq_disable();
++	preempt_disable();
++	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
++	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
++}
++
++static inline void __spin_lock_bh(spinlock_t *lock)
++{
++	local_bh_disable();
++	preempt_disable();
++	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
++	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
++}
++
++static inline unsigned long __read_lock_irqsave(rwlock_t *lock)
++{
++	unsigned long flags;
++
++	local_irq_save(flags);
++	preempt_disable();
++	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
++	LOCK_CONTENDED_FLAGS(lock, _raw_read_trylock, _raw_read_lock,
++			     _raw_read_lock_flags, &flags);
++	return flags;
++}
++
++static inline void __read_lock_irq(rwlock_t *lock)
++{
++	local_irq_disable();
++	preempt_disable();
++	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
++	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
++}
++
++static inline void __read_lock_bh(rwlock_t *lock)
++{
++	local_bh_disable();
++	preempt_disable();
++	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
++	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
++}
++
++static inline unsigned long __write_lock_irqsave(rwlock_t *lock)
++{
++	unsigned long flags;
++
++	local_irq_save(flags);
++	preempt_disable();
++	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
++	LOCK_CONTENDED_FLAGS(lock, _raw_write_trylock, _raw_write_lock,
++			     _raw_write_lock_flags, &flags);
++	return flags;
++}
++
++static inline void __write_lock_irq(rwlock_t *lock)
++{
++	local_irq_disable();
++	preempt_disable();
++	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
++	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
++}
++
++static inline void __write_lock_bh(rwlock_t *lock)
++{
++	local_bh_disable();
++	preempt_disable();
++	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
++	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
++}
++
++static inline void __spin_lock(spinlock_t *lock)
++{
++	preempt_disable();
++	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
++	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
++}
++
++static inline void __write_lock(rwlock_t *lock)
++{
++	preempt_disable();
++	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
++	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
++}
++
++#endif /* CONFIG_PREEMPT */
++
++static inline void __spin_unlock(spinlock_t *lock)
++{
++	spin_release(&lock->dep_map, 1, _RET_IP_);
++	_raw_spin_unlock(lock);
++	preempt_enable();
++}
++
++static inline void __write_unlock(rwlock_t *lock)
++{
++	rwlock_release(&lock->dep_map, 1, _RET_IP_);
++	_raw_write_unlock(lock);
++	preempt_enable();
++}
++
++static inline void __read_unlock(rwlock_t *lock)
++{
++	rwlock_release(&lock->dep_map, 1, _RET_IP_);
++	_raw_read_unlock(lock);
++	preempt_enable();
++}
++
++static inline void __spin_unlock_irqrestore(spinlock_t *lock,
++					    unsigned long flags)
++{
++	spin_release(&lock->dep_map, 1, _RET_IP_);
++	_raw_spin_unlock(lock);
++	local_irq_restore(flags);
++	preempt_enable();
++}
++
++static inline void __spin_unlock_irq(spinlock_t *lock)
++{
++	spin_release(&lock->dep_map, 1, _RET_IP_);
++	_raw_spin_unlock(lock);
++	local_irq_enable();
++	preempt_enable();
++}
++
++static inline void __spin_unlock_bh(spinlock_t *lock)
++{
++	spin_release(&lock->dep_map, 1, _RET_IP_);
++	_raw_spin_unlock(lock);
++	preempt_enable_no_resched();
++	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
++}
++
++static inline void __read_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
++{
++	rwlock_release(&lock->dep_map, 1, _RET_IP_);
++	_raw_read_unlock(lock);
++	local_irq_restore(flags);
++	preempt_enable();
++}
++
++static inline void __read_unlock_irq(rwlock_t *lock)
++{
++	rwlock_release(&lock->dep_map, 1, _RET_IP_);
++	_raw_read_unlock(lock);
++	local_irq_enable();
++	preempt_enable();
++}
++
++static inline void __read_unlock_bh(rwlock_t *lock)
++{
++	rwlock_release(&lock->dep_map, 1, _RET_IP_);
++	_raw_read_unlock(lock);
++	preempt_enable_no_resched();
++	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
++}
++
++static inline void __write_unlock_irqrestore(rwlock_t *lock,
++					     unsigned long flags)
++{
++	rwlock_release(&lock->dep_map, 1, _RET_IP_);
++	_raw_write_unlock(lock);
++	local_irq_restore(flags);
++	preempt_enable();
++}
++
++static inline void __write_unlock_irq(rwlock_t *lock)
++{
++	rwlock_release(&lock->dep_map, 1, _RET_IP_);
++	_raw_write_unlock(lock);
++	local_irq_enable();
++	preempt_enable();
++}
++
++static inline void __write_unlock_bh(rwlock_t *lock)
++{
++	rwlock_release(&lock->dep_map, 1, _RET_IP_);
++	_raw_write_unlock(lock);
++	preempt_enable_no_resched();
++	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
++}
++
++static inline int __spin_trylock_bh(spinlock_t *lock)
++{
++	local_bh_disable();
++	preempt_disable();
++	if (_raw_spin_trylock(lock)) {
++		spin_acquire(&lock->dep_map, 0, 1, _RET_IP_);
++		return 1;
++	}
++	preempt_enable_no_resched();
++	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
++	return 0;
++}
++
+ #endif /* __LINUX_SPINLOCK_API_SMP_H */
+Index: linux-2.6/include/linux/spinlock.h
+===================================================================
+--- linux-2.6.orig/include/linux/spinlock.h
++++ linux-2.6/include/linux/spinlock.h
+@@ -143,15 +143,6 @@ static inline void smp_mb__after_lock(vo
   */
--static inline void __read_lock(raw_rwlock_t *rw)
-+static inline void arch_read_lock(raw_rwlock_t *rw)
- {
- 	register raw_rwlock_t *lp asm("g1");
- 	lp = rw;
-@@ -92,11 +92,11 @@ static inline void __read_lock(raw_rwloc
- #define __raw_read_lock(lock) \
- do {	unsigned long flags; \
- 	local_irq_save(flags); \
--	__read_lock(lock); \
-+	arch_read_lock(lock); \
- 	local_irq_restore(flags); \
- } while(0)
+ #define spin_unlock_wait(lock)	__raw_spin_unlock_wait(&(lock)->raw_lock)
  
--static inline void __read_unlock(raw_rwlock_t *rw)
-+static inline void arch_read_unlock(raw_rwlock_t *rw)
- {
- 	register raw_rwlock_t *lp asm("g1");
- 	lp = rw;
-@@ -112,7 +112,7 @@ static inline void __read_unlock(raw_rwl
- #define __raw_read_unlock(lock) \
- do {	unsigned long flags; \
- 	local_irq_save(flags); \
--	__read_unlock(lock); \
-+	arch_read_unlock(lock); \
- 	local_irq_restore(flags); \
- } while(0)
+-/*
+- * Pull the _spin_*()/_read_*()/_write_*() functions/declarations:
+- */
+-#if defined(CONFIG_SMP) || defined(CONFIG_DEBUG_SPINLOCK)
+-# include <linux/spinlock_api_smp.h>
+-#else
+-# include <linux/spinlock_api_up.h>
+-#endif
+-
+ #ifdef CONFIG_DEBUG_SPINLOCK
+  extern void _raw_spin_lock(spinlock_t *lock);
+ #define _raw_spin_lock_flags(lock, flags) _raw_spin_lock(lock)
+@@ -380,4 +371,13 @@ extern int _atomic_dec_and_lock(atomic_t
+  */
+ #define spin_can_lock(lock)	(!spin_is_locked(lock))
  
-@@ -150,7 +150,7 @@ static inline int __raw_write_trylock(ra
- 	return (val == 0);
- }
- 
--static inline int __read_trylock(raw_rwlock_t *rw)
-+static inline int arch_read_trylock(raw_rwlock_t *rw)
- {
- 	register raw_rwlock_t *lp asm("g1");
- 	register int res asm("o0");
-@@ -169,7 +169,7 @@ static inline int __read_trylock(raw_rwl
- ({	unsigned long flags; \
- 	int res; \
- 	local_irq_save(flags); \
--	res = __read_trylock(lock); \
-+	res = arch_read_trylock(lock); \
- 	local_irq_restore(flags); \
- 	res; \
- })
-Index: linux-2.6/arch/sparc/include/asm/spinlock_64.h
++/*
++ * Pull the _spin_*()/_read_*()/_write_*() functions/declarations:
++ */
++#if defined(CONFIG_SMP) || defined(CONFIG_DEBUG_SPINLOCK)
++# include <linux/spinlock_api_smp.h>
++#else
++# include <linux/spinlock_api_up.h>
++#endif
++
+ #endif /* __LINUX_SPINLOCK_H */
+Index: linux-2.6/kernel/spinlock.c
 ===================================================================
---- linux-2.6.orig/arch/sparc/include/asm/spinlock_64.h
-+++ linux-2.6/arch/sparc/include/asm/spinlock_64.h
-@@ -92,7 +92,7 @@ static inline void __raw_spin_lock_flags
+--- linux-2.6.orig/kernel/spinlock.c
++++ linux-2.6/kernel/spinlock.c
+@@ -23,40 +23,19 @@
  
- /* Multi-reader locks, these are much saner than the 32-bit Sparc ones... */
- 
--static void inline __read_lock(raw_rwlock_t *lock)
-+static void inline arch_read_lock(raw_rwlock_t *lock)
+ int __lockfunc _spin_trylock(spinlock_t *lock)
  {
- 	unsigned long tmp1, tmp2;
- 
-@@ -115,7 +115,7 @@ static void inline __read_lock(raw_rwloc
- 	: "memory");
+-	preempt_disable();
+-	if (_raw_spin_trylock(lock)) {
+-		spin_acquire(&lock->dep_map, 0, 1, _RET_IP_);
+-		return 1;
+-	}
+-	
+-	preempt_enable();
+-	return 0;
++	return __spin_trylock(lock);
  }
+ EXPORT_SYMBOL(_spin_trylock);
  
--static int inline __read_trylock(raw_rwlock_t *lock)
-+static int inline arch_read_trylock(raw_rwlock_t *lock)
+ int __lockfunc _read_trylock(rwlock_t *lock)
  {
- 	int tmp1, tmp2;
- 
-@@ -136,7 +136,7 @@ static int inline __read_trylock(raw_rwl
- 	return tmp1;
+-	preempt_disable();
+-	if (_raw_read_trylock(lock)) {
+-		rwlock_acquire_read(&lock->dep_map, 0, 1, _RET_IP_);
+-		return 1;
+-	}
+-
+-	preempt_enable();
+-	return 0;
++	return __read_trylock(lock);
  }
+ EXPORT_SYMBOL(_read_trylock);
  
--static void inline __read_unlock(raw_rwlock_t *lock)
-+static void inline arch_read_unlock(raw_rwlock_t *lock)
+ int __lockfunc _write_trylock(rwlock_t *lock)
  {
- 	unsigned long tmp1, tmp2;
- 
-@@ -152,7 +152,7 @@ static void inline __read_unlock(raw_rwl
- 	: "memory");
+-	preempt_disable();
+-	if (_raw_write_trylock(lock)) {
+-		rwlock_acquire(&lock->dep_map, 0, 1, _RET_IP_);
+-		return 1;
+-	}
+-
+-	preempt_enable();
+-	return 0;
++	return __write_trylock(lock);
  }
+ EXPORT_SYMBOL(_write_trylock);
  
--static void inline __write_lock(raw_rwlock_t *lock)
-+static void inline arch_write_lock(raw_rwlock_t *lock)
+@@ -69,129 +48,74 @@ EXPORT_SYMBOL(_write_trylock);
+ 
+ void __lockfunc _read_lock(rwlock_t *lock)
  {
- 	unsigned long mask, tmp1, tmp2;
- 
-@@ -177,7 +177,7 @@ static void inline __write_lock(raw_rwlo
- 	: "memory");
+-	preempt_disable();
+-	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
++	__read_lock(lock);
  }
+ EXPORT_SYMBOL(_read_lock);
  
--static void inline __write_unlock(raw_rwlock_t *lock)
-+static void inline arch_write_unlock(raw_rwlock_t *lock)
+ unsigned long __lockfunc _spin_lock_irqsave(spinlock_t *lock)
  {
- 	__asm__ __volatile__(
- "	stw		%%g0, [%0]"
-@@ -186,7 +186,7 @@ static void inline __write_unlock(raw_rw
- 	: "memory");
+-	unsigned long flags;
+-
+-	local_irq_save(flags);
+-	preempt_disable();
+-	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
+-	/*
+-	 * On lockdep we dont want the hand-coded irq-enable of
+-	 * _raw_spin_lock_flags() code, because lockdep assumes
+-	 * that interrupts are not re-enabled during lock-acquire:
+-	 */
+-#ifdef CONFIG_LOCKDEP
+-	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
+-#else
+-	_raw_spin_lock_flags(lock, &flags);
+-#endif
+-	return flags;
++	return __spin_lock_irqsave(lock);
  }
+ EXPORT_SYMBOL(_spin_lock_irqsave);
  
--static int inline __write_trylock(raw_rwlock_t *lock)
-+static int inline arch_write_trylock(raw_rwlock_t *lock)
+ void __lockfunc _spin_lock_irq(spinlock_t *lock)
  {
- 	unsigned long mask, tmp1, tmp2, result;
- 
-@@ -210,14 +210,14 @@ static int inline __write_trylock(raw_rw
- 	return result;
+-	local_irq_disable();
+-	preempt_disable();
+-	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
++	__spin_lock_irq(lock);
  }
+ EXPORT_SYMBOL(_spin_lock_irq);
  
--#define __raw_read_lock(p)	__read_lock(p)
--#define __raw_read_lock_flags(p, f) __read_lock(p)
--#define __raw_read_trylock(p)	__read_trylock(p)
--#define __raw_read_unlock(p)	__read_unlock(p)
--#define __raw_write_lock(p)	__write_lock(p)
--#define __raw_write_lock_flags(p, f) __write_lock(p)
--#define __raw_write_unlock(p)	__write_unlock(p)
--#define __raw_write_trylock(p)	__write_trylock(p)
-+#define __raw_read_lock(p)	arch_read_lock(p)
-+#define __raw_read_lock_flags(p, f) arch_read_lock(p)
-+#define __raw_read_trylock(p)	arch_read_trylock(p)
-+#define __raw_read_unlock(p)	arch_read_unlock(p)
-+#define __raw_write_lock(p)	arch_write_lock(p)
-+#define __raw_write_lock_flags(p, f) arch_write_lock(p)
-+#define __raw_write_unlock(p)	arch_write_unlock(p)
-+#define __raw_write_trylock(p)	arch_write_trylock(p)
+ void __lockfunc _spin_lock_bh(spinlock_t *lock)
+ {
+-	local_bh_disable();
+-	preempt_disable();
+-	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
++	__spin_lock_bh(lock);
+ }
+ EXPORT_SYMBOL(_spin_lock_bh);
  
- #define __raw_read_can_lock(rw)		(!((rw)->lock & 0x80000000UL))
- #define __raw_write_can_lock(rw)	(!(rw)->lock)
+ unsigned long __lockfunc _read_lock_irqsave(rwlock_t *lock)
+ {
+-	unsigned long flags;
+-
+-	local_irq_save(flags);
+-	preempt_disable();
+-	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED_FLAGS(lock, _raw_read_trylock, _raw_read_lock,
+-			     _raw_read_lock_flags, &flags);
+-	return flags;
++	return __read_lock_irqsave(lock);
+ }
+ EXPORT_SYMBOL(_read_lock_irqsave);
+ 
+ void __lockfunc _read_lock_irq(rwlock_t *lock)
+ {
+-	local_irq_disable();
+-	preempt_disable();
+-	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
++	__read_lock_irq(lock);
+ }
+ EXPORT_SYMBOL(_read_lock_irq);
+ 
+ void __lockfunc _read_lock_bh(rwlock_t *lock)
+ {
+-	local_bh_disable();
+-	preempt_disable();
+-	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
++	__read_lock_bh(lock);
+ }
+ EXPORT_SYMBOL(_read_lock_bh);
+ 
+ unsigned long __lockfunc _write_lock_irqsave(rwlock_t *lock)
+ {
+-	unsigned long flags;
+-
+-	local_irq_save(flags);
+-	preempt_disable();
+-	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED_FLAGS(lock, _raw_write_trylock, _raw_write_lock,
+-			     _raw_write_lock_flags, &flags);
+-	return flags;
++	return __write_lock_irqsave(lock);
+ }
+ EXPORT_SYMBOL(_write_lock_irqsave);
+ 
+ void __lockfunc _write_lock_irq(rwlock_t *lock)
+ {
+-	local_irq_disable();
+-	preempt_disable();
+-	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
++	__write_lock_irq(lock);
+ }
+ EXPORT_SYMBOL(_write_lock_irq);
+ 
+ void __lockfunc _write_lock_bh(rwlock_t *lock)
+ {
+-	local_bh_disable();
+-	preempt_disable();
+-	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
++	__write_lock_bh(lock);
+ }
+ EXPORT_SYMBOL(_write_lock_bh);
+ 
+ void __lockfunc _spin_lock(spinlock_t *lock)
+ {
+-	preempt_disable();
+-	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
++	__spin_lock(lock);
+ }
+-
+ EXPORT_SYMBOL(_spin_lock);
+ 
+ void __lockfunc _write_lock(rwlock_t *lock)
+ {
+-	preempt_disable();
+-	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
++	__write_lock(lock);
+ }
+-
+ EXPORT_SYMBOL(_write_lock);
+ 
+ #else /* CONFIG_PREEMPT: */
+@@ -320,121 +244,79 @@ EXPORT_SYMBOL(_spin_lock_nest_lock);
+ 
+ void __lockfunc _spin_unlock(spinlock_t *lock)
+ {
+-	spin_release(&lock->dep_map, 1, _RET_IP_);
+-	_raw_spin_unlock(lock);
+-	preempt_enable();
++	__spin_unlock(lock);
+ }
+ EXPORT_SYMBOL(_spin_unlock);
+ 
+ void __lockfunc _write_unlock(rwlock_t *lock)
+ {
+-	rwlock_release(&lock->dep_map, 1, _RET_IP_);
+-	_raw_write_unlock(lock);
+-	preempt_enable();
++	__write_unlock(lock);
+ }
+ EXPORT_SYMBOL(_write_unlock);
+ 
+ void __lockfunc _read_unlock(rwlock_t *lock)
+ {
+-	rwlock_release(&lock->dep_map, 1, _RET_IP_);
+-	_raw_read_unlock(lock);
+-	preempt_enable();
++	__read_unlock(lock);
+ }
+ EXPORT_SYMBOL(_read_unlock);
+ 
+ void __lockfunc _spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags)
+ {
+-	spin_release(&lock->dep_map, 1, _RET_IP_);
+-	_raw_spin_unlock(lock);
+-	local_irq_restore(flags);
+-	preempt_enable();
++	__spin_unlock_irqrestore(lock, flags);
+ }
+ EXPORT_SYMBOL(_spin_unlock_irqrestore);
+ 
+ void __lockfunc _spin_unlock_irq(spinlock_t *lock)
+ {
+-	spin_release(&lock->dep_map, 1, _RET_IP_);
+-	_raw_spin_unlock(lock);
+-	local_irq_enable();
+-	preempt_enable();
++	__spin_unlock_irq(lock);
+ }
+ EXPORT_SYMBOL(_spin_unlock_irq);
+ 
+ void __lockfunc _spin_unlock_bh(spinlock_t *lock)
+ {
+-	spin_release(&lock->dep_map, 1, _RET_IP_);
+-	_raw_spin_unlock(lock);
+-	preempt_enable_no_resched();
+-	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
++	__spin_unlock_bh(lock);
+ }
+ EXPORT_SYMBOL(_spin_unlock_bh);
+ 
+ void __lockfunc _read_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
+ {
+-	rwlock_release(&lock->dep_map, 1, _RET_IP_);
+-	_raw_read_unlock(lock);
+-	local_irq_restore(flags);
+-	preempt_enable();
++	__read_unlock_irqrestore(lock, flags);
+ }
+ EXPORT_SYMBOL(_read_unlock_irqrestore);
+ 
+ void __lockfunc _read_unlock_irq(rwlock_t *lock)
+ {
+-	rwlock_release(&lock->dep_map, 1, _RET_IP_);
+-	_raw_read_unlock(lock);
+-	local_irq_enable();
+-	preempt_enable();
++	__read_unlock_irq(lock);
+ }
+ EXPORT_SYMBOL(_read_unlock_irq);
+ 
+ void __lockfunc _read_unlock_bh(rwlock_t *lock)
+ {
+-	rwlock_release(&lock->dep_map, 1, _RET_IP_);
+-	_raw_read_unlock(lock);
+-	preempt_enable_no_resched();
+-	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
++	__read_unlock_bh(lock);
+ }
+ EXPORT_SYMBOL(_read_unlock_bh);
+ 
+ void __lockfunc _write_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
+ {
+-	rwlock_release(&lock->dep_map, 1, _RET_IP_);
+-	_raw_write_unlock(lock);
+-	local_irq_restore(flags);
+-	preempt_enable();
++	__write_unlock_irqrestore(lock, flags);
+ }
+ EXPORT_SYMBOL(_write_unlock_irqrestore);
+ 
+ void __lockfunc _write_unlock_irq(rwlock_t *lock)
+ {
+-	rwlock_release(&lock->dep_map, 1, _RET_IP_);
+-	_raw_write_unlock(lock);
+-	local_irq_enable();
+-	preempt_enable();
++	__write_unlock_irq(lock);
+ }
+ EXPORT_SYMBOL(_write_unlock_irq);
+ 
+ void __lockfunc _write_unlock_bh(rwlock_t *lock)
+ {
+-	rwlock_release(&lock->dep_map, 1, _RET_IP_);
+-	_raw_write_unlock(lock);
+-	preempt_enable_no_resched();
+-	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
++	__write_unlock_bh(lock);
+ }
+ EXPORT_SYMBOL(_write_unlock_bh);
+ 
+ int __lockfunc _spin_trylock_bh(spinlock_t *lock)
+ {
+-	local_bh_disable();
+-	preempt_disable();
+-	if (_raw_spin_trylock(lock)) {
+-		spin_acquire(&lock->dep_map, 0, 1, _RET_IP_);
+-		return 1;
+-	}
+-
+-	preempt_enable_no_resched();
+-	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
+-	return 0;
++	return __spin_trylock_bh(lock);
+ }
+ EXPORT_SYMBOL(_spin_trylock_bh);
+ 
 
 -- 
