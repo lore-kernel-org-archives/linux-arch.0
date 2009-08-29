@@ -1,65 +1,134 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate4.de.ibm.com ([195.212.17.164]:48522 "EHLO
-	mtagate4.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751373AbZH2KV7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 29 Aug 2009 06:21:59 -0400
+Received: from mtagate7.de.ibm.com ([195.212.17.167]:33574 "EHLO
+	mtagate7.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752012AbZH2KWA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 29 Aug 2009 06:22:00 -0400
 Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
-	by mtagate4.de.ibm.com (8.13.1/8.13.1) with ESMTP id n7TALu16024906
+	by mtagate7.de.ibm.com (8.13.1/8.13.1) with ESMTP id n7TALuAe003882
 	for <linux-arch@vger.kernel.org>; Sat, 29 Aug 2009 10:21:56 GMT
-Received: from d12av04.megacenter.de.ibm.com (d12av04.megacenter.de.ibm.com [9.149.165.229])
-	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7TALuI12429012
+Received: from d12av02.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
+	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7TALulf2408590
 	for <linux-arch@vger.kernel.org>; Sat, 29 Aug 2009 12:21:56 +0200
-Received: from d12av04.megacenter.de.ibm.com (loopback [127.0.0.1])
-	by d12av04.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7TALspG009996
+Received: from d12av02.megacenter.de.ibm.com (loopback [127.0.0.1])
+	by d12av02.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7TALtUb024206
 	for <linux-arch@vger.kernel.org>; Sat, 29 Aug 2009 12:21:56 +0200
-Message-ID: <20090829102115.638224800@de.ibm.com>
-Date: Sat, 29 Aug 2009 12:21:15 +0200
+Message-ID: <20090829102154.506066605@de.ibm.com>
+References: <20090829102115.638224800@de.ibm.com>
+Date: Sat, 29 Aug 2009 12:21:16 +0200
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: [patch 0/8] Allow inlined spinlocks again V5
+Subject: [patch 1/8] powerpc: rename __spin_try_lock() and friends
+Content-Disposition: inline; filename=powerpc.diff
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>
 Cc: linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnd Bergmann <arnd@arndb.de>, Nick Piggin <nickpiggin@yahoo.com.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Horst Hartmann <horsth@linux.vnet.ibm.com>, Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20090829102115.n9f79q9lC5ceYHBfXEyQG1VmkztbTPuZPWU5i95dVfw@z>
+Message-ID: <20090829102116.73N1eMiTHRHJwjK-Q33ss7dUeoYnVsy2b6tS9WaT9e0@z>
 
-This patch set allows to have inlined spinlocks again.
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
 
-V2: rewritten from scratch - now also with readable code
+Rename __spin_try_trylock() and friends to arch_spin_try_lock() etc.
 
-V3: removed macro to generate out-of-line spinlock variants since that
-    would break ctags. As requested by Arnd Bergmann.
+Needed to avoid namespace conflicts when the common code function
+bodies of _spin_try_lock() etc. are moved to a header file where the
+function name would be __spin_try_lock().
 
-V4: allow architectures to specify for each lock/unlock variant if
-    it should be kept out-of-line or inlined.
-
-V5: simplify ifdefs as pointed out by Linus. Fix architecture compile
-    breakages caused by this change.
-
-Linus, Ingo, do you still have objections?
-
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 ---
+ arch/powerpc/include/asm/spinlock.h |   20 ++++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
 
-The rationale behind this is that function calls on at least s390 are
-expensive.
+Index: linux-2.6/arch/powerpc/include/asm/spinlock.h
+===================================================================
+--- linux-2.6.orig/arch/powerpc/include/asm/spinlock.h
++++ linux-2.6/arch/powerpc/include/asm/spinlock.h
+@@ -54,7 +54,7 @@
+  * This returns the old value in the lock, so we succeeded
+  * in getting the lock if the return value is 0.
+  */
+-static inline unsigned long __spin_trylock(raw_spinlock_t *lock)
++static inline unsigned long arch_spin_trylock(raw_spinlock_t *lock)
+ {
+ 	unsigned long tmp, token;
+ 
+@@ -76,7 +76,7 @@ static inline unsigned long __spin_trylo
+ static inline int __raw_spin_trylock(raw_spinlock_t *lock)
+ {
+ 	CLEAR_IO_SYNC;
+-	return __spin_trylock(lock) == 0;
++	return arch_spin_trylock(lock) == 0;
+ }
+ 
+ /*
+@@ -108,7 +108,7 @@ static inline void __raw_spin_lock(raw_s
+ {
+ 	CLEAR_IO_SYNC;
+ 	while (1) {
+-		if (likely(__spin_trylock(lock) == 0))
++		if (likely(arch_spin_trylock(lock) == 0))
+ 			break;
+ 		do {
+ 			HMT_low();
+@@ -126,7 +126,7 @@ void __raw_spin_lock_flags(raw_spinlock_
+ 
+ 	CLEAR_IO_SYNC;
+ 	while (1) {
+-		if (likely(__spin_trylock(lock) == 0))
++		if (likely(arch_spin_trylock(lock) == 0))
+ 			break;
+ 		local_save_flags(flags_dis);
+ 		local_irq_restore(flags);
+@@ -181,7 +181,7 @@ extern void __raw_spin_unlock_wait(raw_s
+  * This returns the old value in the lock + 1,
+  * so we got a read lock if the return value is > 0.
+  */
+-static inline long __read_trylock(raw_rwlock_t *rw)
++static inline long arch_read_trylock(raw_rwlock_t *rw)
+ {
+ 	long tmp;
+ 
+@@ -205,7 +205,7 @@ static inline long __read_trylock(raw_rw
+  * This returns the old value in the lock,
+  * so we got the write lock if the return value is 0.
+  */
+-static inline long __write_trylock(raw_rwlock_t *rw)
++static inline long arch_write_trylock(raw_rwlock_t *rw)
+ {
+ 	long tmp, token;
+ 
+@@ -228,7 +228,7 @@ static inline long __write_trylock(raw_r
+ static inline void __raw_read_lock(raw_rwlock_t *rw)
+ {
+ 	while (1) {
+-		if (likely(__read_trylock(rw) > 0))
++		if (likely(arch_read_trylock(rw) > 0))
+ 			break;
+ 		do {
+ 			HMT_low();
+@@ -242,7 +242,7 @@ static inline void __raw_read_lock(raw_r
+ static inline void __raw_write_lock(raw_rwlock_t *rw)
+ {
+ 	while (1) {
+-		if (likely(__write_trylock(rw) == 0))
++		if (likely(arch_write_trylock(rw) == 0))
+ 			break;
+ 		do {
+ 			HMT_low();
+@@ -255,12 +255,12 @@ static inline void __raw_write_lock(raw_
+ 
+ static inline int __raw_read_trylock(raw_rwlock_t *rw)
+ {
+-	return __read_trylock(rw) > 0;
++	return arch_read_trylock(rw) > 0;
+ }
+ 
+ static inline int __raw_write_trylock(raw_rwlock_t *rw)
+ {
+-	return __write_trylock(rw) == 0;
++	return arch_write_trylock(rw) == 0;
+ }
+ 
+ static inline void __raw_read_unlock(raw_rwlock_t *rw)
 
-If one considers that server kernels are usually compiled with
-!CONFIG_PREEMPT a simple spin_lock is just a compare and swap loop.
-The extra overhead for a function call is significant.
-With inlined spinlocks overall cpu usage gets reduced by 1%-5% on s390.
-These numbers were taken with some network benchmarks. However I expect
-any workload that calls frequently into the kernel and which grabs a few
-locks to perform better.
-
-The implementation is straight forward: move the function bodies of the
-locking functions to static inline functions and place them in a header
-file.
-By default all locking code remains out-of-line. An architecture can
-specify
-
-#define __spin_lock_is_small
-
-in arch/<whatever>/include/asm/spinlock.h to force inlining of a locking
-function.
-
-defconfig cross compile tested for alpha, arm, x86, x86_64, ia64, m68k,
-m68knommu, mips, powerpc, powerpc64, sparc64, s390, s390x.
+-- 
