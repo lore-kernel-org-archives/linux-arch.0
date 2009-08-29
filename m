@@ -1,54 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:53227 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751813AbZH1S7S (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Aug 2009 14:59:18 -0400
-Message-ID: <4A9828F4.4040905@zytor.com>
-Date: Fri, 28 Aug 2009 11:59:00 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
-MIME-Version: 1.0
-Subject: PG_uncached, CONFIG_EXTENDED_PAGEFLAGS and !NUMA
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Received: from mtagate4.de.ibm.com ([195.212.17.164]:48522 "EHLO
+	mtagate4.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751373AbZH2KV7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 29 Aug 2009 06:21:59 -0400
+Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
+	by mtagate4.de.ibm.com (8.13.1/8.13.1) with ESMTP id n7TALu16024906
+	for <linux-arch@vger.kernel.org>; Sat, 29 Aug 2009 10:21:56 GMT
+Received: from d12av04.megacenter.de.ibm.com (d12av04.megacenter.de.ibm.com [9.149.165.229])
+	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7TALuI12429012
+	for <linux-arch@vger.kernel.org>; Sat, 29 Aug 2009 12:21:56 +0200
+Received: from d12av04.megacenter.de.ibm.com (loopback [127.0.0.1])
+	by d12av04.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7TALspG009996
+	for <linux-arch@vger.kernel.org>; Sat, 29 Aug 2009 12:21:56 +0200
+Message-ID: <20090829102115.638224800@de.ibm.com>
+Date: Sat, 29 Aug 2009 12:21:15 +0200
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: [patch 0/8] Allow inlined spinlocks again V5
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-mm@kvack.org" <linux-mm@kvack.org>, linux-arch@vger.kernel.org
-Cc: Suresh Siddha <suresh.b.siddha@intel.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "Pallipadi, Venkatesh" <venkatesh.pallipadi@intel.com>, LKML <linux-kernel@vger.kernel.org>, Jeremy Fitzhardinge <jeremy@goop.org>, Sam Ravnborg <sam@ravnborg.org>
-Message-ID: <20090828185900.ryjxo2cldoGTqbvnD2PsotYXD2FxdD-7dt38x0Z_RmM@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>
+Cc: linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnd Bergmann <arnd@arndb.de>, Nick Piggin <nickpiggin@yahoo.com.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Horst Hartmann <horsth@linux.vnet.ibm.com>, Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20090829102115.n9f79q9lC5ceYHBfXEyQG1VmkztbTPuZPWU5i95dVfw@z>
 
-Hi all,
+This patch set allows to have inlined spinlocks again.
 
-I am looking at a patchset by Venkatesh Pallipadi which cleans up a lot
-of the corner cases in x86 PAT.
+V2: rewritten from scratch - now also with readable code
 
-http://marc.info/?i=cover.1247162373.git.venkatesh.pallipadi@intel.com
+V3: removed macro to generate out-of-line spinlock variants since that
+    would break ctags. As requested by Arnd Bergmann.
 
-This patchset pages PG_uncached available to other architectures than
-IA64 on an opt-in basis.  Unfortunately, it means we run out of page
-flags on X86_32+PAE+SPARSEMEM.
+V4: allow architectures to specify for each lock/unlock variant if
+    it should be kept out-of-line or inlined.
 
-Rather than increasing SECTION_SIZE_BITS further, it seems more
-reasonable to disable CONFIG_EXTENDED_PAGEFLAGS in this case:
+V5: simplify ifdefs as pointed out by Linus. Fix architecture compile
+    breakages caused by this change.
 
-diff --git a/mm/Kconfig b/mm/Kconfig
-index c948d4c..fe221c7 100644
---- a/mm/Kconfig
-+++ b/mm/Kconfig
-@@ -153,7 +153,7 @@ config MEMORY_HOTREMOVE
- #
- config PAGEFLAGS_EXTENDED
-        def_bool y
--       depends on 64BIT || SPARSEMEM_VMEMMAP || !NUMA || !SPARSEMEM
-+       depends on 64BIT || SPARSEMEM_VMEMMAP || !SPARSEMEM
+Linus, Ingo, do you still have objections?
 
- # Heavily threaded applications may benefit from splitting the mm-wide
+---
 
-Dropping the !NUMA requirement here seems reasonable, since we already
-have generic code that handles removing the node number from the page
-flags when there are too many.
+The rationale behind this is that function calls on at least s390 are
+expensive.
 
-We could make this an x86-specific change, but the above generic change
-would be cleaner in terms of Kconfig complexity.  Would people object to
-this as a general change?
+If one considers that server kernels are usually compiled with
+!CONFIG_PREEMPT a simple spin_lock is just a compare and swap loop.
+The extra overhead for a function call is significant.
+With inlined spinlocks overall cpu usage gets reduced by 1%-5% on s390.
+These numbers were taken with some network benchmarks. However I expect
+any workload that calls frequently into the kernel and which grabs a few
+locks to perform better.
 
-	-hpa
+The implementation is straight forward: move the function bodies of the
+locking functions to static inline functions and place them in a header
+file.
+By default all locking code remains out-of-line. An architecture can
+specify
+
+#define __spin_lock_is_small
+
+in arch/<whatever>/include/asm/spinlock.h to force inlining of a locking
+function.
+
+defconfig cross compile tested for alpha, arm, x86, x86_64, ia64, m68k,
+m68knommu, mips, powerpc, powerpc64, sparc64, s390, s390x.
