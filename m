@@ -1,23 +1,23 @@
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: [patch 4/9] m68k/asm-offsets: rename signal defines
-Date: Mon, 31 Aug 2009 14:43:34 +0200
-Message-ID: <20090831124416.998821502@de.ibm.com>
+Subject: [patch 1/9] powerpc: rename __spin_try_lock() and friends
+Date: Mon, 31 Aug 2009 14:43:31 +0200
+Message-ID: <20090831124415.918799705@de.ibm.com>
 References: <20090831124330.014480226@de.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate5.de.ibm.com ([195.212.17.165]:50215 "EHLO
-	mtagate5.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751273AbZHaMoR (ORCPT
+Received: from mtagate3.de.ibm.com ([195.212.17.163]:54710 "EHLO
+	mtagate3.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751417AbZHaMoR (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Mon, 31 Aug 2009 08:44:17 -0400
 Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
-	by mtagate5.de.ibm.com (8.13.1/8.13.1) with ESMTP id n7VCiIb0010801
-	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 12:44:18 GMT
-Received: from d12av01.megacenter.de.ibm.com (d12av01.megacenter.de.ibm.com [9.149.165.212])
-	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7VCiI7a2740416
-	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 14:44:18 +0200
-Received: from d12av01.megacenter.de.ibm.com (loopback [127.0.0.1])
-	by d12av01.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7VCiHiD024615
-	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 14:44:18 +0200
-Content-Disposition: inline; filename=m68k_signal.diff
+	by mtagate3.de.ibm.com (8.13.1/8.13.1) with ESMTP id n7VCiJgw026657
+	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 12:44:19 GMT
+Received: from d12av04.megacenter.de.ibm.com (d12av04.megacenter.de.ibm.com [9.149.165.229])
+	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7VCiJPr2740422
+	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 14:44:19 +0200
+Received: from d12av04.megacenter.de.ibm.com (loopback [127.0.0.1])
+	by d12av04.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7VCiG5u010708
+	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 14:44:19 +0200
+Content-Disposition: inline; filename=powerpc.diff
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <be>
@@ -25,80 +25,109 @@ Cc: linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnd Be
 
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
 
-In order to be able to use asm-offsets.h in C files the existing namespace
-conflicts must be solved first. In asm-offsets.h there are defines for signal
-constants, so they can be used in assembler files.
+Rename __spin_try_trylock() and friends to arch_spin_try_lock() etc.
 
-Unfortunately the existing defines use a 1:1 mapping for the macro names
-which results in name space conflicts if the header file would also be used
-in C files. So rename the created defines and add an "L" prefix to each one
-since that has already been done for the SIGTRAP define in entry_mm.
+Needed to avoid namespace conflicts when the common code function
+bodies of _spin_try_lock() etc. are moved to a header file where the
+function name would be __spin_try_lock().
 
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Roman Zippel <zippel@linux-m68k.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
 Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 ---
- arch/m68k/include/asm/entry_mm.h |    1 -
- arch/m68k/kernel/asm-offsets.c   |    8 ++++----
- arch/m68k/math-emu/fp_entry.S    |    8 ++++----
- 3 files changed, 8 insertions(+), 9 deletions(-)
+ arch/powerpc/include/asm/spinlock.h |   20 ++++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
 
-Index: linux-2.6/arch/m68k/include/asm/entry_mm.h
+Index: linux-2.6/arch/powerpc/include/asm/spinlock.h
 ===================================================================
---- linux-2.6.orig/arch/m68k/include/asm/entry_mm.h
-+++ linux-2.6/arch/m68k/include/asm/entry_mm.h
-@@ -46,7 +46,6 @@
- #define curptr a2
+--- linux-2.6.orig/arch/powerpc/include/asm/spinlock.h
++++ linux-2.6/arch/powerpc/include/asm/spinlock.h
+@@ -54,7 +54,7 @@
+  * This returns the old value in the lock, so we succeeded
+  * in getting the lock if the return value is 0.
+  */
+-static inline unsigned long __spin_trylock(raw_spinlock_t *lock)
++static inline unsigned long arch_spin_trylock(raw_spinlock_t *lock)
+ {
+ 	unsigned long tmp, token;
  
- LFLUSH_I_AND_D = 0x00000808
--LSIGTRAP = 5
+@@ -76,7 +76,7 @@ static inline unsigned long __spin_trylo
+ static inline int __raw_spin_trylock(raw_spinlock_t *lock)
+ {
+ 	CLEAR_IO_SYNC;
+-	return __spin_trylock(lock) == 0;
++	return arch_spin_trylock(lock) == 0;
+ }
  
- /* process bits for task_struct.ptrace */
- PT_TRACESYS_OFF = 3
-Index: linux-2.6/arch/m68k/kernel/asm-offsets.c
-===================================================================
---- linux-2.6.orig/arch/m68k/kernel/asm-offsets.c
-+++ linux-2.6/arch/m68k/kernel/asm-offsets.c
-@@ -84,10 +84,10 @@ int main(void)
- 	DEFINE(FONT_DESC_PREF, offsetof(struct font_desc, pref));
+ /*
+@@ -108,7 +108,7 @@ static inline void __raw_spin_lock(raw_s
+ {
+ 	CLEAR_IO_SYNC;
+ 	while (1) {
+-		if (likely(__spin_trylock(lock) == 0))
++		if (likely(arch_spin_trylock(lock) == 0))
+ 			break;
+ 		do {
+ 			HMT_low();
+@@ -126,7 +126,7 @@ void __raw_spin_lock_flags(raw_spinlock_
  
- 	/* signal defines */
--	DEFINE(SIGSEGV, SIGSEGV);
--	DEFINE(SEGV_MAPERR, SEGV_MAPERR);
--	DEFINE(SIGTRAP, SIGTRAP);
--	DEFINE(TRAP_TRACE, TRAP_TRACE);
-+	DEFINE(LSIGSEGV, SIGSEGV);
-+	DEFINE(LSEGV_MAPERR, SEGV_MAPERR);
-+	DEFINE(LSIGTRAP, SIGTRAP);
-+	DEFINE(LTRAP_TRACE, TRAP_TRACE);
+ 	CLEAR_IO_SYNC;
+ 	while (1) {
+-		if (likely(__spin_trylock(lock) == 0))
++		if (likely(arch_spin_trylock(lock) == 0))
+ 			break;
+ 		local_save_flags(flags_dis);
+ 		local_irq_restore(flags);
+@@ -181,7 +181,7 @@ extern void __raw_spin_unlock_wait(raw_s
+  * This returns the old value in the lock + 1,
+  * so we got a read lock if the return value is > 0.
+  */
+-static inline long __read_trylock(raw_rwlock_t *rw)
++static inline long arch_read_trylock(raw_rwlock_t *rw)
+ {
+ 	long tmp;
  
- 	/* offsets into the custom struct */
- 	DEFINE(CUSTOMBASE, &amiga_custom);
-Index: linux-2.6/arch/m68k/math-emu/fp_entry.S
-===================================================================
---- linux-2.6.orig/arch/m68k/math-emu/fp_entry.S
-+++ linux-2.6/arch/m68k/math-emu/fp_entry.S
-@@ -85,8 +85,8 @@ fp_err_ua2:
- fp_err_ua1:
- 	addq.l	#4,%sp
- 	move.l	%a0,-(%sp)
--	pea	SEGV_MAPERR
--	pea	SIGSEGV
-+	pea	LSEGV_MAPERR
-+	pea	LSIGSEGV
- 	jsr	fpemu_signal
- 	add.w	#12,%sp
- 	jra	ret_from_exception
-@@ -96,8 +96,8 @@ fp_err_ua1:
- 	| it does not really belong here, but...
- fp_sendtrace060:
- 	move.l	(FPS_PC,%sp),-(%sp)
--	pea	TRAP_TRACE
--	pea	SIGTRAP
-+	pea	LTRAP_TRACE
-+	pea	LSIGTRAP
- 	jsr	fpemu_signal
- 	add.w	#12,%sp
- 	jra	ret_from_exception
+@@ -205,7 +205,7 @@ static inline long __read_trylock(raw_rw
+  * This returns the old value in the lock,
+  * so we got the write lock if the return value is 0.
+  */
+-static inline long __write_trylock(raw_rwlock_t *rw)
++static inline long arch_write_trylock(raw_rwlock_t *rw)
+ {
+ 	long tmp, token;
+ 
+@@ -228,7 +228,7 @@ static inline long __write_trylock(raw_r
+ static inline void __raw_read_lock(raw_rwlock_t *rw)
+ {
+ 	while (1) {
+-		if (likely(__read_trylock(rw) > 0))
++		if (likely(arch_read_trylock(rw) > 0))
+ 			break;
+ 		do {
+ 			HMT_low();
+@@ -242,7 +242,7 @@ static inline void __raw_read_lock(raw_r
+ static inline void __raw_write_lock(raw_rwlock_t *rw)
+ {
+ 	while (1) {
+-		if (likely(__write_trylock(rw) == 0))
++		if (likely(arch_write_trylock(rw) == 0))
+ 			break;
+ 		do {
+ 			HMT_low();
+@@ -255,12 +255,12 @@ static inline void __raw_write_lock(raw_
+ 
+ static inline int __raw_read_trylock(raw_rwlock_t *rw)
+ {
+-	return __read_trylock(rw) > 0;
++	return arch_read_trylock(rw) > 0;
+ }
+ 
+ static inline int __raw_write_trylock(raw_rwlock_t *rw)
+ {
+-	return __write_trylock(rw) == 0;
++	return arch_write_trylock(rw) == 0;
+ }
+ 
+ static inline void __raw_read_unlock(raw_rwlock_t *rw)
 
 -- 
