@@ -1,117 +1,426 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate5.uk.ibm.com ([195.212.29.138]:49197 "EHLO
-	mtagate5.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751812AbZHaMp2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 31 Aug 2009 08:45:28 -0400
-Received: from d06nrmr1806.portsmouth.uk.ibm.com (d06nrmr1806.portsmouth.uk.ibm.com [9.149.39.193])
-	by mtagate5.uk.ibm.com (8.14.3/8.13.8) with ESMTP id n7VCiT8X246782
-	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 12:44:34 GMT
-Received: from d06av02.portsmouth.uk.ibm.com (d06av02.portsmouth.uk.ibm.com [9.149.37.228])
-	by d06nrmr1806.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7VCiJOx1343658
-	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 13:44:19 +0100
-Received: from d06av02.portsmouth.uk.ibm.com (loopback [127.0.0.1])
-	by d06av02.portsmouth.uk.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7VCiHiD005620
-	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 13:44:19 +0100
-Message-ID: <20090831124417.329662275@de.ibm.com>
+Received: from mtagate7.uk.ibm.com ([195.212.29.140]:47831 "EHLO
+	mtagate7.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752470AbZHaMoo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 31 Aug 2009 08:44:44 -0400
+Received: from d06nrmr1707.portsmouth.uk.ibm.com (d06nrmr1707.portsmouth.uk.ibm.com [9.149.39.225])
+	by mtagate7.uk.ibm.com (8.14.3/8.13.8) with ESMTP id n7VCiUdE045844
+	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 12:44:35 GMT
+Received: from d06av03.portsmouth.uk.ibm.com (d06av03.portsmouth.uk.ibm.com [9.149.37.213])
+	by d06nrmr1707.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7VCiKbk3137748
+	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 13:44:20 +0100
+Received: from d06av03.portsmouth.uk.ibm.com (loopback [127.0.0.1])
+	by d06av03.portsmouth.uk.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7VCiI59032588
+	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 13:44:20 +0100
+Message-ID: <20090831124418.375299024@de.ibm.com>
 References: <20090831124330.014480226@de.ibm.com>
-Date: Mon, 31 Aug 2009 14:43:35 +0200
+Date: Mon, 31 Aug 2009 14:43:37 +0200
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: [patch 5/9] m68k: calculate thread_info offset with asm offset
-Content-Disposition: inline; filename=m68k.diff
+Subject: [patch 7/9] spinlock: allow inlined spinlocks
+Content-Disposition: inline; filename=spinlock_ifdef.diff
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>
 Cc: linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnd Bergmann <arnd@arndb.de>, Nick Piggin <nickpiggin@yahoo.com.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Horst Hartmann <horsth@linux.vnet.ibm.com>, Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20090831124335.YVboaSY25XNcLoeaD9R0YTjYA6xKXITMjchzCAW9teA@z>
+Message-ID: <20090831124337.6-XyyT9YiKpMqAXUa7sD26PP2hqcg0r2iU-LTVdytNo@z>
 
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
 
-m68k has the thread_info structure embedded in its task struct. Therefore
-its not possible to implement current_thread_info() by looking at the stack
-pointer and do some simple calculations like most other architectures do it.
+This allows an architecture to specify per lock variant if the
+locking code should be kept out-of-line or inlined.
 
-To return the thread_info pointer for a task two defines are used. This works
-until the spinlock function bodies get moved into an own header file and
-CONFIG_SPINLOCK_DEBUG is turned on. That results into this compile error:
+If an architecure wants out-of-line locking code no change is
+needed. To force inlining of e.g. spin_lock() the line
 
-In file included from include/linux/spinlock.h:378,
-                 from include/linux/seqlock.h:29,
-                 from include/linux/time.h:8,
-                 from include/linux/timex.h:56,
-                 from include/linux/sched.h:54,
-                 from arch/m68k/kernel/asm-offsets.c:12:
-include/linux/spinlock_api_smp.h: In function '__spin_unlock_irq':
-include/linux/spinlock_api_smp.h:371: error: 'current' undeclared (first use in this function)
-include/linux/spinlock_api_smp.h:371: error: (Each undeclared identifier is reported only once
-include/linux/spinlock_api_smp.h:371: error: for each function it appears in.)
+#define __always_inline__spin_lock
 
-Including asm/current.h to asm-offsets.c wouldn't help since the definition
-of struct task is needed. So we end up with ugly header file include
-dependencies.
+needs to be added to arch/<whatever>/include/asm/spinlock.h
 
-To solve this calculate the offset of the thread_info structure into the
-task struct in asm-offsets.h and use the offset in task_thread_info().
-This works just like it does for IA64 as well.
+If CONFIG_DEBUG_SPINLOCK or CONFIG_GENERIC_LOCKBREAK are defined the
+per architecture defines are (partly) ignored and still out-of-line
+spinlock code will be generated.
 
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Roman Zippel <zippel@linux-m68k.org>
 Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 ---
- arch/m68k/include/asm/thread_info_mm.h |   11 ++++++++++-
- arch/m68k/kernel/asm-offsets.c         |    5 +++++
- 2 files changed, 15 insertions(+), 1 deletion(-)
+ include/linux/spinlock_api_smp.h |  119 +++++++++++++++++++++++++++++++++++++++
+ kernel/spinlock.c                |   56 ++++++++++++++++++
+ 2 files changed, 175 insertions(+)
 
-Index: linux-2.6/arch/m68k/include/asm/thread_info_mm.h
+Index: linux-2.6/kernel/spinlock.c
 ===================================================================
---- linux-2.6.orig/arch/m68k/include/asm/thread_info_mm.h
-+++ linux-2.6/arch/m68k/include/asm/thread_info_mm.h
-@@ -1,6 +1,10 @@
- #ifndef _ASM_M68K_THREAD_INFO_H
- #define _ASM_M68K_THREAD_INFO_H
+--- linux-2.6.orig/kernel/spinlock.c
++++ linux-2.6/kernel/spinlock.c
+@@ -21,23 +21,29 @@
+ #include <linux/debug_locks.h>
+ #include <linux/module.h>
  
-+#ifndef ASM_OFFSETS_C
-+#include <asm/asm-offsets.h>
++#ifndef _spin_trylock
+ int __lockfunc _spin_trylock(spinlock_t *lock)
+ {
+ 	return __spin_trylock(lock);
+ }
+ EXPORT_SYMBOL(_spin_trylock);
 +#endif
-+#include <asm/current.h>
- #include <asm/types.h>
- #include <asm/page.h>
  
-@@ -31,7 +35,12 @@ struct thread_info {
- #define init_thread_info	(init_task.thread.info)
- #define init_stack		(init_thread_union.stack)
- 
--#define task_thread_info(tsk)	(&(tsk)->thread.info)
-+#ifdef ASM_OFFSETS_C
-+#define task_thread_info(tsk)	((struct thread_info *) NULL)
-+#else
-+#define task_thread_info(tsk)	((struct thread_info *)((char *)tsk+TASK_TINFO))
++#ifndef _read_trylock
+ int __lockfunc _read_trylock(rwlock_t *lock)
+ {
+ 	return __read_trylock(lock);
+ }
+ EXPORT_SYMBOL(_read_trylock);
 +#endif
-+
- #define task_stack_page(tsk)	((tsk)->stack)
- #define current_thread_info()	task_thread_info(current)
  
-Index: linux-2.6/arch/m68k/kernel/asm-offsets.c
-===================================================================
---- linux-2.6.orig/arch/m68k/kernel/asm-offsets.c
-+++ linux-2.6/arch/m68k/kernel/asm-offsets.c
-@@ -8,6 +8,8 @@
-  * #defines from the assembly-language output.
++#ifndef _write_trylock
+ int __lockfunc _write_trylock(rwlock_t *lock)
+ {
+ 	return __write_trylock(lock);
+ }
+ EXPORT_SYMBOL(_write_trylock);
++#endif
+ 
+ /*
+  * If lockdep is enabled then we use the non-preemption spin-ops
+@@ -46,77 +52,101 @@ EXPORT_SYMBOL(_write_trylock);
   */
+ #if !defined(CONFIG_GENERIC_LOCKBREAK) || defined(CONFIG_DEBUG_LOCK_ALLOC)
  
-+#define ASM_OFFSETS_C
-+
- #include <linux/stddef.h>
- #include <linux/sched.h>
- #include <linux/kernel_stat.h>
-@@ -27,6 +29,9 @@ int main(void)
- 	DEFINE(TASK_INFO, offsetof(struct task_struct, thread.info));
- 	DEFINE(TASK_MM, offsetof(struct task_struct, mm));
- 	DEFINE(TASK_ACTIVE_MM, offsetof(struct task_struct, active_mm));
-+#ifdef CONFIG_MMU
-+	DEFINE(TASK_TINFO, offsetof(struct task_struct, thread.info));
++#ifndef _read_lock
+ void __lockfunc _read_lock(rwlock_t *lock)
+ {
+ 	__read_lock(lock);
+ }
+ EXPORT_SYMBOL(_read_lock);
 +#endif
  
- 	/* offsets into the thread struct */
- 	DEFINE(THREAD_KSP, offsetof(struct thread_struct, ksp));
++#ifndef _spin_lock_irqsave
+ unsigned long __lockfunc _spin_lock_irqsave(spinlock_t *lock)
+ {
+ 	return __spin_lock_irqsave(lock);
+ }
+ EXPORT_SYMBOL(_spin_lock_irqsave);
++#endif
+ 
++#ifndef _spin_lock_irq
+ void __lockfunc _spin_lock_irq(spinlock_t *lock)
+ {
+ 	__spin_lock_irq(lock);
+ }
+ EXPORT_SYMBOL(_spin_lock_irq);
++#endif
+ 
++#ifndef _spin_lock_bh
+ void __lockfunc _spin_lock_bh(spinlock_t *lock)
+ {
+ 	__spin_lock_bh(lock);
+ }
+ EXPORT_SYMBOL(_spin_lock_bh);
++#endif
+ 
++#ifndef _read_lock_irqsave
+ unsigned long __lockfunc _read_lock_irqsave(rwlock_t *lock)
+ {
+ 	return __read_lock_irqsave(lock);
+ }
+ EXPORT_SYMBOL(_read_lock_irqsave);
++#endif
+ 
++#ifndef _read_lock_irq
+ void __lockfunc _read_lock_irq(rwlock_t *lock)
+ {
+ 	__read_lock_irq(lock);
+ }
+ EXPORT_SYMBOL(_read_lock_irq);
++#endif
+ 
++#ifndef _read_lock_bh
+ void __lockfunc _read_lock_bh(rwlock_t *lock)
+ {
+ 	__read_lock_bh(lock);
+ }
+ EXPORT_SYMBOL(_read_lock_bh);
++#endif
+ 
++#ifndef _write_lock_irqsave
+ unsigned long __lockfunc _write_lock_irqsave(rwlock_t *lock)
+ {
+ 	return __write_lock_irqsave(lock);
+ }
+ EXPORT_SYMBOL(_write_lock_irqsave);
++#endif
+ 
++#ifndef _write_lock_irq
+ void __lockfunc _write_lock_irq(rwlock_t *lock)
+ {
+ 	__write_lock_irq(lock);
+ }
+ EXPORT_SYMBOL(_write_lock_irq);
++#endif
+ 
++#ifndef _write_lock_bh
+ void __lockfunc _write_lock_bh(rwlock_t *lock)
+ {
+ 	__write_lock_bh(lock);
+ }
+ EXPORT_SYMBOL(_write_lock_bh);
++#endif
+ 
++#ifndef _spin_lock
+ void __lockfunc _spin_lock(spinlock_t *lock)
+ {
+ 	__spin_lock(lock);
+ }
+ EXPORT_SYMBOL(_spin_lock);
++#endif
+ 
++#ifndef _write_lock
+ void __lockfunc _write_lock(rwlock_t *lock)
+ {
+ 	__write_lock(lock);
+ }
+ EXPORT_SYMBOL(_write_lock);
++#endif
+ 
+ #else /* CONFIG_PREEMPT: */
+ 
+@@ -242,83 +272,109 @@ EXPORT_SYMBOL(_spin_lock_nest_lock);
+ 
+ #endif
+ 
++#ifndef _spin_unlock
+ void __lockfunc _spin_unlock(spinlock_t *lock)
+ {
+ 	__spin_unlock(lock);
+ }
+ EXPORT_SYMBOL(_spin_unlock);
++#endif
+ 
++#ifndef _write_unlock
+ void __lockfunc _write_unlock(rwlock_t *lock)
+ {
+ 	__write_unlock(lock);
+ }
+ EXPORT_SYMBOL(_write_unlock);
++#endif
+ 
++#ifndef _read_unlock
+ void __lockfunc _read_unlock(rwlock_t *lock)
+ {
+ 	__read_unlock(lock);
+ }
+ EXPORT_SYMBOL(_read_unlock);
++#endif
+ 
++#ifndef _spin_unlock_irqrestore
+ void __lockfunc _spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags)
+ {
+ 	__spin_unlock_irqrestore(lock, flags);
+ }
+ EXPORT_SYMBOL(_spin_unlock_irqrestore);
++#endif
+ 
++#ifndef _spin_unlock_irq
+ void __lockfunc _spin_unlock_irq(spinlock_t *lock)
+ {
+ 	__spin_unlock_irq(lock);
+ }
+ EXPORT_SYMBOL(_spin_unlock_irq);
++#endif
+ 
++#ifndef _spin_unlock_bh
+ void __lockfunc _spin_unlock_bh(spinlock_t *lock)
+ {
+ 	__spin_unlock_bh(lock);
+ }
+ EXPORT_SYMBOL(_spin_unlock_bh);
++#endif
+ 
++#ifndef _read_unlock_irqrestore
+ void __lockfunc _read_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
+ {
+ 	__read_unlock_irqrestore(lock, flags);
+ }
+ EXPORT_SYMBOL(_read_unlock_irqrestore);
++#endif
+ 
++#ifndef _read_unlock_irq
+ void __lockfunc _read_unlock_irq(rwlock_t *lock)
+ {
+ 	__read_unlock_irq(lock);
+ }
+ EXPORT_SYMBOL(_read_unlock_irq);
++#endif
+ 
++#ifndef _read_unlock_bh
+ void __lockfunc _read_unlock_bh(rwlock_t *lock)
+ {
+ 	__read_unlock_bh(lock);
+ }
+ EXPORT_SYMBOL(_read_unlock_bh);
++#endif
+ 
++#ifndef _write_unlock_irqrestore
+ void __lockfunc _write_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
+ {
+ 	__write_unlock_irqrestore(lock, flags);
+ }
+ EXPORT_SYMBOL(_write_unlock_irqrestore);
++#endif
+ 
++#ifndef _write_unlock_irq
+ void __lockfunc _write_unlock_irq(rwlock_t *lock)
+ {
+ 	__write_unlock_irq(lock);
+ }
+ EXPORT_SYMBOL(_write_unlock_irq);
++#endif
+ 
++#ifndef _write_unlock_bh
+ void __lockfunc _write_unlock_bh(rwlock_t *lock)
+ {
+ 	__write_unlock_bh(lock);
+ }
+ EXPORT_SYMBOL(_write_unlock_bh);
++#endif
+ 
++#ifndef _spin_trylock_bh
+ int __lockfunc _spin_trylock_bh(spinlock_t *lock)
+ {
+ 	return __spin_trylock_bh(lock);
+ }
+ EXPORT_SYMBOL(_spin_trylock_bh);
++#endif
+ 
+ notrace int in_lock_functions(unsigned long addr)
+ {
+Index: linux-2.6/include/linux/spinlock_api_smp.h
+===================================================================
+--- linux-2.6.orig/include/linux/spinlock_api_smp.h
++++ linux-2.6/include/linux/spinlock_api_smp.h
+@@ -60,6 +60,125 @@ void __lockfunc _read_unlock_irqrestore(
+ void __lockfunc _write_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
+ 							__releases(lock);
+ 
++#ifndef CONFIG_DEBUG_SPINLOCK
++#ifndef CONFIG_GENERIC_LOCKBREAK
++
++#ifdef __always_inline__spin_lock
++#define _spin_lock(lock) __spin_lock(lock)
++#endif
++
++#ifdef __always_inline__read_lock
++#define _read_lock(lock) __read_lock(lock)
++#endif
++
++#ifdef __always_inline__write_lock
++#define _write_lock(lock) __write_lock(lock)
++#endif
++
++#ifdef __always_inline__spin_lock_bh
++#define _spin_lock_bh(lock) __spin_lock_bh(lock)
++#endif
++
++#ifdef __always_inline__read_lock_bh
++#define _read_lock_bh(lock) __read_lock_bh(lock)
++#endif
++
++#ifdef __always_inline__write_lock_bh
++#define _write_lock_bh(lock) __write_lock_bh(lock)
++#endif
++
++#ifdef __always_inline__spin_lock_irq
++#define _spin_lock_irq(lock) __spin_lock_irq(lock)
++#endif
++
++#ifdef __always_inline__read_lock_irq
++#define _read_lock_irq(lock) __read_lock_irq(lock)
++#endif
++
++#ifdef __always_inline__write_lock_irq
++#define _write_lock_irq(lock) __write_lock_irq(lock)
++#endif
++
++#ifdef __always_inline__spin_lock_irqsave
++#define _spin_lock_irqsave(lock) __spin_lock_irqsave(lock)
++#endif
++
++#ifdef __always_inline__read_lock_irqsave
++#define _read_lock_irqsave(lock) __read_lock_irqsave(lock)
++#endif
++
++#ifdef __always_inline__write_lock_irqsave
++#define _write_lock_irqsave(lock) __write_lock_irqsave(lock)
++#endif
++
++#endif /* !CONFIG_GENERIC_LOCKBREAK */
++
++#ifdef __always_inline__spin_trylock
++#define _spin_trylock(lock) __spin_trylock(lock)
++#endif
++
++#ifdef __always_inline__read_trylock
++#define _read_trylock(lock) __read_trylock(lock)
++#endif
++
++#ifdef __always_inline__write_trylock
++#define _write_trylock(lock) __write_trylock(lock)
++#endif
++
++#ifdef __always_inline__spin_trylock_bh
++#define _spin_trylock_bh(lock) __spin_trylock_bh(lock)
++#endif
++
++#ifdef __always_inline__spin_unlock
++#define _spin_unlock(lock) __spin_unlock(lock)
++#endif
++
++#ifdef __always_inline__read_unlock
++#define _read_unlock(lock) __read_unlock(lock)
++#endif
++
++#ifdef __always_inline__write_unlock
++#define _write_unlock(lock) __write_unlock(lock)
++#endif
++
++#ifdef __always_inline__spin_unlock_bh
++#define _spin_unlock_bh(lock) __spin_unlock_bh(lock)
++#endif
++
++#ifdef __always_inline__read_unlock_bh
++#define _read_unlock_bh(lock) __read_unlock_bh(lock)
++#endif
++
++#ifdef __always_inline__write_unlock_bh
++#define _write_unlock_bh(lock) __write_unlock_bh(lock)
++#endif
++
++#ifdef __always_inline__spin_unlock_irq
++#define _spin_unlock_irq(lock) __spin_unlock_irq(lock)
++#endif
++
++#ifdef __always_inline__read_unlock_irq
++#define _read_unlock_irq(lock) __read_unlock_irq(lock)
++#endif
++
++#ifdef __always_inline__write_unlock_irq
++#define _write_unlock_irq(lock) __write_unlock_irq(lock)
++#endif
++
++#ifdef __always_inline__spin_unlock_irqrestore
++#define _spin_unlock_irqrestore(lock, flags) __spin_unlock_irqrestore(lock, flags)
++#endif
++
++#ifdef __always_inline__read_unlock_irqrestore
++#define _read_unlock_irqrestore(lock, flags) __read_unlock_irqrestore(lock, flags)
++#endif
++
++#ifdef __always_inline__write_unlock_irqrestore
++#define _write_unlock_irqrestore(lock, flags) __write_unlock_irqrestore(lock, flags)
++#endif
++
++#endif /* CONFIG_DEBUG_SPINLOCK */
++
+ static inline int __spin_trylock(spinlock_t *lock)
+ {
+ 	preempt_disable();
 
 -- 
