@@ -1,105 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate5.de.ibm.com ([195.212.17.165]:50215 "EHLO
-	mtagate5.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751273AbZHaMoR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 31 Aug 2009 08:44:17 -0400
-Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
-	by mtagate5.de.ibm.com (8.13.1/8.13.1) with ESMTP id n7VCiIb0010801
-	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 12:44:18 GMT
-Received: from d12av01.megacenter.de.ibm.com (d12av01.megacenter.de.ibm.com [9.149.165.212])
-	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7VCiI7a2740416
-	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 14:44:18 +0200
-Received: from d12av01.megacenter.de.ibm.com (loopback [127.0.0.1])
-	by d12av01.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7VCiHiD024615
-	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 14:44:18 +0200
-Message-ID: <20090831124416.998821502@de.ibm.com>
-References: <20090831124330.014480226@de.ibm.com>
-Date: Mon, 31 Aug 2009 14:43:34 +0200
+Received: from mtagate7.uk.ibm.com ([195.212.29.140]:47768 "EHLO
+	mtagate7.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752288AbZHaMol (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 31 Aug 2009 08:44:41 -0400
+Received: from d06nrmr1707.portsmouth.uk.ibm.com (d06nrmr1707.portsmouth.uk.ibm.com [9.149.39.225])
+	by mtagate7.uk.ibm.com (8.14.3/8.13.8) with ESMTP id n7VCiRrb105474
+	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 12:44:32 GMT
+Received: from d06av01.portsmouth.uk.ibm.com (d06av01.portsmouth.uk.ibm.com [9.149.37.212])
+	by d06nrmr1707.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id n7VCiHYY2625618
+	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 13:44:17 +0100
+Received: from d06av01.portsmouth.uk.ibm.com (loopback [127.0.0.1])
+	by d06av01.portsmouth.uk.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id n7VCiF32006656
+	for <linux-arch@vger.kernel.org>; Mon, 31 Aug 2009 13:44:17 +0100
+Message-ID: <20090831124330.014480226@de.ibm.com>
+Date: Mon, 31 Aug 2009 14:43:30 +0200
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: [patch 4/9] m68k/asm-offsets: rename signal defines
-Content-Disposition: inline; filename=m68k_signal.diff
+Subject: [patch 0/9] Allow inlined spinlocks again V6
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>
 Cc: linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnd Bergmann <arnd@arndb.de>, Nick Piggin <nickpiggin@yahoo.com.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Horst Hartmann <horsth@linux.vnet.ibm.com>, Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20090831124334.qCN6PrtKo7gp-WJAPB5VUvtAV4Ye8l6PKJ6wplwGS1w@z>
+Message-ID: <20090831124330.w_Wtsy4Yzdq1C3X9gclO2EvLh39hK9YWgfPTYdljGm4@z>
 
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
+This patch set allows to have inlined spinlocks again.
 
-In order to be able to use asm-offsets.h in C files the existing namespace
-conflicts must be solved first. In asm-offsets.h there are defines for signal
-constants, so they can be used in assembler files.
+V2: rewritten from scratch - now also with readable code
 
-Unfortunately the existing defines use a 1:1 mapping for the macro names
-which results in name space conflicts if the header file would also be used
-in C files. So rename the created defines and add an "L" prefix to each one
-since that has already been done for the SIGTRAP define in entry_mm.
+V3: removed macro to generate out-of-line spinlock variants since that
+    would break ctags. As requested by Arnd Bergmann.
 
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Roman Zippel <zippel@linux-m68k.org>
-Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+V4: allow architectures to specify for each lock/unlock variant if
+    it should be kept out-of-line or inlined.
+
+V5: simplify ifdefs as pointed out by Linus. Fix architecture compile
+    breakages caused by this change.
+
+V6: rename __spin_lock_is_small to __always_inline__spin_lock as requested
+    by Ingo Molnar. That way it is more consistent with the other methods
+    used to force inlining.
+    Also simplify inlining by getting rid of the old variants to force
+    inlining of the unlock functions.
+
+This is hopefully the final version. I did again run the whole cross
+compiles. The patch set applies on top of latest Linus' git tree, but
+also applies on top of linux-next.
+
+Ingo, I assume you don't have further objections?
+
+Should this go in via -mm then?
+
 ---
- arch/m68k/include/asm/entry_mm.h |    1 -
- arch/m68k/kernel/asm-offsets.c   |    8 ++++----
- arch/m68k/math-emu/fp_entry.S    |    8 ++++----
- 3 files changed, 8 insertions(+), 9 deletions(-)
 
-Index: linux-2.6/arch/m68k/include/asm/entry_mm.h
-===================================================================
---- linux-2.6.orig/arch/m68k/include/asm/entry_mm.h
-+++ linux-2.6/arch/m68k/include/asm/entry_mm.h
-@@ -46,7 +46,6 @@
- #define curptr a2
- 
- LFLUSH_I_AND_D = 0x00000808
--LSIGTRAP = 5
- 
- /* process bits for task_struct.ptrace */
- PT_TRACESYS_OFF = 3
-Index: linux-2.6/arch/m68k/kernel/asm-offsets.c
-===================================================================
---- linux-2.6.orig/arch/m68k/kernel/asm-offsets.c
-+++ linux-2.6/arch/m68k/kernel/asm-offsets.c
-@@ -84,10 +84,10 @@ int main(void)
- 	DEFINE(FONT_DESC_PREF, offsetof(struct font_desc, pref));
- 
- 	/* signal defines */
--	DEFINE(SIGSEGV, SIGSEGV);
--	DEFINE(SEGV_MAPERR, SEGV_MAPERR);
--	DEFINE(SIGTRAP, SIGTRAP);
--	DEFINE(TRAP_TRACE, TRAP_TRACE);
-+	DEFINE(LSIGSEGV, SIGSEGV);
-+	DEFINE(LSEGV_MAPERR, SEGV_MAPERR);
-+	DEFINE(LSIGTRAP, SIGTRAP);
-+	DEFINE(LTRAP_TRACE, TRAP_TRACE);
- 
- 	/* offsets into the custom struct */
- 	DEFINE(CUSTOMBASE, &amiga_custom);
-Index: linux-2.6/arch/m68k/math-emu/fp_entry.S
-===================================================================
---- linux-2.6.orig/arch/m68k/math-emu/fp_entry.S
-+++ linux-2.6/arch/m68k/math-emu/fp_entry.S
-@@ -85,8 +85,8 @@ fp_err_ua2:
- fp_err_ua1:
- 	addq.l	#4,%sp
- 	move.l	%a0,-(%sp)
--	pea	SEGV_MAPERR
--	pea	SIGSEGV
-+	pea	LSEGV_MAPERR
-+	pea	LSIGSEGV
- 	jsr	fpemu_signal
- 	add.w	#12,%sp
- 	jra	ret_from_exception
-@@ -96,8 +96,8 @@ fp_err_ua1:
- 	| it does not really belong here, but...
- fp_sendtrace060:
- 	move.l	(FPS_PC,%sp),-(%sp)
--	pea	TRAP_TRACE
--	pea	SIGTRAP
-+	pea	LTRAP_TRACE
-+	pea	LSIGTRAP
- 	jsr	fpemu_signal
- 	add.w	#12,%sp
- 	jra	ret_from_exception
+The rationale behind this is that function calls on at least s390 are
+expensive.
 
--- 
+If one considers that server kernels are usually compiled with
+!CONFIG_PREEMPT a simple spin_lock is just a compare and swap loop.
+The extra overhead for a function call is significant.
+With inlined spinlocks overall cpu usage gets reduced by 1%-5% on s390.
+These numbers were taken with some network benchmarks. However I expect
+any workload that calls frequently into the kernel and which grabs a few
+locks to perform better.
+
+The implementation is straight forward: move the function bodies of the
+locking functions to static inline functions and place them in a header
+file.
+By default all locking code remains out-of-line. An architecture can
+specify
+
+#define __always_inline__spin_lock
+
+in arch/<whatever>/include/asm/spinlock.h to force inlining of a locking
+function.
+
+defconfig cross compile tested for alpha, arm, x86, x86_64, ia64, m68k,
+m68knommu, mips, powerpc, powerpc64, sparc64, s390, s390x.
