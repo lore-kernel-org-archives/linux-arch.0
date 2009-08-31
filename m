@@ -1,43 +1,71 @@
-From: liqin.chen@sunplusct.com
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [GIT PULL, v4] S+core architecture (arch/score) support
-Date: Mon, 31 Aug 2009 15:48:33 +0800
-Message-ID: <OF0579E5F2.3B710FBD-ON48257623.002611FB-48257623.002B92AD@sunplusct.com>
-References: <200908271600.37569.arnd@arndb.de>
+Date: Mon, 31 Aug 2009 09:56:33 +0000
+Message-ID: <200908310956.33802.arnd@arndb.de>
+References: <OF0579E5F2.3B710FBD-ON48257623.002611FB-48257623.002B92AD@sunplusct.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="GB2312"
-Content-Transfer-Encoding: base64
+Content-Type: Text/Plain; charset=gb2312
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124-219-29-227.vdslpro.static.apol.com.tw ([124.219.29.227]:54911
-	"EHLO mswedge2.sunplus.com" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1751210AbZHaITP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 31 Aug 2009 04:19:15 -0400
-In-Reply-To: <200908271600.37569.arnd@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.126.171]:59663 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750892AbZHaJ5n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 31 Aug 2009 05:57:43 -0400
+In-Reply-To: <OF0579E5F2.3B710FBD-ON48257623.002611FB-48257623.002B92AD@sunplusct.com>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: liqin.chen@sunplusct.com
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
 
-QXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4g0LTT2iAyMDA5LTA4LTI3IDIyOjAwOjM3Og0K
-DQo+IA0KPiBJIHVuZGVyc3RhbmQgeW91ciBwcm9ibGVtIGhlcmUsIGFuZCBJIHRoaW5rIGl0IHdv
-dWxkIGJlIGdvb2QNCj4gdG8gaGF2ZSBzZWNvbmQgb3BpbmlvbiBmcm9tIHNvbWVvbmUgZWxzZSBo
-ZXJlLiBUaGUgZm91cg0KPiAjZGVmaW5lcyB5b3UgbWVudGlvbiBhcmUgcm91Z2hseSBpbiByZXZl
-cnNlIG9yZGVyIG9mIGltcG9ydGFuY2UuDQo+IA0KPiBJIHRoaW5rIHlvdSByZWFsbHkgbmVlZCB0
-byByZW1vdmUgX19BUkNIX1dBTlRfU1lTQ0FMTF9ERVBSRUNBVEVEDQo+IGFuZCBnZXQgdGhhdCB3
-b3JraW5nLiBQbGVhc2UgdGVsbCB1cyBpZiBzb21lIHN5c3RlbSBjYWxsIGlzDQo+IGdpdmluZyB5
-b3UgcHJvYmxlbXMgYW5kIHdlIGNhbiBmaW5kIGEgc29sdXRpb24gdG9nZXRoZXIuDQo+IA0KPiBS
-ZW1vdmluZyBfX0FSQ0hfV0FOVF9TWVNDQUxMX09GRl9UIHNob3VsZCBub3QgYmUgdG9vIGhhcmQs
-IGJlY2F1c2UNCj4gZ2xpYmMgdXNlcyB0aGUgbG9mZl90IHZlcnNpb25zIGJ5IGRlZmF1bHQgYW55
-d2F5LiBJIGhhdmUgbm90IHRyaWVkDQo+IGl0IHRob3VnaCwgc28gaXQgbWF5IGJlIG1vcmUgY29t
-cGxpY2F0ZWQgdGhhbiBJIHRob3VnaHQuDQo+IA0KDQppbiBfX0FSQ0hfV0FOVF9TWVNDQUxMX0RF
-UFJFQ0FURUQsDQphc20tZ2VuZXJpYy91bmlzdGQuaCBoYXZlbid0IGRlZmluZSBfX05SX2lwYyBh
-bmQgX19OUl9fbGxzZWVrDQp3aGljaCB1c2VkIGluIGdsaWJjLg0KDQpOb3cgd2UgaGF2ZSBtYWlu
-dGFpbmVkIDMgc2V0cyBvZiBzeXNjYWxsIEFQSSBjb2RlIHVzZSBmb3IgZ2xpYmMuDQoxOiBPbGQg
-c3lzY2FsbCBpbnRlcmZhY2UsIHdoaWNoIGxpbnV4L3Njb3JlIHN5c3RlbSB3b3JrIHdlbGwuDQoy
-OiBOZXcgc3lzY2FsbCBpbnRlcmZhY2UsIGRlZmluZSBhbGwgNCBtYWNybyBfX0FSQ0hfV0FOVF9T
-WVNDQUxMX1hYWCwNCiAgICAgICAgbGludXgvc2NvcmUgc3lzdGVtIHdvcmsgbm93LCBidXQgd2Ug
-c3RpbGwgZGVidWcgdGhlIGdsaWJjIGNvZGUuDQozOiBOZXcgc3lzY2FsbCBpbnRlcmZhY2UsIHdp
-dGhvdXQgZGVmaW5lIF9fQVJDSF9XQU5UX1NZU0NBTExfREVQUkVDQVRFRA0KICAgICAgICBhbmQg
-X19BUkNIX1dBTlRfU1lTQ0FMTF9PRkZfVCwgbGludXgvc2NvcmUgc3lzdGVtIGNvdWxkbid0IHdv
-cmsuDQogICAgICAgIGJlY2F1c2UgZ2xpYmMgaGF2ZSBtYW55IHBsYWNlIG5lZWQgdG8gZml4Lg0K
-DQpMaXFpbg0K
+On Monday 31 August 2009 07:48:33 liqin.chen@sunplusct.com wrote:
+> Arnd Bergmann <arnd@arndb.de> =D0=B4=D3=DA 2009-08-27 22:00:37:
+>=20
+> >=20
+> > I understand your problem here, and I think it would be good
+> > to have second opinion from someone else here. The four
+> > #defines you mention are roughly in reverse order of importance.
+> >=20
+> > I think you really need to remove __ARCH_WANT_SYSCALL_DEPRECATED
+> > and get that working. Please tell us if some system call is
+> > giving you problems and we can find a solution together.
+> >=20
+> > Removing __ARCH_WANT_SYSCALL_OFF_T should not be too hard, because
+> > glibc uses the loff_t versions by default anyway. I have not tried
+> > it though, so it may be more complicated than I thought.
+> >=20
+>=20
+> in __ARCH_WANT_SYSCALL_DEPRECATED,
+> asm-generic/unistd.h haven't define __NR_ipc and __NR__llseek
+> which used in glibc.
+
+__NR_ipc definitely should not be defined, it is a multiplexer
+for other system calls that have their own number, e.g. msgctl
+and semop. Look at e.g. how parisc does it in glibc.
+
+I'm not sure what the problem with __NR_llseek could be, AFAICT
+it is defined in asm-generic/unistd.h because you take the
+default __BITSPERLONG=3D32 definition. You should however not
+see __NR_lseek, which is used only on 64 bit systems these days.
+
+> Now we have maintained 3 sets of syscall API code use for glibc.
+> 1: Old syscall interface, which linux/score system work well.
+
+Yes, and I guess this will continue to work, but it will never
+work with upstream kernels.
+
+> 2: New syscall interface, define all 4 macro __ARCH_WANT_SYSCALL_XXX,
+>         linux/score system work now, but we still debug the glibc cod=
+e.
+> 3: New syscall interface, without define __ARCH_WANT_SYSCALL_DEPRECAT=
+ED
+>         and __ARCH_WANT_SYSCALL_OFF_T, linux/score system couldn't wo=
+rk.
+>         because glibc have many place need to fix.
+
+Do you have a patch against the glibc git tree for score so I can look
+at what needs to be done? None of the changes should be specific to
+score after all, ideally it should all work without any glibc changes,
+though I realize that we are not there yet.
+
+	Arnd <><
