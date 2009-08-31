@@ -1,8 +1,8 @@
 From: tip-bot for Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: [tip:core/locking] locking, sparc: Rename __spin_try_lock() and friends
-Date: Mon, 31 Aug 2009 17:07:15 GMT
-Message-ID: <tip-9f34ceb60357a7166c929d7b52bd057ad7ffc54b@git.kernel.org>
-References: <20090831124416.306495811@de.ibm.com>
+Subject: [tip:core/locking] locking, m68k: Calculate thread_info offset with asm offset
+Date: Mon, 31 Aug 2009 17:07:41 GMT
+Message-ID: <tip-0ee000e5e8fa2e5c760250be0d78d5906e3eb94b@git.kernel.org>
+References: <20090831124417.329662275@de.ibm.com>
 Reply-To: mingo@redhat.com, a.p.zijlstra@chello.nl,
 	  torvalds@linux-foundation.org, schwidefsky@de.ibm.com,
 	  ehrhardt@linux.vnet.ibm.com, arnd@arndb.de,
@@ -15,33 +15,54 @@ Reply-To: mingo@redhat.com, a.p.zijlstra@chello.nl,
 	  mingo@elte.hu
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:32877 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751731AbZHaRID (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 31 Aug 2009 13:08:03 -0400
-In-Reply-To: <20090831124416.306495811@de.ibm.com>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753449AbZHaRIl@vger.kernel.org>
+In-Reply-To: <20090831124417.329662275@de.ibm.com>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-tip-commits@vger.kernel.org
 Cc: mingo@redhat.com, torvalds@linux-foundation.org, a.p.zijlstra@chello.nl, schwidefsky@de.ibm.com, ehrhardt@linux.vnet.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, zippel@linux-m68k.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, hpa@zytor.com, paulus@samba.org, horsth@linux.vnet.ibm.com, davem@davemloft.net, benh@kernel.crashing.org, geert@linux-m68k.org, linux-arch@vger.kernel.org, mingo@elte.hu, nickpiggin@yahoo.com.au
+List-Id: linux-arch.vger.kernel.org
 
-Commit-ID:  9f34ceb60357a7166c929d7b52bd057ad7ffc54b
-Gitweb:     http://git.kernel.org/tip/9f34ceb60357a7166c929d7b52bd057ad7ffc54b
+Commit-ID:  0ee000e5e8fa2e5c760250be0d78d5906e3eb94b
+Gitweb:     http://git.kernel.org/tip/0ee000e5e8fa2e5c760250be0d78d5906e3eb94b
 Author:     Heiko Carstens <heiko.carstens@de.ibm.com>
-AuthorDate: Mon, 31 Aug 2009 14:43:32 +0200
+AuthorDate: Mon, 31 Aug 2009 14:43:35 +0200
 Committer:  Ingo Molnar <mingo@elte.hu>
-CommitDate: Mon, 31 Aug 2009 18:08:48 +0200
+CommitDate: Mon, 31 Aug 2009 18:08:49 +0200
 
-locking, sparc: Rename __spin_try_lock() and friends
+locking, m68k: Calculate thread_info offset with asm offset
 
-Needed to avoid namespace conflicts when the common code
-function bodies of _spin_try_lock() etc. are moved to a header
-file where the function name would be __spin_try_lock().
+m68k has the thread_info structure embedded in its task struct.
+Therefore its not possible to implement current_thread_info()
+by looking at the stack pointer and do some simple calculations
+like most other architectures do it.
+
+To return the thread_info pointer for a task two defines are
+used. This works until the spinlock function bodies get moved
+into an own header file and CONFIG_SPINLOCK_DEBUG is turned on.
+That results into this compile error:
+
+  In file included from include/linux/spinlock.h:378,
+                   from include/linux/seqlock.h:29,
+                   from include/linux/time.h:8,
+                   from include/linux/timex.h:56,
+                   from include/linux/sched.h:54,
+                   from arch/m68k/kernel/asm-offsets.c:12:
+  include/linux/spinlock_api_smp.h: In function '__spin_unlock_irq':
+  include/linux/spinlock_api_smp.h:371: error: 'current' undeclared (first use in this function)
+  include/linux/spinlock_api_smp.h:371: error: (Each undeclared identifier is reported only once
+  include/linux/spinlock_api_smp.h:371: error: for each function it appears in.)
+
+Including asm/current.h to asm-offsets.c wouldn't help since
+the definition of struct task is needed. So we end up with ugly
+header file include dependencies.
+
+To solve this calculate the offset of the thread_info structure
+into the task struct in asm-offsets.h and use the offset in
+task_thread_info(). This works just like it does for IA64 as
+well.
 
 Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
-Acked-by: David S. Miller <davem@davemloft.net>
 Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: Nick Piggin <nickpiggin@yahoo.com.au>
@@ -56,147 +77,64 @@ Cc: Paul Mackerras <paulus@samba.org>
 Cc: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Roman Zippel <zippel@linux-m68k.org>
 Cc: <linux-arch@vger.kernel.org>
-LKML-Reference: <20090831124416.306495811@de.ibm.com>
+LKML-Reference: <20090831124417.329662275@de.ibm.com>
 Signed-off-by: Ingo Molnar <mingo@elte.hu>
 
 
 ---
- arch/sparc/include/asm/spinlock_32.h |   12 ++++++------
- arch/sparc/include/asm/spinlock_64.h |   28 ++++++++++++++--------------
- 2 files changed, 20 insertions(+), 20 deletions(-)
+ arch/m68k/include/asm/thread_info_mm.h |   11 ++++++++++-
+ arch/m68k/kernel/asm-offsets.c         |    5 +++++
+ 2 files changed, 15 insertions(+), 1 deletions(-)
 
-diff --git a/arch/sparc/include/asm/spinlock_32.h b/arch/sparc/include/asm/spinlock_32.h
-index 46f91ab..857630c 100644
---- a/arch/sparc/include/asm/spinlock_32.h
-+++ b/arch/sparc/include/asm/spinlock_32.h
-@@ -76,7 +76,7 @@ static inline void __raw_spin_unlock(raw_spinlock_t *lock)
-  *
-  * Unfortunately this scheme limits us to ~16,000,000 cpus.
+diff --git a/arch/m68k/include/asm/thread_info_mm.h b/arch/m68k/include/asm/thread_info_mm.h
+index 6ea5c33..b6da388 100644
+--- a/arch/m68k/include/asm/thread_info_mm.h
++++ b/arch/m68k/include/asm/thread_info_mm.h
+@@ -1,6 +1,10 @@
+ #ifndef _ASM_M68K_THREAD_INFO_H
+ #define _ASM_M68K_THREAD_INFO_H
+ 
++#ifndef ASM_OFFSETS_C
++#include <asm/asm-offsets.h>
++#endif
++#include <asm/current.h>
+ #include <asm/types.h>
+ #include <asm/page.h>
+ 
+@@ -31,7 +35,12 @@ struct thread_info {
+ #define init_thread_info	(init_task.thread.info)
+ #define init_stack		(init_thread_union.stack)
+ 
+-#define task_thread_info(tsk)	(&(tsk)->thread.info)
++#ifdef ASM_OFFSETS_C
++#define task_thread_info(tsk)	((struct thread_info *) NULL)
++#else
++#define task_thread_info(tsk)	((struct thread_info *)((char *)tsk+TASK_TINFO))
++#endif
++
+ #define task_stack_page(tsk)	((tsk)->stack)
+ #define current_thread_info()	task_thread_info(current)
+ 
+diff --git a/arch/m68k/kernel/asm-offsets.c b/arch/m68k/kernel/asm-offsets.c
+index 0cffab8..25d6b72 100644
+--- a/arch/m68k/kernel/asm-offsets.c
++++ b/arch/m68k/kernel/asm-offsets.c
+@@ -8,6 +8,8 @@
+  * #defines from the assembly-language output.
   */
--static inline void __read_lock(raw_rwlock_t *rw)
-+static inline void arch_read_lock(raw_rwlock_t *rw)
- {
- 	register raw_rwlock_t *lp asm("g1");
- 	lp = rw;
-@@ -92,11 +92,11 @@ static inline void __read_lock(raw_rwlock_t *rw)
- #define __raw_read_lock(lock) \
- do {	unsigned long flags; \
- 	local_irq_save(flags); \
--	__read_lock(lock); \
-+	arch_read_lock(lock); \
- 	local_irq_restore(flags); \
- } while(0)
  
--static inline void __read_unlock(raw_rwlock_t *rw)
-+static inline void arch_read_unlock(raw_rwlock_t *rw)
- {
- 	register raw_rwlock_t *lp asm("g1");
- 	lp = rw;
-@@ -112,7 +112,7 @@ static inline void __read_unlock(raw_rwlock_t *rw)
- #define __raw_read_unlock(lock) \
- do {	unsigned long flags; \
- 	local_irq_save(flags); \
--	__read_unlock(lock); \
-+	arch_read_unlock(lock); \
- 	local_irq_restore(flags); \
- } while(0)
++#define ASM_OFFSETS_C
++
+ #include <linux/stddef.h>
+ #include <linux/sched.h>
+ #include <linux/kernel_stat.h>
+@@ -27,6 +29,9 @@ int main(void)
+ 	DEFINE(TASK_INFO, offsetof(struct task_struct, thread.info));
+ 	DEFINE(TASK_MM, offsetof(struct task_struct, mm));
+ 	DEFINE(TASK_ACTIVE_MM, offsetof(struct task_struct, active_mm));
++#ifdef CONFIG_MMU
++	DEFINE(TASK_TINFO, offsetof(struct task_struct, thread.info));
++#endif
  
-@@ -150,7 +150,7 @@ static inline int __raw_write_trylock(raw_rwlock_t *rw)
- 	return (val == 0);
- }
- 
--static inline int __read_trylock(raw_rwlock_t *rw)
-+static inline int arch_read_trylock(raw_rwlock_t *rw)
- {
- 	register raw_rwlock_t *lp asm("g1");
- 	register int res asm("o0");
-@@ -169,7 +169,7 @@ static inline int __read_trylock(raw_rwlock_t *rw)
- ({	unsigned long flags; \
- 	int res; \
- 	local_irq_save(flags); \
--	res = __read_trylock(lock); \
-+	res = arch_read_trylock(lock); \
- 	local_irq_restore(flags); \
- 	res; \
- })
-diff --git a/arch/sparc/include/asm/spinlock_64.h b/arch/sparc/include/asm/spinlock_64.h
-index f6b2b92..43e5147 100644
---- a/arch/sparc/include/asm/spinlock_64.h
-+++ b/arch/sparc/include/asm/spinlock_64.h
-@@ -92,7 +92,7 @@ static inline void __raw_spin_lock_flags(raw_spinlock_t *lock, unsigned long fla
- 
- /* Multi-reader locks, these are much saner than the 32-bit Sparc ones... */
- 
--static void inline __read_lock(raw_rwlock_t *lock)
-+static void inline arch_read_lock(raw_rwlock_t *lock)
- {
- 	unsigned long tmp1, tmp2;
- 
-@@ -115,7 +115,7 @@ static void inline __read_lock(raw_rwlock_t *lock)
- 	: "memory");
- }
- 
--static int inline __read_trylock(raw_rwlock_t *lock)
-+static int inline arch_read_trylock(raw_rwlock_t *lock)
- {
- 	int tmp1, tmp2;
- 
-@@ -136,7 +136,7 @@ static int inline __read_trylock(raw_rwlock_t *lock)
- 	return tmp1;
- }
- 
--static void inline __read_unlock(raw_rwlock_t *lock)
-+static void inline arch_read_unlock(raw_rwlock_t *lock)
- {
- 	unsigned long tmp1, tmp2;
- 
-@@ -152,7 +152,7 @@ static void inline __read_unlock(raw_rwlock_t *lock)
- 	: "memory");
- }
- 
--static void inline __write_lock(raw_rwlock_t *lock)
-+static void inline arch_write_lock(raw_rwlock_t *lock)
- {
- 	unsigned long mask, tmp1, tmp2;
- 
-@@ -177,7 +177,7 @@ static void inline __write_lock(raw_rwlock_t *lock)
- 	: "memory");
- }
- 
--static void inline __write_unlock(raw_rwlock_t *lock)
-+static void inline arch_write_unlock(raw_rwlock_t *lock)
- {
- 	__asm__ __volatile__(
- "	stw		%%g0, [%0]"
-@@ -186,7 +186,7 @@ static void inline __write_unlock(raw_rwlock_t *lock)
- 	: "memory");
- }
- 
--static int inline __write_trylock(raw_rwlock_t *lock)
-+static int inline arch_write_trylock(raw_rwlock_t *lock)
- {
- 	unsigned long mask, tmp1, tmp2, result;
- 
-@@ -210,14 +210,14 @@ static int inline __write_trylock(raw_rwlock_t *lock)
- 	return result;
- }
- 
--#define __raw_read_lock(p)	__read_lock(p)
--#define __raw_read_lock_flags(p, f) __read_lock(p)
--#define __raw_read_trylock(p)	__read_trylock(p)
--#define __raw_read_unlock(p)	__read_unlock(p)
--#define __raw_write_lock(p)	__write_lock(p)
--#define __raw_write_lock_flags(p, f) __write_lock(p)
--#define __raw_write_unlock(p)	__write_unlock(p)
--#define __raw_write_trylock(p)	__write_trylock(p)
-+#define __raw_read_lock(p)	arch_read_lock(p)
-+#define __raw_read_lock_flags(p, f) arch_read_lock(p)
-+#define __raw_read_trylock(p)	arch_read_trylock(p)
-+#define __raw_read_unlock(p)	arch_read_unlock(p)
-+#define __raw_write_lock(p)	arch_write_lock(p)
-+#define __raw_write_lock_flags(p, f) arch_write_lock(p)
-+#define __raw_write_unlock(p)	arch_write_unlock(p)
-+#define __raw_write_trylock(p)	arch_write_trylock(p)
- 
- #define __raw_read_can_lock(rw)		(!((rw)->lock & 0x80000000UL))
- #define __raw_write_can_lock(rw)	(!(rw)->lock)
+ 	/* offsets into the thread struct */
+ 	DEFINE(THREAD_KSP, offsetof(struct thread_struct, ksp));
