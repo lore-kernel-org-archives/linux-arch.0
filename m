@@ -1,46 +1,131 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [patch 0/8] Allow inlined spinlocks again V5
-Date: Tue, 1 Sep 2009 15:19:34 +0200
-Message-ID: <20090901131934.GA1726@elte.hu>
-References: <20090829102115.638224800@de.ibm.com> <20090829111642.GA17951@elte.hu> <20090829135906.GA11215@osiris.boeblingen.de.ibm.com> <20090829141354.GA29896@elte.hu> <20090831085911.GA10144@osiris.boeblingen.de.ibm.com>
+From: tip-bot for Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: [tip:core/locking] locking, m68k/asm-offsets: Rename signal defines
+Date: Tue, 1 Sep 2009 13:58:07 GMT
+Message-ID: <tip-96910b6dc8a4fdb75e69f09f47b62d41743d36ba@git.kernel.org>
+References: <20090831124416.998821502@de.ibm.com>
+Reply-To: mingo@redhat.com, a.p.zijlstra@chello.nl,
+	  torvalds@linux-foundation.org, schwidefsky@de.ibm.com,
+	  ehrhardt@linux.vnet.ibm.com, arnd@arndb.de,
+	  akpm@linux-foundation.org, heiko.carstens@de.ibm.com,
+	  tglx@linutronix.de, zippel@linux-m68k.org,
+	  linux-kernel@vger.kernel.org, hpa@zytor.com, paulus@samba.org,
+	  horsth@linux.vnet.ibm.com, davem@davemloft.net,
+	  benh@kernel.crashing.org, geert@linux-m68k.org,
+	  linux-arch@vger.kernel.org, nickpiggin@yahoo.com.au,
+	  mingo@elte.hu
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:42660 "EHLO mx2.mail.elte.hu"
+Received: from hera.kernel.org ([140.211.167.34]:56045 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754571AbZIANUB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 1 Sep 2009 09:20:01 -0400
+	id S1754805AbZIAN7B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 1 Sep 2009 09:59:01 -0400
+In-Reply-To: <20090831124416.998821502@de.ibm.com>
 Content-Disposition: inline
-In-Reply-To: <20090831085911.GA10144@osiris.boeblingen.de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnd Bergmann <arnd@arndb.de>, Nick Piggin <nickpiggin@yahoo.com.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Horst Hartmann <horsth@linux.vnet.ibm.com>, Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>
+To: linux-tip-commits@vger.kernel.org
+Cc: mingo@redhat.com, torvalds@linux-foundation.org, a.p.zijlstra@chello.nl, schwidefsky@de.ibm.com, ehrhardt@linux.vnet.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, zippel@linux-m68k.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, hpa@zytor.com, paulus@samba.org, horsth@linux.vnet.ibm.com, davem@davemloft.net, benh@kernel.crashing.org, geert@linux-m68k.org, linux-arch@vger.kernel.org, mingo@elte.hu, nickpiggin@yahoo.com.au
+
+Commit-ID:  96910b6dc8a4fdb75e69f09f47b62d41743d36ba
+Gitweb:     http://git.kernel.org/tip/96910b6dc8a4fdb75e69f09f47b62d41743d36ba
+Author:     Heiko Carstens <heiko.carstens@de.ibm.com>
+AuthorDate: Mon, 31 Aug 2009 14:43:34 +0200
+Committer:  Ingo Molnar <mingo@elte.hu>
+CommitDate: Tue, 1 Sep 2009 09:38:03 +0200
+
+locking, m68k/asm-offsets: Rename signal defines
+
+In order to be able to use asm-offsets.h in C files the
+existing namespace conflicts must be solved first. In
+asm-offsets.h there are defines for signal constants, so they
+can be used in assembler files.
+
+Unfortunately the existing defines use a 1:1 mapping for the
+macro names which results in name space conflicts if the header
+file would also be used in C files. So rename the created
+defines and add an "L" prefix to each one since that has
+already been done for the SIGTRAP define in entry_mm.
+
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Horst Hartmann <horsth@linux.vnet.ibm.com>
+Cc: Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: David Miller <davem@davemloft.net>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Roman Zippel <zippel@linux-m68k.org>
+Cc: <linux-arch@vger.kernel.org>
+LKML-Reference: <20090831124416.998821502@de.ibm.com>
+Signed-off-by: Ingo Molnar <mingo@elte.hu>
 
 
-* Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
+---
+ arch/m68k/include/asm/entry_mm.h |    1 -
+ arch/m68k/kernel/asm-offsets.c   |    8 ++++----
+ arch/m68k/math-emu/fp_entry.S    |    8 ++++----
+ 3 files changed, 8 insertions(+), 9 deletions(-)
 
-> On Sat, Aug 29, 2009 at 04:13:54PM +0200, Ingo Molnar wrote:
->
-> > A third question would be, now that we have this flexible method 
-> > to inline/uninline locking APIs, mind checking say a 64-bit x86 
-> > defconfig and see whether that generic set of inline/noinline 
-> > decisions actually results in the smallest possible kernel image 
-> > size?
-> > 
-> > I.e. we could use this opportunity to re-tune the generic 
-> > defaults. (and thus your patch-set would become an improvement 
-> > as well.)
-> 
-> Considering the large x86 user base I have no doubts that you will 
-> easily find volunteers who will be happy to do this :)
-
-Hey, you are turning my own argument against me - that's not fair 
-;-)
-
-Anyway, your latest bits make testing of it rather straightforward 
-for anyone interested in fine-tuning the defaults (28 kernel builds 
-ought to settle the issue), and the current inlining rules should be 
-rather close to the optimal solution already.
-
-	Ingo
+diff --git a/arch/m68k/include/asm/entry_mm.h b/arch/m68k/include/asm/entry_mm.h
+index 4fcfc28..4741258 100644
+--- a/arch/m68k/include/asm/entry_mm.h
++++ b/arch/m68k/include/asm/entry_mm.h
+@@ -46,7 +46,6 @@
+ #define curptr a2
+ 
+ LFLUSH_I_AND_D = 0x00000808
+-LSIGTRAP = 5
+ 
+ /* process bits for task_struct.ptrace */
+ PT_TRACESYS_OFF = 3
+diff --git a/arch/m68k/kernel/asm-offsets.c b/arch/m68k/kernel/asm-offsets.c
+index 25d6b72..73e5e58 100644
+--- a/arch/m68k/kernel/asm-offsets.c
++++ b/arch/m68k/kernel/asm-offsets.c
+@@ -89,10 +89,10 @@ int main(void)
+ 	DEFINE(FONT_DESC_PREF, offsetof(struct font_desc, pref));
+ 
+ 	/* signal defines */
+-	DEFINE(SIGSEGV, SIGSEGV);
+-	DEFINE(SEGV_MAPERR, SEGV_MAPERR);
+-	DEFINE(SIGTRAP, SIGTRAP);
+-	DEFINE(TRAP_TRACE, TRAP_TRACE);
++	DEFINE(LSIGSEGV, SIGSEGV);
++	DEFINE(LSEGV_MAPERR, SEGV_MAPERR);
++	DEFINE(LSIGTRAP, SIGTRAP);
++	DEFINE(LTRAP_TRACE, TRAP_TRACE);
+ 
+ 	/* offsets into the custom struct */
+ 	DEFINE(CUSTOMBASE, &amiga_custom);
+diff --git a/arch/m68k/math-emu/fp_entry.S b/arch/m68k/math-emu/fp_entry.S
+index 916c6f3..a3fe1f3 100644
+--- a/arch/m68k/math-emu/fp_entry.S
++++ b/arch/m68k/math-emu/fp_entry.S
+@@ -85,8 +85,8 @@ fp_err_ua2:
+ fp_err_ua1:
+ 	addq.l	#4,%sp
+ 	move.l	%a0,-(%sp)
+-	pea	SEGV_MAPERR
+-	pea	SIGSEGV
++	pea	LSEGV_MAPERR
++	pea	LSIGSEGV
+ 	jsr	fpemu_signal
+ 	add.w	#12,%sp
+ 	jra	ret_from_exception
+@@ -96,8 +96,8 @@ fp_err_ua1:
+ 	| it does not really belong here, but...
+ fp_sendtrace060:
+ 	move.l	(FPS_PC,%sp),-(%sp)
+-	pea	TRAP_TRACE
+-	pea	SIGTRAP
++	pea	LTRAP_TRACE
++	pea	LSIGTRAP
+ 	jsr	fpemu_signal
+ 	add.w	#12,%sp
+ 	jra	ret_from_exception
