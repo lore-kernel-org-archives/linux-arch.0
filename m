@@ -1,32 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 124-219-29-227.vdslpro.static.apol.com.tw ([124.219.29.227]:59043
-	"EHLO mswedge2.sunplus.com" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1752583AbZIAHLw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Sep 2009 03:11:52 -0400
-In-Reply-To: <200908310956.33802.arnd@arndb.de>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:55932 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751508AbZIARSJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Sep 2009 13:18:09 -0400
+Date: Tue, 1 Sep 2009 18:16:49 +0100
+From: Russell King <rmk@arm.linux.org.uk>
+Subject: Re: [PATCH [try #4] 8/9] KEYS: Extend TIF_NOTIFY_RESUME to
+	(almost) all architectures
+Message-ID: <20090901171649.GA16779@flint.arm.linux.org.uk>
+References: <20090901163231.14180.43426.stgit@warthog.procyon.org.uk> <20090901163307.14180.64201.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
-Subject: Re: [GIT PULL, v4] S+core architecture (arch/score) support
-Message-ID: <OF4CFE082A.22292F01-ON48257624.0024EFF9-48257624.0025CD0B@sunplusct.com>
-From: liqin.chen@sunplusct.com
-Date: Tue, 1 Sep 2009 14:45:28 +0800
-Content-Type: text/plain; charset="GB2312"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20090901163307.14180.64201.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
-Message-ID: <20090901064528.W0rxCKjyUQmGJLYAZbthKIzge_wiHuJ63u3m8BqG72M@z>
+To: David Howells <dhowells@redhat.com>
+Cc: jmorris@namei.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20090901171649.5cDFywRFjlPNDvbdqd3UtZspAsqIBwuhRlsm7VdHRjw@z>
 
-QXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4g0LTT2iAyMDA5LTA4LTMxIDE3OjU2OjMzOg0K
-DQo+IE9uIE1vbmRheSAzMSBBdWd1c3QgMjAwOSAwNzo0ODozMyBsaXFpbi5jaGVuQHN1bnBsdXNj
-dC5jb20gd3JvdGU6DQo+ID4gQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4g0LTT2iAyMDA5
-LTA4LTI3IDIyOjAwOjM3Og0KPiANCj4gX19OUl9pcGMgZGVmaW5pdGVseSBzaG91bGQgbm90IGJl
-IGRlZmluZWQsIGl0IGlzIGEgbXVsdGlwbGV4ZXINCj4gZm9yIG90aGVyIHN5c3RlbSBjYWxscyB0
-aGF0IGhhdmUgdGhlaXIgb3duIG51bWJlciwgZS5nLiBtc2djdGwNCj4gYW5kIHNlbW9wLiBMb29r
-IGF0IGUuZy4gaG93IHBhcmlzYyBkb2VzIGl0IGluIGdsaWJjLg0KPiANCg0KT2ssIHdlIGRvIGl0
-IGFzIHBhcmlzYyBkb2VzDQoNCj4gDQo+IERvIHlvdSBoYXZlIGEgcGF0Y2ggYWdhaW5zdCB0aGUg
-Z2xpYmMgZ2l0IHRyZWUgZm9yIHNjb3JlIHNvIEkgY2FuIGxvb2sNCj4gYXQgd2hhdCBuZWVkcyB0
-byBiZSBkb25lPyBOb25lIG9mIHRoZSBjaGFuZ2VzIHNob3VsZCBiZSBzcGVjaWZpYyB0bw0KPiBz
-Y29yZSBhZnRlciBhbGwsIGlkZWFsbHkgaXQgc2hvdWxkIGFsbCB3b3JrIHdpdGhvdXQgYW55IGds
-aWJjIGNoYW5nZXMsDQo+IHRob3VnaCBJIHJlYWxpemUgdGhhdCB3ZSBhcmUgbm90IHRoZXJlIHll
-dC4NCj4gDQoNCkkgd2lsbCBzZW5kIHRoZSBwYXRjaCB0byB5b3Ugc29vbi4NCg0KbGlxaW4NCg==
+On Tue, Sep 01, 2009 at 05:33:07PM +0100, David Howells wrote:
+> diff --git a/arch/arm/include/asm/thread_info.h b/arch/arm/include/asm/thread_info.h
+> index 73394e5..d3a39b1 100644
+> --- a/arch/arm/include/asm/thread_info.h
+> +++ b/arch/arm/include/asm/thread_info.h
+> @@ -130,11 +130,13 @@ extern void vfp_sync_state(struct thread_info *thread);
+>   *  TIF_SYSCALL_TRACE	- syscall trace active
+>   *  TIF_SIGPENDING	- signal pending
+>   *  TIF_NEED_RESCHED	- rescheduling necessary
+> + *  TIF_NOTIFY_RESUME	- callback before returning to user
+>   *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
+>   *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
+>   */
+>  #define TIF_SIGPENDING		0
+>  #define TIF_NEED_RESCHED	1
+> +#define TIF_NOTIFY_RESUME	2	/* callback before returning to user */
+>  #define TIF_SYSCALL_TRACE	8
+>  #define TIF_POLLING_NRFLAG	16
+>  #define TIF_USING_IWMMXT	17
+> @@ -143,6 +145,7 @@ extern void vfp_sync_state(struct thread_info *thread);
+>  
+>  #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+>  #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
+> +#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+>  #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+>  #define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
+>  #define _TIF_USING_IWMMXT	(1 << TIF_USING_IWMMXT)
+> diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
+> index 8c3de1a..7813ab7 100644
+> --- a/arch/arm/kernel/entry-common.S
+> +++ b/arch/arm/kernel/entry-common.S
+> @@ -51,7 +51,7 @@ fast_work_pending:
+>  work_pending:
+>  	tst	r1, #_TIF_NEED_RESCHED
+>  	bne	work_resched
+> -	tst	r1, #_TIF_SIGPENDING
+> +	tst	r1, #_TIF_SIGPENDING|_TIF_NOTIFY_RESUME
+>  	beq	no_work_pending
+>  	mov	r0, sp				@ 'regs'
+>  	mov	r2, why				@ 'syscall'
+> diff --git a/arch/arm/kernel/signal.c b/arch/arm/kernel/signal.c
+> index f6bc5d4..6759f45 100644
+> --- a/arch/arm/kernel/signal.c
+> +++ b/arch/arm/kernel/signal.c
+> @@ -707,4 +707,9 @@ do_notify_resume(struct pt_regs *regs, unsigned int thread_flags, int syscall)
+>  {
+>  	if (thread_flags & _TIF_SIGPENDING)
+>  		do_signal(&current->blocked, regs, syscall);
+> +
+> +	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+
+Shouldn't this be thread_flags ?
+
+> +		clear_thread_flag(TIF_NOTIFY_RESUME);
+> +		tracehook_notify_resume(regs);
+> +	}
+>  }
+
+Apart from that, patch looks fine to me.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
