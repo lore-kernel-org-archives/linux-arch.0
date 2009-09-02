@@ -1,27 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:33807 "EHLO
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:60904 "EHLO
 	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752113AbZIBIHF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Sep 2009 04:07:05 -0400
-Date: Wed, 2 Sep 2009 09:05:43 +0100
+	with ESMTP id S1753076AbZIBIU5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Sep 2009 04:20:57 -0400
+Date: Wed, 2 Sep 2009 09:19:40 +0100
 From: Russell King <rmk@arm.linux.org.uk>
 Subject: Re: [PATCH 8/9] KEYS: Extend TIF_NOTIFY_RESUME to (almost) all
-	architectures [try #5]
-Message-ID: <20090902080542.GA29221@flint.arm.linux.org.uk>
-References: <20090902072053.3578.69125.stgit@warthog.procyon.org.uk> <20090902072129.3578.81364.stgit@warthog.procyon.org.uk>
+	architectures [try #6]
+Message-ID: <20090902081939.GB29221@flint.arm.linux.org.uk>
+References: <20090902081340.4245.33186.stgit@warthog.procyon.org.uk> <20090902081416.4245.97801.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20090902072129.3578.81364.stgit@warthog.procyon.org.uk>
+In-Reply-To: <20090902081416.4245.97801.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Howells <dhowells@redhat.com>
 Cc: jmorris@namei.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20090902080543.9RxwPTgCoe5n6SFnwB5Ci9JdIXhKNUfbkS38M4K2WH8@z>
+Message-ID: <20090902081940.bLb7ANvesZ55b46lCfZvQ6pazrA_sSDrYj__R2-bPkQ@z>
 
-On Wed, Sep 02, 2009 at 08:21:29AM +0100, David Howells wrote:
+On Wed, Sep 02, 2009 at 09:14:16AM +0100, David Howells wrote:
+> diff --git a/arch/arm/include/asm/thread_info.h b/arch/arm/include/asm/thread_info.h
+> index 73394e5..d3a39b1 100644
+> --- a/arch/arm/include/asm/thread_info.h
+> +++ b/arch/arm/include/asm/thread_info.h
+> @@ -130,11 +130,13 @@ extern void vfp_sync_state(struct thread_info *thread);
+>   *  TIF_SYSCALL_TRACE	- syscall trace active
+>   *  TIF_SIGPENDING	- signal pending
+>   *  TIF_NEED_RESCHED	- rescheduling necessary
+> + *  TIF_NOTIFY_RESUME	- callback before returning to user
+>   *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
+>   *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
+>   */
+>  #define TIF_SIGPENDING		0
+>  #define TIF_NEED_RESCHED	1
+> +#define TIF_NOTIFY_RESUME	2	/* callback before returning to user */
+>  #define TIF_SYSCALL_TRACE	8
+>  #define TIF_POLLING_NRFLAG	16
+>  #define TIF_USING_IWMMXT	17
+> @@ -143,6 +145,7 @@ extern void vfp_sync_state(struct thread_info *thread);
+>  
+>  #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+>  #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
+> +#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+>  #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+>  #define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
+>  #define _TIF_USING_IWMMXT	(1 << TIF_USING_IWMMXT)
+> diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
+> index 8c3de1a..7813ab7 100644
+> --- a/arch/arm/kernel/entry-common.S
+> +++ b/arch/arm/kernel/entry-common.S
+> @@ -51,7 +51,7 @@ fast_work_pending:
+>  work_pending:
+>  	tst	r1, #_TIF_NEED_RESCHED
+>  	bne	work_resched
+> -	tst	r1, #_TIF_SIGPENDING
+> +	tst	r1, #_TIF_SIGPENDING|_TIF_NOTIFY_RESUME
+>  	beq	no_work_pending
+>  	mov	r0, sp				@ 'regs'
+>  	mov	r2, why				@ 'syscall'
 > diff --git a/arch/arm/kernel/signal.c b/arch/arm/kernel/signal.c
-> index f6bc5d4..6759f45 100644
+> index f6bc5d4..13dec27 100644
 > --- a/arch/arm/kernel/signal.c
 > +++ b/arch/arm/kernel/signal.c
 > @@ -707,4 +707,9 @@ do_notify_resume(struct pt_regs *regs, unsigned int thread_flags, int syscall)
@@ -29,10 +68,15 @@ On Wed, Sep 02, 2009 at 08:21:29AM +0100, David Howells wrote:
 >  	if (thread_flags & _TIF_SIGPENDING)
 >  		do_signal(&current->blocked, regs, syscall);
 > +
-> +	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+> +	if (thread_flags & _TIF_NOTIFY_RESUME) {
+> +		clear_thread_flag(TIF_NOTIFY_RESUME);
+> +		tracehook_notify_resume(regs);
+> +	}
+>  }
 
-This still has the same error - is this just a repost of the previous
-patch?
+Thanks, that's much better.
+
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
 
 -- 
 Russell King
