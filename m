@@ -1,35 +1,24 @@
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [PATCH 8/9] KEYS: Extend TIF_NOTIFY_RESUME to (almost) all
-	architectures [try #5]
-Date: Wed, 2 Sep 2009 09:05:43 +0100
-Message-ID: <20090902080542.GA29221@flint.arm.linux.org.uk>
-References: <20090902072053.3578.69125.stgit@warthog.procyon.org.uk> <20090902072129.3578.81364.stgit@warthog.procyon.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-security-module-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20090902072129.3578.81364.stgit@warthog.procyon.org.uk>
-Sender: linux-security-module-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: jmorris@namei.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 8/9] KEYS: Extend TIF_NOTIFY_RESUME to (almost) all architectures [try #5]
+Date: Wed, 02 Sep 2009 09:13:53 +0100
+Message-ID: <4318.1251879233@redhat.com>
+References: <20090902080542.GA29221@flint.arm.linux.org.uk> <20090902072053.3578.69125.stgit@warthog.procyon.org.uk> <20090902072129.3578.81364.stgit@warthog.procyon.org.uk>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:7858 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752172AbZIBIOq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 2 Sep 2009 04:14:46 -0400
+In-Reply-To: <20090902080542.GA29221@flint.arm.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King <rmk@arm.linux.org.uk>
+Cc: dhowells@redhat.com, jmorris@namei.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wed, Sep 02, 2009 at 08:21:29AM +0100, David Howells wrote:
-> diff --git a/arch/arm/kernel/signal.c b/arch/arm/kernel/signal.c
-> index f6bc5d4..6759f45 100644
-> --- a/arch/arm/kernel/signal.c
-> +++ b/arch/arm/kernel/signal.c
-> @@ -707,4 +707,9 @@ do_notify_resume(struct pt_regs *regs, unsigned int thread_flags, int syscall)
->  {
->  	if (thread_flags & _TIF_SIGPENDING)
->  		do_signal(&current->blocked, regs, syscall);
-> +
-> +	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+Russell King <rmk@arm.linux.org.uk> wrote:
 
-This still has the same error - is this just a repost of the previous
-patch?
+> This still has the same error - is this just a repost of the previous
+> patch?
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Aargh.  I made the change to patch 9, not this patch.  Sorry about that.
+
+David
