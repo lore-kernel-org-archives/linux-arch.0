@@ -1,33 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:52553 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753788AbZIHOOt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Sep 2009 10:14:49 -0400
-Date: Tue, 8 Sep 2009 07:13:55 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 7/8] mm: reinstate ZERO_PAGE
-In-Reply-To: <20090908073119.GA29902@wotan.suse.de>
-Message-ID: <alpine.LFD.2.01.0909080712200.7458@localhost.localdomain>
-References: <Pine.LNX.4.64.0909072222070.15424@sister.anvils> <Pine.LNX.4.64.0909072238320.15430@sister.anvils> <20090908073119.GA29902@wotan.suse.de>
+Received: from bombadil.infradead.org ([18.85.46.34]:37474 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751768AbZIHOPk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Sep 2009 10:15:40 -0400
+Date: Tue, 8 Sep 2009 10:15:30 -0400
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [PATCH 8/9] KEYS: Extend TIF_NOTIFY_RESUME to (almost) all
+	architectures [try #5]
+Message-ID: <20090908141530.GQ19494@bombadil.infradead.org>
+References: <20090904142440.GM19494@bombadil.infradead.org> <20090903015707.GL19494@bombadil.infradead.org> <20090902072053.3578.69125.stgit@warthog.procyon.org.uk> <20090902072129.3578.81364.stgit@warthog.procyon.org.uk> <29063.1252047959@redhat.com> <32631.1252074944@redhat.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <32631.1252074944@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Hugh Dickins <hugh.dickins@tiscali.co.uk>, Andrew Morton <akpm@linux-foundation.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Rik van Riel <riel@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20090908141355.jjBS9ebrAGiifrv1MEEp_3zUb3dz4e9cdhjvUb7nC7c@z>
+To: David Howells <dhowells@redhat.com>
+Cc: Kyle McMartin <kyle@mcmartin.ca>, jmorris@namei.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20090908141530.gF3RHYwBytIZuEgwmSC4NM3xibm8doorcaTanCu_bi0@z>
 
-
-
-On Tue, 8 Sep 2009, Nick Piggin wrote:
+On Fri, Sep 04, 2009 at 03:35:44PM +0100, David Howells wrote:
+> Kyle McMartin <kyle@mcmartin.ca> wrote:
 > 
-> Without looking closely, why is it a big problem to have a
-> !HAVE PTE SPECIAL case? Couldn't it just be a check for
-> pfn == zero_pfn that is conditionally compiled away for pte
-> special architectures anyway?
+> > I don't think this depends on the previous patches in the series... it
+> > would probably be easiest if I just merged it with the rest of them
+> > though...
+> 
+> The problem I've got is that patch 9/9 depends on this change, but James
+> doesn't have your patch in his tree.
+> 
 
-At least traditionally, there wasn't a single zero_pfn, but multiple (for 
-VIPT caches that have performance issues with aliases). But yeah, we could 
-check just the pfn number, and allow any architecture to do it.
+I'm planning to submit the tracehook branch immediately after the merge
+window opens... would it be a problem to do it in two quick stages?
 
-			Linus
+Or just drop the parisc hunk until the rest of it goes upstream and then
+send that along?
+
+regards, Kyle
