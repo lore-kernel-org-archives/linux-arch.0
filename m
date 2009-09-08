@@ -1,52 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:46337 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751889AbZIHUQi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Sep 2009 16:16:38 -0400
-Date: Tue, 8 Sep 2009 21:16:19 +0100
-From: Russell King <rmk@arm.linux.org.uk>
+Received: from cantor2.suse.de ([195.135.220.15]:42087 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751542AbZIHUjT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Sep 2009 16:39:19 -0400
 Subject: Re: xfs failure on parisc (and presumably other VI cache systems)
-	caused by I/O to vmalloc/vmap areas
-Message-ID: <20090908201619.GG6538@flint.arm.linux.org.uk>
-References: <1252434469.13003.3.camel@mulgrave.site> <20090908190031.GF6538@flint.arm.linux.org.uk> <1252437112.13003.39.camel@mulgrave.site>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1252437112.13003.39.camel@mulgrave.site>
+ caused by I/O to vmalloc/vmap areas
+From: James Bottomley <James.Bottomley@suse.de>
+In-Reply-To: <20090908201619.GG6538@flint.arm.linux.org.uk>
+References: <1252434469.13003.3.camel@mulgrave.site>
+	 <20090908190031.GF6538@flint.arm.linux.org.uk>
+	 <1252437112.13003.39.camel@mulgrave.site>
+	 <20090908201619.GG6538@flint.arm.linux.org.uk>
+Content-Type: text/plain
+Date: Tue, 08 Sep 2009 20:39:12 +0000
+Message-ID: <1252442352.13003.132.camel@mulgrave.site>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@suse.de>
+To: Russell King <rmk@arm.linux.org.uk>
 Cc: Parisc List <linux-parisc@vger.kernel.org>, Linux Filesystem Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch@vger.kernel.org, Christoph Hellwig <hch@lst.de>
-Message-ID: <20090908201619.6-34hSiwxFbLhIGOXJM4nwHB-NeGRrdOkTR_YgZgc1M@z>
+Message-ID: <20090908203912.r6vMAC2v-zcjyCKfR8OZh1Eh-hHcZ6S83MROMirqOsc@z>
 
-On Tue, Sep 08, 2009 at 07:11:52PM +0000, James Bottomley wrote:
-> On Tue, 2009-09-08 at 20:00 +0100, Russell King wrote:
-> > On Tue, Sep 08, 2009 at 01:27:49PM -0500, James Bottomley wrote:
-> > > This bug was observed on parisc, but I would expect it to affect all
-> > > architectures with virtually indexed caches.
+On Tue, 2009-09-08 at 21:16 +0100, Russell King wrote:
+> On Tue, Sep 08, 2009 at 07:11:52PM +0000, James Bottomley wrote:
+> > On Tue, 2009-09-08 at 20:00 +0100, Russell King wrote:
+> > > On Tue, Sep 08, 2009 at 01:27:49PM -0500, James Bottomley wrote:
+> > > > This bug was observed on parisc, but I would expect it to affect all
+> > > > architectures with virtually indexed caches.
+> > > 
+> > > I don't think your proposed solution will work for ARM with speculative
+> > > prefetching (iow, the latest ARM CPUs.)  If there is a mapping present,
+> > > it can be speculatively prefetched from at any time - the CPU designers
+> > > have placed no bounds on the amount of speculative prefetching which
+> > > may be present in a design.
 > > 
-> > I don't think your proposed solution will work for ARM with speculative
-> > prefetching (iow, the latest ARM CPUs.)  If there is a mapping present,
-> > it can be speculatively prefetched from at any time - the CPU designers
-> > have placed no bounds on the amount of speculative prefetching which
-> > may be present in a design.
+> > The architecturally prescribed fix for this on parisc is to purge the
+> > TLB entry as well.  Without a TLB entry, the CPU is forbidden from doing
+> > speculative reads.  This obviously works only as long as the kernel
+> > never touches the page during DMA, of course ...
+> > 
+> > Isn't this also true for arm?
 > 
-> The architecturally prescribed fix for this on parisc is to purge the
-> TLB entry as well.  Without a TLB entry, the CPU is forbidden from doing
-> speculative reads.  This obviously works only as long as the kernel
-> never touches the page during DMA, of course ...
+> There appears to be nothing architected along those lines for ARM.
+> From the architectural point of view, any "normal memory" mapping is
+> a candidate for speculative accesses provided access is permitted via
+> the page permissions.
 > 
-> Isn't this also true for arm?
+> In other words, if the CPU is permitted to access a memory page, it
+> is a candidate for speculative accesses.
 
-There appears to be nothing architected along those lines for ARM.
-From the architectural point of view, any "normal memory" mapping is
-a candidate for speculative accesses provided access is permitted via
-the page permissions.
+So the parisc architectural feature is simply a statement of fact for VI
+cache architectures: if you don't have a TLB entry for a page, you can't
+do cache operations for it.  We have a software TLB interrupt and the
+CPU can't interrupt for a speculation, so it's restricted to the
+existing TLB entries in its cache for speculative move ins.
 
-In other words, if the CPU is permitted to access a memory page, it
-is a candidate for speculative accesses.
+So now we know what the problem is, if arm can't operate this way,
+what's your suggestion for fixing this ... I take it you have a DMA
+coherence index like we do that flushes the cache on DMA ops?
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+James
+
+
