@@ -1,47 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mk-filter-1-a-1.mail.uk.tiscali.com ([212.74.100.52]:12967 "EHLO
-	mk-filter-1-a-1.mail.uk.tiscali.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750940AbZIHQmJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Sep 2009 12:42:09 -0400
-Date: Tue, 8 Sep 2009 17:40:50 +0100 (BST)
-From: Hugh Dickins <hugh.dickins@tiscali.co.uk>
-Subject: Re: [PATCH 7/8] mm: reinstate ZERO_PAGE
-In-Reply-To: <20090908153441.GB29902@wotan.suse.de>
-Message-ID: <Pine.LNX.4.64.0909081735230.18233@sister.anvils>
-References: <Pine.LNX.4.64.0909072222070.15424@sister.anvils>
- <Pine.LNX.4.64.0909072238320.15430@sister.anvils> <20090908073119.GA29902@wotan.suse.de>
- <Pine.LNX.4.64.0909081258160.25652@sister.anvils> <20090908153441.GB29902@wotan.suse.de>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:57048 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751870AbZIHTAs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Sep 2009 15:00:48 -0400
+Date: Tue, 8 Sep 2009 20:00:31 +0100
+From: Russell King <rmk@arm.linux.org.uk>
+Subject: Re: xfs failure on parisc (and presumably other VI cache systems)
+	caused by I/O to vmalloc/vmap areas
+Message-ID: <20090908190031.GF6538@flint.arm.linux.org.uk>
+References: <1252434469.13003.3.camel@mulgrave.site>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1252434469.13003.3.camel@mulgrave.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Linus Torvalds <torvalds@linux-foundation.org>, Rik van Riel <riel@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20090908164050.zWZxYhNBiJdUmkj0_hsXpU4SD0W-H8C5lBXPXUJYwKo@z>
+To: James Bottomley <James.Bottomley@suse.de>
+Cc: Parisc List <linux-parisc@vger.kernel.org>, Linux Filesystem Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch@vger.kernel.org, Christoph Hellwig <hch@lst.de>
+Message-ID: <20090908190031.Ix0e9jHuFPrtxmUHIadxlhVKoZpWeVJkq1GRQQ8W880@z>
 
-On Tue, 8 Sep 2009, Nick Piggin wrote:
-> On Tue, Sep 08, 2009 at 01:17:01PM +0100, Hugh Dickins wrote:
-> > By the way, in compiling that list of "special" architectures,
-> > I was surprised not to find ia64 amongst them.  Not that it
-> > matters to me, but I thought the Fujitsu guys were usually
-> > keen on Itanium - do they realize that the special test is
-> > excluding it, or do they have their own special patch for it?
-> 
-> I don't understand your question. Are you asking whether they
-> know your patch will not enable zero pages on ia64?
+On Tue, Sep 08, 2009 at 01:27:49PM -0500, James Bottomley wrote:
+> This bug was observed on parisc, but I would expect it to affect all
+> architectures with virtually indexed caches.
 
-That's what I was meaning to ask, yes; but wondering whether
-perhaps they've already got their own patch to enable pte_special
-on ia64, and just haven't got around to sending it in yet.
+I don't think your proposed solution will work for ARM with speculative
+prefetching (iow, the latest ARM CPUs.)  If there is a mapping present,
+it can be speculatively prefetched from at any time - the CPU designers
+have placed no bounds on the amount of speculative prefetching which
+may be present in a design.
 
-> 
-> I guess pte special was primarily driven by gup_fast, which in
-> turn was driven primarily by DB2 9.5, which I think might be
-> only available on x86 and ibm's architectures.
-> 
-> But I admit to being a curious as to when I'll see a gup_fast
-> patch come out of SGI or HP or Fujitsu :)
+What this means that for DMA, we will need to handle cache coherency
+issues both before and after DMA.
 
-Yes, me too!
+If we're going to allow non-direct mapped (offset mapped in your parlence)
+block IO, it makes it impossible to handle cache coherency after DMA
+completion - although we can translate (via page table walks) from a
+virtual address to a physical, and then to a bus address for DMA, going
+back the other way is impossible since there could be many right answers.
 
-Hugh
+What has been annoying me for a while about the current DMA API is that
+drivers have to carry around all sorts of information for a DMA mapping,
+whether the architecture needs it or not - and sometimes that information
+is not what the architecture wants.  To this end, I've been thinking that
+something more like:
+
+	struct dma_mapping map;
+
+	err = dma2_map_single(&map, buffer, size, direction);
+	if (err)
+		...
+
+	addr = dma2_addr(&map);
+	/* program controller */
+
+	/* completion */
+	dma2_unmap_single(&map);
+
+with similar style interfaces for pages and so forth (scatterlists are
+already arch-defined.)  Architectures define the contents of
+struct dma_mapping - but it must contain at least the dma address.
+
+What's the advantage of this?  It means that if an architecture needs to
+handle cache issues after DMA on unmap via a virtual address, it can
+ensure that the correct address is passed through all the way to the
+unmap function.  This approach also relieves the driver writer from
+having to carry around the direction, size and dma address themselves,
+which means we don't need the DMA debug infrastructure to check that
+drivers are doing these things correctly.
+
+I seriously doubt, though, that we can revise the DMA API...
+
+In your (and my) case, maybe struct scatterlist also needs to contain
+the virtual address as well as the struct page, offset and length?
+
+
+PS, ARM already does not allow anything but direct-mapped RAM addresses
+for dma_map_single(), since we need to be able to translate virtual
+addresses to physical for non-coherent L2 cache handling - L1 cache
+needs handling via the virtual address and L2 via the physical address.
+
+
+PPS, you're not the only architecture which has problems with XFS.  ARM
+has a long standing issue with it too.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
