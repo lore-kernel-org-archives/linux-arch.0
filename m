@@ -1,162 +1,68 @@
-From: Nick Piggin <npiggin@suse.de>
+From: Hugh Dickins <hugh.dickins@tiscali.co.uk>
 Subject: Re: [PATCH 7/8] mm: reinstate ZERO_PAGE
-Date: Tue, 8 Sep 2009 09:31:19 +0200
-Message-ID: <20090908073119.GA29902@wotan.suse.de>
-References: <Pine.LNX.4.64.0909072222070.15424@sister.anvils> <Pine.LNX.4.64.0909072238320.15430@sister.anvils>
+Date: Tue, 8 Sep 2009 13:17:01 +0100 (BST)
+Message-ID: <Pine.LNX.4.64.0909081258160.25652@sister.anvils>
+References: <Pine.LNX.4.64.0909072222070.15424@sister.anvils>
+ <Pine.LNX.4.64.0909072238320.15430@sister.anvils> <20090908073119.GA29902@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753902AbZIHHbU@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0909072238320.15430@sister.anvils>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20090908073119.GA29902@wotan.suse.de>
+Sender: owner-linux-mm@kvack.org
+To: Nick Piggin <npiggin@suse.de>
 Cc: Andrew Morton <akpm@linux-foundation.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Linus Torvalds <torvalds@linux-foundation.org>, Rik van Riel <riel@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Sep 07, 2009 at 10:39:34PM +0100, Hugh Dickins wrote:
-> KAMEZAWA Hiroyuki has observed customers of earlier kernels taking
-> advantage of the ZERO_PAGE: which we stopped do_anonymous_page() from
-> using in 2.6.24.  And there were a couple of regression reports on LKML.
+On Tue, 8 Sep 2009, Nick Piggin wrote:
+> On Mon, Sep 07, 2009 at 10:39:34PM +0100, Hugh Dickins wrote:
+> > KAMEZAWA Hiroyuki has observed customers of earlier kernels taking
+> > advantage of the ZERO_PAGE: which we stopped do_anonymous_page() from
+> > using in 2.6.24.  And there were a couple of regression reports on LKML.
+> > 
+> > Following suggestions from Linus, reinstate do_anonymous_page() use of
+> > the ZERO_PAGE; but this time avoid dirtying its struct page cacheline
+> > with (map)count updates - let vm_normal_page() regard it as abnormal.
+> > 
+> > Use it only on arches which __HAVE_ARCH_PTE_SPECIAL (x86, s390, sh32,
+> > most powerpc): that's not essential, but minimizes additional branches
+> > (keeping them in the unlikely pte_special case); and incidentally
+> > excludes mips (some models of which needed eight colours of ZERO_PAGE
+> > to avoid costly exceptions).
 > 
-> Following suggestions from Linus, reinstate do_anonymous_page() use of
-> the ZERO_PAGE; but this time avoid dirtying its struct page cacheline
-> with (map)count updates - let vm_normal_page() regard it as abnormal.
-> 
-> Use it only on arches which __HAVE_ARCH_PTE_SPECIAL (x86, s390, sh32,
-> most powerpc): that's not essential, but minimizes additional branches
-> (keeping them in the unlikely pte_special case); and incidentally
-> excludes mips (some models of which needed eight colours of ZERO_PAGE
-> to avoid costly exceptions).
+> Without looking closely, why is it a big problem to have a
+> !HAVE PTE SPECIAL case? Couldn't it just be a check for
+> pfn == zero_pfn that is conditionally compiled away for pte
+> special architectures anyway?
 
-Without looking closely, why is it a big problem to have a
-!HAVE PTE SPECIAL case? Couldn't it just be a check for
-pfn == zero_pfn that is conditionally compiled away for pte
-special architectures anyway?
+Yes, I'm uncomfortable with that restriction too: it makes for
+neater looking code in a couple of places, but it's not so good
+for the architectures to diverge gratuitously there.
 
-If zero page is such a good idea, I don't see the logic of
-limiting it like thisa. Your patch looks pretty clean though.
+I'll give it a try without that restriction, see how it looks:
+it was Linus who proposed the "special" approach, I'm sure he'll
+speak up if he doesn't like how the alternative comes out.
 
-At any rate, I think it might be an idea to cc linux-arch. 
+Tucking the test away in an asm-generic macro, we can leave
+the pain of a rangetest to the one mips case.
+
+By the way, in compiling that list of "special" architectures,
+I was surprised not to find ia64 amongst them.  Not that it
+matters to me, but I thought the Fujitsu guys were usually
+keen on Itanium - do they realize that the special test is
+excluding it, or do they have their own special patch for it?
 
 > 
-> Don't be fanatical about avoiding ZERO_PAGE updates: get_user_pages()
-> callers won't want to make exceptions for it, so increment its count
-> there.  Changes to mlock and migration? happily seems not needed.
+> If zero page is such a good idea, I don't see the logic of
+> limiting it like thisa. Your patch looks pretty clean though.
 > 
-> In most places it's quicker to check pfn than struct page address:
-> prepare a __read_mostly zero_pfn for that.  Does get_dump_page()
-> still need its ZERO_PAGE check? probably not, but keep it anyway.
-> 
-> Signed-off-by: Hugh Dickins <hugh.dickins@tiscali.co.uk>
-> ---
-> I have not studied the performance of this at all: I'd rather it go
-> into mmotm where others may decide whether it's a good thing or not.
-> 
->  mm/memory.c |   53 +++++++++++++++++++++++++++++++++++++++++---------
->  1 file changed, 44 insertions(+), 9 deletions(-)
-> 
-> --- mm6/mm/memory.c	2009-09-07 13:16:53.000000000 +0100
-> +++ mm7/mm/memory.c	2009-09-07 13:17:01.000000000 +0100
-> @@ -107,6 +107,17 @@ static int __init disable_randmaps(char
->  }
->  __setup("norandmaps", disable_randmaps);
->  
-> +static unsigned long zero_pfn __read_mostly;
-> +
-> +/*
-> + * CONFIG_MMU architectures set up ZERO_PAGE in their paging_init()
-> + */
-> +static int __init init_zero_pfn(void)
-> +{
-> +	zero_pfn = page_to_pfn(ZERO_PAGE(0));
-> +	return 0;
-> +}
-> +core_initcall(init_zero_pfn);
->  
->  /*
->   * If a p?d_bad entry is found while walking page tables, report
-> @@ -499,7 +510,9 @@ struct page *vm_normal_page(struct vm_ar
->  	if (HAVE_PTE_SPECIAL) {
->  		if (likely(!pte_special(pte)))
->  			goto check_pfn;
-> -		if (!(vma->vm_flags & (VM_PFNMAP | VM_MIXEDMAP)))
-> +		if (vma->vm_flags & (VM_PFNMAP | VM_MIXEDMAP))
-> +			return NULL;
-> +		if (pfn != zero_pfn)
->  			print_bad_pte(vma, addr, pte, NULL);
->  		return NULL;
->  	}
-> @@ -1144,9 +1157,14 @@ struct page *follow_page(struct vm_area_
->  		goto no_page;
->  	if ((flags & FOLL_WRITE) && !pte_write(pte))
->  		goto unlock;
-> +
->  	page = vm_normal_page(vma, address, pte);
-> -	if (unlikely(!page))
-> -		goto bad_page;
-> +	if (unlikely(!page)) {
-> +		if ((flags & FOLL_DUMP) ||
-> +		    pte_pfn(pte) != zero_pfn)
-> +			goto bad_page;
-> +		page = pte_page(pte);
-> +	}
->  
->  	if (flags & FOLL_GET)
->  		get_page(page);
-> @@ -2085,10 +2103,19 @@ gotten:
->  
->  	if (unlikely(anon_vma_prepare(vma)))
->  		goto oom;
-> -	VM_BUG_ON(old_page == ZERO_PAGE(0));
-> -	new_page = alloc_page_vma(GFP_HIGHUSER_MOVABLE, vma, address);
-> -	if (!new_page)
-> -		goto oom;
-> +
-> +	if (pte_pfn(orig_pte) == zero_pfn) {
-> +		new_page = alloc_zeroed_user_highpage_movable(vma, address);
-> +		if (!new_page)
-> +			goto oom;
-> +	} else {
-> +		new_page = alloc_page_vma(GFP_HIGHUSER_MOVABLE, vma, address);
-> +		if (!new_page)
-> +			goto oom;
-> +		cow_user_page(new_page, old_page, address, vma);
-> +	}
-> +	__SetPageUptodate(new_page);
-> +
->  	/*
->  	 * Don't let another task, with possibly unlocked vma,
->  	 * keep the mlocked page.
-> @@ -2098,8 +2125,6 @@ gotten:
->  		clear_page_mlock(old_page);
->  		unlock_page(old_page);
->  	}
-> -	cow_user_page(new_page, old_page, address, vma);
-> -	__SetPageUptodate(new_page);
->  
->  	if (mem_cgroup_newpage_charge(new_page, mm, GFP_KERNEL))
->  		goto oom_free_new;
-> @@ -2594,6 +2619,15 @@ static int do_anonymous_page(struct mm_s
->  	spinlock_t *ptl;
->  	pte_t entry;
->  
-> +	if (HAVE_PTE_SPECIAL && !(flags & FAULT_FLAG_WRITE)) {
-> +		entry = pte_mkspecial(pfn_pte(zero_pfn, vma->vm_page_prot));
-> +		ptl = pte_lockptr(mm, pmd);
-> +		spin_lock(ptl);
-> +		if (!pte_none(*page_table))
-> +			goto unlock;
-> +		goto setpte;
-> +	}
-> +
->  	/* Allocate our own private page. */
->  	pte_unmap(page_table);
->  
-> @@ -2617,6 +2651,7 @@ static int do_anonymous_page(struct mm_s
->  
->  	inc_mm_counter(mm, anon_rss);
->  	page_add_new_anon_rmap(page, vma, address);
-> +setpte:
->  	set_pte_at(mm, address, page_table, entry);
->  
->  	/* No need to invalidate - it was non-present before */
+> At any rate, I think it might be an idea to cc linux-arch. 
+
+Yes, thanks.
+
+Hugh
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
