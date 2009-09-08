@@ -1,34 +1,74 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [PATCH 8/9] KEYS: Extend TIF_NOTIFY_RESUME to (almost) all
-	architectures [try #5]
-Date: Tue, 8 Sep 2009 10:15:30 -0400
-Message-ID: <20090908141530.GQ19494@bombadil.infradead.org>
-References: <20090904142440.GM19494@bombadil.infradead.org> <20090903015707.GL19494@bombadil.infradead.org> <20090902072053.3578.69125.stgit@warthog.procyon.org.uk> <20090902072129.3578.81364.stgit@warthog.procyon.org.uk> <29063.1252047959@redhat.com> <32631.1252074944@redhat.com>
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [PATCH 7/8] mm: reinstate ZERO_PAGE
+Date: Tue, 8 Sep 2009 17:34:41 +0200
+Message-ID: <20090908153441.GB29902@wotan.suse.de>
+References: <Pine.LNX.4.64.0909072222070.15424@sister.anvils> <Pine.LNX.4.64.0909072238320.15430@sister.anvils> <20090908073119.GA29902@wotan.suse.de> <Pine.LNX.4.64.0909081258160.25652@sister.anvils>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-security-module-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cantor.suse.de ([195.135.220.2]:43403 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750820AbZIHPel (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Sep 2009 11:34:41 -0400
 Content-Disposition: inline
-In-Reply-To: <32631.1252074944@redhat.com>
-Sender: linux-security-module-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Kyle McMartin <kyle@mcmartin.ca>, jmorris@namei.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <Pine.LNX.4.64.0909081258160.25652@sister.anvils>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Linus Torvalds <torvalds@linux-foundation.org>, Rik van Riel <riel@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 
-On Fri, Sep 04, 2009 at 03:35:44PM +0100, David Howells wrote:
-> Kyle McMartin <kyle@mcmartin.ca> wrote:
+On Tue, Sep 08, 2009 at 01:17:01PM +0100, Hugh Dickins wrote:
+> On Tue, 8 Sep 2009, Nick Piggin wrote:
+> > On Mon, Sep 07, 2009 at 10:39:34PM +0100, Hugh Dickins wrote:
+> > > KAMEZAWA Hiroyuki has observed customers of earlier kernels taking
+> > > advantage of the ZERO_PAGE: which we stopped do_anonymous_page() from
+> > > using in 2.6.24.  And there were a couple of regression reports on LKML.
+> > > 
+> > > Following suggestions from Linus, reinstate do_anonymous_page() use of
+> > > the ZERO_PAGE; but this time avoid dirtying its struct page cacheline
+> > > with (map)count updates - let vm_normal_page() regard it as abnormal.
+> > > 
+> > > Use it only on arches which __HAVE_ARCH_PTE_SPECIAL (x86, s390, sh32,
+> > > most powerpc): that's not essential, but minimizes additional branches
+> > > (keeping them in the unlikely pte_special case); and incidentally
+> > > excludes mips (some models of which needed eight colours of ZERO_PAGE
+> > > to avoid costly exceptions).
+> > 
+> > Without looking closely, why is it a big problem to have a
+> > !HAVE PTE SPECIAL case? Couldn't it just be a check for
+> > pfn == zero_pfn that is conditionally compiled away for pte
+> > special architectures anyway?
 > 
-> > I don't think this depends on the previous patches in the series... it
-> > would probably be easiest if I just merged it with the rest of them
-> > though...
+> Yes, I'm uncomfortable with that restriction too: it makes for
+> neater looking code in a couple of places, but it's not so good
+> for the architectures to diverge gratuitously there.
 > 
-> The problem I've got is that patch 9/9 depends on this change, but James
-> doesn't have your patch in his tree.
+> I'll give it a try without that restriction, see how it looks:
+> it was Linus who proposed the "special" approach, I'm sure he'll
+> speak up if he doesn't like how the alternative comes out.
+
+I guess using special is pretty neat and doesn't require an
+additional branch in vm_normal_page paths. But I think it is
+important to allow other architectures at least the _option_
+to have equivalent behaviour as x86 here. So it would be
+great if you would look into it.
+
+ 
+> Tucking the test away in an asm-generic macro, we can leave
+> the pain of a rangetest to the one mips case.
 > 
+> By the way, in compiling that list of "special" architectures,
+> I was surprised not to find ia64 amongst them.  Not that it
+> matters to me, but I thought the Fujitsu guys were usually
+> keen on Itanium - do they realize that the special test is
+> excluding it, or do they have their own special patch for it?
 
-I'm planning to submit the tracehook branch immediately after the merge
-window opens... would it be a problem to do it in two quick stages?
+I don't understand your question. Are you asking whether they
+know your patch will not enable zero pages on ia64?
 
-Or just drop the parisc hunk until the rest of it goes upstream and then
-send that along?
+I guess pte special was primarily driven by gup_fast, which in
+turn was driven primarily by DB2 9.5, which I think might be
+only available on x86 and ibm's architectures.
 
-regards, Kyle
+But I admit to being a curious as to when I'll see a gup_fast
+patch come out of SGI or HP or Fujitsu :)
