@@ -1,39 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:37474 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751768AbZIHOPk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Sep 2009 10:15:40 -0400
-Date: Tue, 8 Sep 2009 10:15:30 -0400
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [PATCH 8/9] KEYS: Extend TIF_NOTIFY_RESUME to (almost) all
-	architectures [try #5]
-Message-ID: <20090908141530.GQ19494@bombadil.infradead.org>
-References: <20090904142440.GM19494@bombadil.infradead.org> <20090903015707.GL19494@bombadil.infradead.org> <20090902072053.3578.69125.stgit@warthog.procyon.org.uk> <20090902072129.3578.81364.stgit@warthog.procyon.org.uk> <29063.1252047959@redhat.com> <32631.1252074944@redhat.com>
+Received: from mk-filter-1-a-1.mail.uk.tiscali.com ([212.74.100.52]:12967 "EHLO
+	mk-filter-1-a-1.mail.uk.tiscali.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750940AbZIHQmJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Sep 2009 12:42:09 -0400
+Date: Tue, 8 Sep 2009 17:40:50 +0100 (BST)
+From: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+Subject: Re: [PATCH 7/8] mm: reinstate ZERO_PAGE
+In-Reply-To: <20090908153441.GB29902@wotan.suse.de>
+Message-ID: <Pine.LNX.4.64.0909081735230.18233@sister.anvils>
+References: <Pine.LNX.4.64.0909072222070.15424@sister.anvils>
+ <Pine.LNX.4.64.0909072238320.15430@sister.anvils> <20090908073119.GA29902@wotan.suse.de>
+ <Pine.LNX.4.64.0909081258160.25652@sister.anvils> <20090908153441.GB29902@wotan.suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <32631.1252074944@redhat.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Kyle McMartin <kyle@mcmartin.ca>, jmorris@namei.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20090908141530.gF3RHYwBytIZuEgwmSC4NM3xibm8doorcaTanCu_bi0@z>
+To: Nick Piggin <npiggin@suse.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Linus Torvalds <torvalds@linux-foundation.org>, Rik van Riel <riel@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Message-ID: <20090908164050.zWZxYhNBiJdUmkj0_hsXpU4SD0W-H8C5lBXPXUJYwKo@z>
 
-On Fri, Sep 04, 2009 at 03:35:44PM +0100, David Howells wrote:
-> Kyle McMartin <kyle@mcmartin.ca> wrote:
+On Tue, 8 Sep 2009, Nick Piggin wrote:
+> On Tue, Sep 08, 2009 at 01:17:01PM +0100, Hugh Dickins wrote:
+> > By the way, in compiling that list of "special" architectures,
+> > I was surprised not to find ia64 amongst them.  Not that it
+> > matters to me, but I thought the Fujitsu guys were usually
+> > keen on Itanium - do they realize that the special test is
+> > excluding it, or do they have their own special patch for it?
 > 
-> > I don't think this depends on the previous patches in the series... it
-> > would probably be easiest if I just merged it with the rest of them
-> > though...
+> I don't understand your question. Are you asking whether they
+> know your patch will not enable zero pages on ia64?
+
+That's what I was meaning to ask, yes; but wondering whether
+perhaps they've already got their own patch to enable pte_special
+on ia64, and just haven't got around to sending it in yet.
+
 > 
-> The problem I've got is that patch 9/9 depends on this change, but James
-> doesn't have your patch in his tree.
+> I guess pte special was primarily driven by gup_fast, which in
+> turn was driven primarily by DB2 9.5, which I think might be
+> only available on x86 and ibm's architectures.
 > 
+> But I admit to being a curious as to when I'll see a gup_fast
+> patch come out of SGI or HP or Fujitsu :)
 
-I'm planning to submit the tracehook branch immediately after the merge
-window opens... would it be a problem to do it in two quick stages?
+Yes, me too!
 
-Or just drop the parisc hunk until the rest of it goes upstream and then
-send that along?
-
-regards, Kyle
+Hugh
