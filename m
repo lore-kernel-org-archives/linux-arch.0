@@ -1,50 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:57683 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752489AbZIIPwb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 9 Sep 2009 11:52:31 -0400
-From: James Bottomley <James.Bottomley@suse.de>
-Subject: [PATCH 2/6] parisc: add mm API for DMA to vmalloc/vmap areas
-Date: Wed,  9 Sep 2009 10:52:12 -0500
-Message-ID: <1252511536-22066-3-git-send-email-James.Bottomley@suse.de>
-In-Reply-To: <1252511536-22066-2-git-send-email-James.Bottomley@suse.de>
-References: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
- <1252511536-22066-2-git-send-email-James.Bottomley@suse.de>
+Received: from bombadil.infradead.org ([18.85.46.34]:57074 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752682AbZIIRzj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Sep 2009 13:55:39 -0400
+Date: Wed, 9 Sep 2009 13:55:41 -0400
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH 6/6] xfs: fix xfs to work with Virtually Indexed
+	architectures
+Message-ID: <20090909175541.GA9766@infradead.org>
+References: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de> <1252511536-22066-2-git-send-email-James.Bottomley@suse.de> <1252511536-22066-3-git-send-email-James.Bottomley@suse.de> <1252511536-22066-4-git-send-email-James.Bottomley@suse.de> <1252511536-22066-5-git-send-email-James.Bottomley@suse.de> <1252511536-22066-6-git-send-email-James.Bottomley@suse.de> <1252511536-22066-7-git-send-email-James.Bottomley@suse.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1252511536-22066-7-git-send-email-James.Bottomley@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-parisc@vger.kernel.org
-Cc: Russell King <rmk@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, Paul Mundt <lethal@linux-sh.org>, James Bottomley <James.Bottomley@suse.de>
-Message-ID: <20090909155212.d_k1oG18tFfk-SUR2kPsjrvOvj8omd7mgvlc8E69IW0@z>
+To: James Bottomley <James.Bottomley@suse.de>
+Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-parisc@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20090909175541.vTPlSy38wtM0wRoLySUZB8F7lxEfGsYVH4JlJPKY6ac@z>
 
-We already have an API to flush a kernel page along an alias
-address, so use it.  The TLB purge prevents the CPU from doing
-speculative moveins on the flushed address, so we don't need to
-implement and invalidate.
+On Wed, Sep 09, 2009 at 10:52:16AM -0500, James Bottomley wrote:
+> xfs_buf.c includes what is essentially a hand rolled version of
+> blk_rq_map_kern().  In order to work properly with the vmalloc buffers
+> that xfs uses, this hand rolled routine must also implement the flushing
+> API for vmap/vmalloc areas.
 
-Signed-off-by: James Bottomley <James.Bottomley@suse.de>
----
- arch/parisc/include/asm/cacheflush.h |    8 ++++++++
- 1 files changed, 8 insertions(+), 0 deletions(-)
+It's not really a handcrafted version of blk_rq_map_kern because it
+can add discontinuous into a single bio.
 
-diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
-index 7243951..2536a00 100644
---- a/arch/parisc/include/asm/cacheflush.h
-+++ b/arch/parisc/include/asm/cacheflush.h
-@@ -90,6 +90,14 @@ static inline void flush_kernel_dcache_page(struct page *page)
- {
- 	flush_kernel_dcache_page_addr(page_address(page));
- }
-+static inline void flush_kernel_dcache_addr(void *addr)
-+{
-+	flush_kernel_dcache_page_addr(addr);
-+}
-+static inline void invalidate_kernel_dcache_addr(void *addr)
-+{
-+	/* nop .. the flush prevents move in until the page is touched */
-+}
- 
- #ifdef CONFIG_DEBUG_RODATA
- void mark_rodata_ro(void);
--- 
-1.6.3.3
+The patches look fine to (not pretty but fine :)), and I'll make sure
+they get added once those two helpers made it, probably augmented by
+a comment explaining what's going on here.
 
