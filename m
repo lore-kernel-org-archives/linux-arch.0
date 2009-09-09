@@ -1,57 +1,68 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH 1/5] mm: add coherence API for DMA to vmalloc/vmap areas
-Date: Wed, 09 Sep 2009 09:34:38 -0500
-Message-ID: <1252506878.3918.32.camel@mulgrave.site>
-References: <1252434469.13003.3.camel@mulgrave.site>
-	 <20090908190031.GF6538@flint.arm.linux.org.uk>
-	 <1252437112.13003.39.camel@mulgrave.site>
-	 <20090908201619.GG6538@flint.arm.linux.org.uk>
-	 <1252442352.13003.132.camel@mulgrave.site>
-	 <20090908213910.GH6538@flint.arm.linux.org.uk>
-	 <1252466070.13003.365.camel@mulgrave.site>
-	 <1252466226.13003.367.camel@mulgrave.site>
-	 <1252466601.13003.374.camel@mulgrave.site>
-	 <20090909033532.GD23049@linux-sh.org>
-Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <20090909033532.GD23049@linux-sh.org>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: Russell King <rmk@arm.linux.org.uk>, Parisc List <linux-parisc@vger.kernel.org>, Linux Filesystem Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch@vger.kernel.org, Christoph Hellwig <hch@lst.de>
-List-Id: linux-arch.vger.kernel.org
+From: James Bottomley <James.Bottomley@suse.de>
+Subject: [PATCH 6/6] xfs: fix xfs to work with Virtually Indexed architectures
+Date: Wed,  9 Sep 2009 10:52:16 -0500
+Message-ID: <1252511536-22066-7-git-send-email-James.Bottomley@suse.de>
+References: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
+ <1252511536-22066-2-git-send-email-James.Bottomley@suse.de>
+ <1252511536-22066-3-git-send-email-James.Bottomley@suse.de>
+ <1252511536-22066-4-git-send-email-James.Bottomley@suse.de>
+ <1252511536-22066-5-git-send-email-James.Bottomley@suse.de>
+ <1252511536-22066-6-git-send-email-James.Bottomley@suse.de>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cantor2.suse.de ([195.135.220.15]:47992 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753044AbZIIPwh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 9 Sep 2009 11:52:37 -0400
+In-Reply-To: <1252511536-22066-6-git-send-email-James.Bottomley@suse.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-parisc@vger.kernel.org
+Cc: Russell King <rmk@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, Paul Mundt <lethal@linux-sh.org>, James Bottomley <James.Bottomley@suse.de>
 
-On Wed, 2009-09-09 at 12:35 +0900, Paul Mundt wrote:
-> And here I thought it was a new gcc construct along the lines of
-> inline-if-so-inclined.. :-)
+xfs_buf.c includes what is essentially a hand rolled version of
+blk_rq_map_kern().  In order to work properly with the vmalloc buffers
+that xfs uses, this hand rolled routine must also implement the flushing
+API for vmap/vmalloc areas.
 
-Actually, I missed the fact that sh also sets
-ARCH_HAS_FLUSH_KERNEL_DCACHE_PAGE, so you'll need implementations of
-these functions too.  Does this look right?
-
-James
-
+Signed-off-by: James Bottomley <James.Bottomley@suse.de>
 ---
+ fs/xfs/linux-2.6/xfs_buf.c |   10 ++++++++++
+ 1 files changed, 10 insertions(+), 0 deletions(-)
 
-diff --git a/arch/sh/include/asm/cacheflush.h b/arch/sh/include/asm/cacheflush.h
-index 4c5462d..db06611 100644
---- a/arch/sh/include/asm/cacheflush.h
-+++ b/arch/sh/include/asm/cacheflush.h
-@@ -48,6 +48,14 @@ static inline void flush_kernel_dcache_page(struct page *page)
- {
- 	flush_dcache_page(page);
- }
-+static inline void flush_kernel_dcache_addr(void *addr)
-+{
-+	__flush_invalidate_region(addr, PAGE_SIZE);
-+}
-+static inline void invalidate_kernel_dcache_addr(void *addr)
-+{
-+	__flush_invalidate_region(addr, PAGE_SIZE);
-+}
+diff --git a/fs/xfs/linux-2.6/xfs_buf.c b/fs/xfs/linux-2.6/xfs_buf.c
+index 965df12..62ae977 100644
+--- a/fs/xfs/linux-2.6/xfs_buf.c
++++ b/fs/xfs/linux-2.6/xfs_buf.c
+@@ -1138,6 +1138,10 @@ xfs_buf_bio_end_io(
+ 	do {
+ 		struct page	*page = bvec->bv_page;
  
- #if defined(CONFIG_CPU_SH4) && !defined(CONFIG_CACHE_OFF)
- extern void copy_to_user_page(struct vm_area_struct *vma,
-
-
++		if (is_vmalloc_addr(bp->b_addr))
++			invalidate_kernel_dcache_addr(bp->b_addr +
++						      bvec->bv_offset);
++
+ 		ASSERT(!PagePrivate(page));
+ 		if (unlikely(bp->b_error)) {
+ 			if (bp->b_flags & XBF_READ)
+@@ -1202,6 +1206,9 @@ _xfs_buf_ioapply(
+ 		bio->bi_end_io = xfs_buf_bio_end_io;
+ 		bio->bi_private = bp;
+ 
++		if (is_vmalloc_addr(bp->b_addr))
++			flush_kernel_dcache_addr(bp->b_addr);
++
+ 		bio_add_page(bio, bp->b_pages[0], PAGE_CACHE_SIZE, 0);
+ 		size = 0;
+ 
+@@ -1228,6 +1235,9 @@ next_chunk:
+ 		if (nbytes > size)
+ 			nbytes = size;
+ 
++		if (is_vmalloc_addr(bp->b_addr))
++			flush_kernel_dcache_addr(bp->b_addr + PAGE_SIZE*map_i);
++
+ 		rbytes = bio_add_page(bio, bp->b_pages[map_i], nbytes, offset);
+ 		if (rbytes < nbytes)
+ 			break;
+-- 
+1.6.3.3
