@@ -1,49 +1,29 @@
-From: James Bottomley <James.Bottomley@suse.de>
-Subject: [PATCH 1/6] mm: add coherence API for DMA to vmalloc/vmap areas
-Date: Wed,  9 Sep 2009 10:52:11 -0500
-Message-ID: <1252511536-22066-2-git-send-email-James.Bottomley@suse.de>
-References: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:47985 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752817AbZIIPw3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 9 Sep 2009 11:52:29 -0400
-In-Reply-To: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-parisc@vger.kernel.org
-Cc: Russell King <rmk@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, Paul Mundt <lethal@linux-sh.org>, James Bottomley <James.Bottomley@suse.de>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH 6/6] xfs: fix xfs to work with Virtually Indexed
+	architectures
+Date: Wed, 9 Sep 2009 13:55:41 -0400
+Message-ID: <20090909175541.GA9766@infradead.org>
+References: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de> <1252511536-22066-2-git-send-email-James.Bottomley@suse.de> <1252511536-22066-3-git-send-email-James.Bottomley@suse.de> <1252511536-22066-4-git-send-email-James.Bottomley@suse.de> <1252511536-22066-5-git-send-email-James.Bottomley@suse.de> <1252511536-22066-6-git-send-email-James.Bottomley@suse.de> <1252511536-22066-7-git-send-email-James.Bottomley@suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-parisc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1252511536-22066-7-git-send-email-James.Bottomley@suse.de>
+Sender: linux-parisc-owner@vger.kernel.org
+To: James Bottomley <James.Bottomley@suse.de>
+Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-parisc@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, Paul Mundt <lethal@linux-sh.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Virtually Indexed architectures (which don't do automatic alias
-resolution in their caches), we have to flush via the correct
-virtual address to prepare pages for DMA.  On some architectures
-(like arm) we cannot prevent the CPU from doing data movein along
-the alias (and thus giving stale read data), so we not only have to
-introduce a flush API to push dirty cache lines out, but also an invalidate
-API to kill inconsistent cache lines that may have moved in before
-DMA changed the data
+On Wed, Sep 09, 2009 at 10:52:16AM -0500, James Bottomley wrote:
+> xfs_buf.c includes what is essentially a hand rolled version of
+> blk_rq_map_kern().  In order to work properly with the vmalloc buffers
+> that xfs uses, this hand rolled routine must also implement the flushing
+> API for vmap/vmalloc areas.
 
-Signed-off-by: James Bottomley <James.Bottomley@suse.de>
----
- include/linux/highmem.h |    6 ++++++
- 1 files changed, 6 insertions(+), 0 deletions(-)
+It's not really a handcrafted version of blk_rq_map_kern because it
+can add discontinuous into a single bio.
 
-diff --git a/include/linux/highmem.h b/include/linux/highmem.h
-index 211ff44..eb99c70 100644
---- a/include/linux/highmem.h
-+++ b/include/linux/highmem.h
-@@ -17,6 +17,12 @@ static inline void flush_anon_page(struct vm_area_struct *vma, struct page *page
- static inline void flush_kernel_dcache_page(struct page *page)
- {
- }
-+static inline void flush_kernel_dcache_addr(void *vaddr)
-+{
-+}
-+static inline void invalidate_kernel_dcache_addr(void *vaddr)
-+{
-+}
- #endif
- 
- #include <asm/kmap_types.h>
--- 
-1.6.3.3
+The patches look fine to (not pretty but fine :)), and I'll make sure
+they get added once those two helpers made it, probably augmented by
+a comment explaining what's going on here.
+
