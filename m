@@ -1,9 +1,9 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:33405 "EHLO mx1.suse.de"
+Received: from cantor.suse.de ([195.135.220.2]:33453 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750778AbZIIDRL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Sep 2009 23:17:11 -0400
-Subject: [PATCH 1/5] mm: add coherence API for DMA to vmalloc/vmap areas
+	id S1752673AbZIIDSX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Sep 2009 23:18:23 -0400
+Subject: [PATCH 2/5] parisc: add mm API for DMA to vmalloc/vmap areas
 From: James Bottomley <James.Bottomley@suse.de>
 In-Reply-To: <1252466070.13003.365.camel@mulgrave.site>
 References: <1252434469.13003.3.camel@mulgrave.site>
@@ -14,47 +14,45 @@ References: <1252434469.13003.3.camel@mulgrave.site>
 	 <20090908213910.GH6538@flint.arm.linux.org.uk>
 	 <1252466070.13003.365.camel@mulgrave.site>
 Content-Type: text/plain
-Date: Wed, 09 Sep 2009 03:17:06 +0000
-Message-ID: <1252466226.13003.367.camel@mulgrave.site>
+Date: Wed, 09 Sep 2009 03:18:17 +0000
+Message-ID: <1252466297.13003.369.camel@mulgrave.site>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Russell King <rmk@arm.linux.org.uk>
 Cc: Parisc List <linux-parisc@vger.kernel.org>, Linux Filesystem Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch@vger.kernel.org, Christoph Hellwig <hch@lst.de>
-Message-ID: <20090909031706.39h-kznw_UnFfvzyrvwvbPVs1A1M0hbDcj5gzo7ISYw@z>
+Message-ID: <20090909031817.FL73YZW_rhJRpJYK1AyCzaRxa-RL9n7SmdZ7Hg145o8@z>
 
-On Virtually Indexed architectures (which don't do automatic alias
-resolution in their caches), we have to flush via the correct
-virtual address to prepare pages for DMA.  On some architectures
-(like arm) we cannot prevent the CPU from doing data movein along
-the alias (and thus giving stale read data), so we not only have to
-introduce a flush API to push dirty cache lines out, but also an invalidate
-API to kill inconsistent cache lines that may have moved in before
-DMA changed the data
+We already have an API to flush a kernel page along an alias
+address, so use it.  The TLB purge prevents the CPU from doing
+speculative moveins on the flushed address, so we don't need to
+implement and invalidate.
 
 Signed-off-by: James Bottomley <James.Bottomley@suse.de>
 ---
- include/linux/highmem.h |    6 ++++++
- 1 files changed, 6 insertions(+), 0 deletions(-)
+ arch/parisc/include/asm/cacheflush.h |    8 ++++++++
+ 1 files changed, 8 insertions(+), 0 deletions(-)
 
-diff --git a/include/linux/highmem.h b/include/linux/highmem.h
-index 211ff44..9719952 100644
---- a/include/linux/highmem.h
-+++ b/include/linux/highmem.h
-@@ -17,6 +17,12 @@ static inline void flush_anon_page(struct vm_area_struct *vma, struct page *page
- static inline void flush_kernel_dcache_page(struct page *page)
+diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
+index 7243951..2536a00 100644
+--- a/arch/parisc/include/asm/cacheflush.h
++++ b/arch/parisc/include/asm/cacheflush.h
+@@ -90,6 +90,14 @@ static inline void flush_kernel_dcache_page(struct page *page)
  {
+ 	flush_kernel_dcache_page_addr(page_address(page));
  }
-+static incline void flush_kernel_dcache_addr(void *vaddr)
++static inline void flush_kernel_dcache_addr(void *addr)
 +{
++	flush_kernel_dcache_page_addr(addr);
 +}
-+static incline void invalidate_kernel_dcache_addr(void *vaddr)
++static inline void invalidate_kernel_dcache_addr(void *addr)
 +{
++	/* nop .. the flush prevents move in until the page is touched */
 +}
- #endif
  
- #include <asm/kmap_types.h>
+ #ifdef CONFIG_DEBUG_RODATA
+ void mark_rodata_ro(void);
 -- 
 1.6.3.3
 
