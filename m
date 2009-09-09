@@ -1,62 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:59315 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752484AbZIIOei (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Sep 2009 10:34:38 -0400
-Subject: Re: [PATCH 1/5] mm: add coherence API for DMA to vmalloc/vmap areas
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-In-Reply-To: <20090909033532.GD23049@linux-sh.org>
-References: <1252434469.13003.3.camel@mulgrave.site>
-	 <20090908190031.GF6538@flint.arm.linux.org.uk>
-	 <1252437112.13003.39.camel@mulgrave.site>
-	 <20090908201619.GG6538@flint.arm.linux.org.uk>
-	 <1252442352.13003.132.camel@mulgrave.site>
-	 <20090908213910.GH6538@flint.arm.linux.org.uk>
-	 <1252466070.13003.365.camel@mulgrave.site>
-	 <1252466226.13003.367.camel@mulgrave.site>
-	 <1252466601.13003.374.camel@mulgrave.site>
-	 <20090909033532.GD23049@linux-sh.org>
-Content-Type: text/plain
-Date: Wed, 09 Sep 2009 09:34:38 -0500
-Message-ID: <1252506878.3918.32.camel@mulgrave.site>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from cantor.suse.de ([195.135.220.2]:57683 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752489AbZIIPwb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 9 Sep 2009 11:52:31 -0400
+From: James Bottomley <James.Bottomley@suse.de>
+Subject: [PATCH 2/6] parisc: add mm API for DMA to vmalloc/vmap areas
+Date: Wed,  9 Sep 2009 10:52:12 -0500
+Message-ID: <1252511536-22066-3-git-send-email-James.Bottomley@suse.de>
+In-Reply-To: <1252511536-22066-2-git-send-email-James.Bottomley@suse.de>
+References: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
+ <1252511536-22066-2-git-send-email-James.Bottomley@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: Russell King <rmk@arm.linux.org.uk>, Parisc List <linux-parisc@vger.kernel.org>, Linux Filesystem Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch@vger.kernel.org, Christoph Hellwig <hch@lst.de>
-Message-ID: <20090909143438.L_6_OL8tpaeh9O0B_9FGIc7wiAVYTwrKxD0IcGfonME@z>
+To: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-parisc@vger.kernel.org
+Cc: Russell King <rmk@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, Paul Mundt <lethal@linux-sh.org>, James Bottomley <James.Bottomley@suse.de>
+Message-ID: <20090909155212.d_k1oG18tFfk-SUR2kPsjrvOvj8omd7mgvlc8E69IW0@z>
 
-On Wed, 2009-09-09 at 12:35 +0900, Paul Mundt wrote:
-> And here I thought it was a new gcc construct along the lines of
-> inline-if-so-inclined.. :-)
+We already have an API to flush a kernel page along an alias
+address, so use it.  The TLB purge prevents the CPU from doing
+speculative moveins on the flushed address, so we don't need to
+implement and invalidate.
 
-Actually, I missed the fact that sh also sets
-ARCH_HAS_FLUSH_KERNEL_DCACHE_PAGE, so you'll need implementations of
-these functions too.  Does this look right?
-
-James
-
+Signed-off-by: James Bottomley <James.Bottomley@suse.de>
 ---
+ arch/parisc/include/asm/cacheflush.h |    8 ++++++++
+ 1 files changed, 8 insertions(+), 0 deletions(-)
 
-diff --git a/arch/sh/include/asm/cacheflush.h b/arch/sh/include/asm/cacheflush.h
-index 4c5462d..db06611 100644
---- a/arch/sh/include/asm/cacheflush.h
-+++ b/arch/sh/include/asm/cacheflush.h
-@@ -48,6 +48,14 @@ static inline void flush_kernel_dcache_page(struct page *page)
+diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
+index 7243951..2536a00 100644
+--- a/arch/parisc/include/asm/cacheflush.h
++++ b/arch/parisc/include/asm/cacheflush.h
+@@ -90,6 +90,14 @@ static inline void flush_kernel_dcache_page(struct page *page)
  {
- 	flush_dcache_page(page);
+ 	flush_kernel_dcache_page_addr(page_address(page));
  }
 +static inline void flush_kernel_dcache_addr(void *addr)
 +{
-+	__flush_invalidate_region(addr, PAGE_SIZE);
++	flush_kernel_dcache_page_addr(addr);
 +}
 +static inline void invalidate_kernel_dcache_addr(void *addr)
 +{
-+	__flush_invalidate_region(addr, PAGE_SIZE);
++	/* nop .. the flush prevents move in until the page is touched */
 +}
  
- #if defined(CONFIG_CPU_SH4) && !defined(CONFIG_CACHE_OFF)
- extern void copy_to_user_page(struct vm_area_struct *vma,
-
+ #ifdef CONFIG_DEBUG_RODATA
+ void mark_rodata_ro(void);
+-- 
+1.6.3.3
 
