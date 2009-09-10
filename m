@@ -1,49 +1,32 @@
-From: =?UTF-8?Q?Am=C3=A9rico_Wang?= <xiyou.wangcong@gmail.com>
-Subject: Re: [PATCH 0/2] __builtin_unreachable
-Date: Thu, 10 Sep 2009 12:42:26 +0800
-Message-ID: <2375c9f90909092142i58595fedod6780a7c41190f5f@mail.gmail.com>
-References: <20090910015923.8FB628AE5F@magilla.sf.frob.com>
+From: Matt Fleming <matt@console-pimps.org>
+Subject: Re: [PATCH 0/6] fix xfs by making I/O to vmap/vmalloc areas work
+Date: Thu, 10 Sep 2009 07:14:24 +0100
+Message-ID: <20090910061422.GA31781@console-pimps.org>
+References: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from qw-out-2122.google.com ([74.125.92.24]:5156 "EHLO
-	qw-out-2122.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750781AbZIJEmX convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Sep 2009 00:42:23 -0400
-In-Reply-To: <20090910015923.8FB628AE5F@magilla.sf.frob.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <roland@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Jakub Jelinek <jakub@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-parisc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
+Sender: linux-parisc-owner@vger.kernel.org
+To: James Bottomley <James.Bottomley@suse.de>
+Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-parisc@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, Paul Mundt <lethal@linux-sh.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 10, 2009 at 9:59 AM, Roland McGrath <roland@redhat.com> wro=
-te:
-> The latest GCC has a better way than "for (;;)" to indicate that a co=
-de
-> path cannot be reached due to reasons the compiler doesn't understand=
- (such
-> as code in an asm). =C2=A0These patches provide UNREACHABLE() as a ma=
-cro to hide
-> the details of this, and then use it for the BUG() macro on x86, savi=
-ng
-> some dead code otherwise generated.
->
-> Other arch's BUG() may want to this too instead of "for (;;)" or __bu=
-iltin_trap.
->
-> There are numerous matches from "git grep -n 'for *(;;) *;'" but it t=
-akes
-> someone who knows each bit of code to know where that means UNREACHAB=
-LE()
-> and where it really wants an infinite loop.
+On Wed, Sep 09, 2009 at 10:52:10AM -0500, James Bottomley wrote:
+> Here's version two of the patch set.  It actually compiles on both x86
+> and parisc.  I could do with someone to test it on arm and sh.
+> 
+> The key test is how xfs behaves.  What I did to recreate the problem
+> on parisc was simply create an 8GB xfs filesystem, use cp -a to pump
+> about a GB of data into it from my git trees, then unmount and run
+> xfs_check.  Before the patches, xfs_check reports the whole fs to be
+> corrupt.  After the patches it reports everything to be OK.
+> 
+> James
+> 
 
-Looks good!
-
-Reviewed-by: WANG Cong <xiyou.wangcong@gmail.com>
-
-Just curious, what different asm code will gcc generate for this? Compa=
-ring it
-to for(;;) ? I am sorry that I don't have gcc 4.5 on hand.
-
-Thanks!
+I'm seeing some corruption with these patches on SH and a 4GB XFS
+filesystem. However, I am currently seeing other cache aliasing issues
+on this board anyway. I'll do some more analysis tonight, unless Paul
+can prove it's just my setup being weird again.
