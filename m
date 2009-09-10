@@ -1,40 +1,30 @@
-From: Jakub Jelinek <jakub@redhat.com>
+From: "H. Peter Anvin" <hpa@kernel.org>
 Subject: Re: [PATCH 0/2] __builtin_unreachable
-Date: Thu, 10 Sep 2009 08:13:47 +0200
-Message-ID: <20090910061347.GD14664@tyan-ft48-01.lab.bos.redhat.com>
-References: <20090910015923.8FB628AE5F@magilla.sf.frob.com>
-Reply-To: Jakub Jelinek <jakub@redhat.com>
+Date: Wed, 09 Sep 2009 23:42:34 -0700
+Message-ID: <4AA89FDA.3090105@kernel.org>
+References: <20090910015923.8FB628AE5F@magilla.sf.frob.com> <2375c9f90909092142i58595fedod6780a7c41190f5f@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:38767 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754249AbZIJGRS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Sep 2009 02:17:18 -0400
-Content-Disposition: inline
-In-Reply-To: <20090910015923.8FB628AE5F@magilla.sf.frob.com>
+Received: from terminus.zytor.com ([198.137.202.10]:49300 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752577AbZIJGoG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Sep 2009 02:44:06 -0400
+In-Reply-To: <2375c9f90909092142i58595fedod6780a7c41190f5f@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <roland@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+To: =?UTF-8?B?QW3DqXJpY28gV2FuZw==?= <xiyou.wangcong@gmail.com>
+Cc: Roland McGrath <roland@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Jakub Jelinek <jakub@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
 
-On Wed, Sep 09, 2009 at 06:59:23PM -0700, Roland McGrath wrote:
-> The latest GCC has a better way than "for (;;)" to indicate that a code
-> path cannot be reached due to reasons the compiler doesn't understand (such
-> as code in an asm).  These patches provide UNREACHABLE() as a macro to hide
-> the details of this, and then use it for the BUG() macro on x86, saving
-> some dead code otherwise generated.
-> 
-> Other arch's BUG() may want to this too instead of "for (;;)" or __builtin_trap.
+On 09/09/2009 09:42 PM, Am=C3=A9rico Wang wrote:
+>=20
+> Just curious, what different asm code will gcc generate for this? Com=
+paring it
+> to for(;;) ? I am sorry that I don't have gcc 4.5 on hand.
+>=20
 
-Just instead of for (;;) (or any place where an asm never returns). 
-__builtin_trap () shouldn't be replaced - __builtin_unreachable () just says
-that the location is never reachable, so everything after it not reachable
-through other ways can be optimized out - while __builtin_trap () emits an
-instruction that traps and then assumes anything after it is unreachable.
+It generates nothing.  It is you as the programmer guaranteeing that we
+will never get there, and as such gcc will generate no code at all.
 
-Also, I wonder if Fedora/RHEL specific GCC backport is desirable to be
-handled in upstream kernel (i.e. whether compiler-gcc4.h shouldn't enable it
-just for GCC 4.5+) and Fedora/RHEL should patch it for our backport.
-
-	Jakub
+	-hpa
