@@ -1,52 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1-old.redhat.com ([66.187.233.31]:41010 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754951AbZIJCF4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 9 Sep 2009 22:05:56 -0400
+Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:49617 "EHLO
+	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752391AbZIJGOt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Sep 2009 02:14:49 -0400
+Date: Thu, 10 Sep 2009 07:14:24 +0100
+From: Matt Fleming <matt@console-pimps.org>
+Subject: Re: [PATCH 0/6] fix xfs by making I/O to vmap/vmalloc areas work
+Message-ID: <20090910061422.GA31781@console-pimps.org>
+References: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-From: Roland McGrath <roland@redhat.com>
-Subject: [PATCH 2/2] x86: BUG(): use UNREACHABLE()
-In-Reply-To: Roland McGrath's message of  Wednesday, 9 September 2009 18:59:23 -0700 <20090910015923.8FB628AE5F@magilla.sf.frob.com>
-References: <20090910015923.8FB628AE5F@magilla.sf.frob.com>
-Message-ID: <20090910020110.DA9838BF6E@magilla.sf.frob.com>
-Date: Wed,  9 Sep 2009 19:01:10 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Jakub Jelinek <jakub@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
-Message-ID: <20090910020110.x_8eMo1hYQQSlLzprufkxLkIQX7tDtNEIzlG2DzQ5jQ@z>
+To: James Bottomley <James.Bottomley@suse.de>
+Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-parisc@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20090910061424.l1r9BOS2kzyiEKwQIvTD8TMZyeIgwq5X5HRuCggcKbs@z>
 
-This uses the new UNREACHABLE() macro in x86's BUG() macro.  In my
-test builds, this saved 2022 bytes of text in vmlinux on x86_64,
-3051 bytes on i686.  (I didn't bother to calculate the additional
-savings in .ko text.)
+On Wed, Sep 09, 2009 at 10:52:10AM -0500, James Bottomley wrote:
+> Here's version two of the patch set.  It actually compiles on both x86
+> and parisc.  I could do with someone to test it on arm and sh.
+> 
+> The key test is how xfs behaves.  What I did to recreate the problem
+> on parisc was simply create an 8GB xfs filesystem, use cp -a to pump
+> about a GB of data into it from my git trees, then unmount and run
+> xfs_check.  Before the patches, xfs_check reports the whole fs to be
+> corrupt.  After the patches it reports everything to be OK.
+> 
+> James
+> 
 
-Signed-off-by: Roland McGrath <roland@redhat.com>
-CC: Jakub Jelinek <jakub@redhat.com>
----
- arch/x86/include/asm/bug.h |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/arch/x86/include/asm/bug.h b/arch/x86/include/asm/bug.h
-index d9cf1cd..a6458a3 100644
---- a/arch/x86/include/asm/bug.h
-+++ b/arch/x86/include/asm/bug.h
-@@ -22,14 +22,14 @@ do {								\
- 		     ".popsection"				\
- 		     : : "i" (__FILE__), "i" (__LINE__),	\
- 		     "i" (sizeof(struct bug_entry)));		\
--	for (;;) ;						\
-+	UNREACHABLE();						\
- } while (0)
- 
- #else
- #define BUG()							\
- do {								\
- 	asm volatile("ud2");					\
--	for (;;) ;						\
-+	UNREACHABLE();						\
- } while (0)
- #endif
- 
+I'm seeing some corruption with these patches on SH and a 4GB XFS
+filesystem. However, I am currently seeing other cache aliasing issues
+on this board anyway. I'll do some more analysis tonight, unless Paul
+can prove it's just my setup being weird again.
