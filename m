@@ -1,32 +1,40 @@
-From: Matt Fleming <matt@console-pimps.org>
-Subject: Re: [PATCH 0/6] fix xfs by making I/O to vmap/vmalloc areas work
-Date: Thu, 10 Sep 2009 07:14:24 +0100
-Message-ID: <20090910061422.GA31781@console-pimps.org>
-References: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
+From: Jakub Jelinek <jakub@redhat.com>
+Subject: Re: [PATCH 0/2] __builtin_unreachable
+Date: Thu, 10 Sep 2009 08:13:47 +0200
+Message-ID: <20090910061347.GD14664@tyan-ft48-01.lab.bos.redhat.com>
+References: <20090910015923.8FB628AE5F@magilla.sf.frob.com>
+Reply-To: Jakub Jelinek <jakub@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-parisc-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:38767 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754249AbZIJGRS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Sep 2009 02:17:18 -0400
 Content-Disposition: inline
-In-Reply-To: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
-Sender: linux-parisc-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@suse.de>
-Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-parisc@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, Paul Mundt <lethal@linux-sh.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20090910015923.8FB628AE5F@magilla.sf.frob.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Roland McGrath <roland@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
 
-On Wed, Sep 09, 2009 at 10:52:10AM -0500, James Bottomley wrote:
-> Here's version two of the patch set.  It actually compiles on both x86
-> and parisc.  I could do with someone to test it on arm and sh.
+On Wed, Sep 09, 2009 at 06:59:23PM -0700, Roland McGrath wrote:
+> The latest GCC has a better way than "for (;;)" to indicate that a code
+> path cannot be reached due to reasons the compiler doesn't understand (such
+> as code in an asm).  These patches provide UNREACHABLE() as a macro to hide
+> the details of this, and then use it for the BUG() macro on x86, saving
+> some dead code otherwise generated.
 > 
-> The key test is how xfs behaves.  What I did to recreate the problem
-> on parisc was simply create an 8GB xfs filesystem, use cp -a to pump
-> about a GB of data into it from my git trees, then unmount and run
-> xfs_check.  Before the patches, xfs_check reports the whole fs to be
-> corrupt.  After the patches it reports everything to be OK.
-> 
-> James
-> 
+> Other arch's BUG() may want to this too instead of "for (;;)" or __builtin_trap.
 
-I'm seeing some corruption with these patches on SH and a 4GB XFS
-filesystem. However, I am currently seeing other cache aliasing issues
-on this board anyway. I'll do some more analysis tonight, unless Paul
-can prove it's just my setup being weird again.
+Just instead of for (;;) (or any place where an asm never returns). 
+__builtin_trap () shouldn't be replaced - __builtin_unreachable () just says
+that the location is never reachable, so everything after it not reachable
+through other ways can be optimized out - while __builtin_trap () emits an
+instruction that traps and then assumes anything after it is unreachable.
+
+Also, I wonder if Fedora/RHEL specific GCC backport is desirable to be
+handled in upstream kernel (i.e. whether compiler-gcc4.h shouldn't enable it
+just for GCC 4.5+) and Fedora/RHEL should patch it for our backport.
+
+	Jakub
