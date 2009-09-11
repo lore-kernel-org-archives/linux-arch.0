@@ -1,52 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:60136 "EHLO mx1.suse.de"
+Received: from cantor2.suse.de ([195.135.220.15]:48909 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752790AbZIKVhJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 11 Sep 2009 17:37:09 -0400
-Subject: Re: [PATCH 0/6] fix xfs by making I/O to vmap/vmalloc areas work
+	id S1752822AbZIKV5U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 11 Sep 2009 17:57:20 -0400
+Subject: Re: [PATCH 6/6] xfs: fix xfs to work with Virtually Indexed
+ architectures
 From: James Bottomley <James.Bottomley@suse.de>
-In-Reply-To: <20090910061422.GA31781@console-pimps.org>
+In-Reply-To: <1252511536-22066-7-git-send-email-James.Bottomley@suse.de>
 References: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
-	 <20090910061422.GA31781@console-pimps.org>
+	 <1252511536-22066-2-git-send-email-James.Bottomley@suse.de>
+	 <1252511536-22066-3-git-send-email-James.Bottomley@suse.de>
+	 <1252511536-22066-4-git-send-email-James.Bottomley@suse.de>
+	 <1252511536-22066-5-git-send-email-James.Bottomley@suse.de>
+	 <1252511536-22066-6-git-send-email-James.Bottomley@suse.de>
+	 <1252511536-22066-7-git-send-email-James.Bottomley@suse.de>
 Content-Type: text/plain
-Date: Fri, 11 Sep 2009 21:37:03 +0000
-Message-ID: <1252705023.13282.66.camel@mulgrave.site>
+Date: Fri, 11 Sep 2009 21:57:15 +0000
+Message-ID: <1252706235.13282.104.camel@mulgrave.site>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Fleming <matt@console-pimps.org>
-Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-parisc@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20090911213703.LVhdcD7cWxLQcKVo0pLAV1H58w-OM3mFniIOdDyqdMQ@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-fsdevel@vger.kernel.org, linux-parisc@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20090911215715.CeWDmAUuCtvK69AKE9ewzWZJjTss2P8NuaBftEN9Cz0@z>
 
-On Thu, 2009-09-10 at 07:14 +0100, Matt Fleming wrote:
-> On Wed, Sep 09, 2009 at 10:52:10AM -0500, James Bottomley wrote:
-> > Here's version two of the patch set.  It actually compiles on both x86
-> > and parisc.  I could do with someone to test it on arm and sh.
-> > 
-> > The key test is how xfs behaves.  What I did to recreate the problem
-> > on parisc was simply create an 8GB xfs filesystem, use cp -a to pump
-> > about a GB of data into it from my git trees, then unmount and run
-> > xfs_check.  Before the patches, xfs_check reports the whole fs to be
-> > corrupt.  After the patches it reports everything to be OK.
-> > 
-> > James
-> > 
+On Wed, 2009-09-09 at 10:52 -0500, James Bottomley wrote:
+> xfs_buf.c includes what is essentially a hand rolled version of
+> blk_rq_map_kern().  In order to work properly with the vmalloc buffers
+> that xfs uses, this hand rolled routine must also implement the flushing
+> API for vmap/vmalloc areas.
 > 
-> I'm seeing some corruption with these patches on SH and a 4GB XFS
-> filesystem. However, I am currently seeing other cache aliasing issues
-> on this board anyway. I'll do some more analysis tonight, unless Paul
-> can prove it's just my setup being weird again.
+> Signed-off-by: James Bottomley <James.Bottomley@suse.de>
+> ---
+>  fs/xfs/linux-2.6/xfs_buf.c |   10 ++++++++++
+>  1 files changed, 10 insertions(+), 0 deletions(-)
+> 
+> diff --git a/fs/xfs/linux-2.6/xfs_buf.c b/fs/xfs/linux-2.6/xfs_buf.c
+> index 965df12..62ae977 100644
+> --- a/fs/xfs/linux-2.6/xfs_buf.c
+> +++ b/fs/xfs/linux-2.6/xfs_buf.c
+> @@ -1138,6 +1138,10 @@ xfs_buf_bio_end_io(
+>  	do {
+>  		struct page	*page = bvec->bv_page;
+>  
+> +		if (is_vmalloc_addr(bp->b_addr))
+> +			invalidate_kernel_dcache_addr(bp->b_addr +
+> +						      bvec->bv_offset);
 
-Did some debug checking, and it turns out that the invalidation logic is
-bogus (the bio parameters get updated before the request completes).  Of
-course, we wouldn't see this on parisc because we don't require
-invalidation ....
+OK, so this invalidation logic is completely wrong.  For large vmalloc
+buffers, xfs will split them up over several bios.  The only way I can
+think to fix this is below ... comments?
 
-I'll try to fix and then repost.
-
-Thanks for testing.
+If everyone is OK, I'll reroll the patches with this built in.
 
 James
+
+---
+
+diff --git a/fs/xfs/linux-2.6/xfs_buf.c b/fs/xfs/linux-2.6/xfs_buf.c
+index 62ae977..320a6e4 100644
+--- a/fs/xfs/linux-2.6/xfs_buf.c
++++ b/fs/xfs/linux-2.6/xfs_buf.c
+@@ -1132,15 +1132,25 @@ xfs_buf_bio_end_io(
+ 	xfs_buf_t		*bp = (xfs_buf_t *)bio->bi_private;
+ 	unsigned int		blocksize = bp->b_target->bt_bsize;
+ 	struct bio_vec		*bvec = bio->bi_io_vec + bio->bi_vcnt - 1;
++	void			*vaddr = NULL;
++	int			i;
+ 
+ 	xfs_buf_ioerror(bp, -error);
+ 
++	if (is_vmalloc_addr(bp->b_addr))
++		for (i = 0; i < bp->b_page_count; i++)
++			if (bvec->bv_page == bp->b_pages[i]) {
++				vaddr = bp->b_addr + i*PAGE_SIZE;
++				break;
++			}
++
+ 	do {
+ 		struct page	*page = bvec->bv_page;
+ 
+-		if (is_vmalloc_addr(bp->b_addr))
+-			invalidate_kernel_dcache_addr(bp->b_addr +
+-						      bvec->bv_offset);
++		if (is_vmalloc_addr(bp->b_addr)) {
++			invalidate_kernel_dcache_addr(vaddr);
++			vaddr -= PAGE_SIZE;
++		}
+ 
+ 		ASSERT(!PagePrivate(page));
+ 		if (unlikely(bp->b_error)) {
 
 
