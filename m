@@ -1,41 +1,47 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [PATCH 1/2] UNREACHABLE() macro
-Date: Fri, 11 Sep 2009 16:59:15 -0400
-Message-ID: <20090911205915.GA19494@bombadil.infradead.org>
-References: <20090910015923.8FB628AE5F@magilla.sf.frob.com> <20090910020031.87DC68BF6E@magilla.sf.frob.com> <20090911134528.cd1782d9.akpm@linux-foundation.org>
+From: James Bottomley <James.Bottomley@suse.de>
+Subject: Re: [PATCH 0/6] fix xfs by making I/O to vmap/vmalloc areas work
+Date: Fri, 11 Sep 2009 21:37:03 +0000
+Message-ID: <1252705023.13282.66.camel@mulgrave.site>
+References: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
+	 <20090910061422.GA31781@console-pimps.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1755876AbZIKU7W@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20090911134528.cd1782d9.akpm@linux-foundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Roland McGrath <roland@redhat.com>, torvalds@linux-foundation.org, jakub@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <20090910061422.GA31781@console-pimps.org>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Matt Fleming <matt@console-pimps.org>
+Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-parisc@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, Paul Mundt <lethal@linux-sh.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 11, 2009 at 01:45:28PM -0700, Andrew Morton wrote:
-> On Wed,  9 Sep 2009 19:00:31 -0700 (PDT)
-> Roland McGrath <roland@redhat.com> wrote:
+On Thu, 2009-09-10 at 07:14 +0100, Matt Fleming wrote:
+> On Wed, Sep 09, 2009 at 10:52:10AM -0500, James Bottomley wrote:
+> > Here's version two of the patch set.  It actually compiles on both x86
+> > and parisc.  I could do with someone to test it on arm and sh.
+> > 
+> > The key test is how xfs behaves.  What I did to recreate the problem
+> > on parisc was simply create an 8GB xfs filesystem, use cp -a to pump
+> > about a GB of data into it from my git trees, then unmount and run
+> > xfs_check.  Before the patches, xfs_check reports the whole fs to be
+> > corrupt.  After the patches it reports everything to be OK.
+> > 
+> > James
+> > 
 > 
-> > +/*
-> > + * __builtin_unreachable is available in GCC 4.5+ and
-> > + * also in Fedora/Red Hat GCC 4.4.1-10+.
-> > + */
-> > +#if (__GNUC_MINOR__ > 4					\
-> > +     || (__GNUC_MINOR__ == 4				\
-> > +	 && defined __GNUC_RH_RELEASE__			\
-> > +	 && (__GNUC_PATCHLEVEL__ > 1			\
-> > +	     || (__GNUC_PATCHLEVEL__ == 1		\
-> > +		 && __GNUC_RH_RELEASE__ >= 10))))
-> > +#define UNREACHABLE()		__builtin_unreachable()
-> > +#endif
-> 
-> That's a bit of a mouthful.  Did you consider a runtime probe with
-> scripts/Kbuild.include's try-run, cc-option, etc?  
+> I'm seeing some corruption with these patches on SH and a 4GB XFS
+> filesystem. However, I am currently seeing other cache aliasing issues
+> on this board anyway. I'll do some more analysis tonight, unless Paul
+> can prove it's just my setup being weird again.
 
-If the crap for determining if it's a RH gcc is removed, then it becomes
-really straightforward... Should probably just do that and then apply a
-patch to Fedora if it's so damned important it can't just wait for the
-next GCC release.
+Did some debug checking, and it turns out that the invalidation logic is
+bogus (the bio parameters get updated before the request completes).  Of
+course, we wouldn't see this on parisc because we don't require
+invalidation ....
 
-regards, Kyle
+I'll try to fix and then repost.
+
+Thanks for testing.
+
+James
+
+
