@@ -1,37 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:49617 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752391AbZIJGOt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Sep 2009 02:14:49 -0400
-Date: Thu, 10 Sep 2009 07:14:24 +0100
-From: Matt Fleming <matt@console-pimps.org>
-Subject: Re: [PATCH 0/6] fix xfs by making I/O to vmap/vmalloc areas work
-Message-ID: <20090910061422.GA31781@console-pimps.org>
-References: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
+Received: from bombadil.infradead.org ([18.85.46.34]:49889 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755380AbZIKU7T (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Sep 2009 16:59:19 -0400
+Date: Fri, 11 Sep 2009 16:59:15 -0400
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [PATCH 1/2] UNREACHABLE() macro
+Message-ID: <20090911205915.GA19494@bombadil.infradead.org>
+References: <20090910015923.8FB628AE5F@magilla.sf.frob.com> <20090910020031.87DC68BF6E@magilla.sf.frob.com> <20090911134528.cd1782d9.akpm@linux-foundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
+In-Reply-To: <20090911134528.cd1782d9.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@suse.de>
-Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-parisc@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20090910061424.l1r9BOS2kzyiEKwQIvTD8TMZyeIgwq5X5HRuCggcKbs@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Roland McGrath <roland@redhat.com>, torvalds@linux-foundation.org, jakub@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+Message-ID: <20090911205915.Y4xA2aQMJuG4wVHGIPptvDTzTj5dzyL_AMxvUzyFsuc@z>
 
-On Wed, Sep 09, 2009 at 10:52:10AM -0500, James Bottomley wrote:
-> Here's version two of the patch set.  It actually compiles on both x86
-> and parisc.  I could do with someone to test it on arm and sh.
+On Fri, Sep 11, 2009 at 01:45:28PM -0700, Andrew Morton wrote:
+> On Wed,  9 Sep 2009 19:00:31 -0700 (PDT)
+> Roland McGrath <roland@redhat.com> wrote:
 > 
-> The key test is how xfs behaves.  What I did to recreate the problem
-> on parisc was simply create an 8GB xfs filesystem, use cp -a to pump
-> about a GB of data into it from my git trees, then unmount and run
-> xfs_check.  Before the patches, xfs_check reports the whole fs to be
-> corrupt.  After the patches it reports everything to be OK.
+> > +/*
+> > + * __builtin_unreachable is available in GCC 4.5+ and
+> > + * also in Fedora/Red Hat GCC 4.4.1-10+.
+> > + */
+> > +#if (__GNUC_MINOR__ > 4					\
+> > +     || (__GNUC_MINOR__ == 4				\
+> > +	 && defined __GNUC_RH_RELEASE__			\
+> > +	 && (__GNUC_PATCHLEVEL__ > 1			\
+> > +	     || (__GNUC_PATCHLEVEL__ == 1		\
+> > +		 && __GNUC_RH_RELEASE__ >= 10))))
+> > +#define UNREACHABLE()		__builtin_unreachable()
+> > +#endif
 > 
-> James
-> 
+> That's a bit of a mouthful.  Did you consider a runtime probe with
+> scripts/Kbuild.include's try-run, cc-option, etc?  
 
-I'm seeing some corruption with these patches on SH and a 4GB XFS
-filesystem. However, I am currently seeing other cache aliasing issues
-on this board anyway. I'll do some more analysis tonight, unless Paul
-can prove it's just my setup being weird again.
+If the crap for determining if it's a RH gcc is removed, then it becomes
+really straightforward... Should probably just do that and then apply a
+patch to Fedora if it's so damned important it can't just wait for the
+next GCC release.
+
+regards, Kyle
