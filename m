@@ -1,90 +1,39 @@
-From: James Bottomley <James.Bottomley@suse.de>
-Subject: Re: [PATCH 6/6] xfs: fix xfs to work with Virtually Indexed
- architectures
-Date: Fri, 11 Sep 2009 21:57:15 +0000
-Message-ID: <1252706235.13282.104.camel@mulgrave.site>
-References: <1252511536-22066-1-git-send-email-James.Bottomley@suse.de>
-	 <1252511536-22066-2-git-send-email-James.Bottomley@suse.de>
-	 <1252511536-22066-3-git-send-email-James.Bottomley@suse.de>
-	 <1252511536-22066-4-git-send-email-James.Bottomley@suse.de>
-	 <1252511536-22066-5-git-send-email-James.Bottomley@suse.de>
-	 <1252511536-22066-6-git-send-email-James.Bottomley@suse.de>
-	 <1252511536-22066-7-git-send-email-James.Bottomley@suse.de>
+From: Arjan van de Ven <arjan@infradead.org>
+Subject: Re: [PATCH 1/2] UNREACHABLE() macro
+Date: Sat, 12 Sep 2009 05:49:06 +0200
+Message-ID: <20090912054906.22b05848@infradead.org>
+References: <20090910015923.8FB628AE5F@magilla.sf.frob.com>
+	<20090910020031.87DC68BF6E@magilla.sf.frob.com>
+	<20090911134528.cd1782d9.akpm@linux-foundation.org>
+	<20090911215525.12B366A98F@magilla.sf.frob.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
-In-Reply-To: <1252511536-22066-7-git-send-email-James.Bottomley@suse.de>
-Sender: linux-fsdevel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: linux-fsdevel@vger.kernel.org, linux-parisc@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, Paul Mundt <lethal@linux-sh.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:55171 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753018AbZILDpe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Sep 2009 23:45:34 -0400
+In-Reply-To: <20090911215525.12B366A98F@magilla.sf.frob.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Roland McGrath <roland@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org, jakub@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
 
-On Wed, 2009-09-09 at 10:52 -0500, James Bottomley wrote:
-> xfs_buf.c includes what is essentially a hand rolled version of
-> blk_rq_map_kern().  In order to work properly with the vmalloc buffers
-> that xfs uses, this hand rolled routine must also implement the flushing
-> API for vmap/vmalloc areas.
+On Fri, 11 Sep 2009 14:55:25 -0700 (PDT)
+Roland McGrath <roland@redhat.com> wrote:
+
+> > That's a bit of a mouthful.  Did you consider a runtime probe with
+> > scripts/Kbuild.include's try-run, cc-option, etc?  
 > 
-> Signed-off-by: James Bottomley <James.Bottomley@suse.de>
-> ---
->  fs/xfs/linux-2.6/xfs_buf.c |   10 ++++++++++
->  1 files changed, 10 insertions(+), 0 deletions(-)
-> 
-> diff --git a/fs/xfs/linux-2.6/xfs_buf.c b/fs/xfs/linux-2.6/xfs_buf.c
-> index 965df12..62ae977 100644
-> --- a/fs/xfs/linux-2.6/xfs_buf.c
-> +++ b/fs/xfs/linux-2.6/xfs_buf.c
-> @@ -1138,6 +1138,10 @@ xfs_buf_bio_end_io(
->  	do {
->  		struct page	*page = bvec->bv_page;
->  
-> +		if (is_vmalloc_addr(bp->b_addr))
-> +			invalidate_kernel_dcache_addr(bp->b_addr +
-> +						      bvec->bv_offset);
+> I did not see any precedent in the sources for using those to test for
+> features by compiling particular test sources (i.e. in autoconf
 
-OK, so this invalidation logic is completely wrong.  For large vmalloc
-buffers, xfs will split them up over several bios.  The only way I can
-think to fix this is below ... comments?
-
-If everyone is OK, I'll reroll the patches with this built in.
-
-James
-
----
-
-diff --git a/fs/xfs/linux-2.6/xfs_buf.c b/fs/xfs/linux-2.6/xfs_buf.c
-index 62ae977..320a6e4 100644
---- a/fs/xfs/linux-2.6/xfs_buf.c
-+++ b/fs/xfs/linux-2.6/xfs_buf.c
-@@ -1132,15 +1132,25 @@ xfs_buf_bio_end_io(
- 	xfs_buf_t		*bp = (xfs_buf_t *)bio->bi_private;
- 	unsigned int		blocksize = bp->b_target->bt_bsize;
- 	struct bio_vec		*bvec = bio->bi_io_vec + bio->bi_vcnt - 1;
-+	void			*vaddr = NULL;
-+	int			i;
- 
- 	xfs_buf_ioerror(bp, -error);
- 
-+	if (is_vmalloc_addr(bp->b_addr))
-+		for (i = 0; i < bp->b_page_count; i++)
-+			if (bvec->bv_page == bp->b_pages[i]) {
-+				vaddr = bp->b_addr + i*PAGE_SIZE;
-+				break;
-+			}
-+
- 	do {
- 		struct page	*page = bvec->bv_page;
- 
--		if (is_vmalloc_addr(bp->b_addr))
--			invalidate_kernel_dcache_addr(bp->b_addr +
--						      bvec->bv_offset);
-+		if (is_vmalloc_addr(bp->b_addr)) {
-+			invalidate_kernel_dcache_addr(vaddr);
-+			vaddr -= PAGE_SIZE;
-+		}
- 
- 		ASSERT(!PagePrivate(page));
- 		if (unlikely(bp->b_error)) {
+look at the stackprotector flags.. they work this way already.
+It gets done once per kernel build...
 
 
+-- 
+Arjan van de Ven 	Intel Open Source Technology Centre
+For development, discussion and tips for power savings, 
+visit http://www.lesswatts.org
