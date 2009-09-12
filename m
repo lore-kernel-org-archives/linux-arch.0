@@ -1,48 +1,46 @@
-From: Andrew Morton <akpm@linux-foundation.org>
+From: Jakub Jelinek <jakub@redhat.com>
 Subject: Re: [PATCH 1/2] UNREACHABLE() macro
-Date: Fri, 11 Sep 2009 22:52:28 -0700
-Message-ID: <20090911225228.e67460f5.akpm@linux-foundation.org>
-References: <20090910015923.8FB628AE5F@magilla.sf.frob.com>
-	<20090910020031.87DC68BF6E@magilla.sf.frob.com>
-	<20090911134528.cd1782d9.akpm@linux-foundation.org>
-	<20090911215525.12B366A98F@magilla.sf.frob.com>
-	<20090912054906.22b05848@infradead.org>
-	<4AAB26FE.7010309@kernel.org>
+Date: Sat, 12 Sep 2009 08:38:40 +0200
+Message-ID: <20090912063840.GR14664@tyan-ft48-01.lab.bos.redhat.com>
+References: <20090910015923.8FB628AE5F@magilla.sf.frob.com> <20090910020031.87DC68BF6E@magilla.sf.frob.com> <20090911134528.cd1782d9.akpm@linux-foundation.org> <20090911215525.12B366A98F@magilla.sf.frob.com> <20090912054906.22b05848@infradead.org> <4AAB26FE.7010309@kernel.org> <20090911225228.e67460f5.akpm@linux-foundation.org>
+Reply-To: Jakub Jelinek <jakub@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:59040 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753423AbZILFzv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 12 Sep 2009 01:55:51 -0400
-In-Reply-To: <4AAB26FE.7010309@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@kernel.org>
-Cc: Arjan van de Ven <arjan@infradead.org>, Roland McGrath <roland@redhat.com>, torvalds@linux-foundation.org, jakub@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1754526AbZILGmG@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20090911225228.e67460f5.akpm@linux-foundation.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: "H. Peter Anvin" <hpa@kernel.org>, Arjan van de Ven <arjan@infradead.org>, Roland McGrath <roland@redhat.com>, torvalds@linux-foundation.org, jakub@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 11 Sep 2009 21:43:42 -0700 "H. Peter Anvin" <hpa@kernel.org> wrote:
-
-> On 09/11/2009 08:49 PM, Arjan van de Ven wrote:
-> > On Fri, 11 Sep 2009 14:55:25 -0700 (PDT)
-> > Roland McGrath <roland@redhat.com> wrote:
+On Fri, Sep 11, 2009 at 10:52:28PM -0700, Andrew Morton wrote:
+> On Fri, 11 Sep 2009 21:43:42 -0700 "H. Peter Anvin" <hpa@kernel.org> wrote:
+> 
+> > On 09/11/2009 08:49 PM, Arjan van de Ven wrote:
+> > > On Fri, 11 Sep 2009 14:55:25 -0700 (PDT)
+> > > Roland McGrath <roland@redhat.com> wrote:
+> > > 
+> > >>> That's a bit of a mouthful.  Did you consider a runtime probe with
+> > >>> scripts/Kbuild.include's try-run, cc-option, etc?  
+> > >>
+> > >> I did not see any precedent in the sources for using those to test for
+> > >> features by compiling particular test sources (i.e. in autoconf
+> > > 
+> > > look at the stackprotector flags.. they work this way already.
+> > > It gets done once per kernel build...
+> > > 
 > > 
-> >>> That's a bit of a mouthful.  Did you consider a runtime probe with
-> >>> scripts/Kbuild.include's try-run, cc-option, etc?  
-> >>
-> >> I did not see any precedent in the sources for using those to test for
-> >> features by compiling particular test sources (i.e. in autoconf
-> > 
-> > look at the stackprotector flags.. they work this way already.
-> > It gets done once per kernel build...
+> > That works for flags, but not for the presence of builtin functions.
+> > You can't even just try compiling something, since it will turn into an
+> > ordinary function if not present... not obvious until link.
 > > 
 > 
-> That works for flags, but not for the presence of builtin functions.
-> You can't even just try compiling something, since it will turn into an
-> ordinary function if not present... not obvious until link.
-> 
+> Use -Wall -Werror and if the compiler doesn't know about
+> __builtin_unreachable() it will error out.
 
-Use -Wall -Werror and if the compiler doesn't know about
-__builtin_unreachable() it will error out.
+Yeah, e.g. checking exit status of:
+echo '__attribute__((noreturn)) void foo (void) { asm volatile ("" : : : "memory"); __builtin_unreachable (); }' | gcc -S -O2 -W -Wall -Werror -xc - -o /dev/null > /dev/null 2>/dev/null
+works.
+
+	Jakub
