@@ -1,42 +1,38 @@
 From: David Daney <ddaney@caviumnetworks.com>
-Subject: [PATCH 05/11] mn10300: Convert BUG() to use unreachable()
-Date: Mon, 14 Sep 2009 14:55:34 -0700
-Message-ID: <1252965340-31735-5-git-send-email-ddaney@caviumnetworks.com>
+Subject: [PATCH 04/11] s390: Convert BUG() to use unreachable()
+Date: Mon, 14 Sep 2009 14:55:33 -0700
+Message-ID: <1252965340-31735-4-git-send-email-ddaney@caviumnetworks.com>
 References: <4AAEBAC2.1050905@caviumnetworks.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail3.caviumnetworks.com ([12.108.191.235]:9429 "EHLO
-	mail3.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932312AbZINV4F (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2009 17:56:05 -0400
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S932327AbZINV4H@vger.kernel.org>
 In-Reply-To: <4AAEBAC2.1050905@caviumnetworks.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: torvalds@linux-foundation.org, akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <ddaney@caviumnetworks.com>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, linux-am33-list@redhat.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <ddaney@caviumnetworks.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Use the new unreachable() macro instead of while(1).
+Use the new unreachable() macro instead of for(;;);
 
 Signed-off-by: David Daney <ddaney@caviumnetworks.com>
-CC: David Howells <dhowells@redhat.com>
-CC: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
-CC: linux-am33-list@redhat.com
+Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+CC: Heiko Carstens <heiko.carstens@de.ibm.com>
+CC: linux390@de.ibm.com
+CC: linux-s390@vger.kernel.org
 ---
- arch/mn10300/include/asm/bug.h |    3 ++-
- 1 files changed, 2 insertions(+), 1 deletions(-)
+ arch/s390/include/asm/bug.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/arch/mn10300/include/asm/bug.h b/arch/mn10300/include/asm/bug.h
-index aa6a388..447a7e6 100644
---- a/arch/mn10300/include/asm/bug.h
-+++ b/arch/mn10300/include/asm/bug.h
-@@ -27,7 +27,8 @@ do {								\
- 		:						\
- 		: "i"(__FILE__), "i"(__LINE__)			\
- 		);						\
--} while (1)
-+	unreachable();						\
-+} while (0)
+diff --git a/arch/s390/include/asm/bug.h b/arch/s390/include/asm/bug.h
+index 7efd0ab..efb74fd 100644
+--- a/arch/s390/include/asm/bug.h
++++ b/arch/s390/include/asm/bug.h
+@@ -49,7 +49,7 @@
  
- #define HAVE_ARCH_BUG
- #endif /* CONFIG_BUG */
+ #define BUG() do {					\
+ 	__EMIT_BUG(0);					\
+-	for (;;);					\
++	unreachable();					\
+ } while (0)
+ 
+ #define WARN_ON(x) ({					\
 -- 
 1.6.2.5
