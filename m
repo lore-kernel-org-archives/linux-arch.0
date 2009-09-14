@@ -1,39 +1,37 @@
 From: David Daney <ddaney@caviumnetworks.com>
-Subject: [PATCH 09/11] avr32: Convert BUG() to use unreachable()
-Date: Mon, 14 Sep 2009 14:55:38 -0700
-Message-ID: <1252965340-31735-9-git-send-email-ddaney@caviumnetworks.com>
+Subject: [PATCH 03/11] MIPS: Convert BUG() to use unreachable()
+Date: Mon, 14 Sep 2009 14:55:32 -0700
+Message-ID: <1252965340-31735-3-git-send-email-ddaney@caviumnetworks.com>
 References: <4AAEBAC2.1050905@caviumnetworks.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail3.caviumnetworks.com ([12.108.191.235]:9418 "EHLO
-	mail3.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757306AbZINV4B (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2009 17:56:01 -0400
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757391AbZINV6G@vger.kernel.org>
 In-Reply-To: <4AAEBAC2.1050905@caviumnetworks.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: torvalds@linux-foundation.org, akpm@linux-foundation.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <ddaney@caviumnetworks.com>
+List-Id: linux-arch.vger.kernel.org
 
-Use the new unreachable() macro instead of for(;;);
+Use the new unreachable() macro instead of while(1);
 
 Signed-off-by: David Daney <ddaney@caviumnetworks.com>
-Acked-by: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
+Acked-by: Ralf Baechle <ralf@linux-mips.org>
 ---
- arch/avr32/include/asm/bug.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ arch/mips/include/asm/bug.h |    4 +---
+ 1 files changed, 1 insertions(+), 3 deletions(-)
 
-diff --git a/arch/avr32/include/asm/bug.h b/arch/avr32/include/asm/bug.h
-index 331d45b..2aa373c 100644
---- a/arch/avr32/include/asm/bug.h
-+++ b/arch/avr32/include/asm/bug.h
-@@ -52,7 +52,7 @@
- #define BUG()								\
- 	do {								\
- 		_BUG_OR_WARN(0);					\
--		for (;;);						\
-+		unreachable();						\
- 	} while (0)
+diff --git a/arch/mips/include/asm/bug.h b/arch/mips/include/asm/bug.h
+index 6cf29c2..540c98a 100644
+--- a/arch/mips/include/asm/bug.h
++++ b/arch/mips/include/asm/bug.h
+@@ -11,9 +11,7 @@
+ static inline void __noreturn BUG(void)
+ {
+ 	__asm__ __volatile__("break %0" : : "i" (BRK_BUG));
+-	/* Fool GCC into thinking the function doesn't return. */
+-	while (1)
+-		;
++	unreachable();
+ }
  
- #define WARN_ON(condition)							\
+ #define HAVE_ARCH_BUG
 -- 
 1.6.2.5
