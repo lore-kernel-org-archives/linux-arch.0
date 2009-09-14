@@ -1,51 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:40192 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754095AbZILGmE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 12 Sep 2009 02:42:04 -0400
-Date: Sat, 12 Sep 2009 08:38:40 +0200
-From: Jakub Jelinek <jakub@redhat.com>
-Subject: Re: [PATCH 1/2] UNREACHABLE() macro
-Message-ID: <20090912063840.GR14664@tyan-ft48-01.lab.bos.redhat.com>
-Reply-To: Jakub Jelinek <jakub@redhat.com>
-References: <20090910015923.8FB628AE5F@magilla.sf.frob.com> <20090910020031.87DC68BF6E@magilla.sf.frob.com> <20090911134528.cd1782d9.akpm@linux-foundation.org> <20090911215525.12B366A98F@magilla.sf.frob.com> <20090912054906.22b05848@infradead.org> <4AAB26FE.7010309@kernel.org> <20090911225228.e67460f5.akpm@linux-foundation.org>
+Received: from 124-219-29-226.vdslpro.static.apol.com.tw ([124.219.29.226]:53074
+	"EHLO mswedge1.sunplus.com" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1753268AbZINCNJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 13 Sep 2009 22:13:09 -0400
+Subject: [GIT PULL, v4] S+core architecture (arch/score) support
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20090911225228.e67460f5.akpm@linux-foundation.org>
+Message-ID: <OF86273AF3.3B227B93-ON48257631.0006A5D3-48257631.0008C45B@sunplusct.com>
+From: liqin.chen@sunplusct.com
+Date: Mon, 14 Sep 2009 09:27:57 +0800
+Content-Type: text/plain; charset="US-ASCII"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "H. Peter Anvin" <hpa@kernel.org>, Arjan van de Ven <arjan@infradead.org>, Roland McGrath <roland@redhat.com>, torvalds@linux-foundation.org, jakub@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
-Message-ID: <20090912063840.2w-5_z39zSiLMzY3gftiliHyhj5qe7fx39XleZGA7C4@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, torvalds@linux-foundation.org, liqin.gnu@gmail.com
+Message-ID: <20090914012757.8YiRROy9iq10KTphPLFa0KBFT7lmmQrPuwO1dcKb27g@z>
 
-On Fri, Sep 11, 2009 at 10:52:28PM -0700, Andrew Morton wrote:
-> On Fri, 11 Sep 2009 21:43:42 -0700 "H. Peter Anvin" <hpa@kernel.org> wrote:
-> 
-> > On 09/11/2009 08:49 PM, Arjan van de Ven wrote:
-> > > On Fri, 11 Sep 2009 14:55:25 -0700 (PDT)
-> > > Roland McGrath <roland@redhat.com> wrote:
-> > > 
-> > >>> That's a bit of a mouthful.  Did you consider a runtime probe with
-> > >>> scripts/Kbuild.include's try-run, cc-option, etc?  
-> > >>
-> > >> I did not see any precedent in the sources for using those to test for
-> > >> features by compiling particular test sources (i.e. in autoconf
-> > > 
-> > > look at the stackprotector flags.. they work this way already.
-> > > It gets done once per kernel build...
-> > > 
-> > 
-> > That works for flags, but not for the presence of builtin functions.
-> > You can't even just try compiling something, since it will turn into an
-> > ordinary function if not present... not obvious until link.
-> > 
-> 
-> Use -Wall -Werror and if the compiler doesn't know about
-> __builtin_unreachable() it will error out.
+Hi Linus,
 
-Yeah, e.g. checking exit status of:
-echo '__attribute__((noreturn)) void foo (void) { asm volatile ("" : : : "memory"); __builtin_unreachable (); }' | gcc -S -O2 -W -Wall -Werror -xc - -o /dev/null > /dev/null 2>/dev/null
-works.
+We had setup a git server at gitserver.sunplusct.com,
+This repository contains Linux support for S+core CPU.
+it's base on Linux 2.6.31-rc7 and Arnd asm-generic repository.
 
-	Jakub
+please pull:
+        git pull git://gitserver.sunplusct.com/linux-2.6-score.git 
+for-linus
+
+Changes in v4:
+Sending pull request again.
+
+Changes in v3:
+With the help of Arnd and Roland.
+
+Changes in v2:
+Christoph Hellwig and Arnd review it.
+
+Thanks,
+Liqin
+
+-----
