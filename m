@@ -1,44 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail3.caviumnetworks.com ([12.108.191.235]:9424 "EHLO
+Received: from mail3.caviumnetworks.com ([12.108.191.235]:9422 "EHLO
 	mail3.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757311AbZINV4E (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2009 17:56:04 -0400
+	with ESMTP id S932276AbZINV4C (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2009 17:56:02 -0400
 From: David Daney <ddaney@caviumnetworks.com>
-Subject: [PATCH 08/11] alpha: Convert BUG() to use unreachable()
-Date: Mon, 14 Sep 2009 14:55:37 -0700
-Message-ID: <1252965340-31735-8-git-send-email-ddaney@caviumnetworks.com>
+Subject: [PATCH 11/11] Use unreachable() in asm-generic/bug.h for !CONFIG_BUG case.
+Date: Mon, 14 Sep 2009 14:55:40 -0700
+Message-ID: <1252965340-31735-11-git-send-email-ddaney@caviumnetworks.com>
 In-Reply-To: <4AAEBAC2.1050905@caviumnetworks.com>
 References: <4AAEBAC2.1050905@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org, akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <ddaney@caviumnetworks.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, linux-alpha@vger.kernel.org
-Message-ID: <20090914215537.VKVi2bFmzr30GnRFY2BH2f11XHksoxTi_fLEz_mHumE@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <ddaney@caviumnetworks.com>, Ingo Molnar <mingo@elte.hu>
+Message-ID: <20090914215540.lkNvo_bKSeZpXzZFs9fMckfdeBSlls08ExSPC3DPa-M@z>
 
-Use the new unreachable() macro instead of for(;;);
+The subject says it all (most).  The only drawback here is that for a
+pre-GCC-5.4 compiler, instead of expanding to nothing we now expand
+BUG() to an endless loop.  Before the patch when configured with
+!CONFIG_BUG() you might get some warnings, but the code would be
+small.  After the patch there are no warnings, but there is an endless
+loop at each BUG() site.
+
+Of course for the GCC-4.5 case we get the best of both worlds.
 
 Signed-off-by: David Daney <ddaney@caviumnetworks.com>
-CC: Richard Henderson <rth@twiddle.net>
-CC: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-CC: linux-alpha@vger.kernel.org
+Suggested-by: Ingo Molnar <mingo@elte.hu>
+CC: Ingo Molnar <mingo@elte.hu>
 ---
- arch/alpha/include/asm/bug.h |    3 ++-
- 1 files changed, 2 insertions(+), 1 deletions(-)
+ include/asm-generic/bug.h |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/alpha/include/asm/bug.h b/arch/alpha/include/asm/bug.h
-index 1720c8a..f091682 100644
---- a/arch/alpha/include/asm/bug.h
-+++ b/arch/alpha/include/asm/bug.h
-@@ -13,7 +13,8 @@
- 		"call_pal %0  # bugchk\n\t"				\
- 		".long %1\n\t.8byte %2"					\
- 		: : "i"(PAL_bugchk), "i"(__LINE__), "i"(__FILE__));	\
--	for ( ; ; ); } while (0)
-+	unreachable();							\
-+  } while (0)
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 4b67559..e952242 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -89,11 +89,11 @@ extern void warn_slowpath_null(const char *file, const int line);
  
- #define HAVE_ARCH_BUG
+ #else /* !CONFIG_BUG */
+ #ifndef HAVE_ARCH_BUG
+-#define BUG() do {} while(0)
++#define BUG() unreachable()
  #endif
+ 
+ #ifndef HAVE_ARCH_BUG_ON
+-#define BUG_ON(condition) do { if (condition) ; } while(0)
++#define BUG_ON(condition) do { if (condition) unreachable(); } while (0)
+ #endif
+ 
+ #ifndef HAVE_ARCH_WARN_ON
 -- 
 1.6.2.5
 
