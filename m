@@ -1,54 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail3.caviumnetworks.com ([12.108.191.235]:9422 "EHLO
+Received: from mail3.caviumnetworks.com ([12.108.191.235]:9423 "EHLO
 	mail3.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932276AbZINV4C (ORCPT
+	with ESMTP id S932281AbZINV4C (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2009 17:56:02 -0400
 From: David Daney <ddaney@caviumnetworks.com>
-Subject: [PATCH 11/11] Use unreachable() in asm-generic/bug.h for !CONFIG_BUG case.
-Date: Mon, 14 Sep 2009 14:55:40 -0700
-Message-ID: <1252965340-31735-11-git-send-email-ddaney@caviumnetworks.com>
+Subject: [PATCH 10/11] blackfin: Convert BUG() to use unreachable()
+Date: Mon, 14 Sep 2009 14:55:39 -0700
+Message-ID: <1252965340-31735-10-git-send-email-ddaney@caviumnetworks.com>
 In-Reply-To: <4AAEBAC2.1050905@caviumnetworks.com>
 References: <4AAEBAC2.1050905@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org, akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <ddaney@caviumnetworks.com>, Ingo Molnar <mingo@elte.hu>
-Message-ID: <20090914215540.lkNvo_bKSeZpXzZFs9fMckfdeBSlls08ExSPC3DPa-M@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <ddaney@caviumnetworks.com>, Mike Frysinger <vapier@gentoo.org>, uclinux-dist-devel@blackfin.uclinux.org
+Message-ID: <20090914215539.zFs5lnlES5vwkn4wrumvc_YDgM_CJfhbhdAHPty1Sx0@z>
 
-The subject says it all (most).  The only drawback here is that for a
-pre-GCC-5.4 compiler, instead of expanding to nothing we now expand
-BUG() to an endless loop.  Before the patch when configured with
-!CONFIG_BUG() you might get some warnings, but the code would be
-small.  After the patch there are no warnings, but there is an endless
-loop at each BUG() site.
-
-Of course for the GCC-4.5 case we get the best of both worlds.
+Use the new unreachable() macro instead of for(;;);
 
 Signed-off-by: David Daney <ddaney@caviumnetworks.com>
-Suggested-by: Ingo Molnar <mingo@elte.hu>
-CC: Ingo Molnar <mingo@elte.hu>
+CC: Mike Frysinger <vapier@gentoo.org>
+CC: uclinux-dist-devel@blackfin.uclinux.org
 ---
- include/asm-generic/bug.h |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ arch/blackfin/include/asm/bug.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 4b67559..e952242 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -89,11 +89,11 @@ extern void warn_slowpath_null(const char *file, const int line);
+diff --git a/arch/blackfin/include/asm/bug.h b/arch/blackfin/include/asm/bug.h
+index 655e495..0b213a9 100644
+--- a/arch/blackfin/include/asm/bug.h
++++ b/arch/blackfin/include/asm/bug.h
+@@ -41,7 +41,7 @@
+ #define BUG()								\
+ 	do {								\
+ 		_BUG_OR_WARN(0);					\
+-		for (;;);						\
++		unreachable();						\
+ 	} while (0)
  
- #else /* !CONFIG_BUG */
- #ifndef HAVE_ARCH_BUG
--#define BUG() do {} while(0)
-+#define BUG() unreachable()
- #endif
- 
- #ifndef HAVE_ARCH_BUG_ON
--#define BUG_ON(condition) do { if (condition) ; } while(0)
-+#define BUG_ON(condition) do { if (condition) unreachable(); } while (0)
- #endif
- 
- #ifndef HAVE_ARCH_WARN_ON
+ #define WARN_ON(condition)							\
 -- 
 1.6.2.5
 
