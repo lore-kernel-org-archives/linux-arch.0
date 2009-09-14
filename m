@@ -1,48 +1,42 @@
-From: David Daney <ddaney-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>
-Subject: [PATCH 10/11] blackfin: Convert BUG() to use
-	unreachable()
-Date: Mon, 14 Sep 2009 14:55:39 -0700
-Message-ID: <1252965340-31735-10-git-send-email-ddaney@caviumnetworks.com>
+From: David Daney <ddaney@caviumnetworks.com>
+Subject: [PATCH 05/11] mn10300: Convert BUG() to use unreachable()
+Date: Mon, 14 Sep 2009 14:55:34 -0700
+Message-ID: <1252965340-31735-5-git-send-email-ddaney@caviumnetworks.com>
 References: <4AAEBAC2.1050905@caviumnetworks.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
-In-Reply-To: <4AAEBAC2.1050905-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>
-List-Unsubscribe: <https://blackfin.uclinux.org/mailman/options/uclinux-dist-devel>,
-	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://blackfin.uclinux.org/pipermail/uclinux-dist-devel>
-List-Post: <mailto:uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
-List-Help: <mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=help>
-List-Subscribe: <https://blackfin.uclinux.org/mailman/listinfo/uclinux-dist-devel>,
-	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=subscribe>
-Sender: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
-Errors-To: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
-To: torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org, Mike Frysinger <vapier-aBrp7R+bbdUdnm+yROfE0A@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, David Daney <ddaney-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail3.caviumnetworks.com ([12.108.191.235]:9429 "EHLO
+	mail3.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932312AbZINV4F (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2009 17:56:05 -0400
+In-Reply-To: <4AAEBAC2.1050905@caviumnetworks.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: torvalds@linux-foundation.org, akpm@linux-foundation.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <ddaney@caviumnetworks.com>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, linux-am33-list@redhat.com
 
-Use the new unreachable() macro instead of for(;;);
+Use the new unreachable() macro instead of while(1).
 
-Signed-off-by: David Daney <ddaney-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>
-CC: Mike Frysinger <vapier-aBrp7R+bbdUdnm+yROfE0A@public.gmane.org>
-CC: uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
+Signed-off-by: David Daney <ddaney@caviumnetworks.com>
+CC: David Howells <dhowells@redhat.com>
+CC: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
+CC: linux-am33-list@redhat.com
 ---
- arch/blackfin/include/asm/bug.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ arch/mn10300/include/asm/bug.h |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
-diff --git a/arch/blackfin/include/asm/bug.h b/arch/blackfin/include/asm/bug.h
-index 655e495..0b213a9 100644
---- a/arch/blackfin/include/asm/bug.h
-+++ b/arch/blackfin/include/asm/bug.h
-@@ -41,7 +41,7 @@
- #define BUG()								\
- 	do {								\
- 		_BUG_OR_WARN(0);					\
--		for (;;);						\
-+		unreachable();						\
- 	} while (0)
+diff --git a/arch/mn10300/include/asm/bug.h b/arch/mn10300/include/asm/bug.h
+index aa6a388..447a7e6 100644
+--- a/arch/mn10300/include/asm/bug.h
++++ b/arch/mn10300/include/asm/bug.h
+@@ -27,7 +27,8 @@ do {								\
+ 		:						\
+ 		: "i"(__FILE__), "i"(__LINE__)			\
+ 		);						\
+-} while (1)
++	unreachable();						\
++} while (0)
  
- #define WARN_ON(condition)							\
+ #define HAVE_ARCH_BUG
+ #endif /* CONFIG_BUG */
 -- 
 1.6.2.5
