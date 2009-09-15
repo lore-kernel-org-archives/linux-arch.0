@@ -1,43 +1,145 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail3.caviumnetworks.com ([12.108.191.235]:9425 "EHLO
-	mail3.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932307AbZINV4F (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2009 17:56:05 -0400
-From: David Daney <ddaney@caviumnetworks.com>
-Subject: [PATCH 07/11] powerpc: Convert BUG() to use unreachable()
-Date: Mon, 14 Sep 2009 14:55:36 -0700
-Message-ID: <1252965340-31735-7-git-send-email-ddaney@caviumnetworks.com>
-In-Reply-To: <4AAEBAC2.1050905@caviumnetworks.com>
-References: <4AAEBAC2.1050905@caviumnetworks.com>
+Received: from eddie.linux-mips.org ([78.24.191.182]:54967 "EHLO
+	eddie.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750738AbZIOIoX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Sep 2009 04:44:23 -0400
+Received: from localhost.localdomain ([127.0.0.1]:37224 "EHLO h5.dl5rb.org.uk"
+	rhost-flags-OK-OK-OK-FAIL) by ftp.linux-mips.org with ESMTP
+	id S1492214AbZIOIiy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 15 Sep 2009 10:38:54 +0200
+Date: Tue, 15 Sep 2009 10:39:04 +0200
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: [PATCH] MIPS: Make more use of unreachable()
+Message-ID: <20090915083904.GA13796@linux-mips.org>
+References: <4AAEBAC2.1050905@caviumnetworks.com> <1252965340-31735-3-git-send-email-ddaney@caviumnetworks.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1252965340-31735-3-git-send-email-ddaney@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org, akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <ddaney@caviumnetworks.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org
-Message-ID: <20090914215536.gvfGsy1b_kJqnoc0nwB5_nRJZ2LTDKyQfePR1ef8Ug0@z>
+To: David Daney <ddaney@caviumnetworks.com>
+Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20090915083904.4QQmFfdW6yAz2NHe6G7XVwIoq13tyQf0pbfH-f9HyBk@z>
 
-Use the new unreachable() macro instead of for(;;);
+Further uses of unreachable().
 
-Signed-off-by: David Daney <ddaney@caviumnetworks.com>
-CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-CC: Paul Mackerras <paulus@samba.org>
-CC: linuxppc-dev@ozlabs.org
----
- arch/powerpc/include/asm/bug.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
 
-diff --git a/arch/powerpc/include/asm/bug.h b/arch/powerpc/include/asm/bug.h
-index 64e1fdc..2c15212 100644
---- a/arch/powerpc/include/asm/bug.h
-+++ b/arch/powerpc/include/asm/bug.h
-@@ -68,7 +68,7 @@
- 		_EMIT_BUG_ENTRY					\
- 		: : "i" (__FILE__), "i" (__LINE__),		\
- 		    "i" (0), "i"  (sizeof(struct bug_entry)));	\
--	for(;;) ;						\
-+	unreachable();						\
- } while (0)
+ arch/mips/fw/arc/memory.c     |    5 +++--
+ arch/mips/kernel/signal.c     |    5 +++--
+ arch/mips/kernel/signal32.c   |    5 +++--
+ arch/mips/kernel/signal_n32.c |    3 ++-
+ 4 files changed, 11 insertions(+), 7 deletions(-)
+
+diff --git a/arch/mips/fw/arc/memory.c b/arch/mips/fw/arc/memory.c
+index 8b8eea2..d248f64 100644
+--- a/arch/mips/fw/arc/memory.c
++++ b/arch/mips/fw/arc/memory.c
+@@ -11,6 +11,7 @@
+  * because on some machines like SGI IP27 the ARC memory configuration data
+  * completly bogus and alternate easier to use mechanisms are available.
+  */
++#include <linux/compiler.h>
+ #include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/types.h>
+@@ -80,7 +81,7 @@ static inline int memtype_classify_arcs(union linux_memtypes type)
+ 	default:
+ 		BUG();
+ 	}
+-	while(1);				/* Nuke warning.  */
++	unreachable();				/* Nuke warning.  */
+ }
  
- #define BUG_ON(x) do {						\
--- 
-1.6.2.5
-
+ static inline int memtype_classify_arc(union linux_memtypes type)
+@@ -100,7 +101,7 @@ static inline int memtype_classify_arc(union linux_memtypes type)
+ 	default:
+ 		BUG();
+ 	}
+-	while(1);				/* Nuke warning.  */
++	unreachable();				/* Nuke warning.  */
+ }
+ 
+ static int __init prom_memtype_classify(union linux_memtypes type)
+diff --git a/arch/mips/kernel/signal.c b/arch/mips/kernel/signal.c
+index 6254041..eefd278 100644
+--- a/arch/mips/kernel/signal.c
++++ b/arch/mips/kernel/signal.c
+@@ -8,6 +8,7 @@
+  * Copyright (C) 1999, 2000 Silicon Graphics, Inc.
+  */
+ #include <linux/cache.h>
++#include <linux/compiler.h>
+ #include <linux/sched.h>
+ #include <linux/mm.h>
+ #include <linux/personality.h>
+@@ -422,7 +423,7 @@ asmlinkage void sys_sigreturn(nabi_no_regargs struct pt_regs regs)
+ 		"j\tsyscall_exit"
+ 		:/* no outputs */
+ 		:"r" (&regs));
+-	/* Unreached */
++	unreachable();
+ 
+ badframe:
+ 	force_sig(SIGSEGV, current);
+@@ -468,7 +469,7 @@ asmlinkage void sys_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
+ 		"j\tsyscall_exit"
+ 		:/* no outputs */
+ 		:"r" (&regs));
+-	/* Unreached */
++	unreachable();
+ 
+ badframe:
+ 	force_sig(SIGSEGV, current);
+diff --git a/arch/mips/kernel/signal32.c b/arch/mips/kernel/signal32.c
+index 2e74075..d41e267 100644
+--- a/arch/mips/kernel/signal32.c
++++ b/arch/mips/kernel/signal32.c
+@@ -9,6 +9,7 @@
+  */
+ #include <linux/cache.h>
+ #include <linux/compat.h>
++#include <linux/compiler.h>
+ #include <linux/sched.h>
+ #include <linux/mm.h>
+ #include <linux/smp.h>
+@@ -526,7 +527,7 @@ asmlinkage void sys32_sigreturn(nabi_no_regargs struct pt_regs regs)
+ 		"j\tsyscall_exit"
+ 		:/* no outputs */
+ 		:"r" (&regs));
+-	/* Unreached */
++	unreachable();
+ 
+ badframe:
+ 	force_sig(SIGSEGV, current);
+@@ -583,7 +584,7 @@ asmlinkage void sys32_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
+ 		"j\tsyscall_exit"
+ 		:/* no outputs */
+ 		:"r" (&regs));
+-	/* Unreached */
++	unreachable();
+ 
+ badframe:
+ 	force_sig(SIGSEGV, current);
+diff --git a/arch/mips/kernel/signal_n32.c b/arch/mips/kernel/signal_n32.c
+index bb277e8..24ebaa5 100644
+--- a/arch/mips/kernel/signal_n32.c
++++ b/arch/mips/kernel/signal_n32.c
+@@ -16,6 +16,7 @@
+  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+  */
+ #include <linux/cache.h>
++#include <linux/compiler.h>
+ #include <linux/sched.h>
+ #include <linux/mm.h>
+ #include <linux/smp.h>
+@@ -167,7 +168,7 @@ asmlinkage void sysn32_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
+ 		"j\tsyscall_exit"
+ 		:/* no outputs */
+ 		:"r" (&regs));
+-	/* Unreached */
++	unreachable();
+ 
+ badframe:
+ 	force_sig(SIGSEGV, current);
