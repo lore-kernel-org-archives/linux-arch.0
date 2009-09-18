@@ -1,49 +1,36 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: liqin.chen@sunplusct.com
 Subject: Re: [GIT PULL, v4] S+core architecture (arch/score) support
-Date: Thu, 17 Sep 2009 21:36:12 -0700 (PDT)
-Message-ID: <alpine.LFD.2.01.0909172129230.4950@localhost.localdomain>
-References: <OF121E6C6B.7861ECC9-ON48257635.0016A420-48257635.0017AD5F@sunplusct.com>
+Date: Fri, 18 Sep 2009 12:10:40 +0800
+Message-ID: <OF121E6C6B.7861ECC9-ON48257635.0016A420-48257635.0017AD5F@sunplusct.com>
+References: <alpine.LFD.2.01.0909170930050.4950@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset="GB2312"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:42802 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750817AbZIREhH (ORCPT
+Received: from 124-219-29-227.vdslpro.static.apol.com.tw ([124.219.29.227]:53439
+	"EHLO mswedge2.sunplus.com" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1750918AbZIREhw (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Sep 2009 00:37:07 -0400
-In-Reply-To: <OF121E6C6B.7861ECC9-ON48257635.0016A420-48257635.0017AD5F@sunplusct.com>
+	Fri, 18 Sep 2009 00:37:52 -0400
+In-Reply-To: <alpine.LFD.2.01.0909170930050.4950@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: liqin.chen@sunplusct.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, liqin.gnu@gmail.com
 
-
-
-On Fri, 18 Sep 2009, liqin.chen@sunplusct.com wrote:
-> 
-> Would you please give me some advice,  or tell me where
-> to get these informations, that will be helpful for us to co-work
-> with you in the future.
-
-See all the other pull requests out there. Some of them are scripted (by 
-fairly trivial scripts), some of them are done by hand, but they tend to 
-all have the same structure: a 'shortlog' of the commits that are new, and 
-a diffstat (with summary) of the changes.
-
-The important thing is that then I know what to expect from the pull, 
-rather than having to pull blindly and see the end result (without really 
-knowing whether that was what you intended for me to get).
-
-There's even a 'git request-pull' script that comes with git that 
-generates these things, although I'm not sure how many people use that 
-particular script.
-
-But just look for "please pull" on lkml, and you'll find a lot of 
-examples.
-
-Btw, I appreciate people not sending just the raw unedited "git 
-request-pull" output. I'd like people to actually look at it to make sure 
-that the thing matches what you expected, but also add a few lines of your 
-own to describe the changes in your own words.
-
-			Linus
+TGludXMgVG9ydmFsZHMgPHRvcnZhbGRzQGxpbnV4LWZvdW5kYXRpb24ub3JnPiDQtNPaIDIwMDkt
+MDktMTggMDA6MzE6MzY6DQo+IA0KPiBJIHdhbnQgdG8gc2VlIGEgcHJvcGVyIHB1bGwgcmVxdWVz
+dCB3aXRoIGRpZmZzdGF0cyBldGMgKGFuZCB0aGUgYnJhbmNoIA0KPiBuYW1lIG9uIHRoZSBzYW1l
+IGxpbmUgZXRjKS4gDQoNCk9LLCBJIHdpbGwgc2VuZCB0aGUgcHVsbCByZXF1ZXN0IGFnYWluLg0K
+DQo+IEkgcmVhbGl6ZSBJIGNhbiBqdXN0IHB1bGwgYW5kIGxvb2sgYXQgd2hhdCBJIA0KPiBnZXQs
+IGJ1dCB0aGF0J3Mgbm90IGhvdyBJIHdvcmsuIEkgd2FudCB0byBrbm93IHRoYXQgd2hhdCBJIGdl
+dCBpcyBhbHNvIA0KPiB3aGF0IHlvdSBleHBlY3RlZCB0byBzZW5kIHRvIG1lLCBhbmQgcGVyaGFw
+cyBlcXVhbGx5IGltcG9ydGFudGx5LCBJIHdhbnQgDQoNCj4gdG8ga25vdyB0aGF0IHlvdSBrbm93
+IGhvdyB0byB3b3JrIHdpdGggbWUgaW4gdGhlIGZ1dHVyZS4NCj4gDQoNCkhpIExpbnVzLA0KV2Ug
+aGF2ZSBhIHRlYW0gdG8gbWFpbnRhaW4gdGhlIGxpbnV4L3Njb3JlIHJlbGF0aXZlIGNvZGUuDQpO
+b3cgd2UgcmVhbGx5IGRvbid0IGtub3cgeW91ciB3b3JraW5nIHJ1bGVzLCBsaWtlIHdoZW4gd2Ug
+Zml4DQp0aGUgc2NvcmUgY29kZSwgd2hlbiB0byBzZW5kIHRoZSBwdWxsIHJlcXVlc3QgdG8geW91
+IGFnYWluLA0KYW5kIGV0Yy4NCg0KV291bGQgeW91IHBsZWFzZSBnaXZlIG1lIHNvbWUgYWR2aWNl
+LCAgb3IgdGVsbCBtZSB3aGVyZQ0KdG8gZ2V0IHRoZXNlIGluZm9ybWF0aW9ucywgdGhhdCB3aWxs
+IGJlIGhlbHBmdWwgZm9yIHVzIHRvIGNvLXdvcmsNCndpdGggeW91IGluIHRoZSBmdXR1cmUuDQoN
+CkJlc3QgUmVnYXJkcw0KTGlxaW4NCg==
