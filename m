@@ -1,54 +1,42 @@
-From: Eric B Munson <ebmunson@us.ibm.com>
-Subject: [PATCH 6/7] Add MAP_HUGETLB flag to parisc mman.h
-Date: Fri, 18 Sep 2009 06:21:52 -0600
-Message-ID: <309744fd80915ce157aa90dbb807101f61b1f334.1253272709.git.ebmunson@us.ibm.com>
-References: <cover.1253272709.git.ebmunson@us.ibm.com>
- <653aa659fd7970f7428f4eb41fa10693064e4daf.1253272709.git.ebmunson@us.ibm.com>
- <08251014d2eb30e9016bab16404133f5c13beacf.1253272709.git.ebmunson@us.ibm.com>
- <462331ca14e2ed47b20b047342e73b92559e1c5b.1253272709.git.ebmunson@us.ibm.com>
- <be5687cbd44413416009466357c1ded6418cc163.1253272709.git.ebmunson@us.ibm.com>
- <d8e315b04749f73765e61eb7e4cbbaed2b946dfd.1253272709.git.ebmunson@us.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <d8e315b04749f73765e61eb7e4cbbaed2b946dfd.1253272709.git.ebmunson@us.ibm.com>
-In-Reply-To: <cover.1253272709.git.ebmunson@us.ibm.com>
-References: <cover.1253272709.git.ebmunson@us.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org
-Cc: rdunlap@xenotime.net, michael@ellerman.id.au, ralf@linux-mips.org, wli@holomorphy.com, mel@csn.ul.ie, dhowells@redhat.com, arnd@arndb.de, fengguang.wu@intel.com, shuber2@gmail.com, hugh.dickins@tiscali.co.uk, zohar@us.ibm.com, hugh@veritas.com, mtk.manpages@gmail.com, chris@zankel.net, linux-man@vger.kernel.org, linux-doc@vger.kernel.org, linux-alpha@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linux-arch@vger.kernel.org, Eric B Munson <ebmunson@us.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: [RFC resend][patch 0/1] nohz: introduce arch_needs_cpu
+Date: Fri, 18 Sep 2009 14:28:17 +0200
+Message-ID: <20090918122817.085266982@de.ibm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mtagate2.de.ibm.com ([195.212.17.162]:37863 "EHLO
+	mtagate2.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751002AbZIRMae (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Sep 2009 08:30:34 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, john stultz <johnstul@us.ibm.com>
 
-Even though parisc does not support huge pages this flag needs to
-be defined here to keep the compiler happy.  This is because
-parisc does not make use of mman-common.h, so any flags defined
-there and used in common code need to be added to parisc's mman.h
-manually.
+Greetings,
+my first try with this patch did not draw any comment. So lets try
+again, this time with linux-arch on CC.
 
-Signed-off-by: Eric B Munson <ebmunson@us.ibm.com>
----
- arch/parisc/include/asm/mman.h |    7 +++++++
- 1 files changed, 7 insertions(+), 0 deletions(-)
+I've been working on the cpu idle/wakeup path to improve the performance
+of some ping-pong workloads. This patch is the latest idea and proved
+rather effective. The idea is that the timer tick is not switched off
+if the cpu did some work in the last tick period. This will add an
+unnecessary tick interrupt if the cpu goes truly idle but will save
+some cycles for the nohz reprogramming if the cpu wakes up again for
+more work. For ping-pong like workload this is an overall win.
 
-diff --git a/arch/parisc/include/asm/mman.h b/arch/parisc/include/asm/mman.h
-index defe752..7563d0c 100644
---- a/arch/parisc/include/asm/mman.h
-+++ b/arch/parisc/include/asm/mman.h
-@@ -58,4 +58,11 @@
- #define MAP_FILE	0
- #define MAP_VARIABLE	0
- 
-+/*
-+ * This flag is included even though huge pages are not supported because
-+ * the flag is defined in mman-common.h and used in common vm code but
-+ * mman-common.h is not included here
-+ */
-+#define MAP_HUGETLB	0x080000
-+
- #endif /* __PARISC_MMAN_H__ */
+Currently only s390 has a non-zero arch_needs_cpu. It will be true if
+there has been any other interrupt than timer interrupts in the last
+tick period. I think this could be improved with an explicit call to
+request a nohz delay. The call should be added to selective points in
+the code, e.g. whenever a process != idle is scheduled, whenever a
+bottom half is run, and so on. It works well enough on s390 as it is
+though.
+
+Does anyone have a problem with the patch? Otherwise I would like to
+push it upstream as it gives us a nice improvement for s390.
+
 -- 
-1.6.3.2
+blue skies,
+   Martin.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+"Reality continues to ruin my life." - Calvin.
