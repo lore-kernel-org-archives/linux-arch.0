@@ -1,36 +1,328 @@
-From: liqin.chen@sunplusct.com
-Subject: Re: [GIT PULL, v4] S+core architecture (arch/score) support
-Date: Fri, 18 Sep 2009 12:10:40 +0800
-Message-ID: <OF121E6C6B.7861ECC9-ON48257635.0016A420-48257635.0017AD5F@sunplusct.com>
-References: <alpine.LFD.2.01.0909170930050.4950@localhost.localdomain>
+From: Chen Liqin <liqin.chen@sunplusct.com>
+Subject: [GIT PULL, v5] S+core architecture (arch/score) support
+Date: Fri, 18 Sep 2009 14:19:37 +0800
+Message-ID: <1253254777.11238.11.camel@ad3ser01>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="GB2312"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124-219-29-227.vdslpro.static.apol.com.tw ([124.219.29.227]:53439
-	"EHLO mswedge2.sunplus.com" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1750918AbZIREhw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Sep 2009 00:37:52 -0400
-In-Reply-To: <alpine.LFD.2.01.0909170930050.4950@localhost.localdomain>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, liqin.gnu@gmail.com
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753269AbZIRGwv@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, torvalds@linux-foundation.org, liqin.gnu@gmail.com
+List-Id: linux-arch.vger.kernel.org
 
-TGludXMgVG9ydmFsZHMgPHRvcnZhbGRzQGxpbnV4LWZvdW5kYXRpb24ub3JnPiDQtNPaIDIwMDkt
-MDktMTggMDA6MzE6MzY6DQo+IA0KPiBJIHdhbnQgdG8gc2VlIGEgcHJvcGVyIHB1bGwgcmVxdWVz
-dCB3aXRoIGRpZmZzdGF0cyBldGMgKGFuZCB0aGUgYnJhbmNoIA0KPiBuYW1lIG9uIHRoZSBzYW1l
-IGxpbmUgZXRjKS4gDQoNCk9LLCBJIHdpbGwgc2VuZCB0aGUgcHVsbCByZXF1ZXN0IGFnYWluLg0K
-DQo+IEkgcmVhbGl6ZSBJIGNhbiBqdXN0IHB1bGwgYW5kIGxvb2sgYXQgd2hhdCBJIA0KPiBnZXQs
-IGJ1dCB0aGF0J3Mgbm90IGhvdyBJIHdvcmsuIEkgd2FudCB0byBrbm93IHRoYXQgd2hhdCBJIGdl
-dCBpcyBhbHNvIA0KPiB3aGF0IHlvdSBleHBlY3RlZCB0byBzZW5kIHRvIG1lLCBhbmQgcGVyaGFw
-cyBlcXVhbGx5IGltcG9ydGFudGx5LCBJIHdhbnQgDQoNCj4gdG8ga25vdyB0aGF0IHlvdSBrbm93
-IGhvdyB0byB3b3JrIHdpdGggbWUgaW4gdGhlIGZ1dHVyZS4NCj4gDQoNCkhpIExpbnVzLA0KV2Ug
-aGF2ZSBhIHRlYW0gdG8gbWFpbnRhaW4gdGhlIGxpbnV4L3Njb3JlIHJlbGF0aXZlIGNvZGUuDQpO
-b3cgd2UgcmVhbGx5IGRvbid0IGtub3cgeW91ciB3b3JraW5nIHJ1bGVzLCBsaWtlIHdoZW4gd2Ug
-Zml4DQp0aGUgc2NvcmUgY29kZSwgd2hlbiB0byBzZW5kIHRoZSBwdWxsIHJlcXVlc3QgdG8geW91
-IGFnYWluLA0KYW5kIGV0Yy4NCg0KV291bGQgeW91IHBsZWFzZSBnaXZlIG1lIHNvbWUgYWR2aWNl
-LCAgb3IgdGVsbCBtZSB3aGVyZQ0KdG8gZ2V0IHRoZXNlIGluZm9ybWF0aW9ucywgdGhhdCB3aWxs
-IGJlIGhlbHBmdWwgZm9yIHVzIHRvIGNvLXdvcmsNCndpdGggeW91IGluIHRoZSBmdXR1cmUuDQoN
-CkJlc3QgUmVnYXJkcw0KTGlxaW4NCg==
+Hi Linus,
+
+The git server gitserver.sunplusct.com contains Linux support
+for S+core CPU. it's base on Linux 2.6.31-rc8 and Arnd asm-generic repository.
+
+please pull:
+        git pull git://gitserver.sunplusct.com/linux-2.6-score.git for-linus
+
+Changes in v4,v5:
+Sending pull request base on comments.
+
+Changes in v3:
+With the help of Arnd and Roland.
+
+Changes in v2:
+Christoph Hellwig and Arnd review it.
+
+Thanks,
+Liqin
+
+----
+
+The following changes since commit adda766193ea1cf3137484a9521972d080d0b7af:
+  Linus Torvalds (1):
+        Merge branch 'release' of git://git.kernel.org/.../lenb/linux-acpi-2.6
+
+are available in the git repository at:
+
+  git://gitserver.sunplusct.com/linux-2.6-score.git for-linus
+
+Arnd Bergmann (11):
+      score: unset __ARCH_WANT_IPC_PARSE_VERSION
+      score: remove __{put,get}_user_unknown
+      score: add generic sys_call_table
+      score: remove init_mm
+      score: add prototypes for wrapped syscalls
+      score: add missing #includes
+      score: add address space annotations
+      score: fix function prototypes
+      score: cleanups: dead code, 0 as pointer, shadowed variables
+      score: make irq.h definitions local
+      score: clean up mm/init.c
+
+Chen Liqin (12):
+      score: Add support for Sunplus S+core architecture
+      score: add maintainers for score architecture
+      score: update files according to review comments
+      score: move save arg5 and arg6 instruction in front of enable_irq
+      Merge branch 'score' of git://git.kernel.org/.../arnd/asm-generic into for-linus
+      score: remove unused code, add include files in .c
+      score: update inconsistent declare after .c was changed
+      score: add MEMORY_START and MEMORY_SIZE define, to make the code clear
+      score: add old syscall support
+      score: update files according to review comments.
+      score: make init_thread_union align to THREAD_SIZE
+      score: add TIF_NOTIFY_RESUME define in asm/thread_info.h
+
+ MAINTAINERS                                |    8 +
+ arch/score/Kconfig                         |  141 ++++++
+ arch/score/Kconfig.debug                   |   37 ++
+ arch/score/Makefile                        |   43 ++
+ arch/score/boot/Makefile                   |   15 +
+ arch/score/configs/spct6600_defconfig      |  717 ++++++++++++++++++++++++++++
+ arch/score/include/asm/Kbuild              |    3 +
+ arch/score/include/asm/asmmacro.h          |  161 +++++++
+ arch/score/include/asm/atomic.h            |    6 +
+ arch/score/include/asm/auxvec.h            |    4 +
+ arch/score/include/asm/bitops.h            |   16 +
+ arch/score/include/asm/bitsperlong.h       |    6 +
+ arch/score/include/asm/bug.h               |    6 +
+ arch/score/include/asm/bugs.h              |    6 +
+ arch/score/include/asm/byteorder.h         |    6 +
+ arch/score/include/asm/cache.h             |    7 +
+ arch/score/include/asm/cacheflush.h        |   45 ++
+ arch/score/include/asm/checksum.h          |  235 +++++++++
+ arch/score/include/asm/cputime.h           |    6 +
+ arch/score/include/asm/current.h           |    6 +
+ arch/score/include/asm/delay.h             |   26 +
+ arch/score/include/asm/device.h            |    6 +
+ arch/score/include/asm/div64.h             |    6 +
+ arch/score/include/asm/dma-mapping.h       |    6 +
+ arch/score/include/asm/dma.h               |    8 +
+ arch/score/include/asm/elf.h               |  103 ++++
+ arch/score/include/asm/emergency-restart.h |    6 +
+ arch/score/include/asm/errno.h             |    6 +
+ arch/score/include/asm/fcntl.h             |    6 +
+ arch/score/include/asm/fixmap.h            |   82 ++++
+ arch/score/include/asm/ftrace.h            |    4 +
+ arch/score/include/asm/futex.h             |    6 +
+ arch/score/include/asm/hardirq.h           |    6 +
+ arch/score/include/asm/hw_irq.h            |    4 +
+ arch/score/include/asm/io.h                |    9 +
+ arch/score/include/asm/ioctl.h             |    6 +
+ arch/score/include/asm/ioctls.h            |    6 +
+ arch/score/include/asm/ipcbuf.h            |    6 +
+ arch/score/include/asm/irq.h               |   25 +
+ arch/score/include/asm/irq_regs.h          |   11 +
+ arch/score/include/asm/irqflags.h          |  109 +++++
+ arch/score/include/asm/kdebug.h            |    6 +
+ arch/score/include/asm/kmap_types.h        |    6 +
+ arch/score/include/asm/linkage.h           |    7 +
+ arch/score/include/asm/local.h             |    6 +
+ arch/score/include/asm/mman.h              |    6 +
+ arch/score/include/asm/mmu.h               |    6 +
+ arch/score/include/asm/mmu_context.h       |  113 +++++
+ arch/score/include/asm/module.h            |   39 ++
+ arch/score/include/asm/msgbuf.h            |    6 +
+ arch/score/include/asm/mutex.h             |    6 +
+ arch/score/include/asm/page.h              |   92 ++++
+ arch/score/include/asm/param.h             |    6 +
+ arch/score/include/asm/pci.h               |    4 +
+ arch/score/include/asm/percpu.h            |    6 +
+ arch/score/include/asm/pgalloc.h           |   83 ++++
+ arch/score/include/asm/pgtable-bits.h      |   25 +
+ arch/score/include/asm/pgtable.h           |  287 +++++++++++
+ arch/score/include/asm/poll.h              |    6 +
+ arch/score/include/asm/posix_types.h       |    6 +
+ arch/score/include/asm/processor.h         |  106 ++++
+ arch/score/include/asm/ptrace.h            |   97 ++++
+ arch/score/include/asm/resource.h          |    6 +
+ arch/score/include/asm/scatterlist.h       |    6 +
+ arch/score/include/asm/scoreregs.h         |   51 ++
+ arch/score/include/asm/sections.h          |    6 +
+ arch/score/include/asm/segment.h           |   21 +
+ arch/score/include/asm/sembuf.h            |    6 +
+ arch/score/include/asm/setup.h             |   41 ++
+ arch/score/include/asm/shmbuf.h            |    6 +
+ arch/score/include/asm/shmparam.h          |    6 +
+ arch/score/include/asm/sigcontext.h        |   22 +
+ arch/score/include/asm/siginfo.h           |    6 +
+ arch/score/include/asm/signal.h            |    6 +
+ arch/score/include/asm/socket.h            |    6 +
+ arch/score/include/asm/sockios.h           |    6 +
+ arch/score/include/asm/stat.h              |    6 +
+ arch/score/include/asm/statfs.h            |    6 +
+ arch/score/include/asm/string.h            |    8 +
+ arch/score/include/asm/swab.h              |    6 +
+ arch/score/include/asm/syscalls.h          |   11 +
+ arch/score/include/asm/system.h            |   90 ++++
+ arch/score/include/asm/termbits.h          |    6 +
+ arch/score/include/asm/termios.h           |    6 +
+ arch/score/include/asm/thread_info.h       |  105 ++++
+ arch/score/include/asm/timex.h             |    8 +
+ arch/score/include/asm/tlb.h               |   17 +
+ arch/score/include/asm/tlbflush.h          |  142 ++++++
+ arch/score/include/asm/topology.h          |    6 +
+ arch/score/include/asm/types.h             |    6 +
+ arch/score/include/asm/uaccess.h           |  424 ++++++++++++++++
+ arch/score/include/asm/ucontext.h          |    1 +
+ arch/score/include/asm/unaligned.h         |    6 +
+ arch/score/include/asm/unistd.h            |   13 +
+ arch/score/include/asm/user.h              |   21 +
+ arch/score/kernel/Makefile                 |   11 +
+ arch/score/kernel/asm-offsets.c            |  216 +++++++++
+ arch/score/kernel/entry.S                  |  514 ++++++++++++++++++++
+ arch/score/kernel/head.S                   |   70 +++
+ arch/score/kernel/init_task.c              |   47 ++
+ arch/score/kernel/irq.c                    |  148 ++++++
+ arch/score/kernel/module.c                 |  165 +++++++
+ arch/score/kernel/process.c                |  168 +++++++
+ arch/score/kernel/ptrace.c                 |  382 +++++++++++++++
+ arch/score/kernel/setup.c                  |  159 ++++++
+ arch/score/kernel/signal.c                 |  361 ++++++++++++++
+ arch/score/kernel/sys_call_table.c         |   12 +
+ arch/score/kernel/sys_score.c              |  151 ++++++
+ arch/score/kernel/time.c                   |   99 ++++
+ arch/score/kernel/traps.c                  |  349 ++++++++++++++
+ arch/score/kernel/vmlinux.lds.S            |  148 ++++++
+ arch/score/lib/Makefile                    |    8 +
+ arch/score/lib/ashldi3.c                   |   46 ++
+ arch/score/lib/ashrdi3.c                   |   48 ++
+ arch/score/lib/checksum.S                  |  255 ++++++++++
+ arch/score/lib/checksum_copy.c             |   52 ++
+ arch/score/lib/cmpdi2.c                    |   44 ++
+ arch/score/lib/libgcc.h                    |   37 ++
+ arch/score/lib/lshrdi3.c                   |   47 ++
+ arch/score/lib/string.S                    |  184 +++++++
+ arch/score/lib/ucmpdi2.c                   |   38 ++
+ arch/score/mm/Makefile                     |    6 +
+ arch/score/mm/cache.c                      |  257 ++++++++++
+ arch/score/mm/extable.c                    |   38 ++
+ arch/score/mm/fault.c                      |  235 +++++++++
+ arch/score/mm/init.c                       |  161 +++++++
+ arch/score/mm/pgtable.c                    |   52 ++
+ arch/score/mm/tlb-miss.S                   |  199 ++++++++
+ arch/score/mm/tlb-score.c                  |  251 ++++++++++
+ 129 files changed, 8881 insertions(+), 0 deletions(-)
+ create mode 100644 arch/score/Kconfig
+ create mode 100644 arch/score/Kconfig.debug
+ create mode 100644 arch/score/Makefile
+ create mode 100644 arch/score/boot/Makefile
+ create mode 100644 arch/score/configs/spct6600_defconfig
+ create mode 100644 arch/score/include/asm/Kbuild
+ create mode 100644 arch/score/include/asm/asmmacro.h
+ create mode 100644 arch/score/include/asm/atomic.h
+ create mode 100644 arch/score/include/asm/auxvec.h
+ create mode 100644 arch/score/include/asm/bitops.h
+ create mode 100644 arch/score/include/asm/bitsperlong.h
+ create mode 100644 arch/score/include/asm/bug.h
+ create mode 100644 arch/score/include/asm/bugs.h
+ create mode 100644 arch/score/include/asm/byteorder.h
+ create mode 100644 arch/score/include/asm/cache.h
+ create mode 100644 arch/score/include/asm/cacheflush.h
+ create mode 100644 arch/score/include/asm/checksum.h
+ create mode 100644 arch/score/include/asm/cputime.h
+ create mode 100644 arch/score/include/asm/current.h
+ create mode 100644 arch/score/include/asm/delay.h
+ create mode 100644 arch/score/include/asm/device.h
+ create mode 100644 arch/score/include/asm/div64.h
+ create mode 100644 arch/score/include/asm/dma-mapping.h
+ create mode 100644 arch/score/include/asm/dma.h
+ create mode 100644 arch/score/include/asm/elf.h
+ create mode 100644 arch/score/include/asm/emergency-restart.h
+ create mode 100644 arch/score/include/asm/errno.h
+ create mode 100644 arch/score/include/asm/fcntl.h
+ create mode 100644 arch/score/include/asm/fixmap.h
+ create mode 100644 arch/score/include/asm/ftrace.h
+ create mode 100644 arch/score/include/asm/futex.h
+ create mode 100644 arch/score/include/asm/hardirq.h
+ create mode 100644 arch/score/include/asm/hw_irq.h
+ create mode 100644 arch/score/include/asm/io.h
+ create mode 100644 arch/score/include/asm/ioctl.h
+ create mode 100644 arch/score/include/asm/ioctls.h
+ create mode 100644 arch/score/include/asm/ipcbuf.h
+ create mode 100644 arch/score/include/asm/irq.h
+ create mode 100644 arch/score/include/asm/irq_regs.h
+ create mode 100644 arch/score/include/asm/irqflags.h
+ create mode 100644 arch/score/include/asm/kdebug.h
+ create mode 100644 arch/score/include/asm/kmap_types.h
+ create mode 100644 arch/score/include/asm/linkage.h
+ create mode 100644 arch/score/include/asm/local.h
+ create mode 100644 arch/score/include/asm/mman.h
+ create mode 100644 arch/score/include/asm/mmu.h
+ create mode 100644 arch/score/include/asm/mmu_context.h
+ create mode 100644 arch/score/include/asm/module.h
+ create mode 100644 arch/score/include/asm/msgbuf.h
+ create mode 100644 arch/score/include/asm/mutex.h
+ create mode 100644 arch/score/include/asm/page.h
+ create mode 100644 arch/score/include/asm/param.h
+ create mode 100644 arch/score/include/asm/pci.h
+ create mode 100644 arch/score/include/asm/percpu.h
+ create mode 100644 arch/score/include/asm/pgalloc.h
+ create mode 100644 arch/score/include/asm/pgtable-bits.h
+ create mode 100644 arch/score/include/asm/pgtable.h
+ create mode 100644 arch/score/include/asm/poll.h
+ create mode 100644 arch/score/include/asm/posix_types.h
+ create mode 100644 arch/score/include/asm/processor.h
+ create mode 100644 arch/score/include/asm/ptrace.h
+ create mode 100644 arch/score/include/asm/resource.h
+ create mode 100644 arch/score/include/asm/scatterlist.h
+ create mode 100644 arch/score/include/asm/scoreregs.h
+ create mode 100644 arch/score/include/asm/sections.h
+ create mode 100644 arch/score/include/asm/segment.h
+ create mode 100644 arch/score/include/asm/sembuf.h
+ create mode 100644 arch/score/include/asm/setup.h
+ create mode 100644 arch/score/include/asm/shmbuf.h
+ create mode 100644 arch/score/include/asm/shmparam.h
+ create mode 100644 arch/score/include/asm/sigcontext.h
+ create mode 100644 arch/score/include/asm/siginfo.h
+ create mode 100644 arch/score/include/asm/signal.h
+ create mode 100644 arch/score/include/asm/socket.h
+ create mode 100644 arch/score/include/asm/sockios.h
+ create mode 100644 arch/score/include/asm/stat.h
+ create mode 100644 arch/score/include/asm/statfs.h
+ create mode 100644 arch/score/include/asm/string.h
+ create mode 100644 arch/score/include/asm/swab.h
+ create mode 100644 arch/score/include/asm/syscalls.h
+ create mode 100644 arch/score/include/asm/system.h
+ create mode 100644 arch/score/include/asm/termbits.h
+ create mode 100644 arch/score/include/asm/termios.h
+ create mode 100644 arch/score/include/asm/thread_info.h
+ create mode 100644 arch/score/include/asm/timex.h
+ create mode 100644 arch/score/include/asm/tlb.h
+ create mode 100644 arch/score/include/asm/tlbflush.h
+ create mode 100644 arch/score/include/asm/topology.h
+ create mode 100644 arch/score/include/asm/types.h
+ create mode 100644 arch/score/include/asm/uaccess.h
+ create mode 100644 arch/score/include/asm/ucontext.h
+ create mode 100644 arch/score/include/asm/unaligned.h
+ create mode 100644 arch/score/include/asm/unistd.h
+ create mode 100644 arch/score/include/asm/user.h
+ create mode 100644 arch/score/kernel/Makefile
+ create mode 100644 arch/score/kernel/asm-offsets.c
+ create mode 100644 arch/score/kernel/entry.S
+ create mode 100644 arch/score/kernel/head.S
+ create mode 100644 arch/score/kernel/init_task.c
+ create mode 100644 arch/score/kernel/irq.c
+ create mode 100644 arch/score/kernel/module.c
+ create mode 100644 arch/score/kernel/process.c
+ create mode 100644 arch/score/kernel/ptrace.c
+ create mode 100644 arch/score/kernel/setup.c
+ create mode 100644 arch/score/kernel/signal.c
+ create mode 100644 arch/score/kernel/sys_call_table.c
+ create mode 100644 arch/score/kernel/sys_score.c
+ create mode 100644 arch/score/kernel/time.c
+ create mode 100644 arch/score/kernel/traps.c
+ create mode 100644 arch/score/kernel/vmlinux.lds.S
+ create mode 100644 arch/score/lib/Makefile
+ create mode 100644 arch/score/lib/ashldi3.c
+ create mode 100644 arch/score/lib/ashrdi3.c
+ create mode 100644 arch/score/lib/checksum.S
+ create mode 100644 arch/score/lib/checksum_copy.c
+ create mode 100644 arch/score/lib/cmpdi2.c
+ create mode 100644 arch/score/lib/libgcc.h
+ create mode 100644 arch/score/lib/lshrdi3.c
+ create mode 100644 arch/score/lib/string.S
+ create mode 100644 arch/score/lib/ucmpdi2.c
+ create mode 100644 arch/score/mm/Makefile
+ create mode 100644 arch/score/mm/cache.c
+ create mode 100644 arch/score/mm/extable.c
+ create mode 100644 arch/score/mm/fault.c
+ create mode 100644 arch/score/mm/init.c
+ create mode 100644 arch/score/mm/pgtable.c
+ create mode 100644 arch/score/mm/tlb-miss.S
+ create mode 100644 arch/score/mm/tlb-score.c
