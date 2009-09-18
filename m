@@ -1,14 +1,15 @@
 From: Eric B Munson <ebmunson@us.ibm.com>
-Subject: [PATCH 5/7] Add MAP_HUGETLB flag to xtensa mman.h
-Date: Fri, 18 Sep 2009 06:21:51 -0600
-Message-ID: <d8e315b04749f73765e61eb7e4cbbaed2b946dfd.1253272709.git.ebmunson@us.ibm.com>
+Subject: [PATCH 6/7] Add MAP_HUGETLB flag to parisc mman.h
+Date: Fri, 18 Sep 2009 06:21:52 -0600
+Message-ID: <309744fd80915ce157aa90dbb807101f61b1f334.1253272709.git.ebmunson@us.ibm.com>
 References: <cover.1253272709.git.ebmunson@us.ibm.com>
  <653aa659fd7970f7428f4eb41fa10693064e4daf.1253272709.git.ebmunson@us.ibm.com>
  <08251014d2eb30e9016bab16404133f5c13beacf.1253272709.git.ebmunson@us.ibm.com>
  <462331ca14e2ed47b20b047342e73b92559e1c5b.1253272709.git.ebmunson@us.ibm.com>
  <be5687cbd44413416009466357c1ded6418cc163.1253272709.git.ebmunson@us.ibm.com>
+ <d8e315b04749f73765e61eb7e4cbbaed2b946dfd.1253272709.git.ebmunson@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <be5687cbd44413416009466357c1ded6418cc163.1253272709.git.ebmunson@us.ibm.com>
+In-Reply-To: <d8e315b04749f73765e61eb7e4cbbaed2b946dfd.1253272709.git.ebmunson@us.ibm.com>
 In-Reply-To: <cover.1253272709.git.ebmunson@us.ibm.com>
 References: <cover.1253272709.git.ebmunson@us.ibm.com>
 Sender: owner-linux-mm@kvack.org
@@ -16,34 +17,33 @@ To: linux-kernel@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org
 Cc: rdunlap@xenotime.net, michael@ellerman.id.au, ralf@linux-mips.org, wli@holomorphy.com, mel@csn.ul.ie, dhowells@redhat.com, arnd@arndb.de, fengguang.wu@intel.com, shuber2@gmail.com, hugh.dickins@tiscali.co.uk, zohar@us.ibm.com, hugh@veritas.com, mtk.manpages@gmail.com, chris@zankel.net, linux-man@vger.kernel.org, linux-doc@vger.kernel.org, linux-alpha@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linux-arch@vger.kernel.org, Eric B Munson <ebmunson@us.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Even though xtensa does not support huge pages this flag needs to
+Even though parisc does not support huge pages this flag needs to
 be defined here to keep the compiler happy.  This is because
-xtensa does not make use of mman-common.h, so any flags defined
-there and used in common code need to be added to xtensa's mman.h
+parisc does not make use of mman-common.h, so any flags defined
+there and used in common code need to be added to parisc's mman.h
 manually.
 
 Signed-off-by: Eric B Munson <ebmunson@us.ibm.com>
 ---
- arch/xtensa/include/asm/mman.h |    6 ++++++
- 1 files changed, 6 insertions(+), 0 deletions(-)
+ arch/parisc/include/asm/mman.h |    7 +++++++
+ 1 files changed, 7 insertions(+), 0 deletions(-)
 
-diff --git a/arch/xtensa/include/asm/mman.h b/arch/xtensa/include/asm/mman.h
-index 9b92620..2572f5a 100644
---- a/arch/xtensa/include/asm/mman.h
-+++ b/arch/xtensa/include/asm/mman.h
-@@ -53,6 +53,12 @@
- #define MAP_LOCKED	0x8000		/* pages are locked */
- #define MAP_POPULATE	0x10000		/* populate (prefault) pagetables */
- #define MAP_NONBLOCK	0x20000		/* do not block on IO */
+diff --git a/arch/parisc/include/asm/mman.h b/arch/parisc/include/asm/mman.h
+index defe752..7563d0c 100644
+--- a/arch/parisc/include/asm/mman.h
++++ b/arch/parisc/include/asm/mman.h
+@@ -58,4 +58,11 @@
+ #define MAP_FILE	0
+ #define MAP_VARIABLE	0
+ 
 +/*
 + * This flag is included even though huge pages are not supported because
 + * the flag is defined in mman-common.h and used in common vm code but
 + * mman-common.h is not included here
 + */
 +#define MAP_HUGETLB	0x080000
- 
- /*
-  * Flags for msync
++
+ #endif /* __PARISC_MMAN_H__ */
 -- 
 1.6.3.2
 
