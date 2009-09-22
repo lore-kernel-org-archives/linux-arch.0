@@ -1,35 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:56204 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:53518 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752355AbZIRVVT (ORCPT
+	by vger.kernel.org with ESMTP id S1753115AbZIVUnp (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Sep 2009 17:21:19 -0400
-Message-ID: <200909182120.n8ILKUo8004823@imap1.linux-foundation.org>
-Subject: + mm-remove-duplicate-asm-mmanh-files.patch added to -mm tree
+	Tue, 22 Sep 2009 16:43:45 -0400
+Message-ID: <200909222043.n8MKhijR012234@imap1.linux-foundation.org>
+Subject: [merged] mm-remove-duplicate-asm-mmanh-files.patch removed from -mm tree
 From: akpm@linux-foundation.org
-Date: Fri, 18 Sep 2009 14:20:30 -0700
+Date: Tue, 22 Sep 2009 13:43:44 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mm-commits@vger.kernel.org
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org
-Message-ID: <20090918212030.bMVTXml9X7c2Y1PXL4KfLKTs-J4zPSdHiKwYL8mfa10@z>
+To: arnd@arndb.de, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
+Message-ID: <20090922204344.DD_5hbt3_mnAFmicXZiEfMCX9lKCcdGCvmvG57I38YI@z>
 
 
 The patch titled
      mm: remove duplicate asm/mman.h files
-has been added to the -mm tree.  Its filename is
+has been removed from the -mm tree.  Its filename was
      mm-remove-duplicate-asm-mmanh-files.patch
 
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
-
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
-
-See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
-out what to do about this
+This patch was dropped because it was merged into mainline or a subsystem tree
 
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
@@ -324,9 +314,6 @@ Patches currently in -mm which might be from arnd@arndb.de are
 
 origin.patch
 linux-next.patch
-mm-add-map_hugetlb-for-mmaping-pseudo-anonymous-huge-page-regions.patch
-hugetlb-add-map_hugetlb-for-mmaping-pseudo-anonymous-huge-page-regions-fix.patch
-mm-remove-duplicate-asm-mmanh-files.patch
 asm-sections-add-text-data-checking-functions-for-arches-to-override.patch
 kallsyms-use-new-arch_is_kernel_text.patch
 lockdep-use-new-arch_is_kernel_data.patch
