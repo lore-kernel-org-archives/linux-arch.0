@@ -1,30 +1,24 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
 Subject: Re: [PATCH] fs: change sys_truncate/sys_ftruncate length parameter
  type
-Date: Wed, 23 Sep 2009 17:49:55 +0200
-Message-ID: <20090923154955.GA17895@osiris.boeblingen.de.ibm.com>
-References: <20090923150326.GB23595@osiris.boeblingen.de.ibm.com>
- <alpine.LFD.2.01.0909230808130.4950@localhost.localdomain>
+Date: Wed, 23 Sep 2009 09:31:15 -0700
+Message-ID: <4ABA4D53.2040607@zytor.com>
+References: <20090923150326.GB23595@osiris.boeblingen.de.ibm.com> <alpine.LFD.2.01.0909230808130.4950@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1752082AbZIWPuU@vger.kernel.org>
-Content-Disposition: inline
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:56383 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751177AbZIWQbe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Sep 2009 12:31:34 -0400
 In-Reply-To: <alpine.LFD.2.01.0909230808130.4950@localhost.localdomain>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, Sep 23, 2009 at 08:13:47AM -0700, Linus Torvalds wrote:
-> 
-> 
-> On Wed, 23 Sep 2009, Heiko Carstens wrote:
-> > 
-> > For both system calls user space passes a signed long length parameter,
-> > while the kernel side takes an unsigned long parameter and converts it
-> > later to signed long again.
-> 
-> No it doesn't.
+Linus Torvalds wrote:
 > 
 > Look at sys_ftruncate() again. It doesn't convert it to signed long at 
 > all. It converts it to 'loff_t' which is something different entirely.
@@ -38,70 +32,24 @@ On Wed, Sep 23, 2009 at 08:13:47AM -0700, Linus Torvalds wrote:
 >   architecture, if you open with O_LARGEFILE, ftruncate() gets the full 
 >   32-bit range, and that's the part your patch broke. ]
 > 
-> So NAK. Not without some serious explanations on why I'm wrong and am just 
-> being unnecessarily difficult and a pinhead.
 
-Yes, you're right. That would be a user space visible change. I was too much
-focused on the man page + the power pc patch.
-So it's only the truncate part that would make sense:
+I would argue that the current behavior is, if not incorrect (we define 
+our own ABI after all) at least unwanted (we want our ABI to be as close 
+as practical to the POSIX API.)
 
-Subject: [PATCH] fs: change sys_truncate length parameter type
+In particular, at the API level, both truncate() and ftruncate does take 
+a signed (off_t) parameter, and the POSIX spec states:
 
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
+        The ftruncate() function shall fail if:
 
-For this system call user space passes a signed long length parameter,
-while the kernel side takes an unsigned long parameter and converts it
-later to signed long again.
-As far as I can see there is no point in doing the unsigned -> signed
-conversion.
-But it has led to bugs in compat wrappers see e.g.
-dd90bbd5 "powerpc: Add compat_sys_truncate".
-The s390 compat wrapper for this functions is broken as well
-since it also performs zero extension instead of sign extension
-for the length parameter.
+        EINVAL The length argument was less than 0.
 
-In addition if hpa comes up with an automated way of generating
-compat wrappers it would generate a wrong one here.
+So yes, it's a change, but it seems to be one which probably should be done.
 
-So change the length parameter from unsigned long to long.
+> In addition if hpa comes up with an automated way of generating
+> compat wrappers it would generate wrong ones for these two cases.
 
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Christoph Hellwig <hch@lst.de>
-Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
----
- fs/open.c                |    5 ++---
- include/linux/syscalls.h |    3 +--
- 2 files changed, 3 insertions(+), 5 deletions(-)
+I really mean to try to shake free some time and do that project.  I 
+don't think it will happen before Kernel Summit, though :(
 
-Index: linux-2.6/fs/open.c
-===================================================================
---- linux-2.6.orig/fs/open.c
-+++ linux-2.6/fs/open.c
-@@ -290,10 +290,9 @@ out:
- 	return error;
- }
- 
--SYSCALL_DEFINE2(truncate, const char __user *, path, unsigned long, length)
-+SYSCALL_DEFINE2(truncate, const char __user *, path, long, length)
- {
--	/* on 32-bit boxen it will cut the range 2^31--2^32-1 off */
--	return do_sys_truncate(path, (long)length);
-+	return do_sys_truncate(path, length);
- }
- 
- static long do_sys_ftruncate(unsigned int fd, loff_t length, int small)
-Index: linux-2.6/include/linux/syscalls.h
-===================================================================
---- linux-2.6.orig/include/linux/syscalls.h
-+++ linux-2.6/include/linux/syscalls.h
-@@ -460,8 +460,7 @@ asmlinkage long sys_mount(char __user *d
- 				void __user *data);
- asmlinkage long sys_umount(char __user *name, int flags);
- asmlinkage long sys_oldumount(char __user *name);
--asmlinkage long sys_truncate(const char __user *path,
--				unsigned long length);
-+asmlinkage long sys_truncate(const char __user *path, long length);
- asmlinkage long sys_ftruncate(unsigned int fd, unsigned long length);
- asmlinkage long sys_stat(char __user *filename,
- 			struct __old_kernel_stat __user *statbuf);
+	-hpa
