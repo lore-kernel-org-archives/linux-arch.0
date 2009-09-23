@@ -1,55 +1,37 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH] fs: change sys_truncate/sys_ftruncate length parameter
  type
-Date: Wed, 23 Sep 2009 09:31:15 -0700
-Message-ID: <4ABA4D53.2040607@zytor.com>
-References: <20090923150326.GB23595@osiris.boeblingen.de.ibm.com> <alpine.LFD.2.01.0909230808130.4950@localhost.localdomain>
+Date: Wed, 23 Sep 2009 10:18:39 -0700 (PDT)
+Message-ID: <alpine.LFD.2.01.0909231015470.3303@localhost.localdomain>
+References: <20090923150326.GB23595@osiris.boeblingen.de.ibm.com> <alpine.LFD.2.01.0909230808130.4950@localhost.localdomain> <4ABA4D53.2040607@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:56383 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751177AbZIWQbe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Sep 2009 12:31:34 -0400
-In-Reply-To: <alpine.LFD.2.01.0909230808130.4950@localhost.localdomain>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:46945 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751974AbZIWRSu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 23 Sep 2009 13:18:50 -0400
+In-Reply-To: <4ABA4D53.2040607@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
+To: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Linus Torvalds wrote:
+
+
+On Wed, 23 Sep 2009, H. Peter Anvin wrote:
 > 
-> Look at sys_ftruncate() again. It doesn't convert it to signed long at 
-> all. It converts it to 'loff_t' which is something different entirely.
-> 
-> Now, it may be that we _should_ convert it to 'long' like your patch does, 
-> but this is definitely not a "no changes" patch as far as I can tell. It 
-> limits ftruncate to 31 bits on 32-bit architectures, in ways it didn't use 
-> to be limited.
-> 
-> [ Note the "small" logic and the interaction with O_LARGEFILE. On a 32-bit 
->   architecture, if you open with O_LARGEFILE, ftruncate() gets the full 
->   32-bit range, and that's the part your patch broke. ]
-> 
+> I would argue that the current behavior is, if not incorrect (we define our
+> own ABI after all) at least unwanted (we want our ABI to be as close as
+> practical to the POSIX API.)
 
-I would argue that the current behavior is, if not incorrect (we define 
-our own ABI after all) at least unwanted (we want our ABI to be as close 
-as practical to the POSIX API.)
+I think we care a WHOLE LOT more about binary compatibility than we care 
+about some POSIX case for a braindamaged and fundamentally broken system 
+call anyway.
 
-In particular, at the API level, both truncate() and ftruncate does take 
-a signed (off_t) parameter, and the POSIX spec states:
+The thing is, ftruncate() should take loff_t these days, so the old POSIX 
+language is about a pointless system call where the _only_ thing that 
+matters is legacy - and that legacy trumps any POSIX concerns.
 
-        The ftruncate() function shall fail if:
-
-        EINVAL The length argument was less than 0.
-
-So yes, it's a change, but it seems to be one which probably should be done.
-
-> In addition if hpa comes up with an automated way of generating
-> compat wrappers it would generate wrong ones for these two cases.
-
-I really mean to try to shake free some time and do that project.  I 
-don't think it will happen before Kernel Summit, though :(
-
-	-hpa
+			Linus
