@@ -1,45 +1,86 @@
-From: Chen Liqin <liqin.chen@sunplusct.com>
-Subject: [GIT PULL] score patches for 2.6.32
-Date: Wed, 23 Sep 2009 14:40:17 +0800
-Message-ID: <1253688017.27225.12.camel@ad3ser01>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: [PATCH] fs: change sys_truncate/sys_ftruncate length parameter type
+Date: Wed, 23 Sep 2009 17:03:27 +0200
+Message-ID: <20090923150326.GB23595@osiris.boeblingen.de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124-219-29-227.vdslpro.static.apol.com.tw ([124.219.29.227]:60416
-	"EHLO mswedge2.sunplus.com" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1754011AbZIWGy1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 Sep 2009 02:54:27 -0400
+Received: from mtagate7.uk.ibm.com ([195.212.29.140]:34303 "EHLO
+	mtagate7.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750752AbZIWPDu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Sep 2009 11:03:50 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: torvalds@linux-foundation.org, liqin.gnu@gmail.com
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Hi Linus,
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
 
-Please pull from 'for-linus' branch of
-  git://gitserver.sunplusct.com/linux-2.6-score for-linus
-to receive following updates
+For both system calls user space passes a signed long length parameter,
+while the kernel side takes an unsigned long parameter and converts it
+later to signed long again.
+As far as I can see there is no point in doing the unsigned -> signed
+conversion.
+But it has led to bugs in compat wrappers see e.g.
+dd90bbd5 "powerpc: Add compat_sys_truncate".
+The s390 compat wrappers for these two system calls are broken as well
+since they also perform zero extension instead of sign extension for
+the length parameter.
 
-The following changes since commit 7fa07729e439a6184bd824746d06a49cca553f15:
-  Linus Torvalds (1):
-        Merge branch 'perf-fixes-for-linus' of git://git.kernel.org/.../tip/linux-2.6-tip
+In addition if hpa comes up with an automated way of generating
+compat wrappers it would generate wrong ones for these two cases.
 
-are available in the git repository at:
+So change the length parameter from unsigned long to long.
 
-  git://gitserver.sunplusct.com/linux-2.6-score for-linus
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+---
+ fs/open.c                |    7 +++----
+ include/linux/syscalls.h |    5 ++---
+ 2 files changed, 5 insertions(+), 7 deletions(-)
 
-Chen Liqin (1):
-      score: update email address in MAINTAINERS.
-
-Tim Abbott (3):
-      score: Make PAGE_SIZE available to assembly.
-      score: Make THREAD_SIZE available to assembly files.
-      score: Cleanup linker script using new macros.
-
- MAINTAINERS                          |    2 +-
- arch/score/include/asm/page.h        |    3 +-
- arch/score/include/asm/thread_info.h |   15 ++++---
- arch/score/kernel/vmlinux.lds.S      |   77 ++++------------------------------
- 4 files changed, 21 insertions(+), 76 deletions(-)
+Index: linux-2.6/fs/open.c
+===================================================================
+--- linux-2.6.orig/fs/open.c
++++ linux-2.6/fs/open.c
+@@ -290,10 +290,9 @@ out:
+ 	return error;
+ }
+ 
+-SYSCALL_DEFINE2(truncate, const char __user *, path, unsigned long, length)
++SYSCALL_DEFINE2(truncate, const char __user *, path, long, length)
+ {
+-	/* on 32-bit boxen it will cut the range 2^31--2^32-1 off */
+-	return do_sys_truncate(path, (long)length);
++	return do_sys_truncate(path, length);
+ }
+ 
+ static long do_sys_ftruncate(unsigned int fd, loff_t length, int small)
+@@ -342,7 +341,7 @@ out:
+ 	return error;
+ }
+ 
+-SYSCALL_DEFINE2(ftruncate, unsigned int, fd, unsigned long, length)
++SYSCALL_DEFINE2(ftruncate, unsigned int, fd, long, length)
+ {
+ 	long ret = do_sys_ftruncate(fd, length, 1);
+ 	/* avoid REGPARM breakage on x86: */
+Index: linux-2.6/include/linux/syscalls.h
+===================================================================
+--- linux-2.6.orig/include/linux/syscalls.h
++++ linux-2.6/include/linux/syscalls.h
+@@ -460,9 +460,8 @@ asmlinkage long sys_mount(char __user *d
+ 				void __user *data);
+ asmlinkage long sys_umount(char __user *name, int flags);
+ asmlinkage long sys_oldumount(char __user *name);
+-asmlinkage long sys_truncate(const char __user *path,
+-				unsigned long length);
+-asmlinkage long sys_ftruncate(unsigned int fd, unsigned long length);
++asmlinkage long sys_truncate(const char __user *path, long length);
++asmlinkage long sys_ftruncate(unsigned int fd, long length);
+ asmlinkage long sys_stat(char __user *filename,
+ 			struct __old_kernel_stat __user *statbuf);
+ asmlinkage long sys_statfs(const char __user * path,
