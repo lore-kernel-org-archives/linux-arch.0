@@ -1,37 +1,94 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH] fs: change sys_truncate/sys_ftruncate length parameter
- type
-Date: Wed, 23 Sep 2009 10:18:39 -0700 (PDT)
-Message-ID: <alpine.LFD.2.01.0909231015470.3303@localhost.localdomain>
-References: <20090923150326.GB23595@osiris.boeblingen.de.ibm.com> <alpine.LFD.2.01.0909230808130.4950@localhost.localdomain> <4ABA4D53.2040607@zytor.com>
+From: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+Subject: Re: update_mmu_cache() when write protecting pte.
+Date: Thu, 24 Sep 2009 13:39:33 +0100 (BST)
+Message-ID: <Pine.LNX.4.64.0909241310350.9528@sister.anvils>
+References: <20090923232221.1d566a5c@woof.woof>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:46945 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751974AbZIWRSu (ORCPT
+Received: from mk-filter-4-a-1.mail.uk.tiscali.com ([212.74.100.55]:37280 "EHLO
+	mk-filter-4-a-1.mail.uk.tiscali.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751832AbZIXMjf (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 Sep 2009 13:18:50 -0400
-In-Reply-To: <4ABA4D53.2040607@zytor.com>
+	Thu, 24 Sep 2009 08:39:35 -0400
+In-Reply-To: <20090923232221.1d566a5c@woof.woof>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Izik Eidus <ieidus@redhat.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, davem@redhat.com, aarcange@redhat.com, gleb@redhat.com
 
+Added linux-arch to Cc list.
 
+On Wed, 23 Sep 2009, Izik Eidus wrote:
 
-On Wed, 23 Sep 2009, H. Peter Anvin wrote:
+> Hi, Hugh just found out that ksm was not calling to update_mmu_cache()
+> after it set new pte when it changed ptes mapping to point into the new
+> shared-readonly page (ksmpage).
 > 
-> I would argue that the current behavior is, if not incorrect (we define our
-> own ABI after all) at least unwanted (we want our ABI to be as close as
-> practical to the POSIX API.)
+> It is understandable that it is a bug and ksm have to call it right
+> after set_pte_at_notify() get called, but the question is: does ksm
+> have to call it only there or should it call it even when it
+> write-protect pte (while not changing the physical address the pte is
+> pointing to).
 
-I think we care a WHOLE LOT more about binary compatibility than we care 
-about some POSIX case for a braindamaged and fundamentally broken system 
-call anyway.
+I'm currently inclining to the view that it's only necessary to call
+update_mmu_cache() in faulting paths (as cachetlb.txt says), and would
+just be a waste of time and cache to call it from KSM (which, like
+mprotect, has no reason to suppose that the pte will soon be faulted).
 
-The thing is, ftruncate() should take loff_t these days, so the old POSIX 
-language is about a pointless system call where the _only_ thing that 
-matters is legacy - and that legacy trumps any POSIX concerns.
+Documentation/cachetlb.txt is specific when it says:
+	At the end of every page fault, this routine is invoked...
+But less so when it says:
+	A port may use this information in any way it so chooses.
 
-			Linus
+In private mail, I was worrying about how mprotect does not call
+update_mmu_cache, and thinking of the race when mprotect makes a pte
+writable while a write access is coming down through handle_pte_fault:
+such that handle_pte_fault skips its update_mmu_cache: but hadn't
+noticed the "else" there, which will flush_tlb_page to reset the
+condition, so we don't have repeated faults on those architectures
+which are liable to that if the update_mmu_cache() is missed.
+
+I think now that neither replace_page() nor write_protect_page() should
+update_mmu_cache(); but my mind may change in a few moments time ;)
+
+Hugh
+
+> 
+> I am asking this question because it seems that fork() dont call it...
+> 
+> (below a patch that fix the problem in case we need it just when we
+> change the physical mapping, if we need it even when we write protect
+> the pages, then we need to add another update_mmu_cache()  call)
+> 
+> Thanks.
+> 
+> From 82d27f67a8b20767dc6119422189f73b52168c8d Mon Sep 17 00:00:00 2001
+> From: Izik Eidus <ieidus@redhat.com>
+> Date: Wed, 23 Sep 2009 22:37:34 +0300
+> Subject: [PATCH] ksm: add update_mmu_cache() when changing pte mapping.
+> 
+> This patch add update_mmu_cache() call right after set_pte_at_notify()
+> Without this function ksm is probably broken for powerpc and sparc archs.
+> 
+> (Noticed by Hugh Dickins)
+> 
+> Signed-off-by: Izik Eidus <ieidus@redhat.com>
+> ---
+>  mm/ksm.c |    1 +
+>  1 files changed, 1 insertions(+), 0 deletions(-)
+> 
+> diff --git a/mm/ksm.c b/mm/ksm.c
+> index f7edac3..e8d16eb 100644
+> --- a/mm/ksm.c
+> +++ b/mm/ksm.c
+> @@ -719,6 +719,7 @@ static int replace_page(struct vm_area_struct *vma, struct page *oldpage,
+>  	flush_cache_page(vma, addr, pte_pfn(*ptep));
+>  	ptep_clear_flush(vma, addr, ptep);
+>  	set_pte_at_notify(mm, addr, ptep, mk_pte(newpage, prot));
+> +	update_mmu_cache(vma, addr, pte);
+>  
+>  	page_remove_rmap(oldpage);
+>  	put_page(oldpage);
+> -- 
+> 1.5.6.5
