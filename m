@@ -1,94 +1,436 @@
-From: Hugh Dickins <hugh.dickins@tiscali.co.uk>
-Subject: Re: update_mmu_cache() when write protecting pte.
-Date: Thu, 24 Sep 2009 13:39:33 +0100 (BST)
-Message-ID: <Pine.LNX.4.64.0909241310350.9528@sister.anvils>
-References: <20090923232221.1d566a5c@woof.woof>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH] kill USE_ELF_CORE_DUMP
+Date: Sat, 26 Sep 2009 21:50:10 +0200
+Message-ID: <20090926195010.GA24592@lst.de>
+References: <20090423183331.GA19899@lst.de> <49F16786.7010401@petalogix.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mk-filter-4-a-1.mail.uk.tiscali.com ([212.74.100.55]:37280 "EHLO
-	mk-filter-4-a-1.mail.uk.tiscali.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751832AbZIXMjf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 Sep 2009 08:39:35 -0400
-In-Reply-To: <20090923232221.1d566a5c@woof.woof>
+Received: from verein.lst.de ([213.95.11.210]:46123 "EHLO verein.lst.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751800AbZIZTuP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 Sep 2009 15:50:15 -0400
+Content-Disposition: inline
+In-Reply-To: <49F16786.7010401@petalogix.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Izik Eidus <ieidus@redhat.com>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, davem@redhat.com, aarcange@redhat.com, gleb@redhat.com
+To: Michal Simek <michal.simek@petalogix.com>
+Cc: linux-arch@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org
 
-Added linux-arch to Cc list.
+Currently all architectures but microblaze unconditionally define
+USE_ELF_CORE_DUMP.  The microblaze ommision seems like an error to
+me, so let's  kill this ifdef and make sure we are the same everywhere.
 
-On Wed, 23 Sep 2009, Izik Eidus wrote:
 
-> Hi, Hugh just found out that ksm was not calling to update_mmu_cache()
-> after it set new pte when it changed ptes mapping to point into the new
-> shared-readonly page (ksmpage).
-> 
-> It is understandable that it is a bug and ksm have to call it right
-> after set_pte_at_notify() get called, but the question is: does ksm
-> have to call it only there or should it call it even when it
-> write-protect pte (while not changing the physical address the pte is
-> pointing to).
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-I'm currently inclining to the view that it's only necessary to call
-update_mmu_cache() in faulting paths (as cachetlb.txt says), and would
-just be a waste of time and cache to call it from KSM (which, like
-mprotect, has no reason to suppose that the pte will soon be faulted).
-
-Documentation/cachetlb.txt is specific when it says:
-	At the end of every page fault, this routine is invoked...
-But less so when it says:
-	A port may use this information in any way it so chooses.
-
-In private mail, I was worrying about how mprotect does not call
-update_mmu_cache, and thinking of the race when mprotect makes a pte
-writable while a write access is coming down through handle_pte_fault:
-such that handle_pte_fault skips its update_mmu_cache: but hadn't
-noticed the "else" there, which will flush_tlb_page to reset the
-condition, so we don't have repeated faults on those architectures
-which are liable to that if the update_mmu_cache() is missed.
-
-I think now that neither replace_page() nor write_protect_page() should
-update_mmu_cache(); but my mind may change in a few moments time ;)
-
-Hugh
-
-> 
-> I am asking this question because it seems that fork() dont call it...
-> 
-> (below a patch that fix the problem in case we need it just when we
-> change the physical mapping, if we need it even when we write protect
-> the pages, then we need to add another update_mmu_cache()  call)
-> 
-> Thanks.
-> 
-> From 82d27f67a8b20767dc6119422189f73b52168c8d Mon Sep 17 00:00:00 2001
-> From: Izik Eidus <ieidus@redhat.com>
-> Date: Wed, 23 Sep 2009 22:37:34 +0300
-> Subject: [PATCH] ksm: add update_mmu_cache() when changing pte mapping.
-> 
-> This patch add update_mmu_cache() call right after set_pte_at_notify()
-> Without this function ksm is probably broken for powerpc and sparc archs.
-> 
-> (Noticed by Hugh Dickins)
-> 
-> Signed-off-by: Izik Eidus <ieidus@redhat.com>
-> ---
->  mm/ksm.c |    1 +
->  1 files changed, 1 insertions(+), 0 deletions(-)
-> 
-> diff --git a/mm/ksm.c b/mm/ksm.c
-> index f7edac3..e8d16eb 100644
-> --- a/mm/ksm.c
-> +++ b/mm/ksm.c
-> @@ -719,6 +719,7 @@ static int replace_page(struct vm_area_struct *vma, struct page *oldpage,
->  	flush_cache_page(vma, addr, pte_pfn(*ptep));
->  	ptep_clear_flush(vma, addr, ptep);
->  	set_pte_at_notify(mm, addr, ptep, mk_pte(newpage, prot));
-> +	update_mmu_cache(vma, addr, pte);
->  
->  	page_remove_rmap(oldpage);
->  	put_page(oldpage);
-> -- 
-> 1.5.6.5
+Index: linux-2.6/arch/alpha/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/alpha/include/asm/elf.h	2009-05-14 13:52:06.869783812 -0300
++++ linux-2.6/arch/alpha/include/asm/elf.h	2009-09-26 13:55:25.485254128 -0300
+@@ -81,7 +81,6 @@ typedef elf_fpreg_t elf_fpregset_t[ELF_N
+ #define ELF_DATA	ELFDATA2LSB
+ #define ELF_ARCH	EM_ALPHA
+ 
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE	8192
+ 
+ /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
+Index: linux-2.6/arch/arm/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/arm/include/asm/elf.h	2009-09-14 23:18:15.473004176 -0300
++++ linux-2.6/arch/arm/include/asm/elf.h	2009-09-26 13:55:25.485254128 -0300
+@@ -98,7 +98,6 @@ extern int elf_check_arch(const struct e
+ extern int arm_elf_read_implies_exec(const struct elf32_hdr *, int);
+ #define elf_read_implies_exec(ex,stk) arm_elf_read_implies_exec(&(ex), stk)
+ 
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE	4096
+ 
+ /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
+Index: linux-2.6/arch/avr32/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/avr32/include/asm/elf.h	2009-05-14 13:52:07.559784706 -0300
++++ linux-2.6/arch/avr32/include/asm/elf.h	2009-09-26 13:55:25.486254465 -0300
+@@ -77,7 +77,6 @@ typedef struct user_fpu_struct elf_fpreg
+ #endif
+ #define ELF_ARCH	EM_AVR32
+ 
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE	4096
+ 
+ /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
+Index: linux-2.6/arch/blackfin/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/blackfin/include/asm/elf.h	2009-09-22 08:44:53.613003791 -0300
++++ linux-2.6/arch/blackfin/include/asm/elf.h	2009-09-26 13:55:25.489299895 -0300
+@@ -51,7 +51,6 @@ do {											\
+ 	_regs->p2	= _dynamic_addr;				\
+ } while(0)
+ 
+-#define USE_ELF_CORE_DUMP
+ #define ELF_FDPIC_CORE_EFLAGS	EF_BFIN_FDPIC
+ #define ELF_EXEC_PAGESIZE	4096
+ 
+Index: linux-2.6/arch/cris/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/cris/include/asm/elf.h	2009-05-14 13:52:07.734784323 -0300
++++ linux-2.6/arch/cris/include/asm/elf.h	2009-09-26 13:55:25.502254688 -0300
+@@ -64,8 +64,6 @@ typedef unsigned long elf_fpregset_t;
+ #define EF_CRIS_VARIANT_COMMON_V10_V32	0x00000004
+ /* End of excerpt from {binutils}/include/elf/cris.h.  */
+ 
+-#define USE_ELF_CORE_DUMP
+-
+ #define ELF_EXEC_PAGESIZE	8192
+ 
+ /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
+Index: linux-2.6/arch/frv/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/frv/include/asm/elf.h	2009-09-02 08:37:28.440714023 -0300
++++ linux-2.6/arch/frv/include/asm/elf.h	2009-09-26 13:55:49.291006245 -0300
+@@ -115,7 +115,6 @@ do {											\
+ 	__kernel_frame0_ptr->gr29	= 0;						\
+ } while(0)
+ 
+-#define USE_ELF_CORE_DUMP
+ #define CORE_DUMP_USE_REGSET
+ #define ELF_FDPIC_CORE_EFLAGS	EF_FRV_FDPIC
+ #define ELF_EXEC_PAGESIZE	16384
+Index: linux-2.6/arch/h8300/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/h8300/include/asm/elf.h	2009-05-14 13:52:07.792784432 -0300
++++ linux-2.6/arch/h8300/include/asm/elf.h	2009-09-26 13:55:25.511254437 -0300
+@@ -34,7 +34,6 @@ typedef unsigned long elf_fpregset_t;
+ 
+ #define ELF_PLAT_INIT(_r)	_r->er1 = 0
+ 
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE	4096
+ 
+ /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
+Index: linux-2.6/arch/ia64/ia32/elfcore32.h
+===================================================================
+--- linux-2.6.orig/arch/ia64/ia32/elfcore32.h	2009-05-14 13:52:07.815784073 -0300
++++ linux-2.6/arch/ia64/ia32/elfcore32.h	2009-09-26 13:55:25.513299251 -0300
+@@ -11,8 +11,6 @@
+ #include <asm/intrinsics.h>
+ #include <asm/uaccess.h>
+ 
+-#define USE_ELF_CORE_DUMP 1
+-
+ /* Override elfcore.h */
+ #define _LINUX_ELFCORE_H 1
+ typedef unsigned int elf_greg_t;
+Index: linux-2.6/arch/ia64/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/ia64/include/asm/elf.h	2009-05-14 13:52:07.820784918 -0300
++++ linux-2.6/arch/ia64/include/asm/elf.h	2009-09-26 13:55:25.516299773 -0300
+@@ -25,7 +25,6 @@
+ #define ELF_DATA	ELFDATA2LSB
+ #define ELF_ARCH	EM_IA_64
+ 
+-#define USE_ELF_CORE_DUMP
+ #define CORE_DUMP_USE_REGSET
+ 
+ /* Least-significant four bits of ELF header's e_flags are OS-specific.  The bits are
+Index: linux-2.6/arch/m32r/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/m32r/include/asm/elf.h	2009-08-16 16:43:58.456455519 -0300
++++ linux-2.6/arch/m32r/include/asm/elf.h	2009-09-26 13:55:25.517254224 -0300
+@@ -102,7 +102,6 @@ typedef elf_fpreg_t elf_fpregset_t;
+  */
+ #define ELF_PLAT_INIT(_r, load_addr)	(_r)->r0 = 0
+ 
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE	PAGE_SIZE
+ 
+ /*
+Index: linux-2.6/arch/m68k/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/m68k/include/asm/elf.h	2009-08-16 16:43:58.500457548 -0300
++++ linux-2.6/arch/m68k/include/asm/elf.h	2009-09-26 13:55:25.532254040 -0300
+@@ -59,7 +59,6 @@ typedef struct user_m68kfp_struct elf_fp
+    is actually used on ASV.  */
+ #define ELF_PLAT_INIT(_r, load_addr)	_r->a1 = 0
+ 
+-#define USE_ELF_CORE_DUMP
+ #ifndef CONFIG_SUN3
+ #define ELF_EXEC_PAGESIZE	4096
+ #else
+Index: linux-2.6/arch/mips/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/mips/include/asm/elf.h	2009-09-02 08:37:28.524713385 -0300
++++ linux-2.6/arch/mips/include/asm/elf.h	2009-09-26 13:55:25.533254097 -0300
+@@ -326,7 +326,6 @@ extern int dump_task_fpu(struct task_str
+ #define ELF_CORE_COPY_FPREGS(tsk, elf_fpregs)			\
+ 	dump_task_fpu(tsk, elf_fpregs)
+ 
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE	PAGE_SIZE
+ 
+ /* This yields a mask that user programs can use to figure out what
+Index: linux-2.6/arch/mn10300/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/mn10300/include/asm/elf.h	2009-09-02 08:37:28.585214085 -0300
++++ linux-2.6/arch/mn10300/include/asm/elf.h	2009-09-26 13:55:33.635270334 -0300
+@@ -77,7 +77,6 @@ do {									\
+ 	_ur->a1   = 0;	_ur->a0   = 0;	_ur->d1   = 0;	_ur->d0   = 0;	\
+ } while (0)
+ 
+-#define USE_ELF_CORE_DUMP
+ #define CORE_DUMP_USE_REGSET
+ #define ELF_EXEC_PAGESIZE	4096
+ 
+Index: linux-2.6/arch/parisc/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/parisc/include/asm/elf.h	2009-08-16 16:43:58.756431694 -0300
++++ linux-2.6/arch/parisc/include/asm/elf.h	2009-09-26 13:55:25.538254943 -0300
+@@ -328,7 +328,6 @@ struct pt_regs;	/* forward declaration..
+    such function.  */
+ #define ELF_PLAT_INIT(_r, load_addr)       _r->gr[23] = 0
+ 
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE	4096
+ 
+ /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
+Index: linux-2.6/arch/powerpc/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/powerpc/include/asm/elf.h	2009-09-02 08:37:28.652714349 -0300
++++ linux-2.6/arch/powerpc/include/asm/elf.h	2009-09-26 13:55:25.542254265 -0300
+@@ -170,7 +170,6 @@ typedef elf_fpreg_t elf_vsrreghalf_t32[E
+ #define elf_check_arch(x) ((x)->e_machine == ELF_ARCH)
+ #define compat_elf_check_arch(x)	((x)->e_machine == EM_PPC)
+ 
+-#define USE_ELF_CORE_DUMP
+ #define CORE_DUMP_USE_REGSET
+ #define ELF_EXEC_PAGESIZE	PAGE_SIZE
+ 
+Index: linux-2.6/arch/s390/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/s390/include/asm/elf.h	2009-05-14 13:52:09.959784152 -0300
++++ linux-2.6/arch/s390/include/asm/elf.h	2009-09-26 13:55:25.544299497 -0300
+@@ -143,7 +143,6 @@ extern unsigned int vdso_enabled;
+ 	} while (0)
+ 
+ #define CORE_DUMP_USE_REGSET
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE	4096
+ 
+ /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
+Index: linux-2.6/arch/sh/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/sh/include/asm/elf.h	2009-05-14 13:52:10.267785588 -0300
++++ linux-2.6/arch/sh/include/asm/elf.h	2009-09-26 13:55:25.545254228 -0300
+@@ -114,7 +114,6 @@ typedef struct user_fpu_struct elf_fpreg
+  */
+ #define CORE_DUMP_USE_REGSET
+ 
+-#define USE_ELF_CORE_DUMP
+ #define ELF_FDPIC_CORE_EFLAGS	EF_SH_FDPIC
+ #define ELF_EXEC_PAGESIZE	PAGE_SIZE
+ 
+Index: linux-2.6/arch/sparc/include/asm/elf_32.h
+===================================================================
+--- linux-2.6.orig/arch/sparc/include/asm/elf_32.h	2009-05-14 13:52:10.867783983 -0300
++++ linux-2.6/arch/sparc/include/asm/elf_32.h	2009-09-26 13:55:25.548298959 -0300
+@@ -104,8 +104,6 @@ typedef struct {
+ #define ELF_CLASS	ELFCLASS32
+ #define ELF_DATA	ELFDATA2MSB
+ 
+-#define USE_ELF_CORE_DUMP
+-
+ #define ELF_EXEC_PAGESIZE	4096
+ 
+ 
+Index: linux-2.6/arch/sparc/include/asm/elf_64.h
+===================================================================
+--- linux-2.6.orig/arch/sparc/include/asm/elf_64.h	2009-09-02 08:37:28.824714634 -0300
++++ linux-2.6/arch/sparc/include/asm/elf_64.h	2009-09-26 13:55:25.566256275 -0300
+@@ -152,7 +152,6 @@ typedef struct {
+ 					 (x)->e_machine == EM_SPARC32PLUS)
+ #define compat_start_thread		start_thread32
+ 
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE	PAGE_SIZE
+ 
+ /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
+Index: linux-2.6/arch/um/sys-i386/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/um/sys-i386/asm/elf.h	2009-05-14 13:52:11.829784951 -0300
++++ linux-2.6/arch/um/sys-i386/asm/elf.h	2009-09-26 13:55:25.570258251 -0300
+@@ -48,7 +48,6 @@ typedef struct user_i387_struct elf_fpre
+ 	PT_REGS_EAX(regs) = 0; \
+ } while (0)
+ 
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE 4096
+ 
+ #define ELF_ET_DYN_BASE (2 * TASK_SIZE / 3)
+Index: linux-2.6/arch/um/sys-ppc/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/um/sys-ppc/asm/elf.h	2009-05-14 13:52:12.158661386 -0300
++++ linux-2.6/arch/um/sys-ppc/asm/elf.h	2009-09-26 13:55:25.572256410 -0300
+@@ -17,8 +17,6 @@ extern long elf_aux_hwcap;
+ #define ELF_CLASS ELFCLASS32
+ #endif
+ 
+-#define USE_ELF_CORE_DUMP
+-
+ #define R_386_NONE	0
+ #define R_386_32	1
+ #define R_386_PC32	2
+Index: linux-2.6/arch/um/sys-x86_64/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/um/sys-x86_64/asm/elf.h	2009-09-02 08:37:28.852714285 -0300
++++ linux-2.6/arch/um/sys-x86_64/asm/elf.h	2009-09-26 13:55:25.577256489 -0300
+@@ -104,7 +104,6 @@ extern int elf_core_copy_fpregs(struct t
+         clear_thread_flag(TIF_IA32);
+ #endif
+ 
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE 4096
+ 
+ #define ELF_ET_DYN_BASE (2 * TASK_SIZE / 3)
+Index: linux-2.6/arch/x86/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/x86/include/asm/elf.h	2009-09-22 08:44:53.800003672 -0300
++++ linux-2.6/arch/x86/include/asm/elf.h	2009-09-26 13:55:25.582254053 -0300
+@@ -255,7 +255,6 @@ extern int force_personality32;
+ #endif /* !CONFIG_X86_32 */
+ 
+ #define CORE_DUMP_USE_REGSET
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE	4096
+ 
+ /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
+Index: linux-2.6/arch/xtensa/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/xtensa/include/asm/elf.h	2009-05-14 13:52:12.740784743 -0300
++++ linux-2.6/arch/xtensa/include/asm/elf.h	2009-09-26 13:55:25.584254028 -0300
+@@ -123,7 +123,6 @@ extern void xtensa_elf_core_copy_regs (x
+ #define ELF_CLASS	ELFCLASS32
+ #define ELF_ARCH	EM_XTENSA
+ 
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE	PAGE_SIZE
+ 
+ /*
+Index: linux-2.6/fs/binfmt_elf.c
+===================================================================
+--- linux-2.6.orig/fs/binfmt_elf.c	2009-09-25 16:57:55.995004030 -0300
++++ linux-2.6/fs/binfmt_elf.c	2009-09-26 13:55:25.588253770 -0300
+@@ -44,7 +44,7 @@ static unsigned long elf_map(struct file
+  * If we don't support core dumping, then supply a NULL so we
+  * don't even try.
+  */
+-#if defined(USE_ELF_CORE_DUMP) && defined(CONFIG_ELF_CORE)
++#ifdef CONFIG_ELF_CORE
+ static int elf_core_dump(long signr, struct pt_regs *regs, struct file *file, unsigned long limit);
+ #else
+ #define elf_core_dump	NULL
+@@ -1101,12 +1101,7 @@ out:
+ 	return error;
+ }
+ 
+-/*
+- * Note that some platforms still use traditional core dumps and not
+- * the ELF core dump.  Each platform can select it as appropriate.
+- */
+-#if defined(USE_ELF_CORE_DUMP) && defined(CONFIG_ELF_CORE)
+-
++#ifdef CONFIG_ELF_CORE
+ /*
+  * ELF core dumper
+  *
+@@ -2063,7 +2058,7 @@ out:
+ 	return has_dumped;
+ }
+ 
+-#endif		/* USE_ELF_CORE_DUMP */
++#endif		/* CONFIG_ELF_CORE */
+ 
+ static int __init init_elf_binfmt(void)
+ {
+Index: linux-2.6/fs/binfmt_elf_fdpic.c
+===================================================================
+--- linux-2.6.orig/fs/binfmt_elf_fdpic.c	2009-09-25 16:57:55.995004030 -0300
++++ linux-2.6/fs/binfmt_elf_fdpic.c	2009-09-26 13:55:25.589282322 -0300
+@@ -75,14 +75,14 @@ static int elf_fdpic_map_file_constdisp_
+ static int elf_fdpic_map_file_by_direct_mmap(struct elf_fdpic_params *,
+ 					     struct file *, struct mm_struct *);
+ 
+-#if defined(USE_ELF_CORE_DUMP) && defined(CONFIG_ELF_CORE)
++#ifdef CONFIG_ELF_CORE
+ static int elf_fdpic_core_dump(long, struct pt_regs *, struct file *, unsigned long limit);
+ #endif
+ 
+ static struct linux_binfmt elf_fdpic_format = {
+ 	.module		= THIS_MODULE,
+ 	.load_binary	= load_elf_fdpic_binary,
+-#if defined(USE_ELF_CORE_DUMP) && defined(CONFIG_ELF_CORE)
++#ifdef CONFIG_ELF_CORE
+ 	.core_dump	= elf_fdpic_core_dump,
+ #endif
+ 	.min_coredump	= ELF_EXEC_PAGESIZE,
+@@ -1200,7 +1200,7 @@ static int elf_fdpic_map_file_by_direct_
+  *
+  * Modelled on fs/binfmt_elf.c core dumper
+  */
+-#if defined(USE_ELF_CORE_DUMP) && defined(CONFIG_ELF_CORE)
++#ifdef CONFIG_ELF_CORE
+ 
+ /*
+  * These are the only things you should do on a core-file: use only these
+@@ -1825,4 +1825,4 @@ cleanup:
+ #undef NUM_NOTES
+ }
+ 
+-#endif		/* USE_ELF_CORE_DUMP */
++#endif		/* CONFIG_ELF_CORE */
+Index: linux-2.6/fs/proc/base.c
+===================================================================
+--- linux-2.6.orig/fs/proc/base.c	2009-09-23 21:32:23.665003521 -0300
++++ linux-2.6/fs/proc/base.c	2009-09-26 13:55:25.593019251 -0300
+@@ -2200,7 +2200,7 @@ static const struct inode_operations pro
+ 
+ #endif
+ 
+-#if defined(USE_ELF_CORE_DUMP) && defined(CONFIG_ELF_CORE)
++#ifdef CONFIG_ELF_CORE
+ static ssize_t proc_coredump_filter_read(struct file *file, char __user *buf,
+ 					 size_t count, loff_t *ppos)
+ {
+@@ -2556,7 +2556,7 @@ static const struct pid_entry tgid_base_
+ #ifdef CONFIG_FAULT_INJECTION
+ 	REG("make-it-fail", S_IRUGO|S_IWUSR, proc_fault_inject_operations),
+ #endif
+-#if defined(USE_ELF_CORE_DUMP) && defined(CONFIG_ELF_CORE)
++#ifdef CONFIG_ELF_CORE
+ 	REG("coredump_filter", S_IRUGO|S_IWUSR, proc_coredump_filter_operations),
+ #endif
+ #ifdef CONFIG_TASK_IO_ACCOUNTING
+Index: linux-2.6/arch/microblaze/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/microblaze/include/asm/elf.h	2009-09-26 13:56:14.625022364 -0300
++++ linux-2.6/arch/microblaze/include/asm/elf.h	2009-09-26 13:56:17.173006395 -0300
+@@ -77,7 +77,6 @@ typedef elf_fpreg_t elf_fpregset_t[ELF_N
+ #define ELF_DATA	ELFDATA2MSB
+ #endif
+ 
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE	4096
+ 
+ 
+Index: linux-2.6/arch/score/include/asm/elf.h
+===================================================================
+--- linux-2.6.orig/arch/score/include/asm/elf.h	2009-09-26 13:56:05.827275754 -0300
++++ linux-2.6/arch/score/include/asm/elf.h	2009-09-26 13:56:09.451015201 -0300
+@@ -61,7 +61,6 @@ struct task_struct;
+ struct pt_regs;
+ 
+ #define CORE_DUMP_USE_REGSET
+-#define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE	PAGE_SIZE
+ 
+ /* This yields a mask that user programs can use to figure out what
