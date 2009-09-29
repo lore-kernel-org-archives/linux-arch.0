@@ -1,33 +1,32 @@
-From: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+From: Ralf Baechle <ralf@linux-mips.org>
 Subject: Re: [PATCH] kill USE_ELF_CORE_DUMP
-Date: Sat, 26 Sep 2009 21:03:27 +0100 (BST)
-Message-ID: <Pine.LNX.4.64.0909262059200.21273@sister.anvils>
-References: <20090423183331.GA19899@lst.de> <49F16786.7010401@petalogix.com>
- <20090926195010.GA24592@lst.de>
+Date: Tue, 29 Sep 2009 14:05:04 +0200
+Message-ID: <20090929120504.GA13128@linux-mips.org>
+References: <20090423183331.GA19899@lst.de> <49F16786.7010401@petalogix.com> <20090926195010.GA24592@lst.de>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mk-filter-1-a-1.mail.uk.tiscali.com ([212.74.100.52]:42935 "EHLO
-	mk-filter-1-a-1.mail.uk.tiscali.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751982AbZIZUD1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 26 Sep 2009 16:03:27 -0400
+Received: from eddie.linux-mips.org ([78.24.191.182]:40538 "EHLO
+	eddie.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751038AbZI2MEN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Sep 2009 08:04:13 -0400
+Content-Disposition: inline
 In-Reply-To: <20090926195010.GA24592@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
 Cc: Michal Simek <michal.simek@petalogix.com>, linux-arch@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org
 
-On Sat, 26 Sep 2009, Christoph Hellwig wrote:
+On Sat, Sep 26, 2009 at 09:50:10PM +0200, Christoph Hellwig wrote:
 
 > Currently all architectures but microblaze unconditionally define
 > USE_ELF_CORE_DUMP.  The microblaze ommision seems like an error to
 > me, so let's  kill this ifdef and make sure we are the same everywhere.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Yes, I came to a similar conclusion when I added get_dump_page():
-#ifdef'ed it on CONFIG_ELF_CORE, but couldn't see the point of
-USE_ELF_CORE_DUMP. (Though I missed the microblaze omission).
+USE_ELF_CORE_DUMP was introduced in 2.6.11.  Already back then all
+architectures did define it unconditionally in <asm/elf.h> so there may
+never have been any real use for it.
 
-Acked-by: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+Acked-by: Ralf Baechle <ralf@linux-mips.org>
+
+  Ralf
