@@ -1,31 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp09.in.ibm.com ([59.145.155.9]:55613 "EHLO
-	e28smtp09.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758948AbZJGLsC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Oct 2009 07:48:02 -0400
-Date: Wed, 7 Oct 2009 17:17:20 +0530
-From: Balbir Singh <balbir@linux.vnet.ibm.com>
+Received: from viefep13-int.chello.at ([62.179.121.33]:62486 "EHLO
+	viefep13-int.chello.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933335AbZJGNQG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Oct 2009 09:16:06 -0400
 Subject: Re: [v7 PATCH 0/7]: cpuidle/x86/POWER: Cleanup idle power
  management code in x86, cleanup drivers/cpuidle/cpuidle.c and introduce
  cpuidle to POWER.
-Message-ID: <20091007114719.GH6818@balbir.in.ibm.com>
-Reply-To: balbir@linux.vnet.ibm.com
-References: <20091006152421.GA7278@linux.vnet.ibm.com>
- <20091006163521.GA10425@linux.vnet.ibm.com>
- <1254852279.17055.2.camel@laptop>
- <20091007112648.GC7646@dirshya.in.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
 In-Reply-To: <20091007112648.GC7646@dirshya.in.ibm.com>
+References: <20091006152421.GA7278@linux.vnet.ibm.com>
+	 <20091006163521.GA10425@linux.vnet.ibm.com>
+	 <1254852279.17055.2.camel@laptop>
+	 <20091007112648.GC7646@dirshya.in.ibm.com>
+Content-Type: text/plain
+Date: Wed, 07 Oct 2009 15:05:11 +0200
+Message-ID: <1254920711.26976.243.camel@twins>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Arjan van de Ven <arjan@infradead.org>, arun@linux.vnet.ibm.com, Joel Schopp <jschopp@austin.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Ingo Molnar <mingo@elte.hu>, Dipankar Sarma <dipankar@in.ibm.com>, Gautham R Shenoy <ego@in.ibm.com>, Venkatesh Pallipadi <venkatesh.pallipadi@intel.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
-Message-ID: <20091007114720.TBicQKCUMtaIeOfDcPEVI1vC6_bb5ZgQhqVAmmnHHXE@z>
+To: svaidy@linux.vnet.ibm.com
+Cc: Arjan van de Ven <arjan@infradead.org>, arun@linux.vnet.ibm.com, Joel Schopp <jschopp@austin.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Ingo Molnar <mingo@elte.hu>, Dipankar Sarma <dipankar@in.ibm.com>, Balbir Singh <balbir@in.ibm.com>, Gautham R Shenoy <ego@in.ibm.com>, Venkatesh Pallipadi <venkatesh.pallipadi@intel.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
+Message-ID: <20091007130511.C48hJsNzLimTE-ZdWeKi3UkdvFKnfTLlKJu2FMuSoTc@z>
 
-* Vaidy <svaidy@linux.vnet.ibm.com> [2009-10-07 16:56:48]:
-
+On Wed, 2009-10-07 at 16:56 +0530, Vaidyanathan Srinivasan wrote:
 > * Peter Zijlstra <a.p.zijlstra@chello.nl> [2009-10-06 20:04:39]:
 > 
 > > On Tue, 2009-10-06 at 22:05 +0530, Arun R Bharadwaj wrote:
@@ -33,7 +31,8 @@ Message-ID: <20091007114720.TBicQKCUMtaIeOfDcPEVI1vC6_bb5ZgQhqVAmmnHHXE@z>
 > > > Also, the per-cpu nature of registration/unregistration of cpuidle
 > > > has been maintained as ACPI needs this.
 > > 
-> > Right, so can't we ditch that and have acpi default to the lowest common
+> > Right, so can't we ditch that and have acpi default to the lowest
+> common
 > > C-state and warn when various cpus report different C-states?
 > 
 > Hi Peter,
@@ -42,29 +41,12 @@ Message-ID: <20091007114720.TBicQKCUMtaIeOfDcPEVI1vC6_bb5ZgQhqVAmmnHHXE@z>
 > for x86 for now due to legacy ACPI compatibility.  Breaking that may
 > break lot of existing users and we do not have a clean fallback
 > method.  
-> 
-> As far as powerpc is concerned, we can work with a single global
-> registration.  However we would like to have the same interface across
-> different archs.
-> 
-> With the new re-factoring (v7), Arun has killed most of the list
-> traversal and linking between various cpu's cpuidle_driver structures.
-> Now we have a per-cpu stack of registered devices and we lookup the
-> structs using online cpumasks.  The cpuidle_driver structure has list
-> of idle routing pointers (struct cpuidle_state) and rest of it is
-> statistics that needs to be maintained at a per-cpu level anyway.  All
-> that is duplicated here is the array of idle routines (struct
-> cpuidle_state) on each cpu.
-> 
-> The objective of the refactoring is to have a single common idle
-> routine management framework (remove pm_idle) and we have it done
-> through cpuidle registration framework.  We can incrementally remove
-> the per-cpu registration later easily by splitting the cpuidle_driver
-> structure.
->
 
-Yes, incremental refactoring makes the most sense from the do not
-break as you refactor point of view.
+From what I understood some broken ass bioses report different C state
+availability on different CPUs in the same SMP system.
 
--- 
-	Balbir
+I'm suggesting to work around that by limiting all CPUs to the subset of
+C states reported on all CPUs, instead of the current mess.
+
+I haven't heard anybody tell me why that wouldn't be possible on x86
+
