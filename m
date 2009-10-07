@@ -2,17 +2,18 @@ From: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Subject: Re: [v7 PATCH 0/7]: cpuidle/x86/POWER: Cleanup idle power
 	management code in x86, cleanup drivers/cpuidle/cpuidle.c and introduce
 	cpuidle to POWER.
-Date: Wed, 07 Oct 2009 15:05:11 +0200
-Message-ID: <1254920711.26976.243.camel@twins>
+Date: Wed, 07 Oct 2009 15:24:17 +0200
+Message-ID: <1254921857.26976.249.camel@twins>
 References: <20091006152421.GA7278@linux.vnet.ibm.com>
 	<20091006163521.GA10425@linux.vnet.ibm.com>
 	<1254852279.17055.2.camel@laptop>
 	<20091007112648.GC7646@dirshya.in.ibm.com>
+	<20091007114719.GH6818@balbir.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20091007112648.GC7646@dirshya.in.ibm.com>
+In-Reply-To: <20091007114719.GH6818@balbir.in.ibm.com>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
 	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
@@ -22,33 +23,24 @@ List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
 	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
 Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
 Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-To: svaidy@linux.vnet.ibm.com
+To: balbir@linux.vnet.ibm.com
 Cc: linux-arch@vger.kernel.org, Gautham R Shenoy <ego@in.ibm.com>, Venkatesh Pallipadi <venkatesh.pallipadi@intel.com>, linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, arun@linux.vnet.ibm.com, Ingo Molnar <mingo@elte.hu>, linuxppc-dev@lists.ozlabs.org, Arjan van de Ven <arjan@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2009-10-07 at 16:56 +0530, Vaidyanathan Srinivasan wrote:
-> * Peter Zijlstra <a.p.zijlstra@chello.nl> [2009-10-06 20:04:39]:
-> 
-> > On Tue, 2009-10-06 at 22:05 +0530, Arun R Bharadwaj wrote:
-> > 
-> > > Also, the per-cpu nature of registration/unregistration of cpuidle
-> > > has been maintained as ACPI needs this.
-> > 
-> > Right, so can't we ditch that and have acpi default to the lowest
-> common
-> > C-state and warn when various cpus report different C-states?
-> 
-> Hi Peter,
-> 
-> As Arjan mentioned previously, the per-cpu registration has to stay
-> for x86 for now due to legacy ACPI compatibility.  Breaking that may
-> break lot of existing users and we do not have a clean fallback
-> method.  
+On Wed, 2009-10-07 at 17:17 +0530, Balbir Singh wrote:
 
-From what I understood some broken ass bioses report different C state
-availability on different CPUs in the same SMP system.
+> > The objective of the refactoring is to have a single common idle
+> > routine management framework (remove pm_idle) and we have it done
+> > through cpuidle registration framework.  We can incrementally remove
+> > the per-cpu registration later easily by splitting the cpuidle_driver
+> > structure.
+> >
+> 
+> Yes, incremental refactoring makes the most sense from the do not
+> break as you refactor point of view.
 
-I'm suggesting to work around that by limiting all CPUs to the subset of
-C states reported on all CPUs, instead of the current mess.
+Sure,.. but I would have though getting rid of the per-cpu-ish-ness
+would have made the latter patches in this series easier. But maybe I'm
+lazy ;-)
 
-I haven't heard anybody tell me why that wouldn't be possible on x86
+Let me go over the patches one more time, but they do look ok.
