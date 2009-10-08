@@ -1,61 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:36868 "EHLO
+Received: from casper.infradead.org ([85.118.1.10]:43303 "EHLO
 	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757447AbZJHW6S (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Oct 2009 18:58:18 -0400
-Subject: Re: [RFC][PATCH] kmap_atomic_push
-From: Peter Zijlstra <peterz@infradead.org>
-In-Reply-To: <4ACE674E.30403@hp.com>
-References: <1255016123.17055.17.camel@laptop>
-	 <20091008155344.GA11727@elte.hu> <1255019362.26976.311.camel@twins>
-	 <alpine.LFD.2.01.0910080945230.3432@localhost.localdomain>
-	 <Pine.LNX.4.64.0910081850270.4553@sister.anvils>  <4ACE674E.30403@hp.com>
-Content-Type: text/plain
-Date: Fri, 09 Oct 2009 00:57:16 +0200
-Message-ID: <1255042636.17055.33.camel@laptop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+	with ESMTP id S1759933AbZJHX0x (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Oct 2009 19:26:53 -0400
+Message-ID: <20091008232226.768382977@chello.nl>
+Date: Fri, 09 Oct 2009 01:22:26 +0200
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [RFC][PATCH 0/4] stack based kmap_atomic -v2
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: jim owens <jowens@hp.com>
-Cc: Hugh Dickins <hugh.dickins@tiscali.co.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Avi Kivity <avi@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20091008225716.5HoUsvyB7qVKgTo4NhSlirlB_rg94iF6moF-XMArH6g@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "hugh.dickins" <hugh.dickins@tiscali.co.uk>, Ingo Molnar <mingo@elte.hu>, David Howells <dhowells@redhat.com>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20091008232226.K8TqHNqI_-fTaVqI2I33GFLJue7Z-PnbgAbg82Oy1T0@z>
 
-On Thu, 2009-10-08 at 18:27 -0400, jim owens wrote:
-> So if I understand this correctly, the sequence:
-> 
-> in = kmap_atomic(inpage, KM_USER1);
-> 
-> out = kmap_atomic(outpage, KM_USER0);
-> 
-> kunmap_atomic(in, KM_USER1);
-> 
-> in = kmap_atomic(next_inpage, KM_USER1);
-> 
-> is now illegal with this patch, which breaks code
-> I am testing now for btrfs.
-> 
-> My code does this because the in/out are zlib inflate
-> and the in/out run at different rates.
+Latest bits..
 
-You can do things like:
+Maybe FRV can do a kind of kmap-stack switch on (soft)irq enter/exit
+in order to stay below 5 entries.
 
-do {
- in = kmap_atomic(inpage);
- out = kmap_atomic(outpage);
+Will continue prodding tomorrow, sleep time here.
 
- <deflate until end of either in/out>
-
- kunmap_atomic(outpage);
- kunmap_atomic(inpage);
-
- cond_resched();
-
- <iterate bits>
-
-} while (<not done>)
-
-The double unmap gives a preemption point, which sounds like a good
-thing to have, because your scheme could run for a long while without
-enabling preemption, which is badness.
 
