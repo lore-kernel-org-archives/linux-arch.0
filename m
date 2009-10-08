@@ -1,31 +1,37 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [RFC][PATCH] kmap_atomic_push
-Date: Thu, 8 Oct 2009 08:44:44 -0700 (PDT)
-Message-ID: <alpine.LFD.2.01.0910080844030.3432@localhost.localdomain>
+Date: Thu, 8 Oct 2009 17:53:44 +0200
+Message-ID: <20091008155344.GA11727@elte.hu>
 References: <1255016123.17055.17.camel@laptop>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:37452 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758612AbZJHPqI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Oct 2009 11:46:08 -0400
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1758673AbZJHPy5@vger.kernel.org>
+Content-Disposition: inline
 In-Reply-To: <1255016123.17055.17.camel@laptop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, "hugh.dickins" <hugh.dickins@tiscali.co.uk>, David Howells <dhowells@redhat.com>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>, Avi Kivity <avi@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "hugh.dickins" <hugh.dickins@tiscali.co.uk>, David Howells <dhowells@redhat.com>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
 
+* Peter Zijlstra <peterz@infradead.org> wrote:
 
-On Thu, 8 Oct 2009, Peter Zijlstra wrote:
->
-> The below patchlet changes the kmap_atomic interface to a stack based
+> The below patchlet changes the kmap_atomic interface to a stack based 
 > one that doesn't require the KM_types anymore.
+> 
+> This significantly simplifies some code (more still than are present 
+> in this patch -- ie. pte_map_nested can go now)
+> 
+> This obviously requires that push and pop are matched, I fixed a few 
+> cases that were not properly nested, the (x86) code checks for this 
+> and will go BUG when trying to pop a vaddr that isn't the top one so 
+> abusers should be rather visible.
 
-I think this is how we should have done it originally.
+Looks great IMO! Last i proposed this i think either Andrew or Avi had 
+second thoughts about the hard-to-calculate worst-case mapping limit - 
+but i dont think that's a big issue.
 
-That said, if we do this, I'd hate to have the "push" and "pop" parts to 
-the name. They don't really add a whole lot.
+Lets not change the API names though - the rule is that map/unmap must 
+be properly nested.
 
-		Linus
+	Ingo
