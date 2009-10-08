@@ -1,114 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:14138 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756639AbZJHWN7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 8 Oct 2009 18:13:59 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <1255016123.17055.17.camel@laptop>
-References: <1255016123.17055.17.camel@laptop>
+Received: from casper.infradead.org ([85.118.1.10]:36868 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757447AbZJHW6S (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Oct 2009 18:58:18 -0400
 Subject: Re: [RFC][PATCH] kmap_atomic_push
-Date: Thu, 08 Oct 2009 23:12:41 +0100
-Message-ID: <13417.1255039961@redhat.com>
+From: Peter Zijlstra <peterz@infradead.org>
+In-Reply-To: <4ACE674E.30403@hp.com>
+References: <1255016123.17055.17.camel@laptop>
+	 <20091008155344.GA11727@elte.hu> <1255019362.26976.311.camel@twins>
+	 <alpine.LFD.2.01.0910080945230.3432@localhost.localdomain>
+	 <Pine.LNX.4.64.0910081850270.4553@sister.anvils>  <4ACE674E.30403@hp.com>
+Content-Type: text/plain
+Date: Fri, 09 Oct 2009 00:57:16 +0200
+Message-ID: <1255042636.17055.33.camel@laptop>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: dhowells@redhat.com, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, "hugh.dickins" <hugh.dickins@tiscali.co.uk>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20091008221241.WeIzkJTl8nVuOsgdPrLuLjzLTlAbxp8Tg-NZ0nhAXrw@z>
+To: jim owens <jowens@hp.com>
+Cc: Hugh Dickins <hugh.dickins@tiscali.co.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Avi Kivity <avi@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20091008225716.5HoUsvyB7qVKgTo4NhSlirlB_rg94iF6moF-XMArH6g@z>
 
-Peter Zijlstra <peterz@infradead.org> wrote:
-
-> The below patchlet changes the kmap_atomic interface to a stack based
-> one that doesn't require the KM_types anymore.
+On Thu, 2009-10-08 at 18:27 -0400, jim owens wrote:
+> So if I understand this correctly, the sequence:
 > 
-> This significantly simplifies some code (more still than are present in
-> this patch -- ie. pte_map_nested can go now)
-> ...
-> What do people think?
+> in = kmap_atomic(inpage, KM_USER1);
+> 
+> out = kmap_atomic(outpage, KM_USER0);
+> 
+> kunmap_atomic(in, KM_USER1);
+> 
+> in = kmap_atomic(next_inpage, KM_USER1);
+> 
+> is now illegal with this patch, which breaks code
+> I am testing now for btrfs.
+> 
+> My code does this because the in/out are zlib inflate
+> and the in/out run at different rates.
 
-Brrr.
+You can do things like:
 
-This makes FRV much worse.  kmap_atomic() used to take a compile-time constant
-value - which meant that the switch-statement inside it was mostly optimised
-away.  kmap_atomic() would be rendered down to very few instructions.  Now
-it'll be a huge jump table plus all those few instructions repeated because
-the selector is now dynamic.
+do {
+ in = kmap_atomic(inpage);
+ out = kmap_atomic(outpage);
 
-What I would prefer to see is something along the lines of local_irq_save()
-and local_irq_restore(), where the displaced value gets stored on the machine
-stack.  In FRV, I could then represent kmap_atomic() as:
+ <deflate until end of either in/out>
 
-	static inline void *kmap_atomic_push(struct page *page,
-					     kmap_save_t *save)
-	{
-		unsigned long paddr, damlr, dampr;
-		int type;
+ kunmap_atomic(outpage);
+ kunmap_atomic(inpage);
 
-		pagefault_disable();
+ cond_resched();
 
-		dampr = page_to_phys(page);
-		dampr |= xAMPRx_L | xAMPRx_M | xAMPRx_S | xAMPRx_SS_16Kb | xAMPRx_V;
-		asm volatile("movgs dampr6,%0	\n"
-			     "movgs %0,dampr6"
-			     : "=r"(save->dampr) : "r"(dampr) : "memory");
-		asm("movsg damlr6,%0" : "=r"(damlr));
-		return (void *) damlr;
-	}
+ <iterate bits>
 
-However, since we occasionally want a second kmap slot, we could also add:
+} while (<not done>)
 
-	typedef struct { unsigned long dampr; } kmap_save_t;
+The double unmap gives a preemption point, which sounds like a good
+thing to have, because your scheme could run for a long while without
+enabling preemption, which is badness.
 
-	static inline void *kmap2_atomic_push(struct page *page,
-					      kmap_save_t *save)
-	{
-		unsigned long paddr, damlr, dampr;
-		int type;
-
-		pagefault_disable();
-
-		dampr = page_to_phys(page);
-		dampr |= xAMPRx_L | xAMPRx_M | xAMPRx_S | xAMPRx_SS_16Kb | xAMPRx_V;
-		asm volatile("movgs dampr7,%0	\n"
-			     "movgs %0,dampr7"
-			     : "=r"(save->dampr) : "r"(dampr) : "memory");
-		asm("movsg damlr7,%0" : "=r"(damlr));
-		return (void *) damlr;
-	}
-
-And the reverse ops would be:
-
-	static inline void kmap_atomic_pop(kmap_save_t *save)
-	{
-		asm volatile("movgs %0,dampr6"
-			     :: "r"(save->dampr) : "memory");
-		pagefault_enable();
-	}
-
-	static inline void kmap2_atomic_pop(kmap_save_t *save)
-	{
-		asm volatile("movgs %0,dampr7"
-			     :: "r"(save->dampr) : "memory");
-		pagefault_enable();
-	}
-
-And I would avoid the need to lock fake TLB entries in the shallow TLB.
-
-If it's too much trouble for an arch to extract the current kmap setting from
-the MMU or the page tables, *those* could be mirrored in per-CPU data.
-
-Do we have any code that uses two slots and then calls more code that
-ultimately requires further slots?  In other words, do we need more than two
-slots?
-
-> David, frv has a 'funny' issue in that it treats __KM_CACHE special from
-> the other ones, something which isn't possibly anymore. Do you see
-> another option than to add kmap_atomic_push_cache() for frv?
-
-The four __KM_xxx slots are special and must not be committed to this stack.
-They're used by assembly code directly for certain tasks, such as maintaining
-the TLB-lookup state.  Your changes are guaranteed to break MMU-mode FRV.
-
-That said, there's no reason these four slots *have* to be administered
-through kmap_atomic().  A kmap_frv() could be made instead for them.
-
-David
