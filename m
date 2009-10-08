@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp01.au.ibm.com ([202.81.31.143]:33325 "EHLO
-	e23smtp01.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759289AbZJGQqi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Oct 2009 12:46:38 -0400
-Date: Wed, 7 Oct 2009 22:15:36 +0530
+Received: from e28smtp06.in.ibm.com ([59.145.155.6]:47727 "EHLO
+	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752305AbZJHFyu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Oct 2009 01:54:50 -0400
+Date: Thu, 8 Oct 2009 11:24:09 +0530
 From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
 Subject: Re: [v7 PATCH 3/7]: x86: refactor x86 idle power management code
 	and remove all instances of pm_idle.
-Message-ID: <20091007164536.GA4141@linux.vnet.ibm.com>
+Message-ID: <20091008055409.GA32387@linux.vnet.ibm.com>
 Reply-To: arun@linux.vnet.ibm.com
 References: <20091006152421.GA7278@linux.vnet.ibm.com> <20091006153126.GA7358@linux.vnet.ibm.com> <1254926750.26976.253.camel@twins>
 MIME-Version: 1.0
@@ -18,7 +18,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: Joel Schopp <jschopp@austin.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar Sarma <dipankar@in.ibm.com>, Balbir Singh <balbir@in.ibm.com>, Gautham R Shenoy <ego@in.ibm.com>, Venkatesh Pallipadi <venkatesh.pallipadi@intel.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, Arun Bharadwaj <arun@linux.vnet.ibm.com>
-Message-ID: <20091007164536.2GhXMPvHs3meI9RvnsUbQXn6fcZCz4speOTUJahc2fk@z>
+Message-ID: <20091008055409.k3DSmuM_E6zq_3maH74s7CfwVKzGA5Wd1ma9vBiiS48@z>
 
 * Peter Zijlstra <a.p.zijlstra@chello.nl> [2009-10-07 16:45:50]:
 
@@ -177,21 +177,7 @@ Message-ID: <20091007164536.2GhXMPvHs3meI9RvnsUbQXn6fcZCz4speOTUJahc2fk@z>
 > What guarantees that the cpuidle bits actually select this
 > cpuidle_default driver when you do idle=poll?
 > 
-
-When we do a idle=poll, it sets boot_option_idle_override = 1, which
-is checked during cpuidle_register_device in acpi/processor_idle.c
-
-So cpuidle devices are not even registered if this option is set.
-
-But, in acpi/processor_core.c where cpuidle_register_driver happens,
-this check is not made currently. So, I guess this check must be added
-before we register acpi_idle driver.
-
 > Also, cpuidle already has a poll loop in it, why duplicate that?
->
+> 
 
-Suppose the arch doesnt have a poll loop of its own, it can use the
-one provided by cpuidle. I have just retained this from the earlier
-implementation.
-
---arun
+Yes, now i see it.. I'll get rid of the redundant poll_idle definition
