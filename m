@@ -1,29 +1,36 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [RFC][PATCH] kmap_atomic_push
-Date: Fri, 09 Oct 2009 00:29:02 +0200
-Message-ID: <1255040942.17055.21.camel@laptop>
-References: <1255016123.17055.17.camel@laptop> <13417.1255039961@redhat.com>
+Date: Fri, 09 Oct 2009 00:32:30 +0200
+Message-ID: <1255041150.17055.24.camel@laptop>
+References: <1255016123.17055.17.camel@laptop>
+	 <20091008155344.GA11727@elte.hu> <1255019362.26976.311.camel@twins>
+	 <alpine.LFD.2.01.0910080945230.3432@localhost.localdomain>
+	 <Pine.LNX.4.64.0910081850270.4553@sister.anvils>  <4ACE674E.30403@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:46137 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755075AbZJHWaA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Oct 2009 18:30:00 -0400
-In-Reply-To: <13417.1255039961@redhat.com>
+Received: from bombadil.infradead.org ([18.85.46.34]:41152 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757447AbZJHWd0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Oct 2009 18:33:26 -0400
+In-Reply-To: <4ACE674E.30403@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, "hugh.dickins" <hugh.dickins@tiscali.co.uk>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: jim owens <jowens@hp.com>
+Cc: Hugh Dickins <hugh.dickins@tiscali.co.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Avi Kivity <avi@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Thu, 2009-10-08 at 23:12 +0100, David Howells wrote:
-> Do we have any code that uses two slots and then calls more code that
-> ultimately requires further slots?  In other words, do we need more than two
-> slots?
+On Thu, 2009-10-08 at 18:27 -0400, jim owens wrote:
+> So if I understand this correctly, the sequence:
+> 
+> in = kmap_atomic(inpage, KM_USER1);
+> 
+> out = kmap_atomic(outpage, KM_USER0);
+> 
+> kunmap_atomic(in, KM_USER1);
+> 
+> in = kmap_atomic(next_inpage, KM_USER1);
+> 
+> is now illegal with this patch
 
-I can think of code that does a lot more than that, suppose you have
-both KM_USER[01], get an interrupt that takes KM_IRQ[01], take an NMI
-that takes KM_NMI.
-
-Maybe we can stack the SOFTIRQ ones in as well ;-)
+Yep.
