@@ -1,8 +1,8 @@
 From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
 Subject: Re: [v7 PATCH 3/7]: x86: refactor x86 idle power management code
 	and remove all instances of pm_idle.
-Date: Wed, 7 Oct 2009 22:15:36 +0530
-Message-ID: <20091007164536.GA4141@linux.vnet.ibm.com>
+Date: Thu, 8 Oct 2009 11:24:09 +0530
+Message-ID: <20091008055409.GA32387@linux.vnet.ibm.com>
 References: <20091006152421.GA7278@linux.vnet.ibm.com>
 	<20091006153126.GA7358@linux.vnet.ibm.com>
 	<1254926750.26976.253.camel@twins>
@@ -183,21 +183,7 @@ List-Id: linux-arch.vger.kernel.org
 > What guarantees that the cpuidle bits actually select this
 > cpuidle_default driver when you do idle=poll?
 > 
-
-When we do a idle=poll, it sets boot_option_idle_override = 1, which
-is checked during cpuidle_register_device in acpi/processor_idle.c
-
-So cpuidle devices are not even registered if this option is set.
-
-But, in acpi/processor_core.c where cpuidle_register_driver happens,
-this check is not made currently. So, I guess this check must be added
-before we register acpi_idle driver.
-
 > Also, cpuidle already has a poll loop in it, why duplicate that?
->
+> 
 
-Suppose the arch doesnt have a poll loop of its own, it can use the
-one provided by cpuidle. I have just retained this from the earlier
-implementation.
-
---arun
+Yes, now i see it.. I'll get rid of the redundant poll_idle definition
