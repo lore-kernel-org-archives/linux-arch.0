@@ -1,118 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp09.au.ibm.com ([202.81.31.142]:55764 "EHLO
-	e23smtp09.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757940AbZJHMCG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Oct 2009 08:02:06 -0400
-Date: Thu, 8 Oct 2009 17:31:20 +0530
-From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
+Received: from e23smtp05.au.ibm.com ([202.81.31.147]:47007 "EHLO
+	e23smtp05.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758068AbZJHNLB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Oct 2009 09:11:01 -0400
+Date: Thu, 8 Oct 2009 18:40:15 +0530
+From: Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>
 Subject: Re: [v8 PATCH 2/8]: cpuidle: implement a list based approach to
-	register a set of idle routines.
-Message-ID: <20091008120120.GL20595@linux.vnet.ibm.com>
-Reply-To: arun@linux.vnet.ibm.com
-References: <20091008094828.GA20595@linux.vnet.ibm.com> <20091008095027.GC20595@linux.vnet.ibm.com> <1254998162.26976.270.camel@twins> <20091008104249.GJ20595@linux.vnet.ibm.com> <1254999033.26976.272.camel@twins> <20091008110106.GK20595@linux.vnet.ibm.com> <1255001110.26976.292.camel@twins>
+ register a set of idle routines.
+Message-ID: <20091008131015.GD3735@dirshya.in.ibm.com>
+Reply-To: svaidy@linux.vnet.ibm.com
+References: <20091008094828.GA20595@linux.vnet.ibm.com>
+ <20091008095027.GC20595@linux.vnet.ibm.com>
+ <1254998162.26976.270.camel@twins>
+ <20091008104249.GJ20595@linux.vnet.ibm.com>
+ <1254999033.26976.272.camel@twins>
+ <20091008110106.GK20595@linux.vnet.ibm.com>
+ <1255001110.26976.292.camel@twins>
+ <20091008120120.GL20595@linux.vnet.ibm.com>
+ <1255004737.26976.307.camel@twins>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <1255001110.26976.292.camel@twins>
+In-Reply-To: <1255004737.26976.307.camel@twins>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar Sarma <dipankar@in.ibm.com>, Balbir Singh <balbir@in.ibm.com>, Arjan van de Ven <arjan@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Arun Bharadwaj <arun@linux.vnet.ibm.com>
-Message-ID: <20091008120120.kCNH0s3fgyT0oaz7ac4OsSEs5dEssv8LT2oI3ZkVSsA@z>
+Cc: arun@linux.vnet.ibm.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Dipankar Sarma <dipankar@in.ibm.com>, Balbir Singh <balbir@in.ibm.com>, Arjan van de Ven <arjan@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org
+Message-ID: <20091008131015.y-Xy1IWkFS8DwHlxMMqKP90Dan1MST5RfNIzBJz9rJo@z>
 
-* Peter Zijlstra <a.p.zijlstra@chello.nl> [2009-10-08 13:25:10]:
+* Peter Zijlstra <a.p.zijlstra@chello.nl> [2009-10-08 14:25:37]:
 
-> On Thu, 2009-10-08 at 16:31 +0530, Arun R Bharadwaj wrote:
-> > * Peter Zijlstra <a.p.zijlstra@chello.nl> [2009-10-08 12:50:33]:
+> On Thu, 2009-10-08 at 17:31 +0530, Arun R Bharadwaj wrote:
 > > 
-> > > On Thu, 2009-10-08 at 16:12 +0530, Arun R Bharadwaj wrote:
-> > > > 
-> > > > > So cpuidle didn't already have a list of idle functions it takes an
-> > > > > appropriate one from?
-> > > > > 
-> > > > 
-> > > > No.. As of now, cpuidle supported only one _set_ of idle states that
-> > > > can be registered. So in this one set, it would choose the appropriate
-> > > > idle state. But this list mechanism(actually a stack) allows for
-> > > > multiple sets.
-> > > > 
-> > > > This is needed because we have a hierarchy of idle states discovery
-> > > > in x86. First, select_idle_routine() would select poll/mwait/default/c1e.
-> > > > It doesn't know of existance of ACPI. Later when ACPI comes up,
-> > > > it registers a set of routines on top of the earlier set.
-> > > > 
-> > > > > Then what does this governor do?
-> > > > >
-> > > > 
-> > > > The governor would only select the best idle state available from the
-> > > > set of states which is at the top of the stack. (In the above case, it
-> > > > would only consider the states registered by ACPI).
-> > > > 
-> > > > If the top-of-the-stack set of idle states is unregistered, the next
-> > > > set of states on the stack are considered.
-> > > > 
-> > > > > Also, does this imply the governor doesn't consider these idle routines?
-> > > > >
-> > > > 
-> > > > As i said above, governor would only consider the idle routines which
-> > > > are at the top of the stack.
-> > > > 
-> > > > Hope this gave a better idea..
-> > > 
-> > > So does it make sense to have a set of sets?
-> > > 
-> > > Why not integrate them all into one set to be ruled by this governor
-> > > thing?
+> > > Uhm, no, it would mean ACPI putting its idle routines on the same level
+> > > as all others.
 > > > 
 > > 
-> > Right now there is a clean hierarchy. So breaking that would mean
-> > putting the registration of all idle routines under ACPI. 
+> > Putting them all on the same level would mean, we need an
+> > enable/disable routine to enable only the currently active routines.
 > 
-> Uhm, no, it would mean ACPI putting its idle routines on the same level
-> as all others.
-> 
+> What's this enable/disable stuff about?
 
-Putting them all on the same level would mean, we need an
-enable/disable routine to enable only the currently active routines.
+Don't we need an explicit 'don't use this routine' apart from having
+the weights based on power consumption and latency.  In multiple
+registration the assumption is that the top most 'set' has all
+necessary routines and we do not need any other idle routines for
+optimum operation.
 
-Also, the way governor works is that, it assumes that idle routines
-are indexed in the increasing order of power benefit that can be got
-out of the state. So this would get messed up.
+Otherwise the governor has to select from larger 'set' which could
+have redundant or conflicting idle routines.
 
-> > So, if ACPI
-> > fails to come up or if ACPI is not supported, that would lead to
-> > problems.
+For example we now have c1e_idle to start with and then a set of ACPI
+C1, C2, C3 routines.  The expectation now is that once we have the
+ACPI's routines, we do not need the previous used c1e_idle because
+this new set is self contained and picking one from this set based on
+latency is good for power savings.
+ 
+> > Also, the way governor works is that, it assumes that idle routines
+> > are indexed in the increasing order of power benefit that can be got
+> > out of the state. So this would get messed up.
 > 
-> I think the problem is that ACPI is thinking its special, that should be
-> rectified, its not.
+> Right, which is why I initially had a power-savings field in my
+> proposal, so it could weight the power savings vs the wakeup latency.
 > 
-> >  Because if that happens now, we can fallback to the
-> > initially registered set.
-> 
-> I'm thinking its all daft and we should be having one set of idle
-> routines, if ACPI fails (a tautology if ever there was one) we simply
-> wouldn't have its idle routines to pick from.
-> 
-> > Also, if a module wants to register a set of routines later on, that
-> > cant be added to the initially registered set. So i think we need this
-> > set of sets.
-> 
-> Sounds like something is wrong alright. If you can register an idle
-> routine you should be able to unregister it too.
->
+>   http://lkml.org/lkml/2009/8/27/159
 
-Yes, we can register and unregister in a clean way now.
-Consider this. We have a set of routines A, B, C currently registered.
-Now a module comes and registers D and E, and later on at some point
-of time wants to unregister. So how do you keep track of what all idle
-routines the module registered and unregister only those?
-Best way to do that is a stack, which is how I have currently
-implemented.
+This proposal that you had suggested is being used for the 'set' of
+idle routines.  The patch changes the idle routines as 'sets' and does
+not mix use of routines between two registrations.
+ 
+> There it was said that was exactly what these governors were doing,
+> seems its not.
 
-> What about making ACPI register its idle routines too, 1 for each C
-> state, and have the governor make a selection out of the full set?
+Governors select from a set of idle routines based on latency.  But
+there is a probability that any of the routine in the set can be
+selected.  
+
+> > > Sounds like something is wrong alright. If you can register an idle
+> > > routine you should be able to unregister it too.
+> > >
+> > 
+> > Yes, we can register and unregister in a clean way now.
+> > Consider this. We have a set of routines A, B, C currently registered.
+> > Now a module comes and registers D and E, and later on at some point
+> > of time wants to unregister. So how do you keep track of what all idle
+> > routines the module registered and unregister only those?
+> > Best way to do that is a stack, which is how I have currently
+> > implemented.
 > 
-> That also allows you to do away with this default_idle() nonsense and
-> simply panic the box when there are no registered idle routines when the
-> box wants to go idle.
-> 
+> Right, so destroy that inner set thing, that way we only have one
+> left ;-)
+
+If un-registration is not needed, then this framework can easily
+override the current set with the new one and not worry about the set
+of sets.
+
+Ideally, during system boot, we could wait until we know enough
+information about idle states and then have a single registration.
+The boot process can be in poll-idle until this decision happens.
+Like in x86, we can register either c1e_idle or ACPI's routines at
+a stage where we know for sure if ACPI is enabled or not.
+
+--Vaidy
+ 
