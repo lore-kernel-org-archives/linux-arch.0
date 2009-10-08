@@ -1,89 +1,43 @@
-From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
-Subject: [v8 PATCH 8/8]: POWER: Enable default_idle when power_save=off.
-Date: Thu, 8 Oct 2009 15:26:05 +0530
-Message-ID: <20091008095605.GI20595@linux.vnet.ibm.com>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: Re: [v8 PATCH 2/8]: cpuidle: implement a list based approach to
+ register a set of idle routines.
+Date: Thu, 08 Oct 2009 12:36:02 +0200
+Message-ID: <1254998162.26976.270.camel@twins>
 References: <20091008094828.GA20595@linux.vnet.ibm.com>
-Reply-To: arun@linux.vnet.ibm.com
+	 <20091008095027.GC20595@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-Content-Disposition: inline
-In-Reply-To: <20091008094828.GA20595@linux.vnet.ibm.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar
-Cc: linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
+Return-path: <linux-acpi-owner@vger.kernel.org>
+In-Reply-To: <20091008095027.GC20595@linux.vnet.ibm.com>
+Sender: linux-acpi-owner@vger.kernel.org
+To: arun@linux.vnet.ibm.com
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar Sarma <dipankar@in.ibm.com>, Balbir Singh <balbir@in.ibm.com>, Arjan van de Ven <arjan@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-* Arun R Bharadwaj <arun@linux.vnet.ibm.com> [2009-10-08 15:18:28]:
+On Thu, 2009-10-08 at 15:20 +0530, Arun R Bharadwaj wrote:
+> * Arun R Bharadwaj <arun@linux.vnet.ibm.com> [2009-10-08 15:18:28]:
+> 
+> Implement a list based registering mechanism for architectures which
+> have multiple sets of idle routines which are to be registered.
+> 
+> Currently, in x86 it is done by merely setting pm_idle = idle_routine
+> and managing this pm_idle pointer is messy.
+> 
+> To give an example of how this mechanism works:
+> In x86, initially, idle routine is selected from the set of poll/mwait/
+> c1e/default idle loops. So the selected idle loop is registered in cpuidle
+> as one idle state cpuidle devices. Once ACPI comes up, it registers
+> another set of idle states on top of this state. Again, suppose a module
+> registers another set of idle loops, it is added to this list.
+> 
+> This provides a clean way of registering and unregistering idle state
+> routines.
 
-This patch enables default_idle when power_save=off kernel boot
-option is specified.
+So cpuidle didn't already have a list of idle functions it takes an
+appropriate one from?
 
-Earlier, this was done by setting ppc_md.power_save = NULL and hence
-HMT_low() and HMT_very_low() was called. Now this is defined under
-default_idle() and hence by setting boot_option_idle_override = 1,
-the cpuidle registration stuff does not happen and hence default_idle
-is chosen in cpuidle_idle_call.
+Then what does this governor do?
 
-Signed-off-by: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
----
- arch/powerpc/include/asm/processor.h            |    2 ++
- arch/powerpc/kernel/idle.c                      |    4 +++-
- arch/powerpc/platforms/pseries/processor_idle.c |    5 +++++
- 3 files changed, 10 insertions(+), 1 deletion(-)
+Also, does this imply the governor doesn't consider these idle routines?
 
-Index: linux.trees.git/arch/powerpc/include/asm/processor.h
-===================================================================
---- linux.trees.git.orig/arch/powerpc/include/asm/processor.h
-+++ linux.trees.git/arch/powerpc/include/asm/processor.h
-@@ -332,6 +332,8 @@ static inline unsigned long get_clean_sp
- }
- #endif
- 
-+extern int boot_option_idle_override;
-+
- #endif /* __KERNEL__ */
- #endif /* __ASSEMBLY__ */
- #endif /* _ASM_POWERPC_PROCESSOR_H */
-Index: linux.trees.git/arch/powerpc/kernel/idle.c
-===================================================================
---- linux.trees.git.orig/arch/powerpc/kernel/idle.c
-+++ linux.trees.git/arch/powerpc/kernel/idle.c
-@@ -40,9 +40,11 @@
- #define cpu_should_die()	0
- #endif
- 
-+int boot_option_idle_override = 0;
-+
- static int __init powersave_off(char *arg)
- {
--	ppc_md.power_save = NULL;
-+	boot_option_idle_override = 1;
- 	return 0;
- }
- __setup("powersave=off", powersave_off);
-Index: linux.trees.git/arch/powerpc/platforms/pseries/processor_idle.c
-===================================================================
---- linux.trees.git.orig/arch/powerpc/platforms/pseries/processor_idle.c
-+++ linux.trees.git/arch/powerpc/platforms/pseries/processor_idle.c
-@@ -185,6 +185,11 @@ static int __init pseries_processor_idle
- 	int cpu;
- 	int result;
- 
-+	if (boot_option_idle_override) {
-+		printk(KERN_DEBUG "Using default idle\n");
-+		return 0;
-+	}
-+
- 	result = cpuidle_register_driver(&pseries_idle_driver);
- 
- 	if (result < 0)
