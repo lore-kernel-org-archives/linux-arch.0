@@ -1,86 +1,25 @@
-From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
-Subject: Re: [v8 PATCH 2/8]: cpuidle: implement a list based approach to
-	register a set of idle routines.
-Date: Fri, 9 Oct 2009 15:09:27 +0530
-Message-ID: <20091009093927.GA8442@linux.vnet.ibm.com>
-References: <20091008094828.GA20595@linux.vnet.ibm.com>
-	<20091008095027.GC20595@linux.vnet.ibm.com>
-	<1254998162.26976.270.camel@twins>
-	<20091008104249.GJ20595@linux.vnet.ibm.com>
-	<1254999033.26976.272.camel@twins>
-	<20091008110106.GK20595@linux.vnet.ibm.com>
-	<1255001110.26976.292.camel@twins>
-	<20091008120120.GL20595@linux.vnet.ibm.com>
-	<1255004737.26976.307.camel@twins>
-Reply-To: arun@linux.vnet.ibm.com
+From: jim owens <jowens@hp.com>
+Subject: Re: [RFC][PATCH] kmap_atomic_push
+Date: Fri, 09 Oct 2009 08:15:42 -0400
+Message-ID: <4ACF296E.3000000@hp.com>
+References: <1255016123.17055.17.camel@laptop>	 <20091008155344.GA11727@elte.hu> <1255019362.26976.311.camel@twins>	 <alpine.LFD.2.01.0910080945230.3432@localhost.localdomain>	 <Pine.LNX.4.64.0910081850270.4553@sister.anvils>  <4ACE674E.30403@hp.com> <1255042636.17055.33.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-Content-Disposition: inline
-In-Reply-To: <1255004737.26976.307.camel@twins>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, Arun Bharadwaj <arun@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, linuxppc-dev@lists.ozlabs.org, Arjan van de Ven <arjan@infradead.org>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1760741AbZJIMRR@vger.kernel.org>
+In-Reply-To: <1255042636.17055.33.camel@laptop>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Hugh Dickins <hugh.dickins@tiscali.co.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Avi Kivity <avi@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-* Peter Zijlstra <a.p.zijlstra@chello.nl> [2009-10-08 14:25:37]:
+Peter Zijlstra wrote:
+> 
+> The double unmap gives a preemption point, which sounds like a good
+> thing to have, because your scheme could run for a long while without
+> enabling preemption, which is badness.
 
-> On Thu, 2009-10-08 at 17:31 +0530, Arun R Bharadwaj wrote:
-> > 
-> > > Uhm, no, it would mean ACPI putting its idle routines on the same level
-> > > as all others.
-> > > 
-> > 
-> > Putting them all on the same level would mean, we need an
-> > enable/disable routine to enable only the currently active routines.
-> 
-> What's this enable/disable stuff about?
-> 
-> > Also, the way governor works is that, it assumes that idle routines
-> > are indexed in the increasing order of power benefit that can be got
-> > out of the state. So this would get messed up.
-> 
-> Right, which is why I initially had a power-savings field in my
-> proposal, so it could weight the power savings vs the wakeup latency.
-> 
->   http://lkml.org/lkml/2009/8/27/159
-> 
-> There it was said that was exactly what these governors were doing,
-> seems its not.
-> 
-> > > Sounds like something is wrong alright. If you can register an idle
-> > > routine you should be able to unregister it too.
-> > >
-> > 
-> > Yes, we can register and unregister in a clean way now.
-> > Consider this. We have a set of routines A, B, C currently registered.
-> > Now a module comes and registers D and E, and later on at some point
-> > of time wants to unregister. So how do you keep track of what all idle
-> > routines the module registered and unregister only those?
-> > Best way to do that is a stack, which is how I have currently
-> > implemented.
-> 
-> Right, so destroy that inner set thing, that way we only have one
-> left ;-)
-> 
+Thanks, optimizing my loop, I forgot all about
+the old long code path not preempting problem.
 
-I'm not convinced with your argument. Why dont we do this
-incrementally. Right now, this set of sets mechanism works fine and
-doesn't look like it has any obvious flaws in it. We have a clean
-register/unregister mechanism which solves all the earlier problems we
-started out to solve.
-
-We can gradually build on this and try to come up with a single set
-of idle states for a governor to choose from.
-
-thanks,
-arun
+Now I have to love the patch for making it harder to be stupid :)
