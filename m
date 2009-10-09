@@ -1,127 +1,86 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [RFC][PATCH 1/4] mm: strictly nested kmap_atomic
-Date: Fri, 09 Oct 2009 01:22:27 +0200
-Message-ID: <20091008232528.272013520@chello.nl>
-References: <20091008232226.768382977@chello.nl>
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S933737AbZJHX1o@vger.kernel.org>
-Content-Disposition: inline; filename=kmap-2.patch
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "hugh.dickins" <hugh.dickins@tiscali.co.uk>, Ingo Molnar <mingo@elte.hu>, David Howells <dh>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
+Subject: Re: [v8 PATCH 2/8]: cpuidle: implement a list based approach to
+	register a set of idle routines.
+Date: Fri, 9 Oct 2009 15:09:27 +0530
+Message-ID: <20091009093927.GA8442@linux.vnet.ibm.com>
+References: <20091008094828.GA20595@linux.vnet.ibm.com>
+	<20091008095027.GC20595@linux.vnet.ibm.com>
+	<1254998162.26976.270.camel@twins>
+	<20091008104249.GJ20595@linux.vnet.ibm.com>
+	<1254999033.26976.272.camel@twins>
+	<20091008110106.GK20595@linux.vnet.ibm.com>
+	<1255001110.26976.292.camel@twins>
+	<20091008120120.GL20595@linux.vnet.ibm.com>
+	<1255004737.26976.307.camel@twins>
+Reply-To: arun@linux.vnet.ibm.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
+Content-Disposition: inline
+In-Reply-To: <1255004737.26976.307.camel@twins>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, Arun Bharadwaj <arun@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, linuxppc-dev@lists.ozlabs.org, Arjan van de Ven <arjan@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Ensure kmap_atomic usage is strictly nested
+* Peter Zijlstra <a.p.zijlstra@chello.nl> [2009-10-08 14:25:37]:
 
-Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-LKML-Reference: <new-submission>
----
- crypto/async_tx/async_memcpy.c |    2 +-
- crypto/blkcipher.c             |    2 +-
- drivers/block/loop.c           |    4 ++--
- include/linux/highmem.h        |    4 ++--
- kernel/power/snapshot.c        |    4 ++--
- 5 files changed, 8 insertions(+), 8 deletions(-)
+> On Thu, 2009-10-08 at 17:31 +0530, Arun R Bharadwaj wrote:
+> > 
+> > > Uhm, no, it would mean ACPI putting its idle routines on the same level
+> > > as all others.
+> > > 
+> > 
+> > Putting them all on the same level would mean, we need an
+> > enable/disable routine to enable only the currently active routines.
+> 
+> What's this enable/disable stuff about?
+> 
+> > Also, the way governor works is that, it assumes that idle routines
+> > are indexed in the increasing order of power benefit that can be got
+> > out of the state. So this would get messed up.
+> 
+> Right, which is why I initially had a power-savings field in my
+> proposal, so it could weight the power savings vs the wakeup latency.
+> 
+>   http://lkml.org/lkml/2009/8/27/159
+> 
+> There it was said that was exactly what these governors were doing,
+> seems its not.
+> 
+> > > Sounds like something is wrong alright. If you can register an idle
+> > > routine you should be able to unregister it too.
+> > >
+> > 
+> > Yes, we can register and unregister in a clean way now.
+> > Consider this. We have a set of routines A, B, C currently registered.
+> > Now a module comes and registers D and E, and later on at some point
+> > of time wants to unregister. So how do you keep track of what all idle
+> > routines the module registered and unregister only those?
+> > Best way to do that is a stack, which is how I have currently
+> > implemented.
+> 
+> Right, so destroy that inner set thing, that way we only have one
+> left ;-)
+> 
 
-Index: linux-2.6/crypto/async_tx/async_memcpy.c
-===================================================================
---- linux-2.6.orig/crypto/async_tx/async_memcpy.c
-+++ linux-2.6/crypto/async_tx/async_memcpy.c
-@@ -83,8 +83,8 @@ async_memcpy(struct page *dest, struct p
- 
- 		memcpy(dest_buf, src_buf, len);
- 
--		kunmap_atomic(dest_buf, KM_USER0);
- 		kunmap_atomic(src_buf, KM_USER1);
-+		kunmap_atomic(dest_buf, KM_USER0);
- 
- 		async_tx_sync_epilog(submit);
- 	}
-Index: linux-2.6/crypto/blkcipher.c
-===================================================================
---- linux-2.6.orig/crypto/blkcipher.c
-+++ linux-2.6/crypto/blkcipher.c
-@@ -89,9 +89,9 @@ static inline unsigned int blkcipher_don
- 		memcpy(walk->dst.virt.addr, walk->page, n);
- 		blkcipher_unmap_dst(walk);
- 	} else if (!(walk->flags & BLKCIPHER_WALK_PHYS)) {
--		blkcipher_unmap_src(walk);
- 		if (walk->flags & BLKCIPHER_WALK_DIFF)
- 			blkcipher_unmap_dst(walk);
-+		blkcipher_unmap_src(walk);
- 	}
- 
- 	scatterwalk_advance(&walk->in, n);
-Index: linux-2.6/drivers/block/loop.c
-===================================================================
---- linux-2.6.orig/drivers/block/loop.c
-+++ linux-2.6/drivers/block/loop.c
-@@ -99,8 +99,8 @@ static int transfer_none(struct loop_dev
- 	else
- 		memcpy(raw_buf, loop_buf, size);
- 
--	kunmap_atomic(raw_buf, KM_USER0);
- 	kunmap_atomic(loop_buf, KM_USER1);
-+	kunmap_atomic(raw_buf, KM_USER0);
- 	cond_resched();
- 	return 0;
- }
-@@ -128,8 +128,8 @@ static int transfer_xor(struct loop_devi
- 	for (i = 0; i < size; i++)
- 		*out++ = *in++ ^ key[(i & 511) % keysize];
- 
--	kunmap_atomic(raw_buf, KM_USER0);
- 	kunmap_atomic(loop_buf, KM_USER1);
-+	kunmap_atomic(raw_buf, KM_USER0);
- 	cond_resched();
- 	return 0;
- }
-Index: linux-2.6/include/linux/highmem.h
-===================================================================
---- linux-2.6.orig/include/linux/highmem.h
-+++ linux-2.6/include/linux/highmem.h
-@@ -191,8 +191,8 @@ static inline void copy_user_highpage(st
- 	vfrom = kmap_atomic(from, KM_USER0);
- 	vto = kmap_atomic(to, KM_USER1);
- 	copy_user_page(vto, vfrom, vaddr, to);
--	kunmap_atomic(vfrom, KM_USER0);
- 	kunmap_atomic(vto, KM_USER1);
-+	kunmap_atomic(vfrom, KM_USER0);
- }
- 
- #endif
-@@ -204,8 +204,8 @@ static inline void copy_highpage(struct 
- 	vfrom = kmap_atomic(from, KM_USER0);
- 	vto = kmap_atomic(to, KM_USER1);
- 	copy_page(vto, vfrom);
--	kunmap_atomic(vfrom, KM_USER0);
- 	kunmap_atomic(vto, KM_USER1);
-+	kunmap_atomic(vfrom, KM_USER0);
- }
- 
- #endif /* _LINUX_HIGHMEM_H */
-Index: linux-2.6/kernel/power/snapshot.c
-===================================================================
---- linux-2.6.orig/kernel/power/snapshot.c
-+++ linux-2.6/kernel/power/snapshot.c
-@@ -978,8 +978,8 @@ static void copy_data_page(unsigned long
- 		src = kmap_atomic(s_page, KM_USER0);
- 		dst = kmap_atomic(d_page, KM_USER1);
- 		do_copy_page(dst, src);
--		kunmap_atomic(src, KM_USER0);
- 		kunmap_atomic(dst, KM_USER1);
-+		kunmap_atomic(src, KM_USER0);
- 	} else {
- 		if (PageHighMem(d_page)) {
- 			/* Page pointed to by src may contain some kernel
-@@ -2253,8 +2253,8 @@ swap_two_pages_data(struct page *p1, str
- 	memcpy(buf, kaddr1, PAGE_SIZE);
- 	memcpy(kaddr1, kaddr2, PAGE_SIZE);
- 	memcpy(kaddr2, buf, PAGE_SIZE);
--	kunmap_atomic(kaddr1, KM_USER0);
- 	kunmap_atomic(kaddr2, KM_USER1);
-+	kunmap_atomic(kaddr1, KM_USER0);
- }
- 
- /**
+I'm not convinced with your argument. Why dont we do this
+incrementally. Right now, this set of sets mechanism works fine and
+doesn't look like it has any obvious flaws in it. We have a clean
+register/unregister mechanism which solves all the earlier problems we
+started out to solve.
 
--- 
+We can gradually build on this and try to come up with a single set
+of idle states for a governor to choose from.
+
+thanks,
+arun
