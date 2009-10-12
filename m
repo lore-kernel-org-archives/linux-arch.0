@@ -1,30 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0015.houston.hp.com ([15.201.24.18]:28923 "EHLO
-	g4t0015.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760623AbZJIMRO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2009 08:17:14 -0400
-Message-ID: <4ACF296E.3000000@hp.com>
-Date: Fri, 09 Oct 2009 08:15:42 -0400
-From: jim owens <jowens@hp.com>
+Received: from e28smtp06.in.ibm.com ([59.145.155.6]:53838 "EHLO
+	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754648AbZJLKHy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2009 06:07:54 -0400
+Date: Mon, 12 Oct 2009 15:31:31 +0530
+From: Balbir Singh <balbir@linux.vnet.ibm.com>
+Subject: Re: [v8 PATCH 0/8]: cpuidle: Cleanup cpuidle/ Introduce cpuidle to
+ POWER
+Message-ID: <20091012100131.GA3007@balbir.in.ibm.com>
+Reply-To: balbir@linux.vnet.ibm.com
+References: <20091008094828.GA20595@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [RFC][PATCH] kmap_atomic_push
-References: <1255016123.17055.17.camel@laptop>	 <20091008155344.GA11727@elte.hu> <1255019362.26976.311.camel@twins>	 <alpine.LFD.2.01.0910080945230.3432@localhost.localdomain>	 <Pine.LNX.4.64.0910081850270.4553@sister.anvils>  <4ACE674E.30403@hp.com> <1255042636.17055.33.camel@laptop>
-In-Reply-To: <1255042636.17055.33.camel@laptop>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+In-Reply-To: <20091008094828.GA20595@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Hugh Dickins <hugh.dickins@tiscali.co.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Avi Kivity <avi@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20091009121542.6ua5mYJZDy-j2TAk1QtRaMnhHAfzN8IpPp_PBO0MPIs@z>
+To: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar Sarma <dipankar@in.ibm.com>, Arjan van de Ven <arjan@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org
+Message-ID: <20091012100131.CYbkQ90KeQ560UuPV7ZLWG5b_NUzFIyxeNBMvoETRHw@z>
 
-Peter Zijlstra wrote:
+* Arun R B <arun@linux.vnet.ibm.com> [2009-10-08 15:18:28]:
+
+> Hi
 > 
-> The double unmap gives a preemption point, which sounds like a good
-> thing to have, because your scheme could run for a long while without
-> enabling preemption, which is badness.
+> Please consider this for inclusion into the testing tree.
+> 
+> This patchset introduces cpuidle infrastructure to POWER, prototyping
+> for pSeries, and also does a major refactoring of current x86 idle
+> power management and a cleanup of cpuidle infrastructure.
+> 
+> Earlier discussions on the same can be found at:
+> 
+> v7 --> http://lkml.org/lkml/2009/10/6/278
+> v6 --> http://lkml.org/lkml/2009/9/22/180
+> v5 --> http://lkml.org/lkml/2009/9/22/26
+> v4 --> http://lkml.org/lkml/2009/9/1/133
+> v3 --> http://lkml.org/lkml/2009/8/27/124
+> v2 --> http://lkml.org/lkml/2009/8/26/233
+> v1 --> http://lkml.org/lkml/2009/8/19/150
+> 
+>
 
-Thanks, optimizing my loop, I forgot all about
-the old long code path not preempting problem.
+I looked at the changes and they are beginning to look very good. Some
+minor comments about comments in the individual patches. 
 
-Now I have to love the patch for making it harder to be stupid :)
+-- 
+	Balbir
