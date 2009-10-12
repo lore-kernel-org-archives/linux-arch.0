@@ -1,52 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:47745 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757612AbZJLSlH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2009 14:41:07 -0400
-Date: Mon, 12 Oct 2009 20:40:29 +0200
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [RFC][PATCH] kmap_atomic_push
-Message-ID: <20091012184028.GA20412@basil.fritz.box>
-References: <1255016123.17055.17.camel@laptop> <87ws30fppe.fsf@basil.nowhere.org> <alpine.LFD.2.01.0910121124590.3438@localhost.localdomain>
+Received: from mk-filter-3-a-1.mail.uk.tiscali.com ([212.74.100.54]:17751 "EHLO
+	mk-filter-3-a-1.mail.uk.tiscali.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757185AbZJLSHB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 12 Oct 2009 14:07:01 -0400
+Date: Mon, 12 Oct 2009 19:06:04 +0100 (BST)
+From: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+Subject: Re: [PATCH] [ARM] force dcache flush if dcache_dirty bit set
+In-Reply-To: <20091012170312.GB9453@flint.arm.linux.org.uk>
+Message-ID: <Pine.LNX.4.64.0910121855070.21347@sister.anvils>
+References: <1255337423-3158-1-git-send-email-ngupta@vflare.org>
+ <20091012090710.GA29310@n2100.arm.linux.org.uk> <20091012.023744.157085851.davem@davemloft.net>
+ <20091012100023.GC29310@n2100.arm.linux.org.uk> <Pine.LNX.4.64.0910121634170.7327@sister.anvils>
+ <20091012170312.GB9453@flint.arm.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.01.0910121124590.3438@localhost.localdomain>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andi Kleen <andi@firstfloor.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, "hugh.dickins" <hugh.dickins@tiscali.co.uk>, David Howells <dhowells@redhat.com>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20091012184029.-fJy9ctcrU372llS0Evstdgo2jkz5v4tc1wW0NxUcqU@z>
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: David Miller <davem@davemloft.net>, Nitin Gupta <ngupta@vflare.org>, Nick Piggin <npiggin@suse.de>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@mcmartin.ca>, Paul Mundt <lethal@lethal-sh.org>, Chen Liqin <liqin.chen@sunplusct.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20091012180604.InyNCpb1bkdnvNge5JwaXAd5HKjmhlQKGTU3lRlavh8@z>
 
-On Mon, Oct 12, 2009 at 11:30:07AM -0700, Linus Torvalds wrote:
+On Mon, 12 Oct 2009, Russell King wrote:
+> On Mon, Oct 12, 2009 at 05:09:53PM +0100, Hugh Dickins wrote:
+> > Sorry to muddy the waters on this, if you and Dave are sure that
+> > you have the right fix, down in your architectures, and that fix
+> > isn't going to hurt your performance significantly.
 > 
+> If I look at the issue from this point of view:
 > 
-> On Mon, 12 Oct 2009, Andi Kleen wrote:
+> - we are using PG_arch_1 to delay cache handling for the page
 > 
-> > Peter Zijlstra <peterz@infradead.org> writes:
-> > > -
-> > > -static inline void debug_kmap_atomic(enum km_type type)
-> > > +static inline int kmap_atomic_push_idx(void)
-> > >  {
-> > > +	int idx = __get_cpu_var(__kmap_atomic_depth)++;
-> > 
-> > The counter needs to be of local atomic type. Otherwise kmap_atomic cannot
-> > be done from interrupts/nmis, which is unfortunately occasionally needed.
+> - if PG_arch_1 is set on a page, we set it explicitly because we
+>   didn't do some flushing between the allocation of the page and
+>   mapping it into userspace
 > 
-> I thought so too on lookin gat it initially, but it's not actually true.
+> - if a page with PG_arch_1 set ever gets to userspace, this can
+>   only be because we did the lazy flushing thing
 > 
-> It's both IRQ and NMI safe as-is, for a very simple reason: any interrupts 
+> I don't see that there should have been any bearing on whether a page
+> has a mapping or not when we get to update_mmu_cache.  The issue here
+> is that > if PG_arch_1 is set on a page, then we didn't flush it at
+> the time when we believed it was appropriate to do so. <
+> 
+> Tell me I'm wrong (having only just sent it to Linus...)
 
-Good point, thanks.
+I wouldn't dare!  Put that way, it seems very clear that it was always
+at best a redundant test, which Nitin now shows can go wrong.  Okay,
+thanks, let's forget about whether file invalidation can or cannot
+also put a page into this state, and proceed with your fix.
 
-I was thinking of CPU migration in interrupt cases, but even there
-it should be ok in mainline.
+The architectures which appear to need fixing in the same way are
+arm, mips, parisc, sh and sparc64 (xtensa looks right already, and
+score just looks confused - a whole function __update_cache() which
+checks for PG_arch_1, yet nothing sets it?).
 
-I suppose it's not true for the preempt-rt folks (who can migrate
-CPUs at any time), so it might be still more friendly to handle it for them 
-though.
-
--Andi
-
--- 
-ak@linux.intel.com -- Speaking for myself only.
+Hugh
