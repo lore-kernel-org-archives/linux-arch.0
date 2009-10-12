@@ -1,28 +1,49 @@
-From: Andi Kleen <andi@firstfloor.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC][PATCH] kmap_atomic_push
-Date: Mon, 12 Oct 2009 20:10:37 +0200
-Message-ID: <87ws30fppe.fsf@basil.nowhere.org>
-References: <1255016123.17055.17.camel@laptop>
+Date: Mon, 12 Oct 2009 11:30:07 -0700 (PDT)
+Message-ID: <alpine.LFD.2.01.0910121124590.3438@localhost.localdomain>
+References: <1255016123.17055.17.camel@laptop> <87ws30fppe.fsf@basil.nowhere.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757502AbZJLSLQ@vger.kernel.org>
-In-Reply-To: <1255016123.17055.17.camel@laptop> (Peter Zijlstra's message of "Thu, 08 Oct 2009 17:35:23 +0200")
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, "hugh.dickins" <hugh.dickins@tiscali.co.uk>, David Howells <dhowells@redhat.com>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:59016 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757615AbZJLScF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 12 Oct 2009 14:32:05 -0400
+In-Reply-To: <87ws30fppe.fsf@basil.nowhere.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andi Kleen <andi@firstfloor.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, "hugh.dickins" <hugh.dickins@tiscali.co.uk>, David Howells <dhowells@redhat.com>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-Peter Zijlstra <peterz@infradead.org> writes:
-> -
-> -static inline void debug_kmap_atomic(enum km_type type)
-> +static inline int kmap_atomic_push_idx(void)
->  {
-> +	int idx = __get_cpu_var(__kmap_atomic_depth)++;
 
-The counter needs to be of local atomic type. Otherwise kmap_atomic cannot
-be done from interrupts/nmis, which is unfortunately occasionally needed.
 
--Andi
+On Mon, 12 Oct 2009, Andi Kleen wrote:
 
--- 
-ak@linux.intel.com -- Speaking for myself only.
+> Peter Zijlstra <peterz@infradead.org> writes:
+> > -
+> > -static inline void debug_kmap_atomic(enum km_type type)
+> > +static inline int kmap_atomic_push_idx(void)
+> >  {
+> > +	int idx = __get_cpu_var(__kmap_atomic_depth)++;
+> 
+> The counter needs to be of local atomic type. Otherwise kmap_atomic cannot
+> be done from interrupts/nmis, which is unfortunately occasionally needed.
+
+I thought so too on lookin gat it initially, but it's not actually true.
+
+It's both IRQ and NMI safe as-is, for a very simple reason: any interrupts 
+that happen will always undo whatever changes they did. So even with a 
+totally non-atomic "load + increment + store" model, it really doesn't 
+matter if you get an interrupt or an NMI anywhere in the sequence, because 
+by the time the interrupt returns, it will have undone any changes it did.
+
+So as long as it's per-cpu (which it is) and non-preemptible (which it 
+also is, thanks to kmap_atomic() doing the whole "disable_mm_fault()" 
+thing or whatever), it's all fine.
+
+Btw, this is not some new thing. It's exactly the same logic we rely on 
+for other counts like the preempt-count etc.
+
+			Linus
