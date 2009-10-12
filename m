@@ -1,117 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mk-filter-1-a-1.mail.uk.tiscali.com ([212.74.100.52]:10391 "EHLO
-	mk-filter-1-a-1.mail.uk.tiscali.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756090AbZJLQKy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 12 Oct 2009 12:10:54 -0400
-Date: Mon, 12 Oct 2009 17:09:53 +0100 (BST)
-From: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:42592 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932944AbZJLRE5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2009 13:04:57 -0400
+Date: Mon, 12 Oct 2009 18:03:12 +0100
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [PATCH] [ARM] force dcache flush if dcache_dirty bit set
-In-Reply-To: <20091012100023.GC29310@n2100.arm.linux.org.uk>
-Message-ID: <Pine.LNX.4.64.0910121634170.7327@sister.anvils>
-References: <1255337423-3158-1-git-send-email-ngupta@vflare.org>
- <20091012090710.GA29310@n2100.arm.linux.org.uk> <20091012.023744.157085851.davem@davemloft.net>
- <20091012100023.GC29310@n2100.arm.linux.org.uk>
+Message-ID: <20091012170312.GB9453@flint.arm.linux.org.uk>
+References: <1255337423-3158-1-git-send-email-ngupta@vflare.org> <20091012090710.GA29310@n2100.arm.linux.org.uk> <20091012.023744.157085851.davem@davemloft.net> <20091012100023.GC29310@n2100.arm.linux.org.uk> <Pine.LNX.4.64.0910121634170.7327@sister.anvils>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0910121634170.7327@sister.anvils>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+To: Hugh Dickins <hugh.dickins@tiscali.co.uk>
 Cc: David Miller <davem@davemloft.net>, Nitin Gupta <ngupta@vflare.org>, Nick Piggin <npiggin@suse.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20091012160953.1iCPORKlYSvh3MfDCN_GJRH0fKrEkheMT3GgzUL3cJw@z>
+Message-ID: <20091012170312.9mLlMj523YJHQ5otk4GZaHQtunYAVloza3DDgOm4BFs@z>
 
-On Mon, 12 Oct 2009, Russell King - ARM Linux wrote:
-> On Mon, Oct 12, 2009 at 02:37:44AM -0700, David Miller wrote:
-> > From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-> > Date: Mon, 12 Oct 2009 10:07:10 +0100
-> > 
-> > > On Mon, Oct 12, 2009 at 02:20:23PM +0530, Nitin Gupta wrote:
-> > >> Same problem exists on mips too.
-> > > 
-> > > Nice catch.  This logic came from sparc64, so I think you'd want to talk
-> > > to davem about it as well.
-> > > 
-> > > In the mean time, submitting your fix to the patch system would be great,
-> > > thanks.
-> > 
-> > Sparc64 flushes unconditionally when there is no page mapping.
-> > So, it should be fine here.
-> 
-> Are you sure - I checked the sparc64 code before posting, and we're doing
-> the same thing.
-> 
-> Sparc64 update_mmu_cache:
->         page = pfn_to_page(pfn);
->         if (page && page_mapping(page)) {
->                 pg_flags = page->flags;
->                 if (pg_flags & (1UL << PG_dcache_dirty)) {
-> 			/* do lazy flush */
-> 		}
-> 	}
-> 
-> Sparc64 flush_dcache_page:
->         mapping = page_mapping(page);
->         if (mapping && !mapping_mapped(mapping)) {
->                 set_dcache_dirty(page, this_cpu);
-> 	}
-> 
-> ARM update_mmu_cache:
->         page = pfn_to_page(pfn);
->         mapping = page_mapping(page);
->         if (mapping) {
->                 int dirty = test_and_clear_bit(PG_dcache_dirty, &page->flags);
->                 if (dirty)
->                         /* do lazy flush */
-> 
-> ARM flush_dcache_page:
->         struct address_space *mapping = page_mapping(page);
->         if (!PageHighMem(page) && mapping && !mapping_mapped(mapping))
->                 set_bit(PG_dcache_dirty, &page->flags);
-> 
-> It looks identical to me.
-> 
-> The problem which has been identified is that when flush_dcache_page() is
-> called, there is a mapping, and so the page is marked for lazy flushing.
-> However, by the time update_mmu_cache() gets called, the mapping has gone
-> and so update_mmu_cache() does nothing.
+On Mon, Oct 12, 2009 at 05:09:53PM +0100, Hugh Dickins wrote:
+> Sorry to muddy the waters on this, if you and Dave are sure that
+> you have the right fix, down in your architectures, and that fix
+> isn't going to hurt your performance significantly.
 
-Sorry to muddy the waters on this, if you and Dave are sure that
-you have the right fix, down in your architectures, and that fix
-isn't going to hurt your performance significantly.
+If I look at the issue from this point of view:
 
-But this issue would affect other architectures too, wouldn't it?
-I think not just mips, which was mentioned, but others too, parisc
-for example: linux-arch Cc'ed.
+- we are using PG_arch_1 to delay cache handling for the page
 
-And I'm not certain that down in the arch is the right place:
-it may well turn out to be right, but that's not obvious.  
+- if PG_arch_1 is set on a page, we set it explicitly because we
+  didn't do some flushing between the allocation of the page and
+  mapping it into userspace
 
-How much is this issue peculiar to swap?  Where Nitin discovered it
-in do_swap_page(), due to swap cache being freed before reaching the
-update_mmu_cache().
+- if a page with PG_arch_1 set ever gets to userspace, this can
+  only be because we did the lazy flushing thing
 
-If it is peculiar to swap, then I'd suggest perhaps one of two very
-different solutions.  One would be to rearrange do_swap_page() so we
-do not remove the page from swap cache before the update_mmu_cache()
-(that would need care, and might turn out to be harder than I think).
-The alternative solution might be to stop page_mapping(page) returning
-the pseudo-address_space swapper_space when PageSwapCache - I always
-hated that, but had to give in at the time.
+I don't see that there should have been any bearing on whether a page
+has a mapping or not when we get to update_mmu_cache.  The issue here
+is that > if PG_arch_1 is set on a page, then we didn't flush it at
+the time when we believed it was appropriate to do so. <
 
-(Aside: I don't think it affects this issue, but just be aware
-that mapping_mapped(page) returns false on a swapcache page,
-no matter whether it's mapped in anywhere or not.)
+Tell me I'm wrong (having only just sent it to Linus...)
 
-But if it is not peculiar to swap, fixes down in the architecture
-may be inevitable.  I think this depends on what happens when
-truncating or unmapping a file.  It used to be the case that pages
-were unmapped first, then truncated (clearing page->mapping) after:
-in which case, Nitin's issue would appear to be peculiar to swap.
-
-But around 2.6.23 Nick found a second unmap_mapping_range() necessary
-after the truncation (just for the invalidation case? or because of
-inadequate serialization, now I think fixed with the page lock?).
-And I think he has that area under reconstruction again at present,
-so Cc'ed for his opinion on this issue - thanks.
-
-Hugh
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
