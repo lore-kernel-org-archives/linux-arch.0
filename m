@@ -1,46 +1,31 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH] [ARM] force dcache flush if dcache_dirty bit set
-Date: Tue, 13 Oct 2009 11:07:52 +0900
-Message-ID: <20091013020752.GB5736__4299.60533879257$1255399875$gmane$org@linux-sh.org>
-References: <1255337423-3158-1-git-send-email-ngupta@vflare.org> <20091012090710.GA29310@n2100.arm.linux.org.uk> <20091012.023744.157085851.davem@davemloft.net> <20091012100023.GC29310@n2100.arm.linux.org.uk> <Pine.LNX.4.64.0910121634170.7327@sister.anvils> <20091012170312.GB9453@flint.arm.linux.org.uk>
+From: James Bottomley <James.Bottomley@suse.de>
+Subject: Re: xfs failure on parisc (and presumably other VI cache systems)
+ caused by I/O to vmalloc/vmap areas
+Date: Mon, 12 Oct 2009 23:13:03 -0500
+Message-ID: <1255407183.2850.1235.camel@localhost.localdomain>
+References: <1252434469.13003.3.camel@mulgrave.site>
+	 <20091013014040.GA7931@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:60980 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756384AbZJMCJb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2009 22:09:31 -0400
-Content-Disposition: inline
-In-Reply-To: <20091012170312.GB9453@flint.arm.linux.org.uk>
+Received: from cantor2.suse.de ([195.135.220.15]:47205 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751185AbZJMENo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 Oct 2009 00:13:44 -0400
+In-Reply-To: <20091013014040.GA7931@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hugh Dickins <hugh.dickins@tiscali.co.uk>, David Miller <davem@davemloft.net>, Nitin Gupta <ngupta@vflare.org>, Nick Piggin <npiggin@suse.de>, linux-arm-kernel@lists.infradead.orgli
+To: Christoph Hellwig <hch@lst.de>
+Cc: Parisc List <linux-parisc@vger.kernel.org>, Linux Filesystem Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch@vger.kernel.org
 
-On Mon, Oct 12, 2009 at 06:03:12PM +0100, Russell King wrote:
-> On Mon, Oct 12, 2009 at 05:09:53PM +0100, Hugh Dickins wrote:
-> > Sorry to muddy the waters on this, if you and Dave are sure that
-> > you have the right fix, down in your architectures, and that fix
-> > isn't going to hurt your performance significantly.
-> 
-> If I look at the issue from this point of view:
-> 
-> - we are using PG_arch_1 to delay cache handling for the page
-> 
-> - if PG_arch_1 is set on a page, we set it explicitly because we
->   didn't do some flushing between the allocation of the page and
->   mapping it into userspace
-> 
-> - if a page with PG_arch_1 set ever gets to userspace, this can
->   only be because we did the lazy flushing thing
-> 
-> I don't see that there should have been any bearing on whether a page
-> has a mapping or not when we get to update_mmu_cache.  The issue here
-> is that > if PG_arch_1 is set on a page, then we didn't flush it at
-> the time when we believed it was appropriate to do so. <
-> 
-> Tell me I'm wrong (having only just sent it to Linus...)
-> 
-Having looked at the ARM fix, in the !mapping case do you not need the
-I-cache flush on vma->vm_flags & VM_EXEC? Or is the presumption that
-flush_icache_page()-type action doesn't need to be undertaken by
-flush_dcache_page()/update_mmu_cache() when there is no page_mapping()?
+On Tue, 2009-10-13 at 03:40 +0200, Christoph Hellwig wrote:
+> So what's going to happen with this patch series?  Can we expect it to
+> get merged one day?
+
+Well, we need it for parisc, so we can just push it through our tree.  I
+was sort of hoping for confirmation that the other arch bits worked ...
+but they can't be more broken than they are today, so I suppose the risk
+is low.
+
+James
