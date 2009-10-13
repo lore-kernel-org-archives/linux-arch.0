@@ -1,47 +1,18 @@
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [RFC][PATCH] kmap_atomic_push
-Date: Mon, 12 Oct 2009 20:40:29 +0200
-Message-ID: <20091012184028.GA20412@basil.fritz.box>
-References: <1255016123.17055.17.camel@laptop> <87ws30fppe.fsf@basil.nowhere.org> <alpine.LFD.2.01.0910121124590.3438@localhost.localdomain>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: xfs failure on parisc (and presumably other VI cache systems) caused by I/O to vmalloc/vmap areas
+Date: Tue, 13 Oct 2009 03:40:40 +0200
+Message-ID: <20091013014040.GA7931@lst.de>
+References: <1252434469.13003.3.camel@mulgrave.site>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757716AbZJLSlJ@vger.kernel.org>
+Return-path: <linux-parisc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.01.0910121124590.3438@localhost.localdomain>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andi Kleen <andi@firstfloor.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, "hugh.dickins" <hugh.dickins@tiscali.co.uk>, David Howells <dhowells@redhat.com>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+In-Reply-To: <1252434469.13003.3.camel@mulgrave.site>
+Sender: linux-parisc-owner@vger.kernel.org
+To: James Bottomley <James.Bottomley@suse.de>
+Cc: Parisc List <linux-parisc@vger.kernel.org>, Linux Filesystem Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch@vger.kernel.org, Christoph Hellwig <hch@lst.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Oct 12, 2009 at 11:30:07AM -0700, Linus Torvalds wrote:
-> 
-> 
-> On Mon, 12 Oct 2009, Andi Kleen wrote:
-> 
-> > Peter Zijlstra <peterz@infradead.org> writes:
-> > > -
-> > > -static inline void debug_kmap_atomic(enum km_type type)
-> > > +static inline int kmap_atomic_push_idx(void)
-> > >  {
-> > > +	int idx = __get_cpu_var(__kmap_atomic_depth)++;
-> > 
-> > The counter needs to be of local atomic type. Otherwise kmap_atomic cannot
-> > be done from interrupts/nmis, which is unfortunately occasionally needed.
-> 
-> I thought so too on lookin gat it initially, but it's not actually true.
-> 
-> It's both IRQ and NMI safe as-is, for a very simple reason: any interrupts 
+So what's going to happen with this patch series?  Can we expect it to
+get merged one day?
 
-Good point, thanks.
-
-I was thinking of CPU migration in interrupt cases, but even there
-it should be ok in mainline.
-
-I suppose it's not true for the preempt-rt folks (who can migrate
-CPUs at any time), so it might be still more friendly to handle it for them 
-though.
-
--Andi
-
--- 
-ak@linux.intel.com -- Speaking for myself only.
