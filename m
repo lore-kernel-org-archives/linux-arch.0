@@ -1,46 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:60980 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756384AbZJMCJb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2009 22:09:31 -0400
-Date: Tue, 13 Oct 2009 11:07:52 +0900
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH] [ARM] force dcache flush if dcache_dirty bit set
-Message-ID: <20091013020752.GB5736@linux-sh.org>
-References: <1255337423-3158-1-git-send-email-ngupta@vflare.org> <20091012090710.GA29310@n2100.arm.linux.org.uk> <20091012.023744.157085851.davem@davemloft.net> <20091012100023.GC29310@n2100.arm.linux.org.uk> <Pine.LNX.4.64.0910121634170.7327@sister.anvils> <20091012170312.GB9453@flint.arm.linux.org.uk>
+Received: from e28smtp02.in.ibm.com ([59.145.155.2]:43446 "EHLO
+	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751875AbZJNGSJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Oct 2009 02:18:09 -0400
+Date: Wed, 14 Oct 2009 11:47:27 +0530
+From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
+Subject: Re: [v8 PATCH 2/8]: cpuidle: implement a list based approach to
+	register a set of idle routines.
+Message-ID: <20091014061727.GA8605@linux.vnet.ibm.com>
+Reply-To: arun@linux.vnet.ibm.com
+References: <20091008094828.GA20595@linux.vnet.ibm.com> <20091008095027.GC20595@linux.vnet.ibm.com> <1254998162.26976.270.camel@twins> <20091008104249.GJ20595@linux.vnet.ibm.com> <1254999033.26976.272.camel@twins> <8763akh4re.fsf@basil.nowhere.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <20091012170312.GB9453@flint.arm.linux.org.uk>
+In-Reply-To: <8763akh4re.fsf@basil.nowhere.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hugh Dickins <hugh.dickins@tiscali.co.uk>, David Miller <davem@davemloft.net>, Nitin Gupta <ngupta@vflare.org>, Nick Piggin <npiggin@suse.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Andi Kleen <andi@firstfloor.org>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar Sarma <dipankar@in.ibm.com>, Balbir Singh <balbir@in.ibm.com>, Arjan van de Ven <arjan@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Arun Bharadwaj <arun@linux.vnet.ibm.com>
+Message-ID: <20091014061727.jsf-lEx3qa7iiTz-N5RwE-JacP4t3QFHMab0Z2eJBk4@z>
 
-On Mon, Oct 12, 2009 at 06:03:12PM +0100, Russell King wrote:
-> On Mon, Oct 12, 2009 at 05:09:53PM +0100, Hugh Dickins wrote:
-> > Sorry to muddy the waters on this, if you and Dave are sure that
-> > you have the right fix, down in your architectures, and that fix
-> > isn't going to hurt your performance significantly.
+* Andi Kleen <andi@firstfloor.org> [2009-10-12 20:00:05]:
+
+> Peter Zijlstra <a.p.zijlstra@chello.nl> writes:
+> >
+> > So does it make sense to have a set of sets?
+> >
+> > Why not integrate them all into one set to be ruled by this governor
+> > thing?
 > 
-> If I look at the issue from this point of view:
+> cpuidle is currently optional, that is why the two level hierarchy
+> is there so that you can still have simple idle selection without it.
 > 
-> - we are using PG_arch_1 to delay cache handling for the page
+> % size drivers/cpuidle/*.o
+>    text    data     bss     dec     hex filename
+>    5514    1416      44    6974    1b3e drivers/cpuidle/built-in.o
 > 
-> - if PG_arch_1 is set on a page, we set it explicitly because we
->   didn't do some flushing between the allocation of the page and
->   mapping it into userspace
+> Adding it unconditionally would add ~7k to everyone who wants idle functions.
 > 
-> - if a page with PG_arch_1 set ever gets to userspace, this can
->   only be because we did the lazy flushing thing
+> I think making it unconditional would require putting it on a serious
+> diet first.
 > 
-> I don't see that there should have been any bearing on whether a page
-> has a mapping or not when we get to update_mmu_cache.  The issue here
-> is that > if PG_arch_1 is set on a page, then we didn't flush it at
-> the time when we believed it was appropriate to do so. <
-> 
-> Tell me I'm wrong (having only just sent it to Linus...)
-> 
-Having looked at the ARM fix, in the !mapping case do you not need the
-I-cache flush on vma->vm_flags & VM_EXEC? Or is the presumption that
-flush_icache_page()-type action doesn't need to be undertaken by
-flush_dcache_page()/update_mmu_cache() when there is no page_mapping()?
+
+Hi Andi,
+
+Yes, this is a valid point.
+
+How about something like this..
+If the arch does not enable CONFIG_CPU_IDLE, the cpuidle_idle_call
+which is called from cpu_idle() should call default_idle without
+involving the registering cpuidle steps. This should prevent bloating
+up of the kernel for archs which dont want to use cpuidle.
+
+--arun
+> -Andi
+> -- 
+> ak@linux.intel.com -- Speaking for myself only.
