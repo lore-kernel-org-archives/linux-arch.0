@@ -1,21 +1,17 @@
 From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
-Subject: Re: [v8 PATCH 2/8]: cpuidle: implement a list based approach to
-	register a set of idle routines.
-Date: Wed, 14 Oct 2009 11:47:27 +0530
-Message-ID: <20091014061727.GA8605@linux.vnet.ibm.com>
+Subject: Re: [v8 PATCH 1/8]: cpuidle: cleanup drivers/cpuidle/cpuidle.c
+Date: Wed, 14 Oct 2009 11:54:12 +0530
+Message-ID: <20091014062412.GB8605@linux.vnet.ibm.com>
 References: <20091008094828.GA20595@linux.vnet.ibm.com>
-	<20091008095027.GC20595@linux.vnet.ibm.com>
-	<1254998162.26976.270.camel@twins>
-	<20091008104249.GJ20595@linux.vnet.ibm.com>
-	<1254999033.26976.272.camel@twins>
-	<8763akh4re.fsf@basil.nowhere.org>
+	<20091008094942.GB20595@linux.vnet.ibm.com>
+	<20091012113602.GC3007@balbir.in.ibm.com>
 Reply-To: arun@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
 Content-Disposition: inline
-In-Reply-To: <8763akh4re.fsf@basil.nowhere.org>
+In-Reply-To: <20091012113602.GC3007@balbir.in.ibm.com>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
 	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
@@ -25,43 +21,71 @@ List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
 	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
 Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
 Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-To: Andi Kleen <andi@firstfloor.org>
+To: Balbir Singh <balbir@linux.vnet.ibm.com>
 Cc: linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, Arun Bharadwaj <arun@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, linuxppc-dev@lists.ozlabs.org, Arjan van de Ven <arjan@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-* Andi Kleen <andi@firstfloor.org> [2009-10-12 20:00:05]:
+* Balbir Singh <balbir@linux.vnet.ibm.com> [2009-10-12 17:06:02]:
 
-> Peter Zijlstra <a.p.zijlstra@chello.nl> writes:
+> * Arun R B <arun@linux.vnet.ibm.com> [2009-10-08 15:19:42]:
+> 
+> > * Arun R Bharadwaj <arun@linux.vnet.ibm.com> [2009-10-08 15:18:28]:
+> > 
+> > This patch cleans up drivers/cpuidle/cpuidle.c
+> > Earlier cpuidle assumed pm_idle as the default idle loop. Break that
+> > assumption and make it more generic. cpuidle_idle_call() which is the
+> > main idle loop of cpuidle is to be called by architectures which have
+> > registered to cpuidle.
+> > 
+> > Remove routines cpuidle_install/uninstall_idle_handler() which are not
+> > needed anymore.
+> > 
 > >
-> > So does it make sense to have a set of sets?
-> >
-> > Why not integrate them all into one set to be ruled by this governor
-> > thing?
 > 
-> cpuidle is currently optional, that is why the two level hierarchy
-> is there so that you can still have simple idle selection without it.
+> [snip]
 > 
-> % size drivers/cpuidle/*.o
->    text    data     bss     dec     hex filename
->    5514    1416      44    6974    1b3e drivers/cpuidle/built-in.o
+>   /**
+> > - * cpuidle_install_idle_handler - installs the cpuidle idle loop handler
+> > - */
+> > -void cpuidle_install_idle_handler(void)
+> > -{
+> > -	if (enabled_devices && (pm_idle != cpuidle_idle_call)) {
+> > -		/* Make sure all changes finished before we switch to new idle */
+> > -		smp_wmb();
+> > -		pm_idle = cpuidle_idle_call;
+> > -	}
+> > -}
+> > -
+> > -/**
+> > - * cpuidle_uninstall_idle_handler - uninstalls the cpuidle idle loop handler
+> > - */
+> > -void cpuidle_uninstall_idle_handler(void)
+> > -{
+> > -	if (enabled_devices && pm_idle_old && (pm_idle != pm_idle_old)) {
+> > -		pm_idle = pm_idle_old;
+> > -		cpuidle_kick_cpus();
+> > -	}
+> > -}
+> > -
 > 
-> Adding it unconditionally would add ~7k to everyone who wants idle functions.
+> I see the routines above being called in from
+> cpuidle_pause/resume_and_lock/unlock below and they are entries from
+> ACPI on ACPI_PROCESSOR_NOTIFY_POWER and from the hotplug path, could
+> you test them to make sure they are not broken. We also seem to be
+> missing a cpuidle_kick_cpus() in cpuidle_pause_and_lock()
 > 
-> I think making it unconditional would require putting it on a serious
-> diet first.
+> [snip]
 > 
 
-Hi Andi,
+Hi Balbir,
 
-Yes, this is a valid point.
+yes, we definitely need a cpuidle_kick_cpus() in
+cpuidle_pause_and_lock() since this is used while disabling the
+cpuidle_device and the cpus need to be kicked out of the idle states.
+I will test this modified code and see if it breaks hotplug.
 
-How about something like this..
-If the arch does not enable CONFIG_CPU_IDLE, the cpuidle_idle_call
-which is called from cpu_idle() should call default_idle without
-involving the registering cpuidle steps. This should prevent bloating
-up of the kernel for archs which dont want to use cpuidle.
+thanks,
+arun
 
---arun
-> -Andi
 > -- 
-> ak@linux.intel.com -- Speaking for myself only.
+> 	Balbir
