@@ -1,31 +1,67 @@
-From: James Bottomley <James.Bottomley@suse.de>
-Subject: Re: xfs failure on parisc (and presumably other VI cache systems)
- caused by I/O to vmalloc/vmap areas
-Date: Mon, 12 Oct 2009 23:13:03 -0500
-Message-ID: <1255407183.2850.1235.camel@localhost.localdomain>
-References: <1252434469.13003.3.camel@mulgrave.site>
-	 <20091013014040.GA7931@lst.de>
+From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
+Subject: Re: [v8 PATCH 2/8]: cpuidle: implement a list based approach to
+	register a set of idle routines.
+Date: Wed, 14 Oct 2009 11:47:27 +0530
+Message-ID: <20091014061727.GA8605@linux.vnet.ibm.com>
+References: <20091008094828.GA20595@linux.vnet.ibm.com>
+	<20091008095027.GC20595@linux.vnet.ibm.com>
+	<1254998162.26976.270.camel@twins>
+	<20091008104249.GJ20595@linux.vnet.ibm.com>
+	<1254999033.26976.272.camel@twins>
+	<8763akh4re.fsf@basil.nowhere.org>
+Reply-To: arun@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:47205 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751185AbZJMENo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Oct 2009 00:13:44 -0400
-In-Reply-To: <20091013014040.GA7931@lst.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Parisc List <linux-parisc@vger.kernel.org>, Linux Filesystem Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch@vger.kernel.org
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
+Content-Disposition: inline
+In-Reply-To: <8763akh4re.fsf@basil.nowhere.org>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
+To: Andi Kleen <andi@firstfloor.org>
+Cc: linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, Arun Bharadwaj <arun@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, linuxppc-dev@lists.ozlabs.org, Arjan van de Ven <arjan@infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2009-10-13 at 03:40 +0200, Christoph Hellwig wrote:
-> So what's going to happen with this patch series?  Can we expect it to
-> get merged one day?
+* Andi Kleen <andi@firstfloor.org> [2009-10-12 20:00:05]:
 
-Well, we need it for parisc, so we can just push it through our tree.  I
-was sort of hoping for confirmation that the other arch bits worked ...
-but they can't be more broken than they are today, so I suppose the risk
-is low.
+> Peter Zijlstra <a.p.zijlstra@chello.nl> writes:
+> >
+> > So does it make sense to have a set of sets?
+> >
+> > Why not integrate them all into one set to be ruled by this governor
+> > thing?
+> 
+> cpuidle is currently optional, that is why the two level hierarchy
+> is there so that you can still have simple idle selection without it.
+> 
+> % size drivers/cpuidle/*.o
+>    text    data     bss     dec     hex filename
+>    5514    1416      44    6974    1b3e drivers/cpuidle/built-in.o
+> 
+> Adding it unconditionally would add ~7k to everyone who wants idle functions.
+> 
+> I think making it unconditional would require putting it on a serious
+> diet first.
+> 
 
-James
+Hi Andi,
+
+Yes, this is a valid point.
+
+How about something like this..
+If the arch does not enable CONFIG_CPU_IDLE, the cpuidle_idle_call
+which is called from cpu_idle() should call default_idle without
+involving the registering cpuidle steps. This should prevent bloating
+up of the kernel for archs which dont want to use cpuidle.
+
+--arun
+> -Andi
+> -- 
+> ak@linux.intel.com -- Speaking for myself only.
