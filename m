@@ -1,51 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:37693 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758102AbZJOLG1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Oct 2009 07:06:27 -0400
-Subject: Re: [rfc][patch 4a/6] brlock: "fast" brlocks
-From: Peter Zijlstra <peterz@infradead.org>
-In-Reply-To: <20091015065839.GA4262@wotan.suse.de>
-References: <20091015044026.319860788@suse.de>
-	 <20091015050048.777261867@suse.de>  <20091015065839.GA4262@wotan.suse.de>
+Received: from cam-admin0.cambridge.arm.com ([193.131.176.58]:35301 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757499AbZJOMAN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Oct 2009 08:00:13 -0400
+Subject: Re: [PATCH] [ARM] force dcache flush if dcache_dirty bit set
+From: Catalin Marinas <catalin.marinas@arm.com>
+In-Reply-To: <1255540229.15103.50.camel@pc1117.cambridge.arm.com>
+References: <1255337423-3158-1-git-send-email-ngupta@vflare.org>
+	 <20091012090710.GA29310@n2100.arm.linux.org.uk>
+	 <20091012.023744.157085851.davem@davemloft.net>
+	 <20091012100023.GC29310@n2100.arm.linux.org.uk>
+	 <Pine.LNX.4.64.0910121634170.7327@sister.anvils>
+	 <20091012170312.GB9453@flint.arm.linux.org.uk>
+	 <20091013020752.GB5736@linux-sh.org>
+	 <1255540229.15103.50.camel@pc1117.cambridge.arm.com>
 Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Date: Thu, 15 Oct 2009 13:05:21 +0200
-Message-ID: <1255604722.8392.467.camel@twins>
+Date: Thu, 15 Oct 2009 12:59:13 +0100
+Message-ID: <1255607953.10164.63.camel@pc1117.cambridge.arm.com>
 Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Ian Kent <raven@themaw.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Al Viro <viro@ZenIV.linux.org.uk>
-Message-ID: <20091015110521.PKHyotJLU6K18KDVrjycPBeC8kvdr5ENtXUqTzoIEac@z>
+To: Paul Mundt <lethal@linux-sh.org>
+Cc: Nick Piggin <npiggin@suse.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Hugh Dickins <hugh.dickins@tiscali.co.uk>, linux-arm-kernel@lists.infradead.org, David Miller <davem@davemloft.net>, Nitin Gupta <ngupta@vflare.org>
+Message-ID: <20091015115913.MnOvG72hT5-kapVCxbDmQ6mpnu9yJdNrpfxw1FgxAeQ@z>
 
-On Thu, 2009-10-15 at 08:58 +0200, Nick Piggin wrote:
-> [Not for merge. Stop reading if you're not interested in locking minutiae.]
+On Wed, 2009-10-14 at 18:10 +0100, Catalin Marinas wrote:
+> On Tue, 2009-10-13 at 11:07 +0900, Paul Mundt wrote:
+> > On Mon, Oct 12, 2009 at 06:03:12PM +0100, Russell King wrote:
+> > > I don't see that there should have been any bearing on whether a page
+> > > has a mapping or not when we get to update_mmu_cache.  The issue here
+> > > is that > if PG_arch_1 is set on a page, then we didn't flush it at
+> > > the time when we believed it was appropriate to do so. <
+> > > 
+> > > Tell me I'm wrong (having only just sent it to Linus...)
+> > 
+> > Having looked at the ARM fix, in the !mapping case do you not need the
+> > I-cache flush on vma->vm_flags & VM_EXEC? Or is the presumption that
+> > flush_icache_page()-type action doesn't need to be undertaken by
+> > flush_dcache_page()/update_mmu_cache() when there is no page_mapping()?
 > 
-> OK, this is untested but I think the theory is right. Basically it is taking
-> the idea from Dave M's cool brlock optimisation stuff with one further
-> optimisation in that the read locker does not check the spinlock but
-> rather we keep another wlocked variable together inthe same cacheline per
-> CPU, so the read locker only has to touch one cacheline rather than 2.
+> If I understand Nitin's scenario correctly, I think it should also
+> invalidate the I-cache.
 > 
-> This actually will reduce the number of atomics by 2 per path lookup,
-> however we have an smp_mb() there now which is really nasty on some
-> architectures (like ia64 and ppc64), and not that nice on x86 either.
-> We can probably do something interesting on ia64 and ppc64 so that we
-> take advantage of the fact rlocked and wlocked are in the same cacheline
-> so cache coherency (rather than memory consistency) should always provide
-> a strict ordering there. We still do need an acquire barrier -- but it is
-> a much nicer lwsync or st.acq on ppc and ia64.
-> 
-> But: is the avoidance of the atomic RMW a big win? On x86 cores I've tested
-> IIRC mfence is about as costly as a locked instruction which includes the
-> mfence...
-> 
-> So long story short: it might be a small win but it is going to be very
-> arch specific and will require arch specific code to do the barriers and
-> things. The generic spinlock brlock isn't bad at all, so I'll just post
-> this as a curiosity for the time being.
->  
+> For executable anonymous pages containing, it's the user app writing the
+> code (JIT etc.) and it calls an ARM-specific syscall for I and D cache
+> maintenance. If such page is read back from swap, following Nitin's
+> scenario, the I-cache would need to be invalidated as well otherwise it
+> can have stale entries.
 
-fwiw, I rather like this implementation better, and adding lockdep
-annotations to this one shouldn't be hard.
+We can have a scenario where I-cache invalidation would not help on ARM.
+Some apps may temporarily change protection from RX to RW to write some
+data (not instructions) to a page containing code. If Nitin's scenario
+happens when the page is RW, the VM_EXEC wouldn't be set, hence no
+I-cache invalidation.
+
+The app would later do mprotect(RX) but on some ARM processors
+flush_cache_range() is a no-op and therefore no cache flushing. What
+other architectures with Harvard caches do for mprotect(RX)? Is this
+assumed to invalidate the I-cache?
+
+(we have another I-D cache coherency problem on ARM with COW text pages
+following a RX -> RW -> write data -> RX scenario and there are a few
+solutions for this, though none of them optimal with the current cache
+flushing API, especially with the read-implies-exec ELF personality)
+
+-- 
+Catalin
+
