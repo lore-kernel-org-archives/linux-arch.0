@@ -1,69 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([193.131.176.58]:35235 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751205AbZJNRLd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Oct 2009 13:11:33 -0400
-Subject: Re: [PATCH] [ARM] force dcache flush if dcache_dirty bit set
-From: Catalin Marinas <catalin.marinas@arm.com>
-In-Reply-To: <20091013020752.GB5736@linux-sh.org>
-References: <1255337423-3158-1-git-send-email-ngupta@vflare.org>
-	 <20091012090710.GA29310@n2100.arm.linux.org.uk>
-	 <20091012.023744.157085851.davem@davemloft.net>
-	 <20091012100023.GC29310@n2100.arm.linux.org.uk>
-	 <Pine.LNX.4.64.0910121634170.7327@sister.anvils>
-	 <20091012170312.GB9453@flint.arm.linux.org.uk>
-	 <20091013020752.GB5736@linux-sh.org>
-Content-Type: text/plain
-Date: Wed, 14 Oct 2009 18:10:29 +0100
-Message-ID: <1255540229.15103.50.camel@pc1117.cambridge.arm.com>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from e28smtp08.in.ibm.com ([59.145.155.8]:33828 "EHLO
+	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752718AbZJOGHe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Oct 2009 02:07:34 -0400
+Date: Thu, 15 Oct 2009 11:36:52 +0530
+From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
+Subject: Re: [v8 PATCH 2/8]: cpuidle: implement a list based approach to
+	register a set of idle routines.
+Message-ID: <20091015060651.GA4569@linux.vnet.ibm.com>
+Reply-To: arun@linux.vnet.ibm.com
+References: <20091008094828.GA20595@linux.vnet.ibm.com> <20091008095027.GC20595@linux.vnet.ibm.com> <1254998162.26976.270.camel@twins> <20091008104249.GJ20595@linux.vnet.ibm.com> <1254999033.26976.272.camel@twins> <8763akh4re.fsf@basil.nowhere.org> <20091014061727.GA8605@linux.vnet.ibm.com> <20091014071838.GE23248@one.firstfloor.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+In-Reply-To: <20091014071838.GE23248@one.firstfloor.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: Hugh Dickins <hugh.dickins@tiscali.co.uk>, David Miller <davem@davemloft.net>, Nitin Gupta <ngupta@vflare.org>, Nick Piggin <npiggin@suse.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20091014171029.1865jEDDayKYGJ49BAZaXw5HZE1OVWFggcHW9jgPS8U@z>
+To: Andi Kleen <andi@firstfloor.org>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar Sarma <dipankar@in.ibm.com>, Balbir Singh <balbir@in.ibm.com>, Arjan van de Ven <arjan@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Arun Bharadwaj <arun@linux.vnet.ibm.com>
+Message-ID: <20091015060652.xGcpIS0vj9eLGUI0-Sq7WlOJ1QA0Oxly0gWUaXxBUrI@z>
 
-On Tue, 2009-10-13 at 11:07 +0900, Paul Mundt wrote:
-> On Mon, Oct 12, 2009 at 06:03:12PM +0100, Russell King wrote:
-> > On Mon, Oct 12, 2009 at 05:09:53PM +0100, Hugh Dickins wrote:
-> > > Sorry to muddy the waters on this, if you and Dave are sure that
-> > > you have the right fix, down in your architectures, and that fix
-> > > isn't going to hurt your performance significantly.
-> > 
-> > If I look at the issue from this point of view:
-> > 
-> > - we are using PG_arch_1 to delay cache handling for the page
-> > 
-> > - if PG_arch_1 is set on a page, we set it explicitly because we
-> >   didn't do some flushing between the allocation of the page and
-> >   mapping it into userspace
-> > 
-> > - if a page with PG_arch_1 set ever gets to userspace, this can
-> >   only be because we did the lazy flushing thing
-> > 
-> > I don't see that there should have been any bearing on whether a page
-> > has a mapping or not when we get to update_mmu_cache.  The issue here
-> > is that > if PG_arch_1 is set on a page, then we didn't flush it at
-> > the time when we believed it was appropriate to do so. <
-> > 
-> > Tell me I'm wrong (having only just sent it to Linus...)
+* Andi Kleen <andi@firstfloor.org> [2009-10-14 09:18:38]:
+
+> > How about something like this..
+> > If the arch does not enable CONFIG_CPU_IDLE, the cpuidle_idle_call
+> > which is called from cpu_idle() should call default_idle without
+> > involving the registering cpuidle steps. This should prevent bloating
+> > up of the kernel for archs which dont want to use cpuidle.
 > 
-> Having looked at the ARM fix, in the !mapping case do you not need the
-> I-cache flush on vma->vm_flags & VM_EXEC? Or is the presumption that
-> flush_icache_page()-type action doesn't need to be undertaken by
-> flush_dcache_page()/update_mmu_cache() when there is no page_mapping()?
+> On x86 some people want small kernel too, so selecting it on a architecture
+> granuality is not good. Also you can make it default, you just need
+> to slim it down first.
+> 
 
-If I understand Nitin's scenario correctly, I think it should also
-invalidate the I-cache.
+No, I dont mean selecting it on an architecture granularity.
 
-For executable anonymous pages containing, it's the user app writing the
-code (JIT etc.) and it calls an ARM-specific syscall for I and D cache
-maintenance. If such page is read back from swap, following Nitin's
-scenario, the I-cache would need to be invalidated as well otherwise it
-can have stale entries.
+At compile time, if CONFIG_CPU_IDLE is disabled, the arch can redefine
+cpuidle_idle_call. For e.g. in arch/x86/kernel/process.c
 
--- 
-Catalin
+#ifndef CONFIG_CPU_IDLE
+void cpuidle_idle_call(void)
+{
+	if (local_idle)
+		local_idle();
+	else
+		default_idle();
+}
+#endif
 
+where local_idle points to the idle routine selected using
+select_idle_routine() which can be poll, mwait, c1e.
+
+So this way, we still preserve the exact same functionality as before
+and we also remove the ugly pm_idle exported function pointer and we
+avoid unnecessary code bloat for platforms who do not want to use
+cpuidle.
+
+--arun
