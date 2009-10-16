@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp07.au.ibm.com ([202.81.31.140]:33066 "EHLO
-	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752979AbZJPJtS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Oct 2009 05:49:18 -0400
-Date: Fri, 16 Oct 2009 15:18:33 +0530
+Received: from e23smtp09.au.ibm.com ([202.81.31.142]:36881 "EHLO
+	e23smtp09.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757132AbZJPJlM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Oct 2009 05:41:12 -0400
+Date: Fri, 16 Oct 2009 15:10:17 +0530
 From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
-Subject: [v9 PATCH 9/9]: POWER: Enable default_idle when power_save=off.
-Message-ID: <20091016094833.GK27350@linux.vnet.ibm.com>
+Subject: [v9 PATCH 1/9]: cpuidle: Design documentation patch
+Message-ID: <20091016094017.GC27350@linux.vnet.ibm.com>
 Reply-To: arun@linux.vnet.ibm.com
 References: <20091016093850.GB27350@linux.vnet.ibm.com>
 MIME-Version: 1.0
@@ -17,69 +17,58 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar Sarma <dipankar@in.ibm.com>, Balbir Singh <balbir@in.ibm.com>, Andi Kleen <andi@firstfloor.org>, Arun Bharadwaj <arun@linux.vnet.ibm.com>
 Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org
-Message-ID: <20091016094833.C4vB-Sj4QZe-mCsLlXIt_ibBBoDSvmwWVXKxlUUKmMc@z>
+Message-ID: <20091016094017.WGlviBIOEFFTnmvapWIF3nc6dAWdD8vEj_rRWu6Q6jU@z>
 
 * Arun R Bharadwaj <arun@linux.vnet.ibm.com> [2009-10-16 15:08:50]:
 
-This patch enables default_idle when power_save=off kernel boot
-option is specified.
-
-Earlier, this was done by setting ppc_md.power_save = NULL and hence
-HMT_low() and HMT_very_low() was called. Now this is defined under
-default_idle() and hence by setting boot_option_idle_override = 1,
-the cpuidle registration stuff does not happen and hence default_idle
-is chosen in cpuidle_idle_call.
+This patch adds a little information about the redesigned cpuidle
+infrastructure in Documentation/cpuidle/core.txt
 
 Signed-off-by: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
 ---
- arch/powerpc/include/asm/processor.h            |    2 ++
- arch/powerpc/kernel/idle.c                      |    4 +++-
- arch/powerpc/platforms/pseries/processor_idle.c |    5 +++++
- 3 files changed, 10 insertions(+), 1 deletion(-)
+ Documentation/cpuidle/core.txt |   35 +++++++++++++++++++++++++++++++++++
+ 1 file changed, 35 insertions(+)
 
-Index: linux.trees.git/arch/powerpc/include/asm/processor.h
+Index: linux.trees.git/Documentation/cpuidle/core.txt
 ===================================================================
---- linux.trees.git.orig/arch/powerpc/include/asm/processor.h
-+++ linux.trees.git/arch/powerpc/include/asm/processor.h
-@@ -332,6 +332,8 @@ static inline unsigned long get_clean_sp
- }
- #endif
- 
-+extern int boot_option_idle_override;
+--- linux.trees.git.orig/Documentation/cpuidle/core.txt
++++ linux.trees.git/Documentation/cpuidle/core.txt
+@@ -21,3 +21,38 @@ which can be used to switch governors at
+ is meant for developer testing only. In normal usage, kernel picks the
+ best governor based on governor ratings.
+ SEE ALSO: sysfs.txt in this directory.
 +
- #endif /* __KERNEL__ */
- #endif /* __ASSEMBLY__ */
- #endif /* _ASM_POWERPC_PROCESSOR_H */
-Index: linux.trees.git/arch/powerpc/kernel/idle.c
-===================================================================
---- linux.trees.git.orig/arch/powerpc/kernel/idle.c
-+++ linux.trees.git/arch/powerpc/kernel/idle.c
-@@ -40,9 +40,11 @@
- #define cpu_should_die()	0
- #endif
- 
-+int boot_option_idle_override = 0;
++Design:
 +
- static int __init powersave_off(char *arg)
- {
--	ppc_md.power_save = NULL;
-+	boot_option_idle_override = 1;
- 	return 0;
- }
- __setup("powersave=off", powersave_off);
-Index: linux.trees.git/arch/powerpc/platforms/pseries/processor_idle.c
-===================================================================
---- linux.trees.git.orig/arch/powerpc/platforms/pseries/processor_idle.c
-+++ linux.trees.git/arch/powerpc/platforms/pseries/processor_idle.c
-@@ -185,6 +185,11 @@ static int __init pseries_processor_idle
- 	int cpu;
- 	int result;
- 
-+	if (boot_option_idle_override) {
-+		printk(KERN_DEBUG "Using default idle\n");
-+		return 0;
-+	}
++Cpuidle allows for registration of multiple sets of idle routines.
++The latest registered set is used by cpuidle governors as the current
++active set to choose the right idle state. This set is managed as a
++list and each time the newly registered set is added to the head of the
++list and made the current active set.
 +
- 	result = cpuidle_register_driver(&pseries_idle_driver);
- 
- 	if (result < 0)
++An example of how this would work on x86 is shown below.
++
++-----------------					-----------------
++|		|					|		|
++| choose b/w	|	mwait is chosen			|    mwait	|
++| mwait, poll,	|-------------------------------------> |(current active|
++| default, c1e	|	register to cpuidle		|    set)	|
++|		|	with mwait as the idle routine	|		|
++-----------------					-----------------
++
++
++-----------------					-----------------
++|		|					|  c1, c2, c3	|
++|     ACPI	|	register to cpuidle		|   (current)	|
++|   discovery	|-------------------------------------> |---------------|
++|		|	with c1, c2, c3			|     mwait	|
++|		|	as set of idle routines		|		|
++-----------------					-----------------
++
++With this mechanism, a module can register and unregister its set of
++idle routines at run time in a clean manner.
++
++The main idle routine called inside cpu_idle() of every arch is defined in
++driver/cpuidle/cpuidle.c which would in turn call the idle routine selected
++by the governor. If the CONFIG_CPU_IDLE is disabled, the arch needs to
++provide an alternate definition for cpuidle_idle_call().
