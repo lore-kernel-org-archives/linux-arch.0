@@ -1,89 +1,86 @@
-From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
-Subject: [v9 PATCH 9/9]: POWER: Enable default_idle when power_save=off.
-Date: Fri, 16 Oct 2009 15:18:33 +0530
-Message-ID: <20091016094833.GK27350@linux.vnet.ibm.com>
-References: <20091016093850.GB27350@linux.vnet.ibm.com>
-Reply-To: arun@linux.vnet.ibm.com
+From: Michal Simek <monstr@monstr.eu>
+Subject: Microblaze caches + tlb handling
+Date: Fri, 16 Oct 2009 15:39:29 +0200
+Message-ID: <4AD87791.5050502@monstr.eu>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-Content-Disposition: inline
-In-Reply-To: <20091016093850.GB27350@linux.vnet.ibm.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar
-Cc: linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-yx0-f187.google.com ([209.85.210.187]:48740 "EHLO
+	mail-yx0-f187.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751329AbZJPNkm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Oct 2009 09:40:42 -0400
+Received: by yxe17 with SMTP id 17so2004656yxe.33
+        for <linux-arch@vger.kernel.org>; Fri, 16 Oct 2009 06:39:30 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Miller <davem@davemloft.net>
+Cc: lkml <linux-arch@vger.kernel.org>, John Williams <john.williams@petalogix.com>, Andrew Morton <akpm@linux-foundation.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <rmk+lkml@arm.linux.org.uk>, Haavard Skinnemoen <haavard.skinnemoen@atmel.com>, chris@zankel.net, Ralf Baechle <ralf@linux-mips.org>
 
-* Arun R Bharadwaj <arun@linux.vnet.ibm.com> [2009-10-16 15:08:50]:
+Hi David and others,
 
-This patch enables default_idle when power_save=off kernel boot
-option is specified.
+I am working on support write-back caches for Microblaze.
+I have working implementation but I would like to be sure that I don't miss anything.
 
-Earlier, this was done by setting ppc_md.power_save = NULL and hence
-HMT_low() and HMT_very_low() was called. Now this is defined under
-default_idle() and hence by setting boot_option_idle_override = 1,
-the cpuidle registration stuff does not happen and hence default_idle
-is chosen in cpuidle_idle_call.
+I read David's cachetlb.txt in Documentation folder.
 
-Signed-off-by: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
----
- arch/powerpc/include/asm/processor.h            |    2 ++
- arch/powerpc/kernel/idle.c                      |    4 +++-
- arch/powerpc/platforms/pseries/processor_idle.c |    5 +++++
- 3 files changed, 10 insertions(+), 1 deletion(-)
+Ok. First of all some information about hw implementation.
+Cache is between MMU and main memory and I have to use only physical addresses for
+flush/invalidation.
+This caused first problem for invalidation icache and flushing dcache for signal trampoline.
+I took part of this code from sparc where is flushed whole page I think.
+David: Am I right?
+I need physical address of trampoline that's why there is adding with page offset.
 
-Index: linux.trees.git/arch/powerpc/include/asm/processor.h
-===================================================================
---- linux.trees.git.orig/arch/powerpc/include/asm/processor.h
-+++ linux.trees.git/arch/powerpc/include/asm/processor.h
-@@ -332,6 +332,8 @@ static inline unsigned long get_clean_sp
- }
- #endif
- 
-+extern int boot_option_idle_override;
-+
- #endif /* __KERNEL__ */
- #endif /* __ASSEMBLY__ */
- #endif /* _ASM_POWERPC_PROCESSOR_H */
-Index: linux.trees.git/arch/powerpc/kernel/idle.c
-===================================================================
---- linux.trees.git.orig/arch/powerpc/kernel/idle.c
-+++ linux.trees.git/arch/powerpc/kernel/idle.c
-@@ -40,9 +40,11 @@
- #define cpu_should_die()	0
- #endif
- 
-+int boot_option_idle_override = 0;
-+
- static int __init powersave_off(char *arg)
- {
--	ppc_md.power_save = NULL;
-+	boot_option_idle_override = 1;
- 	return 0;
- }
- __setup("powersave=off", powersave_off);
-Index: linux.trees.git/arch/powerpc/platforms/pseries/processor_idle.c
-===================================================================
---- linux.trees.git.orig/arch/powerpc/platforms/pseries/processor_idle.c
-+++ linux.trees.git/arch/powerpc/platforms/pseries/processor_idle.c
-@@ -185,6 +185,11 @@ static int __init pseries_processor_idle
- 	int cpu;
- 	int result;
- 
-+	if (boot_option_idle_override) {
-+		printk(KERN_DEBUG "Using default idle\n");
-+		return 0;
-+	}
-+
- 	result = cpuidle_register_driver(&pseries_idle_driver);
- 
- 	if (result < 0)
+
+	pmd_t *pmdp;
+	pte_t *ptep;
+		address = ((unsigned long)frame->tramp);
+		pmdp = pmd_offset(pud_offset(
+				pgd_offset(current->mm, address),
+						address), address);
+
+		preempt_disable();
+		ptep = pte_offset_map(pmdp, address);
+		if (pte_present(*ptep)) {
+			address = (unsigned long) page_address(pte_page(*ptep));
+			/* MS: I need add offset in page */
+			address += ((unsigned long)frame->tramp) & ~PAGE_MASK;
+			/* MS address is virtual */
+			address = virt_to_phys(address);
+			invalidate_icache_range(address, address + 8);
+			flush_dcache_range(address, address + 8);
+		}
+		pte_unmap(ptep);
+		preempt_enable();
+
+
+The second thing which I would like to check is number of functions which are empty.
+
+flush_dcache_page, flush_dcache_mmap_lock, flush_dcache_mmap_unlock, flush_cache_dup_mm,
+flush_cache_vmap, flush_cache_vunmap, flush_cache_mm, flush_cache_page, flush_icache_page
+
+
+I am not sure about cache aliasing problem but I think that can't happen for Microblaze.
+That's why flush_dcache_page is empty too.
+
+flush_icache_user_range call flush_icache. FRV and PowerPC export it and some archs do nothing.
+What is the correct behavior.
+
+The rest of functions call corresponding implementations.
+
+
+
+The second part of this email but it is related. It is about tlb_start_vma and tlb_end_vma.
+arm, avr32, sh, sparc and xtensa implement it and mips implement only tlb_start_vma.
+Implementation is almost the same. My question is, if is any reason to implement(or not implement) them?
+
+Thanks for you comments,
+Michal
+
+-- 
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
+Microblaze U-BOOT custodian
