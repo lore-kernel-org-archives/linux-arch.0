@@ -1,74 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp09.au.ibm.com ([202.81.31.142]:36881 "EHLO
-	e23smtp09.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757132AbZJPJlM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Oct 2009 05:41:12 -0400
-Date: Fri, 16 Oct 2009 15:10:17 +0530
-From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
-Subject: [v9 PATCH 1/9]: cpuidle: Design documentation patch
-Message-ID: <20091016094017.GC27350@linux.vnet.ibm.com>
-Reply-To: arun@linux.vnet.ibm.com
-References: <20091016093850.GB27350@linux.vnet.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-In-Reply-To: <20091016093850.GB27350@linux.vnet.ibm.com>
+Received: from lo.gmane.org ([80.91.229.12]:50891 "EHLO lo.gmane.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752068AbZJSFKA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 19 Oct 2009 01:10:00 -0400
+Received: from list by lo.gmane.org with local (Exim 4.50)
+	id 1MzkVQ-0007wF-6G
+	for linux-arch@vger.kernel.org; Mon, 19 Oct 2009 07:10:04 +0200
+Received: from 59.96.63.58 ([59.96.63.58])
+        by main.gmane.org with esmtp (Gmexim 0.1 (Debian))
+        id 1AlnuQ-0007hv-00
+        for <linux-arch@vger.kernel.org>; Mon, 19 Oct 2009 07:10:04 +0200
+Received: from harinath by 59.96.63.58 with local (Gmexim 0.1 (Debian))
+        id 1AlnuQ-0007hv-00
+        for <linux-arch@vger.kernel.org>; Mon, 19 Oct 2009 07:10:04 +0200
+From: Raja R Harinath <harinath@hurrynot.org>
+Subject: Re: [RFC][PATCH 2/4] mm: stack based kmap_atomic
+Date: Mon, 19 Oct 2009 08:38:12 +0530
+Message-ID: <87tyxw13oj.fsf@hariville.hurrynot.org>
+References: <20091008232226.768382977@chello.nl>
+	<20091008232528.365592989@chello.nl>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar Sarma <dipankar@in.ibm.com>, Balbir Singh <balbir@in.ibm.com>, Andi Kleen <andi@firstfloor.org>, Arun Bharadwaj <arun@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org
-Message-ID: <20091016094017.WGlviBIOEFFTnmvapWIF3nc6dAWdD8vEj_rRWu6Q6jU@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Message-ID: <20091019030812.Fj90PTFQjFEg1uHF_Q3kfIaqYE-GZH_X3IxNGDglTzo@z>
 
-* Arun R Bharadwaj <arun@linux.vnet.ibm.com> [2009-10-16 15:08:50]:
+Hi,
 
-This patch adds a little information about the redesigned cpuidle
-infrastructure in Documentation/cpuidle/core.txt
+Peter Zijlstra <a.p.zijlstra@chello.nl> writes:
 
-Signed-off-by: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
----
- Documentation/cpuidle/core.txt |   35 +++++++++++++++++++++++++++++++++++
- 1 file changed, 35 insertions(+)
+> @@ -74,7 +76,10 @@ EXPORT_SYMBOL(kmap_atomic);
+>  void kunmap_atomic(void *kvaddr, enum km_type type)
+>  {
+>  	unsigned long vaddr = (unsigned long) kvaddr & PAGE_MASK;
+> -	unsigned int idx = type + KM_TYPE_NR * smp_processor_id();
+> +	unsigned int idx;
+> +
+> +	type = kmap_atomic_idx_pop();
+> +	idx = type + KM_TYPE_NR * smp_processor_id();
 
-Index: linux.trees.git/Documentation/cpuidle/core.txt
-===================================================================
---- linux.trees.git.orig/Documentation/cpuidle/core.txt
-+++ linux.trees.git/Documentation/cpuidle/core.txt
-@@ -21,3 +21,38 @@ which can be used to switch governors at
- is meant for developer testing only. In normal usage, kernel picks the
- best governor based on governor ratings.
- SEE ALSO: sysfs.txt in this directory.
-+
-+Design:
-+
-+Cpuidle allows for registration of multiple sets of idle routines.
-+The latest registered set is used by cpuidle governors as the current
-+active set to choose the right idle state. This set is managed as a
-+list and each time the newly registered set is added to the head of the
-+list and made the current active set.
-+
-+An example of how this would work on x86 is shown below.
-+
-+-----------------					-----------------
-+|		|					|		|
-+| choose b/w	|	mwait is chosen			|    mwait	|
-+| mwait, poll,	|-------------------------------------> |(current active|
-+| default, c1e	|	register to cpuidle		|    set)	|
-+|		|	with mwait as the idle routine	|		|
-+-----------------					-----------------
-+
-+
-+-----------------					-----------------
-+|		|					|  c1, c2, c3	|
-+|     ACPI	|	register to cpuidle		|   (current)	|
-+|   discovery	|-------------------------------------> |---------------|
-+|		|	with c1, c2, c3			|     mwait	|
-+|		|	as set of idle routines		|		|
-+-----------------					-----------------
-+
-+With this mechanism, a module can register and unregister its set of
-+idle routines at run time in a clean manner.
-+
-+The main idle routine called inside cpu_idle() of every arch is defined in
-+driver/cpuidle/cpuidle.c which would in turn call the idle routine selected
-+by the governor. If the CONFIG_CPU_IDLE is disabled, the arch needs to
-+provide an alternate definition for cpuidle_idle_call().
+Maybe you can avoid the 4/4 patch and preserve clean bisects by renaming
+the unused parameter here and elsewhere, and introduce the 'type' local
+in this patch.
+
+  void kunmap_atomic(void *kvaddr, enum km_type unused)
+  {
+    ...
+    unsigned int idx, type;
+    ...
+  }
+
+That way, patch 3/4 will remove a genuinely unused parameter, and thus
+remain compile-able.
+
+- Hari
+
