@@ -1,14 +1,37 @@
-From: centageloan4@mchsi.com
-Subject: (unknown)
-Date: Thu, 29 Oct 2009 05:15:26 +0000
-Message-ID: <102920090515.17951.4AE924EE0000EC5A0000461F223245003003010CD2079C080C03BFCB020E01040A090E9B020A0C@mchsi.com>
-Reply-To: centageloanfinancial.ltd@gmail.com
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] asm-generic: Fix typo in asm-generic/unistd.h.
+Date: Mon, 2 Nov 2009 09:39:14 +0100
+Message-ID: <200911020939.15309.arnd@arndb.de>
+References: <1256526569.7283.3.camel@ad3ser01>
+Mime-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sccmmhc91.asp.att.net ([204.127.203.211]:33968 "EHLO
-	sccmmhc91.asp.att.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751769AbZJ2FQW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Oct 2009 01:16:22 -0400
+Received: from moutng.kundenserver.de ([212.227.126.186]:53077 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751015AbZKBIjR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Nov 2009 03:39:17 -0500
+In-Reply-To: <1256526569.7283.3.camel@ad3ser01>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Chen Liqin <liqin.chen@sunplusct.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, liqin.gnu@gmail.com
 
-Do you Intend to get a Loan to pay of your Bills, Email us Now at centageloanfinancial.ltd@gmail.com  Email us Address..Loan Amount.. Duration..Phone No Thanks.
+On Monday 26 October 2009, Chen Liqin wrote:
+> >From 9741f7928ef35416e49f329a64e623a109de5c2d Mon Sep 17 00:00:00 2001
+> From: Chen Liqin <liqin.chen@sunplusct.com>
+> Date: Mon, 26 Oct 2009 10:50:50 +0800
+> Subject: [PATCH] asm-generic: Fix typo in asm-generic/unistd.h.
+> 
+> Fixed __NR_ftruncate and __NR_ftruncate64 define in asm-generic/unistd.h.
+> 
+> Signed-off-by: Chen Liqin <liqin.chen@sunplusct.com>
+
+Applied, thanks!
+
+I assume that means you are progressing with getting all bugs fixed that
+were introduced in the conversion to the asm-generic headers. Do you
+have a full glibc running again, and passing LTP?
+
+	Arnd <><
