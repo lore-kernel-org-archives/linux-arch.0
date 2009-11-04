@@ -1,33 +1,28 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: liqin.chen@sunplusct.com
 Subject: Re: [PATCH] asm-generic: Fix typo in asm-generic/unistd.h.
-Date: Tue, 3 Nov 2009 09:52:17 +0100
-Message-ID: <200911030952.17483.arnd@arndb.de>
-References: <OF0014BE26.A8597F3B-ON48257663.0009191F-48257663.000C690A@sunplusct.com>
+Date: Wed, 4 Nov 2009 09:47:59 +0800
+Message-ID: <OFC90831A4.A99EC411-ON48257664.00080761-48257664.0009EC42@sunplusct.com>
+References: <200911030952.17483.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="gb2312"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="GB2312"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.188]:59630 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751875AbZKCIwU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2009 03:52:20 -0500
-In-Reply-To: <OF0014BE26.A8597F3B-ON48257663.0009191F-48257663.000C690A@sunplusct.com>
+Received: from 124-219-29-227.vdslpro.static.apol.com.tw ([124.219.29.227]:52028
+	"EHLO mswedge2.sunplus.com" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1753792AbZKDBss (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2009 20:48:48 -0500
+In-Reply-To: <200911030952.17483.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: liqin.chen@sunplusct.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, liqin.gnu@gmail.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, liqin.gnu@gmail.com, liqin.chen@sunplusct.com
 
-On Tuesday 03 November 2009, liqin.chen@sunplusct.com wrote:
-> asm-generic headers could run on linux/score platform well,
-> we upgradge libc to glibc-2.5 and passed LTP testsuites.
-> we will gradually release score-linux toolchain on our website
-
-Ah, good to hear!
-
-Is there any reason to use glibc-2.5 though? The current release
-is 2.10.1, and the version you used is over three years old.
-
-Do you have plans to merge your port into eglibc when it's done?
-
-	Arnd <><
+QXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4g0LTT2iAyMDA5LTExLTAzIDE2OjUyOjE3Og0K
+DQo+IElzIHRoZXJlIGFueSByZWFzb24gdG8gdXNlIGdsaWJjLTIuNSB0aG91Z2g/IFRoZSBjdXJy
+ZW50IHJlbGVhc2UNCj4gaXMgMi4xMC4xLCBhbmQgdGhlIHZlcnNpb24geW91IHVzZWQgaXMgb3Zl
+ciB0aHJlZSB5ZWFycyBvbGQuDQoNCldlIGZvdW5kIG1hbnkgc3RhYmxlIHRvb2xjaGFpbiB1c2Ug
+Z2xpYmMtMi41LiBzbyB3ZSBzZWxlY3QgaXQuDQpJbiBmYWN0LCB3aGF0IHdlIHRoaW5rIGZpcnN0
+IGlzIHRvIGNvdWxkIHVzZWQgaXQgaW4gcHJvZHVjdKGjDQpFdmVuIGxpbnV4IGtlcm5lbCwgaW4g
+Y29tcGFueSB3ZSBzdGlsbCB1c2Uga2VybmVsLTIuNi4yNyB2ZXJzaW9uLg0KIA0KPiBEbyB5b3Ug
+aGF2ZSBwbGFucyB0byBtZXJnZSB5b3VyIHBvcnQgaW50byBlZ2xpYmMgd2hlbiBpdCdzIGRvbmU/
+DQo+IA0KDQpXZSBoYXZlIG5vdCB0aGlzIHBsYW4gbm93Lg0KDQpMaXFpbg0K
