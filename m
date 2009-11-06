@@ -1,35 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 124-219-29-227.vdslpro.static.apol.com.tw ([124.219.29.227]:33574
-	"EHLO mswedge2.sunplus.com" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1752395AbZKFGxF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Nov 2009 01:53:05 -0500
-In-Reply-To: <200911041028.12098.arnd@arndb.de>
-MIME-Version: 1.0
-Subject: Re: [PATCH] asm-generic: Fix typo in asm-generic/unistd.h.
-Message-ID: <OF2B2C42E6.2F1D2BE9-ON48257666.00247A2F-48257666.0025C58F@sunplusct.com>
-From: liqin.chen@sunplusct.com
-Date: Fri, 6 Nov 2009 14:52:05 +0800
-Content-Type: text/plain; charset="GB2312"
-Content-Transfer-Encoding: base64
+Received: from mtagate3.de.ibm.com ([195.212.17.163]:38078 "EHLO
+	mtagate3.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754925AbZKFJXj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Nov 2009 04:23:39 -0500
+Date: Fri, 6 Nov 2009 10:23:42 +0100
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH 07/11] sysctl: s390 Use the compat_sys_sysctl
+Message-ID: <20091106102342.69b3ef7d@mschwide.boeblingen.de.ibm.com>
+In-Reply-To: <1257468114-6823-7-git-send-email-ebiederm@xmission.com>
+References: <m1tyx8trik.fsf@fess.ebiederm.org>
+	<1257468114-6823-7-git-send-email-ebiederm@xmission.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greg KH <greg@kroah.com>, linux-arch@vger.kernel.org, linux-arch-owner@vger.kernel.org, linux-kernel@vger.kernel.org, liqin.gnu@gmail.com
-Message-ID: <20091106065205.JdPxttEFusODGq-JKRUPxe3VoDYEHZwtm7WFgDFBl_g@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Carsten Otte <cotte@de.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20091106092342.oi6DW1NZdZ96XGNJ3QVpuWfJFbkfmn1AhOyO63mUqOI@z>
 
-bGludXgtYXJjaC1vd25lckB2Z2VyLmtlcm5lbC5vcmcg0LTT2iAyMDA5LTExLTA0IDE3OjI4OjEx
-Og0KDQo+IEkgd291bGQgcmVjb21tZW5kIHRvIGxvb2sgaW50byB0aGlzIGF0IHNvbWUgcG9pbnQg
-aW4gdGhlIGZ1dHVyZS4NCj4gVW5saWtlIHRoZSBtYWluIGdsaWJjIHByb2plY3QsIGVnbGliY1sx
-XSBpcyBzcGVjaWZpY2FsbHkgdGhlcmUgZm9yDQo+IHN1cHBvcnRpbmcgZW1iZWRkZWQgYXJjaGl0
-ZWN0dXJlcyBhbmQgYWxyZWFkeSBob3N0cyBwb3J0cyBmb3INCj4gb3RoZXIgcGxhdGZvcm1zIHRo
-YXQgYXJlIG5vdCBpbiBnbGliYyBpdHNlbGYsIHdoaWxlIGl0IGNsb3NlbHkNCj4gZm9sbG93cyB0
-aGUgbWFpbiBnbGliYyBkZXZlbG9wbWVudC4gQ29udHJpYnV0aW5nIHRoZXJlIHVuZm9ydHVuYXRl
-bHkNCj4gcmVxdWlyZXMgc29tZSBwYXBlcndvcmsgZm9yIGNvcHlyaWdodCBhc3NpZ25tZW50LCBi
-dXQgaXQncyBwcm9iYWJseQ0KPiB3b3J0aCBpdCBpbiB0aGUgZW5kLg0KPiANCj4gWW91J3ZlIGRv
-bmUgdGhlIHJpZ2h0IHRoaW5nIGJ5IG1lcmdpbmcgeW91ciBrZXJuZWwgY29kZSBpbnRvIHRoZQ0K
-PiBvZmZpY2lhbCBMaW51eCB0cmVlLCBwb3J0aW5nIHlvdXIgZ2xpYmMgY29kZSB0byB0aGUgbGFz
-dGVzdCANCj4gc25hcHNob3QgYW5kIHN1Ym1pdHRpbmcgaXQgaW50byBlZ2xpYmMgaXMgdGhlIG5l
-eHQgYmlnIHN0ZXAuDQo+IA0KDQpIaSBBcm5ko6wNCg0KVGhhbmsgeW91IGZvciB0aGUgYWJvdmUg
-c3VnZ2VzdGlvbnMgYW5kIGNvbW1lbnRzLA0KV2Ugd2lsbCBldmFsdWF0ZSB5b3VyIHN1Z2dlc3Rp
-b25zIGFuZCBjb250aW51ZSB1cGdyYWRpbmcuDQp0byBtYWtlIGxpbnV4L3Njb3JlIHBsYXRmb3Jt
-IHdvcmsgYmV0dGVyLg0KDQpCZXN0IFJlZ2FyZHMNCkxpcWluDQo=
+On Thu,  5 Nov 2009 16:41:50 -0800
+"Eric W. Biederman" <ebiederm@xmission.com> wrote:
+
+> From: Eric W. Biederman <ebiederm@xmission.com>
+> 
+> Now that we have a generic 32bit compatibility implementation
+> there is no need for s390 to implement it's own.
+> 
+> Cc: Carsten Otte <cotte@de.ibm.com>
+> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+> Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
+> ---
+>  arch/s390/kernel/compat_linux.c   |   53 -------------------------------------
+>  arch/s390/kernel/compat_linux.h   |    2 -
+>  arch/s390/kernel/compat_wrapper.S |    6 +---
+>  3 files changed, 2 insertions(+), 59 deletions(-)
+
+That looks nice, definitely an improvement over the old code.
+
+Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+
+-- 
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
+
