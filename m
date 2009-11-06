@@ -1,47 +1,111 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH 01/11] sysctl: Separate the binary sysctl logic into it's own file.
-Date: Fri, 06 Nov 2009 05:58:43 -0800
-Message-ID: <m1vdhnzre4.fsf@fess.ebiederm.org>
-References: <m1tyx8trik.fsf@fess.ebiederm.org>
-	<200911061310.02785.arnd@arndb.de> <m1ljij24p0.fsf@fess.ebiederm.org>
-	<200911061411.19580.arnd@arndb.de>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: [PATCH] ptrace: copy_thread() should clear TIF_SINGLESTEP and
+	X86_EFLAGS_TF
+Date: Fri, 6 Nov 2009 22:16:37 +0100
+Message-ID: <20091106211637.GA1696@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:50473 "EHLO
-	out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751443AbZKFN6o (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Nov 2009 08:58:44 -0500
-In-Reply-To: <200911061411.19580.arnd@arndb.de> (Arnd Bergmann's message of "Fri\, 6 Nov 2009 14\:11\:19 +0100")
+Received: from mx1.redhat.com ([209.132.183.28]:48386 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759887AbZKFVV3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 6 Nov 2009 16:21:29 -0500
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Roland McGrath <roland@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Arnd Bergmann <arnd@arndb.de> writes:
+This patch fixes x86, other machines need the similar fix. Hopefully
+maintainers can help.
 
-> On Friday 06 November 2009, Eric W. Biederman wrote:
->> The primary proc path already doesn't need the lock_kernel().  My next
->> patch winds up killing the entire binary path and rebuilding on top of
->> /proc/sys.  Which removes that lock_kernel().
->> 
->> Which I think elegantly solves all of the sysctl BKL lock issues.
->
-> Yes, that sounds like an excellent plan, but I'm not completely sure
-> if the lack of the BKL in the procfs case is intentional. As a
-> particular case that I stumbled over, 'core_pattern' is read
-> with the BKL held to protect against sysctl changing it, but
-> it is changed with proc_dostring without the BKL.
+If the tracee calls fork() after PTRACE_SINGLESTEP, the forked child starts
+with TIF_SINGLESTEP/X86_EFLAGS_TF bits copied from ptraced parent. This is
+not right, especially when the new child is not auto-attaced: in this case
+it is killed by SIGTRAP.
 
-Then that is a bug.  The bottom line is sys_sysctl never gets used
-in practice, making the proc interface normative.
+Test-case:
 
-> Most uses of intvec or string seem to be racy and probably need
-> a proper serialization method anyway.
+	#include <stdio.h>
+	#include <unistd.h>
+	#include <signal.h>
+	#include <sys/ptrace.h>
+	#include <sys/wait.h>
+	#include <assert.h>
 
-That sounds familiar.  Of course in practice the changes are rare
-enough and are of static variables that don't get reallocated
-that I would be surprised if the lack of lacking ever causes
-more more than temporary strange behavior.
+	int main(void)
+	{
+		int pid, status;
 
-Eric
+		if (!(pid = fork())) {
+			assert(ptrace(PTRACE_TRACEME) == 0);
+			kill(getpid(), SIGSTOP);
+
+			if (!fork()) {
+				/* kernel bug: this child will be killed by SIGTRAP */
+				printf("Hello world\n");
+				return 43;
+			}
+
+			wait(&status);
+			return WEXITSTATUS(status);
+		}
+
+		for (;;) {
+			assert(pid == wait(&status));
+			if (WIFEXITED(status))
+				break;
+			assert(ptrace(PTRACE_SINGLESTEP, pid, 0,0) == 0);
+		}
+
+		assert(WEXITSTATUS(status) == 43);
+		return 0;
+	}
+
+Tested on x86_64, hopefully the change in process_32.c is right too.
+
+Signed-off-by: Oleg Nesterov <oleg@redhat.com>
+---
+
+ arch/x86/kernel/process_32.c |    3 +++
+ arch/x86/kernel/process_64.c |    3 +++
+ 2 files changed, 6 insertions(+)
+
+--- V1/arch/x86/kernel/process_32.c~FORK_CLEAR_TIF_SINGLESTEP	2009-09-15 08:45:40.000000000 +0200
++++ V1/arch/x86/kernel/process_32.c	2009-11-06 21:51:57.000000000 +0100
+@@ -252,6 +252,8 @@ int copy_thread(unsigned long clone_flag
+ 	childregs->ax = 0;
+ 	childregs->sp = sp;
+ 
++	childregs->flags &= ~X86_EFLAGS_TF;
++
+ 	p->thread.sp = (unsigned long) childregs;
+ 	p->thread.sp0 = (unsigned long) (childregs+1);
+ 
+@@ -287,6 +289,7 @@ int copy_thread(unsigned long clone_flag
+ 	clear_tsk_thread_flag(p, TIF_DS_AREA_MSR);
+ 	p->thread.ds_ctx = NULL;
+ 
++	clear_tsk_thread_flag(p, TIF_SINGLESTEP);
+ 	clear_tsk_thread_flag(p, TIF_DEBUGCTLMSR);
+ 	p->thread.debugctlmsr = 0;
+ 
+--- V1/arch/x86/kernel/process_64.c~FORK_CLEAR_TIF_SINGLESTEP	2009-09-15 08:45:40.000000000 +0200
++++ V1/arch/x86/kernel/process_64.c	2009-11-06 21:45:16.000000000 +0100
+@@ -289,6 +289,8 @@ int copy_thread(unsigned long clone_flag
+ 	if (sp == ~0UL)
+ 		childregs->sp = (unsigned long)childregs;
+ 
++	childregs->flags &= ~X86_EFLAGS_TF;
++
+ 	p->thread.sp = (unsigned long) childregs;
+ 	p->thread.sp0 = (unsigned long) (childregs+1);
+ 	p->thread.usersp = me->thread.usersp;
+@@ -332,6 +334,7 @@ int copy_thread(unsigned long clone_flag
+ 	clear_tsk_thread_flag(p, TIF_DS_AREA_MSR);
+ 	p->thread.ds_ctx = NULL;
+ 
++	clear_tsk_thread_flag(p, TIF_SINGLESTEP);
+ 	clear_tsk_thread_flag(p, TIF_DEBUGCTLMSR);
+ 	p->thread.debugctlmsr = 0;
+ 
