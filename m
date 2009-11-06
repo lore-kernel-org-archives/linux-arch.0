@@ -1,30 +1,31 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [PATCH 06/11] sysctl: parisc Use the compat_sys_sysctl
-Date: Fri, 6 Nov 2009 01:01:54 -0500
-Message-ID: <20091106060154.GE11702@bombadil.infradead.org>
-References: <m1tyx8trik.fsf@fess.ebiederm.org> <1257468114-6823-6-git-send-email-ebiederm@xmission.com>
+From: liqin.chen@sunplusct.com
+Subject: Re: [PATCH] asm-generic: Fix typo in asm-generic/unistd.h.
+Date: Fri, 6 Nov 2009 14:52:05 +0800
+Message-ID: <OF2B2C42E6.2F1D2BE9-ON48257666.00247A2F-48257666.0025C58F@sunplusct.com>
+References: <200911041028.12098.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:53154 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754869AbZKFGBu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Nov 2009 01:01:50 -0500
-Content-Disposition: inline
-In-Reply-To: <1257468114-6823-6-git-send-email-ebiederm@xmission.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, Thibaut Varene <T-Bone@parisc-linux.org>
+Content-Type: text/plain; charset="GB2312"
+Content-Transfer-Encoding: base64
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1752797AbZKFGxK@vger.kernel.org>
+In-Reply-To: <200911041028.12098.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greg KH <greg@kroah.com>, linux-arch@vger.kernel.org, linux-arch-owner@vger.kernel.org, linux-kernel@vger.kernel.org, liqin.gnu@gmail.com
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Nov 05, 2009 at 04:41:49PM -0800, Eric W. Biederman wrote:
-> From: Eric W. Biederman <ebiederm@xmission.com>
-> 
-> Now that we have a generic 32bit compatibility implementation
-> there is no need for parisc to implement it's own.
-> 
-> Cc: Kyle McMartin <kyle@mcmartin.ca>
-> Cc: Thibaut Varene <T-Bone@parisc-linux.org>
-> Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
-
-Acked-by: Kyle McMartin <kyle@mcmartin.ca>
+bGludXgtYXJjaC1vd25lckB2Z2VyLmtlcm5lbC5vcmcg0LTT2iAyMDA5LTExLTA0IDE3OjI4OjEx
+Og0KDQo+IEkgd291bGQgcmVjb21tZW5kIHRvIGxvb2sgaW50byB0aGlzIGF0IHNvbWUgcG9pbnQg
+aW4gdGhlIGZ1dHVyZS4NCj4gVW5saWtlIHRoZSBtYWluIGdsaWJjIHByb2plY3QsIGVnbGliY1sx
+XSBpcyBzcGVjaWZpY2FsbHkgdGhlcmUgZm9yDQo+IHN1cHBvcnRpbmcgZW1iZWRkZWQgYXJjaGl0
+ZWN0dXJlcyBhbmQgYWxyZWFkeSBob3N0cyBwb3J0cyBmb3INCj4gb3RoZXIgcGxhdGZvcm1zIHRo
+YXQgYXJlIG5vdCBpbiBnbGliYyBpdHNlbGYsIHdoaWxlIGl0IGNsb3NlbHkNCj4gZm9sbG93cyB0
+aGUgbWFpbiBnbGliYyBkZXZlbG9wbWVudC4gQ29udHJpYnV0aW5nIHRoZXJlIHVuZm9ydHVuYXRl
+bHkNCj4gcmVxdWlyZXMgc29tZSBwYXBlcndvcmsgZm9yIGNvcHlyaWdodCBhc3NpZ25tZW50LCBi
+dXQgaXQncyBwcm9iYWJseQ0KPiB3b3J0aCBpdCBpbiB0aGUgZW5kLg0KPiANCj4gWW91J3ZlIGRv
+bmUgdGhlIHJpZ2h0IHRoaW5nIGJ5IG1lcmdpbmcgeW91ciBrZXJuZWwgY29kZSBpbnRvIHRoZQ0K
+PiBvZmZpY2lhbCBMaW51eCB0cmVlLCBwb3J0aW5nIHlvdXIgZ2xpYmMgY29kZSB0byB0aGUgbGFz
+dGVzdCANCj4gc25hcHNob3QgYW5kIHN1Ym1pdHRpbmcgaXQgaW50byBlZ2xpYmMgaXMgdGhlIG5l
+eHQgYmlnIHN0ZXAuDQo+IA0KDQpIaSBBcm5ko6wNCg0KVGhhbmsgeW91IGZvciB0aGUgYWJvdmUg
+c3VnZ2VzdGlvbnMgYW5kIGNvbW1lbnRzLA0KV2Ugd2lsbCBldmFsdWF0ZSB5b3VyIHN1Z2dlc3Rp
+b25zIGFuZCBjb250aW51ZSB1cGdyYWRpbmcuDQp0byBtYWtlIGxpbnV4L3Njb3JlIHBsYXRmb3Jt
+IHdvcmsgYmV0dGVyLg0KDQpCZXN0IFJlZ2FyZHMNCkxpcWluDQo=
