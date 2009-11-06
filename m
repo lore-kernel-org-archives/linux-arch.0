@@ -1,40 +1,38 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH 07/11] sysctl: s390 Use the compat_sys_sysctl
-Date: Fri, 06 Nov 2009 02:19:51 -0800
-Message-ID: <m13a4srm48.fsf@fess.ebiederm.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 0/11] generic compat_sys_sysctl
+Date: Fri, 6 Nov 2009 11:27:24 +0100
+Message-ID: <200911061127.25337.arnd@arndb.de>
 References: <m1tyx8trik.fsf@fess.ebiederm.org>
-	<1257468114-6823-7-git-send-email-ebiederm@xmission.com>
-	<200911061012.17239.borntraeger@de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:45446 "EHLO
-	out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755143AbZKFKTw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Nov 2009 05:19:52 -0500
-In-Reply-To: <200911061012.17239.borntraeger@de.ibm.com> (Christian Borntraeger's message of "Fri\, 6 Nov 2009 10\:12\:17 +0100")
+Received: from moutng.kundenserver.de ([212.227.126.177]:64963 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755164AbZKFK3R (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Nov 2009 05:29:17 -0500
+In-Reply-To: <m1tyx8trik.fsf@fess.ebiederm.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Carsten Otte <cotte@de.ibm.com>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@mcmartin.ca>, Thibaut Varene <T-Bone@parisc-linux.org>, Carsten Otte <cotte@de.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 
-Christian Borntraeger <borntraeger@de.ibm.com> writes:
+On Friday 06 November 2009, Eric W. Biederman wrote:
+> current architecture name for it's 32bit compat syscall with
+> compat_sys_sysctl, and deleting the architectures private
+> 32bit compat syscall.  The only requirement is that CONFIG_COMPAT
+> be set when you need compat_sys_sysctl.
+> 
+> These patches should just work, but an eyeball from someone who is
+> familiar with the architecture specific details would be appreciated.
+> I have only tested the 32bit compat code on x86_64.
 
-> Am Freitag 06 November 2009 01:41:50 schrieb Eric W. Biederman:
->> From: Eric W. Biederman <ebiederm@xmission.com>
->> 
->> Now that we have a generic 32bit compatibility implementation
->> there is no need for s390 to implement it's own.
->> 
->> Cc: Carsten Otte <cotte@de.ibm.com>
->> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
->
-> You should have CCed Martin & Heiko, since this is cleary not KVM.
-> I took a look anyway ;-)
+I have done similar conversions for other syscalls and am familiar
+with s390 and powerpc specific details. Your compat code looks good
+for all of the pitfalls I'm aware of and possibly fixes bugs in the
+existing arch specific implementations.
 
-Groan. I got the wrong s390 line in MAINTAINERS.
+Very nice series!
 
->> Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
-> Patch looks good.
->
-> Acked-by: Christian Borntraeger <borntraeger@de.ibm.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
