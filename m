@@ -1,53 +1,160 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 11/11] sysctl: Make do_sysctl static
-Date: Thu,  5 Nov 2009 16:41:54 -0800
-Message-ID: <1257468114-6823-11-git-send-email-ebiederm@xmission.com>
+Subject: [PATCH 03/11] sysctl: Introduce a generic compat sysctl sysctl
+Date: Thu,  5 Nov 2009 16:41:46 -0800
+Message-ID: <1257468114-6823-3-git-send-email-ebiederm@xmission.com>
 References: <m1tyx8trik.fsf@fess.ebiederm.org>
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S932082AbZKFAmi@vger.kernel.org>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1759266AbZKFAnR@vger.kernel.org>
 In-Reply-To: <m1tyx8trik.fsf@fess.ebiederm.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
 List-Id: linux-arch.vger.kernel.org
 
 From: Eric W. Biederman <ebiederm@xmission.com>
 
-Now that all of the architectures use compat_sys_sysctl do_sysctl
-can become static.
+This uses compat_alloc_userspace to remove the various
+hacks to allow do_sysctl to write to throuh oldlenp.
 
+The rest of our mature compat syscall helper facitilies
+are used as well to ensure we have a nice clean maintainable
+compat syscall that can be used on all architectures.
+
+The motiviation for a generic compat sysctl (besides the
+obvious hack removal) is to reduce the number of compat
+sysctl defintions out there so I can refactor the
+binary sysctl implementation.
+
+ppc already used the name compat_sys_sysctl so I remove the
+ppcs version here.
+
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
 Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
 ---
- include/linux/sysctl.h |    4 ----
- kernel/sysctl_binary.c |    2 +-
- 2 files changed, 1 insertions(+), 5 deletions(-)
+ arch/powerpc/kernel/sys_ppc32.c |   52 ---------------------------------------
+ kernel/sysctl_binary.c          |   50 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 50 insertions(+), 52 deletions(-)
 
-diff --git a/include/linux/sysctl.h b/include/linux/sysctl.h
-index 1e4743e..82c32b8 100644
---- a/include/linux/sysctl.h
-+++ b/include/linux/sysctl.h
-@@ -996,10 +996,6 @@ extern int proc_doulongvec_minmax(struct ctl_table *, int,
- extern int proc_doulongvec_ms_jiffies_minmax(struct ctl_table *table, int,
- 				      void __user *, size_t *, loff_t *);
- 
--extern int do_sysctl (int __user *name, int nlen,
--		      void __user *oldval, size_t __user *oldlenp,
--		      void __user *newval, size_t newlen);
--
- extern ctl_handler sysctl_data;
- extern ctl_handler sysctl_string;
- extern ctl_handler sysctl_intvec;
-diff --git a/kernel/sysctl_binary.c b/kernel/sysctl_binary.c
-index a2fed5b..b9b841e 100644
---- a/kernel/sysctl_binary.c
-+++ b/kernel/sysctl_binary.c
-@@ -134,7 +134,7 @@ static void deprecated_sysctl_warning(const int *name, int nlen)
- 	return;
+diff --git a/arch/powerpc/kernel/sys_ppc32.c b/arch/powerpc/kernel/sys_ppc32.c
+index b97c2d6..c5a4732 100644
+--- a/arch/powerpc/kernel/sys_ppc32.c
++++ b/arch/powerpc/kernel/sys_ppc32.c
+@@ -520,58 +520,6 @@ asmlinkage long compat_sys_umask(u32 mask)
+ 	return sys_umask((int)mask);
  }
  
--int do_sysctl(int __user *args_name, int nlen,
-+static int do_sysctl(int __user *args_name, int nlen,
- 	void __user *oldval, size_t __user *oldlenp,
- 	void __user *newval, size_t newlen)
- {
+-#ifdef CONFIG_SYSCTL_SYSCALL
+-struct __sysctl_args32 {
+-	u32 name;
+-	int nlen;
+-	u32 oldval;
+-	u32 oldlenp;
+-	u32 newval;
+-	u32 newlen;
+-	u32 __unused[4];
+-};
+-
+-asmlinkage long compat_sys_sysctl(struct __sysctl_args32 __user *args)
+-{
+-	struct __sysctl_args32 tmp;
+-	int error;
+-	size_t oldlen;
+-	size_t __user *oldlenp = NULL;
+-	unsigned long addr = (((unsigned long)&args->__unused[0]) + 7) & ~7;
+-
+-	if (copy_from_user(&tmp, args, sizeof(tmp)))
+-		return -EFAULT;
+-
+-	if (tmp.oldval && tmp.oldlenp) {
+-		/* Duh, this is ugly and might not work if sysctl_args
+-		   is in read-only memory, but do_sysctl does indirectly
+-		   a lot of uaccess in both directions and we'd have to
+-		   basically copy the whole sysctl.c here, and
+-		   glibc's __sysctl uses rw memory for the structure
+-		   anyway.  */
+-		oldlenp = (size_t __user *)addr;
+-		if (get_user(oldlen, (compat_size_t __user *)compat_ptr(tmp.oldlenp)) ||
+-		    put_user(oldlen, oldlenp))
+-			return -EFAULT;
+-	}
+-
+-	lock_kernel();
+-	error = do_sysctl(compat_ptr(tmp.name), tmp.nlen,
+-			  compat_ptr(tmp.oldval), oldlenp,
+-			  compat_ptr(tmp.newval), tmp.newlen);
+-	unlock_kernel();
+-	if (oldlenp) {
+-		if (!error) {
+-			if (get_user(oldlen, oldlenp) ||
+-			    put_user(oldlen, (compat_size_t __user *)compat_ptr(tmp.oldlenp)))
+-				error = -EFAULT;
+-		}
+-		copy_to_user(args->__unused, tmp.__unused, sizeof(tmp.__unused));
+-	}
+-	return error;
+-}
+-#endif
+-
+ unsigned long compat_sys_mmap2(unsigned long addr, size_t len,
+ 			  unsigned long prot, unsigned long flags,
+ 			  unsigned long fd, unsigned long pgoff)
+diff --git a/kernel/sysctl_binary.c b/kernel/sysctl_binary.c
+index c5cc393..a2fed5b 100644
+--- a/kernel/sysctl_binary.c
++++ b/kernel/sysctl_binary.c
+@@ -175,3 +175,53 @@ SYSCALL_DEFINE1(sysctl, struct __sysctl_args __user *, args)
+ 
+ 	return error;
+ }
++
++#ifdef CONFIG_COMPAT
++#include <asm/compat.h>
++
++struct compat_sysctl_args {
++	compat_uptr_t	name;
++	int		nlen;
++	compat_uptr_t	oldval;
++	compat_uptr_t	oldlenp;
++	compat_uptr_t	newval;
++	compat_size_t	newlen;
++	compat_ulong_t	__unused[4];
++};
++
++asmlinkage long compat_sys_sysctl(struct compat_sysctl_args __user *args)
++{
++	struct compat_sysctl_args tmp;
++	compat_size_t __user *compat_oldlenp;
++	size_t __user *oldlenp = NULL;
++	size_t oldlen = 0;
++	ssize_t result;
++
++	if (copy_from_user(&tmp, args, sizeof(tmp)))
++		return -EFAULT;
++
++	compat_oldlenp = compat_ptr(tmp.oldlenp);
++	if (compat_oldlenp) {
++		oldlenp = compat_alloc_user_space(sizeof(*compat_oldlenp));
++
++		if (get_user(oldlen, compat_oldlenp) ||
++		    put_user(oldlen, oldlenp))
++			return -EFAULT;
++	}
++
++	lock_kernel();
++	result = do_sysctl(compat_ptr(tmp.name), tmp.nlen,
++			   compat_ptr(tmp.oldval), oldlenp,
++			   compat_ptr(tmp.newval), tmp.newlen);
++	unlock_kernel();
++
++	if (oldlenp && !result) {
++		if (get_user(oldlen, oldlenp) ||
++		    put_user(oldlen, compat_oldlenp))
++			return -EFAULT;
++	}
++
++	return result;
++}
++
++#endif /* CONFIG_COMPAT */
 -- 
 1.6.5.2.143.g8cc62
