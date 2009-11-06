@@ -1,160 +1,125 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 03/11] sysctl: Introduce a generic compat sysctl sysctl
-Date: Thu,  5 Nov 2009 16:41:46 -0800
-Message-ID: <1257468114-6823-3-git-send-email-ebiederm@xmission.com>
+Subject: [PATCH 09/11] sysctl: x86 Use the compat_sys_sysctl
+Date: Thu,  5 Nov 2009 16:41:52 -0800
+Message-ID: <1257468114-6823-9-git-send-email-ebiederm@xmission.com>
 References: <m1tyx8trik.fsf@fess.ebiederm.org>
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1759266AbZKFAnR@vger.kernel.org>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S932195AbZKFAmw@vger.kernel.org>
 In-Reply-To: <m1tyx8trik.fsf@fess.ebiederm.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 List-Id: linux-arch.vger.kernel.org
 
 From: Eric W. Biederman <ebiederm@xmission.com>
 
-This uses compat_alloc_userspace to remove the various
-hacks to allow do_sysctl to write to throuh oldlenp.
+Now that we have a generic 32bit compatibility implementation
+there is no need for x86 to implement it's own.
 
-The rest of our mature compat syscall helper facitilies
-are used as well to ensure we have a nice clean maintainable
-compat syscall that can be used on all architectures.
-
-The motiviation for a generic compat sysctl (besides the
-obvious hack removal) is to reduce the number of compat
-sysctl defintions out there so I can refactor the
-binary sysctl implementation.
-
-ppc already used the name compat_sys_sysctl so I remove the
-ppcs version here.
-
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
 ---
- arch/powerpc/kernel/sys_ppc32.c |   52 ---------------------------------------
- kernel/sysctl_binary.c          |   50 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 50 insertions(+), 52 deletions(-)
+ arch/x86/ia32/ia32entry.S       |    2 +-
+ arch/x86/ia32/sys_ia32.c        |   56 ---------------------------------------
+ arch/x86/include/asm/sys_ia32.h |    5 ---
+ 3 files changed, 1 insertions(+), 62 deletions(-)
 
-diff --git a/arch/powerpc/kernel/sys_ppc32.c b/arch/powerpc/kernel/sys_ppc32.c
-index b97c2d6..c5a4732 100644
---- a/arch/powerpc/kernel/sys_ppc32.c
-+++ b/arch/powerpc/kernel/sys_ppc32.c
-@@ -520,58 +520,6 @@ asmlinkage long compat_sys_umask(u32 mask)
- 	return sys_umask((int)mask);
+diff --git a/arch/x86/ia32/ia32entry.S b/arch/x86/ia32/ia32entry.S
+index 581b056..5d25848 100644
+--- a/arch/x86/ia32/ia32entry.S
++++ b/arch/x86/ia32/ia32entry.S
+@@ -653,7 +653,7 @@ ia32_sys_call_table:
+ 	.quad compat_sys_writev
+ 	.quad sys_getsid
+ 	.quad sys_fdatasync
+-	.quad sys32_sysctl	/* sysctl */
++	.quad compat_sys_sysctl	/* sysctl */
+ 	.quad sys_mlock		/* 150 */
+ 	.quad sys_munlock
+ 	.quad sys_mlockall
+diff --git a/arch/x86/ia32/sys_ia32.c b/arch/x86/ia32/sys_ia32.c
+index 9f55271..df82c0e 100644
+--- a/arch/x86/ia32/sys_ia32.c
++++ b/arch/x86/ia32/sys_ia32.c
+@@ -434,62 +434,6 @@ asmlinkage long sys32_rt_sigqueueinfo(int pid, int sig,
+ 	return ret;
  }
  
 -#ifdef CONFIG_SYSCTL_SYSCALL
--struct __sysctl_args32 {
--	u32 name;
--	int nlen;
--	u32 oldval;
--	u32 oldlenp;
--	u32 newval;
--	u32 newlen;
--	u32 __unused[4];
+-struct sysctl_ia32 {
+-	unsigned int	name;
+-	int		nlen;
+-	unsigned int	oldval;
+-	unsigned int	oldlenp;
+-	unsigned int	newval;
+-	unsigned int	newlen;
+-	unsigned int	__unused[4];
 -};
 -
--asmlinkage long compat_sys_sysctl(struct __sysctl_args32 __user *args)
--{
--	struct __sysctl_args32 tmp;
--	int error;
--	size_t oldlen;
--	size_t __user *oldlenp = NULL;
--	unsigned long addr = (((unsigned long)&args->__unused[0]) + 7) & ~7;
 -
--	if (copy_from_user(&tmp, args, sizeof(tmp)))
+-asmlinkage long sys32_sysctl(struct sysctl_ia32 __user *args32)
+-{
+-	struct sysctl_ia32 a32;
+-	mm_segment_t old_fs = get_fs();
+-	void __user *oldvalp, *newvalp;
+-	size_t oldlen;
+-	int __user *namep;
+-	long ret;
+-
+-	if (copy_from_user(&a32, args32, sizeof(a32)))
 -		return -EFAULT;
 -
--	if (tmp.oldval && tmp.oldlenp) {
--		/* Duh, this is ugly and might not work if sysctl_args
--		   is in read-only memory, but do_sysctl does indirectly
--		   a lot of uaccess in both directions and we'd have to
--		   basically copy the whole sysctl.c here, and
--		   glibc's __sysctl uses rw memory for the structure
--		   anyway.  */
--		oldlenp = (size_t __user *)addr;
--		if (get_user(oldlen, (compat_size_t __user *)compat_ptr(tmp.oldlenp)) ||
--		    put_user(oldlen, oldlenp))
--			return -EFAULT;
--	}
+-	/*
+-	 * We need to pre-validate these because we have to disable
+-	 * address checking before calling do_sysctl() because of
+-	 * OLDLEN but we can't run the risk of the user specifying bad
+-	 * addresses here.  Well, since we're dealing with 32 bit
+-	 * addresses, we KNOW that access_ok() will always succeed, so
+-	 * this is an expensive NOP, but so what...
+-	 */
+-	namep = compat_ptr(a32.name);
+-	oldvalp = compat_ptr(a32.oldval);
+-	newvalp =  compat_ptr(a32.newval);
 -
+-	if ((oldvalp && get_user(oldlen, (int __user *)compat_ptr(a32.oldlenp)))
+-	    || !access_ok(VERIFY_WRITE, namep, 0)
+-	    || !access_ok(VERIFY_WRITE, oldvalp, 0)
+-	    || !access_ok(VERIFY_WRITE, newvalp, 0))
+-		return -EFAULT;
+-
+-	set_fs(KERNEL_DS);
 -	lock_kernel();
--	error = do_sysctl(compat_ptr(tmp.name), tmp.nlen,
--			  compat_ptr(tmp.oldval), oldlenp,
--			  compat_ptr(tmp.newval), tmp.newlen);
+-	ret = do_sysctl(namep, a32.nlen, oldvalp, (size_t __user *)&oldlen,
+-			newvalp, (size_t) a32.newlen);
 -	unlock_kernel();
--	if (oldlenp) {
--		if (!error) {
--			if (get_user(oldlen, oldlenp) ||
--			    put_user(oldlen, (compat_size_t __user *)compat_ptr(tmp.oldlenp)))
--				error = -EFAULT;
--		}
--		copy_to_user(args->__unused, tmp.__unused, sizeof(tmp.__unused));
--	}
--	return error;
+-	set_fs(old_fs);
+-
+-	if (oldvalp && put_user(oldlen, (int __user *)compat_ptr(a32.oldlenp)))
+-		return -EFAULT;
+-
+-	return ret;
 -}
 -#endif
 -
- unsigned long compat_sys_mmap2(unsigned long addr, size_t len,
- 			  unsigned long prot, unsigned long flags,
- 			  unsigned long fd, unsigned long pgoff)
-diff --git a/kernel/sysctl_binary.c b/kernel/sysctl_binary.c
-index c5cc393..a2fed5b 100644
---- a/kernel/sysctl_binary.c
-+++ b/kernel/sysctl_binary.c
-@@ -175,3 +175,53 @@ SYSCALL_DEFINE1(sysctl, struct __sysctl_args __user *, args)
+ /* warning: next two assume little endian */
+ asmlinkage long sys32_pread(unsigned int fd, char __user *ubuf, u32 count,
+ 			    u32 poslo, u32 poshi)
+diff --git a/arch/x86/include/asm/sys_ia32.h b/arch/x86/include/asm/sys_ia32.h
+index 72a6dcd..9af9dec 100644
+--- a/arch/x86/include/asm/sys_ia32.h
++++ b/arch/x86/include/asm/sys_ia32.h
+@@ -51,11 +51,6 @@ asmlinkage long sys32_sched_rr_get_interval(compat_pid_t,
+ asmlinkage long sys32_rt_sigpending(compat_sigset_t __user *, compat_size_t);
+ asmlinkage long sys32_rt_sigqueueinfo(int, int, compat_siginfo_t __user *);
  
- 	return error;
- }
-+
-+#ifdef CONFIG_COMPAT
-+#include <asm/compat.h>
-+
-+struct compat_sysctl_args {
-+	compat_uptr_t	name;
-+	int		nlen;
-+	compat_uptr_t	oldval;
-+	compat_uptr_t	oldlenp;
-+	compat_uptr_t	newval;
-+	compat_size_t	newlen;
-+	compat_ulong_t	__unused[4];
-+};
-+
-+asmlinkage long compat_sys_sysctl(struct compat_sysctl_args __user *args)
-+{
-+	struct compat_sysctl_args tmp;
-+	compat_size_t __user *compat_oldlenp;
-+	size_t __user *oldlenp = NULL;
-+	size_t oldlen = 0;
-+	ssize_t result;
-+
-+	if (copy_from_user(&tmp, args, sizeof(tmp)))
-+		return -EFAULT;
-+
-+	compat_oldlenp = compat_ptr(tmp.oldlenp);
-+	if (compat_oldlenp) {
-+		oldlenp = compat_alloc_user_space(sizeof(*compat_oldlenp));
-+
-+		if (get_user(oldlen, compat_oldlenp) ||
-+		    put_user(oldlen, oldlenp))
-+			return -EFAULT;
-+	}
-+
-+	lock_kernel();
-+	result = do_sysctl(compat_ptr(tmp.name), tmp.nlen,
-+			   compat_ptr(tmp.oldval), oldlenp,
-+			   compat_ptr(tmp.newval), tmp.newlen);
-+	unlock_kernel();
-+
-+	if (oldlenp && !result) {
-+		if (get_user(oldlen, oldlenp) ||
-+		    put_user(oldlen, compat_oldlenp))
-+			return -EFAULT;
-+	}
-+
-+	return result;
-+}
-+
-+#endif /* CONFIG_COMPAT */
+-#ifdef CONFIG_SYSCTL_SYSCALL
+-struct sysctl_ia32;
+-asmlinkage long sys32_sysctl(struct sysctl_ia32 __user *);
+-#endif
+-
+ asmlinkage long sys32_pread(unsigned int, char __user *, u32, u32, u32);
+ asmlinkage long sys32_pwrite(unsigned int, char __user *, u32, u32, u32);
+ 
 -- 
 1.6.5.2.143.g8cc62
