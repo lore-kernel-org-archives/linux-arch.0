@@ -1,125 +1,136 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 09/11] sysctl: x86 Use the compat_sys_sysctl
-Date: Thu,  5 Nov 2009 16:41:52 -0800
-Message-ID: <1257468114-6823-9-git-send-email-ebiederm@xmission.com>
+Subject: [PATCH 07/11] sysctl: s390 Use the compat_sys_sysctl
+Date: Thu,  5 Nov 2009 16:41:50 -0800
+Message-ID: <1257468114-6823-7-git-send-email-ebiederm@xmission.com>
 References: <m1tyx8trik.fsf@fess.ebiederm.org>
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S932195AbZKFAmw@vger.kernel.org>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1759288AbZKFAnV@vger.kernel.org>
 In-Reply-To: <m1tyx8trik.fsf@fess.ebiederm.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Carsten Otte <cotte@de.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 From: Eric W. Biederman <ebiederm@xmission.com>
 
 Now that we have a generic 32bit compatibility implementation
-there is no need for x86 to implement it's own.
+there is no need for s390 to implement it's own.
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Carsten Otte <cotte@de.ibm.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
 Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
 ---
- arch/x86/ia32/ia32entry.S       |    2 +-
- arch/x86/ia32/sys_ia32.c        |   56 ---------------------------------------
- arch/x86/include/asm/sys_ia32.h |    5 ---
- 3 files changed, 1 insertions(+), 62 deletions(-)
+ arch/s390/kernel/compat_linux.c   |   53 -------------------------------------
+ arch/s390/kernel/compat_linux.h   |    2 -
+ arch/s390/kernel/compat_wrapper.S |    6 +---
+ 3 files changed, 2 insertions(+), 59 deletions(-)
 
-diff --git a/arch/x86/ia32/ia32entry.S b/arch/x86/ia32/ia32entry.S
-index 581b056..5d25848 100644
---- a/arch/x86/ia32/ia32entry.S
-+++ b/arch/x86/ia32/ia32entry.S
-@@ -653,7 +653,7 @@ ia32_sys_call_table:
- 	.quad compat_sys_writev
- 	.quad sys_getsid
- 	.quad sys_fdatasync
--	.quad sys32_sysctl	/* sysctl */
-+	.quad compat_sys_sysctl	/* sysctl */
- 	.quad sys_mlock		/* 150 */
- 	.quad sys_munlock
- 	.quad sys_mlockall
-diff --git a/arch/x86/ia32/sys_ia32.c b/arch/x86/ia32/sys_ia32.c
-index 9f55271..df82c0e 100644
---- a/arch/x86/ia32/sys_ia32.c
-+++ b/arch/x86/ia32/sys_ia32.c
-@@ -434,62 +434,6 @@ asmlinkage long sys32_rt_sigqueueinfo(int pid, int sig,
+diff --git a/arch/s390/kernel/compat_linux.c b/arch/s390/kernel/compat_linux.c
+index 0debcec..fda1a81 100644
+--- a/arch/s390/kernel/compat_linux.c
++++ b/arch/s390/kernel/compat_linux.c
+@@ -527,59 +527,6 @@ asmlinkage long sys32_sendfile64(int out_fd, int in_fd,
  	return ret;
  }
  
 -#ifdef CONFIG_SYSCTL_SYSCALL
--struct sysctl_ia32 {
--	unsigned int	name;
--	int		nlen;
--	unsigned int	oldval;
--	unsigned int	oldlenp;
--	unsigned int	newval;
--	unsigned int	newlen;
--	unsigned int	__unused[4];
+-struct __sysctl_args32 {
+-	u32 name;
+-	int nlen;
+-	u32 oldval;
+-	u32 oldlenp;
+-	u32 newval;
+-	u32 newlen;
+-	u32 __unused[4];
 -};
 -
--
--asmlinkage long sys32_sysctl(struct sysctl_ia32 __user *args32)
+-asmlinkage long sys32_sysctl(struct __sysctl_args32 __user *args)
 -{
--	struct sysctl_ia32 a32;
--	mm_segment_t old_fs = get_fs();
--	void __user *oldvalp, *newvalp;
+-	struct __sysctl_args32 tmp;
+-	int error;
 -	size_t oldlen;
--	int __user *namep;
--	long ret;
+-	size_t __user *oldlenp = NULL;
+-	unsigned long addr = (((unsigned long)&args->__unused[0]) + 7) & ~7;
 -
--	if (copy_from_user(&a32, args32, sizeof(a32)))
+-	if (copy_from_user(&tmp, args, sizeof(tmp)))
 -		return -EFAULT;
 -
--	/*
--	 * We need to pre-validate these because we have to disable
--	 * address checking before calling do_sysctl() because of
--	 * OLDLEN but we can't run the risk of the user specifying bad
--	 * addresses here.  Well, since we're dealing with 32 bit
--	 * addresses, we KNOW that access_ok() will always succeed, so
--	 * this is an expensive NOP, but so what...
--	 */
--	namep = compat_ptr(a32.name);
--	oldvalp = compat_ptr(a32.oldval);
--	newvalp =  compat_ptr(a32.newval);
+-	if (tmp.oldval && tmp.oldlenp) {
+-		/* Duh, this is ugly and might not work if sysctl_args
+-		   is in read-only memory, but do_sysctl does indirectly
+-		   a lot of uaccess in both directions and we'd have to
+-		   basically copy the whole sysctl.c here, and
+-		   glibc's __sysctl uses rw memory for the structure
+-		   anyway.  */
+-		if (get_user(oldlen, (u32 __user *)compat_ptr(tmp.oldlenp)) ||
+-		    put_user(oldlen, (size_t __user *)addr))
+-			return -EFAULT;
+-		oldlenp = (size_t __user *)addr;
+-	}
 -
--	if ((oldvalp && get_user(oldlen, (int __user *)compat_ptr(a32.oldlenp)))
--	    || !access_ok(VERIFY_WRITE, namep, 0)
--	    || !access_ok(VERIFY_WRITE, oldvalp, 0)
--	    || !access_ok(VERIFY_WRITE, newvalp, 0))
--		return -EFAULT;
--
--	set_fs(KERNEL_DS);
 -	lock_kernel();
--	ret = do_sysctl(namep, a32.nlen, oldvalp, (size_t __user *)&oldlen,
--			newvalp, (size_t) a32.newlen);
+-	error = do_sysctl(compat_ptr(tmp.name), tmp.nlen, compat_ptr(tmp.oldval),
+-			  oldlenp, compat_ptr(tmp.newval), tmp.newlen);
 -	unlock_kernel();
--	set_fs(old_fs);
--
--	if (oldvalp && put_user(oldlen, (int __user *)compat_ptr(a32.oldlenp)))
--		return -EFAULT;
--
--	return ret;
+-	if (oldlenp) {
+-		if (!error) {
+-			if (get_user(oldlen, (size_t __user *)addr) ||
+-			    put_user(oldlen, (u32 __user *)compat_ptr(tmp.oldlenp)))
+-				error = -EFAULT;
+-		}
+-		if (copy_to_user(args->__unused, tmp.__unused,
+-				 sizeof(tmp.__unused)))
+-			error = -EFAULT;
+-	}
+-	return error;
 -}
 -#endif
 -
- /* warning: next two assume little endian */
- asmlinkage long sys32_pread(unsigned int fd, char __user *ubuf, u32 count,
- 			    u32 poslo, u32 poshi)
-diff --git a/arch/x86/include/asm/sys_ia32.h b/arch/x86/include/asm/sys_ia32.h
-index 72a6dcd..9af9dec 100644
---- a/arch/x86/include/asm/sys_ia32.h
-+++ b/arch/x86/include/asm/sys_ia32.h
-@@ -51,11 +51,6 @@ asmlinkage long sys32_sched_rr_get_interval(compat_pid_t,
- asmlinkage long sys32_rt_sigpending(compat_sigset_t __user *, compat_size_t);
- asmlinkage long sys32_rt_sigqueueinfo(int, int, compat_siginfo_t __user *);
+ struct stat64_emu31 {
+ 	unsigned long long  st_dev;
+ 	unsigned int    __pad1;
+diff --git a/arch/s390/kernel/compat_linux.h b/arch/s390/kernel/compat_linux.h
+index c07f9ca..45e9092 100644
+--- a/arch/s390/kernel/compat_linux.h
++++ b/arch/s390/kernel/compat_linux.h
+@@ -162,7 +162,6 @@ struct ucontext32 {
+ 	compat_sigset_t		uc_sigmask;	/* mask last for extensibility */
+ };
  
--#ifdef CONFIG_SYSCTL_SYSCALL
--struct sysctl_ia32;
--asmlinkage long sys32_sysctl(struct sysctl_ia32 __user *);
--#endif
+-struct __sysctl_args32;
+ struct stat64_emu31;
+ struct mmap_arg_struct_emu31;
+ struct fadvise64_64_args;
+@@ -212,7 +211,6 @@ long sys32_sendfile(int out_fd, int in_fd, compat_off_t __user *offset,
+ 		    size_t count);
+ long sys32_sendfile64(int out_fd, int in_fd, compat_loff_t __user *offset,
+ 		      s32 count);
+-long sys32_sysctl(struct __sysctl_args32 __user *args);
+ long sys32_stat64(char __user * filename, struct stat64_emu31 __user * statbuf);
+ long sys32_lstat64(char __user * filename,
+ 		   struct stat64_emu31 __user * statbuf);
+diff --git a/arch/s390/kernel/compat_wrapper.S b/arch/s390/kernel/compat_wrapper.S
+index cbd9901..30de2d0 100644
+--- a/arch/s390/kernel/compat_wrapper.S
++++ b/arch/s390/kernel/compat_wrapper.S
+@@ -689,8 +689,6 @@ sys32_fdatasync_wrapper:
+ 	llgfr	%r2,%r2			# unsigned int
+ 	jg	sys_fdatasync		# branch to system call
+ 
+-#sys32_sysctl_wrapper			# tbd
 -
- asmlinkage long sys32_pread(unsigned int, char __user *, u32, u32, u32);
- asmlinkage long sys32_pwrite(unsigned int, char __user *, u32, u32, u32);
+ 	.globl	sys32_mlock_wrapper
+ sys32_mlock_wrapper:
+ 	llgfr	%r2,%r2			# unsigned long
+@@ -1087,8 +1085,8 @@ sys32_stime_wrapper:
  
+ 	.globl	sys32_sysctl_wrapper
+ sys32_sysctl_wrapper:
+-	llgtr	%r2,%r2 		# struct __sysctl_args32 *
+-	jg	sys32_sysctl
++	llgtr	%r2,%r2 		# struct compat_sysctl_args *
++	jg	compat_sys_sysctl
+ 
+ 	.globl	sys32_fstat64_wrapper
+ sys32_fstat64_wrapper:
 -- 
 1.6.5.2.143.g8cc62
