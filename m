@@ -1,70 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp02.au.ibm.com ([202.81.31.144]:50372 "EHLO
-	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754905AbZJZIZb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Oct 2009 04:25:31 -0400
-Date: Mon, 26 Oct 2009 13:55:25 +0530
-From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
-Subject: Re: [v9 PATCH 4/9]: x86: refactor x86 idle power management code
-	and remove all instances of pm_idle.
-Message-ID: <20091026082524.GC17689@linux.vnet.ibm.com>
-Reply-To: arun@linux.vnet.ibm.com
-References: <20091016093850.GB27350@linux.vnet.ibm.com> <20091016094308.GF27350@linux.vnet.ibm.com> <20091023160711.GB1431@ucw.cz> <20091026075550.GB17689@linux.vnet.ibm.com> <20091026075831.GB22625@elf.ucw.cz>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-In-Reply-To: <20091026075831.GB22625@elf.ucw.cz>
+Received: from out02.mta.xmission.com ([166.70.13.232]:43436 "EHLO
+	out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759258AbZKFAmN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Nov 2009 19:42:13 -0500
+From: "Eric W. Biederman" <ebiederm@xmission.com>
+Subject: [PATCH 11/11] sysctl: Make do_sysctl static
+Date: Thu,  5 Nov 2009 16:41:54 -0800
+Message-ID: <1257468114-6823-11-git-send-email-ebiederm@xmission.com>
+In-Reply-To: <m1tyx8trik.fsf@fess.ebiederm.org>
+References: <m1tyx8trik.fsf@fess.ebiederm.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Pavel Machek <pavel@ucw.cz>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar Sarma <dipankar@in.ibm.com>, Balbir Singh <balbir@in.ibm.com>, Andi Kleen <andi@firstfloor.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Arun Bharadwaj <arun@linux.vnet.ibm.com>
-Message-ID: <20091026082525.2KjHvFnRsPsW7N2y6See2JSisIQWSAaIChGAiDHOf5s@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20091106004154._OP085nTvQJq1kJe0a-RxpIQ47w6MqEZCaP1zVcnFQU@z>
 
-* Pavel Machek <pavel@ucw.cz> [2009-10-26 08:58:31]:
+From: Eric W. Biederman <ebiederm@xmission.com>
 
-> 
-> > > > +static int local_idle_loop(struct cpuidle_device *dev, struct cpuidle_state *st)
-> > > > +{
-> > > > +	ktime_t t1, t2;
-> > > > +	s64 diff;
-> > > > +	int ret;
-> > > > +
-> > > > +	t1 = ktime_get();
-> > > > +	local_idle();
-> > > > +	t2 = ktime_get();
-> > > > +
-> > > > +	diff = ktime_to_us(ktime_sub(t2, t1));
-> > > > +	if (diff > INT_MAX)
-> > > > +		diff = INT_MAX;
-> > > > +	ret = (int) diff;
-> > > > +
-> > > > +	return ret;
-> > > > +}
-> > > 
-> > > So we get this routine essentially 3 times. Is there no way to share
-> > > the code?
-> > > 
-> > 
-> > We can move this code to a common place, but that would mean exporting
-> > the idle function pointer to be called from within this routine, which
-> > is exactly what we wanted to avoid.
-> > 
-> > Any suggestions are welcome.
-> 
-> You can just pass idle routine as a parameter...?
-> 
-> int common_idle_loop(struct cpuidle_device *dev, struct cpuidle_state
-> *st, void *idle(void))
-> 
-> ...?
-> 									Pavel
+Now that all of the architectures use compat_sys_sysctl do_sysctl
+can become static.
 
-Yes, this should be fine. I was trying to avoid passing the void
-function pointer around but i guess this reduces considerable code
-size.
+Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
+---
+ include/linux/sysctl.h |    4 ----
+ kernel/sysctl_binary.c |    2 +-
+ 2 files changed, 1 insertions(+), 5 deletions(-)
 
-thanks!
-arun
-> -- 
-> (english) http://www.livejournal.com/~pavelmachek
-> (cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+diff --git a/include/linux/sysctl.h b/include/linux/sysctl.h
+index 1e4743e..82c32b8 100644
+--- a/include/linux/sysctl.h
++++ b/include/linux/sysctl.h
+@@ -996,10 +996,6 @@ extern int proc_doulongvec_minmax(struct ctl_table *, int,
+ extern int proc_doulongvec_ms_jiffies_minmax(struct ctl_table *table, int,
+ 				      void __user *, size_t *, loff_t *);
+ 
+-extern int do_sysctl (int __user *name, int nlen,
+-		      void __user *oldval, size_t __user *oldlenp,
+-		      void __user *newval, size_t newlen);
+-
+ extern ctl_handler sysctl_data;
+ extern ctl_handler sysctl_string;
+ extern ctl_handler sysctl_intvec;
+diff --git a/kernel/sysctl_binary.c b/kernel/sysctl_binary.c
+index a2fed5b..b9b841e 100644
+--- a/kernel/sysctl_binary.c
++++ b/kernel/sysctl_binary.c
+@@ -134,7 +134,7 @@ static void deprecated_sysctl_warning(const int *name, int nlen)
+ 	return;
+ }
+ 
+-int do_sysctl(int __user *args_name, int nlen,
++static int do_sysctl(int __user *args_name, int nlen,
+ 	void __user *oldval, size_t __user *oldlenp,
+ 	void __user *newval, size_t newlen)
+ {
+-- 
+1.6.5.2.143.g8cc62
+
