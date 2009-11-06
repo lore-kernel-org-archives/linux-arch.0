@@ -1,75 +1,35 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] asm-generic: Fix typo in asm-generic/unistd.h.
-Date: Wed, 4 Nov 2009 10:28:11 +0100
-Message-ID: <200911041028.12098.arnd@arndb.de>
-References: <OFC90831A4.A99EC411-ON48257664.00080761-48257664.0009EC42@sunplusct.com>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: [PATCH 0/11] generic compat_sys_sysctl
+Date: Thu, 05 Nov 2009 16:40:19 -0800
+Message-ID: <m1tyx8trik.fsf@fess.ebiederm.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=gb2312
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:50554 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753259AbZKDJ2k (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Nov 2009 04:28:40 -0500
-In-Reply-To: <OFC90831A4.A99EC411-ON48257664.00080761-48257664.0009EC42@sunplusct.com>
+Received: from out02.mta.xmission.com ([166.70.13.232]:45880 "EHLO
+	out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759181AbZKFAke (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Nov 2009 19:40:34 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: liqin.chen@sunplusct.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, liqin.gnu@gmail.com, Greg KH <greg@kroah.com>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@mcmartin.ca>, Thibaut Varene <T-Bone@parisc-linux.org>, Carsten Otte <cotte@de.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 
-On Wednesday 04 November 2009, liqin.chen@sunplusct.com wrote:
-> Arnd Bergmann <arnd@arndb.de> =D0=B4=D3=DA 2009-11-03 16:52:17:
->=20
-> > Is there any reason to use glibc-2.5 though? The current release
-> > is 2.10.1, and the version you used is over three years old.
->=20
-> We found many stable toolchain use glibc-2.5. so we select it.
-> In fact, what we think first is to could used it in product=A1=A3
 
-It is unfortunately a common misunderstanding that older releases
-that are currently used by others are more stable. The reason
-you find glibc-2.5 in products today is that it was the current
-version at the time when the development cycle for the product
-was started.
+I am in the process of cleaning up, and converting the binary sysctl
+sysctl call into a wrapper on top of the text based proc/sys.
 
-In general, when you upgrade to a more recent version, the
-best idea is to take the latest stable release, and stabilizing
-on that for a given embedded product. By always using the latest
-version, you can greatly reduce the amount of work needed for
-each upgrade, and you get all improvements and bug fixes
-automatically without having to backport them.
+A first step in that process is to introduce a generic
+compat_sys_sysctl to reduce the number of places I have to touch.
+The following patcheset is the start of my series for handling that.
 
-> Even linux kernel, in company we still use kernel-2.6.27 version.
+The only architecture specific changes should be replace the
+current architecture name for it's 32bit compat syscall with
+compat_sys_sysctl, and deleting the architectures private
+32bit compat syscall.  The only requirement is that CONFIG_COMPAT
+be set when you need compat_sys_sysctl.
 
-Yes, that is good and expected, if that version has proven to be
-stable for you.
+These patches should just work, but an eyeball from someone who is
+familiar with the architecture specific details would be appreciated.
+I have only tested the 32bit compat code on x86_64.
 
-Obviously you will have to do an update at some point and then
-you can easily move to the latest kernel version since it is now
-upstream.
-
-I also expect that you have device driver code that is not yet
-upstream. Getting that in should be a lot easier than the initial
-architecture code and Greg KH can help you with his drivers/staging
-infrastructure if you are interested.
- =20
-> > Do you have plans to merge your port into eglibc when it's done?
->=20
-> We have not this plan now.
-
-I would recommend to look into this at some point in the future.
-Unlike the main glibc project, eglibc[1] is specifically there for
-supporting embedded architectures and already hosts ports for
-other platforms that are not in glibc itself, while it closely
-follows the main glibc development. Contributing there unfortunately
-requires some paperwork for copyright assignment, but it's probably
-worth it in the end.
-
-You've done the right thing by merging your kernel code into the
-official Linux tree, porting your glibc code to the lastest=20
-snapshot and submitting it into eglibc is the next big step.
-
-	Arnd <><
-
---
-[1] http://www.eglibc.org/
+Eric
