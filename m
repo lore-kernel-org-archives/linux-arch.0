@@ -1,51 +1,52 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 07/11] sysctl: s390 Use the compat_sys_sysctl
-Date: Thu,  5 Nov 2009 16:41:50 -0800
-Message-ID: <1257468114-6823-7-git-send-email-ebiederm@xmission.com>
+Subject: [PATCH 05/11] sysctl: mips Use the compat_sys_sysctl
+Date: Thu,  5 Nov 2009 16:41:48 -0800
+Message-ID: <1257468114-6823-5-git-send-email-ebiederm@xmission.com>
 References: <m1tyx8trik.fsf@fess.ebiederm.org>
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1759288AbZKFAnV@vger.kernel.org>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1759303AbZKFAnh@vger.kernel.org>
 In-Reply-To: <m1tyx8trik.fsf@fess.ebiederm.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Carsten Otte <cotte@de.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Ralf Baechle <ralf@linux-mips.org>
 List-Id: linux-arch.vger.kernel.org
 
 From: Eric W. Biederman <ebiederm@xmission.com>
 
 Now that we have a generic 32bit compatibility implementation
-there is no need for s390 to implement it's own.
+there is no need for mips to implement it's own.
 
-Cc: Carsten Otte <cotte@de.ibm.com>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
 Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
 ---
- arch/s390/kernel/compat_linux.c   |   53 -------------------------------------
- arch/s390/kernel/compat_linux.h   |    2 -
- arch/s390/kernel/compat_wrapper.S |    6 +---
- 3 files changed, 2 insertions(+), 59 deletions(-)
+ arch/mips/kernel/linux32.c     |   61 ----------------------------------------
+ arch/mips/kernel/scall64-n32.S |    2 +-
+ arch/mips/kernel/scall64-o32.S |    2 +-
+ 3 files changed, 2 insertions(+), 63 deletions(-)
 
-diff --git a/arch/s390/kernel/compat_linux.c b/arch/s390/kernel/compat_linux.c
-index 0debcec..fda1a81 100644
---- a/arch/s390/kernel/compat_linux.c
-+++ b/arch/s390/kernel/compat_linux.c
-@@ -527,59 +527,6 @@ asmlinkage long sys32_sendfile64(int out_fd, int in_fd,
- 	return ret;
+diff --git a/arch/mips/kernel/linux32.c b/arch/mips/kernel/linux32.c
+index b77fefa..1a2793e 100644
+--- a/arch/mips/kernel/linux32.c
++++ b/arch/mips/kernel/linux32.c
+@@ -265,67 +265,6 @@ SYSCALL_DEFINE5(n32_msgrcv, int, msqid, u32, msgp, size_t, msgsz,
  }
+ #endif
  
--#ifdef CONFIG_SYSCTL_SYSCALL
--struct __sysctl_args32 {
--	u32 name;
+-struct sysctl_args32
+-{
+-	compat_caddr_t name;
 -	int nlen;
--	u32 oldval;
--	u32 oldlenp;
--	u32 newval;
--	u32 newlen;
--	u32 __unused[4];
+-	compat_caddr_t oldval;
+-	compat_caddr_t oldlenp;
+-	compat_caddr_t newval;
+-	compat_size_t newlen;
+-	unsigned int __unused[4];
 -};
 -
--asmlinkage long sys32_sysctl(struct __sysctl_args32 __user *args)
+-#ifdef CONFIG_SYSCTL_SYSCALL
+-
+-SYSCALL_DEFINE1(32_sysctl, struct sysctl_args32 __user *, args)
 -{
--	struct __sysctl_args32 tmp;
+-	struct sysctl_args32 tmp;
 -	int error;
 -	size_t oldlen;
 -	size_t __user *oldlenp = NULL;
@@ -61,76 +62,64 @@ index 0debcec..fda1a81 100644
 -		   basically copy the whole sysctl.c here, and
 -		   glibc's __sysctl uses rw memory for the structure
 -		   anyway.  */
--		if (get_user(oldlen, (u32 __user *)compat_ptr(tmp.oldlenp)) ||
+-		if (get_user(oldlen, (u32 __user *)A(tmp.oldlenp)) ||
 -		    put_user(oldlen, (size_t __user *)addr))
 -			return -EFAULT;
 -		oldlenp = (size_t __user *)addr;
 -	}
 -
 -	lock_kernel();
--	error = do_sysctl(compat_ptr(tmp.name), tmp.nlen, compat_ptr(tmp.oldval),
--			  oldlenp, compat_ptr(tmp.newval), tmp.newlen);
+-	error = do_sysctl((int __user *)A(tmp.name), tmp.nlen, (void __user *)A(tmp.oldval),
+-			  oldlenp, (void __user *)A(tmp.newval), tmp.newlen);
 -	unlock_kernel();
 -	if (oldlenp) {
 -		if (!error) {
 -			if (get_user(oldlen, (size_t __user *)addr) ||
--			    put_user(oldlen, (u32 __user *)compat_ptr(tmp.oldlenp)))
+-			    put_user(oldlen, (u32 __user *)A(tmp.oldlenp)))
 -				error = -EFAULT;
 -		}
--		if (copy_to_user(args->__unused, tmp.__unused,
--				 sizeof(tmp.__unused)))
--			error = -EFAULT;
+-		copy_to_user(args->__unused, tmp.__unused, sizeof(tmp.__unused));
 -	}
 -	return error;
 -}
--#endif
 -
- struct stat64_emu31 {
- 	unsigned long long  st_dev;
- 	unsigned int    __pad1;
-diff --git a/arch/s390/kernel/compat_linux.h b/arch/s390/kernel/compat_linux.h
-index c07f9ca..45e9092 100644
---- a/arch/s390/kernel/compat_linux.h
-+++ b/arch/s390/kernel/compat_linux.h
-@@ -162,7 +162,6 @@ struct ucontext32 {
- 	compat_sigset_t		uc_sigmask;	/* mask last for extensibility */
- };
- 
--struct __sysctl_args32;
- struct stat64_emu31;
- struct mmap_arg_struct_emu31;
- struct fadvise64_64_args;
-@@ -212,7 +211,6 @@ long sys32_sendfile(int out_fd, int in_fd, compat_off_t __user *offset,
- 		    size_t count);
- long sys32_sendfile64(int out_fd, int in_fd, compat_loff_t __user *offset,
- 		      s32 count);
--long sys32_sysctl(struct __sysctl_args32 __user *args);
- long sys32_stat64(char __user * filename, struct stat64_emu31 __user * statbuf);
- long sys32_lstat64(char __user * filename,
- 		   struct stat64_emu31 __user * statbuf);
-diff --git a/arch/s390/kernel/compat_wrapper.S b/arch/s390/kernel/compat_wrapper.S
-index cbd9901..30de2d0 100644
---- a/arch/s390/kernel/compat_wrapper.S
-+++ b/arch/s390/kernel/compat_wrapper.S
-@@ -689,8 +689,6 @@ sys32_fdatasync_wrapper:
- 	llgfr	%r2,%r2			# unsigned int
- 	jg	sys_fdatasync		# branch to system call
- 
--#sys32_sysctl_wrapper			# tbd
+-#else
 -
- 	.globl	sys32_mlock_wrapper
- sys32_mlock_wrapper:
- 	llgfr	%r2,%r2			# unsigned long
-@@ -1087,8 +1085,8 @@ sys32_stime_wrapper:
- 
- 	.globl	sys32_sysctl_wrapper
- sys32_sysctl_wrapper:
--	llgtr	%r2,%r2 		# struct __sysctl_args32 *
--	jg	sys32_sysctl
-+	llgtr	%r2,%r2 		# struct compat_sysctl_args *
-+	jg	compat_sys_sysctl
- 
- 	.globl	sys32_fstat64_wrapper
- sys32_fstat64_wrapper:
+-SYSCALL_DEFINE1(32_sysctl, struct sysctl_args32 __user *, args)
+-{
+-	return -ENOSYS;
+-}
+-
+-#endif /* CONFIG_SYSCTL_SYSCALL */
+-
+ SYSCALL_DEFINE1(32_newuname, struct new_utsname __user *, name)
+ {
+ 	int ret = 0;
+diff --git a/arch/mips/kernel/scall64-n32.S b/arch/mips/kernel/scall64-n32.S
+index 6ebc079..8a0be0b 100644
+--- a/arch/mips/kernel/scall64-n32.S
++++ b/arch/mips/kernel/scall64-n32.S
+@@ -272,7 +272,7 @@ EXPORT(sysn32_call_table)
+ 	PTR	sys_munlockall
+ 	PTR	sys_vhangup			/* 6150 */
+ 	PTR	sys_pivot_root
+-	PTR	sys_32_sysctl
++	PTR	compat_sys_sysctl
+ 	PTR	sys_prctl
+ 	PTR	compat_sys_adjtimex
+ 	PTR	compat_sys_setrlimit		/* 6155 */
+diff --git a/arch/mips/kernel/scall64-o32.S b/arch/mips/kernel/scall64-o32.S
+index 14dde4c..41dbdb7 100644
+--- a/arch/mips/kernel/scall64-o32.S
++++ b/arch/mips/kernel/scall64-o32.S
+@@ -356,7 +356,7 @@ sys_call_table:
+ 	PTR	sys_ni_syscall			/* 4150 */
+ 	PTR	sys_getsid
+ 	PTR	sys_fdatasync
+-	PTR	sys_32_sysctl
++	PTR	compat_sys_sysctl
+ 	PTR	sys_mlock
+ 	PTR	sys_munlock			/* 4155 */
+ 	PTR	sys_mlockall
 -- 
 1.6.5.2.143.g8cc62
