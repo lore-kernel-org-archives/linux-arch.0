@@ -1,90 +1,30 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: [PATCH] ptrace: copy_process() should disable stepping
-Date: Sat, 7 Nov 2009 22:55:47 +0100
-Message-ID: <20091107215547.GA25335@redhat.com>
-References: <20091106211637.GA1696@redhat.com> <20091106212554.BD731CF@magilla.sf.frob.com> <20091106215004.GA2232@redhat.com> <20091106221002.8057DCF@magilla.sf.frob.com>
+From: Roland McGrath <roland@redhat.com>
+Subject: Re: [PATCH] ptrace: copy_process() should disable stepping
+Date: Sun,  8 Nov 2009 20:15:46 -0800 (PST)
+Message-ID: <20091109041546.925461E@magilla.sf.frob.com>
+References: <20091106211637.GA1696@redhat.com>
+	<20091106212554.BD731CF@magilla.sf.frob.com>
+	<20091106215004.GA2232@redhat.com>
+	<20091106221002.8057DCF@magilla.sf.frob.com>
+	<20091107215547.GA25335@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:19539 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752920AbZKGWAp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 7 Nov 2009 17:00:45 -0500
-Content-Disposition: inline
-In-Reply-To: <20091106221002.8057DCF@magilla.sf.frob.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <roland@redhat.com>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1754064AbZKIEPr@vger.kernel.org>
+In-Reply-To: Oleg Nesterov's message of  Saturday, 7 November 2009 22:55:47 +0100 <20091107215547.GA25335@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Oleg Nesterov <oleg@redhat.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-If the tracee calls fork() after PTRACE_SINGLESTEP, the forked child starts
-with TIF_SINGLESTEP/X86_EFLAGS_TF bits copied from ptraced parent. This is
-not right, especially when the new child is not auto-attaced: in this case
-it is killed by SIGTRAP.
+That is inappropriate use of arch details in generic code.  It might
+happen to be harmless fritter in practice on the arch's we have but it
+is certainly not the correct way to go about things.  You should just
+call user_disable_single_step() unconditionally.  Even on an arch with
+no such machinery at all that should be defined safely as a no-op (see
+linux/ptrace.h).  If there is some reason not to do that, please
+explain it.
 
-Change copy_process() to call user_disable_single_step() if TIF_SINGLESTEP
-is set. Tested on x86, hopefully this is correct on any architecture.
 
-Test-case:
-
-	#include <stdio.h>
-	#include <unistd.h>
-	#include <signal.h>
-	#include <sys/ptrace.h>
-	#include <sys/wait.h>
-	#include <assert.h>
-
-	int main(void)
-	{
-		int pid, status;
-
-		if (!(pid = fork())) {
-			assert(ptrace(PTRACE_TRACEME) == 0);
-			kill(getpid(), SIGSTOP);
-
-			if (!fork()) {
-				/* kernel bug: this child will be killed by SIGTRAP */
-				printf("Hello world\n");
-				return 43;
-			}
-
-			wait(&status);
-			return WEXITSTATUS(status);
-		}
-
-		for (;;) {
-			assert(pid == wait(&status));
-			if (WIFEXITED(status))
-				break;
-			assert(ptrace(PTRACE_SINGLESTEP, pid, 0,0) == 0);
-		}
-
-		assert(WEXITSTATUS(status) == 43);
-		return 0;
-	}
-
-Signed-off-by: Oleg Nesterov <oleg@redhat.com>
----
-
- kernel/fork.c |    8 ++++++--
- 1 file changed, 6 insertions(+), 2 deletions(-)
-
---- V1/kernel/fork.c~FORK_DISABLE_STEP	2009-10-09 19:52:23.000000000 +0200
-+++ V1/kernel/fork.c	2009-11-07 22:15:15.000000000 +0100
-@@ -1199,10 +1199,14 @@ static struct task_struct *copy_process(
- 		p->sas_ss_sp = p->sas_ss_size = 0;
- 
- 	/*
--	 * Syscall tracing should be turned off in the child regardless
--	 * of CLONE_PTRACE.
-+	 * Syscall tracing and stepping hould be turned off in the
-+	 * child regardless of CLONE_PTRACE.
- 	 */
- 	clear_tsk_thread_flag(p, TIF_SYSCALL_TRACE);
-+#ifdef TIF_SINGLESTEP
-+	if (unlikely(test_tsk_thread_flag(p, TIF_SINGLESTEP)))
-+		user_disable_single_step(p);
-+#endif
- #ifdef TIF_SYSCALL_EMU
- 	clear_tsk_thread_flag(p, TIF_SYSCALL_EMU);
- #endif
+Thanks,
+Roland
