@@ -1,38 +1,85 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 1/2] locking: Make inlining decision Kconfig based
-Date: Mon, 9 Nov 2009 21:27:23 +0100 (CET)
-Message-ID: <alpine.LFD.2.00.0911092126170.2725@localhost.localdomain>
-References: <20091109150033.125758935@linutronix.de>  <20091109151428.504477141@linutronix.de> <1257794216.4108.372.camel@laptop>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: [PATCH v2] ptrace: copy_process() should disable stepping
+Date: Tue, 10 Nov 2009 00:53:14 +0100
+Message-ID: <20091109235314.GA32084@redhat.com>
+References: <20091106211637.GA1696@redhat.com> <20091106212554.BD731CF@magilla.sf.frob.com> <20091106215004.GA2232@redhat.com> <20091106221002.8057DCF@magilla.sf.frob.com> <20091107215547.GA25335@redhat.com> <20091109041546.925461E@magilla.sf.frob.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:35908 "EHLO www.tglx.de"
+Received: from mx1.redhat.com ([209.132.183.28]:43152 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754458AbZKIU1r (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 9 Nov 2009 15:27:47 -0500
-In-Reply-To: <1257794216.4108.372.camel@laptop>
+	id S1751773AbZKIX6h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 9 Nov 2009 18:58:37 -0500
+Content-Disposition: inline
+In-Reply-To: <20091109041546.925461E@magilla.sf.frob.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org
+To: Roland McGrath <roland@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, 9 Nov 2009, Peter Zijlstra wrote:
+If the tracee calls fork() after PTRACE_SINGLESTEP, the forked child starts
+with TIF_SINGLESTEP/X86_EFLAGS_TF bits copied from ptraced parent. This is
+not right, especially when the new child is not auto-attaced: in this case
+it is killed by SIGTRAP.
 
-> On Mon, 2009-11-09 at 15:21 +0000, Thomas Gleixner wrote:
-> >  6 files changed, 284 insertions(+), 104 deletions(-)
-> 
-> Bloats the code a bit, and the Kconfig expressions are a pain to look
-> at, but I guess having a clear and unambiguous CONFIG_ symbol in the end
-> is a win.
-> 
-> If you fix up that floating hunk in the second patch, I guess I'm ok
-> with it..
+Change copy_process() to call user_disable_single_step(). Tested on x86.
 
-Duh. I'm sure that I fixed that _before_ sending it out. Seems to be
-one of those days where you'd better stay in bed and read a book :)
+Test-case:
+
+	#include <stdio.h>
+	#include <unistd.h>
+	#include <signal.h>
+	#include <sys/ptrace.h>
+	#include <sys/wait.h>
+	#include <assert.h>
+
+	int main(void)
+	{
+		int pid, status;
+
+		if (!(pid = fork())) {
+			assert(ptrace(PTRACE_TRACEME) == 0);
+			kill(getpid(), SIGSTOP);
+
+			if (!fork()) {
+				/* kernel bug: this child will be killed by SIGTRAP */
+				printf("Hello world\n");
+				return 43;
+			}
+
+			wait(&status);
+			return WEXITSTATUS(status);
+		}
+
+		for (;;) {
+			assert(pid == wait(&status));
+			if (WIFEXITED(status))
+				break;
+			assert(ptrace(PTRACE_SINGLESTEP, pid, 0,0) == 0);
+		}
+
+		assert(WEXITSTATUS(status) == 43);
+		return 0;
+	}
+
+Signed-off-by: Oleg Nesterov <oleg@redhat.com>
+---
+
+ kernel/fork.c |    5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+--- V1/kernel/fork.c~FORK_DISABLE_STEP	2009-10-09 19:52:23.000000000 +0200
++++ V1/kernel/fork.c	2009-11-10 00:45:12.000000000 +0100
+@@ -1199,9 +1199,10 @@ static struct task_struct *copy_process(
+ 		p->sas_ss_sp = p->sas_ss_size = 0;
  
-> Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-
-Thanks,
-
-	tglx
+ 	/*
+-	 * Syscall tracing should be turned off in the child regardless
+-	 * of CLONE_PTRACE.
++	 * Syscall tracing and stepping should be turned off in the
++	 * child regardless of CLONE_PTRACE.
+ 	 */
++	user_disable_single_step(p);
+ 	clear_tsk_thread_flag(p, TIF_SYSCALL_TRACE);
+ #ifdef TIF_SYSCALL_EMU
+ 	clear_tsk_thread_flag(p, TIF_SYSCALL_EMU);
