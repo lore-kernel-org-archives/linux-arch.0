@@ -1,38 +1,31 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH] ptrace: copy_process() should disable stepping
-Date: Mon, 9 Nov 2009 17:24:08 +0100
-Message-ID: <20091109162408.GA5160@redhat.com>
-References: <20091106211637.GA1696@redhat.com> <20091106212554.BD731CF@magilla.sf.frob.com> <20091106215004.GA2232@redhat.com> <20091106221002.8057DCF@magilla.sf.frob.com> <20091107215547.GA25335@redhat.com> <20091109041546.925461E@magilla.sf.frob.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [patch 1/2] locking: Make inlining decision Kconfig based
+Date: Mon, 09 Nov 2009 20:16:56 +0100
+Message-ID: <1257794216.4108.372.camel@laptop>
+References: <20091109150033.125758935@linutronix.de>
+	 <20091109151428.504477141@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:58794 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752371AbZKIQ31 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 9 Nov 2009 11:29:27 -0500
-Content-Disposition: inline
-In-Reply-To: <20091109041546.925461E@magilla.sf.frob.com>
+Received: from bombadil.infradead.org ([18.85.46.34]:44099 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751326AbZKITRL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2009 14:17:11 -0500
+In-Reply-To: <20091109151428.504477141@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <roland@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org
 
-On 11/08, Roland McGrath wrote:
->
-> That is inappropriate use of arch details in generic code.  It might
-> happen to be harmless fritter in practice on the arch's we have but it
-> is certainly not the correct way to go about things.  You should just
-> call user_disable_single_step() unconditionally.  Even on an arch with
-> no such machinery at all that should be defined safely as a no-op (see
-> linux/ptrace.h).  If there is some reason not to do that, please
-> explain it.
+On Mon, 2009-11-09 at 15:21 +0000, Thomas Gleixner wrote:
+>  6 files changed, 284 insertions(+), 104 deletions(-)
 
-Yes, we have arch_has_single_step.
+Bloats the code a bit, and the Kconfig expressions are a pain to look
+at, but I guess having a clear and unambiguous CONFIG_ symbol in the end
+is a win.
 
-I added test_tsk_thread_flag(TIF_SINGLESTEP) check for 2 reasons: to
-optimize out user_disable_single_step() in the likely case, and because
-I wasn't sure it is safe to call user_disable_single_step() unconditionally.
+If you fix up that floating hunk in the second patch, I guess I'm ok
+with it..
 
-OK, will resend, thanks.
-
-Oleg.
+Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
