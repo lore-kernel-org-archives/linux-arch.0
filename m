@@ -1,35 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:55112 "EHLO mx1.redhat.com"
+Received: from chilli.pcug.org.au ([203.10.76.44]:51654 "EHLO smtps.tip.net.au"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753286AbZKIEPp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 8 Nov 2009 23:15:45 -0500
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-From: Roland McGrath <roland@redhat.com>
-Subject: Re: [PATCH] ptrace: copy_process() should disable stepping
-In-Reply-To: Oleg Nesterov's message of  Saturday, 7 November 2009 22:55:47 +0100 <20091107215547.GA25335@redhat.com>
-References: <20091106211637.GA1696@redhat.com>
-	<20091106212554.BD731CF@magilla.sf.frob.com>
-	<20091106215004.GA2232@redhat.com>
-	<20091106221002.8057DCF@magilla.sf.frob.com>
-	<20091107215547.GA25335@redhat.com>
-Message-ID: <20091109041546.925461E@magilla.sf.frob.com>
-Date: Sun,  8 Nov 2009 20:15:46 -0800 (PST)
+	id S1752578AbZKJEdN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 9 Nov 2009 23:33:13 -0500
+Date: Tue, 10 Nov 2009 15:33:09 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: linux-next: new tree: sysctl
+Message-ID: <20091110153309.57efaac2.sfr@canb.auug.org.au>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Tue__10_Nov_2009_15_33_09_+1100_EE6V8VN_SK6QXUAp"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20091109041546.JWuUYKQcZua5o8hNH5I75Z8VL2w5AKa36Jvj769r6mk@z>
+To: linux-next@vger.kernel.org
+Cc: LKML <linux-kernel@vger.kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@mcmartin.ca>, Thibaut Varene <T-Bone@parisc-linux.org>, Carsten Otte <cotte@de.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20091110043309.SetSbUMvb7-kkhoA5RJs8J1_tTgMbRaD7YrCx0fDzh0@z>
 
-That is inappropriate use of arch details in generic code.  It might
-happen to be harmless fritter in practice on the arch's we have but it
-is certainly not the correct way to go about things.  You should just
-call user_disable_single_step() unconditionally.  Even on an arch with
-no such machinery at all that should be defined safely as a no-op (see
-linux/ptrace.h).  If there is some reason not to do that, please
-explain it.
+--Signature=_Tue__10_Nov_2009_15_33_09_+1100_EE6V8VN_SK6QXUAp
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
+Hi all,
 
-Thanks,
-Roland
+Eric has requested that the tree at
+git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/sysctl-2.6.git#master
+be added to linux-next and I will add it from today.
+
+Before anyone else jumps to the wrong conclusion (as I did :-)) this tree
+currently only contains the set of patches posted in the thread "generic
+compat_sys_sysctl".
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Tue__10_Nov_2009_15_33_09_+1100_EE6V8VN_SK6QXUAp
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iEYEARECAAYFAkr47QUACgkQjjKRsyhoI8xp0QCfX3w2z7aeGKARtLucNQf4PgH2
+EWMAnRkCT8GeQg4weyuxCZJxmCOIdGQ0
+=qkkC
+-----END PGP SIGNATURE-----
+
+--Signature=_Tue__10_Nov_2009_15_33_09_+1100_EE6V8VN_SK6QXUAp--
