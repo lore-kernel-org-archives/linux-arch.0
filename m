@@ -1,50 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:51654 "EHLO smtps.tip.net.au"
+Received: from mx1.redhat.com ([209.132.183.28]:31552 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752578AbZKJEdN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 9 Nov 2009 23:33:13 -0500
-Date: Tue, 10 Nov 2009 15:33:09 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: linux-next: new tree: sysctl
-Message-ID: <20091110153309.57efaac2.sfr@canb.auug.org.au>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Tue__10_Nov_2009_15_33_09_+1100_EE6V8VN_SK6QXUAp"
+	id S1753869AbZKLRoG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 12 Nov 2009 12:44:06 -0500
+Date: Thu, 12 Nov 2009 18:38:57 +0100
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: [PATCH v2 4/5] ptrace: x86: implement user_single_step_siginfo()
+Message-ID: <20091112173857.GA12282@redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-next@vger.kernel.org
-Cc: LKML <linux-kernel@vger.kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@mcmartin.ca>, Thibaut Varene <T-Bone@parisc-linux.org>, Carsten Otte <cotte@de.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20091110043309.SetSbUMvb7-kkhoA5RJs8J1_tTgMbRaD7YrCx0fDzh0@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Paul Mackerras <paulus@samba.org>, Roland McGrath <roland@redhat.com>, Srinivasa Ds <srinivasa@in.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20091112173857.NAH4WYHFJrnXaNZ3KqGmd7VljLURyA-fJY56vK_iZvM@z>
 
---Signature=_Tue__10_Nov_2009_15_33_09_+1100_EE6V8VN_SK6QXUAp
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Suggested by Roland.
 
-Hi all,
+Implement user_single_step_siginfo() for x86. Extract this code
+from send_sigtrap().
 
-Eric has requested that the tree at
-git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/sysctl-2.6.git#master
-be added to linux-next and I will add it from today.
+Since x86 calls tracehook_report_syscall_exit(step => 0) the new
+helper is not used yet.
 
-Before anyone else jumps to the wrong conclusion (as I did :-)) this tree
-currently only contains the set of patches posted in the thread "generic
-compat_sys_sysctl".
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+Signed-off-by: Oleg Nesterov <oleg@redhat.com>
+Acked-by: Roland McGrath <roland@redhat.com>
+---
 
---Signature=_Tue__10_Nov_2009_15_33_09_+1100_EE6V8VN_SK6QXUAp
-Content-Type: application/pgp-signature
+ arch/x86/include/asm/ptrace.h |    2 ++
+ arch/x86/kernel/ptrace.c      |   30 +++++++++++++++++++++---------
+ 2 files changed, 23 insertions(+), 9 deletions(-)
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
+--- TH/arch/x86/include/asm/ptrace.h~4_X86_HELPER	2009-11-09 21:00:17.000000000 +0100
++++ TH/arch/x86/include/asm/ptrace.h	2009-11-10 22:16:28.000000000 +0100
+@@ -230,6 +230,8 @@ extern void user_enable_block_step(struc
+ #define arch_has_block_step()	(boot_cpu_data.x86 >= 6)
+ #endif
+ 
++#define ARCH_HAS_USER_SINGLE_STEP_INFO
++
+ struct user_desc;
+ extern int do_get_thread_area(struct task_struct *p, int idx,
+ 			      struct user_desc __user *info);
+--- TH/arch/x86/kernel/ptrace.c~4_X86_HELPER	2009-11-09 21:00:17.000000000 +0100
++++ TH/arch/x86/kernel/ptrace.c	2009-11-10 22:21:42.000000000 +0100
+@@ -1437,21 +1437,33 @@ const struct user_regset_view *task_user
+ #endif
+ }
+ 
+-void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
+-					 int error_code, int si_code)
++static void fill_sigtrap_info(struct task_struct *tsk,
++				struct pt_regs *regs,
++				int error_code, int si_code,
++				struct siginfo *info)
+ {
+-	struct siginfo info;
+-
+ 	tsk->thread.trap_no = 1;
+ 	tsk->thread.error_code = error_code;
+ 
+-	memset(&info, 0, sizeof(info));
+-	info.si_signo = SIGTRAP;
+-	info.si_code = si_code;
++	memset(info, 0, sizeof(*info));
++	info->si_signo = SIGTRAP;
++	info->si_code = si_code;
++	info->si_addr = user_mode_vm(regs) ? (void __user *)regs->ip : NULL;
++}
+ 
+-	/* User-mode ip? */
+-	info.si_addr = user_mode_vm(regs) ? (void __user *) regs->ip : NULL;
++void user_single_step_siginfo(struct task_struct *tsk,
++				struct pt_regs *regs,
++				struct siginfo *info)
++{
++	fill_sigtrap_info(tsk, regs, 0, TRAP_BRKPT, info);
++}
+ 
++void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
++					 int error_code, int si_code)
++{
++	struct siginfo info;
++
++	fill_sigtrap_info(tsk, regs, error_code, si_code, &info);
+ 	/* Send us the fake SIGTRAP */
+ 	force_sig_info(SIGTRAP, &info, tsk);
+ }
 
-iEYEARECAAYFAkr47QUACgkQjjKRsyhoI8xp0QCfX3w2z7aeGKARtLucNQf4PgH2
-EWMAnRkCT8GeQg4weyuxCZJxmCOIdGQ0
-=qkkC
------END PGP SIGNATURE-----
-
---Signature=_Tue__10_Nov_2009_15_33_09_+1100_EE6V8VN_SK6QXUAp--
