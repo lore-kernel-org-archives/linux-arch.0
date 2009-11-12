@@ -1,24 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:48935 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:42299 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754904AbZKLXSj (ORCPT
+	by vger.kernel.org with ESMTP id S1754696AbZKLXS1 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 12 Nov 2009 18:18:39 -0500
-Message-ID: <200911122317.nACNHm57030961@imap1.linux-foundation.org>
-Subject: + ptrace-x86-change-syscall_trace_leave-to-rely-on-tracehook-when-stepping.patch added to -mm tree
+	Thu, 12 Nov 2009 18:18:27 -0500
+Message-ID: <200911122317.nACNHeSP030690@imap1.linux-foundation.org>
+Subject: + ptrace-powerpc-implement-user_single_step_siginfo.patch added to -mm tree
 From: akpm@linux-foundation.org
-Date: Thu, 12 Nov 2009 15:17:47 -0800
+Date: Thu, 12 Nov 2009 15:17:40 -0800
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mm-commits@vger.kernel.org
 Cc: oleg@redhat.com, hpa@zytor.com, linux-arch@vger.kernel.org, mingo@elte.hu, roland@redhat.com, tglx@linutronix.de
-Message-ID: <20091112231747.6cPa8BMVp8wCr67bTxnV5EZ43wyVC21T71ra2ccGNUk@z>
+Message-ID: <20091112231740.kAFrZ7MmHj6dkf6yYrQnsjHmU_z_FDZW9PqSck5uhZ4@z>
 
 
 The patch titled
-     ptrace: x86: change syscall_trace_leave() to rely on tracehook when stepping
+     ptrace: powerpc: implement user_single_step_siginfo()
 has been added to the -mm tree.  Its filename is
-     ptrace-x86-change-syscall_trace_leave-to-rely-on-tracehook-when-stepping.patch
+     ptrace-powerpc-implement-user_single_step_siginfo.patch
 
 Before you just go and hit "reply", please:
    a) Consider who else should be cc'ed
@@ -34,19 +34,12 @@ out what to do about this
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: ptrace: x86: change syscall_trace_leave() to rely on tracehook when stepping
+Subject: ptrace: powerpc: implement user_single_step_siginfo()
 From: Oleg Nesterov <oleg@redhat.com>
 
 Suggested by Roland.
 
-Unlike powepc, x86 always calls tracehook_report_syscall_exit(step) with
-step = 0, and sends the trap by hand.
-
-This results in unnecessary SIGTRAP when PTRACE_SINGLESTEP follows the
-syscall-exit stop.
-
-Change syscall_trace_leave() to pass the correct "step" argument to
-tracehook and remove the send_sigtrap() logic.
+Implement user_single_step_siginfo() for powerpc.
 
 Signed-off-by: Oleg Nesterov <oleg@redhat.com>
 Acked-by: Roland McGrath <roland@redhat.com>
@@ -57,49 +50,41 @@ Cc: "H. Peter Anvin" <hpa@zytor.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/x86/kernel/ptrace.c |   21 +++++++--------------
- 1 file changed, 7 insertions(+), 14 deletions(-)
+ arch/powerpc/include/asm/ptrace.h |    2 ++
+ arch/powerpc/kernel/traps.c       |    9 +++++++++
+ 2 files changed, 11 insertions(+)
 
-diff -puN arch/x86/kernel/ptrace.c~ptrace-x86-change-syscall_trace_leave-to-rely-on-tracehook-when-stepping arch/x86/kernel/ptrace.c
---- a/arch/x86/kernel/ptrace.c~ptrace-x86-change-syscall_trace_leave-to-rely-on-tracehook-when-stepping
-+++ a/arch/x86/kernel/ptrace.c
-@@ -1640,29 +1640,22 @@ asmregparm long syscall_trace_enter(stru
+diff -puN arch/powerpc/include/asm/ptrace.h~ptrace-powerpc-implement-user_single_step_siginfo arch/powerpc/include/asm/ptrace.h
+--- a/arch/powerpc/include/asm/ptrace.h~ptrace-powerpc-implement-user_single_step_siginfo
++++ a/arch/powerpc/include/asm/ptrace.h
+@@ -140,6 +140,8 @@ extern void user_enable_single_step(stru
+ extern void user_enable_block_step(struct task_struct *);
+ extern void user_disable_single_step(struct task_struct *);
  
- asmregparm void syscall_trace_leave(struct pt_regs *regs)
- {
-+	bool step;
++#define ARCH_HAS_USER_SINGLE_STEP_INFO
 +
- 	if (unlikely(current->audit_context))
- 		audit_syscall_exit(AUDITSC_RESULT(regs->ax), regs->ax);
+ #endif /* __ASSEMBLY__ */
  
- 	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
- 		trace_sys_exit(regs, regs->ax);
- 
--	if (test_thread_flag(TIF_SYSCALL_TRACE))
--		tracehook_report_syscall_exit(regs, 0);
--
- 	/*
- 	 * If TIF_SYSCALL_EMU is set, we only get here because of
- 	 * TIF_SINGLESTEP (i.e. this is PTRACE_SYSEMU_SINGLESTEP).
- 	 * We already reported this syscall instruction in
--	 * syscall_trace_enter(), so don't do any more now.
--	 */
--	if (unlikely(test_thread_flag(TIF_SYSCALL_EMU)))
--		return;
--
--	/*
--	 * If we are single-stepping, synthesize a trap to follow the
--	 * system call instruction.
-+	 * syscall_trace_enter().
- 	 */
--	if (test_thread_flag(TIF_SINGLESTEP) &&
--	    tracehook_consider_fatal_signal(current, SIGTRAP))
--		send_sigtrap(current, regs, 0, TRAP_BRKPT);
-+	step = unlikely(test_thread_flag(TIF_SINGLESTEP)) &&
-+			!test_thread_flag(TIF_SYSCALL_EMU);
-+	if (step || test_thread_flag(TIF_SYSCALL_TRACE))
-+		tracehook_report_syscall_exit(regs, step);
+ #endif /* __KERNEL__ */
+diff -puN arch/powerpc/kernel/traps.c~ptrace-powerpc-implement-user_single_step_siginfo arch/powerpc/kernel/traps.c
+--- a/arch/powerpc/kernel/traps.c~ptrace-powerpc-implement-user_single_step_siginfo
++++ a/arch/powerpc/kernel/traps.c
+@@ -174,6 +174,15 @@ int die(const char *str, struct pt_regs 
+ 	return 0;
  }
+ 
++void user_single_step_siginfo(struct task_struct *tsk,
++				struct pt_regs *regs, siginfo_t *info)
++{
++	memset(info, 0, sizeof(*info));
++	info->si_signo = SIGTRAP;
++	info->si_code = TRAP_TRACE;
++	info->si_addr = (void __user *)regs->nip;
++}
++
+ void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
+ {
+ 	siginfo_t info;
 _
 
 Patches currently in -mm which might be from oleg@redhat.com are
