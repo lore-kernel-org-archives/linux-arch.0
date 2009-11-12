@@ -1,59 +1,71 @@
 From: Oleg Nesterov <oleg@redhat.com>
-Subject: [PATCH v2 2/5] ptrace: powerpc: implement
-	user_single_step_siginfo()
-Date: Thu, 12 Nov 2009 18:38:48 +0100
-Message-ID: <20091112173848.GA12271@redhat.com>
+Subject: [PATCH v2 5/5] ptrace: x86: change syscall_trace_leave() to rely
+	on tracehook when stepping
+Date: Thu, 12 Nov 2009 18:39:01 +0100
+Message-ID: <20091112173901.GA12289@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:39192 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753861AbZKLRoH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 12 Nov 2009 12:44:07 -0500
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753986AbZKLRo1@vger.kernel.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Paul Mackerras <paulus@samba.org>, Roland McGrath <roland@redhat.com>, Srinivasa Ds <srinivasa@in.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 Suggested by Roland.
 
-Implement user_single_step_siginfo() for powerpc.
+Unlike powepc, x86 always calls tracehook_report_syscall_exit(step)
+with step = 0, and sends the trap by hand.
+
+This results in unnecessary SIGTRAP when PTRACE_SINGLESTEP follows
+the syscall-exit stop.
+
+Change syscall_trace_leave() to pass the correct "step" argument to
+tracehook and remove the send_sigtrap() logic.
 
 Signed-off-by: Oleg Nesterov <oleg@redhat.com>
 Acked-by: Roland McGrath <roland@redhat.com>
 ---
 
- arch/powerpc/include/asm/ptrace.h |    2 ++
- arch/powerpc/kernel/traps.c       |    9 +++++++++
- 2 files changed, 11 insertions(+)
+ arch/x86/kernel/ptrace.c |   21 +++++++--------------
+ 1 file changed, 7 insertions(+), 14 deletions(-)
 
---- TH/arch/powerpc/include/asm/ptrace.h~2_PPC_HELPER	2009-11-10 01:03:23.000000000 +0100
-+++ TH/arch/powerpc/include/asm/ptrace.h	2009-11-10 21:48:53.000000000 +0100
-@@ -140,6 +140,8 @@ extern void user_enable_single_step(stru
- extern void user_enable_block_step(struct task_struct *);
- extern void user_disable_single_step(struct task_struct *);
+--- TH/arch/x86/kernel/ptrace.c~5_X86_CONVERT_SYSCALL_LEAVE	2009-11-10 22:21:42.000000000 +0100
++++ TH/arch/x86/kernel/ptrace.c	2009-11-10 22:29:54.000000000 +0100
+@@ -1528,29 +1528,22 @@ asmregparm long syscall_trace_enter(stru
  
-+#define ARCH_HAS_USER_SINGLE_STEP_INFO
-+
- #endif /* __ASSEMBLY__ */
- 
- #endif /* __KERNEL__ */
---- TH/arch/powerpc/kernel/traps.c~2_PPC_HELPER	2009-11-10 01:06:41.000000000 +0100
-+++ TH/arch/powerpc/kernel/traps.c	2009-11-10 21:52:45.000000000 +0100
-@@ -174,6 +174,15 @@ int die(const char *str, struct pt_regs 
- 	return 0;
- }
- 
-+void user_single_step_siginfo(struct task_struct *tsk,
-+				struct pt_regs *regs, siginfo_t *info)
-+{
-+	memset(info, 0, sizeof(*info));
-+	info->si_signo = SIGTRAP;
-+	info->si_code = TRAP_TRACE;
-+	info->si_addr = (void __user *)regs->nip;
-+}
-+
- void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
+ asmregparm void syscall_trace_leave(struct pt_regs *regs)
  {
- 	siginfo_t info;
++	bool step;
++
+ 	if (unlikely(current->audit_context))
+ 		audit_syscall_exit(AUDITSC_RESULT(regs->ax), regs->ax);
+ 
+ 	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
+ 		trace_sys_exit(regs, regs->ax);
+ 
+-	if (test_thread_flag(TIF_SYSCALL_TRACE))
+-		tracehook_report_syscall_exit(regs, 0);
+-
+ 	/*
+ 	 * If TIF_SYSCALL_EMU is set, we only get here because of
+ 	 * TIF_SINGLESTEP (i.e. this is PTRACE_SYSEMU_SINGLESTEP).
+ 	 * We already reported this syscall instruction in
+-	 * syscall_trace_enter(), so don't do any more now.
+-	 */
+-	if (unlikely(test_thread_flag(TIF_SYSCALL_EMU)))
+-		return;
+-
+-	/*
+-	 * If we are single-stepping, synthesize a trap to follow the
+-	 * system call instruction.
++	 * syscall_trace_enter().
+ 	 */
+-	if (test_thread_flag(TIF_SINGLESTEP) &&
+-	    tracehook_consider_fatal_signal(current, SIGTRAP))
+-		send_sigtrap(current, regs, 0, TRAP_BRKPT);
++	step = unlikely(test_thread_flag(TIF_SINGLESTEP)) &&
++			!test_thread_flag(TIF_SYSCALL_EMU);
++	if (step || test_thread_flag(TIF_SYSCALL_TRACE))
++		tracehook_report_syscall_exit(regs, step);
+ }
