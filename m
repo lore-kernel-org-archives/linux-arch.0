@@ -1,141 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:41407 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:55407 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755159AbZKLXSs (ORCPT
+	by vger.kernel.org with ESMTP id S1757186AbZKMTZw (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 12 Nov 2009 18:18:48 -0500
-Message-ID: <200911122317.nACNHjje030905@imap1.linux-foundation.org>
-Subject: + ptrace-x86-implement-user_single_step_siginfo.patch added to -mm tree
-From: akpm@linux-foundation.org
-Date: Thu, 12 Nov 2009 15:17:45 -0800
+	Fri, 13 Nov 2009 14:25:52 -0500
+Date: Fri, 13 Nov 2009 11:25:30 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v2 3/5] ptrace: change tracehook_report_syscall_exit()
+ to handle stepping
+Message-ID: <20091113112530.c10a3743.akpm@linux-foundation.org>
+In-Reply-To: <20091112173853.GA12279@redhat.com>
+References: <20091112173853.GA12279@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mm-commits@vger.kernel.org
-Cc: oleg@redhat.com, hpa@zytor.com, linux-arch@vger.kernel.org, mingo@elte.hu, roland@redhat.com, tglx@linutronix.de
-Message-ID: <20091112231745.awKGSsr-hz0PLmIFn2IA-Qge-mwo2OQdQk7mpwCNeYg@z>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Paul Mackerras <paulus@samba.org>, Roland McGrath <roland@redhat.com>, Srinivasa Ds <srinivasa@in.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20091113192530.BxMxRXt-tfXR8SACexFe9hmrkF3yLCzIiHMalFU92yk@z>
+
+On Thu, 12 Nov 2009 18:38:53 +0100
+Oleg Nesterov <oleg@redhat.com> wrote:
+
+> Change tracehook_report_syscall_exit() to look at step flag and send
+> the trap signal if needed.
+> 
+> This change affects ia64, microblaze, parisc, powerpc, sh.  They pass
+> nonzero "step" argument to tracehook but since it was ignored the tracee
+> reports via ptrace_notify(), this is not right and not consistent.
+
+This patch conflicts with utrace-core.patch a bit:
+
+***************
+*** 134,139 ****
+   */
+  static inline void tracehook_report_syscall_exit(struct pt_regs *regs, int step)
+  {
+        ptrace_report_syscall(regs);
+  }
+  
+--- 140,147 ----
+   */
+  static inline void tracehook_report_syscall_exit(struct pt_regs *regs, int step)
+  {
++       if (task_utrace_flags(current) & UTRACE_EVENT(SYSCALL_EXIT))
++               utrace_report_syscall_exit(regs);
+        ptrace_report_syscall(regs);
+  }
+
+I did this:
+
+  static inline void tracehook_report_syscall_exit(struct pt_regs *regs, int step)
+  {
+        if (step) {
+                siginfo_t info;
+                user_single_step_siginfo(current, regs, &info);
+                force_sig_info(SIGTRAP, &info, current);
+                return;
+        }
+
++       if (task_utrace_flags(current) & UTRACE_EVENT(SYSCALL_EXIT))
++               utrace_report_syscall_exit(regs);
+        ptrace_report_syscall(regs);
+  }
 
 
-The patch titled
-     ptrace: x86: implement user_single_step_siginfo()
-has been added to the -mm tree.  Its filename is
-     ptrace-x86-implement-user_single_step_siginfo.patch
-
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
-
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
-
-See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
-out what to do about this
-
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: ptrace: x86: implement user_single_step_siginfo()
-From: Oleg Nesterov <oleg@redhat.com>
-
-Suggested by Roland.
-
-Implement user_single_step_siginfo() for x86.  Extract this code from
-send_sigtrap().
-
-Since x86 calls tracehook_report_syscall_exit(step => 0) the new helper is
-not used yet.
-
-Signed-off-by: Oleg Nesterov <oleg@redhat.com>
-Acked-by: Roland McGrath <roland@redhat.com>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- arch/x86/include/asm/ptrace.h |    2 ++
- arch/x86/kernel/ptrace.c      |   30 +++++++++++++++++++++---------
- 2 files changed, 23 insertions(+), 9 deletions(-)
-
-diff -puN arch/x86/include/asm/ptrace.h~ptrace-x86-implement-user_single_step_siginfo arch/x86/include/asm/ptrace.h
---- a/arch/x86/include/asm/ptrace.h~ptrace-x86-implement-user_single_step_siginfo
-+++ a/arch/x86/include/asm/ptrace.h
-@@ -292,6 +292,8 @@ extern void user_enable_block_step(struc
- #define arch_has_block_step()	(boot_cpu_data.x86 >= 6)
- #endif
- 
-+#define ARCH_HAS_USER_SINGLE_STEP_INFO
-+
- struct user_desc;
- extern int do_get_thread_area(struct task_struct *p, int idx,
- 			      struct user_desc __user *info);
-diff -puN arch/x86/kernel/ptrace.c~ptrace-x86-implement-user_single_step_siginfo arch/x86/kernel/ptrace.c
---- a/arch/x86/kernel/ptrace.c~ptrace-x86-implement-user_single_step_siginfo
-+++ a/arch/x86/kernel/ptrace.c
-@@ -1549,21 +1549,33 @@ const struct user_regset_view *task_user
- #endif
- }
- 
--void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
--					 int error_code, int si_code)
-+static void fill_sigtrap_info(struct task_struct *tsk,
-+				struct pt_regs *regs,
-+				int error_code, int si_code,
-+				struct siginfo *info)
- {
--	struct siginfo info;
--
- 	tsk->thread.trap_no = 1;
- 	tsk->thread.error_code = error_code;
- 
--	memset(&info, 0, sizeof(info));
--	info.si_signo = SIGTRAP;
--	info.si_code = si_code;
-+	memset(info, 0, sizeof(*info));
-+	info->si_signo = SIGTRAP;
-+	info->si_code = si_code;
-+	info->si_addr = user_mode_vm(regs) ? (void __user *)regs->ip : NULL;
-+}
-+
-+void user_single_step_siginfo(struct task_struct *tsk,
-+				struct pt_regs *regs,
-+				struct siginfo *info)
-+{
-+	fill_sigtrap_info(tsk, regs, 0, TRAP_BRKPT, info);
-+}
- 
--	/* User-mode ip? */
--	info.si_addr = user_mode_vm(regs) ? (void __user *) regs->ip : NULL;
-+void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
-+					 int error_code, int si_code)
-+{
-+	struct siginfo info;
- 
-+	fill_sigtrap_info(tsk, regs, error_code, si_code, &info);
- 	/* Send us the fake SIGTRAP */
- 	force_sig_info(SIGTRAP, &info, tsk);
- }
-_
-
-Patches currently in -mm which might be from oleg@redhat.com are
-
-origin.patch
-linux-next.patch
-itimers-fix-racy-writes-to-cpu_itimer-fields.patch
-posix-cpu-timers-optimize-and-document-timer_create-callback.patch
-ptrace-cleanup-ptrace_init_task-ptrace_link-path.patch
-ptrace-copy_process-should-disable-stepping.patch
-ptrace-introduce-user_single_step_siginfo-helper.patch
-ptrace-powerpc-implement-user_single_step_siginfo.patch
-ptrace-change-tracehook_report_syscall_exit-to-handle-stepping.patch
-ptrace-x86-implement-user_single_step_siginfo.patch
-ptrace-x86-change-syscall_trace_leave-to-rely-on-tracehook-when-stepping.patch
-signals-send_sig_noinfo-should-be-considered-as-si_fromuser.patch
-signals-send_signal-use-si_fromuser-to-detect-from_ancestor_ns.patch
-signals-cosmetic-collect_signal-use-si_user.patch
-signals-kill-force_sig_specific.patch
-signals-check-group_stop_count-after-tracehook_get_signal.patch
-utrace-core.patch
-do_wait-optimization-do-not-place-sub-threads-on-task_struct-children-list.patch
-
+utrace-core.patch is getting rather old.  What is its status?
