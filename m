@@ -1,186 +1,171 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0008.atlanta.hp.com ([15.192.0.45]:22277 "EHLO
-	g5t0008.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932248AbZKMVMq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Nov 2009 16:12:46 -0500
+Received: from g1t0029.austin.hp.com ([15.216.28.36]:4517 "EHLO
+	g1t0029.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932277AbZKMVM6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Nov 2009 16:12:58 -0500
 From: Lee Schermerhorn <lee.schermerhorn@hp.com>
-Date: Fri, 13 Nov 2009 16:17:26 -0500
-Message-ID: <20091113211726.15074.92063.sendpatchset@localhost.localdomain>
+Date: Fri, 13 Nov 2009 16:18:10 -0500
+Message-ID: <20091113211810.15074.38150.sendpatchset@localhost.localdomain>
 In-Reply-To: <20091113211714.15074.29078.sendpatchset@localhost.localdomain>
 References: <20091113211714.15074.29078.sendpatchset@localhost.localdomain>
-Subject: [PATCH/RFC 2/6] numa:  x86_64:  use generic percpu var numa_node_id() implementation
+Subject: [PATCH/RFC 4/6] numa:  Introduce numa_mem_id()- effective local memory node id
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-mm@kvack.org
 Cc: akpm@linux-foundation.org, Mel Gorman <mel@csn.ul.ie>, Christoph Lameter <clameter@sgi.com>, Nick Piggin <npiggin@suse.de>, David Rientjes <rientjes@google.com>, eric.whitney@hp.com
-Message-ID: <20091113211726.SQCl93hfmv8FM9wX0UHhWmf2BU1B9C6E0MkOXd7Gv9o@z>
+Message-ID: <20091113211810.7eJKHasnacnPXtOO2QIbl2CrL9UEy50kLgGachMqBvw@z>
 
 Against:  2.6.32-rc5-mmotm-091101-1001
 
-x86 arch specific changes to use generic numa_node_id() based on
-generic percpu variable infrastructure.  Back out x86's custom
-version of numa_node_id()
+Introduce numa_mem_id(), based on generic percpu variable infrastructure
+to track "nearest node with memory" for archs that support memoryless
+nodes.
+
+Define API in <linux/topology.h> when CONFIG_HAVE_MEMORYLESS_NODES
+defined, else stubs. Architectures will define HAVE_MEMORYLESS_NODES
+if/when they support them.
+
+Archs can override definitions of:
+
+numa_mem_id() - returns node number of "local memory" node
+set_numa_mem() - initialize [this cpus'] per cpu variable 'numa_mem'
+cpu_to_mem()  - return numa_mem for specified cpu; may be used as lvalue
+
+Generic initialization of 'numa_mem' occurs in __build_all_zonelists().
+This will initialize the boot cpu at boot time, and all cpus on change of
+numa_zonelist_order, or when node or memory hot-plug requires zonelist rebuild.
+Archs that support memoryless nodes will need to initialize 'numa_mem' for
+secondary cpus as they're brought on-line.
 
 Signed-off-by: Lee Schermerhorn <lee.schermerhorn@hp.com>
-[Christoph's signoff here?]
+Signed-off-by: Christoph Lameter <cl@linux-foundation.org>
 
-V0: based on:
-# From cl@linux-foundation.org Wed Nov  4 10:36:12 2009
-# Date: Wed, 4 Nov 2009 12:35:14 -0500 (EST)
-# From: Christoph Lameter <cl@linux-foundation.org>
-# To: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
-# Subject: Re: [PATCH/RFC] slab:  handle memoryless nodes efficiently
-# 
-# I have a very early form of a draft of a patch here that genericizes
-# numa_node_id(). Uses the new generic this_cpu_xxx stuff.
-# 
-# Not complete.
+V2:  + split this out of Christoph's incomplete "starter patch"
+     + flesh out the definition
 
-V1:
-  + split out x86-specific changes from generic.
-  + change 'node_number' => 'numa_node' in x86 arch code
-  + define __this_cpu_read in x86 asm/percpu.h
-  + change x86/kernel/setup_percpu.c to use early_cpu_to_node() to
-    setup 'numa_node' as cpu_to_node() now depends on the per cpu var.
-    [I think!  What about cpu_to_node() func in x86/mm/numa_64.c ???]
+---
 
-V2:
-  + cpu_to_node() => early_cpu_to_node(); incomplete change in V01
-  + x86 arch define USE_PERCPU_NUMA_NODE_ID.
+ include/linux/mmzone.h   |    6 ++++++
+ include/linux/topology.h |   24 ++++++++++++++++++++++++
+ mm/page_alloc.c          |   35 +++++++++++++++++++++++++++++++++++
+ mm/percpu.c              |    5 +++++
+ 4 files changed, 70 insertions(+)
 
- arch/x86/Kconfig                |    4 ++++
- arch/x86/include/asm/percpu.h   |    2 ++
- arch/x86/include/asm/topology.h |   13 +------------
- arch/x86/kernel/cpu/common.c    |    6 +++---
- arch/x86/kernel/setup_percpu.c  |    4 ++--
- arch/x86/mm/numa_64.c           |    5 +----
- 6 files changed, 13 insertions(+), 21 deletions(-)
-
-Index: linux-2.6.32-rc5-mmotm-091101-1001/arch/x86/include/asm/topology.h
+Index: linux-2.6.32-rc5-mmotm-091101-1001/include/linux/topology.h
 ===================================================================
---- linux-2.6.32-rc5-mmotm-091101-1001.orig/arch/x86/include/asm/topology.h
-+++ linux-2.6.32-rc5-mmotm-091101-1001/arch/x86/include/asm/topology.h
-@@ -53,33 +53,22 @@
- extern int cpu_to_node_map[];
+--- linux-2.6.32-rc5-mmotm-091101-1001.orig/include/linux/topology.h
++++ linux-2.6.32-rc5-mmotm-091101-1001/include/linux/topology.h
+@@ -232,6 +232,30 @@ DECLARE_PER_CPU(int, numa_node);
  
- /* Returns the number of the node containing CPU 'cpu' */
--static inline int cpu_to_node(int cpu)
-+static inline int early_cpu_to_node(int cpu)
- {
- 	return cpu_to_node_map[cpu];
- }
--#define early_cpu_to_node(cpu)	cpu_to_node(cpu)
+ #endif	/* [!]CONFIG_USE_PERCPU_NUMA_NODE_ID */
  
- #else /* CONFIG_X86_64 */
- 
- /* Mappings between logical cpu number and node number */
- DECLARE_EARLY_PER_CPU(int, x86_cpu_to_node_map);
- 
--/* Returns the number of the current Node. */
--DECLARE_PER_CPU(int, node_number);
--#define numa_node_id()		percpu_read(node_number)
--
- #ifdef CONFIG_DEBUG_PER_CPU_MAPS
- extern int cpu_to_node(int cpu);
- extern int early_cpu_to_node(int cpu);
- 
- #else	/* !CONFIG_DEBUG_PER_CPU_MAPS */
- 
--/* Returns the number of the node containing CPU 'cpu' */
--static inline int cpu_to_node(int cpu)
--{
--	return per_cpu(x86_cpu_to_node_map, cpu);
--}
--
- /* Same function but used if called before per_cpu areas are setup */
- static inline int early_cpu_to_node(int cpu)
- {
-Index: linux-2.6.32-rc5-mmotm-091101-1001/arch/x86/mm/numa_64.c
-===================================================================
---- linux-2.6.32-rc5-mmotm-091101-1001.orig/arch/x86/mm/numa_64.c
-+++ linux-2.6.32-rc5-mmotm-091101-1001/arch/x86/mm/numa_64.c
-@@ -33,9 +33,6 @@ int numa_off __initdata;
- static unsigned long __initdata nodemap_addr;
- static unsigned long __initdata nodemap_size;
- 
--DEFINE_PER_CPU(int, node_number) = 0;
--EXPORT_PER_CPU_SYMBOL(node_number);
--
- /*
-  * Map cpu index to node index
-  */
-@@ -816,7 +813,7 @@ void __cpuinit numa_set_node(int cpu, in
- 	per_cpu(x86_cpu_to_node_map, cpu) = node;
- 
- 	if (node != NUMA_NO_NODE)
--		per_cpu(node_number, cpu) = node;
-+		per_cpu(numa_node, cpu) = node;
- }
- 
- void __cpuinit numa_clear_node(int cpu)
-Index: linux-2.6.32-rc5-mmotm-091101-1001/arch/x86/include/asm/percpu.h
-===================================================================
---- linux-2.6.32-rc5-mmotm-091101-1001.orig/arch/x86/include/asm/percpu.h
-+++ linux-2.6.32-rc5-mmotm-091101-1001/arch/x86/include/asm/percpu.h
-@@ -150,10 +150,12 @@ do {							\
- #define percpu_or(var, val)		percpu_to_op("or", var, val)
- #define percpu_xor(var, val)		percpu_to_op("xor", var, val)
- 
-+#define __this_cpu_read(pcp)		percpu_from_op("mov", (pcp), "m"(pcp))
- #define __this_cpu_read_1(pcp)		percpu_from_op("mov", (pcp), "m"(pcp))
- #define __this_cpu_read_2(pcp)		percpu_from_op("mov", (pcp), "m"(pcp))
- #define __this_cpu_read_4(pcp)		percpu_from_op("mov", (pcp), "m"(pcp))
- 
-+#define __this_cpu_write(pcp, val)	percpu_to_op("mov", (pcp), val)
- #define __this_cpu_write_1(pcp, val)	percpu_to_op("mov", (pcp), val)
- #define __this_cpu_write_2(pcp, val)	percpu_to_op("mov", (pcp), val)
- #define __this_cpu_write_4(pcp, val)	percpu_to_op("mov", (pcp), val)
-Index: linux-2.6.32-rc5-mmotm-091101-1001/arch/x86/kernel/cpu/common.c
-===================================================================
---- linux-2.6.32-rc5-mmotm-091101-1001.orig/arch/x86/kernel/cpu/common.c
-+++ linux-2.6.32-rc5-mmotm-091101-1001/arch/x86/kernel/cpu/common.c
-@@ -1105,9 +1105,9 @@ void __cpuinit cpu_init(void)
- 	oist = &per_cpu(orig_ist, cpu);
- 
- #ifdef CONFIG_NUMA
--	if (cpu != 0 && percpu_read(node_number) == 0 &&
--	    cpu_to_node(cpu) != NUMA_NO_NODE)
--		percpu_write(node_number, cpu_to_node(cpu));
-+	if (cpu != 0 && percpu_read(numa_node) == 0 &&
-+	    early_cpu_to_node(cpu) != NUMA_NO_NODE)
-+		set_numa_node(early_cpu_to_node(cpu));
- #endif
- 
- 	me = current;
-Index: linux-2.6.32-rc5-mmotm-091101-1001/arch/x86/kernel/setup_percpu.c
-===================================================================
---- linux-2.6.32-rc5-mmotm-091101-1001.orig/arch/x86/kernel/setup_percpu.c
-+++ linux-2.6.32-rc5-mmotm-091101-1001/arch/x86/kernel/setup_percpu.c
-@@ -258,10 +258,10 @@ void __init setup_per_cpu_areas(void)
- 
- #if defined(CONFIG_X86_64) && defined(CONFIG_NUMA)
- 	/*
--	 * make sure boot cpu node_number is right, when boot cpu is on the
-+	 * make sure boot cpu numa_node is right, when boot cpu is on the
- 	 * node that doesn't have mem installed
- 	 */
--	per_cpu(node_number, boot_cpu_id) = cpu_to_node(boot_cpu_id);
-+	per_cpu(numa_node, boot_cpu_id) = early_cpu_to_node(boot_cpu_id);
- #endif
- 
- 	/* Setup node to cpumask map */
-Index: linux-2.6.32-rc5-mmotm-091101-1001/arch/x86/Kconfig
-===================================================================
---- linux-2.6.32-rc5-mmotm-091101-1001.orig/arch/x86/Kconfig
-+++ linux-2.6.32-rc5-mmotm-091101-1001/arch/x86/Kconfig
-@@ -1677,6 +1677,10 @@ config HAVE_ARCH_EARLY_PFN_TO_NID
- 	def_bool X86_64
- 	depends on NUMA
- 
-+config USE_PERCPU_NUMA_NODE_ID
-+	def_bool y
-+	depends on NUMA
++#ifdef CONFIG_HAVE_MEMORYLESS_NODES
 +
- menu "Power management and ACPI options"
++DECLARE_PER_CPU(int, numa_mem);
++
++#ifndef set_numa_mem
++#define set_numa_mem(__node) percpu_write(numa_mem, __node)
++#endif
++
++#else	/* !CONFIG_HAVE_MEMORYLESS_NODES */
++
++#define numa_mem numa_node
++static inline void set_numa_mem(int node) {}
++
++#endif	/* [!]CONFIG_HAVE_MEMORYLESS_NODES */
++
++#ifndef numa_mem_id
++/* Returns the number of the nearest Node with memory */
++#define numa_mem_id()		__this_cpu_read(numa_mem)
++#endif
++
++#ifndef cpu_to_mem
++#define cpu_to_mem(__cpu)	per_cpu(numa_mem, (__cpu))
++#endif
++
+ #ifndef topology_physical_package_id
+ #define topology_physical_package_id(cpu)	((void)(cpu), -1)
+ #endif
+Index: linux-2.6.32-rc5-mmotm-091101-1001/mm/percpu.c
+===================================================================
+--- linux-2.6.32-rc5-mmotm-091101-1001.orig/mm/percpu.c
++++ linux-2.6.32-rc5-mmotm-091101-1001/mm/percpu.c
+@@ -2078,3 +2078,8 @@ DEFINE_PER_CPU(int, numa_node);
+ EXPORT_PER_CPU_SYMBOL(numa_node);
+ #endif
  
- config ARCH_HIBERNATION_HEADER
++#ifdef CONFIG_HAVE_MEMORYLESS_NODES
++DEFINE_PER_CPU(int, numa_mem);		/* Kernel "local memory" node */
++EXPORT_PER_CPU_SYMBOL(numa_mem);
++#endif
++
+Index: linux-2.6.32-rc5-mmotm-091101-1001/mm/page_alloc.c
+===================================================================
+--- linux-2.6.32-rc5-mmotm-091101-1001.orig/mm/page_alloc.c
++++ linux-2.6.32-rc5-mmotm-091101-1001/mm/page_alloc.c
+@@ -2688,6 +2688,24 @@ static void build_zonelist_cache(pg_data
+ 		zlc->z_to_n[z - zonelist->_zonerefs] = zonelist_node_idx(z);
+ }
+ 
++#ifdef CONFIG_HAVE_MEMORYLESS_NODES
++/*
++ * Return node id of node used for "local" allocations.
++ * I.e., first node id of first zone in arg node's generic zonelist.
++ * Used for initializing percpu 'numa_mem', which is used primarily
++ * for kernel allocations, so use GFP_KERNEL flags to locate zonelist.
++ */
++int local_memory_node(int node)
++{
++	struct zone *zone;
++
++	(void)first_zones_zonelist(node_zonelist(node, GFP_KERNEL),
++				   gfp_zone(GFP_KERNEL),
++				   NULL,
++				   &zone);
++	return zone->node;
++}
++#endif
+ 
+ #else	/* CONFIG_NUMA */
+ 
+@@ -2754,6 +2772,23 @@ static int __build_all_zonelists(void *d
+ 		build_zonelists(pgdat);
+ 		build_zonelist_cache(pgdat);
+ 	}
++
++#ifdef CONFIG_HAVE_MEMORYLESS_NODES
++	{
++		/*
++		 * We now know the "local memory node" for each node--
++		 * i.e., the node of the first zone in the generic zonelist.
++		 * Set up numa_mem percpu variable for on-line cpus.  During
++		 * boot, only the boot cpu should be on-line;  we'll init the
++		 * secondary cpus' numa_mem as they come on-line.  During
++		 * node/memory hotplug, we'll fixup all cpus.
++		 */
++		int cpu;
++		for_each_online_cpu(cpu) {
++			cpu_to_mem(cpu) = local_memory_node(cpu_to_node(cpu));
++		}
++	}
++#endif
+ 	return 0;
+ }
+ 
+Index: linux-2.6.32-rc5-mmotm-091101-1001/include/linux/mmzone.h
+===================================================================
+--- linux-2.6.32-rc5-mmotm-091101-1001.orig/include/linux/mmzone.h
++++ linux-2.6.32-rc5-mmotm-091101-1001/include/linux/mmzone.h
+@@ -672,6 +672,12 @@ void memory_present(int nid, unsigned lo
+ static inline void memory_present(int nid, unsigned long start, unsigned long end) {}
+ #endif
+ 
++#ifdef CONFIG_HAVE_MEMORYLESS_NODES
++int local_memory_node(int node_id);
++#else
++static inline int local_memory_node(int node_id) { return node_id; };
++#endif
++
+ #ifdef CONFIG_NEED_NODE_MEMMAP_SIZE
+ unsigned long __init node_memmap_size_bytes(int, unsigned long, unsigned long);
+ #endif
