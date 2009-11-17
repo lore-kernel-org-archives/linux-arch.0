@@ -1,79 +1,84 @@
 From: James Bottomley <James.Bottomley@suse.de>
-Subject: [PATCH 5/6] block: permit I/O to vmalloc/vmap kernel pages
-Date: Tue, 17 Nov 2009 11:03:51 -0600
-Message-ID: <1258477432-2513-6-git-send-email-James.Bottomley@suse.de>
+Subject: [PATCH 6/6] xfs: fix xfs to work with Virtually Indexed architectures
+Date: Tue, 17 Nov 2009 11:03:52 -0600
+Message-ID: <1258477432-2513-7-git-send-email-James.Bottomley@suse.de>
 References: <1258477432-2513-1-git-send-email-James.Bottomley@suse.de>
  <1258477432-2513-2-git-send-email-James.Bottomley@suse.de>
  <1258477432-2513-3-git-send-email-James.Bottomley@suse.de>
  <1258477432-2513-4-git-send-email-James.Bottomley@suse.de>
  <1258477432-2513-5-git-send-email-James.Bottomley@suse.de>
+ <1258477432-2513-6-git-send-email-James.Bottomley@suse.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:47472 "EHLO mx1.suse.de"
+Received: from cantor.suse.de ([195.135.220.2]:47475 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755571AbZKQREC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 Nov 2009 12:04:02 -0500
-In-Reply-To: <1258477432-2513-5-git-send-email-James.Bottomley@suse.de>
+	id S1755594AbZKQREE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 Nov 2009 12:04:04 -0500
+In-Reply-To: <1258477432-2513-6-git-send-email-James.Bottomley@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org
 Cc: James Bottomley <James.Bottomley@suse.de>
 
-This updates bio_map_kern() to check for pages in the vmalloc address
-range and call the new kernel flushing APIs if the are.  This should
-allow any kernel user to pass a vmalloc/vmap area to block.
+xfs_buf.c includes what is essentially a hand rolled version of
+blk_rq_map_kern().  In order to work properly with the vmalloc buffers
+that xfs uses, this hand rolled routine must also implement the flushing
+API for vmap/vmalloc areas.
 
 Signed-off-by: James Bottomley <James.Bottomley@suse.de>
 ---
- fs/bio.c |   20 ++++++++++++++++++--
- 1 files changed, 18 insertions(+), 2 deletions(-)
+ fs/xfs/linux-2.6/xfs_buf.c |   20 ++++++++++++++++++++
+ 1 files changed, 20 insertions(+), 0 deletions(-)
 
-diff --git a/fs/bio.c b/fs/bio.c
-index 7673800..0cf7b79 100644
---- a/fs/bio.c
-+++ b/fs/bio.c
-@@ -1120,6 +1120,14 @@ void bio_unmap_user(struct bio *bio)
+diff --git a/fs/xfs/linux-2.6/xfs_buf.c b/fs/xfs/linux-2.6/xfs_buf.c
+index 965df12..320a6e4 100644
+--- a/fs/xfs/linux-2.6/xfs_buf.c
++++ b/fs/xfs/linux-2.6/xfs_buf.c
+@@ -1132,12 +1132,26 @@ xfs_buf_bio_end_io(
+ 	xfs_buf_t		*bp = (xfs_buf_t *)bio->bi_private;
+ 	unsigned int		blocksize = bp->b_target->bt_bsize;
+ 	struct bio_vec		*bvec = bio->bi_io_vec + bio->bi_vcnt - 1;
++	void			*vaddr = NULL;
++	int			i;
  
- static void bio_map_kern_endio(struct bio *bio, int err)
- {
-+	void *kaddr = bio->bi_private;
+ 	xfs_buf_ioerror(bp, -error);
+ 
++	if (is_vmalloc_addr(bp->b_addr))
++		for (i = 0; i < bp->b_page_count; i++)
++			if (bvec->bv_page == bp->b_pages[i]) {
++				vaddr = bp->b_addr + i*PAGE_SIZE;
++				break;
++			}
 +
-+	if (is_vmalloc_addr(kaddr)) {
-+		int i;
+ 	do {
+ 		struct page	*page = bvec->bv_page;
+ 
++		if (is_vmalloc_addr(bp->b_addr)) {
++			invalidate_kernel_dcache_addr(vaddr);
++			vaddr -= PAGE_SIZE;
++		}
 +
-+		for (i = 0; i < bio->bi_vcnt; i++)
-+			invalidate_kernel_dcache_addr(kaddr + i * PAGE_SIZE);
-+	}
- 	bio_put(bio);
- }
+ 		ASSERT(!PagePrivate(page));
+ 		if (unlikely(bp->b_error)) {
+ 			if (bp->b_flags & XBF_READ)
+@@ -1202,6 +1216,9 @@ _xfs_buf_ioapply(
+ 		bio->bi_end_io = xfs_buf_bio_end_io;
+ 		bio->bi_private = bp;
  
-@@ -1138,9 +1146,12 @@ static struct bio *__bio_map_kern(struct request_queue *q, void *data,
- 	if (!bio)
- 		return ERR_PTR(-ENOMEM);
- 
-+	bio->bi_private = data;
++		if (is_vmalloc_addr(bp->b_addr))
++			flush_kernel_dcache_addr(bp->b_addr);
 +
- 	offset = offset_in_page(kaddr);
- 	for (i = 0; i < nr_pages; i++) {
- 		unsigned int bytes = PAGE_SIZE - offset;
-+		struct page *page;
+ 		bio_add_page(bio, bp->b_pages[0], PAGE_CACHE_SIZE, 0);
+ 		size = 0;
  
- 		if (len <= 0)
+@@ -1228,6 +1245,9 @@ next_chunk:
+ 		if (nbytes > size)
+ 			nbytes = size;
+ 
++		if (is_vmalloc_addr(bp->b_addr))
++			flush_kernel_dcache_addr(bp->b_addr + PAGE_SIZE*map_i);
++
+ 		rbytes = bio_add_page(bio, bp->b_pages[map_i], nbytes, offset);
+ 		if (rbytes < nbytes)
  			break;
-@@ -1148,8 +1159,13 @@ static struct bio *__bio_map_kern(struct request_queue *q, void *data,
- 		if (bytes > len)
- 			bytes = len;
- 
--		if (bio_add_pc_page(q, bio, virt_to_page(data), bytes,
--				    offset) < bytes)
-+		if (is_vmalloc_addr(data)) {
-+			flush_kernel_dcache_addr(data);
-+			page = vmalloc_to_page(data);
-+		} else
-+			page = virt_to_page(data);
-+
-+		if (bio_add_pc_page(q, bio, page, bytes, offset) < bytes)
- 			break;
- 
- 		data += bytes;
 -- 
 1.6.3.3
