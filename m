@@ -1,44 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:45749 "EHLO mx2.suse.de"
+Received: from cantor2.suse.de ([195.135.220.15]:45753 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751011AbZKQRDw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 Nov 2009 12:03:52 -0500
+	id S1754367AbZKQRDz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 Nov 2009 12:03:55 -0500
 From: James Bottomley <James.Bottomley@suse.de>
-Subject: [PATCH 0/6] fix xfs by making I/O to vmap/vmalloc areas work
-Date: Tue, 17 Nov 2009 11:03:46 -0600
-Message-ID: <1258477432-2513-1-git-send-email-James.Bottomley@suse.de>
+Subject: [PATCH 1/6] mm: add coherence API for DMA to vmalloc/vmap areas
+Date: Tue, 17 Nov 2009 11:03:47 -0600
+Message-ID: <1258477432-2513-2-git-send-email-James.Bottomley@suse.de>
+In-Reply-To: <1258477432-2513-1-git-send-email-James.Bottomley@suse.de>
+References: <1258477432-2513-1-git-send-email-James.Bottomley@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org
 Cc: James Bottomley <James.Bottomley@suse.de>
-Message-ID: <20091117170346.1CX64qphNb8qeQxgygwYDVpGUN7DwxKX3we5OWhqbCg@z>
+Message-ID: <20091117170347.GsFRLFQxwHUZObica0YqY4dAF2pv7Qx2NgCvHMfYH9Q@z>
 
-Here's version three of the patch.  This one makes sure the invalidate
-works correctly.  I verified it on parisc by making my system print out
-the virtual addresses it was invalidating and matching up with the ones
-that were initially flushed, but since invalidate is a nop on parisc, I
-can't verify live that the issue is fixed.  I'd really appreciate someone
-from arm and sh testing here.
+On Virtually Indexed architectures (which don't do automatic alias
+resolution in their caches), we have to flush via the correct
+virtual address to prepare pages for DMA.  On some architectures
+(like arm) we cannot prevent the CPU from doing data movein along
+the alias (and thus giving stale read data), so we not only have to
+introduce a flush API to push dirty cache lines out, but also an invalidate
+API to kill inconsistent cache lines that may have moved in before
+DMA changed the data
 
-Thanks,
-
-James
-
+Signed-off-by: James Bottomley <James.Bottomley@suse.de>
 ---
+ include/linux/highmem.h |    6 ++++++
+ 1 files changed, 6 insertions(+), 0 deletions(-)
 
-James Bottomley (6):
-  mm: add coherence API for DMA to vmalloc/vmap areas
-  parisc: add mm API for DMA to vmalloc/vmap areas
-  arm: add mm API for DMA to vmalloc/vmap areas
-  sh: add mm API for DMA to vmalloc/vmap areas
-  block: permit I/O to vmalloc/vmap kernel pages
-  xfs: fix xfs to work with Virtually Indexed architectures
-
- arch/arm/include/asm/cacheflush.h    |   10 ++++++++++
- arch/parisc/include/asm/cacheflush.h |    8 ++++++++
- arch/sh/include/asm/cacheflush.h     |    8 ++++++++
- fs/bio.c                             |   20 ++++++++++++++++++--
- fs/xfs/linux-2.6/xfs_buf.c           |   20 ++++++++++++++++++++
- include/linux/highmem.h              |    6 ++++++
- 6 files changed, 70 insertions(+), 2 deletions(-)
+diff --git a/include/linux/highmem.h b/include/linux/highmem.h
+index 211ff44..eb99c70 100644
+--- a/include/linux/highmem.h
++++ b/include/linux/highmem.h
+@@ -17,6 +17,12 @@ static inline void flush_anon_page(struct vm_area_struct *vma, struct page *page
+ static inline void flush_kernel_dcache_page(struct page *page)
+ {
+ }
++static inline void flush_kernel_dcache_addr(void *vaddr)
++{
++}
++static inline void invalidate_kernel_dcache_addr(void *vaddr)
++{
++}
+ #endif
+ 
+ #include <asm/kmap_types.h>
+-- 
+1.6.3.3
 
