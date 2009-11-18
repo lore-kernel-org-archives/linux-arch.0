@@ -1,59 +1,36 @@
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [-next Nov 17] s390 build
-	break(arch/s390/kernel/compat_wrapper.S)
-Date: Wed, 18 Nov 2009 09:27:27 +0000
-Message-ID: <20091118092727.GA17267@flint.arm.linux.org.uk>
-References: <20091117195309.6cc3ead0.sfr@canb.auug.org.au> <4B0291BB.3090005@in.ibm.com> <20091117125201.GB5124@osiris.boeblingen.de.ibm.com> <1258465241.2876.29.camel@dhcp231-106.rdu.redhat.com> <20091117135525.GF5124@osiris.boeblingen.de.ibm.com> <1258471436.2876.34.camel@dhcp231-106.rdu.redhat.com> <20091118070418.GA4392@osiris.boeblingen.de.ibm.com>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: [PATCH 5/6] block: permit I/O to vmalloc/vmap kernel pages
+Date: Wed, 18 Nov 2009 19:10:53 +0900
+Message-ID: <20091118191031Q.fujita.tomonori@lab.ntt.co.jp>
+References: <1258477432-2513-4-git-send-email-James.Bottomley@suse.de>
+	<1258477432-2513-5-git-send-email-James.Bottomley@suse.de>
+	<1258477432-2513-6-git-send-email-James.Bottomley@suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:34181 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756953AbZKRJ2a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Nov 2009 04:28:30 -0500
-Content-Disposition: inline
-In-Reply-To: <20091118070418.GA4392@osiris.boeblingen.de.ibm.com>
+Received: from sh.osrg.net ([192.16.179.4]:50157 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754275AbZKRKK4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Nov 2009 05:10:56 -0500
+In-Reply-To: <1258477432-2513-6-git-send-email-James.Bottomley@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Eric Paris <eparis@redhat.com>, Sachin Sant <sachinp@in.ibm.com>, linux-s390@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-arch@vger.kernel.org
+To: James.Bottomley@suse.de
+Cc: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org
 
-On Wed, Nov 18, 2009 at 08:04:18AM +0100, Heiko Carstens wrote:
-> On Tue, Nov 17, 2009 at 10:23:56AM -0500, Eric Paris wrote:
-> With
-> 
-> long sys_fanotify_mark(int fanotify_fd, unsigned int flags,
->      	 	       int fd, const char  __user *pathname,
->                        u64 mask);
-> 
-> we have a 64 bit type as 5th argument. That doesn't work for syscalls
-> on 32 bit s390.
+On Tue, 17 Nov 2009 11:03:51 -0600
+James Bottomley <James.Bottomley@suse.de> wrote:
 
-Note that the above works on ARM, since we end up with the following
-register allocation:
+> This updates bio_map_kern() to check for pages in the vmalloc address
+> range and call the new kernel flushing APIs if the are.  This should
+> allow any kernel user to pass a vmalloc/vmap area to block.
+>
+> Signed-off-by: James Bottomley <James.Bottomley@suse.de>
+> ---
+>  fs/bio.c |   20 ++++++++++++++++++--
+>  1 files changed, 18 insertions(+), 2 deletions(-)
 
-r0: fanotify_fd
-r1: flags
-r2: fd
-r3: pathname
-r4,r5: mask
+Do we need this?
 
-since 'mask' is an even,odd pair, and the arguments all fit within r0 - r5
-inclusive.
-
-> Please note that other architectures (I think at least arm and powerpc) put
-> 64 bit values into even/odd register pairs and add padding if the first free
-> available register is an odd one. So any of the following interfaces should
-> work for all architectures:
-
-Indeed.
-
-Since we're going around the loop of re-organizing the argument order of
-syscalls, the question which needs asking is: what's happening with HPA's
-idea of having a set of per-arch rules and generating the interfaces
-according to those rules?
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Buffers that xfs_buf.c passes to block doesn't go to bio_map_kern()?
