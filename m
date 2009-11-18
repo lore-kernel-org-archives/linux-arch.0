@@ -1,69 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:33168 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753491AbZKROVI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Nov 2009 09:21:08 -0500
-Subject: Re: [PATCH 5/6] block: permit I/O to vmalloc/vmap kernel pages
-From: James Bottomley <James.Bottomley@suse.de>
-In-Reply-To: <20091118231538D.fujita.tomonori@lab.ntt.co.jp>
-References: <1258477432-2513-6-git-send-email-James.Bottomley@suse.de>
-	 <20091118191031Q.fujita.tomonori@lab.ntt.co.jp>
-	 <1258552240.2540.0.camel@mulgrave.site>
-	 <20091118231538D.fujita.tomonori@lab.ntt.co.jp>
-Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 18 Nov 2009 09:21:06 -0500
-Message-ID: <1258554066.2540.7.camel@mulgrave.site>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from eddie.linux-mips.org ([78.24.191.182]:40262 "EHLO
+	eddie.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757292AbZKROtw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Nov 2009 09:49:52 -0500
+Received: from localhost.localdomain ([127.0.0.1]:37882 "EHLO h5.dl5rb.org.uk"
+	rhost-flags-OK-OK-OK-FAIL) by ftp.linux-mips.org with ESMTP
+	id S1493515AbZKROtz (ORCPT <rfc822;linux-arch@vger.kernel.org>
+	+ 2 others); Wed, 18 Nov 2009 15:49:55 +0100
+Date: Wed, 18 Nov 2009 15:49:36 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [-next Nov 17] s390 build
+	break(arch/s390/kernel/compat_wrapper.S)
+Message-ID: <20091118144936.GB17146@linux-mips.org>
+References: <20091117195309.6cc3ead0.sfr@canb.auug.org.au> <4B0291BB.3090005@in.ibm.com> <20091117125201.GB5124@osiris.boeblingen.de.ibm.com> <1258465241.2876.29.camel@dhcp231-106.rdu.redhat.com> <20091117135525.GF5124@osiris.boeblingen.de.ibm.com> <1258471436.2876.34.camel@dhcp231-106.rdu.redhat.com> <20091118070418.GA4392@osiris.boeblingen.de.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20091118070418.GA4392@osiris.boeblingen.de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org
-Message-ID: <20091118142106.CtmEhua4M48vuItbzU0ob_V7tSDxnfjG5iWEcg73Tzo@z>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Eric Paris <eparis@redhat.com>, Sachin Sant <sachinp@in.ibm.com>, linux-s390@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, linux-mips@linux-mips.org, Andrew Morton <akpm@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-arch@vger.kernel.org
+Message-ID: <20091118144936.j0CjEFKx6PdiJoPJjTx6Q3hnZebLK1peKGxrXjVYDFw@z>
 
-On Wed, 2009-11-18 at 23:15 +0900, FUJITA Tomonori wrote:
-> On Wed, 18 Nov 2009 08:50:40 -0500
-> James Bottomley <James.Bottomley@suse.de> wrote:
+On Wed, Nov 18, 2009 at 08:04:18AM +0100, Heiko Carstens wrote:
+
+> Please note that other architectures (I think at least arm and powerpc) put
+> 64 bit values into even/odd register pairs and add padding if the first free
+> available register is an odd one. So any of the following interfaces should
+> work for all architectures:
 > 
-> > On Wed, 2009-11-18 at 19:10 +0900, FUJITA Tomonori wrote:
-> > > On Tue, 17 Nov 2009 11:03:51 -0600
-> > > James Bottomley <James.Bottomley@suse.de> wrote:
-> > > 
-> > > > This updates bio_map_kern() to check for pages in the vmalloc address
-> > > > range and call the new kernel flushing APIs if the are.  This should
-> > > > allow any kernel user to pass a vmalloc/vmap area to block.
-> > > >
-> > > > Signed-off-by: James Bottomley <James.Bottomley@suse.de>
-> > > > ---
-> > > >  fs/bio.c |   20 ++++++++++++++++++--
-> > > >  1 files changed, 18 insertions(+), 2 deletions(-)
-> > > 
-> > > Do we need this?
-> > > 
-> > > Buffers that xfs_buf.c passes to block doesn't go to bio_map_kern()?
-> > 
-> > For completeness, yes ... because xfs *should* be passing its buffers to
-> > bio_map_kern() ... it just happens to roll its own.
+> long sys_fanotify_mark(int fanotify_fd, unsigned int flags,
+>      	 	       int fd, const char  __user *pathname,
+>                        u32 mask_high, u32 mask_low);
 > 
-> Ok, you mean that we will convert XFS to use bio_map_kern().
+> long sys_fanotify_mark(int fanotify_fd, unsigned int flags,
+>                        u64 mask,
+>      	 	       int fd, const char  __user *pathname);
 > 
-> But adding another trick to bio_map_kern() to handle a vmalloc/vmap
-> area is a good move? Only XFS do such, right?
+> long sys_fanotify_mark(u64 mask,
+>      		       int fanotify_fd, unsigned int flags,
+>      	 	       int fd, const char  __user *pathname);
 
-Well, it's more a question of how we want the Linux APIs to look.
-Should passing vmalloc/vmap areas into the I/O routines be wrong?  Right
-at the moment it doesn't work but xfs is the only consumer.
+Correct - but the splitting is unnecessary pain for some platforms like
+64-bit userland on 64-bit MIPS where the 64-bit argument would be passed
+in a single register so I have preference for the 2nd or 3rd suggestion.
 
-There are definite reasons to say yes: greater flexibility for handling
-large buffers which logging filesystems seem to need.
+The 1st prototype has the advantage of avoiding the need for a compat
+wrapper which otherwise would look like:
 
-My position is either xfs is right and we should handle them correctly
-(and hence all the APIs should handle them correctly including
-bio_map_kern) or xfs is wrong and we should try and make it work with
-current APIs (which would necessitate a large contiguous physical
-allocation ... with all the associated problems).  I chose the former
-with this patch.
+long compat_sys_fanotify_mark(int fanotify_fd, unsigned int flags,
+                       u32 a2, u32 a3,
+     	 	       int fd, const char  __user *pathname);
+{
+	/* assuming 2nd suggested prototype from above */
+	return sys_fanotify_mark(fd, flags,
+				 merge64(a2, a3),
+				 fd, pathname);
+}
 
-James
+I'd prefer to see the compat code carrying the burden.
 
-
+  Ralf
