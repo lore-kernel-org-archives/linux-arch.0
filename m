@@ -1,84 +1,80 @@
-From: James Bottomley <James.Bottomley@suse.de>
-Subject: [PATCH 6/6] xfs: fix xfs to work with Virtually Indexed architectures
-Date: Tue, 17 Nov 2009 11:03:52 -0600
-Message-ID: <1258477432-2513-7-git-send-email-James.Bottomley@suse.de>
-References: <1258477432-2513-1-git-send-email-James.Bottomley@suse.de>
- <1258477432-2513-2-git-send-email-James.Bottomley@suse.de>
- <1258477432-2513-3-git-send-email-James.Bottomley@suse.de>
- <1258477432-2513-4-git-send-email-James.Bottomley@suse.de>
- <1258477432-2513-5-git-send-email-James.Bottomley@suse.de>
- <1258477432-2513-6-git-send-email-James.Bottomley@suse.de>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:47475 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755594AbZKQREE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 Nov 2009 12:04:04 -0500
-In-Reply-To: <1258477432-2513-6-git-send-email-James.Bottomley@suse.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org
-Cc: James Bottomley <James.Bottomley@suse.de>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [-next Nov 17] s390 build
+ break(arch/s390/kernel/compat_wrapper.S)
+Date: Wed, 18 Nov 2009 08:04:18 +0100
+Message-ID: <20091118070418.GA4392@osiris.boeblingen.de.ibm.com>
+References: <20091117195309.6cc3ead0.sfr@canb.auug.org.au>
+ <4B0291BB.3090005@in.ibm.com>
+ <20091117125201.GB5124@osiris.boeblingen.de.ibm.com>
+ <1258465241.2876.29.camel@dhcp231-106.rdu.redhat.com>
+ <20091117135525.GF5124@osiris.boeblingen.de.ibm.com>
+ <1258471436.2876.34.camel@dhcp231-106.rdu.redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-next-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1258471436.2876.34.camel@dhcp231-106.rdu.redhat.com>
+Sender: linux-next-owner@vger.kernel.org
+To: Eric Paris <eparis@redhat.com>
+Cc: Sachin Sant <sachinp@in.ibm.com>, linux-s390@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-xfs_buf.c includes what is essentially a hand rolled version of
-blk_rq_map_kern().  In order to work properly with the vmalloc buffers
-that xfs uses, this hand rolled routine must also implement the flushing
-API for vmap/vmalloc areas.
+On Tue, Nov 17, 2009 at 10:23:56AM -0500, Eric Paris wrote:
+> On Tue, 2009-11-17 at 14:55 +0100, Heiko Carstens wrote:
+> 
+> > Yes, also some places should have used lgfr instead of llgfr for proper sign
+> > extension. But please, just drop the s390 bits from your patch.
+> > Its easier and less painful for us to do it ourselves instead of reviewing
+> > and fixing these things. (No offence intended!).
+> 
+> dropped and won't show up in -next tomorrow.
+> 
+> This what I thought it should be and would love to read if you say it's
+> right....
+> 
 
-Signed-off-by: James Bottomley <James.Bottomley@suse.de>
----
- fs/xfs/linux-2.6/xfs_buf.c |   20 ++++++++++++++++++++
- 1 files changed, 20 insertions(+), 0 deletions(-)
+[...]
 
-diff --git a/fs/xfs/linux-2.6/xfs_buf.c b/fs/xfs/linux-2.6/xfs_buf.c
-index 965df12..320a6e4 100644
---- a/fs/xfs/linux-2.6/xfs_buf.c
-+++ b/fs/xfs/linux-2.6/xfs_buf.c
-@@ -1132,12 +1132,26 @@ xfs_buf_bio_end_io(
- 	xfs_buf_t		*bp = (xfs_buf_t *)bio->bi_private;
- 	unsigned int		blocksize = bp->b_target->bt_bsize;
- 	struct bio_vec		*bvec = bio->bi_io_vec + bio->bi_vcnt - 1;
-+	void			*vaddr = NULL;
-+	int			i;
- 
- 	xfs_buf_ioerror(bp, -error);
- 
-+	if (is_vmalloc_addr(bp->b_addr))
-+		for (i = 0; i < bp->b_page_count; i++)
-+			if (bvec->bv_page == bp->b_pages[i]) {
-+				vaddr = bp->b_addr + i*PAGE_SIZE;
-+				break;
-+			}
-+
- 	do {
- 		struct page	*page = bvec->bv_page;
- 
-+		if (is_vmalloc_addr(bp->b_addr)) {
-+			invalidate_kernel_dcache_addr(vaddr);
-+			vaddr -= PAGE_SIZE;
-+		}
-+
- 		ASSERT(!PagePrivate(page));
- 		if (unlikely(bp->b_error)) {
- 			if (bp->b_flags & XBF_READ)
-@@ -1202,6 +1216,9 @@ _xfs_buf_ioapply(
- 		bio->bi_end_io = xfs_buf_bio_end_io;
- 		bio->bi_private = bp;
- 
-+		if (is_vmalloc_addr(bp->b_addr))
-+			flush_kernel_dcache_addr(bp->b_addr);
-+
- 		bio_add_page(bio, bp->b_pages[0], PAGE_CACHE_SIZE, 0);
- 		size = 0;
- 
-@@ -1228,6 +1245,9 @@ next_chunk:
- 		if (nbytes > size)
- 			nbytes = size;
- 
-+		if (is_vmalloc_addr(bp->b_addr))
-+			flush_kernel_dcache_addr(bp->b_addr + PAGE_SIZE*map_i);
-+
- 		rbytes = bio_add_page(bio, bp->b_pages[map_i], nbytes, offset);
- 		if (rbytes < nbytes)
- 			break;
--- 
-1.6.3.3
+> +sys32_fanotify_mark_wrapper:
+> +	lgfr	%r2,%r2			# int
+> +	llgfr	%r3,%r3			# unsigned int
+> +	lgfr	%r4,%r4			# int
+> +	llgtr	%r5,%r5			# char *
+> +	sllg	%r6,%r6,32		# get high word of 64bit mask
+> +	l	%r6,164(%r15)		# get low word of 64bit mask
+> +	jg	sys_fanotify_mark
+
+Oh wait, I have to correct myself:
+
+With
+
+long sys_fanotify_mark(int fanotify_fd, unsigned int flags,
+     	 	       int fd, const char  __user *pathname,
+                       u64 mask);
+
+we have a 64 bit type as 5th argument. That doesn't work for syscalls
+on 32 bit s390.
+I just simplify the reason for this: on 32 bit long longs will be passed via
+two consecutive registers _unless_ the first register would be r6 (which is
+the case here). In that case the whole 64 bits would be passed on the stack.
+Our glibc syscall code will always put the contents of the first parameter
+stack slot into register r7, so we have six registers for parameter passing
+(r2-r7). So with the 64 bit value put into two stack slots we would miss
+the second part of the 5th argument.
+
+Please note that other architectures (I think at least arm and powerpc) put
+64 bit values into even/odd register pairs and add padding if the first free
+available register is an odd one. So any of the following interfaces should
+work for all architectures:
+
+long sys_fanotify_mark(int fanotify_fd, unsigned int flags,
+     	 	       int fd, const char  __user *pathname,
+                       u32 mask_high, u32 mask_low);
+
+long sys_fanotify_mark(int fanotify_fd, unsigned int flags,
+                       u64 mask,
+     	 	       int fd, const char  __user *pathname);
+
+long sys_fanotify_mark(u64 mask,
+     		       int fanotify_fd, unsigned int flags,
+     	 	       int fd, const char  __user *pathname);
