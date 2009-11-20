@@ -1,62 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate7.uk.ibm.com ([195.212.29.140]:51083 "EHLO
-	mtagate7.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754776AbZKRSmR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Nov 2009 13:42:17 -0500
-Date: Wed, 18 Nov 2009 19:41:56 +0100
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [-next Nov 17] s390 build
- break(arch/s390/kernel/compat_wrapper.S)
-Message-ID: <20091118184156.GB3973@osiris.boeblingen.de.ibm.com>
-References: <20091117195309.6cc3ead0.sfr@canb.auug.org.au>
- <4B0291BB.3090005@in.ibm.com>
- <20091117125201.GB5124@osiris.boeblingen.de.ibm.com>
- <1258465241.2876.29.camel@dhcp231-106.rdu.redhat.com>
- <20091117135525.GF5124@osiris.boeblingen.de.ibm.com>
- <1258471436.2876.34.camel@dhcp231-106.rdu.redhat.com>
- <20091118070418.GA4392@osiris.boeblingen.de.ibm.com>
- <1258560177.6446.19.camel@dhcp231-106.rdu.redhat.com>
- <20091118183400.0cd6b177@mschwide.boeblingen.de.ibm.com>
+Received: from smtp.ultrahosting.com ([74.213.174.254]:36711 "EHLO
+	smtp.ultrahosting.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752775AbZKTP7K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Nov 2009 10:59:10 -0500
+Received: from localhost (smtp.ultrahosting.com [127.0.0.1])
+	by smtp.ultrahosting.com (Postfix) with ESMTP id 047D882C340
+	for <linux-arch@vger.kernel.org>; Fri, 20 Nov 2009 10:50:57 -0500 (EST)
+Received: from smtp.ultrahosting.com ([74.213.174.254])
+	by localhost (smtp.ultrahosting.com [127.0.0.1]) (amavisd-new, port 10024)
+	with ESMTP id 2XsL6SO2I4Ul for <linux-arch@vger.kernel.org>;
+	Fri, 20 Nov 2009 10:50:50 -0500 (EST)
+Received: from V090114053VZO-1 (unknown [74.213.171.31])
+	by smtp.ultrahosting.com (Postfix) with ESMTP id 83F4A82C551
+	for <linux-arch@vger.kernel.org>; Fri, 20 Nov 2009 10:47:02 -0500 (EST)
+Date: Fri, 20 Nov 2009 10:43:36 -0500 (EST)
+From: Christoph Lameter <cl@linux-foundation.org>
+Subject: Re: [PATCH/RFC 0/6] Numa: Use Generic Per-cpu Variables for
+ numa_*_id()
+In-Reply-To: <20091113211714.15074.29078.sendpatchset@localhost.localdomain>
+Message-ID: <alpine.DEB.1.10.0911201041170.25879@V090114053VZO-1>
+References: <20091113211714.15074.29078.sendpatchset@localhost.localdomain>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20091118183400.0cd6b177@mschwide.boeblingen.de.ibm.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Eric Paris <eparis@redhat.com>, Sachin Sant <sachinp@in.ibm.com>, linux-s390@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
-Message-ID: <20091118184156.Mf3CK-SosHrvXCUJsVyvZszdcnLf1RLD5cEVYEjwW7A@z>
+To: Lee Schermerhorn <lee.schermerhorn@hp.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org, Mel Gorman <mel@csn.ul.ie>, Christoph Lameter <clameter@sgi.com>, Nick Piggin <npiggin@suse.de>, David Rientjes <rientjes@google.com>, eric.whitney@hp.com
+Message-ID: <20091120154336.e19xQjNj1sZOZhLPWvHsMqiWugB6so0-R4G9PF0FVoc@z>
 
-On Wed, Nov 18, 2009 at 06:34:00PM +0100, Martin Schwidefsky wrote:
-> used for parameter passing. 64 bit values are passed as registers pairs
-> with the first register an even numbered register. The effect of that
-> rule is that parameter registers may be skipped or that the whole 64 bit
-> value is passed on the stack. Examples:
+On Fri, 13 Nov 2009, Lee Schermerhorn wrote:
 
-Erm, did I miss something? The 32 bit ABI doesn't say anything about
-even/odd register pairs for 64 bit values. Also gcc doesn't generate
-such code:
+> Ad hoc measurements on x86_64 using:  hackbench 400 process 200
+>
+> 2.6.32-rc5+mmotm-091101		no patch	this series
+> x86_64 avg of 40:		  4.605		  4.628  ~0.5%
 
-> fn(int a, long long b, int c)
-> a is passed in %r2, b is passed in %r4/%r5, c is passed in %r6, %r3 is
-> skipped.
+Instructions become more efficient here.
 
-extern void fn(int a, long long b, int c);
+> Ia64 showed ~1.2% longer time with the series applied.
 
-void bla(void)
-{
-	fn(0, 1, 2);
-}
+IA64 can use the per cpu TLB entry to get to the numa node id with the
+platform specific per cpu handling. The per cpu implementation
+currently requires fallback. IA64 percpu ops could be reworked to avoid
+consulting the per cpu offset arrray which would make it equivalent to the
+current implementation.
 
-00000000 <bla>:
-   0:   90 ef f0 38             stm     %r14,%r15,56(%r15)
-   4:   a7 fa ff a0             ahi     %r15,-96
-   8:   a7 28 00 00             lhi     %r2,0
-   c:   a7 38 00 00             lhi     %r3,0
-  10:   a7 48 00 01             lhi     %r4,1
-  14:   a7 58 00 02             lhi     %r5,2
-  18:   c0 e5 00 00 00 00       brasl   %r14,18 <bla+0x18>
-  1e:   98 ef f0 98             lm      %r14,%r15,152(%r15)
-  22:   07 fe                   br      %r14
 
-Not that it really matters, since other archs enforce the rule anyway.
