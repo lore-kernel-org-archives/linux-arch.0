@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp09.in.ibm.com ([122.248.162.9]:51905 "EHLO
-	e28smtp09.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754027AbZLBJ6i (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Dec 2009 04:58:38 -0500
-Date: Wed, 2 Dec 2009 15:27:05 +0530
+Received: from e28smtp02.in.ibm.com ([122.248.162.2]:60668 "EHLO
+	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752667AbZLBJ7j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Dec 2009 04:59:39 -0500
+Date: Wed, 2 Dec 2009 15:29:40 +0530
 From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
-Subject: [v10 PATCH 2/9]: cpuidle: cleanup drivers/cpuidle/cpuidle.c
-Message-ID: <20091202095705.GC27251@linux.vnet.ibm.com>
+Subject: [v10 PATCH 4/9]: x86: refactor x86 idle power management code,
+ remove all instances of pm_idle
+Message-ID: <20091202095940.GE27251@linux.vnet.ibm.com>
 Reply-To: arun@linux.vnet.ibm.com
 References: <20091202095427.GA27251@linux.vnet.ibm.com>
 MIME-Version: 1.0
@@ -17,434 +18,519 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar Sarma <dipankar@in.ibm.com>, Balbir Singh <balbir@in.ibm.com>, Venkatesh Pallipadi <venkatesh.pallipadi@intel.com>, Arun Bharadwaj <arun@linux.vnet.ibm.com>
 Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org
-Message-ID: <20091202095705.NUnDWnNpWaETSZUSeztg7O6jxkwpJZvI-W1-eEEv51I@z>
+Message-ID: <20091202095940.7RAAz7gYfaBB7aRr-zJbhvp9Dx3SKKjYz0S8J3Z8jy8@z>
 
 * Arun R Bharadwaj <arun@linux.vnet.ibm.com> [2009-12-02 15:24:27]:
 
-This patch cleans up drivers/cpuidle/cpuidle.c
-Earlier cpuidle assumed pm_idle as the default idle loop. Break that
-assumption and make it more generic. cpuidle_idle_call() which is the
-main idle loop of cpuidle is to be called by architectures which have
-registered to cpuidle.
+This patch cleans up x86 of all instances of pm_idle.
+
+pm_idle which was earlier called from cpu_idle() idle loop
+is replaced by cpuidle_idle_call.
+
+x86 also registers to cpuidle when the idle routine is selected,
+by populating the cpuidle_device data structure for each cpu.
+
+This is replicated for apm module and for xen, which also used pm_idle.
+
 
 Signed-off-by: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
 ---
- drivers/cpuidle/cpuidle.c  |   93 +++++++++++----------------------------------
- drivers/cpuidle/cpuidle.h  |    6 --
- drivers/cpuidle/driver.c   |    4 -
- drivers/cpuidle/governor.c |   13 ++----
- drivers/cpuidle/sysfs.c    |   34 +++++++++-------
- include/linux/cpuidle.h    |   10 +++-
- 6 files changed, 58 insertions(+), 102 deletions(-)
+ arch/x86/kernel/apm_32.c      |   46 +++++++++++++++++++++++-
+ arch/x86/kernel/process.c     |   78 +++++++++++++++++++++++++++++++-----------
+ arch/x86/kernel/process_32.c  |    3 +
+ arch/x86/kernel/process_64.c  |    3 +
+ arch/x86/xen/setup.c          |   30 +++++++++++++++-
+ drivers/acpi/processor_core.c |    9 +++-
+ drivers/acpi/processor_idle.c |   44 ++++++++++-------------
+ 7 files changed, 160 insertions(+), 53 deletions(-)
 
-Index: linux.trees.git/drivers/cpuidle/cpuidle.c
+Index: linux.trees.git/arch/x86/kernel/process.c
 ===================================================================
---- linux.trees.git.orig/drivers/cpuidle/cpuidle.c
-+++ linux.trees.git/drivers/cpuidle/cpuidle.c
-@@ -24,10 +24,6 @@
- DEFINE_PER_CPU(struct cpuidle_device *, cpuidle_devices);
+--- linux.trees.git.orig/arch/x86/kernel/process.c
++++ linux.trees.git/arch/x86/kernel/process.c
+@@ -10,6 +10,7 @@
+ #include <linux/clockchips.h>
+ #include <linux/random.h>
+ #include <linux/user-return-notifier.h>
++#include <linux/cpuidle.h>
+ #include <trace/events/power.h>
+ #include <linux/hw_breakpoint.h>
+ #include <asm/system.h>
+@@ -241,12 +242,6 @@ int sys_vfork(struct pt_regs *regs)
+ unsigned long boot_option_idle_override = 0;
+ EXPORT_SYMBOL(boot_option_idle_override);
  
- DEFINE_MUTEX(cpuidle_lock);
--LIST_HEAD(cpuidle_detected_devices);
--static void (*pm_idle_old)(void);
+-/*
+- * Powermanagement idle function, if any..
+- */
+-void (*pm_idle)(void);
+-EXPORT_SYMBOL(pm_idle);
 -
--static int enabled_devices;
+ #ifdef CONFIG_X86_32
+ /*
+  * This halt magic was a workaround for ancient floppy DMA
+@@ -326,17 +321,15 @@ static void do_nothing(void *unused)
+ }
  
- #if defined(CONFIG_ARCH_HAS_CPU_IDLE_WAIT)
- static void cpuidle_kick_cpus(void)
-@@ -47,21 +43,20 @@ static int __cpuidle_register_device(str
+ /*
+- * cpu_idle_wait - Used to ensure that all the CPUs discard old value of
+- * pm_idle and update to new pm_idle value. Required while changing pm_idle
+- * handler on SMP systems.
++ * cpu_idle_wait - Required while changing idle routine handler on SMP systems.
   *
-  * NOTE: no locks or semaphores should be used here
+- * Caller must have changed pm_idle to the new value before the call. Old
+- * pm_idle value will not be used by any CPU after the return of this function.
++ * Caller must have changed idle routine to the new value before the call. Old
++ * value will not be used by any CPU after the return of this function.
   */
--static void cpuidle_idle_call(void)
+ void cpu_idle_wait(void)
+ {
+ 	smp_mb();
+-	/* kick all the CPUs so that they exit out of pm_idle */
++	/* kick all the CPUs so that they exit out of idle loop */
+ 	smp_call_function(do_nothing, NULL, 1);
+ }
+ EXPORT_SYMBOL_GPL(cpu_idle_wait);
+@@ -515,15 +508,58 @@ static void c1e_idle(void)
+ 		default_idle();
+ }
+ 
++static void (*local_idle)(void);
++
++#ifndef CONFIG_CPU_IDLE
 +void cpuidle_idle_call(void)
- {
- 	struct cpuidle_device *dev = __get_cpu_var(cpuidle_devices);
- 	struct cpuidle_state *target_state;
- 	int next_state;
-+	ktime_t	t1, t2;
-+	s64 diff;
- 
- 	/* check if the device is ready */
- 	if (!dev || !dev->enabled) {
--		if (pm_idle_old)
--			pm_idle_old();
--		else
- #if defined(CONFIG_ARCH_HAS_DEFAULT_IDLE)
--			default_idle();
-+		default_idle();
- #else
--			local_irq_enable();
-+		local_irq_enable();
- #endif
- 		return;
- 	}
-@@ -75,7 +70,11 @@ static void cpuidle_idle_call(void)
- 	hrtimer_peek_ahead_timers();
- #endif
- 	/* ask the governor for the next state */
--	next_state = cpuidle_curr_governor->select(dev);
-+	if (dev->state_count > 1)
-+		next_state = cpuidle_curr_governor->select(dev);
++{
++	if (local_idle)
++		local_idle();
 +	else
-+		next_state = 0;
++		default_idle();
++}
++#endif
 +
- 	if (need_resched()) {
- 		local_irq_enable();
- 		return;
-@@ -85,7 +84,18 @@ static void cpuidle_idle_call(void)
- 
- 	/* enter the state and update stats */
- 	dev->last_state = target_state;
--	dev->last_residency = target_state->enter(dev, target_state);
++DEFINE_PER_CPU(struct cpuidle_device, idle_devices);
 +
-+	t1 = ktime_get();
++struct cpuidle_driver cpuidle_default_driver = {
++	.name =         "cpuidle_default",
++};
 +
-+	target_state->enter(dev, target_state);
++static void local_idle_loop(struct cpuidle_device *dev,
++				struct cpuidle_state *st)
++{
++	local_idle();
++}
 +
-+	t2 = ktime_get();
-+	diff = ktime_to_us(ktime_sub(t2, t1));
-+	if (diff > INT_MAX)
-+		diff = INT_MAX;
-+
-+	dev->last_residency = (int) diff;
-+
- 	if (dev->last_state)
- 		target_state = dev->last_state;
- 
-@@ -99,35 +109,12 @@ static void cpuidle_idle_call(void)
- }
- 
- /**
-- * cpuidle_install_idle_handler - installs the cpuidle idle loop handler
-- */
--void cpuidle_install_idle_handler(void)
--{
--	if (enabled_devices && (pm_idle != cpuidle_idle_call)) {
--		/* Make sure all changes finished before we switch to new idle */
--		smp_wmb();
--		pm_idle = cpuidle_idle_call;
--	}
--}
--
--/**
-- * cpuidle_uninstall_idle_handler - uninstalls the cpuidle idle loop handler
-- */
--void cpuidle_uninstall_idle_handler(void)
--{
--	if (enabled_devices && pm_idle_old && (pm_idle != pm_idle_old)) {
--		pm_idle = pm_idle_old;
--		cpuidle_kick_cpus();
--	}
--}
--
--/**
-  * cpuidle_pause_and_lock - temporarily disables CPUIDLE
-  */
- void cpuidle_pause_and_lock(void)
- {
- 	mutex_lock(&cpuidle_lock);
--	cpuidle_uninstall_idle_handler();
-+	cpuidle_kick_cpus();
- }
- 
- EXPORT_SYMBOL_GPL(cpuidle_pause_and_lock);
-@@ -137,7 +124,6 @@ EXPORT_SYMBOL_GPL(cpuidle_pause_and_lock
-  */
- void cpuidle_resume_and_unlock(void)
- {
--	cpuidle_install_idle_handler();
- 	mutex_unlock(&cpuidle_lock);
- }
- 
-@@ -185,7 +171,6 @@ int cpuidle_enable_device(struct cpuidle
- 
- 	dev->enabled = 1;
- 
--	enabled_devices++;
- 	return 0;
- 
- fail_sysfs:
-@@ -216,30 +201,16 @@ void cpuidle_disable_device(struct cpuid
- 		cpuidle_curr_governor->disable(dev);
- 
- 	cpuidle_remove_state_sysfs(dev);
--	enabled_devices--;
- }
- 
- EXPORT_SYMBOL_GPL(cpuidle_disable_device);
- 
- #ifdef CONFIG_ARCH_HAS_CPU_RELAX
--static int poll_idle(struct cpuidle_device *dev, struct cpuidle_state *st)
-+static void poll_idle(struct cpuidle_device *dev, struct cpuidle_state *st)
- {
--	ktime_t	t1, t2;
--	s64 diff;
--	int ret;
--
--	t1 = ktime_get();
- 	local_irq_enable();
- 	while (!need_resched())
- 		cpu_relax();
--
--	t2 = ktime_get();
--	diff = ktime_to_us(ktime_sub(t2, t1));
--	if (diff > INT_MAX)
--		diff = INT_MAX;
--
--	ret = (int) diff;
--	return ret;
- }
- 
- static void poll_idle_init(struct cpuidle_device *dev)
-@@ -269,7 +240,6 @@ static void poll_idle_init(struct cpuidl
-  */
- static int __cpuidle_register_device(struct cpuidle_device *dev)
- {
--	int ret;
- 	struct sys_device *sys_dev = get_cpu_sysdev((unsigned long)dev->cpu);
- 
- 	if (!sys_dev)
-@@ -277,16 +247,9 @@ static int __cpuidle_register_device(str
- 	if (!try_module_get(cpuidle_curr_driver->owner))
- 		return -EINVAL;
- 
--	init_completion(&dev->kobj_unregister);
--
- 	poll_idle_init(dev);
- 
- 	per_cpu(cpuidle_devices, dev->cpu) = dev;
--	list_add(&dev->device_list, &cpuidle_detected_devices);
--	if ((ret = cpuidle_add_sysfs(sys_dev))) {
--		module_put(cpuidle_curr_driver->owner);
--		return ret;
--	}
- 
- 	dev->registered = 1;
- 	return 0;
-@@ -308,7 +271,6 @@ int cpuidle_register_device(struct cpuid
- 	}
- 
- 	cpuidle_enable_device(dev);
--	cpuidle_install_idle_handler();
- 
- 	mutex_unlock(&cpuidle_lock);
- 
-@@ -324,8 +286,6 @@ EXPORT_SYMBOL_GPL(cpuidle_register_devic
-  */
- void cpuidle_unregister_device(struct cpuidle_device *dev)
- {
--	struct sys_device *sys_dev = get_cpu_sysdev((unsigned long)dev->cpu);
--
- 	if (dev->registered == 0)
- 		return;
- 
-@@ -333,9 +293,6 @@ void cpuidle_unregister_device(struct cp
- 
- 	cpuidle_disable_device(dev);
- 
--	cpuidle_remove_sysfs(sys_dev);
--	list_del(&dev->device_list);
--	wait_for_completion(&dev->kobj_unregister);
- 	per_cpu(cpuidle_devices, dev->cpu) = NULL;
- 
- 	cpuidle_resume_and_unlock();
-@@ -387,8 +344,6 @@ static int __init cpuidle_init(void)
- {
- 	int ret;
- 
--	pm_idle_old = pm_idle;
--
- 	ret = cpuidle_add_class_sysfs(&cpu_sysdev_class);
- 	if (ret)
- 		return ret;
-Index: linux.trees.git/drivers/cpuidle/governor.c
-===================================================================
---- linux.trees.git.orig/drivers/cpuidle/governor.c
-+++ linux.trees.git/drivers/cpuidle/governor.c
-@@ -43,16 +43,14 @@ static struct cpuidle_governor * __cpuid
-  */
- int cpuidle_switch_governor(struct cpuidle_governor *gov)
- {
--	struct cpuidle_device *dev;
++static int setup_cpuidle_simple(void)
++{
++	struct cpuidle_device *dev;
 +	int cpu;
++
++	if (!cpuidle_curr_driver)
++		cpuidle_register_driver(&cpuidle_default_driver);
++
++	for_each_online_cpu(cpu) {
++		dev = &per_cpu(idle_devices, cpu);
++		dev->cpu = cpu;
++		dev->states[0].enter = local_idle_loop;
++		dev->state_count = 1;
++		cpuidle_register_device(dev);
++	}
++	return 0;
++}
++device_initcall(setup_cpuidle_simple);
++
+ void __cpuinit select_idle_routine(const struct cpuinfo_x86 *c)
+ {
+ #ifdef CONFIG_SMP
+-	if (pm_idle == poll_idle && smp_num_siblings > 1) {
++	if (local_idle == poll_idle && smp_num_siblings > 1) {
+ 		printk(KERN_WARNING "WARNING: polling idle and HT enabled,"
+ 			" performance may degrade.\n");
+ 	}
+ #endif
+-	if (pm_idle)
++	if (local_idle)
+ 		return;
  
- 	if (gov == cpuidle_curr_governor)
+ 	if (cpu_has(c, X86_FEATURE_MWAIT) && mwait_usable(c)) {
+@@ -531,18 +567,20 @@ void __cpuinit select_idle_routine(const
+ 		 * One CPU supports mwait => All CPUs supports mwait
+ 		 */
+ 		printk(KERN_INFO "using mwait in idle threads.\n");
+-		pm_idle = mwait_idle;
++		local_idle = mwait_idle;
+ 	} else if (check_c1e_idle(c)) {
+ 		printk(KERN_INFO "using C1E aware idle routine\n");
+-		pm_idle = c1e_idle;
++		local_idle = c1e_idle;
+ 	} else
+-		pm_idle = default_idle;
++		local_idle = default_idle;
++
++	return;
+ }
+ 
+ void __init init_c1e_mask(void)
+ {
+ 	/* If we're using c1e_idle, we need to allocate c1e_mask. */
+-	if (pm_idle == c1e_idle)
++	if (local_idle == c1e_idle)
+ 		zalloc_cpumask_var(&c1e_mask, GFP_KERNEL);
+ }
+ 
+@@ -553,7 +591,7 @@ static int __init idle_setup(char *str)
+ 
+ 	if (!strcmp(str, "poll")) {
+ 		printk("using polling idle threads.\n");
+-		pm_idle = poll_idle;
++		local_idle = poll_idle;
+ 	} else if (!strcmp(str, "mwait"))
+ 		force_mwait = 1;
+ 	else if (!strcmp(str, "halt")) {
+@@ -564,7 +602,7 @@ static int __init idle_setup(char *str)
+ 		 * To continue to load the CPU idle driver, don't touch
+ 		 * the boot_option_idle_override.
+ 		 */
+-		pm_idle = default_idle;
++		local_idle = default_idle;
+ 		idle_halt = 1;
  		return 0;
- 
--	cpuidle_uninstall_idle_handler();
--
- 	if (cpuidle_curr_governor) {
--		list_for_each_entry(dev, &cpuidle_detected_devices, device_list)
--			cpuidle_disable_device(dev);
-+		for_each_online_cpu(cpu)
-+			cpuidle_disable_device(per_cpu(cpuidle_devices, cpu));
- 		module_put(cpuidle_curr_governor->owner);
- 	}
- 
-@@ -61,9 +59,8 @@ int cpuidle_switch_governor(struct cpuid
- 	if (gov) {
- 		if (!try_module_get(cpuidle_curr_governor->owner))
- 			return -EINVAL;
--		list_for_each_entry(dev, &cpuidle_detected_devices, device_list)
--			cpuidle_enable_device(dev);
--		cpuidle_install_idle_handler();
-+		for_each_online_cpu(cpu)
-+			cpuidle_enable_device(per_cpu(cpuidle_devices, cpu));
- 		printk(KERN_INFO "cpuidle: using governor %s\n", gov->name);
- 	}
- 
-Index: linux.trees.git/include/linux/cpuidle.h
+ 	} else if (!strcmp(str, "nomwait")) {
+Index: linux.trees.git/arch/x86/kernel/process_32.c
 ===================================================================
---- linux.trees.git.orig/include/linux/cpuidle.h
-+++ linux.trees.git/include/linux/cpuidle.h
-@@ -41,7 +41,7 @@ struct cpuidle_state {
- 	unsigned long long	usage;
- 	unsigned long long	time; /* in US */
+--- linux.trees.git.orig/arch/x86/kernel/process_32.c
++++ linux.trees.git/arch/x86/kernel/process_32.c
+@@ -40,6 +40,7 @@
+ #include <linux/uaccess.h>
+ #include <linux/io.h>
+ #include <linux/kdebug.h>
++#include <linux/cpuidle.h>
  
--	int (*enter)	(struct cpuidle_device *dev,
-+	void (*enter)	(struct cpuidle_device *dev,
- 			 struct cpuidle_state *state);
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+@@ -112,7 +113,7 @@ void cpu_idle(void)
+ 			local_irq_disable();
+ 			/* Don't trace irqs off for idle */
+ 			stop_critical_timings();
+-			pm_idle();
++			cpuidle_idle_call();
+ 			start_critical_timings();
+ 		}
+ 		tick_nohz_restart_sched_tick();
+Index: linux.trees.git/arch/x86/kernel/process_64.c
+===================================================================
+--- linux.trees.git.orig/arch/x86/kernel/process_64.c
++++ linux.trees.git/arch/x86/kernel/process_64.c
+@@ -39,6 +39,7 @@
+ #include <linux/io.h>
+ #include <linux/ftrace.h>
+ #include <linux/dmi.h>
++#include <linux/cpuidle.h>
+ 
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+@@ -141,7 +142,7 @@ void cpu_idle(void)
+ 			enter_idle();
+ 			/* Don't trace irqs off for idle */
+ 			stop_critical_timings();
+-			pm_idle();
++			cpuidle_idle_call();
+ 			start_critical_timings();
+ 			/* In many cases the interrupt that ended idle
+ 			   has already called exit_idle. But some idle
+Index: linux.trees.git/arch/x86/kernel/apm_32.c
+===================================================================
+--- linux.trees.git.orig/arch/x86/kernel/apm_32.c
++++ linux.trees.git/arch/x86/kernel/apm_32.c
+@@ -227,6 +227,7 @@
+ #include <linux/suspend.h>
+ #include <linux/kthread.h>
+ #include <linux/jiffies.h>
++#include <linux/cpuidle.h>
+ 
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+@@ -2255,6 +2256,46 @@ static struct dmi_system_id __initdata a
+ 	{ }
  };
  
-@@ -92,7 +92,6 @@ struct cpuidle_device {
- 	struct cpuidle_state_kobj *kobjs[CPUIDLE_STATE_MAX];
- 	struct cpuidle_state	*last_state;
- 
--	struct list_head 	device_list;
- 	struct kobject		kobj;
- 	struct completion	kobj_unregister;
- 	void			*governor_data;
-@@ -112,6 +111,9 @@ static inline int cpuidle_get_last_resid
- 	return dev->last_residency;
- }
- 
-+extern struct cpuidle_driver *cpuidle_curr_driver;
-+extern void cpuidle_idle_call(void);
++DEFINE_PER_CPU(struct cpuidle_device, apm_idle_devices);
 +
- 
- /****************************
-  * CPUIDLE DRIVER INTERFACE *
-@@ -133,6 +135,8 @@ extern void cpuidle_pause_and_lock(void)
- extern void cpuidle_resume_and_unlock(void);
- extern int cpuidle_enable_device(struct cpuidle_device *dev);
- extern void cpuidle_disable_device(struct cpuidle_device *dev);
-+extern int common_idle_loop(struct cpuidle_device *dev,
-+			struct cpuidle_state *st, void (*idle)(void));
- 
- #else
- 
-@@ -148,6 +152,8 @@ static inline void cpuidle_resume_and_un
- static inline int cpuidle_enable_device(struct cpuidle_device *dev)
- {return 0;}
- static inline void cpuidle_disable_device(struct cpuidle_device *dev) { }
-+static inline int common_idle_loop(struct cpuidle_device *dev,
-+			struct cpuidle_state *st, void (*idle)(void)) { }
- 
- #endif
- 
-Index: linux.trees.git/drivers/cpuidle/cpuidle.h
-===================================================================
---- linux.trees.git.orig/drivers/cpuidle/cpuidle.h
-+++ linux.trees.git/drivers/cpuidle/cpuidle.h
-@@ -9,9 +9,7 @@
- 
- /* For internal use only */
- extern struct cpuidle_governor *cpuidle_curr_governor;
--extern struct cpuidle_driver *cpuidle_curr_driver;
- extern struct list_head cpuidle_governors;
--extern struct list_head cpuidle_detected_devices;
- extern struct mutex cpuidle_lock;
- extern spinlock_t cpuidle_driver_lock;
- 
-@@ -27,7 +25,7 @@ extern int cpuidle_add_class_sysfs(struc
- extern void cpuidle_remove_class_sysfs(struct sysdev_class *cls);
- extern int cpuidle_add_state_sysfs(struct cpuidle_device *device);
- extern void cpuidle_remove_state_sysfs(struct cpuidle_device *device);
--extern int cpuidle_add_sysfs(struct sys_device *sysdev);
--extern void cpuidle_remove_sysfs(struct sys_device *sysdev);
-+extern int cpuidle_add_sysfs(struct cpuidle_device *device);
-+extern void cpuidle_remove_sysfs(struct cpuidle_device *device);
- 
- #endif /* __DRIVER_CPUIDLE_H */
-Index: linux.trees.git/drivers/cpuidle/sysfs.c
-===================================================================
---- linux.trees.git.orig/drivers/cpuidle/sysfs.c
-+++ linux.trees.git/drivers/cpuidle/sysfs.c
-@@ -311,6 +311,13 @@ int cpuidle_add_state_sysfs(struct cpuid
- 	int i, ret = -ENOMEM;
- 	struct cpuidle_state_kobj *kobj;
- 
-+	init_completion(&device->kobj_unregister);
++struct cpuidle_driver cpuidle_apm_driver = {
++	.name =         "cpuidle_apm",
++};
 +
-+	ret = cpuidle_add_sysfs(device);
-+	if (ret) {
-+		module_put(cpuidle_curr_driver->owner);
-+		return ret;
++static void apm_idle_loop(struct cpuidle_device *dev, struct cpuidle_state *st)
++{
++	apm_cpu_idle();
++}
++
++static void setup_cpuidle_apm(void)
++{
++	struct cpuidle_device *dev;
++	int cpu;
++
++	if (!cpuidle_curr_driver)
++		cpuidle_register_driver(&cpuidle_apm_driver);
++
++	for_each_online_cpu(cpu) {
++		dev = &per_cpu(apm_idle_devices, cpu);
++		dev->cpu = cpu;
++		dev->states[0].enter = apm_idle_loop;
++		dev->state_count = 1;
++		cpuidle_register_device(dev);
 +	}
- 	/* state statistics */
- 	for (i = 0; i < device->state_count; i++) {
- 		kobj = kzalloc(sizeof(struct cpuidle_state_kobj), GFP_KERNEL);
-@@ -347,35 +354,32 @@ void cpuidle_remove_state_sysfs(struct c
- 
- 	for (i = 0; i < device->state_count; i++)
- 		cpuidle_free_state_kobj(device, i);
++}
 +
-+	cpuidle_remove_sysfs(device);
- }
++void exit_cpuidle_apm(void)
++{
++	struct cpuidle_device *dev;
++	int cpu;
++
++	for_each_online_cpu(cpu) {
++		dev = &per_cpu(apm_idle_devices, cpu);
++		cpuidle_unregister_device(dev);
++	}
++}
++
++
+ /*
+  * Just start the APM thread. We do NOT want to do APM BIOS
+  * calls from anything but the APM thread, if for no other reason
+@@ -2392,8 +2433,7 @@ static int __init apm_init(void)
+ 	if (HZ != 100)
+ 		idle_period = (idle_period * HZ) / 100;
+ 	if (idle_threshold < 100) {
+-		original_pm_idle = pm_idle;
+-		pm_idle  = apm_cpu_idle;
++		setup_cpuidle_apm();
+ 		set_pm_idle = 1;
+ 	}
  
- /**
-  * cpuidle_add_sysfs - creates a sysfs instance for the target device
-- * @sysdev: the target device
-+ * @device: the target device
-  */
--int cpuidle_add_sysfs(struct sys_device *sysdev)
-+int cpuidle_add_sysfs(struct cpuidle_device *device)
- {
--	int cpu = sysdev->id;
--	struct cpuidle_device *dev;
+@@ -2405,7 +2445,7 @@ static void __exit apm_exit(void)
  	int error;
-+	struct sys_device *sysdev = get_cpu_sysdev((unsigned long)device->cpu);
  
--	dev = per_cpu(cpuidle_devices, cpu);
--	error = kobject_init_and_add(&dev->kobj, &ktype_cpuidle, &sysdev->kobj,
--				     "cpuidle");
-+	error = kobject_init_and_add(&device->kobj, &ktype_cpuidle,
-+				&sysdev->kobj, "cpuidle");
- 	if (!error)
--		kobject_uevent(&dev->kobj, KOBJ_ADD);
-+		kobject_uevent(&device->kobj, KOBJ_ADD);
- 	return error;
+ 	if (set_pm_idle) {
+-		pm_idle = original_pm_idle;
++		exit_cpuidle_apm();
+ 		/*
+ 		 * We are about to unload the current idle thread pm callback
+ 		 * (pm_idle), Wait for all processors to update cached/local
+Index: linux.trees.git/arch/x86/xen/setup.c
+===================================================================
+--- linux.trees.git.orig/arch/x86/xen/setup.c
++++ linux.trees.git/arch/x86/xen/setup.c
+@@ -8,6 +8,7 @@
+ #include <linux/sched.h>
+ #include <linux/mm.h>
+ #include <linux/pm.h>
++#include <linux/cpuidle.h>
+ 
+ #include <asm/elf.h>
+ #include <asm/vdso.h>
+@@ -151,6 +152,33 @@ void __cpuinit xen_enable_syscall(void)
+ #endif /* CONFIG_X86_64 */
+ }
+ 
++DEFINE_PER_CPU(struct cpuidle_device, xen_idle_devices);
++struct cpuidle_driver cpuidle_xen_driver = {
++	.name =         "cpuidle_xen",
++};
++
++static void xen_idle_loop(struct cpuidle_device *dev, struct cpuidle_state *st)
++{
++	xen_idle();
++}
++
++static void setup_cpuidle_xen(void)
++{
++	struct cpuidle_device *dev;
++	int cpu;
++
++	if (!cpuidle_curr_driver)
++		cpuidle_register_driver(&cpuidle_xen_driver);
++
++	for_each_online_cpu(cpu) {
++		dev = &per_cpu(xen_idle_devices, cpu);
++		dev->cpu = cpu;
++		dev->states[0].enter = xen_idle_loop;
++		dev->state_count = 1;
++		cpuidle_register_device(dev);
++	}
++}
++
+ void __init xen_arch_setup(void)
+ {
+ 	struct physdev_set_iopl set_iopl;
+@@ -186,7 +214,7 @@ void __init xen_arch_setup(void)
+ 	       MAX_GUEST_CMDLINE > COMMAND_LINE_SIZE ?
+ 	       COMMAND_LINE_SIZE : MAX_GUEST_CMDLINE);
+ 
+-	pm_idle = xen_idle;
++	setup_cpuidle_xen();
+ 
+ 	paravirt_disable_iospace();
+ 
+Index: linux.trees.git/drivers/acpi/processor_core.c
+===================================================================
+--- linux.trees.git.orig/drivers/acpi/processor_core.c
++++ linux.trees.git/drivers/acpi/processor_core.c
+@@ -1150,9 +1150,12 @@ static int __init acpi_processor_init(vo
+ 	 * should not use mwait for CPU-states.
+ 	 */
+ 	dmi_check_system(processor_idle_dmi_table);
+-	result = cpuidle_register_driver(&acpi_idle_driver);
+-	if (result < 0)
+-		goto out_proc;
++
++	if (!boot_option_idle_override) {
++		result = cpuidle_register_driver(&acpi_idle_driver);
++		if (result < 0)
++			goto out_proc;
++	}
+ 
+ 	result = acpi_bus_register_driver(&acpi_processor_driver);
+ 	if (result < 0)
+Index: linux.trees.git/drivers/acpi/processor_idle.c
+===================================================================
+--- linux.trees.git.orig/drivers/acpi/processor_idle.c
++++ linux.trees.git/drivers/acpi/processor_idle.c
+@@ -821,18 +821,16 @@ static inline void acpi_idle_do_entry(st
+  *
+  * This is equivalent to the HALT instruction.
+  */
+-static int acpi_idle_enter_c1(struct cpuidle_device *dev,
++static void acpi_idle_enter_c1(struct cpuidle_device *dev,
+ 			      struct cpuidle_state *state)
+ {
+-	ktime_t  kt1, kt2;
+-	s64 idle_time;
+ 	struct acpi_processor *pr;
+ 	struct acpi_processor_cx *cx = cpuidle_get_statedata(state);
+ 
+ 	pr = __get_cpu_var(processors);
+ 
+ 	if (unlikely(!pr))
+-		return 0;
++		return;
+ 
+ 	local_irq_disable();
+ 
+@@ -840,20 +838,15 @@ static int acpi_idle_enter_c1(struct cpu
+ 	if (acpi_idle_suspend) {
+ 		local_irq_enable();
+ 		cpu_relax();
+-		return 0;
++		return;
+ 	}
+ 
+ 	lapic_timer_state_broadcast(pr, cx, 1);
+-	kt1 = ktime_get_real();
+ 	acpi_idle_do_entry(cx);
+-	kt2 = ktime_get_real();
+-	idle_time =  ktime_to_us(ktime_sub(kt2, kt1));
+ 
+ 	local_irq_enable();
+ 	cx->usage++;
+ 	lapic_timer_state_broadcast(pr, cx, 0);
+-
+-	return idle_time;
  }
  
  /**
-  * cpuidle_remove_sysfs - deletes a sysfs instance on the target device
-- * @sysdev: the target device
-+ * @device: the target device
+@@ -861,7 +854,7 @@ static int acpi_idle_enter_c1(struct cpu
+  * @dev: the target CPU
+  * @state: the state data
   */
--void cpuidle_remove_sysfs(struct sys_device *sysdev)
-+void cpuidle_remove_sysfs(struct cpuidle_device *device)
+-static int acpi_idle_enter_simple(struct cpuidle_device *dev,
++static void acpi_idle_enter_simple(struct cpuidle_device *dev,
+ 				  struct cpuidle_state *state)
  {
--	int cpu = sysdev->id;
--	struct cpuidle_device *dev;
--
--	dev = per_cpu(cpuidle_devices, cpu);
--	kobject_put(&dev->kobj);
-+	kobject_put(&device->kobj);
-+	wait_for_completion(&device->kobj_unregister);
+ 	struct acpi_processor *pr;
+@@ -873,10 +866,12 @@ static int acpi_idle_enter_simple(struct
+ 	pr = __get_cpu_var(processors);
+ 
+ 	if (unlikely(!pr))
+-		return 0;
++		return;
+ 
+-	if (acpi_idle_suspend)
+-		return(acpi_idle_enter_c1(dev, state));
++	if (acpi_idle_suspend) {
++		acpi_idle_enter_c1(dev, state);
++		return;
++	}
+ 
+ 	local_irq_disable();
+ 	current_thread_info()->status &= ~TS_POLLING;
+@@ -889,7 +884,7 @@ static int acpi_idle_enter_simple(struct
+ 	if (unlikely(need_resched())) {
+ 		current_thread_info()->status |= TS_POLLING;
+ 		local_irq_enable();
+-		return 0;
++		return;
+ 	}
+ 
+ 	/*
+@@ -920,7 +915,6 @@ static int acpi_idle_enter_simple(struct
+ 
+ 	lapic_timer_state_broadcast(pr, cx, 0);
+ 	cx->time += sleep_ticks;
+-	return idle_time;
  }
-Index: linux.trees.git/drivers/cpuidle/driver.c
-===================================================================
---- linux.trees.git.orig/drivers/cpuidle/driver.c
-+++ linux.trees.git/drivers/cpuidle/driver.c
-@@ -27,10 +27,6 @@ int cpuidle_register_driver(struct cpuid
- 		return -EINVAL;
  
- 	spin_lock(&cpuidle_driver_lock);
--	if (cpuidle_curr_driver) {
--		spin_unlock(&cpuidle_driver_lock);
--		return -EBUSY;
--	}
- 	cpuidle_curr_driver = drv;
- 	spin_unlock(&cpuidle_driver_lock);
+ static int c3_cpu_count;
+@@ -933,7 +927,7 @@ static DEFINE_SPINLOCK(c3_lock);
+  *
+  * If BM is detected, the deepest non-C3 idle state is entered instead.
+  */
+-static int acpi_idle_enter_bm(struct cpuidle_device *dev,
++static void acpi_idle_enter_bm(struct cpuidle_device *dev,
+ 			      struct cpuidle_state *state)
+ {
+ 	struct acpi_processor *pr;
+@@ -946,20 +940,23 @@ static int acpi_idle_enter_bm(struct cpu
+ 	pr = __get_cpu_var(processors);
  
+ 	if (unlikely(!pr))
+-		return 0;
++		return;
+ 
+-	if (acpi_idle_suspend)
+-		return(acpi_idle_enter_c1(dev, state));
++	if (acpi_idle_suspend) {
++		acpi_idle_enter_c1(dev, state);
++		return;
++	}
+ 
+ 	if (acpi_idle_bm_check()) {
+ 		if (dev->safe_state) {
+ 			dev->last_state = dev->safe_state;
+-			return dev->safe_state->enter(dev, dev->safe_state);
++			dev->safe_state->enter(dev, dev->safe_state);
++			return;
+ 		} else {
+ 			local_irq_disable();
+ 			acpi_safe_halt();
+ 			local_irq_enable();
+-			return 0;
++			return;
+ 		}
+ 	}
+ 
+@@ -974,7 +971,7 @@ static int acpi_idle_enter_bm(struct cpu
+ 	if (unlikely(need_resched())) {
+ 		current_thread_info()->status |= TS_POLLING;
+ 		local_irq_enable();
+-		return 0;
++		return;
+ 	}
+ 
+ 	acpi_unlazy_tlb(smp_processor_id());
+@@ -1032,7 +1029,6 @@ static int acpi_idle_enter_bm(struct cpu
+ 
+ 	lapic_timer_state_broadcast(pr, cx, 0);
+ 	cx->time += sleep_ticks;
+-	return idle_time;
+ }
+ 
+ struct cpuidle_driver acpi_idle_driver = {
