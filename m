@@ -1,43 +1,54 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH/RFC 1/6] numa: Use Generic Per-cpu Variables for numa_node_id()
-Date: Tue, 1 Dec 2009 00:43:35 +0100
-Message-ID: <200912010043.36115.arnd@arndb.de>
-References: <20091113211714.15074.29078.sendpatchset@localhost.localdomain> <alpine.DEB.1.10.0911201044320.25879@V090114053VZO-1> <1259612920.4663.156.camel@useless.americas.hpqcorp.net>
+From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
+Subject: [v10 PATCH 0/9] cpuidle: cleanup cpuidle/ introduce cpuidle to POWER
+Date: Wed, 2 Dec 2009 15:24:27 +0530
+Message-ID: <20091202095427.GA27251@linux.vnet.ibm.com>
+Reply-To: arun@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1259612920.4663.156.camel@useless.americas.hpqcorp.net>
-Sender: owner-linux-mm@kvack.org
-To: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
-Cc: Christoph Lameter <cl@linux-foundation.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org, Mel Gorman <mel@csn.ul.ie>, Christoph Lameter <clameter@sgi.com>, Nick Piggin <npiggin@suse.de>, David Rientjes <rientjes@google.com>, eric.whitney@hp.com, Tejun Heo <tj@kernel.org>
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
+Content-Disposition: inline
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar
+Cc: linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Monday 30 November 2009, Lee Schermerhorn wrote:
-> Looking at other asm/foo.h and asm-generic/foo.h relationships, I see
-> that some define the generic version of the api in the asm-generic
-> header if the arch asm header hasn't already defined it.  asm/topology.h
-> is an instance of this.  It includes asm-generic/topology.h after
-> defining arch specific versions of some of the api.
+Hi,
 
-This works alright, but if you expect every architecture to include the
-asm-generic version, you might just as well take that choice away from
-the architecture and put the common code into the linux/foo.h file,
-which you can still override with definitions in asm/foo.h.
+This patchset introduces cpuidle infrastructure to POWER, prototyping
+for pSeries, and also does a major refactoring of current x86 idle
+power management and a cleanup of cpuidle infrastructure.
 
-Most of the asm-generic headers are just mostly generic, and get included
-by some but not all architectures, the others defining the whole contents
-of the asm-generic file themselves in a different way.
+This patch series has been in discussion for quite a while now and
+below are the links to the previous discussions.
 
-So if you e.g. want ia64 to do everything itself and all other architectures to
-share some or all parts of asm-generic/topology, your approach is right,
-otherwise just leave the code in some file in include/linux/.
+Please consider this for inclusion into the -tip tree.
 
-	Arnd <><
+v9 --> http://lkml.org/lkml/2009/10/16/63
+v8 --> http://lkml.org/lkml/2009/10/8/82
+v7 --> http://lkml.org/lkml/2009/10/6/278
+v6 --> http://lkml.org/lkml/2009/9/22/180
+v5 --> http://lkml.org/lkml/2009/9/22/26
+v4 --> http://lkml.org/lkml/2009/9/1/133
+v3 --> http://lkml.org/lkml/2009/8/27/124
+v2 --> http://lkml.org/lkml/2009/8/26/233
+v1 --> http://lkml.org/lkml/2009/8/19/150
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+
+Change in this version:
+
+        Pavel noticed that the code which calls the cpuidle's idle
+        loop was repeated at many places. So this set optimizes it so
+        that we dont have repetition of code. The rest of the patches
+        are same as the earlier iteration.
+
+
+arun
