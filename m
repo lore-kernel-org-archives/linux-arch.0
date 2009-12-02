@@ -1,51 +1,40 @@
-From: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
-Subject: Re: [PATCH/RFC 1/6] numa: Use Generic Per-cpu Variables for
- numa_node_id()
-Date: Wed, 02 Dec 2009 11:29:21 -0500
-Message-ID: <1259771361.4088.25.camel@useless.americas.hpqcorp.net>
-References: <20091113211714.15074.29078.sendpatchset@localhost.localdomain>
-	 <alpine.DEB.1.10.0911201044320.25879@V090114053VZO-1>
-	 <1259612920.4663.156.camel@useless.americas.hpqcorp.net>
-	 <200912010043.36115.arnd@arndb.de>
+From: Daniel Walker <dwalker@fifo99.com>
+Subject: Re: [v10 PATCH 9/9]: POWER: Enable default_idle when power_save=off
+Date: Wed, 02 Dec 2009 09:41:38 -0800
+Message-ID: <1259775698.25622.2.camel@c-dwalke-linux.qualcomm.com>
+References: <20091202095427.GA27251@linux.vnet.ibm.com>
+	 <20091202100346.GJ27251@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0006.atlanta.hp.com ([15.192.0.43]:33028 "EHLO
-	g5t0006.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754568AbZLBQ3S (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Dec 2009 11:29:18 -0500
-In-Reply-To: <200912010043.36115.arnd@arndb.de>
+Received: from fifo99.com ([67.223.236.141]:45591 "EHLO fifo99.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751824AbZLBRll (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 2 Dec 2009 12:41:41 -0500
+In-Reply-To: <20091202100346.GJ27251@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Lameter <cl@linux-foundation.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, David Rientjes <rientjes@google.com>, eric.whitney@hp.com, Tejun Heo <tj@kernel.org>
+To: arun@linux.vnet.ibm.com
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar Sarma <dipankar@in.ibm.com>, Balbir Singh <balbir@in.ibm.com>, Venkatesh Pallipadi <venkatesh.pallipadi@intel.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org
 
-On Tue, 2009-12-01 at 00:43 +0100, Arnd Bergmann wrote:
-> On Monday 30 November 2009, Lee Schermerhorn wrote:
-> > Looking at other asm/foo.h and asm-generic/foo.h relationships, I see
-> > that some define the generic version of the api in the asm-generic
-> > header if the arch asm header hasn't already defined it.  asm/topology.h
-> > is an instance of this.  It includes asm-generic/topology.h after
-> > defining arch specific versions of some of the api.
-> 
-> This works alright, but if you expect every architecture to include the
-> asm-generic version, you might just as well take that choice away from
-> the architecture and put the common code into the linux/foo.h file,
-> which you can still override with definitions in asm/foo.h.
-> 
-> Most of the asm-generic headers are just mostly generic, and get included
-> by some but not all architectures, the others defining the whole contents
-> of the asm-generic file themselves in a different way.
-> 
-> So if you e.g. want ia64 to do everything itself and all other architectures to
-> share some or all parts of asm-generic/topology, your approach is right,
-> otherwise just leave the code in some file in include/linux/.
+On Wed, 2009-12-02 at 15:33 +0530, Arun R Bharadwaj wrote:
+> +int boot_option_idle_override = 0;
+> + 
 
-Actually, I just wanted to make the generic definitions of
-this_cpu_{read|write}() visible to topology.h when building on ia64 w/o
-the circular header dependencies.  Willy pointed out a way to do this by
-un-inlining __alloc_percpu().  Perhaps this is the way to go.  Tejun is
-looking at the patches.
+Doesn't need to be set to zero AFAIK, since we do a mass initialization
+to zero during boot up. Did you notice some type of failure when you
+didn't initialize that to zero?
 
-Lee
+(checkpatch output below..)
+--
+
+ERROR: do not initialise externals to 0 or NULL
+#97: FILE: arch/powerpc/kernel/idle.c:43:
++int boot_option_idle_override = 0;
+
+total: 1 errors, 0 warnings, 0 checks, 31 lines checked
+
+Your patch has style problems, please review.  If any of these errors
+are false positives report them to the maintainer, see
+CHECKPATCH in MAINTAINERS.
