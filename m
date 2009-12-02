@@ -1,84 +1,51 @@
-From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
-Subject: [v10 PATCH 9/9]: POWER: Enable default_idle when power_save=off
-Date: Wed, 2 Dec 2009 15:33:46 +0530
-Message-ID: <20091202100346.GJ27251@linux.vnet.ibm.com>
-References: <20091202095427.GA27251@linux.vnet.ibm.com>
-Reply-To: arun@linux.vnet.ibm.com
+From: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
+Subject: Re: [PATCH/RFC 1/6] numa: Use Generic Per-cpu Variables for
+ numa_node_id()
+Date: Wed, 02 Dec 2009 11:29:21 -0500
+Message-ID: <1259771361.4088.25.camel@useless.americas.hpqcorp.net>
+References: <20091113211714.15074.29078.sendpatchset@localhost.localdomain>
+	 <alpine.DEB.1.10.0911201044320.25879@V090114053VZO-1>
+	 <1259612920.4663.156.camel@useless.americas.hpqcorp.net>
+	 <200912010043.36115.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp01.au.ibm.com ([202.81.31.143]:58325 "EHLO
-	e23smtp01.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751605AbZLBKDs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Dec 2009 05:03:48 -0500
-Content-Disposition: inline
-In-Reply-To: <20091202095427.GA27251@linux.vnet.ibm.com>
+Received: from g5t0006.atlanta.hp.com ([15.192.0.43]:33028 "EHLO
+	g5t0006.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754568AbZLBQ3S (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Dec 2009 11:29:18 -0500
+In-Reply-To: <200912010043.36115.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Christoph Lameter <cl@linux-foundation.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, David Rientjes <rientjes@google.com>, eric.whitney@hp.com, Tejun Heo <tj@kernel.org>
 
-* Arun R Bharadwaj <arun@linux.vnet.ibm.com> [2009-12-02 15:24:27]:
+On Tue, 2009-12-01 at 00:43 +0100, Arnd Bergmann wrote:
+> On Monday 30 November 2009, Lee Schermerhorn wrote:
+> > Looking at other asm/foo.h and asm-generic/foo.h relationships, I see
+> > that some define the generic version of the api in the asm-generic
+> > header if the arch asm header hasn't already defined it.  asm/topology.h
+> > is an instance of this.  It includes asm-generic/topology.h after
+> > defining arch specific versions of some of the api.
+> 
+> This works alright, but if you expect every architecture to include the
+> asm-generic version, you might just as well take that choice away from
+> the architecture and put the common code into the linux/foo.h file,
+> which you can still override with definitions in asm/foo.h.
+> 
+> Most of the asm-generic headers are just mostly generic, and get included
+> by some but not all architectures, the others defining the whole contents
+> of the asm-generic file themselves in a different way.
+> 
+> So if you e.g. want ia64 to do everything itself and all other architectures to
+> share some or all parts of asm-generic/topology, your approach is right,
+> otherwise just leave the code in some file in include/linux/.
 
-This patch enables default_idle when power_save=off kernel boot
-option is specified.
+Actually, I just wanted to make the generic definitions of
+this_cpu_{read|write}() visible to topology.h when building on ia64 w/o
+the circular header dependencies.  Willy pointed out a way to do this by
+un-inlining __alloc_percpu().  Perhaps this is the way to go.  Tejun is
+looking at the patches.
 
-Earlier, this was done by setting ppc_md.power_save = NULL and hence
-HMT_low() and HMT_very_low() was called. Now this is defined under
-default_idle() and hence by setting boot_option_idle_override = 1,
-the cpuidle registration stuff does not happen and hence default_idle
-is chosen in cpuidle_idle_call.
-
-Signed-off-by: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
----
- arch/powerpc/include/asm/processor.h            |    2 ++
- arch/powerpc/kernel/idle.c                      |    4 +++-
- arch/powerpc/platforms/pseries/processor_idle.c |    5 +++++
- 3 files changed, 10 insertions(+), 1 deletion(-)
-
-Index: linux.trees.git/arch/powerpc/include/asm/processor.h
-===================================================================
---- linux.trees.git.orig/arch/powerpc/include/asm/processor.h
-+++ linux.trees.git/arch/powerpc/include/asm/processor.h
-@@ -332,6 +332,8 @@ static inline unsigned long get_clean_sp
- }
- #endif
- 
-+extern int boot_option_idle_override;
-+
- #endif /* __KERNEL__ */
- #endif /* __ASSEMBLY__ */
- #endif /* _ASM_POWERPC_PROCESSOR_H */
-Index: linux.trees.git/arch/powerpc/kernel/idle.c
-===================================================================
---- linux.trees.git.orig/arch/powerpc/kernel/idle.c
-+++ linux.trees.git/arch/powerpc/kernel/idle.c
-@@ -40,9 +40,11 @@
- #define cpu_should_die()	0
- #endif
- 
-+int boot_option_idle_override = 0;
-+
- static int __init powersave_off(char *arg)
- {
--	ppc_md.power_save = NULL;
-+	boot_option_idle_override = 1;
- 	return 0;
- }
- __setup("powersave=off", powersave_off);
-Index: linux.trees.git/arch/powerpc/platforms/pseries/processor_idle.c
-===================================================================
---- linux.trees.git.orig/arch/powerpc/platforms/pseries/processor_idle.c
-+++ linux.trees.git/arch/powerpc/platforms/pseries/processor_idle.c
-@@ -171,6 +171,11 @@ static int __init pseries_processor_idle
- 	int cpu;
- 	int result;
- 
-+	if (boot_option_idle_override) {
-+		printk(KERN_DEBUG "Using default idle\n");
-+		return 0;
-+	}
-+
- 	result = cpuidle_register_driver(&pseries_idle_driver);
- 
- 	if (result < 0)
+Lee
