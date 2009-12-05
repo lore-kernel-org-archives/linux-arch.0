@@ -1,62 +1,147 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:41327 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:41340 "EHLO
 	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754868AbZLEUQl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2009 15:16:41 -0500
-Date: Sat, 05 Dec 2009 19:08:51 +0000
-Subject: [RFC][PATCH 11/18] arch_mmap_check() on mn10300
+	with ESMTP id S1756414AbZLEURG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2009 15:17:06 -0500
+Date: Sat, 05 Dec 2009 19:08:50 +0000
+Subject: [RFC][PATCH 1/18] untangling do_mremap(), part 1
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Message-ID: <E1NGzzv-0008Rh-1X@ZenIV.linux.org.uk>
+Message-ID: <E1NGzzu-0008RJ-Tb@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
-Message-ID: <20091205190851.a0h5Dcjrl99K_J4W8uq_e20yT3OgKZkXmlj7K19VCN4@z>
+Message-ID: <20091205190850.0oASssb8Pa2lO5GcU2blwxPeXJy-FEIinfSEVlOj-yM@z>
 
+
+Take locating vma and checks on it to a separate helper (it will be
+shared between MREMAP_FIXED/non-MREMAP_FIXED cases when we split
+them in the next patch)
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/mn10300/include/asm/mman.h   |    5 +++++
- arch/mn10300/kernel/sys_mn10300.c |    5 -----
- 2 files changed, 5 insertions(+), 5 deletions(-)
+ mm/mremap.c |   88 +++++++++++++++++++++++++++++++++++++----------------------
+ 1 files changed, 55 insertions(+), 33 deletions(-)
 
-diff --git a/arch/mn10300/include/asm/mman.h b/arch/mn10300/include/asm/mman.h
-index 8eebf89..712f7b0 100644
---- a/arch/mn10300/include/asm/mman.h
-+++ b/arch/mn10300/include/asm/mman.h
-@@ -1 +1,6 @@
- #include <asm-generic/mman.h>
-+
-+#define MIN_MAP_ADDR	PAGE_SIZE	/* minimum fixed mmap address */
-+
-+#define arch_mmap_chech(addr, len, flags) \
-+	(((flags) & MAP_FIXED && (addr) < MIN_MAP_ADDR) ? -EINVAL : 0)
-diff --git a/arch/mn10300/kernel/sys_mn10300.c b/arch/mn10300/kernel/sys_mn10300.c
-index 8ca5af0..ec4100d 100644
---- a/arch/mn10300/kernel/sys_mn10300.c
-+++ b/arch/mn10300/kernel/sys_mn10300.c
-@@ -23,8 +23,6 @@
+diff --git a/mm/mremap.c b/mm/mremap.c
+index 97bff25..6776136 100644
+--- a/mm/mremap.c
++++ b/mm/mremap.c
+@@ -261,6 +261,58 @@ static unsigned long move_vma(struct vm_area_struct *vma,
+ 	return new_addr;
+ }
  
- #include <asm/uaccess.h>
- 
--#define MIN_MAP_ADDR	PAGE_SIZE	/* minimum fixed mmap address */
--
++static struct vm_area_struct *vma_to_resize(unsigned long addr,
++	unsigned long old_len, unsigned long new_len, unsigned long *p)
++{
++	struct mm_struct *mm = current->mm;
++	struct vm_area_struct *vma = find_vma(mm, addr);
++
++	if (!vma || vma->vm_start > addr)
++		goto Efault;
++
++	if (is_vm_hugetlb_page(vma))
++		goto Einval;
++
++	/* We can't remap across vm area boundaries */
++	if (old_len > vma->vm_end - addr)
++		goto Efault;
++
++	if (vma->vm_flags & (VM_DONTEXPAND | VM_PFNMAP)) {
++		if (new_len > old_len)
++			goto Efault;
++	}
++
++	if (vma->vm_flags & VM_LOCKED) {
++		unsigned long locked, lock_limit;
++		locked = mm->locked_vm << PAGE_SHIFT;
++		lock_limit = current->signal->rlim[RLIMIT_MEMLOCK].rlim_cur;
++		locked += new_len - old_len;
++		if (locked > lock_limit && !capable(CAP_IPC_LOCK))
++			goto Eagain;
++	}
++
++	if (!may_expand_vm(mm, (new_len - old_len) >> PAGE_SHIFT))
++		goto Enomem;
++
++	if (vma->vm_flags & VM_ACCOUNT) {
++		unsigned long charged = (new_len - old_len) >> PAGE_SHIFT;
++		if (security_vm_enough_memory(charged))
++			goto Efault;
++		*p = charged;
++	}
++
++	return vma;
++
++Efault:	/* very odd choice for most of the cases, but... */
++	return ERR_PTR(-EFAULT);
++Einval:
++	return ERR_PTR(-EINVAL);
++Enomem:
++	return ERR_PTR(-ENOMEM);
++Eagain:
++	return ERR_PTR(-EAGAIN);
++}
++
  /*
-  * memory mapping syscall
-  */
-@@ -37,9 +35,6 @@ asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
- 
- 	flags &= ~(MAP_EXECUTABLE | MAP_DENYWRITE);
- 
--	if (flags & MAP_FIXED && addr < MIN_MAP_ADDR)
+  * Expand (or shrink) an existing mapping, potentially moving it at the
+  * same time (controlled by the MREMAP_MAYMOVE flag and available VM space)
+@@ -340,41 +392,12 @@ unsigned long do_mremap(unsigned long addr,
+ 	/*
+ 	 * Ok, we need to grow..  or relocate.
+ 	 */
+-	ret = -EFAULT;
+-	vma = find_vma(mm, addr);
+-	if (!vma || vma->vm_start > addr)
 -		goto out;
+-	if (is_vm_hugetlb_page(vma)) {
+-		ret = -EINVAL;
+-		goto out;
+-	}
+-	/* We can't remap across vm area boundaries */
+-	if (old_len > vma->vm_end - addr)
+-		goto out;
+-	if (vma->vm_flags & (VM_DONTEXPAND | VM_PFNMAP)) {
+-		if (new_len > old_len)
+-			goto out;
+-	}
+-	if (vma->vm_flags & VM_LOCKED) {
+-		unsigned long locked, lock_limit;
+-		locked = mm->locked_vm << PAGE_SHIFT;
+-		lock_limit = current->signal->rlim[RLIMIT_MEMLOCK].rlim_cur;
+-		locked += new_len - old_len;
+-		ret = -EAGAIN;
+-		if (locked > lock_limit && !capable(CAP_IPC_LOCK))
+-			goto out;
+-	}
+-	if (!may_expand_vm(mm, (new_len - old_len) >> PAGE_SHIFT)) {
+-		ret = -ENOMEM;
++	vma = vma_to_resize(addr, old_len, new_len, &charged);
++	if (IS_ERR(vma)) {
++		ret = PTR_ERR(vma);
+ 		goto out;
+ 	}
+ 
+-	if (vma->vm_flags & VM_ACCOUNT) {
+-		charged = (new_len - old_len) >> PAGE_SHIFT;
+-		if (security_vm_enough_memory(charged))
+-			goto out_nc;
+-	}
 -
- 	error = -EBADF;
- 	if (!(flags & MAP_ANONYMOUS)) {
- 		file = fget(fd);
+ 	/* old_len exactly to the end of the area..
+ 	 * And we're not relocating the area.
+ 	 */
+@@ -430,7 +453,6 @@ unsigned long do_mremap(unsigned long addr,
+ out:
+ 	if (ret & ~PAGE_MASK)
+ 		vm_unacct_memory(charged);
+-out_nc:
+ 	return ret;
+ }
+ 
 -- 
 1.5.6.5
 
