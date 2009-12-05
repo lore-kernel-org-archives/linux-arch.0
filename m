@@ -1,93 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:41336 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:41323 "EHLO
 	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757903AbZLEUQ6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2009 15:16:58 -0500
-Date: Sat, 05 Dec 2009 19:08:50 +0000
-Subject: [RFC][PATCHSET] mremap/mmap mess
+	with ESMTP id S1755287AbZLEUQc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2009 15:16:32 -0500
+Date: Sat, 05 Dec 2009 19:08:51 +0000
+Subject: [RFC][PATCH 12/18] Cut hugetlb case early for 32bit on ia64
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Message-ID: <E1NGzzu-0008RH-T2@ZenIV.linux.org.uk>
+Message-ID: <E1NGzzv-0008Rk-2j@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
-Message-ID: <20091205190850.2VU0AqvLPPwp4sPX4RqSJGg5diAG1vLfaRYl5kZIZU4@z>
+Message-ID: <20091205190851.Ck5DkV_YCGgJPDQ_JmXA6sJYFZIGSMdbhAr_8KBdemU@z>
 
 
-[NOTE: the patch series below is not for merge until ACKed by arch maintainers]
+It won't work anyway (hugetlb addresses there are way beyond 4Gb)
+and it's easier to stop it here.
 
-	We have a bunch of interesting problems with mmap/mremap.
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/ia64/ia32/sys_ia32.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
-1) MREMAP_FIXED allows remap to any location, regardless of what
-the architecture has to say about it.  The only check is TASK_SIZE.
-That's not enough - e.g. there are architectures where some ranges
-are simply absent (itanic, sparc), there are some that have cache
-coherency requirements on alignments of shared mapping (a lot -
-anything with VIPT cache, itanic where it's not a coherency but
-a performance issue).  There are architectures where specific ranges
-are reserved for hugetlb and they either simply do not allow normal
-mappings in there or need to do something to make them possible (as
-ppc64 does).  sparc tried to deal with that problem, but it hadn't
-been complete (alignment issues) and it had been actually wrong for
-non-MREMAP_FIXED calls of mremap().
+diff --git a/arch/ia64/ia32/sys_ia32.c b/arch/ia64/ia32/sys_ia32.c
+index 625ed8f..e031ee8 100644
+--- a/arch/ia64/ia32/sys_ia32.c
++++ b/arch/ia64/ia32/sys_ia32.c
+@@ -858,6 +858,9 @@ ia32_do_mmap (struct file *file, unsigned long addr, unsigned long len, int prot
+ 
+ 	prot = get_prot32(prot);
+ 
++	if (flags & MAP_HUGETLB)
++		return -ENOMEM;
++
+ #if PAGE_SHIFT > IA32_PAGE_SHIFT
+ 	mutex_lock(&ia32_mmap_mutex);
+ 	{
+-- 
+1.5.6.5
 
-2) without MREMAP_FIXED we happily allowed extension into a hole in
-address space - the only check for being able to extend without
-move had been for TASK_SIZE (and for non-overlap with other vmas).
-Victims: sparc, itanic due to extending into holes, powerpc due to
-extending into hugetlb range.
 
-3) in case of relocation without MREMAP_FIXED we ended up doing
-get_unmapped_area() with wrong pgoff if the starting address had
-been in the middle of a mapping.  New vma gets the right pgoff,
-the checks are done for the wrong one.  Cache coherency issues
-on all VIPT architectures.
-
-4) mmap() with MAP_HUGETLB leaks struct file if it bails out anywhere
-past the allocation of struct file (by do_mmap_pgoff())
-
-5) brk() into a hugetlb range failed without trying to do anything;
-known thing, ppc folks had been unhappy about that.
-
-Series below should deal with those, mostly by switching to consistent
-use of get_unmapped_area() and sanitizing mmap/mremap code in general.
-
-There is one case where we still have a serious PITA and I'm not sure
-how to deal with that; it's expand_stack().  We can trigger that by
-creating a VM_GROWS{UP,DOWN} mapping and either hitting a pagefault
-on address {below,above} it or doing PTRACE_POKEDATA on such address.
-As it is, we only check that range we are expanding into is not a
-hugetlb-only one.  The thing is, we *can't* just do the normal checks
-as-is there.
-
-For cases when we do expand_stack() for our own mm that would work just
-fine and do the right thing.  Unfortunately, we have places that hit
-it from get_user_pages() for another process.  And checks (starting with
-"what's the maximal address we allow") are process-dependent on biarch
-architectures.  Worse yet, execve() does that when we have no other
-process - it creates new mm, puts an anonymous mapping as high as
-possible in it and copies argv/envp in there.  And that's done with
-get_user_pages() on new mm.  If we have a 32bit task on e.g. amd64,
-we'll have that mapping at addresses far above the TASK_SIZE of caller.
-Later, when  ->load_binary() figures out what personality we'll get,
-it turns that mapping into a valid vma for stack, possibly relocating
-the entire thing to address suitable for resulting process.
-
-Breaking execve() from 32bit processes on biarch architectures would
-be a bad thing, so we can't just add the normal set of checks to
-expand_stack() (acct_stack_growth(), actually).  The problem is quite
-real, though, since e.g. on itanic PTRACE_POKEDATA can be used to get
-a vma hanging down into a gap in address space quite easily.  Results
-are not pretty...
-
-One way to deal with that would be to put enough information into mm_struct
-so that all these checks wouldn't have to look at the caller's personality.
-I'm not sure how much PITA would that be, though; I've been digging through
-the arch/* VM code for several weeks by now, but I certainly don't pretend
-to be able to spot e.g. performance implications of such change.
-
-Comments (both on that issue and on following patch series) would be very
-welcome.
