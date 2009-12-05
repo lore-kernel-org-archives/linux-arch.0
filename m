@@ -1,38 +1,49 @@
 From: Al Viro <viro@ftp.linux.org.uk>
-Subject: [RFC][PATCH 12/18] Cut hugetlb case early for 32bit on ia64
-Date: Sat, 05 Dec 2009 19:08:51 +0000
-Message-ID: <E1NGzzv-0008Rk-2j@ZenIV.linux.org.uk>
+Subject: [RFC][PATCH 10/18] Kill ancient crap in s390 compat mmap
+Date: Sat, 05 Dec 2009 19:08:50 +0000
+Message-ID: <E1NGzzv-0008Rf-0U@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757642AbZLEUQu@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:41317 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754075AbZLEUQT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2009 15:16:19 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 
-It won't work anyway (hugetlb addresses there are way beyond 4Gb)
-and it's easier to stop it here.
+We've had TASK_SIZE set to 1<<31 for 31bit tasks since May 2004.
+Before that old32_mmap() had to deal with do_mmap_pgoff() giving
+it an address out of range.  It had tried to do that by checking
+return value and doing do_munmap() (at wrong address, BTW).
+
+IOW, that code had been dead for 5.5 years (and bogus - for 8).
+Kill.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/ia64/ia32/sys_ia32.c |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
+ arch/s390/kernel/compat_linux.c |    5 -----
+ 1 files changed, 0 insertions(+), 5 deletions(-)
 
-diff --git a/arch/ia64/ia32/sys_ia32.c b/arch/ia64/ia32/sys_ia32.c
-index 625ed8f..e031ee8 100644
---- a/arch/ia64/ia32/sys_ia32.c
-+++ b/arch/ia64/ia32/sys_ia32.c
-@@ -858,6 +858,9 @@ ia32_do_mmap (struct file *file, unsigned long addr, unsigned long len, int prot
+diff --git a/arch/s390/kernel/compat_linux.c b/arch/s390/kernel/compat_linux.c
+index 0debcec..c5a9fba 100644
+--- a/arch/s390/kernel/compat_linux.c
++++ b/arch/s390/kernel/compat_linux.c
+@@ -701,11 +701,6 @@ static inline long do_mmap2(
  
- 	prot = get_prot32(prot);
+ 	down_write(&current->mm->mmap_sem);
+ 	error = do_mmap_pgoff(file, addr, len, prot, flags, pgoff);
+-	if (!IS_ERR((void *) error) && error + len >= 0x80000000ULL) {
+-		/* Result is out of bounds.  */
+-		do_munmap(current->mm, addr, len);
+-		error = -ENOMEM;
+-	}
+ 	up_write(&current->mm->mmap_sem);
  
-+	if (flags & MAP_HUGETLB)
-+		return -ENOMEM;
-+
- #if PAGE_SHIFT > IA32_PAGE_SHIFT
- 	mutex_lock(&ia32_mmap_mutex);
- 	{
+ 	if (file)
 -- 
 1.5.6.5
