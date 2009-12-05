@@ -1,44 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:41323 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:41329 "EHLO
 	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755287AbZLEUQc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2009 15:16:32 -0500
-Date: Sat, 05 Dec 2009 19:08:51 +0000
-Subject: [RFC][PATCH 12/18] Cut hugetlb case early for 32bit on ia64
+	with ESMTP id S1756365AbZLEUQo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2009 15:16:44 -0500
+Date: Sat, 05 Dec 2009 19:08:50 +0000
+Subject: [RFC][PATCH 3/18] do_mremap() untangling, part 3
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Message-ID: <E1NGzzv-0008Rk-2j@ZenIV.linux.org.uk>
+Message-ID: <E1NGzzu-0008RN-Su@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
-Message-ID: <20091205190851.Ck5DkV_YCGgJPDQ_JmXA6sJYFZIGSMdbhAr_8KBdemU@z>
+Message-ID: <20091205190850.ADJGron2LOZk9mdgs9qYdnb6SfRbh9UU7v-B4QX-TSE@z>
 
 
-It won't work anyway (hugetlb addresses there are way beyond 4Gb)
-and it's easier to stop it here.
+Take the check for being able to expand vma in place into a separate
+helper.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/ia64/ia32/sys_ia32.c |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
+ mm/mremap.c |   16 ++++++++++++----
+ 1 files changed, 12 insertions(+), 4 deletions(-)
 
-diff --git a/arch/ia64/ia32/sys_ia32.c b/arch/ia64/ia32/sys_ia32.c
-index 625ed8f..e031ee8 100644
---- a/arch/ia64/ia32/sys_ia32.c
-+++ b/arch/ia64/ia32/sys_ia32.c
-@@ -858,6 +858,9 @@ ia32_do_mmap (struct file *file, unsigned long addr, unsigned long len, int prot
+diff --git a/mm/mremap.c b/mm/mremap.c
+index 5f34617..90e422c 100644
+--- a/mm/mremap.c
++++ b/mm/mremap.c
+@@ -366,6 +366,17 @@ out:
+ 	return ret;
+ }
  
- 	prot = get_prot32(prot);
- 
-+	if (flags & MAP_HUGETLB)
-+		return -ENOMEM;
++static int vma_expandable(struct vm_area_struct *vma, unsigned long delta)
++{
++	unsigned long max_addr = TASK_SIZE;
++	if (vma->vm_next)
++		max_addr = vma->vm_next->vm_start;
++	if (max_addr - vma->vm_end < delta)
++		return 0;
++	/* we need to do arch-specific checks here */
++	return 1;
++}
 +
- #if PAGE_SHIFT > IA32_PAGE_SHIFT
- 	mutex_lock(&ia32_mmap_mutex);
- 	{
+ /*
+  * Expand (or shrink) an existing mapping, potentially moving it at the
+  * same time (controlled by the MREMAP_MAYMOVE flag and available VM space)
+@@ -430,11 +441,8 @@ unsigned long do_mremap(unsigned long addr,
+ 	/* old_len exactly to the end of the area..
+ 	 */
+ 	if (old_len == vma->vm_end - addr) {
+-		unsigned long max_addr = TASK_SIZE;
+-		if (vma->vm_next)
+-			max_addr = vma->vm_next->vm_start;
+ 		/* can we just expand the current mapping? */
+-		if (max_addr - addr >= new_len) {
++		if (vma_expandable(vma, new_len - old_len)) {
+ 			int pages = (new_len - old_len) >> PAGE_SHIFT;
+ 
+ 			vma_adjust(vma, vma->vm_start,
 -- 
 1.5.6.5
 
