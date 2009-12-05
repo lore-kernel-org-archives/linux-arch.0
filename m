@@ -1,88 +1,60 @@
 From: Al Viro <viro@ftp.linux.org.uk>
-Subject: [RFC][PATCHSET] mremap/mmap mess
+Subject: [RFC][PATCH 4/18] fix checks for expand-in-place mremap
 Date: Sat, 05 Dec 2009 19:08:50 +0000
-Message-ID: <E1NGzzu-0008RH-T2@ZenIV.linux.org.uk>
+Message-ID: <E1NGzzu-0008RP-T3@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757744AbZLEUSn@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:41332 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754039AbZLEUQs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2009 15:16:48 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 
-[NOTE: the patch series below is not for merge until ACKed by arch maintainers]
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ mm/mremap.c |   13 +++++++++++--
+ 1 files changed, 11 insertions(+), 2 deletions(-)
 
-	We have a bunch of interesting problems with mmap/mremap.
-
-1) MREMAP_FIXED allows remap to any location, regardless of what
-the architecture has to say about it.  The only check is TASK_SIZE.
-That's not enough - e.g. there are architectures where some ranges
-are simply absent (itanic, sparc), there are some that have cache
-coherency requirements on alignments of shared mapping (a lot -
-anything with VIPT cache, itanic where it's not a coherency but
-a performance issue).  There are architectures where specific ranges
-are reserved for hugetlb and they either simply do not allow normal
-mappings in there or need to do something to make them possible (as
-ppc64 does).  sparc tried to deal with that problem, but it hadn't
-been complete (alignment issues) and it had been actually wrong for
-non-MREMAP_FIXED calls of mremap().
-
-2) without MREMAP_FIXED we happily allowed extension into a hole in
-address space - the only check for being able to extend without
-move had been for TASK_SIZE (and for non-overlap with other vmas).
-Victims: sparc, itanic due to extending into holes, powerpc due to
-extending into hugetlb range.
-
-3) in case of relocation without MREMAP_FIXED we ended up doing
-get_unmapped_area() with wrong pgoff if the starting address had
-been in the middle of a mapping.  New vma gets the right pgoff,
-the checks are done for the wrong one.  Cache coherency issues
-on all VIPT architectures.
-
-4) mmap() with MAP_HUGETLB leaks struct file if it bails out anywhere
-past the allocation of struct file (by do_mmap_pgoff())
-
-5) brk() into a hugetlb range failed without trying to do anything;
-known thing, ppc folks had been unhappy about that.
-
-Series below should deal with those, mostly by switching to consistent
-use of get_unmapped_area() and sanitizing mmap/mremap code in general.
-
-There is one case where we still have a serious PITA and I'm not sure
-how to deal with that; it's expand_stack().  We can trigger that by
-creating a VM_GROWS{UP,DOWN} mapping and either hitting a pagefault
-on address {below,above} it or doing PTRACE_POKEDATA on such address.
-As it is, we only check that range we are expanding into is not a
-hugetlb-only one.  The thing is, we *can't* just do the normal checks
-as-is there.
-
-For cases when we do expand_stack() for our own mm that would work just
-fine and do the right thing.  Unfortunately, we have places that hit
-it from get_user_pages() for another process.  And checks (starting with
-"what's the maximal address we allow") are process-dependent on biarch
-architectures.  Worse yet, execve() does that when we have no other
-process - it creates new mm, puts an anonymous mapping as high as
-possible in it and copies argv/envp in there.  And that's done with
-get_user_pages() on new mm.  If we have a 32bit task on e.g. amd64,
-we'll have that mapping at addresses far above the TASK_SIZE of caller.
-Later, when  ->load_binary() figures out what personality we'll get,
-it turns that mapping into a valid vma for stack, possibly relocating
-the entire thing to address suitable for resulting process.
-
-Breaking execve() from 32bit processes on biarch architectures would
-be a bad thing, so we can't just add the normal set of checks to
-expand_stack() (acct_stack_growth(), actually).  The problem is quite
-real, though, since e.g. on itanic PTRACE_POKEDATA can be used to get
-a vma hanging down into a gap in address space quite easily.  Results
-are not pretty...
-
-One way to deal with that would be to put enough information into mm_struct
-so that all these checks wouldn't have to look at the caller's personality.
-I'm not sure how much PITA would that be, though; I've been digging through
-the arch/* VM code for several weeks by now, but I certainly don't pretend
-to be able to spot e.g. performance implications of such change.
-
-Comments (both on that issue and on following patch series) would be very
-welcome.
+diff --git a/mm/mremap.c b/mm/mremap.c
+index 90e422c..9d07539 100644
+--- a/mm/mremap.c
++++ b/mm/mremap.c
+@@ -27,6 +27,10 @@
+ 
+ #include "internal.h"
+ 
++#ifndef arch_mmap_check
++#define arch_mmap_check(addr, len, flags)	(0)
++#endif
++
+ static pmd_t *get_old_pmd(struct mm_struct *mm, unsigned long addr)
+ {
+ 	pgd_t *pgd;
+@@ -368,12 +372,17 @@ out:
+ 
+ static int vma_expandable(struct vm_area_struct *vma, unsigned long delta)
+ {
++	unsigned long end = vma->vm_end + delta;
+ 	unsigned long max_addr = TASK_SIZE;
+ 	if (vma->vm_next)
+ 		max_addr = vma->vm_next->vm_start;
+-	if (max_addr - vma->vm_end < delta)
++	if (max_addr < end || end < vma->vm_end)
++		return 0;
++	if (arch_mmap_check(vma->vm_start, end - vma->vm_start, MAP_FIXED))
++		return 0;
++	if (get_unmapped_area(NULL, vma->vm_start, end - vma->vm_start,
++			      0, MAP_FIXED) & ~PAGE_MASK)
+ 		return 0;
+-	/* we need to do arch-specific checks here */
+ 	return 1;
+ }
+ 
+-- 
+1.5.6.5
