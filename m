@@ -1,56 +1,63 @@
 From: Al Viro <viro@ftp.linux.org.uk>
-Subject: [RFC][PATCH 11/18] arch_mmap_check() on mn10300
-Date: Sat, 05 Dec 2009 19:08:51 +0000
-Message-ID: <E1NGzzv-0008Rh-1X@ZenIV.linux.org.uk>
+Subject: [RFC][PATCH 5/18] fix the arch checks in MREMAP_FIXED case
+Date: Sat, 05 Dec 2009 19:08:50 +0000
+Message-ID: <E1NGzzu-0008RR-UD@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757991AbZLEURK@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:41338 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756427AbZLEURB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2009 15:17:01 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/mn10300/include/asm/mman.h   |    5 +++++
- arch/mn10300/kernel/sys_mn10300.c |    5 -----
- 2 files changed, 5 insertions(+), 5 deletions(-)
+ mm/mremap.c |   19 +++++++++++++++++--
+ 1 files changed, 17 insertions(+), 2 deletions(-)
 
-diff --git a/arch/mn10300/include/asm/mman.h b/arch/mn10300/include/asm/mman.h
-index 8eebf89..712f7b0 100644
---- a/arch/mn10300/include/asm/mman.h
-+++ b/arch/mn10300/include/asm/mman.h
-@@ -1 +1,6 @@
- #include <asm-generic/mman.h>
+diff --git a/mm/mremap.c b/mm/mremap.c
+index 9d07539..84efffb 100644
+--- a/mm/mremap.c
++++ b/mm/mremap.c
+@@ -325,6 +325,7 @@ static unsigned long mremap_to(unsigned long addr,
+ 	struct vm_area_struct *vma;
+ 	unsigned long ret = -EINVAL;
+ 	unsigned long charged = 0;
++	unsigned long map_flags;
+ 
+ 	if (new_addr & ~PAGE_MASK)
+ 		goto out;
+@@ -362,9 +363,23 @@ static unsigned long mremap_to(unsigned long addr,
+ 		goto out;
+ 	}
+ 
+-	ret = move_vma(vma, addr, old_len, new_len, new_addr);
++	map_flags = MAP_FIXED;
++	if (vma->vm_flags & VM_MAYSHARE)
++		map_flags |= MAP_SHARED;
++	ret = arch_mmap_check(new_addr, new_len, map_flags);
++	if (ret)
++		goto out1;
++	ret = get_unmapped_area(vma->vm_file, new_addr, new_len, vma->vm_pgoff +
++				((addr - vma->vm_start) >> PAGE_SHIFT),
++				map_flags);
+ 	if (ret & ~PAGE_MASK)
+-		vm_unacct_memory(charged);
++		goto out1;
 +
-+#define MIN_MAP_ADDR	PAGE_SIZE	/* minimum fixed mmap address */
-+
-+#define arch_mmap_chech(addr, len, flags) \
-+	(((flags) & MAP_FIXED && (addr) < MIN_MAP_ADDR) ? -EINVAL : 0)
-diff --git a/arch/mn10300/kernel/sys_mn10300.c b/arch/mn10300/kernel/sys_mn10300.c
-index 8ca5af0..ec4100d 100644
---- a/arch/mn10300/kernel/sys_mn10300.c
-+++ b/arch/mn10300/kernel/sys_mn10300.c
-@@ -23,8 +23,6 @@
++	ret = move_vma(vma, addr, old_len, new_len, new_addr);
++	if (!(ret & ~PAGE_MASK))
++		goto out;
++out1:
++	vm_unacct_memory(charged);
  
- #include <asm/uaccess.h>
- 
--#define MIN_MAP_ADDR	PAGE_SIZE	/* minimum fixed mmap address */
--
- /*
-  * memory mapping syscall
-  */
-@@ -37,9 +35,6 @@ asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
- 
- 	flags &= ~(MAP_EXECUTABLE | MAP_DENYWRITE);
- 
--	if (flags & MAP_FIXED && addr < MIN_MAP_ADDR)
--		goto out;
--
- 	error = -EBADF;
- 	if (!(flags & MAP_ANONYMOUS)) {
- 		file = fget(fd);
+ out:
+ 	return ret;
 -- 
 1.5.6.5
