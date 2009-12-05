@@ -1,15 +1,16 @@
 From: Al Viro <viro@ftp.linux.org.uk>
-Subject: [RFC][PATCH 5/18] fix the arch checks in MREMAP_FIXED case
+Subject: [RFC][PATCH 9/18] arm: add arch_mmap_check(), get rid of
+ sys_arm_mremap()
 Date: Sat, 05 Dec 2009 19:08:50 +0000
-Message-ID: <E1NGzzu-0008RR-UD@ZenIV.linux.org.uk>
+Message-ID: <E1NGzzu-0008Ra-Vr@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:41338 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:41334 "EHLO
 	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756427AbZLEURB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2009 15:17:01 -0500
+	with ESMTP id S1757673AbZLEUQx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2009 15:16:53 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
@@ -18,46 +19,82 @@ Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- mm/mremap.c |   19 +++++++++++++++++--
- 1 files changed, 17 insertions(+), 2 deletions(-)
+ arch/arm/include/asm/mman.h |    3 +++
+ arch/arm/kernel/calls.S     |    2 +-
+ arch/arm/kernel/sys_arm.c   |   25 -------------------------
+ 3 files changed, 4 insertions(+), 26 deletions(-)
 
-diff --git a/mm/mremap.c b/mm/mremap.c
-index 9d07539..84efffb 100644
---- a/mm/mremap.c
-+++ b/mm/mremap.c
-@@ -325,6 +325,7 @@ static unsigned long mremap_to(unsigned long addr,
- 	struct vm_area_struct *vma;
- 	unsigned long ret = -EINVAL;
- 	unsigned long charged = 0;
-+	unsigned long map_flags;
- 
- 	if (new_addr & ~PAGE_MASK)
- 		goto out;
-@@ -362,9 +363,23 @@ static unsigned long mremap_to(unsigned long addr,
- 		goto out;
- 	}
- 
--	ret = move_vma(vma, addr, old_len, new_len, new_addr);
-+	map_flags = MAP_FIXED;
-+	if (vma->vm_flags & VM_MAYSHARE)
-+		map_flags |= MAP_SHARED;
-+	ret = arch_mmap_check(new_addr, new_len, map_flags);
-+	if (ret)
-+		goto out1;
-+	ret = get_unmapped_area(vma->vm_file, new_addr, new_len, vma->vm_pgoff +
-+				((addr - vma->vm_start) >> PAGE_SHIFT),
-+				map_flags);
- 	if (ret & ~PAGE_MASK)
--		vm_unacct_memory(charged);
-+		goto out1;
+diff --git a/arch/arm/include/asm/mman.h b/arch/arm/include/asm/mman.h
+index 8eebf89..41f99c5 100644
+--- a/arch/arm/include/asm/mman.h
++++ b/arch/arm/include/asm/mman.h
+@@ -1 +1,4 @@
+ #include <asm-generic/mman.h>
 +
-+	ret = move_vma(vma, addr, old_len, new_len, new_addr);
-+	if (!(ret & ~PAGE_MASK))
-+		goto out;
-+out1:
-+	vm_unacct_memory(charged);
++#define arch_mmap_check(addr, len, flags) \
++	(((flags) & MAP_FIXED && (addr) < FIRST_USER_ADDRESS) ? -EINVAL : 0)
+diff --git a/arch/arm/kernel/calls.S b/arch/arm/kernel/calls.S
+index fafce1b..4f07168 100644
+--- a/arch/arm/kernel/calls.S
++++ b/arch/arm/kernel/calls.S
+@@ -172,7 +172,7 @@
+ /* 160 */	CALL(sys_sched_get_priority_min)
+ 		CALL(sys_sched_rr_get_interval)
+ 		CALL(sys_nanosleep)
+-		CALL(sys_arm_mremap)
++		CALL(sys_mremap)
+ 		CALL(sys_setresuid16)
+ /* 165 */	CALL(sys_getresuid16)
+ 		CALL(sys_ni_syscall)		/* vm86 */
+diff --git a/arch/arm/kernel/sys_arm.c b/arch/arm/kernel/sys_arm.c
+index 78ecaac..3b89744 100644
+--- a/arch/arm/kernel/sys_arm.c
++++ b/arch/arm/kernel/sys_arm.c
+@@ -28,10 +28,6 @@
+ #include <linux/ipc.h>
+ #include <linux/uaccess.h>
  
- out:
- 	return ret;
+-extern unsigned long do_mremap(unsigned long addr, unsigned long old_len,
+-			       unsigned long new_len, unsigned long flags,
+-			       unsigned long new_addr);
+-
+ /* common code for old and new mmaps */
+ inline long do_mmap2(
+ 	unsigned long addr, unsigned long len,
+@@ -43,9 +39,6 @@ inline long do_mmap2(
+ 
+ 	flags &= ~(MAP_EXECUTABLE | MAP_DENYWRITE);
+ 
+-	if (flags & MAP_FIXED && addr < FIRST_USER_ADDRESS)
+-		goto out;
+-
+ 	error = -EBADF;
+ 	if (!(flags & MAP_ANONYMOUS)) {
+ 		file = fget(fd);
+@@ -89,24 +82,6 @@ out:
+ 	return error;
+ }
+ 
+-asmlinkage unsigned long
+-sys_arm_mremap(unsigned long addr, unsigned long old_len,
+-	       unsigned long new_len, unsigned long flags,
+-	       unsigned long new_addr)
+-{
+-	unsigned long ret = -EINVAL;
+-
+-	if (flags & MREMAP_FIXED && new_addr < FIRST_USER_ADDRESS)
+-		goto out;
+-
+-	down_write(&current->mm->mmap_sem);
+-	ret = do_mremap(addr, old_len, new_len, flags, new_addr);
+-	up_write(&current->mm->mmap_sem);
+-
+-out:
+-	return ret;
+-}
+-
+ /*
+  * Perform the select(nd, in, out, ex, tv) and mmap() system
+  * calls.
 -- 
 1.5.6.5
