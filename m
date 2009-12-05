@@ -1,53 +1,76 @@
 From: David Daney <ddaney@caviumnetworks.com>
-Subject: [PATCH 2/5] x86: Convert BUG() to use unreachable()
-Date: Fri,  4 Dec 2009 17:44:51 -0800
-Message-ID: <1259977494-24636-2-git-send-email-ddaney@caviumnetworks.com>
+Subject: [PATCH 1/5] Add support for GCC-4.5's __builtin_unreachable() to compiler.h (v2)
+Date: Fri,  4 Dec 2009 17:44:50 -0800
+Message-ID: <1259977494-24636-1-git-send-email-ddaney@caviumnetworks.com>
 References: <4B19BAD3.1000808@caviumnetworks.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.caviumnetworks.com ([209.113.159.134]:1361 "EHLO
+Received: from smtp2.caviumnetworks.com ([209.113.159.134]:1365 "EHLO
 	smtp2.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753441AbZLECHR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Dec 2009 21:07:17 -0500
+	with ESMTP id S1754040AbZLECHT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Dec 2009 21:07:19 -0500
 In-Reply-To: <4B19BAD3.1000808@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org, akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <ddaney@caviumnetworks.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <ddaney@caviumnetworks.com>, Ralf Baechle <ralf@linux-mips.org>
 
-Use the new unreachable() macro instead of for(;;);.  When
-allyesconfig is built with a GCC-4.5 snapshot on i686 the size of the
-text segment is reduced by 3987 bytes (from 6827019 to 6823032).
+Starting with version 4.5, GCC has a new built-in function
+__builtin_unreachable() that can be used in places like the kernel's
+BUG() where inline assembly is used to transfer control flow.  This
+eliminated the need for an endless loop in these places.
+
+The patch adds a new macro 'unreachable()' that will expand to either
+__builtin_unreachable() or an endless loop depending on the compiler
+version.
+
+Change from v1: Simplify unreachable() for non-GCC 4.5 case.
 
 Signed-off-by: David Daney <ddaney@caviumnetworks.com>
-Acked-by: "H. Peter Anvin" <hpa@zytor.com>
-CC: "H. Peter Anvin" <hpa@zytor.com>
-CC: Thomas Gleixner <tglx@linutronix.de>
-CC: Ingo Molnar <mingo@redhat.com>
-CC: x86@kernel.org
+Acked-by: Ralf Baechle <ralf@linux-mips.org>
+CC: Ralf Baechle <ralf@linux-mips.org>
 ---
- arch/x86/include/asm/bug.h |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ include/linux/compiler-gcc4.h |   14 ++++++++++++++
+ include/linux/compiler.h      |    5 +++++
+ 2 files changed, 19 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/include/asm/bug.h b/arch/x86/include/asm/bug.h
-index d9cf1cd..f654d1b 100644
---- a/arch/x86/include/asm/bug.h
-+++ b/arch/x86/include/asm/bug.h
-@@ -22,14 +22,14 @@ do {								\
- 		     ".popsection"				\
- 		     : : "i" (__FILE__), "i" (__LINE__),	\
- 		     "i" (sizeof(struct bug_entry)));		\
--	for (;;) ;						\
-+	unreachable();						\
- } while (0)
+diff --git a/include/linux/compiler-gcc4.h b/include/linux/compiler-gcc4.h
+index 450fa59..ab3af40 100644
+--- a/include/linux/compiler-gcc4.h
++++ b/include/linux/compiler-gcc4.h
+@@ -36,4 +36,18 @@
+    the kernel context */
+ #define __cold			__attribute__((__cold__))
  
- #else
- #define BUG()							\
- do {								\
- 	asm volatile("ud2");					\
--	for (;;) ;						\
-+	unreachable();						\
- } while (0)
++
++#if __GNUC_MINOR__ >= 5
++/*
++ * Mark a position in code as unreachable.  This can be used to
++ * suppress control flow warnings after asm blocks that transfer
++ * control elsewhere.
++ *
++ * Early snapshots of gcc 4.5 don't support this and we can't detect
++ * this in the preprocessor, but we can live with this because they're
++ * unreleased.  Really, we need to have autoconf for the kernel.
++ */
++#define unreachable() __builtin_unreachable()
++#endif
++
+ #endif
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index 04fb513..59f2089 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -144,6 +144,11 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
+ # define barrier() __memory_barrier()
  #endif
  
++/* Unreachable code */
++#ifndef unreachable
++# define unreachable() do { } while (1)
++#endif
++
+ #ifndef RELOC_HIDE
+ # define RELOC_HIDE(ptr, off)					\
+   ({ unsigned long __ptr;					\
 -- 
 1.6.2.5
