@@ -1,76 +1,39 @@
 From: David Daney <ddaney@caviumnetworks.com>
-Subject: [PATCH 1/5] Add support for GCC-4.5's __builtin_unreachable() to compiler.h (v2)
-Date: Fri,  4 Dec 2009 17:44:50 -0800
-Message-ID: <1259977494-24636-1-git-send-email-ddaney@caviumnetworks.com>
+Subject: [PATCH 4/5] s390: Convert BUG() to use unreachable()
+Date: Fri,  4 Dec 2009 17:44:53 -0800
+Message-ID: <1259977494-24636-4-git-send-email-ddaney@caviumnetworks.com>
 References: <4B19BAD3.1000808@caviumnetworks.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.caviumnetworks.com ([209.113.159.134]:1365 "EHLO
-	smtp2.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754040AbZLECHT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Dec 2009 21:07:19 -0500
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1755574AbZLECHZ@vger.kernel.org>
 In-Reply-To: <4B19BAD3.1000808@caviumnetworks.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: torvalds@linux-foundation.org, akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <ddaney@caviumnetworks.com>, Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <ddaney@caviumnetworks.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Starting with version 4.5, GCC has a new built-in function
-__builtin_unreachable() that can be used in places like the kernel's
-BUG() where inline assembly is used to transfer control flow.  This
-eliminated the need for an endless loop in these places.
-
-The patch adds a new macro 'unreachable()' that will expand to either
-__builtin_unreachable() or an endless loop depending on the compiler
-version.
-
-Change from v1: Simplify unreachable() for non-GCC 4.5 case.
+Use the new unreachable() macro instead of for(;;);
 
 Signed-off-by: David Daney <ddaney@caviumnetworks.com>
-Acked-by: Ralf Baechle <ralf@linux-mips.org>
-CC: Ralf Baechle <ralf@linux-mips.org>
+Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+CC: Martin Schwidefsky <schwidefsky@de.ibm.com>
+CC: Heiko Carstens <heiko.carstens@de.ibm.com>
+CC: linux390@de.ibm.com
+CC: linux-s390@vger.kernel.org
 ---
- include/linux/compiler-gcc4.h |   14 ++++++++++++++
- include/linux/compiler.h      |    5 +++++
- 2 files changed, 19 insertions(+), 0 deletions(-)
+ arch/s390/include/asm/bug.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/include/linux/compiler-gcc4.h b/include/linux/compiler-gcc4.h
-index 450fa59..ab3af40 100644
---- a/include/linux/compiler-gcc4.h
-+++ b/include/linux/compiler-gcc4.h
-@@ -36,4 +36,18 @@
-    the kernel context */
- #define __cold			__attribute__((__cold__))
+diff --git a/arch/s390/include/asm/bug.h b/arch/s390/include/asm/bug.h
+index 7efd0ab..efb74fd 100644
+--- a/arch/s390/include/asm/bug.h
++++ b/arch/s390/include/asm/bug.h
+@@ -49,7 +49,7 @@
  
-+
-+#if __GNUC_MINOR__ >= 5
-+/*
-+ * Mark a position in code as unreachable.  This can be used to
-+ * suppress control flow warnings after asm blocks that transfer
-+ * control elsewhere.
-+ *
-+ * Early snapshots of gcc 4.5 don't support this and we can't detect
-+ * this in the preprocessor, but we can live with this because they're
-+ * unreleased.  Really, we need to have autoconf for the kernel.
-+ */
-+#define unreachable() __builtin_unreachable()
-+#endif
-+
- #endif
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 04fb513..59f2089 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -144,6 +144,11 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
- # define barrier() __memory_barrier()
- #endif
+ #define BUG() do {					\
+ 	__EMIT_BUG(0);					\
+-	for (;;);					\
++	unreachable();					\
+ } while (0)
  
-+/* Unreachable code */
-+#ifndef unreachable
-+# define unreachable() do { } while (1)
-+#endif
-+
- #ifndef RELOC_HIDE
- # define RELOC_HIDE(ptr, off)					\
-   ({ unsigned long __ptr;					\
+ #define WARN_ON(x) ({					\
 -- 
 1.6.2.5
