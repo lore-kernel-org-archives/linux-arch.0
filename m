@@ -1,62 +1,25 @@
-From: David Daney <ddaney@caviumnetworks.com>
-Subject: [PATCH 0/5] Add support for GCC's __builtin_unreachable() and use
- it in BUG (v2.1).
-Date: Fri, 04 Dec 2009 17:43:47 -0800
-Message-ID: <4B19BAD3.1000808@caviumnetworks.com>
+From: "Euro-Jackpot Casino" <flmoatfrj@noux.de>
+Subject: =?iso-8859-1?Q?=D6ver_300_spel?=
+Date: Sat, 05 Dec 2009 21:59:54 +0300
+Message-ID: <000c01ca75dd$21c2d7c0$00426138@kbwfufynttip>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.caviumnetworks.com ([209.113.159.134]:1364 "EHLO
-	smtp2.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753986AbZLECHS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Dec 2009 21:07:18 -0500
+Received: from serv5.vsi.ru ([80.82.33.65]:2649 "EHLO serv5.vsi.ru"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757802AbZLETSR convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Dec 2009 14:18:17 -0500
+Received: from 230.222.32.95.dsl-dynamic.vsi.ru (230.222.32.95.dsl-dynamic.vsi.ru [95.32.222.230])
+	by serv5.vsi.ru (8.12.11/8.12.11) with ESMTP id nB5J047Z075822
+	for <linux-arch@vger.kernel.org>; Sat, 5 Dec 2009 22:00:25 +0300 (MSK)
+	(envelope-from flmoatfrj@noux.de)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-Greetings Linus et al.,
+Det =E4r v=E4ldigt enkelt =96 registrera dig, g=F6r en ins=E4ttning och=
+ spela sedan p=E5 riktigt. Du beh=F6ver inte hoppa p=E5 n=E5got plan ti=
+ll Las Vegas. Du kan g=F6ra allt fr=E5n ditt eget vardagsrum.
 
- From the announcement of the first version:
-
-     Starting with version 4.5, GCC has a new built-in function called
-     __builtin_unreachable().  The function tells the compiler that
-     control flow will never reach that point.  Currently we trick the
-     compiler by putting in for(;;); but this has the disadvantage that
-     extra code is emitted for an endless loop.  For an i386 kernel
-     using __builtin_unreachable() results in an defaultconfig that is
-     nearly 4000 bytes smaller.
-
-     This patch set adds support to compiler.h creating a new macro
-     usable in the kernel called unreachable().  If the compiler lacks
-     __builtin_unreachable(), it just expands to for(;;).
-
-
-For version 2:
-
-     I fixed a couple of checkpatch issues, and simplified the
-     unreachable() macro for the pre-GCC-4.5 case (as suggested by
-     Richard Henderson).  Also several Acked-by: were added.
-
-For this version 2.1:
-
-     I removed patches from the set for which there were no Acked-by,
-     and rebased and tested against 2.6.32.
-
-I will reply with the 5 patches.
-
-David Daney (5):
-   Add support for GCC-4.5's __builtin_unreachable() to compiler.h (v2)
-   x86: Convert BUG() to use unreachable()
-   MIPS: Convert BUG() to use unreachable()
-   s390: Convert BUG() to use unreachable()
-   avr32: Convert BUG() to use unreachable()
-
-  arch/avr32/include/asm/bug.h  |    2 +-
-  arch/mips/include/asm/bug.h   |    4 +---
-  arch/s390/include/asm/bug.h   |    2 +-
-  arch/x86/include/asm/bug.h    |    4 ++--
-  include/linux/compiler-gcc4.h |   14 ++++++++++++++
-  include/linux/compiler.h      |    5 +++++
-  6 files changed, 24 insertions(+), 7 deletions(-)
+http://www.spinlifeking.net/sv/
