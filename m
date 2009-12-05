@@ -1,37 +1,28 @@
-From: Al Viro <viro@ftp.linux.org.uk>
-Subject: [RFC][PATCH 6/18] fix pgoff in "have to relocate" case of
- mremap()
-Date: Sat, 05 Dec 2009 19:13:46 +0000
-Message-ID: <E1NH04g-0000RD-W6@ZenIV.linux.org.uk>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH] fix broken aliasing checks for MAP_FIXED on sparc32,
+ mips, arm and sh
+Date: Sat, 5 Dec 2009 20:22:51 +0000
+Message-ID: <20091205202251.GA475@linux-mips.org>
+References: <E1NH12k-0001gw-NA@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S932981AbZLEUTr@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:42404 "EHLO h5.dl5rb.org.uk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752679AbZLEUYM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 5 Dec 2009 15:24:12 -0500
+Content-Disposition: inline
+In-Reply-To: <E1NH12k-0001gw-NA@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@ftp.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, lethal@linux-sh.org, rmk@arm.linux.org.uk, davem@davemloft.net, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
 
+On Sat, Dec 05, 2009 at 08:15:50PM +0000, Al Viro wrote:
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- mm/mremap.c |    4 +++-
- 1 files changed, 3 insertions(+), 1 deletions(-)
+After our IRC chat I've already applied an commit that is identical to the
+MIPS segment of your patch.
 
-diff --git a/mm/mremap.c b/mm/mremap.c
-index 84efffb..bbbbbf5 100644
---- a/mm/mremap.c
-+++ b/mm/mremap.c
-@@ -495,7 +495,9 @@ unsigned long do_mremap(unsigned long addr,
- 			map_flags |= MAP_SHARED;
- 
- 		new_addr = get_unmapped_area(vma->vm_file, 0, new_len,
--					vma->vm_pgoff, map_flags);
-+					vma->vm_pgoff +
-+					((addr - vma->vm_start) >> PAGE_SHIFT),
-+					map_flags);
- 		if (new_addr & ~PAGE_MASK) {
- 			ret = new_addr;
- 			goto out;
--- 
-1.5.6.5
+Thanks!
+
+  Ralf
