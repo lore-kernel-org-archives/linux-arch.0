@@ -1,36 +1,62 @@
 From: David Daney <ddaney@caviumnetworks.com>
-Subject: [PATCH 5/5] avr32: Convert BUG() to use unreachable()
-Date: Fri,  4 Dec 2009 17:44:54 -0800
-Message-ID: <1259977494-24636-5-git-send-email-ddaney@caviumnetworks.com>
-References: <4B19BAD3.1000808@caviumnetworks.com>
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1755068AbZLECHW@vger.kernel.org>
-In-Reply-To: <4B19BAD3.1000808@caviumnetworks.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: torvalds@linux-foundation.org, akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <ddaney@caviumnetworks.com>, Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
-List-Id: linux-arch.vger.kernel.org
+Subject: [PATCH 0/5] Add support for GCC's __builtin_unreachable() and use
+ it in BUG (v2.1).
+Date: Fri, 04 Dec 2009 17:43:47 -0800
+Message-ID: <4B19BAD3.1000808@caviumnetworks.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp2.caviumnetworks.com ([209.113.159.134]:1364 "EHLO
+	smtp2.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753986AbZLECHS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Dec 2009 21:07:18 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 
-Use the new unreachable() macro instead of for(;;);
+Greetings Linus et al.,
 
-Signed-off-by: David Daney <ddaney@caviumnetworks.com>
-Acked-by: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
-CC: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
----
- arch/avr32/include/asm/bug.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ From the announcement of the first version:
 
-diff --git a/arch/avr32/include/asm/bug.h b/arch/avr32/include/asm/bug.h
-index 331d45b..2aa373c 100644
---- a/arch/avr32/include/asm/bug.h
-+++ b/arch/avr32/include/asm/bug.h
-@@ -52,7 +52,7 @@
- #define BUG()								\
- 	do {								\
- 		_BUG_OR_WARN(0);					\
--		for (;;);						\
-+		unreachable();						\
- 	} while (0)
- 
- #define WARN_ON(condition)							\
--- 
-1.6.2.5
+     Starting with version 4.5, GCC has a new built-in function called
+     __builtin_unreachable().  The function tells the compiler that
+     control flow will never reach that point.  Currently we trick the
+     compiler by putting in for(;;); but this has the disadvantage that
+     extra code is emitted for an endless loop.  For an i386 kernel
+     using __builtin_unreachable() results in an defaultconfig that is
+     nearly 4000 bytes smaller.
+
+     This patch set adds support to compiler.h creating a new macro
+     usable in the kernel called unreachable().  If the compiler lacks
+     __builtin_unreachable(), it just expands to for(;;).
+
+
+For version 2:
+
+     I fixed a couple of checkpatch issues, and simplified the
+     unreachable() macro for the pre-GCC-4.5 case (as suggested by
+     Richard Henderson).  Also several Acked-by: were added.
+
+For this version 2.1:
+
+     I removed patches from the set for which there were no Acked-by,
+     and rebased and tested against 2.6.32.
+
+I will reply with the 5 patches.
+
+David Daney (5):
+   Add support for GCC-4.5's __builtin_unreachable() to compiler.h (v2)
+   x86: Convert BUG() to use unreachable()
+   MIPS: Convert BUG() to use unreachable()
+   s390: Convert BUG() to use unreachable()
+   avr32: Convert BUG() to use unreachable()
+
+  arch/avr32/include/asm/bug.h  |    2 +-
+  arch/mips/include/asm/bug.h   |    4 +---
+  arch/s390/include/asm/bug.h   |    2 +-
+  arch/x86/include/asm/bug.h    |    4 ++--
+  include/linux/compiler-gcc4.h |   14 ++++++++++++++
+  include/linux/compiler.h      |    5 +++++
+  6 files changed, 24 insertions(+), 7 deletions(-)
