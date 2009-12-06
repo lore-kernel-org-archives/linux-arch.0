@@ -1,30 +1,45 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC][PATCH 11/18] arch_mmap_check() on mn10300
-Date: Sun, 6 Dec 2009 17:41:37 +0000
-Message-ID: <20091206174137.GD14381@ZenIV.linux.org.uk>
-References: <E1NGzzv-0008Rh-1X@ZenIV.linux.org.uk> <21624.1260121092@redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC][PATCHSET] mremap/mmap mess
+Date: Sun, 6 Dec 2009 10:00:24 -0800 (PST)
+Message-ID: <alpine.LFD.2.00.0912061000090.3560@localhost.localdomain>
+References: <E1NGzzu-0008RH-T2@ZenIV.linux.org.uk> <Pine.LNX.4.64.0912061715280.3721@sister.anvils>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:39604 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933999AbZLFRlc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Dec 2009 12:41:32 -0500
-Content-Disposition: inline
-In-Reply-To: <21624.1260121092@redhat.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:47005 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757113AbZLFSA0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Dec 2009 13:00:26 -0500
+In-Reply-To: <Pine.LNX.4.64.0912061715280.3721@sister.anvils>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Al Viro <viro@ftp.linux.org.uk>, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
+To: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+Cc: Al Viro <viro@ftp.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Sun, Dec 06, 2009 at 05:38:12PM +0000, David Howells wrote:
-> Al Viro <viro@ftp.linux.org.uk> wrote:
-> 
-> > +#define arch_mmap_chech(addr, len, flags) \
-> > +	(((flags) & MAP_FIXED && (addr) < MIN_MAP_ADDR) ? -EINVAL : 0)
-> 
-> I believe that should be arch_mmap_check().
 
-D'oh.  Thanks for spotting (and that, BTW, is a nice demonstration
-of the reasons why "arch hooks with default" thing is bad).  Fixed in
-my tree, will go in the next repost.
+On Sun, 6 Dec 2009, Hugh Dickins wrote:
+> 
+> I've never found out why we need access_process_vm() to expand a stack:
+> shall we see what breaks if we just forbid expand_stack() on another mm?
+
+Hmm. If you want to actually emulate some stack instruction using ptrace, 
+you'd need to be able to extend the stack.
+
+The classic example of this might be to do some crazy user-space emulation 
+of 'pushf' for virtualization.
+
+And emulating pushf is not theory: at least KVM does actually do exactly 
+that (although KVM obviously does it from kernel space and from within the 
+process that faulted). Same goes for vm86 mode (again, we do that 
+emulation in kernel) and for ptrace single-stepping (which we actually 
+don't bother emulating).
+
+The point being that at least 'pushf' really _is_ an instruction that (a) 
+might want to extend the stack and (b) does tend to need emulation or 
+fixup in some virtualized/emulated environments. I just don't know if you 
+actually ever have user space doing so.
+
+But I could imagine that Wine does some pushf emulation using ptrace, for 
+example.
+
+			Linus
