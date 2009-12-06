@@ -1,69 +1,365 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp01.au.ibm.com ([202.81.31.143]:60138 "EHLO
-	e23smtp01.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751204AbZLFFTc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Dec 2009 00:19:32 -0500
-Date: Sun, 6 Dec 2009 10:49:28 +0530
-From: Arun R Bharadwaj <arun@linux.vnet.ibm.com>
-Subject: Re: [v10 PATCH 2/9]: cpuidle: cleanup drivers/cpuidle/cpuidle.c
-Message-ID: <20091206051928.GA18300@linux.vnet.ibm.com>
-Reply-To: arun@linux.vnet.ibm.com
-References: <20091202095427.GA27251@linux.vnet.ibm.com>
- <20091202095705.GC27251@linux.vnet.ibm.com>
- <200912042320.01320.duwe@lst.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-In-Reply-To: <200912042320.01320.duwe@lst.de>
+Received: from www.tglx.de ([62.245.132.106]:33001 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S934028AbZLFSCG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 6 Dec 2009 13:02:06 -0500
+Message-ID: <20091206111957.323401374@linutronix.de>
+Date: Sun, 06 Dec 2009 18:01:51 -0000
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch 01/23] locking: Reorder functions in spinlock.c
+References: <20091206110944.492100233@linutronix.de>
+Content-Disposition: inline;
+	filename=locking-reorder-functions-in-spinlock-c.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Torsten Duwe <duwe@lst.de>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, Dipankar Sarma <dipankar@in.ibm.com>, Balbir Singh <balbir@in.ibm.com>, Venkatesh Pallipadi <venkatesh.pallipadi@intel.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Arun Bharadwaj <arun@linux.vnet.ibm.com>
-Message-ID: <20091206051928.GDjOKEr0v3tWUeQQhU3ulT_3uOsQm4NwfPdNDiEE6eM@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20091206180151.3K4JYCptfRk0p2e_UhHU-W_ZqodRGlneUUC8MsxyY7c@z>
 
-* Torsten Duwe <duwe@lst.de> [2009-12-04 23:20:00]:
+Separate spin_lock and rw_lock functions. Preempt-RT needs to exclude
+the rw_lock functions from being compiled. The reordering allows to do
+that with a single #ifdef.
 
-> On Wednesday 02 December 2009, Arun R Bharadwaj wrote:
-> > * Arun R Bharadwaj <arun@linux.vnet.ibm.com> [2009-12-02 15:24:27]:
-> >
-> > This patch cleans up drivers/cpuidle/cpuidle.c
-> > Earlier cpuidle assumed pm_idle as the default idle loop. Break that
-> > assumption and make it more generic.
-> 
-> Is there a problem with the old pm_idle? Couldn't it be integrated more 
-> transparently, instead of replacing it this intrusively?
-> 
+No functional change.
 
-Hi Torsten,
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ kernel/spinlock.c |  246 +++++++++++++++++++++++++++---------------------------
+ 1 file changed, 123 insertions(+), 123 deletions(-)
 
-Peter objected to the idea of integrating this with the old pm_idle
-because it has already caused a lot of problems on x86 and we wouldn't
-want to be doing the same mistake on POWER. The discussion related to
-that could be found here http://lkml.org/lkml/2009/8/26/233
+Index: linux-2.6-tip/kernel/spinlock.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/spinlock.c
++++ linux-2.6-tip/kernel/spinlock.c
+@@ -113,41 +113,6 @@ BUILD_LOCK_OPS(write, rwlock);
+ 
+ #endif
+ 
+-#ifdef CONFIG_DEBUG_LOCK_ALLOC
+-
+-void __lockfunc _spin_lock_nested(spinlock_t *lock, int subclass)
+-{
+-	preempt_disable();
+-	spin_acquire(&lock->dep_map, subclass, 0, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
+-}
+-EXPORT_SYMBOL(_spin_lock_nested);
+-
+-unsigned long __lockfunc _spin_lock_irqsave_nested(spinlock_t *lock,
+-						   int subclass)
+-{
+-	unsigned long flags;
+-
+-	local_irq_save(flags);
+-	preempt_disable();
+-	spin_acquire(&lock->dep_map, subclass, 0, _RET_IP_);
+-	LOCK_CONTENDED_FLAGS(lock, _raw_spin_trylock, _raw_spin_lock,
+-				_raw_spin_lock_flags, &flags);
+-	return flags;
+-}
+-EXPORT_SYMBOL(_spin_lock_irqsave_nested);
+-
+-void __lockfunc _spin_lock_nest_lock(spinlock_t *lock,
+-				     struct lockdep_map *nest_lock)
+-{
+-	preempt_disable();
+-	spin_acquire_nest(&lock->dep_map, 0, 0, nest_lock, _RET_IP_);
+-	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
+-}
+-EXPORT_SYMBOL(_spin_lock_nest_lock);
+-
+-#endif
+-
+ #ifndef CONFIG_INLINE_SPIN_TRYLOCK
+ int __lockfunc _spin_trylock(spinlock_t *lock)
+ {
+@@ -156,28 +121,20 @@ int __lockfunc _spin_trylock(spinlock_t 
+ EXPORT_SYMBOL(_spin_trylock);
+ #endif
+ 
+-#ifndef CONFIG_INLINE_READ_TRYLOCK
+-int __lockfunc _read_trylock(rwlock_t *lock)
+-{
+-	return __read_trylock(lock);
+-}
+-EXPORT_SYMBOL(_read_trylock);
+-#endif
+-
+-#ifndef CONFIG_INLINE_WRITE_TRYLOCK
+-int __lockfunc _write_trylock(rwlock_t *lock)
++#ifndef CONFIG_INLINE_SPIN_TRYLOCK_BH
++int __lockfunc _spin_trylock_bh(spinlock_t *lock)
+ {
+-	return __write_trylock(lock);
++	return __spin_trylock_bh(lock);
+ }
+-EXPORT_SYMBOL(_write_trylock);
++EXPORT_SYMBOL(_spin_trylock_bh);
+ #endif
+ 
+-#ifndef CONFIG_INLINE_READ_LOCK
+-void __lockfunc _read_lock(rwlock_t *lock)
++#ifndef CONFIG_INLINE_SPIN_LOCK
++void __lockfunc _spin_lock(spinlock_t *lock)
+ {
+-	__read_lock(lock);
++	__spin_lock(lock);
+ }
+-EXPORT_SYMBOL(_read_lock);
++EXPORT_SYMBOL(_spin_lock);
+ #endif
+ 
+ #ifndef CONFIG_INLINE_SPIN_LOCK_IRQSAVE
+@@ -204,84 +161,76 @@ void __lockfunc _spin_lock_bh(spinlock_t
+ EXPORT_SYMBOL(_spin_lock_bh);
+ #endif
+ 
+-#ifndef CONFIG_INLINE_READ_LOCK_IRQSAVE
+-unsigned long __lockfunc _read_lock_irqsave(rwlock_t *lock)
+-{
+-	return __read_lock_irqsave(lock);
+-}
+-EXPORT_SYMBOL(_read_lock_irqsave);
+-#endif
+-
+-#ifndef CONFIG_INLINE_READ_LOCK_IRQ
+-void __lockfunc _read_lock_irq(rwlock_t *lock)
++#ifndef CONFIG_INLINE_SPIN_UNLOCK
++void __lockfunc _spin_unlock(spinlock_t *lock)
+ {
+-	__read_lock_irq(lock);
++	__spin_unlock(lock);
+ }
+-EXPORT_SYMBOL(_read_lock_irq);
++EXPORT_SYMBOL(_spin_unlock);
+ #endif
+ 
+-#ifndef CONFIG_INLINE_READ_LOCK_BH
+-void __lockfunc _read_lock_bh(rwlock_t *lock)
++#ifndef CONFIG_INLINE_SPIN_UNLOCK_IRQRESTORE
++void __lockfunc _spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags)
+ {
+-	__read_lock_bh(lock);
++	__spin_unlock_irqrestore(lock, flags);
+ }
+-EXPORT_SYMBOL(_read_lock_bh);
++EXPORT_SYMBOL(_spin_unlock_irqrestore);
+ #endif
+ 
+-#ifndef CONFIG_INLINE_WRITE_LOCK_IRQSAVE
+-unsigned long __lockfunc _write_lock_irqsave(rwlock_t *lock)
++#ifndef CONFIG_INLINE_SPIN_UNLOCK_IRQ
++void __lockfunc _spin_unlock_irq(spinlock_t *lock)
+ {
+-	return __write_lock_irqsave(lock);
++	__spin_unlock_irq(lock);
+ }
+-EXPORT_SYMBOL(_write_lock_irqsave);
++EXPORT_SYMBOL(_spin_unlock_irq);
+ #endif
+ 
+-#ifndef CONFIG_INLINE_WRITE_LOCK_IRQ
+-void __lockfunc _write_lock_irq(rwlock_t *lock)
++#ifndef CONFIG_INLINE_SPIN_UNLOCK_BH
++void __lockfunc _spin_unlock_bh(spinlock_t *lock)
+ {
+-	__write_lock_irq(lock);
++	__spin_unlock_bh(lock);
+ }
+-EXPORT_SYMBOL(_write_lock_irq);
++EXPORT_SYMBOL(_spin_unlock_bh);
+ #endif
+ 
+-#ifndef CONFIG_INLINE_WRITE_LOCK_BH
+-void __lockfunc _write_lock_bh(rwlock_t *lock)
++#ifndef CONFIG_INLINE_READ_TRYLOCK
++int __lockfunc _read_trylock(rwlock_t *lock)
+ {
+-	__write_lock_bh(lock);
++	return __read_trylock(lock);
+ }
+-EXPORT_SYMBOL(_write_lock_bh);
++EXPORT_SYMBOL(_read_trylock);
+ #endif
+ 
+-#ifndef CONFIG_INLINE_SPIN_LOCK
+-void __lockfunc _spin_lock(spinlock_t *lock)
++#ifndef CONFIG_INLINE_READ_LOCK
++void __lockfunc _read_lock(rwlock_t *lock)
+ {
+-	__spin_lock(lock);
++	__read_lock(lock);
+ }
+-EXPORT_SYMBOL(_spin_lock);
++EXPORT_SYMBOL(_read_lock);
+ #endif
+ 
+-#ifndef CONFIG_INLINE_WRITE_LOCK
+-void __lockfunc _write_lock(rwlock_t *lock)
++#ifndef CONFIG_INLINE_READ_LOCK_IRQSAVE
++unsigned long __lockfunc _read_lock_irqsave(rwlock_t *lock)
+ {
+-	__write_lock(lock);
++	return __read_lock_irqsave(lock);
+ }
+-EXPORT_SYMBOL(_write_lock);
++EXPORT_SYMBOL(_read_lock_irqsave);
+ #endif
+ 
+-#ifndef CONFIG_INLINE_SPIN_UNLOCK
+-void __lockfunc _spin_unlock(spinlock_t *lock)
++#ifndef CONFIG_INLINE_READ_LOCK_IRQ
++void __lockfunc _read_lock_irq(rwlock_t *lock)
+ {
+-	__spin_unlock(lock);
++	__read_lock_irq(lock);
+ }
+-EXPORT_SYMBOL(_spin_unlock);
++EXPORT_SYMBOL(_read_lock_irq);
+ #endif
+ 
+-#ifndef CONFIG_INLINE_WRITE_UNLOCK
+-void __lockfunc _write_unlock(rwlock_t *lock)
++#ifndef CONFIG_INLINE_READ_LOCK_BH
++void __lockfunc _read_lock_bh(rwlock_t *lock)
+ {
+-	__write_unlock(lock);
++	__read_lock_bh(lock);
+ }
+-EXPORT_SYMBOL(_write_unlock);
++EXPORT_SYMBOL(_read_lock_bh);
+ #endif
+ 
+ #ifndef CONFIG_INLINE_READ_UNLOCK
+@@ -292,30 +241,6 @@ void __lockfunc _read_unlock(rwlock_t *l
+ EXPORT_SYMBOL(_read_unlock);
+ #endif
+ 
+-#ifndef CONFIG_INLINE_SPIN_UNLOCK_IRQRESTORE
+-void __lockfunc _spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags)
+-{
+-	__spin_unlock_irqrestore(lock, flags);
+-}
+-EXPORT_SYMBOL(_spin_unlock_irqrestore);
+-#endif
+-
+-#ifndef CONFIG_INLINE_SPIN_UNLOCK_IRQ
+-void __lockfunc _spin_unlock_irq(spinlock_t *lock)
+-{
+-	__spin_unlock_irq(lock);
+-}
+-EXPORT_SYMBOL(_spin_unlock_irq);
+-#endif
+-
+-#ifndef CONFIG_INLINE_SPIN_UNLOCK_BH
+-void __lockfunc _spin_unlock_bh(spinlock_t *lock)
+-{
+-	__spin_unlock_bh(lock);
+-}
+-EXPORT_SYMBOL(_spin_unlock_bh);
+-#endif
+-
+ #ifndef CONFIG_INLINE_READ_UNLOCK_IRQRESTORE
+ void __lockfunc _read_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
+ {
+@@ -340,6 +265,54 @@ void __lockfunc _read_unlock_bh(rwlock_t
+ EXPORT_SYMBOL(_read_unlock_bh);
+ #endif
+ 
++#ifndef CONFIG_INLINE_WRITE_TRYLOCK
++int __lockfunc _write_trylock(rwlock_t *lock)
++{
++	return __write_trylock(lock);
++}
++EXPORT_SYMBOL(_write_trylock);
++#endif
++
++#ifndef CONFIG_INLINE_WRITE_LOCK
++void __lockfunc _write_lock(rwlock_t *lock)
++{
++	__write_lock(lock);
++}
++EXPORT_SYMBOL(_write_lock);
++#endif
++
++#ifndef CONFIG_INLINE_WRITE_LOCK_IRQSAVE
++unsigned long __lockfunc _write_lock_irqsave(rwlock_t *lock)
++{
++	return __write_lock_irqsave(lock);
++}
++EXPORT_SYMBOL(_write_lock_irqsave);
++#endif
++
++#ifndef CONFIG_INLINE_WRITE_LOCK_IRQ
++void __lockfunc _write_lock_irq(rwlock_t *lock)
++{
++	__write_lock_irq(lock);
++}
++EXPORT_SYMBOL(_write_lock_irq);
++#endif
++
++#ifndef CONFIG_INLINE_WRITE_LOCK_BH
++void __lockfunc _write_lock_bh(rwlock_t *lock)
++{
++	__write_lock_bh(lock);
++}
++EXPORT_SYMBOL(_write_lock_bh);
++#endif
++
++#ifndef CONFIG_INLINE_WRITE_UNLOCK
++void __lockfunc _write_unlock(rwlock_t *lock)
++{
++	__write_unlock(lock);
++}
++EXPORT_SYMBOL(_write_unlock);
++#endif
++
+ #ifndef CONFIG_INLINE_WRITE_UNLOCK_IRQRESTORE
+ void __lockfunc _write_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
+ {
+@@ -364,12 +337,39 @@ void __lockfunc _write_unlock_bh(rwlock_
+ EXPORT_SYMBOL(_write_unlock_bh);
+ #endif
+ 
+-#ifndef CONFIG_INLINE_SPIN_TRYLOCK_BH
+-int __lockfunc _spin_trylock_bh(spinlock_t *lock)
++#ifdef CONFIG_DEBUG_LOCK_ALLOC
++
++void __lockfunc _spin_lock_nested(spinlock_t *lock, int subclass)
+ {
+-	return __spin_trylock_bh(lock);
++	preempt_disable();
++	spin_acquire(&lock->dep_map, subclass, 0, _RET_IP_);
++	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
+ }
+-EXPORT_SYMBOL(_spin_trylock_bh);
++EXPORT_SYMBOL(_spin_lock_nested);
++
++unsigned long __lockfunc _spin_lock_irqsave_nested(spinlock_t *lock,
++						   int subclass)
++{
++	unsigned long flags;
++
++	local_irq_save(flags);
++	preempt_disable();
++	spin_acquire(&lock->dep_map, subclass, 0, _RET_IP_);
++	LOCK_CONTENDED_FLAGS(lock, _raw_spin_trylock, _raw_spin_lock,
++				_raw_spin_lock_flags, &flags);
++	return flags;
++}
++EXPORT_SYMBOL(_spin_lock_irqsave_nested);
++
++void __lockfunc _spin_lock_nest_lock(spinlock_t *lock,
++				     struct lockdep_map *nest_lock)
++{
++	preempt_disable();
++	spin_acquire_nest(&lock->dep_map, 0, 0, nest_lock, _RET_IP_);
++	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
++}
++EXPORT_SYMBOL(_spin_lock_nest_lock);
++
+ #endif
+ 
+ notrace int in_lock_functions(unsigned long addr)
 
-> > --- linux.trees.git.orig/include/linux/cpuidle.h
-> > +++ linux.trees.git/include/linux/cpuidle.h
-> > @@ -41,7 +41,7 @@ struct cpuidle_state {
-> >  	unsigned long long	usage;
-> >  	unsigned long long	time; /* in US */
-> >
-> > -	int (*enter)	(struct cpuidle_device *dev,
-> > +	void (*enter)	(struct cpuidle_device *dev,
-> >  			 struct cpuidle_state *state);
-> >  };
-> 
-> While it may be a good idea to move the residency calculation to one central 
-> place, at least in theory a cpuidle_state->enter() function could have a 
-> better method to determine its value.
->
 
-This would mean a lot of code replication, which Pavel pointed out in
-the previous iteration. So I moved the residency calculation to a
-central place.
-
-> Either way you're implicitly introducing an API change here, and you're at 
-> least missing two functions on ARM and SuperH, respectively. Could you 
-> separate this API change out, and not take it for granted in the other 
-> patches?
->
-> 	Torsten
