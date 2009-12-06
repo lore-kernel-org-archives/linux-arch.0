@@ -1,284 +1,281 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:33222 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:33273 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S934078AbZLFSDY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 6 Dec 2009 13:03:24 -0500
-Message-ID: <20091206111957.883215299@linutronix.de>
-Date: Sun, 06 Dec 2009 18:03:06 -0000
+	id S934164AbZLFSDo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 6 Dec 2009 13:03:44 -0500
+Message-ID: <20091206111957.993628311@linutronix.de>
+Date: Sun, 06 Dec 2009 18:03:22 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 15/23] sched: Convert rt_runtime_lock to raw_spinlock
+Subject: [patch 18/23] rtmutes: Convert rtmutex.lock to raw_spinlock
 References: <20091206110944.492100233@linutronix.de>
-Content-Disposition: inline; filename=sched-convert-rt-runtime-lock.patch
+Content-Disposition: inline;
+	filename=rtmutex-convert-wait-lock-to-core-lock.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20091206180306.lGx4zzpsB6oINptAJziOFeKYhAIKwXFoYtY4ZLzRAaQ@z>
+Message-ID: <20091206180322.2z8jPvARcHOAocFw2r5EaJ08v4x0RBJXba8sBgq4aUM@z>
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- kernel/sched.c    |   28 ++++++++++++++--------------
- kernel/sched_rt.c |   46 +++++++++++++++++++++++-----------------------
- 2 files changed, 37 insertions(+), 37 deletions(-)
+ include/linux/rtmutex.h |    6 +++---
+ kernel/futex.c          |    6 +++---
+ kernel/rtmutex.c        |   48 ++++++++++++++++++++++++------------------------
+ 3 files changed, 30 insertions(+), 30 deletions(-)
 
-Index: linux-2.6-tip/kernel/sched.c
+Index: linux-2.6-tip/include/linux/rtmutex.h
 ===================================================================
---- linux-2.6-tip.orig/kernel/sched.c
-+++ linux-2.6-tip/kernel/sched.c
-@@ -141,7 +141,7 @@ struct rt_prio_array {
+--- linux-2.6-tip.orig/include/linux/rtmutex.h
++++ linux-2.6-tip/include/linux/rtmutex.h
+@@ -24,7 +24,7 @@
+  * @owner:	the mutex owner
+  */
+ struct rt_mutex {
+-	spinlock_t		wait_lock;
++	raw_spinlock_t		wait_lock;
+ 	struct plist_head	wait_list;
+ 	struct task_struct	*owner;
+ #ifdef CONFIG_DEBUG_RT_MUTEXES
+@@ -63,8 +63,8 @@ struct hrtimer_sleeper;
+ #endif
  
- struct rt_bandwidth {
- 	/* nests inside the rq lock: */
--	spinlock_t		rt_runtime_lock;
-+	raw_spinlock_t		rt_runtime_lock;
- 	ktime_t			rt_period;
- 	u64			rt_runtime;
- 	struct hrtimer		rt_period_timer;
-@@ -178,7 +178,7 @@ void init_rt_bandwidth(struct rt_bandwid
- 	rt_b->rt_period = ns_to_ktime(period);
- 	rt_b->rt_runtime = runtime;
+ #define __RT_MUTEX_INITIALIZER(mutexname) \
+-	{ .wait_lock = __SPIN_LOCK_UNLOCKED(mutexname.wait_lock) \
+-	, .wait_list = PLIST_HEAD_INIT(mutexname.wait_list, mutexname.wait_lock) \
++	{ .wait_lock = __RAW_SPIN_LOCK_UNLOCKED(mutexname.wait_lock) \
++	, .wait_list = PLIST_HEAD_INIT_RAW(mutexname.wait_list, mutexname.wait_lock) \
+ 	, .owner = NULL \
+ 	__DEBUG_RT_MUTEX_INITIALIZER(mutexname)}
  
--	spin_lock_init(&rt_b->rt_runtime_lock);
-+	raw_spin_lock_init(&rt_b->rt_runtime_lock);
+Index: linux-2.6-tip/kernel/futex.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/futex.c
++++ linux-2.6-tip/kernel/futex.c
+@@ -754,7 +754,7 @@ static int wake_futex_pi(u32 __user *uad
+ 	if (!pi_state)
+ 		return -EINVAL;
  
- 	hrtimer_init(&rt_b->rt_period_timer,
- 			CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-@@ -200,7 +200,7 @@ static void start_rt_bandwidth(struct rt
- 	if (hrtimer_active(&rt_b->rt_period_timer))
- 		return;
+-	spin_lock(&pi_state->pi_mutex.wait_lock);
++	raw_spin_lock(&pi_state->pi_mutex.wait_lock);
+ 	new_owner = rt_mutex_next_owner(&pi_state->pi_mutex);
  
--	spin_lock(&rt_b->rt_runtime_lock);
-+	raw_spin_lock(&rt_b->rt_runtime_lock);
- 	for (;;) {
- 		unsigned long delta;
- 		ktime_t soft, hard;
-@@ -217,7 +217,7 @@ static void start_rt_bandwidth(struct rt
- 		__hrtimer_start_range_ns(&rt_b->rt_period_timer, soft, delta,
- 				HRTIMER_MODE_ABS_PINNED, 0);
+ 	/*
+@@ -783,7 +783,7 @@ static int wake_futex_pi(u32 __user *uad
+ 		else if (curval != uval)
+ 			ret = -EINVAL;
+ 		if (ret) {
+-			spin_unlock(&pi_state->pi_mutex.wait_lock);
++			raw_spin_unlock(&pi_state->pi_mutex.wait_lock);
+ 			return ret;
+ 		}
  	}
--	spin_unlock(&rt_b->rt_runtime_lock);
-+	raw_spin_unlock(&rt_b->rt_runtime_lock);
- }
+@@ -799,7 +799,7 @@ static int wake_futex_pi(u32 __user *uad
+ 	pi_state->owner = new_owner;
+ 	raw_spin_unlock_irq(&new_owner->pi_lock);
  
- #ifdef CONFIG_RT_GROUP_SCHED
-@@ -470,7 +470,7 @@ struct rt_rq {
- 	u64 rt_time;
- 	u64 rt_runtime;
- 	/* Nests inside the rq lock: */
--	spinlock_t rt_runtime_lock;
-+	raw_spinlock_t rt_runtime_lock;
- 
- #ifdef CONFIG_RT_GROUP_SCHED
- 	unsigned long rt_nr_boosted;
-@@ -9361,7 +9361,7 @@ static void init_rt_rq(struct rt_rq *rt_
- 	rt_rq->rt_time = 0;
- 	rt_rq->rt_throttled = 0;
- 	rt_rq->rt_runtime = 0;
--	spin_lock_init(&rt_rq->rt_runtime_lock);
-+	raw_spin_lock_init(&rt_rq->rt_runtime_lock);
- 
- #ifdef CONFIG_RT_GROUP_SCHED
- 	rt_rq->rt_nr_boosted = 0;
-@@ -10296,18 +10296,18 @@ static int tg_set_bandwidth(struct task_
- 	if (err)
- 		goto unlock;
- 
--	spin_lock_irq(&tg->rt_bandwidth.rt_runtime_lock);
-+	raw_spin_lock_irq(&tg->rt_bandwidth.rt_runtime_lock);
- 	tg->rt_bandwidth.rt_period = ns_to_ktime(rt_period);
- 	tg->rt_bandwidth.rt_runtime = rt_runtime;
- 
- 	for_each_possible_cpu(i) {
- 		struct rt_rq *rt_rq = tg->rt_rq[i];
- 
--		spin_lock(&rt_rq->rt_runtime_lock);
-+		raw_spin_lock(&rt_rq->rt_runtime_lock);
- 		rt_rq->rt_runtime = rt_runtime;
--		spin_unlock(&rt_rq->rt_runtime_lock);
-+		raw_spin_unlock(&rt_rq->rt_runtime_lock);
- 	}
--	spin_unlock_irq(&tg->rt_bandwidth.rt_runtime_lock);
-+	raw_spin_unlock_irq(&tg->rt_bandwidth.rt_runtime_lock);
-  unlock:
- 	read_unlock(&tasklist_lock);
- 	mutex_unlock(&rt_constraints_mutex);
-@@ -10412,15 +10412,15 @@ static int sched_rt_global_constraints(v
- 	if (sysctl_sched_rt_runtime == 0)
- 		return -EBUSY;
- 
--	spin_lock_irqsave(&def_rt_bandwidth.rt_runtime_lock, flags);
-+	raw_spin_lock_irqsave(&def_rt_bandwidth.rt_runtime_lock, flags);
- 	for_each_possible_cpu(i) {
- 		struct rt_rq *rt_rq = &cpu_rq(i)->rt;
- 
--		spin_lock(&rt_rq->rt_runtime_lock);
-+		raw_spin_lock(&rt_rq->rt_runtime_lock);
- 		rt_rq->rt_runtime = global_rt_runtime();
--		spin_unlock(&rt_rq->rt_runtime_lock);
-+		raw_spin_unlock(&rt_rq->rt_runtime_lock);
- 	}
--	spin_unlock_irqrestore(&def_rt_bandwidth.rt_runtime_lock, flags);
-+	raw_spin_unlock_irqrestore(&def_rt_bandwidth.rt_runtime_lock, flags);
+-	spin_unlock(&pi_state->pi_mutex.wait_lock);
++	raw_spin_unlock(&pi_state->pi_mutex.wait_lock);
+ 	rt_mutex_unlock(&pi_state->pi_mutex);
  
  	return 0;
- }
-Index: linux-2.6-tip/kernel/sched_rt.c
+Index: linux-2.6-tip/kernel/rtmutex.c
 ===================================================================
---- linux-2.6-tip.orig/kernel/sched_rt.c
-+++ linux-2.6-tip/kernel/sched_rt.c
-@@ -327,7 +327,7 @@ static int do_balance_runtime(struct rt_
+--- linux-2.6-tip.orig/kernel/rtmutex.c
++++ linux-2.6-tip/kernel/rtmutex.c
+@@ -231,7 +231,7 @@ static int rt_mutex_adjust_prio_chain(st
+ 		goto out_unlock_pi;
  
- 	weight = cpumask_weight(rd->span);
- 
--	spin_lock(&rt_b->rt_runtime_lock);
-+	raw_spin_lock(&rt_b->rt_runtime_lock);
- 	rt_period = ktime_to_ns(rt_b->rt_period);
- 	for_each_cpu(i, rd->span) {
- 		struct rt_rq *iter = sched_rt_period_rt_rq(rt_b, i);
-@@ -336,7 +336,7 @@ static int do_balance_runtime(struct rt_
- 		if (iter == rt_rq)
- 			continue;
- 
--		spin_lock(&iter->rt_runtime_lock);
-+		raw_spin_lock(&iter->rt_runtime_lock);
- 		/*
- 		 * Either all rqs have inf runtime and there's nothing to steal
- 		 * or __disable_runtime() below sets a specific rq to inf to
-@@ -358,14 +358,14 @@ static int do_balance_runtime(struct rt_
- 			rt_rq->rt_runtime += diff;
- 			more = 1;
- 			if (rt_rq->rt_runtime == rt_period) {
--				spin_unlock(&iter->rt_runtime_lock);
-+				raw_spin_unlock(&iter->rt_runtime_lock);
- 				break;
- 			}
- 		}
- next:
--		spin_unlock(&iter->rt_runtime_lock);
-+		raw_spin_unlock(&iter->rt_runtime_lock);
+ 	lock = waiter->lock;
+-	if (!spin_trylock(&lock->wait_lock)) {
++	if (!raw_spin_trylock(&lock->wait_lock)) {
+ 		raw_spin_unlock_irqrestore(&task->pi_lock, flags);
+ 		cpu_relax();
+ 		goto retry;
+@@ -240,7 +240,7 @@ static int rt_mutex_adjust_prio_chain(st
+ 	/* Deadlock detection */
+ 	if (lock == orig_lock || rt_mutex_owner(lock) == top_task) {
+ 		debug_rt_mutex_deadlock(deadlock_detect, orig_waiter, lock);
+-		spin_unlock(&lock->wait_lock);
++		raw_spin_unlock(&lock->wait_lock);
+ 		ret = deadlock_detect ? -EDEADLK : 0;
+ 		goto out_unlock_pi;
  	}
--	spin_unlock(&rt_b->rt_runtime_lock);
-+	raw_spin_unlock(&rt_b->rt_runtime_lock);
+@@ -280,7 +280,7 @@ static int rt_mutex_adjust_prio_chain(st
+ 	raw_spin_unlock_irqrestore(&task->pi_lock, flags);
  
- 	return more;
+ 	top_waiter = rt_mutex_top_waiter(lock);
+-	spin_unlock(&lock->wait_lock);
++	raw_spin_unlock(&lock->wait_lock);
+ 
+ 	if (!detect_deadlock && waiter != top_waiter)
+ 		goto out_put_task;
+@@ -459,12 +459,12 @@ static int task_blocks_on_rt_mutex(struc
+ 	 */
+ 	get_task_struct(owner);
+ 
+-	spin_unlock(&lock->wait_lock);
++	raw_spin_unlock(&lock->wait_lock);
+ 
+ 	res = rt_mutex_adjust_prio_chain(owner, detect_deadlock, lock, waiter,
+ 					 task);
+ 
+-	spin_lock(&lock->wait_lock);
++	raw_spin_lock(&lock->wait_lock);
+ 
+ 	return res;
  }
-@@ -386,8 +386,8 @@ static void __disable_runtime(struct rq 
- 		s64 want;
- 		int i;
+@@ -575,11 +575,11 @@ static void remove_waiter(struct rt_mute
+ 	/* gets dropped in rt_mutex_adjust_prio_chain()! */
+ 	get_task_struct(owner);
  
--		spin_lock(&rt_b->rt_runtime_lock);
--		spin_lock(&rt_rq->rt_runtime_lock);
-+		raw_spin_lock(&rt_b->rt_runtime_lock);
-+		raw_spin_lock(&rt_rq->rt_runtime_lock);
- 		/*
- 		 * Either we're all inf and nobody needs to borrow, or we're
- 		 * already disabled and thus have nothing to do, or we have
-@@ -396,7 +396,7 @@ static void __disable_runtime(struct rq 
- 		if (rt_rq->rt_runtime == RUNTIME_INF ||
- 				rt_rq->rt_runtime == rt_b->rt_runtime)
- 			goto balanced;
--		spin_unlock(&rt_rq->rt_runtime_lock);
-+		raw_spin_unlock(&rt_rq->rt_runtime_lock);
+-	spin_unlock(&lock->wait_lock);
++	raw_spin_unlock(&lock->wait_lock);
  
- 		/*
- 		 * Calculate the difference between what we started out with
-@@ -418,7 +418,7 @@ static void __disable_runtime(struct rq 
- 			if (iter == rt_rq || iter->rt_runtime == RUNTIME_INF)
- 				continue;
+ 	rt_mutex_adjust_prio_chain(owner, 0, lock, NULL, current);
  
--			spin_lock(&iter->rt_runtime_lock);
-+			raw_spin_lock(&iter->rt_runtime_lock);
- 			if (want > 0) {
- 				diff = min_t(s64, iter->rt_runtime, want);
- 				iter->rt_runtime -= diff;
-@@ -427,13 +427,13 @@ static void __disable_runtime(struct rq 
- 				iter->rt_runtime -= want;
- 				want -= want;
- 			}
--			spin_unlock(&iter->rt_runtime_lock);
-+			raw_spin_unlock(&iter->rt_runtime_lock);
+-	spin_lock(&lock->wait_lock);
++	raw_spin_lock(&lock->wait_lock);
+ }
  
- 			if (!want)
+ /*
+@@ -672,14 +672,14 @@ __rt_mutex_slowlock(struct rt_mutex *loc
  				break;
  		}
  
--		spin_lock(&rt_rq->rt_runtime_lock);
-+		raw_spin_lock(&rt_rq->rt_runtime_lock);
- 		/*
- 		 * We cannot be left wanting - that would mean some runtime
- 		 * leaked out of the system.
-@@ -445,8 +445,8 @@ balanced:
- 		 * runtime - in which case borrowing doesn't make sense.
+-		spin_unlock(&lock->wait_lock);
++		raw_spin_unlock(&lock->wait_lock);
+ 
+ 		debug_rt_mutex_print_deadlock(waiter);
+ 
+ 		if (waiter->task)
+ 			schedule_rt_mutex(lock);
+ 
+-		spin_lock(&lock->wait_lock);
++		raw_spin_lock(&lock->wait_lock);
+ 		set_current_state(state);
+ 	}
+ 
+@@ -700,11 +700,11 @@ rt_mutex_slowlock(struct rt_mutex *lock,
+ 	debug_rt_mutex_init_waiter(&waiter);
+ 	waiter.task = NULL;
+ 
+-	spin_lock(&lock->wait_lock);
++	raw_spin_lock(&lock->wait_lock);
+ 
+ 	/* Try to acquire the lock again: */
+ 	if (try_to_take_rt_mutex(lock)) {
+-		spin_unlock(&lock->wait_lock);
++		raw_spin_unlock(&lock->wait_lock);
+ 		return 0;
+ 	}
+ 
+@@ -731,7 +731,7 @@ rt_mutex_slowlock(struct rt_mutex *lock,
+ 	 */
+ 	fixup_rt_mutex_waiters(lock);
+ 
+-	spin_unlock(&lock->wait_lock);
++	raw_spin_unlock(&lock->wait_lock);
+ 
+ 	/* Remove pending timer: */
+ 	if (unlikely(timeout))
+@@ -758,7 +758,7 @@ rt_mutex_slowtrylock(struct rt_mutex *lo
+ {
+ 	int ret = 0;
+ 
+-	spin_lock(&lock->wait_lock);
++	raw_spin_lock(&lock->wait_lock);
+ 
+ 	if (likely(rt_mutex_owner(lock) != current)) {
+ 
+@@ -770,7 +770,7 @@ rt_mutex_slowtrylock(struct rt_mutex *lo
+ 		fixup_rt_mutex_waiters(lock);
+ 	}
+ 
+-	spin_unlock(&lock->wait_lock);
++	raw_spin_unlock(&lock->wait_lock);
+ 
+ 	return ret;
+ }
+@@ -781,7 +781,7 @@ rt_mutex_slowtrylock(struct rt_mutex *lo
+ static void __sched
+ rt_mutex_slowunlock(struct rt_mutex *lock)
+ {
+-	spin_lock(&lock->wait_lock);
++	raw_spin_lock(&lock->wait_lock);
+ 
+ 	debug_rt_mutex_unlock(lock);
+ 
+@@ -789,13 +789,13 @@ rt_mutex_slowunlock(struct rt_mutex *loc
+ 
+ 	if (!rt_mutex_has_waiters(lock)) {
+ 		lock->owner = NULL;
+-		spin_unlock(&lock->wait_lock);
++		raw_spin_unlock(&lock->wait_lock);
+ 		return;
+ 	}
+ 
+ 	wakeup_next_waiter(lock);
+ 
+-	spin_unlock(&lock->wait_lock);
++	raw_spin_unlock(&lock->wait_lock);
+ 
+ 	/* Undo pi boosting if necessary: */
+ 	rt_mutex_adjust_prio(current);
+@@ -970,8 +970,8 @@ EXPORT_SYMBOL_GPL(rt_mutex_destroy);
+ void __rt_mutex_init(struct rt_mutex *lock, const char *name)
+ {
+ 	lock->owner = NULL;
+-	spin_lock_init(&lock->wait_lock);
+-	plist_head_init(&lock->wait_list, &lock->wait_lock);
++	raw_spin_lock_init(&lock->wait_lock);
++	plist_head_init_raw(&lock->wait_list, &lock->wait_lock);
+ 
+ 	debug_rt_mutex_init(lock, name);
+ }
+@@ -1032,7 +1032,7 @@ int rt_mutex_start_proxy_lock(struct rt_
+ {
+ 	int ret;
+ 
+-	spin_lock(&lock->wait_lock);
++	raw_spin_lock(&lock->wait_lock);
+ 
+ 	mark_rt_mutex_waiters(lock);
+ 
+@@ -1040,7 +1040,7 @@ int rt_mutex_start_proxy_lock(struct rt_
+ 		/* We got the lock for task. */
+ 		debug_rt_mutex_lock(lock);
+ 		rt_mutex_set_owner(lock, task, 0);
+-		spin_unlock(&lock->wait_lock);
++		raw_spin_unlock(&lock->wait_lock);
+ 		rt_mutex_deadlock_account_lock(lock, task);
+ 		return 1;
+ 	}
+@@ -1056,7 +1056,7 @@ int rt_mutex_start_proxy_lock(struct rt_
  		 */
- 		rt_rq->rt_runtime = RUNTIME_INF;
--		spin_unlock(&rt_rq->rt_runtime_lock);
--		spin_unlock(&rt_b->rt_runtime_lock);
-+		raw_spin_unlock(&rt_rq->rt_runtime_lock);
-+		raw_spin_unlock(&rt_b->rt_runtime_lock);
+ 		ret = 0;
  	}
- }
+-	spin_unlock(&lock->wait_lock);
++	raw_spin_unlock(&lock->wait_lock);
  
-@@ -472,13 +472,13 @@ static void __enable_runtime(struct rq *
- 	for_each_leaf_rt_rq(rt_rq, rq) {
- 		struct rt_bandwidth *rt_b = sched_rt_bandwidth(rt_rq);
+ 	debug_rt_mutex_print_deadlock(waiter);
  
--		spin_lock(&rt_b->rt_runtime_lock);
--		spin_lock(&rt_rq->rt_runtime_lock);
-+		raw_spin_lock(&rt_b->rt_runtime_lock);
-+		raw_spin_lock(&rt_rq->rt_runtime_lock);
- 		rt_rq->rt_runtime = rt_b->rt_runtime;
- 		rt_rq->rt_time = 0;
- 		rt_rq->rt_throttled = 0;
--		spin_unlock(&rt_rq->rt_runtime_lock);
--		spin_unlock(&rt_b->rt_runtime_lock);
-+		raw_spin_unlock(&rt_rq->rt_runtime_lock);
-+		raw_spin_unlock(&rt_b->rt_runtime_lock);
- 	}
- }
+@@ -1106,7 +1106,7 @@ int rt_mutex_finish_proxy_lock(struct rt
+ {
+ 	int ret;
  
-@@ -496,9 +496,9 @@ static int balance_runtime(struct rt_rq 
- 	int more = 0;
+-	spin_lock(&lock->wait_lock);
++	raw_spin_lock(&lock->wait_lock);
  
- 	if (rt_rq->rt_time > rt_rq->rt_runtime) {
--		spin_unlock(&rt_rq->rt_runtime_lock);
-+		raw_spin_unlock(&rt_rq->rt_runtime_lock);
- 		more = do_balance_runtime(rt_rq);
--		spin_lock(&rt_rq->rt_runtime_lock);
-+		raw_spin_lock(&rt_rq->rt_runtime_lock);
- 	}
+ 	set_current_state(TASK_INTERRUPTIBLE);
  
- 	return more;
-@@ -528,7 +528,7 @@ static int do_sched_rt_period_timer(stru
- 		if (rt_rq->rt_time) {
- 			u64 runtime;
+@@ -1124,7 +1124,7 @@ int rt_mutex_finish_proxy_lock(struct rt
+ 	 */
+ 	fixup_rt_mutex_waiters(lock);
  
--			spin_lock(&rt_rq->rt_runtime_lock);
-+			raw_spin_lock(&rt_rq->rt_runtime_lock);
- 			if (rt_rq->rt_throttled)
- 				balance_runtime(rt_rq);
- 			runtime = rt_rq->rt_runtime;
-@@ -539,7 +539,7 @@ static int do_sched_rt_period_timer(stru
- 			}
- 			if (rt_rq->rt_time || rt_rq->rt_nr_running)
- 				idle = 0;
--			spin_unlock(&rt_rq->rt_runtime_lock);
-+			raw_spin_unlock(&rt_rq->rt_runtime_lock);
- 		} else if (rt_rq->rt_nr_running)
- 			idle = 0;
+-	spin_unlock(&lock->wait_lock);
++	raw_spin_unlock(&lock->wait_lock);
  
-@@ -624,11 +624,11 @@ static void update_curr_rt(struct rq *rq
- 		rt_rq = rt_rq_of_se(rt_se);
- 
- 		if (sched_rt_runtime(rt_rq) != RUNTIME_INF) {
--			spin_lock(&rt_rq->rt_runtime_lock);
-+			raw_spin_lock(&rt_rq->rt_runtime_lock);
- 			rt_rq->rt_time += delta_exec;
- 			if (sched_rt_runtime_exceeded(rt_rq))
- 				resched_task(curr);
--			spin_unlock(&rt_rq->rt_runtime_lock);
-+			raw_spin_unlock(&rt_rq->rt_runtime_lock);
- 		}
- 	}
- }
+ 	/*
+ 	 * Readjust priority, when we did not get the lock. We might have been
 
 
