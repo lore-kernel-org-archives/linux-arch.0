@@ -1,669 +1,432 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 03/23] locking: Separate rwlock api from spinlock api
-Date: Sun, 06 Dec 2009 18:02:00 -0000
-Message-ID: <20091206111957.418057255@linutronix.de>
+Subject: [patch 05/23] locking: Rename __RAW_SPIN_LOCK_UNLOCKED to
+	__ARCH_SPIN_LOCK_UNLOCKED
+Date: Sun, 06 Dec 2009 18:02:12 -0000
+Message-ID: <20091206111957.491975360@linutronix.de>
 References: <20091206110944.492100233@linutronix.de>
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S934112AbZLFSCd@vger.kernel.org>
-Content-Disposition: inline;
-	filename=locking-split-rwlock-api-from-spinlock-api.patch
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S934124AbZLFSCx@vger.kernel.org>
+Content-Disposition: inline; filename=locking-rename-raw-lock-initializer.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Move the rwlock smp api defines and functions into a separate header
-file. Makes the -rt selection simpler and less intrusive.
-
-No functional change.
+Further name space cleanup. No functional change
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- include/linux/rwlock_api_smp.h   |  277 +++++++++++++++++++++++++++++++++++++++
- include/linux/spinlock_api_smp.h |  252 -----------------------------------
- 2 files changed, 280 insertions(+), 249 deletions(-)
+ arch/alpha/include/asm/spinlock_types.h    |    2 +-
+ arch/arm/include/asm/spinlock_types.h      |    2 +-
+ arch/blackfin/include/asm/spinlock_types.h |    2 +-
+ arch/ia64/include/asm/spinlock_types.h     |    2 +-
+ arch/m32r/include/asm/spinlock_types.h     |    2 +-
+ arch/mips/include/asm/spinlock_types.h     |    2 +-
+ arch/parisc/include/asm/spinlock_types.h   |    6 +++---
+ arch/parisc/lib/bitops.c                   |    2 +-
+ arch/powerpc/include/asm/spinlock_types.h  |    2 +-
+ arch/powerpc/kernel/rtas.c                 |    2 +-
+ arch/s390/include/asm/spinlock_types.h     |    2 +-
+ arch/sh/include/asm/spinlock_types.h       |    2 +-
+ arch/sparc/include/asm/spinlock_types.h    |    2 +-
+ arch/x86/include/asm/spinlock_types.h      |    2 +-
+ arch/x86/kernel/dumpstack.c                |    2 +-
+ arch/x86/kernel/tsc_sync.c                 |    2 +-
+ include/linux/spinlock_types.h             |    4 ++--
+ include/linux/spinlock_types_up.h          |    4 ++--
+ kernel/lockdep.c                           |    2 +-
+ kernel/trace/ring_buffer.c                 |    2 +-
+ kernel/trace/trace.c                       |   10 +++++-----
+ kernel/trace/trace_clock.c                 |    2 +-
+ kernel/trace/trace_sched_wakeup.c          |    2 +-
+ kernel/trace/trace_stack.c                 |    2 +-
+ lib/spinlock_debug.c                       |    2 +-
+ 25 files changed, 33 insertions(+), 33 deletions(-)
 
-Index: linux-2.6-tip/include/linux/rwlock_api_smp.h
+Index: linux-2.6-tip/arch/alpha/include/asm/spinlock_types.h
 ===================================================================
---- /dev/null
-+++ linux-2.6-tip/include/linux/rwlock_api_smp.h
-@@ -0,0 +1,277 @@
-+#ifndef __LINUX_RWLOCK_API_SMP_H
-+#define __LINUX_RWLOCK_API_SMP_H
-+
-+#ifndef __LINUX_SPINLOCK_API_SMP_H
-+# error "please don't include this file directly"
-+#endif
-+
-+/*
-+ * include/linux/rwlock_api_smp.h
-+ *
-+ * spinlock API declarations on SMP (and debug)
-+ * (implemented in kernel/spinlock.c)
-+ *
-+ * portions Copyright 2005, Red Hat, Inc., Ingo Molnar
-+ * Released under the General Public License (GPL).
-+ */
-+
-+void __lockfunc _read_lock(rwlock_t *lock)		__acquires(lock);
-+void __lockfunc _write_lock(rwlock_t *lock)		__acquires(lock);
-+void __lockfunc _read_lock_bh(rwlock_t *lock)		__acquires(lock);
-+void __lockfunc _write_lock_bh(rwlock_t *lock)		__acquires(lock);
-+void __lockfunc _read_lock_irq(rwlock_t *lock)		__acquires(lock);
-+void __lockfunc _write_lock_irq(rwlock_t *lock)		__acquires(lock);
-+unsigned long __lockfunc _read_lock_irqsave(rwlock_t *lock)
-+							__acquires(lock);
-+unsigned long __lockfunc _write_lock_irqsave(rwlock_t *lock)
-+							__acquires(lock);
-+int __lockfunc _read_trylock(rwlock_t *lock);
-+int __lockfunc _write_trylock(rwlock_t *lock);
-+void __lockfunc _read_unlock(rwlock_t *lock)		__releases(lock);
-+void __lockfunc _write_unlock(rwlock_t *lock)		__releases(lock);
-+void __lockfunc _read_unlock_bh(rwlock_t *lock)		__releases(lock);
-+void __lockfunc _write_unlock_bh(rwlock_t *lock)	__releases(lock);
-+void __lockfunc _read_unlock_irq(rwlock_t *lock)	__releases(lock);
-+void __lockfunc _write_unlock_irq(rwlock_t *lock)	__releases(lock);
-+void __lockfunc _read_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
-+							__releases(lock);
-+void __lockfunc _write_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
-+							__releases(lock);
-+
-+#ifdef CONFIG_INLINE_READ_LOCK
-+#define _read_lock(lock) __read_lock(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_WRITE_LOCK
-+#define _write_lock(lock) __write_lock(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_READ_LOCK_BH
-+#define _read_lock_bh(lock) __read_lock_bh(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_WRITE_LOCK_BH
-+#define _write_lock_bh(lock) __write_lock_bh(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_READ_LOCK_IRQ
-+#define _read_lock_irq(lock) __read_lock_irq(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_WRITE_LOCK_IRQ
-+#define _write_lock_irq(lock) __write_lock_irq(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_READ_LOCK_IRQSAVE
-+#define _read_lock_irqsave(lock) __read_lock_irqsave(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_WRITE_LOCK_IRQSAVE
-+#define _write_lock_irqsave(lock) __write_lock_irqsave(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_READ_TRYLOCK
-+#define _read_trylock(lock) __read_trylock(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_WRITE_TRYLOCK
-+#define _write_trylock(lock) __write_trylock(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_READ_UNLOCK
-+#define _read_unlock(lock) __read_unlock(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_WRITE_UNLOCK
-+#define _write_unlock(lock) __write_unlock(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_READ_UNLOCK_BH
-+#define _read_unlock_bh(lock) __read_unlock_bh(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_WRITE_UNLOCK_BH
-+#define _write_unlock_bh(lock) __write_unlock_bh(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_READ_UNLOCK_IRQ
-+#define _read_unlock_irq(lock) __read_unlock_irq(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_WRITE_UNLOCK_IRQ
-+#define _write_unlock_irq(lock) __write_unlock_irq(lock)
-+#endif
-+
-+#ifdef CONFIG_INLINE_READ_UNLOCK_IRQRESTORE
-+#define _read_unlock_irqrestore(lock, flags) __read_unlock_irqrestore(lock, flags)
-+#endif
-+
-+#ifdef CONFIG_INLINE_WRITE_UNLOCK_IRQRESTORE
-+#define _write_unlock_irqrestore(lock, flags) __write_unlock_irqrestore(lock, flags)
-+#endif
-+
-+static inline int __read_trylock(rwlock_t *lock)
-+{
-+	preempt_disable();
-+	if (_raw_read_trylock(lock)) {
-+		rwlock_acquire_read(&lock->dep_map, 0, 1, _RET_IP_);
-+		return 1;
-+	}
-+	preempt_enable();
-+	return 0;
-+}
-+
-+static inline int __write_trylock(rwlock_t *lock)
-+{
-+	preempt_disable();
-+	if (_raw_write_trylock(lock)) {
-+		rwlock_acquire(&lock->dep_map, 0, 1, _RET_IP_);
-+		return 1;
-+	}
-+	preempt_enable();
-+	return 0;
-+}
-+
-+/*
-+ * If lockdep is enabled then we use the non-preemption spin-ops
-+ * even on CONFIG_PREEMPT, because lockdep assumes that interrupts are
-+ * not re-enabled during lock-acquire (which the preempt-spin-ops do):
-+ */
-+#if !defined(CONFIG_GENERIC_LOCKBREAK) || defined(CONFIG_DEBUG_LOCK_ALLOC)
-+
-+static inline void __read_lock(rwlock_t *lock)
-+{
-+	preempt_disable();
-+	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
-+	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
-+}
-+
-+static inline unsigned long __read_lock_irqsave(rwlock_t *lock)
-+{
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	preempt_disable();
-+	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
-+	LOCK_CONTENDED_FLAGS(lock, _raw_read_trylock, _raw_read_lock,
-+			     _raw_read_lock_flags, &flags);
-+	return flags;
-+}
-+
-+static inline void __read_lock_irq(rwlock_t *lock)
-+{
-+	local_irq_disable();
-+	preempt_disable();
-+	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
-+	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
-+}
-+
-+static inline void __read_lock_bh(rwlock_t *lock)
-+{
-+	local_bh_disable();
-+	preempt_disable();
-+	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
-+	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
-+}
-+
-+static inline unsigned long __write_lock_irqsave(rwlock_t *lock)
-+{
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	preempt_disable();
-+	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
-+	LOCK_CONTENDED_FLAGS(lock, _raw_write_trylock, _raw_write_lock,
-+			     _raw_write_lock_flags, &flags);
-+	return flags;
-+}
-+
-+static inline void __write_lock_irq(rwlock_t *lock)
-+{
-+	local_irq_disable();
-+	preempt_disable();
-+	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
-+	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
-+}
-+
-+static inline void __write_lock_bh(rwlock_t *lock)
-+{
-+	local_bh_disable();
-+	preempt_disable();
-+	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
-+	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
-+}
-+
-+static inline void __write_lock(rwlock_t *lock)
-+{
-+	preempt_disable();
-+	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
-+	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
-+}
-+
-+#endif /* CONFIG_PREEMPT */
-+
-+static inline void __write_unlock(rwlock_t *lock)
-+{
-+	rwlock_release(&lock->dep_map, 1, _RET_IP_);
-+	_raw_write_unlock(lock);
-+	preempt_enable();
-+}
-+
-+static inline void __read_unlock(rwlock_t *lock)
-+{
-+	rwlock_release(&lock->dep_map, 1, _RET_IP_);
-+	_raw_read_unlock(lock);
-+	preempt_enable();
-+}
-+
-+static inline void __read_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
-+{
-+	rwlock_release(&lock->dep_map, 1, _RET_IP_);
-+	_raw_read_unlock(lock);
-+	local_irq_restore(flags);
-+	preempt_enable();
-+}
-+
-+static inline void __read_unlock_irq(rwlock_t *lock)
-+{
-+	rwlock_release(&lock->dep_map, 1, _RET_IP_);
-+	_raw_read_unlock(lock);
-+	local_irq_enable();
-+	preempt_enable();
-+}
-+
-+static inline void __read_unlock_bh(rwlock_t *lock)
-+{
-+	rwlock_release(&lock->dep_map, 1, _RET_IP_);
-+	_raw_read_unlock(lock);
-+	preempt_enable_no_resched();
-+	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
-+}
-+
-+static inline void __write_unlock_irqrestore(rwlock_t *lock,
-+					     unsigned long flags)
-+{
-+	rwlock_release(&lock->dep_map, 1, _RET_IP_);
-+	_raw_write_unlock(lock);
-+	local_irq_restore(flags);
-+	preempt_enable();
-+}
-+
-+static inline void __write_unlock_irq(rwlock_t *lock)
-+{
-+	rwlock_release(&lock->dep_map, 1, _RET_IP_);
-+	_raw_write_unlock(lock);
-+	local_irq_enable();
-+	preempt_enable();
-+}
-+
-+static inline void __write_unlock_bh(rwlock_t *lock)
-+{
-+	rwlock_release(&lock->dep_map, 1, _RET_IP_);
-+	_raw_write_unlock(lock);
-+	preempt_enable_no_resched();
-+	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
-+}
-+
-+#endif /* __LINUX_RWLOCK_API_SMP_H */
-Index: linux-2.6-tip/include/linux/spinlock_api_smp.h
+--- linux-2.6-tip.orig/arch/alpha/include/asm/spinlock_types.h
++++ linux-2.6-tip/arch/alpha/include/asm/spinlock_types.h
+@@ -9,7 +9,7 @@ typedef struct {
+ 	volatile unsigned int lock;
+ } arch_spinlock_t;
+ 
+-#define __RAW_SPIN_LOCK_UNLOCKED	{ 0 }
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
+ 
+ typedef struct {
+ 	volatile unsigned int lock;
+Index: linux-2.6-tip/arch/arm/include/asm/spinlock_types.h
 ===================================================================
---- linux-2.6-tip.orig/include/linux/spinlock_api_smp.h
-+++ linux-2.6-tip/include/linux/spinlock_api_smp.h
-@@ -24,102 +24,41 @@ void __lockfunc _spin_lock_nested(spinlo
- 							__acquires(lock);
- void __lockfunc _spin_lock_nest_lock(spinlock_t *lock, struct lockdep_map *map)
- 							__acquires(lock);
--void __lockfunc _read_lock(rwlock_t *lock)		__acquires(lock);
--void __lockfunc _write_lock(rwlock_t *lock)		__acquires(lock);
- void __lockfunc _spin_lock_bh(spinlock_t *lock)		__acquires(lock);
--void __lockfunc _read_lock_bh(rwlock_t *lock)		__acquires(lock);
--void __lockfunc _write_lock_bh(rwlock_t *lock)		__acquires(lock);
- void __lockfunc _spin_lock_irq(spinlock_t *lock)	__acquires(lock);
--void __lockfunc _read_lock_irq(rwlock_t *lock)		__acquires(lock);
--void __lockfunc _write_lock_irq(rwlock_t *lock)		__acquires(lock);
-+
- unsigned long __lockfunc _spin_lock_irqsave(spinlock_t *lock)
- 							__acquires(lock);
- unsigned long __lockfunc _spin_lock_irqsave_nested(spinlock_t *lock, int subclass)
- 							__acquires(lock);
--unsigned long __lockfunc _read_lock_irqsave(rwlock_t *lock)
--							__acquires(lock);
--unsigned long __lockfunc _write_lock_irqsave(rwlock_t *lock)
--							__acquires(lock);
- int __lockfunc _spin_trylock(spinlock_t *lock);
--int __lockfunc _read_trylock(rwlock_t *lock);
--int __lockfunc _write_trylock(rwlock_t *lock);
- int __lockfunc _spin_trylock_bh(spinlock_t *lock);
- void __lockfunc _spin_unlock(spinlock_t *lock)		__releases(lock);
--void __lockfunc _read_unlock(rwlock_t *lock)		__releases(lock);
--void __lockfunc _write_unlock(rwlock_t *lock)		__releases(lock);
- void __lockfunc _spin_unlock_bh(spinlock_t *lock)	__releases(lock);
--void __lockfunc _read_unlock_bh(rwlock_t *lock)		__releases(lock);
--void __lockfunc _write_unlock_bh(rwlock_t *lock)	__releases(lock);
- void __lockfunc _spin_unlock_irq(spinlock_t *lock)	__releases(lock);
--void __lockfunc _read_unlock_irq(rwlock_t *lock)	__releases(lock);
--void __lockfunc _write_unlock_irq(rwlock_t *lock)	__releases(lock);
- void __lockfunc _spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags)
- 							__releases(lock);
--void __lockfunc _read_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
--							__releases(lock);
--void __lockfunc _write_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
--							__releases(lock);
+--- linux-2.6-tip.orig/arch/arm/include/asm/spinlock_types.h
++++ linux-2.6-tip/arch/arm/include/asm/spinlock_types.h
+@@ -9,7 +9,7 @@ typedef struct {
+ 	volatile unsigned int lock;
+ } arch_spinlock_t;
  
- #ifdef CONFIG_INLINE_SPIN_LOCK
- #define _spin_lock(lock) __spin_lock(lock)
+-#define __RAW_SPIN_LOCK_UNLOCKED	{ 0 }
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
+ 
+ typedef struct {
+ 	volatile unsigned int lock;
+Index: linux-2.6-tip/arch/blackfin/include/asm/spinlock_types.h
+===================================================================
+--- linux-2.6-tip.orig/arch/blackfin/include/asm/spinlock_types.h
++++ linux-2.6-tip/arch/blackfin/include/asm/spinlock_types.h
+@@ -17,7 +17,7 @@ typedef struct {
+ 	volatile unsigned int lock;
+ } arch_spinlock_t;
+ 
+-#define __RAW_SPIN_LOCK_UNLOCKED	{ 0 }
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
+ 
+ typedef struct {
+ 	volatile unsigned int lock;
+Index: linux-2.6-tip/arch/ia64/include/asm/spinlock_types.h
+===================================================================
+--- linux-2.6-tip.orig/arch/ia64/include/asm/spinlock_types.h
++++ linux-2.6-tip/arch/ia64/include/asm/spinlock_types.h
+@@ -9,7 +9,7 @@ typedef struct {
+ 	volatile unsigned int lock;
+ } arch_spinlock_t;
+ 
+-#define __RAW_SPIN_LOCK_UNLOCKED	{ 0 }
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
+ 
+ typedef struct {
+ 	volatile unsigned int read_counter	: 31;
+Index: linux-2.6-tip/arch/m32r/include/asm/spinlock_types.h
+===================================================================
+--- linux-2.6-tip.orig/arch/m32r/include/asm/spinlock_types.h
++++ linux-2.6-tip/arch/m32r/include/asm/spinlock_types.h
+@@ -9,7 +9,7 @@ typedef struct {
+ 	volatile int slock;
+ } arch_spinlock_t;
+ 
+-#define __RAW_SPIN_LOCK_UNLOCKED	{ 1 }
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ 1 }
+ 
+ typedef struct {
+ 	volatile int lock;
+Index: linux-2.6-tip/arch/mips/include/asm/spinlock_types.h
+===================================================================
+--- linux-2.6-tip.orig/arch/mips/include/asm/spinlock_types.h
++++ linux-2.6-tip/arch/mips/include/asm/spinlock_types.h
+@@ -14,7 +14,7 @@ typedef struct {
+ 	unsigned int lock;
+ } arch_spinlock_t;
+ 
+-#define __RAW_SPIN_LOCK_UNLOCKED	{ 0 }
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
+ 
+ typedef struct {
+ 	volatile unsigned int lock;
+Index: linux-2.6-tip/arch/parisc/include/asm/spinlock_types.h
+===================================================================
+--- linux-2.6-tip.orig/arch/parisc/include/asm/spinlock_types.h
++++ linux-2.6-tip/arch/parisc/include/asm/spinlock_types.h
+@@ -4,10 +4,10 @@
+ typedef struct {
+ #ifdef CONFIG_PA20
+ 	volatile unsigned int slock;
+-# define __RAW_SPIN_LOCK_UNLOCKED { 1 }
++# define __ARCH_SPIN_LOCK_UNLOCKED { 1 }
+ #else
+ 	volatile unsigned int lock[4];
+-# define __RAW_SPIN_LOCK_UNLOCKED	{ { 1, 1, 1, 1 } }
++# define __ARCH_SPIN_LOCK_UNLOCKED	{ { 1, 1, 1, 1 } }
+ #endif
+ } arch_spinlock_t;
+ 
+@@ -16,6 +16,6 @@ typedef struct {
+ 	volatile int counter;
+ } raw_rwlock_t;
+ 
+-#define __RAW_RW_LOCK_UNLOCKED		{ __RAW_SPIN_LOCK_UNLOCKED, 0 }
++#define __RAW_RW_LOCK_UNLOCKED		{ __ARCH_SPIN_LOCK_UNLOCKED, 0 }
+ 
+ #endif
+Index: linux-2.6-tip/arch/parisc/lib/bitops.c
+===================================================================
+--- linux-2.6-tip.orig/arch/parisc/lib/bitops.c
++++ linux-2.6-tip/arch/parisc/lib/bitops.c
+@@ -13,7 +13,7 @@
+ 
+ #ifdef CONFIG_SMP
+ arch_spinlock_t __atomic_hash[ATOMIC_HASH_SIZE] __lock_aligned = {
+-	[0 ... (ATOMIC_HASH_SIZE-1)]  = __RAW_SPIN_LOCK_UNLOCKED
++	[0 ... (ATOMIC_HASH_SIZE-1)]  = __ARCH_SPIN_LOCK_UNLOCKED
+ };
  #endif
  
--#ifdef CONFIG_INLINE_READ_LOCK
--#define _read_lock(lock) __read_lock(lock)
--#endif
--
--#ifdef CONFIG_INLINE_WRITE_LOCK
--#define _write_lock(lock) __write_lock(lock)
--#endif
--
- #ifdef CONFIG_INLINE_SPIN_LOCK_BH
- #define _spin_lock_bh(lock) __spin_lock_bh(lock)
- #endif
+Index: linux-2.6-tip/arch/powerpc/include/asm/spinlock_types.h
+===================================================================
+--- linux-2.6-tip.orig/arch/powerpc/include/asm/spinlock_types.h
++++ linux-2.6-tip/arch/powerpc/include/asm/spinlock_types.h
+@@ -9,7 +9,7 @@ typedef struct {
+ 	volatile unsigned int slock;
+ } arch_spinlock_t;
  
--#ifdef CONFIG_INLINE_READ_LOCK_BH
--#define _read_lock_bh(lock) __read_lock_bh(lock)
--#endif
--
--#ifdef CONFIG_INLINE_WRITE_LOCK_BH
--#define _write_lock_bh(lock) __write_lock_bh(lock)
--#endif
--
- #ifdef CONFIG_INLINE_SPIN_LOCK_IRQ
- #define _spin_lock_irq(lock) __spin_lock_irq(lock)
- #endif
+-#define __RAW_SPIN_LOCK_UNLOCKED	{ 0 }
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
  
--#ifdef CONFIG_INLINE_READ_LOCK_IRQ
--#define _read_lock_irq(lock) __read_lock_irq(lock)
--#endif
--
--#ifdef CONFIG_INLINE_WRITE_LOCK_IRQ
--#define _write_lock_irq(lock) __write_lock_irq(lock)
--#endif
--
- #ifdef CONFIG_INLINE_SPIN_LOCK_IRQSAVE
- #define _spin_lock_irqsave(lock) __spin_lock_irqsave(lock)
- #endif
+ typedef struct {
+ 	volatile signed int lock;
+Index: linux-2.6-tip/arch/powerpc/kernel/rtas.c
+===================================================================
+--- linux-2.6-tip.orig/arch/powerpc/kernel/rtas.c
++++ linux-2.6-tip/arch/powerpc/kernel/rtas.c
+@@ -42,7 +42,7 @@
+ #include <asm/mmu.h>
  
--#ifdef CONFIG_INLINE_READ_LOCK_IRQSAVE
--#define _read_lock_irqsave(lock) __read_lock_irqsave(lock)
--#endif
--
--#ifdef CONFIG_INLINE_WRITE_LOCK_IRQSAVE
--#define _write_lock_irqsave(lock) __write_lock_irqsave(lock)
--#endif
--
- #ifdef CONFIG_INLINE_SPIN_TRYLOCK
- #define _spin_trylock(lock) __spin_trylock(lock)
- #endif
+ struct rtas_t rtas = {
+-	.lock = __RAW_SPIN_LOCK_UNLOCKED
++	.lock = __ARCH_SPIN_LOCK_UNLOCKED
+ };
+ EXPORT_SYMBOL(rtas);
  
--#ifdef CONFIG_INLINE_READ_TRYLOCK
--#define _read_trylock(lock) __read_trylock(lock)
--#endif
--
--#ifdef CONFIG_INLINE_WRITE_TRYLOCK
--#define _write_trylock(lock) __write_trylock(lock)
--#endif
--
- #ifdef CONFIG_INLINE_SPIN_TRYLOCK_BH
- #define _spin_trylock_bh(lock) __spin_trylock_bh(lock)
- #endif
-@@ -128,50 +67,18 @@ void __lockfunc _write_unlock_irqrestore
- #define _spin_unlock(lock) __spin_unlock(lock)
- #endif
+Index: linux-2.6-tip/arch/s390/include/asm/spinlock_types.h
+===================================================================
+--- linux-2.6-tip.orig/arch/s390/include/asm/spinlock_types.h
++++ linux-2.6-tip/arch/s390/include/asm/spinlock_types.h
+@@ -9,7 +9,7 @@ typedef struct {
+ 	volatile unsigned int owner_cpu;
+ } __attribute__ ((aligned (4))) arch_spinlock_t;
  
--#ifdef CONFIG_INLINE_READ_UNLOCK
--#define _read_unlock(lock) __read_unlock(lock)
--#endif
--
--#ifdef CONFIG_INLINE_WRITE_UNLOCK
--#define _write_unlock(lock) __write_unlock(lock)
--#endif
--
- #ifdef CONFIG_INLINE_SPIN_UNLOCK_BH
- #define _spin_unlock_bh(lock) __spin_unlock_bh(lock)
- #endif
+-#define __RAW_SPIN_LOCK_UNLOCKED	{ 0 }
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
  
--#ifdef CONFIG_INLINE_READ_UNLOCK_BH
--#define _read_unlock_bh(lock) __read_unlock_bh(lock)
--#endif
--
--#ifdef CONFIG_INLINE_WRITE_UNLOCK_BH
--#define _write_unlock_bh(lock) __write_unlock_bh(lock)
--#endif
--
- #ifdef CONFIG_INLINE_SPIN_UNLOCK_IRQ
- #define _spin_unlock_irq(lock) __spin_unlock_irq(lock)
- #endif
+ typedef struct {
+ 	volatile unsigned int lock;
+Index: linux-2.6-tip/arch/sh/include/asm/spinlock_types.h
+===================================================================
+--- linux-2.6-tip.orig/arch/sh/include/asm/spinlock_types.h
++++ linux-2.6-tip/arch/sh/include/asm/spinlock_types.h
+@@ -9,7 +9,7 @@ typedef struct {
+ 	volatile unsigned int lock;
+ } arch_spinlock_t;
  
--#ifdef CONFIG_INLINE_READ_UNLOCK_IRQ
--#define _read_unlock_irq(lock) __read_unlock_irq(lock)
--#endif
--
--#ifdef CONFIG_INLINE_WRITE_UNLOCK_IRQ
--#define _write_unlock_irq(lock) __write_unlock_irq(lock)
--#endif
--
- #ifdef CONFIG_INLINE_SPIN_UNLOCK_IRQRESTORE
- #define _spin_unlock_irqrestore(lock, flags) __spin_unlock_irqrestore(lock, flags)
- #endif
+-#define __RAW_SPIN_LOCK_UNLOCKED		{ 1 }
++#define __ARCH_SPIN_LOCK_UNLOCKED		{ 1 }
  
--#ifdef CONFIG_INLINE_READ_UNLOCK_IRQRESTORE
--#define _read_unlock_irqrestore(lock, flags) __read_unlock_irqrestore(lock, flags)
--#endif
--
--#ifdef CONFIG_INLINE_WRITE_UNLOCK_IRQRESTORE
--#define _write_unlock_irqrestore(lock, flags) __write_unlock_irqrestore(lock, flags)
--#endif
--
- static inline int __spin_trylock(spinlock_t *lock)
- {
- 	preempt_disable();
-@@ -183,28 +90,6 @@ static inline int __spin_trylock(spinloc
- 	return 0;
+ typedef struct {
+ 	volatile unsigned int lock;
+Index: linux-2.6-tip/arch/sparc/include/asm/spinlock_types.h
+===================================================================
+--- linux-2.6-tip.orig/arch/sparc/include/asm/spinlock_types.h
++++ linux-2.6-tip/arch/sparc/include/asm/spinlock_types.h
+@@ -9,7 +9,7 @@ typedef struct {
+ 	volatile unsigned char lock;
+ } arch_spinlock_t;
+ 
+-#define __RAW_SPIN_LOCK_UNLOCKED	{ 0 }
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
+ 
+ typedef struct {
+ 	volatile unsigned int lock;
+Index: linux-2.6-tip/arch/x86/include/asm/spinlock_types.h
+===================================================================
+--- linux-2.6-tip.orig/arch/x86/include/asm/spinlock_types.h
++++ linux-2.6-tip/arch/x86/include/asm/spinlock_types.h
+@@ -9,7 +9,7 @@ typedef struct arch_spinlock {
+ 	unsigned int slock;
+ } arch_spinlock_t;
+ 
+-#define __RAW_SPIN_LOCK_UNLOCKED	{ 0 }
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
+ 
+ typedef struct {
+ 	unsigned int lock;
+Index: linux-2.6-tip/arch/x86/kernel/dumpstack.c
+===================================================================
+--- linux-2.6-tip.orig/arch/x86/kernel/dumpstack.c
++++ linux-2.6-tip/arch/x86/kernel/dumpstack.c
+@@ -188,7 +188,7 @@ void dump_stack(void)
  }
+ EXPORT_SYMBOL(dump_stack);
  
--static inline int __read_trylock(rwlock_t *lock)
--{
--	preempt_disable();
--	if (_raw_read_trylock(lock)) {
--		rwlock_acquire_read(&lock->dep_map, 0, 1, _RET_IP_);
--		return 1;
--	}
--	preempt_enable();
--	return 0;
--}
--
--static inline int __write_trylock(rwlock_t *lock)
--{
--	preempt_disable();
--	if (_raw_write_trylock(lock)) {
--		rwlock_acquire(&lock->dep_map, 0, 1, _RET_IP_);
--		return 1;
--	}
--	preempt_enable();
--	return 0;
--}
--
- /*
-  * If lockdep is enabled then we use the non-preemption spin-ops
-  * even on CONFIG_PREEMPT, because lockdep assumes that interrupts are
-@@ -212,13 +97,6 @@ static inline int __write_trylock(rwlock
+-static arch_spinlock_t die_lock = __RAW_SPIN_LOCK_UNLOCKED;
++static arch_spinlock_t die_lock = __ARCH_SPIN_LOCK_UNLOCKED;
+ static int die_owner = -1;
+ static unsigned int die_nest_count;
+ 
+Index: linux-2.6-tip/arch/x86/kernel/tsc_sync.c
+===================================================================
+--- linux-2.6-tip.orig/arch/x86/kernel/tsc_sync.c
++++ linux-2.6-tip/arch/x86/kernel/tsc_sync.c
+@@ -33,7 +33,7 @@ static __cpuinitdata atomic_t stop_count
+  * we want to have the fastest, inlined, non-debug version
+  * of a critical section, to be able to prove TSC time-warps:
   */
- #if !defined(CONFIG_GENERIC_LOCKBREAK) || defined(CONFIG_DEBUG_LOCK_ALLOC)
+-static __cpuinitdata arch_spinlock_t sync_lock = __RAW_SPIN_LOCK_UNLOCKED;
++static __cpuinitdata arch_spinlock_t sync_lock = __ARCH_SPIN_LOCK_UNLOCKED;
  
--static inline void __read_lock(rwlock_t *lock)
--{
--	preempt_disable();
--	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
--}
--
- static inline unsigned long __spin_lock_irqsave(spinlock_t *lock)
+ static __cpuinitdata cycles_t last_tsc;
+ static __cpuinitdata cycles_t max_warp;
+Index: linux-2.6-tip/include/linux/spinlock_types.h
+===================================================================
+--- linux-2.6-tip.orig/include/linux/spinlock_types.h
++++ linux-2.6-tip/include/linux/spinlock_types.h
+@@ -43,14 +43,14 @@ typedef struct {
+ 
+ #ifdef CONFIG_DEBUG_SPINLOCK
+ # define __SPIN_LOCK_UNLOCKED(lockname)					\
+-	(spinlock_t)	{	.raw_lock = __RAW_SPIN_LOCK_UNLOCKED,	\
++	(spinlock_t)	{	.raw_lock = __ARCH_SPIN_LOCK_UNLOCKED,	\
+ 				.magic = SPINLOCK_MAGIC,		\
+ 				.owner = SPINLOCK_OWNER_INIT,		\
+ 				.owner_cpu = -1,			\
+ 				SPIN_DEP_MAP_INIT(lockname) }
+ #else
+ # define __SPIN_LOCK_UNLOCKED(lockname) \
+-	(spinlock_t)	{	.raw_lock = __RAW_SPIN_LOCK_UNLOCKED,	\
++	(spinlock_t)	{	.raw_lock = __ARCH_SPIN_LOCK_UNLOCKED,	\
+ 				SPIN_DEP_MAP_INIT(lockname) }
+ #endif
+ 
+Index: linux-2.6-tip/include/linux/spinlock_types_up.h
+===================================================================
+--- linux-2.6-tip.orig/include/linux/spinlock_types_up.h
++++ linux-2.6-tip/include/linux/spinlock_types_up.h
+@@ -18,13 +18,13 @@ typedef struct {
+ 	volatile unsigned int slock;
+ } arch_spinlock_t;
+ 
+-#define __RAW_SPIN_LOCK_UNLOCKED { 1 }
++#define __ARCH_SPIN_LOCK_UNLOCKED { 1 }
+ 
+ #else
+ 
+ typedef struct { } arch_spinlock_t;
+ 
+-#define __RAW_SPIN_LOCK_UNLOCKED { }
++#define __ARCH_SPIN_LOCK_UNLOCKED { }
+ 
+ #endif
+ 
+Index: linux-2.6-tip/kernel/lockdep.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/lockdep.c
++++ linux-2.6-tip/kernel/lockdep.c
+@@ -73,7 +73,7 @@ module_param(lock_stat, int, 0644);
+  * to use a raw spinlock - we really dont want the spinlock
+  * code to recurse back into the lockdep code...
+  */
+-static arch_spinlock_t lockdep_lock = (arch_spinlock_t)__RAW_SPIN_LOCK_UNLOCKED;
++static arch_spinlock_t lockdep_lock = (arch_spinlock_t)__ARCH_SPIN_LOCK_UNLOCKED;
+ 
+ static int graph_lock(void)
  {
- 	unsigned long flags;
-@@ -255,62 +133,6 @@ static inline void __spin_lock_bh(spinlo
- 	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
- }
+Index: linux-2.6-tip/kernel/trace/ring_buffer.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/trace/ring_buffer.c
++++ linux-2.6-tip/kernel/trace/ring_buffer.c
+@@ -998,7 +998,7 @@ rb_allocate_cpu_buffer(struct ring_buffe
+ 	cpu_buffer->buffer = buffer;
+ 	spin_lock_init(&cpu_buffer->reader_lock);
+ 	lockdep_set_class(&cpu_buffer->reader_lock, buffer->reader_lock_key);
+-	cpu_buffer->lock = (arch_spinlock_t)__RAW_SPIN_LOCK_UNLOCKED;
++	cpu_buffer->lock = (arch_spinlock_t)__ARCH_SPIN_LOCK_UNLOCKED;
  
--static inline unsigned long __read_lock_irqsave(rwlock_t *lock)
--{
--	unsigned long flags;
--
--	local_irq_save(flags);
--	preempt_disable();
--	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED_FLAGS(lock, _raw_read_trylock, _raw_read_lock,
--			     _raw_read_lock_flags, &flags);
--	return flags;
--}
--
--static inline void __read_lock_irq(rwlock_t *lock)
--{
--	local_irq_disable();
--	preempt_disable();
--	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
--}
--
--static inline void __read_lock_bh(rwlock_t *lock)
--{
--	local_bh_disable();
--	preempt_disable();
--	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
--}
--
--static inline unsigned long __write_lock_irqsave(rwlock_t *lock)
--{
--	unsigned long flags;
--
--	local_irq_save(flags);
--	preempt_disable();
--	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED_FLAGS(lock, _raw_write_trylock, _raw_write_lock,
--			     _raw_write_lock_flags, &flags);
--	return flags;
--}
--
--static inline void __write_lock_irq(rwlock_t *lock)
--{
--	local_irq_disable();
--	preempt_disable();
--	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
--}
--
--static inline void __write_lock_bh(rwlock_t *lock)
--{
--	local_bh_disable();
--	preempt_disable();
--	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
--}
--
- static inline void __spin_lock(spinlock_t *lock)
+ 	bpage = kzalloc_node(ALIGN(sizeof(*bpage), cache_line_size()),
+ 			    GFP_KERNEL, cpu_to_node(cpu));
+Index: linux-2.6-tip/kernel/trace/trace.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/trace/trace.c
++++ linux-2.6-tip/kernel/trace/trace.c
+@@ -501,7 +501,7 @@ static ssize_t trace_seq_to_buffer(struc
+  * CONFIG_TRACER_MAX_TRACE.
+  */
+ static arch_spinlock_t ftrace_max_lock =
+-	(arch_spinlock_t)__RAW_SPIN_LOCK_UNLOCKED;
++	(arch_spinlock_t)__ARCH_SPIN_LOCK_UNLOCKED;
+ 
+ #ifdef CONFIG_TRACER_MAX_TRACE
+ unsigned long __read_mostly	tracing_max_latency;
+@@ -802,7 +802,7 @@ static unsigned map_pid_to_cmdline[PID_M
+ static unsigned map_cmdline_to_pid[SAVED_CMDLINES];
+ static char saved_cmdlines[SAVED_CMDLINES][TASK_COMM_LEN];
+ static int cmdline_idx;
+-static arch_spinlock_t trace_cmdline_lock = __RAW_SPIN_LOCK_UNLOCKED;
++static arch_spinlock_t trace_cmdline_lock = __ARCH_SPIN_LOCK_UNLOCKED;
+ 
+ /* temporary disable recording */
+ static atomic_t trace_record_cmdline_disabled __read_mostly;
+@@ -1252,7 +1252,7 @@ ftrace_special(unsigned long arg1, unsig
+ int trace_vbprintk(unsigned long ip, const char *fmt, va_list args)
  {
- 	preempt_disable();
-@@ -318,13 +140,6 @@ static inline void __spin_lock(spinlock_
- 	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
- }
+ 	static arch_spinlock_t trace_buf_lock =
+-		(arch_spinlock_t)__RAW_SPIN_LOCK_UNLOCKED;
++		(arch_spinlock_t)__ARCH_SPIN_LOCK_UNLOCKED;
+ 	static u32 trace_buf[TRACE_BUF_SIZE];
  
--static inline void __write_lock(rwlock_t *lock)
--{
--	preempt_disable();
--	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
--}
--
- #endif /* CONFIG_PREEMPT */
- 
- static inline void __spin_unlock(spinlock_t *lock)
-@@ -334,20 +149,6 @@ static inline void __spin_unlock(spinloc
- 	preempt_enable();
- }
- 
--static inline void __write_unlock(rwlock_t *lock)
--{
--	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_write_unlock(lock);
--	preempt_enable();
--}
--
--static inline void __read_unlock(rwlock_t *lock)
--{
--	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_read_unlock(lock);
--	preempt_enable();
--}
--
- static inline void __spin_unlock_irqrestore(spinlock_t *lock,
- 					    unsigned long flags)
+ 	struct ftrace_event_call *call = &event_bprint;
+@@ -1334,7 +1334,7 @@ int trace_array_printk(struct trace_arra
+ int trace_array_vprintk(struct trace_array *tr,
+ 			unsigned long ip, const char *fmt, va_list args)
  {
-@@ -373,55 +174,6 @@ static inline void __spin_unlock_bh(spin
- 	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
- }
+-	static arch_spinlock_t trace_buf_lock = __RAW_SPIN_LOCK_UNLOCKED;
++	static arch_spinlock_t trace_buf_lock = __ARCH_SPIN_LOCK_UNLOCKED;
+ 	static char trace_buf[TRACE_BUF_SIZE];
  
--static inline void __read_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
--{
--	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_read_unlock(lock);
--	local_irq_restore(flags);
--	preempt_enable();
--}
--
--static inline void __read_unlock_irq(rwlock_t *lock)
--{
--	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_read_unlock(lock);
--	local_irq_enable();
--	preempt_enable();
--}
--
--static inline void __read_unlock_bh(rwlock_t *lock)
--{
--	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_read_unlock(lock);
--	preempt_enable_no_resched();
--	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
--}
--
--static inline void __write_unlock_irqrestore(rwlock_t *lock,
--					     unsigned long flags)
--{
--	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_write_unlock(lock);
--	local_irq_restore(flags);
--	preempt_enable();
--}
--
--static inline void __write_unlock_irq(rwlock_t *lock)
--{
--	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_write_unlock(lock);
--	local_irq_enable();
--	preempt_enable();
--}
--
--static inline void __write_unlock_bh(rwlock_t *lock)
--{
--	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_write_unlock(lock);
--	preempt_enable_no_resched();
--	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
--}
--
- static inline int __spin_trylock_bh(spinlock_t *lock)
+ 	struct ftrace_event_call *call = &event_print;
+@@ -4269,7 +4269,7 @@ trace_printk_seq(struct trace_seq *s)
+ static void __ftrace_dump(bool disable_tracing)
  {
- 	local_bh_disable();
-@@ -435,4 +187,6 @@ static inline int __spin_trylock_bh(spin
- 	return 0;
- }
+ 	static arch_spinlock_t ftrace_dump_lock =
+-		(arch_spinlock_t)__RAW_SPIN_LOCK_UNLOCKED;
++		(arch_spinlock_t)__ARCH_SPIN_LOCK_UNLOCKED;
+ 	/* use static because iter can be a bit big for the stack */
+ 	static struct trace_iterator iter;
+ 	unsigned int old_userobj;
+Index: linux-2.6-tip/kernel/trace/trace_clock.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/trace/trace_clock.c
++++ linux-2.6-tip/kernel/trace/trace_clock.c
+@@ -74,7 +74,7 @@ static struct {
+ 	arch_spinlock_t lock;
+ } trace_clock_struct ____cacheline_aligned_in_smp =
+ 	{
+-		.lock = (arch_spinlock_t)__RAW_SPIN_LOCK_UNLOCKED,
++		.lock = (arch_spinlock_t)__ARCH_SPIN_LOCK_UNLOCKED,
+ 	};
  
-+#include <linux/rwlock_api_smp.h>
-+
- #endif /* __LINUX_SPINLOCK_API_SMP_H */
+ u64 notrace trace_clock_global(void)
+Index: linux-2.6-tip/kernel/trace/trace_sched_wakeup.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/trace/trace_sched_wakeup.c
++++ linux-2.6-tip/kernel/trace/trace_sched_wakeup.c
+@@ -29,7 +29,7 @@ static unsigned			wakeup_prio = -1;
+ static int			wakeup_rt;
+ 
+ static arch_spinlock_t wakeup_lock =
+-	(arch_spinlock_t)__RAW_SPIN_LOCK_UNLOCKED;
++	(arch_spinlock_t)__ARCH_SPIN_LOCK_UNLOCKED;
+ 
+ static void __wakeup_reset(struct trace_array *tr);
+ 
+Index: linux-2.6-tip/kernel/trace/trace_stack.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/trace/trace_stack.c
++++ linux-2.6-tip/kernel/trace/trace_stack.c
+@@ -28,7 +28,7 @@ static struct stack_trace max_stack_trac
+ 
+ static unsigned long max_stack_size;
+ static arch_spinlock_t max_stack_lock =
+-	(arch_spinlock_t)__RAW_SPIN_LOCK_UNLOCKED;
++	(arch_spinlock_t)__ARCH_SPIN_LOCK_UNLOCKED;
+ 
+ static int stack_trace_disabled __read_mostly;
+ static DEFINE_PER_CPU(int, trace_active);
+Index: linux-2.6-tip/lib/spinlock_debug.c
+===================================================================
+--- linux-2.6-tip.orig/lib/spinlock_debug.c
++++ linux-2.6-tip/lib/spinlock_debug.c
+@@ -23,7 +23,7 @@ void __spin_lock_init(spinlock_t *lock, 
+ 	debug_check_no_locks_freed((void *)lock, sizeof(*lock));
+ 	lockdep_init_map(&lock->dep_map, name, key, 0);
+ #endif
+-	lock->raw_lock = (arch_spinlock_t)__RAW_SPIN_LOCK_UNLOCKED;
++	lock->raw_lock = (arch_spinlock_t)__ARCH_SPIN_LOCK_UNLOCKED;
+ 	lock->magic = SPINLOCK_MAGIC;
+ 	lock->owner = SPINLOCK_OWNER_INIT;
+ 	lock->owner_cpu = -1;
