@@ -1,500 +1,165 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 10/23] locking: Further name space cleanups
-Date: Sun, 06 Dec 2009 18:02:42 -0000
-Message-ID: <20091206111957.689810327@linutronix.de>
+Subject: [patch 13/23] plist: Make plist debugging raw_spinlock aware
+Date: Sun, 06 Dec 2009 18:02:57 -0000
+Message-ID: <20091206111957.806855005@linutronix.de>
 References: <20091206110944.492100233@linutronix.de>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:33148 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S934108AbZLFSDA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 6 Dec 2009 13:03:00 -0500
-Content-Disposition: inline; filename=locking-fixup-namespace.patch
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S934219AbZLFSD5@vger.kernel.org>
+Content-Disposition: inline; filename=plist-make-core-lock-aware.patch
+Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-The name space hierarchy for the internal lock functions is now a bit
-backwards. raw_spin* functions map to _spin* which use __spin*, while
-we would like to have _raw_spin* and __raw_spin*.
-
-_raw_spin* is already used by lock debugging, so rename those funtions
-to do_raw_spin* to free up the _raw_spin* name space.
-
-Nu functional change.
+plists are used with spinlocks and raw_spinlocks. Change the plist
+debugging to handle both types.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- include/linux/rwlock.h           |   32 +++++++++++++++----------------
- include/linux/rwlock_api_smp.h   |   40 +++++++++++++++++++--------------------
- include/linux/spinlock.h         |   20 +++++++++----------
- include/linux/spinlock_api_smp.h |   24 +++++++++++------------
- kernel/sched.c                   |    2 -
- kernel/spinlock.c                |   12 +++++------
- lib/spinlock_debug.c             |    6 ++---
- 7 files changed, 68 insertions(+), 68 deletions(-)
+ include/linux/plist.h |   43 +++++++++++++++++++++++++++++++++++++------
+ kernel/futex.c        |    6 +++---
+ lib/plist.c           |    8 +++++---
+ 3 files changed, 45 insertions(+), 12 deletions(-)
 
-Index: linux-2.6-tip/include/linux/rwlock.h
+Index: linux-2.6-tip/include/linux/plist.h
 ===================================================================
---- linux-2.6-tip.orig/include/linux/rwlock.h
-+++ linux-2.6-tip/include/linux/rwlock.h
-@@ -31,25 +31,25 @@ do {								\
+--- linux-2.6-tip.orig/include/linux/plist.h
++++ linux-2.6-tip/include/linux/plist.h
+@@ -81,7 +81,8 @@ struct plist_head {
+ 	struct list_head prio_list;
+ 	struct list_head node_list;
+ #ifdef CONFIG_DEBUG_PI_LIST
+-	spinlock_t *lock;
++	raw_spinlock_t *rawlock;
++	spinlock_t *spinlock;
+ #endif
+ };
+ 
+@@ -91,9 +92,11 @@ struct plist_node {
+ };
+ 
+ #ifdef CONFIG_DEBUG_PI_LIST
+-# define PLIST_HEAD_LOCK_INIT(_lock)	.lock = _lock
++# define PLIST_HEAD_LOCK_INIT(_lock)		.spinlock = _lock
++# define PLIST_HEAD_LOCK_INIT_RAW(_lock)	.rawlock = _lock
+ #else
+ # define PLIST_HEAD_LOCK_INIT(_lock)
++# define PLIST_HEAD_LOCK_INIT_RAW(_lock)
  #endif
  
- #ifdef CONFIG_DEBUG_SPINLOCK
-- extern void _raw_read_lock(rwlock_t *lock);
--#define _raw_read_lock_flags(lock, flags) _raw_read_lock(lock)
-- extern int _raw_read_trylock(rwlock_t *lock);
-- extern void _raw_read_unlock(rwlock_t *lock);
-- extern void _raw_write_lock(rwlock_t *lock);
--#define _raw_write_lock_flags(lock, flags) _raw_write_lock(lock)
-- extern int _raw_write_trylock(rwlock_t *lock);
-- extern void _raw_write_unlock(rwlock_t *lock);
-+ extern void do_raw_read_lock(rwlock_t *lock);
-+#define do_raw_read_lock_flags(lock, flags) do_raw_read_lock(lock)
-+ extern int do_raw_read_trylock(rwlock_t *lock);
-+ extern void do_raw_read_unlock(rwlock_t *lock);
-+ extern void do_raw_write_lock(rwlock_t *lock);
-+#define do_raw_write_lock_flags(lock, flags) do_raw_write_lock(lock)
-+ extern int do_raw_write_trylock(rwlock_t *lock);
-+ extern void do_raw_write_unlock(rwlock_t *lock);
- #else
--# define _raw_read_lock(rwlock)		arch_read_lock(&(rwlock)->raw_lock)
--# define _raw_read_lock_flags(lock, flags) \
-+# define do_raw_read_lock(rwlock)		arch_read_lock(&(rwlock)->raw_lock)
-+# define do_raw_read_lock_flags(lock, flags) \
- 		arch_read_lock_flags(&(lock)->raw_lock, *(flags))
--# define _raw_read_trylock(rwlock)	arch_read_trylock(&(rwlock)->raw_lock)
--# define _raw_read_unlock(rwlock)	arch_read_unlock(&(rwlock)->raw_lock)
--# define _raw_write_lock(rwlock)	arch_write_lock(&(rwlock)->raw_lock)
--# define _raw_write_lock_flags(lock, flags) \
-+# define do_raw_read_trylock(rwlock)	arch_read_trylock(&(rwlock)->raw_lock)
-+# define do_raw_read_unlock(rwlock)	arch_read_unlock(&(rwlock)->raw_lock)
-+# define do_raw_write_lock(rwlock)	arch_write_lock(&(rwlock)->raw_lock)
-+# define do_raw_write_lock_flags(lock, flags) \
- 		arch_write_lock_flags(&(lock)->raw_lock, *(flags))
--# define _raw_write_trylock(rwlock)	arch_write_trylock(&(rwlock)->raw_lock)
--# define _raw_write_unlock(rwlock)	arch_write_unlock(&(rwlock)->raw_lock)
-+# define do_raw_write_trylock(rwlock)	arch_write_trylock(&(rwlock)->raw_lock)
-+# define do_raw_write_unlock(rwlock)	arch_write_unlock(&(rwlock)->raw_lock)
- #endif
- 
- #define read_can_lock(rwlock)		arch_read_can_lock(&(rwlock)->raw_lock)
-Index: linux-2.6-tip/include/linux/rwlock_api_smp.h
-===================================================================
---- linux-2.6-tip.orig/include/linux/rwlock_api_smp.h
-+++ linux-2.6-tip/include/linux/rwlock_api_smp.h
-@@ -113,7 +113,7 @@ void __lockfunc _write_unlock_irqrestore
- static inline int __read_trylock(rwlock_t *lock)
- {
- 	preempt_disable();
--	if (_raw_read_trylock(lock)) {
-+	if (do_raw_read_trylock(lock)) {
- 		rwlock_acquire_read(&lock->dep_map, 0, 1, _RET_IP_);
- 		return 1;
- 	}
-@@ -124,7 +124,7 @@ static inline int __read_trylock(rwlock_
- static inline int __write_trylock(rwlock_t *lock)
- {
- 	preempt_disable();
--	if (_raw_write_trylock(lock)) {
-+	if (do_raw_write_trylock(lock)) {
- 		rwlock_acquire(&lock->dep_map, 0, 1, _RET_IP_);
- 		return 1;
- 	}
-@@ -143,7 +143,7 @@ static inline void __read_lock(rwlock_t 
- {
- 	preempt_disable();
- 	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
-+	LOCK_CONTENDED(lock, do_raw_read_trylock, do_raw_read_lock);
+ #define _PLIST_HEAD_INIT(head)				\
+@@ -107,11 +110,22 @@ struct plist_node {
+  */
+ #define PLIST_HEAD_INIT(head, _lock)			\
+ {							\
+-        _PLIST_HEAD_INIT(head),                         \
++	_PLIST_HEAD_INIT(head),				\
+ 	PLIST_HEAD_LOCK_INIT(&(_lock))			\
  }
  
- static inline unsigned long __read_lock_irqsave(rwlock_t *lock)
-@@ -153,8 +153,8 @@ static inline unsigned long __read_lock_
- 	local_irq_save(flags);
- 	preempt_disable();
- 	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED_FLAGS(lock, _raw_read_trylock, _raw_read_lock,
--			     _raw_read_lock_flags, &flags);
-+	LOCK_CONTENDED_FLAGS(lock, do_raw_read_trylock, do_raw_read_lock,
-+			     do_raw_read_lock_flags, &flags);
- 	return flags;
+ /**
++ * PLIST_HEAD_INIT_RAW - static struct plist_head initializer
++ * @head:	struct plist_head variable name
++ * @_lock:	lock to initialize for this list
++ */
++#define PLIST_HEAD_INIT_RAW(head, _lock)		\
++{							\
++	_PLIST_HEAD_INIT(head),				\
++	PLIST_HEAD_LOCK_INIT_RAW(&(_lock))		\
++}
++
++/**
+  * PLIST_NODE_INIT - static struct plist_node initializer
+  * @node:	struct plist_node variable name
+  * @__prio:	initial node priority
+@@ -119,13 +133,13 @@ struct plist_node {
+ #define PLIST_NODE_INIT(node, __prio)			\
+ {							\
+ 	.prio  = (__prio),				\
+-	.plist = { _PLIST_HEAD_INIT((node).plist) }, 	\
++	.plist = { _PLIST_HEAD_INIT((node).plist) },	\
  }
  
-@@ -163,7 +163,7 @@ static inline void __read_lock_irq(rwloc
- 	local_irq_disable();
- 	preempt_disable();
- 	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
-+	LOCK_CONTENDED(lock, do_raw_read_trylock, do_raw_read_lock);
- }
- 
- static inline void __read_lock_bh(rwlock_t *lock)
-@@ -171,7 +171,7 @@ static inline void __read_lock_bh(rwlock
- 	local_bh_disable();
- 	preempt_disable();
- 	rwlock_acquire_read(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_read_trylock, _raw_read_lock);
-+	LOCK_CONTENDED(lock, do_raw_read_trylock, do_raw_read_lock);
- }
- 
- static inline unsigned long __write_lock_irqsave(rwlock_t *lock)
-@@ -181,8 +181,8 @@ static inline unsigned long __write_lock
- 	local_irq_save(flags);
- 	preempt_disable();
- 	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED_FLAGS(lock, _raw_write_trylock, _raw_write_lock,
--			     _raw_write_lock_flags, &flags);
-+	LOCK_CONTENDED_FLAGS(lock, do_raw_write_trylock, do_raw_write_lock,
-+			     do_raw_write_lock_flags, &flags);
- 	return flags;
- }
- 
-@@ -191,7 +191,7 @@ static inline void __write_lock_irq(rwlo
- 	local_irq_disable();
- 	preempt_disable();
- 	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
-+	LOCK_CONTENDED(lock, do_raw_write_trylock, do_raw_write_lock);
- }
- 
- static inline void __write_lock_bh(rwlock_t *lock)
-@@ -199,14 +199,14 @@ static inline void __write_lock_bh(rwloc
- 	local_bh_disable();
- 	preempt_disable();
- 	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
-+	LOCK_CONTENDED(lock, do_raw_write_trylock, do_raw_write_lock);
- }
- 
- static inline void __write_lock(rwlock_t *lock)
- {
- 	preempt_disable();
- 	rwlock_acquire(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_write_trylock, _raw_write_lock);
-+	LOCK_CONTENDED(lock, do_raw_write_trylock, do_raw_write_lock);
- }
- 
- #endif /* CONFIG_PREEMPT */
-@@ -214,21 +214,21 @@ static inline void __write_lock(rwlock_t
- static inline void __write_unlock(rwlock_t *lock)
- {
- 	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_write_unlock(lock);
-+	do_raw_write_unlock(lock);
- 	preempt_enable();
- }
- 
- static inline void __read_unlock(rwlock_t *lock)
- {
- 	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_read_unlock(lock);
-+	do_raw_read_unlock(lock);
- 	preempt_enable();
- }
- 
- static inline void __read_unlock_irqrestore(rwlock_t *lock, unsigned long flags)
- {
- 	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_read_unlock(lock);
-+	do_raw_read_unlock(lock);
- 	local_irq_restore(flags);
- 	preempt_enable();
- }
-@@ -236,7 +236,7 @@ static inline void __read_unlock_irqrest
- static inline void __read_unlock_irq(rwlock_t *lock)
- {
- 	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_read_unlock(lock);
-+	do_raw_read_unlock(lock);
- 	local_irq_enable();
- 	preempt_enable();
- }
-@@ -244,7 +244,7 @@ static inline void __read_unlock_irq(rwl
- static inline void __read_unlock_bh(rwlock_t *lock)
- {
- 	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_read_unlock(lock);
-+	do_raw_read_unlock(lock);
- 	preempt_enable_no_resched();
- 	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
- }
-@@ -253,7 +253,7 @@ static inline void __write_unlock_irqres
- 					     unsigned long flags)
- {
- 	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_write_unlock(lock);
-+	do_raw_write_unlock(lock);
- 	local_irq_restore(flags);
- 	preempt_enable();
- }
-@@ -261,7 +261,7 @@ static inline void __write_unlock_irqres
- static inline void __write_unlock_irq(rwlock_t *lock)
- {
- 	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_write_unlock(lock);
-+	do_raw_write_unlock(lock);
- 	local_irq_enable();
- 	preempt_enable();
- }
-@@ -269,7 +269,7 @@ static inline void __write_unlock_irq(rw
- static inline void __write_unlock_bh(rwlock_t *lock)
- {
- 	rwlock_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_write_unlock(lock);
-+	do_raw_write_unlock(lock);
- 	preempt_enable_no_resched();
- 	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
- }
-Index: linux-2.6-tip/include/linux/spinlock.h
-===================================================================
---- linux-2.6-tip.orig/include/linux/spinlock.h
-+++ linux-2.6-tip/include/linux/spinlock.h
-@@ -89,13 +89,13 @@
- #endif
- 
- #ifdef CONFIG_DEBUG_SPINLOCK
--  extern void __raw_spin_lock_init(raw_spinlock_t *lock, const char *name,
-+  extern void _do_raw_spin_lock_init(raw_spinlock_t *lock, const char *name,
- 				   struct lock_class_key *key);
- # define raw_spin_lock_init(lock)				\
- do {								\
- 	static struct lock_class_key __key;			\
- 								\
--	__raw_spin_lock_init((lock), #lock, &__key);		\
-+	_do_raw_spin_lock_init((lock), #lock, &__key);		\
- } while (0)
- 
- #else
-@@ -128,28 +128,28 @@ static inline void smp_mb__after_lock(vo
- #define raw_spin_unlock_wait(lock)	arch_spin_unlock_wait(&(lock)->raw_lock)
- 
- #ifdef CONFIG_DEBUG_SPINLOCK
-- extern void _raw_spin_lock(raw_spinlock_t *lock);
--#define _raw_spin_lock_flags(lock, flags) _raw_spin_lock(lock)
-- extern int _raw_spin_trylock(raw_spinlock_t *lock);
-- extern void _raw_spin_unlock(raw_spinlock_t *lock);
-+ extern void do_raw_spin_lock(raw_spinlock_t *lock);
-+#define do_raw_spin_lock_flags(lock, flags) do_raw_spin_lock(lock)
-+ extern int do_raw_spin_trylock(raw_spinlock_t *lock);
-+ extern void do_raw_spin_unlock(raw_spinlock_t *lock);
- #else
--static inline void _raw_spin_lock(raw_spinlock_t *lock)
-+static inline void do_raw_spin_lock(raw_spinlock_t *lock)
- {
- 	arch_spin_lock(&lock->raw_lock);
- }
- 
+ /**
+  * plist_head_init - dynamic struct plist_head initializer
+  * @head:	&struct plist_head pointer
+- * @lock:	list spinlock, remembered for debugging
++ * @lock:	spinlock protecting the list (debugging)
+  */
  static inline void
--_raw_spin_lock_flags(raw_spinlock_t *lock, unsigned long *flags)
-+do_raw_spin_lock_flags(raw_spinlock_t *lock, unsigned long *flags)
- {
- 	arch_spin_lock_flags(&lock->raw_lock, *flags);
- }
- 
--static inline int _raw_spin_trylock(raw_spinlock_t *lock)
-+static inline int do_raw_spin_trylock(raw_spinlock_t *lock)
- {
- 	return arch_spin_trylock(&(lock)->raw_lock);
- }
- 
--static inline void _raw_spin_unlock(raw_spinlock_t *lock)
-+static inline void do_raw_spin_unlock(raw_spinlock_t *lock)
- {
- 	arch_spin_unlock(&lock->raw_lock);
- }
-Index: linux-2.6-tip/include/linux/spinlock_api_smp.h
-===================================================================
---- linux-2.6-tip.orig/include/linux/spinlock_api_smp.h
-+++ linux-2.6-tip/include/linux/spinlock_api_smp.h
-@@ -85,7 +85,7 @@ _spin_unlock_irqrestore(raw_spinlock_t *
- static inline int __spin_trylock(raw_spinlock_t *lock)
- {
- 	preempt_disable();
--	if (_raw_spin_trylock(lock)) {
-+	if (do_raw_spin_trylock(lock)) {
- 		spin_acquire(&lock->dep_map, 0, 1, _RET_IP_);
- 		return 1;
- 	}
-@@ -109,13 +109,13 @@ static inline unsigned long __spin_lock_
- 	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
- 	/*
- 	 * On lockdep we dont want the hand-coded irq-enable of
--	 * _raw_spin_lock_flags() code, because lockdep assumes
-+	 * do_raw_spin_lock_flags() code, because lockdep assumes
- 	 * that interrupts are not re-enabled during lock-acquire:
- 	 */
- #ifdef CONFIG_LOCKDEP
--	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
-+	LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
- #else
--	_raw_spin_lock_flags(lock, &flags);
-+	do_raw_spin_lock_flags(lock, &flags);
+ plist_head_init(struct plist_head *head, spinlock_t *lock)
+@@ -133,7 +147,24 @@ plist_head_init(struct plist_head *head,
+ 	INIT_LIST_HEAD(&head->prio_list);
+ 	INIT_LIST_HEAD(&head->node_list);
+ #ifdef CONFIG_DEBUG_PI_LIST
+-	head->lock = lock;
++	head->spinlock = lock;
++	head->rawlock = NULL;
++#endif
++}
++
++/**
++ * plist_head_init_raw - dynamic struct plist_head initializer
++ * @head:	&struct plist_head pointer
++ * @lock:	raw_spinlock protecting the list (debugging)
++ */
++static inline void
++plist_head_init_raw(struct plist_head *head, raw_spinlock_t *lock)
++{
++	INIT_LIST_HEAD(&head->prio_list);
++	INIT_LIST_HEAD(&head->node_list);
++#ifdef CONFIG_DEBUG_PI_LIST
++	head->rawlock = lock;
++	head->spinlock = NULL;
  #endif
- 	return flags;
- }
-@@ -125,7 +125,7 @@ static inline void __spin_lock_irq(raw_s
- 	local_irq_disable();
- 	preempt_disable();
- 	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
-+	LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
  }
  
- static inline void __spin_lock_bh(raw_spinlock_t *lock)
-@@ -133,14 +133,14 @@ static inline void __spin_lock_bh(raw_sp
- 	local_bh_disable();
- 	preempt_disable();
- 	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
-+	LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
- }
- 
- static inline void __spin_lock(raw_spinlock_t *lock)
- {
- 	preempt_disable();
- 	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
-+	LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
- }
- 
- #endif /* CONFIG_PREEMPT */
-@@ -148,7 +148,7 @@ static inline void __spin_lock(raw_spinl
- static inline void __spin_unlock(raw_spinlock_t *lock)
- {
- 	spin_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_spin_unlock(lock);
-+	do_raw_spin_unlock(lock);
- 	preempt_enable();
- }
- 
-@@ -156,7 +156,7 @@ static inline void __spin_unlock_irqrest
- 					    unsigned long flags)
- {
- 	spin_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_spin_unlock(lock);
-+	do_raw_spin_unlock(lock);
- 	local_irq_restore(flags);
- 	preempt_enable();
- }
-@@ -164,7 +164,7 @@ static inline void __spin_unlock_irqrest
- static inline void __spin_unlock_irq(raw_spinlock_t *lock)
- {
- 	spin_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_spin_unlock(lock);
-+	do_raw_spin_unlock(lock);
- 	local_irq_enable();
- 	preempt_enable();
- }
-@@ -172,7 +172,7 @@ static inline void __spin_unlock_irq(raw
- static inline void __spin_unlock_bh(raw_spinlock_t *lock)
- {
- 	spin_release(&lock->dep_map, 1, _RET_IP_);
--	_raw_spin_unlock(lock);
-+	do_raw_spin_unlock(lock);
- 	preempt_enable_no_resched();
- 	local_bh_enable_ip((unsigned long)__builtin_return_address(0));
- }
-@@ -181,7 +181,7 @@ static inline int __spin_trylock_bh(raw_
- {
- 	local_bh_disable();
- 	preempt_disable();
--	if (_raw_spin_trylock(lock)) {
-+	if (do_raw_spin_trylock(lock)) {
- 		spin_acquire(&lock->dep_map, 0, 1, _RET_IP_);
- 		return 1;
+Index: linux-2.6-tip/kernel/futex.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/futex.c
++++ linux-2.6-tip/kernel/futex.c
+@@ -1004,7 +1004,7 @@ void requeue_futex(struct futex_q *q, st
+ 		plist_add(&q->list, &hb2->chain);
+ 		q->lock_ptr = &hb2->lock;
+ #ifdef CONFIG_DEBUG_PI_LIST
+-		q->list.plist.lock = &hb2->lock;
++		q->list.plist.spinlock = &hb2->lock;
+ #endif
  	}
-Index: linux-2.6-tip/kernel/sched.c
-===================================================================
---- linux-2.6-tip.orig/kernel/sched.c
-+++ linux-2.6-tip/kernel/sched.c
-@@ -6703,7 +6703,7 @@ SYSCALL_DEFINE0(sched_yield)
- 	 */
- 	__release(rq->lock);
- 	spin_release(&rq->lock.dep_map, 1, _THIS_IP_);
--	_raw_spin_unlock(&rq->lock);
-+	do_raw_spin_unlock(&rq->lock);
- 	preempt_enable_no_resched();
+ 	get_futex_key_refs(key2);
+@@ -1040,7 +1040,7 @@ void requeue_pi_wake_futex(struct futex_
  
- 	schedule();
-Index: linux-2.6-tip/kernel/spinlock.c
-===================================================================
---- linux-2.6-tip.orig/kernel/spinlock.c
-+++ linux-2.6-tip/kernel/spinlock.c
-@@ -48,7 +48,7 @@ void __lockfunc __##op##_lock(locktype##
- {									\
- 	for (;;) {							\
- 		preempt_disable();					\
--		if (likely(_raw_##op##_trylock(lock)))			\
-+		if (likely(do_raw_##op##_trylock(lock)))		\
- 			break;						\
- 		preempt_enable();					\
- 									\
-@@ -67,7 +67,7 @@ unsigned long __lockfunc __##op##_lock_i
- 	for (;;) {							\
- 		preempt_disable();					\
- 		local_irq_save(flags);					\
--		if (likely(_raw_##op##_trylock(lock)))			\
-+		if (likely(do_raw_##op##_trylock(lock)))		\
- 			break;						\
- 		local_irq_restore(flags);				\
- 		preempt_enable();					\
-@@ -345,7 +345,7 @@ void __lockfunc _spin_lock_nested(raw_sp
- {
- 	preempt_disable();
- 	spin_acquire(&lock->dep_map, subclass, 0, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
-+	LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
- }
- EXPORT_SYMBOL(_spin_lock_nested);
- 
-@@ -357,8 +357,8 @@ unsigned long __lockfunc _spin_lock_irqs
- 	local_irq_save(flags);
- 	preempt_disable();
- 	spin_acquire(&lock->dep_map, subclass, 0, _RET_IP_);
--	LOCK_CONTENDED_FLAGS(lock, _raw_spin_trylock, _raw_spin_lock,
--				_raw_spin_lock_flags, &flags);
-+	LOCK_CONTENDED_FLAGS(lock, do_raw_spin_trylock, do_raw_spin_lock,
-+				do_raw_spin_lock_flags, &flags);
- 	return flags;
- }
- EXPORT_SYMBOL(_spin_lock_irqsave_nested);
-@@ -368,7 +368,7 @@ void __lockfunc _spin_lock_nest_lock(raw
- {
- 	preempt_disable();
- 	spin_acquire_nest(&lock->dep_map, 0, 0, nest_lock, _RET_IP_);
--	LOCK_CONTENDED(lock, _raw_spin_trylock, _raw_spin_lock);
-+	LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
- }
- EXPORT_SYMBOL(_spin_lock_nest_lock);
- 
-Index: linux-2.6-tip/lib/spinlock_debug.c
-===================================================================
---- linux-2.6-tip.orig/lib/spinlock_debug.c
-+++ linux-2.6-tip/lib/spinlock_debug.c
-@@ -193,13 +193,13 @@ static void __read_lock_debug(rwlock_t *
- }
+ 	q->lock_ptr = &hb->lock;
+ #ifdef CONFIG_DEBUG_PI_LIST
+-	q->list.plist.lock = &hb->lock;
++	q->list.plist.spinlock = &hb->lock;
  #endif
  
--void _raw_read_lock(rwlock_t *lock)
-+void do_raw_read_lock(rwlock_t *lock)
+ 	wake_up_state(q->task, TASK_NORMAL);
+@@ -1388,7 +1388,7 @@ static inline void queue_me(struct futex
+ 
+ 	plist_node_init(&q->list, prio);
+ #ifdef CONFIG_DEBUG_PI_LIST
+-	q->list.plist.lock = &hb->lock;
++	q->list.plist.spinlock = &hb->lock;
+ #endif
+ 	plist_add(&q->list, &hb->chain);
+ 	q->task = current;
+Index: linux-2.6-tip/lib/plist.c
+===================================================================
+--- linux-2.6-tip.orig/lib/plist.c
++++ linux-2.6-tip/lib/plist.c
+@@ -54,9 +54,11 @@ static void plist_check_list(struct list
+ 
+ static void plist_check_head(struct plist_head *head)
  {
- 	RWLOCK_BUG_ON(lock->magic != RWLOCK_MAGIC, lock, "bad magic");
- 	arch_read_lock(&lock->raw_lock);
+-	WARN_ON(!head->lock);
+-	if (head->lock)
+-		WARN_ON_SMP(!spin_is_locked(head->lock));
++	WARN_ON(!head->rawlock && !head->spinlock);
++	if (head->rawlock)
++		WARN_ON_SMP(!raw_spin_is_locked(head->rawlock));
++	if (head->spinlock)
++		WARN_ON_SMP(!spin_is_locked(head->spinlock));
+ 	plist_check_list(&head->prio_list);
+ 	plist_check_list(&head->node_list);
  }
- 
--int _raw_read_trylock(rwlock_t *lock)
-+int do_raw_read_trylock(rwlock_t *lock)
- {
- 	int ret = arch_read_trylock(&lock->raw_lock);
- 
-@@ -212,7 +212,7 @@ int _raw_read_trylock(rwlock_t *lock)
- 	return ret;
- }
- 
--void _raw_read_unlock(rwlock_t *lock)
-+void do_raw_read_unlock(rwlock_t *lock)
- {
- 	RWLOCK_BUG_ON(lock->magic != RWLOCK_MAGIC, lock, "bad magic");
- 	arch_read_unlock(&lock->raw_lock);
