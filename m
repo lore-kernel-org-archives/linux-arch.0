@@ -1,509 +1,485 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:33244 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:33328 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S934097AbZLFSDf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 6 Dec 2009 13:03:35 -0500
-Message-ID: <20091206111957.957879911@linutronix.de>
-Date: Sun, 06 Dec 2009 18:03:17 -0000
+	id S934249AbZLFSEH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 6 Dec 2009 13:04:07 -0500
+Message-ID: <20091206111958.146106628@linutronix.de>
+Date: Sun, 06 Dec 2009 18:03:50 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 17/23] sched: Convert pi_lock to raw_spinlock
+Subject: [patch 22/23] perf_event: Convert to raw_spinlock
 References: <20091206110944.492100233@linutronix.de>
-Content-Disposition: inline; filename=sched-convert-pi-lock-to-core-lock.patch
+Content-Disposition: inline; filename=perf-convert-to-core-lock.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20091206180317.Sj_AQ0PVGp9AK3X9NkqofbHjgHV_SKbc_oIcz52YakM@z>
+Message-ID: <20091206180350.AcZU4FWKyPAA96ewZEQCynwye2K1-1qD3z5ckD_9VjA@z>
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- include/linux/init_task.h |    2 -
- include/linux/sched.h     |    2 -
- kernel/exit.c             |    2 -
- kernel/fork.c             |    4 +--
- kernel/futex.c            |   38 +++++++++++++++---------------
- kernel/rtmutex-debug.c    |    4 +--
- kernel/rtmutex.c          |   58 +++++++++++++++++++++++-----------------------
- kernel/sched.c            |   12 ++++-----
- 8 files changed, 61 insertions(+), 61 deletions(-)
+ include/linux/perf_event.h |    2 
+ kernel/hw_breakpoint.c     |    4 -
+ kernel/perf_event.c        |  106 ++++++++++++++++++++++-----------------------
+ 3 files changed, 56 insertions(+), 56 deletions(-)
 
-Index: linux-2.6-tip/include/linux/init_task.h
+Index: linux-2.6-tip/include/linux/perf_event.h
 ===================================================================
---- linux-2.6-tip.orig/include/linux/init_task.h
-+++ linux-2.6-tip/include/linux/init_task.h
-@@ -165,7 +165,7 @@ extern struct cred init_cred;
- 	.journal_info	= NULL,						\
- 	.cpu_timers	= INIT_CPU_TIMERS(tsk.cpu_timers),		\
- 	.fs_excl	= ATOMIC_INIT(0),				\
--	.pi_lock	= __SPIN_LOCK_UNLOCKED(tsk.pi_lock),		\
-+	.pi_lock	= __RAW_SPIN_LOCK_UNLOCKED(tsk.pi_lock),	\
- 	.timer_slack_ns = 50000, /* 50 usec default slack */		\
- 	.pids = {							\
- 		[PIDTYPE_PID]  = INIT_PID_LINK(PIDTYPE_PID),		\
-Index: linux-2.6-tip/include/linux/sched.h
+--- linux-2.6-tip.orig/include/linux/perf_event.h
++++ linux-2.6-tip/include/linux/perf_event.h
+@@ -685,7 +685,7 @@ struct perf_event_context {
+ 	 * Protect the states of the events in the list,
+ 	 * nr_active, and the list:
+ 	 */
+-	spinlock_t			lock;
++	raw_spinlock_t			lock;
+ 	/*
+ 	 * Protect the list of events.  Locking either mutex or lock
+ 	 * is sufficient to ensure the list doesn't change; to change
+Index: linux-2.6-tip/kernel/hw_breakpoint.c
 ===================================================================
---- linux-2.6-tip.orig/include/linux/sched.h
-+++ linux-2.6-tip/include/linux/sched.h
-@@ -1411,7 +1411,7 @@ struct task_struct {
- #endif
+--- linux-2.6-tip.orig/kernel/hw_breakpoint.c
++++ linux-2.6-tip/kernel/hw_breakpoint.c
+@@ -130,7 +130,7 @@ static void toggle_bp_task_slot(struct t
  
- 	/* Protection of the PI data structures: */
--	spinlock_t pi_lock;
-+	raw_spinlock_t pi_lock;
+ 	list = &ctx->event_list;
  
- #ifdef CONFIG_RT_MUTEXES
- 	/* PI waiters blocked on a rt_mutex held by this task */
-Index: linux-2.6-tip/kernel/exit.c
-===================================================================
---- linux-2.6-tip.orig/kernel/exit.c
-+++ linux-2.6-tip/kernel/exit.c
-@@ -933,7 +933,7 @@ NORET_TYPE void do_exit(long code)
- 	 * an exiting task cleaning up the robust pi futexes.
- 	 */
- 	smp_mb();
--	spin_unlock_wait(&tsk->pi_lock);
-+	raw_spin_unlock_wait(&tsk->pi_lock);
- 
- 	if (unlikely(in_atomic()))
- 		printk(KERN_INFO "note: %s[%d] exited with preempt_count %d\n",
-Index: linux-2.6-tip/kernel/fork.c
-===================================================================
---- linux-2.6-tip.orig/kernel/fork.c
-+++ linux-2.6-tip/kernel/fork.c
-@@ -937,9 +937,9 @@ SYSCALL_DEFINE1(set_tid_address, int __u
- 
- static void rt_mutex_init_task(struct task_struct *p)
- {
--	spin_lock_init(&p->pi_lock);
-+	raw_spin_lock_init(&p->pi_lock);
- #ifdef CONFIG_RT_MUTEXES
--	plist_head_init(&p->pi_waiters, &p->pi_lock);
-+	plist_head_init_raw(&p->pi_waiters, &p->pi_lock);
- 	p->pi_blocked_on = NULL;
- #endif
- }
-Index: linux-2.6-tip/kernel/futex.c
-===================================================================
---- linux-2.6-tip.orig/kernel/futex.c
-+++ linux-2.6-tip/kernel/futex.c
-@@ -397,9 +397,9 @@ static void free_pi_state(struct futex_p
- 	 * and has cleaned up the pi_state already
- 	 */
- 	if (pi_state->owner) {
--		spin_lock_irq(&pi_state->owner->pi_lock);
-+		raw_spin_lock_irq(&pi_state->owner->pi_lock);
- 		list_del_init(&pi_state->list);
--		spin_unlock_irq(&pi_state->owner->pi_lock);
-+		raw_spin_unlock_irq(&pi_state->owner->pi_lock);
- 
- 		rt_mutex_proxy_unlock(&pi_state->pi_mutex, pi_state->owner);
- 	}
-@@ -464,18 +464,18 @@ void exit_pi_state_list(struct task_stru
- 	 * pi_state_list anymore, but we have to be careful
- 	 * versus waiters unqueueing themselves:
- 	 */
--	spin_lock_irq(&curr->pi_lock);
-+	raw_spin_lock_irq(&curr->pi_lock);
- 	while (!list_empty(head)) {
- 
- 		next = head->next;
- 		pi_state = list_entry(next, struct futex_pi_state, list);
- 		key = pi_state->key;
- 		hb = hash_futex(&key);
--		spin_unlock_irq(&curr->pi_lock);
-+		raw_spin_unlock_irq(&curr->pi_lock);
- 
- 		spin_lock(&hb->lock);
- 
--		spin_lock_irq(&curr->pi_lock);
-+		raw_spin_lock_irq(&curr->pi_lock);
- 		/*
- 		 * We dropped the pi-lock, so re-check whether this
- 		 * task still owns the PI-state:
-@@ -489,15 +489,15 @@ void exit_pi_state_list(struct task_stru
- 		WARN_ON(list_empty(&pi_state->list));
- 		list_del_init(&pi_state->list);
- 		pi_state->owner = NULL;
--		spin_unlock_irq(&curr->pi_lock);
-+		raw_spin_unlock_irq(&curr->pi_lock);
- 
- 		rt_mutex_unlock(&pi_state->pi_mutex);
- 
- 		spin_unlock(&hb->lock);
- 
--		spin_lock_irq(&curr->pi_lock);
-+		raw_spin_lock_irq(&curr->pi_lock);
- 	}
--	spin_unlock_irq(&curr->pi_lock);
-+	raw_spin_unlock_irq(&curr->pi_lock);
- }
- 
- static int
-@@ -552,7 +552,7 @@ lookup_pi_state(u32 uval, struct futex_h
- 	 * change of the task flags, we do this protected by
- 	 * p->pi_lock:
- 	 */
--	spin_lock_irq(&p->pi_lock);
-+	raw_spin_lock_irq(&p->pi_lock);
- 	if (unlikely(p->flags & PF_EXITING)) {
- 		/*
- 		 * The task is on the way out. When PF_EXITPIDONE is
-@@ -561,7 +561,7 @@ lookup_pi_state(u32 uval, struct futex_h
- 		 */
- 		int ret = (p->flags & PF_EXITPIDONE) ? -ESRCH : -EAGAIN;
- 
--		spin_unlock_irq(&p->pi_lock);
-+		raw_spin_unlock_irq(&p->pi_lock);
- 		put_task_struct(p);
- 		return ret;
- 	}
-@@ -580,7 +580,7 @@ lookup_pi_state(u32 uval, struct futex_h
- 	WARN_ON(!list_empty(&pi_state->list));
- 	list_add(&pi_state->list, &p->pi_state_list);
- 	pi_state->owner = p;
--	spin_unlock_irq(&p->pi_lock);
-+	raw_spin_unlock_irq(&p->pi_lock);
- 
- 	put_task_struct(p);
- 
-@@ -788,16 +788,16 @@ static int wake_futex_pi(u32 __user *uad
- 		}
- 	}
- 
--	spin_lock_irq(&pi_state->owner->pi_lock);
-+	raw_spin_lock_irq(&pi_state->owner->pi_lock);
- 	WARN_ON(list_empty(&pi_state->list));
- 	list_del_init(&pi_state->list);
--	spin_unlock_irq(&pi_state->owner->pi_lock);
-+	raw_spin_unlock_irq(&pi_state->owner->pi_lock);
- 
--	spin_lock_irq(&new_owner->pi_lock);
-+	raw_spin_lock_irq(&new_owner->pi_lock);
- 	WARN_ON(!list_empty(&pi_state->list));
- 	list_add(&pi_state->list, &new_owner->pi_state_list);
- 	pi_state->owner = new_owner;
--	spin_unlock_irq(&new_owner->pi_lock);
-+	raw_spin_unlock_irq(&new_owner->pi_lock);
- 
- 	spin_unlock(&pi_state->pi_mutex.wait_lock);
- 	rt_mutex_unlock(&pi_state->pi_mutex);
-@@ -1523,18 +1523,18 @@ retry:
- 	 * itself.
- 	 */
- 	if (pi_state->owner != NULL) {
--		spin_lock_irq(&pi_state->owner->pi_lock);
-+		raw_spin_lock_irq(&pi_state->owner->pi_lock);
- 		WARN_ON(list_empty(&pi_state->list));
- 		list_del_init(&pi_state->list);
--		spin_unlock_irq(&pi_state->owner->pi_lock);
-+		raw_spin_unlock_irq(&pi_state->owner->pi_lock);
- 	}
- 
- 	pi_state->owner = newowner;
- 
--	spin_lock_irq(&newowner->pi_lock);
-+	raw_spin_lock_irq(&newowner->pi_lock);
- 	WARN_ON(!list_empty(&pi_state->list));
- 	list_add(&pi_state->list, &newowner->pi_state_list);
--	spin_unlock_irq(&newowner->pi_lock);
-+	raw_spin_unlock_irq(&newowner->pi_lock);
- 	return 0;
+-	spin_lock_irqsave(&ctx->lock, flags);
++	raw_spin_lock_irqsave(&ctx->lock, flags);
  
  	/*
-Index: linux-2.6-tip/kernel/rtmutex-debug.c
-===================================================================
---- linux-2.6-tip.orig/kernel/rtmutex-debug.c
-+++ linux-2.6-tip/kernel/rtmutex-debug.c
-@@ -37,8 +37,8 @@ do {								\
- 	if (rt_trace_on) {					\
- 		rt_trace_on = 0;				\
- 		console_verbose();				\
--		if (spin_is_locked(&current->pi_lock))		\
--			spin_unlock(&current->pi_lock);		\
-+		if (raw_spin_is_locked(&current->pi_lock))	\
-+			raw_spin_unlock(&current->pi_lock);	\
- 	}							\
- } while (0)
+ 	 * The current breakpoint counter is not included in the list
+@@ -141,7 +141,7 @@ static void toggle_bp_task_slot(struct t
+ 			count++;
+ 	}
  
-Index: linux-2.6-tip/kernel/rtmutex.c
+-	spin_unlock_irqrestore(&ctx->lock, flags);
++	raw_spin_unlock_irqrestore(&ctx->lock, flags);
+ 
+ 	if (WARN_ONCE(count < 0, "No breakpoint counter found in the counter list"))
+ 		return;
+Index: linux-2.6-tip/kernel/perf_event.c
 ===================================================================
---- linux-2.6-tip.orig/kernel/rtmutex.c
-+++ linux-2.6-tip/kernel/rtmutex.c
-@@ -138,9 +138,9 @@ static void rt_mutex_adjust_prio(struct 
+--- linux-2.6-tip.orig/kernel/perf_event.c
++++ linux-2.6-tip/kernel/perf_event.c
+@@ -203,14 +203,14 @@ perf_lock_task_context(struct task_struc
+ 		 * if so.  If we locked the right context, then it
+ 		 * can't get swapped on us any more.
+ 		 */
+-		spin_lock_irqsave(&ctx->lock, *flags);
++		raw_spin_lock_irqsave(&ctx->lock, *flags);
+ 		if (ctx != rcu_dereference(task->perf_event_ctxp)) {
+-			spin_unlock_irqrestore(&ctx->lock, *flags);
++			raw_spin_unlock_irqrestore(&ctx->lock, *flags);
+ 			goto retry;
+ 		}
+ 
+ 		if (!atomic_inc_not_zero(&ctx->refcount)) {
+-			spin_unlock_irqrestore(&ctx->lock, *flags);
++			raw_spin_unlock_irqrestore(&ctx->lock, *flags);
+ 			ctx = NULL;
+ 		}
+ 	}
+@@ -231,7 +231,7 @@ static struct perf_event_context *perf_p
+ 	ctx = perf_lock_task_context(task, &flags);
+ 	if (ctx) {
+ 		++ctx->pin_count;
+-		spin_unlock_irqrestore(&ctx->lock, flags);
++		raw_spin_unlock_irqrestore(&ctx->lock, flags);
+ 	}
+ 	return ctx;
+ }
+@@ -240,9 +240,9 @@ static void perf_unpin_context(struct pe
  {
  	unsigned long flags;
  
--	spin_lock_irqsave(&task->pi_lock, flags);
-+	raw_spin_lock_irqsave(&task->pi_lock, flags);
- 	__rt_mutex_adjust_prio(task);
--	spin_unlock_irqrestore(&task->pi_lock, flags);
-+	raw_spin_unlock_irqrestore(&task->pi_lock, flags);
+-	spin_lock_irqsave(&ctx->lock, flags);
++	raw_spin_lock_irqsave(&ctx->lock, flags);
+ 	--ctx->pin_count;
+-	spin_unlock_irqrestore(&ctx->lock, flags);
++	raw_spin_unlock_irqrestore(&ctx->lock, flags);
+ 	put_ctx(ctx);
+ }
+ 
+@@ -427,7 +427,7 @@ static void __perf_event_remove_from_con
+ 	if (ctx->task && cpuctx->task_ctx != ctx)
+ 		return;
+ 
+-	spin_lock(&ctx->lock);
++	raw_spin_lock(&ctx->lock);
+ 	/*
+ 	 * Protect the list operation against NMI by disabling the
+ 	 * events on a global level.
+@@ -449,7 +449,7 @@ static void __perf_event_remove_from_con
+ 	}
+ 
+ 	perf_enable();
+-	spin_unlock(&ctx->lock);
++	raw_spin_unlock(&ctx->lock);
+ }
+ 
+ 
+@@ -488,12 +488,12 @@ retry:
+ 	task_oncpu_function_call(task, __perf_event_remove_from_context,
+ 				 event);
+ 
+-	spin_lock_irq(&ctx->lock);
++	raw_spin_lock_irq(&ctx->lock);
+ 	/*
+ 	 * If the context is active we need to retry the smp call.
+ 	 */
+ 	if (ctx->nr_active && !list_empty(&event->group_entry)) {
+-		spin_unlock_irq(&ctx->lock);
++		raw_spin_unlock_irq(&ctx->lock);
+ 		goto retry;
+ 	}
+ 
+@@ -504,7 +504,7 @@ retry:
+ 	 */
+ 	if (!list_empty(&event->group_entry))
+ 		list_del_event(event, ctx);
+-	spin_unlock_irq(&ctx->lock);
++	raw_spin_unlock_irq(&ctx->lock);
  }
  
  /*
-@@ -195,7 +195,7 @@ static int rt_mutex_adjust_prio_chain(st
+@@ -535,7 +535,7 @@ static void __perf_event_disable(void *i
+ 	if (ctx->task && cpuctx->task_ctx != ctx)
+ 		return;
+ 
+-	spin_lock(&ctx->lock);
++	raw_spin_lock(&ctx->lock);
+ 
  	/*
- 	 * Task can not go away as we did a get_task() before !
+ 	 * If the event is on, turn it off.
+@@ -551,7 +551,7 @@ static void __perf_event_disable(void *i
+ 		event->state = PERF_EVENT_STATE_OFF;
+ 	}
+ 
+-	spin_unlock(&ctx->lock);
++	raw_spin_unlock(&ctx->lock);
+ }
+ 
+ /*
+@@ -584,12 +584,12 @@ static void perf_event_disable(struct pe
+  retry:
+ 	task_oncpu_function_call(task, __perf_event_disable, event);
+ 
+-	spin_lock_irq(&ctx->lock);
++	raw_spin_lock_irq(&ctx->lock);
+ 	/*
+ 	 * If the event is still active, we need to retry the cross-call.
  	 */
--	spin_lock_irqsave(&task->pi_lock, flags);
-+	raw_spin_lock_irqsave(&task->pi_lock, flags);
- 
- 	waiter = task->pi_blocked_on;
- 	/*
-@@ -232,7 +232,7 @@ static int rt_mutex_adjust_prio_chain(st
- 
- 	lock = waiter->lock;
- 	if (!spin_trylock(&lock->wait_lock)) {
--		spin_unlock_irqrestore(&task->pi_lock, flags);
-+		raw_spin_unlock_irqrestore(&task->pi_lock, flags);
- 		cpu_relax();
+ 	if (event->state == PERF_EVENT_STATE_ACTIVE) {
+-		spin_unlock_irq(&ctx->lock);
++		raw_spin_unlock_irq(&ctx->lock);
  		goto retry;
  	}
-@@ -253,13 +253,13 @@ static int rt_mutex_adjust_prio_chain(st
- 	plist_add(&waiter->list_entry, &lock->wait_list);
  
- 	/* Release the task */
--	spin_unlock_irqrestore(&task->pi_lock, flags);
-+	raw_spin_unlock_irqrestore(&task->pi_lock, flags);
- 	put_task_struct(task);
- 
- 	/* Grab the next task */
- 	task = rt_mutex_owner(lock);
- 	get_task_struct(task);
--	spin_lock_irqsave(&task->pi_lock, flags);
-+	raw_spin_lock_irqsave(&task->pi_lock, flags);
- 
- 	if (waiter == rt_mutex_top_waiter(lock)) {
- 		/* Boost the owner */
-@@ -277,7 +277,7 @@ static int rt_mutex_adjust_prio_chain(st
- 		__rt_mutex_adjust_prio(task);
+@@ -602,7 +602,7 @@ static void perf_event_disable(struct pe
+ 		event->state = PERF_EVENT_STATE_OFF;
  	}
  
--	spin_unlock_irqrestore(&task->pi_lock, flags);
-+	raw_spin_unlock_irqrestore(&task->pi_lock, flags);
- 
- 	top_waiter = rt_mutex_top_waiter(lock);
- 	spin_unlock(&lock->wait_lock);
-@@ -288,7 +288,7 @@ static int rt_mutex_adjust_prio_chain(st
- 	goto again;
- 
-  out_unlock_pi:
--	spin_unlock_irqrestore(&task->pi_lock, flags);
-+	raw_spin_unlock_irqrestore(&task->pi_lock, flags);
-  out_put_task:
- 	put_task_struct(task);
- 
-@@ -313,9 +313,9 @@ static inline int try_to_steal_lock(stru
- 	if (pendowner == task)
- 		return 1;
- 
--	spin_lock_irqsave(&pendowner->pi_lock, flags);
-+	raw_spin_lock_irqsave(&pendowner->pi_lock, flags);
- 	if (task->prio >= pendowner->prio) {
--		spin_unlock_irqrestore(&pendowner->pi_lock, flags);
-+		raw_spin_unlock_irqrestore(&pendowner->pi_lock, flags);
- 		return 0;
- 	}
- 
-@@ -325,7 +325,7 @@ static inline int try_to_steal_lock(stru
- 	 * priority.
- 	 */
- 	if (likely(!rt_mutex_has_waiters(lock))) {
--		spin_unlock_irqrestore(&pendowner->pi_lock, flags);
-+		raw_spin_unlock_irqrestore(&pendowner->pi_lock, flags);
- 		return 1;
- 	}
- 
-@@ -333,7 +333,7 @@ static inline int try_to_steal_lock(stru
- 	next = rt_mutex_top_waiter(lock);
- 	plist_del(&next->pi_list_entry, &pendowner->pi_waiters);
- 	__rt_mutex_adjust_prio(pendowner);
--	spin_unlock_irqrestore(&pendowner->pi_lock, flags);
-+	raw_spin_unlock_irqrestore(&pendowner->pi_lock, flags);
- 
- 	/*
- 	 * We are going to steal the lock and a waiter was
-@@ -350,10 +350,10 @@ static inline int try_to_steal_lock(stru
- 	 * might be task:
- 	 */
- 	if (likely(next->task != task)) {
--		spin_lock_irqsave(&task->pi_lock, flags);
-+		raw_spin_lock_irqsave(&task->pi_lock, flags);
- 		plist_add(&next->pi_list_entry, &task->pi_waiters);
- 		__rt_mutex_adjust_prio(task);
--		spin_unlock_irqrestore(&task->pi_lock, flags);
-+		raw_spin_unlock_irqrestore(&task->pi_lock, flags);
- 	}
- 	return 1;
+-	spin_unlock_irq(&ctx->lock);
++	raw_spin_unlock_irq(&ctx->lock);
  }
-@@ -420,7 +420,7 @@ static int task_blocks_on_rt_mutex(struc
- 	unsigned long flags;
- 	int chain_walk = 0, res;
  
--	spin_lock_irqsave(&task->pi_lock, flags);
-+	raw_spin_lock_irqsave(&task->pi_lock, flags);
- 	__rt_mutex_adjust_prio(task);
- 	waiter->task = task;
- 	waiter->lock = lock;
-@@ -434,17 +434,17 @@ static int task_blocks_on_rt_mutex(struc
- 
- 	task->pi_blocked_on = waiter;
- 
--	spin_unlock_irqrestore(&task->pi_lock, flags);
-+	raw_spin_unlock_irqrestore(&task->pi_lock, flags);
- 
- 	if (waiter == rt_mutex_top_waiter(lock)) {
--		spin_lock_irqsave(&owner->pi_lock, flags);
-+		raw_spin_lock_irqsave(&owner->pi_lock, flags);
- 		plist_del(&top_waiter->pi_list_entry, &owner->pi_waiters);
- 		plist_add(&waiter->pi_list_entry, &owner->pi_waiters);
- 
- 		__rt_mutex_adjust_prio(owner);
- 		if (owner->pi_blocked_on)
- 			chain_walk = 1;
--		spin_unlock_irqrestore(&owner->pi_lock, flags);
-+		raw_spin_unlock_irqrestore(&owner->pi_lock, flags);
+ static int
+@@ -770,7 +770,7 @@ static void __perf_install_in_context(vo
+ 		cpuctx->task_ctx = ctx;
  	}
- 	else if (debug_rt_mutex_detect_deadlock(waiter, detect_deadlock))
- 		chain_walk = 1;
-@@ -483,7 +483,7 @@ static void wakeup_next_waiter(struct rt
- 	struct task_struct *pendowner;
- 	unsigned long flags;
  
--	spin_lock_irqsave(&current->pi_lock, flags);
-+	raw_spin_lock_irqsave(&current->pi_lock, flags);
+-	spin_lock(&ctx->lock);
++	raw_spin_lock(&ctx->lock);
+ 	ctx->is_active = 1;
+ 	update_context_time(ctx);
  
- 	waiter = rt_mutex_top_waiter(lock);
- 	plist_del(&waiter->list_entry, &lock->wait_list);
-@@ -500,7 +500,7 @@ static void wakeup_next_waiter(struct rt
+@@ -820,7 +820,7 @@ static void __perf_install_in_context(vo
+  unlock:
+ 	perf_enable();
  
- 	rt_mutex_set_owner(lock, pendowner, RT_MUTEX_OWNER_PENDING);
- 
--	spin_unlock_irqrestore(&current->pi_lock, flags);
-+	raw_spin_unlock_irqrestore(&current->pi_lock, flags);
- 
- 	/*
- 	 * Clear the pi_blocked_on variable and enqueue a possible
-@@ -509,7 +509,7 @@ static void wakeup_next_waiter(struct rt
- 	 * waiter with higher priority than pending-owner->normal_prio
- 	 * is blocked on the unboosted (pending) owner.
- 	 */
--	spin_lock_irqsave(&pendowner->pi_lock, flags);
-+	raw_spin_lock_irqsave(&pendowner->pi_lock, flags);
- 
- 	WARN_ON(!pendowner->pi_blocked_on);
- 	WARN_ON(pendowner->pi_blocked_on != waiter);
-@@ -523,7 +523,7 @@ static void wakeup_next_waiter(struct rt
- 		next = rt_mutex_top_waiter(lock);
- 		plist_add(&next->pi_list_entry, &pendowner->pi_waiters);
- 	}
--	spin_unlock_irqrestore(&pendowner->pi_lock, flags);
-+	raw_spin_unlock_irqrestore(&pendowner->pi_lock, flags);
- 
- 	wake_up_process(pendowner);
+-	spin_unlock(&ctx->lock);
++	raw_spin_unlock(&ctx->lock);
  }
-@@ -541,15 +541,15 @@ static void remove_waiter(struct rt_mute
- 	unsigned long flags;
- 	int chain_walk = 0;
  
--	spin_lock_irqsave(&current->pi_lock, flags);
-+	raw_spin_lock_irqsave(&current->pi_lock, flags);
- 	plist_del(&waiter->list_entry, &lock->wait_list);
- 	waiter->task = NULL;
- 	current->pi_blocked_on = NULL;
--	spin_unlock_irqrestore(&current->pi_lock, flags);
-+	raw_spin_unlock_irqrestore(&current->pi_lock, flags);
+ /*
+@@ -856,12 +856,12 @@ retry:
+ 	task_oncpu_function_call(task, __perf_install_in_context,
+ 				 event);
  
- 	if (first && owner != current) {
- 
--		spin_lock_irqsave(&owner->pi_lock, flags);
-+		raw_spin_lock_irqsave(&owner->pi_lock, flags);
- 
- 		plist_del(&waiter->pi_list_entry, &owner->pi_waiters);
- 
-@@ -564,7 +564,7 @@ static void remove_waiter(struct rt_mute
- 		if (owner->pi_blocked_on)
- 			chain_walk = 1;
- 
--		spin_unlock_irqrestore(&owner->pi_lock, flags);
-+		raw_spin_unlock_irqrestore(&owner->pi_lock, flags);
+-	spin_lock_irq(&ctx->lock);
++	raw_spin_lock_irq(&ctx->lock);
+ 	/*
+ 	 * we need to retry the smp call.
+ 	 */
+ 	if (ctx->is_active && list_empty(&event->group_entry)) {
+-		spin_unlock_irq(&ctx->lock);
++		raw_spin_unlock_irq(&ctx->lock);
+ 		goto retry;
  	}
  
- 	WARN_ON(!plist_node_empty(&waiter->pi_list_entry));
-@@ -592,15 +592,15 @@ void rt_mutex_adjust_pi(struct task_stru
- 	struct rt_mutex_waiter *waiter;
- 	unsigned long flags;
+@@ -872,7 +872,7 @@ retry:
+ 	 */
+ 	if (list_empty(&event->group_entry))
+ 		add_event_to_ctx(event, ctx);
+-	spin_unlock_irq(&ctx->lock);
++	raw_spin_unlock_irq(&ctx->lock);
+ }
  
--	spin_lock_irqsave(&task->pi_lock, flags);
-+	raw_spin_lock_irqsave(&task->pi_lock, flags);
+ /*
+@@ -917,7 +917,7 @@ static void __perf_event_enable(void *in
+ 		cpuctx->task_ctx = ctx;
+ 	}
  
- 	waiter = task->pi_blocked_on;
- 	if (!waiter || waiter->list_entry.prio == task->prio) {
--		spin_unlock_irqrestore(&task->pi_lock, flags);
-+		raw_spin_unlock_irqrestore(&task->pi_lock, flags);
+-	spin_lock(&ctx->lock);
++	raw_spin_lock(&ctx->lock);
+ 	ctx->is_active = 1;
+ 	update_context_time(ctx);
+ 
+@@ -959,7 +959,7 @@ static void __perf_event_enable(void *in
+ 	}
+ 
+  unlock:
+-	spin_unlock(&ctx->lock);
++	raw_spin_unlock(&ctx->lock);
+ }
+ 
+ /*
+@@ -985,7 +985,7 @@ static void perf_event_enable(struct per
  		return;
  	}
  
--	spin_unlock_irqrestore(&task->pi_lock, flags);
-+	raw_spin_unlock_irqrestore(&task->pi_lock, flags);
+-	spin_lock_irq(&ctx->lock);
++	raw_spin_lock_irq(&ctx->lock);
+ 	if (event->state >= PERF_EVENT_STATE_INACTIVE)
+ 		goto out;
  
- 	/* gets dropped in rt_mutex_adjust_prio_chain()! */
- 	get_task_struct(task);
-Index: linux-2.6-tip/kernel/sched.c
-===================================================================
---- linux-2.6-tip.orig/kernel/sched.c
-+++ linux-2.6-tip/kernel/sched.c
-@@ -6346,7 +6346,7 @@ recheck:
- 	 * make sure no PI-waiters arrive (or leave) while we are
- 	 * changing the priority of the task:
- 	 */
--	spin_lock_irqsave(&p->pi_lock, flags);
-+	raw_spin_lock_irqsave(&p->pi_lock, flags);
- 	/*
- 	 * To be able to change p->policy safely, the apropriate
- 	 * runqueue lock must be held.
-@@ -6356,7 +6356,7 @@ recheck:
- 	if (unlikely(oldpolicy != -1 && oldpolicy != p->policy)) {
- 		policy = oldpolicy = -1;
- 		__task_rq_unlock(rq);
--		spin_unlock_irqrestore(&p->pi_lock, flags);
-+		raw_spin_unlock_irqrestore(&p->pi_lock, flags);
- 		goto recheck;
- 	}
- 	update_rq_clock(rq);
-@@ -6380,7 +6380,7 @@ recheck:
- 		check_class_changed(rq, p, prev_class, oldprio, running);
- 	}
- 	__task_rq_unlock(rq);
--	spin_unlock_irqrestore(&p->pi_lock, flags);
-+	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
+@@ -1000,10 +1000,10 @@ static void perf_event_enable(struct per
+ 		event->state = PERF_EVENT_STATE_OFF;
  
- 	rt_mutex_adjust_pi(p);
+  retry:
+-	spin_unlock_irq(&ctx->lock);
++	raw_spin_unlock_irq(&ctx->lock);
+ 	task_oncpu_function_call(task, __perf_event_enable, event);
  
-@@ -9619,7 +9619,7 @@ void __init sched_init(void)
- #endif
- 
- #ifdef CONFIG_RT_MUTEXES
--	plist_head_init(&init_task.pi_waiters, &init_task.pi_lock);
-+	plist_head_init_raw(&init_task.pi_waiters, &init_task.pi_lock);
- #endif
+-	spin_lock_irq(&ctx->lock);
++	raw_spin_lock_irq(&ctx->lock);
  
  	/*
-@@ -9744,13 +9744,13 @@ void normalize_rt_tasks(void)
- 			continue;
+ 	 * If the context is active and the event is still off,
+@@ -1020,7 +1020,7 @@ static void perf_event_enable(struct per
+ 		__perf_event_mark_enabled(event, ctx);
+ 
+  out:
+-	spin_unlock_irq(&ctx->lock);
++	raw_spin_unlock_irq(&ctx->lock);
+ }
+ 
+ static int perf_event_refresh(struct perf_event *event, int refresh)
+@@ -1042,7 +1042,7 @@ void __perf_event_sched_out(struct perf_
+ {
+ 	struct perf_event *event;
+ 
+-	spin_lock(&ctx->lock);
++	raw_spin_lock(&ctx->lock);
+ 	ctx->is_active = 0;
+ 	if (likely(!ctx->nr_events))
+ 		goto out;
+@@ -1055,7 +1055,7 @@ void __perf_event_sched_out(struct perf_
+ 	}
+ 	perf_enable();
+  out:
+-	spin_unlock(&ctx->lock);
++	raw_spin_unlock(&ctx->lock);
+ }
+ 
+ /*
+@@ -1193,8 +1193,8 @@ void perf_event_task_sched_out(struct ta
+ 		 * order we take the locks because no other cpu could
+ 		 * be trying to lock both of these tasks.
+ 		 */
+-		spin_lock(&ctx->lock);
+-		spin_lock_nested(&next_ctx->lock, SINGLE_DEPTH_NESTING);
++		raw_spin_lock(&ctx->lock);
++		raw_spin_lock_nested(&next_ctx->lock, SINGLE_DEPTH_NESTING);
+ 		if (context_equiv(ctx, next_ctx)) {
+ 			/*
+ 			 * XXX do we need a memory barrier of sorts
+@@ -1208,8 +1208,8 @@ void perf_event_task_sched_out(struct ta
+ 
+ 			perf_event_sync_stat(ctx, next_ctx);
  		}
+-		spin_unlock(&next_ctx->lock);
+-		spin_unlock(&ctx->lock);
++		raw_spin_unlock(&next_ctx->lock);
++		raw_spin_unlock(&ctx->lock);
+ 	}
+ 	rcu_read_unlock();
  
--		spin_lock(&p->pi_lock);
-+		raw_spin_lock(&p->pi_lock);
- 		rq = __task_rq_lock(p);
+@@ -1251,7 +1251,7 @@ __perf_event_sched_in(struct perf_event_
+ 	struct perf_event *event;
+ 	int can_add_hw = 1;
  
- 		normalize_task(rq, p);
+-	spin_lock(&ctx->lock);
++	raw_spin_lock(&ctx->lock);
+ 	ctx->is_active = 1;
+ 	if (likely(!ctx->nr_events))
+ 		goto out;
+@@ -1306,7 +1306,7 @@ __perf_event_sched_in(struct perf_event_
+ 	}
+ 	perf_enable();
+  out:
+-	spin_unlock(&ctx->lock);
++	raw_spin_unlock(&ctx->lock);
+ }
  
- 		__task_rq_unlock(rq);
--		spin_unlock(&p->pi_lock);
-+		raw_spin_unlock(&p->pi_lock);
- 	} while_each_thread(g, p);
+ /*
+@@ -1370,7 +1370,7 @@ static void perf_ctx_adjust_freq(struct 
+ 	struct hw_perf_event *hwc;
+ 	u64 interrupts, freq;
  
- 	read_unlock_irqrestore(&tasklist_lock, flags);
+-	spin_lock(&ctx->lock);
++	raw_spin_lock(&ctx->lock);
+ 	list_for_each_entry_rcu(event, &ctx->event_list, event_entry) {
+ 		if (event->state != PERF_EVENT_STATE_ACTIVE)
+ 			continue;
+@@ -1425,7 +1425,7 @@ static void perf_ctx_adjust_freq(struct 
+ 			perf_enable();
+ 		}
+ 	}
+-	spin_unlock(&ctx->lock);
++	raw_spin_unlock(&ctx->lock);
+ }
+ 
+ /*
+@@ -1438,7 +1438,7 @@ static void rotate_ctx(struct perf_event
+ 	if (!ctx->nr_events)
+ 		return;
+ 
+-	spin_lock(&ctx->lock);
++	raw_spin_lock(&ctx->lock);
+ 	/*
+ 	 * Rotate the first entry last (works just fine for group events too):
+ 	 */
+@@ -1449,7 +1449,7 @@ static void rotate_ctx(struct perf_event
+ 	}
+ 	perf_enable();
+ 
+-	spin_unlock(&ctx->lock);
++	raw_spin_unlock(&ctx->lock);
+ }
+ 
+ void perf_event_task_tick(struct task_struct *curr, int cpu)
+@@ -1498,7 +1498,7 @@ static void perf_event_enable_on_exec(st
+ 
+ 	__perf_event_task_sched_out(ctx);
+ 
+-	spin_lock(&ctx->lock);
++	raw_spin_lock(&ctx->lock);
+ 
+ 	list_for_each_entry(event, &ctx->group_list, group_entry) {
+ 		if (!event->attr.enable_on_exec)
+@@ -1516,7 +1516,7 @@ static void perf_event_enable_on_exec(st
+ 	if (enabled)
+ 		unclone_ctx(ctx);
+ 
+-	spin_unlock(&ctx->lock);
++	raw_spin_unlock(&ctx->lock);
+ 
+ 	perf_event_task_sched_in(task, smp_processor_id());
+  out:
+@@ -1542,10 +1542,10 @@ static void __perf_event_read(void *info
+ 	if (ctx->task && cpuctx->task_ctx != ctx)
+ 		return;
+ 
+-	spin_lock(&ctx->lock);
++	raw_spin_lock(&ctx->lock);
+ 	update_context_time(ctx);
+ 	update_event_times(event);
+-	spin_unlock(&ctx->lock);
++	raw_spin_unlock(&ctx->lock);
+ 
+ 	event->pmu->read(event);
+ }
+@@ -1563,10 +1563,10 @@ static u64 perf_event_read(struct perf_e
+ 		struct perf_event_context *ctx = event->ctx;
+ 		unsigned long flags;
+ 
+-		spin_lock_irqsave(&ctx->lock, flags);
++		raw_spin_lock_irqsave(&ctx->lock, flags);
+ 		update_context_time(ctx);
+ 		update_event_times(event);
+-		spin_unlock_irqrestore(&ctx->lock, flags);
++		raw_spin_unlock_irqrestore(&ctx->lock, flags);
+ 	}
+ 
+ 	return atomic64_read(&event->count);
+@@ -1580,7 +1580,7 @@ __perf_event_init_context(struct perf_ev
+ 			    struct task_struct *task)
+ {
+ 	memset(ctx, 0, sizeof(*ctx));
+-	spin_lock_init(&ctx->lock);
++	raw_spin_lock_init(&ctx->lock);
+ 	mutex_init(&ctx->mutex);
+ 	INIT_LIST_HEAD(&ctx->group_list);
+ 	INIT_LIST_HEAD(&ctx->event_list);
+@@ -1650,7 +1650,7 @@ static struct perf_event_context *find_g
+ 	ctx = perf_lock_task_context(task, &flags);
+ 	if (ctx) {
+ 		unclone_ctx(ctx);
+-		spin_unlock_irqrestore(&ctx->lock, flags);
++		raw_spin_unlock_irqrestore(&ctx->lock, flags);
+ 	}
+ 
+ 	if (!ctx) {
+@@ -1988,7 +1988,7 @@ static int perf_event_period(struct perf
+ 	if (!value)
+ 		return -EINVAL;
+ 
+-	spin_lock_irq(&ctx->lock);
++	raw_spin_lock_irq(&ctx->lock);
+ 	if (event->attr.freq) {
+ 		if (value > sysctl_perf_event_sample_rate) {
+ 			ret = -EINVAL;
+@@ -2001,7 +2001,7 @@ static int perf_event_period(struct perf
+ 		event->hw.sample_period = value;
+ 	}
+ unlock:
+-	spin_unlock_irq(&ctx->lock);
++	raw_spin_unlock_irq(&ctx->lock);
+ 
+ 	return ret;
+ }
+@@ -4998,7 +4998,7 @@ void perf_event_exit_task(struct task_st
+ 	 * reading child->perf_event_ctxp, we wait until it has
+ 	 * incremented the context's refcount before we do put_ctx below.
+ 	 */
+-	spin_lock(&child_ctx->lock);
++	raw_spin_lock(&child_ctx->lock);
+ 	child->perf_event_ctxp = NULL;
+ 	/*
+ 	 * If this context is a clone; unclone it so it can't get
+@@ -5007,7 +5007,7 @@ void perf_event_exit_task(struct task_st
+ 	 */
+ 	unclone_ctx(child_ctx);
+ 	update_context_time(child_ctx);
+-	spin_unlock_irqrestore(&child_ctx->lock, flags);
++	raw_spin_unlock_irqrestore(&child_ctx->lock, flags);
+ 
+ 	/*
+ 	 * Report the task dead after unscheduling the events so that we
+@@ -5291,11 +5291,11 @@ perf_set_reserve_percpu(struct sysdev_cl
+ 	perf_reserved_percpu = val;
+ 	for_each_online_cpu(cpu) {
+ 		cpuctx = &per_cpu(perf_cpu_context, cpu);
+-		spin_lock_irq(&cpuctx->ctx.lock);
++		raw_spin_lock_irq(&cpuctx->ctx.lock);
+ 		mpt = min(perf_max_events - cpuctx->ctx.nr_events,
+ 			  perf_max_events - perf_reserved_percpu);
+ 		cpuctx->max_pertask = mpt;
+-		spin_unlock_irq(&cpuctx->ctx.lock);
++		raw_spin_unlock_irq(&cpuctx->ctx.lock);
+ 	}
+ 	spin_unlock(&perf_resource_lock);
+ 
 
 
