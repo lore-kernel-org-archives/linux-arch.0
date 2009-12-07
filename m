@@ -1,59 +1,59 @@
 From: Al Viro <viro@ftp.linux.org.uk>
-Subject: [PATCH 3/19] do_mremap() untangling, part 3
-Date: Mon, 07 Dec 2009 03:52:20 +0000
-Message-ID: <E1NHUe4-0007vA-Oi@ZenIV.linux.org.uk>
+Subject: [PATCH 5/19] fix the arch checks in MREMAP_FIXED case
+Date: Mon, 07 Dec 2009 03:52:40 +0000
+Message-ID: <E1NHUeO-0007vj-P8@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S933458AbZLGDwS@vger.kernel.org>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S933601AbZLGDwl@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 
-Take the check for being able to expand vma in place into a separate
-helper.
-
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- mm/mremap.c |   16 ++++++++++++----
- 1 files changed, 12 insertions(+), 4 deletions(-)
+ mm/mremap.c |   19 +++++++++++++++++--
+ 1 files changed, 17 insertions(+), 2 deletions(-)
 
 diff --git a/mm/mremap.c b/mm/mremap.c
-index 5f34617..90e422c 100644
+index 9d07539..84efffb 100644
 --- a/mm/mremap.c
 +++ b/mm/mremap.c
-@@ -366,6 +366,17 @@ out:
- 	return ret;
- }
+@@ -325,6 +325,7 @@ static unsigned long mremap_to(unsigned long addr,
+ 	struct vm_area_struct *vma;
+ 	unsigned long ret = -EINVAL;
+ 	unsigned long charged = 0;
++	unsigned long map_flags;
  
-+static int vma_expandable(struct vm_area_struct *vma, unsigned long delta)
-+{
-+	unsigned long max_addr = TASK_SIZE;
-+	if (vma->vm_next)
-+		max_addr = vma->vm_next->vm_start;
-+	if (max_addr - vma->vm_end < delta)
-+		return 0;
-+	/* we need to do arch-specific checks here */
-+	return 1;
-+}
+ 	if (new_addr & ~PAGE_MASK)
+ 		goto out;
+@@ -362,9 +363,23 @@ static unsigned long mremap_to(unsigned long addr,
+ 		goto out;
+ 	}
+ 
+-	ret = move_vma(vma, addr, old_len, new_len, new_addr);
++	map_flags = MAP_FIXED;
++	if (vma->vm_flags & VM_MAYSHARE)
++		map_flags |= MAP_SHARED;
++	ret = arch_mmap_check(new_addr, new_len, map_flags);
++	if (ret)
++		goto out1;
++	ret = get_unmapped_area(vma->vm_file, new_addr, new_len, vma->vm_pgoff +
++				((addr - vma->vm_start) >> PAGE_SHIFT),
++				map_flags);
+ 	if (ret & ~PAGE_MASK)
+-		vm_unacct_memory(charged);
++		goto out1;
 +
- /*
-  * Expand (or shrink) an existing mapping, potentially moving it at the
-  * same time (controlled by the MREMAP_MAYMOVE flag and available VM space)
-@@ -430,11 +441,8 @@ unsigned long do_mremap(unsigned long addr,
- 	/* old_len exactly to the end of the area..
- 	 */
- 	if (old_len == vma->vm_end - addr) {
--		unsigned long max_addr = TASK_SIZE;
--		if (vma->vm_next)
--			max_addr = vma->vm_next->vm_start;
- 		/* can we just expand the current mapping? */
--		if (max_addr - addr >= new_len) {
-+		if (vma_expandable(vma, new_len - old_len)) {
- 			int pages = (new_len - old_len) >> PAGE_SHIFT;
++	ret = move_vma(vma, addr, old_len, new_len, new_addr);
++	if (!(ret & ~PAGE_MASK))
++		goto out;
++out1:
++	vm_unacct_memory(charged);
  
- 			vma_adjust(vma, vma->vm_start,
+ out:
+ 	return ret;
 -- 
 1.5.6.5
