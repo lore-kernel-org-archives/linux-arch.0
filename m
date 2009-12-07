@@ -1,86 +1,52 @@
 From: Al Viro <viro@ftp.linux.org.uk>
-Subject: [PATCH 18/19] Get rid of open-coding in ia64_brk()
-Date: Mon, 07 Dec 2009 03:54:51 +0000
-Message-ID: <E1NHUgV-0007zH-2z@ZenIV.linux.org.uk>
+Subject: [PATCH 16/19] switch do_brk() to get_unmapped_area()
+Date: Mon, 07 Dec 2009 03:54:31 +0000
+Message-ID: <E1NHUgB-0007yw-2K@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S934699AbZLGDyv@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:51497 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934671AbZLGDy0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Dec 2009 22:54:26 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-
-The comment in there used to be true, but these days do_brk() does
-the arch-specific check that covers what we open-coded here.  So we
-can use sys_brk() just fine, only need to do force_successful_syscall_return()
-after it.
-
-See commit 3a459756810912d2c2bf188cef566af255936b4d - that's when the
-checks in do_brk() had been originally added.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/ia64/kernel/sys_ia64.c |   46 +------------------------------------------
- 1 files changed, 1 insertions(+), 45 deletions(-)
+ mm/mmap.c |   10 ++--------
+ 1 files changed, 2 insertions(+), 8 deletions(-)
 
-diff --git a/arch/ia64/kernel/sys_ia64.c b/arch/ia64/kernel/sys_ia64.c
-index ae384a2..609d500 100644
---- a/arch/ia64/kernel/sys_ia64.c
-+++ b/arch/ia64/kernel/sys_ia64.c
-@@ -100,51 +100,7 @@ sys_getpagesize (void)
- asmlinkage unsigned long
- ia64_brk (unsigned long brk)
- {
--	unsigned long rlim, retval, newbrk, oldbrk;
--	struct mm_struct *mm = current->mm;
+diff --git a/mm/mmap.c b/mm/mmap.c
+index e92cbe5..f364677 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -1989,20 +1989,14 @@ unsigned long do_brk(unsigned long addr, unsigned long len)
+ 	if (!len)
+ 		return addr;
+ 
+-	if ((addr + len) > TASK_SIZE || (addr + len) < addr)
+-		return -EINVAL;
 -
--	/*
--	 * Most of this replicates the code in sys_brk() except for an additional safety
--	 * check and the clearing of r8.  However, we can't call sys_brk() because we need
--	 * to acquire the mmap_sem before we can do the test...
--	 */
--	down_write(&mm->mmap_sem);
+-	if (is_hugepage_only_range(mm, addr, len))
+-		return -EINVAL;
 -
--	if (brk < mm->end_code)
--		goto out;
--	newbrk = PAGE_ALIGN(brk);
--	oldbrk = PAGE_ALIGN(mm->brk);
--	if (oldbrk == newbrk)
--		goto set_brk;
--
--	/* Always allow shrinking brk. */
--	if (brk <= mm->brk) {
--		if (!do_munmap(mm, newbrk, oldbrk-newbrk))
--			goto set_brk;
--		goto out;
--	}
--
--	/* Check against unimplemented/unmapped addresses: */
--	if ((newbrk - oldbrk) > RGN_MAP_LIMIT || REGION_OFFSET(newbrk) > RGN_MAP_LIMIT)
--		goto out;
--
--	/* Check against rlimit.. */
--	rlim = current->signal->rlim[RLIMIT_DATA].rlim_cur;
--	if (rlim < RLIM_INFINITY && brk - mm->start_data > rlim)
--		goto out;
--
--	/* Check against existing mmap mappings. */
--	if (find_vma_intersection(mm, oldbrk, newbrk+PAGE_SIZE))
--		goto out;
--
--	/* Ok, looks good - let it rip. */
--	if (do_brk(oldbrk, newbrk-oldbrk) != oldbrk)
--		goto out;
--set_brk:
--	mm->brk = brk;
--out:
--	retval = mm->brk;
--	up_write(&mm->mmap_sem);
-+	unsigned long retval = sys_brk(brk);
- 	force_successful_syscall_return();
- 	return retval;
- }
+ 	error = security_file_mmap(NULL, 0, 0, 0, addr, 1);
+ 	if (error)
+ 		return error;
+ 
+ 	flags = VM_DATA_DEFAULT_FLAGS | VM_ACCOUNT | mm->def_flags;
+ 
+-	error = arch_mmap_check(addr, len, flags);
+-	if (error)
++	error = get_unmapped_area(NULL, addr, len, 0, MAP_FIXED | flags);
++	if (error & ~PAGE_MASK)
+ 		return error;
+ 
+ 	/*
 -- 
 1.5.6.5
