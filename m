@@ -1,84 +1,118 @@
 From: Al Viro <viro@ftp.linux.org.uk>
-Subject: [PATCH 19/19] fix broken aliasing checks for MAP_FIXED on
- sparc32, mips, arm and sh
-Date: Mon, 07 Dec 2009 03:55:01 +0000
-Message-ID: <E1NHUgf-0007zS-3C@ZenIV.linux.org.uk>
+Subject: [PATCH 17/19] sparc_brk() is not needed anymore
+Date: Mon, 07 Dec 2009 03:54:41 +0000
+Message-ID: <E1NHUgL-0007z9-2o@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S934709AbZLGDzE@vger.kernel.org>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S934624AbZLGDym@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 
-We want addr - (pgoff << PAGE_SHIFT) consistently coloured...
+the checks it's doing are duplicated in sys_brk() and failing
+them early makes no sense, AFAICT.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
-[MIPS part is in arch tree already]
- arch/arm/mm/mmap.c               |    3 ++-
- arch/mips/kernel/syscall.c       |    3 ++-
- arch/sh/mm/mmap.c                |    3 ++-
- arch/sparc/kernel/sys_sparc_32.c |    3 ++-
- 4 files changed, 8 insertions(+), 4 deletions(-)
+ arch/sparc/kernel/sys_sparc_32.c |    9 ---------
+ arch/sparc/kernel/sys_sparc_64.c |   12 ------------
+ arch/sparc/kernel/systbls.h      |    1 -
+ arch/sparc/kernel/systbls_32.S   |    2 +-
+ arch/sparc/kernel/systbls_64.S   |    4 ++--
+ 5 files changed, 3 insertions(+), 25 deletions(-)
 
-diff --git a/arch/arm/mm/mmap.c b/arch/arm/mm/mmap.c
-index 2b79964..f5abc51 100644
---- a/arch/arm/mm/mmap.c
-+++ b/arch/arm/mm/mmap.c
-@@ -54,7 +54,8 @@ arch_get_unmapped_area(struct file *filp, unsigned long addr,
- 	 * We enforce the MAP_FIXED case.
- 	 */
- 	if (flags & MAP_FIXED) {
--		if (aliasing && flags & MAP_SHARED && addr & (SHMLBA - 1))
-+		if (aliasing && flags & MAP_SHARED &&
-+		    (addr - (pgoff << PAGE_SHIFT)) & (SHMLBA - 1))
- 			return -EINVAL;
- 		return addr;
- 	}
-diff --git a/arch/mips/kernel/syscall.c b/arch/mips/kernel/syscall.c
-index c25b2e7..3f7f466 100644
---- a/arch/mips/kernel/syscall.c
-+++ b/arch/mips/kernel/syscall.c
-@@ -93,7 +93,8 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
- 		 * We do not accept a shared mapping if it would violate
- 		 * cache aliasing constraints.
- 		 */
--		if ((flags & MAP_SHARED) && (addr & shm_align_mask))
-+		if ((flags & MAP_SHARED) &&
-+		    ((addr - (pgoff << PAGE_SHIFT)) & shm_align_mask))
- 			return -EINVAL;
- 		return addr;
- 	}
-diff --git a/arch/sh/mm/mmap.c b/arch/sh/mm/mmap.c
-index d2984fa..afeb710 100644
---- a/arch/sh/mm/mmap.c
-+++ b/arch/sh/mm/mmap.c
-@@ -54,7 +54,8 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
- 		/* We do not accept a shared mapping if it would violate
- 		 * cache aliasing constraints.
- 		 */
--		if ((flags & MAP_SHARED) && (addr & shm_align_mask))
-+		if ((flags & MAP_SHARED) &&
-+		    ((addr - (pgoff << PAGE_SHIFT)) & shm_align_mask))
- 			return -EINVAL;
- 		return addr;
- 	}
 diff --git a/arch/sparc/kernel/sys_sparc_32.c b/arch/sparc/kernel/sys_sparc_32.c
-index 997bdd0..3a82e65 100644
+index 36f6f26..997bdd0 100644
 --- a/arch/sparc/kernel/sys_sparc_32.c
 +++ b/arch/sparc/kernel/sys_sparc_32.c
-@@ -45,7 +45,8 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr, unsi
- 		/* We do not accept a shared mapping if it would violate
- 		 * cache aliasing constraints.
- 		 */
--		if ((flags & MAP_SHARED) && (addr & (SHMLBA - 1)))
-+		if ((flags & MAP_SHARED) &&
-+		    ((addr - (pgoff << PAGE_SHIFT)) & (SHMLBA - 1)))
- 			return -EINVAL;
- 		return addr;
+@@ -79,15 +79,6 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr, unsi
  	}
+ }
+ 
+-asmlinkage unsigned long sparc_brk(unsigned long brk)
+-{
+-	if(ARCH_SUN4C) {
+-		if ((brk & 0xe0000000) != (current->mm->brk & 0xe0000000))
+-			return current->mm->brk;
+-	}
+-	return sys_brk(brk);
+-}
+-
+ /*
+  * sys_pipe() is the normal C calling standard for creating
+  * a pipe. It's not the way unix traditionally does this, though.
+diff --git a/arch/sparc/kernel/sys_sparc_64.c b/arch/sparc/kernel/sys_sparc_64.c
+index 8f9cd58..cfa0e19 100644
+--- a/arch/sparc/kernel/sys_sparc_64.c
++++ b/arch/sparc/kernel/sys_sparc_64.c
+@@ -403,18 +403,6 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
+ 	}
+ }
+ 
+-SYSCALL_DEFINE1(sparc_brk, unsigned long, brk)
+-{
+-	/* People could try to be nasty and use ta 0x6d in 32bit programs */
+-	if (test_thread_flag(TIF_32BIT) && brk >= STACK_TOP32)
+-		return current->mm->brk;
+-
+-	if (unlikely(straddles_64bit_va_hole(current->mm->brk, brk)))
+-		return current->mm->brk;
+-
+-	return sys_brk(brk);
+-}
+-                                                                
+ /*
+  * sys_pipe() is the normal C calling standard for creating
+  * a pipe. It's not the way unix traditionally does this, though.
+diff --git a/arch/sparc/kernel/systbls.h b/arch/sparc/kernel/systbls.h
+index a63c5d2..d2f999a 100644
+--- a/arch/sparc/kernel/systbls.h
++++ b/arch/sparc/kernel/systbls.h
+@@ -9,7 +9,6 @@
+ struct new_utsname;
+ 
+ extern asmlinkage unsigned long sys_getpagesize(void);
+-extern asmlinkage unsigned long sparc_brk(unsigned long brk);
+ extern asmlinkage long sparc_pipe(struct pt_regs *regs);
+ extern asmlinkage long sys_ipc(unsigned int call, int first,
+ 			       unsigned long second,
+diff --git a/arch/sparc/kernel/systbls_32.S b/arch/sparc/kernel/systbls_32.S
+index 81822a8..14f950a 100644
+--- a/arch/sparc/kernel/systbls_32.S
++++ b/arch/sparc/kernel/systbls_32.S
+@@ -19,7 +19,7 @@ sys_call_table:
+ /*0*/	.long sys_restart_syscall, sys_exit, sys_fork, sys_read, sys_write
+ /*5*/	.long sys_open, sys_close, sys_wait4, sys_creat, sys_link
+ /*10*/  .long sys_unlink, sunos_execv, sys_chdir, sys_chown16, sys_mknod
+-/*15*/	.long sys_chmod, sys_lchown16, sparc_brk, sys_nis_syscall, sys_lseek
++/*15*/	.long sys_chmod, sys_lchown16, sys_brk, sys_nis_syscall, sys_lseek
+ /*20*/	.long sys_getpid, sys_capget, sys_capset, sys_setuid16, sys_getuid16
+ /*25*/	.long sys_vmsplice, sys_ptrace, sys_alarm, sys_sigaltstack, sys_pause
+ /*30*/	.long sys_utime, sys_lchown, sys_fchown, sys_access, sys_nice
+diff --git a/arch/sparc/kernel/systbls_64.S b/arch/sparc/kernel/systbls_64.S
+index fa3d4d7..b58349a 100644
+--- a/arch/sparc/kernel/systbls_64.S
++++ b/arch/sparc/kernel/systbls_64.S
+@@ -21,7 +21,7 @@ sys_call_table32:
+ /*0*/	.word sys_restart_syscall, sys32_exit, sys_fork, sys_read, sys_write
+ /*5*/	.word sys32_open, sys_close, sys32_wait4, sys32_creat, sys_link
+ /*10*/  .word sys_unlink, sunos_execv, sys_chdir, sys_chown16, sys32_mknod
+-/*15*/	.word sys_chmod, sys_lchown16, sys_sparc_brk, sys32_perfctr, sys32_lseek
++/*15*/	.word sys_chmod, sys_lchown16, sys_brk, sys32_perfctr, sys32_lseek
+ /*20*/	.word sys_getpid, sys_capget, sys_capset, sys_setuid16, sys_getuid16
+ /*25*/	.word sys32_vmsplice, compat_sys_ptrace, sys_alarm, sys32_sigaltstack, sys_pause
+ /*30*/	.word compat_sys_utime, sys_lchown, sys_fchown, sys32_access, sys32_nice
+@@ -96,7 +96,7 @@ sys_call_table:
+ /*0*/	.word sys_restart_syscall, sparc_exit, sys_fork, sys_read, sys_write
+ /*5*/	.word sys_open, sys_close, sys_wait4, sys_creat, sys_link
+ /*10*/  .word sys_unlink, sys_nis_syscall, sys_chdir, sys_chown, sys_mknod
+-/*15*/	.word sys_chmod, sys_lchown, sys_sparc_brk, sys_perfctr, sys_lseek
++/*15*/	.word sys_chmod, sys_lchown, sys_brk, sys_perfctr, sys_lseek
+ /*20*/	.word sys_getpid, sys_capget, sys_capset, sys_setuid, sys_getuid
+ /*25*/	.word sys_vmsplice, sys_ptrace, sys_alarm, sys_sigaltstack, sys_nis_syscall
+ /*30*/	.word sys_utime, sys_nis_syscall, sys_nis_syscall, sys_access, sys_nice
 -- 
 1.5.6.5
