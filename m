@@ -1,37 +1,55 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH 1/19] untangling do_mremap(), part 1
-Date: Mon, 7 Dec 2009 19:43:05 +0000
-Message-ID: <20091207194305.GJ14381@ZenIV.linux.org.uk>
-References: <E1NHUdk-0007ul-Oc@ZenIV.linux.org.uk> <alpine.LFD.2.00.0912070911290.3560@localhost.localdomain> <20091207184438.GH14381@ZenIV.linux.org.uk> <alpine.LFD.2.00.0912071134300.3560@localhost.localdomain>
+From: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+Subject: Re: [RFC][PATCHSET] mremap/mmap mess
+Date: Mon, 7 Dec 2009 20:05:05 +0000 (GMT)
+Message-ID: <Pine.LNX.4.64.0912071953490.24794@sister.anvils>
+References: <E1NGzzu-0008RH-T2@ZenIV.linux.org.uk> <20091207035857.GF14381@ZenIV.linux.org.uk>
+ <Pine.LNX.4.64.0912071710540.14445@sister.anvils> <20091207193048.GI14381@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:38028 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932771AbZLGTm7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Dec 2009 14:42:59 -0500
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.0912071134300.3560@localhost.localdomain>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Al Viro <viro@ftp.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1758854AbZLGUFK@vger.kernel.org>
+In-Reply-To: <20091207193048.GI14381@ZenIV.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Al Viro <viro@ftp.linux.org.uk>, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Dec 07, 2009 at 11:35:16AM -0800, Linus Torvalds wrote:
+Thanks for the explanations,
+it sounds as if you and Linus would like to push forward.
+
+On Mon, 7 Dec 2009, Al Viro wrote:
+> On Mon, Dec 07, 2009 at 06:58:25PM +0000, Hugh Dickins wrote:
 > 
-> 
-> On Mon, 7 Dec 2009, Al Viro wrote:
+> > [PATCH 9/19] arm: add arch_mmap_check(), get rid of sys_arm_mremap()
 > > 
-> > Which David? ;-)  All sparc-related bits seem to have been ACKed by
-> > davem.
+> > You give arm an arch_mmap_check() which tests MAP_FIXED,
+> > so now do_brk() needs fixing.  Or can arm's get_unmapped_area()
+> > handle this, without any arch_mmap_check()?  In the end you move
+> > the arch_mmap_check() call into get_unmapped_area(), but could it be
+> > eliminated completely, in favour of code in arch's get_unmapped_area()?
 > 
-> That's the David I meant. I've seen the ack, but the acks weren't actually 
-> quoted in your latest series.
+> Point, but take a look at actual check there.  do_brk() won't run afoul
+> of it anyway with existing callers on arm.  But yes, I agree that flags
+> need to be fixed there.
 
-Hugh had just caught a lovely piece of idiocy in do_brk() patch; that
-call of get_unmapped_area() in there should take MAP_FIXED, not
-MAP_FIXED | flags.  Harmless (we do get MAP_FIXED anyway and the only
-other flag that gets looked at by methods is MAP_SHARED, which is
-ignored when file is NULL), but definitely bogus.
+Right, all that matters is whether MAP_FIXED is set here, and the
+fact that it is set through both an explicit MAP_FIXED and a confused
+VM_MAYREAD does not really matter - something to clean up, but not
+something that will break anybody before it's cleaned up.
 
-I'll fix that before sending a pull request.
+> > And (b) I thought you were being perverse in putting sys_mmap_pgoff()
+> > in mm/util.c, that's never where I'd look for it, we have a file
+> > mm/mmap.c which is just the place for it, after do_mmap_pgoff().
+> > Ah, you're trying to avoid duplicating it in mm/nommu.c?  Hmm,
+> > well, I'd much rather you do duplicate it.  Particularly once
+> > 14/19 complicates it with the MAP_HUGETLB fix, which we should
+> > keep in in mm/mmap.c, and shouldn't be needed in mm/nommu.c.
+> 
+> I'm not too happy with mm/util.c, but I really don't like the mmap vs nommu
+> duplications.  Hell knows; we can always split and move later on.
+
+mm/nommu.c is all about duplicating stuff with variations:
+unsatisfactory, but no reason to go do it differently here.
+Yes, I'll want to revert the util.c mods, but you don't need
+to do so now.
+
+Hugh
