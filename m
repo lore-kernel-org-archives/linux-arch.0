@@ -1,92 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:51500 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:51468 "EHLO
 	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934659AbZLGDyp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Dec 2009 22:54:45 -0500
-Date: Mon, 07 Dec 2009 03:54:51 +0000
-Subject: [PATCH 18/19] Get rid of open-coding in ia64_brk()
+	with ESMTP id S933146AbZLGDwO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Dec 2009 22:52:14 -0500
+Date: Mon, 07 Dec 2009 03:52:20 +0000
+Subject: [PATCH 3/19] do_mremap() untangling, part 3
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Message-ID: <E1NHUgV-0007zH-2z@ZenIV.linux.org.uk>
+Message-ID: <E1NHUe4-0007vA-Oi@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
-Message-ID: <20091207035451.UzlmDMT_I3FyrbnltFQUqggaZ00IMg2YKcNS9hUDqvU@z>
+Message-ID: <20091207035220.ffwwo3WOG1qV0Gz6G-t4aGThmUXcsVOOScXYBVvawvY@z>
 
 
-The comment in there used to be true, but these days do_brk() does
-the arch-specific check that covers what we open-coded here.  So we
-can use sys_brk() just fine, only need to do force_successful_syscall_return()
-after it.
-
-See commit 3a459756810912d2c2bf188cef566af255936b4d - that's when the
-checks in do_brk() had been originally added.
+Take the check for being able to expand vma in place into a separate
+helper.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/ia64/kernel/sys_ia64.c |   46 +------------------------------------------
- 1 files changed, 1 insertions(+), 45 deletions(-)
+ mm/mremap.c |   16 ++++++++++++----
+ 1 files changed, 12 insertions(+), 4 deletions(-)
 
-diff --git a/arch/ia64/kernel/sys_ia64.c b/arch/ia64/kernel/sys_ia64.c
-index ae384a2..609d500 100644
---- a/arch/ia64/kernel/sys_ia64.c
-+++ b/arch/ia64/kernel/sys_ia64.c
-@@ -100,51 +100,7 @@ sys_getpagesize (void)
- asmlinkage unsigned long
- ia64_brk (unsigned long brk)
- {
--	unsigned long rlim, retval, newbrk, oldbrk;
--	struct mm_struct *mm = current->mm;
--
--	/*
--	 * Most of this replicates the code in sys_brk() except for an additional safety
--	 * check and the clearing of r8.  However, we can't call sys_brk() because we need
--	 * to acquire the mmap_sem before we can do the test...
--	 */
--	down_write(&mm->mmap_sem);
--
--	if (brk < mm->end_code)
--		goto out;
--	newbrk = PAGE_ALIGN(brk);
--	oldbrk = PAGE_ALIGN(mm->brk);
--	if (oldbrk == newbrk)
--		goto set_brk;
--
--	/* Always allow shrinking brk. */
--	if (brk <= mm->brk) {
--		if (!do_munmap(mm, newbrk, oldbrk-newbrk))
--			goto set_brk;
--		goto out;
--	}
--
--	/* Check against unimplemented/unmapped addresses: */
--	if ((newbrk - oldbrk) > RGN_MAP_LIMIT || REGION_OFFSET(newbrk) > RGN_MAP_LIMIT)
--		goto out;
--
--	/* Check against rlimit.. */
--	rlim = current->signal->rlim[RLIMIT_DATA].rlim_cur;
--	if (rlim < RLIM_INFINITY && brk - mm->start_data > rlim)
--		goto out;
--
--	/* Check against existing mmap mappings. */
--	if (find_vma_intersection(mm, oldbrk, newbrk+PAGE_SIZE))
--		goto out;
--
--	/* Ok, looks good - let it rip. */
--	if (do_brk(oldbrk, newbrk-oldbrk) != oldbrk)
--		goto out;
--set_brk:
--	mm->brk = brk;
--out:
--	retval = mm->brk;
--	up_write(&mm->mmap_sem);
-+	unsigned long retval = sys_brk(brk);
- 	force_successful_syscall_return();
- 	return retval;
+diff --git a/mm/mremap.c b/mm/mremap.c
+index 5f34617..90e422c 100644
+--- a/mm/mremap.c
++++ b/mm/mremap.c
+@@ -366,6 +366,17 @@ out:
+ 	return ret;
  }
+ 
++static int vma_expandable(struct vm_area_struct *vma, unsigned long delta)
++{
++	unsigned long max_addr = TASK_SIZE;
++	if (vma->vm_next)
++		max_addr = vma->vm_next->vm_start;
++	if (max_addr - vma->vm_end < delta)
++		return 0;
++	/* we need to do arch-specific checks here */
++	return 1;
++}
++
+ /*
+  * Expand (or shrink) an existing mapping, potentially moving it at the
+  * same time (controlled by the MREMAP_MAYMOVE flag and available VM space)
+@@ -430,11 +441,8 @@ unsigned long do_mremap(unsigned long addr,
+ 	/* old_len exactly to the end of the area..
+ 	 */
+ 	if (old_len == vma->vm_end - addr) {
+-		unsigned long max_addr = TASK_SIZE;
+-		if (vma->vm_next)
+-			max_addr = vma->vm_next->vm_start;
+ 		/* can we just expand the current mapping? */
+-		if (max_addr - addr >= new_len) {
++		if (vma_expandable(vma, new_len - old_len)) {
+ 			int pages = (new_len - old_len) >> PAGE_SHIFT;
+ 
+ 			vma_adjust(vma, vma->vm_start,
 -- 
 1.5.6.5
 
