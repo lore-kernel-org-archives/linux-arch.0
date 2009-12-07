@@ -1,15 +1,16 @@
 From: Al Viro <viro@ftp.linux.org.uk>
-Subject: [PATCH 16/19] switch do_brk() to get_unmapped_area()
-Date: Mon, 07 Dec 2009 03:54:31 +0000
-Message-ID: <E1NHUgB-0007yw-2K@ZenIV.linux.org.uk>
+Subject: [PATCH 9/19] arm: add arch_mmap_check(), get rid of
+ sys_arm_mremap()
+Date: Mon, 07 Dec 2009 03:53:20 +0000
+Message-ID: <E1NHUf2-0007wV-Q2@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:51497 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:51480 "EHLO
 	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934671AbZLGDy0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Dec 2009 22:54:26 -0500
+	with ESMTP id S934565AbZLGDxO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Dec 2009 22:53:14 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
@@ -18,35 +19,82 @@ Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- mm/mmap.c |   10 ++--------
- 1 files changed, 2 insertions(+), 8 deletions(-)
+ arch/arm/include/asm/mman.h |    3 +++
+ arch/arm/kernel/calls.S     |    2 +-
+ arch/arm/kernel/sys_arm.c   |   25 -------------------------
+ 3 files changed, 4 insertions(+), 26 deletions(-)
 
-diff --git a/mm/mmap.c b/mm/mmap.c
-index e92cbe5..f364677 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -1989,20 +1989,14 @@ unsigned long do_brk(unsigned long addr, unsigned long len)
- 	if (!len)
- 		return addr;
+diff --git a/arch/arm/include/asm/mman.h b/arch/arm/include/asm/mman.h
+index 8eebf89..41f99c5 100644
+--- a/arch/arm/include/asm/mman.h
++++ b/arch/arm/include/asm/mman.h
+@@ -1 +1,4 @@
+ #include <asm-generic/mman.h>
++
++#define arch_mmap_check(addr, len, flags) \
++	(((flags) & MAP_FIXED && (addr) < FIRST_USER_ADDRESS) ? -EINVAL : 0)
+diff --git a/arch/arm/kernel/calls.S b/arch/arm/kernel/calls.S
+index fafce1b..4f07168 100644
+--- a/arch/arm/kernel/calls.S
++++ b/arch/arm/kernel/calls.S
+@@ -172,7 +172,7 @@
+ /* 160 */	CALL(sys_sched_get_priority_min)
+ 		CALL(sys_sched_rr_get_interval)
+ 		CALL(sys_nanosleep)
+-		CALL(sys_arm_mremap)
++		CALL(sys_mremap)
+ 		CALL(sys_setresuid16)
+ /* 165 */	CALL(sys_getresuid16)
+ 		CALL(sys_ni_syscall)		/* vm86 */
+diff --git a/arch/arm/kernel/sys_arm.c b/arch/arm/kernel/sys_arm.c
+index 78ecaac..3b89744 100644
+--- a/arch/arm/kernel/sys_arm.c
++++ b/arch/arm/kernel/sys_arm.c
+@@ -28,10 +28,6 @@
+ #include <linux/ipc.h>
+ #include <linux/uaccess.h>
  
--	if ((addr + len) > TASK_SIZE || (addr + len) < addr)
--		return -EINVAL;
+-extern unsigned long do_mremap(unsigned long addr, unsigned long old_len,
+-			       unsigned long new_len, unsigned long flags,
+-			       unsigned long new_addr);
 -
--	if (is_hugepage_only_range(mm, addr, len))
--		return -EINVAL;
+ /* common code for old and new mmaps */
+ inline long do_mmap2(
+ 	unsigned long addr, unsigned long len,
+@@ -43,9 +39,6 @@ inline long do_mmap2(
+ 
+ 	flags &= ~(MAP_EXECUTABLE | MAP_DENYWRITE);
+ 
+-	if (flags & MAP_FIXED && addr < FIRST_USER_ADDRESS)
+-		goto out;
 -
- 	error = security_file_mmap(NULL, 0, 0, 0, addr, 1);
- 	if (error)
- 		return error;
+ 	error = -EBADF;
+ 	if (!(flags & MAP_ANONYMOUS)) {
+ 		file = fget(fd);
+@@ -89,24 +82,6 @@ out:
+ 	return error;
+ }
  
- 	flags = VM_DATA_DEFAULT_FLAGS | VM_ACCOUNT | mm->def_flags;
- 
--	error = arch_mmap_check(addr, len, flags);
--	if (error)
-+	error = get_unmapped_area(NULL, addr, len, 0, MAP_FIXED | flags);
-+	if (error & ~PAGE_MASK)
- 		return error;
- 
- 	/*
+-asmlinkage unsigned long
+-sys_arm_mremap(unsigned long addr, unsigned long old_len,
+-	       unsigned long new_len, unsigned long flags,
+-	       unsigned long new_addr)
+-{
+-	unsigned long ret = -EINVAL;
+-
+-	if (flags & MREMAP_FIXED && new_addr < FIRST_USER_ADDRESS)
+-		goto out;
+-
+-	down_write(&current->mm->mmap_sem);
+-	ret = do_mremap(addr, old_len, new_len, flags, new_addr);
+-	up_write(&current->mm->mmap_sem);
+-
+-out:
+-	return ret;
+-}
+-
+ /*
+  * Perform the select(nd, in, out, ex, tv) and mmap() system
+  * calls.
 -- 
 1.5.6.5
