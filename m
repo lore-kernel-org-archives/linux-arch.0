@@ -1,36 +1,49 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [patch 02/23] locking: Split rwlock from spinlock headers
-Date: Mon, 7 Dec 2009 18:28:15 +0100
-Message-ID: <200912071828.15280.arnd@arndb.de>
-References: <20091206110944.492100233@linutronix.de> <20091206111957.370028725@linutronix.de>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH 1/19] untangling do_mremap(), part 1
+Date: Mon, 7 Dec 2009 18:44:38 +0000
+Message-ID: <20091207184438.GH14381@ZenIV.linux.org.uk>
+References: <E1NHUdk-0007ul-Oc@ZenIV.linux.org.uk> <alpine.LFD.2.00.0912070911290.3560@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:57105 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S935436AbZLGR2b (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Dec 2009 12:28:31 -0500
-In-Reply-To: <20091206111957.370028725@linutronix.de>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:44078 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758503AbZLGSod (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Dec 2009 13:44:33 -0500
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.00.0912070911290.3560@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Al Viro <viro@ftp.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Sunday 06 December 2009, Thomas Gleixner wrote:
-> +
-> +#ifndef __LINUX_SPINLOCK_H
-> +# error "please don't include this file directly"
-> +#endif
-> +
+On Mon, Dec 07, 2009 at 09:17:40AM -0800, Linus Torvalds wrote:
+> 
+> Al, 
+>  just checking: do you think this is ready for merging now? The lack of 
+> RFC seems to imply it is, but I don't see the Ack's from David from your 
+> previous series, for example.
 
-Hmm, why not? I think it would be nice to have rwlock.h self-contained
-to the degree that users of rwlock_t but not spinlock_t only need to
-include the rwlock header and vice versa.
+Which David? ;-)  All sparc-related bits seem to have been ACKed by
+davem.
 
-Obviously, we'd have to clean up all the ~200 users of rwlock_t before
-we're able to remove rwlock.h from spinlock.h, but the other direction
-could be done easily.
+Hugetlbfs tests seem to be OK with this series, but there's an odd
+thing going on - expanding mremap() crossing into hugepage range on
+ppc takes a while to convert it into 4Kb pages.  Fair enough, but
+it seems to work _much_ faster if the process is ptraced.  NFI why;
+waiting for dgw to get around to profiling it...
 
-	Arnd <><
+I'd love to see comments from ia64 and s390 folks, actually.
+
+Known issues:
+	* expand_stack() one.  Missing checks, not obvious which way to
+deal with that.  Same as in mainline.  Itanic and sparc32 are killable
+by that, on itanic with hw 32bit support it looks even nastier (likely
+escalation to execution of user code in ring 0).
+	* remap_file_pages() seems to ignore any alignment rules; it
+is OK wrt to address range (it works on existing vma), but cache
+coherency might be buggered.  Same as in mainline.
+	* spufs (ppc cell stuff) does 64Kb-paged mappings; what happens
+upon mremap() and friends?  VM_HUGETLB will *not* be set on it, so the
+usual checks in mm/* are going to miss.  _Probably_ unchanged compared
+to mainline, but I'd really like to understand how it's supposed to work.
