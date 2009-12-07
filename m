@@ -1,48 +1,145 @@
-From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: Re: [patch 13/23] plist: Make plist debugging raw_spinlock aware
-Date: Mon, 7 Dec 2009 02:21:41 +0100
-Message-ID: <20091207012140.GB4966@nowhere>
-References: <20091206110944.492100233@linutronix.de> <20091206111957.806855005@linutronix.de>
+From: Al Viro <viro@ftp.linux.org.uk>
+Subject: [PATCH 1/19] untangling do_mremap(), part 1
+Date: Mon, 07 Dec 2009 03:52:00 +0000
+Message-ID: <E1NHUdk-0007ul-Oc@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ew0-f219.google.com ([209.85.219.219]:35619 "EHLO
-	mail-ew0-f219.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753758AbZLGBVf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Dec 2009 20:21:35 -0500
-Content-Disposition: inline
-In-Reply-To: <20091206111957.806855005@linutronix.de>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:51464 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933144AbZLGDvz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Dec 2009 22:51:55 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>
-
-On Sun, Dec 06, 2009 at 06:02:57PM -0000, Thomas Gleixner wrote:
-> plists are used with spinlocks and raw_spinlocks. Change the plist
-> debugging to handle both types.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
->  include/linux/plist.h |   43 +++++++++++++++++++++++++++++++++++++------
->  kernel/futex.c        |    6 +++---
->  lib/plist.c           |    8 +++++---
->  3 files changed, 45 insertions(+), 12 deletions(-)
-> 
-> Index: linux-2.6-tip/include/linux/plist.h
-> ===================================================================
-> --- linux-2.6-tip.orig/include/linux/plist.h
-> +++ linux-2.6-tip/include/linux/plist.h
-> @@ -81,7 +81,8 @@ struct plist_head {
->  	struct list_head prio_list;
->  	struct list_head node_list;
->  #ifdef CONFIG_DEBUG_PI_LIST
-> -	spinlock_t *lock;
-> +	raw_spinlock_t *rawlock;
-> +	spinlock_t *spinlock;
->  #endif
->  };
+To: linux-arch@vger.kernel.org
+Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
 
 
+Take locating vma and checks on it to a separate helper (it will be
+shared between MREMAP_FIXED/non-MREMAP_FIXED cases when we split
+them in the next patch)
 
-This could be a union probably, as we don't use both at the
-same time?
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ mm/mremap.c |   88 +++++++++++++++++++++++++++++++++++++----------------------
+ 1 files changed, 55 insertions(+), 33 deletions(-)
+
+diff --git a/mm/mremap.c b/mm/mremap.c
+index 97bff25..6776136 100644
+--- a/mm/mremap.c
++++ b/mm/mremap.c
+@@ -261,6 +261,58 @@ static unsigned long move_vma(struct vm_area_struct *vma,
+ 	return new_addr;
+ }
+ 
++static struct vm_area_struct *vma_to_resize(unsigned long addr,
++	unsigned long old_len, unsigned long new_len, unsigned long *p)
++{
++	struct mm_struct *mm = current->mm;
++	struct vm_area_struct *vma = find_vma(mm, addr);
++
++	if (!vma || vma->vm_start > addr)
++		goto Efault;
++
++	if (is_vm_hugetlb_page(vma))
++		goto Einval;
++
++	/* We can't remap across vm area boundaries */
++	if (old_len > vma->vm_end - addr)
++		goto Efault;
++
++	if (vma->vm_flags & (VM_DONTEXPAND | VM_PFNMAP)) {
++		if (new_len > old_len)
++			goto Efault;
++	}
++
++	if (vma->vm_flags & VM_LOCKED) {
++		unsigned long locked, lock_limit;
++		locked = mm->locked_vm << PAGE_SHIFT;
++		lock_limit = current->signal->rlim[RLIMIT_MEMLOCK].rlim_cur;
++		locked += new_len - old_len;
++		if (locked > lock_limit && !capable(CAP_IPC_LOCK))
++			goto Eagain;
++	}
++
++	if (!may_expand_vm(mm, (new_len - old_len) >> PAGE_SHIFT))
++		goto Enomem;
++
++	if (vma->vm_flags & VM_ACCOUNT) {
++		unsigned long charged = (new_len - old_len) >> PAGE_SHIFT;
++		if (security_vm_enough_memory(charged))
++			goto Efault;
++		*p = charged;
++	}
++
++	return vma;
++
++Efault:	/* very odd choice for most of the cases, but... */
++	return ERR_PTR(-EFAULT);
++Einval:
++	return ERR_PTR(-EINVAL);
++Enomem:
++	return ERR_PTR(-ENOMEM);
++Eagain:
++	return ERR_PTR(-EAGAIN);
++}
++
+ /*
+  * Expand (or shrink) an existing mapping, potentially moving it at the
+  * same time (controlled by the MREMAP_MAYMOVE flag and available VM space)
+@@ -340,41 +392,12 @@ unsigned long do_mremap(unsigned long addr,
+ 	/*
+ 	 * Ok, we need to grow..  or relocate.
+ 	 */
+-	ret = -EFAULT;
+-	vma = find_vma(mm, addr);
+-	if (!vma || vma->vm_start > addr)
+-		goto out;
+-	if (is_vm_hugetlb_page(vma)) {
+-		ret = -EINVAL;
+-		goto out;
+-	}
+-	/* We can't remap across vm area boundaries */
+-	if (old_len > vma->vm_end - addr)
+-		goto out;
+-	if (vma->vm_flags & (VM_DONTEXPAND | VM_PFNMAP)) {
+-		if (new_len > old_len)
+-			goto out;
+-	}
+-	if (vma->vm_flags & VM_LOCKED) {
+-		unsigned long locked, lock_limit;
+-		locked = mm->locked_vm << PAGE_SHIFT;
+-		lock_limit = current->signal->rlim[RLIMIT_MEMLOCK].rlim_cur;
+-		locked += new_len - old_len;
+-		ret = -EAGAIN;
+-		if (locked > lock_limit && !capable(CAP_IPC_LOCK))
+-			goto out;
+-	}
+-	if (!may_expand_vm(mm, (new_len - old_len) >> PAGE_SHIFT)) {
+-		ret = -ENOMEM;
++	vma = vma_to_resize(addr, old_len, new_len, &charged);
++	if (IS_ERR(vma)) {
++		ret = PTR_ERR(vma);
+ 		goto out;
+ 	}
+ 
+-	if (vma->vm_flags & VM_ACCOUNT) {
+-		charged = (new_len - old_len) >> PAGE_SHIFT;
+-		if (security_vm_enough_memory(charged))
+-			goto out_nc;
+-	}
+-
+ 	/* old_len exactly to the end of the area..
+ 	 * And we're not relocating the area.
+ 	 */
+@@ -430,7 +453,6 @@ unsigned long do_mremap(unsigned long addr,
+ out:
+ 	if (ret & ~PAGE_MASK)
+ 		vm_unacct_memory(charged);
+-out_nc:
+ 	return ret;
+ }
+ 
+-- 
+1.5.6.5
