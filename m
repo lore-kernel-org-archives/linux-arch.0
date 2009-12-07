@@ -1,11 +1,11 @@
 From: Al Viro <viro@ftp.linux.org.uk>
-Subject: [PATCH 5/19] fix the arch checks in MREMAP_FIXED case
-Date: Mon, 07 Dec 2009 03:52:40 +0000
-Message-ID: <E1NHUeO-0007vj-P8@ZenIV.linux.org.uk>
+Subject: [PATCH 6/19] fix pgoff in "have to relocate" case of mremap()
+Date: Mon, 07 Dec 2009 03:52:50 +0000
+Message-ID: <E1NHUeY-0007vy-PN@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S933601AbZLGDwl@vger.kernel.org>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S934470AbZLGDwv@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
@@ -14,46 +14,23 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- mm/mremap.c |   19 +++++++++++++++++--
- 1 files changed, 17 insertions(+), 2 deletions(-)
+ mm/mremap.c |    4 +++-
+ 1 files changed, 3 insertions(+), 1 deletions(-)
 
 diff --git a/mm/mremap.c b/mm/mremap.c
-index 9d07539..84efffb 100644
+index 84efffb..bbbbbf5 100644
 --- a/mm/mremap.c
 +++ b/mm/mremap.c
-@@ -325,6 +325,7 @@ static unsigned long mremap_to(unsigned long addr,
- 	struct vm_area_struct *vma;
- 	unsigned long ret = -EINVAL;
- 	unsigned long charged = 0;
-+	unsigned long map_flags;
+@@ -495,7 +495,9 @@ unsigned long do_mremap(unsigned long addr,
+ 			map_flags |= MAP_SHARED;
  
- 	if (new_addr & ~PAGE_MASK)
- 		goto out;
-@@ -362,9 +363,23 @@ static unsigned long mremap_to(unsigned long addr,
- 		goto out;
- 	}
- 
--	ret = move_vma(vma, addr, old_len, new_len, new_addr);
-+	map_flags = MAP_FIXED;
-+	if (vma->vm_flags & VM_MAYSHARE)
-+		map_flags |= MAP_SHARED;
-+	ret = arch_mmap_check(new_addr, new_len, map_flags);
-+	if (ret)
-+		goto out1;
-+	ret = get_unmapped_area(vma->vm_file, new_addr, new_len, vma->vm_pgoff +
-+				((addr - vma->vm_start) >> PAGE_SHIFT),
-+				map_flags);
- 	if (ret & ~PAGE_MASK)
--		vm_unacct_memory(charged);
-+		goto out1;
-+
-+	ret = move_vma(vma, addr, old_len, new_len, new_addr);
-+	if (!(ret & ~PAGE_MASK))
-+		goto out;
-+out1:
-+	vm_unacct_memory(charged);
- 
- out:
- 	return ret;
+ 		new_addr = get_unmapped_area(vma->vm_file, 0, new_len,
+-					vma->vm_pgoff, map_flags);
++					vma->vm_pgoff +
++					((addr - vma->vm_start) >> PAGE_SHIFT),
++					map_flags);
+ 		if (new_addr & ~PAGE_MASK) {
+ 			ret = new_addr;
+ 			goto out;
 -- 
 1.5.6.5
