@@ -1,44 +1,124 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:51487 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:51499 "EHLO
 	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934555AbZLGDxp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Dec 2009 22:53:45 -0500
-Date: Mon, 07 Dec 2009 03:53:50 +0000
-Subject: [PATCH 12/19] Cut hugetlb case early for 32bit on ia64
+	with ESMTP id S934553AbZLGDyf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Dec 2009 22:54:35 -0500
+Date: Mon, 07 Dec 2009 03:54:41 +0000
+Subject: [PATCH 17/19] sparc_brk() is not needed anymore
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Message-ID: <E1NHUfW-0007xO-Qg@ZenIV.linux.org.uk>
+Message-ID: <E1NHUgL-0007z9-2o@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
-Message-ID: <20091207035350.9w7mGLVvC-3YANk48pg7vR9Xe7pAM7CdLKi58DEzxc0@z>
+Message-ID: <20091207035441.XAML6BAj9yePpqWx-WPWdfdXfImxSCtiyoQcM_hWQbo@z>
 
 
-It won't work anyway (hugetlb addresses there are way beyond 4Gb)
-and it's easier to stop it here.
+the checks it's doing are duplicated in sys_brk() and failing
+them early makes no sense, AFAICT.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/ia64/ia32/sys_ia32.c |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
+ arch/sparc/kernel/sys_sparc_32.c |    9 ---------
+ arch/sparc/kernel/sys_sparc_64.c |   12 ------------
+ arch/sparc/kernel/systbls.h      |    1 -
+ arch/sparc/kernel/systbls_32.S   |    2 +-
+ arch/sparc/kernel/systbls_64.S   |    4 ++--
+ 5 files changed, 3 insertions(+), 25 deletions(-)
 
-diff --git a/arch/ia64/ia32/sys_ia32.c b/arch/ia64/ia32/sys_ia32.c
-index 625ed8f..e031ee8 100644
---- a/arch/ia64/ia32/sys_ia32.c
-+++ b/arch/ia64/ia32/sys_ia32.c
-@@ -858,6 +858,9 @@ ia32_do_mmap (struct file *file, unsigned long addr, unsigned long len, int prot
+diff --git a/arch/sparc/kernel/sys_sparc_32.c b/arch/sparc/kernel/sys_sparc_32.c
+index 36f6f26..997bdd0 100644
+--- a/arch/sparc/kernel/sys_sparc_32.c
++++ b/arch/sparc/kernel/sys_sparc_32.c
+@@ -79,15 +79,6 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr, unsi
+ 	}
+ }
  
- 	prot = get_prot32(prot);
+-asmlinkage unsigned long sparc_brk(unsigned long brk)
+-{
+-	if(ARCH_SUN4C) {
+-		if ((brk & 0xe0000000) != (current->mm->brk & 0xe0000000))
+-			return current->mm->brk;
+-	}
+-	return sys_brk(brk);
+-}
+-
+ /*
+  * sys_pipe() is the normal C calling standard for creating
+  * a pipe. It's not the way unix traditionally does this, though.
+diff --git a/arch/sparc/kernel/sys_sparc_64.c b/arch/sparc/kernel/sys_sparc_64.c
+index 8f9cd58..cfa0e19 100644
+--- a/arch/sparc/kernel/sys_sparc_64.c
++++ b/arch/sparc/kernel/sys_sparc_64.c
+@@ -403,18 +403,6 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
+ 	}
+ }
  
-+	if (flags & MAP_HUGETLB)
-+		return -ENOMEM;
-+
- #if PAGE_SHIFT > IA32_PAGE_SHIFT
- 	mutex_lock(&ia32_mmap_mutex);
- 	{
+-SYSCALL_DEFINE1(sparc_brk, unsigned long, brk)
+-{
+-	/* People could try to be nasty and use ta 0x6d in 32bit programs */
+-	if (test_thread_flag(TIF_32BIT) && brk >= STACK_TOP32)
+-		return current->mm->brk;
+-
+-	if (unlikely(straddles_64bit_va_hole(current->mm->brk, brk)))
+-		return current->mm->brk;
+-
+-	return sys_brk(brk);
+-}
+-                                                                
+ /*
+  * sys_pipe() is the normal C calling standard for creating
+  * a pipe. It's not the way unix traditionally does this, though.
+diff --git a/arch/sparc/kernel/systbls.h b/arch/sparc/kernel/systbls.h
+index a63c5d2..d2f999a 100644
+--- a/arch/sparc/kernel/systbls.h
++++ b/arch/sparc/kernel/systbls.h
+@@ -9,7 +9,6 @@
+ struct new_utsname;
+ 
+ extern asmlinkage unsigned long sys_getpagesize(void);
+-extern asmlinkage unsigned long sparc_brk(unsigned long brk);
+ extern asmlinkage long sparc_pipe(struct pt_regs *regs);
+ extern asmlinkage long sys_ipc(unsigned int call, int first,
+ 			       unsigned long second,
+diff --git a/arch/sparc/kernel/systbls_32.S b/arch/sparc/kernel/systbls_32.S
+index 81822a8..14f950a 100644
+--- a/arch/sparc/kernel/systbls_32.S
++++ b/arch/sparc/kernel/systbls_32.S
+@@ -19,7 +19,7 @@ sys_call_table:
+ /*0*/	.long sys_restart_syscall, sys_exit, sys_fork, sys_read, sys_write
+ /*5*/	.long sys_open, sys_close, sys_wait4, sys_creat, sys_link
+ /*10*/  .long sys_unlink, sunos_execv, sys_chdir, sys_chown16, sys_mknod
+-/*15*/	.long sys_chmod, sys_lchown16, sparc_brk, sys_nis_syscall, sys_lseek
++/*15*/	.long sys_chmod, sys_lchown16, sys_brk, sys_nis_syscall, sys_lseek
+ /*20*/	.long sys_getpid, sys_capget, sys_capset, sys_setuid16, sys_getuid16
+ /*25*/	.long sys_vmsplice, sys_ptrace, sys_alarm, sys_sigaltstack, sys_pause
+ /*30*/	.long sys_utime, sys_lchown, sys_fchown, sys_access, sys_nice
+diff --git a/arch/sparc/kernel/systbls_64.S b/arch/sparc/kernel/systbls_64.S
+index fa3d4d7..b58349a 100644
+--- a/arch/sparc/kernel/systbls_64.S
++++ b/arch/sparc/kernel/systbls_64.S
+@@ -21,7 +21,7 @@ sys_call_table32:
+ /*0*/	.word sys_restart_syscall, sys32_exit, sys_fork, sys_read, sys_write
+ /*5*/	.word sys32_open, sys_close, sys32_wait4, sys32_creat, sys_link
+ /*10*/  .word sys_unlink, sunos_execv, sys_chdir, sys_chown16, sys32_mknod
+-/*15*/	.word sys_chmod, sys_lchown16, sys_sparc_brk, sys32_perfctr, sys32_lseek
++/*15*/	.word sys_chmod, sys_lchown16, sys_brk, sys32_perfctr, sys32_lseek
+ /*20*/	.word sys_getpid, sys_capget, sys_capset, sys_setuid16, sys_getuid16
+ /*25*/	.word sys32_vmsplice, compat_sys_ptrace, sys_alarm, sys32_sigaltstack, sys_pause
+ /*30*/	.word compat_sys_utime, sys_lchown, sys_fchown, sys32_access, sys32_nice
+@@ -96,7 +96,7 @@ sys_call_table:
+ /*0*/	.word sys_restart_syscall, sparc_exit, sys_fork, sys_read, sys_write
+ /*5*/	.word sys_open, sys_close, sys_wait4, sys_creat, sys_link
+ /*10*/  .word sys_unlink, sys_nis_syscall, sys_chdir, sys_chown, sys_mknod
+-/*15*/	.word sys_chmod, sys_lchown, sys_sparc_brk, sys_perfctr, sys_lseek
++/*15*/	.word sys_chmod, sys_lchown, sys_brk, sys_perfctr, sys_lseek
+ /*20*/	.word sys_getpid, sys_capget, sys_capset, sys_setuid, sys_getuid
+ /*25*/	.word sys_vmsplice, sys_ptrace, sys_alarm, sys_sigaltstack, sys_nis_syscall
+ /*30*/	.word sys_utime, sys_nis_syscall, sys_nis_syscall, sys_access, sys_nice
 -- 
 1.5.6.5
 
