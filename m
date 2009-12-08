@@ -1,94 +1,64 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH 13/19] Unify sys_mmap*
-Date: Tue, 8 Dec 2009 02:43:30 +0000
-Message-ID: <20091208024330.GL14381@ZenIV.linux.org.uk>
-References: <E1NHUfg-0007xZ-R1@ZenIV.linux.org.uk> <OFB4F0BC92.C5E0A391-ON48257686.000CDDCF-48257686.000E5459@sunplusct.com>
+Subject: Re: [RFC][PATCHSET] mremap/mmap mess
+Date: Tue, 8 Dec 2009 06:07:01 +0000
+Message-ID: <20091208060701.GM14381@ZenIV.linux.org.uk>
+References: <E1NGzzu-0008RH-T2@ZenIV.linux.org.uk> <20091207035857.GF14381@ZenIV.linux.org.uk> <Pine.LNX.4.64.0912071710540.14445@sister.anvils> <20091207193048.GI14381@ZenIV.linux.org.uk> <Pine.LNX.4.64.0912071953490.24794@sister.anvils>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:34162 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:58318 "EHLO
 	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965390AbZLHCnZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Dec 2009 21:43:25 -0500
+	with ESMTP id S935648AbZLHGG4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Dec 2009 01:06:56 -0500
 Content-Disposition: inline
-In-Reply-To: <OFB4F0BC92.C5E0A391-ON48257686.000CDDCF-48257686.000E5459@sunplusct.com>
+In-Reply-To: <Pine.LNX.4.64.0912071953490.24794@sister.anvils>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: liqin.chen@sunplusct.com
-Cc: Al Viro <viro@ftp.linux.org.uk>, linux-arch@vger.kernel.org, linux-arch-owner@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
+To: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+Cc: Al Viro <viro@ftp.linux.org.uk>, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
 
-On Tue, Dec 08, 2009 at 10:36:29AM +0800, liqin.chen@sunplusct.com wrote:
-> > --- a/arch/score/kernel/sys_score.c
-> > +++ b/arch/score/kernel/sys_score.c
-> > @@ -36,33 +36,18 @@ asmlinkage long
-> >  sys_mmap2(unsigned long addr, unsigned long len, unsigned long prot,
-> >       unsigned long flags, unsigned long fd, unsigned long pgoff)
-> >  {
-> > -   int error = -EBADF;
-> > -   struct file *file = NULL;
-> > -
-> >     if (pgoff & (~PAGE_MASK >> 12))
-> >        return -EINVAL;
-> > 
-> > -   flags &= ~(MAP_EXECUTABLE | MAP_DENYWRITE);
-> > -   if (!(flags & MAP_ANONYMOUS)) {
-> > -      file = fget(fd);
-> > -      if (!file)
-> > -         return error;
-> > -   }
-> > -
-> > -   down_write(&current->mm->mmap_sem);
-> > -   error = do_mmap_pgoff(file, addr, len, prot, flags, pgoff);
-> > -   up_write(&current->mm->mmap_sem);
-> > -
-> > -   if (file)
-> > -      fput(file);
-> > -
-> > -   return error;
-> > +   return sys_mmap_pgoff(addr, len, prot, flags, fd, pgoff);
-> > +   /* sic - almost certainly should shift pgoff as well */
-> >  }
-> > 
-> >  asmlinkage long
-> >  sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
-> >     unsigned long flags, unsigned long fd, off_t pgoff)
-> >  {
-> > +   /* where's the alignment check? */
-> >     return sys_mmap2(addr, len, prot, flags, fd, pgoff >> PAGE_SHIFT);
-> >  }
-> > 
-> 
-> It's ok for your update, even 
->      if (pgoff & (~PAGE_MASK >> 12))
->         return -EINVAL;
-> code haven't use anymore, you could remove it.
+On Mon, Dec 07, 2009 at 08:05:05PM +0000, Hugh Dickins wrote:
 
-The sys_mmap2() simply disappears - it's exactly the same as sys_mmap_pgoff().
-Good.
+> mm/nommu.c is all about duplicating stuff with variations:
+> unsatisfactory, but no reason to go do it differently here.
+> Yes, I'll want to revert the util.c mods, but you don't need
+> to do so now.
 
-> In addition, the sys_mmap should like this.
-> 
-> asmlinkage long
-> sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
->     unsigned long flags, unsigned long fd, off_t pgoff)
-> {
->         unsigned long result;
-> 
->         result = -EINVAL;
->         if (pgoff & ~PAGE_MASK)
->                 goto out;
-> 
->         result = sys_mmap2(addr, len, prot, flags, fd, pgoff >> 
-> PAGE_SHIFT);
-> out:
->         return result;
-> } 
+OK...  BTW, I think I see how to get rid of the worst of expand_stack()
+mess.  Note that conceptually the nastiest part is execve() - there
+we have no task_struct matching the mm we are accessing.  But let's
+take a look at what execve() is doing:
+	* we create a new mm
+	* we create a kinda-sorta vma at STACK_TOP_MAX
+	* we push argv/envp into it via get_user_pages(), populating
+page tables for new mm as we go
+	* we set personality
+	* we possibly relocate it down
+And all of that - to avoid the limit on number of pages caused by fixed-sized
+array in bprm.
 
-s/sys_mmap2/sys_mmap_pgoff/ and for pity sake, s/\<pgoff\>/offset/ ;-)
+First of all, that implictly assumes that this relocation downwards is
+rare.  And so it is on amd64 and alpha.  However, sparc64 and ppc64
+have nearly 100% 32bit userland.  That got to hurt and if the situation
+with s390 is anywhere near that, they *really* hurt - we have variable
+depth of page table tree there and forcing it up is Not Nice(tm).
 
-> Thanks
->                 liqin
+Why do we want user_get_pages(), anyway?  It's not that we lacked an
+easy way to do large arrays, especially since the use is purely sequential.
+Even a linked list of vmalloc'ed pages would do just fine (i.e. start with
+static array in bprm, keep the pointer to last filled entry + number of
+entries left before the next allocation; use the last pointer in array
+for finding the next page-sized chunk).
 
-OK, will fold sys_mmap2 replacement with sys_mmap_pgoff into that patch,
-adding a missing chech on top of it - I'd rather keep that one an
-equivalent transformation.
+What do we lose if we go that way?  Inserting all these pages into mm
+at once shouldn't be slower.  Memory overhead is not really an issue
+(one page per 511 or 1023 pages of argv).  Am I missing something?
+
+The benefit, AFAICS, is that we get rid of the mess with forced high
+address use, get *sane* get_user_pages() (we always have matching
+task_struct with the right personality, so we can avoid massive PITA
+for doing checks right) and we get unified mmu/nommu code in fs/exec.c
+out of that.
+
+If you see serious problems I've missed, please tell.  Otherwise I'm
+going to hack up a prototype and post it here...
