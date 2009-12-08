@@ -1,55 +1,108 @@
-From: Hugh Dickins <hugh.dickins@tiscali.co.uk>
-Subject: Re: [RFC][PATCHSET] mremap/mmap mess
-Date: Mon, 7 Dec 2009 20:05:05 +0000 (GMT)
-Message-ID: <Pine.LNX.4.64.0912071953490.24794@sister.anvils>
-References: <E1NGzzu-0008RH-T2@ZenIV.linux.org.uk> <20091207035857.GF14381@ZenIV.linux.org.uk>
- <Pine.LNX.4.64.0912071710540.14445@sister.anvils> <20091207193048.GI14381@ZenIV.linux.org.uk>
+From: liqin.chen@sunplusct.com
+Subject: Re: [PATCH 13/19] Unify sys_mmap*
+Date: Tue, 8 Dec 2009 10:36:29 +0800
+Message-ID: <OFB4F0BC92.C5E0A391-ON48257686.000CDDCF-48257686.000E5459@sunplusct.com>
+References: <E1NHUfg-0007xZ-R1@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1758854AbZLGUFK@vger.kernel.org>
-In-Reply-To: <20091207193048.GI14381@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Al Viro <viro@ftp.linux.org.uk>, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="GB2312"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 124-219-29-227.vdslpro.static.apol.com.tw ([124.219.29.227]:55942
+	"EHLO mswedge2.sunplus.com" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S965390AbZLHCgr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Dec 2009 21:36:47 -0500
+In-Reply-To: <E1NHUfg-0007xZ-R1@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@ftp.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, linux-arch-owner@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
 
-Thanks for the explanations,
-it sounds as if you and Linus would like to push forward.
-
-On Mon, 7 Dec 2009, Al Viro wrote:
-> On Mon, Dec 07, 2009 at 06:58:25PM +0000, Hugh Dickins wrote:
-> 
-> > [PATCH 9/19] arm: add arch_mmap_check(), get rid of sys_arm_mremap()
-> > 
-> > You give arm an arch_mmap_check() which tests MAP_FIXED,
-> > so now do_brk() needs fixing.  Or can arm's get_unmapped_area()
-> > handle this, without any arch_mmap_check()?  In the end you move
-> > the arch_mmap_check() call into get_unmapped_area(), but could it be
-> > eliminated completely, in favour of code in arch's get_unmapped_area()?
-> 
-> Point, but take a look at actual check there.  do_brk() won't run afoul
-> of it anyway with existing callers on arm.  But yes, I agree that flags
-> need to be fixed there.
-
-Right, all that matters is whether MAP_FIXED is set here, and the
-fact that it is set through both an explicit MAP_FIXED and a confused
-VM_MAYREAD does not really matter - something to clean up, but not
-something that will break anybody before it's cleaned up.
-
-> > And (b) I thought you were being perverse in putting sys_mmap_pgoff()
-> > in mm/util.c, that's never where I'd look for it, we have a file
-> > mm/mmap.c which is just the place for it, after do_mmap_pgoff().
-> > Ah, you're trying to avoid duplicating it in mm/nommu.c?  Hmm,
-> > well, I'd much rather you do duplicate it.  Particularly once
-> > 14/19 complicates it with the MAP_HUGETLB fix, which we should
-> > keep in in mm/mmap.c, and shouldn't be needed in mm/nommu.c.
-> 
-> I'm not too happy with mm/util.c, but I really don't like the mmap vs nommu
-> duplications.  Hell knows; we can always split and move later on.
-
-mm/nommu.c is all about duplicating stuff with variations:
-unsatisfactory, but no reason to go do it differently here.
-Yes, I'll want to revert the util.c mods, but you don't need
-to do so now.
-
-Hugh
+bGludXgtYXJjaC1vd25lckB2Z2VyLmtlcm5lbC5vcmcg0LTT2iAyMDA5LTEyLTA3IDExOjU0OjAw
+Og0KPiANCj4gTmV3IGhlbHBlciAtIHN5c19tbWFwX3Bnb2ZmKCk7IHN3aXRjaCBzeXNjYWxscyB0
+byB1c2luZyBpdC4NCj4gDQo+IFNpZ25lZC1vZmYtYnk6IEFsIFZpcm8gPHZpcm9AemVuaXYubGlu
+dXgub3JnLnVrPg0KPiAtLS0NCj4gIGFyY2gvYWxwaGEva2VybmVsL29zZl9zeXMuYyAgICAgICAg
+ICAgICAgIHwgICAxOSArKy0tLS0tDQo+ICBhcmNoL2FybS9rZXJuZWwvZW50cnktY29tbW9uLlMg
+ICAgICAgICAgICB8ICAgIDQgKy0NCj4gIGFyY2gvYXJtL2tlcm5lbC9zeXNfYXJtLmMgICAgICAg
+ICAgICAgICAgIHwgICAzMCArLS0tLS0tLS0tLQ0KPiAgYXJjaC9hdnIzMi9pbmNsdWRlL2FzbS9z
+eXNjYWxscy5oICAgICAgICAgfCAgICA0IC0tDQo+ICBhcmNoL2F2cjMyL2tlcm5lbC9zeXNfYXZy
+MzIuYyAgICAgICAgICAgICB8ICAgMzEgLS0tLS0tLS0tLS0NCj4gIGFyY2gvYXZyMzIva2VybmVs
+L3N5c2NhbGwtc3R1YnMuUyAgICAgICAgIHwgICAgMiArLQ0KPiAgYXJjaC9ibGFja2Zpbi9rZXJu
+ZWwvc3lzX2JmaW4uYyAgICAgICAgICAgfCAgIDMzIC0tLS0tLS0tLS0tDQo+ICBhcmNoL2JsYWNr
+ZmluL21hY2gtY29tbW9uL2VudHJ5LlMgICAgICAgICB8ICAgIDIgKy0NCj4gIGFyY2gvY3Jpcy9r
+ZXJuZWwvc3lzX2NyaXMuYyAgICAgICAgICAgICAgIHwgICAzMCArLS0tLS0tLS0tDQo+ICBhcmNo
+L2Zydi9rZXJuZWwvc3lzX2Zydi5jICAgICAgICAgICAgICAgICB8ICAgNjYgDQorLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLQ0KPiAgYXJjaC9oODMwMC9rZXJuZWwvc3lzX2g4MzAwLmMgICAgICAgICAg
+ICAgfCAgIDgzIA0KKy0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCj4gIGFyY2gvaDgzMDAv
+a2VybmVsL3N5c2NhbGxzLlMgICAgICAgICAgICAgIHwgICAgMiArLQ0KPiAgYXJjaC9pYTY0L2tl
+cm5lbC9zeXNfaWE2NC5jICAgICAgICAgICAgICAgfCAgIDM3ICstLS0tLS0tLS0tLS0NCj4gIGFy
+Y2gvbTMyci9rZXJuZWwvc3lzX20zMnIuYyAgICAgICAgICAgICAgIHwgICAyNCAtLS0tLS0tLQ0K
+PiAgYXJjaC9tMzJyL2tlcm5lbC9zeXNjYWxsX3RhYmxlLlMgICAgICAgICAgfCAgICAyICstDQo+
+ICBhcmNoL202OGsva2VybmVsL3N5c19tNjhrLmMgICAgICAgICAgICAgICB8ICAgNzkgDQorKy0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQo+ICBhcmNoL202OGtub21tdS9rZXJuZWwvc3lzX202
+OGsuYyAgICAgICAgICB8ICAgMzggKy0tLS0tLS0tLS0tLQ0KPiAgYXJjaC9tNjhrbm9tbXUva2Vy
+bmVsL3N5c2NhbGx0YWJsZS5TICAgICAgfCAgICAyICstDQo+ICBhcmNoL21pY3JvYmxhemUva2Vy
+bmVsL3N5c19taWNyb2JsYXplLmMgICB8ICAgMzggKy0tLS0tLS0tLS0tLQ0KPiAgYXJjaC9taWNy
+b2JsYXplL2tlcm5lbC9zeXNjYWxsX3RhYmxlLlMgICAgfCAgICAyICstDQo+ICBhcmNoL21pcHMv
+a2VybmVsL2xpbnV4MzIuYyAgICAgICAgICAgICAgICB8ICAgMTkgKy0tLS0tLQ0KPiAgYXJjaC9t
+aXBzL2tlcm5lbC9zeXNjYWxsLmMgICAgICAgICAgICAgICAgfCAgIDI5ICstLS0tLS0tLS0NCj4g
+IGFyY2gvbW4xMDMwMC9rZXJuZWwvZW50cnkuUyAgICAgICAgICAgICAgIHwgICAgMiArLQ0KPiAg
+YXJjaC9tbjEwMzAwL2tlcm5lbC9zeXNfbW4xMDMwMC5jICAgICAgICAgfCAgIDMxICstLS0tLS0t
+LS0tDQo+ICBhcmNoL3BhcmlzYy9rZXJuZWwvc3lzX3BhcmlzYy5jICAgICAgICAgICB8ICAgMzAg
+KystLS0tLS0tLS0NCj4gIGFyY2gvcG93ZXJwYy9rZXJuZWwvc3lzY2FsbHMuYyAgICAgICAgICAg
+IHwgICAxNSArLS0tLS0NCj4gIGFyY2gvczM5MC9rZXJuZWwvY29tcGF0X2xpbnV4LmMgICAgICAg
+ICAgIHwgICAzMiArLS0tLS0tLS0tLQ0KPiAgYXJjaC9zMzkwL2tlcm5lbC9zeXNfczM5MC5jICAg
+ICAgICAgICAgICAgfCAgIDMwICstLS0tLS0tLS0tDQo+ICBhcmNoL3Njb3JlL2tlcm5lbC9zeXNf
+c2NvcmUuYyAgICAgICAgICAgICB8ICAgMjEgKy0tLS0tLQ0KPiAgYXJjaC9zaC9rZXJuZWwvc3lz
+X3NoLmMgICAgICAgICAgICAgICAgICAgfCAgIDI4ICstLS0tLS0tLS0NCj4gIGFyY2gvc3BhcmMv
+a2VybmVsL3N5c19zcGFyY18zMi5jICAgICAgICAgIHwgICAzMSArKy0tLS0tLS0tLQ0KPiAgYXJj
+aC9zcGFyYy9rZXJuZWwvc3lzX3NwYXJjXzY0LmMgICAgICAgICAgfCAgIDIyICsrLS0tLS0tDQo+
+ICBhcmNoL3VtL2tlcm5lbC9zeXNjYWxsLmMgICAgICAgICAgICAgICAgICB8ICAgMjggKy0tLS0t
+LS0tLQ0KPiAgYXJjaC91bS9zeXMtaTM4Ni9zaGFyZWQvc3lzZGVwL3N5c2NhbGxzLmggfCAgICA0
+IC0tDQo+ICBhcmNoL3g4Ni9pYTMyL2lhMzJlbnRyeS5TICAgICAgICAgICAgICAgICB8ICAgIDIg
+Ky0NCj4gIGFyY2gveDg2L2lhMzIvc3lzX2lhMzIuYyAgICAgICAgICAgICAgICAgIHwgICA0MyAr
+LS0tLS0tLS0tLS0tLS0tDQo+ICBhcmNoL3g4Ni9pbmNsdWRlL2FzbS9zeXNfaWEzMi5oICAgICAg
+ICAgICB8ICAgIDMgLQ0KPiAgYXJjaC94ODYvaW5jbHVkZS9hc20vc3lzY2FsbHMuaCAgICAgICAg
+ICAgfCAgICAyIC0NCj4gIGFyY2gveDg2L2tlcm5lbC9zeXNfaTM4Nl8zMi5jICAgICAgICAgICAg
+IHwgICAyNyArLS0tLS0tLS0tDQo+ICBhcmNoL3g4Ni9rZXJuZWwvc3lzX3g4Nl82NC5jICAgICAg
+ICAgICAgICB8ICAgMTcgKy0tLS0tLQ0KPiAgYXJjaC94ODYva2VybmVsL3N5c2NhbGxfdGFibGVf
+MzIuUyAgICAgICAgfCAgICAyICstDQo+ICBhcmNoL3h0ZW5zYS9pbmNsdWRlL2FzbS9zeXNjYWxs
+LmggICAgICAgICB8ICAgIDIgLQ0KPiAgYXJjaC94dGVuc2EvaW5jbHVkZS9hc20vdW5pc3RkLmgg
+ICAgICAgICAgfCAgICAyICstDQo+ICBhcmNoL3h0ZW5zYS9rZXJuZWwvc3lzY2FsbC5jICAgICAg
+ICAgICAgICB8ICAgMjUgLS0tLS0tLS0tDQo+ICBpbmNsdWRlL2xpbnV4L3N5c2NhbGxzLmggICAg
+ICAgICAgICAgICAgICB8ICAgIDQgKysNCj4gIG1tL3V0aWwuYyAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgIHwgICAyOSArKysrKysrKysrDQo+ICA0NiBmaWxlcyBjaGFuZ2VkLCAxMDUg
+aW5zZXJ0aW9ucygrKSwgOTAzIGRlbGV0aW9ucygtKQ0KPiANCj4gZGlmZiAtLWdpdCBhL2FyY2gv
+c2NvcmUva2VybmVsL3N5c19zY29yZS5jIA0KYi9hcmNoL3Njb3JlL2tlcm5lbC9zeXNfc2NvcmUu
+Yw0KPiBpbmRleCAwMDEyNDk0Li41Mjk5YTQ3IDEwMDY0NA0KPiAtLS0gYS9hcmNoL3Njb3JlL2tl
+cm5lbC9zeXNfc2NvcmUuYw0KPiArKysgYi9hcmNoL3Njb3JlL2tlcm5lbC9zeXNfc2NvcmUuYw0K
+PiBAQCAtMzYsMzMgKzM2LDE4IEBAIGFzbWxpbmthZ2UgbG9uZw0KPiAgc3lzX21tYXAyKHVuc2ln
+bmVkIGxvbmcgYWRkciwgdW5zaWduZWQgbG9uZyBsZW4sIHVuc2lnbmVkIGxvbmcgcHJvdCwNCj4g
+ICAgICAgdW5zaWduZWQgbG9uZyBmbGFncywgdW5zaWduZWQgbG9uZyBmZCwgdW5zaWduZWQgbG9u
+ZyBwZ29mZikNCj4gIHsNCj4gLSAgIGludCBlcnJvciA9IC1FQkFERjsNCj4gLSAgIHN0cnVjdCBm
+aWxlICpmaWxlID0gTlVMTDsNCj4gLQ0KPiAgICAgaWYgKHBnb2ZmICYgKH5QQUdFX01BU0sgPj4g
+MTIpKQ0KPiAgICAgICAgcmV0dXJuIC1FSU5WQUw7DQo+IA0KPiAtICAgZmxhZ3MgJj0gfihNQVBf
+RVhFQ1VUQUJMRSB8IE1BUF9ERU5ZV1JJVEUpOw0KPiAtICAgaWYgKCEoZmxhZ3MgJiBNQVBfQU5P
+TllNT1VTKSkgew0KPiAtICAgICAgZmlsZSA9IGZnZXQoZmQpOw0KPiAtICAgICAgaWYgKCFmaWxl
+KQ0KPiAtICAgICAgICAgcmV0dXJuIGVycm9yOw0KPiAtICAgfQ0KPiAtDQo+IC0gICBkb3duX3dy
+aXRlKCZjdXJyZW50LT5tbS0+bW1hcF9zZW0pOw0KPiAtICAgZXJyb3IgPSBkb19tbWFwX3Bnb2Zm
+KGZpbGUsIGFkZHIsIGxlbiwgcHJvdCwgZmxhZ3MsIHBnb2ZmKTsNCj4gLSAgIHVwX3dyaXRlKCZj
+dXJyZW50LT5tbS0+bW1hcF9zZW0pOw0KPiAtDQo+IC0gICBpZiAoZmlsZSkNCj4gLSAgICAgIGZw
+dXQoZmlsZSk7DQo+IC0NCj4gLSAgIHJldHVybiBlcnJvcjsNCj4gKyAgIHJldHVybiBzeXNfbW1h
+cF9wZ29mZihhZGRyLCBsZW4sIHByb3QsIGZsYWdzLCBmZCwgcGdvZmYpOw0KPiArICAgLyogc2lj
+IC0gYWxtb3N0IGNlcnRhaW5seSBzaG91bGQgc2hpZnQgcGdvZmYgYXMgd2VsbCAqLw0KPiAgfQ0K
+PiANCj4gIGFzbWxpbmthZ2UgbG9uZw0KPiAgc3lzX21tYXAodW5zaWduZWQgbG9uZyBhZGRyLCB1
+bnNpZ25lZCBsb25nIGxlbiwgdW5zaWduZWQgbG9uZyBwcm90LA0KPiAgICAgdW5zaWduZWQgbG9u
+ZyBmbGFncywgdW5zaWduZWQgbG9uZyBmZCwgb2ZmX3QgcGdvZmYpDQo+ICB7DQo+ICsgICAvKiB3
+aGVyZSdzIHRoZSBhbGlnbm1lbnQgY2hlY2s/ICovDQo+ICAgICByZXR1cm4gc3lzX21tYXAyKGFk
+ZHIsIGxlbiwgcHJvdCwgZmxhZ3MsIGZkLCBwZ29mZiA+PiBQQUdFX1NISUZUKTsNCj4gIH0NCj4g
+DQoNCkl0J3Mgb2sgZm9yIHlvdXIgdXBkYXRlLCBldmVuIA0KICAgICBpZiAocGdvZmYgJiAoflBB
+R0VfTUFTSyA+PiAxMikpDQogICAgICAgIHJldHVybiAtRUlOVkFMOw0KY29kZSBoYXZlbid0IHVz
+ZSBhbnltb3JlLCB5b3UgY291bGQgcmVtb3ZlIGl0Lg0KDQpJbiBhZGRpdGlvbiwgdGhlIHN5c19t
+bWFwIHNob3VsZCBsaWtlIHRoaXMuDQoNCmFzbWxpbmthZ2UgbG9uZw0Kc3lzX21tYXAodW5zaWdu
+ZWQgbG9uZyBhZGRyLCB1bnNpZ25lZCBsb25nIGxlbiwgdW5zaWduZWQgbG9uZyBwcm90LA0KICAg
+IHVuc2lnbmVkIGxvbmcgZmxhZ3MsIHVuc2lnbmVkIGxvbmcgZmQsIG9mZl90IHBnb2ZmKQ0Kew0K
+ICAgICAgICB1bnNpZ25lZCBsb25nIHJlc3VsdDsNCg0KICAgICAgICByZXN1bHQgPSAtRUlOVkFM
+Ow0KICAgICAgICBpZiAocGdvZmYgJiB+UEFHRV9NQVNLKQ0KICAgICAgICAgICAgICAgIGdvdG8g
+b3V0Ow0KDQogICAgICAgIHJlc3VsdCA9IHN5c19tbWFwMihhZGRyLCBsZW4sIHByb3QsIGZsYWdz
+LCBmZCwgcGdvZmYgPj4gDQpQQUdFX1NISUZUKTsNCm91dDoNCiAgICAgICAgcmV0dXJuIHJlc3Vs
+dDsNCn0gDQoNClRoYW5rcw0KICAgICAgICAgICAgICAgIGxpcWluDQoNCg0K
