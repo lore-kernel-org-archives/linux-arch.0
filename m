@@ -1,33 +1,67 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH 19/19] fix broken aliasing checks for MAP_FIXED on sparc32, mips, arm and sh
-Date: Tue, 8 Dec 2009 16:17:28 +0900
-Message-ID: <20091208071728.GA25362@linux-sh.org>
-References: <E1NHUgf-0007zS-3C@ZenIV.linux.org.uk>
+From: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+Subject: Re: [RFC][PATCHSET] mremap/mmap mess
+Date: Tue, 8 Dec 2009 11:42:55 +0000 (GMT)
+Message-ID: <Pine.LNX.4.64.0912081142280.31223@sister.anvils>
+References: <E1NGzzu-0008RH-T2@ZenIV.linux.org.uk> <20091207035857.GF14381@ZenIV.linux.org.uk>
+ <Pine.LNX.4.64.0912071710540.14445@sister.anvils> <20091207193048.GI14381@ZenIV.linux.org.uk>
+ <Pine.LNX.4.64.0912071953490.24794@sister.anvils> <20091208060701.GM14381@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:50240 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752976AbZLHHSh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Dec 2009 02:18:37 -0500
-Content-Disposition: inline
-In-Reply-To: <E1NHUgf-0007zS-3C@ZenIV.linux.org.uk>
+Received: from mk-filter-1-a-1.mail.uk.tiscali.com ([212.74.100.52]:58763 "EHLO
+	mk-filter-1-a-1.mail.uk.tiscali.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753918AbZLHLm7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Dec 2009 06:42:59 -0500
+In-Reply-To: <20091208060701.GM14381@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ftp.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Al Viro <viro@ftp.linux.org.uk>, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
 
-On Mon, Dec 07, 2009 at 03:55:01AM +0000, Al Viro wrote:
+On Tue, 8 Dec 2009, Al Viro wrote:
 > 
-> We want addr - (pgoff << PAGE_SHIFT) consistently coloured...
+> Why do we want user_get_pages(), anyway?  It's not that we lacked an
+> easy way to do large arrays, especially since the use is purely sequential.
+> Even a linked list of vmalloc'ed pages would do just fine (i.e. start with
+> static array in bprm, keep the pointer to last filled entry + number of
+> entries left before the next allocation; use the last pointer in array
+> for finding the next page-sized chunk).
 > 
-> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
-> ---
-> [MIPS part is in arch tree already]
->  arch/arm/mm/mmap.c               |    3 ++-
->  arch/mips/kernel/syscall.c       |    3 ++-
->  arch/sh/mm/mmap.c                |    3 ++-
->  arch/sparc/kernel/sys_sparc_32.c |    3 ++-
->  4 files changed, 8 insertions(+), 4 deletions(-)
+> What do we lose if we go that way?  Inserting all these pages into mm
+> at once shouldn't be slower.  Memory overhead is not really an issue
+> (one page per 511 or 1023 pages of argv).  Am I missing something?
+
+I think what you lose that way is swappability.
+
+Since we're supporting unlimited args and env here, it is important
+that those pages can belong to an mm, be discoverable by rmap, and
+be swapped out if really necessary.  Whereas I think you're proposing
+an internal list of those pages, unknown to rmap, unswappable.
+
+Of course, a page is pinned in core between get_user_pages() and
+put_page(), but unless I've got it wrong, get_user_pages() is being
+applied one by one to these pages, each unpinned as the next is pinned.
+
+It is conceivable that it actually doesn't work in the way I'm
+expecting: that although it's all designed to leave those pages
+swappable, some mod here or there has interfered with that.  But if
+so, that would be a bug: the intention, and I believe it's important,
+is that those pages are swappable.
+
+I have a different reason for wanting to change how it's done:
+it's the major user of non-atomic kmap() and its global kmap_lock,
+and rather swamps other uses of kmap() (which have better use for
+the cached virtual address).  So I'd be happy with a better way
+of doing it, but not at the cost of losing swappability.
+
+Hugh
+
 > 
-Acked-by: Paul Mundt <lethal@linux-sh.org>
+> The benefit, AFAICS, is that we get rid of the mess with forced high
+> address use, get *sane* get_user_pages() (we always have matching
+> task_struct with the right personality, so we can avoid massive PITA
+> for doing checks right) and we get unified mmu/nommu code in fs/exec.c
+> out of that.
+> 
+> If you see serious problems I've missed, please tell.  Otherwise I'm
+> going to hack up a prototype and post it here...
