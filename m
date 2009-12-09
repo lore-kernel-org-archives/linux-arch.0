@@ -1,60 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mk-filter-2-a-1.mail.uk.tiscali.com ([212.74.100.53]:16930 "EHLO
-	mk-filter-2-a-1.mail.uk.tiscali.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758817AbZLGUFG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Dec 2009 15:05:06 -0500
-Date: Mon, 7 Dec 2009 20:05:05 +0000 (GMT)
-From: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+Received: from casper.infradead.org ([85.118.1.10]:40016 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755354AbZLIMVr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Dec 2009 07:21:47 -0500
 Subject: Re: [RFC][PATCHSET] mremap/mmap mess
-In-Reply-To: <20091207193048.GI14381@ZenIV.linux.org.uk>
-Message-ID: <Pine.LNX.4.64.0912071953490.24794@sister.anvils>
-References: <E1NGzzu-0008RH-T2@ZenIV.linux.org.uk> <20091207035857.GF14381@ZenIV.linux.org.uk>
- <Pine.LNX.4.64.0912071710540.14445@sister.anvils> <20091207193048.GI14381@ZenIV.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+From: Peter Zijlstra <peterz@infradead.org>
+In-Reply-To: <Pine.LNX.4.64.0912091041250.23659@sister.anvils>
+References: <20091208060701.GM14381@ZenIV.linux.org.uk>
+	 <Pine.LNX.4.64.0912081142280.31223@sister.anvils>
+	 <Pine.LNX.4.64.0912081254500.3365@sister.anvils>
+	 <20091208.130802.25121122.davem@davemloft.net>
+	 <20091208220638.GN14381@ZenIV.linux.org.uk>
+	 <Pine.LNX.4.64.0912091041250.23659@sister.anvils>
+Content-Type: text/plain; charset="UTF-8"
+Date: Wed, 09 Dec 2009 13:21:42 +0100
+Message-ID: <1260361302.5489.372.camel@laptop>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Al Viro <viro@ftp.linux.org.uk>, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
-Message-ID: <20091207200505.TbDeXPkEj497lr9MtFxCuGT6leXPvL1KX0MjNz4PQD4@z>
+To: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>, David Miller <davem@davemloft.net>, Ollie Wild <aaw@google.com>, Rik van Riel <riel@redhat.com>, viro@ftp.linux.org.uk, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
+Message-ID: <20091209122142.J2UYj3rYwUAw9bKcDw7-tY30F3bE08iApiJzKhIzV-8@z>
 
-Thanks for the explanations,
-it sounds as if you and Linus would like to push forward.
+On Wed, 2009-12-09 at 11:43 +0000, Hugh Dickins wrote:
 
-On Mon, 7 Dec 2009, Al Viro wrote:
-> On Mon, Dec 07, 2009 at 06:58:25PM +0000, Hugh Dickins wrote:
+> On Tue, 8 Dec 2009, Al Viro wrote:
+> > On Tue, Dec 08, 2009 at 01:08:02PM -0800, David Miller wrote:
+> > > From: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+> > > Date: Tue, 8 Dec 2009 13:03:30 +0000 (GMT)
+
+> Would it make sense to build up argv and env of execee on the execer's
+> user stack (below user's sp ("below" assuming topdown stack))?
+
+> > > 
+> > > > That would impose some (unacceptable?) limits, and require some funny
+> > > > code to migrate the pages over to the new mm later (instead of
+> > > > relocating within the new mm as we do now).
+> > > 
+> > > I think this approach would create new failure cases that don't exist
+> > > now.  Whether that's acceptable or not is another issue.
 > 
-> > [PATCH 9/19] arm: add arch_mmap_check(), get rid of sys_arm_mremap()
-> > 
-> > You give arm an arch_mmap_check() which tests MAP_FIXED,
-> > so now do_brk() needs fixing.  Or can arm's get_unmapped_area()
-> > handle this, without any arch_mmap_check()?  In the end you move
-> > the arch_mmap_check() call into get_unmapped_area(), but could it be
-> > eliminated completely, in favour of code in arch's get_unmapped_area()?
-> 
-> Point, but take a look at actual check there.  do_brk() won't run afoul
-> of it anyway with existing callers on arm.  But yes, I agree that flags
-> need to be fixed there.
+> David: Yes, that's one of my fears too - I don't think
+> rlimits would pose any new problem, but building up the argv+env below
+> sp on the execer's userstack would be in danger of colliding with the
+> vma below if the space allowed to that userstack is too small.  We can
+> say "sorry, you left too little space for your userstack", but it's
+> still a regression.  My other big fear is this: that it's such a simple
+> and obvious way to do it, that it has probably been ruled out for very
+> good reasons in the past.
 
-Right, all that matters is whether MAP_FIXED is set here, and the
-fact that it is set through both an explicit MAP_FIXED and a confused
-VM_MAYREAD does not really matter - something to clean up, but not
-something that will break anybody before it's cleaned up.
+Vague memories, but here goes..
 
-> > And (b) I thought you were being perverse in putting sys_mmap_pgoff()
-> > in mm/util.c, that's never where I'd look for it, we have a file
-> > mm/mmap.c which is just the place for it, after do_mmap_pgoff().
-> > Ah, you're trying to avoid duplicating it in mm/nommu.c?  Hmm,
-> > well, I'd much rather you do duplicate it.  Particularly once
-> > 14/19 complicates it with the MAP_HUGETLB fix, which we should
-> > keep in in mm/mmap.c, and shouldn't be needed in mm/nommu.c.
-> 
-> I'm not too happy with mm/util.c, but I really don't like the mmap vs nommu
-> duplications.  Hell knows; we can always split and move later on.
+/me ponders.. doesn't the binfmt engine cruft need the args in place in
+order to execute?
 
-mm/nommu.c is all about duplicating stuff with variations:
-unsatisfactory, but no reason to go do it differently here.
-Yes, I'll want to revert the util.c mods, but you don't need
-to do so now.
+That is, IIRC the problem is that you need to have the argc/env in place
+for the binfmt engine thing, and need to have ran the binfmt engine
+thing before you know the personality.
 
-Hugh
+As to your idea, if that were feasible we could do without the copy and
+simply steal the pages directly from the old mm.
+
