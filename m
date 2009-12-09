@@ -1,85 +1,35 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: problems in commit 2d4dc890b5c8 (block: add helpers to run
- flush_dcache_page() against a bio and a request's pages)
-Date: Wed, 09 Dec 2009 16:39:06 -0600
-Message-ID: <1260398346.14369.45.camel@mulgrave.site>
+From: James Morris <jmorris@namei.org>
+Subject: Re: VFS and IMA API patch series please pull
+Date: Thu, 10 Dec 2009 09:38:03 +1100 (EST)
+Message-ID: <alpine.LRH.2.00.0912100937110.18606@tundra.namei.org>
+References: <1260393952.3344.18.camel@localhost>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:37062 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757458AbZLIWjD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Dec 2009 17:39:03 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ilya Loginov <isloginov@gmail.com>, Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1260393952.3344.18.camel@localhost>
+Sender: owner-linux-mm@kvack.org
+To: Eric Paris <eparis@redhat.com>
+Cc: linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-cachefs@redhat.com, ecryptfs-devel@lists.launchpad.net, linux-fsdevel@vger.kernel.org, linux-nfs@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, netdev@vger.kernel.org, linux-security-module@vger.kernel.org, rdunlap@xenotime.net, Mimi Zohar <zohar@linux.vnet.ibm.com>, "Serge E. Hallyn" <serue@us.ibm.com>, David Howells <dhowells@redhat.com>, steved@redhat.com, tiwai@suse.de, viro@zeniv.linux.org.uk, tyhicks@linux.vnet.ibm.com, kirkland@canonical.com, Andrew Morton <akpm@linux-foundation.org>, npiggin@suse.de, wli@holomorphy.com, mel@csn.ul.ie, shuber2@gmail.com, dsmith@redhat.com, jack@suse.cz, jmalicki@metacarta.com, hch@lst.de, "J. Bruce Fields" <bfields@fieldses.org>, neilb@suse.de, agruen@suse.dej
+List-Id: linux-arch.vger.kernel.org
 
-Sorry about being late to the party.  The original patch didn't get cc'd
-to linux-arch (in spite of touching header files in every arch).
+On Wed, 9 Dec 2009, Eric Paris wrote:
 
-The problem mtd appears to have (from reading the code) is that it wants
-to do pio to and from a device from the kernel view of the address.
-What's happening in mtd looks to be wrong on several levels.
+> I'm not sure who the best person to pull this would be.  VFS maintainer?
+> Al?  Should I just send straight to Linus?  I'm not sure what the best
+> path is.  All of the individual fs changes have been acked by their
+> respective maintainers and the IMA work has been acked by the IMA
+> maintainer.  The only patches without CLEAR acks and review are the two
+> which remove the get_empty_filp() and init_file() calls.
 
-Firstly, the pio code in mtd_blkdevs.c starts with req->buffer.  This is
-really unsafe, because if the page wasn't mappable (like you're on a
-highmem architecture) then req->buffer will be NULL.
+It should probably go via Al, due to all the VFS core changes, but I can 
+take it in my tree if needed.
 
-Then this extra helpers added to block: rq_flush_dcache_pages() loops
-over every segment of the request calling flush_dcache_page() for the
-page.  If you read the mtd code, it acts on a bio at a time so a request
-with N bios flushes every page in the request N times (i'e N^2 flushes).
-I'm assuming there's something somewhere I'm missing that restricts mtd
-to single bio requests, which makes this all OK?
+-- 
+James Morris
+<jmorris@namei.org>
 
-Finally, if you look at the actual use, this is using a sledgehammer to
-crack a nut.  For writes via the kernel address, all you need to assure
-is that the user aliases of the page were flushed as the bio was
-constructed ... this is actually done in get_user pages, so this chunk
-of code:
-
-> 	case WRITE:
-> 		if (!tr->writesect)
-> 			return -EIO;
-> 
->+		rq_flush_dcache_pages(req);
-> 		for (; nsect > 0; nsect--, block++, buf += tr->blksize)
-> 			if (tr->writesect(dev, block, buf))
-> 				return -EIO;
-
-Should be completely unnecessary.  (well except that mtd might need to
-kmap somewhere).
-
-The pio read case is the problematic one, because you dirty the kernel
-alias by writing the read data to it and have to flush that before it's
-made visible to the user alias view.  The API for doing this is
-flush_kernel_dcache_page() ... it *only* flushes the kernel view, not
-the user view.  The reason for this is that if the arch has to protect
-the user aliases against speculative movein, that's done in the DMA API
-before the request is completed.
-
-So for this:
-
->	case READ:
->		for (; nsect > 0; nsect--, block++, buf += tr->blksize)
->			if (tr->readsect(dev, block, buf))
->				return -EIO;
->+		rq_flush_dcache_pages(req);
->		return 0;
-
-Actually all you need to do is loop over the pages and call
-flush_kernel_dcache_page().
-
-Realistically, if I were thinking about the API properly, I'd probably
-have kunmap flush the kernel view if the dirty bit were set, thus
-relieving the user of the need to know anything at all about any of
-this.  We should also have an adaption of the DMA API that tells the
-arch that the mapping (and flushing) is only being done for pio not mmio
-(so no need to program iommus or set up shared bus coherency registers).
-
-That way we'd have a completely consistent and uniform API for all
-drivers (whether PIO, MMIO or a mixture).
-
-James
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
