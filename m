@@ -1,42 +1,99 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [RFC][PATCHSET] mremap/mmap mess
-Date: Wed, 9 Dec 2009 07:12:16 -0800 (PST)
-Message-ID: <alpine.LFD.2.00.0912090709130.3560@localhost.localdomain>
-References: <20091208060701.GM14381@ZenIV.linux.org.uk> <Pine.LNX.4.64.0912081142280.31223@sister.anvils> <Pine.LNX.4.64.0912081254500.3365@sister.anvils> <20091208.130802.25121122.davem@davemloft.net> <20091208220638.GN14381@ZenIV.linux.org.uk>
- <Pine.LNX.4.64.0912091041250.23659@sister.anvils>
+From: Eric Paris <eparis@redhat.com>
+Subject: VFS and IMA API patch series please pull
+Date: Wed, 09 Dec 2009 16:25:52 -0500
+Message-ID: <1260393952.3344.18.camel__37180.3969298073$1260394479$gmane$org@localhost>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:43837 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752869AbZLIPNN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Dec 2009 10:13:13 -0500
-In-Reply-To: <Pine.LNX.4.64.0912091041250.23659@sister.anvils>
+Received: from mx1.redhat.com ([209.132.183.28]:32675 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751745AbZLIVeK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 9 Dec 2009 16:34:10 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hugh Dickins <hugh.dickins@tiscali.co.uk>
-Cc: Al Viro <viro@ZenIV.linux.org.uk>, David Miller <davem@davemloft.net>, Ollie Wild <aaw@google.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, viro@ftp.linux.org.uk, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
+To: linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-cachefs@redhat.com, ecryptfs-devel@lists.launchpad.net, linux-fsdevel@vger.kernel.org, linux-nfs@vger.kernel.org
+Cc: rdunlap@xenotime.net, zohar@linux.vnet.ibm.com, eparis@redhat.com, jmorris@namei.org, serue@us.ibm.com, dhowells@redhat.com, steved@redhat.com, tiwai@suse.de, viro@zeniv.linux.org.uk, tyhicks@linux.vnet.ibm.com, kirkland@canonical.com, akpm@linux-foundation.org, npiggin@suse.de, wli@holomorphy.com, mel@csn.ul.ie, shuber2@gmail.com, dsmith@redhat.com, jack@suse.cz, jmalicki@metacarta.com, hch@lst.de, bfields@fieldses.org, neilb@suse.de, agruen@suse.de, john@johnmccutchan.com, rlove@rlove.org, ebiederm@xmission.com, heiko.carstens@de.ibm.com, penguin-kernel@I-love.SAKURA.ne.jp, miklos@szeredi.hu, jens.axboe@oracle.com, arnd@arndb.de, drepper@redhat.com, a.p.zijlstra@chello.nl, Trond.Myklebust@netapp.com, matthew@wil.cx, hooanon05@yahoo.co.jp, mingo@elte.hu, rusty@rustcorp.com.au, penberg@cs.helsinki.fi, clg@fr.ibm.com, hugh.dickins@tiscali.co.uk, vapier@gentoo.org, kameza
 
+I've sent this patch series out a couple of times but at now 18 patches
+long and all having received acks I don't want to send the whole series
+again.  I have a version based of off linus' tree including all of the
+ACKs I received on list and which has been run through the LTP test
+suite successfully.  This series basically does two things.
 
+1) removes all users of get_empty_filp() and init_file()
+2) reworks the ima API to hide it under the LSM and remove its hooks
+into individual filesystems (shmem, pipes, hugetables, ecrypts, nfs,
+networking, ?afs?).
 
-On Wed, 9 Dec 2009, Hugh Dickins wrote:
-> 
-> David: Yes, that's one of my fears too - I don't think
-> rlimits would pose any new problem, but building up the argv+env below
-> sp on the execer's userstack would be in danger of colliding with the
-> vma below if the space allowed to that userstack is too small.
+This repo contains all of the patches including those which actually
+make init_file() static and remove init_file() from the headers.  They
+remove the EXPORT_SYMBOL for those as well.  If a deprecation is
+required for out of tree kernel code they can still be exported but that
+out of tree code will now certainly fail to work with IMA and will
+result in (harmless) printk spam.
 
-For threads, the stack is usually pretty small, so yeah, it would severely 
-limit threads doing execve. 
+I'm not sure who the best person to pull this would be.  VFS maintainer?
+Al?  Should I just send straight to Linus?  I'm not sure what the best
+path is.  All of the individual fs changes have been acked by their
+respective maintainers and the IMA work has been acked by the IMA
+maintainer.  The only patches without CLEAR acks and review are the two
+which remove the get_empty_filp() and init_file() calls.
 
-That's supposed to be unusual and is frowned upon, but we've spent a fair 
-amount of effort on making sure it works, so I think it would be 
-unacceptable.
+The following changes since commit 2b876f95d03e226394b5d360c86127cbefaf614b:
+  Linus Torvalds (1):
+        Merge branches 'timers-for-linus-ntp' and 'irq-core-for-linus' of git://git.kernel.org/.../tip/linux-2.6-tip
 
-And I really don't see what the problem with our current approach is. We 
-have a nice source array - the originating VM, and a nice destination 
-array - the resulting VM, and trying to exchange that nice conceptual 
-setup with another setup with _different_ problems that isn't even as 
-clean sounds like a major mistake to me.
+are available in the git repository at:
 
-		Linus
+  git://git.infradead.org/users/eparis/vfsima.git master
+
+Eric Paris (14):
+      shmem: do not call fput_filp on an initialized filp
+      shmem: use alloc_file instead of init_file
+      pipes: use alloc-file instead of duplicating code
+      inotify: use alloc_file instead of doing it internally
+      networking: rework socket to fd mapping using alloc-file
+      vfs: make init-file static
+      fs: move get_empty_filp() deffinition to internal.h
+      ima: valid return code from ima_inode_alloc
+      ima: only insert at inode creation time
+      ima: initialize ima before inodes can be allocated
+      IMA: clean up the IMA counts updating code
+      ima: call ima_inode_free ima_inode_free
+      ima: move ima hooks to __dentry_open for easier ima API
+      ima: rename ima_path_check to ima_file_check
+
+Mimi Zohar (4):
+      ima: Fix refcnt bug in get_path_measurement
+      security: move ima_file_check() to lsm hook
+      ima: limit imbalance msg
+      ima: rename PATH_CHECK to FILE_CHECK
+
+ Documentation/ABI/testing/ima_policy |   12 +-
+ fs/cachefiles/rdwr.c                 |    2 -
+ fs/ecryptfs/main.c                   |    3 -
+ fs/file_table.c                      |   81 +++++------
+ fs/hugetlbfs/inode.c                 |    2 -
+ fs/internal.h                        |    1 +
+ fs/namei.c                           |   35 +----
+ fs/nfsd/vfs.c                        |   14 --
+ fs/notify/inotify/inotify_user.c     |   23 +-
+ fs/open.c                            |    9 +-
+ fs/pipe.c                            |   21 +--
+ include/asm-generic/fcntl.h          |    8 +
+ include/linux/file.h                 |    3 -
+ include/linux/fs.h                   |    7 +-
+ include/linux/ima.h                  |   16 +--
+ init/main.c                          |    2 +-
+ ipc/mqueue.c                         |    2 -
+ ipc/shm.c                            |    2 -
+ mm/shmem.c                           |   25 ++--
+ net/socket.c                         |  123 ++++++----------
+ security/integrity/ima/ima.h         |    6 +-
+ security/integrity/ima/ima_api.c     |    4 +-
+ security/integrity/ima/ima_iint.c    |   84 ++---------
+ security/integrity/ima/ima_main.c    |  273 +++++++++++++++++-----------------
+ security/integrity/ima/ima_policy.c  |   19 ++-
+ security/security.c                  |    8 +-
+ 26 files changed, 324 insertions(+), 461 deletions(-)
