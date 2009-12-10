@@ -1,44 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f176.google.com ([209.85.211.176]:44502 "EHLO
-	mail-yw0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761711AbZLJVR7 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Dec 2009 16:17:59 -0500
+Received: from bombadil.infradead.org ([18.85.46.34]:49794 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761831AbZLJVyi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Dec 2009 16:54:38 -0500
+Date: Thu, 10 Dec 2009 16:54:42 -0500
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [PATCH 2/5] parisc: Convert BUG() to use unreachable()
+Message-ID: <20091210215442.GB28962@bombadil.infradead.org>
+References: <4B212EEC.3060808@caviumnetworks.com> <1260466101-17545-2-git-send-email-ddaney@caviumnetworks.com>
 MIME-Version: 1.0
-In-Reply-To: <200912102210.12124.arnd@arndb.de>
-References: <OF24184D8B.2F7F8AA9-ON48257685.002069EF-48257685.00207E45@sunplusct.com>
-	<200912071614.46166.arnd@arndb.de> <200912102210.12124.arnd@arndb.de>
-From: Mike Frysinger <vapier.adi@gmail.com>
-Date: Thu, 10 Dec 2009 16:17:44 -0500
-Message-ID: <8bd0f97a0912101317v8143e67w9e2f1224111ac0d7@mail.gmail.com>
-Subject: Re: What's in asm-generic.git
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1260466101-17545-2-git-send-email-ddaney@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: liqin.chen@sunplusct.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20091210211744.Mg5SVwJUIwET4lYon_U8TUGR74wG5KSim7mZmij1AI0@z>
+To: David Daney <ddaney@caviumnetworks.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
+Message-ID: <20091210215442.P1np8JxjsAQScEYIOXezJLptY9b-Df8FNSf6HtDKhto@z>
 
-2009/12/10 Arnd Bergmann:
-> On Monday 07 December 2009, Arnd Bergmann wrote:
->> On Monday 07 December 2009, liqin.chen@sunplusct.com wrote:
->> > Arnd Bergmann <arnd@arndb.de> 写于 2009-12-04 03:14:08:
->> >
->> > Maybe you can add a __NR_set_thread_area define in asm-generic/unsitd.h
->> > for tls used.
->>
->> Yes, good point. I'll update the syscall list with this, and also check if more
->> syscalls have been addded.
->
-> I have found now that sys_accept4 was missing. sys_set_thread_area however
-> is only defined on x86 and mips. Since you don't currently implement this
-> on score, maybe it would be more appropriate to handle it like the other
-> architectures do, rather than adding it to asm-generic/unistd.h?
+On Thu, Dec 10, 2009 at 09:28:18AM -0800, David Daney wrote:
+> Use the new unreachable() macro instead of for(;;);
+> 
+> Signed-off-by: David Daney <ddaney@caviumnetworks.com>
+> CC: Kyle McMartin <kyle@mcmartin.ca>
+> CC: Helge Deller <deller@gmx.de>
+> CC: linux-parisc@vger.kernel.org
+> ---
 
-isnt the point of asm-generic/unistd.h to collect all common syscalls
-?  if there's syscalls that ideally should be handled by everyone but
-currently doesnt, then it's easy to define it in the header but have
-the actual entry.S leave it as a hole ...
+Thanks David, I'll bash this into my tree now that the macro is
+upstream.
 
-or maybe i'm missing what's going on
--mike
+regards, Kyle
