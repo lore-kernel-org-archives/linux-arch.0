@@ -1,33 +1,45 @@
-From: Russell King <rmk@arm.linux.org.uk>
+From: Ilya Loginov <isloginov@gmail.com>
 Subject: Re: problems in commit 2d4dc890b5c8 (block: add helpers to run
-	flush_dcache_page() against a bio and a request's pages)
-Date: Thu, 10 Dec 2009 20:39:54 +0000
-Message-ID: <20091210203954.GE20884@flint.arm.linux.org.uk>
-References: <20091210030638.db4cfd8a.isloginov@gmail.com> <1260404395.14369.68.camel@mulgrave.site> <20091210074020.a7c36c32.isloginov@gmail.com> <1260464851.2457.98.camel@mulgrave.site> <20091210174823.GA20884@flint.arm.linux.org.uk> <1260467956.2457.109.camel@mulgrave.site> <20091210180635.GB20884@flint.arm.linux.org.uk> <1260469255.2457.113.camel@mulgrave.site> <20091210190524.GC20884@flint.arm.linux.org.uk> <1260476999.2457.118.camel@mulgrave.site>
+ flush_dcache_page() against a bio and a request's pages)
+Date: Thu, 10 Dec 2009 23:41:18 +0300
+Message-ID: <20091210234118.cb699264.isloginov@gmail.com>
+References: <1260398346.14369.45.camel@mulgrave.site>
+	<20091210020309.36742c7f.isloginov@gmail.com>
+	<1260400273.14369.52.camel@mulgrave.site>
+	<20091210023609.b8c9bd34.isloginov@gmail.com>
+	<1260402471.14369.60.camel@mulgrave.site>
+	<20091210030638.db4cfd8a.isloginov@gmail.com>
+	<1260404395.14369.68.camel@mulgrave.site>
+	<20091210074020.a7c36c32.isloginov@gmail.com>
+	<1260464851.2457.98.camel@mulgrave.site>
+	<20091210224637.cb9712f7.isloginov@gmail.com>
+	<1260476884.2457.116.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:48252 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757616AbZLJUkH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Dec 2009 15:40:07 -0500
-Content-Disposition: inline
-In-Reply-To: <1260476999.2457.118.camel@mulgrave.site>
+Received: from mail-ew0-f219.google.com ([209.85.219.219]:48554 "EHLO
+	mail-ew0-f219.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758096AbZLJUlQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Dec 2009 15:41:16 -0500
+Received: by ewy19 with SMTP id 19so278545ewy.21
+        for <linux-arch@vger.kernel.org>; Thu, 10 Dec 2009 12:41:22 -0800 (PST)
+In-Reply-To: <1260476884.2457.116.camel@mulgrave.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Ilya Loginov <isloginov@gmail.com>, Jens Axboe <jens.axboe@oracle.com>, linux-arch@vger.kernel.org
+Cc: Jens Axboe <jens.axboe@oracle.com>, linux-arch@vger.kernel.org
 
-On Thu, Dec 10, 2009 at 02:29:59PM -0600, James Bottomley wrote:
-> For 2MB pages, yes, I'd have to agree.
-> 
-> so the fallback proposal is adding the flush to the kunmap(_atomic) and
-> then adding a kunmap_noflush(_atomic) that we convert the already
-> flushed architecture cases to using ... is that OK?
+On Thu, 10 Dec 2009 14:28:04 -0600
+James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
 
-Yes.
+> > diskimage(via slram) in memory.
+
+> Which exact driver in drivers/mtd?  I can probably just look at it and
+> see where the kmap/flush is supposed to be.
+
+I think that this is the right driver.
+drivers/mtd/devices/slram.c
 
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Ilya Loginov <isloginov@gmail.com>
