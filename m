@@ -1,42 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail3.caviumnetworks.com ([12.108.191.235]:3882 "EHLO
+Received: from mail3.caviumnetworks.com ([12.108.191.235]:3894 "EHLO
 	mail3.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761225AbZLJR3O (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Dec 2009 12:29:14 -0500
+	with ESMTP id S1761240AbZLJR3P (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Dec 2009 12:29:15 -0500
 From: David Daney <ddaney@caviumnetworks.com>
-Subject: [PATCH 5/5] blackfin: Convert BUG() to use unreachable()
-Date: Thu, 10 Dec 2009 09:28:21 -0800
-Message-ID: <1260466101-17545-5-git-send-email-ddaney@caviumnetworks.com>
+Subject: [PATCH 2/5] parisc: Convert BUG() to use unreachable()
+Date: Thu, 10 Dec 2009 09:28:18 -0800
+Message-ID: <1260466101-17545-2-git-send-email-ddaney@caviumnetworks.com>
 In-Reply-To: <4B212EEC.3060808@caviumnetworks.com>
 References: <4B212EEC.3060808@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, David Daney <ddaney@caviumnetworks.com>, Mike Frysinger <vapier@gentoo.org>, uclinux-dist-devel@blackfin.uclinux.org
-Message-ID: <20091210172821.r5HVjgg4Do9NmYyhhOlucY8Bt2LlA3jlebh_o9vRlnU@z>
+Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, David Daney <ddaney@caviumnetworks.com>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
+Message-ID: <20091210172818.NYSw8CjP2SLNhpZnd7ziDBr_WfyqgvVidnuWiRRwNN0@z>
 
 Use the new unreachable() macro instead of for(;;);
 
 Signed-off-by: David Daney <ddaney@caviumnetworks.com>
-CC: Mike Frysinger <vapier@gentoo.org>
-CC: uclinux-dist-devel@blackfin.uclinux.org
+CC: Kyle McMartin <kyle@mcmartin.ca>
+CC: Helge Deller <deller@gmx.de>
+CC: linux-parisc@vger.kernel.org
 ---
- arch/blackfin/include/asm/bug.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ arch/parisc/include/asm/bug.h |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/blackfin/include/asm/bug.h b/arch/blackfin/include/asm/bug.h
-index 6f4548a..75f6dc3 100644
---- a/arch/blackfin/include/asm/bug.h
-+++ b/arch/blackfin/include/asm/bug.h
-@@ -47,7 +47,7 @@
+diff --git a/arch/parisc/include/asm/bug.h b/arch/parisc/include/asm/bug.h
+index 8cfc553..75e46c5 100644
+--- a/arch/parisc/include/asm/bug.h
++++ b/arch/parisc/include/asm/bug.h
+@@ -32,14 +32,14 @@
+ 			     "\t.popsection"				\
+ 			     : : "i" (__FILE__), "i" (__LINE__),	\
+ 			     "i" (0), "i" (sizeof(struct bug_entry)) ); \
+-		for(;;) ;						\
++		unreachable();						\
+ 	} while(0)
+ 
+ #else
  #define BUG()								\
  	do {								\
- 		_BUG_OR_WARN(0);					\
--		for (;;);						\
+ 		asm volatile(PARISC_BUG_BREAK_ASM : : );		\
+-		for(;;) ;						\
 +		unreachable();						\
- 	} while (0)
+ 	} while(0)
+ #endif
  
- #define WARN_ON(condition)							\
 -- 
 1.6.2.5
 
