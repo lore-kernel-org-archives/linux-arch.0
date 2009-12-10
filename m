@@ -1,51 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail3.caviumnetworks.com ([12.108.191.235]:3894 "EHLO
+Received: from mail3.caviumnetworks.com ([12.108.191.235]:3885 "EHLO
 	mail3.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761240AbZLJR3P (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Dec 2009 12:29:15 -0500
+	with ESMTP id S1761230AbZLJR3O (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Dec 2009 12:29:14 -0500
 From: David Daney <ddaney@caviumnetworks.com>
-Subject: [PATCH 2/5] parisc: Convert BUG() to use unreachable()
-Date: Thu, 10 Dec 2009 09:28:18 -0800
-Message-ID: <1260466101-17545-2-git-send-email-ddaney@caviumnetworks.com>
+Subject: [PATCH 1/5] mn10300: Convert BUG() to use unreachable()
+Date: Thu, 10 Dec 2009 09:28:17 -0800
+Message-ID: <1260466101-17545-1-git-send-email-ddaney@caviumnetworks.com>
 In-Reply-To: <4B212EEC.3060808@caviumnetworks.com>
 References: <4B212EEC.3060808@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, David Daney <ddaney@caviumnetworks.com>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
-Message-ID: <20091210172818.NYSw8CjP2SLNhpZnd7ziDBr_WfyqgvVidnuWiRRwNN0@z>
+Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, David Daney <ddaney@caviumnetworks.com>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, linux-am33-list@redhat.com
+Message-ID: <20091210172817.EVmSpm8M_9yJTXhPxrIpxmm7KDV43ajr37pwSsGoEkk@z>
 
-Use the new unreachable() macro instead of for(;;);
+Use the new unreachable() macro instead of while(1).
 
 Signed-off-by: David Daney <ddaney@caviumnetworks.com>
-CC: Kyle McMartin <kyle@mcmartin.ca>
-CC: Helge Deller <deller@gmx.de>
-CC: linux-parisc@vger.kernel.org
+CC: David Howells <dhowells@redhat.com>
+CC: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
+CC: linux-am33-list@redhat.com
 ---
- arch/parisc/include/asm/bug.h |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ arch/mn10300/include/asm/bug.h |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
-diff --git a/arch/parisc/include/asm/bug.h b/arch/parisc/include/asm/bug.h
-index 8cfc553..75e46c5 100644
---- a/arch/parisc/include/asm/bug.h
-+++ b/arch/parisc/include/asm/bug.h
-@@ -32,14 +32,14 @@
- 			     "\t.popsection"				\
- 			     : : "i" (__FILE__), "i" (__LINE__),	\
- 			     "i" (0), "i" (sizeof(struct bug_entry)) ); \
--		for(;;) ;						\
-+		unreachable();						\
- 	} while(0)
+diff --git a/arch/mn10300/include/asm/bug.h b/arch/mn10300/include/asm/bug.h
+index aa6a388..447a7e6 100644
+--- a/arch/mn10300/include/asm/bug.h
++++ b/arch/mn10300/include/asm/bug.h
+@@ -27,7 +27,8 @@ do {								\
+ 		:						\
+ 		: "i"(__FILE__), "i"(__LINE__)			\
+ 		);						\
+-} while (1)
++	unreachable();						\
++} while (0)
  
- #else
- #define BUG()								\
- 	do {								\
- 		asm volatile(PARISC_BUG_BREAK_ASM : : );		\
--		for(;;) ;						\
-+		unreachable();						\
- 	} while(0)
- #endif
- 
+ #define HAVE_ARCH_BUG
+ #endif /* CONFIG_BUG */
 -- 
 1.6.2.5
 
