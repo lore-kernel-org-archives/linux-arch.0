@@ -1,44 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail3.caviumnetworks.com ([12.108.191.235]:3885 "EHLO
-	mail3.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761230AbZLJR3O (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Dec 2009 12:29:14 -0500
-From: David Daney <ddaney@caviumnetworks.com>
-Subject: [PATCH 1/5] mn10300: Convert BUG() to use unreachable()
-Date: Thu, 10 Dec 2009 09:28:17 -0800
-Message-ID: <1260466101-17545-1-git-send-email-ddaney@caviumnetworks.com>
-In-Reply-To: <4B212EEC.3060808@caviumnetworks.com>
-References: <4B212EEC.3060808@caviumnetworks.com>
+Received: from mail-yw0-f176.google.com ([209.85.211.176]:44502 "EHLO
+	mail-yw0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761711AbZLJVR7 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Dec 2009 16:17:59 -0500
+MIME-Version: 1.0
+In-Reply-To: <200912102210.12124.arnd@arndb.de>
+References: <OF24184D8B.2F7F8AA9-ON48257685.002069EF-48257685.00207E45@sunplusct.com>
+	<200912071614.46166.arnd@arndb.de> <200912102210.12124.arnd@arndb.de>
+From: Mike Frysinger <vapier.adi@gmail.com>
+Date: Thu, 10 Dec 2009 16:17:44 -0500
+Message-ID: <8bd0f97a0912101317v8143e67w9e2f1224111ac0d7@mail.gmail.com>
+Subject: Re: What's in asm-generic.git
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, David Daney <ddaney@caviumnetworks.com>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, linux-am33-list@redhat.com
-Message-ID: <20091210172817.EVmSpm8M_9yJTXhPxrIpxmm7KDV43ajr37pwSsGoEkk@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: liqin.chen@sunplusct.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20091210211744.Mg5SVwJUIwET4lYon_U8TUGR74wG5KSim7mZmij1AI0@z>
 
-Use the new unreachable() macro instead of while(1).
+2009/12/10 Arnd Bergmann:
+> On Monday 07 December 2009, Arnd Bergmann wrote:
+>> On Monday 07 December 2009, liqin.chen@sunplusct.com wrote:
+>> > Arnd Bergmann <arnd@arndb.de> 写于 2009-12-04 03:14:08:
+>> >
+>> > Maybe you can add a __NR_set_thread_area define in asm-generic/unsitd.h
+>> > for tls used.
+>>
+>> Yes, good point. I'll update the syscall list with this, and also check if more
+>> syscalls have been addded.
+>
+> I have found now that sys_accept4 was missing. sys_set_thread_area however
+> is only defined on x86 and mips. Since you don't currently implement this
+> on score, maybe it would be more appropriate to handle it like the other
+> architectures do, rather than adding it to asm-generic/unistd.h?
 
-Signed-off-by: David Daney <ddaney@caviumnetworks.com>
-CC: David Howells <dhowells@redhat.com>
-CC: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
-CC: linux-am33-list@redhat.com
----
- arch/mn10300/include/asm/bug.h |    3 ++-
- 1 files changed, 2 insertions(+), 1 deletions(-)
+isnt the point of asm-generic/unistd.h to collect all common syscalls
+?  if there's syscalls that ideally should be handled by everyone but
+currently doesnt, then it's easy to define it in the header but have
+the actual entry.S leave it as a hole ...
 
-diff --git a/arch/mn10300/include/asm/bug.h b/arch/mn10300/include/asm/bug.h
-index aa6a388..447a7e6 100644
---- a/arch/mn10300/include/asm/bug.h
-+++ b/arch/mn10300/include/asm/bug.h
-@@ -27,7 +27,8 @@ do {								\
- 		:						\
- 		: "i"(__FILE__), "i"(__LINE__)			\
- 		);						\
--} while (1)
-+	unreachable();						\
-+} while (0)
- 
- #define HAVE_ARCH_BUG
- #endif /* CONFIG_BUG */
--- 
-1.6.2.5
-
+or maybe i'm missing what's going on
+-mike
