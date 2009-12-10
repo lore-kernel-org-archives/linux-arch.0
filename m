@@ -1,57 +1,40 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: problems in commit 2d4dc890b5c8 (block: add helpers to run
- flush_dcache_page() against a bio and a request's pages)
-Date: Thu, 10 Dec 2009 14:59:36 -0600
-Message-ID: <1260478776.2457.141.camel@mulgrave.site>
-References: <1260398346.14369.45.camel@mulgrave.site>
-	 <20091210020309.36742c7f.isloginov@gmail.com>
-	 <1260400273.14369.52.camel@mulgrave.site>
-	 <20091210023609.b8c9bd34.isloginov@gmail.com>
-	 <1260402471.14369.60.camel@mulgrave.site>
-	 <20091210030638.db4cfd8a.isloginov@gmail.com>
-	 <1260404395.14369.68.camel@mulgrave.site>
-	 <20091210074020.a7c36c32.isloginov@gmail.com>
-	 <1260464851.2457.98.camel@mulgrave.site>
-	 <20091210224637.cb9712f7.isloginov@gmail.com>
-	 <1260476884.2457.116.camel@mulgrave.site>
-	 <20091210234816.5aca535e.isloginov@gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: What's in asm-generic.git
+Date: Thu, 10 Dec 2009 22:10:11 +0100
+Message-ID: <200912102210.12124.arnd@arndb.de>
+References: <OF24184D8B.2F7F8AA9-ON48257685.002069EF-48257685.00207E45@sunplusct.com> <200912071614.46166.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: Text/Plain; charset=gb2312
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:38119 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755457AbZLJU7e (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Dec 2009 15:59:34 -0500
-In-Reply-To: <20091210234816.5aca535e.isloginov@gmail.com>
+Received: from moutng.kundenserver.de ([212.227.17.10]:54659 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759417AbZLJVKL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Dec 2009 16:10:11 -0500
+In-Reply-To: <200912071614.46166.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ilya Loginov <isloginov@gmail.com>
-Cc: Jens Axboe <jens.axboe@oracle.com>, linux-arch@vger.kernel.org
+To: liqin.chen@sunplusct.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mike Frysinger <vapier.adi@gmail.com>
 
-On Thu, 2009-12-10 at 23:48 +0300, Ilya Loginov wrote:
-> On Thu, 10 Dec 2009 14:28:04 -0600
-> James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
-> 
-> > Which exact driver in drivers/mtd?  I can probably just look at it and
-> > see where the kmap/flush is supposed to be.
-> 
-> So, do you think that problem is only in slram driver not in mtd layer 
-> in the large?
+On Monday 07 December 2009, Arnd Bergmann wrote:
+> On Monday 07 December 2009, liqin.chen@sunplusct.com wrote:
+> > Arnd Bergmann <arnd@arndb.de> =D0=B4=D3=DA 2009-12-04 03:14:08:
+> >=20
+> > Maybe you can add a __NR_set_thread_area define in asm-generic/unsi=
+td.h
+> > for tls used.
+>=20
+> Yes, good point. I'll update the syscall list with this, and also che=
+ck if more
+> syscalls have been addded.
 
-Yes, you can't copy into a kernel mapping of a user page without
-flushing and expect it to succeed in an aliased environment.  This is
-the source of your incoherency.  The slram driver is doing a memcpy
-between the kernel address it's given and the allocated ram area in
-slram_read and slram_write.  To fix mips, you just need a
-flush_kernel_dcache_page() in slram_read so that the alias is updated
-after the memcpy.  I would also expect this driver not to work on any
-highmem system without additional kmap/kunmap(_atomic) pairs in the read
-and write routines.
+I have found now that sys_accept4 was missing. sys_set_thread_area howe=
+ver
+is only defined on x86 and mips. Since you don't currently implement th=
+is
+on score, maybe it would be more appropriate to handle it like the othe=
+r
+architectures do, rather than adding it to asm-generic/unistd.h?
 
-How many other mtd drivers are affected, I'm not sure ... any that do
-PIO are wrong ... those that do MMIO should be right (that looks to be
-just the omap driver).
-
-James
+	Arnd
