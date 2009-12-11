@@ -1,112 +1,62 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [GIT PULL] mmap/mremap fixes
-Date: Fri, 11 Dec 2009 12:00:38 +0000
-Message-ID: <20091211120038.GU14381@ZenIV.linux.org.uk>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: What's in asm-generic.git
+Date: Fri, 11 Dec 2009 13:54:01 +0100
+Message-ID: <10f740e80912110454u172fc2cfye30da6ca0e0f0af0@mail.gmail.com>
+References: <OF24184D8B.2F7F8AA9-ON48257685.002069EF-48257685.00207E45@sunplusct.com>
+	 <200912102210.12124.arnd@arndb.de>
+	 <8bd0f97a0912101317v8143e67w9e2f1224111ac0d7@mail.gmail.com>
+	 <200912102225.05280.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:52920 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756901AbZLKMAc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Dec 2009 07:00:32 -0500
-Content-Disposition: inline
+Received: from mail-ew0-f209.google.com ([209.85.219.209]:50953 "EHLO
+	mail-ew0-f209.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752919AbZLKMx4 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Dec 2009 07:53:56 -0500
+In-Reply-To: <200912102225.05280.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Mike Frysinger <vapier.adi@gmail.com>, liqin.chen@sunplusct.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-	mmap/mremap fixes and cleanups.  Please, pull from
-git://git.kernel.org/pub/scm/linux/kernel/git/viro/mmap.git/ master
+On Thu, Dec 10, 2009 at 22:25, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Thursday 10 December 2009, Mike Frysinger wrote:
+>> > I have found now that sys_accept4 was missing. sys_set_thread_area=
+ however
+>> > is only defined on x86 and mips. Since you don't currently impleme=
+nt this
+>> > on score, maybe it would be more appropriate to handle it like the=
+ other
+>> > architectures do, rather than adding it to asm-generic/unistd.h?
+>>
+>> isnt the point of asm-generic/unistd.h to collect all common syscall=
+s
+>> ? =C2=A0if there's syscalls that ideally should be handled by everyo=
+ne but
+>> currently doesnt, then it's easy to define it in the header but have
+>> the actual entry.S leave it as a hole ...
+>
+> Well, sys_thread_area is not a common syscall but rather an exception=
+=2E
+> I haven't looked at how glibc does implents TLS on different architec=
+tures,
+> but I think this is commonly done purely in user space without the
+> need for a syscall.
 
-	Compared to the last posted variant:
-* added Acked-by as posted on l-k
-* fixed braino in do_brk() spotted by Hugh
-* expanded comment on sun3 mmap2()
-* removed useless check in score mmap2()
-* added missing check in score mmap()
-All changes had been discussed in the thread.
+10+ architectures already have sys_[sg]et_thread_area of have reserved
+entries for it.
 
-Shortlog:
-Al Viro (20):
-      untangling do_mremap(), part 1
-      do_mremap() untangling, part 2
-      do_mremap() untangling, part 3
-      fix checks for expand-in-place mremap
-      fix the arch checks in MREMAP_FIXED case
-      fix pgoff in "have to relocate" case of mremap()
-      kill useless checks in sparc mremap variants
-      file ->get_unmapped_area() shouldn't duplicate work of get_unmapped_area()
-      arm: add arch_mmap_check(), get rid of sys_arm_mremap()
-      Kill ancient crap in s390 compat mmap
-      arch_mmap_check() on mn10300
-      Cut hugetlb case early for 32bit on ia64
-      Unify sys_mmap*
-      fix a struct file leak in do_mmap_pgoff()
-      Take arch_mmap_check() into get_unmapped_area()
-      switch do_brk() to get_unmapped_area()
-      sparc_brk() is not needed anymore
-      Get rid of open-coding in ia64_brk()
-      fix broken aliasing checks for MAP_FIXED on sparc32, mips, arm and sh
-      Add missing alignment check in arch/score sys_mmap()
+Gr{oetje,eeting}s,
 
-Diffstat:
- arch/alpha/kernel/osf_sys.c               |   19 +--
- arch/arm/include/asm/mman.h               |    3 +
- arch/arm/kernel/calls.S                   |    2 +-
- arch/arm/kernel/entry-common.S            |    4 +-
- arch/arm/kernel/sys_arm.c                 |   55 +-------
- arch/arm/mm/mmap.c                        |    3 +-
- arch/avr32/include/asm/syscalls.h         |    4 -
- arch/avr32/kernel/sys_avr32.c             |   31 ----
- arch/avr32/kernel/syscall-stubs.S         |    2 +-
- arch/blackfin/kernel/sys_bfin.c           |   33 ----
- arch/blackfin/mach-common/entry.S         |    2 +-
- arch/cris/kernel/sys_cris.c               |   30 +----
- arch/frv/kernel/sys_frv.c                 |   66 +--------
- arch/h8300/kernel/sys_h8300.c             |   83 +----------
- arch/h8300/kernel/syscalls.S              |    2 +-
- arch/ia64/ia32/sys_ia32.c                 |    3 +
- arch/ia64/kernel/sys_ia64.c               |   83 +----------
- arch/m32r/kernel/sys_m32r.c               |   24 ---
- arch/m32r/kernel/syscall_table.S          |    2 +-
- arch/m68k/kernel/sys_m68k.c               |   83 +---------
- arch/m68knommu/kernel/sys_m68k.c          |   38 +-----
- arch/m68knommu/kernel/syscalltable.S      |    2 +-
- arch/microblaze/kernel/sys_microblaze.c   |   38 +----
- arch/microblaze/kernel/syscall_table.S    |    2 +-
- arch/mips/kernel/linux32.c                |   19 +--
- arch/mips/kernel/syscall.c                |   32 +----
- arch/mn10300/include/asm/mman.h           |    5 +
- arch/mn10300/kernel/entry.S               |    2 +-
- arch/mn10300/kernel/sys_mn10300.c         |   36 +----
- arch/parisc/kernel/sys_parisc.c           |   30 +---
- arch/powerpc/kernel/syscalls.c            |   15 +--
- arch/s390/kernel/compat_linux.c           |   37 +----
- arch/s390/kernel/sys_s390.c               |   30 +----
- arch/score/kernel/sys_score.c             |   28 +---
- arch/sh/kernel/sys_sh.c                   |   28 +---
- arch/sh/mm/mmap.c                         |    3 +-
- arch/sparc/kernel/sys_sparc32.c           |   22 ---
- arch/sparc/kernel/sys_sparc_32.c          |   64 +-------
- arch/sparc/kernel/sys_sparc_64.c          |   50 ++-----
- arch/sparc/kernel/systbls.h               |    1 -
- arch/sparc/kernel/systbls_32.S            |    4 +-
- arch/sparc/kernel/systbls_64.S            |    6 +-
- arch/um/kernel/syscall.c                  |   28 +---
- arch/um/sys-i386/shared/sysdep/syscalls.h |    4 -
- arch/x86/ia32/ia32entry.S                 |    2 +-
- arch/x86/ia32/sys_ia32.c                  |   43 +-----
- arch/x86/include/asm/sys_ia32.h           |    3 -
- arch/x86/include/asm/syscalls.h           |    2 -
- arch/x86/kernel/sys_i386_32.c             |   27 +---
- arch/x86/kernel/sys_x86_64.c              |   17 +--
- arch/x86/kernel/syscall_table_32.S        |    2 +-
- arch/xtensa/include/asm/syscall.h         |    2 -
- arch/xtensa/include/asm/unistd.h          |    2 +-
- arch/xtensa/kernel/syscall.c              |   25 ---
- include/linux/syscalls.h                  |    4 +
- ipc/shm.c                                 |   31 ++--
- mm/mmap.c                                 |   42 ++----
- mm/mremap.c                               |  241 +++++++++++++++++++----------
- mm/util.c                                 |   44 ++++++
- 59 files changed, 343 insertions(+), 1202 deletions(-)
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+							    -- Linus Torvalds
