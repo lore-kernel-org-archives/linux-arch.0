@@ -1,42 +1,53 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: What's in asm-generic.git
-Date: Fri, 11 Dec 2009 14:58:28 +0100
-Message-ID: <10f740e80912110558g6c453d18ifeb4e02d5bd51973@mail.gmail.com>
-References: <OF24184D8B.2F7F8AA9-ON48257685.002069EF-48257685.00207E45@sunplusct.com>
-	 <200912102225.05280.arnd@arndb.de>
-	 <10f740e80912110454u172fc2cfye30da6ca0e0f0af0@mail.gmail.com>
-	 <200912111406.33424.arnd@arndb.de>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [PATCH 1/19] untangling do_mremap(), part 1
+Date: Sat, 12 Dec 2009 20:31:35 +0100
+Message-ID: <20091212193134.GD1308@ucw.cz>
+References: <E1NHUdk-0007ul-Oc@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ey-out-2122.google.com ([74.125.78.25]:2724 "EHLO
-	ey-out-2122.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756295AbZLKN6W (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Dec 2009 08:58:22 -0500
-In-Reply-To: <200912111406.33424.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Mike Frysinger <vapier.adi@gmail.com>, liqin.chen@sunplusct.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S933994AbZLMBmV@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <E1NHUdk-0007ul-Oc@ZenIV.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Al Viro <viro@ftp.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 11, 2009 at 14:06, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Friday 11 December 2009, Geert Uytterhoeven wrote:
->> 10+ architectures already have sys_[sg]et_thread_area of have reserved
->> entries for it.
->
-> No, those are just the ones that blindly copied the unistd.h file from i386.
-> As I said, only i386 and mips implement it, and I would assume that this
-> is unlikely to change.
+Hi!
 
-M68k will have it in the near future...
+> Take locating vma and checks on it to a separate helper (it will be
+> shared between MREMAP_FIXED/non-MREMAP_FIXED cases when we split
+> them in the next patch)
 
-Gr{oetje,eeting}s,
+> +static struct vm_area_struct *vma_to_resize(unsigned long addr,
+> +	unsigned long old_len, unsigned long new_len, unsigned long *p)
+> +{
+> +	struct mm_struct *mm = current->mm;
+> +	struct vm_area_struct *vma = find_vma(mm, addr);
+> +
+> +	if (!vma || vma->vm_start > addr)
+> +		goto Efault;
+> +
+> +	if (is_vm_hugetlb_page(vma))
+> +		goto Einval;
+> +
+> +	/* We can't remap across vm area boundaries */
+> +	if (old_len > vma->vm_end - addr)
+> +		goto Efault;
+...
+> +Efault:	/* very odd choice for most of the cases, but... */
+> +	return ERR_PTR(-EFAULT);
+> +Einval:
+> +	return ERR_PTR(-EINVAL);
+> +Enomem:
+> +	return ERR_PTR(-ENOMEM);
+> +Eagain:
+> +	return ERR_PTR(-EAGAIN);
+> +}
 
-						Geert
+Could we just do returns directly, w/o the gotos? In this case I do
+not think goto has advantages, as there's no cleanup to do...
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+-- 
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
