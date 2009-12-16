@@ -1,39 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:49851 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:56700 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S964950AbZLPUir (ORCPT
+	by vger.kernel.org with ESMTP id S964835AbZLPUi2 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 16 Dec 2009 15:38:47 -0500
-Message-ID: <200912162038.nBGKc97h013404@imap1.linux-foundation.org>
-Subject: [merged] ptrace-x86-implement-user_single_step_siginfo.patch removed from -mm tree
+	Wed, 16 Dec 2009 15:38:28 -0500
+Message-ID: <200912162038.nBGKc08c013389@imap1.linux-foundation.org>
+Subject: [merged] ptrace-introduce-user_single_step_siginfo-helper.patch removed from -mm tree
 From: akpm@linux-foundation.org
-Date: Wed, 16 Dec 2009 12:38:09 -0800
+Date: Wed, 16 Dec 2009 12:38:00 -0800
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: oleg@redhat.com, hpa@zytor.com, linux-arch@vger.kernel.org, mingo@elte.hu, roland@redhat.com, tglx@linutronix.de, mm-commits@vger.kernel.org
-Message-ID: <20091216203809.MBfylDw_Qegg-G0EZvKJ3zKRUCBuVgfRTNZPfLkusak@z>
+Message-ID: <20091216203800.-0H0bbbIClLK8S-EsURfhreQglmJ-FUbE4IQt_udX2w@z>
 
 
 The patch titled
-     ptrace: x86: implement user_single_step_siginfo()
+     ptrace: introduce user_single_step_siginfo() helper
 has been removed from the -mm tree.  Its filename was
-     ptrace-x86-implement-user_single_step_siginfo.patch
+     ptrace-introduce-user_single_step_siginfo-helper.patch
 
 This patch was dropped because it was merged into mainline or a subsystem tree
 
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: ptrace: x86: implement user_single_step_siginfo()
+Subject: ptrace: introduce user_single_step_siginfo() helper
 From: Oleg Nesterov <oleg@redhat.com>
 
 Suggested by Roland.
 
-Implement user_single_step_siginfo() for x86.  Extract this code from
-send_sigtrap().
+Currently there is no way to synthesize a single-stepping trap in the
+arch-independent manner.  This patch adds the default helper which fills
+siginfo_t, arch/ can can override it.
 
-Since x86 calls tracehook_report_syscall_exit(step => 0) the new helper is
-not used yet.
+Architetures which implement user_enable_single_step() should add
+user_single_step_siginfo() also.
 
 Signed-off-by: Oleg Nesterov <oleg@redhat.com>
 Acked-by: Roland McGrath <roland@redhat.com>
@@ -44,68 +45,31 @@ Cc: "H. Peter Anvin" <hpa@zytor.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/x86/include/asm/ptrace.h |    2 ++
- arch/x86/kernel/ptrace.c      |   30 +++++++++++++++++++++---------
- 2 files changed, 23 insertions(+), 9 deletions(-)
+ include/linux/ptrace.h |   12 ++++++++++++
+ 1 file changed, 12 insertions(+)
 
-diff -puN arch/x86/include/asm/ptrace.h~ptrace-x86-implement-user_single_step_siginfo arch/x86/include/asm/ptrace.h
---- a/arch/x86/include/asm/ptrace.h~ptrace-x86-implement-user_single_step_siginfo
-+++ a/arch/x86/include/asm/ptrace.h
-@@ -292,6 +292,8 @@ extern void user_enable_block_step(struc
- #define arch_has_block_step()	(boot_cpu_data.x86 >= 6)
- #endif
- 
-+#define ARCH_HAS_USER_SINGLE_STEP_INFO
-+
- struct user_desc;
- extern int do_get_thread_area(struct task_struct *p, int idx,
- 			      struct user_desc __user *info);
-diff -puN arch/x86/kernel/ptrace.c~ptrace-x86-implement-user_single_step_siginfo arch/x86/kernel/ptrace.c
---- a/arch/x86/kernel/ptrace.c~ptrace-x86-implement-user_single_step_siginfo
-+++ a/arch/x86/kernel/ptrace.c
-@@ -1676,21 +1676,33 @@ const struct user_regset_view *task_user
- #endif
+diff -puN include/linux/ptrace.h~ptrace-introduce-user_single_step_siginfo-helper include/linux/ptrace.h
+--- a/include/linux/ptrace.h~ptrace-introduce-user_single_step_siginfo-helper
++++ a/include/linux/ptrace.h
+@@ -273,6 +273,18 @@ static inline void user_enable_block_ste
  }
+ #endif	/* arch_has_block_step */
  
--void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
--					 int error_code, int si_code)
-+static void fill_sigtrap_info(struct task_struct *tsk,
-+				struct pt_regs *regs,
-+				int error_code, int si_code,
-+				struct siginfo *info)
- {
--	struct siginfo info;
--
- 	tsk->thread.trap_no = 1;
- 	tsk->thread.error_code = error_code;
- 
--	memset(&info, 0, sizeof(info));
--	info.si_signo = SIGTRAP;
--	info.si_code = si_code;
++#ifdef ARCH_HAS_USER_SINGLE_STEP_INFO
++extern void user_single_step_siginfo(struct task_struct *tsk,
++				struct pt_regs *regs, siginfo_t *info);
++#else
++static inline void user_single_step_siginfo(struct task_struct *tsk,
++				struct pt_regs *regs, siginfo_t *info)
++{
 +	memset(info, 0, sizeof(*info));
 +	info->si_signo = SIGTRAP;
-+	info->si_code = si_code;
-+	info->si_addr = user_mode_vm(regs) ? (void __user *)regs->ip : NULL;
 +}
++#endif
 +
-+void user_single_step_siginfo(struct task_struct *tsk,
-+				struct pt_regs *regs,
-+				struct siginfo *info)
-+{
-+	fill_sigtrap_info(tsk, regs, 0, TRAP_BRKPT, info);
-+}
- 
--	/* User-mode ip? */
--	info.si_addr = user_mode_vm(regs) ? (void __user *) regs->ip : NULL;
-+void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
-+					 int error_code, int si_code)
-+{
-+	struct siginfo info;
- 
-+	fill_sigtrap_info(tsk, regs, error_code, si_code, &info);
- 	/* Send us the fake SIGTRAP */
- 	force_sig_info(SIGTRAP, &info, tsk);
- }
+ #ifndef arch_ptrace_stop_needed
+ /**
+  * arch_ptrace_stop_needed - Decide whether arch_ptrace_stop() should be called
 _
 
 Patches currently in -mm which might be from oleg@redhat.com are
