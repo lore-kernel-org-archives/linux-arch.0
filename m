@@ -1,35 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:41841 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:54337 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S964832AbZLPUi1 (ORCPT
+	by vger.kernel.org with ESMTP id S964956AbZLPUin (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 16 Dec 2009 15:38:27 -0500
-Message-ID: <200912162038.nBGKc30B013393@imap1.linux-foundation.org>
-Subject: [merged] ptrace-powerpc-implement-user_single_step_siginfo.patch removed from -mm tree
+	Wed, 16 Dec 2009 15:38:43 -0500
+Message-ID: <200912162038.nBGKc6Qc013401@imap1.linux-foundation.org>
+Subject: [merged] ptrace-change-tracehook_report_syscall_exit-to-handle-stepping.patch removed from -mm tree
 From: akpm@linux-foundation.org
-Date: Wed, 16 Dec 2009 12:38:03 -0800
+Date: Wed, 16 Dec 2009 12:38:06 -0800
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: oleg@redhat.com, hpa@zytor.com, linux-arch@vger.kernel.org, mingo@elte.hu, roland@redhat.com, tglx@linutronix.de, mm-commits@vger.kernel.org
-Message-ID: <20091216203803.BQ9y4s8wWwpYfj0JiFLcZ9-eRJ_vaOTUHQ9j3zs769s@z>
+Message-ID: <20091216203806.sE7Cwvm9FcM37ROJFBFxq9DEXLo2lloLf33eSjonwpI@z>
 
 
 The patch titled
-     ptrace: powerpc: implement user_single_step_siginfo()
+     ptrace: change tracehook_report_syscall_exit() to handle stepping
 has been removed from the -mm tree.  Its filename was
-     ptrace-powerpc-implement-user_single_step_siginfo.patch
+     ptrace-change-tracehook_report_syscall_exit-to-handle-stepping.patch
 
 This patch was dropped because it was merged into mainline or a subsystem tree
 
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: ptrace: powerpc: implement user_single_step_siginfo()
+Subject: ptrace: change tracehook_report_syscall_exit() to handle stepping
 From: Oleg Nesterov <oleg@redhat.com>
 
 Suggested by Roland.
 
-Implement user_single_step_siginfo() for powerpc.
+Change tracehook_report_syscall_exit() to look at step flag and send the
+trap signal if needed.
+
+This change affects ia64, microblaze, parisc, powerpc, sh.  They pass
+nonzero "step" argument to tracehook but since it was ignored the tracee
+reports via ptrace_notify(), this is not right and not consistent.
+
+	- PTRACE_SETSIGINFO doesn't work
+
+	- if the tracer resumes the tracee with signr != 0 the new signal
+	  is generated rather than delivering it
+
+	- If PT_TRACESYSGOOD is set the tracee reports the wrong exit_code
+
+I don't have a powerpc machine, but I think this test-case should see the
+difference:
+
+	#include <unistd.h>
+	#include <sys/ptrace.h>
+	#include <sys/wait.h>
+	#include <assert.h>
+	#include <stdio.h>
+
+	int main(void)
+	{
+		int pid, status;
+
+		if (!(pid = fork())) {
+			assert(ptrace(PTRACE_TRACEME) == 0);
+			kill(getpid(), SIGSTOP);
+
+			getppid();
+
+			return 0;
+		}
+
+		assert(pid == wait(&status));
+		assert(ptrace(PTRACE_SETOPTIONS, pid, 0, PTRACE_O_TRACESYSGOOD) == 0);
+
+		assert(ptrace(PTRACE_SYSCALL, pid, 0,0) == 0);
+		assert(pid == wait(&status));
+
+		assert(ptrace(PTRACE_SINGLESTEP, pid, 0,0) == 0);
+		assert(pid == wait(&status));
+
+		if (status == 0x57F)
+			return 0;
+
+		printf("kernel bug: status=%X shouldn't have 0x80\n", status);
+		return 1;
+	}
 
 Signed-off-by: Oleg Nesterov <oleg@redhat.com>
 Acked-by: Roland McGrath <roland@redhat.com>
@@ -40,41 +90,26 @@ Cc: "H. Peter Anvin" <hpa@zytor.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/powerpc/include/asm/ptrace.h |    2 ++
- arch/powerpc/kernel/traps.c       |    9 +++++++++
- 2 files changed, 11 insertions(+)
+ include/linux/tracehook.h |    7 +++++++
+ 1 file changed, 7 insertions(+)
 
-diff -puN arch/powerpc/include/asm/ptrace.h~ptrace-powerpc-implement-user_single_step_siginfo arch/powerpc/include/asm/ptrace.h
---- a/arch/powerpc/include/asm/ptrace.h~ptrace-powerpc-implement-user_single_step_siginfo
-+++ a/arch/powerpc/include/asm/ptrace.h
-@@ -140,6 +140,8 @@ extern void user_enable_single_step(stru
- extern void user_enable_block_step(struct task_struct *);
- extern void user_disable_single_step(struct task_struct *);
- 
-+#define ARCH_HAS_USER_SINGLE_STEP_INFO
+diff -puN include/linux/tracehook.h~ptrace-change-tracehook_report_syscall_exit-to-handle-stepping include/linux/tracehook.h
+--- a/include/linux/tracehook.h~ptrace-change-tracehook_report_syscall_exit-to-handle-stepping
++++ a/include/linux/tracehook.h
+@@ -134,6 +134,13 @@ static inline __must_check int tracehook
+  */
+ static inline void tracehook_report_syscall_exit(struct pt_regs *regs, int step)
+ {
++	if (step) {
++		siginfo_t info;
++		user_single_step_siginfo(current, regs, &info);
++		force_sig_info(SIGTRAP, &info, current);
++		return;
++	}
 +
- #endif /* __ASSEMBLY__ */
- 
- #endif /* __KERNEL__ */
-diff -puN arch/powerpc/kernel/traps.c~ptrace-powerpc-implement-user_single_step_siginfo arch/powerpc/kernel/traps.c
---- a/arch/powerpc/kernel/traps.c~ptrace-powerpc-implement-user_single_step_siginfo
-+++ a/arch/powerpc/kernel/traps.c
-@@ -174,6 +174,15 @@ int die(const char *str, struct pt_regs 
- 	return 0;
+ 	ptrace_report_syscall(regs);
  }
  
-+void user_single_step_siginfo(struct task_struct *tsk,
-+				struct pt_regs *regs, siginfo_t *info)
-+{
-+	memset(info, 0, sizeof(*info));
-+	info->si_signo = SIGTRAP;
-+	info->si_code = TRAP_TRACE;
-+	info->si_addr = (void __user *)regs->nip;
-+}
-+
- void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
- {
- 	siginfo_t info;
 _
 
 Patches currently in -mm which might be from oleg@redhat.com are
