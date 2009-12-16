@@ -1,7 +1,7 @@
 From: akpm@linux-foundation.org
-Subject: [merged] ptrace-introduce-user_single_step_siginfo-helper.patch removed from -mm tree
-Date: Wed, 16 Dec 2009 12:38:00 -0800
-Message-ID: <200912162038.nBGKc08c013389@imap1.linux-foundation.org>
+Subject: [merged] ptrace-change-tracehook_report_syscall_exit-to-handle-stepping.patch removed from -mm tree
+Date: Wed, 16 Dec 2009 12:38:06 -0800
+Message-ID: <200912162038.nBGKc6Qc013401@imap1.linux-foundation.org>
 Reply-To: linux-kernel@vger.kernel.org
 Return-path: <mm-commits-owner@vger.kernel.org>
 Sender: mm-commits-owner@vger.kernel.org
@@ -10,26 +10,71 @@ List-Id: linux-arch.vger.kernel.org
 
 
 The patch titled
-     ptrace: introduce user_single_step_siginfo() helper
+     ptrace: change tracehook_report_syscall_exit() to handle stepping
 has been removed from the -mm tree.  Its filename was
-     ptrace-introduce-user_single_step_siginfo-helper.patch
+     ptrace-change-tracehook_report_syscall_exit-to-handle-stepping.patch
 
 This patch was dropped because it was merged into mainline or a subsystem tree
 
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: ptrace: introduce user_single_step_siginfo() helper
+Subject: ptrace: change tracehook_report_syscall_exit() to handle stepping
 From: Oleg Nesterov <oleg@redhat.com>
 
 Suggested by Roland.
 
-Currently there is no way to synthesize a single-stepping trap in the
-arch-independent manner.  This patch adds the default helper which fills
-siginfo_t, arch/ can can override it.
+Change tracehook_report_syscall_exit() to look at step flag and send the
+trap signal if needed.
 
-Architetures which implement user_enable_single_step() should add
-user_single_step_siginfo() also.
+This change affects ia64, microblaze, parisc, powerpc, sh.  They pass
+nonzero "step" argument to tracehook but since it was ignored the tracee
+reports via ptrace_notify(), this is not right and not consistent.
+
+	- PTRACE_SETSIGINFO doesn't work
+
+	- if the tracer resumes the tracee with signr != 0 the new signal
+	  is generated rather than delivering it
+
+	- If PT_TRACESYSGOOD is set the tracee reports the wrong exit_code
+
+I don't have a powerpc machine, but I think this test-case should see the
+difference:
+
+	#include <unistd.h>
+	#include <sys/ptrace.h>
+	#include <sys/wait.h>
+	#include <assert.h>
+	#include <stdio.h>
+
+	int main(void)
+	{
+		int pid, status;
+
+		if (!(pid = fork())) {
+			assert(ptrace(PTRACE_TRACEME) == 0);
+			kill(getpid(), SIGSTOP);
+
+			getppid();
+
+			return 0;
+		}
+
+		assert(pid == wait(&status));
+		assert(ptrace(PTRACE_SETOPTIONS, pid, 0, PTRACE_O_TRACESYSGOOD) == 0);
+
+		assert(ptrace(PTRACE_SYSCALL, pid, 0,0) == 0);
+		assert(pid == wait(&status));
+
+		assert(ptrace(PTRACE_SINGLESTEP, pid, 0,0) == 0);
+		assert(pid == wait(&status));
+
+		if (status == 0x57F)
+			return 0;
+
+		printf("kernel bug: status=%X shouldn't have 0x80\n", status);
+		return 1;
+	}
 
 Signed-off-by: Oleg Nesterov <oleg@redhat.com>
 Acked-by: Roland McGrath <roland@redhat.com>
@@ -40,31 +85,26 @@ Cc: "H. Peter Anvin" <hpa@zytor.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- include/linux/ptrace.h |   12 ++++++++++++
- 1 file changed, 12 insertions(+)
+ include/linux/tracehook.h |    7 +++++++
+ 1 file changed, 7 insertions(+)
 
-diff -puN include/linux/ptrace.h~ptrace-introduce-user_single_step_siginfo-helper include/linux/ptrace.h
---- a/include/linux/ptrace.h~ptrace-introduce-user_single_step_siginfo-helper
-+++ a/include/linux/ptrace.h
-@@ -273,6 +273,18 @@ static inline void user_enable_block_ste
- }
- #endif	/* arch_has_block_step */
- 
-+#ifdef ARCH_HAS_USER_SINGLE_STEP_INFO
-+extern void user_single_step_siginfo(struct task_struct *tsk,
-+				struct pt_regs *regs, siginfo_t *info);
-+#else
-+static inline void user_single_step_siginfo(struct task_struct *tsk,
-+				struct pt_regs *regs, siginfo_t *info)
-+{
-+	memset(info, 0, sizeof(*info));
-+	info->si_signo = SIGTRAP;
-+}
-+#endif
+diff -puN include/linux/tracehook.h~ptrace-change-tracehook_report_syscall_exit-to-handle-stepping include/linux/tracehook.h
+--- a/include/linux/tracehook.h~ptrace-change-tracehook_report_syscall_exit-to-handle-stepping
++++ a/include/linux/tracehook.h
+@@ -134,6 +134,13 @@ static inline __must_check int tracehook
+  */
+ static inline void tracehook_report_syscall_exit(struct pt_regs *regs, int step)
+ {
++	if (step) {
++		siginfo_t info;
++		user_single_step_siginfo(current, regs, &info);
++		force_sig_info(SIGTRAP, &info, current);
++		return;
++	}
 +
- #ifndef arch_ptrace_stop_needed
- /**
-  * arch_ptrace_stop_needed - Decide whether arch_ptrace_stop() should be called
+ 	ptrace_report_syscall(regs);
+ }
+ 
 _
 
 Patches currently in -mm which might be from oleg@redhat.com are
