@@ -1,66 +1,82 @@
-From: Michael Davidson <md@google.com>
-Subject: failed exec() leaves caller with incorrect personality
-Date: Tue, 15 Dec 2009 17:09:06 -0800
-Message-ID: <6cc912950912151709r1ed52f49mbb3a0cf7e69e3f43@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.33.17]:37526 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934374AbZLPBJN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Dec 2009 20:09:13 -0500
-Received: from kpbe16.cbf.corp.google.com (kpbe16.cbf.corp.google.com [172.25.105.80])
-	by smtp-out.google.com with ESMTP id nBG199iq014892
-	for <linux-arch@vger.kernel.org>; Wed, 16 Dec 2009 01:09:09 GMT
-Received: from pzk12 (pzk12.prod.google.com [10.243.19.140])
-	by kpbe16.cbf.corp.google.com with ESMTP id nBG197T1028901
-	for <linux-arch@vger.kernel.org>; Tue, 15 Dec 2009 17:09:07 -0800
-Received: by pzk12 with SMTP id 12so311006pzk.13
-        for <linux-arch@vger.kernel.org>; Tue, 15 Dec 2009 17:09:06 -0800 (PST)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Mike Waychison <mikew@google.com>, Andrew Morton <akpm@linux-foundation.org>
+From: akpm@linux-foundation.org
+Subject: [merged] ptrace-powerpc-implement-user_single_step_siginfo.patch removed from -mm tree
+Date: Wed, 16 Dec 2009 12:38:03 -0800
+Message-ID: <200912162038.nBGKc30B013393@imap1.linux-foundation.org>
+Reply-To: linux-kernel@vger.kernel.org
+Return-path: <mm-commits-owner@vger.kernel.org>
+Sender: mm-commits-owner@vger.kernel.org
+To: oleg@redhat.com, hpa@zytor.com, linux-arch@vger.kernel.org, mingo@elte.hu, roland@redhat.com, tglx@linutronix.de, mm-commits@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-This problem was initially seen on 2.6.26 x86_64 and has been verified
-to still exist in 2.6.32.1.
 
-When attempting to exec() a dynamic linked ELF binary, load_elf_binary()
-calls the architecture specific SET_PERSONALITY() before attempting
-to open the ELF interpreter for that binary. If the open fails or if the sanity
-checks fail then the exec fails before the point of no return and returns
-an error to the caller. However, depending on exactly what SET_PERSONALITY()
-has done, it may already have changed some aspects of the current
-personality and not restored them.
+The patch titled
+     ptrace: powerpc: implement user_single_step_siginfo()
+has been removed from the -mm tree.  Its filename was
+     ptrace-powerpc-implement-user_single_step_siginfo.patch
 
-The specific issue that we saw on x86_64 involved a 32 bit binary attempting
-to exec a 64 bit binary for which the ELF interpreter was missing. In this case
-SET_PERSONALITY() maps to set_personality_64bit() in x86/kernel/process_64.c
-which immediately clears the TIF_IA32 flag meaning that after the exec fails
-we are still running in a 32 bit process but TIF_IA32 is no longer set.
+This patch was dropped because it was merged into mainline or a subsystem tree
 
-It seems that this could be fixed by having the x86 SET_PERSONALITY()
-use the TIF_ABI_PENDING flag to signal to flush_thread() that TIF_IA32
-needed to be cleared, but to be strictly correct it would still be necessary
-to find a way of restoring the state of READ_IMPLES_EXEC correctly in
-current->personality if the exec fails before the point of no return.
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
-Also it isn't clear to me exactly what some other architecture might want
-to do in SET_PERSONALITY() or how they should go about undoing it
-in the event that the exec() fails early enough to be able to return an error.
+------------------------------------------------------
+Subject: ptrace: powerpc: implement user_single_step_siginfo()
+From: Oleg Nesterov <oleg@redhat.com>
 
-The comments in binfmt_elf.c say, for example:
+Suggested by Roland.
 
- /*
-  * The early SET_PERSONALITY here is so that the lookup
-  * for the interpreter happens in the namespace of the
-  * to-be-execed image.  SET_PERSONALITY can select an
-  * alternate root.
+Implement user_single_step_siginfo() for powerpc.
 
-although it doesn't appear that anyone currently does that.
+Signed-off-by: Oleg Nesterov <oleg@redhat.com>
+Acked-by: Roland McGrath <roland@redhat.com>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
 
-For x86 I am inclined to just modify SET_PERSONALITY() so that
-the clearing of TIF_IA32 doesn't happen until we get to flush_thread()
-but wondered if anyone had any thoughts on this.
+ arch/powerpc/include/asm/ptrace.h |    2 ++
+ arch/powerpc/kernel/traps.c       |    9 +++++++++
+ 2 files changed, 11 insertions(+)
 
-md
+diff -puN arch/powerpc/include/asm/ptrace.h~ptrace-powerpc-implement-user_single_step_siginfo arch/powerpc/include/asm/ptrace.h
+--- a/arch/powerpc/include/asm/ptrace.h~ptrace-powerpc-implement-user_single_step_siginfo
++++ a/arch/powerpc/include/asm/ptrace.h
+@@ -140,6 +140,8 @@ extern void user_enable_single_step(stru
+ extern void user_enable_block_step(struct task_struct *);
+ extern void user_disable_single_step(struct task_struct *);
+ 
++#define ARCH_HAS_USER_SINGLE_STEP_INFO
++
+ #endif /* __ASSEMBLY__ */
+ 
+ #endif /* __KERNEL__ */
+diff -puN arch/powerpc/kernel/traps.c~ptrace-powerpc-implement-user_single_step_siginfo arch/powerpc/kernel/traps.c
+--- a/arch/powerpc/kernel/traps.c~ptrace-powerpc-implement-user_single_step_siginfo
++++ a/arch/powerpc/kernel/traps.c
+@@ -174,6 +174,15 @@ int die(const char *str, struct pt_regs 
+ 	return 0;
+ }
+ 
++void user_single_step_siginfo(struct task_struct *tsk,
++				struct pt_regs *regs, siginfo_t *info)
++{
++	memset(info, 0, sizeof(*info));
++	info->si_signo = SIGTRAP;
++	info->si_code = TRAP_TRACE;
++	info->si_addr = (void __user *)regs->nip;
++}
++
+ void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
+ {
+ 	siginfo_t info;
+_
+
+Patches currently in -mm which might be from oleg@redhat.com are
+
+origin.patch
+do_wait-optimization-do-not-place-sub-threads-on-task_struct-children-list.patch
+mm-introduce-coredump-parameter-structure.patch
+linux-next.patch
+posix-cpu-timers-reset-expire-cache-when-no-timer-is-running.patch
+
