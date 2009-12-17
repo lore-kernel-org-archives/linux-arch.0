@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:50464 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751539AbZLQRvV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Dec 2009 12:51:21 -0500
-Date: Thu, 17 Dec 2009 12:51:20 -0500
-From: Christoph Hellwig <hch@infradead.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:60681 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1765308AbZLQSIl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Dec 2009 13:08:41 -0500
+Date: Thu, 17 Dec 2009 18:08:03 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-Message-ID: <20091217175120.GA5741@infradead.org>
+Message-ID: <20091217180802.GA1546@flint.arm.linux.org.uk>
 References: <20091216043618.GB9104@hera.kernel.org> <20091217132256.GO28962@bombadil.infradead.org> <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain> <20091217163036.GE2123@thunk.org> <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain> <20091217170743.GA10431@infradead.org> <alpine.LFD.2.00.0912170928310.15740@localhost.localdomain>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -16,49 +16,41 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Christoph Hellwig <hch@infradead.org>, tytso@mit.edu, Kyle McMartin <kyle@mcmartin.ca>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, James.Bottomley@suse.de, linux-arch@vger.kernel.org, Jens Axboe <jens.axboe@oracle.com>
-Message-ID: <20091217175120.FuZvqIYOtASidJDL9HCNyWgHkbH-xguRU87wAFwr4oc@z>
+Message-ID: <20091217180803.l4_xJvioBKJ5Zoja8NDJBP1BJ2IniZHY9P6RnBVtilc@z>
 
 On Thu, Dec 17, 2009 at 09:42:15AM -0800, Linus Torvalds wrote:
-> > Which is exactly what the XFS code does.  Pages are allocated manually
-> > and we store pointers to the page struct that later get added to the
-> > bio.
-> 
-> Hmm. The BIO interface that the patch-series changes (bio_map_kern) 
-> doesn't work that way. It takes a "buf, len" kind of thing. That's what 
-> I'm complaining about.
+> You both flush the virtual caches before 
+> the IO and invalidate after - when the real pattern should be that you 
+> flush it before a write, and invalidate it after a read.
 
-Indeed, the "block: permit I/O to vmalloc/vmap kernel pages" does what
-you complain about.  But the series doesn't actually add a user for
-that.  What it does in XFS is quite a bit of black magic, too - but only
-with the new cache coherence calls that are noops on architectures with
-physically indexed caches.
+That's not entirely true.  If you have write back caches which are not DMA
+coherent, you need to as a minimum:
 
-> Well, they clearly are _after_ this series, since that's what all those 
-> changes to __bio_map_kernel() and bio_map_kern_endio() are all about.
->
-> So I believe you when you say that XFS perhaps does everything right - I 
-> just think that the patch series in question actually makes things worse, 
-> exactly because it is starting to use virtual addresses.
+- on write, clean the cache to ensure that the page is up to date with data
+  held in cache.
 
-I'm not entirely sure why James added those, but XFS doesn't actually
-use bio_map_kern.
+- on read, you must ensure that there are no potential write-backs before
+  the read commenses and invalidate at some point.
 
-> And I really think that would be all much more properly done at the 
-> _caller_ level, not by the BIO layer.
->
-> You must have some locking and allocation etc logic at the caller anyway, 
-> why doesn't _that_ level just do the flushing or invalidation?
+The point at which you invalidate depends on whether the CPU speculatively
+prefetches:
 
-http://git.kernel.org/?p=linux/kernel/git/kyle/parisc-2.6.git;a=commitdiff;h=56c8214b842324e94aa88012010b0f1f9847daec
+- If it doesn't, you can invalidate the cache before the read, thereby
+  destroying any potential writebacks, and the cache will remain
+  unallocated for that address range until explicitly accessed.
 
-does it in the caller level.  Not exactly in a beautiful way, but who
-am I complain as I'm already lost in our mess of cache coherency APIs.
+- If you do have a CPU which does prefetch speculatively, then you do
+  need to clean the cache before DMA starts, and then you must invalidate
+  after the DMA completes.
 
-> IOW, I'm perfectly happy with the patch to fs/xfs/linux-2.6/xfs_buf.c. 
-> That one still seems to use 'bio_add_page()' with a regular 'struct page'. 
-> 
-> But the fs/bio.c patch looks like just total and utter crap to me, and is 
-> the reason I refuse to pull this series.
+Invalidating after DMA completes for the non-speculative prefetch just
+wastes performance, especially if you have to do so line by line over
+a region.
 
-Kyle/James, can you regenerate the tree without that patch included?
+With ARM architecture version 7, we now have ARM CPUs which fall into
+both categories.
 
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
