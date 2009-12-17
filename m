@@ -1,464 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:37848 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S964819AbZLPUjT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 16 Dec 2009 15:39:19 -0500
-Message-ID: <200912162039.nBGKd3Cn013499@imap1.linux-foundation.org>
-Subject: [merged] elf-kill-use_elf_core_dump.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Wed, 16 Dec 2009 12:39:03 -0800
+Received: from bombadil.infradead.org ([18.85.46.34]:34440 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759720AbZLQNW6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Dec 2009 08:22:58 -0500
+Date: Thu, 17 Dec 2009 08:22:56 -0500
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
+Message-ID: <20091217132256.GO28962@bombadil.infradead.org>
+References: <20091216043618.GB9104@hera.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20091216043618.GB9104@hera.kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: hch@lst.de, hugh.dickins@tiscali.co.uk, linux-arch@vger.kernel.org, michal.simek@petalogix.com, mm-commits@vger.kernel.org
-Message-ID: <20091216203903.3TKhI84LEuVjzjTJkMwf1arWk5yKHrTJdPXL03a88Go@z>
+To: kyle@mcmartin.ca
+Cc: torvalds@linux-foundation.org, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, James.Bottomley@suse.de, hch@infradead.org, linux-arch@vger.kernel.org
+Message-ID: <20091217132256.qFkBw_XY6mHr4KD9mZyMSpAnFmzWWc0zgr1BlfaxQNQ@z>
 
+Linus, any word on these? I'd really love to get jejb and hch off
+my back. :)
 
-The patch titled
-     elf: kill USE_ELF_CORE_DUMP
-has been removed from the -mm tree.  Its filename was
-     elf-kill-use_elf_core_dump.patch
+cheers, Kyle
 
-This patch was dropped because it was merged into mainline or a subsystem tree
-
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: elf: kill USE_ELF_CORE_DUMP
-From: Christoph Hellwig <hch@lst.de>
-
-Currently all architectures but microblaze unconditionally define
-USE_ELF_CORE_DUMP.  The microblaze omission seems like an error to me, so
-let's kill this ifdef and make sure we are the same everywhere.
-
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Hugh Dickins <hugh.dickins@tiscali.co.uk>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Michal Simek <michal.simek@petalogix.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- arch/alpha/include/asm/elf.h      |    1 -
- arch/arm/include/asm/elf.h        |    1 -
- arch/avr32/include/asm/elf.h      |    1 -
- arch/blackfin/include/asm/elf.h   |    1 -
- arch/cris/include/asm/elf.h       |    2 --
- arch/frv/include/asm/elf.h        |    1 -
- arch/h8300/include/asm/elf.h      |    1 -
- arch/ia64/ia32/elfcore32.h        |    2 --
- arch/ia64/include/asm/elf.h       |    1 -
- arch/m32r/include/asm/elf.h       |    1 -
- arch/m68k/include/asm/elf.h       |    1 -
- arch/microblaze/include/asm/elf.h |    1 -
- arch/mips/include/asm/elf.h       |    1 -
- arch/mn10300/include/asm/elf.h    |    1 -
- arch/parisc/include/asm/elf.h     |    1 -
- arch/powerpc/include/asm/elf.h    |    1 -
- arch/s390/include/asm/elf.h       |    1 -
- arch/score/include/asm/elf.h      |    1 -
- arch/sh/include/asm/elf.h         |    1 -
- arch/sparc/include/asm/elf_32.h   |    2 --
- arch/sparc/include/asm/elf_64.h   |    1 -
- arch/um/sys-i386/asm/elf.h        |    1 -
- arch/um/sys-ppc/asm/elf.h         |    2 --
- arch/um/sys-x86_64/asm/elf.h      |    1 -
- arch/x86/include/asm/elf.h        |    1 -
- arch/xtensa/include/asm/elf.h     |    1 -
- fs/binfmt_elf.c                   |   11 +++--------
- fs/binfmt_elf_fdpic.c             |    8 ++++----
- fs/proc/base.c                    |    4 ++--
- 29 files changed, 9 insertions(+), 44 deletions(-)
-
-diff -puN arch/alpha/include/asm/elf.h~elf-kill-use_elf_core_dump arch/alpha/include/asm/elf.h
---- a/arch/alpha/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/alpha/include/asm/elf.h
-@@ -81,7 +81,6 @@ typedef elf_fpreg_t elf_fpregset_t[ELF_N
- #define ELF_DATA	ELFDATA2LSB
- #define ELF_ARCH	EM_ALPHA
- 
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE	8192
- 
- /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-diff -puN arch/arm/include/asm/elf.h~elf-kill-use_elf_core_dump arch/arm/include/asm/elf.h
---- a/arch/arm/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/arm/include/asm/elf.h
-@@ -101,7 +101,6 @@ extern int arm_elf_read_implies_exec(con
- int dump_task_regs(struct task_struct *t, elf_gregset_t *elfregs);
- #define ELF_CORE_COPY_TASK_REGS dump_task_regs
- 
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE	4096
- 
- /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-diff -puN arch/avr32/include/asm/elf.h~elf-kill-use_elf_core_dump arch/avr32/include/asm/elf.h
---- a/arch/avr32/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/avr32/include/asm/elf.h
-@@ -77,7 +77,6 @@ typedef struct user_fpu_struct elf_fpreg
- #endif
- #define ELF_ARCH	EM_AVR32
- 
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE	4096
- 
- /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-diff -puN arch/blackfin/include/asm/elf.h~elf-kill-use_elf_core_dump arch/blackfin/include/asm/elf.h
---- a/arch/blackfin/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/blackfin/include/asm/elf.h
-@@ -55,7 +55,6 @@ do {											\
- 	_regs->p2	= _dynamic_addr;				\
- } while(0)
- 
--#define USE_ELF_CORE_DUMP
- #define ELF_FDPIC_CORE_EFLAGS	EF_BFIN_FDPIC
- #define ELF_EXEC_PAGESIZE	4096
- 
-diff -puN arch/cris/include/asm/elf.h~elf-kill-use_elf_core_dump arch/cris/include/asm/elf.h
---- a/arch/cris/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/cris/include/asm/elf.h
-@@ -64,8 +64,6 @@ typedef unsigned long elf_fpregset_t;
- #define EF_CRIS_VARIANT_COMMON_V10_V32	0x00000004
- /* End of excerpt from {binutils}/include/elf/cris.h.  */
- 
--#define USE_ELF_CORE_DUMP
--
- #define ELF_EXEC_PAGESIZE	8192
- 
- /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-diff -puN arch/frv/include/asm/elf.h~elf-kill-use_elf_core_dump arch/frv/include/asm/elf.h
---- a/arch/frv/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/frv/include/asm/elf.h
-@@ -115,7 +115,6 @@ do {											\
- 	__kernel_frame0_ptr->gr29	= 0;						\
- } while(0)
- 
--#define USE_ELF_CORE_DUMP
- #define CORE_DUMP_USE_REGSET
- #define ELF_FDPIC_CORE_EFLAGS	EF_FRV_FDPIC
- #define ELF_EXEC_PAGESIZE	16384
-diff -puN arch/h8300/include/asm/elf.h~elf-kill-use_elf_core_dump arch/h8300/include/asm/elf.h
---- a/arch/h8300/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/h8300/include/asm/elf.h
-@@ -34,7 +34,6 @@ typedef unsigned long elf_fpregset_t;
- 
- #define ELF_PLAT_INIT(_r)	_r->er1 = 0
- 
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE	4096
- 
- /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-diff -puN arch/ia64/ia32/elfcore32.h~elf-kill-use_elf_core_dump arch/ia64/ia32/elfcore32.h
---- a/arch/ia64/ia32/elfcore32.h~elf-kill-use_elf_core_dump
-+++ a/arch/ia64/ia32/elfcore32.h
-@@ -11,8 +11,6 @@
- #include <asm/intrinsics.h>
- #include <asm/uaccess.h>
- 
--#define USE_ELF_CORE_DUMP 1
--
- /* Override elfcore.h */
- #define _LINUX_ELFCORE_H 1
- typedef unsigned int elf_greg_t;
-diff -puN arch/ia64/include/asm/elf.h~elf-kill-use_elf_core_dump arch/ia64/include/asm/elf.h
---- a/arch/ia64/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/ia64/include/asm/elf.h
-@@ -25,7 +25,6 @@
- #define ELF_DATA	ELFDATA2LSB
- #define ELF_ARCH	EM_IA_64
- 
--#define USE_ELF_CORE_DUMP
- #define CORE_DUMP_USE_REGSET
- 
- /* Least-significant four bits of ELF header's e_flags are OS-specific.  The bits are
-diff -puN arch/m32r/include/asm/elf.h~elf-kill-use_elf_core_dump arch/m32r/include/asm/elf.h
---- a/arch/m32r/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/m32r/include/asm/elf.h
-@@ -102,7 +102,6 @@ typedef elf_fpreg_t elf_fpregset_t;
-  */
- #define ELF_PLAT_INIT(_r, load_addr)	(_r)->r0 = 0
- 
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE	PAGE_SIZE
- 
- /*
-diff -puN arch/m68k/include/asm/elf.h~elf-kill-use_elf_core_dump arch/m68k/include/asm/elf.h
---- a/arch/m68k/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/m68k/include/asm/elf.h
-@@ -59,7 +59,6 @@ typedef struct user_m68kfp_struct elf_fp
-    is actually used on ASV.  */
- #define ELF_PLAT_INIT(_r, load_addr)	_r->a1 = 0
- 
--#define USE_ELF_CORE_DUMP
- #ifndef CONFIG_SUN3
- #define ELF_EXEC_PAGESIZE	4096
- #else
-diff -puN arch/microblaze/include/asm/elf.h~elf-kill-use_elf_core_dump arch/microblaze/include/asm/elf.h
---- a/arch/microblaze/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/microblaze/include/asm/elf.h
-@@ -77,7 +77,6 @@ typedef elf_fpreg_t elf_fpregset_t[ELF_N
- #define ELF_DATA	ELFDATA2MSB
- #endif
- 
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE	4096
- 
- 
-diff -puN arch/mips/include/asm/elf.h~elf-kill-use_elf_core_dump arch/mips/include/asm/elf.h
---- a/arch/mips/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/mips/include/asm/elf.h
-@@ -326,7 +326,6 @@ extern int dump_task_fpu(struct task_str
- #define ELF_CORE_COPY_FPREGS(tsk, elf_fpregs)			\
- 	dump_task_fpu(tsk, elf_fpregs)
- 
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE	PAGE_SIZE
- 
- /* This yields a mask that user programs can use to figure out what
-diff -puN arch/mn10300/include/asm/elf.h~elf-kill-use_elf_core_dump arch/mn10300/include/asm/elf.h
---- a/arch/mn10300/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/mn10300/include/asm/elf.h
-@@ -77,7 +77,6 @@ do {									\
- 	_ur->a1   = 0;	_ur->a0   = 0;	_ur->d1   = 0;	_ur->d0   = 0;	\
- } while (0)
- 
--#define USE_ELF_CORE_DUMP
- #define CORE_DUMP_USE_REGSET
- #define ELF_EXEC_PAGESIZE	4096
- 
-diff -puN arch/parisc/include/asm/elf.h~elf-kill-use_elf_core_dump arch/parisc/include/asm/elf.h
---- a/arch/parisc/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/parisc/include/asm/elf.h
-@@ -328,7 +328,6 @@ struct pt_regs;	/* forward declaration..
-    such function.  */
- #define ELF_PLAT_INIT(_r, load_addr)       _r->gr[23] = 0
- 
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE	4096
- 
- /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-diff -puN arch/powerpc/include/asm/elf.h~elf-kill-use_elf_core_dump arch/powerpc/include/asm/elf.h
---- a/arch/powerpc/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/powerpc/include/asm/elf.h
-@@ -170,7 +170,6 @@ typedef elf_fpreg_t elf_vsrreghalf_t32[E
- #define elf_check_arch(x) ((x)->e_machine == ELF_ARCH)
- #define compat_elf_check_arch(x)	((x)->e_machine == EM_PPC)
- 
--#define USE_ELF_CORE_DUMP
- #define CORE_DUMP_USE_REGSET
- #define ELF_EXEC_PAGESIZE	PAGE_SIZE
- 
-diff -puN arch/s390/include/asm/elf.h~elf-kill-use_elf_core_dump arch/s390/include/asm/elf.h
---- a/arch/s390/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/s390/include/asm/elf.h
-@@ -155,7 +155,6 @@ extern unsigned int vdso_enabled;
- 	} while (0)
- 
- #define CORE_DUMP_USE_REGSET
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE	4096
- 
- /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-diff -puN arch/score/include/asm/elf.h~elf-kill-use_elf_core_dump arch/score/include/asm/elf.h
---- a/arch/score/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/score/include/asm/elf.h
-@@ -61,7 +61,6 @@ struct task_struct;
- struct pt_regs;
- 
- #define CORE_DUMP_USE_REGSET
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE	PAGE_SIZE
- 
- /* This yields a mask that user programs can use to figure out what
-diff -puN arch/sh/include/asm/elf.h~elf-kill-use_elf_core_dump arch/sh/include/asm/elf.h
---- a/arch/sh/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/sh/include/asm/elf.h
-@@ -114,7 +114,6 @@ typedef struct user_fpu_struct elf_fpreg
-  */
- #define CORE_DUMP_USE_REGSET
- 
--#define USE_ELF_CORE_DUMP
- #define ELF_FDPIC_CORE_EFLAGS	EF_SH_FDPIC
- #define ELF_EXEC_PAGESIZE	PAGE_SIZE
- 
-diff -puN arch/sparc/include/asm/elf_32.h~elf-kill-use_elf_core_dump arch/sparc/include/asm/elf_32.h
---- a/arch/sparc/include/asm/elf_32.h~elf-kill-use_elf_core_dump
-+++ a/arch/sparc/include/asm/elf_32.h
-@@ -104,8 +104,6 @@ typedef struct {
- #define ELF_CLASS	ELFCLASS32
- #define ELF_DATA	ELFDATA2MSB
- 
--#define USE_ELF_CORE_DUMP
--
- #define ELF_EXEC_PAGESIZE	4096
- 
- 
-diff -puN arch/sparc/include/asm/elf_64.h~elf-kill-use_elf_core_dump arch/sparc/include/asm/elf_64.h
---- a/arch/sparc/include/asm/elf_64.h~elf-kill-use_elf_core_dump
-+++ a/arch/sparc/include/asm/elf_64.h
-@@ -152,7 +152,6 @@ typedef struct {
- 					 (x)->e_machine == EM_SPARC32PLUS)
- #define compat_start_thread		start_thread32
- 
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE	PAGE_SIZE
- 
- /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-diff -puN arch/um/sys-i386/asm/elf.h~elf-kill-use_elf_core_dump arch/um/sys-i386/asm/elf.h
---- a/arch/um/sys-i386/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/um/sys-i386/asm/elf.h
-@@ -48,7 +48,6 @@ typedef struct user_i387_struct elf_fpre
- 	PT_REGS_EAX(regs) = 0; \
- } while (0)
- 
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE 4096
- 
- #define ELF_ET_DYN_BASE (2 * TASK_SIZE / 3)
-diff -puN arch/um/sys-ppc/asm/elf.h~elf-kill-use_elf_core_dump arch/um/sys-ppc/asm/elf.h
---- a/arch/um/sys-ppc/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/um/sys-ppc/asm/elf.h
-@@ -17,8 +17,6 @@ extern long elf_aux_hwcap;
- #define ELF_CLASS ELFCLASS32
- #endif
- 
--#define USE_ELF_CORE_DUMP
--
- #define R_386_NONE	0
- #define R_386_32	1
- #define R_386_PC32	2
-diff -puN arch/um/sys-x86_64/asm/elf.h~elf-kill-use_elf_core_dump arch/um/sys-x86_64/asm/elf.h
---- a/arch/um/sys-x86_64/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/um/sys-x86_64/asm/elf.h
-@@ -104,7 +104,6 @@ extern int elf_core_copy_fpregs(struct t
-         clear_thread_flag(TIF_IA32);
- #endif
- 
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE 4096
- 
- #define ELF_ET_DYN_BASE (2 * TASK_SIZE / 3)
-diff -puN arch/x86/include/asm/elf.h~elf-kill-use_elf_core_dump arch/x86/include/asm/elf.h
---- a/arch/x86/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/x86/include/asm/elf.h
-@@ -239,7 +239,6 @@ extern int force_personality32;
- #endif /* !CONFIG_X86_32 */
- 
- #define CORE_DUMP_USE_REGSET
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE	4096
- 
- /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-diff -puN arch/xtensa/include/asm/elf.h~elf-kill-use_elf_core_dump arch/xtensa/include/asm/elf.h
---- a/arch/xtensa/include/asm/elf.h~elf-kill-use_elf_core_dump
-+++ a/arch/xtensa/include/asm/elf.h
-@@ -123,7 +123,6 @@ extern void xtensa_elf_core_copy_regs (x
- #define ELF_CLASS	ELFCLASS32
- #define ELF_ARCH	EM_XTENSA
- 
--#define USE_ELF_CORE_DUMP
- #define ELF_EXEC_PAGESIZE	PAGE_SIZE
- 
- /*
-diff -puN fs/binfmt_elf.c~elf-kill-use_elf_core_dump fs/binfmt_elf.c
---- a/fs/binfmt_elf.c~elf-kill-use_elf_core_dump
-+++ a/fs/binfmt_elf.c
-@@ -44,7 +44,7 @@ static unsigned long elf_map(struct file
-  * If we don't support core dumping, then supply a NULL so we
-  * don't even try.
-  */
--#if defined(USE_ELF_CORE_DUMP) && defined(CONFIG_ELF_CORE)
-+#ifdef CONFIG_ELF_CORE
- static int elf_core_dump(long signr, struct pt_regs *regs, struct file *file, unsigned long limit);
- #else
- #define elf_core_dump	NULL
-@@ -1101,12 +1101,7 @@ out:
- 	return error;
- }
- 
--/*
-- * Note that some platforms still use traditional core dumps and not
-- * the ELF core dump.  Each platform can select it as appropriate.
-- */
--#if defined(USE_ELF_CORE_DUMP) && defined(CONFIG_ELF_CORE)
--
-+#ifdef CONFIG_ELF_CORE
- /*
-  * ELF core dumper
-  *
-@@ -2063,7 +2058,7 @@ out:
- 	return has_dumped;
- }
- 
--#endif		/* USE_ELF_CORE_DUMP */
-+#endif		/* CONFIG_ELF_CORE */
- 
- static int __init init_elf_binfmt(void)
- {
-diff -puN fs/binfmt_elf_fdpic.c~elf-kill-use_elf_core_dump fs/binfmt_elf_fdpic.c
---- a/fs/binfmt_elf_fdpic.c~elf-kill-use_elf_core_dump
-+++ a/fs/binfmt_elf_fdpic.c
-@@ -75,14 +75,14 @@ static int elf_fdpic_map_file_constdisp_
- static int elf_fdpic_map_file_by_direct_mmap(struct elf_fdpic_params *,
- 					     struct file *, struct mm_struct *);
- 
--#if defined(USE_ELF_CORE_DUMP) && defined(CONFIG_ELF_CORE)
-+#ifdef CONFIG_ELF_CORE
- static int elf_fdpic_core_dump(long, struct pt_regs *, struct file *, unsigned long limit);
- #endif
- 
- static struct linux_binfmt elf_fdpic_format = {
- 	.module		= THIS_MODULE,
- 	.load_binary	= load_elf_fdpic_binary,
--#if defined(USE_ELF_CORE_DUMP) && defined(CONFIG_ELF_CORE)
-+#ifdef CONFIG_ELF_CORE
- 	.core_dump	= elf_fdpic_core_dump,
- #endif
- 	.min_coredump	= ELF_EXEC_PAGESIZE,
-@@ -1201,7 +1201,7 @@ static int elf_fdpic_map_file_by_direct_
-  *
-  * Modelled on fs/binfmt_elf.c core dumper
-  */
--#if defined(USE_ELF_CORE_DUMP) && defined(CONFIG_ELF_CORE)
-+#ifdef CONFIG_ELF_CORE
- 
- /*
-  * These are the only things you should do on a core-file: use only these
-@@ -1826,4 +1826,4 @@ cleanup:
- #undef NUM_NOTES
- }
- 
--#endif		/* USE_ELF_CORE_DUMP */
-+#endif		/* CONFIG_ELF_CORE */
-diff -puN fs/proc/base.c~elf-kill-use_elf_core_dump fs/proc/base.c
---- a/fs/proc/base.c~elf-kill-use_elf_core_dump
-+++ a/fs/proc/base.c
-@@ -2266,7 +2266,7 @@ static const struct inode_operations pro
- 
- #endif
- 
--#if defined(USE_ELF_CORE_DUMP) && defined(CONFIG_ELF_CORE)
-+#ifdef CONFIG_ELF_CORE
- static ssize_t proc_coredump_filter_read(struct file *file, char __user *buf,
- 					 size_t count, loff_t *ppos)
- {
-@@ -2623,7 +2623,7 @@ static const struct pid_entry tgid_base_
- #ifdef CONFIG_FAULT_INJECTION
- 	REG("make-it-fail", S_IRUGO|S_IWUSR, proc_fault_inject_operations),
- #endif
--#if defined(USE_ELF_CORE_DUMP) && defined(CONFIG_ELF_CORE)
-+#ifdef CONFIG_ELF_CORE
- 	REG("coredump_filter", S_IRUGO|S_IWUSR, proc_coredump_filter_operations),
- #endif
- #ifdef CONFIG_TASK_IO_ACCOUNTING
-_
-
-Patches currently in -mm which might be from hch@lst.de are
-
-origin.patch
-linux-next.patch
-vfs-fix-vfs_rename_dir-for-fs_rename_does_d_move-filesystems.patch
-fs-anon_inodes-implement-dname.patch
-fs-remove-unneeded-dcache_unhashed-tricks.patch
-vfs-remove-extraneous-null-d_inode-check-from-do_filp_open.patch
-xtensa-convert-to-asm-generic-hardirqh.patch
-
+On Wed, Dec 16, 2009 at 04:36:18AM +0000, Kyle McMartin wrote:
+> As discussed on linux-arch@ recently, these fixes are necessary for
+> XFS to work on virtually indexed architectures since otherwise vmalloc'd
+> pages are not properly flushed from the cache.
+> 
+> Thanks!
+>  Kyle
+> 
+> The following changes since commit 8bea8672edfca7ec5f661cafb218f1205863b343:
+>   Stephen Rothwell (1):
+>         mfd: compile fix for twl4030 renaming
+> 
+> are available in the git repository at:
+> 
+>   hera.kernel.org:/pub/scm/linux/kernel/git/kyle/parisc-2.6.git coherence
+> 
+> James Bottomley (6):
+>       mm: add coherence API for DMA to vmalloc/vmap areas
+>       parisc: add mm API for DMA to vmalloc/vmap areas
+>       arm: add mm API for DMA to vmalloc/vmap areas
+>       sh: add mm API for DMA to vmalloc/vmap areas
+>       block: permit I/O to vmalloc/vmap kernel pages
+>       xfs: fix xfs to work with Virtually Indexed architectures
+> 
+>  Documentation/cachetlb.txt           |   24 ++++++++++++++++++++++++
+>  arch/arm/include/asm/cacheflush.h    |   10 ++++++++++
+>  arch/parisc/include/asm/cacheflush.h |    8 ++++++++
+>  arch/sh/include/asm/cacheflush.h     |    8 ++++++++
+>  fs/bio.c                             |   20 ++++++++++++++++++--
+>  fs/xfs/linux-2.6/xfs_buf.c           |   20 ++++++++++++++++++++
+>  include/linux/highmem.h              |    6 ++++++
+>  7 files changed, 94 insertions(+), 2 deletions(-)
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-parisc" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
