@@ -1,24 +1,60 @@
-From: Christoph Hellwig <hch@infradead.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-Date: Thu, 17 Dec 2009 08:25:32 -0500
-Message-ID: <20091217132532.GA28304@infradead.org>
+Date: Thu, 17 Dec 2009 08:16:12 -0800 (PST)
+Message-ID: <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain>
 References: <20091216043618.GB9104@hera.kernel.org> <20091217132256.GO28962@bombadil.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:34919 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1764708AbZLQNZd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Dec 2009 08:25:33 -0500
-Content-Disposition: inline
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:59180 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1761484AbZLQQRB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 Dec 2009 11:17:01 -0500
 In-Reply-To: <20091217132256.GO28962@bombadil.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kyle McMartin <kyle@mcmartin.ca>
-Cc: torvalds@linux-foundation.org, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, James.Bottomley@suse.de, hch@infradead.org, linux-arch@vger.kernel.org
+Cc: linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, James.Bottomley@suse.de, hch@infradead.org, linux-arch@vger.kernel.org, Jens Axboe <jens.axboe@oracle.com>
 
-On Thu, Dec 17, 2009 at 08:22:56AM -0500, Kyle McMartin wrote:
+
+
+On Thu, 17 Dec 2009, Kyle McMartin wrote:
+>
 > Linus, any word on these? I'd really love to get jejb and hch off
 > my back. :)
 
-Yeah, users have been pretty impatiently waiting for this.
+I hate them.
+
+I don't see what the point of allowing kernel virtual addresses in bio's 
+is. It's wrong. The fact that XFS does that sh*t is an XFS issue. Handle 
+it there.
+
+Fix XFS. Or convince me with some really good arguments, and make sure 
+that Jens signs off on the cr*p too.
+
+In other words, the thing I object to isn't even the new flushing thing, 
+it's this idiocy:
+
+ - save off virtual address:
+	..
+	bio->bi_private = data;
+	..
+
+ - do vmalloc_to_page:
+
+	+		if (is_vmalloc_addr(data)) {
+	+			flush_kernel_dcache_addr(data);
+	+			page = vmalloc_to_page(data);
+	+		} else
+	+			page = virt_to_page(data);
+
+WTF? Why the hell should the block layer support this kind of absolute 
+crap? When has "use random kernel virtual address" ever been a valid thing 
+to do for IO?
+
+Why aren't you doing this before you submit the vmalloc range for IO?
+
+So no. Not a way in hell do I pull this for 33. And preferably never.
+
+		Linus
