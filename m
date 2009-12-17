@@ -1,73 +1,32 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Christoph Hellwig <hch@infradead.org>
 Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-Date: Thu, 17 Dec 2009 08:46:33 -0800 (PST)
-Message-ID: <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain>
-References: <20091216043618.GB9104@hera.kernel.org> <20091217132256.GO28962@bombadil.infradead.org> <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain> <20091217163036.GE2123@thunk.org>
+Date: Thu, 17 Dec 2009 12:07:44 -0500
+Message-ID: <20091217170743.GA10431@infradead.org>
+References: <20091216043618.GB9104@hera.kernel.org> <20091217132256.GO28962@bombadil.infradead.org> <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain> <20091217163036.GE2123@thunk.org> <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <20091217163036.GE2123@thunk.org>
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain>
 Sender: linux-parisc-owner@vger.kernel.org
-To: tytso@mit.edu
-Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, James.Bottomley@suse.de, hch@infradead.org, linux-arch@vger.kernel.org, Jens Axboe <jens.axboe@oracle.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: tytso@mit.edu, Kyle McMartin <kyle@mcmartin.ca>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, James.Bottomley@suse.de, hch@infradead.org, linux-arch@vger.kernel.org, Jens Axboe <jens.axboe@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
+On Thu, Dec 17, 2009 at 08:46:33AM -0800, Linus Torvalds wrote:
+> The whole "vmalloc is special" has always been true. If you want to 
+> treat vmalloc as normal memory, you need to look up the pages yourself. We 
+> have helpers for that (including helpers that populate vmalloc space from 
+> a page array to begin with - so you can _start_ from some array of pages 
+> and then lay them out virtually if you want to have a convenient CPU 
+> access to the array).
 
+Which is exactly what the XFS code does.  Pages are allocated manually
+and we store pointers to the page struct that later get added to the
+bio.  But we access them through vmap (which I added exactly for this
+reason back in 2002) for kernel accesses.  On all architectures with
+sane caches things just work, but for parisc, arm and friends that have
+virtually indexed caches we need to make sure to flush caches for this
+different access.  The vmalloc linear address is not used for I/O
+everywhere.
 
-On Thu, 17 Dec 2009, tytso@mit.edu wrote:
-> 
-> That's because apparently the iSCSI and DMA blocks assume that they
-> have Real Pages (tm) passed to block I/O requests, and apparently XFS
-> ran into problems when sending vmalloc'ed pages.  I don't know if this
-> is a problem if we pass the bio layer addresses coming from the SLAB
-> allocator, but oral tradition seems to indicate this is problematic,
-> although no one has given me the full chapter and verse explanation
-> about why this is so.
-
-kmalloc() memory should be ok. It's backed by "real pages". Doing the DMA 
-translations for such pages is trivial and fundamental.
-
-In contrast, vmalloc is pure and utter unadulterated CRAP. The pages 
-may be contiguous virtually, but it makes no difference for the block 
-layer, that has to be able to do IO by DMA anyway, so it has to look up 
-the page translations in the page tables etc crazy sh*t.
-
-So passing vmalloc'ed page addresses around to something that will 
-eventually do a non-CPU-virtual thing on them is fundamentally insane. The 
-vmalloc space is about CPU virtual addresses. Such concepts simpyl do not 
--exist- for some random block device.
-
-> Now that I see Linus's complaint, I'm wondering if the issue is really
-> about kernel virtual addresses (i.e., coming from vmalloc), and not a
-> requirement for Real Pages (i.e., coming from the SLAB allocator as
-> opposed to get_free_page).  And can this be documented someplace?  I
-> tried looking at the bio documentation, and couldn't find anything
-> definitive on the subject.
-
-The whole "vmalloc is special" has always been true. If you want to 
-treat vmalloc as normal memory, you need to look up the pages yourself. We 
-have helpers for that (including helpers that populate vmalloc space from 
-a page array to begin with - so you can _start_ from some array of pages 
-and then lay them out virtually if you want to have a convenient CPU 
-access to the array).
-
-And this whole "vmalloc is about CPU virtual addresses" is so obviously 
-and fundamentally true that I don't understand how anybody can ever be 
-confused about it. The "v" in vmalloc is for "virtual" as in virtual 
-memory.
-
-Think of it like virtual user addresses. Does anybody really expect to be 
-able to pass a random user address to the BIO layer?
-
-And if you do, I would suggest that you get out of kernel programming 
-pronto. You're a danger to society, and have a lukewarm IQ. I don't want 
-you touching kernel code.
-
-And no, I do _not_ want the BIO layer having to walk page tables. Not for 
-vmalloc space, not for user virtual addresses.
-
-(And don't tell me it already does. Maybe somebody sneaked it in past me, 
-without me ever noticing. That wouldn't be an excuse, that would be just 
-sad. Jesus wept)
-
-			Linus
