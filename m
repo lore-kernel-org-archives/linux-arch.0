@@ -1,56 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:60681 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1765308AbZLQSIl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Dec 2009 13:08:41 -0500
-Date: Thu, 17 Dec 2009 18:08:03 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:37674 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S934997AbZLQSRf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 Dec 2009 13:17:35 -0500
+Date: Thu, 17 Dec 2009 10:17:03 -0800 (PST)
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-Message-ID: <20091217180802.GA1546@flint.arm.linux.org.uk>
-References: <20091216043618.GB9104@hera.kernel.org> <20091217132256.GO28962@bombadil.infradead.org> <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain> <20091217163036.GE2123@thunk.org> <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain> <20091217170743.GA10431@infradead.org> <alpine.LFD.2.00.0912170928310.15740@localhost.localdomain>
+In-Reply-To: <20091217180802.GA1546@flint.arm.linux.org.uk>
+Message-ID: <alpine.LFD.2.00.0912171016430.15740@localhost.localdomain>
+References: <20091216043618.GB9104@hera.kernel.org> <20091217132256.GO28962@bombadil.infradead.org> <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain> <20091217163036.GE2123@thunk.org> <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain>
+ <20091217170743.GA10431@infradead.org> <alpine.LFD.2.00.0912170928310.15740@localhost.localdomain> <20091217180802.GA1546@flint.arm.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.0912170928310.15740@localhost.localdomain>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
+To: Russell King <rmk+lkml@arm.linux.org.uk>
 Cc: Christoph Hellwig <hch@infradead.org>, tytso@mit.edu, Kyle McMartin <kyle@mcmartin.ca>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, James.Bottomley@suse.de, linux-arch@vger.kernel.org, Jens Axboe <jens.axboe@oracle.com>
-Message-ID: <20091217180803.l4_xJvioBKJ5Zoja8NDJBP1BJ2IniZHY9P6RnBVtilc@z>
+Message-ID: <20091217181703.pXRPRnFuN3KdAPXthSFpknPep-X-DkkoZSvep3CMGWk@z>
 
-On Thu, Dec 17, 2009 at 09:42:15AM -0800, Linus Torvalds wrote:
-> You both flush the virtual caches before 
-> the IO and invalidate after - when the real pattern should be that you 
-> flush it before a write, and invalidate it after a read.
 
-That's not entirely true.  If you have write back caches which are not DMA
-coherent, you need to as a minimum:
 
-- on write, clean the cache to ensure that the page is up to date with data
-  held in cache.
+On Thu, 17 Dec 2009, Russell King wrote:
+> 
+> That's not entirely true.  If you have write back caches which are not DMA
+> coherent, you need to as a minimum:
+> 
+> - on write, clean the cache to ensure that the page is up to date with data
+>   held in cache.
+> 
+> - on read, you must ensure that there are no potential write-backs before
+>   the read commenses and invalidate at some point.
 
-- on read, you must ensure that there are no potential write-backs before
-  the read commenses and invalidate at some point.
+Right you are.
 
-The point at which you invalidate depends on whether the CPU speculatively
-prefetches:
-
-- If it doesn't, you can invalidate the cache before the read, thereby
-  destroying any potential writebacks, and the cache will remain
-  unallocated for that address range until explicitly accessed.
-
-- If you do have a CPU which does prefetch speculatively, then you do
-  need to clean the cache before DMA starts, and then you must invalidate
-  after the DMA completes.
-
-Invalidating after DMA completes for the non-speculative prefetch just
-wastes performance, especially if you have to do so line by line over
-a region.
-
-With ARM architecture version 7, we now have ARM CPUs which fall into
-both categories.
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+		Linus
