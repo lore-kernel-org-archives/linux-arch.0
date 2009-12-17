@@ -1,62 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:34440 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759720AbZLQNW6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Dec 2009 08:22:58 -0500
-Date: Thu, 17 Dec 2009 08:22:56 -0500
-From: Kyle McMartin <kyle@mcmartin.ca>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:44289 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1764802AbZLQQrX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 Dec 2009 11:47:23 -0500
+Date: Thu, 17 Dec 2009 08:46:33 -0800 (PST)
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-Message-ID: <20091217132256.GO28962@bombadil.infradead.org>
-References: <20091216043618.GB9104@hera.kernel.org>
+In-Reply-To: <20091217163036.GE2123@thunk.org>
+Message-ID: <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain>
+References: <20091216043618.GB9104@hera.kernel.org> <20091217132256.GO28962@bombadil.infradead.org> <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain> <20091217163036.GE2123@thunk.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20091216043618.GB9104@hera.kernel.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kyle@mcmartin.ca
-Cc: torvalds@linux-foundation.org, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, James.Bottomley@suse.de, hch@infradead.org, linux-arch@vger.kernel.org
-Message-ID: <20091217132256.qFkBw_XY6mHr4KD9mZyMSpAnFmzWWc0zgr1BlfaxQNQ@z>
+To: tytso@mit.edu
+Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, James.Bottomley@suse.de, hch@infradead.org, linux-arch@vger.kernel.org, Jens Axboe <jens.axboe@oracle.com>
+Message-ID: <20091217164633.iNGe23BAxFKGihDeyuMCvkWhIlYLzgOhCj2-Cdf-wQw@z>
 
-Linus, any word on these? I'd really love to get jejb and hch off
-my back. :)
 
-cheers, Kyle
 
-On Wed, Dec 16, 2009 at 04:36:18AM +0000, Kyle McMartin wrote:
-> As discussed on linux-arch@ recently, these fixes are necessary for
-> XFS to work on virtually indexed architectures since otherwise vmalloc'd
-> pages are not properly flushed from the cache.
+On Thu, 17 Dec 2009, tytso@mit.edu wrote:
 > 
-> Thanks!
->  Kyle
-> 
-> The following changes since commit 8bea8672edfca7ec5f661cafb218f1205863b343:
->   Stephen Rothwell (1):
->         mfd: compile fix for twl4030 renaming
-> 
-> are available in the git repository at:
-> 
->   hera.kernel.org:/pub/scm/linux/kernel/git/kyle/parisc-2.6.git coherence
-> 
-> James Bottomley (6):
->       mm: add coherence API for DMA to vmalloc/vmap areas
->       parisc: add mm API for DMA to vmalloc/vmap areas
->       arm: add mm API for DMA to vmalloc/vmap areas
->       sh: add mm API for DMA to vmalloc/vmap areas
->       block: permit I/O to vmalloc/vmap kernel pages
->       xfs: fix xfs to work with Virtually Indexed architectures
-> 
->  Documentation/cachetlb.txt           |   24 ++++++++++++++++++++++++
->  arch/arm/include/asm/cacheflush.h    |   10 ++++++++++
->  arch/parisc/include/asm/cacheflush.h |    8 ++++++++
->  arch/sh/include/asm/cacheflush.h     |    8 ++++++++
->  fs/bio.c                             |   20 ++++++++++++++++++--
->  fs/xfs/linux-2.6/xfs_buf.c           |   20 ++++++++++++++++++++
->  include/linux/highmem.h              |    6 ++++++
->  7 files changed, 94 insertions(+), 2 deletions(-)
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-parisc" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+> That's because apparently the iSCSI and DMA blocks assume that they
+> have Real Pages (tm) passed to block I/O requests, and apparently XFS
+> ran into problems when sending vmalloc'ed pages.  I don't know if this
+> is a problem if we pass the bio layer addresses coming from the SLAB
+> allocator, but oral tradition seems to indicate this is problematic,
+> although no one has given me the full chapter and verse explanation
+> about why this is so.
+
+kmalloc() memory should be ok. It's backed by "real pages". Doing the DMA 
+translations for such pages is trivial and fundamental.
+
+In contrast, vmalloc is pure and utter unadulterated CRAP. The pages 
+may be contiguous virtually, but it makes no difference for the block 
+layer, that has to be able to do IO by DMA anyway, so it has to look up 
+the page translations in the page tables etc crazy sh*t.
+
+So passing vmalloc'ed page addresses around to something that will 
+eventually do a non-CPU-virtual thing on them is fundamentally insane. The 
+vmalloc space is about CPU virtual addresses. Such concepts simpyl do not 
+-exist- for some random block device.
+
+> Now that I see Linus's complaint, I'm wondering if the issue is really
+> about kernel virtual addresses (i.e., coming from vmalloc), and not a
+> requirement for Real Pages (i.e., coming from the SLAB allocator as
+> opposed to get_free_page).  And can this be documented someplace?  I
+> tried looking at the bio documentation, and couldn't find anything
+> definitive on the subject.
+
+The whole "vmalloc is special" has always been true. If you want to 
+treat vmalloc as normal memory, you need to look up the pages yourself. We 
+have helpers for that (including helpers that populate vmalloc space from 
+a page array to begin with - so you can _start_ from some array of pages 
+and then lay them out virtually if you want to have a convenient CPU 
+access to the array).
+
+And this whole "vmalloc is about CPU virtual addresses" is so obviously 
+and fundamentally true that I don't understand how anybody can ever be 
+confused about it. The "v" in vmalloc is for "virtual" as in virtual 
+memory.
+
+Think of it like virtual user addresses. Does anybody really expect to be 
+able to pass a random user address to the BIO layer?
+
+And if you do, I would suggest that you get out of kernel programming 
+pronto. You're a danger to society, and have a lukewarm IQ. I don't want 
+you touching kernel code.
+
+And no, I do _not_ want the BIO layer having to walk page tables. Not for 
+vmalloc space, not for user virtual addresses.
+
+(And don't tell me it already does. Maybe somebody sneaked it in past me, 
+without me ever noticing. That wouldn't be an excuse, that would be just 
+sad. Jesus wept)
+
+			Linus
