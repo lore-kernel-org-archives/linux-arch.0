@@ -1,60 +1,73 @@
-From: tytso@mit.edu
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-Date: Thu, 17 Dec 2009 11:30:36 -0500
-Message-ID: <20091217163036.GE2123@thunk.org>
-References: <20091216043618.GB9104@hera.kernel.org>
- <20091217132256.GO28962@bombadil.infradead.org>
- <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain>
+Date: Thu, 17 Dec 2009 08:46:33 -0800 (PST)
+Message-ID: <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain>
+References: <20091216043618.GB9104@hera.kernel.org> <20091217132256.GO28962@bombadil.infradead.org> <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain> <20091217163036.GE2123@thunk.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from THUNK.ORG ([69.25.196.29]:41056 "EHLO thunker.thunk.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755515AbZLQQax (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Dec 2009 11:30:53 -0500
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <20091217163036.GE2123@thunk.org>
+Sender: linux-parisc-owner@vger.kernel.org
+To: tytso@mit.edu
 Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, James.Bottomley@suse.de, hch@infradead.org, linux-arch@vger.kernel.org, Jens Axboe <jens.axboe@oracle.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 17, 2009 at 08:16:12AM -0800, Linus Torvalds wrote:
+
+
+On Thu, 17 Dec 2009, tytso@mit.edu wrote:
 > 
-> I hate them.
-> 
-> I don't see what the point of allowing kernel virtual addresses in bio's 
-> is. It's wrong. The fact that XFS does that sh*t is an XFS issue. Handle 
-> it there.
-> 
-> Fix XFS. Or convince me with some really good arguments, and make sure 
-> that Jens signs off on the cr*p too.
+> That's because apparently the iSCSI and DMA blocks assume that they
+> have Real Pages (tm) passed to block I/O requests, and apparently XFS
+> ran into problems when sending vmalloc'ed pages.  I don't know if this
+> is a problem if we pass the bio layer addresses coming from the SLAB
+> allocator, but oral tradition seems to indicate this is problematic,
+> although no one has given me the full chapter and verse explanation
+> about why this is so.
 
-I have a somewhat similar issue that comes up for ext4; at the moment
-occasionaly we need to clone a buffer head buffer; either because the
-first four bytes match the magic JBD "escape sequence", and we need to
-modify the block and escape it before writing it to the journal, or
-because we need to make a copy of a allocation bitmap block so we can
-write a fixed copy to disk while we modify the "real" block during a
-commit.  At the moment we allocate a full page, even if that means
-allocating a 16k PPC page when the file system block size is 4k, or
-allocating a 4k x86 page when the file system block size is 1k.
+kmalloc() memory should be ok. It's backed by "real pages". Doing the DMA 
+translations for such pages is trivial and fundamental.
 
-That's because apparently the iSCSI and DMA blocks assume that they
-have Real Pages (tm) passed to block I/O requests, and apparently XFS
-ran into problems when sending vmalloc'ed pages.  I don't know if this
-is a problem if we pass the bio layer addresses coming from the SLAB
-allocator, but oral tradition seems to indicate this is problematic,
-although no one has given me the full chapter and verse explanation
-about why this is so.
+In contrast, vmalloc is pure and utter unadulterated CRAP. The pages 
+may be contiguous virtually, but it makes no difference for the block 
+layer, that has to be able to do IO by DMA anyway, so it has to look up 
+the page translations in the page tables etc crazy sh*t.
 
-Now that I see Linus's complaint, I'm wondering if the issue is really
-about kernel virtual addresses (i.e., coming from vmalloc), and not a
-requirement for Real Pages (i.e., coming from the SLAB allocator as
-opposed to get_free_page).  And can this be documented someplace?  I
-tried looking at the bio documentation, and couldn't find anything
-definitive on the subject.
+So passing vmalloc'ed page addresses around to something that will 
+eventually do a non-CPU-virtual thing on them is fundamentally insane. The 
+vmalloc space is about CPU virtual addresses. Such concepts simpyl do not 
+-exist- for some random block device.
 
-Thanks,
+> Now that I see Linus's complaint, I'm wondering if the issue is really
+> about kernel virtual addresses (i.e., coming from vmalloc), and not a
+> requirement for Real Pages (i.e., coming from the SLAB allocator as
+> opposed to get_free_page).  And can this be documented someplace?  I
+> tried looking at the bio documentation, and couldn't find anything
+> definitive on the subject.
 
-						- Ted
+The whole "vmalloc is special" has always been true. If you want to 
+treat vmalloc as normal memory, you need to look up the pages yourself. We 
+have helpers for that (including helpers that populate vmalloc space from 
+a page array to begin with - so you can _start_ from some array of pages 
+and then lay them out virtually if you want to have a convenient CPU 
+access to the array).
+
+And this whole "vmalloc is about CPU virtual addresses" is so obviously 
+and fundamentally true that I don't understand how anybody can ever be 
+confused about it. The "v" in vmalloc is for "virtual" as in virtual 
+memory.
+
+Think of it like virtual user addresses. Does anybody really expect to be 
+able to pass a random user address to the BIO layer?
+
+And if you do, I would suggest that you get out of kernel programming 
+pronto. You're a danger to society, and have a lukewarm IQ. I don't want 
+you touching kernel code.
+
+And no, I do _not_ want the BIO layer having to walk page tables. Not for 
+vmalloc space, not for user virtual addresses.
+
+(And don't tell me it already does. Maybe somebody sneaked it in past me, 
+without me ever noticing. That wouldn't be an excuse, that would be just 
+sad. Jesus wept)
+
+			Linus
