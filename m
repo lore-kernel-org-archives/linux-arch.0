@@ -1,59 +1,41 @@
-From: Christoph Hellwig <hch@infradead.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-Date: Thu, 17 Dec 2009 12:51:20 -0500
-Message-ID: <20091217175120.GA5741@infradead.org>
-References: <20091216043618.GB9104@hera.kernel.org> <20091217132256.GO28962@bombadil.infradead.org> <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain> <20091217163036.GE2123@thunk.org> <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain> <20091217170743.GA10431@infradead.org> <alpine.LFD.2.00.0912170928310.15740@localhost.localdomain>
+Date: Thu, 17 Dec 2009 09:51:10 -0800 (PST)
+Message-ID: <alpine.LFD.2.00.0912170950330.15740@localhost.localdomain>
+References: <20091216043618.GB9104@hera.kernel.org> <20091217132256.GO28962@bombadil.infradead.org> <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain> <20091217163036.GE2123@thunk.org> <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain>
+ <20091217173957.GG2123@thunk.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-parisc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.0912170928310.15740@localhost.localdomain>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Christoph Hellwig <hch@infradead.org>, tytso@mit.edu, Kyle McMartin <kyle@mcmartin.ca>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, James.Bottomley@suse.de, linux-arch@vger.kernel.org, Jens Axboe <jens.axboe@oracle.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:34255 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750753AbZLQRwB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 Dec 2009 12:52:01 -0500
+In-Reply-To: <20091217173957.GG2123@thunk.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: tytso@mit.edu
+Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, James.Bottomley@suse.de, hch@infradead.org, linux-arch@vger.kernel.org, Jens Axboe <jens.axboe@oracle.com>
 
-On Thu, Dec 17, 2009 at 09:42:15AM -0800, Linus Torvalds wrote:
-> > Which is exactly what the XFS code does.  Pages are allocated manually
-> > and we store pointers to the page struct that later get added to the
-> > bio.
+
+
+On Thu, 17 Dec 2009, tytso@mit.edu wrote:
 > 
-> Hmm. The BIO interface that the patch-series changes (bio_map_kern) 
-> doesn't work that way. It takes a "buf, len" kind of thing. That's what 
-> I'm complaining about.
+> Sure, but there's some rumors/oral traditions going around that some
+> block devices want bio address which are page aligned, because they
+> want to play some kind of refcounting game,
 
-Indeed, the "block: permit I/O to vmalloc/vmap kernel pages" does what
-you complain about.  But the series doesn't actually add a user for
-that.  What it does in XFS is quite a bit of black magic, too - but only
-with the new cache coherence calls that are noops on architectures with
-physically indexed caches.
+Yeah, you might be right at that.
 
-> Well, they clearly are _after_ this series, since that's what all those 
-> changes to __bio_map_kernel() and bio_map_kern_endio() are all about.
->
-> So I believe you when you say that XFS perhaps does everything right - I 
-> just think that the patch series in question actually makes things worse, 
-> exactly because it is starting to use virtual addresses.
-
-I'm not entirely sure why James added those, but XFS doesn't actually
-use bio_map_kern.
-
-> And I really think that would be all much more properly done at the 
-> _caller_ level, not by the BIO layer.
->
-> You must have some locking and allocation etc logic at the caller anyway, 
-> why doesn't _that_ level just do the flushing or invalidation?
-
-http://git.kernel.org/?p=linux/kernel/git/kyle/parisc-2.6.git;a=commitdiff;h=56c8214b842324e94aa88012010b0f1f9847daec
-
-does it in the caller level.  Not exactly in a beautiful way, but who
-am I complain as I'm already lost in our mess of cache coherency APIs.
-
-> IOW, I'm perfectly happy with the patch to fs/xfs/linux-2.6/xfs_buf.c. 
-> That one still seems to use 'bio_add_page()' with a regular 'struct page'. 
+> And it's Weird Shit(tm) (aka iSCSI, AoE) type drivers, that most of us 
+> don't have access to, so just because it works Just Fine on SATA doesn't 
+> mean anything.
 > 
-> But the fs/bio.c patch looks like just total and utter crap to me, and is 
-> the reason I refuse to pull this series.
+> And none of this is documented anywhere, which is frustrating as hell.
+> Just rumors that "if you do this, AoE/iSCSI will corrupt your file
+> systems".
 
-Kyle/James, can you regenerate the tree without that patch included?
+ACK. Jens? 
 
+		Linus
