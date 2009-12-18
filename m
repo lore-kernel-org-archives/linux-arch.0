@@ -1,59 +1,50 @@
-From: Dave Chinner <david@fromorbit.com>
+From: tytso@mit.edu
 Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-Date: Fri, 18 Dec 2009 23:00:22 +1100
-Message-ID: <20091218120022.GH4850@discord.disaster>
-References: <alpine.LFD.2.00.0912170950330.15740@localhost.localdomain> <20091217193648.GI4489@kernel.dk> <1261094220.2752.27.camel@mulgrave.site> <20091218095944G.fujita.tomonori@lab.ntt.co.jp> <1261120128.3013.8.camel@mulgrave.site>
+Date: Fri, 18 Dec 2009 09:17:32 -0500
+Message-ID: <20091218141731.GH2123@thunk.org>
+References: <20091217163036.GE2123@thunk.org>
+ <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain>
+ <20091217173957.GG2123@thunk.org>
+ <20091218091901J.fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-parisc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1261120128.3013.8.camel@mulgrave.site>
+In-Reply-To: <20091218091901J.fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-parisc-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, jens.axboe@oracle.com, torvalds@linux-foundation.org, tytso@mit.edu, kyle@mcmartin.ca, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, hch@infradead.org, linux-arch@vger.kernel.org
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: torvalds@linux-foundation.org, kyle@mcmartin.ca, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, James.Bottomley@suse.de, hch@infradead.org, linux-arch@vger.kernel.org, jens.axboe@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 18, 2009 at 08:08:48AM +0100, James Bottomley wrote:
-> On Fri, 2009-12-18 at 10:00 +0900, FUJITA Tomonori wrote:
-> An alternative proposal to modifying the block layer to do coherency,
-> might be simply to have the fs layer do a vunmap before doing I/O and
-> re-vmap when it's completed. 
-
-I don't think that works for XFS as it stands. Unmapping across
-IO would have to guarantee we remap the buffer at the same
-address after IO because we currently assume that mapped address
-of the buffer can't change while references are held on the buffer.
-That seems like an awful lot of complexity compared to the few lines
-of code in XFS and the arches needed to support this.
-
-> That would ensure the architecturally
-> correct flushing of the aliases, and would satisfy the expectations of
-> blk_rq_map_kern().  The down side is that vmap/vmalloc set up and clear
-> page tables, which isn't necessary and might impact performance (xfs
-> people?)
-
-We play lots of tricks in XFS to avoid mapping buffers when we can
-because of the performance impact it has.  Nick Piggin's recent
-work getting vmap to scale helped a lot, but it is still best to
-avoid mapped buffers where possible.
-
-> If the performance impact of the above is too great, then we might
-> introduce a vmalloc sync API to do the flush before and the invalidate
-> after (would have to be called twice, once before I/O and once after).
-> This is sort of a violation of our architectural knowledge layering,
-> since the user of a vmap/vmalloc area has to know intrinsically how to
-> handle I/O instead of having it just work(tm), but since the users are
-> few and specialised, it's not going to lead to too many coding problems.
+On Fri, Dec 18, 2009 at 09:21:30AM +0900, FUJITA Tomonori wrote:
 > 
-> Any opinions?
+> iSCSI initiator driver should work with kmalloc'ed memory.
+> 
+> The reason why iSCSI didn't work with kmalloc'ed memory is that it
+> uses sendpage (which needs refcountable pages). We added a workaround
+> to not use sendpage with kmalloc'ed memory (it would be great if we
+> remove the workaround though).
 
-Personally I see nothing wrong with the original patch series. If
-the block layer mods are contentious, then just drop that patch
-until a real need is brought to life.
+Well, with a patch that I plan to be pushing that we have general
+agreement that it is a block device driver BUG not to accept
+kmalloc'ed/SLAB allocated memory, is one where ext4 will use
+kmalloc'ed/slab allocated memory on occasion when it needs to make
+shadow copy of buffers for journalling purposes AND when the fs block
+size is smaller than the page size.  (i.e., no more allocating a 16k
+page when the fs block size is 4k).  So this won't happen all the
+time; even if the case of a 16k Itanium system with 4k blocks, the
+bulk of the data won't be sent via kmalloc'ed memory --- just some
+critical metadata block and some data blocks that need to be escaped
+when being written into the journal.
 
-Cheers,
+I do think we need to document that block device drivers are
+_expected_ to be able to handle kmalloc'ed memory, and if they can't,
+#1 they should do a BUG_ON instead of corrupting user's data, and #2,
+if they do corrupt data, we should send the angry users with corrupted
+file systems to bang at the doors of the block device authors.
 
-Dave.
--- 
-Dave Chinner
-david@fromorbit.com
+					- Ted
+
+
+
+
