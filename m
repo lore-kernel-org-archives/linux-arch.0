@@ -1,82 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:33656 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750951AbZLQX5M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Dec 2009 18:57:12 -0500
+Received: from bld-mail16.adl2.internode.on.net ([150.101.137.101]:47490 "EHLO
+	mail.internode.on.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751995AbZLRDBL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Dec 2009 22:01:11 -0500
+Date: Fri, 18 Dec 2009 13:44:40 +1100
+From: Dave Chinner <david@fromorbit.com>
 Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-From: James Bottomley <James.Bottomley@suse.de>
-In-Reply-To: <20091217193648.GI4489@kernel.dk>
-References: <20091216043618.GB9104@hera.kernel.org>
-	 <20091217132256.GO28962@bombadil.infradead.org>
-	 <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain>
-	 <20091217163036.GE2123@thunk.org>
-	 <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain>
-	 <20091217173957.GG2123@thunk.org>
-	 <alpine.LFD.2.00.0912170950330.15740@localhost.localdomain>
-	 <20091217193648.GI4489@kernel.dk>
-Content-Type: text/plain; charset="UTF-8"
-Date: Fri, 18 Dec 2009 00:57:00 +0100
-Message-ID: <1261094220.2752.27.camel@mulgrave.site>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Message-ID: <20091218024440.GG4850@discord.disaster>
+References: <alpine.LFD.2.00.0912170950330.15740@localhost.localdomain> <20091217193648.GI4489@kernel.dk> <1261094220.2752.27.camel@mulgrave.site> <20091218095944G.fujita.tomonori@lab.ntt.co.jp>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20091218095944G.fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, tytso@mit.edu, Kyle McMartin <kyle@mcmartin.ca>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, hch@infradead.org, linux-arch@vger.kernel.org
-Message-ID: <20091217235700.AtZc0knkPTwKfbDPDKVHQToAFtAM4zpEaRaBaZj9wAw@z>
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: James.Bottomley@suse.de, jens.axboe@oracle.com, torvalds@linux-foundation.org, tytso@mit.edu, kyle@mcmartin.ca, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, hch@infradead.org, linux-arch@vger.kernel.org
+Message-ID: <20091218024440.3ab7BeZt0h1SJ-eX2rGYrQ5g0bKE_2PmKGm3NVnq9jU@z>
 
-On Thu, 2009-12-17 at 20:36 +0100, Jens Axboe wrote:
-> On Thu, Dec 17 2009, Linus Torvalds wrote:
-> > 
-> > 
-> > On Thu, 17 Dec 2009, tytso@mit.edu wrote:
-> > > 
-> > > Sure, but there's some rumors/oral traditions going around that some
-> > > block devices want bio address which are page aligned, because they
-> > > want to play some kind of refcounting game,
-> > 
-> > Yeah, you might be right at that.
-> > 
-> > > And it's Weird Shit(tm) (aka iSCSI, AoE) type drivers, that most of us 
-> > > don't have access to, so just because it works Just Fine on SATA doesn't 
-> > > mean anything.
-> > > 
-> > > And none of this is documented anywhere, which is frustrating as hell.
-> > > Just rumors that "if you do this, AoE/iSCSI will corrupt your file
-> > > systems".
-> > 
-> > ACK. Jens? 
+On Fri, Dec 18, 2009 at 10:00:21AM +0900, FUJITA Tomonori wrote:
+> On Fri, 18 Dec 2009 00:57:00 +0100
+> James Bottomley <James.Bottomley@suse.de> wrote:
 > 
-> I've heard those rumours too, and I don't even know if they are true.
-> Who has a pointer to such a bug report and/or issue? The block layer
-> itself doesn't not have any such requirements, and the only places where
-> we play page games is for bio's that were explicitly mapped with pages
-> by itself (like mapping user data).o
+> > On Thu, 2009-12-17 at 20:36 +0100, Jens Axboe wrote:
+> > > On Thu, Dec 17 2009, Linus Torvalds wrote:
+> > > > 
+> > > > 
+> > > > On Thu, 17 Dec 2009, tytso@mit.edu wrote:
+> > > > > 
+> > > > > Sure, but there's some rumors/oral traditions going around that some
+> > > > > block devices want bio address which are page aligned, because they
+> > > > > want to play some kind of refcounting game,
+> > > > 
+> > > > Yeah, you might be right at that.
+> > > > 
+> > > > > And it's Weird Shit(tm) (aka iSCSI, AoE) type drivers, that most of us 
+> > > > > don't have access to, so just because it works Just Fine on SATA doesn't 
+> > > > > mean anything.
+> > > > > 
+> > > > > And none of this is documented anywhere, which is frustrating as hell.
+> > > > > Just rumors that "if you do this, AoE/iSCSI will corrupt your file
+> > > > > systems".
+> > > > 
+> > > > ACK. Jens? 
+> > > 
+> > > I've heard those rumours too, and I don't even know if they are true.
+> > > Who has a pointer to such a bug report and/or issue? The block layer
+> > > itself doesn't not have any such requirements, and the only places where
+> > > we play page games is for bio's that were explicitly mapped with pages
+> > > by itself (like mapping user data).o
+> > 
+> > OK, so what happened is that prior to the map single fix
+> > 
+> > commit df46b9a44ceb5af2ea2351ce8e28ae7bd840b00f
+> > Author: Mike Christie  <michaelc@cs.wisc.edu>
+> > Date:   Mon Jun 20 14:04:44 2005 +0200
+> > 
+> >     [PATCH] Add blk_rq_map_kern()
+> > 
+> > 
+> > bio could only accept user space buffers, so we had a special path for
+> > kernel allocated buffers.  That commit unified the path (with a separate
+> > block API) so we could now submit kmalloc'd buffers via block APIs.
+> > 
+> > So the rule now is we can accept any user mapped area via
+> > blk_rq_map_user and any kmalloc'd area via blk_rq_map_kern().  We might
+> > not be able to do a stack area (depending on how the arch maps the
+> > stack) and we definitely cannot do a vmalloc'd area.
+> > 
+> > So it sounds like we only need a blk_rq_map_vmalloc() using the same
+> > techniques as the patch set and we're good to go.
+> 
+> I'm not sure about it.
+> 
+> As I said before (when I was against this 'adding vmalloc support to
+> the block layer' stuff), are there potential users of this except for
+> XFS? Are there anyone who does such a thing now?
 
-OK, so what happened is that prior to the map single fix
+As Christoph already mentioned, XFS is not passing the vmalloc'd
+range to the block layer - it passes the underlying pages to the
+block layer. Hence I'm not sure there actually is anyone who is
+passing vmalloc'd addresses to the block layer. Perhaps we should
+put a WARN_ON() in the block layer to catch anyone doing such a
+thing before considering supporting vmalloc'd addresses in the block
+layer?
 
-commit df46b9a44ceb5af2ea2351ce8e28ae7bd840b00f
-Author: Mike Christie  <michaelc@cs.wisc.edu>
-Date:   Mon Jun 20 14:04:44 2005 +0200
+> This API might be useful for only journaling file systems using log
+> formats that need large contiguous buffer. Sound like only XFS?
 
-    [PATCH] Add blk_rq_map_kern()
+FWIW, mapped buffers larger than PAGE_SIZE are used for more than just log
+recovery in XFS. e.g. filesystems with directory block size larger
+than page size uses mapped buffers.
 
+Cheers,
 
-bio could only accept user space buffers, so we had a special path for
-kernel allocated buffers.  That commit unified the path (with a separate
-block API) so we could now submit kmalloc'd buffers via block APIs.
-
-So the rule now is we can accept any user mapped area via
-blk_rq_map_user and any kmalloc'd area via blk_rq_map_kern().  We might
-not be able to do a stack area (depending on how the arch maps the
-stack) and we definitely cannot do a vmalloc'd area.
-
-So it sounds like we only need a blk_rq_map_vmalloc() using the same
-techniques as the patch set and we're good to go.
-
-> We fix driver crap like that, we don't work around it. It's a BUG.
-
-James
-
-
-
+Dave.
+-- 
+Dave Chinner
+david@fromorbit.com
