@@ -1,98 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:47378 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751880AbZLRKBr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Dec 2009 05:01:47 -0500
+Received: from bld-mail14.adl6.internode.on.net ([150.101.137.99]:45120 "EHLO
+	mail.internode.on.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1750773AbZLRMAc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Dec 2009 07:00:32 -0500
+Date: Fri, 18 Dec 2009 23:00:22 +1100
+From: Dave Chinner <david@fromorbit.com>
 Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-From: James Bottomley <James.Bottomley@suse.de>
-In-Reply-To: <20091218183353I.fujita.tomonori@lab.ntt.co.jp>
-References: <1261094220.2752.27.camel@mulgrave.site>
-	 <20091218095944G.fujita.tomonori@lab.ntt.co.jp>
-	 <1261120128.3013.8.camel@mulgrave.site>
-	 <20091218183353I.fujita.tomonori@lab.ntt.co.jp>
-Content-Type: text/plain; charset="UTF-8"
-Date: Fri, 18 Dec 2009 11:01:29 +0100
-Message-ID: <1261130489.3013.41.camel@mulgrave.site>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Message-ID: <20091218120022.GH4850@discord.disaster>
+References: <alpine.LFD.2.00.0912170950330.15740@localhost.localdomain> <20091217193648.GI4489@kernel.dk> <1261094220.2752.27.camel@mulgrave.site> <20091218095944G.fujita.tomonori@lab.ntt.co.jp> <1261120128.3013.8.camel@mulgrave.site>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1261120128.3013.8.camel@mulgrave.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: jens.axboe@oracle.com, torvalds@linux-foundation.org, tytso@mit.edu, kyle@mcmartin.ca, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, hch@infradead.org, linux-arch@vger.kernel.org
-Message-ID: <20091218100129.ShChqWN44ZI1XII5f4unI84NU_wt_oud3MBsJZcxtkM@z>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, jens.axboe@oracle.com, torvalds@linux-foundation.org, tytso@mit.edu, kyle@mcmartin.ca, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, hch@infradead.org, linux-arch@vger.kernel.org
+Message-ID: <20091218120022.81hM4LGY8VXaJZnmymw_Lf7wlkj1fFRdv7raougslgo@z>
 
-On Fri, 2009-12-18 at 18:34 +0900, FUJITA Tomonori wrote:
-> On Fri, 18 Dec 2009 08:08:48 +0100
-> James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
+On Fri, Dec 18, 2009 at 08:08:48AM +0100, James Bottomley wrote:
+> On Fri, 2009-12-18 at 10:00 +0900, FUJITA Tomonori wrote:
+> An alternative proposal to modifying the block layer to do coherency,
+> might be simply to have the fs layer do a vunmap before doing I/O and
+> re-vmap when it's completed. 
+
+I don't think that works for XFS as it stands. Unmapping across
+IO would have to guarantee we remap the buffer at the same
+address after IO because we currently assume that mapped address
+of the buffer can't change while references are held on the buffer.
+That seems like an awful lot of complexity compared to the few lines
+of code in XFS and the arches needed to support this.
+
+> That would ensure the architecturally
+> correct flushing of the aliases, and would satisfy the expectations of
+> blk_rq_map_kern().  The down side is that vmap/vmalloc set up and clear
+> page tables, which isn't necessary and might impact performance (xfs
+> people?)
+
+We play lots of tricks in XFS to avoid mapping buffers when we can
+because of the performance impact it has.  Nick Piggin's recent
+work getting vmap to scale helped a lot, but it is still best to
+avoid mapped buffers where possible.
+
+> If the performance impact of the above is too great, then we might
+> introduce a vmalloc sync API to do the flush before and the invalidate
+> after (would have to be called twice, once before I/O and once after).
+> This is sort of a violation of our architectural knowledge layering,
+> since the user of a vmap/vmalloc area has to know intrinsically how to
+> handle I/O instead of having it just work(tm), but since the users are
+> few and specialised, it's not going to lead to too many coding problems.
 > 
-> > > Even if we have some potential users, I'm not sure that supporting
-> > > vmalloc in the block layer officially is a good idea. IMO, it needs
-> > > too many tricks for generic code.
-> > 
-> > So far, there's only xfs that I know of.
-> > 
-> > Given the way journalling works, it's not an unusual requirement to use
-> > a large buffer for operations.  It's a bit of a waste of kernel
-> > resources to have this physically contiguous, but it is a waste of
-> > resources (and for buffers over our kmalloc max, it would even have to
-> > be allocated at start of day), so I think large kernel virtual areas
-> > (like vmap/vmalloc) have a part to play in fs operations.
-> 
-> Yeah, but now only XFS passes vmap'ed pages to the block layer. Isn't
-> it better to wait until we have real users of the API?
+> Any opinions?
 
-XFS is a real user ... the XFS filesystem is our most trusted code base
-that can break the 8TB limit, which hard disks are already at.  Ext4 may
-be ready, but it's not universally present in enterprise distros like
-XFS.
+Personally I see nothing wrong with the original patch series. If
+the block layer mods are contentious, then just drop that patch
+until a real need is brought to life.
 
-> > As to the API, the specific problem is that the block and lower arch
-> > layers are specifically programmed to think any kernel address has only
-> > a single alias and that it's offset mapped, which is why we get the
-> > failure.
-> 
-> Yeah, however we can make a rule that you can't pass a vmap area
-> (including vmap'ed pages) to the block layer. We can't make the rule
-> effective for the past so XFS is the only exception.
+Cheers,
 
-We need something that works for XFS.  The next proposal works for the
-current block API because the vunmap makes the xfs pages look like
-standard kernel pages, which blk_rq_map_kern() will process correctly.
-
-But, in principle, I think whatever fix is chosen, we shouldn't
-necessarily discourage others from using it.
-
-> > An alternative proposal to modifying the block layer to do coherency,
-> > might be simply to have the fs layer do a vunmap before doing I/O and
-> > re-vmap when it's completed. 
-> 
-> I'm not sure it's worth making the whole block layer compatible to
-> vmap (adding complexity and possibly performance penalty).
-
-This proposal has no block layer changes.  It just makes the XFS vmap
-area look like a standard set of kernel pages ... with the overhead of
-the page table manipulations on unmap and remap.
-
-> If we really need to support this, I like helper APIs that the callers
-> must use before and after I/Os.
-
-If it's just this route, they already exist ... they're vmap and vunmap.
-
-> > That would ensure the architecturally
-> > correct flushing of the aliases, and would satisfy the expectations of
-> > blk_rq_map_kern().  The down side is that vmap/vmalloc set up and clear
-> > page tables, which isn't necessary and might impact performance (xfs
-> > people?)
-> 
-> btw, I'm not sure that the existing blk_rq_map_* API isn't fit well to
-> file systems since blk_rq_map_user and blk_rq_map_kern takes a request
-> structure.
-
-OK, so that was illustrative.  The meat of the change is at the bio
-layer anyway (fss tend to speak bios).  But the point of *this*
-particular proposal is that it requires no changes either in the blk_ or
-bio_ routines.
-
-James
-
-
+Dave.
+-- 
+Dave Chinner
+david@fromorbit.com
