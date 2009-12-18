@@ -1,107 +1,71 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
 Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-Date: Fri, 18 Dec 2009 08:10:39 +0100
-Message-ID: <1261120239.3013.10.camel@mulgrave.site>
-References: <alpine.LFD.2.00.0912170950330.15740@localhost.localdomain>
-	 <20091217193648.GI4489@kernel.dk> <1261094220.2752.27.camel@mulgrave.site>
-	 <20091218095944G.fujita.tomonori@lab.ntt.co.jp>
-	 <20091218024440.GG4850@discord.disaster>
+Date: Fri, 18 Dec 2009 18:34:52 +0900
+Message-ID: <20091218183353I.fujita.tomonori@lab.ntt.co.jp>
+References: <1261094220.2752.27.camel@mulgrave.site>
+	<20091218095944G.fujita.tomonori@lab.ntt.co.jp>
+	<1261120128.3013.8.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:35830 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750986AbZLRHKp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Dec 2009 02:10:45 -0500
-In-Reply-To: <20091218024440.GG4850@discord.disaster>
+Received: from sh.osrg.net ([192.16.179.4]:47045 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751247AbZLRJfl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Dec 2009 04:35:41 -0500
+In-Reply-To: <1261120128.3013.8.camel@mulgrave.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Chinner <david@fromorbit.com>
-Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, jens.axboe@oracle.com, torvalds@linux-foundation.org, tytso@mit.edu, kyle@mcmartin.ca, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, hch@infradead.org, linux-arch@vger.kernel.org
+To: James.Bottomley@HansenPartnership.com
+Cc: fujita.tomonori@lab.ntt.co.jp, jens.axboe@oracle.com, torvalds@linux-foundation.org, tytso@mit.edu, kyle@mcmartin.ca, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, hch@infradead.org, linux-arch@vger.kernel.org
 
-On Fri, 2009-12-18 at 13:44 +1100, Dave Chinner wrote:
-> On Fri, Dec 18, 2009 at 10:00:21AM +0900, FUJITA Tomonori wrote:
-> > On Fri, 18 Dec 2009 00:57:00 +0100
-> > James Bottomley <James.Bottomley@suse.de> wrote:
-> > 
-> > > On Thu, 2009-12-17 at 20:36 +0100, Jens Axboe wrote:
-> > > > On Thu, Dec 17 2009, Linus Torvalds wrote:
-> > > > > 
-> > > > > 
-> > > > > On Thu, 17 Dec 2009, tytso@mit.edu wrote:
-> > > > > > 
-> > > > > > Sure, but there's some rumors/oral traditions going around that some
-> > > > > > block devices want bio address which are page aligned, because they
-> > > > > > want to play some kind of refcounting game,
-> > > > > 
-> > > > > Yeah, you might be right at that.
-> > > > > 
-> > > > > > And it's Weird Shit(tm) (aka iSCSI, AoE) type drivers, that most of us 
-> > > > > > don't have access to, so just because it works Just Fine on SATA doesn't 
-> > > > > > mean anything.
-> > > > > > 
-> > > > > > And none of this is documented anywhere, which is frustrating as hell.
-> > > > > > Just rumors that "if you do this, AoE/iSCSI will corrupt your file
-> > > > > > systems".
-> > > > > 
-> > > > > ACK. Jens? 
-> > > > 
-> > > > I've heard those rumours too, and I don't even know if they are true.
-> > > > Who has a pointer to such a bug report and/or issue? The block layer
-> > > > itself doesn't not have any such requirements, and the only places where
-> > > > we play page games is for bio's that were explicitly mapped with pages
-> > > > by itself (like mapping user data).o
-> > > 
-> > > OK, so what happened is that prior to the map single fix
-> > > 
-> > > commit df46b9a44ceb5af2ea2351ce8e28ae7bd840b00f
-> > > Author: Mike Christie  <michaelc@cs.wisc.edu>
-> > > Date:   Mon Jun 20 14:04:44 2005 +0200
-> > > 
-> > >     [PATCH] Add blk_rq_map_kern()
-> > > 
-> > > 
-> > > bio could only accept user space buffers, so we had a special path for
-> > > kernel allocated buffers.  That commit unified the path (with a separate
-> > > block API) so we could now submit kmalloc'd buffers via block APIs.
-> > > 
-> > > So the rule now is we can accept any user mapped area via
-> > > blk_rq_map_user and any kmalloc'd area via blk_rq_map_kern().  We might
-> > > not be able to do a stack area (depending on how the arch maps the
-> > > stack) and we definitely cannot do a vmalloc'd area.
-> > > 
-> > > So it sounds like we only need a blk_rq_map_vmalloc() using the same
-> > > techniques as the patch set and we're good to go.
-> > 
-> > I'm not sure about it.
-> > 
-> > As I said before (when I was against this 'adding vmalloc support to
-> > the block layer' stuff), are there potential users of this except for
-> > XFS? Are there anyone who does such a thing now?
+On Fri, 18 Dec 2009 08:08:48 +0100
+James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
+
+> > Even if we have some potential users, I'm not sure that supporting
+> > vmalloc in the block layer officially is a good idea. IMO, it needs
+> > too many tricks for generic code.
 > 
-> As Christoph already mentioned, XFS is not passing the vmalloc'd
-> range to the block layer - it passes the underlying pages to the
-> block layer. Hence I'm not sure there actually is anyone who is
-> passing vmalloc'd addresses to the block layer. Perhaps we should
-> put a WARN_ON() in the block layer to catch anyone doing such a
-> thing before considering supporting vmalloc'd addresses in the block
-> layer?
-
-vmalloc is just an alias for vmap/vmalloc in the above statements
-(basically anything with an additional kernel virtual mapping which
-causes aliases).  If we support vmap, we naturally support vmalloc as
-well.
-
-> > This API might be useful for only journaling file systems using log
-> > formats that need large contiguous buffer. Sound like only XFS?
+> So far, there's only xfs that I know of.
 > 
-> FWIW, mapped buffers larger than PAGE_SIZE are used for more than just log
-> recovery in XFS. e.g. filesystems with directory block size larger
-> than page size uses mapped buffers.
+> Given the way journalling works, it's not an unusual requirement to use
+> a large buffer for operations.  It's a bit of a waste of kernel
+> resources to have this physically contiguous, but it is a waste of
+> resources (and for buffers over our kmalloc max, it would even have to
+> be allocated at start of day), so I think large kernel virtual areas
+> (like vmap/vmalloc) have a part to play in fs operations.
 
-However, XFS is the only fs that actually uses kernel virtual mapping to
-solve this problem.
+Yeah, but now only XFS passes vmap'ed pages to the block layer. Isn't
+it better to wait until we have real users of the API?
 
-James
+
+> As to the API, the specific problem is that the block and lower arch
+> layers are specifically programmed to think any kernel address has only
+> a single alias and that it's offset mapped, which is why we get the
+> failure.
+
+Yeah, however we can make a rule that you can't pass a vmap area
+(including vmap'ed pages) to the block layer. We can't make the rule
+effective for the past so XFS is the only exception.
+
+
+> An alternative proposal to modifying the block layer to do coherency,
+> might be simply to have the fs layer do a vunmap before doing I/O and
+> re-vmap when it's completed. 
+
+I'm not sure it's worth making the whole block layer compatible to
+vmap (adding complexity and possibly performance penalty).
+
+If we really need to support this, I like helper APIs that the callers
+must use before and after I/Os.
+
+
+> That would ensure the architecturally
+> correct flushing of the aliases, and would satisfy the expectations of
+> blk_rq_map_kern().  The down side is that vmap/vmalloc set up and clear
+> page tables, which isn't necessary and might impact performance (xfs
+> people?)
+
+btw, I'm not sure that the existing blk_rq_map_* API isn't fit well to
+file systems since blk_rq_map_user and blk_rq_map_kern takes a request
+structure.
