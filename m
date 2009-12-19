@@ -1,50 +1,42 @@
-From: tytso@mit.edu
+From: Ralf Baechle <ralf@linux-mips.org>
 Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-Date: Fri, 18 Dec 2009 09:17:32 -0500
-Message-ID: <20091218141731.GH2123@thunk.org>
-References: <20091217163036.GE2123@thunk.org>
+Date: Sat, 19 Dec 2009 18:33:05 +0000
+Message-ID: <20091219183305.GA10568@linux-mips.org>
+References: <20091216043618.GB9104@hera.kernel.org>
+ <20091217132256.GO28962@bombadil.infradead.org>
+ <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain>
+ <20091217163036.GE2123@thunk.org>
  <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain>
- <20091217173957.GG2123@thunk.org>
- <20091218091901J.fujita.tomonori@lab.ntt.co.jp>
+ <20091217170743.GA10431@infradead.org>
+ <alpine.LFD.2.00.0912170928310.15740@localhost.localdomain>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-parisc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20091218091901J.fujita.tomonori@lab.ntt.co.jp>
+In-Reply-To: <alpine.LFD.2.00.0912170928310.15740@localhost.localdomain>
 Sender: linux-parisc-owner@vger.kernel.org
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: torvalds@linux-foundation.org, kyle@mcmartin.ca, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, James.Bottomley@suse.de, hch@infradead.org, linux-arch@vger.kernel.org, jens.axboe@oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Christoph Hellwig <hch@infradead.org>, tytso@mit.edu, Kyle McMartin <kyle@mcmartin.ca>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, James.Bottomley@suse.de, linux-arch@vger.kernel.org, Jens Axboe <jens.axboe@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 18, 2009 at 09:21:30AM +0900, FUJITA Tomonori wrote:
+On Thu, Dec 17, 2009 at 09:42:15AM -0800, Linus Torvalds wrote:
+
 > 
-> iSCSI initiator driver should work with kmalloc'ed memory.
+> I also think that the changes to bio_map_kernel() and bio_map_kern_endio() 
+> are not just "fundamentally ugly", I think they are made worse by the fact 
+> that it's not even done "right". You both flush the virtual caches before 
+> the IO and invalidate after - when the real pattern should be that you 
+> flush it before a write, and invalidate it after a read.
 > 
-> The reason why iSCSI didn't work with kmalloc'ed memory is that it
-> uses sendpage (which needs refcountable pages). We added a workaround
-> to not use sendpage with kmalloc'ed memory (it would be great if we
-> remove the workaround though).
+> And I really think that would be all much more properly done at the 
+> _caller_ level, not by the BIO layer.
+> 
+> You must have some locking and allocation etc logic at the caller anyway, 
+> why doesn't _that_ level just do the flushing or invalidation?
 
-Well, with a patch that I plan to be pushing that we have general
-agreement that it is a block device driver BUG not to accept
-kmalloc'ed/SLAB allocated memory, is one where ext4 will use
-kmalloc'ed/slab allocated memory on occasion when it needs to make
-shadow copy of buffers for journalling purposes AND when the fs block
-size is smaller than the page size.  (i.e., no more allocating a 16k
-page when the fs block size is 4k).  So this won't happen all the
-time; even if the case of a 16k Itanium system with 4k blocks, the
-bulk of the data won't be sent via kmalloc'ed memory --- just some
-critical metadata block and some data blocks that need to be escaped
-when being written into the journal.
+And then there are certain types of caches that need invalidation before
+_and_ after a DMA transaction as a workaround for a processor being
+grossly abused in a system that it should not be used in.  Basically the
+issue is that falsly speculated stores may dirty caches.
 
-I do think we need to document that block device drivers are
-_expected_ to be able to handle kmalloc'ed memory, and if they can't,
-#1 they should do a BUG_ON instead of corrupting user's data, and #2,
-if they do corrupt data, we should send the angry users with corrupted
-file systems to bang at the doors of the block device authors.
-
-					- Ted
-
-
-
-
+  Ralf
