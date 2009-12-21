@@ -1,42 +1,76 @@
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-Date: Sat, 19 Dec 2009 18:33:05 +0000
-Message-ID: <20091219183305.GA10568@linux-mips.org>
-References: <20091216043618.GB9104@hera.kernel.org>
- <20091217132256.GO28962@bombadil.infradead.org>
- <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain>
- <20091217163036.GE2123@thunk.org>
- <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain>
- <20091217170743.GA10431@infradead.org>
- <alpine.LFD.2.00.0912170928310.15740@localhost.localdomain>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-parisc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.0912170928310.15740@localhost.localdomain>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Christoph Hellwig <hch@infradead.org>, tytso@mit.edu, Kyle McMartin <kyle@mcmartin.ca>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, James.Bottomley@suse.de, linux-arch@vger.kernel.org, Jens Axboe <jens.axboe@oracle.com>
-List-Id: linux-arch.vger.kernel.org
+From: Andi Kleen <andi@firstfloor.org>
+Subject: [PATCH] [2/11] Add a kernel_address() that works for data too
+Date: Mon, 21 Dec 2009 02:20:23 +0100 (CET)
+Message-ID: <20091221012023.9DC1FB158A@basil.firstfloor.org>
+References: <20091221220.243954235@firstfloor.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from one.firstfloor.org ([213.235.205.2]:37703 "EHLO
+	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756356AbZLUBU2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 20 Dec 2009 20:20:28 -0500
+In-Reply-To: <20091221220.243954235@firstfloor.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, ebiederm@xmission.com
 
-On Thu, Dec 17, 2009 at 09:42:15AM -0800, Linus Torvalds wrote:
 
-> 
-> I also think that the changes to bio_map_kernel() and bio_map_kern_endio() 
-> are not just "fundamentally ugly", I think they are made worse by the fact 
-> that it's not even done "right". You both flush the virtual caches before 
-> the IO and invalidate after - when the real pattern should be that you 
-> flush it before a write, and invalidate it after a read.
-> 
-> And I really think that would be all much more properly done at the 
-> _caller_ level, not by the BIO layer.
-> 
-> You must have some locking and allocation etc logic at the caller anyway, 
-> why doesn't _that_ level just do the flushing or invalidation?
+Add a variant of kernel_text_address() that includes kernel data.
 
-And then there are certain types of caches that need invalidation before
-_and_ after a DMA transaction as a workaround for a processor being
-grossly abused in a system that it should not be used in.  Basically the
-issue is that falsly speculated stores may dirty caches.
+Assumes kernel is _text ... _end - init section. True everywhere?
 
-  Ralf
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+
+---
+ include/linux/kernel.h |    1 +
+ kernel/extable.c       |   18 ++++++++++++++++++
+ 2 files changed, 19 insertions(+)
+
+Index: linux-2.6.33-rc1-ak/include/linux/kernel.h
+===================================================================
+--- linux-2.6.33-rc1-ak.orig/include/linux/kernel.h
++++ linux-2.6.33-rc1-ak/include/linux/kernel.h
+@@ -205,6 +205,7 @@ extern unsigned long long memparse(const
+ extern int core_kernel_text(unsigned long addr);
+ extern int __kernel_text_address(unsigned long addr);
+ extern int kernel_text_address(unsigned long addr);
++extern int kernel_address(unsigned long addr);
+ extern int func_ptr_is_kernel_text(void *ptr);
+ 
+ struct pid;
+Index: linux-2.6.33-rc1-ak/kernel/extable.c
+===================================================================
+--- linux-2.6.33-rc1-ak.orig/kernel/extable.c
++++ linux-2.6.33-rc1-ak/kernel/extable.c
+@@ -72,6 +72,18 @@ int core_kernel_text(unsigned long addr)
+ 	return 0;
+ }
+ 
++static int core_kernel_address(unsigned long addr)
++{
++	if ((addr >= (unsigned long)_text &&
++	     addr <= (unsigned long)_end)) {
++		if (addr >= (unsigned long)__init_begin &&
++		    addr < (unsigned long)__init_end)
++			return system_state == SYSTEM_BOOTING;
++		return 1;
++	}
++	return 0;
++}
++
+ int __kernel_text_address(unsigned long addr)
+ {
+ 	if (core_kernel_text(addr))
+@@ -98,6 +110,12 @@ int kernel_text_address(unsigned long ad
+ 	return is_module_text_address(addr);
+ }
+ 
++/* text or data in core kernel or module */
++int kernel_address(unsigned long addr)
++{
++	return core_kernel_address(addr) || is_module_address(addr);
++}
++
+ /*
+  * On some architectures (PPC64, IA64) function pointers
+  * are actually only tokens to some data that then holds the
