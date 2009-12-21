@@ -1,82 +1,61 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH] Move -fno-dwarf2-cfi-asm to powerpc only
-Date: Mon, 21 Dec 2009 15:39:10 +1100
-Message-ID: <1261370350.2173.124.camel@pasglop>
-References: <20091221012351.GA24720@basil.fritz.box>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
+Date: Mon, 21 Dec 2009 17:53:00 +0900
+Message-ID: <20091221175137I.fujita.tomonori@lab.ntt.co.jp>
+References: <20091217173957.GG2123@thunk.org>
+	<20091218091901J.fujita.tomonori@lab.ntt.co.jp>
+	<20091218141731.GH2123@thunk.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:39650 "EHLO gate.crashing.org"
+Received: from sh.osrg.net ([192.16.179.4]:33761 "EHLO sh.osrg.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752518AbZLUEkZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 20 Dec 2009 23:40:25 -0500
-In-Reply-To: <20091221012351.GA24720@basil.fritz.box>
+	id S1751257AbZLUIxs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 21 Dec 2009 03:53:48 -0500
+In-Reply-To: <20091218141731.GH2123@thunk.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <andi@firstfloor.org>
-Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kyle@redhat.com, mmarek@suse.cz
+To: tytso@mit.edu
+Cc: fujita.tomonori@lab.ntt.co.jp, torvalds@linux-foundation.org, kyle@mcmartin.ca, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, James.Bottomley@suse.de, hch@infradead.org, linux-arch@vger.kernel.org, jens.axboe@oracle.com
 
-On Mon, 2009-12-21 at 02:23 +0100, Andi Kleen wrote:
-> Move -fno-dwarf2-cfi-asm to powerpc only
-> 
-> Better dwarf2 unwind information is a good thing, it allows better
-> debugging with kgdb and crash and helps systemtap.
-> 
-> commit 003086497f07f7f1e67c0c295e261740f822b377 disabled some CFI
-> information globally to work around a module loader bug on powerpc.
-> 
-> But this disables the better unwind tables for all architectures,
-> not just powerpc. Move the workaround to powerpc and also 
-> add a suitable comment that's it really a workaround.
-> 
-> This improves dwarf2 unwind tables on x86 at least.
+On Fri, 18 Dec 2009 09:17:32 -0500
+tytso@mit.edu wrote:
 
-Heh, I don't remember the original problem but yeah, that's definitely
-not something to keep in generic Makefiles and in fact we should fix the
-problem on the powerpc side. I'll have a look.
+> On Fri, Dec 18, 2009 at 09:21:30AM +0900, FUJITA Tomonori wrote:
+> > 
+> > iSCSI initiator driver should work with kmalloc'ed memory.
+> > 
+> > The reason why iSCSI didn't work with kmalloc'ed memory is that it
+> > uses sendpage (which needs refcountable pages). We added a workaround
+> > to not use sendpage with kmalloc'ed memory (it would be great if we
+> > remove the workaround though).
+> 
+> Well, with a patch that I plan to be pushing that we have general
+> agreement that it is a block device driver BUG not to accept
+> kmalloc'ed/SLAB allocated memory, is one where ext4 will use
+> kmalloc'ed/slab allocated memory on occasion when it needs to make
+> shadow copy of buffers for journalling purposes AND when the fs block
+> size is smaller than the page size.  (i.e., no more allocating a 16k
+> page when the fs block size is 4k).  So this won't happen all the
+> time; even if the case of a 16k Itanium system with 4k blocks, the
+> bulk of the data won't be sent via kmalloc'ed memory --- just some
+> critical metadata block and some data blocks that need to be escaped
+> when being written into the journal.
 
-Cheers,
-Ben.
+Actually, ext3 (jbd) sent kmalloc'ed buffer to the block layer for
+frozen data. xfs also used kmalloc'ed buffer. Neither do now (so, as
+you said above, jbd wastes some memory when the block size is not
+equal to page size, I think).
 
-> Cc: kyle@redhat.com
-> Cc: benh@kernel.crashing.org
-> Cc: mmarek@suse.cz
-> 
-> Signed-off-by: Andi Kleen <ak@linux.intel.com>
-> 
-> ---
->  Makefile              |    3 ---
->  arch/powerpc/Makefile |    5 +++++
->  2 files changed, 5 insertions(+), 3 deletions(-)
-> 
-> Index: linux-2.6.33-rc1-ak/Makefile
-> ===================================================================
-> --- linux-2.6.33-rc1-ak.orig/Makefile
-> +++ linux-2.6.33-rc1-ak/Makefile
-> @@ -570,9 +570,6 @@ KBUILD_CFLAGS += $(call cc-option,-Wno-p
->  # disable invalid "can't wrap" optimizations for signed / pointers
->  KBUILD_CFLAGS	+= $(call cc-option,-fno-strict-overflow)
->  
-> -# revert to pre-gcc-4.4 behaviour of .eh_frame
-> -KBUILD_CFLAGS	+= $(call cc-option,-fno-dwarf2-cfi-asm)
-> -
->  # conserve stack if available
->  KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
->  
-> Index: linux-2.6.33-rc1-ak/arch/powerpc/Makefile
-> ===================================================================
-> --- linux-2.6.33-rc1-ak.orig/arch/powerpc/Makefile
-> +++ linux-2.6.33-rc1-ak/arch/powerpc/Makefile
-> @@ -112,6 +112,11 @@ KBUILD_CFLAGS += $(call cc-option,-mspe=
->  # kernel considerably.
->  KBUILD_CFLAGS += $(call cc-option,-funit-at-a-time)
->  
-> +# FIXME: the module load should be taught about the additional relocs
-> +# generated by this.
-> +# revert to pre-gcc-4.4 behaviour of .eh_frame
-> +KBUILD_CFLAGS	+= $(call cc-option,-fno-dwarf2-cfi-asm)
-> +
->  # Never use string load/store instructions as they are
->  # often slow when they are implemented at all
->  KBUILD_CFLAGS		+= -mno-string
+
+> I do think we need to document that block device drivers are
+> _expected_ to be able to handle kmalloc'ed memory,
+
+Agreed.
+
+Note that network block drivers (iSCSI, drbd, something else?) doesn't
+play with page ref-counting. They want to use sendpage. The network
+layer (sendpage) can't handle non-ref-counted pages. The best solution
+for fs and network block drivers might be modifying sendpage to handle
+such pages.
