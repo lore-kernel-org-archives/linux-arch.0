@@ -1,61 +1,58 @@
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
 Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-Date: Mon, 21 Dec 2009 17:53:00 +0900
-Message-ID: <20091221175137I.fujita.tomonori@lab.ntt.co.jp>
-References: <20091217173957.GG2123@thunk.org>
-	<20091218091901J.fujita.tomonori@lab.ntt.co.jp>
-	<20091218141731.GH2123@thunk.org>
+Date: Mon, 21 Dec 2009 11:14:39 -0600
+Message-ID: <1261415679.2619.121.camel@mulgrave.site>
+References: <20091216043618.GB9104@hera.kernel.org>
+	 <20091217132256.GO28962@bombadil.infradead.org>
+	 <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain>
+	 <20091217163036.GE2123@thunk.org>
+	 <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain>
+	 <20091217170743.GA10431@infradead.org>
+	 <alpine.LFD.2.00.0912170928310.15740@localhost.localdomain>
+	 <20091219183305.GA10568@linux-mips.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:33761 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751257AbZLUIxs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 21 Dec 2009 03:53:48 -0500
-In-Reply-To: <20091218141731.GH2123@thunk.org>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:58183 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756881AbZLUROm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 21 Dec 2009 12:14:42 -0500
+In-Reply-To: <20091219183305.GA10568@linux-mips.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tytso@mit.edu
-Cc: fujita.tomonori@lab.ntt.co.jp, torvalds@linux-foundation.org, kyle@mcmartin.ca, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, James.Bottomley@suse.de, hch@infradead.org, linux-arch@vger.kernel.org, jens.axboe@oracle.com
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, tytso@mit.edu, Kyle McMartin <kyle@mcmartin.ca>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jens Axboe <jens.axboe@oracle.com>
 
-On Fri, 18 Dec 2009 09:17:32 -0500
-tytso@mit.edu wrote:
-
-> On Fri, Dec 18, 2009 at 09:21:30AM +0900, FUJITA Tomonori wrote:
-> > 
-> > iSCSI initiator driver should work with kmalloc'ed memory.
-> > 
-> > The reason why iSCSI didn't work with kmalloc'ed memory is that it
-> > uses sendpage (which needs refcountable pages). We added a workaround
-> > to not use sendpage with kmalloc'ed memory (it would be great if we
-> > remove the workaround though).
+On Sat, 2009-12-19 at 18:33 +0000, Ralf Baechle wrote:
+> On Thu, Dec 17, 2009 at 09:42:15AM -0800, Linus Torvalds wrote:
 > 
-> Well, with a patch that I plan to be pushing that we have general
-> agreement that it is a block device driver BUG not to accept
-> kmalloc'ed/SLAB allocated memory, is one where ext4 will use
-> kmalloc'ed/slab allocated memory on occasion when it needs to make
-> shadow copy of buffers for journalling purposes AND when the fs block
-> size is smaller than the page size.  (i.e., no more allocating a 16k
-> page when the fs block size is 4k).  So this won't happen all the
-> time; even if the case of a 16k Itanium system with 4k blocks, the
-> bulk of the data won't be sent via kmalloc'ed memory --- just some
-> critical metadata block and some data blocks that need to be escaped
-> when being written into the journal.
+> > 
+> > I also think that the changes to bio_map_kernel() and bio_map_kern_endio() 
+> > are not just "fundamentally ugly", I think they are made worse by the fact 
+> > that it's not even done "right". You both flush the virtual caches before 
+> > the IO and invalidate after - when the real pattern should be that you 
+> > flush it before a write, and invalidate it after a read.
+> > 
+> > And I really think that would be all much more properly done at the 
+> > _caller_ level, not by the BIO layer.
+> > 
+> > You must have some locking and allocation etc logic at the caller anyway, 
+> > why doesn't _that_ level just do the flushing or invalidation?
+> 
+> And then there are certain types of caches that need invalidation before
+> _and_ after a DMA transaction as a workaround for a processor being
+> grossly abused in a system that it should not be used in.  Basically the
+> issue is that falsly speculated stores may dirty caches.
 
-Actually, ext3 (jbd) sent kmalloc'ed buffer to the block layer for
-frozen data. xfs also used kmalloc'ed buffer. Neither do now (so, as
-you said above, jbd wastes some memory when the block size is not
-equal to page size, I think).
+Um, so that's just so wrong it doesn't even seem possible.  It would
+mean that a speculation could make a line dirty while DMA was in
+progress to the underlying memory.  There's always going to be a window
+between the DMA completion and the software invalidation where the dirty
+line could be flushed, thus corrupting the DMA transfer.
 
+Hopefully steps have been taken to see that whoever thought this was a
+good idea isn't still contributing to the gene pool?
 
-> I do think we need to document that block device drivers are
-> _expected_ to be able to handle kmalloc'ed memory,
-
-Agreed.
-
-Note that network block drivers (iSCSI, drbd, something else?) doesn't
-play with page ref-counting. They want to use sendpage. The network
-layer (sendpage) can't handle non-ref-counted pages. The best solution
-for fs and network block drivers might be modifying sendpage to handle
-such pages.
+James
