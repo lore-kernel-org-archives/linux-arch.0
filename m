@@ -1,58 +1,46 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [git patches] xfs and block fixes for virtually indexed arches
-Date: Mon, 21 Dec 2009 11:14:39 -0600
-Message-ID: <1261415679.2619.121.camel@mulgrave.site>
-References: <20091216043618.GB9104@hera.kernel.org>
-	 <20091217132256.GO28962@bombadil.infradead.org>
-	 <alpine.LFD.2.00.0912170811130.15740@localhost.localdomain>
-	 <20091217163036.GE2123@thunk.org>
-	 <alpine.LFD.2.00.0912170839550.15740@localhost.localdomain>
-	 <20091217170743.GA10431@infradead.org>
-	 <alpine.LFD.2.00.0912170928310.15740@localhost.localdomain>
-	 <20091219183305.GA10568@linux-mips.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+From: James Bottomley <James.Bottomley@suse.de>
+Subject: [PATCHv2 0/5] fix xfs by making I/O to vmap/vmalloc areas work
+Date: Wed, 23 Dec 2009 15:22:20 -0600
+Message-ID: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:58183 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756881AbZLUROm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 21 Dec 2009 12:14:42 -0500
-In-Reply-To: <20091219183305.GA10568@linux-mips.org>
+Received: from cantor2.suse.de ([195.135.220.15]:58579 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757249AbZLWVWt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 23 Dec 2009 16:22:49 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, tytso@mit.edu, Kyle McMartin <kyle@mcmartin.ca>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jens Axboe <jens.axboe@oracle.com>
+To: linux-arch@vger.kernel.org
+Cc: linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>, James Bottomley <jejb@external.hp.com>
 
-On Sat, 2009-12-19 at 18:33 +0000, Ralf Baechle wrote:
-> On Thu, Dec 17, 2009 at 09:42:15AM -0800, Linus Torvalds wrote:
-> 
-> > 
-> > I also think that the changes to bio_map_kernel() and bio_map_kern_endio() 
-> > are not just "fundamentally ugly", I think they are made worse by the fact 
-> > that it's not even done "right". You both flush the virtual caches before 
-> > the IO and invalidate after - when the real pattern should be that you 
-> > flush it before a write, and invalidate it after a read.
-> > 
-> > And I really think that would be all much more properly done at the 
-> > _caller_ level, not by the BIO layer.
-> > 
-> > You must have some locking and allocation etc logic at the caller anyway, 
-> > why doesn't _that_ level just do the flushing or invalidation?
-> 
-> And then there are certain types of caches that need invalidation before
-> _and_ after a DMA transaction as a workaround for a processor being
-> grossly abused in a system that it should not be used in.  Basically the
-> issue is that falsly speculated stores may dirty caches.
+From: James Bottomley <jejb@external.hp.com>
 
-Um, so that's just so wrong it doesn't even seem possible.  It would
-mean that a speculation could make a line dirty while DMA was in
-progress to the underlying memory.  There's always going to be a window
-between the DMA completion and the software invalidation where the dirty
-line could be flushed, thus corrupting the DMA transfer.
+After looking through all the feedback, here's the next version of the
+patch.
 
-Hopefully steps have been taken to see that whoever thought this was a
-good idea isn't still contributing to the gene pool?
+This one is based on a new api: flush/invalidate_kernel_vmap_range()
+making it clear that the fs/driver is the entity managing the vmaps
+... it also drops the block inputs because coherency management is now
+the responsibility of the user.  The xfs interface is nicely
+simplified with this approach.  Could someone check this on arm and
+sh?
+
+Thanks,
 
 James
+
+---
+
+James Bottomley (5):
+  mm: add coherence API for DMA to vmalloc/vmap areas
+  parisc: add mm API for DMA to vmalloc/vmap areas
+  arm: add mm API for DMA to vmalloc/vmap areas
+  sh: add mm API for DMA to vmalloc/vmap areas
+  xfs: fix xfs to work with Virtually Indexed architectures
+
+ Documentation/cachetlb.txt           |   27 +++++++++++++++++++++++++++
+ arch/arm/include/asm/cacheflush.h    |   10 ++++++++++
+ arch/parisc/include/asm/cacheflush.h |   12 ++++++++++++
+ arch/sh/include/asm/cacheflush.h     |    8 ++++++++
+ fs/xfs/linux-2.6/xfs_buf.c           |   20 +++++++++++++++++++-
+ include/linux/highmem.h              |    6 ++++++
+ 6 files changed, 82 insertions(+), 1 deletions(-)
