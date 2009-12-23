@@ -1,47 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:58596 "EHLO mx2.suse.de"
+Received: from cantor2.suse.de ([195.135.220.15]:58585 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757277AbZLWVW5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 Dec 2009 16:22:57 -0500
+	id S1757231AbZLWVWz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 23 Dec 2009 16:22:55 -0500
 From: James Bottomley <James.Bottomley@suse.de>
-Subject: [PATCHv2 4/5] sh: add mm API for DMA to vmalloc/vmap areas
-Date: Wed, 23 Dec 2009 15:22:24 -0600
-Message-ID: <1261603345-2494-5-git-send-email-James.Bottomley@suse.de>
-In-Reply-To: <1261603345-2494-4-git-send-email-James.Bottomley@suse.de>
+Subject: [PATCHv2 1/5] mm: add coherence API for DMA to vmalloc/vmap areas
+Date: Wed, 23 Dec 2009 15:22:21 -0600
+Message-ID: <1261603345-2494-2-git-send-email-James.Bottomley@suse.de>
+In-Reply-To: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de>
 References: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de>
- <1261603345-2494-2-git-send-email-James.Bottomley@suse.de>
- <1261603345-2494-3-git-send-email-James.Bottomley@suse.de>
- <1261603345-2494-4-git-send-email-James.Bottomley@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>, James Bottomley <James.Bottomley@suse.de>
-Message-ID: <20091223212224.-KN54BUVpst-lhmzxuTC61DAuWZA0c6EXXnQUU_R5ho@z>
+Message-ID: <20091223212221.Ef4v66e80P70AzsQ-aYlOQioMP9E75uXGcnd5K9Z1Mw@z>
+
+On Virtually Indexed architectures (which don't do automatic alias
+resolution in their caches), we have to flush via the correct
+virtual address to prepare pages for DMA.  On some architectures
+(like arm) we cannot prevent the CPU from doing data movein along
+the alias (and thus giving stale read data), so we not only have to
+introduce a flush API to push dirty cache lines out, but also an invalidate
+API to kill inconsistent cache lines that may have moved in before
+DMA changed the data
 
 Signed-off-by: James Bottomley <James.Bottomley@suse.de>
 ---
- arch/sh/include/asm/cacheflush.h |    8 ++++++++
- 1 files changed, 8 insertions(+), 0 deletions(-)
+ Documentation/cachetlb.txt |   27 +++++++++++++++++++++++++++
+ include/linux/highmem.h    |    6 ++++++
+ 2 files changed, 33 insertions(+), 0 deletions(-)
 
-diff --git a/arch/sh/include/asm/cacheflush.h b/arch/sh/include/asm/cacheflush.h
-index dda96eb..da3ebec 100644
---- a/arch/sh/include/asm/cacheflush.h
-+++ b/arch/sh/include/asm/cacheflush.h
-@@ -63,6 +63,14 @@ static inline void flush_anon_page(struct vm_area_struct *vma,
- 	if (boot_cpu_data.dcache.n_aliases && PageAnon(page))
- 		__flush_anon_page(page, vmaddr);
- }
-+static inline void flush_kernel_vmap_range(void *addr, int size)
-+{
-+	__flush_wback_region(addr, size);
-+}
-+static inline void invalidate_kernel_vmap_range(void *addr, int size)
-+{
-+	__flush_invalidate_region(addr, size);
-+}
- 
- #define ARCH_HAS_FLUSH_KERNEL_DCACHE_PAGE
+diff --git a/Documentation/cachetlb.txt b/Documentation/cachetlb.txt
+index da42ab4..a29129f 100644
+--- a/Documentation/cachetlb.txt
++++ b/Documentation/cachetlb.txt
+@@ -377,3 +377,30 @@ maps this page at its virtual address.
+ 	All the functionality of flush_icache_page can be implemented in
+ 	flush_dcache_page and update_mmu_cache. In 2.7 the hope is to
+ 	remove this interface completely.
++
++The final category of APIs is for I/O to deliberately aliased address
++ranges inside the kernel.  Such aliases are set up by use of the
++vmap/vmalloc API.  Since kernel I/O goes via physical pages, the I/O
++subsystem assumes that the user mapping and kernel offset mapping are
++the only aliases.  This isn't true for vmap aliases, so anything in
++the kernel trying to do I/O to vmap areas must manually manage
++coherency.  It must do this by flushing the vmap range before doing
++I/O and invalidating it after the I/O returns.
++
++  void flush_kernel_vmap_range(void *vaddr, int size)
++       flushes the kernel cache for a given virtual address range in
++       the vmap area.  This API makes sure that and data the kernel
++       modified in the vmap range is made visible to the physical
++       page.  The design is to make this area safe to perform I/O on.
++       Note that this API does *not* also flush the offset map alias
++       of the area.
++
++  void invalidate_kernel_vmap_range(void *vaddr, int size)
++       invalidates the kernel cache for a given virtual address range
++       in the vmap area.  This API is designed to make sure that while
++       I/O went on to an address range in the vmap area, the processor
++       didn't speculate cache reads and thus make the cache over the
++       virtual address stale.  Its implementation may be a nop if the
++       architecture guarantees never to speculate on flushed ranges
++       during I/O.
++
+diff --git a/include/linux/highmem.h b/include/linux/highmem.h
+index 211ff44..adfe101 100644
+--- a/include/linux/highmem.h
++++ b/include/linux/highmem.h
+@@ -17,6 +17,12 @@ static inline void flush_anon_page(struct vm_area_struct *vma, struct page *page
  static inline void flush_kernel_dcache_page(struct page *page)
+ {
+ }
++static inline void flush_kernel_vmap_range(void *vaddr, int size)
++{
++}
++static inline void invalidate_kernel_vmap_range(void *vaddr, int size)
++{
++}
+ #endif
+ 
+ #include <asm/kmap_types.h>
 -- 
 1.6.5
 
