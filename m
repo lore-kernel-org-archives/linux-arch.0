@@ -1,64 +1,34 @@
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [PATCH 05/37] kdb: core for kgdb back end
-Date: Thu, 24 Dec 2009 02:28:06 +0100
-Message-ID: <87y6ktb1p5.fsf@basil.nowhere.org>
-References: <1261603190-5036-1-git-send-email-jason.wessel@windriver.com>
-	<1261603190-5036-2-git-send-email-jason.wessel@windriver.com>
-	<1261603190-5036-3-git-send-email-jason.wessel@windriver.com>
-	<1261603190-5036-4-git-send-email-jason.wessel@windriver.com>
-	<1261603190-5036-5-git-send-email-jason.wessel@windriver.com>
-	<1261603190-5036-6-git-send-email-jason.wessel@windriver.com>
+From: Matt Fleming <matt@console-pimps.org>
+Subject: Re: [PATCHv2 1/5] mm: add coherence API for DMA to vmalloc/vmap
+	areas
+Date: Thu, 24 Dec 2009 10:08:53 +0000
+Message-ID: <20091224100853.GA3165@console-pimps.org>
+References: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de> <1261603345-2494-2-git-send-email-James.Bottomley@suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:33948 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751574AbZLXB2K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Dec 2009 20:28:10 -0500
-In-Reply-To: <1261603190-5036-6-git-send-email-jason.wessel@windriver.com> (Jason Wessel's message of "Wed, 23 Dec 2009 15:19:18 -0600")
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jason Wessel <jason.wessel@windriver.com>
-Cc: linux-kernel@vger.kernel.org, kgdb-bugreport@lists.sourceforge.net, kdb@oss.sgi.com, mingo@elte.hu, mort@sgi.com, linux-arch@vger.kernel.org
+Return-path: <linux-parisc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1261603345-2494-2-git-send-email-James.Bottomley@suse.de>
+Sender: linux-parisc-owner@vger.kernel.org
+To: James Bottomley <James.Bottomley@suse.de>
+Cc: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
+List-Id: linux-arch.vger.kernel.org
 
-Jason Wessel <jason.wessel@windriver.com> writes:
+On Wed, Dec 23, 2009 at 03:22:21PM -0600, James Bottomley wrote:
+> +
+> +  void flush_kernel_vmap_range(void *vaddr, int size)
+> +       flushes the kernel cache for a given virtual address range in
+> +       the vmap area.  This API makes sure that and data the kernel
 
-I remember going with kaos through all the code
-outside kdb/ in his own patch and for nearly all hooks
-outside we found some way to eliminate them. 
+  	      	   	       	   	      	^^^ code and data?
 
-I think a lot of this is here too.
-
->  
-> +#ifdef	CONFIG_KGDB_KDB
-> +/* Like meminfo_proc_show() but without the locks and using kdb_printf() */
-> +void kdb_meminfo_proc_show(void)
-
-Are there even any locks in meminfo_proc_show()? I don't see any on a quick look.
-Ah or is that only for swap_info? That could be a flag or perhaps that
-access can be even made lockless (it looks like it could)
-
-I guess a better way would be to have a kdb specific seq file implementation
-and then just use the normal function, instead of copying everything.
-
->  void get_vmalloc_info(struct vmalloc_info *vmi)
->  {
->  	struct vm_struct *vma;
->  	unsigned long free_area_size;
->  	unsigned long prev_end;
-> +#ifdef CONFIG_KGDB_KDB
-> +	int get_lock = !KDB_IS_RUNNING();
-> +#else
-> +#define	get_lock 1
-> +#endif
+> +  void invalidate_kernel_vmap_range(void *vaddr, int size)
+> +       invalidates the kernel cache for a given virtual address range
+> +       in the vmap area.  This API is designed to make sure that while
+> +       I/O went on to an address range in the vmap area, the processor
+> +       didn't speculate cache reads and thus make the cache over the
+> +       virtual address stale.
 > +
 
-A standard way to do such would be a __get_vmalloc_info with the 
-lock in the caller
-
-Didn't read everything in this gigantic patch.
-
--Andi
-
--- 
-ak@linux.intel.com -- Speaking for myself only.
+Could this sentence be reworked a little? I find the "over the virtual
+address" part a little difficult to parse.
