@@ -1,90 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:45737 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753134AbZLXLzw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Dec 2009 06:55:52 -0500
-Message-ID: <4B3356A8.4020901@windriver.com>
-Date: Thu, 24 Dec 2009 05:55:20 -0600
-From: Jason Wessel <jason.wessel@windriver.com>
+Received: from palinux.external.hp.com ([192.25.206.14]:34317 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752112AbZLXMjP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Dec 2009 07:39:15 -0500
+Date: Thu, 24 Dec 2009 05:39:13 -0700
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [PATCHv2 1/5] mm: add coherence API for DMA to vmalloc/vmap
+	areas
+Message-ID: <20091224123913.GD5335@parisc-linux.org>
+References: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de> <1261603345-2494-2-git-send-email-James.Bottomley@suse.de> <20091224100853.GA3165@console-pimps.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH 05/37] kdb: core for kgdb back end
-References: <1261603190-5036-1-git-send-email-jason.wessel@windriver.com> <1261603190-5036-2-git-send-email-jason.wessel@windriver.com> <1261603190-5036-3-git-send-email-jason.wessel@windriver.com> <1261603190-5036-4-git-send-email-jason.wessel@windriver.com> <1261603190-5036-5-git-send-email-jason.wessel@windriver.com> <1261603190-5036-6-git-send-email-jason.wessel@windriver.com> <1261652509.4937.185.camel@laptop>
-In-Reply-To: <1261652509.4937.185.camel@laptop>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20091224100853.GA3165@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, kgdb-bugreport@lists.sourceforge.net, kdb@oss.sgi.com, mingo@elte.hu, mort@sgi.com, linux-arch@vger.kernel.org
-Message-ID: <20091224115520.GJSEDzXgeP6Dft6R5mmtXOogngVMoG4KXaexWJ2big0@z>
+To: Matt Fleming <matt@console-pimps.org>
+Cc: James Bottomley <James.Bottomley@suse.de>, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20091224123913.v1SRDr2LN6yL2tHsGXroCItMLIzlFClcUbY3Y5m-5XM@z>
 
-Peter Zijlstra wrote:
+On Thu, Dec 24, 2009 at 10:08:53AM +0000, Matt Fleming wrote:
+> On Wed, Dec 23, 2009 at 03:22:21PM -0600, James Bottomley wrote:
+> > +
+> > +  void flush_kernel_vmap_range(void *vaddr, int size)
+> > +       flushes the kernel cache for a given virtual address range in
+> > +       the vmap area.  This API makes sure that and data the kernel
+> 
+>   	      	   	       	   	      	^^^ code and data?
 
-> On Wed, 2009-12-23 at 15:19 -0600, Jason Wessel wrote:
->   
->> diff --git a/kernel/module.c b/kernel/module.c
->> index e96b8ed..25f6a7b 100644
->> --- a/kernel/module.c
->> +++ b/kernel/module.c
->> @@ -79,6 +80,10 @@ EXPORT_TRACEPOINT_SYMBOL(module_get);
->>  DEFINE_MUTEX(module_mutex);
->>  EXPORT_SYMBOL_GPL(module_mutex);
->>  static LIST_HEAD(modules);
->> +#ifdef CONFIG_KGDB_KDB
->> +struct list_head *kdb_modules = &modules; /* kdb needs the list of
->> modules */
->> +#endif /* CONFIG_KGDB_KDB */
->> +
->>     
+I'd guess it's a typo for 'any data'.
 
-Above we export "modules" so that kdb can emulate lsmod.
+> > +  void invalidate_kernel_vmap_range(void *vaddr, int size)
+> > +       invalidates the kernel cache for a given virtual address range
+> > +       in the vmap area.  This API is designed to make sure that while
+> > +       I/O went on to an address range in the vmap area, the processor
+> > +       didn't speculate cache reads and thus make the cache over the
+> > +       virtual address stale.
+> > +
+> 
+> Could this sentence be reworked a little? I find the "over the virtual
+> address" part a little difficult to parse.
 
+How about:
 
-The remainder was a port from the original kdb, and should not been
-needed.  The preempt_disable and preempt_enable should be able to be
-safely called while the system in the kgdb exception context, so this
-chunk of code is going to get axed and re-tested.
+invalidates the processor cache for a given virtual address range
+in the vmap area.  This API addresses the problem that the processor
+may have performed speculative reads into its cache of the vmapped
+area while I/O was occurring to the underlying physical pages.
 
-Thanks,
-Jason.
+Signed-off-by: Matthew Wilcox <willy@linux.intel.com>
 
->>  
->>  /* Block module loading/unloading? */
->>  int modules_disabled = 0;
->> @@ -2654,8 +2659,14 @@ int module_get_kallsym(unsigned int symnum,
->> unsigned long *value, char *type,
->>                         char *name, char *module_name, int *exported)
->>  {
->>         struct module *mod;
->> +#ifdef CONFIG_KGDB_KDB
->> +       int get_lock = !KDB_IS_RUNNING();
->> +#else
->> +#define        get_lock 1
->> +#endif
->>  
->> -       preempt_disable();
->> +       if (get_lock)
->> +               preempt_disable();
->>         list_for_each_entry_rcu(mod, &modules, list) {
->>                 if (symnum < mod->num_symtab) {
->>                         *value = mod->symtab[symnum].st_value;
->> @@ -2664,12 +2675,14 @@ int module_get_kallsym(unsigned int symnum,
->> unsigned long *value, char *type,
->>                                 KSYM_NAME_LEN);
->>                         strlcpy(module_name, mod->name,
->> MODULE_NAME_LEN);
->>                         *exported = is_exported(name, *value, mod);
->> -                       preempt_enable();
->> +                       if (get_lock)
->> +                               preempt_enable();
->>                         return 0;
->>                 }
->>                 symnum -= mod->num_symtab;
->>         }
->> -       preempt_enable();
->> +       if (get_lock)
->> +               preempt_enable();
->>         return -ERANGE;
->>  }
->>     
-
+-- 
+Matthew Wilcox				Intel Open Source Technology Centre
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
