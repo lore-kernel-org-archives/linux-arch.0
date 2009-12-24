@@ -1,52 +1,43 @@
-From: Matt Fleming <matt@console-pimps.org>
-Subject: Re: [PATCHv2 1/5] mm: add coherence API for DMA to vmalloc/vmap
-	areas
-Date: Thu, 24 Dec 2009 13:06:25 +0000
-Message-ID: <20091224130625.GC3165@console-pimps.org>
-References: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de> <1261603345-2494-2-git-send-email-James.Bottomley@suse.de> <20091224100853.GA3165@console-pimps.org> <20091224123913.GD5335@parisc-linux.org>
+From: Jason Wessel <jason.wessel@windriver.com>
+Subject: Re: [PATCH 05/37] kdb: core for kgdb back end
+Date: Thu, 24 Dec 2009 09:57:15 -0600
+Message-ID: <4B338F5B.9050904@windriver.com>
+References: <1261653403.4937.192.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-parisc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20091224123913.GD5335@parisc-linux.org>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: James Bottomley <James.Bottomley@suse.de>, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.windriver.com ([147.11.1.11]:37525 "EHLO
+	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751931AbZLXP5j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Dec 2009 10:57:39 -0500
+In-Reply-To: <1261653403.4937.192.camel@laptop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, kdb@oss.sgi.com, mingo@elte.hu, mort@sgi.com, linux-arch@vger.kernel.org
 
-On Thu, Dec 24, 2009 at 05:39:13AM -0700, Matthew Wilcox wrote:
-> On Thu, Dec 24, 2009 at 10:08:53AM +0000, Matt Fleming wrote:
-> > On Wed, Dec 23, 2009 at 03:22:21PM -0600, James Bottomley wrote:
-> > > +
-> > > +  void flush_kernel_vmap_range(void *vaddr, int size)
-> > > +       flushes the kernel cache for a given virtual address range in
-> > > +       the vmap area.  This API makes sure that and data the kernel
-> > 
-> >   	      	   	       	   	      	^^^ code and data?
-> 
-> I'd guess it's a typo for 'any data'.
-> 
+Peter Zijlstra wrote:
+> On Thu, 2009-12-24 at 12:01 +0100, Peter Zijlstra wrote:
+>   
+>> Please use --no-chain-reply-to when posting patches using git, these inf
+>> deep nested series are impossible to read.
+>>     
+>
+>   
 
-Aha yes, that would make more sense.
+Sure.  In all the future series, I added that option to the script that
+manages the postings.
 
-> > > +  void invalidate_kernel_vmap_range(void *vaddr, int size)
-> > > +       invalidates the kernel cache for a given virtual address range
-> > > +       in the vmap area.  This API is designed to make sure that while
-> > > +       I/O went on to an address range in the vmap area, the processor
-> > > +       didn't speculate cache reads and thus make the cache over the
-> > > +       virtual address stale.
-> > > +
-> > 
-> > Could this sentence be reworked a little? I find the "over the virtual
-> > address" part a little difficult to parse.
-> 
-> How about:
-> 
-> invalidates the processor cache for a given virtual address range
-> in the vmap area.  This API addresses the problem that the processor
-> may have performed speculative reads into its cache of the vmapped
-> area while I/O was occurring to the underlying physical pages.
-> 
-> Signed-off-by: Matthew Wilcox <willy@linux.intel.com>
+> Please never post with kgdb-bugreport@lists.sourceforge.net
+> in the CC, it generates bounces for everything send to it.
+>
+>   
 
-Sounds good to me!
+The kgdb-bugreports list has been fixed to cease the generation of
+non-subscriber notifications.  All you had to do was indicate there was
+a problem.  Non-subscribers are free to post there, and the messages go
+through a filter queue.
+
+Thanks,
+Jason.
