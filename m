@@ -1,106 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.210]:37918 "EHLO verein.lst.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757056AbZLXLDZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 Dec 2009 06:03:25 -0500
-Date: Thu, 24 Dec 2009 12:03:14 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCHv2 5/5] xfs: fix xfs to work with Virtually Indexed architectures
-Message-ID: <20091224110314.GA21653@lst.de>
-References: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de> <1261603345-2494-2-git-send-email-James.Bottomley@suse.de> <1261603345-2494-3-git-send-email-James.Bottomley@suse.de> <1261603345-2494-4-git-send-email-James.Bottomley@suse.de> <1261603345-2494-5-git-send-email-James.Bottomley@suse.de> <1261603345-2494-6-git-send-email-James.Bottomley@suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1261603345-2494-6-git-send-email-James.Bottomley@suse.de>
+Received: from mail.windriver.com ([147.11.1.11]:45737 "EHLO
+	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753134AbZLXLzw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Dec 2009 06:55:52 -0500
+Message-ID: <4B3356A8.4020901@windriver.com>
+Date: Thu, 24 Dec 2009 05:55:20 -0600
+From: Jason Wessel <jason.wessel@windriver.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH 05/37] kdb: core for kgdb back end
+References: <1261603190-5036-1-git-send-email-jason.wessel@windriver.com> <1261603190-5036-2-git-send-email-jason.wessel@windriver.com> <1261603190-5036-3-git-send-email-jason.wessel@windriver.com> <1261603190-5036-4-git-send-email-jason.wessel@windriver.com> <1261603190-5036-5-git-send-email-jason.wessel@windriver.com> <1261603190-5036-6-git-send-email-jason.wessel@windriver.com> <1261652509.4937.185.camel@laptop>
+In-Reply-To: <1261652509.4937.185.camel@laptop>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@suse.de>
-Cc: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20091224110314.2_zwUnf3ACkAq6ls5wD4Ya2Wy-qOsBGhBktIPLeYUZw@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, kgdb-bugreport@lists.sourceforge.net, kdb@oss.sgi.com, mingo@elte.hu, mort@sgi.com, linux-arch@vger.kernel.org
+Message-ID: <20091224115520.GJSEDzXgeP6Dft6R5mmtXOogngVMoG4KXaexWJ2big0@z>
 
-On Wed, Dec 23, 2009 at 03:22:25PM -0600, James Bottomley wrote:
-> xfs_buf.c includes what is essentially a hand rolled version of
-> blk_rq_map_kern().  In order to work properly with the vmalloc buffers
-> that xfs uses, this hand rolled routine must also implement the flushing
-> API for vmap/vmalloc areas.
-> 
-> Signed-off-by: James Bottomley <James.Bottomley@suse.de>
+Peter Zijlstra wrote:
 
-Looks good except some minor style issues.  Fix in the version below
-which also adds a helper to calculate the length of the vmap area
-instead of calculating it twice.
+> On Wed, 2009-12-23 at 15:19 -0600, Jason Wessel wrote:
+>   
+>> diff --git a/kernel/module.c b/kernel/module.c
+>> index e96b8ed..25f6a7b 100644
+>> --- a/kernel/module.c
+>> +++ b/kernel/module.c
+>> @@ -79,6 +80,10 @@ EXPORT_TRACEPOINT_SYMBOL(module_get);
+>>  DEFINE_MUTEX(module_mutex);
+>>  EXPORT_SYMBOL_GPL(module_mutex);
+>>  static LIST_HEAD(modules);
+>> +#ifdef CONFIG_KGDB_KDB
+>> +struct list_head *kdb_modules = &modules; /* kdb needs the list of
+>> modules */
+>> +#endif /* CONFIG_KGDB_KDB */
+>> +
+>>     
 
----
+Above we export "modules" so that kdb can emulate lsmod.
 
-From: James Bottomley <James.Bottomley@suse.de>
-Subject: [PATCHv2 5/5] xfs: fix xfs to work with Virtually Indexed architectures
 
-xfs_buf.c includes what is essentially a hand rolled version of
-blk_rq_map_kern().  In order to work properly with the vmalloc buffers
-that xfs uses, this hand rolled routine must also implement the flushing
-API for vmap/vmalloc areas.
+The remainder was a port from the original kdb, and should not been
+needed.  The preempt_disable and preempt_enable should be able to be
+safely called while the system in the kgdb exception context, so this
+chunk of code is going to get axed and re-tested.
 
-Signed-off-by: James Bottomley <James.Bottomley@suse.de>
+Thanks,
+Jason.
 
-Index: linux-2.6/fs/xfs/linux-2.6/xfs_buf.c
-===================================================================
---- linux-2.6.orig/fs/xfs/linux-2.6/xfs_buf.c	2009-12-17 08:05:53.962275389 +0100
-+++ linux-2.6/fs/xfs/linux-2.6/xfs_buf.c	2009-12-24 11:59:02.031073134 +0100
-@@ -76,6 +76,27 @@ struct workqueue_struct *xfsconvertd_wor
- #define xfs_buf_deallocate(bp) \
- 	kmem_zone_free(xfs_buf_zone, (bp));
- 
-+static inline int
-+xfs_buf_is_vmapped(
-+	struct xfs_buf	*bp)
-+{
-+	/*
-+	 * Return true if the buffer is vmapped.
-+	 *
-+	 * The XBF_MAPPED flag is set if the buffer should be mapped, but the
-+	 * code is clever enough to know it doesn't have to map a single page,
-+	 * so the check has to be both for XBF_MAPPED and bp->b_page_count > 1.
-+	 */
-+	return (bp->b_flags & XBF_MAPPED) && bp->b_page_count > 1;
-+}
-+
-+static inline int
-+xfs_buf_vmap_len(
-+	struct xfs_buf	*bp)
-+{
-+	return (bp->b_page_count * PAGE_SIZE) - bp->b_offset;
-+}
-+
- /*
-  *	Page Region interfaces.
-  *
-@@ -314,7 +335,7 @@ xfs_buf_free(
- 	if (bp->b_flags & (_XBF_PAGE_CACHE|_XBF_PAGES)) {
- 		uint		i;
- 
--		if ((bp->b_flags & XBF_MAPPED) && (bp->b_page_count > 1))
-+		if (xfs_buf_is_vmapped(bp))
- 			free_address(bp->b_addr - bp->b_offset);
- 
- 		for (i = 0; i < bp->b_page_count; i++) {
-@@ -1107,6 +1128,9 @@ xfs_buf_bio_end_io(
- 
- 	xfs_buf_ioerror(bp, -error);
- 
-+	if (!error && xfs_buf_is_vmapped(bp))
-+		invalidate_kernel_vmap_range(bp->b_addr, xfs_buf_vmap_len(bp));
-+
- 	do {
- 		struct page	*page = bvec->bv_page;
- 
-@@ -1216,6 +1240,10 @@ next_chunk:
- 
- submit_io:
- 	if (likely(bio->bi_size)) {
-+		if (xfs_buf_is_vmapped(bp)) {
-+			flush_kernel_vmap_range(bp->b_addr,
-+						xfs_buf_vmap_len(bp));
-+		}
- 		submit_bio(rw, bio);
- 		if (size)
- 			goto next_chunk;
+>>  
+>>  /* Block module loading/unloading? */
+>>  int modules_disabled = 0;
+>> @@ -2654,8 +2659,14 @@ int module_get_kallsym(unsigned int symnum,
+>> unsigned long *value, char *type,
+>>                         char *name, char *module_name, int *exported)
+>>  {
+>>         struct module *mod;
+>> +#ifdef CONFIG_KGDB_KDB
+>> +       int get_lock = !KDB_IS_RUNNING();
+>> +#else
+>> +#define        get_lock 1
+>> +#endif
+>>  
+>> -       preempt_disable();
+>> +       if (get_lock)
+>> +               preempt_disable();
+>>         list_for_each_entry_rcu(mod, &modules, list) {
+>>                 if (symnum < mod->num_symtab) {
+>>                         *value = mod->symtab[symnum].st_value;
+>> @@ -2664,12 +2675,14 @@ int module_get_kallsym(unsigned int symnum,
+>> unsigned long *value, char *type,
+>>                                 KSYM_NAME_LEN);
+>>                         strlcpy(module_name, mod->name,
+>> MODULE_NAME_LEN);
+>>                         *exported = is_exported(name, *value, mod);
+>> -                       preempt_enable();
+>> +                       if (get_lock)
+>> +                               preempt_enable();
+>>                         return 0;
+>>                 }
+>>                 symnum -= mod->num_symtab;
+>>         }
+>> -       preempt_enable();
+>> +       if (get_lock)
+>> +               preempt_enable();
+>>         return -ERANGE;
+>>  }
+>>     
+
