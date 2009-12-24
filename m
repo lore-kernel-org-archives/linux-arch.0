@@ -1,101 +1,138 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCHv2 5/5] xfs: fix xfs to work with Virtually Indexed architectures
-Date: Thu, 24 Dec 2009 12:03:14 +0100
-Message-ID: <20091224110314.GA21653@lst.de>
-References: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de> <1261603345-2494-2-git-send-email-James.Bottomley@suse.de> <1261603345-2494-3-git-send-email-James.Bottomley@suse.de> <1261603345-2494-4-git-send-email-James.Bottomley@suse.de> <1261603345-2494-5-git-send-email-James.Bottomley@suse.de> <1261603345-2494-6-git-send-email-James.Bottomley@suse.de>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 05/37] kdb: core for kgdb back end
+Date: Thu, 24 Dec 2009 12:04:32 +0100
+Message-ID: <1261652672.4937.189.camel@laptop>
+References: <1261603190-5036-1-git-send-email-jason.wessel@windriver.com>
+	 <1261603190-5036-2-git-send-email-jason.wessel@windriver.com>
+	 <1261603190-5036-3-git-send-email-jason.wessel@windriver.com>
+	 <1261603190-5036-4-git-send-email-jason.wessel@windriver.com>
+	 <1261603190-5036-5-git-send-email-jason.wessel@windriver.com>
+	 <1261603190-5036-6-git-send-email-jason.wessel@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-parisc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1261603345-2494-6-git-send-email-James.Bottomley@suse.de>
-Sender: linux-parisc-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@suse.de>
-Cc: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([18.85.46.34]:48191 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752856AbZLXLFW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Dec 2009 06:05:22 -0500
+In-Reply-To: <1261603190-5036-6-git-send-email-jason.wessel@windriver.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jason Wessel <jason.wessel@windriver.com>
+Cc: linux-kernel@vger.kernel.org, kgdb-bugreport@lists.sourceforge.net, kdb@oss.sgi.com, mingo@elte.hu, mort@sgi.com, linux-arch@vger.kernel.org
 
-On Wed, Dec 23, 2009 at 03:22:25PM -0600, James Bottomley wrote:
-> xfs_buf.c includes what is essentially a hand rolled version of
-> blk_rq_map_kern().  In order to work properly with the vmalloc buffers
-> that xfs uses, this hand rolled routine must also implement the flushing
-> API for vmap/vmalloc areas.
-> 
-> Signed-off-by: James Bottomley <James.Bottomley@suse.de>
+On Wed, 2009-12-23 at 15:19 -0600, Jason Wessel wrote:
+> diff --git a/kernel/sched.c b/kernel/sched.c
+> index 87f1f47..6e1cfcf 100644
+> --- a/kernel/sched.c
+> +++ b/kernel/sched.c
+> @@ -9785,7 +9785,7 @@ void normalize_rt_tasks(void)
+>  
+>  #endif /* CONFIG_MAGIC_SYSRQ */
+>  
+> -#ifdef CONFIG_IA64
+> +#if    defined(CONFIG_IA64) || defined(CONFIG_KGDB_KDB)
+>  /*
+>   * These functions are only useful for the IA64 MCA handling.
+>   *
+> @@ -10912,6 +10912,97 @@ struct cgroup_subsys cpuacct_subsys = {
+>  };
+>  #endif /* CONFIG_CGROUP_CPUACCT */
+>  
+> +#ifdef CONFIG_KGDB_KDB
+> +#include <linux/kdb.h>
+> +
+> +static void
+> +kdb_prio(char *name, struct rt_prio_array *array, kdb_printf_t xxx_printf,
+> +       unsigned int cpu)
+> +{
+> +       int pri, printed_header = 0;
+> +       struct task_struct *p;
+> +
+> +       xxx_printf("  %s rt bitmap: 0x%lx 0x%lx 0x%lx\n",
+> +               name,
+> +               array->bitmap[0], array->bitmap[1], array->bitmap[2]);
+> +
+> +       pri = sched_find_first_bit(array->bitmap);
+> +       if (pri < MAX_RT_PRIO) {
+> +               xxx_printf("   rt bitmap priorities:");
+> +               while (pri < MAX_RT_PRIO) {
+> +                       xxx_printf(" %d", pri);
+> +                       pri++;
+> +                       pri = find_next_bit(array->bitmap, MAX_RT_PRIO, pri);
+> +               }
+> +               xxx_printf("\n");
+> +       }
+> +
+> +       for (pri = 0; pri < MAX_RT_PRIO; pri++) {
+> +               int printed_hdr = 0;
+> +               struct list_head *head, *curr;
+> +
+> +               head = array->queue + pri;
+> +               curr = head->next;
+> +               while (curr != head) {
+> +                       struct task_struct *task;
+> +                       if (!printed_hdr) {
+> +                               xxx_printf("   queue at priority=%d\n", pri);
+> +                               printed_hdr = 1;
+> +                       }
+> +                       task = list_entry(curr, struct task_struct,
+> +                                         rt.run_list);
+> +                       if (task)
+> +                               xxx_printf("    0x%p %d %s  time_slice:%d\n",
+> +                                  task, task->pid, task->comm,
+> +                                  task->rt.time_slice);
+> +                       curr = curr->next;
+> +               }
+> +       }
+> +       for_each_process(p) {
+> +               if (p->se.on_rq && (task_cpu(p) == cpu) &&
+> +                  (p->policy == SCHED_NORMAL)) {
+> +                       if (!printed_header) {
+> +                               xxx_printf("  sched_normal queue:\n");
+> +                               printed_header = 1;
+> +                       }
+> +                       xxx_printf("    0x%p %d %s pri:%d spri:%d npri:%d\n",
+> +                               p, p->pid, p->comm, p->prio,
+> +                               p->static_prio, p->normal_prio);
+> +               }
+> +       }
+> +}
+> +
+> +/* This code must be in sched.c because struct rq is only defined in this
+> + * source.  To allow most of kdb to be modular, this code cannot call any kdb
+> + * functions directly, any external functions that it needs must be passed in
+> + * as parameters.
+> + */
 
-Looks good except some minor style issues.  Fix in the version below
-which also adds a helper to calculate the length of the vmap area
-instead of calculating it twice.
+Wrong comment style.
 
----
+> +void
+> +kdb_runqueue(unsigned long cpu, kdb_printf_t xxx_printf)
+> +{
+> +       struct rq *rq;
+> +
+> +       rq = cpu_rq(cpu);
+> +
+> +       xxx_printf("CPU%ld lock:%s curr:0x%p(%d)(%s)",
+> +                  cpu, (raw_spin_is_locked(&rq->lock)) ? "LOCKED" : "free",
+> +                  rq->curr, rq->curr->pid, rq->curr->comm);
+> +       if (rq->curr == rq->idle)
+> +               xxx_printf(" is idle");
+> +       xxx_printf("\n ");
+> +#ifdef CONFIG_SMP
+> +       xxx_printf(" cpu_load:%lu %lu %lu",
+> +                       rq->cpu_load[0], rq->cpu_load[1], rq->cpu_load[2]);
+> +#endif
+> +       xxx_printf(" nr_running:%lu nr_switches:%llu\n",
+> +                  rq->nr_running, (long long)rq->nr_switches);
+> +       kdb_prio("active", &rq->rt.active, xxx_printf, (unsigned int)cpu);
+> +}
+> +EXPORT_SYMBOL(kdb_runqueue);
+> +
+> +#endif /* CONFIG_KGDB_KDB */
+> +
 
-From: James Bottomley <James.Bottomley@suse.de>
-Subject: [PATCHv2 5/5] xfs: fix xfs to work with Virtually Indexed architectures
-
-xfs_buf.c includes what is essentially a hand rolled version of
-blk_rq_map_kern().  In order to work properly with the vmalloc buffers
-that xfs uses, this hand rolled routine must also implement the flushing
-API for vmap/vmalloc areas.
-
-Signed-off-by: James Bottomley <James.Bottomley@suse.de>
-
-Index: linux-2.6/fs/xfs/linux-2.6/xfs_buf.c
-===================================================================
---- linux-2.6.orig/fs/xfs/linux-2.6/xfs_buf.c	2009-12-17 08:05:53.962275389 +0100
-+++ linux-2.6/fs/xfs/linux-2.6/xfs_buf.c	2009-12-24 11:59:02.031073134 +0100
-@@ -76,6 +76,27 @@ struct workqueue_struct *xfsconvertd_wor
- #define xfs_buf_deallocate(bp) \
- 	kmem_zone_free(xfs_buf_zone, (bp));
- 
-+static inline int
-+xfs_buf_is_vmapped(
-+	struct xfs_buf	*bp)
-+{
-+	/*
-+	 * Return true if the buffer is vmapped.
-+	 *
-+	 * The XBF_MAPPED flag is set if the buffer should be mapped, but the
-+	 * code is clever enough to know it doesn't have to map a single page,
-+	 * so the check has to be both for XBF_MAPPED and bp->b_page_count > 1.
-+	 */
-+	return (bp->b_flags & XBF_MAPPED) && bp->b_page_count > 1;
-+}
-+
-+static inline int
-+xfs_buf_vmap_len(
-+	struct xfs_buf	*bp)
-+{
-+	return (bp->b_page_count * PAGE_SIZE) - bp->b_offset;
-+}
-+
- /*
-  *	Page Region interfaces.
-  *
-@@ -314,7 +335,7 @@ xfs_buf_free(
- 	if (bp->b_flags & (_XBF_PAGE_CACHE|_XBF_PAGES)) {
- 		uint		i;
- 
--		if ((bp->b_flags & XBF_MAPPED) && (bp->b_page_count > 1))
-+		if (xfs_buf_is_vmapped(bp))
- 			free_address(bp->b_addr - bp->b_offset);
- 
- 		for (i = 0; i < bp->b_page_count; i++) {
-@@ -1107,6 +1128,9 @@ xfs_buf_bio_end_io(
- 
- 	xfs_buf_ioerror(bp, -error);
- 
-+	if (!error && xfs_buf_is_vmapped(bp))
-+		invalidate_kernel_vmap_range(bp->b_addr, xfs_buf_vmap_len(bp));
-+
- 	do {
- 		struct page	*page = bvec->bv_page;
- 
-@@ -1216,6 +1240,10 @@ next_chunk:
- 
- submit_io:
- 	if (likely(bio->bi_size)) {
-+		if (xfs_buf_is_vmapped(bp)) {
-+			flush_kernel_vmap_range(bp->b_addr,
-+						xfs_buf_vmap_len(bp));
-+		}
- 		submit_bio(rw, bio);
- 		if (size)
- 			goto next_chunk;
+So what is this code supposed to do? It looks like it simply cannot be
+correct.
