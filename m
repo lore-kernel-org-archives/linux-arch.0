@@ -1,44 +1,33 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: sys_recvmmsg: wire up or not?
-Date: Sat, 26 Dec 2009 12:12:13 +0100
-Message-ID: <200912261212.14264.arnd@arndb.de>
-References: <10f740e80912260239n17bbbd08w6c3065c12bde9c95@mail.gmail.com>
+From: Mike Frysinger <vapier.adi@gmail.com>
+Subject: Re: [PATCH 05/37] kdb: core for kgdb back end
+Date: Sat, 26 Dec 2009 16:34:02 -0500
+Message-ID: <8bd0f97a0912261334m4f56b8taa0b46636e62923c@mail.gmail.com>
+References: <1261653403.4937.192.camel@laptop> <4B338F5B.9050904@windriver.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:63808 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751863AbZLZLNK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 26 Dec 2009 06:13:10 -0500
-In-Reply-To: <10f740e80912260239n17bbbd08w6c3065c12bde9c95@mail.gmail.com>
+Received: from mail-yw0-f176.google.com ([209.85.211.176]:43785 "EHLO
+	mail-yw0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751403AbZLZVeW convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 26 Dec 2009 16:34:22 -0500
+In-Reply-To: <4B338F5B.9050904@windriver.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Arnaldo Carvalho de Melo <acme@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linux/m68k <linux-m68k@vger.kernel.org>
+To: Jason Wessel <jason.wessel@windriver.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, kdb@oss.sgi.com, mingo@elte.hu, mort@sgi.com, linux-arch@vger.kernel.org
 
-On Saturday 26 December 2009, Geert Uytterhoeven wrote:
-> <stdin>:1523:2: warning: #warning syscall recvmmsg not implemented
-> 
-> so I started to wire up sys_recvmmsg.
-> Then I noticed it's already accessible, through sys_socketcall, as m68k defines
-> __ARCH_WANT_SYS_SOCKETCALL. So I guess this is a false positive?
+On Thu, Dec 24, 2009 at 10:57, Jason Wessel wrote:
+> Peter Zijlstra wrote:
+>> Please never post with kgdb-bugreport@lists.sourceforge.net
+>> in the CC, it generates bounces for everything send to it.
+>
+> The kgdb-bugreports list has been fixed to cease the generation of
+> non-subscriber notifications. =C2=A0All you had to do was indicate th=
+ere was
+> a problem. =C2=A0Non-subscribers are free to post there, and the mess=
+ages go
+> through a filter queue.
 
-Yes.
-
-> Surprisingly, several architectures have both defined __ARCH_WANT_SYS_SOCKETCALL
-> and wired up sys_recvmmsg. Is this intentional?
-
-It's also rather inconsistent with the last socket call that was added, sys_accept4.
-Some architectures that normally define socket calls (parisc, sh) are missing both
-accept4 and recvmmsg, while others that don't have recvmsg now get recvmmsg.
-
-In particular, i386 has recvmmsg now, which caused the warning that you saw.
-I guess that one should be removed, and maybe we need a better logic for
-determining which syscalls you actually want. Deriving it from asm-generic/unistd.h
-instead of arch/x86/include/asm/unistd_32.h is probably better, but would still
-give the wrong answer for multiplexed system calls like socketcall or ipc on 
-existing architectures.
-
-	Arnd
+kgdb@oss.sgi.com needs fixing too it seems
+-mike
