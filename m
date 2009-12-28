@@ -1,62 +1,51 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCHv2 1/5] mm: add coherence API for DMA to vmalloc/vmap
- areas
-Date: Sun, 27 Dec 2009 09:37:30 -0600
-Message-ID: <1261928250.2697.9.camel@mulgrave.site>
-References: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de>
-	 <1261603345-2494-2-git-send-email-James.Bottomley@suse.de>
-	 <20091224100853.GA3165@console-pimps.org>
-	 <20091224123913.GD5335@parisc-linux.org>
+From: Jason Wessel <jason.wessel@windriver.com>
+Subject: Re: [PATCH 05/37] kdb: core for kgdb back end
+Date: Mon, 28 Dec 2009 10:33:09 -0600
+Message-ID: <4B38DDC5.4080202@windriver.com>
+References: <1261603190-5036-1-git-send-email-jason.wessel@windriver.com> <1261603190-5036-2-git-send-email-jason.wessel@windriver.com> <1261603190-5036-3-git-send-email-jason.wessel@windriver.com> <1261603190-5036-4-git-send-email-jason.wessel@windriver.com> <1261603190-5036-5-git-send-email-jason.wessel@windriver.com> <1261603190-5036-6-git-send-email-jason.wessel@windriver.com> <1261652672.4937.189.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:45838 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752151AbZL0Phd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 27 Dec 2009 10:37:33 -0500
-In-Reply-To: <20091224123913.GD5335@parisc-linux.org>
+Received: from mail.windriver.com ([147.11.1.11]:40665 "EHLO
+	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751690AbZL1Qds (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Dec 2009 11:33:48 -0500
+In-Reply-To: <1261652672.4937.189.camel@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, kgdb-bugreport@lists.sourceforge.net, mingo@elte.hu, mort@sgi.com, linux-arch@vger.kernel.org
 
-On Thu, 2009-12-24 at 05:39 -0700, Matthew Wilcox wrote:
-> On Thu, Dec 24, 2009 at 10:08:53AM +0000, Matt Fleming wrote:
-> > On Wed, Dec 23, 2009 at 03:22:21PM -0600, James Bottomley wrote:
-> > > +
-> > > +  void flush_kernel_vmap_range(void *vaddr, int size)
-> > > +       flushes the kernel cache for a given virtual address range in
-> > > +       the vmap area.  This API makes sure that and data the kernel
-> > 
-> >   	      	   	       	   	      	^^^ code and data?
+Peter Zijlstra wrote:
+> On Wed, 2009-12-23 at 15:19 -0600, Jason Wessel wrote:
+>> +kdb_prio(char *name, struct rt_prio_array *array, kdb_printf_t xxx_printf,
+[..]
+>> +kdb_runqueue(unsigned long cpu, kdb_printf_t xxx_printf)
+[..]
 > 
-> I'd guess it's a typo for 'any data'.
+> So what is this code supposed to do? It looks like it simply cannot be
+> correct.
 > 
-> > > +  void invalidate_kernel_vmap_range(void *vaddr, int size)
-> > > +       invalidates the kernel cache for a given virtual address range
-> > > +       in the vmap area.  This API is designed to make sure that while
-> > > +       I/O went on to an address range in the vmap area, the processor
-> > > +       didn't speculate cache reads and thus make the cache over the
-> > > +       virtual address stale.
-> > > +
-> > 
-> > Could this sentence be reworked a little? I find the "over the virtual
-> > address" part a little difficult to parse.
-> 
-> How about:
-> 
-> invalidates the processor cache for a given virtual address range
-> in the vmap area.  This API addresses the problem that the processor
-> may have performed speculative reads into its cache of the vmapped
-> area while I/O was occurring to the underlying physical pages.
 
-So better, I think is
+Beyond the fact that the code may not be right, it is a small part of a kdb module which is not included, and these functions can immediately disappear.  For reference, the original kdb module was called "kdbm_sched" and I believe it was intended as an aid to help debug the scheduler and process priorities in earlier versions of the kernel.
 
-invalidates the cache for a given virtual address range in the vmap area
-which prevents the processor from making the cache stale by
-speculatively reading data while the I/O was occurring to the physical
-pages.
+I have removed all this code and reduced the patch to kernel/sched.c to the following.  The reason we need the attached patch is to be able to call curr_task() for kdb to perform some basic per cpu task analysis while the system is stopped.
 
-James
+Thanks,
+Jason.
+
+--- a/kernel/sched.c
++++ b/kernel/sched.c
+@@ -9784,9 +9784,9 @@ void normalize_rt_tasks(void)
+ 
+ #endif /* CONFIG_MAGIC_SYSRQ */
+ 
+-#ifdef CONFIG_IA64
++#if defined(CONFIG_IA64) || defined(CONFIG_KGDB_KDB)
+ /*
+- * These functions are only useful for the IA64 MCA handling.
++ * These functions are only useful for the IA64 MCA handling, or kdb.
+  *
+  * They can only be called when the whole system has been
+  * stopped - every CPU needs to be quiescent, and no scheduling
