@@ -1,57 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:60681 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751750AbZLXNG2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Dec 2009 08:06:28 -0500
-Date: Thu, 24 Dec 2009 13:06:25 +0000
-From: Matt Fleming <matt@console-pimps.org>
-Subject: Re: [PATCHv2 1/5] mm: add coherence API for DMA to vmalloc/vmap
-	areas
-Message-ID: <20091224130625.GC3165@console-pimps.org>
-References: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de> <1261603345-2494-2-git-send-email-James.Bottomley@suse.de> <20091224100853.GA3165@console-pimps.org> <20091224123913.GD5335@parisc-linux.org>
+Received: from isilmar.linta.de ([213.133.102.198]:54578 "EHLO linta.de"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751932Ab0AAQlR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 Jan 2010 11:41:17 -0500
+Date: Fri, 1 Jan 2010 17:38:11 +0100
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: [RFC] improve alignf() calling convention in allocate_resource()
+Message-ID: <20100101163811.GA8124@comet.dominikbrodowski.net>
+References: <20091220095001.GA6029@comet.dominikbrodowski.net>
+ <alpine.LFD.2.00.0912201026570.3712@localhost.localdomain>
+ <20091221084031.GB1648@isilmar.linta.de>
+ <alpine.LFD.2.00.0912210801260.21722@localhost.localdomain>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20091224123913.GD5335@parisc-linux.org>
+In-Reply-To: <alpine.LFD.2.00.0912210801260.21722@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: James Bottomley <James.Bottomley@suse.de>, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20091224130625.C2zPNOETEU8eABryvYrEZWRfEA0ZIeE_i7gpgEVSzj4@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Bjorn Helgaas <bjorn.helgaas@hp.com>, Yinghai Lu <yhlu.kernel@gmail.com>, Jesse Barnes <jbarnes@virtuousgeek.org>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20100101163811.uVCnLpN9pSZ6YIBq5SyOklhcAcLTGM_TdD9KLuvsieE@z>
 
-On Thu, Dec 24, 2009 at 05:39:13AM -0700, Matthew Wilcox wrote:
-> On Thu, Dec 24, 2009 at 10:08:53AM +0000, Matt Fleming wrote:
-> > On Wed, Dec 23, 2009 at 03:22:21PM -0600, James Bottomley wrote:
-> > > +
-> > > +  void flush_kernel_vmap_range(void *vaddr, int size)
-> > > +       flushes the kernel cache for a given virtual address range in
-> > > +       the vmap area.  This API makes sure that and data the kernel
-> > 
-> >   	      	   	       	   	      	^^^ code and data?
-> 
-> I'd guess it's a typo for 'any data'.
-> 
+On Mon, Dec 21, 2009 at 08:03:02AM -0800, Linus Torvalds wrote:
+> > What about taking my patch for 2.6.33, and deferring the change to the
+> > calling convention to the 2.6.34 merge window? (I'll try to cook something
+> > up and get it into linux-next during the next few weeks).
 
-Aha yes, that would make more sense.
+Based on the previous discussion, I've prepared two patches which change the
+calling convention of alignf() to
 
-> > > +  void invalidate_kernel_vmap_range(void *vaddr, int size)
-> > > +       invalidates the kernel cache for a given virtual address range
-> > > +       in the vmap area.  This API is designed to make sure that while
-> > > +       I/O went on to an address range in the vmap area, the processor
-> > > +       didn't speculate cache reads and thus make the cache over the
-> > > +       virtual address stale.
-> > > +
-> > 
-> > Could this sentence be reworked a little? I find the "over the virtual
-> > address" part a little difficult to parse.
-> 
-> How about:
-> 
-> invalidates the processor cache for a given virtual address range
-> in the vmap area.  This API addresses the problem that the processor
-> may have performed speculative reads into its cache of the vmapped
-> area while I/O was occurring to the underlying physical pages.
-> 
-> Signed-off-by: Matthew Wilcox <willy@linux.intel.com>
+resource_size_t (*alignf)(void *data,
+			  const struct resource *new,
+			  resource_size_t size,
+			  resource_size_t align)
 
-Sounds good to me!
+. Any feedback is welcome.
+
+ arch/alpha/kernel/pci.c                 |    6 +++---
+ arch/arm/kernel/bios32.c                |    8 +++++---
+ arch/cris/arch-v32/drivers/pci/bios.c   |   16 +++++++---------
+ arch/frv/mb93090-mb00/pci-frv.c         |   16 +++++++---------
+ arch/ia64/pci/pci.c                     |    5 +++--
+ arch/mips/pci/pci.c                     |    6 +++---
+ arch/mips/pmc-sierra/yosemite/ht.c      |   10 +++++-----
+ arch/mn10300/unit-asb2305/pci-asb2305.c |   16 +++++++---------
+ arch/parisc/kernel/pci.c                |   10 +++++-----
+ arch/powerpc/kernel/pci-common.c        |   13 ++++++-------
+ arch/sh/drivers/pci/pci.c               |    6 +++---
+ arch/sparc/kernel/pci.c                 |    5 +++--
+ arch/sparc/kernel/pcic.c                |    5 +++--
+ arch/x86/pci/i386.c                     |   14 ++++++--------
+ arch/xtensa/kernel/pci.c                |   15 +++++++--------
+ drivers/pci/bus.c                       |    6 ++++--
+ drivers/pcmcia/rsrc_mgr.c               |   13 +++++++------
+ drivers/pcmcia/rsrc_nonstatic.c         |   22 ++++++++++++----------
+ include/linux/ioport.h                  |    6 ++++--
+ include/linux/pci.h                     |    9 ++++++---
+ kernel/resource.c                       |   14 +++++++++-----
+ 21 files changed, 115 insertions(+), 106 deletions(-)
+
+
+Best,
+	Dominik
