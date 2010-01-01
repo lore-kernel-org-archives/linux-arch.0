@@ -1,7 +1,7 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 2/2] resource: mark struct resource as const
-Date: Fri,  1 Jan 2010 17:40:50 +0100
-Message-ID: <1262364050-8540-2-git-send-email-linux@dominikbrodowski.net>
+Subject: [PATCH 1/2] resource: align functions now return start of resource
+Date: Fri,  1 Jan 2010 17:40:49 +0100
+Message-ID: <1262364050-8540-1-git-send-email-linux@dominikbrodowski.net>
 References: <20100101163811.GA8124@comet.dominikbrodowski.net>
 Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <20100101163811.GA8124@comet.dominikbrodowski.net>
@@ -10,343 +10,637 @@ To: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.ker
 Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Bjorn Helgaas <bjorn.helgaas@hp.com>, Yinghai Lu <yhlu.kernel@gmail.com>, Jesse Barnes <jbarnes@virtuousgeek.org>
 List-Id: linux-arch.vger.kernel.org
 
-Now that we return the new resource start position, there is no
-need to update "struct resource" inside the align function.
-Therefore, mark the struct resource as const.
+As suggested by Linus, align functions should return the start
+of a resource, not void. An update of "res->start" is no longer
+necessary.
 
 Cc: Bjorn Helgaas <bjorn.helgaas@hp.com>
 Cc: Yinghai Lu <yhlu.kernel@gmail.com>
 Cc: Jesse Barnes <jbarnes@virtuousgeek.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- arch/alpha/kernel/pci.c                 |    2 +-
- arch/arm/kernel/bios32.c                |    2 +-
- arch/cris/arch-v32/drivers/pci/bios.c   |    2 +-
- arch/frv/mb93090-mb00/pci-frv.c         |    2 +-
- arch/ia64/pci/pci.c                     |    2 +-
- arch/mips/pci/pci.c                     |    2 +-
- arch/mips/pmc-sierra/yosemite/ht.c      |    2 +-
- arch/mn10300/unit-asb2305/pci-asb2305.c |    2 +-
- arch/parisc/kernel/pci.c                |    2 +-
- arch/powerpc/kernel/pci-common.c        |    2 +-
- arch/sh/drivers/pci/pci.c               |    2 +-
- arch/sparc/kernel/pci.c                 |    2 +-
- arch/sparc/kernel/pcic.c                |    2 +-
- arch/x86/pci/i386.c                     |    2 +-
- arch/xtensa/kernel/pci.c                |    4 ++--
- drivers/pci/bus.c                       |    2 +-
- drivers/pcmcia/rsrc_mgr.c               |    3 ++-
- drivers/pcmcia/rsrc_nonstatic.c         |    6 +++---
- include/linux/ioport.h                  |    2 +-
- include/linux/pci.h                     |    5 +++--
- kernel/resource.c                       |    4 ++--
- 21 files changed, 28 insertions(+), 26 deletions(-)
+ arch/alpha/kernel/pci.c                 |    4 ++--
+ arch/arm/kernel/bios32.c                |    8 +++++---
+ arch/cris/arch-v32/drivers/pci/bios.c   |   14 ++++++--------
+ arch/frv/mb93090-mb00/pci-frv.c         |   14 ++++++--------
+ arch/ia64/pci/pci.c                     |    3 ++-
+ arch/mips/pci/pci.c                     |    4 ++--
+ arch/mips/pmc-sierra/yosemite/ht.c      |   10 +++++-----
+ arch/mn10300/unit-asb2305/pci-asb2305.c |   16 +++++++---------
+ arch/parisc/kernel/pci.c                |   10 +++++-----
+ arch/powerpc/kernel/pci-common.c        |   13 ++++++-------
+ arch/sh/drivers/pci/pci.c               |    6 +++---
+ arch/sparc/kernel/pci.c                 |    5 +++--
+ arch/sparc/kernel/pcic.c                |    5 +++--
+ arch/x86/pci/i386.c                     |   12 +++++-------
+ arch/xtensa/kernel/pci.c                |   11 +++++------
+ drivers/pci/bus.c                       |    6 ++++--
+ drivers/pcmcia/rsrc_mgr.c               |   12 ++++++------
+ drivers/pcmcia/rsrc_nonstatic.c         |   16 +++++++++-------
+ include/linux/ioport.h                  |    6 ++++--
+ include/linux/pci.h                     |    8 +++++---
+ kernel/resource.c                       |   14 +++++++++-----
+ 21 files changed, 102 insertions(+), 95 deletions(-)
 
 diff --git a/arch/alpha/kernel/pci.c b/arch/alpha/kernel/pci.c
-index 5cf111e..c9ab94e 100644
+index a91ba28..5cf111e 100644
 --- a/arch/alpha/kernel/pci.c
 +++ b/arch/alpha/kernel/pci.c
-@@ -127,7 +127,7 @@ DECLARE_PCI_FIXUP_FINAL(PCI_ANY_ID, PCI_ANY_ID, pcibios_fixup_final);
+@@ -126,7 +126,7 @@ DECLARE_PCI_FIXUP_FINAL(PCI_ANY_ID, PCI_ANY_ID, pcibios_fixup_final);
+ #define MB			(1024*KB)
  #define GB			(1024*MB)
  
- resource_size_t
--pcibios_align_resource(void *data, struct resource *res,
-+pcibios_align_resource(void *data, const struct resource *res,
+-void
++resource_size_t
+ pcibios_align_resource(void *data, struct resource *res,
  		       resource_size_t size, resource_size_t align)
  {
- 	struct pci_dev *dev = data;
+@@ -184,7 +184,7 @@ pcibios_align_resource(void *data, struct resource *res,
+ 		}
+ 	}
+ 
+-	res->start = start;
++	return start;
+ }
+ #undef KB
+ #undef MB
 diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
-index a7c85f8..bd397e0 100644
+index 8096819..a7c85f8 100644
 --- a/arch/arm/kernel/bios32.c
 +++ b/arch/arm/kernel/bios32.c
-@@ -616,7 +616,7 @@ char * __init pcibios_setup(char *str)
+@@ -616,15 +616,17 @@ char * __init pcibios_setup(char *str)
   * but we want to try to avoid allocating at 0x2900-0x2bff
   * which might be mirrored at 0x0100-0x03ff..
   */
--resource_size_t pcibios_align_resource(void *data, struct resource *res,
-+resource_size_t pcibios_align_resource(void *data, const struct resource *res,
- 				resource_size_t size, resource_size_t align)
+-void pcibios_align_resource(void *data, struct resource *res,
+-			    resource_size_t size, resource_size_t align)
++resource_size_t pcibios_align_resource(void *data, struct resource *res,
++				resource_size_t size, resource_size_t align)
  {
  	resource_size_t start = res->start;
+ 
+ 	if (res->flags & IORESOURCE_IO && start & 0x300)
+ 		start = (start + 0x3ff) & ~0x3ff;
+ 
+-	res->start = (start + align - 1) & ~(align - 1);
++	start = (start + align - 1) & ~(align - 1);
++
++	return start;
+ }
+ 
+ /**
 diff --git a/arch/cris/arch-v32/drivers/pci/bios.c b/arch/cris/arch-v32/drivers/pci/bios.c
-index 5811e2f..d4b9c36 100644
+index 77ee319..5811e2f 100644
 --- a/arch/cris/arch-v32/drivers/pci/bios.c
 +++ b/arch/cris/arch-v32/drivers/pci/bios.c
-@@ -42,7 +42,7 @@ int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
+@@ -41,18 +41,16 @@ int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
+ 	return 0;
  }
  
- resource_size_t
--pcibios_align_resource(void *data, struct resource *res,
-+pcibios_align_resource(void *data, const struct resource *res,
+-void
++resource_size_t
+ pcibios_align_resource(void *data, struct resource *res,
  		       resource_size_t size, resource_size_t align)
  {
- 	resource_size_t start = res->start;
+-	if (res->flags & IORESOURCE_IO) {
+-		resource_size_t start = res->start;
++	resource_size_t start = res->start;
+ 
+-		if (start & 0x300) {
+-			start = (start + 0x3ff) & ~0x3ff;
+-			res->start = start;
+-		}
+-	}
++	if ((res->flags & IORESOURCE_IO) && (start & 0x300))
++		start = (start + 0x3ff) & ~0x3ff;
++
++	return start
+ }
+ 
+ int pcibios_enable_resources(struct pci_dev *dev, int mask)
 diff --git a/arch/frv/mb93090-mb00/pci-frv.c b/arch/frv/mb93090-mb00/pci-frv.c
-index c947aa4..1ed15d7 100644
+index 566bdeb..c947aa4 100644
 --- a/arch/frv/mb93090-mb00/pci-frv.c
 +++ b/arch/frv/mb93090-mb00/pci-frv.c
-@@ -33,7 +33,7 @@
+@@ -32,18 +32,16 @@
+  * but we want to try to avoid allocating at 0x2900-0x2bff
   * which might have be mirrored at 0x0100-0x03ff..
   */
- resource_size_t
--pcibios_align_resource(void *data, struct resource *res,
-+pcibios_align_resource(void *data, const struct resource *res,
+-void
++resource_size_t
+ pcibios_align_resource(void *data, struct resource *res,
  		       resource_size_t size, resource_size_t align)
  {
- 	resource_size_t start = res->start;
-diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
-index ef574cd..783c83b 100644
---- a/arch/ia64/pci/pci.c
-+++ b/arch/ia64/pci/pci.c
-@@ -548,7 +548,7 @@ pcibios_disable_device (struct pci_dev *dev)
+-	if (res->flags & IORESOURCE_IO) {
+-		resource_size_t start = res->start;
++	resource_size_t start = res->start;
+ 
+-		if (start & 0x300) {
+-			start = (start + 0x3ff) & ~0x3ff;
+-			res->start = start;
+-		}
+-	}
++	if ((res->flags & IORESOURCE_IO) && (start & 0x300))
++		start = (start + 0x3ff) & ~0x3ff;
++
++	return start
  }
  
- resource_size_t
--pcibios_align_resource (void *data, struct resource *res,
-+pcibios_align_resource (void *data, const struct resource *res,
+ 
+diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
+index df639db..ef574cd 100644
+--- a/arch/ia64/pci/pci.c
++++ b/arch/ia64/pci/pci.c
+@@ -547,10 +547,11 @@ pcibios_disable_device (struct pci_dev *dev)
+ 		acpi_pci_irq_disable(dev);
+ }
+ 
+-void
++resource_size_t
+ pcibios_align_resource (void *data, struct resource *res,
  		        resource_size_t size, resource_size_t align)
  {
- 	return res->start;
++	return res->start;
+ }
+ 
+ /*
 diff --git a/arch/mips/pci/pci.c b/arch/mips/pci/pci.c
-index 9085988..f87f5e1 100644
+index 9a11c22..9085988 100644
 --- a/arch/mips/pci/pci.c
 +++ b/arch/mips/pci/pci.c
-@@ -50,7 +50,7 @@ static int pci_initialized;
+@@ -49,7 +49,7 @@ static int pci_initialized;
+  * but we want to try to avoid allocating at 0x2900-0x2bff
   * which might have be mirrored at 0x0100-0x03ff..
   */
- resource_size_t
--pcibios_align_resource(void *data, struct resource *res,
-+pcibios_align_resource(void *data, const struct resource *res,
+-void
++resource_size_t
+ pcibios_align_resource(void *data, struct resource *res,
  		       resource_size_t size, resource_size_t align)
  {
- 	struct pci_dev *dev = data;
+@@ -73,7 +73,7 @@ pcibios_align_resource(void *data, struct resource *res,
+ 			start = PCIBIOS_MIN_MEM + hose->mem_resource->start;
+ 	}
+ 
+-	res->start = start;
++	return start;
+ }
+ 
+ static void __devinit pcibios_scanbus(struct pci_controller *hose)
 diff --git a/arch/mips/pmc-sierra/yosemite/ht.c b/arch/mips/pmc-sierra/yosemite/ht.c
-index 5e41008..fd22597 100644
+index 678388f..5e41008 100644
 --- a/arch/mips/pmc-sierra/yosemite/ht.c
 +++ b/arch/mips/pmc-sierra/yosemite/ht.c
-@@ -345,7 +345,7 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
+@@ -345,14 +345,13 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
          return pcibios_enable_resources(dev);
  }
  
--resource_size_t pcibios_align_resource(void *data, struct resource *res,
-+resource_size_t pcibios_align_resource(void *data, const struct resource *res,
- 				resource_size_t size, resource_size_t align)
+-void pcibios_align_resource(void *data, struct resource *res,
+-                            resource_size_t size, resource_size_t align)
++resource_size_t pcibios_align_resource(void *data, struct resource *res,
++				resource_size_t size, resource_size_t align)
  {
          struct pci_dev *dev = data;
++	resource_size_t start = res->start;
+ 
+         if (res->flags & IORESOURCE_IO) {
+-                resource_size_t start = res->start;
+-
+                 /* We need to avoid collisions with `mirrored' VGA ports
+                    and other strange ISA hardware, so we always want the
+                    addresses kilobyte aligned.  */
+@@ -363,8 +362,9 @@ void pcibios_align_resource(void *data, struct resource *res,
+                 }
+ 
+                 start = (start + 1024 - 1) & ~(1024 - 1);
+-                res->start = start;
+         }
++
++	return start;
+ }
+ 
+ struct pci_ops titan_pci_ops = {
 diff --git a/arch/mn10300/unit-asb2305/pci-asb2305.c b/arch/mn10300/unit-asb2305/pci-asb2305.c
-index 60f24a7..8182fff 100644
+index d100ca7..60f24a7 100644
 --- a/arch/mn10300/unit-asb2305/pci-asb2305.c
 +++ b/arch/mn10300/unit-asb2305/pci-asb2305.c
-@@ -31,7 +31,7 @@
+@@ -31,9 +31,11 @@
   * but we want to try to avoid allocating at 0x2900-0x2bff
   * which might have be mirrored at 0x0100-0x03ff..
   */
--resource_size_t pcibios_align_resource(void *data, struct resource *res,
-+resource_size_t pcibios_align_resource(void *data, const struct resource *res,
- 				resource_size_t size, resource_size_t align)
+-void pcibios_align_resource(void *data, struct resource *res,
+-			    resource_size_t size, resource_size_t align)
++resource_size_t pcibios_align_resource(void *data, struct resource *res,
++				resource_size_t size, resource_size_t align)
  {
- 	resource_size_t start = res->start;
++	resource_size_t start = res->start;
++
+ #if 0
+ 	struct pci_dev *dev = data;
+ 
+@@ -47,14 +49,10 @@ void pcibios_align_resource(void *data, struct resource *res,
+ 	       );
+ #endif
+ 
+-	if (res->flags & IORESOURCE_IO) {
+-		unsigned long start = res->start;
++	if ((res->flags & IORESOURCE_IO) && (start & 0x300))
++		start = (start + 0x3ff) & ~0x3ff;
+ 
+-		if (start & 0x300) {
+-			start = (start + 0x3ff) & ~0x3ff;
+-			res->start = start;
+-		}
+-	}
++	return start;
+ }
+ 
+ 
 diff --git a/arch/parisc/kernel/pci.c b/arch/parisc/kernel/pci.c
-index 4463a31..5179e5e 100644
+index f7064ab..4463a31 100644
 --- a/arch/parisc/kernel/pci.c
 +++ b/arch/parisc/kernel/pci.c
-@@ -254,7 +254,7 @@ EXPORT_SYMBOL(pcibios_bus_to_resource);
+@@ -254,10 +254,10 @@ EXPORT_SYMBOL(pcibios_bus_to_resource);
   * Since we are just checking candidates, don't use any fields other
   * than res->start.
   */
--resource_size_t pcibios_align_resource(void *data, struct resource *res,
-+resource_size_t pcibios_align_resource(void *data, const struct resource *res,
+-void pcibios_align_resource(void *data, struct resource *res,
++resource_size_t pcibios_align_resource(void *data, struct resource *res,
  				resource_size_t size, resource_size_t alignment)
  {
- 	resource_size_t mask, align, start = res->start;
+-	resource_size_t mask, align;
++	resource_size_t mask, align, start = res->start;
+ 
+ 	DBG_RES("pcibios_align_resource(%s, (%p) [%lx,%lx]/%x, 0x%lx, 0x%lx)\n",
+ 		pci_name(((struct pci_dev *) data)),
+@@ -269,10 +269,10 @@ void pcibios_align_resource(void *data, struct resource *res,
+ 
+ 	/* Align to largest of MIN or input size */
+ 	mask = max(alignment, align) - 1;
+-	res->start += mask;
+-	res->start &= ~mask;
++	start += mask;
++	start &= ~mask;
+ 
+-	/* The caller updates the end field, we don't.  */
++	return start;
+ }
+ 
+ 
 diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-index 3e343b8..55045e7 100644
+index e8dfdbd..3e343b8 100644
 --- a/arch/powerpc/kernel/pci-common.c
 +++ b/arch/powerpc/kernel/pci-common.c
-@@ -1168,7 +1168,7 @@ static int skip_isa_ioresource_align(struct pci_dev *dev)
+@@ -1168,21 +1168,20 @@ static int skip_isa_ioresource_align(struct pci_dev *dev)
   * but we want to try to avoid allocating at 0x2900-0x2bff
   * which might have be mirrored at 0x0100-0x03ff..
   */
--resource_size_t pcibios_align_resource(void *data, struct resource *res,
-+resource_size_t pcibios_align_resource(void *data, const struct resource *res,
+-void pcibios_align_resource(void *data, struct resource *res,
++resource_size_t pcibios_align_resource(void *data, struct resource *res,
  				resource_size_t size, resource_size_t align)
  {
  	struct pci_dev *dev = data;
++	resource_size_t start = res->start;
+ 
+ 	if (res->flags & IORESOURCE_IO) {
+-		resource_size_t start = res->start;
+-
+ 		if (skip_isa_ioresource_align(dev))
+-			return;
+-		if (start & 0x300) {
++			return start;
++		if (start & 0x300)
+ 			start = (start + 0x3ff) & ~0x3ff;
+-			res->start = start;
+-		}
+ 	}
++
++	return start;
+ }
+ EXPORT_SYMBOL(pcibios_align_resource);
+ 
 diff --git a/arch/sh/drivers/pci/pci.c b/arch/sh/drivers/pci/pci.c
-index b36ca82..96213fd 100644
+index c481df6..b36ca82 100644
 --- a/arch/sh/drivers/pci/pci.c
 +++ b/arch/sh/drivers/pci/pci.c
-@@ -148,7 +148,7 @@ void __devinit pcibios_fixup_bus(struct pci_bus *bus)
+@@ -148,8 +148,8 @@ void __devinit pcibios_fixup_bus(struct pci_bus *bus)
   * addresses to be allocated in the 0x000-0x0ff region
   * modulo 0x400.
   */
--resource_size_t pcibios_align_resource(void *data, struct resource *res,
-+resource_size_t pcibios_align_resource(void *data, const struct resource *res,
- 				resource_size_t size, resource_size_t align)
+-void pcibios_align_resource(void *data, struct resource *res,
+-			    resource_size_t size, resource_size_t align)
++resource_size_t pcibios_align_resource(void *data, struct resource *res,
++				resource_size_t size, resource_size_t align)
  {
  	struct pci_dev *dev = data;
+ 	struct pci_channel *chan = dev->sysdata;
+@@ -171,7 +171,7 @@ void pcibios_align_resource(void *data, struct resource *res,
+ 			start = PCIBIOS_MIN_MEM + chan->mem_resource->start;
+ 	}
+ 
+-	res->start = start;
++	return start;
+ }
+ 
+ void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
 diff --git a/arch/sparc/kernel/pci.c b/arch/sparc/kernel/pci.c
-index 6381ceb..e71e9ce 100644
+index 539e83f..6381ceb 100644
 --- a/arch/sparc/kernel/pci.c
 +++ b/arch/sparc/kernel/pci.c
-@@ -715,7 +715,7 @@ void pcibios_update_irq(struct pci_dev *pdev, int irq)
+@@ -715,9 +715,10 @@ void pcibios_update_irq(struct pci_dev *pdev, int irq)
  {
  }
  
--resource_size_t pcibios_align_resource(void *data, struct resource *res,
-+resource_size_t pcibios_align_resource(void *data, const struct resource *res,
- 				resource_size_t size, resource_size_t align)
+-void pcibios_align_resource(void *data, struct resource *res,
+-			    resource_size_t size, resource_size_t align)
++resource_size_t pcibios_align_resource(void *data, struct resource *res,
++				resource_size_t size, resource_size_t align)
  {
- 	return res->start;
++	return res->start;
+ }
+ 
+ int pcibios_enable_device(struct pci_dev *dev, int mask)
 diff --git a/arch/sparc/kernel/pcic.c b/arch/sparc/kernel/pcic.c
-index 96fe494..49fcf5f 100644
+index 85e7037..96fe494 100644
 --- a/arch/sparc/kernel/pcic.c
 +++ b/arch/sparc/kernel/pcic.c
-@@ -839,7 +839,7 @@ char * __devinit pcibios_setup(char *str)
+@@ -839,9 +839,10 @@ char * __devinit pcibios_setup(char *str)
  	return str;
  }
  
--resource_size_t pcibios_align_resource(void *data, struct resource *res,
-+resource_size_t pcibios_align_resource(void *data, const struct resource *res,
- 				resource_size_t size, resource_size_t align)
+-void pcibios_align_resource(void *data, struct resource *res,
+-			    resource_size_t size, resource_size_t align)
++resource_size_t pcibios_align_resource(void *data, struct resource *res,
++				resource_size_t size, resource_size_t align)
  {
- 	return res->start;
++	return res->start;
+ }
+ 
+ int pcibios_enable_device(struct pci_dev *pdev, int mask)
 diff --git a/arch/x86/pci/i386.c b/arch/x86/pci/i386.c
-index 924e40c..5a8fbf8 100644
+index 5dc9e8c..924e40c 100644
 --- a/arch/x86/pci/i386.c
 +++ b/arch/x86/pci/i386.c
-@@ -61,7 +61,7 @@ skip_isa_ioresource_align(struct pci_dev *dev) {
+@@ -60,22 +60,20 @@ skip_isa_ioresource_align(struct pci_dev *dev) {
+  * but we want to try to avoid allocating at 0x2900-0x2bff
   * which might have be mirrored at 0x0100-0x03ff..
   */
- resource_size_t
--pcibios_align_resource(void *data, struct resource *res,
-+pcibios_align_resource(void *data, const struct resource *res,
+-void
++resource_size_t
+ pcibios_align_resource(void *data, struct resource *res,
  			resource_size_t size, resource_size_t align)
  {
  	struct pci_dev *dev = data;
++	resource_size_t start = res->start;
+ 
+ 	if (res->flags & IORESOURCE_IO) {
+-		resource_size_t start = res->start;
+-
+ 		if (skip_isa_ioresource_align(dev))
+-			return;
+-		if (start & 0x300) {
++			return start;
++		if (start & 0x300)
+ 			start = (start + 0x3ff) & ~0x3ff;
+-			res->start = start;
+-		}
+ 	}
++	return start;
+ }
+ EXPORT_SYMBOL(pcibios_align_resource);
+ 
 diff --git a/arch/xtensa/kernel/pci.c b/arch/xtensa/kernel/pci.c
-index d7efab0..cd10269 100644
+index b7c0734..d7efab0 100644
 --- a/arch/xtensa/kernel/pci.c
 +++ b/arch/xtensa/kernel/pci.c
-@@ -70,8 +70,8 @@ static int pci_bus_count;
+@@ -69,26 +69,25 @@ static int pci_bus_count;
+  * but we want to try to avoid allocating at 0x2900-0x2bff
   * which might have be mirrored at 0x0100-0x03ff..
   */
- resource_size_t
--pcibios_align_resource(void *data, struct resource *res, resource_size_t size,
--    		       resource_size_t align)
-+pcibios_align_resource(void *data, const struct resource *res,
-+		       resource_size_t size, resource_size_t align)
+-void
++resource_size_t
+ pcibios_align_resource(void *data, struct resource *res, resource_size_t size,
+     		       resource_size_t align)
  {
  	struct pci_dev *dev = data;
- 	resource_size_t start = res->start;
++	resource_size_t start = res->start;
+ 
+ 	if (res->flags & IORESOURCE_IO) {
+-		resource_size_t start = res->start;
+-
+ 		if (size > 0x100) {
+ 			printk(KERN_ERR "PCI: I/O Region %s/%d too large"
+ 			       " (%ld bytes)\n", pci_name(dev),
+ 			       dev->resource - res, size);
+ 		}
+ 
+-		if (start & 0x300) {
++		if (start & 0x300)
+ 			start = (start + 0x3ff) & ~0x3ff;
+-			res->start = start;
+-		}
+ 	}
++
++	return start;
+ }
+ 
+ int
 diff --git a/drivers/pci/bus.c b/drivers/pci/bus.c
-index d29d69a..a26135b 100644
+index cef28a7..d29d69a 100644
 --- a/drivers/pci/bus.c
 +++ b/drivers/pci/bus.c
-@@ -37,7 +37,7 @@ pci_bus_alloc_resource(struct pci_bus *bus, struct resource *res,
+@@ -36,8 +36,10 @@ int
+ pci_bus_alloc_resource(struct pci_bus *bus, struct resource *res,
  		resource_size_t size, resource_size_t align,
  		resource_size_t min, unsigned int type_mask,
- 		resource_size_t (*alignf)(void *,
--					  struct resource *,
-+					  const struct resource *,
- 					  resource_size_t,
- 					  resource_size_t),
+-		void (*alignf)(void *, struct resource *, resource_size_t,
+-				resource_size_t),
++		resource_size_t (*alignf)(void *,
++					  struct resource *,
++					  resource_size_t,
++					  resource_size_t),
  		void *alignf_data)
+ {
+ 	int i, ret = -ENOMEM;
 diff --git a/drivers/pcmcia/rsrc_mgr.c b/drivers/pcmcia/rsrc_mgr.c
-index f92a2da..f8401a0 100644
+index 52db172..f92a2da 100644
 --- a/drivers/pcmcia/rsrc_mgr.c
 +++ b/drivers/pcmcia/rsrc_mgr.c
-@@ -114,7 +114,8 @@ struct pcmcia_align_data {
+@@ -114,22 +114,20 @@ struct pcmcia_align_data {
  	unsigned long	offset;
  };
  
--static resource_size_t pcmcia_align(void *align_data, struct resource *res,
-+static resource_size_t pcmcia_align(void *align_data,
-+				const struct resource *res,
- 				resource_size_t size, resource_size_t align)
+-static void pcmcia_align(void *align_data, struct resource *res,
+-			unsigned long size, unsigned long align)
++static resource_size_t pcmcia_align(void *align_data, struct resource *res,
++				resource_size_t size, resource_size_t align)
  {
  	struct pcmcia_align_data *data = align_data;
-diff --git a/drivers/pcmcia/rsrc_nonstatic.c b/drivers/pcmcia/rsrc_nonstatic.c
-index b659028..45d75dc 100644
---- a/drivers/pcmcia/rsrc_nonstatic.c
-+++ b/drivers/pcmcia/rsrc_nonstatic.c
-@@ -534,7 +534,7 @@ struct pcmcia_align_data {
- };
+-	unsigned long start;
++	resource_size_t start;
  
- static resource_size_t
--pcmcia_common_align(void *align_data, struct resource *res,
-+pcmcia_common_align(void *align_data, const struct resource *res,
- 			resource_size_t size, resource_size_t align)
- {
- 	struct pcmcia_align_data *data = align_data;
-@@ -549,8 +549,8 @@ pcmcia_common_align(void *align_data, struct resource *res,
+ 	start = (res->start & ~data->mask) + data->offset;
+ 	if (start < res->start)
+ 		start += data->mask + 1;
+-	res->start = start;
+ 
+ #ifdef CONFIG_X86
+ 	if (res->flags & IORESOURCE_IO) {
+ 		if (start & 0x300) {
+ 			start = (start + 0x3ff) & ~0x3ff;
+-			res->start = start;
+ 		}
+ 	}
+ #endif
+@@ -137,9 +135,11 @@ static void pcmcia_align(void *align_data, struct resource *res,
+ #ifdef CONFIG_M68K
+ 	if (res->flags & IORESOURCE_IO) {
+ 		if ((res->start + size - 1) >= 1024)
+-			res->start = res->end;
++			start = res->end;
+ 	}
+ #endif
++
++	return start;
  }
  
- static resource_size_t
--pcmcia_align(void *align_data, struct resource *res, resource_size_t size,
--		resource_size_t align)
-+pcmcia_align(void *align_data, const struct resource *res,
-+	resource_size_t size, resource_size_t align)
+ 
+diff --git a/drivers/pcmcia/rsrc_nonstatic.c b/drivers/pcmcia/rsrc_nonstatic.c
+index 9b0dc43..b659028 100644
+--- a/drivers/pcmcia/rsrc_nonstatic.c
++++ b/drivers/pcmcia/rsrc_nonstatic.c
+@@ -533,7 +533,7 @@ struct pcmcia_align_data {
+ 	struct resource_map	*map;
+ };
+ 
+-static void
++static resource_size_t
+ pcmcia_common_align(void *align_data, struct resource *res,
+ 			resource_size_t size, resource_size_t align)
+ {
+@@ -545,17 +545,18 @@ pcmcia_common_align(void *align_data, struct resource *res,
+ 	start = (res->start & ~data->mask) + data->offset;
+ 	if (start < res->start)
+ 		start += data->mask + 1;
+-	res->start = start;
++	return start;
+ }
+ 
+-static void
++static resource_size_t
+ pcmcia_align(void *align_data, struct resource *res, resource_size_t size,
+ 		resource_size_t align)
  {
  	struct pcmcia_align_data *data = align_data;
  	struct resource_map *m;
++	resource_size_t start;
+ 
+-	pcmcia_common_align(data, res, size, align);
++	start = pcmcia_common_align(data, res, size, align);
+ 
+ 	for (m = data->map->next; m != data->map; m = m->next) {
+ 		unsigned long start = m->base;
+@@ -567,8 +568,7 @@ pcmcia_align(void *align_data, struct resource *res, resource_size_t size,
+ 		 * fit here.
+ 		 */
+ 		if (res->start < start) {
+-			res->start = start;
+-			pcmcia_common_align(data, res, size, align);
++			start = pcmcia_common_align(data, res, size, align);
+ 		}
+ 
+ 		/*
+@@ -586,7 +586,9 @@ pcmcia_align(void *align_data, struct resource *res, resource_size_t size,
+ 	 * If we failed to find something suitable, ensure we fail.
+ 	 */
+ 	if (m == data->map)
+-		res->start = res->end;
++		start = res->end;
++
++	return start;
+ }
+ 
+ /*
 diff --git a/include/linux/ioport.h b/include/linux/ioport.h
-index f4195de..4a81189 100644
+index 7129504..f4195de 100644
 --- a/include/linux/ioport.h
 +++ b/include/linux/ioport.h
-@@ -121,7 +121,7 @@ extern int allocate_resource(struct resource *root, struct resource *new,
+@@ -120,8 +120,10 @@ extern void insert_resource_expand_to_fit(struct resource *root, struct resource
+ extern int allocate_resource(struct resource *root, struct resource *new,
  			     resource_size_t size, resource_size_t min,
  			     resource_size_t max, resource_size_t align,
- 			     resource_size_t (*alignf)(void *,
--						       struct resource *,
-+						       const struct resource *,
- 						       resource_size_t,
- 						       resource_size_t),
+-			     void (*alignf)(void *, struct resource *,
+-					    resource_size_t, resource_size_t),
++			     resource_size_t (*alignf)(void *,
++						       struct resource *,
++						       resource_size_t,
++						       resource_size_t),
  			     void *alignf_data);
+ int adjust_resource(struct resource *res, resource_size_t start,
+ 		    resource_size_t size);
 diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 30a6e9b..f5cd77e 100644
+index bf1e670..30a6e9b 100644
 --- a/include/linux/pci.h
 +++ b/include/linux/pci.h
-@@ -562,7 +562,7 @@ int __must_check pcibios_enable_device(struct pci_dev *, int mask);
+@@ -562,7 +562,8 @@ int __must_check pcibios_enable_device(struct pci_dev *, int mask);
  char *pcibios_setup(char *str);
  
  /* Used only when drivers/pci/setup.c is used */
--resource_size_t pcibios_align_resource(void *, struct resource *,
-+resource_size_t pcibios_align_resource(void *, const struct resource *,
- 				resource_size_t,
+-void pcibios_align_resource(void *, struct resource *, resource_size_t,
++resource_size_t pcibios_align_resource(void *, struct resource *,
++				resource_size_t,
  				resource_size_t);
  void pcibios_update_irq(struct pci_dev *, int irq);
-@@ -790,7 +790,8 @@ int __must_check pci_bus_alloc_resource(struct pci_bus *bus,
+ 
+@@ -789,8 +790,9 @@ int __must_check pci_bus_alloc_resource(struct pci_bus *bus,
  			struct resource *res, resource_size_t size,
  			resource_size_t align, resource_size_t min,
  			unsigned int type_mask,
--			resource_size_t (*alignf)(void *, struct resource *,
-+			resource_size_t (*alignf)(void *,
-+						  const struct resource *,
- 						  resource_size_t,
- 						  resource_size_t),
+-			void (*alignf)(void *, struct resource *,
+-				resource_size_t, resource_size_t),
++			resource_size_t (*alignf)(void *, struct resource *,
++						  resource_size_t,
++						  resource_size_t),
  			void *alignf_data);
+ void pci_enable_bridges(struct pci_bus *bus);
+ 
 diff --git a/kernel/resource.c b/kernel/resource.c
-index e697f20..7fd123a 100644
+index af96c1e..e697f20 100644
 --- a/kernel/resource.c
 +++ b/kernel/resource.c
-@@ -304,7 +304,7 @@ static int find_resource(struct resource *root, struct resource *new,
+@@ -303,8 +303,10 @@ int walk_system_ram_range(unsigned long start_pfn, unsigned long nr_pages,
+ static int find_resource(struct resource *root, struct resource *new,
  			 resource_size_t size, resource_size_t min,
  			 resource_size_t max, resource_size_t align,
- 			 resource_size_t (*alignf)(void *,
--						   struct resource *,
-+						   const struct resource *,
- 						   resource_size_t,
- 						   resource_size_t),
+-			 void (*alignf)(void *, struct resource *,
+-					resource_size_t, resource_size_t),
++			 resource_size_t (*alignf)(void *,
++						   struct resource *,
++						   resource_size_t,
++						   resource_size_t),
  			 void *alignf_data)
-@@ -361,7 +361,7 @@ int allocate_resource(struct resource *root, struct resource *new,
+ {
+ 	struct resource *this = root->child;
+@@ -330,7 +332,7 @@ static int find_resource(struct resource *root, struct resource *new,
+ 			tmp.end = max;
+ 		tmp.start = ALIGN(tmp.start, align);
+ 		if (alignf)
+-			alignf(alignf_data, &tmp, size, align);
++			tmp.start = alignf(alignf_data, &tmp, size, align);
+ 		if (tmp.start < tmp.end && tmp.end - tmp.start >= size - 1) {
+ 			new->start = tmp.start;
+ 			new->end = tmp.start + size - 1;
+@@ -358,8 +360,10 @@ static int find_resource(struct resource *root, struct resource *new,
+ int allocate_resource(struct resource *root, struct resource *new,
  		      resource_size_t size, resource_size_t min,
  		      resource_size_t max, resource_size_t align,
- 		      resource_size_t (*alignf)(void *,
--						struct resource *,
-+						const struct resource *,
- 						resource_size_t,
- 						resource_size_t),
+-		      void (*alignf)(void *, struct resource *,
+-				     resource_size_t, resource_size_t),
++		      resource_size_t (*alignf)(void *,
++						struct resource *,
++						resource_size_t,
++						resource_size_t),
  		      void *alignf_data)
+ {
+ 	int err;
 -- 
 1.6.3.3
