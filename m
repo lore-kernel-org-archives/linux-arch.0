@@ -1,40 +1,59 @@
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [PATCH 05/37] kdb: core for kgdb back end
-Date: Tue, 29 Dec 2009 00:37:34 +0100
-Message-ID: <20091228233734.GA15175@basil.fritz.box>
-References: <87y6ktb1p5.fsf@basil.nowhere.org> <4B3932D3.8020608@windriver.com>
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: [RFC] improve alignf() calling convention in allocate_resource()
+Date: Fri, 1 Jan 2010 17:38:11 +0100
+Message-ID: <20100101163811.GA8124@comet.dominikbrodowski.net>
+References: <20091220095001.GA6029@comet.dominikbrodowski.net>
+ <alpine.LFD.2.00.0912201026570.3712@localhost.localdomain>
+ <20091221084031.GB1648@isilmar.linta.de>
+ <alpine.LFD.2.00.0912210801260.21722@localhost.localdomain>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:43513 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752397AbZL1Xhh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Dec 2009 18:37:37 -0500
+Return-path: <linux-pci-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <4B3932D3.8020608@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jason Wessel <jason.wessel@windriver.com>
-Cc: Andi Kleen <andi@firstfloor.org>, linux-kernel@vger.kernel.org, kgdb-bugreport@lists.sourceforge.net, Peter Zijlstra <peterz@infradead.org>, mingo@elte.hu, mort@sgi.com, linux-arch@vger.kernel.org
+In-Reply-To: <alpine.LFD.2.00.0912210801260.21722@localhost.localdomain>
+Sender: linux-pci-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Bjorn Helgaas <bjorn.helgaas@hp.com>, Yinghai Lu <yhlu.kernel@gmail.com>, Jesse Barnes <jbarnes@virtuousgeek.org>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Dec 28, 2009 at 04:36:03PM -0600, Jason Wessel wrote:
-> Andi Kleen wrote:
-> > Jason Wessel <jason.wessel@windriver.com> writes:
-> > 
-> > I remember going with kaos through all the code
-> > outside kdb/ in his own patch and for nearly all hooks
-> > outside we found some way to eliminate them. 
-> > 
-> > I think a lot of this is here too.
-> 
-> 
-> If this has been solved before somewhere, please point me in that direction.  There are whole lot few changes in this series vs original kdb outside of the kdb core area.
+On Mon, Dec 21, 2009 at 08:03:02AM -0800, Linus Torvalds wrote:
+> > What about taking my patch for 2.6.33, and deferring the change to the
+> > calling convention to the 2.6.34 merge window? (I'll try to cook something
+> > up and get it into linux-next during the next few weeks).
 
-I don't think we ever generated patches, just reviewed all the changes
-outside kdb/* and eventually agreed that it wasn't needed or could be done in a much
-cleaner way.
+Based on the previous discussion, I've prepared two patches which change the
+calling convention of alignf() to
 
-Frankly some things can be also just dropped. Or if you're really desperate
-about nops just nop the spinlock functions while kdb runs.
+resource_size_t (*alignf)(void *data,
+			  const struct resource *new,
+			  resource_size_t size,
+			  resource_size_t align)
 
--Andi
+. Any feedback is welcome.
+
+ arch/alpha/kernel/pci.c                 |    6 +++---
+ arch/arm/kernel/bios32.c                |    8 +++++---
+ arch/cris/arch-v32/drivers/pci/bios.c   |   16 +++++++---------
+ arch/frv/mb93090-mb00/pci-frv.c         |   16 +++++++---------
+ arch/ia64/pci/pci.c                     |    5 +++--
+ arch/mips/pci/pci.c                     |    6 +++---
+ arch/mips/pmc-sierra/yosemite/ht.c      |   10 +++++-----
+ arch/mn10300/unit-asb2305/pci-asb2305.c |   16 +++++++---------
+ arch/parisc/kernel/pci.c                |   10 +++++-----
+ arch/powerpc/kernel/pci-common.c        |   13 ++++++-------
+ arch/sh/drivers/pci/pci.c               |    6 +++---
+ arch/sparc/kernel/pci.c                 |    5 +++--
+ arch/sparc/kernel/pcic.c                |    5 +++--
+ arch/x86/pci/i386.c                     |   14 ++++++--------
+ arch/xtensa/kernel/pci.c                |   15 +++++++--------
+ drivers/pci/bus.c                       |    6 ++++--
+ drivers/pcmcia/rsrc_mgr.c               |   13 +++++++------
+ drivers/pcmcia/rsrc_nonstatic.c         |   22 ++++++++++++----------
+ include/linux/ioport.h                  |    6 ++++--
+ include/linux/pci.h                     |    9 ++++++---
+ kernel/resource.c                       |   14 +++++++++-----
+ 21 files changed, 115 insertions(+), 106 deletions(-)
+
+
+Best,
+	Dominik
