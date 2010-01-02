@@ -1,54 +1,52 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCHv2 1/5] mm: add coherence API for DMA to vmalloc/vmap
- areas
-Date: Sun, 03 Jan 2010 08:27:58 +1100
-Message-ID: <1262467678.2173.244.camel@pasglop>
+Subject: Re: [PATCHv2 2/5] parisc: add mm API for DMA to vmalloc/vmap areas
+Date: Sun, 03 Jan 2010 08:33:12 +1100
+Message-ID: <1262467992.2173.247.camel@pasglop>
 References: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de>
 	 <1261603345-2494-2-git-send-email-James.Bottomley@suse.de>
-	 <20091224100853.GA3165@console-pimps.org>
-	 <20091224123913.GD5335@parisc-linux.org>
+	 <1261603345-2494-3-git-send-email-James.Bottomley@suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:59521 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751191Ab0ABV3X (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 2 Jan 2010 16:29:23 -0500
-In-Reply-To: <20091224123913.GD5335@parisc-linux.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Matt Fleming <matt@console-pimps.org>, James Bottomley <James.Bottomley@suse.de>, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <1261603345-2494-3-git-send-email-James.Bottomley@suse.de>
+Sender: linux-parisc-owner@vger.kernel.org
+To: James Bottomley <James.Bottomley@suse.de>
+Cc: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2009-12-24 at 05:39 -0700, Matthew Wilcox wrote:
-> 
-> invalidates the processor cache for a given virtual address range
-> in the vmap area.  This API addresses the problem that the processor
-> may have performed speculative reads into its cache of the vmapped
-> area while I/O was occurring to the underlying physical pages.
-> 
-> Signed-off-by: Matthew Wilcox <willy@linux.intel.com>
+On Wed, 2009-12-23 at 15:22 -0600, James Bottomley wrote:
+>  #define flush_kernel_dcache_range(start,size) \
+>         flush_kernel_dcache_range_asm((start), (start)+(size));
+> +/* vmap range flushes and invalidates.  Architecturally, we don't need
+> + * the invalidate, because the CPU should refuse to speculate once an
+> + * area has been flushed, so invalidate is left empty */
+> +static inline void flush_kernel_vmap_range(void *vaddr, int size)
+> +{
+> +       unsigned long start = (unsigned long)vaddr;
+> +
+> +       flush_kernel_dcache_range_asm(start, start + size);
+> +}
+> +static inline void invalidate_kernel_vmap_range(void *vaddr, int size)
+> +{
+> +}
 
-Interestingly, our DMA APIs in this regard are sub-optimal as they
-should provide 3 hooks, not 2.
+Do I understand correctly that for an inbound DMA you will first call
+flush before starting the DMA, then invalidate at the end of the
+transfer ?
 
-Flush is good for ensuring dirty lines have been pushed out before an
-outgoing DMA.
+See my other message on that subject but I believe this is a sub-optimal
+semantic. I'd rather expose separately dma_vmap_sync_outbound vs.
+dma_vma_sync_inboud_before vs. dma_vma_sync_inboud_after.
 
-But for incoming DMA it would be nice to properly split the 2 calls that
-may be needed on some archs, one before, one after the transfer. Sure,
-invalidate twice will "work" but the f will also be sub-optimal on some
-platforms depending on whether the platform is known to be able or not
-to speculatively load cache lines etc...
-
-Maybe just a "before" vs. "after" argument ?
-
-Also, the proposal goes contrary to most of our DMA APIs which don't
-actually expose the details of invalidate vs. flush but instead expose
-the direction of the transfer (both lack the above subtlety though).
-
-Thoughts ?
+On quite a few archs, an invalidate is a lot faster than a flush (since
+it doesn't require a writeback of potentially useless crap to memory)
+and for an inbound transfer that doesn't cross cache line boundaries,
+invalidate is all that's needed for both before and after. On 44x
+additionally I don't need "after" since the core is too dumb to prefetch
+(or rather it's disabled due to erratas).
 
 Cheers,
 Ben.
+
+
