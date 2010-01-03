@@ -1,61 +1,36 @@
-From: James Bottomley <James.Bottomley@suse.de>
-Subject: Re: [PATCHv2 1/5] mm: add coherence API for DMA to vmalloc/vmap
- areas
-Date: Sat, 02 Jan 2010 15:54:55 -0600
-Message-ID: <1262469295.2741.30.camel@mulgrave.site>
-References: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de>
-	 <1261603345-2494-2-git-send-email-James.Bottomley@suse.de>
-	 <20091224100853.GA3165@console-pimps.org>
-	 <20091224123913.GD5335@parisc-linux.org>
-	 <1262467678.2173.244.camel@pasglop>
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: Re: [PATCH 1/2] resource: align functions now return start of
+ resource
+Date: Sun, 3 Jan 2010 17:30:52 +0100
+Message-ID: <20100103163052.GA5282@comet.dominikbrodowski.net>
+References: <20100101163811.GA8124@comet.dominikbrodowski.net>
+ <1262364050-8540-1-git-send-email-linux@dominikbrodowski.net>
+ <86802c441001011412u1543c1afk6337cd6d3ea0f257@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:47626 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751685Ab0ABVzE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 2 Jan 2010 16:55:04 -0500
-In-Reply-To: <1262467678.2173.244.camel@pasglop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-pci-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <86802c441001011412u1543c1afk6337cd6d3ea0f257@mail.gmail.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, Bjorn Helgaas <bjorn.helgaas@hp.com>, Jesse Barnes <jbarnes@virtuousgeek.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, 2010-01-03 at 08:27 +1100, Benjamin Herrenschmidt wrote:
-> On Thu, 2009-12-24 at 05:39 -0700, Matthew Wilcox wrote:
-> > 
-> > invalidates the processor cache for a given virtual address range
-> > in the vmap area.  This API addresses the problem that the processor
-> > may have performed speculative reads into its cache of the vmapped
-> > area while I/O was occurring to the underlying physical pages.
-> > 
-> > Signed-off-by: Matthew Wilcox <willy@linux.intel.com>
-> 
-> Interestingly, our DMA APIs in this regard are sub-optimal as they
-> should provide 3 hooks, not 2.
-> 
-> Flush is good for ensuring dirty lines have been pushed out before an
-> outgoing DMA.
-> 
-> But for incoming DMA it would be nice to properly split the 2 calls that
-> may be needed on some archs, one before, one after the transfer. Sure,
-> invalidate twice will "work" but the f will also be sub-optimal on some
-> platforms depending on whether the platform is known to be able or not
-> to speculatively load cache lines etc...
-> 
-> Maybe just a "before" vs. "after" argument ?
-> 
-> Also, the proposal goes contrary to most of our DMA APIs which don't
-> actually expose the details of invalidate vs. flush but instead expose
-> the direction of the transfer (both lack the above subtlety though).
-> 
-> Thoughts ?
+Hey,
 
-Well, that's the result of the email thread.  XFS is poking deeply into
-architectural issues by trying to do I/O on a vmap area.  I thought the
-consensus was that if xfs wants to do that then it takes complete
-responsibility for coherence rather than trying to hide it in a block
-API.
+On Fri, Jan 01, 2010 at 02:12:09PM -0800, Yinghai Lu wrote:
+> > - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 res->start =3D start;
+> > - =A0 =A0 =A0 =A0 =A0 =A0 =A0 }
+> > - =A0 =A0 =A0 }
+> > + =A0 =A0 =A0 if ((res->flags & IORESOURCE_IO) && (start & 0x300))
+> > + =A0 =A0 =A0 =A0 =A0 =A0 =A0 start =3D (start + 0x3ff) & ~0x3ff;
+> > +
+> > + =A0 =A0 =A0 return start
+>=20
+> missed ; here?
 
-James
+Indeed -- thanks for the hint.
+
+Best,
+	Dominik
