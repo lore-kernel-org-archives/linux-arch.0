@@ -1,82 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:49473 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:49483 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752000Ab0ACUNT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 3 Jan 2010 15:13:19 -0500
-Subject: Re: [PATCHv2 2/5] parisc: add mm API for DMA to vmalloc/vmap areas
+	id S1752505Ab0ACUO6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 3 Jan 2010 15:14:58 -0500
+Subject: Re: [PATCHv2 1/5] mm: add coherence API for DMA to vmalloc/vmap
+ areas
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <1262469190.2741.27.camel@mulgrave.site>
+In-Reply-To: <1262469295.2741.30.camel@mulgrave.site>
 References: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de>
 	 <1261603345-2494-2-git-send-email-James.Bottomley@suse.de>
-	 <1261603345-2494-3-git-send-email-James.Bottomley@suse.de>
-	 <1262467992.2173.247.camel@pasglop>
-	 <1262469190.2741.27.camel@mulgrave.site>
+	 <20091224100853.GA3165@console-pimps.org>
+	 <20091224123913.GD5335@parisc-linux.org>
+	 <1262467678.2173.244.camel@pasglop>
+	 <1262469295.2741.30.camel@mulgrave.site>
 Content-Type: text/plain; charset="UTF-8"
-Date: Mon, 04 Jan 2010 07:12:52 +1100
-Message-ID: <1262549572.2173.261.camel@pasglop>
+Date: Mon, 04 Jan 2010 07:14:21 +1100
+Message-ID: <1262549661.2173.262.camel@pasglop>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Bottomley <James.Bottomley@suse.de>
-Cc: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20100103201252.PElBARYBUog4EB9oAL-u-YssfGkAJ7zGTz_ZgyNEzaE@z>
+Cc: Matthew Wilcox <matthew@wil.cx>, Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20100103201421.RdIP-LM666XUoovZm68kcDJIe36-bdgpdRcyQdgROX8@z>
 
-On Sat, 2010-01-02 at 15:53 -0600, James Bottomley wrote:
-> 
-> > See my other message on that subject but I believe this is a
-> sub-optimal
-> > semantic. I'd rather expose separately dma_vmap_sync_outbound vs.
-> > dma_vma_sync_inboud_before vs. dma_vma_sync_inboud_after.
-> 
-> Well, this is such a micro optimisation, is it really worth it?
+On Sat, 2010-01-02 at 15:54 -0600, James Bottomley wrote:
+> Well, that's the result of the email thread.  XFS is poking deeply into
+> architectural issues by trying to do I/O on a vmap area.  I thought the
+> consensus was that if xfs wants to do that then it takes complete
+> responsibility for coherence rather than trying to hide it in a block
+> API.
 
-It's not that "micro" in the sense that flush can take significantly
-longer than invalidate. Mostly a non issue except in network.... most
-non cache coherent systems are low end and pretty sensitive to that sort
-of stuff, especially when used as ... routers :-) But yes, it probably
-doesn't matter in your current case of XFS vmap, I was mostly trying to
-push toward generically exposing finer interfaces :-) And god knows
-who'll use your vmap DMA APIs in the future.
-
-> If I map exactly to architectural operations, it's flush (without
-> invalidate if possible) before an outbound DMA transfer and nothing
-> after.  For inbound, it's invalidate before and after (the after only
-> assuming the architecture can do speculative move in), but doing a
-> flush first instead of an invalidate on DMA inbound produces a correct
-> result on architectures I know about.
-
-It is correct. Just sub-optimal ;-) However it does handle another quirk
-which is side effect on "edges". If all is well, the DMA buffer is
-completely self contained in its own cache lines but experience shows
-that isn't always the case and it might share a cache line on the edges
-(typical with skb's).
-
-This is of course utterly broken except in one case (which I -think- is
-the case with skb's) where the data sharing the cache line isn't
-accessed during the DMA transfer.
-
-However, for that to work, as you can see, one needs to flush and not
-invalidate the "edge" cache lines before the inbound transfer. So your
-approach of flush + invalidate is "safer". But I'd still rather have the
-semantic exposed at a higher level so that arch can decide what to use
-and allow for the micro-optimisation...
-
-> Your logic assumes the cache line is dirty.  If you look at the XFS
-> usage, it never seems to do local modifications on a read, so the line
-> should be clean.  At least on parisc, a flush of a clean cache line is
-> exactly equivalent to an invalidate.  Even if there's some write into
-> the read area in xfs I've missed, it's only a few extra cycles because
-> the lines are mostly clean.
-
-Right, in your case of vmap, it doesn't seem to be a big deal, but heh,
-somebody is bound to use it again for something else right ? :-)
-
-Anyways, just some thoughts I've been having about DMA APIs in general,
-I don't say we must change it now, especially not the existing ones, but
-for a -new- API like that I would have preferred if it exposed a richer
-semantic from day 1.
+Well, maybe ... Mostly my comment was about the "other" (standard) DMA
+APIs, ie, the work you do for XFS just reminded me of that issue I've
+been thinking about :-)
 
 Cheers,
 Ben.
+
 
