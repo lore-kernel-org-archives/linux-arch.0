@@ -1,57 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:33772 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751191Ab0ABVda (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 2 Jan 2010 16:33:30 -0500
-Subject: Re: [PATCHv2 2/5] parisc: add mm API for DMA to vmalloc/vmap areas
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <1261603345-2494-3-git-send-email-James.Bottomley@suse.de>
-References: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de>
-	 <1261603345-2494-2-git-send-email-James.Bottomley@suse.de>
-	 <1261603345-2494-3-git-send-email-James.Bottomley@suse.de>
-Content-Type: text/plain; charset="UTF-8"
-Date: Sun, 03 Jan 2010 08:33:12 +1100
-Message-ID: <1262467992.2173.247.camel@pasglop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from isilmar.linta.de ([213.133.102.198]:39680 "EHLO linta.de"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752900Ab0ACQ5J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 3 Jan 2010 11:57:09 -0500
+Date: Sun, 3 Jan 2010 17:30:52 +0100
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: Re: [PATCH 1/2] resource: align functions now return start of
+ resource
+Message-ID: <20100103163052.GA5282@comet.dominikbrodowski.net>
+References: <20100101163811.GA8124@comet.dominikbrodowski.net>
+ <1262364050-8540-1-git-send-email-linux@dominikbrodowski.net>
+ <86802c441001011412u1543c1afk6337cd6d3ea0f257@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <86802c441001011412u1543c1afk6337cd6d3ea0f257@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@suse.de>
-Cc: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20100102213312.45en-h4t-DumYiG63UAw3rzpeM2QpDM-6t1ZfPD9Nfc@z>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, Bjorn Helgaas <bjorn.helgaas@hp.com>, Jesse Barnes <jbarnes@virtuousgeek.org>
+Message-ID: <20100103163052.jpSEXyFVsPbdHkdSxH6KFEoZjHj7AV93gAAeJwm4zDo@z>
 
-On Wed, 2009-12-23 at 15:22 -0600, James Bottomley wrote:
->  #define flush_kernel_dcache_range(start,size) \
->         flush_kernel_dcache_range_asm((start), (start)+(size));
-> +/* vmap range flushes and invalidates.  Architecturally, we don't need
-> + * the invalidate, because the CPU should refuse to speculate once an
-> + * area has been flushed, so invalidate is left empty */
-> +static inline void flush_kernel_vmap_range(void *vaddr, int size)
-> +{
-> +       unsigned long start = (unsigned long)vaddr;
-> +
-> +       flush_kernel_dcache_range_asm(start, start + size);
-> +}
-> +static inline void invalidate_kernel_vmap_range(void *vaddr, int size)
-> +{
-> +}
+Hey,
 
-Do I understand correctly that for an inbound DMA you will first call
-flush before starting the DMA, then invalidate at the end of the
-transfer ?
+On Fri, Jan 01, 2010 at 02:12:09PM -0800, Yinghai Lu wrote:
+> > -                       res->start = start;
+> > -               }
+> > -       }
+> > +       if ((res->flags & IORESOURCE_IO) && (start & 0x300))
+> > +               start = (start + 0x3ff) & ~0x3ff;
+> > +
+> > +       return start
+> 
+> missed ; here?
 
-See my other message on that subject but I believe this is a sub-optimal
-semantic. I'd rather expose separately dma_vmap_sync_outbound vs.
-dma_vma_sync_inboud_before vs. dma_vma_sync_inboud_after.
+Indeed -- thanks for the hint.
 
-On quite a few archs, an invalidate is a lot faster than a flush (since
-it doesn't require a writeback of potentially useless crap to memory)
-and for an inbound transfer that doesn't cross cache line boundaries,
-invalidate is all that's needed for both before and after. On 44x
-additionally I don't need "after" since the core is too dumb to prefetch
-(or rather it's disabled due to erratas).
-
-Cheers,
-Ben.
-
-
+Best,
+	Dominik
