@@ -1,36 +1,47 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCHv2 1/5] mm: add coherence API for DMA to vmalloc/vmap
- areas
-Date: Mon, 04 Jan 2010 07:14:21 +1100
-Message-ID: <1262549661.2173.262.camel@pasglop>
-References: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de>
-	 <1261603345-2494-2-git-send-email-James.Bottomley@suse.de>
-	 <20091224100853.GA3165@console-pimps.org>
-	 <20091224123913.GD5335@parisc-linux.org>
-	 <1262467678.2173.244.camel@pasglop>
-	 <1262469295.2741.30.camel@mulgrave.site>
+From: Webmaster <noreply@ebuppies.com>
+Subject: Request for confirmation
+Date: Mon, 4 Jan 2010 17:21:35 -0500
+Message-ID: <9af9832c9e3bb01ed9fa1e277b6161f1@mail.ebuppies.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <1262469295.2741.30.camel@mulgrave.site>
-Sender: linux-parisc-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@suse.de>
-Cc: Matthew Wilcox <matthew@wil.cx>, Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from alona.agustinaradleylinux.net ([216.246.1.26]:38334 "EHLO
+	server.ebuppies.com" rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org
+	with ESMTP id S1753986Ab0ADWVk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jan 2010 17:21:40 -0500
+Received: from localhost ([127.0.0.1]:44771 helo=mail.ebuppies.com)
+	by server.ebuppies.com with esmtpa (Exim 4.69)
+	(envelope-from <bounces@ebuppies.com>)
+	id 1NRvIt-0007IY-Dp
+	for linux-arch@vger.kernel.org; Mon, 04 Jan 2010 17:21:35 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-On Sat, 2010-01-02 at 15:54 -0600, James Bottomley wrote:
-> Well, that's the result of the email thread.  XFS is poking deeply into
-> architectural issues by trying to do I/O on a vmap area.  I thought the
-> consensus was that if xfs wants to do that then it takes complete
-> responsibility for coherence rather than trying to hide it in a block
-> API.
+Sorry to bother you: we are cleaning up our database and it appears that
+you have previously signed up to eBuppies.com mailinglists and not
+confirmed your subscription.We would like to give you the opportunity to
+re-confirm your subscription. The instructions on how to confirm are below.
+ 
 
-Well, maybe ... Mostly my comment was about the "other" (standard) DMA
-APIs, ie, the work you do for XFS just reminded me of that issue I've
-been thinking about :-)
+  Almost welcome to our newsletter(s) ...
 
-Cheers,
-Ben.
+  Someone, hopefully you, has subscribed your email address to the
+following newsletters:
+  
+  
 
+  If this is correct, please click the following link to confirm your
+subscription.
+  Without this confirmation, you will not receive any newsletters.
+  
+ 
+http://ebuppies.com/emailserv/?p=confirm&uid=0ff72a6772dcd7b2ffd24c579bdf6968
+  
+  If this is not correct, you do not need to do anything, simply delete
+this message.
 
+  Thank you
+  
+    
