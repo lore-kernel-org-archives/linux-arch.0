@@ -1,110 +1,41 @@
-From: Sam Ravnborg <sam@ravnborg.org>
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [PATCH] [2/9] Add a kernel_address() that works for data too
-Date: Tue, 5 Jan 2010 09:58:53 +0100
-Message-ID: <20100105085853.GA28126@merkur.ravnborg.org>
-References: <20100105315.789846878@firstfloor.org> <20100105021527.1AB19B17C2@basil.firstfloor.org>
+Date: Tue, 5 Jan 2010 19:04:55 +0000
+Message-ID: <20100105190455.GE30868@flint.arm.linux.org.uk>
+References: <20100105315.789846878@firstfloor.org> <20100105021527.1AB19B17C2@basil.firstfloor.org> <20100105085853.GA28126@merkur.ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepb.post.tele.dk ([195.41.46.236]:39018 "EHLO
-	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751563Ab0AEJAM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2010 04:00:12 -0500
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:40837 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754109Ab0AETFQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2010 14:05:16 -0500
 Content-Disposition: inline
-In-Reply-To: <20100105021527.1AB19B17C2@basil.firstfloor.org>
+In-Reply-To: <20100105085853.GA28126@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <andi@firstfloor.org>
-Cc: linux-arch@vger.kernel.org, ebiederm@xmission.com, paulmck@linux.vnet.ibm.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Andi Kleen <andi@firstfloor.org>, linux-arch@vger.kernel.org, ebiederm@xmission.com, paulmck@linux.vnet.ibm.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
 
-On Tue, Jan 05, 2010 at 03:15:27AM +0100, Andi Kleen wrote:
+On Tue, Jan 05, 2010 at 09:58:53AM +0100, Sam Ravnborg wrote:
+> But you can trust _etext an almost all architectures.
+> It is a bug if it is missing.
 > 
-> Add a variant of kernel_text_address() that includes kernel data.
+> So [_text, _etext] is the text section.
 > 
-> Assumes kernel is _text ... _end - init section. True everywhere?
+> The data section may be placed before or after - it depends on the architecture.
+> But again - only some architectures define _sdata.
+> But all? define _edata.
 
-Tim Abbott has done a great job lately to unify the various
-linker scripts used by the different architectures.
+You can not guarantee that the data segment is after the text segment,
+unless you want to outlaw XIP kernels.  XIP kernels have the text
+segment mapped at a completely different address to the data segment.
 
-Architectures are supposed to follow the skeleton outlined
-in include/asm-generic/vmlinux.lds.h
+I'd suggest the only way to identify the data segment in a generic way
+is to have everyone define _sdata, or more preferably _data (to be
+consistent with _text), to be the start of the data segment.
 
-But I think the skeleton needs a small update.
-It describes that we mark start of .text with _stext.
-But reality is that we use _text for this.
-
-But you can trust _etext an almost all architectures.
-It is a bug if it is missing.
-
-So [_text, _etext] is the text section.
-
-The data section may be placed before or after - it depends on the architecture.
-But again - only some architectures define _sdata.
-But all? define _edata.
-
-
-	Sam
-
-
-> 
-> Cc: linux-arch@vger.kernel.org
-> Signed-off-by: Andi Kleen <ak@linux.intel.com>
-> 
-> ---
->  include/linux/kernel.h |    1 +
->  kernel/extable.c       |   18 ++++++++++++++++++
->  2 files changed, 19 insertions(+)
-> 
-> Index: linux-2.6.33-rc2-ak/include/linux/kernel.h
-> ===================================================================
-> --- linux-2.6.33-rc2-ak.orig/include/linux/kernel.h
-> +++ linux-2.6.33-rc2-ak/include/linux/kernel.h
-> @@ -205,6 +205,7 @@ extern unsigned long long memparse(const
->  extern int core_kernel_text(unsigned long addr);
->  extern int __kernel_text_address(unsigned long addr);
->  extern int kernel_text_address(unsigned long addr);
-> +extern int kernel_address(unsigned long addr);
->  extern int func_ptr_is_kernel_text(void *ptr);
->  
->  struct pid;
-> Index: linux-2.6.33-rc2-ak/kernel/extable.c
-> ===================================================================
-> --- linux-2.6.33-rc2-ak.orig/kernel/extable.c
-> +++ linux-2.6.33-rc2-ak/kernel/extable.c
-> @@ -72,6 +72,18 @@ int core_kernel_text(unsigned long addr)
->  	return 0;
->  }
->  
-> +static int core_kernel_address(unsigned long addr)
-> +{
-> +	if ((addr >= (unsigned long)_text &&
-> +	     addr <= (unsigned long)_end)) {
-> +		if (addr >= (unsigned long)__init_begin &&
-> +		    addr < (unsigned long)__init_end)
-> +			return system_state == SYSTEM_BOOTING;
-> +		return 1;
-> +	}
-> +	return 0;
-> +}
-> +
->  int __kernel_text_address(unsigned long addr)
->  {
->  	if (core_kernel_text(addr))
-> @@ -98,6 +110,12 @@ int kernel_text_address(unsigned long ad
->  	return is_module_text_address(addr);
->  }
->  
-> +/* text or data in core kernel or module */
-> +int kernel_address(unsigned long addr)
-> +{
-> +	return core_kernel_address(addr) || is_module_address(addr);
-> +}
-> +
->  /*
->   * On some architectures (PPC64, IA64) function pointers
->   * are actually only tokens to some data that then holds the
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
