@@ -1,41 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:49483 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752505Ab0ACUO6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 3 Jan 2010 15:14:58 -0500
-Subject: Re: [PATCHv2 1/5] mm: add coherence API for DMA to vmalloc/vmap
- areas
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <1262469295.2741.30.camel@mulgrave.site>
-References: <1261603345-2494-1-git-send-email-James.Bottomley@suse.de>
-	 <1261603345-2494-2-git-send-email-James.Bottomley@suse.de>
-	 <20091224100853.GA3165@console-pimps.org>
-	 <20091224123913.GD5335@parisc-linux.org>
-	 <1262467678.2173.244.camel@pasglop>
-	 <1262469295.2741.30.camel@mulgrave.site>
-Content-Type: text/plain; charset="UTF-8"
-Date: Mon, 04 Jan 2010 07:14:21 +1100
-Message-ID: <1262549661.2173.262.camel@pasglop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from one.firstfloor.org ([213.235.205.2]:37049 "EHLO
+	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754200Ab0AETPH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2010 14:15:07 -0500
+Date: Tue, 5 Jan 2010 20:15:03 +0100
+From: Andi Kleen <andi@firstfloor.org>
+Subject: Re: [PATCH] [2/9] Add a kernel_address() that works for data too
+Message-ID: <20100105191503.GH1778@basil.fritz.box>
+References: <20100105315.789846878@firstfloor.org> <20100105021527.1AB19B17C2@basil.firstfloor.org> <20100105085853.GA28126@merkur.ravnborg.org> <20100105190455.GE30868@flint.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20100105190455.GE30868@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@suse.de>
-Cc: Matthew Wilcox <matthew@wil.cx>, Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20100103201421.RdIP-LM666XUoovZm68kcDJIe36-bdgpdRcyQdgROX8@z>
+To: Sam Ravnborg <sam@ravnborg.org>, Andi Kleen <andi@firstfloor.org>, linux-arch@vger.kernel.org, ebiederm@xmission.com, paulmck@linux.vnet.ibm.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
+Message-ID: <20100105191503.LjV3uLvTGaWgRB_dN8EpcjsVT34pauQeUsyVbSDLMps@z>
 
-On Sat, 2010-01-02 at 15:54 -0600, James Bottomley wrote:
-> Well, that's the result of the email thread.  XFS is poking deeply into
-> architectural issues by trying to do I/O on a vmap area.  I thought the
-> consensus was that if xfs wants to do that then it takes complete
-> responsibility for coherence rather than trying to hide it in a block
-> API.
+> I'd suggest the only way to identify the data segment in a generic way
+> is to have everyone define _sdata, or more preferably _data (to be
+> consistent with _text), to be the start of the data segment.
 
-Well, maybe ... Mostly my comment was about the "other" (standard) DMA
-APIs, ie, the work you do for XFS just reminded me of that issue I've
-been thinking about :-)
+I agree. I'll take a look at that.
 
-Cheers,
-Ben.
-
-
+-Andi
+-- 
+ak@linux.intel.com -- Speaking for myself only.
