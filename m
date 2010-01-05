@@ -1,47 +1,76 @@
-From: Webmaster <noreply@ebuppies.com>
-Subject: Request for confirmation
-Date: Mon, 4 Jan 2010 17:21:35 -0500
-Message-ID: <9af9832c9e3bb01ed9fa1e277b6161f1@mail.ebuppies.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+From: Andi Kleen <andi@firstfloor.org>
+Subject: [PATCH] [2/9] Add a kernel_address() that works for data too
+Date: Tue,  5 Jan 2010 03:15:27 +0100 (CET)
+Message-ID: <20100105021527.1AB19B17C2@basil.firstfloor.org>
+References: <20100105315.789846878@firstfloor.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from alona.agustinaradleylinux.net ([216.246.1.26]:38334 "EHLO
-	server.ebuppies.com" rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org
-	with ESMTP id S1753986Ab0ADWVk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jan 2010 17:21:40 -0500
-Received: from localhost ([127.0.0.1]:44771 helo=mail.ebuppies.com)
-	by server.ebuppies.com with esmtpa (Exim 4.69)
-	(envelope-from <bounces@ebuppies.com>)
-	id 1NRvIt-0007IY-Dp
-	for linux-arch@vger.kernel.org; Mon, 04 Jan 2010 17:21:35 -0500
+Received: from one.firstfloor.org ([213.235.205.2]:43062 "EHLO
+	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754057Ab0AECPa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jan 2010 21:15:30 -0500
+In-Reply-To: <20100105315.789846878@firstfloor.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org, ebiederm@xmission.com, paulmck@linux.vnet.ibm.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
 
-Sorry to bother you: we are cleaning up our database and it appears that
-you have previously signed up to eBuppies.com mailinglists and not
-confirmed your subscription.We would like to give you the opportunity to
-re-confirm your subscription. The instructions on how to confirm are below.
+
+Add a variant of kernel_text_address() that includes kernel data.
+
+Assumes kernel is _text ... _end - init section. True everywhere?
+
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+
+---
+ include/linux/kernel.h |    1 +
+ kernel/extable.c       |   18 ++++++++++++++++++
+ 2 files changed, 19 insertions(+)
+
+Index: linux-2.6.33-rc2-ak/include/linux/kernel.h
+===================================================================
+--- linux-2.6.33-rc2-ak.orig/include/linux/kernel.h
++++ linux-2.6.33-rc2-ak/include/linux/kernel.h
+@@ -205,6 +205,7 @@ extern unsigned long long memparse(const
+ extern int core_kernel_text(unsigned long addr);
+ extern int __kernel_text_address(unsigned long addr);
+ extern int kernel_text_address(unsigned long addr);
++extern int kernel_address(unsigned long addr);
+ extern int func_ptr_is_kernel_text(void *ptr);
  
-
-  Almost welcome to our newsletter(s) ...
-
-  Someone, hopefully you, has subscribed your email address to the
-following newsletters:
-  
-  
-
-  If this is correct, please click the following link to confirm your
-subscription.
-  Without this confirmation, you will not receive any newsletters.
-  
+ struct pid;
+Index: linux-2.6.33-rc2-ak/kernel/extable.c
+===================================================================
+--- linux-2.6.33-rc2-ak.orig/kernel/extable.c
++++ linux-2.6.33-rc2-ak/kernel/extable.c
+@@ -72,6 +72,18 @@ int core_kernel_text(unsigned long addr)
+ 	return 0;
+ }
  
-http://ebuppies.com/emailserv/?p=confirm&uid=0ff72a6772dcd7b2ffd24c579bdf6968
-  
-  If this is not correct, you do not need to do anything, simply delete
-this message.
-
-  Thank you
-  
-    
++static int core_kernel_address(unsigned long addr)
++{
++	if ((addr >= (unsigned long)_text &&
++	     addr <= (unsigned long)_end)) {
++		if (addr >= (unsigned long)__init_begin &&
++		    addr < (unsigned long)__init_end)
++			return system_state == SYSTEM_BOOTING;
++		return 1;
++	}
++	return 0;
++}
++
+ int __kernel_text_address(unsigned long addr)
+ {
+ 	if (core_kernel_text(addr))
+@@ -98,6 +110,12 @@ int kernel_text_address(unsigned long ad
+ 	return is_module_text_address(addr);
+ }
+ 
++/* text or data in core kernel or module */
++int kernel_address(unsigned long addr)
++{
++	return core_kernel_address(addr) || is_module_address(addr);
++}
++
+ /*
+  * On some architectures (PPC64, IA64) function pointers
+  * are actually only tokens to some data that then holds the
