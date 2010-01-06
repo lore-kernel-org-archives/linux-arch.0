@@ -1,36 +1,80 @@
-From: David Howells <dhowells@redhat.com>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH 3/3] generic sys_ipc wrapper
-Date: Wed, 06 Jan 2010 19:16:12 +0000
-Message-ID: <7501.1262805372@redhat.com>
+Date: Wed, 6 Jan 2010 20:52:11 +0100
+Message-ID: <201001062052.11641.arnd@arndb.de>
 References: <20100106172152.GC17163@lst.de>
+Mime-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:27920 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751193Ab0AFTSf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Jan 2010 14:18:35 -0500
+Received: from moutng.kundenserver.de ([212.227.17.10]:64013 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755943Ab0AFT4t (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jan 2010 14:56:49 -0500
 In-Reply-To: <20100106172152.GC17163@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
-Cc: dhowells@redhat.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, starvik@axis.com, jesper.nilsson@axis.com, ysato@users.sourceforge.jp, takata@linux-m32r.org, geert@linux-m68k.org, zippel@linux-m68k.org, gerg@uclinux.org, ralf@linux-mips.org, benh@kernel.crashing.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, lethal@linux-sh.org, davem@davemloft.net, jdike@addtoit.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, viro@zeniv.linux.org.uk
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, ysato@users.sourceforge.jp, takata@linux-m32r.org, geert@linux-m68k.org, zippel@linux-m68k.org, gerg@uclinux.org, ralf@linux-mips.org, benh@kernel.crashing.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, lethal@linux-sh.org, davem@davemloft.net, jdike@addtoit.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, viro@zeniv.linux.org.uk
 
-Christoph Hellwig <hch@lst.de> wrote:
+On Wednesday 06 January 2010 18:21:52 Christoph Hellwig wrote:
+> 
+> Add a generic implementation of the ipc demultiplexer syscall.  Except for
+> s390 and sparc64 all implementations of the sys_ipc are nearly identical.
 
-> various architectures have different strategies for the SHMAT version 1 case
-> which apparently never gets used - at least on i386 it seems superflous as
-> the compat code on x86-64 and ia64 doesn't even bother to implement it.
+Very nice patch, too bad we didn't already do that ages ago ;)
 
-The SHMAT version 1 case can be dropped for FRV and MN10300 - neither of them
-support iBCS.
+> +		switch (version) {
+> +		default: {
+> +			ulong raddr;
+> +			ret = do_shmat(first, (char __user *)ptr,
+> +				       second, &raddr);
+> +			if (ret)
+> +				return ret;
+> +			return put_user(raddr, (ulong __user *) third);
+> +		}
+> +
+> +#if defined(__i386__) || defined(__frv__) || defined(__mips__) ||\
+> +    defined(__mn10300__)
+> +		case 1:
+> +			/* iBCS2 emulator entry point */
+> +			if (!segment_eq(get_fs(), get_ds()))
+> +				return -EINVAL;
+> +			/*
+> +			 * The "(ulong *) third" is valid _only_ because of
+> +			 * the kernel segment thing.
+> +			 */
+> +			return do_shmat(first, (char __user *) ptr, second,
+> +					(unsigned long *)third);
+> +#endif
+> +#if defined(__arm__) || defined(__sparc__)
+> +		case 1:
+> +			/* Of course, we don't support iBCS2! */
+> +			return -EINVAL;
+> +#endif
+> +		}
 
-> frv goes even further and uses unsigned long for all parameters execept for
-> "ptr" which is a pointer type everywhere.  The change from int to unsigned
-> long for "third" and back to "int" for the others on frv should be fine due
-> to the in-register calling conventions for syscalls (we already had a
-> similar issue with the generic sys_ptrace), but I'd prefer to have the arch
-> maintainers looks over this in details.
+This would not build on any of the architecture mentioned, because of
+incorrect placement of curly braces, but as Al mentioned it should just
+go away entirely.
 
-That should be okay - the registers are all 32-bits, so int, long and pointers
-are all the same size.
+> Index: linux-2.6/arch/powerpc/include/asm/syscalls.h
+> ===================================================================
+> --- linux-2.6.orig/arch/powerpc/include/asm/syscalls.h	2010-01-04 15:44:58.578028035 +0100
+> +++ linux-2.6/arch/powerpc/include/asm/syscalls.h	2010-01-04 15:45:57.408253467 +0100
+> @@ -35,8 +35,6 @@ asmlinkage long sys_pipe2(int __user *fi
+>  asmlinkage long sys_rt_sigaction(int sig,
+>  		const struct sigaction __user *act,
+>  		struct sigaction __user *oact, size_t sigsetsize);
+> -asmlinkage int sys_ipc(uint call, int first, unsigned long second,
+> -		long third, void __user *ptr, long fifth);
+>  asmlinkage long ppc64_personality(unsigned long personality);
+>  asmlinkage int ppc_rtas(struct rtas_args __user *uargs);
+>  asmlinkage time_t sys64_time(time_t __user * tloc);
 
-David
+I did not see you add the prototype back into include/linux/syscalls.h,
+which is required for building some architectures, including ppc64 with
+SPU support.
+
+	Arnd
