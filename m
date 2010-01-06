@@ -1,89 +1,29 @@
-From: Matthew Wilcox <matthew@wil.cx>
+From: Christoph Hellwig <hch@lst.de>
 Subject: Re: [PATCH 1/3] generic sys_old_select
-Date: Wed, 6 Jan 2010 10:32:59 -0700
-Message-ID: <20100106173258.GJ9882@parisc-linux.org>
-References: <20100106172112.GA17163@lst.de>
+Date: Wed, 6 Jan 2010 18:34:38 +0100
+Message-ID: <20100106173438.GA17660@lst.de>
+References: <20100106172112.GA17163@lst.de> <20100106173258.GJ9882@parisc-linux.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:44702 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932400Ab0AFRdB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jan 2010 12:33:01 -0500
+Received: from verein.lst.de ([213.95.11.210]:35808 "EHLO verein.lst.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932329Ab0AFRfh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Jan 2010 12:35:37 -0500
 Content-Disposition: inline
-In-Reply-To: <20100106172112.GA17163@lst.de>
+In-Reply-To: <20100106173258.GJ9882@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, dhowells@redhat.com, ysato@users.sourceforge.jp, tony.luck@intel.com, geert@linux-m68k.org, zippel@linux-m68k.org, gerg@uclinux.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, jdike@addtoit.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, viro@zeniv.linux.org.uk
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Christoph Hellwig <hch@lst.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, dhowells@redhat.com, ysato@users.sourceforge.jp, tony.luck@intel.com, geert@linux-m68k.org, zippel@linux-m68k.org, gerg@uclinux.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, jdike@addtoit.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, viro@zeniv.linux.org.uk
 
-On Wed, Jan 06, 2010 at 06:21:12PM +0100, Christoph Hellwig wrote:
-> Add a generic implementation of the old select syscall, which expects it's
-> argument in a memory block and switch all architectures over to use it.
+On Wed, Jan 06, 2010 at 10:32:59AM -0700, Matthew Wilcox wrote:
+> On Wed, Jan 06, 2010 at 06:21:12PM +0100, Christoph Hellwig wrote:
+> > Add a generic implementation of the old select syscall, which expects it's
+> > argument in a memory block and switch all architectures over to use it.
+> 
+> Don't we want an ifdef around compat_sys_old_select() like the one
+> around sys_old_select()?
 
-Don't we want an ifdef around compat_sys_old_select() like the one
-around sys_old_select()?
-
-> Index: linux-2.6/fs/select.c
-> ===================================================================
-> --- linux-2.6.orig/fs/select.c	2009-12-17 09:39:54.792277244 +0100
-> +++ linux-2.6/fs/select.c	2009-12-26 13:39:31.501255812 +0100
-> @@ -691,6 +691,23 @@ SYSCALL_DEFINE6(pselect6, int, n, fd_set
->  }
->  #endif /* HAVE_SET_RESTORE_SIGMASK */
->  
-> +#ifdef __ARCH_WANT_SYS_OLD_SELECT
-> +struct sel_arg_struct {
-> +	unsigned long n;
-> +	fd_set __user *inp, *outp, *exp;
-> +	struct timeval __user *tvp;
-> +};
-> +
-> +SYSCALL_DEFINE1(old_select, struct sel_arg_struct __user *, arg)
-> +{
-> +	struct sel_arg_struct a;
-> +
-> +	if (copy_from_user(&a, arg, sizeof(a)))
-> +		return -EFAULT;
-> +	return sys_select(a.n, a.inp, a.outp, a.exp, a.tvp);
-> +}
-> +#endif
-> +
->  struct poll_list {
->  	struct poll_list *next;
->  	int len;
-> Index: linux-2.6/fs/compat.c
-> ===================================================================
-> --- linux-2.6.orig/fs/compat.c	2009-12-26 13:43:52.431003939 +0100
-> +++ linux-2.6/fs/compat.c	2009-12-26 13:49:24.179256485 +0100
-> @@ -1795,6 +1795,24 @@ asmlinkage long compat_sys_select(int n,
->  	return ret;
->  }
->  
-> +struct compat_sel_arg_struct {
-> +	compat_ulong_t n;
-> +	compat_ulong_t inp;
-> +	compat_ulong_t outp;
-> +	compat_ulong_t exp;
-> +	compat_ulong_t tvp;
-> +};
-> +
-> +asmlinkage long compat_sys_old_select(struct compat_sel_arg_struct __user *arg)
-> +{
-> +	struct compat_sel_arg_struct a;
-> +
-> +	if (copy_from_user(&a, arg, sizeof(a)))
-> +		return -EFAULT;
-> +	return compat_sys_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
-> +				 compat_ptr(a.exp), compat_ptr(a.tvp));
-> +}
-> +
->  #ifdef HAVE_SET_RESTORE_SIGMASK
->  static long do_compat_pselect(int n, compat_ulong_t __user *inp,
->  	compat_ulong_t __user *outp, compat_ulong_t __user *exp,
-
--- 
-Matthew Wilcox				Intel Open Source Technology Centre
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+Because nothing in compat.c does it.  If we want to bother saving those
+few bites we should do it for more functions, and in a consistant way.
