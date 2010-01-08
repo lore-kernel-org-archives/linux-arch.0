@@ -1,32 +1,34 @@
-From: Andreas Mohr <andi@lisas.de>
-Subject: Re: [PATCH 1/3] generic sys_old_select
-Date: Fri, 8 Jan 2010 23:52:31 +0100
-Message-ID: <20100108225231.GA11332@rhlx01.hs-esslingen.de>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH] [2/9] Add a kernel_address() that works for data too
+Date: Fri, 8 Jan 2010 15:51:11 -0800
+Message-ID: <20100108155111.980b7fd4.akpm@linux-foundation.org>
+References: <20100105315.789846878@firstfloor.org>
+	<20100105021527.1AB19B17C2@basil.firstfloor.org>
+	<20100105085853.GA28126@merkur.ravnborg.org>
+	<20100105190455.GE30868@flint.arm.linux.org.uk>
+	<20100105191503.GH1778@basil.fritz.box>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rhlx01.hs-esslingen.de ([129.143.116.10]:45377 "EHLO
-	rhlx01.hs-esslingen.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754259Ab0AHWwc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jan 2010 17:52:32 -0500
-Content-Disposition: inline
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:60999 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754432Ab0AHXvX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jan 2010 18:51:23 -0500
+In-Reply-To: <20100105191503.GH1778@basil.fritz.box>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Christoph Hellwig <hch@lst.de>, Al Viro <viro@ZenIV.linux.org.uk>, Matthew Wilcox <matthew@wil.cx>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, dhowells@redhat.com, ysato@users.sourceforge.jp, tony.luck@intel.com
+To: Andi Kleen <andi@firstfloor.org>
+Cc: Sam Ravnborg <sam@ravnborg.org>, linux-arch@vger.kernel.org, ebiederm@xmission.com, paulmck@linux.vnet.ibm.com, linux-kernel@vger.kernel.org
 
-> There is, however, a reason *not* to do it which should be carefully
-> considered: by co-locating the compatibility version with the modern
-> version, it gets access to static functions that are part of the
-> implementation of the modern version.  If we move the compatibility
-> versions out, it may entail having to export those statics.
+On Tue, 5 Jan 2010 20:15:03 +0100
+Andi Kleen <andi@firstfloor.org> wrote:
+
+> > I'd suggest the only way to identify the data segment in a generic way
+> > is to have everyone define _sdata, or more preferably _data (to be
+> > consistent with _text), to be the start of the data segment.
 > 
->         -hpa
+> I agree. I'll take a look at that.
+> 
 
-Hmm, do I hear a reason to simply fully #include the (newly separated)
-old-style .c file from within the new-style .c file?
-Not necessarily a wonderful approach, but perhaps it beats doing a "correct
-full separation" and thus having a couple new-born (and unhappy ;) exports
-any day?
-
-Andreas Mohr
+I'll merge this as-is for now.  Please send updates when convenient.
