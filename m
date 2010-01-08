@@ -1,37 +1,32 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
+From: Andreas Mohr <andi@lisas.de>
 Subject: Re: [PATCH 1/3] generic sys_old_select
-Date: Fri, 08 Jan 2010 14:22:41 -0800
-Message-ID: <4B47B031.5000406@zytor.com>
-References: <20100106172112.GA17163@lst.de> <20100106173258.GJ9882@parisc-linux.org> <20100106173438.GA17660@lst.de> <20100106174109.GA30528@ZenIV.linux.org.uk> <20100108093137.GA28722@lst.de>
+Date: Fri, 8 Jan 2010 23:52:31 +0100
+Message-ID: <20100108225231.GA11332@rhlx01.hs-esslingen.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:45652 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752564Ab0AHW2G (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jan 2010 17:28:06 -0500
-In-Reply-To: <20100108093137.GA28722@lst.de>
+Received: from rhlx01.hs-esslingen.de ([129.143.116.10]:45377 "EHLO
+	rhlx01.hs-esslingen.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754259Ab0AHWwc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jan 2010 17:52:32 -0500
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Al Viro <viro@ZenIV.linux.org.uk>, Matthew Wilcox <matthew@wil.cx>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, dhowells@redhat.com, ysato@users.sourceforge.jp, tony.luck@intel.com, geert@linux-m68k.org, zippel@linux-m68k.org, gerg@uclinux.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, jdike@addtoit.com, tglx@linutronix.de, mingo@redhat.com
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Christoph Hellwig <hch@lst.de>, Al Viro <viro@ZenIV.linux.org.uk>, Matthew Wilcox <matthew@wil.cx>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, dhowells@redhat.com, ysato@users.sourceforge.jp, tony.luck@intel.com
 
-On 01/08/2010 01:31 AM, Christoph Hellwig wrote:
-> On Wed, Jan 06, 2010 at 05:41:09PM +0000, Al Viro wrote:
->> Actually, I'd be a lot happier if we had lib/syscall/old_select.c, instead
->> of cluttering fs/select.c with that.  Objections?
+> There is, however, a reason *not* to do it which should be carefully
+> considered: by co-locating the compatibility version with the modern
+> version, it gets access to static functions that are part of the
+> implementation of the modern version.  If we move the compatibility
+> versions out, it may entail having to export those statics.
 > 
-> If we do that let's do it consistantly for various old syscalls, not
-> an odd one out.
+>         -hpa
 
-Yes, and it would be a good idea to do so, rather than hiding all these
-compatibility calls in all kind of random places.
+Hmm, do I hear a reason to simply fully #include the (newly separated)
+old-style .c file from within the new-style .c file?
+Not necessarily a wonderful approach, but perhaps it beats doing a "correct
+full separation" and thus having a couple new-born (and unhappy ;) exports
+any day?
 
-There is, however, a reason *not* to do it which should be carefully
-considered: by co-locating the compatibility version with the modern
-version, it gets access to static functions that are part of the
-implementation of the modern version.  If we move the compatibility
-versions out, it may entail having to export those statics.
-
-	-hpa
+Andreas Mohr
