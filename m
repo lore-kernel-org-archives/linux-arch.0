@@ -1,31 +1,31 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH v2 3/3] generic sys_ipc wrapper
-Date: Fri, 8 Jan 2010 10:50:23 +0100
-Message-ID: <20100108095023.GA29560@lst.de>
-References: <20100106172152.GC17163@lst.de>
+Subject: Re: [PATCH v3 3/3] generic sys_ipc wrapper
+Date: Fri, 8 Jan 2010 11:03:47 +0100
+Message-ID: <20100108100347.GA30353@lst.de>
+References: <20100106172152.GC17163@lst.de> <20100108095023.GA29560@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.210]:50231 "EHLO verein.lst.de"
+Received: from verein.lst.de ([213.95.11.210]:45768 "EHLO verein.lst.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751370Ab0AHJy0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 8 Jan 2010 04:54:26 -0500
+	id S1750748Ab0AHKFc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 8 Jan 2010 05:05:32 -0500
 Content-Disposition: inline
-In-Reply-To: <20100106172152.GC17163@lst.de>
+In-Reply-To: <20100108095023.GA29560@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: linux@arm.linux.org.uk, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, ysato@users.sourceforge.jp, takata@linux-m32r.org, geert@linux-m68k.org, zippel@linux-m68k.org, gerg@uclinux.org, ralf@linux-mips.org, benh@kernel.crashing.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, lethal@linux-sh.org, davem@davemloft.net, jdike@addtoit.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, viro@zeniv.linux.org.uk
 
-Always return -EINVAL for the iBCS2 special case in SHMAT, and add a
-prototype to linux/syscalls.h
+On Fri, Jan 08, 2010 at 10:50:23AM +0100, Christoph Hellwig wrote:
+> Always return -EINVAL for the iBCS2 special case in SHMAT, and add a
+> prototype to linux/syscalls.h
 
+and stop compiling the generic sys_ipc on s390:
 
 ---
-
 From: Christoph Hellwig <hch@lst.de>
 Subject: generic sys_ipc wrapper
-
 
 Add a generic implementation of the ipc demultiplexer syscall.  Except for
 s390 and sparc64 all implementations of the sys_ipc are nearly identical.
@@ -53,7 +53,7 @@ Signed-off-by: Christoph Hellwig <hch@lst.de>
 Index: linux-2.6/ipc/syscall.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/ipc/syscall.c	2010-01-08 10:33:20.828006175 +0100
++++ linux-2.6/ipc/syscall.c	2010-01-08 11:00:02.769255185 +0100
 @@ -0,0 +1,99 @@
 +/*
 + * sys_ipc() is the old de-multiplexer for the SysV IPC calls.
@@ -1793,18 +1793,6 @@ Index: linux-2.6/arch/powerpc/include/asm/unistd.h
  #define __ARCH_WANT_SYS_PAUSE
  #define __ARCH_WANT_SYS_SGETMASK
  #define __ARCH_WANT_SYS_SIGNAL
-Index: linux-2.6/arch/s390/include/asm/unistd.h
-===================================================================
---- linux-2.6.orig/arch/s390/include/asm/unistd.h	2010-01-08 10:30:18.363003950 +0100
-+++ linux-2.6/arch/s390/include/asm/unistd.h	2010-01-08 10:30:18.894254642 +0100
-@@ -381,6 +381,7 @@
- #define __ARCH_WANT_OLD_READDIR
- #define __ARCH_WANT_SYS_ALARM
- #define __ARCH_WANT_SYS_GETHOSTNAME
-+#define __ARCH_WANT_SYS_IPC
- #define __ARCH_WANT_SYS_PAUSE
- #define __ARCH_WANT_SYS_SIGNAL
- #define __ARCH_WANT_SYS_UTIME
 Index: linux-2.6/arch/sh/include/asm/unistd_32.h
 ===================================================================
 --- linux-2.6.orig/arch/sh/include/asm/unistd_32.h	2010-01-08 10:29:59.925003313 +0100
@@ -1859,13 +1847,13 @@ Index: linux-2.6/arch/x86/include/asm/unistd_32.h
 Index: linux-2.6/include/linux/syscalls.h
 ===================================================================
 --- linux-2.6.orig/include/linux/syscalls.h	2010-01-08 10:32:50.258253033 +0100
-+++ linux-2.6/include/linux/syscalls.h	2010-01-08 10:34:31.211270575 +0100
++++ linux-2.6/include/linux/syscalls.h	2010-01-08 11:00:31.440006340 +0100
 @@ -684,6 +684,8 @@ asmlinkage long sys_shmat(int shmid, cha
  asmlinkage long sys_shmget(key_t key, size_t size, int flag);
  asmlinkage long sys_shmdt(char __user *shmaddr);
  asmlinkage long sys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
-+asmlinkage long sys_ipc(unsigned int call, int first, unsigned long second,
-+		long third, void __user *ptr, long fifth);
++asmlinkage long sys_ipc(unsigned int call, int first, int second,
++		unsigned long third, void __user *ptr, long fifth);
  
  asmlinkage long sys_mq_open(const char __user *name, int oflag, mode_t mode, struct mq_attr __user *attr);
  asmlinkage long sys_mq_unlink(const char __user *name);
