@@ -1,34 +1,34 @@
-From: Andi Kleen <ak@linux.intel.com>
-Subject: Re: + add-a-kernel_address-that-works-for-data-too.patch added to
- -mm tree
-Date: Sat, 09 Jan 2010 07:31:57 +0100
-Message-ID: <4B4822DD.2090406@linux.intel.com>
-References: <201001082354.o08Ns4iM021858@imap1.linux-foundation.org>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH 1/3] generic sys_old_select
+Date: Sun, 10 Jan 2010 04:49:54 +0000
+Message-ID: <20100110044954.GB19799@ZenIV.linux.org.uk>
+References: <20100106172112.GA17163@lst.de> <20100106173258.GJ9882@parisc-linux.org> <20100106173438.GA17660@lst.de> <20100106174109.GA30528@ZenIV.linux.org.uk> <20100108093137.GA28722@lst.de> <4B47B031.5000406@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:52137 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750782Ab0AIGcD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 9 Jan 2010 01:32:03 -0500
-In-Reply-To: <201001082354.o08Ns4iM021858@imap1.linux-foundation.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:52730 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751083Ab0AJEun (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Jan 2010 23:50:43 -0500
+Content-Disposition: inline
+In-Reply-To: <4B47B031.5000406@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: mm-commits@vger.kernel.org, andi@firstfloor.org, ebiederm@xmission.com, linux-arch@vger.kernel.org, rmk+lkml@arm.linux.org.uk, rusty@rustcorp.com.au, sam@ravnborg.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Christoph Hellwig <hch@lst.de>, Matthew Wilcox <matthew@wil.cx>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, dhowells@redhat.com, ysato@users.sourceforge.jp, tony.luck@intel.com, geert@linux-m68k.org, zippel@linux-m68k.org, gerg@uclinux.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, jdike@addtoit.com, tglx@linutronix.de, mingo@redhat.com
 
-akpm@linux-foundation.org wrote:
-
-> ------------------------------------------------------
-> Subject: add a kernel_address() that works for data too
-> From: Andi Kleen <andi@firstfloor.org>
+On Fri, Jan 08, 2010 at 02:22:41PM -0800, H. Peter Anvin wrote:
+> > If we do that let's do it consistantly for various old syscalls, not
+> > an odd one out.
 > 
-> Add a variant of kernel_text_address() that includes kernel data.
+> Yes, and it would be a good idea to do so, rather than hiding all these
+> compatibility calls in all kind of random places.
 > 
-> Assumes kernel is _text ... _end - init section. True everywhere?
+> There is, however, a reason *not* to do it which should be carefully
+> considered: by co-locating the compatibility version with the modern
+> version, it gets access to static functions that are part of the
+> implementation of the modern version.  If we move the compatibility
+> versions out, it may entail having to export those statics.
 
-As Russel pointed out that is broken on ARM XIP kernels currently.
-I'm looking at a fix for that.
-
--Andi
+So we don't move such ones...  I agree that it's a separate patch
+queue, BTW.
