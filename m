@@ -1,27 +1,68 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH v3 3/3] generic sys_ipc wrapper
-Date: Sun, 10 Jan 2010 04:51:03 +0000
-Message-ID: <20100110045103.GC19799@ZenIV.linux.org.uk>
-References: <20100106172152.GC17163@lst.de> <20100108095023.GA29560@lst.de> <20100108100347.GA30353@lst.de>
+From: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?=
+	<u.kleine-koenig@pengutronix.de>
+Subject: Re: [PATCH] irq: handle irq0 special only on x86
+Date: Tue, 12 Jan 2010 16:59:29 +0100
+Message-ID: <20100112155929.GA5615@pengutronix.de>
+References: <1260350401-9858-1-git-send-email-u.kleine-koenig@pengutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:52736 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750920Ab0AJEvI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Jan 2010 23:51:08 -0500
+Received: from metis.ext.pengutronix.de ([92.198.50.35]:47250 "EHLO
+	metis.ext.pengutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751424Ab0ALP7e (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jan 2010 10:59:34 -0500
 Content-Disposition: inline
-In-Reply-To: <20100108100347.GA30353@lst.de>
+In-Reply-To: <1260350401-9858-1-git-send-email-u.kleine-koenig@pengutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, ysato@users.sourceforge.jp, takata@linux-m32r.org, geert@linux-m68k.org, zippel@linux-m68k.org, gerg@uclinux.org, ralf@linux-mips.org, benh@kernel.crashing.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, lethal@linux-sh.org, davem@davemloft.net, jdike@addtoit.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com
+To: x86@kernel.org, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 
-On Fri, Jan 08, 2010 at 11:03:47AM +0100, Christoph Hellwig wrote:
-> On Fri, Jan 08, 2010 at 10:50:23AM +0100, Christoph Hellwig wrote:
-> > Always return -EINVAL for the iBCS2 special case in SHMAT, and add a
-> > prototype to linux/syscalls.h
-> 
-> and stop compiling the generic sys_ipc on s390:
+Hello,
 
-... and maybe update the commit message?  Other than that, ACK.
+On Wed, Dec 09, 2009 at 10:20:01AM +0100, Uwe Kleine-K=F6nig wrote:
+> I just noticed this when digging in the irq handling.  At least for a=
+rm
+> this doesn't make sense.  Not sure if x86 is the only arch this test
+> is valid for, but probably it is.
+=2E.. so I added linux-arch@vger.kernel.org
+>=20
+> Signed-off-by: Uwe Kleine-K=F6nig <u.kleine-koenig@pengutronix.de>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: H. Peter Anvin <hpa@zytor.com>
+> ---
+>  kernel/irq/spurious.c |    2 ++
+>  1 files changed, 2 insertions(+), 0 deletions(-)
+>=20
+> diff --git a/kernel/irq/spurious.c b/kernel/irq/spurious.c
+> index 22b0a6e..4996b66 100644
+> --- a/kernel/irq/spurious.c
+> +++ b/kernel/irq/spurious.c
+> @@ -199,8 +199,10 @@ try_misrouted_irq(unsigned int irq, struct irq_d=
+esc *desc,
+>  	if (irqfixup < 2)
+>  		return 0;
+> =20
+> +#if defined(CONFIG_ARCH_X86)
+>  	if (!irq)
+>  		return 1;
+> +#endif
+> =20
+>  	/*
+>  	 * Since we don't get the descriptor lock, "action" can
+the feed-back I have got up to now wasn't helpfull.  (Only some "irq0 i=
+s
+evil---no it's not" discussion.) So what do you think?  I admit the
+#ifdef isn't nice, but if the semantic is OK I'm willing to rework it
+into something more pretty.
+
+Best regards
+Uwe
+
+--=20
+Pengutronix e.K.                              | Uwe Kleine-K=F6nig     =
+       |
+Industrial Linux Solutions                    | http://www.pengutronix.=
+de/  |
