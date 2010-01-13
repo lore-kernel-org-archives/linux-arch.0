@@ -1,148 +1,67 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 1/3] X86: Optimise fls(), ffs() and fls64() [ver #2]
-Date: Wed, 13 Jan 2010 22:29:38 +0000
-Message-ID: <20100113222937.28490.15658.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 2/3] Adjust the comment on get_order() to describe the size==0
+	case [ver #2]
+Date: Wed, 13 Jan 2010 22:29:43 +0000
+Message-ID: <20100113222943.28490.62788.stgit@warthog.procyon.org.uk>
+References: <20100113222937.28490.15658.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:40622 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:41724 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754868Ab0AMW3m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Jan 2010 17:29:42 -0500
-Received: from int-mx04.intmail.prod.int.phx2.redhat.com (int-mx04.intmail.prod.int.phx2.redhat.com [10.5.11.17])
-	by mx1.redhat.com (8.13.8/8.13.8) with ESMTP id o0DMTgRs018686
+	id S1756400Ab0AMW3r (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Jan 2010 17:29:47 -0500
+Received: from int-mx03.intmail.prod.int.phx2.redhat.com (int-mx03.intmail.prod.int.phx2.redhat.com [10.5.11.16])
+	by mx1.redhat.com (8.13.8/8.13.8) with ESMTP id o0DMTkWE018692
 	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=OK)
-	for <linux-arch@vger.kernel.org>; Wed, 13 Jan 2010 17:29:42 -0500
+	for <linux-arch@vger.kernel.org>; Wed, 13 Jan 2010 17:29:46 -0500
+In-Reply-To: <20100113222937.28490.15658.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com
 
-fls(N), ffs(N) and fls64(N) can be optimised on x86/x86_64.  Currently they
-perform checks against N being 0 before invoking the BSR/BSF instruction, or
-use a CMOV instruction afterwards.  Either the check involves a conditional
-jump which we'd like to avoid, or a CMOV, which we'd also quite like to avoid.
-
-Instead, we can make use of the fact that BSR/BSF doesn't modify its output
-register if its input is 0.  By preloading the output with -1 and incrementing
-the result, we achieve the desired result without the need for a conditional
-check.
-
-The 32-bit version of fls64() can also have all its conditional checks removed
-by chaining BSRs with a subtraction in the middle.  However, this may be
-suboptimal on CPUs for which BSR/BSF is really slow (i486 and below for
-example).
+Adjust the comment on get_order() to note that the result of passing a size of
+0 results in an undefined value.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- arch/x86/include/asm/bitops.h |   79 ++++++++++++++++++++++++++---------------
- 1 files changed, 50 insertions(+), 29 deletions(-)
+ include/asm-generic/getorder.h |   23 ++++++++++++++++++++++-
+ 1 files changed, 22 insertions(+), 1 deletions(-)
 
-diff --git a/arch/x86/include/asm/bitops.h b/arch/x86/include/asm/bitops.h
-index 02b47a6..a8e85ab 100644
---- a/arch/x86/include/asm/bitops.h
-+++ b/arch/x86/include/asm/bitops.h
-@@ -394,18 +394,12 @@ static inline unsigned long __fls(unsigned long word)
-  */
- static inline int ffs(int x)
- {
--	int r;
--#ifdef CONFIG_X86_CMOV
--	asm("bsfl %1,%0\n\t"
--	    "cmovzl %2,%0"
--	    : "=r" (r) : "rm" (x), "r" (-1));
--#else
--	asm("bsfl %1,%0\n\t"
--	    "jnz 1f\n\t"
--	    "movl $-1,%0\n"
--	    "1:" : "=r" (r) : "rm" (x));
--#endif
--	return r + 1;
-+	int bitpos = -1;
-+
-+	asm("bsfl %1,%0"
-+	    : "+r" (bitpos)
-+	    : "rm" (x));
-+	return bitpos + 1;
- }
+diff --git a/include/asm-generic/getorder.h b/include/asm-generic/getorder.h
+index 67e7245..76e9687 100644
+--- a/include/asm-generic/getorder.h
++++ b/include/asm-generic/getorder.h
+@@ -5,7 +5,28 @@
  
- /**
-@@ -421,19 +415,52 @@ static inline int ffs(int x)
-  */
- static inline int fls(int x)
- {
--	int r;
--#ifdef CONFIG_X86_CMOV
--	asm("bsrl %1,%0\n\t"
--	    "cmovzl %2,%0"
--	    : "=&r" (r) : "rm" (x), "rm" (-1));
-+	int bitpos = -1;
-+
-+	asm("bsrl %1,%0"
-+	    : "+r" (bitpos)
-+	    : "rm" (x));
-+	return bitpos + 1;
-+}
-+
+ #include <linux/compiler.h>
+ 
+-/* Pure 2^n version of get_order */
 +/**
-+ * fls64 - find last set bit in a 64-bit word
-+ * @x: the word to search
++ * get_order - Determine the allocation order of a memory size
++ * @size: The size for which to get the order
 + *
-+ * This is defined in a similar way as the libc and compiler builtin
-+ * ffsll, but returns the position of the most significant set bit.
++ * Determine the allocation order of a particular sized block of memory.  This
++ * is on a logarithmic scale, where:
 + *
-+ * fls64(value) returns 0 if value is 0 or the position of the last
-+ * set bit if value is nonzero. The last (most significant) bit is
-+ * at position 64.
++ *	0 -> 2^0 * PAGE_SIZE and below
++ *	1 -> 2^1 * PAGE_SIZE to 2^0 * PAGE_SIZE + 1
++ *	2 -> 2^2 * PAGE_SIZE to 2^1 * PAGE_SIZE + 1
++ *	3 -> 2^3 * PAGE_SIZE to 2^2 * PAGE_SIZE + 1
++ *	4 -> 2^4 * PAGE_SIZE to 2^3 * PAGE_SIZE + 1
++ *	...
++ *
++ * The order returned is used to find the smallest allocation granule required
++ * to hold an object of the specified size.
++ *
++ * The result is undefined if the size is 0.
++ *
++ * This function may be used to initialise variables with compile time
++ * evaluations of constants.
 + */
-+#if BITS_PER_LONG == 32
-+static __always_inline int fls64(__u64 x)
-+{
-+	__u32 h = x >> 32;
-+	int bitpos = -1;
-+
-+	asm("bsrl	%1,%0	\n"
-+	    "subl	%2,%0	\n"
-+	    "bsrl	%3,%0	\n"
-+	    : "+r" (bitpos)
-+	    : "rm" (x), "i"(32), "rm" (h));
-+
-+	return bitpos + 33;
-+}
-+#elif BITS_PER_LONG == 64
-+static __always_inline int fls64(__u64 x)
-+{
-+	long bitpos = -1;
-+
-+	asm("bsrq %1,%0"
-+	    : "+r" (bitpos)
-+	    : "rm" (x));
-+	return bitpos + 1;
-+}
- #else
--	asm("bsrl %1,%0\n\t"
--	    "jnz 1f\n\t"
--	    "movl $-1,%0\n"
--	    "1:" : "=r" (r) : "rm" (x));
-+#error BITS_PER_LONG not 32 or 64
- #endif
--	return r + 1;
--}
- #endif /* __KERNEL__ */
- 
- #undef ADDR
-@@ -446,12 +473,6 @@ static inline int fls(int x)
- 
- #include <asm-generic/bitops/hweight.h>
- 
--#endif /* __KERNEL__ */
--
--#include <asm-generic/bitops/fls64.h>
--
--#ifdef __KERNEL__
--
- #include <asm-generic/bitops/ext2-non-atomic.h>
- 
- #define ext2_set_bit_atomic(lock, nr, addr)			\
+ static inline __attribute_const__ int get_order(unsigned long size)
+ {
+ 	int order;
