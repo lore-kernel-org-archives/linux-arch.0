@@ -1,390 +1,81 @@
-From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 3/3] Optimise get_order()
-Date: Wed, 13 Jan 2010 19:39:33 +0000
-Message-ID: <20100113193933.22272.26224.stgit@warthog.procyon.org.uk>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 1/3] X86: Optimise fls(), ffs() and fls64()
+Date: Wed, 13 Jan 2010 21:15:13 +0100
+Message-ID: <10f740e81001131215y6f15b25bq3bfa2ce2cea164a9@mail.gmail.com>
 References: <20100113193923.22272.87546.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47182 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752281Ab0AMTjl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Jan 2010 14:39:41 -0500
-Received: from int-mx05.intmail.prod.int.phx2.redhat.com (int-mx05.intmail.prod.int.phx2.redhat.com [10.5.11.18])
-	by mx1.redhat.com (8.13.8/8.13.8) with ESMTP id o0DJdbtb022006
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=OK)
-	for <linux-arch@vger.kernel.org>; Wed, 13 Jan 2010 14:39:38 -0500
+Received: from mail-pz0-f171.google.com ([209.85.222.171]:41807 "EHLO
+	mail-pz0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755558Ab0AMUPT convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jan 2010 15:15:19 -0500
+Received: by pzk1 with SMTP id 1so7592139pzk.33
+        for <linux-arch@vger.kernel.org>; Wed, 13 Jan 2010 12:15:18 -0800 (PST)
 In-Reply-To: <20100113193923.22272.87546.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: dhowells@redhat.com
+To: David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org
 
-Optimise get_order() to use bit scanning instructions if such exist rather than
-a loop.  Also, make it possible to use get_order() in static initialisations
-too by building it on top of ilog2() in the constant parameter case.
+On Wed, Jan 13, 2010 at 20:39, David Howells <dhowells@redhat.com> wrot=
+e:
+> diff --git a/include/asm-generic/bitops/fls64.h b/include/asm-generic=
+/bitops/fls64.h
+> index b097cf8..f81e04c 100644
+> --- a/include/asm-generic/bitops/fls64.h
+> +++ b/include/asm-generic/bitops/fls64.h
+> @@ -18,16 +18,25 @@
+> =C2=A0static __always_inline int fls64(__u64 x)
+> =C2=A0{
+> =C2=A0 =C2=A0 =C2=A0 =C2=A0__u32 h =3D x >> 32;
+> - =C2=A0 =C2=A0 =C2=A0 if (h)
+> - =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 return fls(h) + 32=
+;
+> - =C2=A0 =C2=A0 =C2=A0 return fls(x);
+> + =C2=A0 =C2=A0 =C2=A0 int bitpos =3D -1;
+> +
+> + =C2=A0 =C2=A0 =C2=A0 asm("bsrl =C2=A0 =C2=A0 =C2=A0 %1,%0 =C2=A0 \n=
+"
+> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 "subl =C2=A0 =C2=A0 =C2=A0 %2,%0=
+ =C2=A0 \n"
+> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 "bsrl =C2=A0 =C2=A0 =C2=A0 %3,%0=
+ =C2=A0 \n"
+> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 : "+r" (bitpos)
+> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 : "rm" (x), "i"(32), "rm" (h));
+> +
+> + =C2=A0 =C2=A0 =C2=A0 return bitpos + 33;
+> =C2=A0}
+> =C2=A0#elif BITS_PER_LONG =3D=3D 64
+> =C2=A0static __always_inline int fls64(__u64 x)
+> =C2=A0{
+> - =C2=A0 =C2=A0 =C2=A0 if (x =3D=3D 0)
+> - =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 return 0;
+> - =C2=A0 =C2=A0 =C2=A0 return __fls(x) + 1;
+> + =C2=A0 =C2=A0 =C2=A0 long bitpos =3D -1;
+> +
+> + =C2=A0 =C2=A0 =C2=A0 asm("bsrq %1,%0"
+> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 : "+r" (bitpos)
+> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 : "rm" (x));
+> + =C2=A0 =C2=A0 =C2=A0 return bitpos + 1;
+> =C2=A0}
+> =C2=A0#else
+> =C2=A0#error BITS_PER_LONG not 32 or 64
 
-This has been tested for i386 and x86_64 using the following userspace program,
-and for FRV by making appropriate substitutions for fls() and fls64().  It will
-abort if the case for get_order() deviates from the original except for the
-order of 0, for which get_order() produces an undefined result.  This program
-tests both dynamic and static parameters.
+Why do you put x86 assembler in asm-generic? Those files are supposed
+to be platform-agnostic.
 
-	#include <stdlib.h>
-	#include <stdio.h>
+Gr{oetje,eeting}s,
 
-	#ifdef __x86_64__
-	#define BITS_PER_LONG 64
-	#else
-	#define BITS_PER_LONG 32
-	#endif
+						Geert
 
-	#define PAGE_SHIFT 12
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
 
-	typedef unsigned long long __u64, u64;
-	typedef unsigned int __u32, u32;
-	#define noinline	__attribute__((noinline))
-
-	static inline int fls(int x)
-	{
-		int bitpos = -1;
-
-		asm("bsrl %1,%0"
-		    : "+r" (bitpos)
-		    : "rm" (x));
-		return bitpos + 1;
-	}
-
-	static __always_inline int fls64(__u64 x)
-	{
-	#if BITS_PER_LONG == 64
-		long bitpos = -1;
-
-		asm("bsrq %1,%0"
-		    : "+r" (bitpos)
-		    : "rm" (x));
-		return bitpos + 1;
-	#else
-		__u32 h = x >> 32, l = x;
-		int bitpos = -1;
-
-		asm("bsrl	%1,%0	\n"
-		    "subl	%2,%0	\n"
-		    "bsrl	%3,%0	\n"
-		    : "+r" (bitpos)
-		    : "rm" (l), "i"(32), "rm" (h));
-
-		return bitpos + 33;
-	#endif
-	}
-
-	static inline __attribute__((const))
-	int __ilog2_u32(u32 n)
-	{
-		return fls(n) - 1;
-	}
-
-	static inline __attribute__((const))
-	int __ilog2_u64(u64 n)
-	{
-		return fls64(n) - 1;
-	}
-
-	extern __attribute__((const, noreturn))
-	int ____ilog2_NaN(void);
-
-	#define ilog2(n)				\
-	(						\
-		__builtin_constant_p(n) ? (		\
-			(n) < 1 ? ____ilog2_NaN() :	\
-			(n) & (1ULL << 63) ? 63 :	\
-			(n) & (1ULL << 62) ? 62 :	\
-			(n) & (1ULL << 61) ? 61 :	\
-			(n) & (1ULL << 60) ? 60 :	\
-			(n) & (1ULL << 59) ? 59 :	\
-			(n) & (1ULL << 58) ? 58 :	\
-			(n) & (1ULL << 57) ? 57 :	\
-			(n) & (1ULL << 56) ? 56 :	\
-			(n) & (1ULL << 55) ? 55 :	\
-			(n) & (1ULL << 54) ? 54 :	\
-			(n) & (1ULL << 53) ? 53 :	\
-			(n) & (1ULL << 52) ? 52 :	\
-			(n) & (1ULL << 51) ? 51 :	\
-			(n) & (1ULL << 50) ? 50 :	\
-			(n) & (1ULL << 49) ? 49 :	\
-			(n) & (1ULL << 48) ? 48 :	\
-			(n) & (1ULL << 47) ? 47 :	\
-			(n) & (1ULL << 46) ? 46 :	\
-			(n) & (1ULL << 45) ? 45 :	\
-			(n) & (1ULL << 44) ? 44 :	\
-			(n) & (1ULL << 43) ? 43 :	\
-			(n) & (1ULL << 42) ? 42 :	\
-			(n) & (1ULL << 41) ? 41 :	\
-			(n) & (1ULL << 40) ? 40 :	\
-			(n) & (1ULL << 39) ? 39 :	\
-			(n) & (1ULL << 38) ? 38 :	\
-			(n) & (1ULL << 37) ? 37 :	\
-			(n) & (1ULL << 36) ? 36 :	\
-			(n) & (1ULL << 35) ? 35 :	\
-			(n) & (1ULL << 34) ? 34 :	\
-			(n) & (1ULL << 33) ? 33 :	\
-			(n) & (1ULL << 32) ? 32 :	\
-			(n) & (1ULL << 31) ? 31 :	\
-			(n) & (1ULL << 30) ? 30 :	\
-			(n) & (1ULL << 29) ? 29 :	\
-			(n) & (1ULL << 28) ? 28 :	\
-			(n) & (1ULL << 27) ? 27 :	\
-			(n) & (1ULL << 26) ? 26 :	\
-			(n) & (1ULL << 25) ? 25 :	\
-			(n) & (1ULL << 24) ? 24 :	\
-			(n) & (1ULL << 23) ? 23 :	\
-			(n) & (1ULL << 22) ? 22 :	\
-			(n) & (1ULL << 21) ? 21 :	\
-			(n) & (1ULL << 20) ? 20 :	\
-			(n) & (1ULL << 19) ? 19 :	\
-			(n) & (1ULL << 18) ? 18 :	\
-			(n) & (1ULL << 17) ? 17 :	\
-			(n) & (1ULL << 16) ? 16 :	\
-			(n) & (1ULL << 15) ? 15 :	\
-			(n) & (1ULL << 14) ? 14 :	\
-			(n) & (1ULL << 13) ? 13 :	\
-			(n) & (1ULL << 12) ? 12 :	\
-			(n) & (1ULL << 11) ? 11 :	\
-			(n) & (1ULL << 10) ? 10 :	\
-			(n) & (1ULL <<  9) ?  9 :	\
-			(n) & (1ULL <<  8) ?  8 :	\
-			(n) & (1ULL <<  7) ?  7 :	\
-			(n) & (1ULL <<  6) ?  6 :	\
-			(n) & (1ULL <<  5) ?  5 :	\
-			(n) & (1ULL <<  4) ?  4 :	\
-			(n) & (1ULL <<  3) ?  3 :	\
-			(n) & (1ULL <<  2) ?  2 :	\
-			(n) & (1ULL <<  1) ?  1 :	\
-			(n) & (1ULL <<  0) ?  0 :	\
-			____ilog2_NaN()			\
-					   ) :		\
-		(sizeof(n) <= 4) ?			\
-		__ilog2_u32(n) :			\
-		__ilog2_u64(n)				\
-	 )
-
-	static noinline __attribute__((const))
-	int old_get_order(unsigned long size)
-	{
-		int order;
-
-		size = (size - 1) >> (PAGE_SHIFT - 1);
-		order = -1;
-		do {
-			size >>= 1;
-			order++;
-		} while (size);
-		return order;
-	}
-
-	static noinline __attribute__((const))
-	int __get_order(unsigned long size)
-	{
-		int order;
-		size--;
-		size >>= PAGE_SHIFT;
-	#if BITS_PER_LONG == 32
-		order = fls(size);
-	#else
-		order = fls64(size);
-	#endif
-		return order;
-	}
-
-	#define get_order(n)						\
-	(								\
-		__builtin_constant_p(n) ? (				\
-			(n == 0UL) ? BITS_PER_LONG - PAGE_SHIFT :	\
-			((n < (1UL << PAGE_SHIFT)) ? 0 :		\
-			 ilog2((n) - 1) - PAGE_SHIFT + 1)		\
-		) :							\
-		__get_order(n)						\
-	)
-
-	#define order(N) \
-		{ (1UL << N) - 1,	get_order((1UL << N) - 1)	},	\
-		{ (1UL << N),		get_order((1UL << N))		},	\
-		{ (1UL << N) + 1,	get_order((1UL << N) + 1)	}
-
-	struct order {
-		unsigned long n, order;
-	};
-
-	static const struct order order_table[] = {
-		order(0),
-		order(1),
-		order(2),
-		order(3),
-		order(4),
-		order(5),
-		order(6),
-		order(7),
-		order(8),
-		order(9),
-		order(10),
-		order(11),
-		order(12),
-		order(13),
-		order(14),
-		order(15),
-		order(16),
-		order(17),
-		order(18),
-		order(19),
-		order(20),
-		order(21),
-		order(22),
-		order(23),
-		order(24),
-		order(25),
-		order(26),
-		order(27),
-		order(28),
-		order(29),
-		order(30),
-		order(31),
-	#if BITS_PER_LONG == 64
-		order(32),
-		order(33),
-		order(34),
-		order(35),
-	#endif
-		{ 0x2929 }
-	};
-
-	void check(int loop, unsigned long n)
-	{
-		unsigned long old, new;
-
-		printf("[%2d]: %09lx | ", loop, n);
-
-		old = old_get_order(n);
-		new = get_order(n);
-
-		printf("%3ld, %3ld\n", old, new);
-		if (n != 0 && old != new)
-			abort();
-	}
-
-	int main(int argc, char **argv)
-	{
-		const struct order *p;
-		unsigned long n;
-		int loop;
-
-		for (loop = 0; loop <= BITS_PER_LONG - 1; loop++) {
-			n = 1UL << loop;
-			check(loop, n - 1);
-			check(loop, n);
-			check(loop, n + 1);
-		}
-
-		for (p = order_table; p->n != 0x2929; p++) {
-			unsigned long old, new;
-
-			old = old_get_order(p->n);
-			new = p->order;
-			printf("%09lx\t%3ld, %3ld\n", p->n, old, new);
-			if (p->n != 0 && old != new)
-				abort();
-		}
-
-		return 0;
-	}
-
-Disassembling the x86_64 version of the above code shows:
-
-	0000000000400510 <old_get_order>:
-	  400510:       48 83 ef 01             sub    $0x1,%rdi
-	  400514:       b8 ff ff ff ff          mov    $0xffffffff,%eax
-	  400519:       48 c1 ef 0b             shr    $0xb,%rdi
-	  40051d:       0f 1f 00                nopl   (%rax)
-	  400520:       83 c0 01                add    $0x1,%eax
-	  400523:       48 d1 ef                shr    %rdi
-	  400526:       75 f8                   jne    400520 <old_get_order+0x10>
-	  400528:       f3 c3                   repz retq
-	  40052a:       66 0f 1f 44 00 00       nopw   0x0(%rax,%rax,1)
-
-	0000000000400530 <__get_order>:
-	  400530:       48 83 ef 01             sub    $0x1,%rdi
-	  400534:       48 c7 c0 ff ff ff ff    mov    $0xffffffffffffffff,%rax
-	  40053b:       48 c1 ef 0c             shr    $0xc,%rdi
-	  40053f:       48 0f bd c7             bsr    %rdi,%rax
-	  400543:       83 c0 01                add    $0x1,%eax
-	  400546:       c3                      retq
-	  400547:       66 0f 1f 84 00 00 00    nopw   0x0(%rax,%rax,1)
-	  40054e:       00 00
-
-As can be seen, the new __get_order() function is simpler than the
-old_get_order() function.
-
-Signed-off-by: David Howells <dhowells@redhat.com>
----
-
- include/asm-generic/getorder.h |   40 ++++++++++++++++++++++++++++------------
- 1 files changed, 28 insertions(+), 12 deletions(-)
-
-diff --git a/include/asm-generic/getorder.h b/include/asm-generic/getorder.h
-index 76e9687..e0fb4bf 100644
---- a/include/asm-generic/getorder.h
-+++ b/include/asm-generic/getorder.h
-@@ -4,6 +4,25 @@
- #ifndef __ASSEMBLY__
- 
- #include <linux/compiler.h>
-+#include <linux/log2.h>
-+
-+/*
-+ * Runtime evaluation of get_order()
-+ */
-+static inline __attribute_const__
-+int __get_order(unsigned long size)
-+{
-+	int order;
-+
-+	size--;
-+	size >>= PAGE_SHIFT;
-+#if BITS_PER_LONG == 32
-+	order = fls(size);
-+#else
-+	order = fls64(size);
-+#endif
-+	return order;
-+}
- 
- /**
-  * get_order - Determine the allocation order of a memory size
-@@ -27,18 +46,15 @@
-  * This function may be used to initialise variables with compile time
-  * evaluations of constants.
-  */
--static inline __attribute_const__ int get_order(unsigned long size)
--{
--	int order;
--
--	size = (size - 1) >> (PAGE_SHIFT - 1);
--	order = -1;
--	do {
--		size >>= 1;
--		order++;
--	} while (size);
--	return order;
--}
-+#define get_order(n)						\
-+(								\
-+	__builtin_constant_p(n) ? (				\
-+		(n == 0UL) ? BITS_PER_LONG - PAGE_SHIFT :	\
-+		((n < (1UL << PAGE_SHIFT)) ? 0 :		\
-+		 ilog2((n) - 1) - PAGE_SHIFT + 1)		\
-+	) :							\
-+	__get_order(n)						\
-+)
- 
- #endif	/* __ASSEMBLY__ */
- 
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+							    -- Linus Torvalds
