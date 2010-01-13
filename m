@@ -1,68 +1,38 @@
-From: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?=
-	<u.kleine-koenig@pengutronix.de>
+From: "H. Peter Anvin" <hpa@zytor.com>
 Subject: Re: [PATCH] irq: handle irq0 special only on x86
-Date: Tue, 12 Jan 2010 16:59:29 +0100
-Message-ID: <20100112155929.GA5615@pengutronix.de>
-References: <1260350401-9858-1-git-send-email-u.kleine-koenig@pengutronix.de>
+Date: Tue, 12 Jan 2010 20:59:21 -0800
+Message-ID: <4B4D5329.7050107@zytor.com>
+References: <1260350401-9858-1-git-send-email-u.kleine-koenig@pengutronix.de> <20100112155929.GA5615@pengutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from metis.ext.pengutronix.de ([92.198.50.35]:47250 "EHLO
-	metis.ext.pengutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751424Ab0ALP7e (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jan 2010 10:59:34 -0500
-Content-Disposition: inline
-In-Reply-To: <1260350401-9858-1-git-send-email-u.kleine-koenig@pengutronix.de>
+Received: from terminus.zytor.com ([198.137.202.10]:48744 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750882Ab0AMFLU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jan 2010 00:11:20 -0500
+In-Reply-To: <20100112155929.GA5615@pengutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+To: =?UTF-8?B?VXdlIEtsZWluZS1Lw7ZuaWc=?= <u.kleine-koenig@pengutronix.de>
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>
 
-Hello,
+On 01/12/2010 07:59 AM, Uwe Kleine-K=C3=B6nig wrote:
+> the feed-back I have got up to now wasn't helpfull.  (Only some "irq0=
+ is
+> evil---no it's not" discussion.) So what do you think?  I admit the
+> #ifdef isn't nice, but if the semantic is OK I'm willing to rework it
+> into something more pretty.
 
-On Wed, Dec 09, 2009 at 10:20:01AM +0100, Uwe Kleine-K=F6nig wrote:
-> I just noticed this when digging in the irq handling.  At least for a=
-rm
-> this doesn't make sense.  Not sure if x86 is the only arch this test
-> is valid for, but probably it is.
-=2E.. so I added linux-arch@vger.kernel.org
->=20
-> Signed-off-by: Uwe Kleine-K=F6nig <u.kleine-koenig@pengutronix.de>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: H. Peter Anvin <hpa@zytor.com>
-> ---
->  kernel/irq/spurious.c |    2 ++
->  1 files changed, 2 insertions(+), 0 deletions(-)
->=20
-> diff --git a/kernel/irq/spurious.c b/kernel/irq/spurious.c
-> index 22b0a6e..4996b66 100644
-> --- a/kernel/irq/spurious.c
-> +++ b/kernel/irq/spurious.c
-> @@ -199,8 +199,10 @@ try_misrouted_irq(unsigned int irq, struct irq_d=
-esc *desc,
->  	if (irqfixup < 2)
->  		return 0;
-> =20
-> +#if defined(CONFIG_ARCH_X86)
->  	if (!irq)
->  		return 1;
-> +#endif
-> =20
->  	/*
->  	 * Since we don't get the descriptor lock, "action" can
-the feed-back I have got up to now wasn't helpfull.  (Only some "irq0 i=
-s
-evil---no it's not" discussion.) So what do you think?  I admit the
-#ifdef isn't nice, but if the semantic is OK I'm willing to rework it
-into something more pretty.
+There was a debate on this a long time ago, and the outcome was that IR=
+Q
+0 is invalid, across the kernel, and that it is up to each architecture
+to carry exceptions (like IRQ 0 for the timer interrupt in x86.)  Hinc
+dictat Linus, so you would have to convince him before any of the arch
+maintainer could realistically even consider this change.
 
-Best regards
-Uwe
+	-hpa
 
 --=20
-Pengutronix e.K.                              | Uwe Kleine-K=F6nig     =
-       |
-Industrial Linux Solutions                    | http://www.pengutronix.=
-de/  |
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
