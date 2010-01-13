@@ -1,25 +1,148 @@
 From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 1/3] X86: Optimise fls(), ffs() and fls64()
-Date: Wed, 13 Jan 2010 21:59:23 +0000
-Message-ID: <28821.1263419963@redhat.com>
-References: <10f740e81001131215y6f15b25bq3bfa2ce2cea164a9@mail.gmail.com> <20100113193923.22272.87546.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 1/3] X86: Optimise fls(), ffs() and fls64() [ver #2]
+Date: Wed, 13 Jan 2010 22:29:38 +0000
+Message-ID: <20100113222937.28490.15658.stgit@warthog.procyon.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:64381 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:40622 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756414Ab0AMV7i (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Jan 2010 16:59:38 -0500
-In-Reply-To: <10f740e81001131215y6f15b25bq3bfa2ce2cea164a9@mail.gmail.com>
+	id S1754868Ab0AMW3m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Jan 2010 17:29:42 -0500
+Received: from int-mx04.intmail.prod.int.phx2.redhat.com (int-mx04.intmail.prod.int.phx2.redhat.com [10.5.11.17])
+	by mx1.redhat.com (8.13.8/8.13.8) with ESMTP id o0DMTgRs018686
+	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=OK)
+	for <linux-arch@vger.kernel.org>; Wed, 13 Jan 2010 17:29:42 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org
+Cc: dhowells@redhat.com
 
-Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+fls(N), ffs(N) and fls64(N) can be optimised on x86/x86_64.  Currently they
+perform checks against N being 0 before invoking the BSR/BSF instruction, or
+use a CMOV instruction afterwards.  Either the check involves a conditional
+jump which we'd like to avoid, or a CMOV, which we'd also quite like to avoid.
 
-> Why do you put x86 assembler in asm-generic? Those files are supposed
-> to be platform-agnostic.
+Instead, we can make use of the fact that BSR/BSF doesn't modify its output
+register if its input is 0.  By preloading the output with -1 and incrementing
+the result, we achieve the desired result without the need for a conditional
+check.
 
-Sorry about that.  I assumed that was an x86_64-specific header.  One of the
-downside of going places with etags.
+The 32-bit version of fls64() can also have all its conditional checks removed
+by chaining BSRs with a subtraction in the middle.  However, this may be
+suboptimal on CPUs for which BSR/BSF is really slow (i486 and below for
+example).
 
-David
+Signed-off-by: David Howells <dhowells@redhat.com>
+---
+
+ arch/x86/include/asm/bitops.h |   79 ++++++++++++++++++++++++++---------------
+ 1 files changed, 50 insertions(+), 29 deletions(-)
+
+diff --git a/arch/x86/include/asm/bitops.h b/arch/x86/include/asm/bitops.h
+index 02b47a6..a8e85ab 100644
+--- a/arch/x86/include/asm/bitops.h
++++ b/arch/x86/include/asm/bitops.h
+@@ -394,18 +394,12 @@ static inline unsigned long __fls(unsigned long word)
+  */
+ static inline int ffs(int x)
+ {
+-	int r;
+-#ifdef CONFIG_X86_CMOV
+-	asm("bsfl %1,%0\n\t"
+-	    "cmovzl %2,%0"
+-	    : "=r" (r) : "rm" (x), "r" (-1));
+-#else
+-	asm("bsfl %1,%0\n\t"
+-	    "jnz 1f\n\t"
+-	    "movl $-1,%0\n"
+-	    "1:" : "=r" (r) : "rm" (x));
+-#endif
+-	return r + 1;
++	int bitpos = -1;
++
++	asm("bsfl %1,%0"
++	    : "+r" (bitpos)
++	    : "rm" (x));
++	return bitpos + 1;
+ }
+ 
+ /**
+@@ -421,19 +415,52 @@ static inline int ffs(int x)
+  */
+ static inline int fls(int x)
+ {
+-	int r;
+-#ifdef CONFIG_X86_CMOV
+-	asm("bsrl %1,%0\n\t"
+-	    "cmovzl %2,%0"
+-	    : "=&r" (r) : "rm" (x), "rm" (-1));
++	int bitpos = -1;
++
++	asm("bsrl %1,%0"
++	    : "+r" (bitpos)
++	    : "rm" (x));
++	return bitpos + 1;
++}
++
++/**
++ * fls64 - find last set bit in a 64-bit word
++ * @x: the word to search
++ *
++ * This is defined in a similar way as the libc and compiler builtin
++ * ffsll, but returns the position of the most significant set bit.
++ *
++ * fls64(value) returns 0 if value is 0 or the position of the last
++ * set bit if value is nonzero. The last (most significant) bit is
++ * at position 64.
++ */
++#if BITS_PER_LONG == 32
++static __always_inline int fls64(__u64 x)
++{
++	__u32 h = x >> 32;
++	int bitpos = -1;
++
++	asm("bsrl	%1,%0	\n"
++	    "subl	%2,%0	\n"
++	    "bsrl	%3,%0	\n"
++	    : "+r" (bitpos)
++	    : "rm" (x), "i"(32), "rm" (h));
++
++	return bitpos + 33;
++}
++#elif BITS_PER_LONG == 64
++static __always_inline int fls64(__u64 x)
++{
++	long bitpos = -1;
++
++	asm("bsrq %1,%0"
++	    : "+r" (bitpos)
++	    : "rm" (x));
++	return bitpos + 1;
++}
+ #else
+-	asm("bsrl %1,%0\n\t"
+-	    "jnz 1f\n\t"
+-	    "movl $-1,%0\n"
+-	    "1:" : "=r" (r) : "rm" (x));
++#error BITS_PER_LONG not 32 or 64
+ #endif
+-	return r + 1;
+-}
+ #endif /* __KERNEL__ */
+ 
+ #undef ADDR
+@@ -446,12 +473,6 @@ static inline int fls(int x)
+ 
+ #include <asm-generic/bitops/hweight.h>
+ 
+-#endif /* __KERNEL__ */
+-
+-#include <asm-generic/bitops/fls64.h>
+-
+-#ifdef __KERNEL__
+-
+ #include <asm-generic/bitops/ext2-non-atomic.h>
+ 
+ #define ext2_set_bit_atomic(lock, nr, addr)			\
