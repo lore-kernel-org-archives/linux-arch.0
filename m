@@ -1,38 +1,133 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH] irq: handle irq0 special only on x86
-Date: Tue, 12 Jan 2010 20:59:21 -0800
-Message-ID: <4B4D5329.7050107@zytor.com>
-References: <1260350401-9858-1-git-send-email-u.kleine-koenig@pengutronix.de> <20100112155929.GA5615@pengutronix.de>
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH 1/3] X86: Optimise fls(), ffs() and fls64()
+Date: Wed, 13 Jan 2010 19:39:23 +0000
+Message-ID: <20100113193923.22272.87546.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:48744 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750882Ab0AMFLU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jan 2010 00:11:20 -0500
-In-Reply-To: <20100112155929.GA5615@pengutronix.de>
+Received: from mx1.redhat.com ([209.132.183.28]:14581 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751945Ab0AMTjb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Jan 2010 14:39:31 -0500
+Received: from int-mx01.intmail.prod.int.phx2.redhat.com (int-mx01.intmail.prod.int.phx2.redhat.com [10.5.11.11])
+	by mx1.redhat.com (8.13.8/8.13.8) with ESMTP id o0DJdRf8020415
+	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=OK)
+	for <linux-arch@vger.kernel.org>; Wed, 13 Jan 2010 14:39:27 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?B?VXdlIEtsZWluZS1Lw7ZuaWc=?= <u.kleine-koenig@pengutronix.de>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>
+To: linux-arch@vger.kernel.org
+Cc: dhowells@redhat.com
 
-On 01/12/2010 07:59 AM, Uwe Kleine-K=C3=B6nig wrote:
-> the feed-back I have got up to now wasn't helpfull.  (Only some "irq0=
- is
-> evil---no it's not" discussion.) So what do you think?  I admit the
-> #ifdef isn't nice, but if the semantic is OK I'm willing to rework it
-> into something more pretty.
+fls(N), ffs(N) and fls64(N) can be optimised on x86/x86_64.  Currently they
+perform checks against N being 0 before invoking the BSR/BSF instruction, or
+use a CMOV instruction afterwards.  Either the check involves a conditional
+jump which we'd like to avoid, or a CMOV, which we'd also quite like to avoid.
 
-There was a debate on this a long time ago, and the outcome was that IR=
-Q
-0 is invalid, across the kernel, and that it is up to each architecture
-to carry exceptions (like IRQ 0 for the timer interrupt in x86.)  Hinc
-dictat Linus, so you would have to convince him before any of the arch
-maintainer could realistically even consider this change.
+Instead, we can make use of the fact that BSR/BSF doesn't modify its output
+register if its input is 0.  By preloading the output with -1 and incrementing
+the result, we achieve the desired result without the need for a conditional
+check.
 
-	-hpa
+The 32-bit version of fls64() can also have all its conditional checks removed
+by chaining BSRs with a subtraction in the middle.  However, this may be
+suboptimal on CPUs for which BSR/BSF is really slow (i486 and below for
+example).
 
---=20
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+Signed-off-by: David Howells <dhowells@redhat.com>
+---
+
+ arch/x86/include/asm/bitops.h      |   36 ++++++++++++------------------------
+ include/asm-generic/bitops/fls64.h |   21 +++++++++++++++------
+ 2 files changed, 27 insertions(+), 30 deletions(-)
+
+diff --git a/arch/x86/include/asm/bitops.h b/arch/x86/include/asm/bitops.h
+index 02b47a6..112d623 100644
+--- a/arch/x86/include/asm/bitops.h
++++ b/arch/x86/include/asm/bitops.h
+@@ -394,18 +394,12 @@ static inline unsigned long __fls(unsigned long word)
+  */
+ static inline int ffs(int x)
+ {
+-	int r;
+-#ifdef CONFIG_X86_CMOV
+-	asm("bsfl %1,%0\n\t"
+-	    "cmovzl %2,%0"
+-	    : "=r" (r) : "rm" (x), "r" (-1));
+-#else
+-	asm("bsfl %1,%0\n\t"
+-	    "jnz 1f\n\t"
+-	    "movl $-1,%0\n"
+-	    "1:" : "=r" (r) : "rm" (x));
+-#endif
+-	return r + 1;
++	int bitpos = -1;
++
++	asm("bsfl %1,%0"
++	    : "+r" (bitpos)
++	    : "rm" (x));
++	return bitpos + 1;
+ }
+ 
+ /**
+@@ -421,18 +415,12 @@ static inline int ffs(int x)
+  */
+ static inline int fls(int x)
+ {
+-	int r;
+-#ifdef CONFIG_X86_CMOV
+-	asm("bsrl %1,%0\n\t"
+-	    "cmovzl %2,%0"
+-	    : "=&r" (r) : "rm" (x), "rm" (-1));
+-#else
+-	asm("bsrl %1,%0\n\t"
+-	    "jnz 1f\n\t"
+-	    "movl $-1,%0\n"
+-	    "1:" : "=r" (r) : "rm" (x));
+-#endif
+-	return r + 1;
++	int bitpos = -1;
++
++	asm("bsrl %1,%0"
++	    : "+r" (bitpos)
++	    : "rm" (x));
++	return bitpos + 1;
+ }
+ #endif /* __KERNEL__ */
+ 
+diff --git a/include/asm-generic/bitops/fls64.h b/include/asm-generic/bitops/fls64.h
+index b097cf8..f81e04c 100644
+--- a/include/asm-generic/bitops/fls64.h
++++ b/include/asm-generic/bitops/fls64.h
+@@ -18,16 +18,25 @@
+ static __always_inline int fls64(__u64 x)
+ {
+ 	__u32 h = x >> 32;
+-	if (h)
+-		return fls(h) + 32;
+-	return fls(x);
++	int bitpos = -1;
++
++	asm("bsrl	%1,%0	\n"
++	    "subl	%2,%0	\n"
++	    "bsrl	%3,%0	\n"
++	    : "+r" (bitpos)
++	    : "rm" (x), "i"(32), "rm" (h));
++
++	return bitpos + 33;
+ }
+ #elif BITS_PER_LONG == 64
+ static __always_inline int fls64(__u64 x)
+ {
+-	if (x == 0)
+-		return 0;
+-	return __fls(x) + 1;
++	long bitpos = -1;
++
++	asm("bsrq %1,%0"
++	    : "+r" (bitpos)
++	    : "rm" (x));
++	return bitpos + 1;
+ }
+ #else
+ #error BITS_PER_LONG not 32 or 64
