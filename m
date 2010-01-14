@@ -1,34 +1,35 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+From: David Miller <davem@davemloft.net>
 Subject: Re: sys_recvmmsg: wire up or not?
-Date: Thu, 14 Jan 2010 15:20:33 +1100
-Message-ID: <1263442833.724.325.camel@pasglop>
+Date: Wed, 13 Jan 2010 20:28:07 -0800 (PST)
+Message-ID: <20100113.202807.233259060.davem@davemloft.net>
 References: <10f740e80912260239n17bbbd08w6c3065c12bde9c95@mail.gmail.com>
-	 <200912261212.14264.arnd@arndb.de>
+	<200912261212.14264.arnd@arndb.de>
+	<1263442833.724.325.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <200912261212.14264.arnd@arndb.de>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Arnaldo Carvalho de Melo <acme@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linux/m68k <linux-m68k@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:58362
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751346Ab0ANE16 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Jan 2010 23:27:58 -0500
+In-Reply-To: <1263442833.724.325.camel@pasglop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: benh@kernel.crashing.org
+Cc: arnd@arndb.de, geert@linux-m68k.org, acme@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@vger.kernel.org
 
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Thu, 14 Jan 2010 15:20:33 +1100
 
-> It's also rather inconsistent with the last socket call that was added, sys_accept4.
-> Some architectures that normally define socket calls (parisc, sh) are missing both
-> accept4 and recvmmsg, while others that don't have recvmsg now get recvmmsg.
-> 
-> In particular, i386 has recvmmsg now, which caused the warning that you saw.
-> I guess that one should be removed, and maybe we need a better logic for
-> determining which syscalls you actually want. Deriving it from asm-generic/unistd.h
-> instead of arch/x86/include/asm/unistd_32.h is probably better, but would still
-> give the wrong answer for multiplexed system calls like socketcall or ipc on 
-> existing architectures.
+> Anything happening here ? We're getting that warning on ppc too despite
+> the fact that we use socketcall like x86... Should checksyscall be made
+> smarter or the syscall just removed from x86 ? :-)
 
-Anything happening here ? We're getting that warning on ppc too despite
-the fact that we use socketcall like x86... Should checksyscall be made
-smarter or the syscall just removed from x86 ? :-)
+I think it's better to trap directly to the system call rather
+than going through yet another demultiplexer.
 
-Cheers,
-Ben.
+I severely regretted using sys_socketcall initially on sparc32
+because it added a few microseconds to socket syscall latency
+(cpus back then were slow :-)
