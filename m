@@ -1,100 +1,61 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [CFT] MM: Pass a PTE pointer to update_mmu_cache() rather than
 	the PTE itself
-Date: Wed, 20 Jan 2010 17:45:34 +0100
-Message-ID: <10f740e81001200845o7a31bcb6yea475f3aabcb5476@mail.gmail.com>
-References: <20100120135202.GA20937@flint.arm.linux.org.uk>
+Date: Wed, 20 Jan 2010 16:54:44 +0000
+Message-ID: <20100120165443.GB3284@flint.arm.linux.org.uk>
+References: <20100120135202.GA20937@flint.arm.linux.org.uk> <10f740e81001200845o7a31bcb6yea475f3aabcb5476@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=iso-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1752710Ab0ATQpj@vger.kernel.org>
-In-Reply-To: <20100120135202.GA20937@flint.arm.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:47637 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753110Ab0ATQy7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2010 11:54:59 -0500
+Content-Disposition: inline
+In-Reply-To: <10f740e81001200845o7a31bcb6yea475f3aabcb5476@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, Jan 20, 2010 at 14:52, Russell King <rmk+lkml@arm.linux.org.uk>=
- wrote:
-> On VIVT ARM, when we have multiple shared mappings of the same file
-> in the same MM, we need to ensure that we have coherency across all
-> copies. =C2=A0We do this via make_coherent() by making the pages
-> uncacheable.
->
-> This used to work fine, until we allowed highmem with highpte - we
-> now have a page table which is mapped as required, and is not availab=
-le
-> for modification via update_mmu_cache().
->
-> Ralf Beache suggested getting rid of the PTE value passed to
-> update_mmu_cache():
->
-> =C2=A0On MIPS update_mmu_cache() calls __update_tlb() which walks pag=
-etables
-> =C2=A0to construct a pointer to the pte again. =C2=A0Passing a pte_t =
-* is much
-> =C2=A0more elegant. =C2=A0Maybe we might even replace the pte argumen=
-t with the
-> =C2=A0pte_t?
->
-> Ben Herrenschmidt would also like the pte pointer for PowerPC:
->
-> =C2=A0Passing the ptep in there is exactly what I want. =C2=A0I want =
-that
-> =C2=A0-instead- of the PTE value, because I have issue on some ppc ca=
-ses,
-> =C2=A0for I$/D$ coherency, where set_pte_at() may decide to mask out =
-the
-> =C2=A0_PAGE_EXEC.
->
-> So, pass in the mapped page table pointer into update_mmu_cache(), an=
-d
-> remove the PTE value, updating all implementations and call sites to
-> suit.
+On Wed, Jan 20, 2010 at 05:45:34PM +0100, Geert Uytterhoeven wrote:
+> > diff --git a/Documentation/cachetlb.txt b/Documentation/cachetlb.tx=
+t
+> > index da42ab4..74a8b6f 100644
+> > --- a/Documentation/cachetlb.txt
+> > +++ b/Documentation/cachetlb.txt
+> > @@ -88,12 +88,12 @@ changes occur:
+> > =A0 =A0 =A0 =A0This is used primarily during fault processing.
+> >
+> > =A05) void update_mmu_cache(struct vm_area_struct *vma,
+> > - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0unsigned long addr=
+ess, pte_t pte)
+> > + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0unsigned long addr=
+ess, pte_t *ptep)
+> >
+> > =A0 =A0 =A0 =A0At the end of every page fault, this routine is invo=
+ked to
+> > =A0 =A0 =A0 =A0tell the architecture specific code that a translati=
+on
+> > - =A0 =A0 =A0 described by "pte" now exists at virtual address "add=
+ress"
+> > - =A0 =A0 =A0 for address space "vma->vm_mm", in the software page =
+tables.
+> > + =A0 =A0 =A0 now exists at virtual address "address" for address s=
+pace
+> > + =A0 =A0 =A0 "vma->vm_mm", in the software page tables.
+> >
+> > =A0 =A0 =A0 =A0A port may use this information in any way it so cho=
+oses.
+> > =A0 =A0 =A0 =A0For example, it could use this event to pre-load TLB
+>=20
+> Now the documentation no longer mentions what the 3rd parameter is us=
+ed for?
 
-> diff --git a/Documentation/cachetlb.txt b/Documentation/cachetlb.txt
-> index da42ab4..74a8b6f 100644
-> --- a/Documentation/cachetlb.txt
-> +++ b/Documentation/cachetlb.txt
-> @@ -88,12 +88,12 @@ changes occur:
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0This is used primarily during fault proces=
-sing.
->
-> =C2=A05) void update_mmu_cache(struct vm_area_struct *vma,
-> - =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
- =C2=A0 =C2=A0unsigned long address, pte_t pte)
-> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
- =C2=A0 =C2=A0unsigned long address, pte_t *ptep)
->
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0At the end of every page fault, this routi=
-ne is invoked to
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0tell the architecture specific code that a=
- translation
-> - =C2=A0 =C2=A0 =C2=A0 described by "pte" now exists at virtual addre=
-ss "address"
-> - =C2=A0 =C2=A0 =C2=A0 for address space "vma->vm_mm", in the softwar=
-e page tables.
-> + =C2=A0 =C2=A0 =C2=A0 now exists at virtual address "address" for ad=
-dress space
-> + =C2=A0 =C2=A0 =C2=A0 "vma->vm_mm", in the software page tables.
->
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0A port may use this information in any way=
- it so chooses.
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0For example, it could use this event to pr=
-e-load TLB
+I'm open to suggestions for a suitable description for it.
 
-Now the documentation no longer mentions what the 3rd parameter is used=
- for?
-
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-							    -- Linus Torvalds
+--=20
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
