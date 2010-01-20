@@ -1,30 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mgw1.diku.dk ([130.225.96.91]:41181 "EHLO mgw1.diku.dk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754759Ab0ASU6b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Jan 2010 15:58:31 -0500
-Date: Tue, 19 Jan 2010 21:58:28 +0100 (CET)
-From: Julia Lawall <julia@diku.dk>
-Subject: Re: Lots of bugs with current->state = TASK_*INTERRUPTIBLE
-In-Reply-To: <1263932978.31321.53.camel@gandalf.stny.rr.com>
-Message-ID: <Pine.LNX.4.64.1001192155490.28583@ask.diku.dk>
-References: <1263932978.31321.53.camel@gandalf.stny.rr.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from gw.wifiinternet.cz ([89.31.42.6]:35055 "EHLO monstr.eu"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752811Ab0ATKo0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Jan 2010 05:44:26 -0500
+From: monstr@monstr.eu
+Subject: Generic DMA - BUG_ON
+Date: Wed, 20 Jan 2010 11:08:30 +0100
+Message-ID: <1263982111-24123-1-git-send-email-monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, kernel-janitors <kernel-janitors@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Greg KH <greg@kroah.com>, Andy Whitcroft <apw@canonical.com>
-Message-ID: <20100119205828.mtQZMhSjZYYu5p46rrz7slnkX-9EmOjq86JZURifyNg@z>
+To: linux-kernel@vger.kernel.org
+Cc: michal.simek@petalogix.com, arnd@arndb.de, linux-arch@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, mingo@elte.hu, joerg.roedel@amd.com
+Message-ID: <20100120100830.fqcU7EUszLoI5QEBEFOLfFtosNZxhr2RL7_Y1Kspy5w@z>
 
-> Anyway, this looks like a good janitorial work. Anything that assigns
-> state outside the rq locks to something other than TASK_RUNNING and that
-> is not before a schedule() (perhaps even those) should be converted to:
-> 
-> 	set_current_task(<state>).
+Hi All,
 
-Does "not before a schedule" mean not before a schedule_timeout as well?
+I have this patch in my repo. I just added BUG_ON for dma ops.
+The reason for that is if driver not setup ops correctly than
+the system do bad access to any memory space without any visible reason.
+BUG_ON points to it and helps to solve where the problem is.
 
-Also, I assume you mean set_current_state?
+Thanks for your review,
+Michal
 
-julia
+
+
