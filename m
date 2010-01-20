@@ -1,51 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:49610 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753405Ab0ATKyV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2010 05:54:21 -0500
-Date: Wed, 20 Jan 2010 10:53:50 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+Received: from tx2ehsobe005.messaging.microsoft.com ([65.55.88.15]:31428 "EHLO
+	TX2EHSOBE010.bigfish.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753146Ab0ATLAt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2010 06:00:49 -0500
+Date: Wed, 20 Jan 2010 12:00:31 +0100
+From: Joerg Roedel <joerg.roedel@amd.com>
 Subject: Re: Generic DMA - BUG_ON
-Message-ID: <20100120105350.GA23394@flint.arm.linux.org.uk>
+Message-ID: <20100120110031.GD8665@amd.com>
 References: <1263982111-24123-1-git-send-email-monstr@monstr.eu>
+ <20100120105350.GA23394@flint.arm.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
 Content-Disposition: inline
-In-Reply-To: <1263982111-24123-1-git-send-email-monstr@monstr.eu>
+In-Reply-To: <20100120105350.GA23394@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@monstr.eu
-Cc: linux-kernel@vger.kernel.org, michal.simek@petalogix.com, arnd@arndb.de, linux-arch@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, mingo@elte.hu, joerg.roedel@amd.com
-Message-ID: <20100120105350.jTD97Wkhv-qWybbRUPUC3sJHVD__YJRu289ewD5Xq5g@z>
+To: monstr@monstr.eu, linux-kernel@vger.kernel.org, michal.simek@petalogix.com, arnd@arndb.de, linux-arch@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, mingo@elte.hu
+Message-ID: <20100120110031.db8t-GUnvG_QysLK-iVNJTPJLkvrqpQMQqL-LTQhyNU@z>
 
-On Wed, Jan 20, 2010 at 11:08:30AM +0100, monstr@monstr.eu wrote:
-> Hi All,
-> 
-> I have this patch in my repo. I just added BUG_ON for dma ops.
-> The reason for that is if driver not setup ops correctly than
-> the system do bad access to any memory space without any visible reason.
-> BUG_ON points to it and helps to solve where the problem is.
+On Wed, Jan 20, 2010 at 10:53:50AM +0000, Russell King wrote:
+> and ops is NULL, then this code will oops; you will get a full register
+> dump and backtrace.  You can use this information along with markup_oops.pl
+> to find out where the problem is.
 
-I have a question of principle to raise here.
+You can't rely on the oops if the code runs in process context. The
+process may have address 0 mapped which would result in a security hole.
+We had two of these bugs last year.
 
-If you have code which does:
+But I don't see any point in checking for dma_ops != NULL too. Any
+developer would mention such a bug long before init is started.
 
-	if (ops->foo)
-		ops->foo();
+	Joerg
 
-and ops is NULL, then this code will oops; you will get a full register
-dump and backtrace.  You can use this information along with markup_oops.pl
-to find out where the problem is.
 
-If you add a BUG_ON() to this, the only additional information you end
-up with is (possibly) a nice friendly message which tells you the file
-and line number - but you add additional run-time tests to the code.
-
-The question is: is this worth it?  Is there some problem with the
-original oops that makes the problem hard to find?  Should we be using
-BUG_ON() to augment normal oopses in this way?
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
