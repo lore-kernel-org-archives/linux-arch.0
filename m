@@ -1,54 +1,112 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: sys_recvmmsg: wire up or not?
-Date: Wed, 20 Jan 2010 10:14:44 +1100
-Message-ID: <1263942884.724.537.camel@pasglop>
-References: <10f740e80912260239n17bbbd08w6c3065c12bde9c95@mail.gmail.com>
-	 <200912261212.14264.arnd@arndb.de> <1263442833.724.325.camel@pasglop>
-	 <20100113.202807.233259060.davem@davemloft.net>
-	 <1263452379.724.348.camel@pasglop>  <20100119072114.GB16013@linux-sh.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+From: monstr@monstr.eu
+Subject: [PATCH] asm-generic: dma: Add BUG_ON for uninitialized dma_ops
+Date: Wed, 20 Jan 2010 11:08:31 +0100
+Message-ID: <1263982111-24123-2-git-send-email-monstr@monstr.eu>
+References: <1263982111-24123-1-git-send-email-monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:43397 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751892Ab0ASXPh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Jan 2010 18:15:37 -0500
-In-Reply-To: <20100119072114.GB16013@linux-sh.org>
+Received: from gw.wifiinternet.cz ([89.31.42.6]:35055 "EHLO monstr.eu"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752551Ab0ATKoX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Jan 2010 05:44:23 -0500
+In-Reply-To: <1263982111-24123-1-git-send-email-monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: David Miller <davem@davemloft.net>, arnd@arndb.de, geert@linux-m68k.org, acme@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: michal.simek@petalogix.com, arnd@arndb.de, linux-arch@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, mingo@elte.hu, joerg.roedel@amd.com, Michal Simek <monstr@monstr.eu>
 
-On Tue, 2010-01-19 at 16:21 +0900, Paul Mundt wrote:
-> 
-> > IE. I'd rather have them all duplicated into real syscalls than some of
-> > them only in socketcall and some on both since that will make any kind
-> > of userspace transition even more hellish.
-> > 
-> Presumably you're going to have to support both given that binaries with
-> both ABIs are going to be left around for the forseeable future. We
-> started out with socketcall on sh64 with the initial ABI and then
-> transitioned over to broken out direct system calls. While having both is
-> a bit inconsistent, it's not really something that can be avoided until
-> all of the old binaries go away. There are certainly enough architectures
-> today that provide both that you shouldn't really run in to any nasty
-> surprises at least.
+From: Michal Simek <monstr@monstr.eu>
 
-I agree, my point was more like I'd rather not add the syscall for
-recvmmsg only right now, and others later, and instead of an
-all-or-nothing approach, ie, add all the syscalls at once (while keeping
-the socketcall around of course). That would make glibc work easier not
-having to track syscall availability on a per-syscall basis etc...
+Check that dma_ops are initialized correctly. Without this
+checking you get kernel fault and you don't know where the problem is.
 
-Cheers,
-Ben.
+Signed-off-by: Michal Simek <monstr@monstr.eu>
+---
+ include/asm-generic/dma-mapping-common.h |   10 ++++++++++
+ 1 files changed, 10 insertions(+), 0 deletions(-)
 
-> 32-bit SH only uses socketcall at the moment, but I'm also inclined to
-> add in the broken out versions and start migrating glibc over.
-> 
-> Unfortunately there are not a lot of good options for the syscall checker
-> with things like this however, given that some platforms will want one or
-> the other or both ;-)
-> 
-> 
+diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
+index e694263..ca8bc25 100644
+--- a/include/asm-generic/dma-mapping-common.h
++++ b/include/asm-generic/dma-mapping-common.h
+@@ -15,6 +15,7 @@ static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
+ 	dma_addr_t addr;
+ 
+ 	kmemcheck_mark_initialized(ptr, size);
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	addr = ops->map_page(dev, virt_to_page(ptr),
+ 			     (unsigned long)ptr & ~PAGE_MASK, size,
+@@ -32,6 +33,7 @@ static inline void dma_unmap_single_attrs(struct device *dev, dma_addr_t addr,
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+ 
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->unmap_page)
+ 		ops->unmap_page(dev, addr, size, dir, attrs);
+@@ -48,6 +50,7 @@ static inline int dma_map_sg_attrs(struct device *dev, struct scatterlist *sg,
+ 
+ 	for_each_sg(sg, s, nents, i)
+ 		kmemcheck_mark_initialized(sg_virt(s), s->length);
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	ents = ops->map_sg(dev, sg, nents, dir, attrs);
+ 	debug_dma_map_sg(dev, sg, nents, ents, dir);
+@@ -61,6 +64,7 @@ static inline void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+ 
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	debug_dma_unmap_sg(dev, sg, nents, dir);
+ 	if (ops->unmap_sg)
+@@ -75,6 +79,7 @@ static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
+ 	dma_addr_t addr;
+ 
+ 	kmemcheck_mark_initialized(page_address(page) + offset, size);
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	addr = ops->map_page(dev, page, offset, size, dir, NULL);
+ 	debug_dma_map_page(dev, page, offset, size, dir, addr, false);
+@@ -87,6 +92,7 @@ static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+ 
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->unmap_page)
+ 		ops->unmap_page(dev, addr, size, dir, NULL);
+@@ -125,6 +131,7 @@ static inline void dma_sync_single_range_for_cpu(struct device *dev,
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+ 
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->sync_single_range_for_cpu) {
+ 		ops->sync_single_range_for_cpu(dev, addr, offset, size, dir);
+@@ -142,6 +149,7 @@ static inline void dma_sync_single_range_for_device(struct device *dev,
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+ 
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->sync_single_range_for_device) {
+ 		ops->sync_single_range_for_device(dev, addr, offset, size, dir);
+@@ -157,6 +165,7 @@ dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+ 
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->sync_sg_for_cpu)
+ 		ops->sync_sg_for_cpu(dev, sg, nelems, dir);
+@@ -169,6 +178,7 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+ 
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->sync_sg_for_device)
+ 		ops->sync_sg_for_device(dev, sg, nelems, dir);
+-- 
+1.5.5.1
