@@ -1,52 +1,28 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] asm-generic: dma: Add BUG_ON for uninitialized dma_ops
+From: Joerg Roedel <joerg.roedel@amd.com>
+Subject: Re: Generic DMA - BUG_ON
 Date: Wed, 20 Jan 2010 12:00:31 +0100
-Message-ID: <10f740e81001200300o217b955fqb79d5628b2e62731@mail.gmail.com>
+Message-ID: <20100120110031.GD8665@amd.com>
 References: <1263982111-24123-1-git-send-email-monstr@monstr.eu>
-	 <1263982111-24123-2-git-send-email-monstr@monstr.eu>
-	 <b6fcc0a1001200248x1a4b3cedoae90b4f1495d2358@mail.gmail.com>
+ <20100120105350.GA23394@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pw0-f42.google.com ([209.85.160.42]:34222 "EHLO
-	mail-pw0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751799Ab0ATLAb convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2010 06:00:31 -0500
-In-Reply-To: <b6fcc0a1001200248x1a4b3cedoae90b4f1495d2358@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: monstr@monstr.eu, linux-kernel@vger.kernel.org, michal.simek@petalogix.com, arnd@arndb.de, linux-arch@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, mingo@elte.hu, joerg.roedel@amd.com
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753521Ab0ATLAw@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20100120105350.GA23394@flint.arm.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: monstr@monstr.eu, linux-kernel@vger.kernel.org, michal.simek@petalogix.com, arnd@arndb.de, linux-arch@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, mingo@elte.hu
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 20, 2010 at 11:48, Alexey Dobriyan <adobriyan@gmail.com> wr=
-ote:
-> On Wed, Jan 20, 2010 at 12:08 PM, =C2=A0<monstr@monstr.eu> wrote:
->> From: Michal Simek <monstr@monstr.eu>
->>
->> Check that dma_ops are initialized correctly. Without this
->> checking you get kernel fault and you don't know where the problem i=
-s.
->
-> Oh, yes you do. PC will be of some small value.
+On Wed, Jan 20, 2010 at 10:53:50AM +0000, Russell King wrote:
+> and ops is NULL, then this code will oops; you will get a full register
+> dump and backtrace.  You can use this information along with markup_oops.pl
+> to find out where the problem is.
 
-And the backtrace will tell you where to look...
+You can't rely on the oops if the code runs in process context. The
+process may have address 0 mapped which would result in a security hole.
+We had two of these bugs last year.
 
->> + =C2=A0 =C2=A0 =C2=A0 BUG_ON(!ops);
->> =C2=A0 =C2=A0 =C2=A0 =C2=A0BUG_ON(!valid_dma_direction(dir));
->> =C2=A0 =C2=A0 =C2=A0 =C2=A0addr =3D ops->map_page(dev, virt_to_page(=
-ptr),
+But I don't see any point in checking for dma_ops != NULL too. Any
+developer would mention such a bug long before init is started.
 
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-							    -- Linus Torvalds
+	Joerg
