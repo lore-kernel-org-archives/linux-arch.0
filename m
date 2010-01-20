@@ -1,61 +1,49 @@
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: [CFT] MM: Pass a PTE pointer to update_mmu_cache() rather than
-	the PTE itself
-Date: Wed, 20 Jan 2010 16:54:44 +0000
-Message-ID: <20100120165443.GB3284@flint.arm.linux.org.uk>
-References: <20100120135202.GA20937@flint.arm.linux.org.uk> <10f740e81001200845o7a31bcb6yea475f3aabcb5476@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: Generic DMA - BUG_ON
+Date: Wed, 20 Jan 2010 20:03:12 +0100
+Message-ID: <201001202003.13353.arnd@arndb.de>
+References: <1263982111-24123-1-git-send-email-monstr@monstr.eu> <20100120110031.GD8665@amd.com> <4B56E66C.50004@monstr.eu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:47637 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753110Ab0ATQy7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2010 11:54:59 -0500
-Content-Disposition: inline
-In-Reply-To: <10f740e81001200845o7a31bcb6yea475f3aabcb5476@mail.gmail.com>
+Received: from moutng.kundenserver.de ([212.227.126.187]:49367 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751477Ab0ATTDi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2010 14:03:38 -0500
+In-Reply-To: <4B56E66C.50004@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: monstr@monstr.eu
+Cc: Joerg Roedel <joerg.roedel@amd.com>, linux-kernel@vger.kernel.org, michal.simek@petalogix.com, linux-arch@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, mingo@elte.hu
 
-On Wed, Jan 20, 2010 at 05:45:34PM +0100, Geert Uytterhoeven wrote:
-> > diff --git a/Documentation/cachetlb.txt b/Documentation/cachetlb.tx=
-t
-> > index da42ab4..74a8b6f 100644
-> > --- a/Documentation/cachetlb.txt
-> > +++ b/Documentation/cachetlb.txt
-> > @@ -88,12 +88,12 @@ changes occur:
-> > =A0 =A0 =A0 =A0This is used primarily during fault processing.
-> >
-> > =A05) void update_mmu_cache(struct vm_area_struct *vma,
-> > - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0unsigned long addr=
-ess, pte_t pte)
-> > + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0unsigned long addr=
-ess, pte_t *ptep)
-> >
-> > =A0 =A0 =A0 =A0At the end of every page fault, this routine is invo=
-ked to
-> > =A0 =A0 =A0 =A0tell the architecture specific code that a translati=
-on
-> > - =A0 =A0 =A0 described by "pte" now exists at virtual address "add=
-ress"
-> > - =A0 =A0 =A0 for address space "vma->vm_mm", in the software page =
-tables.
-> > + =A0 =A0 =A0 now exists at virtual address "address" for address s=
-pace
-> > + =A0 =A0 =A0 "vma->vm_mm", in the software page tables.
-> >
-> > =A0 =A0 =A0 =A0A port may use this information in any way it so cho=
-oses.
-> > =A0 =A0 =A0 =A0For example, it could use this event to pre-load TLB
->=20
-> Now the documentation no longer mentions what the 3rd parameter is us=
-ed for?
+On Wednesday 20 January 2010, Michal Simek wrote:
+> Joerg Roedel wrote:
+> > On Wed, Jan 20, 2010 at 10:53:50AM +0000, Russell King wrote:
+> >> and ops is NULL, then this code will oops; you will get a full register
+> >> dump and backtrace.  You can use this information along with markup_oops.pl
+> >> to find out where the problem is.
+> > 
+> > You can't rely on the oops if the code runs in process context. The
+> > process may have address 0 mapped which would result in a security hole.
+> > We had two of these bugs last year.
+> 
+> That's the same problem which I had some days ago and Microblaze misses 
+> valuable backtrace (because we don't have FP or constant frame size).
 
-I'm open to suggestions for a suitable description for it.
+You can do what x86 does and just print anything in the stack that looks
+like part of a kernel function.
 
---=20
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+> > But I don't see any point in checking for dma_ops != NULL too. Any
+> > developer would mention such a bug long before init is started.
+> 
+> I agree that checking adds extra cycles to every dma-api call.
+> 
+> I like as wrote Russel to check if ops exists or not.
+
+If you are worried about the overhead, you could just add the BUG_ON
+to the map calls but not to unmap and sync, which are rather unlikely
+(and incorrect) to be called before a map.
+
+	Arnd
