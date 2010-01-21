@@ -1,43 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:58855 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754772Ab0AURyM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Jan 2010 12:54:12 -0500
-Date: Thu, 21 Jan 2010 17:53:17 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: Generic DMA - BUG_ON
-Message-ID: <20100121175317.GA14752@flint.arm.linux.org.uk>
-References: <1263982111-24123-1-git-send-email-monstr@monstr.eu> <20100120105350.GA23394@flint.arm.linux.org.uk> <20100120110031.GD8665@amd.com> <1264089097.18869.0.camel@iscandar.digidescorp.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1264089097.18869.0.camel@iscandar.digidescorp.com>
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.123]:41034 "EHLO
+	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753423Ab0AUUS1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Jan 2010 15:18:27 -0500
+Subject: Re: Lots of bugs with current->state = TASK_*INTERRUPTIBLE
+From: Steven Rostedt <rostedt@goodmis.org>
+Reply-To: rostedt@goodmis.org
+In-Reply-To: <4B58B1B3.6000502@caviumnetworks.com>
+References: <1263932978.31321.53.camel@gandalf.stny.rr.com>
+	 <4B58A89A.8050405@caviumnetworks.com>
+	 <1264102455.31321.293.camel@gandalf.stny.rr.com>
+	 <4B58B1B3.6000502@caviumnetworks.com>
+Content-Type: text/plain; charset="ISO-8859-15"
+Date: Thu, 21 Jan 2010 15:18:24 -0500
+Message-ID: <1264105104.31321.298.camel@gandalf.stny.rr.com>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Steven J. Magnani" <steve@digidescorp.com>
-Cc: Joerg Roedel <joerg.roedel@amd.com>, monstr@monstr.eu, linux-kernel@vger.kernel.org, michal.simek@petalogix.com, arnd@arndb.de, linux-arch@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, mingo@elte.hu
-Message-ID: <20100121175317.g3NFsdcYR_w0PPlprQqxJvxs_TSmlmp8-Bfl1mnnTNY@z>
+To: David Daney <ddaney@caviumnetworks.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, kernel-janitors <kernel-janitors@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Greg KH <greg@kroah.com>, Andy Whitcroft <apw@canonical.com>, Ralf Baechle <ralf@linux-mips.org>, linux-mips <linux-mips@linux-mips.org>
+Message-ID: <20100121201824.opQ9qG6WCVC_aX8SkgMgKsUe9v1lDkMVR--iC5NQVLw@z>
 
-On Thu, Jan 21, 2010 at 09:51:37AM -0600, Steven J. Magnani wrote:
-> On Wed, 2010-01-20 at 12:00 +0100, Joerg Roedel wrote:
-> > On Wed, Jan 20, 2010 at 10:53:50AM +0000, Russell King wrote:
-> > > and ops is NULL, then this code will oops; you will get a full register
-> > > dump and backtrace.  You can use this information along with markup_oops.pl
-> > > to find out where the problem is.
+On Thu, 2010-01-21 at 11:57 -0800, David Daney wrote:
+
+> >> Since the current CPU sees the memory accesses in order, what can be 
+> >> happening on other CPUs that would require a full mb()?
 > > 
-> > You can't rely on the oops if the code runs in process context. The
-> > process may have address 0 mapped which would result in a security hole.
-> > We had two of these bugs last year.
+> > Lets look at a hypothetical situation with:
+> > 
+> > 	add_wait_queue();
+> > 	current->state = TASK_UNINTERRUPTIBLE;
+> > 	smp_wmb();
+> > 	if (!x)
+> > 		schedule();
+> > 
+> > 
+> > 
+> > Then somewhere we probably have:
+> > 
+> > 	x = 1;
+> > 	smp_wmb();
+> > 	wake_up(queue);
+> > 
+> > 
+> > 
+> > 	   CPU 0			   CPU 1
+> > 	------------			-----------
+> > 	add_wait_queue();
+> > 	(cpu pipeline sees a load
+> > 	 of x ahead, and preloads it)
 > 
-> You also can't rely on an oops in a NOMMU environment.
+> 
+> This is what I thought.
+> 
+> My cpu (Cavium Octeon) does not have out of order reads, so my wmb() is 
 
-I don't see why implementations where NULL pointer derefs should be
-penalized by having additional NULL checks.
+Can you have reads that are out of order wrt writes? Because the above
+does not have out of order reads. It just had a read that came before a
+write. The above code could look like:
 
-Maybe this needs to be a conditional check which can be optimized away
-on architectures where NULL dereference always produces an oops.
+(hypothetical assembly language)
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+	ld r2, TASK_UNINTERRUPTIBLE
+	st r2, (current->state)
+	wmb
+	ld r1, (x)
+	cmp r1, 0
+
+Is it possible for the CPU to do the load of r1 before storing r2? If
+so, then the bug still exists.
+
+-- Steve
+
+
+> in fact a full mb() from the point of view of the current CPU.  So I 
+> think I could weaken my bariers in set_current_state() and still get 
+> correct operation.  However as you say...
+> 
+
+
