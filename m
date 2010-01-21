@@ -1,58 +1,21 @@
-From: David Daney <ddaney@caviumnetworks.com>
-Subject: Re: Lots of bugs with current->state = TASK_*INTERRUPTIBLE
-Date: Thu, 21 Jan 2010 12:21:45 -0800
-Message-ID: <4B58B759.8000002@caviumnetworks.com>
-References: <1263932978.31321.53.camel@gandalf.stny.rr.com>	 <4B58A89A.8050405@caviumnetworks.com>	 <1264102455.31321.293.camel@gandalf.stny.rr.com>	 <4B58B1B3.6000502@caviumnetworks.com> <1264105104.31321.298.camel@gandalf.stny.rr.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15; format=flowed
-Content-Transfer-Encoding: 7bit
+From: "Mooney 2 Robin" <lesiopnmster34@gmail.com>
+Subject: I have a list of 167k medical equipment suppliers in the USA
+Date: Thu, 21 Jan 2010 20:53:14 -0300 (BRT)
+Message-ID: <20100121235315.414B62A1500@webmail.secom.to.gov.br>
+Reply-To: dontsendemailhere@gmail.com
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail3.caviumnetworks.com ([12.108.191.235]:7594 "EHLO
-	mail3.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754668Ab0AUUV6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Jan 2010 15:21:58 -0500
-In-Reply-To: <1264105104.31321.298.camel@gandalf.stny.rr.com>
+Received: from [201.67.112.60] ([201.67.112.60]:57448 "EHLO
+	webmail.secom.to.gov.br" rhost-flags-FAIL-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1755340Ab0AUXlY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Jan 2010 18:41:24 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: rostedt@goodmis.org
-Cc: LKML <linux-kernel@vger.kernel.org>, kernel-janitors <kernel-janitors@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Greg KH <greg@kroah.com>, Andy Whitcroft <apw@canonical.com>, Ralf Baechle <ralf@linux-mips.org>, linux-mips <linux-mips@linux-mips.org>
+To: liongu@westcoast.com, lindaoverton33@hotmail.com, lics@cs.indiana.edu, linux-arch@vger.kernel.org, linus.flora@nelke.softwarecheckliste.de
 
->>
->> This is what I thought.
->>
->> My cpu (Cavium Octeon) does not have out of order reads, so my wmb() is 
-> 
-> Can you have reads that are out of order wrt writes? Because the above
-> does not have out of order reads. It just had a read that came before a
-> write. The above code could look like:
-> 
-> (hypothetical assembly language)
-> 
-> 	ld r2, TASK_UNINTERRUPTIBLE
-> 	st r2, (current->state)
-> 	wmb
-> 	ld r1, (x)
-> 	cmp r1, 0
-> 
-> Is it possible for the CPU to do the load of r1 before storing r2? If
-> so, then the bug still exists.
-> 
-
-Indeed it is.  Lockless operations make my head hurt.
-
-Thanks for clarifying.
-
-David Daney
+I have many good quality lists at decent prices. Drop me a line here:  Blanca.Bragg@highpowerlists.net
+I'll get you all the details and samples. 
+  
 
 
-
-> -- Steve
-> 
-> 
->> in fact a full mb() from the point of view of the current CPU.  So I 
->> think I could weaken my bariers in set_current_state() and still get 
->> correct operation.  However as you say...
->>
-> 
-> 
-> 
+email disappear@highpowerlists.net for delisting
