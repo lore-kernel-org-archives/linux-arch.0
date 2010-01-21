@@ -1,29 +1,39 @@
-From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: Re: Lots of bugs with current->state = TASK_*INTERRUPTIBLE
-Date: Thu, 21 Jan 2010 11:59:42 +0100
-Message-ID: <20100121105940.GC5017@nowhere>
-References: <1263932978.31321.53.camel@gandalf.stny.rr.com> <Pine.LNX.4.64.1001192155490.28583@ask.diku.dk> <1263935333.4561.26.camel@frodo> <Pine.LNX.4.64.1001211145480.13529@ask.diku.dk> <20100121105311.GB5017@nowhere> <1264071413.4283.1155.camel@laptop>
+From: "Steven J. Magnani" <steve@digidescorp.com>
+Subject: Re: Generic DMA - BUG_ON
+Date: Thu, 21 Jan 2010 09:51:37 -0600
+Message-ID: <1264089097.18869.0.camel@iscandar.digidescorp.com>
+References: <1263982111-24123-1-git-send-email-monstr@monstr.eu>
+	 <20100120105350.GA23394@flint.arm.linux.org.uk>
+	 <20100120110031.GD8665@amd.com>
+Reply-To: steve@digidescorp.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f220.google.com ([209.85.220.220]:57706 "EHLO
-	mail-fx0-f220.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754182Ab0AUK7r (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Jan 2010 05:59:47 -0500
-Content-Disposition: inline
-In-Reply-To: <1264071413.4283.1155.camel@laptop>
+Received: from mail.digidescorp.com ([66.244.163.200]:54482 "EHLO
+	digidescorp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752077Ab0AUQA7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Jan 2010 11:00:59 -0500
+In-Reply-To: <20100120110031.GD8665@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Julia Lawall <julia@diku.dk>, Steven Rostedt <rostedt@goodmis.org>, LKML <linux-kernel@vger.kernel.org>, kernel-janitors <kernel-janitors@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Greg KH <greg@kroah.com>, Andy Whitcroft <apw@canonical.com>
+To: Joerg Roedel <joerg.roedel@amd.com>
+Cc: monstr@monstr.eu, linux-kernel@vger.kernel.org, michal.simek@petalogix.com, arnd@arndb.de, linux-arch@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, mingo@elte.hu
 
-On Thu, Jan 21, 2010 at 11:56:53AM +0100, Peter Zijlstra wrote:
-> On Thu, 2010-01-21 at 11:53 +0100, Frederic Weisbecker wrote:
+On Wed, 2010-01-20 at 12:00 +0100, Joerg Roedel wrote:
+> On Wed, Jan 20, 2010 at 10:53:50AM +0000, Russell King wrote:
+> > and ops is NULL, then this code will oops; you will get a full register
+> > dump and backtrace.  You can use this information along with markup_oops.pl
+> > to find out where the problem is.
 > 
-> > Looks fine as spin_unlock includes a memory barrier, IIRC.
-> 
-> It doesn't actually, see Documentation/memory-barriers.txt
-> 
+> You can't rely on the oops if the code runs in process context. The
+> process may have address 0 mapped which would result in a security hole.
+> We had two of these bugs last year.
 
+You also can't rely on an oops in a NOMMU environment.
 
-Doh!
+------------------------------------------------------------------------
+ Steven J. Magnani               "I claim this network for MARS!
+ www.digidescorp.com              Earthling, return my space modulator!"
+
+ #include <standard.disclaimer>
