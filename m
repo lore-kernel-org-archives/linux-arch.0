@@ -1,21 +1,33 @@
-From: "Mooney 2 Robin" <lesiopnmster34@gmail.com>
-Subject: I have a list of 167k medical equipment suppliers in the USA
-Date: Thu, 21 Jan 2010 20:53:14 -0300 (BRT)
-Message-ID: <20100121235315.414B62A1500@webmail.secom.to.gov.br>
-Reply-To: dontsendemailhere@gmail.com
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: [PATCH] asm-generic: dma: Add BUG_ON for uninitialized dma_ops
+Date: Fri, 22 Jan 2010 10:11:25 +0900
+Message-ID: <20100122101039D.fujita.tomonori@lab.ntt.co.jp>
+References: <1263982111-24123-1-git-send-email-monstr@monstr.eu>
+	<1263982111-24123-2-git-send-email-monstr@monstr.eu>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [201.67.112.60] ([201.67.112.60]:57448 "EHLO
-	webmail.secom.to.gov.br" rhost-flags-FAIL-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1755340Ab0AUXlY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 Jan 2010 18:41:24 -0500
+Received: from sh.osrg.net ([192.16.179.4]:40542 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751898Ab0AVBL7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Jan 2010 20:11:59 -0500
+In-Reply-To: <1263982111-24123-2-git-send-email-monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: liongu@westcoast.com, lindaoverton33@hotmail.com, lics@cs.indiana.edu, linux-arch@vger.kernel.org, linus.flora@nelke.softwarecheckliste.de
+To: monstr@monstr.eu
+Cc: linux-kernel@vger.kernel.org, michal.simek@petalogix.com, arnd@arndb.de, linux-arch@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, mingo@elte.hu, joerg.roedel@amd.com
 
-I have many good quality lists at decent prices. Drop me a line here:  Blanca.Bragg@highpowerlists.net
-I'll get you all the details and samples. 
-  
+On Wed, 20 Jan 2010 11:08:31 +0100
+monstr@monstr.eu wrote:
 
+> From: Michal Simek <monstr@monstr.eu>
+> 
+> Check that dma_ops are initialized correctly. Without this
+> checking you get kernel fault and you don't know where the problem is.
 
-email disappear@highpowerlists.net for delisting
+Hmm, dma_ops is initialized in early architecture-specific boot-up
+code. We don't change it often. I don't think that we need much time
+to find where problems are.
+
+The benefit is insufficient to justify the overhead.
