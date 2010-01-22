@@ -1,33 +1,34 @@
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: Re: [PATCH] asm-generic: dma: Add BUG_ON for uninitialized dma_ops
-Date: Fri, 22 Jan 2010 10:11:25 +0900
-Message-ID: <20100122101039D.fujita.tomonori@lab.ntt.co.jp>
-References: <1263982111-24123-1-git-send-email-monstr@monstr.eu>
-	<1263982111-24123-2-git-send-email-monstr@monstr.eu>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [CFT] MM: Pass a PTE pointer to update_mmu_cache() rather than
+ the PTE itself
+Date: Fri, 22 Jan 2010 14:50:19 +1100
+Message-ID: <1264132219.3601.28.camel@pasglop>
+References: <20100120135202.GA20937@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:40542 "EHLO sh.osrg.net"
+Received: from gate.crashing.org ([63.228.1.57]:42720 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751898Ab0AVBL7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 Jan 2010 20:11:59 -0500
-In-Reply-To: <1263982111-24123-2-git-send-email-monstr@monstr.eu>
+	id S1751275Ab0AVDuo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Jan 2010 22:50:44 -0500
+In-Reply-To: <20100120135202.GA20937@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@monstr.eu
-Cc: linux-kernel@vger.kernel.org, michal.simek@petalogix.com, arnd@arndb.de, linux-arch@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, mingo@elte.hu, joerg.roedel@amd.com
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, 20 Jan 2010 11:08:31 +0100
-monstr@monstr.eu wrote:
-
-> From: Michal Simek <monstr@monstr.eu>
+On Wed, 2010-01-20 at 13:52 +0000, Russell King wrote:
+> On VIVT ARM, when we have multiple shared mappings of the same file
+> in the same MM, we need to ensure that we have coherency across all
+> copies.  We do this via make_coherent() by making the pages
+> uncacheable.
 > 
-> Check that dma_ops are initialized correctly. Without this
-> checking you get kernel fault and you don't know where the problem is.
+> This used to work fine, until we allowed highmem with highpte - we
+> now have a page table which is mapped as required, and is not available
+> for modification via update_mmu_cache().
 
-Hmm, dma_ops is initialized in early architecture-specific boot-up
-code. We don't change it often. I don't think that we need much time
-to find where problems are.
+Looks good. I'll test when I'm back from LCA.
 
-The benefit is insufficient to justify the overhead.
+Cheers,
+Ben.
