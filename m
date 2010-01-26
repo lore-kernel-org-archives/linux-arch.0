@@ -1,56 +1,46 @@
-From: Randy Dunlap <randy.dunlap@oracle.com>
+From: Abhijeet Dharmapurikar <adharmap@codeaurora.org>
 Subject: Re: [RFC PATCH] dma: Add barrierless dma mapping/unmapping api
-Date: Tue, 26 Jan 2010 08:48:59 -0800
-Message-ID: <20100126084859.d33904d3.randy.dunlap@oracle.com>
-References: <1264473346-32721-1-git-send-email-adharmap@codeaurora.org>
+Date: Tue, 26 Jan 2010 12:11:34 -0800
+Message-ID: <4B5F4C76.4050100@codeaurora.org>
+References: <1264473346-32721-1-git-send-email-adharmap@codeaurora.org>	<1264480210.3601.118.camel@pasglop> <20100126134207T.fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet11.oracle.com ([148.87.113.123]:18201 "EHLO
-	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753474Ab0AZQt4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2010 11:49:56 -0500
-In-Reply-To: <1264473346-32721-1-git-send-email-adharmap@codeaurora.org>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:42191 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751968Ab0AZULi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2010 15:11:38 -0500
+In-Reply-To: <20100126134207T.fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: adharmap@codeaurora.org
-Cc: linux-kernel@vger.kernel.org, linux-arm-msm@vger.kernel.org, dwalker@codeaurora.org, Arnd Bergmann <arnd@arndb.de>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Joerg Roedel <joerg.roedel@amd.com>, Maciej Sosnowski <maciej.sosnowski@intel.com>, Dan Williams <dan.j.williams@intel.com>, Becky Bruce <beckyb@kernel.crashing.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Yang Hongyang <yanghy@cn.fujitsu.com>, linux-arch@vger.kernel.org, Abhijeet Dharmapurikar <adharmap@quicinc.com>
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-arm-msm@vger.kernel.org, dwalker@codeaurora.org, arnd@arndb.de, akpm@linux-foundation.org, mingo@elte.hu, joerg.roedel@amd.com, maciej.sosnowski@intel.com, dan.j.williams@intel.com, beckyb@kernel.crashing.org, yanghy@cn.fujitsu.com, linux-arch@vger.kernel.org, adharmap@quicinc.com
 
-On Mon, 25 Jan 2010 18:35:46 -0800 adharmap@codeaurora.org wrote:
-
-> From: Abhijeet Dharmapurikar <adharmap@quicinc.com>
+FUJITA Tomonori wrote:
+> On Tue, 26 Jan 2010 15:30:10 +1100
+> Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
 > 
-> Tests have shown that there is a significant performance gain
-> when a driver uses mapping/unmapping functions without a barrier
-> multiple times and calls dsb() only after the last buffer. This
-> api adds support for barrierless dma operations on ARMv6
-> and ARMv7.
+>> On Mon, 2010-01-25 at 18:35 -0800, adharmap@codeaurora.org wrote:
+>>> From: Abhijeet Dharmapurikar <adharmap@quicinc.com>
+>>>
+  >
+>> There are people nowadays putting AXI bridges and the whole ARM
+>> paraphernalia of IP cores behind them on PowerPC cores for example and I
+>> can see that happening with x86 as well.
+>>
+>> In your case, I believe your are fixing the wrong problem anyways. The
+>> right approach would be instead to put all your buffer into an sglist
+>> and use dma_map/unmap_sg().
 > 
-> Signed-off-by: Abhijeet Dharmapurikar <adharmap@codeaurora.org>
-> ---
+> Agreed again. That's exactly what I suggested before:
 > 
-> Please refer to the earlier post here http://lkml.org/lkml/2010/1/4/347. 
-> These changes only are only for the arm v6 and v7
-> architecture and introduce dma_map/unmap_single_nobarrier api.
-> The idea is to extend the cpu_cache_fns.dma_.*_range functions to accept 
-> a third boolean argument that tells it whether to execute the barrier or
-> skip it. Note that this applies over Linux 2.6.33-rc5 and needs a few changes
-> to apply on the linux-next tree.
-> 
-> 
->  arch/arm/include/asm/cacheflush.h  |   12 ++++----
->  arch/arm/include/asm/dma-mapping.h |   57 ++++++++++++++++++++++++++++++++++--
->  arch/arm/mm/cache-v6.S             |   15 ++++++----
->  arch/arm/mm/cache-v7.S             |   19 +++++++++++-
->  arch/arm/mm/dma-mapping.c          |   17 ++++++-----
->  drivers/staging/dream/pmem.c       |    4 +-
->  6 files changed, 97 insertions(+), 27 deletions(-)
+> http://marc.info/?l=linux-kernel&m=126294076917753&w=2
 
+I somehow missed your post, my apologies. Agreed that dma_map/unmap_sg 
+would be the correct api to use here, however they still call the 
+dmac_.*_range to map buffers. I could change those calls to do a barrier 
+  only after mapping the last buffer. This would be much more cleaner 
+than introducing a .*_nobarrier API.
 
-Along with the other comments, the patch is also missing updates
-to Documentation/DMA-API.txt ...
-
-
----
-~Randy
+Thanks for all the replies.
