@@ -1,585 +1,602 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 1/6] generic sys_old_select
-Date: Mon, 1 Feb 2010 19:55:06 +0100
-Message-ID: <20100201185506.GA11045@lst.de>
+Subject: [PATCH 6/6] generic sys_olduname
+Date: Mon, 1 Feb 2010 19:56:40 +0100
+Message-ID: <20100201185640.GF11045@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.210]:36245 "EHLO verein.lst.de"
+Received: from verein.lst.de ([213.95.11.210]:36264 "EHLO verein.lst.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752042Ab0BAS5Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 1 Feb 2010 13:57:16 -0500
+	id S1754371Ab0BAS6C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 1 Feb 2010 13:58:02 -0500
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux@arm.linux.org.uk, dhowells@redhat.com, ysato@users.sourceforge.jp, tony.luck@intel.com, geert@linux-m68k.org, zippel@linux-m68k.org, gerg@uclinux.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, jdike@addtoit.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, viro@zeniv.linux.org.uk
+Cc: ralf@linux-mips.org, benh@kernel.crashing.org, lethal@linux-sh.org, takata@linux-m32r.org, jdike@addtoit.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, viro@zeniv.linux.org.uk
 
-Add a generic implementation of the old select syscall, which expects it's
-argument in a memory block and switch all architectures over to use it.
+Add generic implementations of the old and really old uname system calls.
+Note that sh only implements sys_olduname but not sys_oldolduname, but
+I'm not going to bother with another ifdef for that special case.
+
+m32r implemented an old uname but never wired it up, so kill it, too.
 
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Index: linux-2.6/arch/arm/kernel/calls.S
+Index: linux-2.6/arch/mips/kernel/syscall.c
 ===================================================================
---- linux-2.6.orig/arch/arm/kernel/calls.S	2010-01-12 14:08:15.988003897 +0100
-+++ linux-2.6/arch/arm/kernel/calls.S	2010-01-29 23:35:20.167003790 +0100
-@@ -91,7 +91,7 @@
- 		CALL(sys_settimeofday)
- /* 80 */	CALL(sys_getgroups16)
- 		CALL(sys_setgroups16)
--		CALL(OBSOLETE(old_select))	/* used by libc4 */
-+		CALL(OBSOLETE(sys_old_select))	/* used by libc4 */
- 		CALL(sys_symlink)
- 		CALL(sys_ni_syscall)		/* was sys_lstat */
- /* 85 */	CALL(sys_readlink)
-Index: linux-2.6/arch/m68k/kernel/entry.S
+--- linux-2.6.orig/arch/mips/kernel/syscall.c	2010-01-29 23:35:26.551003998 +0100
++++ linux-2.6/arch/mips/kernel/syscall.c	2010-01-29 23:35:31.796277657 +0100
+@@ -215,48 +215,6 @@ out:
+ 	return error;
+ }
+ 
+-/*
+- * Compacrapability ...
+- */
+-SYSCALL_DEFINE1(uname, struct old_utsname __user *, name)
+-{
+-	if (name && !copy_to_user(name, utsname(), sizeof (*name)))
+-		return 0;
+-	return -EFAULT;
+-}
+-
+-/*
+- * Compacrapability ...
+- */
+-SYSCALL_DEFINE1(olduname, struct oldold_utsname __user *, name)
+-{
+-	int error;
+-
+-	if (!name)
+-		return -EFAULT;
+-	if (!access_ok(VERIFY_WRITE, name, sizeof(struct oldold_utsname)))
+-		return -EFAULT;
+-
+-	error = __copy_to_user(&name->sysname, &utsname()->sysname,
+-			       __OLD_UTS_LEN);
+-	error -= __put_user(0, name->sysname + __OLD_UTS_LEN);
+-	error -= __copy_to_user(&name->nodename, &utsname()->nodename,
+-				__OLD_UTS_LEN);
+-	error -= __put_user(0, name->nodename + __OLD_UTS_LEN);
+-	error -= __copy_to_user(&name->release, &utsname()->release,
+-				__OLD_UTS_LEN);
+-	error -= __put_user(0, name->release + __OLD_UTS_LEN);
+-	error -= __copy_to_user(&name->version, &utsname()->version,
+-				__OLD_UTS_LEN);
+-	error -= __put_user(0, name->version + __OLD_UTS_LEN);
+-	error -= __copy_to_user(&name->machine, &utsname()->machine,
+-				__OLD_UTS_LEN);
+-	error = __put_user(0, name->machine + __OLD_UTS_LEN);
+-	error = error ? -EFAULT : 0;
+-
+-	return error;
+-}
+-
+ SYSCALL_DEFINE1(set_thread_area, unsigned long, addr)
+ {
+ 	struct thread_info *ti = task_thread_info(current);
+Index: linux-2.6/arch/powerpc/kernel/syscalls.c
 ===================================================================
---- linux-2.6.orig/arch/m68k/kernel/entry.S	2010-01-12 14:08:16.008003720 +0100
-+++ linux-2.6/arch/m68k/kernel/entry.S	2010-01-29 23:35:20.167003790 +0100
-@@ -510,7 +510,7 @@ sys_call_table:
- 	.long sys_settimeofday
- 	.long sys_getgroups16	/* 80 */
- 	.long sys_setgroups16
--	.long old_select
-+	.long sys_old_select
- 	.long sys_symlink
- 	.long sys_lstat
- 	.long sys_readlink	/* 85 */
-Index: linux-2.6/arch/m68knommu/kernel/syscalltable.S
+--- linux-2.6.orig/arch/powerpc/kernel/syscalls.c	2010-01-29 23:35:30.661004396 +0100
++++ linux-2.6/arch/powerpc/kernel/syscalls.c	2010-01-29 23:35:31.796277657 +0100
+@@ -101,63 +101,6 @@ ppc_select(int n, fd_set __user *inp, fd
+ }
+ #endif
+ 
+-#ifdef CONFIG_PPC64
+-#define OVERRIDE_MACHINE    (personality(current->personality) == PER_LINUX32)
+-#else
+-#define OVERRIDE_MACHINE    0
+-#endif
+-
+-static inline int override_machine(char __user *mach)
+-{
+-	if (OVERRIDE_MACHINE) {
+-		/* change ppc64 to ppc */
+-		if (__put_user(0, mach+3) || __put_user(0, mach+4))
+-			return -EFAULT;
+-	}
+-	return 0;
+-}
+-
+-int sys_uname(struct old_utsname __user *name)
+-{
+-	int err = 0;
+-	
+-	down_read(&uts_sem);
+-	if (copy_to_user(name, utsname(), sizeof(*name)))
+-		err = -EFAULT;
+-	up_read(&uts_sem);
+-	if (!err)
+-		err = override_machine(name->machine);
+-	return err;
+-}
+-
+-int sys_olduname(struct oldold_utsname __user *name)
+-{
+-	int error;
+-
+-	if (!access_ok(VERIFY_WRITE, name, sizeof(struct oldold_utsname)))
+-		return -EFAULT;
+-  
+-	down_read(&uts_sem);
+-	error = __copy_to_user(&name->sysname, &utsname()->sysname,
+-			       __OLD_UTS_LEN);
+-	error |= __put_user(0, name->sysname + __OLD_UTS_LEN);
+-	error |= __copy_to_user(&name->nodename, &utsname()->nodename,
+-				__OLD_UTS_LEN);
+-	error |= __put_user(0, name->nodename + __OLD_UTS_LEN);
+-	error |= __copy_to_user(&name->release, &utsname()->release,
+-				__OLD_UTS_LEN);
+-	error |= __put_user(0, name->release + __OLD_UTS_LEN);
+-	error |= __copy_to_user(&name->version, &utsname()->version,
+-				__OLD_UTS_LEN);
+-	error |= __put_user(0, name->version + __OLD_UTS_LEN);
+-	error |= __copy_to_user(&name->machine, &utsname()->machine,
+-				__OLD_UTS_LEN);
+-	error |= override_machine(name->machine);
+-	up_read(&uts_sem);
+-
+-	return error? -EFAULT: 0;
+-}
+-
+ long ppc_fadvise64_64(int fd, int advice, u32 offset_high, u32 offset_low,
+ 		      u32 len_high, u32 len_low)
+ {
+Index: linux-2.6/arch/x86/ia32/ia32entry.S
 ===================================================================
---- linux-2.6.orig/arch/m68knommu/kernel/syscalltable.S	2010-01-12 14:08:16.037010906 +0100
-+++ linux-2.6/arch/m68knommu/kernel/syscalltable.S	2010-01-29 23:35:20.168003778 +0100
-@@ -100,7 +100,7 @@ ENTRY(sys_call_table)
- 	.long sys_settimeofday
- 	.long sys_getgroups16	/* 80 */
- 	.long sys_setgroups16
--	.long old_select
-+	.long sys_old_select
- 	.long sys_symlink
- 	.long sys_lstat
- 	.long sys_readlink	/* 85 */
-Index: linux-2.6/arch/x86/kernel/syscall_table_32.S
+--- linux-2.6.orig/arch/x86/ia32/ia32entry.S	2010-01-29 23:35:20.184012102 +0100
++++ linux-2.6/arch/x86/ia32/ia32entry.S	2010-01-29 23:35:31.797278203 +0100
+@@ -563,7 +563,7 @@ ia32_sys_call_table:
+ 	.quad quiet_ni_syscall			/* old mpx syscall holder */
+ 	.quad sys_setpgid
+ 	.quad quiet_ni_syscall			/* old ulimit syscall holder */
+-	.quad sys32_olduname
++	.quad sys_olduname
+ 	.quad sys_umask		/* 60 */
+ 	.quad sys_chroot
+ 	.quad compat_sys_ustat
+@@ -613,7 +613,7 @@ ia32_sys_call_table:
+ 	.quad compat_sys_newstat
+ 	.quad compat_sys_newlstat
+ 	.quad compat_sys_newfstat
+-	.quad sys32_uname
++	.quad sys_uname
+ 	.quad stub32_iopl		/* 110 */
+ 	.quad sys_vhangup
+ 	.quad quiet_ni_syscall	/* old "idle" system call */
+Index: linux-2.6/arch/x86/ia32/sys_ia32.c
 ===================================================================
---- linux-2.6.orig/arch/x86/kernel/syscall_table_32.S	2010-01-12 14:08:16.058006317 +0100
-+++ linux-2.6/arch/x86/kernel/syscall_table_32.S	2010-01-29 23:35:20.169024159 +0100
-@@ -81,7 +81,7 @@ ENTRY(sys_call_table)
- 	.long sys_settimeofday
- 	.long sys_getgroups16	/* 80 */
- 	.long sys_setgroups16
--	.long old_select
-+	.long sys_old_select
- 	.long sys_symlink
- 	.long sys_lstat
- 	.long sys_readlink	/* 85 */
+--- linux-2.6.orig/arch/x86/ia32/sys_ia32.c	2010-01-29 23:35:29.066012533 +0100
++++ linux-2.6/arch/x86/ia32/sys_ia32.c	2010-01-29 23:35:31.799278947 +0100
+@@ -434,58 +434,6 @@ asmlinkage long sys32_sendfile(int out_f
+ 	return ret;
+ }
+ 
+-asmlinkage long sys32_olduname(struct oldold_utsname __user *name)
+-{
+-	char *arch = "x86_64";
+-	int err;
+-
+-	if (!name)
+-		return -EFAULT;
+-	if (!access_ok(VERIFY_WRITE, name, sizeof(struct oldold_utsname)))
+-		return -EFAULT;
+-
+-	down_read(&uts_sem);
+-
+-	err = __copy_to_user(&name->sysname, &utsname()->sysname,
+-			     __OLD_UTS_LEN);
+-	err |= __put_user(0, name->sysname+__OLD_UTS_LEN);
+-	err |= __copy_to_user(&name->nodename, &utsname()->nodename,
+-			      __OLD_UTS_LEN);
+-	err |= __put_user(0, name->nodename+__OLD_UTS_LEN);
+-	err |= __copy_to_user(&name->release, &utsname()->release,
+-			      __OLD_UTS_LEN);
+-	err |= __put_user(0, name->release+__OLD_UTS_LEN);
+-	err |= __copy_to_user(&name->version, &utsname()->version,
+-			      __OLD_UTS_LEN);
+-	err |= __put_user(0, name->version+__OLD_UTS_LEN);
+-
+-	if (personality(current->personality) == PER_LINUX32)
+-		arch = "i686";
+-
+-	err |= __copy_to_user(&name->machine, arch, strlen(arch) + 1);
+-
+-	up_read(&uts_sem);
+-
+-	err = err ? -EFAULT : 0;
+-
+-	return err;
+-}
+-
+-long sys32_uname(struct old_utsname __user *name)
+-{
+-	int err;
+-
+-	if (!name)
+-		return -EFAULT;
+-	down_read(&uts_sem);
+-	err = copy_to_user(name, utsname(), sizeof(*name));
+-	up_read(&uts_sem);
+-	if (personality(current->personality) == PER_LINUX32)
+-		err |= copy_to_user(&name->machine, "i686", 5);
+-
+-	return err ? -EFAULT : 0;
+-}
+-
+ asmlinkage long sys32_execve(char __user *name, compat_uptr_t __user *argv,
+ 			     compat_uptr_t __user *envp, struct pt_regs *regs)
+ {
 Index: linux-2.6/arch/x86/include/asm/sys_ia32.h
 ===================================================================
---- linux-2.6.orig/arch/x86/include/asm/sys_ia32.h	2010-01-12 14:08:16.077254299 +0100
-+++ linux-2.6/arch/x86/include/asm/sys_ia32.h	2010-01-29 23:35:20.170003753 +0100
-@@ -40,8 +40,6 @@ asmlinkage long sys32_rt_sigprocmask(int
- 				     compat_sigset_t __user *, unsigned int);
- asmlinkage long sys32_alarm(unsigned int);
+--- linux-2.6.orig/arch/x86/include/asm/sys_ia32.h	2010-01-29 23:35:29.067004419 +0100
++++ linux-2.6/arch/x86/include/asm/sys_ia32.h	2010-01-29 23:35:31.799278947 +0100
+@@ -53,11 +53,6 @@ asmlinkage long sys32_pwrite(unsigned in
  
--struct sel_arg_struct;
--asmlinkage long sys32_old_select(struct sel_arg_struct __user *);
- asmlinkage long sys32_waitpid(compat_pid_t, unsigned int *, int);
- asmlinkage long sys32_sysfs(int, u32, u32);
+ asmlinkage long sys32_sendfile(int, int, compat_off_t __user *, s32);
  
-Index: linux-2.6/arch/arm/include/asm/unistd.h
+-struct oldold_utsname;
+-struct old_utsname;
+-asmlinkage long sys32_olduname(struct oldold_utsname __user *);
+-long sys32_uname(struct old_utsname __user *);
+-
+ asmlinkage long sys32_execve(char __user *, compat_uptr_t __user *,
+ 			     compat_uptr_t __user *, struct pt_regs *);
+ asmlinkage long sys32_clone(unsigned int, unsigned int, struct pt_regs *);
+Index: linux-2.6/arch/x86/include/asm/syscalls.h
 ===================================================================
---- linux-2.6.orig/arch/arm/include/asm/unistd.h	2010-01-19 20:00:31.717004132 +0100
-+++ linux-2.6/arch/arm/include/asm/unistd.h	2010-01-29 23:35:20.171004090 +0100
-@@ -443,6 +443,7 @@
- #define __ARCH_WANT_SYS_SIGPROCMASK
- #define __ARCH_WANT_SYS_RT_SIGACTION
- #define __ARCH_WANT_SYS_RT_SIGSUSPEND
-+#define __ARCH_WANT_SYS_OLD_SELECT
+--- linux-2.6.orig/arch/x86/include/asm/syscalls.h	2010-01-29 23:35:30.938006430 +0100
++++ linux-2.6/arch/x86/include/asm/syscalls.h	2010-01-29 23:35:31.801003957 +0100
+@@ -50,13 +50,6 @@ asmlinkage int sys_sigaction(int, const 
+ 			     struct old_sigaction __user *);
+ unsigned long sys_sigreturn(struct pt_regs *);
  
- #if !defined(CONFIG_AEABI) || defined(CONFIG_OABI_COMPAT)
- #define __ARCH_WANT_SYS_TIME
-Index: linux-2.6/arch/h8300/include/asm/unistd.h
+-/* kernel/sys_i386_32.c */
+-struct oldold_utsname;
+-struct old_utsname;
+-
+-asmlinkage int sys_uname(struct old_utsname __user *);
+-asmlinkage int sys_olduname(struct oldold_utsname __user *);
+-
+ /* kernel/vm86_32.c */
+ int sys_vm86old(struct vm86_struct __user *, struct pt_regs *);
+ int sys_vm86(unsigned long, unsigned long, struct pt_regs *);
+Index: linux-2.6/arch/x86/kernel/sys_i386_32.c
 ===================================================================
---- linux-2.6.orig/arch/h8300/include/asm/unistd.h	2010-01-12 14:08:16.123027306 +0100
-+++ linux-2.6/arch/h8300/include/asm/unistd.h	2010-01-29 23:35:20.172010434 +0100
-@@ -348,6 +348,7 @@
+--- linux-2.6.orig/arch/x86/kernel/sys_i386_32.c	2010-01-29 23:35:26.563011673 +0100
++++ linux-2.6/arch/x86/kernel/sys_i386_32.c	2010-01-29 23:35:31.801003957 +0100
+@@ -25,55 +25,6 @@
+ #include <asm/syscalls.h>
+ 
+ /*
+- * Old cruft
+- */
+-asmlinkage int sys_uname(struct old_utsname __user *name)
+-{
+-	int err;
+-	if (!name)
+-		return -EFAULT;
+-	down_read(&uts_sem);
+-	err = copy_to_user(name, utsname(), sizeof(*name));
+-	up_read(&uts_sem);
+-	return err? -EFAULT:0;
+-}
+-
+-asmlinkage int sys_olduname(struct oldold_utsname __user *name)
+-{
+-	int error;
+-
+-	if (!name)
+-		return -EFAULT;
+-	if (!access_ok(VERIFY_WRITE, name, sizeof(struct oldold_utsname)))
+-		return -EFAULT;
+-
+-	down_read(&uts_sem);
+-
+-	error = __copy_to_user(&name->sysname, &utsname()->sysname,
+-			       __OLD_UTS_LEN);
+-	error |= __put_user(0, name->sysname + __OLD_UTS_LEN);
+-	error |= __copy_to_user(&name->nodename, &utsname()->nodename,
+-				__OLD_UTS_LEN);
+-	error |= __put_user(0, name->nodename + __OLD_UTS_LEN);
+-	error |= __copy_to_user(&name->release, &utsname()->release,
+-				__OLD_UTS_LEN);
+-	error |= __put_user(0, name->release + __OLD_UTS_LEN);
+-	error |= __copy_to_user(&name->version, &utsname()->version,
+-				__OLD_UTS_LEN);
+-	error |= __put_user(0, name->version + __OLD_UTS_LEN);
+-	error |= __copy_to_user(&name->machine, &utsname()->machine,
+-				__OLD_UTS_LEN);
+-	error |= __put_user(0, name->machine + __OLD_UTS_LEN);
+-
+-	up_read(&uts_sem);
+-
+-	error = error ? -EFAULT : 0;
+-
+-	return error;
+-}
+-
+-
+-/*
+  * Do a system call from kernel instead of calling sys_execve so we
+  * end up with proper pt_regs.
+  */
+Index: linux-2.6/include/linux/syscalls.h
+===================================================================
+--- linux-2.6.orig/include/linux/syscalls.h	2010-01-29 23:35:26.580004409 +0100
++++ linux-2.6/include/linux/syscalls.h	2010-01-29 23:35:31.803024117 +0100
+@@ -31,6 +31,8 @@ struct msqid_ds;
+ struct new_utsname;
+ struct nfsctl_arg;
+ struct __old_kernel_stat;
++struct oldold_utsname;
++struct old_utsname;
+ struct pollfd;
+ struct rlimit;
+ struct rusage;
+@@ -655,6 +657,8 @@ asmlinkage long sys_gethostname(char __u
+ asmlinkage long sys_sethostname(char __user *name, int len);
+ asmlinkage long sys_setdomainname(char __user *name, int len);
+ asmlinkage long sys_newuname(struct new_utsname __user *name);
++asmlinkage long sys_uname(struct old_utsname __user *);
++asmlinkage long sys_olduname(struct oldold_utsname __user *);
+ 
+ asmlinkage long sys_getrlimit(unsigned int resource,
+ 				struct rlimit __user *rlim);
+Index: linux-2.6/kernel/sys.c
+===================================================================
+--- linux-2.6.orig/kernel/sys.c	2010-01-29 23:35:30.658004573 +0100
++++ linux-2.6/kernel/sys.c	2010-01-29 23:35:31.804014745 +0100
+@@ -1141,6 +1141,60 @@ SYSCALL_DEFINE1(newuname, struct new_uts
+ 	return errno;
+ }
+ 
++#ifdef __ARCH_WANT_SYS_OLD_UNAME
++/*
++ * Old cruft
++ */
++SYSCALL_DEFINE1(uname, struct old_utsname __user *, name)
++{
++	int error = 0;
++
++	if (!name)
++		return -EFAULT;
++
++	down_read(&uts_sem);
++	if (copy_to_user(name, utsname(), sizeof(*name)))
++		error = -EFAULT;
++	up_read(&uts_sem);
++
++	if (!error && override_architecture(name))
++		error = -EFAULT;
++	return error;
++}
++
++SYSCALL_DEFINE1(olduname, struct oldold_utsname __user *, name)
++{
++	int error;
++
++	if (!name)
++		return -EFAULT;
++	if (!access_ok(VERIFY_WRITE, name, sizeof(struct oldold_utsname)))
++		return -EFAULT;
++
++	down_read(&uts_sem);
++	error = __copy_to_user(&name->sysname, &utsname()->sysname,
++			       __OLD_UTS_LEN);
++	error |= __put_user(0, name->sysname + __OLD_UTS_LEN);
++	error |= __copy_to_user(&name->nodename, &utsname()->nodename,
++				__OLD_UTS_LEN);
++	error |= __put_user(0, name->nodename + __OLD_UTS_LEN);
++	error |= __copy_to_user(&name->release, &utsname()->release,
++				__OLD_UTS_LEN);
++	error |= __put_user(0, name->release + __OLD_UTS_LEN);
++	error |= __copy_to_user(&name->version, &utsname()->version,
++				__OLD_UTS_LEN);
++	error |= __put_user(0, name->version + __OLD_UTS_LEN);
++	error |= __copy_to_user(&name->machine, &utsname()->machine,
++				__OLD_UTS_LEN);
++	error |= __put_user(0, name->machine + __OLD_UTS_LEN);
++	up_read(&uts_sem);
++
++	if (!error && override_architecture(name))
++		error = -EFAULT;
++	return error ? -EFAULT : 0;
++}
++#endif
++
+ SYSCALL_DEFINE2(sethostname, char __user *, name, int, len)
+ {
+ 	int errno;
+Index: linux-2.6/arch/m32r/kernel/sys_m32r.c
+===================================================================
+--- linux-2.6.orig/arch/m32r/kernel/sys_m32r.c	2010-01-29 23:35:26.550023915 +0100
++++ linux-2.6/arch/m32r/kernel/sys_m32r.c	2010-01-29 23:35:31.805011311 +0100
+@@ -76,17 +76,6 @@ asmlinkage int sys_tas(int __user *addr)
+ 	return oldval;
+ }
+ 
+-asmlinkage int sys_uname(struct old_utsname __user * name)
+-{
+-	int err;
+-	if (!name)
+-		return -EFAULT;
+-	down_read(&uts_sem);
+-	err = copy_to_user(name, utsname(), sizeof (*name));
+-	up_read(&uts_sem);
+-	return err?-EFAULT:0;
+-}
+-
+ asmlinkage int sys_cacheflush(void *addr, int bytes, int cache)
+ {
+ 	/* This should flush more selectively ...  */
+Index: linux-2.6/arch/sh/include/asm/syscalls.h
+===================================================================
+--- linux-2.6.orig/arch/sh/include/asm/syscalls.h	2010-01-29 23:35:26.556004146 +0100
++++ linux-2.6/arch/sh/include/asm/syscalls.h	2010-01-29 23:35:31.805011311 +0100
+@@ -3,15 +3,12 @@
+ 
+ #ifdef __KERNEL__
+ 
+-struct old_utsname;
+-
+ asmlinkage int old_mmap(unsigned long addr, unsigned long len,
+ 			unsigned long prot, unsigned long flags,
+ 			int fd, unsigned long off);
+ asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
+ 			  unsigned long prot, unsigned long flags,
+ 			  unsigned long fd, unsigned long pgoff);
+-asmlinkage int sys_uname(struct old_utsname __user *name);
+ 
+ #ifdef CONFIG_SUPERH32
+ # include "syscalls_32.h"
+Index: linux-2.6/arch/sh/kernel/sys_sh.c
+===================================================================
+--- linux-2.6.orig/arch/sh/kernel/sys_sh.c	2010-01-29 23:35:26.557003785 +0100
++++ linux-2.6/arch/sh/kernel/sys_sh.c	2010-01-29 23:35:31.806003616 +0100
+@@ -93,14 +93,3 @@ asmlinkage int sys_cacheflush(unsigned l
+ 	up_read(&current->mm->mmap_sem);
+ 	return 0;
+ }
+-
+-asmlinkage int sys_uname(struct old_utsname __user *name)
+-{
+-	int err;
+-	if (!name)
+-		return -EFAULT;
+-	down_read(&uts_sem);
+-	err = copy_to_user(name, utsname(), sizeof(*name));
+-	up_read(&uts_sem);
+-	return err?-EFAULT:0;
+-}
+Index: linux-2.6/arch/um/kernel/syscall.c
+===================================================================
+--- linux-2.6.orig/arch/um/kernel/syscall.c	2010-01-12 14:08:13.494003031 +0100
++++ linux-2.6/arch/um/kernel/syscall.c	2010-01-29 23:35:31.807010728 +0100
+@@ -51,51 +51,6 @@ long old_mmap(unsigned long addr, unsign
+ 	return err;
+ }
+ 
+-long sys_uname(struct old_utsname __user * name)
+-{
+-	long err;
+-	if (!name)
+-		return -EFAULT;
+-	down_read(&uts_sem);
+-	err = copy_to_user(name, utsname(), sizeof (*name));
+-	up_read(&uts_sem);
+-	return err?-EFAULT:0;
+-}
+-
+-long sys_olduname(struct oldold_utsname __user * name)
+-{
+-	long error;
+-
+-	if (!name)
+-		return -EFAULT;
+-	if (!access_ok(VERIFY_WRITE,name,sizeof(struct oldold_utsname)))
+-		return -EFAULT;
+-
+-	down_read(&uts_sem);
+-
+-	error = __copy_to_user(&name->sysname, &utsname()->sysname,
+-			       __OLD_UTS_LEN);
+-	error |= __put_user(0, name->sysname + __OLD_UTS_LEN);
+-	error |= __copy_to_user(&name->nodename, &utsname()->nodename,
+-				__OLD_UTS_LEN);
+-	error |= __put_user(0, name->nodename + __OLD_UTS_LEN);
+-	error |= __copy_to_user(&name->release, &utsname()->release,
+-				__OLD_UTS_LEN);
+-	error |= __put_user(0, name->release + __OLD_UTS_LEN);
+-	error |= __copy_to_user(&name->version, &utsname()->version,
+-				__OLD_UTS_LEN);
+-	error |= __put_user(0, name->version + __OLD_UTS_LEN);
+-	error |= __copy_to_user(&name->machine, &utsname()->machine,
+-				__OLD_UTS_LEN);
+-	error |= __put_user(0, name->machine + __OLD_UTS_LEN);
+-
+-	up_read(&uts_sem);
+-
+-	error = error ? -EFAULT : 0;
+-
+-	return error;
+-}
+-
+ int kernel_execve(const char *filename, char *const argv[], char *const envp[])
+ {
+ 	mm_segment_t fs;
+Index: linux-2.6/arch/mips/include/asm/unistd.h
+===================================================================
+--- linux-2.6.orig/arch/mips/include/asm/unistd.h	2010-01-29 23:35:26.572011841 +0100
++++ linux-2.6/arch/mips/include/asm/unistd.h	2010-01-29 23:35:31.808004150 +0100
+@@ -1014,6 +1014,7 @@
  #define __ARCH_WANT_SYS_LLSEEK
  #define __ARCH_WANT_SYS_NICE
  #define __ARCH_WANT_SYS_OLD_GETRLIMIT
-+#define __ARCH_WANT_SYS_OLD_SELECT
++#define __ARCH_WANT_SYS_OLD_UNAME
  #define __ARCH_WANT_SYS_OLDUMOUNT
  #define __ARCH_WANT_SYS_SIGPENDING
  #define __ARCH_WANT_SYS_SIGPROCMASK
-Index: linux-2.6/arch/m68k/include/asm/unistd.h
+Index: linux-2.6/arch/powerpc/include/asm/unistd.h
 ===================================================================
---- linux-2.6.orig/arch/m68k/include/asm/unistd.h	2010-01-12 14:08:16.027006350 +0100
-+++ linux-2.6/arch/m68k/include/asm/unistd.h	2010-01-29 23:35:20.173024739 +0100
-@@ -359,6 +359,7 @@
+--- linux-2.6.orig/arch/powerpc/include/asm/unistd.h	2010-01-29 23:35:26.574004483 +0100
++++ linux-2.6/arch/powerpc/include/asm/unistd.h	2010-01-29 23:35:31.809004347 +0100
+@@ -377,6 +377,7 @@
  #define __ARCH_WANT_SYS_LLSEEK
  #define __ARCH_WANT_SYS_NICE
  #define __ARCH_WANT_SYS_OLD_GETRLIMIT
-+#define __ARCH_WANT_SYS_OLD_SELECT
++#define __ARCH_WANT_SYS_OLD_UNAME
+ #define __ARCH_WANT_SYS_OLDUMOUNT
+ #define __ARCH_WANT_SYS_SIGPENDING
+ #define __ARCH_WANT_SYS_SIGPROCMASK
+Index: linux-2.6/arch/sh/include/asm/unistd_32.h
+===================================================================
+--- linux-2.6.orig/arch/sh/include/asm/unistd_32.h	2010-01-29 23:35:26.575004401 +0100
++++ linux-2.6/arch/sh/include/asm/unistd_32.h	2010-01-29 23:35:31.809004347 +0100
+@@ -371,6 +371,7 @@
+ #define __ARCH_WANT_SYS_LLSEEK
+ #define __ARCH_WANT_SYS_NICE
+ #define __ARCH_WANT_SYS_OLD_GETRLIMIT
++#define __ARCH_WANT_SYS_OLD_UNAME
+ #define __ARCH_WANT_SYS_OLDUMOUNT
+ #define __ARCH_WANT_SYS_SIGPENDING
+ #define __ARCH_WANT_SYS_SIGPROCMASK
+Index: linux-2.6/arch/sh/include/asm/unistd_64.h
+===================================================================
+--- linux-2.6.orig/arch/sh/include/asm/unistd_64.h	2010-01-29 23:35:26.576007602 +0100
++++ linux-2.6/arch/sh/include/asm/unistd_64.h	2010-01-29 23:35:31.810004545 +0100
+@@ -411,6 +411,7 @@
+ #define __ARCH_WANT_SYS_LLSEEK
+ #define __ARCH_WANT_SYS_NICE
+ #define __ARCH_WANT_SYS_OLD_GETRLIMIT
++#define __ARCH_WANT_SYS_OLD_UNAME
  #define __ARCH_WANT_SYS_OLDUMOUNT
  #define __ARCH_WANT_SYS_SIGPENDING
  #define __ARCH_WANT_SYS_SIGPROCMASK
 Index: linux-2.6/arch/x86/include/asm/unistd_32.h
 ===================================================================
---- linux-2.6.orig/arch/x86/include/asm/unistd_32.h	2010-01-12 14:08:16.087262626 +0100
-+++ linux-2.6/arch/x86/include/asm/unistd_32.h	2010-01-29 23:35:20.173024739 +0100
-@@ -366,6 +366,7 @@
+--- linux-2.6.orig/arch/x86/include/asm/unistd_32.h	2010-01-29 23:35:26.579004142 +0100
++++ linux-2.6/arch/x86/include/asm/unistd_32.h	2010-01-29 23:35:31.811004113 +0100
+@@ -367,6 +367,7 @@
  #define __ARCH_WANT_SYS_LLSEEK
  #define __ARCH_WANT_SYS_NICE
  #define __ARCH_WANT_SYS_OLD_GETRLIMIT
-+#define __ARCH_WANT_SYS_OLD_SELECT
++#define __ARCH_WANT_SYS_OLD_UNAME
+ #define __ARCH_WANT_SYS_OLD_MMAP
+ #define __ARCH_WANT_SYS_OLD_SELECT
  #define __ARCH_WANT_SYS_OLDUMOUNT
- #define __ARCH_WANT_SYS_SIGPENDING
- #define __ARCH_WANT_SYS_SIGPROCMASK
-Index: linux-2.6/arch/ia64/ia32/sys_ia32.c
+Index: linux-2.6/arch/x86/include/asm/unistd_64.h
 ===================================================================
---- linux-2.6.orig/arch/ia64/ia32/sys_ia32.c	2010-01-12 14:08:16.140253941 +0100
-+++ linux-2.6/arch/ia64/ia32/sys_ia32.c	2010-01-29 23:35:20.175003692 +0100
-@@ -1107,25 +1107,6 @@ sys32_alarm (unsigned int seconds)
- 	return alarm_setitimer(seconds);
- }
- 
--struct sel_arg_struct {
--	unsigned int n;
--	unsigned int inp;
--	unsigned int outp;
--	unsigned int exp;
--	unsigned int tvp;
--};
--
--asmlinkage long
--sys32_old_select (struct sel_arg_struct __user *arg)
--{
--	struct sel_arg_struct a;
--
--	if (copy_from_user(&a, arg, sizeof(a)))
--		return -EFAULT;
--	return compat_sys_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
--				 compat_ptr(a.exp), compat_ptr(a.tvp));
--}
--
- #define SEMOP		 1
- #define SEMGET		 2
- #define SEMCTL		 3
-Index: linux-2.6/arch/x86/ia32/sys_ia32.c
-===================================================================
---- linux-2.6.orig/arch/x86/ia32/sys_ia32.c	2010-01-12 14:08:16.103003946 +0100
-+++ linux-2.6/arch/x86/ia32/sys_ia32.c	2010-01-29 23:35:20.175003692 +0100
-@@ -332,24 +332,6 @@ asmlinkage long sys32_alarm(unsigned int
- 	return alarm_setitimer(seconds);
- }
- 
--struct sel_arg_struct {
--	unsigned int n;
--	unsigned int inp;
--	unsigned int outp;
--	unsigned int exp;
--	unsigned int tvp;
--};
--
--asmlinkage long sys32_old_select(struct sel_arg_struct __user *arg)
--{
--	struct sel_arg_struct a;
--
--	if (copy_from_user(&a, arg, sizeof(a)))
--		return -EFAULT;
--	return compat_sys_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
--				 compat_ptr(a.exp), compat_ptr(a.tvp));
--}
--
- asmlinkage long sys32_waitpid(compat_pid_t pid, unsigned int *stat_addr,
- 			      int options)
- {
-Index: linux-2.6/fs/select.c
-===================================================================
---- linux-2.6.orig/fs/select.c	2010-01-12 14:08:16.194003803 +0100
-+++ linux-2.6/fs/select.c	2010-01-29 23:35:20.176004099 +0100
-@@ -691,6 +691,23 @@ SYSCALL_DEFINE6(pselect6, int, n, fd_set
- }
- #endif /* HAVE_SET_RESTORE_SIGMASK */
- 
-+#ifdef __ARCH_WANT_SYS_OLD_SELECT
-+struct sel_arg_struct {
-+	unsigned long n;
-+	fd_set __user *inp, *outp, *exp;
-+	struct timeval __user *tvp;
-+};
-+
-+SYSCALL_DEFINE1(old_select, struct sel_arg_struct __user *, arg)
-+{
-+	struct sel_arg_struct a;
-+
-+	if (copy_from_user(&a, arg, sizeof(a)))
-+		return -EFAULT;
-+	return sys_select(a.n, a.inp, a.outp, a.exp, a.tvp);
-+}
-+#endif
-+
- struct poll_list {
- 	struct poll_list *next;
- 	int len;
-Index: linux-2.6/arch/h8300/kernel/syscalls.S
-===================================================================
---- linux-2.6.orig/arch/h8300/kernel/syscalls.S	2010-01-12 14:08:16.128253391 +0100
-+++ linux-2.6/arch/h8300/kernel/syscalls.S	2010-01-29 23:35:20.177003178 +0100
-@@ -96,7 +96,7 @@ SYMBOL_NAME_LABEL(sys_call_table)	
- 	.long SYMBOL_NAME(sys_settimeofday)
- 	.long SYMBOL_NAME(sys_getgroups16)	/* 80 */
- 	.long SYMBOL_NAME(sys_setgroups16)
--	.long SYMBOL_NAME(old_select)
-+	.long SYMBOL_NAME(sys_old_select)
- 	.long SYMBOL_NAME(sys_symlink)
- 	.long SYMBOL_NAME(sys_lstat)
- 	.long SYMBOL_NAME(sys_readlink)		/* 85 */
-Index: linux-2.6/arch/mn10300/include/asm/unistd.h
-===================================================================
---- linux-2.6.orig/arch/mn10300/include/asm/unistd.h	2010-01-19 20:00:31.762003647 +0100
-+++ linux-2.6/arch/mn10300/include/asm/unistd.h	2010-01-29 23:35:20.178004074 +0100
-@@ -375,6 +375,7 @@
+--- linux-2.6.orig/arch/x86/include/asm/unistd_64.h	2010-01-29 23:35:30.940005707 +0100
++++ linux-2.6/arch/x86/include/asm/unistd_64.h	2010-01-29 23:35:31.811004113 +0100
+@@ -680,6 +680,7 @@ __SYSCALL(__NR_recvmmsg, sys_recvmmsg)
  #define __ARCH_WANT_SYS_LLSEEK
  #define __ARCH_WANT_SYS_NICE
  #define __ARCH_WANT_SYS_OLD_GETRLIMIT
-+#define __ARCH_WANT_SYS_OLD_SELECT
++#define __ARCH_WANT_SYS_OLD_UNAME
  #define __ARCH_WANT_SYS_OLDUMOUNT
  #define __ARCH_WANT_SYS_SIGPENDING
  #define __ARCH_WANT_SYS_SIGPROCMASK
-Index: linux-2.6/arch/mn10300/kernel/entry.S
-===================================================================
---- linux-2.6.orig/arch/mn10300/kernel/entry.S	2010-01-19 20:00:31.763003634 +0100
-+++ linux-2.6/arch/mn10300/kernel/entry.S	2010-01-29 23:35:20.179003992 +0100
-@@ -468,7 +468,7 @@ ENTRY(sys_call_table)
- 	.long sys_settimeofday
- 	.long sys_getgroups16	/* 80 */
- 	.long sys_setgroups16
--	.long old_select
-+	.long sys_old_select
- 	.long sys_symlink
- 	.long sys_lstat
- 	.long sys_readlink	/* 85 */
-Index: linux-2.6/include/linux/syscalls.h
-===================================================================
---- linux-2.6.orig/include/linux/syscalls.h	2010-01-19 20:00:32.320004402 +0100
-+++ linux-2.6/include/linux/syscalls.h	2010-01-29 23:35:20.179003992 +0100
-@@ -34,6 +34,7 @@ struct pollfd;
- struct rlimit;
- struct rusage;
- struct sched_param;
-+struct sel_arg_struct;
- struct semaphore;
- struct sembuf;
- struct shmid_ds;
-@@ -638,6 +639,7 @@ asmlinkage long sys_poll(struct pollfd _
- 				long timeout);
- asmlinkage long sys_select(int n, fd_set __user *inp, fd_set __user *outp,
- 			fd_set __user *exp, struct timeval __user *tvp);
-+asmlinkage long sys_old_select(struct sel_arg_struct __user * arg);
- asmlinkage long sys_epoll_create(int size);
- asmlinkage long sys_epoll_create1(int flags);
- asmlinkage long sys_epoll_ctl(int epfd, int op, int fd,
-Index: linux-2.6/arch/arm/kernel/sys_arm.c
-===================================================================
---- linux-2.6.orig/arch/arm/kernel/sys_arm.c	2010-01-12 14:08:15.995003182 +0100
-+++ linux-2.6/arch/arm/kernel/sys_arm.c	2010-01-29 23:35:20.181024291 +0100
-@@ -54,27 +54,6 @@ out:
- 	return error;
- }
- 
--/*
-- * Perform the select(nd, in, out, ex, tv) and mmap() system
-- * calls.
-- */
--
--struct sel_arg_struct {
--	unsigned long n;
--	fd_set __user *inp, *outp, *exp;
--	struct timeval __user *tvp;
--};
--
--asmlinkage int old_select(struct sel_arg_struct __user *arg)
--{
--	struct sel_arg_struct a;
--
--	if (copy_from_user(&a, arg, sizeof(a)))
--		return -EFAULT;
--	/* sys_select() does the appropriate kernel locking */
--	return sys_select(a.n, a.inp, a.outp, a.exp, a.tvp);
--}
--
- #if !defined(CONFIG_AEABI) || defined(CONFIG_OABI_COMPAT)
- /*
-  * sys_ipc() is the de-multiplexer for the SysV IPC calls..
-Index: linux-2.6/arch/h8300/kernel/sys_h8300.c
-===================================================================
---- linux-2.6.orig/arch/h8300/kernel/sys_h8300.c	2010-01-12 14:08:16.134253247 +0100
-+++ linux-2.6/arch/h8300/kernel/sys_h8300.c	2010-01-29 23:35:20.182003257 +0100
-@@ -60,22 +60,6 @@ out:
- 	return error;
- }
- 
--struct sel_arg_struct {
--	unsigned long n;
--	fd_set *inp, *outp, *exp;
--	struct timeval *tvp;
--};
--
--asmlinkage int old_select(struct sel_arg_struct *arg)
--{
--	struct sel_arg_struct a;
--
--	if (copy_from_user(&a, arg, sizeof(a)))
--		return -EFAULT;
--	/* sys_select() does the appropriate kernel locking */
--	return sys_select(a.n, a.inp, a.outp, a.exp, a.tvp);
--}
--
- /*
-  * sys_ipc() is the de-multiplexer for the SysV IPC calls..
-  *
-Index: linux-2.6/arch/m68k/kernel/sys_m68k.c
-===================================================================
---- linux-2.6.orig/arch/m68k/kernel/sys_m68k.c	2010-01-12 14:08:16.016023317 +0100
-+++ linux-2.6/arch/m68k/kernel/sys_m68k.c	2010-01-29 23:35:20.182003257 +0100
-@@ -75,22 +75,6 @@ out:
- 	return error;
- }
- 
--struct sel_arg_struct {
--	unsigned long n;
--	fd_set __user *inp, *outp, *exp;
--	struct timeval __user *tvp;
--};
--
--asmlinkage int old_select(struct sel_arg_struct __user *arg)
--{
--	struct sel_arg_struct a;
--
--	if (copy_from_user(&a, arg, sizeof(a)))
--		return -EFAULT;
--	/* sys_select() does the appropriate kernel locking */
--	return sys_select(a.n, a.inp, a.outp, a.exp, a.tvp);
--}
--
- /*
-  * sys_ipc() is the de-multiplexer for the SysV IPC calls..
-  *
-Index: linux-2.6/arch/ia64/ia32/ia32_entry.S
-===================================================================
---- linux-2.6.orig/arch/ia64/ia32/ia32_entry.S	2010-01-12 14:08:16.149022167 +0100
-+++ linux-2.6/arch/ia64/ia32/ia32_entry.S	2010-01-29 23:35:20.183011625 +0100
-@@ -260,7 +260,7 @@ ia32_syscall_table:
- 	data8 compat_sys_settimeofday
- 	data8 sys32_getgroups16	  /* 80 */
- 	data8 sys32_setgroups16
--	data8 sys32_old_select
-+	data8 compat_sys_old_select
- 	data8 sys_symlink
- 	data8 sys_ni_syscall
- 	data8 sys_readlink	  /* 85 */
-Index: linux-2.6/arch/m68knommu/kernel/sys_m68k.c
-===================================================================
---- linux-2.6.orig/arch/m68knommu/kernel/sys_m68k.c	2010-01-12 14:08:16.048262408 +0100
-+++ linux-2.6/arch/m68knommu/kernel/sys_m68k.c	2010-01-29 23:35:20.183011625 +0100
-@@ -61,22 +61,6 @@ out:
- 	return error;
- }
- 
--struct sel_arg_struct {
--	unsigned long n;
--	fd_set *inp, *outp, *exp;
--	struct timeval *tvp;
--};
--
--asmlinkage int old_select(struct sel_arg_struct *arg)
--{
--	struct sel_arg_struct a;
--
--	if (copy_from_user(&a, arg, sizeof(a)))
--		return -EFAULT;
--	/* sys_select() does the appropriate kernel locking */
--	return sys_select(a.n, a.inp, a.outp, a.exp, a.tvp);
--}
--
- /*
-  * sys_ipc() is the de-multiplexer for the SysV IPC calls..
-  *
-Index: linux-2.6/arch/mn10300/kernel/sys_mn10300.c
-===================================================================
---- linux-2.6.orig/arch/mn10300/kernel/sys_mn10300.c	2010-01-12 14:08:16.171254258 +0100
-+++ linux-2.6/arch/mn10300/kernel/sys_mn10300.c	2010-01-29 23:35:20.184012102 +0100
-@@ -32,24 +32,6 @@ asmlinkage long old_mmap(unsigned long a
- 	return sys_mmap_pgoff(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
- }
- 
--struct sel_arg_struct {
--	unsigned long n;
--	fd_set *inp;
--	fd_set *outp;
--	fd_set *exp;
--	struct timeval *tvp;
--};
--
--asmlinkage int old_select(struct sel_arg_struct __user *arg)
--{
--	struct sel_arg_struct a;
--
--	if (copy_from_user(&a, arg, sizeof(a)))
--		return -EFAULT;
--	/* sys_select() does the appropriate kernel locking */
--	return sys_select(a.n, a.inp, a.outp, a.exp, a.tvp);
--}
--
- /*
-  * sys_ipc() is the de-multiplexer for the SysV IPC calls..
-  *
-Index: linux-2.6/arch/x86/ia32/ia32entry.S
-===================================================================
---- linux-2.6.orig/arch/x86/ia32/ia32entry.S	2010-01-12 14:08:16.113004172 +0100
-+++ linux-2.6/arch/x86/ia32/ia32entry.S	2010-01-29 23:35:20.184012102 +0100
-@@ -586,7 +586,7 @@ ia32_sys_call_table:
- 	.quad compat_sys_settimeofday
- 	.quad sys_getgroups16	/* 80 */
- 	.quad sys_setgroups16
--	.quad sys32_old_select
-+	.quad compat_sys_old_select
- 	.quad sys_symlink
- 	.quad sys_lstat
- 	.quad sys_readlink		/* 85 */
-Index: linux-2.6/arch/x86/include/asm/syscalls.h
-===================================================================
---- linux-2.6.orig/arch/x86/include/asm/syscalls.h	2010-01-12 14:08:16.096004242 +0100
-+++ linux-2.6/arch/x86/include/asm/syscalls.h	2010-01-29 23:35:20.185004057 +0100
-@@ -52,12 +52,10 @@ unsigned long sys_sigreturn(struct pt_re
- 
- /* kernel/sys_i386_32.c */
- struct mmap_arg_struct;
--struct sel_arg_struct;
- struct oldold_utsname;
- struct old_utsname;
- 
- asmlinkage int old_mmap(struct mmap_arg_struct __user *);
--asmlinkage int old_select(struct sel_arg_struct __user *);
- asmlinkage int sys_ipc(uint, int, int, int, void __user *, long);
- asmlinkage int sys_uname(struct old_utsname __user *);
- asmlinkage int sys_olduname(struct oldold_utsname __user *);
-Index: linux-2.6/arch/x86/kernel/sys_i386_32.c
-===================================================================
---- linux-2.6.orig/arch/x86/kernel/sys_i386_32.c	2010-01-12 14:08:16.068010594 +0100
-+++ linux-2.6/arch/x86/kernel/sys_i386_32.c	2010-01-29 23:35:20.186004046 +0100
-@@ -58,23 +58,6 @@ out:
- 	return err;
- }
- 
--
--struct sel_arg_struct {
--	unsigned long n;
--	fd_set __user *inp, *outp, *exp;
--	struct timeval __user *tvp;
--};
--
--asmlinkage int old_select(struct sel_arg_struct __user *arg)
--{
--	struct sel_arg_struct a;
--
--	if (copy_from_user(&a, arg, sizeof(a)))
--		return -EFAULT;
--	/* sys_select() does the appropriate kernel locking */
--	return sys_select(a.n, a.inp, a.outp, a.exp, a.tvp);
--}
--
- /*
-  * sys_ipc() is the de-multiplexer for the SysV IPC calls..
-  *
-Index: linux-2.6/fs/compat.c
-===================================================================
---- linux-2.6.orig/fs/compat.c	2010-01-12 14:08:16.202003005 +0100
-+++ linux-2.6/fs/compat.c	2010-01-29 23:35:20.187003404 +0100
-@@ -1795,6 +1795,24 @@ asmlinkage long compat_sys_select(int n,
- 	return ret;
- }
- 
-+struct compat_sel_arg_struct {
-+	compat_ulong_t n;
-+	compat_ulong_t inp;
-+	compat_ulong_t outp;
-+	compat_ulong_t exp;
-+	compat_ulong_t tvp;
-+};
-+
-+asmlinkage long compat_sys_old_select(struct compat_sel_arg_struct __user *arg)
-+{
-+	struct compat_sel_arg_struct a;
-+
-+	if (copy_from_user(&a, arg, sizeof(a)))
-+		return -EFAULT;
-+	return compat_sys_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
-+				 compat_ptr(a.exp), compat_ptr(a.tvp));
-+}
-+
- #ifdef HAVE_SET_RESTORE_SIGMASK
- static long do_compat_pselect(int n, compat_ulong_t __user *inp,
- 	compat_ulong_t __user *outp, compat_ulong_t __user *exp,
-Index: linux-2.6/arch/s390/kernel/entry.h
-===================================================================
---- linux-2.6.orig/arch/s390/kernel/entry.h	2010-01-12 14:08:16.179253810 +0100
-+++ linux-2.6/arch/s390/kernel/entry.h	2010-01-29 23:35:20.187003404 +0100
-@@ -28,7 +28,6 @@ struct new_utsname;
- struct mmap_arg_struct;
- struct fadvise64_64_args;
- struct old_sigaction;
--struct sel_arg_struct;
- 
- long sys_mmap2(struct mmap_arg_struct __user  *arg);
- long sys_s390_old_mmap(struct mmap_arg_struct __user *arg);
-Index: linux-2.6/arch/um/sys-i386/syscalls.c
-===================================================================
---- linux-2.6.orig/arch/um/sys-i386/syscalls.c	2010-01-12 14:08:16.188003178 +0100
-+++ linux-2.6/arch/um/sys-i386/syscalls.c	2010-01-29 23:35:20.188011634 +0100
-@@ -44,24 +44,6 @@ long old_mmap_i386(struct mmap_arg_struc
- 	return err;
- }
- 
--struct sel_arg_struct {
--	unsigned long n;
--	fd_set __user *inp;
--	fd_set __user *outp;
--	fd_set __user *exp;
--	struct timeval __user *tvp;
--};
--
--long old_select(struct sel_arg_struct __user *arg)
--{
--	struct sel_arg_struct a;
--
--	if (copy_from_user(&a, arg, sizeof(a)))
--		return -EFAULT;
--	/* sys_select() does the appropriate kernel locking */
--	return sys_select(a.n, a.inp, a.outp, a.exp, a.tvp);
--}
--
- /*
-  * The prototype on i386 is:
-  *
-Index: linux-2.6/include/linux/compat.h
-===================================================================
---- linux-2.6.orig/include/linux/compat.h	2010-01-12 14:08:16.214260642 +0100
-+++ linux-2.6/include/linux/compat.h	2010-01-29 23:35:20.189025938 +0100
-@@ -23,6 +23,7 @@
- typedef __compat_uid32_t	compat_uid_t;
- typedef __compat_gid32_t	compat_gid_t;
- 
-+struct compat_sel_arg_struct;
- struct rusage;
- 
- struct compat_itimerspec { 
-@@ -249,6 +250,8 @@ asmlinkage long compat_sys_select(int n,
- 		compat_ulong_t __user *outp, compat_ulong_t __user *exp,
- 		struct compat_timeval __user *tvp);
- 
-+asmlinkage long compat_sys_old_select(struct compat_sel_arg_struct __user *arg);
-+
- asmlinkage long compat_sys_wait4(compat_pid_t pid,
- 				 compat_uint_t __user *stat_addr, int options,
- 				 struct compat_rusage __user *ru);
