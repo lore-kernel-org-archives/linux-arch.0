@@ -1,26 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:54997 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753324Ab0BAW1z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 1 Feb 2010 17:27:55 -0500
-Message-ID: <4B675379.80807@zytor.com>
-Date: Mon, 01 Feb 2010 14:19:37 -0800
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:46915 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752927Ab0BAXho (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Feb 2010 18:37:44 -0500
+Date: Mon, 1 Feb 2010 23:37:07 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [PATCH 1/6] generic sys_old_select
+Message-ID: <20100201233707.GE21693@flint.arm.linux.org.uk>
+References: <20100201185506.GA11045@lst.de>
 MIME-Version: 1.0
-Subject: Re: [PATCH 2/6] generic sys_old_mmap
-References: <20100201185524.GB11045@lst.de>
-In-Reply-To: <20100201185524.GB11045@lst.de>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20100201185506.GA11045@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, starvik@axis.com, jesper.nilsson@axis.com, ysato@users.sourceforge.jp, tony.luck@intel.com, geert@linux-m68k.org, zippel@linux-m68k.org, gerg@uclinux.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, jdike@addtoit.com, tglx@linutronix.de, mingo@redhat.com, viro@zeniv.linux.org.uk
-Message-ID: <20100201221937.ycv4iaT3n2pXMPtC8uLEwJQTo9W3wOVuUKqeWGyEras@z>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, dhowells@redhat.com, ysato@users.sourceforge.jp, tony.luck@intel.com, geert@linux-m68k.org, zippel@linux-m68k.org, gerg@uclinux.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, jdike@addtoit.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, viro@zeniv.linux.org.uk
+Message-ID: <20100201233707.l78FV1UhETmuNZPw_xjzErYlJbv1GN_i91B_CMf40tA@z>
 
-> Add a generic implementation of the old mmap syscall, which expects it's
+On Mon, Feb 01, 2010 at 07:55:06PM +0100, Christoph Hellwig wrote:
+> Add a generic implementation of the old select syscall, which expects it's
 > argument in a memory block and switch all architectures over to use it.
 
-Looks good to me from an x86 perspective.
+Looks fine to me.
 
-Reviewed-by: H. Peter Anvin <hpa@zytor.com>
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
