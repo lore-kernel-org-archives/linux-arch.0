@@ -1,45 +1,61 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH 3/6] generic sys_ipc wrapper
-Date: Tue, 2 Feb 2010 10:36:03 +0900
-Message-ID: <20100202013603.GD13428@linux-sh.org>
-References: <20100201185544.GC11045@lst.de>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 1/6] generic sys_old_select
+Date: Tue, 2 Feb 2010 09:34:40 +0100
+Message-ID: <20100202083440.GB7552@lst.de>
+References: <20100201185506.GA11045@lst.de> <m24om0shpe.fsf@igel.home>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:52146 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751039Ab0BBBgL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Feb 2010 20:36:11 -0500
+Received: from verein.lst.de ([213.95.11.210]:38375 "EHLO verein.lst.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752964Ab0BBIgJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 2 Feb 2010 03:36:09 -0500
 Content-Disposition: inline
-In-Reply-To: <20100201185544.GC11045@lst.de>
+In-Reply-To: <m24om0shpe.fsf@igel.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, ysato@users.sourceforge.jp, takata@linux-m32r.org, geert@linux-m68k.org, zippel@linux-m68k.org, gerg@uclinux.org, ralf@linux-mips.org, benh@kernel.crashing.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, davem@davemloft.net, jdike@addtoit.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, viro@zeniv.linux.org.uk
+To: Andreas Schwab <schwab@linux-m68k.org>
+Cc: Christoph Hellwig <hch@lst.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, dhowells@redhat.com, ysato@users.sourceforge.jp, tony.luck@intel.com, geert@linux-m68k.org, zippel@linux-m68k.org, gerg@uclinux.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, jdike@addtoit.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, viro@zeniv.linux.org.uk
 
-On Mon, Feb 01, 2010 at 07:55:44PM +0100, Christoph Hellwig wrote:
-> Add a generic implementation of the ipc demultiplexer syscall.  Except for
-> s390 and sparc64 all implementations of the sys_ipc are nearly identical.
+On Mon, Feb 01, 2010 at 11:40:29PM +0100, Andreas Schwab wrote:
+> > Index: linux-2.6/fs/compat.c
+> > ===================================================================
+> > --- linux-2.6.orig/fs/compat.c	2010-01-12 14:08:16.202003005 +0100
+> > +++ linux-2.6/fs/compat.c	2010-01-29 23:35:20.187003404 +0100
+> > @@ -1795,6 +1795,24 @@ asmlinkage long compat_sys_select(int n,
+> >  	return ret;
+> >  }
+> >  
+> > +struct compat_sel_arg_struct {
+> > +	compat_ulong_t n;
+> > +	compat_ulong_t inp;
+> > +	compat_ulong_t outp;
+> > +	compat_ulong_t exp;
+> > +	compat_ulong_t tvp;
+> > +};
 > 
-> There are slight differences in the types of the parameters, where mips
-> and powerpc as the only 64-bit architectures with sys_ipc use unsigned long
-> for the "third" argument as it gets casted to a pointer later, while it
-> traditionally is an "int" like most other paramters.  frv goes even further
-> and uses unsigned long for all parameters execept for "ptr" which is a pointer
-> type everywhere.  The change from int to unsigned long for "third" and back
-> to "int" for the others on frv should be fine due to the in-register calling
-> conventions for syscalls (we already had a similar issue with the generic
-> sys_ptrace), but I'd prefer to have the arch maintainers looks over this
-> in details.
-> 
-> Except for that h8300, m68k and m68knommu lack an impplementation of the
-> semtimedop sub call which this patch adds, and various architectures have
-> different strategies for the SHMAT version 1 case which apparently never
-> gets used - at least on i386 it seems superflous as the compat code on
-> x86-64 and ia64 doesn't even bother to implement it.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> 
-sh bits look fine, too.
+> Shouldn't the last four be compat_uptr_t?
 
-Acked-by: Paul Mundt <lethal@linux-sh.org>
+Strictly speaking yes, although it doesn't matter for the generated
+code.  The patch below makes it use the strictly correct type:
+
+
+Index: linux-2.6/fs/compat.c
+===================================================================
+--- linux-2.6.orig/fs/compat.c	2010-02-02 09:20:16.207003623 +0100
++++ linux-2.6/fs/compat.c	2010-02-02 09:20:53.554012789 +0100
+@@ -1797,10 +1797,10 @@ asmlinkage long compat_sys_select(int n,
+ 
+ struct compat_sel_arg_struct {
+ 	compat_ulong_t n;
+-	compat_ulong_t inp;
+-	compat_ulong_t outp;
+-	compat_ulong_t exp;
+-	compat_ulong_t tvp;
++	compat_uptr_t inp;
++	compat_uptr_t outp;
++	compat_uptr_t exp;
++	compat_uptr_t tvp;
+ };
+ 
+ asmlinkage long compat_sys_old_select(struct compat_sel_arg_struct __user *arg)
