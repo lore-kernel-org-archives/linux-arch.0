@@ -1,38 +1,128 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 4/6] improve sys_personality for compat architectures
-Date: Tue, 2 Feb 2010 17:31:45 +0100
-Message-ID: <20100202163145.GA30659@lst.de>
-References: <20100201185607.GD11045@lst.de> <201002021536.51928.arnd@arndb.de>
+Subject: [PATCH 2/14] alpha: use generic ptrace_resume code
+Date: Tue, 2 Feb 2010 19:58:37 +0100
+Message-ID: <20100202185837.GB3630@lst.de>
+References: <20100202185755.GA3630@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.210]:56372 "EHLO verein.lst.de"
+Received: from verein.lst.de ([213.95.11.210]:37993 "EHLO verein.lst.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752543Ab0BBQcj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 2 Feb 2010 11:32:39 -0500
+	id S1756360Ab0BBS7N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 2 Feb 2010 13:59:13 -0500
 Content-Disposition: inline
-In-Reply-To: <201002021536.51928.arnd@arndb.de>
+In-Reply-To: <20100202185755.GA3630@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@lst.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tony.luck@intel.com, ralf@linux-mips.org, kyle@mcmartin.ca, benh@kernel.crashing.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, viro@zeniv.linux.org.uk
+To: roland@redhat.com, oleg@redhat.com, akpm@linux-foundation.org, mattst88@gmail.com, ink@jurassic.park.msu.ru, rth@twiddle.net
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, Feb 02, 2010 at 03:36:51PM +0100, Arnd Bergmann wrote:
-> > -       return (long)old;
-> > +       return (long)(old == PER_LINUX32 ? PER_LINUX : old);
-> >  }
-> 
-> What does this do for a native 64 bit process setting PER_LINUX32?
-> It looks to me like it could never set it back to the original
-> value, or am I missing something here?
-> 
-> It's what the arch specific code does already, but it seems a bit
-> strange anyway.
+Use the generic ptrace_resume code for PTRACE_SYSCALL, PTRACE_CONT,
+PTRACE_KILL and PTRACE_SINGLESTEP.  This implies defining
+arch_has_single_step in <asm/ptrace.h> and implementing the
+user_enable_single_step and user_disable_single_step functions, which
+also causes the breakpoint information to be cleared on fork, which
+could be considered a bug fix.
 
-Indeed, this prevents a process from going back to 64bit.  And while
-the setarch tool in util-linux also allows going back to 64-bit the
-typical use case seems to be going into 32-bit mode.
+Also the TIF_SYSCALL_TRACE thread flag is now cleared on PTRACE_KILL
+which it previously wasn't, which is consistent with all architectures
+using the modern ptrace code.
 
-But if the consensus is that we should fix this properly I can
-replace the patch with one introducing a compat_sys_personality
-which only gets used for compat tasks.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+
+Index: linux-2.6/arch/alpha/kernel/ptrace.c
+===================================================================
+--- linux-2.6.orig/arch/alpha/kernel/ptrace.c	2010-02-02 11:05:03.197004058 +0100
++++ linux-2.6/arch/alpha/kernel/ptrace.c	2010-02-02 11:07:04.091006019 +0100
+@@ -249,6 +249,17 @@ ptrace_cancel_bpt(struct task_struct * c
+ 	return (nsaved != 0);
+ }
+ 
++void user_enable_single_step(struct task_struct *child)
++{
++	/* Mark single stepping.  */
++	task_thread_info(child)->bpt_nsaved = -1;
++}
++
++void user_disable_single_step(struct task_struct *child)
++{
++	ptrace_cancel_bpt(child);
++}
++
+ /*
+  * Called by kernel/ptrace.c when detaching..
+  *
+@@ -256,7 +267,7 @@ ptrace_cancel_bpt(struct task_struct * c
+  */
+ void ptrace_disable(struct task_struct *child)
+ { 
+-	ptrace_cancel_bpt(child);
++	user_disable_single_step(child);
+ }
+ 
+ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
+@@ -289,52 +300,6 @@ long arch_ptrace(struct task_struct *chi
+ 		DBG(DBG_MEM, ("poke $%ld<-%#lx\n", addr, data));
+ 		ret = put_reg(child, addr, data);
+ 		break;
+-
+-	case PTRACE_SYSCALL:
+-		/* continue and stop at next (return from) syscall */
+-	case PTRACE_CONT:    /* restart after signal. */
+-		ret = -EIO;
+-		if (!valid_signal(data))
+-			break;
+-		if (request == PTRACE_SYSCALL)
+-			set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+-		else
+-			clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+-		child->exit_code = data;
+-		/* make sure single-step breakpoint is gone. */
+-		ptrace_cancel_bpt(child);
+-		wake_up_process(child);
+-		ret = 0;
+-		break;
+-
+-	/*
+-	 * Make the child exit.  Best I can do is send it a sigkill.
+-	 * perhaps it should be put in the status that it wants to
+-	 * exit.
+-	 */
+-	case PTRACE_KILL:
+-		ret = 0;
+-		if (child->exit_state == EXIT_ZOMBIE)
+-			break;
+-		child->exit_code = SIGKILL;
+-		/* make sure single-step breakpoint is gone. */
+-		ptrace_cancel_bpt(child);
+-		wake_up_process(child);
+-		break;
+-
+-	case PTRACE_SINGLESTEP:  /* execute single instruction. */
+-		ret = -EIO;
+-		if (!valid_signal(data))
+-			break;
+-		/* Mark single stepping.  */
+-		task_thread_info(child)->bpt_nsaved = -1;
+-		clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+-		child->exit_code = data;
+-		wake_up_process(child);
+-		/* give it a chance to run. */
+-		ret = 0;
+-		break;
+-
+ 	default:
+ 		ret = ptrace_request(child, request, addr, data);
+ 		break;
+Index: linux-2.6/arch/alpha/include/asm/ptrace.h
+===================================================================
+--- linux-2.6.orig/arch/alpha/include/asm/ptrace.h	2010-02-02 11:07:29.091023600 +0100
++++ linux-2.6/arch/alpha/include/asm/ptrace.h	2010-02-02 11:07:38.645007248 +0100
+@@ -68,6 +68,7 @@ struct switch_stack {
+ 
+ #ifdef __KERNEL__
+ 
++#define arch_has_single_step()		(1)
+ #define user_mode(regs) (((regs)->ps & 8) != 0)
+ #define instruction_pointer(regs) ((regs)->pc)
+ #define profile_pc(regs) instruction_pointer(regs)
