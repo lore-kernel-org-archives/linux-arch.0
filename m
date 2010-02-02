@@ -1,21 +1,17 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH, RFC 13/14] cris arch-v32: use generic ptrace_resume code
-Date: Tue, 2 Feb 2010 20:00:42 +0100
-Message-ID: <20100202190042.GM3630@lst.de>
+Subject: [PATCH 10/14] um: use generic ptrace_resume code
+Date: Tue, 2 Feb 2010 20:00:09 +0100
+Message-ID: <20100202190009.GJ3630@lst.de>
 References: <20100202185755.GA3630@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.210]:38059 "EHLO verein.lst.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932110Ab0BBTA5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 2 Feb 2010 14:00:57 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
 In-Reply-To: <20100202185755.GA3630@lst.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: roland@redhat.com, oleg@redhat.com, akpm@linux-foundation.org, starvik@axis.com, jesper.nilsson@axis.com
+Sender: linux-kernel-owner@vger.kernel.org
+To: roland@redhat.com, oleg@redhat.com, akpm@linux-foundation.org, jdike@addtoit.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 Use the generic ptrace_resume code for PTRACE_SYSCALL, PTRACE_CONT,
 PTRACE_KILL and PTRACE_SINGLESTEP.  This implies defining
@@ -28,157 +24,120 @@ Also the TIF_SYSCALL_TRACE thread flag is now cleared on PTRACE_KILL
 which it previously wasn't which is consistent with all architectures
 using the modern ptrace code.
 
-The way breakpoints are disabled is entirely inconsistent
-currently, I tried to make some sense of it, but I suspect all of the
-content of ptrace_disable should be moved into user_disable_single_step,
-this defintively needs some revisting as the current patch changes
-behaviour in not quite designed ways.
+XXX: I'm not sure arch_has_single_step() is placed in the exactly correct
+location, please verify in which of the ptrace headers it should really be.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Index: linux-2.6/arch/cris/arch-v32/kernel/ptrace.c
+Index: linux-2.6/arch/um/kernel/ptrace.c
 ===================================================================
---- linux-2.6.orig/arch/cris/arch-v32/kernel/ptrace.c	2010-02-02 19:23:12.314003057 +0100
-+++ linux-2.6/arch/cris/arch-v32/kernel/ptrace.c	2010-02-02 19:25:27.396253967 +0100
-@@ -78,6 +78,35 @@ int put_reg(struct task_struct *task, un
- 	return 0;
- }
+--- linux-2.6.orig/arch/um/kernel/ptrace.c	2010-02-02 11:00:50.048254427 +0100
++++ linux-2.6/arch/um/kernel/ptrace.c	2010-02-02 11:27:05.412275969 +0100
+@@ -12,16 +12,25 @@
+ #endif
+ #include "skas_ptrace.h"
  
-+void user_enable_single_step(struct task_struct *child)
-+{
-+	unsigned long tmp;
+-static inline void set_singlestepping(struct task_struct *child, int on)
 +
-+	/*
-+	 * Set up SPC if not set already (in which case we have no other
-+	 * choice but to trust it).
-+	 */
-+	if (!get_reg(child, PT_SPC)) {
-+		/* In case we're stopped in a delay slot. */
-+		tmp = get_reg(child, PT_ERP) & ~1;
-+		put_reg(child, PT_SPC, tmp);
-+	}
-+	tmp = get_reg(child, PT_CCS) | SBIT_USER;
-+	put_reg(child, PT_CCS, tmp);
++
++void user_enable_single_step(struct task_struct *child)
+ {
+-	if (on)
+-		child->ptrace |= PT_DTRACE;
+-	else
+-		child->ptrace &= ~PT_DTRACE;
++	child->ptrace |= PT_DTRACE;
+ 	child->thread.singlestep_syscall = 0;
+ 
+ #ifdef SUBARCH_SET_SINGLESTEPPING
+-	SUBARCH_SET_SINGLESTEPPING(child, on);
++	SUBARCH_SET_SINGLESTEPPING(child, 1);
++#endif
 +}
 +
 +void user_disable_single_step(struct task_struct *child)
 +{
-+	put_reg(child, PT_SPC, 0);
++	child->ptrace &= ~PT_DTRACE;
++	child->thread.singlestep_syscall = 0;
 +
-+	if (!get_debugreg(child->pid, PT_BP_CTRL)) {
-+		unsigned long tmp;
-+		/* If no h/w bp configured, disable S bit. */
-+		tmp = get_reg(child, PT_CCS) & ~SBIT_USER;
-+		put_reg(child, PT_CCS, tmp);
-+	}
-+}
-+
- /*
-  * Called by kernel/ptrace.c when detaching.
-  *
-@@ -89,8 +118,7 @@ ptrace_disable(struct task_struct *child
- 	unsigned long tmp;
++#ifdef SUBARCH_SET_SINGLESTEPPING
++	SUBARCH_SET_SINGLESTEPPING(child, 0);
+ #endif
+ }
  
- 	/* Deconfigure SPC and S-bit. */
--	tmp = get_reg(child, PT_CCS) & ~SBIT_USER;
--	put_reg(child, PT_CCS, tmp);
+@@ -30,7 +39,7 @@ static inline void set_singlestepping(st
+  */
+ void ptrace_disable(struct task_struct *child)
+ {
+-	set_singlestepping(child,0);
 +	user_disable_single_step(child);
- 	put_reg(child, PT_SPC, 0);
+ }
  
- 	/* Deconfigure any watchpoints associated with the child. */
-@@ -163,83 +191,6 @@ long arch_ptrace(struct task_struct *chi
- 			ret = 0;
- 			break;
+ extern int peek_user(struct task_struct * child, long addr, long data);
+@@ -57,53 +66,6 @@ long arch_ptrace(struct task_struct *chi
+ 		ret = -EIO;
+ 		break;
  
--		case PTRACE_SYSCALL:
--		case PTRACE_CONT:
--			ret = -EIO;
--
--			if (!valid_signal(data))
--				break;
--
--			/* Continue means no single-step. */
--			put_reg(child, PT_SPC, 0);
--
--			if (!get_debugreg(child->pid, PT_BP_CTRL)) {
--				unsigned long tmp;
--				/* If no h/w bp configured, disable S bit. */
--				tmp = get_reg(child, PT_CCS) & ~SBIT_USER;
--				put_reg(child, PT_CCS, tmp);
--			}
--
--			if (request == PTRACE_SYSCALL) {
--				set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
--			}
--			else {
--				clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
--			}
--
--			child->exit_code = data;
--
--			/* TODO: make sure any pending breakpoint is killed */
--			wake_up_process(child);
--			ret = 0;
--
+-	/* continue and stop at next (return from) syscall */
+-	case PTRACE_SYSCALL:
+-	/* restart after signal. */
+-	case PTRACE_CONT: {
+-		ret = -EIO;
+-		if (!valid_signal(data))
 -			break;
 -
--		/* Make the child exit by sending it a sigkill. */
--		case PTRACE_KILL:
--			ret = 0;
+-		set_singlestepping(child, 0);
+-		if (request == PTRACE_SYSCALL)
+-			set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+-		else clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+-		child->exit_code = data;
+-		wake_up_process(child);
+-		ret = 0;
+-		break;
+-	}
 -
--			if (child->exit_state == EXIT_ZOMBIE)
--				break;
--
--			child->exit_code = SIGKILL;
--
--			/* Deconfigure single-step and h/w bp. */
--			ptrace_disable(child);
--
--			/* TODO: make sure any pending breakpoint is killed */
--			wake_up_process(child);
+-/*
+- * make the child exit.  Best I can do is send it a sigkill.
+- * perhaps it should be put in the status that it wants to
+- * exit.
+- */
+-	case PTRACE_KILL: {
+-		ret = 0;
+-		if (child->exit_state == EXIT_ZOMBIE)	/* already dead */
 -			break;
 -
--		/* Set the trap flag. */
--		case PTRACE_SINGLESTEP:	{
--			unsigned long tmp;
--			ret = -EIO;
+-		set_singlestepping(child, 0);
+-		child->exit_code = SIGKILL;
+-		wake_up_process(child);
+-		break;
+-	}
 -
--			/* Set up SPC if not set already (in which case we have
--			   no other choice but to trust it). */
--			if (!get_reg(child, PT_SPC)) {
--				/* In case we're stopped in a delay slot. */
--				tmp = get_reg(child, PT_ERP) & ~1;
--				put_reg(child, PT_SPC, tmp);
--			}
--			tmp = get_reg(child, PT_CCS) | SBIT_USER;
--			put_reg(child, PT_CCS, tmp);
--
--			if (!valid_signal(data))
--				break;
--
--			clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
--
--			/* TODO: set some clever breakpoint mechanism... */
--
--			child->exit_code = data;
--			wake_up_process(child);
--			ret = 0;
+-	case PTRACE_SINGLESTEP: {  /* set the trap flag. */
+-		ret = -EIO;
+-		if (!valid_signal(data))
 -			break;
+-		clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+-		set_singlestepping(child, 1);
+-		child->exit_code = data;
+-		/* give it a chance to run. */
+-		wake_up_process(child);
+-		ret = 0;
+-		break;
+-	}
 -
--		}
--
- 		/* Get all GP registers from the child. */
- 		case PTRACE_GETREGS: {
- 			int i;
-Index: linux-2.6/arch/cris/include/arch-v32/arch/ptrace.h
+ #ifdef PTRACE_GETREGS
+ 	case PTRACE_GETREGS: { /* Get all gp regs from the child. */
+ 		if (!access_ok(VERIFY_WRITE, p, MAX_REG_OFFSET)) {
+Index: linux-2.6/arch/um/include/asm/ptrace-generic.h
 ===================================================================
---- linux-2.6.orig/arch/cris/include/arch-v32/arch/ptrace.h	2010-02-02 19:25:39.092254418 +0100
-+++ linux-2.6/arch/cris/include/arch-v32/arch/ptrace.h	2010-02-02 19:25:46.173254455 +0100
-@@ -108,6 +108,7 @@ struct switch_stack {
+--- linux-2.6.orig/arch/um/include/asm/ptrace-generic.h	2010-02-02 11:27:09.196004106 +0100
++++ linux-2.6/arch/um/include/asm/ptrace-generic.h	2010-02-02 11:28:57.615023962 +0100
+@@ -16,6 +16,8 @@ struct pt_regs {
+ 	struct uml_pt_regs regs;
+ };
  
- #ifdef __KERNEL__
++#define arch_has_single_step()	(1)
++
+ #define EMPTY_REGS { .regs = EMPTY_UML_PT_REGS }
  
-+#define arch_has_single_step() (1)
- #define user_mode(regs) (((regs)->ccs & (1 << (U_CCS_BITNR + CCS_SHIFT))) != 0)
- #define instruction_pointer(regs) ((regs)->erp)
- extern void show_regs(struct pt_regs *);
+ #define PT_REGS_IP(r) UPT_IP(&(r)->regs)
