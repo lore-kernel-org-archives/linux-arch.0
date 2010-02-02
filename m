@@ -1,89 +1,35 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH 8/14] microblaze: use generic ptrace_resume code
-Date: Wed, 03 Feb 2010 12:00:22 +0100
-Message-ID: <4B695746.10309@monstr.eu>
-References: <20100202185755.GA3630@lst.de> <20100202185946.GH3630@lst.de>
-Reply-To: monstr@monstr.eu
+From: Mike Frysinger <vapier.adi@gmail.com>
+Subject: Re: [PATCH 5/14] blackfin: use generic ptrace_resume code
+Date: Tue, 2 Feb 2010 15:29:38 -0500
+Message-ID: <8bd0f97a1002021229x1c84d13flcc95102b7723468c@mail.gmail.com>
+References: <20100202185755.GA3630@lst.de> <20100202185907.GE3630@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f219.google.com ([209.85.218.219]:54858 "EHLO
-	mail-bw0-f219.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754624Ab0BCLCd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Feb 2010 06:02:33 -0500
-In-Reply-To: <20100202185946.GH3630@lst.de>
+Received: from mail-yx0-f189.google.com ([209.85.210.189]:56740 "EHLO
+	mail-yx0-f189.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753365Ab0BBUaG convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2010 15:30:06 -0500
+In-Reply-To: <20100202185907.GE3630@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
-Cc: roland@redhat.com, oleg@redhat.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: roland@redhat.com, oleg@redhat.com, akpm@linux-foundation.org, vapier@gentoo.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Acked-by: Michal Simek <monstr@monstr.eu>
-
-Christoph Hellwig wrote:
-> Use the generic ptrace_resume code for PTRACE_SYSCALL, PTRACE_CONT and
-> PTRACE_KILL.  This also makes PTRACE_SINGLESTEP return -EIO while it
-> previously succeeded despite not actually causing any kind of single
-> stepping.
-> 
+On Tue, Feb 2, 2010 at 13:59, Christoph Hellwig wrote:
+> Use the generic ptrace_resume code for PTRACE_SYSCALL, PTRACE_CONT,
+> PTRACE_KILL and PTRACE_SINGLESTEP. =C2=A0This implies defining
+> arch_has_single_step in <asm/ptrace.h> and implementing the
+> user_enable_single_step and user_disable_single_step functions, which
+> also causes the breakpoint information to be cleared on fork, which
+> could be considered a bug fix.
+>
 > Also the TIF_SYSCALL_TRACE thread flag is now cleared on PTRACE_KILL
 > which it previously wasn't which is consistent with all architectures
 > using the modern ptrace code.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> 
-> Index: linux-2.6/arch/microblaze/kernel/ptrace.c
-> ===================================================================
-> --- linux-2.6.orig/arch/microblaze/kernel/ptrace.c	2010-02-02 11:23:56.002003861 +0100
-> +++ linux-2.6/arch/microblaze/kernel/ptrace.c	2010-02-02 19:20:16.997254566 +0100
-> @@ -110,43 +110,6 @@ long arch_ptrace(struct task_struct *chi
->  		if (rval == 0 && request == PTRACE_PEEKUSR)
->  			rval = put_user(val, (unsigned long *)data);
->  		break;
-> -	/* Continue and stop at next (return from) syscall */
-> -	case PTRACE_SYSCALL:
-> -		pr_debug("PTRACE_SYSCALL\n");
-> -	case PTRACE_SINGLESTEP:
-> -		pr_debug("PTRACE_SINGLESTEP\n");
-> -	/* Restart after a signal.  */
-> -	case PTRACE_CONT:
-> -		pr_debug("PTRACE_CONT\n");
-> -		rval = -EIO;
-> -		if (!valid_signal(data))
-> -			break;
-> -
-> -		if (request == PTRACE_SYSCALL)
-> -			set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
-> -		else
-> -			clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
-> -
-> -		child->exit_code = data;
-> -		pr_debug("wakeup_process\n");
-> -		wake_up_process(child);
-> -		rval = 0;
-> -		break;
-> -
-> -	/*
-> -	 * make the child exit.  Best I can do is send it a sigkill.
-> -	 * perhaps it should be put in the status that it wants to
-> -	 * exit.
-> -	 */
-> -	case PTRACE_KILL:
-> -		pr_debug("PTRACE_KILL\n");
-> -		rval = 0;
-> -		if (child->exit_state == EXIT_ZOMBIE)	/* already dead */
-> -			break;
-> -		child->exit_code = SIGKILL;
-> -		wake_up_process(child);
-> -		break;
-> -
->  	default:
->  		rval = ptrace_request(child, request, addr, data);
->  	}
 
-
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
-Microblaze U-BOOT custodian
+i have local code in the Blackfin tree that does part of this patch
+(and has been tested), so i'll split this patch apart and merge into
+my tree.  thanks!
+-mike
