@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 3/14] arm: use generic ptrace_resume code
-Date: Tue, 2 Feb 2010 19:58:47 +0100
-Message-ID: <20100202185847.GC3630@lst.de>
+Subject: [PATCH 4/14] avr32: use generic ptrace_resume code
+Date: Tue, 2 Feb 2010 19:58:57 +0100
+Message-ID: <20100202185857.GD3630@lst.de>
 References: <20100202185755.GA3630@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -9,7 +9,7 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
 In-Reply-To: <20100202185755.GA3630@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: roland@redhat.com, oleg@redhat.com, akpm@linux-foundation.org, linux@arm.linux.org.uk
+To: roland@redhat.com, oleg@redhat.com, akpm@linux-foundation.org, hskinnemoen@atmel.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
@@ -21,130 +21,104 @@ also causes the breakpoint information to be cleared on fork, which
 could be considered a bug fix.
 
 Also the TIF_SYSCALL_TRACE thread flag is now cleared on PTRACE_KILL
-which it previously wasn't and the single stepping disable only happens
-if the tracee process isn't a zombie yet, which is consistent with all
-architectures using the modern ptrace code.
+which it previously wasn't which is consistent with all architectures
+using the modern ptrace code.
+
+Currently avr32 doesn't implement any code to disable single stepping
+when one of the non-syscall requests is called which seems wrong,
+but I've left it as-is for now.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Index: linux-2.6/arch/arm/kernel/ptrace.c
+Index: linux-2.6/arch/avr32/include/asm/ptrace.h
 ===================================================================
---- linux-2.6.orig/arch/arm/kernel/ptrace.c	2010-02-02 11:00:49.883004121 +0100
-+++ linux-2.6/arch/arm/kernel/ptrace.c	2010-02-02 11:10:20.549264275 +0100
-@@ -452,12 +452,23 @@ void ptrace_cancel_bpt(struct task_struc
- 		clear_breakpoint(child, &child->thread.debug.bp[i]);
+--- linux-2.6.orig/arch/avr32/include/asm/ptrace.h	2010-02-02 11:14:51.257023230 +0100
++++ linux-2.6/arch/avr32/include/asm/ptrace.h	2010-02-02 11:15:00.220025002 +0100
+@@ -124,6 +124,8 @@ struct pt_regs {
+ 
+ #include <asm/ocd.h>
+ 
++#define arch_has_single_step()		(1)
++
+ #define arch_ptrace_attach(child)       ocd_enable(child)
+ 
+ #define user_mode(regs)                 (((regs)->sr & MODE_MASK) == MODE_USER)
+Index: linux-2.6/arch/avr32/kernel/ptrace.c
+===================================================================
+--- linux-2.6.orig/arch/avr32/kernel/ptrace.c	2010-02-02 11:14:51.269004225 +0100
++++ linux-2.6/arch/avr32/kernel/ptrace.c	2010-02-02 11:15:40.045282945 +0100
+@@ -28,9 +28,9 @@ static struct pt_regs *get_user_regs(str
+ 				  THREAD_SIZE - sizeof(struct pt_regs));
  }
  
-+void user_disable_single_step(struct task_struct *task)
-+{
-+	task->ptrace &= ~PT_SINGLESTEP;
-+	ptrace_cancel_bpt(task);
-+}
-+
-+void user_enable_single_step(struct task_struct *task)
-+{
-+	task->ptrace |= PT_SINGLESTEP;
-+}
-+
- /*
-  * Called by kernel/ptrace.c when detaching..
-  */
- void ptrace_disable(struct task_struct *child)
+-static void ptrace_single_step(struct task_struct *tsk)
++static void user_enable_single_step(struct task_struct *tsk)
  {
--	single_step_disable(child);
-+	user_disable_single_step(child);
+-	pr_debug("ptrace_single_step: pid=%u, PC=0x%08lx, SR=0x%08lx\n",
++	pr_debug("user_enable_single_step: pid=%u, PC=0x%08lx, SR=0x%08lx\n",
+ 		 tsk->pid, task_pt_regs(tsk)->pc, task_pt_regs(tsk)->sr);
+ 
+ 	/*
+@@ -49,6 +49,11 @@ static void ptrace_single_step(struct ta
+ 	set_tsk_thread_flag(tsk, TIF_SINGLE_STEP);
  }
  
- /*
-@@ -723,53 +734,6 @@ long arch_ptrace(struct task_struct *chi
- 			ret = ptrace_write_user(child, addr, data);
- 			break;
- 
--		/*
--		 * continue/restart and stop at next (return from) syscall
--		 */
--		case PTRACE_SYSCALL:
--		case PTRACE_CONT:
--			ret = -EIO;
--			if (!valid_signal(data))
--				break;
--			if (request == PTRACE_SYSCALL)
--				set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
--			else
--				clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
--			child->exit_code = data;
--			single_step_disable(child);
--			wake_up_process(child);
--			ret = 0;
--			break;
--
--		/*
--		 * make the child exit.  Best I can do is send it a sigkill.
--		 * perhaps it should be put in the status that it wants to
--		 * exit.
--		 */
--		case PTRACE_KILL:
--			single_step_disable(child);
--			if (child->exit_state != EXIT_ZOMBIE) {
--				child->exit_code = SIGKILL;
--				wake_up_process(child);
--			}
--			ret = 0;
--			break;
--
--		/*
--		 * execute single instruction.
--		 */
--		case PTRACE_SINGLESTEP:
--			ret = -EIO;
--			if (!valid_signal(data))
--				break;
--			single_step_enable(child);
--			clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
--			child->exit_code = data;
--			/* give it a chance to run. */
--			wake_up_process(child);
--			ret = 0;
--			break;
--
- 		case PTRACE_GETREGS:
- 			ret = ptrace_getregs(child, (void __user *)data);
- 			break;
-Index: linux-2.6/arch/arm/kernel/ptrace.h
-===================================================================
---- linux-2.6.orig/arch/arm/kernel/ptrace.h	2010-02-02 11:00:49.892003451 +0100
-+++ linux-2.6/arch/arm/kernel/ptrace.h	2010-02-02 11:08:43.476003178 +0100
-@@ -14,20 +14,6 @@ extern void ptrace_set_bpt(struct task_s
- extern void ptrace_break(struct task_struct *, struct pt_regs *);
- 
- /*
-- * make sure single-step breakpoint is gone.
-- */
--static inline void single_step_disable(struct task_struct *task)
--{
--	task->ptrace &= ~PT_SINGLESTEP;
--	ptrace_cancel_bpt(task);
--}
--
--static inline void single_step_enable(struct task_struct *task)
--{
--	task->ptrace |= PT_SINGLESTEP;
--}
--
--/*
-  * Send SIGTRAP if we're single-stepping
-  */
- static inline void single_step_trap(struct task_struct *task)
-Index: linux-2.6/arch/arm/include/asm/ptrace.h
-===================================================================
---- linux-2.6.orig/arch/arm/include/asm/ptrace.h	2010-02-02 11:08:55.072253922 +0100
-+++ linux-2.6/arch/arm/include/asm/ptrace.h	2010-02-02 11:09:10.909066877 +0100
-@@ -128,6 +128,8 @@ struct pt_regs {
- 
- #ifdef __KERNEL__
- 
-+#define arch_has_single_step()	(1)
++void user_disable_single_step(struct task_struct *child)
++{
++	/* XXX(hch): a no-op here seems wrong.. */
++}
 +
- #define user_mode(regs)	\
- 	(((regs)->ARM_cpsr & 0xf) == 0)
+ /*
+  * Called by kernel/ptrace.c when detaching
+  *
+@@ -156,50 +161,6 @@ long arch_ptrace(struct task_struct *chi
+ 		ret = ptrace_write_user(child, addr, data);
+ 		break;
  
+-	/* continue and stop at next (return from) syscall */
+-	case PTRACE_SYSCALL:
+-	/* restart after signal */
+-	case PTRACE_CONT:
+-		ret = -EIO;
+-		if (!valid_signal(data))
+-			break;
+-		if (request == PTRACE_SYSCALL)
+-			set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+-		else
+-			clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+-		child->exit_code = data;
+-		/* XXX: Are we sure no breakpoints are active here? */
+-		wake_up_process(child);
+-		ret = 0;
+-		break;
+-
+-	/*
+-	 * Make the child exit. Best I can do is send it a
+-	 * SIGKILL. Perhaps it should be put in the status that it
+-	 * wants to exit.
+-	 */
+-	case PTRACE_KILL:
+-		ret = 0;
+-		if (child->exit_state == EXIT_ZOMBIE)
+-			break;
+-		child->exit_code = SIGKILL;
+-		wake_up_process(child);
+-		break;
+-
+-	/*
+-	 * execute single instruction.
+-	 */
+-	case PTRACE_SINGLESTEP:
+-		ret = -EIO;
+-		if (!valid_signal(data))
+-			break;
+-		clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+-		ptrace_single_step(child);
+-		child->exit_code = data;
+-		wake_up_process(child);
+-		ret = 0;
+-		break;
+-
+ 	case PTRACE_GETREGS:
+ 		ret = ptrace_getregs(child, (void __user *)data);
+ 		break;
