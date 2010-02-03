@@ -1,34 +1,58 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 5/14] blackfin: use generic ptrace_resume code
-Date: Wed, 3 Feb 2010 20:42:43 +0100
-Message-ID: <20100203194243.GA26014@lst.de>
-References: <20100202185755.GA3630@lst.de> <20100202185907.GE3630@lst.de> <8bd0f97a1002021229x1c84d13flcc95102b7723468c@mail.gmail.com> <8bd0f97a1002031136h2573b05cr8dada3bd78ffaa38@mail.gmail.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 4/6] improve sys_personality for compat architectures
+Date: Wed, 03 Feb 2010 12:04:10 -0800
+Message-ID: <4B69D6BA.4030704@zytor.com>
+References: <201002021536.51928.arnd@arndb.de>	<20100202163145.GA30659@lst.de>	<201002031806.27423.arnd@arndb.de> <20100203.091309.52886984.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.210]:47874 "EHLO verein.lst.de"
+Received: from terminus.zytor.com ([198.137.202.10]:43946 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757620Ab0BCTnG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 3 Feb 2010 14:43:06 -0500
-Content-Disposition: inline
-In-Reply-To: <8bd0f97a1002031136h2573b05cr8dada3bd78ffaa38@mail.gmail.com>
+	id S1757870Ab0BCUSa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 3 Feb 2010 15:18:30 -0500
+In-Reply-To: <20100203.091309.52886984.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier.adi@gmail.com>
-Cc: Christoph Hellwig <hch@lst.de>, roland@redhat.com, oleg@redhat.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: arnd@arndb.de, hch@lst.de, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tony.luck@intel.com, ralf@linux-mips.org, kyle@mcmartin.ca, benh@kernel.crashing.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, tglx@linutronix.de, mingo@redhat.com, viro@zeniv.linux.org.uk
 
-On Wed, Feb 03, 2010 at 02:36:47PM -0500, Mike Frysinger wrote:
-> i added tracehook support to Blackfin recently, so that covered all
-> the new functions here.  i just had to drop the handling of the
-> PTRACE_xxx things that common code already does.
+On 02/03/2010 09:13 AM, David Miller wrote:
+> From: Arnd Bergmann <arnd@arndb.de>
+> Date: Wed, 3 Feb 2010 18:06:27 +0100
 > 
-> when did you want to push through these updates ?  i was planning on
-> sending these ptrace() updates through the Blackfin tree as part of my
-> 2.6.34 queue.  i'm guessing you didnt want this stuff in 2.6.33 ...
+>>> But if the consensus is that we should fix this properly I can
+>>> replace the patch with one introducing a compat_sys_personality
+>>> which only gets used for compat tasks.
+>>
+>> Right now, sparc64 and powerpc64 use sys32_personality for both native
+>> and compat tasks, x86 never uses it and all others use it only for
+>> compat tasks. That seems more sensible if we keep this function at
+>> all.
+> 
+> If it only gets used for compat tasks, you can only switch in
+> one direction.  I think it needs to be handled for both compat
+> and non-compat tasks, in order to allow for that.
 
-No, it's all .34 material.  I'd say send your bits through the
-microblaze tree.  The double prototype for the two functions won't
-hurt during the merge window and we can fix it up later.  Just make
-sure you really have user_{enable,disable}_single_step implement
-as functions and not as a #define for ptrace_disable as in your
-earlier version.
+That seems odd... with the wrapper you can ever only switch in one
+direction, and if you use it for non-compat tasks you wouldn't be ever
+to switch back, period.
+
+> That's why powerpc64 and sparc64 do things the way they do,
+> I am pretty sure.
+
+As far as I can tell, the ppc64 and sparc64 implementations would seem
+to be trapdoors from which no return is possible.  That's a pretty
+defensible position in some ways -- it mimics the 32-bit machine even
+down to the personality() syscall -- but it definitely has disadvantages.
+
+The x86 method of simply not bothering doesn't seem to have caused
+problems -- our compat (and noncompat) tasks happily return PER_LINUX32
+if that is the mode and we don't seem to have had complaints with it.
+If userspace ever had an issue with it -- and they might have, at one
+point in history libc used to call personality() during startup, which
+it doesn't seem to anymore -- they presumably have worked through it.
+
+As such, I'm more than a little reluctant to change the current behavior.
+
+	-hpa
