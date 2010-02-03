@@ -1,35 +1,60 @@
-From: Mike Frysinger <vapier.adi@gmail.com>
-Subject: Re: [PATCH 5/14] blackfin: use generic ptrace_resume code
-Date: Tue, 2 Feb 2010 15:29:38 -0500
-Message-ID: <8bd0f97a1002021229x1c84d13flcc95102b7723468c@mail.gmail.com>
-References: <20100202185755.GA3630@lst.de> <20100202185907.GE3630@lst.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 4/6] improve sys_personality for compat architectures
+Date: Wed, 3 Feb 2010 18:06:27 +0100
+Message-ID: <201002031806.27423.arnd@arndb.de>
+References: <20100201185607.GD11045@lst.de> <201002021536.51928.arnd@arndb.de> <20100202163145.GA30659@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f189.google.com ([209.85.210.189]:56740 "EHLO
-	mail-yx0-f189.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753365Ab0BBUaG convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2010 15:30:06 -0500
-In-Reply-To: <20100202185907.GE3630@lst.de>
+Received: from moutng.kundenserver.de ([212.227.17.8]:62034 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932609Ab0BCRIl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Feb 2010 12:08:41 -0500
+In-Reply-To: <20100202163145.GA30659@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
-Cc: roland@redhat.com, oleg@redhat.com, akpm@linux-foundation.org, vapier@gentoo.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tony.luck@intel.com, ralf@linux-mips.org, kyle@mcmartin.ca, benh@kernel.crashing.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, viro@zeniv.linux.org.uk
 
-On Tue, Feb 2, 2010 at 13:59, Christoph Hellwig wrote:
-> Use the generic ptrace_resume code for PTRACE_SYSCALL, PTRACE_CONT,
-> PTRACE_KILL and PTRACE_SINGLESTEP. =C2=A0This implies defining
-> arch_has_single_step in <asm/ptrace.h> and implementing the
-> user_enable_single_step and user_disable_single_step functions, which
-> also causes the breakpoint information to be cleared on fork, which
-> could be considered a bug fix.
->
-> Also the TIF_SYSCALL_TRACE thread flag is now cleared on PTRACE_KILL
-> which it previously wasn't which is consistent with all architectures
-> using the modern ptrace code.
+On Tuesday 02 February 2010 17:31:45 Christoph Hellwig wrote:
+> 
+> On Tue, Feb 02, 2010 at 03:36:51PM +0100, Arnd Bergmann wrote:
+> > > -       return (long)old;
+> > > +       return (long)(old == PER_LINUX32 ? PER_LINUX : old);
+> > >  }
+> > 
+> > What does this do for a native 64 bit process setting PER_LINUX32?
+> > It looks to me like it could never set it back to the original
+> > value, or am I missing something here?
+> > 
+> > It's what the arch specific code does already, but it seems a bit
+> > strange anyway.
+> 
+> Indeed, this prevents a process from going back to 64bit.  And while
+> the setarch tool in util-linux also allows going back to 64-bit the
+> typical use case seems to be going into 32-bit mode.
 
-i have local code in the Blackfin tree that does part of this patch
-(and has been tested), so i'll split this patch apart and merge into
-my tree.  thanks!
--mike
+It appears that setarch can only go back into 64 bit mode on x86
+because that does not wire up sys32_personality at all -- it always
+uses the regular sys_personality, which allows going both ways.
+
+Your patch changes the behavior on x86 to also make the change
+to PER_LINUX32 permanent, which seems consistent but possibly not
+what people want. I still wonder if anything other than setarch
+actually calls personality() to set PER_LINUX32 and what the
+real intention of sys32_personality is. From what I can tell here,
+it may be best to kill the special handling of PER_LINUX32 entirely
+and make everyone use the existing sys_personality.
+
+> But if the consensus is that we should fix this properly I can
+> replace the patch with one introducing a compat_sys_personality
+> which only gets used for compat tasks.
+
+Right now, sparc64 and powerpc64 use sys32_personality for both native
+and compat tasks, x86 never uses it and all others use it only for
+compat tasks. That seems more sensible if we keep this function at
+all.
+
+	Arnd
