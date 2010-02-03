@@ -1,129 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.210]:37997 "EHLO verein.lst.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756870Ab0BBS7U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 2 Feb 2010 13:59:20 -0500
-Date: Tue, 2 Feb 2010 19:58:57 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 4/14] avr32: use generic ptrace_resume code
-Message-ID: <20100202185857.GD3630@lst.de>
-References: <20100202185755.GA3630@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20100202185755.GA3630@lst.de>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:54557 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S932761Ab0BCSAw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Feb 2010 13:00:52 -0500
+Message-ID: <201002031754.o13HskT5008921@imap1.linux-foundation.org>
+Subject: [merged] mm-flush-dcache-before-writing-into-page-to-avoid-alias.patch removed from -mm tree
+From: akpm@linux-foundation.org
+Date: Wed, 03 Feb 2010 09:54:46 -0800
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: roland@redhat.com, oleg@redhat.com, akpm@linux-foundation.org, hskinnemoen@atmel.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100202185857.Ir7VRNGwNKJmju3MvzrJQijSMsqc1kC5sdgYKfy6nkI@z>
+To: anfei.zhou@gmail.com, linux-arch@vger.kernel.org, miklos@szeredi.hu, nickpiggin@yahoo.com.au, rmk@arm.linux.org.uk, stable@kernel.org, torvalds@linux-foundation.org, mm-commits@vger.kernel.org
+Message-ID: <20100203175446.a_XEU8TCM3jS3RDDm-bDSBHAllRyuScDzXjK03Talgk@z>
 
-Use the generic ptrace_resume code for PTRACE_SYSCALL, PTRACE_CONT,
-PTRACE_KILL and PTRACE_SINGLESTEP.  This implies defining
-arch_has_single_step in <asm/ptrace.h> and implementing the
-user_enable_single_step and user_disable_single_step functions, which
-also causes the breakpoint information to be cleared on fork, which
-could be considered a bug fix.
 
-Also the TIF_SYSCALL_TRACE thread flag is now cleared on PTRACE_KILL
-which it previously wasn't which is consistent with all architectures
-using the modern ptrace code.
+The patch titled
+     mm: flush dcache before writing into page to avoid alias
+has been removed from the -mm tree.  Its filename was
+     mm-flush-dcache-before-writing-into-page-to-avoid-alias.patch
 
-Currently avr32 doesn't implement any code to disable single stepping
-when one of the non-syscall requests is called which seems wrong,
-but I've left it as-is for now.
+This patch was dropped because it was merged into mainline or a subsystem tree
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
-Index: linux-2.6/arch/avr32/include/asm/ptrace.h
-===================================================================
---- linux-2.6.orig/arch/avr32/include/asm/ptrace.h	2010-02-02 11:14:51.257023230 +0100
-+++ linux-2.6/arch/avr32/include/asm/ptrace.h	2010-02-02 11:15:00.220025002 +0100
-@@ -124,6 +124,8 @@ struct pt_regs {
+------------------------------------------------------
+Subject: mm: flush dcache before writing into page to avoid alias
+From: anfei zhou <anfei.zhou@gmail.com>
+
+The cache alias problem will happen if the changes of user shared mapping
+is not flushed before copying, then user and kernel mapping may be mapped
+into two different cache line, it is impossible to guarantee the coherence
+after iov_iter_copy_from_user_atomic.  So the right steps should be:
+
+	flush_dcache_page(page);
+	kmap_atomic(page);
+	write to page;
+	kunmap_atomic(page);
+	flush_dcache_page(page);
+
+More precisely, we might create two new APIs flush_dcache_user_page and
+flush_dcache_kern_page to replace the two flush_dcache_page accordingly.
+
+Here is a snippet tested on omap2430 with VIPT cache, and I think it is
+not ARM-specific:
+
+	int val = 0x11111111;
+	fd = open("abc", O_RDWR);
+	addr = mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+	*(addr+0) = 0x44444444;
+	tmp = *(addr+0);
+	*(addr+1) = 0x77777777;
+	write(fd, &val, sizeof(int));
+	close(fd);
+
+The results are not always 0x11111111 0x77777777 at the beginning as expected.  Sometimes we see 0x44444444 0x77777777.
+
+Signed-off-by: Anfei <anfei.zhou@gmail.com>
+Cc: Russell King <rmk@arm.linux.org.uk>
+Cc: Miklos Szeredi <miklos@szeredi.hu>
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: <linux-arch@vger.kernel.org>
+Cc: <stable@kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ fs/fuse/file.c |    3 +++
+ mm/filemap.c   |    3 +++
+ 2 files changed, 6 insertions(+)
+
+diff -puN fs/fuse/file.c~mm-flush-dcache-before-writing-into-page-to-avoid-alias fs/fuse/file.c
+--- a/fs/fuse/file.c~mm-flush-dcache-before-writing-into-page-to-avoid-alias
++++ a/fs/fuse/file.c
+@@ -828,6 +828,9 @@ static ssize_t fuse_fill_write_pages(str
+ 		if (!page)
+ 			break;
  
- #include <asm/ocd.h>
- 
-+#define arch_has_single_step()		(1)
++		if (mapping_writably_mapped(mapping))
++			flush_dcache_page(page);
 +
- #define arch_ptrace_attach(child)       ocd_enable(child)
+ 		pagefault_disable();
+ 		tmp = iov_iter_copy_from_user_atomic(page, ii, offset, bytes);
+ 		pagefault_enable();
+diff -puN mm/filemap.c~mm-flush-dcache-before-writing-into-page-to-avoid-alias mm/filemap.c
+--- a/mm/filemap.c~mm-flush-dcache-before-writing-into-page-to-avoid-alias
++++ a/mm/filemap.c
+@@ -2232,6 +2232,9 @@ again:
+ 		if (unlikely(status))
+ 			break;
  
- #define user_mode(regs)                 (((regs)->sr & MODE_MASK) == MODE_USER)
-Index: linux-2.6/arch/avr32/kernel/ptrace.c
-===================================================================
---- linux-2.6.orig/arch/avr32/kernel/ptrace.c	2010-02-02 11:14:51.269004225 +0100
-+++ linux-2.6/arch/avr32/kernel/ptrace.c	2010-02-02 11:15:40.045282945 +0100
-@@ -28,9 +28,9 @@ static struct pt_regs *get_user_regs(str
- 				  THREAD_SIZE - sizeof(struct pt_regs));
- }
- 
--static void ptrace_single_step(struct task_struct *tsk)
-+static void user_enable_single_step(struct task_struct *tsk)
- {
--	pr_debug("ptrace_single_step: pid=%u, PC=0x%08lx, SR=0x%08lx\n",
-+	pr_debug("user_enable_single_step: pid=%u, PC=0x%08lx, SR=0x%08lx\n",
- 		 tsk->pid, task_pt_regs(tsk)->pc, task_pt_regs(tsk)->sr);
- 
- 	/*
-@@ -49,6 +49,11 @@ static void ptrace_single_step(struct ta
- 	set_tsk_thread_flag(tsk, TIF_SINGLE_STEP);
- }
- 
-+void user_disable_single_step(struct task_struct *child)
-+{
-+	/* XXX(hch): a no-op here seems wrong.. */
-+}
++		if (mapping_writably_mapped(mapping))
++			flush_dcache_page(page);
 +
- /*
-  * Called by kernel/ptrace.c when detaching
-  *
-@@ -156,50 +161,6 @@ long arch_ptrace(struct task_struct *chi
- 		ret = ptrace_write_user(child, addr, data);
- 		break;
- 
--	/* continue and stop at next (return from) syscall */
--	case PTRACE_SYSCALL:
--	/* restart after signal */
--	case PTRACE_CONT:
--		ret = -EIO;
--		if (!valid_signal(data))
--			break;
--		if (request == PTRACE_SYSCALL)
--			set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
--		else
--			clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
--		child->exit_code = data;
--		/* XXX: Are we sure no breakpoints are active here? */
--		wake_up_process(child);
--		ret = 0;
--		break;
--
--	/*
--	 * Make the child exit. Best I can do is send it a
--	 * SIGKILL. Perhaps it should be put in the status that it
--	 * wants to exit.
--	 */
--	case PTRACE_KILL:
--		ret = 0;
--		if (child->exit_state == EXIT_ZOMBIE)
--			break;
--		child->exit_code = SIGKILL;
--		wake_up_process(child);
--		break;
--
--	/*
--	 * execute single instruction.
--	 */
--	case PTRACE_SINGLESTEP:
--		ret = -EIO;
--		if (!valid_signal(data))
--			break;
--		clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
--		ptrace_single_step(child);
--		child->exit_code = data;
--		wake_up_process(child);
--		ret = 0;
--		break;
--
- 	case PTRACE_GETREGS:
- 		ret = ptrace_getregs(child, (void __user *)data);
- 		break;
+ 		pagefault_disable();
+ 		copied = iov_iter_copy_from_user_atomic(page, i, offset, bytes);
+ 		pagefault_enable();
+_
+
+Patches currently in -mm which might be from anfei.zhou@gmail.com are
+
+origin.patch
+
