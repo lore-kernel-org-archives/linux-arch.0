@@ -1,44 +1,37 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [patch 05/16] mm: flush dcache before writing into page to
- avoid alias
-Date: Wed, 03 Feb 2010 12:25:07 -0600
-Message-ID: <1265221507.2873.369.camel@mulgrave.site>
-References: <201002022144.o12Li2wj015711@imap1.linux-foundation.org>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH 4/14] avr32: use generic ptrace_resume code
+Date: Wed, 3 Feb 2010 20:22:23 +0100
+Message-ID: <20100203192223.GA12039@redhat.com>
+References: <20100202185755.GA3630@lst.de> <20100202185857.GD3630@lst.de> <20100203084737.6e01247b@siona> <20100203083611.GA29025@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:55319 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754272Ab0BCSZO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Feb 2010 13:25:14 -0500
-In-Reply-To: <201002022144.o12Li2wj015711@imap1.linux-foundation.org>
+Received: from mx1.redhat.com ([209.132.183.28]:31610 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756024Ab0BCTXl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 3 Feb 2010 14:23:41 -0500
+Content-Disposition: inline
+In-Reply-To: <20100203083611.GA29025@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: torvalds@linux-foundation.org, anfei.zhou@gmail.com, linux-arch@vger.kernel.org, miklos@szeredi.hu, nickpiggin@yahoo.com.au, rmk@arm.linux.org.uk, stable@kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>, roland@redhat.com, akpm@linux-foundation.org, hskinnemoen@atmel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, 2010-02-02 at 13:44 -0800, akpm@linux-foundation.org wrote:
-> From: anfei zhou <anfei.zhou@gmail.com>
-> 
-> The cache alias problem will happen if the changes of user shared mapping
-> is not flushed before copying, then user and kernel mapping may be mapped
-> into two different cache line, it is impossible to guarantee the coherence
-> after iov_iter_copy_from_user_atomic.  So the right steps should be:
-> 
-> 	flush_dcache_page(page);
+On 02/03, Christoph Hellwig wrote:
+>
+> I don't think the flag clearing on PTRACE_KILL matters as the process
+> is a zombie and almost gone anyway, it's more an artefact of the
+> generic implementation that I wanted to mention.
 
-This is likely unnecessary if the page has come down a standard path ...
-for fuse, it is possible it didn't go through __get_user_pages().
+Well, PTRACE_KILL doesn't necessarily kill the tracee. Only if the
+tracee reported the signal or syscall, otherwise ->exit_code is
+ignored.
 
-> 	kmap_atomic(page);
-> 	write to page;
-> 	kunmap_atomic(page);
-> 	flush_dcache_page(page);
-> 
-> More precisely, we might create two new APIs flush_dcache_user_page and
-> flush_dcache_kern_page to replace the two flush_dcache_page accordingly.
+OTOH I agree, probably the flag clearing on PTRACE_KILL doesn't
+really matter beause PTRACE_KILL shouldn't be used at all.
 
-We already have one of those: flush_kernel_dcache_page().
 
-James
+The whole series looks "obviously good" to me, but of course
+this is up to arch maintaners.
+
+Oleg.
