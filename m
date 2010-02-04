@@ -1,60 +1,34 @@
-From: anfei <anfei.zhou@gmail.com>
-Subject: Re: [patch 05/16] mm: flush dcache before writing into page to
-	avoid alias
-Date: Thu, 4 Feb 2010 22:39:19 +0800
-Message-ID: <20100204143919.GA11387@desktop>
-References: <201002022144.o12Li2wj015711@imap1.linux-foundation.org> <1265221507.2873.369.camel@mulgrave.site>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 4/6] improve sys_personality for compat architectures
+Date: Thu, 4 Feb 2010 17:00:57 +0100
+Message-ID: <20100204160057.GA5120@lst.de>
+References: <201002021536.51928.arnd@arndb.de> <20100203.091309.52886984.davem@davemloft.net> <4B69D6BA.4030704@zytor.com> <201002040838.10783.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-px0-f182.google.com ([209.85.216.182]:48624 "EHLO
-	mail-px0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932450Ab0BDOjZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Feb 2010 09:39:25 -0500
+Received: from verein.lst.de ([213.95.11.210]:37038 "EHLO verein.lst.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932422Ab0BDQCe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 4 Feb 2010 11:02:34 -0500
 Content-Disposition: inline
-In-Reply-To: <1265221507.2873.369.camel@mulgrave.site>
+In-Reply-To: <201002040838.10783.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, miklos@szeredi.hu, nickpiggin@yahoo.com.au, rmk@arm.linux.org.uk, stable@kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, hch@lst.de, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tony.luck@intel.com, ralf@linux-mips.org, kyle@mcmartin.ca, benh@kernel.crashing.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, tglx@linutronix.de, mingo@redhat.com, viro@zeniv.linux.org.uk
 
-On Wed, Feb 03, 2010 at 12:25:07PM -0600, James Bottomley wrote:
-> On Tue, 2010-02-02 at 13:44 -0800, akpm@linux-foundation.org wrote:
-> > From: anfei zhou <anfei.zhou@gmail.com>
-> > 
-> > The cache alias problem will happen if the changes of user shared mapping
-> > is not flushed before copying, then user and kernel mapping may be mapped
-> > into two different cache line, it is impossible to guarantee the coherence
-> > after iov_iter_copy_from_user_atomic.  So the right steps should be:
-> > 
-> > 	flush_dcache_page(page);
+On Thu, Feb 04, 2010 at 08:38:10AM +0100, Arnd Bergmann wrote:
+> I think it would be better to have a consistent behavior across
+> architectures, so /something/ should be changed. On x86, the unused
+> sys32_personality function can probable just be removed, if nothing
+> else.
 > 
-> This is likely unnecessary if the page has come down a standard path ...
-> for fuse, it is possible it didn't go through __get_user_pages().
-> 
-The problem here is iov_iter_copy_from_user_atomic will write the page,
-and that page has been written by (*addr = val) before, but not flushed
-yet.  If these two writes are at the same cache line (but aliased), then
-we can not guarantee the result by any order.
+> If we can get everyone to agree with the x86 way of handling this,
+> we can also remove all the special cases for sys32_personality in the
+> other architectures.
 
-> > 	kmap_atomic(page);
-> > 	write to page;
-> > 	kunmap_atomic(page);
-> > 	flush_dcache_page(page);
-> > 
-> > More precisely, we might create two new APIs flush_dcache_user_page and
-> > flush_dcache_kern_page to replace the two flush_dcache_page accordingly.
-> 
-> We already have one of those: flush_kernel_dcache_page().
-> 
-Yes, but it's only called in a few places, and others usually use
-flush_dcache_page, why?
-
-And not every arch with aliasing problem has implement it, such as MIPS.
-
-Regards,
-Anfei.
-
-> James
-> 
-> 
+Yes, this should be common over architectures.  Anyway, I expect there
+to be some discussion until we've reached that point, so for now I'll
+rebase patches 5 and 6 to not require this patch, and will send one
+to kill the unused x86 implementation.  Whatever is the final outcome
+can be implemented on top.
