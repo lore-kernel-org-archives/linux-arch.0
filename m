@@ -1,92 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from kroah.org ([198.145.64.141]:34937 "EHLO coco.kroah.org"
+Received: from cantor2.suse.de ([195.135.220.15]:52415 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933364Ab0BDRW1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 4 Feb 2010 12:22:27 -0500
-Message-ID: <20100204171524.332399752@linux.site>
-Date: Thu, 04 Feb 2010 09:12:35 -0800
-From: Greg KH <gregkh@suse.de>
-Subject: [64/74] mm: flush dcache before writing into page to avoid alias
-In-Reply-To: <20100204171850.GA16539@kroah.com>
+	id S1753598Ab0BEPvK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Feb 2010 10:51:10 -0500
+From: James Bottomley <James.Bottomley@suse.de>
+Subject: [PATCHv3 2/5] parisc: add mm API for DMA to vmalloc/vmap areas
+Date: Fri,  5 Feb 2010 09:50:54 -0600
+Message-ID: <1265385057-2575-3-git-send-email-James.Bottomley@suse.de>
+In-Reply-To: <1265385057-2575-2-git-send-email-James.Bottomley@suse.de>
+References: <1265385057-2575-1-git-send-email-James.Bottomley@suse.de>
+ <1265385057-2575-2-git-send-email-James.Bottomley@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, stable@kernel.org
-Cc: stable-review@kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@lxorguk.ukuu.org.uk, Anfei <anfei.zhou@gmail.com>, Russell King <rmk@arm.linux.org.uk>, Miklos Szeredi <miklos@szeredi.hu>, Nick Piggin <nickpiggin@yahoo.com.au>, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@suse.de>
-Message-ID: <20100204171235.nxN5cS3aIAmnFbObuRBBxM7BEb2HS2vEqyTYGQv8kA8@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-parisc@vger.kernel.org, rmk@arm.linux.org.uk, lethal@linux-sh.org, torvalds@linux-foundation.org, hch@lst.de, James Bottomley <James.Bottomley@suse.de>
+Message-ID: <20100205155054.sFGkhkzplXUa3pdV_y1vvUt3ruKuzBYSqnV3GNXGthE@z>
 
-2.6.32-stable review patch.  If anyone has any objections, please let us know.
+We already have an API to flush a kernel page along an alias
+address, so use it.  The TLB purge prevents the CPU from doing
+speculative moveins on the flushed address, so we don't need to
+implement and invalidate.
 
-------------------
-
-From: anfei zhou <anfei.zhou@gmail.com>
-
-commit 931e80e4b3263db75c8e34f078d22f11bbabd3a3 upstream.
-
-The cache alias problem will happen if the changes of user shared mapping
-is not flushed before copying, then user and kernel mapping may be mapped
-into two different cache line, it is impossible to guarantee the coherence
-after iov_iter_copy_from_user_atomic.  So the right steps should be:
-
-	flush_dcache_page(page);
-	kmap_atomic(page);
-	write to page;
-	kunmap_atomic(page);
-	flush_dcache_page(page);
-
-More precisely, we might create two new APIs flush_dcache_user_page and
-flush_dcache_kern_page to replace the two flush_dcache_page accordingly.
-
-Here is a snippet tested on omap2430 with VIPT cache, and I think it is
-not ARM-specific:
-
-	int val = 0x11111111;
-	fd = open("abc", O_RDWR);
-	addr = mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-	*(addr+0) = 0x44444444;
-	tmp = *(addr+0);
-	*(addr+1) = 0x77777777;
-	write(fd, &val, sizeof(int));
-	close(fd);
-
-The results are not always 0x11111111 0x77777777 at the beginning as expected.  Sometimes we see 0x44444444 0x77777777.
-
-Signed-off-by: Anfei <anfei.zhou@gmail.com>
-Cc: Russell King <rmk@arm.linux.org.uk>
-Cc: Miklos Szeredi <miklos@szeredi.hu>
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Greg Kroah-Hartman <gregkh@suse.de>
-
+Signed-off-by: James Bottomley <James.Bottomley@suse.de>
 ---
- fs/fuse/file.c |    3 +++
- mm/filemap.c   |    3 +++
- 2 files changed, 6 insertions(+)
+ arch/parisc/include/asm/cacheflush.h |   12 ++++++++++++
+ 1 files changed, 12 insertions(+), 0 deletions(-)
 
---- a/fs/fuse/file.c
-+++ b/fs/fuse/file.c
-@@ -828,6 +828,9 @@ static ssize_t fuse_fill_write_pages(str
- 		if (!page)
- 			break;
+diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
+index 7a73b61..4772777 100644
+--- a/arch/parisc/include/asm/cacheflush.h
++++ b/arch/parisc/include/asm/cacheflush.h
+@@ -38,6 +38,18 @@ void flush_cache_mm(struct mm_struct *mm);
  
-+		if (mapping_writably_mapped(mapping))
-+			flush_dcache_page(page);
+ #define flush_kernel_dcache_range(start,size) \
+ 	flush_kernel_dcache_range_asm((start), (start)+(size));
++/* vmap range flushes and invalidates.  Architecturally, we don't need
++ * the invalidate, because the CPU should refuse to speculate once an
++ * area has been flushed, so invalidate is left empty */
++static inline void flush_kernel_vmap_range(void *vaddr, int size)
++{
++	unsigned long start = (unsigned long)vaddr;
 +
- 		pagefault_disable();
- 		tmp = iov_iter_copy_from_user_atomic(page, ii, offset, bytes);
- 		pagefault_enable();
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -2253,6 +2253,9 @@ again:
- 		if (unlikely(status))
- 			break;
++	flush_kernel_dcache_range_asm(start, start + size);
++}
++static inline void invalidate_kernel_vmap_range(void *vaddr, int size)
++{
++}
  
-+		if (mapping_writably_mapped(mapping))
-+			flush_dcache_page(page);
-+
- 		pagefault_disable();
- 		copied = iov_iter_copy_from_user_atomic(page, i, offset, bytes);
- 		pagefault_enable();
-
+ #define flush_cache_vmap(start, end)		flush_cache_all()
+ #define flush_cache_vunmap(start, end)		flush_cache_all()
+-- 
+1.6.5
 
