@@ -1,107 +1,85 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
 Subject: Re: [RFC PATCH 2/4] pio-mapping: Add ARM support for the PIO
- mapping API
-Date: Fri, 05 Feb 2010 10:43:54 -0600
-Message-ID: <1265388234.14404.47.camel@mulgrave.site>
+	mapping API
+Date: Fri, 05 Feb 2010 17:20:03 +0000
+Message-ID: <1265390403.7692.101.camel@pc1117.cambridge.arm.com>
 References: <20100205163044.30827.10915.stgit@pc1117.cambridge.arm.com>
 	 <20100205163154.30827.6636.stgit@pc1117.cambridge.arm.com>
+	 <1265388234.14404.47.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:53378 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753561Ab0BEQn6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Feb 2010 11:43:58 -0500
-In-Reply-To: <20100205163154.30827.6636.stgit@pc1117.cambridge.arm.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:56880 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756252Ab0BERUH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Feb 2010 12:20:07 -0500
+In-Reply-To: <1265388234.14404.47.camel@mulgrave.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
 Cc: linux-arch@vger.kernel.org
 
-On Fri, 2010-02-05 at 16:31 +0000, Catalin Marinas wrote:
-> This patch introduces support for the PIO mapping API on the ARM
-> architecture. It is currently only meant as an example for discussions
-> and it can be further optimised.
+On Fri, 2010-02-05 at 16:43 +0000, James Bottomley wrote:
+> On Fri, 2010-02-05 at 16:31 +0000, Catalin Marinas wrote:
+> > This patch introduces support for the PIO mapping API on the ARM
+> > architecture. It is currently only meant as an example for discussions
+> > and it can be further optimised.
+[...]
+> > diff --git a/arch/arm/include/asm/pio-mapping.h b/arch/arm/include/asm/pio-mapping.h
+> > new file mode 100644
+> > index 0000000..d7c866a
+> > --- /dev/null
+> > +++ b/arch/arm/include/asm/pio-mapping.h
+[...]
+> > +static inline void *pio_map_single(void *addr, size_t size,
+> > +                                enum pio_data_direction dir)
+> > +{
+> > +     return addr;
 > 
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> ---
->  arch/arm/Kconfig                   |    3 ++
->  arch/arm/include/asm/pio-mapping.h |   52 ++++++++++++++++++++++++++++++++++++
->  2 files changed, 55 insertions(+), 0 deletions(-)
->  create mode 100644 arch/arm/include/asm/pio-mapping.h
+> This API is a bit semantically nasty to use, isn't it?  What we usually
+> get in the I/O path is a scatter gather list of pages and offsets (or
+> just a page in the network case).
 > 
-> diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-> index 4c33ca8..e48adcf 100644
-> --- a/arch/arm/Kconfig
-> +++ b/arch/arm/Kconfig
-> @@ -161,6 +161,9 @@ config ARCH_MTD_XIP
->  config GENERIC_HARDIRQS_NO__DO_IRQ
->  	def_bool y
->  
-> +config HAVE_ARCH_PIO
-> +	def_bool y
-> +
->  if OPROFILE
->  
->  config OPROFILE_ARMV6
-> diff --git a/arch/arm/include/asm/pio-mapping.h b/arch/arm/include/asm/pio-mapping.h
-> new file mode 100644
-> index 0000000..d7c866a
-> --- /dev/null
-> +++ b/arch/arm/include/asm/pio-mapping.h
-> @@ -0,0 +1,52 @@
-> +/*
-> + * include/linux/pio-mapping.h
-> + *
-> + * Copyright (C) 2010 ARM Ltd.
-> + * Written by Catalin Marinas <catalin.marinas@arm.com>
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program; if not, write to the Free Software
-> + * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-> + */
-> +
-> +#ifndef ASM_PIO_MAPPING_H
-> +#define ASM_PIO_MAPPING_H
-> +
-> +#include <asm/cacheflush.h>
-> +
-> +static inline void *pio_map_single(void *addr, size_t size,
-> +				   enum pio_data_direction dir)
-> +{
-> +	return addr;
+> In a highmem kernel, we'd have to kmap the page before it actually had a
+> kernel virtual address, so now the use case of the API becomes
+> 
+> vaddr = kmap_...(page)
+> pio_map_single(vaddr)
+> 
+> and the reverse on unmap.
+> 
+> Why not just combine the two since we always have to do them anyway and
+> do
+> 
+> kmap_pio ... with the various atomic versions?
 
-This API is a bit semantically nasty to use, isn't it?  What we usually
-get in the I/O path is a scatter gather list of pages and offsets (or
-just a page in the network case).
+For most cases, what we need looks close enough to the kmap semantics
+but this wouldn't work for the HCD case - the USB mass storage may use
+kmap() but it cannot easily be converted to the kmap_pio API since it's
+only the HCD driver that knows what kind of transfer it would do (and
+this only gets a (void *) pointer).
 
-In a highmem kernel, we'd have to kmap the page before it actually had a
-kernel virtual address, so now the use case of the API becomes
+We could allow a kmap_pio API to also take (void *) arguments in
+addition to (struct page *) but would this be confusing? It diverges
+slightly from the kmap API. Do you have a better suggestion?
 
-vaddr = kmap_...(page)
-pio_map_single(vaddr)
+> enum pio_data_direction dir looks a bit wrong too ... why not just use
+> the exsiting enum dma_data_direction since that's what the dma API uses?
 
-and the reverse on unmap.
+I just didn't want to confuse things with the DMA_* name but that's a
+valid point.
 
-Why not just combine the two since we always have to do them anyway and
-do
+> your pio_map_page is going to have to contain a kmap in the arch
+> implementation anyway ...
 
-kmap_pio ... with the various atomic versions?
+In my approach, the only case for pio_map_page() would be for
+non-highmem pages, otherwise you would need to use pio_map_single() on
+the value returned by kmap() (as you pointed out, it doesn't look nice
+but I don't have a solution to accommodate a kmap API with the HCD
+drivers).
 
-enum pio_data_direction dir looks a bit wrong too ... why not just use
-the exsiting enum dma_data_direction since that's what the dma API uses?
+Thanks.
 
-your pio_map_page is going to have to contain a kmap in the arch
-implementation anyway ...
-
-James
+-- 
+Catalin
