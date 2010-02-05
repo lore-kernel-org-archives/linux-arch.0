@@ -1,49 +1,42 @@
 From: James Bottomley <James.Bottomley@suse.de>
-Subject: [PATCHv3 2/5] parisc: add mm API for DMA to vmalloc/vmap areas
-Date: Fri,  5 Feb 2010 09:50:54 -0600
-Message-ID: <1265385057-2575-3-git-send-email-James.Bottomley@suse.de>
+Subject: [PATCHv3 4/5] sh: add mm API for DMA to vmalloc/vmap areas
+Date: Fri,  5 Feb 2010 09:50:56 -0600
+Message-ID: <1265385057-2575-5-git-send-email-James.Bottomley@suse.de>
 References: <1265385057-2575-1-git-send-email-James.Bottomley@suse.de>
  <1265385057-2575-2-git-send-email-James.Bottomley@suse.de>
+ <1265385057-2575-3-git-send-email-James.Bottomley@suse.de>
+ <1265385057-2575-4-git-send-email-James.Bottomley@suse.de>
 Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <1265385057-2575-2-git-send-email-James.Bottomley@suse.de>
+In-Reply-To: <1265385057-2575-4-git-send-email-James.Bottomley@suse.de>
 Sender: linux-parisc-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: linux-parisc@vger.kernel.org, rmk@arm.linux.org.uk, lethal@linux-sh.org, torvalds@linux-foundation.org, hch@lst.de, James Bottomley <James.Bottomley@suse.de>
 List-Id: linux-arch.vger.kernel.org
 
-We already have an API to flush a kernel page along an alias
-address, so use it.  The TLB purge prevents the CPU from doing
-speculative moveins on the flushed address, so we don't need to
-implement and invalidate.
-
 Signed-off-by: James Bottomley <James.Bottomley@suse.de>
 ---
- arch/parisc/include/asm/cacheflush.h |   12 ++++++++++++
- 1 files changed, 12 insertions(+), 0 deletions(-)
+ arch/sh/include/asm/cacheflush.h |    8 ++++++++
+ 1 files changed, 8 insertions(+), 0 deletions(-)
 
-diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
-index 7a73b61..4772777 100644
---- a/arch/parisc/include/asm/cacheflush.h
-+++ b/arch/parisc/include/asm/cacheflush.h
-@@ -38,6 +38,18 @@ void flush_cache_mm(struct mm_struct *mm);
- 
- #define flush_kernel_dcache_range(start,size) \
- 	flush_kernel_dcache_range_asm((start), (start)+(size));
-+/* vmap range flushes and invalidates.  Architecturally, we don't need
-+ * the invalidate, because the CPU should refuse to speculate once an
-+ * area has been flushed, so invalidate is left empty */
-+static inline void flush_kernel_vmap_range(void *vaddr, int size)
+diff --git a/arch/sh/include/asm/cacheflush.h b/arch/sh/include/asm/cacheflush.h
+index dda96eb..da3ebec 100644
+--- a/arch/sh/include/asm/cacheflush.h
++++ b/arch/sh/include/asm/cacheflush.h
+@@ -63,6 +63,14 @@ static inline void flush_anon_page(struct vm_area_struct *vma,
+ 	if (boot_cpu_data.dcache.n_aliases && PageAnon(page))
+ 		__flush_anon_page(page, vmaddr);
+ }
++static inline void flush_kernel_vmap_range(void *addr, int size)
 +{
-+	unsigned long start = (unsigned long)vaddr;
-+
-+	flush_kernel_dcache_range_asm(start, start + size);
++	__flush_wback_region(addr, size);
 +}
-+static inline void invalidate_kernel_vmap_range(void *vaddr, int size)
++static inline void invalidate_kernel_vmap_range(void *addr, int size)
 +{
++	__flush_invalidate_region(addr, size);
 +}
  
- #define flush_cache_vmap(start, end)		flush_cache_all()
- #define flush_cache_vunmap(start, end)		flush_cache_all()
+ #define ARCH_HAS_FLUSH_KERNEL_DCACHE_PAGE
+ static inline void flush_kernel_dcache_page(struct page *page)
 -- 
 1.6.5
 
