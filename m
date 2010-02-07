@@ -1,18 +1,27 @@
-From: Irish Online Draws <rrsdadfgfhj@sbcglobal.net>
-Subject: File For Claim
-Date: Sat, 6 Feb 2010 14:29:47 -0800 (PST)
-Message-ID: <996130.32069.qm__35137.2606623501$1265495403$gmane$org@web180608.mail.sp1.yahoo.com>
-Reply-To: irsb.claimsp@9.cn
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [PATCHv3 0/5] fix xfs by making I/O to vmap/vmalloc areas work
+Date: Sat, 6 Feb 2010 19:26:38 -0500
+Message-ID: <20100207002638.GQ24051@bombadil.infradead.org>
+References: <1265385057-2575-1-git-send-email-James.Bottomley@suse.de> <20100205160640.GA24344@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from n65.bullet.mail.sp1.yahoo.com ([98.136.44.190]:34553 "HELO
-	n65.bullet.mail.sp1.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1755349Ab0BFW3s convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 6 Feb 2010 17:29:48 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-parisc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20100205160640.GA24344@lst.de>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: James Bottomley <James.Bottomley@suse.de>, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, rmk@arm.linux.org.uk, lethal@linux-sh.org, torvalds@linux-foundation.org, James Bottomley <James.Bottomley@HansenPartnership.com>
+List-Id: linux-arch.vger.kernel.org
 
-Your email have won =A3891,934.00 Send:Name,Age, Address, Tel,Country
+On Fri, Feb 05, 2010 at 05:06:40PM +0100, Christoph Hellwig wrote:
+> > From: James Bottomley <James.Bottomley@HansenPartnership.com>
+> > 
+> 
+> Agreed.  There's also a lot of ARM users popping up with this recently,
+> while others worked around it using local flushing hacks previously.
+> 
+
+Thanks, I've applied these to parisc/next to give them a shakedown in
+linux-next.
+
+regards, Kyle.
