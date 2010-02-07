@@ -1,47 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:52426 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754023Ab0BEPvR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Feb 2010 10:51:17 -0500
-From: James Bottomley <James.Bottomley@suse.de>
-Subject: [PATCHv3 4/5] sh: add mm API for DMA to vmalloc/vmap areas
-Date: Fri,  5 Feb 2010 09:50:56 -0600
-Message-ID: <1265385057-2575-5-git-send-email-James.Bottomley@suse.de>
-In-Reply-To: <1265385057-2575-4-git-send-email-James.Bottomley@suse.de>
-References: <1265385057-2575-1-git-send-email-James.Bottomley@suse.de>
- <1265385057-2575-2-git-send-email-James.Bottomley@suse.de>
- <1265385057-2575-3-git-send-email-James.Bottomley@suse.de>
- <1265385057-2575-4-git-send-email-James.Bottomley@suse.de>
+Received: from bombadil.infradead.org ([18.85.46.34]:54685 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752638Ab0BGA0p (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Feb 2010 19:26:45 -0500
+Date: Sat, 6 Feb 2010 19:26:38 -0500
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [PATCHv3 0/5] fix xfs by making I/O to vmap/vmalloc areas work
+Message-ID: <20100207002638.GQ24051@bombadil.infradead.org>
+References: <1265385057-2575-1-git-send-email-James.Bottomley@suse.de> <20100205160640.GA24344@lst.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20100205160640.GA24344@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-parisc@vger.kernel.org, rmk@arm.linux.org.uk, lethal@linux-sh.org, torvalds@linux-foundation.org, hch@lst.de, James Bottomley <James.Bottomley@suse.de>
-Message-ID: <20100205155056.p-yptNkGjzR34-KvF7meMtontXCyKi5CWyAWhh8gFCc@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: James Bottomley <James.Bottomley@suse.de>, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, rmk@arm.linux.org.uk, lethal@linux-sh.org, torvalds@linux-foundation.org, James Bottomley <James.Bottomley@HansenPartnership.com>
+Message-ID: <20100207002638.Tr4C9R1a3743ipTE0Li47b5KpJ20VB5SfMZt5wt_FNY@z>
 
-Signed-off-by: James Bottomley <James.Bottomley@suse.de>
----
- arch/sh/include/asm/cacheflush.h |    8 ++++++++
- 1 files changed, 8 insertions(+), 0 deletions(-)
+On Fri, Feb 05, 2010 at 05:06:40PM +0100, Christoph Hellwig wrote:
+> > From: James Bottomley <James.Bottomley@HansenPartnership.com>
+> > 
+> 
+> Agreed.  There's also a lot of ARM users popping up with this recently,
+> while others worked around it using local flushing hacks previously.
+> 
 
-diff --git a/arch/sh/include/asm/cacheflush.h b/arch/sh/include/asm/cacheflush.h
-index dda96eb..da3ebec 100644
---- a/arch/sh/include/asm/cacheflush.h
-+++ b/arch/sh/include/asm/cacheflush.h
-@@ -63,6 +63,14 @@ static inline void flush_anon_page(struct vm_area_struct *vma,
- 	if (boot_cpu_data.dcache.n_aliases && PageAnon(page))
- 		__flush_anon_page(page, vmaddr);
- }
-+static inline void flush_kernel_vmap_range(void *addr, int size)
-+{
-+	__flush_wback_region(addr, size);
-+}
-+static inline void invalidate_kernel_vmap_range(void *addr, int size)
-+{
-+	__flush_invalidate_region(addr, size);
-+}
- 
- #define ARCH_HAS_FLUSH_KERNEL_DCACHE_PAGE
- static inline void flush_kernel_dcache_page(struct page *page)
--- 
-1.6.5
+Thanks, I've applied these to parisc/next to give them a shakedown in
+linux-next.
 
+regards, Kyle.
