@@ -1,27 +1,26 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [PATCHv3 0/5] fix xfs by making I/O to vmap/vmalloc areas work
-Date: Sat, 6 Feb 2010 19:26:38 -0500
-Message-ID: <20100207002638.GQ24051@bombadil.infradead.org>
-References: <1265385057-2575-1-git-send-email-James.Bottomley@suse.de> <20100205160640.GA24344@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-parisc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20100205160640.GA24344@lst.de>
-Sender: linux-parisc-owner@vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 1/14] move user_enable_single_step & co prototypes to linux/ptrace.h
+Date: Mon, 08 Feb 2010 10:50:41 +0000
+Message-ID: <22619.1265626241@redhat.com>
+References: <20100202185755.GA3630@lst.de>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:4792 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751038Ab0BHKxL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Feb 2010 05:53:11 -0500
+In-Reply-To: <20100202185755.GA3630@lst.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
-Cc: James Bottomley <James.Bottomley@suse.de>, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, rmk@arm.linux.org.uk, lethal@linux-sh.org, torvalds@linux-foundation.org, James Bottomley <James.Bottomley@HansenPartnership.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: dhowells@redhat.com, roland@redhat.com, oleg@redhat.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mattst88@gmail.com, ink@jurassic.park.msu.ru, rth@twiddle.net, linux@arm.linux.org.uk, hskinnemoen@atmel.com, vapier@gentoo.org, starvik@axis.com, jesper.nilsson@axis.com, ysato@users.sourceforge.jp, takata@linux-m32r.org, gerg@uclinux.org, monstr@monstr.eu, ralf@linux-mips.org, jdike@addtoit.com, chris@zankel.net
 
-On Fri, Feb 05, 2010 at 05:06:40PM +0100, Christoph Hellwig wrote:
-> > From: James Bottomley <James.Bottomley@HansenPartnership.com>
-> > 
+Christoph Hellwig <hch@lst.de> wrote:
+
+> While in theory user_enable_single_step/user_disable_single_step/
+> user_enable_blockstep could also be provided as an inline or macro there's no
+> good reason to do so, and having the prototype in one places keeps code size
+> and confusion down.
 > 
-> Agreed.  There's also a lot of ARM users popping up with this recently,
-> while others worked around it using local flushing hacks previously.
-> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Thanks, I've applied these to parisc/next to give them a shakedown in
-linux-next.
-
-regards, Kyle.
+Acked-by: David Howells <dhowells@redhat.com>
