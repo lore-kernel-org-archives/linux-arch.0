@@ -1,49 +1,87 @@
+From: Mike Frysinger <vapier@gentoo.org>
+Subject: [PATCH 2/2] Blackfin: use generic ptrace_resume code
+Date: Thu, 11 Feb 2010 04:43:09 -0500
+Message-ID: <1265881389-26925-3-git-send-email-vapier@gentoo.org>
+References: <20100202185907.GE3630@lst.de>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20100202185907.GE3630@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+Cc: roland@redhat.com, oleg@redhat.com, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, Christoph Hellwig <hch@lst.de>
+List-Id: linux-arch.vger.kernel.org
+
 From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 1/14] move user_enable_single_step & co prototypes to linux/ptrace.h
-Date: Wed, 10 Feb 2010 23:03:23 +0100
-Message-ID: <20100210220323.GA10365@lst.de>
-References: <20100202185755.GA3630@lst.de> <20100208195125.27ADD1AF@magilla.sf.frob.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.210]:38476 "EHLO verein.lst.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755295Ab0BJWIl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 Feb 2010 17:08:41 -0500
-Content-Disposition: inline
-In-Reply-To: <20100208195125.27ADD1AF@magilla.sf.frob.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <roland@redhat.com>
-Cc: Christoph Hellwig <hch@lst.de>, oleg@redhat.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mattst88@gmail.com, ink@jurassic.park.msu.ru, rth@twiddle.net, linux@arm.linux.org.uk, hskinnemoen@atmel.com, vapier@gentoo.org, starvik@axis.com, jesper.nilsson@axis.com, ysato@users.sourceforge.jp, takata@linux-m32r.org, gerg@uclinux.org, monstr@monstr.eu, ralf@linux-mips.org, jdike@addtoit.com, chris@zankel.net
 
-On Mon, Feb 08, 2010 at 11:51:25AM -0800, Roland McGrath wrote:
-> The original thought there was that user_enable_single_step() et al might
-> well be only an instruction or three on a sane machine (as if we have any
-> of those!), and since there is only one call site inlining would be
-> beneficial.  But I agree that there is no strong reason to care about
-> inlining it.
+Use the generic ptrace_resume code for PTRACE_SYSCALL, PTRACE_CONT,
+PTRACE_KILL and PTRACE_SINGLESTEP.  This implies defining
+arch_has_single_step in <asm/ptrace.h> and implementing the
+user_enable_single_step and user_disable_single_step functions, which
+also causes the breakpoint information to be cleared on fork, which
+could be considered a bug fix.
 
-In fact many of the implementations are small enough to inline them, but
-not no architecture so far decided to inline them, and in the end it's
-not exactly a fast-path.  This at least keeps the prototype the same
-everywhere.
+Also the TIF_SYSCALL_TRACE thread flag is now cleared on PTRACE_KILL
+which it previously wasn't which is consistent with all architectures
+using the modern ptrace code.
 
-> As to the arch changes, there is only one thought I'd add to the record.
-> It was always my thinking that for an arch where PTRACE_SINGLESTEP does
-> text-modifying breakpoint insertion, user_enable_single_step() should not
-> be provided.  That is, arch_has_single_step()=>true means that there is an
-> arch facility with "pure" semantics that does not have any unexpected side
-> effects.  Inserting a breakpoint might do very unexpected strange things in
-> multi-threaded situations.  Aside from that, it is a peculiar side effect
-> that user_{enable,disable}_single_step() should cause COW de-sharing of
-> text pages and so forth.  For PTRACE_SINGLESTEP, all these peculiarities
-> are the status quo ante for that arch, so having arch_ptrace() itself do
-> those is one thing.  But for building other things in the future, it is
-> nicer to have a uniform "pure" semantics that arch-independent code can
-> expect.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Mike Frysinger <vapier@gentoo.org>
+---
+ arch/blackfin/kernel/ptrace.c |   44 -----------------------------------------
+ 1 files changed, 0 insertions(+), 44 deletions(-)
 
-For now the ptrace code is the same for real or software singlestepping.
-If we grow users that care we can add a arch_has_hw_single_step macro
-or just overload arch_has_single_step with different postitive return
-values for the exact same type of single stepping supported.
+diff --git a/arch/blackfin/kernel/ptrace.c b/arch/blackfin/kernel/ptrace.c
+index f6e94ad..09fb04e 100644
+--- a/arch/blackfin/kernel/ptrace.c
++++ b/arch/blackfin/kernel/ptrace.c
+@@ -330,50 +330,6 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
+ 		ret = put_reg(child, addr, data);
+ 		break;
+ 
+-	case PTRACE_SYSCALL:	/* continue and stop at next (return from) syscall */
+-	case PTRACE_CONT:	/* restart after signal. */
+-		pr_debug("ptrace: syscall/cont\n");
+-
+-		ret = -EIO;
+-		if (!valid_signal(data))
+-			break;
+-		if (request == PTRACE_SYSCALL)
+-			set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+-		else
+-			clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+-		child->exit_code = data;
+-		user_disable_single_step(child);
+-		pr_debug("ptrace: before wake_up_process\n");
+-		wake_up_process(child);
+-		ret = 0;
+-		break;
+-
+-	/*
+-	 * make the child exit.  Best I can do is send it a sigkill.
+-	 * perhaps it should be put in the status that it wants to
+-	 * exit.
+-	 */
+-	case PTRACE_KILL:
+-		ret = 0;
+-		if (child->exit_state == EXIT_ZOMBIE)	/* already dead */
+-			break;
+-		child->exit_code = SIGKILL;
+-		user_disable_single_step(child);
+-		wake_up_process(child);
+-		break;
+-
+-	case PTRACE_SINGLESTEP:	/* set the trap flag. */
+-		pr_debug("ptrace: single step\n");
+-		ret = -EIO;
+-		if (!valid_signal(data))
+-			break;
+-		clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+-		user_enable_single_step(child);
+-		child->exit_code = data;
+-		wake_up_process(child);
+-		ret = 0;
+-		break;
+-
+ 	case PTRACE_GETREGS:
+ 		/* Get all gp regs from the child. */
+ 		ret = ptrace_getregs(child, datap);
+-- 
+1.6.6.1
