@@ -1,43 +1,57 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [RFC PATCH v2 1/5] pio-mapping: Add generic support for PIO mapping
+Subject: [RFC PATCH v2 2/5] pio-mapping: Add ARM support for the PIO mapping
 	API
-Date: Thu, 11 Feb 2010 17:55:16 +0000
-Message-ID: <20100211175516.7848.39767.stgit@pc1117.cambridge.arm.com>
+Date: Thu, 11 Feb 2010 17:55:21 +0000
+Message-ID: <20100211175521.7848.76633.stgit@pc1117.cambridge.arm.com>
 References: <20100211175417.7848.41807.stgit@pc1117.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:42999 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:43004 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755272Ab0BKRzX (ORCPT
+	by vger.kernel.org with ESMTP id S1756251Ab0BKRz2 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 11 Feb 2010 12:55:23 -0500
+	Thu, 11 Feb 2010 12:55:28 -0500
 In-Reply-To: <20100211175417.7848.41807.stgit@pc1117.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, Russell King <rmk@arm.linux.org.uk>
 
-Implement partial support for PIO mapping API similar to the kmap API
-used for highmem. These functions are intended to be used by device
-drivers doing PIO to page cache pages that may potentially be mapped in
-user space and cause cache coherency issues.
+This patch introduces support for the PIO mapping API on the ARM
+architecture. It is currently only meant as an example for discussions
+and it can be further optimised.
 
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 Cc: James Bottomley <James.Bottomley@HansenPartnership.com>
 Cc: Russell King <rmk@arm.linux.org.uk>
 ---
- include/linux/pio-mapping.h |   65 +++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 65 insertions(+), 0 deletions(-)
- create mode 100644 include/linux/pio-mapping.h
+ arch/arm/Kconfig                   |    3 ++
+ arch/arm/include/asm/pio-mapping.h |   66 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 69 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm/include/asm/pio-mapping.h
 
-diff --git a/include/linux/pio-mapping.h b/include/linux/pio-mapping.h
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 4c33ca8..e48adcf 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -161,6 +161,9 @@ config ARCH_MTD_XIP
+ config GENERIC_HARDIRQS_NO__DO_IRQ
+ 	def_bool y
+ 
++config HAVE_ARCH_PIO
++	def_bool y
++
+ if OPROFILE
+ 
+ config OPROFILE_ARMV6
+diff --git a/arch/arm/include/asm/pio-mapping.h b/arch/arm/include/asm/pio-mapping.h
 new file mode 100644
-index 0000000..5b216fb
+index 0000000..28d5834
 --- /dev/null
-+++ b/include/linux/pio-mapping.h
-@@ -0,0 +1,65 @@
++++ b/arch/arm/include/asm/pio-mapping.h
+@@ -0,0 +1,66 @@
 +/*
 + * include/linux/pio-mapping.h
 + *
@@ -58,15 +72,11 @@ index 0000000..5b216fb
 + * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 + */
 +
-+#ifndef PIO_MAPPING_H
-+#define PIO_MAPPING_H
++#ifndef ASM_PIO_MAPPING_H
++#define ASM_PIO_MAPPING_H
 +
-+#include <linux/highmem.h>
-+#include <linux/dma-mapping.h>
-+
-+#ifdef CONFIG_HAVE_ARCH_PIO
-+#include <asm/pio-mapping.h>
-+#else
++#include <asm/cacheflush.h>
++#include <asm/fixmap.h>
 +
 +static inline void *pio_kmap(struct page *page, enum dma_data_direction dir)
 +{
@@ -75,6 +85,8 @@ index 0000000..5b216fb
 +
 +static inline void pio_kunmap(struct page *page, enum dma_data_direction dir)
 +{
++	if (dir == DMA_FROM_DEVICE)
++		flush_dcache_page(page);
 +	kunmap(page);
 +}
 +
@@ -87,6 +99,9 @@ index 0000000..5b216fb
 +static inline void pio_kunmap_atomic(void *addr, enum km_type idx,
 +				     enum dma_data_direction dir)
 +{
++	/* address higher than FIXADDR_START are flushed in kunmap_atomic */
++	if (dir == DMA_FROM_DEVICE && addr < (void *)FIXADDR_START)
++		__cpuc_flush_dcache_area(addr, PAGE_SIZE);
 +	kunmap_atomic(addr, idx);
 +}
 +
@@ -98,8 +113,8 @@ index 0000000..5b216fb
 +static inline void pio_end(void *addr, size_t size,
 +			   enum dma_data_direction dir)
 +{
++	if (dir == DMA_FROM_DEVICE)
++		__cpuc_flush_dcache_area(addr, size);
 +}
 +
-+#endif	/* CONFIG_HAVE_ARCH_PIO */
-+
-+#endif	/* PIO_MAPPING_H */
++#endif	/* ASM_PIO_MAPPING_H */
