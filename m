@@ -1,65 +1,68 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH 1/2] Blackfin: initial tracehook support
-Date: Fri, 12 Feb 2010 16:24:04 +0100
-Message-ID: <20100212152404.GA9410@redhat.com>
-References: <20100202185907.GE3630@lst.de> <1265881389-26925-2-git-send-email-vapier@gentoo.org> <20100211204653.34BB3900@magilla.sf.frob.com> <8bd0f97a1002111554ib69bd48rc3c5f4af65058281@mail.gmail.com> <20100212032406.BE645C81B@magilla.sf.frob.com> <8bd0f97a1002112033m5805d4eco3add4d5625e71e9@mail.gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH] parisc: fix tracing of signals
+Date: Fri, 12 Feb 2010 08:21:33 -0800 (PST)
+Message-ID: <alpine.LFD.2.00.1002120816100.7792@localhost.localdomain>
+References: <20100212155306.GI24051@bombadil.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:27187 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755633Ab0BLPZH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 12 Feb 2010 10:25:07 -0500
-Content-Disposition: inline
-In-Reply-To: <8bd0f97a1002112033m5805d4eco3add4d5625e71e9@mail.gmail.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:43748 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756528Ab0BLQWJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 12 Feb 2010 11:22:09 -0500
+In-Reply-To: <20100212155306.GI24051@bombadil.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier.adi@gmail.com>
-Cc: Roland McGrath <roland@redhat.com>, Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org
+To: Kyle McMartin <kyle@mcmartin.ca>
+Cc: vapier@gentoo.org, linux-parisc@vger.kernel.org, roland@redhat.com, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, linux-arch@vger.kernel.org
 
-On 02/11, Mike Frysinger wrote:
->
-> On Thu, Feb 11, 2010 at 22:24, Roland McGrath wrote:
->
-> > On some machines, single-step into a syscall instruction is no diff=
-erent
-> > from other user instructions, so the normal SIGTRAP will come after=
-wards
-> > anyway.
-> >
-> > On other machines, entering the kernel for the syscall instruction =
-defeats
-> > the normal user-mode effects of single-step being enabled. =A0In th=
-at event,
-> > you want to call tracehook_report_syscall_exit() if single-step is =
-enabled.
-> > You must pass a nonzero second argument if your arch code is not go=
-ing to
-> > generate the normal SIGTRAP associated with having single-stepped i=
-nto the
-> > syscall instruction.
->
-> so tracehook_report_syscall_exit() checking TIF_SINGLESTEP only makes
-> sense when the arch doesnt support hardware single stepping in user
-> mode ?  the Blackfin processor does support hardware single stepping
-> (and we utilize it in Linux).
 
-I'd like to know the answer too ;)
 
-But, even if x86 supports hardware single stepping, it does check
-TIF_SINGLESTEP and pass it to tracehook_report_syscall_exit(step).
+On Fri, 12 Feb 2010, Kyle McMartin wrote:
+> 
+> Mike Frysinger pointed out that calling tracehook_signal_handler with
+> stepping=0 missed testing the thread flags, resulting in not calling
+> ptrace_notify. Fix this by testing if we're single stepping or branch
+> stepping and setting the flag accordingly.
+> 
+> Tested, seems to work.
 
-Consider PTRACE_SINGLESTEP which follows the syscall-entry stop.
-The tracee gets the trap before return to user-mode. Otherwise,
-if we just return with X86_EFLAGS_TF, it gets the trap after the
-next instruction after syscall insn. But I don't know whether
-blackfin should follow this logic.
+Hmm. All other architectures either pass in zero, or test TIF_SINGLESTEP. 
 
-> also, in reading the kerneldocs for tracehook_report_syscall_exit(),
-> it says "an attempted system call".  should system calls greater than
-> NR_syscall (-ENOSYS) also get traced ?
+I guess TIF_BLOCKSTEP is a parisc addition, so now parisc matches x86 and 
+power etc, but it still makes me wonder about all those other 
+architectures that pass in zero.
 
-I'd say yes, but let's wait for Roland's reply.
+For the curious, that seems to be at least sparc and 64-bit (but not 
+32-bit) sh.
 
-Oleg.
+David? Paul?
+
+		Linus
+
+---
+> Reported-by: Mike Frysinger <vapier@gentoo.org>
+> Signed-off-by: Kyle McMartin <kyle@mcmartin.ca>
+> ---
+>  arch/parisc/kernel/signal.c |    4 +++-
+>  1 files changed, 3 insertions(+), 1 deletions(-)
+> 
+> diff --git a/arch/parisc/kernel/signal.c b/arch/parisc/kernel/signal.c
+> index e8467e4..07b3dac 100644
+> --- a/arch/parisc/kernel/signal.c
+> +++ b/arch/parisc/kernel/signal.c
+> @@ -469,7 +469,9 @@ handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
+>  	recalc_sigpending();
+>  	spin_unlock_irq(&current->sighand->siglock);
+>  
+> -	tracehook_signal_handler(sig, info, ka, regs, 0);
+> +	tracehook_signal_handler(sig, info, ka, regs, 
+> +		test_thread_flag(TIF_SINGLESTEP) ||
+> +		test_thread_flag(TIF_BLOCKSTEP));
+>  
+>  	return 1;
+>  }
+> -- 
+> 1.6.6
+> 
