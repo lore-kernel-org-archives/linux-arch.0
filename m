@@ -1,75 +1,106 @@
-From: Mike Frysinger <vapier@gentoo.org>
-Subject: Re: [PATCH] parisc: fix tracing of signals
-Date: Fri, 12 Feb 2010 18:58:54 -0500
-Message-ID: <201002121859.00083.vapier@gentoo.org>
-References: <20100212155306.GI24051@bombadil.infradead.org> <alpine.LFD.2.00.1002120816100.7792@localhost.localdomain>
+From: Mike Frysinger <vapier.adi@gmail.com>
+Subject: Re: [PATCH 1/2] Blackfin: initial tracehook support
+Date: Sat, 13 Feb 2010 04:41:31 -0500
+Message-ID: <8bd0f97a1002130141v301af30av3ec51f065656b65f@mail.gmail.com>
+References: <20100202185907.GE3630@lst.de> <1265881389-26925-2-git-send-email-vapier@gentoo.org>
+	<20100211204653.34BB3900@magilla.sf.frob.com> <8bd0f97a1002111554ib69bd48rc3c5f4af65058281@mail.gmail.com>
+	<20100212032406.BE645C81B@magilla.sf.frob.com> <8bd0f97a1002112033m5805d4eco3add4d5625e71e9@mail.gmail.com>
+	<20100212204427.5F75CA18@magilla.sf.frob.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed;
-  boundary="nextPart1283464.y4TUGDY5zy";
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.gentoo.org ([140.211.166.183]:53209 "EHLO smtp.gentoo.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755850Ab0BLX66 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 12 Feb 2010 18:58:58 -0500
-In-Reply-To: <alpine.LFD.2.00.1002120816100.7792@localhost.localdomain>
+Received: from mail-yx0-f196.google.com ([209.85.210.196]:37808 "EHLO
+	mail-yx0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751067Ab0BMJlw convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Feb 2010 04:41:52 -0500
+In-Reply-To: <20100212204427.5F75CA18@magilla.sf.frob.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-parisc@vger.kernel.org, roland@redhat.com, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, linux-arch@vger.kernel.org
+To: Roland McGrath <roland@redhat.com>
+Cc: Christoph Hellwig <hch@lst.de>, oleg@redhat.com, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org
 
---nextPart1283464.y4TUGDY5zy
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
+On Fri, Feb 12, 2010 at 15:44, Roland McGrath wrote:
+> Moreover, the usual cleanup is to make your arch_ptrace() use
+> copy_regset_from_user() and copy_regset_to_user() to implement existi=
+ng
+> calls ike PTRACE_GETREGS. =C2=A0That way, existing ptrace users (stra=
+ce, gdb)
+> become tests of the user_regset paths (some of them).
 
-On Friday 12 February 2010 11:21:33 Linus Torvalds wrote:
-> On Fri, 12 Feb 2010, Kyle McMartin wrote:
-> > Mike Frysinger pointed out that calling tracehook_signal_handler with
-> > stepping=3D0 missed testing the thread flags, resulting in not calling
-> > ptrace_notify. Fix this by testing if we're single stepping or branch
-> > stepping and setting the flag accordingly.
-> >
-> > Tested, seems to work.
->=20
-> Hmm. All other architectures either pass in zero, or test TIF_SINGLESTEP.
->=20
-> I guess TIF_BLOCKSTEP is a parisc addition, so now parisc matches x86 and
-> power etc, but it still makes me wonder about all those other
-> architectures that pass in zero.
->=20
-> For the curious, that seems to be at least sparc and 64-bit (but not
-> 32-bit) sh.
->=20
-> David? Paul?
+OK, this should be doable.  are there any guidelines for what should
+be in a specific regset ?  the Blackfin processor does not have a FPU,
+so the only set i have defined atm is the "general" set and that is
+exactly the same as the current set of ptrace registers.  this is also
+what the current PTRACE_{G,S}ETREGS operates on (struct pt_regs).
 
-David said that the sparc code is currently correct as hardware single=20
-stepping is not supported:
-http://lkml.org/lkml/2010/2/11/385
-=2Dmike
+there are more pseudo regs as required by FDPIC, but they arent in the
+pt_regs layout ...
 
---nextPart1283464.y4TUGDY5zy
-Content-Type: application/pgp-signature; name=signature.asc 
-Content-Description: This is a digitally signed message part.
+> What happens today when PTRACE_SINGLESTEP is used with the PC sitting=
+ at a
+> syscall instruction? =C2=A0If that gets a single-step report (SIGTRAP=
+) after the
+> syscall is done, with the PC sitting at the instruction immediately
+> following the syscall instruction, then you are already doing the rig=
+ht
+> thing. =C2=A0On some other machines, making that happen involves arch=
+ assembly
+> code making sure it gets to its syscall_trace_leave() for this case.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.14 (GNU/Linux)
+i believe the single step exception is taken first and then the
+syscall exception, but i'll have to do some hardware tests on the
+hardware to confirm
 
-iQIcBAABAgAGBQJLdetEAAoJEEFjO5/oN/WB/ZcP+wW7nGfC+LfOphhuJC/Bm/4M
-h83QD3eS6EpX8ekGGHt5HYEvAPzRqfUiZRUStTxJ3gyWJty7UR81tNmj8Fq4Q4u3
-bpjsJ9D0CTYsRTXGofbjxtng6fdO2XZIS9O511XMNoFvmij7FXkZhPzpK3XXTPeE
-auBJ3tC9PwrTbo7I+o9mDPGYg1YMT7bcZrFBLrx2AGRG06yTbeaPqwaeNPL9QZrJ
-JNHN7chpXf/cxgGdAyZuyivBRCkFfche9hjNngRQVaRkayqwukCuqYR2xiGCqMJ1
-nSmmodugKCt1D1ZKvrDYMNitUY1DYs1dF96lRzbJ8g9SvhzghLmULRbOZvlGOjFn
-tJ1VkeMUXLU2vBYz2k9F/Bac7dpqMXM3tRQXf0wIH2Dm9ZIpUlMo43p9e0RRNhsz
-UT7h8ggxgmvG/h8KTyWH/FS7lA7UI3iLFSjTl3DklBtJnwvGYlhqtE1QGwXO6Eqx
-dCez9nt9HLsMsS20DApsz2D200dnZ1xpdtu00bjb33Zlw2ogc7pOT/c3itbcmCg+
-FYoeAH2jlf4rDqil0n7aWH/rDDq3wusFRTRnYAoIgPU02/t4NYqxsF2bmYAFbecy
-CATSiToA4VEin6dFz5/HVDddDb3cVG9eBcGfh3lvmJysNf7zwsKf7NafuXEwgiJH
-TYAhKxVbaLxmKDRRa22l
-=a93F
------END PGP SIGNATURE-----
+>> also, in reading the kerneldocs for tracehook_report_syscall_exit(),
+>> it says "an attempted system call". =C2=A0should system calls greate=
+r than
+>> NR_syscall (-ENOSYS) also get traced ? =C2=A0we dont currently do th=
+is on
+>> the Blackfin port, but going by `strace` differences between my
+>> desktop and the board, i guess the answer is "the Blackfin code is
+>> currently broken".
+>
+> Yes. =C2=A0It's any syscall attempt. =C2=A0Inside tracehook_report_sy=
+scall_entry(),
+> all the registers can be changed (via user_regset, i.e. ptrace) so th=
+at
+> what starts as an entry with a bogus syscall number becomes an entry =
+with a
+> different syscall number and/or arguments. =C2=A0So you can't decide =
+before
+> tracehook_report_syscall_entry() whether it is "real" or not. =C2=A0F=
+or every
+> tracehook_report_syscall_entry() call, there must be a corresponding
+> tracehook_report_syscall_exit() call (unless TIF_SYSCALL_TRACE was cl=
+eared
+> in the interim). =C2=A0At that exit point, the registers can again be=
+ changed.
+>
+> For example, an "expected" use (that some things do today via ptrace)=
+ is to
+> catch the entry, abort the syscall by changing the syscall number reg=
+ister
+> to something bogus like -1, resume so it diagnoses -ENOSYS and gets t=
+o
+> syscall exit, then catch the exit and reset the return value register=
+s to
+> pretend some particular syscall results happened.
 
---nextPart1283464.y4TUGDY5zy--
+i fixed the Blackfin code to do NR checking after tracing and now
+`strace` shows the bad syscall
+
+as for register munging, i didnt realize this was accepted practice
+and something that should actively be supported.  i had been toying
+around locally with optimizing some of the syscall paths by breaking
+this behavior, so i'll add some comments to prevent any further
+mucking here.
+
+the Blackfin code when traced now does:
+call tracehook_report_syscall_entry(regs)
+reload syscall NR and all 6 args from regs
+if syscall NR is valid, call it
+if syscall NR is invalid, set return value to -ENOSYS
+store return value into regs
+call tracehook_report_syscall_exit(regs)
+-mike
