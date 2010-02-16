@@ -1,102 +1,48 @@
-From: Roland McGrath <roland@redhat.com>
-Subject: Re: [PATCH 1/2] Blackfin: initial tracehook support
-Date: Mon, 15 Feb 2010 12:07:38 -0800 (PST)
-Message-ID: <20100215200738.3BFBB19@magilla.sf.frob.com>
-References: <20100202185907.GE3630@lst.de>
-	<1265881389-26925-2-git-send-email-vapier@gentoo.org>
-	<20100211204653.34BB3900@magilla.sf.frob.com>
-	<8bd0f97a1002111554ib69bd48rc3c5f4af65058281@mail.gmail.com>
-	<20100212032406.BE645C81B@magilla.sf.frob.com>
-	<8bd0f97a1002112033m5805d4eco3add4d5625e71e9@mail.gmail.com>
-	<20100212204427.5F75CA18@magilla.sf.frob.com>
-	<8bd0f97a1002130141v301af30av3ec51f065656b65f@mail.gmail.com>
+From: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Subject: Re: [RFC patch] introduce sys_membarrier(): process-wide memory barrier (v9)
+Date: Tue, 16 Feb 2010 09:57:46 +0900 (JST)
+Message-ID: <20100216093625.72B6.A69D9226@jp.fujitsu.com>
+References: <20100212224606.GA30280@Krystal> <20100215195916.GF6750@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="US-ASCII"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:5215 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756300Ab0BOUII (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Feb 2010 15:08:08 -0500
-In-Reply-To: Mike Frysinger's message of  Saturday, 13 February 2010 04:41:31 -0500 <8bd0f97a1002130141v301af30av3ec51f065656b65f@mail.gmail.com>
+Received: from fgwmail7.fujitsu.co.jp ([192.51.44.37]:39604 "EHLO
+	fgwmail7.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932299Ab0BPA5u (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Feb 2010 19:57:50 -0500
+In-Reply-To: <20100215195916.GF6750@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier.adi@gmail.com>
-Cc: Christoph Hellwig <hch@lst.de>, oleg@redhat.com, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org
+To: paulmck@linux.vnet.ibm.com
+Cc: kosaki.motohiro@jp.fujitsu.com, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Nicholas Miell <nmiell@comcast.net>, Linus Torvalds <torvalds@linux-foundation.org>, mingo@elte.hu, laijs@cn.fujitsu.com, dipankar@in.ibm.com, akpm@linux-foundation.org, josh@joshtriplett.org, dvhltc@us.ibm.com, niv@us.ibm.com, tglx@linutronix.de, peterz@infradead.org, Valdis.Kletnieks@vt.edu, dhowells@redhat.com
 
-> OK, this should be doable.  are there any guidelines for what should
-> be in a specific regset ?  the Blackfin processor does not have a FPU,
-> so the only set i have defined atm is the "general" set and that is
-> exactly the same as the current set of ptrace registers.  this is also
-> what the current PTRACE_{G,S}ETREGS operates on (struct pt_regs).
+> On Fri, Feb 12, 2010 at 05:46:06PM -0500, Mathieu Desnoyers wrote:
+> > Here is an implementation of a new system call, sys_membarrier(), which
+> > executes a memory barrier on all threads of the current process. It can be used
+> > to distribute the cost of user-space memory barriers asymmetrically by
+> > transforming pairs of memory barriers into pairs consisting of sys_membarrier()
+> > and a compiler barrier. For synchronization primitives that distinguish between
+> > read-side and write-side (e.g. userspace RCU, rwlocks), the read-side can be
+> > accelerated significantly by moving the bulk of the memory barrier overhead to
+> > the write-side.
+> > 
+> > The first user of this system call is the "liburcu" Userspace RCU implementation
+> > found at http://lttng.org/urcu. It aims at greatly simplifying and enhancing the
+> > current implementation, which uses a scheme similar to the sys_membarrier(), but
+> > based on signals sent to each reader thread.
+> > 
+> > Editorial question: 
+> > 
+> > This synchronization only takes care of threads using the current process memory
+> > map. It should not be used to synchronize accesses performed on memory maps
+> > shared between different processes. Is that a limitation we can live with ?
+> 
+> Acked-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 
-For most machines, the decision was already made implicitly in the formats
-used in ELF core dumps (e.g. elf_gregset_t).  If you've never had ELF core
-dumps, then you are not constrained by any existing userland compatibility.
-The fundamental guideline is that you should use the "natural" layouts and
-divisions for your arch.  Usually what that means is fairly clear to people
-well-versed in the particular arch.  When you have a PTRACE_GETREGS format
-and there is nothing particularly wrong with that layout choice, then that
-is the obvious thing to use as the user_regset layout for NT_PRSTATUS.
+Yes.
 
-> there are more pseudo regs as required by FDPIC, but they arent in the
-> pt_regs layout ...
-
-IMHO these do not belong in a regset at all.  Like the name says, the
-regset is for registers.  If something is not really an arch-specific
-detail, I don't think it belongs in user_regset.
-
-> i believe the single step exception is taken first and then the
-> syscall exception, but i'll have to do some hardware tests on the
-> hardware to confirm
-
-The ptrace-tests suite (see http://sourceware.org/systemtap/wiki/utrace/tests)
-has some tests for various corners of these semantics.  You'll have to port
-some of the asm bits to blackfin, but that is probably easier and more
-complete than what you'd try yourself from scratch.
-
-> i fixed the Blackfin code to do NR checking after tracing and now
-> `strace` shows the bad syscall
-
-Good!
-
-> as for register munging, i didnt realize this was accepted practice
-> and something that should actively be supported.  
-
-Indeed.  Try "strace -f" and see that its fork/clone tracing code relies
-on fiddling syscall argument registers.
-
-This stop (i.e. inside tracehook_report_syscall_entry) is the one and only
-place where syscall_set_arguments() can validly be used.
-
-Moreover, the fundamental rule is that at every tracehook_report_* call
-site (aka ptrace stop), full access (including modification) via
-user_regset interfaces (aka ptrace) should work and have the same effect as
-if userland had set those register values normally before entering the
-kernel (or just after exiting it, depending on the site in question).
-
-> i had been toying around locally with optimizing some of the syscall
-> paths by breaking this behavior, so i'll add some comments to prevent any
-> further mucking here.
-
-Other machines do have such fast paths for syscalls.  
-They take the slow paths when TIF_SYSCALL_TRACE is set.
-Note that you can still have fast paths when TIF_SYSCALL_AUDIT
-is set--those don't have to permit modification.
-Note also that syscall_get_arguments() works anywhere.
-
-> the Blackfin code when traced now does:
-> call tracehook_report_syscall_entry(regs)
-> reload syscall NR and all 6 args from regs
-> if syscall NR is valid, call it
-> if syscall NR is invalid, set return value to -ENOSYS
-> store return value into regs
-> call tracehook_report_syscall_exit(regs)
-
-That's correct.  Also do whatever reloading is required after so that the
-return value register and other registers seen in userland have whatever
-values may have been set inside tracehook_report_syscall_exit().
-
-
-Thanks,
-Roland
+Personally, I think this patch's concept is clear and it can construct the base
+of userland lockless programming.
+If a userland programmer want to use lockless, hazard pointer is one of common
+technique and this syscall help it.
