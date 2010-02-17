@@ -1,58 +1,66 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [RFC PATCH 2/4] pio-mapping: Add ARM support for the PIO
- mapping API
-Date: Wed, 17 Feb 2010 20:11:35 +1100
-Message-ID: <1266397895.16346.267.camel@pasglop>
-References: <20100205163044.30827.10915.stgit@pc1117.cambridge.arm.com>
-	 <20100205163154.30827.6636.stgit@pc1117.cambridge.arm.com>
-	 <1265388234.14404.47.camel@mulgrave.site>
-	 <1265390403.7692.101.camel@pc1117.cambridge.arm.com>
-	 <1265391384.14404.53.camel@mulgrave.site>
-	 <1265645421.4020.119.camel@pc1117.cambridge.arm.com>
-	 <1265649274.6289.12.camel@mulgrave.site>
-	 <1265738604.8655.58.camel@pc1117.cambridge.arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch 1/5] seqlock: Fix up last oldstyle init users
+Date: Wed, 17 Feb 2010 18:47:37 -0000
+Message-ID: <20100217184155.772625805@linutronix.de>
+References: <20100217183740.486724334@linutronix.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:60240 "EHLO gate.crashing.org"
+Received: from www.tglx.de ([62.245.132.106]:42243 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S934191Ab0BQJLy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Feb 2010 04:11:54 -0500
-In-Reply-To: <1265738604.8655.58.camel@pc1117.cambridge.arm.com>
+	id S1751592Ab0BQSr4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Feb 2010 13:47:56 -0500
+Content-Disposition: inline;
+	filename=seqlock-fixup-last-oldstyle-init-users.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, linux-arch@vger.kernel.org
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, John Stultz <johnstul@us.ibm.com>
 
-On Tue, 2010-02-09 at 18:03 +0000, Catalin Marinas wrote:
-> 
-> These were not intended to create any additional mapping, more like
-> the
-> dma_map_single() functions and only do the necessary flushing.
-> 
-> AFAICT, an HCD driver would call the pio_map_range() once to get the
-> address of the buffer and than wait for it to be filled in (e.g. via
-> interrupts). When it is full, it would call pio_unmap_range(). So even
-> if we do it per page, you still need to map the same amount of memory,
-> unless we modify the HCD drivers but I don't think this would be very
-> popular.
-> 
-> Maybe the name choosing is wrong. Would something like pio_begin() and
-> pio_end() work better for already mapped buffers? 
+The oldstyle init SEQLOCK_UNLOCKED circumvents lockdep. Convert the
+last users to __SEQLOCK_UNLOCKED(lockname).
 
-From your initial email, your problem isn't a VIVT cache aliasing but an
-I$/D$ cache coherency problem with PIPT right ?
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/ia64/kernel/time.c         |    2 +-
+ arch/x86/kernel/vsyscall_64.c   |    2 +-
+ net/ipv4/inet_connection_sock.c |    2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
 
-In that case, I would recommend you look at how this is already dealt
-with on existing archs such as powerpc, using PG_arch1 in struct page to
-keep track of whether a given page is clean for execution and mapping
-pages that aren't non-exec so the kernel gets a chance to clean them
-once when execution happens.
-
-We have some faster path nowadays to do that on the first fault which
-you take anyways (at least most of the time) at set_pte() time to avoid
-double faults so the cost is minimum I believe.
-
-Cheers,
-Ben.
+Index: linux-2.6-tip/arch/ia64/kernel/time.c
+===================================================================
+--- linux-2.6-tip.orig/arch/ia64/kernel/time.c
++++ linux-2.6-tip/arch/ia64/kernel/time.c
+@@ -36,7 +36,7 @@
+ static cycle_t itc_get_cycles(struct clocksource *cs);
+ 
+ struct fsyscall_gtod_data_t fsyscall_gtod_data = {
+-	.lock = SEQLOCK_UNLOCKED,
++	.lock = __SEQLOCK_UNLOCKED(fsyscall_gtod_data.lock),
+ };
+ 
+ struct itc_jitter_data_t itc_jitter_data;
+Index: linux-2.6-tip/arch/x86/kernel/vsyscall_64.c
+===================================================================
+--- linux-2.6-tip.orig/arch/x86/kernel/vsyscall_64.c
++++ linux-2.6-tip/arch/x86/kernel/vsyscall_64.c
+@@ -59,7 +59,7 @@ int __vgetcpu_mode __section_vgetcpu_mod
+ 
+ struct vsyscall_gtod_data __vsyscall_gtod_data __section_vsyscall_gtod_data =
+ {
+-	.lock = SEQLOCK_UNLOCKED,
++	.lock = __SEQLOCK_UNLOCKED(__vsyscall_gtod_data.lock),
+ 	.sysctl_enabled = 1,
+ };
+ 
+Index: linux-2.6-tip/net/ipv4/inet_connection_sock.c
+===================================================================
+--- linux-2.6-tip.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6-tip/net/ipv4/inet_connection_sock.c
+@@ -33,7 +33,7 @@ EXPORT_SYMBOL(inet_csk_timer_bug_msg);
+  * This struct holds the first and last local port number.
+  */
+ struct local_ports sysctl_local_ports __read_mostly = {
+-	.lock = SEQLOCK_UNLOCKED,
++	.lock = __SEQLOCK_UNLOCKED(local_ports_sysctl_local_ports.lock),
+ 	.range = { 32768, 61000 },
+ };
+ 
