@@ -1,270 +1,489 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:59377 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752532Ab0BRTJV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Feb 2010 14:09:21 -0500
-Message-ID: <4B7D9049.6040002@windriver.com>
-Date: Thu, 18 Feb 2010 13:08:57 -0600
-From: Jason Wessel <jason.wessel@windriver.com>
+Received: from out01.mta.xmission.com ([166.70.13.231]:37258 "EHLO
+	out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758182Ab0BXViE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Feb 2010 16:38:04 -0500
+References: <1266029390-30907-1-git-send-email-yinghai@kernel.org>
+	<m1zl3dre9e.fsf@fess.ebiederm.org> <4B7676BB.8030608@kernel.org>
+	<m1ljexpcjp.fsf@fess.ebiederm.org> <4B772A54.1000000@kernel.org>
+	<m16360ohi2.fsf@fess.ebiederm.org> <4B773CEB.9010609@kernel.org>
+	<m1sk94mzg0.fsf@fess.ebiederm.org> <4B7CA9A1.3020806@kernel.org>
+	<4B7CAADD.2060000@kernel.org> <m1mxz6v4pm.fsf@fess.ebiederm.org>
+	<4B83781B.20307@kernel.org> <4B837930.2050907@kernel.org>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Date: Wed, 24 Feb 2010 13:36:49 -0800
+Message-ID: <m1ljei5n9q.fsf@fess.ebiederm.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH 08/28] kdb: core for kgdb back end (2 of 2)
-References: <1266014143-29444-1-git-send-email-jason.wessel@windriver.com><1266014143-29444-9-git-send-email-jason.wessel@windriver.com><m1zl37xhmm.fsf@fess.ebiederm.org> <4B7D5704.6060504@windriver.com> <m1fx4ywlgr.fsf@fess.ebiederm.org> <4B7D7386.4040503@windriver.com>
-In-Reply-To: <4B7D7386.4040503@windriver.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Subject: Re: [PATCH -v2 2/2] genericirq: change ack/mask in irq_chip to take irq_desc instead of irq
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-kernel@vger.kernel.org, kgdb-bugreport@lists.sourceforge.net, mingo@elte.hu, mort@sgi.com, linux-arch@vger.kernel.org
-Message-ID: <20100218190857.R4aaHl5C0EJc-cplrpKe6tze5CrQf_liP_rSckx2kRU@z>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Suresh Siddha <suresh.b.siddha@intel.com>, linux-kernel@vger.kernel.org, Jeremy Fitzhardinge <jeremy@goop.org>, linux-arch@vger.kernel.org
+Message-ID: <20100224213649._MHQUMMP_hF8tWKP6JpKTfxDyLgDTO_a5BO02iIRffo@z>
 
-Jason Wessel wrote:
-> I'll post a new version of the patch with the hooks you asked about
-> stripped out.  The commands will also get removed from the kdb command
-> shell.
+Yinghai Lu <yinghai@kernel.org> writes:
+
+> will have
+> void            (*ack)(struct irq_desc *desc);
+> void            (*mask)(struct irq_desc *desc);
+> void            (*mask_ack)(struct irq_desc *desc);
+> void            (*unmask)(struct irq_desc *desc);
+> void            (*eoi)(struct irq_desc *desc);
+>
+> so for sparseirq with raidix tree, we don't call extra irq_to_desc, and could use desc directly
+
+Overall this looks pretty decent.  This look pretty complete.
+How many platforms did you manage to compile test this on?
+
+I have found a couple of issues (see below).
+
+A few times you change a bit more than is necessary which is a bit
+spooky in a patch this far ranging.
+
+Reading through this patch to review it took an uncomfortably long
+time.
 
 
-Thanks for your comments Eric.
+> -v2: change all member of irq_chip to use desc only.
+>
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 
-The summary of the clean up is as follows because some of the kdb core
-had to be touched in order to properly remove this.
+> Index: linux-2.6/arch/alpha/kernel/sys_rx164.c
+> ===================================================================
+> --- linux-2.6.orig/arch/alpha/kernel/sys_rx164.c
+> +++ linux-2.6/arch/alpha/kernel/sys_rx164.c
+>  static void
+> -rx164_end_irq(unsigned int irq)
+> +rx164_end_irq(struct irq_desc *desc)
+>  {
+> -	if (!(irq_desc[irq].status & (IRQ_DISABLED|IRQ_INPROGRESS)))
+> -		rx164_enable_irq(irq);
+> +	if (!(desc_.status & (IRQ_DISABLED|IRQ_INPROGRESS)))
+> +		rx164_enable_irq(desc);
+>  }
 
- fs/proc/internal.h             |    4 +-
- fs/proc/meminfo.c              |   15 +--------
- fs/proc/mmu.c                  |    8 +----
- include/linux/swap.h           |    2 -
- kernel/debug/kdb/kdb_main.c    |   13 +++-----
- kernel/debug/kdb/kdb_private.h |   12 -------
- kernel/debug/kdb/kdb_support.c |   65 -----------------------------------------
- mm/swapfile.c                  |   10 +-----
- 8 files changed, 15 insertions(+), 114 deletions(-)
+You have mispelled desc-> here.
+
+> Index: linux-2.6/arch/arm/mach-s3c2410/bast-irq.c
+> ===================================================================
+> --- linux-2.6.orig/arch/arm/mach-s3c2410/bast-irq.c
+> +++ linux-2.6/arch/arm/mach-s3c2410/bast-irq.c
+> @@ -75,31 +75,31 @@ static unsigned char bast_pc104_irqmasks
+>  
+>  static void
+> -bast_pc104_maskack(unsigned int irqno)
+> +bast_pc104_maskack(struct irq_desc *desc)
+>  {
+> -	struct irq_desc *desc = irq_desc + IRQ_ISA;
+> -
+> -	bast_pc104_mask(irqno);
+> -	desc->chip->ack(IRQ_ISA);
+> +	bast_pc104_mask(desc);
+> +	desc->chip->ack(desc);
+>  }
+
+This is not a trivial 1 to 1 conversion.  IRQ_ISA != irqno.
+I don't know if the original code is broken here or
+just very peculiar.
+
+>  static struct irq_chip s3c_irq_cam = {
+> Index: linux-2.6/arch/arm/plat-s3c64xx/irq-eint.c
+> ===================================================================
+> --- linux-2.6.orig/arch/arm/plat-s3c64xx/irq-eint.c
+> +++ linux-2.6/arch/arm/plat-s3c64xx/irq-eint.c
+
+> -static void s3c_irq_eint_maskack(unsigned int irq)
+> +static void s3c_irq_eint_maskack(struct irq_desc *desc)
+>  {
+> +	unsigned int irq = desc->irq;
+>  	/* compiler should in-line these */
+> -	s3c_irq_eint_mask(irq);
+> -	s3c_irq_eint_ack(irq);
+> +	s3c_irq_eint_mask(irq, desc);
+> +	s3c_irq_eint_ack(irq, desc);
+>  }
+
+It appears this function has the wrong conversion.
+
+> Index: linux-2.6/arch/blackfin/mach-common/ints-priority.c
+> ===================================================================
+> --- linux-2.6.orig/arch/blackfin/mach-common/ints-priority.c
+> +++ linux-2.6/arch/blackfin/mach-common/ints-priority.c
+> @@ -925,7 +938,7 @@ static void bfin_demux_gpio_irq(unsigned
+>  static struct irq_chip bfin_gpio_irqchip = {
+>  	.name = "GPIO",
+>  	.ack = bfin_gpio_ack_irq,
+> -	.mask = bfin_gpio_mask_irq,
+> +	.mask = bfin_gpio_mask_irq_desc,
+
+You have not introduced bfin_gpio_mask_irq_desc ...
+
+>  	.mask_ack = bfin_gpio_mask_ack_irq,
+>  	.unmask = bfin_gpio_unmask_irq,
+>  	.disable = bfin_gpio_mask_irq,
+
+> Index: linux-2.6/arch/ia64/kernel/iosapic.c
+> ===================================================================
+> --- linux-2.6.orig/arch/ia64/kernel/iosapic.c
+> +++ linux-2.6/arch/ia64/kernel/iosapic.c
+> @@ -267,6 +267,10 @@ static void
+>  nop (unsigned int irq)
+>  {
+>  	/* do nothing... */
+> +static void
+> +nop_desc(struct irq_desc *desc)
+> +{
+> +	/* do nothing... */
+>  }
+
+Two things here.  
+- nop has no closing brace.
+- You should just be able to convert nop here, and not
+  need to introduce nop_desc.
+
+>  #define iosapic_shutdown_level_irq	mask_irq
+>  #define iosapic_enable_level_irq	unmask_irq
+>  #define iosapic_disable_level_irq	mask_irq
+> -#define iosapic_ack_level_irq		nop
+> +#define iosapic_ack_level_irq		nop_desc
+
+Making this change unnecessary.
+
+>  #define iosapic_enable_edge_irq		unmask_irq
+>  #define iosapic_disable_edge_irq	nop
+> -#define iosapic_end_edge_irq		nop
+> +#define iosapic_end_edge_irq		nop_desc
+
+and this change unnecessary.
+
+>  
+>  static struct irq_chip irq_type_iosapic_edge = {
+>  	.name =		"IO-SAPIC-edge",
+
+> Index: linux-2.6/arch/m68knommu/platform/coldfire/intc-simr.c
+> ===================================================================
+> --- linux-2.6.orig/arch/m68knommu/platform/coldfire/intc-simr.c
+> +++ linux-2.6/arch/m68knommu/platform/coldfire/intc-simr.c
+> @@ -40,6 +42,7 @@ static void intc_irq_unmask(unsigned int
+>  
+>  static int intc_irq_set_type(unsigned int irq, unsigned int type)
+>  {
+> +	unsigned int irq = desc->irq;
+
+This function does not take a desc argument.
+
+>  	if (irq >= MCFINT_VECBASE) {
+>  		if (irq < MCFINT_VECBASE + 64)
+>  			__raw_writeb(5, MCFINTC0_ICR0 + irq - MCFINT_VECBASE);
+
+> Index: linux-2.6/arch/mips/alchemy/common/irq.c
+> ===================================================================
+> --- linux-2.6.orig/arch/mips/alchemy/common/irq.c
+> +++ linux-2.6/arch/mips/alchemy/common/irq.c
+> @@ -288,17 +288,19 @@ void restore_au1xxx_intctl(void)
+>  #endif /* CONFIG_PM */
+>  
+>  
+> -static void au1x_ic0_unmask(unsigned int irq_nr)
+> +static void au1x_ic0_unmask(struct irq_desc *desc)
+>  {
+> -	unsigned int bit = irq_nr - AU1000_INTC0_INT_BASE;
+> +	unsigned int irq = desc->irq;
+> +	unsigned int bit = irq_ - AU1000_INTC0_INT_BASE;
+
+You misspelled irq there.
+
+>  	au_writel(1 << bit, IC0_MASKSET);
+>  	au_writel(1 << bit, IC0_WAKESET);
+>  	au_sync();
+>  }
+>  
+
+> Index: linux-2.6/arch/mips/bcm63xx/irq.c
+> ===================================================================
+> --- linux-2.6.orig/arch/mips/bcm63xx/irq.c
+> +++ linux-2.6/arch/mips/bcm63xx/irq.c
+> @@ -75,8 +75,9 @@ asmlinkage void plat_irq_dispatch(void)
+>   * internal IRQs operations: only mask/unmask on PERF irq mask
+>   * register.
+>   */
+> -static inline void bcm63xx_internal_irq_mask(unsigned int irq)
+> +static inline void bcm63xx_internal_irq_mask(struct irq_desc *desc)
+>  {
+> +	unsigned int irq = desc->irq;
+>  	u32 mask;
+>  
+>  	irq -= IRQ_INTERNAL_BASE;
+> @@ -84,9 +85,15 @@ static inline void bcm63xx_internal_irq_
+>  	mask &= ~(1 << irq);
+>  	bcm_perf_writel(mask, PERF_IRQMASK_REG);
+>  }
+> +static void
+> +bcm63xx_internal_irq_mask_desc(struct irq_desc *desc)
+> +{
+> +	bcm63xx_internal_irq_mask(desc);
+> +}
+
+You have converted bcm63xx_internal_irq_mask making bcm63xx_internal_irq_mask_desc
+unnecessary.
+
+> @@ -213,8 +225,8 @@ static struct irq_chip bcm63xx_internal_
+>  	.startup	= bcm63xx_internal_irq_startup,
+>  	.shutdown	= bcm63xx_internal_irq_mask,
+>  
+> -	.mask		= bcm63xx_internal_irq_mask,
+> -	.mask_ack	= bcm63xx_internal_irq_mask,
+> +	.mask		= bcm63xx_internal_irq_mask_desc,
+> +	.mask_ack	= bcm63xx_internal_irq_mask_desc,
+>  	.unmask		= bcm63xx_internal_irq_unmask,
+>  };
+
+These changes are also unnecessary.
+
+> Index: linux-2.6/arch/mips/sni/pcimt.c
+> ===================================================================
+> --- linux-2.6.orig/arch/mips/sni/pcimt.c
+> +++ linux-2.6/arch/mips/sni/pcimt.c
+
+> -static void end_pcimt_irq(unsigned int irq)
+> -{
+> -	if (!(irq_desc[irq].status & (IRQ_DISABLED|IRQ_INPROGRESS)))
+> -		enable_pcimt_irq(irq);
+> +static void end_pcimt_irq(struct irq_desc *desc)
+> +
+> +	if (!(desc->status & (IRQ_DISABLED|IRQ_INPROGRESS)))
+> +		enable_pcimt_irq(desc);
+>  }
+
+You have deleted the starting brace of the function....
+
+> Index: linux-2.6/arch/powerpc/platforms/cell/axon_msi.c
+> ===================================================================
+> --- linux-2.6.orig/arch/powerpc/platforms/cell/axon_msi.c
+> +++ linux-2.6/arch/powerpc/platforms/cell/axon_msi.c
+> @@ -308,10 +308,15 @@ static void axon_msi_teardown_msi_irqs(s
+>  	}
+>  }
+>  
+> +static void axon_unmask_msi_irq(struct irq_desc *desc)
+> +{
+> +	unmask_msi_irq(desc);
+> +}
+> +
+>  static struct irq_chip msic_irq_chip = {
+>  	.mask		= mask_msi_irq,
+>  	.unmask		= unmask_msi_irq,
+> -	.shutdown	= unmask_msi_irq,
+> +	.shutdown	= axon_unmask_msi_irq,
+>  	.name		= "AXON-MSI",
+>  };
+
+This pair of changes is unnecessary.
 
 
+> Index: linux-2.6/arch/powerpc/sysdev/mpic_u3msi.c
+> ===================================================================
+> --- linux-2.6.orig/arch/powerpc/sysdev/mpic_u3msi.c
+> +++ linux-2.6/arch/powerpc/sysdev/mpic_u3msi.c
+> @@ -23,20 +23,25 @@
+>  /* A bit ugly, can we get this from the pci_dev somehow? */
+>  static struct mpic *msi_mpic;
+>  
+> -static void mpic_u3msi_mask_irq(unsigned int irq)
+> +static void mpic_u3msi_mask_irq(struct irq_desc *desc)
+>  {
+> -	mask_msi_irq(irq);
+> -	mpic_mask_irq(irq);
+> +	mask_msi_irq(desc);
+> +	mpic_mask_irq(desc);
+>  }
+>  
+> -static void mpic_u3msi_unmask_irq(unsigned int irq)
+> +static void mpic_u3msi_shutdown_irq(struct irq_desc *desc)
+>  {
+> -	mpic_unmask_irq(irq);
+> -	unmask_msi_irq(irq);
+> +	mpic_u3msi_mask_irq(desc);
+> +}
+> +
+> +static void mpic_u3msi_unmask_irq(struct irq_desc *desc)
+> +{
+> +	mpic_unmask_irq(desc);
+> +	unmask_msi_irq(desc);
+>  }
+>  
+>  static struct irq_chip mpic_u3msi_chip = {
+> -	.shutdown	= mpic_u3msi_mask_irq,
+> +	.shutdown	= mpic_u3msi_shutdown_irq,
+>  	.mask		= mpic_u3msi_mask_irq,
+>  	.unmask		= mpic_u3msi_unmask_irq,
+>  	.eoi		= mpic_end_irq,
 
-Below is the new version of the basic kernel core kdb modifications.
-If you have further comments, please let me know.  I would also be
-happy to add an ack if you approve of the new patch.
+This change to add a new mpic_u3msi_shutdow_irq appears harmless, but
+it is confusing and unnecessary.
 
-Thanks,
-Jason.
 
----
+> Index: linux-2.6/arch/sparc/kernel/pci_msi.c
+> ===================================================================
+> --- linux-2.6.orig/arch/sparc/kernel/pci_msi.c
+> +++ linux-2.6/arch/sparc/kernel/pci_msi.c
+> @@ -111,12 +111,21 @@ static void free_msi(struct pci_pbm_info
+>  	clear_bit(msi_num, pbm->msi_bitmap);
+>  }
+>  
+> +static void sparc64_enable_msi_irq(struct irq_desc *desc)
+> +{
+> +	unmask_msi_irq(desc);
+> +}
+> +static void sparc64_diable_msi_irq(struct irq_desc *desc)
+> +{
+> +	mask_msi_irq(desc);
+> +}
+> +
+>  static struct irq_chip msi_irq = {
+>  	.name		= "PCI-MSI",
+>  	.mask		= mask_msi_irq,
+>  	.unmask		= unmask_msi_irq,
+> -	.enable		= unmask_msi_irq,
+> -	.disable	= mask_msi_irq,
+> +	.enable		= sparc64_enable_msi_irq,
+> +	.disable	= sparc64_disable_msi_irq,
+>  	/* XXX affinity XXX */
+>  };
 
-From: Jason Wessel <jason.wessel@windriver.com>
-Subject: [PATCH] kdb: core for kgdb back end (2 of 2)
+Ouch! this hunk is unnecessary.
 
-This patch contains the hooks and instrumentation into kernel which
-live outside the kernel/debug directory, which the kdb core
-will call to run commands like lsmod, dmesg, bt etc...
+> Index: linux-2.6/drivers/xen/events.c
+> ===================================================================
+> --- linux-2.6.orig/drivers/xen/events.c
+> +++ linux-2.6/drivers/xen/events.c
+> @@ -748,35 +748,46 @@ int resend_irq_on_evtchn(unsigned int ir
+>  	return 1;
+>  }
+>  
+> -static void enable_dynirq(unsigned int irq)
+> +static void enable_dynirq(struct irq_desc *desc)
+>  {
+> -	int evtchn = evtchn_from_irq(irq);
+> +	int evtchn = evtchn_from_irq(desc->irq);
+>  
+>  	if (VALID_EVTCHN(evtchn))
+>  		unmask_evtchn(evtchn);
+>  }
+>  
+> -static void disable_dynirq(unsigned int irq)
+> +static void unmask_dynirq(struct irq_desc *desc)
+>  {
+> -	int evtchn = evtchn_from_irq(irq);
+> +	enable_dynirq(desc);
+> +}
+> +
 
-CC: mort@sgi.com
-CC: linux-arch@vger.kernel.org
-Signed-off-by: Jason Wessel <jason.wessel@windriver.com>
+Introducing disable_dynirq, and  mask_dynirq for xen is unnecessary.
 
----
- arch/arm/include/asm/kmap_types.h     |    1 
- arch/powerpc/include/asm/kmap_types.h |    1 
- include/asm-generic/kmap_types.h      |    3 +-
- init/main.c                           |    2 +
- kernel/kallsyms.c                     |   21 +++++++++++++++++
- kernel/module.c                       |    4 +++
- kernel/printk.c                       |   16 +++++++++++++
- kernel/sched.c                        |    7 ++++-
- kernel/signal.c                       |   40 ++++++++++++++++++++++++++++++++++
- 9 files changed, 92 insertions(+), 3 deletions(-)
+> +static void disable_dynirq(struct irq_desc *desc)
+> +{
+> +	int evtchn = evtchn_from_irq(desc->irq);
+>  
+>  	if (VALID_EVTCHN(evtchn))
+>  		mask_evtchn(evtchn);
+>  }
+>  
+> -static void ack_dynirq(unsigned int irq)
+> +static void mask_dynirq(struct irq_desc *desc)
+>  {
+> -	int evtchn = evtchn_from_irq(irq);
+> +	disable_dynirq(desc);
+> +}
+> +
+> +static void ack_dynirq(struct irq_desc *desc)
+> +{
+> +	int evtchn = evtchn_from_irq(desc->irq);
+>  
+> -	move_native_irq(irq);
+> +	move_native_irq(desc);
+>  
+>  	if (VALID_EVTCHN(evtchn))
+>  		clear_evtchn(evtchn);
+>  }
+>  
+> -static int retrigger_dynirq(unsigned int irq)
+> +static int retrigger_dynirq(struct irq_desc *desc)
+>  {
+> -	int evtchn = evtchn_from_irq(irq);
+> +	int evtchn = evtchn_from_irq(desc->irq);
+>  	struct shared_info *sh = HYPERVISOR_shared_info;
+>  	int ret = 0;
+>  
+> @@ -924,10 +935,11 @@ static struct irq_chip xen_dynamic_chip
+>  	.name		= "xen-dyn",
+>  
+>  	.disable	= disable_dynirq,
+> -	.mask		= disable_dynirq,
+> -	.unmask		= enable_dynirq,
+>  
+> +	.mask		= mask_dynirq,
+> +	.unmask		= unmask_dynirq,
+>  	.ack		= ack_dynirq,
+> +
+>  	.set_affinity	= set_affinity_irq,
+>  	.retrigger	= retrigger_dynirq,
+>  };
 
---- a/arch/arm/include/asm/kmap_types.h
-+++ b/arch/arm/include/asm/kmap_types.h
-@@ -19,6 +19,7 @@ enum km_type {
- 	KM_SOFTIRQ0,
- 	KM_SOFTIRQ1,
- 	KM_L2_CACHE,
-+	KM_KDB,
- 	KM_TYPE_NR
- };
- 
---- a/arch/powerpc/include/asm/kmap_types.h
-+++ b/arch/powerpc/include/asm/kmap_types.h
-@@ -26,6 +26,7 @@ enum km_type {
- 	KM_SOFTIRQ1,
- 	KM_PPC_SYNC_PAGE,
- 	KM_PPC_SYNC_ICACHE,
-+	KM_KDB,
- 	KM_TYPE_NR
- };
- 
---- a/include/asm-generic/kmap_types.h
-+++ b/include/asm-generic/kmap_types.h
-@@ -28,7 +28,8 @@ KMAP_D(15)	KM_UML_USERCOPY,
- KMAP_D(16)	KM_IRQ_PTE,
- KMAP_D(17)	KM_NMI,
- KMAP_D(18)	KM_NMI_PTE,
--KMAP_D(19)	KM_TYPE_NR
-+KMAP_D(19)	KM_KDB,
-+KMAP_D(20)	KM_TYPE_NR
- };
- 
- #undef KMAP_D
---- a/init/main.c
-+++ b/init/main.c
-@@ -63,6 +63,7 @@
- #include <linux/sched.h>
- #include <linux/signal.h>
- #include <linux/idr.h>
-+#include <linux/kdb.h>
- #include <linux/ftrace.h>
- #include <linux/async.h>
- #include <linux/kmemcheck.h>
-@@ -659,6 +660,7 @@ asmlinkage void __init start_kernel(void
- 	key_init();
- 	radix_tree_init();
- 	security_init();
-+	kdb_init(KDB_INIT_FULL);
- 	vfs_caches_init(totalram_pages);
- 	signals_init();
- 	/* rootfs populating might need page-writeback */
---- a/kernel/kallsyms.c
-+++ b/kernel/kallsyms.c
-@@ -16,6 +16,7 @@
- #include <linux/init.h>
- #include <linux/seq_file.h>
- #include <linux/fs.h>
-+#include <linux/kdb.h>
- #include <linux/err.h>
- #include <linux/proc_fs.h>
- #include <linux/sched.h>	/* for cond_resched */
-@@ -515,6 +516,26 @@ static int kallsyms_open(struct inode *i
- 	return ret;
- }
- 
-+#ifdef	CONFIG_KGDB_KDB
-+const char *kdb_walk_kallsyms(loff_t *pos)
-+{
-+	static struct kallsym_iter kdb_walk_kallsyms_iter;
-+	if (*pos == 0) {
-+		memset(&kdb_walk_kallsyms_iter, 0,
-+		       sizeof(kdb_walk_kallsyms_iter));
-+		reset_iter(&kdb_walk_kallsyms_iter, 0);
-+	}
-+	while (1) {
-+		if (!update_iter(&kdb_walk_kallsyms_iter, *pos))
-+			return NULL;
-+		++*pos;
-+		/* Some debugging symbols have no name.  Ignore them. */
-+		if (kdb_walk_kallsyms_iter.name[0])
-+			return kdb_walk_kallsyms_iter.name;
-+	}
-+}
-+#endif	/* CONFIG_KGDB_KDB */
-+
- static const struct file_operations kallsyms_operations = {
- 	.open = kallsyms_open,
- 	.read = seq_read,
---- a/kernel/module.c
-+++ b/kernel/module.c
-@@ -79,6 +79,10 @@ EXPORT_TRACEPOINT_SYMBOL(module_get);
- DEFINE_MUTEX(module_mutex);
- EXPORT_SYMBOL_GPL(module_mutex);
- static LIST_HEAD(modules);
-+#ifdef CONFIG_KGDB_KDB
-+struct list_head *kdb_modules = &modules; /* kdb needs the list of modules */
-+#endif /* CONFIG_KGDB_KDB */
-+
- 
- /* Block module loading/unloading? */
- int modules_disabled = 0;
---- a/kernel/printk.c
-+++ b/kernel/printk.c
-@@ -420,6 +420,22 @@ SYSCALL_DEFINE3(syslog, int, type, char 
- 	return do_syslog(type, buf, len);
- }
- 
-+#ifdef	CONFIG_KGDB_KDB
-+/* kdb dmesg command needs access to the syslog buffer.  do_syslog()
-+ * uses locks so it cannot be used during debugging.  Just tell kdb
-+ * where the start and end of the physical and logical logs are.  This
-+ * is equivalent to do_syslog(3).
-+ */
-+void kdb_syslog_data(char *syslog_data[4])
-+{
-+	syslog_data[0] = log_buf;
-+	syslog_data[1] = log_buf + log_buf_len;
-+	syslog_data[2] = log_buf + log_end -
-+		(logged_chars < log_buf_len ? logged_chars : log_buf_len);
-+	syslog_data[3] = log_buf + log_end;
-+}
-+#endif	/* CONFIG_KGDB_KDB */
-+
- /*
-  * Call the console drivers on a range of log_buf
-  */
---- a/kernel/sched.c
-+++ b/kernel/sched.c
-@@ -9802,9 +9802,9 @@ void normalize_rt_tasks(void)
- 
- #endif /* CONFIG_MAGIC_SYSRQ */
- 
--#ifdef CONFIG_IA64
-+#if defined(CONFIG_IA64) || defined(CONFIG_KGDB_KDB)
- /*
-- * These functions are only useful for the IA64 MCA handling.
-+ * These functions are only useful for the IA64 MCA handling, or kdb.
-  *
-  * They can only be called when the whole system has been
-  * stopped - every CPU needs to be quiescent, and no scheduling
-@@ -9824,6 +9824,9 @@ struct task_struct *curr_task(int cpu)
- 	return cpu_curr(cpu);
- }
- 
-+#endif /* defined(CONFIG_IA64) || defined(CONFIG_KGDB_KDB) */
-+
-+#ifdef CONFIG_IA64
- /**
-  * set_curr_task - set the current task for a given cpu.
-  * @cpu: the processor in question.
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -2718,3 +2718,43 @@ void __init signals_init(void)
- {
- 	sigqueue_cachep = KMEM_CACHE(sigqueue, SLAB_PANIC);
- }
-+
-+#ifdef CONFIG_KGDB_KDB
-+#include <linux/kdb.h>
-+/*
-+ * kdb_send_sig_info - Allows kdb to send signals without exposing
-+ * signal internals.  This function checks if the required locks are
-+ * available before calling the main signal code, to avoid kdb
-+ * deadlocks.
-+ */
-+void
-+kdb_send_sig_info(struct task_struct *t, struct siginfo *info)
-+{
-+	static struct task_struct *kdb_prev_t;
-+	int sig, new_t;
-+	if (!spin_trylock(&t->sighand->siglock)) {
-+		kdb_printf("Can't do kill command now.\n"
-+			   "The sigmask lock is held somewhere else in "
-+			   "kernel, try again later\n");
-+		return;
-+	}
-+	spin_unlock(&t->sighand->siglock);
-+	new_t = kdb_prev_t != t;
-+	kdb_prev_t = t;
-+	if (t->state != TASK_RUNNING && new_t) {
-+		kdb_printf("Process is not RUNNING, sending a signal from "
-+			   "kdb risks deadlock\n"
-+			   "on the run queue locks. "
-+			   "The signal has _not_ been sent.\n"
-+			   "Reissue the kill command if you want to risk "
-+			   "the deadlock.\n");
-+		return;
-+	}
-+	sig = info->si_signo;
-+	if (send_sig_info(sig, info, t))
-+		kdb_printf("Fail to deliver Signal %d to process %d.\n",
-+			   sig, t->pid);
-+	else
-+		kdb_printf("Signal %d is sent to process %d.\n", sig, t->pid);
-+}
-+#endif	/* CONFIG_KGDB_KDB */
+
+> Index: linux-2.6/include/linux/htirq.h
+> ===================================================================
+> --- linux-2.6.orig/include/linux/htirq.h
+> +++ linux-2.6/include/linux/htirq.h
+> @@ -7,16 +7,17 @@ struct ht_irq_msg {
+>  };
+>  
+>  /* Helper functions.. */
+> -void fetch_ht_irq_msg(unsigned int irq, struct ht_irq_msg *msg);
+> -void write_ht_irq_msg(unsigned int irq, struct ht_irq_msg *msg);
+> -void mask_ht_irq(unsigned int irq);
+> -void unmask_ht_irq(unsigned int irq);
+> +struct irq_desc;
+> +void fetch_ht_irq_msg(struct irq_desc *desc, struct ht_irq_msg *msg);
+> +void write_ht_irq_msg(struct irq_desc *desc, struct ht_irq_msg *msg);
+> +void mask_ht_irq(struct irq_desc *);
+> +void unmask_ht_irq(struct irq_desc *);
+>  
+>  /* The arch hook for getting things started */
+>  int arch_setup_ht_irq(unsigned int irq, struct pci_dev *dev);
+>  
+>  /* For drivers of buggy hardware */
+> -typedef void (ht_irq_update_t)(struct pci_dev *dev, int irq,
+> +typedef void (ht_irq_update_t)(struct pci_dev *dev, struct irq_desc *desc,
+>  			       struct ht_irq_msg *msg);
+
+The corresponding update to drivers/infiniband/hw/ipath/ipath_iba6110.c
+is missing from your patch.
+
+>  int __ht_create_irq(struct pci_dev *dev, int idx, ht_irq_update_t *update);
+
+> Index: linux-2.6/kernel/irq/chip.c
+> ===================================================================
+> --- linux-2.6.orig/kernel/irq/chip.c
+> +++ linux-2.6/kernel/irq/chip.c
+> @@ -131,7 +131,7 @@ int set_irq_chip(unsigned int irq, struc
+>  	unsigned long flags;
+>  
+>  	if (!desc) {
+> -		WARN(1, KERN_ERR "Trying to install chip for IRQ%d\n", irq);
+> +		WARN(1, KERN_ERR "Trying to install chip for IRQ\n");
+>  		return -EINVAL;
+
+We still have an irq value here so this change is wrong.
+
+> @@ -657,7 +651,7 @@ __set_irq_handler(unsigned int irq, irq_
+>  
+>  	if (!desc) {
+>  		printk(KERN_ERR
+> -		       "Trying to install type control for IRQ%d\n", irq);
+> +		       "Trying to install type control for IRQ\n");
+
+Again we still have an irq value here, so we should not remove it from
+the printk.
+
