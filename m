@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f219.google.com ([209.85.220.219]:50212 "EHLO
+Received: from mail-fx0-f219.google.com ([209.85.220.219]:36566 "EHLO
 	mail-fx0-f219.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755112Ab0CEDIK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Mar 2010 22:08:10 -0500
+	with ESMTP id S1751430Ab0CEUzU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Mar 2010 15:55:20 -0500
 From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: [PATCH 1/2] perf: Introduce new perf_save_regs() for hot regs snapshot
-Date: Fri,  5 Mar 2010 04:08:05 +0100
-Message-ID: <1267758486-30499-2-git-send-regression-fweisbec@gmail.com>
-In-Reply-To: <1267605529.25158.75.camel@laptop>
-References: <1267605529.25158.75.camel@laptop>
+Subject: [PATCH 1/2] perf: Introduce new perf_fetch_caller_regs() for hot regs snapshot
+Date: Fri,  5 Mar 2010 21:55:16 +0100
+Message-ID: <1267822517-5935-1-git-send-regression-fweisbec@gmail.com>
+In-Reply-To: <4B913A83.4040805@redhat.com>
+References: <4B913A83.4040805@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H . Peter Anvin" <hpa@zytor.com>, Paul Mackerras <paulus@samba.org>, Steven Rostedt <rostedt@goodmis.org>, Arnaldo Carvalho de Melo <acme@redhat.com>, Masami Hiramatsu <mhiramat@redhat.com>, Jason Baron <jbaron@redhat.com>, Archs <linux-arch@vger.kernel.org>
-Message-ID: <20100305030805.URft7TZISwwAPVjRQkUgkh9eGV_wVY0HGkn_gf1LYAQ@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Frederic Weisbecker <fweisbec@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Paul Mackerras <paulus@samba.org>, Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@redhat.com>, Jason Baron <jbaron@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H . Peter Anvin" <hpa@zytor.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Archs <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>
+Message-ID: <20100305205516.8EMEtSMctmShQCGHbzWDDH6ndz5MV9fS7RqbUsxPZOg@z>
 
 Events that trigger overflows by interrupting a context can
 use get_irq_regs() or task_pt_regs() to retrieve the state
@@ -29,6 +29,9 @@ event origin, the frame pointer for the callchain, the code
 segment for user_mode() tests (we always use __KERNEL_CS as
 trace events always occur from the kernel) and the eflags
 for further purposes.
+
+v2: rename perf_save_regs to perf_fetch_caller_regs as per
+Masami's suggestion.
 
 Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
 Cc: Ingo Molnar <mingo@elte.hu>
@@ -49,18 +52,18 @@ Cc: Archs <linux-arch@vger.kernel.org>
  4 files changed, 73 insertions(+), 1 deletions(-)
 
 diff --git a/arch/x86/kernel/cpu/perf_event.c b/arch/x86/kernel/cpu/perf_event.c
-index 641ccb9..274d0cd 100644
+index 641ccb9..4c1f430 100644
 --- a/arch/x86/kernel/cpu/perf_event.c
 +++ b/arch/x86/kernel/cpu/perf_event.c
 @@ -1662,6 +1662,18 @@ struct perf_callchain_entry *perf_callchain(struct pt_regs *regs)
  	return entry;
  }
  
-+void perf_arch_save_regs(struct pt_regs *regs, unsigned long ip, int skip)
++void perf_arch_fetch_caller_regs(struct pt_regs *regs, unsigned long ip, int skip)
 +{
 +	regs->ip = ip;
 +	/*
-+	 * perf_arch_save_regs adds another call, we need to increment
++	 * perf_arch_fetch_caller_regs adds another call, we need to increment
 +	 * the skip level
 +	 */
 +	regs->bp = rewind_frame_pointer(skip + 1);
@@ -96,7 +99,7 @@ index 4fd1420..29e5f7c 100644
 +
 +#endif /* DUMPSTACK_H */
 diff --git a/include/linux/perf_event.h b/include/linux/perf_event.h
-index 04f06b4..e35ad6f 100644
+index 04f06b4..c859bee 100644
 --- a/include/linux/perf_event.h
 +++ b/include/linux/perf_event.h
 @@ -452,6 +452,7 @@ enum perf_callchain_context {
@@ -112,7 +115,7 @@ index 04f06b4..e35ad6f 100644
  }
  
 +extern void
-+perf_arch_save_regs(struct pt_regs *regs, unsigned long ip, int skip);
++perf_arch_fetch_caller_regs(struct pt_regs *regs, unsigned long ip, int skip);
 +
 +/*
 + * Take a snapshot of the regs. Skip ip and frame pointer to
@@ -122,7 +125,7 @@ index 04f06b4..e35ad6f 100644
 + * - bp for callchains
 + * - eflags, for future purposes, just in case
 + */
-+static inline void perf_save_regs(struct pt_regs *regs, int skip)
++static inline void perf_fetch_caller_regs(struct pt_regs *regs, int skip)
 +{
 +	unsigned long ip;
 +
@@ -146,7 +149,7 @@ index 04f06b4..e35ad6f 100644
 +		ip = 0;
 +	}
 +
-+	return perf_arch_save_regs(regs, ip, skip);
++	return perf_arch_fetch_caller_regs(regs, ip, skip);
 +}
 +
  extern void __perf_event_mmap(struct vm_area_struct *vma);
@@ -163,7 +166,7 @@ index 04f06b4..e35ad6f 100644
  
  #ifndef perf_misc_flags
 diff --git a/kernel/perf_event.c b/kernel/perf_event.c
-index a661e79..42b8276 100644
+index a661e79..1c3059b 100644
 --- a/kernel/perf_event.c
 +++ b/kernel/perf_event.c
 @@ -2806,6 +2806,11 @@ __weak struct perf_callchain_entry *perf_callchain(struct pt_regs *regs)
@@ -171,7 +174,7 @@ index a661e79..42b8276 100644
  }
  
 +__weak
-+void perf_arch_save_regs(struct pt_regs *regs, unsigned long ip, int skip)
++void perf_arch_fetch_caller_regs(struct pt_regs *regs, unsigned long ip, int skip)
 +{
 +}
 +
