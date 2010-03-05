@@ -1,229 +1,202 @@
-From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: [PATCH 2/2] perf: Take a hot regs snapshot for trace events
-Date: Fri,  5 Mar 2010 21:55:17 +0100
-Message-ID: <1267822517-5935-2-git-send-regression-fweisbec@gmail.com>
-References: <4B913A83.4040805@redhat.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <4B913A83.4040805@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-Cc: LKML <linux-kernel@vger.kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Paul Mackerras <paulus@samba.org>, Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@redhat.com>, Jason Baron <jbaron@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H . Peter Anvin" <hpa@zytor.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Archs <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>
-List-Id: linux-arch.vger.kernel.org
+From: akpm@linux-foundation.org
+Subject: [patch 133/160] elf coredump: make offset calculation process and writing process explicit
+Date: Fri, 05 Mar 2010 13:44:09 -0800
+Message-ID: <201003052144.o25Li9CW029979@imap1.linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ANSI_X3.4-1968
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:38684 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752462Ab0CEVo6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Mar 2010 16:44:58 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org, d.hatayama@jp.fujitsu.com, alan@lxorguk.ukuu.org.uk, andi@firstfloor.org, dhowells@redhat.com, gerg@snapgear.com, jdike@addtoit.com, linux-arch@vger.kernel.org, mingo@elte.hu, oleg@redhat.com, roland@redhat.com, tony.luck@intel.com, viro@zeniv.linux.org.uk
 
-We are taking a wrong regs snapshot when a trace event triggers.
-Either we use get_irq_regs(), which gives us the interrupted
-registers if we are in an interrupt, or we use task_pt_regs()
-which gives us the state before we entered the kernel, assuming
-we are lucky enough to be no kernel thread, in which case
-task_pt_regs() returns the initial set of regs when the kernel
-thread was started.
+From: Daisuke HATAYAMA <d.hatayama@jp.fujitsu.com>
 
-What we want is different. We need a hot snapshot of the regs,
-so that we can get the instruction pointer to record in the
-sample, the frame pointer for the callchain, and some other
-things.
+By the next patch, elf_core_dump() and elf_fdpic_core_dump() will support
+extended numbering and so will produce the corefiles with section header
+table in a special case.
 
-Let's use the new perf_fetch_caller_regs() for that.
+The problem is the process of writing a file header offset of the section
+header table into e_shoff field of the ELF header.  ELF header is
+positioned at the beginning of the corefile, while section header at the
+end.  So, we need to take which of the following ways:
 
-Comparison with perf record -e lock: -R -a -f -g
-Before:
+ 1. Seek backward to retry writing operation for ELF header
+    after writing process for a whole part
 
-        perf  [kernel]                   [k] __do_softirq
-               |
-               --- __do_softirq
-                  |
-                  |--55.16%-- __open
-                  |
-                   --44.84%-- __write_nocancel
+ 2. Make offset calculation process and writing process
+    totally sequential
 
-After:
+The clause 1.  is not always possible: one cannot assume that file system
+supports seek function.  Consider the no_llseek case.
 
-            perf  [kernel]           [k] perf_tp_event
-               |
-               --- perf_tp_event
-                  |
-                  |--41.07%-- lock_acquire
-                  |          |
-                  |          |--39.36%-- _raw_spin_lock
-                  |          |          |
-                  |          |          |--7.81%-- hrtimer_interrupt
-                  |          |          |          smp_apic_timer_interrupt
-                  |          |          |          apic_timer_interrupt
+Therefore, this patch adopts the clause 2.
 
-The old case was producing unreliable callchains. Now having
-right frame and instruction pointers, we have the trace we
-want.
-
-Also syscalls and kprobe events already have the right regs,
-let's use them instead of wasting a retrieval.
-
-v2: Follow the rename perf_save_regs() -> perf_fetch_caller_regs()
-
-Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
+Signed-off-by: Daisuke HATAYAMA <d.hatayama@jp.fujitsu.com>
+Cc: "Luck, Tony" <tony.luck@intel.com>
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Greg Ungerer <gerg@snapgear.com>
+Cc: Roland McGrath <roland@redhat.com>
+Cc: Oleg Nesterov <oleg@redhat.com>
 Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
-Cc: Masami Hiramatsu <mhiramat@redhat.com>
-Cc: Jason Baron <jbaron@redhat.com>
-Cc: Archs <linux-arch@vger.kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Andi Kleen <andi@firstfloor.org>
+Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
- include/linux/ftrace_event.h       |    7 +++++--
- include/trace/ftrace.h             |    6 +++++-
- kernel/perf_event.c                |    9 ++-------
- kernel/trace/trace_event_profile.c |    3 ++-
- kernel/trace/trace_kprobe.c        |    5 +++--
- kernel/trace/trace_syscalls.c      |    4 ++--
- 6 files changed, 19 insertions(+), 15 deletions(-)
 
-diff --git a/include/linux/ftrace_event.h b/include/linux/ftrace_event.h
-index cd95919..48b367e 100644
---- a/include/linux/ftrace_event.h
-+++ b/include/linux/ftrace_event.h
-@@ -188,6 +188,9 @@ do {									\
+ fs/binfmt_elf.c       |   27 ++++++++++++++++-----------
+ fs/binfmt_elf_fdpic.c |   29 ++++++++++++++++-------------
+ 2 files changed, 32 insertions(+), 24 deletions(-)
+
+diff -puN fs/binfmt_elf.c~elf-coredump-make-offset-calculation-process-and-writing-process-explicit fs/binfmt_elf.c
+--- a/fs/binfmt_elf.c~elf-coredump-make-offset-calculation-process-and-writing-process-explicit
++++ a/fs/binfmt_elf.c
+@@ -1856,6 +1856,7 @@ static int elf_core_dump(struct coredump
+ 	loff_t offset = 0, dataoff, foffset;
+ 	unsigned long mm_flags;
+ 	struct elf_note_info info;
++	struct elf_phdr *phdr4note = NULL;
  
- #ifdef CONFIG_PERF_EVENTS
- struct perf_event;
-+
-+DECLARE_PER_CPU(struct pt_regs, perf_trace_regs);
-+
- extern int ftrace_profile_enable(int event_id);
- extern void ftrace_profile_disable(int event_id);
- extern int ftrace_profile_set_filter(struct perf_event *event, int event_id,
-@@ -199,11 +202,11 @@ ftrace_perf_buf_prepare(int size, unsigned short type, int *rctxp,
+ 	/*
+ 	 * We no longer stop all VM operations.
+@@ -1898,28 +1899,22 @@ static int elf_core_dump(struct coredump
+ 	fs = get_fs();
+ 	set_fs(KERNEL_DS);
  
- static inline void
- ftrace_perf_buf_submit(void *raw_data, int size, int rctx, u64 addr,
--		       u64 count, unsigned long irq_flags)
-+		       u64 count, unsigned long irq_flags, struct pt_regs *regs)
- {
- 	struct trace_entry *entry = raw_data;
- 
--	perf_tp_event(entry->type, addr, count, raw_data, size);
-+	perf_tp_event(entry->type, addr, count, raw_data, size, regs);
- 	perf_swevent_put_recursion_context(rctx);
- 	local_irq_restore(irq_flags);
- }
-diff --git a/include/trace/ftrace.h b/include/trace/ftrace.h
-index f2c09e4..1f7677d 100644
---- a/include/trace/ftrace.h
-+++ b/include/trace/ftrace.h
-@@ -853,6 +853,7 @@ ftrace_profile_templ_##call(struct ftrace_event_call *event_call,	\
- 	struct ftrace_raw_##call *entry;				\
- 	u64 __addr = 0, __count = 1;					\
- 	unsigned long irq_flags;					\
-+	struct pt_regs *__regs;						\
- 	int __entry_size;						\
- 	int __data_size;						\
- 	int rctx;							\
-@@ -873,8 +874,11 @@ ftrace_profile_templ_##call(struct ftrace_event_call *event_call,	\
- 									\
- 	{ assign; }							\
- 									\
-+	__regs = &__get_cpu_var(perf_trace_regs);			\
-+	perf_fetch_caller_regs(__regs, 2);				\
-+									\
- 	ftrace_perf_buf_submit(entry, __entry_size, rctx, __addr,	\
--			       __count, irq_flags);			\
-+			       __count, irq_flags, __regs);		\
- }
- 
- #undef DEFINE_EVENT
-diff --git a/kernel/perf_event.c b/kernel/perf_event.c
-index 1c3059b..aa3b98c 100644
---- a/kernel/perf_event.c
-+++ b/kernel/perf_event.c
-@@ -4340,7 +4340,7 @@ static const struct pmu perf_ops_task_clock = {
- #ifdef CONFIG_EVENT_TRACING
- 
- void perf_tp_event(int event_id, u64 addr, u64 count, void *record,
--			  int entry_size)
-+		   int entry_size, struct pt_regs *regs)
- {
- 	struct perf_raw_record raw = {
- 		.size = entry_size,
-@@ -4352,14 +4352,9 @@ void perf_tp_event(int event_id, u64 addr, u64 count, void *record,
- 		.raw = &raw,
- 	};
- 
--	struct pt_regs *regs = get_irq_regs();
+-	size += sizeof(*elf);
+-	if (size > cprm->limit || !dump_write(cprm->file, elf, sizeof(*elf)))
+-		goto end_coredump;
 -
--	if (!regs)
--		regs = task_pt_regs(current);
+ 	offset += sizeof(*elf);				/* Elf header */
+ 	offset += (segs + 1) * sizeof(struct elf_phdr); /* Program headers */
+ 	foffset = offset;
+ 
+ 	/* Write notes phdr entry */
+ 	{
+-		struct elf_phdr phdr;
+ 		size_t sz = get_note_info_size(&info);
+ 
+ 		sz += elf_coredump_extra_notes_size();
+ 
+-		fill_elf_note_phdr(&phdr, sz, offset);
+-		offset += sz;
 -
- 	/* Trace events already protected against recursion */
- 	do_perf_sw_event(PERF_TYPE_TRACEPOINT, event_id, count, 1,
--				&data, regs);
-+			 &data, regs);
- }
- EXPORT_SYMBOL_GPL(perf_tp_event);
+-		size += sizeof(phdr);
+-		if (size > cprm->limit
+-		    || !dump_write(cprm->file, &phdr, sizeof(phdr)))
++		phdr4note = kmalloc(sizeof(*phdr4note), GFP_KERNEL);
++		if (!phdr4note)
+ 			goto end_coredump;
++
++		fill_elf_note_phdr(phdr4note, sz, offset);
++		offset += sz;
+ 	}
  
-diff --git a/kernel/trace/trace_event_profile.c b/kernel/trace/trace_event_profile.c
-index f0d6930..e66d21e 100644
---- a/kernel/trace/trace_event_profile.c
-+++ b/kernel/trace/trace_event_profile.c
-@@ -2,13 +2,14 @@
-  * trace event based perf counter profiling
-  *
-  * Copyright (C) 2009 Red Hat Inc, Peter Zijlstra <pzijlstr@redhat.com>
-- *
-+ * Copyright (C) 2009-2010 Frederic Weisbecker <fweisbec@gmail.com>
-  */
+ 	dataoff = offset = roundup(offset, ELF_EXEC_PAGESIZE);
+@@ -1931,6 +1926,15 @@ static int elf_core_dump(struct coredump
+ 	 */
+ 	mm_flags = current->mm->flags;
  
- #include <linux/module.h>
- #include <linux/kprobes.h>
- #include "trace.h"
++	size += sizeof(*elf);
++	if (size > cprm->limit || !dump_write(cprm->file, elf, sizeof(*elf)))
++		goto end_coredump;
++
++	size += sizeof(*phdr4note);
++	if (size > cprm->limit
++	    || !dump_write(cprm->file, phdr4note, sizeof(*phdr4note)))
++		goto end_coredump;
++
+ 	/* Write program headers for segments dump */
+ 	for (vma = first_vma(current, gate_vma); vma != NULL;
+ 			vma = next_vma(vma, gate_vma)) {
+@@ -2004,6 +2008,7 @@ end_coredump:
  
-+DEFINE_PER_CPU(struct pt_regs, perf_trace_regs);
+ cleanup:
+ 	free_note_info(&info);
++	kfree(phdr4note);
+ 	kfree(elf);
+ out:
+ 	return has_dumped;
+diff -puN fs/binfmt_elf_fdpic.c~elf-coredump-make-offset-calculation-process-and-writing-process-explicit fs/binfmt_elf_fdpic.c
+--- a/fs/binfmt_elf_fdpic.c~elf-coredump-make-offset-calculation-process-and-writing-process-explicit
++++ a/fs/binfmt_elf_fdpic.c
+@@ -1600,6 +1600,7 @@ static int elf_fdpic_core_dump(struct co
+ 	int thread_status_size = 0;
+ 	elf_addr_t *auxv;
+ 	unsigned long mm_flags;
++	struct elf_phdr *phdr4note = NULL;
  
- static char *perf_trace_buf;
- static char *perf_trace_buf_nmi;
-diff --git a/kernel/trace/trace_kprobe.c b/kernel/trace/trace_kprobe.c
-index 356c102..73e0526 100644
---- a/kernel/trace/trace_kprobe.c
-+++ b/kernel/trace/trace_kprobe.c
-@@ -1260,7 +1260,7 @@ static __kprobes void kprobe_profile_func(struct kprobe *kp,
- 	for (i = 0; i < tp->nr_args; i++)
- 		entry->args[i] = call_fetch(&tp->args[i].fetch, regs);
+ 	/*
+ 	 * We no longer stop all VM operations.
+@@ -1706,18 +1707,12 @@ static int elf_fdpic_core_dump(struct co
+ 	fs = get_fs();
+ 	set_fs(KERNEL_DS);
  
--	ftrace_perf_buf_submit(entry, size, rctx, entry->ip, 1, irq_flags);
-+	ftrace_perf_buf_submit(entry, size, rctx, entry->ip, 1, irq_flags, regs);
- }
+-	size += sizeof(*elf);
+-	if (size > cprm->limit
+-	    || !dump_write(cprm->file, elf, sizeof(*elf)))
+-		goto end_coredump;
+-
+ 	offset += sizeof(*elf);				/* Elf header */
+ 	offset += (segs+1) * sizeof(struct elf_phdr);	/* Program headers */
+ 	foffset = offset;
  
- /* Kretprobe profile handler */
-@@ -1291,7 +1291,8 @@ static __kprobes void kretprobe_profile_func(struct kretprobe_instance *ri,
- 	for (i = 0; i < tp->nr_args; i++)
- 		entry->args[i] = call_fetch(&tp->args[i].fetch, regs);
+ 	/* Write notes phdr entry */
+ 	{
+-		struct elf_phdr phdr;
+ 		int sz = 0;
  
--	ftrace_perf_buf_submit(entry, size, rctx, entry->ret_ip, 1, irq_flags);
-+	ftrace_perf_buf_submit(entry, size, rctx, entry->ret_ip, 1,
-+			       irq_flags, regs);
- }
+ 		for (i = 0; i < numnote; i++)
+@@ -1725,13 +1720,12 @@ static int elf_fdpic_core_dump(struct co
  
- static int probe_profile_enable(struct ftrace_event_call *call)
-diff --git a/kernel/trace/trace_syscalls.c b/kernel/trace/trace_syscalls.c
-index 4e332b9..d0f34ab 100644
---- a/kernel/trace/trace_syscalls.c
-+++ b/kernel/trace/trace_syscalls.c
-@@ -462,7 +462,7 @@ static void prof_syscall_enter(struct pt_regs *regs, long id)
- 	rec->nr = syscall_nr;
- 	syscall_get_arguments(current, regs, 0, sys_data->nb_args,
- 			       (unsigned long *)&rec->args);
--	ftrace_perf_buf_submit(rec, size, rctx, 0, 1, flags);
-+	ftrace_perf_buf_submit(rec, size, rctx, 0, 1, flags, regs);
- }
+ 		sz += thread_status_size;
  
- int prof_sysenter_enable(struct ftrace_event_call *call)
-@@ -537,7 +537,7 @@ static void prof_syscall_exit(struct pt_regs *regs, long ret)
- 	rec->nr = syscall_nr;
- 	rec->ret = syscall_get_return_value(current, regs);
+-		fill_elf_note_phdr(&phdr, sz, offset);
+-		offset += sz;
+-
+-		size += sizeof(phdr);
+-		if (size > cprm->limit
+-		    || !dump_write(cprm->file, &phdr, sizeof(phdr)))
++		phdr4note = kmalloc(sizeof(*phdr4note), GFP_KERNEL);
++		if (!phdr4note)
+ 			goto end_coredump;
++
++		fill_elf_note_phdr(phdr4note, sz, offset);
++		offset += sz;
+ 	}
  
--	ftrace_perf_buf_submit(rec, size, rctx, 0, 1, flags);
-+	ftrace_perf_buf_submit(rec, size, rctx, 0, 1, flags, regs);
- }
+ 	/* Page-align dumped data */
+@@ -1744,6 +1738,15 @@ static int elf_fdpic_core_dump(struct co
+ 	 */
+ 	mm_flags = current->mm->flags;
  
- int prof_sysexit_enable(struct ftrace_event_call *call)
--- 
-1.6.2.3
++	size += sizeof(*elf);
++	if (size > cprm->limit || !dump_write(cprm->file, elf, sizeof(*elf)))
++		goto end_coredump;
++
++	size += sizeof(*phdr4note);
++	if (size > cprm->limit
++	    || !dump_write(cprm->file, phdr4note, sizeof(*phdr4note)))
++		goto end_coredump;
++
+ 	/* write program headers for segments dump */
+ 	for (vma = current->mm->mmap; vma; vma = vma->vm_next) {
+ 		struct elf_phdr phdr;
+@@ -1815,7 +1818,7 @@ cleanup:
+ 		list_del(tmp);
+ 		kfree(list_entry(tmp, struct elf_thread_status, list));
+ 	}
+-
++	kfree(phdr4note);
+ 	kfree(elf);
+ 	kfree(prstatus);
+ 	kfree(psinfo);
+_
