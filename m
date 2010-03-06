@@ -1,68 +1,90 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: please don't apply : bootmem: avoid DMA32 zone by default
-Date: Sun, 7 Mar 2010 12:48:26 +1100
-Message-ID: <20100307124826.6c70a779.sfr@canb.auug.org.au>
-References: <49b004811003041321g2567bac8yb73235be32a27e7c@mail.gmail.com>
-	<20100305032106.GA12065@cmpxchg.org>
-	<49b004811003042117n720f356h7e10997a1a783475@mail.gmail.com>
-	<4B915074.4020704@kernel.org>
-	<4B916BD6.8010701@kernel.org>
-	<4B91EBC6.6080509@kernel.org>
-	<20100306162234.e2cc84fb.akpm@linux-foundation.org>
-	<20100307010327.GD15725@brick.ozlabs.ibm.com>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Sun__7_Mar_2010_12_48_26_+1100_OZJqAAANxhscbimK"
+From: Patch from anfei zhou <linuxtv-commits-bounces@linuxtv.org>
+Subject: [git:v4l-dvb/master] mm: flush dcache before writing into page to avoid alias
+Date: Sat, 06 Mar 2010 15:27:18 +0100
+Message-ID: <E1NnuyM-0001G9-JH@www.linuxtv.org>
+Reply-To: linux-media@vger.kernel.org
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:53358 "EHLO smtps.tip.net.au"
+Received: from www.linuxtv.org ([130.149.80.248]:57452 "EHLO www.linuxtv.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752552Ab0CGBsg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 6 Mar 2010 20:48:36 -0500
-In-Reply-To: <20100307010327.GD15725@brick.ozlabs.ibm.com>
+	id S1753620Ab0CFPDL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 6 Mar 2010 10:03:11 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mackerras <paulus@samba.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>, Greg Thelen <gthelen@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, Johannes Weiner <hannes@cmpxchg.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: linuxtv-commits@linuxtv.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Russell King <rmk@arm.linux.org.uk>, Miklos Szeredi <miklos@szeredi.hu>, Andrew Morton <akpm@linux-foundation.org>, Anfei <anfei.zhou@gmail.com>, linux-arch@vger.kernel.org, Nick Piggin <nickpiggin@yahoo.com.au>
 
---Signature=_Sun__7_Mar_2010_12_48_26_+1100_OZJqAAANxhscbimK
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+From: anfei zhou <anfei.zhou@gmail.com>
 
-Hi Paul,
+The cache alias problem will happen if the changes of user shared mapping
+is not flushed before copying, then user and kernel mapping may be mapped
+into two different cache line, it is impossible to guarantee the coherence
+after iov_iter_copy_from_user_atomic.  So the right steps should be:
 
-On Sun, 7 Mar 2010 12:03:27 +1100 Paul Mackerras <paulus@samba.org> wrote:
->
-> On Sat, Mar 06, 2010 at 04:22:34PM -0800, Andrew Morton wrote:
-> > Earlier, Johannes wrote
-> >=20
-> > : Humm, now that is a bit disappointing.  Because it means we will never
-> > : get rid of bootmem as long as it works for the other architectures.=20
-> > : And your changeset just added ~900 lines of code, some of it being a
-> > : rather ugly compatibility layer in bootmem that I hoped could go away
-> > : again sooner than later.
->=20
-> Whoa!  Who's proposing to get rid of bootmem, and why?
+	flush_dcache_page(page);
+	kmap_atomic(page);
+	write to page;
+	kunmap_atomic(page);
+	flush_dcache_page(page);
 
-I assume that is the point of the "early_res" work already in Linus' tree
-starting from commit 27811d8cabe56e0c3622251b049086f49face4ff ("x86: Move
-range related operation to one file").
+More precisely, we might create two new APIs flush_dcache_user_page and
+flush_dcache_kern_page to replace the two flush_dcache_page accordingly.
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+Here is a snippet tested on omap2430 with VIPT cache, and I think it is
+not ARM-specific:
 
---Signature=_Sun__7_Mar_2010_12_48_26_+1100_OZJqAAANxhscbimK
-Content-Type: application/pgp-signature
+	int val = 0x11111111;
+	fd = open("abc", O_RDWR);
+	addr = mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+	*(addr+0) = 0x44444444;
+	tmp = *(addr+0);
+	*(addr+1) = 0x77777777;
+	write(fd, &val, sizeof(int));
+	close(fd);
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
+The results are not always 0x11111111 0x77777777 at the beginning as expected.  Sometimes we see 0x44444444 0x77777777.
 
-iEYEARECAAYFAkuTBeoACgkQjjKRsyhoI8xhpACcDObt+kcXskN18effWjz/qp07
-NnkAoJp9fYyg3fxv9ru6/yJg5649Y6UK
-=2PoU
------END PGP SIGNATURE-----
+Signed-off-by: Anfei <anfei.zhou@gmail.com>
+Cc: Russell King <rmk@arm.linux.org.uk>
+Cc: Miklos Szeredi <miklos@szeredi.hu>
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: <linux-arch@vger.kernel.org>
+Cc: <stable@kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
 
---Signature=_Sun__7_Mar_2010_12_48_26_+1100_OZJqAAANxhscbimK--
+ fs/fuse/file.c |    3 +++
+ mm/filemap.c   |    3 +++
+ 2 files changed, 6 insertions(+), 0 deletions(-)
+
+---
+
+http://git.linuxtv.org/v4l-dvb.git?a=commitdiff;h=931e80e4b3263db75c8e34f078d22f11bbabd3a3
+
+diff --git a/fs/fuse/file.c b/fs/fuse/file.c
+index c18913a..a9f5e13 100644
+--- a/fs/fuse/file.c
++++ b/fs/fuse/file.c
+@@ -828,6 +828,9 @@ static ssize_t fuse_fill_write_pages(struct fuse_req *req,
+ 		if (!page)
+ 			break;
+ 
++		if (mapping_writably_mapped(mapping))
++			flush_dcache_page(page);
++
+ 		pagefault_disable();
+ 		tmp = iov_iter_copy_from_user_atomic(page, ii, offset, bytes);
+ 		pagefault_enable();
+diff --git a/mm/filemap.c b/mm/filemap.c
+index e373692..698ea80 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -2232,6 +2232,9 @@ again:
+ 		if (unlikely(status))
+ 			break;
+ 
++		if (mapping_writably_mapped(mapping))
++			flush_dcache_page(page);
++
+ 		pagefault_disable();
+ 		copied = iov_iter_copy_from_user_atomic(page, i, offset, bytes);
+ 		pagefault_enable();
