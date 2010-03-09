@@ -1,44 +1,28 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCH/RFC 1/8] numa: prep:  move generic percpu interface definitions
- to percpu-defs.h
-Date: Tue, 09 Mar 2010 17:46:08 +0900
-Message-ID: <4B960AD0.8010709@kernel.org>
-References: <20100304170654.10606.32225.sendpatchset@localhost.localdomain> <20100304170702.10606.85808.sendpatchset@localhost.localdomain>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 4/6] improve sys_personality for compat architectures
+Date: Tue, 9 Mar 2010 13:58:17 +0100
+Message-ID: <20100309125817.GA18435@lst.de>
+References: <201002021536.51928.arnd@arndb.de> <20100203.091309.52886984.davem@davemloft.net> <4B69D6BA.4030704@zytor.com> <201002040838.10783.arnd@arndb.de> <20100204160057.GA5120@lst.de> <20100305114911.ef629eb1.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-numa-owner@vger.kernel.org>
-In-Reply-To: <20100304170702.10606.85808.sendpatchset@localhost.localdomain>
-Sender: linux-numa-owner@vger.kernel.org
-To: Lee Schermerhorn <lee.schermerhorn@hp.com>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-numa@vger.kernel.org, Mel Gorman <mel@csn.ul.ie>, Andi Kleen <andi@firstfloor.org>, Christoph Lameter <cl@linux-foundation.org>, Nick Piggin <npiggin@suse.de>, David Rientjes <rientjes@google.com>, akpm@linux-foundation.org, eric.whitney@hp.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20100305114911.ef629eb1.akpm@linux-foundation.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tony.luck@intel.com, ralf@linux-mips.org, kyle@mcmartin.ca, benh@kernel.crashing.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, tglx@linutronix.de, mingo@redhat.com, viro@zeniv.linux.org.uk
 List-Id: linux-arch.vger.kernel.org
 
-Hello,
-
-On 03/05/2010 02:07 AM, Lee Schermerhorn wrote:
-> To use the generic percpu infrastructure for the numa_node_id() interface,
-> defined in linux/topology.h, we need to break the circular header dependency
-> that results from including <linux/percpu.h> in <linux/topology.h>.  The
-> circular dependency:
+On Fri, Mar 05, 2010 at 11:49:11AM -0800, Andrew Morton wrote:
+> > Yes, this should be common over architectures.  Anyway, I expect there
+> > to be some discussion until we've reached that point, so for now I'll
+> > rebase patches 5 and 6 to not require this patch, and will send one
+> > to kill the unused x86 implementation.  Whatever is the final outcome
+> > can be implemented on top.
+> > 
 > 
-> 	percpu.h -> slab.h -> gfp.h -> topology.h
-> 
-> percpu.h includes slab.h to obtain the definition of kzalloc()/kfree() for
-> inlining __alloc_percpu() and free_percpu() in !SMP configurations.  One could
-> un-inline these functions in the !SMP case, but a large number of files depend
-> on percpu.h to include slab.h.  Tejun Heo suggested moving the definitions to
-> percpu-defs.h and requested that this be separated from the remainder of the
-> generic percpu numa_node_id() preparation patch.
+> This never happened?
 
-Hmmm... I think uninlining !SMP case would be much cleaner.  Sorry
-that you had to do it twice.  I'll break the dependency in the percpu
-devel branch and let you know.
-
-For other patches, except for what Christoph has already pointed out,
-everything looks good to me.
-
-Thank you.
-
--- 
-tejun
+Seems like no one cared enough to discuss this issue in detail.  I'll
+start a fresh discussion once we got the other patches in and I have
+a clean sheet to work against.
