@@ -1,33 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.210]:54825 "EHLO verein.lst.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751239Ab0CIM7O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 9 Mar 2010 07:59:14 -0500
-Date: Tue, 9 Mar 2010 13:58:17 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 4/6] improve sys_personality for compat architectures
-Message-ID: <20100309125817.GA18435@lst.de>
-References: <201002021536.51928.arnd@arndb.de> <20100203.091309.52886984.davem@davemloft.net> <4B69D6BA.4030704@zytor.com> <201002040838.10783.arnd@arndb.de> <20100204160057.GA5120@lst.de> <20100305114911.ef629eb1.akpm@linux-foundation.org>
+Received: from g4t0014.houston.hp.com ([15.201.24.17]:15508 "EHLO
+	g4t0014.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752079Ab0CIONk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Mar 2010 09:13:40 -0500
+Subject: Re: [PATCH/RFC 1/8] numa: prep:  move generic percpu interface
+ definitions to percpu-defs.h
+From: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
+In-Reply-To: <4B960AD0.8010709@kernel.org>
+References: <20100304170654.10606.32225.sendpatchset@localhost.localdomain>
+	 <20100304170702.10606.85808.sendpatchset@localhost.localdomain>
+	 <4B960AD0.8010709@kernel.org>
+Content-Type: text/plain
+Date: Tue, 09 Mar 2010 09:13:29 -0500
+Message-ID: <1268144009.27921.9.camel@useless.americas.hpqcorp.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20100305114911.ef629eb1.akpm@linux-foundation.org>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tony.luck@intel.com, ralf@linux-mips.org, kyle@mcmartin.ca, benh@kernel.crashing.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, tglx@linutronix.de, mingo@redhat.com, viro@zeniv.linux.org.uk
-Message-ID: <20100309125817.HgPoHeZ-VOw0Ce_f9N7eVDUYNkZbV5jOLnXEGc-WyHQ@z>
+To: Tejun Heo <tj@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-numa@vger.kernel.org, Mel Gorman <mel@csn.ul.ie>, Andi Kleen <andi@firstfloor.org>, Christoph Lameter <cl@linux-foundation.org>, Nick Piggin <npiggin@suse.de>, David Rientjes <rientjes@google.com>, akpm@linux-foundation.org, eric.whitney@hp.com
+Message-ID: <20100309141329.cNYrej3pniOeS24r9QmgnZAD9fWgZxv8gCN4Vo4HyA0@z>
 
-On Fri, Mar 05, 2010 at 11:49:11AM -0800, Andrew Morton wrote:
-> > Yes, this should be common over architectures.  Anyway, I expect there
-> > to be some discussion until we've reached that point, so for now I'll
-> > rebase patches 5 and 6 to not require this patch, and will send one
-> > to kill the unused x86 implementation.  Whatever is the final outcome
-> > can be implemented on top.
-> > 
+On Tue, 2010-03-09 at 17:46 +0900, Tejun Heo wrote:
+> Hello,
 > 
-> This never happened?
+> On 03/05/2010 02:07 AM, Lee Schermerhorn wrote:
+> > To use the generic percpu infrastructure for the numa_node_id() interface,
+> > defined in linux/topology.h, we need to break the circular header dependency
+> > that results from including <linux/percpu.h> in <linux/topology.h>.  The
+> > circular dependency:
+> > 
+> > 	percpu.h -> slab.h -> gfp.h -> topology.h
+> > 
+> > percpu.h includes slab.h to obtain the definition of kzalloc()/kfree() for
+> > inlining __alloc_percpu() and free_percpu() in !SMP configurations.  One could
+> > un-inline these functions in the !SMP case, but a large number of files depend
+> > on percpu.h to include slab.h.  Tejun Heo suggested moving the definitions to
+> > percpu-defs.h and requested that this be separated from the remainder of the
+> > generic percpu numa_node_id() preparation patch.
+> 
+> Hmmm... I think uninlining !SMP case would be much cleaner.  Sorry
+> that you had to do it twice.  I'll break the dependency in the percpu
+> devel branch and let you know.
 
-Seems like no one cared enough to discuss this issue in detail.  I'll
-start a fresh discussion once we got the other patches in and I have
-a clean sheet to work against.
+OK, I'll do that for V4.  It'll be one big ugly patch because of all the
+dependencies.  But, it's really just a mechanical change.
+
+> 
+> For other patches, except for what Christoph has already pointed out,
+> everything looks good to me.
+> 
+> Thank you.
+> 
+
+Thank you for the review.
+
+Regards,
+Lee
+
