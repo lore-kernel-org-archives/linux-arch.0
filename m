@@ -1,60 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0014.houston.hp.com ([15.201.24.17]:15508 "EHLO
-	g4t0014.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752079Ab0CIONk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Mar 2010 09:13:40 -0500
-Subject: Re: [PATCH/RFC 1/8] numa: prep:  move generic percpu interface
- definitions to percpu-defs.h
-From: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
-In-Reply-To: <4B960AD0.8010709@kernel.org>
-References: <20100304170654.10606.32225.sendpatchset@localhost.localdomain>
-	 <20100304170702.10606.85808.sendpatchset@localhost.localdomain>
-	 <4B960AD0.8010709@kernel.org>
-Content-Type: text/plain
-Date: Tue, 09 Mar 2010 09:13:29 -0500
-Message-ID: <1268144009.27921.9.camel@useless.americas.hpqcorp.net>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:41015 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755198Ab0CIQbM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Mar 2010 11:31:12 -0500
+Date: Tue, 9 Mar 2010 16:30:24 +0000
+From: Russell King <rmk@arm.linux.org.uk>
+Subject: [RFC:PATCH] Correct cpu_relax() documentation
+Message-ID: <20100309163024.GA17428@flint.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-numa@vger.kernel.org, Mel Gorman <mel@csn.ul.ie>, Andi Kleen <andi@firstfloor.org>, Christoph Lameter <cl@linux-foundation.org>, Nick Piggin <npiggin@suse.de>, David Rientjes <rientjes@google.com>, akpm@linux-foundation.org, eric.whitney@hp.com
-Message-ID: <20100309141329.cNYrej3pniOeS24r9QmgnZAD9fWgZxv8gCN4Vo4HyA0@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20100309163024.lCwak1wNjS14Q05ph_Zk6Biq12WMFFWc8NO72kqvbR0@z>
 
-On Tue, 2010-03-09 at 17:46 +0900, Tejun Heo wrote:
-> Hello,
-> 
-> On 03/05/2010 02:07 AM, Lee Schermerhorn wrote:
-> > To use the generic percpu infrastructure for the numa_node_id() interface,
-> > defined in linux/topology.h, we need to break the circular header dependency
-> > that results from including <linux/percpu.h> in <linux/topology.h>.  The
-> > circular dependency:
-> > 
-> > 	percpu.h -> slab.h -> gfp.h -> topology.h
-> > 
-> > percpu.h includes slab.h to obtain the definition of kzalloc()/kfree() for
-> > inlining __alloc_percpu() and free_percpu() in !SMP configurations.  One could
-> > un-inline these functions in the !SMP case, but a large number of files depend
-> > on percpu.h to include slab.h.  Tejun Heo suggested moving the definitions to
-> > percpu-defs.h and requested that this be separated from the remainder of the
-> > generic percpu numa_node_id() preparation patch.
-> 
-> Hmmm... I think uninlining !SMP case would be much cleaner.  Sorry
-> that you had to do it twice.  I'll break the dependency in the percpu
-> devel branch and let you know.
+Subject: Correct cpu_relax() documentation
 
-OK, I'll do that for V4.  It'll be one big ugly patch because of all the
-dependencies.  But, it's really just a mechanical change.
+cpu_relax() is documented in volatile-considered-harmful.txt to be a
+memory barrier.  However, everyone with the exception of Blackfin and
+possibly ia64 defines cpu_relax() to be a compiler barrier.
 
-> 
-> For other patches, except for what Christoph has already pointed out,
-> everything looks good to me.
-> 
-> Thank you.
-> 
+Make the documentation reflect the general concensus.
 
-Thank you for the review.
+Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
+---
+ Documentation/volatile-considered-harmful.txt |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
 
-Regards,
-Lee
+diff --git a/Documentation/volatile-considered-harmful.txt b/Documentation/volatile-considered-harmful.txt
+index 991c26a..db0cb22 100644
+--- a/Documentation/volatile-considered-harmful.txt
++++ b/Documentation/volatile-considered-harmful.txt
+@@ -63,9 +63,9 @@ way to perform a busy wait is:
+         cpu_relax();
+ 
+ The cpu_relax() call can lower CPU power consumption or yield to a
+-hyperthreaded twin processor; it also happens to serve as a memory barrier,
+-so, once again, volatile is unnecessary.  Of course, busy-waiting is
+-generally an anti-social act to begin with.
++hyperthreaded twin processor; it also happens to serve as a compiler
++barrier, so, once again, volatile is unnecessary.  Of course, busy-
++waiting is generally an anti-social act to begin with.
+ 
+ There are still a few rare situations where volatile makes sense in the
+ kernel:
 
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
