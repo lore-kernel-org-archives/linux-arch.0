@@ -1,182 +1,35 @@
 From: akpm@linux-foundation.org
-Subject: [merged] coredump-unify-dump_seek-implementations-for-each-binfmt_c.patch removed from -mm tree
-Date: Tue, 09 Mar 2010 11:09:39 -0800
-Message-ID: <201003091909.o29J9dTh031536@imap1.linux-foundation.org>
+Subject: [merged] coredump-move-dump_write-and-dump_seek-into-a-header-file.patch removed from -mm tree
+Date: Tue, 09 Mar 2010 11:09:43 -0800
+Message-ID: <201003091909.o29J9hKZ031539@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:60153 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:34616 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752552Ab0CITLW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Mar 2010 14:11:22 -0500
+	by vger.kernel.org with ESMTP id S1755751Ab0CITL0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Mar 2010 14:11:26 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: d.hatayama@jp.fujitsu.com, alan@lxorguk.ukuu.org.uk, andi@firstfloor.org, dhowells@redhat.com, gerg@snapgear.com, jdike@addtoit.com, linux-arch@vger.kernel.org, mingo@elte.hu, oleg@re
 
 
 The patch titled
-     coredump: unify dump_seek() implementations for each binfmt_*.c
+     coredump: move dump_write() and dump_seek() into a header file
 has been removed from the -mm tree.  Its filename was
-     coredump-unify-dump_seek-implementations-for-each-binfmt_c.patch
+     coredump-move-dump_write-and-dump_seek-into-a-header-file.patch
 
 This patch was dropped because it was merged into mainline or a subsystem tree
 
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: coredump: unify dump_seek() implementations for each binfmt_*.c
+Subject: coredump: move dump_write() and dump_seek() into a header file
 From: Daisuke HATAYAMA <d.hatayama@jp.fujitsu.com>
 
-The current ELF dumper can produce broken corefiles if program headers
-exceed 65535.  In particular, the program in 64-bit environment often
-demands more than 65535 mmaps.  If you google max_map_count, then you can
-find many users facing this problem.
-
-Solaris has already dealt with this issue, and other OSes have also
-adopted the same method as in Solaris.  Currently, Sun's document and AMD
-64 ABI include the description for the extension, where they call the
-extension Extended Numbering.  See Reference for further information.
-
-I believe that linux kernel should adopt the same way as they did, so I've
-written this patch.
-
-I am also preparing for patches of GDB and binutils.
-
-How to fix
-==========
-
-In new dumping process, there are two cases according to weather or
-not the number of program headers is equal to or more than 65535.
-
- - if less than 65535, the produced corefile format is exactly the same
-   as the ordinary one.
-
- - if equal to or more than 65535, then e_phnum field is set to newly
-   introduced constant PN_XNUM(0xffff) and the actual number of program
-   headers is set to sh_info field of the section header at index 0.
-
-Compatibility Concern
-=====================
-
- * As already mentioned in Summary, Sun and AMD64 has already adopted
-   this.  See Reference.
-
- * There are four combinations according to whether kernel and userland
-   tools are respectively modified or not.  The next table summarizes
-   shortly for each combination.
-
-                  ---------------------------------------------
-                     Original Kernel    |   Modified Kernel   
-                  ---------------------------------------------
-    	            < 65535  | >= 65535 | < 65535  | >= 65535 
-  -------------------------------------------------------------
-   Original Tools |    OK    |  broken  |   OK     | broken (#)
-  -------------------------------------------------------------
-   Modified Tools |    OK    |  broken  |   OK     |    OK
-  -------------------------------------------------------------
-
-  Note that there is no case that `OK' changes to `broken'.
-
-  (#) Although this case remains broken, O-M behaves better than
-  O-O. That is, while in O-O case e_phnum field would be extremely
-  small due to integer overflow, in O-M case it is guaranteed to be at
-  least 65535 by being set to PN_XNUM(0xFFFF), much closer to the
-  actual correct value than the O-O case.
-
-Test Program
-============
-
-Here is a test program mkmmaps.c that is useful to produce the
-corefile with many mmaps. To use this, please take the following
-steps:
-
-$ ulimit -c unlimited
-$ sysctl vm.max_map_count=70000 # default 65530 is too small
-$ sysctl fs.file-max=70000
-$ mkmmaps 65535
-
-Then, the program will abort and a corefile will be generated.
-
-If failed, there are two cases according to the error message
-displayed.
-
- * ``out of memory'' means vm.max_map_count is still smaller
-
- * ``too many open files'' means fs.file-max is still smaller
-
-So, please change it to a larger value, and then retry it.
-
-mkmmaps.c
-==
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <unistd.h>
-int main(int argc, char **argv)
-{ 
-	int maps_num;
-	if (argc < 2) {
-		fprintf(stderr, "mkmmaps [number of maps to be created]\n");
-		exit(1);
-	}
-	if (sscanf(argv[1], "%d", &maps_num) == EOF) {
-		perror("sscanf");
-		exit(2);
-	}
-	if (maps_num < 0) {
-		fprintf(stderr, "%d is invalid\n", maps_num);
-		exit(3);
-	}
-	for (; maps_num > 0; --maps_num) {
-		if (MAP_FAILED == mmap((void *)NULL, (size_t) 1, PROT_READ,
-					MAP_SHARED | MAP_ANONYMOUS, (int) -1,
-					(off_t) NULL)) {
-			perror("mmap");
-			exit(4);
-		}    
-	}
-	abort();
-	{
-		char buffer[128];
-		sprintf(buffer, "wc -l /proc/%u/maps", getpid());
-		system(buffer);
-	}
-	return 0;
-}
-
-Tested on i386, ia64 and um/sys-i386.
-Built on sh4 (which covers fs/binfmt_elf_fdpic.c)
-
-References
-==========
-
- - Sun microsystems: Linker and Libraries.
-   Part No: 817-1984-17, September 2008.
-   URL: http://docs.sun.com/app/docs/doc/817-1984
-
- - System V ABI AMD64 Architecture Processor Supplement
-   Draft Version 0.99., May 11, 2009.
-   URL: http://www.x86-64.org/
-
-
-
-
-This patch:
-
-There are three different definitions for dump_seek() functions in
-binfmt_aout.c, binfmt_elf.c and binfmt_elf_fdpic.c, respectively.  The
-only for binfmt_elf.c.
-
-My next patch will move dump_seek() into a header file in order to share
-the same implementations for dump_write() and dump_seek().  As the first
-step, this patch unify these three definitions for dump_seek() by applying
-the past commits that have been applied only for binfmt_elf.c.
-
-Specifically, the modification made here is part of the following commits:
-
-  * d025c9db7f31fc0554ce7fb2dfc78d35a77f3487
-  * 7f14daa19ea36b200d237ad3ac5826ae25360461
-
-This patch does not change a shape of corefiles.
+My next patch will replace ELF_CORE_EXTRA_* macros by functions, putting
+them into other newly created *.c files.  Then, each files will contain
+dump_write(), where each pair of binfmt_*.c and elfcore.c should be the
+same.  So, this patch moves them into a header file with dump_seek(). 
+Also, the patch deletes confusing DUMP_WRITE macros in each files.
 
 Signed-off-by: Daisuke HATAYAMA <d.hatayama@jp.fujitsu.com>
 Cc: "Luck, Tony" <tony.luck@intel.com>
@@ -193,28 +46,329 @@ Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/binfmt_aout.c      |   31 ++++++++++++++++-----
- fs/binfmt_elf_fdpic.c |   59 +++++++++++++++++++++++++---------------
- 2 files changed, 62 insertions(+), 28 deletions(-)
+ fs/binfmt_aout.c         |   49 ++++++---------------------------
+ fs/binfmt_elf.c          |   52 +++++++++--------------------------
+ fs/binfmt_elf_fdpic.c    |   54 ++++++++++---------------------------
+ include/linux/coredump.h |   41 ++++++++++++++++++++++++++++
+ 4 files changed, 79 insertions(+), 117 deletions(-)
 
-diff -puN fs/binfmt_aout.c~coredump-unify-dump_seek-implementations-for-each-binfmt_c fs/binfmt_aout.c
---- a/fs/binfmt_aout.c~coredump-unify-dump_seek-implementations-for-each-binfmt_c
+diff -puN fs/binfmt_aout.c~coredump-move-dump_write-and-dump_seek-into-a-header-file fs/binfmt_aout.c
+--- a/fs/binfmt_aout.c~coredump-move-dump_write-and-dump_seek-into-a-header-file
 +++ a/fs/binfmt_aout.c
-@@ -69,16 +69,32 @@ static int dump_write(struct file *file,
- 	return file->f_op->write(file, addr, nr, &file->f_pos) == nr;
+@@ -24,6 +24,7 @@
+ #include <linux/binfmts.h>
+ #include <linux/personality.h>
+ #include <linux/init.h>
++#include <linux/coredump.h>
+ 
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+@@ -60,42 +61,6 @@ static int set_brk(unsigned long start, 
  }
  
-+static int dump_seek(struct file *file, loff_t off)
+ /*
+- * These are the only things you should do on a core-file: use only these
+- * macros to write out all the necessary info.
+- */
+-
+-static int dump_write(struct file *file, const void *addr, int nr)
+-{
+-	return file->f_op->write(file, addr, nr, &file->f_pos) == nr;
+-}
+-
+-static int dump_seek(struct file *file, loff_t off)
+-{
+-	if (file->f_op->llseek && file->f_op->llseek != no_llseek) {
+-		if (file->f_op->llseek(file, off, SEEK_CUR) < 0)
+-			return 0;
+-	} else {
+-		char *buf = (char *)get_zeroed_page(GFP_KERNEL);
+-		if (!buf)
+-			return 0;
+-		while (off > 0) {
+-			unsigned long n = off;
+-			if (n > PAGE_SIZE)
+-				n = PAGE_SIZE;
+-			if (!dump_write(file, buf, n))
+-				return 0;
+-			off -= n;
+-		}
+-		free_page((unsigned long)buf);
+-	}
+-	return 1;
+-}
+-
+-#define DUMP_WRITE(addr, nr)	\
+-	if (!dump_write(file, (void *)(addr), (nr))) \
+-		goto end_coredump;
+-
+-/*
+  * Routine writes a core dump image in the current directory.
+  * Currently only a stub-function.
+  *
+@@ -146,7 +111,8 @@ static int aout_core_dump(struct coredum
+ 
+ 	set_fs(KERNEL_DS);
+ /* struct user */
+-	DUMP_WRITE(&dump,sizeof(dump));
++	if (!dump_write(file, &dump, sizeof(dump)))
++		goto end_coredump;
+ /* Now dump all of the user data.  Include malloced stuff as well */
+ 	if (!dump_seek(cprm->file, PAGE_SIZE - sizeof(dump)))
+ 		goto end_coredump;
+@@ -156,17 +122,20 @@ static int aout_core_dump(struct coredum
+ 	if (dump.u_dsize != 0) {
+ 		dump_start = START_DATA(dump);
+ 		dump_size = dump.u_dsize << PAGE_SHIFT;
+-		DUMP_WRITE(dump_start,dump_size);
++		if (!dump_write(file, dump_start, dump_size))
++			goto end_coredump;
+ 	}
+ /* Now prepare to dump the stack area */
+ 	if (dump.u_ssize != 0) {
+ 		dump_start = START_STACK(dump);
+ 		dump_size = dump.u_ssize << PAGE_SHIFT;
+-		DUMP_WRITE(dump_start,dump_size);
++		if (!dump_write(file, dump_start, dump_size))
++			goto end_coredump;
+ 	}
+ /* Finally dump the task struct.  Not be used by gdb, but could be useful */
+ 	set_fs(KERNEL_DS);
+-	DUMP_WRITE(current,sizeof(*current));
++	if (!dump_write(file, current, sizeof(*current)))
++		goto end_coredump;
+ end_coredump:
+ 	set_fs(fs);
+ 	return has_dumped;
+diff -puN fs/binfmt_elf.c~coredump-move-dump_write-and-dump_seek-into-a-header-file fs/binfmt_elf.c
+--- a/fs/binfmt_elf.c~coredump-move-dump_write-and-dump_seek-into-a-header-file
++++ a/fs/binfmt_elf.c
+@@ -31,6 +31,7 @@
+ #include <linux/random.h>
+ #include <linux/elf.h>
+ #include <linux/utsname.h>
++#include <linux/coredump.h>
+ #include <asm/uaccess.h>
+ #include <asm/param.h>
+ #include <asm/page.h>
+@@ -1085,36 +1086,6 @@ out:
+  * Modelled on fs/exec.c:aout_core_dump()
+  * Jeremy Fitzhardinge <jeremy@sw.oz.au>
+  */
+-/*
+- * These are the only things you should do on a core-file: use only these
+- * functions to write out all the necessary info.
+- */
+-static int dump_write(struct file *file, const void *addr, int nr)
+-{
+-	return file->f_op->write(file, addr, nr, &file->f_pos) == nr;
+-}
+-
+-static int dump_seek(struct file *file, loff_t off)
+-{
+-	if (file->f_op->llseek && file->f_op->llseek != no_llseek) {
+-		if (file->f_op->llseek(file, off, SEEK_CUR) < 0)
+-			return 0;
+-	} else {
+-		char *buf = (char *)get_zeroed_page(GFP_KERNEL);
+-		if (!buf)
+-			return 0;
+-		while (off > 0) {
+-			unsigned long n = off;
+-			if (n > PAGE_SIZE)
+-				n = PAGE_SIZE;
+-			if (!dump_write(file, buf, n))
+-				return 0;
+-			off -= n;
+-		}
+-		free_page((unsigned long)buf);
+-	}
+-	return 1;
+-}
+ 
+ /*
+  * Decide what to dump of a segment, part, all or none.
+@@ -1249,11 +1220,6 @@ static int writenote(struct memelfnote *
+ }
+ #undef DUMP_WRITE
+ 
+-#define DUMP_WRITE(addr, nr)				\
+-	if ((size += (nr)) > cprm->limit ||		\
+-	    !dump_write(cprm->file, (addr), (nr)))	\
+-		goto end_coredump;
+-
+ static void fill_elf_header(struct elfhdr *elf, int segs,
+ 			    u16 machine, u32 flags, u8 osabi)
+ {
+@@ -1934,7 +1900,10 @@ static int elf_core_dump(struct coredump
+ 	fs = get_fs();
+ 	set_fs(KERNEL_DS);
+ 
+-	DUMP_WRITE(elf, sizeof(*elf));
++	size += sizeof(*elf);
++	if (size > cprm->limit || !dump_write(cprm->file, elf, sizeof(*elf)))
++		goto end_coredump;
++
+ 	offset += sizeof(*elf);				/* Elf header */
+ 	offset += (segs + 1) * sizeof(struct elf_phdr); /* Program headers */
+ 	foffset = offset;
+@@ -1948,7 +1917,11 @@ static int elf_core_dump(struct coredump
+ 
+ 		fill_elf_note_phdr(&phdr, sz, offset);
+ 		offset += sz;
+-		DUMP_WRITE(&phdr, sizeof(phdr));
++
++		size += sizeof(phdr);
++		if (size > cprm->limit
++		    || !dump_write(cprm->file, &phdr, sizeof(phdr)))
++			goto end_coredump;
+ 	}
+ 
+ 	dataoff = offset = roundup(offset, ELF_EXEC_PAGESIZE);
+@@ -1979,7 +1952,10 @@ static int elf_core_dump(struct coredump
+ 			phdr.p_flags |= PF_X;
+ 		phdr.p_align = ELF_EXEC_PAGESIZE;
+ 
+-		DUMP_WRITE(&phdr, sizeof(phdr));
++		size += sizeof(phdr);
++		if (size > cprm->limit
++		    || !dump_write(cprm->file, &phdr, sizeof(phdr)))
++			goto end_coredump;
+ 	}
+ 
+ #ifdef ELF_CORE_WRITE_EXTRA_PHDRS
+diff -puN fs/binfmt_elf_fdpic.c~coredump-move-dump_write-and-dump_seek-into-a-header-file fs/binfmt_elf_fdpic.c
+--- a/fs/binfmt_elf_fdpic.c~coredump-move-dump_write-and-dump_seek-into-a-header-file
++++ a/fs/binfmt_elf_fdpic.c
+@@ -34,6 +34,7 @@
+ #include <linux/elf.h>
+ #include <linux/elf-fdpic.h>
+ #include <linux/elfcore.h>
++#include <linux/coredump.h>
+ 
+ #include <asm/uaccess.h>
+ #include <asm/param.h>
+@@ -1216,37 +1217,6 @@ static int elf_fdpic_map_file_by_direct_
+ #ifdef CONFIG_ELF_CORE
+ 
+ /*
+- * These are the only things you should do on a core-file: use only these
+- * functions to write out all the necessary info.
+- */
+-static int dump_write(struct file *file, const void *addr, int nr)
+-{
+-	return file->f_op->write(file, addr, nr, &file->f_pos) == nr;
+-}
+-
+-static int dump_seek(struct file *file, loff_t off)
+-{
+-	if (file->f_op->llseek && file->f_op->llseek != no_llseek) {
+-		if (file->f_op->llseek(file, off, SEEK_CUR) < 0)
+-			return 0;
+-	} else {
+-		char *buf = (char *)get_zeroed_page(GFP_KERNEL);
+-		if (!buf)
+-			return 0;
+-		while (off > 0) {
+-			unsigned long n = off;
+-			if (n > PAGE_SIZE)
+-				n = PAGE_SIZE;
+-			if (!dump_write(file, buf, n))
+-				return 0;
+-			off -= n;
+-		}
+-		free_page((unsigned long)buf);
+-	}
+-	return 1;
+-}
+-
+-/*
+  * Decide whether a segment is worth dumping; default is yes to be
+  * sure (missing info is worse than too much; etc).
+  * Personally I'd include everything, and use the coredump limit...
+@@ -1354,11 +1324,6 @@ static int writenote(struct memelfnote *
+ }
+ #undef DUMP_WRITE
+ 
+-#define DUMP_WRITE(addr, nr)				\
+-	if ((size += (nr)) > cprm->limit ||		\
+-	    !dump_write(cprm->file, (addr), (nr)))	\
+-		goto end_coredump;
+-
+ static inline void fill_elf_fdpic_header(struct elfhdr *elf, int segs)
+ {
+ 	memcpy(elf->e_ident, ELFMAG, SELFMAG);
+@@ -1743,7 +1708,11 @@ static int elf_fdpic_core_dump(struct co
+ 	fs = get_fs();
+ 	set_fs(KERNEL_DS);
+ 
+-	DUMP_WRITE(elf, sizeof(*elf));
++	size += sizeof(*elf);
++	if (size > cprm->limit
++	    || !dump_write(cprm->file, elf, sizeof(*elf)))
++		goto end_coredump;
++
+ 	offset += sizeof(*elf);				/* Elf header */
+ 	offset += (segs+1) * sizeof(struct elf_phdr);	/* Program headers */
+ 	foffset = offset;
+@@ -1760,7 +1729,11 @@ static int elf_fdpic_core_dump(struct co
+ 
+ 		fill_elf_note_phdr(&phdr, sz, offset);
+ 		offset += sz;
+-		DUMP_WRITE(&phdr, sizeof(phdr));
++
++		size += sizeof(phdr);
++		if (size > cprm->limit
++		    || !dump_write(cprm->file, &phdr, sizeof(phdr)))
++			goto end_coredump;
+ 	}
+ 
+ 	/* Page-align dumped data */
+@@ -1794,7 +1767,10 @@ static int elf_fdpic_core_dump(struct co
+ 			phdr.p_flags |= PF_X;
+ 		phdr.p_align = ELF_EXEC_PAGESIZE;
+ 
+-		DUMP_WRITE(&phdr, sizeof(phdr));
++		size += sizeof(phdr);
++		if (size > cprm->limit
++		    || !dump_write(cprm->file, &phdr, sizeof(phdr)))
++			goto end_coredump;
+ 	}
+ 
+ #ifdef ELF_CORE_WRITE_EXTRA_PHDRS
+diff -puN /dev/null include/linux/coredump.h
+--- /dev/null
++++ a/include/linux/coredump.h
+@@ -0,0 +1,41 @@
++#ifndef _LINUX_COREDUMP_H
++#define _LINUX_COREDUMP_H
++
++#include <linux/types.h>
++#include <linux/mm.h>
++#include <linux/fs.h>
++
++/*
++ * These are the only things you should do on a core-file: use only these
++ * functions to write out all the necessary info.
++ */
++static inline int dump_write(struct file *file, const void *addr, int nr)
++{
++	return file->f_op->write(file, addr, nr, &file->f_pos) == nr;
++}
++
++static inline int dump_seek(struct file *file, loff_t off)
 +{
 +	if (file->f_op->llseek && file->f_op->llseek != no_llseek) {
 +		if (file->f_op->llseek(file, off, SEEK_CUR) < 0)
 +			return 0;
 +	} else {
 +		char *buf = (char *)get_zeroed_page(GFP_KERNEL);
++
 +		if (!buf)
 +			return 0;
 +		while (off > 0) {
 +			unsigned long n = off;
++
 +			if (n > PAGE_SIZE)
 +				n = PAGE_SIZE;
 +			if (!dump_write(file, buf, n))
@@ -226,156 +380,7 @@ diff -puN fs/binfmt_aout.c~coredump-unify-dump_seek-implementations-for-each-bin
 +	return 1;
 +}
 +
- #define DUMP_WRITE(addr, nr)	\
- 	if (!dump_write(file, (void *)(addr), (nr))) \
- 		goto end_coredump;
- 
--#define DUMP_SEEK(offset) \
--if (file->f_op->llseek) { \
--	if (file->f_op->llseek(file,(offset),0) != (offset)) \
-- 		goto end_coredump; \
--} else file->f_pos = (offset)
--
- /*
-  * Routine writes a core dump image in the current directory.
-  * Currently only a stub-function.
-@@ -132,7 +148,8 @@ static int aout_core_dump(struct coredum
- /* struct user */
- 	DUMP_WRITE(&dump,sizeof(dump));
- /* Now dump all of the user data.  Include malloced stuff as well */
--	DUMP_SEEK(PAGE_SIZE);
-+	if (!dump_seek(cprm->file, PAGE_SIZE - sizeof(dump)))
-+		goto end_coredump;
- /* now we start writing out the user space info */
- 	set_fs(USER_DS);
- /* Dump the data area */
-diff -puN fs/binfmt_elf_fdpic.c~coredump-unify-dump_seek-implementations-for-each-binfmt_c fs/binfmt_elf_fdpic.c
---- a/fs/binfmt_elf_fdpic.c~coredump-unify-dump_seek-implementations-for-each-binfmt_c
-+++ a/fs/binfmt_elf_fdpic.c
-@@ -1226,11 +1226,22 @@ static int dump_write(struct file *file,
- 
- static int dump_seek(struct file *file, loff_t off)
- {
--	if (file->f_op->llseek) {
--		if (file->f_op->llseek(file, off, SEEK_SET) != off)
-+	if (file->f_op->llseek && file->f_op->llseek != no_llseek) {
-+		if (file->f_op->llseek(file, off, SEEK_CUR) < 0)
- 			return 0;
- 	} else {
--		file->f_pos = off;
-+		char *buf = (char *)get_zeroed_page(GFP_KERNEL);
-+		if (!buf)
-+			return 0;
-+		while (off > 0) {
-+			unsigned long n = off;
-+			if (n > PAGE_SIZE)
-+				n = PAGE_SIZE;
-+			if (!dump_write(file, buf, n))
-+				return 0;
-+			off -= n;
-+		}
-+		free_page((unsigned long)buf);
- 	}
- 	return 1;
- }
-@@ -1313,30 +1324,35 @@ static int notesize(struct memelfnote *e
- 
- /* #define DEBUG */
- 
--#define DUMP_WRITE(addr, nr)	\
--	do { if (!dump_write(file, (addr), (nr))) return 0; } while(0)
--#define DUMP_SEEK(off)	\
--	do { if (!dump_seek(file, (off))) return 0; } while(0)
-+#define DUMP_WRITE(addr, nr, foffset)	\
-+	do { if (!dump_write(file, (addr), (nr))) return 0; *foffset += (nr); } while(0)
- 
--static int writenote(struct memelfnote *men, struct file *file)
-+static int alignfile(struct file *file, loff_t *foffset)
- {
--	struct elf_note en;
-+	static const char buf[4] = { 0, };
-+	DUMP_WRITE(buf, roundup(*foffset, 4) - *foffset, foffset);
-+	return 1;
-+}
- 
-+static int writenote(struct memelfnote *men, struct file *file,
-+			loff_t *foffset)
-+{
-+	struct elf_note en;
- 	en.n_namesz = strlen(men->name) + 1;
- 	en.n_descsz = men->datasz;
- 	en.n_type = men->type;
- 
--	DUMP_WRITE(&en, sizeof(en));
--	DUMP_WRITE(men->name, en.n_namesz);
--	/* XXX - cast from long long to long to avoid need for libgcc.a */
--	DUMP_SEEK(roundup((unsigned long)file->f_pos, 4));	/* XXX */
--	DUMP_WRITE(men->data, men->datasz);
--	DUMP_SEEK(roundup((unsigned long)file->f_pos, 4));	/* XXX */
-+	DUMP_WRITE(&en, sizeof(en), foffset);
-+	DUMP_WRITE(men->name, en.n_namesz, foffset);
-+	if (!alignfile(file, foffset))
-+		return 0;
-+	DUMP_WRITE(men->data, men->datasz, foffset);
-+	if (!alignfile(file, foffset))
-+		return 0;
- 
- 	return 1;
- }
- #undef DUMP_WRITE
--#undef DUMP_SEEK
- 
- #define DUMP_WRITE(addr, nr)				\
- 	if ((size += (nr)) > cprm->limit ||		\
-@@ -1552,7 +1568,7 @@ static int elf_fdpic_dump_segments(struc
- 					err = -EIO;
- 				kunmap(page);
- 				page_cache_release(page);
--			} else if (!dump_seek(file, file->f_pos + PAGE_SIZE))
-+			} else if (!dump_seek(file, PAGE_SIZE))
- 				err = -EFBIG;
- 			if (err)
- 				goto out;
-@@ -1605,7 +1621,7 @@ static int elf_fdpic_core_dump(struct co
- 	int i;
- 	struct vm_area_struct *vma;
- 	struct elfhdr *elf = NULL;
--	loff_t offset = 0, dataoff;
-+	loff_t offset = 0, dataoff, foffset;
- 	int numnote;
- 	struct memelfnote *notes = NULL;
- 	struct elf_prstatus *prstatus = NULL;	/* NT_PRSTATUS */
-@@ -1730,6 +1746,7 @@ static int elf_fdpic_core_dump(struct co
- 	DUMP_WRITE(elf, sizeof(*elf));
- 	offset += sizeof(*elf);				/* Elf header */
- 	offset += (segs+1) * sizeof(struct elf_phdr);	/* Program headers */
-+	foffset = offset;
- 
- 	/* Write notes phdr entry */
- 	{
-@@ -1786,7 +1803,7 @@ static int elf_fdpic_core_dump(struct co
- 
-  	/* write out the notes section */
- 	for (i = 0; i < numnote; i++)
--		if (!writenote(notes + i, cprm->file))
-+		if (!writenote(notes + i, cprm->file, &foffset))
- 			goto end_coredump;
- 
- 	/* write out the thread status notes section */
-@@ -1795,11 +1812,11 @@ static int elf_fdpic_core_dump(struct co
- 				list_entry(t, struct elf_thread_status, list);
- 
- 		for (i = 0; i < tmp->num_notes; i++)
--			if (!writenote(&tmp->notes[i], cprm->file))
-+			if (!writenote(&tmp->notes[i], cprm->file, &foffset))
- 				goto end_coredump;
- 	}
- 
--	if (!dump_seek(cprm->file, dataoff))
-+	if (!dump_seek(cprm->file, dataoff - foffset))
- 		goto end_coredump;
- 
- 	if (elf_fdpic_dump_segments(cprm->file, &size, &cprm->limit,
++#endif /* _LINUX_COREDUMP_H */
 _
 
 Patches currently in -mm which might be from d.hatayama@jp.fujitsu.com are
