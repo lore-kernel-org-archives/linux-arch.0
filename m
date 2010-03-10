@@ -1,51 +1,118 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f46.google.com ([74.125.82.46]:33119 "EHLO
-	mail-ww0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750910Ab0CJLDl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Mar 2010 06:03:41 -0500
-MIME-Version: 1.0
-Date: Wed, 10 Mar 2010 12:03:37 +0100
-Message-ID: <10f740e81003100303m5a4ffb45t26c380b4ef3dec37@mail.gmail.com>
-Subject: DMA_ERROR_CODE (was: Re: linux-next: build failure after merge of the
-	final tree)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:46549 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757002Ab0CJUaN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 Mar 2010 15:30:13 -0500
+Message-ID: <201003102029.o2AKTg4K001911@imap1.linux-foundation.org>
+Subject: [to-be-updated] add-a-kernel_address-that-works-for-data-too.patch removed from -mm tree
+From: akpm@linux-foundation.org
+Date: Wed, 10 Mar 2010 12:29:42 -0800
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: David Woodhouse <dwmw2@infradead.org>, linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, Maxim Levitsky <maximlevitsky@gmail.com>, linux-arch@vger.kernel.org
-Message-ID: <20100310110337.c9MKoG79jL5tBuDDmEhPaigd1UrXWzvY7EqX_RRX4zU@z>
+To: andi@firstfloor.org, ak@linux.intel.com, ebiederm@xmission.com, linux-arch@vger.kernel.org, rmk+lkml@arm.linux.org.uk, rusty@rustcorp.com.au, sam@ravnborg.org, mm-commits@vger.kernel.org
+Message-ID: <20100310202942.bjuLEmY9RfF1j-rwoYg_gbKWiaui61W7eIHsxHkXhFs@z>
 
-On Mon, Mar 1, 2010 at 10:40, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
-> After merging the final tree, today's linux-next build (powerpc
-> allyesconfig) failed like this:
->
-> drivers/mtd/nand/r852.c:22: error: 'enable_dma' redeclared as different kind of symbol
-> arch/powerpc/include/asm/dma.h:189: note: previous definition of 'enable_dma' was here
-> drivers/mtd/nand/r852.c: In function 'r852_engine_enable':
-> drivers/mtd/nand/r852.c:545: error: implicit declaration of function 'msleep'
->
-> Caused by commit 67e054e919248fa1db93de727fb9ad49eb700642 ("mtd: nand:
-> Add driver for Ricoh xD/SmartMedia reader") from the mtd.
->
-> I applied the following patch for today.
->
-> From: Stephen Rothwell <sfr@canb.auug.org.au>
-> Date: Mon, 1 Mar 2010 20:21:06 +1100
-> Subject: [PATCH] mtd: nand: fix name space clash
->
-> and include delay.h for msleep().
 
-Another issue is that this driver uses DMA_ERROR_CODE, which is currently
-defined on powerpc/sparc/x86 only.
+The patch titled
+     add a kernel_address() that works for data too
+has been removed from the -mm tree.  Its filename was
+     add-a-kernel_address-that-works-for-data-too.patch
 
-Gr{oetje,eeting}s,
+This patch was dropped because an updated version will be merged
 
-						Geert
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+------------------------------------------------------
+Subject: add a kernel_address() that works for data too
+From: Andi Kleen <andi@firstfloor.org>
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+Add a variant of kernel_text_address() that includes kernel data.
+
+Assumes kernel is _text ... _end - init section. True everywhere?
+
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: Sam Ravnborg <sam@ravnborg.org>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/linux/kernel.h |    1 +
+ kernel/extable.c       |   18 ++++++++++++++++++
+ 2 files changed, 19 insertions(+)
+
+diff -puN include/linux/kernel.h~add-a-kernel_address-that-works-for-data-too include/linux/kernel.h
+--- a/include/linux/kernel.h~add-a-kernel_address-that-works-for-data-too
++++ a/include/linux/kernel.h
+@@ -216,6 +216,7 @@ extern unsigned long long memparse(const
+ extern int core_kernel_text(unsigned long addr);
+ extern int __kernel_text_address(unsigned long addr);
+ extern int kernel_text_address(unsigned long addr);
++extern int kernel_address(unsigned long addr);
+ extern int func_ptr_is_kernel_text(void *ptr);
+ 
+ struct pid;
+diff -puN kernel/extable.c~add-a-kernel_address-that-works-for-data-too kernel/extable.c
+--- a/kernel/extable.c~add-a-kernel_address-that-works-for-data-too
++++ a/kernel/extable.c
+@@ -72,6 +72,18 @@ int core_kernel_text(unsigned long addr)
+ 	return 0;
+ }
+ 
++static int core_kernel_address(unsigned long addr)
++{
++	if ((addr >= (unsigned long)_text &&
++	     addr <= (unsigned long)_end)) {
++		if (addr >= (unsigned long)__init_begin &&
++		    addr < (unsigned long)__init_end)
++			return system_state == SYSTEM_BOOTING;
++		return 1;
++	}
++	return 0;
++}
++
+ int __kernel_text_address(unsigned long addr)
+ {
+ 	if (core_kernel_text(addr))
+@@ -98,6 +110,12 @@ int kernel_text_address(unsigned long ad
+ 	return is_module_text_address(addr);
+ }
+ 
++/* text or data in core kernel or module */
++int kernel_address(unsigned long addr)
++{
++	return core_kernel_address(addr) || is_module_address(addr);
++}
++
+ /*
+  * On some architectures (PPC64, IA64) function pointers
+  * are actually only tokens to some data that then holds the
+_
+
+Patches currently in -mm which might be from andi@firstfloor.org are
+
+mm-introduce-dump_page-and-print-symbolic-flag-names.patch
+linux-next.patch
+hardware-latency-detector-remove-default-m.patch
+modpost-support-objects-with-more-than-64k-sections.patch
+tracehooks-kill-some-pt_ptraced-checks.patch
+tracehooks-check-pt_ptraced-before-reporting-the-single-step.patch
+ptrace_signal-check-pt_ptraced-before-reporting-a-signal.patch
+export-__ptrace_detach-and-do_notify_parent_cldstop.patch
+reorder-the-code-in-kernel-ptracec.patch
+implement-utrace-ptrace.patch
+utrace-core.patch
+add-a-kernel_address-that-works-for-data-too.patch
+sysctl-add-proc_rcu_string-to-manage-sysctls-using-rcu-strings.patch
+sysctl-use-rcu-strings-for-core_pattern-sysctl.patch
+sysctl-add-call_usermodehelper_cleanup.patch
+sysctl-convert-modprobe_path-to-proc_rcu_string.patch
+sysctl-convert-poweroff_command-to-proc_rcu_string.patch
+sysctl-convert-hotplug-helper-string-to-proc_rcu_string.patch
+sysctl-use-rcu-protected-sysctl-for-ocfs-group-add-helper.patch
+sysctl-fix-up-remaining-references-to-uevent_helper.patch
+sysctl-fix-up-remaining-references-to-uevent_helper-fix.patch
+
