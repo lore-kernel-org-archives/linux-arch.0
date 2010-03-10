@@ -1,215 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:38019 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756079Ab0CITXF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Mar 2010 14:23:05 -0500
-Message-ID: <201003091909.o29J9oq3031549@imap1.linux-foundation.org>
-Subject: [merged] elf-coredump-make-offset-calculation-process-and-writing-process-explicit.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Tue, 09 Mar 2010 11:09:50 -0800
+Received: from hera.kernel.org ([140.211.167.34]:40110 "EHLO hera.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752218Ab0CJAI1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 9 Mar 2010 19:08:27 -0500
+Message-ID: <4B96E29E.3060305@kernel.org>
+Date: Tue, 09 Mar 2010 16:06:54 -0800
+From: Yinghai Lu <yinghai@kernel.org>
+MIME-Version: 1.0
+Subject: Re: further plans on bootmem, was: Re: - bootmem-avoid-dma32-zone-by-default.patch
+ removed from -mm tree
+References: <201003091940.o29Je4Iq000754@imap1.linux-foundation.org> <4B96B923.7020805@kernel.org> <20100309134902.171ba2ae.akpm@linux-foundation.org> <20100310000121.GA9985@cmpxchg.org>
+In-Reply-To: <20100310000121.GA9985@cmpxchg.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: d.hatayama@jp.fujitsu.com, alan@lxorguk.ukuu.org.uk, andi@firstfloor.org, dhowells@redhat.com, gerg@snapgear.com, jdike@addtoit.com, linux-arch@vger.kernel.org, mingo@elte.hu, oleg@redhat.com, roland@redhat.com, tony.luck@intel.com, viro@zeniv.linux.org.uk, mm-commits@vger.kernel.org
-Message-ID: <20100309190950.DejR6yTnfkFL7WEJxWOuE6icSzWQHFy-pHCTCPVkHTg@z>
+To: Johannes Weiner <hannes@cmpxchg.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20100310000654.J8yWmicaTYAXK9kVMdGiUC3ME25I3nHttyn8kwxtFn8@z>
 
+On 03/09/2010 04:01 PM, Johannes Weiner wrote:
+> On Tue, Mar 09, 2010 at 01:49:02PM -0800, Andrew Morton wrote:
+>> On Tue, 09 Mar 2010 13:09:55 -0800
+>> Yinghai Lu <yinghai@kernel.org> wrote:
+>>
+>>> On 03/09/2010 11:40 AM, akpm@linux-foundation.org wrote:
+>>>> The patch titled
+>>>>      bootmem: avoid DMA32 zone by default
+>>>> has been removed from the -mm tree.  Its filename was
+>>>>      bootmem-avoid-dma32-zone-by-default.patch
+>>>>
+>>>> This patch was dropped because I'm all confused
+>>>>
+>>>
+>>> Thanks for that...
+>>
+>> Well.  I did drop it because I'm all confused.  It may come back.
+>>
+>> If Johannes is working in the direction of removing and simplifying
+>> code then that's a high priority.  So I'm waiting to see where this
+>> discussion leads (on the mailing list, please!)
+> 
+> I am not working on simplifying in this area at the moment.  I am just
+> questioning the discrepancy between the motivation of Yinghai's patch
+> series to skip bootmem on x86 and its actual outcome.
+> 
+> The stated reason for the series was that the amount of memory allocators
+> involved in bootstrapping mm on x86 'seemed a bit excessive'. [1]
+> 
+> I am perfectly fine with the theory: select one mechanism and see whether
+> it can be bridged and consequently _removed_.  To shrink the code base,
+> shrink text size, make the boot process less complex, more robust etc.
+> 
+> What I take away from this patchset, however, is that all it really does
+> is make the early_res stuff from x86 generic code and add a semantically
+> different version of the bootmem API on top of it, selectable with a config
+> option.  The diffstat balance is an increase of around 900 lines of code.
+> 
+> Note that it still uses bootmem to actually bootstrap the page allocator,
+> that we now have two implementations of the bootmem interface and no real
+> plan - as far as I am informed - to actually change this.
+> 
+> I also found it weird that it makes x86 skip an allocator level that all
+> the other architectures are using, and replaces it with 'generic' code that
+> nobody but x86 is using (sparc, powerpc, sh and microblaze  appear to have
+> lib/lmb.c at this stage and for this purpose? lmb was also suggested by
+> benh [4] but I have to admit I do not understand Yinghai's response to it).
+> 
 
-The patch titled
-     elf coredump: make offset calculation process and writing process explicit
-has been removed from the -mm tree.  Its filename was
-     elf-coredump-make-offset-calculation-process-and-writing-process-explicit.patch
+next steps:
+1. create kernel/fw_memmap.c, and move common code from arch/x86/kernel/e820.c to it
+2. merge lmb with fw_memmap.c/early_res.c
+   so some arch that use lmb will fw_memmap/earl_res.c 
 
-This patch was dropped because it was merged into mainline or a subsystem tree
-
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: elf coredump: make offset calculation process and writing process explicit
-From: Daisuke HATAYAMA <d.hatayama@jp.fujitsu.com>
-
-By the next patch, elf_core_dump() and elf_fdpic_core_dump() will support
-extended numbering and so will produce the corefiles with section header
-table in a special case.
-
-The problem is the process of writing a file header offset of the section
-header table into e_shoff field of the ELF header.  ELF header is
-positioned at the beginning of the corefile, while section header at the
-end.  So, we need to take which of the following ways:
-
- 1. Seek backward to retry writing operation for ELF header
-    after writing process for a whole part
-
- 2. Make offset calculation process and writing process
-    totally sequential
-
-The clause 1.  is not always possible: one cannot assume that file system
-supports seek function.  Consider the no_llseek case.
-
-Therefore, this patch adopts the clause 2.
-
-Signed-off-by: Daisuke HATAYAMA <d.hatayama@jp.fujitsu.com>
-Cc: "Luck, Tony" <tony.luck@intel.com>
-Cc: Jeff Dike <jdike@addtoit.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Greg Ungerer <gerg@snapgear.com>
-Cc: Roland McGrath <roland@redhat.com>
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: Andi Kleen <andi@firstfloor.org>
-Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- fs/binfmt_elf.c       |   27 ++++++++++++++++-----------
- fs/binfmt_elf_fdpic.c |   29 ++++++++++++++++-------------
- 2 files changed, 32 insertions(+), 24 deletions(-)
-
-diff -puN fs/binfmt_elf.c~elf-coredump-make-offset-calculation-process-and-writing-process-explicit fs/binfmt_elf.c
---- a/fs/binfmt_elf.c~elf-coredump-make-offset-calculation-process-and-writing-process-explicit
-+++ a/fs/binfmt_elf.c
-@@ -1856,6 +1856,7 @@ static int elf_core_dump(struct coredump
- 	loff_t offset = 0, dataoff, foffset;
- 	unsigned long mm_flags;
- 	struct elf_note_info info;
-+	struct elf_phdr *phdr4note = NULL;
- 
- 	/*
- 	 * We no longer stop all VM operations.
-@@ -1898,28 +1899,22 @@ static int elf_core_dump(struct coredump
- 	fs = get_fs();
- 	set_fs(KERNEL_DS);
- 
--	size += sizeof(*elf);
--	if (size > cprm->limit || !dump_write(cprm->file, elf, sizeof(*elf)))
--		goto end_coredump;
--
- 	offset += sizeof(*elf);				/* Elf header */
- 	offset += (segs + 1) * sizeof(struct elf_phdr); /* Program headers */
- 	foffset = offset;
- 
- 	/* Write notes phdr entry */
- 	{
--		struct elf_phdr phdr;
- 		size_t sz = get_note_info_size(&info);
- 
- 		sz += elf_coredump_extra_notes_size();
- 
--		fill_elf_note_phdr(&phdr, sz, offset);
--		offset += sz;
--
--		size += sizeof(phdr);
--		if (size > cprm->limit
--		    || !dump_write(cprm->file, &phdr, sizeof(phdr)))
-+		phdr4note = kmalloc(sizeof(*phdr4note), GFP_KERNEL);
-+		if (!phdr4note)
- 			goto end_coredump;
-+
-+		fill_elf_note_phdr(phdr4note, sz, offset);
-+		offset += sz;
- 	}
- 
- 	dataoff = offset = roundup(offset, ELF_EXEC_PAGESIZE);
-@@ -1931,6 +1926,15 @@ static int elf_core_dump(struct coredump
- 	 */
- 	mm_flags = current->mm->flags;
- 
-+	size += sizeof(*elf);
-+	if (size > cprm->limit || !dump_write(cprm->file, elf, sizeof(*elf)))
-+		goto end_coredump;
-+
-+	size += sizeof(*phdr4note);
-+	if (size > cprm->limit
-+	    || !dump_write(cprm->file, phdr4note, sizeof(*phdr4note)))
-+		goto end_coredump;
-+
- 	/* Write program headers for segments dump */
- 	for (vma = first_vma(current, gate_vma); vma != NULL;
- 			vma = next_vma(vma, gate_vma)) {
-@@ -2004,6 +2008,7 @@ end_coredump:
- 
- cleanup:
- 	free_note_info(&info);
-+	kfree(phdr4note);
- 	kfree(elf);
- out:
- 	return has_dumped;
-diff -puN fs/binfmt_elf_fdpic.c~elf-coredump-make-offset-calculation-process-and-writing-process-explicit fs/binfmt_elf_fdpic.c
---- a/fs/binfmt_elf_fdpic.c~elf-coredump-make-offset-calculation-process-and-writing-process-explicit
-+++ a/fs/binfmt_elf_fdpic.c
-@@ -1600,6 +1600,7 @@ static int elf_fdpic_core_dump(struct co
- 	int thread_status_size = 0;
- 	elf_addr_t *auxv;
- 	unsigned long mm_flags;
-+	struct elf_phdr *phdr4note = NULL;
- 
- 	/*
- 	 * We no longer stop all VM operations.
-@@ -1706,18 +1707,12 @@ static int elf_fdpic_core_dump(struct co
- 	fs = get_fs();
- 	set_fs(KERNEL_DS);
- 
--	size += sizeof(*elf);
--	if (size > cprm->limit
--	    || !dump_write(cprm->file, elf, sizeof(*elf)))
--		goto end_coredump;
--
- 	offset += sizeof(*elf);				/* Elf header */
- 	offset += (segs+1) * sizeof(struct elf_phdr);	/* Program headers */
- 	foffset = offset;
- 
- 	/* Write notes phdr entry */
- 	{
--		struct elf_phdr phdr;
- 		int sz = 0;
- 
- 		for (i = 0; i < numnote; i++)
-@@ -1725,13 +1720,12 @@ static int elf_fdpic_core_dump(struct co
- 
- 		sz += thread_status_size;
- 
--		fill_elf_note_phdr(&phdr, sz, offset);
--		offset += sz;
--
--		size += sizeof(phdr);
--		if (size > cprm->limit
--		    || !dump_write(cprm->file, &phdr, sizeof(phdr)))
-+		phdr4note = kmalloc(sizeof(*phdr4note), GFP_KERNEL);
-+		if (!phdr4note)
- 			goto end_coredump;
-+
-+		fill_elf_note_phdr(phdr4note, sz, offset);
-+		offset += sz;
- 	}
- 
- 	/* Page-align dumped data */
-@@ -1744,6 +1738,15 @@ static int elf_fdpic_core_dump(struct co
- 	 */
- 	mm_flags = current->mm->flags;
- 
-+	size += sizeof(*elf);
-+	if (size > cprm->limit || !dump_write(cprm->file, elf, sizeof(*elf)))
-+		goto end_coredump;
-+
-+	size += sizeof(*phdr4note);
-+	if (size > cprm->limit
-+	    || !dump_write(cprm->file, phdr4note, sizeof(*phdr4note)))
-+		goto end_coredump;
-+
- 	/* write program headers for segments dump */
- 	for (vma = current->mm->mmap; vma; vma = vma->vm_next) {
- 		struct elf_phdr phdr;
-@@ -1815,7 +1818,7 @@ cleanup:
- 		list_del(tmp);
- 		kfree(list_entry(tmp, struct elf_thread_status, list));
- 	}
--
-+	kfree(phdr4note);
- 	kfree(elf);
- 	kfree(prstatus);
- 	kfree(psinfo);
-_
-
-Patches currently in -mm which might be from d.hatayama@jp.fujitsu.com are
-
+YH
 
