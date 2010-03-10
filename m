@@ -1,194 +1,113 @@
-From: tip-bot for Frederic Weisbecker <fweisbec@gmail.com>
-Subject: [tip:perf/urgent] perf: Introduce new perf_fetch_caller_regs() for hot regs snapshot
-Date: Wed, 10 Mar 2010 15:37:16 GMT
-Message-ID: <tip-5331d7b84613b8325362dde53dc2bff2fb87d351@git.kernel.org>
-Reply-To: linux-kernel@vger.kernel.org, mingo@redhat.com, hpa@zytor.com,
-	  paulus@samba.org, acme@redhat.com, peterz@infradead.org,
-	  fweisbec@gmail.com, rostedt@goodmis.org, jbaron@redhat.com,
-	  tglx@linutronix.de, mhiramat@redhat.com,
-	  linux-arch@vger.kernel.org, mingo@elte.hu
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:48130 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756725Ab0CJPhk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 Mar 2010 10:37:40 -0500
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-tip-commits@vger.kernel.org
-Cc: acme@redhat.com, paulus@samba.org, hpa@zytor.com, mingo@redhat.com, peterz@infradead.org, fweisbec@gmail.com, rostedt@goodmis.org, jbaron@redhat.com, tglx@linutronix.de, linux-arch@vger.kernel.org, mhiramat@redhat.com, mingo@elte.hu
+From: akpm@linux-foundation.org
+Subject: [to-be-updated] add-a-kernel_address-that-works-for-data-too.patch removed from -mm tree
+Date: Wed, 10 Mar 2010 12:29:42 -0800
+Message-ID: <201003102029.o2AKTg4K001911@imap1.linux-foundation.org>
+Reply-To: linux-kernel@vger.kernel.org
+Return-path: <mm-commits-owner@vger.kernel.org>
+Sender: mm-commits-owner@vger.kernel.org
+To: andi@firstfloor.org, ak@linux.intel.com, ebiederm@xmission.com, linux-arch@vger.kernel.org, rmk+lkml@arm.linux.org.uk, rusty@rustcorp.com.au, sam@ravnborg.org, mm-commits@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Commit-ID:  5331d7b84613b8325362dde53dc2bff2fb87d351
-Gitweb:     http://git.kernel.org/tip/5331d7b84613b8325362dde53dc2bff2fb87d351
-Author:     Frederic Weisbecker <fweisbec@gmail.com>
-AuthorDate: Thu, 4 Mar 2010 21:15:56 +0100
-Committer:  Frederic Weisbecker <fweisbec@gmail.com>
-CommitDate: Wed, 10 Mar 2010 14:39:35 +0100
 
-perf: Introduce new perf_fetch_caller_regs() for hot regs snapshot
+The patch titled
+     add a kernel_address() that works for data too
+has been removed from the -mm tree.  Its filename was
+     add-a-kernel_address-that-works-for-data-too.patch
 
-Events that trigger overflows by interrupting a context can
-use get_irq_regs() or task_pt_regs() to retrieve the state
-when the event triggered. But this is not the case for some
-other class of events like trace events as tracepoints are
-executed in the same context than the code that triggered
-the event.
+This patch was dropped because an updated version will be merged
 
-It means we need a different api to capture the regs there,
-namely we need a hot snapshot to get the most important
-informations for perf: the instruction pointer to get the
-event origin, the frame pointer for the callchain, the code
-segment for user_mode() tests (we always use __KERNEL_CS as
-trace events always occur from the kernel) and the eflags
-for further purposes.
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
-v2: rename perf_save_regs to perf_fetch_caller_regs as per
-Masami's suggestion.
+------------------------------------------------------
+Subject: add a kernel_address() that works for data too
+From: Andi Kleen <andi@firstfloor.org>
 
-Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
-Cc: Masami Hiramatsu <mhiramat@redhat.com>
-Cc: Jason Baron <jbaron@redhat.com>
-Cc: Archs <linux-arch@vger.kernel.org>
+Add a variant of kernel_text_address() that includes kernel data.
+
+Assumes kernel is _text ... _end - init section. True everywhere?
+
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: Sam Ravnborg <sam@ravnborg.org>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
- arch/x86/kernel/cpu/perf_event.c |   12 ++++++++++
- arch/x86/kernel/dumpstack.h      |   15 +++++++++++++
- include/linux/perf_event.h       |   42 +++++++++++++++++++++++++++++++++++++-
- kernel/perf_event.c              |    5 ++++
- 4 files changed, 73 insertions(+), 1 deletions(-)
 
-diff --git a/arch/x86/kernel/cpu/perf_event.c b/arch/x86/kernel/cpu/perf_event.c
-index 1d665a0..c6bde7d 100644
---- a/arch/x86/kernel/cpu/perf_event.c
-+++ b/arch/x86/kernel/cpu/perf_event.c
-@@ -1707,3 +1707,15 @@ struct perf_callchain_entry *perf_callchain(struct pt_regs *regs)
+ include/linux/kernel.h |    1 +
+ kernel/extable.c       |   18 ++++++++++++++++++
+ 2 files changed, 19 insertions(+)
+
+diff -puN include/linux/kernel.h~add-a-kernel_address-that-works-for-data-too include/linux/kernel.h
+--- a/include/linux/kernel.h~add-a-kernel_address-that-works-for-data-too
++++ a/include/linux/kernel.h
+@@ -216,6 +216,7 @@ extern unsigned long long memparse(const
+ extern int core_kernel_text(unsigned long addr);
+ extern int __kernel_text_address(unsigned long addr);
+ extern int kernel_text_address(unsigned long addr);
++extern int kernel_address(unsigned long addr);
+ extern int func_ptr_is_kernel_text(void *ptr);
  
- 	return entry;
- }
-+
-+void perf_arch_fetch_caller_regs(struct pt_regs *regs, unsigned long ip, int skip)
-+{
-+	regs->ip = ip;
-+	/*
-+	 * perf_arch_fetch_caller_regs adds another call, we need to increment
-+	 * the skip level
-+	 */
-+	regs->bp = rewind_frame_pointer(skip + 1);
-+	regs->cs = __KERNEL_CS;
-+	local_save_flags(regs->flags);
-+}
-diff --git a/arch/x86/kernel/dumpstack.h b/arch/x86/kernel/dumpstack.h
-index 4fd1420..29e5f7c 100644
---- a/arch/x86/kernel/dumpstack.h
-+++ b/arch/x86/kernel/dumpstack.h
-@@ -29,4 +29,19 @@ struct stack_frame {
- 	struct stack_frame *next_frame;
- 	unsigned long return_address;
- };
-+
-+static inline unsigned long rewind_frame_pointer(int n)
-+{
-+	struct stack_frame *frame;
-+
-+	get_bp(frame);
-+
-+#ifdef CONFIG_FRAME_POINTER
-+	while (n--)
-+		frame = frame->next_frame;
- #endif
-+
-+	return (unsigned long)frame;
-+}
-+
-+#endif /* DUMPSTACK_H */
-diff --git a/include/linux/perf_event.h b/include/linux/perf_event.h
-index 80acbf3..70cffd0 100644
---- a/include/linux/perf_event.h
-+++ b/include/linux/perf_event.h
-@@ -452,6 +452,7 @@ enum perf_callchain_context {
- #include <linux/fs.h>
- #include <linux/pid_namespace.h>
- #include <linux/workqueue.h>
-+#include <linux/ftrace.h>
- #include <asm/atomic.h>
- 
- #define PERF_MAX_STACK_DEPTH		255
-@@ -847,6 +848,44 @@ perf_sw_event(u32 event_id, u64 nr, int nmi, struct pt_regs *regs, u64 addr)
- 		__perf_sw_event(event_id, nr, nmi, regs, addr);
+ struct pid;
+diff -puN kernel/extable.c~add-a-kernel_address-that-works-for-data-too kernel/extable.c
+--- a/kernel/extable.c~add-a-kernel_address-that-works-for-data-too
++++ a/kernel/extable.c
+@@ -72,6 +72,18 @@ int core_kernel_text(unsigned long addr)
+ 	return 0;
  }
  
-+extern void
-+perf_arch_fetch_caller_regs(struct pt_regs *regs, unsigned long ip, int skip);
-+
-+/*
-+ * Take a snapshot of the regs. Skip ip and frame pointer to
-+ * the nth caller. We only need a few of the regs:
-+ * - ip for PERF_SAMPLE_IP
-+ * - cs for user_mode() tests
-+ * - bp for callchains
-+ * - eflags, for future purposes, just in case
-+ */
-+static inline void perf_fetch_caller_regs(struct pt_regs *regs, int skip)
++static int core_kernel_address(unsigned long addr)
 +{
-+	unsigned long ip;
-+
-+	memset(regs, 0, sizeof(*regs));
-+
-+	switch (skip) {
-+	case 1 :
-+		ip = CALLER_ADDR0;
-+		break;
-+	case 2 :
-+		ip = CALLER_ADDR1;
-+		break;
-+	case 3 :
-+		ip = CALLER_ADDR2;
-+		break;
-+	case 4:
-+		ip = CALLER_ADDR3;
-+		break;
-+	/* No need to support further for now */
-+	default:
-+		ip = 0;
++	if ((addr >= (unsigned long)_text &&
++	     addr <= (unsigned long)_end)) {
++		if (addr >= (unsigned long)__init_begin &&
++		    addr < (unsigned long)__init_end)
++			return system_state == SYSTEM_BOOTING;
++		return 1;
 +	}
-+
-+	return perf_arch_fetch_caller_regs(regs, ip, skip);
++	return 0;
 +}
 +
- extern void __perf_event_mmap(struct vm_area_struct *vma);
- 
- static inline void perf_event_mmap(struct vm_area_struct *vma)
-@@ -880,7 +919,8 @@ static inline bool perf_paranoid_kernel(void)
+ int __kernel_text_address(unsigned long addr)
+ {
+ 	if (core_kernel_text(addr))
+@@ -98,6 +110,12 @@ int kernel_text_address(unsigned long ad
+ 	return is_module_text_address(addr);
  }
  
- extern void perf_event_init(void);
--extern void perf_tp_event(int event_id, u64 addr, u64 count, void *record, int entry_size);
-+extern void perf_tp_event(int event_id, u64 addr, u64 count, void *record,
-+			  int entry_size, struct pt_regs *regs);
- extern void perf_bp_event(struct perf_event *event, void *data);
- 
- #ifndef perf_misc_flags
-diff --git a/kernel/perf_event.c b/kernel/perf_event.c
-index 52c69a3..359d7f6 100644
---- a/kernel/perf_event.c
-+++ b/kernel/perf_event.c
-@@ -2786,6 +2786,11 @@ __weak struct perf_callchain_entry *perf_callchain(struct pt_regs *regs)
- 	return NULL;
- }
- 
-+__weak
-+void perf_arch_fetch_caller_regs(struct pt_regs *regs, unsigned long ip, int skip)
++/* text or data in core kernel or module */
++int kernel_address(unsigned long addr)
 +{
++	return core_kernel_address(addr) || is_module_address(addr);
 +}
 +
  /*
-  * Output
-  */
+  * On some architectures (PPC64, IA64) function pointers
+  * are actually only tokens to some data that then holds the
+_
+
+Patches currently in -mm which might be from andi@firstfloor.org are
+
+mm-introduce-dump_page-and-print-symbolic-flag-names.patch
+linux-next.patch
+hardware-latency-detector-remove-default-m.patch
+modpost-support-objects-with-more-than-64k-sections.patch
+tracehooks-kill-some-pt_ptraced-checks.patch
+tracehooks-check-pt_ptraced-before-reporting-the-single-step.patch
+ptrace_signal-check-pt_ptraced-before-reporting-a-signal.patch
+export-__ptrace_detach-and-do_notify_parent_cldstop.patch
+reorder-the-code-in-kernel-ptracec.patch
+implement-utrace-ptrace.patch
+utrace-core.patch
+add-a-kernel_address-that-works-for-data-too.patch
+sysctl-add-proc_rcu_string-to-manage-sysctls-using-rcu-strings.patch
+sysctl-use-rcu-strings-for-core_pattern-sysctl.patch
+sysctl-add-call_usermodehelper_cleanup.patch
+sysctl-convert-modprobe_path-to-proc_rcu_string.patch
+sysctl-convert-poweroff_command-to-proc_rcu_string.patch
+sysctl-convert-hotplug-helper-string-to-proc_rcu_string.patch
+sysctl-use-rcu-protected-sysctl-for-ocfs-group-add-helper.patch
+sysctl-fix-up-remaining-references-to-uevent_helper.patch
+sysctl-fix-up-remaining-references-to-uevent_helper-fix.patch
+
