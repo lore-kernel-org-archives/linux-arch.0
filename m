@@ -1,40 +1,38 @@
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [PATCH 5/6] early_res: seperate common memmap func from e820.c
- to fw_memmap.c
-Date: Thu, 11 Mar 2010 10:46:20 +1100
-Message-ID: <20100310234620.GA3897@brick.ozlabs.ibm.com>
-References: <1268256267-3769-1-git-send-email-yinghai@kernel.org>
- <1268256267-3769-6-git-send-email-yinghai@kernel.org>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [RFC PATCH 6/6] sparc64: use early_res and nobootmem
+Date: Thu, 11 Mar 2010 10:47:17 +1100
+Message-ID: <1268264837.22204.688.camel@pasglop>
+References: <4B9818CE.7090809@kernel.org>
+	 <20100310.141757.95833226.davem@davemloft.net>
+	 <4B981DBD.2060303@kernel.org>
+	 <20100310.143602.266086944.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:60281 "EHLO ozlabs.org"
+Received: from gate.crashing.org ([63.228.1.57]:36521 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757439Ab0CJXqY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 Mar 2010 18:46:24 -0500
-Content-Disposition: inline
-In-Reply-To: <1268256267-3769-6-git-send-email-yinghai@kernel.org>
+	id S1757439Ab0CJXsH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 Mar 2010 18:48:07 -0500
+In-Reply-To: <20100310.143602.266086944.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: yinghai@kernel.org, mingo@elte.hu, tglx@linutronix.de, hpa@zytor.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wed, Mar 10, 2010 at 01:24:26PM -0800, Yinghai Lu wrote:
-
-> move it to kernel/fw_memmap.c from arch/x86/kernel/e820.c
+On Wed, 2010-03-10 at 14:36 -0800, David Miller wrote:
+> LMB could do this too with minor modifications.
 > 
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> Simply make the lmb.memory and lmb.reserved be pointers, and initially
+> they point into the static array(s).
 > 
-> ---
->  arch/x86/include/asm/e820.h |  130 -----
->  arch/x86/kernel/e820.c      | 1142 --------------------------------------------
->  include/linux/bootmem.h     |    2 
->  include/linux/fw_memmap.h   |  114 ++++
->  kernel/Makefile             |    2 
->  kernel/fw_memmap.c          | 1134 +++++++++++++++++++++++++++++++++++++++++++
+> Later the pointers can be repositioned to point to dynamically
+> allocated memory.
+> 
+> So please, for the third time, please show me how LMB with some minor
+> modifications is not able to satisfy your needs. 
 
-Yuck.  So you think we should use > 1100 lines of fw_memmap.c code
-instead of the 541 lines of lib/lmb.c?  Why exactly would that be
-better?
+So I was about to say the exact same stuff here...
 
-Paul.
+Cheers,
+Ben.
