@@ -1,7 +1,7 @@
 From: tip-bot for Frederic Weisbecker <fweisbec@gmail.com>
-Subject: [tip:perf/urgent] perf: Take a hot regs snapshot for trace events
-Date: Wed, 10 Mar 2010 15:37:32 GMT
-Message-ID: <tip-c530665c31c0140b74ca7689e7f836177796e5bd@git.kernel.org>
+Subject: [tip:perf/urgent] perf: Introduce new perf_fetch_caller_regs() for hot regs snapshot
+Date: Wed, 10 Mar 2010 15:37:16 GMT
+Message-ID: <tip-5331d7b84613b8325362dde53dc2bff2fb87d351@git.kernel.org>
 Reply-To: linux-kernel@vger.kernel.org, mingo@redhat.com, hpa@zytor.com,
 	  paulus@samba.org, acme@redhat.com, peterz@infradead.org,
 	  fweisbec@gmail.com, rostedt@goodmis.org, jbaron@redhat.com,
@@ -10,73 +10,42 @@ Reply-To: linux-kernel@vger.kernel.org, mingo@redhat.com, hpa@zytor.com,
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:48159 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:48130 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756682Ab0CJPiU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 Mar 2010 10:38:20 -0500
+	id S1756725Ab0CJPhk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 Mar 2010 10:37:40 -0500
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
 Cc: acme@redhat.com, paulus@samba.org, hpa@zytor.com, mingo@redhat.com, peterz@infradead.org, fweisbec@gmail.com, rostedt@goodmis.org, jbaron@redhat.com, tglx@linutronix.de, linux-arch@vger.kernel.org, mhiramat@redhat.com, mingo@elte.hu
 
-Commit-ID:  c530665c31c0140b74ca7689e7f836177796e5bd
-Gitweb:     http://git.kernel.org/tip/c530665c31c0140b74ca7689e7f836177796e5bd
+Commit-ID:  5331d7b84613b8325362dde53dc2bff2fb87d351
+Gitweb:     http://git.kernel.org/tip/5331d7b84613b8325362dde53dc2bff2fb87d351
 Author:     Frederic Weisbecker <fweisbec@gmail.com>
-AuthorDate: Wed, 3 Mar 2010 07:16:16 +0100
+AuthorDate: Thu, 4 Mar 2010 21:15:56 +0100
 Committer:  Frederic Weisbecker <fweisbec@gmail.com>
-CommitDate: Wed, 10 Mar 2010 14:40:38 +0100
+CommitDate: Wed, 10 Mar 2010 14:39:35 +0100
 
-perf: Take a hot regs snapshot for trace events
+perf: Introduce new perf_fetch_caller_regs() for hot regs snapshot
 
-We are taking a wrong regs snapshot when a trace event triggers.
-Either we use get_irq_regs(), which gives us the interrupted
-registers if we are in an interrupt, or we use task_pt_regs()
-which gives us the state before we entered the kernel, assuming
-we are lucky enough to be no kernel thread, in which case
-task_pt_regs() returns the initial set of regs when the kernel
-thread was started.
+Events that trigger overflows by interrupting a context can
+use get_irq_regs() or task_pt_regs() to retrieve the state
+when the event triggered. But this is not the case for some
+other class of events like trace events as tracepoints are
+executed in the same context than the code that triggered
+the event.
 
-What we want is different. We need a hot snapshot of the regs,
-so that we can get the instruction pointer to record in the
-sample, the frame pointer for the callchain, and some other
-things.
+It means we need a different api to capture the regs there,
+namely we need a hot snapshot to get the most important
+informations for perf: the instruction pointer to get the
+event origin, the frame pointer for the callchain, the code
+segment for user_mode() tests (we always use __KERNEL_CS as
+trace events always occur from the kernel) and the eflags
+for further purposes.
 
-Let's use the new perf_fetch_caller_regs() for that.
-
-Comparison with perf record -e lock: -R -a -f -g
-Before:
-
-        perf  [kernel]                   [k] __do_softirq
-               |
-               --- __do_softirq
-                  |
-                  |--55.16%-- __open
-                  |
-                   --44.84%-- __write_nocancel
-
-After:
-
-            perf  [kernel]           [k] perf_tp_event
-               |
-               --- perf_tp_event
-                  |
-                  |--41.07%-- lock_acquire
-                  |          |
-                  |          |--39.36%-- _raw_spin_lock
-                  |          |          |
-                  |          |          |--7.81%-- hrtimer_interrupt
-                  |          |          |          smp_apic_timer_interrupt
-                  |          |          |          apic_timer_interrupt
-
-The old case was producing unreliable callchains. Now having
-right frame and instruction pointers, we have the trace we
-want.
-
-Also syscalls and kprobe events already have the right regs,
-let's use them instead of wasting a retrieval.
-
-v2: Follow the rename perf_save_regs() -> perf_fetch_caller_regs()
+v2: rename perf_save_regs to perf_fetch_caller_regs as per
+Masami's suggestion.
 
 Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
 Cc: Ingo Molnar <mingo@elte.hu>
@@ -90,158 +59,136 @@ Cc: Masami Hiramatsu <mhiramat@redhat.com>
 Cc: Jason Baron <jbaron@redhat.com>
 Cc: Archs <linux-arch@vger.kernel.org>
 ---
- include/linux/ftrace_event.h       |    7 +++++--
- include/trace/ftrace.h             |    6 +++++-
- kernel/perf_event.c                |    8 ++------
- kernel/trace/trace_event_profile.c |    3 ++-
- kernel/trace/trace_kprobe.c        |    5 +++--
- kernel/trace/trace_syscalls.c      |    4 ++--
- 6 files changed, 19 insertions(+), 14 deletions(-)
+ arch/x86/kernel/cpu/perf_event.c |   12 ++++++++++
+ arch/x86/kernel/dumpstack.h      |   15 +++++++++++++
+ include/linux/perf_event.h       |   42 +++++++++++++++++++++++++++++++++++++-
+ kernel/perf_event.c              |    5 ++++
+ 4 files changed, 73 insertions(+), 1 deletions(-)
 
-diff --git a/include/linux/ftrace_event.h b/include/linux/ftrace_event.h
-index 6b7c444..ac424f1 100644
---- a/include/linux/ftrace_event.h
-+++ b/include/linux/ftrace_event.h
-@@ -187,6 +187,9 @@ do {									\
+diff --git a/arch/x86/kernel/cpu/perf_event.c b/arch/x86/kernel/cpu/perf_event.c
+index 1d665a0..c6bde7d 100644
+--- a/arch/x86/kernel/cpu/perf_event.c
++++ b/arch/x86/kernel/cpu/perf_event.c
+@@ -1707,3 +1707,15 @@ struct perf_callchain_entry *perf_callchain(struct pt_regs *regs)
  
- #ifdef CONFIG_PERF_EVENTS
- struct perf_event;
-+
-+DECLARE_PER_CPU(struct pt_regs, perf_trace_regs);
-+
- extern int ftrace_profile_enable(int event_id);
- extern void ftrace_profile_disable(int event_id);
- extern int ftrace_profile_set_filter(struct perf_event *event, int event_id,
-@@ -198,11 +201,11 @@ ftrace_perf_buf_prepare(int size, unsigned short type, int *rctxp,
- 
- static inline void
- ftrace_perf_buf_submit(void *raw_data, int size, int rctx, u64 addr,
--		       u64 count, unsigned long irq_flags)
-+		       u64 count, unsigned long irq_flags, struct pt_regs *regs)
- {
- 	struct trace_entry *entry = raw_data;
- 
--	perf_tp_event(entry->type, addr, count, raw_data, size);
-+	perf_tp_event(entry->type, addr, count, raw_data, size, regs);
- 	perf_swevent_put_recursion_context(rctx);
- 	local_irq_restore(irq_flags);
+ 	return entry;
  }
-diff --git a/include/trace/ftrace.h b/include/trace/ftrace.h
-index 0804cd5..f31bb8b 100644
---- a/include/trace/ftrace.h
-+++ b/include/trace/ftrace.h
-@@ -764,6 +764,7 @@ ftrace_profile_templ_##call(struct ftrace_event_call *event_call,	\
- 	struct ftrace_raw_##call *entry;				\
- 	u64 __addr = 0, __count = 1;					\
- 	unsigned long irq_flags;					\
-+	struct pt_regs *__regs;						\
- 	int __entry_size;						\
- 	int __data_size;						\
- 	int rctx;							\
-@@ -784,8 +785,11 @@ ftrace_profile_templ_##call(struct ftrace_event_call *event_call,	\
- 									\
- 	{ assign; }							\
- 									\
-+	__regs = &__get_cpu_var(perf_trace_regs);			\
-+	perf_fetch_caller_regs(__regs, 2);				\
-+									\
- 	ftrace_perf_buf_submit(entry, __entry_size, rctx, __addr,	\
--			       __count, irq_flags);			\
-+			       __count, irq_flags, __regs);		\
++
++void perf_arch_fetch_caller_regs(struct pt_regs *regs, unsigned long ip, int skip)
++{
++	regs->ip = ip;
++	/*
++	 * perf_arch_fetch_caller_regs adds another call, we need to increment
++	 * the skip level
++	 */
++	regs->bp = rewind_frame_pointer(skip + 1);
++	regs->cs = __KERNEL_CS;
++	local_save_flags(regs->flags);
++}
+diff --git a/arch/x86/kernel/dumpstack.h b/arch/x86/kernel/dumpstack.h
+index 4fd1420..29e5f7c 100644
+--- a/arch/x86/kernel/dumpstack.h
++++ b/arch/x86/kernel/dumpstack.h
+@@ -29,4 +29,19 @@ struct stack_frame {
+ 	struct stack_frame *next_frame;
+ 	unsigned long return_address;
+ };
++
++static inline unsigned long rewind_frame_pointer(int n)
++{
++	struct stack_frame *frame;
++
++	get_bp(frame);
++
++#ifdef CONFIG_FRAME_POINTER
++	while (n--)
++		frame = frame->next_frame;
+ #endif
++
++	return (unsigned long)frame;
++}
++
++#endif /* DUMPSTACK_H */
+diff --git a/include/linux/perf_event.h b/include/linux/perf_event.h
+index 80acbf3..70cffd0 100644
+--- a/include/linux/perf_event.h
++++ b/include/linux/perf_event.h
+@@ -452,6 +452,7 @@ enum perf_callchain_context {
+ #include <linux/fs.h>
+ #include <linux/pid_namespace.h>
+ #include <linux/workqueue.h>
++#include <linux/ftrace.h>
+ #include <asm/atomic.h>
+ 
+ #define PERF_MAX_STACK_DEPTH		255
+@@ -847,6 +848,44 @@ perf_sw_event(u32 event_id, u64 nr, int nmi, struct pt_regs *regs, u64 addr)
+ 		__perf_sw_event(event_id, nr, nmi, regs, addr);
  }
  
- #undef DEFINE_EVENT
++extern void
++perf_arch_fetch_caller_regs(struct pt_regs *regs, unsigned long ip, int skip);
++
++/*
++ * Take a snapshot of the regs. Skip ip and frame pointer to
++ * the nth caller. We only need a few of the regs:
++ * - ip for PERF_SAMPLE_IP
++ * - cs for user_mode() tests
++ * - bp for callchains
++ * - eflags, for future purposes, just in case
++ */
++static inline void perf_fetch_caller_regs(struct pt_regs *regs, int skip)
++{
++	unsigned long ip;
++
++	memset(regs, 0, sizeof(*regs));
++
++	switch (skip) {
++	case 1 :
++		ip = CALLER_ADDR0;
++		break;
++	case 2 :
++		ip = CALLER_ADDR1;
++		break;
++	case 3 :
++		ip = CALLER_ADDR2;
++		break;
++	case 4:
++		ip = CALLER_ADDR3;
++		break;
++	/* No need to support further for now */
++	default:
++		ip = 0;
++	}
++
++	return perf_arch_fetch_caller_regs(regs, ip, skip);
++}
++
+ extern void __perf_event_mmap(struct vm_area_struct *vma);
+ 
+ static inline void perf_event_mmap(struct vm_area_struct *vma)
+@@ -880,7 +919,8 @@ static inline bool perf_paranoid_kernel(void)
+ }
+ 
+ extern void perf_event_init(void);
+-extern void perf_tp_event(int event_id, u64 addr, u64 count, void *record, int entry_size);
++extern void perf_tp_event(int event_id, u64 addr, u64 count, void *record,
++			  int entry_size, struct pt_regs *regs);
+ extern void perf_bp_event(struct perf_event *event, void *data);
+ 
+ #ifndef perf_misc_flags
 diff --git a/kernel/perf_event.c b/kernel/perf_event.c
-index 359d7f6..45b4b6e 100644
+index 52c69a3..359d7f6 100644
 --- a/kernel/perf_event.c
 +++ b/kernel/perf_event.c
-@@ -4318,9 +4318,8 @@ static const struct pmu perf_ops_task_clock = {
- #ifdef CONFIG_EVENT_TRACING
- 
- void perf_tp_event(int event_id, u64 addr, u64 count, void *record,
--			  int entry_size)
-+		   int entry_size, struct pt_regs *regs)
- {
--	struct pt_regs *regs = get_irq_regs();
- 	struct perf_sample_data data;
- 	struct perf_raw_record raw = {
- 		.size = entry_size,
-@@ -4330,12 +4329,9 @@ void perf_tp_event(int event_id, u64 addr, u64 count, void *record,
- 	perf_sample_data_init(&data, addr);
- 	data.raw = &raw;
- 
--	if (!regs)
--		regs = task_pt_regs(current);
--
- 	/* Trace events already protected against recursion */
- 	do_perf_sw_event(PERF_TYPE_TRACEPOINT, event_id, count, 1,
--				&data, regs);
-+			 &data, regs);
+@@ -2786,6 +2786,11 @@ __weak struct perf_callchain_entry *perf_callchain(struct pt_regs *regs)
+ 	return NULL;
  }
- EXPORT_SYMBOL_GPL(perf_tp_event);
  
-diff --git a/kernel/trace/trace_event_profile.c b/kernel/trace/trace_event_profile.c
-index f0d6930..e66d21e 100644
---- a/kernel/trace/trace_event_profile.c
-+++ b/kernel/trace/trace_event_profile.c
-@@ -2,13 +2,14 @@
-  * trace event based perf counter profiling
-  *
-  * Copyright (C) 2009 Red Hat Inc, Peter Zijlstra <pzijlstr@redhat.com>
-- *
-+ * Copyright (C) 2009-2010 Frederic Weisbecker <fweisbec@gmail.com>
++__weak
++void perf_arch_fetch_caller_regs(struct pt_regs *regs, unsigned long ip, int skip)
++{
++}
++
+ /*
+  * Output
   */
- 
- #include <linux/module.h>
- #include <linux/kprobes.h>
- #include "trace.h"
- 
-+DEFINE_PER_CPU(struct pt_regs, perf_trace_regs);
- 
- static char *perf_trace_buf;
- static char *perf_trace_buf_nmi;
-diff --git a/kernel/trace/trace_kprobe.c b/kernel/trace/trace_kprobe.c
-index 505c922..f7a20a8 100644
---- a/kernel/trace/trace_kprobe.c
-+++ b/kernel/trace/trace_kprobe.c
-@@ -1240,7 +1240,7 @@ static __kprobes void kprobe_profile_func(struct kprobe *kp,
- 	for (i = 0; i < tp->nr_args; i++)
- 		entry->args[i] = call_fetch(&tp->args[i].fetch, regs);
- 
--	ftrace_perf_buf_submit(entry, size, rctx, entry->ip, 1, irq_flags);
-+	ftrace_perf_buf_submit(entry, size, rctx, entry->ip, 1, irq_flags, regs);
- }
- 
- /* Kretprobe profile handler */
-@@ -1271,7 +1271,8 @@ static __kprobes void kretprobe_profile_func(struct kretprobe_instance *ri,
- 	for (i = 0; i < tp->nr_args; i++)
- 		entry->args[i] = call_fetch(&tp->args[i].fetch, regs);
- 
--	ftrace_perf_buf_submit(entry, size, rctx, entry->ret_ip, 1, irq_flags);
-+	ftrace_perf_buf_submit(entry, size, rctx, entry->ret_ip, 1,
-+			       irq_flags, regs);
- }
- 
- static int probe_profile_enable(struct ftrace_event_call *call)
-diff --git a/kernel/trace/trace_syscalls.c b/kernel/trace/trace_syscalls.c
-index cba47d7..7e6e84f 100644
---- a/kernel/trace/trace_syscalls.c
-+++ b/kernel/trace/trace_syscalls.c
-@@ -467,7 +467,7 @@ static void prof_syscall_enter(struct pt_regs *regs, long id)
- 	rec->nr = syscall_nr;
- 	syscall_get_arguments(current, regs, 0, sys_data->nb_args,
- 			       (unsigned long *)&rec->args);
--	ftrace_perf_buf_submit(rec, size, rctx, 0, 1, flags);
-+	ftrace_perf_buf_submit(rec, size, rctx, 0, 1, flags, regs);
- }
- 
- int prof_sysenter_enable(struct ftrace_event_call *call)
-@@ -542,7 +542,7 @@ static void prof_syscall_exit(struct pt_regs *regs, long ret)
- 	rec->nr = syscall_nr;
- 	rec->ret = syscall_get_return_value(current, regs);
- 
--	ftrace_perf_buf_submit(rec, size, rctx, 0, 1, flags);
-+	ftrace_perf_buf_submit(rec, size, rctx, 0, 1, flags, regs);
- }
- 
- int prof_sysexit_enable(struct ftrace_event_call *call)
