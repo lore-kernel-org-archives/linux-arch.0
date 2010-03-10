@@ -1,38 +1,35 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCH/RFC 1/8] numa: prep:  move generic percpu interface definitions
- to percpu-defs.h
-Date: Wed, 10 Mar 2010 18:06:16 +0900
-Message-ID: <4B976108.1010404@kernel.org>
-References: <20100304170654.10606.32225.sendpatchset@localhost.localdomain>	 <20100304170702.10606.85808.sendpatchset@localhost.localdomain>	 <4B960AD0.8010709@kernel.org> <1268144009.27921.9.camel@useless.americas.hpqcorp.net>
+From: David Miller <davem@davemloft.net>
+Subject: Re: further plans on bootmem, was: Re: -
+ bootmem-avoid-dma32-zone-by-default.patch removed from -mm tree
+Date: Tue, 09 Mar 2010 23:16:35 -0800 (PST)
+Message-ID: <20100309.231635.199019630.davem@davemloft.net>
+References: <4B96B923.7020805@kernel.org>
+	<20100309134902.171ba2ae.akpm@linux-foundation.org>
+	<20100310000121.GA9985@cmpxchg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:50187 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755985Ab0CJJHL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 Mar 2010 04:07:11 -0500
-In-Reply-To: <1268144009.27921.9.camel@useless.americas.hpqcorp.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-numa@vger.kernel.org, Mel Gorman <mel@csn.ul.ie>, Andi Kleen <andi@firstfloor.org>, Christoph Lameter <cl@linux-foundation.org>, Nick Piggin <npiggin@suse.de>, David Rientjes <rientjes@google.com>, akpm@linux-foundation.org, eric.whitney@hp.com
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20100310000121.GA9985@cmpxchg.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: hannes@cmpxchg.org
+Cc: akpm@linux-foundation.org, yinghai@kernel.org, x86@kernel.org, linux-arch@kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
+From: Johannes Weiner <hannes@cmpxchg.org>
+Date: Wed, 10 Mar 2010 01:01:21 +0100
 
-On 03/09/2010 11:13 PM, Lee Schermerhorn wrote:
->> Hmmm... I think uninlining !SMP case would be much cleaner.  Sorry
->> that you had to do it twice.  I'll break the dependency in the percpu
->> devel branch and let you know.
-> 
-> OK, I'll do that for V4.  It'll be one big ugly patch because of all the
-> dependencies.  But, it's really just a mechanical change.
+> I also found it weird that it makes x86 skip an allocator level that all
+> the other architectures are using, and replaces it with 'generic' code that
+> nobody but x86 is using (sparc, powerpc, sh and microblaze  appear to have
+> lib/lmb.c at this stage and for this purpose? lmb was also suggested by
+> benh [4] but I have to admit I do not understand Yinghai's response to it).
 
-Just in case it wasn't clear.  I'm giving it a shot right now.  I
-don't think it will be too ugly and it's something which should be
-done whether ugly or not.  I'll let you know how it turns out.
+It kind of irked me that lmb was passed over for whatever vague reason
+was given.
 
-Thanks.
+It works fine with memory hotplug on powerpc, so a lack of hotplug
+support can't be an argument for not using it.
 
--- 
-tejun
+But hey, having yet another early memory allocator instead of making
+one of the existing ones do what you want, that's fine right?
