@@ -1,35 +1,46 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: further plans on bootmem, was: Re: -
- bootmem-avoid-dma32-zone-by-default.patch removed from -mm tree
-Date: Tue, 09 Mar 2010 23:16:35 -0800 (PST)
-Message-ID: <20100309.231635.199019630.davem@davemloft.net>
-References: <4B96B923.7020805@kernel.org>
-	<20100309134902.171ba2ae.akpm@linux-foundation.org>
-	<20100310000121.GA9985@cmpxchg.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: DMA_ERROR_CODE (was: Re: linux-next: build failure after merge of the
+	final tree)
+Date: Wed, 10 Mar 2010 12:03:37 +0100
+Message-ID: <10f740e81003100303m5a4ffb45t26c380b4ef3dec37@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20100310000121.GA9985@cmpxchg.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: hannes@cmpxchg.org
-Cc: akpm@linux-foundation.org, yinghai@kernel.org, x86@kernel.org, linux-arch@kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: David Woodhouse <dwmw2@infradead.org>, linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, Maxim Levitsky <maximlevitsky@gmail.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Johannes Weiner <hannes@cmpxchg.org>
-Date: Wed, 10 Mar 2010 01:01:21 +0100
+On Mon, Mar 1, 2010 at 10:40, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+> After merging the final tree, today's linux-next build (powerpc
+> allyesconfig) failed like this:
+>
+> drivers/mtd/nand/r852.c:22: error: 'enable_dma' redeclared as different kind of symbol
+> arch/powerpc/include/asm/dma.h:189: note: previous definition of 'enable_dma' was here
+> drivers/mtd/nand/r852.c: In function 'r852_engine_enable':
+> drivers/mtd/nand/r852.c:545: error: implicit declaration of function 'msleep'
+>
+> Caused by commit 67e054e919248fa1db93de727fb9ad49eb700642 ("mtd: nand:
+> Add driver for Ricoh xD/SmartMedia reader") from the mtd.
+>
+> I applied the following patch for today.
+>
+> From: Stephen Rothwell <sfr@canb.auug.org.au>
+> Date: Mon, 1 Mar 2010 20:21:06 +1100
+> Subject: [PATCH] mtd: nand: fix name space clash
+>
+> and include delay.h for msleep().
 
-> I also found it weird that it makes x86 skip an allocator level that all
-> the other architectures are using, and replaces it with 'generic' code that
-> nobody but x86 is using (sparc, powerpc, sh and microblaze  appear to have
-> lib/lmb.c at this stage and for this purpose? lmb was also suggested by
-> benh [4] but I have to admit I do not understand Yinghai's response to it).
+Another issue is that this driver uses DMA_ERROR_CODE, which is currently
+defined on powerpc/sparc/x86 only.
 
-It kind of irked me that lmb was passed over for whatever vague reason
-was given.
+Gr{oetje,eeting}s,
 
-It works fine with memory hotplug on powerpc, so a lack of hotplug
-support can't be an argument for not using it.
+						Geert
 
-But hey, having yet another early memory allocator instead of making
-one of the existing ones do what you want, that's fine right?
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
