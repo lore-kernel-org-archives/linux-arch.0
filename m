@@ -1,148 +1,25 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 3/4] x86: use wake_system_ram_range instead of e820_any_mapped
- in agp path
-Date: Wed, 10 Mar 2010 13:24:24 -0800
-Message-ID: <1268256267-3769-4-git-send-email-yinghai@kernel.org>
-References: <1268256267-3769-1-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v2 0/6] early_res: fw_memmap.c
+Date: Wed, 10 Mar 2010 13:24:21 -0800
+Message-ID: <1268256267-3769-1-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN
 Content-Transfer-Encoding: 7BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-reply-to: <1268256267-3769-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from sca-es-mail-2.Sun.COM ([192.18.43.133]:62727 "EHLO
+	sca-es-mail-2.sun.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751834Ab0CJVZX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Mar 2010 16:25:23 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-put apterture_valid back to .c
-and early path still use e820_any_mapped()
+use wake_system_ram_range instead if needed.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+-v2: move common memmap fo fw_memmap.c
+     convert for sparc64
 
----
- arch/x86/include/asm/gart.h   |   22 ----------------------
- arch/x86/kernel/aperture_64.c |   22 ++++++++++++++++++++++
- drivers/char/agp/amd64-agp.c  |   39 ++++++++++++++++++++++++++++++++++++++-
- 3 files changed, 60 insertions(+), 23 deletions(-)
+Thanks
 
-Index: linux-2.6/arch/x86/include/asm/gart.h
-===================================================================
---- linux-2.6.orig/arch/x86/include/asm/gart.h
-+++ linux-2.6/arch/x86/include/asm/gart.h
-@@ -74,26 +74,4 @@ static inline void enable_gart_translati
-         pci_write_config_dword(dev, AMD64_GARTAPERTURECTL, ctl);
- }
- 
--static inline int aperture_valid(u64 aper_base, u32 aper_size, u32 min_size)
--{
--	if (!aper_base)
--		return 0;
--
--	if (aper_base + aper_size > 0x100000000ULL) {
--		printk(KERN_INFO "Aperture beyond 4GB. Ignoring.\n");
--		return 0;
--	}
--	if (e820_any_mapped(aper_base, aper_base + aper_size, E820_RAM)) {
--		printk(KERN_INFO "Aperture pointing to e820 RAM. Ignoring.\n");
--		return 0;
--	}
--	if (aper_size < min_size) {
--		printk(KERN_INFO "Aperture too small (%d MB) than (%d MB)\n",
--				 aper_size>>20, min_size>>20);
--		return 0;
--	}
--
--	return 1;
--}
--
- #endif /* _ASM_X86_GART_H */
-Index: linux-2.6/arch/x86/kernel/aperture_64.c
-===================================================================
---- linux-2.6.orig/arch/x86/kernel/aperture_64.c
-+++ linux-2.6/arch/x86/kernel/aperture_64.c
-@@ -145,6 +145,28 @@ static u32 __init find_cap(int bus, int
- 	return 0;
- }
- 
-+static int __init aperture_valid(u64 aper_base, u32 aper_size, u32 min_size)
-+{
-+	if (!aper_base)
-+		return 0;
-+
-+	if (aper_base + aper_size > 0x100000000ULL) {
-+		printk(KERN_INFO "Aperture beyond 4GB. Ignoring.\n");
-+		return 0;
-+	}
-+	if (e820_any_mapped(aper_base, aper_base + aper_size, E820_RAM)) {
-+		printk(KERN_INFO "Aperture pointing to e820 RAM. Ignoring.\n");
-+		return 0;
-+	}
-+	if (aper_size < min_size) {
-+		printk(KERN_INFO "Aperture too small (%d MB) than (%d MB)\n",
-+				 aper_size>>20, min_size>>20);
-+		return 0;
-+	}
-+
-+	return 1;
-+}
-+
- /* Read a standard AGPv3 bridge header */
- static u32 __init read_agp(int bus, int slot, int func, int cap, u32 *order)
- {
-Index: linux-2.6/drivers/char/agp/amd64-agp.c
-===================================================================
---- linux-2.6.orig/drivers/char/agp/amd64-agp.c
-+++ linux-2.6/drivers/char/agp/amd64-agp.c
-@@ -14,7 +14,6 @@
- #include <linux/agp_backend.h>
- #include <linux/mmzone.h>
- #include <asm/page.h>		/* PAGE_SIZE */
--#include <asm/e820.h>
- #include <asm/k8.h>
- #include <asm/gart.h>
- #include "agp.h"
-@@ -231,6 +230,44 @@ static const struct agp_bridge_driver am
- 	.agp_type_to_mask_type  = agp_generic_type_to_mask_type,
- };
- 
-+static int __devinit
-+__is_ram(unsigned long pfn, unsigned long nr_pages, void *arg)
-+{
-+	return 1;
-+}
-+
-+static int __devinit any_ram_in_range(u64 base, u64 size)
-+{
-+	unsigned long pfn, nr_pages;
-+
-+	pfn = base >> PAGE_SHIFT;
-+	nr_pages = size >> PAGE_SHIFT;
-+
-+	return walk_system_ram_range(pfn, nr_pages, NULL, __is_ram) == 1;
-+}
-+
-+static int __devinit aperture_valid(u64 aper_base, u32 aper_size, u32 min_size)
-+{
-+	if (!aper_base)
-+		return 0;
-+
-+	if (aper_base + aper_size > 0x100000000ULL) {
-+		printk(KERN_INFO "Aperture beyond 4GB. Ignoring.\n");
-+		return 0;
-+	}
-+	if (any_ram_in_range(aper_base, aper_size)) {
-+		printk(KERN_INFO "Aperture pointing to E820 RAM. Ignoring.\n");
-+		return 0;
-+	}
-+	if (aper_size < min_size) {
-+		printk(KERN_INFO "Aperture too small (%d MB) than (%d MB)\n",
-+				 aper_size>>20, min_size>>20);
-+		return 0;
-+	}
-+
-+	return 1;
-+}
-+
- /* Some basic sanity checks for the aperture. */
- static int __devinit agp_aperture_valid(u64 aper, u32 size)
- {
+Yinghai
