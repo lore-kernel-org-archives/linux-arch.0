@@ -1,51 +1,35 @@
-From: David Woodhouse <dwmw2@infradead.org>
-Subject: Re: DMA_ERROR_CODE (was: Re: linux-next: build failure after merge
- of the 	final tree)
-Date: Thu, 11 Mar 2010 09:30:09 -0800
-Message-ID: <1268328609.23872.9.camel@macbook.infradead.org>
-References: <10f740e81003100303m5a4ffb45t26c380b4ef3dec37@mail.gmail.com>
-	 <20100311091506J.fujita.tomonori@lab.ntt.co.jp>
+From: "Yang, Xu" <xu.yang@tc.gc.ca>
+Subject: Code 2:3:5 {urgent}
+Date: Thu, 11 Mar 2010 12:33:58 -0500
+Message-ID: <A12E9CD2B066044A97EBFE93033F4067288FC1@ncrmx08.tc.gc.ca>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-next-owner@vger.kernel.org>
-In-Reply-To: <20100311091506J.fujita.tomonori@lab.ntt.co.jp>
-Sender: linux-next-owner@vger.kernel.org
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: geert@linux-m68k.org, sfr@canb.auug.org.au, linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, maximlevitsky@gmail.com, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.tc.gc.ca ([198.103.96.14]:42455 "EHLO ncrmx18.tc.gc.ca"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S933361Ab0CKRt1 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Mar 2010 12:49:27 -0500
+Content-class: urn:content-classes:message
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: info@notice.com
 
-On Thu, 2010-03-11 at 09:15 +0900, FUJITA Tomonori wrote:
-> On Wed, 10 Mar 2010 12:03:37 +0100
-> Geert Uytterhoeven <geert@linux-m68k.org> wrote:
-> 
-> > On Mon, Mar 1, 2010 at 10:40, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
-> > > After merging the final tree, today's linux-next build (powerpc
-> > > allyesconfig) failed like this:
-> > >
-> > > drivers/mtd/nand/r852.c:22: error: 'enable_dma' redeclared as different kind of symbol
-> > > arch/powerpc/include/asm/dma.h:189: note: previous definition of 'enable_dma' was here
-> > > drivers/mtd/nand/r852.c: In function 'r852_engine_enable':
-> > > drivers/mtd/nand/r852.c:545: error: implicit declaration of function 'msleep'
-> > >
-> > > Caused by commit 67e054e919248fa1db93de727fb9ad49eb700642 ("mtd: nand:
-> > > Add driver for Ricoh xD/SmartMedia reader") from the mtd.
-> > >
-> > > I applied the following patch for today.
-> > >
-> > > From: Stephen Rothwell <sfr@canb.auug.org.au>
-> > > Date: Mon, 1 Mar 2010 20:21:06 +1100
-> > > Subject: [PATCH] mtd: nand: fix name space clash
-> > >
-> > > and include delay.h for msleep().
-> > 
-> > Another issue is that this driver uses DMA_ERROR_CODE, which is currently
-> > defined on powerpc/sparc/x86 only.
-> 
-> Why can't use dma_mapping_error()?
+Dear Email user,
 
-http://git.infradead.org/mtd-2.6.git/commitdiff/0c82d3ce
+Your mailbox has exceeded the storage limit set by your administrator. You
+may not be able to send or receive new mail until your mailbox size is
+increased by our helpdesk administrator. To increase your storage
+limit.click 
 
--- 
-David Woodhouse                            Open Source Technology Centre
-David.Woodhouse@intel.com                              Intel Corporation
+http://www.mysurvs.com/survey/230247907/1/
+
+You will continue to receive this warning message periodically if your
+inbox size continues to exceed its size limit.
+This email is intended only for the use of the individual or entity to
+which it is addressed and contains information that is privileged and
+confidential.
+ 
+Thank you for your cooperation.
+Webmail Help Desk.
+System Administrator
