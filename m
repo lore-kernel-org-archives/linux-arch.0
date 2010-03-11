@@ -1,48 +1,51 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [RFC PATCH 6/6] sparc64: use early_res and nobootmem
-Date: Thu, 11 Mar 2010 12:59:40 +0900
-Message-ID: <20100311035940.GA15111@linux-sh.org>
-References: <4B9818CE.7090809@kernel.org> <20100310.141757.95833226.davem@davemloft.net> <4B981DBD.2060303@kernel.org> <20100310.143602.266086944.davem@davemloft.net> <1268264837.22204.688.camel@pasglop> <4B9832FF.9010004@kernel.org>
+From: David Woodhouse <dwmw2@infradead.org>
+Subject: Re: DMA_ERROR_CODE (was: Re: linux-next: build failure after merge
+ of the 	final tree)
+Date: Thu, 11 Mar 2010 09:30:09 -0800
+Message-ID: <1268328609.23872.9.camel@macbook.infradead.org>
+References: <10f740e81003100303m5a4ffb45t26c380b4ef3dec37@mail.gmail.com>
+	 <20100311091506J.fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:53091 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756005Ab0CKEAb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Mar 2010 23:00:31 -0500
-Content-Disposition: inline
-In-Reply-To: <4B9832FF.9010004@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, mingo@elte.hu, tglx@linutronix.de, hpa@zytor.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-next-owner@vger.kernel.org>
+In-Reply-To: <20100311091506J.fujita.tomonori@lab.ntt.co.jp>
+Sender: linux-next-owner@vger.kernel.org
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: geert@linux-m68k.org, sfr@canb.auug.org.au, linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, maximlevitsky@gmail.com, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 10, 2010 at 04:02:07PM -0800, Yinghai Lu wrote:
-> On 03/10/2010 03:47 PM, Benjamin Herrenschmidt wrote:
-> > On Wed, 2010-03-10 at 14:36 -0800, David Miller wrote:
-> >> LMB could do this too with minor modifications.
-> >>
-> >> Simply make the lmb.memory and lmb.reserved be pointers, and initially
-> >> they point into the static array(s).
-> >>
-> >> Later the pointers can be repositioned to point to dynamically
-> >> allocated memory.
-> >>
-> >> So please, for the third time, please show me how LMB with some minor
-> >> modifications is not able to satisfy your needs. 
-> > 
-> > So I was about to say the exact same stuff here...
-> > 
-> let see:
-> 1. if early_res + fw_memmap could be simplified...
-> 2. or let x86 to use lmb instead of early_res,then add more to lmb.
+On Thu, 2010-03-11 at 09:15 +0900, FUJITA Tomonori wrote:
+> On Wed, 10 Mar 2010 12:03:37 +0100
+> Geert Uytterhoeven <geert@linux-m68k.org> wrote:
 > 
-I vote for LMB too, it's already used across multiple architectures and
-has proven to be quite versatile. If x86 is concerned about
-consolidation, then it's a good a place to start as any, particularly
-since it's not even that conceptually different from how the e820 maps
-are used.
+> > On Mon, Mar 1, 2010 at 10:40, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+> > > After merging the final tree, today's linux-next build (powerpc
+> > > allyesconfig) failed like this:
+> > >
+> > > drivers/mtd/nand/r852.c:22: error: 'enable_dma' redeclared as different kind of symbol
+> > > arch/powerpc/include/asm/dma.h:189: note: previous definition of 'enable_dma' was here
+> > > drivers/mtd/nand/r852.c: In function 'r852_engine_enable':
+> > > drivers/mtd/nand/r852.c:545: error: implicit declaration of function 'msleep'
+> > >
+> > > Caused by commit 67e054e919248fa1db93de727fb9ad49eb700642 ("mtd: nand:
+> > > Add driver for Ricoh xD/SmartMedia reader") from the mtd.
+> > >
+> > > I applied the following patch for today.
+> > >
+> > > From: Stephen Rothwell <sfr@canb.auug.org.au>
+> > > Date: Mon, 1 Mar 2010 20:21:06 +1100
+> > > Subject: [PATCH] mtd: nand: fix name space clash
+> > >
+> > > and include delay.h for msleep().
+> > 
+> > Another issue is that this driver uses DMA_ERROR_CODE, which is currently
+> > defined on powerpc/sparc/x86 only.
+> 
+> Why can't use dma_mapping_error()?
 
-This may come as a surprise, but if this had actually been brought up on
-linux-arch instead of buried in -tip and magically showing up in -next
-everyone involved could have saved a lot of time.
+http://git.infradead.org/mtd-2.6.git/commitdiff/0c82d3ce
+
+-- 
+David Woodhouse                            Open Source Technology Centre
+David.Woodhouse@intel.com                              Intel Corporation
