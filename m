@@ -1,52 +1,38 @@
-From: Jamie Lokier <jamie@shareable.org>
+From: "H. Peter Anvin" <hpa@zytor.com>
 Subject: Re: 64-syscall args on 32-bit vs syscall()
-Date: Mon, 15 Mar 2010 15:04:01 +0000
-Message-ID: <20100315150401.GF15133@shareable.org>
-References: <1268628493.2355.2.camel@pasglop>
+Date: Mon, 15 Mar 2010 08:13:53 -0700
+Message-ID: <4B9E4EB1.9010800@zytor.com>
+References: <1268628493.2355.2.camel@pasglop> <20100314.220646.190065794.davem@davemloft.net> <1268630313.2335.2.camel@pasglop> <20100315134449.GB1653@linux-mips.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.shareable.org ([80.68.89.115]:51091 "EHLO
-	mail2.shareable.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965065Ab0COPEM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Mar 2010 11:04:12 -0400
-Content-Disposition: inline
-In-Reply-To: <1268628493.2355.2.camel@pasglop>
+Received: from terminus.zytor.com ([198.137.202.10]:42776 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S965070Ab0COPVA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Mar 2010 11:21:00 -0400
+In-Reply-To: <20100315134449.GB1653@linux-mips.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mark Lord <kernel@teksavvy.com>, Ulrich Drepper <drepper@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Steven Munroe <munroesj@linux.vnet.ibm.com>
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, drepper@redhat.com, torvalds@linux-foundation.org, munroesj@linux.vnet.ibm.com
 
-Benjamin Herrenschmidt wrote:
-> err = syscall(SYS_fallocate, fd, mode, offset, len);
+On 03/15/2010 06:44 AM, Ralf Baechle wrote:
 > 
-> With "offset" being a 64-bit argument.
+> Syscall is most often used for new syscalls that have no syscall stub in
+> glibc yet, so the user of syscall() encodes this ABI knowledge.  If at a
+> later stage syscall() is changed to have this sort of knowledge we break
+> the API.  This is something only the kernel can get right.
 > 
-> This will break because the first argument to syscall now shifts
-> everything by one register, which breaks the register pair alignment
-> (and I suppose archs with stack based calling convention can have
-> similar alignment issues even if x86 doesn't).
-> 
-> Ulrich, Steven, shouldn't we have glibc's syscall() take a long long as
-> it's first argument to correct that ? Either that or making it some kind
-> of macro wrapper around a __syscall(int dummy, int sysno, ...) ?
-> 
-> As it is, any 32-bit app using syscall() on any of the syscalls that
-> takes 64-bit arguments will be broken, unless the app itself breaks up
-> the argument, but the the order of the hi and lo part is different
-> between BE and LE architectures ;-)
-> 
-> So is there a more "correct" solution than another here ? Should powerpc
-> glibc be fixed at least so that syscall() keeps the alignment ?
 
-There are several problems with syscall(), not just this - because a
-number of system calls in section 2 of the manual don't map directly
-to kernel syscalls with the same function prototype.
+One option would be to do a libkernel.so, with auto-generated stubs out
+of the kernel build tree.  As already discussed in #kernel this morning,
+there are a number of sticky points with types and namespaces for this
+this, but those aren't any worse than the equivalent problems for
+syscall(3).
 
-Even fork() has become something complicated in Glibc that doesn't use
-the fork syscall :-(
+	-hpa
 
-So anything using syscall() has to be careful on Linux already.
-Changing the 64-bit alignment won't fix the other differences.
-
--- Jamie
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
