@@ -1,62 +1,114 @@
-From: Ralf Baechle <ralf@linux-mips.org>
+From: Steven Munroe <munroesj@linux.vnet.ibm.com>
 Subject: Re: 64-syscall args on 32-bit vs syscall()
-Date: Mon, 15 Mar 2010 14:44:49 +0100
-Message-ID: <20100315134449.GB1653@linux-mips.org>
+Date: Mon, 15 Mar 2010 10:03:32 -0500
+Message-ID: <1268665412.19726.75.camel@spokane1.rchland.ibm.com>
 References: <1268628493.2355.2.camel@pasglop>
- <20100314.220646.190065794.davem@davemloft.net>
- <1268630313.2335.2.camel@pasglop>
+Reply-To: munroesj@us.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from eddie.linux-mips.org ([78.24.191.182]:45438 "EHLO
-	eddie.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S936195Ab0CONp2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Mar 2010 09:45:28 -0400
-Content-Disposition: inline
-In-Reply-To: <1268630313.2335.2.camel@pasglop>
+Received: from e36.co.us.ibm.com ([32.97.110.154]:48525 "EHLO
+	e36.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965103Ab0COOya (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Mar 2010 10:54:30 -0400
+In-Reply-To: <1268628493.2355.2.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, drepper@redhat.com, torvalds@linux-foundation.org, munroesj@linux.vnet.ibm.com
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, "Ryan S. Arnold" <rsa@us.ibm.com>
+Cc: linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mark Lord <kernel@teksavvy.com>, Ulrich Drepper <drepper@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Mon, Mar 15, 2010 at 04:18:33PM +1100, Benjamin Herrenschmidt wrote:
-
-> On Sun, 2010-03-14 at 22:06 -0700, David Miller wrote:
-> > From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> > Date: Mon, 15 Mar 2010 15:48:13 +1100
-> > 
-> > > As it is, any 32-bit app using syscall() on any of the syscalls that
-> > > takes 64-bit arguments will be broken, unless the app itself breaks up
-> > > the argument, but the the order of the hi and lo part is different
-> > > between BE and LE architectures ;-)
-> > 
-> > I think it is even different on the same endian architectures,
-> > f.e. mips I think.
-
-MIPS passes arguments in the endian order that is low/high for little
-endian rsp high/low for big endian.
-
-> > There is no way to do this without some arch specific code
-> > to handle things properly, really.
+On Mon, 2010-03-15 at 15:48 +1100, Benjamin Herrenschmidt wrote:
+> Hoy there !
 > 
-> Right, but to what extent ? IE. do we always need the callers using
-> syscall() directly to know it all, or can we to some extent handle some
-> of it inside glibc ?
+> This may have been discussed earlier (I have some vague memories...) but
+> I just hit a problem with that again (Mark: hint, it's in hdparm's
+> fallocate) so I'd like a bit of a refresh here on what is the "right
+> thing" to do...
 > 
-> For example, if powerpc glibc is fixed so that syscall() takes a 64-bit
-> first argument (or calls via some macro to add a dummy 32-bit argument),
-> the register alignment will be preserved, and things will work just
-> fine.
+> So some syscalls want a 64-bit argument. Let's take fallocate() as our
+> example. So we already know that we have to be extra careful since some
+> 32-bit arch will pass this into 2 registers (or stack slots) which need
+> to be aligned, and so we tend to already take care of making sure that
+> the said 64-bit argument is either defined as 2x32-bit arguments, or
+> defined as 1x64 bit argument aligned to 2x32-bit in the argument list.
 > 
-> IE. It may not fix all problems with all archs, but in this case, it
-> will fix the common cases for powerpc at least :-) And any other arch
-> that has the exact same alignment problem.
+> So far so good...
 > 
-> Or is there any good reason -not- to do that in glibc ?
+> The problem is when user space tries to use the same trick for calling
+> those functions using glibc-provided syscall() function. In this
+> example, hdparm does:
+> 
+> err = syscall(SYS_fallocate, fd, mode, offset, len);
+> 
+> With "offset" being a 64-bit argument.
+> 
 
-Syscall is most often used for new syscalls that have no syscall stub in
-glibc yet, so the user of syscall() encodes this ABI knowledge.  If at a
-later stage syscall() is changed to have this sort of knowledge we break
-the API.  This is something only the kernel can get right.
+The powerpc implementation of syscall is:
 
-  Ralf
+
+ENTRY (syscall)
+	mr   r0,r3
+	mr   r3,r4
+	mr   r4,r5
+	mr   r5,r6
+	mr   r6,r7
+	mr   r7,r8
+	mr   r8,r9
+	sc
+	PSEUDO_RET
+PSEUDO_END (syscall)
+
+The ABI says:
+
+"Long long arguments are considered to have 8-byte size and alignment.
+The same 8-byte arguments that must go in aligned pairs or registers are
+8-byte aligned on the stack."
+
+This implies that the SYS_fallocate call will skip a register to get the
+required alignment in the parameter save area.
+
+for ppc32 on entry
+
+r3 == SYS_fallocate
+r4 == fd
+r5 == mode
+r6 == not used
+r7, r8 == offset
+r9 == len
+
+This gets shifted to:
+
+r0 == SYS_fallocate
+r3 == fd
+r4 == mode
+r5 == not used
+r6, r7 == offset
+r8 == len
+
+For syscall the vararg parms will be mirrored to the parameter save area
+but will not be used. The ABI does not talk to LE for this case.
+
+Ryan does the new ABI doc cover this?
+
+> This will break because the first argument to syscall now shifts
+> everything by one register, which breaks the register pair alignment
+> (and I suppose archs with stack based calling convention can have
+> similar alignment issues even if x86 doesn't).
+> 
+> Ulrich, Steven, shouldn't we have glibc's syscall() take a long long as
+> it's first argument to correct that ? Either that or making it some kind
+> of macro wrapper around a __syscall(int dummy, int sysno, ...) ?
+> 
+> As it is, any 32-bit app using syscall() on any of the syscalls that
+> takes 64-bit arguments will be broken, unless the app itself breaks up
+> the argument, but the the order of the hi and lo part is different
+> between BE and LE architectures ;-)
+> 
+> So is there a more "correct" solution than another here ? Should powerpc
+> glibc be fixed at least so that syscall() keeps the alignment ?
+> 
+> Cheers,
+> Ben.
+> 
+> 
