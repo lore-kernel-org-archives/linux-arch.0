@@ -1,44 +1,64 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: 64-syscall args on 32-bit vs syscall()
-Date: Mon, 15 Mar 2010 12:41:27 -0700
-Message-ID: <4B9E8D67.8040209@zytor.com>
-References: <20100315134449.GB1653@linux-mips.org>	<4B9E4EB1.9010800@zytor.com>	<4B9E59B7.6060405@redhat.com> <20100315.120004.209998642.davem@davemloft.net>
+Date: Tue, 16 Mar 2010 07:22:19 +1100
+Message-ID: <1268684539.2335.22.camel@pasglop>
+References: <1268628493.2355.2.camel@pasglop>
+	 <20100314.220646.190065794.davem@davemloft.net>
+	 <1268630313.2335.2.camel@pasglop>
+	 <20100314.225443.150715656.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:52317 "EHLO mail.zytor.com"
+Received: from gate.crashing.org ([63.228.1.57]:42382 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932117Ab0COTpt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Mar 2010 15:45:49 -0400
-In-Reply-To: <20100315.120004.209998642.davem@davemloft.net>
+	id S936679Ab0COUXT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Mar 2010 16:23:19 -0400
+In-Reply-To: <20100314.225443.150715656.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Miller <davem@davemloft.net>
-Cc: drepper@redhat.com, ralf@linux-mips.org, benh@kernel.crashing.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, torvalds@linux-foundation.org, munroesj@linux.vnet.ibm.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, drepper@redhat.com, torvalds@linux-foundation.org, munroesj@linux.vnet.ibm.com
 
-On 03/15/2010 12:00 PM, David Miller wrote:
-> From: Ulrich Drepper <drepper@redhat.com>
-> Date: Mon, 15 Mar 2010 09:00:55 -0700
+On Sun, 2010-03-14 at 22:54 -0700, David Miller wrote:
+> From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Date: Mon, 15 Mar 2010 16:18:33 +1100
 > 
->> On 03/15/2010 08:13 AM, H. Peter Anvin wrote:
->>> One option would be to do a libkernel.so,
->>
->> No need.  Put it in the vdso.  And name it something other than syscall.
->>  The syscall() API is fixed, you cannot change it.
->>
->> All this only if it makes sense for ALL archs.  If it cannot work for
->> just one arch then it's not worth it at all.
+> > Or is there any good reason -not- to do that in glibc ?
 > 
-> There are many archs that still lack VDSO.
+> The whole point of syscall() is to handle cases where the C library
+> doesn't know about the system call yet.
+> 
+> I think it's therefore very much "buyer beware".
+> 
+> On sparc it'll never work to use the workaround you're proposing since
+> we pass everything in via registers.
+> 
+> So arch knowledge will always need to be present in these situations.
 
-Putting it into the vdso is also rather annoyingly heavyweight for what
-is nothing other than an ordinary shared library.  Just making it an
-ordinary shared library seems a lot saner.
+I'm not sure I follow. We also pass via register on powerpc, but the
+offset introduced by the sysno argument breaks register pair alignment
+which cannot be fixed up inside syscall().
 
-I don't see why syscall() can't change the type for its first argument
--- it seems to be exactly what symbol versioning is for.
+However, if I change glibc's syscall to be something like
 
-Doesn't change the fact that it is fundamentally broken, of course.
+#define syscall(sysno, args...)	__syscall(0 /* dummy */, sysno, args)
 
-	-hpa
+And make __syscall then do something like:
+
+	mr	r0, r4
+	mr	r3, r5
+	mr	r4, r6
+	mr	r5, r7
+	mr	r6, r8
+	.../...
+	sc
+	blr
+
+Then at least all that class of syscalls will be fixed. Of course this
+has to be in glibc arch code. I was merely asking if that was something
+our glibc folks would consider and whether somebody could think of a
+better solution :-)
+
+Cheers
+,Ben.
