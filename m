@@ -1,61 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:56096 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:35777 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759022Ab0COEsy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Mar 2010 00:48:54 -0400
-Subject: 64-syscall args on 32-bit vs syscall()
+	id S1751648Ab0CQAcI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Mar 2010 20:32:08 -0400
+Subject: Re: 64-syscall args on 32-bit vs syscall()
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <1268776570.19726.98.camel@spokane1.rchland.ibm.com>
+References: <20100315134449.GB1653@linux-mips.org>
+	 <4B9E4EB1.9010800@zytor.com>	<4B9E59B7.6060405@redhat.com>
+	 <20100315.120004.209998642.davem@davemloft.net>
+	 <4B9E8D67.8040209@zytor.com>  <1268685311.2335.38.camel@pasglop>
+	 <1268776570.19726.98.camel@spokane1.rchland.ibm.com>
 Content-Type: text/plain; charset="UTF-8"
-Date: Mon, 15 Mar 2010 15:48:13 +1100
-Message-ID: <1268628493.2355.2.camel@pasglop>
+Date: Wed, 17 Mar 2010 11:31:14 +1100
+Message-ID: <1268785874.2335.137.camel@pasglop>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mark Lord <kernel@teksavvy.com>, Ulrich Drepper <drepper@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Steven Munroe <munroesj@linux.vnet.ibm.com>
-Message-ID: <20100315044813.Ao-Va4YYpbrYQ8uCLNrGlOfAR1uBEVxVZwSbxYwWHp4@z>
+To: munroesj@us.ibm.com
+Cc: "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, drepper@redhat.com, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, torvalds@linux-foundation.org
+Message-ID: <20100317003114.FRAPyuk2ub_p4QWLjQFW_h5EgA6At03V3LOaJpxK-3A@z>
 
-Hoy there !
+On Tue, 2010-03-16 at 16:56 -0500, Steven Munroe wrote:
+> On Tue, 2010-03-16 at 07:35 +1100, Benjamin Herrenschmidt wrote:
+> > On Mon, 2010-03-15 at 12:41 -0700, H. Peter Anvin wrote:
+> > > I don't see why syscall() can't change the type for its first argument
+> > > -- it seems to be exactly what symbol versioning is for.
+> > > 
+> > > Doesn't change the fact that it is fundamentally broken, of course. 
+> > 
+> > No need to change the type of the first arg and go for symbol
+> > versionning if you do something like I proposed earlier, there will be
+> > no conflict between syscall() and __syscall() and both variants can
+> > exist.
+> > 
+> One concern is the new syscall and the kernel have to match and mixing
+> will not work. your proposal seems to impact all syscalls not just the
+> one called via syscall API. These syscalls get generated inline which
+> makes static linking very dangerous ...
+> 
+> So I think you do need both symbol versioning and kernel feature stubs
+> (like xstat). That gets to be a lot of work
 
-This may have been discussed earlier (I have some vague memories...) but
-I just hit a problem with that again (Mark: hint, it's in hdparm's
-fallocate) so I'd like a bit of a refresh here on what is the "right
-thing" to do...
+What do you mean ? My proposal is purely a change to the syscall()
+function, nothing else. No kernel change, no ABI change, no change to
+the way glibc normally calls syscalls internally, etc... just the
+exported syscall() function to shift its arguments in order to avoid
+losing register pair alignment.
 
-So some syscalls want a 64-bit argument. Let's take fallocate() as our
-example. So we already know that we have to be extra careful since some
-32-bit arch will pass this into 2 registers (or stack slots) which need
-to be aligned, and so we tend to already take care of making sure that
-the said 64-bit argument is either defined as 2x32-bit arguments, or
-defined as 1x64 bit argument aligned to 2x32-bit in the argument list.
+And the change would still be compatible with existing userland code who
+manually splits the 64-bit arguments to avoid the problem on power.
 
-So far so good...
-
-The problem is when user space tries to use the same trick for calling
-those functions using glibc-provided syscall() function. In this
-example, hdparm does:
-
-err = syscall(SYS_fallocate, fd, mode, offset, len);
-
-With "offset" being a 64-bit argument.
-
-This will break because the first argument to syscall now shifts
-everything by one register, which breaks the register pair alignment
-(and I suppose archs with stack based calling convention can have
-similar alignment issues even if x86 doesn't).
-
-Ulrich, Steven, shouldn't we have glibc's syscall() take a long long as
-it's first argument to correct that ? Either that or making it some kind
-of macro wrapper around a __syscall(int dummy, int sysno, ...) ?
-
-As it is, any 32-bit app using syscall() on any of the syscalls that
-takes 64-bit arguments will be broken, unless the app itself breaks up
-the argument, but the the order of the hi and lo part is different
-between BE and LE architectures ;-)
-
-So is there a more "correct" solution than another here ? Should powerpc
-glibc be fixed at least so that syscall() keeps the alignment ?
+IE. Unless I've missed something, this would be a 100% backward
+compatible change that simply make a whole class of syscall() use work
+that didn't before on power (but did on x86), such as the one I hit in
+hdparm for example.
 
 Cheers,
 Ben.
