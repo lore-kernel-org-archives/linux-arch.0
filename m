@@ -1,47 +1,71 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: 64-syscall args on 32-bit vs syscall()
-Date: Wed, 17 Mar 2010 21:13:45 +1100
-Message-ID: <1268820825.2335.190.camel@pasglop>
+Date: Wed, 17 Mar 2010 21:18:58 +1100
+Message-ID: <1268821138.2335.196.camel@pasglop>
 References: <20100315134449.GB1653@linux-mips.org>
-	 <4B9E4EB1.9010800@zytor.com>	<4B9E59B7.6060405@redhat.com>
+	 <4B9E4EB1.9010800@zytor.com> <4B9E59B7.6060405@redhat.com>
 	 <20100315.120004.209998642.davem@davemloft.net>
-	 <4B9E8D67.8040209@zytor.com>  <1268685311.2335.38.camel@pasglop>
+	 <4B9E8D67.8040209@zytor.com> <1268685311.2335.38.camel@pasglop>
 	 <1268776570.19726.98.camel@spokane1.rchland.ibm.com>
-	 <1268785874.2335.137.camel@pasglop>  <4BA06E1B.2040706@redhat.com>
-	 <1268816179.2335.187.camel@pasglop>  <4BA09D5D.5090602@redhat.com>
+	 <1268785874.2335.137.camel@pasglop> <4BA06E1B.2040706@redhat.com>
+	 <1268816179.2335.187.camel@pasglop>  <20100317091820.GA8149@shareable.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:40798 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:44796 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753972Ab0CQKOs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Mar 2010 06:14:48 -0400
-In-Reply-To: <4BA09D5D.5090602@redhat.com>
+	id S1753757Ab0CQKUL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Mar 2010 06:20:11 -0400
+In-Reply-To: <20100317091820.GA8149@shareable.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ulrich Drepper <drepper@redhat.com>
-Cc: munroesj@us.ibm.com, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, torvalds@linux-foundation.org
+To: Jamie Lokier <jamie@shareable.org>
+Cc: Ulrich Drepper <drepper@redhat.com>, munroesj@us.ibm.com, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, torvalds@linux-foundation.org
 
-On Wed, 2010-03-17 at 02:14 -0700, Ulrich Drepper wrote:
-> >> I believe that should cover it, at least for powerpc, possibly for
-> other
-> >> archs too though as I said, I may have missed something there.
+On Wed, 2010-03-17 at 09:18 +0000, Jamie Lokier wrote:
+> Benjamin Herrenschmidt wrote:
+> > Hence, apps that use the first form today because it works on x86 would
+> > end up working at least on powerpc where they would have been otherwise
+> > broken unless they used some arch specific #ifdef to do the second form.
 > 
-> How can this possibly be the case?  This will screw people who
-> currently
-> work around the ppc limitations of the existing syscall.
+> I think what Ulrich is getting at is your change will break existing
+> code which already does:
+> 
+> #ifdef __powerpc__
+> 	syscall(SYS_foo, 0, my_64bit_arg);
+> #else
+> 	syscall(SYS_foo, my_64bit_arg);
+> #endif
+> 
+> I don't know of any such code, but it might be out there.
 
-No it won't. As I said, it will work for both cases. The problem is a
-register pair alignment problem. If the alignment is corrected with the
-trick I proposed, 64-bit values will end up in the right pair, but
-manually worked-around cases where the value is already broken up will
--also- end up in the right pair.
+No, the above "workaround" doesn't work. With the existing syscall()
+definition, there is no difference between your two examples. In the
+first case, you force a proper 64-bit aligment, but you are already off
+by one register pair from the kernel expectation. In the second case,
+gcc will imply one, which means that both your examples above will
+result in my_64bit_arg in the -same- place, which is off by a register
+pair from what the kernel expect.
 
-The problem with syscall() as it is is that it skews the arguments by 1
-register, which causes the compiler to skip a register when generating
-the call for a 64-bit value. By doing the trick I propose, that skew
-will be gone, both 32 and 64 bit arguments will end up where expected.
+IE. In the first case gcc will put SYS_foo in r3, 0 in r4, and
+my_64bit_arg in r5 and r6. In the second case, gcc will put SYS_foo in
+r3, won't care about r4, and will put the 64-bit arg in r5 and r6. Then,
+glibc syscall() will shift r3 to r0, r3 to r4 etc... causing
+my_64bit_arg to land in r4 and r5. But the kernel expects it in r3 and
+r4.
+
+The workaround that apps should use today is:
+
+#if defined(__powerpc__) && WORDSIZE == 32
+	syscall(SYS_foo, (u32)(my_64bit_arg >> 32), (u32)my_64bit_arg);
+#else
+	syscall(SYS_foo, my_64bit_arg);
+#endif
+
+And with my proposed change, both of the above will work. IE. gcc will
+put the argument always in r5,r6 and the syscall() implementation will
+always shift r5 to r3 and t6 to r4. 
 
 Cheers,
 Ben.
