@@ -1,56 +1,83 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: 64-syscall args on 32-bit vs syscall()
-Date: Wed, 17 Mar 2010 11:31:14 +1100
-Message-ID: <1268785874.2335.137.camel@pasglop>
-References: <20100315134449.GB1653@linux-mips.org>
-	 <4B9E4EB1.9010800@zytor.com>	<4B9E59B7.6060405@redhat.com>
-	 <20100315.120004.209998642.davem@davemloft.net>
-	 <4B9E8D67.8040209@zytor.com>  <1268685311.2335.38.camel@pasglop>
-	 <1268776570.19726.98.camel@spokane1.rchland.ibm.com>
+Subject: Re: SMP barriers semantics
+Date: Wed, 17 Mar 2010 13:25:16 +1100
+Message-ID: <1268792716.2335.170.camel@pasglop>
+References: <1267527178.14461.9.camel@e102109-lin.cambridge.arm.com>
+	 <20100303005529.GA3879@brick.ozlabs.ibm.com>
+	 <1267617825.15589.82.camel@e102109-lin.cambridge.arm.com>
+	 <20100312123105.GB4400@linux-mips.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1268776570.19726.98.camel@spokane1.rchland.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: munroesj@us.ibm.com
-Cc: "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, drepper@redhat.com, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, torvalds@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:44652 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752297Ab0CQC0T (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Mar 2010 22:26:19 -0400
+In-Reply-To: <20100312123105.GB4400@linux-mips.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Francois Romieu <romieu@fr.zoreil.com>
 
-On Tue, 2010-03-16 at 16:56 -0500, Steven Munroe wrote:
-> On Tue, 2010-03-16 at 07:35 +1100, Benjamin Herrenschmidt wrote:
-> > On Mon, 2010-03-15 at 12:41 -0700, H. Peter Anvin wrote:
-> > > I don't see why syscall() can't change the type for its first argument
-> > > -- it seems to be exactly what symbol versioning is for.
-> > > 
-> > > Doesn't change the fact that it is fundamentally broken, of course. 
-> > 
-> > No need to change the type of the first arg and go for symbol
-> > versionning if you do something like I proposed earlier, there will be
-> > no conflict between syscall() and __syscall() and both variants can
-> > exist.
-> > 
-> One concern is the new syscall and the kernel have to match and mixing
-> will not work. your proposal seems to impact all syscalls not just the
-> one called via syscall API. These syscalls get generated inline which
-> makes static linking very dangerous ...
+On Fri, 2010-03-12 at 13:31 +0100, Ralf Baechle wrote:
 > 
-> So I think you do need both symbol versioning and kernel feature stubs
-> (like xstat). That gets to be a lot of work
+> Be afraid, very afraid when you find a non-SMP memory barrier in the
+> kernel.  A while ago I reviewed a number of uses throughout the kernel and
+> each one of them was somehow buggy - either entirely unnecessary or should
+> be replaced with an SMP memory barrier or was simple miss-placed. 
 
-What do you mean ? My proposal is purely a change to the syscall()
-function, nothing else. No kernel change, no ABI change, no change to
-the way glibc normally calls syscalls internally, etc... just the
-exported syscall() function to shift its arguments in order to avoid
-losing register pair alignment.
+Yes, it's a problem that's plaguing us too.... Now that ARM is moving to
+a memory model that is similar to powerpc, maybe we should revisit
+things a little bit :-)
 
-And the change would still be compatible with existing userland code who
-manually splits the 64-bit arguments to avoid the problem on power.
+The way we sort out the issues currently on powerpc is very heavy handed
+and consists of sticking full barriers in our MMIO accessors.
 
-IE. Unless I've missed something, this would be a 100% backward
-compatible change that simply make a whole class of syscall() use work
-that didn't before on power (but did on x86), such as the one I hit in
-hdparm for example.
+We would -like- to improve that but there's just too much drivers out
+there that assume some kind of ordering between consistent memory
+accesses and IOs and between IOs and locks.
+
+The only "sane" way out here would thus be to define a set of MMIO
+accessors with relaxed ordering semantics along with appropriate
+barriers. However, when we tried to do that, we mostly failed agreeing
+on what the semantics actually should be since most architectures are
+going to be subtly different in that regard.
+
+The __raw_* variants are of no use since they have other effects such as
+not performing endian swapping on BE architectures. Plus we don't have
+the proper explicit barriers anyways.
+
+Maybe we can agree on a set of relaxed accessors defined specifically
+with those semantics (more relaxed implies use of raw_*) :
+
+  - order is guaranteed between MMIOs
+  - no order is guaranteed between MMIOs and memory (cachable) accesses
+  - no order is guaranteed between MMIOs and spinlocks
+  - a read access is not guaranteed to be performed until the read value
+    is actually consumed by the processor
+
+Along with barriers along the line of (that's where we may want to
+discuss a bit I believe)
+
+  - io_to_mem_rbarrier() : orders MMIO read vs. subsequent memory read
+  - mem_to_io_wbarrier() : order memory write vs. subsequent MMIO write
+                           (includes spin_unlock ?)
+  - io_to_mem_barrier()  : order any MMIO s. subsequent memory accesses
+  - mem_to_io_barrier()  : order memory accesses vs any subsequent MMIO
+  - flush_io_read(val)   : takes value from MMIO read, enforce it's
+                           before completed further instructions are
+                           issued, acts as compiler&execution barrier. 
+
+What do you guys think ? I think io_to_mem_rbarrier() and
+mem_to_io_wbarrier() cover most useful cases, except maybe the IO vs.
+locks.
+
+Maybe for the later (locks) we can stick to the arch is responsible for
+making that happen, for example by having MMIO writes set a per-cpu flag
+and having spin_unlock do a barrier when that is set, and take that out
+of the list of non-guaranteed ordering semantics.
 
 Cheers,
 Ben.
+ 
