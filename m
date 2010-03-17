@@ -1,61 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:35777 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:33986 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751648Ab0CQAcI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Mar 2010 20:32:08 -0400
+	id S1754756Ab0CQXA2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Mar 2010 19:00:28 -0400
 Subject: Re: 64-syscall args on 32-bit vs syscall()
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <1268776570.19726.98.camel@spokane1.rchland.ibm.com>
+In-Reply-To: <4BA1412C.6070008@zytor.com>
 References: <20100315134449.GB1653@linux-mips.org>
 	 <4B9E4EB1.9010800@zytor.com>	<4B9E59B7.6060405@redhat.com>
 	 <20100315.120004.209998642.davem@davemloft.net>
 	 <4B9E8D67.8040209@zytor.com>  <1268685311.2335.38.camel@pasglop>
 	 <1268776570.19726.98.camel@spokane1.rchland.ibm.com>
+	 <1268785874.2335.137.camel@pasglop>  <4BA06E1B.2040706@redhat.com>
+	 <1268816179.2335.187.camel@pasglop>  <4BA11FD2.2090104@zytor.com>
+	 <1268858134.2335.198.camel@pasglop>  <4BA1412C.6070008@zytor.com>
 Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 17 Mar 2010 11:31:14 +1100
-Message-ID: <1268785874.2335.137.camel@pasglop>
+Date: Thu, 18 Mar 2010 09:58:40 +1100
+Message-ID: <1268866720.2335.204.camel@pasglop>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: munroesj@us.ibm.com
-Cc: "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, drepper@redhat.com, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, torvalds@linux-foundation.org
-Message-ID: <20100317003114.FRAPyuk2ub_p4QWLjQFW_h5EgA6At03V3LOaJpxK-3A@z>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ulrich Drepper <drepper@redhat.com>, munroesj@us.ibm.com, David Miller <davem@davemloft.net>, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, torvalds@linux-foundation.org
+Message-ID: <20100317225840.rovk69xAN7lefz0yUUtDYshvJBk6WdqKtBSlLJEgxaI@z>
 
-On Tue, 2010-03-16 at 16:56 -0500, Steven Munroe wrote:
-> On Tue, 2010-03-16 at 07:35 +1100, Benjamin Herrenschmidt wrote:
-> > On Mon, 2010-03-15 at 12:41 -0700, H. Peter Anvin wrote:
-> > > I don't see why syscall() can't change the type for its first argument
-> > > -- it seems to be exactly what symbol versioning is for.
-> > > 
-> > > Doesn't change the fact that it is fundamentally broken, of course. 
-> > 
-> > No need to change the type of the first arg and go for symbol
-> > versionning if you do something like I proposed earlier, there will be
-> > no conflict between syscall() and __syscall() and both variants can
-> > exist.
-> > 
-> One concern is the new syscall and the kernel have to match and mixing
-> will not work. your proposal seems to impact all syscalls not just the
-> one called via syscall API. These syscalls get generated inline which
-> makes static linking very dangerous ...
+On Wed, 2010-03-17 at 13:53 -0700, H. Peter Anvin wrote:
+> > Yeah, whatever, I don't mind what technique you use for the
+> versionning,
+> > ultimately, if the approach works, we can look at those details :-)
+> We
+> > -do- need the macro to strip the dummy argument though, unless we
+> use
+> > a slightly different technique which is to make the __sysno argument
+> > itself 64-bit, which works as well I believe.
+> >
 > 
-> So I think you do need both symbol versioning and kernel feature stubs
-> (like xstat). That gets to be a lot of work
+> It seems cleaner to do it that way (with a 64-bit sysno arg.) 
 
-What do you mean ? My proposal is purely a change to the syscall()
-function, nothing else. No kernel change, no ABI change, no change to
-the way glibc normally calls syscalls internally, etc... just the
-exported syscall() function to shift its arguments in order to avoid
-losing register pair alignment.
+Right. Now if we can get Ulrich to actually put 2 and 2 together and
+admit that it actually works without breaking anything existing (at
+least for my arch but I wouldn't be surprised if that was the case for
+others), I would be even happier :-)
 
-And the change would still be compatible with existing userland code who
-manually splits the 64-bit arguments to avoid the problem on power.
-
-IE. Unless I've missed something, this would be a 100% backward
-compatible change that simply make a whole class of syscall() use work
-that didn't before on power (but did on x86), such as the one I hit in
-hdparm for example.
+Steve, any chance you can cook up a glibc patch to test with ? Maybe
+making it powerpc specific for now ?
 
 Cheers,
 Ben.
