@@ -1,71 +1,98 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: 64-syscall args on 32-bit vs syscall()
-Date: Wed, 17 Mar 2010 21:18:58 +1100
-Message-ID: <1268821138.2335.196.camel@pasglop>
-References: <20100315134449.GB1653@linux-mips.org>
-	 <4B9E4EB1.9010800@zytor.com> <4B9E59B7.6060405@redhat.com>
-	 <20100315.120004.209998642.davem@davemloft.net>
-	 <4B9E8D67.8040209@zytor.com> <1268685311.2335.38.camel@pasglop>
-	 <1268776570.19726.98.camel@spokane1.rchland.ibm.com>
-	 <1268785874.2335.137.camel@pasglop> <4BA06E1B.2040706@redhat.com>
-	 <1268816179.2335.187.camel@pasglop>  <20100317091820.GA8149@shareable.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: SMP barriers semantics
+Date: Wed, 17 Mar 2010 10:31:03 +0000
+Message-ID: <1268821863.21344.85.camel@e102109-lin.cambridge.arm.com>
+References: <1267527178.14461.9.camel@e102109-lin.cambridge.arm.com>
+	 <20100303005529.GA3879@brick.ozlabs.ibm.com>
+	 <1267617825.15589.82.camel@e102109-lin.cambridge.arm.com>
+	 <20100312123105.GB4400@linux-mips.org>  <1268792716.2335.170.camel@pasglop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:44796 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753757Ab0CQKUL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Mar 2010 06:20:11 -0400
-In-Reply-To: <20100317091820.GA8149@shareable.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:36726 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754081Ab0CQKdR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Mar 2010 06:33:17 -0400
+In-Reply-To: <1268792716.2335.170.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jamie Lokier <jamie@shareable.org>
-Cc: Ulrich Drepper <drepper@redhat.com>, munroesj@us.ibm.com, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, torvalds@linux-foundation.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Francois Romieu <romieu@fr.zoreil.com>
 
-On Wed, 2010-03-17 at 09:18 +0000, Jamie Lokier wrote:
-> Benjamin Herrenschmidt wrote:
-> > Hence, apps that use the first form today because it works on x86 would
-> > end up working at least on powerpc where they would have been otherwise
-> > broken unless they used some arch specific #ifdef to do the second form.
+On Wed, 2010-03-17 at 02:25 +0000, Benjamin Herrenschmidt wrote:
+> On Fri, 2010-03-12 at 13:31 +0100, Ralf Baechle wrote:
+> > Be afraid, very afraid when you find a non-SMP memory barrier in the
+> > kernel.  A while ago I reviewed a number of uses throughout the kernel and
+> > each one of them was somehow buggy - either entirely unnecessary or should
+> > be replaced with an SMP memory barrier or was simple miss-placed.
 > 
-> I think what Ulrich is getting at is your change will break existing
-> code which already does:
+> Yes, it's a problem that's plaguing us too.... Now that ARM is moving to
+> a memory model that is similar to powerpc, maybe we should revisit
+> things a little bit :-)
 > 
-> #ifdef __powerpc__
-> 	syscall(SYS_foo, 0, my_64bit_arg);
-> #else
-> 	syscall(SYS_foo, my_64bit_arg);
-> #endif
+> The way we sort out the issues currently on powerpc is very heavy handed
+> and consists of sticking full barriers in our MMIO accessors.
 > 
-> I don't know of any such code, but it might be out there.
+> We would -like- to improve that but there's just too much drivers out
+> there that assume some kind of ordering between consistent memory
+> accesses and IOs and between IOs and locks.
 
-No, the above "workaround" doesn't work. With the existing syscall()
-definition, there is no difference between your two examples. In the
-first case, you force a proper 64-bit aligment, but you are already off
-by one register pair from the kernel expectation. In the second case,
-gcc will imply one, which means that both your examples above will
-result in my_64bit_arg in the -same- place, which is off by a register
-pair from what the kernel expect.
+I find the memory-barriers.txt document pretty much alright, apart from
+some clarification on the SMP barriers with respect to MMIO accesses.
 
-IE. In the first case gcc will put SYS_foo in r3, 0 in r4, and
-my_64bit_arg in r5 and r6. In the second case, gcc will put SYS_foo in
-r3, won't care about r4, and will put the 64-bit arg in r5 and r6. Then,
-glibc syscall() will shift r3 to r0, r3 to r4 etc... causing
-my_64bit_arg to land in r4 and r5. But the kernel expects it in r3 and
-r4.
+> Maybe we can agree on a set of relaxed accessors defined specifically
+> with those semantics (more relaxed implies use of raw_*) :
+> 
+>   - order is guaranteed between MMIOs
+>   - no order is guaranteed between MMIOs and memory (cachable) accesses
+>   - no order is guaranteed between MMIOs and spinlocks
 
-The workaround that apps should use today is:
+I would add:
 
-#if defined(__powerpc__) && WORDSIZE == 32
-	syscall(SYS_foo, (u32)(my_64bit_arg >> 32), (u32)my_64bit_arg);
-#else
-	syscall(SYS_foo, my_64bit_arg);
-#endif
+  - no order is guaranteed between MMIOs and interrupts
+enabling/disabling
 
-And with my proposed change, both of the above will work. IE. gcc will
-put the argument always in r5,r6 and the syscall() implementation will
-always shift r5 to r3 and t6 to r4. 
+>   - a read access is not guaranteed to be performed until the read value
+>     is actually consumed by the processor
 
-Cheers,
-Ben.
+I don't think we have this issue on ARM, we have speculative memory
+accesses but not lazy accesses. Other architectures may of course
+differ.
+
+> Along with barriers along the line of (that's where we may want to
+> discuss a bit I believe)
+> 
+>   - io_to_mem_rbarrier() : orders MMIO read vs. subsequent memory read
+
+I currently assume rmb() to be enough for this (otherwise I don't see
+where else the mandatory barriers would be useful).
+
+>   - mem_to_io_wbarrier() : order memory write vs. subsequent MMIO write
+
+wmb()
+
+>                            (includes spin_unlock ?)
+
+memory-barriers.txt suggests mmiowb() in such cases.
+
+>   - io_to_mem_barrier()  : order any MMIO s. subsequent memory accesses
+
+mb()
+
+>   - mem_to_io_barrier()  : order memory accesses vs any subsequent MMIO
+
+mb()
+
+>   - flush_io_read(val)   : takes value from MMIO read, enforce it's
+>                            before completed further instructions are
+>                            issued, acts as compiler&execution barrier.
+
+Could add a mmiorb()?
+
+Ideally, we should avoid adding more barriers to Linux since many
+drivers don't seem to use them anyway.
+
+-- 
+Catalin
