@@ -1,68 +1,40 @@
-From: Jamie Lokier <jamie@shareable.org>
-Subject: Re: SMP barriers semantics
-Date: Wed, 17 Mar 2010 13:42:43 +0000
-Message-ID: <20100317134243.GA15235@shareable.org>
-References: <1267527178.14461.9.camel@e102109-lin.cambridge.arm.com> <20100303005529.GA3879@brick.ozlabs.ibm.com> <1267617825.15589.82.camel@e102109-lin.cambridge.arm.com> <20100312123105.GB4400@linux-mips.org> <1268792716.2335.170.camel@pasglop>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: 64-syscall args on 32-bit vs syscall()
+Date: Wed, 17 Mar 2010 11:30:42 -0700
+Message-ID: <4BA11FD2.2090104@zytor.com>
+References: <20100315134449.GB1653@linux-mips.org>	 <4B9E4EB1.9010800@zytor.com>	<4B9E59B7.6060405@redhat.com>	 <20100315.120004.209998642.davem@davemloft.net>	 <4B9E8D67.8040209@zytor.com>  <1268685311.2335.38.camel@pasglop>	 <1268776570.19726.98.camel@spokane1.rchland.ibm.com>	 <1268785874.2335.137.camel@pasglop>  <4BA06E1B.2040706@redhat.com> <1268816179.2335.187.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.shareable.org ([80.68.89.115]:54248 "EHLO
-	mail2.shareable.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753822Ab0CQNnM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Mar 2010 09:43:12 -0400
-Content-Disposition: inline
-In-Reply-To: <1268792716.2335.170.camel@pasglop>
+Received: from terminus.zytor.com ([198.137.202.10]:40546 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751458Ab0CQSfG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Mar 2010 14:35:06 -0400
+In-Reply-To: <1268816179.2335.187.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>, Catalin Marinas <catalin.marinas@arm.com>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Francois Romieu <romieu@fr.zoreil.com>
+Cc: Ulrich Drepper <drepper@redhat.com>, munroesj@us.ibm.com, David Miller <davem@davemloft.net>, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, torvalds@linux-foundation.org
 
-Benjamin Herrenschmidt wrote:
-> Maybe we can agree on a set of relaxed accessors defined specifically
-> with those semantics (more relaxed implies use of raw_*) :
-> 
->   - order is guaranteed between MMIOs
->   - no order is guaranteed between MMIOs and spinlocks
+On 03/17/2010 01:56 AM, Benjamin Herrenschmidt wrote:
+>
+> Ok, so I -may- be missing something, but I believe this won't break
+> anything:
+>
+>   - You keep the existing syscall() exported by glibc for binary
+> compatibility
+>
+>   - You add a new __syscall() (or whatever you want to name it) that adds
+> a dummy argument at the beginning, and whose implementation shifts
+> everything by 2 instead of 1 argument before calling into the kernel
+>
+>   - You define in unistd.h or whatever is relevant, a macro that does:
+>
+> #define syscall(__sysno, __args..) __syscall(0, _sysno, __args)
+>
 
-No order between MMIOs and spinlocks will be fun :-)
+Again, this is *exactly* symbol versioning done by hand... we have 
+proper symbol versioning, let's use it.
 
->   - a read access is not guaranteed to be performed until the read value
->     is actually consumed by the processor
-
-How do you define 'consumed'?  It's not obvious: see
-read_barrier_depends() on Alpha, and elsewhere speculative read
-optimisations (including by the compiler on IA64, in theory).
-
-> Along with barriers along the line of (that's where we may want to
-> discuss a bit I believe)
-> 
->   - io_to_mem_rbarrier() : orders MMIO read vs. subsequent memory read
->   - mem_to_io_wbarrier() : order memory write vs. subsequent MMIO write
->                            (includes spin_unlock ?)
->   - io_to_mem_barrier()  : order any MMIO s. subsequent memory accesses
->   - mem_to_io_barrier()  : order memory accesses vs any subsequent MMIO
->   - flush_io_read(val)   : takes value from MMIO read, enforce it's
->                            before completed further instructions are
->                            issued, acts as compiler&execution barrier. 
-> 
-> What do you guys think ? I think io_to_mem_rbarrier() and
-> mem_to_io_wbarrier() cover most useful cases, except maybe the IO vs.
-> locks.
-
-I'm thinking the current scheme with "heavy" barriers that serialise
-everything is better - because it's simple to understand.  I think the
-above set are likely to be accidentally misused, and even pass review
-occasionally when they are wrong, even if it's just due to brain farts.
-
-The "heavy" barrier names could change from rmb/mb/wmb to
-io_rmb/io_mb/io_wmb or something.
-
-Is there any real performance advantage expected from more
-fine-grained MMIO barriers?
-
-Another approach is a flags argument to a single macro:
-barrier(BARRIER_MMIO_READ_BEFORE | BARRIER_MEM_READ_AFTER), etc.
-Each arch would expand it to a barrier at least as strong as the one
-requested.  C++0x atomics are going down this route, I think.
-
--- Jamie
+	-hpa
