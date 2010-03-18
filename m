@@ -1,52 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:33986 "EHLO gate.crashing.org"
+Received: from mx1.redhat.com ([209.132.183.28]:63970 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754756Ab0CQXA2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Mar 2010 19:00:28 -0400
+	id S1752297Ab0CRRUv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 18 Mar 2010 13:20:51 -0400
+From: Andreas Schwab <schwab@redhat.com>
 Subject: Re: 64-syscall args on 32-bit vs syscall()
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <4BA1412C.6070008@zytor.com>
 References: <20100315134449.GB1653@linux-mips.org>
-	 <4B9E4EB1.9010800@zytor.com>	<4B9E59B7.6060405@redhat.com>
-	 <20100315.120004.209998642.davem@davemloft.net>
-	 <4B9E8D67.8040209@zytor.com>  <1268685311.2335.38.camel@pasglop>
-	 <1268776570.19726.98.camel@spokane1.rchland.ibm.com>
-	 <1268785874.2335.137.camel@pasglop>  <4BA06E1B.2040706@redhat.com>
-	 <1268816179.2335.187.camel@pasglop>  <4BA11FD2.2090104@zytor.com>
-	 <1268858134.2335.198.camel@pasglop>  <4BA1412C.6070008@zytor.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Thu, 18 Mar 2010 09:58:40 +1100
-Message-ID: <1268866720.2335.204.camel@pasglop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+	<4B9E4EB1.9010800@zytor.com> <4B9E59B7.6060405@redhat.com>
+	<20100315.120004.209998642.davem@davemloft.net>
+	<4B9E8D67.8040209@zytor.com> <1268685311.2335.38.camel@pasglop>
+	<1268776570.19726.98.camel@spokane1.rchland.ibm.com>
+	<1268785874.2335.137.camel@pasglop> <4BA06E1B.2040706@redhat.com>
+	<1268816179.2335.187.camel@pasglop> <4BA11FD2.2090104@zytor.com>
+	<1268858134.2335.198.camel@pasglop> <4BA1412C.6070008@zytor.com>
+	<1268866720.2335.204.camel@pasglop>
+	<1268928480.19726.123.camel@spokane1.rchland.ibm.com>
+Date: Thu, 18 Mar 2010 17:21:06 +0100
+In-Reply-To: <1268928480.19726.123.camel@spokane1.rchland.ibm.com> (Steven
+	Munroe's message of "Thu, 18 Mar 2010 11:08:00 -0500")
+Message-ID: <m37hp9y51p.fsf@hase.home>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Ulrich Drepper <drepper@redhat.com>, munroesj@us.ibm.com, David Miller <davem@davemloft.net>, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, torvalds@linux-foundation.org
-Message-ID: <20100317225840.rovk69xAN7lefz0yUUtDYshvJBk6WdqKtBSlLJEgxaI@z>
+To: munroesj@us.ibm.com
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, "H. Peter Anvin" <hpa@zytor.com>, Ulrich Drepper <drepper@redhat.com>, David Miller <davem@davemloft.net>, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, torvalds@linux-foundation.org
+Message-ID: <20100318162106.eqx74BMR54bMD7WB51v91MJRk9JOzhowYj00owB8k4Q@z>
 
-On Wed, 2010-03-17 at 13:53 -0700, H. Peter Anvin wrote:
-> > Yeah, whatever, I don't mind what technique you use for the
-> versionning,
-> > ultimately, if the approach works, we can look at those details :-)
-> We
-> > -do- need the macro to strip the dummy argument though, unless we
-> use
-> > a slightly different technique which is to make the __sysno argument
-> > itself 64-bit, which works as well I believe.
-> >
-> 
-> It seems cleaner to do it that way (with a 64-bit sysno arg.) 
+Steven Munroe <munroesj@linux.vnet.ibm.com> writes:
 
-Right. Now if we can get Ulrich to actually put 2 and 2 together and
-admit that it actually works without breaking anything existing (at
-least for my arch but I wouldn't be surprised if that was the case for
-others), I would be even happier :-)
+> extern long int syscall (long int __sysno, ...) __THROW;
+>
+> #endif	/* Use misc.  */
+>
+> Changing this would be an ABI change and would have to be versioned. It
+> would effect any one using syscall not just SYS_fallocate.
+>
+> the question is do programmers in practice include unistd.h when they
+> use syscall.
+>
+> If the changed prototype is not in scope then the 1st parm (__sysno)
+> defaults to int and is passed in on r3 which gets moved to r0.
 
-Steve, any chance you can cook up a glibc patch to test with ? Maybe
-making it powerpc specific for now ?
+int is incompatible with long, so you already get undefined behaviour
+anyway.
 
-Cheers,
-Ben.
+Andreas.
 
-
+-- 
+Andreas Schwab, schwab@redhat.com
+GPG Key fingerprint = D4E8 DBE3 3813 BB5D FA84  5EC7 45C6 250E 6F00 984E
+"And now for something completely different."
