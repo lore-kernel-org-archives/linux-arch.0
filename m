@@ -1,36 +1,39 @@
-From: Jamie Lokier <jamie@shareable.org>
-Subject: Re: 64-syscall args on 32-bit vs syscall()
-Date: Fri, 19 Mar 2010 01:22:33 +0000
-Message-ID: <20100319012232.GA14108@shareable.org>
-References: <4BA06E1B.2040706@redhat.com> <1268816179.2335.187.camel@pasglop> <4BA11FD2.2090104@zytor.com> <1268858134.2335.198.camel@pasglop> <4BA1412C.6070008@zytor.com> <1268866720.2335.204.camel@pasglop> <1268928480.19726.123.camel@spokane1.rchland.ibm.com> <m37hp9y51p.fsf@hase.home> <1268931823.19726.127.camel@spokane1.rchland.ibm.com> <1268947102.2335.236.camel@pasglop>
+From: David Miller <davem@davemloft.net>
+Subject: perf_arch_fetch_caller_regs...
+Date: Thu, 18 Mar 2010 21:02:41 -0700 (PDT)
+Message-ID: <20100318.210241.179917441.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.shareable.org ([80.68.89.115]:43070 "EHLO
-	mail2.shareable.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751983Ab0CSBXU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Mar 2010 21:23:20 -0400
-Content-Disposition: inline
-In-Reply-To: <1268947102.2335.236.camel@pasglop>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:50405
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750695Ab0CSECT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 19 Mar 2010 00:02:19 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: munroesj@us.ibm.com, Andreas Schwab <schwab@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ulrich Drepper <drepper@redhat.com>, David Miller <davem@davemloft.net>, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, torvalds@linux-foundation.org
+To: fweisbec@gmail.com
+Cc: mingo@elte.hu, paulus@samba.org, linux-arch@vger.kernel.org
 
-Benjamin Herrenschmidt wrote:
-> On Thu, 2010-03-18 at 12:03 -0500, Steven Munroe wrote:
-> > Sorry in and long are compatible in 32-bit but not long long.
-> > 
-> > int and long are not compatible in 64-bit
-> > 
-> > It is hard the keep all the nodes and arguments straight.
-> > 
-> > But the concern about changing the prototype and are people actually
-> > using the prototype are still valid.
-> 
-> Well, using the macro trick instead would fix that problem, code
-> wouldn't build if it doesn't include unistd.h :-)
 
-Or it will build, but call the old ABI version - no change to those programs.
+Can we please remove the CALLER_ADDR0 et al. evaluations at the top
+level in perf_fetch_caller_regs()?
 
--- Jamie
+I take great pains to avoid having to flush the register windows on
+sparc64 even when fetching callchains et al and any
+__builtin_return_address() with an argument greater than zero is going
+to force a register window flush to get emitted by gcc undoing all of
+my hard work :-)
+
+You guys can put it into the x86 perf_fetch_caller_regs() or similar.
+
+If you need it to be evaluated at the call site, make the inline
+overridable by the platform headers.
+
+I noticed that the powerpc assembler Paul posted the past few days
+ignores this "ip" arg passed down and computes it by hand as it
+walks up the stack chain in assembler.  PowerPC therefore might be
+getting similar inefficiences due to this CALLER_ADDR? stuff.
+
+Thanks.
