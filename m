@@ -1,57 +1,36 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: + documentation-volatile-considered-harmfultxt-correct-cpu_relax-documentation.patch
- added to -mm tree
-Date: Thu, 18 Mar 2010 14:54:52 -0700 (PDT)
-Message-ID: <alpine.LFD.2.00.1003181447420.18017@i5.linux-foundation.org>
-References: <201003182141.o2ILfgB0017286@imap1.linux-foundation.org>
+From: Jamie Lokier <jamie@shareable.org>
+Subject: Re: 64-syscall args on 32-bit vs syscall()
+Date: Fri, 19 Mar 2010 01:22:33 +0000
+Message-ID: <20100319012232.GA14108@shareable.org>
+References: <4BA06E1B.2040706@redhat.com> <1268816179.2335.187.camel@pasglop> <4BA11FD2.2090104@zytor.com> <1268858134.2335.198.camel@pasglop> <4BA1412C.6070008@zytor.com> <1268866720.2335.204.camel@pasglop> <1268928480.19726.123.camel@spokane1.rchland.ibm.com> <m37hp9y51p.fsf@hase.home> <1268931823.19726.127.camel@spokane1.rchland.ibm.com> <1268947102.2335.236.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:59493 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752056Ab0CRV6Y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 18 Mar 2010 17:58:24 -0400
-In-Reply-To: <201003182141.o2ILfgB0017286@imap1.linux-foundation.org>
+Received: from mail2.shareable.org ([80.68.89.115]:43070 "EHLO
+	mail2.shareable.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751983Ab0CSBXU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Mar 2010 21:23:20 -0400
+Content-Disposition: inline
+In-Reply-To: <1268947102.2335.236.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: mm-commits@vger.kernel.org, rmk@arm.linux.org.uk, linux-arch@vger.kernel.org, rmk+kernel@arm.linux.org.uk
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: munroesj@us.ibm.com, Andreas Schwab <schwab@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ulrich Drepper <drepper@redhat.com>, David Miller <davem@davemloft.net>, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, torvalds@linux-foundation.org
 
-
-
-On Thu, 18 Mar 2010, akpm@linux-foundation.org wrote:
+Benjamin Herrenschmidt wrote:
+> On Thu, 2010-03-18 at 12:03 -0500, Steven Munroe wrote:
+> > Sorry in and long are compatible in 32-bit but not long long.
+> > 
+> > int and long are not compatible in 64-bit
+> > 
+> > It is hard the keep all the nodes and arguments straight.
+> > 
+> > But the concern about changing the prototype and are people actually
+> > using the prototype are still valid.
 > 
-> cpu_relax() is documented in volatile-considered-harmful.txt to be a
-> memory barrier.  However, everyone with the exception of Blackfin and
-> possibly ia64 defines cpu_relax() to be a compiler barrier.
-> 
-> Make the documentation reflect the general concensus.
-> 
-> Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
-> Cc: <linux-arch@vger.kernel.org>
-> Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+> Well, using the macro trick instead would fix that problem, code
+> wouldn't build if it doesn't include unistd.h :-)
 
-Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
+Or it will build, but call the old ABI version - no change to those programs.
 
-I don't think it was ever the intention that it would be seen as anything 
-but a compiler barrier, although it is obviously implied that it might 
-well perform some per-architecture actions that have "memory barrier-like" 
-semantics.
-
-After all, the whole and only point of the "cpu_relax()" thing is to tell 
-the CPU that we're busy-looping on some event.
-
-And that "event" might be (and often is) about reading the same memory 
-location over and over until it changes to what we want it to be. So it's 
-quite possible that on various architectures the "cpu_relax()" could be 
-about making sure that such a tight loop on loads doesn't starve cache 
-transactions, for example - and as such look a bit like a memory barrier 
-from a CPU standpoint.
-
-But it's not meant to have any kind of architectural memory ordering 
-semantics as far as the kernel is concerned - those must come from other 
-sources.
-
-			Linus
+-- Jamie
