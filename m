@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 01/20] x86: add find_e820_area_node
-Date: Sun, 21 Mar 2010 00:13:02 -0700
-Message-ID: <1269155601-18247-2-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 14/20] genericirq: add set_irq_desc_chip/data ...
+Date: Sun, 21 Mar 2010 00:13:15 -0700
+Message-ID: <1269155601-18247-15-git-send-email-yinghai@kernel.org>
 References: <1269155601-18247-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1269155601-18247-1-git-send-email-yinghai@kernel.org>
@@ -10,163 +10,330 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-David Miller pointed out that early_res have problem to find node data on correct node
-when we have
-node0: [0, 2g), [4g, 6g), [10g, 14g)
-node1: [6g, 10g), [14g, 18g)
-the cross node case
+with set_irq_chip/data...
 
-the problem is there for x86 bits even before we are using early_res for bootmem replacement.
-after early_res for bootmem replacement, alloc_bootmem_node still can get range on correct node
-
-this patch is fixing problem before bootmem or early_res replacement for bootmem.
-
-now only user is for x86 64bit numa to find node data.
-
-the point is use early_node_map with find_e820_area_node()
+to take desc instead of irq
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/e820.h |    1 +
- arch/x86/kernel/e820.c      |   15 +++++++++++++++
- arch/x86/mm/numa_64.c       |    4 ++--
- include/linux/mm.h          |    2 ++
- mm/page_alloc.c             |   37 +++++++++++++++++++++++--------------
- 5 files changed, 43 insertions(+), 16 deletions(-)
+ arch/x86/kernel/apic/io_apic.c |    4 +-
+ include/linux/irq.h            |   10 +++-
+ include/linux/irqnr.h          |    1 +
+ kernel/irq/chip.c              |  127 +++++++++++++++++++++++-----------------
+ 4 files changed, 85 insertions(+), 57 deletions(-)
 
-diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
-index 0e22296..b48f371 100644
---- a/arch/x86/include/asm/e820.h
-+++ b/arch/x86/include/asm/e820.h
-@@ -111,6 +111,7 @@ extern unsigned long end_user_pfn;
+diff --git a/arch/x86/kernel/apic/io_apic.c b/arch/x86/kernel/apic/io_apic.c
+index d3b2f0b..5f061b7 100644
+--- a/arch/x86/kernel/apic/io_apic.c
++++ b/arch/x86/kernel/apic/io_apic.c
+@@ -3302,7 +3302,7 @@ unsigned int create_irq_nr(unsigned int irq_want, int node)
+ 	raw_spin_unlock_irqrestore(&vector_lock, flags);
  
- extern u64 find_e820_area(u64 start, u64 end, u64 size, u64 align);
- extern u64 find_e820_area_size(u64 start, u64 *sizep, u64 align);
-+u64 find_e820_area_node(int nid, u64 start, u64 end, u64 size, u64 align);
- extern u64 early_reserve_e820(u64 startt, u64 sizet, u64 align);
- #include <linux/early_res.h>
+ 	if (irq > 0)
+-		dynamic_irq_init_keep_chip_data(irq);
++		dynamic_irq_init_keep_chip_data(irq_to_desc(irq));
  
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index 740b440..05ee724 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -787,6 +787,21 @@ u64 __init find_e820_area_size(u64 start, u64 *sizep, u64 align)
- 	return -1ULL;
+ 	return irq;
  }
+@@ -3328,7 +3328,7 @@ void destroy_irq(unsigned int irq)
+ 	struct irq_desc *desc;
+ 	struct irq_cfg *cfg;
  
-+u64 __init find_e820_area_node(int nid, u64 start, u64 end, u64 size, u64 align)
-+{
-+	u64 addr;
-+	/*
-+	 * need to call this function after e820_register_active_regions
-+	 * so early_node_map[] is set
-+	 */
-+	addr = find_memory_core_early(nid, size, align, start, end);
-+	if (addr != -1ULL)
-+		return addr;
+-	dynamic_irq_cleanup_keep_chip_data(irq);
++	dynamic_irq_cleanup_keep_chip_data(irq_to_desc(irq));
+ 
+ 	free_irte(irq);
+ 	raw_spin_lock_irqsave(&vector_lock, flags);
+diff --git a/include/linux/irq.h b/include/linux/irq.h
+index fb8c376..89d49e8 100644
+--- a/include/linux/irq.h
++++ b/include/linux/irq.h
+@@ -412,9 +412,9 @@ static inline int irq_has_action(unsigned int irq)
+ 
+ /* Dynamic irq helper functions */
+ extern void dynamic_irq_init(unsigned int irq);
+-void dynamic_irq_init_keep_chip_data(unsigned int irq);
++void dynamic_irq_init_keep_chip_data(struct irq_desc *desc);
+ extern void dynamic_irq_cleanup(unsigned int irq);
+-void dynamic_irq_cleanup_keep_chip_data(unsigned int irq);
++void dynamic_irq_cleanup_keep_chip_data(struct irq_desc *desc);
+ 
+ /* Set/get chip/data for an IRQ: */
+ extern int set_irq_chip(unsigned int irq, struct irq_chip *chip);
+@@ -423,6 +423,12 @@ extern int set_irq_chip_data(unsigned int irq, void *data);
+ extern int set_irq_type(unsigned int irq, unsigned int type);
+ extern int set_irq_msi(unsigned int irq, struct msi_desc *entry);
+ 
++int set_irq_desc_chip(struct irq_desc *desc, struct irq_chip *chip);
++int set_irq_desc_data(struct irq_desc *desc, void *data);
++int set_irq_desc_chip_data(struct irq_desc *desc, void *data);
++int set_irq_desc_type(struct irq_desc *desc, unsigned int type);
++int set_irq_desc_msi(struct irq_desc *desc, struct msi_desc *entry);
 +
-+	/* fallback, should already have start end in the node range */
-+	return find_e820_area(start, end, size, align);
-+}
-+
- /*
-  * pre allocated 4k and reserved it in e820
-  */
-diff --git a/arch/x86/mm/numa_64.c b/arch/x86/mm/numa_64.c
-index 8948f47..ffc5ad5 100644
---- a/arch/x86/mm/numa_64.c
-+++ b/arch/x86/mm/numa_64.c
-@@ -174,7 +174,7 @@ static void * __init early_node_mem(int nodeid, unsigned long start,
- 	if (start < (MAX_DMA32_PFN<<PAGE_SHIFT) &&
- 	    end > (MAX_DMA32_PFN<<PAGE_SHIFT))
- 		start = MAX_DMA32_PFN<<PAGE_SHIFT;
--	mem = find_e820_area(start, end, size, align);
-+	mem = find_e820_area_node(nodeid, start, end, size, align);
- 	if (mem != -1L)
- 		return __va(mem);
+ #define get_irq_chip(irq)	(irq_to_desc(irq)->chip)
+ #define get_irq_chip_data(irq)	(irq_to_desc(irq)->chip_data)
+ #define get_irq_data(irq)	(irq_to_desc(irq)->handler_data)
+diff --git a/include/linux/irqnr.h b/include/linux/irqnr.h
+index 7bf89bc..dee8f2b 100644
+--- a/include/linux/irqnr.h
++++ b/include/linux/irqnr.h
+@@ -43,6 +43,7 @@ extern struct irq_desc *irq_to_desc(unsigned int irq);
  
-@@ -184,7 +184,7 @@ static void * __init early_node_mem(int nodeid, unsigned long start,
- 		start = MAX_DMA32_PFN<<PAGE_SHIFT;
- 	else
- 		start = MAX_DMA_PFN<<PAGE_SHIFT;
--	mem = find_e820_area(start, end, size, align);
-+	mem = find_e820_area_node(nodeid, start, end, size, align);
- 	if (mem != -1L)
- 		return __va(mem);
+ #ifdef CONFIG_SMP
+ #define irq_node(irq)	(irq_to_desc(irq)->node)
++#define irq_desc_node(desc) ((desc)->node)
+ #else
+ #define irq_node(irq)	0
+ #endif
+diff --git a/kernel/irq/chip.c b/kernel/irq/chip.c
+index 043557a..502168d 100644
+--- a/kernel/irq/chip.c
++++ b/kernel/irq/chip.c
+@@ -18,17 +18,10 @@
  
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index e70f21b..5c2d17e 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1160,6 +1160,8 @@ extern void free_bootmem_with_active_regions(int nid,
- 						unsigned long max_low_pfn);
- int add_from_early_node_map(struct range *range, int az,
- 				   int nr_range, int nid);
-+u64 __init find_memory_core_early(int nid, u64 size, u64 align,
-+					u64 goal, u64 limit);
- void *__alloc_memory_core_early(int nodeid, u64 size, u64 align,
- 				 u64 goal, u64 limit);
- typedef int (*work_fn_t)(unsigned long, unsigned long, void *);
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index d03c946..eef3757 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -3408,12 +3408,11 @@ int __init add_from_early_node_map(struct range *range, int az,
- 	return nr_range;
- }
+ #include "internals.h"
  
--#ifdef CONFIG_NO_BOOTMEM
--void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
-+#ifdef CONFIG_HAVE_EARLY_RES
-+u64 __init find_memory_core_early(int nid, u64 size, u64 align,
- 					u64 goal, u64 limit)
+-static void dynamic_irq_init_x(unsigned int irq, bool keep_chip_data)
++static void dynamic_irq_init_x(struct irq_desc *desc, bool keep_chip_data)
  {
- 	int i;
--	void *ptr;
+-	struct irq_desc *desc;
+ 	unsigned long flags;
  
- 	/* need to go over early_node_map to find out good range for node */
- 	for_each_active_range_index_in_nid(i, nid) {
-@@ -3430,20 +3429,30 @@ void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
- 		if (addr == -1ULL)
- 			continue;
- 
--#if 0
--		printk(KERN_DEBUG "alloc (nid=%d %llx - %llx) (%llx - %llx) %llx %llx => %llx\n",
--				nid,
--				ei_start, ei_last, goal, limit, size,
--				align, addr);
-+		return addr;
+-	desc = irq_to_desc(irq);
+-	if (!desc) {
+-		WARN(1, KERN_ERR "Trying to initialize invalid IRQ%d\n", irq);
+-		return;
+-	}
+-
+ 	/* Ensure we don't have left over values from a previous use of this irq */
+ 	raw_spin_lock_irqsave(&desc->lock, flags);
+ 	desc->status = IRQ_DISABLED;
+@@ -57,7 +50,15 @@ static void dynamic_irq_init_x(unsigned int irq, bool keep_chip_data)
+  */
+ void dynamic_irq_init(unsigned int irq)
+ {
+-	dynamic_irq_init_x(irq, false);
++	struct irq_desc *desc;
++
++	desc = irq_to_desc(irq);
++	if (!desc) {
++		WARN(1, KERN_ERR "Trying to initialize invalid IRQ%d\n", irq);
++		return;
 +	}
 +
-+	return -1ULL;
-+}
- #endif
- 
--		ptr = phys_to_virt(addr);
--		memset(ptr, 0, size);
--		reserve_early_without_check(addr, addr + size, "BOOTMEM");
--		return ptr;
--	}
-+#ifdef CONFIG_NO_BOOTMEM
-+void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
-+					u64 goal, u64 limit)
-+{
-+	void *ptr;
- 
--	return NULL;
-+	u64 addr;
-+
-+	addr = find_memory_core_early(nid, size, align, goal, limit);
-+
-+	if (addr == -1ULL)
-+		return NULL;
-+
-+	ptr = phys_to_virt(addr);
-+	memset(ptr, 0, size);
-+	reserve_early_without_check(addr, addr + size, "BOOTMEM");
-+	return ptr;
++	dynamic_irq_init_x(desc, false);
  }
- #endif
  
+ /**
+@@ -66,26 +67,20 @@ void dynamic_irq_init(unsigned int irq)
+  *
+  *	does not set irq_to_desc(irq)->chip_data to NULL
+  */
+-void dynamic_irq_init_keep_chip_data(unsigned int irq)
++void dynamic_irq_init_keep_chip_data(struct irq_desc *desc)
+ {
+-	dynamic_irq_init_x(irq, true);
++	dynamic_irq_init_x(desc, true);
+ }
+ 
+-static void dynamic_irq_cleanup_x(unsigned int irq, bool keep_chip_data)
++static void dynamic_irq_cleanup_x(struct irq_desc *desc, bool keep_chip_data)
+ {
+-	struct irq_desc *desc = irq_to_desc(irq);
+ 	unsigned long flags;
+ 
+-	if (!desc) {
+-		WARN(1, KERN_ERR "Trying to cleanup invalid IRQ%d\n", irq);
+-		return;
+-	}
+-
+ 	raw_spin_lock_irqsave(&desc->lock, flags);
+ 	if (desc->action) {
+ 		raw_spin_unlock_irqrestore(&desc->lock, flags);
+ 		WARN(1, KERN_ERR "Destroying IRQ%d without calling free_irq\n",
+-			irq);
++			desc->irq);
+ 		return;
+ 	}
+ 	desc->msi_desc = NULL;
+@@ -105,7 +100,14 @@ static void dynamic_irq_cleanup_x(unsigned int irq, bool keep_chip_data)
+  */
+ void dynamic_irq_cleanup(unsigned int irq)
+ {
+-	dynamic_irq_cleanup_x(irq, false);
++	struct irq_desc *desc = irq_to_desc(irq);
++
++	if (!desc) {
++		WARN(1, KERN_ERR "Trying to cleanup invalid IRQ%d\n", irq);
++		return;
++	}
++
++	dynamic_irq_cleanup_x(desc, false);
+ }
+ 
+ /**
+@@ -114,9 +116,9 @@ void dynamic_irq_cleanup(unsigned int irq)
+  *
+  *	does not set irq_to_desc(irq)->chip_data to NULL
+  */
+-void dynamic_irq_cleanup_keep_chip_data(unsigned int irq)
++void dynamic_irq_cleanup_keep_chip_data(struct irq_desc *desc)
+ {
+-	dynamic_irq_cleanup_x(irq, true);
++	dynamic_irq_cleanup_x(desc, true);
+ }
+ 
+ 
+@@ -152,26 +154,31 @@ EXPORT_SYMBOL(set_irq_chip);
+  *	@irq:	irq number
+  *	@type:	IRQ_TYPE_{LEVEL,EDGE}_* value - see include/linux/irq.h
+  */
+-int set_irq_type(unsigned int irq, unsigned int type)
++int set_irq_desc_type(struct irq_desc *desc, unsigned int type)
+ {
+-	struct irq_desc *desc = irq_to_desc(irq);
+ 	unsigned long flags;
+ 	int ret = -ENXIO;
+ 
+-	if (!desc) {
+-		printk(KERN_ERR "Trying to set irq type for IRQ%d\n", irq);
+-		return -ENODEV;
+-	}
+-
+ 	type &= IRQ_TYPE_SENSE_MASK;
+ 	if (type == IRQ_TYPE_NONE)
+ 		return 0;
+ 
+ 	raw_spin_lock_irqsave(&desc->lock, flags);
+-	ret = __irq_set_trigger(desc, irq, type);
++	ret = __irq_set_trigger(desc, desc->irq, type);
+ 	raw_spin_unlock_irqrestore(&desc->lock, flags);
+ 	return ret;
+ }
++int set_irq_type(unsigned int irq, unsigned int type)
++{
++	struct irq_desc *desc = irq_to_desc(irq);
++
++	if (!desc) {
++		printk(KERN_ERR "Trying to set irq type for IRQ%d\n", irq);
++		return -ENODEV;
++	}
++
++	return set_irq_desc_type(desc, type);
++}
+ EXPORT_SYMBOL(set_irq_type);
+ 
+ /**
+@@ -181,10 +188,18 @@ EXPORT_SYMBOL(set_irq_type);
+  *
+  *	Set the hardware irq controller data for an irq
+  */
++int set_irq_desc_data(struct irq_desc *desc, void *data)
++{
++	unsigned long flags;
++
++	raw_spin_lock_irqsave(&desc->lock, flags);
++	desc->handler_data = data;
++	raw_spin_unlock_irqrestore(&desc->lock, flags);
++	return 0;
++}
+ int set_irq_data(unsigned int irq, void *data)
+ {
+ 	struct irq_desc *desc = irq_to_desc(irq);
+-	unsigned long flags;
+ 
+ 	if (!desc) {
+ 		printk(KERN_ERR
+@@ -192,10 +207,7 @@ int set_irq_data(unsigned int irq, void *data)
+ 		return -EINVAL;
+ 	}
+ 
+-	raw_spin_lock_irqsave(&desc->lock, flags);
+-	desc->handler_data = data;
+-	raw_spin_unlock_irqrestore(&desc->lock, flags);
+-	return 0;
++	return set_irq_desc_data(desc, data);
+ }
+ EXPORT_SYMBOL(set_irq_data);
+ 
+@@ -206,24 +218,28 @@ EXPORT_SYMBOL(set_irq_data);
+  *
+  *	Set the MSI descriptor entry for an irq
+  */
+-int set_irq_msi(unsigned int irq, struct msi_desc *entry)
++int set_irq_desc_msi(struct irq_desc *desc, struct msi_desc *entry)
+ {
+-	struct irq_desc *desc = irq_to_desc(irq);
+ 	unsigned long flags;
+ 
+-	if (!desc) {
+-		printk(KERN_ERR
+-		       "Trying to install msi data for IRQ%d\n", irq);
+-		return -EINVAL;
+-	}
+-
+ 	raw_spin_lock_irqsave(&desc->lock, flags);
+ 	desc->msi_desc = entry;
+ 	if (entry)
+-		entry->irq = irq;
++		entry->irq = desc->irq;
+ 	raw_spin_unlock_irqrestore(&desc->lock, flags);
+ 	return 0;
+ }
++int set_irq_msi(unsigned int irq, struct msi_desc *entry)
++{
++	struct irq_desc *desc = irq_to_desc(irq);
++	if (!desc) {
++		printk(KERN_ERR
++		       "Trying to install msi data for IRQ%d\n", desc->irq);
++		return -EINVAL;
++	}
++
++	return set_irq_desc_msi(desc, entry);
++}
+ 
+ /**
+  *	set_irq_chip_data - set irq chip data for an irq
+@@ -232,19 +248,12 @@ int set_irq_msi(unsigned int irq, struct msi_desc *entry)
+  *
+  *	Set the hardware irq chip data for an irq
+  */
+-int set_irq_chip_data(unsigned int irq, void *data)
++int set_irq_desc_chip_data(struct irq_desc *desc, void *data)
+ {
+-	struct irq_desc *desc = irq_to_desc(irq);
+ 	unsigned long flags;
+ 
+-	if (!desc) {
+-		printk(KERN_ERR
+-		       "Trying to install chip data for IRQ%d\n", irq);
+-		return -EINVAL;
+-	}
+-
+ 	if (!desc->chip) {
+-		printk(KERN_ERR "BUG: bad set_irq_chip_data(IRQ#%d)\n", irq);
++		printk(KERN_ERR "BUG: bad set_irq_chip_data(IRQ#%d)\n", desc->irq);
+ 		return -EINVAL;
+ 	}
+ 
+@@ -254,6 +263,18 @@ int set_irq_chip_data(unsigned int irq, void *data)
+ 
+ 	return 0;
+ }
++int set_irq_chip_data(unsigned int irq, void *data)
++{
++	struct irq_desc *desc = irq_to_desc(irq);
++
++	if (!desc) {
++		printk(KERN_ERR
++		       "Trying to install chip data for IRQ%d\n", irq);
++		return -EINVAL;
++	}
++
++	return set_irq_desc_chip_data(desc, data);
++}
+ EXPORT_SYMBOL(set_irq_chip_data);
+ 
+ /**
 -- 
 1.6.4.2
