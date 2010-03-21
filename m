@@ -1,235 +1,359 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet11.oracle.com ([148.87.113.123]:47018 "EHLO
+Received: from rcsinet11.oracle.com ([148.87.113.123]:45401 "EHLO
 	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752623Ab0CUHSG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 21 Mar 2010 03:18:06 -0400
+	with ESMTP id S1752156Ab0CUHQu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 21 Mar 2010 03:16:50 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 03/20] x86: make e820 to be static
-Date: Sun, 21 Mar 2010 00:13:04 -0700
-Message-ID: <1269155601-18247-4-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 19/20] x86/pci: ioh new version read all at same time
+Date: Sun, 21 Mar 2010 00:13:20 -0700
+Message-ID: <1269155601-18247-20-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1269155601-18247-1-git-send-email-yinghai@kernel.org>
 References: <1269155601-18247-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Jesse Barnes <jbarnes@virtuousgeek.org>
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100321071304.2s8Xr5BBky976XK44mQiYS8b9THUDK0yjH6ofyzsW_4@z>
+Message-ID: <20100321071320.GQ-jn5f15Hk4zT7NFt2uMvhHPNJoLBV4VCPRGGQTzgw@z>
 
-make sanitize_e820_map() not take e820.map directly.
-
-and could change e820_saved to initdata
+also it will add back default range to legacy IOH
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/e820.h |    7 ++-----
- arch/x86/kernel/e820.c      |   28 +++++++++++++++++++---------
- arch/x86/kernel/efi.c       |    2 +-
- arch/x86/kernel/setup.c     |   10 +++++-----
- arch/x86/xen/setup.c        |    4 +---
- 5 files changed, 28 insertions(+), 23 deletions(-)
+ arch/x86/include/asm/pci_x86.h |    5 +
+ arch/x86/pci/Makefile          |    1 +
+ arch/x86/pci/init.c            |    2 +
+ arch/x86/pci/intel_bus.c       |  281 ++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 289 insertions(+), 0 deletions(-)
+ create mode 100644 arch/x86/pci/intel_bus.c
 
-diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
-index 38828c7..71c0348 100644
---- a/arch/x86/include/asm/e820.h
-+++ b/arch/x86/include/asm/e820.h
-@@ -68,9 +68,6 @@ struct e820map {
- #define BIOS_END		0x00100000
+diff --git a/arch/x86/include/asm/pci_x86.h b/arch/x86/include/asm/pci_x86.h
+index 8d8797e..e52c02a 100644
+--- a/arch/x86/include/asm/pci_x86.h
++++ b/arch/x86/include/asm/pci_x86.h
+@@ -107,6 +107,11 @@ extern void pci_direct_init(int type);
+ extern void pci_pcbios_init(void);
+ extern void __init dmi_check_pciprobe(void);
+ extern void __init dmi_check_skip_isa_align(void);
++#ifdef CONFIG_PCI_MMCONFIG
++int intel_postarch_init(void);
++#else
++static inline int intel_postarch_init(void) { return 0; }
++#endif
  
- #ifdef __KERNEL__
--/* see comment in arch/x86/kernel/e820.c */
--extern struct e820map e820;
--extern struct e820map e820_saved;
+ /* some common used subsys_initcalls */
+ extern int __init pci_acpi_init(void);
+diff --git a/arch/x86/pci/Makefile b/arch/x86/pci/Makefile
+index b110d97..08e76bc 100644
+--- a/arch/x86/pci/Makefile
++++ b/arch/x86/pci/Makefile
+@@ -17,6 +17,7 @@ obj-$(CONFIG_X86_MRST)		+= mrst.o
  
- #ifdef CONFIG_X86_OOSTORE
- extern int centaur_ram_top;
-@@ -86,8 +83,8 @@ extern int e820_any_mapped(u64 start, u64 end, unsigned type);
- extern int e820_all_mapped(u64 start, u64 end, unsigned type);
- extern void e820_add_region(u64 start, u64 size, int type);
- extern void e820_print_map(char *who);
--extern int
--sanitize_e820_map(struct e820entry *biosmap, int max_nr_map, u32 *pnr_map);
-+int sanitize_e820_map(void);
-+void save_e820_map(void);
- extern u64 e820_update_range(u64 start, u64 size, unsigned old_type,
- 			       unsigned new_type);
- extern u64 e820_remove_range(u64 start, u64 size, unsigned old_type,
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index 119c0e1..40c04cf 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -34,8 +34,8 @@
-  * user can e.g. boot the original kernel with mem=1G while still booting the
-  * next kernel with full memory.
-  */
--struct e820map e820;
--struct e820map e820_saved;
-+static struct e820map e820;
-+static struct e820map __initdata e820_saved;
+ obj-y				+= common.o early.o
+ obj-y				+= amd_bus.o bus_numa.o
++obj-$(CONFIG_PCI_MMCONFIG)	+= intel_bus.o
  
- /* For PCI or other memory-mapped resources */
- unsigned long pci_mem_start = 0xaeedbabe;
-@@ -224,7 +224,7 @@ void __init e820_print_map(char *who)
-  *	   ______________________4_
-  */
+ ifeq ($(CONFIG_PCI_DEBUG),y)
+ EXTRA_CFLAGS += -DDEBUG
+diff --git a/arch/x86/pci/init.c b/arch/x86/pci/init.c
+index adb62aa..08d5dcf 100644
+--- a/arch/x86/pci/init.c
++++ b/arch/x86/pci/init.c
+@@ -39,6 +39,8 @@ static __init int pci_arch_init(void)
  
--int __init sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
-+static int __init __sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
- 			     u32 *pnr_map)
- {
- 	struct change_member {
-@@ -383,6 +383,11 @@ int __init sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
+ 	dmi_check_skip_isa_align();
+ 
++	intel_postarch_init();
++
  	return 0;
  }
- 
-+int __init sanitize_e820_map(void)
+ arch_initcall(pci_arch_init);
+diff --git a/arch/x86/pci/intel_bus.c b/arch/x86/pci/intel_bus.c
+new file mode 100644
+index 0000000..190c2c5
+--- /dev/null
++++ b/arch/x86/pci/intel_bus.c
+@@ -0,0 +1,281 @@
++/*
++ * to read io range from IOH pci conf, need to do it after mmconfig is there
++ */
++
++#include <linux/delay.h>
++#include <linux/dmi.h>
++#include <linux/pci.h>
++#include <linux/init.h>
++#include <linux/range.h>
++
++#include <asm/pci_x86.h>
++
++#include "bus_numa.h"
++
++static inline void print_ioh_resources(struct pci_root_info *info)
 +{
-+	return __sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++	int res_num;
++	int busnum;
++	int i;
++
++	printk(KERN_DEBUG "IOH bus: [%02x, %02x]\n",
++			info->bus_min, info->bus_max);
++	res_num = info->res_num;
++	busnum = info->bus_min;
++	for (i = 0; i < res_num; i++) {
++		struct resource *res;
++
++		res = &info->res[i];
++		printk(KERN_DEBUG "IOH bus: %02x index %x %pR\n",
++				busnum, i, res);
++	}
 +}
 +
- static int __init __append_e820_map(struct e820entry *biosmap, int nr_map)
- {
- 	while (nr_map) {
-@@ -555,7 +560,7 @@ void __init update_e820(void)
- 	u32 nr_map;
- 
- 	nr_map = e820.nr_map;
--	if (sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr_map))
-+	if (__sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr_map))
- 		return;
- 	e820.nr_map = nr_map;
- 	printk(KERN_INFO "modified physical RAM map:\n");
-@@ -566,7 +571,7 @@ static void __init update_e820_saved(void)
- 	u32 nr_map;
- 
- 	nr_map = e820_saved.nr_map;
--	if (sanitize_e820_map(e820_saved.map, ARRAY_SIZE(e820_saved.map), &nr_map))
-+	if (__sanitize_e820_map(e820_saved.map, ARRAY_SIZE(e820_saved.map), &nr_map))
- 		return;
- 	e820_saved.nr_map = nr_map;
- }
-@@ -661,7 +666,7 @@ void __init parse_e820_ext(struct setup_data *sdata, unsigned long pa_data)
- 		sdata = early_ioremap(pa_data, map_len);
- 	extmap = (struct e820entry *)(sdata->data);
- 	__append_e820_map(extmap, entries);
--	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
-+	sanitize_e820_map();
- 	if (map_len > PAGE_SIZE)
- 		early_iounmap(sdata, map_len);
- 	printk(KERN_INFO "extended physical RAM map:\n");
-@@ -1043,7 +1048,7 @@ void __init finish_e820_parsing(void)
- 	if (userdef) {
- 		u32 nr = e820.nr_map;
- 
--		if (sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr) < 0)
-+		if (__sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr) < 0)
- 			early_panic("Invalid user supplied memory map");
- 		e820.nr_map = nr;
- 
-@@ -1173,7 +1178,7 @@ char *__init default_machine_specific_memory_setup(void)
- 	 * the next section from 1mb->appropriate_mem_k
- 	 */
- 	new_nr = boot_params.e820_entries;
--	sanitize_e820_map(boot_params.e820_map,
-+	__sanitize_e820_map(boot_params.e820_map,
- 			ARRAY_SIZE(boot_params.e820_map),
- 			&new_nr);
- 	boot_params.e820_entries = new_nr;
-@@ -1200,12 +1205,17 @@ char *__init default_machine_specific_memory_setup(void)
- 	return who;
- }
- 
-+void __init save_e820_map(void)
++static void __devinit subtract_mmconf(struct range *range, int nr)
 +{
-+	memcpy(&e820_saved, &e820, sizeof(struct e820map));
++	struct pci_mmcfg_region *cfg;
++
++	if (list_empty(&pci_mmcfg_list))
++		return;
++
++	list_for_each_entry(cfg, &pci_mmcfg_list, list)
++		subtract_range(range, nr, cfg->res.start, cfg->res.end + 1);
 +}
 +
- void __init setup_memory_map(void)
- {
- 	char *who;
- 
- 	who = x86_init.resources.memory_setup();
--	memcpy(&e820_saved, &e820, sizeof(struct e820map));
-+	save_e820_map();
- 	printk(KERN_INFO "BIOS-provided physical RAM map:\n");
- 	e820_print_map(who);
- }
-diff --git a/arch/x86/kernel/efi.c b/arch/x86/kernel/efi.c
-index c2fa9b8..299f03f 100644
---- a/arch/x86/kernel/efi.c
-+++ b/arch/x86/kernel/efi.c
-@@ -272,7 +272,7 @@ static void __init do_add_efi_memmap(void)
- 		}
- 		e820_add_region(start, size, e820_type);
- 	}
--	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
-+	sanitize_e820_map();
- }
- 
- void __init efi_reserve_early(void)
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index c5ea524..82533cf 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -461,8 +461,8 @@ static void __init e820_reserve_setup_data(void)
- 	if (!found)
- 		return;
- 
--	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
--	memcpy(&e820_saved, &e820, sizeof(struct e820map));
-+	sanitize_e820_map();
-+	save_e820_map();
- 	printk(KERN_INFO "extended physical RAM map:\n");
- 	e820_print_map("reserve setup_data");
- }
-@@ -614,7 +614,7 @@ static int __init dmi_low_memory_corruption(const struct dmi_system_id *d)
- 		d->ident);
- 
- 	e820_update_range(0, 0x10000, E820_RAM, E820_RESERVED);
--	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
-+	sanitize_e820_map();
- 
- 	return 0;
- }
-@@ -683,7 +683,7 @@ static void __init trim_bios_range(void)
- 	 * take them out.
- 	 */
- 	e820_remove_range(BIOS_BEGIN, BIOS_END - BIOS_BEGIN, E820_RAM, 1);
--	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
-+	sanitize_e820_map();
- }
- 
- /*
-@@ -854,7 +854,7 @@ void __init setup_arch(char **cmdline_p)
- 	if (ppro_with_ram_bug()) {
- 		e820_update_range(0x70000000ULL, 0x40000ULL, E820_RAM,
- 				  E820_RESERVED);
--		sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
-+		sanitize_e820_map();
- 		printk(KERN_INFO "fixed physical RAM map:\n");
- 		e820_print_map("bad_ppro");
- 	}
-diff --git a/arch/x86/xen/setup.c b/arch/x86/xen/setup.c
-index ad0047f..3f2c411 100644
---- a/arch/x86/xen/setup.c
-+++ b/arch/x86/xen/setup.c
-@@ -43,8 +43,6 @@ char * __init xen_memory_setup(void)
- 
- 	max_pfn = min(MAX_DOMAIN_PAGES, max_pfn);
- 
--	e820.nr_map = 0;
--
- 	e820_add_region(0, PFN_PHYS((u64)max_pfn), E820_RAM);
- 
- 	/*
-@@ -65,7 +63,7 @@ char * __init xen_memory_setup(void)
- 		      __pa(xen_start_info->pt_base),
- 			"XEN START INFO");
- 
--	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
-+	sanitize_e820_map();
- 
- 	return "Xen";
- }
++#define IOH_LIO			0x108
++#define IOH_LMMIOL		0x10c
++#define IOH_LMMIOH		0x110
++#define IOH_LMMIOH_BASEU	0x114
++#define IOH_LMMIOH_LIMITU	0x118
++#define IOH_LCFGBUS		0x11c
++
++#define IOH_VTBAR		0x180
++#define IOH_VTSIZE		0x2000  /* Fixed HW size (not programmable) */
++
++#define RANGE_NUM		16
++
++#define RANGE_IO_NUM		16
++#define RANGE_MMIO_NUM		32
++static struct range range_io[RANGE_IO_NUM] __initdata;
++static struct range range_mmio[RANGE_MMIO_NUM] __initdata;
++static int def_ioh __initdata = -1;
++
++static void __init check_ioh_tom(int num, int slot, int func)
++{
++	u32 dword;
++	u64 tocm, tolm, tohm;
++
++	raw_pci_read(0, num, (slot<<3)|func, 0x98, 4, &dword);
++	/* is Legacy IOH with ESI? */
++	if ((dword & (3<<10)) == 0) {
++		if (def_ioh < 0)
++			def_ioh = pci_root_num;
++		else
++			printk(KERN_DEBUG "Multiple legacy IOHs ?\n");
++	}
++
++	/* top of address */
++	tocm = 1ULL<<(((dword >> 3) & 0x1f) + (37 - 5));
++	subtract_range(range_mmio, RANGE_MMIO_NUM, tocm, -1ULL);
++	/* private CSR 64G */
++	subtract_range(range_mmio, RANGE_MMIO_NUM, tocm - (64ULL<<30), tocm);
++	/* top of low mem */
++	raw_pci_read(0, num, (slot<<3)|func, 0xd0, 4, &dword);
++	tolm = dword & (0x3f<<26);
++	tolm += 1<<26;
++	subtract_range(range_mmio, RANGE_MMIO_NUM, 0, tolm);
++	/* top of high mem */
++	raw_pci_read(0, num, (slot<<3)|func, 0xd8, 4, &dword);
++	tohm = dword;
++	tohm <<= 32;
++	raw_pci_read(0, num, (slot<<3)|func, 0xd4, 4, &dword);
++	tohm |= dword & (0x3f<<26);
++	tohm += 1<<26;
++	subtract_range(range_mmio, RANGE_MMIO_NUM, 1ULL<<32, tohm);
++	printk(KERN_DEBUG "IOH bus 0x%02x tolm: 0x%llxM, tohm: 0x%llxM, tocm: 0x%llxM\n",
++			 num, tolm>>20, tohm>>20, tocm>>20);
++}
++
++static void __init read_ioh_res(int num, int slot, int func)
++{
++	u32 dword;
++	struct pci_root_info *info;
++	u16 io_base, io_end;
++	u32 mmiol_base, mmiol_end;
++	u64 mmioh_base, mmioh_end;
++	int bus_base, bus_end;
++	struct range range[RANGE_NUM];
++	int i;
++
++
++	if (pci_root_num >= PCI_ROOT_NR) {
++		printk(KERN_DEBUG "intel_bus.c: PCI_ROOT_NR is too small\n");
++		return;
++	}
++
++	check_ioh_tom(num, slot, func);
++
++	info = &pci_root_info[pci_root_num];
++	pci_root_num++;
++
++	raw_pci_read(0, num, (slot<<3)|func, IOH_LCFGBUS, 2, &dword);
++	bus_base = (dword & 0xff);
++	bus_end = (dword & 0xff00) >> 8;
++	sprintf(info->name, "PCI Bus #%02x", bus_base);
++	info->bus_min = bus_base;
++	info->bus_max = bus_end;
++
++	raw_pci_read(0, num, (slot<<3)|func, IOH_LIO, 2, &dword);
++	io_base = (dword & 0xf0) << (12 - 4);
++	io_end = (dword & 0xf000) | 0xfff;
++	update_res(info, io_base, io_end, IORESOURCE_IO, 0);
++	subtract_range(range_io, RANGE_IO_NUM, io_base, io_end + 1);
++
++	raw_pci_read(0, num, (slot<<3)|func, IOH_LMMIOL, 4, &dword);
++	mmiol_base = (dword & 0xff00) << (24 - 8);
++	mmiol_end = (dword & 0xff000000) | 0xffffff;
++	subtract_range(range_mmio, RANGE_MMIO_NUM, mmiol_base, mmiol_end + 1);
++	memset(range, 0, sizeof(range));
++	add_range(range, RANGE_NUM, 0, mmiol_base, (u64)mmiol_end + 1);
++	raw_pci_read(0, num, (slot<<3)|func, IOH_VTBAR, 4, &dword);
++	if (dword & 0x1) {
++		u32 vt_base, vt_end;
++
++		vt_base = dword & 0xfffffffe;
++		vt_end = vt_base + IOH_VTSIZE - 1;
++
++		subtract_range(range, RANGE_NUM, vt_base, vt_end + 1);
++		subtract_range(range_mmio, RANGE_MMIO_NUM, vt_base, vt_end + 1);
++	}
++	for (i = 0; i < RANGE_NUM; i++) {
++		if (!range[i].end)
++			continue;
++
++		update_res(info, cap_resource(range[i].start),
++				cap_resource(range[i].end - 1),
++				IORESOURCE_MEM, 0);
++	}
++
++	raw_pci_read(0, num, (slot<<3)|func, IOH_LMMIOH, 4, &dword);
++	mmioh_base = ((u64)(dword & 0xfc00)) << (26 - 10);
++	mmioh_end = ((u64)(dword & 0xfc000000) | 0x3ffffff);
++	raw_pci_read(0, num, (slot<<3)|func, IOH_LMMIOH_BASEU, 4, &dword);
++	mmioh_base |= ((u64)(dword & 0x7ffff)) << 32;
++	raw_pci_read(0, num, (slot<<3)|func, IOH_LMMIOH_LIMITU, 4, &dword);
++	mmioh_end |= ((u64)(dword & 0x7ffff)) << 32;
++	update_res(info, cap_resource(mmioh_base), cap_resource(mmioh_end),
++			 IORESOURCE_MEM, 0);
++	subtract_range(range_mmio, RANGE_MMIO_NUM, mmioh_base, mmioh_end + 1);
++
++	print_ioh_resources(info);
++}
++
++struct pci_check_probe {
++	u32 vendor;
++	u32 device;
++	void (*f)(int num, int slot, int func);
++};
++
++static struct pci_check_probe early_qrk[] __initdata = {
++	{ PCI_VENDOR_ID_INTEL, 0x342e, read_ioh_res }, /* intel IOH */
++	{}
++};
++
++static void __init postarch_check_pci_dev(int num, int slot, int func)
++{
++	u32 vendor;
++	u32 device;
++	int i;
++
++	raw_pci_read(0, num, (slot<<3)|func, PCI_VENDOR_ID, 2, &vendor);
++	raw_pci_read(0, num, (slot<<3)|func, PCI_DEVICE_ID, 2, &device);
++
++	for (i = 0; early_qrk[i].f != NULL; i++) {
++		if (((early_qrk[i].vendor == PCI_ANY_ID) ||
++			(early_qrk[i].vendor == vendor)) &&
++			((early_qrk[i].device == PCI_ANY_ID) ||
++			(early_qrk[i].device == device)))
++				early_qrk[i].f(num, slot, func);
++	}
++}
++
++static void __init postarch_check_pci_devs(void)
++{
++	unsigned bus, slot, func;
++	struct pci_root_info *info;
++	int i;
++
++	memset(range_io, 0, sizeof(range_io));
++	add_range(range_io, RANGE_IO_NUM, 0, 0, 0xffff + 1);
++
++	memset(range_mmio, 0, sizeof(range_mmio));
++	add_range(range_mmio, RANGE_MMIO_NUM, 0, 0, -1ULL);
++
++	for (bus = 0; bus < 256; bus++) {
++		for (slot = 0; slot < 32; slot++) {
++			for (func = 0; func < 8; func++) {
++				u32 class;
++				u32 type;
++
++				raw_pci_read(0, bus, (slot<<3)|func,
++						PCI_CLASS_REVISION, 4, &class);
++				if (class == 0xffffffff)
++					continue;
++
++				postarch_check_pci_dev(bus, slot, func);
++
++				if (func == 0) {
++					raw_pci_read(0, bus, (slot<<3)|func,
++					       PCI_HEADER_TYPE, 1, &type);
++					if (!(type & 0x80))
++						break;
++				}
++			}
++		}
++	}
++
++	if (def_ioh < 0)
++		return;
++
++	/* add default io */
++	info = &pci_root_info[def_ioh];
++	for (i = 0; i < RANGE_IO_NUM; i++) {
++		if (!range_io[i].end)
++			continue;
++
++		update_res(info, range_io[i].start, range_io[i].end - 1,
++			   IORESOURCE_IO, 0);
++	}
++
++	subtract_mmconf(range_mmio, RANGE_MMIO_NUM);
++
++	/* add default default mmio */
++	for (i = 0; i < RANGE_MMIO_NUM; i++) {
++		if (!range_mmio[i].end)
++			continue;
++
++		update_res(info, cap_resource(range_mmio[i].start),
++			   cap_resource(range_mmio[i].end - 1),
++			   IORESOURCE_MEM, 0);
++	}
++	printk(KERN_DEBUG "IOH Legacy final with default routing:\n");
++	print_ioh_resources(info);
++}
++
++/*
++ * need to call it just after pci_arch_init
++ * so we can have mmconf ready
++ */
++int __init intel_postarch_init(void)
++{
++	if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL)
++		return 0;
++
++	if (!pci_ext_cfg_avail(NULL))
++		return 0;
++
++	postarch_check_pci_devs();
++
++	return 0;
++}
++
 -- 
 1.6.4.2
 
