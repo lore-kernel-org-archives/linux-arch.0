@@ -1,345 +1,200 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet11.oracle.com ([148.87.113.123]:45183 "EHLO
-	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751808Ab0CUHQj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 21 Mar 2010 03:16:39 -0400
+Received: from rcsinet12.oracle.com ([148.87.113.124]:56254 "EHLO
+	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752976Ab0CUHRv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 21 Mar 2010 03:17:51 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 14/20] genericirq: add set_irq_desc_chip/data ...
-Date: Sun, 21 Mar 2010 00:13:15 -0700
-Message-ID: <1269155601-18247-15-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 02/20] x86: add get_centaur_ram_top
+Date: Sun, 21 Mar 2010 00:13:03 -0700
+Message-ID: <1269155601-18247-3-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1269155601-18247-1-git-send-email-yinghai@kernel.org>
 References: <1269155601-18247-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Jesse Barnes <jbarnes@virtuousgeek.org>
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100321071315.Xx0mhvitc2KSTgXeo3w-Fh-PswQWh7DfoHdMWtL60Dw@z>
+Message-ID: <20100321071303.YHJrjG6bTI8IXfZU5NFPj09G3t5wCbBsJD_CHtqEYwg@z>
 
-with set_irq_chip/data...
+so we can avoid to access e820.map[] directly.
 
-to take desc instead of irq
+later we could move e820 to static and _initdata
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/kernel/apic/io_apic.c |    4 +-
- include/linux/irq.h            |   10 +++-
- include/linux/irqnr.h          |    1 +
- kernel/irq/chip.c              |  127 +++++++++++++++++++++++-----------------
- 4 files changed, 85 insertions(+), 57 deletions(-)
+ arch/x86/include/asm/e820.h   |    9 ++++++
+ arch/x86/kernel/cpu/centaur.c |   53 +------------------------------------
+ arch/x86/kernel/e820.c        |   57 +++++++++++++++++++++++++++++++++++++++++
+ arch/x86/kernel/setup.c       |    2 +
+ 4 files changed, 70 insertions(+), 51 deletions(-)
 
-diff --git a/arch/x86/kernel/apic/io_apic.c b/arch/x86/kernel/apic/io_apic.c
-index d3b2f0b..5f061b7 100644
---- a/arch/x86/kernel/apic/io_apic.c
-+++ b/arch/x86/kernel/apic/io_apic.c
-@@ -3302,7 +3302,7 @@ unsigned int create_irq_nr(unsigned int irq_want, int node)
- 	raw_spin_unlock_irqrestore(&vector_lock, flags);
+diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
+index b48f371..38828c7 100644
+--- a/arch/x86/include/asm/e820.h
++++ b/arch/x86/include/asm/e820.h
+@@ -72,6 +72,15 @@ struct e820map {
+ extern struct e820map e820;
+ extern struct e820map e820_saved;
  
- 	if (irq > 0)
--		dynamic_irq_init_keep_chip_data(irq);
-+		dynamic_irq_init_keep_chip_data(irq_to_desc(irq));
- 
- 	return irq;
++#ifdef CONFIG_X86_OOSTORE
++extern int centaur_ram_top;
++void get_centaur_ram_top(void);
++#else
++static inline void get_centaur_ram_top(void)
++{
++}
++#endif
++
+ extern unsigned long pci_mem_start;
+ extern int e820_any_mapped(u64 start, u64 end, unsigned type);
+ extern int e820_all_mapped(u64 start, u64 end, unsigned type);
+diff --git a/arch/x86/kernel/cpu/centaur.c b/arch/x86/kernel/cpu/centaur.c
+index e58d978..bb49358 100644
+--- a/arch/x86/kernel/cpu/centaur.c
++++ b/arch/x86/kernel/cpu/centaur.c
+@@ -37,63 +37,14 @@ static void __cpuinit centaur_mcr_insert(int reg, u32 base, u32 size, int key)
+ 	mtrr_centaur_report_mcr(reg, lo, hi);	/* Tell the mtrr driver */
  }
-@@ -3328,7 +3328,7 @@ void destroy_irq(unsigned int irq)
- 	struct irq_desc *desc;
- 	struct irq_cfg *cfg;
  
--	dynamic_irq_cleanup_keep_chip_data(irq);
-+	dynamic_irq_cleanup_keep_chip_data(irq_to_desc(irq));
- 
- 	free_irte(irq);
- 	raw_spin_lock_irqsave(&vector_lock, flags);
-diff --git a/include/linux/irq.h b/include/linux/irq.h
-index fb8c376..89d49e8 100644
---- a/include/linux/irq.h
-+++ b/include/linux/irq.h
-@@ -412,9 +412,9 @@ static inline int irq_has_action(unsigned int irq)
- 
- /* Dynamic irq helper functions */
- extern void dynamic_irq_init(unsigned int irq);
--void dynamic_irq_init_keep_chip_data(unsigned int irq);
-+void dynamic_irq_init_keep_chip_data(struct irq_desc *desc);
- extern void dynamic_irq_cleanup(unsigned int irq);
--void dynamic_irq_cleanup_keep_chip_data(unsigned int irq);
-+void dynamic_irq_cleanup_keep_chip_data(struct irq_desc *desc);
- 
- /* Set/get chip/data for an IRQ: */
- extern int set_irq_chip(unsigned int irq, struct irq_chip *chip);
-@@ -423,6 +423,12 @@ extern int set_irq_chip_data(unsigned int irq, void *data);
- extern int set_irq_type(unsigned int irq, unsigned int type);
- extern int set_irq_msi(unsigned int irq, struct msi_desc *entry);
- 
-+int set_irq_desc_chip(struct irq_desc *desc, struct irq_chip *chip);
-+int set_irq_desc_data(struct irq_desc *desc, void *data);
-+int set_irq_desc_chip_data(struct irq_desc *desc, void *data);
-+int set_irq_desc_type(struct irq_desc *desc, unsigned int type);
-+int set_irq_desc_msi(struct irq_desc *desc, struct msi_desc *entry);
-+
- #define get_irq_chip(irq)	(irq_to_desc(irq)->chip)
- #define get_irq_chip_data(irq)	(irq_to_desc(irq)->chip_data)
- #define get_irq_data(irq)	(irq_to_desc(irq)->handler_data)
-diff --git a/include/linux/irqnr.h b/include/linux/irqnr.h
-index 7bf89bc..dee8f2b 100644
---- a/include/linux/irqnr.h
-+++ b/include/linux/irqnr.h
-@@ -43,6 +43,7 @@ extern struct irq_desc *irq_to_desc(unsigned int irq);
- 
- #ifdef CONFIG_SMP
- #define irq_node(irq)	(irq_to_desc(irq)->node)
-+#define irq_desc_node(desc) ((desc)->node)
- #else
- #define irq_node(irq)	0
- #endif
-diff --git a/kernel/irq/chip.c b/kernel/irq/chip.c
-index 043557a..502168d 100644
---- a/kernel/irq/chip.c
-+++ b/kernel/irq/chip.c
-@@ -18,17 +18,10 @@
- 
- #include "internals.h"
- 
--static void dynamic_irq_init_x(unsigned int irq, bool keep_chip_data)
-+static void dynamic_irq_init_x(struct irq_desc *desc, bool keep_chip_data)
- {
--	struct irq_desc *desc;
- 	unsigned long flags;
- 
--	desc = irq_to_desc(irq);
--	if (!desc) {
--		WARN(1, KERN_ERR "Trying to initialize invalid IRQ%d\n", irq);
--		return;
--	}
+-/*
+- * Figure what we can cover with MCR's
+- *
+- * Shortcut: We know you can't put 4Gig of RAM on a winchip
+- */
+-static u32 __cpuinit ramtop(void)
+-{
+-	u32 clip = 0xFFFFFFFFUL;
+-	u32 top = 0;
+-	int i;
 -
- 	/* Ensure we don't have left over values from a previous use of this irq */
- 	raw_spin_lock_irqsave(&desc->lock, flags);
- 	desc->status = IRQ_DISABLED;
-@@ -57,7 +50,15 @@ static void dynamic_irq_init_x(unsigned int irq, bool keep_chip_data)
+-	for (i = 0; i < e820.nr_map; i++) {
+-		unsigned long start, end;
+-
+-		if (e820.map[i].addr > 0xFFFFFFFFUL)
+-			continue;
+-		/*
+-		 * Don't MCR over reserved space. Ignore the ISA hole
+-		 * we frob around that catastrophe already
+-		 */
+-		if (e820.map[i].type == E820_RESERVED) {
+-			if (e820.map[i].addr >= 0x100000UL &&
+-			    e820.map[i].addr < clip)
+-				clip = e820.map[i].addr;
+-			continue;
+-		}
+-		start = e820.map[i].addr;
+-		end = e820.map[i].addr + e820.map[i].size;
+-		if (start >= end)
+-			continue;
+-		if (end > top)
+-			top = end;
+-	}
+-	/*
+-	 * Everything below 'top' should be RAM except for the ISA hole.
+-	 * Because of the limited MCR's we want to map NV/ACPI into our
+-	 * MCR range for gunk in RAM
+-	 *
+-	 * Clip might cause us to MCR insufficient RAM but that is an
+-	 * acceptable failure mode and should only bite obscure boxes with
+-	 * a VESA hole at 15Mb
+-	 *
+-	 * The second case Clip sometimes kicks in is when the EBDA is marked
+-	 * as reserved. Again we fail safe with reasonable results
+-	 */
+-	if (top > clip)
+-		top = clip;
+-
+-	return top;
+-}
++int __cpuinitdata centaur_ram_top;
+ 
+ /*
+  * Compute a set of MCR's to give maximum coverage
   */
- void dynamic_irq_init(unsigned int irq)
+ static int __cpuinit centaur_mcr_compute(int nr, int key)
  {
--	dynamic_irq_init_x(irq, false);
-+	struct irq_desc *desc;
+-	u32 mem = ramtop();
++	u32 mem = centaur_ram_top;
+ 	u32 root = power2(mem);
+ 	u32 base = root;
+ 	u32 top = root;
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 05ee724..119c0e1 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -1209,3 +1209,60 @@ void __init setup_memory_map(void)
+ 	printk(KERN_INFO "BIOS-provided physical RAM map:\n");
+ 	e820_print_map(who);
+ }
 +
-+	desc = irq_to_desc(irq);
-+	if (!desc) {
-+		WARN(1, KERN_ERR "Trying to initialize invalid IRQ%d\n", irq);
++#ifdef CONFIG_X86_OOSTORE
++/*
++ * Figure what we can cover with MCR's
++ *
++ * Shortcut: We know you can't put 4Gig of RAM on a winchip
++ */
++void __init get_centaur_ram_top(void)
++{
++	u32 clip = 0xFFFFFFFFUL;
++	u32 top = 0;
++	int i;
++
++	if (boot_cpu_data.x86_vendor != X86_VENDOR_CENTAUR)
 +		return;
++
++	for (i = 0; i < e820.nr_map; i++) {
++		unsigned long start, end;
++
++		if (e820.map[i].addr > 0xFFFFFFFFUL)
++			continue;
++		/*
++		 * Don't MCR over reserved space. Ignore the ISA hole
++		 * we frob around that catastrophe already
++		 */
++		if (e820.map[i].type == E820_RESERVED) {
++			if (e820.map[i].addr >= 0x100000UL &&
++			    e820.map[i].addr < clip)
++				clip = e820.map[i].addr;
++			continue;
++		}
++		start = e820.map[i].addr;
++		end = e820.map[i].addr + e820.map[i].size;
++		if (start >= end)
++			continue;
++		if (end > top)
++			top = end;
 +	}
++	/*
++	 * Everything below 'top' should be RAM except for the ISA hole.
++	 * Because of the limited MCR's we want to map NV/ACPI into our
++	 * MCR range for gunk in RAM
++	 *
++	 * Clip might cause us to MCR insufficient RAM but that is an
++	 * acceptable failure mode and should only bite obscure boxes with
++	 * a VESA hole at 15Mb
++	 *
++	 * The second case Clip sometimes kicks in is when the EBDA is marked
++	 * as reserved. Again we fail safe with reasonable results
++	 */
++	if (top > clip)
++		top = clip;
 +
-+	dynamic_irq_init_x(desc, false);
- }
- 
- /**
-@@ -66,26 +67,20 @@ void dynamic_irq_init(unsigned int irq)
-  *
-  *	does not set irq_to_desc(irq)->chip_data to NULL
-  */
--void dynamic_irq_init_keep_chip_data(unsigned int irq)
-+void dynamic_irq_init_keep_chip_data(struct irq_desc *desc)
- {
--	dynamic_irq_init_x(irq, true);
-+	dynamic_irq_init_x(desc, true);
- }
- 
--static void dynamic_irq_cleanup_x(unsigned int irq, bool keep_chip_data)
-+static void dynamic_irq_cleanup_x(struct irq_desc *desc, bool keep_chip_data)
- {
--	struct irq_desc *desc = irq_to_desc(irq);
- 	unsigned long flags;
- 
--	if (!desc) {
--		WARN(1, KERN_ERR "Trying to cleanup invalid IRQ%d\n", irq);
--		return;
--	}
--
- 	raw_spin_lock_irqsave(&desc->lock, flags);
- 	if (desc->action) {
- 		raw_spin_unlock_irqrestore(&desc->lock, flags);
- 		WARN(1, KERN_ERR "Destroying IRQ%d without calling free_irq\n",
--			irq);
-+			desc->irq);
- 		return;
- 	}
- 	desc->msi_desc = NULL;
-@@ -105,7 +100,14 @@ static void dynamic_irq_cleanup_x(unsigned int irq, bool keep_chip_data)
-  */
- void dynamic_irq_cleanup(unsigned int irq)
- {
--	dynamic_irq_cleanup_x(irq, false);
-+	struct irq_desc *desc = irq_to_desc(irq);
-+
-+	if (!desc) {
-+		WARN(1, KERN_ERR "Trying to cleanup invalid IRQ%d\n", irq);
-+		return;
-+	}
-+
-+	dynamic_irq_cleanup_x(desc, false);
- }
- 
- /**
-@@ -114,9 +116,9 @@ void dynamic_irq_cleanup(unsigned int irq)
-  *
-  *	does not set irq_to_desc(irq)->chip_data to NULL
-  */
--void dynamic_irq_cleanup_keep_chip_data(unsigned int irq)
-+void dynamic_irq_cleanup_keep_chip_data(struct irq_desc *desc)
- {
--	dynamic_irq_cleanup_x(irq, true);
-+	dynamic_irq_cleanup_x(desc, true);
- }
- 
- 
-@@ -152,26 +154,31 @@ EXPORT_SYMBOL(set_irq_chip);
-  *	@irq:	irq number
-  *	@type:	IRQ_TYPE_{LEVEL,EDGE}_* value - see include/linux/irq.h
-  */
--int set_irq_type(unsigned int irq, unsigned int type)
-+int set_irq_desc_type(struct irq_desc *desc, unsigned int type)
- {
--	struct irq_desc *desc = irq_to_desc(irq);
- 	unsigned long flags;
- 	int ret = -ENXIO;
- 
--	if (!desc) {
--		printk(KERN_ERR "Trying to set irq type for IRQ%d\n", irq);
--		return -ENODEV;
--	}
--
- 	type &= IRQ_TYPE_SENSE_MASK;
- 	if (type == IRQ_TYPE_NONE)
- 		return 0;
- 
- 	raw_spin_lock_irqsave(&desc->lock, flags);
--	ret = __irq_set_trigger(desc, irq, type);
-+	ret = __irq_set_trigger(desc, desc->irq, type);
- 	raw_spin_unlock_irqrestore(&desc->lock, flags);
- 	return ret;
- }
-+int set_irq_type(unsigned int irq, unsigned int type)
-+{
-+	struct irq_desc *desc = irq_to_desc(irq);
-+
-+	if (!desc) {
-+		printk(KERN_ERR "Trying to set irq type for IRQ%d\n", irq);
-+		return -ENODEV;
-+	}
-+
-+	return set_irq_desc_type(desc, type);
++	centaur_ram_top = top;
 +}
- EXPORT_SYMBOL(set_irq_type);
- 
- /**
-@@ -181,10 +188,18 @@ EXPORT_SYMBOL(set_irq_type);
-  *
-  *	Set the hardware irq controller data for an irq
-  */
-+int set_irq_desc_data(struct irq_desc *desc, void *data)
-+{
-+	unsigned long flags;
++#endif
 +
-+	raw_spin_lock_irqsave(&desc->lock, flags);
-+	desc->handler_data = data;
-+	raw_spin_unlock_irqrestore(&desc->lock, flags);
-+	return 0;
-+}
- int set_irq_data(unsigned int irq, void *data)
- {
- 	struct irq_desc *desc = irq_to_desc(irq);
--	unsigned long flags;
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 5d7ba1a..c5ea524 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -875,6 +875,8 @@ void __init setup_arch(char **cmdline_p)
+ 	if (mtrr_trim_uncached_memory(max_pfn))
+ 		max_pfn = e820_end_of_ram_pfn();
  
- 	if (!desc) {
- 		printk(KERN_ERR
-@@ -192,10 +207,7 @@ int set_irq_data(unsigned int irq, void *data)
- 		return -EINVAL;
- 	}
- 
--	raw_spin_lock_irqsave(&desc->lock, flags);
--	desc->handler_data = data;
--	raw_spin_unlock_irqrestore(&desc->lock, flags);
--	return 0;
-+	return set_irq_desc_data(desc, data);
- }
- EXPORT_SYMBOL(set_irq_data);
- 
-@@ -206,24 +218,28 @@ EXPORT_SYMBOL(set_irq_data);
-  *
-  *	Set the MSI descriptor entry for an irq
-  */
--int set_irq_msi(unsigned int irq, struct msi_desc *entry)
-+int set_irq_desc_msi(struct irq_desc *desc, struct msi_desc *entry)
- {
--	struct irq_desc *desc = irq_to_desc(irq);
- 	unsigned long flags;
- 
--	if (!desc) {
--		printk(KERN_ERR
--		       "Trying to install msi data for IRQ%d\n", irq);
--		return -EINVAL;
--	}
--
- 	raw_spin_lock_irqsave(&desc->lock, flags);
- 	desc->msi_desc = entry;
- 	if (entry)
--		entry->irq = irq;
-+		entry->irq = desc->irq;
- 	raw_spin_unlock_irqrestore(&desc->lock, flags);
- 	return 0;
- }
-+int set_irq_msi(unsigned int irq, struct msi_desc *entry)
-+{
-+	struct irq_desc *desc = irq_to_desc(irq);
-+	if (!desc) {
-+		printk(KERN_ERR
-+		       "Trying to install msi data for IRQ%d\n", desc->irq);
-+		return -EINVAL;
-+	}
++	get_centaur_ram_top();
 +
-+	return set_irq_desc_msi(desc, entry);
-+}
- 
- /**
-  *	set_irq_chip_data - set irq chip data for an irq
-@@ -232,19 +248,12 @@ int set_irq_msi(unsigned int irq, struct msi_desc *entry)
-  *
-  *	Set the hardware irq chip data for an irq
-  */
--int set_irq_chip_data(unsigned int irq, void *data)
-+int set_irq_desc_chip_data(struct irq_desc *desc, void *data)
- {
--	struct irq_desc *desc = irq_to_desc(irq);
- 	unsigned long flags;
- 
--	if (!desc) {
--		printk(KERN_ERR
--		       "Trying to install chip data for IRQ%d\n", irq);
--		return -EINVAL;
--	}
--
- 	if (!desc->chip) {
--		printk(KERN_ERR "BUG: bad set_irq_chip_data(IRQ#%d)\n", irq);
-+		printk(KERN_ERR "BUG: bad set_irq_chip_data(IRQ#%d)\n", desc->irq);
- 		return -EINVAL;
- 	}
- 
-@@ -254,6 +263,18 @@ int set_irq_chip_data(unsigned int irq, void *data)
- 
- 	return 0;
- }
-+int set_irq_chip_data(unsigned int irq, void *data)
-+{
-+	struct irq_desc *desc = irq_to_desc(irq);
-+
-+	if (!desc) {
-+		printk(KERN_ERR
-+		       "Trying to install chip data for IRQ%d\n", irq);
-+		return -EINVAL;
-+	}
-+
-+	return set_irq_desc_chip_data(desc, data);
-+}
- EXPORT_SYMBOL(set_irq_chip_data);
- 
- /**
+ #ifdef CONFIG_X86_32
+ 	/* max_low_pfn get updated here */
+ 	find_low_pfn_range();
 -- 
 1.6.4.2
 
