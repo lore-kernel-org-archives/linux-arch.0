@@ -1,368 +1,233 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 17/20] x86: make 32bit apic flat to physflat switch like 64bit
-Date: Sun, 21 Mar 2010 00:13:18 -0700
-Message-ID: <1269155601-18247-18-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 03/20] x86: make e820 to be static
+Date: Sun, 21 Mar 2010 00:13:04 -0700
+Message-ID: <1269155601-18247-4-git-send-email-yinghai@kernel.org>
 References: <1269155601-18247-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet12.oracle.com ([141.146.126.234]:56475 "EHLO
-	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753282Ab0CUHTM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 21 Mar 2010 03:19:12 -0400
+Received: from rcsinet11.oracle.com ([148.87.113.123]:47018 "EHLO
+	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752623Ab0CUHSG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 21 Mar 2010 03:18:06 -0400
 In-Reply-To: <1269155601-18247-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Je
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-kill def_to_bigsmp
-and move switch from default to bigsmp at default_setup_apic_routing...
-so make default_setup_apic_routing more like 64 bit
-also make the dmi relate code to be __init/__initdata
+make sanitize_e820_map() not take e820.map directly.
 
--v2: refresh it according to change in upstream
+and could change e820_saved to initdata
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/apic.h      |    3 -
- arch/x86/include/asm/mpspec.h    |    1 -
- arch/x86/kernel/apic/bigsmp_32.c |   48 +---------------
- arch/x86/kernel/apic/probe_32.c  |  115 ++++++++++++++++++++------------------
- arch/x86/kernel/apic/probe_64.c  |    2 +-
- arch/x86/kernel/setup.c          |    2 -
- arch/x86/kernel/smpboot.c        |    2 +-
- 7 files changed, 65 insertions(+), 108 deletions(-)
+ arch/x86/include/asm/e820.h |    7 ++-----
+ arch/x86/kernel/e820.c      |   28 +++++++++++++++++++---------
+ arch/x86/kernel/efi.c       |    2 +-
+ arch/x86/kernel/setup.c     |   10 +++++-----
+ arch/x86/xen/setup.c        |    4 +---
+ 5 files changed, 28 insertions(+), 23 deletions(-)
 
-diff --git a/arch/x86/include/asm/apic.h b/arch/x86/include/asm/apic.h
-index 1fa03e0..6a34763 100644
---- a/arch/x86/include/asm/apic.h
-+++ b/arch/x86/include/asm/apic.h
-@@ -465,9 +465,6 @@ static inline void default_wait_for_init_deassert(atomic_t *deassert)
- 	return;
- }
+diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
+index 38828c7..71c0348 100644
+--- a/arch/x86/include/asm/e820.h
++++ b/arch/x86/include/asm/e820.h
+@@ -68,9 +68,6 @@ struct e820map {
+ #define BIOS_END		0x00100000
  
--extern void generic_bigsmp_probe(void);
--
--
- #ifdef CONFIG_X86_LOCAL_APIC
+ #ifdef __KERNEL__
+-/* see comment in arch/x86/kernel/e820.c */
+-extern struct e820map e820;
+-extern struct e820map e820_saved;
  
- #include <asm/smp.h>
-diff --git a/arch/x86/include/asm/mpspec.h b/arch/x86/include/asm/mpspec.h
-index 1a221e0..cb398c8 100644
---- a/arch/x86/include/asm/mpspec.h
-+++ b/arch/x86/include/asm/mpspec.h
-@@ -23,7 +23,6 @@ extern int pic_mode;
+ #ifdef CONFIG_X86_OOSTORE
+ extern int centaur_ram_top;
+@@ -86,8 +83,8 @@ extern int e820_any_mapped(u64 start, u64 end, unsigned type);
+ extern int e820_all_mapped(u64 start, u64 end, unsigned type);
+ extern void e820_add_region(u64 start, u64 size, int type);
+ extern void e820_print_map(char *who);
+-extern int
+-sanitize_e820_map(struct e820entry *biosmap, int max_nr_map, u32 *pnr_map);
++int sanitize_e820_map(void);
++void save_e820_map(void);
+ extern u64 e820_update_range(u64 start, u64 size, unsigned old_type,
+ 			       unsigned new_type);
+ extern u64 e820_remove_range(u64 start, u64 size, unsigned old_type,
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 119c0e1..40c04cf 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -34,8 +34,8 @@
+  * user can e.g. boot the original kernel with mem=1G while still booting the
+  * next kernel with full memory.
+  */
+-struct e820map e820;
+-struct e820map e820_saved;
++static struct e820map e820;
++static struct e820map __initdata e820_saved;
  
- #define MAX_IRQ_SOURCES		256
+ /* For PCI or other memory-mapped resources */
+ unsigned long pci_mem_start = 0xaeedbabe;
+@@ -224,7 +224,7 @@ void __init e820_print_map(char *who)
+  *	   ______________________4_
+  */
  
--extern unsigned int def_to_bigsmp;
- extern u8 apicid_2_node[];
- 
- #ifdef CONFIG_X86_NUMAQ
-diff --git a/arch/x86/kernel/apic/bigsmp_32.c b/arch/x86/kernel/apic/bigsmp_32.c
-index cb804c5..350d60e 100644
---- a/arch/x86/kernel/apic/bigsmp_32.c
-+++ b/arch/x86/kernel/apic/bigsmp_32.c
-@@ -7,7 +7,6 @@
- #include <linux/cpumask.h>
- #include <linux/kernel.h>
- #include <linux/init.h>
--#include <linux/dmi.h>
- #include <linux/smp.h>
- 
- #include <asm/apicdef.h>
-@@ -73,13 +72,6 @@ static void bigsmp_init_apic_ldr(void)
- 	apic_write(APIC_LDR, val);
- }
- 
--static void bigsmp_setup_apic_routing(void)
--{
--	printk(KERN_INFO
--		"Enabling APIC mode:  Physflat.  Using %d I/O APICs\n",
--		nr_ioapics);
--}
--
- static int bigsmp_apicid_to_node(int logical_apicid)
+-int __init sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
++static int __init __sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
+ 			     u32 *pnr_map)
  {
- 	return apicid_2_node[hard_smp_processor_id()];
-@@ -154,52 +146,16 @@ static void bigsmp_send_IPI_all(int vector)
- 	bigsmp_send_IPI_mask(cpu_online_mask, vector);
+ 	struct change_member {
+@@ -383,6 +383,11 @@ int __init sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
+ 	return 0;
  }
  
--static int dmi_bigsmp; /* can be set by dmi scanners */
--
--static int hp_ht_bigsmp(const struct dmi_system_id *d)
--{
--	printk(KERN_NOTICE "%s detected: force use of apic=bigsmp\n", d->ident);
--	dmi_bigsmp = 1;
--
--	return 0;
--}
--
--
--static const struct dmi_system_id bigsmp_dmi_table[] = {
--	{ hp_ht_bigsmp, "HP ProLiant DL760 G2",
--		{	DMI_MATCH(DMI_BIOS_VENDOR, "HP"),
--			DMI_MATCH(DMI_BIOS_VERSION, "P44-"),
--		}
--	},
--
--	{ hp_ht_bigsmp, "HP ProLiant DL740",
--		{	DMI_MATCH(DMI_BIOS_VENDOR, "HP"),
--			DMI_MATCH(DMI_BIOS_VERSION, "P47-"),
--		}
--	},
--	{ } /* NULL entry stops DMI scanning */
--};
--
- static void bigsmp_vector_allocation_domain(int cpu, struct cpumask *retmask)
- {
- 	cpumask_clear(retmask);
- 	cpumask_set_cpu(cpu, retmask);
- }
- 
--static int probe_bigsmp(void)
--{
--	if (def_to_bigsmp)
--		dmi_bigsmp = 1;
--	else
--		dmi_check_system(bigsmp_dmi_table);
--
--	return dmi_bigsmp;
--}
--
- struct apic apic_bigsmp = {
- 
- 	.name				= "bigsmp",
--	.probe				= probe_bigsmp,
-+	.probe				= NULL,
- 	.acpi_madt_oem_check		= NULL,
- 	.apic_id_registered		= bigsmp_apic_id_registered,
- 
-@@ -217,7 +173,7 @@ struct apic apic_bigsmp = {
- 	.init_apic_ldr			= bigsmp_init_apic_ldr,
- 
- 	.ioapic_phys_id_map		= bigsmp_ioapic_phys_id_map,
--	.setup_apic_routing		= bigsmp_setup_apic_routing,
-+	.setup_apic_routing		= NULL,
- 	.multi_timer_check		= NULL,
- 	.apicid_to_node			= bigsmp_apicid_to_node,
- 	.cpu_to_logical_apicid		= bigsmp_cpu_to_logical_apicid,
-diff --git a/arch/x86/kernel/apic/probe_32.c b/arch/x86/kernel/apic/probe_32.c
-index 99d2fe0..874f9a3 100644
---- a/arch/x86/kernel/apic/probe_32.c
-+++ b/arch/x86/kernel/apic/probe_32.c
-@@ -14,6 +14,8 @@
- #include <linux/ctype.h>
- #include <linux/init.h>
- #include <linux/errno.h>
-+#include <linux/dmi.h>
-+
- #include <asm/fixmap.h>
- #include <asm/mpspec.h>
- #include <asm/apicdef.h>
-@@ -52,40 +54,6 @@ static int __init print_ipi_mode(void)
- }
- late_initcall(print_ipi_mode);
- 
--void __init default_setup_apic_routing(void)
--{
--	int version = apic_version[boot_cpu_physical_apicid];
--
--	if (num_possible_cpus() > 8) {
--		switch (boot_cpu_data.x86_vendor) {
--		case X86_VENDOR_INTEL:
--			if (!APIC_XAPIC(version)) {
--				def_to_bigsmp = 0;
--				break;
--			}
--			/* If P4 and above fall through */
--		case X86_VENDOR_AMD:
--			def_to_bigsmp = 1;
--		}
--	}
--
--#ifdef CONFIG_X86_BIGSMP
--	generic_bigsmp_probe();
--#endif
--
--	if (apic->setup_apic_routing)
--		apic->setup_apic_routing();
--}
--
--static void setup_apic_flat_routing(void)
--{
--#ifdef CONFIG_X86_IO_APIC
--	printk(KERN_INFO
--		"Enabling APIC mode:  Flat.  Using %d I/O APICs\n",
--		nr_ioapics);
--#endif
--}
--
- static void default_vector_allocation_domain(int cpu, struct cpumask *retmask)
- {
- 	/*
-@@ -101,16 +69,10 @@ static void default_vector_allocation_domain(int cpu, struct cpumask *retmask)
- 	cpumask_bits(retmask)[0] = APIC_ALL_CPUS;
- }
- 
--/* should be called last. */
--static int probe_default(void)
--{
--	return 1;
--}
--
- struct apic apic_default = {
- 
- 	.name				= "default",
--	.probe				= probe_default,
-+	.probe				= NULL,
- 	.acpi_madt_oem_check		= NULL,
- 	.apic_id_registered		= default_apic_id_registered,
- 
-@@ -128,7 +90,7 @@ struct apic apic_default = {
- 	.init_apic_ldr			= default_init_apic_ldr,
- 
- 	.ioapic_phys_id_map		= default_ioapic_phys_id_map,
--	.setup_apic_routing		= setup_apic_flat_routing,
-+	.setup_apic_routing		= NULL,
- 	.multi_timer_check		= NULL,
- 	.apicid_to_node			= default_apicid_to_node,
- 	.cpu_to_logical_apicid		= default_cpu_to_logical_apicid,
-@@ -217,24 +179,70 @@ static int __init parse_apic(char *arg)
- }
- early_param("apic", parse_apic);
- 
--void __init generic_bigsmp_probe(void)
-+static int dmi_bigsmp __initdata; /* can be set by dmi scanners */
-+
-+static int __init hp_ht_bigsmp(const struct dmi_system_id *d)
++int __init sanitize_e820_map(void)
 +{
-+	printk(KERN_NOTICE "%s detected: force use of apic=bigsmp\n", d->ident);
-+	dmi_bigsmp = 1;
-+
-+	return 0;
++	return __sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
 +}
 +
-+static struct dmi_system_id bigsmp_dmi_table[] __initdata = {
-+	{ hp_ht_bigsmp, "HP ProLiant DL760 G2",
-+		{	DMI_MATCH(DMI_BIOS_VENDOR, "HP"),
-+			DMI_MATCH(DMI_BIOS_VERSION, "P44-"),
-+		}
-+	},
-+
-+	{ hp_ht_bigsmp, "HP ProLiant DL740",
-+		{	DMI_MATCH(DMI_BIOS_VENDOR, "HP"),
-+			DMI_MATCH(DMI_BIOS_VERSION, "P47-"),
-+		}
-+	},
-+	{ } /* NULL entry stops DMI scanning */
-+};
-+
-+static inline const char *get_apic_name(struct apic *apic)
-+{
-+	if (apic == &apic_default)
-+		return "flat";
-+#ifdef CONFIG_X86_BIGSMP
-+	if (apic == &apic_bigsmp)
-+		return "physical flat";
-+#endif
-+	return apic->name;
-+}
-+
-+void __init default_setup_apic_routing(void)
+ static int __init __append_e820_map(struct e820entry *biosmap, int nr_map)
  {
- #ifdef CONFIG_X86_BIGSMP
- 	/*
--	 * This routine is used to switch to bigsmp mode when
--	 * - There is no apic= option specified by the user
--	 * - generic_apic_probe() has chosen apic_default as the sub_arch
--	 * - we find more than 8 CPUs in acpi LAPIC listing with xAPIC support
-+	 * make sure we go to bigsmp according to real nr_cpu_ids
+ 	while (nr_map) {
+@@ -555,7 +560,7 @@ void __init update_e820(void)
+ 	u32 nr_map;
+ 
+ 	nr_map = e820.nr_map;
+-	if (sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr_map))
++	if (__sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr_map))
+ 		return;
+ 	e820.nr_map = nr_map;
+ 	printk(KERN_INFO "modified physical RAM map:\n");
+@@ -566,7 +571,7 @@ static void __init update_e820_saved(void)
+ 	u32 nr_map;
+ 
+ 	nr_map = e820_saved.nr_map;
+-	if (sanitize_e820_map(e820_saved.map, ARRAY_SIZE(e820_saved.map), &nr_map))
++	if (__sanitize_e820_map(e820_saved.map, ARRAY_SIZE(e820_saved.map), &nr_map))
+ 		return;
+ 	e820_saved.nr_map = nr_map;
+ }
+@@ -661,7 +666,7 @@ void __init parse_e820_ext(struct setup_data *sdata, unsigned long pa_data)
+ 		sdata = early_ioremap(pa_data, map_len);
+ 	extmap = (struct e820entry *)(sdata->data);
+ 	__append_e820_map(extmap, entries);
+-	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++	sanitize_e820_map();
+ 	if (map_len > PAGE_SIZE)
+ 		early_iounmap(sdata, map_len);
+ 	printk(KERN_INFO "extended physical RAM map:\n");
+@@ -1043,7 +1048,7 @@ void __init finish_e820_parsing(void)
+ 	if (userdef) {
+ 		u32 nr = e820.nr_map;
+ 
+-		if (sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr) < 0)
++		if (__sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr) < 0)
+ 			early_panic("Invalid user supplied memory map");
+ 		e820.nr_map = nr;
+ 
+@@ -1173,7 +1178,7 @@ char *__init default_machine_specific_memory_setup(void)
+ 	 * the next section from 1mb->appropriate_mem_k
  	 */
--
- 	if (!cmdline_apic && apic == &apic_default) {
--		if (apic_bigsmp.probe()) {
-+		if (nr_cpu_ids > 8)
- 			apic = &apic_bigsmp;
--			printk(KERN_INFO "Overriding APIC driver with %s\n",
--			       apic->name);
-+		else {
-+			dmi_check_system(bigsmp_dmi_table);
-+			if (dmi_bigsmp)
-+				apic = &apic_bigsmp;
- 		}
-+		if (apic != &apic_default)
-+			printk(KERN_INFO "Overriding APIC driver with %s\n",
-+			       get_apic_name(apic));
- 	}
- #endif
-+	if (apic->setup_apic_routing)
-+		apic->setup_apic_routing();
-+	else {
-+#ifdef CONFIG_X86_IO_APIC
-+		printk(KERN_INFO
-+			"Enabling APIC mode:  %s.  Using %d I/O APICs\n",
-+			get_apic_name(apic), nr_ioapics);
-+#endif
-+	}
+ 	new_nr = boot_params.e820_entries;
+-	sanitize_e820_map(boot_params.e820_map,
++	__sanitize_e820_map(boot_params.e820_map,
+ 			ARRAY_SIZE(boot_params.e820_map),
+ 			&new_nr);
+ 	boot_params.e820_entries = new_nr;
+@@ -1200,12 +1205,17 @@ char *__init default_machine_specific_memory_setup(void)
+ 	return who;
  }
  
- void __init generic_apic_probe(void)
-@@ -242,14 +250,13 @@ void __init generic_apic_probe(void)
- 	if (!cmdline_apic) {
- 		int i;
- 		for (i = 0; apic_probe[i]; i++) {
-+			if (!apic_probe[i]->probe)
-+				continue;
- 			if (apic_probe[i]->probe()) {
- 				apic = apic_probe[i];
- 				break;
- 			}
- 		}
--		/* Not visible without early console */
--		if (!apic_probe[i])
--			panic("Didn't find an APIC driver");
- 	}
- 	printk(KERN_INFO "Using APIC driver %s\n", apic->name);
++void __init save_e820_map(void)
++{
++	memcpy(&e820_saved, &e820, sizeof(struct e820map));
++}
++
+ void __init setup_memory_map(void)
+ {
+ 	char *who;
+ 
+ 	who = x86_init.resources.memory_setup();
+-	memcpy(&e820_saved, &e820, sizeof(struct e820map));
++	save_e820_map();
+ 	printk(KERN_INFO "BIOS-provided physical RAM map:\n");
+ 	e820_print_map(who);
  }
-diff --git a/arch/x86/kernel/apic/probe_64.c b/arch/x86/kernel/apic/probe_64.c
-index 83e9be4..ea25de8 100644
---- a/arch/x86/kernel/apic/probe_64.c
-+++ b/arch/x86/kernel/apic/probe_64.c
-@@ -67,7 +67,7 @@ void __init default_setup_apic_routing(void)
+diff --git a/arch/x86/kernel/efi.c b/arch/x86/kernel/efi.c
+index c2fa9b8..299f03f 100644
+--- a/arch/x86/kernel/efi.c
++++ b/arch/x86/kernel/efi.c
+@@ -272,7 +272,7 @@ static void __init do_add_efi_memmap(void)
+ 		}
+ 		e820_add_region(start, size, e820_type);
  	}
- #endif
+-	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++	sanitize_e820_map();
+ }
  
--	if (apic == &apic_flat && num_possible_cpus() > 8)
-+	if (apic == &apic_flat && nr_cpu_ids > 8)
- 			apic = &apic_physflat;
- 
- 	printk(KERN_INFO "Setting APIC routing to %s\n", apic->name);
+ void __init efi_reserve_early(void)
 diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 82533cf..e6ea918 100644
+index c5ea524..82533cf 100644
 --- a/arch/x86/kernel/setup.c
 +++ b/arch/x86/kernel/setup.c
-@@ -186,8 +186,6 @@ static void set_mca_bus(int x)
- #endif
+@@ -461,8 +461,8 @@ static void __init e820_reserve_setup_data(void)
+ 	if (!found)
+ 		return;
+ 
+-	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
+-	memcpy(&e820_saved, &e820, sizeof(struct e820map));
++	sanitize_e820_map();
++	save_e820_map();
+ 	printk(KERN_INFO "extended physical RAM map:\n");
+ 	e820_print_map("reserve setup_data");
+ }
+@@ -614,7 +614,7 @@ static int __init dmi_low_memory_corruption(const struct dmi_system_id *d)
+ 		d->ident);
+ 
+ 	e820_update_range(0, 0x10000, E820_RAM, E820_RESERVED);
+-	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++	sanitize_e820_map();
+ 
+ 	return 0;
+ }
+@@ -683,7 +683,7 @@ static void __init trim_bios_range(void)
+ 	 * take them out.
+ 	 */
+ 	e820_remove_range(BIOS_BEGIN, BIOS_END - BIOS_BEGIN, E820_RAM, 1);
+-	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++	sanitize_e820_map();
  }
  
--unsigned int def_to_bigsmp;
+ /*
+@@ -854,7 +854,7 @@ void __init setup_arch(char **cmdline_p)
+ 	if (ppro_with_ram_bug()) {
+ 		e820_update_range(0x70000000ULL, 0x40000ULL, E820_RAM,
+ 				  E820_RESERVED);
+-		sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++		sanitize_e820_map();
+ 		printk(KERN_INFO "fixed physical RAM map:\n");
+ 		e820_print_map("bad_ppro");
+ 	}
+diff --git a/arch/x86/xen/setup.c b/arch/x86/xen/setup.c
+index ad0047f..3f2c411 100644
+--- a/arch/x86/xen/setup.c
++++ b/arch/x86/xen/setup.c
+@@ -43,8 +43,6 @@ char * __init xen_memory_setup(void)
+ 
+ 	max_pfn = min(MAX_DOMAIN_PAGES, max_pfn);
+ 
+-	e820.nr_map = 0;
 -
- /* for MCA, but anyone else can use it if they want */
- unsigned int machine_id;
- unsigned int machine_submodel_id;
-diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
-index 3f92885..ffd93b4 100644
---- a/arch/x86/kernel/smpboot.c
-+++ b/arch/x86/kernel/smpboot.c
-@@ -991,7 +991,7 @@ static int __init smp_sanity_check(unsigned max_cpus)
- 	preempt_disable();
+ 	e820_add_region(0, PFN_PHYS((u64)max_pfn), E820_RAM);
  
- #if !defined(CONFIG_X86_BIGSMP) && defined(CONFIG_X86_32)
--	if (def_to_bigsmp && nr_cpu_ids > 8) {
-+	if (apic == &apic_default && nr_cpu_ids > 8) {
- 		unsigned int cpu;
- 		unsigned nr;
+ 	/*
+@@ -65,7 +63,7 @@ char * __init xen_memory_setup(void)
+ 		      __pa(xen_start_info->pt_base),
+ 			"XEN START INFO");
  
+-	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++	sanitize_e820_map();
+ 
+ 	return "Xen";
+ }
 -- 
 1.6.4.2
