@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 05/20] x86: make e820 to be initdata
-Date: Sun, 21 Mar 2010 00:13:06 -0700
-Message-ID: <1269155601-18247-6-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 01/20] x86: add find_e820_area_node
+Date: Sun, 21 Mar 2010 00:13:02 -0700
+Message-ID: <1269155601-18247-2-git-send-email-yinghai@kernel.org>
 References: <1269155601-18247-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1269155601-18247-1-git-send-email-yinghai@kernel.org>
@@ -10,46 +10,163 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-and we don't need to expose e820_any_mapped anymore
+David Miller pointed out that early_res have problem to find node data on correct node
+when we have
+node0: [0, 2g), [4g, 6g), [10g, 14g)
+node1: [6g, 10g), [14g, 18g)
+the cross node case
+
+the problem is there for x86 bits even before we are using early_res for bootmem replacement.
+after early_res for bootmem replacement, alloc_bootmem_node still can get range on correct node
+
+this patch is fixing problem before bootmem or early_res replacement for bootmem.
+
+now only user is for x86 64bit numa to find node data.
+
+the point is use early_node_map with find_e820_area_node()
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/kernel/e820.c |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
+ arch/x86/include/asm/e820.h |    1 +
+ arch/x86/kernel/e820.c      |   15 +++++++++++++++
+ arch/x86/mm/numa_64.c       |    4 ++--
+ include/linux/mm.h          |    2 ++
+ mm/page_alloc.c             |   37 +++++++++++++++++++++++--------------
+ 5 files changed, 43 insertions(+), 16 deletions(-)
 
+diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
+index 0e22296..b48f371 100644
+--- a/arch/x86/include/asm/e820.h
++++ b/arch/x86/include/asm/e820.h
+@@ -111,6 +111,7 @@ extern unsigned long end_user_pfn;
+ 
+ extern u64 find_e820_area(u64 start, u64 end, u64 size, u64 align);
+ extern u64 find_e820_area_size(u64 start, u64 *sizep, u64 align);
++u64 find_e820_area_node(int nid, u64 start, u64 end, u64 size, u64 align);
+ extern u64 early_reserve_e820(u64 startt, u64 sizet, u64 align);
+ #include <linux/early_res.h>
+ 
 diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index 40c04cf..a558609 100644
+index 740b440..05ee724 100644
 --- a/arch/x86/kernel/e820.c
 +++ b/arch/x86/kernel/e820.c
-@@ -34,7 +34,7 @@
-  * user can e.g. boot the original kernel with mem=1G while still booting the
-  * next kernel with full memory.
-  */
--static struct e820map e820;
-+static struct e820map __initdata e820;
- static struct e820map __initdata e820_saved;
+@@ -787,6 +787,21 @@ u64 __init find_e820_area_size(u64 start, u64 *sizep, u64 align)
+ 	return -1ULL;
+ }
  
- /* For PCI or other memory-mapped resources */
-@@ -46,9 +46,10 @@ EXPORT_SYMBOL(pci_mem_start);
++u64 __init find_e820_area_node(int nid, u64 start, u64 end, u64 size, u64 align)
++{
++	u64 addr;
++	/*
++	 * need to call this function after e820_register_active_regions
++	 * so early_node_map[] is set
++	 */
++	addr = find_memory_core_early(nid, size, align, start, end);
++	if (addr != -1ULL)
++		return addr;
++
++	/* fallback, should already have start end in the node range */
++	return find_e820_area(start, end, size, align);
++}
++
  /*
-  * This function checks if any part of the range <start,end> is mapped
-  * with type.
-+ * phys_pud_init() is using it and is _meminit, but we have !after_bootmem
-+ * so could use refok here
+  * pre allocated 4k and reserved it in e820
   */
--int
--e820_any_mapped(u64 start, u64 end, unsigned type)
-+int __init_refok e820_any_mapped(u64 start, u64 end, unsigned type)
+diff --git a/arch/x86/mm/numa_64.c b/arch/x86/mm/numa_64.c
+index 8948f47..ffc5ad5 100644
+--- a/arch/x86/mm/numa_64.c
++++ b/arch/x86/mm/numa_64.c
+@@ -174,7 +174,7 @@ static void * __init early_node_mem(int nodeid, unsigned long start,
+ 	if (start < (MAX_DMA32_PFN<<PAGE_SHIFT) &&
+ 	    end > (MAX_DMA32_PFN<<PAGE_SHIFT))
+ 		start = MAX_DMA32_PFN<<PAGE_SHIFT;
+-	mem = find_e820_area(start, end, size, align);
++	mem = find_e820_area_node(nodeid, start, end, size, align);
+ 	if (mem != -1L)
+ 		return __va(mem);
+ 
+@@ -184,7 +184,7 @@ static void * __init early_node_mem(int nodeid, unsigned long start,
+ 		start = MAX_DMA32_PFN<<PAGE_SHIFT;
+ 	else
+ 		start = MAX_DMA_PFN<<PAGE_SHIFT;
+-	mem = find_e820_area(start, end, size, align);
++	mem = find_e820_area_node(nodeid, start, end, size, align);
+ 	if (mem != -1L)
+ 		return __va(mem);
+ 
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index e70f21b..5c2d17e 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1160,6 +1160,8 @@ extern void free_bootmem_with_active_regions(int nid,
+ 						unsigned long max_low_pfn);
+ int add_from_early_node_map(struct range *range, int az,
+ 				   int nr_range, int nid);
++u64 __init find_memory_core_early(int nid, u64 size, u64 align,
++					u64 goal, u64 limit);
+ void *__alloc_memory_core_early(int nodeid, u64 size, u64 align,
+ 				 u64 goal, u64 limit);
+ typedef int (*work_fn_t)(unsigned long, unsigned long, void *);
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index d03c946..eef3757 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -3408,12 +3408,11 @@ int __init add_from_early_node_map(struct range *range, int az,
+ 	return nr_range;
+ }
+ 
+-#ifdef CONFIG_NO_BOOTMEM
+-void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
++#ifdef CONFIG_HAVE_EARLY_RES
++u64 __init find_memory_core_early(int nid, u64 size, u64 align,
+ 					u64 goal, u64 limit)
  {
  	int i;
+-	void *ptr;
  
-@@ -63,7 +64,6 @@ e820_any_mapped(u64 start, u64 end, unsigned type)
- 	}
- 	return 0;
+ 	/* need to go over early_node_map to find out good range for node */
+ 	for_each_active_range_index_in_nid(i, nid) {
+@@ -3430,20 +3429,30 @@ void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
+ 		if (addr == -1ULL)
+ 			continue;
+ 
+-#if 0
+-		printk(KERN_DEBUG "alloc (nid=%d %llx - %llx) (%llx - %llx) %llx %llx => %llx\n",
+-				nid,
+-				ei_start, ei_last, goal, limit, size,
+-				align, addr);
++		return addr;
++	}
++
++	return -1ULL;
++}
+ #endif
+ 
+-		ptr = phys_to_virt(addr);
+-		memset(ptr, 0, size);
+-		reserve_early_without_check(addr, addr + size, "BOOTMEM");
+-		return ptr;
+-	}
++#ifdef CONFIG_NO_BOOTMEM
++void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
++					u64 goal, u64 limit)
++{
++	void *ptr;
+ 
+-	return NULL;
++	u64 addr;
++
++	addr = find_memory_core_early(nid, size, align, goal, limit);
++
++	if (addr == -1ULL)
++		return NULL;
++
++	ptr = phys_to_virt(addr);
++	memset(ptr, 0, size);
++	reserve_early_without_check(addr, addr + size, "BOOTMEM");
++	return ptr;
  }
--EXPORT_SYMBOL_GPL(e820_any_mapped);
+ #endif
  
- /*
-  * This function checks if the entire range <start,end> is mapped with type.
 -- 
 1.6.4.2
