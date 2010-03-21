@@ -1,53 +1,151 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:63970 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752297Ab0CRRUv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 18 Mar 2010 13:20:51 -0400
-From: Andreas Schwab <schwab@redhat.com>
-Subject: Re: 64-syscall args on 32-bit vs syscall()
-References: <20100315134449.GB1653@linux-mips.org>
-	<4B9E4EB1.9010800@zytor.com> <4B9E59B7.6060405@redhat.com>
-	<20100315.120004.209998642.davem@davemloft.net>
-	<4B9E8D67.8040209@zytor.com> <1268685311.2335.38.camel@pasglop>
-	<1268776570.19726.98.camel@spokane1.rchland.ibm.com>
-	<1268785874.2335.137.camel@pasglop> <4BA06E1B.2040706@redhat.com>
-	<1268816179.2335.187.camel@pasglop> <4BA11FD2.2090104@zytor.com>
-	<1268858134.2335.198.camel@pasglop> <4BA1412C.6070008@zytor.com>
-	<1268866720.2335.204.camel@pasglop>
-	<1268928480.19726.123.camel@spokane1.rchland.ibm.com>
-Date: Thu, 18 Mar 2010 17:21:06 +0100
-In-Reply-To: <1268928480.19726.123.camel@spokane1.rchland.ibm.com> (Steven
-	Munroe's message of "Thu, 18 Mar 2010 11:08:00 -0500")
-Message-ID: <m37hp9y51p.fsf@hase.home>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Received: from acsinet11.oracle.com ([141.146.126.233]:28694 "EHLO
+	acsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751716Ab0CUHPy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 21 Mar 2010 03:15:54 -0400
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 04/20] x86: use wake_system_ram_range instead of e820_any_mapped in agp path
+Date: Sun, 21 Mar 2010 00:13:05 -0700
+Message-ID: <1269155601-18247-5-git-send-email-yinghai@kernel.org>
+In-Reply-To: <1269155601-18247-1-git-send-email-yinghai@kernel.org>
+References: <1269155601-18247-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: munroesj@us.ibm.com
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, "H. Peter Anvin" <hpa@zytor.com>, Ulrich Drepper <drepper@redhat.com>, David Miller <davem@davemloft.net>, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@teksavvy.com, torvalds@linux-foundation.org
-Message-ID: <20100318162106.eqx74BMR54bMD7WB51v91MJRk9JOzhowYj00owB8k4Q@z>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Jesse Barnes <jbarnes@virtuousgeek.org>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20100321071305.nrp1HhQ0xbkfoYJ9_-l41kNl_45e9FWMWygsR_gYSb0@z>
 
-Steven Munroe <munroesj@linux.vnet.ibm.com> writes:
+put apterture_valid back to .c
+and early path still use e820_any_mapped()
 
-> extern long int syscall (long int __sysno, ...) __THROW;
->
-> #endif	/* Use misc.  */
->
-> Changing this would be an ABI change and would have to be versioned. It
-> would effect any one using syscall not just SYS_fallocate.
->
-> the question is do programmers in practice include unistd.h when they
-> use syscall.
->
-> If the changed prototype is not in scope then the 1st parm (__sysno)
-> defaults to int and is passed in on r3 which gets moved to r0.
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/x86/include/asm/gart.h   |   22 ----------------------
+ arch/x86/kernel/aperture_64.c |   22 ++++++++++++++++++++++
+ drivers/char/agp/amd64-agp.c  |   39 ++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 60 insertions(+), 23 deletions(-)
 
-int is incompatible with long, so you already get undefined behaviour
-anyway.
-
-Andreas.
-
+diff --git a/arch/x86/include/asm/gart.h b/arch/x86/include/asm/gart.h
+index 4ac5b0f..2b63a91 100644
+--- a/arch/x86/include/asm/gart.h
++++ b/arch/x86/include/asm/gart.h
+@@ -74,26 +74,4 @@ static inline void enable_gart_translation(struct pci_dev *dev, u64 addr)
+         pci_write_config_dword(dev, AMD64_GARTAPERTURECTL, ctl);
+ }
+ 
+-static inline int aperture_valid(u64 aper_base, u32 aper_size, u32 min_size)
+-{
+-	if (!aper_base)
+-		return 0;
+-
+-	if (aper_base + aper_size > 0x100000000ULL) {
+-		printk(KERN_INFO "Aperture beyond 4GB. Ignoring.\n");
+-		return 0;
+-	}
+-	if (e820_any_mapped(aper_base, aper_base + aper_size, E820_RAM)) {
+-		printk(KERN_INFO "Aperture pointing to e820 RAM. Ignoring.\n");
+-		return 0;
+-	}
+-	if (aper_size < min_size) {
+-		printk(KERN_INFO "Aperture too small (%d MB) than (%d MB)\n",
+-				 aper_size>>20, min_size>>20);
+-		return 0;
+-	}
+-
+-	return 1;
+-}
+-
+ #endif /* _ASM_X86_GART_H */
+diff --git a/arch/x86/kernel/aperture_64.c b/arch/x86/kernel/aperture_64.c
+index 3704997..f6e6270 100644
+--- a/arch/x86/kernel/aperture_64.c
++++ b/arch/x86/kernel/aperture_64.c
+@@ -145,6 +145,28 @@ static u32 __init find_cap(int bus, int slot, int func, int cap)
+ 	return 0;
+ }
+ 
++static int __init aperture_valid(u64 aper_base, u32 aper_size, u32 min_size)
++{
++	if (!aper_base)
++		return 0;
++
++	if (aper_base + aper_size > 0x100000000ULL) {
++		printk(KERN_INFO "Aperture beyond 4GB. Ignoring.\n");
++		return 0;
++	}
++	if (e820_any_mapped(aper_base, aper_base + aper_size, E820_RAM)) {
++		printk(KERN_INFO "Aperture pointing to e820 RAM. Ignoring.\n");
++		return 0;
++	}
++	if (aper_size < min_size) {
++		printk(KERN_INFO "Aperture too small (%d MB) than (%d MB)\n",
++				 aper_size>>20, min_size>>20);
++		return 0;
++	}
++
++	return 1;
++}
++
+ /* Read a standard AGPv3 bridge header */
+ static u32 __init read_agp(int bus, int slot, int func, int cap, u32 *order)
+ {
+diff --git a/drivers/char/agp/amd64-agp.c b/drivers/char/agp/amd64-agp.c
+index fd50ead..85cabd0 100644
+--- a/drivers/char/agp/amd64-agp.c
++++ b/drivers/char/agp/amd64-agp.c
+@@ -14,7 +14,6 @@
+ #include <linux/agp_backend.h>
+ #include <linux/mmzone.h>
+ #include <asm/page.h>		/* PAGE_SIZE */
+-#include <asm/e820.h>
+ #include <asm/k8.h>
+ #include <asm/gart.h>
+ #include "agp.h"
+@@ -231,6 +230,44 @@ static const struct agp_bridge_driver amd_8151_driver = {
+ 	.agp_type_to_mask_type  = agp_generic_type_to_mask_type,
+ };
+ 
++static int __devinit
++__is_ram(unsigned long pfn, unsigned long nr_pages, void *arg)
++{
++	return 1;
++}
++
++static int __devinit any_ram_in_range(u64 base, u64 size)
++{
++	unsigned long pfn, nr_pages;
++
++	pfn = base >> PAGE_SHIFT;
++	nr_pages = size >> PAGE_SHIFT;
++
++	return walk_system_ram_range(pfn, nr_pages, NULL, __is_ram) == 1;
++}
++
++static int __devinit aperture_valid(u64 aper_base, u32 aper_size, u32 min_size)
++{
++	if (!aper_base)
++		return 0;
++
++	if (aper_base + aper_size > 0x100000000ULL) {
++		printk(KERN_INFO "Aperture beyond 4GB. Ignoring.\n");
++		return 0;
++	}
++	if (any_ram_in_range(aper_base, aper_size)) {
++		printk(KERN_INFO "Aperture pointing to E820 RAM. Ignoring.\n");
++		return 0;
++	}
++	if (aper_size < min_size) {
++		printk(KERN_INFO "Aperture too small (%d MB) than (%d MB)\n",
++				 aper_size>>20, min_size>>20);
++		return 0;
++	}
++
++	return 1;
++}
++
+ /* Some basic sanity checks for the aperture. */
+ static int __devinit agp_aperture_valid(u64 aper, u32 size)
+ {
 -- 
-Andreas Schwab, schwab@redhat.com
-GPG Key fingerprint = D4E8 DBE3 3813 BB5D FA84  5EC7 45C6 250E 6F00 984E
-"And now for something completely different."
+1.6.4.2
+
