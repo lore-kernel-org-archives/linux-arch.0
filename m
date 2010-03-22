@@ -1,42 +1,45 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from
  e820.c to fw_memmap.c
-Date: Tue, 23 Mar 2010 08:01:23 +1100
-Message-ID: <1269291683.8599.79.camel@pasglop>
+Date: Tue, 23 Mar 2010 08:04:05 +1100
+Message-ID: <1269291846.8599.81.camel@pasglop>
 References: <4BA6EA62.1030603@kernel.org>
 	 <20100321.210023.209981130.davem@davemloft.net>
 	 <4BA6F1F6.3070102@kernel.org>
 	 <20100321.213350.176660494.davem@davemloft.net>
 	 <20100322092809.GA20607@elte.hu>
+	 <20100322113026.GA11526@brick.ozlabs.ibm.com>
+	 <20100322130530.GC12475@elte.hu>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:53938 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:53987 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753238Ab0CVVBr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Mar 2010 17:01:47 -0400
-In-Reply-To: <20100322092809.GA20607@elte.hu>
+	id S1751541Ab0CVVEd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Mar 2010 17:04:33 -0400
+In-Reply-To: <20100322130530.GC12475@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>
-Cc: David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, yinghai@kernel.org, tglx@linutronix.de, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Paul Mackerras <paulus@samba.org>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, yinghai@kernel.org, tglx@linutronix.de, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, 2010-03-22 at 10:28 +0100, Ingo Molnar wrote:
-> Those early_res patches were posted all over on lkml, it was literally 
-> hundreds of difficult patches, and now, months down the line, after we've 
-> tested and upstreamed it (with many nasty regressions fixed on x86 during the 
-> development of it) you come with a rigid "do it some other way, convert all of 
-> x86 over again or else" position.
+On Mon, 2010-03-22 at 14:05 +0100, Ingo Molnar wrote:
+> * Paul Mackerras <paulus@samba.org> wrote:
+> 
+> > And I don't see the point of moving the x86 e820 stuff into the kernel 
+> > directory. [...]
+> 
+> I dont see the point of that either - that is a mistake. e820 is an x86 bios 
+> call and we shouldnt name a generic mechanism after that. e820 is absolutely 
+> messy and has no place anywhere beyond x86.
+> 
+> The main technical argument i see is 'early_res versus LMB'. Even there i'd 
+> prefer LMB from a technical quality POV.
 
-There's an easy solution here. Leave that gunk in arch/x86 where it
-belongs and if you want to unify things a bit, then do it at the -API-
-level only, and leave the implementation where it is.
-
-> I really wish non-x86 architectures apprecitated (and helped) the core kernel 
-> work x86 is doing, because it is subsidizing non-x86 architectures all the 
-> time. 
-
-I'm not even going to bother replying to that one
+Then we have no argument. The point is, we object to that fw_memmap/e820
+stuff taking over for non-x86 architectures. We aren't saying that x86
+-must- move to LMB, but if the wish is to have a common implementation
+in generic code accross all archs, -then- we object to it being e820.
 
 Ben.
