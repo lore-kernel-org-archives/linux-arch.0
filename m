@@ -1,81 +1,97 @@
-From: "Zhu, Yijun (NSN - CN/Beijing)" <yijun.zhu@nsn.com>
-Subject: RE: Questions about SMP bootup control
-Date: Mon, 22 Mar 2010 15:45:36 +0800
-Message-ID: <2234BBB33B4B2048B28E3B3ACFC9795C01B53656@CNBEEXC007.nsn-intra.net>
-References: <1269155601-18247-1-git-send-email-yinghai@kernel.org><1269155601-18247-7-git-send-email-yinghai@kernel.org><1269225435.8599.70.camel@pasglop><2234BBB33B4B2048B28E3B3ACFC9795C01B53251@CNBEEXC007.nsn-intra.net> <87tys9dofy.fsf@basil.nowhere.org>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from e820.c
+ to fw_memmap.c
+Date: Mon, 22 Mar 2010 10:28:09 +0100
+Message-ID: <20100322092809.GA20607@elte.hu>
+References: <4BA6EA62.1030603@kernel.org>
+ <20100321.210023.209981130.davem@davemloft.net>
+ <4BA6F1F6.3070102@kernel.org>
+ <20100321.213350.176660494.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from demumfd001.nsn-inter.net ([93.183.12.32]:10066 "EHLO
-	demumfd001.nsn-inter.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753512Ab0CVHpz convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Mar 2010 03:45:55 -0400
-Content-class: urn:content-classes:message
-In-Reply-To: <87tys9dofy.fsf@basil.nowhere.org>
+Received: from mx2.mail.elte.hu ([157.181.151.9]:42918 "EHLO mx2.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754314Ab0CVJ23 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Mar 2010 05:28:29 -0400
+Content-Disposition: inline
+In-Reply-To: <20100321.213350.176660494.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ext Andi Kleen <andi@firstfloor.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-
- 
-
------Original Message-----
-From: ext Andi Kleen [mailto:andi@firstfloor.org] 
-Sent: Monday, March 22, 2010 11:29 AM
-To: Zhu, Yijun (NSN - CN/Beijing)
-Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org
-Subject: Re: Questions about SMP bootup control
-
-"Zhu, Yijun (NSN - CN/Beijing)" <yijun.zhu@nsn.com> writes:
-
-> Hi All:
->
-> I want to do some modification on the SMP architecture.
->
-> Purpose:
-> Only the first CPU is running the linux OS, while others do some
-private
-> services processing.
->
-> My solution:
-> In the end of the start_secondary() function, I try to schedu the
-slave
-> cpu to call my private endless loop instead of cpu_idle();
->
-> Result:
-> The system can NOT up, there is no interactive cli.
->
-> Question:
-> Is there some wrong with my modification or I go to the wrong way?
+To: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: yinghai@kernel.org, benh@kernel.crashing.org, tglx@linutronix.de, hpa@zytor.com, akpm@linux-foundation.org, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
 
-> Presumably you're doing this to own that CPU exclusively.
+( Cc:-ed Andrew and Linus as this is a general design/policy matter wrt. 
+  memory management. )
+
+* David Miller <davem@davemloft.net> wrote:
+
+> From: Yinghai Lu <yinghai@kernel.org>
+> Date: Sun, 21 Mar 2010 21:28:38 -0700
 > 
-> Hooking at cpu_idle is not very useful then because interrupts will be
-> already enabled and the system participate in IPIs etc, so you can't
-> simply disable them, the others will miss them.
+> >> 
+> >> That action means you absolutely don't value our feedback at all.
+> > 
+> > [PATCH 01/20] x86: add find_e820_area_node
+> > is addressing your concern that early_res didn't handle memory cross the nodes problem.
 > 
-> You would rather need to prevent them from being started in the
-> first place, e.g. by exluding them with maxcpus=..
-> 
-> A better alternative might be to use isolcpus=... and schedule
-> a standard program.
-> 
-> -Andi
-> -- 
-> ak@linux.intel.com -- Speaking for myself only.
+> Now I know that you _REALLY_ aren't listening to us.
 
-Thank you very much. But when I try to apply with the isolcpus opinion,
-It seems it still can NOT work.
-All other CPUs are isolated, only the first one is left.
-Then I found all others are still initialized by the start_secondary()
-even I use the isolated opinion, in the end,
-I add an endless loop instead of cpu_idle(), The system still can NOT
-up.
+[ He has done a bit more than just to simply listen: he seems to have written 
+  a patch which he thinks is addressing the concerns you pointed out. It might
+  not be the response you wished for (and it might be inadequate) for but it
+  sure gives me the impression of him listening to you - unless by 'listening' 
+  you mean 'follow my exact opinion without argument'. ]
 
-So is there any mistake in what I did, could someone be kindness to give
-me more suggestions.
+> We said to use LMB because 1) it already exists 2) many platforms have been 
+> using it for years and 3) it doesn't lack the features you're now having to 
+> add to e820.
 
-Thanks in advance.
+The thing is, lib/lmb.c was librarized two years ago by you (much after 
+early_res has been written for x86), but was not properly integrated into the 
+core kernel nor into x86. It was first suggested by you in the early_res 
+context about ten days ago, when Yinghai started posting Sparc64 patches.
+
+Which is about half a year after the whole very difficult early_res/bootmem 
+work was started by Yinghai :-(
+
+I dont mind LMB per se, logically it seems quite similar to the early_res bits 
+Yinghai has generalized (to a certain degree), and is quite a bit cleaner as 
+you are writing very clean code.
+
+Note the other side of the coin: LMB appears to be deployed on only 4 non-x86 
+architectures that muster ~1% of the Linux boxes while early_res is deployed 
+on more than 95%.
+
+So there's a very real hardship of testing and conversion here that we cannot 
+ignore and an even better path may be to gradually transform the more tested 
+and more deployed early_res code to meet the interface details of LMB.
+
+Please also realize the difficulties Yinghai has gone through already: 
+converting and generalizing _all_ of the x86 early allocation code to a more 
+generic core kernel approach, with essentially zero interest from _any_ 
+non-x86 person ...
+
+Those early_res patches were posted all over on lkml, it was literally 
+hundreds of difficult patches, and now, months down the line, after we've 
+tested and upstreamed it (with many nasty regressions fixed on x86 during the 
+development of it) you come with a rigid "do it some other way, convert all of 
+x86 over again or else" position.
+
+I really wish non-x86 architectures apprecitated (and helped) the core kernel 
+work x86 is doing, because it is subsidizing non-x86 architectures all the 
+time.
+
+For example when LMB was plopped into lib/lmb.c in 2008 why was it not ported 
+to x86, our most popular architecture? Did you consider posting LMB patches 
+for x86 instead of expecting Yinghai to post Sparc64, PowerPC, SH and 
+Microblaze patches?
+
+Anyway, i'm sure we can work out an approach, and yes, LMB looks pretty good 
+and could be picked up if it can be done gradually - given some mutual 
+willingness to work on this as equals.
+
+Thanks,
+
+	Ingo
