@@ -1,96 +1,59 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: SMP barriers semantics
-Date: Mon, 22 Mar 2010 23:02:03 +1100
-Message-ID: <20100322120203.GL17637@laptop>
-References: <1267527178.14461.9.camel@e102109-lin.cambridge.arm.com>
- <20100303005529.GA3879@brick.ozlabs.ibm.com>
- <1267617825.15589.82.camel@e102109-lin.cambridge.arm.com>
- <20100312123105.GB4400@linux-mips.org>
- <1268792716.2335.170.camel@pasglop>
- <20100317134243.GA15235@shareable.org>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from e820.c
+ to fw_memmap.c
+Date: Mon, 22 Mar 2010 14:05:30 +0100
+Message-ID: <20100322130530.GC12475@elte.hu>
+References: <4BA6EA62.1030603@kernel.org>
+ <20100321.210023.209981130.davem@davemloft.net>
+ <4BA6F1F6.3070102@kernel.org>
+ <20100321.213350.176660494.davem@davemloft.net>
+ <20100322092809.GA20607@elte.hu>
+ <20100322113026.GA11526@brick.ozlabs.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:50138 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752561Ab0CVMCU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Mar 2010 08:02:20 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20100317134243.GA15235@shareable.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jamie Lokier <jamie@shareable.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ralf Baechle <ralf@linux-mips.org>, Catalin Marinas <catalin.marinas@arm.com>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Francois Romieu <romieu@fr.zoreil.com>
-
-On Wed, Mar 17, 2010 at 01:42:43PM +0000, Jamie Lokier wrote:
-> Benjamin Herrenschmidt wrote:
-> > Maybe we can agree on a set of relaxed accessors defined specifically
-> > with those semantics (more relaxed implies use of raw_*) :
-> > 
-> >   - order is guaranteed between MMIOs
-> >   - no order is guaranteed between MMIOs and spinlocks
-> 
-> No order between MMIOs and spinlocks will be fun :-)
-
-There isn't anyway, and things are pretty messed up in this area
-already. We have mmiowb. Some architectures do a bit of mmio vs
-lock synchronization. Eg. powerpc. But it doesn't do barriers on
-some other locks like bit spinlocks or mutexes or rwsems or
-semaphores blah blah.
-
-When this came up I grepped a couple of drivers and found possible
-problems straight away.
-
-So IMO, we need to take all these out of lock primitives and just
-increase awareness of it. Get rid of mmiowb. wmb() should be enough
-to keep mmio stores inside the store to drop any lock (by definition).
-
-Actually I think having an io_acquire_barrier() / io_release_barrier()
-for the purpose of keeping ios inside locks is a good idea (paired
-inside the actual lock/unlock functions). This basically gives them
-a self-documenting property.
+In-Reply-To: <20100322113026.GA11526@brick.ozlabs.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Paul Mackerras <paulus@samba.org>
+Cc: David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, yinghai@kernel.org, benh@kernel.crashing.org, tglx@linutronix.de, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 
-> >   - a read access is not guaranteed to be performed until the read value
-> >     is actually consumed by the processor
-> 
-> How do you define 'consumed'?  It's not obvious: see
-> read_barrier_depends() on Alpha, and elsewhere speculative read
-> optimisations (including by the compiler on IA64, in theory).
-> 
-> > Along with barriers along the line of (that's where we may want to
-> > discuss a bit I believe)
-> > 
-> >   - io_to_mem_rbarrier() : orders MMIO read vs. subsequent memory read
-> >   - mem_to_io_wbarrier() : order memory write vs. subsequent MMIO write
-> >                            (includes spin_unlock ?)
-> >   - io_to_mem_barrier()  : order any MMIO s. subsequent memory accesses
-> >   - mem_to_io_barrier()  : order memory accesses vs any subsequent MMIO
-> >   - flush_io_read(val)   : takes value from MMIO read, enforce it's
-> >                            before completed further instructions are
-> >                            issued, acts as compiler&execution barrier. 
-> > 
-> > What do you guys think ? I think io_to_mem_rbarrier() and
-> > mem_to_io_wbarrier() cover most useful cases, except maybe the IO vs.
-> > locks.
-> 
-> I'm thinking the current scheme with "heavy" barriers that serialise
-> everything is better - because it's simple to understand.  I think the
-> above set are likely to be accidentally misused, and even pass review
-> occasionally when they are wrong, even if it's just due to brain farts.
-> 
-> The "heavy" barrier names could change from rmb/mb/wmb to
-> io_rmb/io_mb/io_wmb or something.
-> 
-> Is there any real performance advantage expected from more
-> fine-grained MMIO barriers?
-> 
-> Another approach is a flags argument to a single macro:
-> barrier(BARRIER_MMIO_READ_BEFORE | BARRIER_MEM_READ_AFTER), etc.
+* Paul Mackerras <paulus@samba.org> wrote:
 
-This is just syntax really. Like you I also prefer sticking to simpler
-barriers. I would like to see any new barrier introduced on a case by
-case basis with before/after numbers and allow discussion on whether it
-can be avoided.
+> And I don't see the point of moving the x86 e820 stuff into the kernel 
+> directory. [...]
 
-So many cases people get the simple barriers wrong...
+I dont see the point of that either - that is a mistake. e820 is an x86 bios 
+call and we shouldnt name a generic mechanism after that. e820 is absolutely 
+messy and has no place anywhere beyond x86.
+
+The main technical argument i see is 'early_res versus LMB'. Even there i'd 
+prefer LMB from a technical quality POV.
+
+> Well I personally don't mind if x86 uses early_res or whatever other code in 
+> arch/x86 to handle the problems that arise from deficient firmware.  I just 
+> don't see any value in converting powerpc or sparc64 over to using ~2000 
+> lines of early_res/fw_memmap code where the existing ~500 lines of lmb code 
+> is working just fine.
+
+Lets put it this way then: do you see any point in PowerPC making use of a 10+ 
+million lines of code kernel that is being mainly (80%+) financed, developed, 
+tested and deployed by people who care about x86 mostly?
+
+If yes then it seems like a pretty damn good deal to me for PowerPC to go 
+beyond its narrow short-term self-interest and work towards generalizations 
+more actively, and even consider touching its 500 lines of lmb code ...
+
+I dont know how many times we've accomodated for non-x86 architectures in 
+various pieces of kernel code.
+
+Obviously if there's bloat affecting PowerPC then that can be addressed via 
+technical measures. But we really shouldnt leave the slightly incompatible 
+early allocators in place. (we shouldnt have let them get created in the first 
+place, but that is water down the bridge.)
+
+Thanks,
+
+	Ingo
