@@ -1,97 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:42918 "EHLO mx2.mail.elte.hu"
+Received: from mx2.mail.elte.hu ([157.181.151.9]:48431 "EHLO mx2.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754314Ab0CVJ23 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Mar 2010 05:28:29 -0400
-Date: Mon, 22 Mar 2010 10:28:09 +0100
+	id S1753909Ab0CVNFs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Mar 2010 09:05:48 -0400
+Date: Mon, 22 Mar 2010 14:05:30 +0100
 From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from e820.c
  to fw_memmap.c
-Message-ID: <20100322092809.GA20607@elte.hu>
+Message-ID: <20100322130530.GC12475@elte.hu>
 References: <4BA6EA62.1030603@kernel.org>
  <20100321.210023.209981130.davem@davemloft.net>
  <4BA6F1F6.3070102@kernel.org>
  <20100321.213350.176660494.davem@davemloft.net>
+ <20100322092809.GA20607@elte.hu>
+ <20100322113026.GA11526@brick.ozlabs.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20100321.213350.176660494.davem@davemloft.net>
+In-Reply-To: <20100322113026.GA11526@brick.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: yinghai@kernel.org, benh@kernel.crashing.org, tglx@linutronix.de, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100322092809.lcFo6dRS8txv1ubLho8hyW6f_Ie-RB6t7N7kUEhKhRw@z>
+To: Paul Mackerras <paulus@samba.org>
+Cc: David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, yinghai@kernel.org, benh@kernel.crashing.org, tglx@linutronix.de, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20100322130530.MM2SXC86u0o-rNPQX26q5lkNXhrqIZLNAKyJdowE1iE@z>
 
 
-( Cc:-ed Andrew and Linus as this is a general design/policy matter wrt. 
-  memory management. )
+* Paul Mackerras <paulus@samba.org> wrote:
 
-* David Miller <davem@davemloft.net> wrote:
+> And I don't see the point of moving the x86 e820 stuff into the kernel 
+> directory. [...]
 
-> From: Yinghai Lu <yinghai@kernel.org>
-> Date: Sun, 21 Mar 2010 21:28:38 -0700
-> 
-> >> 
-> >> That action means you absolutely don't value our feedback at all.
-> > 
-> > [PATCH 01/20] x86: add find_e820_area_node
-> > is addressing your concern that early_res didn't handle memory cross the nodes problem.
-> 
-> Now I know that you _REALLY_ aren't listening to us.
+I dont see the point of that either - that is a mistake. e820 is an x86 bios 
+call and we shouldnt name a generic mechanism after that. e820 is absolutely 
+messy and has no place anywhere beyond x86.
 
-[ He has done a bit more than just to simply listen: he seems to have written 
-  a patch which he thinks is addressing the concerns you pointed out. It might
-  not be the response you wished for (and it might be inadequate) for but it
-  sure gives me the impression of him listening to you - unless by 'listening' 
-  you mean 'follow my exact opinion without argument'. ]
+The main technical argument i see is 'early_res versus LMB'. Even there i'd 
+prefer LMB from a technical quality POV.
 
-> We said to use LMB because 1) it already exists 2) many platforms have been 
-> using it for years and 3) it doesn't lack the features you're now having to 
-> add to e820.
+> Well I personally don't mind if x86 uses early_res or whatever other code in 
+> arch/x86 to handle the problems that arise from deficient firmware.  I just 
+> don't see any value in converting powerpc or sparc64 over to using ~2000 
+> lines of early_res/fw_memmap code where the existing ~500 lines of lmb code 
+> is working just fine.
 
-The thing is, lib/lmb.c was librarized two years ago by you (much after 
-early_res has been written for x86), but was not properly integrated into the 
-core kernel nor into x86. It was first suggested by you in the early_res 
-context about ten days ago, when Yinghai started posting Sparc64 patches.
+Lets put it this way then: do you see any point in PowerPC making use of a 10+ 
+million lines of code kernel that is being mainly (80%+) financed, developed, 
+tested and deployed by people who care about x86 mostly?
 
-Which is about half a year after the whole very difficult early_res/bootmem 
-work was started by Yinghai :-(
+If yes then it seems like a pretty damn good deal to me for PowerPC to go 
+beyond its narrow short-term self-interest and work towards generalizations 
+more actively, and even consider touching its 500 lines of lmb code ...
 
-I dont mind LMB per se, logically it seems quite similar to the early_res bits 
-Yinghai has generalized (to a certain degree), and is quite a bit cleaner as 
-you are writing very clean code.
+I dont know how many times we've accomodated for non-x86 architectures in 
+various pieces of kernel code.
 
-Note the other side of the coin: LMB appears to be deployed on only 4 non-x86 
-architectures that muster ~1% of the Linux boxes while early_res is deployed 
-on more than 95%.
-
-So there's a very real hardship of testing and conversion here that we cannot 
-ignore and an even better path may be to gradually transform the more tested 
-and more deployed early_res code to meet the interface details of LMB.
-
-Please also realize the difficulties Yinghai has gone through already: 
-converting and generalizing _all_ of the x86 early allocation code to a more 
-generic core kernel approach, with essentially zero interest from _any_ 
-non-x86 person ...
-
-Those early_res patches were posted all over on lkml, it was literally 
-hundreds of difficult patches, and now, months down the line, after we've 
-tested and upstreamed it (with many nasty regressions fixed on x86 during the 
-development of it) you come with a rigid "do it some other way, convert all of 
-x86 over again or else" position.
-
-I really wish non-x86 architectures apprecitated (and helped) the core kernel 
-work x86 is doing, because it is subsidizing non-x86 architectures all the 
-time.
-
-For example when LMB was plopped into lib/lmb.c in 2008 why was it not ported 
-to x86, our most popular architecture? Did you consider posting LMB patches 
-for x86 instead of expecting Yinghai to post Sparc64, PowerPC, SH and 
-Microblaze patches?
-
-Anyway, i'm sure we can work out an approach, and yes, LMB looks pretty good 
-and could be picked up if it can be done gradually - given some mutual 
-willingness to work on this as equals.
+Obviously if there's bloat affecting PowerPC then that can be addressed via 
+technical measures. But we really shouldnt leave the slightly incompatible 
+early allocators in place. (we shouldnt have let them get created in the first 
+place, but that is water down the bridge.)
 
 Thanks,
 
