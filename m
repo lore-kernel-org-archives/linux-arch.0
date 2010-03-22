@@ -1,47 +1,81 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from e820.c to fw_memmap.c
-Date: Mon, 22 Mar 2010 00:05:25 -0700
-Message-ID: <m1vdcox2dm.fsf@fess.ebiederm.org>
-References: <1269155601-18247-1-git-send-email-yinghai@kernel.org>
-	<1269155601-18247-7-git-send-email-yinghai@kernel.org>
-	<1269225435.8599.70.camel@pasglop> <4BA6EA62.1030603@kernel.org>
-	<1269234723.8599.76.camel@pasglop> <4BA709AC.6070902@kernel.org>
+From: "Zhu, Yijun (NSN - CN/Beijing)" <yijun.zhu@nsn.com>
+Subject: RE: Questions about SMP bootup control
+Date: Mon, 22 Mar 2010 15:45:36 +0800
+Message-ID: <2234BBB33B4B2048B28E3B3ACFC9795C01B53656@CNBEEXC007.nsn-intra.net>
+References: <1269155601-18247-1-git-send-email-yinghai@kernel.org><1269155601-18247-7-git-send-email-yinghai@kernel.org><1269225435.8599.70.camel@pasglop><2234BBB33B4B2048B28E3B3ACFC9795C01B53251@CNBEEXC007.nsn-intra.net> <87tys9dofy.fsf@basil.nowhere.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:38754 "EHLO
-	out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753743Ab0CVHFo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Mar 2010 03:05:44 -0400
-In-Reply-To: <4BA709AC.6070902@kernel.org> (Yinghai Lu's message of "Sun\, 21 Mar 2010 23\:09\:48 -0700")
+Received: from demumfd001.nsn-inter.net ([93.183.12.32]:10066 "EHLO
+	demumfd001.nsn-inter.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753512Ab0CVHpz convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Mar 2010 03:45:55 -0400
+Content-class: urn:content-classes:message
+In-Reply-To: <87tys9dofy.fsf@basil.nowhere.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Jesse Barnes <jbarnes@virtuousgeek.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: ext Andi Kleen <andi@firstfloor.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Yinghai Lu <yinghai@kernel.org> writes:
+ 
 
-> On 03/21/2010 10:12 PM, Benjamin Herrenschmidt wrote:
->> It -may- well be that adapting x86 to lmb isn't a practical approach,
->> but if that was the case, then please justify why with precise technical
->> reasons, which we can discuss then in details and make a decision based
->> on that.
+-----Original Message-----
+From: ext Andi Kleen [mailto:andi@firstfloor.org] 
+Sent: Monday, March 22, 2010 11:29 AM
+To: Zhu, Yijun (NSN - CN/Beijing)
+Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org
+Subject: Re: Questions about SMP bootup control
+
+"Zhu, Yijun (NSN - CN/Beijing)" <yijun.zhu@nsn.com> writes:
+
+> Hi All:
 >
-> 1. lmb is merging region when you add one new reserved region. 
-> early_res doesn't do that merge. so later it could figure wrong freeing.
-> <recently add free_early_partial, for per cpu setup only>
-
-> 2. mem type in e820 map has more than RAM, it include RAM, reserved, ACPI, acpi nvs, and type 9?, and KERN_RESERVED...
-lmb has a reserved type as well.
-
-Beyond that does anything except /proc/iomem and acpi care?
-
-> 3. early res, every range has one name tag.
-> 4. early_res is array based, and it could auto double the array size and copy the old one to new one. and first entry in new array is for array itself.
+> I want to do some modification on the SMP architecture.
 >
-> if want x86 to use lmb, the e820 map and the lmb.memory are duplicated.
-> also need to have lmb.memory to support more type, otherwise still need to go back to check e820 about e820 reserved etc.
+> Purpose:
+> Only the first CPU is running the linux OS, while others do some
+private
+> services processing.
+>
+> My solution:
+> In the end of the start_secondary() function, I try to schedu the
+slave
+> cpu to call my private endless loop instead of cpu_idle();
+>
+> Result:
+> The system can NOT up, there is no interactive cli.
+>
+> Question:
+> Is there some wrong with my modification or I go to the wrong way?
 
-lmb clearly supports reserved regions, as well as ram regions.
 
-Eric
+> Presumably you're doing this to own that CPU exclusively.
+> 
+> Hooking at cpu_idle is not very useful then because interrupts will be
+> already enabled and the system participate in IPIs etc, so you can't
+> simply disable them, the others will miss them.
+> 
+> You would rather need to prevent them from being started in the
+> first place, e.g. by exluding them with maxcpus=..
+> 
+> A better alternative might be to use isolcpus=... and schedule
+> a standard program.
+> 
+> -Andi
+> -- 
+> ak@linux.intel.com -- Speaking for myself only.
+
+Thank you very much. But when I try to apply with the isolcpus opinion,
+It seems it still can NOT work.
+All other CPUs are isolated, only the first one is left.
+Then I found all others are still initialized by the start_secondary()
+even I use the isolated opinion, in the end,
+I add an endless loop instead of cpu_idle(), The system still can NOT
+up.
+
+So is there any mistake in what I did, could someone be kindness to give
+me more suggestions.
+
+Thanks in advance.
