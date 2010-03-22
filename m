@@ -1,50 +1,42 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from e820.c
- to fw_memmap.c
-Date: Mon, 22 Mar 2010 21:57:03 +0100
-Message-ID: <20100322205703.GA25254@elte.hu>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from
+ e820.c to fw_memmap.c
+Date: Tue, 23 Mar 2010 08:01:23 +1100
+Message-ID: <1269291683.8599.79.camel@pasglop>
 References: <4BA6EA62.1030603@kernel.org>
- <20100321.210023.209981130.davem@davemloft.net>
- <4BA6F1F6.3070102@kernel.org>
- <20100321.213350.176660494.davem@davemloft.net>
- <20100322092809.GA20607@elte.hu>
- <1269290862.8599.77.camel@pasglop>
+	 <20100321.210023.209981130.davem@davemloft.net>
+	 <4BA6F1F6.3070102@kernel.org>
+	 <20100321.213350.176660494.davem@davemloft.net>
+	 <20100322092809.GA20607@elte.hu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:44458 "EHLO mx2.mail.elte.hu"
+Received: from gate.crashing.org ([63.228.1.57]:53938 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752137Ab0CVU5c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Mar 2010 16:57:32 -0400
-Content-Disposition: inline
-In-Reply-To: <1269290862.8599.77.camel@pasglop>
+	id S1753238Ab0CVVBr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Mar 2010 17:01:47 -0400
+In-Reply-To: <20100322092809.GA20607@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Ingo Molnar <mingo@elte.hu>
 Cc: David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, yinghai@kernel.org, tglx@linutronix.de, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
+On Mon, 2010-03-22 at 10:28 +0100, Ingo Molnar wrote:
+> Those early_res patches were posted all over on lkml, it was literally 
+> hundreds of difficult patches, and now, months down the line, after we've 
+> tested and upstreamed it (with many nasty regressions fixed on x86 during the 
+> development of it) you come with a rigid "do it some other way, convert all of 
+> x86 over again or else" position.
 
-* Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
+There's an easy solution here. Leave that gunk in arch/x86 where it
+belongs and if you want to unify things a bit, then do it at the -API-
+level only, and leave the implementation where it is.
 
-> On Mon, 2010-03-22 at 10:28 +0100, Ingo Molnar wrote:
+> I really wish non-x86 architectures apprecitated (and helped) the core kernel 
+> work x86 is doing, because it is subsidizing non-x86 architectures all the 
+> time. 
 
-> > Note the other side of the coin: LMB appears to be deployed on only 4 
-> > non-x86 architectures that muster ~1% of the Linux boxes while early_res 
-> > is deployed on more than 95%.
-> 
-> You use that arguemnt ONE MORE FUCKING TIME and you'll end up in my killfile 
-> with a auto-NACK reply of anything that looks like a patch from you.
+I'm not even going to bother replying to that one
 
-Does this mean you disagree with that? (I think it's pretty factual, last i 
-checked the usage stats of devel kernels was somewhere around 99.7%.)
-
-In any case, i dont dispute that LMB is a bit cleaner than kernel/early_res.c 
-- and both are much cleaner than the new e820 kernel/fw_memmap.c code posted 
-here by Yinghai.
-
-If you dont disagree then please spare me the insults. (or move me into your 
-killfile)
-
-Thanks,
-
-	Ingo
+Ben.
