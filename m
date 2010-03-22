@@ -1,51 +1,44 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+From: Paul Mackerras <paulus@samba.org>
 Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from
  e820.c to fw_memmap.c
-Date: Tue, 23 Mar 2010 08:54:17 +1100
-Message-ID: <1269294857.8599.90.camel@pasglop>
+Date: Tue, 23 Mar 2010 08:57:10 +1100
+Message-ID: <20100322215710.GB11526@brick.ozlabs.ibm.com>
 References: <4BA6EA62.1030603@kernel.org>
-	 <20100321.210023.209981130.davem@davemloft.net>
-	 <4BA6F1F6.3070102@kernel.org>
-	 <20100321.213350.176660494.davem@davemloft.net>
-	 <20100322092809.GA20607@elte.hu> <1269290862.8599.77.camel@pasglop>
-	 <20100322205703.GA25254@elte.hu>
+ <20100321.210023.209981130.davem@davemloft.net>
+ <4BA6F1F6.3070102@kernel.org>
+ <20100321.213350.176660494.davem@davemloft.net>
+ <20100322092809.GA20607@elte.hu>
+ <1269290862.8599.77.camel@pasglop>
+ <20100322205703.GA25254@elte.hu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:47046 "EHLO gate.crashing.org"
+Received: from ozlabs.org ([203.10.76.45]:51142 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756460Ab0CVVyi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Mar 2010 17:54:38 -0400
+	id S1756490Ab0CVV5T (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Mar 2010 17:57:19 -0400
+Content-Disposition: inline
 In-Reply-To: <20100322205703.GA25254@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>
-Cc: David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, yinghai@kernel.org, tglx@linutronix.de, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, yinghai@kernel.org, tglx@linutronix.de, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, 2010-03-22 at 21:57 +0100, Ingo Molnar wrote:
-> 
-> > You use that arguemnt ONE MORE FUCKING TIME and you'll end up in my killfile 
-> > with a auto-NACK reply of anything that looks like a patch from you.
-> 
+On Mon, Mar 22, 2010 at 09:57:03PM +0100, Ingo Molnar wrote:
+
 > Does this mean you disagree with that? (I think it's pretty factual, last i 
 > checked the usage stats of devel kernels was somewhere around 99.7%.)
 
-I disagree with that being a relevant argument in the technical
-discussion on the relative merits of two implementations of a given
-facility. I also disagree with your numbers, if you talk about
-deployement, I would be very very surprised if ARM wasn't close to
-on-par with x86.
+Is that number obtained from Fedora downloads or something?  I
+wouldn't be surprised if desktop usage of bleeding-edge kernels is
+near 100%, since basically all desktop machines are x86 these days.
+I think that number would be biased against server and embedded
+machines, but without knowing exactly what you're counting it's hard
+to say.
 
-> In any case, i dont dispute that LMB is a bit cleaner than kernel/early_res.c 
-> - and both are much cleaner than the new e820 kernel/fw_memmap.c code posted 
-> here by Yinghai.
-> 
-> If you dont disagree then please spare me the insults. (or move me into your 
-> killfile) 
+In any case, I don't think the number of machines is particularly
+relevant.  Linux runs on maybe 1% of all desktop machines in the
+world, according to numbers I've seen, but that doesn't make it
+irrelevant or not worth working on.
 
-Well, I find some of your arguments quite insulting too, but let's move
-on.
-
-Cheers,
-Ben.
+Paul.
