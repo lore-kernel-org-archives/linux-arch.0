@@ -1,36 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:37444 "EHLO hera.kernel.org"
+Received: from gate.crashing.org ([63.228.1.57]:38681 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752932Ab0CVTeF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Mar 2010 15:34:05 -0400
-Message-ID: <4BA7C5D3.2040804@kernel.org>
-Date: Mon, 22 Mar 2010 12:32:35 -0700
-From: Yinghai Lu <yinghai@kernel.org>
-MIME-Version: 1.0
-Subject: Re: [PATCH 19/20] x86/pci: ioh new version read all at same time
-References: <1269155601-18247-1-git-send-email-yinghai@kernel.org>	<1269155601-18247-20-git-send-email-yinghai@kernel.org> <20100322091620.5aebf353@jbarnes-piketon>
-In-Reply-To: <20100322091620.5aebf353@jbarnes-piketon>
-Content-Type: text/plain; charset=ISO-8859-1
+	id S1751541Ab0CVVHd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Mar 2010 17:07:33 -0400
+Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from
+ e820.c to fw_memmap.c
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <1269290862.8599.77.camel@pasglop>
+References: <4BA6EA62.1030603@kernel.org>
+	 <20100321.210023.209981130.davem@davemloft.net>
+	 <4BA6F1F6.3070102@kernel.org>
+	 <20100321.213350.176660494.davem@davemloft.net>
+	 <20100322092809.GA20607@elte.hu>  <1269290862.8599.77.camel@pasglop>
+Content-Type: text/plain; charset="UTF-8"
+Date: Tue, 23 Mar 2010 08:07:13 +1100
+Message-ID: <1269292033.8599.83.camel@pasglop>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, "Eric W. Biederman" <ebiederm@xmission.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100322193235.de13jfG6-R6-ghvC8_4vakTFqBq7B4B4sZPmoVxwqK8@z>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, yinghai@kernel.org, tglx@linutronix.de, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20100322210713.3vgBNmG_BO3LTLt-OfHetDrMl-fdH55PKi3X56XFYaA@z>
 
-On 03/22/2010 09:16 AM, Jesse Barnes wrote:
-> On Sun, 21 Mar 2010 00:13:20 -0700
-> Yinghai Lu <yinghai@kernel.org> wrote:
+On Tue, 2010-03-23 at 07:47 +1100, Benjamin Herrenschmidt wrote:
+> On Mon, 2010-03-22 at 10:28 +0100, Ingo Molnar wrote:
+> > Note the other side of the coin: LMB appears to be deployed on only
+> 4
+> > non-x86 
+> > architectures that muster ~1% of the Linux boxes while early_res is
+> > deployed 
+> > on more than 95%. 
 > 
->> also it will add back default range to legacy IOH
->>
-> 
-> This patch is a bit short on details.  Are we fixing a real bug here
-> that _CRS fails to cover?  Or is it just for debug purposes?
-> 
+> You use that arguemnt ONE MORE FUCKING TIME and you'll end up in my
+> killfile with a auto-NACK reply of anything that looks like a patch
+> from you.
 
-yes for debug purpose. anyway BIOS need to keep them the same.
+Allright, I've calmed down now, so my appologies for going over the top
+here, I shouldn't reply to emails before breakfast ... but it looks like
+Thomas made the point a lot more clearly than me or Dave did so it's all
+good. Let's move on.
 
-one from HW register reading, and one from acpi.
+Cheers,
+Ben.
 
-Yinghai
+
