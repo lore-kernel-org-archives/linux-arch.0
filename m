@@ -1,59 +1,40 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from
- e820.c to fw_memmap.c
-Date: Mon, 22 Mar 2010 16:12:03 +1100
-Message-ID: <1269234723.8599.76.camel@pasglop>
-References: <1269155601-18247-1-git-send-email-yinghai@kernel.org>
-	 <1269155601-18247-7-git-send-email-yinghai@kernel.org>
-	 <1269225435.8599.70.camel@pasglop>  <4BA6EA62.1030603@kernel.org>
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from e820.c
+ to fw_memmap.c
+Date: Sun, 21 Mar 2010 23:09:48 -0700
+Message-ID: <4BA709AC.6070902@kernel.org>
+References: <1269155601-18247-1-git-send-email-yinghai@kernel.org>	 <1269155601-18247-7-git-send-email-yinghai@kernel.org>	 <1269225435.8599.70.camel@pasglop>  <4BA6EA62.1030603@kernel.org> <1269234723.8599.76.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:38215 "EHLO gate.crashing.org"
+Received: from hera.kernel.org ([140.211.167.34]:54649 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751493Ab0CVFNh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Mar 2010 01:13:37 -0400
-In-Reply-To: <4BA6EA62.1030603@kernel.org>
+	id S1751538Ab0CVGLi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Mar 2010 02:11:38 -0400
+In-Reply-To: <1269234723.8599.76.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Jesse Barnes <jbarnes@virtuousgeek.org>, "Eric W. Biederman" <ebiederm@xmission.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Sun, 2010-03-21 at 20:56 -0700, Yinghai Lu wrote:
-> On 03/21/2010 07:37 PM, Benjamin Herrenschmidt wrote:
-> > On Sun, 2010-03-21 at 00:13 -0700, Yinghai Lu wrote:
-> >> move it to kernel/fw_memmap.c from arch/x86/kernel/e820.c
-> >>
-> >> -v2: add fw_memmap wrapper to some func...
-> >>      move some functions back to e820.c
-> > 
-> > NAK
-> at this point, kernel/early_res.c and kernel/fw_memmap.c is protected with HAVE_EARLY_RES
-> 
-> obj-$(CONFIG_HAVE_EARLY_RES) += early_res.o fw_memmap.o
-> 
-> so it will not increase size that doesn't support early_res/bootmem yet.
+On 03/21/2010 10:12 PM, Benjamin Herrenschmidt wrote:
+> It -may- well be that adapting x86 to lmb isn't a practical approach,
+> but if that was the case, then please justify why with precise technical
+> reasons, which we can discuss then in details and make a decision based
+> on that.
 
-I'm still not at all happy with it. It's not only about increasing the
-size of the kernel. It's about moving some x86 specific stuff and more
-or less arbitrarily deciding that everybody has to convert to that model
-now, despite the fact that more suited alternatives have existed for
-years, rather than thinking about doing the logical thing, which is to
-convert x86 over to lmb, eventually adding the missing functionalities
-in lmb if need be.
+1. lmb is merging region when you add one new reserved region. 
+early_res doesn't do that merge. so later it could figure wrong freeing.
+<recently add free_early_partial, for per cpu setup only>
+2. mem type in e820 map has more than RAM, it include RAM, reserved, ACPI, acpi nvs, and type 9?, and KERN_RESERVED...
+3. early res, every range has one name tag.
+4. early_res is array based, and it could auto double the array size and copy the old one to new one. and first entry in new array is for array itself.
 
-Also, there's something just plain gross about the choice of names.
+if want x86 to use lmb, the e820 map and the lmb.memory are duplicated.
+also need to have lmb.memory to support more type, otherwise still need to go back to check e820 about e820 reserved etc.
 
-fw_memmap is something I wouldn't wish my enemies to have to type on a
-keyboard, it looks ugly, and it lends to way too long function names. In
-addition to the fact that your "generic" facility is still all cluttered
-with the e820 names and other very x86 centric definitions.
 
-It -may- well be that adapting x86 to lmb isn't a practical approach,
-but if that was the case, then please justify why with precise technical
-reasons, which we can discuss then in details and make a decision based
-on that.
+Thanks
 
-Cheers,
-Ben.
+Yinghai
