@@ -1,53 +1,52 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from e820.c
-	to fw_memmap.c
-Date: Tue, 23 Mar 2010 09:53:57 +0100
-Message-ID: <10f740e81003230153w373e70c8p55b79f6efb042209@mail.gmail.com>
-References: <4BA6EA62.1030603@kernel.org>
-	 <20100321.210023.209981130.davem@davemloft.net>
-	 <4BA6F1F6.3070102@kernel.org>
-	 <20100321.213350.176660494.davem@davemloft.net>
-	 <20100322092809.GA20607@elte.hu> <1269290862.8599.77.camel@pasglop>
-	 <20100322205703.GA25254@elte.hu> <1269294857.8599.90.camel@pasglop>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 1/4] x86: do not free zero sized per cpu areas
+Date: Tue, 23 Mar 2010 01:39:44 -0700
+Message-ID: <1269333587-1866-2-git-send-email-yinghai@kernel.org>
+References: <1269333587-1866-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:60604 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754396Ab0CWIx7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Mar 2010 04:53:59 -0400
-In-Reply-To: <1269294857.8599.90.camel@pasglop>
+Received: from rcsinet12.oracle.com ([148.87.113.124]:23070 "EHLO
+	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753100Ab0CWI4I (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Mar 2010 04:56:08 -0400
+In-Reply-To: <1269333587-1866-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Ingo Molnar <mingo@elte.hu>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, yinghai@kernel.org, tglx@linutronix.de, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ian Campbell <ian.campbell@citrix.com>, Yinghai Lu <yinghai@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>
 
-On Mon, Mar 22, 2010 at 22:54, Benjamin Herrenschmidt
-<benh@kernel.crashing.org> wrote:
-> On Mon, 2010-03-22 at 21:57 +0100, Ingo Molnar wrote:
->> > You use that arguemnt ONE MORE FUCKING TIME and you'll end up in my killfile
->> > with a auto-NACK reply of anything that looks like a patch from you.
->>
->> Does this mean you disagree with that? (I think it's pretty factual, last i
->> checked the usage stats of devel kernels was somewhere around 99.7%.)
->
-> I disagree with that being a relevant argument in the technical
-> discussion on the relative merits of two implementations of a given
-> facility. I also disagree with your numbers, if you talk about
-> deployement, I would be very very surprised if ARM wasn't close to
-> on-par with x86.
+From: Ian Campbell <ian.campbell@citrix.com>
 
-FWIW, several years ago a MontaVista representative said there were more Linux
-units that did have their RT extensions than there were Linux units
-that did not have them...
+This avoids an infinite loop in free_early_partial().
 
-Gr{oetje,eeting}s,
+Add a warning to free_early_partial to catch future problems.
 
-						Geert
+-v5: put back start > end back into WARN_ONCE()
+-v6: use one line for if according to linus
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Signed-off-by: Ian Campbell <ian.campbell@citrix.com>
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+---
+ kernel/early_res.c |    6 ++++++
+ 1 files changed, 6 insertions(+), 0 deletions(-)
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+diff --git a/kernel/early_res.c b/kernel/early_res.c
+index 3cb2c66..69bed5b 100644
+--- a/kernel/early_res.c
++++ b/kernel/early_res.c
+@@ -333,6 +333,12 @@ void __init free_early_partial(u64 start, u64 end)
+ 	struct early_res *r;
+ 	int i;
+ 
++	if (start == end)
++		return;
++
++	if (WARN_ONCE(start > end, "free_early_partial: wrong range [%#llx, %#llx]\n", start, end))
++		return;
++
+ try_next:
+ 	i = find_overlapped_early(start, end);
+ 	if (i >= max_early_res)
+-- 
+1.6.4.2
