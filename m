@@ -1,37 +1,66 @@
 From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [RFC PATCH -v2 4/4] x86: use lmb to replace early_res
-Date: Tue, 23 Mar 2010 10:14:36 +0100
-Message-ID: <20100323091436.GA4576@elte.hu>
-References: <1269333587-1866-1-git-send-email-yinghai@kernel.org>
- <1269333587-1866-5-git-send-email-yinghai@kernel.org>
+Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from e820.c
+ to fw_memmap.cy
+Date: Tue, 23 Mar 2010 10:48:34 +0100
+Message-ID: <20100323094834.GB4576@elte.hu>
+References: <alpine.LFD.2.00.1003222233440.3147@localhost.localdomain>
+ <4BA7EE72.7000507@kernel.org>
+ <alpine.LFD.2.00.1003222329050.3147@localhost.localdomain>
+ <4BA80019.5000900@kernel.org>
+ <alpine.LFD.2.00.1003230046050.3147@localhost.localdomain>
+ <4BA813A4.1010704@kernel.org>
+ <alpine.LFD.2.00.1003230213260.3147@localhost.localdomain>
+ <4BA8594F.8090205@kernel.org>
+ <20100323080252.GA4848@elte.hu>
+ <4BA883C0.2070102@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:35901 "EHLO mx2.mail.elte.hu"
+Received: from mx3.mail.elte.hu ([157.181.1.138]:56973 "EHLO mx3.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751872Ab0CWJO4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Mar 2010 05:14:56 -0400
+	id S1751346Ab0CWJsw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Mar 2010 05:48:52 -0400
 Content-Disposition: inline
-In-Reply-To: <1269333587-1866-5-git-send-email-yinghai@kernel.org>
+In-Reply-To: <4BA883C0.2070102@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yinghai Lu <yinghai@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, benh@kernel.crashing.org, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
 
 * Yinghai Lu <yinghai@kernel.org> wrote:
 
-> still keep kernel/early_res.c for the extension.
+> > 2)
+> > 
+> > I think we also need to concentrate the changes back into LMB:
 > 
-> should move those file to lib/lmb.c later?
+> yes. put them in kernel/early_res.c and move them to lmb.c if lmb gugs are 
+> happy with the change.
+
+Yes, they seemed OK with changing it to accomodate x86, as long as current 
+behavior stays compatible and as long as the changes are squeaky-clean.
+
+Both of which are highly reasonable expectations ;-)
+
+> > early_res.h will go away as well and all the new APIs will be in lmb.h.
 > 
-> -v2: fix NO_BOOTMEM hang with printk
+> current have three levels
+> a. old lmb users
+> b. x86 with bootmem
+> c. x86 with no-bootmem
+> 
+> some functions later could be moved to new bootmem.c
 
-Would be nice to track known TODO items - that way people dont feel that you 
-are ignoring (or have missed) their feedback. For example are the list of 4 
-improvements i suggested in the previous mail planned, or do you disagree with 
-some of that?
+I think we want to work towards the end result where we dont have bootmem.c 
+anymore. I.e. a modern LMB architecture should generally not make use of 
+bootmem at all.
 
-Thanks,
+We could do that switch on x86 straight away, and make CONFIG_NO_BOOTMEM a 
+default-y option, hm? We could also hide the interactivity behind 
+CONFIG_DEBUG_VM or so - and eliminate it altogether later on.
+
+We should also switch around the flag and turn it into CONFIG_BOOTMEM.
+
+Hm?
 
 	Ingo
