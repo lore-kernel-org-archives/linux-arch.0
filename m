@@ -1,54 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet12.oracle.com ([148.87.113.124]:23070 "EHLO
-	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753100Ab0CWI4I (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Mar 2010 04:56:08 -0400
+Received: from hera.kernel.org ([140.211.167.34]:35816 "EHLO hera.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751008Ab0CWKiR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Mar 2010 06:38:17 -0400
+Message-ID: <4BA899C2.8020208@kernel.org>
+Date: Tue, 23 Mar 2010 03:36:50 -0700
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 1/4] x86: do not free zero sized per cpu areas
-Date: Tue, 23 Mar 2010 01:39:44 -0700
-Message-ID: <1269333587-1866-2-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1269333587-1866-1-git-send-email-yinghai@kernel.org>
-References: <1269333587-1866-1-git-send-email-yinghai@kernel.org>
+MIME-Version: 1.0
+Subject: [RFC PATCH -v3 1/2] lmb: seperate region array from lmb_region struct
+References: <1269333587-1866-1-git-send-email-yinghai@kernel.org> <1269333587-1866-5-git-send-email-yinghai@kernel.org>
+In-Reply-To: <1269333587-1866-5-git-send-email-yinghai@kernel.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ian Campbell <ian.campbell@citrix.com>, Yinghai Lu <yinghai@kernel.org>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20100323083944.2S5gOgW9I0IgwtFWkifDpY0XMuTWdxJ7M5cuvSxkmNQ@z>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20100323103650.u9D1IyhRXmk-DTxyCu6wlkA9SnWAIVMArmi49G5W6zw@z>
 
-From: Ian Campbell <ian.campbell@citrix.com>
 
-This avoids an infinite loop in free_early_partial().
+lmb_init() connect them back.
 
-Add a warning to free_early_partial to catch future problems.
+also add region_array_size in lmb_region to tack the region array size.
 
--v5: put back start > end back into WARN_ONCE()
--v6: use one line for if according to linus
+-v3: seperate lmb core change to seperated patch
 
-Signed-off-by: Ian Campbell <ian.campbell@citrix.com>
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@elte.hu>
+
 ---
- kernel/early_res.c |    6 ++++++
- 1 files changed, 6 insertions(+), 0 deletions(-)
+ include/linux/lmb.h |    5 ++++-
+ lib/lmb.c           |   11 ++++++++++-
+ 2 files changed, 14 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/early_res.c b/kernel/early_res.c
-index 3cb2c66..69bed5b 100644
---- a/kernel/early_res.c
-+++ b/kernel/early_res.c
-@@ -333,6 +333,12 @@ void __init free_early_partial(u64 start, u64 end)
- 	struct early_res *r;
- 	int i;
+Index: linux-2.6/include/linux/lmb.h
+===================================================================
+--- linux-2.6.orig/include/linux/lmb.h
++++ linux-2.6/include/linux/lmb.h
+@@ -26,7 +26,8 @@ struct lmb_property {
+ struct lmb_region {
+ 	unsigned long cnt;
+ 	u64 size;
+-	struct lmb_property region[MAX_LMB_REGIONS+1];
++	struct lmb_property *region;
++	unsigned long region_array_size;
+ };
  
-+	if (start == end)
-+		return;
+ struct lmb {
+@@ -37,6 +38,8 @@ struct lmb {
+ };
+ 
+ extern struct lmb lmb;
++extern struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
++extern struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
+ 
+ extern void __init lmb_init(void);
+ extern void __init lmb_analyze(void);
+Index: linux-2.6/lib/lmb.c
+===================================================================
+--- linux-2.6.orig/lib/lmb.c
++++ linux-2.6/lib/lmb.c
+@@ -18,6 +18,8 @@
+ #define LMB_ALLOC_ANYWHERE	0
+ 
+ struct lmb lmb;
++struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
++struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
+ 
+ static int lmb_debug;
+ 
+@@ -106,6 +108,11 @@ static void lmb_coalesce_regions(struct
+ 
+ void __init lmb_init(void)
+ {
++	lmb.memory.region   = lmb_memory_region;
++	lmb.memory.region_array_size   = ARRAY_SIZE(lmb_memory_region);
++	lmb.reserved.region = lmb_reserved_region;
++	lmb.reserved.region_array_size = ARRAY_SIZE(lmb_reserved_region);
 +
-+	if (WARN_ONCE(start > end, "free_early_partial: wrong range [%#llx, %#llx]\n", start, end))
-+		return;
-+
- try_next:
- 	i = find_overlapped_early(start, end);
- 	if (i >= max_early_res)
--- 
-1.6.4.2
-
+ 	/* Create a dummy zero size LMB which will get coalesced away later.
+ 	 * This simplifies the lmb_add() code below...
+ 	 */
+@@ -169,7 +176,7 @@ static long lmb_add_region(struct lmb_re
+ 
+ 	if (coalesced)
+ 		return coalesced;
+-	if (rgn->cnt >= MAX_LMB_REGIONS)
++	if (rgn->cnt >= (rgn->region_array_size - 1))
+ 		return -1;
+ 
+ 	/* Couldn't coalesce the LMB, so add it to the sorted table. */
