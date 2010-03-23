@@ -1,75 +1,90 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: SMP barriers semantics
-Date: Tue, 23 Mar 2010 10:24:07 +0000
-Message-ID: <1269339847.29545.42.camel@e102109-lin.cambridge.arm.com>
-References: <1267527178.14461.9.camel@e102109-lin.cambridge.arm.com>
-	 <20100303005529.GA3879@brick.ozlabs.ibm.com>
-	 <1267617825.15589.82.camel@e102109-lin.cambridge.arm.com>
-	 <20100312123105.GB4400@linux-mips.org> <1268792716.2335.170.camel@pasglop>
-	 <20100317134243.GA15235@shareable.org>  <20100322120203.GL17637@laptop>
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [RFC PATCH -v3 1/2] lmb: seperate region array from lmb_region struct
+Date: Tue, 23 Mar 2010 03:36:50 -0700
+Message-ID: <4BA899C2.8020208@kernel.org>
+References: <1269333587-1866-1-git-send-email-yinghai@kernel.org> <1269333587-1866-5-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:56783 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750826Ab0CWKYb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Mar 2010 06:24:31 -0400
-In-Reply-To: <20100322120203.GL17637@laptop>
+Received: from hera.kernel.org ([140.211.167.34]:35816 "EHLO hera.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751008Ab0CWKiR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Mar 2010 06:38:17 -0400
+In-Reply-To: <1269333587-1866-5-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Jamie Lokier <jamie@shareable.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Francois Romieu <romieu@fr.zoreil.com>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, 2010-03-22 at 12:02 +0000, Nick Piggin wrote:
-> On Wed, Mar 17, 2010 at 01:42:43PM +0000, Jamie Lokier wrote:
-> > Benjamin Herrenschmidt wrote:
-> > > Maybe we can agree on a set of relaxed accessors defined specifically
-> > > with those semantics (more relaxed implies use of raw_*) :
-> > >
-> > >   - order is guaranteed between MMIOs
-> > >   - no order is guaranteed between MMIOs and spinlocks
-> >
-> > No order between MMIOs and spinlocks will be fun :-)
-> 
-> There isn't anyway, and things are pretty messed up in this area
-> already. We have mmiowb. Some architectures do a bit of mmio vs
-> lock synchronization. Eg. powerpc. But it doesn't do barriers on
-> some other locks like bit spinlocks or mutexes or rwsems or
-> semaphores blah blah.
-> 
-> When this came up I grepped a couple of drivers and found possible
-> problems straight away.
-> 
-> So IMO, we need to take all these out of lock primitives and just
-> increase awareness of it. Get rid of mmiowb. wmb() should be enough
-> to keep mmio stores inside the store to drop any lock (by definition).
 
-I think we have different scenarios for wmb and mmiowb (my
-understanding). One is when the driver writes to a coherent DMA buffer
-(usually uncached) and it than need to drain the write buffer before
-informing the device to start the transfer. That's where wmb() would be
-used (with normal uncached memory).
+lmb_init() connect them back.
 
-The mmiowb() may need to go beyond the CPU write-buffer level into the
-PCI bus etc. but only for relative ordering of the I/O accesses. The
-memory-barriers.txt suggests that mmiowb(). My understanding is that
-mmiowb() drains any mmio buffers while wmb() drains normal memory
-buffers.
+also add region_array_size in lmb_region to tack the region array size.
 
-> Actually I think having an io_acquire_barrier() / io_release_barrier()
-> for the purpose of keeping ios inside locks is a good idea (paired
-> inside the actual lock/unlock functions). This basically gives them
-> a self-documenting property.
+-v3: seperate lmb core change to seperated patch
 
-Is there any architecture where mmio accesses are speculated? Do we need
-an io_acquire_barrier()? At least on ARM, device memory access is not
-restartable by definition, which means that it cannot in general be
-speculated. If that's true for other architectures as well, we wouldn't
-need anything more than mmiowb() (but I may be wrong here).
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 
-Thanks.
+---
+ include/linux/lmb.h |    5 ++++-
+ lib/lmb.c           |   11 ++++++++++-
+ 2 files changed, 14 insertions(+), 2 deletions(-)
 
--- 
-Catalin
+Index: linux-2.6/include/linux/lmb.h
+===================================================================
+--- linux-2.6.orig/include/linux/lmb.h
++++ linux-2.6/include/linux/lmb.h
+@@ -26,7 +26,8 @@ struct lmb_property {
+ struct lmb_region {
+ 	unsigned long cnt;
+ 	u64 size;
+-	struct lmb_property region[MAX_LMB_REGIONS+1];
++	struct lmb_property *region;
++	unsigned long region_array_size;
+ };
+ 
+ struct lmb {
+@@ -37,6 +38,8 @@ struct lmb {
+ };
+ 
+ extern struct lmb lmb;
++extern struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
++extern struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
+ 
+ extern void __init lmb_init(void);
+ extern void __init lmb_analyze(void);
+Index: linux-2.6/lib/lmb.c
+===================================================================
+--- linux-2.6.orig/lib/lmb.c
++++ linux-2.6/lib/lmb.c
+@@ -18,6 +18,8 @@
+ #define LMB_ALLOC_ANYWHERE	0
+ 
+ struct lmb lmb;
++struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
++struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
+ 
+ static int lmb_debug;
+ 
+@@ -106,6 +108,11 @@ static void lmb_coalesce_regions(struct
+ 
+ void __init lmb_init(void)
+ {
++	lmb.memory.region   = lmb_memory_region;
++	lmb.memory.region_array_size   = ARRAY_SIZE(lmb_memory_region);
++	lmb.reserved.region = lmb_reserved_region;
++	lmb.reserved.region_array_size = ARRAY_SIZE(lmb_reserved_region);
++
+ 	/* Create a dummy zero size LMB which will get coalesced away later.
+ 	 * This simplifies the lmb_add() code below...
+ 	 */
+@@ -169,7 +176,7 @@ static long lmb_add_region(struct lmb_re
+ 
+ 	if (coalesced)
+ 		return coalesced;
+-	if (rgn->cnt >= MAX_LMB_REGIONS)
++	if (rgn->cnt >= (rgn->region_array_size - 1))
+ 		return -1;
+ 
+ 	/* Couldn't coalesce the LMB, so add it to the sorted table. */
