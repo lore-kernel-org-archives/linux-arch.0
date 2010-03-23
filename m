@@ -1,85 +1,47 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [RFC PATCH -v3 1/2] lmb: seperate region array from lmb_region
- struct
-Date: Tue, 23 Mar 2010 19:08:23 +0100
-Message-ID: <20100323180823.GA6088@elte.hu>
-References: <1269333587-1866-1-git-send-email-yinghai@kernel.org>
- <1269333587-1866-5-git-send-email-yinghai@kernel.org>
- <4BA899C2.8020208@kernel.org>
- <alpine.LFD.2.00.1003231528100.3147@localhost.localdomain>
- <4BA8FC9E.1050806@kernel.org>
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [RFC PATCH -v3 1/2] lmb: seperate region array from lmb_region struct
+Date: Wed, 24 Mar 2010 03:13:46 +0900
+Message-ID: <20100323181345.GA1891@linux-sh.org>
+References: <1269333587-1866-1-git-send-email-yinghai@kernel.org> <1269333587-1866-5-git-send-email-yinghai@kernel.org> <4BA899C2.8020208@kernel.org> <20100323104241.GA1189@elte.hu> <20100323131839.GA31552@linux-sh.org> <4BA8F7BD.20401@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:43809 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754220Ab0CWSIh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Mar 2010 14:08:37 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <4BA8FC9E.1050806@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <4BA8F7BD.20401@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Yinghai Lu <yinghai@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-
-* Yinghai Lu <yinghai@kernel.org> wrote:
-
-> On 03/23/2010 08:07 AM, Thomas Gleixner wrote:
-> > On Tue, 23 Mar 2010, Yinghai Lu wrote:
-> > 
+On Tue, Mar 23, 2010 at 10:17:49AM -0700, Yinghai Lu wrote:
+> On 03/23/2010 06:18 AM, Paul Mundt wrote:
+> > On Tue, Mar 23, 2010 at 11:42:41AM +0100, Ingo Molnar wrote:
+> >> also, i'd suggest to shorten region_array_size to region_size (we know it's an 
+> >> array), so it would become:
 > >>
-> >> lmb_init() connect them back.
+> >> 	lmb.memory.region	 = lmb_memory_region;
+> >> 	lmb.memory.region_size	 = ARRAY_SIZE(lmb_memory_region);
 > >>
-> >> also add region_array_size in lmb_region to tack the region array size.
-> >>
-> >> -v3: seperate lmb core change to seperated patch
-> >>
-> >> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> >>
-> >> ---
-> >>  include/linux/lmb.h |    5 ++++-
-> >>  lib/lmb.c           |   11 ++++++++++-
-> >>  2 files changed, 14 insertions(+), 2 deletions(-)
-> >>
-> >> Index: linux-2.6/include/linux/lmb.h
-> >> ===================================================================
-> >> --- linux-2.6.orig/include/linux/lmb.h
-> >> +++ linux-2.6/include/linux/lmb.h
-> >> @@ -26,7 +26,8 @@ struct lmb_property {
-> >>  struct lmb_region {
-> >>  	unsigned long cnt;
-> >>  	u64 size;
-> >> -	struct lmb_property region[MAX_LMB_REGIONS+1];
-> >> +	struct lmb_property *region;
-> >> +	unsigned long region_array_size;
-> >>  };
-> >>  
-> >>  struct lmb {
-> >> @@ -37,6 +38,8 @@ struct lmb {
-> >>  };
-> >>  
-> >>  extern struct lmb lmb;
-> >> +extern struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
-> >> +extern struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
-> > 
-> > Is there a reason why this needs to be exported ?
-> > 
-
-> lmb_reserved_region is used in 
-> kernel/early_res.c::__check_and_double_early_res/subtract_early_res/early_res_to_bootmem
+> > I don't mean to be pedantic, but the LMB code already has a lot of
+> > region.size references so region_size looks a bit awkward. All of the
+> > accessors in linux/lmb.h use region_nr as the array index, so perhaps
+> > nr_regions would be less ambiguous.
 > 
-> later if those functions are moved lmb.c, we can make lmb_reserved_region to 
-> be static
+> @@ -26,7 +26,8 @@ struct lmb_property {
+>  struct lmb_region {
+>  	unsigned long cnt;
+>  	u64 size;
+> -	struct lmb_property region[MAX_LMB_REGIONS+1];
+> +	struct lmb_property *region;
+> +	unsigned long region_array_size;
+>  };
 > 
-> same thing to lmb_memory_region, that will be used by add_lmb_memory() 
-> later.
+> cnt is number of slots used.
+> size is memory size
+> 
+I'm fully aware of what each of these things are, and I have no idea what
+any of that has to do with the point I raised above.
 
-I would strongly suggest for you to send the next (-v4) version to lkml only 
-if it's 100% clean and complete in every known regard (with a good splitup and 
-explanations in every commit), so that people dont repeat review or review an 
-unclean aspect aspect that will go away in a next iteration.
-
-Thanks,
-
-	Ingo
+> can we use rgn_sz for region array size?
+> 
+No.
