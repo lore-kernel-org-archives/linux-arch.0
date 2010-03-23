@@ -1,66 +1,75 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from e820.c
- to fw_memmap.cy
-Date: Tue, 23 Mar 2010 10:48:34 +0100
-Message-ID: <20100323094834.GB4576@elte.hu>
-References: <alpine.LFD.2.00.1003222233440.3147@localhost.localdomain>
- <4BA7EE72.7000507@kernel.org>
- <alpine.LFD.2.00.1003222329050.3147@localhost.localdomain>
- <4BA80019.5000900@kernel.org>
- <alpine.LFD.2.00.1003230046050.3147@localhost.localdomain>
- <4BA813A4.1010704@kernel.org>
- <alpine.LFD.2.00.1003230213260.3147@localhost.localdomain>
- <4BA8594F.8090205@kernel.org>
- <20100323080252.GA4848@elte.hu>
- <4BA883C0.2070102@kernel.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: SMP barriers semantics
+Date: Tue, 23 Mar 2010 10:24:07 +0000
+Message-ID: <1269339847.29545.42.camel@e102109-lin.cambridge.arm.com>
+References: <1267527178.14461.9.camel@e102109-lin.cambridge.arm.com>
+	 <20100303005529.GA3879@brick.ozlabs.ibm.com>
+	 <1267617825.15589.82.camel@e102109-lin.cambridge.arm.com>
+	 <20100312123105.GB4400@linux-mips.org> <1268792716.2335.170.camel@pasglop>
+	 <20100317134243.GA15235@shareable.org>  <20100322120203.GL17637@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:56973 "EHLO mx3.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751346Ab0CWJsw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Mar 2010 05:48:52 -0400
-Content-Disposition: inline
-In-Reply-To: <4BA883C0.2070102@kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:56783 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750826Ab0CWKYb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Mar 2010 06:24:31 -0400
+In-Reply-To: <20100322120203.GL17637@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, benh@kernel.crashing.org, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Jamie Lokier <jamie@shareable.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Francois Romieu <romieu@fr.zoreil.com>
 
-
-* Yinghai Lu <yinghai@kernel.org> wrote:
-
-> > 2)
-> > 
-> > I think we also need to concentrate the changes back into LMB:
+On Mon, 2010-03-22 at 12:02 +0000, Nick Piggin wrote:
+> On Wed, Mar 17, 2010 at 01:42:43PM +0000, Jamie Lokier wrote:
+> > Benjamin Herrenschmidt wrote:
+> > > Maybe we can agree on a set of relaxed accessors defined specifically
+> > > with those semantics (more relaxed implies use of raw_*) :
+> > >
+> > >   - order is guaranteed between MMIOs
+> > >   - no order is guaranteed between MMIOs and spinlocks
+> >
+> > No order between MMIOs and spinlocks will be fun :-)
 > 
-> yes. put them in kernel/early_res.c and move them to lmb.c if lmb gugs are 
-> happy with the change.
-
-Yes, they seemed OK with changing it to accomodate x86, as long as current 
-behavior stays compatible and as long as the changes are squeaky-clean.
-
-Both of which are highly reasonable expectations ;-)
-
-> > early_res.h will go away as well and all the new APIs will be in lmb.h.
+> There isn't anyway, and things are pretty messed up in this area
+> already. We have mmiowb. Some architectures do a bit of mmio vs
+> lock synchronization. Eg. powerpc. But it doesn't do barriers on
+> some other locks like bit spinlocks or mutexes or rwsems or
+> semaphores blah blah.
 > 
-> current have three levels
-> a. old lmb users
-> b. x86 with bootmem
-> c. x86 with no-bootmem
+> When this came up I grepped a couple of drivers and found possible
+> problems straight away.
 > 
-> some functions later could be moved to new bootmem.c
+> So IMO, we need to take all these out of lock primitives and just
+> increase awareness of it. Get rid of mmiowb. wmb() should be enough
+> to keep mmio stores inside the store to drop any lock (by definition).
 
-I think we want to work towards the end result where we dont have bootmem.c 
-anymore. I.e. a modern LMB architecture should generally not make use of 
-bootmem at all.
+I think we have different scenarios for wmb and mmiowb (my
+understanding). One is when the driver writes to a coherent DMA buffer
+(usually uncached) and it than need to drain the write buffer before
+informing the device to start the transfer. That's where wmb() would be
+used (with normal uncached memory).
 
-We could do that switch on x86 straight away, and make CONFIG_NO_BOOTMEM a 
-default-y option, hm? We could also hide the interactivity behind 
-CONFIG_DEBUG_VM or so - and eliminate it altogether later on.
+The mmiowb() may need to go beyond the CPU write-buffer level into the
+PCI bus etc. but only for relative ordering of the I/O accesses. The
+memory-barriers.txt suggests that mmiowb(). My understanding is that
+mmiowb() drains any mmio buffers while wmb() drains normal memory
+buffers.
 
-We should also switch around the flag and turn it into CONFIG_BOOTMEM.
+> Actually I think having an io_acquire_barrier() / io_release_barrier()
+> for the purpose of keeping ios inside locks is a good idea (paired
+> inside the actual lock/unlock functions). This basically gives them
+> a self-documenting property.
 
-Hm?
+Is there any architecture where mmio accesses are speculated? Do we need
+an io_acquire_barrier()? At least on ARM, device memory access is not
+restartable by definition, which means that it cannot in general be
+speculated. If that's true for other architectures as well, we wouldn't
+need anything more than mmiowb() (but I may be wrong here).
 
-	Ingo
+Thanks.
+
+-- 
+Catalin
