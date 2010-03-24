@@ -1,50 +1,92 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from
- e820.c to fw_memmap.c
-Date: Wed, 24 Mar 2010 15:50:00 +1100
-Message-ID: <1269406200.8599.159.camel@pasglop>
-References: <4BA6EA62.1030603@kernel.org>
-	 <20100321.210023.209981130.davem@davemloft.net>
-	 <4BA6F1F6.3070102@kernel.org>
-	 <20100321.213350.176660494.davem@davemloft.net>
-	 <20100322092809.GA20607@elte.hu> <1269290862.8599.77.camel@pasglop>
-	 <20100322205703.GA25254@elte.hu> <1269294857.8599.90.camel@pasglop>
-	 <20100323111612.GB1189@elte.hu>
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [RFC PATCH v4 1/2] lmb: seperate region array from lmb_region struct
+Date: Tue, 23 Mar 2010 22:36:15 -0700
+Message-ID: <4BA9A4CF.40105@kernel.org>
+References: <1269333587-1866-1-git-send-email-yinghai@kernel.org>	 <1269333587-1866-5-git-send-email-yinghai@kernel.org>	 <4BA899C2.8020208@kernel.org>  <20100323104241.GA1189@elte.hu> <1269405955.8599.156.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:48800 "EHLO gate.crashing.org"
+Received: from hera.kernel.org ([140.211.167.34]:39753 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751100Ab0CXEue (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Mar 2010 00:50:34 -0400
-In-Reply-To: <20100323111612.GB1189@elte.hu>
+	id S1751626Ab0CXFhk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Mar 2010 01:37:40 -0400
+In-Reply-To: <1269405955.8599.156.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, yinghai@kernel.org, tglx@linutronix.de, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, 2010-03-23 at 12:16 +0100, Ingo Molnar wrote:
-> 
-> So if you want your architecture to matter to me the rule is very simple: 
-> contribute, contribute, contribute, and stop whining. If you dont contribute, 
-> frankly you dont really exist to me. On the other hand if you are actively 
-> contributing while your architecture only exists on paper, it already starts 
-> mattering to me.
-> 
-> I'm really that simple.
 
-So basically, what you are saying is that, totally regardless of how
-much an architecture is actually used in the field, if the architecture
-maintainer for it doesn't also do your work and contribute to every
-single of your pet projects, or if everybody is like you, every single
-other subsystem in the kernel, then that architecture is irrelevant for
-technical considerations and choices regarding any design decision made
-to the core kernel ?
+lmb_init() connect them back.
 
-Sorry Ingo, but that's just arrogant bullshit. So stop trying to win
-this useless argument, all you manage to do is anger people and make us
-even less willing to actually work with you.
+also add nr_regions in lmb_region to tack the region array size.
 
-Cheers,
-Ben.
+-v3: seperate lmb core change to seperated patch
+-v4: according to Ingo, change >= x -1 to > x
+     change region_array_size to nr_regions
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+
+---
+ include/linux/lmb.h |    5 ++++-
+ lib/lmb.c           |    9 ++++++++-
+ 2 files changed, 12 insertions(+), 2 deletions(-)
+
+Index: linux-2.6/include/linux/lmb.h
+===================================================================
+--- linux-2.6.orig/include/linux/lmb.h
++++ linux-2.6/include/linux/lmb.h
+@@ -26,7 +26,8 @@ struct lmb_property {
+ struct lmb_region {
+ 	unsigned long cnt;
+ 	u64 size;
+-	struct lmb_property region[MAX_LMB_REGIONS+1];
++	struct lmb_property *region;
++	unsigned long nr_regions;
+ };
+ 
+ struct lmb {
+@@ -37,6 +38,8 @@ struct lmb {
+ };
+ 
+ extern struct lmb lmb;
++extern struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
++extern struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
+ 
+ extern void __init lmb_init(void);
+ extern void __init lmb_analyze(void);
+Index: linux-2.6/lib/lmb.c
+===================================================================
+--- linux-2.6.orig/lib/lmb.c
++++ linux-2.6/lib/lmb.c
+@@ -18,6 +18,8 @@
+ #define LMB_ALLOC_ANYWHERE	0
+ 
+ struct lmb lmb;
++struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
++struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
+ 
+ static int lmb_debug;
+ 
+@@ -106,6 +108,11 @@ static void lmb_coalesce_regions(struct
+ 
+ void __init lmb_init(void)
+ {
++	lmb.memory.region   = lmb_memory_region;
++	lmb.reserved.region = lmb_reserved_region;
++	lmb.memory.nr_regions   = ARRAY_SIZE(lmb_memory_region);
++	lmb.reserved.nr_regions = ARRAY_SIZE(lmb_reserved_region);
++
+ 	/* Create a dummy zero size LMB which will get coalesced away later.
+ 	 * This simplifies the lmb_add() code below...
+ 	 */
+@@ -169,7 +176,7 @@ static long lmb_add_region(struct lmb_re
+ 
+ 	if (coalesced)
+ 		return coalesced;
+-	if (rgn->cnt >= MAX_LMB_REGIONS)
++	if (rgn->cnt > rgn->nr_regions)
+ 		return -1;
+ 
+ 	/* Couldn't coalesce the LMB, so add it to the sorted table. */
