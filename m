@@ -1,87 +1,178 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 4/8] lmb: seperate region array from lmb_region struct
-Date: Wed, 24 Mar 2010 03:34:17 -0700
-Message-ID: <1269426861-20903-5-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 2/8] x86: add find_e820_area_node
+Date: Wed, 24 Mar 2010 03:34:15 -0700
+Message-ID: <1269426861-20903-3-git-send-email-yinghai@kernel.org>
 References: <1269426861-20903-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet11.oracle.com ([148.87.113.123]:27108 "EHLO
+	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755491Ab0CXKiS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Mar 2010 06:38:18 -0400
 In-Reply-To: <1269426861-20903-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
 From: Yinghai Lu <yinghai@@kernel.org>
 
-lmb_init() connect them back.
+David Miller pointed out that early_res have problem to find node data on correct node
+when we have
+node0: [0, 2g), [4g, 6g), [10g, 14g)
+node1: [6g, 10g), [14g, 18g)
+the cross node case
 
-also add nr_regions in lmb_region to tack the region array size.
+the problem is there for x86 bits even before we are using early_res for bootmem replacement.
+after early_res for bootmem replacement, alloc_bootmem_node still can get range on correct node
 
--v3: seperate lmb core change to seperated patch
--v4: according to Ingo, change >= x -1 to > x
-     change region_array_size to nr_regions
+this patch is fixing problem before bootmem or early_res replacement for bootmem.
+
+now only user is for x86 64bit numa to find node data.
+
+the point is use early_node_map with find_e820_area_node()
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    5 ++++-
- lib/lmb.c           |    9 ++++++++-
- 2 files changed, 12 insertions(+), 2 deletions(-)
+ arch/x86/include/asm/e820.h |    1 +
+ arch/x86/kernel/e820.c      |   15 +++++++++++++++
+ arch/x86/mm/numa_64.c       |    4 ++--
+ include/linux/mm.h          |    2 ++
+ mm/page_alloc.c             |   37 +++++++++++++++++++++++--------------
+ 5 files changed, 43 insertions(+), 16 deletions(-)
 
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index f3d1433..37fd29e 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -26,7 +26,8 @@ struct lmb_property {
- struct lmb_region {
- 	unsigned long cnt;
- 	u64 size;
--	struct lmb_property region[MAX_LMB_REGIONS+1];
-+	struct lmb_property *region;
-+	unsigned long nr_regions;
- };
+diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
+index ec8a52d..41553af 100644
+--- a/arch/x86/include/asm/e820.h
++++ b/arch/x86/include/asm/e820.h
+@@ -116,6 +116,7 @@ extern unsigned long end_user_pfn;
  
- struct lmb {
-@@ -37,6 +38,8 @@ struct lmb {
- };
+ extern u64 find_e820_area(u64 start, u64 end, u64 size, u64 align);
+ extern u64 find_e820_area_size(u64 start, u64 *sizep, u64 align);
++u64 find_e820_area_node(int nid, u64 start, u64 end, u64 size, u64 align);
+ extern u64 early_reserve_e820(u64 startt, u64 sizet, u64 align);
+ #include <linux/early_res.h>
  
- extern struct lmb lmb;
-+extern struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
-+extern struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 740b440..05ee724 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -787,6 +787,21 @@ u64 __init find_e820_area_size(u64 start, u64 *sizep, u64 align)
+ 	return -1ULL;
+ }
  
- extern void __init lmb_init(void);
- extern void __init lmb_analyze(void);
-diff --git a/lib/lmb.c b/lib/lmb.c
-index b1fc526..ed4e433 100644
---- a/lib/lmb.c
-+++ b/lib/lmb.c
-@@ -18,6 +18,8 @@
- #define LMB_ALLOC_ANYWHERE	0
- 
- struct lmb lmb;
-+struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
-+struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
- 
- static int lmb_debug;
- 
-@@ -106,6 +108,11 @@ static void lmb_coalesce_regions(struct lmb_region *rgn,
- 
- void __init lmb_init(void)
- {
-+	lmb.memory.region   = lmb_memory_region;
-+	lmb.reserved.region = lmb_reserved_region;
-+	lmb.memory.nr_regions   = ARRAY_SIZE(lmb_memory_region);
-+	lmb.reserved.nr_regions = ARRAY_SIZE(lmb_reserved_region);
++u64 __init find_e820_area_node(int nid, u64 start, u64 end, u64 size, u64 align)
++{
++	u64 addr;
++	/*
++	 * need to call this function after e820_register_active_regions
++	 * so early_node_map[] is set
++	 */
++	addr = find_memory_core_early(nid, size, align, start, end);
++	if (addr != -1ULL)
++		return addr;
 +
- 	/* Create a dummy zero size LMB which will get coalesced away later.
- 	 * This simplifies the lmb_add() code below...
- 	 */
-@@ -169,7 +176,7 @@ static long lmb_add_region(struct lmb_region *rgn, u64 base, u64 size)
++	/* fallback, should already have start end in the node range */
++	return find_e820_area(start, end, size, align);
++}
++
+ /*
+  * pre allocated 4k and reserved it in e820
+  */
+diff --git a/arch/x86/mm/numa_64.c b/arch/x86/mm/numa_64.c
+index 8948f47..ffc5ad5 100644
+--- a/arch/x86/mm/numa_64.c
++++ b/arch/x86/mm/numa_64.c
+@@ -174,7 +174,7 @@ static void * __init early_node_mem(int nodeid, unsigned long start,
+ 	if (start < (MAX_DMA32_PFN<<PAGE_SHIFT) &&
+ 	    end > (MAX_DMA32_PFN<<PAGE_SHIFT))
+ 		start = MAX_DMA32_PFN<<PAGE_SHIFT;
+-	mem = find_e820_area(start, end, size, align);
++	mem = find_e820_area_node(nodeid, start, end, size, align);
+ 	if (mem != -1L)
+ 		return __va(mem);
  
- 	if (coalesced)
- 		return coalesced;
--	if (rgn->cnt >= MAX_LMB_REGIONS)
-+	if (rgn->cnt > rgn->nr_regions)
- 		return -1;
+@@ -184,7 +184,7 @@ static void * __init early_node_mem(int nodeid, unsigned long start,
+ 		start = MAX_DMA32_PFN<<PAGE_SHIFT;
+ 	else
+ 		start = MAX_DMA_PFN<<PAGE_SHIFT;
+-	mem = find_e820_area(start, end, size, align);
++	mem = find_e820_area_node(nodeid, start, end, size, align);
+ 	if (mem != -1L)
+ 		return __va(mem);
  
- 	/* Couldn't coalesce the LMB, so add it to the sorted table. */
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index e70f21b..5c2d17e 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1160,6 +1160,8 @@ extern void free_bootmem_with_active_regions(int nid,
+ 						unsigned long max_low_pfn);
+ int add_from_early_node_map(struct range *range, int az,
+ 				   int nr_range, int nid);
++u64 __init find_memory_core_early(int nid, u64 size, u64 align,
++					u64 goal, u64 limit);
+ void *__alloc_memory_core_early(int nodeid, u64 size, u64 align,
+ 				 u64 goal, u64 limit);
+ typedef int (*work_fn_t)(unsigned long, unsigned long, void *);
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index d03c946..eef3757 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -3408,12 +3408,11 @@ int __init add_from_early_node_map(struct range *range, int az,
+ 	return nr_range;
+ }
+ 
+-#ifdef CONFIG_NO_BOOTMEM
+-void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
++#ifdef CONFIG_HAVE_EARLY_RES
++u64 __init find_memory_core_early(int nid, u64 size, u64 align,
+ 					u64 goal, u64 limit)
+ {
+ 	int i;
+-	void *ptr;
+ 
+ 	/* need to go over early_node_map to find out good range for node */
+ 	for_each_active_range_index_in_nid(i, nid) {
+@@ -3430,20 +3429,30 @@ void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
+ 		if (addr == -1ULL)
+ 			continue;
+ 
+-#if 0
+-		printk(KERN_DEBUG "alloc (nid=%d %llx - %llx) (%llx - %llx) %llx %llx => %llx\n",
+-				nid,
+-				ei_start, ei_last, goal, limit, size,
+-				align, addr);
++		return addr;
++	}
++
++	return -1ULL;
++}
+ #endif
+ 
+-		ptr = phys_to_virt(addr);
+-		memset(ptr, 0, size);
+-		reserve_early_without_check(addr, addr + size, "BOOTMEM");
+-		return ptr;
+-	}
++#ifdef CONFIG_NO_BOOTMEM
++void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
++					u64 goal, u64 limit)
++{
++	void *ptr;
+ 
+-	return NULL;
++	u64 addr;
++
++	addr = find_memory_core_early(nid, size, align, goal, limit);
++
++	if (addr == -1ULL)
++		return NULL;
++
++	ptr = phys_to_virt(addr);
++	memset(ptr, 0, size);
++	reserve_early_without_check(addr, addr + size, "BOOTMEM");
++	return ptr;
+ }
+ #endif
+ 
 -- 
 1.6.4.2
