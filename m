@@ -1,73 +1,55 @@
-From: akpm@linux-foundation.org
-Subject: [patch 07/36] Documentation/volatile-considered-harmful.txt: correct cpu_relax() documentation
-Date: Tue, 23 Mar 2010 13:35:16 -0700
-Message-ID: <201003232035.o2NKZGtj024443@imap1.linux-foundation.org>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from
+ e820.c to fw_memmap.cy
+Date: Wed, 24 Mar 2010 15:24:46 +1100
+Message-ID: <1269404686.8599.144.camel@pasglop>
+References: <20100322193720.GA2844@elte.hu> <4BA7CE1B.9070109@kernel.org>
+	 <alpine.LFD.2.00.1003222233440.3147@localhost.localdomain>
+	 <4BA7EE72.7000507@kernel.org>
+	 <alpine.LFD.2.00.1003222329050.3147@localhost.localdomain>
+	 <4BA80019.5000900@kernel.org>
+	 <alpine.LFD.2.00.1003230046050.3147@localhost.localdomain>
+	 <4BA813A4.1010704@kernel.org>
+	 <alpine.LFD.2.00.1003230213260.3147@localhost.localdomain>
+	 <4BA8594F.8090205@kernel.org>  <20100323080252.GA4848@elte.hu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ANSI_X3.4-1968
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:41224 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753102Ab0CWUfa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Mar 2010 16:35:30 -0400
+Received: from gate.crashing.org ([63.228.1.57]:50017 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750874Ab0CXE0v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Mar 2010 00:26:51 -0400
+In-Reply-To: <20100323080252.GA4848@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, rmk@arm.linux.org.uk, linux-arch@vger.kernel.org, rmk+kernel@arm.linux.org.uk
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Yinghai Lu <yinghai@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-From: Russell King <rmk@arm.linux.org.uk>
+On Tue, 2010-03-23 at 09:02 +0100, Ingo Molnar wrote:
+> > -u64 find_fw_memmap_area(u64 start, u64 end, u64 size, u64 align);
+> > +u64 find_lmb_area(u64 start, u64 end, u64 size, u64 align);
+> > +u64 find_lmb_area_size(u64 start, u64 *sizep, u64 align);
+> > +u64 find_lmb_area_node(int nid, u64 start, u64 end, u64 size, u64
+> align);
+> > +void lmb_register_active_regions(int nid, unsigned long start_pfn,
+> > +                                      unsigned long last_pfn);
+> > +u64 lmb_hole_size(u64 start, u64 end);
+> >  u64 get_max_mapped(void);
+> >  #include <linux/range.h>
+> >  int get_free_all_memory_range(struct range **rangep, int nodeid);
+> 
+> those new lmb_*() APIs should go into lmb.h.
 
-cpu_relax() is documented in volatile-considered-harmful.txt to be a
-memory barrier.  However, everyone with the exception of Blackfin and
-possibly ia64 defines cpu_relax() to be a compiler barrier.
+And while at it properly documented :-) I wouldn't mind also a
+reasonably clear explanation in the changeset comment as to why
+they are necessary for x86.
 
-Make the documentation reflect the general concensus.
+To be honest, that's my #1 grief so far with this entire patch set,
+it Yinghai apparent inability to write anything ressembling remotely
+like an explanation. All we get is key words, bullet points and half
+sentences, and I admit have a very very hard time extracting a meaning
+out of anything he's been writing so far.
 
-Linus sayeth:
-
-: I don't think it was ever the intention that it would be seen as anything
-: but a compiler barrier, although it is obviously implied that it might
-: well perform some per-architecture actions that have "memory barrier-like"
-: semantics.
-: 
-: After all, the whole and only point of the "cpu_relax()" thing is to tell
-: the CPU that we're busy-looping on some event.
-: 
-: And that "event" might be (and often is) about reading the same memory
-: location over and over until it changes to what we want it to be.  So it's
-: quite possible that on various architectures the "cpu_relax()" could be
-: about making sure that such a tight loop on loads doesn't starve cache
-: transactions, for example - and as such look a bit like a memory barrier
-: from a CPU standpoint.
-: 
-: But it's not meant to have any kind of architectural memory ordering
-: semantics as far as the kernel is concerned - those must come from other
-: sources.
-
-Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
-Cc: <linux-arch@vger.kernel.org>
-Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- Documentation/volatile-considered-harmful.txt |    6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
-
-diff -puN Documentation/volatile-considered-harmful.txt~documentation-volatile-considered-harmfultxt-correct-cpu_relax-documentation Documentation/volatile-considered-harmful.txt
---- a/Documentation/volatile-considered-harmful.txt~documentation-volatile-considered-harmfultxt-correct-cpu_relax-documentation
-+++ a/Documentation/volatile-considered-harmful.txt
-@@ -63,9 +63,9 @@ way to perform a busy wait is:
-         cpu_relax();
- 
- The cpu_relax() call can lower CPU power consumption or yield to a
--hyperthreaded twin processor; it also happens to serve as a memory barrier,
--so, once again, volatile is unnecessary.  Of course, busy-waiting is
--generally an anti-social act to begin with.
-+hyperthreaded twin processor; it also happens to serve as a compiler
-+barrier, so, once again, volatile is unnecessary.  Of course, busy-
-+waiting is generally an anti-social act to begin with.
- 
- There are still a few rare situations where volatile makes sense in the
- kernel:
-_
+Cheers,
+Ben.
