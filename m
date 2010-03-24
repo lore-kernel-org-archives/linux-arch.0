@@ -1,69 +1,70 @@
 From: Yinghai Lu <yinghai@kernel.org>
 Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from e820.c
  to fw_memmap.cy
-Date: Tue, 23 Mar 2010 22:54:00 -0700
-Message-ID: <4BA9A8F8.5070206@kernel.org>
-References: <alpine.LFD.2.00.1003222233440.3147@localhost.localdomain>	 <4BA7EE72.7000507@kernel.org>	 <alpine.LFD.2.00.1003222329050.3147@localhost.localdomain>	 <4BA80019.5000900@kernel.org>	 <alpine.LFD.2.00.1003230046050.3147@localhost.localdomain>	 <4BA813A4.1010704@kernel.org>	 <alpine.LFD.2.00.1003230213260.3147@localhost.localdomain>	 <4BA8594F.8090205@kernel.org> <20100323080252.GA4848@elte.hu>	 <4BA883C0.2070102@kernel.org>  <20100323094834.GB4576@elte.hu>	 <1269404982.8599.148.camel@pasglop> <1269405882.8599.155.camel@pasglop>
+Date: Tue, 23 Mar 2010 23:05:42 -0700
+Message-ID: <4BA9ABB6.2070105@kernel.org>
+References: <20100322193720.GA2844@elte.hu> <4BA7CE1B.9070109@kernel.org>	 <alpine.LFD.2.00.1003222233440.3147@localhost.localdomain>	 <4BA7EE72.7000507@kernel.org>	 <alpine.LFD.2.00.1003222329050.3147@localhost.localdomain>	 <4BA80019.5000900@kernel.org>	 <alpine.LFD.2.00.1003230046050.3147@localhost.localdomain>	 <4BA813A4.1010704@kernel.org>	 <alpine.LFD.2.00.1003230213260.3147@localhost.localdomain>	 <4BA8594F.8090205@kernel.org>  <20100323080252.GA4848@elte.hu> <1269404686.8599.144.camel@pasglop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:54859 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:44449 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752141Ab0CXF4N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Mar 2010 01:56:13 -0400
-In-Reply-To: <1269405882.8599.155.camel@pasglop>
+	id S1754214Ab0CXGHc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Mar 2010 02:07:32 -0400
+In-Reply-To: <1269404686.8599.144.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 03/23/2010 09:44 PM, Benjamin Herrenschmidt wrote:
+On 03/23/2010 09:24 PM, Benjamin Herrenschmidt wrote:
+> On Tue, 2010-03-23 at 09:02 +0100, Ingo Molnar wrote:
+>>> -u64 find_fw_memmap_area(u64 start, u64 end, u64 size, u64 align);
+>>> +u64 find_lmb_area(u64 start, u64 end, u64 size, u64 align);
+>>> +u64 find_lmb_area_size(u64 start, u64 *sizep, u64 align);
+>>> +u64 find_lmb_area_node(int nid, u64 start, u64 end, u64 size, u64
+>> align);
+>>> +void lmb_register_active_regions(int nid, unsigned long start_pfn,
+>>> +                                      unsigned long last_pfn);
+>>> +u64 lmb_hole_size(u64 start, u64 end);
+>>>  u64 get_max_mapped(void);
+>>>  #include <linux/range.h>
+>>>  int get_free_all_memory_range(struct range **rangep, int nodeid);
+>>
+>> those new lmb_*() APIs should go into lmb.h.
 > 
->> I though one possibility would be to have LMB regions become more lists
->> than arrays, so that the static storage only needs to cover as much as
->> is needed during really early boot (and we could probably still move the
->> BSS top point on some archs to dynamically make more ... actually we
->> could be smart arses and use LMB to allocate more LMB list heads if we
->> are reaching the table limit :-)
-> 
-> Actually what about that:
-> 
-> LMB entries are linked-listed. The array is just storage for those entry
-> "heads".
-> 
-> The initial static array only needs to be big enough for very very early
-> platform specific kernel bits and pieces, so it could even be sized by a
-> Kconfig option. Or it could just use a klimit moving trick to pick up a
-> page right after the BSS but that may need to be arch specific.
-> 
-> lmb_init() queues all the entries from the initial array in a freelist
-> 
-> lmb_alloc() and lmb_reserve() just pop entries from that freelist to
-> populate the two main linked lists (memory and reserved).
-> 
-> When something tries to dequeue up the last freelist entry, then under
-> the hood, LMB uses it instead to allocate a new block of LMB entries
-> that gets added to the freelist.
-> 
-> We never free blocks of LMB entries.
-> 
-> That way, we can fine tine the static array to be as small as we can
-> realistically make it be, and we have no boundary limitations on the
-> amount of entries in either the memory list or the reserved list.
-> 
-> I'm a bit too flat out right now to write code, but if there's no
-> objection, I might give that a go either later this week or next week,
-> see if I can replace bootmem on powerpc.
-> 
+> And while at it properly documented :-) I wouldn't mind also a
+> reasonably clear explanation in the changeset comment as to why
+> they are necessary for x86.
 
-if the array can be doubled and have old one copied to new one. 
-then we don't change lmb.c too much.
+new early_res.c will have
+find_lmb_area
+reserve_early
+free_early
+also have get_free_all_memory_range to support bootmem replacement.
 
-new early_res.c exend lmb. and another half already works with x86 to replace bootmem.
+find_lmb_area: will take goal/limit, so we can find free region with more control.
 
-will check if i can produce one patch to make powerpc to reuse early_res/nobootmem
+when we try to check if there is enough slots for new reserve entry.
+we need to make sure the new array will not overlap with range below to
+entry that going to be reserved.
+so we need to goal for find.
+otherwise you have to keep trying with lmb_alloc until get one for new array
+that will not overlap with new entry.
 
-Thanks
 
-Yinghai
+> 
+> To be honest, that's my #1 grief so far with this entire patch set,
+> it Yinghai apparent inability to write anything ressembling remotely
+> like an explanation. All we get is key words, bullet points and half
+> sentences, and I admit have a very very hard time extracting a meaning
+> out of anything he's been writing so far.
+
+will spend more time to write more sentences...
+
+thought you guys like to read code instead.
+
+Thanks for you patience.
+
+Yinghai Lu
