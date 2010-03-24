@@ -1,52 +1,28 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 1/8] x86: do not free zero sized per cpu areas
-Date: Wed, 24 Mar 2010 03:34:14 -0700
-Message-ID: <1269426861-20903-2-git-send-email-yinghai@kernel.org>
-References: <1269426861-20903-1-git-send-email-yinghai@kernel.org>
+From: Gilliam ' Araceli <german3627@gmail.com>
+Subject: Reach 788k doctors - we have the list and others too
+Date: Wed, 24 Mar 2010 12:45:39 -0300
+Message-ID: <400ec124-bf65-4a3f-a50b-4639e0804ea6@brsptwmx01.tecnoworld1.local>
+Reply-To: <kdh362@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet11.oracle.com ([148.87.113.123]:65254 "EHLO
-	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755363Ab0CXKm5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Mar 2010 06:42:57 -0400
-In-Reply-To: <1269426861-20903-1-git-send-email-yinghai@kernel.org>
+Received: from jupiter2.tecnoworld.com.br ([189.8.88.186]:21144 "EHLO
+	jupiter.tecnoworld.com.br" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1753913Ab0CXPuF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Mar 2010 11:50:05 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ian Campbell <ian.campbell@citrix.com>, Yinghai Lu <yinghai@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>
+To: michelle@maizevalley.com, notarissen@vbcnotarissen.nl, mrincon1@miami.edu
 
-From: Ian Campbell <ian.campbell@citrix.com>
 
-This avoids an infinite loop in free_early_partial().
 
-Add a warning to free_early_partial to catch future problems.
+Email me at this address for a catalog of all our US lists: Wade.Teague@listpricereduction.co.cc
 
--v5: put back start > end back into WARN_ONCE()
--v6: use one line for if according to linus
+Also, ask about our sale pricing for more than one list.  
+  
 
-Signed-off-by: Ian Campbell <ian.campbell@citrix.com>
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@elte.hu>
----
- kernel/early_res.c |    6 ++++++
- 1 files changed, 6 insertions(+), 0 deletions(-)
 
-diff --git a/kernel/early_res.c b/kernel/early_res.c
-index 3cb2c66..69bed5b 100644
---- a/kernel/early_res.c
-+++ b/kernel/early_res.c
-@@ -333,6 +333,12 @@ void __init free_early_partial(u64 start, u64 end)
- 	struct early_res *r;
- 	int i;
- 
-+	if (start == end)
-+		return;
-+
-+	if (WARN_ONCE(start > end, "free_early_partial: wrong range [%#llx, %#llx]\n", start, end))
-+		return;
-+
- try_next:
- 	i = find_overlapped_early(start, end);
- 	if (i >= max_early_res)
--- 
-1.6.4.2
+
+
+Forward email to rembox@listpricereduction.co.cc to purge you from our records
