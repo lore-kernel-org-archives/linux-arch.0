@@ -1,121 +1,87 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 7/8] early_res: prepare for other platform to use it
-Date: Wed, 24 Mar 2010 03:34:20 -0700
-Message-ID: <1269426861-20903-8-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 4/8] lmb: seperate region array from lmb_region struct
+Date: Wed, 24 Mar 2010 03:34:17 -0700
+Message-ID: <1269426861-20903-5-git-send-email-yinghai@kernel.org>
 References: <1269426861-20903-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet12.oracle.com ([141.146.126.234]:21156 "EHLO
-	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754800Ab0CXKiA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Mar 2010 06:38:00 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1269426861-20903-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
 From: Yinghai Lu <yinghai@@kernel.org>
 
-add weak reserver_bootmem_generic()
+lmb_init() connect them back.
 
-also clean up x86 64 bit one.
+also add nr_regions in lmb_region to tack the region array size.
 
-add include for linux/early_res.h
+-v3: seperate lmb core change to seperated patch
+-v4: according to Ingo, change >= x -1 to > x
+     change region_array_size to nr_regions
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/mm/init_32.c |    5 -----
- arch/x86/mm/init_64.c |   18 ------------------
- mm/bootmem.c          |    7 +++++++
- mm/page_alloc.c       |    1 +
- 4 files changed, 8 insertions(+), 23 deletions(-)
+ include/linux/lmb.h |    5 ++++-
+ lib/lmb.c           |    9 ++++++++-
+ 2 files changed, 12 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index a7625d5..16001e1 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -1070,8 +1070,3 @@ void mark_rodata_ro(void)
- }
- #endif
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index f3d1433..37fd29e 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -26,7 +26,8 @@ struct lmb_property {
+ struct lmb_region {
+ 	unsigned long cnt;
+ 	u64 size;
+-	struct lmb_property region[MAX_LMB_REGIONS+1];
++	struct lmb_property *region;
++	unsigned long nr_regions;
+ };
  
--int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
--				   int flags)
--{
--	return reserve_bootmem(phys, len, flags);
--}
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index dd88ef9..cc3627b 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -801,10 +801,6 @@ void mark_rodata_ro(void)
- int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 				   int flags)
+ struct lmb {
+@@ -37,6 +38,8 @@ struct lmb {
+ };
+ 
+ extern struct lmb lmb;
++extern struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
++extern struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
+ 
+ extern void __init lmb_init(void);
+ extern void __init lmb_analyze(void);
+diff --git a/lib/lmb.c b/lib/lmb.c
+index b1fc526..ed4e433 100644
+--- a/lib/lmb.c
++++ b/lib/lmb.c
+@@ -18,6 +18,8 @@
+ #define LMB_ALLOC_ANYWHERE	0
+ 
+ struct lmb lmb;
++struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
++struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
+ 
+ static int lmb_debug;
+ 
+@@ -106,6 +108,11 @@ static void lmb_coalesce_regions(struct lmb_region *rgn,
+ 
+ void __init lmb_init(void)
  {
--#ifdef CONFIG_NUMA
--	int nid, next_nid;
--	int ret;
--#endif
- 	unsigned long pfn = phys >> PAGE_SHIFT;
- 
- 	if (pfn >= max_pfn) {
-@@ -820,21 +816,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 		return -EFAULT;
- 	}
- 
--	/* Should check here against the e820 map to avoid double free */
--#ifdef CONFIG_NUMA
--	nid = phys_to_nid(phys);
--	next_nid = phys_to_nid(phys + len - 1);
--	if (nid == next_nid)
--		ret = reserve_bootmem_node(NODE_DATA(nid), phys, len, flags);
--	else
--		ret = reserve_bootmem(phys, len, flags);
--
--	if (ret != 0)
--		return ret;
--
--#else
- 	reserve_bootmem(phys, len, flags);
--#endif
- 
- 	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
- 		dma_reserve += len / PAGE_SIZE;
-diff --git a/mm/bootmem.c b/mm/bootmem.c
-index d7c791e..760c279 100644
---- a/mm/bootmem.c
-+++ b/mm/bootmem.c
-@@ -14,6 +14,7 @@
- #include <linux/module.h>
- #include <linux/kmemleak.h>
- #include <linux/range.h>
-+#include <linux/early_res.h>
- 
- #include <asm/bug.h>
- #include <asm/io.h>
-@@ -525,6 +526,12 @@ int __init reserve_bootmem(unsigned long addr, unsigned long size,
- }
- 
- #ifndef CONFIG_NO_BOOTMEM
-+int __weak __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
-+				   int flags)
-+{
-+	return reserve_bootmem(phys, len, flags);
-+}
++	lmb.memory.region   = lmb_memory_region;
++	lmb.reserved.region = lmb_reserved_region;
++	lmb.memory.nr_regions   = ARRAY_SIZE(lmb_memory_region);
++	lmb.reserved.nr_regions = ARRAY_SIZE(lmb_reserved_region);
 +
- static unsigned long __init align_idx(struct bootmem_data *bdata,
- 				      unsigned long idx, unsigned long step)
- {
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 04c241a..e7b1d72 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -21,6 +21,7 @@
- #include <linux/pagemap.h>
- #include <linux/jiffies.h>
- #include <linux/bootmem.h>
-+#include <linux/early_res.h>
- #include <linux/compiler.h>
- #include <linux/kernel.h>
- #include <linux/kmemcheck.h>
+ 	/* Create a dummy zero size LMB which will get coalesced away later.
+ 	 * This simplifies the lmb_add() code below...
+ 	 */
+@@ -169,7 +176,7 @@ static long lmb_add_region(struct lmb_region *rgn, u64 base, u64 size)
+ 
+ 	if (coalesced)
+ 		return coalesced;
+-	if (rgn->cnt >= MAX_LMB_REGIONS)
++	if (rgn->cnt > rgn->nr_regions)
+ 		return -1;
+ 
+ 	/* Couldn't coalesce the LMB, so add it to the sorted table. */
 -- 
 1.6.4.2
