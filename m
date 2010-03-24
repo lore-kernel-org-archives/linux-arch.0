@@ -1,145 +1,68 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [RFC PATCH -v3 1/2] lmb: seperate region array from lmb_region
- struct
-Date: Tue, 23 Mar 2010 22:46:07 -0700
-Message-ID: <4BA9A71F.7080801@kernel.org>
-References: <1269333587-1866-1-git-send-email-yinghai@kernel.org>	 <1269333587-1866-5-git-send-email-yinghai@kernel.org>	 <4BA899C2.8020208@kernel.org>  <20100323104241.GA1189@elte.hu> <1269405955.8599.156.camel@pasglop>
+Subject: Re: [PATCH 06/20] early_res: seperate common memmap func from e820.c
+ to fw_memmap.cy
+Date: Tue, 23 Mar 2010 22:54:00 -0700
+Message-ID: <4BA9A8F8.5070206@kernel.org>
+References: <alpine.LFD.2.00.1003222233440.3147@localhost.localdomain>	 <4BA7EE72.7000507@kernel.org>	 <alpine.LFD.2.00.1003222329050.3147@localhost.localdomain>	 <4BA80019.5000900@kernel.org>	 <alpine.LFD.2.00.1003230046050.3147@localhost.localdomain>	 <4BA813A4.1010704@kernel.org>	 <alpine.LFD.2.00.1003230213260.3147@localhost.localdomain>	 <4BA8594F.8090205@kernel.org> <20100323080252.GA4848@elte.hu>	 <4BA883C0.2070102@kernel.org>  <20100323094834.GB4576@elte.hu>	 <1269404982.8599.148.camel@pasglop> <1269405882.8599.155.camel@pasglop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:43439 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:54859 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753501Ab0CXFsC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Mar 2010 01:48:02 -0400
-In-Reply-To: <1269405955.8599.156.camel@pasglop>
+	id S1752141Ab0CXF4N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Mar 2010 01:56:13 -0400
+In-Reply-To: <1269405882.8599.155.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, hpa@zytor.com, jbarnes@virtuousgeek.org, ebiederm@xmission.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 03/23/2010 09:45 PM, Benjamin Herrenschmidt wrote:
-> On Tue, 2010-03-23 at 11:42 +0100, Ingo Molnar wrote:
->> * Yinghai Lu <yinghai@kernel.org> wrote:
->>
->>>  void __init lmb_init(void)
->>>  {
->>> +	lmb.memory.region   = lmb_memory_region;
->>> +	lmb.memory.region_array_size   = ARRAY_SIZE(lmb_memory_region);
->>> +	lmb.reserved.region = lmb_reserved_region;
->>> +	lmb.reserved.region_array_size = ARRAY_SIZE(lmb_reserved_region);
->>> +
->>
->> That's rather unreadable and has random whitespace noise.
->>
->> Should be something like:
->>
->> 	lmb.memory.region		= lmb_memory_region;
->> 	lmb.memory.region_array_size	= ARRAY_SIZE(lmb_memory_region);
->> 	lmb.reserved.region		= lmb_reserved_region;
->> 	lmb.reserved.region_array_size	= ARRAY_SIZE(lmb_reserved_region);
->>
->> also, i'd suggest to shorten region_array_size to region_size (we know it's an 
->> array), so it would become:
+On 03/23/2010 09:44 PM, Benjamin Herrenschmidt wrote:
 > 
-> I dislike those arrays anyways. See my other message about turning them
-> into lists, which would get rid of capacity constraints completely. What
-> do you think ?
+>> I though one possibility would be to have LMB regions become more lists
+>> than arrays, so that the static storage only needs to cover as much as
+>> is needed during really early boot (and we could probably still move the
+>> BSS top point on some archs to dynamically make more ... actually we
+>> could be smart arses and use LMB to allocate more LMB list heads if we
+>> are reaching the table limit :-)
 > 
-2/2 introduce one new function that could double the array size
+> Actually what about that:
+> 
+> LMB entries are linked-listed. The array is just storage for those entry
+> "heads".
+> 
+> The initial static array only needs to be big enough for very very early
+> platform specific kernel bits and pieces, so it could even be sized by a
+> Kconfig option. Or it could just use a klimit moving trick to pick up a
+> page right after the BSS but that may need to be arch specific.
+> 
+> lmb_init() queues all the entries from the initial array in a freelist
+> 
+> lmb_alloc() and lmb_reserve() just pop entries from that freelist to
+> populate the two main linked lists (memory and reserved).
+> 
+> When something tries to dequeue up the last freelist entry, then under
+> the hood, LMB uses it instead to allocate a new block of LMB entries
+> that gets added to the freelist.
+> 
+> We never free blocks of LMB entries.
+> 
+> That way, we can fine tine the static array to be as small as we can
+> realistically make it be, and we have no boundary limitations on the
+> amount of entries in either the memory list or the reserved list.
+> 
+> I'm a bit too flat out right now to write code, but if there's no
+> objection, I might give that a go either later this week or next week,
+> see if I can replace bootmem on powerpc.
+> 
 
-please check the v4.
+if the array can be doubled and have old one copied to new one. 
+then we don't change lmb.c too much.
 
-the function rely on find_lmb_area().
+new early_res.c exend lmb. and another half already works with x86 to replace bootmem.
 
-it will check if there is enough space left, otherwise try to get new big array, and
-copy old array to new array.
-
-final function like:
-
-static void __init __check_and_double_region_array(struct lmb_region *type,
-			 struct lmb_property *static_region,
-			 u64 ex_start, u64 ex_end)
-{
-	u64 start, end, size, mem;
-	struct lmb_property *new, *old;
-	unsigned long rgnsz = type->nr_regions;
-
-	/* do we have enough slots left ? */
-	if ((rgnsz - type->cnt) > max_t(unsigned long, rgnsz/8, 2))
-		return;
-
-	old = type->region;
-	/* double it */
-	mem = -1ULL;
-	size = sizeof(struct lmb_property) * rgnsz * 2;
-	if (old == static_region)
-		start = 0;
-	else
-		start = __pa(old) + sizeof(struct lmb_property) * rgnsz;
-	end = ex_start;
-	if (start + size < end)
-		mem = find_lmb_area(start, end, size,
-					 sizeof(struct lmb_property));
-	if (mem == -1ULL) {
-		start = ex_end;
-		end = get_max_mapped();
-		if (start + size < end)
-			mem = find_lmb_area(start, end, size, sizeof(struct lmb_property));
-	}
-	if (mem == -1ULL)
-		panic("can not find more space for lmb.reserved.region array");
-
-	new = __va(mem);
-	/* copy old to new */
-	memcpy(&new[0], &old[0], sizeof(struct lmb_property) * rgnsz);
-	memset(&new[rgnsz], 0, sizeof(struct lmb_property) * rgnsz);
-
-	memset(&old[0], 0, sizeof(struct lmb_property) * rgnsz);
-	type->region = new;
-	type->nr_regions = rgnsz * 2;
-	printk(KERN_DEBUG "lmb.reserved.region array is doubled to %ld at [%llx - %llx]\n",
-		type->nr_regions, mem, mem + size - 1);
-
-	/* reserve new array and free old one */
-	lmb_reserve(mem, sizeof(struct lmb_property) * rgnsz * 2);
-	if (old != static_region)
-		lmb_free(__pa(old), sizeof(struct lmb_property) * rgnsz);
-}
-
-void __init add_lmb_memory(u64 start, u64 end)
-{
-	__check_and_double_region_array(&lmb.memory, &lmb_memory_region[0], start, end);
-	lmb_add(start, end - start);
-}
-
-void __init reserve_early(u64 start, u64 end, char *name)
-{
-	if (start == end)
-		return;
-
-	if (WARN_ONCE(start > end, "reserve_early: wrong range [%#llx, %#llx]\n", start, end))
-		return;
-
-	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0], start, end);
-	lmb_reserve(start, end - start);
-}
-
-void __init free_early(u64 start, u64 end)
-{
-	if (start == end)
-		return;
-
-	if (WARN_ONCE(start > end, "free_early: wrong range [%#llx, %#llx]\n", start, end))
-		return;
-
-	/* keep punching hole, could run out of slots too */
-	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0], start, end);
-	lmb_free(start, end - start);
-}
-
-with those function, we can replace the bootmem in x86.
-
+will check if i can produce one patch to make powerpc to reuse early_res/nobootmem
 
 Thanks
 
