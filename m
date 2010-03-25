@@ -1,52 +1,39 @@
-From: "WESTERN UNION" <info@westernunion.com>
-Subject: first installment of $8,600.00 USD
-Date: Thu, 25 Mar 2010 03:43:40 -0400 (EDT)
-Message-ID: <eff7dcb1c0f60112b5e7612d653c0e82.squirrel@webmail.ssdnet.com.ar>
-Reply-To: verificationdepartmentdept3@hotxf.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+From: David Howells <dhowells@redhat.com>
+Subject: RCU read lock vs spinlocks
+Date: Thu, 25 Mar 2010 10:51:55 +0000
+Message-ID: <29095.1269514315@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.ar.inter.net ([190.180.146.38]:36749 "EHLO
-	out01.ar.inter.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752006Ab0CYGPs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Mar 2010 02:15:48 -0400
+Received: from mx1.redhat.com ([209.132.183.28]:29235 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751981Ab0CYKv7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Mar 2010 06:51:59 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org
 
 
+If a function needs both a spinlock and the RCU read lock, is there a best
+order in which they should be taken?  For instance, is:
 
+	spin_lock(&my_lock);
+	rcu_read_lock();
+	...
+	rcu_read_unlock();
+	spin_unlock(&my_lock);
 
-Attention,
+better than:
 
-    We wish to inform you that  the United Nations Organization (UN)  has
-taking over the Inheritance/Winning payment issue in which you
-presently have with your transaction agents. Your funds was withdrawn
-by UN on your behalf based on the fact that you where subjected to too
-many process that will make you spend more money before receiving your
-funds.
+	rcu_read_lock();
+	spin_lock(&my_lock);
+	...
+	spin_unlock(&my_lock);
+	rcu_read_unlock();
 
-   Your Inheritance/Winning payment was paid out to the United Nations
-Organization, and they have succeeded in depositing your funds with us.
-They have ordered Western Union  to take full responsibility in the
-transfer process of your funds, and we have received your application
-for the first installment of $8,600.00 USD from the total amount of
-$380,000.00 USD,Three Hundred And Eighty Thousand United States
-Dollars. For some security reasons ,we need you to reconfirm your
-personal data's.
+And does it make any different if spin_lock_irq*() is used?
 
-Full Names**
-Contact Address**
-Country**
-Age**
-Telephone Number**
+In fact, should spin_lock_irq*() imply rcu_read_lock()?  Given that the
+current task can't be preempted if there can be no interrupt to do the
+preempting?
 
-before receiving the MTCN for the first installmental payment of
-$8,600.00USD, and we will email you others after 24 hours of receiving
-each
-payment.
-
-Yours truly
-Mr. Wilfred Davidson
-verificationdepartmentdept3@hotxf.com
-For Western union payment Centers.
+David
