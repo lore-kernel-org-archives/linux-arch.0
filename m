@@ -1,79 +1,33 @@
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [PATCH 0/7] perf updates and fixes
-Date: Fri, 26 Mar 2010 17:02:30 +1100
-Message-ID: <20100326060229.GA5259@drongo>
-References: <1269568362-13690-1-git-send-regression-fweisbec@gmail.com>
+From: Andi Kleen <andi@firstfloor.org>
+Subject: Re: [patch 1/2] genirq: Run irq handlers with interrupts disabled
+Date: Fri, 26 Mar 2010 07:13:10 +0100
+Message-ID: <20100326061310.GV20695@one.firstfloor.org>
+References: <20100326000325.917127328@linutronix.de> <20100326000405.758579387@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:41973 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752874Ab0CZGCj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 26 Mar 2010 02:02:39 -0400
+Received: from one.firstfloor.org ([213.235.205.2]:55114 "EHLO
+	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753676Ab0CZGNM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 02:13:12 -0400
 Content-Disposition: inline
-In-Reply-To: <1269568362-13690-1-git-send-regression-fweisbec@gmail.com>
+In-Reply-To: <20100326000405.758579387@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@redhat.com>, David Miller <davem@davemloft.net>, Steven Rostedt <rostedt@goodmis.org>, Archs <linux-arch@vger.kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Stephane Eranian <eranian@google.com>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Linus Torvalds <torvalds@osdl.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Andi Kleen <andi@firstfloor.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>
 
-On Fri, Mar 26, 2010 at 02:52:35AM +0100, Frederic Weisbecker wrote:
+> Drivers for whacky hardware still can reenable them in the handler
+> itself, if the need arises. (They do already due to lockdep)
 
-> The series is not yet mergeable because it would break PowerPc
-> (hot regs snapshot API has been changed, and I don't know how
-> to update PowerPc for that).
-> 
-> But if you're fine with the ideas, I can integrate the necessary
-> changes to fix this, and also separate fixes and updates.
+Can you please explain that lockdep reference?
+I don't think lockdep really forces on interrupts, does it?
 
-The patch below adds the necessary stuff for powerpc.  You could fold
-it into your "perf: Move perf_arch_fetch_caller_regs into a macro"
-patch, or keep it as a separate patch in the series (though that would
-make preserving bisectability more difficult).
+BTW the one problem I have with this patchkit is that it's clearly
+no stable candidate and I was hoping for a stable fix too.
+Any chance to at least approve my original patch for .32/.33 only?
 
-There is a little difficulty in that you first create a 3-argument
-form of perf_arch_fetch_caller_regs and then remove one argument in a
-later patch, whereas my patch below just creates the 2-argument form.
-I'm sure you can resolve that one way or another.
+-Andi
 
-The patch to add the old-style perf_arch_fetch_caller_regs for powerpc
-is sitting in the tip/perf/urgent branch but hasn't gone anywhere.
-I suppose we need to get Ingo to pull that branch into tip/perf/core
-and then include a revert patch in the series that switches to the new
-interface.  Alternatively, if the urgent branch isn't append-only then
-we could disappear it (the urgent branch would need to be rewound by
-one commit).
-
-Paul.
-----------
-[PATCH] perf/powerpc: Implement perf_arch_fetch_caller_regs for powerpc
-
-This adds the ability to get a hot register snapshot for powerpc,
-enabling us to get meaningful call chains for tracepoints and context
-switch events.
-
-Signed-off-by: Paul Mackerras <paulus@samba.org>
----
- arch/powerpc/include/asm/perf_event.h |   12 ++++++++++++
- 1 file changed, 12 insertions(+)
-
-diff --git a/arch/powerpc/include/asm/perf_event.h b/arch/powerpc/include/asm/perf_event.h
-index e6d4ce6..5c16b89 100644
---- a/arch/powerpc/include/asm/perf_event.h
-+++ b/arch/powerpc/include/asm/perf_event.h
-@@ -21,3 +21,15 @@
- #ifdef CONFIG_FSL_EMB_PERF_EVENT
- #include <asm/perf_event_fsl_emb.h>
- #endif
-+
-+#ifdef CONFIG_PERF_EVENTS
-+#include <asm/ptrace.h>
-+#include <asm/reg.h>
-+
-+#define perf_arch_fetch_caller_regs(regs, __ip)			\
-+	do {							\
-+		(regs)->nip = __ip;				\
-+		(regs)->gpr[1] = *(unsigned long *)__get_SP();	\
-+		asm volatile("mfmsr %0" : "=r" ((regs)->msr));	\
-+	} while (0)
-+#endif
+-- 
+ak@linux.intel.com -- Speaking for myself only.
