@@ -1,55 +1,33 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [patch 0/2] Run interrupt handlers always with interrupts
- disabled
-Date: Fri, 26 Mar 2010 11:53:58 +0100
-Message-ID: <20100326105358.GA4424@elte.hu>
-References: <20100326000325.917127328@linutronix.de>
- <20100326081457.GA23570@flint.arm.linux.org.uk>
- <20100326092023.GH27394@elte.hu>
- <20100326095929.063c5f63@lxorguk.ukuu.org.uk>
- <1269598133.12097.138.camel@laptop>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 2/2] genirq: Remove IRQF_DISABLED from core code
+Date: Fri, 26 Mar 2010 12:19:01 +0100 (CET)
+Message-ID: <alpine.LFD.2.00.1003261215460.3147@localhost.localdomain>
+References: <20100326000325.917127328@linutronix.de> <20100326000405.991244690@linutronix.de> <20100326062054.GW20695@one.firstfloor.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:51802 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753760Ab0CZKyl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 26 Mar 2010 06:54:41 -0400
-Content-Disposition: inline
-In-Reply-To: <1269598133.12097.138.camel@laptop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Nicolas Pitre <nico@fluxnic.net>, Linus Torvalds <torvalds@osdl.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <andi@firstfloor.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>, Russell King <rmk@arm.linux.org.uk>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20100326062054.GW20695@one.firstfloor.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andi Kleen <andi@firstfloor.org>
+Cc: Linus Torvalds <torvalds@osdl.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
+On Fri, 26 Mar 2010, Andi Kleen wrote:
 
-* Peter Zijlstra <peterz@infradead.org> wrote:
-
-> On Fri, 2010-03-26 at 09:59 +0000, Alan Cox wrote:
-> > > As long as it's rare (which it is) i dont see a problem: you can enable 
-> > > interrupts in the handler by using local_irq_enable(), like the IDE PIO 
-> > > drivers do. That way it's documented a bit better as well, because it shows 
-> > > the precise source of the latency, with a big comment explaining it, etc.
-> > 
-> > I don't think it's as rare as you think particularly in embedded, and the 
-> > moment you start explicitly using local_irq_enable() you've simply moved 
-> > the underlying problem back and made it far harder to grep for.
+> On Fri, Mar 26, 2010 at 12:06:55AM -0000, Thomas Gleixner wrote:
+> > Remove all code which is related to IRQF_DISABLED from the core kernel
+> > code. IRQF_DISABLED still exists as a flag, but becomes a NOOP and
+> > will be removed after a grace period. That way we can easily revert to
+> > the previous behaviour by just restoring the core code.
 > 
-> We've got local_irq_enable_in_hardirq() which should be used and can easily 
-> be grep'ed for.
-> 
-> But yes, I would much prefer to simply convert these known slow handlers to 
-> threaded interrupts.
+> Perhaps I'm dense but it's not fully clear to me why is suddenly safe to use 
+> the behaviour of this flags on shared interrupts when it wasn't before?
 
-Yeah, agreed. So there's multiple solutions:
-
- - On old hw with a driver that nobody is willing to convert to threaded IRQs: 
-   use the existing local_irq_enable_in_hardirq() API. This preserves the 
-   status quo.
-
- - On new hw with new drivers where there's such a level of IRQ parallelism 
-   that enabling IRQs in hardirqs is not an option, use threaded IRQ handlers.
+The shared handlers cannot guarantee to run one with irqs enabled and
+the other with irqs disabled. That's all. There is absolutely no
+reason why we would need interrupts enabled to process the shared
+handler chain.
 
 Thanks,
 
-	Ingo
+	tglx
