@@ -1,99 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:58654 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751753Ab0CZAHf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Mar 2010 20:07:35 -0400
-Message-ID: <20100326000405.991244690@linutronix.de>
-Date: Fri, 26 Mar 2010 00:06:55 -0000
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 2/2] genirq: Remove IRQF_DISABLED from core code
-References: <20100326000325.917127328@linutronix.de>
-Content-Disposition: inline;
-	filename=genirq-remove-irqf-disabled-from-core-code.patch
+Received: from mail-pw0-f46.google.com ([209.85.160.46]:44324 "EHLO
+	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751981Ab0CZBwt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Mar 2010 21:52:49 -0400
+From: Frederic Weisbecker <fweisbec@gmail.com>
+Subject: [PATCH 0/7] perf updates and fixes
+Date: Fri, 26 Mar 2010 02:52:35 +0100
+Message-ID: <1269568362-13690-1-git-send-regression-fweisbec@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Andi Kleen <andi@firstfloor.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>
-Message-ID: <20100326000655.MR66auRGTDSbZNGtypPl5KBLbf-MVJPwf4GDfmIor00@z>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: LKML <linux-kernel@vger.kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@redhat.com>, Paul Mackerras <paulus@samba.org>, David Miller <davem@davemloft.net>, Steven Rostedt <rostedt@goodmis.org>, Archs <linux-arch@vger.kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Stephane Eranian <eranian@google.com>
+Message-ID: <20100326015235.4Xe8OTbS05wfHbVUeyUrEMCAwTPfnzvehk5Pz30XkmM@z>
 
-Remove all code which is related to IRQF_DISABLED from the core kernel
-code. IRQF_DISABLED still exists as a flag, but becomes a NOOP and
-will be removed after a grace period. That way we can easily revert to
-the previous behaviour by just restoring the core code.
+Hi,
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
- Documentation/feature-removal-schedule.txt |    7 +++++++
- include/linux/interrupt.h                  |    3 ++-
- kernel/irq/manage.c                        |   20 --------------------
- 3 files changed, 9 insertions(+), 21 deletions(-)
+The series is not yet mergeable because it would break PowerPc
+(hot regs snapshot API has been changed, and I don't know how
+to update PowerPc for that).
 
-Index: linux-2.6/Documentation/feature-removal-schedule.txt
-===================================================================
---- linux-2.6.orig/Documentation/feature-removal-schedule.txt
-+++ linux-2.6/Documentation/feature-removal-schedule.txt
-@@ -589,3 +589,10 @@ Why:	Useful in 2003, implementation is a
- 	Generally invoked by accident today.
- 	Seen as doing more harm than good.
- Who:	Len Brown <len.brown@intel.com>
-+
-+----------------------------
-+
-+What:	IRQF_DISABLED
-+When:	2.6.36
-+Why:	The flag is a NOOP as we run interrupt handlers with interrupts disabled
-+Who:	Thomas Gleixner <tglx@linutronix.de>
-Index: linux-2.6/include/linux/interrupt.h
-===================================================================
---- linux-2.6.orig/include/linux/interrupt.h
-+++ linux-2.6/include/linux/interrupt.h
-@@ -39,7 +39,8 @@
-  * These flags used only by the kernel as part of the
-  * irq handling routines.
-  *
-- * IRQF_DISABLED - keep irqs disabled when calling the action handler
-+ * IRQF_DISABLED - keep irqs disabled when calling the action handler.
-+ *                 DEPRECATED. This flag is a NOOP and scheduled to be removed
-  * IRQF_SAMPLE_RANDOM - irq is used to feed the random generator
-  * IRQF_SHARED - allow sharing the irq among several devices
-  * IRQF_PROBE_SHARED - set by callers when they expect sharing mismatches to occur
-Index: linux-2.6/kernel/irq/manage.c
-===================================================================
---- linux-2.6.orig/kernel/irq/manage.c
-+++ linux-2.6/kernel/irq/manage.c
-@@ -995,7 +995,6 @@ EXPORT_SYMBOL(free_irq);
-  *	Flags:
-  *
-  *	IRQF_SHARED		Interrupt is shared
-- *	IRQF_DISABLED	Disable local interrupts while processing
-  *	IRQF_SAMPLE_RANDOM	The interrupt can be used for entropy
-  *	IRQF_TRIGGER_*		Specify active edge(s) or level
-  *
-@@ -1009,25 +1008,6 @@ int request_threaded_irq(unsigned int ir
- 	int retval;
- 
- 	/*
--	 * handle_IRQ_event() always ignores IRQF_DISABLED except for
--	 * the _first_ irqaction (sigh).  That can cause oopsing, but
--	 * the behavior is classified as "will not fix" so we need to
--	 * start nudging drivers away from using that idiom.
--	 */
--	if ((irqflags & (IRQF_SHARED|IRQF_DISABLED)) ==
--					(IRQF_SHARED|IRQF_DISABLED)) {
--		pr_warning(
--		  "IRQ %d/%s: IRQF_DISABLED is not guaranteed on shared IRQs\n",
--			irq, devname);
--	}
--
--#ifdef CONFIG_LOCKDEP
--	/*
--	 * Lockdep wants atomic interrupt handlers:
--	 */
--	irqflags |= IRQF_DISABLED;
--#endif
--	/*
- 	 * Sanity-check: shared interrupts must pass in a real dev-ID,
- 	 * otherwise we'll have trouble later trying to figure out
- 	 * which interrupt is which (messes up the interrupt freeing
+But if you're fine with the ideas, I can integrate the necessary
+changes to fix this, and also separate fixes and updates.
 
+Thanks.
+
+Frederic Weisbecker (7):
+  perf: Drop the frame reliablity check
+  perf: Fetch hot regs from the template caller
+  x86: Unify dumpstack.h and stacktrace.h
+  perf: Move perf_arch_fetch_caller_regs into a macro
+  perf: Make perf_fetch_caller_regs rewind to the first caller only
+  perf: Use hot regs with software sched/migrate events
+  perf: Correctly align perf event tracing buffer
+
+ arch/x86/include/asm/perf_event.h |   10 ++++++-
+ arch/x86/include/asm/stacktrace.h |   45 ++++++++++++++++++++++++++++++++
+ arch/x86/kernel/cpu/perf_event.c  |   18 +------------
+ arch/x86/kernel/dumpstack.c       |    1 -
+ arch/x86/kernel/dumpstack.h       |   47 ----------------------------------
+ arch/x86/kernel/dumpstack_32.c    |    2 -
+ arch/x86/kernel/dumpstack_64.c    |    2 -
+ arch/x86/kernel/stacktrace.c      |    7 +++--
+ include/linux/perf_event.h        |   51 ++++++++++++++----------------------
+ include/trace/ftrace.h            |   23 ++++++++--------
+ kernel/perf_event.c               |   10 +------
+ kernel/trace/trace_event_perf.c   |   13 ++++++---
+ 12 files changed, 101 insertions(+), 128 deletions(-)
+ delete mode 100644 arch/x86/kernel/dumpstack.h
 
