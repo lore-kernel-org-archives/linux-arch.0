@@ -1,32 +1,49 @@
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [patch 2/2] genirq: Remove IRQF_DISABLED from core code
-Date: Fri, 26 Mar 2010 07:20:54 +0100
-Message-ID: <20100326062054.GW20695@one.firstfloor.org>
-References: <20100326000325.917127328@linutronix.de> <20100326000405.991244690@linutronix.de>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH 0/7] perf updates and fixes
+Date: Fri, 26 Mar 2010 08:58:17 +0100
+Message-ID: <20100326075817.GA27394@elte.hu>
+References: <1269568362-13690-1-git-send-regression-fweisbec@gmail.com>
+ <20100326060229.GA5259@drongo>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:34022 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751883Ab0CZGUz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 02:20:55 -0400
+Received: from mx3.mail.elte.hu ([157.181.1.138]:40879 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751567Ab0CZH6b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 26 Mar 2010 03:58:31 -0400
 Content-Disposition: inline
-In-Reply-To: <20100326000405.991244690@linutronix.de>
+In-Reply-To: <20100326060229.GA5259@drongo>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Linus Torvalds <torvalds@osdl.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Andi Kleen <andi@firstfloor.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>
+To: Paul Mackerras <paulus@samba.org>
+Cc: Frederic Weisbecker <fweisbec@gmail.com>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@redhat.com>, David Miller <davem@davemloft.net>, Steven Rostedt <rostedt@goodmis.org>, Archs <linux-arch@vger.kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Stephane Eranian <eranian@google.com>
 
-On Fri, Mar 26, 2010 at 12:06:55AM -0000, Thomas Gleixner wrote:
-> Remove all code which is related to IRQF_DISABLED from the core kernel
-> code. IRQF_DISABLED still exists as a flag, but becomes a NOOP and
-> will be removed after a grace period. That way we can easily revert to
-> the previous behaviour by just restoring the core code.
 
-Perhaps I'm dense but it's not fully clear to me why is suddenly safe to use 
-the behaviour of this flags on shared interrupts when it wasn't before?
+* Paul Mackerras <paulus@samba.org> wrote:
 
--Andi
+> On Fri, Mar 26, 2010 at 02:52:35AM +0100, Frederic Weisbecker wrote:
+> 
+> > The series is not yet mergeable because it would break PowerPc (hot regs 
+> > snapshot API has been changed, and I don't know how to update PowerPc for 
+> > that).
+> > 
+> > But if you're fine with the ideas, I can integrate the necessary changes 
+> > to fix this, and also separate fixes and updates.
+> 
+> The patch below adds the necessary stuff for powerpc.  You could fold it 
+> into your "perf: Move perf_arch_fetch_caller_regs into a macro" patch, or 
+> keep it as a separate patch in the series (though that would make preserving 
+> bisectability more difficult).
 
--- 
-ak@linux.intel.com -- Speaking for myself only.
+Since the series needs a resend anyway folding back ought to be fine i think.
+
+I'm wondering whether this should get into tip:perf/urgent - or in 
+tip:perf/core for 2.6.35.
+
+It fixes sw event call trace ugliness, but is that a 2.6.34 regression? Is 
+there any other aspect of the series that points towards accelerating this 
+into .34?
+
+Thanks,
+
+	Ingo
