@@ -1,47 +1,53 @@
-From: Nicolas Pitre <nico@fluxnic.net>
+From: Jamie Lokier <jamie@shareable.org>
 Subject: Re: [patch 0/2] Run interrupt handlers always with interrupts disabled
-Date: Fri, 26 Mar 2010 08:00:29 -0400 (EDT)
-Message-ID: <alpine.LFD.2.00.1003260756540.694@xanadu.home>
-References: <20100326000325.917127328@linutronix.de>
- <20100326081457.GA23570@flint.arm.linux.org.uk>
- <20100326092023.GH27394@elte.hu> <20100326095929.063c5f63@lxorguk.ukuu.org.uk>
- <1269598133.12097.138.camel@laptop>
+Date: Fri, 26 Mar 2010 12:02:28 +0000
+Message-ID: <20100326120228.GC19308@shareable.org>
+References: <20100326000325.917127328@linutronix.de> <20100326081457.GA23570@flint.arm.linux.org.uk> <20100326092023.GH27394@elte.hu> <1269595692.12097.128.camel@laptop>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:28756 "EHLO
-	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752266Ab0CZMAv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 08:00:51 -0400
-In-reply-to: <1269598133.12097.138.camel@laptop>
+Received: from mail2.shareable.org ([80.68.89.115]:36531 "EHLO
+	mail2.shareable.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752672Ab0CZMCs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 08:02:48 -0400
+Content-Disposition: inline
+In-Reply-To: <1269595692.12097.128.camel@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@osdl.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <andi@firstfloor.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>, Russell King <rmk@arm.linux.org.uk>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Nicolas Pitre <nico@fluxnic.net>, Linus Torvalds <torvalds@osdl.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Andi Kleen <andi@firstfloor.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>, Russell King <rmk@arm.linux.org.uk>
 
-On Fri, 26 Mar 2010, Peter Zijlstra wrote:
-
-> On Fri, 2010-03-26 at 09:59 +0000, Alan Cox wrote:
-> > > As long as it's rare (which it is) i dont see a problem: you can enable 
-> > > interrupts in the handler by using local_irq_enable(), like the IDE PIO 
-> > > drivers do. That way it's documented a bit better as well, because it shows 
-> > > the precise source of the latency, with a big comment explaining it, etc.
+Peter Zijlstra wrote:
+> On Fri, 2010-03-26 at 10:20 +0100, Ingo Molnar wrote:
+> > * Russell King <rmk@arm.linux.org.uk> wrote:
 > > 
-> > I don't think it's as rare as you think particularly in embedded, and the
-> > moment you start explicitly using local_irq_enable() you've simply moved
-> > the underlying problem back and made it far harder to grep for.
+> > > On Fri, Mar 26, 2010 at 12:06:44AM -0000, Thomas Gleixner wrote:
+> > > > The following patch series removes the IRQF_DISABLED functionality
+> > > > from the core interrupt code and runs all interrupt handlers with
+> > > > interrupts disabled.
+> > > 
+> > > As was covered in previous discussions, what about drivers such as SMC91x 
+> > > which take a long time to retrieve packets from the hardware? Always running 
+> > > handlers with IRQs disabled will kill things such as serial on these 
+> > > platforms.
+> > 
+> > As long as it's rare (which it is) i dont see a problem: you can enable 
+> > interrupts in the handler by using local_irq_enable(), like the IDE PIO 
+> > drivers do. That way it's documented a bit better as well, because it shows 
+> > the precise source of the latency, with a big comment explaining it, etc.
 > 
-> We've got local_irq_enable_in_hardirq() which should be used and can
-> easily be grep'ed for.
-> 
-> But yes, I would much prefer to simply convert these known slow handlers
-> to threaded interrupts.
+> Or alternatively, use threaded interrupts for such slow hardware.
 
-Can't do that.  The smc91x has a very small internal buffer which has to 
-be emptied using PIO.  Threaded interrupts simply have too high 
-latencies for overruns not to occur.  That's why the RX path is entirely 
-done in hardirq context while the TX path is done in softirq context.
+What is the latency of threaded interrupts these days, compared with
+non-threaded interrupts?
 
+Slow hardware is quite sensitive to increases in latency.  Obviously
+not a problem for the sources of latency: it's a problem for the irq
+which is _sensitive_ to latency caused by the other one.  That is
+typically a serial port or something.
 
-Nicolas
+But the benefit of kernel-settable interrupt priorities (i.e. due to
+the threads) may be worth it even for serial ports.  I would love to
+see some measurements comparing with and without.
+
+-- Jamie
