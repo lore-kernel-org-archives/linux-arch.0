@@ -1,68 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet12.oracle.com ([141.146.126.234]:42641 "EHLO
-	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754325Ab0CZWYQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 18:24:16 -0400
+Received: from rcsinet12.oracle.com ([148.87.113.124]:37926 "EHLO
+	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754325Ab0CZWYI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 18:24:08 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 15/24] lmb: Add find_lmb_area_node()
-Date: Fri, 26 Mar 2010 15:21:45 -0700
-Message-ID: <1269642114-16588-16-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 13/24] lmb: Prepare to include linux/lmb.h in core file
+Date: Fri, 26 Mar 2010 15:21:43 -0700
+Message-ID: <1269642114-16588-14-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1269642114-16588-1-git-send-email-yinghai@kernel.org>
 References: <1269642114-16588-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100326222145.CuutPJhH-UmfoT9QAdQhCpJhnO0a4sWtTYiaVmEU3Xs@z>
+Message-ID: <20100326222143.vFvOFTUIkyhUIazy7D7Wnb1shfx3dYKArxB0Kh2_igY@z>
 
-It can be used to find NODE_DATA for numa.
-
-Need to make sure early_node_map[] is filled before it is called
+Need to add protection in linux/lmb.h, to prepare to include it in mm/page_alloc.c
+and mm/bootmem.c etc.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    1 +
- mm/lmb.c            |   15 +++++++++++++++
- 2 files changed, 16 insertions(+), 0 deletions(-)
+ include/linux/lmb.h |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
 diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 143f97d..019520a 100644
+index 6568e9d..143f97d 100644
 --- a/include/linux/lmb.h
 +++ b/include/linux/lmb.h
-@@ -91,6 +91,7 @@ u64 __find_lmb_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
- 			 u64 size, u64 align);
- u64 find_lmb_area(u64 start, u64 end, u64 size, u64 align);
- u64 find_lmb_area_size(u64 start, u64 *sizep, u64 align);
-+u64 find_lmb_area_node(int nid, u64 start, u64 end, u64 size, u64 align);
- u64 get_max_mapped(void);
+@@ -2,6 +2,7 @@
+ #define _LINUX_LMB_H
+ #ifdef __KERNEL__
  
- void lmb_to_bootmem(u64 start, u64 end);
-diff --git a/mm/lmb.c b/mm/lmb.c
-index 05d3244..6f794ed 100644
---- a/mm/lmb.c
-+++ b/mm/lmb.c
-@@ -913,6 +913,21 @@ u64 __init find_lmb_area_size(u64 start, u64 *sizep, u64 align)
- }
- 
++#ifdef CONFIG_HAVE_LMB
  /*
-+ * Need to call this function after lmb_register_active_regions,
-+ * so early_node_map[] is filled already.
-+ */
-+u64 __init find_lmb_area_node(int nid, u64 start, u64 end, u64 size, u64 align)
-+{
-+	u64 addr;
-+	addr = find_memory_core_early(nid, size, align, start, end);
-+	if (addr != -1ULL)
-+		return addr;
+  * Logical memory blocks.
+  *
+@@ -102,6 +103,8 @@ u64 lmb_hole_size(u64 start, u64 end);
+ 
+ #include <asm/lmb.h>
+ 
++#endif /* CONFIG_HAVE_LMB */
 +
-+	/* Fallback, should already have start end within node range */
-+	return find_lmb_area(start, end, size, align);
-+}
-+
-+/*
-  * Finds an active region in the address range from start_pfn to last_pfn and
-  * returns its range in ei_startpfn and ei_endpfn for the lmb entry.
-  */
+ #endif /* __KERNEL__ */
+ 
+ #endif /* _LINUX_LMB_H */
 -- 
 1.6.4.2
 
