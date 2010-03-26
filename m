@@ -1,52 +1,111 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 03/24] x86: Do not free zero sized per cpu areas
-Date: Fri, 26 Mar 2010 15:21:33 -0700
-Message-ID: <1269642114-16588-4-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 23/24] x86, lmb: Use lmb_memory_size()/lmb_free_memory_size() to get correct dma_reserve
+Date: Fri, 26 Mar 2010 15:21:53 -0700
+Message-ID: <1269642114-16588-24-git-send-email-yinghai@kernel.org>
 References: <1269642114-16588-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet11.oracle.com ([148.87.113.123]:52738 "EHLO
+	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754747Ab0CZW0B (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 18:26:01 -0400
 In-Reply-To: <1269642114-16588-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
-Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ian Campbell <ian.campbell@citrix.com>, Yinghai Lu <yinghai@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-From: Ian Campbell <ian.campbell@citrix.com>
+lmb_memory_size() will return memory size in lmb.memory.region.
+lmb_free_memory_size() will return free memory size in lmb.memory.region.
 
-This avoids an infinite loop in free_early_partial().
+So We can get exact reseved size.
 
-Add a warning to free_early_partial to catch future problems.
+Set the size right after initmem_init(), because later bootmem API will
+get area from 16M. (except some fallback).
 
--v5: put back start > end back into WARN_ONCE()
--v6: use one line for warning according to linus
--v7: more test by
+Later after we remove the bootmem, We could call that just before paging_init().
 
-Signed-off-by: Ian Campbell <ian.campbell@citrix.com>
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Tested-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Tested-by: Joel Becker <joel.becker@oracle.com>
-Tested-by: Stanislaw Gruszka <sgruszka@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@elte.hu>
 ---
- kernel/early_res.c |    6 ++++++
- 1 files changed, 6 insertions(+), 0 deletions(-)
+ arch/x86/include/asm/e820.h |    2 ++
+ arch/x86/kernel/e820.c      |   17 +++++++++++++++++
+ arch/x86/kernel/setup.c     |    1 +
+ arch/x86/mm/init_64.c       |    7 -------
+ 4 files changed, 20 insertions(+), 7 deletions(-)
 
-diff --git a/kernel/early_res.c b/kernel/early_res.c
-index 3cb2c66..69bed5b 100644
---- a/kernel/early_res.c
-+++ b/kernel/early_res.c
-@@ -333,6 +333,12 @@ void __init free_early_partial(u64 start, u64 end)
- 	struct early_res *r;
- 	int i;
+diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
+index de6cd06..334281f 100644
+--- a/arch/x86/include/asm/e820.h
++++ b/arch/x86/include/asm/e820.h
+@@ -117,6 +117,8 @@ extern u64 early_reserve_e820(u64 startt, u64 sizet, u64 align);
  
-+	if (start == end)
-+		return;
+ void init_lmb_memory(void);
+ void fill_lmb_memory(void);
++void find_lmb_dma_reserve(void);
 +
-+	if (WARN_ONCE(start > end, "free_early_partial: wrong range [%#llx, %#llx]\n", start, end))
-+		return;
+ extern void finish_e820_parsing(void);
+ extern void e820_reserve_resources(void);
+ extern void e820_reserve_resources_late(void);
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 78ba396..e0257b8 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -1100,3 +1100,20 @@ void __init fill_lmb_memory(void)
+ 	lmb_analyze();
+ 	lmb_dump_all();
+ }
 +
- try_next:
- 	i = find_overlapped_early(start, end);
- 	if (i >= max_early_res)
++void __init find_lmb_dma_reserve(void)
++{
++#ifdef CONFIG_X86_64
++	u64 free_size_pfn;
++	u64 mem_size_pfn;
++	/*
++	 * need to find out used area below MAX_DMA_PFN
++	 * need to use lmb to get free size in [0, MAX_DMA_PFN]
++	 * at first, and assume boot_mem will not take below MAX_DMA_PFN
++	 */
++	mem_size_pfn = lmb_memory_size(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
++	free_size_pfn = lmb_free_memory_size(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
++	set_dma_reserve(mem_size_pfn - free_size_pfn);
++#endif
++}
++
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index f0a32a4..6b62d9b 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -979,6 +979,7 @@ void __init setup_arch(char **cmdline_p)
+ #endif
+ 
+ 	initmem_init(0, max_pfn, acpi, k8);
++	find_lmb_dma_reserve();
+ #ifndef CONFIG_NO_BOOTMEM
+ 	lmb_to_bootmem(0, max_low_pfn<<PAGE_SHIFT);
+ #endif
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index b86492e..f1af41c 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -52,8 +52,6 @@
+ #include <asm/init.h>
+ #include <linux/bootmem.h>
+ 
+-static unsigned long dma_reserve __initdata;
+-
+ static int __init parse_direct_gbpages_off(char *arg)
+ {
+ 	direct_gbpages = 0;
+@@ -820,11 +818,6 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 
+ 	reserve_bootmem(phys, len, flags);
+ 
+-	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
+-		dma_reserve += len / PAGE_SIZE;
+-		set_dma_reserve(dma_reserve);
+-	}
+-
+ 	return 0;
+ }
+ #endif
 -- 
 1.6.4.2
