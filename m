@@ -1,50 +1,62 @@
-From: David Daney <ddaney@caviumnetworks.com>
-Subject: Re: [PATCH] Protect prefetch macro arguments.
-Date: Fri, 26 Mar 2010 14:18:05 -0700
-Message-ID: <4BAD248D.7070603@caviumnetworks.com>
-References: <1269636240-8895-1-git-send-email-ddaney@caviumnetworks.com> <alpine.LFD.2.00.1003261402170.3721@i5.linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 01/24] x86: Make smp_locks end with page alignment
+Date: Fri, 26 Mar 2010 15:21:31 -0700
+Message-ID: <1269642114-16588-2-git-send-email-yinghai@kernel.org>
+References: <1269642114-16588-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.caviumnetworks.com ([209.113.159.134]:16264 "EHLO
-	smtp2.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753948Ab0CZVeu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 17:34:50 -0400
-In-Reply-To: <alpine.LFD.2.00.1003261402170.3721@i5.linux-foundation.org>
+Received: from rcsinet11.oracle.com ([148.87.113.123]:50453 "EHLO
+	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752013Ab0CZWXn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 18:23:43 -0400
+In-Reply-To: <1269642114-16588-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-On 03/26/2010 02:04 PM, Linus Torvalds wrote:
->
->
-> On Fri, 26 Mar 2010, David Daney wrote:
->>
->> The GCC built-in __builtin_prefetch() is a vargs function.  If we
->> don't wrap the macro parameter in parentheses, a comma operator in the
->> actual argument list might cause unintended parameters to be passed to
->> __builtin_prefetch().
->
-> This seems totally pointless and actively wrong.
+Try to fix
+------------[ cut here ]------------
+WARNING: at arch/x86/mm/init.c:342 free_init_pages+0x4c/0xfa()
+free_init_pages: range [0x40daf000, 0x40db5c24] is not aligned
+Modules linked in:
+Pid: 0, comm: swapper Not tainted 2.6.34-rc2-tip-03946-g4f16b23-dirty #50
+Call Trace:
+ [<40232e9f>] warn_slowpath_common+0x65/0x7c
+ [<4021c9f0>] ? free_init_pages+0x4c/0xfa
+ [<40881434>] ? _etext+0x0/0x24
+ [<40232eea>] warn_slowpath_fmt+0x24/0x27
+ [<4021c9f0>] free_init_pages+0x4c/0xfa
+ [<40881434>] ? _etext+0x0/0x24
+ [<40d3f4bd>] alternative_instructions+0xf6/0x100
+ [<40d3fe4f>] check_bugs+0xbd/0xbf
+ [<40d398a7>] start_kernel+0x2d5/0x2e4
+ [<40d390ce>] i386_start_kernel+0xce/0xd5
+---[ end trace 4eaa2a86a8e2da22 ]---
 
-Pointless, perhaps.  But 'actively wrong'?  Are you sure about that?
+Comments in vmlinux.lds.S already said:
+|        /*
+|         * smp_locks might be freed after init
+|         * start/end must be page aligned
+|         */
 
-In any event I guess I don't care much one way or the other.  I was 
-working on something else when I saw this. It looked wrong to me.
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/x86/kernel/vmlinux.lds.S |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-Thanks,
-David Daney
-
-
->
-> You cannot have a comma operator in the actual argument list to the
-> #define, because if you did, then you'd get a
->
-> 	macro "prefetch()" passed 2 arguments, but takes just 1
->
-> so the only way I see to pass a comma operator is to _already_ have the
-> macro parameter in parenthesis.
->
-> 		Linus
+diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
+index 44879df..2cc2497 100644
+--- a/arch/x86/kernel/vmlinux.lds.S
++++ b/arch/x86/kernel/vmlinux.lds.S
+@@ -291,8 +291,8 @@ SECTIONS
+ 	.smp_locks : AT(ADDR(.smp_locks) - LOAD_OFFSET) {
+ 		__smp_locks = .;
+ 		*(.smp_locks)
+-		__smp_locks_end = .;
+ 		. = ALIGN(PAGE_SIZE);
++		__smp_locks_end = .;
+ 	}
+ 
+ #ifdef CONFIG_X86_64
+-- 
+1.6.4.2
