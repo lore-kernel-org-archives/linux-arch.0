@@ -1,135 +1,40 @@
-From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: [PATCH 5/7] perf: Make perf_fetch_caller_regs rewind to the first caller only
-Date: Fri, 26 Mar 2010 02:52:40 +0100
-Message-ID: <1269568362-13690-6-git-send-regression-fweisbec@gmail.com>
-References: <1269568362-13690-1-git-send-regression-fweisbec@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1269568362-13690-1-git-send-regression-fweisbec@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-Cc: LKML <linux-kernel@vger.kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@redhat.com>, Paul Mackerras <paulus@samba.org>, Ingo Molnar <mingo@elte.hu>, David Miller <davem@davemloft.net>, Archs <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: David Miller <davem@davemloft.net>
+Subject: Re: [patch 0/2] Run interrupt handlers always with interrupts
+ disabled
+Date: Thu, 25 Mar 2010 20:34:14 -0700 (PDT)
+Message-ID: <20100325.203414.149691680.davem@davemloft.net>
+References: <20100326000325.917127328@linutronix.de>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:42662
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753848Ab0CZDdv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Mar 2010 23:33:51 -0400
+In-Reply-To: <20100326000325.917127328@linutronix.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: tglx@linutronix.de
+Cc: torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mingo@elte.hu, peterz@infradead.org, alan@lxorguk.ukuu.org.uk, andi@firstfloor.org, gregkh@suse.de, acme@redhat.com
 
-Trace events now only need to rewind the regs to the immediate
-caller, so we don't need anymore to implement the support for
-further stack walking.
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Fri, 26 Mar 2010 00:06:44 -0000
 
-Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: David Miller <davem@davemloft.net>
-Cc: Archs <linux-arch@vger.kernel.org>
----
- arch/x86/include/asm/perf_event.h |    6 +++---
- arch/x86/include/asm/stacktrace.h |    5 ++---
- include/linux/perf_event.h        |   30 +++++-------------------------
- include/trace/ftrace.h            |    2 +-
- 4 files changed, 11 insertions(+), 32 deletions(-)
+> The following patch series removes the IRQF_DISABLED functionality
+> from the core interrupt code and runs all interrupt handlers with
+> interrupts disabled.
+> 
+> IRQF_DISABLED is kept as a define and scheduled for feature removal.
+> 
+> I booted and stressed that patches w/o any obvious fallout on more
+> than 20 different systems in my arsenal of test machines which
+> includes various embedded non x86 systems.
+> 
+> To debug eventual latency issues we (admittedly I talked acme into
+> looking at that) want to extend perf with a top like tool to monitor
+> the maximum runtime of interrupt handlers with the already existing
+> tracepoints.
 
-diff --git a/arch/x86/include/asm/perf_event.h b/arch/x86/include/asm/perf_event.h
-index 4bf3d37..1df2317 100644
---- a/arch/x86/include/asm/perf_event.h
-+++ b/arch/x86/include/asm/perf_event.h
-@@ -157,9 +157,9 @@ extern void perf_events_lapic_init(void);
- 
- #include <asm/stacktrace.h>
- 
--#define perf_arch_fetch_caller_regs(regs, ip, skip)	\
--	(regs)->ip = ip;				\
--	(regs)->bp = rewind_frame_pointer(skip);	\
-+#define perf_arch_fetch_caller_regs(regs, __ip)		\
-+	(regs)->ip = __ip;				\
-+	(regs)->bp = caller_frame_pointer();		\
- 	(regs)->cs = __KERNEL_CS;			\
- 	local_save_flags((regs)->flags);
- 
-diff --git a/arch/x86/include/asm/stacktrace.h b/arch/x86/include/asm/stacktrace.h
-index 8fb70b7..62c9897 100644
---- a/arch/x86/include/asm/stacktrace.h
-+++ b/arch/x86/include/asm/stacktrace.h
-@@ -74,15 +74,14 @@ struct stack_frame {
- 	unsigned long return_address;
- };
- 
--static inline unsigned long rewind_frame_pointer(int n)
-+static inline unsigned long caller_frame_pointer(void)
- {
- 	struct stack_frame *frame;
- 
- 	get_bp(frame);
- 
- #ifdef CONFIG_FRAME_POINTER
--	while (n--)
--		frame = frame->next_frame;
-+	frame = frame->next_frame;
- #endif
- 
- 	return (unsigned long)frame;
-diff --git a/include/linux/perf_event.h b/include/linux/perf_event.h
-index 76b680f..3b59cf7 100644
---- a/include/linux/perf_event.h
-+++ b/include/linux/perf_event.h
-@@ -869,42 +869,22 @@ perf_sw_event(u32 event_id, u64 nr, int nmi, struct pt_regs *regs, u64 addr)
- 
- #ifndef perf_arch_fetch_caller_regs
- static inline void
--perf_arch_fetch_caller_regs(struct pt_regs *regs, unsigned long ip, int skip){ }
-+perf_arch_fetch_caller_regs(struct pt_regs *regs, unsigned long ip) { }
- #endif
- 
- /*
-- * Take a snapshot of the regs. Skip ip and frame pointer to
-- * the nth caller. We only need a few of the regs:
-+ * Take a snapshot of the regs. Rewind ip and frame pointer to
-+ * the caller. We only need a few of the regs:
-  * - ip for PERF_SAMPLE_IP
-  * - cs for user_mode() tests
-  * - bp for callchains
-  * - eflags, for future purposes, just in case
-  */
--static inline void perf_fetch_caller_regs(struct pt_regs *regs, int skip)
-+static inline void perf_fetch_caller_regs(struct pt_regs *regs)
- {
--	unsigned long ip;
--
- 	memset(regs, 0, sizeof(*regs));
- 
--	switch (skip) {
--	case 1 :
--		ip = CALLER_ADDR0;
--		break;
--	case 2 :
--		ip = CALLER_ADDR1;
--		break;
--	case 3 :
--		ip = CALLER_ADDR2;
--		break;
--	case 4:
--		ip = CALLER_ADDR3;
--		break;
--	/* No need to support further for now */
--	default:
--		ip = 0;
--	}
--
--	perf_arch_fetch_caller_regs(regs, ip, skip);
-+	perf_arch_fetch_caller_regs(regs, CALLER_ADDR0);
- }
- 
- extern void __perf_event_mmap(struct vm_area_struct *vma);
-diff --git a/include/trace/ftrace.h b/include/trace/ftrace.h
-index 882c648..82e9977 100644
---- a/include/trace/ftrace.h
-+++ b/include/trace/ftrace.h
-@@ -795,7 +795,7 @@ static notrace void perf_trace_##call(proto)				\
- 	struct ftrace_event_call *event_call = &event_##call;		\
- 	struct pt_regs *__regs = &get_cpu_var(perf_trace_regs);		\
- 									\
--	perf_fetch_caller_regs(__regs, 1);				\
-+	perf_fetch_caller_regs(__regs);					\
- 									\
- 	perf_trace_templ_##template(event_call, __regs, args);		\
- 									\
--- 
-1.6.2.3
+Acked-by: David S. Miller <davem@davemloft.net>
