@@ -1,67 +1,56 @@
 From: Johannes Weiner <hannes@cmpxchg.org>
-Subject: Re: [PATCH 01/24] x86: Make smp_locks end with page alignment
-Date: Sat, 27 Mar 2010 00:33:15 +0100
-Message-ID: <20100326233315.GC29222@cmpxchg.org>
-References: <1269642114-16588-1-git-send-email-yinghai@kernel.org> <1269642114-16588-2-git-send-email-yinghai@kernel.org>
+Subject: Re: [PATCH 03/24] x86: Do not free zero sized per cpu areas
+Date: Sat, 27 Mar 2010 00:42:03 +0100
+Message-ID: <20100326234203.GD29222@cmpxchg.org>
+References: <1269642114-16588-1-git-send-email-yinghai@kernel.org> <1269642114-16588-4-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from f0.cmpxchg.org ([85.214.51.133]:49218 "EHLO cmpxchg.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752845Ab0CZXde (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 26 Mar 2010 19:33:34 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1269642114-16588-2-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <1269642114-16588-4-git-send-email-yinghai@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Yinghai Lu <yinghai@kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ian Campbell <ian.campbell@citrix.com>, Peter Zijlstra <peterz@infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 26, 2010 at 03:21:31PM -0700, Yinghai Lu wrote:
-> Try to fix
-> ------------[ cut here ]------------
-> WARNING: at arch/x86/mm/init.c:342 free_init_pages+0x4c/0xfa()
-> free_init_pages: range [0x40daf000, 0x40db5c24] is not aligned
-> Modules linked in:
-> Pid: 0, comm: swapper Not tainted 2.6.34-rc2-tip-03946-g4f16b23-dirty #50
-> Call Trace:
->  [<40232e9f>] warn_slowpath_common+0x65/0x7c
->  [<4021c9f0>] ? free_init_pages+0x4c/0xfa
->  [<40881434>] ? _etext+0x0/0x24
->  [<40232eea>] warn_slowpath_fmt+0x24/0x27
->  [<4021c9f0>] free_init_pages+0x4c/0xfa
->  [<40881434>] ? _etext+0x0/0x24
->  [<40d3f4bd>] alternative_instructions+0xf6/0x100
->  [<40d3fe4f>] check_bugs+0xbd/0xbf
->  [<40d398a7>] start_kernel+0x2d5/0x2e4
->  [<40d390ce>] i386_start_kernel+0xce/0xd5
-> ---[ end trace 4eaa2a86a8e2da22 ]---
+On Fri, Mar 26, 2010 at 03:21:33PM -0700, Yinghai Lu wrote:
+> From: Ian Campbell <ian.campbell@citrix.com>
 > 
-> Comments in vmlinux.lds.S already said:
-> |        /*
-> |         * smp_locks might be freed after init
-> |         * start/end must be page aligned
-> |         */
+> This avoids an infinite loop in free_early_partial().
 > 
+> Add a warning to free_early_partial to catch future problems.
+> 
+> -v5: put back start > end back into WARN_ONCE()
+> -v6: use one line for warning according to linus
+> -v7: more test by
+> 
+> Signed-off-by: Ian Campbell <ian.campbell@citrix.com>
 > Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-
-FWIW, Acked-by: Johannes Weiner <hannes@cmpxchg.org>
-
+> Tested-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+> Tested-by: Joel Becker <joel.becker@oracle.com>
+> Tested-by: Stanislaw Gruszka <sgruszka@redhat.com>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Ingo Molnar <mingo@elte.hu>
 > ---
->  arch/x86/kernel/vmlinux.lds.S |    2 +-
->  1 files changed, 1 insertions(+), 1 deletions(-)
+>  kernel/early_res.c |    6 ++++++
+>  1 files changed, 6 insertions(+), 0 deletions(-)
 > 
-> diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
-> index 44879df..2cc2497 100644
-> --- a/arch/x86/kernel/vmlinux.lds.S
-> +++ b/arch/x86/kernel/vmlinux.lds.S
-> @@ -291,8 +291,8 @@ SECTIONS
->  	.smp_locks : AT(ADDR(.smp_locks) - LOAD_OFFSET) {
->  		__smp_locks = .;
->  		*(.smp_locks)
-> -		__smp_locks_end = .;
->  		. = ALIGN(PAGE_SIZE);
-> +		__smp_locks_end = .;
->  	}
+> diff --git a/kernel/early_res.c b/kernel/early_res.c
+> index 3cb2c66..69bed5b 100644
+> --- a/kernel/early_res.c
+> +++ b/kernel/early_res.c
+> @@ -333,6 +333,12 @@ void __init free_early_partial(u64 start, u64 end)
+>  	struct early_res *r;
+>  	int i;
 >  
->  #ifdef CONFIG_X86_64
+> +	if (start == end)
+> +		return;
+> +
+> +	if (WARN_ONCE(start > end, "free_early_partial: wrong range [%#llx, %#llx]\n", start, end))
+> +		return;
+
+I think you can drop the function name, it will be in the stack dump
+anyway.  And that would get the line back into bounds :)
+
+Other than that,
+Acked-by: Johannes Weiner <hannes@cmpxchg.org>
