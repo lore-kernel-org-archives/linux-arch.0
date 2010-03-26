@@ -1,89 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet11.oracle.com ([141.146.126.233]:54986 "EHLO
-	acsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754777Ab0CZW0L (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 18:26:11 -0400
+Received: from rcsinet11.oracle.com ([148.87.113.123]:52688 "EHLO
+	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754729Ab0CZWZ7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 18:25:59 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 24/24] x86: Align e820 ram range to page
-Date: Fri, 26 Mar 2010 15:21:54 -0700
-Message-ID: <1269642114-16588-25-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 05/24] lmb: Seperate region array from lmb_region struct
+Date: Fri, 26 Mar 2010 15:21:35 -0700
+Message-ID: <1269642114-16588-6-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1269642114-16588-1-git-send-email-yinghai@kernel.org>
 References: <1269642114-16588-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100326222154.nq_5yZoO2hMa6YBvWFB1wQm7edeCc3p1evJZagwp88A@z>
+Message-ID: <20100326222135.k7rxewrMACOr5rOLFqWf_GFN00tdx4eiuLJmaMkN83U@z>
 
-to workaround wrong BIOS map.
+lmb_init() will connect them back.
+
+Add nr_regions in struct lmb_region to track region array size.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/kernel/e820.c |   44 ++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 44 insertions(+), 0 deletions(-)
+ include/linux/lmb.h |    3 ++-
+ mm/lmb.c            |    9 ++++++++-
+ 2 files changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index e0257b8..89b8bf9 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -903,6 +903,47 @@ static int __init parse_memmap_opt(char *p)
- }
- early_param("memmap", parse_memmap_opt);
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index f3d1433..e14ea8d 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -26,7 +26,8 @@ struct lmb_property {
+ struct lmb_region {
+ 	unsigned long cnt;
+ 	u64 size;
+-	struct lmb_property region[MAX_LMB_REGIONS+1];
++	struct lmb_property *region;
++	unsigned long nr_regions;
+ };
  
-+static void __init e820_align_ram_page(void)
-+{
-+	int i;
-+	bool changed = false;;
-+
-+	for (i = 0; i < e820.nr_map; i++) {
-+		struct e820entry *entry = &e820.map[i];
-+		u64 start, end;
-+		u64 start_aligned, end_aligned;
-+
-+		if (entry->type != E820_RAM)
-+			continue;
-+
-+		start = entry->addr;
-+		end = start + entry->size;
-+
-+		start_aligned = round_up(start, PAGE_SIZE);
-+		end_aligned = round_down(end, PAGE_SIZE);
-+
-+		if (end_aligned <= start_aligned) {
-+			e820_update_range(start, end - start, E820_RAM, E820_RESERVED);
-+			changed = true;
-+			continue;
-+		}
-+		if (start < start_aligned) {
-+			e820_update_range(start, start_aligned - start, E820_RAM, E820_RESERVED);
-+			changed = true;
-+		}
-+		if (end_aligned < end) {
-+			e820_update_range(end_aligned, end - end_aligned, E820_RAM, E820_RESERVED);
-+			changed = true;
-+		}
-+	}
-+
-+	if (changed) {
-+		sanitize_e820_map();
-+		printk(KERN_INFO "aligned physical RAM map:\n");
-+		e820_print_map("aligned");
-+	}
-+}
-+
- void __init finish_e820_parsing(void)
+ struct lmb {
+diff --git a/mm/lmb.c b/mm/lmb.c
+index b1fc526..65b62dc 100644
+--- a/mm/lmb.c
++++ b/mm/lmb.c
+@@ -18,6 +18,8 @@
+ #define LMB_ALLOC_ANYWHERE	0
+ 
+ struct lmb lmb;
++static struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
++static struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
+ 
+ static int lmb_debug;
+ 
+@@ -106,6 +108,11 @@ static void lmb_coalesce_regions(struct lmb_region *rgn,
+ 
+ void __init lmb_init(void)
  {
- 	if (userdef) {
-@@ -915,6 +956,9 @@ void __init finish_e820_parsing(void)
- 		printk(KERN_INFO "user-defined physical RAM map:\n");
- 		e820_print_map("user");
- 	}
++	lmb.memory.region   = lmb_memory_region;
++	lmb.reserved.region = lmb_reserved_region;
++	lmb.memory.nr_regions   = ARRAY_SIZE(lmb_memory_region);
++	lmb.reserved.nr_regions = ARRAY_SIZE(lmb_reserved_region);
 +
-+	/* In case, We have RAM entres that are not PAGE aligned */
-+	e820_align_ram_page();
- }
+ 	/* Create a dummy zero size LMB which will get coalesced away later.
+ 	 * This simplifies the lmb_add() code below...
+ 	 */
+@@ -169,7 +176,7 @@ static long lmb_add_region(struct lmb_region *rgn, u64 base, u64 size)
  
- static inline const char *e820_type_to_string(int e820_type)
+ 	if (coalesced)
+ 		return coalesced;
+-	if (rgn->cnt >= MAX_LMB_REGIONS)
++	if (rgn->cnt > rgn->nr_regions)
+ 		return -1;
+ 
+ 	/* Couldn't coalesce the LMB, so add it to the sorted table. */
 -- 
 1.6.4.2
 
