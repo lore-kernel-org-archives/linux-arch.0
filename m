@@ -1,39 +1,32 @@
-From: David Howells <dhowells@redhat.com>
-Subject: RCU read lock vs spinlocks
-Date: Thu, 25 Mar 2010 10:51:55 +0000
-Message-ID: <29095.1269514315@redhat.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch 0/2] Run interrupt handlers always with interrupts disabled
+Date: Fri, 26 Mar 2010 00:06:44 -0000
+Message-ID: <20100326000325.917127328@linutronix.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:29235 "EHLO mx1.redhat.com"
+Received: from www.tglx.de ([62.245.132.106]:58652 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751981Ab0CYKv7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Mar 2010 06:51:59 -0400
+	id S1751679Ab0CZAHf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Mar 2010 20:07:35 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Andi Kleen <andi@firstfloor.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>
 
+The following patch series removes the IRQF_DISABLED functionality
+from the core interrupt code and runs all interrupt handlers with
+interrupts disabled.
 
-If a function needs both a spinlock and the RCU read lock, is there a best
-order in which they should be taken?  For instance, is:
+IRQF_DISABLED is kept as a define and scheduled for feature removal.
 
-	spin_lock(&my_lock);
-	rcu_read_lock();
-	...
-	rcu_read_unlock();
-	spin_unlock(&my_lock);
+I booted and stressed that patches w/o any obvious fallout on more
+than 20 different systems in my arsenal of test machines which
+includes various embedded non x86 systems.
 
-better than:
+To debug eventual latency issues we (admittedly I talked acme into
+looking at that) want to extend perf with a top like tool to monitor
+the maximum runtime of interrupt handlers with the already existing
+tracepoints.
 
-	rcu_read_lock();
-	spin_lock(&my_lock);
-	...
-	spin_unlock(&my_lock);
-	rcu_read_unlock();
+Thanks,
 
-And does it make any different if spin_lock_irq*() is used?
-
-In fact, should spin_lock_irq*() imply rcu_read_lock()?  Given that the
-current task can't be preempted if there can be no interrupt to do the
-preempting?
-
-David
+	tglx
