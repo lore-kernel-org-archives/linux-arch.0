@@ -1,46 +1,85 @@
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: [PATCH 1/3] X86: Optimise fls(), ffs() and fls64()
-Date: Fri, 26 Mar 2010 12:16:41 -0600
-Message-ID: <20100326181641.GP3875@parisc-linux.org>
-References: <alpine.LFD.2.00.1003261005490.3721@i5.linux-foundation.org> <20100326144241.8583.95617.stgit@warthog.procyon.org.uk> <28287.1269625325@redhat.com> <alpine.LFD.2.00.1003261042580.3721@i5.linux-foundation.org> <20100326175827.GD20055@linux-mips.org> <alpine.LFD.2.00.1003261100440.3721@i5.linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:57756 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753060Ab0CZSQm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 14:16:42 -0400
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.1003261100440.3721@i5.linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, mingo@elte.hu, tglx@linutronix.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+From: akpm@linux-foundation.org
+Subject: [merged] documentation-volatile-considered-harmfultxt-correct-cpu_relax-documentation.patch removed from -mm tree
+Date: Fri, 26 Mar 2010 12:35:58 -0400
+Message-ID: <201003261936.o2QJav55016565@imap1.linux-foundation.org>
+Reply-To: linux-kernel@vger.kernel.org
+Return-path: <mm-commits-owner@vger.kernel.org>
+Sender: mm-commits-owner@vger.kernel.org
+To: rmk@arm.linux.org.uk, linux-arch@vger.kernel.org, rmk+kernel@arm.linux.org.uk, torvalds@linux-foundation.org, mm-commits@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 26, 2010 at 11:03:09AM -0700, Linus Torvalds wrote:
-> On Fri, 26 Mar 2010, Ralf Baechle wrote:
-> > 
-> > My trusty old 486 book [1] in the remarks about the BSF instruction:
-> > 
-> > "The documentation on the 80386 and 80486 states that op1 is undefined if
-> > op2 is 0.  In reality the 80386 will leave the value in op1 unchanged.
-> > The first versions of the 80486 will change op1 to an undefined value.
-> > Later version again will leave it unchanged."
-> > 
-> > [1] Die Intel Familie in German language, by Robert Hummel, 1992
-> 
-> Ok, that explains my memory of us having tried this, at least.
-> 
-> But I do wonder if any of the people working for Intel could ask the CPU 
-> architects whether we could depend on the "don't write" for 64-bit mode. 
-> If AMD already documents the don't-touch semantics, and if Intel were to 
-> be ok with documenting it for their 64-bit capable CPU's, we wouldn't then 
-> need to rely on undefined behavior.
 
-I'll drop one of them a note.
+The patch titled
+     Documentation/volatile-considered-harmful.txt: correct cpu_relax() documentation
+has been removed from the -mm tree.  Its filename was
+     documentation-volatile-considered-harmfultxt-correct-cpu_relax-documentation.patch
 
--- 
-Matthew Wilcox				Intel Open Source Technology Centre
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+This patch was dropped because it was merged into mainline or a subsystem tree
+
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: Documentation/volatile-considered-harmful.txt: correct cpu_relax() documentation
+From: Russell King <rmk@arm.linux.org.uk>
+
+cpu_relax() is documented in volatile-considered-harmful.txt to be a
+memory barrier.  However, everyone with the exception of Blackfin and
+possibly ia64 defines cpu_relax() to be a compiler barrier.
+
+Make the documentation reflect the general concensus.
+
+Linus sayeth:
+
+: I don't think it was ever the intention that it would be seen as anything
+: but a compiler barrier, although it is obviously implied that it might
+: well perform some per-architecture actions that have "memory barrier-like"
+: semantics.
+: 
+: After all, the whole and only point of the "cpu_relax()" thing is to tell
+: the CPU that we're busy-looping on some event.
+: 
+: And that "event" might be (and often is) about reading the same memory
+: location over and over until it changes to what we want it to be.  So it's
+: quite possible that on various architectures the "cpu_relax()" could be
+: about making sure that such a tight loop on loads doesn't starve cache
+: transactions, for example - and as such look a bit like a memory barrier
+: from a CPU standpoint.
+: 
+: But it's not meant to have any kind of architectural memory ordering
+: semantics as far as the kernel is concerned - those must come from other
+: sources.
+
+Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
+Cc: <linux-arch@vger.kernel.org>
+Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ Documentation/volatile-considered-harmful.txt |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff -puN Documentation/volatile-considered-harmful.txt~documentation-volatile-considered-harmfultxt-correct-cpu_relax-documentation Documentation/volatile-considered-harmful.txt
+--- a/Documentation/volatile-considered-harmful.txt~documentation-volatile-considered-harmfultxt-correct-cpu_relax-documentation
++++ a/Documentation/volatile-considered-harmful.txt
+@@ -63,9 +63,9 @@ way to perform a busy wait is:
+         cpu_relax();
+ 
+ The cpu_relax() call can lower CPU power consumption or yield to a
+-hyperthreaded twin processor; it also happens to serve as a memory barrier,
+-so, once again, volatile is unnecessary.  Of course, busy-waiting is
+-generally an anti-social act to begin with.
++hyperthreaded twin processor; it also happens to serve as a compiler
++barrier, so, once again, volatile is unnecessary.  Of course, busy-
++waiting is generally an anti-social act to begin with.
+ 
+ There are still a few rare situations where volatile makes sense in the
+ kernel:
+_
+
+Patches currently in -mm which might be from rmk@arm.linux.org.uk are
+
+origin.patch
+arm-convert-proc-cpu-aligment-to-seq_file.patch
+arch-arm-include-asm-elfh-forward-declare-the-task-struct.patch
+bitops-rename-for_each_bit-to-for_each_set_bit-mtd.patch
+
