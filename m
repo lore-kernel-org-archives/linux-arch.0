@@ -1,91 +1,54 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 17/24] lmb: Add lmb_memory_size()
-Date: Fri, 26 Mar 2010 15:21:47 -0700
-Message-ID: <1269642114-16588-18-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 04/24] lmb: Move lmb.c to mm/
+Date: Fri, 26 Mar 2010 15:21:34 -0700
+Message-ID: <1269642114-16588-5-git-send-email-yinghai@kernel.org>
 References: <1269642114-16588-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet12.oracle.com ([141.146.126.234]:55534 "EHLO
-	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754315Ab0CZWZn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 18:25:43 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1269642114-16588-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-It will return memory size in specified range according to lmb.memory.region
-
-Try to share some code with lmb_free_memory_size() by passing get_free to
-__lmb_memory_size().
+that is memory related, so move to mm/ according to Ingo
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    1 +
- mm/lmb.c            |   18 +++++++++++++++++-
- 2 files changed, 18 insertions(+), 1 deletions(-)
+ lib/Makefile      |    2 --
+ mm/Makefile       |    2 ++
+ {lib => mm}/lmb.c |    0
+ 3 files changed, 2 insertions(+), 2 deletions(-)
+ rename {lib => mm}/lmb.c (100%)
 
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 51a8653..285f287 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -102,6 +102,7 @@ void lmb_register_active_regions(int nid, unsigned long start_pfn,
- 					 unsigned long last_pfn);
- u64 lmb_hole_size(u64 start, u64 end);
- u64 lmb_free_memory_size(u64 addr, u64 limit);
-+u64 lmb_memory_size(u64 addr, u64 limit);
+diff --git a/lib/Makefile b/lib/Makefile
+index 2e152ae..a463a4d 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -85,8 +85,6 @@ obj-$(CONFIG_FAULT_INJECTION) += fault-inject.o
  
- #include <asm/lmb.h>
+ lib-$(CONFIG_GENERIC_BUG) += bug.o
  
-diff --git a/mm/lmb.c b/mm/lmb.c
-index a98ab51..0dab3b6 100644
---- a/mm/lmb.c
-+++ b/mm/lmb.c
-@@ -756,7 +756,7 @@ void __init lmb_to_bootmem(u64 start, u64 end)
- }
- #endif
+-obj-$(CONFIG_HAVE_LMB) += lmb.o
+-
+ obj-$(CONFIG_HAVE_ARCH_TRACEHOOK) += syscall.o
  
--u64 __init lmb_free_memory_size(u64 addr, u64 limit)
-+static u64 __init __lmb_memory_size(u64 addr, u64 limit, bool get_free)
- {
- 	int i, count;
- 	struct range *range;
-@@ -786,6 +786,10 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
- 	}
- 	subtract_range(range, count, 0, addr);
- 	subtract_range(range, count, limit, -1ULL);
+ obj-$(CONFIG_DYNAMIC_DEBUG) += dynamic_debug.o
+diff --git a/mm/Makefile b/mm/Makefile
+index 7a68d2a..df22fd1 100644
+--- a/mm/Makefile
++++ b/mm/Makefile
+@@ -15,6 +15,8 @@ obj-y			:= bootmem.o filemap.o mempool.o oom_kill.o fadvise.o \
+ 			   $(mmu-y)
+ obj-y += init-mm.o
+ 
++obj-$(CONFIG_HAVE_LMB) += lmb.o
 +
-+	/* Subtract lmb.reserved.region in range ? */
-+	if (!get_free)
-+		goto sort_and_count_them;
- 	for (i = 0; i < lmb.reserved.cnt; i++) {
- 		struct lmb_property *r = &lmb.reserved.region[i];
- 
-@@ -798,6 +802,8 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
- 
- 		subtract_range(range, count, final_start, final_end);
- 	}
-+
-+sort_and_count_them:
- 	nr_range = clean_sort_range(range, count);
- 
- 	free_size = 0;
-@@ -807,6 +813,16 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
- 	return free_size << PAGE_SHIFT;
- }
- 
-+u64 __init lmb_free_memory_size(u64 addr, u64 limit)
-+{
-+	return __lmb_memory_size(addr, limit, true);
-+}
-+
-+u64 __init lmb_memory_size(u64 addr, u64 limit)
-+{
-+	return __lmb_memory_size(addr, limit, false);
-+}
-+
- static int __init find_overlapped_early(u64 start, u64 end)
- {
- 	int i;
+ obj-$(CONFIG_BOUNCE)	+= bounce.o
+ obj-$(CONFIG_SWAP)	+= page_io.o swap_state.o swapfile.o thrash.o
+ obj-$(CONFIG_HAS_DMA)	+= dmapool.o
+diff --git a/lib/lmb.c b/mm/lmb.c
+similarity index 100%
+rename from lib/lmb.c
+rename to mm/lmb.c
 -- 
 1.6.4.2
