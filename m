@@ -1,25 +1,88 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 1/3] X86: Optimise fls(), ffs() and fls64()
-Date: Fri, 26 Mar 2010 17:42:05 +0000
-Message-ID: <28287.1269625325@redhat.com>
-References: <alpine.LFD.2.00.1003261005490.3721@i5.linux-foundation.org> <20100326144241.8583.95617.stgit@warthog.procyon.org.uk>
+From: Frederic Weisbecker <fweisbec@gmail.com>
+Subject: Re: [PATCH 0/7] perf updates and fixes
+Date: Fri, 26 Mar 2010 18:45:32 +0100
+Message-ID: <20100326174529.GG5188@nowhere>
+References: <1269568362-13690-1-git-send-regression-fweisbec@gmail.com> <20100326060229.GA5259@drongo>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:32085 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750772Ab0CZRm2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 26 Mar 2010 13:42:28 -0400
-In-Reply-To: <alpine.LFD.2.00.1003261005490.3721@i5.linux-foundation.org>
+Received: from mail-pz0-f194.google.com ([209.85.222.194]:37708 "EHLO
+	mail-pz0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752467Ab0CZRpf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 13:45:35 -0400
+Content-Disposition: inline
+In-Reply-To: <20100326060229.GA5259@drongo>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: dhowells@redhat.com, mingo@elte.hu, tglx@linutronix.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Paul Mackerras <paulus@samba.org>
+Cc: Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@redhat.com>, David Miller <davem@davemloft.net>, Steven Rostedt <rostedt@goodmis.org>, Archs <linux-arch@vger.kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Stephane Eranian <eranian@google.com>
 
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
+On Fri, Mar 26, 2010 at 05:02:30PM +1100, Paul Mackerras wrote:
+> On Fri, Mar 26, 2010 at 02:52:35AM +0100, Frederic Weisbecker wrote:
+> 
+> > The series is not yet mergeable because it would break PowerPc
+> > (hot regs snapshot API has been changed, and I don't know how
+> > to update PowerPc for that).
+> > 
+> > But if you're fine with the ideas, I can integrate the necessary
+> > changes to fix this, and also separate fixes and updates.
+> 
+> The patch below adds the necessary stuff for powerpc.  You could fold
+> it into your "perf: Move perf_arch_fetch_caller_regs into a macro"
+> patch, or keep it as a separate patch in the series (though that would
+> make preserving bisectability more difficult).
+> 
+> There is a little difficulty in that you first create a 3-argument
+> form of perf_arch_fetch_caller_regs and then remove one argument in a
+> later patch, whereas my patch below just creates the 2-argument form.
+> I'm sure you can resolve that one way or another.
+> 
+> The patch to add the old-style perf_arch_fetch_caller_regs for powerpc
+> is sitting in the tip/perf/urgent branch but hasn't gone anywhere.
+> I suppose we need to get Ingo to pull that branch into tip/perf/core
+> and then include a revert patch in the series that switches to the new
+> interface.  Alternatively, if the urgent branch isn't append-only then
+> we could disappear it (the urgent branch would need to be rewound by
+> one commit).
 
-> Where did you find that "doesn't modify its output" thing? It's not true. 
-> The truth is that the destination is undefined. Just read the dang Intel 
-> documentation, it's very clearly stated right there.
 
-Hmmm...  My ancient Borland Assembler dead-tree manual doesn't mention that.
 
-David
+Thanks a lot, that's axactly what I needed.
+I'll sort it out to not break things in the middle :)
+
+
+
+> 
+> Paul.
+> ----------
+> [PATCH] perf/powerpc: Implement perf_arch_fetch_caller_regs for powerpc
+> 
+> This adds the ability to get a hot register snapshot for powerpc,
+> enabling us to get meaningful call chains for tracepoints and context
+> switch events.
+> 
+> Signed-off-by: Paul Mackerras <paulus@samba.org>
+> ---
+>  arch/powerpc/include/asm/perf_event.h |   12 ++++++++++++
+>  1 file changed, 12 insertions(+)
+> 
+> diff --git a/arch/powerpc/include/asm/perf_event.h b/arch/powerpc/include/asm/perf_event.h
+> index e6d4ce6..5c16b89 100644
+> --- a/arch/powerpc/include/asm/perf_event.h
+> +++ b/arch/powerpc/include/asm/perf_event.h
+> @@ -21,3 +21,15 @@
+>  #ifdef CONFIG_FSL_EMB_PERF_EVENT
+>  #include <asm/perf_event_fsl_emb.h>
+>  #endif
+> +
+> +#ifdef CONFIG_PERF_EVENTS
+> +#include <asm/ptrace.h>
+> +#include <asm/reg.h>
+> +
+> +#define perf_arch_fetch_caller_regs(regs, __ip)			\
+> +	do {							\
+> +		(regs)->nip = __ip;				\
+> +		(regs)->gpr[1] = *(unsigned long *)__get_SP();	\
+> +		asm volatile("mfmsr %0" : "=r" ((regs)->msr));	\
+> +	} while (0)
+> +#endif
