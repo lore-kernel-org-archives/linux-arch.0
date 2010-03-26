@@ -1,40 +1,79 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [patch 0/2] Run interrupt handlers always with interrupts
- disabled
-Date: Thu, 25 Mar 2010 20:34:14 -0700 (PDT)
-Message-ID: <20100325.203414.149691680.davem@davemloft.net>
-References: <20100326000325.917127328@linutronix.de>
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [PATCH 0/7] perf updates and fixes
+Date: Fri, 26 Mar 2010 17:02:30 +1100
+Message-ID: <20100326060229.GA5259@drongo>
+References: <1269568362-13690-1-git-send-regression-fweisbec@gmail.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:42662
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753848Ab0CZDdv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Mar 2010 23:33:51 -0400
-In-Reply-To: <20100326000325.917127328@linutronix.de>
+Received: from ozlabs.org ([203.10.76.45]:41973 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752874Ab0CZGCj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 26 Mar 2010 02:02:39 -0400
+Content-Disposition: inline
+In-Reply-To: <1269568362-13690-1-git-send-regression-fweisbec@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de
-Cc: torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mingo@elte.hu, peterz@infradead.org, alan@lxorguk.ukuu.org.uk, andi@firstfloor.org, gregkh@suse.de, acme@redhat.com
+To: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@redhat.com>, David Miller <davem@davemloft.net>, Steven Rostedt <rostedt@goodmis.org>, Archs <linux-arch@vger.kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Stephane Eranian <eranian@google.com>
 
-From: Thomas Gleixner <tglx@linutronix.de>
-Date: Fri, 26 Mar 2010 00:06:44 -0000
+On Fri, Mar 26, 2010 at 02:52:35AM +0100, Frederic Weisbecker wrote:
 
-> The following patch series removes the IRQF_DISABLED functionality
-> from the core interrupt code and runs all interrupt handlers with
-> interrupts disabled.
+> The series is not yet mergeable because it would break PowerPc
+> (hot regs snapshot API has been changed, and I don't know how
+> to update PowerPc for that).
 > 
-> IRQF_DISABLED is kept as a define and scheduled for feature removal.
-> 
-> I booted and stressed that patches w/o any obvious fallout on more
-> than 20 different systems in my arsenal of test machines which
-> includes various embedded non x86 systems.
-> 
-> To debug eventual latency issues we (admittedly I talked acme into
-> looking at that) want to extend perf with a top like tool to monitor
-> the maximum runtime of interrupt handlers with the already existing
-> tracepoints.
+> But if you're fine with the ideas, I can integrate the necessary
+> changes to fix this, and also separate fixes and updates.
 
-Acked-by: David S. Miller <davem@davemloft.net>
+The patch below adds the necessary stuff for powerpc.  You could fold
+it into your "perf: Move perf_arch_fetch_caller_regs into a macro"
+patch, or keep it as a separate patch in the series (though that would
+make preserving bisectability more difficult).
+
+There is a little difficulty in that you first create a 3-argument
+form of perf_arch_fetch_caller_regs and then remove one argument in a
+later patch, whereas my patch below just creates the 2-argument form.
+I'm sure you can resolve that one way or another.
+
+The patch to add the old-style perf_arch_fetch_caller_regs for powerpc
+is sitting in the tip/perf/urgent branch but hasn't gone anywhere.
+I suppose we need to get Ingo to pull that branch into tip/perf/core
+and then include a revert patch in the series that switches to the new
+interface.  Alternatively, if the urgent branch isn't append-only then
+we could disappear it (the urgent branch would need to be rewound by
+one commit).
+
+Paul.
+----------
+[PATCH] perf/powerpc: Implement perf_arch_fetch_caller_regs for powerpc
+
+This adds the ability to get a hot register snapshot for powerpc,
+enabling us to get meaningful call chains for tracepoints and context
+switch events.
+
+Signed-off-by: Paul Mackerras <paulus@samba.org>
+---
+ arch/powerpc/include/asm/perf_event.h |   12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/arch/powerpc/include/asm/perf_event.h b/arch/powerpc/include/asm/perf_event.h
+index e6d4ce6..5c16b89 100644
+--- a/arch/powerpc/include/asm/perf_event.h
++++ b/arch/powerpc/include/asm/perf_event.h
+@@ -21,3 +21,15 @@
+ #ifdef CONFIG_FSL_EMB_PERF_EVENT
+ #include <asm/perf_event_fsl_emb.h>
+ #endif
++
++#ifdef CONFIG_PERF_EVENTS
++#include <asm/ptrace.h>
++#include <asm/reg.h>
++
++#define perf_arch_fetch_caller_regs(regs, __ip)			\
++	do {							\
++		(regs)->nip = __ip;				\
++		(regs)->gpr[1] = *(unsigned long *)__get_SP();	\
++		asm volatile("mfmsr %0" : "=r" ((regs)->msr));	\
++	} while (0)
++#endif
