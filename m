@@ -1,76 +1,87 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 05/24] lmb: Seperate region array from lmb_region struct
-Date: Fri, 26 Mar 2010 15:21:35 -0700
-Message-ID: <1269642114-16588-6-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 18/24] lmb: Add reserve_lmb_overlap_ok()
+Date: Fri, 26 Mar 2010 15:21:48 -0700
+Message-ID: <1269642114-16588-19-git-send-email-yinghai@kernel.org>
 References: <1269642114-16588-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet11.oracle.com ([148.87.113.123]:52688 "EHLO
+Received: from rcsinet11.oracle.com ([148.87.113.123]:52944 "EHLO
 	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754729Ab0CZWZ7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 18:25:59 -0400
+	with ESMTP id S1754747Ab0CZW0P (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Mar 2010 18:26:15 -0400
 In-Reply-To: <1269642114-16588-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-lmb_init() will connect them back.
+Some areas from firmware could be reserved several times from different callers.
 
-Add nr_regions in struct lmb_region to track region array size.
+If these area are overlapped, We may have overlapped entries in lmb.reserved.
+
+Try to free the area at first, before rerserve them again.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    3 ++-
- mm/lmb.c            |    9 ++++++++-
- 2 files changed, 10 insertions(+), 2 deletions(-)
+ include/linux/lmb.h |    1 +
+ mm/lmb.c            |   27 +++++++++++++++++++++++++--
+ 2 files changed, 26 insertions(+), 2 deletions(-)
 
 diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index f3d1433..e14ea8d 100644
+index 285f287..1e11fe0 100644
 --- a/include/linux/lmb.h
 +++ b/include/linux/lmb.h
-@@ -26,7 +26,8 @@ struct lmb_property {
- struct lmb_region {
- 	unsigned long cnt;
- 	u64 size;
--	struct lmb_property region[MAX_LMB_REGIONS+1];
-+	struct lmb_property *region;
-+	unsigned long nr_regions;
- };
+@@ -85,6 +85,7 @@ lmb_end_pfn(struct lmb_region *type, unsigned long region_nr)
+ }
  
- struct lmb {
+ void reserve_lmb(u64 start, u64 end, char *name);
++void reserve_lmb_overlap_ok(u64 start, u64 end, char *name);
+ void free_lmb(u64 start, u64 end);
+ void add_lmb_memory(u64 start, u64 end);
+ u64 __find_lmb_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
 diff --git a/mm/lmb.c b/mm/lmb.c
-index b1fc526..65b62dc 100644
+index 0dab3b6..20ab927 100644
 --- a/mm/lmb.c
 +++ b/mm/lmb.c
-@@ -18,6 +18,8 @@
- #define LMB_ALLOC_ANYWHERE	0
+@@ -615,6 +615,12 @@ void __init add_lmb_memory(u64 start, u64 end)
+ 	lmb_add(start, end - start);
+ }
  
- struct lmb lmb;
-+static struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
-+static struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
- 
- static int lmb_debug;
- 
-@@ -106,6 +108,11 @@ static void lmb_coalesce_regions(struct lmb_region *rgn,
- 
- void __init lmb_init(void)
- {
-+	lmb.memory.region   = lmb_memory_region;
-+	lmb.reserved.region = lmb_reserved_region;
-+	lmb.memory.nr_regions   = ARRAY_SIZE(lmb_memory_region);
-+	lmb.reserved.nr_regions = ARRAY_SIZE(lmb_reserved_region);
++static void __init __reserve_lmb(u64 start, u64 end, char *name)
++{
++	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0], start, end);
++	lmb_reserve(start, end - start);
++}
 +
- 	/* Create a dummy zero size LMB which will get coalesced away later.
- 	 * This simplifies the lmb_add() code below...
- 	 */
-@@ -169,7 +176,7 @@ static long lmb_add_region(struct lmb_region *rgn, u64 base, u64 size)
+ void __init reserve_lmb(u64 start, u64 end, char *name)
+ {
+ 	if (start == end)
+@@ -623,8 +629,25 @@ void __init reserve_lmb(u64 start, u64 end, char *name)
+ 	if (WARN_ONCE(start > end, "reserve_lmb: wrong range [%#llx, %#llx]\n", start, end))
+ 		return;
  
- 	if (coalesced)
- 		return coalesced;
--	if (rgn->cnt >= MAX_LMB_REGIONS)
-+	if (rgn->cnt > rgn->nr_regions)
- 		return -1;
+-	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0], start, end);
+-	lmb_reserve(start, end - start);
++	__reserve_lmb(start, end, name);
++}
++
++/*
++ * Could be used to avoid having overlap entries in lmb.reserved.region.
++ *  Don't need to use it with area that is from find_lmb_area()
++ *  Only use it for the area that fw hidden area.
++ */
++void __init reserve_lmb_overlap_ok(u64 start, u64 end, char *name)
++{
++	if (start == end)
++		return;
++
++	if (WARN_ONCE(start > end, "reserve_lmb_overlap_ok: wrong range [%#llx, %#llx]\n", start, end))
++		return;
++
++	/* Free that region at first */
++	lmb_free(start, end - start);
++	__reserve_lmb(start, end, name);
+ }
  
- 	/* Couldn't coalesce the LMB, so add it to the sorted table. */
+ void __init free_lmb(u64 start, u64 end)
 -- 
 1.6.4.2
