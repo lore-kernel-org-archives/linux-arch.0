@@ -1,90 +1,61 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH 02/24] x86: Make sure free_init_pages() free pages in
- boundary
-Date: Fri, 26 Mar 2010 17:17:32 -0700
-Message-ID: <4BAD4E9C.2040808@kernel.org>
-References: <1269642114-16588-1-git-send-email-yinghai@kernel.org> <1269642114-16588-3-git-send-email-yinghai@kernel.org> <20100326230615.GB29222@cmpxchg.org> <4BAD4734.8020503@kernel.org> <20100327000723.GF29222@cmpxchg.org>
+Subject: [PATCH -v8] x86: Do not free zero sized per cpu areas
+Date: Fri, 26 Mar 2010 18:18:20 -0700
+Message-ID: <4BAD5CDC.5080308@kernel.org>
+References: <1269642114-16588-1-git-send-email-yinghai@kernel.org> <1269642114-16588-4-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20100327000723.GF29222@cmpxchg.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from hera.kernel.org ([140.211.167.34]:51197 "EHLO hera.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753056Ab0C0BTo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 26 Mar 2010 21:19:44 -0400
+In-Reply-To: <1269642114-16588-4-git-send-email-yinghai@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ian Campbell <ian.campbell@citrix.com>, Peter Zijlstra <peterz@infradead.org>
 
-On 03/26/2010 05:07 PM, Johannes Weiner wrote:
-> On Fri, Mar 26, 2010 at 04:45:56PM -0700, Yinghai Lu wrote:
->> On 03/26/2010 04:06 PM, Johannes Weiner wrote:
->>> On Fri, Mar 26, 2010 at 03:21:32PM -0700, Yinghai Lu wrote:
->>>> diff --git a/arch/x86/kernel/head32.c b/arch/x86/kernel/head32.c
->>>> index adedeef..fe3d953 100644
->>>> --- a/arch/x86/kernel/head32.c
->>>> +++ b/arch/x86/kernel/head32.c
->>>> @@ -47,6 +47,7 @@ void __init i386_start_kernel(void)
->>>>  		u64 ramdisk_image = boot_params.hdr.ramdisk_image;
->>>>  		u64 ramdisk_size  = boot_params.hdr.ramdisk_size;
->>>>  		u64 ramdisk_end   = ramdisk_image + ramdisk_size;
->>>> +		ramdisk_end = PFN_UP(ramdisk_end) << PAGE_SHIFT;
->>>
->>> Why not PAGE_ALIGN()?
->>
->> looks like PFN_UP is more clear.
-> 
-> Why would you convert to a pfn just to go back to a physical address,
-> when all you wanted is align at the next page boundary?  It looks
-> rather clumsy.
 
-reserve_early() will take phys addr
+From: Ian Campbell <ian.campbell@citrix.com>
 
-> 
-> PAGE_ALIGN() is pretty wide spread and I think it's clear to most
-> people what it does.
+This avoids an infinite loop in free_early_partial().
 
-we may need to clean up all those:
-round_up
-round_down
-roundup
-ALIGN
-PAGE_ALIGN etc.
+Add a warning to free_early_partial to catch future problems.
 
-> 
-...
->>>> --- a/arch/x86/mm/init.c
->>>> +++ b/arch/x86/mm/init.c
->>>> @@ -332,6 +332,16 @@ int devmem_is_allowed(unsigned long pagenr)
->>>>  void free_init_pages(char *what, unsigned long begin, unsigned long end)
->>>>  {
->>>>  	unsigned long addr = begin;
->>>> +	unsigned long addr_aligned, end_aligned;
->>>> +
->>>> +	/* Make sure boundaries are page aligned */
->>>> +	addr_aligned = PFN_UP(addr) << PAGE_SHIFT;
->>>> +	end_aligned = PFN_DOWN(end) << PAGE_SHIFT;
->>>> +
->>>> +	if (WARN(addr_aligned != addr || end_aligned != end, "free_init_pages: range [%#lx, %#lx] is not aligned\n", addr, end)) {
->>>> +		addr = addr_aligned;
->>>> +		end = end_aligned;
->>>> +	}
->>>
->>> Maybe realign only for when it is not aligned?  So to keep the fixup
->>> out of line.
->>>
->>> I suppose WARN_ON() is enough as it will print a stack trace which
->>> should be enough clue of what went wrong.
->>
->> we need to PFN_DOWN the end, and don't free the partial page.
->> otherwise could crash the system.
-> 
-> Dito.
-> 
-> 	if (WARN_ON(not_aligned)) {
-> 		align
-> 	}
-> 
-> is what I meant.
-> 
-ok i got it.
+-v5: put back start > end back into WARN_ONCE()
+-v6: use one line for warning according to linus
+-v7: more test by
+-v8: remove the function name according to Johannes
+     WARN_ONCE will print that function name.
 
-YH
+Signed-off-by: Ian Campbell <ian.campbell@citrix.com>
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Tested-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Tested-by: Joel Becker <joel.becker@oracle.com>
+Tested-by: Stanislaw Gruszka <sgruszka@redhat.com>
+Acked-by: Johannes Weiner <hannes@cmpxchg.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+---
+ kernel/early_res.c |    6 ++++++
+ 1 file changed, 6 insertions(+)
+
+Index: linux-2.6/kernel/early_res.c
+===================================================================
+--- linux-2.6.orig/kernel/early_res.c
++++ linux-2.6/kernel/early_res.c
+@@ -333,6 +333,12 @@ void __init free_early_partial(u64 start
+ 	struct early_res *r;
+ 	int i;
+ 
++	if (start == end)
++		return;
++
++	if (WARN_ONCE(start > end, "  wrong range [%#llx, %#llx]\n", start, end))
++		return;
++
+ try_next:
+ 	i = find_overlapped_early(start, end);
+ 	if (i >= max_early_res)
