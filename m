@@ -1,114 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet12.oracle.com ([141.146.126.234]:43234 "EHLO
-	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755815Ab0C2Cqb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Mar 2010 22:46:31 -0400
+Received: from rcsinet12.oracle.com ([148.87.113.124]:43561 "EHLO
+	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755825Ab0C2CwR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Mar 2010 22:52:17 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 09/31] bootmem, x86: Add weak version of reserve_bootmem_generic
-Date: Sun, 28 Mar 2010 19:43:02 -0700
-Message-ID: <1269830604-26214-10-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 29/31] x86: Make e820_any_mapped to __init
+Date: Sun, 28 Mar 2010 19:43:22 -0700
+Message-ID: <1269830604-26214-30-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
 References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100329024302.xG25msAYRodpsSMgpzYHpEC81wSLaBmu_-oRYcjon1E@z>
+Message-ID: <20100329024322.ki6qNKydY_AAsw3qQS7PV6F058Tzs3E75gdwR-cFuYE@z>
 
-It will be used lmb_to_bootmem converting
-
-It is an wrapper for reserve_bootmem, and x86 64bit is using special one.
-
-Also clean up that version for x86_64. We don't need to take care of numa
-path for that, bootmem can handle it how
+We don't need to expose e820_any_mapped anymore
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/mm/init_32.c |    6 ------
- arch/x86/mm/init_64.c |   20 ++------------------
- mm/bootmem.c          |    6 ++++++
- 3 files changed, 8 insertions(+), 24 deletions(-)
+ arch/x86/kernel/e820.c |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index 5cb3f0f..804bbe9 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -1069,9 +1069,3 @@ void mark_rodata_ro(void)
- #endif
- }
- #endif
--
--int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
--				   int flags)
--{
--	return reserve_bootmem(phys, len, flags);
--}
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index e9b040e..5ba6b0e 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -798,13 +798,10 @@ void mark_rodata_ro(void)
- 
- #endif
- 
-+#ifndef CONFIG_NO_BOOTMEM
- int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 				   int flags)
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 6b17893..2182bb0 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -47,9 +47,10 @@ EXPORT_SYMBOL(pci_mem_start);
+ /*
+  * This function checks if any part of the range <start,end> is mapped
+  * with type.
++ * phys_pud_init() is using it and is _meminit, but we have !after_bootmem
++ * so could use refok here
+  */
+-int
+-e820_any_mapped(u64 start, u64 end, unsigned type)
++int __init_refok e820_any_mapped(u64 start, u64 end, unsigned type)
  {
--#ifdef CONFIG_NUMA
--	int nid, next_nid;
--	int ret;
--#endif
- 	unsigned long pfn = phys >> PAGE_SHIFT;
+ 	int i;
  
- 	if (pfn >= max_pfn) {
-@@ -820,21 +817,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 		return -EFAULT;
+@@ -64,7 +65,6 @@ e820_any_mapped(u64 start, u64 end, unsigned type)
  	}
- 
--	/* Should check here against the e820 map to avoid double free */
--#ifdef CONFIG_NUMA
--	nid = phys_to_nid(phys);
--	next_nid = phys_to_nid(phys + len - 1);
--	if (nid == next_nid)
--		ret = reserve_bootmem_node(NODE_DATA(nid), phys, len, flags);
--	else
--		ret = reserve_bootmem(phys, len, flags);
--
--	if (ret != 0)
--		return ret;
--
--#else
- 	reserve_bootmem(phys, len, flags);
--#endif
- 
- 	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
- 		dma_reserve += len / PAGE_SIZE;
-@@ -843,6 +826,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 
  	return 0;
  }
-+#endif
+-EXPORT_SYMBOL_GPL(e820_any_mapped);
  
- int kern_addr_valid(unsigned long addr)
- {
-diff --git a/mm/bootmem.c b/mm/bootmem.c
-index 9b13446..fadbc3b 100644
---- a/mm/bootmem.c
-+++ b/mm/bootmem.c
-@@ -512,6 +512,12 @@ int __init reserve_bootmem(unsigned long addr, unsigned long size,
- }
- 
- #ifndef CONFIG_NO_BOOTMEM
-+int __weak __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
-+				   int flags)
-+{
-+	return reserve_bootmem(phys, len, flags);
-+}
-+
- static unsigned long __init align_idx(struct bootmem_data *bdata,
- 				      unsigned long idx, unsigned long step)
- {
+ /*
+  * This function checks if the entire range <start,end> is mapped with type.
 -- 
 1.6.4.2
 
