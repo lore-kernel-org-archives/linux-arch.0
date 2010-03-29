@@ -1,53 +1,81 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 07/31] lmb: Add reserve_lmb/free_lmb
-Date: Tue, 30 Mar 2010 08:49:53 +1100
-Message-ID: <1269899393.7101.34.camel@pasglop>
+From: Michael Ellerman <michael@ellerman.id.au>
+Subject: Re: [PATCH -v9 00/31] use lmb with x86
+Date: Tue, 30 Mar 2010 09:10:05 +1100
+Message-ID: <1269900605.2286.2.camel@concordia>
 References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
-	 <1269830604-26214-8-git-send-email-yinghai@kernel.org>
-	 <1269865322.24620.42.camel@concordia>
+	 <1269865331.24620.44.camel@concordia>  <4BB0DAC2.3000805@kernel.org>
+Reply-To: michael@ellerman.id.au
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; micalg="pgp-sha1"; protocol="application/pgp-signature"; boundary="=-4q3TU5NL41D1KRAspBGS"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:35867 "EHLO gate.crashing.org"
+Received: from ozlabs.org ([203.10.76.45]:51293 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752847Ab0C2VvV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Mar 2010 17:51:21 -0400
-In-Reply-To: <1269865322.24620.42.camel@concordia>
+	id S1753884Ab0C2WKH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Mar 2010 18:10:07 -0400
+In-Reply-To: <4BB0DAC2.3000805@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: michael@ellerman.id.au
-Cc: Yinghai Lu <yinghai@kernel.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, 2010-03-29 at 23:22 +1100, Michael Ellerman wrote:
-> ^ This is (sort of) what lmb.rmo_size represents. So maybe instead of
-> adding this function, we could just say that the arch code needs to set
-> rmo_size up with an appropriate value, and then use that below. Though
-> maybe that's conflating things. 
 
-Well... not quite.
+--=-4q3TU5NL41D1KRAspBGS
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-The RMO (which really is the RMA, historical misnaming) is the region of
-memory we can access very early during boot (in real mode on ppc64 but
-I plan to use it to represent the boot-time fixed mapping on ppc32 at
-some stage). It's not strictly equivalent to max lowmem. However, on
-ppc64, it happens to be the size of the first added LMB entry/
+On Mon, 2010-03-29 at 09:52 -0700, Yinghai Lu wrote:
+> On 03/29/2010 05:22 AM, Michael Ellerman wrote:
+> > On Sun, 2010-03-28 at 19:42 -0700, Yinghai Lu wrote:
+> >> the new lmb could be used to early_res in x86.
+> >>
+> >> Suggested by: David, Ben, and Thomas
+> >>
+> >> First three patches should go into 2.6.34
+> >>
+> >> -v6: change sequence as requested by Thomas
+> >> -v7: seperate them to more patches
+> >> -v8: add boundary checking to make sure not free partial page.
+> >> -v9: use lmb_debug to control print out of reserve_lmb.
+> >>      add e820 clean up, and e820 become __initdata
+> >=20
+> > Bike shedding perhaps, but can you maintain the naming convention, ie.
+> > lmb_xxx() rather than xxx_lmb(). Neither is necessarily better, but all
+> > the existing functions use the lmb_xxx() style.
+> >=20
+>=20
+> so you want
+>=20
+> find_lmb_area =3D=3D> lmb_find_area
+> reserve_lmb =3D=3D> lmb_reserve
+> free_lmb =3D=3D> lmb_free
+>=20
+> first one is ok,=20
+>=20
+> but next two we already have lmb_reserved and lmb_free without checking a=
+nd increasing the size of region array.
 
-In any case, the LMBs should really not care. They allocate where you
-tell them to. 
+That was the point of my other mail. We now have two lmb APIs, one which
+checks if the array will overflow and one which doesn't. That seems like
+a bad idea. Having one called lmb_free() and one called free_lmb() is
+definitely a bad idea, because it's completely non obvious which one
+caters for overflow.
 
-IE. That stuff is arch specific enough that I suspect we should just
-move it out, while the concept of max_lowmem is common enough (at least
-for 32-bit archs) that I'm happy to have some provisions for it inside
-the LMB core.
+cheers
 
-Maybe what we need is an arch call to set the allocation "limit". It
-could be set in stages during boot. To the initial mapped memory (bolted
-TLB) on ppc32 very early, and then pushed up to max_low_pfn as soon as
-the full MMU setup is done for example. IE. All we need is an
-lmb_set_alloc_limit() called by the arch in the right spots, that
-defines the default allocation limit for lmb_alloc() though of course
-lmb_alloc_base() can be used by callers to enforce explicit limits.
 
-Cheers,
-Ben.
+
+
+
+--=-4q3TU5NL41D1KRAspBGS
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
+
+iEYEABECAAYFAkuxJTkACgkQdSjSd0sB4dIXuwCfYDlxa44/s24G6wPLHbWgnKuM
+/RgAnj+ixdwULbX/Pl5KT8LnzlLDBWIv
+=Sq9m
+-----END PGP SIGNATURE-----
+
+--=-4q3TU5NL41D1KRAspBGS--
