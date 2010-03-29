@@ -1,45 +1,53 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 20/31] lmb: Add __NOT_KEEP_LMB to put lmb code to .init
-Date: Tue, 30 Mar 2010 08:44:57 +1100
-Message-ID: <1269899097.7101.29.camel@pasglop>
-References: <4BB0D34C.7060509@kernel.org>
-	 <20100329.113449.174804111.davem@davemloft.net>
-	 <4BB0F3F8.3090304@kernel.org>
-	 <20100329.121139.233095272.davem@davemloft.net>
+Subject: Re: [PATCH 07/31] lmb: Add reserve_lmb/free_lmb
+Date: Tue, 30 Mar 2010 08:49:53 +1100
+Message-ID: <1269899393.7101.34.camel@pasglop>
+References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
+	 <1269830604-26214-8-git-send-email-yinghai@kernel.org>
+	 <1269865322.24620.42.camel@concordia>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:33169 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:35867 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752727Ab0C2VrM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Mar 2010 17:47:12 -0400
-In-Reply-To: <20100329.121139.233095272.davem@davemloft.net>
+	id S1752847Ab0C2VvV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Mar 2010 17:51:21 -0400
+In-Reply-To: <1269865322.24620.42.camel@concordia>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: yinghai@kernel.org, michael@ellerman.id.au, mingo@elte.hu, tglx@linutronix.de, hpa@zytor.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, hannes@cmpxchg.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: michael@ellerman.id.au
+Cc: Yinghai Lu <yinghai@kernel.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, 2010-03-29 at 12:11 -0700, David Miller wrote:
-> From: Yinghai Lu <yinghai@kernel.org>
-> Date: Mon, 29 Mar 2010 11:39:52 -0700
-> 
-> > On 03/29/2010 11:34 AM, David Miller wrote:
-> >> From: Yinghai Lu <yinghai@kernel.org>
-> >> Date: Mon, 29 Mar 2010 09:20:28 -0700
-> >> 
-> >>> BTW, it seems only PowerPC need to keep lmb after init stage, right ?
-> >> 
-> >> For now.  Sparc64 will need it at some point in the future.
-> > 
-> > for memory hotplug support?
-> 
-> Yes.
+On Mon, 2010-03-29 at 23:22 +1100, Michael Ellerman wrote:
+> ^ This is (sort of) what lmb.rmo_size represents. So maybe instead of
+> adding this function, we could just say that the arch code needs to set
+> rmo_size up with an appropriate value, and then use that below. Though
+> maybe that's conflating things. 
 
-We also can use it to implement page_is_ram() which might help
-get /dev/mem cachability setting right by default one day :-)
+Well... not quite.
 
-However, we only need to keep the memory list, not the reserve list.
+The RMO (which really is the RMA, historical misnaming) is the region of
+memory we can access very early during boot (in real mode on ppc64 but
+I plan to use it to represent the boot-time fixed mapping on ppc32 at
+some stage). It's not strictly equivalent to max lowmem. However, on
+ppc64, it happens to be the size of the first added LMB entry/
+
+In any case, the LMBs should really not care. They allocate where you
+tell them to. 
+
+IE. That stuff is arch specific enough that I suspect we should just
+move it out, while the concept of max_lowmem is common enough (at least
+for 32-bit archs) that I'm happy to have some provisions for it inside
+the LMB core.
+
+Maybe what we need is an arch call to set the allocation "limit". It
+could be set in stages during boot. To the initial mapped memory (bolted
+TLB) on ppc32 very early, and then pushed up to max_low_pfn as soon as
+the full MMU setup is done for example. IE. All we need is an
+lmb_set_alloc_limit() called by the arch in the right spots, that
+defines the default allocation limit for lmb_alloc() though of course
+lmb_alloc_base() can be used by callers to enforce explicit limits.
 
 Cheers,
 Ben.
