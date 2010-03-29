@@ -1,84 +1,151 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 10/31] lmb: Add lmb_to_bootmem()
-Date: Sun, 28 Mar 2010 19:43:03 -0700
-Message-ID: <1269830604-26214-11-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 06/31] lmb: Add find_lmb_area()
+Date: Sun, 28 Mar 2010 19:42:59 -0700
+Message-ID: <1269830604-26214-7-git-send-email-yinghai@kernel.org>
 References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet12.oracle.com ([141.146.126.234]:43153 "EHLO
-	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755553Ab0C2CqW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Mar 2010 22:46:22 -0400
+Received: from rcsinet11.oracle.com ([148.87.113.123]:29972 "EHLO
+	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755712Ab0C2CqX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Mar 2010 22:46:23 -0400
 In-Reply-To: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-lmb_to_bootmem() will reserve lmb.reserved.region in bootmem
+It will try find area according with size/align in specified range (start, end).
 
-We can use it to with all arches that support lmb.
+Need use it find correct buffer for new lmb.reserved.region.
+
+also make it more easy for x86 to use lmb.
+x86 early_res is using find/reserve pattern instead of alloc.
+
+find_lmb_area() will hohor goal
+
+When we need temperary buff for range array etc for range work, if We are using
+lmb_alloc(), We will need to add some post fix code for buffer that is used
+by range array, because it is in the lmb.reserved already.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    2 ++
- mm/lmb.c            |   32 ++++++++++++++++++++++++++++++++
- 2 files changed, 34 insertions(+), 0 deletions(-)
+ include/linux/lmb.h |    4 ++
+ mm/lmb.c            |   81 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 85 insertions(+), 0 deletions(-)
 
 diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 7301072..f5071e1 100644
+index e14ea8d..05234bd 100644
 --- a/include/linux/lmb.h
 +++ b/include/linux/lmb.h
-@@ -92,6 +92,8 @@ u64 find_lmb_area(u64 start, u64 end, u64 size, u64 align);
- u64 find_lmb_area_size(u64 start, u64 *sizep, u64 align);
- u64 get_max_mapped(void);
+@@ -83,6 +83,10 @@ lmb_end_pfn(struct lmb_region *type, unsigned long region_nr)
+ 	       lmb_size_pages(type, region_nr);
+ }
  
-+void lmb_to_bootmem(u64 start, u64 end);
++u64 __find_lmb_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
++			 u64 size, u64 align);
++u64 find_lmb_area(u64 start, u64 end, u64 size, u64 align);
 +
  #include <asm/lmb.h>
  
  #endif /* __KERNEL__ */
 diff --git a/mm/lmb.c b/mm/lmb.c
-index a91f48d..71a45b4 100644
+index 65b62dc..d5d5dc4 100644
 --- a/mm/lmb.c
 +++ b/mm/lmb.c
-@@ -640,6 +640,38 @@ void __init free_lmb(u64 start, u64 end)
- 	lmb_free(start, end - start);
- }
+@@ -11,9 +11,13 @@
+  */
  
-+#ifndef CONFIG_NO_BOOTMEM
-+void __init lmb_to_bootmem(u64 start, u64 end)
+ #include <linux/kernel.h>
++#include <linux/types.h>
+ #include <linux/init.h>
+ #include <linux/bitops.h>
+ #include <linux/lmb.h>
++#include <linux/bootmem.h>
++#include <linux/mm.h>
++#include <linux/range.h>
+ 
+ #define LMB_ALLOC_ANYWHERE	0
+ 
+@@ -546,3 +550,80 @@ int lmb_find(struct lmb_property *res)
+ 	}
+ 	return -1;
+ }
++
++static int __init find_overlapped_early(u64 start, u64 end)
 +{
-+	int i, count;
-+	u64 final_start, final_end;
++	int i;
++	struct lmb_property *r;
 +
-+	/* Take out region array itself */
-+	if (lmb.reserved.region != lmb_reserved_region)
-+		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
-+
-+	count  = lmb.reserved.cnt;
-+	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
-+	for (i = 0; i < count; i++) {
-+		struct lmb_property *r = &lmb.reserved.region[i];
-+		pr_info("  #%d [%010llx - %010llx] ", i, r->base, r->base + r->size);
-+		final_start = max(start, r->base);
-+		final_end = min(end, r->base + r->size);
-+		if (final_start >= final_end) {
-+			pr_cont("\n");
-+			continue;
-+		}
-+		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
-+		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
++	for (i = 0; i < lmb.reserved.cnt && lmb.reserved.region[i].size; i++) {
++		r = &lmb.reserved.region[i];
++		if (end > r->base && start < (r->base + r->size))
++			break;
 +	}
-+	/* Clear them to avoid misusing ? */
-+	memset(&lmb.reserved.region[0], 0, sizeof(struct lmb_property) * lmb.reserved.nr_regions);
-+	lmb.reserved.region = NULL;
-+	lmb.reserved.nr_regions = 0;
-+	lmb.reserved.cnt = 0;
-+}
-+#endif
 +
- static int __init find_overlapped_early(u64 start, u64 end)
- {
- 	int i;
++	return i;
++}
++
++/* Check for already reserved areas */
++static inline bool __init bad_addr(u64 *addrp, u64 size, u64 align)
++{
++	int i;
++	u64 addr = *addrp;
++	bool changed = false;
++	struct lmb_property *r;
++again:
++	i = find_overlapped_early(addr, addr + size);
++	r = &lmb.reserved.region[i];
++	if (i < lmb.reserved.cnt && r->size) {
++		*addrp = addr = round_up(r->base + r->size, align);
++		changed = true;
++		goto again;
++	}
++	return changed;
++}
++
++u64 __init __find_lmb_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
++				 u64 size, u64 align)
++{
++	u64 addr, last;
++
++	addr = round_up(ei_start, align);
++	if (addr < start)
++		addr = round_up(start, align);
++	if (addr >= ei_last)
++		goto out;
++	while (bad_addr(&addr, size, align) && addr+size <= ei_last)
++		;
++	last = addr + size;
++	if (last > ei_last)
++		goto out;
++	if (last > end)
++		goto out;
++
++	return addr;
++
++out:
++	return -1ULL;
++}
++
++/*
++ * Find a free area with specified alignment in a specific range.
++ */
++u64 __init find_lmb_area(u64 start, u64 end, u64 size, u64 align)
++{
++	int i;
++
++	for (i = 0; i < lmb.memory.cnt; i++) {
++		u64 ei_start = lmb.memory.region[i].base;
++		u64 ei_last = ei_start + lmb.memory.region[i].size;
++		u64 addr;
++
++		addr = __find_lmb_area(ei_start, ei_last, start, end,
++					 size, align);
++
++		if (addr != -1ULL)
++			return addr;
++	}
++	return -1ULL;
++}
 -- 
 1.6.4.2
