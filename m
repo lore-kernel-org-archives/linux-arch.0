@@ -1,127 +1,54 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH 07/31] lmb: Add reserve_lmb/free_lmb
-Date: Mon, 29 Mar 2010 09:45:32 -0700
-Message-ID: <4BB0D92C.3010103@kernel.org>
-References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>	 <1269830604-26214-8-git-send-email-yinghai@kernel.org> <1269865322.24620.42.camel@concordia>
+Subject: Re: [PATCH -v9 00/31] use lmb with x86
+Date: Mon, 29 Mar 2010 09:52:18 -0700
+Message-ID: <4BB0DAC2.3000805@kernel.org>
+References: <1269830604-26214-1-git-send-email-yinghai@kernel.org> <1269865331.24620.44.camel@concordia>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:47215 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:56198 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754863Ab0C2Qr4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Mar 2010 12:47:56 -0400
-In-Reply-To: <1269865322.24620.42.camel@concordia>
+	id S1752727Ab0C2QyW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Mar 2010 12:54:22 -0400
+In-Reply-To: <1269865331.24620.44.camel@concordia>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: michael@ellerman.id.au
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
 On 03/29/2010 05:22 AM, Michael Ellerman wrote:
-> On Sun, 2010-03-28 at 19:43 -0700, Yinghai Lu wrote:
->> They will check if the region array is big enough.
+> On Sun, 2010-03-28 at 19:42 -0700, Yinghai Lu wrote:
+>> the new lmb could be used to early_res in x86.
 >>
->> __check_and_double_region_array will try to double the region if that array spare
->> slots if not big enough.
->> find_lmb_area() is used to find good postion for new region array.
->> Old array will be copied to new array.
+>> Suggested by: David, Ben, and Thomas
 >>
->> Arch code should provide to get_max_mapped, so the new array have accessiable
->> address
-> ..
->> diff --git a/mm/lmb.c b/mm/lmb.c
->> index d5d5dc4..9798458 100644
->> --- a/mm/lmb.c
->> +++ b/mm/lmb.c
->> @@ -551,6 +551,95 @@ int lmb_find(struct lmb_property *res)
->>  	return -1;
->>  }
->>  
->> +u64 __weak __init get_max_mapped(void)
->> +{
->> +	u64 end = max_low_pfn;
->> +
->> +	end <<= PAGE_SHIFT;
->> +
->> +	return end;
->> +}
+>> First three patches should go into 2.6.34
+>>
+>> -v6: change sequence as requested by Thomas
+>> -v7: seperate them to more patches
+>> -v8: add boundary checking to make sure not free partial page.
+>> -v9: use lmb_debug to control print out of reserve_lmb.
+>>      add e820 clean up, and e820 become __initdata
 > 
-> ^ This is (sort of) what lmb.rmo_size represents. So maybe instead of
-> adding this function, we could just say that the arch code needs to set
-> rmo_size up with an appropriate value, and then use that below. Though
-> maybe that's conflating things.
-
-ok
-
-will have another patch following this patchset. to use rmo_size replace get_max_mapped()
-
-long __init_lmb lmb_add(u64 base, u64 size)
-{
-        struct lmb_region *_rgn = &lmb.memory;
-
-        /* On pSeries LPAR systems, the first LMB is our RMO region. */
-        if (base == 0)
-                lmb.rmo_size = size;
-
-        return lmb_add_region(_rgn, base, size);
-
-}
-
-looks scary.
-maybe later powerpc could used lmb_find and set_lmb_rmo_size in their arch code.
-
-
+> Bike shedding perhaps, but can you maintain the naming convention, ie.
+> lmb_xxx() rather than xxx_lmb(). Neither is necessarily better, but all
+> the existing functions use the lmb_xxx() style.
 > 
-> ...
->> +
->> +void __init add_lmb_memory(u64 start, u64 end)
->> +{
->> +	__check_and_double_region_array(&lmb.memory, &lmb_memory_region[0], start, end);
->> +	lmb_add(start, end - start);
->> +}
->> +
->> +void __init reserve_lmb(u64 start, u64 end, char *name)
->> +{
->> +	if (start == end)
->> +		return;
->> +
->> +	if (WARN_ONCE(start > end, "reserve_lmb: wrong range [%#llx, %#llx]\n", start, end))
->> +		return;
->> +
->> +	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0], start, end);
->> +	lmb_reserve(start, end - start);
->> +}
->> +
->> +void __init free_lmb(u64 start, u64 end)
->> +{
->> +	if (start == end)
->> +		return;
->> +
->> +	if (WARN_ONCE(start > end, "free_lmb: wrong range [%#llx, %#llx]\n", start, end))
->> +		return;
->> +
->> +	/* keep punching hole, could run out of slots too */
->> +	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0], start, end);
->> +	lmb_free(start, end - start);
->> +}
-> 
-> Doesn't this mean that if I call lmb_alloc() or lmb_free() too many
-> times then I'll potentially run out of space? So doesn't that
-> essentially break the existing API?
 
-No, I didn't touch existing API, arches other than x86 should have little change about 
-lmb.memory.region
-lmb.reserved.region
-become pointer from array.
+so you want
 
-> 
-> It seems to me that rather than adding these "special" routines that
-> check for enough space on the way in, instead you should be checking in
-> lmb_add_region() - which is where AFAICS all allocs/frees/reserves
-> eventually end up if they need to insert a new region.
+find_lmb_area ==> lmb_find_area
+reserve_lmb ==> lmb_reserve
+free_lmb ==> lmb_free
 
-later i prefer to replace lmb_alloc with find_lmb_area + reserve_lmb.
+first one is ok, 
 
-Thanks
+but next two we already have lmb_reserved and lmb_free without checking and increasing the size of region array.
 
-Yinghai
+should i use 
+lmb_reserve_with_check?
+
+thanks
+
+yinghai
