@@ -1,202 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet12.oracle.com ([141.146.126.234]:43372 "EHLO
-	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755946Ab0C2Cqt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Mar 2010 22:46:49 -0400
+Received: from acsinet11.oracle.com ([141.146.126.233]:56020 "EHLO
+	acsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755889Ab0C2CrD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Mar 2010 22:47:03 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 28/31] x86: Add get_centaur_ram_top()
-Date: Sun, 28 Mar 2010 19:43:21 -0700
-Message-ID: <1269830604-26214-29-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 30/31] x86: Use walk_system_ream_range()instead of e820.map directly
+Date: Sun, 28 Mar 2010 19:43:23 -0700
+Message-ID: <1269830604-26214-31-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
 References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100329024321.clT-sxzinMfd8f_AGz-SCjZv9rbINfttEygseQQ1maY@z>
+Message-ID: <20100329024323.2DkVnX08A0OEelOWl9Ed8v3aqT5rktU4fzp5RxeAd5Y@z>
 
-So we can avoid to access e820.map[] directly.
-
-later we could move e820 to static and _initdata
+So we can make e820 to be __initdata
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/e820.h   |    9 ++++++
- arch/x86/kernel/cpu/centaur.c |   53 +-------------------------------------
- arch/x86/kernel/e820.c        |   56 +++++++++++++++++++++++++++++++++++++++++
- arch/x86/kernel/setup.c       |    2 +
- 4 files changed, 69 insertions(+), 51 deletions(-)
+ arch/x86/kernel/tboot.c |   22 +++++++++-------------
+ 1 files changed, 9 insertions(+), 13 deletions(-)
 
-diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
-index 334281f..cd7de51 100644
---- a/arch/x86/include/asm/e820.h
-+++ b/arch/x86/include/asm/e820.h
-@@ -76,6 +76,15 @@ struct e820map {
- /* see comment in arch/x86/kernel/e820.c */
- extern struct e820map e820;
+diff --git a/arch/x86/kernel/tboot.c b/arch/x86/kernel/tboot.c
+index cc2c604..cf27d64 100644
+--- a/arch/x86/kernel/tboot.c
++++ b/arch/x86/kernel/tboot.c
+@@ -170,34 +170,30 @@ static void tboot_create_trampoline(void)
  
-+#if defined(CONFIG_X86_OOSTORE) && defined(CONFIG_CPU_SUP_CENTAUR)
-+extern int centaur_ram_top;
-+void get_centaur_ram_top(void);
-+#else
-+static inline void get_centaur_ram_top(void)
-+{
-+}
-+#endif
+ #ifdef CONFIG_ACPI_SLEEP
+ 
+-static void add_mac_region(phys_addr_t start, unsigned long size)
++static int
++add_mac_region(unsigned long start_pfn, unsigned long nr_pages, void  *arg)
+ {
++	u64 start = start_pfn;
++	u64 size = nr_pages;
+ 	struct tboot_mac_region *mr;
+-	phys_addr_t end = start + size;
+ 
+ 	if (tboot->num_mac_regions >= MAX_TB_MAC_REGIONS)
+ 		panic("tboot: Too many MAC regions\n");
+ 
+ 	if (start && size) {
+ 		mr = &tboot->mac_regions[tboot->num_mac_regions++];
+-		mr->start = round_down(start, PAGE_SIZE);
+-		mr->size  = round_up(end, PAGE_SIZE) - mr->start;
++		mr->start = start << PAGE_SHIFT;
++		mr->size  = (u32) (size << PAGE_SHIFT);
+ 	}
 +
- extern unsigned long pci_mem_start;
- extern int e820_any_mapped(u64 start, u64 end, unsigned type);
- extern int e820_all_mapped(u64 start, u64 end, unsigned type);
-diff --git a/arch/x86/kernel/cpu/centaur.c b/arch/x86/kernel/cpu/centaur.c
-index e58d978..bb49358 100644
---- a/arch/x86/kernel/cpu/centaur.c
-+++ b/arch/x86/kernel/cpu/centaur.c
-@@ -37,63 +37,14 @@ static void __cpuinit centaur_mcr_insert(int reg, u32 base, u32 size, int key)
- 	mtrr_centaur_report_mcr(reg, lo, hi);	/* Tell the mtrr driver */
++	return 0;
  }
  
--/*
-- * Figure what we can cover with MCR's
-- *
-- * Shortcut: We know you can't put 4Gig of RAM on a winchip
-- */
--static u32 __cpuinit ramtop(void)
--{
--	u32 clip = 0xFFFFFFFFUL;
--	u32 top = 0;
+ static int tboot_setup_sleep(void)
+ {
 -	int i;
 -
+ 	tboot->num_mac_regions = 0;
+ 
 -	for (i = 0; i < e820.nr_map; i++) {
--		unsigned long start, end;
+-		if ((e820.map[i].type != E820_RAM)
+-		 && (e820.map[i].type != E820_RESERVED_KERN))
+-			continue;
 -
--		if (e820.map[i].addr > 0xFFFFFFFFUL)
--			continue;
--		/*
--		 * Don't MCR over reserved space. Ignore the ISA hole
--		 * we frob around that catastrophe already
--		 */
--		if (e820.map[i].type == E820_RESERVED) {
--			if (e820.map[i].addr >= 0x100000UL &&
--			    e820.map[i].addr < clip)
--				clip = e820.map[i].addr;
--			continue;
--		}
--		start = e820.map[i].addr;
--		end = e820.map[i].addr + e820.map[i].size;
--		if (start >= end)
--			continue;
--		if (end > top)
--			top = end;
+-		add_mac_region(e820.map[i].addr, e820.map[i].size);
 -	}
--	/*
--	 * Everything below 'top' should be RAM except for the ISA hole.
--	 * Because of the limited MCR's we want to map NV/ACPI into our
--	 * MCR range for gunk in RAM
--	 *
--	 * Clip might cause us to MCR insufficient RAM but that is an
--	 * acceptable failure mode and should only bite obscure boxes with
--	 * a VESA hole at 15Mb
--	 *
--	 * The second case Clip sometimes kicks in is when the EBDA is marked
--	 * as reserved. Again we fail safe with reasonable results
--	 */
--	if (top > clip)
--		top = clip;
--
--	return top;
--}
-+int __cpuinitdata centaur_ram_top;
++	walk_system_ram_range(0, max_pfn, NULL, add_mac_region);
  
- /*
-  * Compute a set of MCR's to give maximum coverage
-  */
- static int __cpuinit centaur_mcr_compute(int nr, int key)
- {
--	u32 mem = ramtop();
-+	u32 mem = centaur_ram_top;
- 	u32 root = power2(mem);
- 	u32 base = root;
- 	u32 top = root;
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index 6fdd9e9..6b17893 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -1124,6 +1124,62 @@ void __init setup_memory_map(void)
- 	e820_print_map(who);
- }
+ 	tboot->acpi_sinfo.kernel_s3_resume_vector = acpi_wakeup_address;
  
-+#if defined(CONFIG_X86_OOSTORE) && defined(CONFIG_CPU_SUP_CENTAUR)
-+/*
-+ * Figure what we can cover with MCR's
-+ *
-+ * Shortcut: We know you can't put 4Gig of RAM on a winchip
-+ */
-+void __init get_centaur_ram_top(void)
-+{
-+	u32 clip = 0xFFFFFFFFUL;
-+	u32 top = 0;
-+	int i;
-+
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_CENTAUR)
-+		return;
-+
-+	for (i = 0; i < e820.nr_map; i++) {
-+		unsigned long start, end;
-+
-+		if (e820.map[i].addr > 0xFFFFFFFFUL)
-+			continue;
-+		/*
-+		 * Don't MCR over reserved space. Ignore the ISA hole
-+		 * we frob around that catastrophe already
-+		 */
-+		if (e820.map[i].type == E820_RESERVED) {
-+			if (e820.map[i].addr >= 0x100000UL &&
-+			    e820.map[i].addr < clip)
-+				clip = e820.map[i].addr;
-+			continue;
-+		}
-+		start = e820.map[i].addr;
-+		end = e820.map[i].addr + e820.map[i].size;
-+		if (start >= end)
-+			continue;
-+		if (end > top)
-+			top = end;
-+	}
-+	/*
-+	 * Everything below 'top' should be RAM except for the ISA hole.
-+	 * Because of the limited MCR's we want to map NV/ACPI into our
-+	 * MCR range for gunk in RAM
-+	 *
-+	 * Clip might cause us to MCR insufficient RAM but that is an
-+	 * acceptable failure mode and should only bite obscure boxes with
-+	 * a VESA hole at 15Mb
-+	 *
-+	 * The second case Clip sometimes kicks in is when the EBDA is marked
-+	 * as reserved. Again we fail safe with reasonable results
-+	 */
-+	if (top > clip)
-+		top = clip;
-+
-+	centaur_ram_top = top;
-+}
-+#endif
-+
- void __init init_lmb_memory(void)
- {
- 	lmb_init();
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index b00ccc4..0e52435 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -875,6 +875,8 @@ void __init setup_arch(char **cmdline_p)
- 	if (mtrr_trim_uncached_memory(max_pfn))
- 		max_pfn = e820_end_of_ram_pfn();
- 
-+	get_centaur_ram_top();
-+
- #ifdef CONFIG_X86_32
- 	/* max_low_pfn get updated here */
- 	find_low_pfn_range();
 -- 
 1.6.4.2
 
