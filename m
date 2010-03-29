@@ -1,64 +1,45 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH -v9 00/31] use lmb with x86
-Date: Mon, 29 Mar 2010 13:39:09 -0700
-Message-ID: <4BB10FED.8040308@kernel.org>
-References: <1269830604-26214-1-git-send-email-yinghai@kernel.org> <1269865331.24620.44.camel@concordia> <4BB0DAC2.3000805@kernel.org>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 20/31] lmb: Add __NOT_KEEP_LMB to put lmb code to .init
+Date: Tue, 30 Mar 2010 08:44:57 +1100
+Message-ID: <1269899097.7101.29.camel@pasglop>
+References: <4BB0D34C.7060509@kernel.org>
+	 <20100329.113449.174804111.davem@davemloft.net>
+	 <4BB0F3F8.3090304@kernel.org>
+	 <20100329.121139.233095272.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:46414 "EHLO hera.kernel.org"
+Received: from gate.crashing.org ([63.228.1.57]:33169 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751357Ab0C2UlB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Mar 2010 16:41:01 -0400
-In-Reply-To: <4BB0DAC2.3000805@kernel.org>
+	id S1752727Ab0C2VrM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Mar 2010 17:47:12 -0400
+In-Reply-To: <20100329.121139.233095272.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: michael@ellerman.id.au
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: yinghai@kernel.org, michael@ellerman.id.au, mingo@elte.hu, tglx@linutronix.de, hpa@zytor.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, hannes@cmpxchg.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 03/29/2010 09:52 AM, Yinghai Lu wrote:
-> On 03/29/2010 05:22 AM, Michael Ellerman wrote:
->> On Sun, 2010-03-28 at 19:42 -0700, Yinghai Lu wrote:
->>> the new lmb could be used to early_res in x86.
->>>
->>> Suggested by: David, Ben, and Thomas
->>>
->>> First three patches should go into 2.6.34
->>>
->>> -v6: change sequence as requested by Thomas
->>> -v7: seperate them to more patches
->>> -v8: add boundary checking to make sure not free partial page.
->>> -v9: use lmb_debug to control print out of reserve_lmb.
->>>      add e820 clean up, and e820 become __initdata
->>
->> Bike shedding perhaps, but can you maintain the naming convention, ie.
->> lmb_xxx() rather than xxx_lmb(). Neither is necessarily better, but all
->> the existing functions use the lmb_xxx() style.
->>
+On Mon, 2010-03-29 at 12:11 -0700, David Miller wrote:
+> From: Yinghai Lu <yinghai@kernel.org>
+> Date: Mon, 29 Mar 2010 11:39:52 -0700
 > 
-> so you want
+> > On 03/29/2010 11:34 AM, David Miller wrote:
+> >> From: Yinghai Lu <yinghai@kernel.org>
+> >> Date: Mon, 29 Mar 2010 09:20:28 -0700
+> >> 
+> >>> BTW, it seems only PowerPC need to keep lmb after init stage, right ?
+> >> 
+> >> For now.  Sparc64 will need it at some point in the future.
+> > 
+> > for memory hotplug support?
 > 
-> find_lmb_area ==> lmb_find_area
-> reserve_lmb ==> lmb_reserve
-> free_lmb ==> lmb_free
-> 
-> first one is ok, 
-> 
-> but next two we already have lmb_reserved and lmb_free without checking and increasing the size of region array.
-> 
-> should i use 
-> lmb_reserve_with_check?
-> 
+> Yes.
 
-I change 
+We also can use it to implement page_is_ram() which might help
+get /dev/mem cachability setting right by default one day :-)
 
-find_lmb_area ==> lmb_find_area
-reserve_lmb ==> lmb_reserve_area
-free_lmb ==> lmb_free_area
+However, we only need to keep the memory list, not the reserve list.
 
-does that look ok to you?
-
-Thanks
-
-Yinghai
+Cheers,
+Ben.
