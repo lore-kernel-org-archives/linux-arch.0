@@ -1,59 +1,69 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 03/31] x86: Do not free zero sized per cpu areas
-Date: Sun, 28 Mar 2010 19:42:56 -0700
-Message-ID: <1269830604-26214-4-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 30/31] x86: Use walk_system_ream_range()instead of e820.map directly
+Date: Sun, 28 Mar 2010 19:43:23 -0700
+Message-ID: <1269830604-26214-31-git-send-email-yinghai@kernel.org>
 References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet11.oracle.com ([148.87.113.123]:19546 "EHLO
-	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755946Ab0C2Cq6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Mar 2010 22:46:58 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
-Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ian Campbell <ian.campbell@citrix.com>, Yinghai Lu <yinghai@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Ian Campbell <ian.campbell@citrix.com>
+So we can make e820 to be __initdata
 
-This avoids an infinite loop in free_early_partial().
-
-Add a warning to free_early_partial to catch future problems.
-
--v5: put back start > end back into WARN_ONCE()
--v6: use one line for warning according to linus
--v7: more test by
--v8: remove the function name according to Johannes
-     WARN_ONCE will print that function name.
-
-Signed-off-by: Ian Campbell <ian.campbell@citrix.com>
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Tested-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Tested-by: Joel Becker <joel.becker@oracle.com>
-Tested-by: Stanislaw Gruszka <sgruszka@redhat.com>
-Acked-by: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@elte.hu>
 ---
- kernel/early_res.c |    6 ++++++
- 1 files changed, 6 insertions(+), 0 deletions(-)
+ arch/x86/kernel/tboot.c |   22 +++++++++-------------
+ 1 files changed, 9 insertions(+), 13 deletions(-)
 
-diff --git a/kernel/early_res.c b/kernel/early_res.c
-index 3cb2c66..31aa933 100644
---- a/kernel/early_res.c
-+++ b/kernel/early_res.c
-@@ -333,6 +333,12 @@ void __init free_early_partial(u64 start, u64 end)
- 	struct early_res *r;
- 	int i;
+diff --git a/arch/x86/kernel/tboot.c b/arch/x86/kernel/tboot.c
+index cc2c604..cf27d64 100644
+--- a/arch/x86/kernel/tboot.c
++++ b/arch/x86/kernel/tboot.c
+@@ -170,34 +170,30 @@ static void tboot_create_trampoline(void)
  
-+	if (start == end)
-+		return;
+ #ifdef CONFIG_ACPI_SLEEP
+ 
+-static void add_mac_region(phys_addr_t start, unsigned long size)
++static int
++add_mac_region(unsigned long start_pfn, unsigned long nr_pages, void  *arg)
+ {
++	u64 start = start_pfn;
++	u64 size = nr_pages;
+ 	struct tboot_mac_region *mr;
+-	phys_addr_t end = start + size;
+ 
+ 	if (tboot->num_mac_regions >= MAX_TB_MAC_REGIONS)
+ 		panic("tboot: Too many MAC regions\n");
+ 
+ 	if (start && size) {
+ 		mr = &tboot->mac_regions[tboot->num_mac_regions++];
+-		mr->start = round_down(start, PAGE_SIZE);
+-		mr->size  = round_up(end, PAGE_SIZE) - mr->start;
++		mr->start = start << PAGE_SHIFT;
++		mr->size  = (u32) (size << PAGE_SHIFT);
+ 	}
 +
-+	if (WARN_ONCE(start > end, "  wrong range [%#llx, %#llx]\n", start, end))
-+		return;
-+
- try_next:
- 	i = find_overlapped_early(start, end);
- 	if (i >= max_early_res)
++	return 0;
+ }
+ 
+ static int tboot_setup_sleep(void)
+ {
+-	int i;
+-
+ 	tboot->num_mac_regions = 0;
+ 
+-	for (i = 0; i < e820.nr_map; i++) {
+-		if ((e820.map[i].type != E820_RAM)
+-		 && (e820.map[i].type != E820_RESERVED_KERN))
+-			continue;
+-
+-		add_mac_region(e820.map[i].addr, e820.map[i].size);
+-	}
++	walk_system_ram_range(0, max_pfn, NULL, add_mac_region);
+ 
+ 	tboot->acpi_sinfo.kernel_s3_resume_vector = acpi_wakeup_address;
+ 
 -- 
 1.6.4.2
