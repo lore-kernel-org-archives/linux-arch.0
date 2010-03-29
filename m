@@ -1,54 +1,42 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH -v9 00/31] use lmb with x86
-Date: Mon, 29 Mar 2010 09:52:18 -0700
-Message-ID: <4BB0DAC2.3000805@kernel.org>
-References: <1269830604-26214-1-git-send-email-yinghai@kernel.org> <1269865331.24620.44.camel@concordia>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH 02/31] x86: Make sure free_init_pages() free pages in
+ boundary
+Date: Mon, 29 Mar 2010 18:57:06 +0200
+Message-ID: <20100329165706.GA13961@elte.hu>
+References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
+ <1269830604-26214-3-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:56198 "EHLO hera.kernel.org"
+Received: from mx2.mail.elte.hu ([157.181.151.9]:51638 "EHLO mx2.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752727Ab0C2QyW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Mar 2010 12:54:22 -0400
-In-Reply-To: <1269865331.24620.44.camel@concordia>
+	id S1755055Ab0C2Q6K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Mar 2010 12:58:10 -0400
+Content-Disposition: inline
+In-Reply-To: <1269830604-26214-3-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: michael@ellerman.id.au
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 03/29/2010 05:22 AM, Michael Ellerman wrote:
-> On Sun, 2010-03-28 at 19:42 -0700, Yinghai Lu wrote:
->> the new lmb could be used to early_res in x86.
->>
->> Suggested by: David, Ben, and Thomas
->>
->> First three patches should go into 2.6.34
->>
->> -v6: change sequence as requested by Thomas
->> -v7: seperate them to more patches
->> -v8: add boundary checking to make sure not free partial page.
->> -v9: use lmb_debug to control print out of reserve_lmb.
->>      add e820 clean up, and e820 become __initdata
-> 
-> Bike shedding perhaps, but can you maintain the naming convention, ie.
-> lmb_xxx() rather than xxx_lmb(). Neither is necessarily better, but all
-> the existing functions use the lmb_xxx() style.
-> 
 
-so you want
+Note, i applied the fix below, without it the 32-bit defconfig build would 
+fail with:
 
-find_lmb_area ==> lmb_find_area
-reserve_lmb ==> lmb_reserve
-free_lmb ==> lmb_free
+ arch/x86/kernel/head32.c: In function 'i386_start_kernel':
+ arch/x86/kernel/head32.c:50: error: implicit declaration of function 'PAGE_ALIGN'
 
-first one is ok, 
+	Ingo
 
-but next two we already have lmb_reserved and lmb_free without checking and increasing the size of region array.
-
-should i use 
-lmb_reserve_with_check?
-
-thanks
-
-yinghai
+Index: linux/arch/x86/kernel/head32.c
+===================================================================
+--- linux.orig/arch/x86/kernel/head32.c
++++ linux/arch/x86/kernel/head32.c
+@@ -7,6 +7,7 @@
+ 
+ #include <linux/init.h>
+ #include <linux/start_kernel.h>
++#include <linux/mm.h>
+ 
+ #include <asm/setup.h>
+ #include <asm/sections.h>
