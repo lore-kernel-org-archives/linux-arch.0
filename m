@@ -1,93 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet11.oracle.com ([148.87.113.123]:19484 "EHLO
-	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755953Ab0C2Cqv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Mar 2010 22:46:51 -0400
+Received: from acsinet12.oracle.com ([141.146.126.234]:43289 "EHLO
+	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755814Ab0C2Cqj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Mar 2010 22:46:39 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 14/31] lmb: Add find_memory_core_early()
-Date: Sun, 28 Mar 2010 19:43:07 -0700
-Message-ID: <1269830604-26214-15-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 18/31] lmb: Add reserve_lmb_overlap_ok()
+Date: Sun, 28 Mar 2010 19:43:11 -0700
+Message-ID: <1269830604-26214-19-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
 References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100329024307.MF0xmDvYdBA4IWx4QKMhOlcbcUeWeh6auaHjyRQiMJc@z>
+Message-ID: <20100329024311.H9bIUUD6owYLP5btAlyeEQmbtK6NvspxoUst4sbRYyc@z>
 
-According to node range in early_node_map[] with __find_lmb_area
-to find free range.
+Some areas from firmware could be reserved several times from different callers.
 
-Will be used by find_lmb_area_node()
+If these area are overlapped, We may have overlapped entries in lmb.reserved.
 
-find_lmb_area_node will be used to find right buffer for NODE_DATA
+Try to free the area at first, before rerserve them again.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/mm.h |    2 ++
- mm/page_alloc.c    |   29 +++++++++++++++++++++++++++++
- 2 files changed, 31 insertions(+), 0 deletions(-)
+ include/linux/lmb.h |    1 +
+ mm/lmb.c            |   27 +++++++++++++++++++++++++--
+ 2 files changed, 26 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index c8442b6..8070bd8 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1159,6 +1159,8 @@ extern void free_bootmem_with_active_regions(int nid,
- 						unsigned long max_low_pfn);
- int add_from_early_node_map(struct range *range, int az,
- 				   int nr_range, int nid);
-+u64 __init find_memory_core_early(int nid, u64 size, u64 align,
-+					u64 goal, u64 limit);
- void *__alloc_memory_core_early(int nodeid, u64 size, u64 align,
- 				 u64 goal, u64 limit);
- typedef int (*work_fn_t)(unsigned long, unsigned long, void *);
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index d03c946..faae23a 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -21,6 +21,7 @@
- #include <linux/pagemap.h>
- #include <linux/jiffies.h>
- #include <linux/bootmem.h>
-+#include <linux/lmb.h>
- #include <linux/compiler.h>
- #include <linux/kernel.h>
- #include <linux/kmemcheck.h>
-@@ -3393,6 +3394,34 @@ void __init free_bootmem_with_active_regions(int nid,
- 	}
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index 285f287..1e11fe0 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -85,6 +85,7 @@ lmb_end_pfn(struct lmb_region *type, unsigned long region_nr)
  }
  
-+#ifdef CONFIG_HAVE_LMB
-+u64 __init find_memory_core_early(int nid, u64 size, u64 align,
-+					u64 goal, u64 limit)
+ void reserve_lmb(u64 start, u64 end, char *name);
++void reserve_lmb_overlap_ok(u64 start, u64 end, char *name);
+ void free_lmb(u64 start, u64 end);
+ void add_lmb_memory(u64 start, u64 end);
+ u64 __find_lmb_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
+diff --git a/mm/lmb.c b/mm/lmb.c
+index f49d6c8..a709522 100644
+--- a/mm/lmb.c
++++ b/mm/lmb.c
+@@ -615,6 +615,12 @@ void __init add_lmb_memory(u64 start, u64 end)
+ 	lmb_add(start, end - start);
+ }
+ 
++static void __init __reserve_lmb(u64 start, u64 end, char *name)
 +{
-+	int i;
-+
-+	/* Need to go over early_node_map to find out good range for node */
-+	for_each_active_range_index_in_nid(i, nid) {
-+		u64 addr;
-+		u64 ei_start, ei_last;
-+
-+		ei_last = early_node_map[i].end_pfn;
-+		ei_last <<= PAGE_SHIFT;
-+		ei_start = early_node_map[i].start_pfn;
-+		ei_start <<= PAGE_SHIFT;
-+		addr = __find_lmb_area(ei_start, ei_last,
-+					 goal, limit, size, align);
-+
-+		if (addr == -1ULL)
-+			continue;
-+
-+		return addr;
-+	}
-+
-+	return -1ULL;
++	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0], start, end);
++	lmb_reserve(start, end - start);
 +}
-+#endif
 +
- int __init add_from_early_node_map(struct range *range, int az,
- 				   int nr_range, int nid)
+ void __init reserve_lmb(u64 start, u64 end, char *name)
  {
+ 	if (start == end)
+@@ -623,8 +629,25 @@ void __init reserve_lmb(u64 start, u64 end, char *name)
+ 	if (WARN_ONCE(start > end, "reserve_lmb: wrong range [%#llx, %#llx]\n", start, end))
+ 		return;
+ 
+-	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0], start, end);
+-	lmb_reserve(start, end - start);
++	__reserve_lmb(start, end, name);
++}
++
++/*
++ * Could be used to avoid having overlap entries in lmb.reserved.region.
++ *  Don't need to use it with area that is from find_lmb_area()
++ *  Only use it for the area that fw hidden area.
++ */
++void __init reserve_lmb_overlap_ok(u64 start, u64 end, char *name)
++{
++	if (start == end)
++		return;
++
++	if (WARN_ONCE(start > end, "reserve_lmb_overlap_ok: wrong range [%#llx, %#llx]\n", start, end))
++		return;
++
++	/* Free that region at first */
++	lmb_free(start, end - start);
++	__reserve_lmb(start, end, name);
+ }
+ 
+ void __init free_lmb(u64 start, u64 end)
 -- 
 1.6.4.2
 
