@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 29/31] x86: Make e820_any_mapped to __init
-Date: Sun, 28 Mar 2010 19:43:22 -0700
-Message-ID: <1269830604-26214-30-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 05/31] lmb: Seperate region array from lmb_region struct
+Date: Sun, 28 Mar 2010 19:42:58 -0700
+Message-ID: <1269830604-26214-6-git-send-email-yinghai@kernel.org>
 References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
@@ -10,37 +10,63 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-We don't need to expose e820_any_mapped anymore
+lmb_init() will connect them back.
+
+Add nr_regions in struct lmb_region to track region array size.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/kernel/e820.c |    6 +++---
- 1 files changed, 3 insertions(+), 3 deletions(-)
+ include/linux/lmb.h |    3 ++-
+ mm/lmb.c            |    9 ++++++++-
+ 2 files changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index 6b17893..2182bb0 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -47,9 +47,10 @@ EXPORT_SYMBOL(pci_mem_start);
- /*
-  * This function checks if any part of the range <start,end> is mapped
-  * with type.
-+ * phys_pud_init() is using it and is _meminit, but we have !after_bootmem
-+ * so could use refok here
-  */
--int
--e820_any_mapped(u64 start, u64 end, unsigned type)
-+int __init_refok e820_any_mapped(u64 start, u64 end, unsigned type)
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index f3d1433..e14ea8d 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -26,7 +26,8 @@ struct lmb_property {
+ struct lmb_region {
+ 	unsigned long cnt;
+ 	u64 size;
+-	struct lmb_property region[MAX_LMB_REGIONS+1];
++	struct lmb_property *region;
++	unsigned long nr_regions;
+ };
+ 
+ struct lmb {
+diff --git a/mm/lmb.c b/mm/lmb.c
+index b1fc526..65b62dc 100644
+--- a/mm/lmb.c
++++ b/mm/lmb.c
+@@ -18,6 +18,8 @@
+ #define LMB_ALLOC_ANYWHERE	0
+ 
+ struct lmb lmb;
++static struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
++static struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
+ 
+ static int lmb_debug;
+ 
+@@ -106,6 +108,11 @@ static void lmb_coalesce_regions(struct lmb_region *rgn,
+ 
+ void __init lmb_init(void)
  {
- 	int i;
++	lmb.memory.region   = lmb_memory_region;
++	lmb.reserved.region = lmb_reserved_region;
++	lmb.memory.nr_regions   = ARRAY_SIZE(lmb_memory_region);
++	lmb.reserved.nr_regions = ARRAY_SIZE(lmb_reserved_region);
++
+ 	/* Create a dummy zero size LMB which will get coalesced away later.
+ 	 * This simplifies the lmb_add() code below...
+ 	 */
+@@ -169,7 +176,7 @@ static long lmb_add_region(struct lmb_region *rgn, u64 base, u64 size)
  
-@@ -64,7 +65,6 @@ e820_any_mapped(u64 start, u64 end, unsigned type)
- 	}
- 	return 0;
- }
--EXPORT_SYMBOL_GPL(e820_any_mapped);
+ 	if (coalesced)
+ 		return coalesced;
+-	if (rgn->cnt >= MAX_LMB_REGIONS)
++	if (rgn->cnt > rgn->nr_regions)
+ 		return -1;
  
- /*
-  * This function checks if the entire range <start,end> is mapped with type.
+ 	/* Couldn't coalesce the LMB, so add it to the sorted table. */
 -- 
 1.6.4.2
