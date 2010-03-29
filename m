@@ -1,95 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:46149 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751691Ab0C0AS7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 26 Mar 2010 20:18:59 -0400
-Message-ID: <4BAD4E9C.2040808@kernel.org>
-Date: Fri, 26 Mar 2010 17:17:32 -0700
+Received: from acsinet12.oracle.com ([141.146.126.234]:43153 "EHLO
+	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755553Ab0C2CqW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Mar 2010 22:46:22 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-MIME-Version: 1.0
-Subject: Re: [PATCH 02/24] x86: Make sure free_init_pages() free pages in
- boundary
-References: <1269642114-16588-1-git-send-email-yinghai@kernel.org> <1269642114-16588-3-git-send-email-yinghai@kernel.org> <20100326230615.GB29222@cmpxchg.org> <4BAD4734.8020503@kernel.org> <20100327000723.GF29222@cmpxchg.org>
-In-Reply-To: <20100327000723.GF29222@cmpxchg.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Subject: [PATCH 10/31] lmb: Add lmb_to_bootmem()
+Date: Sun, 28 Mar 2010 19:43:03 -0700
+Message-ID: <1269830604-26214-11-git-send-email-yinghai@kernel.org>
+In-Reply-To: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
+References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100327001732.GDpiX5TdLub9mjdcHvKnDmQ6b8nWR1DKVB71KZ1BWCU@z>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20100329024303.s1Sc3PFRp04kIvP2RGG-8O4xVrJu1452vBfQ_rMafH4@z>
 
-On 03/26/2010 05:07 PM, Johannes Weiner wrote:
-> On Fri, Mar 26, 2010 at 04:45:56PM -0700, Yinghai Lu wrote:
->> On 03/26/2010 04:06 PM, Johannes Weiner wrote:
->>> On Fri, Mar 26, 2010 at 03:21:32PM -0700, Yinghai Lu wrote:
->>>> diff --git a/arch/x86/kernel/head32.c b/arch/x86/kernel/head32.c
->>>> index adedeef..fe3d953 100644
->>>> --- a/arch/x86/kernel/head32.c
->>>> +++ b/arch/x86/kernel/head32.c
->>>> @@ -47,6 +47,7 @@ void __init i386_start_kernel(void)
->>>>  		u64 ramdisk_image = boot_params.hdr.ramdisk_image;
->>>>  		u64 ramdisk_size  = boot_params.hdr.ramdisk_size;
->>>>  		u64 ramdisk_end   = ramdisk_image + ramdisk_size;
->>>> +		ramdisk_end = PFN_UP(ramdisk_end) << PAGE_SHIFT;
->>>
->>> Why not PAGE_ALIGN()?
->>
->> looks like PFN_UP is more clear.
-> 
-> Why would you convert to a pfn just to go back to a physical address,
-> when all you wanted is align at the next page boundary?  It looks
-> rather clumsy.
+lmb_to_bootmem() will reserve lmb.reserved.region in bootmem
 
-reserve_early() will take phys addr
+We can use it to with all arches that support lmb.
 
-> 
-> PAGE_ALIGN() is pretty wide spread and I think it's clear to most
-> people what it does.
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ include/linux/lmb.h |    2 ++
+ mm/lmb.c            |   32 ++++++++++++++++++++++++++++++++
+ 2 files changed, 34 insertions(+), 0 deletions(-)
 
-we may need to clean up all those:
-round_up
-round_down
-roundup
-ALIGN
-PAGE_ALIGN etc.
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index 7301072..f5071e1 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -92,6 +92,8 @@ u64 find_lmb_area(u64 start, u64 end, u64 size, u64 align);
+ u64 find_lmb_area_size(u64 start, u64 *sizep, u64 align);
+ u64 get_max_mapped(void);
+ 
++void lmb_to_bootmem(u64 start, u64 end);
++
+ #include <asm/lmb.h>
+ 
+ #endif /* __KERNEL__ */
+diff --git a/mm/lmb.c b/mm/lmb.c
+index a91f48d..71a45b4 100644
+--- a/mm/lmb.c
++++ b/mm/lmb.c
+@@ -640,6 +640,38 @@ void __init free_lmb(u64 start, u64 end)
+ 	lmb_free(start, end - start);
+ }
+ 
++#ifndef CONFIG_NO_BOOTMEM
++void __init lmb_to_bootmem(u64 start, u64 end)
++{
++	int i, count;
++	u64 final_start, final_end;
++
++	/* Take out region array itself */
++	if (lmb.reserved.region != lmb_reserved_region)
++		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
++
++	count  = lmb.reserved.cnt;
++	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
++	for (i = 0; i < count; i++) {
++		struct lmb_property *r = &lmb.reserved.region[i];
++		pr_info("  #%d [%010llx - %010llx] ", i, r->base, r->base + r->size);
++		final_start = max(start, r->base);
++		final_end = min(end, r->base + r->size);
++		if (final_start >= final_end) {
++			pr_cont("\n");
++			continue;
++		}
++		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
++		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
++	}
++	/* Clear them to avoid misusing ? */
++	memset(&lmb.reserved.region[0], 0, sizeof(struct lmb_property) * lmb.reserved.nr_regions);
++	lmb.reserved.region = NULL;
++	lmb.reserved.nr_regions = 0;
++	lmb.reserved.cnt = 0;
++}
++#endif
++
+ static int __init find_overlapped_early(u64 start, u64 end)
+ {
+ 	int i;
+-- 
+1.6.4.2
 
-> 
-...
->>>> --- a/arch/x86/mm/init.c
->>>> +++ b/arch/x86/mm/init.c
->>>> @@ -332,6 +332,16 @@ int devmem_is_allowed(unsigned long pagenr)
->>>>  void free_init_pages(char *what, unsigned long begin, unsigned long end)
->>>>  {
->>>>  	unsigned long addr = begin;
->>>> +	unsigned long addr_aligned, end_aligned;
->>>> +
->>>> +	/* Make sure boundaries are page aligned */
->>>> +	addr_aligned = PFN_UP(addr) << PAGE_SHIFT;
->>>> +	end_aligned = PFN_DOWN(end) << PAGE_SHIFT;
->>>> +
->>>> +	if (WARN(addr_aligned != addr || end_aligned != end, "free_init_pages: range [%#lx, %#lx] is not aligned\n", addr, end)) {
->>>> +		addr = addr_aligned;
->>>> +		end = end_aligned;
->>>> +	}
->>>
->>> Maybe realign only for when it is not aligned?  So to keep the fixup
->>> out of line.
->>>
->>> I suppose WARN_ON() is enough as it will print a stack trace which
->>> should be enough clue of what went wrong.
->>
->> we need to PFN_DOWN the end, and don't free the partial page.
->> otherwise could crash the system.
-> 
-> Dito.
-> 
-> 	if (WARN_ON(not_aligned)) {
-> 		align
-> 	}
-> 
-> is what I meant.
-> 
-ok i got it.
-
-YH
