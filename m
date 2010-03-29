@@ -1,123 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet11.oracle.com ([148.87.113.123]:35875 "EHLO
-	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754783Ab0C2DED (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Mar 2010 23:04:03 -0400
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 12/31] lmb: Add lmb_register_active_regions() and lmb_hole_size()
-Date: Sun, 28 Mar 2010 19:43:05 -0700
-Message-ID: <1269830604-26214-13-git-send-email-yinghai@kernel.org>
+Received: from ozlabs.org ([203.10.76.45]:52897 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752629Ab0C2MWM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Mar 2010 08:22:12 -0400
+Subject: Re: [PATCH -v9 00/31] use lmb with x86
+From: Michael Ellerman <michael@ellerman.id.au>
+Reply-To: michael@ellerman.id.au
 In-Reply-To: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
 References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
+Content-Type: multipart/signed; micalg="pgp-sha1"; protocol="application/pgp-signature"; boundary="=-iM37uDJ2ZLT+Dapr5Sfp"
+Date: Mon, 29 Mar 2010 23:22:11 +1100
+Message-ID: <1269865331.24620.44.camel@concordia>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100329024305.fhHqaGoqlK8k8pLSQyNEa3YefiV9JDxgRSQugTk-TAU@z>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20100329122211.sal6BOhSsSKPLpj2O93fac1tKFTn01NsgrwtJTg9M60@z>
 
-lmb_register_active_regions() will be used to fill early_node_map,
-the result will be lmb.memory.region AND numa data
 
-lmb_hole_size will be used to find hole size on lmb.memory.region
-with specified range.
+--=-iM37uDJ2ZLT+Dapr5Sfp
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- include/linux/lmb.h |    4 +++
- mm/lmb.c            |   68 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 72 insertions(+), 0 deletions(-)
+On Sun, 2010-03-28 at 19:42 -0700, Yinghai Lu wrote:
+> the new lmb could be used to early_res in x86.
+>=20
+> Suggested by: David, Ben, and Thomas
+>=20
+> First three patches should go into 2.6.34
+>=20
+> -v6: change sequence as requested by Thomas
+> -v7: seperate them to more patches
+> -v8: add boundary checking to make sure not free partial page.
+> -v9: use lmb_debug to control print out of reserve_lmb.
+>      add e820 clean up, and e820 become __initdata
 
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 9e2dcf5..6568e9d 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -96,6 +96,10 @@ void lmb_to_bootmem(u64 start, u64 end);
- struct range;
- int get_free_all_memory_range(struct range **rangep, int nodeid);
- 
-+void lmb_register_active_regions(int nid, unsigned long start_pfn,
-+					 unsigned long last_pfn);
-+u64 lmb_hole_size(u64 start, u64 end);
-+
- #include <asm/lmb.h>
- 
- #endif /* __KERNEL__ */
-diff --git a/mm/lmb.c b/mm/lmb.c
-index abece72..7e3c2c1 100644
---- a/mm/lmb.c
-+++ b/mm/lmb.c
-@@ -912,3 +912,71 @@ u64 __init find_lmb_area_size(u64 start, u64 *sizep, u64 align)
- 	return -1ULL;
- }
- 
-+/*
-+ * Finds an active region in the address range from start_pfn to last_pfn and
-+ * returns its range in ei_startpfn and ei_endpfn for the lmb entry.
-+ */
-+static int __init lmb_find_active_region(const struct lmb_property *ei,
-+				  unsigned long start_pfn,
-+				  unsigned long last_pfn,
-+				  unsigned long *ei_startpfn,
-+				  unsigned long *ei_endpfn)
-+{
-+	u64 align = PAGE_SIZE;
-+
-+	*ei_startpfn = round_up(ei->base, align) >> PAGE_SHIFT;
-+	*ei_endpfn = round_down(ei->base + ei->size, align) >> PAGE_SHIFT;
-+
-+	/* Skip map entries smaller than a page */
-+	if (*ei_startpfn >= *ei_endpfn)
-+		return 0;
-+
-+	/* Skip if map is outside the node */
-+	if (*ei_endpfn <= start_pfn || *ei_startpfn >= last_pfn)
-+		return 0;
-+
-+	/* Check for overlaps */
-+	if (*ei_startpfn < start_pfn)
-+		*ei_startpfn = start_pfn;
-+	if (*ei_endpfn > last_pfn)
-+		*ei_endpfn = last_pfn;
-+
-+	return 1;
-+}
-+
-+/* Walk the lmb.memory map and register active regions within a node */
-+void __init lmb_register_active_regions(int nid, unsigned long start_pfn,
-+					 unsigned long last_pfn)
-+{
-+	unsigned long ei_startpfn;
-+	unsigned long ei_endpfn;
-+	int i;
-+
-+	for (i = 0; i < lmb.memory.cnt; i++)
-+		if (lmb_find_active_region(&lmb.memory.region[i],
-+					    start_pfn, last_pfn,
-+					    &ei_startpfn, &ei_endpfn))
-+			add_active_range(nid, ei_startpfn, ei_endpfn);
-+}
-+
-+/*
-+ * Find the hole size (in bytes) in the memory range.
-+ * @start: starting address of the memory range to scan
-+ * @end: ending address of the memory range to scan
-+ */
-+u64 __init lmb_hole_size(u64 start, u64 end)
-+{
-+	unsigned long start_pfn = start >> PAGE_SHIFT;
-+	unsigned long last_pfn = end >> PAGE_SHIFT;
-+	unsigned long ei_startpfn, ei_endpfn, ram = 0;
-+	int i;
-+
-+	for (i = 0; i < lmb.memory.cnt; i++) {
-+		if (lmb_find_active_region(&lmb.memory.region[i],
-+					    start_pfn, last_pfn,
-+					    &ei_startpfn, &ei_endpfn))
-+			ram += ei_endpfn - ei_startpfn;
-+	}
-+	return end - start - ((u64)ram << PAGE_SHIFT);
-+}
-+
--- 
-1.6.4.2
+Bike shedding perhaps, but can you maintain the naming convention, ie.
+lmb_xxx() rather than xxx_lmb(). Neither is necessarily better, but all
+the existing functions use the lmb_xxx() style.
+
+cheers
+
+
+--=-iM37uDJ2ZLT+Dapr5Sfp
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
+
+iEYEABECAAYFAkuwm3IACgkQdSjSd0sB4dILswCfZeq/ir6De5q4SpsZxHtxfAU6
+/KEAn1JAvTLu3EphuIF+lmGzAuQf9Vzv
+=AtVv
+-----END PGP SIGNATURE-----
+
+--=-iM37uDJ2ZLT+Dapr5Sfp--
 
