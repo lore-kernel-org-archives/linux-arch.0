@@ -1,74 +1,65 @@
-From: Yinghai Lu <yinghai@kernel.org>
+From: Michael Ellerman <michael@ellerman.id.au>
 Subject: Re: [PATCH 07/31] lmb: Add reserve_lmb/free_lmb
-Date: Mon, 29 Mar 2010 17:03:39 -0700
-Message-ID: <4BB13FDB.9060006@kernel.org>
-References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>	 <1269830604-26214-8-git-send-email-yinghai@kernel.org>	 <1269865322.24620.42.camel@concordia>  <4BB0D92C.3010103@kernel.org>	 <1269901252.2286.11.camel@concordia> <1269905491.7101.40.camel@pasglop>
+Date: Tue, 30 Mar 2010 15:13:03 +1100
+Message-ID: <1269922383.15854.68.camel@concordia>
+References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>
+	 <1269830604-26214-8-git-send-email-yinghai@kernel.org>
+	 <1269865322.24620.42.camel@concordia>  <4BB0D92C.3010103@kernel.org>
+	 <1269901252.2286.11.camel@concordia>  <4BB12BBA.4060108@kernel.org>
+	 <1269905664.7101.43.camel@pasglop>  <4BB13D61.3040902@kernel.org>
+Reply-To: michael@ellerman.id.au
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; micalg="pgp-sha1"; protocol="application/pgp-signature"; boundary="=-EFkoRkgWekuvA7KH+Eho"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:60698 "EHLO hera.kernel.org"
+Received: from ozlabs.org ([203.10.76.45]:44830 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752314Ab0C3AFb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Mar 2010 20:05:31 -0400
-In-Reply-To: <1269905491.7101.40.camel@pasglop>
+	id S1751088Ab0C3ENH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 30 Mar 2010 00:13:07 -0400
+In-Reply-To: <4BB13D61.3040902@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: michael@ellerman.id.au, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-
-On 03/29/2010 04:31 PM, Benjamin Herrenschmidt wrote:
-> On Tue, 2010-03-30 at 09:20 +1100, Michael Ellerman wrote:
->>
->> But that's my point. You shouldn't need to touch the existing API, and
->> you shouldn't need to add a new parallel API. You should just be able to
->> add the logic for doubling the array in the lmb core, and then everyone
->> gets dynamically expandable lmb. I don't see any reason why we want to
->> have two APIs.
-> 
-> Ack.
-ok, we can merge them later.
-> 
->>>> It seems to me that rather than adding these "special" routines that
->>>> check for enough space on the way in, instead you should be checking in
->>>> lmb_add_region() - which is where AFAICS all allocs/frees/reserves
->>>> eventually end up if they need to insert a new region.
->>>
->>> later i prefer to replace lmb_alloc with find_lmb_area + reserve_lmb.
->>
->> Why? The existing code has been working for years and is well tested? 
-> 
-> I still don't totally understand why he needs a find_lmb_area()
-> anyways. 
-> 
-> It might be justified ... or not. I just want it to be better
-> documented.
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
 
-current changelog for that
+--=-EFkoRkgWekuvA7KH+Eho
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-------------------
+On Mon, 2010-03-29 at 16:53 -0700, Yinghai Lu wrote:
+> On 03/29/2010 04:34 PM, Benjamin Herrenschmidt wrote:
+> > On Mon, 2010-03-29 at 15:37 -0700, Yinghai Lu wrote:
+> >>> We just need a lmb.alloc_limit and a lmb_set_alloc_limit() which arch
+> >>> code calls when it knows what the alloc limit is (and can call multip=
+le
+> >>> times during boot). Or maybe it should be called "default_alloc_limit=
+",
+> >>> but that's getting a bit long winded.
+> >>
+> >> ok, I will get_max_mapped() for now, an will change to new field...lat=
+er
+> >=20
+> > No. Do it now. get_max_mapped() sucks as an identifier.
+> >=20
+>=20
+> ok, can i reuse rmo_size, or introduce one new member in struct lmb.
+>=20
+> default_limit?
 
-Subject: [PATCH 6/31] lmb: Add lmb_find_area()
+alloc_limit or default_alloc_limit
 
-It will try find area according with size/align in specified range (start, end).
+cheers
 
-Need use it find correct buffer for new lmb.reserved.region.
+--=-EFkoRkgWekuvA7KH+Eho
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
 
-also make it more easy for x86 to use lmb.
-x86 early_res is using find/reserve pattern instead of alloc.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
 
-lmb_find_area() will honor goal
+iEYEABECAAYFAkuxek8ACgkQdSjSd0sB4dJNkgCfTeCeEEWj8HyGyvN2YJ7K75cx
+LJoAn1RaPm+W3eDqR0M0LK+B/g4aACao
+=jvEL
+-----END PGP SIGNATURE-----
 
-When we need temporary buff for range array etc for range work, if We are using
-lmb_alloc(), We will need to add some post fix code for buffer that is used
-by range array, because it is in the lmb.reserved already.
-
-----------------
-
-in short: It could make us to avoid use the range that we are going to reserve,
-      when we try to get new position new lmb.reserved.region.
-
-Thanks
-
-Yinghai
+--=-EFkoRkgWekuvA7KH+Eho--
