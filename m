@@ -1,93 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet12.oracle.com ([148.87.113.124]:53593 "EHLO
+Received: from rcsinet12.oracle.com ([148.87.113.124]:63019 "EHLO
 	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756489Ab0C3Lds (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Mar 2010 07:33:48 -0400
+	with ESMTP id S1754475Ab0C3Lgw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Mar 2010 07:36:52 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 14/29] lmb: Add lmb_memory_size()
-Date: Tue, 30 Mar 2010 04:19:48 -0700
-Message-ID: <1269948003-17221-15-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 01/29] x86: Make e820_remove_range to handle all covered case
+Date: Tue, 30 Mar 2010 04:19:35 -0700
+Message-ID: <1269948003-17221-2-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1269948003-17221-1-git-send-email-yinghai@kernel.org>
 References: <1269948003-17221-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100330111948.xhJkowZ2UUJQJcVJ_GnWG425okmyzpwN98xz-8LcDOM@z>
+Message-ID: <20100330111935.UwZN4OjPMDAYoq2CdmDEZ3MlmWXAxAyBo5yqhJK94_Y@z>
 
-It will return memory size in specified range according to lmb.memory.region
+Rusty found on lguest with trim_bios_range, max_pfn is not right anymore, and
+looks e820_remove_range does not work right.
 
-Try to share some code with lmb_free_memory_size() by passing get_free to
-__lmb_memory_size().
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000]  LGUEST: 0000000000000000 - 0000000004000000 (usable)
+[    0.000000] Notice: NX (Execute Disable) protection missing in CPU or disabled in BIOS!
+[    0.000000] DMI not present or invalid.
+[    0.000000] last_pfn = 0x3fa0 max_arch_pfn = 0x100000
+[    0.000000] init_memory_mapping: 0000000000000000-0000000003fa0000
 
+root cause is: the e820_remove_range doesn't handle that all cover case.
+e820_remove_range(BIOS_START, BIOS_END - BIOS_start, ,,)
+get miss one left range.
+
+Make that is corresponding to e820_update_range() to handle that case too.
+
+Reported-by: Rusty Russell <rusty@rustcorp.com.au>
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    1 +
- mm/lmb.c            |   18 +++++++++++++++++-
- 2 files changed, 18 insertions(+), 1 deletions(-)
+ arch/x86/kernel/e820.c |   24 ++++++++++++++++++++----
+ 1 files changed, 20 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index b874dc0..8332934 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -101,6 +101,7 @@ void lmb_register_active_regions(int nid, unsigned long start_pfn,
- 					 unsigned long last_pfn);
- u64 lmb_hole_size(u64 start, u64 end);
- u64 lmb_free_memory_size(u64 addr, u64 limit);
-+u64 lmb_memory_size(u64 addr, u64 limit);
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 740b440..7bca3c6 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -519,29 +519,45 @@ u64 __init e820_remove_range(u64 start, u64 size, unsigned old_type,
+ 	printk(KERN_DEBUG "e820 remove range: %016Lx - %016Lx ",
+ 		       (unsigned long long) start,
+ 		       (unsigned long long) end);
+-	e820_print_type(old_type);
++	if (checktype)
++		e820_print_type(old_type);
+ 	printk(KERN_CONT "\n");
  
- #include <asm/lmb.h>
+ 	for (i = 0; i < e820.nr_map; i++) {
+ 		struct e820entry *ei = &e820.map[i];
+ 		u64 final_start, final_end;
++		u64 ei_end;
  
-diff --git a/mm/lmb.c b/mm/lmb.c
-index 1a686ff..d0fa04d 100644
---- a/mm/lmb.c
-+++ b/mm/lmb.c
-@@ -747,7 +747,7 @@ void __init lmb_to_bootmem(u64 start, u64 end)
- }
- #endif
- 
--u64 __init lmb_free_memory_size(u64 addr, u64 limit)
-+static u64 __init __lmb_memory_size(u64 addr, u64 limit, bool get_free)
- {
- 	int i, count;
- 	struct range *range;
-@@ -777,6 +777,10 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
- 	}
- 	subtract_range(range, count, 0, addr);
- 	subtract_range(range, count, limit, -1ULL);
+ 		if (checktype && ei->type != old_type)
+ 			continue;
 +
-+	/* Subtract lmb.reserved.region in range ? */
-+	if (!get_free)
-+		goto sort_and_count_them;
- 	for (i = 0; i < lmb.reserved.cnt; i++) {
- 		struct lmb_property *r = &lmb.reserved.region[i];
- 
-@@ -789,6 +793,8 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
- 
- 		subtract_range(range, count, final_start, final_end);
- 	}
++		ei_end = ei->addr + ei->size;
+ 		/* totally covered? */
+-		if (ei->addr >= start &&
+-		    (ei->addr + ei->size) <= (start + size)) {
++		if (ei->addr >= start && ei_end <= end) {
+ 			real_removed_size += ei->size;
+ 			memset(ei, 0, sizeof(struct e820entry));
+ 			continue;
+ 		}
 +
-+sort_and_count_them:
- 	nr_range = clean_sort_range(range, count);
- 
- 	free_size = 0;
-@@ -798,6 +804,16 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
- 	return free_size << PAGE_SHIFT;
- }
- 
-+u64 __init lmb_free_memory_size(u64 addr, u64 limit)
-+{
-+	return __lmb_memory_size(addr, limit, true);
-+}
++		/* new range is totally covered? */
++		if (ei->addr < start && ei_end > end) {
++			e820_add_region(end, ei_end - end, ei->type);
++			ei->size = start - ei->addr;
++			real_removed_size += size;
++			continue;
++		}
 +
-+u64 __init lmb_memory_size(u64 addr, u64 limit)
-+{
-+	return __lmb_memory_size(addr, limit, false);
-+}
-+
- u64 __init __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
- 				 u64 size, u64 align)
- {
+ 		/* partially covered */
+ 		final_start = max(start, ei->addr);
+-		final_end = min(start + size, ei->addr + ei->size);
++		final_end = min(end, ei_end);
+ 		if (final_start >= final_end)
+ 			continue;
+ 		real_removed_size += final_end - final_start;
+ 
++		/*
++		 * left range could be head or tail, so need to update
++		 * size at first.
++		 */
+ 		ei->size -= final_end - final_start;
+ 		if (ei->addr < final_start)
+ 			continue;
 -- 
 1.6.4.2
 
