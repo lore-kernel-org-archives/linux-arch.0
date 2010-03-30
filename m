@@ -1,52 +1,38 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH 07/31] lmb: Add reserve_lmb/free_lmb
-Date: Mon, 29 Mar 2010 23:57:46 -0700
-Message-ID: <4BB1A0EA.8050305@kernel.org>
-References: <1269830604-26214-1-git-send-email-yinghai@kernel.org>	 <1269830604-26214-8-git-send-email-yinghai@kernel.org>	 <1269865322.24620.42.camel@concordia>  <4BB0D92C.3010103@kernel.org>	 <1269901252.2286.11.camel@concordia> <1269905491.7101.40.camel@pasglop>	 <4BB13FDB.9060006@kernel.org> <1269926794.7101.46.camel@pasglop>	 <4BB19656.9040803@kernel.org> <1269931562.15854.83.camel@concordia>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Subject: [PATCH -v10 00/29] use lmb with x86
+Date: Tue, 30 Mar 2010 04:19:34 -0700
+Message-ID: <1269948003-17221-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:46003 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750902Ab0C3G7z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 30 Mar 2010 02:59:55 -0400
-In-Reply-To: <1269931562.15854.83.camel@concordia>
+Received: from acsinet12.oracle.com ([141.146.126.234]:32513 "EHLO
+	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752809Ab0C3LVv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Mar 2010 07:21:51 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: michael@ellerman.id.au
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-On 03/29/2010 11:46 PM, Michael Ellerman wrote:
-> On Mon, 2010-03-29 at 23:12 -0700, Yinghai Lu wrote:
->> On 03/29/2010 10:26 PM, Benjamin Herrenschmidt wrote:
->>> On Mon, 2010-03-29 at 17:03 -0700, Yinghai Lu wrote:
->>>>
->>>> in short: It could make us to avoid use the range that we are going to
->>>> reserve,
->>>>       when we try to get new position new lmb.reserved.region. 
->>>
->>> I'm not too sure I follow you. For the resizing, I would just basically
->>> call a low level variant of alloc (__lmb_alloc ?) that explicitely
->>> doesn't honor the total-2 "reserved" entries in the array.
->>
->> 1. you want to reserve rangeA
->> 2. before that will check if region array is big enough,
->> 3. if region is not big enough, will call lmb_alloc to get new range.
->>    lmb_alloc could return rangB that is overlapped with rangeA
-> 
-> So instead you do it the other way.
-> 
-> 1. you want to reserve rangeA
-> 2. you reserve rangeA
-> 3. if reserving rangeA consumed a slot in the array then you check if
-> you have at least two free slots. If not you realloc. You don't need any
-> special tricks because you have space to lmb_alloc() a new area and move
-> everything over.
+the new lmb could be used to early_res in x86.
 
-so that is check it later. should work.
+Suggested by: David, Ben, and Thomas
 
-one less find_lmb_area user.
+First one should go into 2.6.34
+
+-v6: change sequence as requested by Thomas
+-v7: seperate them to more patches
+-v8: add boundary checking to make sure not free partial page.
+-v9: use lmb_debug to control print out of reserve_lmb.
+     add e820 clean up, and e820 become __initdata
+-v10:use lmb.rmo_size and ARCH_DISCARD_LMB according to Michael
+     change name to lmb_find_area/reserve_lmb_area/free_lmb_area, according to Michael
+     update find_lmb_area to use __lmb_alloc_base according to ben
+
+our orginal find_lmb_area is from low to high, but this __lmb_alloc_base is from
+to low.
+
+looks like it make bootmem have more segments
+
+Please check
 
 Thanks
 
