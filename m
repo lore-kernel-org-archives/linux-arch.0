@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 20/33] x86, lmb: Add lmb_find_area_size()
-Date: Tue, 30 Mar 2010 19:17:05 -0700
-Message-ID: <1270001838-15857-21-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 25/33] x86, lmb: turn off ARCH_LMB_FIND_AREA
+Date: Tue, 30 Mar 2010 19:17:10 -0700
+Message-ID: <1270001838-15857-26-git-send-email-yinghai@kernel.org>
 References: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
@@ -10,122 +10,25 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-size is returned according free range.
-Will be used to find free ranges for early_memtest and memory corruption check
-
-Do not mess it up with mm/lmb.c yet.
+32bit now can use generic __find_lmb_area now. So we can turn arch one off
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/mm/Makefile |    2 +
- arch/x86/mm/lmb.c    |   88 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 90 insertions(+), 0 deletions(-)
- create mode 100644 arch/x86/mm/lmb.c
+ arch/x86/Kconfig |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
-index a4c7683..8ab0505 100644
---- a/arch/x86/mm/Makefile
-+++ b/arch/x86/mm/Makefile
-@@ -26,4 +26,6 @@ obj-$(CONFIG_NUMA)		+= numa.o numa_$(BITS).o
- obj-$(CONFIG_K8_NUMA)		+= k8topology_64.o
- obj-$(CONFIG_ACPI_NUMA)		+= srat_$(BITS).o
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 1aa53ae..ce097ab 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -584,7 +584,7 @@ config PARAVIRT_DEBUG
+ 	  a paravirt_op is missing when it is called.
  
-+obj-$(CONFIG_HAVE_LMB)		+= lmb.o
-+
- obj-$(CONFIG_MEMTEST)		+= memtest.o
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-new file mode 100644
-index 0000000..3229e9e
---- /dev/null
-+++ b/arch/x86/mm/lmb.c
-@@ -0,0 +1,88 @@
-+#include <linux/kernel.h>
-+#include <linux/types.h>
-+#include <linux/init.h>
-+#include <linux/bitops.h>
-+#include <linux/lmb.h>
-+#include <linux/bootmem.h>
-+#include <linux/mm.h>
-+#include <linux/range.h>
-+
-+/* Check for already reserved areas */
-+static inline bool __init bad_addr_size(u64 *addrp, u64 *sizep, u64 align)
-+{
-+	int i;
-+	u64 addr = *addrp, last;
-+	u64 size = *sizep;
-+	bool changed = false;
-+again:
-+	last = addr + size;
-+	for (i = 0; i < lmb.reserved.cnt && lmb.reserved.region[i].size; i++) {
-+		struct lmb_property *r = &lmb.reserved.region[i];
-+		if (last > r->base && addr < r->base) {
-+			size = r->base - addr;
-+			changed = true;
-+			goto again;
-+		}
-+		if (last > (r->base + r->size) && addr < (r->base + r->size)) {
-+			addr = round_up(r->base + r->size, align);
-+			size = last - addr;
-+			changed = true;
-+			goto again;
-+		}
-+		if (last <= (r->base + r->size) && addr >= r->base) {
-+			(*sizep)++;
-+			return false;
-+		}
-+	}
-+	if (changed) {
-+		*addrp = addr;
-+		*sizep = size;
-+	}
-+	return changed;
-+}
-+
-+static u64 __init __lmb_find_area_size(u64 ei_start, u64 ei_last, u64 start,
-+			 u64 *sizep, u64 align)
-+{
-+	u64 addr, last;
-+
-+	addr = round_up(ei_start, align);
-+	if (addr < start)
-+		addr = round_up(start, align);
-+	if (addr >= ei_last)
-+		goto out;
-+	*sizep = ei_last - addr;
-+	while (bad_addr_size(&addr, sizep, align) && addr + *sizep <= ei_last)
-+		;
-+	last = addr + *sizep;
-+	if (last > ei_last)
-+		goto out;
-+
-+	return addr;
-+
-+out:
-+	return -1ULL;
-+}
-+
-+/*
-+ * Find next free range after *start
-+ */
-+u64 __init lmb_find_area_size(u64 start, u64 *sizep, u64 align)
-+{
-+	int i;
-+
-+	for (i = 0; i < lmb.memory.cnt; i++) {
-+		u64 ei_start = lmb.memory.region[i].base;
-+		u64 ei_last = ei_start + lmb.memory.region[i].size;
-+		u64 addr;
-+
-+		addr = __lmb_find_area_size(ei_start, ei_last, start,
-+					 sizep, align);
-+
-+		if (addr != -1ULL)
-+			return addr;
-+	}
-+
-+	return -1ULL;
-+}
-+
+ config ARCH_LMB_FIND_AREA
+-	default y
++	default n
+ 	bool "Use x86 own lmb_find_area()"
+ 	---help---
+ 	  Use lmb_find_area() version instead of generic version, it get free
 -- 
 1.6.4.2
