@@ -1,83 +1,119 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 28/33] x86: Align e820 ram range to page
-Date: Tue, 30 Mar 2010 19:17:13 -0700
-Message-ID: <1270001838-15857-29-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 21/33] x86, lmb: Add x86 version of __lmb_find_area()
+Date: Tue, 30 Mar 2010 19:17:06 -0700
+Message-ID: <1270001838-15857-22-git-send-email-yinghai@kernel.org>
 References: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet12.oracle.com ([148.87.113.124]:57492 "EHLO
+	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932082Ab0CaCVX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Mar 2010 22:21:23 -0400
 In-Reply-To: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-to workaround wrong BIOS memory map.
+Generic version is going from high to low, and it seems it can not find
+right area compact enough.
+
+the x86 version will go from goal to limit and just like the way We used
+for early_res
+
+use ARCH_FIND_LMB_AREA to select from them.
+
+For 32 bit have to use CONFIG_ARCH_FIND_LMB_AREA=y, because some alloc_bootmem
+in nobootmem config, hard code -1ULL as limit
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/kernel/e820.c |   44 ++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 44 insertions(+), 0 deletions(-)
+ arch/x86/Kconfig  |    8 +++++++
+ arch/x86/mm/lmb.c |   57 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 65 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index e2a0b02..57c938a 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -910,6 +910,47 @@ static int __init parse_memmap_opt(char *p)
- }
- early_param("memmap", parse_memmap_opt);
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 6a80bce..0052d27 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -585,6 +585,14 @@ config PARAVIRT_DEBUG
+ 	  Enable to debug paravirt_ops internals.  Specifically, BUG if
+ 	  a paravirt_op is missing when it is called.
  
-+static void __init e820_align_ram_page(void)
++config ARCH_LMB_FIND_AREA
++	default y
++	bool "Use x86 own lmb_find_area()"
++	---help---
++	  Use lmb_find_area() version instead of generic version, it get free
++	  area up from low.
++	  Generic one try to get free area down from limit.
++
+ config NO_BOOTMEM
+ 	default y
+ 	bool "Disable Bootmem code"
+diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
+index 3229e9e..d221672 100644
+--- a/arch/x86/mm/lmb.c
++++ b/arch/x86/mm/lmb.c
+@@ -86,3 +86,60 @@ u64 __init lmb_find_area_size(u64 start, u64 *sizep, u64 align)
+ 	return -1ULL;
+ }
+ 
++#ifdef CONFIG_ARCH_LMB_FIND_AREA
++static int __init find_overlapped_early(u64 start, u64 end)
 +{
 +	int i;
-+	bool changed = false;;
++	struct lmb_property *r;
 +
-+	for (i = 0; i < e820.nr_map; i++) {
-+		struct e820entry *entry = &e820.map[i];
-+		u64 start, end;
-+		u64 start_aligned, end_aligned;
-+
-+		if (entry->type != E820_RAM)
-+			continue;
-+
-+		start = entry->addr;
-+		end = start + entry->size;
-+
-+		start_aligned = round_up(start, PAGE_SIZE);
-+		end_aligned = round_down(end, PAGE_SIZE);
-+
-+		if (end_aligned <= start_aligned) {
-+			e820_update_range(start, end - start, E820_RAM, E820_RESERVED);
-+			changed = true;
-+			continue;
-+		}
-+		if (start < start_aligned) {
-+			e820_update_range(start, start_aligned - start, E820_RAM, E820_RESERVED);
-+			changed = true;
-+		}
-+		if (end_aligned < end) {
-+			e820_update_range(end_aligned, end - end_aligned, E820_RAM, E820_RESERVED);
-+			changed = true;
-+		}
++	for (i = 0; i < lmb.reserved.cnt && lmb.reserved.region[i].size; i++) {
++		r = &lmb.reserved.region[i];
++		if (end > r->base && start < (r->base + r->size))
++			break;
 +	}
 +
-+	if (changed) {
-+		sanitize_e820_map();
-+		printk(KERN_INFO "aligned physical RAM map:\n");
-+		e820_print_map("aligned");
-+	}
++	return i;
 +}
 +
- void __init finish_e820_parsing(void)
- {
- 	if (userdef) {
-@@ -922,6 +963,9 @@ void __init finish_e820_parsing(void)
- 		printk(KERN_INFO "user-defined physical RAM map:\n");
- 		e820_print_map("user");
- 	}
++/* Check for already reserved areas */
++static inline bool __init bad_addr(u64 *addrp, u64 size, u64 align)
++{
++	int i;
++	u64 addr = *addrp;
++	bool changed = false;
++	struct lmb_property *r;
++again:
++	i = find_overlapped_early(addr, addr + size);
++	r = &lmb.reserved.region[i];
++	if (i < lmb.reserved.cnt && r->size) {
++		*addrp = addr = round_up(r->base + r->size, align);
++		changed = true;
++		goto again;
++	}
++	return changed;
++}
 +
-+	/* In case, We have RAM entres that are not PAGE aligned */
-+	e820_align_ram_page();
- }
- 
- static inline const char *e820_type_to_string(int e820_type)
++u64 __init __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
++				 u64 size, u64 align)
++{
++	u64 addr, last;
++
++	addr = round_up(ei_start, align);
++	if (addr < start)
++		addr = round_up(start, align);
++	if (addr >= ei_last)
++		goto out;
++	while (bad_addr(&addr, size, align) && addr+size <= ei_last)
++		;
++	last = addr + size;
++	if (last > ei_last)
++		goto out;
++	if (last > end)
++		goto out;
++
++	return addr;
++
++out:
++	return -1ULL;
++}
++#endif
 -- 
 1.6.4.2
