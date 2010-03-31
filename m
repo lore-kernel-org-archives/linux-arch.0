@@ -1,46 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet12.oracle.com ([148.87.113.124]:58275 "EHLO
-	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932926Ab0CaCWF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Mar 2010 22:22:05 -0400
+Received: from rcsinet11.oracle.com ([148.87.113.123]:23857 "EHLO
+	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932545Ab0CaCVe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Mar 2010 22:21:34 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 24/33] nobootmem: use lmb.default_alloc_limit in alloc_bootmem path
-Date: Tue, 30 Mar 2010 19:17:09 -0700
-Message-ID: <1270001838-15857-25-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 20/33] x86, lmb: Add lmb_find_area_size()
+Date: Tue, 30 Mar 2010 19:17:05 -0700
+Message-ID: <1270001838-15857-21-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
 References: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100331021709.opmzp5UtKV22k8DZB7efsI4BKuIHYL822lxWwgeeMu4@z>
+Message-ID: <20100331021705.YYBzv9RFdX2hYlMZLW4uMeYMRzI0NsDt6tXAD-qE21w@z>
 
-Generic version __lmb_find_area() is going from high to low, and for 32bit
-active_region for 32bit does include high pages
+size is returned according free range.
+Will be used to find free ranges for early_memtest and memory corruption check
 
-need to replace the limit with lmb.default_alloc_limit, aka get_max_mapped()
-
-with this patch, x86 32bit could use generic version of __lmb_find_area()
+Do not mess it up with mm/lmb.c yet.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- mm/page_alloc.c |    3 +++
- 1 file changed, 3 insertions(+)
+ arch/x86/mm/Makefile |    2 +
+ arch/x86/mm/lmb.c    |   88 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 90 insertions(+), 0 deletions(-)
+ create mode 100644 arch/x86/mm/lmb.c
 
-Index: linux-2.6/mm/page_alloc.c
-===================================================================
---- linux-2.6.orig/mm/page_alloc.c
-+++ linux-2.6/mm/page_alloc.c
-@@ -3445,6 +3445,9 @@ void * __init __alloc_memory_core_early(
+diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
+index a4c7683..8ab0505 100644
+--- a/arch/x86/mm/Makefile
++++ b/arch/x86/mm/Makefile
+@@ -26,4 +26,6 @@ obj-$(CONFIG_NUMA)		+= numa.o numa_$(BITS).o
+ obj-$(CONFIG_K8_NUMA)		+= k8topology_64.o
+ obj-$(CONFIG_ACPI_NUMA)		+= srat_$(BITS).o
  
- 	u64 addr;
- 
-+	if (limit > lmb.default_alloc_limit)
-+		limit = lmb.default_alloc_limit;
++obj-$(CONFIG_HAVE_LMB)		+= lmb.o
 +
- 	addr = find_memory_core_early(nid, size, align, goal, limit);
- 
- 	if (addr == -1ULL)
+ obj-$(CONFIG_MEMTEST)		+= memtest.o
+diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
+new file mode 100644
+index 0000000..3229e9e
+--- /dev/null
++++ b/arch/x86/mm/lmb.c
+@@ -0,0 +1,88 @@
++#include <linux/kernel.h>
++#include <linux/types.h>
++#include <linux/init.h>
++#include <linux/bitops.h>
++#include <linux/lmb.h>
++#include <linux/bootmem.h>
++#include <linux/mm.h>
++#include <linux/range.h>
++
++/* Check for already reserved areas */
++static inline bool __init bad_addr_size(u64 *addrp, u64 *sizep, u64 align)
++{
++	int i;
++	u64 addr = *addrp, last;
++	u64 size = *sizep;
++	bool changed = false;
++again:
++	last = addr + size;
++	for (i = 0; i < lmb.reserved.cnt && lmb.reserved.region[i].size; i++) {
++		struct lmb_property *r = &lmb.reserved.region[i];
++		if (last > r->base && addr < r->base) {
++			size = r->base - addr;
++			changed = true;
++			goto again;
++		}
++		if (last > (r->base + r->size) && addr < (r->base + r->size)) {
++			addr = round_up(r->base + r->size, align);
++			size = last - addr;
++			changed = true;
++			goto again;
++		}
++		if (last <= (r->base + r->size) && addr >= r->base) {
++			(*sizep)++;
++			return false;
++		}
++	}
++	if (changed) {
++		*addrp = addr;
++		*sizep = size;
++	}
++	return changed;
++}
++
++static u64 __init __lmb_find_area_size(u64 ei_start, u64 ei_last, u64 start,
++			 u64 *sizep, u64 align)
++{
++	u64 addr, last;
++
++	addr = round_up(ei_start, align);
++	if (addr < start)
++		addr = round_up(start, align);
++	if (addr >= ei_last)
++		goto out;
++	*sizep = ei_last - addr;
++	while (bad_addr_size(&addr, sizep, align) && addr + *sizep <= ei_last)
++		;
++	last = addr + *sizep;
++	if (last > ei_last)
++		goto out;
++
++	return addr;
++
++out:
++	return -1ULL;
++}
++
++/*
++ * Find next free range after *start
++ */
++u64 __init lmb_find_area_size(u64 start, u64 *sizep, u64 align)
++{
++	int i;
++
++	for (i = 0; i < lmb.memory.cnt; i++) {
++		u64 ei_start = lmb.memory.region[i].base;
++		u64 ei_last = ei_start + lmb.memory.region[i].size;
++		u64 addr;
++
++		addr = __lmb_find_area_size(ei_start, ei_last, start,
++					 sizep, align);
++
++		if (addr != -1ULL)
++			return addr;
++	}
++
++	return -1ULL;
++}
++
 -- 
 1.6.4.2
 
