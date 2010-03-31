@@ -1,89 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet12.oracle.com ([141.146.126.234]:26437 "EHLO
+Received: from acsinet12.oracle.com ([141.146.126.234]:27064 "EHLO
 	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755338Ab0CaCVB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Mar 2010 22:21:01 -0400
+	with ESMTP id S932065Ab0CaCV3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Mar 2010 22:21:29 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 16/33] lmb: Add lmb_reserve_area_overlap_ok()
-Date: Tue, 30 Mar 2010 19:17:01 -0700
-Message-ID: <1270001838-15857-17-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 32/33] x86: Use walk_system_ream_range() instead of referring e820.map directly for tboot
+Date: Tue, 30 Mar 2010 19:17:17 -0700
+Message-ID: <1270001838-15857-33-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
 References: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100331021701.nu0En6SgvGtDGcmVmjY6NZP-KiqYvRWRIn9ZX1fFKmI@z>
+Message-ID: <20100331021717.JOh3OH_4gYck-mnB74auwRAM7dHZIRNTjjDGMt-KWZg@z>
 
-Some areas from firmware could be reserved several times from different callers.
-
-If these area are overlapped, We may have overlapped entries in lmb.reserved.
-
-Try to free the area at first, before rerserve them again.
+So we can make e820 to be __initdata
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    1 +
- mm/lmb.c            |   27 +++++++++++++++++++++++++--
- 2 files changed, 26 insertions(+), 2 deletions(-)
+ arch/x86/kernel/tboot.c |   22 +++++++++-------------
+ 1 files changed, 9 insertions(+), 13 deletions(-)
 
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 8332934..3c8095f 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -86,6 +86,7 @@ lmb_end_pfn(struct lmb_region *type, unsigned long region_nr)
- }
+diff --git a/arch/x86/kernel/tboot.c b/arch/x86/kernel/tboot.c
+index cc2c604..cf27d64 100644
+--- a/arch/x86/kernel/tboot.c
++++ b/arch/x86/kernel/tboot.c
+@@ -170,34 +170,30 @@ static void tboot_create_trampoline(void)
  
- void lmb_reserve_area(u64 start, u64 end, char *name);
-+void lmb_reserve_area_overlap_ok(u64 start, u64 end, char *name);
- void lmb_free_area(u64 start, u64 end);
- void lmb_add_memory(u64 start, u64 end);
- u64 __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
-diff --git a/mm/lmb.c b/mm/lmb.c
-index e88ac58..38d4aef 100644
---- a/mm/lmb.c
-+++ b/mm/lmb.c
-@@ -605,6 +605,12 @@ void __init lmb_add_memory(u64 start, u64 end)
- 	__check_and_double_region_array(&lmb.memory, &lmb_memory_region[0]);
- }
+ #ifdef CONFIG_ACPI_SLEEP
  
-+static void __init __lmb_reserve_area(u64 start, u64 end, char *name)
-+{
-+	lmb_add_region(&lmb.reserved, start, end - start);
-+	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0]);
-+}
-+
- void __init lmb_reserve_area(u64 start, u64 end, char *name)
+-static void add_mac_region(phys_addr_t start, unsigned long size)
++static int
++add_mac_region(unsigned long start_pfn, unsigned long nr_pages, void  *arg)
  {
- 	if (start == end)
-@@ -613,8 +619,25 @@ void __init lmb_reserve_area(u64 start, u64 end, char *name)
- 	if (WARN_ONCE(start > end, "lmb_reserve_area: wrong range [%#llx, %#llx]\n", start, end))
- 		return;
++	u64 start = start_pfn;
++	u64 size = nr_pages;
+ 	struct tboot_mac_region *mr;
+-	phys_addr_t end = start + size;
  
--	lmb_add_region(&lmb.reserved, start, end - start);
--	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0]);
-+	__lmb_reserve_area(start, end, name);
-+}
+ 	if (tboot->num_mac_regions >= MAX_TB_MAC_REGIONS)
+ 		panic("tboot: Too many MAC regions\n");
+ 
+ 	if (start && size) {
+ 		mr = &tboot->mac_regions[tboot->num_mac_regions++];
+-		mr->start = round_down(start, PAGE_SIZE);
+-		mr->size  = round_up(end, PAGE_SIZE) - mr->start;
++		mr->start = start << PAGE_SHIFT;
++		mr->size  = (u32) (size << PAGE_SHIFT);
+ 	}
 +
-+/*
-+ * Could be used to avoid having overlap entries in lmb.reserved.region.
-+ *  Don't need to use it with area that is from lmb_find_area()
-+ *  Only use it for the area that fw hidden area.
-+ */
-+void __init lmb_reserve_area_overlap_ok(u64 start, u64 end, char *name)
-+{
-+	if (start == end)
-+		return;
-+
-+	if (WARN_ONCE(start > end, "lmb_reserve_area_overlap_ok: wrong range [%#llx, %#llx]\n", start, end))
-+		return;
-+
-+	/* Free that region at first */
-+	lmb_free(start, end - start);
-+	__lmb_reserve_area(start, end, name);
++	return 0;
  }
  
- void __init lmb_free_area(u64 start, u64 end)
+ static int tboot_setup_sleep(void)
+ {
+-	int i;
+-
+ 	tboot->num_mac_regions = 0;
+ 
+-	for (i = 0; i < e820.nr_map; i++) {
+-		if ((e820.map[i].type != E820_RAM)
+-		 && (e820.map[i].type != E820_RESERVED_KERN))
+-			continue;
+-
+-		add_mac_region(e820.map[i].addr, e820.map[i].size);
+-	}
++	walk_system_ram_range(0, max_pfn, NULL, add_mac_region);
+ 
+ 	tboot->acpi_sinfo.kernel_s3_resume_vector = acpi_wakeup_address;
+ 
 -- 
 1.6.4.2
 
