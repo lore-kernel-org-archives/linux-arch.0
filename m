@@ -1,35 +1,80 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 1/2] genirq: Run irq handlers with interrupts disabled
-Date: Wed, 31 Mar 2010 13:16:37 +0200 (CEST)
-Message-ID: <alpine.LFD.2.00.1003311315520.32352@localhost.localdomain>
-References: <20100326000325.917127328@linutronix.de> <20100326000405.758579387@linutronix.de> <20100326061310.GV20695@one.firstfloor.org> <alpine.LFD.2.00.1003261224070.3147@localhost.localdomain> <20100330053325.GL20695@one.firstfloor.org>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: start_kernel(): bug: interrupts were enabled early
+Date: Wed, 31 Mar 2010 13:40:48 -0700
+Message-ID: <20100331134048.da4e35a7.akpm@linux-foundation.org>
+References: <20100325194100.GA2364@debian>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:38059 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753187Ab0CaLTU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 31 Mar 2010 07:19:20 -0400
-In-Reply-To: <20100330053325.GL20695@one.firstfloor.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:37886 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757834Ab0CaUlu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 31 Mar 2010 16:41:50 -0400
+In-Reply-To: <20100325194100.GA2364@debian>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <andi@firstfloor.org>
-Cc: Linus Torvalds <torvalds@osdl.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>
+To: Rabin Vincent <rabin@rab.in>
+Cc: lkml <linux-kernel@vger.kernel.org>, yinghai@kernel.org, hpa@zytor.com, penberg@cs.helsinki.fi, cl@linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org
 
-On Tue, 30 Mar 2010, Andi Kleen wrote:
+On Fri, 26 Mar 2010 01:11:00 +0530
+Rabin Vincent <rabin@rab.in> wrote:
 
-> > Why not simply force IRQF_DISABLED for all MSI interrupts. That still
-> > allows nesting for non MSI ones, but it limits the chance of throwing
-> > up reasonably well. That's a two liner.
-> > 
-> > Can you please test whether it resolves the issue at hand ?
+> On latest git, I'm seeing "start_kernel(): bug: interrupts were enabled
+> early" messages on ARM (sample log below).
 > 
-> Sorry for the late answer. Got confirmation that this patch
-> fixes the test case. Thanks.
+> This appears to be caused by:
+> 
+>   start_kernel -> radix_tree_init -> kmem_cache_create (slub) ->
+>    down_write -> __down_write (lib/rwsem-spinlock.c) -> spin_unlock_irq
+> 
+> radix_tree_init was moved earlier by:
+> 
+>   commit 773e3eb7b81e5ba13b5155dfb3bb75b8ce37f8f9
+>   Author: Yinghai Lu <yinghai@kernel.org>
+>   Date:   Wed Feb 10 01:20:33 2010 -0800
+> 
+>       init: Move radix_tree_init() early
+> 
+>       Prepare for using radix trees in early_irq_init().
+> 
+>       Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+>       LKML-Reference: <1265793639-15071-30-git-send-email-yinghai@kernel.org>
+>       Signed-off-by: H. Peter Anvin <hpa@zytor.com>
+> 
 
-Ok, I'll push it linus wards and cc stable. I think thats the least
-intrusive safe bet we can have right now.
+That's going to be hard to fix.
 
-Thanks,
+Once upon a time, enabling interrupts too early in boot would kill
+powerpc boxes stone dead.  From the lack of noise I assume that this is
+not happening in current kernels for some reason.
 
-	tglx
+We have two checks in start_kernel():
+
+	if (!irqs_disabled()) {
+		printk(KERN_WARNING "start_kernel(): bug: interrupts were "
+				"enabled *very* early, fixing it\n");
+		local_irq_disable();
+	}
+	rcu_init();
+	radix_tree_init();
+	/* init some links before init_ISA_irqs() */
+	early_irq_init();
+	init_IRQ();
+	prio_tree_init();
+	init_timers();
+	hrtimers_init();
+	softirq_init();
+	timekeeping_init();
+	time_init();
+	profile_init();
+	if (!irqs_disabled())
+		printk(KERN_CRIT "start_kernel(): bug: interrupts were "
+				 "enabled early\n");
+
+perhaps the second one isn't needed?  Perhaps no architecture requires
+that local interrupts be disabled across the above initialisations?
+
+
+I'll ask Rafael and Maciej to track this as a post-2.6.33 regression.
