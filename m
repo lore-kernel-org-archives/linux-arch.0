@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 17/33] lmb: Use lmb_debug to control debug message print out
-Date: Tue, 30 Mar 2010 19:17:02 -0700
-Message-ID: <1270001838-15857-18-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 13/33] lmb: Add lmb_find_area_node()
+Date: Tue, 30 Mar 2010 19:16:58 -0700
+Message-ID: <1270001838-15857-14-git-send-email-yinghai@kernel.org>
 References: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
@@ -10,100 +10,54 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Also let lmb_reserve_area/lmb_free_area could print out name if lmb=debug is
-specified
+It can be used to find NODE_DATA for numa.
 
-will also print ther name when reserve_lmb_area/free_lmb_area are called.
+Need to make sure early_node_map[] is filled before it is called, otherwise
+it will fallback to lmb_find_area(), with node range.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- mm/lmb.c |   29 +++++++++++++++++++++--------
- 1 files changed, 21 insertions(+), 8 deletions(-)
+ include/linux/lmb.h |    1 +
+ mm/lmb.c            |   15 +++++++++++++++
+ 2 files changed, 16 insertions(+), 0 deletions(-)
 
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index 5dbc4ef..4078825 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -91,6 +91,7 @@ void lmb_add_memory(u64 start, u64 end);
+ u64 __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
+ 			 u64 size, u64 align);
+ u64 lmb_find_area(u64 start, u64 end, u64 size, u64 align);
++u64 lmb_find_area_node(int nid, u64 start, u64 end, u64 size, u64 align);
+ 
+ void lmb_to_bootmem(u64 start, u64 end);
+ struct range;
 diff --git a/mm/lmb.c b/mm/lmb.c
-index 38d4aef..0260258 100644
+index 72448a5..868886f 100644
 --- a/mm/lmb.c
 +++ b/mm/lmb.c
-@@ -591,8 +591,9 @@ static void __init __check_and_double_region_array(struct lmb_region *type,
- 	memset(&old[0], 0, sizeof(struct lmb_property) * rgnsz);
- 	type->region = new;
- 	type->nr_regions = rgnsz * 2;
--	printk(KERN_DEBUG "lmb.reserved.region array is doubled to %ld at [%llx - %llx]\n",
--		type->nr_regions, mem, mem + size - 1);
-+	if (lmb_debug)
-+		pr_info("lmb.reserved.region array is doubled to %ld at [%010llx - %010llx]\n",
-+				type->nr_regions, mem, mem + size - 1);
- 
- 	/* Free old one ?*/
- 	if (old != static_region)
-@@ -619,6 +620,8 @@ void __init lmb_reserve_area(u64 start, u64 end, char *name)
- 	if (WARN_ONCE(start > end, "lmb_reserve_area: wrong range [%#llx, %#llx]\n", start, end))
- 		return;
- 
-+	if (lmb_debug)
-+		pr_info("    lmb_reserve_area: [%010llx, %010llx] %16s\n", start, end, name);
- 	__lmb_reserve_area(start, end, name);
+@@ -791,6 +791,21 @@ u64 __init lmb_find_area(u64 start, u64 end, u64 size, u64 align)
+ 	return -1ULL;
  }
- 
-@@ -635,6 +638,8 @@ void __init lmb_reserve_area_overlap_ok(u64 start, u64 end, char *name)
- 	if (WARN_ONCE(start > end, "lmb_reserve_area_overlap_ok: wrong range [%#llx, %#llx]\n", start, end))
- 		return;
- 
-+	if (lmb_debug)
-+		pr_info("    lmb_reserve_area_overlap_ok: [%010llx, %010llx] %16s\n", start, end, name);
- 	/* Free that region at first */
- 	lmb_free(start, end - start);
- 	__lmb_reserve_area(start, end, name);
-@@ -648,6 +653,8 @@ void __init lmb_free_area(u64 start, u64 end)
- 	if (WARN_ONCE(start > end, "lmb_free_area: wrong range [%#llx, %#llx]\n", start, end))
- 		return;
- 
-+	if (lmb_debug)
-+		pr_info("       lmb_free_area: [%010llx, %010llx]\n", start, end);
- 	/* keep punching hole, could run out of slots too */
- 	lmb_free(start, end - start);
- 	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0]);
-@@ -688,11 +695,13 @@ static void __init subtract_lmb_reserved(struct range *range, int az)
- 
- 	count  = lmb.reserved.cnt;
- 
--	pr_info("Subtract (%d early reservations)\n", count);
-+	if (lmb_debug)
-+		pr_info("Subtract (%d early reservations)\n", count);
- 
- 	for (i = 0; i < count; i++) {
- 		struct lmb_property *r = &lmb.reserved.region[i];
--		pr_info("  #%d [%010llx - %010llx]\n", i, r->base, r->base + r->size);
-+		if (lmb_debug)
-+			pr_info("  #%03d [%010llx - %010llx]\n", i, r->base, r->base + r->size);
- 		final_start = PFN_DOWN(r->base);
- 		final_end = PFN_UP(r->base + r->size);
- 		if (final_start >= final_end)
-@@ -748,17 +757,21 @@ void __init lmb_to_bootmem(u64 start, u64 end)
- 		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
- 
- 	count  = lmb.reserved.cnt;
--	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
-+	if (lmb_debug)
-+		pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
- 	for (i = 0; i < count; i++) {
- 		struct lmb_property *r = &lmb.reserved.region[i];
--		pr_info("  #%d [%010llx - %010llx] ", i, r->base, r->base + r->size);
-+		if (lmb_debug)
-+			pr_info("  #%03d [%010llx - %010llx] ", i, r->base, r->base + r->size);
- 		final_start = max(start, r->base);
- 		final_end = min(end, r->base + r->size);
- 		if (final_start >= final_end) {
--			pr_cont("\n");
-+			if (lmb_debug)
-+				pr_cont("\n");
- 			continue;
- 		}
--		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
-+		if (lmb_debug)
-+			pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
- 		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
- 	}
- 	/* Clear them to avoid misusing ? */
+ /*
++ * Need to call this function after lmb_register_active_regions,
++ * so early_node_map[] is filled already.
++ */
++u64 __init lmb_find_area_node(int nid, u64 start, u64 end, u64 size, u64 align)
++{
++	u64 addr;
++	addr = find_memory_core_early(nid, size, align, start, end);
++	if (addr != -1ULL)
++		return addr;
++
++	/* Fallback, should already have start end within node range */
++	return lmb_find_area(start, end, size, align);
++}
++
++/*
+  * Finds an active region in the address range from start_pfn to last_pfn and
+  * returns its range in ei_startpfn and ei_endpfn for the lmb entry.
+  */
 -- 
 1.6.4.2
