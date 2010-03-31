@@ -1,38 +1,35 @@
-From: Christoph Lameter <cl@linux-foundation.org>
+From: Russell King <rmk@arm.linux.org.uk>
 Subject: Re: start_kernel(): bug: interrupts were enabled early
-Date: Wed, 31 Mar 2010 16:42:25 -0500 (CDT)
-Message-ID: <alpine.DEB.2.00.1003311640410.30456@router.home>
-References: <20100325194100.GA2364@debian> <20100331134048.da4e35a7.akpm@linux-foundation.org> <4BB3B4DB.7040904@kernel.org> <20100331210145.GB32165@parisc-linux.org> <4BB3B8FC.1020608@zytor.com> <20100331211754.GC32165@parisc-linux.org>
+Date: Wed, 31 Mar 2010 22:54:11 +0100
+Message-ID: <20100331215411.GB17715@flint.arm.linux.org.uk>
+References: <20100325194100.GA2364@debian> <20100331134048.da4e35a7.akpm@linux-foundation.org> <4BB3B4DB.7040904@kernel.org> <20100331210145.GB32165@parisc-linux.org> <4BB3B8FC.1020608@zytor.com> <20100331211754.GC32165@parisc-linux.org> <alpine.DEB.2.00.1003311640410.30456@router.home>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from nlpi157.sbcis.sbc.com ([207.115.36.171]:51081 "EHLO
-	nlpi157.prodigy.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758136Ab0CaVny (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 31 Mar 2010 17:43:54 -0400
-In-Reply-To: <20100331211754.GC32165@parisc-linux.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:41088 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758276Ab0CaV5V (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 31 Mar 2010 17:57:21 -0400
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.00.1003311640410.30456@router.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Yinghai Lu <yinghai@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org
+To: Christoph Lameter <cl@linux-foundation.org>
+Cc: Matthew Wilcox <matthew@wil.cx>, "H. Peter Anvin" <hpa@zytor.com>, Yinghai Lu <yinghai@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org
 
-On Wed, 31 Mar 2010, Matthew Wilcox wrote:
+On Wed, Mar 31, 2010 at 04:42:25PM -0500, Christoph Lameter wrote:
+> Do not run the checks while we are in a single threaded context?
+> 
+> I thought we had some dynamic code patching thingamy that could change
+> those when we go to smp mode?
 
-> On Wed, Mar 31, 2010 at 02:05:00PM -0700, H. Peter Anvin wrote:
-> > What I note is that lib/rwsem-spinlock.c seems to be rather inconsistent
-> > in its use of spin_lock_irqsave/spin_lock_irqrestore versus
-> > spin_lock_irq/spin_unlock_irq... in fact, __down_read is the *only*
-> > place where we use the latter as opposed to the former.
-> >
-> > Is that a bug?  If so, it would certainly explain this behavior.
->
-> It's based on down_read() and down_write() not being callable from
-> interrupt context, or with interrupts disabled (since they can sleep).
-> up_read(), up_write(), down_read_trylock(), down_write_trylock(),
-> downgrade_write() can all be called from interrupt context since they
-> cannot sleep.
+You have to remember that on embedded architectures, such as ARM,
+where XIP is supported we can't change the text segment at run time -
+which means dynamic code patching won't work.
 
-Do not run the checks while we are in a single threaded context?
+However, the kernel should still work in such situations.
 
-I thought we had some dynamic code patching thingamy that could change
-those when we go to smp mode?
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
