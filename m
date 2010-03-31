@@ -1,139 +1,111 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 09/33] lmb: Add get_free_all_memory_range()
-Date: Tue, 30 Mar 2010 19:16:54 -0700
-Message-ID: <1270001838-15857-10-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 27/33] x86, lmb: Use lmb_memory_size()/lmb_free_memory_size() to get correct dma_reserve
+Date: Tue, 30 Mar 2010 19:17:12 -0700
+Message-ID: <1270001838-15857-28-git-send-email-yinghai@kernel.org>
 References: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from acsinet11.oracle.com ([141.146.126.233]:39044 "EHLO
+	acsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932918Ab0CaCWC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Mar 2010 22:22:02 -0400
 In-Reply-To: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
-Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Jan Beulich <jbeulich@novell.com>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-get_free_all_memory_range is for CONFIG_NO_BOOTMEM=y, and will be called by
-free_all_memory_core_early().
+lmb_memory_size() will return memory size in lmb.memory.region.
+lmb_free_memory_size() will return free memory size in lmb.memory.region.
 
-It will use early_node_map aka active ranges subtract lmb.reserved to
-get all free range, and those ranges will convert to slab pages.
+So We can get exact reseved size in specified range.
 
--v3: use __lmb_find_base() to get range free buffer.
+Set the size right after initmem_init(), because later bootmem API will
+get area above 16M. (except some fallback).
+
+Later after we remove the bootmem, We could call that just before paging_init().
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Jan Beulich <jbeulich@novell.com>
 ---
- include/linux/lmb.h |    2 +
- mm/lmb.c            |   86 ++++++++++++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 87 insertions(+), 1 deletions(-)
+ arch/x86/include/asm/e820.h |    2 ++
+ arch/x86/kernel/e820.c      |   17 +++++++++++++++++
+ arch/x86/kernel/setup.c     |    1 +
+ arch/x86/mm/init_64.c       |    7 -------
+ 4 files changed, 20 insertions(+), 7 deletions(-)
 
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 1e236d1..2ee2cc1 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -92,6 +92,8 @@ u64 __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
- u64 lmb_find_area(u64 start, u64 end, u64 size, u64 align);
+diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
+index de6cd06..334281f 100644
+--- a/arch/x86/include/asm/e820.h
++++ b/arch/x86/include/asm/e820.h
+@@ -117,6 +117,8 @@ extern u64 early_reserve_e820(u64 startt, u64 sizet, u64 align);
  
- void lmb_to_bootmem(u64 start, u64 end);
-+struct range;
-+int get_free_all_memory_range(struct range **rangep, int nodeid);
- 
- #include <asm/lmb.h>
- 
-diff --git a/mm/lmb.c b/mm/lmb.c
-index f25f98c..62efdb4 100644
---- a/mm/lmb.c
-+++ b/mm/lmb.c
-@@ -630,7 +630,91 @@ void __init lmb_free_area(u64 start, u64 end)
- 	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0]);
+ void init_lmb_memory(void);
+ void fill_lmb_memory(void);
++void find_lmb_dma_reserve(void);
++
+ extern void finish_e820_parsing(void);
+ extern void e820_reserve_resources(void);
+ extern void e820_reserve_resources_late(void);
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index cd86d1c..e2a0b02 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -1107,3 +1107,20 @@ void __init fill_lmb_memory(void)
+ 	lmb_analyze();
+ 	lmb_dump_all();
  }
- 
--#ifndef CONFIG_NO_BOOTMEM
-+static __init struct range *find_range_array(int count)
++
++void __init find_lmb_dma_reserve(void)
 +{
-+	u64 end, size, mem;
-+	struct range *range;
-+
-+	size = sizeof(struct range) * count;
-+	end = lmb.default_alloc_limit;
-+
-+	mem = __lmb_find_base(size, sizeof(struct range), end);
-+	if (mem == -1ULL)
-+		panic("can not find more space for range array");
-+
++#ifdef CONFIG_X86_64
++	u64 free_size_pfn;
++	u64 mem_size_pfn;
 +	/*
-+	 * This range is tempoaray, so don't reserve it, it will not be
-+	 * overlapped because We will not alloccate new buffer before
-+	 * We discard this one
++	 * need to find out used area below MAX_DMA_PFN
++	 * need to use lmb to get free size in [0, MAX_DMA_PFN]
++	 * at first, and assume boot_mem will not take below MAX_DMA_PFN
 +	 */
-+	range = __va(mem);
-+	memset(range, 0, size);
-+
-+	return range;
-+}
-+
-+#ifdef CONFIG_NO_BOOTMEM
-+static void __init subtract_lmb_reserved(struct range *range, int az)
-+{
-+	int i, count;
-+	u64 final_start, final_end;
-+
-+	/* Take out region array itself at first*/
-+	if (lmb.reserved.region != lmb_reserved_region)
-+		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
-+
-+	count  = lmb.reserved.cnt;
-+
-+	pr_info("Subtract (%d early reservations)\n", count);
-+
-+	for (i = 0; i < count; i++) {
-+		struct lmb_property *r = &lmb.reserved.region[i];
-+		pr_info("  #%d [%010llx - %010llx]\n", i, r->base, r->base + r->size);
-+		final_start = PFN_DOWN(r->base);
-+		final_end = PFN_UP(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		subtract_range(range, az, final_start, final_end);
-+	}
-+	/* Put region array back ? */
-+	if (lmb.reserved.region != lmb_reserved_region)
-+		lmb_reserve(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
-+}
-+
-+int __init get_free_all_memory_range(struct range **rangep, int nodeid)
-+{
-+	int count;
-+	struct range *range;
-+	int nr_range;
-+
-+	count = lmb.reserved.cnt * 2;
-+
-+	range = find_range_array(count);
-+	nr_range = 0;
-+
-+	/*
-+	 * Use early_node_map[] and lmb.reserved.region to get range array
-+	 * at first
-+	 */
-+	nr_range = add_from_early_node_map(range, count, nr_range, nodeid);
-+#ifdef CONFIG_X86_32
-+	subtract_range(range, count, max_low_pfn, -1ULL);
++	mem_size_pfn = lmb_memory_size(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
++	free_size_pfn = lmb_free_memory_size(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
++	set_dma_reserve(mem_size_pfn - free_size_pfn);
 +#endif
-+	subtract_lmb_reserved(range, count);
-+	nr_range = clean_sort_range(range, count);
-+
-+	/* Need to clear it ? */
-+	if (nodeid == MAX_NUMNODES) {
-+		memset(&lmb.reserved.region[0], 0, sizeof(struct lmb_property) * lmb.reserved.nr_regions);
-+		lmb.reserved.region = NULL;
-+		lmb.reserved.nr_regions = 0;
-+		lmb.reserved.cnt = 0;
-+	}
-+
-+	*rangep = range;
-+	return nr_range;
 +}
-+#else
- void __init lmb_to_bootmem(u64 start, u64 end)
++
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 71e6390..2535579 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -990,6 +990,7 @@ void __init setup_arch(char **cmdline_p)
+ #endif
+ 
+ 	initmem_init(0, max_pfn, acpi, k8);
++	find_lmb_dma_reserve();
+ #ifndef CONFIG_NO_BOOTMEM
+ 	lmb_to_bootmem(0, max_low_pfn<<PAGE_SHIFT);
+ #endif
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index 3da82bf..0ad3c95 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -52,8 +52,6 @@
+ #include <asm/init.h>
+ #include <linux/bootmem.h>
+ 
+-static unsigned long dma_reserve __initdata;
+-
+ static int __init parse_direct_gbpages_off(char *arg)
  {
- 	int i, count;
+ 	direct_gbpages = 0;
+@@ -820,11 +818,6 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 
+ 	reserve_bootmem(phys, len, flags);
+ 
+-	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
+-		dma_reserve += len / PAGE_SIZE;
+-		set_dma_reserve(dma_reserve);
+-	}
+-
+ 	return 0;
+ }
+ #endif
 -- 
 1.6.4.2
