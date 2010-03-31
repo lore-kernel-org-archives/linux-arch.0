@@ -1,27 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:33670 "EHLO mail.zytor.com"
+Received: from terminus.zytor.com ([198.137.202.10]:40368 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758186Ab0CaVM0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 31 Mar 2010 17:12:26 -0400
-Message-ID: <4BB3B9C1.5000100@zytor.com>
-Date: Wed, 31 Mar 2010 14:08:17 -0700
+	id S1755808Ab0CaWBb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 31 Mar 2010 18:01:31 -0400
+Message-ID: <4BB3C540.9000405@zytor.com>
+Date: Wed, 31 Mar 2010 14:57:20 -0700
 From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
 Subject: Re: start_kernel(): bug: interrupts were enabled early
-References: <20100325194100.GA2364@debian> <20100331134048.da4e35a7.akpm@linux-foundation.org> <4BB3B4DB.7040904@kernel.org> <20100331210555.GA17715@flint.arm.linux.org.uk>
-In-Reply-To: <20100331210555.GA17715@flint.arm.linux.org.uk>
+References: <20100325194100.GA2364@debian> <20100331134048.da4e35a7.akpm@linux-foundation.org> <4BB3B4DB.7040904@kernel.org> <20100331210145.GB32165@parisc-linux.org> <4BB3B8FC.1020608@zytor.com> <20100331211754.GC32165@parisc-linux.org> <alpine.DEB.2.00.1003311640410.30456@router.home> <20100331215411.GB17715@flint.arm.linux.org.uk>
+In-Reply-To: <20100331215411.GB17715@flint.arm.linux.org.uk>
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, cl@linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org
-Message-ID: <20100331210817.LhSNzxAo6sU2GgB6fR4WrFoYx96198oF1y1Ts_BdWGc@z>
+To: Christoph Lameter <cl@linux-foundation.org>, Matthew Wilcox <matthew@wil.cx>, Yinghai Lu <yinghai@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org
+Message-ID: <20100331215720.T1aKALBopndxP_A1xcETqz-YBNqk9mpy-61sg049by8@z>
 
-On 03/31/2010 02:05 PM, Russell King wrote:
+On 03/31/2010 02:54 PM, Russell King wrote:
+> On Wed, Mar 31, 2010 at 04:42:25PM -0500, Christoph Lameter wrote:
+>> Do not run the checks while we are in a single threaded context?
+>>
+>> I thought we had some dynamic code patching thingamy that could change
+>> those when we go to smp mode?
 > 
-> We use the standard generic kernel implementation.  Is x86 different? ;)
+> You have to remember that on embedded architectures, such as ARM,
+> where XIP is supported we can't change the text segment at run time -
+> which means dynamic code patching won't work.
+> 
+> However, the kernel should still work in such situations.
 > 
 
-Yes, these are optimized on x86.
+The question still remains what the incremental cost is of doing
+irqsave/irqrestore.
 
 	-hpa
