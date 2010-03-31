@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 04/33] lmb: Seperate __lmb_find_base() from __lmb_alloc_base()
-Date: Tue, 30 Mar 2010 19:16:49 -0700
-Message-ID: <1270001838-15857-5-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 20/33] x86, lmb: Add lmb_find_area_size()
+Date: Tue, 30 Mar 2010 19:17:05 -0700
+Message-ID: <1270001838-15857-21-git-send-email-yinghai@kernel.org>
 References: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
@@ -10,58 +10,122 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-So We can construct one generic __find_lmb_area() later
+size is returned according free range.
+Will be used to find free ranges for early_memtest and memory corruption check
+
+Do not mess it up with mm/lmb.c yet.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- mm/lmb.c |   21 +++++++++++++++++----
- 1 files changed, 17 insertions(+), 4 deletions(-)
+ arch/x86/mm/Makefile |    2 +
+ arch/x86/mm/lmb.c    |   88 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 90 insertions(+), 0 deletions(-)
+ create mode 100644 arch/x86/mm/lmb.c
 
-diff --git a/mm/lmb.c b/mm/lmb.c
-index 65b62dc..392d805 100644
---- a/mm/lmb.c
-+++ b/mm/lmb.c
-@@ -393,7 +393,7 @@ u64 __init lmb_alloc_base(u64 size, u64 align, u64 max_addr)
- 	return alloc;
- }
+diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
+index a4c7683..8ab0505 100644
+--- a/arch/x86/mm/Makefile
++++ b/arch/x86/mm/Makefile
+@@ -26,4 +26,6 @@ obj-$(CONFIG_NUMA)		+= numa.o numa_$(BITS).o
+ obj-$(CONFIG_K8_NUMA)		+= k8topology_64.o
+ obj-$(CONFIG_ACPI_NUMA)		+= srat_$(BITS).o
  
--u64 __init __lmb_alloc_base(u64 size, u64 align, u64 max_addr)
-+static u64 __init __lmb_find_base(u64 size, u64 align, u64 max_addr)
- {
- 	long i, j;
- 	u64 base = 0;
-@@ -426,8 +426,6 @@ u64 __init __lmb_alloc_base(u64 size, u64 align, u64 max_addr)
- 			j = lmb_overlaps_region(&lmb.reserved, base, size);
- 			if (j < 0) {
- 				/* this area isn't reserved, take it */
--				if (lmb_add_region(&lmb.reserved, base, size) < 0)
--					return 0;
- 				return base;
- 			}
- 			res_base = lmb.reserved.region[j].base;
-@@ -436,7 +434,22 @@ u64 __init __lmb_alloc_base(u64 size, u64 align, u64 max_addr)
- 			base = lmb_align_down(res_base - size, align);
- 		}
- 	}
--	return 0;
++obj-$(CONFIG_HAVE_LMB)		+= lmb.o
++
+ obj-$(CONFIG_MEMTEST)		+= memtest.o
+diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
+new file mode 100644
+index 0000000..3229e9e
+--- /dev/null
++++ b/arch/x86/mm/lmb.c
+@@ -0,0 +1,88 @@
++#include <linux/kernel.h>
++#include <linux/types.h>
++#include <linux/init.h>
++#include <linux/bitops.h>
++#include <linux/lmb.h>
++#include <linux/bootmem.h>
++#include <linux/mm.h>
++#include <linux/range.h>
++
++/* Check for already reserved areas */
++static inline bool __init bad_addr_size(u64 *addrp, u64 *sizep, u64 align)
++{
++	int i;
++	u64 addr = *addrp, last;
++	u64 size = *sizep;
++	bool changed = false;
++again:
++	last = addr + size;
++	for (i = 0; i < lmb.reserved.cnt && lmb.reserved.region[i].size; i++) {
++		struct lmb_property *r = &lmb.reserved.region[i];
++		if (last > r->base && addr < r->base) {
++			size = r->base - addr;
++			changed = true;
++			goto again;
++		}
++		if (last > (r->base + r->size) && addr < (r->base + r->size)) {
++			addr = round_up(r->base + r->size, align);
++			size = last - addr;
++			changed = true;
++			goto again;
++		}
++		if (last <= (r->base + r->size) && addr >= r->base) {
++			(*sizep)++;
++			return false;
++		}
++	}
++	if (changed) {
++		*addrp = addr;
++		*sizep = size;
++	}
++	return changed;
++}
++
++static u64 __init __lmb_find_area_size(u64 ei_start, u64 ei_last, u64 start,
++			 u64 *sizep, u64 align)
++{
++	u64 addr, last;
++
++	addr = round_up(ei_start, align);
++	if (addr < start)
++		addr = round_up(start, align);
++	if (addr >= ei_last)
++		goto out;
++	*sizep = ei_last - addr;
++	while (bad_addr_size(&addr, sizep, align) && addr + *sizep <= ei_last)
++		;
++	last = addr + *sizep;
++	if (last > ei_last)
++		goto out;
++
++	return addr;
++
++out:
 +	return -1ULL;
 +}
 +
-+u64 __init __lmb_alloc_base(u64 size, u64 align, u64 max_addr)
++/*
++ * Find next free range after *start
++ */
++u64 __init lmb_find_area_size(u64 start, u64 *sizep, u64 align)
 +{
-+	u64 base;
++	int i;
 +
-+	base = __lmb_find_base(size, align, max_addr);
++	for (i = 0; i < lmb.memory.cnt; i++) {
++		u64 ei_start = lmb.memory.region[i].base;
++		u64 ei_last = ei_start + lmb.memory.region[i].size;
++		u64 addr;
 +
-+	if (base == -1ULL)
-+		return 0;
++		addr = __lmb_find_area_size(ei_start, ei_last, start,
++					 sizep, align);
 +
-+	if (lmb_add_region(&lmb.reserved, base, size) < 0)
-+		return 0;
++		if (addr != -1ULL)
++			return addr;
++	}
 +
-+	return base;
- }
- 
- /* You must call lmb_analyze() before this. */
++	return -1ULL;
++}
++
 -- 
 1.6.4.2
