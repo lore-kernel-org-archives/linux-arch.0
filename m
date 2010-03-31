@@ -1,56 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:54479 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758146Ab0CaVJA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 31 Mar 2010 17:09:00 -0400
-Date: Wed, 31 Mar 2010 22:05:55 +0100
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: start_kernel(): bug: interrupts were enabled early
-Message-ID: <20100331210555.GA17715@flint.arm.linux.org.uk>
-References: <20100325194100.GA2364@debian> <20100331134048.da4e35a7.akpm@linux-foundation.org> <4BB3B4DB.7040904@kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:33670 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758186Ab0CaVM0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 31 Mar 2010 17:12:26 -0400
+Message-ID: <4BB3B9C1.5000100@zytor.com>
+Date: Wed, 31 Mar 2010 14:08:17 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <4BB3B4DB.7040904@kernel.org>
+Subject: Re: start_kernel(): bug: interrupts were enabled early
+References: <20100325194100.GA2364@debian> <20100331134048.da4e35a7.akpm@linux-foundation.org> <4BB3B4DB.7040904@kernel.org> <20100331210555.GA17715@flint.arm.linux.org.uk>
+In-Reply-To: <20100331210555.GA17715@flint.arm.linux.org.uk>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, hpa@zytor.com, penberg@cs.helsinki.fi, cl@linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org
-Message-ID: <20100331210555.3QcYHLLQb7vW4N5BlnSmQukDBco7iScPp8KqGTTU8eY@z>
+To: Yinghai Lu <yinghai@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, cl@linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org
+Message-ID: <20100331210817.LhSNzxAo6sU2GgB6fR4WrFoYx96198oF1y1Ts_BdWGc@z>
 
-On Wed, Mar 31, 2010 at 01:47:23PM -0700, Yinghai Lu wrote:
-> On 03/31/2010 01:40 PM, Andrew Morton wrote:
-> > We have two checks in start_kernel():
-> > 
-> > 	if (!irqs_disabled()) {
-> > 		printk(KERN_WARNING "start_kernel(): bug: interrupts were "
-> > 				"enabled *very* early, fixing it\n");
-> > 		local_irq_disable();
-> > 	}
-> > 	rcu_init();
-> > 	radix_tree_init();
-> > 	/* init some links before init_ISA_irqs() */
-> > 	early_irq_init();
-> > 	init_IRQ();
-> > 	prio_tree_init();
-> > 	init_timers();
-> > 	hrtimers_init();
-> > 	softirq_init();
-> > 	timekeeping_init();
-> > 	time_init();
-> > 	profile_init();
-> > 	if (!irqs_disabled())
-> > 		printk(KERN_CRIT "start_kernel(): bug: interrupts were "
-> > 				 "enabled early\n");
-> > 
-> > perhaps the second one isn't needed?  Perhaps no architecture requires
-> > that local interrupts be disabled across the above initialisations?
-> 	
-> spin_unlock_irq from arm is different from other archs?
+On 03/31/2010 02:05 PM, Russell King wrote:
+> 
+> We use the standard generic kernel implementation.  Is x86 different? ;)
+> 
 
-We use the standard generic kernel implementation.  Is x86 different? ;)
+Yes, these are optimized on x86.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+	-hpa
