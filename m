@@ -1,59 +1,38 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
+From: Matthew Wilcox <matthew@wil.cx>
 Subject: Re: start_kernel(): bug: interrupts were enabled early
-Date: Wed, 31 Mar 2010 14:12:54 -0700
-Message-ID: <4BB3BAD6.50308@zytor.com>
-References: <20100325194100.GA2364@debian>	<20100331134048.da4e35a7.akpm@linux-foundation.org>	<4BB3B4DB.7040904@kernel.org> <20100331135220.c6695a51.akpm@linux-foundation.org>
+Date: Wed, 31 Mar 2010 15:17:55 -0600
+Message-ID: <20100331211754.GC32165@parisc-linux.org>
+References: <20100325194100.GA2364@debian> <20100331134048.da4e35a7.akpm@linux-foundation.org> <4BB3B4DB.7040904@kernel.org> <20100331210145.GB32165@parisc-linux.org> <4BB3B8FC.1020608@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:41398 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752990Ab0CaVRQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 31 Mar 2010 17:17:16 -0400
-In-Reply-To: <20100331135220.c6695a51.akpm@linux-foundation.org>
+Received: from palinux.external.hp.com ([192.25.206.14]:44469 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758188Ab0CaVR4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 31 Mar 2010 17:17:56 -0400
+Content-Disposition: inline
+In-Reply-To: <4BB3B8FC.1020608@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Yinghai Lu <yinghai@kernel.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, cl@linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Yinghai Lu <yinghai@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, cl@linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org
 
-On 03/31/2010 01:52 PM, Andrew Morton wrote:
-> On Wed, 31 Mar 2010 13:47:23 -0700
-> Yinghai Lu <yinghai@kernel.org> wrote:
+On Wed, Mar 31, 2010 at 02:05:00PM -0700, H. Peter Anvin wrote:
+> What I note is that lib/rwsem-spinlock.c seems to be rather inconsistent
+> in its use of spin_lock_irqsave/spin_lock_irqrestore versus
+> spin_lock_irq/spin_unlock_irq... in fact, __down_read is the *only*
+> place where we use the latter as opposed to the former.
 > 
->> spin_unlock_irq from arm is different from other archs?
-> 
-> No, spin_unlock_irq() unconditionally enables interrupts on all
-> architectures.
+> Is that a bug?  If so, it would certainly explain this behavior.
 
-So I found checkin 60ba96e546da45d9e22bb04b84971a25684e4d46 in the
-bk-historic git tree:
+It's based on down_read() and down_write() not being callable from
+interrupt context, or with interrupts disabled (since they can sleep).
+up_read(), up_write(), down_read_trylock(), down_write_trylock(),
+downgrade_write() can all be called from interrupt context since they
+cannot sleep.
 
-[PATCH] rwsem: Make rwsems use interrupt disabling spinlocks
-
-The attached patch makes read/write semaphores use interrupt disabling
-spinlocks in the slow path, thus rendering the up functions and trylock
-functions available for use in interrupt context.  This matches the
-regular semaphore behaviour.
-
-I've assumed that the normal down functions must be called with
-interrupts enabled (since they might schedule), and used the
-irq-disabling spinlock variants that don't save the flags.
-
-Signed-Off-By: David Howells <dhowells@redhat.com>
-Tested-by: Badari Pulavarty <pbadari@us.ibm.com>
-Signed-off-by: Linus Torvalds <torvalds@osdl.org>
-
-What we have here is a case of this assumption being violated, because
-the lock is taken with interrupts disabled on a path where contention
-cannot happen (because the code is single-threaded at this point), but
-the lock is taken due to reuse of generic code.
-
-The obvious way to fix this would be to use
-spin_lock_irqsave..spin_lock_irqrestore in __down_read as well as in the
-other locations; I don't have a good feel for what the cost of doing so
-would be, though.  On x86 it's fairly expensive simply because the only
-way to save the state is to push it on the stack, which the compiler
-doesn't deal well with, but this code isn't used on x86.
-
-	-hpa
+-- 
+Matthew Wilcox				Intel Open Source Technology Centre
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
