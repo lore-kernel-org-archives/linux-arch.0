@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 10/33] lmb: Add lmb_register_active_regions() and lmb_hole_size()
-Date: Tue, 30 Mar 2010 19:16:55 -0700
-Message-ID: <1270001838-15857-11-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 11/33] lmb: Prepare to include linux/lmb.h in core file
+Date: Tue, 30 Mar 2010 19:16:56 -0700
+Message-ID: <1270001838-15857-12-git-send-email-yinghai@kernel.org>
 References: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
@@ -10,108 +10,34 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-lmb_register_active_regions() will be used to fill early_node_map,
-the result will be lmb.memory.region AND numa data
-
-lmb_hole_size will be used to find hole size on lmb.memory.region
-with specified range.
+Need to add protection in linux/lmb.h, to prepare to include it in
+ mm/page_alloc.c and mm/bootmem.c etc.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    4 +++
- mm/lmb.c            |   68 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 72 insertions(+), 0 deletions(-)
+ include/linux/lmb.h |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
 diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 2ee2cc1..cf8f7ca 100644
+index cf8f7ca..5dbc4ef 100644
 --- a/include/linux/lmb.h
 +++ b/include/linux/lmb.h
-@@ -95,6 +95,10 @@ void lmb_to_bootmem(u64 start, u64 end);
- struct range;
- int get_free_all_memory_range(struct range **rangep, int nodeid);
+@@ -2,6 +2,7 @@
+ #define _LINUX_LMB_H
+ #ifdef __KERNEL__
  
-+void lmb_register_active_regions(int nid, unsigned long start_pfn,
-+					 unsigned long last_pfn);
-+u64 lmb_hole_size(u64 start, u64 end);
-+
++#ifdef CONFIG_HAVE_LMB
+ /*
+  * Logical memory blocks.
+  *
+@@ -101,6 +102,8 @@ u64 lmb_hole_size(u64 start, u64 end);
+ 
  #include <asm/lmb.h>
  
++#endif /* CONFIG_HAVE_LMB */
++
  #endif /* __KERNEL__ */
-diff --git a/mm/lmb.c b/mm/lmb.c
-index 62efdb4..72448a5 100644
---- a/mm/lmb.c
-+++ b/mm/lmb.c
-@@ -790,3 +790,71 @@ u64 __init lmb_find_area(u64 start, u64 end, u64 size, u64 align)
- 	}
- 	return -1ULL;
- }
-+/*
-+ * Finds an active region in the address range from start_pfn to last_pfn and
-+ * returns its range in ei_startpfn and ei_endpfn for the lmb entry.
-+ */
-+static int __init lmb_find_active_region(const struct lmb_property *ei,
-+				  unsigned long start_pfn,
-+				  unsigned long last_pfn,
-+				  unsigned long *ei_startpfn,
-+				  unsigned long *ei_endpfn)
-+{
-+	u64 align = PAGE_SIZE;
-+
-+	*ei_startpfn = round_up(ei->base, align) >> PAGE_SHIFT;
-+	*ei_endpfn = round_down(ei->base + ei->size, align) >> PAGE_SHIFT;
-+
-+	/* Skip map entries smaller than a page */
-+	if (*ei_startpfn >= *ei_endpfn)
-+		return 0;
-+
-+	/* Skip if map is outside the node */
-+	if (*ei_endpfn <= start_pfn || *ei_startpfn >= last_pfn)
-+		return 0;
-+
-+	/* Check for overlaps */
-+	if (*ei_startpfn < start_pfn)
-+		*ei_startpfn = start_pfn;
-+	if (*ei_endpfn > last_pfn)
-+		*ei_endpfn = last_pfn;
-+
-+	return 1;
-+}
-+
-+/* Walk the lmb.memory map and register active regions within a node */
-+void __init lmb_register_active_regions(int nid, unsigned long start_pfn,
-+					 unsigned long last_pfn)
-+{
-+	unsigned long ei_startpfn;
-+	unsigned long ei_endpfn;
-+	int i;
-+
-+	for (i = 0; i < lmb.memory.cnt; i++)
-+		if (lmb_find_active_region(&lmb.memory.region[i],
-+					    start_pfn, last_pfn,
-+					    &ei_startpfn, &ei_endpfn))
-+			add_active_range(nid, ei_startpfn, ei_endpfn);
-+}
-+
-+/*
-+ * Find the hole size (in bytes) in the memory range.
-+ * @start: starting address of the memory range to scan
-+ * @end: ending address of the memory range to scan
-+ */
-+u64 __init lmb_hole_size(u64 start, u64 end)
-+{
-+	unsigned long start_pfn = start >> PAGE_SHIFT;
-+	unsigned long last_pfn = end >> PAGE_SHIFT;
-+	unsigned long ei_startpfn, ei_endpfn, ram = 0;
-+	int i;
-+
-+	for (i = 0; i < lmb.memory.cnt; i++) {
-+		if (lmb_find_active_region(&lmb.memory.region[i],
-+					    start_pfn, last_pfn,
-+					    &ei_startpfn, &ei_endpfn))
-+			ram += ei_endpfn - ei_startpfn;
-+	}
-+	return end - start - ((u64)ram << PAGE_SHIFT);
-+}
-+
+ 
+ #endif /* _LINUX_LMB_H */
 -- 
 1.6.4.2
