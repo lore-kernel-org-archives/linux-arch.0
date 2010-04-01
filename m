@@ -1,40 +1,49 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: start_kernel(): bug: interrupts were enabled early
-Date: Thu, 1 Apr 2010 13:12:36 -0700 (PDT)
-Message-ID: <alpine.LFD.2.00.1004011310210.3707@i5.linux-foundation.org>
-References: <20100325194100.GA2364@debian> <20100331134048.da4e35a7.akpm@linux-foundation.org> <4BB3B4DB.7040904@kernel.org> <20100331135220.c6695a51.akpm@linux-foundation.org> <4BB3BAD6.50308@zytor.com> <alpine.LFD.2.00.1004010904540.3707@i5.linux-foundation.org>
- <20100401102744.a4e6f24d.akpm@linux-foundation.org>
+Date: Fri, 02 Apr 2010 10:00:21 +1100
+Message-ID: <1270162821.7101.138.camel@pasglop>
+References: <1270104536.7101.114.camel@pasglop>
+	 <20100325194100.GA2364@debian>
+	 <20100331134048.da4e35a7.akpm@linux-foundation.org>
+	 <4BB3B4DB.7040904@kernel.org> <20100331210145.GB32165@parisc-linux.org>
+	 <4BB3B8FC.1020608@zytor.com> <20100331211754.GC32165@parisc-linux.org>
+	 <alpine.DEB.2.00.1003311640410.30456@router.home>
+	 <20100331215411.GB17715@flint.arm.linux.org.uk>
+	 <4BB3C540.9000405@zytor.com> <1270075071.7101.79.camel@pasglop>
+	 <20100331154955.54176e5e.akpm@linux-foundation.org>
+	 <1270084631.7101.81.camel@pasglop>
+	 <20100331182654.d36c87ff.akpm@linux-foundation.org>
+	 <4BB43CAC.3080102@zytor.com>
+	 <20100331233330.1a7357e4.akpm@linux-foundation.org>
+	 <31829.1270119970@redhat.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:37105 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758775Ab0DAURu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Apr 2010 16:17:50 -0400
-In-Reply-To: <20100401102744.a4e6f24d.akpm@linux-foundation.org>
+Received: from gate.crashing.org ([63.228.1.57]:41194 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756638Ab0DAXC1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 1 Apr 2010 19:02:27 -0400
+In-Reply-To: <31829.1270119970@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Yinghai Lu <yinghai@kernel.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, cl@linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
+To: David Howells <dhowells@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Christoph Lameter <cl@linux-foundation.org>, Matthew Wilcox <matthew@wil.cx>, Yinghai Lu <yinghai@kernel.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, linux-arch@vger.kernel.org
 
+On Thu, 2010-04-01 at 12:06 +0100, David Howells wrote:
+> Can we provide a kmem_cache_create_early()?  One that takes no locks and gets
+> cleaned up with the other __init stuff?
 
+Yuck. I hate having to expose more APIs. Also the problem with that is
+means callers have to know. So we need to propagate up all call chains
+etc... (ie, radix_tree_init_early(), etc...)
 
-On Thu, 1 Apr 2010, Andrew Morton wrote:
->
-> > So making the slow-path do the spin_[un]lock_irq{save,restore}() versions 
-> > sounds like the right thing. It won't be a performance issue: it _is_ the 
-> > slow-path, and we're already doing the expensive part (the spinlock itself 
-> > and the irq thing).
-> 
-> It's actually on the fastpath for lib/rwsem-spinlock.c.
+This is pretty much exactly the discussion we had when moving sl*b
+early, and back then, the final word from Linus (heh, for once he agreed
+with me :-) was that this made no sense.
 
-Ahh, yes. In this case, that doesn't likely change anything. The 
-save/restore versions of the irq-safe locks shouldn't be appreciably more 
-expensive than the non-saving ones. And architectures that really care 
-should have done their own per-arch optimized version anyway.
+We can bury logic inside kmem_cache_create() though, it's not -that- a
+hot path.
 
-Maybe we should even document that - so that nobody else makes the mistake 
-x86-64 did of thinking that the "generic spinlock" version of the rwsem's 
-is anything but a hacky and bad fallback case.
-
-				Linus
+Cheers,
+Ben.
