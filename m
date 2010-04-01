@@ -1,58 +1,57 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: "H. Peter Anvin" <hpa@zytor.com>
 Subject: Re: start_kernel(): bug: interrupts were enabled early
-Date: Thu, 1 Apr 2010 09:13:31 -0700 (PDT)
-Message-ID: <alpine.LFD.2.00.1004010904540.3707@i5.linux-foundation.org>
-References: <20100325194100.GA2364@debian> <20100331134048.da4e35a7.akpm@linux-foundation.org> <4BB3B4DB.7040904@kernel.org> <20100331135220.c6695a51.akpm@linux-foundation.org> <4BB3BAD6.50308@zytor.com>
+Date: Thu, 01 Apr 2010 09:15:51 -0700
+Message-ID: <4BB4C6B7.40302@zytor.com>
+References: <20100325194100.GA2364@debian>	 <20100331134048.da4e35a7.akpm@linux-foundation.org>	 <4BB3B4DB.7040904@kernel.org> <20100331210145.GB32165@parisc-linux.org>	 <4BB3B8FC.1020608@zytor.com> <20100331211754.GC32165@parisc-linux.org>	 <alpine.DEB.2.00.1003311640410.30456@router.home>	 <20100331215411.GB17715@flint.arm.linux.org.uk>	 <4BB3C540.9000405@zytor.com> <1270075071.7101.79.camel@pasglop>	 <20100331154955.54176e5e.akpm@linux-foundation.org>	 <1270084631.7101.81.camel@pasglop>	 <20100331182654.d36c87ff.akpm@linux-foundation.org>	 <4BB43CAC.3080102@zytor.com>	 <20100331233330.1a7357e4.akpm@linux-foundation.org> <1270104536.7101.114.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:36211 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757300Ab0DAQTn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Apr 2010 12:19:43 -0400
-In-Reply-To: <4BB3BAD6.50308@zytor.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, cl@linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1270104536.7101.114.camel@pasglop>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux-foundation.org>, Matthew Wilcox <matthew@wil.cx>, Yinghai Lu <yinghai@kernel.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-
-
-On Wed, 31 Mar 2010, H. Peter Anvin wrote:
+On 03/31/2010 11:48 PM, Benjamin Herrenschmidt wrote:
+> On Wed, 2010-03-31 at 23:33 -0400, Andrew Morton wrote:
+>> Just a few instructions, I guess.   But we can do it with zero.
+>>
+>> And from a design POV, pretending that down_read()/down_write() can be
+>> called with interrupts disabled is daft - they cannot!  Why muck up
+>> the
+>> usual code paths with this startup-specific hack? 
 > 
-> The obvious way to fix this would be to use
-> spin_lock_irqsave..spin_lock_irqrestore in __down_read as well as in the
-> other locations; I don't have a good feel for what the cost of doing so
-> would be, though.  On x86 it's fairly expensive simply because the only
-> way to save the state is to push it on the stack, which the compiler
-> doesn't deal well with, but this code isn't used on x86.
+> Because we the problem of when interrupts are enabled for the first time
+> is a nasty one, and having entire layer of things not usable at the
+> right level of init because somewhere something might do an irq enable
+> due to calling generic code that down's a semaphore is a PITA.
+> 
+> Seriously, Andrew, I don't see a clean solution... Something -somewhere-
+> will have to be ugly.
+> 
+> Allocation is a pretty basic service that a lot of stuff expect
+> especially when booting.
+> 
+> We went through that discussion before when we moved the SLAB init
+> earlier during boot, because it makes no sense to have tons of code to
+> have to figure out what allocator to call depending on what phase of the
+> moon it's called from (especially when said code can also be called
+> later during boot, say for hotplug reasons).
+> 
+> So we moved sl*b init earlier, thus we ought to be able to also
+> kmem_cache_alloc() earlier. We -fixed- that problem already afaik.
 
-I think that's what we should just do, with a good comment both in the 
-code and the changelog. I'm not entirely happy with it, because obviously 
-it's conceptually kind of dubious to take a lock with interrupts disabled 
-in the first place, but this is not a new issue per se.
+I would like to point out that initialization is a particular subcase of
+a more general rule:
 
-The whole bootup code is special, and we already make similar guarantees 
-about memory allocators and friends - just because it's too dang painful 
-to have some special code that does GFP_ATOMIC for early bootup when the 
-same code is often shared and used at run-time too.
+- It is safe to call a semaphore/rwlock down with IRQ disabled *if and
+only if* the caller can guarantee non-contention.
 
-So we've accepted that people can do GFP_KERNEL allocations and we won't 
-care about them if we're in the boot phase (and suspend/resume), and we 
-have that whole 'gfp_allowed_mask' thing for that.
+Initialization is an obvious subcase, but there might be others.
 
-I think this probably falls under exactly the same heading of "not pretty, 
-but let's not blow up".
+	-hpa
 
-So making the slow-path do the spin_[un]lock_irq{save,restore}() versions 
-sounds like the right thing. It won't be a performance issue: it _is_ the 
-slow-path, and we're already doing the expensive part (the spinlock itself 
-and the irq thing).
-
-So ACK on the idea. Who wants to write the trivial patch and test it? 
-Preferably somebody who sees the problem in the first place - x86 should 
-not be impacted, since the irq-disabling slow-path should never be hit 
-without contention anyway (and contention cannot/mustnot happen for this 
-case).
-
-			Linus
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
