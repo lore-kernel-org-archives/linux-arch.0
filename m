@@ -1,39 +1,37 @@
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: [patch 1/2] genirq: Run irq handlers with interrupts disabled
-Date: Fri, 2 Apr 2010 11:31:33 +0200
-Message-ID: <20100402093132.GA1360@ucw.cz>
-References: <20100326000325.917127328@linutronix.de> <20100326000405.758579387@linutronix.de> <20100326061310.GV20695@one.firstfloor.org> <alpine.LFD.2.00.1003261224070.3147@localhost.localdomain> <20100330053325.GL20695@one.firstfloor.org> <alpine.LFD.2.00.1003311315520.32352@localhost.localdomain>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: David Howells <dhowells@redhat.com>
+Subject: Re: start_kernel(): bug: interrupts were enabled early
+Date: Fri, 02 Apr 2010 15:46:14 +0100
+Message-ID: <28599.1270219574@redhat.com>
+References: <alpine.LFD.2.00.1004011310210.3707@i5.linux-foundation.org> <20100325194100.GA2364@debian> <20100331134048.da4e35a7.akpm@linux-foundation.org> <4BB3B4DB.7040904@kernel.org> <20100331135220.c6695a51.akpm@linux-foundation.org> <4BB3BAD6.50308@zytor.com> <alpine.LFD.2.00.1004010904540.3707@i5.linux-foundation.org> <20100401102744.a4e6f24d.akpm@linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ksp.mff.cuni.cz ([195.113.26.206]:59178 "EHLO
-	atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752811Ab0DBMhV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Apr 2010 08:37:21 -0400
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.1003311315520.32352@localhost.localdomain>
+Received: from mx1.redhat.com ([209.132.183.28]:10186 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754563Ab0DBOrV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 2 Apr 2010 10:47:21 -0400
+In-Reply-To: <alpine.LFD.2.00.1004011310210.3707@i5.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andi Kleen <andi@firstfloor.org>, Linus Torvalds <torvalds@osdl.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: dhowells@redhat.com, Andrew Morton <akpm@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Yinghai Lu <yinghai@kernel.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, cl@linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org
 
-On Wed 2010-03-31 13:16:37, Thomas Gleixner wrote:
-> On Tue, 30 Mar 2010, Andi Kleen wrote:
-> 
-> > > Why not simply force IRQF_DISABLED for all MSI interrupts. That still
-> > > allows nesting for non MSI ones, but it limits the chance of throwing
-> > > up reasonably well. That's a two liner.
-> > > 
-> > > Can you please test whether it resolves the issue at hand ?
-> > 
-> > Sorry for the late answer. Got confirmation that this patch
-> > fixes the test case. Thanks.
-> 
-> Ok, I'll push it linus wards and cc stable. I think thats the least
-> intrusive safe bet we can have right now.
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-stable? I'd say thats way too intrusive for -stable...
+> Ahh, yes. In this case, that doesn't likely change anything. The 
+> save/restore versions of the irq-safe locks shouldn't be appreciably more 
+> expensive than the non-saving ones. And architectures that really care 
+> should have done their own per-arch optimized version anyway.
 
--- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+That depends on the CPU.  Some CPUs have quite expensive interrupt disablement
+instructions.  FRV does for instance; but fortunately, on the FRV, I can use
+some of the excessive quantities of conditional registers to pretend that I
+disable interrupts, and only actually do so if an interrupt actually happens.
+
+> Maybe we should even document that - so that nobody else makes the mistake 
+> x86-64 did of thinking that the "generic spinlock" version of the rwsem's 
+> is anything but a hacky and bad fallback case.
+
+In some cases, it's actually the best way.  On a UP machine, for instance,
+where they reduce to nothing or where your only atomic instruction is an XCHG
+equivalent.
+
+David
