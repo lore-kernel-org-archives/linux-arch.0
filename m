@@ -1,31 +1,26 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Thomas Gleixner <tglx@linutronix.de>
 Subject: Re: [patch 1/2] genirq: Run irq handlers with interrupts disabled
-Date: Fri, 02 Apr 2010 23:31:16 +0200
-Message-ID: <1270243876.5109.527.camel@twins>
-References: <20100326000325.917127328@linutronix.de>
-	 <20100326000405.758579387@linutronix.de>
-	 <20100326061310.GV20695@one.firstfloor.org>
-	 <alpine.LFD.2.00.1003261224070.3147@localhost.localdomain>
-	 <20100330053325.GL20695@one.firstfloor.org>
-	 <alpine.LFD.2.00.1003311315520.32352@localhost.localdomain>
-	 <20100402093132.GA1360@ucw.cz>
-	 <alpine.LFD.2.00.1004022242170.32352@localhost.localdomain>
-	 <20100402210916.GA23339@elf.ucw.cz>
+Date: Sat, 3 Apr 2010 00:51:20 +0200 (CEST)
+Message-ID: <alpine.LFD.2.00.1004030046160.32352@localhost.localdomain>
+References: <20100326000325.917127328@linutronix.de> <20100326000405.758579387@linutronix.de> <20100326061310.GV20695@one.firstfloor.org> <alpine.LFD.2.00.1003261224070.3147@localhost.localdomain> <20100330053325.GL20695@one.firstfloor.org>
+ <alpine.LFD.2.00.1003311315520.32352@localhost.localdomain> <20100402093132.GA1360@ucw.cz> <alpine.LFD.2.00.1004022242170.32352@localhost.localdomain> <20100402210916.GA23339@elf.ucw.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:39995 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754334Ab0DBVcg convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Apr 2010 17:32:36 -0400
+Received: from www.tglx.de ([62.245.132.106]:54776 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755564Ab0DBWwX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 2 Apr 2010 18:52:23 -0400
 In-Reply-To: <20100402210916.GA23339@elf.ucw.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Pavel Machek <pavel@ucw.cz>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Andi Kleen <andi@firstfloor.org>, Linus Torvalds <torvalds@osdl.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>
+Cc: Andi Kleen <andi@firstfloor.org>, Linus Torvalds <torvalds@osdl.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>
 
-On Fri, 2010-04-02 at 23:09 +0200, Pavel Machek wrote:
+Pavel,
+
+On Fri, 2 Apr 2010, Pavel Machek wrote:
+
 > On Fri 2010-04-02 22:42:51, Thomas Gleixner wrote:
 > > On Fri, 2 Apr 2010, Pavel Machek wrote:
 > > 
@@ -51,12 +46,20 @@ On Fri, 2010-04-02 at 23:09 +0200, Pavel Machek wrote:
 > -stable should have no regressions, first and foremost. And this is
 > pretty certain to introduce some, at least on low-powered system with
 > serial ports.
-> 
-> So yes, it is probably better to let the possible stack overruns
-> unaddressed. We have lived with them for 15 years or so...
-> 
-> (Alternatively, just make the irq stacks bigger? Or just take Andi's
-> patch, which solves the overruns, and only introduces latency
-> regressions when it would otherwise crash?)
 
-You've got serial ports with MSI interrupts?
+I think you misunderstood what I'm going to push. The patch merily
+forces IRQF_DISABLED for MSI(X) based interrupts. So that does not
+affect low powered systems in any way.
+
+It only affects high end systems where Dave Miller already said he did
+the IRQF_DISABLED magic already in some NIC drivers just to prevent
+that.
+
+So I think your fear of regressions for low-powered systems is
+completely unsubstantiated.
+
+Thanks,
+
+	tglx
+
+ 
