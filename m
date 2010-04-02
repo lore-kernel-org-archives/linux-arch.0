@@ -1,49 +1,39 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: start_kernel(): bug: interrupts were enabled early
-Date: Fri, 02 Apr 2010 10:00:21 +1100
-Message-ID: <1270162821.7101.138.camel@pasglop>
-References: <1270104536.7101.114.camel@pasglop>
-	 <20100325194100.GA2364@debian>
-	 <20100331134048.da4e35a7.akpm@linux-foundation.org>
-	 <4BB3B4DB.7040904@kernel.org> <20100331210145.GB32165@parisc-linux.org>
-	 <4BB3B8FC.1020608@zytor.com> <20100331211754.GC32165@parisc-linux.org>
-	 <alpine.DEB.2.00.1003311640410.30456@router.home>
-	 <20100331215411.GB17715@flint.arm.linux.org.uk>
-	 <4BB3C540.9000405@zytor.com> <1270075071.7101.79.camel@pasglop>
-	 <20100331154955.54176e5e.akpm@linux-foundation.org>
-	 <1270084631.7101.81.camel@pasglop>
-	 <20100331182654.d36c87ff.akpm@linux-foundation.org>
-	 <4BB43CAC.3080102@zytor.com>
-	 <20100331233330.1a7357e4.akpm@linux-foundation.org>
-	 <31829.1270119970@redhat.com>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [patch 1/2] genirq: Run irq handlers with interrupts disabled
+Date: Fri, 2 Apr 2010 11:31:33 +0200
+Message-ID: <20100402093132.GA1360@ucw.cz>
+References: <20100326000325.917127328@linutronix.de> <20100326000405.758579387@linutronix.de> <20100326061310.GV20695@one.firstfloor.org> <alpine.LFD.2.00.1003261224070.3147@localhost.localdomain> <20100330053325.GL20695@one.firstfloor.org> <alpine.LFD.2.00.1003311315520.32352@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:41194 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756638Ab0DAXC1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 1 Apr 2010 19:02:27 -0400
-In-Reply-To: <31829.1270119970@redhat.com>
+Received: from ksp.mff.cuni.cz ([195.113.26.206]:59178 "EHLO
+	atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752811Ab0DBMhV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Apr 2010 08:37:21 -0400
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.00.1003311315520.32352@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Christoph Lameter <cl@linux-foundation.org>, Matthew Wilcox <matthew@wil.cx>, Yinghai Lu <yinghai@kernel.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, linux-arch@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andi Kleen <andi@firstfloor.org>, Linus Torvalds <torvalds@osdl.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>
 
-On Thu, 2010-04-01 at 12:06 +0100, David Howells wrote:
-> Can we provide a kmem_cache_create_early()?  One that takes no locks and gets
-> cleaned up with the other __init stuff?
+On Wed 2010-03-31 13:16:37, Thomas Gleixner wrote:
+> On Tue, 30 Mar 2010, Andi Kleen wrote:
+> 
+> > > Why not simply force IRQF_DISABLED for all MSI interrupts. That still
+> > > allows nesting for non MSI ones, but it limits the chance of throwing
+> > > up reasonably well. That's a two liner.
+> > > 
+> > > Can you please test whether it resolves the issue at hand ?
+> > 
+> > Sorry for the late answer. Got confirmation that this patch
+> > fixes the test case. Thanks.
+> 
+> Ok, I'll push it linus wards and cc stable. I think thats the least
+> intrusive safe bet we can have right now.
 
-Yuck. I hate having to expose more APIs. Also the problem with that is
-means callers have to know. So we need to propagate up all call chains
-etc... (ie, radix_tree_init_early(), etc...)
+stable? I'd say thats way too intrusive for -stable...
 
-This is pretty much exactly the discussion we had when moving sl*b
-early, and back then, the final word from Linus (heh, for once he agreed
-with me :-) was that this made no sense.
-
-We can bury logic inside kmem_cache_create() though, it's not -that- a
-hot path.
-
-Cheers,
-Ben.
+-- 
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
