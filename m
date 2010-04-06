@@ -1,98 +1,47 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [patch 2/3] perf: Use local_irq_save_nmi()
-Date: Tue, 06 Apr 2010 15:28:09 +0200
-Message-ID: <20100406133140.972113669@chello.nl>
-References: <20100406132807.698467930@chello.nl>
+From: Jamie Lokier <jamie@shareable.org>
+Subject: Re: [PATCH 1/3] X86: Optimise fls(), ffs() and fls64()
+Date: Tue, 6 Apr 2010 14:57:32 +0100
+Message-ID: <20100406135732.GC24003@shareable.org>
+References: <20100326144241.8583.95617.stgit@warthog.procyon.org.uk> <alpine.LFD.2.00.1003261005490.3721@i5.linux-foundation.org> <20100326173730.GA27489@pendragon.3leafnetworks.com> <alpine.LFD.2.00.1003261038160.3721@i5.linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:37605 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754567Ab0DFNjR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Apr 2010 09:39:17 -0400
-Content-Disposition: inline; filename=perf-fix-perf_output_lock.patch
+Received: from mail2.shareable.org ([80.68.89.115]:60003 "EHLO
+	mail2.shareable.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750708Ab0DFN5x (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Apr 2010 09:57:53 -0400
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.00.1003261038160.3721@i5.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mingo@elte.hu, David Miller <davem@davemloft.net>, acme@redhat.com, paulus@samba.org, Mike Galbraith <efault@gmx.de>, Frederic Weisbecker <fweisbec@gmail.com>, Thomas Gleixner <tglx@l>
-Cc: linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Scott Lurndal <scott.lurndal@3leafsystems.com>, David Howells <dhowells@redhat.com>, mingo@elte.hu, tglx@linutronix.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Patch 8bb39f9 (perf: Fix 'perf sched record' deadlock) introduced a
-local_irq_save() in NMI context, convert that to local_irq_save_nmi()
-and move the IRQ disable into perf_output_lock/unlock().
+Linus Torvalds wrote:
+> On Fri, 26 Mar 2010, Scott Lurndal wrote:
+> > 
+> > I wonder if Intel's EM64 stuff makes this more deterministic, perhaps
+> > David's implementation would work for x86_64 only?
+> 
+> Limiting it to x86-64 would certainly remove all the worries about all the 
+> historical x86 clones.
+> 
+> I'd still worry about it for future Intel chips, though. I absolutely 
+> _detest_ relying on undocumented features - it pretty much always ends up 
+> biting you eventually. And conditional writeback is actually pretty nasty 
+> from a microarchitectural standpoint.
 
-The former is needed because we now disallow local_irq_disable() from
-NMI context due to some arch limitations.
+On the same subject of relying on undocumented features:
 
-The second is because its really about IRQ lock inversion with that
-funny output lock, and perf_event_task_output() is only one site that
-could trigger it.
+  /* If SMP and !X86_PPRO_FENCE. */
+  #define smp_rmb()      barrier()
 
-Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Mike Galbraith <efault@gmx.de>
----
- include/linux/perf_event.h |    1 +
- kernel/perf_event.c        |   17 ++++++-----------
- 2 files changed, 7 insertions(+), 11 deletions(-)
+I've seen documentation, links posted to lkml ages ago, which implies
+this is fine on 64-bit for both Intel and AMD.
 
-Index: linux-2.6/include/linux/perf_event.h
-===================================================================
---- linux-2.6.orig/include/linux/perf_event.h
-+++ linux-2.6/include/linux/perf_event.h
-@@ -758,6 +758,7 @@ struct perf_output_handle {
- 	struct perf_mmap_data		*data;
- 	unsigned long			head;
- 	unsigned long			offset;
-+	unsigned long			flags;
- 	int				nmi;
- 	int				sample;
- 	int				locked;
-Index: linux-2.6/kernel/perf_event.c
-===================================================================
---- linux-2.6.orig/kernel/perf_event.c
-+++ linux-2.6/kernel/perf_event.c
-@@ -2848,6 +2848,10 @@ static void perf_output_lock(struct perf
- 	struct perf_mmap_data *data = handle->data;
- 	int cur, cpu = get_cpu();
- 
-+	/*
-+	 * Since this is a lock we need to be IRQ-safe
-+	 */
-+	local_irq_save_nmi(handle->flags);
- 	handle->locked = 0;
- 
- 	for (;;) {
-@@ -2906,6 +2910,7 @@ again:
- 	if (atomic_xchg(&data->wakeup, 0))
- 		perf_output_wakeup(handle);
- out:
-+	local_irq_restore_nmi(handle->flags);
- 	put_cpu();
- }
- 
-@@ -3385,19 +3390,10 @@ static void perf_event_task_output(struc
- 	unsigned long flags;
- 	int size, ret;
- 
--	/*
--	 * If this CPU attempts to acquire an rq lock held by a CPU spinning
--	 * in perf_output_lock() from interrupt context, it's game over.
--	 */
--	local_irq_save(flags);
--
- 	size  = task_event->event_id.header.size;
- 	ret = perf_output_begin(&handle, event, size, 0, 0);
--
--	if (ret) {
--		local_irq_restore(flags);
-+	if (ret)
- 		return;
--	}
- 
- 	task_event->event_id.pid = perf_event_pid(event, task);
- 	task_event->event_id.ppid = perf_event_pid(event, current);
-@@ -3408,7 +3404,6 @@ static void perf_event_task_output(struc
- 	perf_output_put(&handle, task_event->event_id);
- 
- 	perf_output_end(&handle);
--	local_irq_restore(flags);
- }
- 
- static int perf_event_task_match(struct perf_event *event)
+But it appears to be relying on undocumented behaviour on 32-bit...
+
+Are you sure it is ok?  Has anyone from Intel/AMD ever confirmed it is
+ok?  Has it been tested?  Clones?
+
+-- Jamie
