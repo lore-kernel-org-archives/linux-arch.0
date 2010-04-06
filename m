@@ -1,186 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:37594 "EHLO
+Received: from bombadil.infradead.org ([18.85.46.34]:37605 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756191Ab0DFNjP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Apr 2010 09:39:15 -0400
-Message-ID: <20100406133140.903644813@chello.nl>
-Date: Tue, 06 Apr 2010 15:28:08 +0200
+	with ESMTP id S1754567Ab0DFNjR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Apr 2010 09:39:17 -0400
+Message-ID: <20100406133140.972113669@chello.nl>
+Date: Tue, 06 Apr 2010 15:28:09 +0200
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [patch 1/3] kernel: local_irq_{save,restore}_nmi()
+Subject: [patch 2/3] perf: Use local_irq_save_nmi()
 References: <20100406132807.698467930@chello.nl>
-Content-Disposition: inline; filename=nmi-irq.patch
+Content-Disposition: inline; filename=perf-fix-perf_output_lock.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@elte.hu, David Miller <davem@davemloft.net>, acme@redhat.com, paulus@samba.org, Mike Galbraith <efault@gmx.de>, Frederic Weisbecker <fweisbec@gmail.com>, Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>
-Message-ID: <20100406132808.cJpTRRr_O-ON5lsQcs6cAOw1eysRd1Q3sfvQ5z7mNdg@z>
+Message-ID: <20100406132809.Kv4xHR1kTM8snYgk4l0X7mG9qQFQkqE1_NXrCYk0FeQ@z>
 
-Provide local_irq_{save,restore}_nmi() which will allow us to help
-architectures that implement NMIs using IRQ priorities like SPARC64
-does.
+Patch 8bb39f9 (perf: Fix 'perf sched record' deadlock) introduced a
+local_irq_save() in NMI context, convert that to local_irq_save_nmi()
+and move the IRQ disable into perf_output_lock/unlock().
 
-Sparc uses IRQ prio 15 for NMIs and implements local_irq_disable() as
-disable <= 14. However if you do that while inside an NMI you re-
-enable the NMI priority again, causing all kinds of fun.
+The former is needed because we now disallow local_irq_disable() from
+NMI context due to some arch limitations.
 
-A more solid implementation would first check the disable level and
-never lower it, however that is more costly and would slow down the
-rest of the kernel for no particular reason.
+The second is because its really about IRQ lock inversion with that
+funny output lock, and perf_event_task_output() is only one site that
+could trigger it.
 
-Therefore introduce local_irq_save_nmi() which can implement this
-slower but more solid scheme and dis-allow local_irq_save() from NMI
-context.
-
-Suggested-by: David Miller <davem@davemloft.net>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Mike Galbraith <efault@gmx.de>
 ---
- include/linux/irqflags.h     |   51 ++++++++++++++++++++++++++++++++++++++++---
- kernel/lockdep.c             |    7 +++++
- kernel/trace/trace_irqsoff.c |    8 ++++++
- 3 files changed, 63 insertions(+), 3 deletions(-)
+ include/linux/perf_event.h |    1 +
+ kernel/perf_event.c        |   17 ++++++-----------
+ 2 files changed, 7 insertions(+), 11 deletions(-)
 
-Index: linux-2.6/include/linux/irqflags.h
+Index: linux-2.6/include/linux/perf_event.h
 ===================================================================
---- linux-2.6.orig/include/linux/irqflags.h
-+++ linux-2.6/include/linux/irqflags.h
-@@ -18,6 +18,7 @@
-   extern void trace_softirqs_off(unsigned long ip);
-   extern void trace_hardirqs_on(void);
-   extern void trace_hardirqs_off(void);
-+  extern void trace_hardirqs_off_no_nmi(void);
- # define trace_hardirq_context(p)	((p)->hardirq_context)
- # define trace_softirq_context(p)	((p)->softirq_context)
- # define trace_hardirqs_enabled(p)	((p)->hardirqs_enabled)
-@@ -30,6 +31,7 @@
- #else
- # define trace_hardirqs_on()		do { } while (0)
- # define trace_hardirqs_off()		do { } while (0)
-+# define trace_hardirqs_off_no_nmi()	do { } while (0)
- # define trace_softirqs_on(ip)		do { } while (0)
- # define trace_softirqs_off(ip)		do { } while (0)
- # define trace_hardirq_context(p)	0
-@@ -59,15 +61,15 @@
- #define local_irq_enable() \
- 	do { trace_hardirqs_on(); raw_local_irq_enable(); } while (0)
- #define local_irq_disable() \
--	do { raw_local_irq_disable(); trace_hardirqs_off(); } while (0)
-+	do { raw_local_irq_disable(); trace_hardirqs_off_no_nmi(); } while (0)
-+
- #define local_irq_save(flags)				\
- 	do {						\
- 		typecheck(unsigned long, flags);	\
- 		raw_local_irq_save(flags);		\
--		trace_hardirqs_off();			\
-+		trace_hardirqs_off_no_nmi();		\
- 	} while (0)
+--- linux-2.6.orig/include/linux/perf_event.h
++++ linux-2.6/include/linux/perf_event.h
+@@ -758,6 +758,7 @@ struct perf_output_handle {
+ 	struct perf_mmap_data		*data;
+ 	unsigned long			head;
+ 	unsigned long			offset;
++	unsigned long			flags;
+ 	int				nmi;
+ 	int				sample;
+ 	int				locked;
+Index: linux-2.6/kernel/perf_event.c
+===================================================================
+--- linux-2.6.orig/kernel/perf_event.c
++++ linux-2.6/kernel/perf_event.c
+@@ -2848,6 +2848,10 @@ static void perf_output_lock(struct perf
+ 	struct perf_mmap_data *data = handle->data;
+ 	int cur, cpu = get_cpu();
  
++	/*
++	 * Since this is a lock we need to be IRQ-safe
++	 */
++	local_irq_save_nmi(handle->flags);
+ 	handle->locked = 0;
+ 
+ 	for (;;) {
+@@ -2906,6 +2910,7 @@ again:
+ 	if (atomic_xchg(&data->wakeup, 0))
+ 		perf_output_wakeup(handle);
+ out:
++	local_irq_restore_nmi(handle->flags);
+ 	put_cpu();
+ }
+ 
+@@ -3385,19 +3390,10 @@ static void perf_event_task_output(struc
+ 	unsigned long flags;
+ 	int size, ret;
+ 
+-	/*
+-	 * If this CPU attempts to acquire an rq lock held by a CPU spinning
+-	 * in perf_output_lock() from interrupt context, it's game over.
+-	 */
+-	local_irq_save(flags);
 -
- #define local_irq_restore(flags)			\
- 	do {						\
- 		typecheck(unsigned long, flags);	\
-@@ -79,6 +81,30 @@
- 			raw_local_irq_restore(flags);	\
- 		}					\
- 	} while (0)
-+
-+#ifndef local_irq_save_nmi
-+# define local_irq_save_nmi(flags) 			\
-+	 do {						\
-+		 typecheck(unsigned long, flags);	\
-+		 raw_local_irq_save(flags);		\
-+		 trace_hardirqs_off();			\
-+	 } while (0)
-+#endif
-+
-+#ifndef local_irq_restore_nmi
-+#define local_irq_restore_nmi(flags)			\
-+	do {						\
-+		typecheck(unsigned long, flags);	\
-+		if (raw_irqs_disabled_flags(flags)) {	\
-+			raw_local_irq_restore(flags);	\
-+			trace_hardirqs_off();		\
-+		} else {				\
-+			trace_hardirqs_on();		\
-+			raw_local_irq_restore(flags);	\
-+		}					\
-+	} while (0)
-+#endif
-+
- #else /* !CONFIG_TRACE_IRQFLAGS_SUPPORT */
- /*
-  * The local_irq_*() APIs are equal to the raw_local_irq*()
-@@ -86,16 +112,35 @@
-  */
- # define raw_local_irq_disable()	local_irq_disable()
- # define raw_local_irq_enable()		local_irq_enable()
-+
- # define raw_local_irq_save(flags)			\
- 	do {						\
- 		typecheck(unsigned long, flags);	\
- 		local_irq_save(flags);			\
- 	} while (0)
-+
- # define raw_local_irq_restore(flags)			\
- 	do {						\
- 		typecheck(unsigned long, flags);	\
- 		local_irq_restore(flags);		\
- 	} while (0)
-+
-+#ifndef local_irq_save_nmi
-+# define local_irq_save_nmi(flags)			\
-+	 do {						\
-+		 typecheck(unsigned long, flags);	\
-+		 local_irq_save(flags);			\
-+	 } while (0)
-+#endif
-+
-+#ifndef local_irq_restore_nmi
-+# define local_irq_restore_nmi(flags)			\
-+	 do {						\
-+		 typecheck(unsigned long, flags);	\
-+		 local_irq_restore(flags);		\
-+	 } while (0)
-+#endif
-+
- #endif /* CONFIG_TRACE_IRQFLAGS_SUPPORT */
+ 	size  = task_event->event_id.header.size;
+ 	ret = perf_output_begin(&handle, event, size, 0, 0);
+-
+-	if (ret) {
+-		local_irq_restore(flags);
++	if (ret)
+ 		return;
+-	}
  
- #ifdef CONFIG_TRACE_IRQFLAGS_SUPPORT
-Index: linux-2.6/kernel/lockdep.c
-===================================================================
---- linux-2.6.orig/kernel/lockdep.c
-+++ linux-2.6/kernel/lockdep.c
-@@ -2369,6 +2369,13 @@ void trace_hardirqs_off(void)
+ 	task_event->event_id.pid = perf_event_pid(event, task);
+ 	task_event->event_id.ppid = perf_event_pid(event, current);
+@@ -3408,7 +3404,6 @@ static void perf_event_task_output(struc
+ 	perf_output_put(&handle, task_event->event_id);
+ 
+ 	perf_output_end(&handle);
+-	local_irq_restore(flags);
  }
- EXPORT_SYMBOL(trace_hardirqs_off);
  
-+void trace_hardirqs_off_no_nmi(void)
-+{
-+	WARN_ON_ONCE(in_nmi());
-+	trace_hardirqs_off_caller(CALLER_ADDR0);
-+}
-+EXPORT_SYMBOL(trace_hardirqs_off_no_nmi);
-+
- /*
-  * Softirqs will be enabled:
-  */
-Index: linux-2.6/kernel/trace/trace_irqsoff.c
-===================================================================
---- linux-2.6.orig/kernel/trace/trace_irqsoff.c
-+++ linux-2.6/kernel/trace/trace_irqsoff.c
-@@ -316,6 +316,14 @@ void trace_hardirqs_off(void)
- }
- EXPORT_SYMBOL(trace_hardirqs_off);
- 
-+void trace_hardirqs_off_no_nmi(void)
-+{
-+	WARN_ON_ONCE(in_nmi());
-+	if (!preempt_trace() && irq_trace())
-+		start_critical_timing(CALLER_ADDR0, CALLER_ADDR1);
-+}
-+EXPORT_SYMBOL(trace_hardirqs_off_no_nmi);
-+
- void trace_hardirqs_on_caller(unsigned long caller_addr)
- {
- 	if (!preempt_trace() && irq_trace())
+ static int perf_event_task_match(struct perf_event *event)
 
 
