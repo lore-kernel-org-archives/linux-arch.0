@@ -1,67 +1,47 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 1/3] X86: Optimise fls(), ffs() and fls64()
-Date: Tue, 6 Apr 2010 07:40:12 -0700 (PDT)
-Message-ID: <alpine.LFD.2.00.1004060732490.3487@i5.linux-foundation.org>
-References: <20100326144241.8583.95617.stgit@warthog.procyon.org.uk> <alpine.LFD.2.00.1003261005490.3721@i5.linux-foundation.org> <20100326173730.GA27489@pendragon.3leafnetworks.com> <alpine.LFD.2.00.1003261038160.3721@i5.linux-foundation.org>
- <20100406135732.GC24003@shareable.org>
+From: Jamie Lokier <jamie@shareable.org>
+Subject: Re: SMP barriers semantics
+Date: Tue, 6 Apr 2010 16:43:21 +0100
+Message-ID: <20100406154321.GC29236@shareable.org>
+References: <1267527178.14461.9.camel@e102109-lin.cambridge.arm.com> <20100303005529.GA3879@brick.ozlabs.ibm.com> <1267617825.15589.82.camel@e102109-lin.cambridge.arm.com> <20100312123105.GB4400@linux-mips.org> <1268792716.2335.170.camel@pasglop> <20100317134243.GA15235@shareable.org> <20100322120203.GL17637@laptop> <1269339847.29545.42.camel@e102109-lin.cambridge.arm.com> <20100406142054.GE5288@laptop>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=ISO-8859-15
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:60757 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754497Ab0DFOob (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Apr 2010 10:44:31 -0400
-In-Reply-To: <20100406135732.GC24003@shareable.org>
+Received: from mail2.shareable.org ([80.68.89.115]:56320 "EHLO
+	mail2.shareable.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753145Ab0DFPn5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Apr 2010 11:43:57 -0400
+Content-Disposition: inline
+In-Reply-To: <20100406142054.GE5288@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jamie Lokier <jamie@shareable.org>
-Cc: Scott Lurndal <scott.lurndal@3leafsystems.com>, David Howells <dhowells@redhat.com>, mingo@elte.hu, tglx@linutronix.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Francois Romieu <romieu@fr.zoreil.com>
 
+Nick Piggin wrote:
+> On Tue, Mar 23, 2010 at 10:24:07AM +0000, Catalin Marinas wrote:
+> 
+> But hmm, I don't know if we even need acquire/release IO barriers at
+> all. Might be better to just fix up wmb(), get rid of mmiowb(),
+> strengthen IO accessors, and then just add special case barriers as
+> the need arises.
 
+I must admit I don't understand what wmb() means at this point,
+generically from the point of view of arch-independent drivers!  It's
+not an inter-CPU ordering (smb_wmb is sufficient), and it doesn't
+order all memory and I/O writes (otherwise why mmiowb?).  I suspect a
+few people have been unsure, resulting in a bit of confusion about
+what goes into different arch implementations of wmb().
 
-On Tue, 6 Apr 2010, Jamie Lokier wrote:
->=20
-> On the same subject of relying on undocumented features:
->=20
->   /* If SMP and !X86_PPRO_FENCE. */
->   #define smp_rmb()      barrier()
->=20
-> I've seen documentation, links posted to lkml ages ago, which implies
-> this is fine on 64-bit for both Intel and AMD.
->=20
-> But it appears to be relying on undocumented behaviour on 32-bit...
+For strengthening I/O accessors, do you mean the equivalent of putting
+"dmb;dsb" before _and_ after the I/O write inside every call to
+writel()?  (That's using ARM as an example: "dmb" means barrier, and
+"dsb" means flush write buffers I think, and some ARMs need other,
+rather heavier instructions such as a coprocessor instruction or even
+an instruction to the L2 cache.)
 
-That memory ordering whitepaper is very much supposed to cover all the=20
-32-bit CPU's too. The people involved were convinced that neither AMD n=
-or=20
-Intel had ever produced anything that would do anything that broke the=20
-rules.=20
+Because I'm not sure if that's as light as we'd like it to be on
+slower CPUs, and __raw_writel or something will get used instead by
+some driver writer... leading back to needing to be very clear about
+the meaning of wmb/mmiowb.
 
-In fact, at least the Intel "memory ordering whitepaper" doesn't even=20
-exist any more. Go to intel.com and search, and you'll find:
-
-  "Intel=AE 64 Architecture Memory Ordering White Paper
-
-   This document has been merged into Volume 3A of Intel 64 and IA-32=20
-   Architectures Software Developers Manual."
-
-which makes it pretty clear that it's not a 64-bit vs 32-bit issue.
-
-> Are you sure it is ok?  Has anyone from Intel/AMD ever confirmed it i=
-s
-> ok?  Has it been tested?  Clones?
-
-No clones need apply - nobody ever did very aggressive memory re-orderi=
-ng,=20
-and clones generally never did SMP either.
-
-There is a VIA chip (I think) that had some relaxed cache mode, but tha=
-t=20
-needed a cr4 bit enable or similar, and since it wasn't SMP it only=20
-mattered for DMA (and possibly nontemporal stores).
-
-Anyway, it all boils down to: yes, we can depend on the memory ordering=
-=2E
-
-		Linus
+-- Jamie
