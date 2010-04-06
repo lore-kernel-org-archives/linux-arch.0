@@ -1,73 +1,88 @@
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: [patch 1/2] genirq: Run irq handlers with interrupts disabled
-Date: Sat, 3 Apr 2010 06:45:20 +0200
-Message-ID: <20100403044520.GA30558@elf.ucw.cz>
-References: <20100326000325.917127328@linutronix.de>
- <20100326000405.758579387@linutronix.de>
- <20100326061310.GV20695@one.firstfloor.org>
- <alpine.LFD.2.00.1003261224070.3147@localhost.localdomain>
- <20100330053325.GL20695@one.firstfloor.org>
- <alpine.LFD.2.00.1003311315520.32352@localhost.localdomain>
- <20100402093132.GA1360@ucw.cz>
- <alpine.LFD.2.00.1004022242170.32352@localhost.localdomain>
- <20100402210916.GA23339@elf.ucw.cz>
- <alpine.LFD.2.00.1004030046160.32352@localhost.localdomain>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Arch specific mmap attributes (Was: mprotect pgprot handling
+ weirdness)
+Date: Tue, 06 Apr 2010 16:07:41 +1000
+Message-ID: <1270534061.13812.56.camel@pasglop>
+References: <1270530566.13812.28.camel@pasglop>
+	 <20100406143928.7E4B.A69D9226@jp.fujitsu.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.1004030046160.32352@localhost.localdomain>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andi Kleen <andi@firstfloor.org>, Linus Torvalds <torvalds@osdl.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20100406143928.7E4B.A69D9226@jp.fujitsu.com>
+Sender: owner-linux-mm@kvack.org
+To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Cc: linux-mm@kvack.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sat 2010-04-03 00:51:20, Thomas Gleixner wrote:
-> Pavel,
-> 
-> On Fri, 2 Apr 2010, Pavel Machek wrote:
-> 
-> > On Fri 2010-04-02 22:42:51, Thomas Gleixner wrote:
-> > > On Fri, 2 Apr 2010, Pavel Machek wrote:
-> > > 
-> > > > On Wed 2010-03-31 13:16:37, Thomas Gleixner wrote:
-> > > > > On Tue, 30 Mar 2010, Andi Kleen wrote:
-> > > > > 
-> > > > > > > Why not simply force IRQF_DISABLED for all MSI interrupts. That still
-> > > > > > > allows nesting for non MSI ones, but it limits the chance of throwing
-> > > > > > > up reasonably well. That's a two liner.
-> > > > > > > 
-> > > > > > > Can you please test whether it resolves the issue at hand ?
-> > > > > > 
-> > > > > > Sorry for the late answer. Got confirmation that this patch
-> > > > > > fixes the test case. Thanks.
-> > > > > 
-> > > > > Ok, I'll push it linus wards and cc stable. I think thats the least
-> > > > > intrusive safe bet we can have right now.
-> > > > 
-> > > > stable? I'd say thats way too intrusive for -stable...
-> > > 
-> > > So we better let the possible stack overruns unaddressed ?
-> > 
-> > -stable should have no regressions, first and foremost. And this is
-> > pretty certain to introduce some, at least on low-powered system with
-> > serial ports.
-> 
-> I think you misunderstood what I'm going to push. The patch merily
-> forces IRQF_DISABLED for MSI(X) based interrupts. So that does not
-> affect low powered systems in any way.
-> 
-> It only affects high end systems where Dave Miller already said he did
-> the IRQF_DISABLED magic already in some NIC drivers just to prevent
-> that.
+On Tue, 2010-04-06 at 14:52 +0900, KOSAKI Motohiro wrote:
 
-Oops, yes, I did; lost in all the mails.
+(Adding linux-arch)
 
-> So I think your fear of regressions for low-powered systems is
-> completely unsubstantiated.
+> This check was introduced the following commit. yes now we don't
+> consider arch specific PROT_xx flags. but I don't think it is odd.
+> 
+> Yeah, I can imagine at least embedded people certenary need arch
+> specific PROT_xx flags and they hope to change it. but I don't 
+> think mprotect() fit for your usage. I mean mprotect() is widely 
+> used glibc internally. then, If mprotec can change which flags, 
+> glibc might turn off such flags implictly.
+> 
+> So, Why can't we proper new syscall? It has no regression risk. 
 
-Yep. Sorry for the noise.
+I don't care much personally whether we use mprotect() or a new syscall,
+but at this stage we already have PROT_SAO going that way for powerpc so
+that would be an ABI change.
 
--- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+However, the main issue isn't really there. The main issue is that right
+now, everything we do in mmap.c, mprotect.c, ... revolves around having
+everything translated into the single vm_flags field. VMA merging
+decisions, construction of vm_page_prot, etc... everything is there.
+
+However, this is a 32-bit field on 32-bit archs, and we already use all
+possible bits in there. It's also a field entirely defined in generic
+code with no provision for arch specific bits.
+
+The question here thus boils down to what direction do we want to go to
+if we want to untangle that and provide the ability to expose mapping
+"attributes" basically. In fact, I suspect even x86 might have good use
+of that to create things like relaxed ordering mappings no ?
+
+This boils down, so far to a few facts/questions to be resolved:
+
+ - Do we want to use the existing PROT_ argument to mmap, mprotect,... ?
+There's plenty of bit space, and we already have at least one example of
+an arch adding something to it (powerpc with PROT_SAO - aka Strong
+Access Ordering - aka Make It Look Like An x86 :-)
+
+ - If not, while a separate syscall would be fine with me for setting
+attributes after the fact, it makes it harder to pass them via mmap, is
+that a big deal ? IE. Ie it means one -always- has to call it after mmap
+to change the attributes. That means for example that mmap will
+potentially create a VMA merged with another one, just to be re-split
+due to the attribute change. A bit gross...
+
+ - Do we want to keep the current "Funnel everything into vm_flags"
+approach ? That leaves no option that I can see but to extend it into a
+u64 so it grows on 32-bit archs. 
+
+ - If not, I see two approaches here: Either having a separate / new
+"attribute" field in the VMA or going straight for the vm_page_prot (ie.
+the pgprot). In both cases, things like vma_merge() need to grow a new
+argument since obviously we can't merge things with different
+attributes.
+
+ - ... Unless we just replace VM_SAO with VM_CANT_MERGE and set that
+whenever a VMA has a non-0 attributes. Sad but simpler
+
+Any other / better idea ?
+
+Cheers,
+Ben.
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
