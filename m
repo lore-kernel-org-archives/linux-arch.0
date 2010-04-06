@@ -1,33 +1,45 @@
-From: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Subject: Re: Arch specific mmap attributes (Was: mprotect pgprot handling weirdness)
-Date: Tue,  6 Apr 2010 19:26:01 +0900 (JST)
-Message-ID: <20100406185246.7E63.A69D9226@jp.fujitsu.com>
-References: <20100406151751.7E4E.A69D9226@jp.fujitsu.com> <1270539044.13812.65.camel@pasglop>
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [PATCH 1/3] X86: Optimise fls(), ffs() and fls64()
+Date: Tue, 6 Apr 2010 07:30:26 -0600
+Message-ID: <20100406133026.GD20577@parisc-linux.org>
+References: <alpine.LFD.2.00.1003261005490.3721@i5.linux-foundation.org> <20100326144241.8583.95617.stgit@warthog.procyon.org.uk> <28287.1269625325@redhat.com> <alpine.LFD.2.00.1003261042580.3721@i5.linux-foundation.org> <20100326175827.GD20055@linux-mips.org> <alpine.LFD.2.00.1003261100440.3721@i5.linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fgwmail6.fujitsu.co.jp ([192.51.44.36]:52781 "EHLO
-	fgwmail6.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751682Ab0DFK0I (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Apr 2010 06:26:08 -0400
-In-Reply-To: <1270539044.13812.65.camel@pasglop>
+Received: from palinux.external.hp.com ([192.25.206.14]:36912 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754729Ab0DFNa2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Apr 2010 09:30:28 -0400
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.00.1003261100440.3721@i5.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: kosaki.motohiro@jp.fujitsu.com, linux-mm@kvack.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, mingo@elte.hu, tglx@linutronix.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-> Ok, I see. No biggie. The main deal remains how we want to do that
-> inside the kernel :-) I think the less horrible options here are
-> to either extend vm_flags to always be 64-bit, or add a separate
-> vm_map_attributes flag, and add the necessary bits and pieces to
-> prevent merge accross different attribute vma's.
+On Fri, Mar 26, 2010 at 11:03:09AM -0700, Linus Torvalds wrote:
+> On Fri, 26 Mar 2010, Ralf Baechle wrote:
+> > "The documentation on the 80386 and 80486 states that op1 is undefined if
+> > op2 is 0.  In reality the 80386 will leave the value in op1 unchanged.
+> > The first versions of the 80486 will change op1 to an undefined value.
+> > Later version again will leave it unchanged."
+> > 
+> > [1] Die Intel Familie in German language, by Robert Hummel, 1992
+> 
+> Ok, that explains my memory of us having tried this, at least.
+> 
+> But I do wonder if any of the people working for Intel could ask the CPU 
+> architects whether we could depend on the "don't write" for 64-bit mode. 
+> If AMD already documents the don't-touch semantics, and if Intel were to 
+> be ok with documenting it for their 64-bit capable CPU's, we wouldn't then 
+> need to rely on undefined behavior.
 
-vma->vm_flags already have VM_SAO. Why do we need more flags?
-At least, I dislike to add separate flags member into vma.
-It might introduce unnecessary messy into vma merge thing.
+I don't know whether we can get it /documented/, but the architect I
+asked said "We'll never get away with reverting to the older behavior,
+so in essence the architecture is set to not overwrite."
 
-
-
-> The more I try to hack it into vm_page_prot, the more I hate that
-> option.
+-- 
+Matthew Wilcox				Intel Open Source Technology Centre
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
