@@ -1,71 +1,51 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 2/2] ftrace: Use local_irq_{save,restore}_nmi() in
- tracers.
-Date: Wed, 07 Apr 2010 03:28:32 -0700 (PDT)
-Message-ID: <20100407.032832.150975074.davem@davemloft.net>
-References: <20100406.164002.40105966.davem@davemloft.net>
+From: Frederic Weisbecker <fweisbec@gmail.com>
+Subject: Re: [patch 3/3] sched: Use local_irq_save_nmi() in cpu_clock()
+Date: Wed, 7 Apr 2010 13:27:12 +0200
+Message-ID: <20100407112707.GA5143@nowhere>
+References: <20100406132807.698467930@chello.nl> <20100406133141.039454288@chello.nl>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:52334
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757742Ab0DGK23 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Apr 2010 06:28:29 -0400
-In-Reply-To: <20100406.164002.40105966.davem@davemloft.net>
+Received: from fg-out-1718.google.com ([72.14.220.159]:59657 "EHLO
+	fg-out-1718.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752329Ab0DGL1W (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Apr 2010 07:27:22 -0400
+Content-Disposition: inline
+In-Reply-To: <20100406133141.039454288@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: a.p.zijlstra@chello.nl
-Cc: mingo@elte.hu, acme@redhat.com, paulus@samba.org, efault@gmx.de, fweisbec@gmail.com, tglx@linutronix.de, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: mingo@elte.hu, David Miller <davem@davemloft.net>, acme@redhat.com, paulus@samba.org, Mike Galbraith <efault@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
 
-From: David Miller <davem@davemloft.net>
-Date: Tue, 06 Apr 2010 16:40:02 -0700 (PDT)
-
+On Tue, Apr 06, 2010 at 03:28:10PM +0200, Peter Zijlstra wrote:
+> Since we can call cpu_clock() from NMI context fix up the IRQ
+> disabling to conform to the new rules.
 > 
-> Signed-off-by: David S. Miller <davem@davemloft.net>
+> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> ---
+>  kernel/sched_clock.c |    4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+> 
+> Index: linux-2.6/kernel/sched_clock.c
+> ===================================================================
+> --- linux-2.6.orig/kernel/sched_clock.c
+> +++ linux-2.6/kernel/sched_clock.c
+> @@ -241,9 +241,9 @@ unsigned long long cpu_clock(int cpu)
+>  	unsigned long long clock;
+>  	unsigned long flags;
+>  
+> -	local_irq_save(flags);
+> +	local_irq_save_nmi(flags);
+>  	clock = sched_clock_cpu(cpu);
+> -	local_irq_restore(flags);
+> +	local_irq_restore_nmi(flags);
+>  
+>  	return clock;
+>  }
 
-Peter, I found one more file that needs this annotation while
-implementing function graph tracing support on sparc64.
 
-Please add this to the original patch when you queue it up, thanks.
+That seem to add a small overhead in various places.
+Do we want to make local_irq_save_nmi == local_irq_save
+for archs that have native nmi?
 
-diff --git a/kernel/trace/trace_functions_graph.c b/kernel/trace/trace_functions_graph.c
-index e6989d9..67fbdf1 100644
---- a/kernel/trace/trace_functions_graph.c
-+++ b/kernel/trace/trace_functions_graph.c
-@@ -220,7 +220,7 @@ int trace_graph_entry(struct ftrace_graph_ent *trace)
- 	if (!(trace->depth || ftrace_graph_addr(trace->func)))
- 		return 0;
- 
--	local_irq_save(flags);
-+	local_irq_save_nmi(flags);
- 	cpu = raw_smp_processor_id();
- 	data = tr->data[cpu];
- 	disabled = atomic_inc_return(&data->disabled);
-@@ -232,7 +232,7 @@ int trace_graph_entry(struct ftrace_graph_ent *trace)
- 	}
- 
- 	atomic_dec(&data->disabled);
--	local_irq_restore(flags);
-+	local_irq_restore_nmi(flags);
- 
- 	return ret;
- }
-@@ -277,7 +277,7 @@ void trace_graph_return(struct ftrace_graph_ret *trace)
- 	int cpu;
- 	int pc;
- 
--	local_irq_save(flags);
-+	local_irq_save_nmi(flags);
- 	cpu = raw_smp_processor_id();
- 	data = tr->data[cpu];
- 	disabled = atomic_inc_return(&data->disabled);
-@@ -286,7 +286,7 @@ void trace_graph_return(struct ftrace_graph_ret *trace)
- 		__trace_graph_return(tr, trace, flags, pc);
- 	}
- 	atomic_dec(&data->disabled);
--	local_irq_restore(flags);
-+	local_irq_restore_nmi(flags);
- }
- 
- void set_graph_array(struct trace_array *tr)
+Or cpu_clock_nmi()?
