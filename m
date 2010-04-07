@@ -1,47 +1,59 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: Arch specific mmap attributes
-Date: Wed, 07 Apr 2010 00:18:48 -0700 (PDT)
-Message-ID: <20100407.001848.257489037.davem@davemloft.net>
-References: <20100407095145.FB70.A69D9226@jp.fujitsu.com>
-	<20100407.000343.181989028.davem@davemloft.net>
-	<20100407161203.FB81.A69D9226@jp.fujitsu.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 1/2] sparc64: Implement local_irq_save_nmi().
+Date: Wed, 07 Apr 2010 09:24:19 +0200
+Message-ID: <1270625059.5109.537.camel@twins>
+References: <20100406.163955.28809295.davem@davemloft.net>
+	 <1270623146.5109.532.camel@twins>
+	 <20100407.000625.203083228.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:33439
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932452Ab0DGHSq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Apr 2010 03:18:46 -0400
-In-Reply-To: <20100407161203.FB81.A69D9226@jp.fujitsu.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: kosaki.motohiro@jp.fujitsu.com
-Cc: benh@kernel.crashing.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <20100407.000625.203083228.davem@davemloft.net>
+Sender: sparclinux-owner@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: mingo@elte.hu, acme@redhat.com, paulus@samba.org, efault@gmx.de, fweisbec@gmail.com, tglx@linutronix.de, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-From: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Date: Wed,  7 Apr 2010 16:14:29 +0900 (JST)
-
->> From: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
->> Date: Wed,  7 Apr 2010 15:03:45 +0900 (JST)
->> 
->> > I'm not against changing kernel internal. I only disagree mmu
->> > attribute fashion will be become used widely.
->> 
->> Desktop already uses similar features via PCI mmap
->> attributes and such, not to mention MSR settings on
->> x86.
+On Wed, 2010-04-07 at 00:06 -0700, David Miller wrote:
+> From: Peter Zijlstra <peterz@infradead.org>
+> Date: Wed, 07 Apr 2010 08:52:26 +0200
 > 
-> Probably I haven't catch your mention. Why userland process
-> need to change PCI mmap attribute by mmap(2)? It seems kernel issue.
+> > On Tue, 2010-04-06 at 16:39 -0700, David Miller wrote:
+> >> @@ -49,6 +49,16 @@ static inline void raw_local_irq_disable(void)
+> >>  	);
+> >>  }
+> >>  
+> >> +static inline void raw_local_irq_disable_nmi(void)
+> >> +{
+> >> +	__asm__ __volatile__(
+> >> +		"wrpr	%0, %%pil"
+> >> +		: /* no outputs */
+> >> +		: "i" (PIL_NMI)
+> >> +		: "memory"
+> >> +	);
+> >> +}
+> >> +
+> > 
+> > Isn't this wrong when used from !NMI context?
+> > 
+> > Should this thing do something like:
+> > 
+> >   if (rdpr() < PIL_NORMAL_MAX)
+> >     wrpr(PIL_NORMAL_MAX);
+> > 
+> > so that it only disables IRQs, but doesn't enable NMIs.
+> 
+> It's immaterial, local_irq_restore() will do the right thing,
+> and it's ok to disable NMIs in these few cases I think.
+> 
+> I desperately want to avoid that "test and maybe change the
+> value %pil value we write" business, and honestly that's
+> the whole point of this exercise.
 
-It uses PCI specific fd ioctls to change the attributes.
+Sure, its your architecture.. but could you explain why you're trying to
+avoid that compare so desperately, the local_irq_save_nmi() calls are
+few so surely they could carry that overhead.
 
-It's the same thing as extending the mmap() attribute space, but in a
-device specific way.
-
-I think evice and platform specific mmap() attributes are basically
-inevitable, at any level, embedded or desktop or whatever.  The
-fact that we've hacked around the issue with device specific
-interfaces like the PCI device ioctls, is no excuse to not
-tackle the issue directly and come up with something usable.
+Also, doesn't __raw_local_irq_save_flags() already do the read? So its
+really just the compare that's gone missing.
