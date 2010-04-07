@@ -1,55 +1,49 @@
 From: Yinghai <yinghai.lu@oracle.com>
-Subject: Re: [PATCH 06/33] lmb: Add lmb_reserve_area/lmb_free_area
-Date: Wed, 07 Apr 2010 16:36:58 -0700
-Message-ID: <4BBD171A.3020108@oracle.com>
-References: <1270001838-15857-1-git-send-email-yinghai@kernel.org>	 <1270001838-15857-7-git-send-email-yinghai@kernel.org> <1270683308.9521.7.camel@concordia>
+Subject: Re: [PATCH 25/33] x86, lmb: turn off ARCH_LMB_FIND_AREA
+Date: Wed, 07 Apr 2010 16:40:25 -0700
+Message-ID: <4BBD17E9.1020509@oracle.com>
+References: <1270001838-15857-1-git-send-email-yinghai@kernel.org>	 <1270001838-15857-26-git-send-email-yinghai@kernel.org> <1270683534.9521.8.camel@concordia>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet11.oracle.com ([148.87.113.123]:47958 "EHLO
-	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754208Ab0DGXkn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Apr 2010 19:40:43 -0400
-In-Reply-To: <1270683308.9521.7.camel@concordia>
+Received: from acsinet12.oracle.com ([141.146.126.234]:59090 "EHLO
+	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754232Ab0DGXnr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Apr 2010 19:43:47 -0400
+In-Reply-To: <1270683534.9521.8.camel@concordia>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: michael@ellerman.id.au
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 04/07/2010 04:35 PM, Michael Ellerman wrote:
-> On Tue, 2010-03-30 at 19:16 -0700, Yinghai Lu wrote:
->> They will check if the region array is big enough.
+On 04/07/2010 04:38 PM, Michael Ellerman wrote:
+> On Tue, 2010-03-30 at 19:17 -0700, Yinghai Lu wrote:
+>> 32bit now can use generic __find_lmb_area now. So we can turn arch one off
 >>
->> __check_and_double_region_array will try to double the region array if that
->> array spare slots is not big enough.  Old array will be copied to new array.
+>> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+>> ---
+>>  arch/x86/Kconfig |    2 +-
+>>  1 files changed, 1 insertions(+), 1 deletions(-)
 >>
-> 
->> diff --git a/include/linux/lmb.h b/include/linux/lmb.h
->> index 4cf2f3b..598662f 100644
->> --- a/include/linux/lmb.h
->> +++ b/include/linux/lmb.h
->> @@ -83,6 +84,9 @@ lmb_end_pfn(struct lmb_region *type, unsigned long region_nr)
->>  	       lmb_size_pages(type, region_nr);
->>  }
+>> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+>> index 1aa53ae..ce097ab 100644
+>> --- a/arch/x86/Kconfig
+>> +++ b/arch/x86/Kconfig
+>> @@ -584,7 +584,7 @@ config PARAVIRT_DEBUG
+>>  	  a paravirt_op is missing when it is called.
 >>  
->> +void lmb_reserve_area(u64 start, u64 end, char *name);
->> +void lmb_free_area(u64 start, u64 end);
->> +void lmb_add_memory(u64 start, u64 end);
+>>  config ARCH_LMB_FIND_AREA
+>> -	default y
+>> +	default n
+>>  	bool "Use x86 own lmb_find_area()"
+>>  	---help---
+>>  	  Use lmb_find_area() version instead of generic version, it get free
 > 
-> vs
-> 
-> extern long lmb_reserve(u64 base, u64 size);
-> extern long lmb_free(u64 base, u64 size);   
-> extern long lmb_add(u64 base, u64 size);                                    
->                          
-> 
-> Can you tell which ones handle dynamically expanding the region array?
-> 
-> You're _still_ adding a new API, which I still think is stupid.
+> So can't the whole ARCH_LMB_FIND_AREA go away then? And the generic
+> version be made non-weak?
 
-please consider to merge them later.
-
-Don't want to break current lmb users
+Later after more test, to make sure x86 could endure from high to low.
+then we can remove ARCH_LMB_FIND_AREA.
 
 YH
