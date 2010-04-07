@@ -1,126 +1,74 @@
-From: Kevin Hilman <khilman@deeprootsystems.com>
-Subject: Re: start_kernel(): bug: interrupts were enabled early
-Date: Wed, 07 Apr 2010 12:09:17 -0700
-Message-ID: <878w8zcc6a.fsf@deeprootsystems.com>
-References: <20100325194100.GA2364@debian>
-	<20100331134048.da4e35a7.akpm@linux-foundation.org>
-	<4BB3B4DB.7040904@kernel.org>
-	<20100331135220.c6695a51.akpm@linux-foundation.org>
-	<4BB3BAD6.50308@zytor.com>
-	<alpine.LFD.2.00.1004010904540.3707@i5.linux-foundation.org>
+From: Michael Ellerman <michael@ellerman.id.au>
+Subject: Re: [PATCH 06/33] lmb: Add lmb_reserve_area/lmb_free_area
+Date: Thu, 08 Apr 2010 09:35:08 +1000
+Message-ID: <1270683308.9521.7.camel@concordia>
+References: <1270001838-15857-1-git-send-email-yinghai@kernel.org>
+	 <1270001838-15857-7-git-send-email-yinghai@kernel.org>
+Reply-To: michael@ellerman.id.au
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg="pgp-sha1"; protocol="application/pgp-signature"; boundary="=-RO9zwjSQmvvr/gzyWkoB"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pv0-f174.google.com ([74.125.83.174]:53945 "EHLO
-	mail-pv0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753576Ab0DGTJV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Apr 2010 15:09:21 -0400
-In-Reply-To: <alpine.LFD.2.00.1004010904540.3707@i5.linux-foundation.org> (Linus Torvalds's message of "Thu\, 1 Apr 2010 09\:13\:31 -0700 \(PDT\)")
+Received: from ozlabs.org ([203.10.76.45]:38680 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752240Ab0DGXfJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 7 Apr 2010 19:35:09 -0400
+In-Reply-To: <1270001838-15857-7-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, cl@linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
-
-Linus Torvalds <torvalds@linux-foundation.org> writes:
-
-> On Wed, 31 Mar 2010, H. Peter Anvin wrote:
->> 
->> The obvious way to fix this would be to use
->> spin_lock_irqsave..spin_lock_irqrestore in __down_read as well as in the
->> other locations; I don't have a good feel for what the cost of doing so
->> would be, though.  On x86 it's fairly expensive simply because the only
->> way to save the state is to push it on the stack, which the compiler
->> doesn't deal well with, but this code isn't used on x86.
->
-
-[...]
-
-> So making the slow-path do the spin_[un]lock_irq{save,restore}() versions 
-> sounds like the right thing. It won't be a performance issue: it _is_ the 
-> slow-path, and we're already doing the expensive part (the spinlock itself 
-> and the irq thing).
->
-> So ACK on the idea. Who wants to write the trivial patch and test it? 
-
-OK, I'll bite since I was seeing boot-time hangs on ARM (TI OMAP3) due
-to this.  Patch below.
-
-Kevin
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
 
-From 7baff4008353bbfd2a2e2a4da22b87bc4efa4194 Mon Sep 17 00:00:00 2001
-From: Kevin Hilman <khilman@deeprootsystems.com>
-Date: Wed, 7 Apr 2010 11:52:46 -0700
-Subject: [PATCH] rwsem generic spinlock: use IRQ save/restore spinlocks
+--=-RO9zwjSQmvvr/gzyWkoB
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-rwsems can be used with IRQs disabled, particularily in early boot
-before IRQs are enabled.  Currently the spin_unlock_irq() usage in the
-slow-patch will unconditionally enable interrupts and cause problems
-since interrupts are not yet initialized or enabled.
+On Tue, 2010-03-30 at 19:16 -0700, Yinghai Lu wrote:
+> They will check if the region array is big enough.
+>=20
+> __check_and_double_region_array will try to double the region array if th=
+at
+> array spare slots is not big enough.  Old array will be copied to new arr=
+ay.
+>=20
 
-This patch uses save/restore versions of IRQ spinlocks in the slowpath
-to ensure interrupts are not unintentionally disabled.
+> diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+> index 4cf2f3b..598662f 100644
+> --- a/include/linux/lmb.h
+> +++ b/include/linux/lmb.h
+> @@ -83,6 +84,9 @@ lmb_end_pfn(struct lmb_region *type, unsigned long regi=
+on_nr)
+>  	       lmb_size_pages(type, region_nr);
+>  }
+> =20
+> +void lmb_reserve_area(u64 start, u64 end, char *name);
+> +void lmb_free_area(u64 start, u64 end);
+> +void lmb_add_memory(u64 start, u64 end);
 
-Signed-off-by: Kevin Hilman <khilman@deeprootsystems.com>
----
- lib/rwsem-spinlock.c |   14 ++++++++------
- 1 files changed, 8 insertions(+), 6 deletions(-)
+vs
 
-diff --git a/lib/rwsem-spinlock.c b/lib/rwsem-spinlock.c
-index ccf95bf..ffc9fc7 100644
---- a/lib/rwsem-spinlock.c
-+++ b/lib/rwsem-spinlock.c
-@@ -143,13 +143,14 @@ void __sched __down_read(struct rw_semaphore *sem)
- {
- 	struct rwsem_waiter waiter;
- 	struct task_struct *tsk;
-+	unsigned long flags;
- 
--	spin_lock_irq(&sem->wait_lock);
-+	spin_lock_irqsave(&sem->wait_lock, flags);
- 
- 	if (sem->activity >= 0 && list_empty(&sem->wait_list)) {
- 		/* granted */
- 		sem->activity++;
--		spin_unlock_irq(&sem->wait_lock);
-+		spin_unlock_irqrestore(&sem->wait_lock, flags);
- 		goto out;
- 	}
- 
-@@ -164,7 +165,7 @@ void __sched __down_read(struct rw_semaphore *sem)
- 	list_add_tail(&waiter.list, &sem->wait_list);
- 
- 	/* we don't need to touch the semaphore struct anymore */
--	spin_unlock_irq(&sem->wait_lock);
-+	spin_unlock_irqrestore(&sem->wait_lock, flags);
- 
- 	/* wait to be given the lock */
- 	for (;;) {
-@@ -209,13 +210,14 @@ void __sched __down_write_nested(struct rw_semaphore *sem, int subclass)
- {
- 	struct rwsem_waiter waiter;
- 	struct task_struct *tsk;
-+	unsigned long flags;
- 
--	spin_lock_irq(&sem->wait_lock);
-+	spin_lock_irqsave(&sem->wait_lock, flags);
- 
- 	if (sem->activity == 0 && list_empty(&sem->wait_list)) {
- 		/* granted */
- 		sem->activity = -1;
--		spin_unlock_irq(&sem->wait_lock);
-+		spin_unlock_irqrestore(&sem->wait_lock, flags);
- 		goto out;
- 	}
- 
-@@ -230,7 +232,7 @@ void __sched __down_write_nested(struct rw_semaphore *sem, int subclass)
- 	list_add_tail(&waiter.list, &sem->wait_list);
- 
- 	/* we don't need to touch the semaphore struct anymore */
--	spin_unlock_irq(&sem->wait_lock);
-+	spin_unlock_irqrestore(&sem->wait_lock, flags);
- 
- 	/* wait to be given the lock */
- 	for (;;) {
--- 
-1.7.0.2
+extern long lmb_reserve(u64 base, u64 size);
+extern long lmb_free(u64 base, u64 size);  =20
+extern long lmb_add(u64 base, u64 size);                                   =
+=20
+                        =20
+
+Can you tell which ones handle dynamically expanding the region array?
+
+You're _still_ adding a new API, which I still think is stupid.
+
+cheers
+
+--=-RO9zwjSQmvvr/gzyWkoB
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
+
+iEYEABECAAYFAku9FqgACgkQdSjSd0sB4dLgfACgjIbZTKa2rEnCBtE8kYwia5xW
+I2kAoMAErefZjHF4gscrTBT3ckVtYS95
+=VMrI
+-----END PGP SIGNATURE-----
+
+--=-RO9zwjSQmvvr/gzyWkoB--
