@@ -1,59 +1,94 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 1/2] sparc64: Implement local_irq_save_nmi().
-Date: Wed, 07 Apr 2010 09:24:19 +0200
-Message-ID: <1270625059.5109.537.camel@twins>
-References: <20100406.163955.28809295.davem@davemloft.net>
-	 <1270623146.5109.532.camel@twins>
-	 <20100407.000625.203083228.davem@davemloft.net>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: Arch specific mmap attributes (Was: mprotect pgprot handling
+ weirdness)
+Date: Wed, 07 Apr 2010 18:56:13 +1000
+Message-ID: <1270630573.2300.90.camel@pasglop>
+References: <20100406185246.7E63.A69D9226@jp.fujitsu.com>
+	 <1270592111.13812.88.camel@pasglop>
+	 <20100407095145.FB70.A69D9226@jp.fujitsu.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <20100407.000625.203083228.davem@davemloft.net>
-Sender: sparclinux-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: mingo@elte.hu, acme@redhat.com, paulus@samba.org, efault@gmx.de, fweisbec@gmail.com, tglx@linutronix.de, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20100407095145.FB70.A69D9226@jp.fujitsu.com>
+Sender: owner-linux-mm@kvack.org
+To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Cc: linux-mm@kvack.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Hugh Dickins <hugh.dickins@tiscali.co.uk>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2010-04-07 at 00:06 -0700, David Miller wrote:
-> From: Peter Zijlstra <peterz@infradead.org>
-> Date: Wed, 07 Apr 2010 08:52:26 +0200
-> 
-> > On Tue, 2010-04-06 at 16:39 -0700, David Miller wrote:
-> >> @@ -49,6 +49,16 @@ static inline void raw_local_irq_disable(void)
-> >>  	);
-> >>  }
-> >>  
-> >> +static inline void raw_local_irq_disable_nmi(void)
-> >> +{
-> >> +	__asm__ __volatile__(
-> >> +		"wrpr	%0, %%pil"
-> >> +		: /* no outputs */
-> >> +		: "i" (PIL_NMI)
-> >> +		: "memory"
-> >> +	);
-> >> +}
-> >> +
-> > 
-> > Isn't this wrong when used from !NMI context?
-> > 
-> > Should this thing do something like:
-> > 
-> >   if (rdpr() < PIL_NORMAL_MAX)
-> >     wrpr(PIL_NORMAL_MAX);
-> > 
-> > so that it only disables IRQs, but doesn't enable NMIs.
-> 
-> It's immaterial, local_irq_restore() will do the right thing,
-> and it's ok to disable NMIs in these few cases I think.
-> 
-> I desperately want to avoid that "test and maybe change the
-> value %pil value we write" business, and honestly that's
-> the whole point of this exercise.
+On Wed, 2010-04-07 at 15:03 +0900, KOSAKI Motohiro wrote:
 
-Sure, its your architecture.. but could you explain why you're trying to
-avoid that compare so desperately, the local_irq_save_nmi() calls are
-few so surely they could carry that overhead.
+> Generally speaking, It seems no good idea. desktop and server world don't
+> interest arch specific mmu attribute crap.
 
-Also, doesn't __raw_local_irq_save_flags() already do the read? So its
-really just the compare that's gone missing.
+So you are saying that because your desktop and servers don't care Linux
+shouldn't support the possiblity ? IE. Embedded doesn't matter or some
+sort of similar statement ? :-) Come on ...
+
+Anyways, this is just not true. Take SAO, this is a server feature (used
+among others for x86 emulation). Little Endian mappings is indeed more
+of an "embedded" feature to some extent, at least the way we plan to use
+it, but is still very relevant.
+
+Caching attributes control and storage keys can be useful in a lot of
+other areas that really have nothing to do with HPC :-) Databases come
+to mind, there's more too.
+
+In any case, I don't know why you argue. We have features that a lot of
+the CPUs out there provide, that at least some people out there would
+like to exploit, and you are saying that Linux should not provide
+support for these because your vision of a desktop/server only world is
+all that matters ?
+
+Anyways, let's go back to -how- to implement that properly rather than
+that sort of reasonably useless argument.
+
+> because many many opensource
+> and ISV library don't care it. I know highend hpc and embedded have 
+> differenct eco-system. they might want to use such strange mmu feature.
+> I recommend to you are focusing popwerpc eco-system. 
+
+Thanks you for your recommendation :-)
+
+> I'm not against changing kernel internal. I only disagree mmu attribute
+> fashion will be become used widely.
+
+So how do you propose we proceed ? Extend vm_flags to be a u64 instead ?
+
+I don't really care much which method is used, though from a -technical-
+perspective, the mmu attributes one seem to be nicer in the long run,
+but my immediate needs would be well served by just adding 2 or 3 flags
+in there :-)
+
+In any case, I'd be curious to have Hugh and Nick opinions here on the
+technicalities.
+
+Cheers,
+Ben.
+
+> > Some powerpc's also provide storage keys for example and I think ARM
+> > have something along those lines. There's interesting cachability
+> > attributes too, on x86 as well. Being able to use such attributes to
+> > request for example a relaxed ordering mapping on x86 might be useful.
+> > 
+> > I think it basically boils down to either extend vm_flags to always be
+> > 64-bit, which seems to be Nick preferred approach, or introduct a
+> > vm_attributes with all the necessary changes to the merge code to take
+> > it into account (not -that- hard tho, there's only half a page of
+> > results in grep for these things :-)
+> 
+> 
+> 
+> 
+> --
+> To unsubscribe, send a message with 'unsubscribe linux-mm' in
+> the body to majordomo@kvack.org.  For more info on Linux MM,
+> see: http://www.linux-mm.org/ .
+> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
