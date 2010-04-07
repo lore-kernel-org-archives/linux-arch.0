@@ -1,59 +1,47 @@
-From: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Subject: Re: Arch specific mmap attributes (Was: mprotect pgprot handling weirdness)
-Date: Wed,  7 Apr 2010 15:03:45 +0900 (JST)
-Message-ID: <20100407095145.FB70.A69D9226@jp.fujitsu.com>
-References: <20100406185246.7E63.A69D9226@jp.fujitsu.com> <1270592111.13812.88.camel@pasglop>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 1/2] sparc64: Implement local_irq_save_nmi().
+Date: Wed, 07 Apr 2010 08:52:26 +0200
+Message-ID: <1270623146.5109.532.camel@twins>
+References: <20100406.163955.28809295.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fgwmail5.fujitsu.co.jp ([192.51.44.35]:36254 "EHLO
-	fgwmail5.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752922Ab0DGGDy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Apr 2010 02:03:54 -0400
-In-Reply-To: <1270592111.13812.88.camel@pasglop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: kosaki.motohiro@jp.fujitsu.com, linux-mm@kvack.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Content-Transfer-Encoding: 8BIT
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <20100406.163955.28809295.davem@davemloft.net>
+Sender: sparclinux-owner@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: mingo@elte.hu, acme@redhat.com, paulus@samba.org, efault@gmx.de, fweisbec@gmail.com, tglx@linutronix.de, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-> On Tue, 2010-04-06 at 19:26 +0900, KOSAKI Motohiro wrote:
-> > > Ok, I see. No biggie. The main deal remains how we want to do that
-> > > inside the kernel :-) I think the less horrible options here are
-> > > to either extend vm_flags to always be 64-bit, or add a separate
-> > > vm_map_attributes flag, and add the necessary bits and pieces to
-> > > prevent merge accross different attribute vma's.
-> > 
-> > vma->vm_flags already have VM_SAO. Why do we need more flags?
-> > At least, I dislike to add separate flags member into vma.
-> > It might introduce unnecessary messy into vma merge thing.
+On Tue, 2010-04-06 at 16:39 -0700, David Miller wrote:
+> It disables up to PIL_NMI instead of just PIL_NORMAL_MAX.
 > 
-> Well, we did shove SAO in there, and used up the very last vm_flag for
-> it a while back. Now I need another one, for little endian mappings. So
-> I'm stuck.
+> Signed-off-by: David S. Miller <davem@davemloft.net>
 > 
-> But the problem goes further I believe. Archs do nowadays have quite an
-> interesting set of MMU attributes that it would be useful to expose to
-> some extent.
+> diff --git a/arch/sparc/include/asm/irqflags_64.h b/arch/sparc/include/asm/irqflags_64.h
+> index 8b49bf9..fa1e00e 100644
+> --- a/arch/sparc/include/asm/irqflags_64.h
+> +++ b/arch/sparc/include/asm/irqflags_64.h
+> @@ -49,6 +49,16 @@ static inline void raw_local_irq_disable(void)
+>  	);
+>  }
+>  
+> +static inline void raw_local_irq_disable_nmi(void)
+> +{
+> +	__asm__ __volatile__(
+> +		"wrpr	%0, %%pil"
+> +		: /* no outputs */
+> +		: "i" (PIL_NMI)
+> +		: "memory"
+> +	);
+> +}
+> +
 
-Generally speaking, It seems no good idea. desktop and server world don't
-interest arch specific mmu attribute crap. because many many opensource
-and ISV library don't care it. I know highend hpc and embedded have 
-differenct eco-system. they might want to use such strange mmu feature.
-I recommend to you are focusing popwerpc eco-system. 
+Isn't this wrong when used from !NMI context?
 
-I'm not against changing kernel internal. I only disagree mmu attribute
-fashion will be become used widely.
+Should this thing do something like:
 
+  if (rdpr() < PIL_NORMAL_MAX)
+    wrpr(PIL_NORMAL_MAX);
 
-> 
-> Some powerpc's also provide storage keys for example and I think ARM
-> have something along those lines. There's interesting cachability
-> attributes too, on x86 as well. Being able to use such attributes to
-> request for example a relaxed ordering mapping on x86 might be useful.
-> 
-> I think it basically boils down to either extend vm_flags to always be
-> 64-bit, which seems to be Nick preferred approach, or introduct a
-> vm_attributes with all the necessary changes to the merge code to take
-> it into account (not -that- hard tho, there's only half a page of
-> results in grep for these things :-)
+so that it only disables IRQs, but doesn't enable NMIs.
