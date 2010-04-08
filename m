@@ -1,234 +1,43 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 05/13] mm: Make use of the anon_vma ref count
-Date: Thu, 08 Apr 2010 21:17:42 +0200
-Message-ID: <20100408192722.815377075@chello.nl>
-References: <20100408191737.296180458@chello.nl>
+Subject: [PATCH 00/13] mm: preemptibility -v2
+Date: Thu, 08 Apr 2010 21:17:37 +0200
+Message-ID: <20100408191737.296180458@chello.nl>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=mm-use-anon_vma-ref.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fou
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>
 List-Id: linux-arch.vger.kernel.org
 
-This patch changes the anon_vma refcount to be 0 when the object is
-free. It does this by adding 1 ref to being in use in the anon_vma
-structure (iow. the anon_vma->head list is not empty).
+Hi,
 
-This allows a simpler release scheme without having to check both the
-refcount and the list as well as avoids taking a ref for each entry
-on the list.
+This (still incomplete) patch-set makes part of the mm a lot more preemptible.
+It converts i_mmap_lock and anon_vma->lock to mutexes.  On the way there it
+also makes mmu_gather preemptible.
 
-We then use this new refcount in the migration code to avoid a long
-RCU read side section and convert page_lock_anon_vma() over to use
-refcounts.
+The main motivation was making mm_take_all_locks() preemptible, since it
+appears people are nesting hundreds of spinlocks there.
 
-This later is done for each of convertion of anon_vma from spinlock
-to mutex.
+The side-effects are that we can finally make mmu_gather preemptible, something
+which lots of people have wanted to do for a long time.
 
-Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
----
- include/linux/rmap.h |    7 +++++++
- mm/ksm.c             |    9 +--------
- mm/migrate.c         |   17 ++++++-----------
- mm/rmap.c            |   45 ++++++++++++++++++++++++++++++---------------
- 4 files changed, 44 insertions(+), 34 deletions(-)
+It also gets us anon_vma refcounting which seems to be wanted by KSM as well as
+Mel's compaction work.
 
-Index: linux-2.6/include/linux/rmap.h
-===================================================================
---- linux-2.6.orig/include/linux/rmap.h
-+++ linux-2.6/include/linux/rmap.h
-@@ -100,6 +100,13 @@ static inline void anon_vma_merge(struct
- 	unlink_anon_vmas(next);
- }
- 
-+struct anon_vma *anon_vma_get(struct page *page);
-+static inline void anon_vma_put(struct anon_vma *anon_vma)
-+{
-+	if (atomic_dec_and_test(&anon_vma->ref))
-+		anon_vma_free(anon_vma);
-+}
-+
- /*
-  * rmap interfaces called when adding or removing pte of page
-  */
-Index: linux-2.6/mm/ksm.c
-===================================================================
---- linux-2.6.orig/mm/ksm.c
-+++ linux-2.6/mm/ksm.c
-@@ -323,14 +323,7 @@ static void hold_anon_vma(struct rmap_it
- 
- static void drop_anon_vma(struct rmap_item *rmap_item)
- {
--	struct anon_vma *anon_vma = rmap_item->anon_vma;
--
--	if (atomic_dec_and_lock(&anon_vma->ref, &anon_vma->lock)) {
--		int empty = list_empty(&anon_vma->head);
--		spin_unlock(&anon_vma->lock);
--		if (empty)
--			anon_vma_free(anon_vma);
--	}
-+	anon_vma_put(rmap_item->anon_vma);
- }
- 
- /*
-Index: linux-2.6/mm/migrate.c
-===================================================================
---- linux-2.6.orig/mm/migrate.c
-+++ linux-2.6/mm/migrate.c
-@@ -545,7 +545,7 @@ static int unmap_and_move(new_page_t get
- 	int rc = 0;
- 	int *result = NULL;
- 	struct page *newpage = get_new_page(page, private, &result);
--	int rcu_locked = 0;
-+	struct anon_vma *anon_vma = NULL;
- 	int charge = 0;
- 	struct mem_cgroup *mem = NULL;
- 
-@@ -601,10 +601,8 @@ static int unmap_and_move(new_page_t get
- 	 * File Caches may use write_page() or lock_page() in migration, then,
- 	 * just care Anon page here.
- 	 */
--	if (PageAnon(page)) {
--		rcu_read_lock();
--		rcu_locked = 1;
--	}
-+	if (PageAnon(page))
-+		anon_vma = anon_vma_get(page);
- 
- 	/*
- 	 * Corner case handling:
-@@ -622,10 +620,7 @@ static int unmap_and_move(new_page_t get
- 		if (!PageAnon(page) && page_has_private(page)) {
- 			/*
- 			 * Go direct to try_to_free_buffers() here because
--			 * a) that's what try_to_release_page() would do anyway
--			 * b) we may be under rcu_read_lock() here, so we can't
--			 *    use GFP_KERNEL which is what try_to_release_page()
--			 *    needs to be effective.
-+			 * that's what try_to_release_page() would do anyway
- 			 */
- 			try_to_free_buffers(page);
- 			goto rcu_unlock;
-@@ -643,8 +638,8 @@ skip_unmap:
- 	if (rc)
- 		remove_migration_ptes(page, page);
- rcu_unlock:
--	if (rcu_locked)
--		rcu_read_unlock();
-+	if (anon_vma)
-+		anon_vma_put(anon_vma);
- uncharge:
- 	if (!charge)
- 		mem_cgroup_end_migration(mem, page, newpage);
-Index: linux-2.6/mm/rmap.c
-===================================================================
---- linux-2.6.orig/mm/rmap.c
-+++ linux-2.6/mm/rmap.c
-@@ -66,11 +66,18 @@ static struct kmem_cache *anon_vma_chain
- 
- static inline struct anon_vma *anon_vma_alloc(void)
- {
--	return kmem_cache_alloc(anon_vma_cachep, GFP_KERNEL);
-+	struct anon_vma *anon_vma;
-+
-+	anon_vma = kmem_cache_alloc(anon_vma_cachep, GFP_KERNEL);
-+	if (anon_vma)
-+		atomic_set(&anon_vma->ref, 1);
-+
-+	return anon_vma;
- }
- 
- void anon_vma_free(struct anon_vma *anon_vma)
- {
-+	VM_BUG_ON(atomic_read(&anon_vma->ref));
- 	kmem_cache_free(anon_vma_cachep, anon_vma);
- }
- 
-@@ -149,7 +156,7 @@ int anon_vma_prepare(struct vm_area_stru
- 
- 		spin_unlock(&anon_vma->lock);
- 		if (unlikely(allocated)) {
--			anon_vma_free(allocated);
-+			anon_vma_put(allocated);
- 			anon_vma_chain_free(avc);
- 		}
- 	}
-@@ -230,7 +237,7 @@ int anon_vma_fork(struct vm_area_struct 
- 	return 0;
- 
-  out_error_free_anon_vma:
--	anon_vma_free(anon_vma);
-+	anon_vma_put(anon_vma);
-  out_error:
- 	unlink_anon_vmas(vma);
- 	return -ENOMEM;
-@@ -247,13 +254,11 @@ static void anon_vma_unlink(struct anon_
- 
- 	spin_lock(&anon_vma->lock);
- 	list_del(&anon_vma_chain->same_anon_vma);
--
--	/* We must garbage collect the anon_vma if it's empty */
--	empty = list_empty(&anon_vma->head) && !atomic_read(&anon_vma->ref);
-+	empty = list_empty(&anon_vma->head);
- 	spin_unlock(&anon_vma->lock);
- 
- 	if (empty)
--		anon_vma_free(anon_vma);
-+		anon_vma_put(anon_vma);
- }
- 
- void unlink_anon_vmas(struct vm_area_struct *vma)
-@@ -286,11 +291,11 @@ void __init anon_vma_init(void)
- 
- /*
-  * Getting a lock on a stable anon_vma from a page off the LRU is
-- * tricky: page_lock_anon_vma rely on RCU to guard against the races.
-+ * tricky: page_lock_anon_vma relies on RCU to guard against the races.
-  */
--struct anon_vma *page_lock_anon_vma(struct page *page)
-+struct anon_vma *anon_vma_get(struct page *page)
- {
--	struct anon_vma *anon_vma;
-+	struct anon_vma *anon_vma = NULL;
- 	unsigned long anon_mapping;
- 
- 	rcu_read_lock();
-@@ -302,23 +307,33 @@ again:
- 		goto out;
- 
- 	anon_vma = (struct anon_vma *) (anon_mapping - PAGE_MAPPING_ANON);
--	spin_lock(&anon_vma->lock);
-+	if (!atomic_inc_not_zero(&anon_vma->ref))
-+		anon_vma = NULL;
- 
- 	if (page_rmapping(page) != anon_vma) {
--		spin_unlock(&anon_vma->lock);
-+		anon_vma_put(anon_vma);
- 		goto again;
- 	}
- 
--	return anon_vma;
- out:
- 	rcu_read_unlock();
--	return NULL;
-+	return anon_vma;
-+}
-+
-+struct anon_vma *page_lock_anon_vma(struct page *page)
-+{
-+	struct anon_vma *anon_vma = anon_vma_get(page);
-+
-+	if (anon_vma)
-+		spin_lock(&anon_vma->lock);
-+
-+	return anon_vma;
- }
- 
- void page_unlock_anon_vma(struct anon_vma *anon_vma)
- {
- 	spin_unlock(&anon_vma->lock);
--	rcu_read_unlock();
-+	anon_vma_put(anon_vma);
- }
- 
- /*
+This patch-set seems to build and boot on my x86_64 machines and even builds a
+kernel. I've also attempted powerpc and sparc, which I've compile tested with
+their respective defconfigs, remaining are (afaikt the rest uses the generic
+tlb bits):
+
+ - s390
+ - ia64
+ - arm
+ - superh
+ - um
+
+From those, s390 and ia64 look 'interesting', arm and superh seem very similar
+and should be relatively easy (-rt has a patchlet for arm iirc).
+
+What kind of performance tests would people have me run on this to satisfy
+their need for numbers? I've done a kernel build on x86_64 and if anything that
+was slightly faster with these patches, but it was well within the noise
+levels so it might be heat noise I'm looking at ;-)
