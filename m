@@ -1,136 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:47324 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933262Ab0DHTae (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 15:30:34 -0400
-Message-ID: <20100408192723.158842551@chello.nl>
-Date: Thu, 08 Apr 2010 21:17:50 +0200
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 13/13] mm: Optimize page_lock_anon_vma
+Received: from casper.infradead.org ([85.118.1.10]:57115 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933597Ab0DHVyc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 17:54:32 -0400
+Received: from e35131.upc-e.chello.nl ([213.93.35.131] helo=dyad.programming.kicks-ass.net)
+	by casper.infradead.org with esmtpsa (Exim 4.69 #1 (Red Hat Linux))
+	id 1NzzgD-0001Q5-S0
+	for linux-arch@vger.kernel.org; Thu, 08 Apr 2010 21:54:30 +0000
+Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
+From: Peter Zijlstra <peterz@infradead.org>
+In-Reply-To: <20100408142051.717b278c.akpm@linux-foundation.org>
 References: <20100408191737.296180458@chello.nl>
-Content-Disposition: inline; filename=mm-opt-rmap.patch
+	 <20100408192722.687144862@chello.nl>
+	 <20100408142051.717b278c.akpm@linux-foundation.org>
+Content-Type: text/plain; charset="UTF-8"
+Date: Thu, 08 Apr 2010 23:54:26 +0200
+Message-ID: <1270763666.20295.3198.camel@laptop>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>
-Message-ID: <20100408191750.m5sA_Qawf9z31devvnuBug4yhgxWSxBQFJw5IijiHzM@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
+Message-ID: <20100408215426.W4-1fmnx_WY0Ikbf5IOhTzoV-yrENHtjYrVTA98J8j8@z>
 
-Optimize page_lock_anon_vma() by removing the atomic ref count
-ops from the fast path.
+On Thu, 2010-04-08 at 14:20 -0700, Andrew Morton wrote:
+> On Thu, 08 Apr 2010 21:17:39 +0200
+> Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+> 
+> > There is nothing preventing the anon_vma from being detached while we
+> > are spinning to acquire the lock.
+> 
+> Well.  The comment there clearly implies (or states) that RCU
+> protection is used to "guard against races".  If that's inaccurate
+> or incomplete, can we please get it fixed?
 
-Rather complicates the code a lot, but might be worth it.
+Good point, goes together with that last comment you made.
 
-Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
----
- mm/rmap.c |   71 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++----
- 1 file changed, 67 insertions(+), 4 deletions(-)
+> The whole function makes be a bit queasy.
+> 
+> - Fails to explain why it pulls all these party tricks to read
+>   page->mapping a single time.  What code path are we defending against
+>   here?
 
-Index: linux-2.6/mm/rmap.c
-===================================================================
---- linux-2.6.orig/mm/rmap.c
-+++ linux-2.6/mm/rmap.c
-@@ -78,6 +78,12 @@ static inline struct anon_vma *anon_vma_
- void anon_vma_free(struct anon_vma *anon_vma)
- {
- 	VM_BUG_ON(atomic_read(&anon_vma->ref));
-+	/*
-+	 * Sync against the anon_vma->lock, so that we can hold the
-+	 * lock without requiring a reference. See page_lock_anon_vma().
-+	 */
-+	mutex_lock(&anon_vma->lock);
-+	mutex_unlock(&anon_vma->lock);
- 	kmem_cache_free(anon_vma_cachep, anon_vma);
- }
- 
-@@ -291,7 +297,7 @@ void __init anon_vma_init(void)
- 
- /*
-  * Getting a lock on a stable anon_vma from a page off the LRU is
-- * tricky: page_lock_anon_vma relies on RCU to guard against the races.
-+ * tricky: anon_vma_get relies on RCU to guard against the races.
-  */
- struct anon_vma *anon_vma_get(struct page *page)
- {
-@@ -320,12 +326,70 @@ out:
- 	return anon_vma;
- }
- 
-+/*
-+ * Similar to anon_vma_get(), however it relies on the anon_vma->lock
-+ * to pin the object. However since we cannot wait for the mutex
-+ * acquisition inside the RCU read lock, we use the ref count
-+ * in the slow path.
-+ */
- struct anon_vma *page_lock_anon_vma(struct page *page)
- {
--	struct anon_vma *anon_vma = anon_vma_get(page);
-+	struct anon_vma *anon_vma = NULL;
-+	unsigned long anon_mapping;
-+
-+again:
-+	rcu_read_lock();
-+	anon_mapping = (unsigned long) ACCESS_ONCE(page->mapping);
-+	if ((anon_mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)
-+		goto unlock;
-+	if (!page_mapped(page))
-+		goto unlock;
-+
-+	anon_vma = (struct anon_vma *) (anon_mapping - PAGE_MAPPING_ANON);
-+	if (!mutex_trylock(&anon_vma->lock)) {
-+		/*
-+		 * We failed to acquire the lock, take a ref so we can
-+		 * drop the RCU read lock and sleep on it.
-+		 */
-+		if (!atomic_inc_not_zero(&anon_vma->ref)) {
-+			/*
-+			 * Failed to get a ref, we're dead, bail.
-+			 */
-+			anon_vma = NULL;
-+			goto unlock;
-+		}
-+		rcu_read_unlock();
- 
--	if (anon_vma)
- 		mutex_lock(&anon_vma->lock);
-+		/*
-+		 * We got the lock, drop the temp. ref, if it was the last
-+		 * one free it and bail.
-+		 */
-+		if (atomic_dec_and_test(&anon_vma->ref)) {
-+			mutex_unlock(&anon_vma->lock);
-+			anon_vma_free(anon_vma);
-+			anon_vma = NULL;
-+		}
-+		goto out;
-+	}
-+	/*
-+	 * Got the lock, check we're still alive. Seeing a ref
-+	 * here guarantees the object will stay alive due to
-+	 * anon_vma_free() syncing against the lock we now hold.
-+	 */
-+	smp_rmb(); /* Order against anon_vma_put() */
-+	if (!atomic_read(&anon_vma->ref)) {
-+		mutex_unlock(&anon_vma->lock);
-+		anon_vma = NULL;
-+	}
-+
-+unlock:
-+	rcu_read_unlock();
-+out:
-+	if (anon_vma && page_rmapping(page) != anon_vma) {
-+		mutex_unlock(&anon_vma->lock);
-+		goto again;
-+	}
- 
- 	return anon_vma;
- }
-@@ -333,7 +397,6 @@ struct anon_vma *page_lock_anon_vma(stru
- void page_unlock_anon_vma(struct anon_vma *anon_vma)
- {
- 	mutex_unlock(&anon_vma->lock);
--	anon_vma_put(anon_vma);
- }
- 
- /*
+From what I understand we race with tear-down, anon_vma_unlock() takes
+anon_vma->lock, so holding the lock pins the anon_vma.
 
+So what we do to acquire a stable anon_vma from a page * is to, while
+holding RCU read lock, very carefully read page->mapping, extract the
+anon_vma and acquire the lock.
+
+Now, the RCU usage is a tad tricky here, anon_vma uses
+SLAB_DESTROY_BY_RCU, which means that the slab will be RCU freed,
+however not the objects allocated from it. This means that an anon_vma
+can be re-used directly after its gets freed, but the storage will
+remain valid for at least a grace period after the free.
+
+So once we do have the lock we need to revalidate that we indeed got the
+anon_vma we throught we got.
+
+So its:
+
+  page->mapping = NULL;
+  anon_vma_unlink();
+    spin_lock()
+    spin_unlock()
+    kmem_cache_free(anon_vma);
+
+ VS
+
+  page_lock_anon_vma()'s trickery.
+
+> - Then checks page_mapped() without having any apparent defence
+>   against page_mapped() becoming untrue one nanosecond later.
+> 
+> - Checks page_mapped() inside the rcu_read_locked() section for
+>   inscrutable reasons.
+
+Right, I think the page_mapped() stuff is just an early bail out.
 
