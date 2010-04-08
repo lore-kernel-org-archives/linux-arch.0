@@ -1,94 +1,39 @@
-From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: [GIT PULL] perf fix
-Date: Thu,  8 Apr 2010 19:31:59 +0200
-Message-ID: <1270747919-16685-1-git-send-regression-fweisbec@gmail.com>
-References: <1270734746.2215.56.camel@edumazet-laptop>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [PATCH 11/13] mutex: Provide mutex_is_contended
+Date: Thu, 08 Apr 2010 21:17:48 +0200
+Message-ID: <20100408192723.072839778@chello.nl>
+References: <20100408191737.296180458@chello.nl>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pw0-f46.google.com ([209.85.160.46]:62036 "EHLO
-	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754407Ab0DHRcJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 13:32:09 -0400
-In-Reply-To: <1270734746.2215.56.camel@edumazet-laptop>
+Received: from bombadil.infradead.org ([18.85.46.34]:47323 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933404Ab0DHTae (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 15:30:34 -0400
+Content-Disposition: inline; filename=mutex-is-contended.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: LKML <linux-kernel@vger.kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, Eric Dumazet <eric.dumazet@gmail.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@redhat.com>, Paul Mackerras <paulus@samba.org>, David Miller <davem@davemloft.net>, Archs <linux-arch@vger.kernel.org>
+To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fou
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>
 
-Ingo,
+Usable for lock-breaks and such.
 
-Please pull the perf/urgent branch that can be found at:
-
-git://git.kernel.org/pub/scm/linux/kernel/git/frederic/random-tracing.git
-	perf/urgent
-
-Thanks,
-	Frederic
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
+ include/linux/mutex.h |    5 +++++
+ 1 file changed, 5 insertions(+)
 
-Frederic Weisbecker (1):
-      perf: Fix unsafe frame rewinding with hot regs fetching
-
-
- arch/x86/kernel/dumpstack.h |    8 ++++++--
- 1 files changed, 6 insertions(+), 2 deletions(-)
-
----
-commit ab285f2b5290d92b7ec1a6f9aad54308dadf6157
-Author: Frederic Weisbecker <fweisbec@gmail.com>
-Date:   Thu Apr 8 14:05:50 2010 +0200
-
-    perf: Fix unsafe frame rewinding with hot regs fetching
-    
-    When we fetch the hot regs and rewind to the nth caller, it
-    might happen that we dereference a frame pointer outside the
-    kernel stack boundaries, like in this example:
-    
-    	perf_trace_sched_switch+0xd5/0x120
-            schedule+0x6b5/0x860
-            retint_careful+0xd/0x21
-    
-    Since we directly dereference a userspace frame pointer here while
-    rewinding behind retint_careful, this may end up in a crash.
-    
-    Fix this by simply using probe_kernel_address() when we rewind the
-    frame pointer.
-    
-    This issue will have a much more proper fix in the next version of the
-    perf_arch_fetch_caller_regs() API that will only need to rewind to the
-    first caller.
-    
-    Reported-by: Eric Dumazet <eric.dumazet@gmail.com>
-    Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
-    Tested-by: Eric Dumazet <eric.dumazet@gmail.com>
-    Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-    Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
-    Cc: Paul Mackerras <paulus@samba.org>
-    Cc: David Miller <davem@davemloft.net>
-    Cc: Archs <linux-arch@vger.kernel.org>
-
-diff --git a/arch/x86/kernel/dumpstack.h b/arch/x86/kernel/dumpstack.h
-index e39e771..e1a93be 100644
---- a/arch/x86/kernel/dumpstack.h
-+++ b/arch/x86/kernel/dumpstack.h
-@@ -14,6 +14,8 @@
- #define get_bp(bp) asm("movq %%rbp, %0" : "=r" (bp) :)
- #endif
+Index: linux-2.6/include/linux/mutex.h
+===================================================================
+--- linux-2.6.orig/include/linux/mutex.h
++++ linux-2.6/include/linux/mutex.h
+@@ -118,6 +118,11 @@ static inline int mutex_is_locked(struct
+ 	return atomic_read(&lock->count) != 1;
+ }
  
-+#include <linux/uaccess.h>
++static inline int mutex_is_contended(struct mutex *lock)
++{
++	return atomic_read(&lock->count) < 0;
++}
 +
- extern void
- show_trace_log_lvl(struct task_struct *task, struct pt_regs *regs,
- 		unsigned long *stack, unsigned long bp, char *log_lvl);
-@@ -42,8 +44,10 @@ static inline unsigned long rewind_frame_pointer(int n)
- 	get_bp(frame);
- 
- #ifdef CONFIG_FRAME_POINTER
--	while (n--)
--		frame = frame->next_frame;
-+	while (n--) {
-+		if (probe_kernel_address(&frame->next_frame, frame))
-+			break;
-+	}
- #endif
- 
- 	return (unsigned long)frame;
+ /*
+  * See kernel/mutex.c for detailed documentation of these APIs.
+  * Also see Documentation/mutex-design.txt.
