@@ -1,725 +1,331 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:50015 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933447Ab0DHTbC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 15:31:02 -0400
-Message-ID: <20100408192723.115187185@chello.nl>
-Date: Thu, 08 Apr 2010 21:17:49 +0200
+Received: from bombadil.infradead.org ([18.85.46.34]:47350 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933262Ab0DHTav (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 15:30:51 -0400
+Message-ID: <20100408192722.901224587@chello.nl>
+Date: Thu, 08 Apr 2010 21:17:44 +0200
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 12/13] mm: Convert i_mmap_lock and anon_vma->lock to mutexes
+Subject: [PATCH 07/13] powerpc: Preemptible mmu_gather
 References: <20100408191737.296180458@chello.nl>
-Content-Disposition: inline; filename=mm-mutex.patch
+Content-Disposition: inline; filename=mm-preempt-tlb-gather-power.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>
-Message-ID: <20100408191749.Aq4wBQB1S-luaFThwAWEEk7eZVx5WR1h6m5o_mUYugE@z>
+Message-ID: <20100408191744.RQCQ3XWHAMSL2KYPwmuVamtdxdP9BdI4hCEGJDi_jhM@z>
 
-Straight fwd conversion of i_mmap_lock and anon_vma->lock to mutexes.
+Fix up powerpc to the new mmu_gather stuffs.
+
+PPC has an extra batching queue to RCU free the actual pagetable
+allocations, use the ARCH extentions for that for now.
+
+For the ppc64_tlb_batch, which tracks the vaddrs to unhash from the
+hardware hash-table, keep using per-cpu arrays but flush on context
+switch and use a TIF bit to track the laxy_mmu state.
 
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/x86/mm/hugetlbpage.c |    4 ++--
- fs/hugetlbfs/inode.c      |    4 ++--
- fs/inode.c                |    2 +-
- include/linux/fs.h        |    2 +-
- include/linux/mm.h        |    2 +-
- include/linux/rmap.h      |   10 +++++-----
- kernel/fork.c             |    4 ++--
- mm/filemap_xip.c          |    4 ++--
- mm/fremap.c               |    4 ++--
- mm/hugetlb.c              |   12 ++++++------
- mm/ksm.c                  |   16 ++++++++--------
- mm/memory-failure.c       |    4 ++--
- mm/memory.c               |   14 +++++++-------
- mm/mmap.c                 |   20 ++++++++++----------
- mm/mremap.c               |    4 ++--
- mm/rmap.c                 |   42 +++++++++++++++++++++---------------------
- 16 files changed, 74 insertions(+), 74 deletions(-)
+ arch/powerpc/include/asm/pgalloc.h     |    4 +--
+ arch/powerpc/include/asm/thread_info.h |    2 +
+ arch/powerpc/include/asm/tlb.h         |   10 +++++++++
+ arch/powerpc/include/asm/tlbflush.h    |   16 ++++++++++-----
+ arch/powerpc/kernel/process.c          |   18 +++++++++++++++++
+ arch/powerpc/mm/pgtable.c              |   34 +++++++++++++++++++++++----------
+ arch/powerpc/mm/tlb_hash32.c           |    2 -
+ arch/powerpc/mm/tlb_hash64.c           |   12 ++++++-----
+ arch/powerpc/mm/tlb_nohash.c           |    2 -
+ 9 files changed, 76 insertions(+), 24 deletions(-)
 
-Index: linux-2.6/arch/x86/mm/hugetlbpage.c
+Index: linux-2.6/arch/powerpc/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/arch/x86/mm/hugetlbpage.c
-+++ linux-2.6/arch/x86/mm/hugetlbpage.c
-@@ -73,7 +73,7 @@ static void huge_pmd_share(struct mm_str
- 	if (!vma_shareable(vma, addr))
- 		return;
+--- linux-2.6.orig/arch/powerpc/include/asm/tlb.h
++++ linux-2.6/arch/powerpc/include/asm/tlb.h
+@@ -28,6 +28,16 @@
+ #define tlb_start_vma(tlb, vma)	do { } while (0)
+ #define tlb_end_vma(tlb, vma)	do { } while (0)
  
--	spin_lock(&mapping->i_mmap_lock);
-+	mutex_lock(&mapping->i_mmap_lock);
- 	vma_prio_tree_foreach(svma, &iter, &mapping->i_mmap, idx, idx) {
- 		if (svma == vma)
- 			continue;
-@@ -98,7 +98,7 @@ static void huge_pmd_share(struct mm_str
- 		put_page(virt_to_page(spte));
- 	spin_unlock(&mm->page_table_lock);
- out:
--	spin_unlock(&mapping->i_mmap_lock);
-+	mutex_unlock(&mapping->i_mmap_lock);
++#define HAVE_ARCH_MMU_GATHER 1
++
++struct pte_freelist_batch;
++
++struct arch_mmu_gather {
++	struct pte_freelist_batch *batch;
++};
++
++#define ARCH_MMU_GATHER_INIT (struct arch_mmu_gather){ .batch = NULL, }
++
+ extern void tlb_flush(struct mmu_gather *tlb);
+ 
+ /* Get the generic bits... */
+Index: linux-2.6/arch/powerpc/include/asm/tlbflush.h
+===================================================================
+--- linux-2.6.orig/arch/powerpc/include/asm/tlbflush.h
++++ linux-2.6/arch/powerpc/include/asm/tlbflush.h
+@@ -108,18 +108,24 @@ extern void hpte_need_flush(struct mm_st
+ 
+ static inline void arch_enter_lazy_mmu_mode(void)
+ {
+-	struct ppc64_tlb_batch *batch = &__get_cpu_var(ppc64_tlb_batch);
++	struct ppc64_tlb_batch *batch = &get_cpu_var(ppc64_tlb_batch);
+ 
+ 	batch->active = 1;
++
++	put_cpu_var(ppc64_tlb_batch);
  }
  
- /*
-Index: linux-2.6/fs/hugetlbfs/inode.c
-===================================================================
---- linux-2.6.orig/fs/hugetlbfs/inode.c
-+++ linux-2.6/fs/hugetlbfs/inode.c
-@@ -429,10 +429,10 @@ static int hugetlb_vmtruncate(struct ino
- 	pgoff = offset >> PAGE_SHIFT;
+ static inline void arch_leave_lazy_mmu_mode(void)
+ {
+-	struct ppc64_tlb_batch *batch = &__get_cpu_var(ppc64_tlb_batch);
++	struct ppc64_tlb_batch *batch = &get_cpu_var(ppc64_tlb_batch);
++
++	if (batch->active) {
++		if (batch->index)
++			__flush_tlb_pending(batch);
++		batch->active = 0;
++	}
  
- 	i_size_write(inode, offset);
--	spin_lock(&mapping->i_mmap_lock);
-+	mutex_lock(&mapping->i_mmap_lock);
- 	if (!prio_tree_empty(&mapping->i_mmap))
- 		hugetlb_vmtruncate_list(&mapping->i_mmap, pgoff);
--	spin_unlock(&mapping->i_mmap_lock);
-+	mutex_unlock(&mapping->i_mmap_lock);
- 	truncate_hugepages(inode, offset);
- 	return 0;
+-	if (batch->index)
+-		__flush_tlb_pending(batch);
+-	batch->active = 0;
++	put_cpu_var(ppc64_tlb_batch);
  }
-Index: linux-2.6/fs/inode.c
-===================================================================
---- linux-2.6.orig/fs/inode.c
-+++ linux-2.6/fs/inode.c
-@@ -258,7 +258,7 @@ void inode_init_once(struct inode *inode
- 	INIT_LIST_HEAD(&inode->i_devices);
- 	INIT_RADIX_TREE(&inode->i_data.page_tree, GFP_ATOMIC);
- 	spin_lock_init(&inode->i_data.tree_lock);
--	spin_lock_init(&inode->i_data.i_mmap_lock);
-+	mutex_init(&inode->i_data.i_mmap_lock);
- 	INIT_LIST_HEAD(&inode->i_data.private_list);
- 	spin_lock_init(&inode->i_data.private_lock);
- 	INIT_RAW_PRIO_TREE_ROOT(&inode->i_data.i_mmap);
-Index: linux-2.6/include/linux/fs.h
-===================================================================
---- linux-2.6.orig/include/linux/fs.h
-+++ linux-2.6/include/linux/fs.h
-@@ -627,7 +627,7 @@ struct address_space {
- 	unsigned int		i_mmap_writable;/* count VM_SHARED mappings */
- 	struct prio_tree_root	i_mmap;		/* tree of private and shared mappings */
- 	struct list_head	i_mmap_nonlinear;/*list VM_NONLINEAR mappings */
--	spinlock_t		i_mmap_lock;	/* protect tree, count, list */
-+	struct mutex		i_mmap_lock;	/* protect tree, count, list */
- 	unsigned int		truncate_count;	/* Cover race condition with truncate */
- 	unsigned long		nrpages;	/* number of total pages */
- 	pgoff_t			writeback_index;/* writeback starts here */
-Index: linux-2.6/include/linux/mm.h
-===================================================================
---- linux-2.6.orig/include/linux/mm.h
-+++ linux-2.6/include/linux/mm.h
-@@ -749,7 +749,7 @@ struct zap_details {
- 	struct address_space *check_mapping;	/* Check page->mapping if set */
- 	pgoff_t	first_index;			/* Lowest page->index to unmap */
- 	pgoff_t last_index;			/* Highest page->index to unmap */
--	spinlock_t *i_mmap_lock;		/* For unmap_mapping_range: */
-+	struct mutex *i_mmap_lock;		/* For unmap_mapping_range: */
- 	unsigned long truncate_count;		/* Compare vm_truncate_count */
- };
  
-Index: linux-2.6/include/linux/rmap.h
+ #define arch_flush_lazy_mmu_mode()      do {} while (0)
+Index: linux-2.6/arch/powerpc/kernel/process.c
 ===================================================================
---- linux-2.6.orig/include/linux/rmap.h
-+++ linux-2.6/include/linux/rmap.h
-@@ -7,7 +7,7 @@
- #include <linux/list.h>
- #include <linux/slab.h>
- #include <linux/mm.h>
--#include <linux/spinlock.h>
-+#include <linux/mutex.h>
- #include <linux/memcontrol.h>
+--- linux-2.6.orig/arch/powerpc/kernel/process.c
++++ linux-2.6/arch/powerpc/kernel/process.c
+@@ -389,6 +389,9 @@ struct task_struct *__switch_to(struct t
+ 	struct thread_struct *new_thread, *old_thread;
+ 	unsigned long flags;
+ 	struct task_struct *last;
++#ifdef CONFIG_PPC64
++	struct ppc64_tlb_batch *batch;
++#endif
+ 
+ #ifdef CONFIG_SMP
+ 	/* avoid complexity of lazy save/restore of fpu
+@@ -479,6 +482,14 @@ struct task_struct *__switch_to(struct t
+ 		old_thread->accum_tb += (current_tb - start_tb);
+ 		new_thread->start_tb = current_tb;
+ 	}
++
++	batch = &__get_cpu_var(ppc64_tlb_batch);
++	if (batch->active) {
++		set_ti_thread_flag(task_thread_info(prev), TIF_LAZY_MMU);
++		if (batch->index)
++			__flush_tlb_pending(batch);
++		batch->active = 0;
++	}
+ #endif
+ 
+ 	local_irq_save(flags);
+@@ -495,6 +506,13 @@ struct task_struct *__switch_to(struct t
+ 	hard_irq_disable();
+ 	last = _switch(old_thread, new_thread);
+ 
++#ifdef CONFIG_PPC64
++	if (test_and_clear_ti_thread_flag(task_thread_info(new), TIF_LAZY_MMU)) {
++		batch = &__get_cpu_var(ppc64_tlb_batch);
++		batch->active = 1;
++	}
++#endif
++
+ 	local_irq_restore(flags);
+ 
+ 	return last;
+Index: linux-2.6/arch/powerpc/mm/pgtable.c
+===================================================================
+--- linux-2.6.orig/arch/powerpc/mm/pgtable.c
++++ linux-2.6/arch/powerpc/mm/pgtable.c
+@@ -33,8 +33,6 @@
+ 
+ #include "mmu_decl.h"
+ 
+-DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);
+-
+ #ifdef CONFIG_SMP
  
  /*
-@@ -25,8 +25,7 @@
-  * pointing to this anon_vma once its vma list is empty.
+@@ -43,7 +41,6 @@ DEFINE_PER_CPU(struct mmu_gather, mmu_ga
+  * freeing a page table page that is being walked without locks
   */
- struct anon_vma {
--	spinlock_t lock;	/* Serialize access to vma list */
--	atomic_t ref;
-+	struct mutex lock;	/* Serialize access to vma list */
- 	/*
- 	 * NOTE: the LSB of the head.next is set by
- 	 * mm_take_all_locks() _after_ taking the above lock. So the
-@@ -36,6 +35,7 @@ struct anon_vma {
- 	 * mm_take_all_locks() (mm_all_locks_mutex).
- 	 */
- 	struct list_head head;	/* Chain of private "related" vmas */
-+	atomic_t ref;
- };
  
- /*
-@@ -72,14 +72,14 @@ static inline void anon_vma_lock(struct 
+-static DEFINE_PER_CPU(struct pte_freelist_batch *, pte_freelist_cur);
+ static unsigned long pte_freelist_forced_free;
+ 
+ struct pte_freelist_batch
+@@ -98,12 +95,30 @@ static void pte_free_submit(struct pte_f
+ 
+ void pgtable_free_tlb(struct mmu_gather *tlb, void *table, unsigned shift)
  {
- 	struct anon_vma *anon_vma = vma->anon_vma;
- 	if (anon_vma)
--		spin_lock(&anon_vma->lock);
-+		mutex_lock(&anon_vma->lock);
- }
+-	/* This is safe since tlb_gather_mmu has disabled preemption */
+-	struct pte_freelist_batch **batchp = &__get_cpu_var(pte_freelist_cur);
++	struct pte_freelist_batch **batchp = &tlb->arch.batch;
+ 	unsigned long pgf;
  
- static inline void anon_vma_unlock(struct vm_area_struct *vma)
- {
- 	struct anon_vma *anon_vma = vma->anon_vma;
- 	if (anon_vma)
--		spin_unlock(&anon_vma->lock);
-+		mutex_unlock(&anon_vma->lock);
- }
- 
- /*
-Index: linux-2.6/kernel/fork.c
-===================================================================
---- linux-2.6.orig/kernel/fork.c
-+++ linux-2.6/kernel/fork.c
-@@ -355,7 +355,7 @@ static int dup_mmap(struct mm_struct *mm
- 			get_file(file);
- 			if (tmp->vm_flags & VM_DENYWRITE)
- 				atomic_dec(&inode->i_writecount);
--			spin_lock(&mapping->i_mmap_lock);
-+			mutex_lock(&mapping->i_mmap_lock);
- 			if (tmp->vm_flags & VM_SHARED)
- 				mapping->i_mmap_writable++;
- 			tmp->vm_truncate_count = mpnt->vm_truncate_count;
-@@ -363,7 +363,7 @@ static int dup_mmap(struct mm_struct *mm
- 			/* insert tmp into the share list, just after mpnt */
- 			vma_prio_tree_add(tmp, mpnt);
- 			flush_dcache_mmap_unlock(mapping);
--			spin_unlock(&mapping->i_mmap_lock);
-+			mutex_unlock(&mapping->i_mmap_lock);
- 		}
- 
- 		/*
-Index: linux-2.6/mm/filemap_xip.c
-===================================================================
---- linux-2.6.orig/mm/filemap_xip.c
-+++ linux-2.6/mm/filemap_xip.c
-@@ -182,7 +182,7 @@ __xip_unmap (struct address_space * mapp
+-	if (atomic_read(&tlb->mm->mm_users) < 2 ||
+-	    cpumask_equal(mm_cpumask(tlb->mm), cpumask_of(smp_processor_id()))){
++	/*
++	 * A comment here about on why we have RCU freed page tables might be
++	 * interesting, also explaining why we don't need any sort of grace
++	 * period for mm_users == 1, and have some home brewn smp_call_func()
++	 * for single frees.
++	 *
++	 * The only lockless page table walker I know of is gup_fast() which
++	 * relies on irq_disable(). So my guess is that mm_users == 1 means
++	 * that there cannot be another thread and so precludes gup_fast()
++	 * concurrency.
++	 *
++	 * If there are, but we fail to batch, we need to IPI (all?) CPUs so as
++	 * to serialize against the IRQ disable. In case we do batch, the RCU
++	 * grace period is at least long enough to cover IRQ disabled sections
++	 * (XXX assumption, not strictly true).
++	 *
++	 * All this results in us doing our own free batching and not using
++	 * the generic mmu_gather batches (XXX fix that somehow?).
++	 */
++
++	if (atomic_read(&tlb->mm->mm_users) < 2) {
+ 		pgtable_free(table, shift);
  		return;
- 
- retry:
--	spin_lock(&mapping->i_mmap_lock);
-+	mutex_lock(&mapping->i_mmap_lock);
- 	vma_prio_tree_foreach(vma, &iter, &mapping->i_mmap, pgoff, pgoff) {
- 		mm = vma->vm_mm;
- 		address = vma->vm_start +
-@@ -200,7 +200,7 @@ retry:
- 			page_cache_release(page);
- 		}
  	}
--	spin_unlock(&mapping->i_mmap_lock);
-+	mutex_unlock(&mapping->i_mmap_lock);
- 
- 	if (locked) {
- 		mutex_unlock(&xip_sparse_mutex);
-Index: linux-2.6/mm/fremap.c
-===================================================================
---- linux-2.6.orig/mm/fremap.c
-+++ linux-2.6/mm/fremap.c
-@@ -208,13 +208,13 @@ SYSCALL_DEFINE5(remap_file_pages, unsign
- 			}
- 			goto out;
- 		}
--		spin_lock(&mapping->i_mmap_lock);
-+		mutex_lock(&mapping->i_mmap_lock);
- 		flush_dcache_mmap_lock(mapping);
- 		vma->vm_flags |= VM_NONLINEAR;
- 		vma_prio_tree_remove(vma, &mapping->i_mmap);
- 		vma_nonlinear_insert(vma, &mapping->i_mmap_nonlinear);
- 		flush_dcache_mmap_unlock(mapping);
--		spin_unlock(&mapping->i_mmap_lock);
-+		mutex_unlock(&mapping->i_mmap_lock);
+@@ -125,10 +140,9 @@ void pgtable_free_tlb(struct mmu_gather 
  	}
+ }
  
- 	if (vma->vm_flags & VM_LOCKED) {
-Index: linux-2.6/mm/hugetlb.c
-===================================================================
---- linux-2.6.orig/mm/hugetlb.c
-+++ linux-2.6/mm/hugetlb.c
-@@ -2210,9 +2210,9 @@ void __unmap_hugepage_range(struct vm_ar
- void unmap_hugepage_range(struct vm_area_struct *vma, unsigned long start,
- 			  unsigned long end, struct page *ref_page)
+-void pte_free_finish(void)
++void pte_free_finish(struct mmu_gather *tlb)
  {
--	spin_lock(&vma->vm_file->f_mapping->i_mmap_lock);
-+	mutex_lock(&vma->vm_file->f_mapping->i_mmap_lock);
- 	__unmap_hugepage_range(vma, start, end, ref_page);
--	spin_unlock(&vma->vm_file->f_mapping->i_mmap_lock);
-+	mutex_unlock(&vma->vm_file->f_mapping->i_mmap_lock);
- }
+-	/* This is safe since tlb_gather_mmu has disabled preemption */
+-	struct pte_freelist_batch **batchp = &__get_cpu_var(pte_freelist_cur);
++	struct pte_freelist_batch **batchp = &tlb->arch.batch;
  
- /*
-@@ -2244,7 +2244,7 @@ static int unmap_ref_private(struct mm_s
- 	 * this mapping should be shared between all the VMAs,
- 	 * __unmap_hugepage_range() is called as the lock is already held
- 	 */
--	spin_lock(&mapping->i_mmap_lock);
-+	mutex_lock(&mapping->i_mmap_lock);
- 	vma_prio_tree_foreach(iter_vma, &iter, &mapping->i_mmap, pgoff, pgoff) {
- 		/* Do not unmap the current VMA */
- 		if (iter_vma == vma)
-@@ -2262,7 +2262,7 @@ static int unmap_ref_private(struct mm_s
- 				address, address + huge_page_size(h),
- 				page);
- 	}
--	spin_unlock(&mapping->i_mmap_lock);
-+	mutex_unlock(&mapping->i_mmap_lock);
- 
- 	return 1;
- }
-@@ -2678,7 +2678,7 @@ void hugetlb_change_protection(struct vm
- 	BUG_ON(address >= end);
- 	flush_cache_range(vma, address, end);
- 
--	spin_lock(&vma->vm_file->f_mapping->i_mmap_lock);
-+	mutex_lock(&vma->vm_file->f_mapping->i_mmap_lock);
- 	spin_lock(&mm->page_table_lock);
- 	for (; address < end; address += huge_page_size(h)) {
- 		ptep = huge_pte_offset(mm, address);
-@@ -2693,7 +2693,7 @@ void hugetlb_change_protection(struct vm
- 		}
- 	}
- 	spin_unlock(&mm->page_table_lock);
--	spin_unlock(&vma->vm_file->f_mapping->i_mmap_lock);
-+	mutex_unlock(&vma->vm_file->f_mapping->i_mmap_lock);
- 
- 	flush_tlb_range(vma, start, end);
- }
-Index: linux-2.6/mm/ksm.c
-===================================================================
---- linux-2.6.orig/mm/ksm.c
-+++ linux-2.6/mm/ksm.c
-@@ -1559,7 +1559,7 @@ again:
- 		struct anon_vma_chain *vmac;
- 		struct vm_area_struct *vma;
- 
--		spin_lock(&anon_vma->lock);
-+		mutex_lock(&anon_vma->lock);
- 		list_for_each_entry(vmac, &anon_vma->head, same_anon_vma) {
- 			vma = vmac->vma;
- 			if (rmap_item->address < vma->vm_start ||
-@@ -1582,7 +1582,7 @@ again:
- 			if (!search_new_forks || !mapcount)
- 				break;
- 		}
--		spin_unlock(&anon_vma->lock);
-+		mutex_unlock(&anon_vma->lock);
- 		if (!mapcount)
- 			goto out;
- 	}
-@@ -1612,7 +1612,7 @@ again:
- 		struct anon_vma_chain *vmac;
- 		struct vm_area_struct *vma;
- 
--		spin_lock(&anon_vma->lock);
-+		mutex_lock(&anon_vma->lock);
- 		list_for_each_entry(vmac, &anon_vma->head, same_anon_vma) {
- 			vma = vmac->vma;
- 			if (rmap_item->address < vma->vm_start ||
-@@ -1630,11 +1630,11 @@ again:
- 			ret = try_to_unmap_one(page, vma,
- 					rmap_item->address, flags);
- 			if (ret != SWAP_AGAIN || !page_mapped(page)) {
--				spin_unlock(&anon_vma->lock);
-+				mutex_unlock(&anon_vma->lock);
- 				goto out;
- 			}
- 		}
--		spin_unlock(&anon_vma->lock);
-+		mutex_unlock(&anon_vma->lock);
- 	}
- 	if (!search_new_forks++)
- 		goto again;
-@@ -1664,7 +1664,7 @@ again:
- 		struct anon_vma_chain *vmac;
- 		struct vm_area_struct *vma;
- 
--		spin_lock(&anon_vma->lock);
-+		mutex_lock(&anon_vma->lock);
- 		list_for_each_entry(vmac, &anon_vma->head, same_anon_vma) {
- 			vma = vmac->vma;
- 			if (rmap_item->address < vma->vm_start ||
-@@ -1681,11 +1681,11 @@ again:
- 
- 			ret = rmap_one(page, vma, rmap_item->address, arg);
- 			if (ret != SWAP_AGAIN) {
--				spin_unlock(&anon_vma->lock);
-+				mutex_unlock(&anon_vma->lock);
- 				goto out;
- 			}
- 		}
--		spin_unlock(&anon_vma->lock);
-+		mutex_unlock(&anon_vma->lock);
- 	}
- 	if (!search_new_forks++)
- 		goto again;
-Index: linux-2.6/mm/memory-failure.c
-===================================================================
---- linux-2.6.orig/mm/memory-failure.c
-+++ linux-2.6/mm/memory-failure.c
-@@ -421,7 +421,7 @@ static void collect_procs_file(struct pa
- 	 */
- 
- 	read_lock(&tasklist_lock);
--	spin_lock(&mapping->i_mmap_lock);
-+	mutex_lock(&mapping->i_mmap_lock);
- 	for_each_process(tsk) {
- 		pgoff_t pgoff = page->index << (PAGE_CACHE_SHIFT - PAGE_SHIFT);
- 
-@@ -441,7 +441,7 @@ static void collect_procs_file(struct pa
- 				add_to_kill(tsk, page, vma, to_kill, tkc);
- 		}
- 	}
--	spin_unlock(&mapping->i_mmap_lock);
-+	mutex_unlock(&mapping->i_mmap_lock);
- 	read_unlock(&tasklist_lock);
- }
- 
-Index: linux-2.6/mm/memory.c
-===================================================================
---- linux-2.6.orig/mm/memory.c
-+++ linux-2.6/mm/memory.c
-@@ -1102,7 +1102,7 @@ unsigned long unmap_vmas(struct mmu_gath
- {
- 	long zap_work = ZAP_BLOCK_SIZE;
- 	unsigned long start = start_addr;
--	spinlock_t *i_mmap_lock = details? details->i_mmap_lock: NULL;
-+	struct mutex *i_mmap_lock = details ? details->i_mmap_lock : NULL;
- 	struct mm_struct *mm = vma->vm_mm;
- 
- 	mmu_notifier_invalidate_range_start(mm, start_addr, end_addr);
-@@ -1152,7 +1152,7 @@ unsigned long unmap_vmas(struct mmu_gath
- 			}
- 
- 			if (need_resched() ||
--				(i_mmap_lock && spin_needbreak(i_mmap_lock))) {
-+				(i_mmap_lock && mutex_is_contended(i_mmap_lock))) {
- 				if (i_mmap_lock)
- 					goto out;
- 				cond_resched();
-@@ -2427,7 +2427,7 @@ again:
- 
- 	restart_addr = zap_page_range(vma, start_addr,
- 					end_addr - start_addr, details);
--	need_break = need_resched() || spin_needbreak(details->i_mmap_lock);
-+	need_break = need_resched() || mutex_is_contended(details->i_mmap_lock);
- 
- 	if (restart_addr >= end_addr) {
- 		/* We have now completed this vma: mark it so */
-@@ -2441,9 +2441,9 @@ again:
- 			goto again;
- 	}
- 
--	spin_unlock(details->i_mmap_lock);
-+	mutex_unlock(details->i_mmap_lock);
- 	cond_resched();
--	spin_lock(details->i_mmap_lock);
-+	mutex_lock(details->i_mmap_lock);
- 	return -EINTR;
- }
- 
-@@ -2539,7 +2539,7 @@ void unmap_mapping_range(struct address_
- 		details.last_index = ULONG_MAX;
- 	details.i_mmap_lock = &mapping->i_mmap_lock;
- 
--	spin_lock(&mapping->i_mmap_lock);
-+	mutex_lock(&mapping->i_mmap_lock);
- 
- 	/* Protect against endless unmapping loops */
- 	mapping->truncate_count++;
-@@ -2554,7 +2554,7 @@ void unmap_mapping_range(struct address_
- 		unmap_mapping_range_tree(&mapping->i_mmap, &details);
- 	if (unlikely(!list_empty(&mapping->i_mmap_nonlinear)))
- 		unmap_mapping_range_list(&mapping->i_mmap_nonlinear, &details);
--	spin_unlock(&mapping->i_mmap_lock);
-+	mutex_unlock(&mapping->i_mmap_lock);
- }
- EXPORT_SYMBOL(unmap_mapping_range);
- 
-Index: linux-2.6/mm/mmap.c
-===================================================================
---- linux-2.6.orig/mm/mmap.c
-+++ linux-2.6/mm/mmap.c
-@@ -216,9 +216,9 @@ void unlink_file_vma(struct vm_area_stru
- 
- 	if (file) {
- 		struct address_space *mapping = file->f_mapping;
--		spin_lock(&mapping->i_mmap_lock);
-+		mutex_lock(&mapping->i_mmap_lock);
- 		__remove_shared_vm_struct(vma, file, mapping);
--		spin_unlock(&mapping->i_mmap_lock);
-+		mutex_unlock(&mapping->i_mmap_lock);
- 	}
- }
- 
-@@ -449,7 +449,7 @@ static void vma_link(struct mm_struct *m
- 		mapping = vma->vm_file->f_mapping;
- 
- 	if (mapping) {
--		spin_lock(&mapping->i_mmap_lock);
-+		mutex_lock(&mapping->i_mmap_lock);
- 		vma->vm_truncate_count = mapping->truncate_count;
- 	}
- 	anon_vma_lock(vma);
-@@ -459,7 +459,7 @@ static void vma_link(struct mm_struct *m
- 
- 	anon_vma_unlock(vma);
- 	if (mapping)
--		spin_unlock(&mapping->i_mmap_lock);
-+		mutex_unlock(&mapping->i_mmap_lock);
- 
- 	mm->map_count++;
- 	validate_mm(mm);
-@@ -565,7 +565,7 @@ again:			remove_next = 1 + (end > next->
- 		mapping = file->f_mapping;
- 		if (!(vma->vm_flags & VM_NONLINEAR))
- 			root = &mapping->i_mmap;
--		spin_lock(&mapping->i_mmap_lock);
-+		mutex_lock(&mapping->i_mmap_lock);
- 		if (importer &&
- 		    vma->vm_truncate_count != next->vm_truncate_count) {
- 			/*
-@@ -626,7 +626,7 @@ again:			remove_next = 1 + (end > next->
- 	}
- 
- 	if (mapping)
--		spin_unlock(&mapping->i_mmap_lock);
-+		mutex_unlock(&mapping->i_mmap_lock);
- 
- 	if (remove_next) {
- 		if (file) {
-@@ -2440,7 +2440,7 @@ static void vm_lock_anon_vma(struct mm_s
- 		 * The LSB of head.next can't change from under us
- 		 * because we hold the mm_all_locks_mutex.
- 		 */
--		spin_lock_nest_lock(&anon_vma->lock, &mm->mmap_sem);
-+		mutex_lock_nest_lock(&anon_vma->lock, &mm->mmap_sem);
- 		/*
- 		 * We can safely modify head.next after taking the
- 		 * anon_vma->lock. If some other vma in this mm shares
-@@ -2470,7 +2470,7 @@ static void vm_lock_mapping(struct mm_st
- 		 */
- 		if (test_and_set_bit(AS_MM_ALL_LOCKS, &mapping->flags))
- 			BUG();
--		spin_lock_nest_lock(&mapping->i_mmap_lock, &mm->mmap_sem);
-+		mutex_lock_nest_lock(&mapping->i_mmap_lock, &mm->mmap_sem);
- 	}
- }
- 
-@@ -2558,7 +2558,7 @@ static void vm_unlock_anon_vma(struct an
- 		if (!__test_and_clear_bit(0, (unsigned long *)
- 					  &anon_vma->head.next))
- 			BUG();
--		spin_unlock(&anon_vma->lock);
-+		mutex_unlock(&anon_vma->lock);
- 	}
- }
- 
-@@ -2569,7 +2569,7 @@ static void vm_unlock_mapping(struct add
- 		 * AS_MM_ALL_LOCKS can't change to 0 from under us
- 		 * because we hold the mm_all_locks_mutex.
- 		 */
--		spin_unlock(&mapping->i_mmap_lock);
-+		mutex_unlock(&mapping->i_mmap_lock);
- 		if (!test_and_clear_bit(AS_MM_ALL_LOCKS,
- 					&mapping->flags))
- 			BUG();
-Index: linux-2.6/mm/mremap.c
-===================================================================
---- linux-2.6.orig/mm/mremap.c
-+++ linux-2.6/mm/mremap.c
-@@ -91,7 +91,7 @@ static void move_ptes(struct vm_area_str
- 		 * and we propagate stale pages into the dst afterward.
- 		 */
- 		mapping = vma->vm_file->f_mapping;
--		spin_lock(&mapping->i_mmap_lock);
-+		mutex_lock(&mapping->i_mmap_lock);
- 		if (new_vma->vm_truncate_count &&
- 		    new_vma->vm_truncate_count != vma->vm_truncate_count)
- 			new_vma->vm_truncate_count = 0;
-@@ -123,7 +123,7 @@ static void move_ptes(struct vm_area_str
- 	pte_unmap_nested(new_pte - 1);
- 	pte_unmap_unlock(old_pte - 1, old_ptl);
- 	if (mapping)
--		spin_unlock(&mapping->i_mmap_lock);
-+		mutex_unlock(&mapping->i_mmap_lock);
- 	mmu_notifier_invalidate_range_end(vma->vm_mm, old_start, old_end);
- }
- 
-Index: linux-2.6/mm/rmap.c
-===================================================================
---- linux-2.6.orig/mm/rmap.c
-+++ linux-2.6/mm/rmap.c
-@@ -140,7 +140,7 @@ int anon_vma_prepare(struct vm_area_stru
- 				goto out_enomem_free_avc;
- 			allocated = anon_vma;
- 		}
--		spin_lock(&anon_vma->lock);
-+		mutex_lock(&anon_vma->lock);
- 
- 		/* page_table_lock to protect against threads */
- 		spin_lock(&mm->page_table_lock);
-@@ -154,7 +154,7 @@ int anon_vma_prepare(struct vm_area_stru
- 		}
- 		spin_unlock(&mm->page_table_lock);
- 
--		spin_unlock(&anon_vma->lock);
-+		mutex_unlock(&anon_vma->lock);
- 		if (unlikely(allocated)) {
- 			anon_vma_put(allocated);
- 			anon_vma_chain_free(avc);
-@@ -176,9 +176,9 @@ static void anon_vma_chain_link(struct v
- 	avc->anon_vma = anon_vma;
- 	list_add(&avc->same_vma, &vma->anon_vma_chain);
- 
--	spin_lock(&anon_vma->lock);
-+	mutex_lock(&anon_vma->lock);
- 	list_add_tail(&avc->same_anon_vma, &anon_vma->head);
--	spin_unlock(&anon_vma->lock);
-+	mutex_unlock(&anon_vma->lock);
- }
- 
- /*
-@@ -251,10 +251,10 @@ static void anon_vma_unlink(struct anon_
- 	if (!anon_vma)
+ 	if (*batchp == NULL)
  		return;
- 
--	spin_lock(&anon_vma->lock);
-+	mutex_lock(&anon_vma->lock);
- 	list_del(&anon_vma_chain->same_anon_vma);
- 	empty = list_empty(&anon_vma->head);
--	spin_unlock(&anon_vma->lock);
-+	mutex_unlock(&anon_vma->lock);
- 
- 	if (empty)
- 		anon_vma_put(anon_vma);
-@@ -276,7 +276,7 @@ static void anon_vma_ctor(void *data)
+Index: linux-2.6/arch/powerpc/mm/tlb_hash64.c
+===================================================================
+--- linux-2.6.orig/arch/powerpc/mm/tlb_hash64.c
++++ linux-2.6/arch/powerpc/mm/tlb_hash64.c
+@@ -38,13 +38,11 @@ DEFINE_PER_CPU(struct ppc64_tlb_batch, p
+  * neesd to be flushed. This function will either perform the flush
+  * immediately or will batch it up if the current CPU has an active
+  * batch on it.
+- *
+- * Must be called from within some kind of spinlock/non-preempt region...
+  */
+ void hpte_need_flush(struct mm_struct *mm, unsigned long addr,
+ 		     pte_t *ptep, unsigned long pte, int huge)
  {
- 	struct anon_vma *anon_vma = data;
+-	struct ppc64_tlb_batch *batch = &__get_cpu_var(ppc64_tlb_batch);
++	struct ppc64_tlb_batch *batch = &get_cpu_var(ppc64_tlb_batch);
+ 	unsigned long vsid, vaddr;
+ 	unsigned int psize;
+ 	int ssize;
+@@ -99,6 +97,7 @@ void hpte_need_flush(struct mm_struct *m
+ 	 */
+ 	if (!batch->active) {
+ 		flush_hash_page(vaddr, rpte, psize, ssize, 0);
++		put_cpu_var(ppc64_tlb_batch);
+ 		return;
+ 	}
  
--	spin_lock_init(&anon_vma->lock);
-+	mutex_init(&anon_vma->lock);
- 	atomic_set(&anon_vma->ref, 0);
- 	INIT_LIST_HEAD(&anon_vma->head);
+@@ -127,6 +126,7 @@ void hpte_need_flush(struct mm_struct *m
+ 	batch->index = ++i;
+ 	if (i >= PPC64_TLB_BATCH_NR)
+ 		__flush_tlb_pending(batch);
++	put_cpu_var(ppc64_tlb_batch);
  }
-@@ -317,14 +317,14 @@ struct anon_vma *page_lock_anon_vma(stru
- 	struct anon_vma *anon_vma = anon_vma_get(page);
  
- 	if (anon_vma)
--		spin_lock(&anon_vma->lock);
-+		mutex_lock(&anon_vma->lock);
+ /*
+@@ -155,7 +155,7 @@ void __flush_tlb_pending(struct ppc64_tl
  
- 	return anon_vma;
- }
- 
- void page_unlock_anon_vma(struct anon_vma *anon_vma)
+ void tlb_flush(struct mmu_gather *tlb)
  {
--	spin_unlock(&anon_vma->lock);
-+	mutex_unlock(&anon_vma->lock);
- 	anon_vma_put(anon_vma);
+-	struct ppc64_tlb_batch *tlbbatch = &__get_cpu_var(ppc64_tlb_batch);
++	struct ppc64_tlb_batch *tlbbatch = &get_cpu_var(ppc64_tlb_batch);
+ 
+ 	/* If there's a TLB batch pending, then we must flush it because the
+ 	 * pages are going to be freed and we really don't want to have a CPU
+@@ -164,8 +164,10 @@ void tlb_flush(struct mmu_gather *tlb)
+ 	if (tlbbatch->index)
+ 		__flush_tlb_pending(tlbbatch);
+ 
++	put_cpu_var(ppc64_tlb_batch);
++
+ 	/* Push out batch of freed page tables */
+-	pte_free_finish();
++	pte_free_finish(tlb);
  }
  
-@@ -569,7 +569,7 @@ static int page_referenced_file(struct p
- 	 */
- 	BUG_ON(!PageLocked(page));
+ /**
+Index: linux-2.6/arch/powerpc/include/asm/thread_info.h
+===================================================================
+--- linux-2.6.orig/arch/powerpc/include/asm/thread_info.h
++++ linux-2.6/arch/powerpc/include/asm/thread_info.h
+@@ -111,6 +111,7 @@ static inline struct thread_info *curren
+ #define TIF_NOTIFY_RESUME	13	/* callback before returning to user */
+ #define TIF_FREEZE		14	/* Freezing for suspend */
+ #define TIF_RUNLATCH		15	/* Is the runlatch enabled? */
++#define TIF_LAZY_MMU		16	/* tlb_batch is active */
  
--	spin_lock(&mapping->i_mmap_lock);
-+	mutex_lock(&mapping->i_mmap_lock);
+ /* as above, but as bit values */
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+@@ -128,6 +129,7 @@ static inline struct thread_info *curren
+ #define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+ #define _TIF_FREEZE		(1<<TIF_FREEZE)
+ #define _TIF_RUNLATCH		(1<<TIF_RUNLATCH)
++#define _TIF_LAZY_MMU		(1<<TIF_LAZY_MMU)
+ #define _TIF_SYSCALL_T_OR_A	(_TIF_SYSCALL_TRACE|_TIF_SYSCALL_AUDIT|_TIF_SECCOMP)
  
- 	/*
- 	 * i_mmap_lock does not stabilize mapcount at all, but mapcount
-@@ -594,7 +594,7 @@ static int page_referenced_file(struct p
- 			break;
+ #define _TIF_USER_WORK_MASK	(_TIF_SIGPENDING | _TIF_NEED_RESCHED | \
+Index: linux-2.6/arch/powerpc/include/asm/pgalloc.h
+===================================================================
+--- linux-2.6.orig/arch/powerpc/include/asm/pgalloc.h
++++ linux-2.6/arch/powerpc/include/asm/pgalloc.h
+@@ -32,13 +32,13 @@ static inline void pte_free(struct mm_st
+ 
+ #ifdef CONFIG_SMP
+ extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, unsigned shift);
+-extern void pte_free_finish(void);
++extern void pte_free_finish(struct mmu_gather *tlb);
+ #else /* CONFIG_SMP */
+ static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, unsigned shift)
+ {
+ 	pgtable_free(table, shift);
+ }
+-static inline void pte_free_finish(void) { }
++static inline void pte_free_finish(struct mmu_gather *tlb) { }
+ #endif /* !CONFIG_SMP */
+ 
+ static inline void __pte_free_tlb(struct mmu_gather *tlb, struct page *ptepage,
+Index: linux-2.6/arch/powerpc/mm/tlb_hash32.c
+===================================================================
+--- linux-2.6.orig/arch/powerpc/mm/tlb_hash32.c
++++ linux-2.6/arch/powerpc/mm/tlb_hash32.c
+@@ -73,7 +73,7 @@ void tlb_flush(struct mmu_gather *tlb)
  	}
  
--	spin_unlock(&mapping->i_mmap_lock);
-+	mutex_unlock(&mapping->i_mmap_lock);
- 	return referenced;
+ 	/* Push out batch of freed page tables */
+-	pte_free_finish();
++	pte_free_finish(tlb);
  }
  
-@@ -681,7 +681,7 @@ static int page_mkclean_file(struct addr
+ /*
+Index: linux-2.6/arch/powerpc/mm/tlb_nohash.c
+===================================================================
+--- linux-2.6.orig/arch/powerpc/mm/tlb_nohash.c
++++ linux-2.6/arch/powerpc/mm/tlb_nohash.c
+@@ -298,7 +298,7 @@ void tlb_flush(struct mmu_gather *tlb)
+ 	flush_tlb_mm(tlb->mm);
  
- 	BUG_ON(PageAnon(page));
- 
--	spin_lock(&mapping->i_mmap_lock);
-+	mutex_lock(&mapping->i_mmap_lock);
- 	vma_prio_tree_foreach(vma, &iter, &mapping->i_mmap, pgoff, pgoff) {
- 		if (vma->vm_flags & VM_SHARED) {
- 			unsigned long address = vma_address(page, vma);
-@@ -690,7 +690,7 @@ static int page_mkclean_file(struct addr
- 			ret += page_mkclean_one(page, vma, address);
- 		}
- 	}
--	spin_unlock(&mapping->i_mmap_lock);
-+	mutex_unlock(&mapping->i_mmap_lock);
- 	return ret;
+ 	/* Push out batch of freed page tables */
+-	pte_free_finish();
++	pte_free_finish(tlb);
  }
  
-@@ -1196,7 +1196,7 @@ static int try_to_unmap_file(struct page
- 	unsigned long max_nl_size = 0;
- 	unsigned int mapcount;
- 
--	spin_lock(&mapping->i_mmap_lock);
-+	mutex_lock(&mapping->i_mmap_lock);
- 	vma_prio_tree_foreach(vma, &iter, &mapping->i_mmap, pgoff, pgoff) {
- 		unsigned long address = vma_address(page, vma);
- 		if (address == -EFAULT)
-@@ -1242,7 +1242,7 @@ static int try_to_unmap_file(struct page
- 	mapcount = page_mapcount(page);
- 	if (!mapcount)
- 		goto out;
--	cond_resched_lock(&mapping->i_mmap_lock);
-+	cond_resched();
- 
- 	max_nl_size = (max_nl_size + CLUSTER_SIZE - 1) & CLUSTER_MASK;
- 	if (max_nl_cursor == 0)
-@@ -1264,7 +1264,7 @@ static int try_to_unmap_file(struct page
- 			}
- 			vma->vm_private_data = (void *) max_nl_cursor;
- 		}
--		cond_resched_lock(&mapping->i_mmap_lock);
-+		cond_resched();
- 		max_nl_cursor += CLUSTER_SIZE;
- 	} while (max_nl_cursor <= max_nl_size);
- 
-@@ -1276,7 +1276,7 @@ static int try_to_unmap_file(struct page
- 	list_for_each_entry(vma, &mapping->i_mmap_nonlinear, shared.vm_set.list)
- 		vma->vm_private_data = NULL;
- out:
--	spin_unlock(&mapping->i_mmap_lock);
-+	mutex_unlock(&mapping->i_mmap_lock);
- 	return ret;
- }
- 
-@@ -1361,7 +1361,7 @@ static int rmap_walk_anon(struct page *p
- 	anon_vma = page_anon_vma(page);
- 	if (!anon_vma)
- 		return ret;
--	spin_lock(&anon_vma->lock);
-+	mutex_lock(&anon_vma->lock);
- 	list_for_each_entry(avc, &anon_vma->head, same_anon_vma) {
- 		struct vm_area_struct *vma = avc->vma;
- 		unsigned long address = vma_address(page, vma);
-@@ -1371,7 +1371,7 @@ static int rmap_walk_anon(struct page *p
- 		if (ret != SWAP_AGAIN)
- 			break;
- 	}
--	spin_unlock(&anon_vma->lock);
-+	mutex_unlock(&anon_vma->lock);
- 	return ret;
- }
- 
-@@ -1386,7 +1386,7 @@ static int rmap_walk_file(struct page *p
- 
- 	if (!mapping)
- 		return ret;
--	spin_lock(&mapping->i_mmap_lock);
-+	mutex_lock(&mapping->i_mmap_lock);
- 	vma_prio_tree_foreach(vma, &iter, &mapping->i_mmap, pgoff, pgoff) {
- 		unsigned long address = vma_address(page, vma);
- 		if (address == -EFAULT)
-@@ -1400,7 +1400,7 @@ static int rmap_walk_file(struct page *p
- 	 * never contain migration ptes.  Decide what to do about this
- 	 * limitation to linear when we need rmap_walk() on nonlinear.
- 	 */
--	spin_unlock(&mapping->i_mmap_lock);
-+	mutex_unlock(&mapping->i_mmap_lock);
- 	return ret;
- }
- 
+ /*
 
 
