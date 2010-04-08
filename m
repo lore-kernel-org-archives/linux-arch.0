@@ -1,60 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:58114 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756202Ab0DGLbl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Apr 2010 07:31:41 -0400
-Received: from e35131.upc-e.chello.nl ([213.93.35.131] helo=dyad.programming.kicks-ass.net)
-	by casper.infradead.org with esmtpsa (Exim 4.69 #1 (Red Hat Linux))
-	id 1NzTTv-0004QK-Ng
-	for linux-arch@vger.kernel.org; Wed, 07 Apr 2010 11:31:40 +0000
-Subject: Re: [patch 3/3] sched: Use local_irq_save_nmi() in cpu_clock()
-From: Peter Zijlstra <peterz@infradead.org>
-In-Reply-To: <20100407112707.GA5143@nowhere>
-References: <20100406132807.698467930@chello.nl>
-	 <20100406133141.039454288@chello.nl>  <20100407112707.GA5143@nowhere>
-Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 07 Apr 2010 13:31:34 +0200
-Message-ID: <1270639894.20295.749.camel@laptop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-qy0-f179.google.com ([209.85.221.179]:59501 "EHLO
+	mail-qy0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932763Ab0DHPwk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 11:52:40 -0400
+Date: Thu, 8 Apr 2010 23:55:46 +0800
+From: =?utf-8?Q?Am=C3=A9rico?= Wang <xiyou.wangcong@gmail.com>
+Subject: Re: start_kernel(): bug: interrupts were enabled early
+Message-ID: <20100408155546.GB4213@hack>
+References: <20100325194100.GA2364@debian> <20100331134048.da4e35a7.akpm@linux-foundation.org> <4BB3B4DB.7040904@kernel.org> <20100331135220.c6695a51.akpm@linux-foundation.org> <4BB3BAD6.50308@zytor.com> <alpine.LFD.2.00.1004010904540.3707@i5.linux-foundation.org> <878w8zcc6a.fsf@deeprootsystems.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <878w8zcc6a.fsf@deeprootsystems.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: mingo@elte.hu, David Miller <davem@davemloft.net>, acme@redhat.com, paulus@samba.org, Mike Galbraith <efault@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100407113134.Qb0AmcslXWLIAgFpt-_MmOpijYQXmfqD2WRVXWZ95xI@z>
+To: Kevin Hilman <khilman@deeprootsystems.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, cl@linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
+Message-ID: <20100408155546.7s8NKgU20joziOJwefGBaqGu2VSO0294vriod5vMJlw@z>
 
-On Wed, 2010-04-07 at 13:27 +0200, Frederic Weisbecker wrote:
-> On Tue, Apr 06, 2010 at 03:28:10PM +0200, Peter Zijlstra wrote:
-> > Since we can call cpu_clock() from NMI context fix up the IRQ
-> > disabling to conform to the new rules.
-> > 
-> > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> > ---
-> >  kernel/sched_clock.c |    4 ++--
-> >  1 file changed, 2 insertions(+), 2 deletions(-)
-> > 
-> > Index: linux-2.6/kernel/sched_clock.c
-> > ===================================================================
-> > --- linux-2.6.orig/kernel/sched_clock.c
-> > +++ linux-2.6/kernel/sched_clock.c
-> > @@ -241,9 +241,9 @@ unsigned long long cpu_clock(int cpu)
-> >  	unsigned long long clock;
-> >  	unsigned long flags;
-> >  
-> > -	local_irq_save(flags);
-> > +	local_irq_save_nmi(flags);
-> >  	clock = sched_clock_cpu(cpu);
-> > -	local_irq_restore(flags);
-> > +	local_irq_restore_nmi(flags);
-> >  
-> >  	return clock;
-> >  }
+On Wed, Apr 07, 2010 at 12:09:17PM -0700, Kevin Hilman wrote:
+>Linus Torvalds <torvalds@linux-foundation.org> writes:
+>
+>> On Wed, 31 Mar 2010, H. Peter Anvin wrote:
+>>> 
+>>> The obvious way to fix this would be to use
+>>> spin_lock_irqsave..spin_lock_irqrestore in __down_read as well as in the
+>>> other locations; I don't have a good feel for what the cost of doing so
+>>> would be, though.  On x86 it's fairly expensive simply because the only
+>>> way to save the state is to push it on the stack, which the compiler
+>>> doesn't deal well with, but this code isn't used on x86.
+>>
+>
+>[...]
+>
+>> So making the slow-path do the spin_[un]lock_irq{save,restore}() versions 
+>> sounds like the right thing. It won't be a performance issue: it _is_ the 
+>> slow-path, and we're already doing the expensive part (the spinlock itself 
+>> and the irq thing).
+>>
+>> So ACK on the idea. Who wants to write the trivial patch and test it? 
+>
+>OK, I'll bite since I was seeing boot-time hangs on ARM (TI OMAP3) due
+>to this.  Patch below.
+>
+>Kevin
+>
+>
+From 7baff4008353bbfd2a2e2a4da22b87bc4efa4194 Mon Sep 17 00:00:00 2001
+>From: Kevin Hilman <khilman@deeprootsystems.com>
+>Date: Wed, 7 Apr 2010 11:52:46 -0700
+>Subject: [PATCH] rwsem generic spinlock: use IRQ save/restore spinlocks
+>
+>rwsems can be used with IRQs disabled, particularily in early boot
+>before IRQs are enabled.  Currently the spin_unlock_irq() usage in the
+>slow-patch will unconditionally enable interrupts and cause problems
+>since interrupts are not yet initialized or enabled.
+>
+>This patch uses save/restore versions of IRQ spinlocks in the slowpath
+>to ensure interrupts are not unintentionally disabled.
+>
+>Signed-off-by: Kevin Hilman <khilman@deeprootsystems.com>
+
+This looks reasonable and fine for me.
+
+Reviewed-by: WANG Cong <xiyou.wangcong@gmail.com>
+
+Thanks.
+
+
+>---
+> lib/rwsem-spinlock.c |   14 ++++++++------
+> 1 files changed, 8 insertions(+), 6 deletions(-)
+>
+>diff --git a/lib/rwsem-spinlock.c b/lib/rwsem-spinlock.c
+>index ccf95bf..ffc9fc7 100644
+>--- a/lib/rwsem-spinlock.c
+>+++ b/lib/rwsem-spinlock.c
+>@@ -143,13 +143,14 @@ void __sched __down_read(struct rw_semaphore *sem)
+> {
+> 	struct rwsem_waiter waiter;
+> 	struct task_struct *tsk;
+>+	unsigned long flags;
 > 
+>-	spin_lock_irq(&sem->wait_lock);
+>+	spin_lock_irqsave(&sem->wait_lock, flags);
 > 
-> That seem to add a small overhead in various places.
-> Do we want to make local_irq_save_nmi == local_irq_save
-> for archs that have native nmi?
+> 	if (sem->activity >= 0 && list_empty(&sem->wait_list)) {
+> 		/* granted */
+> 		sem->activity++;
+>-		spin_unlock_irq(&sem->wait_lock);
+>+		spin_unlock_irqrestore(&sem->wait_lock, flags);
+> 		goto out;
+> 	}
+> 
+>@@ -164,7 +165,7 @@ void __sched __down_read(struct rw_semaphore *sem)
+> 	list_add_tail(&waiter.list, &sem->wait_list);
+> 
+> 	/* we don't need to touch the semaphore struct anymore */
+>-	spin_unlock_irq(&sem->wait_lock);
+>+	spin_unlock_irqrestore(&sem->wait_lock, flags);
+> 
+> 	/* wait to be given the lock */
+> 	for (;;) {
+>@@ -209,13 +210,14 @@ void __sched __down_write_nested(struct rw_semaphore *sem, int subclass)
+> {
+> 	struct rwsem_waiter waiter;
+> 	struct task_struct *tsk;
+>+	unsigned long flags;
+> 
+>-	spin_lock_irq(&sem->wait_lock);
+>+	spin_lock_irqsave(&sem->wait_lock, flags);
+> 
+> 	if (sem->activity == 0 && list_empty(&sem->wait_list)) {
+> 		/* granted */
+> 		sem->activity = -1;
+>-		spin_unlock_irq(&sem->wait_lock);
+>+		spin_unlock_irqrestore(&sem->wait_lock, flags);
+> 		goto out;
+> 	}
+> 
+>@@ -230,7 +232,7 @@ void __sched __down_write_nested(struct rw_semaphore *sem, int subclass)
+> 	list_add_tail(&waiter.list, &sem->wait_list);
+> 
+> 	/* we don't need to touch the semaphore struct anymore */
+>-	spin_unlock_irq(&sem->wait_lock);
+>+	spin_unlock_irqrestore(&sem->wait_lock, flags);
+> 
+> 	/* wait to be given the lock */
+> 	for (;;) {
+>-- 
+>1.7.0.2
+>
+>--
+>To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+>the body of a message to majordomo@vger.kernel.org
+>More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>Please read the FAQ at  http://www.tux.org/lkml/
 
-That is already so, see 1/3.
-
-
+-- 
+Live like a child, think like the god.
+ 
