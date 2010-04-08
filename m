@@ -1,137 +1,94 @@
-From: =?utf-8?Q?Am=C3=A9rico?= Wang <xiyou.wangcong@gmail.com>
-Subject: Re: start_kernel(): bug: interrupts were enabled early
-Date: Thu, 8 Apr 2010 23:55:46 +0800
-Message-ID: <20100408155546.GB4213@hack>
-References: <20100325194100.GA2364@debian> <20100331134048.da4e35a7.akpm@linux-foundation.org> <4BB3B4DB.7040904@kernel.org> <20100331135220.c6695a51.akpm@linux-foundation.org> <4BB3BAD6.50308@zytor.com> <alpine.LFD.2.00.1004010904540.3707@i5.linux-foundation.org> <878w8zcc6a.fsf@deeprootsystems.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <878w8zcc6a.fsf@deeprootsystems.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Kevin Hilman <khilman@deeprootsystems.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, cl@linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+From: Frederic Weisbecker <fweisbec@gmail.com>
+Subject: [GIT PULL] perf fix
+Date: Thu,  8 Apr 2010 19:31:59 +0200
+Message-ID: <1270747919-16685-1-git-send-regression-fweisbec@gmail.com>
+References: <1270734746.2215.56.camel@edumazet-laptop>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pw0-f46.google.com ([209.85.160.46]:62036 "EHLO
+	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754407Ab0DHRcJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 13:32:09 -0400
+In-Reply-To: <1270734746.2215.56.camel@edumazet-laptop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: LKML <linux-kernel@vger.kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, Eric Dumazet <eric.dumazet@gmail.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@redhat.com>, Paul Mackerras <paulus@samba.org>, David Miller <davem@davemloft.net>, Archs <linux-arch@vger.kernel.org>
 
-On Wed, Apr 07, 2010 at 12:09:17PM -0700, Kevin Hilman wrote:
->Linus Torvalds <torvalds@linux-foundation.org> writes:
->
->> On Wed, 31 Mar 2010, H. Peter Anvin wrote:
->>> 
->>> The obvious way to fix this would be to use
->>> spin_lock_irqsave..spin_lock_irqrestore in __down_read as well as in the
->>> other locations; I don't have a good feel for what the cost of doing so
->>> would be, though.  On x86 it's fairly expensive simply because the only
->>> way to save the state is to push it on the stack, which the compiler
->>> doesn't deal well with, but this code isn't used on x86.
->>
->
->[...]
->
->> So making the slow-path do the spin_[un]lock_irq{save,restore}() versions 
->> sounds like the right thing. It won't be a performance issue: it _is_ the 
->> slow-path, and we're already doing the expensive part (the spinlock itself 
->> and the irq thing).
->>
->> So ACK on the idea. Who wants to write the trivial patch and test it? 
->
->OK, I'll bite since I was seeing boot-time hangs on ARM (TI OMAP3) due
->to this.  Patch below.
->
->Kevin
->
->
-From 7baff4008353bbfd2a2e2a4da22b87bc4efa4194 Mon Sep 17 00:00:00 2001
->From: Kevin Hilman <khilman@deeprootsystems.com>
->Date: Wed, 7 Apr 2010 11:52:46 -0700
->Subject: [PATCH] rwsem generic spinlock: use IRQ save/restore spinlocks
->
->rwsems can be used with IRQs disabled, particularily in early boot
->before IRQs are enabled.  Currently the spin_unlock_irq() usage in the
->slow-patch will unconditionally enable interrupts and cause problems
->since interrupts are not yet initialized or enabled.
->
->This patch uses save/restore versions of IRQ spinlocks in the slowpath
->to ensure interrupts are not unintentionally disabled.
->
->Signed-off-by: Kevin Hilman <khilman@deeprootsystems.com>
+Ingo,
 
-This looks reasonable and fine for me.
+Please pull the perf/urgent branch that can be found at:
 
-Reviewed-by: WANG Cong <xiyou.wangcong@gmail.com>
+git://git.kernel.org/pub/scm/linux/kernel/git/frederic/random-tracing.git
+	perf/urgent
 
-Thanks.
+Thanks,
+	Frederic
+---
+
+Frederic Weisbecker (1):
+      perf: Fix unsafe frame rewinding with hot regs fetching
 
 
->---
-> lib/rwsem-spinlock.c |   14 ++++++++------
-> 1 files changed, 8 insertions(+), 6 deletions(-)
->
->diff --git a/lib/rwsem-spinlock.c b/lib/rwsem-spinlock.c
->index ccf95bf..ffc9fc7 100644
->--- a/lib/rwsem-spinlock.c
->+++ b/lib/rwsem-spinlock.c
->@@ -143,13 +143,14 @@ void __sched __down_read(struct rw_semaphore *sem)
-> {
-> 	struct rwsem_waiter waiter;
-> 	struct task_struct *tsk;
->+	unsigned long flags;
-> 
->-	spin_lock_irq(&sem->wait_lock);
->+	spin_lock_irqsave(&sem->wait_lock, flags);
-> 
-> 	if (sem->activity >= 0 && list_empty(&sem->wait_list)) {
-> 		/* granted */
-> 		sem->activity++;
->-		spin_unlock_irq(&sem->wait_lock);
->+		spin_unlock_irqrestore(&sem->wait_lock, flags);
-> 		goto out;
-> 	}
-> 
->@@ -164,7 +165,7 @@ void __sched __down_read(struct rw_semaphore *sem)
-> 	list_add_tail(&waiter.list, &sem->wait_list);
-> 
-> 	/* we don't need to touch the semaphore struct anymore */
->-	spin_unlock_irq(&sem->wait_lock);
->+	spin_unlock_irqrestore(&sem->wait_lock, flags);
-> 
-> 	/* wait to be given the lock */
-> 	for (;;) {
->@@ -209,13 +210,14 @@ void __sched __down_write_nested(struct rw_semaphore *sem, int subclass)
-> {
-> 	struct rwsem_waiter waiter;
-> 	struct task_struct *tsk;
->+	unsigned long flags;
-> 
->-	spin_lock_irq(&sem->wait_lock);
->+	spin_lock_irqsave(&sem->wait_lock, flags);
-> 
-> 	if (sem->activity == 0 && list_empty(&sem->wait_list)) {
-> 		/* granted */
-> 		sem->activity = -1;
->-		spin_unlock_irq(&sem->wait_lock);
->+		spin_unlock_irqrestore(&sem->wait_lock, flags);
-> 		goto out;
-> 	}
-> 
->@@ -230,7 +232,7 @@ void __sched __down_write_nested(struct rw_semaphore *sem, int subclass)
-> 	list_add_tail(&waiter.list, &sem->wait_list);
-> 
-> 	/* we don't need to touch the semaphore struct anymore */
->-	spin_unlock_irq(&sem->wait_lock);
->+	spin_unlock_irqrestore(&sem->wait_lock, flags);
-> 
-> 	/* wait to be given the lock */
-> 	for (;;) {
->-- 
->1.7.0.2
->
->--
->To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
->the body of a message to majordomo@vger.kernel.org
->More majordomo info at  http://vger.kernel.org/majordomo-info.html
->Please read the FAQ at  http://www.tux.org/lkml/
+ arch/x86/kernel/dumpstack.h |    8 ++++++--
+ 1 files changed, 6 insertions(+), 2 deletions(-)
 
--- 
-Live like a child, think like the god.
+---
+commit ab285f2b5290d92b7ec1a6f9aad54308dadf6157
+Author: Frederic Weisbecker <fweisbec@gmail.com>
+Date:   Thu Apr 8 14:05:50 2010 +0200
+
+    perf: Fix unsafe frame rewinding with hot regs fetching
+    
+    When we fetch the hot regs and rewind to the nth caller, it
+    might happen that we dereference a frame pointer outside the
+    kernel stack boundaries, like in this example:
+    
+    	perf_trace_sched_switch+0xd5/0x120
+            schedule+0x6b5/0x860
+            retint_careful+0xd/0x21
+    
+    Since we directly dereference a userspace frame pointer here while
+    rewinding behind retint_careful, this may end up in a crash.
+    
+    Fix this by simply using probe_kernel_address() when we rewind the
+    frame pointer.
+    
+    This issue will have a much more proper fix in the next version of the
+    perf_arch_fetch_caller_regs() API that will only need to rewind to the
+    first caller.
+    
+    Reported-by: Eric Dumazet <eric.dumazet@gmail.com>
+    Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
+    Tested-by: Eric Dumazet <eric.dumazet@gmail.com>
+    Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
+    Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
+    Cc: Paul Mackerras <paulus@samba.org>
+    Cc: David Miller <davem@davemloft.net>
+    Cc: Archs <linux-arch@vger.kernel.org>
+
+diff --git a/arch/x86/kernel/dumpstack.h b/arch/x86/kernel/dumpstack.h
+index e39e771..e1a93be 100644
+--- a/arch/x86/kernel/dumpstack.h
++++ b/arch/x86/kernel/dumpstack.h
+@@ -14,6 +14,8 @@
+ #define get_bp(bp) asm("movq %%rbp, %0" : "=r" (bp) :)
+ #endif
  
++#include <linux/uaccess.h>
++
+ extern void
+ show_trace_log_lvl(struct task_struct *task, struct pt_regs *regs,
+ 		unsigned long *stack, unsigned long bp, char *log_lvl);
+@@ -42,8 +44,10 @@ static inline unsigned long rewind_frame_pointer(int n)
+ 	get_bp(frame);
+ 
+ #ifdef CONFIG_FRAME_POINTER
+-	while (n--)
+-		frame = frame->next_frame;
++	while (n--) {
++		if (probe_kernel_address(&frame->next_frame, frame))
++			break;
++	}
+ #endif
+ 
+ 	return (unsigned long)frame;
