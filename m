@@ -1,142 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qy0-f179.google.com ([209.85.221.179]:59501 "EHLO
-	mail-qy0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932763Ab0DHPwk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 11:52:40 -0400
-Date: Thu, 8 Apr 2010 23:55:46 +0800
-From: =?utf-8?Q?Am=C3=A9rico?= Wang <xiyou.wangcong@gmail.com>
-Subject: Re: start_kernel(): bug: interrupts were enabled early
-Message-ID: <20100408155546.GB4213@hack>
-References: <20100325194100.GA2364@debian> <20100331134048.da4e35a7.akpm@linux-foundation.org> <4BB3B4DB.7040904@kernel.org> <20100331135220.c6695a51.akpm@linux-foundation.org> <4BB3BAD6.50308@zytor.com> <alpine.LFD.2.00.1004010904540.3707@i5.linux-foundation.org> <878w8zcc6a.fsf@deeprootsystems.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <878w8zcc6a.fsf@deeprootsystems.com>
+Received: from bombadil.infradead.org ([18.85.46.34]:47323 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933404Ab0DHTae (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 15:30:34 -0400
+Message-ID: <20100408192723.072839778@chello.nl>
+Date: Thu, 08 Apr 2010 21:17:48 +0200
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [PATCH 11/13] mutex: Provide mutex_is_contended
+References: <20100408191737.296180458@chello.nl>
+Content-Disposition: inline; filename=mutex-is-contended.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kevin Hilman <khilman@deeprootsystems.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>, Rabin Vincent <rabin@rab.in>, lkml <linux-kernel@vger.kernel.org>, penberg@cs.helsinki.fi, cl@linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
-Message-ID: <20100408155546.7s8NKgU20joziOJwefGBaqGu2VSO0294vriod5vMJlw@z>
+To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Message-ID: <20100408191748.-y1wbDwkr7w10FESjoBzoaRlOZHc6bd3PHnd1Aupfng@z>
 
-On Wed, Apr 07, 2010 at 12:09:17PM -0700, Kevin Hilman wrote:
->Linus Torvalds <torvalds@linux-foundation.org> writes:
->
->> On Wed, 31 Mar 2010, H. Peter Anvin wrote:
->>> 
->>> The obvious way to fix this would be to use
->>> spin_lock_irqsave..spin_lock_irqrestore in __down_read as well as in the
->>> other locations; I don't have a good feel for what the cost of doing so
->>> would be, though.  On x86 it's fairly expensive simply because the only
->>> way to save the state is to push it on the stack, which the compiler
->>> doesn't deal well with, but this code isn't used on x86.
->>
->
->[...]
->
->> So making the slow-path do the spin_[un]lock_irq{save,restore}() versions 
->> sounds like the right thing. It won't be a performance issue: it _is_ the 
->> slow-path, and we're already doing the expensive part (the spinlock itself 
->> and the irq thing).
->>
->> So ACK on the idea. Who wants to write the trivial patch and test it? 
->
->OK, I'll bite since I was seeing boot-time hangs on ARM (TI OMAP3) due
->to this.  Patch below.
->
->Kevin
->
->
-From 7baff4008353bbfd2a2e2a4da22b87bc4efa4194 Mon Sep 17 00:00:00 2001
->From: Kevin Hilman <khilman@deeprootsystems.com>
->Date: Wed, 7 Apr 2010 11:52:46 -0700
->Subject: [PATCH] rwsem generic spinlock: use IRQ save/restore spinlocks
->
->rwsems can be used with IRQs disabled, particularily in early boot
->before IRQs are enabled.  Currently the spin_unlock_irq() usage in the
->slow-patch will unconditionally enable interrupts and cause problems
->since interrupts are not yet initialized or enabled.
->
->This patch uses save/restore versions of IRQ spinlocks in the slowpath
->to ensure interrupts are not unintentionally disabled.
->
->Signed-off-by: Kevin Hilman <khilman@deeprootsystems.com>
+Usable for lock-breaks and such.
 
-This looks reasonable and fine for me.
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ include/linux/mutex.h |    5 +++++
+ 1 file changed, 5 insertions(+)
 
-Reviewed-by: WANG Cong <xiyou.wangcong@gmail.com>
-
-Thanks.
-
-
->---
-> lib/rwsem-spinlock.c |   14 ++++++++------
-> 1 files changed, 8 insertions(+), 6 deletions(-)
->
->diff --git a/lib/rwsem-spinlock.c b/lib/rwsem-spinlock.c
->index ccf95bf..ffc9fc7 100644
->--- a/lib/rwsem-spinlock.c
->+++ b/lib/rwsem-spinlock.c
->@@ -143,13 +143,14 @@ void __sched __down_read(struct rw_semaphore *sem)
-> {
-> 	struct rwsem_waiter waiter;
-> 	struct task_struct *tsk;
->+	unsigned long flags;
-> 
->-	spin_lock_irq(&sem->wait_lock);
->+	spin_lock_irqsave(&sem->wait_lock, flags);
-> 
-> 	if (sem->activity >= 0 && list_empty(&sem->wait_list)) {
-> 		/* granted */
-> 		sem->activity++;
->-		spin_unlock_irq(&sem->wait_lock);
->+		spin_unlock_irqrestore(&sem->wait_lock, flags);
-> 		goto out;
-> 	}
-> 
->@@ -164,7 +165,7 @@ void __sched __down_read(struct rw_semaphore *sem)
-> 	list_add_tail(&waiter.list, &sem->wait_list);
-> 
-> 	/* we don't need to touch the semaphore struct anymore */
->-	spin_unlock_irq(&sem->wait_lock);
->+	spin_unlock_irqrestore(&sem->wait_lock, flags);
-> 
-> 	/* wait to be given the lock */
-> 	for (;;) {
->@@ -209,13 +210,14 @@ void __sched __down_write_nested(struct rw_semaphore *sem, int subclass)
-> {
-> 	struct rwsem_waiter waiter;
-> 	struct task_struct *tsk;
->+	unsigned long flags;
-> 
->-	spin_lock_irq(&sem->wait_lock);
->+	spin_lock_irqsave(&sem->wait_lock, flags);
-> 
-> 	if (sem->activity == 0 && list_empty(&sem->wait_list)) {
-> 		/* granted */
-> 		sem->activity = -1;
->-		spin_unlock_irq(&sem->wait_lock);
->+		spin_unlock_irqrestore(&sem->wait_lock, flags);
-> 		goto out;
-> 	}
-> 
->@@ -230,7 +232,7 @@ void __sched __down_write_nested(struct rw_semaphore *sem, int subclass)
-> 	list_add_tail(&waiter.list, &sem->wait_list);
-> 
-> 	/* we don't need to touch the semaphore struct anymore */
->-	spin_unlock_irq(&sem->wait_lock);
->+	spin_unlock_irqrestore(&sem->wait_lock, flags);
-> 
-> 	/* wait to be given the lock */
-> 	for (;;) {
->-- 
->1.7.0.2
->
->--
->To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
->the body of a message to majordomo@vger.kernel.org
->More majordomo info at  http://vger.kernel.org/majordomo-info.html
->Please read the FAQ at  http://www.tux.org/lkml/
-
--- 
-Live like a child, think like the god.
+Index: linux-2.6/include/linux/mutex.h
+===================================================================
+--- linux-2.6.orig/include/linux/mutex.h
++++ linux-2.6/include/linux/mutex.h
+@@ -118,6 +118,11 @@ static inline int mutex_is_locked(struct
+ 	return atomic_read(&lock->count) != 1;
+ }
  
++static inline int mutex_is_contended(struct mutex *lock)
++{
++	return atomic_read(&lock->count) < 0;
++}
++
+ /*
+  * See kernel/mutex.c for detailed documentation of these APIs.
+  * Also see Documentation/mutex-design.txt.
+
+
