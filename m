@@ -1,49 +1,59 @@
-From: Yinghai <yinghai.lu@oracle.com>
-Subject: Re: [PATCH 25/33] x86, lmb: turn off ARCH_LMB_FIND_AREA
-Date: Wed, 07 Apr 2010 16:40:25 -0700
-Message-ID: <4BBD17E9.1020509@oracle.com>
-References: <1270001838-15857-1-git-send-email-yinghai@kernel.org>	 <1270001838-15857-26-git-send-email-yinghai@kernel.org> <1270683534.9521.8.camel@concordia>
+From: Eric Dumazet <eric.dumazet@gmail.com>
+Subject: [BUG perf] perf_fetch_caller_regs / rewind_frame_pointer can panic
+Date: Thu, 08 Apr 2010 11:57:20 +0200
+Message-ID: <1270720640.2215.43.camel@edumazet-laptop>
+References: <1269568362-13690-1-git-send-regression-fweisbec@gmail.com>
+	 <1269568362-13690-6-git-send-regression-fweisbec@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet12.oracle.com ([141.146.126.234]:59090 "EHLO
-	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754232Ab0DGXnr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Apr 2010 19:43:47 -0400
-In-Reply-To: <1270683534.9521.8.camel@concordia>
+Received: from mail-bw0-f209.google.com ([209.85.218.209]:53908 "EHLO
+	mail-bw0-f209.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754105Ab0DHJ50 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 05:57:26 -0400
+In-Reply-To: <1269568362-13690-6-git-send-regression-fweisbec@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: michael@ellerman.id.au
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@redhat.com>, Paul Mackerras <paulus@samba.org>, David Miller <davem@davemloft.net>, Archs <linux-arch@vger.kernel.org>
 
-On 04/07/2010 04:38 PM, Michael Ellerman wrote:
-> On Tue, 2010-03-30 at 19:17 -0700, Yinghai Lu wrote:
->> 32bit now can use generic __find_lmb_area now. So we can turn arch one off
->>
->> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
->> ---
->>  arch/x86/Kconfig |    2 +-
->>  1 files changed, 1 insertions(+), 1 deletions(-)
->>
->> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
->> index 1aa53ae..ce097ab 100644
->> --- a/arch/x86/Kconfig
->> +++ b/arch/x86/Kconfig
->> @@ -584,7 +584,7 @@ config PARAVIRT_DEBUG
->>  	  a paravirt_op is missing when it is called.
->>  
->>  config ARCH_LMB_FIND_AREA
->> -	default y
->> +	default n
->>  	bool "Use x86 own lmb_find_area()"
->>  	---help---
->>  	  Use lmb_find_area() version instead of generic version, it get free
-> 
-> So can't the whole ARCH_LMB_FIND_AREA go away then? And the generic
-> version be made non-weak?
+Hello
 
-Later after more test, to make sure x86 could endure from high to low.
-then we can remove ARCH_LMB_FIND_AREA.
+Current linux-2.6 tree panics on my dev machine
 
-YH
+64 bit kernel, 32bit user land
+CONFIG_FRAME_POINTER=y
+
+perf timechart record &
+
+Instant crash
+
+Call Trace:
+ perf_trace_sched_switch+0xd5/0x120
+ schedule+0x6b5/0x860
+ retint_careful+0xd/0x21
+ 
+RIP ffffffff81010955 perf_arch_fetch_caller_regs+0x15/0x40
+CR2: 00000000d21f1422
+
+
+rewind_frame_pointer() is probably wrong.
+
+No test performed to check frame is in current stack, or
+that (!user_mode_vm(regs))
+
+
+static inline unsigned long rewind_frame_pointer(int n)
+{
+	struct stack_frame *frame;
+
+	get_bp(frame);
+
+#ifdef CONFIG_FRAME_POINTER
+	while (n--)
+		frame = frame->next_frame;
+#endif
+
+	return (unsigned long)frame;
+}
