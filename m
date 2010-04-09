@@ -1,132 +1,95 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 21/39] lmb: Add __free/__reserve/__clear_lmb_reserved_region_array()
-Date: Thu,  8 Apr 2010 23:03:50 -0700
-Message-ID: <1270793048-23796-22-git-send-email-yinghai@kernel.org>
-References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
+Date: Fri,  9 Apr 2010 15:34:33 +0900 (JST)
+Message-ID: <20100409150335.80E3.A69D9226@jp.fujitsu.com>
+References: <20100409031641.GG5683@laptop> <20100409135657.8f234c9a.kamezawa.hiroyu@jp.fujitsu.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="US-ASCII"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from fgwmail6.fujitsu.co.jp ([192.51.44.36]:60319 "EHLO
+	fgwmail6.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755486Ab0DIGeh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:34:37 -0400
+In-Reply-To: <20100409135657.8f234c9a.kamezawa.hiroyu@jp.fujitsu.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Cc: kosaki.motohiro@jp.fujitsu.com, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
 
-Seperate those three functions and could be shared by related callers.
+> On Fri, 9 Apr 2010 13:16:41 +1000
+> Nick Piggin <npiggin@suse.de> wrote:
+> 
+> > On Thu, Apr 08, 2010 at 09:17:39PM +0200, Peter Zijlstra wrote:
+> > > There is nothing preventing the anon_vma from being detached while we
+> > > are spinning to acquire the lock. Most (all?) current users end up
+> > > calling something like vma_address(page, vma) on it, which has a
+> > > fairly good chance of weeding out wonky vmas.
+> > > 
+> > > However suppose the anon_vma got freed and re-used while we were
+> > > waiting to acquire the lock, and the new anon_vma fits with the
+> > > page->index (because that is the only thing vma_address() uses to
+> > > determine if the page fits in a particular vma, we could end up
+> > > traversing faulty anon_vma chains.
+> > > 
+> > > Close this hole for good by re-validating that page->mapping still
+> > > holds the very same anon_vma pointer after we acquire the lock, if not
+> > > be utterly paranoid and retry the whole operation (which will very
+> > > likely bail, because it's unlikely the page got attached to a different
+> > > anon_vma in the meantime).
+> > 
+> > Hm, looks like a bugfix? How was this supposed to be safe?
+> > 
+> IIUC.
+> 
+> Before Rik's change to anon_vma, once page->mapping is set as anon_vma | 0x1,
+> it's not modified until the page is freed.
+> After the patch, do_wp_page() overwrite page->mapping when it reuse existing
+> page.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- mm/lmb.c |   63 +++++++++++++++++++++++++++++++++++--------------------------
- 1 files changed, 36 insertions(+), 27 deletions(-)
+Why?
+IIUC. page->mapping dereference in page_lock_anon_vma() makes four story.
 
-diff --git a/mm/lmb.c b/mm/lmb.c
-index ab3d85f..5483d69 100644
---- a/mm/lmb.c
-+++ b/mm/lmb.c
-@@ -684,16 +684,41 @@ static __init struct range *find_range_array(int count)
- }
- 
- #ifdef CONFIG_NO_BOOTMEM
--static void __init subtract_lmb_reserved(struct range *range, int az)
-+static void __init __free_lmb_reserved_region_array(void)
- {
--	int i, count;
--	u64 final_start, final_end;
--
- #ifdef ARCH_DISCARD_LMB
- 	/* Take out region array itself at first*/
- 	if (lmb.reserved.region != lmb_reserved_region)
- 		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
- #endif
-+}
-+static void __init __reserve_lmb_reserved_region_array(void)
-+{
-+#ifdef ARCH_DISCARD_LMB
-+	/* Put region array back ? */
-+	if (lmb.reserved.region != lmb_reserved_region)
-+		lmb_reserve(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
-+#endif
-+}
-+
-+static void __init __clear_lmb_reserved_region_array(void)
-+{
-+#ifdef ARCH_DISCARD_LMB
-+	memset(&lmb.reserved.region[0], 0, sizeof(struct lmb_property) * lmb.reserved.nr_regions);
-+	lmb.reserved.region = NULL;
-+	lmb.reserved.nr_regions = 0;
-+	lmb.reserved.cnt = 0;
-+#endif
-+}
-+
-+static void __init subtract_lmb_reserved(struct range *range, int az)
-+{
-+	int i, count;
-+	u64 final_start, final_end;
-+
-+	/* Take out region array itself at first*/
-+	__free_lmb_reserved_region_array();
-+
- 	count  = lmb.reserved.cnt;
- 
- 	if (lmb_debug)
-@@ -709,11 +734,9 @@ static void __init subtract_lmb_reserved(struct range *range, int az)
- 			continue;
- 		subtract_range(range, az, final_start, final_end);
- 	}
--#ifdef ARCH_DISCARD_LMB
-+
- 	/* Put region array back ? */
--	if (lmb.reserved.region != lmb_reserved_region)
--		lmb_reserve(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
--#endif
-+	__reserve_lmb_reserved_region_array();
- }
- 
- int __init get_free_all_memory_range(struct range **rangep, int nodeid)
-@@ -738,15 +761,9 @@ int __init get_free_all_memory_range(struct range **rangep, int nodeid)
- 	subtract_lmb_reserved(range, count);
- 	nr_range = clean_sort_range(range, count);
- 
--#ifdef ARCH_DISCARD_LMB
- 	/* Need to clear it ? */
--	if (nodeid == MAX_NUMNODES) {
--		memset(&lmb.reserved.region[0], 0, sizeof(struct lmb_property) * lmb.reserved.nr_regions);
--		lmb.reserved.region = NULL;
--		lmb.reserved.nr_regions = 0;
--		lmb.reserved.cnt = 0;
--	}
--#endif
-+	if (nodeid == MAX_NUMNODES)
-+		__clear_lmb_reserved_region_array();
- 
- 	*rangep = range;
- 	return nr_range;
-@@ -757,11 +774,8 @@ void __init lmb_to_bootmem(u64 start, u64 end)
- 	int i, count;
- 	u64 final_start, final_end;
- 
--#ifdef ARCH_DISCARD_LMB
- 	/* Take out region array itself */
--	if (lmb.reserved.region != lmb_reserved_region)
--		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
--#endif
-+	__free_lmb_reserved_region_array();
- 
- 	count  = lmb.reserved.cnt;
- 	if (lmb_debug)
-@@ -782,13 +796,8 @@ void __init lmb_to_bootmem(u64 start, u64 end)
- 		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
- 	}
- 
--#ifdef ARCH_DISCARD_LMB
--	/* Clear them to avoid misusing ? */
--	memset(&lmb.reserved.region[0], 0, sizeof(struct lmb_property) * lmb.reserved.nr_regions);
--	lmb.reserved.region = NULL;
--	lmb.reserved.nr_regions = 0;
--	lmb.reserved.cnt = 0;
--#endif
-+	/* Assume lmb_to_bootmem is only called one time */
-+	__clear_lmb_reserved_region_array();
- }
- #endif
- 
--- 
-1.6.4.2
+1. the anon_vma is valid
+	-> do page_referenced_one(). 
+2. the anon_vma is invalid and freed to buddy
+	-> bail out by page_mapped(), no touch anon_vma
+3. the anon_vma is kfreed, and not reused
+	-> bail out by page_mapped()
+4. the anon_vma is kfreed, but reused as another anon_vma
+	-> bail out by page_check_address()
+
+Now we have to consider 5th story.
+
+5. the anon_vma is exchanged another anon_vma by do_wp_page.
+	-> bail out by above bailing out stuff.
+
+
+I agree peter's patch makes sense. but I don't think Rik's patch change
+locking rule.
+
+
+> 
+> ==
+> static int do_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
+>                 unsigned long address, pte_t *page_table, pmd_t *pmd,
+>                 spinlock_t *ptl, pte_t orig_pte)
+> {
+> ....
+>         if (PageAnon(old_page) && !PageKsm(old_page)) {
+>                 if (!trylock_page(old_page)) {
+>                         page_cache_get(old_page);
+> ....
+>                 reuse = reuse_swap_page(old_page);
+>                 if (reuse)
+>                         /*
+>                          * The page is all ours.  Move it to our anon_vma so
+>                          * the rmap code will not search our parent or siblings.
+>                          * Protected against the rmap code by the page lock.
+>                          */
+>                         page_move_anon_rmap(old_page, vma, address); ----(*)
+> }
+> ===		
+> (*) is new.
+> 
+> Then, this new check makes sense in the current kernel.
