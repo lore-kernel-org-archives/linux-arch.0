@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 08/39] lmb: Add lmb_reserve_area/lmb_free_area
-Date: Thu,  8 Apr 2010 23:03:37 -0700
-Message-ID: <1270793048-23796-9-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 13/39] lmb: Prepare to include linux/lmb.h in core file
+Date: Thu,  8 Apr 2010 23:03:42 -0700
+Message-ID: <1270793048-23796-14-git-send-email-yinghai@kernel.org>
 References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
@@ -10,124 +10,34 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-They will check if the region array is big enough.
-
-__check_and_double_region_array will try to double the region array if that
-array spare slots is not big enough.  Old array will be copied to new array.
-
-Arch code should set lmb.default_alloc_limit accordingly, so the new array is in
-accessiable address.
-
--v2: change get_max_mapped() to lmb.default_alloc_limit according to Michael
-      Ellerman and Ben
-     change to lmb_reserve_area and lmb_free_area according to Michael Ellerman
--v3: call check_and_double after reserve/free, so could avoid to use
-      find_lmb_area. Suggested by Michael Ellerman
+Need to add protection in linux/lmb.h, to prepare to include it in
+ mm/page_alloc.c and mm/bootmem.c etc.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    4 +++
- mm/lmb.c            |   66 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 70 insertions(+), 0 deletions(-)
+ include/linux/lmb.h |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
 diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 4cf2f3b..598662f 100644
+index cf8f7ca..5dbc4ef 100644
 --- a/include/linux/lmb.h
 +++ b/include/linux/lmb.h
-@@ -33,6 +33,7 @@ struct lmb_region {
- struct lmb {
- 	unsigned long debug;
- 	u64 rmo_size;
-+	u64 default_alloc_limit;
- 	struct lmb_region memory;
- 	struct lmb_region reserved;
- };
-@@ -83,6 +84,9 @@ lmb_end_pfn(struct lmb_region *type, unsigned long region_nr)
- 	       lmb_size_pages(type, region_nr);
- }
+@@ -2,6 +2,7 @@
+ #define _LINUX_LMB_H
+ #ifdef __KERNEL__
  
-+void lmb_reserve_area(u64 start, u64 end, char *name);
-+void lmb_free_area(u64 start, u64 end);
-+void lmb_add_memory(u64 start, u64 end);
- u64 __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
- 			 u64 size, u64 align);
- u64 lmb_find_area(u64 start, u64 end, u64 size, u64 align);
-diff --git a/mm/lmb.c b/mm/lmb.c
-index 7010212..a514d41 100644
---- a/mm/lmb.c
-+++ b/mm/lmb.c
-@@ -564,6 +564,72 @@ int lmb_find(struct lmb_property *res)
- 	return -1;
- }
++#ifdef CONFIG_HAVE_LMB
+ /*
+  * Logical memory blocks.
+  *
+@@ -101,6 +102,8 @@ u64 lmb_hole_size(u64 start, u64 end);
  
-+static void __init __check_and_double_region_array(struct lmb_region *type,
-+			 struct lmb_property *static_region)
-+{
-+	u64 size, mem;
-+	struct lmb_property *new, *old;
-+	unsigned long rgnsz = type->nr_regions;
+ #include <asm/lmb.h>
+ 
++#endif /* CONFIG_HAVE_LMB */
 +
-+	/* Do we have enough slots left ? */
-+	if ((rgnsz - type->cnt) > 2)
-+		return;
-+
-+	old = type->region;
-+	/* Double the array size */
-+	size = sizeof(struct lmb_property) * rgnsz * 2;
-+
-+	mem = __lmb_alloc_base(size, sizeof(struct lmb_property), lmb.default_alloc_limit);
-+	if (mem == 0)
-+		panic("can not find more space for lmb.reserved.region array");
-+
-+	new = __va(mem);
-+	/* Copy old to new */
-+	memcpy(&new[0], &old[0], sizeof(struct lmb_property) * rgnsz);
-+	memset(&new[rgnsz], 0, sizeof(struct lmb_property) * rgnsz);
-+
-+	memset(&old[0], 0, sizeof(struct lmb_property) * rgnsz);
-+	type->region = new;
-+	type->nr_regions = rgnsz * 2;
-+	printk(KERN_DEBUG "lmb.reserved.region array is doubled to %ld at [%llx - %llx]\n",
-+		type->nr_regions, mem, mem + size - 1);
-+
-+	/* Free old one ?*/
-+	if (old != static_region)
-+		lmb_free(__pa(old), sizeof(struct lmb_property) * rgnsz);
-+}
-+
-+void __init lmb_add_memory(u64 start, u64 end)
-+{
-+	lmb_add_region(&lmb.memory, start, end - start);
-+	__check_and_double_region_array(&lmb.memory, &lmb_memory_region[0]);
-+}
-+
-+void __init lmb_reserve_area(u64 start, u64 end, char *name)
-+{
-+	if (start == end)
-+		return;
-+
-+	if (WARN_ONCE(start > end, "lmb_reserve_area: wrong range [%#llx, %#llx]\n", start, end))
-+		return;
-+
-+	lmb_add_region(&lmb.reserved, start, end - start);
-+	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0]);
-+}
-+
-+void __init lmb_free_area(u64 start, u64 end)
-+{
-+	if (start == end)
-+		return;
-+
-+	if (WARN_ONCE(start > end, "lmb_free_area: wrong range [%#llx, %#llx]\n", start, end))
-+		return;
-+
-+	/* keep punching hole, could run out of slots too */
-+	lmb_free(start, end - start);
-+	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0]);
-+}
-+
- u64 __init __weak __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
- 				 u64 size, u64 align)
- {
+ #endif /* __KERNEL__ */
+ 
+ #endif /* _LINUX_LMB_H */
 -- 
 1.6.4.2
