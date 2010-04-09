@@ -1,31 +1,42 @@
-From: "hooch Cox" <poehfheju@gmail.com>
-Subject: bulk mailing list
-Date: 9 Apr 2010 04:17:09 +0200
-Message-ID: <CAO-XCH2K3Z1i6bdVJW00000f1a@cao-xch2k3.DOMAIN.DOM>
-Reply-To: pwetrjfvje@gmail.com
+From: Minchan Kim <minchan.kim@gmail.com>
+Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
+Date: Fri, 9 Apr 2010 11:19:01 +0900
+Message-ID: <n2p28c262361004081919qad97cc0dic538d5a23642475e@mail.gmail.com>
+References: <20100408191737.296180458@chello.nl>
+	 <20100408192722.687144862@chello.nl>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ze3smtpout030.e.telefonica.net ([213.4.134.165]:37656 "EHLO
-	ZE3SMTPOUT010.e.telefonica.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751439Ab0DICRO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 22:17:14 -0400
+Received: from mail-pz0-f193.google.com ([209.85.222.193]:63134 "EHLO
+	mail-pz0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751680Ab0DICTB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 22:19:01 -0400
+In-Reply-To: <20100408192722.687144862@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linda@glspecialties.com, lilyshanda88@hotmail.com, lilyshealthpad@gmail.com, lisa.flores@embarcadero.com, linux@miradlo.de, linksnorthwest@manchester.ac.uk, linda@forcedgreen.comlin
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
 
-Karen,
+Hi, Peter.
 
-Contact me at the email address below for a catalog of all our USA lists.
+On Fri, Apr 9, 2010 at 4:17 AM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+> There is nothing preventing the anon_vma from being detached while we
+> are spinning to acquire the lock. Most (all?) current users end up
+> calling something like vma_address(page, vma) on it, which has a
+> fairly good chance of weeding out wonky vmas.
+>
+> However suppose the anon_vma got freed and re-used while we were
+> waiting to acquire the lock, and the new anon_vma fits with the
+> page->index (because that is the only thing vma_address() uses to
+> determine if the page fits in a particular vma, we could end up
+> traversing faulty anon_vma chains.
 
-Also, this week we are offering reduced costs for more than one list.  
-  
+We have second defense rule by page_check_address.
+Before anon_vma is detached, pte of pages on the anon_vma should be zeroed.
+So can't page_check_address close the race?
 
-Regards,
+Thanks for good trial for good feature.
 
-
-Angelita Franks
-Email Address: Brad.Potts@optinlists.co.cc
-
-
-
-
-Send us an email to rembox@optinlists.co.cc we will discontinue from the list
+-- 
+Kind regards,
+Minchan Kim
