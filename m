@@ -1,61 +1,99 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 06/13] mm: Preemptible mmu_gather
-Date: Fri, 09 Apr 2010 10:18:43 +0200
-Message-ID: <1270801123.20295.3235.camel@laptop>
-References: <20100408191737.296180458@chello.nl>
-	 <20100408192722.858079986@chello.nl>  <20100409032509.GH5683@laptop>
+From: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
+Date: Fri, 9 Apr 2010 17:24:32 +0900
+Message-ID: <20100409172432.84a74cc3.kamezawa.hiroyu@jp.fujitsu.com>
+References: <20100409150335.80E3.A69D9226@jp.fujitsu.com>
+	<20100409154730.e9945cbc.kamezawa.hiroyu@jp.fujitsu.com>
+	<20100409160252.80E6.A69D9226@jp.fujitsu.com>
+	<20100409165703.8d65ae92.kamezawa.hiroyu@jp.fujitsu.com>
+	<20100409170349.3b09bd2a.kamezawa.hiroyu@jp.fujitsu.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:54059 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754050Ab0DIISq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 04:18:46 -0400
-Received: from e35131.upc-e.chello.nl ([213.93.35.131] helo=dyad.programming.kicks-ass.net)
-	by bombadil.infradead.org with esmtpsa (Exim 4.69 #1 (Red Hat Linux))
-	id 1O09QM-0006NF-F3
-	for linux-arch@vger.kernel.org; Fri, 09 Apr 2010 08:18:46 +0000
-In-Reply-To: <20100409032509.GH5683@laptop>
+Received: from fgwmail7.fujitsu.co.jp ([192.51.44.37]:46685 "EHLO
+	fgwmail7.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750701Ab0DII22 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 04:28:28 -0400
+In-Reply-To: <20100409170349.3b09bd2a.kamezawa.hiroyu@jp.fujitsu.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
+To: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Cc: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
 
-On Fri, 2010-04-09 at 13:25 +1000, Nick Piggin wrote:
-> On Thu, Apr 08, 2010 at 09:17:43PM +0200, Peter Zijlstra wrote:
-> > @@ -39,30 +33,48 @@
-> >  struct mmu_gather {
-> >  	struct mm_struct	*mm;
-> >  	unsigned int		nr;	/* set to ~0U means fast mode */
-> > +	unsigned int		max;	/* nr < max */
-> >  	unsigned int		need_flush;/* Really unmapped some ptes? */
-> >  	unsigned int		fullmm; /* non-zero means full mm flush */
-> > -	struct page *		pages[FREE_PTE_NR];
-> > +#ifdef HAVE_ARCH_MMU_GATHER
-> > +	struct arch_mmu_gather	arch;
-> > +#endif
-> > +	struct page		**pages;
-> > +	struct page		*local[8];
+On Fri, 9 Apr 2010 17:03:49 +0900
+KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> wrote:
+
+> On Fri, 9 Apr 2010 16:57:03 +0900
+> KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> wrote:
 > 
-> Have you done some profiling on this? What I would like to see, if
-> it's not too much complexity, is to have a small set of pages to
-> handle common size frees, and then use them up first by default
-> before attempting to allocate more.
+> > On Fri,  9 Apr 2010 16:29:59 +0900 (JST)
+> > KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com> wrote:
 > 
-> Also, it would be cool to be able to chain allocations to avoid
-> TLB flushes even on big frees (overridable by arch of course, in
-> case they're doing some non-preeemptible work or you wish to break
-> up lock hold times). But that might be just getting over engineered.
+> > > > Hmm, I think following.
+> > > > 
+> > > > Assume a page is ANON and SwapCache, and it has only one reference.
+> > > > Consider it's read-only mapped and cause do_wp_page().
+> > > > page_mapcount(page) == 1 here.
+> > > > 
+> > > >     CPU0                          CPU1
+> > > > 
+> > > > 1. do_wp_page()
+> > > > 2. .....
+> > > > 3. replace anon_vma.     anon_vma = lock_page_anon_vma()
+> > > > 
+> > > > So, lock_page_anon_vma() may have lock on wrong anon_vma, here.(mapcount=1)
+> > > > 
+> > > > 4. modify pte to writable.        do something...
+> > > > 
+> > > > After lock, in CPU1, a pte of estimated address by vma_address(vma, page)
+> > > > containes pfn of the page and page_check_address() will success.
+> > > > 
+> > > > I'm not sure how this is dangerouns.
+> > > > But it's possible that CPU1 cannot notice there was anon_vma replacement.
+> > > > And modifies pte withoug holding anon vma's lock which the code believes
+> > > > it's holded.
+> > > 
+> > > 
+> > > Hehe, page_referenced() already can take unstable VM_LOCKED value. So,
+> > > In worst case we make false positive pageout, but it's not disaster.
+> > > I think. Anyway "use after free" don't happen by this blutal code.
+> > > 
+> > > However, I think you pointed one good thing. before Rik patch, we don't have
+> > > page->mapping reassignment. then, we didn't need rcu_dereference().
+> > > but now it can happen. so, I think rcu_dereference() is better.
+> > > 
+> > > Perhaps, I'm missing something.
+> > > 
+> > 
+> > Hmm. I wonder we can check "whether we lock valid anon_vma or not" only under
+> > pte_lock or lock_page().
+> > ==
+> > 	anon_vma = page_anon_vma();
+> > 	lock(anon_vma->lock);
+> > 	....
+> > 	page_check_address(page)
+> > 		....
+> > 		pte_lock();
+> > 		if (page_anon_vma(page) == anon_vma)
+> > 			# anon_vma replacement happens!
+> > 	unlock(anon_vma->lock);
+> > ==
+> > So, rather than page_lock_anon_vma(),  page_check_address() may have to check anon_vma
+> > replacement....But I cannot think of dangerous case which can cause panic for now.
+> > I may miss something...
+> > 
+> Ah...anon_vma replacemet occurs under lock_page() and pte_lock.
+> Almost all callers of page_lock_anon_vma() holds lock_page(). So, I think
+> this anon_vma replacement is not very serious.
+Sorry for short mails ;(
 
-Did no profiling at all, back when I wrote this I was in a hurry to get
-this working for -rt.
 
-But yes, those things do look like something we want to look into, we
-can easily add a head structure to these pages like we did for the RCU
-batches.
+Note:vmscan.c::shrink_active_list()
+	-> page_referenced()
+doesn't take lock_page() and may see wrong anon_vma by replacement.
 
-But as it stands I think we can do those things as incrementals on top
-of this, no?
+Don't we need lock_page() around ?
 
-What kind of workload would you recommend I use to profile this?
+Thanks,
+-Kame
