@@ -1,102 +1,287 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 16/39] lmb: Add lmb_free_memory_size()
-Date: Thu,  8 Apr 2010 23:03:45 -0700
-Message-ID: <1270793048-23796-17-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 20/39] lmb: Add ARCH_DISCARD_LMB to put lmb code to .init
+Date: Thu,  8 Apr 2010 23:03:49 -0700
+Message-ID: <1270793048-23796-21-git-send-email-yinghai@kernel.org>
 References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from acsinet12.oracle.com ([141.146.126.234]:37837 "EHLO
+	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755682Ab0DIGH0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:07:26 -0400
 In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-It will return free memory size in specified range.
+So those lmb bits could be released after kernel is booted up.
 
-We can not use memory_size - reserved_size here, because some reserved area
-may not be in the scope of lmb.memory.region.
+Arch code could define ARCH_DISCARD_LMB in asm/lmb.h, __init_lmb will become __init, __initdata_lmb will becom __initdata
 
-Use lmb.memory.region subtracting lmb.reserved.region to get free range array.
-then count size of all free ranges.
+x86 code will use that.
+
+-v2: use ARCH_DISCARD_LMB according to Michael Ellerman
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    1 +
- mm/lmb.c            |   51 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 52 insertions(+), 0 deletions(-)
+ include/linux/lmb.h |    8 +++++++
+ mm/lmb.c            |   54 ++++++++++++++++++++++++++++++--------------------
+ 2 files changed, 40 insertions(+), 22 deletions(-)
 
 diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 4078825..b874dc0 100644
+index 3c8095f..f615626 100644
 --- a/include/linux/lmb.h
 +++ b/include/linux/lmb.h
-@@ -100,6 +100,7 @@ int get_free_all_memory_range(struct range **rangep, int nodeid);
- void lmb_register_active_regions(int nid, unsigned long start_pfn,
- 					 unsigned long last_pfn);
- u64 lmb_hole_size(u64 start, u64 end);
-+u64 lmb_free_memory_size(u64 addr, u64 limit);
+@@ -106,6 +106,14 @@ u64 lmb_memory_size(u64 addr, u64 limit);
  
  #include <asm/lmb.h>
  
++#ifdef ARCH_DISCARD_LMB
++#define __init_lmb __init
++#define __initdata_lmb __initdata
++#else
++#define __init_lmb
++#define __initdata_lmb
++#endif
++
+ #endif /* CONFIG_HAVE_LMB */
+ 
+ #endif /* __KERNEL__ */
 diff --git a/mm/lmb.c b/mm/lmb.c
-index d3a58fb..dccd539 100644
+index dfbf660..ab3d85f 100644
 --- a/mm/lmb.c
 +++ b/mm/lmb.c
-@@ -746,6 +746,57 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+@@ -21,11 +21,11 @@
+ 
+ #define LMB_ALLOC_ANYWHERE	0
+ 
+-struct lmb lmb;
+-static struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1];
+-static struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1];
++struct lmb lmb __initdata_lmb;
++static struct lmb_property lmb_memory_region[MAX_LMB_REGIONS + 1] __initdata_lmb;
++static struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS + 1] __initdata_lmb;
+ 
+-static int lmb_debug;
++static int lmb_debug __initdata_lmb;
+ 
+ static int __init early_lmb(char *p)
+ {
+@@ -35,7 +35,7 @@ static int __init early_lmb(char *p)
+ }
+ early_param("lmb", early_lmb);
+ 
+-static void lmb_dump(struct lmb_region *region, char *name)
++static void __init_lmb lmb_dump(struct lmb_region *region, char *name)
+ {
+ 	unsigned long long base, size;
+ 	int i;
+@@ -51,7 +51,7 @@ static void lmb_dump(struct lmb_region *region, char *name)
+ 	}
+ }
+ 
+-void lmb_dump_all(void)
++void __init_lmb lmb_dump_all(void)
+ {
+ 	if (!lmb_debug)
+ 		return;
+@@ -64,13 +64,13 @@ void lmb_dump_all(void)
+ 	lmb_dump(&lmb.reserved, "reserved");
+ }
+ 
+-static unsigned long lmb_addrs_overlap(u64 base1, u64 size1, u64 base2,
++static unsigned long __init_lmb lmb_addrs_overlap(u64 base1, u64 size1, u64 base2,
+ 					u64 size2)
+ {
+ 	return ((base1 < (base2 + size2)) && (base2 < (base1 + size1)));
+ }
+ 
+-static long lmb_addrs_adjacent(u64 base1, u64 size1, u64 base2, u64 size2)
++static long __init_lmb lmb_addrs_adjacent(u64 base1, u64 size1, u64 base2, u64 size2)
+ {
+ 	if (base2 == base1 + size1)
+ 		return 1;
+@@ -80,7 +80,7 @@ static long lmb_addrs_adjacent(u64 base1, u64 size1, u64 base2, u64 size2)
+ 	return 0;
+ }
+ 
+-static long lmb_regions_adjacent(struct lmb_region *rgn,
++static long __init_lmb lmb_regions_adjacent(struct lmb_region *rgn,
+ 		unsigned long r1, unsigned long r2)
+ {
+ 	u64 base1 = rgn->region[r1].base;
+@@ -91,7 +91,7 @@ static long lmb_regions_adjacent(struct lmb_region *rgn,
+ 	return lmb_addrs_adjacent(base1, size1, base2, size2);
+ }
+ 
+-static void lmb_remove_region(struct lmb_region *rgn, unsigned long r)
++static void __init_lmb lmb_remove_region(struct lmb_region *rgn, unsigned long r)
+ {
+ 	unsigned long i;
+ 
+@@ -103,7 +103,7 @@ static void lmb_remove_region(struct lmb_region *rgn, unsigned long r)
+ }
+ 
+ /* Assumption: base addr of region 1 < base addr of region 2 */
+-static void lmb_coalesce_regions(struct lmb_region *rgn,
++static void __init_lmb lmb_coalesce_regions(struct lmb_region *rgn,
+ 		unsigned long r1, unsigned long r2)
+ {
+ 	rgn->region[r1].size += rgn->region[r2].size;
+@@ -140,7 +140,7 @@ void __init lmb_analyze(void)
+ 		lmb.memory.size += lmb.memory.region[i].size;
+ }
+ 
+-static long lmb_add_region(struct lmb_region *rgn, u64 base, u64 size)
++static long __init_lmb lmb_add_region(struct lmb_region *rgn, u64 base, u64 size)
+ {
+ 	unsigned long coalesced = 0;
+ 	long adjacent, i;
+@@ -204,7 +204,7 @@ static long lmb_add_region(struct lmb_region *rgn, u64 base, u64 size)
+ 	return 0;
+ }
+ 
+-long lmb_add(u64 base, u64 size)
++long __init_lmb lmb_add(u64 base, u64 size)
+ {
+ 	struct lmb_region *_rgn = &lmb.memory;
+ 
+@@ -216,7 +216,7 @@ long lmb_add(u64 base, u64 size)
+ 
+ }
+ 
+-static long __lmb_remove(struct lmb_region *rgn, u64 base, u64 size)
++static long __init_lmb __lmb_remove(struct lmb_region *rgn, u64 base, u64 size)
+ {
+ 	u64 rgnbegin, rgnend;
+ 	u64 end = base + size;
+@@ -264,7 +264,7 @@ static long __lmb_remove(struct lmb_region *rgn, u64 base, u64 size)
+ 	return lmb_add_region(rgn, end, rgnend - end);
+ }
+ 
+-long lmb_remove(u64 base, u64 size)
++long __init_lmb lmb_remove(u64 base, u64 size)
+ {
+ 	return __lmb_remove(&lmb.memory, base, size);
+ }
+@@ -283,7 +283,7 @@ long __init lmb_reserve(u64 base, u64 size)
+ 	return lmb_add_region(_rgn, base, size);
+ }
+ 
+-long lmb_overlaps_region(struct lmb_region *rgn, u64 base, u64 size)
++long __init_lmb lmb_overlaps_region(struct lmb_region *rgn, u64 base, u64 size)
+ {
+ 	unsigned long i;
+ 
+@@ -297,12 +297,12 @@ long lmb_overlaps_region(struct lmb_region *rgn, u64 base, u64 size)
+ 	return (i < rgn->cnt) ? i : -1;
+ }
+ 
+-static u64 lmb_align_down(u64 addr, u64 size)
++static u64 __init_lmb lmb_align_down(u64 addr, u64 size)
+ {
+ 	return addr & ~(size - 1);
+ }
+ 
+-static u64 lmb_align_up(u64 addr, u64 size)
++static u64 __init_lmb lmb_align_up(u64 addr, u64 size)
+ {
+ 	return (addr + (size - 1)) & ~(size - 1);
+ }
+@@ -462,7 +462,7 @@ u64 __init lmb_phys_mem_size(void)
+ 	return lmb.memory.size;
+ }
+ 
+-u64 lmb_end_of_DRAM(void)
++u64 __init_lmb lmb_end_of_DRAM(void)
+ {
+ 	int idx = lmb.memory.cnt - 1;
+ 
+@@ -526,7 +526,7 @@ int __init lmb_is_reserved(u64 addr)
+ 	return 0;
+ }
+ 
+-int lmb_is_region_reserved(u64 base, u64 size)
++int __init_lmb lmb_is_region_reserved(u64 base, u64 size)
+ {
+ 	return lmb_overlaps_region(&lmb.reserved, base, size);
+ }
+@@ -535,7 +535,7 @@ int lmb_is_region_reserved(u64 base, u64 size)
+  * Given a <base, len>, find which memory regions belong to this range.
+  * Adjust the request and return a contiguous chunk.
+  */
+-int lmb_find(struct lmb_property *res)
++int __init_lmb lmb_find(struct lmb_property *res)
+ {
+ 	int i;
+ 	u64 rstart, rend;
+@@ -689,10 +689,11 @@ static void __init subtract_lmb_reserved(struct range *range, int az)
+ 	int i, count;
+ 	u64 final_start, final_end;
+ 
++#ifdef ARCH_DISCARD_LMB
+ 	/* Take out region array itself at first*/
+ 	if (lmb.reserved.region != lmb_reserved_region)
+ 		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
+-
++#endif
+ 	count  = lmb.reserved.cnt;
+ 
+ 	if (lmb_debug)
+@@ -708,9 +709,11 @@ static void __init subtract_lmb_reserved(struct range *range, int az)
+ 			continue;
+ 		subtract_range(range, az, final_start, final_end);
+ 	}
++#ifdef ARCH_DISCARD_LMB
+ 	/* Put region array back ? */
+ 	if (lmb.reserved.region != lmb_reserved_region)
+ 		lmb_reserve(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
++#endif
+ }
+ 
+ int __init get_free_all_memory_range(struct range **rangep, int nodeid)
+@@ -735,6 +738,7 @@ int __init get_free_all_memory_range(struct range **rangep, int nodeid)
+ 	subtract_lmb_reserved(range, count);
+ 	nr_range = clean_sort_range(range, count);
+ 
++#ifdef ARCH_DISCARD_LMB
+ 	/* Need to clear it ? */
+ 	if (nodeid == MAX_NUMNODES) {
+ 		memset(&lmb.reserved.region[0], 0, sizeof(struct lmb_property) * lmb.reserved.nr_regions);
+@@ -742,6 +746,7 @@ int __init get_free_all_memory_range(struct range **rangep, int nodeid)
+ 		lmb.reserved.nr_regions = 0;
+ 		lmb.reserved.cnt = 0;
+ 	}
++#endif
+ 
+ 	*rangep = range;
+ 	return nr_range;
+@@ -752,9 +757,11 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+ 	int i, count;
+ 	u64 final_start, final_end;
+ 
++#ifdef ARCH_DISCARD_LMB
+ 	/* Take out region array itself */
+ 	if (lmb.reserved.region != lmb_reserved_region)
+ 		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
++#endif
+ 
+ 	count  = lmb.reserved.cnt;
+ 	if (lmb_debug)
+@@ -774,11 +781,14 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+ 			pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
+ 		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
+ 	}
++
++#ifdef ARCH_DISCARD_LMB
+ 	/* Clear them to avoid misusing ? */
+ 	memset(&lmb.reserved.region[0], 0, sizeof(struct lmb_property) * lmb.reserved.nr_regions);
+ 	lmb.reserved.region = NULL;
+ 	lmb.reserved.nr_regions = 0;
+ 	lmb.reserved.cnt = 0;
++#endif
  }
  #endif
  
-+u64 __init lmb_free_memory_size(u64 addr, u64 limit)
-+{
-+	int i, count;
-+	struct range *range;
-+	int nr_range;
-+	u64 final_start, final_end;
-+	u64 free_size;
-+
-+	count = lmb.reserved.cnt * 2;
-+
-+	range = find_range_array(count);
-+	nr_range = 0;
-+
-+	addr = PFN_UP(addr);
-+	limit = PFN_DOWN(limit);
-+
-+	for (i = 0; i < lmb.memory.cnt; i++) {
-+		struct lmb_property *r = &lmb.memory.region[i];
-+
-+		final_start = PFN_UP(r->base);
-+		final_end = PFN_DOWN(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		if (final_start >= limit || final_end <= addr)
-+			continue;
-+
-+		nr_range = add_range(range, count, nr_range, final_start, final_end);
-+	}
-+	subtract_range(range, count, 0, addr);
-+	subtract_range(range, count, limit, -1ULL);
-+	for (i = 0; i < lmb.reserved.cnt; i++) {
-+		struct lmb_property *r = &lmb.reserved.region[i];
-+
-+		final_start = PFN_DOWN(r->base);
-+		final_end = PFN_UP(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		if (final_start >= limit || final_end <= addr)
-+			continue;
-+
-+		subtract_range(range, count, final_start, final_end);
-+	}
-+	nr_range = clean_sort_range(range, count);
-+
-+	free_size = 0;
-+	for (i = 0; i < nr_range; i++)
-+		free_size += range[i].end - range[i].start;
-+
-+	return free_size << PAGE_SHIFT;
-+}
-+
- u64 __init __weak __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
- 				 u64 size, u64 align)
- {
 -- 
 1.6.4.2
