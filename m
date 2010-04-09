@@ -1,60 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet12.oracle.com ([141.146.126.234]:37586 "EHLO
-	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755339Ab0DIGHP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:07:15 -0400
+Received: from rcsinet12.oracle.com ([148.87.113.124]:25872 "EHLO
+	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755231Ab0DIGHM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:07:12 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 04/39] lmb: Move lmb.c to mm/
-Date: Thu,  8 Apr 2010 23:03:33 -0700
-Message-ID: <1270793048-23796-5-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 01/39] swiotlb: Use page alignment for early buffer allocation
+Date: Thu,  8 Apr 2010 23:03:30 -0700
+Message-ID: <1270793048-23796-2-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100409060333.vJPA7V1qK-Tbh7eDzaWMYArEDbmqtG5-1ZFWgJeTQVs@z>
+Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, Becky Bruce <beckyb@kernel.crashing.org>
+Message-ID: <20100409060330.FCkH65lOIvRWkJ9wcaZQw6jlRUq_B1GWnSCxq3j7qng@z>
 
-lmb.c is memory related, so move it to mm/. It is suggested by Ingo
+We could call free_bootmem_late() if swiotlb is not used, and
+it will shrink to page alignement.
+
+So alloc them with page alignment at first, to avoid lose two pages
+
+before patch:
+[    0.000000]     lmb_reserve_area: [00d3600000, 00d7600000]   swiotlb buffer
+[    0.000000]     lmb_reserve_area: [00d7e7ef40, 00d7e9ef40]     swiotlb list
+[    0.000000]     lmb_reserve_area: [00d7e3ef40, 00d7e7ef40]  swiotlb orig_ad
+[    0.000000]     lmb_reserve_area: [000008a000, 0000092000]  swiotlb overflo
+
+after patch will get
+[    0.000000]     lmb_reserve_area: [00d3600000, 00d7600000]   swiotlb buffer
+[    0.000000]     lmb_reserve_area: [00d7e7e000, 00d7e9e000]     swiotlb list
+[    0.000000]     lmb_reserve_area: [00d7e3e000, 00d7e7e000]  swiotlb orig_ad
+[    0.000000]     lmb_reserve_area: [000008a000, 0000092000]  swiotlb overflo
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: Becky Bruce <beckyb@kernel.crashing.org>
 ---
- lib/Makefile      |    2 --
- mm/Makefile       |    2 ++
- {lib => mm}/lmb.c |    0
- 3 files changed, 2 insertions(+), 2 deletions(-)
- rename {lib => mm}/lmb.c (100%)
+ lib/swiotlb.c |   16 ++++++++--------
+ 1 files changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/lib/Makefile b/lib/Makefile
-index 2e152ae..a463a4d 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -85,8 +85,6 @@ obj-$(CONFIG_FAULT_INJECTION) += fault-inject.o
+diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+index 5fddf72..1bd4258 100644
+--- a/lib/swiotlb.c
++++ b/lib/swiotlb.c
+@@ -159,7 +159,7 @@ swiotlb_init_with_default_size(size_t default_size, int verbose)
+ 	/*
+ 	 * Get IO TLB memory from the low pages
+ 	 */
+-	io_tlb_start = alloc_bootmem_low_pages(bytes);
++	io_tlb_start = alloc_bootmem_low_pages(PAGE_ALIGN(bytes));
+ 	if (!io_tlb_start)
+ 		panic("Cannot allocate SWIOTLB buffer");
+ 	io_tlb_end = io_tlb_start + bytes;
+@@ -169,16 +169,16 @@ swiotlb_init_with_default_size(size_t default_size, int verbose)
+ 	 * to find contiguous free memory regions of size up to IO_TLB_SEGSIZE
+ 	 * between io_tlb_start and io_tlb_end.
+ 	 */
+-	io_tlb_list = alloc_bootmem(io_tlb_nslabs * sizeof(int));
++	io_tlb_list = alloc_bootmem_pages(PAGE_ALIGN(io_tlb_nslabs * sizeof(int)));
+ 	for (i = 0; i < io_tlb_nslabs; i++)
+  		io_tlb_list[i] = IO_TLB_SEGSIZE - OFFSET(i, IO_TLB_SEGSIZE);
+ 	io_tlb_index = 0;
+-	io_tlb_orig_addr = alloc_bootmem(io_tlb_nslabs * sizeof(phys_addr_t));
++	io_tlb_orig_addr = alloc_bootmem_pages(PAGE_ALIGN(io_tlb_nslabs * sizeof(phys_addr_t)));
  
- lib-$(CONFIG_GENERIC_BUG) += bug.o
+ 	/*
+ 	 * Get the overflow emergency buffer
+ 	 */
+-	io_tlb_overflow_buffer = alloc_bootmem_low(io_tlb_overflow);
++	io_tlb_overflow_buffer = alloc_bootmem_low_pages(PAGE_ALIGN(io_tlb_overflow));
+ 	if (!io_tlb_overflow_buffer)
+ 		panic("Cannot allocate SWIOTLB overflow buffer!\n");
+ 	if (verbose)
+@@ -304,13 +304,13 @@ void __init swiotlb_free(void)
+ 			   get_order(io_tlb_nslabs << IO_TLB_SHIFT));
+ 	} else {
+ 		free_bootmem_late(__pa(io_tlb_overflow_buffer),
+-				  io_tlb_overflow);
++				  PAGE_ALIGN(io_tlb_overflow));
+ 		free_bootmem_late(__pa(io_tlb_orig_addr),
+-				  io_tlb_nslabs * sizeof(phys_addr_t));
++				  PAGE_ALIGN(io_tlb_nslabs * sizeof(phys_addr_t)));
+ 		free_bootmem_late(__pa(io_tlb_list),
+-				  io_tlb_nslabs * sizeof(int));
++				  PAGE_ALIGN(io_tlb_nslabs * sizeof(int)));
+ 		free_bootmem_late(__pa(io_tlb_start),
+-				  io_tlb_nslabs << IO_TLB_SHIFT);
++				  PAGE_ALIGN(io_tlb_nslabs << IO_TLB_SHIFT));
+ 	}
+ }
  
--obj-$(CONFIG_HAVE_LMB) += lmb.o
--
- obj-$(CONFIG_HAVE_ARCH_TRACEHOOK) += syscall.o
- 
- obj-$(CONFIG_DYNAMIC_DEBUG) += dynamic_debug.o
-diff --git a/mm/Makefile b/mm/Makefile
-index 6c2a73a..52492f9 100644
---- a/mm/Makefile
-+++ b/mm/Makefile
-@@ -15,6 +15,8 @@ obj-y			:= bootmem.o filemap.o mempool.o oom_kill.o fadvise.o \
- 			   $(mmu-y)
- obj-y += init-mm.o
- 
-+obj-$(CONFIG_HAVE_LMB) += lmb.o
-+
- obj-$(CONFIG_BOUNCE)	+= bounce.o
- obj-$(CONFIG_SWAP)	+= page_io.o swap_state.o swapfile.o thrash.o
- obj-$(CONFIG_HAS_DMA)	+= dmapool.o
-diff --git a/lib/lmb.c b/mm/lmb.c
-similarity index 100%
-rename from lib/lmb.c
-rename to mm/lmb.c
 -- 
 1.6.4.2
 
