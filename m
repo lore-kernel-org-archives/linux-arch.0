@@ -1,64 +1,45 @@
 From: David Miller <davem@davemloft.net>
-Subject: [PATCH 0/4]: Respin local_irq_*_nmi() stuff.
-Date: Fri, 09 Apr 2010 16:01:32 -0700 (PDT)
-Message-ID: <20100409.160132.216116766.davem@davemloft.net>
+Subject: [PATCH 3/4] sched: Use local_irq_save_nmi() in cpu_clock()
+Date: Fri, 09 Apr 2010 16:01:40 -0700 (PDT)
+Message-ID: <20100409.160140.250344636.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <sparclinux-owner@vger.kernel.org>
-Sender: sparclinux-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:33616
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756120Ab0DIXBg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 19:01:36 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: peterz@infradead.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 
-Peter, I've respun the local_irq_*_nmi() interface addition, sparc64
-implementation, and trace/sched_clock annotations against Linus's
-tree.
+Since we can call cpu_clock() from NMI context fix up the IRQ
+disabling to conform to the new rules.
 
-I've tested all of the tracers in various different configurations on
-sparc64 and I haven't triggered any of the bug checks or crashes yet
-so it should be good.
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ kernel/sched_clock.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-It can also be pulled from:
-
-	master.kernel.org:/pub/scm/linux/kernel/git/davem/trace-2.6.git
-
-And it would be nice to see this upstream soon so I can build upon
-it :-)
-
-You'll need to add the perf locking fix annotation to the -tip tree
-as per you initial patch set, that didn't apply to mainline so I
-didn't put it in here.
-
-Thanks!
-
---------------------
-
-The following changes since commit 0eddb519b9127c73d53db4bf3ec1d45b13f844d1:
-  Linus Torvalds (1):
-        Merge branch 'for-linus' of git://git.kernel.org/.../roland/infiniband
-
-are available in the git repository at:
-
-  master.kernel.org:/pub/scm/linux/kernel/git/davem/trace-2.6.git master
-
-David S. Miller (2):
-      sparc64: Implement local_irq_save_nmi() override.
-      tracing: Use local_irq_{save,restore}_nmi() in tracers.
-
-Peter Zijlstra (2):
-      kernel: local_irq_{save,restore}_nmi()
-      sched: Use local_irq_save_nmi() in cpu_clock()
-
- arch/sparc/include/asm/irqflags_64.h |   29 +++++++++++++++++++
- include/linux/irqflags.h             |   51 ++++++++++++++++++++++++++++++++--
- kernel/lockdep.c                     |    7 ++++
- kernel/sched_clock.c                 |    4 +-
- kernel/trace/ftrace.c                |    8 ++--
- kernel/trace/trace_functions.c       |    8 ++--
- kernel/trace/trace_functions_graph.c |    8 ++--
- kernel/trace/trace_irqsoff.c         |    8 +++++
- kernel/trace/trace_sched_wakeup.c    |    4 +-
- kernel/trace/trace_stack.c           |    4 +-
- 10 files changed, 110 insertions(+), 21 deletions(-)
+diff --git a/kernel/sched_clock.c b/kernel/sched_clock.c
+index 5b49613..ef159ee 100644
+--- a/kernel/sched_clock.c
++++ b/kernel/sched_clock.c
+@@ -241,9 +241,9 @@ unsigned long long cpu_clock(int cpu)
+ 	unsigned long long clock;
+ 	unsigned long flags;
+ 
+-	local_irq_save(flags);
++	local_irq_save_nmi(flags);
+ 	clock = sched_clock_cpu(cpu);
+-	local_irq_restore(flags);
++	local_irq_restore_nmi(flags);
+ 
+ 	return clock;
+ }
+-- 
+1.7.0.4
