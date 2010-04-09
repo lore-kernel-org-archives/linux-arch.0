@@ -1,202 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet12.oracle.com ([148.87.113.124]:28684 "EHLO
+Received: from rcsinet12.oracle.com ([148.87.113.124]:26014 "EHLO
 	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756523Ab0DIGJ2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:09:28 -0400
+	with ESMTP id S1750806Ab0DIGHU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:07:20 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 32/39] x86: Add get_centaur_ram_top()
-Date: Thu,  8 Apr 2010 23:04:01 -0700
-Message-ID: <1270793048-23796-33-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 16/39] lmb: Add lmb_free_memory_size()
+Date: Thu,  8 Apr 2010 23:03:45 -0700
+Message-ID: <1270793048-23796-17-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100409060401.3R7o4FjwOKXYiQ6CaUN6LPQHUj-El_OmWtm0mXUyczU@z>
+Message-ID: <20100409060345.2MHwcebX8piTBzajvHCzVMTFqrw_-HNfxtWr00a9gOw@z>
 
-So we can avoid to access e820.map[] directly.
+It will return free memory size in specified range.
 
-later we could move e820 to static and _initdata
+We can not use memory_size - reserved_size here, because some reserved area
+may not be in the scope of lmb.memory.region.
+
+Use lmb.memory.region subtracting lmb.reserved.region to get free range array.
+then count size of all free ranges.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/e820.h   |    9 ++++++
- arch/x86/kernel/cpu/centaur.c |   53 +-------------------------------------
- arch/x86/kernel/e820.c        |   56 +++++++++++++++++++++++++++++++++++++++++
- arch/x86/kernel/setup.c       |    2 +
- 4 files changed, 69 insertions(+), 51 deletions(-)
+ include/linux/lmb.h |    1 +
+ mm/lmb.c            |   51 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 52 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
-index 334281f..cd7de51 100644
---- a/arch/x86/include/asm/e820.h
-+++ b/arch/x86/include/asm/e820.h
-@@ -76,6 +76,15 @@ struct e820map {
- /* see comment in arch/x86/kernel/e820.c */
- extern struct e820map e820;
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index 4078825..b874dc0 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -100,6 +100,7 @@ int get_free_all_memory_range(struct range **rangep, int nodeid);
+ void lmb_register_active_regions(int nid, unsigned long start_pfn,
+ 					 unsigned long last_pfn);
+ u64 lmb_hole_size(u64 start, u64 end);
++u64 lmb_free_memory_size(u64 addr, u64 limit);
  
-+#if defined(CONFIG_X86_OOSTORE) && defined(CONFIG_CPU_SUP_CENTAUR)
-+extern int centaur_ram_top;
-+void get_centaur_ram_top(void);
-+#else
-+static inline void get_centaur_ram_top(void)
-+{
-+}
-+#endif
-+
- extern unsigned long pci_mem_start;
- extern int e820_any_mapped(u64 start, u64 end, unsigned type);
- extern int e820_all_mapped(u64 start, u64 end, unsigned type);
-diff --git a/arch/x86/kernel/cpu/centaur.c b/arch/x86/kernel/cpu/centaur.c
-index e58d978..bb49358 100644
---- a/arch/x86/kernel/cpu/centaur.c
-+++ b/arch/x86/kernel/cpu/centaur.c
-@@ -37,63 +37,14 @@ static void __cpuinit centaur_mcr_insert(int reg, u32 base, u32 size, int key)
- 	mtrr_centaur_report_mcr(reg, lo, hi);	/* Tell the mtrr driver */
+ #include <asm/lmb.h>
+ 
+diff --git a/mm/lmb.c b/mm/lmb.c
+index d3a58fb..dccd539 100644
+--- a/mm/lmb.c
++++ b/mm/lmb.c
+@@ -746,6 +746,57 @@ void __init lmb_to_bootmem(u64 start, u64 end)
  }
+ #endif
  
--/*
-- * Figure what we can cover with MCR's
-- *
-- * Shortcut: We know you can't put 4Gig of RAM on a winchip
-- */
--static u32 __cpuinit ramtop(void)
--{
--	u32 clip = 0xFFFFFFFFUL;
--	u32 top = 0;
--	int i;
--
--	for (i = 0; i < e820.nr_map; i++) {
--		unsigned long start, end;
--
--		if (e820.map[i].addr > 0xFFFFFFFFUL)
--			continue;
--		/*
--		 * Don't MCR over reserved space. Ignore the ISA hole
--		 * we frob around that catastrophe already
--		 */
--		if (e820.map[i].type == E820_RESERVED) {
--			if (e820.map[i].addr >= 0x100000UL &&
--			    e820.map[i].addr < clip)
--				clip = e820.map[i].addr;
--			continue;
--		}
--		start = e820.map[i].addr;
--		end = e820.map[i].addr + e820.map[i].size;
--		if (start >= end)
--			continue;
--		if (end > top)
--			top = end;
--	}
--	/*
--	 * Everything below 'top' should be RAM except for the ISA hole.
--	 * Because of the limited MCR's we want to map NV/ACPI into our
--	 * MCR range for gunk in RAM
--	 *
--	 * Clip might cause us to MCR insufficient RAM but that is an
--	 * acceptable failure mode and should only bite obscure boxes with
--	 * a VESA hole at 15Mb
--	 *
--	 * The second case Clip sometimes kicks in is when the EBDA is marked
--	 * as reserved. Again we fail safe with reasonable results
--	 */
--	if (top > clip)
--		top = clip;
--
--	return top;
--}
-+int __cpuinitdata centaur_ram_top;
- 
- /*
-  * Compute a set of MCR's to give maximum coverage
-  */
- static int __cpuinit centaur_mcr_compute(int nr, int key)
- {
--	u32 mem = ramtop();
-+	u32 mem = centaur_ram_top;
- 	u32 root = power2(mem);
- 	u32 base = root;
- 	u32 top = root;
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index 57c938a..be6e1e6 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -1131,6 +1131,62 @@ void __init setup_memory_map(void)
- 	e820_print_map(who);
- }
- 
-+#if defined(CONFIG_X86_OOSTORE) && defined(CONFIG_CPU_SUP_CENTAUR)
-+/*
-+ * Figure what we can cover with MCR's
-+ *
-+ * Shortcut: We know you can't put 4Gig of RAM on a winchip
-+ */
-+void __init get_centaur_ram_top(void)
++u64 __init lmb_free_memory_size(u64 addr, u64 limit)
 +{
-+	u32 clip = 0xFFFFFFFFUL;
-+	u32 top = 0;
-+	int i;
++	int i, count;
++	struct range *range;
++	int nr_range;
++	u64 final_start, final_end;
++	u64 free_size;
 +
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_CENTAUR)
-+		return;
++	count = lmb.reserved.cnt * 2;
 +
-+	for (i = 0; i < e820.nr_map; i++) {
-+		unsigned long start, end;
++	range = find_range_array(count);
++	nr_range = 0;
 +
-+		if (e820.map[i].addr > 0xFFFFFFFFUL)
++	addr = PFN_UP(addr);
++	limit = PFN_DOWN(limit);
++
++	for (i = 0; i < lmb.memory.cnt; i++) {
++		struct lmb_property *r = &lmb.memory.region[i];
++
++		final_start = PFN_UP(r->base);
++		final_end = PFN_DOWN(r->base + r->size);
++		if (final_start >= final_end)
 +			continue;
-+		/*
-+		 * Don't MCR over reserved space. Ignore the ISA hole
-+		 * we frob around that catastrophe already
-+		 */
-+		if (e820.map[i].type == E820_RESERVED) {
-+			if (e820.map[i].addr >= 0x100000UL &&
-+			    e820.map[i].addr < clip)
-+				clip = e820.map[i].addr;
++		if (final_start >= limit || final_end <= addr)
 +			continue;
-+		}
-+		start = e820.map[i].addr;
-+		end = e820.map[i].addr + e820.map[i].size;
-+		if (start >= end)
-+			continue;
-+		if (end > top)
-+			top = end;
++
++		nr_range = add_range(range, count, nr_range, final_start, final_end);
 +	}
-+	/*
-+	 * Everything below 'top' should be RAM except for the ISA hole.
-+	 * Because of the limited MCR's we want to map NV/ACPI into our
-+	 * MCR range for gunk in RAM
-+	 *
-+	 * Clip might cause us to MCR insufficient RAM but that is an
-+	 * acceptable failure mode and should only bite obscure boxes with
-+	 * a VESA hole at 15Mb
-+	 *
-+	 * The second case Clip sometimes kicks in is when the EBDA is marked
-+	 * as reserved. Again we fail safe with reasonable results
-+	 */
-+	if (top > clip)
-+		top = clip;
++	subtract_range(range, count, 0, addr);
++	subtract_range(range, count, limit, -1ULL);
++	for (i = 0; i < lmb.reserved.cnt; i++) {
++		struct lmb_property *r = &lmb.reserved.region[i];
 +
-+	centaur_ram_top = top;
++		final_start = PFN_DOWN(r->base);
++		final_end = PFN_UP(r->base + r->size);
++		if (final_start >= final_end)
++			continue;
++		if (final_start >= limit || final_end <= addr)
++			continue;
++
++		subtract_range(range, count, final_start, final_end);
++	}
++	nr_range = clean_sort_range(range, count);
++
++	free_size = 0;
++	for (i = 0; i < nr_range; i++)
++		free_size += range[i].end - range[i].start;
++
++	return free_size << PAGE_SHIFT;
 +}
-+#endif
 +
- void __init init_lmb_memory(void)
+ u64 __init __weak __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
+ 				 u64 size, u64 align)
  {
- 	lmb_init();
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 403b15c..a7ed663 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -893,6 +893,8 @@ void __init setup_arch(char **cmdline_p)
- 	if (mtrr_trim_uncached_memory(max_pfn))
- 		max_pfn = e820_end_of_ram_pfn();
- 
-+	get_centaur_ram_top();
-+
- #ifdef CONFIG_X86_32
- 	/* max_low_pfn get updated here */
- 	find_low_pfn_range();
 -- 
 1.6.4.2
 
