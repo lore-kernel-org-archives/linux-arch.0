@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 29/39] x86, lmb: Use lmb_memory_size()/lmb_free_memory_size() to get correct dma_reserve
-Date: Thu,  8 Apr 2010 23:03:58 -0700
-Message-ID: <1270793048-23796-30-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 27/39] x86, lmb: turn off ARCH_LMB_FIND_AREA
+Date: Thu,  8 Apr 2010 23:03:56 -0700
+Message-ID: <1270793048-23796-28-git-send-email-yinghai@kernel.org>
 References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
@@ -10,98 +10,25 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-lmb_memory_size() will return memory size in lmb.memory.region.
-lmb_free_memory_size() will return free memory size in lmb.memory.region.
-
-So We can get exact reseved size in specified range.
-
-Set the size right after initmem_init(), because later bootmem API will
-get area above 16M. (except some fallback).
-
-Later after we remove the bootmem, We could call that just before paging_init().
+32bit now can use generic __find_lmb_area now. So we can turn arch one off
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/e820.h |    2 ++
- arch/x86/kernel/e820.c      |   17 +++++++++++++++++
- arch/x86/kernel/setup.c     |    1 +
- arch/x86/mm/init_64.c       |    7 -------
- 4 files changed, 20 insertions(+), 7 deletions(-)
+ arch/x86/Kconfig |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
-index de6cd06..334281f 100644
---- a/arch/x86/include/asm/e820.h
-+++ b/arch/x86/include/asm/e820.h
-@@ -117,6 +117,8 @@ extern u64 early_reserve_e820(u64 startt, u64 sizet, u64 align);
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index da9040b..bbe4e99 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -584,7 +584,7 @@ config PARAVIRT_DEBUG
+ 	  a paravirt_op is missing when it is called.
  
- void init_lmb_memory(void);
- void fill_lmb_memory(void);
-+void find_lmb_dma_reserve(void);
-+
- extern void finish_e820_parsing(void);
- extern void e820_reserve_resources(void);
- extern void e820_reserve_resources_late(void);
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index e0ba87d..57c938a 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -1151,3 +1151,20 @@ void __init fill_lmb_memory(void)
- 	lmb_analyze();
- 	lmb_dump_all();
- }
-+
-+void __init find_lmb_dma_reserve(void)
-+{
-+#ifdef CONFIG_X86_64
-+	u64 free_size_pfn;
-+	u64 mem_size_pfn;
-+	/*
-+	 * need to find out used area below MAX_DMA_PFN
-+	 * need to use lmb to get free size in [0, MAX_DMA_PFN]
-+	 * at first, and assume boot_mem will not take below MAX_DMA_PFN
-+	 */
-+	mem_size_pfn = lmb_memory_size(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
-+	free_size_pfn = lmb_free_memory_size(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
-+	set_dma_reserve(mem_size_pfn - free_size_pfn);
-+#endif
-+}
-+
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 4d2a984..403b15c 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -1001,6 +1001,7 @@ void __init setup_arch(char **cmdline_p)
- #endif
- 
- 	initmem_init(0, max_pfn, acpi, k8);
-+	find_lmb_dma_reserve();
- #ifndef CONFIG_NO_BOOTMEM
- 	lmb_to_bootmem(0, max_low_pfn<<PAGE_SHIFT);
- #endif
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 0d2252c..37c7a82 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -53,8 +53,6 @@
- #include <asm/init.h>
- #include <linux/bootmem.h>
- 
--static unsigned long dma_reserve __initdata;
--
- static int __init parse_direct_gbpages_off(char *arg)
- {
- 	direct_gbpages = 0;
-@@ -821,11 +819,6 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 
- 	reserve_bootmem(phys, len, flags);
- 
--	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
--		dma_reserve += len / PAGE_SIZE;
--		set_dma_reserve(dma_reserve);
--	}
--
- 	return 0;
- }
- #endif
+ config ARCH_LMB_FIND_AREA
+-	default y
++	default n
+ 	bool "Use x86 own lmb_find_area()"
+ 	---help---
+ 	  Use lmb_find_area() version instead of generic version, it get free
 -- 
 1.6.4.2
