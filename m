@@ -1,87 +1,67 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 03/39] x86: Align e820 ram range to page
-Date: Thu,  8 Apr 2010 23:03:32 -0700
-Message-ID: <1270793048-23796-4-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 06/39] lmb: Seperate __lmb_find_base() from __lmb_alloc_base()
+Date: Thu,  8 Apr 2010 23:03:35 -0700
+Message-ID: <1270793048-23796-7-git-send-email-yinghai@kernel.org>
 References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet12.oracle.com ([148.87.113.124]:25736 "EHLO
-	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750806Ab0DIGHF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:07:05 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-to workaround wrong BIOS memory map.
+So We can construct one generic __find_lmb_area() later
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/kernel/e820.c |   44 ++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 44 insertions(+), 0 deletions(-)
+ mm/lmb.c |   21 +++++++++++++++++----
+ 1 files changed, 17 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index 14d0a1a..73dc6a7 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -1044,6 +1044,47 @@ static int __init parse_memmap_opt(char *p)
+diff --git a/mm/lmb.c b/mm/lmb.c
+index 65b62dc..392d805 100644
+--- a/mm/lmb.c
++++ b/mm/lmb.c
+@@ -393,7 +393,7 @@ u64 __init lmb_alloc_base(u64 size, u64 align, u64 max_addr)
+ 	return alloc;
  }
- early_param("memmap", parse_memmap_opt);
  
-+static void __init e820_align_ram_page(void)
-+{
-+	int i;
-+	bool changed = false;;
-+
-+	for (i = 0; i < e820.nr_map; i++) {
-+		struct e820entry *entry = &e820.map[i];
-+		u64 start, end;
-+		u64 start_aligned, end_aligned;
-+
-+		if (entry->type != E820_RAM)
-+			continue;
-+
-+		start = entry->addr;
-+		end = start + entry->size;
-+
-+		start_aligned = round_up(start, PAGE_SIZE);
-+		end_aligned = round_down(end, PAGE_SIZE);
-+
-+		if (end_aligned <= start_aligned) {
-+			e820_update_range(start, end - start, E820_RAM, E820_RESERVED);
-+			changed = true;
-+			continue;
-+		}
-+		if (start < start_aligned) {
-+			e820_update_range(start, start_aligned - start, E820_RAM, E820_RESERVED);
-+			changed = true;
-+		}
-+		if (end_aligned < end) {
-+			e820_update_range(end_aligned, end - end_aligned, E820_RAM, E820_RESERVED);
-+			changed = true;
-+		}
-+	}
-+
-+	if (changed) {
-+		sanitize_e820_map();
-+		printk(KERN_INFO "aligned physical RAM map:\n");
-+		e820_print_map("aligned");
-+	}
+-u64 __init __lmb_alloc_base(u64 size, u64 align, u64 max_addr)
++static u64 __init __lmb_find_base(u64 size, u64 align, u64 max_addr)
+ {
+ 	long i, j;
+ 	u64 base = 0;
+@@ -426,8 +426,6 @@ u64 __init __lmb_alloc_base(u64 size, u64 align, u64 max_addr)
+ 			j = lmb_overlaps_region(&lmb.reserved, base, size);
+ 			if (j < 0) {
+ 				/* this area isn't reserved, take it */
+-				if (lmb_add_region(&lmb.reserved, base, size) < 0)
+-					return 0;
+ 				return base;
+ 			}
+ 			res_base = lmb.reserved.region[j].base;
+@@ -436,7 +434,22 @@ u64 __init __lmb_alloc_base(u64 size, u64 align, u64 max_addr)
+ 			base = lmb_align_down(res_base - size, align);
+ 		}
+ 	}
+-	return 0;
++	return -1ULL;
 +}
 +
- void __init finish_e820_parsing(void)
- {
- 	if (userdef) {
-@@ -1056,6 +1097,9 @@ void __init finish_e820_parsing(void)
- 		printk(KERN_INFO "user-defined physical RAM map:\n");
- 		e820_print_map("user");
- 	}
++u64 __init __lmb_alloc_base(u64 size, u64 align, u64 max_addr)
++{
++	u64 base;
 +
-+	/* In case, We have RAM entres that are not PAGE aligned */
-+	e820_align_ram_page();
++	base = __lmb_find_base(size, align, max_addr);
++
++	if (base == -1ULL)
++		return 0;
++
++	if (lmb_add_region(&lmb.reserved, base, size) < 0)
++		return 0;
++
++	return base;
  }
  
- static inline const char *e820_type_to_string(int e820_type)
+ /* You must call lmb_analyze() before this. */
 -- 
 1.6.4.2
