@@ -1,95 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:54167
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751359Ab0DIBAH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 21:00:07 -0400
-Date: Thu, 08 Apr 2010 18:00:10 -0700 (PDT)
-Message-ID: <20100408.180010.76058269.davem@davemloft.net>
-Subject: [PATCH 3/4] sparc64: Add support for _PAGE_SPECIAL
-From: David Miller <davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from acsinet11.oracle.com ([141.146.126.233]:19386 "EHLO
+	acsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750806Ab0DIGHL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:07:11 -0400
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 17/39] lmb: Add lmb_memory_size()
+Date: Thu,  8 Apr 2010 23:03:46 -0700
+Message-ID: <1270793048-23796-18-git-send-email-yinghai@kernel.org>
+In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
+References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: a.p.zijlstra@chello.nl
-Cc: aarcange@redhat.com, avi@redhat.com, tglx@linutronix.de, riel@redhat.com, mingo@elte.hu, akpm@linux-foundation.org, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, benh@kernel.crashing.org, hugh.dickins@tiscali.co.uk, mel@csn.ul.ie, npiggin@suse.de
-Message-ID: <20100409010010.iqq-Ze1yamuWNSMVADGNkTb-lhYqqkKPeaoHzIiBqfg@z>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20100409060346.IicpU_q_KFzBqOc8lVa2PvgNA3mqMbgWqWRfnzCEFDU@z>
 
+It will return memory size in specified range according to lmb.memory.region
 
-Luckily there are still a few software PTE bits remaining
-and they even match up in both the sun4u and sun4v pte
-layouts.
+Try to share some code with lmb_free_memory_size() by passing get_free to
+__lmb_memory_size().
 
-Signed-off-by: David S. Miller <davem@davemloft.net>
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/sparc/include/asm/pgtable_64.h |   15 +++++++++++----
- 1 files changed, 11 insertions(+), 4 deletions(-)
+ include/linux/lmb.h |    1 +
+ mm/lmb.c            |   18 +++++++++++++++++-
+ 2 files changed, 18 insertions(+), 1 deletions(-)
 
-diff --git a/arch/sparc/include/asm/pgtable_64.h b/arch/sparc/include/asm/pgtable_64.h
-index f5b5fa7..b06c5a7 100644
---- a/arch/sparc/include/asm/pgtable_64.h
-+++ b/arch/sparc/include/asm/pgtable_64.h
-@@ -95,6 +95,10 @@
- /* PTE bits which are the same in SUN4U and SUN4V format.  */
- #define _PAGE_VALID	  _AC(0x8000000000000000,UL) /* Valid TTE            */
- #define _PAGE_R	  	  _AC(0x8000000000000000,UL) /* Keep ref bit uptodate*/
-+#define _PAGE_SPECIAL     _AC(0x0200000000000000,UL) /* Special page         */
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index b874dc0..8332934 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -101,6 +101,7 @@ void lmb_register_active_regions(int nid, unsigned long start_pfn,
+ 					 unsigned long last_pfn);
+ u64 lmb_hole_size(u64 start, u64 end);
+ u64 lmb_free_memory_size(u64 addr, u64 limit);
++u64 lmb_memory_size(u64 addr, u64 limit);
+ 
+ #include <asm/lmb.h>
+ 
+diff --git a/mm/lmb.c b/mm/lmb.c
+index dccd539..feb3dfa 100644
+--- a/mm/lmb.c
++++ b/mm/lmb.c
+@@ -746,7 +746,7 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+ }
+ #endif
+ 
+-u64 __init lmb_free_memory_size(u64 addr, u64 limit)
++static u64 __init __lmb_memory_size(u64 addr, u64 limit, bool get_free)
+ {
+ 	int i, count;
+ 	struct range *range;
+@@ -776,6 +776,10 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
+ 	}
+ 	subtract_range(range, count, 0, addr);
+ 	subtract_range(range, count, limit, -1ULL);
 +
-+/* Advertise support for _PAGE_SPECIAL */
-+#define __HAVE_ARCH_PTE_SPECIAL
++	/* Subtract lmb.reserved.region in range ? */
++	if (!get_free)
++		goto sort_and_count_them;
+ 	for (i = 0; i < lmb.reserved.cnt; i++) {
+ 		struct lmb_property *r = &lmb.reserved.region[i];
  
- /* SUN4U pte bits... */
- #define _PAGE_SZ4MB_4U	  _AC(0x6000000000000000,UL) /* 4MB Page             */
-@@ -104,6 +108,7 @@
- #define _PAGE_NFO_4U	  _AC(0x1000000000000000,UL) /* No Fault Only        */
- #define _PAGE_IE_4U	  _AC(0x0800000000000000,UL) /* Invert Endianness    */
- #define _PAGE_SOFT2_4U	  _AC(0x07FC000000000000,UL) /* Software bits, set 2 */
-+#define _PAGE_SPECIAL_4U  _AC(0x0200000000000000,UL) /* Special page         */
- #define _PAGE_RES1_4U	  _AC(0x0002000000000000,UL) /* Reserved             */
- #define _PAGE_SZ32MB_4U	  _AC(0x0001000000000000,UL) /* (Panther) 32MB page  */
- #define _PAGE_SZ256MB_4U  _AC(0x2001000000000000,UL) /* (Panther) 256MB page */
-@@ -133,6 +138,7 @@
- #define _PAGE_ACCESSED_4V _AC(0x1000000000000000,UL) /* Accessed (ref'd)     */
- #define _PAGE_READ_4V	  _AC(0x0800000000000000,UL) /* Readable SW Bit      */
- #define _PAGE_WRITE_4V	  _AC(0x0400000000000000,UL) /* Writable SW Bit      */
-+#define _PAGE_SPECIAL_4V  _AC(0x0200000000000000,UL) /* Special page         */
- #define _PAGE_PADDR_4V	  _AC(0x00FFFFFFFFFFE000,UL) /* paddr[55:13]         */
- #define _PAGE_IE_4V	  _AC(0x0000000000001000,UL) /* Invert Endianness    */
- #define _PAGE_E_4V	  _AC(0x0000000000000800,UL) /* side-Effect          */
-@@ -302,10 +308,10 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t prot)
- 	: "=r" (mask), "=r" (tmp)
- 	: "i" (_PAGE_PADDR_4U | _PAGE_MODIFIED_4U | _PAGE_ACCESSED_4U |
- 	       _PAGE_CP_4U | _PAGE_CV_4U | _PAGE_E_4U | _PAGE_PRESENT_4U |
--	       _PAGE_SZBITS_4U),
-+	       _PAGE_SZBITS_4U | _PAGE_SPECIAL),
- 	  "i" (_PAGE_PADDR_4V | _PAGE_MODIFIED_4V | _PAGE_ACCESSED_4V |
- 	       _PAGE_CP_4V | _PAGE_CV_4V | _PAGE_E_4V | _PAGE_PRESENT_4V |
--	       _PAGE_SZBITS_4V));
-+	       _PAGE_SZBITS_4V | _PAGE_SPECIAL));
+@@ -788,6 +792,8 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
  
- 	return __pte((pte_val(pte) & mask) | (pgprot_val(prot) & ~mask));
+ 		subtract_range(range, count, final_start, final_end);
+ 	}
++
++sort_and_count_them:
+ 	nr_range = clean_sort_range(range, count);
+ 
+ 	free_size = 0;
+@@ -797,6 +803,16 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
+ 	return free_size << PAGE_SHIFT;
  }
-@@ -502,6 +508,7 @@ static inline pte_t pte_mkyoung(pte_t pte)
  
- static inline pte_t pte_mkspecial(pte_t pte)
++u64 __init lmb_free_memory_size(u64 addr, u64 limit)
++{
++	return __lmb_memory_size(addr, limit, true);
++}
++
++u64 __init lmb_memory_size(u64 addr, u64 limit)
++{
++	return __lmb_memory_size(addr, limit, false);
++}
++
+ u64 __init __weak __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
+ 				 u64 size, u64 align)
  {
-+	pte_val(pte) |= _PAGE_SPECIAL;
- 	return pte;
- }
- 
-@@ -607,9 +614,9 @@ static inline unsigned long pte_present(pte_t pte)
- 	return val;
- }
- 
--static inline int pte_special(pte_t pte)
-+static inline unsigned long pte_special(pte_t pte)
- {
--	return 0;
-+	return pte_val(pte) & _PAGE_SPECIAL;
- }
- 
- #define pmd_set(pmdp, ptep)	\
 -- 
-1.6.6.1
+1.6.4.2
 
