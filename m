@@ -1,61 +1,75 @@
-From: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
-Date: Fri,  9 Apr 2010 11:19:52 +0900 (JST)
-Message-ID: <20100409110235.80DD.A69D9226@jp.fujitsu.com>
-References: <20100408142051.717b278c.akpm@linux-foundation.org> <1270763666.20295.3198.camel@laptop>
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [PATCH 01/13] powerpc: Add rcu_read_lock() to gup_fast()
+ implementation
+Date: Fri, 9 Apr 2010 13:11:40 +1000
+Message-ID: <20100409031140.GF5683@laptop>
+References: <20100408191737.296180458@chello.nl>
+ <20100408192722.643778654@chello.nl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fgwmail7.fujitsu.co.jp ([192.51.44.37]:59893 "EHLO
-	fgwmail7.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751705Ab0DICT4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 22:19:56 -0400
-In-Reply-To: <1270763666.20295.3198.camel@laptop>
+Received: from cantor2.suse.de ([195.135.220.15]:43938 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752240Ab0DIDL4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 8 Apr 2010 23:11:56 -0400
+Content-Disposition: inline
+In-Reply-To: <20100408192722.643778654@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: kosaki.motohiro@jp.fujitsu.com, Andrew Morton <akpm@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
 
-Hi
+It's not wrong per se, but the entire powerpc memory management code
+does the IRQ disabling for its pagetable RCU code. So I think it would be
+better to do the whole thing in one go.
 
-> > - Then checks page_mapped() without having any apparent defence
-> >   against page_mapped() becoming untrue one nanosecond later.
-> > 
-> > - Checks page_mapped() inside the rcu_read_locked() section for
-> >   inscrutable reasons.
+I don't think Paul will surprise-break powerpc :)
+
+It's up to Ben really, though.
+
+
+On Thu, Apr 08, 2010 at 09:17:38PM +0200, Peter Zijlstra wrote:
+> The powerpc page table freeing relies on the fact that IRQs hold off
+> an RCU grace period, this is currently true for all existing RCU
+> implementations but is not an assumption Paul wants to support.
 > 
-> Right, I think the page_mapped() stuff is just an early bail out.
-
-FWIW, not only early bail out.
-page_remove_rmap() don't have "page->mapping = NULL". page_remove_rmap's
-comment says
-
-        /*
-         * It would be tidy to reset the PageAnon mapping here,
-         * but that might overwrite a racing page_add_anon_rmap
-         * which increments mapcount after us but sets mapping
-         * before us: so leave the reset to free_hot_cold_page,
-         * and remember that it's only reliable while mapped.
-         * Leaving it set also helps swapoff to reinstate ptes
-         * faster for those pages still in swapcache.
-         */
-
-So, If following scenario happen, we can't dereference page->mapping
-(iow, can't call spin_lock(&anon_vma->lock)). It might be pointed 
-invalid address.
-
-
-   CPU0                                CPU1
-===============================================================
-page->mappings become -1
-anon_vma_unlink()
--- grace period --
-                                      page_lock_anon_vma
-                                      page_mapped()
-                                      spin_lock(&anon_vma->lock);
-
-
-
-Of cource, this statement doesn't mean I'm against your patch at all.
-I like it.
+> Therefore, also take the RCU read lock along with disabling IRQs to
+> ensure the RCU grace period does at least cover these lookups.
+> 
+> Requested-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> Cc: Nick Piggin <npiggin@suse.de>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> ---
+>  arch/powerpc/mm/gup.c |    3 +++
+>  1 file changed, 3 insertions(+)
+> 
+> Index: linux-2.6/arch/powerpc/mm/gup.c
+> ===================================================================
+> --- linux-2.6.orig/arch/powerpc/mm/gup.c
+> +++ linux-2.6/arch/powerpc/mm/gup.c
+> @@ -142,6 +142,7 @@ int get_user_pages_fast(unsigned long st
+>  	 * So long as we atomically load page table pointers versus teardown,
+>  	 * we can follow the address down to the the page and take a ref on it.
+>  	 */
+> +	rcu_read_lock();
+>  	local_irq_disable();
+>  
+>  	pgdp = pgd_offset(mm, addr);
+> @@ -162,6 +163,7 @@ int get_user_pages_fast(unsigned long st
+>  	} while (pgdp++, addr = next, addr != end);
+>  
+>  	local_irq_enable();
+> +	rcu_read_unlock();
+>  
+>  	VM_BUG_ON(nr != (end - start) >> PAGE_SHIFT);
+>  	return nr;
+> @@ -171,6 +173,7 @@ int get_user_pages_fast(unsigned long st
+>  
+>  slow:
+>  		local_irq_enable();
+> +		rcu_read_unlock();
+>  slow_irqon:
+>  		pr_devel("  slow path ! nr = %d\n", nr);
+>  
+> 
