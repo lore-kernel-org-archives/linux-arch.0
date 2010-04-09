@@ -1,45 +1,75 @@
 From: David Miller <davem@davemloft.net>
-Subject: [PATCH 3/4] sched: Use local_irq_save_nmi() in cpu_clock()
-Date: Fri, 09 Apr 2010 16:01:40 -0700 (PDT)
-Message-ID: <20100409.160140.250344636.davem@davemloft.net>
+Subject: [PATCH 2/4] sparc64: Implement local_irq_save_nmi() override.
+Date: Fri, 09 Apr 2010 16:01:37 -0700 (PDT)
+Message-ID: <20100409.160137.48119461.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:33616
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:33612
 	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756120Ab0DIXBg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 19:01:36 -0400
+	by vger.kernel.org with ESMTP id S1754690Ab0DIXBe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 19:01:34 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: peterz@infradead.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org
 
 
-Since we can call cpu_clock() from NMI context fix up the IRQ
-disabling to conform to the new rules.
-
-Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Signed-off-by: David S. Miller <davem@davemloft.net>
 ---
- kernel/sched_clock.c |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ arch/sparc/include/asm/irqflags_64.h |   29 +++++++++++++++++++++++++++++
+ 1 files changed, 29 insertions(+), 0 deletions(-)
 
-diff --git a/kernel/sched_clock.c b/kernel/sched_clock.c
-index 5b49613..ef159ee 100644
---- a/kernel/sched_clock.c
-+++ b/kernel/sched_clock.c
-@@ -241,9 +241,9 @@ unsigned long long cpu_clock(int cpu)
- 	unsigned long long clock;
- 	unsigned long flags;
- 
--	local_irq_save(flags);
-+	local_irq_save_nmi(flags);
- 	clock = sched_clock_cpu(cpu);
--	local_irq_restore(flags);
-+	local_irq_restore_nmi(flags);
- 
- 	return clock;
+diff --git a/arch/sparc/include/asm/irqflags_64.h b/arch/sparc/include/asm/irqflags_64.h
+index 8b49bf9..fa1e00e 100644
+--- a/arch/sparc/include/asm/irqflags_64.h
++++ b/arch/sparc/include/asm/irqflags_64.h
+@@ -49,6 +49,16 @@ static inline void raw_local_irq_disable(void)
+ 	);
  }
+ 
++static inline void raw_local_irq_disable_nmi(void)
++{
++	__asm__ __volatile__(
++		"wrpr	%0, %%pil"
++		: /* no outputs */
++		: "i" (PIL_NMI)
++		: "memory"
++	);
++}
++
+ static inline void raw_local_irq_enable(void)
+ {
+ 	__asm__ __volatile__(
+@@ -83,9 +93,28 @@ static inline unsigned long __raw_local_irq_save(void)
+ 	return flags;
+ }
+ 
++static inline unsigned long __raw_local_irq_save_nmi(void)
++{
++	unsigned long flags = __raw_local_save_flags();
++
++	raw_local_irq_disable_nmi();
++
++	return flags;
++}
++
+ #define raw_local_irq_save(flags) \
+ 		do { (flags) = __raw_local_irq_save(); } while (0)
+ 
++#define raw_local_irq_save_nmi(flags) \
++		do { (flags) = __raw_local_irq_save_nmi(); } while (0)
++
++#define local_irq_save_nmi(flags) 			\
++	do {						\
++		 typecheck(unsigned long, flags);	\
++		 raw_local_irq_save_nmi(flags);		\
++		 trace_hardirqs_off();			\
++	} while (0)
++
+ #endif /* (__ASSEMBLY__) */
+ 
+ #endif /* !(_ASM_IRQFLAGS_H) */
 -- 
 1.7.0.4
