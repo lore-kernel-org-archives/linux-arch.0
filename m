@@ -1,49 +1,138 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet11.oracle.com ([148.87.113.123]:27641 "EHLO
-	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754626Ab0DIGHH (ORCPT
+Received: from rcsinet12.oracle.com ([148.87.113.124]:25782 "EHLO
+	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754608Ab0DIGHH (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:07:07 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 13/39] lmb: Prepare to include linux/lmb.h in core file
-Date: Thu,  8 Apr 2010 23:03:42 -0700
-Message-ID: <1270793048-23796-14-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 21/39] lmb: Add __free/__reserve/__clear_lmb_reserved_region_array()
+Date: Thu,  8 Apr 2010 23:03:50 -0700
+Message-ID: <1270793048-23796-22-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100409060342.ThOKfpA7huIoTdt4f6CiLVQppV0tvDVYqHZN2GA5g2M@z>
+Message-ID: <20100409060350.bvfXRP3qkMC7XScYPo9BgXxhC58PI3QBvmN0mvsrJaU@z>
 
-Need to add protection in linux/lmb.h, to prepare to include it in
- mm/page_alloc.c and mm/bootmem.c etc.
+Seperate those three functions and could be shared by related callers.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
+ mm/lmb.c |   63 +++++++++++++++++++++++++++++++++++--------------------------
+ 1 files changed, 36 insertions(+), 27 deletions(-)
 
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index cf8f7ca..5dbc4ef 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -2,6 +2,7 @@
- #define _LINUX_LMB_H
- #ifdef __KERNEL__
+diff --git a/mm/lmb.c b/mm/lmb.c
+index ab3d85f..5483d69 100644
+--- a/mm/lmb.c
++++ b/mm/lmb.c
+@@ -684,16 +684,41 @@ static __init struct range *find_range_array(int count)
+ }
  
-+#ifdef CONFIG_HAVE_LMB
- /*
-  * Logical memory blocks.
-  *
-@@ -101,6 +102,8 @@ u64 lmb_hole_size(u64 start, u64 end);
- 
- #include <asm/lmb.h>
- 
-+#endif /* CONFIG_HAVE_LMB */
+ #ifdef CONFIG_NO_BOOTMEM
+-static void __init subtract_lmb_reserved(struct range *range, int az)
++static void __init __free_lmb_reserved_region_array(void)
+ {
+-	int i, count;
+-	u64 final_start, final_end;
+-
+ #ifdef ARCH_DISCARD_LMB
+ 	/* Take out region array itself at first*/
+ 	if (lmb.reserved.region != lmb_reserved_region)
+ 		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
+ #endif
++}
++static void __init __reserve_lmb_reserved_region_array(void)
++{
++#ifdef ARCH_DISCARD_LMB
++	/* Put region array back ? */
++	if (lmb.reserved.region != lmb_reserved_region)
++		lmb_reserve(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
++#endif
++}
 +
- #endif /* __KERNEL__ */
++static void __init __clear_lmb_reserved_region_array(void)
++{
++#ifdef ARCH_DISCARD_LMB
++	memset(&lmb.reserved.region[0], 0, sizeof(struct lmb_property) * lmb.reserved.nr_regions);
++	lmb.reserved.region = NULL;
++	lmb.reserved.nr_regions = 0;
++	lmb.reserved.cnt = 0;
++#endif
++}
++
++static void __init subtract_lmb_reserved(struct range *range, int az)
++{
++	int i, count;
++	u64 final_start, final_end;
++
++	/* Take out region array itself at first*/
++	__free_lmb_reserved_region_array();
++
+ 	count  = lmb.reserved.cnt;
  
- #endif /* _LINUX_LMB_H */
+ 	if (lmb_debug)
+@@ -709,11 +734,9 @@ static void __init subtract_lmb_reserved(struct range *range, int az)
+ 			continue;
+ 		subtract_range(range, az, final_start, final_end);
+ 	}
+-#ifdef ARCH_DISCARD_LMB
++
+ 	/* Put region array back ? */
+-	if (lmb.reserved.region != lmb_reserved_region)
+-		lmb_reserve(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
+-#endif
++	__reserve_lmb_reserved_region_array();
+ }
+ 
+ int __init get_free_all_memory_range(struct range **rangep, int nodeid)
+@@ -738,15 +761,9 @@ int __init get_free_all_memory_range(struct range **rangep, int nodeid)
+ 	subtract_lmb_reserved(range, count);
+ 	nr_range = clean_sort_range(range, count);
+ 
+-#ifdef ARCH_DISCARD_LMB
+ 	/* Need to clear it ? */
+-	if (nodeid == MAX_NUMNODES) {
+-		memset(&lmb.reserved.region[0], 0, sizeof(struct lmb_property) * lmb.reserved.nr_regions);
+-		lmb.reserved.region = NULL;
+-		lmb.reserved.nr_regions = 0;
+-		lmb.reserved.cnt = 0;
+-	}
+-#endif
++	if (nodeid == MAX_NUMNODES)
++		__clear_lmb_reserved_region_array();
+ 
+ 	*rangep = range;
+ 	return nr_range;
+@@ -757,11 +774,8 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+ 	int i, count;
+ 	u64 final_start, final_end;
+ 
+-#ifdef ARCH_DISCARD_LMB
+ 	/* Take out region array itself */
+-	if (lmb.reserved.region != lmb_reserved_region)
+-		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
+-#endif
++	__free_lmb_reserved_region_array();
+ 
+ 	count  = lmb.reserved.cnt;
+ 	if (lmb_debug)
+@@ -782,13 +796,8 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+ 		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
+ 	}
+ 
+-#ifdef ARCH_DISCARD_LMB
+-	/* Clear them to avoid misusing ? */
+-	memset(&lmb.reserved.region[0], 0, sizeof(struct lmb_property) * lmb.reserved.nr_regions);
+-	lmb.reserved.region = NULL;
+-	lmb.reserved.nr_regions = 0;
+-	lmb.reserved.cnt = 0;
+-#endif
++	/* Assume lmb_to_bootmem is only called one time */
++	__clear_lmb_reserved_region_array();
+ }
+ #endif
+ 
 -- 
 1.6.4.2
 
