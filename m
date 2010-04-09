@@ -1,47 +1,177 @@
 From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 00/13] mm: preemptibility -v2
-Date: Thu, 08 Apr 2010 18:00:01 -0700 (PDT)
-Message-ID: <20100408.180001.85226459.davem@davemloft.net>
-References: <20100408191737.296180458@chello.nl>
-	<20100408.132935.202349434.davem@davemloft.net>
+Subject: [PATCH 1/4] sparc64: Kill page table quicklists.
+Date: Thu, 08 Apr 2010 18:00:05 -0700 (PDT)
+Message-ID: <20100408.180005.76674367.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:54131
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:54144
 	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750768Ab0DIA76 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 20:59:58 -0400
-In-Reply-To: <20100408.132935.202349434.davem@davemloft.net>
+	by vger.kernel.org with ESMTP id S1751264Ab0DIBAC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 21:00:02 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: a.p.zijlstra@chello.nl
 Cc: aarcange@redhat.com, avi@redhat.com, tglx@linutronix.de, riel@redhat.com, mingo@elte.hu, akpm@linux-foundation.org, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, benh@kernel.crashing.org, hugh.dickins@tiscali.co.uk, mel@csn.ul.ie, npiggin@suse.de
 
-From: David Miller <davem@davemloft.net>
-Date: Thu, 08 Apr 2010 13:29:35 -0700 (PDT)
 
-> From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> Date: Thu, 08 Apr 2010 21:17:37 +0200
-> 
->> This patch-set seems to build and boot on my x86_64 machines and even builds a
->> kernel. I've also attempted powerpc and sparc, which I've compile tested with
->> their respective defconfigs, remaining are (afaikt the rest uses the generic
->> tlb bits):
-> 
-> Did a build and test boot of this on my 128-cpu Niagara2 box, seems to
-> work basically fine.
+They are pointless and make it harder to use RCU page
+table freeing and share code with other architectures.
 
-Here comes a set of 4 patches which build on top of your
-work by:
+BTW, this is the second time this has happened, see
+commit 3c936465249f863f322154ff1aaa628b84ee5750
+("[SPARC64]: Kill pgtable quicklists and use SLAB.")
 
-1) Killing quicklists on sparc64
-2) Using the generic RCU page table liberation code on sparc64
-3) Implement pte_special() et al. on sparc64
-4) Implement get_user_pages_fast() on sparc64
+:-)
 
-Please add them to your patch set.  If you change the RCU generic code
-enabler CPP define to be controlled via Kconfig (as we discussed on
-IRC) it should be easy to propagate that change into patch #2 here.
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ arch/sparc/Kconfig                  |    4 ----
+ arch/sparc/include/asm/pgalloc_64.h |   32 +++++++++++++++-----------------
+ arch/sparc/mm/tsb.c                 |   11 +++++++++++
+ 3 files changed, 26 insertions(+), 21 deletions(-)
 
-Thanks!
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 6db5136..2ca63c9 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -82,10 +82,6 @@ config IOMMU_HELPER
+ 	bool
+ 	default y if SPARC64
+ 
+-config QUICKLIST
+-	bool
+-	default y if SPARC64
+-
+ config STACKTRACE_SUPPORT
+ 	bool
+ 	default y if SPARC64
+diff --git a/arch/sparc/include/asm/pgalloc_64.h b/arch/sparc/include/asm/pgalloc_64.h
+index 4e5e087..cb4867d 100644
+--- a/arch/sparc/include/asm/pgalloc_64.h
++++ b/arch/sparc/include/asm/pgalloc_64.h
+@@ -5,7 +5,6 @@
+ #include <linux/sched.h>
+ #include <linux/mm.h>
+ #include <linux/slab.h>
+-#include <linux/quicklist.h>
+ 
+ #include <asm/spitfire.h>
+ #include <asm/cpudata.h>
+@@ -14,69 +13,68 @@
+ 
+ /* Page table allocation/freeing. */
+ 
++extern struct kmem_cache *pgtable_cache;
++
+ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
+ {
+-	return quicklist_alloc(0, GFP_KERNEL, NULL);
++	return kmem_cache_alloc(pgtable_cache, GFP_KERNEL);
+ }
+ 
+ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ {
+-	quicklist_free(0, NULL, pgd);
++	kmem_cache_free(pgtable_cache, pgd);
+ }
+ 
+ #define pud_populate(MM, PUD, PMD)	pud_set(PUD, PMD)
+ 
+ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+-	return quicklist_alloc(0, GFP_KERNEL, NULL);
++	return kmem_cache_alloc(pgtable_cache,
++				GFP_KERNEL|__GFP_REPEAT);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ {
+-	quicklist_free(0, NULL, pmd);
++	kmem_cache_free(pgtable_cache, pmd);
+ }
+ 
+ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+ 					  unsigned long address)
+ {
+-	return quicklist_alloc(0, GFP_KERNEL, NULL);
++	return (pte_t *)__get_free_page(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO);
+ }
+ 
+ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
+ 					unsigned long address)
+ {
+ 	struct page *page;
+-	void *pg;
++	pte_t *pte;
+ 
+-	pg = quicklist_alloc(0, GFP_KERNEL, NULL);
+-	if (!pg)
++	pte = pte_alloc_one_kernel(mm, address);
++	if (!pte)
+ 		return NULL;
+-	page = virt_to_page(pg);
++	page = virt_to_page(pte);
+ 	pgtable_page_ctor(page);
+ 	return page;
+ }
+ 
+ static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+ {
+-	quicklist_free(0, NULL, pte);
++	free_page((unsigned long)pte);
+ }
+ 
+ static inline void pte_free(struct mm_struct *mm, pgtable_t ptepage)
+ {
+ 	pgtable_page_dtor(ptepage);
+-	quicklist_free_page(0, NULL, ptepage);
++	__free_page(ptepage);
+ }
+ 
+-
+ #define pmd_populate_kernel(MM, PMD, PTE)	pmd_set(PMD, PTE)
+ #define pmd_populate(MM,PMD,PTE_PAGE)		\
+ 	pmd_populate_kernel(MM,PMD,page_address(PTE_PAGE))
+ #define pmd_pgtable(pmd) pmd_page(pmd)
+ 
+-static inline void check_pgt_cache(void)
+-{
+-	quicklist_trim(0, NULL, 25, 16);
+-}
++#define check_pgt_cache()	do { } while (0)
+ 
+ #define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
+ #define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tlb)->mm, pmd)
+diff --git a/arch/sparc/mm/tsb.c b/arch/sparc/mm/tsb.c
+index 9484615..cb3e2bc 100644
+--- a/arch/sparc/mm/tsb.c
++++ b/arch/sparc/mm/tsb.c
+@@ -236,6 +236,8 @@ static void setup_tsb_params(struct mm_struct *mm, unsigned long tsb_idx, unsign
+ 	}
+ }
+ 
++struct kmem_cache *pgtable_cache __read_mostly;
++
+ static struct kmem_cache *tsb_caches[8] __read_mostly;
+ 
+ static const char *tsb_cache_names[8] = {
+@@ -253,6 +255,15 @@ void __init pgtable_cache_init(void)
+ {
+ 	unsigned long i;
+ 
++	pgtable_cache = kmem_cache_create("pgtable_cache",
++					  PAGE_SIZE, PAGE_SIZE,
++					  0,
++					  _clear_page);
++	if (!pgtable_cache) {
++		prom_printf("pgtable_cache_init(): Could not create!\n");
++		prom_halt();
++	}
++
+ 	for (i = 0; i < 8; i++) {
+ 		unsigned long size = 8192 << i;
+ 		const char *name = tsb_cache_names[i];
+-- 
+1.6.6.1
