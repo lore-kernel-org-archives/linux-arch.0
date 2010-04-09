@@ -1,81 +1,91 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 37/39] mm: move contig_page_data define to bootmem.c/nobootmem.c
-Date: Thu,  8 Apr 2010 23:04:06 -0700
-Message-ID: <1270793048-23796-38-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 14/39] lmb: Add find_memory_core_early()
+Date: Thu,  8 Apr 2010 23:03:43 -0700
+Message-ID: <1270793048-23796-15-git-send-email-yinghai@kernel.org>
 References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet11.oracle.com ([148.87.113.123]:30099 "EHLO
-	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754690Ab0DIGJI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:09:08 -0400
+Received: from acsinet12.oracle.com ([141.146.126.234]:37708 "EHLO
+	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755531Ab0DIGHV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:07:21 -0400
 In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-We can remove #ifdef in mm/page_alloc.c
+According to node range in early_node_map[] with __lmb_find_area
+to find free range.
+
+Will be used by lmb_find_area_node()
+
+lmb_find_area_node will be used to find right buffer for NODE_DATA
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- mm/bootmem.c    |    7 +++++++
- mm/nobootmem.c  |    5 +++++
- mm/page_alloc.c |    9 ---------
- 3 files changed, 12 insertions(+), 9 deletions(-)
+ include/linux/mm.h |    2 ++
+ mm/page_alloc.c    |   29 +++++++++++++++++++++++++++++
+ 2 files changed, 31 insertions(+), 0 deletions(-)
 
-diff --git a/mm/bootmem.c b/mm/bootmem.c
-index 2741c34..ff55ad7 100644
---- a/mm/bootmem.c
-+++ b/mm/bootmem.c
-@@ -23,6 +23,13 @@
- 
- #include "internal.h"
- 
-+#ifndef CONFIG_NEED_MULTIPLE_NODES
-+struct pglist_data __refdata contig_page_data = {
-+ .bdata = &bootmem_node_data[0]
-+ };
-+EXPORT_SYMBOL(contig_page_data);
-+#endif
-+
- unsigned long max_low_pfn;
- unsigned long min_low_pfn;
- unsigned long max_pfn;
-diff --git a/mm/nobootmem.c b/mm/nobootmem.c
-index 283673e..abaec96 100644
---- a/mm/nobootmem.c
-+++ b/mm/nobootmem.c
-@@ -23,6 +23,11 @@
- 
- #include "internal.h"
- 
-+#ifndef CONFIG_NEED_MULTIPLE_NODES
-+struct pglist_data __refdata contig_page_data;
-+EXPORT_SYMBOL(contig_page_data);
-+#endif
-+
- unsigned long max_low_pfn;
- unsigned long min_low_pfn;
- unsigned long max_pfn;
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index fb19bb9..7774e1d 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1159,6 +1159,8 @@ extern void free_bootmem_with_active_regions(int nid,
+ 						unsigned long max_low_pfn);
+ int add_from_early_node_map(struct range *range, int az,
+ 				   int nr_range, int nid);
++u64 __init find_memory_core_early(int nid, u64 size, u64 align,
++					u64 goal, u64 limit);
+ void *__alloc_memory_core_early(int nodeid, u64 size, u64 align,
+ 				 u64 goal, u64 limit);
+ typedef int (*work_fn_t)(unsigned long, unsigned long, void *);
 diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 256aed0..233c403 100644
+index d03c946..12a74ad 100644
 --- a/mm/page_alloc.c
 +++ b/mm/page_alloc.c
-@@ -4496,15 +4496,6 @@ void __init set_dma_reserve(unsigned long new_dma_reserve)
- 	dma_reserve = new_dma_reserve;
+@@ -21,6 +21,7 @@
+ #include <linux/pagemap.h>
+ #include <linux/jiffies.h>
+ #include <linux/bootmem.h>
++#include <linux/lmb.h>
+ #include <linux/compiler.h>
+ #include <linux/kernel.h>
+ #include <linux/kmemcheck.h>
+@@ -3393,6 +3394,34 @@ void __init free_bootmem_with_active_regions(int nid,
+ 	}
  }
  
--#ifndef CONFIG_NEED_MULTIPLE_NODES
--struct pglist_data __refdata contig_page_data = {
--#ifndef CONFIG_NO_BOOTMEM
-- .bdata = &bootmem_node_data[0]
--#endif
-- };
--EXPORT_SYMBOL(contig_page_data);
--#endif
--
- void __init free_area_init(unsigned long *zones_size)
++#ifdef CONFIG_HAVE_LMB
++u64 __init find_memory_core_early(int nid, u64 size, u64 align,
++					u64 goal, u64 limit)
++{
++	int i;
++
++	/* Need to go over early_node_map to find out good range for node */
++	for_each_active_range_index_in_nid(i, nid) {
++		u64 addr;
++		u64 ei_start, ei_last;
++
++		ei_last = early_node_map[i].end_pfn;
++		ei_last <<= PAGE_SHIFT;
++		ei_start = early_node_map[i].start_pfn;
++		ei_start <<= PAGE_SHIFT;
++		addr = __lmb_find_area(ei_start, ei_last,
++					 goal, limit, size, align);
++
++		if (addr == -1ULL)
++			continue;
++
++		return addr;
++	}
++
++	return -1ULL;
++}
++#endif
++
+ int __init add_from_early_node_map(struct range *range, int az,
+ 				   int nr_range, int nid)
  {
- 	free_area_init_node(0, zones_size,
 -- 
 1.6.4.2
