@@ -1,77 +1,57 @@
 From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
-Date: Fri, 9 Apr 2010 13:16:41 +1000
-Message-ID: <20100409031641.GG5683@laptop>
+Subject: Re: [PATCH 06/13] mm: Preemptible mmu_gather
+Date: Fri, 9 Apr 2010 13:25:09 +1000
+Message-ID: <20100409032509.GH5683@laptop>
 References: <20100408191737.296180458@chello.nl>
- <20100408192722.687144862@chello.nl>
+ <20100408192722.858079986@chello.nl>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:44022 "EHLO mx2.suse.de"
+Received: from cantor.suse.de ([195.135.220.2]:52935 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751974Ab0DIDQr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 8 Apr 2010 23:16:47 -0400
+	id S1752418Ab0DIDZO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 8 Apr 2010 23:25:14 -0400
 Content-Disposition: inline
-In-Reply-To: <20100408192722.687144862@chello.nl>
+In-Reply-To: <20100408192722.858079986@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
 
-On Thu, Apr 08, 2010 at 09:17:39PM +0200, Peter Zijlstra wrote:
-> There is nothing preventing the anon_vma from being detached while we
-> are spinning to acquire the lock. Most (all?) current users end up
-> calling something like vma_address(page, vma) on it, which has a
-> fairly good chance of weeding out wonky vmas.
-> 
-> However suppose the anon_vma got freed and re-used while we were
-> waiting to acquire the lock, and the new anon_vma fits with the
-> page->index (because that is the only thing vma_address() uses to
-> determine if the page fits in a particular vma, we could end up
-> traversing faulty anon_vma chains.
-> 
-> Close this hole for good by re-validating that page->mapping still
-> holds the very same anon_vma pointer after we acquire the lock, if not
-> be utterly paranoid and retry the whole operation (which will very
-> likely bail, because it's unlikely the page got attached to a different
-> anon_vma in the meantime).
+On Thu, Apr 08, 2010 at 09:17:43PM +0200, Peter Zijlstra wrote:
+> @@ -39,30 +33,48 @@
+>  struct mmu_gather {
+>  	struct mm_struct	*mm;
+>  	unsigned int		nr;	/* set to ~0U means fast mode */
+> +	unsigned int		max;	/* nr < max */
+>  	unsigned int		need_flush;/* Really unmapped some ptes? */
+>  	unsigned int		fullmm; /* non-zero means full mm flush */
+> -	struct page *		pages[FREE_PTE_NR];
+> +#ifdef HAVE_ARCH_MMU_GATHER
+> +	struct arch_mmu_gather	arch;
+> +#endif
+> +	struct page		**pages;
+> +	struct page		*local[8];
 
-Hm, looks like a bugfix? How was this supposed to be safe?
+Have you done some profiling on this? What I would like to see, if
+it's not too much complexity, is to have a small set of pages to
+handle common size frees, and then use them up first by default
+before attempting to allocate more.
 
- 
-> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> Cc: Hugh Dickins <hugh.dickins@tiscali.co.uk>
-> Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> ---
->  mm/rmap.c |    7 +++++++
->  1 file changed, 7 insertions(+)
-> 
-> Index: linux-2.6/mm/rmap.c
-> ===================================================================
-> --- linux-2.6.orig/mm/rmap.c
-> +++ linux-2.6/mm/rmap.c
-> @@ -294,6 +294,7 @@ struct anon_vma *page_lock_anon_vma(stru
->  	unsigned long anon_mapping;
+Also, it would be cool to be able to chain allocations to avoid
+TLB flushes even on big frees (overridable by arch of course, in
+case they're doing some non-preeemptible work or you wish to break
+up lock hold times). But that might be just getting over engineered.
+
+>  };
 >  
->  	rcu_read_lock();
-> +again:
->  	anon_mapping = (unsigned long) ACCESS_ONCE(page->mapping);
->  	if ((anon_mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)
->  		goto out;
-> @@ -302,6 +303,12 @@ struct anon_vma *page_lock_anon_vma(stru
->  
->  	anon_vma = (struct anon_vma *) (anon_mapping - PAGE_MAPPING_ANON);
->  	spin_lock(&anon_vma->lock);
-> +
-> +	if (page_rmapping(page) != anon_vma) {
+> -/* Users of the generic TLB shootdown code must declare this storage space. */
+> -DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
+> +static inline void __tlb_alloc_pages(struct mmu_gather *tlb)
+> +{
+> +	unsigned long addr = __get_free_pages(GFP_ATOMIC, 0);
 
-very unlikely()?
+Slab allocations should be faster, so it's nice to use them in
+performance critical code if you don't need the struct page.
 
-> +		spin_unlock(&anon_vma->lock);
-> +		goto again;
-> +	}
-> +
->  	return anon_vma;
->  out:
->  	rcu_read_unlock();
-> 
+Otherwise, looks ok to me.
