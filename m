@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 31/39] x86: Use wake_system_ram_range() instead of e820_any_mapped() in agp path
-Date: Thu,  8 Apr 2010 23:04:00 -0700
-Message-ID: <1270793048-23796-32-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 38/39] lmb: move __alloc_memory_core_early() to nobootmem.c
+Date: Thu,  8 Apr 2010 23:04:07 -0700
+Message-ID: <1270793048-23796-39-git-send-email-yinghai@kernel.org>
 References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
@@ -10,139 +10,96 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Move apterture_valid back to .c
+We can remove #ifdef in mm/page_alloc.c
 
-and early path still use e820_any_mapped()
-
-So later we can make e820_any_mapped() to _init
+and change that function to static
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/gart.h   |   22 ----------------------
- arch/x86/kernel/aperture_64.c |   22 ++++++++++++++++++++++
- drivers/char/agp/amd64-agp.c  |   39 ++++++++++++++++++++++++++++++++++++++-
- 3 files changed, 60 insertions(+), 23 deletions(-)
+ include/linux/mm.h |    2 --
+ mm/nobootmem.c     |   21 +++++++++++++++++++++
+ mm/page_alloc.c    |   24 ------------------------
+ 3 files changed, 21 insertions(+), 26 deletions(-)
 
-diff --git a/arch/x86/include/asm/gart.h b/arch/x86/include/asm/gart.h
-index 4ac5b0f..2b63a91 100644
---- a/arch/x86/include/asm/gart.h
-+++ b/arch/x86/include/asm/gart.h
-@@ -74,26 +74,4 @@ static inline void enable_gart_translation(struct pci_dev *dev, u64 addr)
-         pci_write_config_dword(dev, AMD64_GARTAPERTURECTL, ctl);
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 7774e1d..2a14361 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1161,8 +1161,6 @@ int add_from_early_node_map(struct range *range, int az,
+ 				   int nr_range, int nid);
+ u64 __init find_memory_core_early(int nid, u64 size, u64 align,
+ 					u64 goal, u64 limit);
+-void *__alloc_memory_core_early(int nodeid, u64 size, u64 align,
+-				 u64 goal, u64 limit);
+ typedef int (*work_fn_t)(unsigned long, unsigned long, void *);
+ extern void work_with_active_regions(int nid, work_fn_t work_fn, void *data);
+ extern void sparse_memory_present_with_active_regions(int nid);
+diff --git a/mm/nobootmem.c b/mm/nobootmem.c
+index abaec96..8c26d02 100644
+--- a/mm/nobootmem.c
++++ b/mm/nobootmem.c
+@@ -40,6 +40,27 @@ unsigned long max_pfn;
+ unsigned long saved_max_pfn;
+ #endif
+ 
++static void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
++					u64 goal, u64 limit)
++{
++	void *ptr;
++
++	u64 addr;
++
++	if (limit > lmb.default_alloc_limit)
++		limit = lmb.default_alloc_limit;
++
++	addr = find_memory_core_early(nid, size, align, goal, limit);
++
++	if (addr == -1ULL)
++		return NULL;
++
++	ptr = phys_to_virt(addr);
++	memset(ptr, 0, size);
++	lmb_reserve_area(addr, addr + size, "BOOTMEM");
++	return ptr;
++}
++
+ /*
+  * free_bootmem_late - free bootmem pages directly to page allocator
+  * @addr: starting address of the range
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 233c403..faa749c 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -3437,30 +3437,6 @@ int __init add_from_early_node_map(struct range *range, int az,
+ 	return nr_range;
  }
  
--static inline int aperture_valid(u64 aper_base, u32 aper_size, u32 min_size)
+-#ifdef CONFIG_NO_BOOTMEM
+-void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
+-					u64 goal, u64 limit)
 -{
--	if (!aper_base)
--		return 0;
+-	void *ptr;
 -
--	if (aper_base + aper_size > 0x100000000ULL) {
--		printk(KERN_INFO "Aperture beyond 4GB. Ignoring.\n");
--		return 0;
--	}
--	if (e820_any_mapped(aper_base, aper_base + aper_size, E820_RAM)) {
--		printk(KERN_INFO "Aperture pointing to e820 RAM. Ignoring.\n");
--		return 0;
--	}
--	if (aper_size < min_size) {
--		printk(KERN_INFO "Aperture too small (%d MB) than (%d MB)\n",
--				 aper_size>>20, min_size>>20);
--		return 0;
--	}
+-	u64 addr;
 -
--	return 1;
+-	if (limit > lmb.default_alloc_limit)
+-		limit = lmb.default_alloc_limit;
+-
+-	addr = find_memory_core_early(nid, size, align, goal, limit);
+-
+-	if (addr == -1ULL)
+-		return NULL;
+-
+-	ptr = phys_to_virt(addr);
+-	memset(ptr, 0, size);
+-	lmb_reserve_area(addr, addr + size, "BOOTMEM");
+-	return ptr;
 -}
+-#endif
 -
- #endif /* _ASM_X86_GART_H */
-diff --git a/arch/x86/kernel/aperture_64.c b/arch/x86/kernel/aperture_64.c
-index 3704997..f6e6270 100644
---- a/arch/x86/kernel/aperture_64.c
-+++ b/arch/x86/kernel/aperture_64.c
-@@ -145,6 +145,28 @@ static u32 __init find_cap(int bus, int slot, int func, int cap)
- 	return 0;
- }
- 
-+static int __init aperture_valid(u64 aper_base, u32 aper_size, u32 min_size)
-+{
-+	if (!aper_base)
-+		return 0;
-+
-+	if (aper_base + aper_size > 0x100000000ULL) {
-+		printk(KERN_INFO "Aperture beyond 4GB. Ignoring.\n");
-+		return 0;
-+	}
-+	if (e820_any_mapped(aper_base, aper_base + aper_size, E820_RAM)) {
-+		printk(KERN_INFO "Aperture pointing to e820 RAM. Ignoring.\n");
-+		return 0;
-+	}
-+	if (aper_size < min_size) {
-+		printk(KERN_INFO "Aperture too small (%d MB) than (%d MB)\n",
-+				 aper_size>>20, min_size>>20);
-+		return 0;
-+	}
-+
-+	return 1;
-+}
-+
- /* Read a standard AGPv3 bridge header */
- static u32 __init read_agp(int bus, int slot, int func, int cap, u32 *order)
+-
+ void __init work_with_active_regions(int nid, work_fn_t work_fn, void *data)
  {
-diff --git a/drivers/char/agp/amd64-agp.c b/drivers/char/agp/amd64-agp.c
-index fd50ead..85cabd0 100644
---- a/drivers/char/agp/amd64-agp.c
-+++ b/drivers/char/agp/amd64-agp.c
-@@ -14,7 +14,6 @@
- #include <linux/agp_backend.h>
- #include <linux/mmzone.h>
- #include <asm/page.h>		/* PAGE_SIZE */
--#include <asm/e820.h>
- #include <asm/k8.h>
- #include <asm/gart.h>
- #include "agp.h"
-@@ -231,6 +230,44 @@ static const struct agp_bridge_driver amd_8151_driver = {
- 	.agp_type_to_mask_type  = agp_generic_type_to_mask_type,
- };
- 
-+static int __devinit
-+__is_ram(unsigned long pfn, unsigned long nr_pages, void *arg)
-+{
-+	return 1;
-+}
-+
-+static int __devinit any_ram_in_range(u64 base, u64 size)
-+{
-+	unsigned long pfn, nr_pages;
-+
-+	pfn = base >> PAGE_SHIFT;
-+	nr_pages = size >> PAGE_SHIFT;
-+
-+	return walk_system_ram_range(pfn, nr_pages, NULL, __is_ram) == 1;
-+}
-+
-+static int __devinit aperture_valid(u64 aper_base, u32 aper_size, u32 min_size)
-+{
-+	if (!aper_base)
-+		return 0;
-+
-+	if (aper_base + aper_size > 0x100000000ULL) {
-+		printk(KERN_INFO "Aperture beyond 4GB. Ignoring.\n");
-+		return 0;
-+	}
-+	if (any_ram_in_range(aper_base, aper_size)) {
-+		printk(KERN_INFO "Aperture pointing to E820 RAM. Ignoring.\n");
-+		return 0;
-+	}
-+	if (aper_size < min_size) {
-+		printk(KERN_INFO "Aperture too small (%d MB) than (%d MB)\n",
-+				 aper_size>>20, min_size>>20);
-+		return 0;
-+	}
-+
-+	return 1;
-+}
-+
- /* Some basic sanity checks for the aperture. */
- static int __devinit agp_aperture_valid(u64 aper, u32 size)
- {
+ 	int i;
 -- 
 1.6.4.2
