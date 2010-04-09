@@ -1,57 +1,44 @@
 From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [PATCH 06/13] mm: Preemptible mmu_gather
-Date: Fri, 9 Apr 2010 13:25:09 +1000
-Message-ID: <20100409032509.GH5683@laptop>
+Subject: Re: [PATCH 09/13] mm, powerpc: Move the RCU page-table freeing
+ into generic code
+Date: Fri, 9 Apr 2010 13:35:32 +1000
+Message-ID: <20100409033532.GI5683@laptop>
 References: <20100408191737.296180458@chello.nl>
- <20100408192722.858079986@chello.nl>
+ <20100408192722.987227219@chello.nl>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:52935 "EHLO mx1.suse.de"
+Received: from cantor.suse.de ([195.135.220.2]:53747 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752418Ab0DIDZO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 8 Apr 2010 23:25:14 -0400
+	id S1753362Ab0DIDfj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 8 Apr 2010 23:35:39 -0400
 Content-Disposition: inline
-In-Reply-To: <20100408192722.858079986@chello.nl>
+In-Reply-To: <20100408192722.987227219@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
 
-On Thu, Apr 08, 2010 at 09:17:43PM +0200, Peter Zijlstra wrote:
-> @@ -39,30 +33,48 @@
->  struct mmu_gather {
->  	struct mm_struct	*mm;
->  	unsigned int		nr;	/* set to ~0U means fast mode */
-> +	unsigned int		max;	/* nr < max */
->  	unsigned int		need_flush;/* Really unmapped some ptes? */
->  	unsigned int		fullmm; /* non-zero means full mm flush */
-> -	struct page *		pages[FREE_PTE_NR];
-> +#ifdef HAVE_ARCH_MMU_GATHER
-> +	struct arch_mmu_gather	arch;
-> +#endif
-> +	struct page		**pages;
-> +	struct page		*local[8];
-
-Have you done some profiling on this? What I would like to see, if
-it's not too much complexity, is to have a small set of pages to
-handle common size frees, and then use them up first by default
-before attempting to allocate more.
-
-Also, it would be cool to be able to chain allocations to avoid
-TLB flushes even on big frees (overridable by arch of course, in
-case they're doing some non-preeemptible work or you wish to break
-up lock hold times). But that might be just getting over engineered.
-
->  };
+On Thu, Apr 08, 2010 at 09:17:46PM +0200, Peter Zijlstra wrote:
+> Index: linux-2.6/include/asm-generic/tlb.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-generic/tlb.h
+> +++ linux-2.6/include/asm-generic/tlb.h
+> @@ -27,6 +27,49 @@
+>    #define tlb_fast_mode(tlb) 1
+>  #endif
 >  
-> -/* Users of the generic TLB shootdown code must declare this storage space. */
-> -DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
-> +static inline void __tlb_alloc_pages(struct mmu_gather *tlb)
-> +{
-> +	unsigned long addr = __get_free_pages(GFP_ATOMIC, 0);
+> +#ifdef HAVE_ARCH_RCU_TABLE_FREE
+> +/*
+> + * Semi RCU freeing of the page directories.
+> + *
+> + * This is needed by some architectures to implement gup_fast().
 
-Slab allocations should be faster, so it's nice to use them in
-performance critical code if you don't need the struct page.
+Really? I see the comment in the powerpc code, but powerpc was already
+using RCU before gup_fast(), and AFAIKS it is indeed using it so that
+it can handle faults by getting the linux pte with find_linux_pte ?
 
-Otherwise, looks ok to me.
+I would have thought this should be a well used method for handling
+software TLB faults.
+
+But anyway this looks like a nice abstraction.
