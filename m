@@ -1,57 +1,51 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 07/13] powerpc: Preemptible mmu_gather
-Date: Fri, 09 Apr 2010 10:14:07 +0200
-Message-ID: <1270800847.20295.3225.camel@laptop>
-References: <20100408191737.296180458@chello.nl>
-	 <20100408192722.901224587@chello.nl>  <20100409040756.GK5683@laptop>
+From: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
+Date: Fri,  9 Apr 2010 17:17:01 +0900 (JST)
+Message-ID: <20100409170529.80E9.A69D9226@jp.fujitsu.com>
+References: <20100409160252.80E6.A69D9226@jp.fujitsu.com> <n2x28c262361004090101ufa54ff03zc9a94c8808841206@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20100409040756.GK5683@laptop>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from fgwmail7.fujitsu.co.jp ([192.51.44.37]:46232 "EHLO
+	fgwmail7.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754054Ab0DIIRI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 04:17:08 -0400
+In-Reply-To: <n2x28c262361004090101ufa54ff03zc9a94c8808841206@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Minchan Kim <minchan.kim@gmail.com>
+Cc: kosaki.motohiro@jp.fujitsu.com, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
 
-On Fri, 2010-04-09 at 14:07 +1000, Nick Piggin wrote:
-> On Thu, Apr 08, 2010 at 09:17:44PM +0200, Peter Zijlstra wrote:
-> > Fix up powerpc to the new mmu_gather stuffs.
-> > 
-> > PPC has an extra batching queue to RCU free the actual pagetable
-> > allocations, use the ARCH extentions for that for now.
-> > 
-> > For the ppc64_tlb_batch, which tracks the vaddrs to unhash from the
-> > hardware hash-table, keep using per-cpu arrays but flush on context
-> > switch and use a TIF bit to track the laxy_mmu state.
+Hi Minchan,
+
+> OFF-TOPIC:
 > 
-> Hm. Pity powerpc can't just use tlb flush gathering for this batching,
-> (which is what it was designed for). Then it could avoid these tricks.
-> What's preventing this? Adding a tlb gather for COW case in
-> copy_page_range?
+> I think you pointed out good thing, too. :)
+> 
+> You mean although application call mlock of any vma, few pages on the vma can
+> be swapout by race between mlock and reclaim?
+> 
+> Although it's not disaster, apparently it breaks API.
+> Man page
+> " mlock() and munlock()
+>   mlock()  locks pages in the address range starting at addr and
+> continuing for len bytes. All pages that contain a part of the
+> specified address range are guaranteed to be resident in RAM when the
+> call returns  successfully;  the pages are guaranteed to stay in RAM
+> until later unlocked."
+> 
+> Do you have a plan to solve such problem?
+> 
+> And how about adding simple comment about that race in page_referenced_one?
+> Could you send the patch?
 
-I'm not quite sure what about that, didn't fully investigate it, just
-wanted to get something working for now.
+I'm surprising this mail. you were pushing much patch in this area.
+I believed you know all stuff ;)
 
-Of of the things is that both power and sparc need more than the struct
-page we normally gather.
+My answer is, it don't need to fix, because it's not bug. The point is
+that this one is race issue. not "pageout after mlock" issue.
+If pageout and mlock occur at the exactly same time, the human can't
+observe which event occur in first. it's not API violation.
 
-I did think of making the mmu_gather have something like
-
-struct mmu_page {
-  struct page *page;
-#ifdef HAVE_ARCH_TLB_VADDR
-  unsigned long vaddr;
-#endif
-};
-
-struct mmu_gather {
-  ...
-  unsigned int nr;
-  struct mmu_page *pages;
-};
-
-
-and doing that vaddr collection right along with it in the same batch.
-
-I think that that would work, Ben, Dave?
+Thanks.
