@@ -1,110 +1,87 @@
-From: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
-Date: Fri, 9 Apr 2010 13:56:57 +0900
-Message-ID: <20100409135657.8f234c9a.kamezawa.hiroyu@jp.fujitsu.com>
-References: <20100408191737.296180458@chello.nl>
-	<20100408192722.687144862@chello.nl>
-	<20100409031641.GG5683@laptop>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 03/39] x86: Align e820 ram range to page
+Date: Thu,  8 Apr 2010 23:03:32 -0700
+Message-ID: <1270793048-23796-4-git-send-email-yinghai@kernel.org>
+References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fgwmail5.fujitsu.co.jp ([192.51.44.35]:48782 "EHLO
-	fgwmail5.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750845Ab0DIFBE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 01:01:04 -0400
-In-Reply-To: <20100409031641.GG5683@laptop>
+Received: from rcsinet12.oracle.com ([148.87.113.124]:25736 "EHLO
+	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750806Ab0DIGHF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:07:05 -0400
+In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-On Fri, 9 Apr 2010 13:16:41 +1000
-Nick Piggin <npiggin@suse.de> wrote:
+to workaround wrong BIOS memory map.
 
-> On Thu, Apr 08, 2010 at 09:17:39PM +0200, Peter Zijlstra wrote:
-> > There is nothing preventing the anon_vma from being detached while we
-> > are spinning to acquire the lock. Most (all?) current users end up
-> > calling something like vma_address(page, vma) on it, which has a
-> > fairly good chance of weeding out wonky vmas.
-> > 
-> > However suppose the anon_vma got freed and re-used while we were
-> > waiting to acquire the lock, and the new anon_vma fits with the
-> > page->index (because that is the only thing vma_address() uses to
-> > determine if the page fits in a particular vma, we could end up
-> > traversing faulty anon_vma chains.
-> > 
-> > Close this hole for good by re-validating that page->mapping still
-> > holds the very same anon_vma pointer after we acquire the lock, if not
-> > be utterly paranoid and retry the whole operation (which will very
-> > likely bail, because it's unlikely the page got attached to a different
-> > anon_vma in the meantime).
-> 
-> Hm, looks like a bugfix? How was this supposed to be safe?
-> 
-IIUC.
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/x86/kernel/e820.c |   44 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 44 insertions(+), 0 deletions(-)
 
-Before Rik's change to anon_vma, once page->mapping is set as anon_vma | 0x1,
-it's not modified until the page is freed.
-After the patch, do_wp_page() overwrite page->mapping when it reuse existing
-page.
-
-==
-static int do_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
-                unsigned long address, pte_t *page_table, pmd_t *pmd,
-                spinlock_t *ptl, pte_t orig_pte)
-{
-....
-        if (PageAnon(old_page) && !PageKsm(old_page)) {
-                if (!trylock_page(old_page)) {
-                        page_cache_get(old_page);
-....
-                reuse = reuse_swap_page(old_page);
-                if (reuse)
-                        /*
-                         * The page is all ours.  Move it to our anon_vma so
-                         * the rmap code will not search our parent or siblings.
-                         * Protected against the rmap code by the page lock.
-                         */
-                        page_move_anon_rmap(old_page, vma, address); ----(*)
-}
-===		
-(*) is new.
-
-Then, this new check makes sense in the current kernel.
-
-
-
->  
-> > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> > Cc: Hugh Dickins <hugh.dickins@tiscali.co.uk>
-> > Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> > ---
-> >  mm/rmap.c |    7 +++++++
-> >  1 file changed, 7 insertions(+)
-> > 
-> > Index: linux-2.6/mm/rmap.c
-> > ===================================================================
-> > --- linux-2.6.orig/mm/rmap.c
-> > +++ linux-2.6/mm/rmap.c
-> > @@ -294,6 +294,7 @@ struct anon_vma *page_lock_anon_vma(stru
-> >  	unsigned long anon_mapping;
-> >  
-> >  	rcu_read_lock();
-> > +again:
-> >  	anon_mapping = (unsigned long) ACCESS_ONCE(page->mapping);
-> >  	if ((anon_mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)
-> >  		goto out;
-> > @@ -302,6 +303,12 @@ struct anon_vma *page_lock_anon_vma(stru
-> >  
-> >  	anon_vma = (struct anon_vma *) (anon_mapping - PAGE_MAPPING_ANON);
-> >  	spin_lock(&anon_vma->lock);
-> > +
-> > +	if (page_rmapping(page) != anon_vma) {
-> 
-> very unlikely()?
-> 
-I think so.
-
-Thanks,
--Kame
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 14d0a1a..73dc6a7 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -1044,6 +1044,47 @@ static int __init parse_memmap_opt(char *p)
+ }
+ early_param("memmap", parse_memmap_opt);
+ 
++static void __init e820_align_ram_page(void)
++{
++	int i;
++	bool changed = false;;
++
++	for (i = 0; i < e820.nr_map; i++) {
++		struct e820entry *entry = &e820.map[i];
++		u64 start, end;
++		u64 start_aligned, end_aligned;
++
++		if (entry->type != E820_RAM)
++			continue;
++
++		start = entry->addr;
++		end = start + entry->size;
++
++		start_aligned = round_up(start, PAGE_SIZE);
++		end_aligned = round_down(end, PAGE_SIZE);
++
++		if (end_aligned <= start_aligned) {
++			e820_update_range(start, end - start, E820_RAM, E820_RESERVED);
++			changed = true;
++			continue;
++		}
++		if (start < start_aligned) {
++			e820_update_range(start, start_aligned - start, E820_RAM, E820_RESERVED);
++			changed = true;
++		}
++		if (end_aligned < end) {
++			e820_update_range(end_aligned, end - end_aligned, E820_RAM, E820_RESERVED);
++			changed = true;
++		}
++	}
++
++	if (changed) {
++		sanitize_e820_map();
++		printk(KERN_INFO "aligned physical RAM map:\n");
++		e820_print_map("aligned");
++	}
++}
++
+ void __init finish_e820_parsing(void)
+ {
+ 	if (userdef) {
+@@ -1056,6 +1097,9 @@ void __init finish_e820_parsing(void)
+ 		printk(KERN_INFO "user-defined physical RAM map:\n");
+ 		e820_print_map("user");
+ 	}
++
++	/* In case, We have RAM entres that are not PAGE aligned */
++	e820_align_ram_page();
+ }
+ 
+ static inline const char *e820_type_to_string(int e820_type)
+-- 
+1.6.4.2
