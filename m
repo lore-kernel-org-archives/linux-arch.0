@@ -1,81 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:57115 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933597Ab0DHVyc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 17:54:32 -0400
-Received: from e35131.upc-e.chello.nl ([213.93.35.131] helo=dyad.programming.kicks-ass.net)
-	by casper.infradead.org with esmtpsa (Exim 4.69 #1 (Red Hat Linux))
-	id 1NzzgD-0001Q5-S0
-	for linux-arch@vger.kernel.org; Thu, 08 Apr 2010 21:54:30 +0000
-Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
-From: Peter Zijlstra <peterz@infradead.org>
-In-Reply-To: <20100408142051.717b278c.akpm@linux-foundation.org>
-References: <20100408191737.296180458@chello.nl>
-	 <20100408192722.687144862@chello.nl>
-	 <20100408142051.717b278c.akpm@linux-foundation.org>
-Content-Type: text/plain; charset="UTF-8"
-Date: Thu, 08 Apr 2010 23:54:26 +0200
-Message-ID: <1270763666.20295.3198.camel@laptop>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:54156
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751286Ab0DIBAF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2010 21:00:05 -0400
+Date: Thu, 08 Apr 2010 18:00:08 -0700 (PDT)
+Message-ID: <20100408.180008.180206930.davem@davemloft.net>
+Subject: [PATCH 2/4] sparc64: Use RCU page table freeing.
+From: David Miller <davem@davemloft.net>
 Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
-Message-ID: <20100408215426.W4-1fmnx_WY0Ikbf5IOhTzoV-yrENHtjYrVTA98J8j8@z>
+To: a.p.zijlstra@chello.nl
+Cc: aarcange@redhat.com, avi@redhat.com, tglx@linutronix.de, riel@redhat.com, mingo@elte.hu, akpm@linux-foundation.org, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, benh@kernel.crashing.org, hugh.dickins@tiscali.co.uk, mel@csn.ul.ie, npiggin@suse.de
+Message-ID: <20100409010008.43BHfJSAHFxIenZQDkFq2RwDc2u-WCLyRu1INsiFb0I@z>
 
-On Thu, 2010-04-08 at 14:20 -0700, Andrew Morton wrote:
-> On Thu, 08 Apr 2010 21:17:39 +0200
-> Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
-> 
-> > There is nothing preventing the anon_vma from being detached while we
-> > are spinning to acquire the lock.
-> 
-> Well.  The comment there clearly implies (or states) that RCU
-> protection is used to "guard against races".  If that's inaccurate
-> or incomplete, can we please get it fixed?
 
-Good point, goes together with that last comment you made.
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ arch/sparc/include/asm/pgalloc_64.h |   49 +++++++++++++++++++++++++++++++++-
+ 1 files changed, 47 insertions(+), 2 deletions(-)
 
-> The whole function makes be a bit queasy.
-> 
-> - Fails to explain why it pulls all these party tricks to read
->   page->mapping a single time.  What code path are we defending against
->   here?
-
-From what I understand we race with tear-down, anon_vma_unlock() takes
-anon_vma->lock, so holding the lock pins the anon_vma.
-
-So what we do to acquire a stable anon_vma from a page * is to, while
-holding RCU read lock, very carefully read page->mapping, extract the
-anon_vma and acquire the lock.
-
-Now, the RCU usage is a tad tricky here, anon_vma uses
-SLAB_DESTROY_BY_RCU, which means that the slab will be RCU freed,
-however not the objects allocated from it. This means that an anon_vma
-can be re-used directly after its gets freed, but the storage will
-remain valid for at least a grace period after the free.
-
-So once we do have the lock we need to revalidate that we indeed got the
-anon_vma we throught we got.
-
-So its:
-
-  page->mapping = NULL;
-  anon_vma_unlink();
-    spin_lock()
-    spin_unlock()
-    kmem_cache_free(anon_vma);
-
- VS
-
-  page_lock_anon_vma()'s trickery.
-
-> - Then checks page_mapped() without having any apparent defence
->   against page_mapped() becoming untrue one nanosecond later.
-> 
-> - Checks page_mapped() inside the rcu_read_locked() section for
->   inscrutable reasons.
-
-Right, I think the page_mapped() stuff is just an early bail out.
+diff --git a/arch/sparc/include/asm/pgalloc_64.h b/arch/sparc/include/asm/pgalloc_64.h
+index cb4867d..f2df91e 100644
+--- a/arch/sparc/include/asm/pgalloc_64.h
++++ b/arch/sparc/include/asm/pgalloc_64.h
+@@ -76,7 +76,52 @@ static inline void pte_free(struct mm_struct *mm, pgtable_t ptepage)
+ 
+ #define check_pgt_cache()	do { } while (0)
+ 
+-#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
+-#define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tlb)->mm, pmd)
++static inline void pgtable_free(void *table, bool is_page)
++{
++	if (is_page)
++		free_page((unsigned long)table);
++	else
++		kmem_cache_free(pgtable_cache, table);
++}
++
++#ifdef CONFIG_SMP
++#define HAVE_ARCH_RCU_TABLE_FREE
++
++struct mmu_gather;
++extern void tlb_remove_table(struct mmu_gather *, void *);
++
++static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, bool is_page)
++{
++	unsigned long pgf = (unsigned long)table;
++	if (is_page)
++		pgf |= 0x1UL;
++	tlb_remove_table(tlb, (void *)pgf);
++}
++
++static inline void __tlb_remove_table(void *_table)
++{
++	void *table = (void *)((unsigned long)_table & ~0x1UL);
++	bool is_page = false;
++
++	if ((unsigned long)_table & 0x1UL)
++		is_page = true;
++	pgtable_free(table, is_page);
++}
++#else /* CONFIG_SMP */
++static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, bool is_page)
++{
++	pgtable_free(table, is_page);
++}
++#endif /* !CONFIG_SMP */
++
++static inline void __pte_free_tlb(struct mmu_gather *tlb, struct page *ptepage,
++				  unsigned long address)
++{
++	pgtable_page_dtor(ptepage);
++	pgtable_free_tlb(tlb, page_address(ptepage), true);
++}
++
++#define __pmd_free_tlb(tlb, pmd, addr)		      \
++	pgtable_free_tlb(tlb, pmd, false)
+ 
+ #endif /* _SPARC64_PGALLOC_H */
+-- 
+1.6.6.1
 
