@@ -1,87 +1,155 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
-Date: Fri, 09 Apr 2010 14:57:34 +0200
-Message-ID: <1270817854.20295.3356.camel@laptop>
-References: <20100408191737.296180458@chello.nl>
-	 <20100408192722.687144862@chello.nl>
+From: Minchan Kim <minchan.kim@gmail.com>
+Subject: mlock and pageout race?
+Date: Fri, 09 Apr 2010 23:41:19 +0900
+Message-ID: <1270824079.2524.63.camel@barrios-desktop>
+References: <20100409160252.80E6.A69D9226@jp.fujitsu.com>
+	 <n2x28c262361004090101ufa54ff03zc9a94c8808841206@mail.gmail.com>
+	 <20100409170529.80E9.A69D9226@jp.fujitsu.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:60593 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752267Ab0DIM5k (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 08:57:40 -0400
-Received: from e35131.upc-e.chello.nl ([213.93.35.131] helo=dyad.programming.kicks-ass.net)
-	by casper.infradead.org with esmtpsa (Exim 4.69 #1 (Red Hat Linux))
-	id 1O0DmF-0006hN-2A
-	for linux-arch@vger.kernel.org; Fri, 09 Apr 2010 12:57:39 +0000
-In-Reply-To: <20100408192722.687144862@chello.nl>
+Received: from mail-iw0-f197.google.com ([209.85.223.197]:43415 "EHLO
+	mail-iw0-f197.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752306Ab0DIOli (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 10:41:38 -0400
+In-Reply-To: <20100409170529.80E9.A69D9226@jp.fujitsu.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Arcangeli <aarcange@redhat.com>
-Cc: Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
+To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Cc: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
 
-On Thu, 2010-04-08 at 21:17 +0200, Peter Zijlstra wrote:
+Hi, Kosaki. 
 
-> Index: linux-2.6/mm/rmap.c
-> ===================================================================
-> --- linux-2.6.orig/mm/rmap.c
-> +++ linux-2.6/mm/rmap.c
-> @@ -294,6 +294,7 @@ struct anon_vma *page_lock_anon_vma(stru
->  	unsigned long anon_mapping;
->  
->  	rcu_read_lock();
-> +again:
->  	anon_mapping = (unsigned long) ACCESS_ONCE(page->mapping);
->  	if ((anon_mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)
->  		goto out;
-> @@ -302,6 +303,12 @@ struct anon_vma *page_lock_anon_vma(stru
->  
->  	anon_vma = (struct anon_vma *) (anon_mapping - PAGE_MAPPING_ANON);
->  	spin_lock(&anon_vma->lock);
-> +
-> +	if (page_rmapping(page) != anon_vma) {
-> +		spin_unlock(&anon_vma->lock);
-> +		goto again;
-> +	}
-> +
->  	return anon_vma;
->  out:
->  	rcu_read_unlock();
+I don't want to make noise due to off-topic.
+So I open new thread. 
 
+On Fri, 2010-04-09 at 17:17 +0900, KOSAKI Motohiro wrote:
+> Hi Minchan,
+> 
+> > OFF-TOPIC:
+> > 
+> > I think you pointed out good thing, too. :)
+> > 
+> > You mean although application call mlock of any vma, few pages on the vma can
+> > be swapout by race between mlock and reclaim?
+> > 
+> > Although it's not disaster, apparently it breaks API.
+> > Man page
+> > " mlock() and munlock()
+> >   mlock()  locks pages in the address range starting at addr and
+> > continuing for len bytes. All pages that contain a part of the
+> > specified address range are guaranteed to be resident in RAM when the
+> > call returns  successfully;  the pages are guaranteed to stay in RAM
+> > until later unlocked."
+> > 
+> > Do you have a plan to solve such problem?
+> > 
+> > And how about adding simple comment about that race in page_referenced_one?
+> > Could you send the patch?
+> 
+> I'm surprising this mail. you were pushing much patch in this area.
+> I believed you know all stuff ;)
 
+If I disappoint you, sorry for that. 
+Still, there are many thing to study to me. :)
 
-OK, so I'm not quite sure about this anymore... this locking is quite,..
-umh,. interesting.
-
-We have:
-
- - page_remove_rmap() - which decrements page->_mapcount but does not
-clear page->mapping. Even though both it and page_add_anon_rmap()
-require pte_lock, there is no guarantee these are the same locks, so
-these can indeed race.
-
-So there is indeed a possibility for page->mapping to change, but
-holding anon_vma->lock won't make a difference.
-
- - anon_vma->lock - this does protect vma_anon_link/unlink like things
-and is held during rmap walks, it only protects the list.
-
- - SLAB_DESTROY_BY_RCU - only guarantees we can deref anon_vma, not that
-we'll find the one we were looking for.
-
- - we generally unmap/zap before unlink/free - so this should not see
-pages race with anon_vma freeing (except when someone has a page ref),
-however on anon_vma merges we seem to simply unlink the next one,
-without updating potential pages referencing it?
-
- - KSM seems to not do anything that swap doesn't also do (but I didn't
-look too closely).
-
- - page migration seems terribly broken..
+> 
+> My answer is, it don't need to fix, because it's not bug. The point is
+> that this one is race issue. not "pageout after mlock" issue.
+> If pageout and mlock occur at the exactly same time, the human can't
+> observe which event occur in first. it's not API violation.
 
 
-As it stands I don't see a reliable way to obtain an anon_vma,
-vma_address() + page_check_address() things are indeed enough, but not
-everybody seems to do that.
+If it might happen, it's obviously API violation, I think.
+
+int main()
+{
+	mlock(any vma, CURRENT|FUTURE);
+	system("cat /proc/self/smaps | grep "any vma");
+	..
+}
+result : 
+
+08884000-088a5000 rw-p 00000000 00:00 0          [any vma]
+Size:                  4 kB
+Rss:                   4 kB
+...
+Swap:                  4 kB
+...
+
+Apparently, user expected that "If I call mlock, there are whole pages
+of the vma in DRAM". But the result make him embarrassed :(
+
+side note : 
+Of course, mlock's semantic is rather different with smaps's Swap. 
+mlock's semantic just makes sure pages on DRAM after success of mlock
+call. it's not relate smap's swap entry. 
+Actually, smaps's swap entry cannot compare to mlock's semantic.
+Some page isn't on swap device yet but on swap cache and whole PTEs of
+page already have swap entry(ie, all unmapped). In such case, smap's
+Swap entry represent it with swap page. But with semantic of mlock, it's
+still on RAM so that it's okay.  
+
+I looked the code more detail.
+Fortunately, the situation you said "page_referenced() already can take
+unstable VM_LOCKED value. So, In worst case we make false positive
+pageout, but it's not disaster" cannot happen, I think. 
+
+1) 
+mlock_fixup				shrink_page_list
+
+					lock_page
+					try_to_unmap
+
+vma->vm_flags = VM_LOCKED
+pte_lock				
+pte_present test
+get_page
+pte_unlock
+					pte_lock
+					VM_LOCKED test fail
+					pte_unlock
+					never pageout
+So, no problem. 
+
+2) 
+mlock_fixup				shrink_page_list
+
+					lock_page
+					try_to_unmap
+					pte_lock
+					VM_LOCKED test pass
+vma->vm_flags = VM_LOCKED		make pte to swap entry
+pte_lock				pte_unlock
+pte_present test fail
+pte_unlock
+					pageout
+swapin by handle_mm_fault     
+
+So, no problem. 
+
+3)
+mlock_fixup				shrink_page_list
+
+					lock_page
+					try_to_unmap
+					pte_lock
+					VM_LOCKED test pass
+vma->vm_flags = VM_LOCKED		make pte to swap entry
+pte_lock				pte_unlock
+pte_present test fail
+pte_unlock
+cachehit in swapcache by handle_mm_fault 
+					pageout
+					is_page_cache_freeable fail
+So, no problem, too. 
+
+I can't think the race situation you mentioned.
+When 'false positive pageout' happens?
+Could you elaborate on it?
+
+
+-- 
+Kind regards,
+Minchan Kim
