@@ -1,67 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:41590 "EHLO
+Received: from casper.infradead.org ([85.118.1.10]:38014 "EHLO
 	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756594Ab0DIION (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 04:14:13 -0400
+	with ESMTP id S1757189Ab0DIIfh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 04:35:37 -0400
 Received: from e35131.upc-e.chello.nl ([213.93.35.131] helo=dyad.programming.kicks-ass.net)
 	by casper.infradead.org with esmtpsa (Exim 4.69 #1 (Red Hat Linux))
-	id 1O09Lu-0000Mw-Re
-	for linux-arch@vger.kernel.org; Fri, 09 Apr 2010 08:14:11 +0000
-Subject: Re: [PATCH 07/13] powerpc: Preemptible mmu_gather
+	id 1O09gc-0000rJ-Qb
+	for linux-arch@vger.kernel.org; Fri, 09 Apr 2010 08:35:35 +0000
+Subject: Re: [PATCH 00/13] mm: preemptibility -v2
 From: Peter Zijlstra <peterz@infradead.org>
-In-Reply-To: <20100409040756.GK5683@laptop>
+In-Reply-To: <20100409041421.GM5683@laptop>
 References: <20100408191737.296180458@chello.nl>
-	 <20100408192722.901224587@chello.nl>  <20100409040756.GK5683@laptop>
+	 <20100409041421.GM5683@laptop>
 Content-Type: text/plain; charset="UTF-8"
-Date: Fri, 09 Apr 2010 10:14:07 +0200
-Message-ID: <1270800847.20295.3225.camel@laptop>
+Date: Fri, 09 Apr 2010 10:35:31 +0200
+Message-ID: <1270802131.20295.3270.camel@laptop>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nick Piggin <npiggin@suse.de>
 Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
-Message-ID: <20100409081407.TxOzE8AbyATMu7RPq6sB78Z7SKUcsur8sElFJSmyePo@z>
+Message-ID: <20100409083531.LT---g60aObgZmAsV97pbMUDqT0ncM1Oz_ULNkJxSIM@z>
 
-On Fri, 2010-04-09 at 14:07 +1000, Nick Piggin wrote:
-> On Thu, Apr 08, 2010 at 09:17:44PM +0200, Peter Zijlstra wrote:
-> > Fix up powerpc to the new mmu_gather stuffs.
+On Fri, 2010-04-09 at 14:14 +1000, Nick Piggin wrote:
+> On Thu, Apr 08, 2010 at 09:17:37PM +0200, Peter Zijlstra wrote:
+> > Hi,
 > > 
-> > PPC has an extra batching queue to RCU free the actual pagetable
-> > allocations, use the ARCH extentions for that for now.
+> > This (still incomplete) patch-set makes part of the mm a lot more preemptible.
+> > It converts i_mmap_lock and anon_vma->lock to mutexes.  On the way there it
+> > also makes mmu_gather preemptible.
 > > 
-> > For the ppc64_tlb_batch, which tracks the vaddrs to unhash from the
-> > hardware hash-table, keep using per-cpu arrays but flush on context
-> > switch and use a TIF bit to track the laxy_mmu state.
+> > The main motivation was making mm_take_all_locks() preemptible, since it
+> > appears people are nesting hundreds of spinlocks there.
+> > 
+> > The side-effects are that we can finally make mmu_gather preemptible, something
+> > which lots of people have wanted to do for a long time.
 > 
-> Hm. Pity powerpc can't just use tlb flush gathering for this batching,
-> (which is what it was designed for). Then it could avoid these tricks.
-> What's preventing this? Adding a tlb gather for COW case in
-> copy_page_range?
+> What's the straight-line performance impact of all this? And how about
+> concurrency, I wonder. mutexes of course are double the atomics, and
+> you've added a refcount which is two more again for those paths using
+> it.
+> 
+> Page faults are very important. We unfortunately have some databases
+> doing a significant amount of mmap/munmap activity too. 
 
-I'm not quite sure what about that, didn't fully investigate it, just
-wanted to get something working for now.
+You think this would affect the mmap/munmap times in any significant
+way? It seems to me those are relatively heavy ops to begin with.
 
-Of of the things is that both power and sparc need more than the struct
-page we normally gather.
+> I'd like to
+> see microbenchmark numbers for each of those (both anon and file backed
+> for page faults).
 
-I did think of making the mmu_gather have something like
+OK, I'll dig out that fault test used in the whole mmap_sem/rwsem thread
+a while back and modify it to also do file backed faults.
 
-struct mmu_page {
-  struct page *page;
-#ifdef HAVE_ARCH_TLB_VADDR
-  unsigned long vaddr;
-#endif
-};
+> kbuild does quite a few pages faults, that would be an easy thing to
+> test. Not sure what reasonable kinds of cases exercise parallelism.
+> 
+> 
+> > What kind of performance tests would people have me run on this to satisfy
+> > their need for numbers? I've done a kernel build on x86_64 and if anything that
+> > was slightly faster with these patches, but it was well within the noise
+> > levels so it might be heat noise I'm looking at ;-)
+> 
+> Is it because you're reducing the number of TLB flushes, or what
+> (kbuild isn't multi threaded so on x86 TLB flushes should be really
+> fast anyway).
 
-struct mmu_gather {
-  ...
-  unsigned int nr;
-  struct mmu_page *pages;
-};
+I'll try and get some perf stat runs to get some insight into this. But
+the numbers were:
+
+ time make O=defconfig -j48 bzImage (5x, cache hot)
+
+without:  avg: 39.2018s +- 0.3407
+with:     avg: 38.9886s +- 0.1814
 
 
-and doing that vaddr collection right along with it in the same batch.
-
-I think that that would work, Ben, Dave?
 
