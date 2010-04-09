@@ -1,75 +1,77 @@
 From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [PATCH 01/13] powerpc: Add rcu_read_lock() to gup_fast()
- implementation
-Date: Fri, 9 Apr 2010 13:11:40 +1000
-Message-ID: <20100409031140.GF5683@laptop>
+Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
+Date: Fri, 9 Apr 2010 13:16:41 +1000
+Message-ID: <20100409031641.GG5683@laptop>
 References: <20100408191737.296180458@chello.nl>
- <20100408192722.643778654@chello.nl>
+ <20100408192722.687144862@chello.nl>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:43938 "EHLO mx2.suse.de"
+Received: from cantor2.suse.de ([195.135.220.15]:44022 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752240Ab0DIDL4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 8 Apr 2010 23:11:56 -0400
+	id S1751974Ab0DIDQr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 8 Apr 2010 23:16:47 -0400
 Content-Disposition: inline
-In-Reply-To: <20100408192722.643778654@chello.nl>
+In-Reply-To: <20100408192722.687144862@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
 
-It's not wrong per se, but the entire powerpc memory management code
-does the IRQ disabling for its pagetable RCU code. So I think it would be
-better to do the whole thing in one go.
-
-I don't think Paul will surprise-break powerpc :)
-
-It's up to Ben really, though.
-
-
-On Thu, Apr 08, 2010 at 09:17:38PM +0200, Peter Zijlstra wrote:
-> The powerpc page table freeing relies on the fact that IRQs hold off
-> an RCU grace period, this is currently true for all existing RCU
-> implementations but is not an assumption Paul wants to support.
+On Thu, Apr 08, 2010 at 09:17:39PM +0200, Peter Zijlstra wrote:
+> There is nothing preventing the anon_vma from being detached while we
+> are spinning to acquire the lock. Most (all?) current users end up
+> calling something like vma_address(page, vma) on it, which has a
+> fairly good chance of weeding out wonky vmas.
 > 
-> Therefore, also take the RCU read lock along with disabling IRQs to
-> ensure the RCU grace period does at least cover these lookups.
+> However suppose the anon_vma got freed and re-used while we were
+> waiting to acquire the lock, and the new anon_vma fits with the
+> page->index (because that is the only thing vma_address() uses to
+> determine if the page fits in a particular vma, we could end up
+> traversing faulty anon_vma chains.
 > 
-> Requested-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> Close this hole for good by re-validating that page->mapping still
+> holds the very same anon_vma pointer after we acquire the lock, if not
+> be utterly paranoid and retry the whole operation (which will very
+> likely bail, because it's unlikely the page got attached to a different
+> anon_vma in the meantime).
+
+Hm, looks like a bugfix? How was this supposed to be safe?
+
+ 
 > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> Cc: Nick Piggin <npiggin@suse.de>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
 > ---
->  arch/powerpc/mm/gup.c |    3 +++
->  1 file changed, 3 insertions(+)
+>  mm/rmap.c |    7 +++++++
+>  1 file changed, 7 insertions(+)
 > 
-> Index: linux-2.6/arch/powerpc/mm/gup.c
+> Index: linux-2.6/mm/rmap.c
 > ===================================================================
-> --- linux-2.6.orig/arch/powerpc/mm/gup.c
-> +++ linux-2.6/arch/powerpc/mm/gup.c
-> @@ -142,6 +142,7 @@ int get_user_pages_fast(unsigned long st
->  	 * So long as we atomically load page table pointers versus teardown,
->  	 * we can follow the address down to the the page and take a ref on it.
->  	 */
-> +	rcu_read_lock();
->  	local_irq_disable();
+> --- linux-2.6.orig/mm/rmap.c
+> +++ linux-2.6/mm/rmap.c
+> @@ -294,6 +294,7 @@ struct anon_vma *page_lock_anon_vma(stru
+>  	unsigned long anon_mapping;
 >  
->  	pgdp = pgd_offset(mm, addr);
-> @@ -162,6 +163,7 @@ int get_user_pages_fast(unsigned long st
->  	} while (pgdp++, addr = next, addr != end);
+>  	rcu_read_lock();
+> +again:
+>  	anon_mapping = (unsigned long) ACCESS_ONCE(page->mapping);
+>  	if ((anon_mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)
+>  		goto out;
+> @@ -302,6 +303,12 @@ struct anon_vma *page_lock_anon_vma(stru
 >  
->  	local_irq_enable();
-> +	rcu_read_unlock();
->  
->  	VM_BUG_ON(nr != (end - start) >> PAGE_SHIFT);
->  	return nr;
-> @@ -171,6 +173,7 @@ int get_user_pages_fast(unsigned long st
->  
->  slow:
->  		local_irq_enable();
-> +		rcu_read_unlock();
->  slow_irqon:
->  		pr_devel("  slow path ! nr = %d\n", nr);
->  
+>  	anon_vma = (struct anon_vma *) (anon_mapping - PAGE_MAPPING_ANON);
+>  	spin_lock(&anon_vma->lock);
+> +
+> +	if (page_rmapping(page) != anon_vma) {
+
+very unlikely()?
+
+> +		spin_unlock(&anon_vma->lock);
+> +		goto again;
+> +	}
+> +
+>  	return anon_vma;
+>  out:
+>  	rcu_read_unlock();
 > 
