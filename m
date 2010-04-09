@@ -1,102 +1,41 @@
-From: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
-Date: Fri, 9 Apr 2010 15:47:30 +0900
-Message-ID: <20100409154730.e9945cbc.kamezawa.hiroyu@jp.fujitsu.com>
-References: <20100409031641.GG5683@laptop>
-	<20100409135657.8f234c9a.kamezawa.hiroyu@jp.fujitsu.com>
-	<20100409150335.80E3.A69D9226@jp.fujitsu.com>
+From: Christian Ehrhardt <uni@c--e.de>
+Subject: Re: [PATCH 05/13] mm: Make use of the anon_vma ref count
+Date: Fri, 9 Apr 2010 09:04:16 +0200
+Message-ID: <20100409070416.GA14118@lisa.in-ulm.de>
+References: <20100408191737.296180458@chello.nl> <20100408192722.815377075@chello.nl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fgwmail5.fujitsu.co.jp ([192.51.44.35]:54110 "EHLO
-	fgwmail5.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750942Ab0DIGvc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:51:32 -0400
-In-Reply-To: <20100409150335.80E3.A69D9226@jp.fujitsu.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Cc: Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20100408192722.815377075@chello.nl>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri,  9 Apr 2010 15:34:33 +0900 (JST)
-KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com> wrote:
 
-> > On Fri, 9 Apr 2010 13:16:41 +1000
-> > Nick Piggin <npiggin@suse.de> wrote:
-> > 
-> > > On Thu, Apr 08, 2010 at 09:17:39PM +0200, Peter Zijlstra wrote:
-> > > > There is nothing preventing the anon_vma from being detached while we
-> > > > are spinning to acquire the lock. Most (all?) current users end up
-> > > > calling something like vma_address(page, vma) on it, which has a
-> > > > fairly good chance of weeding out wonky vmas.
-> > > > 
-> > > > However suppose the anon_vma got freed and re-used while we were
-> > > > waiting to acquire the lock, and the new anon_vma fits with the
-> > > > page->index (because that is the only thing vma_address() uses to
-> > > > determine if the page fits in a particular vma, we could end up
-> > > > traversing faulty anon_vma chains.
-> > > > 
-> > > > Close this hole for good by re-validating that page->mapping still
-> > > > holds the very same anon_vma pointer after we acquire the lock, if not
-> > > > be utterly paranoid and retry the whole operation (which will very
-> > > > likely bail, because it's unlikely the page got attached to a different
-> > > > anon_vma in the meantime).
-> > > 
-> > > Hm, looks like a bugfix? How was this supposed to be safe?
-> > > 
-> > IIUC.
-> > 
-> > Before Rik's change to anon_vma, once page->mapping is set as anon_vma | 0x1,
-> > it's not modified until the page is freed.
-> > After the patch, do_wp_page() overwrite page->mapping when it reuse existing
-> > page.
-> 
-> Why?
-> IIUC. page->mapping dereference in page_lock_anon_vma() makes four story.
-> 
-> 1. the anon_vma is valid
-> 	-> do page_referenced_one(). 
-> 2. the anon_vma is invalid and freed to buddy
-> 	-> bail out by page_mapped(), no touch anon_vma
-> 3. the anon_vma is kfreed, and not reused
-> 	-> bail out by page_mapped()
-> 4. the anon_vma is kfreed, but reused as another anon_vma
-> 	-> bail out by page_check_address()
-> 
-> Now we have to consider 5th story.
-> 
-> 5. the anon_vma is exchanged another anon_vma by do_wp_page.
-> 	-> bail out by above bailing out stuff.
-> 
-> 
-> I agree peter's patch makes sense. but I don't think Rik's patch change
-> locking rule.
-> 
+Hi,
 
-Hmm, I think following.
+On Thu, Apr 08, 2010 at 09:17:42PM +0200, Peter Zijlstra wrote:
+> @@ -302,23 +307,33 @@ again:
+>  		goto out;
+>  
+>  	anon_vma = (struct anon_vma *) (anon_mapping - PAGE_MAPPING_ANON);
+> -	spin_lock(&anon_vma->lock);
+> +	if (!atomic_inc_not_zero(&anon_vma->ref))
+> +		anon_vma = NULL;
+>  
+>  	if (page_rmapping(page) != anon_vma) {
+> -		spin_unlock(&anon_vma->lock);
+> +		anon_vma_put(anon_vma);
+>  		goto again;
+>  	}
 
-Assume a page is ANON and SwapCache, and it has only one reference.
-Consider it's read-only mapped and cause do_wp_page().
-page_mapcount(page) == 1 here.
+AFAICS anon_vma_put might be called with anon_vma == NULL here which
+will oops on the ref count. Not sure if
 
-    CPU0                          CPU1
+     page_rmapping(page) == anon_vma == NULL 
 
-1. do_wp_page()
-2. .....
-3. replace anon_vma.     anon_vma = lock_page_anon_vma()
+is possible, too.
 
-So, lock_page_anon_vma() may have lock on wrong anon_vma, here.(mapcount=1)
-
-4. modify pte to writable.        do something...
-
-After lock, in CPU1, a pte of estimated address by vma_address(vma, page)
-containes pfn of the page and page_check_address() will success.
-
-I'm not sure how this is dangerouns.
-But it's possible that CPU1 cannot notice there was anon_vma replacement.
-And modifies pte withoug holding anon vma's lock which the code believes
-it's holded.
-
-Thanks,
--Kame
+    regards   Christian
