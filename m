@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 17/39] lmb: Add lmb_memory_size()
-Date: Thu,  8 Apr 2010 23:03:46 -0700
-Message-ID: <1270793048-23796-18-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 15/39] lmb: Add lmb_find_area_node()
+Date: Thu,  8 Apr 2010 23:03:44 -0700
+Message-ID: <1270793048-23796-16-git-send-email-yinghai@kernel.org>
 References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
@@ -10,78 +10,54 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-It will return memory size in specified range according to lmb.memory.region
+It can be used to find NODE_DATA for numa.
 
-Try to share some code with lmb_free_memory_size() by passing get_free to
-__lmb_memory_size().
+Need to make sure early_node_map[] is filled before it is called, otherwise
+it will fallback to lmb_find_area(), with node range.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
  include/linux/lmb.h |    1 +
- mm/lmb.c            |   18 +++++++++++++++++-
- 2 files changed, 18 insertions(+), 1 deletions(-)
+ mm/lmb.c            |   15 +++++++++++++++
+ 2 files changed, 16 insertions(+), 0 deletions(-)
 
 diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index b874dc0..8332934 100644
+index 5dbc4ef..4078825 100644
 --- a/include/linux/lmb.h
 +++ b/include/linux/lmb.h
-@@ -101,6 +101,7 @@ void lmb_register_active_regions(int nid, unsigned long start_pfn,
- 					 unsigned long last_pfn);
- u64 lmb_hole_size(u64 start, u64 end);
- u64 lmb_free_memory_size(u64 addr, u64 limit);
-+u64 lmb_memory_size(u64 addr, u64 limit);
+@@ -91,6 +91,7 @@ void lmb_add_memory(u64 start, u64 end);
+ u64 __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
+ 			 u64 size, u64 align);
+ u64 lmb_find_area(u64 start, u64 end, u64 size, u64 align);
++u64 lmb_find_area_node(int nid, u64 start, u64 end, u64 size, u64 align);
  
- #include <asm/lmb.h>
- 
+ void lmb_to_bootmem(u64 start, u64 end);
+ struct range;
 diff --git a/mm/lmb.c b/mm/lmb.c
-index dccd539..feb3dfa 100644
+index cf0f1c9..d3a58fb 100644
 --- a/mm/lmb.c
 +++ b/mm/lmb.c
-@@ -746,7 +746,7 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+@@ -791,6 +791,21 @@ u64 __init __weak lmb_find_area(u64 start, u64 end, u64 size, u64 align)
+ 	return -1ULL;
  }
- #endif
- 
--u64 __init lmb_free_memory_size(u64 addr, u64 limit)
-+static u64 __init __lmb_memory_size(u64 addr, u64 limit, bool get_free)
- {
- 	int i, count;
- 	struct range *range;
-@@ -776,6 +776,10 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
- 	}
- 	subtract_range(range, count, 0, addr);
- 	subtract_range(range, count, limit, -1ULL);
-+
-+	/* Subtract lmb.reserved.region in range ? */
-+	if (!get_free)
-+		goto sort_and_count_them;
- 	for (i = 0; i < lmb.reserved.cnt; i++) {
- 		struct lmb_property *r = &lmb.reserved.region[i];
- 
-@@ -788,6 +792,8 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
- 
- 		subtract_range(range, count, final_start, final_end);
- 	}
-+
-+sort_and_count_them:
- 	nr_range = clean_sort_range(range, count);
- 
- 	free_size = 0;
-@@ -797,6 +803,16 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
- 	return free_size << PAGE_SHIFT;
- }
- 
-+u64 __init lmb_free_memory_size(u64 addr, u64 limit)
+ /*
++ * Need to call this function after lmb_register_active_regions,
++ * so early_node_map[] is filled already.
++ */
++u64 __init lmb_find_area_node(int nid, u64 start, u64 end, u64 size, u64 align)
 +{
-+	return __lmb_memory_size(addr, limit, true);
++	u64 addr;
++	addr = find_memory_core_early(nid, size, align, start, end);
++	if (addr != -1ULL)
++		return addr;
++
++	/* Fallback, should already have start end within node range */
++	return lmb_find_area(start, end, size, align);
 +}
 +
-+u64 __init lmb_memory_size(u64 addr, u64 limit)
-+{
-+	return __lmb_memory_size(addr, limit, false);
-+}
-+
- u64 __init __weak __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
- 				 u64 size, u64 align)
- {
++/*
+  * Finds an active region in the address range from start_pfn to last_pfn and
+  * returns its range in ei_startpfn and ei_endpfn for the lmb entry.
+  */
 -- 
 1.6.4.2
