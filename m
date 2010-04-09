@@ -1,87 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet12.oracle.com ([141.146.126.234]:37769 "EHLO
-	acsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755634Ab0DIGHY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:07:24 -0400
+Received: from rcsinet12.oracle.com ([148.87.113.124]:28597 "EHLO
+	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756313Ab0DIGJX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 02:09:23 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 10/39] lmb: Add lmb_to_bootmem()
-Date: Thu,  8 Apr 2010 23:03:39 -0700
-Message-ID: <1270793048-23796-11-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 33/39] x86: Change e820_any_mapped() to __init
+Date: Thu,  8 Apr 2010 23:04:02 -0700
+Message-ID: <1270793048-23796-34-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100409060339.SnytFeRBTuGfjQ1UTreOThXu063CnjgWWPjSBtjR6Fs@z>
+Message-ID: <20100409060402.755HPPdQiw4aEztvTBUpac5alcK18H1onkoxlZd52sM@z>
 
-lmb_to_bootmem() will reserve lmb.reserved.region in bootmem after bootmem is
-set up.
-
-We can use it to with all arches that support lmb later.
+We don't need to expose e820_any_mapped() anymore
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    2 ++
- mm/lmb.c            |   32 ++++++++++++++++++++++++++++++++
- 2 files changed, 34 insertions(+), 0 deletions(-)
+ arch/x86/kernel/e820.c |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 598662f..1e236d1 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -91,6 +91,8 @@ u64 __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
- 			 u64 size, u64 align);
- u64 lmb_find_area(u64 start, u64 end, u64 size, u64 align);
- 
-+void lmb_to_bootmem(u64 start, u64 end);
-+
- #include <asm/lmb.h>
- 
- #endif /* __KERNEL__ */
-diff --git a/mm/lmb.c b/mm/lmb.c
-index a514d41..ee3d945 100644
---- a/mm/lmb.c
-+++ b/mm/lmb.c
-@@ -630,6 +630,38 @@ void __init lmb_free_area(u64 start, u64 end)
- 	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0]);
- }
- 
-+#ifndef CONFIG_NO_BOOTMEM
-+void __init lmb_to_bootmem(u64 start, u64 end)
-+{
-+	int i, count;
-+	u64 final_start, final_end;
-+
-+	/* Take out region array itself */
-+	if (lmb.reserved.region != lmb_reserved_region)
-+		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
-+
-+	count  = lmb.reserved.cnt;
-+	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
-+	for (i = 0; i < count; i++) {
-+		struct lmb_property *r = &lmb.reserved.region[i];
-+		pr_info("  #%d [%010llx - %010llx] ", i, r->base, r->base + r->size);
-+		final_start = max(start, r->base);
-+		final_end = min(end, r->base + r->size);
-+		if (final_start >= final_end) {
-+			pr_cont("\n");
-+			continue;
-+		}
-+		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
-+		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
-+	}
-+	/* Clear them to avoid misusing ? */
-+	memset(&lmb.reserved.region[0], 0, sizeof(struct lmb_property) * lmb.reserved.nr_regions);
-+	lmb.reserved.region = NULL;
-+	lmb.reserved.nr_regions = 0;
-+	lmb.reserved.cnt = 0;
-+}
-+#endif
-+
- u64 __init __weak __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
- 				 u64 size, u64 align)
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index be6e1e6..471784b 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -47,9 +47,10 @@ EXPORT_SYMBOL(pci_mem_start);
+ /*
+  * This function checks if any part of the range <start,end> is mapped
+  * with type.
++ * phys_pud_init() is using it and is _meminit, but we have !after_bootmem
++ * so could use refok here
+  */
+-int
+-e820_any_mapped(u64 start, u64 end, unsigned type)
++int __init_refok e820_any_mapped(u64 start, u64 end, unsigned type)
  {
+ 	int i;
+ 
+@@ -64,7 +65,6 @@ e820_any_mapped(u64 start, u64 end, unsigned type)
+ 	}
+ 	return 0;
+ }
+-EXPORT_SYMBOL_GPL(e820_any_mapped);
+ 
+ /*
+  * This function checks if the entire range <start,end> is mapped with type.
 -- 
 1.6.4.2
 
