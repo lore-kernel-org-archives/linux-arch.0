@@ -1,161 +1,50 @@
-From: David VomLehn <dvomlehn@cisco.com>
-Subject: [PATCH 2/23] Make register values available to Alpha panic
-	notifiers
-Date: Sun, 11 Apr 2010 23:06:13 -0700
-Message-ID: <20100412060613.GA25303@dvomlehn-lnx2.corp.sa.net>
+From: Mike Frysinger <vapier.adi@gmail.com>
+Subject: Re: [PATCH 1/23] Make register values available to panic notifiers
+Date: Mon, 12 Apr 2010 02:24:09 -0400
+Message-ID: <n2i8bd0f97a1004112324g833510adr92bfd195051b882@mail.gmail.com>
+References: <20100412060609.GA25273@dvomlehn-lnx2.corp.sa.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sj-iport-5.cisco.com ([171.68.10.87]:6473 "EHLO
-	sj-iport-5.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753333Ab0DLGGN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:06:13 -0400
-Content-Disposition: inline
+Received: from mail-gw0-f46.google.com ([74.125.83.46]:35579 "EHLO
+	mail-gw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752370Ab0DLGYa convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:24:30 -0400
+In-Reply-To: <20100412060609.GA25273@dvomlehn-lnx2.corp.sa.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
+To: David VomLehn <dvomlehn@cisco.com>
+Cc: to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
 
-The save_ptregs() function has not been tested or even built. I will need
-help to complete this.
+On Mon, Apr 12, 2010 at 02:06, David VomLehn wrote:
+> This patch makes panic() and die() registers available to, for exampl=
+e,
+> panic notifier functions. =C2=A0Panic notifier functions are quite us=
+eful
+> for recording crash information, but they don't get passed the regist=
+er
+> values. This makes it hard to print register contents, do stack
+> backtraces, etc. The changes in this patch save the register state wh=
+en
+> panic() is called and introduce a function for die() to call that all=
+ows
+> it to pass in the registers it was passed.
+>
+> Following this patch are more patches, one per architecture. These in=
+clude
+> two types of changes:
+> o =C2=A0A save_ptregs() function for the processor. I've taken a whac=
+k at
+> =C2=A0 doing this for all of the processors. I have tested x86 and MI=
+PS
+> =C2=A0 versions. I was able to find cross compilers for ARM, ... and =
+the
+> =C2=A0 code compiles cleanly. Everything else, well, what you see is =
+sheer
+> =C2=A0 fantasy. You are welcome to chortle with merriment.
 
-Signed-off-by: David VomLehn <dvomlehn@cisco.com>
----
- arch/alpha/include/asm/ptrace.h |  124 +++++++++++++++++++++++++++++++++++++++
- 1 files changed, 124 insertions(+), 0 deletions(-)
-
-diff --git a/arch/alpha/include/asm/ptrace.h b/arch/alpha/include/asm/ptrace.h
-index 65cf3e2..952d177 100644
---- a/arch/alpha/include/asm/ptrace.h
-+++ b/arch/alpha/include/asm/ptrace.h
-@@ -79,6 +79,130 @@ extern void show_regs(struct pt_regs *);
- 
- #define force_successful_syscall_return() (task_pt_regs(current)->r0 = 0)
- 
-+/* Macros for saving the contents of registers and for the output constraint
-+ * for those registers */
-+#include "/home/vomlehn/git/kernel.org/linux/ptreg.h"
-+#define PTREG_SAVE(r, name)	"stq	" #r ", %[" #name "]\n"
-+#define PTREG_SAVE_R(i)		PTREG_SAVE_I($, r, i)
-+
-+#define PTREG_OUT_R(regsp, i)	PTREG_OUT_I(regsp, r, r, i)
-+
-+#define arch_has_save_ptregs	1
-+
-+/**
-+ * save_ptregs - save processor registers for backtracing
-+ * @regs:	Pointer to &struct pt_regs structure in which to save the
-+ *		registers
-+ *
-+ * Returns a constant pointer to @regs.
-+ *
-+ * This function must be called first in a function. There must be no
-+ * auto variables defined that are initialized before calling this function.
-+ */
-+static __always_inline
-+const struct pt_regs *save_ptregs(struct pt_regs *regs)
-+{
-+	__asm__ __volatile__ (
-+			/* Based on the SAVE_ALL code */
-+			PTREG_SAVE_R(0)
-+			PTREG_SAVE_R(1)
-+			PTREG_SAVE_R(2)
-+			PTREG_SAVE_R(3)
-+			PTREG_SAVE_R(4)
-+			PTREG_SAVE_R(28)
-+			"lda	$2, alpha_mv\n"
-+			PTREG_SAVE_R(5)
-+			PTREG_SAVE_R(6)
-+			PTREG_SAVE_R(7)
-+			PTREG_SAVE_R(8)
-+			PTREG_SAVE_R(19)
-+			PTREG_SAVE_R(20)
-+			PTREG_SAVE_R(21)
-+			"ldq	$2, HAE_CACHE($2)\n"
-+			PTREG_SAVE_R(22)
-+			PTREG_SAVE_R(23)
-+			PTREG_SAVE_R(24)
-+			PTREG_SAVE_R(25)
-+			PTREG_SAVE_R(26)
-+			PTREG_SAVE_R(27)
-+			PTREG_SAVE($2, hae)
-+			PTREG_SAVE_R(16)
-+			PTREG_SAVE_R(17)
-+			PTREG_SAVE_R(18)
-+
-+			PTREG_SAVE_R(9)
-+			PTREG_SAVE_R(10)
-+			PTREG_SAVE_R(11)
-+			PTREG_SAVE_R(12)
-+			PTREG_SAVE_R(13)
-+			PTREG_SAVE_R(14)
-+			PTREG_SAVE_R(15)
-+			PTREG_SAVE_R(29)
-+			PTREG_SAVE_R(30)
-+			PTREG_SAVE_R(31)
-+			PTREG_SAVE_REG($gp, gp)
-+			PTREG_SAVE_REG($31, ps)
-+
-+			/* These are almost certainly wrong */
-+			PTREG_SAVE_REG(trap_a0, trap_a0)
-+			PTREG_SAVE_REG(trap_a1, trap_a1)
-+			PTREG_SAVE_REG(trap_a2, trap_a2)
-+		/*
-+		 * The current location is the one for which the register
-+		 * values are correct, even if some had been modified on
-+		 * function entry. So, the current location is the value to
-+		 * save as the execution address.
-+		 */
-+		"1b:\n"
-+			"lda	$2, 1b\n"
-+			PTREG_SAVE($2, pc)
-+	:
-+		PTREG_OUT_R(regs, 0),
-+		PTREG_OUT_R(regs, 1),
-+		PTREG_OUT_R(regs, 2),
-+		PTREG_OUT_R(regs, 3),
-+		PTREG_OUT_R(regs, 4),
-+		PTREG_OUT_R(regs, 5),
-+		PTREG_OUT_R(regs, 6),
-+		PTREG_OUT_R(regs, 7),
-+		PTREG_OUT_R(regs, 8),
-+		PTREG_OUT_R(regs, 9),
-+		PTREG_OUT_R(regs, 10),
-+		PTREG_OUT_R(regs, 11),
-+		PTREG_OUT_R(regs, 12),
-+		PTREG_OUT_R(regs, 13),
-+		PTREG_OUT_R(regs, 14),
-+		PTREG_OUT_R(regs, 15),
-+		PTREG_OUT_R(regs, 16),
-+		PTREG_OUT_R(regs, 17),
-+		PTREG_OUT_R(regs, 18),
-+		PTREG_OUT_R(regs, 19),
-+		PTREG_OUT_R(regs, 20),
-+		PTREG_OUT_R(regs, 21),
-+		PTREG_OUT_R(regs, 22),
-+		PTREG_OUT_R(regs, 23),
-+		PTREG_OUT_R(regs, 24),
-+		PTREG_OUT_R(regs, 25),
-+		PTREG_OUT_R(regs, 26),
-+		PTREG_OUT_R(regs, 27),
-+		PTREG_OUT_R(regs, 28),
-+		PTREG_OUT_R(regs, 29),
-+		PTREG_OUT_R(regs, 30),
-+		PTREG_OUT_R(regs, 31),
-+
-+		PTREG_OUT(regs, hae, hae),
-+		PTREG_OUT(regs, trap_a0, trap_a0),
-+		PTREG_OUT(regs, trap_a1, trap_a1),
-+		PTREG_OUT(regs, trap_a2, trap_a2),
-+		PTREG_OUT(regs, ps, ps),
-+		PTREG_OUT(regs, pc, pc),
-+		PTREG_OUT(regs, gp, gp)
-+	:
-+		"$2"
-+	);
-+
-+	return regs;
-+}
- #endif
- 
- #endif
+could you post a sample module that you're using to test with here ?
+presumably you have some simple code that registers a notify handler
+and then calls panic_with_regs() ...
+-mike
