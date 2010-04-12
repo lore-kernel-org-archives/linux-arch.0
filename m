@@ -1,44 +1,68 @@
 From: David VomLehn <dvomlehn@cisco.com>
-Subject: [PATCH 6/23] Make register values available to CRIS panic notifiers
-Date: Sun, 11 Apr 2010 23:06:25 -0700
-Message-ID: <20100412060625.GA25426@dvomlehn-lnx2.corp.sa.net>
+Subject: [PATCH 11/23] Make register values available to M68K panic
+	notifiers
+Date: Sun, 11 Apr 2010 23:06:41 -0700
+Message-ID: <20100412060641.GA25567@dvomlehn-lnx2.corp.sa.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sj-iport-4.cisco.com ([171.68.10.86]:11236 "EHLO
-	sj-iport-4.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753374Ab0DLGGb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:06:31 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org
 Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
+List-Id: linux-arch.vger.kernel.org
 
 The save_ptregs() function has not been tested or even built. I will need
 help to complete this.
 
+This appeared to require a Makefile change in order to compile kernel/entry.S.
+The problem was that it was complaining about having an "invalid instruction
+for this architecture; needs 68000 or higher". Choosing a processor didn't
+seem to help, but adding the processor to KBUILD_AFLAGS in appropriate places
+resolved the problem. Has bit rot set in to the m68k tree?
+
 Signed-off-by: David VomLehn <dvomlehn@cisco.com>
 ---
- arch/cris/include/arch-v10/arch/ptrace.h |   80 ++++++++++++++++++++++++++++
- arch/cris/include/arch-v32/arch/ptrace.h |   84 ++++++++++++++++++++++++++++++
- 2 files changed, 164 insertions(+), 0 deletions(-)
+ arch/m68k/Makefile             |    2 +
+ arch/m68k/include/asm/ptrace.h |   74 ++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 76 insertions(+), 0 deletions(-)
 
-diff --git a/arch/cris/include/arch-v10/arch/ptrace.h b/arch/cris/include/arch-v10/arch/ptrace.h
-index 2f464ea..28be57c 100644
---- a/arch/cris/include/arch-v10/arch/ptrace.h
-+++ b/arch/cris/include/arch-v10/arch/ptrace.h
-@@ -114,6 +114,86 @@ struct switch_stack {
+diff --git a/arch/m68k/Makefile b/arch/m68k/Makefile
+index 570d85c..bab0202 100644
+--- a/arch/m68k/Makefile
++++ b/arch/m68k/Makefile
+@@ -41,10 +41,12 @@ ifndef CONFIG_M68030
+ 
+ ifndef CONFIG_M68060
+ KBUILD_CFLAGS += -m68040
++KBUILD_AFLAGS += -m68040
+ endif
+ 
+ ifndef CONFIG_M68040
+ KBUILD_CFLAGS += -m68060
++KBUILD_AFLAGS += -m68060
+ endif
+ 
+ endif
+diff --git a/arch/m68k/include/asm/ptrace.h b/arch/m68k/include/asm/ptrace.h
+index ee4011c..2786ea4 100644
+--- a/arch/m68k/include/asm/ptrace.h
++++ b/arch/m68k/include/asm/ptrace.h
+@@ -85,6 +85,80 @@ struct switch_stack {
  #define profile_pc(regs) instruction_pointer(regs)
  extern void show_regs(struct pt_regs *);
  
 +/* Macros for saving the contents of registers and for the output constraint
 + * for those registers */
-+#include "/home/vomlehn/git/kernel.org/ptreg.h"
-+#define PTREG_SAVE(r, name)	"move.d	$" #r ", %[" #r "]\n"
-+#define PTREG_SAVE_R(i)		PTREG_SAVE_I(r, r, i)
 +
-+#define PTREG_OUT_R(regs, i)	PTREG_OUT_I(regs, r, r, i)
++#include <linux/ptreg.h>
++
++#define PTREG_SAVE(r, name)	"movel	%" #r ", %[" #name "]\n"
++#define PTREG_SAVE_D(i)		_PTREG_SAVE_I(d, d, i)
++#define PTREG_SAVE_A(i)		_PTREG_SAVE_I(a, a, i)
++
++#define PTREG_OUT_D(regs, i)	_PTREG_OUT_I(regs, d, d, i)
++#define PTREG_OUT_A(regs, i)	_PTREG_OUT_I(regs, a, a, i)
 +
 +#define arch_has_save_ptregs	1
 +
@@ -56,157 +80,52 @@ index 2f464ea..28be57c 100644
 +const struct pt_regs *save_ptregs(struct pt_regs *regs)
 +{
 +	__asm__ __volatile__ (
-+			PTREG_SAVE(frametype)
-+			PTREG_SAVE(orig_r10)
-+			PTREGS_SAVE_R(13)
-+			PTREGS_SAVE_R(12)
-+			PTREGS_SAVE_R(11)
-+			PTREGS_SAVE_R(10)
-+			PTREGS_SAVE_R(9)
-+			PTREGS_SAVE_R(8)
-+			PTREGS_SAVE_R(7)
-+			PTREGS_SAVE_R(6)
-+			PTREGS_SAVE_R(5)
-+			PTREGS_SAVE_R(4)
-+			PTREGS_SAVE_R(3)
-+			PTREGS_SAVE_R(2)
-+			PTREGS_SAVE_R(1)
-+			PTREGS_SAVE_R(0)
-+			PTREG_SAVE(mof)
-+			PTREG_SAVE(dccr)
-+			PTREG_SAVE(srp)
-+			PTREG_SAVE(irp)
-+			PTREG_SAVE(csrinstr)
-+			PTREG_SAVE(csraddr)
-+			PTREG_SAVE(csrdata)
++			PTREG_SAVE_D(1)
++			PTREG_SAVE_D(2)
++			PTREG_SAVE_D(3)
++			PTREG_SAVE_D(4)
++			PTREG_SAVE_D(5)
++			PTREG_SAVE_A(0)
++			PTREG_SAVE_A(1)
++			PTREG_SAVE_A(2)
++			PTREG_SAVE_D(0)
++			PTREG_SAVE(orig_d0, orig_d0)
++			PTREG_SAVE(stkadj, stkadj)
++#if 0
++			PTREG_SAVE(format, format)
++			PTREG_SAVE(vector, vector)
++#endif
++			PTREG_SAVE(sr, sr)
 +		"1:\n"
-+			"move.d	1b, r0\n"
-+			PTREG_SAVE(r0, irp)
++			"lea	1b, %a0"
++			PTREG_SAVE(a0, pc)
 +	:
-+		PTREG_OUT(regs, frametype, frametype),
-+		PTREG_OUT(regs, orig_r10, orig_r10),
-+		PTREG_OUT_I(regs, 13),
-+		PTREG_OUT_I(regs, 12),
-+		PTREG_OUT_I(regs, 11),
-+		PTREG_OUT_I(regs, 10),
-+		PTREG_OUT_I(regs, 9),
-+		PTREG_OUT_I(regs, 8),
-+		PTREG_OUT_I(regs, 7),
-+		PTREG_OUT_I(regs, 6),
-+		PTREG_OUT_I(regs, 5),
-+		PTREG_OUT_I(regs, 4),
-+		PTREG_OUT_I(regs, 3),
-+		PTREG_OUT_I(regs, 2),
-+		PTREG_OUT_I(regs, 1),
-+		PTREG_OUT_I(regs, 0),
-+		PTREG_OUT(regs, mof, mof),
-+		PTREG_OUT(regs, dccr, dccr),
-+		PTREG_OUT(regs, srp, srp),
-+		PTREG_OUT(regs, irp, irp),
-+		PTREG_OUT(regs, csrinstr, csrinstr),
-+		PTREG_OUT(regs, csraddr, csraddr),
-+		PTREG_OUT(regs, csrdata, csrdata)
++		PTREG_OUT_D(regs, 0),
++		PTREG_OUT_D(regs, 1),
++		PTREG_OUT_D(regs, 2),
++		PTREG_OUT_D(regs, 3),
++		PTREG_OUT_D(regs, 4),
++		PTREG_OUT_D(regs, 5),
++		PTREG_OUT_A(regs, 0),
++		PTREG_OUT_A(regs, 1),
++		PTREG_OUT_A(regs, 2),
++		PTREG_OUT(regs, orig_d0, orig_d0),
++		PTREG_OUT(regs, stkadj, stkadj),
++#if 0
++/* Are these registers that must be saved? */
++		PTREG_OUT(regs, format, format),
++		PTREG_OUT(regs, vector, vector),
++#endif
++		PTREG_OUT(regs, sr, sr),
++		PTREG_OUT(regs, pc, pc)
 +	:
-+		"r0"
++	:
++		"a0"
 +	);
 +
 +	return regs;
 +}
- #endif  /*  __KERNEL__  */
- 
- #endif
-diff --git a/arch/cris/include/arch-v32/arch/ptrace.h b/arch/cris/include/arch-v32/arch/ptrace.h
-index ffca8d0..90ad6b1 100644
---- a/arch/cris/include/arch-v32/arch/ptrace.h
-+++ b/arch/cris/include/arch-v32/arch/ptrace.h
-@@ -114,6 +114,90 @@ struct switch_stack {
- extern void show_regs(struct pt_regs *);
- #define profile_pc(regs) instruction_pointer(regs)
- 
-+/* Macros for saving the contents of registers and for the output constraint
-+ * for those registers */
-+#include "/home/vomlehn/git/kernel.org/ptreg.h"
-+#define PTREG_SAVE(r, name)	"move.d	$" #r ", %[" #r "]\n"
-+#define PTREG_SAVE_R(i)		PTREG_SAVE_I(r, r, i)
 +
-+#define PTREG_OUT_R(regs, i)	PTREG_OUT_I(regs, r, r, i)
-+
-+#define arch_has_save_ptregs	1
-+
-+/**
-+ * save_ptregs - save processor registers for backtracing
-+ * @regs:	Pointer to &struct pt_regs structure in which to save the
-+ *		registers
-+ *
-+ * Returns a constant pointer to @regs.
-+ *
-+ * This function must be called first in a function. There must be no
-+ * auto variables defined that are initialized before calling this function.
-+ */
-+static __always_inline
-+const struct pt_regs *save_ptregs(struct pt_regs *regs)
-+{
-+	__asm__ __volatile__ (
-+			PTREG_SAVE(frametype)
-+			PTREG_SAVE(orig_r10)
-+			PTREGS_SAVE_R(13)
-+			PTREGS_SAVE_R(12)
-+			PTREGS_SAVE_R(11)
-+			PTREGS_SAVE_R(10)
-+			PTREGS_SAVE_R(9)
-+			PTREGS_SAVE_R(8)
-+			PTREGS_SAVE_R(7)
-+			PTREGS_SAVE_R(6)
-+			PTREGS_SAVE_R(5)
-+			PTREGS_SAVE_R(4)
-+			PTREGS_SAVE_R(3)
-+			PTREGS_SAVE_R(2)
-+			PTREGS_SAVE_R(1)
-+			PTREGS_SAVE_R(0)
-+			PTREG_SAVE(acr)
-+			PTREG_SAVE(srs)
-+			PTREG_SAVE(mof)
-+			PTREG_SAVE(spc)
-+			PTREG_SAVE(ccs)
-+			PTREG_SAVE(srp)
-+			PTREG_SAVE(erp)
-+			PTREG_SAVE(exs)
-+			PTREG_SAVE(eda)
-+		"1:\n"
-+			"move.d	1b, r0\n"
-+			PTREG_SAVE(r0, irp)
-+	:
-+		PTREG_OUT(regs, frametype, frametype),
-+		PTREG_OUT(regs, orig_r10, orig_r10),
-+		PTREG_OUT_I(regs, 0),
-+		PTREG_OUT_I(regs, 1),
-+		PTREG_OUT_I(regs, 2),
-+		PTREG_OUT_I(regs, 3),
-+		PTREG_OUT_I(regs, 4),
-+		PTREG_OUT_I(regs, 5),
-+		PTREG_OUT_I(regs, 6),
-+		PTREG_OUT_I(regs, 7),
-+		PTREG_OUT_I(regs, 8),
-+		PTREG_OUT_I(regs, 9),
-+		PTREG_OUT_I(regs, 10),
-+		PTREG_OUT_I(regs, 11),
-+		PTREG_OUT_I(regs, 12),
-+		PTREG_OUT_I(regs, 13),
-+		PTREG_OUT(regs, acr, acr),
-+		PTREG_OUT(regs, srs, srs),
-+		PTREG_OUT(regs, mof, mof),
-+		PTREG_OUT(regs, spc, spc),
-+		PTREG_OUT(regs, ccs, ccs),
-+		PTREG_OUT(regs, srp, srp),
-+		PTREG_OUT(regs, erp, erp),
-+		PTREG_OUT(regs, exs, exs),
-+		PTREG_OUT(regs, eda, eda)
-+	:
-+		"r0"
-+	);
-+
-+	return regs;
-+}
- #endif  /*  __KERNEL__  */
- 
- #endif
+ /*
+  * These are defined as per linux/ptrace.h.
+  */
