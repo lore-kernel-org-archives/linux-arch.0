@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sj-iport-6.cisco.com ([171.71.176.117]:38920 "EHLO
-	sj-iport-6.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751840Ab0DLGGQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:06:16 -0400
-Date: Sun, 11 Apr 2010 23:06:16 -0700
+Received: from sj-iport-5.cisco.com ([171.68.10.87]:6516 "EHLO
+	sj-iport-5.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753374Ab0DLGGU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:06:20 -0400
+Date: Sun, 11 Apr 2010 23:06:19 -0700
 From: David VomLehn <dvomlehn@cisco.com>
-Subject: [PATCH 3/23] Make register values available to ARM panic notifiers
-Message-ID: <20100412060616.GA25334@dvomlehn-lnx2.corp.sa.net>
+Subject: [PATCH 4/23] Make register values available to AV32 panic notifiers
+Message-ID: <20100412060619.GA25370@dvomlehn-lnx2.corp.sa.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -14,31 +14,31 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org
 Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
-Message-ID: <20100412060616.x2dEsSQALpxxwX_wmWWrHb0l624R8hroUSzG8k_-ERk@z>
+Message-ID: <20100412060619.GGJJqEvLD5V_01A4EznjeoWYULtIsE-z-WZFX8x8PNE@z>
 
-The save_ptregs() functions compiles cleanly, but has not been tested.
+The save_ptregs() function has not been tested or even built. I will need
+help to complete this.
 
 Signed-off-by: David VomLehn <dvomlehn@cisco.com>
 ---
- arch/arm/include/asm/ptrace.h |   75 +++++++++++++++++++++++++++++++++++++++++
- arch/arm/kernel/traps.c       |    4 +-
- 2 files changed, 77 insertions(+), 2 deletions(-)
+ arch/avr32/include/asm/ptrace.h |   68 +++++++++++++++++++++++++++++++++++++++
+ arch/avr32/kernel/traps.c       |    4 +-
+ 2 files changed, 70 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm/include/asm/ptrace.h b/arch/arm/include/asm/ptrace.h
-index 9dcb11e..b9a0488 100644
---- a/arch/arm/include/asm/ptrace.h
-+++ b/arch/arm/include/asm/ptrace.h
-@@ -184,6 +184,81 @@ extern unsigned long profile_pc(struct pt_regs *regs);
- #define predicate(x)		((x) & 0xf0000000)
- #define PREDICATE_ALWAYS	0xe0000000
+diff --git a/arch/avr32/include/asm/ptrace.h b/arch/avr32/include/asm/ptrace.h
+index e53dd0d..28b7f25 100644
+--- a/arch/avr32/include/asm/ptrace.h
++++ b/arch/avr32/include/asm/ptrace.h
+@@ -151,6 +151,74 @@ static __inline__ int valid_user_regs(struct pt_regs *regs)
+ 	return 0;
+ }
  
 +/* Macros for saving the contents of registers and for the output constraint
 + * for those registers */
-+#include <linux/ptreg.h>
-+#define PTREG_SAVE(r, name)	"str	" #r ", %[" #name "]\n"
-+#define PTREG_SAVE_R(i)		_PTREG_SAVE_IDX(r, r, i)
++#define PTREG_SAVE(r, name)	"st.w	" #r ", %[" #name "]\n"
++#define PTREG_SAVE_R(i)		PTREG_SAVE_I(r, r, i)
 +
-+#define PTREG_OUT_R(regs, i)	_PTREG_OUT_IDX(regs, uregs, r, i)
++#define PTREG_OUT_R(regs, i)	PTREG_OUT(regs, r##i, r##i)
 +
 +#define arch_has_save_ptregs	1
 +
@@ -56,10 +56,6 @@ index 9dcb11e..b9a0488 100644
 +const struct pt_regs *save_ptregs(struct pt_regs *regs)
 +{
 +	__asm__ __volatile__ (
-+			/*
-+			 * I think ARM has an instruction to store multiple
-+			 * registers it would be nice to use that
-+			 */
 +			PTREG_SAVE_R(0)
 +			PTREG_SAVE_R(1)
 +			PTREG_SAVE_R(2)
@@ -71,16 +67,14 @@ index 9dcb11e..b9a0488 100644
 +			PTREG_SAVE_R(8)
 +			PTREG_SAVE_R(9)
 +			PTREG_SAVE_R(10)
-+			PTREG_SAVE(fp, fp)
-+			PTREG_SAVE(ip, ip)
++			PTREG_SAVE_R(11)
++			PTREG_SAVE_R(12)
 +			PTREG_SAVE(sp, sp)
 +			PTREG_SAVE(lr, lr)
-+
-+			"mrs	r0, cpsr\n"
-+			PTREG_SAVE(r0, cpsr)
-+
++			PTREG_SAVE(sr, sr)
++			PTREG_SAVE(r12_orig, r12_orig)
 +		"1:\n"
-+			"adr	r0, 1b\n"
++			"mov r0, 1b\n"
 +			PTREG_SAVE(r0, pc)
 +	:
 +		PTREG_OUT_R(regs, 0),
@@ -94,35 +88,36 @@ index 9dcb11e..b9a0488 100644
 +		PTREG_OUT_R(regs, 8),
 +		PTREG_OUT_R(regs, 9),
 +		PTREG_OUT_R(regs, 10),
-+		PTREG_OUT(regs, ARM_fp, fp),
-+		PTREG_OUT(regs, ARM_ip, ip),
-+		PTREG_OUT(regs, ARM_sp, sp),
-+		PTREG_OUT(regs, ARM_lr, lr),
-+		PTREG_OUT(regs, ARM_pc, pc),
-+		PTREG_OUT(regs, ARM_cpsr, cpsr)
-+	:
++		PTREG_OUT_R(regs, 11),
++		PTREG_OUT_R(regs, 12),
++		PTREG_OUT(regs, sp, sp),
++		PTREG_OUT(regs, lr, lr),
++		PTREG_OUT(regs, pc, pc),
++		PTREG_OUT(regs, sr, sr),
++		PTREG_OUT(regs, r12_orig, r12_orig)
 +	:
 +		"r0"
 +	);
 +
 +	return regs;
 +}
+ 
  #endif /* __KERNEL__ */
  
- #endif /* __ASSEMBLY__ */
-diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
-index 1621e53..128be0f 100644
---- a/arch/arm/kernel/traps.c
-+++ b/arch/arm/kernel/traps.c
-@@ -282,9 +282,9 @@ void die(const char *str, struct pt_regs *regs, int err)
- 	oops_exit();
+diff --git a/arch/avr32/kernel/traps.c b/arch/avr32/kernel/traps.c
+index b91b204..100c52a 100644
+--- a/arch/avr32/kernel/traps.c
++++ b/arch/avr32/kernel/traps.c
+@@ -65,10 +65,10 @@ void NORET_TYPE die(const char *str, struct pt_regs *regs, long err)
+ 	spin_unlock_irq(&die_lock);
  
  	if (in_interrupt())
 -		panic("Fatal exception in interrupt");
 +		panic_with_regs(regs, "Fatal exception in interrupt");
+ 
  	if (panic_on_oops)
 -		panic("Fatal exception");
 +		panic_with_regs(regs, "Fatal exception");
- 	if (ret != NOTIFY_STOP)
- 		do_exit(SIGSEGV);
+ 
+ 	do_exit(err);
  }
