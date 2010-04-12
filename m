@@ -1,8 +1,8 @@
 From: David VomLehn <dvomlehn@cisco.com>
-Subject: [PATCH 5/23] Make register values available to Blackfin panic
+Subject: [PATCH 14/23] Make register values available to MN10300 panic
 	notifiers
-Date: Sun, 11 Apr 2010 23:06:22 -0700
-Message-ID: <20100412060622.GA25399@dvomlehn-lnx2.corp.sa.net>
+Date: Sun, 11 Apr 2010 23:06:51 -0700
+Message-ID: <20100412060651.GA25653@dvomlehn-lnx2.corp.sa.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
@@ -12,90 +12,33 @@ To: to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-ar
 Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
 List-Id: linux-arch.vger.kernel.org
 
-The save_ptregs() functions compiles cleanly, but has not been tested.
+The save_ptregs() function has not been tested or even built. I will need
+help to complete this.
 
 Signed-off-by: David VomLehn <dvomlehn@cisco.com>
 ---
- arch/blackfin/include/asm/blackfin.h |   10 +-
- arch/blackfin/include/asm/ptrace.h   |  187 ++++++++++++++++++++++++++++++++++
- arch/blackfin/kernel/traps.c         |    8 +-
- 3 files changed, 196 insertions(+), 9 deletions(-)
+ arch/mn10300/include/asm/ptrace.h |   92 +++++++++++++++++++++++++++++++++++++
+ arch/mn10300/kernel/traps.c       |    2 +-
+ 2 files changed, 93 insertions(+), 1 deletions(-)
 
-diff --git a/arch/blackfin/include/asm/blackfin.h b/arch/blackfin/include/asm/blackfin.h
-index eb7c144..9cfa5cc 100644
---- a/arch/blackfin/include/asm/blackfin.h
-+++ b/arch/blackfin/include/asm/blackfin.h
-@@ -11,6 +11,11 @@
- 
- #include <mach/anomaly.h>
- 
-+#define LO(con32) ((con32) & 0xFFFF)
-+#define lo(con32) ((con32) & 0xFFFF)
-+#define HI(con32) (((con32) >> 16) & 0xFFFF)
-+#define hi(con32) (((con32) >> 16) & 0xFFFF)
-+
- #ifndef __ASSEMBLY__
- 
- /* SSYNC implementation for C file */
-@@ -63,11 +68,6 @@ static inline void CSYNC(void)
- 
- #else  /* __ASSEMBLY__ */
- 
--#define LO(con32) ((con32) & 0xFFFF)
--#define lo(con32) ((con32) & 0xFFFF)
--#define HI(con32) (((con32) >> 16) & 0xFFFF)
--#define hi(con32) (((con32) >> 16) & 0xFFFF)
--
- /* SSYNC & CSYNC implementations for assembly files */
- 
- #define ssync(x) SSYNC(x)
-diff --git a/arch/blackfin/include/asm/ptrace.h b/arch/blackfin/include/asm/ptrace.h
-index aaa1c6c..8bb8012 100644
---- a/arch/blackfin/include/asm/ptrace.h
-+++ b/arch/blackfin/include/asm/ptrace.h
-@@ -127,6 +127,193 @@ extern void user_disable_single_step(struct task_struct *child);
- 	    ((unsigned long)task_stack_page(task) + \
- 	     (THREAD_SIZE - sizeof(struct pt_regs)))
+diff --git a/arch/mn10300/include/asm/ptrace.h b/arch/mn10300/include/asm/ptrace.h
+index 1b0ba5e..e8e3548 100644
+--- a/arch/mn10300/include/asm/ptrace.h
++++ b/arch/mn10300/include/asm/ptrace.h
+@@ -102,6 +102,98 @@ extern void show_regs(struct pt_regs *);
+ extern void user_enable_single_step(struct task_struct *);
+ extern void user_disable_single_step(struct task_struct *);
  
 +/* Macros for saving the contents of registers and for the output constraint
 + * for those registers */
-+#include <linux/ptreg.h>
-+#include <asm/blackfin.h>
++#define PTREG_SAVE(r, name)	"mov	" #r ", %[" #name "]\n"
++#define PTREG_SAVE_D(i)		PTREG_SAVE_I(d, d, i)
++#define PTREG_SAVE_A(i)		PTREG_SAVE_I(a, a, i)
++#define PTREG_SAVE_E(i)		PTREG_SAVE_I(e, e, i)
 +
-+#define STR(x)	#x
-+#define VAL(x)	STR(x)
-+
-+#define PTREG_SAVE(r, name)	"%[" #name	"] = " #r "\n"
-+
-+/*
-+ * The following is used for cases where the register can't be saved
-+ * directly, but must first be moved to another register that can be
-+ * saved directly. The second register must already have been saved
-+ * by the time this macro is used.
-+ */
-+#define PTREG_INDIRECT_SAVE(tmp_r, r, name) \
-+				#tmp_r " = " #r "\n" \
-+				PTREG_SAVE(tmp_r, name)
-+
-+#define PTREG_SAVE_LB(i)	_PTREG_INDIRECT_SAVE_I(R0, LB, lb, i)
-+#define PTREG_SAVE_LT(i)	_PTREG_INDIRECT_SAVE_I(R0, LT, lt, i)
-+#define PTREG_SAVE_LC(i)	_PTREG_INDIRECT_SAVE_I(R0, LC, lc, i)
-+#define PTREG_SAVE_B(i)		_PTREG_INDIRECT_SAVE_I(R0, B, b, i)
-+#define PTREG_SAVE_L(i)		_PTREG_INDIRECT_SAVE_I(R0, L, l, i)
-+#define PTREG_SAVE_M(i)		_PTREG_INDIRECT_SAVE_I(R0, M, m, i)
-+#define PTREG_SAVE_I(_i)	_PTREG_INDIRECT_SAVE_I(R0, I, i, _i)
-+#define PTREG_SAVE_P(i)		_PTREG_SAVE_I(P, p, i)
-+#define PTREG_SAVE_R(i)		_PTREG_SAVE_I(R, r, i)
-+
-+#define PTREG_OUT_LB(regs, i)	_PTREG_OUT_I(regs, lb, lb, i)
-+#define PTREG_OUT_LT(regs, i)	_PTREG_OUT_I(regs, lt, lt, i)
-+#define PTREG_OUT_LC(regs, i)	_PTREG_OUT_I(regs, lc, lc, i)
-+#define PTREG_OUT_B(regs, i)	_PTREG_OUT_I(regs, b, b, i)
-+#define PTREG_OUT_L(regs, i)	_PTREG_OUT_I(regs, l, l, i)
-+#define PTREG_OUT_M(regs, i)	_PTREG_OUT_I(regs, m, m, i)
-+#define PTREG_OUT_I(regs, _i)	_PTREG_OUT_I(regs, i, i, _i)
-+#define PTREG_OUT_P(regs, i)	_PTREG_OUT_I(regs, p, p, i)
-+#define PTREG_OUT_R(regs, i)	_PTREG_OUT_I(regs, r, r, i)
++#define PTREG_OUT_D(regs, i)	PTREG_OUT_I(regs, d, d, i)
++#define PTREG_OUT_A(regs, i)	PTREG_OUT_I(regs, a, a, i)
++#define PTREG_OUT_E(regs, i)	PTREG_OUT_I(regs, e, e, i)
 +
 +#define arch_has_save_ptregs	1
 +
@@ -113,175 +56,84 @@ index aaa1c6c..8bb8012 100644
 +const struct pt_regs *save_ptregs(struct pt_regs *regs)
 +{
 +	__asm__ __volatile__ (
-+			/* Save the Dregs and Pregs first because we may
-+			 * use them to save other registers */
-+			PTREG_SAVE_R(7)
-+			PTREG_SAVE_R(6)
-+			PTREG_SAVE_R(5)
-+			PTREG_SAVE_R(4)
-+			PTREG_SAVE_R(3)
-+			PTREG_SAVE_R(2)
-+			PTREG_SAVE_R(1)
-+			PTREG_SAVE_R(0)
-+			PTREG_SAVE_P(5)
-+			PTREG_SAVE_P(4)
-+			PTREG_SAVE_P(3)
-+			PTREG_SAVE_P(2)
-+			PTREG_SAVE_P(1)
-+			PTREG_SAVE_P(0)
-+
-+			/* Now all of the Dregs and Pregs can be used for
-+			 * saving other registers. Just be sure to add them
-+			 * to the clobbered list */
-+
-+			"p0.l = " VAL(lo(IPEND)) "\n"
-+			"p0.h = " VAL(hi(IPEND)) "\n"
-+			PTREG_SAVE(p0, ipend)
-+			PTREG_INDIRECT_SAVE(R0, seqstat, seqstat)
-+			PTREG_INDIRECT_SAVE(R0, rete, rete)
-+			PTREG_INDIRECT_SAVE(R0, retn, retn)
-+			PTREG_INDIRECT_SAVE(R0, retx, retx)
-+			PTREG_INDIRECT_SAVE(R0, rets, rets)
-+			PTREG_INDIRECT_SAVE(R0, astat, astat)
-+			PTREG_SAVE_LB(1)
-+			PTREG_SAVE_LB(0)
-+			PTREG_SAVE_LT(1)
-+			PTREG_SAVE_LT(0)
-+			PTREG_SAVE_LC(1)
-+			PTREG_SAVE_LC(0)
-+
-+	:
-+		PTREG_OUT_R(regs, 7),
-+		PTREG_OUT_R(regs, 6),
-+		PTREG_OUT_R(regs, 5),
-+		PTREG_OUT_R(regs, 4),
-+		PTREG_OUT_R(regs, 3),
-+		PTREG_OUT_R(regs, 2),
-+		PTREG_OUT_R(regs, 1),
-+		PTREG_OUT_R(regs, 0),
-+		PTREG_OUT_P(regs, 5),
-+		PTREG_OUT_P(regs, 4),
-+		PTREG_OUT_P(regs, 3),
-+		PTREG_OUT_P(regs, 2),
-+		PTREG_OUT_P(regs, 1),
-+		PTREG_OUT_P(regs, 0),
-+		PTREG_OUT(regs, ipend, ipend),
-+		PTREG_OUT(regs, seqstat, seqstat),
-+		PTREG_OUT(regs, rete, rete),
-+		PTREG_OUT(regs, retn, retn),
-+		PTREG_OUT(regs, retx, retx),
-+		PTREG_OUT(regs, rets, rets),
-+		PTREG_OUT(regs, astat, astat),
-+		PTREG_OUT_LB(regs, 1),
-+		PTREG_OUT_LB(regs, 0),
-+		PTREG_OUT_LT(regs, 1),
-+		PTREG_OUT_LT(regs, 0),
-+		PTREG_OUT_LC(regs, 1),
-+		PTREG_OUT_LC(regs, 0)
-+	:
-+	:
-+		"R0", "P0"
-+	);
-+	__asm__ __volatile__ (
-+			PTREG_INDIRECT_SAVE(R0, A1.W, a1w)
-+			PTREG_INDIRECT_SAVE(R0, A1.X, a1x)
-+			PTREG_INDIRECT_SAVE(R0, A0.W, a0w)
-+			PTREG_INDIRECT_SAVE(R0, A0.X, a0x)
-+			PTREG_SAVE_B(3)
-+			PTREG_SAVE_B(2)
-+			PTREG_SAVE_B(1)
-+			PTREG_SAVE_B(0)
-+			PTREG_SAVE_L(3)
-+			PTREG_SAVE_L(2)
-+			PTREG_SAVE_L(1)
-+			PTREG_SAVE_L(0)
-+			PTREG_SAVE_M(3)
-+			PTREG_SAVE_M(2)
-+			PTREG_SAVE_M(1)
-+			PTREG_SAVE_M(0)
-+			PTREG_SAVE_I(3)
-+			PTREG_SAVE_I(2)
-+			PTREG_SAVE_I(1)
-+			PTREG_SAVE_I(0)
-+			PTREG_INDIRECT_SAVE(R0, USP, usp)
-+			PTREG_INDIRECT_SAVE(R0, FP, fp)
-+			PTREG_INDIRECT_SAVE(R0, SYSCFG, syscfg)
++			PTREG_SAVE_A(3)
++			PTREG_SAVE_A(2)
++			PTREG_SAVE_D(3)
++			PTREG_SAVE_D(2)
++			PTREG_SAVE(mcvf, mcvf)
++			PTREG_SAVE(mcrl, mcrl)
++			PTREG_SAVE(mcrh, mcrh)
++			PTREG_SAVE(mdrq, mdrq)
++			PTREG_SAVE_E(1)
++			PTREG_SAVE_E(0)
++			PTREG_SAVE_E(7)
++			PTREG_SAVE_E(6)
++			PTREG_SAVE_E(5)
++			PTREG_SAVE_E(4)
++			PTREG_SAVE_E(3)
++			PTREG_SAVE_E(2)
++			PTREG_SAVE(sp, sp)
++			PTREG_SAVE(lar, lar)
++			PTREG_SAVE(lir, lir)
++			PTREG_SAVE(mdr, mdr)
++			PTREG_SAVE_A(1)
++			PTREG_SAVE_A(0)
++			PTREG_SAVE_D(1)
++			PTREG_SAVE_D(0)
++			PTREG_SAVE(next, next)
++			PTREG_SAVE(orig_d0, orig_d0)
++			PTREG_SAVE(epsw, epsw)
 +		"1:\n"
-+			/* We've saved P0 already, so we can use it go set
-+			 * the pc */
-+			"P0.h = 1b\n"
-+			"P0.l = 1b\n"
-+			PTREG_SAVE(P0, pc)
++			"mov	1b, a0\n"
++			PTREG_SAVE(a0, pc)
 +	:
-+		PTREG_OUT(regs, a1w, a1w),
-+		PTREG_OUT(regs, a1x, a1x),
-+		PTREG_OUT(regs, a0w, a0w),
-+		PTREG_OUT(regs, a0x, a0x),
-+		PTREG_OUT_B(regs, 3),
-+		PTREG_OUT_B(regs, 2),
-+		PTREG_OUT_B(regs, 1),
-+		PTREG_OUT_B(regs, 0),
-+		PTREG_OUT_L(regs, 3),
-+		PTREG_OUT_L(regs, 2),
-+		PTREG_OUT_L(regs, 1),
-+		PTREG_OUT_L(regs, 0),
-+		PTREG_OUT_M(regs, 3),
-+		PTREG_OUT_M(regs, 2),
-+		PTREG_OUT_M(regs, 1),
-+		PTREG_OUT_M(regs, 0),
-+		PTREG_OUT_I(regs, 3),
-+		PTREG_OUT_I(regs, 2),
-+		PTREG_OUT_I(regs, 1),
-+		PTREG_OUT_I(regs, 0),
-+		PTREG_OUT(regs, usp, usp),
-+		PTREG_OUT(regs, fp, fp),
-+		PTREG_OUT(regs, syscfg, syscfg),
++		PTREG_OUT_A(regs, 3)
++		PTREG_OUT_A(regs, 2)
++		PTREG_OUT_D(regs, 3)
++		PTREG_OUT_D(regs, 2)
++		PTREG_OUT(regs, mcvf, mcvf)
++		PTREG_OUT(regs, mcrl, mcrl)
++		PTREG_OUT(regs, mcrh, mcrh)
++		PTREG_OUT(regs, mdrq, mdrq)
++		PTREG_OUT_E(regs, 1)
++		PTREG_OUT_E(regs, 0)
++		PTREG_OUT_E(regs, 7)
++		PTREG_OUT_E(regs, 6)
++		PTREG_OUT_E(regs, 5)
++		PTREG_OUT_E(regs, 4)
++		PTREG_OUT_E(regs, 3)
++		PTREG_OUT_E(regs, 2)
++		PTREG_OUT(regs, sp, sp)
++		PTREG_OUT(regs, lar, lar)
++		PTREG_OUT(regs, lir, lir)
++		PTREG_OUT(regs, mdr, mdr)
++		PTREG_OUT_A(regs, 1)
++		PTREG_OUT_A(regs, 0)
++		PTREG_OUT_D(regs, 1)
++		PTREG_OUT_D(regs, 0)
++		PTREG_OUT(regs, next, next)
++		PTREG_OUT(regs, orig_d0, orig_d0)
++		PTREG_OUT(regs, epsw, epsw)
 +		PTREG_OUT(regs, pc, pc)
 +	:
-+	:
-+		"R0", "P0"
++		"a0"
 +	);
 +
 +	return regs;
 +}
- #endif  /*  __KERNEL__  */
+ #endif  /*  !__ASSEMBLY  */
  
- #endif				/* __ASSEMBLY__ */
-diff --git a/arch/blackfin/kernel/traps.c b/arch/blackfin/kernel/traps.c
-index ba70c4b..44a709c 100644
---- a/arch/blackfin/kernel/traps.c
-+++ b/arch/blackfin/kernel/traps.c
-@@ -246,7 +246,7 @@ asmlinkage void double_fault_c(struct pt_regs *fp)
- 		dump_bfin_trace_buffer();
- 	}
- #endif
--	panic("Double Fault - unrecoverable event");
-+	panic_with_regs(fp, "Double Fault - unrecoverable event");
+ #define profile_pc(regs) ((regs)->pc)
+diff --git a/arch/mn10300/kernel/traps.c b/arch/mn10300/kernel/traps.c
+index 91365ad..0251adf 100644
+--- a/arch/mn10300/kernel/traps.c
++++ b/arch/mn10300/kernel/traps.c
+@@ -471,7 +471,7 @@ asmlinkage void io_bus_error(u32 bcberr, u32 bcbear, struct pt_regs *regs)
+ 	printk(KERN_EMERG "\n");
+ 	show_registers(regs);
  
+-	panic("Halted due to asynchronous I/O Bus Error\n");
++	panic_with_regs(regs, "Halted due to asynchronous I/O Bus Error\n");
  }
  
-@@ -388,7 +388,7 @@ asmlinkage notrace void trap_c(struct pt_regs *fp)
- 				/* call to panic() will dump trace, and it is
- 				 * off at this point, so it won't be clobbered
- 				 */
--				panic("BUG()");
-+				panic_with_regs(fp, "BUG()");
- 			}
- 		}
- #endif
-@@ -631,7 +631,7 @@ asmlinkage notrace void trap_c(struct pt_regs *fp)
- 			verbose_printk(KERN_EMERG "Please turn on "
- 			       "CONFIG_ACCESS_CHECK\n");
- #endif
--			panic("Kernel exception");
-+			panic_with_regs(fp, "Kernel exception");
- 		} else {
- #ifdef CONFIG_DEBUG_VERBOSE
- 			unsigned long *stack;
-@@ -1347,5 +1347,5 @@ void panic_cplb_error(int cplb_panic, struct pt_regs *fp)
- 	dump_bfin_mem(fp);
- 	show_regs(fp);
- 	dump_stack();
--	panic("Unrecoverable event");
-+	panic_with_regs(fp, "Unrecoverable event");
- }
+ /*
