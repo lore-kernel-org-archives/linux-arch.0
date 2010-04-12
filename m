@@ -1,41 +1,44 @@
 From: David VomLehn <dvomlehn@cisco.com>
-Subject: [PATCH 8/23] Make register values available to H8300 panic
+Subject: [PATCH 2/23] Make register values available to Alpha panic
 	notifiers
-Date: Sun, 11 Apr 2010 23:06:32 -0700
-Message-ID: <20100412060632.GA25482@dvomlehn-lnx2.corp.sa.net>
+Date: Sun, 11 Apr 2010 23:06:13 -0700
+Message-ID: <20100412060613.GA25303@dvomlehn-lnx2.corp.sa.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from sj-iport-5.cisco.com ([171.68.10.87]:6473 "EHLO
+	sj-iport-5.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753333Ab0DLGGN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:06:13 -0400
 Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org
 Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
-List-Id: linux-arch.vger.kernel.org
 
 The save_ptregs() function has not been tested or even built. I will need
 help to complete this.
 
 Signed-off-by: David VomLehn <dvomlehn@cisco.com>
 ---
- arch/h8300/include/asm/ptrace.h |   64 +++++++++++++++++++++++++++++++++++++++
- 1 files changed, 64 insertions(+), 0 deletions(-)
+ arch/alpha/include/asm/ptrace.h |  124 +++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 124 insertions(+), 0 deletions(-)
 
-diff --git a/arch/h8300/include/asm/ptrace.h b/arch/h8300/include/asm/ptrace.h
-index d866c0e..09d6f3f 100644
---- a/arch/h8300/include/asm/ptrace.h
-+++ b/arch/h8300/include/asm/ptrace.h
-@@ -61,6 +61,70 @@ struct pt_regs {
- #define instruction_pointer(regs) ((regs)->pc)
- #define profile_pc(regs) instruction_pointer(regs)
- extern void show_regs(struct pt_regs *);
-+
+diff --git a/arch/alpha/include/asm/ptrace.h b/arch/alpha/include/asm/ptrace.h
+index 65cf3e2..952d177 100644
+--- a/arch/alpha/include/asm/ptrace.h
++++ b/arch/alpha/include/asm/ptrace.h
+@@ -79,6 +79,130 @@ extern void show_regs(struct pt_regs *);
+ 
+ #define force_successful_syscall_return() (task_pt_regs(current)->r0 = 0)
+ 
 +/* Macros for saving the contents of registers and for the output constraint
 + * for those registers */
-+#include "/home/vomlehn/git/kernel.org/ptreg.h"
-+#define PTREG_SAVE(r, name)	"mov.l	" #r ", %[" #name "]\n"
-+#define PTREG_SAVE_ER(i)	PTREG_SAVE_I(er, er, i)
++#include "/home/vomlehn/git/kernel.org/linux/ptreg.h"
++#define PTREG_SAVE(r, name)	"stq	" #r ", %[" #name "]\n"
++#define PTREG_SAVE_R(i)		PTREG_SAVE_I($, r, i)
 +
-+#define PTREG_OUT_ER(regs, i)	PTREG_OUT_I(regs, er, er, i)
++#define PTREG_OUT_R(regsp, i)	PTREG_OUT_I(regsp, r, r, i)
 +
 +#define arch_has_save_ptregs	1
 +
@@ -53,45 +56,106 @@ index d866c0e..09d6f3f 100644
 +const struct pt_regs *save_ptregs(struct pt_regs *regs)
 +{
 +	__asm__ __volatile__ (
-+			PTREG_SAVE(retpc, retpc)
-+			PTREG_SAVE_ER(4)
-+			PTREG_SAVE_ER(5)
-+			PTREG_SAVE_ER(6)
-+			PTREG_SAVE_ER(3)
-+			PTREG_SAVE_ER(2)
-+			PTREG_SAVE_ER(1)
-+			PTREG_SAVE(orig_er0, orig_er0)
-+			PTREG_SAVE(ccr, ccr)
-+			PTREG_SAVE_ER(0)
-+			PTREG_SAVE(vector, vector)
-+#if defined(CONFIG_CPU_H8S)
-+			PTREG_SAVE(exr, exr)
-+#endif
-+		"1:\n"
-+			"mov.l	#1b, er0\n"
-+			PTREG_SAVE(er0, pc)
++			/* Based on the SAVE_ALL code */
++			PTREG_SAVE_R(0)
++			PTREG_SAVE_R(1)
++			PTREG_SAVE_R(2)
++			PTREG_SAVE_R(3)
++			PTREG_SAVE_R(4)
++			PTREG_SAVE_R(28)
++			"lda	$2, alpha_mv\n"
++			PTREG_SAVE_R(5)
++			PTREG_SAVE_R(6)
++			PTREG_SAVE_R(7)
++			PTREG_SAVE_R(8)
++			PTREG_SAVE_R(19)
++			PTREG_SAVE_R(20)
++			PTREG_SAVE_R(21)
++			"ldq	$2, HAE_CACHE($2)\n"
++			PTREG_SAVE_R(22)
++			PTREG_SAVE_R(23)
++			PTREG_SAVE_R(24)
++			PTREG_SAVE_R(25)
++			PTREG_SAVE_R(26)
++			PTREG_SAVE_R(27)
++			PTREG_SAVE($2, hae)
++			PTREG_SAVE_R(16)
++			PTREG_SAVE_R(17)
++			PTREG_SAVE_R(18)
++
++			PTREG_SAVE_R(9)
++			PTREG_SAVE_R(10)
++			PTREG_SAVE_R(11)
++			PTREG_SAVE_R(12)
++			PTREG_SAVE_R(13)
++			PTREG_SAVE_R(14)
++			PTREG_SAVE_R(15)
++			PTREG_SAVE_R(29)
++			PTREG_SAVE_R(30)
++			PTREG_SAVE_R(31)
++			PTREG_SAVE_REG($gp, gp)
++			PTREG_SAVE_REG($31, ps)
++
++			/* These are almost certainly wrong */
++			PTREG_SAVE_REG(trap_a0, trap_a0)
++			PTREG_SAVE_REG(trap_a1, trap_a1)
++			PTREG_SAVE_REG(trap_a2, trap_a2)
++		/*
++		 * The current location is the one for which the register
++		 * values are correct, even if some had been modified on
++		 * function entry. So, the current location is the value to
++		 * save as the execution address.
++		 */
++		"1b:\n"
++			"lda	$2, 1b\n"
++			PTREG_SAVE($2, pc)
 +	:
-+		PTREG_OUT(regs, retpc, retpc)
-+		PTREG_OUT(regs, 4)
-+		PTREG_OUT(regs, 5)
-+		PTREG_OUT(regs, 6)
-+		PTREG_OUT(regs, 3)
-+		PTREG_OUT(regs, 2)
-+		PTREG_OUT(regs, 1)
-+		PTREG_OUT(regs, orig_er0, orig_er0)
-+		PTREG_OUT(regs, ccr, ccr)
-+		PTREG_OUT(regs, 0)
-+		PTREG_OUT(regs, vector, vector)
-+#if defined(CONFIG_CPU_H8S)
-+		PTREG_OUT(regs, exr, exr)
-+#endif
-+		PTREG_OUT(regs, pc, pc)
++		PTREG_OUT_R(regs, 0),
++		PTREG_OUT_R(regs, 1),
++		PTREG_OUT_R(regs, 2),
++		PTREG_OUT_R(regs, 3),
++		PTREG_OUT_R(regs, 4),
++		PTREG_OUT_R(regs, 5),
++		PTREG_OUT_R(regs, 6),
++		PTREG_OUT_R(regs, 7),
++		PTREG_OUT_R(regs, 8),
++		PTREG_OUT_R(regs, 9),
++		PTREG_OUT_R(regs, 10),
++		PTREG_OUT_R(regs, 11),
++		PTREG_OUT_R(regs, 12),
++		PTREG_OUT_R(regs, 13),
++		PTREG_OUT_R(regs, 14),
++		PTREG_OUT_R(regs, 15),
++		PTREG_OUT_R(regs, 16),
++		PTREG_OUT_R(regs, 17),
++		PTREG_OUT_R(regs, 18),
++		PTREG_OUT_R(regs, 19),
++		PTREG_OUT_R(regs, 20),
++		PTREG_OUT_R(regs, 21),
++		PTREG_OUT_R(regs, 22),
++		PTREG_OUT_R(regs, 23),
++		PTREG_OUT_R(regs, 24),
++		PTREG_OUT_R(regs, 25),
++		PTREG_OUT_R(regs, 26),
++		PTREG_OUT_R(regs, 27),
++		PTREG_OUT_R(regs, 28),
++		PTREG_OUT_R(regs, 29),
++		PTREG_OUT_R(regs, 30),
++		PTREG_OUT_R(regs, 31),
++
++		PTREG_OUT(regs, hae, hae),
++		PTREG_OUT(regs, trap_a0, trap_a0),
++		PTREG_OUT(regs, trap_a1, trap_a1),
++		PTREG_OUT(regs, trap_a2, trap_a2),
++		PTREG_OUT(regs, ps, ps),
++		PTREG_OUT(regs, pc, pc),
++		PTREG_OUT(regs, gp, gp)
 +	:
-+		"er0"
++		"$2"
 +	);
 +
 +	return regs;
 +}
- #endif /* __KERNEL__ */
- #endif /* __ASSEMBLY__ */
- #endif /* _H8300_PTRACE_H */
+ #endif
+ 
+ #endif
