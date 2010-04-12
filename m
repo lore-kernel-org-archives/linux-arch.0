@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sj-iport-4.cisco.com ([171.68.10.86]:11409 "EHLO
-	sj-iport-4.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753594Ab0DLGHB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:07:01 -0400
-Date: Sun, 11 Apr 2010 23:07:00 -0700
+Received: from sj-iport-5.cisco.com ([171.68.10.87]:6787 "EHLO
+	sj-iport-5.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753600Ab0DLGHR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:07:17 -0400
+Date: Sun, 11 Apr 2010 23:07:16 -0700
 From: David VomLehn <dvomlehn@cisco.com>
-Subject: [PATCH 17/23] Make register values available to S/390 panic
-	notifiers
-Message-ID: <20100412060700.GA25740@dvomlehn-lnx2.corp.sa.net>
+Subject: [PATCH 22/23] Make register values available to x86 panic notifiers
+Message-ID: <20100412060716.GA25980@dvomlehn-lnx2.corp.sa.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -15,41 +14,26 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org
 Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
-Message-ID: <20100412060700.2mHnXBcgxaz-cqb_-ogKrY0bpo1P5rvHDoFPR81UZ3o@z>
+Message-ID: <20100412060716.T67He-IEn_cP58RPaGpCKXTSwuAdrIoxauB-cQBmCME@z>
 
-The save_ptregs() function has not been tested or even built. I will need
-help to complete this.
+The save_ptregs() function compiles cleanly for 32-bit and 64-bit
+configurations, but has not been tested for either.
 
 Signed-off-by: David VomLehn <dvomlehn@cisco.com>
 ---
- arch/s390/include/asm/ptrace.h |   94 ++++++++++++++++++++++++++++++++++++++++
- arch/s390/kernel/traps.c       |    4 +-
- 2 files changed, 96 insertions(+), 2 deletions(-)
+ arch/x86/include/asm/ptrace.h |  115 +++++++++++++++++++++++++++++++++++++++++
+ arch/x86/kernel/traps.c       |    6 +-
+ 2 files changed, 118 insertions(+), 3 deletions(-)
 
-diff --git a/arch/s390/include/asm/ptrace.h b/arch/s390/include/asm/ptrace.h
-index fef9b33..6665159 100644
---- a/arch/s390/include/asm/ptrace.h
-+++ b/arch/s390/include/asm/ptrace.h
-@@ -507,6 +507,100 @@ static inline unsigned long kernel_stack_pointer(struct pt_regs *regs)
- 	return regs->gprs[15] & PSW_ADDR_INSN;
- }
+diff --git a/arch/x86/include/asm/ptrace.h b/arch/x86/include/asm/ptrace.h
+index 9d369f6..9e2d3d2 100644
+--- a/arch/x86/include/asm/ptrace.h
++++ b/arch/x86/include/asm/ptrace.h
+@@ -306,6 +306,121 @@ extern void ptrace_bts_untrace(struct task_struct *tsk);
+ #define arch_ptrace_untrace(tsk)	ptrace_bts_untrace(tsk)
+ #endif /* CONFIG_X86_PTRACE_BTS */
  
-+
-+/* Macros for saving the contents of registers and for the output constraint
-+ * for those registers */
-+#include "/home/vomlehn/git/kernel.org/ptreg.h"
-+#ifndef CONFIG_64BIT
-+#define PTREG_SAVE(r, name)	"st	" #r ", %[" #name "]\n"
-+#else
-+#define PTREG_SAVE(r, name)	"stg	" #r ", %[" #name "]\n"
-+#endif
-+
-+#define PTREG_SAVE_GPR(i)	PTREG_SAVE_I(gprs, r, i)
-+#define PTREG_SAVE_ARG(i)	PTREG_SAVE_I(args, r, i)
-+
-+#define PTREG_SAVE_R(regs, i)	PTREG_SAVE_I(regs, gprs, r, i)
-+#define PTREG_SAVE_ARG(regs, i)	PTREG_SAVE_I(regs, arg, r, i)
-+
++#include <linux/ptreg.h>
 +#define arch_has_save_ptregs	1
 +
 +/**
@@ -57,93 +41,144 @@ index fef9b33..6665159 100644
 + * @regs:	Pointer to &struct pt_regs structure in which to save the
 + *		registers
 + *
-+ * Returns a constant pointer to @regs.
-+ *
-+ * This function must be called first in a function. There must be no
-+ * auto variables defined that are initialized before calling this function.
++ * Returns a constant pointer to @regs
 + */
++#ifdef __i386__
++#define PTREG_SAVE(r)	"	mov	%%" #r ", %[" #r "]\n"
++
++static __always_inline
++const struct pt_regs *save_ptregs(register struct pt_regs *regs)
++{
++	__asm__ __volatile__ (
++			PTREG_SAVE(bx)
++			PTREG_SAVE(cx)
++			PTREG_SAVE(dx)
++			PTREG_SAVE(si)
++			PTREG_SAVE(di)
++			PTREG_SAVE(bp)
++			PTREG_SAVE(ax)
++			PTREG_SAVE(ds)
++			PTREG_SAVE(es)
++			PTREG_SAVE(fs)
++			PTREG_SAVE(gs)
++			PTREG_SAVE(cs)
++			PTREG_SAVE(sp)
++			PTREG_SAVE(ss)
++		"	pushfl\n"
++		"	pop	%[flags]\n"
++		"1:\n"
++		"	movl	$1b, %[ip]\n"
++	:
++		PTREG_OUT(regs, bx, bx),
++		PTREG_OUT(regs, cx, cx),
++		PTREG_OUT(regs, dx, dx),
++		PTREG_OUT(regs, si, si),
++		PTREG_OUT(regs, di, di),
++		PTREG_OUT(regs, bp, bp),
++		PTREG_OUT(regs, ax, ax),
++		PTREG_OUT(regs, ds, ds),
++		PTREG_OUT(regs, es, es),
++		PTREG_OUT(regs, fs, fs),
++		PTREG_OUT(regs, gs, gs),
++		PTREG_OUT(regs, ip, ip),
++		PTREG_OUT(regs, cs, cs),
++		PTREG_OUT(regs, flags, flags),
++		PTREG_OUT(regs, sp, sp),
++		PTREG_OUT(regs, ss, ss)
++	:
++	);
++	return regs;
++}
++#else
++#define PTREG_SAVE(r, name)	"	movq	%%" #r ", %[" #name "]\n"
++#define PTREG_SAVE_R(i)		_PTREG_SAVE_I(r, r, i)
++
++#define PTREG_OUT_R(regs, i)	_PTREG_OUT_I(regs, r, r, i)
++
 +static __always_inline
 +const struct pt_regs *save_ptregs(struct pt_regs *regs)
 +{
 +	__asm__ __volatile__ (
-+			PTREG_SAVE_ARG(0)
-+			PTREG_SAVE(psw, psw)
-+			PTREG_SAVE_GPR(0)
-+			PTREG_SAVE_GPR(1)
-+			PTREG_SAVE_GPR(2)
-+			PTREG_SAVE_GPR(3)
-+			PTREG_SAVE_GPR(4)
-+			PTREG_SAVE_GPR(5)
-+			PTREG_SAVE_GPR(6)
-+			PTREG_SAVE_GPR(7)
-+			PTREG_SAVE_GPR(8)
-+			PTREG_SAVE_GPR(9)
-+			PTREG_SAVE_GPR(10)
-+			PTREG_SAVE_GPR(11)
-+			PTREG_SAVE_GPR(12)
-+			PTREG_SAVE_GPR(13)
-+			PTREG_SAVE_GPR(14)
-+			PTREG_SAVE_GPR(15)
-+			PTREG_SAVE(orig_gpr2, orig_gpr2)
-+			PTREG_SAVE(svcnr, svcnr)
-+			PTREG_SAVE(ilc, ilc)
-+		/*
-+		 * The current location is the one for which the register
-+		 * values are correct, even if some had been modified on
-+		 * function entry. So, the current location is the value to
-+		 * save as the execution address.
-+		 */
-+#ifndef CONFIG_64BIT
-+			"basr	1, 0\n"
-+		"0:\n"
-+			"ahi	 1, 1b\n"
-+#else
-+			"lalr	 1, 1b\n"
-+#endif
-+			PTREG_SAVE(1, ilc)
++			PTREG_SAVE_R(15)
++			PTREG_SAVE_R(14)
++			PTREG_SAVE_R(13)
++			PTREG_SAVE_R(12)
++			PTREG_SAVE(rbp, bp)
++			PTREG_SAVE(rbx, bx)
++			PTREG_SAVE_R(11)
++			PTREG_SAVE_R(10)
++			PTREG_SAVE_R(9)
++			PTREG_SAVE_R(8)
++			PTREG_SAVE(rax, ax)
++			PTREG_SAVE(rcx, cx)
++			PTREG_SAVE(rdx, dx)
++			PTREG_SAVE(rsi, si)
++			PTREG_SAVE(rdi, di)
++			"mov	%%cs, %%ax\n"
++			PTREG_SAVE(rax, cs)
++			PTREG_SAVE(rsp, sp)
++			"mov	%%ss, %%ax\n"
++			PTREG_SAVE(rax, ss)
++		"	pushf\n"
++		"	popq	%[flags]\n"
++		"1:\n"
++		"	movq	$1b, %[ip]\n"
 +	:
-+		PTREG_OUT(regs, psw, psw),
-+		PTREG_OUT_GPR(regs, 0),
-+		PTREG_OUT_GPR(regs, 1),
-+		PTREG_OUT_GPR(regs, 2),
-+		PTREG_OUT_GPR(regs, 3),
-+		PTREG_OUT_GPR(regs, 4),
-+		PTREG_OUT_GPR(regs, 5),
-+		PTREG_OUT_GPR(regs, 6),
-+		PTREG_OUT_GPR(regs, 7),
-+		PTREG_OUT_GPR(regs, 8),
-+		PTREG_OUT_GPR(regs, 9),
-+		PTREG_OUT_GPR(regs, 10),
-+		PTREG_OUT_GPR(regs, 11),
-+		PTREG_OUT_GPR(regs, 12),
-+		PTREG_OUT_GPR(regs, 13),
-+		PTREG_OUT_GPR(regs, 14),
-+		PTREG_OUT_GPR(regs, 15),
-+		PTREG_OUT(regs, orig_gpr2, orig_gpr2),
-+		PTREG_OUT(regs, svcnr, svcnr),
-+		PTREG_OUT(regs, ilc, ilc)
-+	:
-+		"r1"
++		PTREG_OUT_R(regs, 15),
++		PTREG_OUT_R(regs, 14),
++		PTREG_OUT_R(regs, 13),
++		PTREG_OUT_R(regs, 12),
++		PTREG_OUT(regs, bp, bp),
++		PTREG_OUT(regs, bx, bx),
++		PTREG_OUT_R(regs, 11),
++		PTREG_OUT_R(regs, 10),
++		PTREG_OUT_R(regs, 9),
++		PTREG_OUT_R(regs, 8),
++		PTREG_OUT(regs, ax, ax),
++		PTREG_OUT(regs, cx, cx),
++		PTREG_OUT(regs, dx, dx),
++		PTREG_OUT(regs, si, si),
++		PTREG_OUT(regs, di, di),
++		PTREG_OUT(regs, ip, ip),
++		PTREG_OUT(regs, cs, cs),
++		PTREG_OUT(regs, flags, flags),
++		PTREG_OUT(regs, sp, sp),
++		PTREG_OUT(regs, ss, ss)
 +	);
-+
 +	return regs;
 +}
++#endif /* __i386 */
  #endif /* __KERNEL__ */
- #endif /* __ASSEMBLY__ */
  
-diff --git a/arch/s390/kernel/traps.c b/arch/s390/kernel/traps.c
-index 6e7ad63..49eacce 100644
---- a/arch/s390/kernel/traps.c
-+++ b/arch/s390/kernel/traps.c
-@@ -308,9 +308,9 @@ void die(const char * str, struct pt_regs * regs, long err)
- 	add_taint(TAINT_DIE);
- 	spin_unlock_irq(&die_lock);
- 	if (in_interrupt())
--		panic("Fatal exception in interrupt");
-+		panic_with_regs(regs, "Fatal exception in interrupt");
- 	if (panic_on_oops)
--		panic("Fatal exception: panic_on_oops");
-+		panic_with_regs(regs, "Fatal exception: panic_on_oops");
- 	oops_exit();
- 	do_exit(SIGSEGV);
+ #endif /* !__ASSEMBLY__ */
+diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
+index 3339917..5b6af80 100644
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -326,7 +326,7 @@ mem_parity_error(unsigned char reason, struct pt_regs *regs)
+ #endif
+ 
+ 	if (panic_on_unrecovered_nmi)
+-		panic("NMI: Not continuing");
++		panic_with_regs(regs, "NMI: Not continuing");
+ 
+ 	printk(KERN_EMERG "Dazed and confused, but trying to continue\n");
+ 
+@@ -344,7 +344,7 @@ io_check_error(unsigned char reason, struct pt_regs *regs)
+ 	show_registers(regs);
+ 
+ 	if (panic_on_io_nmi)
+-		panic("NMI IOCK error: Not continuing");
++		panic_with_regs(regs, "NMI IOCK error: Not continuing");
+ 
+ 	/* Re-enable the IOCK line, wait for a few seconds */
+ 	reason = (reason & 0xf) | 8;
+@@ -380,7 +380,7 @@ unknown_nmi_error(unsigned char reason, struct pt_regs *regs)
+ 
+ 	printk(KERN_EMERG "Do you have a strange power saving mode enabled?\n");
+ 	if (panic_on_unrecovered_nmi)
+-		panic("NMI: Not continuing");
++		panic_with_regs(regs, "NMI: Not continuing");
+ 
+ 	printk(KERN_EMERG "Dazed and confused, but trying to continue\n");
  }
