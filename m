@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from sj-iport-5.cisco.com ([171.68.10.87]:6787 "EHLO
 	sj-iport-5.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753600Ab0DLGHR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:07:17 -0400
-Date: Sun, 11 Apr 2010 23:07:16 -0700
+	with ESMTP id S1753646Ab0DLGHN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:07:13 -0400
+Date: Sun, 11 Apr 2010 23:07:13 -0700
 From: David VomLehn <dvomlehn@cisco.com>
-Subject: [PATCH 22/23] Make register values available to x86 panic notifiers
-Message-ID: <20100412060716.GA25980@dvomlehn-lnx2.corp.sa.net>
+Subject: [PATCH 21/23] Make register values available to UM panic notifiers
+Message-ID: <20100412060713.GA25950@dvomlehn-lnx2.corp.sa.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -14,171 +14,52 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org
 Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
-Message-ID: <20100412060716.T67He-IEn_cP58RPaGpCKXTSwuAdrIoxauB-cQBmCME@z>
+Message-ID: <20100412060713.1_RsVJkT5kcEt9SIAl-KSqrmj5pidVLsMtC0TMdMKNw@z>
 
-The save_ptregs() function compiles cleanly for 32-bit and 64-bit
-configurations, but has not been tested for either.
+Changes for User Mode Linux. Not clear whether this needs save_ptregs()
+or not.
 
 Signed-off-by: David VomLehn <dvomlehn@cisco.com>
 ---
- arch/x86/include/asm/ptrace.h |  115 +++++++++++++++++++++++++++++++++++++++++
- arch/x86/kernel/traps.c       |    6 +-
- 2 files changed, 118 insertions(+), 3 deletions(-)
+ arch/um/kernel/trap.c |    9 +++++----
+ 1 files changed, 5 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/include/asm/ptrace.h b/arch/x86/include/asm/ptrace.h
-index 9d369f6..9e2d3d2 100644
---- a/arch/x86/include/asm/ptrace.h
-+++ b/arch/x86/include/asm/ptrace.h
-@@ -306,6 +306,121 @@ extern void ptrace_bts_untrace(struct task_struct *tsk);
- #define arch_ptrace_untrace(tsk)	ptrace_bts_untrace(tsk)
- #endif /* CONFIG_X86_PTRACE_BTS */
+diff --git a/arch/um/kernel/trap.c b/arch/um/kernel/trap.c
+index 637c650..c917f26 100644
+--- a/arch/um/kernel/trap.c
++++ b/arch/um/kernel/trap.c
+@@ -168,7 +168,7 @@ unsigned long segv(struct faultinfo fi, unsigned long ip, int is_user,
+ 	}
+ 	else if (current->mm == NULL) {
+ 		show_regs(container_of(regs, struct pt_regs, regs));
+-		panic("Segfault with no mm");
++		panic_with_regs(regs, "Segfault with no mm");
+ 	}
  
-+#include <linux/ptreg.h>
-+#define arch_has_save_ptregs	1
-+
-+/**
-+ * save_ptregs - save processor registers for backtracing
-+ * @regs:	Pointer to &struct pt_regs structure in which to save the
-+ *		registers
-+ *
-+ * Returns a constant pointer to @regs
-+ */
-+#ifdef __i386__
-+#define PTREG_SAVE(r)	"	mov	%%" #r ", %[" #r "]\n"
-+
-+static __always_inline
-+const struct pt_regs *save_ptregs(register struct pt_regs *regs)
-+{
-+	__asm__ __volatile__ (
-+			PTREG_SAVE(bx)
-+			PTREG_SAVE(cx)
-+			PTREG_SAVE(dx)
-+			PTREG_SAVE(si)
-+			PTREG_SAVE(di)
-+			PTREG_SAVE(bp)
-+			PTREG_SAVE(ax)
-+			PTREG_SAVE(ds)
-+			PTREG_SAVE(es)
-+			PTREG_SAVE(fs)
-+			PTREG_SAVE(gs)
-+			PTREG_SAVE(cs)
-+			PTREG_SAVE(sp)
-+			PTREG_SAVE(ss)
-+		"	pushfl\n"
-+		"	pop	%[flags]\n"
-+		"1:\n"
-+		"	movl	$1b, %[ip]\n"
-+	:
-+		PTREG_OUT(regs, bx, bx),
-+		PTREG_OUT(regs, cx, cx),
-+		PTREG_OUT(regs, dx, dx),
-+		PTREG_OUT(regs, si, si),
-+		PTREG_OUT(regs, di, di),
-+		PTREG_OUT(regs, bp, bp),
-+		PTREG_OUT(regs, ax, ax),
-+		PTREG_OUT(regs, ds, ds),
-+		PTREG_OUT(regs, es, es),
-+		PTREG_OUT(regs, fs, fs),
-+		PTREG_OUT(regs, gs, gs),
-+		PTREG_OUT(regs, ip, ip),
-+		PTREG_OUT(regs, cs, cs),
-+		PTREG_OUT(regs, flags, flags),
-+		PTREG_OUT(regs, sp, sp),
-+		PTREG_OUT(regs, ss, ss)
-+	:
-+	);
-+	return regs;
-+}
-+#else
-+#define PTREG_SAVE(r, name)	"	movq	%%" #r ", %[" #name "]\n"
-+#define PTREG_SAVE_R(i)		_PTREG_SAVE_I(r, r, i)
-+
-+#define PTREG_OUT_R(regs, i)	_PTREG_OUT_I(regs, r, r, i)
-+
-+static __always_inline
-+const struct pt_regs *save_ptregs(struct pt_regs *regs)
-+{
-+	__asm__ __volatile__ (
-+			PTREG_SAVE_R(15)
-+			PTREG_SAVE_R(14)
-+			PTREG_SAVE_R(13)
-+			PTREG_SAVE_R(12)
-+			PTREG_SAVE(rbp, bp)
-+			PTREG_SAVE(rbx, bx)
-+			PTREG_SAVE_R(11)
-+			PTREG_SAVE_R(10)
-+			PTREG_SAVE_R(9)
-+			PTREG_SAVE_R(8)
-+			PTREG_SAVE(rax, ax)
-+			PTREG_SAVE(rcx, cx)
-+			PTREG_SAVE(rdx, dx)
-+			PTREG_SAVE(rsi, si)
-+			PTREG_SAVE(rdi, di)
-+			"mov	%%cs, %%ax\n"
-+			PTREG_SAVE(rax, cs)
-+			PTREG_SAVE(rsp, sp)
-+			"mov	%%ss, %%ax\n"
-+			PTREG_SAVE(rax, ss)
-+		"	pushf\n"
-+		"	popq	%[flags]\n"
-+		"1:\n"
-+		"	movq	$1b, %[ip]\n"
-+	:
-+		PTREG_OUT_R(regs, 15),
-+		PTREG_OUT_R(regs, 14),
-+		PTREG_OUT_R(regs, 13),
-+		PTREG_OUT_R(regs, 12),
-+		PTREG_OUT(regs, bp, bp),
-+		PTREG_OUT(regs, bx, bx),
-+		PTREG_OUT_R(regs, 11),
-+		PTREG_OUT_R(regs, 10),
-+		PTREG_OUT_R(regs, 9),
-+		PTREG_OUT_R(regs, 8),
-+		PTREG_OUT(regs, ax, ax),
-+		PTREG_OUT(regs, cx, cx),
-+		PTREG_OUT(regs, dx, dx),
-+		PTREG_OUT(regs, si, si),
-+		PTREG_OUT(regs, di, di),
-+		PTREG_OUT(regs, ip, ip),
-+		PTREG_OUT(regs, cs, cs),
-+		PTREG_OUT(regs, flags, flags),
-+		PTREG_OUT(regs, sp, sp),
-+		PTREG_OUT(regs, ss, ss)
-+	);
-+	return regs;
-+}
-+#endif /* __i386 */
- #endif /* __KERNEL__ */
+ 	if (SEGV_IS_FIXABLE(&fi) || SEGV_MAYBE_FIXABLE(&fi))
+@@ -192,13 +192,14 @@ unsigned long segv(struct faultinfo fi, unsigned long ip, int is_user,
+ 		UML_LONGJMP(catcher, 1);
+ 	}
+ 	else if (current->thread.fault_addr != NULL)
+-		panic("fault_addr set but no fault catcher");
++		panic_with_regs(regs, "fault_addr set but no fault catcher");
+ 	else if (!is_user && arch_fixup(ip, regs))
+ 		return 0;
  
- #endif /* !__ASSEMBLY__ */
-diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index 3339917..5b6af80 100644
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -326,7 +326,7 @@ mem_parity_error(unsigned char reason, struct pt_regs *regs)
- #endif
+ 	if (!is_user) {
+ 		show_regs(container_of(regs, struct pt_regs, regs));
+-		panic("Kernel mode fault at addr 0x%lx, ip 0x%lx",
++		panic_with_regs(regs,
++			"Kernel mode fault at addr 0x%lx, ip 0x%lx",
+ 		      address, ip);
+ 	}
  
- 	if (panic_on_unrecovered_nmi)
--		panic("NMI: Not continuing");
-+		panic_with_regs(regs, "NMI: Not continuing");
+@@ -225,7 +226,7 @@ void relay_signal(int sig, struct uml_pt_regs *regs)
+ 		if (sig == SIGBUS)
+ 			printk(KERN_ERR "Bus error - the host /dev/shm or /tmp "
+ 			       "mount likely just ran out of space\n");
+-		panic("Kernel mode signal %d", sig);
++		panic_with_regs(regs, "Kernel mode signal %d", sig);
+ 	}
  
- 	printk(KERN_EMERG "Dazed and confused, but trying to continue\n");
- 
-@@ -344,7 +344,7 @@ io_check_error(unsigned char reason, struct pt_regs *regs)
- 	show_registers(regs);
- 
- 	if (panic_on_io_nmi)
--		panic("NMI IOCK error: Not continuing");
-+		panic_with_regs(regs, "NMI IOCK error: Not continuing");
- 
- 	/* Re-enable the IOCK line, wait for a few seconds */
- 	reason = (reason & 0xf) | 8;
-@@ -380,7 +380,7 @@ unknown_nmi_error(unsigned char reason, struct pt_regs *regs)
- 
- 	printk(KERN_EMERG "Do you have a strange power saving mode enabled?\n");
- 	if (panic_on_unrecovered_nmi)
--		panic("NMI: Not continuing");
-+		panic_with_regs(regs, "NMI: Not continuing");
- 
- 	printk(KERN_EMERG "Dazed and confused, but trying to continue\n");
- }
+ 	arch_examine_signal(sig, regs);
