@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sj-iport-4.cisco.com ([171.68.10.86]:11236 "EHLO
+Received: from sj-iport-4.cisco.com ([171.68.10.86]:11364 "EHLO
 	sj-iport-4.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753468Ab0DLGGf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:06:35 -0400
-Date: Sun, 11 Apr 2010 23:06:35 -0700
+	with ESMTP id S1753468Ab0DLGGv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:06:51 -0400
+Date: Sun, 11 Apr 2010 23:06:51 -0700
 From: David VomLehn <dvomlehn@cisco.com>
-Subject: [PATCH 9/23] Make register values available to IA64 panic notifiers
-Message-ID: <20100412060635.GA25511@dvomlehn-lnx2.corp.sa.net>
+Subject: [PATCH 14/23] Make register values available to MN10300 panic
+	notifiers
+Message-ID: <20100412060651.GA25653@dvomlehn-lnx2.corp.sa.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -14,34 +15,35 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org
 Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
-Message-ID: <20100412060635.-UEzTdO645CYlvdcvmAIWsw1QwexJCQaQTXFoYCX8tA@z>
+Message-ID: <20100412060651.8OyvJGYexrgXIRZ9qN-jtFuiqfTUkV9H46raLkx7ETI@z>
 
 The save_ptregs() function has not been tested or even built. I will need
 help to complete this.
 
 Signed-off-by: David VomLehn <dvomlehn@cisco.com>
 ---
- arch/ia64/include/asm/ptrace.h |  124 ++++++++++++++++++++++++++++++++++++++++
- arch/ia64/kernel/traps.c       |    2 +-
- 2 files changed, 125 insertions(+), 1 deletions(-)
+ arch/mn10300/include/asm/ptrace.h |   92 +++++++++++++++++++++++++++++++++++++
+ arch/mn10300/kernel/traps.c       |    2 +-
+ 2 files changed, 93 insertions(+), 1 deletions(-)
 
-diff --git a/arch/ia64/include/asm/ptrace.h b/arch/ia64/include/asm/ptrace.h
-index 14055c6..4d39be8 100644
---- a/arch/ia64/include/asm/ptrace.h
-+++ b/arch/ia64/include/asm/ptrace.h
-@@ -325,6 +325,130 @@ static inline unsigned long user_stack_pointer(struct pt_regs *regs)
-   #define arch_has_block_step()   (1)
-   extern void user_enable_block_step(struct task_struct *);
+diff --git a/arch/mn10300/include/asm/ptrace.h b/arch/mn10300/include/asm/ptrace.h
+index 1b0ba5e..e8e3548 100644
+--- a/arch/mn10300/include/asm/ptrace.h
++++ b/arch/mn10300/include/asm/ptrace.h
+@@ -102,6 +102,98 @@ extern void show_regs(struct pt_regs *);
+ extern void user_enable_single_step(struct task_struct *);
+ extern void user_disable_single_step(struct task_struct *);
  
 +/* Macros for saving the contents of registers and for the output constraint
 + * for those registers */
-+#include "/home/vomlehn/git/kernel.org/ptreg.h"
-+#define PTREG_SAVE(r, name)	"st8	%[" #name "] = " #r "\n"
-+#define PTREG_SAVE_R(i)		PTREG_SAVE_I(r, r, i)
-+#define PTREG_SAVE_B(i)		PTREG_SAVE_I(b, b, i)
++#define PTREG_SAVE(r, name)	"mov	" #r ", %[" #name "]\n"
++#define PTREG_SAVE_D(i)		PTREG_SAVE_I(d, d, i)
++#define PTREG_SAVE_A(i)		PTREG_SAVE_I(a, a, i)
++#define PTREG_SAVE_E(i)		PTREG_SAVE_I(e, e, i)
 +
-+#define PTREG_OUT_R(regs, i)	PTREG_OUT_I(regs, r, r, i)
-+#define PTREG_OUT_B(regs, i)	PTREG_OUT_I(regs, b, b, i)
++#define PTREG_OUT_D(regs, i)	PTREG_OUT_I(regs, d, d, i)
++#define PTREG_OUT_A(regs, i)	PTREG_OUT_I(regs, a, a, i)
++#define PTREG_OUT_E(regs, i)	PTREG_OUT_I(regs, e, e, i)
 +
 +#define arch_has_save_ptregs	1
 +
@@ -59,117 +61,84 @@ index 14055c6..4d39be8 100644
 +const struct pt_regs *save_ptregs(struct pt_regs *regs)
 +{
 +	__asm__ __volatile__ (
-+			PTREG_SAVE_B(6)
-+			PTREG_SAVE_B(7)
-+			PTREG_SAVE(ar_csd, ar_csd)
-+			PTREG_SAVE(ar_ssd, ar_ssd)
-+			PTREG_SAVE_R(8)
-+			PTREG_SAVE_R(9)
-+			PTREG_SAVE_R(10)
-+			PTREG_SAVE_R(11)
-+			PTREG_SAVE(cr_ipsr, cr_ipsr)
-+			PTREG_SAVE(cr_iip, cr_iip)
-+			PTREG_SAVE(cr_ifs, cr_ifs)
-+			PTREG_SAVE(ar_unat, ar_unat)
-+			PTREG_SAVE(ar_pfs, ar_pfs)
-+			PTREG_SAVE(ar_rsc, ar_rsc)
-+			PTREG_SAVE(ar_rnat, ar_rnat)
-+			PTREG_SAVE(ar_bspstore, ar_bspstore)
-+			PTREG_SAVE(pr, pr)
-+			PTREG_SAVE_B(0)
-+			PTREG_SAVE(loadrs, loadrs)
-+			PTREG_SAVE_R(1)
-+			PTREG_SAVE_R(12)
-+			PTREG_SAVE_R(13)
-+			PTREG_SAVE(ar_fpsr, ar_fpsr)
-+			PTREG_SAVE_R(15)
-+			PTREG_SAVE_R(14)
-+			PTREG_SAVE_R(2)
-+			PTREG_SAVE_R(3)
-+			PTREG_SAVE_R(16)
-+			PTREG_SAVE_R(17)
-+			PTREG_SAVE_R(18)
-+			PTREG_SAVE_R(19)
-+			PTREG_SAVE_R(20)
-+			PTREG_SAVE_R(21)
-+			PTREG_SAVE_R(22)
-+			PTREG_SAVE_R(23)
-+			PTREG_SAVE_R(24)
-+			PTREG_SAVE_R(25)
-+			PTREG_SAVE_R(26)
-+			PTREG_SAVE_R(27)
-+			PTREG_SAVE_R(28)
-+			PTREG_SAVE_R(29)
-+			PTREG_SAVE_R(30)
-+			PTREG_SAVE_R(31)
-+			PTREG_SAVE(ar_ccv, ar_ccv)
-+		'1:\n"
-+			"movl	r0=1b\n"
-+			PTREG_SAVE(r0, pc)
++			PTREG_SAVE_A(3)
++			PTREG_SAVE_A(2)
++			PTREG_SAVE_D(3)
++			PTREG_SAVE_D(2)
++			PTREG_SAVE(mcvf, mcvf)
++			PTREG_SAVE(mcrl, mcrl)
++			PTREG_SAVE(mcrh, mcrh)
++			PTREG_SAVE(mdrq, mdrq)
++			PTREG_SAVE_E(1)
++			PTREG_SAVE_E(0)
++			PTREG_SAVE_E(7)
++			PTREG_SAVE_E(6)
++			PTREG_SAVE_E(5)
++			PTREG_SAVE_E(4)
++			PTREG_SAVE_E(3)
++			PTREG_SAVE_E(2)
++			PTREG_SAVE(sp, sp)
++			PTREG_SAVE(lar, lar)
++			PTREG_SAVE(lir, lir)
++			PTREG_SAVE(mdr, mdr)
++			PTREG_SAVE_A(1)
++			PTREG_SAVE_A(0)
++			PTREG_SAVE_D(1)
++			PTREG_SAVE_D(0)
++			PTREG_SAVE(next, next)
++			PTREG_SAVE(orig_d0, orig_d0)
++			PTREG_SAVE(epsw, epsw)
++		"1:\n"
++			"mov	1b, a0\n"
++			PTREG_SAVE(a0, pc)
 +	:
-+		PTREG_OUT_B(regs, 6)
-+		PTREG_OUT_B(regs, 7)
-+		PTREG_OUT(regs, ar_csd, ar_csd)
-+		PTREG_OUT(regs, ar_ssd, ar_ssd)
-+		PTREG_OUT_R(regs, 8)
-+		PTREG_OUT_R(regs, 9)
-+		PTREG_OUT_R(regs, 10)
-+		PTREG_OUT_R(regs, 11)
-+		PTREG_OUT(regs, cr_ipsr, cr_ipsr)
-+		PTREG_OUT(regs, cr_iip, cr_iip)
-+		PTREG_OUT(regs, cr_ifs, cr_ifs)
-+		PTREG_OUT(regs, ar_unat, ar_unat)
-+		PTREG_OUT(regs, ar_pfs, ar_pfs)
-+		PTREG_OUT(regs, ar_rsc, ar_rsc)
-+		PTREG_OUT(regs, ar_rnat, ar_rnat)
-+		PTREG_OUT(regs, ar_bspstore, ar_bspstore)
-+		PTREG_OUT(regs, pr, pr)
-+		PTREG_OUT_B(regs, 0)
-+		PTREG_OUT(regs, loadrs, loadrs)
-+		PTREG_OUT_R(regs, 1)
-+		PTREG_OUT_R(regs, 12)
-+		PTREG_OUT_R(regs, 13)
-+		PTREG_OUT(regs, ar_fpsr, ar_fpsr)
-+		PTREG_OUT_R(regs, 15)
-+		PTREG_OUT_R(regs, 14)
-+		PTREG_OUT_R(regs, 2)
-+		PTREG_OUT_R(regs, 3)
-+		PTREG_OUT_R(regs, 16)
-+		PTREG_OUT_R(regs, 17)
-+		PTREG_OUT_R(regs, 18)
-+		PTREG_OUT_R(regs, 19)
-+		PTREG_OUT_R(regs, 20)
-+		PTREG_OUT_R(regs, 21)
-+		PTREG_OUT_R(regs, 22)
-+		PTREG_OUT_R(regs, 23)
-+		PTREG_OUT_R(regs, 24)
-+		PTREG_OUT_R(regs, 25)
-+		PTREG_OUT_R(regs, 26)
-+		PTREG_OUT_R(regs, 27)
-+		PTREG_OUT_R(regs, 28)
-+		PTREG_OUT_R(regs, 29)
-+		PTREG_OUT_R(regs, 30)
-+		PTREG_OUT_R(regs, 31)
-+		PTREG_OUT(regs, ar_ccv, ar_ccv)
++		PTREG_OUT_A(regs, 3)
++		PTREG_OUT_A(regs, 2)
++		PTREG_OUT_D(regs, 3)
++		PTREG_OUT_D(regs, 2)
++		PTREG_OUT(regs, mcvf, mcvf)
++		PTREG_OUT(regs, mcrl, mcrl)
++		PTREG_OUT(regs, mcrh, mcrh)
++		PTREG_OUT(regs, mdrq, mdrq)
++		PTREG_OUT_E(regs, 1)
++		PTREG_OUT_E(regs, 0)
++		PTREG_OUT_E(regs, 7)
++		PTREG_OUT_E(regs, 6)
++		PTREG_OUT_E(regs, 5)
++		PTREG_OUT_E(regs, 4)
++		PTREG_OUT_E(regs, 3)
++		PTREG_OUT_E(regs, 2)
++		PTREG_OUT(regs, sp, sp)
++		PTREG_OUT(regs, lar, lar)
++		PTREG_OUT(regs, lir, lir)
++		PTREG_OUT(regs, mdr, mdr)
++		PTREG_OUT_A(regs, 1)
++		PTREG_OUT_A(regs, 0)
++		PTREG_OUT_D(regs, 1)
++		PTREG_OUT_D(regs, 0)
++		PTREG_OUT(regs, next, next)
++		PTREG_OUT(regs, orig_d0, orig_d0)
++		PTREG_OUT(regs, epsw, epsw)
++		PTREG_OUT(regs, pc, pc)
 +	:
-+		"r0"
++		"a0"
 +	);
 +
 +	return regs;
 +}
- #endif /* !__KERNEL__ */
+ #endif  /*  !__ASSEMBLY  */
  
- /* pt_all_user_regs is used for PTRACE_GETREGS PTRACE_SETREGS */
-diff --git a/arch/ia64/kernel/traps.c b/arch/ia64/kernel/traps.c
-index f0cda76..541ea2f 100644
---- a/arch/ia64/kernel/traps.c
-+++ b/arch/ia64/kernel/traps.c
-@@ -79,7 +79,7 @@ die (const char *str, struct pt_regs *regs, long err)
- 		return 1;
+ #define profile_pc(regs) ((regs)->pc)
+diff --git a/arch/mn10300/kernel/traps.c b/arch/mn10300/kernel/traps.c
+index 91365ad..0251adf 100644
+--- a/arch/mn10300/kernel/traps.c
++++ b/arch/mn10300/kernel/traps.c
+@@ -471,7 +471,7 @@ asmlinkage void io_bus_error(u32 bcberr, u32 bcbear, struct pt_regs *regs)
+ 	printk(KERN_EMERG "\n");
+ 	show_registers(regs);
  
- 	if (panic_on_oops)
--		panic("Fatal exception");
-+		panic_with_regs(regs, "Fatal exception");
+-	panic("Halted due to asynchronous I/O Bus Error\n");
++	panic_with_regs(regs, "Halted due to asynchronous I/O Bus Error\n");
+ }
  
-   	do_exit(SIGSEGV);
- 	return 0;
+ /*
