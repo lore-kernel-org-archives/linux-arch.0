@@ -1,46 +1,61 @@
 From: David VomLehn <dvomlehn@cisco.com>
-Subject: [PATCH 18/23] Make register values available to Score panic
-	notifiers
-Date: Sun, 11 Apr 2010 23:07:04 -0700
-Message-ID: <20100412060704.GA25767@dvomlehn-lnx2.corp.sa.net>
+Subject: [PATCH 19/23] Make register values available to SH panic notifiers
+Date: Sun, 11 Apr 2010 23:07:07 -0700
+Message-ID: <20100412060707.GA25796@dvomlehn-lnx2.corp.sa.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sj-iport-1.cisco.com ([171.71.176.70]:48250 "EHLO
-	sj-iport-1.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753603Ab0DLGHE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:07:04 -0400
+Received: from sj-iport-5.cisco.com ([171.68.10.87]:6787 "EHLO
+	sj-iport-5.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753567Ab0DLGHH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:07:07 -0400
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org
 Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
 
-The save_ptregs() function has not been tested or even built. I will need
-help to complete this.
+The save_ptregs() functions compiles cleanly for the pre-SH5 code, but has
+not been tested. The SH5 code hasn't been compiled.
 
 Signed-off-by: David VomLehn <dvomlehn@cisco.com>
 ---
- arch/score/include/asm/ptrace.h |  136 +++++++++++++++++++++++++++++++++++++++
- arch/score/kernel/traps.c       |    2 +-
- 2 files changed, 137 insertions(+), 1 deletions(-)
+ arch/sh/include/asm/ptrace.h |  298 ++++++++++++++++++++++++++++++++++++++++++
+ arch/sh/kernel/traps_32.c    |    4 +-
+ 2 files changed, 300 insertions(+), 2 deletions(-)
 
-diff --git a/arch/score/include/asm/ptrace.h b/arch/score/include/asm/ptrace.h
-index e89dc9b..d9a1293 100644
---- a/arch/score/include/asm/ptrace.h
-+++ b/arch/score/include/asm/ptrace.h
-@@ -91,6 +91,142 @@ extern int read_tsk_short(struct task_struct *, unsigned long,
+diff --git a/arch/sh/include/asm/ptrace.h b/arch/sh/include/asm/ptrace.h
+index 1dc12cb..2a18508 100644
+--- a/arch/sh/include/asm/ptrace.h
++++ b/arch/sh/include/asm/ptrace.h
+@@ -138,6 +138,304 @@ static inline unsigned long profile_pc(struct pt_regs *regs)
  
- #define arch_has_single_step()	(1)
- 
+ 	return pc;
+ }
 +
 +/* Macros for saving the contents of registers and for the output constraint
 + * for those registers */
-+#include "/home/vomlehn/git/kernel.org/ptreg.h"
-+#define PTREG_SAVE(r, name)	"sw	" #r ", %[" #name "]\n"
-+#define PTREG_SAVE_R(i)		PTREG_SAVE_I(r, r, i)
 +
-+#define PTREG_SAVE_R(regs, i)	PTREG_SAVE_I(regs, r, r, i)
++#include <linux/ptreg.h>
++#include <linux/compiler.h>
++
++/* Location of the TRAPA exception register */
++#define TRA 0xff000020
++
++#if defined(__SH5__)
++#define PTREG_SAVE(r, name)	"mov.l	" #r ", %[" #name "]\n"
++#else
++#define PTREG_SAVE(r, name)	"mov.l	" #r ", %[" #name "]\n"
++#endif
++
++#define STR(x)	#x
++#define VAL(x)	STR(x)
++
++#define PTREG_SAVE_REG(i)	_PTREG_SAVE_IDX(r, r, i)
++#define PTREG_SAVE_TREG(i)	_PTREG_SAVE_IDX(t, t, i)
++
++#define PTREG_OUT_REG(rp, i)	_PTREG_OUT_IDX(rp, regs, r, i)
++#define PTREG_OUT_TREG(rp, i)	_PTREG_OUT_IDX(rp, tregs, t, i)
 +
 +#define arch_has_save_ptregs	1
 +
@@ -54,62 +69,224 @@ index e89dc9b..d9a1293 100644
 + * This function must be called first in a function. There must be no
 + * auto variables defined that are initialized before calling this function.
 + */
++#if defined(__SH5__)
 +static __always_inline
 +const struct pt_regs *save_ptregs(struct pt_regs *regs)
 +{
 +	__asm__ __volatile__ (
-+			PTREG_SAVE_R(0)
-+			PTREG_SAVE_R(1)
-+			PTREG_SAVE_R(2)
-+			PTREG_SAVE_R(3)
-+			PTREG_SAVE_R(4)
-+			PTREG_SAVE_R(5)
-+			PTREG_SAVE_R(6)
-+			PTREG_SAVE_R(7)
-+			PTREG_SAVE_R(8)
-+			PTREG_SAVE_R(9)
-+			PTREG_SAVE_R(10)
-+			PTREG_SAVE_R(11)
-+			PTREG_SAVE_R(12)
-+			PTREG_SAVE_R(13)
-+			PTREG_SAVE_R(14)
-+			PTREG_SAVE_R(15)
-+			PTREG_SAVE_R(16)
-+			PTREG_SAVE_R(17)
-+			PTREG_SAVE_R(18)
-+			PTREG_SAVE_R(19)
-+			PTREG_SAVE_R(20)
-+			PTREG_SAVE_R(21)
-+			PTREG_SAVE_R(22)
-+			PTREG_SAVE_R(23)
-+			PTREG_SAVE_R(24)
-+			PTREG_SAVE_R(25)
-+			PTREG_SAVE_R(26)
-+			PTREG_SAVE_R(27)
-+			PTREG_SAVE_R(28)
-+			PTREG_SAVE_R(29)
-+			PTREG_SAVE_R(30)
-+			PTREG_SAVE_R(31)
++			PTREG_SAVE(sr, sr)
++			PTREG_SAVE(syscall_nr, syscall_nr)
++			PTREG_SAVE_REGS(0)
++			PTREG_SAVE_REGS(1)
++			PTREG_SAVE_REGS(2)
++			PTREG_SAVE_REGS(3)
++			PTREG_SAVE_REGS(4)
++			PTREG_SAVE_REGS(5)
++			PTREG_SAVE_REGS(6)
++			PTREG_SAVE_REGS(7)
++			PTREG_SAVE_REGS(8)
++			PTREG_SAVE_REGS(9)
++			PTREG_SAVE_REGS(10)
++			PTREG_SAVE_REGS(11)
++			PTREG_SAVE_REGS(12)
++			PTREG_SAVE_REGS(13)
++			PTREG_SAVE_REGS(14)
++			PTREG_SAVE_REGS(15)
++			PTREG_SAVE_REGS(16)
++			PTREG_SAVE_REGS(17)
++			PTREG_SAVE_REGS(18)
++			PTREG_SAVE_REGS(19)
++			PTREG_SAVE_REGS(20)
++			PTREG_SAVE_REGS(21)
++			PTREG_SAVE_REGS(22)
++			PTREG_SAVE_REGS(23)
++			PTREG_SAVE_REGS(24)
++			PTREG_SAVE_REGS(25)
++			PTREG_SAVE_REGS(26)
++			PTREG_SAVE_REGS(27)
++			PTREG_SAVE_REGS(28)
++			PTREG_SAVE_REGS(29)
++			PTREG_SAVE_REGS(30)
++			PTREG_SAVE_REGS(31)
++			PTREG_SAVE_REGS(32)
++			PTREG_SAVE_REGS(33)
++			PTREG_SAVE_REGS(34)
++			PTREG_SAVE_REGS(35)
++			PTREG_SAVE_REGS(36)
++			PTREG_SAVE_REGS(37)
++			PTREG_SAVE_REGS(38)
++			PTREG_SAVE_REGS(39)
++			PTREG_SAVE_REGS(40)
++			PTREG_SAVE_REGS(41)
++			PTREG_SAVE_REGS(42)
++			PTREG_SAVE_REGS(43)
++			PTREG_SAVE_REGS(44)
++			PTREG_SAVE_REGS(45)
++			PTREG_SAVE_REGS(46)
++			PTREG_SAVE_REGS(47)
++			PTREG_SAVE_REGS(48)
++			PTREG_SAVE_REGS(49)
++			PTREG_SAVE_REGS(50)
++			PTREG_SAVE_REGS(51)
++			PTREG_SAVE_REGS(52)
++			PTREG_SAVE_REGS(53)
++			PTREG_SAVE_REGS(54)
++			PTREG_SAVE_REGS(55)
++			PTREG_SAVE_REGS(56)
++			PTREG_SAVE_REGS(57)
++			PTREG_SAVE_REGS(58)
++			PTREG_SAVE_REGS(59)
++			PTREG_SAVE_REGS(60)
++			PTREG_SAVE_REGS(61)
++			PTREG_SAVE_REGS(62)
++			PTREG_SAVE_REGS(63)
++			PTREG_SAVE_TREGS(0)
++			PTREG_SAVE_TREGS(1)
++			PTREG_SAVE_TREGS(2)
++			PTREG_SAVE_TREGS(3)
++			PTREG_SAVE_TREGS(4)
++			PTREG_SAVE_TREGS(5)
++			PTREG_SAVE_TREGS(6)
++			PTREG_SAVE_TREGS(7)
++		/*
++		 * The current location is the one for which the register
++		 * values are correct, even if some had been modified on
++		 * function entry. So, the current location is the value to
++		 * save as the execution address.
++		 */
++			"mova	1f, r0\n"
++		"1:\n"
++			PTREG_SAVE(r0, pc)
++	:
++		PTREG_OUT(regs, pc, pc),
++		PTREG_OUT(regs, sr, sr),
++		PTREG_OUT(regs, syscall_nr, syscall_nr),
++		PTREG_OUT_REGS(regs, 0),
++		PTREG_OUT_REGS(regs, 1),
++		PTREG_OUT_REGS(regs, 2),
++		PTREG_OUT_REGS(regs, 3),
++		PTREG_OUT_REGS(regs, 4),
++		PTREG_OUT_REGS(regs, 5),
++		PTREG_OUT_REGS(regs, 6),
++		PTREG_OUT_REGS(regs, 7),
++		PTREG_OUT_REGS(regs, 8),
++		PTREG_OUT_REGS(regs, 9),
++		PTREG_OUT_REGS(regs, 10),
++		PTREG_OUT_REGS(regs, 11),
++		PTREG_OUT_REGS(regs, 12),
++		PTREG_OUT_REGS(regs, 13),
++		PTREG_OUT_REGS(regs, 14),
++		PTREG_OUT_REGS(regs, 15),
++		PTREG_OUT_REGS(regs, 16),
++		PTREG_OUT_REGS(regs, 17),
++		PTREG_OUT_REGS(regs, 18),
++		PTREG_OUT_REGS(regs, 19),
++		PTREG_OUT_REGS(regs, 20),
++		PTREG_OUT_REGS(regs, 21),
++		PTREG_OUT_REGS(regs, 22),
++		PTREG_OUT_REGS(regs, 23),
++		PTREG_OUT_REGS(regs, 24),
++		PTREG_OUT_REGS(regs, 25),
++		PTREG_OUT_REGS(regs, 26),
++		PTREG_OUT_REGS(regs, 27),
++		PTREG_OUT_REGS(regs, 28),
++		PTREG_OUT_REGS(regs, 29),
++		PTREG_OUT_REGS(regs, 30),
++		PTREG_OUT_REGS(regs, 31),
++		PTREG_OUT_REGS(regs, 32),
++		PTREG_OUT_REGS(regs, 33),
++		PTREG_OUT_REGS(regs, 34),
++		PTREG_OUT_REGS(regs, 35),
++		PTREG_OUT_REGS(regs, 36),
++		PTREG_OUT_REGS(regs, 37),
++		PTREG_OUT_REGS(regs, 38),
++		PTREG_OUT_REGS(regs, 39),
++		PTREG_OUT_REGS(regs, 40),
++		PTREG_OUT_REGS(regs, 41),
++		PTREG_OUT_REGS(regs, 42),
++		PTREG_OUT_REGS(regs, 43),
++		PTREG_OUT_REGS(regs, 44),
++		PTREG_OUT_REGS(regs, 45),
++		PTREG_OUT_REGS(regs, 46),
++		PTREG_OUT_REGS(regs, 47),
++		PTREG_OUT_REGS(regs, 48),
++		PTREG_OUT_REGS(regs, 49),
++		PTREG_OUT_REGS(regs, 50),
++		PTREG_OUT_REGS(regs, 51),
++		PTREG_OUT_REGS(regs, 52),
++		PTREG_OUT_REGS(regs, 53),
++		PTREG_OUT_REGS(regs, 54),
++		PTREG_OUT_REGS(regs, 55),
++		PTREG_OUT_REGS(regs, 56),
++		PTREG_OUT_REGS(regs, 57),
++		PTREG_OUT_REGS(regs, 58),
++		PTREG_OUT_REGS(regs, 59),
++		PTREG_OUT_REGS(regs, 60),
++		PTREG_OUT_REGS(regs, 61),
++		PTREG_OUT_REGS(regs, 62),
++		PTREG_OUT_REGS(regs, 63),
++		PTREG_OUT_TREGS(regs, 0),
++		PTREG_OUT_TREGS(regs, 1),
++		PTREG_OUT_TREGS(regs, 2),
++		PTREG_OUT_TREGS(regs, 3),
++		PTREG_OUT_TREGS(regs, 4),
++		PTREG_OUT_TREGS(regs, 5),
++		PTREG_OUT_TREGS(regs, 6),
++		PTREG_OUT_TREGS(regs, 7)
++	:
++	:
++		"r0"
++	);
 +
-+			PTREG_SAVE(sr0, sr0)
-+			PTREG_SAVE(sr1, sr1)
-+			PTREG_SAVE(sr2, sr2)
++	return regs;
++}
++#else
++static __always_inline
++const struct pt_regs *save_ptregs(struct pt_regs *regs)
++{
++	__asm__ __volatile__ (
++			PTREG_SAVE_REG(0)
++			PTREG_SAVE_REG(1)
++			PTREG_SAVE_REG(2)
++			PTREG_SAVE_REG(3)
++			PTREG_SAVE_REG(4)
++			PTREG_SAVE_REG(5)
++			PTREG_SAVE_REG(6)
++			PTREG_SAVE_REG(7)
++			PTREG_SAVE_REG(8)
++			PTREG_SAVE_REG(9)
++			PTREG_SAVE_REG(10)
++			PTREG_SAVE_REG(11)
++			PTREG_SAVE_REG(12)
++			PTREG_SAVE_REG(13)
++			PTREG_SAVE_REG(14)
++			PTREG_SAVE_REG(15)
 +
-+			"mfcehl	r30, r31\n"
-+			PTREG_SAVE(r30, cp0_ceh)
-+			PTREG_SAVE(r31, cp0_cel)
++			"sts	pr, r0\n"
++			PTREG_SAVE(r0, pr)
 +
-+			"mfcr	r31, cr0\n"
-+			PTREG_SAVE(r31, cp0_ecr)
++			"stc	sr, r0\n"
++			PTREG_SAVE(r0, sr)
 +
-+			"mfcr	r31, cr1\n"
-+			PTREG_SAVE(r31, cp0_condition)
++			"stc	gbr,r0\n"
++			PTREG_SAVE(r0, gbr)
 +
-+			"mfcr	r31, cr2\n"
-+			PTREG_SAVE(r31, cp0_ecr)
++			"sts	mach, r0\n"
++			PTREG_SAVE(r0, mach)
 +
-+			"mfcr	r31, cr6\n"
-+			PTREG_SAVE(r31, cp0_ema)
++			"sts	macl, r0\n"
++			PTREG_SAVE(r0, macl)
++
++			"mova	1f, r0\n"
++			"mov.l	@r0, r0\n"
++			PTREG_SAVE(r0, tra)
++			"bra	2f\n"
++
++			".align	4\n"
++		"1:\n"
++			".long	" VAL(TRA) "\n"
++			".align 4\n"
++		"2:\n"
 +
 +		/*
 +		 * The current location is the one for which the register
@@ -117,71 +294,59 @@ index e89dc9b..d9a1293 100644
 +		 * function entry. So, the current location is the value to
 +		 * save as the execution address.
 +		 */
++			"mova	1f, r0\n"
++			".align 4\n"
 +		"1:\n"
-+			"la	r1, 1b"
-+			PTREG_SAVE(r1, cp0_epc)
++			PTREG_SAVE(r0, pc)
 +	:
-+		PTREG_OUT_R(regs, 0)
-+		PTREG_OUT_R(regs, 1)
-+		PTREG_OUT_R(regs, 2)
-+		PTREG_OUT_R(regs, 3)
-+		PTREG_OUT_R(regs, 4)
-+		PTREG_OUT_R(regs, 5)
-+		PTREG_OUT_R(regs, 6)
-+		PTREG_OUT_R(regs, 7)
-+		PTREG_OUT_R(regs, 8)
-+		PTREG_OUT_R(regs, 9)
-+		PTREG_OUT_R(regs, 10)
-+		PTREG_OUT_R(regs, 11)
-+		PTREG_OUT_R(regs, 12)
-+		PTREG_OUT_R(regs, 13)
-+		PTREG_OUT_R(regs, 14)
-+		PTREG_OUT_R(regs, 15)
-+		PTREG_OUT_R(regs, 16)
-+		PTREG_OUT_R(regs, 17)
-+		PTREG_OUT_R(regs, 18)
-+		PTREG_OUT_R(regs, 19)
-+		PTREG_OUT_R(regs, 20)
-+		PTREG_OUT_R(regs, 21)
-+		PTREG_OUT_R(regs, 22)
-+		PTREG_OUT_R(regs, 23)
-+		PTREG_OUT_R(regs, 24)
-+		PTREG_OUT_R(regs, 25)
-+		PTREG_OUT_R(regs, 26)
-+		PTREG_OUT_R(regs, 27)
-+		PTREG_OUT_R(regs, 28)
-+		PTREG_OUT_R(regs, 29)
-+		PTREG_OUT_R(regs, 30)
-+		PTREG_OUT_R(regs, 31)
-+		PTREG_OUT(regs, cel, cel)
-+		PTREG_OUT(regs, ceh, ceh)
-+		PTREG_OUT(regs, sr0, sr0)
-+		PTREG_OUT(regs, sr1, sr1)
-+		PTREG_OUT(regs, sr2, sr2)
-+		PTREG_OUT(regs, cp0_epc, cp0_epc)
-+		PTREG_OUT(regs, cp0_ema, cp0_ema)
-+		PTREG_OUT(regs, cp0_psr, cp0_psr)
-+		PTREG_OUT(regs, cp0_ecr, cp0_ecr)
-+		PTREG_OUT(regs, cp0_condition, cp0_condition)
++		PTREG_OUT_REG(regs, 0),
++		PTREG_OUT_REG(regs, 1),
++		PTREG_OUT_REG(regs, 2),
++		PTREG_OUT_REG(regs, 3),
++		PTREG_OUT_REG(regs, 4),
++		PTREG_OUT_REG(regs, 5),
++		PTREG_OUT_REG(regs, 6),
++		PTREG_OUT_REG(regs, 7),
++		PTREG_OUT_REG(regs, 8),
++		PTREG_OUT_REG(regs, 9),
++		PTREG_OUT_REG(regs, 10),
++		PTREG_OUT_REG(regs, 11),
++		PTREG_OUT_REG(regs, 12),
++		PTREG_OUT_REG(regs, 13),
++		PTREG_OUT_REG(regs, 14),
++		PTREG_OUT_REG(regs, 15),
++		PTREG_OUT(regs, pc, pc),
++		PTREG_OUT(regs, pr, pr),
++		PTREG_OUT(regs, sr, sr),
++		PTREG_OUT(regs, gbr, gbr),
++		PTREG_OUT(regs, mach, mach),
++		PTREG_OUT(regs, macl, macl),
++		PTREG_OUT(regs, tra, tra)
 +	:
-+		"r30", "r31"
++	:
++		"r0"
 +	);
 +
 +	return regs;
 +}
++#endif
  #endif /* __KERNEL__ */
  
- #endif /* _ASM_SCORE_PTRACE_H */
-diff --git a/arch/score/kernel/traps.c b/arch/score/kernel/traps.c
-index 0e46fb1..1331829 100644
---- a/arch/score/kernel/traps.c
-+++ b/arch/score/kernel/traps.c
-@@ -283,7 +283,7 @@ asmlinkage void do_reserved(struct pt_regs *regs)
- 	 */
- 	die_if_kernel("do_reserved execution Exception", regs);
- 	show_regs(regs);
--	panic("Caught reserved exception - should not happen.");
-+	panic_with_regs(regs, "Caught reserved exception - should not happen.");
- }
+ #endif /* __ASM_SH_PTRACE_H */
+diff --git a/arch/sh/kernel/traps_32.c b/arch/sh/kernel/traps_32.c
+index 86639be..791edcf 100644
+--- a/arch/sh/kernel/traps_32.c
++++ b/arch/sh/kernel/traps_32.c
+@@ -176,10 +176,10 @@ void die(const char * str, struct pt_regs * regs, long err)
+ 		crash_kexec(regs);
  
- /*
+ 	if (in_interrupt())
+-		panic("Fatal exception in interrupt");
++		panic_with_regs(regs, "Fatal exception in interrupt");
+ 
+ 	if (panic_on_oops)
+-		panic("Fatal exception");
++		panic_with_regs(regs, "Fatal exception");
+ 
+ 	do_exit(SIGSEGV);
+ }
