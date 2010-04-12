@@ -1,44 +1,49 @@
 From: David VomLehn <dvomlehn@cisco.com>
-Subject: [PATCH 23/23] Make register values available to Xtensa panic
+Subject: [PATCH 17/23] Make register values available to S/390 panic
 	notifiers
-Date: Sun, 11 Apr 2010 23:07:19 -0700
-Message-ID: <20100412060719.GA26007@dvomlehn-lnx2.corp.sa.net>
+Date: Sun, 11 Apr 2010 23:07:00 -0700
+Message-ID: <20100412060700.GA25740@dvomlehn-lnx2.corp.sa.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sj-iport-4.cisco.com ([171.68.10.86]:11470 "EHLO
-	sj-iport-4.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753672Ab0DLGHU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:07:20 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org
 Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
+List-Id: linux-arch.vger.kernel.org
 
 The save_ptregs() function has not been tested or even built. I will need
 help to complete this.
 
 Signed-off-by: David VomLehn <dvomlehn@cisco.com>
 ---
- arch/xtensa/include/asm/ptrace.h |   93 ++++++++++++++++++++++++++++++++++++++
- arch/xtensa/kernel/traps.c       |    4 +-
- 2 files changed, 95 insertions(+), 2 deletions(-)
+ arch/s390/include/asm/ptrace.h |   94 ++++++++++++++++++++++++++++++++++++++++
+ arch/s390/kernel/traps.c       |    4 +-
+ 2 files changed, 96 insertions(+), 2 deletions(-)
 
-diff --git a/arch/xtensa/include/asm/ptrace.h b/arch/xtensa/include/asm/ptrace.h
-index 905e1e6..56d5721 100644
---- a/arch/xtensa/include/asm/ptrace.h
-+++ b/arch/xtensa/include/asm/ptrace.h
-@@ -130,6 +130,99 @@ extern void show_regs(struct pt_regs *);
+diff --git a/arch/s390/include/asm/ptrace.h b/arch/s390/include/asm/ptrace.h
+index fef9b33..6665159 100644
+--- a/arch/s390/include/asm/ptrace.h
++++ b/arch/s390/include/asm/ptrace.h
+@@ -507,6 +507,100 @@ static inline unsigned long kernel_stack_pointer(struct pt_regs *regs)
+ 	return regs->gprs[15] & PSW_ADDR_INSN;
+ }
  
- #endif	/* !__ASSEMBLY__ */
- 
++
 +/* Macros for saving the contents of registers and for the output constraint
 + * for those registers */
-+#define PTREG_SAVE(r, name)		"movel	" #r ", %[" #name "]\n"
-+#define PTREG_SAVE_R(r)			PTREG_SAVE_I(r, r, i)
++#include "/home/vomlehn/git/kernel.org/ptreg.h"
++#ifndef CONFIG_64BIT
++#define PTREG_SAVE(r, name)	"st	" #r ", %[" #name "]\n"
++#else
++#define PTREG_SAVE(r, name)	"stg	" #r ", %[" #name "]\n"
++#endif
 +
-+#define PTREG_OUT_R(regs, i)		PTREG_OUT_I(regs, i)
++#define PTREG_SAVE_GPR(i)	PTREG_SAVE_I(gprs, r, i)
++#define PTREG_SAVE_ARG(i)	PTREG_SAVE_I(args, r, i)
++
++#define PTREG_SAVE_R(regs, i)	PTREG_SAVE_I(regs, gprs, r, i)
++#define PTREG_SAVE_ARG(regs, i)	PTREG_SAVE_I(regs, arg, r, i)
 +
 +#define arch_has_save_ptregs	1
 +
@@ -56,93 +61,84 @@ index 905e1e6..56d5721 100644
 +const struct pt_regs *save_ptregs(struct pt_regs *regs)
 +{
 +	__asm__ __volatile__ (
-+			PTREG_SAVE(pc, pc)
-+			PTREG_SAVE(ps, ps)
-+			PTREG_SAVE(depc, depc)
-+			PTREG_SAVE(exccause, exccause)
-+			PTREG_SAVE(excvaddr, excvaddr)
-+			PTREG_SAVE(debugcause, debugcause)
-+			PTREG_SAVE(wmask, wmask)
-+			PTREG_SAVE(lbeg, lbeg)
-+			PTREG_SAVE(lend, lend)
-+			PTREG_SAVE(lcount, lcount)
-+			PTREG_SAVE(sar, sar)
-+			PTREG_SAVE(windowbase, windowbase)
-+			PTREG_SAVE(windowstart, windowstart)
-+			PTREG_SAVE(syscall, syscall)
-+			PTREG_SAVE(icountlevel, icountlevel)
-+			/* Don't know how to handle xtregs_opt_t definitions */
-+			PTREG_SAVE_R(0)
-+			PTREG_SAVE_R(1)
-+			PTREG_SAVE_R(2)
-+			PTREG_SAVE_R(3)
-+			PTREG_SAVE_R(4)
-+			PTREG_SAVE_R(5)
-+			PTREG_SAVE_R(6)
-+			PTREG_SAVE_R(7)
-+			PTREG_SAVE_R(8)
-+			PTREG_SAVE_R(9)
-+			PTREG_SAVE_R(10)
-+			PTREG_SAVE_R(11)
-+			PTREG_SAVE_R(12)
-+			PTREG_SAVE_R(13)
-+			PTREG_SAVE_R(14)
-+			PTREG_SAVE_R(15)
++			PTREG_SAVE_ARG(0)
++			PTREG_SAVE(psw, psw)
++			PTREG_SAVE_GPR(0)
++			PTREG_SAVE_GPR(1)
++			PTREG_SAVE_GPR(2)
++			PTREG_SAVE_GPR(3)
++			PTREG_SAVE_GPR(4)
++			PTREG_SAVE_GPR(5)
++			PTREG_SAVE_GPR(6)
++			PTREG_SAVE_GPR(7)
++			PTREG_SAVE_GPR(8)
++			PTREG_SAVE_GPR(9)
++			PTREG_SAVE_GPR(10)
++			PTREG_SAVE_GPR(11)
++			PTREG_SAVE_GPR(12)
++			PTREG_SAVE_GPR(13)
++			PTREG_SAVE_GPR(14)
++			PTREG_SAVE_GPR(15)
++			PTREG_SAVE(orig_gpr2, orig_gpr2)
++			PTREG_SAVE(svcnr, svcnr)
++			PTREG_SAVE(ilc, ilc)
++		/*
++		 * The current location is the one for which the register
++		 * values are correct, even if some had been modified on
++		 * function entry. So, the current location is the value to
++		 * save as the execution address.
++		 */
++#ifndef CONFIG_64BIT
++			"basr	1, 0\n"
++		"0:\n"
++			"ahi	 1, 1b\n"
++#else
++			"lalr	 1, 1b\n"
++#endif
++			PTREG_SAVE(1, ilc)
 +	:
-+		PTREG_OUT(regs, pc, pc),
-+		PTREG_OUT(regs, ps, ps),
-+		PTREG_OUT(regs, depc, depc),
-+		PTREG_OUT(regs, exccause, exccause),
-+		PTREG_OUT(regs, excvaddr, excvaddr),
-+		PTREG_OUT(regs, debugcause, debugcause),
-+		PTREG_OUT(regs, wmask, wmask),
-+		PTREG_OUT(regs, lbeg, lbeg),
-+		PTREG_OUT(regs, lend, lend),
-+		PTREG_OUT(regs, lcount, lcount),
-+		PTREG_OUT(regs, sar, sar),
-+		PTREG_OUT(regs, windowbase, windowbase),
-+		PTREG_OUT(regs, windowstart, windowstart),
-+		PTREG_OUT(regs, syscall, syscall),
-+		PTREG_OUT(regs, icountlevel, icountlevel),
-+		/* Don't know how to handle xtregs_opt_t definitions */
-+		PTREG_OUT_R(regs, 0),
-+		PTREG_OUT_R(regs, 1),
-+		PTREG_OUT_R(regs, 2),
-+		PTREG_OUT_R(regs, 3),
-+		PTREG_OUT_R(regs, 4),
-+		PTREG_OUT_R(regs, 5),
-+		PTREG_OUT_R(regs, 6),
-+		PTREG_OUT_R(regs, 7),
-+		PTREG_OUT_R(regs, 8),
-+		PTREG_OUT_R(regs, 9),
-+		PTREG_OUT_R(regs, 10),
-+		PTREG_OUT_R(regs, 11),
-+		PTREG_OUT_R(regs, 12),
-+		PTREG_OUT_R(regs, 13),
-+		PTREG_OUT_R(regs, 14),
-+		PTREG_OUT_R(regs, 15)
++		PTREG_OUT(regs, psw, psw),
++		PTREG_OUT_GPR(regs, 0),
++		PTREG_OUT_GPR(regs, 1),
++		PTREG_OUT_GPR(regs, 2),
++		PTREG_OUT_GPR(regs, 3),
++		PTREG_OUT_GPR(regs, 4),
++		PTREG_OUT_GPR(regs, 5),
++		PTREG_OUT_GPR(regs, 6),
++		PTREG_OUT_GPR(regs, 7),
++		PTREG_OUT_GPR(regs, 8),
++		PTREG_OUT_GPR(regs, 9),
++		PTREG_OUT_GPR(regs, 10),
++		PTREG_OUT_GPR(regs, 11),
++		PTREG_OUT_GPR(regs, 12),
++		PTREG_OUT_GPR(regs, 13),
++		PTREG_OUT_GPR(regs, 14),
++		PTREG_OUT_GPR(regs, 15),
++		PTREG_OUT(regs, orig_gpr2, orig_gpr2),
++		PTREG_OUT(regs, svcnr, svcnr),
++		PTREG_OUT(regs, ilc, ilc)
 +	:
++		"r1"
 +	);
 +
 +	return regs;
 +}
- #endif  /* __KERNEL__ */
+ #endif /* __KERNEL__ */
+ #endif /* __ASSEMBLY__ */
  
- #endif	/* _XTENSA_PTRACE_H */
-diff --git a/arch/xtensa/kernel/traps.c b/arch/xtensa/kernel/traps.c
-index e64efac..3441d54 100644
---- a/arch/xtensa/kernel/traps.c
-+++ b/arch/xtensa/kernel/traps.c
-@@ -497,10 +497,10 @@ void die(const char * str, struct pt_regs * regs, long err)
+diff --git a/arch/s390/kernel/traps.c b/arch/s390/kernel/traps.c
+index 6e7ad63..49eacce 100644
+--- a/arch/s390/kernel/traps.c
++++ b/arch/s390/kernel/traps.c
+@@ -308,9 +308,9 @@ void die(const char * str, struct pt_regs * regs, long err)
+ 	add_taint(TAINT_DIE);
  	spin_unlock_irq(&die_lock);
- 
  	if (in_interrupt())
 -		panic("Fatal exception in interrupt");
 +		panic_with_regs(regs, "Fatal exception in interrupt");
- 
  	if (panic_on_oops)
--		panic("Fatal exception");
-+		panic_with_regs(regs, "Fatal exception");
- 
- 	do_exit(err);
+-		panic("Fatal exception: panic_on_oops");
++		panic_with_regs(regs, "Fatal exception: panic_on_oops");
+ 	oops_exit();
+ 	do_exit(SIGSEGV);
  }
