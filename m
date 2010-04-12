@@ -1,25 +1,39 @@
-From: David Howells <dhowells@redhat.com>
+From: Russell King <rmk@arm.linux.org.uk>
 Subject: Re: [PATCH 1/23] Make register values available to panic notifiers
-Date: Mon, 12 Apr 2010 13:20:02 +0100
-Message-ID: <24979.1271074802@redhat.com>
-References: <20100412120330.GA2566@osiris.boeblingen.de.ibm.com> <20100412060609.GA25273@dvomlehn-lnx2.corp.sa.net>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:18518 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751340Ab0DLMUT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 12 Apr 2010 08:20:19 -0400
+Date: Mon, 12 Apr 2010 13:24:33 +0100
+Message-ID: <20100412122433.GB28208@flint.arm.linux.org.uk>
+References: <20100412060609.GA25273@dvomlehn-lnx2.corp.sa.net> <20100412120330.GA2566@osiris.boeblingen.de.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
 In-Reply-To: <20100412120330.GA2566@osiris.boeblingen.de.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: dhowells@redhat.com, David VomLehn <dvomlehn@cisco.com>, to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
+Cc: David VomLehn <dvomlehn@cisco.com>, to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
+List-Id: linux-arch.vger.kernel.org
 
-Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
-
+On Mon, Apr 12, 2010 at 02:03:30PM +0200, Heiko Carstens wrote:
 > Wouldn't it be much easier to implement panic with an illegal op and let
 > the exception handler set up the pt regs structure instead? Just like some
 > architectures do that already for warnings.
+> Have a look at lib/bug.c and at various arch/<...>/include/asm/bug.h.
+> BUG_FLAG_PANIC would do the trick.
 
-No, not necessarily.  panic() is varargs.
+You also have the problem that there are panic() statements before
+exception vectors are setup.
 
-David
+Eg, using lmb, you might want to allocate a page for a L2 page table
+so you can setup the exception vectors, but the lmb allocator has a
+panic statement which will be used on failure to allocate a page.
+
+The result is that you don't know why you didn't boot since there's no
+diagnostics from the kernel.
+
+At least with the current setup, merely (re)directing the kernel printk
+output results in something you can read.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
