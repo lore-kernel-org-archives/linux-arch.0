@@ -1,50 +1,48 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCH 1/23] Make register values available to panic notifiers
-Date: Mon, 12 Apr 2010 15:35:57 +0200
-Message-ID: <20100412153557.42b3155a@mschwide.boeblingen.de.ibm.com>
-References: <20100412060609.GA25273@dvomlehn-lnx2.corp.sa.net>
-	<20100412122745.GC28208@flint.arm.linux.org.uk>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 6/23] Make register values available to CRIS panic
+	notifiers
+Date: Mon, 12 Apr 2010 21:08:59 +0200
+Message-ID: <20100412190840.GB17147@merkur.ravnborg.org>
+References: <20100412060625.GA25426@dvomlehn-lnx2.corp.sa.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate1.de.ibm.com ([195.212.17.161]:53162 "EHLO
-	mtagate1.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751423Ab0DLNgB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 09:36:01 -0400
-In-Reply-To: <20100412122745.GC28208@flint.arm.linux.org.uk>
+Received: from pfepa.post.tele.dk ([195.41.46.235]:53962 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753404Ab0DLTJB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 15:09:01 -0400
+Content-Disposition: inline
+In-Reply-To: <20100412060625.GA25426@dvomlehn-lnx2.corp.sa.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk@arm.linux.org.uk>
-Cc: David VomLehn <dvomlehn@cisco.com>, to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
+To: David VomLehn <dvomlehn@cisco.com>
+Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
 
-On Mon, 12 Apr 2010 13:27:45 +0100
-Russell King <rmk@arm.linux.org.uk> wrote:
-
-> On Sun, Apr 11, 2010 at 11:06:09PM -0700, David VomLehn wrote:
-> > This patch makes panic() and die() registers available to, for example,
-> > panic notifier functions.  Panic notifier functions are quite useful
-> > for recording crash information, but they don't get passed the register
-> > values. This makes it hard to print register contents, do stack
-> > backtraces, etc. The changes in this patch save the register state when
-> > panic() is called and introduce a function for die() to call that allows
-> > it to pass in the registers it was passed.
+On Sun, Apr 11, 2010 at 11:06:25PM -0700, David VomLehn wrote:
+> The save_ptregs() function has not been tested or even built. I will need
+> help to complete this.
 > 
-> Can you explain why you want this?
+> Signed-off-by: David VomLehn <dvomlehn@cisco.com>
+> ---
+>  arch/cris/include/arch-v10/arch/ptrace.h |   80 ++++++++++++++++++++++++++++
+>  arch/cris/include/arch-v32/arch/ptrace.h |   84 ++++++++++++++++++++++++++++++
+>  2 files changed, 164 insertions(+), 0 deletions(-)
 > 
-> I'm wondering about the value of saving the registers; normally when a panic
-> occurs, it's because of a well defined reason, and not because something
-> went wrong in some CPU register; to put it another way, a panic() is a
-> more controlled exception than a BUG() or a bad pointer dereference.
+> diff --git a/arch/cris/include/arch-v10/arch/ptrace.h b/arch/cris/include/arch-v10/arch/ptrace.h
+> index 2f464ea..28be57c 100644
+> --- a/arch/cris/include/arch-v10/arch/ptrace.h
+> +++ b/arch/cris/include/arch-v10/arch/ptrace.h
+> @@ -114,6 +114,86 @@ struct switch_stack {
+>  #define profile_pc(regs) instruction_pointer(regs)
+>  extern void show_regs(struct pt_regs *);
+>  
+> +/* Macros for saving the contents of registers and for the output constraint
+> + * for those registers */
+> +#include "/home/vomlehn/git/kernel.org/ptreg.h"
 
-I'm curious about the potential use case as well. So far I only wanted
-to know the registers if the panic has been triggered due to an
-unexpected fault with panic_on_oops=1 or in_interrupt()==1. If that
-happens the die() handler prints the registers. An open coded panic is
-easy to analyze, imho no need for the registers.
+The above include needs fixing.
+I did not look at the rest of your patches - they may suffer the same.
 
--- 
-blue skies,
-   Martin.
+PS: Your To: is seriously broken, I have to hand-edit Cc:s to send the mail
 
-"Reality continues to ruin my life." - Calvin.
+	Sam
