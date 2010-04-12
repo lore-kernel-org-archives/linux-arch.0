@@ -1,37 +1,37 @@
 From: Russell King <rmk@arm.linux.org.uk>
 Subject: Re: [PATCH 1/23] Make register values available to panic notifiers
-Date: Mon, 12 Apr 2010 13:24:33 +0100
-Message-ID: <20100412122433.GB28208@flint.arm.linux.org.uk>
-References: <20100412060609.GA25273@dvomlehn-lnx2.corp.sa.net> <20100412120330.GA2566@osiris.boeblingen.de.ibm.com>
+Date: Mon, 12 Apr 2010 13:27:45 +0100
+Message-ID: <20100412122745.GC28208@flint.arm.linux.org.uk>
+References: <20100412060609.GA25273@dvomlehn-lnx2.corp.sa.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:56198 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751031Ab0DLM14 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 08:27:56 -0400
 Content-Disposition: inline
-In-Reply-To: <20100412120330.GA2566@osiris.boeblingen.de.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: David VomLehn <dvomlehn@cisco.com>, to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20100412060609.GA25273@dvomlehn-lnx2.corp.sa.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David VomLehn <dvomlehn@cisco.com>
+Cc: to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
 
-On Mon, Apr 12, 2010 at 02:03:30PM +0200, Heiko Carstens wrote:
-> Wouldn't it be much easier to implement panic with an illegal op and let
-> the exception handler set up the pt regs structure instead? Just like some
-> architectures do that already for warnings.
-> Have a look at lib/bug.c and at various arch/<...>/include/asm/bug.h.
-> BUG_FLAG_PANIC would do the trick.
+On Sun, Apr 11, 2010 at 11:06:09PM -0700, David VomLehn wrote:
+> This patch makes panic() and die() registers available to, for example,
+> panic notifier functions.  Panic notifier functions are quite useful
+> for recording crash information, but they don't get passed the register
+> values. This makes it hard to print register contents, do stack
+> backtraces, etc. The changes in this patch save the register state when
+> panic() is called and introduce a function for die() to call that allows
+> it to pass in the registers it was passed.
 
-You also have the problem that there are panic() statements before
-exception vectors are setup.
+Can you explain why you want this?
 
-Eg, using lmb, you might want to allocate a page for a L2 page table
-so you can setup the exception vectors, but the lmb allocator has a
-panic statement which will be used on failure to allocate a page.
-
-The result is that you don't know why you didn't boot since there's no
-diagnostics from the kernel.
-
-At least with the current setup, merely (re)directing the kernel printk
-output results in something you can read.
+I'm wondering about the value of saving the registers; normally when a panic
+occurs, it's because of a well defined reason, and not because something
+went wrong in some CPU register; to put it another way, a panic() is a
+more controlled exception than a BUG() or a bad pointer dereference.
 
 -- 
 Russell King
