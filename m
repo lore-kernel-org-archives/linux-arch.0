@@ -1,190 +1,128 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:33608
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755280Ab0DIXBb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2010 19:01:31 -0400
-Date: Fri, 09 Apr 2010 16:01:35 -0700 (PDT)
-Message-ID: <20100409.160135.35854399.davem@davemloft.net>
-Subject: [PATCH 1/4] kernel: local_irq_{save,restore}_nmi()
-From: David Miller <davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from sj-iport-6.cisco.com ([171.71.176.117]:38920 "EHLO
+	sj-iport-6.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751840Ab0DLGGQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Apr 2010 02:06:16 -0400
+Date: Sun, 11 Apr 2010 23:06:16 -0700
+From: David VomLehn <dvomlehn@cisco.com>
+Subject: [PATCH 3/23] Make register values available to ARM panic notifiers
+Message-ID: <20100412060616.GA25334@dvomlehn-lnx2.corp.sa.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org
-Message-ID: <20100409230135.Ry6MincOJ_NANtrNFMhdpFXuwsEJaRGHLhIqh_xnQNc@z>
+To: to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-arch@vger.kernel.org
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
+Message-ID: <20100412060616.x2dEsSQALpxxwX_wmWWrHb0l624R8hroUSzG8k_-ERk@z>
 
+The save_ptregs() functions compiles cleanly, but has not been tested.
 
-Provide local_irq_{save,restore}_nmi() which will allow us to help
-architectures that implement NMIs using IRQ priorities like SPARC64
-does.
-
-Sparc uses IRQ prio 15 for NMIs and implements local_irq_disable() as
-disable <= 14. However if you do that while inside an NMI you re-
-enable the NMI priority again, causing all kinds of fun.
-
-A more solid implementation would first check the disable level and
-never lower it, however that is more costly and would slow down the
-rest of the kernel for no particular reason.
-
-Therefore introduce local_irq_save_nmi() which can implement this
-slower but more solid scheme and dis-allow local_irq_save() from NMI
-context.
-
-Suggested-by: David Miller <davem@davemloft.net>
-Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Signed-off-by: David S. Miller <davem@davemloft.net>
+Signed-off-by: David VomLehn <dvomlehn@cisco.com>
 ---
- include/linux/irqflags.h     |   51 +++++++++++++++++++++++++++++++++++++++--
- kernel/lockdep.c             |    7 +++++
- kernel/trace/trace_irqsoff.c |    8 ++++++
- 3 files changed, 63 insertions(+), 3 deletions(-)
+ arch/arm/include/asm/ptrace.h |   75 +++++++++++++++++++++++++++++++++++++++++
+ arch/arm/kernel/traps.c       |    4 +-
+ 2 files changed, 77 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/irqflags.h b/include/linux/irqflags.h
-index 006bf45..91256d4 100644
---- a/include/linux/irqflags.h
-+++ b/include/linux/irqflags.h
-@@ -18,6 +18,7 @@
-   extern void trace_softirqs_off(unsigned long ip);
-   extern void trace_hardirqs_on(void);
-   extern void trace_hardirqs_off(void);
-+  extern void trace_hardirqs_off_no_nmi(void);
- # define trace_hardirq_context(p)	((p)->hardirq_context)
- # define trace_softirq_context(p)	((p)->softirq_context)
- # define trace_hardirqs_enabled(p)	((p)->hardirqs_enabled)
-@@ -30,6 +31,7 @@
- #else
- # define trace_hardirqs_on()		do { } while (0)
- # define trace_hardirqs_off()		do { } while (0)
-+# define trace_hardirqs_off_no_nmi()	do { } while (0)
- # define trace_softirqs_on(ip)		do { } while (0)
- # define trace_softirqs_off(ip)		do { } while (0)
- # define trace_hardirq_context(p)	0
-@@ -59,15 +61,15 @@
- #define local_irq_enable() \
- 	do { trace_hardirqs_on(); raw_local_irq_enable(); } while (0)
- #define local_irq_disable() \
--	do { raw_local_irq_disable(); trace_hardirqs_off(); } while (0)
-+	do { raw_local_irq_disable(); trace_hardirqs_off_no_nmi(); } while (0)
-+
- #define local_irq_save(flags)				\
- 	do {						\
- 		typecheck(unsigned long, flags);	\
- 		raw_local_irq_save(flags);		\
--		trace_hardirqs_off();			\
-+		trace_hardirqs_off_no_nmi();		\
- 	} while (0)
+diff --git a/arch/arm/include/asm/ptrace.h b/arch/arm/include/asm/ptrace.h
+index 9dcb11e..b9a0488 100644
+--- a/arch/arm/include/asm/ptrace.h
++++ b/arch/arm/include/asm/ptrace.h
+@@ -184,6 +184,81 @@ extern unsigned long profile_pc(struct pt_regs *regs);
+ #define predicate(x)		((x) & 0xf0000000)
+ #define PREDICATE_ALWAYS	0xe0000000
  
--
- #define local_irq_restore(flags)			\
- 	do {						\
- 		typecheck(unsigned long, flags);	\
-@@ -79,6 +81,30 @@
- 			raw_local_irq_restore(flags);	\
- 		}					\
- 	} while (0)
++/* Macros for saving the contents of registers and for the output constraint
++ * for those registers */
++#include <linux/ptreg.h>
++#define PTREG_SAVE(r, name)	"str	" #r ", %[" #name "]\n"
++#define PTREG_SAVE_R(i)		_PTREG_SAVE_IDX(r, r, i)
 +
-+#ifndef local_irq_save_nmi
-+# define local_irq_save_nmi(flags) 			\
-+	 do {						\
-+		 typecheck(unsigned long, flags);	\
-+		 raw_local_irq_save(flags);		\
-+		 trace_hardirqs_off();			\
-+	 } while (0)
-+#endif
++#define PTREG_OUT_R(regs, i)	_PTREG_OUT_IDX(regs, uregs, r, i)
 +
-+#ifndef local_irq_restore_nmi
-+#define local_irq_restore_nmi(flags)			\
-+	do {						\
-+		typecheck(unsigned long, flags);	\
-+		if (raw_irqs_disabled_flags(flags)) {	\
-+			raw_local_irq_restore(flags);	\
-+			trace_hardirqs_off();		\
-+		} else {				\
-+			trace_hardirqs_on();		\
-+			raw_local_irq_restore(flags);	\
-+		}					\
-+	} while (0)
-+#endif
++#define arch_has_save_ptregs	1
 +
- #else /* !CONFIG_TRACE_IRQFLAGS_SUPPORT */
- /*
-  * The local_irq_*() APIs are equal to the raw_local_irq*()
-@@ -86,16 +112,35 @@
-  */
- # define raw_local_irq_disable()	local_irq_disable()
- # define raw_local_irq_enable()		local_irq_enable()
-+
- # define raw_local_irq_save(flags)			\
- 	do {						\
- 		typecheck(unsigned long, flags);	\
- 		local_irq_save(flags);			\
- 	} while (0)
-+
- # define raw_local_irq_restore(flags)			\
- 	do {						\
- 		typecheck(unsigned long, flags);	\
- 		local_irq_restore(flags);		\
- 	} while (0)
-+
-+#ifndef local_irq_save_nmi
-+# define local_irq_save_nmi(flags)			\
-+	 do {						\
-+		 typecheck(unsigned long, flags);	\
-+		 local_irq_save(flags);			\
-+	 } while (0)
-+#endif
-+
-+#ifndef local_irq_restore_nmi
-+# define local_irq_restore_nmi(flags)			\
-+	 do {						\
-+		 typecheck(unsigned long, flags);	\
-+		 local_irq_restore(flags);		\
-+	 } while (0)
-+#endif
-+
- #endif /* CONFIG_TRACE_IRQFLAGS_SUPPORT */
- 
- #ifdef CONFIG_TRACE_IRQFLAGS_SUPPORT
-diff --git a/kernel/lockdep.c b/kernel/lockdep.c
-index 2594e1c..c2aae0f 100644
---- a/kernel/lockdep.c
-+++ b/kernel/lockdep.c
-@@ -2382,6 +2382,13 @@ void trace_hardirqs_off(void)
- }
- EXPORT_SYMBOL(trace_hardirqs_off);
- 
-+void trace_hardirqs_off_no_nmi(void)
++/**
++ * save_ptregs - save processor registers for backtracing
++ * @regs:	Pointer to &struct pt_regs structure in which to save the
++ *		registers
++ *
++ * Returns a constant pointer to @regs.
++ *
++ * This function must be called first in a function. There must be no
++ * auto variables defined that are initialized before calling this function.
++ */
++static __always_inline
++const struct pt_regs *save_ptregs(struct pt_regs *regs)
 +{
-+	WARN_ON_ONCE(in_nmi());
-+	trace_hardirqs_off_caller(CALLER_ADDR0);
-+}
-+EXPORT_SYMBOL(trace_hardirqs_off_no_nmi);
++	__asm__ __volatile__ (
++			/*
++			 * I think ARM has an instruction to store multiple
++			 * registers it would be nice to use that
++			 */
++			PTREG_SAVE_R(0)
++			PTREG_SAVE_R(1)
++			PTREG_SAVE_R(2)
++			PTREG_SAVE_R(3)
++			PTREG_SAVE_R(4)
++			PTREG_SAVE_R(5)
++			PTREG_SAVE_R(6)
++			PTREG_SAVE_R(7)
++			PTREG_SAVE_R(8)
++			PTREG_SAVE_R(9)
++			PTREG_SAVE_R(10)
++			PTREG_SAVE(fp, fp)
++			PTREG_SAVE(ip, ip)
++			PTREG_SAVE(sp, sp)
++			PTREG_SAVE(lr, lr)
 +
- /*
-  * Softirqs will be enabled:
-  */
-diff --git a/kernel/trace/trace_irqsoff.c b/kernel/trace/trace_irqsoff.c
-index 2974bc7..7596c6f 100644
---- a/kernel/trace/trace_irqsoff.c
-+++ b/kernel/trace/trace_irqsoff.c
-@@ -316,6 +316,14 @@ void trace_hardirqs_off(void)
- }
- EXPORT_SYMBOL(trace_hardirqs_off);
++			"mrs	r0, cpsr\n"
++			PTREG_SAVE(r0, cpsr)
++
++		"1:\n"
++			"adr	r0, 1b\n"
++			PTREG_SAVE(r0, pc)
++	:
++		PTREG_OUT_R(regs, 0),
++		PTREG_OUT_R(regs, 1),
++		PTREG_OUT_R(regs, 2),
++		PTREG_OUT_R(regs, 3),
++		PTREG_OUT_R(regs, 4),
++		PTREG_OUT_R(regs, 5),
++		PTREG_OUT_R(regs, 6),
++		PTREG_OUT_R(regs, 7),
++		PTREG_OUT_R(regs, 8),
++		PTREG_OUT_R(regs, 9),
++		PTREG_OUT_R(regs, 10),
++		PTREG_OUT(regs, ARM_fp, fp),
++		PTREG_OUT(regs, ARM_ip, ip),
++		PTREG_OUT(regs, ARM_sp, sp),
++		PTREG_OUT(regs, ARM_lr, lr),
++		PTREG_OUT(regs, ARM_pc, pc),
++		PTREG_OUT(regs, ARM_cpsr, cpsr)
++	:
++	:
++		"r0"
++	);
++
++	return regs;
++}
+ #endif /* __KERNEL__ */
  
-+void trace_hardirqs_off_no_nmi(void)
-+{
-+	WARN_ON_ONCE(in_nmi());
-+	if (!preempt_trace() && irq_trace())
-+		start_critical_timing(CALLER_ADDR0, CALLER_ADDR1);
-+}
-+EXPORT_SYMBOL(trace_hardirqs_off_no_nmi);
-+
- void trace_hardirqs_on_caller(unsigned long caller_addr)
- {
- 	if (!preempt_trace() && irq_trace())
--- 
-1.7.0.4
-
+ #endif /* __ASSEMBLY__ */
+diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
+index 1621e53..128be0f 100644
+--- a/arch/arm/kernel/traps.c
++++ b/arch/arm/kernel/traps.c
+@@ -282,9 +282,9 @@ void die(const char *str, struct pt_regs *regs, int err)
+ 	oops_exit();
+ 
+ 	if (in_interrupt())
+-		panic("Fatal exception in interrupt");
++		panic_with_regs(regs, "Fatal exception in interrupt");
+ 	if (panic_on_oops)
+-		panic("Fatal exception");
++		panic_with_regs(regs, "Fatal exception");
+ 	if (ret != NOTIFY_STOP)
+ 		do_exit(SIGSEGV);
+ }
