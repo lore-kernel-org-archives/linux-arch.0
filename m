@@ -1,7 +1,7 @@
 From: David VomLehn <dvomlehn@cisco.com>
-Subject: [PATCH 3/23] Make register values available to ARM panic notifiers
-Date: Sun, 11 Apr 2010 23:06:16 -0700
-Message-ID: <20100412060616.GA25334@dvomlehn-lnx2.corp.sa.net>
+Subject: [PATCH 9/23] Make register values available to IA64 panic notifiers
+Date: Sun, 11 Apr 2010 23:06:35 -0700
+Message-ID: <20100412060635.GA25511@dvomlehn-lnx2.corp.sa.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
@@ -11,29 +11,32 @@ To: to@dvomlehn-lnx2.corp.sa.net, "linux-arch@vger.kernel.org"@cisco.comlinux-ar
 Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
 List-Id: linux-arch.vger.kernel.org
 
-The save_ptregs() functions compiles cleanly, but has not been tested.
+The save_ptregs() function has not been tested or even built. I will need
+help to complete this.
 
 Signed-off-by: David VomLehn <dvomlehn@cisco.com>
 ---
- arch/arm/include/asm/ptrace.h |   75 +++++++++++++++++++++++++++++++++++++++++
- arch/arm/kernel/traps.c       |    4 +-
- 2 files changed, 77 insertions(+), 2 deletions(-)
+ arch/ia64/include/asm/ptrace.h |  124 ++++++++++++++++++++++++++++++++++++++++
+ arch/ia64/kernel/traps.c       |    2 +-
+ 2 files changed, 125 insertions(+), 1 deletions(-)
 
-diff --git a/arch/arm/include/asm/ptrace.h b/arch/arm/include/asm/ptrace.h
-index 9dcb11e..b9a0488 100644
---- a/arch/arm/include/asm/ptrace.h
-+++ b/arch/arm/include/asm/ptrace.h
-@@ -184,6 +184,81 @@ extern unsigned long profile_pc(struct pt_regs *regs);
- #define predicate(x)		((x) & 0xf0000000)
- #define PREDICATE_ALWAYS	0xe0000000
+diff --git a/arch/ia64/include/asm/ptrace.h b/arch/ia64/include/asm/ptrace.h
+index 14055c6..4d39be8 100644
+--- a/arch/ia64/include/asm/ptrace.h
++++ b/arch/ia64/include/asm/ptrace.h
+@@ -325,6 +325,130 @@ static inline unsigned long user_stack_pointer(struct pt_regs *regs)
+   #define arch_has_block_step()   (1)
+   extern void user_enable_block_step(struct task_struct *);
  
 +/* Macros for saving the contents of registers and for the output constraint
 + * for those registers */
-+#include <linux/ptreg.h>
-+#define PTREG_SAVE(r, name)	"str	" #r ", %[" #name "]\n"
-+#define PTREG_SAVE_R(i)		_PTREG_SAVE_IDX(r, r, i)
++#include "/home/vomlehn/git/kernel.org/ptreg.h"
++#define PTREG_SAVE(r, name)	"st8	%[" #name "] = " #r "\n"
++#define PTREG_SAVE_R(i)		PTREG_SAVE_I(r, r, i)
++#define PTREG_SAVE_B(i)		PTREG_SAVE_I(b, b, i)
 +
-+#define PTREG_OUT_R(regs, i)	_PTREG_OUT_IDX(regs, uregs, r, i)
++#define PTREG_OUT_R(regs, i)	PTREG_OUT_I(regs, r, r, i)
++#define PTREG_OUT_B(regs, i)	PTREG_OUT_I(regs, b, b, i)
 +
 +#define arch_has_save_ptregs	1
 +
@@ -51,73 +54,117 @@ index 9dcb11e..b9a0488 100644
 +const struct pt_regs *save_ptregs(struct pt_regs *regs)
 +{
 +	__asm__ __volatile__ (
-+			/*
-+			 * I think ARM has an instruction to store multiple
-+			 * registers it would be nice to use that
-+			 */
-+			PTREG_SAVE_R(0)
-+			PTREG_SAVE_R(1)
-+			PTREG_SAVE_R(2)
-+			PTREG_SAVE_R(3)
-+			PTREG_SAVE_R(4)
-+			PTREG_SAVE_R(5)
-+			PTREG_SAVE_R(6)
-+			PTREG_SAVE_R(7)
++			PTREG_SAVE_B(6)
++			PTREG_SAVE_B(7)
++			PTREG_SAVE(ar_csd, ar_csd)
++			PTREG_SAVE(ar_ssd, ar_ssd)
 +			PTREG_SAVE_R(8)
 +			PTREG_SAVE_R(9)
 +			PTREG_SAVE_R(10)
-+			PTREG_SAVE(fp, fp)
-+			PTREG_SAVE(ip, ip)
-+			PTREG_SAVE(sp, sp)
-+			PTREG_SAVE(lr, lr)
-+
-+			"mrs	r0, cpsr\n"
-+			PTREG_SAVE(r0, cpsr)
-+
-+		"1:\n"
-+			"adr	r0, 1b\n"
++			PTREG_SAVE_R(11)
++			PTREG_SAVE(cr_ipsr, cr_ipsr)
++			PTREG_SAVE(cr_iip, cr_iip)
++			PTREG_SAVE(cr_ifs, cr_ifs)
++			PTREG_SAVE(ar_unat, ar_unat)
++			PTREG_SAVE(ar_pfs, ar_pfs)
++			PTREG_SAVE(ar_rsc, ar_rsc)
++			PTREG_SAVE(ar_rnat, ar_rnat)
++			PTREG_SAVE(ar_bspstore, ar_bspstore)
++			PTREG_SAVE(pr, pr)
++			PTREG_SAVE_B(0)
++			PTREG_SAVE(loadrs, loadrs)
++			PTREG_SAVE_R(1)
++			PTREG_SAVE_R(12)
++			PTREG_SAVE_R(13)
++			PTREG_SAVE(ar_fpsr, ar_fpsr)
++			PTREG_SAVE_R(15)
++			PTREG_SAVE_R(14)
++			PTREG_SAVE_R(2)
++			PTREG_SAVE_R(3)
++			PTREG_SAVE_R(16)
++			PTREG_SAVE_R(17)
++			PTREG_SAVE_R(18)
++			PTREG_SAVE_R(19)
++			PTREG_SAVE_R(20)
++			PTREG_SAVE_R(21)
++			PTREG_SAVE_R(22)
++			PTREG_SAVE_R(23)
++			PTREG_SAVE_R(24)
++			PTREG_SAVE_R(25)
++			PTREG_SAVE_R(26)
++			PTREG_SAVE_R(27)
++			PTREG_SAVE_R(28)
++			PTREG_SAVE_R(29)
++			PTREG_SAVE_R(30)
++			PTREG_SAVE_R(31)
++			PTREG_SAVE(ar_ccv, ar_ccv)
++		'1:\n"
++			"movl	r0=1b\n"
 +			PTREG_SAVE(r0, pc)
 +	:
-+		PTREG_OUT_R(regs, 0),
-+		PTREG_OUT_R(regs, 1),
-+		PTREG_OUT_R(regs, 2),
-+		PTREG_OUT_R(regs, 3),
-+		PTREG_OUT_R(regs, 4),
-+		PTREG_OUT_R(regs, 5),
-+		PTREG_OUT_R(regs, 6),
-+		PTREG_OUT_R(regs, 7),
-+		PTREG_OUT_R(regs, 8),
-+		PTREG_OUT_R(regs, 9),
-+		PTREG_OUT_R(regs, 10),
-+		PTREG_OUT(regs, ARM_fp, fp),
-+		PTREG_OUT(regs, ARM_ip, ip),
-+		PTREG_OUT(regs, ARM_sp, sp),
-+		PTREG_OUT(regs, ARM_lr, lr),
-+		PTREG_OUT(regs, ARM_pc, pc),
-+		PTREG_OUT(regs, ARM_cpsr, cpsr)
-+	:
++		PTREG_OUT_B(regs, 6)
++		PTREG_OUT_B(regs, 7)
++		PTREG_OUT(regs, ar_csd, ar_csd)
++		PTREG_OUT(regs, ar_ssd, ar_ssd)
++		PTREG_OUT_R(regs, 8)
++		PTREG_OUT_R(regs, 9)
++		PTREG_OUT_R(regs, 10)
++		PTREG_OUT_R(regs, 11)
++		PTREG_OUT(regs, cr_ipsr, cr_ipsr)
++		PTREG_OUT(regs, cr_iip, cr_iip)
++		PTREG_OUT(regs, cr_ifs, cr_ifs)
++		PTREG_OUT(regs, ar_unat, ar_unat)
++		PTREG_OUT(regs, ar_pfs, ar_pfs)
++		PTREG_OUT(regs, ar_rsc, ar_rsc)
++		PTREG_OUT(regs, ar_rnat, ar_rnat)
++		PTREG_OUT(regs, ar_bspstore, ar_bspstore)
++		PTREG_OUT(regs, pr, pr)
++		PTREG_OUT_B(regs, 0)
++		PTREG_OUT(regs, loadrs, loadrs)
++		PTREG_OUT_R(regs, 1)
++		PTREG_OUT_R(regs, 12)
++		PTREG_OUT_R(regs, 13)
++		PTREG_OUT(regs, ar_fpsr, ar_fpsr)
++		PTREG_OUT_R(regs, 15)
++		PTREG_OUT_R(regs, 14)
++		PTREG_OUT_R(regs, 2)
++		PTREG_OUT_R(regs, 3)
++		PTREG_OUT_R(regs, 16)
++		PTREG_OUT_R(regs, 17)
++		PTREG_OUT_R(regs, 18)
++		PTREG_OUT_R(regs, 19)
++		PTREG_OUT_R(regs, 20)
++		PTREG_OUT_R(regs, 21)
++		PTREG_OUT_R(regs, 22)
++		PTREG_OUT_R(regs, 23)
++		PTREG_OUT_R(regs, 24)
++		PTREG_OUT_R(regs, 25)
++		PTREG_OUT_R(regs, 26)
++		PTREG_OUT_R(regs, 27)
++		PTREG_OUT_R(regs, 28)
++		PTREG_OUT_R(regs, 29)
++		PTREG_OUT_R(regs, 30)
++		PTREG_OUT_R(regs, 31)
++		PTREG_OUT(regs, ar_ccv, ar_ccv)
 +	:
 +		"r0"
 +	);
 +
 +	return regs;
 +}
- #endif /* __KERNEL__ */
+ #endif /* !__KERNEL__ */
  
- #endif /* __ASSEMBLY__ */
-diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
-index 1621e53..128be0f 100644
---- a/arch/arm/kernel/traps.c
-+++ b/arch/arm/kernel/traps.c
-@@ -282,9 +282,9 @@ void die(const char *str, struct pt_regs *regs, int err)
- 	oops_exit();
+ /* pt_all_user_regs is used for PTRACE_GETREGS PTRACE_SETREGS */
+diff --git a/arch/ia64/kernel/traps.c b/arch/ia64/kernel/traps.c
+index f0cda76..541ea2f 100644
+--- a/arch/ia64/kernel/traps.c
++++ b/arch/ia64/kernel/traps.c
+@@ -79,7 +79,7 @@ die (const char *str, struct pt_regs *regs, long err)
+ 		return 1;
  
- 	if (in_interrupt())
--		panic("Fatal exception in interrupt");
-+		panic_with_regs(regs, "Fatal exception in interrupt");
  	if (panic_on_oops)
 -		panic("Fatal exception");
 +		panic_with_regs(regs, "Fatal exception");
- 	if (ret != NOTIFY_STOP)
- 		do_exit(SIGSEGV);
- }
+ 
+   	do_exit(SIGSEGV);
+ 	return 0;
