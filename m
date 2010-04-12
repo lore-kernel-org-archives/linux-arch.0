@@ -1,8 +1,8 @@
 From: David VomLehn <dvomlehn@cisco.com>
-Subject: [PATCH 11/23] Make register values available to M68K panic
+Subject: [PATCH 8/23] Make register values available to H8300 panic
 	notifiers
-Date: Sun, 11 Apr 2010 23:06:41 -0700
-Message-ID: <20100412060641.GA25567@dvomlehn-lnx2.corp.sa.net>
+Date: Sun, 11 Apr 2010 23:06:32 -0700
+Message-ID: <20100412060632.GA25482@dvomlehn-lnx2.corp.sa.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
@@ -15,54 +15,27 @@ List-Id: linux-arch.vger.kernel.org
 The save_ptregs() function has not been tested or even built. I will need
 help to complete this.
 
-This appeared to require a Makefile change in order to compile kernel/entry.S.
-The problem was that it was complaining about having an "invalid instruction
-for this architecture; needs 68000 or higher". Choosing a processor didn't
-seem to help, but adding the processor to KBUILD_AFLAGS in appropriate places
-resolved the problem. Has bit rot set in to the m68k tree?
-
 Signed-off-by: David VomLehn <dvomlehn@cisco.com>
 ---
- arch/m68k/Makefile             |    2 +
- arch/m68k/include/asm/ptrace.h |   74 ++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 76 insertions(+), 0 deletions(-)
+ arch/h8300/include/asm/ptrace.h |   64 +++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 64 insertions(+), 0 deletions(-)
 
-diff --git a/arch/m68k/Makefile b/arch/m68k/Makefile
-index 570d85c..bab0202 100644
---- a/arch/m68k/Makefile
-+++ b/arch/m68k/Makefile
-@@ -41,10 +41,12 @@ ifndef CONFIG_M68030
- 
- ifndef CONFIG_M68060
- KBUILD_CFLAGS += -m68040
-+KBUILD_AFLAGS += -m68040
- endif
- 
- ifndef CONFIG_M68040
- KBUILD_CFLAGS += -m68060
-+KBUILD_AFLAGS += -m68060
- endif
- 
- endif
-diff --git a/arch/m68k/include/asm/ptrace.h b/arch/m68k/include/asm/ptrace.h
-index ee4011c..2786ea4 100644
---- a/arch/m68k/include/asm/ptrace.h
-+++ b/arch/m68k/include/asm/ptrace.h
-@@ -85,6 +85,80 @@ struct switch_stack {
+diff --git a/arch/h8300/include/asm/ptrace.h b/arch/h8300/include/asm/ptrace.h
+index d866c0e..09d6f3f 100644
+--- a/arch/h8300/include/asm/ptrace.h
++++ b/arch/h8300/include/asm/ptrace.h
+@@ -61,6 +61,70 @@ struct pt_regs {
+ #define instruction_pointer(regs) ((regs)->pc)
  #define profile_pc(regs) instruction_pointer(regs)
  extern void show_regs(struct pt_regs *);
- 
++
 +/* Macros for saving the contents of registers and for the output constraint
 + * for those registers */
++#include "/home/vomlehn/git/kernel.org/ptreg.h"
++#define PTREG_SAVE(r, name)	"mov.l	" #r ", %[" #name "]\n"
++#define PTREG_SAVE_ER(i)	PTREG_SAVE_I(er, er, i)
 +
-+#include <linux/ptreg.h>
-+
-+#define PTREG_SAVE(r, name)	"movel	%" #r ", %[" #name "]\n"
-+#define PTREG_SAVE_D(i)		_PTREG_SAVE_I(d, d, i)
-+#define PTREG_SAVE_A(i)		_PTREG_SAVE_I(a, a, i)
-+
-+#define PTREG_OUT_D(regs, i)	_PTREG_OUT_I(regs, d, d, i)
-+#define PTREG_OUT_A(regs, i)	_PTREG_OUT_I(regs, a, a, i)
++#define PTREG_OUT_ER(regs, i)	PTREG_OUT_I(regs, er, er, i)
 +
 +#define arch_has_save_ptregs	1
 +
@@ -80,52 +53,45 @@ index ee4011c..2786ea4 100644
 +const struct pt_regs *save_ptregs(struct pt_regs *regs)
 +{
 +	__asm__ __volatile__ (
-+			PTREG_SAVE_D(1)
-+			PTREG_SAVE_D(2)
-+			PTREG_SAVE_D(3)
-+			PTREG_SAVE_D(4)
-+			PTREG_SAVE_D(5)
-+			PTREG_SAVE_A(0)
-+			PTREG_SAVE_A(1)
-+			PTREG_SAVE_A(2)
-+			PTREG_SAVE_D(0)
-+			PTREG_SAVE(orig_d0, orig_d0)
-+			PTREG_SAVE(stkadj, stkadj)
-+#if 0
-+			PTREG_SAVE(format, format)
++			PTREG_SAVE(retpc, retpc)
++			PTREG_SAVE_ER(4)
++			PTREG_SAVE_ER(5)
++			PTREG_SAVE_ER(6)
++			PTREG_SAVE_ER(3)
++			PTREG_SAVE_ER(2)
++			PTREG_SAVE_ER(1)
++			PTREG_SAVE(orig_er0, orig_er0)
++			PTREG_SAVE(ccr, ccr)
++			PTREG_SAVE_ER(0)
 +			PTREG_SAVE(vector, vector)
++#if defined(CONFIG_CPU_H8S)
++			PTREG_SAVE(exr, exr)
 +#endif
-+			PTREG_SAVE(sr, sr)
 +		"1:\n"
-+			"lea	1b, %a0"
-+			PTREG_SAVE(a0, pc)
++			"mov.l	#1b, er0\n"
++			PTREG_SAVE(er0, pc)
 +	:
-+		PTREG_OUT_D(regs, 0),
-+		PTREG_OUT_D(regs, 1),
-+		PTREG_OUT_D(regs, 2),
-+		PTREG_OUT_D(regs, 3),
-+		PTREG_OUT_D(regs, 4),
-+		PTREG_OUT_D(regs, 5),
-+		PTREG_OUT_A(regs, 0),
-+		PTREG_OUT_A(regs, 1),
-+		PTREG_OUT_A(regs, 2),
-+		PTREG_OUT(regs, orig_d0, orig_d0),
-+		PTREG_OUT(regs, stkadj, stkadj),
-+#if 0
-+/* Are these registers that must be saved? */
-+		PTREG_OUT(regs, format, format),
-+		PTREG_OUT(regs, vector, vector),
++		PTREG_OUT(regs, retpc, retpc)
++		PTREG_OUT(regs, 4)
++		PTREG_OUT(regs, 5)
++		PTREG_OUT(regs, 6)
++		PTREG_OUT(regs, 3)
++		PTREG_OUT(regs, 2)
++		PTREG_OUT(regs, 1)
++		PTREG_OUT(regs, orig_er0, orig_er0)
++		PTREG_OUT(regs, ccr, ccr)
++		PTREG_OUT(regs, 0)
++		PTREG_OUT(regs, vector, vector)
++#if defined(CONFIG_CPU_H8S)
++		PTREG_OUT(regs, exr, exr)
 +#endif
-+		PTREG_OUT(regs, sr, sr),
 +		PTREG_OUT(regs, pc, pc)
 +	:
-+	:
-+		"a0"
++		"er0"
 +	);
 +
 +	return regs;
 +}
-+
- /*
-  * These are defined as per linux/ptrace.h.
-  */
+ #endif /* __KERNEL__ */
+ #endif /* __ASSEMBLY__ */
+ #endif /* _H8300_PTRACE_H */
