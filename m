@@ -1,91 +1,56 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 26/39] nobootmem: use lmb.default_alloc_limit in
- alloc_bootmem path
-Date: Tue, 13 Apr 2010 15:13:42 +1000
-Message-ID: <1271135622.13059.75.camel@pasglop>
-References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
-	 <1270793048-23796-27-git-send-email-yinghai@kernel.org>
-	 <1271132589.13059.67.camel@pasglop>  <4BC3F82A.20400@oracle.com>
+From: Yinghai <yinghai.lu@oracle.com>
+Subject: Re: [PATCH 07/39] lmb: Add lmb_find_area()
+Date: Mon, 12 Apr 2010 22:26:12 -0700
+Message-ID: <4BC40074.6030604@oracle.com>
+References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>	 <1270793048-23796-8-git-send-email-yinghai@kernel.org>	 <1271131543.13059.53.camel@pasglop>  <4BC3F317.7030702@oracle.com> <1271135239.13059.69.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:51826 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751389Ab0DMFPJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Apr 2010 01:15:09 -0400
-In-Reply-To: <4BC3F82A.20400@oracle.com>
+Received: from acsinet11.oracle.com ([141.146.126.233]:22931 "EHLO
+	acsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750800Ab0DMF3E (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Apr 2010 01:29:04 -0400
+In-Reply-To: <1271135239.13059.69.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai <yinghai.lu@oracle.com>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, 2010-04-12 at 21:50 -0700, Yinghai wrote:
-> On 04/12/2010 09:23 PM, Benjamin Herrenschmidt wrote:
-> > On Thu, 2010-04-08 at 23:03 -0700, Yinghai Lu wrote:
-> >> Generic version __lmb_find_area() is going from high to low, and for 32bit
-> >> active_region for 32bit does include high pages
-> >>
-> >> need to replace the limit with lmb.default_alloc_limit, aka get_max_mapped()
-> >>
-> >> with this patch, x86 32bit could use generic version of __lmb_find_area()
-> > 
-> > So you unconditionally add access to some lmb specific data structure to
-> > generic code ? That isn't going to work very well on archs that don't
-> > use lmb.
+On 04/12/2010 10:07 PM, Benjamin Herrenschmidt wrote:
+> On Mon, 2010-04-12 at 21:29 -0700, Yinghai wrote:
+>>
+>>> Haven't you noticed there's already way too many functions walking
+>> the
+>>> LMBs ? :-)
+>>
+>> x86 is using original lmb_reserve, lmb_free(), but have own version
+>> lmb_find_area(), and it will be dropped after
+>> more testing of generic version of lmb_find_area()
 > 
-> the whole function
-> 
-> #ifdef CONFIG_HAVE_LMB
-> u64 __init find_memory_core_early(int nid, u64 size, u64 align,
->                                         u64 goal, u64 limit)
-> {
->         int i;
-> 
->         /* Need to go over early_node_map to find out good range for node */
->         for_each_active_range_index_in_nid(i, nid) {
->                 u64 addr;
->                 u64 ei_start, ei_last;
-> 
->                 ei_last = early_node_map[i].end_pfn;
->                 ei_last <<= PAGE_SHIFT;
->                 ei_start = early_node_map[i].start_pfn;
->                 ei_start <<= PAGE_SHIFT;
->                 addr = __lmb_find_area(ei_start, ei_last,
->                                          goal, limit, size, align);
-> 
->                 if (addr == -1ULL)
->                         continue;
-> 
->                 return addr;
->         }
-> 
->         return -1ULL;
-> }
-> #endif
-> 
-> need to access early_node_map[], so leave the function here.
+> Do -not- add no APIs that are meant to be dropped. They never are in
+> practice. What I'm saying here is that the LMB code (including existing
+> stuff) could use some factoring in this area.
 
-Hrm... find_memory_core_early() is a broken API anyways. Did you add
-that ? Again, you insist on pushing all over the place that crakpot
-find/reserve API instead of doing a proper allocation, and it's now
-leaking with ifdef's & all into the generic code.
+current generic lmb_find_area() is allocating from high to low.
+x86 32bit seems have problem with that.
+in this patchset, it is fixed, but not sure if i missed sth.
+so could remove x86 lmb_find_area after more test coverage.
 
-This is just all a pile of shit.
-
-I'm tempted to NACK the whole thing and wait for somebody who can code
-to come up with something half decent.
-
-Ben.
-
-
-> > 
-> > Also, those things should be local to lmb_* anyways.
 > 
-> if you insist, could move it to lmb.c and use work_with_active_regions() around it.
+>>>
+>>> I think the ones doing nid alloc could/should be also rewritten to
+>> use
+>>> one single low level __lmb_find_* no ?
+>>
+>> that nid_alloc() only has one user (sparc64).
+>>
+>> maybe could be replaced by lmd_find_area_node(), but need to make sure
+>> early_node_map[] is filled at first.
 > 
-> YH
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> How does it work today ? IE. Which ever mechanism is used that works I
+> don't care but we shouldn't use 2 different ones.
+
+x86 is only use find_area_early() with node area scope, David point that could have problem with cross node mem map.
+
+YH 
