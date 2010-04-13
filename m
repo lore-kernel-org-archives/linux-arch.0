@@ -1,58 +1,78 @@
 From: Yinghai <yinghai.lu@oracle.com>
-Subject: Re: [PATCH 18/39] lmb: Add lmb_reserve_area_overlap_ok()
-Date: Mon, 12 Apr 2010 22:37:58 -0700
-Message-ID: <4BC40336.4030902@oracle.com>
-References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>	 <1270793048-23796-19-git-send-email-yinghai@kernel.org>	 <1271132476.13059.66.camel@pasglop>  <4BC3F6C8.4020303@oracle.com> <1271135450.13059.72.camel@pasglop>
+Subject: Re: [PATCH 26/39] nobootmem: use lmb.default_alloc_limit in alloc_bootmem
+ path
+Date: Mon, 12 Apr 2010 22:42:18 -0700
+Message-ID: <4BC4043A.5080404@oracle.com>
+References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>	 <1270793048-23796-27-git-send-email-yinghai@kernel.org>	 <1271132589.13059.67.camel@pasglop>  <4BC3F82A.20400@oracle.com> <1271135622.13059.75.camel@pasglop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1271135450.13059.72.camel@pasglop>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet12.oracle.com ([148.87.113.124]:42131 "EHLO
+	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751064Ab0DMFpg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Apr 2010 01:45:36 -0400
+In-Reply-To: <1271135622.13059.75.camel@pasglop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-On 04/12/2010 10:10 PM, Benjamin Herrenschmidt wrote:
-> On Mon, 2010-04-12 at 21:44 -0700, Yinghai wrote:
-> 
->> that is only for some special cases about area that is reserved for fw region.
-> 
-> And ? From what I can see in the code, it will still not work properly
-> unless all your special cases end up fitting right with the bug you
-> effectively have..
-
-not sure.
-
-noticed there some overlapped, and with this patch, those overlapped area disappeared
-
-> 
->> and even there is overlapped area, it the code still can go through when lmb_to_bootmem or create range list for slab.
->> because they are using range array subtract.
-> 
-> Well, either we just have overlapped areas or we don't ... we shouldn't
-> have some kind of overlap_ok() thing that does the right thing ..
-> sometimes, but maybe not, but we don't care anyways, which is what you
-> seem to be saying.
-yes.
-> 
->>> Besides, lmb_reserve_area_overlap_ok() sucks as a name :-)
+On 04/12/2010 10:13 PM, Benjamin Herrenschmidt wrote:
+> On Mon, 2010-04-12 at 21:50 -0700, Yinghai wrote:
+>> On 04/12/2010 09:23 PM, Benjamin Herrenschmidt wrote:
+>>> On Thu, 2010-04-08 at 23:03 -0700, Yinghai Lu wrote:
+>>>> Generic version __lmb_find_area() is going from high to low, and for 32bit
+>>>> active_region for 32bit does include high pages
+>>>>
+>>>> need to replace the limit with lmb.default_alloc_limit, aka get_max_mapped()
+>>>>
+>>>> with this patch, x86 32bit could use generic version of __lmb_find_area()
+>>>
+>>> So you unconditionally add access to some lmb specific data structure to
+>>> generic code ? That isn't going to work very well on archs that don't
+>>> use lmb.
 >>
->> any suggestion for better name?
+>> the whole function
+>>
+>> #ifdef CONFIG_HAVE_LMB
+>> u64 __init find_memory_core_early(int nid, u64 size, u64 align,
+>>                                         u64 goal, u64 limit)
+>> {
+>>         int i;
+>>
+>>         /* Need to go over early_node_map to find out good range for node */
+>>         for_each_active_range_index_in_nid(i, nid) {
+>>                 u64 addr;
+>>                 u64 ei_start, ei_last;
+>>
+>>                 ei_last = early_node_map[i].end_pfn;
+>>                 ei_last <<= PAGE_SHIFT;
+>>                 ei_start = early_node_map[i].start_pfn;
+>>                 ei_start <<= PAGE_SHIFT;
+>>                 addr = __lmb_find_area(ei_start, ei_last,
+>>                                          goal, limit, size, align);
+>>
+>>                 if (addr == -1ULL)
+>>                         continue;
+>>
+>>                 return addr;
+>>         }
+>>
+>>         return -1ULL;
+>> }
+>> #endif
+>>
+>> need to access early_node_map[], so leave the function here.
 > 
-> Well, what you actually implemented is 
+> Hrm... find_memory_core_early() is a broken API anyways. Did you add
+> that ? Again, you insist on pushing all over the place that crakpot
+> find/reserve API instead of doing a proper allocation, and it's now
+> leaking with ifdef's & all into the generic code.
 > 
-> lmb_reserve_area_overlap_maybe_ok_not_too_sure_though()
-> 
-> What we should decide is once for all, is it ok to have lmb_reserve() be
-> called for overlapping ranges. I think the answer is yes and in fact, we
-> don't take special care in powerpc either there so overlap could happen
-> in theory.
-> 
-> Now, do we want to avoid actually creating overlapping regions in the
-> array ? I think we should look into it, but then we should fix
-> lmb_reserve() to do the right thing here and coalesce all the overlaps.
+__alloc_memory_core_early() already include that find_memory_core_early() lines
+it is merged for CONFIG_NO_BOOTMEM support.
 
-not sure if is needed. lmb_free/lmb_reserve seems work.
+I split it out, so lmb_find_area_node() could reuse those lines.
 
 YH
