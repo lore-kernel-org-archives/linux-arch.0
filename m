@@ -1,58 +1,65 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH -v12 00/39] use lmb with x86
-Date: Tue, 13 Apr 2010 13:41:44 +1000
-Message-ID: <1271130104.13059.37.camel@pasglop>
+Subject: Re: [PATCH 04/39] lmb: Move lmb.c to mm/
+Date: Tue, 13 Apr 2010 13:52:28 +1000
+Message-ID: <1271130748.13059.48.camel@pasglop>
 References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
+	 <1270793048-23796-5-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:47397 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:33043 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751655Ab0DMDnc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 12 Apr 2010 23:43:32 -0400
-In-Reply-To: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
+	id S1750944Ab0DMDx4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 12 Apr 2010 23:53:56 -0400
+In-Reply-To: <1270793048-23796-5-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yinghai Lu <yinghai@kernel.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
 On Thu, 2010-04-08 at 23:03 -0700, Yinghai Lu wrote:
-> the new lmb could be used to early_res in x86.
+> lmb.c is memory related, so move it to mm/. It is suggested by Ingo
 > 
-> Suggested by: David, Ben, and Thomas
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 
-I still find most of your changeset comments to be very very poor, if
-comprehensible at all. You really MUST make an effort there.
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+---
 
-Cheers,
-Ben.
-
-> -v6: change sequence as requested by Thomas
-> -v7: seperate them to more patches
-> -v8: add boundary checking to make sure not free partial page.
-> -v9: use lmb_debug to control print out of reserve_lmb.
->      add e820 clean up, and e820 become __initdata
-> -v10:use lmb.rmo_size and ARCH_DISCARD_LMB according to Michael
->      change name to lmb_find_area/reserve_lmb_area/free_lmb_area,
->       according to Michael
->      update find_lmb_area to use __lmb_alloc_base according to ben
-> -v11:move find_lmb_area_size back to x86.
->      x86 has own find_lmb_area, and could be disabled by ARCH_LMB_FIND_AREA
->       because _lmb_find_base has different behavoir from x86's old one.
->       one from high to high and one from low to high
->       need more test
->      tested for x86 32bit/64bit, numa/nonuma, nobootmem/bootmem.
-> -v12:refresh the series with current tip
->      seperate nobootmem.c, so could remove some #ifdef
->      still keep CONFIG_NO_BOOTMEM, in x86 .c, and could use the as tags
->      so other lmb could refer them to use NO_BOOTMEM.
+> ---
+>  lib/Makefile      |    2 --
+>  mm/Makefile       |    2 ++
+>  {lib => mm}/lmb.c |    0
+>  3 files changed, 2 insertions(+), 2 deletions(-)
+>  rename {lib => mm}/lmb.c (100%)
 > 
-> still keep find_lmb_area, may replace those find_lmb_area will lmb_alloc, if
-> everything go fine
-> 
-> Please put them into tip and -next to have more test coverage.
-> 
-> Thanks
-> 
-> Yinghai
+> diff --git a/lib/Makefile b/lib/Makefile
+> index 2e152ae..a463a4d 100644
+> --- a/lib/Makefile
+> +++ b/lib/Makefile
+> @@ -85,8 +85,6 @@ obj-$(CONFIG_FAULT_INJECTION) += fault-inject.o
+>  
+>  lib-$(CONFIG_GENERIC_BUG) += bug.o
+>  
+> -obj-$(CONFIG_HAVE_LMB) += lmb.o
+> -
+>  obj-$(CONFIG_HAVE_ARCH_TRACEHOOK) += syscall.o
+>  
+>  obj-$(CONFIG_DYNAMIC_DEBUG) += dynamic_debug.o
+> diff --git a/mm/Makefile b/mm/Makefile
+> index 6c2a73a..52492f9 100644
+> --- a/mm/Makefile
+> +++ b/mm/Makefile
+> @@ -15,6 +15,8 @@ obj-y			:= bootmem.o filemap.o mempool.o oom_kill.o fadvise.o \
+>  			   $(mmu-y)
+>  obj-y += init-mm.o
+>  
+> +obj-$(CONFIG_HAVE_LMB) += lmb.o
+> +
+>  obj-$(CONFIG_BOUNCE)	+= bounce.o
+>  obj-$(CONFIG_SWAP)	+= page_io.o swap_state.o swapfile.o thrash.o
+>  obj-$(CONFIG_HAS_DMA)	+= dmapool.o
+> diff --git a/lib/lmb.c b/mm/lmb.c
+> similarity index 100%
+> rename from lib/lmb.c
+> rename to mm/lmb.c
