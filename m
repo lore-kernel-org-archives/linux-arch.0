@@ -1,30 +1,32 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 07/39] lmb: Add lmb_find_area()
-Date: Mon, 12 Apr 2010 22:46:37 -0700
-Message-ID: <4BC4053D.2050805@zytor.com>
-References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>	 <1270793048-23796-8-git-send-email-yinghai@kernel.org>	 <1271131543.13059.53.camel@pasglop>  <4BC3F317.7030702@oracle.com> <1271135239.13059.69.camel@pasglop> <4BC40074.6030604@oracle.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 0/4]: Respin local_irq_*_nmi() stuff.
+Date: Tue, 13 Apr 2010 09:48:58 +0200
+Message-ID: <1271144938.4807.925.camel@twins>
+References: <20100409.160132.216116766.davem@davemloft.net>
+	 <20100412.220838.132238558.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:53085 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750772Ab0DMFxY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Apr 2010 01:53:24 -0400
-In-Reply-To: <4BC40074.6030604@oracle.com>
+Received: from casper.infradead.org ([85.118.1.10]:35237 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752215Ab0DMHs5 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Apr 2010 03:48:57 -0400
+In-Reply-To: <20100412.220838.132238558.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai <yinghai.lu@oracle.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org
 
-On 04/12/2010 10:26 PM, Yinghai wrote:
+On Mon, 2010-04-12 at 22:08 -0700, David Miller wrote:
+> I'm rescinding these patches for now, for two reasons:
 > 
-> current generic lmb_find_area() is allocating from high to low.
-> x86 32bit seems have problem with that.
+> 1) The NMI annotations necessary to get everything working really gets
+>    out of control.
+> 
+> 2) I think I found a cheap way to do this in sparc64 specific code.
 
-Presumably because it fills up ZONE_DMA.
+Ah, ok..
 
-	-hpa
--- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+Care to enlighten the curious amongst us as to what exactly you're doing
+in the sparc code?
