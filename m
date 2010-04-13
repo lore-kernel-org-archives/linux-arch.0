@@ -1,48 +1,44 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 07/13] powerpc: Preemptible mmu_gather
-Date: Tue, 13 Apr 2010 12:22:23 +0200
-Message-ID: <1271154143.4807.1022.camel@twins>
-References: <20100408191737.296180458@chello.nl>
-	 <20100408192722.901224587@chello.nl>  <1271121817.13059.19.camel@pasglop>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [GIT PULL] perf fix
+Date: Wed, 14 Apr 2010 00:51:03 +0200
+Message-ID: <20100413225103.GB4720@elte.hu>
+References: <1270734746.2215.56.camel@edumazet-laptop>
+ <1270747919-16685-1-git-send-regression-fweisbec@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:43027 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752273Ab0DMKWw convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Apr 2010 06:22:52 -0400
-In-Reply-To: <1271121817.13059.19.camel@pasglop>
+Received: from mx2.mail.elte.hu ([157.181.151.9]:39560 "EHLO mx2.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750854Ab0DMWvO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 Apr 2010 18:51:14 -0400
+Content-Disposition: inline
+In-Reply-To: <1270747919-16685-1-git-send-regression-fweisbec@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
+To: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Eric Dumazet <eric.dumazet@gmail.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@redhat.com>, Paul Mackerras <paulus@samba.org>, David Miller <davem@davemloft.net>, Archs <linux-arch@vger.kernel.org>
 
-On Tue, 2010-04-13 at 11:23 +1000, Benjamin Herrenschmidt wrote:
-> >  static inline void arch_leave_lazy_mmu_mode(void)
-> >  {
-> > -     struct ppc64_tlb_batch *batch = &__get_cpu_var(ppc64_tlb_batch);
-> > +     struct ppc64_tlb_batch *batch = &get_cpu_var(ppc64_tlb_batch);
-> > +
-> > +     if (batch->active) {
-> > +             if (batch->index)
-> > +                     __flush_tlb_pending(batch);
-> > +             batch->active = 0;
-> > +     }
+
+* Frederic Weisbecker <fweisbec@gmail.com> wrote:
+
+> Ingo,
 > 
-> Can index be > 0 if active == 0 ? I though not, which means you don't
-> need to add a test on active, do you ?
+> Please pull the perf/urgent branch that can be found at:
+> 
+> git://git.kernel.org/pub/scm/linux/kernel/git/frederic/random-tracing.git
+> 	perf/urgent
+> 
+> Thanks,
+> 	Frederic
+> ---
+> 
+> Frederic Weisbecker (1):
+>       perf: Fix unsafe frame rewinding with hot regs fetching
+> 
+> 
+>  arch/x86/kernel/dumpstack.h |    8 ++++++--
+>  1 files changed, 6 insertions(+), 2 deletions(-)
 
-True I guess, but like this we avoid a write, doesn't really matter I
-suspect.
+Pulled, thanks a lot Frederic!
 
-> I'm also pondering whether we should just stick something in the
-> task/thread struct and avoid that whole per-cpu manipulation including
-> the stuff in process.c in fact.
-
-Can do, I can add batching similar to the generic code to the
-thread_info thingy.
-
-> Heh, maybe it's time to introduce thread vars ? :-) 
-
-Heh, that seems like a real good way to waste a lot of memory fast ;-)
+	Ingo
