@@ -1,57 +1,53 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 26/39] nobootmem: use lmb.default_alloc_limit in
- alloc_bootmem path
-Date: Tue, 13 Apr 2010 14:23:09 +1000
-Message-ID: <1271132589.13059.67.camel@pasglop>
-References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
-	 <1270793048-23796-27-git-send-email-yinghai@kernel.org>
+From: Yinghai <yinghai.lu@oracle.com>
+Subject: Re: [PATCH 07/39] lmb: Add lmb_find_area()
+Date: Mon, 12 Apr 2010 21:29:11 -0700
+Message-ID: <4BC3F317.7030702@oracle.com>
+References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>	 <1270793048-23796-8-git-send-email-yinghai@kernel.org> <1271131543.13059.53.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:47953 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750727Ab0DMEYd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Apr 2010 00:24:33 -0400
-In-Reply-To: <1270793048-23796-27-git-send-email-yinghai@kernel.org>
+Received: from rcsinet11.oracle.com ([148.87.113.123]:46781 "EHLO
+	rcsinet11.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750727Ab0DMEbe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Apr 2010 00:31:34 -0400
+In-Reply-To: <1271131543.13059.53.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, 2010-04-08 at 23:03 -0700, Yinghai Lu wrote:
-> Generic version __lmb_find_area() is going from high to low, and for 32bit
-> active_region for 32bit does include high pages
+On 04/12/2010 09:05 PM, Benjamin Herrenschmidt wrote:
+> On Thu, 2010-04-08 at 23:03 -0700, Yinghai Lu wrote:
+>> It will try find area according with size/align in specified range (start, end).
+>>
+>> lmb_find_area() will honor goal/limit.
+>>
+>> also make it more easy for x86 to use lmb.
+>> x86 early_res is using find/reserve pattern instead of alloc.
+>>
+>> When we need temporaray buff for range array etc for range work, if We are using
+>> lmb_alloc(), We will need to add some post fix code for buffer that is used
+>> by range array, because it is in the lmb.reserved already. and have to call
+>> extra lmb_free().
+>>
+>> -v2: Change name to lmb_find_area() according to Michael Ellerman
+>> -v3: Add generic weak version __lmb_find_area()
 > 
-> need to replace the limit with lmb.default_alloc_limit, aka get_max_mapped()
+> Haven't you noticed there's already way too many functions walking the
+> LMBs ? :-)
+
+x86 is using original lmb_reserve, lmb_free(), but have own version lmb_find_area(), and it will be dropped after
+more testing of generic version of lmb_find_area()
+
 > 
-> with this patch, x86 32bit could use generic version of __lmb_find_area()
+> I think the ones doing nid alloc could/should be also rewritten to use
+> one single low level __lmb_find_* no ?
 
-So you unconditionally add access to some lmb specific data structure to
-generic code ? That isn't going to work very well on archs that don't
-use lmb.
+that nid_alloc() only has one user (sparc64).
 
-Also, those things should be local to lmb_* anyways.
+maybe could be replaced by lmd_find_area_node(), but need to make sure early_node_map[] is filled at first.
 
-Cheers,
-Ben.
+Thanks
 
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> ---
->  mm/page_alloc.c |    3 +++
->  1 files changed, 3 insertions(+), 0 deletions(-)
-> 
-> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-> index 79bd44b..256aed0 100644
-> --- a/mm/page_alloc.c
-> +++ b/mm/page_alloc.c
-> @@ -3445,6 +3445,9 @@ void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
->  
->  	u64 addr;
->  
-> +	if (limit > lmb.default_alloc_limit)
-> +		limit = lmb.default_alloc_limit;
-> +
->  	addr = find_memory_core_early(nid, size, align, goal, limit);
->  
->  	if (addr == -1ULL)
+Yinghai
