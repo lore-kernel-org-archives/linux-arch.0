@@ -1,41 +1,40 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 0/4]: Respin local_irq_*_nmi() stuff.
-Date: Tue, 13 Apr 2010 01:46:31 -0700 (PDT)
-Message-ID: <20100413.014631.45686537.davem@davemloft.net>
-References: <1271144938.4807.925.camel@twins>
-	<20100413.005640.48990319.davem@davemloft.net>
-	<1271147834.4807.980.camel@twins>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 07/39] lmb: Add lmb_find_area()
+Date: Tue, 13 Apr 2010 20:15:09 +1000
+Message-ID: <1271153709.13059.101.camel@pasglop>
+References: <1270793048-23796-1-git-send-email-yinghai@kernel.org>
+	 <1270793048-23796-8-git-send-email-yinghai@kernel.org>
+	 <1271131543.13059.53.camel@pasglop>  <4BC3F317.7030702@oracle.com>
+	 <1271135239.13059.69.camel@pasglop> <4BC40074.6030604@oracle.com>
+	 <4BC4053D.2050805@zytor.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:46030
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751298Ab0DMIq2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Apr 2010 04:46:28 -0400
-In-Reply-To: <1271147834.4807.980.camel@twins>
+Received: from gate.crashing.org ([63.228.1.57]:36022 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752520Ab0DMKQl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 Apr 2010 06:16:41 -0400
+In-Reply-To: <4BC4053D.2050805@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Yinghai <yinghai.lu@oracle.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Tue, 13 Apr 2010 10:37:14 +0200
-
-> Hmm, it also assumes %pil is never anything other than 0,
-> PIL_NORMAL_MAX, PIL_NMI, because if:
+On Mon, 2010-04-12 at 22:46 -0700, H. Peter Anvin wrote:
+> On 04/12/2010 10:26 PM, Yinghai wrote:
+> > 
+> > current generic lmb_find_area() is allocating from high to low.
+> > x86 32bit seems have problem with that.
 > 
->   (%pil & 1) && (%pil != PIL_NMI)
-> 
-> then you'll end up disabling NMIs. Could something like that ever
-> happen?
+> Presumably because it fills up ZONE_DMA.
 
-The only values we ever program into the %pil are 0, PIL_NORMAL_MAX
-and PIL_NMI
+I'm working on some LMB cleanups now, among others trying to take into
+account what I think are Yinghai requirements. Give me a few days.
 
-Since PIL_NMI is the largest %pil value and all bits are set in it
-(0xf), it doesn't matter what PIL_NORMAL_MAX actually is.
+For the specific problem above, my idea is to have the low level alloc
+function be able to take both low and high limits, so that x86 can
+figure out what's best for a given allocation.
 
-Yes this all deserves a comment, I'll add one, thanks for pointing
-that out.
+Cheers,
+Ben.
