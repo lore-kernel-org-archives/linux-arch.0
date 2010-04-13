@@ -1,69 +1,98 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 07/13] powerpc: Preemptible mmu_gather
-Date: Tue, 13 Apr 2010 12:06:40 +1000
-Message-ID: <1271124400.13059.36.camel@pasglop>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH 01/13] powerpc: Add rcu_read_lock() to gup_fast()
+ implementation
+Date: Mon, 12 Apr 2010 20:43:11 -0700
+Message-ID: <20100413034311.GB2772@linux.vnet.ibm.com>
 References: <20100408191737.296180458@chello.nl>
-	 <20100408192722.901224587@chello.nl>  <20100409040756.GK5683@laptop>
-	 <1270800847.20295.3225.camel@laptop>
+ <20100408192722.643778654@chello.nl>
+ <1271120731.13059.6.camel@pasglop>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:37974 "EHLO gate.crashing.org"
+Received: from e6.ny.us.ibm.com ([32.97.182.146]:35545 "EHLO e6.ny.us.ibm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754511Ab0DMCMm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 12 Apr 2010 22:12:42 -0400
-In-Reply-To: <1270800847.20295.3225.camel@laptop>
+	id S1751330Ab0DMDnP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 12 Apr 2010 23:43:15 -0400
+Content-Disposition: inline
+In-Reply-To: <1271120731.13059.6.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Nick Piggin <npiggin@suse.de>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
 
-On Fri, 2010-04-09 at 10:14 +0200, Peter Zijlstra wrote:
+On Tue, Apr 13, 2010 at 11:05:31AM +1000, Benjamin Herrenschmidt wrote:
+> On Thu, 2010-04-08 at 21:17 +0200, Peter Zijlstra wrote:
+> > plain text document attachment (powerpc-gup_fast-rcu.patch)
+> > The powerpc page table freeing relies on the fact that IRQs hold off
+> > an RCU grace period, this is currently true for all existing RCU
+> > implementations but is not an assumption Paul wants to support.
+> > 
+> > Therefore, also take the RCU read lock along with disabling IRQs to
+> > ensure the RCU grace period does at least cover these lookups.
 > 
-> and doing that vaddr collection right along with it in the same batch.
+> There's a few other places that need a similar fix then. The hash page
+> code for example. All the C cases should end up calling the
+> find_linux_pte() helper afaik, so we should be able to stick the lock in
+> there (and the hugetlbfs variant, find_linux_pte_or_hugepte()).
 > 
-> I think that that would work, Ben, Dave?
+> However, we also have cases of tight asm code walking the page tables,
+> such as the tlb miss handler on embedded processors. I don't see how I
+> could do that there. IE. I only have a handful of registers to play
+> with, no stack, etc...
+> 
+> So we might have to support the interrupt assumption, at least in some
+> form, with those guys...
 
-Well, ours aren't struct pages.
+One way to make the interrupt assumption official is to use
+synchronize_sched() rather than synchronize_rcu().
 
-IE. There's fundamentally 3 things that we are trying to batch here :-)
+							Thanx, Paul
 
- 1- The original mmu_gather: batching the freeing of the actual user
-pages, so that the TLB flush can be delayed/gathered, plus there might
-be some micro-improvement in passing the page list to the allocator for
-freeing all at omce. This is thus purely a batch of struct pages.
-
- 2- The batching of the TLB flushes (or hash invalidates in the ppc
-case) proper, which needs the addition of the vaddr for things like
-sparc and powerpc since we don't just invalidate the whole bloody thing
-unlike x86 :-) On powerpc, we actually need more, we need the actual PTE
-content since it also contains tracking information relative to where
-things have been put in the hash table.
-
- 3- The batching of the freeing of the page table structure, which we
-want to delay more than batch, ie, the goal here is to delay that
-freeing using RCU until everybody has stopped walking them. This does
-rely on RCU grace period being "interrupt safe", ie, there's no
-rcu_read_lock() in the low level TLB or hash miss code, but that code
-runs with interrupts off.
-
-Now, 2. has a problem I described earlier, which is that we must not
-have the possibility of introducing a duplicate in the hash table, thus
-it must not be possible to put a new PTE in until the previous one has
-been flushed or bad things would happen. This is why powerpc doesn't use
-the mmu_gather the way it was originally intended to do both 1. and 2.
-but really only for 1., while for 2. we use a small batch that only
-exist between lazy_mmu_enter/exit, since those are always fully enclosed
-by a pte lock section.
-
-3. As you have noticed, relies on the irq stuff. Plus there seem to be a
-dubious optimization here with mm_users. Might be worth sorting that
-out. However, it's a very different goal than 1. and 2. in the sense
-that batching proper is a minor issue, what we want is synchronization
-with walkers, and that batching is a way to lower the cost of that
-synchronization (allocating of the RCU struct etc...).
-
-Cheers,
-Ben.
- 
+> Cheers,
+> Ben. 
+> 
+> > Requested-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> > Cc: Nick Piggin <npiggin@suse.de>
+> > Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> > ---
+> >  arch/powerpc/mm/gup.c |    3 +++
+> >  1 file changed, 3 insertions(+)
+> > 
+> > Index: linux-2.6/arch/powerpc/mm/gup.c
+> > ===================================================================
+> > --- linux-2.6.orig/arch/powerpc/mm/gup.c
+> > +++ linux-2.6/arch/powerpc/mm/gup.c
+> > @@ -142,6 +142,7 @@ int get_user_pages_fast(unsigned long st
+> >  	 * So long as we atomically load page table pointers versus teardown,
+> >  	 * we can follow the address down to the the page and take a ref on it.
+> >  	 */
+> > +	rcu_read_lock();
+> >  	local_irq_disable();
+> >  
+> >  	pgdp = pgd_offset(mm, addr);
+> > @@ -162,6 +163,7 @@ int get_user_pages_fast(unsigned long st
+> >  	} while (pgdp++, addr = next, addr != end);
+> >  
+> >  	local_irq_enable();
+> > +	rcu_read_unlock();
+> >  
+> >  	VM_BUG_ON(nr != (end - start) >> PAGE_SHIFT);
+> >  	return nr;
+> > @@ -171,6 +173,7 @@ int get_user_pages_fast(unsigned long st
+> >  
+> >  slow:
+> >  		local_irq_enable();
+> > +		rcu_read_unlock();
+> >  slow_irqon:
+> >  		pr_devel("  slow path ! nr = %d\n", nr);
+> >  
+> > 
+> 
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
