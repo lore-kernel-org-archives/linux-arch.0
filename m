@@ -1,39 +1,40 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 01/13] powerpc: Add rcu_read_lock() to gup_fast()
- implementation
-Date: Wed, 14 Apr 2010 15:51:50 +0200
-Message-ID: <1271253110.32749.47.camel@laptop>
+Subject: Re: [PATCH 07/13] powerpc: Preemptible mmu_gather
+Date: Wed, 14 Apr 2010 15:34:36 +0200
+Message-ID: <1271252076.32749.20.camel@laptop>
 References: <20100408191737.296180458@chello.nl>
-	 <20100408192722.643778654@chello.nl> <1271120731.13059.6.camel@pasglop>
-	 <20100413034311.GB2772@linux.vnet.ibm.com>
+	 <20100408192722.901224587@chello.nl>  <1271121817.13059.19.camel@pasglop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:58213 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757426Ab0DOH3p (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Apr 2010 03:29:45 -0400
-Received: from e35131.upc-e.chello.nl ([213.93.35.131] helo=dyad.programming.kicks-ass.net)
-	by bombadil.infradead.org with esmtpsa (Exim 4.69 #1 (Red Hat Linux))
-	id 1O2JWC-0002K4-9S
-	for linux-arch@vger.kernel.org; Thu, 15 Apr 2010 07:29:44 +0000
-In-Reply-To: <20100413034311.GB2772@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1271121817.13059.19.camel@pasglop>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2010-04-12 at 20:43 -0700, Paul E. McKenney wrote:
-> > So we might have to support the interrupt assumption, at least in some
-> > form, with those guys...
+On Tue, 2010-04-13 at 11:23 +1000, Benjamin Herrenschmidt wrote:
+> > +      * A comment here about on why we have RCU freed page tables might be
+> > +      * interesting, also explaining why we don't need any sort of grace
+> > +      * period for mm_users == 1, and have some home brewn smp_call_func()
+> > +      * for single frees.
 > 
-> One way to make the interrupt assumption official is to use
-> synchronize_sched() rather than synchronize_rcu().
+> iirc, we are synchronizing with CPUs walking page tables in their hash
+> or TLB miss code, which is lockless. The mm_users test is a -little- bit
+> dubious indeed. It may have to be mm_users < 2 && mm ==
+> current->active_mm, ie, we know for sure nobody else is currently
+> walking those page tables ... 
+> 
+> Tho even than is fishy nowadays. We -can- walk page tables on behave of
+> another process. In fact, we do it in the Cell SPU code for faulting
+> page table entries as a result of SPEs taking faults for example. So I'm
+> starting to suspect that this mm_users optimisation is bogus.
+> 
+> We -do- want to optimize out the case where there is no user left
+> though, ie, the MM is dead. IE. The typical exit case.
 
-Well, call_rcu_sched() then, because the current usage is to use
-call_rcu() to free the page directories.
+Can't you fix that by having the SPE code take a reference on these
+mm_structs they're playing with?
 
-Paul, here is a call_rcu_sched() available in kernel/rcutree.c, but am I
-right in reading that code that that would not be available for
-preemptible RCU?
+Poking at one without a ref seems fishy anyway.
