@@ -1,48 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sj-iport-6.cisco.com ([171.71.176.117]:28742 "EHLO
-	sj-iport-6.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755749Ab0DNVLA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Apr 2010 17:11:00 -0400
-Message-ID: <4BC62F62.40500@cisco.com>
-Date: Wed, 14 Apr 2010 17:10:58 -0400
-From: David VomLehn <dvomlehn@cisco.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH 2/23] Make register values available to Alpha panic	notifiers
-References: <20100412060613.GA25303@dvomlehn-lnx2.corp.sa.net> <20100412190509.GA17147@merkur.ravnborg.org>
-In-Reply-To: <20100412190509.GA17147@merkur.ravnborg.org>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Received: from bombadil.infradead.org ([18.85.46.34]:58194 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757232Ab0DOH3g (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Apr 2010 03:29:36 -0400
+Received: from e35131.upc-e.chello.nl ([213.93.35.131] helo=dyad.programming.kicks-ass.net)
+	by bombadil.infradead.org with esmtpsa (Exim 4.69 #1 (Red Hat Linux))
+	id 1O2JW3-0002Gy-PG
+	for linux-arch@vger.kernel.org; Thu, 15 Apr 2010 07:29:36 +0000
+Subject: Re: [PATCH 07/13] powerpc: Preemptible mmu_gather
+From: Peter Zijlstra <peterz@infradead.org>
+In-Reply-To: <1271121817.13059.19.camel@pasglop>
+References: <20100408191737.296180458@chello.nl>
+	 <20100408192722.901224587@chello.nl>  <1271121817.13059.19.camel@pasglop>
+Content-Type: text/plain; charset="UTF-8"
+Date: Wed, 14 Apr 2010 15:34:36 +0200
+Message-ID: <1271252076.32749.20.camel@laptop>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
-Message-ID: <20100414211058.w8POxN2H444qD7Xe0jcIjwJJYeBIvhMHlvY569sScug@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
+Message-ID: <20100414133436.GtPGmHluKT7gSzES9NFNbJMjvqt28qMosFNrLPq9hBI@z>
 
-Sam Ravnborg wrote:
-> On Sun, Apr 11, 2010 at 11:06:13PM -0700, David VomLehn wrote:
->   
->> The save_ptregs() function has not been tested or even built. I will need
->> help to complete this.
->>
->> Signed-off-by: David VomLehn <dvomlehn@cisco.com>
->> ---
->>  arch/alpha/include/asm/ptrace.h |  124 +++++++++++++++++++++++++++++++++++++++
->>  1 files changed, 124 insertions(+), 0 deletions(-)
->>
->> diff --git a/arch/alpha/include/asm/ptrace.h b/arch/alpha/include/asm/ptrace.h
->> index 65cf3e2..952d177 100644
->> --- a/arch/alpha/include/asm/ptrace.h
->> +++ b/arch/alpha/include/asm/ptrace.h
->> @@ -79,6 +79,130 @@ extern void show_regs(struct pt_regs *);
->>  
->>  #define force_successful_syscall_return() (task_pt_regs(current)->r0 = 0)
->>  
->> +/* Macros for saving the contents of registers and for the output constraint
->> + * for those registers */
->> +#include "/home/vomlehn/git/kernel.org/linux/ptreg.h"
->>     
-> The above include needs fixing.
->
-> 	Sam
->   
-Definitely, thanks!
+On Tue, 2010-04-13 at 11:23 +1000, Benjamin Herrenschmidt wrote:
+> > +      * A comment here about on why we have RCU freed page tables might be
+> > +      * interesting, also explaining why we don't need any sort of grace
+> > +      * period for mm_users == 1, and have some home brewn smp_call_func()
+> > +      * for single frees.
+> 
+> iirc, we are synchronizing with CPUs walking page tables in their hash
+> or TLB miss code, which is lockless. The mm_users test is a -little- bit
+> dubious indeed. It may have to be mm_users < 2 && mm ==
+> current->active_mm, ie, we know for sure nobody else is currently
+> walking those page tables ... 
+> 
+> Tho even than is fishy nowadays. We -can- walk page tables on behave of
+> another process. In fact, we do it in the Cell SPU code for faulting
+> page table entries as a result of SPEs taking faults for example. So I'm
+> starting to suspect that this mm_users optimisation is bogus.
+> 
+> We -do- want to optimize out the case where there is no user left
+> though, ie, the MM is dead. IE. The typical exit case.
+
+Can't you fix that by having the SPE code take a reference on these
+mm_structs they're playing with?
+
+Poking at one without a ref seems fishy anyway.
+
