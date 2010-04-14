@@ -1,65 +1,73 @@
 From: David VomLehn <dvomlehn@cisco.com>
 Subject: Re: [PATCH 1/23] Make register values available to panic notifiers
-Date: Wed, 14 Apr 2010 17:00:43 -0400
-Message-ID: <4BC62CFB.2060003@cisco.com>
-References: <20100412060609.GA25273@dvomlehn-lnx2.corp.sa.net> <20100412122745.GC28208@flint.arm.linux.org.uk>
+Date: Wed, 14 Apr 2010 17:04:39 -0400
+Message-ID: <4BC62DE7.20603@cisco.com>
+References: <20100412122745.GC28208@flint.arm.linux.org.uk> <20100412060609.GA25273@dvomlehn-lnx2.corp.sa.net> <25356.1271076327@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sj-iport-4.cisco.com ([171.68.10.86]:24488 "EHLO
+Received: from sj-iport-4.cisco.com ([171.68.10.86]:26086 "EHLO
 	sj-iport-4.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756655Ab0DNVAn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Apr 2010 17:00:43 -0400
-In-Reply-To: <20100412122745.GC28208@flint.arm.linux.org.uk>
+	with ESMTP id S1756759Ab0DNVEl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Apr 2010 17:04:41 -0400
+In-Reply-To: <25356.1271076327@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David VomLehn <dvomlehn@cisco.com>, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Russell King <rmk@arm.linux.org.uk>, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
 
-Russell King wrote:
-> On Sun, Apr 11, 2010 at 11:06:09PM -0700, David VomLehn wrote:
+David Howells wrote:
+> Russell King <rmk@arm.linux.org.uk> wrote:
+>
 >   
->> This patch makes panic() and die() registers available to, for example,
->> panic notifier functions.  Panic notifier functions are quite useful
->> for recording crash information, but they don't get passed the register
->> values. This makes it hard to print register contents, do stack
->> backtraces, etc. The changes in this patch save the register state when
->> panic() is called and introduce a function for die() to call that allows
->> it to pass in the registers it was passed.
+>> Can you explain why you want this?
+>>
+>> I'm wondering about the value of saving the registers; normally when a panic
+>> occurs, it's because of a well defined reason, and not because something
+>> went wrong in some CPU register; to put it another way, a panic() is a
+>> more controlled exception than a BUG() or a bad pointer dereference.
 >>     
 >
-> Can you explain why you want this?
+> +1.
 >
-> I'm wondering about the value of saving the registers; normally when a panic
-> occurs, it's because of a well defined reason, and not because something
-> went wrong in some CPU register; to put it another way, a panic() is a
-> more controlled exception than a BUG() or a bad pointer dereference.
+> I found in FS-Cache and CacheFiles that often the things I most wanted to know
+> when I had something of the form:
+>
+> 	if (A == B)
+> 		BUG();
+>
+> was a and b, so I made the following macro:
+>
+> 	#define ASSERTCMP(X, OP, Y)					\
+> 	do {								\
+> 		if (unlikely(!((X) OP (Y)))) {				\
+> 			printk(KERN_ERR "\n");				\
+> 			printk(KERN_ERR "AFS: Assertion failed\n");	\
+> 			printk(KERN_ERR "%lu " #OP " %lu is false\n",	\
+> 			       (unsigned long)(X), (unsigned long)(Y));	\
+> 			printk(KERN_ERR "0x%lx " #OP " 0x%lx is false\n", \
+> 			       (unsigned long)(X), (unsigned long)(Y));	\
+> 			BUG();						\
+> 		}							\
+> 	} while(0)
+>
+> which I could then call like this:
+>
+> 	ASSERTCMP(A, ==, B);
+>
+> and if the assertion failed, it prints A and B explicitly.  This is much
+> easier than trying to pick the values out of a register dump, especially as
+> the compiler may be free to clobber A or B immediately after testing them.
 >   
-More context probably helps, starting with noting that the platform is 
-an embedded
-one. (I'm at the Eembedded Linux Conference, which is why my reply is so 
-tardy).
-In embedded systems we frequently (probably?) don't have the resources 
-to create or
-store a crash dump. A very common approach is to record a subset of the 
-system
-state that is likely to help diagnose the failure. The state information 
-is then stored\
-on the system or sent upstream to some network-connected node. When I 
-gave a talk
-about this at the ELC, I polled the audience and got at least half a 
-dozen other
-companies using the same approach. This is the first set of patches to 
-allow this
-common embedded community requirement to be met. My expectation that 
-register
-values will be wanted by everyone doing this kind of targeted state 
-reporting.
-
-I should also note that I regard this is more the beginning of a 
-conversation on how
-to diagnose kernel (and, possibly, application) failures on crash 
-dump-less systems.
-I would expect to see some number of patches, some of which will 
-ultimately be
-dropped in favor of other approaches.
+This is great if you'r in a development environment, and can focus on a 
+single, well
+characterized case. Unfortunately, I'm staring at hundreds of thousands 
+of systems
+in the field, all which which have a large number of panic() statements 
+for which this
+approach has not been taken. So, I have no alternative but to pick the 
+value out of
+a register dump.
+> David
+>   
