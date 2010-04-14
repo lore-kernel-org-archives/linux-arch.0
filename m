@@ -1,25 +1,207 @@
 From: David Howells <dhowells@redhat.com>
 Subject: Re: [PATCH 1/3] X86: Optimise fls(), ffs() and fls64()
-Date: Wed, 14 Apr 2010 12:49:20 +0100
-Message-ID: <17213.1271245760@redhat.com>
-References: <20100406133026.GD20577@parisc-linux.org> <alpine.LFD.2.00.1003261005490.3721@i5.linux-foundation.org> <20100326144241.8583.95617.stgit@warthog.procyon.org.uk> <28287.1269625325@redhat.com> <alpine.LFD.2.00.1003261042580.3721@i5.linux-foundation.org> <20100326175827.GD20055@linux-mips.org> <alpine.LFD.2.00.1003261100440.3721@i5.linux-foundation.org>
+Date: Wed, 14 Apr 2010 14:13:35 +0100
+Message-ID: <18695.1271250815@redhat.com>
+References: <4BACCB4E.7010108@draigBrady.com> <20100326144241.8583.95617.stgit@warthog.procyon.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:38556 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:56725 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752775Ab0DNLtx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Apr 2010 07:49:53 -0400
-In-Reply-To: <20100406133026.GD20577@parisc-linux.org>
+	id S1755271Ab0DNNNx convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Apr 2010 09:13:53 -0400
+In-Reply-To: <4BACCB4E.7010108@draigBrady.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Matthew Wilcox <matthew@wil.cx>
-Cc: dhowells@redhat.com, Ralf Baechle <ralf@linux-mips.org>, mingo@elte.hu, tglx@linutronix.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: P@draigBrady.com
+Cc: torvalds@osdl.org, matthew@wil.cx, arjan@infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dhowells@redhat.com
 
-Matthew Wilcox <matthew@wil.cx> wrote:
+P=E1draig Brady <P@draigBrady.com> wrote:
 
-> I don't know whether we can get it /documented/, but the architect I
-> asked said "We'll never get away with reverting to the older behavior,
-> so in essence the architecture is set to not overwrite."
+> Benchmarks would be useful for this patch set.
 
-Does that mean we can rely on it?  Linus?
+Okay.
+
+Using the attached test program:
+
+	warthog>time ./get_order=20
+	real    1m37.191s
+	user    1m36.313s
+	sys     0m0.861s
+	warthog>time ./get_order x
+	real    0m16.892s
+	user    0m16.586s
+	sys     0m0.287s
+	warthog>time ./get_order x x
+	real    0m7.731s
+	user    0m7.727s
+	sys     0m0.002s
+
+Using the current upstream fls64() as a basis for an inlined get_order(=
+) [the
+second result above] is much faster than using the current out-of-line
+loop-based get_order() [the first result above].
+
+Using my optimised inline fls64()-based get_order() [the third result a=
+bove]
+is even faster still.
+
+I ran the above on my Core2 desktop box running x86_64 Fedora 12.
+
+Also note that I compiled the test program with -O3, so I had to do thi=
+ngs to
+prevent gcc from optimising the call to fls64() or get_order() away, su=
+ch as
+adding up the results and sticking them in a global variable, and not h=
+aving
+too few values passed to get_order(), lest gcc calculate them in advanc=
+e.
+
+So it would be useful to decide if we can optimise fls() and fls64() fo=
+r
+x86_64.  Certainly it would be useful to replace the out-of-line get_or=
+der()
+for x86_64.
 
 David
+---
+#include <stdlib.h>
+#include <stdio.h>
+
+#ifndef __x86_64__
+#error
+#endif
+
+#define BITS_PER_LONG 64
+
+#define PAGE_SHIFT 12
+
+typedef unsigned long long __u64, u64;
+typedef unsigned int __u32, u32;
+#define noinline	__attribute__((noinline))
+
+static __always_inline int fls64(__u64 x)
+{
+	long bitpos =3D -1;
+
+	asm("bsrq %1,%0"
+	    : "+r" (bitpos)
+	    : "rm" (x));
+	return bitpos + 1;
+}
+
+static inline unsigned long __fls(unsigned long word)
+{
+	asm("bsr %1,%0"
+	    : "=3Dr" (word)
+	    : "rm" (word));
+	return word;
+}
+static __always_inline int old_fls64(__u64 x)
+{
+	if (x =3D=3D 0)
+		return 0;
+	return __fls(x) + 1;
+}
+
+static noinline // __attribute__((const))
+int old_get_order(unsigned long size)
+{
+	int order;
+
+	size =3D (size - 1) >> (PAGE_SHIFT - 1);
+	order =3D -1;
+	do {
+		size >>=3D 1;
+		order++;
+	} while (size);
+	return order;
+}
+
+static inline __attribute__((const))
+int __get_order_old_fls64(unsigned long size)
+{
+	int order;
+	size--;
+	size >>=3D PAGE_SHIFT;
+	order =3D old_fls64(size);
+	return order;
+}
+
+static inline __attribute__((const))
+int __get_order(unsigned long size)
+{
+	int order;
+	size--;
+	size >>=3D PAGE_SHIFT;
+	order =3D fls64(size);
+	return order;
+}
+
+#define get_order_old_fls64(n)						\
+	(								\
+		__get_order_old_fls64(n)				\
+	)
+
+#define get_order(n)							\
+	(								\
+		__get_order(n)						\
+	)
+
+unsigned long prevent_optimise_out;
+
+static noinline unsigned long test_old_get_order(void)
+{
+	unsigned long n, total =3D 0;
+	long rep, loop;
+
+	for (rep =3D 1000000; rep > 0; rep--) {
+		for (loop =3D 0; loop <=3D 16384; loop +=3D 4) {
+			n =3D 1UL << loop;
+			total +=3D old_get_order(n);
+		}
+	}
+	return total;
+}
+
+static noinline unsigned long test_get_order_old_fls64(void)
+{
+	unsigned long n, total =3D 0;
+	long rep, loop;
+
+	for (rep =3D 1000000; rep > 0; rep--) {
+		for (loop =3D 0; loop <=3D 16384; loop +=3D 4) {
+			n =3D 1UL << loop;
+			total +=3D get_order_old_fls64(n);
+		}
+	}
+	return total;
+}
+
+static noinline unsigned long test_get_order(void)
+{
+	unsigned long n, total =3D 0;
+	long rep, loop;
+
+	for (rep =3D 1000000; rep > 0; rep--) {
+		for (loop =3D 0; loop <=3D 16384; loop +=3D 4) {
+			n =3D 1UL << loop;
+			total +=3D get_order(n);
+		}
+	}
+	return total;
+}
+
+int main(int argc, char **argv)
+{
+	unsigned long total;
+
+	switch (argc) {
+	case 1:  total =3D test_old_get_order();		break;
+	case 2:  total =3D test_get_order_old_fls64();	break;
+	default: total =3D test_get_order();		break;
+	}
+	prevent_optimise_out =3D total;
+	return 0;
+}
