@@ -1,21 +1,21 @@
 From: David VomLehn <dvomlehn@cisco.com>
 Subject: Re: [PATCH 1/23] Make register values available to panic notifiers
-Date: Wed, 14 Apr 2010 16:41:19 -0400
-Message-ID: <4BC6286F.6030308@cisco.com>
+Date: Wed, 14 Apr 2010 16:42:00 -0400
+Message-ID: <4BC62898.3000800@cisco.com>
 References: <20100412060609.GA25273@dvomlehn-lnx2.corp.sa.net> <24048.1271070978@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sj-iport-4.cisco.com ([171.68.10.86]:17457 "EHLO
-	sj-iport-4.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755846Ab0DNUlW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Apr 2010 16:41:22 -0400
+Received: from sj-iport-5.cisco.com ([171.68.10.87]:30723 "EHLO
+	sj-iport-5.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756705Ab0DNUmE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Apr 2010 16:42:04 -0400
 In-Reply-To: <24048.1271070978@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Davi Howells <dhowells@redhat.com>
-Cc: to@dvomlehn-lnx2.corp.sa.net, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
+Cc: dvomlehn@cisco.com, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
 
 David Howells wrote:
 > David VomLehn <dvomlehn@cisco.com> wrote:
