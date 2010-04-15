@@ -1,48 +1,31 @@
-From: David Miller <davem@davemloft.net>
+From: Paul Mundt <lethal@linux-sh.org>
 Subject: Re: [PATCH 1/23] Make register values available to panic notifiers
-Date: Wed, 14 Apr 2010 16:58:51 -0700 (PDT)
-Message-ID: <20100414.165851.144419620.davem@davemloft.net>
+Date: Thu, 15 Apr 2010 11:54:10 +0900
+Message-ID: <20100415025409.GB8014@linux-sh.org>
 References: <20100412060609.GA25273@dvomlehn-lnx2.corp.sa.net>
-	<24048.1271070978@redhat.com>
-	<28376.1271289134@redhat.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:51311
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751597Ab0DNX6r (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Apr 2010 19:58:47 -0400
-In-Reply-To: <28376.1271289134@redhat.com>
+Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:42042 "EHLO
+	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756667Ab0DOCyN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Apr 2010 22:54:13 -0400
+Content-Disposition: inline
+In-Reply-To: <20100412060609.GA25273@dvomlehn-lnx2.corp.sa.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: dhowells@redhat.com
-Cc: dvomlehn@cisco.com, to@dvomlehn-lnx2.corp.sa.net, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, maint_arch@dvomlehn-lnx2.corp.sa.net
+To: David VomLehn <dvomlehn@cisco.com>
+Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
 
-From: David Howells <dhowells@redhat.com>
-Date: Thu, 15 Apr 2010 00:52:14 +0100
+On Sun, Apr 11, 2010 at 11:06:09PM -0700, David VomLehn wrote:
+> o  A save_ptregs() function for the processor. I've taken a whack at
+>    doing this for all of the processors. I have tested x86 and MIPS
+>    versions. I was able to find cross compilers for ARM, ... and the
+>    code compiles cleanly. Everything else, well, what you see is sheer
+>    fantasy. You are welcome to chortle with merriment.
 
-> David VomLehn <dvomlehn@cisco.com> wrote:
-> 
->> > Can the use of va_start() clobber lots of registers, thereby rendering the
->> > exercise pointless on some arches?
->> >   
->>
->> The implementations I'm familiar with only need one or two registers. What
->> it *does* do is to force the contents of registers being used to pass
->> argument values onto the stack. This is roughly what gcc does for asm()
->> statements when you tell it registers are clobbered.
-> 
-> How about something like Sparc, where you can pass up to 8 arguments (if I
-> remember correctly) in registers.  I'm not sure how Sparc handles varargs
-> functions, though.
-
-6 arguments, and all arguments get popped onto the stack into the
-argument save area when doing varargs so you can access them as an
-array.
-
-Stack looks like:
-
-	struct register_window	window;
-	unsigned long args[...];
+Perhaps I'm missing something obvious, but is there some reason why you
+can't just reuse the crash_setup_regs() code? MIPS doesn't implement it
+presumably because it's lacking kexec crash kernel support, but it would
+make sense to make current ptregs saving more generic if there are going
+to be multiple users for it.
