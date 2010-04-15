@@ -1,40 +1,28 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 07/13] powerpc: Preemptible mmu_gather
-Date: Wed, 14 Apr 2010 15:34:36 +0200
-Message-ID: <1271252076.32749.20.camel@laptop>
-References: <20100408191737.296180458@chello.nl>
-	 <20100408192722.901224587@chello.nl>  <1271121817.13059.19.camel@pasglop>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1271121817.13059.19.camel@pasglop>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
-List-Id: linux-arch.vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 1/3] X86: Optimise fls(), ffs() and fls64()
+Date: Thu, 15 Apr 2010 09:48:12 +0100
+Message-ID: <3879.1271321292@redhat.com>
+References: <4BC5D19A.8000605@redhat.com> <20100406133026.GD20577@parisc-linux.org> <alpine.LFD.2.00.1003261005490.3721@i5.linux-foundation.org> <20100326144241.8583.95617.stgit@warthog.procyon.org.uk> <28287.1269625325@redhat.com> <alpine.LFD.2.00.1003261042580.3721@i5.linux-foundation.org> <20100326175827.GD20055@linux-mips.org> <alpine.LFD.2.00.1003261100440.3721@i5.linux-foundation.org> <17213.1271245760@redhat.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:59882 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757449Ab0DOIss (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Apr 2010 04:48:48 -0400
+In-Reply-To: <4BC5D19A.8000605@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Avi Kivity <avi@redhat.com>
+Cc: dhowells@redhat.com, Linus Torvalds <torvalds@linux-foundation.org>, Matthew Wilcox <matthew@wil.cx>, Ralf Baechle <ralf@linux-mips.org>, mingo@elte.hu, tglx@linutronix.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Tue, 2010-04-13 at 11:23 +1000, Benjamin Herrenschmidt wrote:
-> > +      * A comment here about on why we have RCU freed page tables might be
-> > +      * interesting, also explaining why we don't need any sort of grace
-> > +      * period for mm_users == 1, and have some home brewn smp_call_func()
-> > +      * for single frees.
-> 
-> iirc, we are synchronizing with CPUs walking page tables in their hash
-> or TLB miss code, which is lockless. The mm_users test is a -little- bit
-> dubious indeed. It may have to be mm_users < 2 && mm ==
-> current->active_mm, ie, we know for sure nobody else is currently
-> walking those page tables ... 
-> 
-> Tho even than is fishy nowadays. We -can- walk page tables on behave of
-> another process. In fact, we do it in the Cell SPU code for faulting
-> page table entries as a result of SPEs taking faults for example. So I'm
-> starting to suspect that this mm_users optimisation is bogus.
-> 
-> We -do- want to optimize out the case where there is no user left
-> though, ie, the MM is dead. IE. The typical exit case.
+Avi Kivity <avi@redhat.com> wrote:
 
-Can't you fix that by having the SPE code take a reference on these
-mm_structs they're playing with?
+> Even if Intel processors behave that way, other processors (real and
+> emulated) use those manuals as a specification.  Emulated processors are
+> unlikely to touch an undefined register, but real processors may.
+> 
+> (qemu tcg appears not to touch the output)
 
-Poking at one without a ref seems fishy anyway.
+Possibly because the AMD64 spec specifies that the destination will be
+unchanged if the source was 0.
+
+David
