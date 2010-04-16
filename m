@@ -1,60 +1,64 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH 01/13] powerpc: Add rcu_read_lock() to gup_fast()
  implementation
-Date: Fri, 16 Apr 2010 06:43:36 -0700
-Message-ID: <20100416134336.GA2615@linux.vnet.ibm.com>
+Date: Fri, 16 Apr 2010 15:51:21 +0200
+Message-ID: <1271425881.4807.2319.camel@twins>
 References: <20100408191737.296180458@chello.nl>
- <20100408192722.643778654@chello.nl>
- <1271120731.13059.6.camel@pasglop>
- <20100413034311.GB2772@linux.vnet.ibm.com>
- <1271253110.32749.47.camel@laptop>
- <20100415142852.GA2471@linux.vnet.ibm.com>
- <1271400891.13059.186.camel@pasglop>
-Reply-To: paulmck@linux.vnet.ibm.com
+	 <20100408192722.643778654@chello.nl> <1271120731.13059.6.camel@pasglop>
+	 <20100413034311.GB2772@linux.vnet.ibm.com>
+	 <1271253110.32749.47.camel@laptop>
+	 <20100415142852.GA2471@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e6.ny.us.ibm.com ([32.97.182.146]:40014 "EHLO e6.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757271Ab0DPNnj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 16 Apr 2010 09:43:39 -0400
-Content-Disposition: inline
-In-Reply-To: <1271400891.13059.186.camel@pasglop>
+Received: from casper.infradead.org ([85.118.1.10]:37894 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757638Ab0DPNvm convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Apr 2010 09:51:42 -0400
+In-Reply-To: <20100415142852.GA2471@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
+To: paulmck@linux.vnet.ibm.com
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
 
-On Fri, Apr 16, 2010 at 04:54:51PM +1000, Benjamin Herrenschmidt wrote:
-> On Thu, 2010-04-15 at 07:28 -0700, Paul E. McKenney wrote:
+On Thu, 2010-04-15 at 07:28 -0700, Paul E. McKenney wrote:
+> On Wed, Apr 14, 2010 at 03:51:50PM +0200, Peter Zijlstra wrote:
+> > On Mon, 2010-04-12 at 20:43 -0700, Paul E. McKenney wrote:
+> > > > So we might have to support the interrupt assumption, at least in some
+> > > > form, with those guys...
+> > > 
+> > > One way to make the interrupt assumption official is to use
+> > > synchronize_sched() rather than synchronize_rcu().
 > > 
-> > Of course, with call_rcu_sched(), the corresponding RCU read-side
-> > critical
-> > sections are non-preemptible.  Therefore, in CONFIG_PREEMPT_RT, these
-> > read-side critical sections must use raw spinlocks.
+> > Well, call_rcu_sched() then, because the current usage is to use
+> > call_rcu() to free the page directories.
 > > 
-> > Can the code in question accommodate these restrictions? 
+> > Paul, here is a call_rcu_sched() available in kernel/rcutree.c, but am I
+> > right in reading that code that that would not be available for
+> > preemptible RCU?
 > 
-> What we protect against is always code that hard-disable IRQs (though
-> there seem to be a bug in the hugepages code there...). Would that
-> work ?
+> Both call_rcu_sched() and call_rcu() are always there for you.  ;-)
+> 
+> o	If CONFIG_TREE_RCU (or CONFIG_TINY_RCU), they both have the same
+> 	implementation.
+> 
+> o	If CONFIG_TREE_PREEMPT_RCU, call_rcu_sched() is preemptible and
+> 	call_rcu() is not.
 
-From the perspective of call_rcu_sched() and synchronize_sched(),
-the following things mark RCU-sched read-side critical sections:
+(The reverse I suspect?)
 
-1.	rcu_read_lock_sched() and rcu_read_unlock_sched().
+> Of course, with call_rcu_sched(), the corresponding RCU read-side critical
+> sections are non-preemptible.  Therefore, in CONFIG_PREEMPT_RT, these
+> read-side critical sections must use raw spinlocks.
 
-2.	preempt_disable() and preempt_enable(), along with anything
-	else that disables preemption.
+OK, so if we fully remove CONFIG_TREE_PREEMPT_RCU (defaulting to y),
+rename all the {call_rcu, rcu_read_lock, rcu_read_unlock,
+synchronize_rcu} functions to {*}_preempt and then add a new
+CONFIG_PREEMPT_RCU that simply maps {*} to either {*}_sched or
+{*}_preempt, we've basically got what I've been asking for for a while,
+no?
 
-3.	local_bh_disable() and local_bh_enable(), along with anything
-	else that disables bottom halves.
+> Can the code in question accommodate these restrictions?
 
-4.	local_irq_disable() and local_irq_enable(), along wiht anything
-	else that disables hardirqs.
-
-5.	Handlers for NMIs.
-
-So I believe that in this case call_rcu_sched() is your friend.  ;-)
-
-							Thanx, Paul
+Yes, that should do just fine I think.
