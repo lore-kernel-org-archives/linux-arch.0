@@ -1,24 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:45027 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:49249 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932503Ab0DPUgr (ORCPT
+	by vger.kernel.org with ESMTP id S932396Ab0DPUgz (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 16 Apr 2010 16:36:47 -0400
-Message-ID: <201004162035.o3GKZTtg025739@imap1.linux-foundation.org>
-Subject: + numa-ia64-use-generic-percpu-var-numa_node_id-implementation.patch added to -mm tree
+	Fri, 16 Apr 2010 16:36:55 -0400
+Message-ID: <201004162035.o3GKZNdQ025731@imap1.linux-foundation.org>
+Subject: + numa-add-generic-percpu-var-numa_node_id-implementation.patch added to -mm tree
 From: akpm@linux-foundation.org
-Date: Fri, 16 Apr 2010 13:35:29 -0700
+Date: Fri, 16 Apr 2010 13:35:23 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mm-commits@vger.kernel.org
 Cc: lee.schermerhorn@hp.com, cl@linux-foundation.org, eric.whitney@hp.com, hpa@zytor.com, kamezawa.hiroyu@jp.fujitsu.com, linux-arch@vger.kernel.org, mel@csn.ul.ie, mingo@elte.hu, npiggin@suse.de, penberg@cs.helsinki.fi, rientjes@google.com, tglx@linutronix.de, tj@kernel.org, tony.luck@intel.com
-Message-ID: <20100416203529.UpRu9k_0fytBXA4u0y7pF-XcriXWGdRoWfT7BejdUhs@z>
+Message-ID: <20100416203523.vAYrSaDSJ1csHJZW8ny_SlCqJtvs6XpYYtObKgWI3Rw@z>
 
 
 The patch titled
-     numa: ia64: use generic percpu var numa_node_id() implementation
+     numa: add generic percpu var numa_node_id() implementation
 has been added to the -mm tree.  Its filename is
-     numa-ia64-use-generic-percpu-var-numa_node_id-implementation.patch
+     numa-add-generic-percpu-var-numa_node_id-implementation.patch
 
 Before you just go and hit "reply", please:
    a) Consider who else should be cc'ed
@@ -34,19 +34,37 @@ out what to do about this
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: numa: ia64: use generic percpu var numa_node_id() implementation
+Subject: numa: add generic percpu var numa_node_id() implementation
 From: Lee Schermerhorn <lee.schermerhorn@hp.com>
 
-ia64:  Use generic percpu implementation of numa_node_id()
-   + intialize per cpu 'numa_node'
-   + remove ia64 cpu_to_node() macro;  use generic
-   + define CONFIG_USE_PERCPU_NUMA_NODE_ID when NUMA configured
+Rework the generic version of the numa_node_id() function to use the new
+generic percpu variable infrastructure.
+
+Guard the new implementation with a new config option:
+
+        CONFIG_USE_PERCPU_NUMA_NODE_ID.
+
+Archs which support this new implemention will default this option to 'y'
+when NUMA is configured.  This config option could be removed if/when all
+archs switch over to the generic percpu implementation of numa_node_id(). 
+Arch support involves:
+
+  1) converting any existing per cpu variable implementations to use
+     this implementation.  x86_64 is an instance of such an arch.
+  2) archs that don't use a per cpu variable for numa_node_id() will
+     need to initialize the new per cpu variable "numa_node" as cpus
+     are brought on-line.  ia64 is an example.
+  3) Defining USE_PERCPU_NUMA_NODE_ID in arch dependent Kconfig--e.g.,
+     when NUMA is configured.  This is required because I have
+     retained the old implementation by default to allow archs to
+     be modified incrementally, as desired.
+
+Subsequent patches will convert x86_64 and ia64 to use this implemenation.
 
 Signed-off-by: Lee Schermerhorn <lee.schermerhorn@hp.com>
-Reviewed-by: Christoph Lameter <cl@linux-foundation.org>
 Cc: Tejun Heo <tj@kernel.org>
 Cc: Mel Gorman <mel@csn.ul.ie>
-Cc: Christoph Lameter <cl@linux-foundation.org>
+Reviewed-by: Christoph Lameter <cl@linux-foundation.org>
 Cc: Nick Piggin <npiggin@suse.de>
 Cc: David Rientjes <rientjes@google.com>
 Cc: Eric Whitney <eric.whitney@hp.com>
@@ -60,63 +78,82 @@ Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/ia64/Kconfig                |    4 ++++
- arch/ia64/include/asm/topology.h |    5 -----
- arch/ia64/kernel/smpboot.c       |    6 ++++++
- 3 files changed, 10 insertions(+), 5 deletions(-)
+ include/linux/topology.h |   33 ++++++++++++++++++++++++++++-----
+ mm/page_alloc.c          |    5 +++++
+ 2 files changed, 33 insertions(+), 5 deletions(-)
 
-diff -puN arch/ia64/Kconfig~numa-ia64-use-generic-percpu-var-numa_node_id-implementation arch/ia64/Kconfig
---- a/arch/ia64/Kconfig~numa-ia64-use-generic-percpu-var-numa_node_id-implementation
-+++ a/arch/ia64/Kconfig
-@@ -497,6 +497,10 @@ config HAVE_ARCH_NODEDATA_EXTENSION
- 	def_bool y
- 	depends on NUMA
+diff -puN include/linux/topology.h~numa-add-generic-percpu-var-numa_node_id-implementation include/linux/topology.h
+--- a/include/linux/topology.h~numa-add-generic-percpu-var-numa_node_id-implementation
++++ a/include/linux/topology.h
+@@ -31,6 +31,7 @@
+ #include <linux/bitops.h>
+ #include <linux/mmzone.h>
+ #include <linux/smp.h>
++#include <linux/percpu.h>
+ #include <asm/topology.h>
  
-+config USE_PERCPU_NUMA_NODE_ID
-+	def_bool y
-+	depends on NUMA
+ #ifndef node_has_online_mem
+@@ -203,8 +204,35 @@ int arch_update_cpu_topology(void);
+ #ifndef SD_NODE_INIT
+ #error Please define an appropriate SD_NODE_INIT in include/asm/topology.h!!!
+ #endif
 +
- config ARCH_PROC_KCORE_TEXT
- 	def_bool y
- 	depends on PROC_KCORE
-diff -puN arch/ia64/include/asm/topology.h~numa-ia64-use-generic-percpu-var-numa_node_id-implementation arch/ia64/include/asm/topology.h
---- a/arch/ia64/include/asm/topology.h~numa-ia64-use-generic-percpu-var-numa_node_id-implementation
-+++ a/arch/ia64/include/asm/topology.h
-@@ -26,11 +26,6 @@
- #define RECLAIM_DISTANCE 15
+ #endif /* CONFIG_NUMA */
  
- /*
-- * Returns the number of the node containing CPU 'cpu'
-- */
--#define cpu_to_node(cpu) (int)(cpu_to_node_map[cpu])
++#ifdef CONFIG_USE_PERCPU_NUMA_NODE_ID
++DECLARE_PER_CPU(int, numa_node);
++
++#ifndef numa_node_id
++/* Returns the number of the current Node. */
++#define numa_node_id()		__this_cpu_read(numa_node)
++#endif
++
++#ifndef cpu_to_node
++#define cpu_to_node(__cpu)	per_cpu(numa_node, (__cpu))
++#endif
++
++#ifndef set_numa_node
++#define set_numa_node(__node) percpu_write(numa_node, __node)
++#endif
++
++#else	/* !CONFIG_USE_PERCPU_NUMA_NODE_ID */
++
++/* Returns the number of the current Node. */
++#ifndef numa_node_id
++#define numa_node_id()		(cpu_to_node(raw_smp_processor_id()))
++
++#endif
++
++#endif	/* [!]CONFIG_USE_PERCPU_NUMA_NODE_ID */
++
+ #ifndef topology_physical_package_id
+ #define topology_physical_package_id(cpu)	((void)(cpu), -1)
+ #endif
+@@ -218,9 +246,4 @@ int arch_update_cpu_topology(void);
+ #define topology_core_cpumask(cpu)		cpumask_of(cpu)
+ #endif
+ 
+-/* Returns the number of the current Node. */
+-#ifndef numa_node_id
+-#define numa_node_id()		(cpu_to_node(raw_smp_processor_id()))
+-#endif
 -
--/*
-  * Returns a bitmask of CPUs on Node 'node'.
-  */
- #define cpumask_of_node(node) ((node) == -1 ?				\
-diff -puN arch/ia64/kernel/smpboot.c~numa-ia64-use-generic-percpu-var-numa_node_id-implementation arch/ia64/kernel/smpboot.c
---- a/arch/ia64/kernel/smpboot.c~numa-ia64-use-generic-percpu-var-numa_node_id-implementation
-+++ a/arch/ia64/kernel/smpboot.c
-@@ -390,6 +390,11 @@ smp_callin (void)
+ #endif /* _LINUX_TOPOLOGY_H */
+diff -puN mm/page_alloc.c~numa-add-generic-percpu-var-numa_node_id-implementation mm/page_alloc.c
+--- a/mm/page_alloc.c~numa-add-generic-percpu-var-numa_node_id-implementation
++++ a/mm/page_alloc.c
+@@ -57,6 +57,11 @@
+ #include <asm/div64.h>
+ #include "internal.h"
  
- 	fix_b0_for_bsp();
- 
-+	/*
-+	 * numa_node_id() works after this.
-+	 */
-+	set_numa_node(cpu_to_node_map[cpuid]);
++#ifdef CONFIG_USE_PERCPU_NUMA_NODE_ID
++DEFINE_PER_CPU(int, numa_node);
++EXPORT_PER_CPU_SYMBOL(numa_node);
++#endif
 +
- 	ipi_call_lock_irq();
- 	spin_lock(&vector_lock);
- 	/* Setup the per cpu irq handling data structures */
-@@ -632,6 +637,7 @@ void __devinit smp_prepare_boot_cpu(void
- {
- 	cpu_set(smp_processor_id(), cpu_online_map);
- 	cpu_set(smp_processor_id(), cpu_callin_map);
-+	set_numa_node(cpu_to_node_map[smp_processor_id()]);
- 	per_cpu(cpu_state, smp_processor_id()) = CPU_ONLINE;
- 	paravirt_post_smp_prepare_boot_cpu();
- }
+ /*
+  * Array of node states.
+  */
 _
 
 Patches currently in -mm which might be from lee.schermerhorn@hp.com are
