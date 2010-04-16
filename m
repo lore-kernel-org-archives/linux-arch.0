@@ -1,78 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e3.ny.us.ibm.com ([32.97.182.143]:32837 "EHLO e3.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757724Ab0DPORt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 16 Apr 2010 10:17:49 -0400
-Date: Fri, 16 Apr 2010 07:17:45 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH 01/13] powerpc: Add rcu_read_lock() to gup_fast()
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:48067 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S932396Ab0DPUfA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Apr 2010 16:35:00 -0400
+Date: Fri, 16 Apr 2010 13:33:24 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 1/8] numa:  add generic percpu var numa_node_id()
  implementation
-Message-ID: <20100416141745.GC2615@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20100408191737.296180458@chello.nl>
- <20100408192722.643778654@chello.nl>
- <1271120731.13059.6.camel@pasglop>
- <20100413034311.GB2772@linux.vnet.ibm.com>
- <1271253110.32749.47.camel@laptop>
- <20100415142852.GA2471@linux.vnet.ibm.com>
- <1271425881.4807.2319.camel@twins>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1271425881.4807.2319.camel@twins>
+Message-ID: <20100416133324.fcb1c168.akpm@linux-foundation.org>
+In-Reply-To: <20100415172956.8801.18133.sendpatchset@localhost.localdomain>
+References: <20100415172950.8801.60358.sendpatchset@localhost.localdomain>
+	<20100415172956.8801.18133.sendpatchset@localhost.localdomain>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
-Message-ID: <20100416141745.b50qRyVON-OxCL0gNlfSIDY8YMGLhwKlcwYdOik35UI@z>
+To: Lee Schermerhorn <lee.schermerhorn@hp.com>
+Cc: linux-mm@kvack.org, linux-numa@vger.kernel.org, Tejun Heo <tj@kernel.org>, Mel Gorman <mel@csn.ul.ie>, andi@firstfloor.org, Christoph Lameter <cl@linux-foundation.org>, Nick Piggin <npiggin@suse.de>, David Rientjes <rientjes@google.com>, eric.whitney@hp.com, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org
+Message-ID: <20100416203324.2XKtVNPomPxY9tilcbkHcvM-GxRtGZ6PFuZy1W3TlRw@z>
 
-On Fri, Apr 16, 2010 at 03:51:21PM +0200, Peter Zijlstra wrote:
-> On Thu, 2010-04-15 at 07:28 -0700, Paul E. McKenney wrote:
-> > On Wed, Apr 14, 2010 at 03:51:50PM +0200, Peter Zijlstra wrote:
-> > > On Mon, 2010-04-12 at 20:43 -0700, Paul E. McKenney wrote:
-> > > > > So we might have to support the interrupt assumption, at least in some
-> > > > > form, with those guys...
-> > > > 
-> > > > One way to make the interrupt assumption official is to use
-> > > > synchronize_sched() rather than synchronize_rcu().
-> > > 
-> > > Well, call_rcu_sched() then, because the current usage is to use
-> > > call_rcu() to free the page directories.
-> > > 
-> > > Paul, here is a call_rcu_sched() available in kernel/rcutree.c, but am I
-> > > right in reading that code that that would not be available for
-> > > preemptible RCU?
-> > 
-> > Both call_rcu_sched() and call_rcu() are always there for you.  ;-)
-> > 
-> > o	If CONFIG_TREE_RCU (or CONFIG_TINY_RCU), they both have the same
-> > 	implementation.
-> > 
-> > o	If CONFIG_TREE_PREEMPT_RCU, call_rcu_sched() is preemptible and
-> > 	call_rcu() is not.
+On Thu, 15 Apr 2010 13:29:56 -0400
+Lee Schermerhorn <lee.schermerhorn@hp.com> wrote:
+
+> Rework the generic version of the numa_node_id() function to use the
+> new generic percpu variable infrastructure.
 > 
-> (The reverse I suspect?)
-
-Indeed:  If CONFIG_TREE_PREEMPT_RCU, call_rcu() is preemptible and
-call_rcu_sched() is not.
-
-> > Of course, with call_rcu_sched(), the corresponding RCU read-side critical
-> > sections are non-preemptible.  Therefore, in CONFIG_PREEMPT_RT, these
-> > read-side critical sections must use raw spinlocks.
+> Guard the new implementation with a new config option:
 > 
-> OK, so if we fully remove CONFIG_TREE_PREEMPT_RCU (defaulting to y),
-> rename all the {call_rcu, rcu_read_lock, rcu_read_unlock,
-> synchronize_rcu} functions to {*}_preempt and then add a new
-> CONFIG_PREEMPT_RCU that simply maps {*} to either {*}_sched or
-> {*}_preempt, we've basically got what I've been asking for for a while,
-> no?
-
-What would rcu_read_lock_preempt() do in a !CONFIG_PREEMPT kernel?
-
-> > Can the code in question accommodate these restrictions?
+>         CONFIG_USE_PERCPU_NUMA_NODE_ID.
 > 
-> Yes, that should do just fine I think.
+> Archs which support this new implemention will default this option
+> to 'y' when NUMA is configured.  This config option could be removed
+> if/when all archs switch over to the generic percpu implementation
+> of numa_node_id().  Arch support involves:
+> 
+>   1) converting any existing per cpu variable implementations to use
+>      this implementation.  x86_64 is an instance of such an arch.
+>   2) archs that don't use a per cpu variable for numa_node_id() will
+>      need to initialize the new per cpu variable "numa_node" as cpus
+>      are brought on-line.  ia64 is an example.
+>   3) Defining USE_PERCPU_NUMA_NODE_ID in arch dependent Kconfig--e.g.,
+>      when NUMA is configured.  This is required because I have
+>      retained the old implementation by default to allow archs to
+>      be modified incrementally, as desired.
+> 
+> Subsequent patches will convert x86_64 and ia64 to use this
+> implemenation.
 
-Cool!!!
+So which arches _aren't_ converted?  powerpc, sparc and alpha?
 
-							Thanx, Paul
+Is there sufficient info here for the maintainers to be able to
+perform the conversion with minimal head-scratching?
