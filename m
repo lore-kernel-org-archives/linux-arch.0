@@ -1,78 +1,55 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH 01/13] powerpc: Add rcu_read_lock() to gup_fast()
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 1/8] numa:  add generic percpu var numa_node_id()
  implementation
-Date: Fri, 16 Apr 2010 13:28:43 -0700
-Message-ID: <20100416202843.GM2615@linux.vnet.ibm.com>
-References: <20100415142852.GA2471@linux.vnet.ibm.com>
- <1271425881.4807.2319.camel@twins>
- <20100416141745.GC2615@linux.vnet.ibm.com>
- <1271427819.4807.2353.camel@twins>
- <20100416143202.GE2615@linux.vnet.ibm.com>
- <1271429810.4807.2390.camel@twins>
- <20100416150909.GF2615@linux.vnet.ibm.com>
- <1271430855.4807.2411.camel@twins>
- <20100416164503.GH2615@linux.vnet.ibm.com>
- <1271446622.1674.433.camel@laptop>
-Reply-To: paulmck@linux.vnet.ibm.com
+Date: Fri, 16 Apr 2010 13:33:24 -0700
+Message-ID: <20100416133324.fcb1c168.akpm@linux-foundation.org>
+References: <20100415172950.8801.60358.sendpatchset@localhost.localdomain>
+	<20100415172956.8801.18133.sendpatchset@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e4.ny.us.ibm.com ([32.97.182.144]:49231 "EHLO e4.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932379Ab0DPU2r (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 16 Apr 2010 16:28:47 -0400
-Content-Disposition: inline
-In-Reply-To: <1271446622.1674.433.camel@laptop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20100415172956.8801.18133.sendpatchset@localhost.localdomain>
+Sender: owner-linux-mm@kvack.org
+To: Lee Schermerhorn <lee.schermerhorn@hp.com>
+Cc: linux-mm@kvack.org, linux-numa@vger.kernel.org, Tejun Heo <tj@kernel.org>, Mel Gorman <mel@csn.ul.ie>, andi@firstfloor.org, Christoph Lameter <cl@linux-foundation.org>, Nick Piggin <npiggin@suse.de>, David Rientjes <rientjes@google.com>, eric.whitney@hp.com, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 16, 2010 at 09:37:02PM +0200, Peter Zijlstra wrote:
-> On Fri, 2010-04-16 at 09:45 -0700, Paul E. McKenney wrote:
-> > o       mutex_lock(): Critical sections need not guarantee
-> >         forward progress, as general blocking is permitted.
-> > 
-> Right, I would argue that they should guarantee fwd progress, but due to
-> being able to schedule while holding them, its harder to enforce.
+On Thu, 15 Apr 2010 13:29:56 -0400
+Lee Schermerhorn <lee.schermerhorn@hp.com> wrote:
+
+> Rework the generic version of the numa_node_id() function to use the
+> new generic percpu variable infrastructure.
 > 
-> Anything that is waiting for uncertainty should do so without any locks
-> held and simply re-acquire them once such an event does occur.
-
-Agreed.  But holding a small-scope mutex for (say) 60 seconds would not be
-a problem (at 120 seconds, you might start seeing softlockup messages).
-In contrast, holding off an RCU grace period for 60 seconds might well
-OOM the machine, especially a small embedded system with limited memory.
-
-> > So the easy response is "just use SRCU."  Of course, SRCU has some
-> > disadvantages at the moment:
-> > 
-> > o       The return value from srcu_read_lock() must be passed to
-> >         srcu_read_unlock().  I believe that I can fix this.
-> > 
-> > o       There is no call_srcu().  I believe that I can fix this.
-> > 
-> > o       SRCU uses a flat per-CPU counter scheme that is not particularly
-> >         scalable.  I believe that I can fix this.
-> > 
-> > o       SRCU's current implementation makes it almost impossible to
-> >         implement priority boosting.  I believe that I can fix this.
-> > 
-> > o       SRCU requires explicit initialization of the underlying
-> >         srcu_struct.  Unfortunately, I don't see a reasonable way
-> >         around this.  Not yet, anyway.
-> > 
-> > So, is there anything else that you don't like about SRCU?
+> Guard the new implementation with a new config option:
 > 
-> No, I quite like SRCU when implemented as preemptible tree RCU, and I
-> don't at all mind that last point, all dynamic things need some sort of
-> init. All locks certainly have.
+>         CONFIG_USE_PERCPU_NUMA_NODE_ID.
+> 
+> Archs which support this new implemention will default this option
+> to 'y' when NUMA is configured.  This config option could be removed
+> if/when all archs switch over to the generic percpu implementation
+> of numa_node_id().  Arch support involves:
+> 
+>   1) converting any existing per cpu variable implementations to use
+>      this implementation.  x86_64 is an instance of such an arch.
+>   2) archs that don't use a per cpu variable for numa_node_id() will
+>      need to initialize the new per cpu variable "numa_node" as cpus
+>      are brought on-line.  ia64 is an example.
+>   3) Defining USE_PERCPU_NUMA_NODE_ID in arch dependent Kconfig--e.g.,
+>      when NUMA is configured.  This is required because I have
+>      retained the old implementation by default to allow archs to
+>      be modified incrementally, as desired.
+> 
+> Subsequent patches will convert x86_64 and ia64 to use this
+> implemenation.
 
-Very good!!!  I should clarify, though -- by "explicit initialization",
-I mean that there needs to be a run-time call to init_srcu_struct().
-Unless there is some clever way to initialize an array of pointers to
-per-CPU structures at compile time.  And, conversely, a way to initialize
-pointers in a per-CPU structure to point to possibly-different rcu_node
-structures.
+So which arches _aren't_ converted?  powerpc, sparc and alpha?
 
-							Thanx, Paul
+Is there sufficient info here for the maintainers to be able to
+perform the conversion with minimal head-scratching?
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
