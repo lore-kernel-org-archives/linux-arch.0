@@ -1,69 +1,45 @@
-From: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
-Subject: Re: [PATCH 1/8] numa:  add generic percpu var numa_node_id()
- implementation
-Date: Mon, 19 Apr 2010 09:22:31 -0400
-Message-ID: <1271683352.10937.34.camel@useless.americas.hpqcorp.net>
-References: <20100415172950.8801.60358.sendpatchset@localhost.localdomain>
-	 <20100415172956.8801.18133.sendpatchset@localhost.localdomain>
-	 <20100416133324.fcb1c168.akpm@linux-foundation.org>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 06/13] mm: Preemptible mmu_gather
+Date: Mon, 19 Apr 2010 21:16:15 +0200
+Message-ID: <1271704575.1676.251.camel@laptop>
+References: <20100408191737.296180458@chello.nl>
+	 <20100408192722.858079986@chello.nl>  <20100409032509.GH5683@laptop>
+	 <1270845384.20295.3369.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-numa-owner@vger.kernel.org>
-In-Reply-To: <20100416133324.fcb1c168.akpm@linux-foundation.org>
-Sender: linux-numa-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, linux-numa@vger.kernel.org, Tejun Heo <tj@kernel.org>, Mel Gorman <mel@csn.ul.ie>, andi@firstfloor.org, Christoph Lameter <cl@linux-foundation.org>, Nick Piggin <npiggin@suse.de>, David Rientjes <rientjes@google.com>, eric.whitney@hp.com, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([18.85.46.34]:43026 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752344Ab0DSTQU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Apr 2010 15:16:20 -0400
+Received: from f199130.upc-f.chello.nl ([80.56.199.130] helo=dyad.programming.kicks-ass.net)
+	by bombadil.infradead.org with esmtpsa (Exim 4.69 #1 (Red Hat Linux))
+	id 1O3wSB-0000Bw-Uz
+	for linux-arch@vger.kernel.org; Mon, 19 Apr 2010 19:16:20 +0000
+In-Reply-To: <1270845384.20295.3369.camel@laptop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nick Piggin <npiggin@suse.de>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
 
-On Fri, 2010-04-16 at 13:33 -0700, Andrew Morton wrote:
-> On Thu, 15 Apr 2010 13:29:56 -0400
-> Lee Schermerhorn <lee.schermerhorn@hp.com> wrote:
-> 
-> > Rework the generic version of the numa_node_id() function to use the
-> > new generic percpu variable infrastructure.
+On Fri, 2010-04-09 at 22:36 +0200, Peter Zijlstra wrote:
+> On Fri, 2010-04-09 at 13:25 +1000, Nick Piggin wrote:
+> > Have you done some profiling on this? What I would like to see, if
+> > it's not too much complexity, is to have a small set of pages to
+> > handle common size frees, and then use them up first by default
+> > before attempting to allocate more.
 > > 
-> > Guard the new implementation with a new config option:
-> > 
-> >         CONFIG_USE_PERCPU_NUMA_NODE_ID.
-> > 
-> > Archs which support this new implemention will default this option
-> > to 'y' when NUMA is configured.  This config option could be removed
-> > if/when all archs switch over to the generic percpu implementation
-> > of numa_node_id().  Arch support involves:
-> > 
-> >   1) converting any existing per cpu variable implementations to use
-> >      this implementation.  x86_64 is an instance of such an arch.
-> >   2) archs that don't use a per cpu variable for numa_node_id() will
-> >      need to initialize the new per cpu variable "numa_node" as cpus
-> >      are brought on-line.  ia64 is an example.
-> >   3) Defining USE_PERCPU_NUMA_NODE_ID in arch dependent Kconfig--e.g.,
-> >      when NUMA is configured.  This is required because I have
-> >      retained the old implementation by default to allow archs to
-> >      be modified incrementally, as desired.
-> > 
-> > Subsequent patches will convert x86_64 and ia64 to use this
-> > implemenation.
-> 
-> So which arches _aren't_ converted?  powerpc, sparc and alpha?
+> > Also, it would be cool to be able to chain allocations to avoid
+> > TLB flushes even on big frees (overridable by arch of course, in
+> > case they're doing some non-preeemptible work or you wish to break
+> > up lock hold times). But that might be just getting over engineered.
 
-Right.  Plus ARM, mips, ...
+[ patch to do very long queues ]
 
-I could take a cut at other archs, but can't test them.  I'm hoping that
-this patch doesn't break the existing implementation for them.  It
-should be a no-op until the new support is enabled via Kconfig.  The
-fact that both x86_64 and ia64 build with just this patch gives me some
-hope but not a lot of confidence.
+One thing that comes from having preemptible mmu_gather, and esp. when
+we allow such very long gathers, is that we can potentially have a very
+large amount of pages stuck on these lists.
 
-I see that you've merged the series with into -mm.  We'll see what
-happens.  Of course, no reports of errors could just mean no testing.
-
-> 
-> Is there sufficient info here for the maintainers to be able to
-> perform the conversion with minimal head-scratching?
-
-Arch maintainers will need to chime in on that.  I'd hoped that the list
-above and the examples of x86_64 and ia64 in the subsequent patches
-would suffice.
-
-Lee
+So we'd need to hook into reclaim somehow to allow flushing of them when
+we're falling short.
