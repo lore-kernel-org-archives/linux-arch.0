@@ -1,74 +1,69 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH 01/13] powerpc: Add rcu_read_lock() to gup_fast()
+From: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
+Subject: Re: [PATCH 1/8] numa:  add generic percpu var numa_node_id()
  implementation
-Date: Sun, 18 Apr 2010 13:55:17 -0500
-Message-ID: <1271616917.27350.63.camel@mulgrave.site>
-References: <20100415142852.GA2471@linux.vnet.ibm.com>
-	 <1271425881.4807.2319.camel@twins>
-	 <20100416141745.GC2615@linux.vnet.ibm.com>
-	 <1271427819.4807.2353.camel@twins>
-	 <20100416143202.GE2615@linux.vnet.ibm.com>
-	 <1271429810.4807.2390.camel@twins>
-	 <20100416150909.GF2615@linux.vnet.ibm.com>
-	 <1271430855.4807.2411.camel@twins>
-	 <20100416164503.GH2615@linux.vnet.ibm.com>
-	 <1271559996.14589.9.camel@mulgrave.site>
-	 <20100418135500.GD3096@linux.vnet.ibm.com>
+Date: Mon, 19 Apr 2010 09:22:31 -0400
+Message-ID: <1271683352.10937.34.camel@useless.americas.hpqcorp.net>
+References: <20100415172950.8801.60358.sendpatchset@localhost.localdomain>
+	 <20100415172956.8801.18133.sendpatchset@localhost.localdomain>
+	 <20100416133324.fcb1c168.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:38445 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752838Ab0DRSzX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 18 Apr 2010 14:55:23 -0400
-In-Reply-To: <20100418135500.GD3096@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>
+Return-path: <linux-numa-owner@vger.kernel.org>
+In-Reply-To: <20100416133324.fcb1c168.akpm@linux-foundation.org>
+Sender: linux-numa-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-mm@kvack.org, linux-numa@vger.kernel.org, Tejun Heo <tj@kernel.org>, Mel Gorman <mel@csn.ul.ie>, andi@firstfloor.org, Christoph Lameter <cl@linux-foundation.org>, Nick Piggin <npiggin@suse.de>, David Rientjes <rientjes@google.com>, eric.whitney@hp.com, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, 2010-04-18 at 06:55 -0700, Paul E. McKenney wrote:
-> On Sat, Apr 17, 2010 at 10:06:36PM -0500, James Bottomley wrote:
-> > On Fri, 2010-04-16 at 09:45 -0700, Paul E. McKenney wrote:
-> > > o	mutex_lock(): Critical sections need not guarantee
-> > > 	forward progress, as general blocking is permitted.
+On Fri, 2010-04-16 at 13:33 -0700, Andrew Morton wrote:
+> On Thu, 15 Apr 2010 13:29:56 -0400
+> Lee Schermerhorn <lee.schermerhorn@hp.com> wrote:
+> 
+> > Rework the generic version of the numa_node_id() function to use the
+> > new generic percpu variable infrastructure.
 > > 
-> > This isn't quite right.  mutex critical sections must guarantee eventual
-> > forward progress against the class of other potential acquirers of the
-> > mutex otherwise the system will become either deadlocked or livelocked.
+> > Guard the new implementation with a new config option:
+> > 
+> >         CONFIG_USE_PERCPU_NUMA_NODE_ID.
+> > 
+> > Archs which support this new implemention will default this option
+> > to 'y' when NUMA is configured.  This config option could be removed
+> > if/when all archs switch over to the generic percpu implementation
+> > of numa_node_id().  Arch support involves:
+> > 
+> >   1) converting any existing per cpu variable implementations to use
+> >      this implementation.  x86_64 is an instance of such an arch.
+> >   2) archs that don't use a per cpu variable for numa_node_id() will
+> >      need to initialize the new per cpu variable "numa_node" as cpus
+> >      are brought on-line.  ia64 is an example.
+> >   3) Defining USE_PERCPU_NUMA_NODE_ID in arch dependent Kconfig--e.g.,
+> >      when NUMA is configured.  This is required because I have
+> >      retained the old implementation by default to allow archs to
+> >      be modified incrementally, as desired.
+> > 
+> > Subsequent patches will convert x86_64 and ia64 to use this
+> > implemenation.
 > 
-> If I understand you correctly, you are saying that it is OK for a given
-> critical section for a given mutex to fail to make forward progress if
-> nothing else happens to acquire that mutex during that time.  I would
-> agree, at least I would if you were to further add that the soft-lockup
-> checks permit an additional 120 seconds of failure to make forward progress
-> even if something -is- attempting to acquire that mutex.
+> So which arches _aren't_ converted?  powerpc, sparc and alpha?
 
-Yes ... I was thinking of two specific cases: one is wrong programming
-of lock acquisition where the system deadlocks; the other is doing silly
-things like taking a mutex around an event loop instead of inside it so
-incoming events prevent forward progress and the system livelocks, but
-there are many other ways of producing deadlocks and livelocks.  I just
-couldn't think of a concise way of saying all of that but I didn't want
-a statement about mutexes to give the impression that anything goes.
+Right.  Plus ARM, mips, ...
 
-I've got to say that I also dislike seeing any form of sleep within a
-critical section because it's just asking for a nasty entangled deadlock
-which can be very hard to sort out.  So I also didn't like the statement
-"general blocking is permitted"
+I could take a cut at other archs, but can't test them.  I'm hoping that
+this patch doesn't break the existing implementation for them.  It
+should be a no-op until the new support is enabled via Kconfig.  The
+fact that both x86_64 and ia64 build with just this patch gives me some
+hope but not a lot of confidence.
 
-> By my standards, 120 seconds is a reasonable approximation to infinity,
-> hence my statement above.
+I see that you've merged the series with into -mm.  We'll see what
+happens.  Of course, no reports of errors could just mean no testing.
+
 > 
-> So, would you agree with the following as a more precise statement?
-> 
-> o	mutex_lock(): Critical sections need not guarantee
-> 	forward progress unless some other task is waiting
-> 	on the mutex in question, in which case critical sections
-> 	should complete in 120 seconds.
+> Is there sufficient info here for the maintainers to be able to
+> perform the conversion with minimal head-scratching?
 
-Sounds fair.
+Arch maintainers will need to chime in on that.  I'd hoped that the list
+above and the examples of x86_64 and ia64 in the subsequent patches
+would suffice.
 
-James
+Lee
