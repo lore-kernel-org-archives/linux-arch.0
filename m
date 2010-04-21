@@ -1,45 +1,20 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 06/13] mm: Preemptible mmu_gather
-Date: Mon, 19 Apr 2010 21:16:15 +0200
-Message-ID: <1271704575.1676.251.camel@laptop>
-References: <20100408191737.296180458@chello.nl>
-	 <20100408192722.858079986@chello.nl>  <20100409032509.GH5683@laptop>
-	 <1270845384.20295.3369.camel@laptop>
+From: The Desk of Andre Eagar <andreeagar@workmail.co.za>
+Subject: From Andrea Eagar
+Date: Wed, 21 Apr 2010 07:46:12 -0400
+Message-ID: <1271850372.4bcee58431219@webmail.xcelco.on.ca>
+Reply-To: receivedpost@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; CHARSET=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:43026 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752344Ab0DSTQU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Apr 2010 15:16:20 -0400
-Received: from f199130.upc-f.chello.nl ([80.56.199.130] helo=dyad.programming.kicks-ass.net)
-	by bombadil.infradead.org with esmtpsa (Exim 4.69 #1 (Red Hat Linux))
-	id 1O3wSB-0000Bw-Uz
-	for linux-arch@vger.kernel.org; Mon, 19 Apr 2010 19:16:20 +0000
-In-Reply-To: <1270845384.20295.3369.camel@laptop>
+Received: from mta03.eastlink.ca ([24.224.136.9]:58324 "EHLO mta03.eastlink.ca"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754327Ab0DUMun (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 21 Apr 2010 08:50:43 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
 
-On Fri, 2010-04-09 at 22:36 +0200, Peter Zijlstra wrote:
-> On Fri, 2010-04-09 at 13:25 +1000, Nick Piggin wrote:
-> > Have you done some profiling on this? What I would like to see, if
-> > it's not too much complexity, is to have a small set of pages to
-> > handle common size frees, and then use them up first by default
-> > before attempting to allocate more.
-> > 
-> > Also, it would be cool to be able to chain allocations to avoid
-> > TLB flushes even on big frees (overridable by arch of course, in
-> > case they're doing some non-preeemptible work or you wish to break
-> > up lock hold times). But that might be just getting over engineered.
 
-[ patch to do very long queues ]
 
-One thing that comes from having preemptible mmu_gather, and esp. when
-we allow such very long gathers, is that we can potentially have a very
-large amount of pages stuck on these lists.
-
-So we'd need to hook into reclaim somehow to allow flushing of them when
-we're falling short.
+I have a proposal to discuss about a transaction. Please contact me if you are interested. Mr.
+Andrea Eagar Email: receivedpost@gmail.com
