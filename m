@@ -1,21 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.35]:31646 "EHLO
+Received: from smtp-out.google.com ([216.239.44.51]:39750 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758750Ab0DVU4d (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Apr 2010 16:56:33 -0400
-Date: Thu, 22 Apr 2010 13:56:26 -0700 (PDT)
+	with ESMTP id S1755968Ab0DVUrB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Apr 2010 16:47:01 -0400
+Date: Thu, 22 Apr 2010 13:46:47 -0700 (PDT)
 From: David Rientjes <rientjes@google.com>
-Subject: Re: [patch 10/14] parisc: invoke oom-killer from page fault
-In-Reply-To: <20100422161224.322033236@suse.de>
-Message-ID: <alpine.DEB.2.00.1004221356150.25350@chino.kir.corp.google.com>
-References: <20100422160613.723698029@suse.de> <20100422161224.322033236@suse.de>
+Subject: Re: [patch 01/14] alpha: invoke oom-killer from page fault
+In-Reply-To: <20100422161222.762354051@suse.de>
+Message-ID: <alpine.DEB.2.00.1004221346350.25350@chino.kir.corp.google.com>
+References: <20100422160613.723698029@suse.de> <20100422161222.762354051@suse.de>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: npiggin@suse.de
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-parisc@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>
-Message-ID: <20100422205626.rrVV9LYNLchgn1izYgvmT2tiWm48G0qMUxcArMm_OXY@z>
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>
+Message-ID: <20100422204647.uwpj09nmrGz1yalWL7CuDuSNWypQylGj2-4c4PLf2WU@z>
 
 On Fri, 23 Apr 2010, npiggin@suse.de wrote:
 
@@ -23,8 +23,8 @@ On Fri, 23 Apr 2010, npiggin@suse.de wrote:
 > oom killer when getting an unexplained OOM from handle_mm_fault, rather than
 > simply killing current.
 > 
-> Cc: linux-parisc@vger.kernel.org
-> Cc: Kyle McMartin <kyle@mcmartin.ca>
+> Cc: linux-alpha@vger.kernel.org
+> Cc: Richard Henderson <rth@twiddle.net>
 > Cc: linux-arch@vger.kernel.org
 > Signed-off-by: Nick Piggin <npiggin@suse.de>
 
