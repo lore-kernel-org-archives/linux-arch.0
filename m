@@ -1,75 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g6t0186.atlanta.hp.com ([15.193.32.63]:11935 "EHLO
-	g6t0186.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754756Ab0DSNWs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Apr 2010 09:22:48 -0400
-Subject: Re: [PATCH 1/8] numa:  add generic percpu var numa_node_id()
- implementation
-From: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
-In-Reply-To: <20100416133324.fcb1c168.akpm@linux-foundation.org>
-References: <20100415172950.8801.60358.sendpatchset@localhost.localdomain>
-	 <20100415172956.8801.18133.sendpatchset@localhost.localdomain>
-	 <20100416133324.fcb1c168.akpm@linux-foundation.org>
-Content-Type: text/plain
-Date: Mon, 19 Apr 2010 09:22:31 -0400
-Message-ID: <1271683352.10937.34.camel@useless.americas.hpqcorp.net>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from cantor2.suse.de ([195.135.220.15]:36310 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753862Ab0DVQRj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 22 Apr 2010 12:17:39 -0400
+Message-ID: <20100422161224.768947406@suse.de>
+Date: Fri, 23 Apr 2010 02:06:26 +1000
+From: npiggin@suse.de
+Subject: [patch 13/14] sh: invoke oom-killer from page fault
+References: <20100422160613.723698029@suse.de>
+Content-Disposition: inline; filename=sh-pagefault-use-oom.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, linux-numa@vger.kernel.org, Tejun Heo <tj@kernel.org>, Mel Gorman <mel@csn.ul.ie>, andi@firstfloor.org, Christoph Lameter <cl@linux-foundation.org>, Nick Piggin <npiggin@suse.de>, David Rientjes <rientjes@google.com>, eric.whitney@hp.com, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org
-Message-ID: <20100419132231.Eifef8RZgryBXHiOv0xJp3VFsgevBLYPT_Xsrb3B28M@z>
+To: linux-arch@vger.kernel.org
+Cc: David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, linux-sh@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20100422160626.H28djd61KZijipY8MVrRZZKof0-4_YIBDKXQEDai2EA@z>
 
-On Fri, 2010-04-16 at 13:33 -0700, Andrew Morton wrote:
-> On Thu, 15 Apr 2010 13:29:56 -0400
-> Lee Schermerhorn <lee.schermerhorn@hp.com> wrote:
-> 
-> > Rework the generic version of the numa_node_id() function to use the
-> > new generic percpu variable infrastructure.
-> > 
-> > Guard the new implementation with a new config option:
-> > 
-> >         CONFIG_USE_PERCPU_NUMA_NODE_ID.
-> > 
-> > Archs which support this new implemention will default this option
-> > to 'y' when NUMA is configured.  This config option could be removed
-> > if/when all archs switch over to the generic percpu implementation
-> > of numa_node_id().  Arch support involves:
-> > 
-> >   1) converting any existing per cpu variable implementations to use
-> >      this implementation.  x86_64 is an instance of such an arch.
-> >   2) archs that don't use a per cpu variable for numa_node_id() will
-> >      need to initialize the new per cpu variable "numa_node" as cpus
-> >      are brought on-line.  ia64 is an example.
-> >   3) Defining USE_PERCPU_NUMA_NODE_ID in arch dependent Kconfig--e.g.,
-> >      when NUMA is configured.  This is required because I have
-> >      retained the old implementation by default to allow archs to
-> >      be modified incrementally, as desired.
-> > 
-> > Subsequent patches will convert x86_64 and ia64 to use this
-> > implemenation.
-> 
-> So which arches _aren't_ converted?  powerpc, sparc and alpha?
+As explained in commit 1c0fe6e3bd, we want to call the architecture independent
+oom killer when getting an unexplained OOM from handle_mm_fault, rather than
+simply killing current.
 
-Right.  Plus ARM, mips, ...
+Cc: linux-sh@vger.kernel.org
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Nick Piggin <npiggin@suse.de>
+---
+Index: linux-2.6/arch/sh/mm/fault_32.c
+===================================================================
+--- linux-2.6.orig/arch/sh/mm/fault_32.c
++++ linux-2.6/arch/sh/mm/fault_32.c
+@@ -290,15 +290,10 @@ no_context:
+  */
+ out_of_memory:
+ 	up_read(&mm->mmap_sem);
+-	if (is_global_init(current)) {
+-		yield();
+-		down_read(&mm->mmap_sem);
+-		goto survive;
+-	}
+-	printk("VM: killing process %s\n", tsk->comm);
+-	if (user_mode(regs))
+-		do_group_exit(SIGKILL);
+-	goto no_context;
++	if (!user_mode(regs))
++		goto no_context;
++	pagefault_out_of_memory();
++	return;
+ 
+ do_sigbus:
+ 	up_read(&mm->mmap_sem);
+Index: linux-2.6/arch/sh/mm/tlbflush_64.c
+===================================================================
+--- linux-2.6.orig/arch/sh/mm/tlbflush_64.c
++++ linux-2.6/arch/sh/mm/tlbflush_64.c
+@@ -294,22 +294,11 @@ no_context:
+  * us unable to handle the page fault gracefully.
+  */
+ out_of_memory:
+-	if (is_global_init(current)) {
+-		panic("INIT out of memory\n");
+-		yield();
+-		goto survive;
+-	}
+-	printk("fault:Out of memory\n");
+ 	up_read(&mm->mmap_sem);
+-	if (is_global_init(current)) {
+-		yield();
+-		down_read(&mm->mmap_sem);
+-		goto survive;
+-	}
+-	printk("VM: killing process %s\n", tsk->comm);
+-	if (user_mode(regs))
+-		do_group_exit(SIGKILL);
+-	goto no_context;
++	if (!user_mode(regs))
++		goto no_context;
++	pagefault_out_of_memory();
++	return;
+ 
+ do_sigbus:
+ 	printk("fault:Do sigbus\n");
 
-I could take a cut at other archs, but can't test them.  I'm hoping that
-this patch doesn't break the existing implementation for them.  It
-should be a no-op until the new support is enabled via Kconfig.  The
-fact that both x86_64 and ia64 build with just this patch gives me some
-hope but not a lot of confidence.
-
-I see that you've merged the series with into -mm.  We'll see what
-happens.  Of course, no reports of errors could just mean no testing.
-
-> 
-> Is there sufficient info here for the maintainers to be able to
-> perform the conversion with minimal head-scratching?
-
-Arch maintainers will need to chime in on that.  I'd hoped that the list
-above and the examples of x86_64 and ia64 in the subsequent patches
-would suffice.
-
-Lee
 
