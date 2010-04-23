@@ -1,66 +1,72 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [patch 11/14] powerpc: invoke oom-killer from page fault
-Date: Fri, 23 Apr 2010 20:27:42 +1000
-Message-ID: <20100423102742.GC5683@laptop>
-References: <20100422160613.723698029@suse.de>
- <20100422161224.465958039@suse.de>
- <alpine.DEB.2.00.1004221442590.25350@chino.kir.corp.google.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: SMP barriers semantics
+Date: Fri, 23 Apr 2010 17:23:50 +0100
+Message-ID: <1272039830.15107.76.camel@e102109-lin.cambridge.arm.com>
+References: <20100406142054.GE5288@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:51910 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752163Ab0DWK1s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 23 Apr 2010 06:27:48 -0400
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.00.1004221442590.25350@chino.kir.corp.google.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:42278 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755375Ab0DWQ2I (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 23 Apr 2010 12:28:08 -0400
+In-Reply-To: <20100406142054.GE5288@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Rientjes <rientjes@google.com>
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@ozlabs.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Nick Piggin <npiggin@suse.de>
+Cc: Jamie Lokier <jamie@shareable.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Francois Romieu <romieu@fr.zoreil.com>
 
-On Thu, Apr 22, 2010 at 02:44:22PM -0700, David Rientjes wrote:
-> On Fri, 23 Apr 2010, npiggin@suse.de wrote:
+On Tue, 2010-04-06 at 15:20 +0100, Nick Piggin wrote:
+> On Tue, Mar 23, 2010 at 10:24:07AM +0000, Catalin Marinas wrote:
+> > On Mon, 2010-03-22 at 12:02 +0000, Nick Piggin wrote:
+> > > So IMO, we need to take all these out of lock primitives and just
+> > > increase awareness of it. Get rid of mmiowb. wmb() should be enough
+> > > to keep mmio stores inside the store to drop any lock (by definition).
+> >
+> > I think we have different scenarios for wmb and mmiowb (my
+> > understanding). One is when the driver writes to a coherent DMA buffer
+> > (usually uncached) and it than need to drain the write buffer before
+> > informing the device to start the transfer. That's where wmb() would be
+> > used (with normal uncached memory).
+> >
+> > The mmiowb() may need to go beyond the CPU write-buffer level into the
+> > PCI bus etc. but only for relative ordering of the I/O accesses. The
+> > memory-barriers.txt suggests that mmiowb(). My understanding is that
+> > mmiowb() drains any mmio buffers while wmb() drains normal memory
+> > buffers.
 > 
-> > As explained in commit 1c0fe6e3bd, we want to call the architecture independent
-> > oom killer when getting an unexplained OOM from handle_mm_fault, rather than
-> > simply killing current.
-> > 
-> > Cc: linuxppc-dev@ozlabs.org
-> > Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> > Cc: linux-arch@vger.kernel.org
-> > Signed-off-by: Nick Piggin <npiggin@suse.de>
-> > ---
-> > Index: linux-2.6/arch/powerpc/mm/fault.c
-> > ===================================================================
-> > --- linux-2.6.orig/arch/powerpc/mm/fault.c
-> > +++ linux-2.6/arch/powerpc/mm/fault.c
-> > @@ -359,15 +359,10 @@ bad_area_nosemaphore:
-> >   */
-> >  out_of_memory:
-> >  	up_read(&mm->mmap_sem);
-> > -	if (is_global_init(current)) {
-> > -		yield();
-> > -		down_read(&mm->mmap_sem);
-> > -		goto survive;
-> > -	}
-> > -	printk("VM: killing process %s\n", current->comm);
-> > -	if (user_mode(regs))
-> > -		do_group_exit(SIGKILL);
-> > -	return SIGKILL;
-> > +	if (!user_mode(regs))
-> > +		return SIGKILL;
-> > +	pagefault_out_of_memory();
-> > +	return 0;
-> 
-> Do we really want to return 0 and indicate that the fault was handled?  It 
-> seems more consistent to do
-> 
-> 	if (user_mode(regs))
-> 		pagefault_out_of_memory();
-> 	return SIGKILL;
+> No barriers are defined to drain anything, only order. wmb() is defined
+> to order all memory stores, so all previous stores cached and IO are
+> seen before all subsequent stores. And considering that we are talking
+> about IO, "seen" obviously means seen by the device as well as other
+> CPUs.
 
-Well we don't necessarily want to kill current.
-pagefault_out_of_memory() could elect to send a SIGKILL if wants to, but
-if it decides current should not be terminated, then we have to just
-retry the page fault.
+Indeed, the barriers aren't defined to drain anything, though they may
+do it on specific implementations (or when "seen" actually requires
+draining).
+
+The Documentation/DMA-API.txt file mentions that the CPU write buffer
+may need to be flushed after writing coherent memory but the kernel
+doesn't define any primitive for doing this. Hence my assumption that
+this is the job of wmb().
+
+> What is needed is to make the default accessors strongly ordered and
+> so driver writers can be really dumb about it, and IO / spinlock etc
+> synchronization "just works".
+
+On ARM, the I/O accessors are ordered with respect to device memory
+accesses but not with respect to normal non-cacheable memory
+(dma_alloc_coherent). If we want to make the writel etc. accessors
+ordered with respect to the normal non-cacheable memory, that would be
+really expensive on several ARM platforms. Apart from the CPU barrier (a
+full one - DSB - to drain the write buffer), some platforms require
+draining the write buffer of the L2 cache as well (by writing to other
+registers to the L2 cache controller).
+
+So I'm more in favour of having stronger semantics for wmb() and leaving
+the I/O accessors semantics to only ensure device memory ordering.
+
+-- 
+Catalin
