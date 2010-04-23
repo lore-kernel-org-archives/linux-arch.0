@@ -1,31 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.44.51]:39750 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755968Ab0DVUrB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Apr 2010 16:47:01 -0400
-Date: Thu, 22 Apr 2010 13:46:47 -0700 (PDT)
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [patch 01/14] alpha: invoke oom-killer from page fault
-In-Reply-To: <20100422161222.762354051@suse.de>
-Message-ID: <alpine.DEB.2.00.1004221346350.25350@chino.kir.corp.google.com>
-References: <20100422160613.723698029@suse.de> <20100422161222.762354051@suse.de>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from serv2.oss.ntt.co.jp ([222.151.198.100]:39604 "EHLO
+	serv2.oss.ntt.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754596Ab0DWBwP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Apr 2010 21:52:15 -0400
+Date: Fri, 23 Apr 2010 10:55:57 +0900
+From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+Subject: [RFC PATCH] asm-generic: bitops: introduce le bit offset macro
+Message-ID: <20100423105557.b6128879.yoshikawa.takuya@oss.ntt.co.jp>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: npiggin@suse.de
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>
-Message-ID: <20100422204647.uwpj09nmrGz1yalWL7CuDuSNWypQylGj2-4c4PLf2WU@z>
+To: arnd@arndb.de
+Cc: linux-arch@vger.kernel.org, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, fernando@oss.ntt.co.jp
+Message-ID: <20100423015557.rVuaICOa0X39ywtBJ800YyD_lrzNhkZ0P3Erc5Z8R1U@z>
 
-On Fri, 23 Apr 2010, npiggin@suse.de wrote:
+Although we can use *_le_bit() helpers to treat bitmaps le arranged,
+having le bit offset calculation as a seperate macro gives us more freedom.
 
-> As explained in commit 1c0fe6e3bd, we want to call the architecture independent
-> oom killer when getting an unexplained OOM from handle_mm_fault, rather than
-> simply killing current.
-> 
-> Cc: linux-alpha@vger.kernel.org
-> Cc: Richard Henderson <rth@twiddle.net>
-> Cc: linux-arch@vger.kernel.org
-> Signed-off-by: Nick Piggin <npiggin@suse.de>
+For example, KVM has le arranged dirty bitmaps for VGA, live-migration,
+etc. and we use them in user space too. To avoid bitmap copies between
+kernel and user space, we want to update the bitmaps in user space directly.
 
-Acked-by: David Rientjes <rientjes@google.com>
+To achive this, le bit offset with *_user() functions help us a lot.
+
+So let us use the le bit offset calculation part by defining it as a new
+macro: generic_le_bit_offset() .
+
+Signed-off-by: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+---
+ include/asm-generic/bitops/le.h |   18 +++++++++++-------
+ 1 files changed, 11 insertions(+), 7 deletions(-)
+
+diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
+index 80e3bf1..6af2e54 100644
+--- a/include/asm-generic/bitops/le.h
++++ b/include/asm-generic/bitops/le.h
+@@ -9,6 +9,8 @@
+ 
+ #if defined(__LITTLE_ENDIAN)
+ 
++#define generic_le_bit_offset(nr)	(nr)
++
+ #define generic_test_le_bit(nr, addr) test_bit(nr, addr)
+ #define generic___set_le_bit(nr, addr) __set_bit(nr, addr)
+ #define generic___clear_le_bit(nr, addr) __clear_bit(nr, addr)
+@@ -25,22 +27,24 @@
+ 
+ #elif defined(__BIG_ENDIAN)
+ 
++#define generic_le_bit_offset(nr)	((nr) ^ BITOP_LE_SWIZZLE)
++
+ #define generic_test_le_bit(nr, addr) \
+-	test_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++	test_bit(generic_le_bit_offset(nr), (addr))
+ #define generic___set_le_bit(nr, addr) \
+-	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++	__set_bit(generic_le_bit_offset(nr), (addr))
+ #define generic___clear_le_bit(nr, addr) \
+-	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++	__clear_bit(generic_le_bit_offset(nr), (addr))
+ 
+ #define generic_test_and_set_le_bit(nr, addr) \
+-	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++	test_and_set_bit(generic_le_bit_offset(nr), (addr))
+ #define generic_test_and_clear_le_bit(nr, addr) \
+-	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++	test_and_clear_bit(generic_le_bit_offset(nr), (addr))
+ 
+ #define generic___test_and_set_le_bit(nr, addr) \
+-	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++	__test_and_set_bit(generic_le_bit_offset(nr), (addr))
+ #define generic___test_and_clear_le_bit(nr, addr) \
+-	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++	__test_and_clear_bit(generic_le_bit_offset(nr), (addr))
+ 
+ extern unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
+ 		unsigned long size, unsigned long offset);
+-- 
+1.6.3.3
+
