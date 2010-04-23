@@ -1,83 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from serv2.oss.ntt.co.jp ([222.151.198.100]:39604 "EHLO
-	serv2.oss.ntt.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754596Ab0DWBwP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Apr 2010 21:52:15 -0400
-Date: Fri, 23 Apr 2010 10:55:57 +0900
-From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-Subject: [RFC PATCH] asm-generic: bitops: introduce le bit offset macro
-Message-ID: <20100423105557.b6128879.yoshikawa.takuya@oss.ntt.co.jp>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from mail-ww0-f46.google.com ([74.125.82.46]:51746 "EHLO
+	mail-ww0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753034Ab0DWHVv convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Apr 2010 03:21:51 -0400
+MIME-Version: 1.0
+In-Reply-To: <20100422161223.796194683@suse.de>
+References: <20100422160613.723698029@suse.de>
+	 <20100422161223.796194683@suse.de>
+Date: Fri, 23 Apr 2010 09:21:49 +0200
+Message-ID: <x2z10f740e81004230021mb9febf4fjad729ed856ee9e49@mail.gmail.com>
+Subject: Re: [patch 07/14] m68k: invoke oom-killer from page fault
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: linux-arch@vger.kernel.org, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, fernando@oss.ntt.co.jp
-Message-ID: <20100423015557.rVuaICOa0X39ywtBJ800YyD_lrzNhkZ0P3Erc5Z8R1U@z>
+To: npiggin@suse.de
+Cc: linux-arch@vger.kernel.org, David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, linux-m68k@vger.kernel.org
+Message-ID: <20100423072149.Ba0Uon-855vDkzrtztPIiS_K_SoxE3EX1PEt1MwBuR4@z>
 
-Although we can use *_le_bit() helpers to treat bitmaps le arranged,
-having le bit offset calculation as a seperate macro gives us more freedom.
+On Thu, Apr 22, 2010 at 18:06,  <npiggin@suse.de> wrote:
+> As explained in commit 1c0fe6e3bd, we want to call the architecture independent
+> oom killer when getting an unexplained OOM from handle_mm_fault, rather than
+> simply killing current.
+>
+> Cc: linux-m68k@lists.linux-m68k.org
+> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: linux-arch@vger.kernel.org
+> Signed-off-by: Nick Piggin <npiggin@suse.de>
+> ---
+> Index: linux-2.6/arch/m68k/mm/fault.c
+> ===================================================================
+> --- linux-2.6.orig/arch/m68k/mm/fault.c
+> +++ linux-2.6/arch/m68k/mm/fault.c
+> @@ -180,15 +180,10 @@ good_area:
+>  */
+>  out_of_memory:
+>        up_read(&mm->mmap_sem);
+> -       if (is_global_init(current)) {
+> -               yield();
+> -               down_read(&mm->mmap_sem);
+> -               goto survive;
+> -       }
+> -
+> -       printk("VM: killing process %s\n", current->comm);
+> -       if (user_mode(regs))
+> -               do_group_exit(SIGKILL);
+> +       if (!user_mode(regs))
+> +               goto no_context;
+> +       pagefault_out_of_memory();
+> +       return;
+>
+>  no_context:
+>        current->thread.signo = SIGBUS;
 
-For example, KVM has le arranged dirty bitmaps for VGA, live-migration,
-etc. and we use them in user space too. To avoid bitmap copies between
-kernel and user space, we want to update the bitmaps in user space directly.
+Will apply after unintroducing 2 compiler warnings::
 
-To achive this, le bit offset with *_user() functions help us a lot.
+diff --git a/arch/m68k/mm/fault.c b/arch/m68k/mm/fault.c
+index 0adfcb6..2db6099 100644
+--- a/arch/m68k/mm/fault.c
++++ b/arch/m68k/mm/fault.c
+@@ -140,7 +140,6 @@ good_area:
+ 	 * the fault.
+ 	 */
 
-So let us use the le bit offset calculation part by defining it as a new
-macro: generic_le_bit_offset() .
+- survive:
+ 	fault = handle_mm_fault(mm, vma, address, write ? FAULT_FLAG_WRITE : 0);
+ #ifdef DEBUG
+ 	printk("handle_mm_fault returns %d\n",fault);
+@@ -169,7 +168,7 @@ out_of_memory:
+ 	if (!user_mode(regs))
+ 		goto no_context;
+ 	pagefault_out_of_memory();
+-	return;
++	return 0;
 
-Signed-off-by: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
----
- include/asm-generic/bitops/le.h |   18 +++++++++++-------
- 1 files changed, 11 insertions(+), 7 deletions(-)
+ no_context:
+ 	current->thread.signo = SIGBUS;
 
-diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
-index 80e3bf1..6af2e54 100644
---- a/include/asm-generic/bitops/le.h
-+++ b/include/asm-generic/bitops/le.h
-@@ -9,6 +9,8 @@
- 
- #if defined(__LITTLE_ENDIAN)
- 
-+#define generic_le_bit_offset(nr)	(nr)
-+
- #define generic_test_le_bit(nr, addr) test_bit(nr, addr)
- #define generic___set_le_bit(nr, addr) __set_bit(nr, addr)
- #define generic___clear_le_bit(nr, addr) __clear_bit(nr, addr)
-@@ -25,22 +27,24 @@
- 
- #elif defined(__BIG_ENDIAN)
- 
-+#define generic_le_bit_offset(nr)	((nr) ^ BITOP_LE_SWIZZLE)
-+
- #define generic_test_le_bit(nr, addr) \
--	test_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+	test_bit(generic_le_bit_offset(nr), (addr))
- #define generic___set_le_bit(nr, addr) \
--	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+	__set_bit(generic_le_bit_offset(nr), (addr))
- #define generic___clear_le_bit(nr, addr) \
--	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+	__clear_bit(generic_le_bit_offset(nr), (addr))
- 
- #define generic_test_and_set_le_bit(nr, addr) \
--	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+	test_and_set_bit(generic_le_bit_offset(nr), (addr))
- #define generic_test_and_clear_le_bit(nr, addr) \
--	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+	test_and_clear_bit(generic_le_bit_offset(nr), (addr))
- 
- #define generic___test_and_set_le_bit(nr, addr) \
--	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+	__test_and_set_bit(generic_le_bit_offset(nr), (addr))
- #define generic___test_and_clear_le_bit(nr, addr) \
--	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+	__test_and_clear_bit(generic_le_bit_offset(nr), (addr))
- 
- extern unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
- 		unsigned long size, unsigned long offset);
--- 
-1.6.3.3
+Gr{oetje,eeting}s,
 
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
