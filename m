@@ -1,30 +1,26 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [patch 10/14] parisc: invoke oom-killer from page fault
-Date: Mon, 26 Apr 2010 11:00:43 -0400
-Message-ID: <20100426150042.GR12768@bombadil.infradead.org>
-References: <20100422160613.723698029@suse.de> <20100422161224.322033236@suse.de> <alpine.DEB.2.00.1004221356150.25350@chino.kir.corp.google.com>
+From: David Rientjes <rientjes@google.com>
+Subject: Re: [patch 01/14] alpha: invoke oom-killer from page fault
+Date: Mon, 26 Apr 2010 13:32:49 -0700 (PDT)
+Message-ID: <alpine.DEB.2.00.1004221346200.25350@chino.kir.corp.google.com>
+References: <20100422160613.723698029@suse.de> <20100422161222.762354051@suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-parisc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.00.1004221356150.25350@chino.kir.corp.google.com>
-Sender: linux-parisc-owner@vger.kernel.org
-To: David Rientjes <rientjes@google.com>
-Cc: npiggin@suse.de, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-parisc@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-Reply-To: <20100422161222.762354051@suse.de>
+Sender: linux-alpha-owner@vger.kernel.org
+To: npiggin@suse.de
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 22, 2010 at 01:56:26PM -0700, David Rientjes wrote:
-> On Fri, 23 Apr 2010, npiggin@suse.de wrote:
-> 
-> > As explained in commit 1c0fe6e3bd, we want to call the architecture independent
-> > oom killer when getting an unexplained OOM from handle_mm_fault, rather than
-> > simply killing current.
-> > 
-> > Cc: linux-parisc@vger.kernel.org
-> > Cc: Kyle McMartin <kyle@mcmartin.ca>
-> > Cc: linux-arch@vger.kernel.org
-> > Signed-off-by: Nick Piggin <npiggin@suse.de>
-> 
-> Acked-by: David Rientjes <rientjes@google.com>
+On Fri, 23 Apr 2010, npiggin@suse.de wrote:
 
-Thanks, applied.
+> As explained in commit 1c0fe6e3bd, we want to call the architecture independent
+> oom killer when getting an unexplained OOM from handle_mm_fault, rather than
+> simply killing current.
+> 
+> Cc: linux-alpha@vger.kernel.org
+> Cc: Richard Henderson <rth@twiddle.net>
+> Cc: linux-arch@vger.kernel.org
+> Signed-off-by: Nick Piggin <npiggin@suse.de>
+
+Acked-by: David Rientjes <rientjes@google.com>
