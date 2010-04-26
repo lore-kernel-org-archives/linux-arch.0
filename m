@@ -1,48 +1,30 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: SMP barriers semantics
-Date: Mon, 26 Apr 2010 10:21:21 +0100
-Message-ID: <1272273681.11974.6.camel@e102109-lin.cambridge.arm.com>
-References: <20100406142054.GE5288@laptop>
-	 <1272039830.15107.76.camel@e102109-lin.cambridge.arm.com>
-	 <20100423165628.GA15349@shareable.org>
-	 <1272043500.15107.87.camel@e102109-lin.cambridge.arm.com>
-	 <20100424014536.GD15349@shareable.org>
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [patch 10/14] parisc: invoke oom-killer from page fault
+Date: Mon, 26 Apr 2010 11:00:43 -0400
+Message-ID: <20100426150042.GR12768@bombadil.infradead.org>
+References: <20100422160613.723698029@suse.de> <20100422161224.322033236@suse.de> <alpine.DEB.2.00.1004221356150.25350@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:58904 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751010Ab0DZJZp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Apr 2010 05:25:45 -0400
-In-Reply-To: <20100424014536.GD15349@shareable.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jamie Lokier <jamie@shareable.org>
-Cc: Nick Piggin <npiggin@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, Francois Romieu <romieu@fr.zoreil.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-parisc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.00.1004221356150.25350@chino.kir.corp.google.com>
+Sender: linux-parisc-owner@vger.kernel.org
+To: David Rientjes <rientjes@google.com>
+Cc: npiggin@suse.de, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-parisc@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, 2010-04-24 at 02:45 +0100, Jamie Lokier wrote:
-> Catalin Marinas wrote:
-> > On recent ARM cores, it's only the Strongly Ordered memory that can have
-> > the write buffering disabled. But using such mapping for
-> > dma_alloc_coherent() introduces other problems like cache attribute
-> > aliases for a physical location (since the kernel maps the RAM as Normal
-> > memory already). Such aliases are not allowed hence we moved to Normal
-> > Non-cacheable for dma_alloc_coherent().
+On Thu, Apr 22, 2010 at 01:56:26PM -0700, David Rientjes wrote:
+> On Fri, 23 Apr 2010, npiggin@suse.de wrote:
 > 
-> I'm surprised aliases between Normal-Cached and Normal-Uncached are ok,
-> while aliases between Normal-Cached and SO-Uncached are not ok.
+> > As explained in commit 1c0fe6e3bd, we want to call the architecture independent
+> > oom killer when getting an unexplained OOM from handle_mm_fault, rather than
+> > simply killing current.
+> > 
+> > Cc: linux-parisc@vger.kernel.org
+> > Cc: Kyle McMartin <kyle@mcmartin.ca>
+> > Cc: linux-arch@vger.kernel.org
+> > Signed-off-by: Nick Piggin <npiggin@suse.de>
+> 
+> Acked-by: David Rientjes <rientjes@google.com>
 
-In theory, all of the aliases are banned but the Normal cacheable vs
-non-cacheable have been allowed in practice and current ARM
-implementations can cope with it (such "palliative" measures have been
-introduced in 2006). Other aliases aren't guaranteed to work correctly.
-
-Normal Non-cacheable memory uses the write buffer (at both the CPU and
-L2 cache level) while the Strongly Ordered doesn't. Normal memory
-accesses on the same CPU check the write buffer as well since a CPU is
-coherent with itself (on the D side).
-
--- 
-Catalin
+Thanks, applied.
