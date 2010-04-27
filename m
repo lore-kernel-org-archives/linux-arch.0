@@ -1,92 +1,37 @@
 From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: [PATCH -mm 5/6] swiotlb: remove unnecessary swiotlb_sync_single_range_*
-Date: Tue, 27 Apr 2010 21:25:39 +0900
-Message-ID: <1272371140-6085-6-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Subject: [PATCH -mm 3/6] x86: remove unnecessary sync_single_range_* in swiotlb_dma_ops
+Date: Tue, 27 Apr 2010 21:25:37 +0900
+Message-ID: <1272371140-6085-4-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 References: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:37051 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751386Ab0D0M0N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Apr 2010 08:26:13 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: akpm@linux-foundation.org
-Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-swiotlb_sync_single_range_for_cpu and
-swiotlb_sync_single_range_for_device are unnecessary because
-swiotlb_sync_single_for_cpu and swiotlb_sync_single_for_device can be
-used instead.
+sync_single_range_for_cpu and sync_single_range_for_device hooks in
+swiotlb_dma_ops are unnecessary because sync_single_for_cpu and
+sync_single_for_device are used there.
 
 Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: x86@kernel.org
 ---
- include/linux/swiotlb.h |   10 ----------
- lib/swiotlb.c           |   31 -------------------------------
- 2 files changed, 0 insertions(+), 41 deletions(-)
+ arch/x86/kernel/pci-swiotlb.c |    2 --
+ 1 files changed, 0 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
-index febedcf..81a4e21 100644
---- a/include/linux/swiotlb.h
-+++ b/include/linux/swiotlb.h
-@@ -73,16 +73,6 @@ extern void
- swiotlb_sync_sg_for_device(struct device *hwdev, struct scatterlist *sg,
- 			   int nelems, enum dma_data_direction dir);
- 
--extern void
--swiotlb_sync_single_range_for_cpu(struct device *hwdev, dma_addr_t dev_addr,
--				  unsigned long offset, size_t size,
--				  enum dma_data_direction dir);
--
--extern void
--swiotlb_sync_single_range_for_device(struct device *hwdev, dma_addr_t dev_addr,
--				     unsigned long offset, size_t size,
--				     enum dma_data_direction dir);
--
- extern int
- swiotlb_dma_mapping_error(struct device *hwdev, dma_addr_t dma_addr);
- 
-diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-index 5fddf72..a009055 100644
---- a/lib/swiotlb.c
-+++ b/lib/swiotlb.c
-@@ -757,37 +757,6 @@ swiotlb_sync_single_for_device(struct device *hwdev, dma_addr_t dev_addr,
- EXPORT_SYMBOL(swiotlb_sync_single_for_device);
- 
- /*
-- * Same as above, but for a sub-range of the mapping.
-- */
--static void
--swiotlb_sync_single_range(struct device *hwdev, dma_addr_t dev_addr,
--			  unsigned long offset, size_t size,
--			  int dir, int target)
--{
--	swiotlb_sync_single(hwdev, dev_addr + offset, size, dir, target);
--}
--
--void
--swiotlb_sync_single_range_for_cpu(struct device *hwdev, dma_addr_t dev_addr,
--				  unsigned long offset, size_t size,
--				  enum dma_data_direction dir)
--{
--	swiotlb_sync_single_range(hwdev, dev_addr, offset, size, dir,
--				  SYNC_FOR_CPU);
--}
--EXPORT_SYMBOL_GPL(swiotlb_sync_single_range_for_cpu);
--
--void
--swiotlb_sync_single_range_for_device(struct device *hwdev, dma_addr_t dev_addr,
--				     unsigned long offset, size_t size,
--				     enum dma_data_direction dir)
--{
--	swiotlb_sync_single_range(hwdev, dev_addr, offset, size, dir,
--				  SYNC_FOR_DEVICE);
--}
--EXPORT_SYMBOL_GPL(swiotlb_sync_single_range_for_device);
--
--/*
-  * Map a set of buffers described by scatterlist in streaming mode for DMA.
-  * This is the scatter-gather version of the above swiotlb_map_page
-  * interface.  Here the scatter gather list elements are each tagged with the
+diff --git a/arch/x86/kernel/pci-swiotlb.c b/arch/x86/kernel/pci-swiotlb.c
+index 7d2829d..a5bc528 100644
+--- a/arch/x86/kernel/pci-swiotlb.c
++++ b/arch/x86/kernel/pci-swiotlb.c
+@@ -31,8 +31,6 @@ static struct dma_map_ops swiotlb_dma_ops = {
+ 	.free_coherent = swiotlb_free_coherent,
+ 	.sync_single_for_cpu = swiotlb_sync_single_for_cpu,
+ 	.sync_single_for_device = swiotlb_sync_single_for_device,
+-	.sync_single_range_for_cpu = swiotlb_sync_single_range_for_cpu,
+-	.sync_single_range_for_device = swiotlb_sync_single_range_for_device,
+ 	.sync_sg_for_cpu = swiotlb_sync_sg_for_cpu,
+ 	.sync_sg_for_device = swiotlb_sync_sg_for_device,
+ 	.map_sg = swiotlb_map_sg_attrs,
 -- 
 1.6.5
