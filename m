@@ -1,32 +1,92 @@
-From: "Alison B Ortiz" <stevewinwiood@65-114-47-43.dia.static.qwest.net>
-Subject: direct mail mailing lists
-Date: 26 Apr 2010 22:29:28 -0400
-Message-ID: <SERVER3tJAadVe5HXC90000056c@server3>
-Reply-To: stevewinwiood@65-114-47-43.dia.static.qwest.net
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: [PATCH -mm 5/6] swiotlb: remove unnecessary swiotlb_sync_single_range_*
+Date: Tue, 27 Apr 2010 21:25:39 +0900
+Message-ID: <1272371140-6085-6-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+References: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 65-114-47-37.dia.static.qwest.net ([65.114.47.37]:51297 "EHLO
-	server3" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750897Ab0D0EWV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Apr 2010 00:22:21 -0400
+Received: from sh.osrg.net ([192.16.179.4]:37051 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751386Ab0D0M0N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 Apr 2010 08:26:13 -0400
+In-Reply-To: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ashleykeesis@windsorbeacon.com
-Cc: karigalasso@gmail.com, geis3@msn.cn, amohan1@binghamton.edu, linux-arch@vger.kernel.org, sjg@sun0.melb.bull.oz.au, jmcho@nlprep.sogang.ac.kr, sarah.fox@cancer.org, -staff@kent.ac.uk, clark@clarkequipment.com
+To: akpm@linux-foundation.org
+Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Corrine,
+swiotlb_sync_single_range_for_cpu and
+swiotlb_sync_single_range_for_device are unnecessary because
+swiotlb_sync_single_for_cpu and swiotlb_sync_single_for_device can be
+used instead.
 
-Contact me at the email address below for a catalog of all our USA lists.
+Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+---
+ include/linux/swiotlb.h |   10 ----------
+ lib/swiotlb.c           |   31 -------------------------------
+ 2 files changed, 0 insertions(+), 41 deletions(-)
 
-Also, this week we are offering reduced costs for more than one list.  
-  
-
-Regards,
-
-
-Lorrie Gabriel
-Email Address: successtools@gmx.com
-
-
-
-
-email  for delisting
+diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
+index febedcf..81a4e21 100644
+--- a/include/linux/swiotlb.h
++++ b/include/linux/swiotlb.h
+@@ -73,16 +73,6 @@ extern void
+ swiotlb_sync_sg_for_device(struct device *hwdev, struct scatterlist *sg,
+ 			   int nelems, enum dma_data_direction dir);
+ 
+-extern void
+-swiotlb_sync_single_range_for_cpu(struct device *hwdev, dma_addr_t dev_addr,
+-				  unsigned long offset, size_t size,
+-				  enum dma_data_direction dir);
+-
+-extern void
+-swiotlb_sync_single_range_for_device(struct device *hwdev, dma_addr_t dev_addr,
+-				     unsigned long offset, size_t size,
+-				     enum dma_data_direction dir);
+-
+ extern int
+ swiotlb_dma_mapping_error(struct device *hwdev, dma_addr_t dma_addr);
+ 
+diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+index 5fddf72..a009055 100644
+--- a/lib/swiotlb.c
++++ b/lib/swiotlb.c
+@@ -757,37 +757,6 @@ swiotlb_sync_single_for_device(struct device *hwdev, dma_addr_t dev_addr,
+ EXPORT_SYMBOL(swiotlb_sync_single_for_device);
+ 
+ /*
+- * Same as above, but for a sub-range of the mapping.
+- */
+-static void
+-swiotlb_sync_single_range(struct device *hwdev, dma_addr_t dev_addr,
+-			  unsigned long offset, size_t size,
+-			  int dir, int target)
+-{
+-	swiotlb_sync_single(hwdev, dev_addr + offset, size, dir, target);
+-}
+-
+-void
+-swiotlb_sync_single_range_for_cpu(struct device *hwdev, dma_addr_t dev_addr,
+-				  unsigned long offset, size_t size,
+-				  enum dma_data_direction dir)
+-{
+-	swiotlb_sync_single_range(hwdev, dev_addr, offset, size, dir,
+-				  SYNC_FOR_CPU);
+-}
+-EXPORT_SYMBOL_GPL(swiotlb_sync_single_range_for_cpu);
+-
+-void
+-swiotlb_sync_single_range_for_device(struct device *hwdev, dma_addr_t dev_addr,
+-				     unsigned long offset, size_t size,
+-				     enum dma_data_direction dir)
+-{
+-	swiotlb_sync_single_range(hwdev, dev_addr, offset, size, dir,
+-				  SYNC_FOR_DEVICE);
+-}
+-EXPORT_SYMBOL_GPL(swiotlb_sync_single_range_for_device);
+-
+-/*
+  * Map a set of buffers described by scatterlist in streaming mode for DMA.
+  * This is the scatter-gather version of the above swiotlb_map_page
+  * interface.  Here the scatter gather list elements are each tagged with the
+-- 
+1.6.5
