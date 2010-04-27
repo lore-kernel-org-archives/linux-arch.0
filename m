@@ -1,49 +1,42 @@
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: [PATCH -mm 1/6] dma-mapping: fix dma_sync_single_range_*
-Date: Tue, 27 Apr 2010 21:25:35 +0900
-Message-ID: <1272371140-6085-2-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [LKML] [PATCH -mm 0/6] remove unnecessary sync_single_range_*
+	in dma_map_ops
+Date: Tue, 27 Apr 2010 13:07:15 -0400
+Message-ID: <20100427170715.GA24826@phenom.dumpdata.com>
 References: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:41136 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752647Ab0D0Maj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Apr 2010 08:30:39 -0400
+Received: from rcsinet10.oracle.com ([148.87.113.121]:41712 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754107Ab0D0RIT (ORCPT
+	<rfc822;<linux-arch@vger.kernel.org>>);
+	Tue, 27 Apr 2010 13:08:19 -0400
+Content-Disposition: inline
 In-Reply-To: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, stable@kernel.org
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-dma_sync_single_range_for_cpu and dma_sync_single_range_for_device
-use a wrong address with a partial synchronization.
+On Tue, Apr 27, 2010 at 09:25:34PM +0900, FUJITA Tomonori wrote:
+> This patchset removes useless sync_single_range_for_cpu and
+> sync_single_range_for_device hooks in dma_map_ops. These hooks were
+> for dma_sync_single_range_* DMA API, however, the API became obsolete
+> (the description in DMA API docs was removed too). Architecutres
+> should use sync_single_for_cpu and sync_single_for_device hooks
+> instead (as DMA API docs say, they need to support a partial sync).
+> 
+> We could remove dma_sync_single_range_* DMA API completely (no user in
+> -mm) but the API had been until 2.6.34-rc so I guess that it might be
+> better to leave it alone for some time.
+> 
+> The first patch is a bug fix and might be 2.6.34-rc material however
+> the API is not so popular (only net/b44.c uses) and we are already in
+> -rc5. I guess that it would be fine to merge it in the next merge
+> window.
 
-Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: stable@kernel.org
----
- include/asm-generic/dma-mapping-common.h |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+Not sure if this is needed since the patches aren't that complex, but I
+did do a review of all of them. Hence:
 
-diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
-index e694263..6920695 100644
---- a/include/asm-generic/dma-mapping-common.h
-+++ b/include/asm-generic/dma-mapping-common.h
-@@ -131,7 +131,7 @@ static inline void dma_sync_single_range_for_cpu(struct device *dev,
- 		debug_dma_sync_single_range_for_cpu(dev, addr, offset, size, dir);
- 
- 	} else
--		dma_sync_single_for_cpu(dev, addr, size, dir);
-+		dma_sync_single_for_cpu(dev, addr + offset, size, dir);
- }
- 
- static inline void dma_sync_single_range_for_device(struct device *dev,
-@@ -148,7 +148,7 @@ static inline void dma_sync_single_range_for_device(struct device *dev,
- 		debug_dma_sync_single_range_for_device(dev, addr, offset, size, dir);
- 
- 	} else
--		dma_sync_single_for_device(dev, addr, size, dir);
-+		dma_sync_single_for_device(dev, addr + offset, size, dir);
- }
- 
- static inline void
--- 
-1.6.5
+Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
