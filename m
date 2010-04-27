@@ -1,26 +1,32 @@
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [patch 01/14] alpha: invoke oom-killer from page fault
-Date: Mon, 26 Apr 2010 13:32:49 -0700 (PDT)
-Message-ID: <alpine.DEB.2.00.1004221346200.25350@chino.kir.corp.google.com>
-References: <20100422160613.723698029@suse.de> <20100422161222.762354051@suse.de>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <20100422161222.762354051@suse.de>
-Sender: linux-alpha-owner@vger.kernel.org
-To: npiggin@suse.de
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>
-List-Id: linux-arch.vger.kernel.org
+From: "Alison B Ortiz" <stevewinwiood@65-114-47-43.dia.static.qwest.net>
+Subject: direct mail mailing lists
+Date: 26 Apr 2010 22:29:28 -0400
+Message-ID: <SERVER3tJAadVe5HXC90000056c@server3>
+Reply-To: stevewinwiood@65-114-47-43.dia.static.qwest.net
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 65-114-47-37.dia.static.qwest.net ([65.114.47.37]:51297 "EHLO
+	server3" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1750897Ab0D0EWV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 Apr 2010 00:22:21 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: ashleykeesis@windsorbeacon.com
+Cc: karigalasso@gmail.com, geis3@msn.cn, amohan1@binghamton.edu, linux-arch@vger.kernel.org, sjg@sun0.melb.bull.oz.au, jmcho@nlprep.sogang.ac.kr, sarah.fox@cancer.org, -staff@kent.ac.uk, clark@clarkequipment.com
 
-On Fri, 23 Apr 2010, npiggin@suse.de wrote:
+Corrine,
 
-> As explained in commit 1c0fe6e3bd, we want to call the architecture independent
-> oom killer when getting an unexplained OOM from handle_mm_fault, rather than
-> simply killing current.
-> 
-> Cc: linux-alpha@vger.kernel.org
-> Cc: Richard Henderson <rth@twiddle.net>
-> Cc: linux-arch@vger.kernel.org
-> Signed-off-by: Nick Piggin <npiggin@suse.de>
+Contact me at the email address below for a catalog of all our USA lists.
 
-Acked-by: David Rientjes <rientjes@google.com>
+Also, this week we are offering reduced costs for more than one list.  
+  
+
+Regards,
+
+
+Lorrie Gabriel
+Email Address: successtools@gmx.com
+
+
+
+
+email  for delisting
