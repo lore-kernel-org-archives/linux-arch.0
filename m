@@ -1,38 +1,83 @@
 From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: [PATCH -mm 2/6] ia64: remove unnecessary sync_single_range_* in swiotlb_dma_ops
-Date: Tue, 27 Apr 2010 21:25:36 +0900
-Message-ID: <1272371140-6085-3-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Subject: [PATCH -mm 6/6] dma-mapping: remove unnecessary sync_single_range_* in dma_map_ops
+Date: Tue, 27 Apr 2010 21:25:40 +0900
+Message-ID: <1272371140-6085-7-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 References: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-kernel-owner@vger.kernel.org
 To: akpm@linux-foundation.org
-Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
+Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-sync_single_range_for_cpu and sync_single_range_for_device hooks in
-swiotlb_dma_ops are unnecessary because sync_single_for_cpu and
-sync_single_for_device are used there.
+sync_single_range_for_cpu and sync_single_range_for_device hooks are
+unnecessary because sync_single_for_cpu and sync_single_for_device can
+be used instead.
 
 Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
 ---
- arch/ia64/kernel/pci-swiotlb.c |    2 --
- 1 files changed, 0 insertions(+), 2 deletions(-)
+ include/asm-generic/dma-mapping-common.h |   20 ++------------------
+ include/linux/dma-mapping.h              |   10 ----------
+ 2 files changed, 2 insertions(+), 28 deletions(-)
 
-diff --git a/arch/ia64/kernel/pci-swiotlb.c b/arch/ia64/kernel/pci-swiotlb.c
-index 3095654..d9485d9 100644
---- a/arch/ia64/kernel/pci-swiotlb.c
-+++ b/arch/ia64/kernel/pci-swiotlb.c
-@@ -31,8 +31,6 @@ struct dma_map_ops swiotlb_dma_ops = {
- 	.unmap_sg = swiotlb_unmap_sg_attrs,
- 	.sync_single_for_cpu = swiotlb_sync_single_for_cpu,
- 	.sync_single_for_device = swiotlb_sync_single_for_device,
--	.sync_single_range_for_cpu = swiotlb_sync_single_range_for_cpu,
--	.sync_single_range_for_device = swiotlb_sync_single_range_for_device,
- 	.sync_sg_for_cpu = swiotlb_sync_sg_for_cpu,
- 	.sync_sg_for_device = swiotlb_sync_sg_for_device,
- 	.dma_supported = swiotlb_dma_supported,
+diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
+index 6920695..0c80bb3 100644
+--- a/include/asm-generic/dma-mapping-common.h
++++ b/include/asm-generic/dma-mapping-common.h
+@@ -123,15 +123,7 @@ static inline void dma_sync_single_range_for_cpu(struct device *dev,
+ 						 size_t size,
+ 						 enum dma_data_direction dir)
+ {
+-	struct dma_map_ops *ops = get_dma_ops(dev);
+-
+-	BUG_ON(!valid_dma_direction(dir));
+-	if (ops->sync_single_range_for_cpu) {
+-		ops->sync_single_range_for_cpu(dev, addr, offset, size, dir);
+-		debug_dma_sync_single_range_for_cpu(dev, addr, offset, size, dir);
+-
+-	} else
+-		dma_sync_single_for_cpu(dev, addr + offset, size, dir);
++	dma_sync_single_for_cpu(dev, addr + offset, size, dir);
+ }
+ 
+ static inline void dma_sync_single_range_for_device(struct device *dev,
+@@ -140,15 +132,7 @@ static inline void dma_sync_single_range_for_device(struct device *dev,
+ 						    size_t size,
+ 						    enum dma_data_direction dir)
+ {
+-	struct dma_map_ops *ops = get_dma_ops(dev);
+-
+-	BUG_ON(!valid_dma_direction(dir));
+-	if (ops->sync_single_range_for_device) {
+-		ops->sync_single_range_for_device(dev, addr, offset, size, dir);
+-		debug_dma_sync_single_range_for_device(dev, addr, offset, size, dir);
+-
+-	} else
+-		dma_sync_single_for_device(dev, addr + offset, size, dir);
++	dma_sync_single_for_device(dev, addr + offset, size, dir);
+ }
+ 
+ static inline void
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index ca32ed7..2ea1494 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -40,16 +40,6 @@ struct dma_map_ops {
+ 	void (*sync_single_for_device)(struct device *dev,
+ 				       dma_addr_t dma_handle, size_t size,
+ 				       enum dma_data_direction dir);
+-	void (*sync_single_range_for_cpu)(struct device *dev,
+-					  dma_addr_t dma_handle,
+-					  unsigned long offset,
+-					  size_t size,
+-					  enum dma_data_direction dir);
+-	void (*sync_single_range_for_device)(struct device *dev,
+-					     dma_addr_t dma_handle,
+-					     unsigned long offset,
+-					     size_t size,
+-					     enum dma_data_direction dir);
+ 	void (*sync_sg_for_cpu)(struct device *dev,
+ 				struct scatterlist *sg, int nents,
+ 				enum dma_data_direction dir);
 -- 
 1.6.5
