@@ -1,31 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.35]:56756 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753145Ab0DZUdW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Apr 2010 16:33:22 -0400
-Date: Mon, 26 Apr 2010 13:32:49 -0700 (PDT)
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [patch 01/14] alpha: invoke oom-killer from page fault
-In-Reply-To: <20100422161222.762354051@suse.de>
-Message-ID: <alpine.DEB.2.00.1004221346200.25350@chino.kir.corp.google.com>
-References: <20100422160613.723698029@suse.de> <20100422161222.762354051@suse.de>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from sh.osrg.net ([192.16.179.4]:37052 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752168Ab0D0M0N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 Apr 2010 08:26:13 -0400
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: [PATCH -mm 6/6] dma-mapping: remove unnecessary sync_single_range_* in dma_map_ops
+Date: Tue, 27 Apr 2010 21:25:40 +0900
+Message-ID: <1272371140-6085-7-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+In-Reply-To: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+References: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: npiggin@suse.de
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>
-Message-ID: <20100426203249.DWuXQkMDel8E6YWqSSZgRUsxwl2T9QVycOz4L_kIV4M@z>
+To: akpm@linux-foundation.org
+Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20100427122540.MhLLMzGaLhfLTqo5gTXFHzJ_7GtVjiAuLCc5rTzl_LY@z>
 
-On Fri, 23 Apr 2010, npiggin@suse.de wrote:
+sync_single_range_for_cpu and sync_single_range_for_device hooks are
+unnecessary because sync_single_for_cpu and sync_single_for_device can
+be used instead.
 
-> As explained in commit 1c0fe6e3bd, we want to call the architecture independent
-> oom killer when getting an unexplained OOM from handle_mm_fault, rather than
-> simply killing current.
-> 
-> Cc: linux-alpha@vger.kernel.org
-> Cc: Richard Henderson <rth@twiddle.net>
-> Cc: linux-arch@vger.kernel.org
-> Signed-off-by: Nick Piggin <npiggin@suse.de>
+Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+---
+ include/asm-generic/dma-mapping-common.h |   20 ++------------------
+ include/linux/dma-mapping.h              |   10 ----------
+ 2 files changed, 2 insertions(+), 28 deletions(-)
 
-Acked-by: David Rientjes <rientjes@google.com>
+diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
+index 6920695..0c80bb3 100644
+--- a/include/asm-generic/dma-mapping-common.h
++++ b/include/asm-generic/dma-mapping-common.h
+@@ -123,15 +123,7 @@ static inline void dma_sync_single_range_for_cpu(struct device *dev,
+ 						 size_t size,
+ 						 enum dma_data_direction dir)
+ {
+-	struct dma_map_ops *ops = get_dma_ops(dev);
+-
+-	BUG_ON(!valid_dma_direction(dir));
+-	if (ops->sync_single_range_for_cpu) {
+-		ops->sync_single_range_for_cpu(dev, addr, offset, size, dir);
+-		debug_dma_sync_single_range_for_cpu(dev, addr, offset, size, dir);
+-
+-	} else
+-		dma_sync_single_for_cpu(dev, addr + offset, size, dir);
++	dma_sync_single_for_cpu(dev, addr + offset, size, dir);
+ }
+ 
+ static inline void dma_sync_single_range_for_device(struct device *dev,
+@@ -140,15 +132,7 @@ static inline void dma_sync_single_range_for_device(struct device *dev,
+ 						    size_t size,
+ 						    enum dma_data_direction dir)
+ {
+-	struct dma_map_ops *ops = get_dma_ops(dev);
+-
+-	BUG_ON(!valid_dma_direction(dir));
+-	if (ops->sync_single_range_for_device) {
+-		ops->sync_single_range_for_device(dev, addr, offset, size, dir);
+-		debug_dma_sync_single_range_for_device(dev, addr, offset, size, dir);
+-
+-	} else
+-		dma_sync_single_for_device(dev, addr + offset, size, dir);
++	dma_sync_single_for_device(dev, addr + offset, size, dir);
+ }
+ 
+ static inline void
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index ca32ed7..2ea1494 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -40,16 +40,6 @@ struct dma_map_ops {
+ 	void (*sync_single_for_device)(struct device *dev,
+ 				       dma_addr_t dma_handle, size_t size,
+ 				       enum dma_data_direction dir);
+-	void (*sync_single_range_for_cpu)(struct device *dev,
+-					  dma_addr_t dma_handle,
+-					  unsigned long offset,
+-					  size_t size,
+-					  enum dma_data_direction dir);
+-	void (*sync_single_range_for_device)(struct device *dev,
+-					     dma_addr_t dma_handle,
+-					     unsigned long offset,
+-					     size_t size,
+-					     enum dma_data_direction dir);
+ 	void (*sync_sg_for_cpu)(struct device *dev,
+ 				struct scatterlist *sg, int nents,
+ 				enum dma_data_direction dir);
+-- 
+1.6.5
+
