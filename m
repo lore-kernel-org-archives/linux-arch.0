@@ -1,42 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:37050 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752575Ab0D0M0N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Apr 2010 08:26:13 -0400
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: [PATCH -mm 0/6] remove unnecessary sync_single_range_* in dma_map_ops
-Date: Tue, 27 Apr 2010 21:25:34 +0900
-Message-ID: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Received: from mail.gmx.net ([213.165.64.20]:46865 "HELO mail.gmx.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
+	id S1751166Ab0D1LKq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 Apr 2010 07:10:46 -0400
+From: Peter Fritzsche <peter.fritzsche@gmx.de>
+Subject: [PATCH 2/2] asm-generic: Don't warn that atomic_t is only 24 bit
+Date: Wed, 28 Apr 2010 13:10:36 +0200
+Message-ID: <1272453036-18670-1-git-send-email-peter.fritzsche@gmx.de>
+In-Reply-To: <1272451837-17961-1-git-send-email-peter.fritzsche@gmx.de>
+References: <1272451837-17961-1-git-send-email-peter.fritzsche@gmx.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20100427122534.9zjDlyje0JfkxHVqJiiqeeyZ_DNjRELAz9R9P_dyyQA@z>
+To: Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Keith M Wesolowski <wesolows@foobazco.org>
+Cc: Peter Fritzsche <peter.fritzsche@gmx.de>
+Message-ID: <20100428111036.2vGd3F4seyePHQ0jPJJx51BMvr40KASsuPDfDuq9Yf0@z>
 
-This patchset removes useless sync_single_range_for_cpu and
-sync_single_range_for_device hooks in dma_map_ops. These hooks were
-for dma_sync_single_range_* DMA API, however, the API became obsolete
-(the description in DMA API docs was removed too). Architecutres
-should use sync_single_for_cpu and sync_single_for_device hooks
-instead (as DMA API docs say, they need to support a partial sync).
+32-bit Sparc used to only allow usage of 24-bit of it's atomic_t type.
+This was corrected with linux 2.6.3 when Keith M Wesolowski changed the
+implementation to use the parisc approach of having an array of
+spinlocks to protect the atomic_t.
 
-We could remove dma_sync_single_range_* DMA API completely (no user in
--mm) but the API had been until 2.6.34-rc so I guess that it might be
-better to leave it alone for some time.
+These warnings were also removed from the sparc implementation when the
+new implementation was merged in BKrev:402e4949VThdc6D3iaosSFUgabMfvw,
+but the warning still remained in some other places without any
+24-bit-only atomic_t implementation inside the kernel.
 
-The first patch is a bug fix and might be 2.6.34-rc material however
-the API is not so popular (only net/b44.c uses) and we are already in
--rc5. I guess that it would be fine to merge it in the next merge
-window.
+We should remove these warnings to allow users to rely on the full
+32-bit range of atomic_t.
 
-=
- arch/ia64/kernel/pci-swiotlb.c           |    2 -
- arch/powerpc/kernel/dma-swiotlb.c        |    4 +-
- arch/powerpc/kernel/dma.c                |   12 +++++-----
- arch/x86/kernel/pci-swiotlb.c            |    2 -
- include/asm-generic/dma-mapping-common.h |   20 +-----------------
- include/linux/dma-mapping.h              |   10 ---------
- include/linux/swiotlb.h                  |   10 ---------
- lib/swiotlb.c                            |   31 ------------------------------
- 8 files changed, 10 insertions(+), 81 deletions(-)
+Signed-off-by: Peter Fritzsche <peter.fritzsche@gmx.de>
+---
+ This should correct the problem mentioned in http://lkml.org/lkml/2010/4/26/33
+
+ include/asm-generic/atomic.h |    8 ++------
+ 1 files changed, 2 insertions(+), 6 deletions(-)
+
+diff --git a/include/asm-generic/atomic.h b/include/asm-generic/atomic.h
+index c99c64d..345bfda 100644
+--- a/include/asm-generic/atomic.h
++++ b/include/asm-generic/atomic.h
+@@ -30,8 +30,7 @@
+  * atomic_read - read atomic variable
+  * @v: pointer of type atomic_t
+  *
+- * Atomically reads the value of @v.  Note that the guaranteed
+- * useful range of an atomic_t is only 24 bits.
++ * Atomically reads the value of @v.
+  */
+ #define atomic_read(v)	((v)->counter)
+ 
+@@ -40,8 +39,7 @@
+  * @v: pointer of type atomic_t
+  * @i: required value
+  *
+- * Atomically sets the value of @v to @i.  Note that the guaranteed
+- * useful range of an atomic_t is only 24 bits.
++ * Atomically sets the value of @v to @i.
+  */
+ #define atomic_set(v, i) (((v)->counter) = (i))
+ 
+@@ -53,7 +51,6 @@
+  * @v: pointer of type atomic_t
+  *
+  * Atomically adds @i to @v and returns the result
+- * Note that the guaranteed useful range of an atomic_t is only 24 bits.
+  */
+ static inline int atomic_add_return(int i, atomic_t *v)
+ {
+@@ -75,7 +72,6 @@ static inline int atomic_add_return(int i, atomic_t *v)
+  * @v: pointer of type atomic_t
+  *
+  * Atomically subtracts @i from @v and returns the result
+- * Note that the guaranteed useful range of an atomic_t is only 24 bits.
+  */
+ static inline int atomic_sub_return(int i, atomic_t *v)
+ {
+-- 
+1.7.1
 
