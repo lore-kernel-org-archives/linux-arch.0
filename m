@@ -1,42 +1,72 @@
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [LKML] [PATCH -mm 0/6] remove unnecessary sync_single_range_*
-	in dma_map_ops
-Date: Tue, 27 Apr 2010 13:07:15 -0400
-Message-ID: <20100427170715.GA24826@phenom.dumpdata.com>
-References: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+From: Matt Turner <mattst88@gmail.com>
+Subject: Re: [patch 01/14] alpha: invoke oom-killer from page fault
+Date: Tue, 27 Apr 2010 22:58:28 -0400
+Message-ID: <i2ob4198de61004271958xdb1f45e3o30f0e451bd192ea4@mail.gmail.com>
+References: <20100422160613.723698029@suse.de>
+	 <20100422161222.762354051@suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:41712 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754107Ab0D0RIT (ORCPT
-	<rfc822;<linux-arch@vger.kernel.org>>);
-	Tue, 27 Apr 2010 13:08:19 -0400
-Content-Disposition: inline
-In-Reply-To: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Received: from mail-gw0-f46.google.com ([74.125.83.46]:56414 "EHLO
+	mail-gw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754118Ab0D1C63 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Apr 2010 22:58:29 -0400
+In-Reply-To: <20100422161222.762354051@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: npiggin@suse.de
+Cc: linux-arch@vger.kernel.org, David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>
 
-On Tue, Apr 27, 2010 at 09:25:34PM +0900, FUJITA Tomonori wrote:
-> This patchset removes useless sync_single_range_for_cpu and
-> sync_single_range_for_device hooks in dma_map_ops. These hooks were
-> for dma_sync_single_range_* DMA API, however, the API became obsolete
-> (the description in DMA API docs was removed too). Architecutres
-> should use sync_single_for_cpu and sync_single_for_device hooks
-> instead (as DMA API docs say, they need to support a partial sync).
-> 
-> We could remove dma_sync_single_range_* DMA API completely (no user in
-> -mm) but the API had been until 2.6.34-rc so I guess that it might be
-> better to leave it alone for some time.
-> 
-> The first patch is a bug fix and might be 2.6.34-rc material however
-> the API is not so popular (only net/b44.c uses) and we are already in
-> -rc5. I guess that it would be fine to merge it in the next merge
-> window.
+On Thu, Apr 22, 2010 at 12:06 PM,  <npiggin@suse.de> wrote:
+> As explained in commit 1c0fe6e3bd, we want to call the architecture i=
+ndependent
+> oom killer when getting an unexplained OOM from handle_mm_fault, rath=
+er than
+> simply killing current.
+>
+> Cc: linux-alpha@vger.kernel.org
+> Cc: Richard Henderson <rth@twiddle.net>
+> Cc: linux-arch@vger.kernel.org
+> Signed-off-by: Nick Piggin <npiggin@suse.de>
+> ---
+> Index: linux-2.6/arch/alpha/mm/fault.c
+> =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+> --- linux-2.6.orig/arch/alpha/mm/fault.c
+> +++ linux-2.6/arch/alpha/mm/fault.c
+> @@ -188,16 +188,10 @@ do_page_fault(unsigned long address, uns
+> =A0 =A0 =A0 =A0/* We ran out of memory, or some other thing happened =
+to us that
+> =A0 =A0 =A0 =A0 =A0 made us unable to handle the page fault gracefull=
+y. =A0*/
+> =A0out_of_memory:
+> - =A0 =A0 =A0 if (is_global_init(current)) {
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 yield();
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 down_read(&mm->mmap_sem);
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 goto survive;
+> - =A0 =A0 =A0 }
+> - =A0 =A0 =A0 printk(KERN_ALERT "VM: killing process %s(%d)\n",
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0current->comm, task_pid_nr(current));
+> =A0 =A0 =A0 =A0if (!user_mode(regs))
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0goto no_context;
+> - =A0 =A0 =A0 do_group_exit(SIGKILL);
+> + =A0 =A0 =A0 pagefault_out_of_memory();
+> + =A0 =A0 =A0 return;
+>
+> =A0do_sigbus:
+> =A0 =A0 =A0 =A0/* Send a sigbus, regardless of whether we were in ker=
+nel
+>
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-alpha=
+" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at =A0http://vger.kernel.org/majordomo-info.html
+>
 
-Not sure if this is needed since the patches aren't that complex, but I
-did do a review of all of them. Hence:
+Thanks, added to my tree.
 
-Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Matt
