@@ -1,40 +1,78 @@
-From: liqin.chen@sunplusct.com
-Subject: Re: [patch 12/14] score: invoke oom-killer from page fault
-Date: Wed, 28 Apr 2010 15:30:34 +0800
-Message-ID: <OF94E9051E.E877CEFE-ON48257713.0029265F-48257713.00294063@sunplusct.com>
-References: <20100422161224.624110747@suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="GB2312"
-Content-Transfer-Encoding: base64
+From: Peter Fritzsche <peter.fritzsche@gmx.de>
+Subject: [PATCH 2/2] asm-generic: Don't warn that atomic_t is only 24 bit
+Date: Wed, 28 Apr 2010 13:10:36 +0200
+Message-ID: <1272453036-18670-1-git-send-email-peter.fritzsche@gmx.de>
+References: <1272451837-17961-1-git-send-email-peter.fritzsche@gmx.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mswedge2.sunplus.com ([124.219.29.227]:55911 "EHLO
-	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752758Ab0D1HtW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Apr 2010 03:49:22 -0400
-In-Reply-To: <20100422161224.624110747@suse.de>
+Received: from mail.gmx.net ([213.165.64.20]:46865 "HELO mail.gmx.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
+	id S1751166Ab0D1LKq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 Apr 2010 07:10:46 -0400
+In-Reply-To: <1272451837-17961-1-git-send-email-peter.fritzsche@gmx.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: npiggin@suse.de
-Cc: Andrew Morton <akpm@linux-foundation.org>, Lennox Wu <lennox.wu@gmail.com>, linux-arch@vger.kernel.org, David Rientjes <rientjes@google.com>
+To: Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Mathieu Desnoyers <mathieu.desnoyers>
+Cc: Peter Fritzsche <peter.fritzsche@gmx.de>
 
-bnBpZ2dpbkBzdXNlLmRlINC009ogMjAxMC0wNC0yMyAwMDowNjoyNToNCg0KPiBBcyBleHBsYWlu
-ZWQgaW4gY29tbWl0IDFjMGZlNmUzYmQsIHdlIHdhbnQgdG8gY2FsbCB0aGUgYXJjaGl0ZWN0dXJl
-IA0KaW5kZXBlbmRlbnQNCj4gb29tIGtpbGxlciB3aGVuIGdldHRpbmcgYW4gdW5leHBsYWluZWQg
-T09NIGZyb20gaGFuZGxlX21tX2ZhdWx0LCByYXRoZXIgDQp0aGFuDQo+IHNpbXBseSBraWxsaW5n
-IGN1cnJlbnQuDQo+IA0KPiBDYzogQ2hlbiBMaXFpbiA8bGlxaW4uY2hlbkBzdW5wbHVzY3QuY29t
-Pg0KPiBDYzogTGVubm94IFd1IDxsZW5ub3gud3VAZ21haWwuY29tPg0KPiBDYzogbGludXgtYXJj
-aEB2Z2VyLmtlcm5lbC5vcmcNCj4gU2lnbmVkLW9mZi1ieTogTmljayBQaWdnaW4gPG5waWdnaW5A
-c3VzZS5kZT4NCj4gLS0tDQo+IEluZGV4OiBsaW51eC0yLjYvYXJjaC9zY29yZS9tbS9mYXVsdC5j
-DQo+ID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
-PT09PT09PT09PT09PT0NCj4gLS0tIGxpbnV4LTIuNi5vcmlnL2FyY2gvc2NvcmUvbW0vZmF1bHQu
-Yw0KPiArKysgbGludXgtMi42L2FyY2gvc2NvcmUvbW0vZmF1bHQuYw0KPiBAQCAtMTY3LDE1ICsx
-NjcsMTAgQEAgbm9fY29udGV4dDoNCj4gICAgICovDQo+ICBvdXRfb2ZfbWVtb3J5Og0KPiAgICAg
-dXBfcmVhZCgmbW0tPm1tYXBfc2VtKTsNCj4gLSAgIGlmIChpc19nbG9iYWxfaW5pdCh0c2spKSB7
-DQo+IC0gICAgICB5aWVsZCgpOw0KPiAtICAgICAgZG93bl9yZWFkKCZtbS0+bW1hcF9zZW0pOw0K
-PiAtICAgICAgZ290byBzdXJ2aXZlOw0KPiAtICAgfQ0KPiAtICAgcHJpbnRrKCJWTToga2lsbGlu
-ZyBwcm9jZXNzICVzXG4iLCB0c2stPmNvbW0pOw0KPiAtICAgaWYgKHVzZXJfbW9kZShyZWdzKSkN
-Cj4gLSAgICAgIGRvX2dyb3VwX2V4aXQoU0lHS0lMTCk7DQo+IC0gICBnb3RvIG5vX2NvbnRleHQ7
-DQo+ICsgICBpZiAoIXVzZXJfbW9kZShyZWdzKSkNCj4gKyAgICAgIGdvdG8gbm9fY29udGV4dDsN
-Cj4gKyAgIHBhZ2VmYXVsdF9vdXRfb2ZfbWVtb3J5KCk7DQo+ICsgICByZXR1cm47DQo+IA0KPiAg
-ZG9fc2lnYnVzOg0KPiAgICAgdXBfcmVhZCgmbW0tPm1tYXBfc2VtKTsNCj4gDQo+IA0KDQpUaGFu
-a3MsIGNvbW1pdGVkIHRvIHNjb3JlIHJlcG9zaXRvcnkuDQoNCmxpcWluDQoNCg==
+32-bit Sparc used to only allow usage of 24-bit of it's atomic_t type.
+This was corrected with linux 2.6.3 when Keith M Wesolowski changed the
+implementation to use the parisc approach of having an array of
+spinlocks to protect the atomic_t.
+
+These warnings were also removed from the sparc implementation when the
+new implementation was merged in BKrev:402e4949VThdc6D3iaosSFUgabMfvw,
+but the warning still remained in some other places without any
+24-bit-only atomic_t implementation inside the kernel.
+
+We should remove these warnings to allow users to rely on the full
+32-bit range of atomic_t.
+
+Signed-off-by: Peter Fritzsche <peter.fritzsche@gmx.de>
+---
+ This should correct the problem mentioned in http://lkml.org/lkml/2010/4/26/33
+
+ include/asm-generic/atomic.h |    8 ++------
+ 1 files changed, 2 insertions(+), 6 deletions(-)
+
+diff --git a/include/asm-generic/atomic.h b/include/asm-generic/atomic.h
+index c99c64d..345bfda 100644
+--- a/include/asm-generic/atomic.h
++++ b/include/asm-generic/atomic.h
+@@ -30,8 +30,7 @@
+  * atomic_read - read atomic variable
+  * @v: pointer of type atomic_t
+  *
+- * Atomically reads the value of @v.  Note that the guaranteed
+- * useful range of an atomic_t is only 24 bits.
++ * Atomically reads the value of @v.
+  */
+ #define atomic_read(v)	((v)->counter)
+ 
+@@ -40,8 +39,7 @@
+  * @v: pointer of type atomic_t
+  * @i: required value
+  *
+- * Atomically sets the value of @v to @i.  Note that the guaranteed
+- * useful range of an atomic_t is only 24 bits.
++ * Atomically sets the value of @v to @i.
+  */
+ #define atomic_set(v, i) (((v)->counter) = (i))
+ 
+@@ -53,7 +51,6 @@
+  * @v: pointer of type atomic_t
+  *
+  * Atomically adds @i to @v and returns the result
+- * Note that the guaranteed useful range of an atomic_t is only 24 bits.
+  */
+ static inline int atomic_add_return(int i, atomic_t *v)
+ {
+@@ -75,7 +72,6 @@ static inline int atomic_add_return(int i, atomic_t *v)
+  * @v: pointer of type atomic_t
+  *
+  * Atomically subtracts @i from @v and returns the result
+- * Note that the guaranteed useful range of an atomic_t is only 24 bits.
+  */
+ static inline int atomic_sub_return(int i, atomic_t *v)
+ {
+-- 
+1.7.1
