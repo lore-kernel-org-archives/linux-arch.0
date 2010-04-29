@@ -1,207 +1,32 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: mn10300 use generic atomic.h
-Date: Fri, 30 Apr 2010 12:22:16 -0400
-Message-ID: <20100430162216.GA32570@Krystal>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 2/2] asm-generic: Don't warn that atomic_t is only 24 bit
+Date: Thu, 29 Apr 2010 17:22:08 +0100
+Message-ID: <22809.1272558128@redhat.com>
+References: <20100428162708.GB2846@Krystal> <1272451837-17961-1-git-send-email-peter.fritzsche@gmx.de> <1272453036-18670-1-git-send-email-peter.fritzsche@gmx.de> <201004281533.29327.arnd@arndb.de> <20100428135434.GA4662@Krystal> <20100428152815.GB25569@shareable.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.openrapids.net ([64.15.138.104]:47286 "EHLO
-	blackscsi.openrapids.net" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S932838Ab0D3ROu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 Apr 2010 13:14:50 -0400
-Content-Disposition: inline
+Received: from mx1.redhat.com ([209.132.183.28]:40993 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933249Ab0D3RYM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 Apr 2010 13:24:12 -0400
+In-Reply-To: <20100428162708.GB2846@Krystal>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Peter Fritzsche <peter.fritzsche@gmx.de>, Jamie Lokier <jamie@shareable.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Keith M Wesolowski <wesolows@foobazco.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: dhowells@redhat.com, Jamie Lokier <jamie@shareable.org>, Arnd Bergmann <arnd@arndb.de>, Peter Fritzsche <peter.fritzsche@gmx.de>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Keith M Wesolowski <wesolows@foobazco.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-asm-generic/atomic.h has been derived from the mn10300 implementation. Remove
-the now duplicated mn10300 implementation by including the generic version
-instead.
+Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
 
-This adds cmpxchg_local() and cmpxchg64_local() for free to the architecture, as
-they are implemented in asm-generic/atomic.h.
+> How about simply replacing arch/mn10300/include/asm/atomic.h by:
+> 
+> arch/mn10300/include/asm/atomic.h:
+> #include <asm-generic/atomic.h>
+> 
+> ?
+> 
+> This should have been done a while ago. They are almost the same, except for
+> added cmpxchg*_local() in the asm-generic version (which would benefit to
+> mn10300).
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Acked-by: David Howells <dhowells@redhat.com>
-Acked-by: Peter Fritzsche <peter.fritzsche@gmx.de>
-CC: Jamie Lokier <jamie@shareable.org>
-CC: Arnd Bergmann <arnd@arndb.de>
-CC: Ingo Molnar <mingo@elte.hu>
-CC: Andrew Morton <akpm@linux-foundation.org>
-CC: Heiko Carstens <heiko.carstens@de.ibm.com>
-CC: Keith M Wesolowski <wesolows@foobazco.org>
-CC: Martin Schwidefsky <schwidefsky@de.ibm.com>
----
- arch/mn10300/include/asm/atomic.h |  158 --------------------------------------
- 1 file changed, 1 insertion(+), 157 deletions(-)
+Fine by me.
 
-Index: linux.trees.git/arch/mn10300/include/asm/atomic.h
-===================================================================
---- linux.trees.git.orig/arch/mn10300/include/asm/atomic.h	2010-04-30 12:16:39.000000000 -0400
-+++ linux.trees.git/arch/mn10300/include/asm/atomic.h	2010-04-30 12:16:54.000000000 -0400
-@@ -1,157 +1 @@
--/* MN10300 Atomic counter operations
-- *
-- * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-- * Written by David Howells (dhowells@redhat.com)
-- *
-- * This program is free software; you can redistribute it and/or
-- * modify it under the terms of the GNU General Public Licence
-- * as published by the Free Software Foundation; either version
-- * 2 of the Licence, or (at your option) any later version.
-- */
--#ifndef _ASM_ATOMIC_H
--#define _ASM_ATOMIC_H
--
--#ifdef CONFIG_SMP
--#error not SMP safe
--#endif
--
--/*
-- * Atomic operations that C can't guarantee us.  Useful for
-- * resource counting etc..
-- */
--
--#define ATOMIC_INIT(i)	{ (i) }
--
--#ifdef __KERNEL__
--
--/**
-- * atomic_read - read atomic variable
-- * @v: pointer of type atomic_t
-- *
-- * Atomically reads the value of @v.  Note that the guaranteed
-- * useful range of an atomic_t is only 24 bits.
-- */
--#define atomic_read(v)	((v)->counter)
--
--/**
-- * atomic_set - set atomic variable
-- * @v: pointer of type atomic_t
-- * @i: required value
-- *
-- * Atomically sets the value of @v to @i.  Note that the guaranteed
-- * useful range of an atomic_t is only 24 bits.
-- */
--#define atomic_set(v, i) (((v)->counter) = (i))
--
--#include <asm/system.h>
--
--/**
-- * atomic_add_return - add integer to atomic variable
-- * @i: integer value to add
-- * @v: pointer of type atomic_t
-- *
-- * Atomically adds @i to @v and returns the result
-- * Note that the guaranteed useful range of an atomic_t is only 24 bits.
-- */
--static inline int atomic_add_return(int i, atomic_t *v)
--{
--	unsigned long flags;
--	int temp;
--
--	local_irq_save(flags);
--	temp = v->counter;
--	temp += i;
--	v->counter = temp;
--	local_irq_restore(flags);
--
--	return temp;
--}
--
--/**
-- * atomic_sub_return - subtract integer from atomic variable
-- * @i: integer value to subtract
-- * @v: pointer of type atomic_t
-- *
-- * Atomically subtracts @i from @v and returns the result
-- * Note that the guaranteed useful range of an atomic_t is only 24 bits.
-- */
--static inline int atomic_sub_return(int i, atomic_t *v)
--{
--	unsigned long flags;
--	int temp;
--
--	local_irq_save(flags);
--	temp = v->counter;
--	temp -= i;
--	v->counter = temp;
--	local_irq_restore(flags);
--
--	return temp;
--}
--
--static inline int atomic_add_negative(int i, atomic_t *v)
--{
--	return atomic_add_return(i, v) < 0;
--}
--
--static inline void atomic_add(int i, atomic_t *v)
--{
--	atomic_add_return(i, v);
--}
--
--static inline void atomic_sub(int i, atomic_t *v)
--{
--	atomic_sub_return(i, v);
--}
--
--static inline void atomic_inc(atomic_t *v)
--{
--	atomic_add_return(1, v);
--}
--
--static inline void atomic_dec(atomic_t *v)
--{
--	atomic_sub_return(1, v);
--}
--
--#define atomic_dec_return(v)		atomic_sub_return(1, (v))
--#define atomic_inc_return(v)		atomic_add_return(1, (v))
--
--#define atomic_sub_and_test(i, v)	(atomic_sub_return((i), (v)) == 0)
--#define atomic_dec_and_test(v)		(atomic_sub_return(1, (v)) == 0)
--#define atomic_inc_and_test(v)		(atomic_add_return(1, (v)) == 0)
--
--#define atomic_add_unless(v, a, u)				\
--({								\
--	int c, old;						\
--	c = atomic_read(v);					\
--	while (c != (u) && (old = atomic_cmpxchg((v), c, c + (a))) != c) \
--		c = old;					\
--	c != (u);						\
--})
--
--#define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
--
--static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
--{
--	unsigned long flags;
--
--	mask = ~mask;
--	local_irq_save(flags);
--	*addr &= mask;
--	local_irq_restore(flags);
--}
--
--#define atomic_xchg(ptr, v)		(xchg(&(ptr)->counter, (v)))
--#define atomic_cmpxchg(v, old, new)	(cmpxchg(&((v)->counter), (old), (new)))
--
--/* Atomic operations are already serializing on MN10300??? */
--#define smp_mb__before_atomic_dec()	barrier()
--#define smp_mb__after_atomic_dec()	barrier()
--#define smp_mb__before_atomic_inc()	barrier()
--#define smp_mb__after_atomic_inc()	barrier()
--
--#include <asm-generic/atomic-long.h>
--
--#endif /* __KERNEL__ */
--#endif /* _ASM_ATOMIC_H */
-+#include <asm-generic/atomic.h>
--- 
-Mathieu Desnoyers
-Operating System Efficiency R&D Consultant
-EfficiOS Inc.
-http://www.efficios.com
+David
