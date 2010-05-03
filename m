@@ -1,53 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.openrapids.net ([64.15.138.104]:47146 "EHLO
-	blackscsi.openrapids.net" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757647Ab0D3Ros (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 Apr 2010 13:44:48 -0400
-Date: Thu, 29 Apr 2010 17:10:35 -0400
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: [PATCH 2/2] asm-generic: Don't warn that atomic_t is only 24
-	bit
-Message-ID: <20100429211035.GA16179@Krystal>
-References: <20100428162708.GB2846@Krystal> <1272451837-17961-1-git-send-email-peter.fritzsche@gmx.de> <1272453036-18670-1-git-send-email-peter.fritzsche@gmx.de> <201004281533.29327.arnd@arndb.de> <20100428135434.GA4662@Krystal> <20100428152815.GB25569@shareable.org> <22809.1272558128@redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <22809.1272558128@redhat.com>
+Received: from g4t0016.houston.hp.com ([15.201.24.19]:9766 "EHLO
+	g4t0016.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759427Ab0ECPFE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 May 2010 11:05:04 -0400
+From: Lee Schermerhorn <lee.schermerhorn@hp.com>
+Date: Mon, 03 May 2010 11:04:55 -0400
+Message-ID: <20100503150455.15039.10178.sendpatchset@localhost.localdomain>
+Subject: [PATCH 0/7] numa: incremental fixes to generic per cpu numa_*_id() series
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>, Peter Fritzsche <peter.fritzsche@gmx.de>
-Cc: Jamie Lokier <jamie@shareable.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Keith M Wesolowski <wesolows@foobazco.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>
-Message-ID: <20100429211035.qcDuiXk-hQyc6x6KKMkCr9c5veSioQ900naQdmVieIk@z>
+To: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-numa@vger.kernel.org
+Cc: Tejun Heo <tj@kernel.org>, Valdis.Kletnieks@vt.edu, Randy Dunlap <randy.dunlap@oracle.com>, Christoph Lameter <cl@linux-foundation.org>, eric.whitney@hp.com, Andrew Morton <akpm@linux-foundation.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Message-ID: <20100503150455.qCmSLcYr0C6vCP1RI2zo__xuw8SeSXnburXrIaNPuuA@z>
 
-* David Howells (dhowells@redhat.com) wrote:
-> Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
-> 
-> > How about simply replacing arch/mn10300/include/asm/atomic.h by:
-> > 
-> > arch/mn10300/include/asm/atomic.h:
-> > #include <asm-generic/atomic.h>
-> > 
-> > ?
-> > 
-> > This should have been done a while ago. They are almost the same, except for
-> > added cmpxchg*_local() in the asm-generic version (which would benefit to
-> > mn10300).
-> 
-> Fine by me.
+The following 7 patches address review comments on the 'generic percpu
+numa_*_id()" series currently in the -mm tree [28apr10 mmotm].
 
-Then I'll let Peter Fritzsche deal with that. I don't want to conflict with his
-current patches.
+Valdis Kletnieks confirmed that this series fixes the i386 !NUMA slab
+build breakage that he reported.
 
-Thanks,
+With these patches, I have built and tested on x86_64 and ia64 NUMA.   In
+addition I built mm/slab.o for x86_64 !NUMA and an entire i386 tree with the
+i386 config that Andrew sent out in response to Vlad's report re: i386 !NUMA
+slab.o breakage.
 
-Mathieu
-
-> 
-> David
-
--- 
-Mathieu Desnoyers
-Operating System Efficiency R&D Consultant
-EfficiOS Inc.
-http://www.efficios.com
+It should be obvious from the 'Subject' and the patch descriptions, where
+the patches go in the mmotm series.
