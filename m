@@ -1,55 +1,96 @@
 From: Lee Schermerhorn <lee.schermerhorn@hp.com>
-Subject: [PATCH 4/7] numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix2
-Date: Mon, 03 May 2010 11:06:12 -0400
-Message-ID: <20100503150612.15039.8351.sendpatchset@localhost.localdomain>
+Subject: [PATCH 5/7] numa-introduce-numa_mem_id-effective-local-memory-node-id-fix2
+Date: Mon, 03 May 2010 11:06:17 -0400
+Message-ID: <20100503150617.15039.56172.sendpatchset@localhost.localdomain>
 References: <20100503150455.15039.10178.sendpatchset@localhost.localdomain>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0006.atlanta.hp.com ([15.192.0.43]:27228 "EHLO
-	g5t0006.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932590Ab0ECPGP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 May 2010 11:06:15 -0400
+Received: from g6t0186.atlanta.hp.com ([15.193.32.63]:46624 "EHLO
+	g6t0186.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932628Ab0ECPHG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 May 2010 11:07:06 -0400
 In-Reply-To: <20100503150455.15039.10178.sendpatchset@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-numa@vger.kernel.org
 Cc: Tejun Heo <tj@kernel.org>, Valdis.Kletnieks@vt.edu, Randy Dunlap <randy.dunlap@oracle.com>, Christoph Lameter <cl@linux-foundation.org>, eric.whitney@hp.com, Andrew Morton <akpm@linux-foundation.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 
-Incremental patch 2 to
-numa-x86_64-use-generic-percpu-var-numa_node_id-implementation.patch
-in 28apr10 mmotm.
+Incremental patch 1 to
+numa-introduce-numa_mem_id-effective-local-memory-node-id.patch
+in mmotm 100428-1638.  Atop Andrew's build fix to that patch.
 
-Use generic function to set numa_node for a specified cpu as
-suggested by Christoph Lameter and seconded by Tejun Heo.
+If any of the numa topology functions--numa_mem_id() et al--have not
+been overridden by the arch, we can define them as static inline
+functions.
+
+Now, since we can no longer use cpu_to_mem() as an lvalue, also
+define set_cpu_numa_mem(cpu, node) and use this to initialize the
+per cpu numa_mem variable in __build_all_zonelists().
 
 Signed-off-by: Lee Schermerhorn <lee.schermerhorn@hp.com>
 
- arch/x86/kernel/setup_percpu.c |    2 +-
- arch/x86/mm/numa_64.c          |    2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ include/linux/topology.h |   24 +++++++++++++++++++++---
+ mm/page_alloc.c          |    2 +-
+ 2 files changed, 22 insertions(+), 4 deletions(-)
 
-Index: linux-2.6.34-rc5-mmotm-100428-1653/arch/x86/mm/numa_64.c
+Index: linux-2.6.34-rc5-mmotm-100428-1653/include/linux/topology.h
 ===================================================================
---- linux-2.6.34-rc5-mmotm-100428-1653.orig/arch/x86/mm/numa_64.c
-+++ linux-2.6.34-rc5-mmotm-100428-1653/arch/x86/mm/numa_64.c
-@@ -806,7 +806,7 @@ void __cpuinit numa_set_node(int cpu, in
- 	per_cpu(x86_cpu_to_node_map, cpu) = node;
+--- linux-2.6.34-rc5-mmotm-100428-1653.orig/include/linux/topology.h
++++ linux-2.6.34-rc5-mmotm-100428-1653/include/linux/topology.h
+@@ -256,7 +256,17 @@ static inline int numa_node_id(void)
+ DECLARE_PER_CPU(int, numa_mem);
  
- 	if (node != NUMA_NO_NODE)
--		per_cpu(numa_node, cpu) = node;
-+		set_cpu_numa_node(cpu, node);
- }
- 
- void __cpuinit numa_clear_node(int cpu)
-Index: linux-2.6.34-rc5-mmotm-100428-1653/arch/x86/kernel/setup_percpu.c
-===================================================================
---- linux-2.6.34-rc5-mmotm-100428-1653.orig/arch/x86/kernel/setup_percpu.c
-+++ linux-2.6.34-rc5-mmotm-100428-1653/arch/x86/kernel/setup_percpu.c
-@@ -268,7 +268,7 @@ void __init setup_per_cpu_areas(void)
- 	 * make sure boot cpu numa_node is right, when boot cpu is on the
- 	 * node that doesn't have mem installed
- 	 */
--	per_cpu(numa_node, boot_cpu_id) = early_cpu_to_node(boot_cpu_id);
-+	set_cpu_numa_node(boot_cpu_id, early_cpu_to_node(boot_cpu_id));
+ #ifndef set_numa_mem
+-#define set_numa_mem(__node) percpu_write(numa_mem, __node)
++static inline void set_numa_mem(int node)
++{
++	percpu_write(numa_mem, node);
++}
++#endif
++
++#ifndef set_cpu_numa_mem
++static inline void set_cpu_numa_mem(int cpu, int node)
++{
++	per_cpu(numa_mem, cpu) = node;
++}
  #endif
  
- 	/* Setup node to cpumask map */
+ #else	/* !CONFIG_HAVE_MEMORYLESS_NODES */
+@@ -264,15 +274,23 @@ DECLARE_PER_CPU(int, numa_mem);
+ #define numa_mem numa_node
+ static inline void set_numa_mem(int node) {}
+ 
++static inline void set_cpu_numa_mem(int cpu, int node) {}
++
+ #endif	/* [!]CONFIG_HAVE_MEMORYLESS_NODES */
+ 
+ #ifndef numa_mem_id
+ /* Returns the number of the nearest Node with memory */
+-#define numa_mem_id()		__this_cpu_read(numa_mem)
++static inline int numa_mem_id(void)
++{
++	return __this_cpu_read(numa_mem);
++}
+ #endif
+ 
+ #ifndef cpu_to_mem
+-#define cpu_to_mem(__cpu)	per_cpu(numa_mem, (__cpu))
++static inline int cpu_to_mem(int cpu)
++{
++	return per_cpu(numa_mem, cpu);
++}
+ #endif
+ 
+ #ifndef topology_physical_package_id
+Index: linux-2.6.34-rc5-mmotm-100428-1653/mm/page_alloc.c
+===================================================================
+--- linux-2.6.34-rc5-mmotm-100428-1653.orig/mm/page_alloc.c
++++ linux-2.6.34-rc5-mmotm-100428-1653/mm/page_alloc.c
+@@ -3000,7 +3000,7 @@ static int __build_all_zonelists(void *d
+ 		 * node/memory hotplug, we'll fixup all on-line cpus.
+ 		 */
+ 		if (cpu_online(cpu))
+-			cpu_to_mem(cpu) = local_memory_node(cpu_to_node(cpu));
++			set_cpu_numa_mem(cpu, local_memory_node(cpu_to_node(cpu)));
+ #endif
+ 	}
+ 
