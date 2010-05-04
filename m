@@ -1,16 +1,17 @@
 From: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
-Subject: [RFC][PATCH 4/12] x86: introduce copy_in_user() for 32-bit
-Date: Tue, 4 May 2010 22:02:09 +0900
-Message-ID: <20100504220209.c3836ef3.takuya.yoshikawa@gmail.com>
+Subject: [RFC][PATCH 5/12] x86: introduce __set_bit() like function for
+ bitmaps in user space
+Date: Tue, 4 May 2010 22:02:47 +0900
+Message-ID: <20100504220247.2e97ac01.takuya.yoshikawa@gmail.com>
 References: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-px0-f174.google.com ([209.85.212.174]:53584 "EHLO
+Received: from mail-px0-f174.google.com ([209.85.212.174]:62583 "EHLO
 	mail-px0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753330Ab0EDNCO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 May 2010 09:02:14 -0400
+	with ESMTP id S1753330Ab0EDNCt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 May 2010 09:02:49 -0400
 In-Reply-To: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -18,11 +19,26 @@ To: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
 Cc: avi@redhat.com, mtosatti@redhat.com, agraf@suse.de, yoshikawa.takuya@oss.ntt.co.jp, fernando@oss.ntt.co.jp, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, kvm-ia64@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@ozlabs.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
 During the work of KVM's dirty page logging optimization, we encountered
-the need of copy_in_user() for 32-bit x86 and ppc: these will be used for
-manipulating dirty bitmaps in user space.
+the need of manipulating bitmaps in user space efficiantly. To achive this,
+we introduce a uaccess function for setting a bit in user space following
+Avi's suggestion.
 
-So we implement copy_in_user() for 32-bit with existing generic copy user
-helpers.
+  KVM is now using dirty bitmaps for live-migration and VGA. Although we need
+  to update them from kernel side, copying them every time for updating the
+  dirty log is a big bottleneck. Especially, we tested that zero-copy bitmap
+  manipulation improves responses of GUI manipulations a lot.
+
+We also found one similar need in drivers/vhost/vhost.c in which the author
+implemented set_bit_to_user() locally using inefficient functions: see TODO
+at the top of that.
+
+Probably, this kind of need would be common for virtualization area.
+
+So we introduce a macro set_bit_user_non_atomic() following the implementation
+style of x86's uaccess functions.
+
+Note: there is a one restriction to this macro: bitmaps must be 64-bit
+aligned (see the comment in this patch).
 
 Signed-off-by: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
 Signed-off-by: Fernando Luis Vazquez Cao <fernando@oss.ntt.co.jp>
@@ -31,56 +47,58 @@ Cc: Thomas Gleixner <tglx@linutronix.de>
 CC: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 ---
- arch/x86/include/asm/uaccess_32.h |    2 ++
- arch/x86/lib/usercopy_32.c        |   26 ++++++++++++++++++++++++++
- 2 files changed, 28 insertions(+), 0 deletions(-)
+ arch/x86/include/asm/uaccess.h |   39 +++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 39 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/include/asm/uaccess_32.h b/arch/x86/include/asm/uaccess_32.h
-index 088d09f..85d396d 100644
---- a/arch/x86/include/asm/uaccess_32.h
-+++ b/arch/x86/include/asm/uaccess_32.h
-@@ -21,6 +21,8 @@ unsigned long __must_check __copy_from_user_ll_nocache
- 		(void *to, const void __user *from, unsigned long n);
- unsigned long __must_check __copy_from_user_ll_nocache_nozero
- 		(void *to, const void __user *from, unsigned long n);
-+unsigned long __must_check copy_in_user
-+		(void __user *to, const void __user *from, unsigned n);
+diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
+index abd3e0e..3138e65 100644
+--- a/arch/x86/include/asm/uaccess.h
++++ b/arch/x86/include/asm/uaccess.h
+@@ -98,6 +98,45 @@ struct exception_table_entry {
  
- /**
-  * __copy_to_user_inatomic: - Copy a block of data into user space, with less checking.
-diff --git a/arch/x86/lib/usercopy_32.c b/arch/x86/lib/usercopy_32.c
-index e218d5d..e90ffc3 100644
---- a/arch/x86/lib/usercopy_32.c
-+++ b/arch/x86/lib/usercopy_32.c
-@@ -889,3 +889,29 @@ void copy_from_user_overflow(void)
- 	WARN(1, "Buffer overflow detected!\n");
- }
- EXPORT_SYMBOL(copy_from_user_overflow);
-+
+ extern int fixup_exception(struct pt_regs *regs);
+ 
 +/**
-+ * copy_in_user: - Copy a block of data from user space to user space.
-+ * @to:   Destination address, in user space.
-+ * @from: Source address, in user space.
-+ * @n:    Number of bytes to copy.
++ * set_bit_user_non_atomic: - set a bit of a bitmap in user space.
++ * @nr:   Bit offset.
++ * @addr: Base address of a bitmap in user space.
 + *
 + * Context: User context only.  This function may sleep.
 + *
-+ * Copy data from user space to user space.
++ * This macro set a bit of a bitmap in user space.
 + *
-+ * Returns number of bytes that could not be copied.
-+ * On success, this will be zero.
++ * Restriction: the bitmap pointed to by @addr must be 64-bit aligned:
++ * the kernel accesses the bitmap by its own word length, so bitmaps
++ * allocated by 32-bit processes may cause fault.
++ *
++ * Returns zero on success, or -EFAULT on error.
 + */
-+unsigned long
-+copy_in_user(void __user *to, const void __user *from, unsigned n)
-+{
-+	if (access_ok(VERIFY_WRITE, to, n) && access_ok(VERIFY_READ, from, n)) {
-+		if (movsl_is_ok(to, from, n))
-+			__copy_user(to, from, n);
-+		else
-+			n = __copy_user_intel(to, (const void *)from, n);
-+	}
-+	return n;
-+}
-+EXPORT_SYMBOL(copy_in_user);
++#define __set_bit_user_non_atomic_asm(nr, addr, err, errret)		\
++	asm volatile("1:	bts %1,%2\n"				\
++		     "2:\n"						\
++		     ".section .fixup,\"ax\"\n"				\
++		     "3:	mov %3,%0\n"				\
++		     "	jmp 2b\n"					\
++		     ".previous\n"					\
++		     _ASM_EXTABLE(1b, 3b)				\
++		     : "=r"(err)					\
++		     : "r" (nr), "m" (__m(addr)), "i" (errret), "0" (err))
++
++#define set_bit_user_non_atomic(nr, addr)				\
++({									\
++	int __ret_sbu;							\
++									\
++	might_fault();							\
++	if (access_ok(VERIFY_WRITE, addr, nr/8 + 1))			\
++		__set_bit_user_non_atomic_asm(nr, addr,	__ret_sbu, -EFAULT);\
++	else								\
++		__ret_sbu = -EFAULT;					\
++									\
++	__ret_sbu;							\
++})
++
+ /*
+  * These are the main single-value transfer routines.  They automatically
+  * use the right size if we just have the right pointer type.
 -- 
 1.7.0.4
