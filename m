@@ -1,180 +1,185 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0027.austin.hp.com ([15.216.28.34]:48141 "EHLO
-	g1t0027.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932628Ab0ECPHT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 May 2010 11:07:19 -0400
-From: Lee Schermerhorn <lee.schermerhorn@hp.com>
-Date: Mon, 03 May 2010 11:07:15 -0400
-Message-ID: <20100503150715.15039.42035.sendpatchset@localhost.localdomain>
-In-Reply-To: <20100503150455.15039.10178.sendpatchset@localhost.localdomain>
-References: <20100503150455.15039.10178.sendpatchset@localhost.localdomain>
-Subject: [PATCH 7/7] numa-update-documentation-vm-numa-add-memoryless-node-info-fix1
+Received: from mail-pw0-f46.google.com ([209.85.160.46]:44110 "EHLO
+	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751432Ab0EDM4s (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 May 2010 08:56:48 -0400
+Date: Tue, 4 May 2010 21:56:45 +0900
+From: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
+Subject: [RFC][PATCH 0/12] KVM, x86, ppc, asm-generic: moving dirty bitmaps
+ to user space
+Message-ID: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-numa@vger.kernel.org
-Cc: Tejun Heo <tj@kernel.org>, Valdis.Kletnieks@vt.edu, Randy Dunlap <randy.dunlap@oracle.com>, Christoph Lameter <cl@linux-foundation.org>, eric.whitney@hp.com, Andrew Morton <akpm@linux-foundation.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-Message-ID: <20100503150715.KLLm-uv37TTkRzqjjTE9T5yRuajwKvhofJWt-JQ5y9A@z>
+To: avi@redhat.com, mtosatti@redhat.com, agraf@suse.de
+Cc: yoshikawa.takuya@oss.ntt.co.jp, fernando@oss.ntt.co.jp, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, kvm-ia64@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@ozlabs.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20100504125645.K0YLT0kDSf-Tecrfl4VpfkDa4GCUx232iO2me2wlHqY@z>
 
-Incremental patch to
-numa-update-documentation-vm-numa-add-memoryless-node-info.patch
-in 28april'10 mmotm.
+Hi, sorry for sending from my personal account.
+The following series are all from me:
 
-Address Randy Dunlap's review comments plus a few other fixups.
+  From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
 
-Signed-off-by: Lee Schermerhorn <lee.schermerhorn@hp.com>
+  The 3rd version of "moving dirty bitmaps to user space".
 
- Documentation/vm/numa |   58 +++++++++++++++++++++++++-------------------------
- 1 file changed, 29 insertions(+), 29 deletions(-)
+From this version, we add x86 and ppc and asm-generic people to CC lists.
 
-Index: linux-2.6.34-rc5-mmotm-100428-1653/Documentation/vm/numa
-===================================================================
---- linux-2.6.34-rc5-mmotm-100428-1653.orig/Documentation/vm/numa
-+++ linux-2.6.34-rc5-mmotm-100428-1653/Documentation/vm/numa
-@@ -7,7 +7,7 @@ hardware view and the Linux software vie
- 
- From the hardware perspective, a NUMA system is a computer platform that
- comprises multiple components or assemblies each of which may contain 0
--or more cpus, local memory, and/or IO buses.  For brevity and to
-+or more CPUs, local memory, and/or IO buses.  For brevity and to
- disambiguate the hardware view of these physical components/assemblies
- from the software abstraction thereof, we'll call the components/assemblies
- 'cells' in this document.
-@@ -21,13 +21,13 @@ these types of interconnects can be aggr
- cells at multiple distances from other cells.
- 
- For Linux, the NUMA platforms of interest are primarily what is known as Cache
--Coherent NUMA or CCNuma systems.   With CCNUMA systems, all memory is visible
--to and accessible from any cpu attached to any cell and cache coherency
-+Coherent NUMA or ccNUMA systems.   With ccNUMA systems, all memory is visible
-+to and accessible from any CPU attached to any cell and cache coherency
- is handled in hardware by the processor caches and/or the system interconnect.
- 
- Memory access time and effective memory bandwidth varies depending on how far
--away the cell containing the cpu or io bus making the memory access is from the
--cell containing the target memory.  For example, access to memory by cpus
-+away the cell containing the CPU or IO bus making the memory access is from the
-+cell containing the target memory.  For example, access to memory by CPUs
- attached to the same cell will experience faster access times and higher
- bandwidths than accesses to memory on other, remote cells.  NUMA platforms
- can have cells at multiple remote distances from any given cell.
-@@ -45,25 +45,25 @@ Linux divides the system's hardware reso
- abstractions called "nodes".  Linux maps the nodes onto the physical cells
- of the hardware platform, abstracting away some of the details for some
- architectures.  As with physical cells, software nodes may contain 0 or more
--cpus, memory and/or IO buses.  And, again, memory access times to memory on
--"closer" nodes [nodes that map to closer cells] will generally experience
-+CPUs, memory and/or IO buses.  And, again, memory accesses to memory on
-+"closer" nodes--nodes that map to closer cells--will generally experience
- faster access times and higher effective bandwidth than accesses to more
- remote cells.
- 
- For some architectures, such as x86, Linux will "hide" any node representing a
--physical cell that has no memory attached, and reassign any cpus attached to
-+physical cell that has no memory attached, and reassign any CPUs attached to
- that cell to a node representing a cell that does have memory.  Thus, on
--these architectures, one cannot assume that all cpus that Linux associates with
-+these architectures, one cannot assume that all CPUs that Linux associates with
- a given node will see the same local memory access times and bandwidth.
- 
- In addition, for some architectures, again x86 is an example, Linux supports
- the emulation of additional nodes.  For NUMA emulation, linux will carve up
- the existing nodes--or the system memory for non-NUMA platforms--into multiple
- nodes.  Each emulated node will manage a fraction of the underlying cells'
--physical memory.  Numa emluation is useful for testing NUMA kernel and
-+physical memory.  NUMA emluation is useful for testing NUMA kernel and
- application features on non-NUMA platforms, and as a sort of memory resource
- management mechanism when used together with cpusets.
--[See Documentation/cgroups/cpusets.txt]
-+[see Documentation/cgroups/cpusets.txt]
- 
- For each node with memory, Linux constructs an independent memory management
- subsystem, complete with its own free page lists, in-use page lists, usage
-@@ -71,8 +71,8 @@ statistics and locks to mediate access.
- each memory zone [one or more of DMA, DMA32, NORMAL, HIGH_MEMORY, MOVABLE],
- an ordered "zonelist".  A zonelist specifies the zones/nodes to visit when a
- selected zone/node cannot satisfy the allocation request.  This situation,
--when a zone's has no available memory to satisfy a request, is called
--'overflow" or "fallback".
-+when a zone has no available memory to satisfy a request, is called
-+"overflow" or "fallback".
- 
- Because some nodes contain multiple zones containing different types of
- memory, Linux must decide whether to order the zonelists such that allocations
-@@ -82,11 +82,11 @@ such as DMA or DMA32, represent relative
- a default zonelist order based on the sizes of the various zone types relative
- to the total memory of the node and the total memory of the system.  The
- default zonelist order may be overridden using the numa_zonelist_order kernel
--boot parameter or sysctl.  [See Documentation/kernel-parameters.txt and
-+boot parameter or sysctl.  [see Documentation/kernel-parameters.txt and
- Documentation/sysctl/vm.txt]
- 
- By default, Linux will attempt to satisfy memory allocation requests from the
--node to which the cpu that executes the request is assigned.  Specifically,
-+node to which the CPU that executes the request is assigned.  Specifically,
- Linux will attempt to allocate from the first node in the appropriate zonelist
- for the node where the request originates.  This is called "local allocation."
- If the "local" node cannot satisfy the request, the kernel will examine other
-@@ -98,26 +98,26 @@ Local allocation will tend to keep subse
- as long as the task on whose behalf the kernel allocated some memory does not
- later migrate away from that memory.  The Linux scheduler is aware of the
- NUMA topology of the platform--embodied in the "scheduling domains" data
--structures [See Documentation/scheduler/sched-domains.txt]--and the scheduler
-+structures [see Documentation/scheduler/sched-domains.txt]--and the scheduler
- attempts to minimize task migration to distant scheduling domains.  However,
- the scheduler does not take a task's NUMA footprint into account directly.
- Thus, under sufficient imbalance, tasks can migrate between nodes, remote
- from their initial node and kernel data structures.
- 
--System administrators and application designers can restrict a tasks migration
--to improve NUMA locality using various cpu affinity command line interfaces,
-+System administrators and application designers can restrict a task's migration
-+to improve NUMA locality using various CPU affinity command line interfaces,
- such as taskset(1) and numactl(1), and program interfaces such as
- sched_setaffinity(2).  Further, one can modify the kernel's default local
- allocation behavior using Linux NUMA memory policy.
--[See Documentation/vm/numa_memory_policy.]
-+[see Documentation/vm/numa_memory_policy.]
- 
--System administrators can restrict the cpus and nodes' memories that a non-
-+System administrators can restrict the CPUs and nodes' memories that a non-
- privileged user can specify in the scheduling or NUMA commands and functions
--using control groups and cpusets.  [See Documentation/cgroups/cpusets.txt]
-+using control groups and CPUsets.  [see Documentation/cgroups/CPUsets.txt]
- 
- On architectures that do not hide memoryless nodes, Linux will include only
- zones [nodes] with memory in the zonelists.  This means that for a memoryless
--node the "local memory node"--the node of the first zone in cpu's node's
-+node the "local memory node"--the node of the first zone in CPU's node's
- zonelist--will not be the node itself.  Rather, it will be the node that the
- kernel selected as the nearest node with memory when it built the zonelists.
- So, default, local allocations will succeed with the kernel supplying the
-@@ -128,22 +128,22 @@ does contain memory overflows.
- Some kernel allocations do not want or cannot tolerate this allocation fallback
- behavior.  Rather they want to be sure they get memory from the specified node
- or get notified that the node has no free memory.  This is usually the case when
--a subsystem allocates per cpu memory resources, for example.
-+a subsystem allocates per CPU memory resources, for example.
- 
- A typical model for making such an allocation is to obtain the node id of the
--node to which the "current cpu" is attached using one of the kernel's
--numa_node_id() or cpu_to_node() functions and then request memory from only
-+node to which the "current CPU" is attached using one of the kernel's
-+numa_node_id() or CPU_to_node() functions and then request memory from only
- the node id returned.  When such an allocation fails, the requesting subsystem
- may revert to its own fallback path.  The slab kernel memory allocator is an
--example of this.  Or, the subsystem may chose to disable or not to enable
-+example of this.  Or, the subsystem may choose to disable or not to enable
- itself on allocation failure.  The kernel profiling subsystem is an example of
- this.
- 
--If the architecture supports [does not hide] memoryless nodes, then cpus
-+If the architecture supports--does not hide--memoryless nodes, then CPUs
- attached to memoryless nodes would always incur the fallback path overhead
- or some subsystems would fail to initialize if they attempted to allocated
--memory exclusively from the a node without memory.  To support such
-+memory exclusively from a node without memory.  To support such
- architectures transparently, kernel subsystems can use the numa_mem_id()
- or cpu_to_mem() function to locate the "local memory node" for the calling or
--specified cpu.  Again, this is the same node from which default, local page
-+specified CPU.  Again, this is the same node from which default, local page
- allocations will be attempted.
+
+[To KVM people]
+
+Sorry for being late to reply your comments.
+
+Avi,
+ - I've wrote an answer to your question in patch 5/12: drivers/vhost/vhost.c .
+
+ - I've considered to change the set_bit_user_non_atomic to an inline function,
+   but did not change because the other helpers in the uaccess.h are written as
+   macros. Anyway, I hope that x86 people will give us appropriate suggestions
+   about this.
+
+ - I thought that documenting about making bitmaps 64-bit aligned will be
+   written when we add an API to register user-allocated bitmaps. So probably
+   in the next series.
+
+Avi, Alex,
+ - Could you check the ia64 and ppc parts, please? I tried to keep the logical
+   changes as small as possible.
+
+   I personally tried to build these with cross compilers. For ia64, I could check
+   build success with my patch series. But book3s, even without my patch series,
+   it failed with the following errors:
+
+  arch/powerpc/kvm/book3s_paired_singles.c: In function 'kvmppc_emulate_paired_single':
+  arch/powerpc/kvm/book3s_paired_singles.c:1289: error: the frame size of 2288 bytes is larger than 2048 bytes
+  make[1]: *** [arch/powerpc/kvm/book3s_paired_singles.o] Error 1
+  make: *** [arch/powerpc/kvm] Error 2
+
+
+About changelog: there are two main changes from the 2nd version:
+  1. I changed the treatment of clean slots (see patch 1/12).
+     This was already applied today, thanks!
+  2. I changed the switch API. (see patch 11/12).
+
+To show this API's advantage, I also did a test (see the end of this mail).
+
+
+[To x86 people]
+
+Hi, Thomas, Ingo, Peter,
+
+Please review the patches 4,5/12. Because this is the first experience for
+me to send patches to x86, please tell me if this lacks anything.
+
+
+[To ppc people]
+
+Hi, Benjamin, Paul, Alex,
+
+Please see the patches 6,7/12. I first say sorry for that I've not tested these
+yet. In that sense, these may not be in the quality for precise reviews. But I
+will be happy if you would give me any comments.
+
+Alex, could you help me? Though I have a plan to get PPC box in the future,
+currently I cannot test these.
+
+
+
+[To asm-generic people]
+
+Hi, Arnd,
+
+Please review the patch 8/12. This kind of macro is acceptable?
+
+
+
+
+
+[Performance test]
+
+We measured the tsc needed to the ioctl()s for getting dirty logs in
+kernel.
+
+Test environment
+
+  AMD Phenom(tm) 9850 Quad-Core Processor with 8GB memory
+
+
+1. GUI test (running Ubuntu guest in graphical mode)
+
+  sudo qemu-system-x86_64 -hda dirtylog_test.img -boot c -m 4192 -net ...
+
+We show a relatively stable part to compare how much time is needed
+for the basic parts of dirty log ioctl.
+
+                           get.org   get.opt  switch.opt
+
+slots[7].len=32768          278379     66398     64024
+slots[8].len=32768          181246       270       160
+slots[7].len=32768          263961     64673     64494
+slots[8].len=32768          181655       265       160
+slots[7].len=32768          263736     64701     64610
+slots[8].len=32768          182785       267       160
+slots[7].len=32768          260925     65360     65042
+slots[8].len=32768          182579       264       160
+slots[7].len=32768          267823     65915     65682
+slots[8].len=32768          186350       271       160
+
+At a glance, we know our optimization improved significantly compared
+to the original get dirty log ioctl. This is true for both get.opt and
+switch.opt. This has a really big impact for the personal KVM users who
+drive KVM in GUI mode on their usual PCs.
+
+Next, we notice that switch.opt improved a hundred nano seconds or so for
+these slots. Although this may sound a bit tiny improvement, we can feel
+this as a difference of GUI's responses like mouse reactions.
+
+To feel the difference, please try GUI on your PC with our patch series!
+
+
+2. Live-migration test (4GB guest, write loop with 1GB buf)
+
+We also did a live-migration test.
+
+                           get.org   get.opt  switch.opt
+
+slots[0].len=655360         797383    261144    222181
+slots[1].len=3757047808    2186721   1965244   1842824
+slots[2].len=637534208     1433562   1012723   1031213
+slots[3].len=131072         216858       331       331
+slots[4].len=131072         121635       225       164
+slots[5].len=131072         120863       356       164
+slots[6].len=16777216       121746      1133       156
+slots[7].len=32768          120415       230       278
+slots[8].len=32768          120368       216       149
+slots[0].len=655360         806497    194710    223582
+slots[1].len=3757047808    2142922   1878025   1895369
+slots[2].len=637534208     1386512   1021309   1000345
+slots[3].len=131072         221118       459       296
+slots[4].len=131072         121516       272       166
+slots[5].len=131072         122652       244       173
+slots[6].len=16777216       123226     99185       149
+slots[7].len=32768          121803       457       505
+slots[8].len=32768          121586       216       155
+slots[0].len=655360         766113    211317    213179
+slots[1].len=3757047808    2155662   1974790   1842361
+slots[2].len=637534208     1481411   1020004   1031352
+slots[3].len=131072         223100       351       295
+slots[4].len=131072         122982       436       164
+slots[5].len=131072         122100       300       503
+slots[6].len=16777216       123653       779       151
+slots[7].len=32768          122617       284       157
+slots[8].len=32768          122737       253       149
+
+For slots other than 0,1,2 we can see the similar improvement.
+
+Considering the fact that switch.opt does not depend on the bitmap length
+except for kvm_mmu_slot_remove_write_access(), this is the cause of some
+usec to msec time consumption: there might be some context switches.
+
+But note that this was done with the workload which dirtied the memory
+endlessly during the live-migration.
+
+In usual workload, the number of dirty pages varies a lot for each iteration
+and we should gain really a lot for relatively clean cases.
