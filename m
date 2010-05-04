@@ -1,185 +1,233 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pw0-f46.google.com ([209.85.160.46]:44110 "EHLO
-	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751432Ab0EDM4s (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 May 2010 08:56:48 -0400
-Date: Tue, 4 May 2010 21:56:45 +0900
+Received: from mail-pv0-f174.google.com ([74.125.83.174]:47870 "EHLO
+	mail-pv0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758727Ab0EDNAV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 May 2010 09:00:21 -0400
+Date: Tue, 4 May 2010 22:00:11 +0900
 From: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
-Subject: [RFC][PATCH 0/12] KVM, x86, ppc, asm-generic: moving dirty bitmaps
- to user space
-Message-ID: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com>
+Subject: [RFC][PATCH 2/12] KVM: introduce slot level dirty state management
+Message-ID: <20100504220011.802c0b52.takuya.yoshikawa@gmail.com>
+In-Reply-To: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com>
+References: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com, mtosatti@redhat.com, agraf@suse.de
-Cc: yoshikawa.takuya@oss.ntt.co.jp, fernando@oss.ntt.co.jp, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, kvm-ia64@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@ozlabs.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20100504125645.K0YLT0kDSf-Tecrfl4VpfkDa4GCUx232iO2me2wlHqY@z>
+To: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
+Cc: avi@redhat.com, mtosatti@redhat.com, agraf@suse.de, yoshikawa.takuya@oss.ntt.co.jp, fernando@oss.ntt.co.jp, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, kvm-ia64@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@ozlabs.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20100504130011.rKsomaTHCTH9FOECzxh1wUB0R8T1bdtXI6uVkGaHlqo@z>
 
-Hi, sorry for sending from my personal account.
-The following series are all from me:
+This patch introduces is_dirty member for each memory slot.
+Using this member, we remove the dirty bitmap scans which are done in
+get_dirty_log().
 
-  From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+This is important for moving dirty bitmaps to user space because we don't
+have any good ways to check bitmaps in user space with low cost and scanning
+bitmaps to check memory slot dirtiness will not be acceptable.
 
-  The 3rd version of "moving dirty bitmaps to user space".
+When we mark a slot dirty:
+ - x86 and ppc: at the timing of mark_page_dirty()
+ - ia64: at the timing of kvm_ia64_sync_dirty_log()
+ia64 uses a different place to store dirty logs and synchronize it with
+the logs of memory slots right before the get_dirty_log(). So we use this
+timing to update is_dirty.
 
-From this version, we add x86 and ppc and asm-generic people to CC lists.
+Signed-off-by: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+Signed-off-by: Fernando Luis Vazquez Cao <fernando@oss.ntt.co.jp>
+CC: Avi Kivity <avi@redhat.com>
+CC: Alexander Graf <agraf@suse.de>
+---
+ arch/ia64/kvm/kvm-ia64.c  |   11 +++++++----
+ arch/powerpc/kvm/book3s.c |    9 ++++-----
+ arch/x86/kvm/x86.c        |    9 +++------
+ include/linux/kvm_host.h  |    4 ++--
+ virt/kvm/kvm_main.c       |   13 +++----------
+ 5 files changed, 19 insertions(+), 27 deletions(-)
 
+diff --git a/arch/ia64/kvm/kvm-ia64.c b/arch/ia64/kvm/kvm-ia64.c
+index d5f4e91..17fd65c 100644
+--- a/arch/ia64/kvm/kvm-ia64.c
++++ b/arch/ia64/kvm/kvm-ia64.c
+@@ -1824,6 +1824,9 @@ static int kvm_ia64_sync_dirty_log(struct kvm *kvm,
+ 	base = memslot->base_gfn / BITS_PER_LONG;
+ 
+ 	for (i = 0; i < n/sizeof(long); ++i) {
++		if (dirty_bitmap[base + i])
++			memslot->is_dirty = true;
++
+ 		memslot->dirty_bitmap[i] = dirty_bitmap[base + i];
+ 		dirty_bitmap[base + i] = 0;
+ 	}
+@@ -1838,7 +1841,6 @@ int kvm_vm_ioctl_get_dirty_log(struct kvm *kvm,
+ 	int r;
+ 	unsigned long n;
+ 	struct kvm_memory_slot *memslot;
+-	int is_dirty = 0;
+ 
+ 	mutex_lock(&kvm->slots_lock);
+ 	spin_lock(&kvm->arch.dirty_log_lock);
+@@ -1847,16 +1849,17 @@ int kvm_vm_ioctl_get_dirty_log(struct kvm *kvm,
+ 	if (r)
+ 		goto out;
+ 
+-	r = kvm_get_dirty_log(kvm, log, &is_dirty);
++	r = kvm_get_dirty_log(kvm, log);
+ 	if (r)
+ 		goto out;
+ 
++	memslot = &kvm->memslots->memslots[log->slot];
+ 	/* If nothing is dirty, don't bother messing with page tables. */
+-	if (is_dirty) {
++	if (memslot->is_dirty) {
+ 		kvm_flush_remote_tlbs(kvm);
+-		memslot = &kvm->memslots->memslots[log->slot];
+ 		n = kvm_dirty_bitmap_bytes(memslot);
+ 		memset(memslot->dirty_bitmap, 0, n);
++		memslot->is_dirty = false;
+ 	}
+ 	r = 0;
+ out:
+diff --git a/arch/powerpc/kvm/book3s.c b/arch/powerpc/kvm/book3s.c
+index 28e785f..4b074f1 100644
+--- a/arch/powerpc/kvm/book3s.c
++++ b/arch/powerpc/kvm/book3s.c
+@@ -1191,20 +1191,18 @@ int kvm_vm_ioctl_get_dirty_log(struct kvm *kvm,
+ 	struct kvm_memory_slot *memslot;
+ 	struct kvm_vcpu *vcpu;
+ 	ulong ga, ga_end;
+-	int is_dirty = 0;
+ 	int r;
+ 	unsigned long n;
+ 
+ 	mutex_lock(&kvm->slots_lock);
+ 
+-	r = kvm_get_dirty_log(kvm, log, &is_dirty);
++	r = kvm_get_dirty_log(kvm, log);
+ 	if (r)
+ 		goto out;
+ 
++	memslot = &kvm->memslots->memslots[log->slot];
+ 	/* If nothing is dirty, don't bother messing with page tables. */
+-	if (is_dirty) {
+-		memslot = &kvm->memslots->memslots[log->slot];
+-
++	if (memslot->is_dirty) {
+ 		ga = memslot->base_gfn << PAGE_SHIFT;
+ 		ga_end = ga + (memslot->npages << PAGE_SHIFT);
+ 
+@@ -1213,6 +1211,7 @@ int kvm_vm_ioctl_get_dirty_log(struct kvm *kvm,
+ 
+ 		n = kvm_dirty_bitmap_bytes(memslot);
+ 		memset(memslot->dirty_bitmap, 0, n);
++		memslot->is_dirty = false;
+ 	}
+ 
+ 	r = 0;
+diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
+index b95a211..023c7f8 100644
+--- a/arch/x86/kvm/x86.c
++++ b/arch/x86/kvm/x86.c
+@@ -2740,10 +2740,9 @@ static int kvm_vm_ioctl_reinject(struct kvm *kvm,
+ int kvm_vm_ioctl_get_dirty_log(struct kvm *kvm,
+ 				      struct kvm_dirty_log *log)
+ {
+-	int r, i;
++	int r;
+ 	struct kvm_memory_slot *memslot;
+ 	unsigned long n;
+-	unsigned long is_dirty = 0;
+ 
+ 	mutex_lock(&kvm->slots_lock);
+ 
+@@ -2758,11 +2757,8 @@ int kvm_vm_ioctl_get_dirty_log(struct kvm *kvm,
+ 
+ 	n = kvm_dirty_bitmap_bytes(memslot);
+ 
+-	for (i = 0; !is_dirty && i < n/sizeof(long); i++)
+-		is_dirty = memslot->dirty_bitmap[i];
+-
+ 	/* If nothing is dirty, don't bother messing with page tables. */
+-	if (is_dirty) {
++	if (memslot->is_dirty) {
+ 		struct kvm_memslots *slots, *old_slots;
+ 		unsigned long *dirty_bitmap;
+ 
+@@ -2784,6 +2780,7 @@ int kvm_vm_ioctl_get_dirty_log(struct kvm *kvm,
+ 		}
+ 		memcpy(slots, kvm->memslots, sizeof(struct kvm_memslots));
+ 		slots->memslots[log->slot].dirty_bitmap = dirty_bitmap;
++		slots->memslots[log->slot].is_dirty = false;
+ 
+ 		old_slots = kvm->memslots;
+ 		rcu_assign_pointer(kvm->memslots, slots);
+diff --git a/include/linux/kvm_host.h b/include/linux/kvm_host.h
+index ce027d5..0aa6ecb 100644
+--- a/include/linux/kvm_host.h
++++ b/include/linux/kvm_host.h
+@@ -117,6 +117,7 @@ struct kvm_memory_slot {
+ 	unsigned long flags;
+ 	unsigned long *rmap;
+ 	unsigned long *dirty_bitmap;
++	bool is_dirty;
+ 	struct {
+ 		unsigned long rmap_pde;
+ 		int write_count;
+@@ -335,8 +336,7 @@ long kvm_arch_vcpu_ioctl(struct file *filp,
+ 
+ int kvm_dev_ioctl_check_extension(long ext);
+ 
+-int kvm_get_dirty_log(struct kvm *kvm,
+-			struct kvm_dirty_log *log, int *is_dirty);
++int kvm_get_dirty_log(struct kvm *kvm, struct kvm_dirty_log *log);
+ int kvm_vm_ioctl_get_dirty_log(struct kvm *kvm,
+ 				struct kvm_dirty_log *log);
+ 
+diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
+index 9ab1a77..7ab6312 100644
+--- a/virt/kvm/kvm_main.c
++++ b/virt/kvm/kvm_main.c
+@@ -768,13 +768,11 @@ int kvm_vm_ioctl_set_memory_region(struct kvm *kvm,
+ 	return kvm_set_memory_region(kvm, mem, user_alloc);
+ }
+ 
+-int kvm_get_dirty_log(struct kvm *kvm,
+-			struct kvm_dirty_log *log, int *is_dirty)
++int kvm_get_dirty_log(struct kvm *kvm, struct kvm_dirty_log *log)
+ {
+ 	struct kvm_memory_slot *memslot;
+-	int r, i;
++	int r;
+ 	unsigned long n;
+-	unsigned long any = 0;
+ 
+ 	r = -EINVAL;
+ 	if (log->slot >= KVM_MEMORY_SLOTS)
+@@ -787,16 +785,10 @@ int kvm_get_dirty_log(struct kvm *kvm,
+ 
+ 	n = kvm_dirty_bitmap_bytes(memslot);
+ 
+-	for (i = 0; !any && i < n/sizeof(long); ++i)
+-		any = memslot->dirty_bitmap[i];
+-
+ 	r = -EFAULT;
+ 	if (copy_to_user(log->dirty_bitmap, memslot->dirty_bitmap, n))
+ 		goto out;
+ 
+-	if (any)
+-		*is_dirty = 1;
+-
+ 	r = 0;
+ out:
+ 	return r;
+@@ -1193,6 +1185,7 @@ void mark_page_dirty(struct kvm *kvm, gfn_t gfn)
+ 		unsigned long rel_gfn = gfn - memslot->base_gfn;
+ 
+ 		generic___set_le_bit(rel_gfn, memslot->dirty_bitmap);
++		memslot->is_dirty = true;
+ 	}
+ }
+ 
+-- 
+1.7.0.4
 
-[To KVM people]
-
-Sorry for being late to reply your comments.
-
-Avi,
- - I've wrote an answer to your question in patch 5/12: drivers/vhost/vhost.c .
-
- - I've considered to change the set_bit_user_non_atomic to an inline function,
-   but did not change because the other helpers in the uaccess.h are written as
-   macros. Anyway, I hope that x86 people will give us appropriate suggestions
-   about this.
-
- - I thought that documenting about making bitmaps 64-bit aligned will be
-   written when we add an API to register user-allocated bitmaps. So probably
-   in the next series.
-
-Avi, Alex,
- - Could you check the ia64 and ppc parts, please? I tried to keep the logical
-   changes as small as possible.
-
-   I personally tried to build these with cross compilers. For ia64, I could check
-   build success with my patch series. But book3s, even without my patch series,
-   it failed with the following errors:
-
-  arch/powerpc/kvm/book3s_paired_singles.c: In function 'kvmppc_emulate_paired_single':
-  arch/powerpc/kvm/book3s_paired_singles.c:1289: error: the frame size of 2288 bytes is larger than 2048 bytes
-  make[1]: *** [arch/powerpc/kvm/book3s_paired_singles.o] Error 1
-  make: *** [arch/powerpc/kvm] Error 2
-
-
-About changelog: there are two main changes from the 2nd version:
-  1. I changed the treatment of clean slots (see patch 1/12).
-     This was already applied today, thanks!
-  2. I changed the switch API. (see patch 11/12).
-
-To show this API's advantage, I also did a test (see the end of this mail).
-
-
-[To x86 people]
-
-Hi, Thomas, Ingo, Peter,
-
-Please review the patches 4,5/12. Because this is the first experience for
-me to send patches to x86, please tell me if this lacks anything.
-
-
-[To ppc people]
-
-Hi, Benjamin, Paul, Alex,
-
-Please see the patches 6,7/12. I first say sorry for that I've not tested these
-yet. In that sense, these may not be in the quality for precise reviews. But I
-will be happy if you would give me any comments.
-
-Alex, could you help me? Though I have a plan to get PPC box in the future,
-currently I cannot test these.
-
-
-
-[To asm-generic people]
-
-Hi, Arnd,
-
-Please review the patch 8/12. This kind of macro is acceptable?
-
-
-
-
-
-[Performance test]
-
-We measured the tsc needed to the ioctl()s for getting dirty logs in
-kernel.
-
-Test environment
-
-  AMD Phenom(tm) 9850 Quad-Core Processor with 8GB memory
-
-
-1. GUI test (running Ubuntu guest in graphical mode)
-
-  sudo qemu-system-x86_64 -hda dirtylog_test.img -boot c -m 4192 -net ...
-
-We show a relatively stable part to compare how much time is needed
-for the basic parts of dirty log ioctl.
-
-                           get.org   get.opt  switch.opt
-
-slots[7].len=32768          278379     66398     64024
-slots[8].len=32768          181246       270       160
-slots[7].len=32768          263961     64673     64494
-slots[8].len=32768          181655       265       160
-slots[7].len=32768          263736     64701     64610
-slots[8].len=32768          182785       267       160
-slots[7].len=32768          260925     65360     65042
-slots[8].len=32768          182579       264       160
-slots[7].len=32768          267823     65915     65682
-slots[8].len=32768          186350       271       160
-
-At a glance, we know our optimization improved significantly compared
-to the original get dirty log ioctl. This is true for both get.opt and
-switch.opt. This has a really big impact for the personal KVM users who
-drive KVM in GUI mode on their usual PCs.
-
-Next, we notice that switch.opt improved a hundred nano seconds or so for
-these slots. Although this may sound a bit tiny improvement, we can feel
-this as a difference of GUI's responses like mouse reactions.
-
-To feel the difference, please try GUI on your PC with our patch series!
-
-
-2. Live-migration test (4GB guest, write loop with 1GB buf)
-
-We also did a live-migration test.
-
-                           get.org   get.opt  switch.opt
-
-slots[0].len=655360         797383    261144    222181
-slots[1].len=3757047808    2186721   1965244   1842824
-slots[2].len=637534208     1433562   1012723   1031213
-slots[3].len=131072         216858       331       331
-slots[4].len=131072         121635       225       164
-slots[5].len=131072         120863       356       164
-slots[6].len=16777216       121746      1133       156
-slots[7].len=32768          120415       230       278
-slots[8].len=32768          120368       216       149
-slots[0].len=655360         806497    194710    223582
-slots[1].len=3757047808    2142922   1878025   1895369
-slots[2].len=637534208     1386512   1021309   1000345
-slots[3].len=131072         221118       459       296
-slots[4].len=131072         121516       272       166
-slots[5].len=131072         122652       244       173
-slots[6].len=16777216       123226     99185       149
-slots[7].len=32768          121803       457       505
-slots[8].len=32768          121586       216       155
-slots[0].len=655360         766113    211317    213179
-slots[1].len=3757047808    2155662   1974790   1842361
-slots[2].len=637534208     1481411   1020004   1031352
-slots[3].len=131072         223100       351       295
-slots[4].len=131072         122982       436       164
-slots[5].len=131072         122100       300       503
-slots[6].len=16777216       123653       779       151
-slots[7].len=32768          122617       284       157
-slots[8].len=32768          122737       253       149
-
-For slots other than 0,1,2 we can see the similar improvement.
-
-Considering the fact that switch.opt does not depend on the bitmap length
-except for kvm_mmu_slot_remove_write_access(), this is the cause of some
-usec to msec time consumption: there might be some context switches.
-
-But note that this was done with the workload which dirtied the memory
-endlessly during the live-migration.
-
-In usual workload, the number of dirty pages varies a lot for each iteration
-and we should gain really a lot for relatively clean cases.
