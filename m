@@ -1,15 +1,16 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Avi Kivity <avi@redhat.com>
 Subject: Re: [RFC][PATCH resend 8/12] asm-generic: bitops: introduce le bit
 	offset macro
-Date: Tue, 4 May 2010 17:03:00 +0200
-Message-ID: <201005041703.00549.arnd@arndb.de>
+Date: Tue, 04 May 2010 19:08:23 +0300
+Message-ID: <4BE04677.4060608@redhat.com>
 References: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com>
 	<20100504220500.7695cd66.takuya.yoshikawa@gmail.com>
+	<201005041703.00549.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20100504220500.7695cd66.takuya.yoshikawa@gmail.com>
+In-Reply-To: <201005041703.00549.arnd@arndb.de>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
 	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
@@ -19,28 +20,36 @@ List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
 	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
 Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
 Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-To: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, kvm@vger.kernel.org, kvm-ia64@vger.kernel.org, fernando@oss.ntt.co.jp, mtosatti@redhat.com, agraf@suse.de, kvm-ppc@vger.kernel.org, linux-kernel@vger.kernel.org, yoshikawa.takuya@oss.ntt.co.jp, linuxppc-dev@ozlabs.org, mingo@redhat.com, paulus@samba.org, avi@redhat.com, hpa@zytor.com, tglx@linutronix.de
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, kvm@vger.kernel.org, kvm-ia64@vger.kernel.org, fernando@oss.ntt.co.jp, mtosatti@redhat.com, agraf@suse.de, kvm-ppc@vger.kernel.org, linux-kernel@vger.kernel.org, yoshikawa.takuya@oss.ntt.co.jp, linuxppc-dev@ozlabs.org, mingo@redhat.com, paulus@samba.org, hpa@zytor.com, tglx@linutronix.de, Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 04 May 2010, Takuya Yoshikawa wrote:
-> 
-> Although we can use *_le_bit() helpers to treat bitmaps le arranged,
-> having le bit offset calculation as a seperate macro gives us more freedom.
-> 
-> For example, KVM has le arranged dirty bitmaps for VGA, live-migration
-> and they are used in user space too. To avoid bitmap copies between kernel
-> and user space, we want to update the bitmaps in user space directly.
-> To achive this, le bit offset with *_user() functions help us a lot.
-> 
-> So let us use the le bit offset calculation part by defining it as a new
-> macro: generic_le_bit_offset() .
+On 05/04/2010 06:03 PM, Arnd Bergmann wrote:
+> On Tuesday 04 May 2010, Takuya Yoshikawa wrote:
+>    
+>> Although we can use *_le_bit() helpers to treat bitmaps le arranged,
+>> having le bit offset calculation as a seperate macro gives us more freedom.
+>>
+>> For example, KVM has le arranged dirty bitmaps for VGA, live-migration
+>> and they are used in user space too. To avoid bitmap copies between kernel
+>> and user space, we want to update the bitmaps in user space directly.
+>> To achive this, le bit offset with *_user() functions help us a lot.
+>>
+>> So let us use the le bit offset calculation part by defining it as a new
+>> macro: generic_le_bit_offset() .
+>>      
+> Does this work correctly if your user space is 32 bits (i.e. unsigned long
+> is different size in user space and kernel) in both big- and little-endian
+> systems?
+>
+> I'm not sure about all the details, but I think you cannot in general share
+> bitmaps between user space and kernel because of this.
+>    
 
-Does this work correctly if your user space is 32 bits (i.e. unsigned long
-is different size in user space and kernel) in both big- and little-endian
-systems?
+That's why the bitmaps are defined as little endian u64 aligned, even on 
+big endian 32-bit systems.  Little endian bitmaps are wordsize agnostic, 
+and u64 alignment ensures we can use long-sized bitops on mixed size 
+systems.
 
-I'm not sure about all the details, but I think you cannot in general share
-bitmaps between user space and kernel because of this.
-
-	Arnd
+-- 
+error compiling committee.c: too many arguments to function
