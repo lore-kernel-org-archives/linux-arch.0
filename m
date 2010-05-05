@@ -1,48 +1,53 @@
-From: Takuya Yoshikawa <takuya.yoshikawa-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [RFC][PATCH resend 8/12] asm-generic: bitops: introduce le bit
- offset macro
-Date: Wed, 5 May 2010 11:59:24 +0900
-Message-ID: <20100505115924.7bb92036.takuya.yoshikawa@gmail.com>
-References: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com>
-	<20100504220500.7695cd66.takuya.yoshikawa@gmail.com>
-	<201005041703.00549.arnd@arndb.de>
-	<4BE04677.4060608@redhat.com>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: kbuild: fixing the select problem
+Date: Wed, 05 May 2010 17:49:20 -0400
+Message-ID: <1273096160.23208.35.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <kvm-ppc-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <4BE04677.4060608-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Sender: kvm-ppc-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Avi Kivity <avi-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, mtosatti-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, agraf-l3A5Bk7waGM@public.gmane.org, yoshikawa.takuya-gVGce1chcLdL9jVzuh4AOg@public.gmane.org, fernando-gVGce1chcLdL9jVzuh4AOg@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-ppc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org, paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org, linuxppc-dev-mnsaURCQ41sdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>
+Cc: Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, Randy Dunlap <randy.dunlap@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 04 May 2010 19:08:23 +0300
-Avi Kivity <avi-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org> wrote:
+[Sam: I know you don't maintain kbuild anymore, but since you have the
+most experience, if you could find time to comment, I'd be grateful]
 
-> On 05/04/2010 06:03 PM, Arnd Bergmann wrote:
-> > On Tuesday 04 May 2010, Takuya Yoshikawa wrote:
-...
-> >> So let us use the le bit offset calculation part by defining it as a new
-> >> macro: generic_le_bit_offset() .
-> >>      
-> > Does this work correctly if your user space is 32 bits (i.e. unsigned long
-> > is different size in user space and kernel) in both big- and little-endian
-> > systems?
-> >
-> > I'm not sure about all the details, but I think you cannot in general share
-> > bitmaps between user space and kernel because of this.
-> >    
-> 
-> That's why the bitmaps are defined as little endian u64 aligned, even on 
-> big endian 32-bit systems.  Little endian bitmaps are wordsize agnostic, 
-> and u64 alignment ensures we can use long-sized bitops on mixed size 
-> systems.
+The select problem is that the kbuild select directive will turn a
+symbol on without reference to its dependencies.  This, in turn, means
+that either selected symbols must select their dependencies, or that
+people using select have to be aware of the selected symbol's dependency
+and build those dependencies into their symbol (leading to duplication
+and the possibility of getting the dependencies out of sync).  We use
+select for the scsi transport classes, so we run into this problem in
+SCSI quite a lot.
 
-There was a suggestion to propose set_le_bit_user() kind of macros.
-But what I thought was these have a constraint you two explained and seemed to be
-a little bit specific to some area, like KVM.
+I think the correct fix is to make a symbol that selects another symbol
+automatically inherit all of the selected symbol's dependencies.
 
-So I decided to propose just the offset calculation macro.
+There seems to be a fairly easy way to do this in kbuild.  Right at the
+moment, select is handled as additional symbol values as the last point
+in the symbol tree evaluation process.  Instead, what I propose doing is
+for every select symbol, we add an extra unconditional default for the
+selected symbol of the selecting symbol's current value (this breaks a
+possible dependency cycle) and add to the dependencies of the selecting
+symbol, the symbol it's currently selecting.
 
-  Thanks, Takuya
+There's one wrinkle to all of this in that the current parser for
+default values stops when it finds the first valid (i.e. whose if clause
+evaluates to true) default.  To make the above scheme work, I need to
+modify the default parser so it takes the highest tristate of all the
+valid defaults (and bumps m to y for bool).
+
+Does this look acceptable to people?  I think it should give the desired
+result and has the added benefit that we can then strip the extra select
+overlay out of the kbuild system (making the parser slightly simpler).
+
+If this looks like a good idea to people, I think I can code up a quick
+patch.
+
+James
+
+
+
