@@ -1,82 +1,44 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: kbuild: fixing the select problem
-Date: Thu, 6 May 2010 15:36:31 +0200
-Message-ID: <y2j10f740e81005060636ra458212bt4352ca0b6b7df7fe@mail.gmail.com>
-References: <1273096160.23208.35.camel@mulgrave.site>
-	 <p2x10f740e81005052347x9430657fua98b8982e860bd2d@mail.gmail.com>
-	 <1273151844.23208.48.camel@mulgrave.site>
+From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Subject: Re: [RFC][PATCH resend 8/12] asm-generic: bitops: introduce le bit offset macro
+Date: Thu, 6 May 2010 15:38:54 +0200
+Message-ID: <201005061538.54326.arnd@arndb.de>
+References: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com> <4BE04677.4060608@redhat.com> <20100505115924.7bb92036.takuya.yoshikawa@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:61872 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751935Ab0EFNgd convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 May 2010 09:36:33 -0400
-In-Reply-To: <1273151844.23208.48.camel@mulgrave.site>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, Randy Dunlap <randy.dunlap@oracle.com>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <kvm-ppc-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20100505115924.7bb92036.takuya.yoshikawa-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: kvm-ppc-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Takuya Yoshikawa <takuya.yoshikawa-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: Avi Kivity <avi-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, mtosatti-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, agraf-l3A5Bk7waGM@public.gmane.org, yoshikawa.takuya-gVGce1chcLdL9jVzuh4AOg@public.gmane.org, fernando-gVGce1chcLdL9jVzuh4AOg@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-ppc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org, paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org, linuxppc-dev-mnsaURCQ41sdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 6, 2010 at 15:17, James Bottomley
-<James.Bottomley@hansenpartnership.com> wrote:
-> On Thu, 2010-05-06 at 08:47 +0200, Geert Uytterhoeven wrote:
->> On Wed, May 5, 2010 at 23:49, James Bottomley
->> <James.Bottomley@hansenpartnership.com> wrote:
->> > [Sam: I know you don't maintain kbuild anymore, but since you have=
- the
->> > most experience, if you could find time to comment, I'd be gratefu=
-l]
->> >
->> > The select problem is that the kbuild select directive will turn a
->> > symbol on without reference to its dependencies. =C2=A0This, in tu=
-rn, means
->> > that either selected symbols must select their dependencies, or th=
-at
->> > people using select have to be aware of the selected symbol's depe=
-ndency
->> > and build those dependencies into their symbol (leading to duplica=
-tion
->> > and the possibility of getting the dependencies out of sync). =C2=A0=
-We use
->> > select for the scsi transport classes, so we run into this problem=
- in
->> > SCSI quite a lot.
->> >
->> > I think the correct fix is to make a symbol that selects another s=
-ymbol
->> > automatically inherit all of the selected symbol's dependencies.
->>
->> What if there's a good reason the selected symbol has this dependenc=
-y?
->> E.g. it depends on a critical feature not available? Like CONFIG_HAS=
-_IOMEM?
->
-> I don't quite understand the question. =C2=A0If a selected symbol has=
- a
-> critical dependency which is config'd to N then the build usually
-> breaks ... that's what I'm calling the select problem. =C2=A0I though=
-t
-> CONFIG_HAS_IOMEM was usually selected by the architecture, though. =C2=
-=A0In
-> the new proposal, we wouldn't be able to generate the invalid
-> configuration in the first place.
+On Wednesday 05 May 2010, Takuya Yoshikawa wrote:
+> Date: 
+> Yesterday 04:59:24
+> > That's why the bitmaps are defined as little endian u64 aligned, even on 
+> > big endian 32-bit systems.  Little endian bitmaps are wordsize agnostic, 
+> > and u64 alignment ensures we can use long-sized bitops on mixed size 
+> > systems.
 
-Sorry, my fault, -EREPLY_TOO_EARLY_AFTER_WAKEUP.
-Upon rereading what you actually wrote, it made complete sense, and my
-question didn't.
+Ok, I see.
 
-Gr{oetje,eeting}s,
+> There was a suggestion to propose set_le_bit_user() kind of macros.
+> But what I thought was these have a constraint you two explained and seemed to be
+> a little bit specific to some area, like KVM.
+> 
+> So I decided to propose just the offset calculation macro.
 
-						Geert
+I'm not sure I understand how this macro is going to be used though.
+If you are just using this in kernel space, that's fine, please go for
+it.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
+However, if the intention is to use the same macro in user space, putting
+it into asm-generic/bitops/* is not going to help, because those headers
+are not available in user space, and I wouldn't want to change that.
 
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-							    -- Linus Torvalds
+The definition of the macro is not part of the ABI, so just duplicate
+it in KVM if you need it there.
+
+	Arnd
