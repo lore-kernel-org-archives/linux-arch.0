@@ -1,98 +1,86 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
 Subject: Re: kbuild: fixing the select problem
-Date: Thu, 6 May 2010 19:25:15 +0200
-Message-ID: <p2l10f740e81005061025l276d91b5mf87d2af65438539a@mail.gmail.com>
+Date: Thu, 06 May 2010 15:48:35 -0500
+Message-ID: <1273178915.2881.20.camel@mulgrave.site>
 References: <1273096160.23208.35.camel@mulgrave.site>
-	 <p2x10f740e81005052347x9430657fua98b8982e860bd2d@mail.gmail.com>
-	 <1273151844.23208.48.camel@mulgrave.site> <28312.1273164427@localhost>
+	 <4BE2D10D.4070706@suse.cz>  <1273157554.23208.69.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <28312.1273164427@localhost>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Valdis.Kletnieks@vt.edu
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, Randy Dunlap <randy.dunlap@oracle.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:52713 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S932583Ab0EFUsj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 May 2010 16:48:39 -0400
+In-Reply-To: <1273157554.23208.69.camel@mulgrave.site>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Marek <mmarek@suse.cz>
+Cc: linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, Randy Dunlap <randy.dunlap@oracle.com>, Vegard Nossum <vegard.nossum@gmail.com>
 
-On Thu, May 6, 2010 at 18:47,  <Valdis.Kletnieks@vt.edu> wrote:
-> On Thu, 06 May 2010 09:17:24 EDT, James Bottomley said:
->> On Thu, 2010-05-06 at 08:47 +0200, Geert Uytterhoeven wrote:
->> > On Wed, May 5, 2010 at 23:49, James Bottomley
->> > <James.Bottomley@hansenpartnership.com> wrote:
->> > > [Sam: I know you don't maintain kbuild anymore, but since you ha=
-ve the
->> > > most experience, if you could find time to comment, I'd be grate=
-ful]
->> > >
->> > > The select problem is that the kbuild select directive will turn=
- a
->> > > symbol on without reference to its dependencies. =C2=A0This, in =
-turn, means
->> > > that either selected symbols must select their dependencies, or =
-that
->> > > people using select have to be aware of the selected symbol's de=
-pendency
->> > > and build those dependencies into their symbol (leading to dupli=
-cation
->> > > and the possibility of getting the dependencies out of sync). =C2=
-=A0We use
->> > > select for the scsi transport classes, so we run into this probl=
-em in
->> > > SCSI quite a lot.
->> > >
->> > > I think the correct fix is to make a symbol that selects another=
- symbol
->> > > automatically inherit all of the selected symbol's dependencies.
->> >
->> > What if there's a good reason the selected symbol has this depende=
-ncy?
->> > E.g. it depends on a critical feature not available? Like CONFIG_H=
-AS_IOMEM?
->>
->> I don't quite understand the question. =C2=A0If a selected symbol ha=
-s a
->> critical dependency which is config'd to N then the build usually
->> breaks ... that's what I'm calling the select problem. =C2=A0I thoug=
-ht
->> CONFIG_HAS_IOMEM was usually selected by the architecture, though. =C2=
-=A0In
->> the new proposal, we wouldn't be able to generate the invalid
->> configuration in the first place.
->
-> I think Geert is asking "If the arch says CONFIG_HAS_IOMEM=3Dn, but s=
-ome driver
-> does a 'select CONFIG_FOO' which then (under your proposal) forces th=
-e
-> value CONFIG_BAR=3Dy, which eventually ends up with CONFIG_HAS_IOMEM=3D=
-y, what
-> should the behavior be?"
+On Thu, 2010-05-06 at 09:52 -0500, James Bottomley wrote:
+> The list is
+> 
+> USB_ARCH_HAS_HCD has 4 defaults
+> DEFCONFIG_LIST has 5 defaults
+> MAC80211_RC_DEFAULT has 2 defaults
+> X86_L1_CACHE_SHIFT has 2 defaults
+> SPLIT_PTLOCK_CPUS has 2 defaults
+> X86_MINIMUM_CPU_FAMILY has 3 defaults
+> DEFAULT_TCP_CONG has 2 defaults
+> DEFCONFIG_LIST has 5 defaults
+> USB_ARCH_HAS_HCD has 4 defaults
+> X86_L1_CACHE_SHIFT has 2 defaults
+> X86_MINIMUM_CPU_FAMILY has 3 defaults
+> SPLIT_PTLOCK_CPUS has 2 defaults
+> DEFAULT_TCP_CONG has 2 defaults
+> MAC80211_RC_DEFAULT has 2 defaults
 
-Yep, that was my (bogus) question...
+Here's a patch that alters the default processing to the needed form and
+checks the old vs new values.  I've been running randconfigs but I can't
+get the warning to trip ... have at it.
 
-> (I suspect the right answer here is "one of the symbols is buggy and =
-its
-> 'select' should be a 'depends' instead", but somebody else better dou=
-ble-check
-> that conclusion - I'm hardly a Kconfig expert).
+James
 
-No, the CONFIG_FOO will inherit the dependency on CONFIG_HAS_IOMEM.
+---
 
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-							    -- Linus Torvalds
---
-To unsubscribe from this list: send the line "unsubscribe linux-kbuild"=
- in
-the body of a message to majordomo@vger.kernel.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+diff --git a/scripts/kconfig/symbol.c b/scripts/kconfig/symbol.c
+index 6c8fbbb..722bc4e 100644
+--- a/scripts/kconfig/symbol.c
++++ b/scripts/kconfig/symbol.c
+@@ -115,14 +115,31 @@ struct property *sym_get_env_prop(struct symbol *sym)
+ 
+ struct property *sym_get_default_prop(struct symbol *sym)
+ {
+-	struct property *prop;
++	struct property *prop, *ret = NULL;
++	tristate old_val = no, val = no;
+ 
+ 	for_all_defaults(sym, prop) {
+ 		prop->visible.tri = expr_calc_value(prop->visible.expr);
+-		if (prop->visible.tri != no)
+-			return prop;
++		if (prop->visible.tri != no) {
++			tristate v = expr_calc_value(prop->expr);
++			if (!ret)
++				old_val = v;
++			if (v >= val) {
++				val = v;
++				ret = prop;
++			}
++		}
+ 	}
+-	return NULL;
++	/*
++	 * Previously, we took the first valid default we found (this
++	 * is now old_val).  In the new scheme, the value is the or of
++	 * all the defaults.
++	 */
++	if (old_val != val)
++		menu_warn(ret->menu, "ERROR: new parser has inconsistent "
++			  "values for %s (%d != %d)\n", sym->name,
++			  old_val, val);
++	return ret;
+ }
+ 
+ static struct property *sym_get_range_prop(struct symbol *sym)
