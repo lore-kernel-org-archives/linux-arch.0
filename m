@@ -1,78 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from lennier.cc.vt.edu ([198.82.162.213]:55257 "EHLO
-	lennier.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759158Ab0EFQr1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 May 2010 12:47:27 -0400
+Received: from mail-wy0-f174.google.com ([74.125.82.174]:39564 "EHLO
+	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758234Ab0EFRZR convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 May 2010 13:25:17 -0400
+MIME-Version: 1.0
+In-Reply-To: <28312.1273164427@localhost>
+References: <1273096160.23208.35.camel@mulgrave.site>
+	 <p2x10f740e81005052347x9430657fua98b8982e860bd2d@mail.gmail.com>
+	 <1273151844.23208.48.camel@mulgrave.site> <28312.1273164427@localhost>
+Date: Thu, 6 May 2010 19:25:15 +0200
+Message-ID: <p2l10f740e81005061025l276d91b5mf87d2af65438539a@mail.gmail.com>
 Subject: Re: kbuild: fixing the select problem
-In-Reply-To: Your message of "Thu, 06 May 2010 09:17:24 EDT."
-             <1273151844.23208.48.camel@mulgrave.site>
-From: Valdis.Kletnieks@vt.edu
-References: <1273096160.23208.35.camel@mulgrave.site> <p2x10f740e81005052347x9430657fua98b8982e860bd2d@mail.gmail.com>
-            <1273151844.23208.48.camel@mulgrave.site>
-Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="==_Exmh_1273164427_4019P";
-	 micalg=pgp-sha1; protocol="application/pgp-signature"
-Content-Transfer-Encoding: 7bit
-Date: Thu, 06 May 2010 12:47:07 -0400
-Message-ID: <28312.1273164427@localhost>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, Randy Dunlap <randy.dunlap@oracle.com>
-Message-ID: <20100506164707.t7rfXNBWqO-kNmblaXxOh3lrJtnUxMJWIrrOa7BUGwI@z>
+To: Valdis.Kletnieks@vt.edu
+Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, Randy Dunlap <randy.dunlap@oracle.com>
+Message-ID: <20100506172515.Eg1BVfsc6S8wrkqSmRkNYA8p1ty25WmRiZ-rzXG2U2g@z>
 
---==_Exmh_1273164427_4019P
-Content-Type: text/plain; charset=us-ascii
+On Thu, May 6, 2010 at 18:47,  <Valdis.Kletnieks@vt.edu> wrote:
+> On Thu, 06 May 2010 09:17:24 EDT, James Bottomley said:
+>> On Thu, 2010-05-06 at 08:47 +0200, Geert Uytterhoeven wrote:
+>> > On Wed, May 5, 2010 at 23:49, James Bottomley
+>> > <James.Bottomley@hansenpartnership.com> wrote:
+>> > > [Sam: I know you don't maintain kbuild anymore, but since you have the
+>> > > most experience, if you could find time to comment, I'd be grateful]
+>> > >
+>> > > The select problem is that the kbuild select directive will turn a
+>> > > symbol on without reference to its dependencies.  This, in turn, means
+>> > > that either selected symbols must select their dependencies, or that
+>> > > people using select have to be aware of the selected symbol's dependency
+>> > > and build those dependencies into their symbol (leading to duplication
+>> > > and the possibility of getting the dependencies out of sync).  We use
+>> > > select for the scsi transport classes, so we run into this problem in
+>> > > SCSI quite a lot.
+>> > >
+>> > > I think the correct fix is to make a symbol that selects another symbol
+>> > > automatically inherit all of the selected symbol's dependencies.
+>> >
+>> > What if there's a good reason the selected symbol has this dependency?
+>> > E.g. it depends on a critical feature not available? Like CONFIG_HAS_IOMEM?
+>>
+>> I don't quite understand the question.  If a selected symbol has a
+>> critical dependency which is config'd to N then the build usually
+>> breaks ... that's what I'm calling the select problem.  I thought
+>> CONFIG_HAS_IOMEM was usually selected by the architecture, though.  In
+>> the new proposal, we wouldn't be able to generate the invalid
+>> configuration in the first place.
+>
+> I think Geert is asking "If the arch says CONFIG_HAS_IOMEM=n, but some driver
+> does a 'select CONFIG_FOO' which then (under your proposal) forces the
+> value CONFIG_BAR=y, which eventually ends up with CONFIG_HAS_IOMEM=y, what
+> should the behavior be?"
 
-On Thu, 06 May 2010 09:17:24 EDT, James Bottomley said:
-> On Thu, 2010-05-06 at 08:47 +0200, Geert Uytterhoeven wrote:
-> > On Wed, May 5, 2010 at 23:49, James Bottomley
-> > <James.Bottomley@hansenpartnership.com> wrote:
-> > > [Sam: I know you don't maintain kbuild anymore, but since you have the
-> > > most experience, if you could find time to comment, I'd be grateful]
-> > >
-> > > The select problem is that the kbuild select directive will turn a
-> > > symbol on without reference to its dependencies.  This, in turn, means
-> > > that either selected symbols must select their dependencies, or that
-> > > people using select have to be aware of the selected symbol's dependency
-> > > and build those dependencies into their symbol (leading to duplication
-> > > and the possibility of getting the dependencies out of sync).  We use
-> > > select for the scsi transport classes, so we run into this problem in
-> > > SCSI quite a lot.
-> > >
-> > > I think the correct fix is to make a symbol that selects another symbol
-> > > automatically inherit all of the selected symbol's dependencies.
-> > 
-> > What if there's a good reason the selected symbol has this dependency?
-> > E.g. it depends on a critical feature not available? Like CONFIG_HAS_IOMEM?
-> 
-> I don't quite understand the question.  If a selected symbol has a
-> critical dependency which is config'd to N then the build usually
-> breaks ... that's what I'm calling the select problem.  I thought
-> CONFIG_HAS_IOMEM was usually selected by the architecture, though.  In
-> the new proposal, we wouldn't be able to generate the invalid
-> configuration in the first place.
+Yep, that was my (bogus) question...
 
-I think Geert is asking "If the arch says CONFIG_HAS_IOMEM=n, but some driver
-does a 'select CONFIG_FOO' which then (under your proposal) forces the
-value CONFIG_BAR=y, which eventually ends up with CONFIG_HAS_IOMEM=y, what
-should the behavior be?"
+> (I suspect the right answer here is "one of the symbols is buggy and its
+> 'select' should be a 'depends' instead", but somebody else better double-check
+> that conclusion - I'm hardly a Kconfig expert).
 
-(I suspect the right answer here is "one of the symbols is buggy and its
-'select' should be a 'depends' instead", but somebody else better double-check
-that conclusion - I'm hardly a Kconfig expert).
+No, the CONFIG_FOO will inherit the dependency on CONFIG_HAS_IOMEM.
 
---==_Exmh_1273164427_4019P
-Content-Type: application/pgp-signature
+Gr{oetje,eeting}s,
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-Comment: Exmh version 2.5 07/13/2001
+						Geert
 
-iD8DBQFL4vKLcC3lWbTT17ARAgE5AJ43psqTT7rYy0JcknGfXKbMiJD5ugCeORV6
-7EXqMun2Vq5ohJHT4EhZFEI=
-=X0zm
------END PGP SIGNATURE-----
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
---==_Exmh_1273164427_4019P--
-
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
