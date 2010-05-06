@@ -1,58 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:34443 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755275Ab0EFAGZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 May 2010 20:06:25 -0400
-Subject: kbuild: fixing the select problem
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 05 May 2010 17:49:20 -0400
-Message-ID: <1273096160.23208.35.camel@mulgrave.site>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-ww0-f46.google.com ([74.125.82.46]:50071 "EHLO
+	mail-ww0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751191Ab0EFGrn convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 May 2010 02:47:43 -0400
+MIME-Version: 1.0
+In-Reply-To: <1273096160.23208.35.camel@mulgrave.site>
+References: <1273096160.23208.35.camel@mulgrave.site>
+Date: Thu, 6 May 2010 08:47:39 +0200
+Message-ID: <p2x10f740e81005052347x9430657fua98b8982e860bd2d@mail.gmail.com>
+Subject: Re: kbuild: fixing the select problem
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>
-Cc: Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, Randy Dunlap <randy.dunlap@oracle.com>
-Message-ID: <20100505214920.UZK7NAhGNsg2fctCmjf6dBiBcYdt57feumWo_HmCrjc@z>
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, Randy Dunlap <randy.dunlap@oracle.com>
+Message-ID: <20100506064739.3Yd43ZB6DKDH-sC4egw6jlOu0DmyH4Q2vZgBQGDXoGE@z>
 
-[Sam: I know you don't maintain kbuild anymore, but since you have the
-most experience, if you could find time to comment, I'd be grateful]
+On Wed, May 5, 2010 at 23:49, James Bottomley
+<James.Bottomley@hansenpartnership.com> wrote:
+> [Sam: I know you don't maintain kbuild anymore, but since you have the
+> most experience, if you could find time to comment, I'd be grateful]
+>
+> The select problem is that the kbuild select directive will turn a
+> symbol on without reference to its dependencies.  This, in turn, means
+> that either selected symbols must select their dependencies, or that
+> people using select have to be aware of the selected symbol's dependency
+> and build those dependencies into their symbol (leading to duplication
+> and the possibility of getting the dependencies out of sync).  We use
+> select for the scsi transport classes, so we run into this problem in
+> SCSI quite a lot.
+>
+> I think the correct fix is to make a symbol that selects another symbol
+> automatically inherit all of the selected symbol's dependencies.
 
-The select problem is that the kbuild select directive will turn a
-symbol on without reference to its dependencies.  This, in turn, means
-that either selected symbols must select their dependencies, or that
-people using select have to be aware of the selected symbol's dependency
-and build those dependencies into their symbol (leading to duplication
-and the possibility of getting the dependencies out of sync).  We use
-select for the scsi transport classes, so we run into this problem in
-SCSI quite a lot.
+What if there's a good reason the selected symbol has this dependency?
+E.g. it depends on a critical feature not available? Like CONFIG_HAS_IOMEM?
 
-I think the correct fix is to make a symbol that selects another symbol
-automatically inherit all of the selected symbol's dependencies.
+Gr{oetje,eeting}s,
 
-There seems to be a fairly easy way to do this in kbuild.  Right at the
-moment, select is handled as additional symbol values as the last point
-in the symbol tree evaluation process.  Instead, what I propose doing is
-for every select symbol, we add an extra unconditional default for the
-selected symbol of the selecting symbol's current value (this breaks a
-possible dependency cycle) and add to the dependencies of the selecting
-symbol, the symbol it's currently selecting.
+						Geert
 
-There's one wrinkle to all of this in that the current parser for
-default values stops when it finds the first valid (i.e. whose if clause
-evaluates to true) default.  To make the above scheme work, I need to
-modify the default parser so it takes the highest tristate of all the
-valid defaults (and bumps m to y for bool).
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-Does this look acceptable to people?  I think it should give the desired
-result and has the added benefit that we can then strip the extra select
-overlay out of the kbuild system (making the parser slightly simpler).
-
-If this looks like a good idea to people, I think I can code up a quick
-patch.
-
-James
-
-
-
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
