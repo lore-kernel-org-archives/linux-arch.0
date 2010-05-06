@@ -1,52 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:42891 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758075Ab0EFNR2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 May 2010 09:17:28 -0400
-Subject: Re: kbuild: fixing the select problem
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-In-Reply-To: <p2x10f740e81005052347x9430657fua98b8982e860bd2d@mail.gmail.com>
-References: <1273096160.23208.35.camel@mulgrave.site>
-	 <p2x10f740e81005052347x9430657fua98b8982e860bd2d@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Thu, 06 May 2010 09:17:24 -0400
-Message-ID: <1273151844.23208.48.camel@mulgrave.site>
-Mime-Version: 1.0
+Received: from moutng.kundenserver.de ([212.227.126.186]:64328 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751935Ab0EFNjR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 May 2010 09:39:17 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC][PATCH resend 8/12] asm-generic: bitops: introduce le bit offset macro
+Date: Thu, 6 May 2010 15:38:54 +0200
+References: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com> <4BE04677.4060608@redhat.com> <20100505115924.7bb92036.takuya.yoshikawa@gmail.com>
+In-Reply-To: <20100505115924.7bb92036.takuya.yoshikawa@gmail.com>
+MIME-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Message-ID: <201005061538.54326.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, Randy Dunlap <randy.dunlap@oracle.com>
-Message-ID: <20100506131724.130gScaUNOZO6eUaNw2AkP8elVcpgVYnPGhvyRk1Lhc@z>
+To: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
+Cc: Avi Kivity <avi@redhat.com>, mtosatti@redhat.com, agraf@suse.de, yoshikawa.takuya@oss.ntt.co.jp, fernando@oss.ntt.co.jp, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, kvm-ia64@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20100506133854.k7KRiaqvQC4pKQxSTeJLmsQjQTzuoHH2VPvtADGw2_w@z>
 
-On Thu, 2010-05-06 at 08:47 +0200, Geert Uytterhoeven wrote:
-> On Wed, May 5, 2010 at 23:49, James Bottomley
-> <James.Bottomley@hansenpartnership.com> wrote:
-> > [Sam: I know you don't maintain kbuild anymore, but since you have the
-> > most experience, if you could find time to comment, I'd be grateful]
-> >
-> > The select problem is that the kbuild select directive will turn a
-> > symbol on without reference to its dependencies.  This, in turn, means
-> > that either selected symbols must select their dependencies, or that
-> > people using select have to be aware of the selected symbol's dependency
-> > and build those dependencies into their symbol (leading to duplication
-> > and the possibility of getting the dependencies out of sync).  We use
-> > select for the scsi transport classes, so we run into this problem in
-> > SCSI quite a lot.
-> >
-> > I think the correct fix is to make a symbol that selects another symbol
-> > automatically inherit all of the selected symbol's dependencies.
+On Wednesday 05 May 2010, Takuya Yoshikawa wrote:
+> Date: 
+> Yesterday 04:59:24
+> > That's why the bitmaps are defined as little endian u64 aligned, even on 
+> > big endian 32-bit systems.  Little endian bitmaps are wordsize agnostic, 
+> > and u64 alignment ensures we can use long-sized bitops on mixed size 
+> > systems.
+
+Ok, I see.
+
+> There was a suggestion to propose set_le_bit_user() kind of macros.
+> But what I thought was these have a constraint you two explained and seemed to be
+> a little bit specific to some area, like KVM.
 > 
-> What if there's a good reason the selected symbol has this dependency?
-> E.g. it depends on a critical feature not available? Like CONFIG_HAS_IOMEM?
+> So I decided to propose just the offset calculation macro.
 
-I don't quite understand the question.  If a selected symbol has a
-critical dependency which is config'd to N then the build usually
-breaks ... that's what I'm calling the select problem.  I thought
-CONFIG_HAS_IOMEM was usually selected by the architecture, though.  In
-the new proposal, we wouldn't be able to generate the invalid
-configuration in the first place.
+I'm not sure I understand how this macro is going to be used though.
+If you are just using this in kernel space, that's fine, please go for
+it.
 
-James
+However, if the intention is to use the same macro in user space, putting
+it into asm-generic/bitops/* is not going to help, because those headers
+are not available in user space, and I wouldn't want to change that.
 
+The definition of the macro is not part of the ABI, so just duplicate
+it in KVM if you need it there.
 
+	Arnd
