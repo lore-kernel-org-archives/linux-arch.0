@@ -1,64 +1,40 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
 Subject: Re: kbuild: fixing the select problem
-Date: Thu, 06 May 2010 16:05:56 -0500
-Message-ID: <1273179956.2881.23.camel@mulgrave.site>
+Date: Fri, 07 May 2010 12:31:19 +0100
+Message-ID: <tnxtyqkdk3c.fsf@e102109-lin.cambridge.arm.com>
 References: <1273096160.23208.35.camel@mulgrave.site>
-	 <4BE2D10D.4070706@suse.cz> <1273157554.23208.69.camel@mulgrave.site>
-	 <1273178915.2881.20.camel@mulgrave.site>
-	 <20100506135952.eeb0e4c5.randy.dunlap@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:35598 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750958Ab0EFVF7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 May 2010 17:05:59 -0400
-In-Reply-To: <20100506135952.eeb0e4c5.randy.dunlap@oracle.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:45361 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752604Ab0EGLbd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 May 2010 07:31:33 -0400
+In-Reply-To: <1273096160.23208.35.camel@mulgrave.site> (James Bottomley's
+	message of "Wed, 05 May 2010 17:49:20 -0400")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Randy Dunlap <randy.dunlap@oracle.com>
-Cc: Michal Marek <mmarek@suse.cz>, linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, Vegard Nossum <vegard.nossum@gmail.com>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, Randy Dunlap <randy.dunlap@oracle.com>
 
-On Thu, 2010-05-06 at 13:59 -0700, Randy Dunlap wrote:
-> On Thu, 06 May 2010 15:48:35 -0500 James Bottomley wrote:
-> 
-> > On Thu, 2010-05-06 at 09:52 -0500, James Bottomley wrote:
-> > > The list is
-> > > 
-> > > USB_ARCH_HAS_HCD has 4 defaults
-> > > DEFCONFIG_LIST has 5 defaults
-> > > MAC80211_RC_DEFAULT has 2 defaults
-> > > X86_L1_CACHE_SHIFT has 2 defaults
-> > > SPLIT_PTLOCK_CPUS has 2 defaults
-> > > X86_MINIMUM_CPU_FAMILY has 3 defaults
-> > > DEFAULT_TCP_CONG has 2 defaults
-> > > DEFCONFIG_LIST has 5 defaults
-> > > USB_ARCH_HAS_HCD has 4 defaults
-> > > X86_L1_CACHE_SHIFT has 2 defaults
-> > > X86_MINIMUM_CPU_FAMILY has 3 defaults
-> > > SPLIT_PTLOCK_CPUS has 2 defaults
-> > > DEFAULT_TCP_CONG has 2 defaults
-> > > MAC80211_RC_DEFAULT has 2 defaults
-> > 
-> > Here's a patch that alters the default processing to the needed form and
-> > checks the old vs new values.  I've been running randconfigs but I can't
-> > get the warning to trip ... have at it.
-> > 
-> 
-> I don't see the warning, but I took a problem config from linux-next 2010-0506
-> (today) [attached].  In it, CONFIG_TCG_BIOS_LOG=y and that selects ACPI,
-> so now ACPI is enabled, but ACPI depends on PM and PCI, but they are still not
-> selected...
-> 
-> or is this only step 1 of a multi-step implementation?
+James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
+> The select problem is that the kbuild select directive will turn a
+> symbol on without reference to its dependencies.  This, in turn, means
+> that either selected symbols must select their dependencies, or that
+> people using select have to be aware of the selected symbol's dependency
+> and build those dependencies into their symbol (leading to duplication
+> and the possibility of getting the dependencies out of sync).  We use
+> select for the scsi transport classes, so we run into this problem in
+> SCSI quite a lot.
+>
+> I think the correct fix is to make a symbol that selects another symbol
+> automatically inherit all of the selected symbol's dependencies.
 
-Actually, it's not any step.  It's just validation of the contention
-that I can alter the default parser from taking the first valid default
-to calculating the or of the defaults without changing the current
-kbuild behaviour.
+You may want to have a look at a patch I proposed some time ago, which
+at just warns of selecting options with unmet dependencies. I think it's
+a better approach that forcing the selection of the dependencies:
 
-The patch to fix kbuild goes on top of this change minus the warnings
-(when I actually code it up).
+http://lkml.org/lkml/2009/9/16/413
 
-James
+-- 
+Catalin
