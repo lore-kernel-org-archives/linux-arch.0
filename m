@@ -1,87 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:63721 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:63626 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753521Ab0EHPUb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 May 2010 11:20:31 -0400
+	with ESMTP id S1753112Ab0EHPUE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 May 2010 11:20:04 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 07/22] lmb: Add lmb_to_bootmem()
-Date: Sat,  8 May 2010 08:17:25 -0700
-Message-ID: <1273331860-14325-8-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 02/22] lmb: Seperate region array from lmb_region struct
+Date: Sat,  8 May 2010 08:17:20 -0700
+Message-ID: <1273331860-14325-3-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
 References: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100508151725.kMVU3KCiSuWXj5mvv9M988YwXXqwjXEhUa_aIVO4V08@z>
+Message-ID: <20100508151720.ZtduseAzcgNB6w4ZA8KTynXx1zWvv7LhqCtkQBin6Xc@z>
 
-lmb_to_bootmem() will reserve lmb.reserved.region in bootmem after bootmem is
-set up.
+lmb_init() will connect them back.
+Add nr_regions in struct lmb_region to track region array size.
 
-We can use it to with all arches that support lmb later.
+So later We can install dynamically allocated region array to that pointer
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- include/linux/lmb.h |    2 ++
- mm/lmb.c            |   32 ++++++++++++++++++++++++++++++++
- 2 files changed, 34 insertions(+), 0 deletions(-)
+ include/linux/lmb.h |    3 ++-
+ mm/lmb.c            |    9 ++++++++-
+ 2 files changed, 10 insertions(+), 2 deletions(-)
 
 diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index b1c1b9b..2c008b9 100644
+index f3d1433..e14ea8d 100644
 --- a/include/linux/lmb.h
 +++ b/include/linux/lmb.h
-@@ -92,6 +92,8 @@ u64 __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
- 			 u64 size, u64 align);
- u64 lmb_find_area(u64 start, u64 end, u64 size, u64 align);
+@@ -26,7 +26,8 @@ struct lmb_property {
+ struct lmb_region {
+ 	unsigned long cnt;
+ 	u64 size;
+-	struct lmb_property region[MAX_LMB_REGIONS+1];
++	struct lmb_property *region;
++	unsigned long nr_regions;
+ };
  
-+void lmb_to_bootmem(u64 start, u64 end);
-+
- #include <asm/lmb.h>
- 
- #endif /* __KERNEL__ */
+ struct lmb {
 diff --git a/mm/lmb.c b/mm/lmb.c
-index e3f87d0..ccbc76d 100644
+index b1fc526..d49c589 100644
 --- a/mm/lmb.c
 +++ b/mm/lmb.c
-@@ -630,6 +630,38 @@ void __init lmb_free_area(u64 start, u64 end)
- 	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0]);
- }
+@@ -18,6 +18,8 @@
+ #define LMB_ALLOC_ANYWHERE	0
  
-+#ifndef CONFIG_NO_BOOTMEM
-+void __init lmb_to_bootmem(u64 start, u64 end)
-+{
-+	int i, count;
-+	u64 final_start, final_end;
-+
-+	/* Take out region array itself */
-+	if (lmb.reserved.region != lmb_reserved_region)
-+		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
-+
-+	count  = lmb.reserved.cnt;
-+	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
-+	for (i = 0; i < count; i++) {
-+		struct lmb_property *r = &lmb.reserved.region[i];
-+		pr_info("  #%d [%010llx - %010llx] ", i, r->base, r->base + r->size);
-+		final_start = max(start, r->base);
-+		final_end = min(end, r->base + r->size);
-+		if (final_start >= final_end) {
-+			pr_cont("\n");
-+			continue;
-+		}
-+		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
-+		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
-+	}
-+	/* Clear them to avoid misusing ? */
-+	memset(&lmb.reserved.region[0], 0, sizeof(struct lmb_property) * lmb.reserved.nr_regions);
-+	lmb.reserved.region = NULL;
-+	lmb.reserved.nr_regions = 0;
-+	lmb.reserved.cnt = 0;
-+}
-+#endif
-+
- u64 __init __weak __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
- 				 u64 size, u64 align)
+ struct lmb lmb;
++static struct lmb_property lmb_memory_region[MAX_LMB_REGIONS];
++static struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS];
+ 
+ static int lmb_debug;
+ 
+@@ -106,6 +108,11 @@ static void lmb_coalesce_regions(struct lmb_region *rgn,
+ 
+ void __init lmb_init(void)
  {
++	lmb.memory.region   = lmb_memory_region;
++	lmb.reserved.region = lmb_reserved_region;
++	lmb.memory.nr_regions   = ARRAY_SIZE(lmb_memory_region);
++	lmb.reserved.nr_regions = ARRAY_SIZE(lmb_reserved_region);
++
+ 	/* Create a dummy zero size LMB which will get coalesced away later.
+ 	 * This simplifies the lmb_add() code below...
+ 	 */
+@@ -169,7 +176,7 @@ static long lmb_add_region(struct lmb_region *rgn, u64 base, u64 size)
+ 
+ 	if (coalesced)
+ 		return coalesced;
+-	if (rgn->cnt >= MAX_LMB_REGIONS)
++	if (rgn->cnt > rgn->nr_regions)
+ 		return -1;
+ 
+ 	/* Couldn't coalesce the LMB, so add it to the sorted table. */
 -- 
 1.6.4.2
 
