@@ -1,149 +1,86 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [RFC PATCH] Update the cachetlb.txt file WRT flush_dcache_page and
- update_mmu_cache
-Date: Fri, 07 May 2010 14:24:18 +0100
-Message-ID: <20100507132418.28009.6013.stgit@e102109-lin.cambridge.arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 03/22] lmb: Seperate __lmb_find_base() from __lmb_alloc_base()
+Date: Sat,  8 May 2010 08:17:21 -0700
+Message-ID: <1273331860-14325-4-git-send-email-yinghai@kernel.org>
+References: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:60258 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752022Ab0EGN1W (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 May 2010 09:27:22 -0400
+Received: from rcsinet10.oracle.com ([148.87.113.121]:63621 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752058Ab0EHPUB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 May 2010 11:20:01 -0400
+In-Reply-To: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-It has been discussed on a few occasions about issues with D-cache
-aliasing and I-D cache coherency (on Harvard architectures) caused by
-PIO drivers not flushing the caches:
+So We can construct one generic __find_lmb_area() later
 
-http://thread.gmane.org/gmane.linux.usb.general/27072
-http://thread.gmane.org/gmane.linux.kernel.cross-arch/5136
+-v2: Add LMB_ERROR according to Ben.
 
-This patch modifies the cachetlb.txt recommendations for implementing
-flush_dcache_page() and deferred cache flushing.
-
-Basically, flush_dcache_page() is not usually called in PIO drivers for
-new page cache pages after the data was written (recent driver fixes -
-commits db8516f6 and 2d68b7fe). Proposing a new PIO API has been
-suggested but this requires fixing too many drivers.
-
-A solution adopted by IA-64 and PowerPC is to always consider newly
-allocated page cache pages as dirty. The meaning of PG_arch_1 would
-become "D-cache clean" (rather than "D-cache dirty" as on SPARC64). This
-bit is checked in set_pte_at() and, if it isn't set, this function
-flushes the cache. The advantage of this approach is that it is not
-necessary to previously call flush_dcache_page() for a new page cache
-page, as it is the case with most PIO drivers.
-
-It is, however, necessary for set_pte_at() to always check this flag
-even if deferred cache flushing is not implemented because of PIO
-drivers not calling flush_dcache_page().
-
-There are SMP configurations where the cache maintenance operations are
-not automatically broadcast to the other CPUs. One of the solutions is
-to add flush_dcache_page() calls to the required PIO drivers and perform
-non-deferred cache flushing. Another solution is to implement
-"read-for-ownership" tricks in the architecture cache flushing function
-to force D-cache lines eviction.
-
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Russell King <rmk@arm.linux.org.uk>
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: David Miller <davem@davemloft.net>
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- Documentation/cachetlb.txt |   34 +++++++++++++++++++++++-----------
- 1 files changed, 23 insertions(+), 11 deletions(-)
+ include/linux/lmb.h |    1 +
+ mm/lmb.c            |   21 +++++++++++++++++----
+ 2 files changed, 18 insertions(+), 4 deletions(-)
 
-diff --git a/Documentation/cachetlb.txt b/Documentation/cachetlb.txt
-index 2b5f823..af67140 100644
---- a/Documentation/cachetlb.txt
-+++ b/Documentation/cachetlb.txt
-@@ -100,6 +100,12 @@ changes occur:
- 	translations for software managed TLB configurations.
- 	The sparc64 port currently does this.
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index e14ea8d..d2e456b 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -17,6 +17,7 @@
+ #include <linux/mm.h>
  
-+	NOTE: On SMP systems with hardware TLB this function cannot be
-+	      paired with flush_dcache_page() for deferring the cache
-+	      flushing because a page table entry written by
-+	      set_pte_at() may become visible to other CPUs before the
-+	      cache flushing has taken place.
+ #define MAX_LMB_REGIONS 128
++#define LMB_ERROR	(-1ULL)
+ 
+ struct lmb_property {
+ 	u64 base;
+diff --git a/mm/lmb.c b/mm/lmb.c
+index d49c589..d130527 100644
+--- a/mm/lmb.c
++++ b/mm/lmb.c
+@@ -393,7 +393,7 @@ u64 __init lmb_alloc_base(u64 size, u64 align, u64 max_addr)
+ 	return alloc;
+ }
+ 
+-u64 __init __lmb_alloc_base(u64 size, u64 align, u64 max_addr)
++static u64 __init __lmb_find_base(u64 size, u64 align, u64 max_addr)
+ {
+ 	long i, j;
+ 	u64 base = 0;
+@@ -426,8 +426,6 @@ u64 __init __lmb_alloc_base(u64 size, u64 align, u64 max_addr)
+ 			j = lmb_overlaps_region(&lmb.reserved, base, size);
+ 			if (j < 0) {
+ 				/* this area isn't reserved, take it */
+-				if (lmb_add_region(&lmb.reserved, base, size) < 0)
+-					return 0;
+ 				return base;
+ 			}
+ 			res_base = lmb.reserved.region[j].base;
+@@ -436,7 +434,22 @@ u64 __init __lmb_alloc_base(u64 size, u64 align, u64 max_addr)
+ 			base = lmb_align_down(res_base - size, align);
+ 		}
+ 	}
+-	return 0;
++	return LMB_ERROR;
++}
 +
- 6) void tlb_migrate_finish(struct mm_struct *mm)
- 
- 	This interface is called at the end of an explicit
-@@ -278,7 +284,7 @@ maps this page at its virtual address.
- 
-   void flush_dcache_page(struct page *page)
- 
--	Any time the kernel writes to a page cache page, _OR_
-+	Any time the kernel modifies an existing page cache page, _OR_
- 	the kernel is about to read from a page cache page and
- 	user space shared/writable mappings of this page potentially
- 	exist, this routine is called.
-@@ -289,20 +295,26 @@ maps this page at its virtual address.
- 	      handling vfs symlinks in the page cache need not call
- 	      this interface at all.
- 
-+	      The kernel may not call this function on a newly allocated
-+	      page cache page even though it stored data into the page.
++u64 __init __lmb_alloc_base(u64 size, u64 align, u64 max_addr)
++{
++	u64 base;
 +
- 	The phrase "kernel writes to a page cache page" means,
- 	specifically, that the kernel executes store instructions
- 	that dirty data in that page at the page->virtual mapping
- 	of that page.  It is important to flush here to handle
- 	D-cache aliasing, to make sure these kernel stores are
--	visible to user space mappings of that page.
-+	visible to user space mappings of that page. It is also
-+	important to flush the cache on Harvard architectures where the
-+	I and D caches are not coherent.
++	base = __lmb_find_base(size, align, max_addr);
++
++	if (base == LMB_ERROR)
++		return 0;
++
++	if (lmb_add_region(&lmb.reserved, base, size) < 0)
++		return 0;
++
++	return base;
+ }
  
- 	The corollary case is just as important, if there are users
- 	which have shared+writable mappings of this file, we must make
- 	sure that kernel reads of these pages will see the most recent
- 	stores done by the user.
- 
--	If D-cache aliasing is not an issue, this routine may
--	simply be defined as a nop on that architecture.
-+	If D-cache aliasing is not an issue and the I and D caches are
-+	unified, this routine may simply be defined as a nop on that
-+	architecture.
- 
-         There is a bit set aside in page->flags (PG_arch_1) as
- 	"architecture private".  The kernel guarantees that,
-@@ -312,15 +324,15 @@ maps this page at its virtual address.
- 	This allows these interfaces to be implemented much more
- 	efficiently.  It allows one to "defer" (perhaps indefinitely)
- 	the actual flush if there are currently no user processes
--	mapping this page.  See sparc64's flush_dcache_page and
--	update_mmu_cache implementations for an example of how to go
-+	mapping this page.  See IA-64's flush_dcache_page and
-+	set_pte_at implementations for an example of how to go
- 	about doing this.
- 
- 	The idea is, first at flush_dcache_page() time, if
- 	page->mapping->i_mmap is an empty tree and ->i_mmap_nonlinear
--	an empty list, just mark the architecture private page flag bit.
--	Later, in update_mmu_cache(), a check is made of this flag bit,
--	and if set the flush is done and the flag bit is cleared.
-+	an empty list, just clear the architecture private page flag bit.
-+	Later, in set_pte_at(), a check is made of this flag bit,
-+	and if cleared, the flush is done and the flag bit is set.
- 
- 	IMPORTANT NOTE: It is often important, if you defer the flush,
- 			that the actual flush occurs on the same CPU
-@@ -375,8 +387,8 @@ maps this page at its virtual address.
- 
-   void flush_icache_page(struct vm_area_struct *vma, struct page *page)
- 	All the functionality of flush_icache_page can be implemented in
--	flush_dcache_page and update_mmu_cache. In 2.7 the hope is to
--	remove this interface completely.
-+	flush_dcache_page and set_pte_at. In 2.7 the hope is to remove
-+	this interface completely.
- 
- The final category of APIs is for I/O to deliberately aliased address
- ranges inside the kernel.  Such aliases are set up by use of the
+ /* You must call lmb_analyze() before this. */
+-- 
+1.6.4.2
