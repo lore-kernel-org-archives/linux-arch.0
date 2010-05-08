@@ -1,81 +1,48 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 07/22] lmb: Add lmb_to_bootmem()
-Date: Sat,  8 May 2010 08:17:25 -0700
-Message-ID: <1273331860-14325-8-git-send-email-yinghai@kernel.org>
-References: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v14 00/22] Use lmb with x86
+Date: Sat,  8 May 2010 08:17:18 -0700
+Message-ID: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-lmb_to_bootmem() will reserve lmb.reserved.region in bootmem after bootmem is
-set up.
+the new lmb could be used to replace early_res in x86.
 
-We can use it to with all arches that support lmb later.
+Suggested by: David, Ben, and Thomas
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- include/linux/lmb.h |    2 ++
- mm/lmb.c            |   32 ++++++++++++++++++++++++++++++++
- 2 files changed, 34 insertions(+), 0 deletions(-)
+-v6: change sequence as requested by Thomas
+-v7: seperate them to more patches
+-v8: add boundary checking to make sure not free partial page.
+-v9: use lmb_debug to control print out of reserve_lmb.
+     add e820 clean up, and e820 become __initdata
+-v10:use lmb.rmo_size and ARCH_DISCARD_LMB according to Michael
+     change name to lmb_find_area/reserve_lmb_area/free_lmb_area,
+      according to Michael
+     update find_lmb_area to use __lmb_alloc_base according to ben
+-v11:move find_lmb_area_size back to x86.
+     x86 has own find_lmb_area, and could be disabled by ARCH_LMB_FIND_AREA
+      because _lmb_find_base has different behavoir from x86's old one.
+      one from high to high and one from low to high
+      need more test
+     tested for x86 32bit/64bit, numa/nonuma, nobootmem/bootmem.
+-v12:refresh the series with current tip
+     seperate nobootmem.c, so could remove some #ifdef
+     still keep CONFIG_NO_BOOTMEM, in x86 .c, and could use the as tags
+     so other lmb could refer them to use NO_BOOTMEM.
 
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index b1c1b9b..2c008b9 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -92,6 +92,8 @@ u64 __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
- 			 u64 size, u64 align);
- u64 lmb_find_area(u64 start, u64 end, u64 size, u64 align);
- 
-+void lmb_to_bootmem(u64 start, u64 end);
-+
- #include <asm/lmb.h>
- 
- #endif /* __KERNEL__ */
-diff --git a/mm/lmb.c b/mm/lmb.c
-index e3f87d0..ccbc76d 100644
---- a/mm/lmb.c
-+++ b/mm/lmb.c
-@@ -630,6 +630,38 @@ void __init lmb_free_area(u64 start, u64 end)
- 	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0]);
- }
- 
-+#ifndef CONFIG_NO_BOOTMEM
-+void __init lmb_to_bootmem(u64 start, u64 end)
-+{
-+	int i, count;
-+	u64 final_start, final_end;
-+
-+	/* Take out region array itself */
-+	if (lmb.reserved.region != lmb_reserved_region)
-+		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
-+
-+	count  = lmb.reserved.cnt;
-+	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
-+	for (i = 0; i < count; i++) {
-+		struct lmb_property *r = &lmb.reserved.region[i];
-+		pr_info("  #%d [%010llx - %010llx] ", i, r->base, r->base + r->size);
-+		final_start = max(start, r->base);
-+		final_end = min(end, r->base + r->size);
-+		if (final_start >= final_end) {
-+			pr_cont("\n");
-+			continue;
-+		}
-+		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
-+		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
-+	}
-+	/* Clear them to avoid misusing ? */
-+	memset(&lmb.reserved.region[0], 0, sizeof(struct lmb_property) * lmb.reserved.nr_regions);
-+	lmb.reserved.region = NULL;
-+	lmb.reserved.nr_regions = 0;
-+	lmb.reserved.cnt = 0;
-+}
-+#endif
-+
- u64 __init __weak __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
- 				 u64 size, u64 align)
- {
--- 
-1.6.4.2
+-v14:refresh to current tip
+
+-v15:remove x86 version lmb_find_area
+     remove other nobootmem and x86 e820 from this patchset
+
+Only first three patches in this set could affect original lmb users.
+lmb.c lines from 567 to 996
+If lmb guys are still not happy, we could move that 360 lines to arch/x86/mm/lmb.c
+
+still hope Ben could do lmb clean up on top of this patchset.
+
+Thanks
+
+Yinghai
