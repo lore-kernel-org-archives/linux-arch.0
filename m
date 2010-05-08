@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 02/22] lmb: Seperate region array from lmb_region struct
-Date: Sat,  8 May 2010 08:17:20 -0700
-Message-ID: <1273331860-14325-3-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 16/22] lmb: Use lmb_debug to control debug message print out
+Date: Sat,  8 May 2010 08:17:34 -0700
+Message-ID: <1273331860-14325-17-git-send-email-yinghai@kernel.org>
 References: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
@@ -10,65 +10,100 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-lmb_init() will connect them back.
-Add nr_regions in struct lmb_region to track region array size.
+Also let lmb_reserve_area/lmb_free_area could print out name if lmb=debug is
+specified
 
-So later We can install dynamically allocated region array to that pointer
+will also print ther name when reserve_lmb_area/free_lmb_area are called.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- include/linux/lmb.h |    3 ++-
- mm/lmb.c            |    9 ++++++++-
- 2 files changed, 10 insertions(+), 2 deletions(-)
+ mm/lmb.c |   29 +++++++++++++++++++++--------
+ 1 files changed, 21 insertions(+), 8 deletions(-)
 
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index f3d1433..e14ea8d 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -26,7 +26,8 @@ struct lmb_property {
- struct lmb_region {
- 	unsigned long cnt;
- 	u64 size;
--	struct lmb_property region[MAX_LMB_REGIONS+1];
-+	struct lmb_property *region;
-+	unsigned long nr_regions;
- };
- 
- struct lmb {
 diff --git a/mm/lmb.c b/mm/lmb.c
-index b1fc526..d49c589 100644
+index decea60..db2264d 100644
 --- a/mm/lmb.c
 +++ b/mm/lmb.c
-@@ -18,6 +18,8 @@
- #define LMB_ALLOC_ANYWHERE	0
+@@ -591,8 +591,9 @@ static void __init __check_and_double_region_array(struct lmb_region *type,
+ 	memset(&old[0], 0, sizeof(struct lmb_property) * rgnsz);
+ 	type->region = new;
+ 	type->nr_regions = rgnsz * 2;
+-	printk(KERN_DEBUG "lmb.reserved.region array is doubled to %ld at [%llx - %llx]\n",
+-		type->nr_regions, mem, mem + size - 1);
++	if (lmb_debug)
++		pr_info("lmb.reserved.region array is doubled to %ld at [%010llx - %010llx]\n",
++				type->nr_regions, mem, mem + size - 1);
  
- struct lmb lmb;
-+static struct lmb_property lmb_memory_region[MAX_LMB_REGIONS];
-+static struct lmb_property lmb_reserved_region[MAX_LMB_REGIONS];
+ 	/* Free old one ?*/
+ 	if (old != static_region)
+@@ -619,6 +620,8 @@ void __init lmb_reserve_area(u64 start, u64 end, char *name)
+ 	if (WARN_ONCE(start > end, "lmb_reserve_area: wrong range [%#llx, %#llx]\n", start, end))
+ 		return;
  
- static int lmb_debug;
++	if (lmb_debug)
++		pr_info("    lmb_reserve_area: [%010llx, %010llx] %16s\n", start, end, name);
+ 	__lmb_reserve_area(start, end, name);
+ }
  
-@@ -106,6 +108,11 @@ static void lmb_coalesce_regions(struct lmb_region *rgn,
+@@ -635,6 +638,8 @@ void __init lmb_reserve_area_overlap_ok(u64 start, u64 end, char *name)
+ 	if (WARN_ONCE(start > end, "lmb_reserve_area_overlap_ok: wrong range [%#llx, %#llx]\n", start, end))
+ 		return;
  
- void __init lmb_init(void)
- {
-+	lmb.memory.region   = lmb_memory_region;
-+	lmb.reserved.region = lmb_reserved_region;
-+	lmb.memory.nr_regions   = ARRAY_SIZE(lmb_memory_region);
-+	lmb.reserved.nr_regions = ARRAY_SIZE(lmb_reserved_region);
-+
- 	/* Create a dummy zero size LMB which will get coalesced away later.
- 	 * This simplifies the lmb_add() code below...
- 	 */
-@@ -169,7 +176,7 @@ static long lmb_add_region(struct lmb_region *rgn, u64 base, u64 size)
++	if (lmb_debug)
++		pr_info("    lmb_reserve_area_overlap_ok: [%010llx, %010llx] %16s\n", start, end, name);
+ 	/* Free that region at first */
+ 	lmb_free(start, end - start);
+ 	__lmb_reserve_area(start, end, name);
+@@ -648,6 +653,8 @@ void __init lmb_free_area(u64 start, u64 end)
+ 	if (WARN_ONCE(start > end, "lmb_free_area: wrong range [%#llx, %#llx]\n", start, end))
+ 		return;
  
- 	if (coalesced)
- 		return coalesced;
--	if (rgn->cnt >= MAX_LMB_REGIONS)
-+	if (rgn->cnt > rgn->nr_regions)
- 		return -1;
++	if (lmb_debug)
++		pr_info("       lmb_free_area: [%010llx, %010llx]\n", start, end);
+ 	/* keep punching hole, could run out of slots too */
+ 	lmb_free(start, end - start);
+ 	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0]);
+@@ -688,11 +695,13 @@ static void __init subtract_lmb_reserved(struct range *range, int az)
  
- 	/* Couldn't coalesce the LMB, so add it to the sorted table. */
+ 	count  = lmb.reserved.cnt;
+ 
+-	pr_info("Subtract (%d early reservations)\n", count);
++	if (lmb_debug)
++		pr_info("Subtract (%d early reservations)\n", count);
+ 
+ 	for (i = 0; i < count; i++) {
+ 		struct lmb_property *r = &lmb.reserved.region[i];
+-		pr_info("  #%d [%010llx - %010llx]\n", i, r->base, r->base + r->size);
++		if (lmb_debug)
++			pr_info("  #%03d [%010llx - %010llx]\n", i, r->base, r->base + r->size);
+ 		final_start = PFN_DOWN(r->base);
+ 		final_end = PFN_UP(r->base + r->size);
+ 		if (final_start >= final_end)
+@@ -748,17 +757,21 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+ 		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
+ 
+ 	count  = lmb.reserved.cnt;
+-	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
++	if (lmb_debug)
++		pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
+ 	for (i = 0; i < count; i++) {
+ 		struct lmb_property *r = &lmb.reserved.region[i];
+-		pr_info("  #%d [%010llx - %010llx] ", i, r->base, r->base + r->size);
++		if (lmb_debug)
++			pr_info("  #%03d [%010llx - %010llx] ", i, r->base, r->base + r->size);
+ 		final_start = max(start, r->base);
+ 		final_end = min(end, r->base + r->size);
+ 		if (final_start >= final_end) {
+-			pr_cont("\n");
++			if (lmb_debug)
++				pr_cont("\n");
+ 			continue;
+ 		}
+-		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
++		if (lmb_debug)
++			pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
+ 		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
+ 	}
+ 	/* Clear them to avoid misusing ? */
 -- 
 1.6.4.2
