@@ -1,75 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:39564 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758234Ab0EFRZR convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 May 2010 13:25:17 -0400
-MIME-Version: 1.0
-In-Reply-To: <28312.1273164427@localhost>
-References: <1273096160.23208.35.camel@mulgrave.site>
-	 <p2x10f740e81005052347x9430657fua98b8982e860bd2d@mail.gmail.com>
-	 <1273151844.23208.48.camel@mulgrave.site> <28312.1273164427@localhost>
-Date: Thu, 6 May 2010 19:25:15 +0200
-Message-ID: <p2l10f740e81005061025l276d91b5mf87d2af65438539a@mail.gmail.com>
-Subject: Re: kbuild: fixing the select problem
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Received: from rcsinet10.oracle.com ([148.87.113.121]:63676 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753412Ab0EHPUV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 May 2010 11:20:21 -0400
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH -v14 00/22] Use lmb with x86
+Date: Sat,  8 May 2010 08:17:18 -0700
+Message-ID: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Valdis.Kletnieks@vt.edu
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, Randy Dunlap <randy.dunlap@oracle.com>
-Message-ID: <20100506172515.Eg1BVfsc6S8wrkqSmRkNYA8p1ty25WmRiZ-rzXG2U2g@z>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20100508151718.d2-zeWpBwWa6RTxLNPiYYAE84UyVxAq0Wzf1XwVWRtc@z>
 
-On Thu, May 6, 2010 at 18:47,  <Valdis.Kletnieks@vt.edu> wrote:
-> On Thu, 06 May 2010 09:17:24 EDT, James Bottomley said:
->> On Thu, 2010-05-06 at 08:47 +0200, Geert Uytterhoeven wrote:
->> > On Wed, May 5, 2010 at 23:49, James Bottomley
->> > <James.Bottomley@hansenpartnership.com> wrote:
->> > > [Sam: I know you don't maintain kbuild anymore, but since you have the
->> > > most experience, if you could find time to comment, I'd be grateful]
->> > >
->> > > The select problem is that the kbuild select directive will turn a
->> > > symbol on without reference to its dependencies.  This, in turn, means
->> > > that either selected symbols must select their dependencies, or that
->> > > people using select have to be aware of the selected symbol's dependency
->> > > and build those dependencies into their symbol (leading to duplication
->> > > and the possibility of getting the dependencies out of sync).  We use
->> > > select for the scsi transport classes, so we run into this problem in
->> > > SCSI quite a lot.
->> > >
->> > > I think the correct fix is to make a symbol that selects another symbol
->> > > automatically inherit all of the selected symbol's dependencies.
->> >
->> > What if there's a good reason the selected symbol has this dependency?
->> > E.g. it depends on a critical feature not available? Like CONFIG_HAS_IOMEM?
->>
->> I don't quite understand the question.  If a selected symbol has a
->> critical dependency which is config'd to N then the build usually
->> breaks ... that's what I'm calling the select problem.  I thought
->> CONFIG_HAS_IOMEM was usually selected by the architecture, though.  In
->> the new proposal, we wouldn't be able to generate the invalid
->> configuration in the first place.
->
-> I think Geert is asking "If the arch says CONFIG_HAS_IOMEM=n, but some driver
-> does a 'select CONFIG_FOO' which then (under your proposal) forces the
-> value CONFIG_BAR=y, which eventually ends up with CONFIG_HAS_IOMEM=y, what
-> should the behavior be?"
+the new lmb could be used to replace early_res in x86.
 
-Yep, that was my (bogus) question...
+Suggested by: David, Ben, and Thomas
 
-> (I suspect the right answer here is "one of the symbols is buggy and its
-> 'select' should be a 'depends' instead", but somebody else better double-check
-> that conclusion - I'm hardly a Kconfig expert).
+-v6: change sequence as requested by Thomas
+-v7: seperate them to more patches
+-v8: add boundary checking to make sure not free partial page.
+-v9: use lmb_debug to control print out of reserve_lmb.
+     add e820 clean up, and e820 become __initdata
+-v10:use lmb.rmo_size and ARCH_DISCARD_LMB according to Michael
+     change name to lmb_find_area/reserve_lmb_area/free_lmb_area,
+      according to Michael
+     update find_lmb_area to use __lmb_alloc_base according to ben
+-v11:move find_lmb_area_size back to x86.
+     x86 has own find_lmb_area, and could be disabled by ARCH_LMB_FIND_AREA
+      because _lmb_find_base has different behavoir from x86's old one.
+      one from high to high and one from low to high
+      need more test
+     tested for x86 32bit/64bit, numa/nonuma, nobootmem/bootmem.
+-v12:refresh the series with current tip
+     seperate nobootmem.c, so could remove some #ifdef
+     still keep CONFIG_NO_BOOTMEM, in x86 .c, and could use the as tags
+     so other lmb could refer them to use NO_BOOTMEM.
 
-No, the CONFIG_FOO will inherit the dependency on CONFIG_HAS_IOMEM.
+-v14:refresh to current tip
 
-Gr{oetje,eeting}s,
+-v15:remove x86 version lmb_find_area
+     remove other nobootmem and x86 e820 from this patchset
 
-						Geert
+Only first three patches in this set could affect original lmb users.
+lmb.c lines from 567 to 996
+If lmb guys are still not happy, we could move that 360 lines to arch/x86/mm/lmb.c
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+still hope Ben could do lmb clean up on top of this patchset.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+Thanks
+
+Yinghai
