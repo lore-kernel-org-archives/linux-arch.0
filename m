@@ -1,48 +1,59 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v14 00/22] Use lmb with x86
-Date: Sat,  8 May 2010 08:17:18 -0700
-Message-ID: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Subject: [PATCH 01/22] lmb: Move lmb.c to mm/
+Date: Sat,  8 May 2010 08:17:19 -0700
+Message-ID: <1273331860-14325-2-git-send-email-yinghai@kernel.org>
+References: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:63680 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752927Ab0EHPUY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 May 2010 11:20:24 -0400
+In-Reply-To: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-the new lmb could be used to replace early_res in x86.
+lmb.c is memory related, so move it to mm/. It is suggested by Ingo
 
-Suggested by: David, Ben, and Thomas
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+---
+ lib/Makefile      |    2 --
+ mm/Makefile       |    2 ++
+ {lib => mm}/lmb.c |    0
+ 3 files changed, 2 insertions(+), 2 deletions(-)
+ rename {lib => mm}/lmb.c (100%)
 
--v6: change sequence as requested by Thomas
--v7: seperate them to more patches
--v8: add boundary checking to make sure not free partial page.
--v9: use lmb_debug to control print out of reserve_lmb.
-     add e820 clean up, and e820 become __initdata
--v10:use lmb.rmo_size and ARCH_DISCARD_LMB according to Michael
-     change name to lmb_find_area/reserve_lmb_area/free_lmb_area,
-      according to Michael
-     update find_lmb_area to use __lmb_alloc_base according to ben
--v11:move find_lmb_area_size back to x86.
-     x86 has own find_lmb_area, and could be disabled by ARCH_LMB_FIND_AREA
-      because _lmb_find_base has different behavoir from x86's old one.
-      one from high to high and one from low to high
-      need more test
-     tested for x86 32bit/64bit, numa/nonuma, nobootmem/bootmem.
--v12:refresh the series with current tip
-     seperate nobootmem.c, so could remove some #ifdef
-     still keep CONFIG_NO_BOOTMEM, in x86 .c, and could use the as tags
-     so other lmb could refer them to use NO_BOOTMEM.
-
--v14:refresh to current tip
-
--v15:remove x86 version lmb_find_area
-     remove other nobootmem and x86 e820 from this patchset
-
-Only first three patches in this set could affect original lmb users.
-lmb.c lines from 567 to 996
-If lmb guys are still not happy, we could move that 360 lines to arch/x86/mm/lmb.c
-
-still hope Ben could do lmb clean up on top of this patchset.
-
-Thanks
-
-Yinghai
+diff --git a/lib/Makefile b/lib/Makefile
+index 9e6d3c2..a8f7d48 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -88,8 +88,6 @@ obj-$(CONFIG_FAULT_INJECTION) += fault-inject.o
+ 
+ lib-$(CONFIG_GENERIC_BUG) += bug.o
+ 
+-obj-$(CONFIG_HAVE_LMB) += lmb.o
+-
+ obj-$(CONFIG_HAVE_ARCH_TRACEHOOK) += syscall.o
+ 
+ obj-$(CONFIG_DYNAMIC_DEBUG) += dynamic_debug.o
+diff --git a/mm/Makefile b/mm/Makefile
+index 6c2a73a..52492f9 100644
+--- a/mm/Makefile
++++ b/mm/Makefile
+@@ -15,6 +15,8 @@ obj-y			:= bootmem.o filemap.o mempool.o oom_kill.o fadvise.o \
+ 			   $(mmu-y)
+ obj-y += init-mm.o
+ 
++obj-$(CONFIG_HAVE_LMB) += lmb.o
++
+ obj-$(CONFIG_BOUNCE)	+= bounce.o
+ obj-$(CONFIG_SWAP)	+= page_io.o swap_state.o swapfile.o thrash.o
+ obj-$(CONFIG_HAS_DMA)	+= dmapool.o
+diff --git a/lib/lmb.c b/mm/lmb.c
+similarity index 100%
+rename from lib/lmb.c
+rename to mm/lmb.c
+-- 
+1.6.4.2
