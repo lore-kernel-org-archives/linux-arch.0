@@ -1,115 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:65364 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:16673 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753638Ab0EHPWE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 May 2010 11:22:04 -0400
+	with ESMTP id S1752058Ab0EHPWZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 May 2010 11:22:25 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 16/22] lmb: Use lmb_debug to control debug message print out
-Date: Sat,  8 May 2010 08:17:34 -0700
-Message-ID: <1273331860-14325-17-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 19/22] x86, lmb: Add lmb_find_area_size()
+Date: Sat,  8 May 2010 08:17:37 -0700
+Message-ID: <1273331860-14325-20-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
 References: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100508151734.csv8R5y1fPNZH_jqxBmeeg4bv5uD5S7_U7Z9d0LjJWQ@z>
+Message-ID: <20100508151737.R8srnoBtrZAD6bV5rt9uq9lip7WhgzGsjdpsVxaGABs@z>
 
-Also let lmb_reserve_area/lmb_free_area could print out name if lmb=debug is
-specified
+size is returned according free range.
+Will be used to find free ranges for early_memtest and memory corruption check
 
-will also print ther name when reserve_lmb_area/free_lmb_area are called.
+Do not mess it up with mm/lmb.c yet.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- mm/lmb.c |   29 +++++++++++++++++++++--------
- 1 files changed, 21 insertions(+), 8 deletions(-)
+ arch/x86/mm/Makefile |    2 +
+ arch/x86/mm/lmb.c    |   88 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 90 insertions(+), 0 deletions(-)
+ create mode 100644 arch/x86/mm/lmb.c
 
-diff --git a/mm/lmb.c b/mm/lmb.c
-index decea60..db2264d 100644
---- a/mm/lmb.c
-+++ b/mm/lmb.c
-@@ -591,8 +591,9 @@ static void __init __check_and_double_region_array(struct lmb_region *type,
- 	memset(&old[0], 0, sizeof(struct lmb_property) * rgnsz);
- 	type->region = new;
- 	type->nr_regions = rgnsz * 2;
--	printk(KERN_DEBUG "lmb.reserved.region array is doubled to %ld at [%llx - %llx]\n",
--		type->nr_regions, mem, mem + size - 1);
-+	if (lmb_debug)
-+		pr_info("lmb.reserved.region array is doubled to %ld at [%010llx - %010llx]\n",
-+				type->nr_regions, mem, mem + size - 1);
+diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
+index a4c7683..8ab0505 100644
+--- a/arch/x86/mm/Makefile
++++ b/arch/x86/mm/Makefile
+@@ -26,4 +26,6 @@ obj-$(CONFIG_NUMA)		+= numa.o numa_$(BITS).o
+ obj-$(CONFIG_K8_NUMA)		+= k8topology_64.o
+ obj-$(CONFIG_ACPI_NUMA)		+= srat_$(BITS).o
  
- 	/* Free old one ?*/
- 	if (old != static_region)
-@@ -619,6 +620,8 @@ void __init lmb_reserve_area(u64 start, u64 end, char *name)
- 	if (WARN_ONCE(start > end, "lmb_reserve_area: wrong range [%#llx, %#llx]\n", start, end))
- 		return;
- 
-+	if (lmb_debug)
-+		pr_info("    lmb_reserve_area: [%010llx, %010llx] %16s\n", start, end, name);
- 	__lmb_reserve_area(start, end, name);
- }
- 
-@@ -635,6 +638,8 @@ void __init lmb_reserve_area_overlap_ok(u64 start, u64 end, char *name)
- 	if (WARN_ONCE(start > end, "lmb_reserve_area_overlap_ok: wrong range [%#llx, %#llx]\n", start, end))
- 		return;
- 
-+	if (lmb_debug)
-+		pr_info("    lmb_reserve_area_overlap_ok: [%010llx, %010llx] %16s\n", start, end, name);
- 	/* Free that region at first */
- 	lmb_free(start, end - start);
- 	__lmb_reserve_area(start, end, name);
-@@ -648,6 +653,8 @@ void __init lmb_free_area(u64 start, u64 end)
- 	if (WARN_ONCE(start > end, "lmb_free_area: wrong range [%#llx, %#llx]\n", start, end))
- 		return;
- 
-+	if (lmb_debug)
-+		pr_info("       lmb_free_area: [%010llx, %010llx]\n", start, end);
- 	/* keep punching hole, could run out of slots too */
- 	lmb_free(start, end - start);
- 	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0]);
-@@ -688,11 +695,13 @@ static void __init subtract_lmb_reserved(struct range *range, int az)
- 
- 	count  = lmb.reserved.cnt;
- 
--	pr_info("Subtract (%d early reservations)\n", count);
-+	if (lmb_debug)
-+		pr_info("Subtract (%d early reservations)\n", count);
- 
- 	for (i = 0; i < count; i++) {
- 		struct lmb_property *r = &lmb.reserved.region[i];
--		pr_info("  #%d [%010llx - %010llx]\n", i, r->base, r->base + r->size);
-+		if (lmb_debug)
-+			pr_info("  #%03d [%010llx - %010llx]\n", i, r->base, r->base + r->size);
- 		final_start = PFN_DOWN(r->base);
- 		final_end = PFN_UP(r->base + r->size);
- 		if (final_start >= final_end)
-@@ -748,17 +757,21 @@ void __init lmb_to_bootmem(u64 start, u64 end)
- 		lmb_free(__pa(lmb.reserved.region), sizeof(struct lmb_property) * lmb.reserved.nr_regions);
- 
- 	count  = lmb.reserved.cnt;
--	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
-+	if (lmb_debug)
-+		pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
- 	for (i = 0; i < count; i++) {
- 		struct lmb_property *r = &lmb.reserved.region[i];
--		pr_info("  #%d [%010llx - %010llx] ", i, r->base, r->base + r->size);
-+		if (lmb_debug)
-+			pr_info("  #%03d [%010llx - %010llx] ", i, r->base, r->base + r->size);
- 		final_start = max(start, r->base);
- 		final_end = min(end, r->base + r->size);
- 		if (final_start >= final_end) {
--			pr_cont("\n");
-+			if (lmb_debug)
-+				pr_cont("\n");
- 			continue;
- 		}
--		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
-+		if (lmb_debug)
-+			pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
- 		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
- 	}
- 	/* Clear them to avoid misusing ? */
++obj-$(CONFIG_HAVE_LMB)		+= lmb.o
++
+ obj-$(CONFIG_MEMTEST)		+= memtest.o
+diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
+new file mode 100644
+index 0000000..902b6ea
+--- /dev/null
++++ b/arch/x86/mm/lmb.c
+@@ -0,0 +1,88 @@
++#include <linux/kernel.h>
++#include <linux/types.h>
++#include <linux/init.h>
++#include <linux/bitops.h>
++#include <linux/lmb.h>
++#include <linux/bootmem.h>
++#include <linux/mm.h>
++#include <linux/range.h>
++
++/* Check for already reserved areas */
++static inline bool __init bad_addr_size(u64 *addrp, u64 *sizep, u64 align)
++{
++	int i;
++	u64 addr = *addrp, last;
++	u64 size = *sizep;
++	bool changed = false;
++again:
++	last = addr + size;
++	for (i = 0; i < lmb.reserved.cnt && lmb.reserved.region[i].size; i++) {
++		struct lmb_property *r = &lmb.reserved.region[i];
++		if (last > r->base && addr < r->base) {
++			size = r->base - addr;
++			changed = true;
++			goto again;
++		}
++		if (last > (r->base + r->size) && addr < (r->base + r->size)) {
++			addr = round_up(r->base + r->size, align);
++			size = last - addr;
++			changed = true;
++			goto again;
++		}
++		if (last <= (r->base + r->size) && addr >= r->base) {
++			(*sizep)++;
++			return false;
++		}
++	}
++	if (changed) {
++		*addrp = addr;
++		*sizep = size;
++	}
++	return changed;
++}
++
++static u64 __init __lmb_find_area_size(u64 ei_start, u64 ei_last, u64 start,
++			 u64 *sizep, u64 align)
++{
++	u64 addr, last;
++
++	addr = round_up(ei_start, align);
++	if (addr < start)
++		addr = round_up(start, align);
++	if (addr >= ei_last)
++		goto out;
++	*sizep = ei_last - addr;
++	while (bad_addr_size(&addr, sizep, align) && addr + *sizep <= ei_last)
++		;
++	last = addr + *sizep;
++	if (last > ei_last)
++		goto out;
++
++	return addr;
++
++out:
++	return LMB_ERROR;
++}
++
++/*
++ * Find next free range after *start
++ */
++u64 __init lmb_find_area_size(u64 start, u64 *sizep, u64 align)
++{
++	int i;
++
++	for (i = 0; i < lmb.memory.cnt; i++) {
++		u64 ei_start = lmb.memory.region[i].base;
++		u64 ei_last = ei_start + lmb.memory.region[i].size;
++		u64 addr;
++
++		addr = __lmb_find_area_size(ei_start, ei_last, start,
++					 sizep, align);
++
++		if (addr != LMB_ERROR)
++			return addr;
++	}
++
++	return LMB_ERROR;
++}
++
 -- 
 1.6.4.2
 
