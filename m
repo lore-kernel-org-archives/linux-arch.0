@@ -1,65 +1,79 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 08/22] lmb: Add get_free_all_memory_range()
-Date: Mon, 10 May 2010 17:29:17 +1000
-Message-ID: <1273476557.23699.81.camel@pasglop>
-References: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
-	 <1273331860-14325-9-git-send-email-yinghai@kernel.org>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: [RFC PATCH] Update the cachetlb.txt file WRT flush_dcache_page
+ and update_mmu_cache
+Date: Mon, 10 May 2010 17:06:20 +0900
+Message-ID: <20100510170616O.fujita.tomonori@lab.ntt.co.jp>
+References: <20100507132418.28009.6013.stgit@e102109-lin.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:36793 "EHLO gate.crashing.org"
+Received: from sh.osrg.net ([192.16.179.4]:48172 "EHLO sh.osrg.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751101Ab0EJHbk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 May 2010 03:31:40 -0400
-In-Reply-To: <1273331860-14325-9-git-send-email-yinghai@kernel.org>
+	id S1752298Ab0EJIHE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 10 May 2010 04:07:04 -0400
+In-Reply-To: <20100507132418.28009.6013.stgit@e102109-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jan Beulich <jbeulich@novell.com>
+To: catalin.marinas@arm.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, James.Bottomley@HansenPartnership.com, benh@kernel.crashing.org, davem@davemloft.net, rmk@arm.linux.org.uk
 
-On Sat, 2010-05-08 at 08:17 -0700, Yinghai Lu wrote:
-> get_free_all_memory_range is for CONFIG_NO_BOOTMEM=y, and will be called by
-> free_all_memory_core_early().
-> 
-> It will use early_node_map aka active ranges subtract lmb.reserved to
-> get all free range, and those ranges will convert to slab pages.
+On Fri, 07 May 2010 14:24:18 +0100
+Catalin Marinas <catalin.marinas@arm.com> wrote:
 
-Ok, so after looking more, and more or less understanding the very
-convoluted code path you have created there:
+>    void flush_dcache_page(struct page *page)
+>  
+> -	Any time the kernel writes to a page cache page, _OR_
+> +	Any time the kernel modifies an existing page cache page, _OR_
+>  	the kernel is about to read from a page cache page and
+>  	user space shared/writable mappings of this page potentially
+>  	exist, this routine is called.
+> @@ -289,20 +295,26 @@ maps this page at its virtual address.
+>  	      handling vfs symlinks in the page cache need not call
+>  	      this interface at all.
+>  
+> +	      The kernel may not call this function on a newly allocated
+> +	      page cache page even though it stored data into the page.
+> +
+>  	The phrase "kernel writes to a page cache page" means,
+>  	specifically, that the kernel executes store instructions
+>  	that dirty data in that page at the page->virtual mapping
+>  	of that page.  It is important to flush here to handle
+>  	D-cache aliasing, to make sure these kernel stores are
+> -	visible to user space mappings of that page.
+> +	visible to user space mappings of that page. It is also
+> +	important to flush the cache on Harvard architectures where the
+> +	I and D caches are not coherent.
+>  
+>  	The corollary case is just as important, if there are users
+>  	which have shared+writable mappings of this file, we must make
+>  	sure that kernel reads of these pages will see the most recent
+>  	stores done by the user.
+>  
+> -	If D-cache aliasing is not an issue, this routine may
+> -	simply be defined as a nop on that architecture.
+> +	If D-cache aliasing is not an issue and the I and D caches are
+> +	unified, this routine may simply be defined as a nop on that
+> +	architecture.
+>  
+>          There is a bit set aside in page->flags (PG_arch_1) as
+>  	"architecture private".  The kernel guarantees that,
+> @@ -312,15 +324,15 @@ maps this page at its virtual address.
+>  	This allows these interfaces to be implemented much more
+>  	efficiently.  It allows one to "defer" (perhaps indefinitely)
+>  	the actual flush if there are currently no user processes
+> -	mapping this page.  See sparc64's flush_dcache_page and
+> -	update_mmu_cache implementations for an example of how to go
+> +	mapping this page.  See IA-64's flush_dcache_page and
+> +	set_pte_at implementations for an example of how to go
+>  	about doing this.
 
-You basically end up calling into lmb to create that "range" array of
-ranges that represent the overlap of LMB's with a node ranges.
+cachetlb.txt says that flush_dcache_page() is the API to solve the
+D-cache aliasing issue. Using IA64 as an example for the API here
+looks strange since IA64 (PIPT) doesn't have D-cache aliasing
+issue.
 
-That itself is done by LMB itself calling into page_alloc.c which
-creates a struct range array of all the node ranges, LMB then does the
-intersection, sorts it, returns that to bootmem, which can finally
-iterate that, do the free's and discard it.
-
-Wow !
-
-All of that could fit in one single function, inside or outside LMB (I
-vote for outside for now, since it's all about NO_BOOTMEM).
-
-Do like I do for my nid allocator: Call get_pfn_range_for_nid(),
-then walk the LMB array and pick up intersecting ranges & free them.
-Easy. One function, not 3 layers spread as many files, no need to
-allocate that range array thing etc...
-
-BTW. You -really- need to get rid of that kernel/range.c and associated
-range.h. We don't need -yet-another- range management system in Linux,
-seriously.
-
-So all that stuff goes out of LMB for now. Just rebase your shit on top
-of my patches when I post them, use my new for_each_lmb() along with
-get_pfn_range_for_nid() as explained above, and do that inside bootmem.c
-for now.
-
-Note that the entire NO_BOOTMEM should be a sparate file. Call it
-bootmem-lmb.c and make it CONFIG_BOOTMEM_LMB or something like that to
-make it clear that it depends on ARCH_HAVE_LMB.
-
-You should be able to remove a ton of crap code with that.
-
-Cheers,
-Ben.
+I don't think that just replacing sparc64 with IA64 helps much here
+since we still have the problem that the whole cache handling
+(architectures, subsystems, file systems) is inconsistent. I think
+that we need to agree on it first.
