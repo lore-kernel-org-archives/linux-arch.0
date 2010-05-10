@@ -1,84 +1,33 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: [PATCH 05/22] lmb: Add lmb_reserve_area/lmb_free_area
-Date: Mon, 10 May 2010 14:44:05 -0700
-Message-ID: <5391ec1a-7d5d-43e9-ac5f-ff882029bbdc@email.android.com>
-References: <4BE84BE7.1020404@oracle.com>
+Date: Tue, 11 May 2010 07:53:42 +1000
+Message-ID: <1273528422.23699.109.camel@pasglop>
+References: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
+	 <1273331860-14325-6-git-send-email-yinghai@kernel.org>
+	 <1273475438.23699.74.camel@pasglop>  <4BE84BE7.1020404@oracle.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="----HNFI7KP8SEM5OW3O5SF8JQGHV2J00O"
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:42770 "EHLO mail.zytor.com"
+Received: from gate.crashing.org ([63.228.1.57]:35766 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756035Ab0EJVvc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 May 2010 17:51:32 -0400
+	id S1753859Ab0EJVzf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 10 May 2010 17:55:35 -0400
 In-Reply-To: <4BE84BE7.1020404@oracle.com>
-References: =?US-ASCII?Q?=3C1273331860-14325-1-git-send-email-yinghai?= =?US-ASCII?Q?=40kernel=2Eorg=3E=09_=3C1273331860-14325-6-git-send-em?= =?US-ASCII?Q?ail-yinghai=40kernel=2Eorg=3E_=3C1273475438=2E23699=2E7?= =?US-ASCII?Q?4=2Ecamel=40pasglop=3E_=3C4BE8?= =?US-ASCII?Q?4BE7=2E1020404=40oracle=2Ecom=3E?=
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai <yinghai.lu@oracle.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Yinghai <yinghai.lu@oracle.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-------HNFI7KP8SEM5OW3O5SF8JQGHV2J00O
-Content-Type: text/plain;
- charset=utf-8
-Content-Transfer-Encoding: base64
+On Mon, 2010-05-10 at 11:09 -0700, Yinghai wrote:
+> those functions have __init markers, and only can be used on boot
+> stage. so do need to worry about hotplug mem.
+> 
+> what I do is: use current lmb code for x86, and keep the affects to
+> original lmb users to minimum. (should be near 0)
 
-U28gcHJvbW90ZSB0aGVtIHRvIG1lbWluaXQuLi4KCiJZaW5naGFpIiA8eWluZ2hhaS5sdUBvcmFj
-bGUuY29tPiB3cm90ZToKCj5PbiAwNS8xMC8yMDEwIDEyOjEwIEFNLCBCZW5qYW1pbiBIZXJyZW5z
-Y2htaWR0IHdyb3RlOgo+PiBPbiBTYXQsIDIwMTAtMDUtMDggYXQgMDg6MTcgLTA3MDAsIFlpbmdo
-YWkgTHUgd3JvdGU6Cj4+PiBUaGV5IHdpbGwgY2hlY2sgaWYgdGhlIHJlZ2lvbiBhcnJheSBpcyBi
-aWcgZW5vdWdoLgo+Pj4KPj4+IF9fY2hlY2tfYW5kX2RvdWJsZV9yZWdpb25fYXJyYXkgd2lsbCB0
-cnkgdG8gZG91YmxlIHRoZSByZWdpb24gYXJyYXkgaWYgdGhhdAo+Pj4gYXJyYXkgc3BhcmUgc2xv
-dHMgaXMgbm90IGJpZyBlbm91Z2guICBPbGQgYXJyYXkgd2lsbCBiZSBjb3BpZWQgdG8gbmV3IGFy
-cmF5Lgo+Pj4KPj4+IEFyY2ggY29kZSBzaG91bGQgc2V0IGxtYi5kZWZhdWx0X2FsbG9jX2xpbWl0
-IGFjY29yZGluZ2x5LCBzbyB0aGUgbmV3IGFycmF5IGlzIGluCj4+PiBhY2Nlc3NpYWJsZSBhZGRy
-ZXNzLgo+PiAKPj4gTW9yZSBpc3N1ZXMuLi4KPj4gCj4+PiArc3RhdGljIHZvaWQgX19pbml0IF9f
-Y2hlY2tfYW5kX2RvdWJsZV9yZWdpb25fYXJyYXkoc3RydWN0IGxtYl9yZWdpb24gKnR5cGUsCj4+
-PiArCQkJIHN0cnVjdCBsbWJfcHJvcGVydHkgKnN0YXRpY19yZWdpb24pCj4+PiArewo+Pj4gKwl1
-NjQgc2l6ZSwgbWVtOwo+Pj4gKwlzdHJ1Y3QgbG1iX3Byb3BlcnR5ICpuZXcsICpvbGQ7Cj4+PiAr
-CXVuc2lnbmVkIGxvbmcgcmduc3ogPSB0eXBlLT5ucl9yZWdpb25zOwo+Pj4gKwo+Pj4gKwkvKiBE
-byB3ZSBoYXZlIGVub3VnaCBzbG90cyBsZWZ0ID8gKi8KPj4+ICsJaWYgKChyZ25zeiAtIHR5cGUt
-PmNudCkgPiAyKQo+Pj4gKwkJcmV0dXJuOwo+Pj4gKwo+Pj4gKwlvbGQgPSB0eXBlLT5yZWdpb247
-Cj4+PiArCS8qIERvdWJsZSB0aGUgYXJyYXkgc2l6ZSAqLwo+Pj4gKwlzaXplID0gc2l6ZW9mKHN0
-cnVjdCBsbWJfcHJvcGVydHkpICogcmduc3ogKiAyOwo+Pj4gKwo+Pj4gKwltZW0gPSBfX2xtYl9h
-bGxvY19iYXNlKHNpemUsIHNpemVvZihzdHJ1Y3QgbG1iX3Byb3BlcnR5KSwgbG1iLmRlZmF1bHRf
-YWxsb2NfbGltaXQpOwo+Pj4gKwlpZiAobWVtID09IDApCj4+PiArCQlwYW5pYygiY2FuIG5vdCBm
-aW5kIG1vcmUgc3BhY2UgZm9yIGxtYi5yZXNlcnZlZC5yZWdpb24gYXJyYXkiKTsKPj4gCj4+IE5v
-dywgdGhhdCBpcyBub3QgcmlnaHQgYmVjYXVzZSB3ZSBkbyBtZW1vcnkgaG90cGx1Zy4gVGh1cyBs
-bWJfYWRkKCkgbXVzdAo+PiBiZSBhYmxlIHRvIGRlYWwgd2l0aCB0aGluZ3MgcnVubmluZyBwYXN0
-IExNQiBpbml0Lgo+PiAKPj4gc2xhYl9pc19hdmFpbGFibGUoKSB3aWxsIGRvIHRoZSBqb2IgZm9y
-IG5vdywgdW5sZXNzIHNvbWVib2R5IGhhcyBib290bWVtCj4+IGFuZCB0cmllcyB0byBsbWJfYWRk
-KCkgbWVtb3J5IHdoaWxlIGJvb3RtZW0gaXMgYWN0aXZlLCBidXQgc2NyZXcgdGhhdAo+PiBmb3Ig
-bm93LiBTZWUgdGhlIGNvZGUgSSdsbCBwb3N0IHRvbmlnaHQuCj4+IAo+Pj4gKwluZXcgPSBfX3Zh
-KG1lbSk7Cj4+PiArCS8qIENvcHkgb2xkIHRvIG5ldyAqLwo+Pj4gKwltZW1jcHkoJm5ld1swXSwg
-Jm9sZFswXSwgc2l6ZW9mKHN0cnVjdCBsbWJfcHJvcGVydHkpICogcmduc3opOwo+Pj4gKwltZW1z
-ZXQoJm5ld1tyZ25zel0sIDAsIHNpemVvZihzdHJ1Y3QgbG1iX3Byb3BlcnR5KSAqIHJnbnN6KTsK
-Pj4+ICsKPj4+ICsJbWVtc2V0KCZvbGRbMF0sIDAsIHNpemVvZihzdHJ1Y3QgbG1iX3Byb3BlcnR5
-KSAqIHJnbnN6KTsKPj4+ICsJdHlwZS0+cmVnaW9uID0gbmV3Owo+Pj4gKwl0eXBlLT5ucl9yZWdp
-b25zID0gcmduc3ogKiAyOwo+Pj4gKwlwcmludGsoS0VSTl9ERUJVRyAibG1iLnJlc2VydmVkLnJl
-Z2lvbiBhcnJheSBpcyBkb3VibGVkIHRvICVsZCBhdCBbJWxseCAtICVsbHhdXG4iLAo+Pj4gKwkJ
-dHlwZS0+bnJfcmVnaW9ucywgbWVtLCBtZW0gKyBzaXplIC0gMSk7Cj4+PiArCj4+PiArCS8qIEZy
-ZWUgb2xkIG9uZSA/Ki8KPj4+ICsJaWYgKG9sZCAhPSBzdGF0aWNfcmVnaW9uKQo+Pj4gKwkJbG1i
-X2ZyZWUoX19wYShvbGQpLCBzaXplb2Yoc3RydWN0IGxtYl9wcm9wZXJ0eSkgKiByZ25zeik7Cj4+
-PiArfQo+PiAKPj4gU2ltaWxhciBjb21tZW50LCBkb24ndCBib3RoZXIgaWYgc2xhYiBpcyBhdmFp
-bGFibGUuCj4+IAo+Pj4gK3ZvaWQgX19pbml0IGxtYl9hZGRfbWVtb3J5KHU2NCBzdGFydCwgdTY0
-IGVuZCkKPj4+ICt7Cj4+PiArCWxtYl9hZGRfcmVnaW9uKCZsbWIubWVtb3J5LCBzdGFydCwgZW5k
-IC0gc3RhcnQpOwo+Pj4gKwlfX2NoZWNrX2FuZF9kb3VibGVfcmVnaW9uX2FycmF5KCZsbWIubWVt
-b3J5LCAmbG1iX21lbW9yeV9yZWdpb25bMF0pOwo+Pj4gK30KPj4gCj4+IFNvIHlvdSBkdXBsaWNh
-dGUgbG1iX2FkZCgpIGdyYXR1aXR1b3VzbHkgPyAKPj4gCj4+PiArdm9pZCBfX2luaXQgbG1iX3Jl
-c2VydmVfYXJlYSh1NjQgc3RhcnQsIHU2NCBlbmQsIGNoYXIgKm5hbWUpCj4+PiArewo+Pj4gKwlp
-ZiAoc3RhcnQgPT0gZW5kKQo+Pj4gKwkJcmV0dXJuOwo+Pj4gKwo+Pj4gKwlpZiAoV0FSTl9PTkNF
-KHN0YXJ0ID4gZW5kLCAibG1iX3Jlc2VydmVfYXJlYTogd3JvbmcgcmFuZ2UgWyUjbGx4LCAlI2xs
-eF1cbiIsIHN0YXJ0LCBlbmQpKQo+Pj4gKwkJcmV0dXJuOwo+Pj4gKwo+Pj4gKwlsbWJfYWRkX3Jl
-Z2lvbigmbG1iLnJlc2VydmVkLCBzdGFydCwgZW5kIC0gc3RhcnQpOwo+Pj4gKwlfX2NoZWNrX2Fu
-ZF9kb3VibGVfcmVnaW9uX2FycmF5KCZsbWIucmVzZXJ2ZWQsICZsbWJfcmVzZXJ2ZWRfcmVnaW9u
-WzBdKTsKPj4+ICt9Cj4+IAo+PiBBbmQgbG1iX3Jlc2VydmUoKSA/Cj4+IAo+PiBEbyB3ZSB3YW50
-IHRvIGVuZCB1cCB3aXRoIDUgY29waWVzIG9mIHRoZSBzYW1lIEFQSSB3aXRoIHN1YnRsZQo+PiBk
-aWZmZXJlbmNlcyBqdXN0IGZvciBmdW4gPwo+Cj50aG9zZSBmdW5jdGlvbnMgaGF2ZSBfX2luaXQg
-bWFya2VycywgYW5kIG9ubHkgY2FuIGJlIHVzZWQgb24gYm9vdCBzdGFnZS4gc28gZG8gbmVlZCB0
-byB3b3JyeSBhYm91dCBob3RwbHVnIG1lbS4KPgo+d2hhdCBJIGRvIGlzOiB1c2UgY3VycmVudCBs
-bWIgY29kZSBmb3IgeDg2LCBhbmQga2VlcCB0aGUgYWZmZWN0cyB0byBvcmlnaW5hbCBsbWIgdXNl
-cnMgdG8gbWluaW11bS4gKHNob3VsZCBiZSBuZWFyIDApCj4KPllICgotLSAKU2VudCBmcm9tIG15
-IEFuZHJvaWQgcGhvbmUgd2l0aCBLLTkgTWFpbC4gUGxlYXNlIGV4Y3VzZSBteSBicmV2aXR5Lg==
-------HNFI7KP8SEM5OW3O5SF8JQGHV2J00O--
+But that's just wrong. You are just duplicating functionality all over
+the place. That doesn't make any sense.
 
-------HNFI7KP8SEM5OW3O5SF8JQGHV2J00O--
+Cheers,
+Ben.
