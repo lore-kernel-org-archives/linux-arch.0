@@ -1,77 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from serv2.oss.ntt.co.jp ([222.151.198.100]:50532 "EHLO
-	serv2.oss.ntt.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752143Ab0EJMWt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 May 2010 08:22:49 -0400
-Message-ID: <4BE7FB7B.5010600@oss.ntt.co.jp>
-Date: Mon, 10 May 2010 21:26:35 +0900
-From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-MIME-Version: 1.0
-Subject: Re: [RFC][PATCH 0/12] KVM, x86, ppc, asm-generic: moving dirty bitmaps
- to user space
-References: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com> <4BE7F6D7.3060005@redhat.com>
-In-Reply-To: <4BE7F6D7.3060005@redhat.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:59917 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750971Ab0EJOkM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 10 May 2010 10:40:12 -0400
+Subject: Re: [RFC PATCH] Update the cachetlb.txt file WRT flush_dcache_page
+ and update_mmu_cache
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <20100510102947.GA14278@linux-sh.org>
+References: <20100507132418.28009.6013.stgit@e102109-lin.cambridge.arm.com>
+	 <20100510170616O.fujita.tomonori@lab.ntt.co.jp>
+	 <1273486607.3023.37.camel@e102109-lin.cambridge.arm.com>
+	 <20100510102947.GA14278@linux-sh.org>
+Content-Type: text/plain; charset="UTF-8"
+Date: Mon, 10 May 2010 09:40:08 -0500
+Message-ID: <1273502408.4424.4.camel@mulgrave.site>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Avi Kivity <avi@redhat.com>
-Cc: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>, mtosatti@redhat.com, agraf@suse.de, fernando@oss.ntt.co.jp, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, kvm-ia64@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@ozlabs.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20100510122635.SD6EvF36gBt_QR53oefUTGfLrnWR5kZWtOSU0Qg2V2A@z>
+To: Paul Mundt <lethal@linux-sh.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, davem@davemloft.net, rmk@arm.linux.org.uk
+Message-ID: <20100510144008.EZ18U81qhvJ6oyb9xvW-ugKyZZ2Q5W6IdyH9eTN8kRk@z>
 
+On Mon, 2010-05-10 at 19:29 +0900, Paul Mundt wrote:
+> On Mon, May 10, 2010 at 11:16:47AM +0100, Catalin Marinas wrote:
+> > In most situations, just doing flushing in set_pte_at() would suffice
+> > and flush_dcache_page() can be ignored. There are two situations where I
+> > still see flush_dcache_page() useful:
+> > 
+> >      1. SMP systems where the cache maintenance operations aren't
+> >         automatically broadcast in hardware
+> >      2. The kernel modifies a page cache page that is already mapped in
+> >         user space
+> > 
+> > (1) can be worked around on some architectures (though not sure about
+> > all of them).
+> > 
+> > Is (2) a valid scenario?
+> > 
+> get_user_pages() ?
 
->>
->> get.org get.opt switch.opt
->>
->> slots[7].len=32768 278379 66398 64024
->> slots[8].len=32768 181246 270 160
->> slots[7].len=32768 263961 64673 64494
->> slots[8].len=32768 181655 265 160
->> slots[7].len=32768 263736 64701 64610
->> slots[8].len=32768 182785 267 160
->> slots[7].len=32768 260925 65360 65042
->> slots[8].len=32768 182579 264 160
->> slots[7].len=32768 267823 65915 65682
->> slots[8].len=32768 186350 271 160
->>
->> At a glance, we know our optimization improved significantly compared
->> to the original get dirty log ioctl. This is true for both get.opt and
->> switch.opt. This has a really big impact for the personal KVM users who
->> drive KVM in GUI mode on their usual PCs.
->>
->> Next, we notice that switch.opt improved a hundred nano seconds or so for
->> these slots. Although this may sound a bit tiny improvement, we can feel
->> this as a difference of GUI's responses like mouse reactions.
->
-> 100 ns... this is a bit on the low side (and if you can measure it
-> interactively you have much better reflexes than I).
->
->> To feel the difference, please try GUI on your PC with our patch series!
->
-> No doubt get.org -> get.opt is measurable, but get.opt->switch.opt is
-> problematic. Have you tried profiling to see where the time is spent
-> (well I can guess, clearing the write access from the sptes).
+Actually, no, not really.  get_user_pages() is preparing the pages for
+DMA (so it pins and possibly flushes them to make the underlying
+physical page in the page cache clean).  This means it gathers the
+physical pages into a scatter gather list.  It actually assumes the
+kernel *won't* be touching them (without using kmap), so it doesn't give
+the pages an in-kernel mapping.
 
-Sorry but no, and I agree with your guess.
-Anyway, I want to do some profiling to confirm this guess.
+James
 
-
-BTW, If we only think about performance improvement of time, optimized
-get(get.opt) may be enough at this stage.
-
-But if we consider the future expansion like using user allocated bitmaps,
-new API's introduced for switch.opt won't become waste, I think, because we
-need a structure to get and export bitmap addresses.
-
-
->>
->> In usual workload, the number of dirty pages varies a lot for each
->> iteration
->> and we should gain really a lot for relatively clean cases.
->
-> Can you post such a test, for an idle large guest?
-
-OK, I'll do!
-
->
 
