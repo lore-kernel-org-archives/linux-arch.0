@@ -1,79 +1,66 @@
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: Re: [RFC PATCH] Update the cachetlb.txt file WRT flush_dcache_page
- and update_mmu_cache
-Date: Mon, 10 May 2010 17:06:20 +0900
-Message-ID: <20100510170616O.fujita.tomonori@lab.ntt.co.jp>
-References: <20100507132418.28009.6013.stgit@e102109-lin.cambridge.arm.com>
+From: Russell King <rmk@arm.linux.org.uk>
+Subject: Re: [PATCH -mm 0/6] remove unnecessary sync_single_range_* in
+	dma_map_ops
+Date: Mon, 10 May 2010 10:29:09 +0100
+Message-ID: <20100510092909.GA11675@flint.arm.linux.org.uk>
+References: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:48172 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752298Ab0EJIHE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 May 2010 04:07:04 -0400
-In-Reply-To: <20100507132418.28009.6013.stgit@e102109-lin.cambridge.arm.com>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:45409 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755696Ab0EJJ3l (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 May 2010 05:29:41 -0400
+Content-Disposition: inline
+In-Reply-To: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: catalin.marinas@arm.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, James.Bottomley@HansenPartnership.com, benh@kernel.crashing.org, davem@davemloft.net, rmk@arm.linux.org.uk
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, 07 May 2010 14:24:18 +0100
-Catalin Marinas <catalin.marinas@arm.com> wrote:
+On Tue, Apr 27, 2010 at 09:25:34PM +0900, FUJITA Tomonori wrote:
+> This patchset removes useless sync_single_range_for_cpu and
+> sync_single_range_for_device hooks in dma_map_ops. These hooks were
+> for dma_sync_single_range_* DMA API, however, the API became obsolete
+> (the description in DMA API docs was removed too). Architecutres
+> should use sync_single_for_cpu and sync_single_for_device hooks
+> instead (as DMA API docs say, they need to support a partial sync).
 
->    void flush_dcache_page(struct page *page)
->  
-> -	Any time the kernel writes to a page cache page, _OR_
-> +	Any time the kernel modifies an existing page cache page, _OR_
->  	the kernel is about to read from a page cache page and
->  	user space shared/writable mappings of this page potentially
->  	exist, this routine is called.
-> @@ -289,20 +295,26 @@ maps this page at its virtual address.
->  	      handling vfs symlinks in the page cache need not call
->  	      this interface at all.
->  
-> +	      The kernel may not call this function on a newly allocated
-> +	      page cache page even though it stored data into the page.
-> +
->  	The phrase "kernel writes to a page cache page" means,
->  	specifically, that the kernel executes store instructions
->  	that dirty data in that page at the page->virtual mapping
->  	of that page.  It is important to flush here to handle
->  	D-cache aliasing, to make sure these kernel stores are
-> -	visible to user space mappings of that page.
-> +	visible to user space mappings of that page. It is also
-> +	important to flush the cache on Harvard architectures where the
-> +	I and D caches are not coherent.
->  
->  	The corollary case is just as important, if there are users
->  	which have shared+writable mappings of this file, we must make
->  	sure that kernel reads of these pages will see the most recent
->  	stores done by the user.
->  
-> -	If D-cache aliasing is not an issue, this routine may
-> -	simply be defined as a nop on that architecture.
-> +	If D-cache aliasing is not an issue and the I and D caches are
-> +	unified, this routine may simply be defined as a nop on that
-> +	architecture.
->  
->          There is a bit set aside in page->flags (PG_arch_1) as
->  	"architecture private".  The kernel guarantees that,
-> @@ -312,15 +324,15 @@ maps this page at its virtual address.
->  	This allows these interfaces to be implemented much more
->  	efficiently.  It allows one to "defer" (perhaps indefinitely)
->  	the actual flush if there are currently no user processes
-> -	mapping this page.  See sparc64's flush_dcache_page and
-> -	update_mmu_cache implementations for an example of how to go
-> +	mapping this page.  See IA-64's flush_dcache_page and
-> +	set_pte_at implementations for an example of how to go
->  	about doing this.
+If you're going to do this, then please catch all instances - compare
+the number of places which contain "dma_sync_single_range" with your
+diffstat and you'll notice you've missed a _lot_ of places.
 
-cachetlb.txt says that flush_dcache_page() is the API to solve the
-D-cache aliasing issue. Using IA64 as an example for the API here
-looks strange since IA64 (PIPT) doesn't have D-cache aliasing
-issue.
+$ git grep -l '\<dma_sync_single_range'
+arch/arm/include/asm/dma-mapping.h
+arch/avr32/include/asm/dma-mapping.h
+arch/blackfin/include/asm/dma-mapping.h
+arch/cris/include/asm/dma-mapping.h
+arch/frv/include/asm/dma-mapping.h
+arch/m68k/include/asm/dma-mapping.h
+arch/mips/include/asm/dma-mapping.h
+arch/mips/mm/dma-default.c
+arch/mn10300/include/asm/dma-mapping.h
+arch/parisc/include/asm/dma-mapping.h
+arch/xtensa/include/asm/dma-mapping.h
+include/asm-generic/dma-mapping-broken.h
+include/asm-generic/dma-mapping-common.h
+include/linux/ssb/ssb.h
 
-I don't think that just replacing sparc64 with IA64 helps much here
-since we still have the problem that the whole cache handling
-(architectures, subsystems, file systems) is inconsistent. I think
-that we need to agree on it first.
+vs.
+
+>  arch/ia64/kernel/pci-swiotlb.c           |    2 -
+>  arch/powerpc/kernel/dma-swiotlb.c        |    4 +-
+>  arch/powerpc/kernel/dma.c                |   12 +++++-----
+>  arch/x86/kernel/pci-swiotlb.c            |    2 -
+>  include/asm-generic/dma-mapping-common.h |   20 +-----------------
+>  include/linux/dma-mapping.h              |   10 ---------
+>  include/linux/swiotlb.h                  |   10 ---------
+>  lib/swiotlb.c                            |   31 ------------------------------
+>  8 files changed, 10 insertions(+), 81 deletions(-)
+
+It seems there's users of this API in linux/ssb/ssb.h.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
