@@ -1,98 +1,102 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 15/22] lmb: Add lmb_reserve_area_overlap_ok()
-Date: Mon, 10 May 2010 16:34:41 +1000
-Message-ID: <1273473281.23699.50.camel@pasglop>
+Subject: Re: [PATCH 05/22] lmb: Add lmb_reserve_area/lmb_free_area
+Date: Mon, 10 May 2010 17:10:38 +1000
+Message-ID: <1273475438.23699.74.camel@pasglop>
 References: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
-	 <1273331860-14325-16-git-send-email-yinghai@kernel.org>
+	 <1273331860-14325-6-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:46459 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:40658 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755351Ab0EJGi3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 May 2010 02:38:29 -0400
-In-Reply-To: <1273331860-14325-16-git-send-email-yinghai@kernel.org>
+	id S1751386Ab0EJHM2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 10 May 2010 03:12:28 -0400
+In-Reply-To: <1273331860-14325-6-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yinghai Lu <yinghai@kernel.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
 On Sat, 2010-05-08 at 08:17 -0700, Yinghai Lu wrote:
-> Some areas from firmware could be reserved several times from different callers.
+> They will check if the region array is big enough.
 > 
-> If these area are overlapped, We may have overlapped entries in lmb.reserved.
+> __check_and_double_region_array will try to double the region array if that
+> array spare slots is not big enough.  Old array will be copied to new array.
 > 
-> Try to free the area at first, before rerserve them again.
+> Arch code should set lmb.default_alloc_limit accordingly, so the new array is in
+> accessiable address.
 
-I explained earlier that name sucked :-)
+More issues...
 
-We just need to make lmb_reserve() capable of dealing with overlaps
-instead. I like the idea of implementing that with a free.
-
-Cheers,
-Ben.
-
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> ---
->  include/linux/lmb.h |    1 +
->  mm/lmb.c            |   27 +++++++++++++++++++++++++--
->  2 files changed, 26 insertions(+), 2 deletions(-)
-> 
-> diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-> index 90022c1..47b9d7f 100644
-> --- a/include/linux/lmb.h
-> +++ b/include/linux/lmb.h
-> @@ -87,6 +87,7 @@ lmb_end_pfn(struct lmb_region *type, unsigned long region_nr)
->  }
->  
->  void lmb_reserve_area(u64 start, u64 end, char *name);
-> +void lmb_reserve_area_overlap_ok(u64 start, u64 end, char *name);
->  void lmb_free_area(u64 start, u64 end);
->  void lmb_add_memory(u64 start, u64 end);
->  u64 __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
-> diff --git a/mm/lmb.c b/mm/lmb.c
-> index 2870dd9..decea60 100644
-> --- a/mm/lmb.c
-> +++ b/mm/lmb.c
-> @@ -605,6 +605,12 @@ void __init lmb_add_memory(u64 start, u64 end)
->  	__check_and_double_region_array(&lmb.memory, &lmb_memory_region[0]);
->  }
->  
-> +static void __init __lmb_reserve_area(u64 start, u64 end, char *name)
+> +static void __init __check_and_double_region_array(struct lmb_region *type,
+> +			 struct lmb_property *static_region)
 > +{
-> +	lmb_add_region(&lmb.reserved, start, end - start);
-> +	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0]);
-> +}
+> +	u64 size, mem;
+> +	struct lmb_property *new, *old;
+> +	unsigned long rgnsz = type->nr_regions;
 > +
->  void __init lmb_reserve_area(u64 start, u64 end, char *name)
->  {
->  	if (start == end)
-> @@ -613,8 +619,25 @@ void __init lmb_reserve_area(u64 start, u64 end, char *name)
->  	if (WARN_ONCE(start > end, "lmb_reserve_area: wrong range [%#llx, %#llx]\n", start, end))
->  		return;
->  
-> -	lmb_add_region(&lmb.reserved, start, end - start);
-> -	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0]);
-> +	__lmb_reserve_area(start, end, name);
-> +}
+> +	/* Do we have enough slots left ? */
+> +	if ((rgnsz - type->cnt) > 2)
+> +		return;
 > +
-> +/*
-> + * Could be used to avoid having overlap entries in lmb.reserved.region.
-> + *  Don't need to use it with area that is from lmb_find_area()
-> + *  Only use it for the area that fw hidden area.
-> + */
-> +void __init lmb_reserve_area_overlap_ok(u64 start, u64 end, char *name)
+> +	old = type->region;
+> +	/* Double the array size */
+> +	size = sizeof(struct lmb_property) * rgnsz * 2;
+> +
+> +	mem = __lmb_alloc_base(size, sizeof(struct lmb_property), lmb.default_alloc_limit);
+> +	if (mem == 0)
+> +		panic("can not find more space for lmb.reserved.region array");
+
+Now, that is not right because we do memory hotplug. Thus lmb_add() must
+be able to deal with things running past LMB init.
+
+slab_is_available() will do the job for now, unless somebody has bootmem
+and tries to lmb_add() memory while bootmem is active, but screw that
+for now. See the code I'll post tonight.
+
+> +	new = __va(mem);
+> +	/* Copy old to new */
+> +	memcpy(&new[0], &old[0], sizeof(struct lmb_property) * rgnsz);
+> +	memset(&new[rgnsz], 0, sizeof(struct lmb_property) * rgnsz);
+> +
+> +	memset(&old[0], 0, sizeof(struct lmb_property) * rgnsz);
+> +	type->region = new;
+> +	type->nr_regions = rgnsz * 2;
+> +	printk(KERN_DEBUG "lmb.reserved.region array is doubled to %ld at [%llx - %llx]\n",
+> +		type->nr_regions, mem, mem + size - 1);
+> +
+> +	/* Free old one ?*/
+> +	if (old != static_region)
+> +		lmb_free(__pa(old), sizeof(struct lmb_property) * rgnsz);
+> +}
+
+Similar comment, don't bother if slab is available.
+
+> +void __init lmb_add_memory(u64 start, u64 end)
+> +{
+> +	lmb_add_region(&lmb.memory, start, end - start);
+> +	__check_and_double_region_array(&lmb.memory, &lmb_memory_region[0]);
+> +}
+
+So you duplicate lmb_add() gratuituously ? 
+
+> +void __init lmb_reserve_area(u64 start, u64 end, char *name)
 > +{
 > +	if (start == end)
 > +		return;
 > +
-> +	if (WARN_ONCE(start > end, "lmb_reserve_area_overlap_ok: wrong range [%#llx, %#llx]\n", start, end))
+> +	if (WARN_ONCE(start > end, "lmb_reserve_area: wrong range [%#llx, %#llx]\n", start, end))
 > +		return;
 > +
-> +	/* Free that region at first */
-> +	lmb_free(start, end - start);
-> +	__lmb_reserve_area(start, end, name);
->  }
->  
->  void __init lmb_free_area(u64 start, u64 end)
+> +	lmb_add_region(&lmb.reserved, start, end - start);
+> +	__check_and_double_region_array(&lmb.reserved, &lmb_reserved_region[0]);
+> +}
+
+And lmb_reserve() ?
+
+Do we want to end up with 5 copies of the same API with subtle
+differences just for fun ?
+
+Cheers,
+Ben.
