@@ -1,49 +1,55 @@
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: [RFC PATCH] Update the cachetlb.txt file WRT flush_dcache_page
-	and update_mmu_cache
-Date: Mon, 10 May 2010 05:55:52 -0600
-Message-ID: <20100510115552.GD10452@parisc-linux.org>
-References: <20100507132418.28009.6013.stgit@e102109-lin.cambridge.arm.com> <20100510170616O.fujita.tomonori@lab.ntt.co.jp> <1273486607.3023.37.camel@e102109-lin.cambridge.arm.com>
+From: Avi Kivity <avi@redhat.com>
+Subject: Re: [RFC][PATCH resend 8/12] asm-generic: bitops: introduce le bit
+ offset macro
+Date: Mon, 10 May 2010 15:01:16 +0300
+Message-ID: <4BE7F58C.50006@redhat.com>
+References: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com> <4BE04677.4060608@redhat.com> <20100505115924.7bb92036.takuya.yoshikawa@gmail.com> <201005061538.54326.arnd@arndb.de> <4BE7F22E.9070504@oss.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:38379 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751351Ab0EJLzy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 May 2010 07:55:54 -0400
-Content-Disposition: inline
-In-Reply-To: <1273486607.3023.37.camel@e102109-lin.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, James.Bottomley@HansenPartnership.com, benh@kernel.crashing.org, davem@davemloft.net, rmk@arm.linux.org.uk
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <kvm-owner@vger.kernel.org>
+In-Reply-To: <4BE7F22E.9070504@oss.ntt.co.jp>
+Sender: kvm-owner@vger.kernel.org
+To: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+Cc: Arnd Bergmann <arnd@arndb.de>, Takuya Yoshikawa <takuya.yoshikawa@gmail.com>, mtosatti@redhat.com, agraf@suse.de, fernando@oss.ntt.co.jp, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, kvm-ia64@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 10, 2010 at 11:16:47AM +0100, Catalin Marinas wrote:
-> In most situations, just doing flushing in set_pte_at() would suffice
-> and flush_dcache_page() can be ignored. There are two situations where I
-> still see flush_dcache_page() useful:
-> 
->      1. SMP systems where the cache maintenance operations aren't
->         automatically broadcast in hardware
->      2. The kernel modifies a page cache page that is already mapped in
->         user space
-> 
-> (1) can be worked around on some architectures (though not sure about
-> all of them).
-> 
-> Is (2) a valid scenario?
+On 05/10/2010 02:46 PM, Takuya Yoshikawa wrote:
+> (2010/05/06 22:38), Arnd Bergmann wrote:
+>> On Wednesday 05 May 2010, Takuya Yoshikawa wrote:
+>>> Date:
+>>> Yesterday 04:59:24
+>>>> That's why the bitmaps are defined as little endian u64 aligned, 
+>>>> even on
+>>>> big endian 32-bit systems.  Little endian bitmaps are wordsize 
+>>>> agnostic,
+>>>> and u64 alignment ensures we can use long-sized bitops on mixed size
+>>>> systems.
+>>
+>> Ok, I see.
+>>
+>>> There was a suggestion to propose set_le_bit_user() kind of macros.
+>>> But what I thought was these have a constraint you two explained and 
+>>> seemed to be
+>>> a little bit specific to some area, like KVM.
+>>>
+>>> So I decided to propose just the offset calculation macro.
+>>
+>> I'm not sure I understand how this macro is going to be used though.
+>> If you are just using this in kernel space, that's fine, please go for
+>> it.
+>
+> Yes, I'm just using in kernel space: qemu has its own endian related 
+> helpers.
+>
+> So if you allow us to place this macro in asm-generic/bitops/* it will 
+> help us.
+>
+> Avi, what do you think? Do you want to place it in kvm.h ?
 
-The kernel always calls kmap() / kunmap() around accesses to page cache
-pages (thanks to x86-32's ability to support 64GB).  There are three
-ways I know of that architectures use this:
-
-1) No-ops.  These architectures don't have cache problems.
-2) Flush the kernel's mapping in kunmap().  This can have bad consequences
-in SMP systems with threaded programs.
-3) Select an address in kmap() that will alias to the user's address.
+I really prefer anything that is generic to be outside kvm, even if kvm 
+is the only user.
 
 -- 
-Matthew Wilcox				Intel Open Source Technology Centre
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+error compiling committee.c: too many arguments to function
+
