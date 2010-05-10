@@ -1,66 +1,45 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH] Update the cachetlb.txt file WRT
- flush_dcache_pageand update_mmu_cache
-Date: Mon, 10 May 2010 15:32:55 +0100
-Message-ID: <1273501975.10282.57.camel@e102109-lin.cambridge.arm.com>
-References: <20100510.070326.146087861.davem@davemloft.net>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: [RFC PATCH] Update the cachetlb.txt file WRT flush_dcache_page
+ and update_mmu_cache
+Date: Mon, 10 May 2010 09:40:08 -0500
+Message-ID: <1273502408.4424.4.camel@mulgrave.site>
+References: <20100507132418.28009.6013.stgit@e102109-lin.cambridge.arm.com>
+	 <20100510170616O.fujita.tomonori@lab.ntt.co.jp>
+	 <1273486607.3023.37.camel@e102109-lin.cambridge.arm.com>
+	 <20100510102947.GA14278@linux-sh.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:64390 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751160Ab0EJOdJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 May 2010 10:33:09 -0400
-In-Reply-To: <20100510.070326.146087861.davem@davemloft.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: matthew@wil.cx, fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, James.Bottomley@HansenPartnership.com, benh@kernel.crashing.org, rmk@arm.linux.org.uk
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20100510102947.GA14278@linux-sh.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Paul Mundt <lethal@linux-sh.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, davem@davemloft.net, rmk@arm.linux.org.uk
+List-Id: linux-arch.vger.kernel.org
 
-> From: Catalin Marinas <catalin.marinas@arm.com>
-> Date: Mon, 10 May 2010 15:00:10 +0100
-> 
-> > 3rd point above would help with the D-cache aliasing. Does the I/D cache
-> > coherency need to be handled differently? On PIPT Harvard architectures,
-> > we don't actually have D-cache aliasing but we may end up flushing too
-> > much in kunmap() just in case such page would be mapped in user space
-> > with executable permission.
-> 
-> You can handle this by having an "I-cache clean" bit in the page.
-> When you kmap/kunmap, simply force this bit clear.
-> 
-> In update_mmu_cache() or set_pte_at() you'll see when a page gets
-> into userspace with execute permission, and if the I-cache bit
-> is clear you can do the flush then and set the "I-cache clean"
-> bit.
+On Mon, 2010-05-10 at 19:29 +0900, Paul Mundt wrote:
+> On Mon, May 10, 2010 at 11:16:47AM +0100, Catalin Marinas wrote:
+> > In most situations, just doing flushing in set_pte_at() would suffice
+> > and flush_dcache_page() can be ignored. There are two situations where I
+> > still see flush_dcache_page() useful:
+> > 
+> >      1. SMP systems where the cache maintenance operations aren't
+> >         automatically broadcast in hardware
+> >      2. The kernel modifies a page cache page that is already mapped in
+> >         user space
+> > 
+> > (1) can be worked around on some architectures (though not sure about
+> > all of them).
+> > 
+> > Is (2) a valid scenario?
+> > 
+> get_user_pages() ?
 
-If calling kmap on a new page cache page that hasn't been mapped in user
-space, such bit is already cleared anyway. But would the kernel ever
-kmap a page already mapped in user space without calling
-flush_dcache_page? Ideally we shouldn't have to implement the kmap API
-for architectures with highmem disabled.
+Actually, no, not really.  get_user_pages() is preparing the pages for
+DMA (so it pins and possibly flushes them to make the underlying
+physical page in the page cache clean).  This means it gathers the
+physical pages into a scatter gather list.  It actually assumes the
+kernel *won't* be touching them (without using kmap), so it doesn't give
+the pages an in-kernel mapping.
 
-What I'm trying to achieve is to get an agreement between architectures
-and use the the cachetlb.txt document as a central recommendation point
-for how cache flushing should be handled (we've had such issues on ARM
-for quite some time).
-
-The main problems with the arch/arm/ implementation and how we probably
-understood cachetlb.txt:
-
-     1. flush_dcache_page() isn't always called on page cache pages that
-        were written to (and which are subsequently mapped in user
-        space)
-     2. kmap/kunmap isn't always used in PIO drivers (sometimes just
-        normal pages)
-     3. deferring the cache flushing to update_mmu_cache() doesn't work
-        on SMP systems with hardware TLB implementation (a different CPU
-        could see the PTE before the cache flushing occurred). The
-        set_pte_at() would be a better place for this
-
-Thanks.
-
--- 
-Catalin
+James
