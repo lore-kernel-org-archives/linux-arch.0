@@ -1,106 +1,78 @@
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: Re: [PATCH -mm 0/6] remove unnecessary sync_single_range_* in
-	dma_map_ops
-Date: Mon, 10 May 2010 18:49:19 +0900
-Message-ID: <20100510184917N.fujita.tomonori@lab.ntt.co.jp>
-References: <1272371140-6085-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-	<20100510092909.GA11675@flint.arm.linux.org.uk>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC PATCH] Update the cachetlb.txt file WRT flush_dcache_page
+ and update_mmu_cache
+Date: Mon, 10 May 2010 11:16:47 +0100
+Message-ID: <1273486607.3023.37.camel@e102109-lin.cambridge.arm.com>
+References: <20100507132418.28009.6013.stgit@e102109-lin.cambridge.arm.com>
+	 <20100510170616O.fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:54744 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753072Ab0EJJuE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 May 2010 05:50:04 -0400
-In-Reply-To: <20100510092909.GA11675@flint.arm.linux.org.uk>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:34868 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754065Ab0EJKRa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 10 May 2010 06:17:30 -0400
+In-Reply-To: <20100510170616O.fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: rmk@arm.linux.org.uk
-Cc: fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, James.Bottomley@HansenPartnership.com, benh@kernel.crashing.org, davem@davemloft.net, rmk@arm.linux.org.uk
 
-On Mon, 10 May 2010 10:29:09 +0100
-Russell King <rmk@arm.linux.org.uk> wrote:
-
-> On Tue, Apr 27, 2010 at 09:25:34PM +0900, FUJITA Tomonori wrote:
-> > This patchset removes useless sync_single_range_for_cpu and
-> > sync_single_range_for_device hooks in dma_map_ops. These hooks were
-> > for dma_sync_single_range_* DMA API, however, the API became obsolete
-> > (the description in DMA API docs was removed too). Architecutres
-> > should use sync_single_for_cpu and sync_single_for_device hooks
-> > instead (as DMA API docs say, they need to support a partial sync).
+On Mon, 2010-05-10 at 09:06 +0100, FUJITA Tomonori wrote:
+> On Fri, 07 May 2010 14:24:18 +0100
+> Catalin Marinas <catalin.marinas@arm.com> wrote:
+> > @@ -312,15 +324,15 @@ maps this page at its virtual address.
+> >       This allows these interfaces to be implemented much more
+> >       efficiently.  It allows one to "defer" (perhaps indefinitely)
+> >       the actual flush if there are currently no user processes
+> > -     mapping this page.  See sparc64's flush_dcache_page and
+> > -     update_mmu_cache implementations for an example of how to go
+> > +     mapping this page.  See IA-64's flush_dcache_page and
+> > +     set_pte_at implementations for an example of how to go
+> >       about doing this.
 > 
-> If you're going to do this, then please catch all instances - compare
-> the number of places which contain "dma_sync_single_range" with your
-> diffstat and you'll notice you've missed a _lot_ of places.
-> 
-> $ git grep -l '\<dma_sync_single_range'
-> arch/arm/include/asm/dma-mapping.h
-> arch/avr32/include/asm/dma-mapping.h
-> arch/blackfin/include/asm/dma-mapping.h
-> arch/cris/include/asm/dma-mapping.h
-> arch/frv/include/asm/dma-mapping.h
-> arch/m68k/include/asm/dma-mapping.h
-> arch/mips/include/asm/dma-mapping.h
-> arch/mips/mm/dma-default.c
-> arch/mn10300/include/asm/dma-mapping.h
-> arch/parisc/include/asm/dma-mapping.h
-> arch/xtensa/include/asm/dma-mapping.h
-> include/asm-generic/dma-mapping-broken.h
-> include/asm-generic/dma-mapping-common.h
-> include/linux/ssb/ssb.h
+> cachetlb.txt says that flush_dcache_page() is the API to solve the
+> D-cache aliasing issue. Using IA64 as an example for the API here
+> looks strange since IA64 (PIPT) doesn't have D-cache aliasing
+> issue.
 
-The patchset doesn't remove dma_sync_single_range_for_{cpu|device}
-API. It removes sync_single_range_for_cpu and
-sync_single_range_for_device hooks in struct dma_map_ops. The above
-architectures doesn't use struct dma_map_ops so not related with this
-patchset.
+Once we fix the ARM implementation, we could use it as an example :). It
+has processors with both D-cache aliasing and separate I/D caches.
 
-With this patchset, on the architectures using dma_map_ops,
-dma_sync_single_range_for_cpu and dma_sync_single_range_for_device is
-just the wrapper of dma_sync_single_for_cpu and
-dma_sync_single_for_device.
+> I don't think that just replacing sparc64 with IA64 helps much here
+> since we still have the problem that the whole cache handling
+> (architectures, subsystems, file systems) is inconsistent. I think
+> that we need to agree on it first.
 
-static inline void dma_sync_single_range_for_cpu(struct device *dev,
-						 dma_addr_t addr,
-						 unsigned long offset,
-						 size_t size,
-						 enum dma_data_direction dir)
-{
-	dma_sync_single_for_cpu(dev, addr + offset, size, dir);
-}
+Yes, this need to be agreed and hopefully this thread is a starting
+point for such discussion.
 
-static inline void dma_sync_single_range_for_device(struct device *dev,
-						    dma_addr_t addr,
-						    unsigned long offset,
-						    size_t size,
-						    enum dma_data_direction dir)
-{
-	dma_sync_single_for_device(dev, addr + offset, size, dir);
-}
+The main problem I encountered on ARM was I/D cache coherency on a PIPT
+processor and IA-64 and PowerPC fixed it by combining
+flush_dcache_page() with set_pte_at().
 
-dma_sync_single_range_for_cpu and dma_sync_single_range_for_device are
-obsolete but the API had been for some time so I guess that we can't
-just remove it; we need to add it to feature-removal-schedule, put
-__deprecated, and wait for some time. But the API is rarely used so
-I'm not against removing it now.
+IMHO, the D-cache aliasing isn't that much different from the I/D cache
+coherency. We can view the I-cache as yet another alias of the D-cache
+which needs explicit flushing. As I said on a few occasions, including
+this patch, the flush_dcache_page() isn't always called from PIO
+drivers. Adding a PIO API didn't seem very popular as it requires a lot
+of drivers to be modified.
 
+In most situations, just doing flushing in set_pte_at() would suffice
+and flush_dcache_page() can be ignored. There are two situations where I
+still see flush_dcache_page() useful:
 
-> vs.
-> 
-> >  arch/ia64/kernel/pci-swiotlb.c           |    2 -
-> >  arch/powerpc/kernel/dma-swiotlb.c        |    4 +-
-> >  arch/powerpc/kernel/dma.c                |   12 +++++-----
-> >  arch/x86/kernel/pci-swiotlb.c            |    2 -
-> >  include/asm-generic/dma-mapping-common.h |   20 +-----------------
-> >  include/linux/dma-mapping.h              |   10 ---------
-> >  include/linux/swiotlb.h                  |   10 ---------
-> >  lib/swiotlb.c                            |   31 ------------------------------
-> >  8 files changed, 10 insertions(+), 81 deletions(-)
-> 
-> It seems there's users of this API in linux/ssb/ssb.h.
+     1. SMP systems where the cache maintenance operations aren't
+        automatically broadcast in hardware
+     2. The kernel modifies a page cache page that is already mapped in
+        user space
 
-As I wrote, the patchset doesn't remove the
-dma_sync_single_range_for_{cpu|device} API so ssb.h is fine. However,
-the -mm has patches to remove dma_sync_single_range_for_{cpu|device}
-usage in ssb.h. There should be no user of this API in the -mm.
+(1) can be worked around on some architectures (though not sure about
+all of them).
+
+Is (2) a valid scenario?
+
+-- 
+Catalin
