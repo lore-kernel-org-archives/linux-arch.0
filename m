@@ -1,80 +1,46 @@
-From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-Subject: Re: [RFC][PATCH 0/12] KVM, x86, ppc, asm-generic: moving dirty bitmaps
-	to user space
-Date: Mon, 10 May 2010 21:26:35 +0900
-Message-ID: <4BE7FB7B.5010600@oss.ntt.co.jp>
-References: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com>
-	<4BE7F6D7.3060005@redhat.com>
+From: Western Union Department <cpeme@efn.uncor.edu>
+Subject: Call For Confirmation Tel: +(44) 702 4098910,
+Date: Mon, 10 May 2010 09:06:05 -0300
+Message-ID: <20100510090605.63321xpo4mx7zctc__3323.62454287267$1273496354$gmane$org@gtwing.efn.uncor.edu>
+Reply-To: westeruniondepartment@ws.tc
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Type: text/plain;
+ charset=ISO-8859-1;
+ DelSp="Yes";
+ format="flowed"
 Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <4BE7F6D7.3060005@redhat.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-To: Avi Kivity <avi@redhat.com>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, arnd@arndb.de, kvm@vger.kernel.org, kvm-ia64@vger.kernel.org, fernando@oss.ntt.co.jp, mtosatti@redhat.com, agraf@suse.de, kvm-ppc@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, mingo@redhat.com, paulus@samba.org, hpa@zytor.com, tglx@linutronix.de, Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from host1.efn.uncor.edu ([200.16.19.1]:47637 "EHLO
+	gtwing.efn.uncor.edu" rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org
+	with ESMTP id S1754068Ab0EJM6F (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 May 2010 08:58:05 -0400
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
 
->>
->> get.org get.opt switch.opt
->>
->> slots[7].len=32768 278379 66398 64024
->> slots[8].len=32768 181246 270 160
->> slots[7].len=32768 263961 64673 64494
->> slots[8].len=32768 181655 265 160
->> slots[7].len=32768 263736 64701 64610
->> slots[8].len=32768 182785 267 160
->> slots[7].len=32768 260925 65360 65042
->> slots[8].len=32768 182579 264 160
->> slots[7].len=32768 267823 65915 65682
->> slots[8].len=32768 186350 271 160
->>
->> At a glance, we know our optimization improved significantly compared
->> to the original get dirty log ioctl. This is true for both get.opt and
->> switch.opt. This has a really big impact for the personal KVM users who
->> drive KVM in GUI mode on their usual PCs.
->>
->> Next, we notice that switch.opt improved a hundred nano seconds or so for
->> these slots. Although this may sound a bit tiny improvement, we can feel
->> this as a difference of GUI's responses like mouse reactions.
->
-> 100 ns... this is a bit on the low side (and if you can measure it
-> interactively you have much better reflexes than I).
->
->> To feel the difference, please try GUI on your PC with our patch series!
->
-> No doubt get.org -> get.opt is measurable, but get.opt->switch.opt is
-> problematic. Have you tried profiling to see where the time is spent
-> (well I can guess, clearing the write access from the sptes).
 
-Sorry but no, and I agree with your guess.
-Anyway, I want to do some profiling to confirm this guess.
+My associate has helped me to send your first payment of US$7,500 to you
+as instructed by Mr.James Gordon Brown the United Kingdom prime minister
+after the last G20 meeting that was held on April 2nd in United Kindom,
+making you one of the beneficaries. Here is the information below.
 
+MONEY TRANSFER CONTROL NUMBER: 8309124803
+SENDER NAME: Mr.Solomon Daniel.Q
+AMOUNT: US$7,500
 
-BTW, If we only think about performance improvement of time, optimized
-get(get.opt) may be enough at this stage.
+I told him to keep sending you US$7,500 twice a week until the FULL
+payment of (US $360,000.00 Dollars) is completed within 6 (six) Months.
+A certificate will be made to change the Reciever Name as stated by the
+British prime minister, send your Full Names and address via Email to:
+Mr Garry Moore
 
-But if we consider the future expansion like using user allocated bitmaps,
-new API's introduced for switch.opt won't become waste, I think, because we
-need a structure to get and export bitmap addresses.
+The money will not reflect untill the clearance certificate is issue to
+you by the G20 commitee.
 
+E-mail: westeruniondepartment@ws.tc
 
->>
->> In usual workload, the number of dirty pages varies a lot for each
->> iteration
->> and we should gain really a lot for relatively clean cases.
->
-> Can you post such a test, for an idle large guest?
+Tel: +(44) 702 4098910,
 
-OK, I'll do!
-
->
+----------------------------------------------------------------
+This message was sent using IMP, the Internet Messaging Program.
