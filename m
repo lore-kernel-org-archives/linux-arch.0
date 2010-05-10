@@ -1,99 +1,42 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 14/22] lmb: Add lmb_memory_size()
-Date: Mon, 10 May 2010 16:25:26 +1000
-Message-ID: <1273472726.23699.40.camel@pasglop>
+Subject: Re: [PATCH 12/22] lmb: Add lmb_find_area_node()
+Date: Mon, 10 May 2010 16:23:16 +1000
+Message-ID: <1273472596.23699.37.camel@pasglop>
 References: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
-	 <1273331860-14325-15-git-send-email-yinghai@kernel.org>
+	 <1273331860-14325-13-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:46438 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753612Ab0EJGiJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 May 2010 02:38:09 -0400
-In-Reply-To: <1273331860-14325-15-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1273331860-14325-13-git-send-email-yinghai@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Yinghai Lu <yinghai@kernel.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 On Sat, 2010-05-08 at 08:17 -0700, Yinghai Lu wrote:
-> It will return memory size in specified range according to lmb.memory.region
-> 
-> Try to share some code with lmb_free_memory_size() by passing get_free to
-> __lmb_memory_size().
+> + * Need to call this function after lmb_register_active_regions,
+> + * so early_node_map[] is filled already.
+> + */
 
-Similar comment about name and purpose.
+This is easily replaced by something simpler using my current WIP branch
+and its nid allocator. IE, You don't need to add
+find_memory_core_early(0 or any of that. It can be made a lot more
+simply.
 
 Cheers,
 Ben.
 
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> ---
->  include/linux/lmb.h |    1 +
->  mm/lmb.c            |   18 +++++++++++++++++-
->  2 files changed, 18 insertions(+), 1 deletions(-)
-> 
-> diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-> index 22be96d..90022c1 100644
-> --- a/include/linux/lmb.h
-> +++ b/include/linux/lmb.h
-> @@ -102,6 +102,7 @@ void lmb_register_active_regions(int nid, unsigned long start_pfn,
->  					 unsigned long last_pfn);
->  u64 lmb_hole_size(u64 start, u64 end);
->  u64 lmb_free_memory_size(u64 addr, u64 limit);
-> +u64 lmb_memory_size(u64 addr, u64 limit);
->  
->  #include <asm/lmb.h>
->  
-> diff --git a/mm/lmb.c b/mm/lmb.c
-> index 4bc125c..2870dd9 100644
-> --- a/mm/lmb.c
-> +++ b/mm/lmb.c
-> @@ -746,7 +746,7 @@ void __init lmb_to_bootmem(u64 start, u64 end)
->  }
->  #endif
->  
-> -u64 __init lmb_free_memory_size(u64 addr, u64 limit)
-> +static u64 __init __lmb_memory_size(u64 addr, u64 limit, bool get_free)
->  {
->  	int i, count;
->  	struct range *range;
-> @@ -776,6 +776,10 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
->  	}
->  	subtract_range(range, count, 0, addr);
->  	subtract_range(range, count, limit, -1ULL);
-> +
-> +	/* Subtract lmb.reserved.region in range ? */
-> +	if (!get_free)
-> +		goto sort_and_count_them;
->  	for (i = 0; i < lmb.reserved.cnt; i++) {
->  		struct lmb_property *r = &lmb.reserved.region[i];
->  
-> @@ -788,6 +792,8 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
->  
->  		subtract_range(range, count, final_start, final_end);
->  	}
-> +
-> +sort_and_count_them:
->  	nr_range = clean_sort_range(range, count);
->  
->  	free_size = 0;
-> @@ -797,6 +803,16 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
->  	return free_size << PAGE_SHIFT;
->  }
->  
-> +u64 __init lmb_free_memory_size(u64 addr, u64 limit)
+> +u64 __init lmb_find_area_node(int nid, u64 start, u64 end, u64 size,
+> u64 align)
 > +{
-> +	return __lmb_memory_size(addr, limit, true);
-> +}
+> +       u64 addr;
+> +       addr = find_memory_core_early(nid, size, align, start, end);
+> +       if (addr != LMB_ERROR)
+> +               return addr;
 > +
-> +u64 __init lmb_memory_size(u64 addr, u64 limit)
-> +{
-> +	return __lmb_memory_size(addr, limit, false);
+> +       /* Fallback, should already have start end within node range
+> */
+> +       return lmb_find_area(start, end, size, align);
 > +}
-> +
->  u64 __init __weak __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
->  				 u64 size, u64 align)
->  {
+> + 
