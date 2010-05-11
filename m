@@ -1,73 +1,78 @@
 From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-Subject: Re: [RFC][PATCH 11/12] KVM: introduce new API for getting/switching
- dirty bitmaps
-Date: Tue, 11 May 2010 14:53:54 +0900
-Message-ID: <4BE8F0F2.60706@oss.ntt.co.jp>
-References: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com> <20100504220821.d68bde57.takuya.yoshikawa@gmail.com> <20100511034329.GB3458@amt.cnet>
+Subject: Re: [RFC][PATCH 0/12] KVM, x86, ppc, asm-generic: moving dirty bitmaps
+ to user space
+Date: Tue, 11 May 2010 19:11:50 +0900
+Message-ID: <4BE92D66.1050000@oss.ntt.co.jp>
+References: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com> <4BE7F6D7.3060005@redhat.com> <4BE7FB7B.5010600@oss.ntt.co.jp>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20100511034329.GB3458@amt.cnet>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Marcelo Tosatti <mtosatti@redhat.com>
-Cc: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>, avi@redhat.com, agraf@suse.de, fernando@oss.ntt.co.jp, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, kvm-ia64@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@ozlabs.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from serv2.oss.ntt.co.jp ([222.151.198.100]:44908 "EHLO
+	serv2.oss.ntt.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757730Ab0EKKIF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 May 2010 06:08:05 -0400
+In-Reply-To: <4BE7FB7B.5010600@oss.ntt.co.jp>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Avi Kivity <avi@redhat.com>
+Cc: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>, mtosatti@redhat.com, agraf@suse.de, fernando@oss.ntt.co.jp, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, kvm-ia64@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@ozlabs.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-(2010/05/11 12:43), Marcelo Tosatti wrote:
-> On Tue, May 04, 2010 at 10:08:21PM +0900, Takuya Yoshikawa wrote:
->> +How to Get
->> +
->> +Before calling this, you have to set the slot member of kvm_user_dirty_log
->> +to indicate the target memory slot.
->> +
->> +struct kvm_user_dirty_log {
->> +	__u32 slot;
->> +	__u32 flags;
->> +	__u64 dirty_bitmap;
->> +	__u64 dirty_bitmap_old;
->> +};
->> +
->> +The addresses will be set in the paired members: dirty_bitmap and _old.
+
+>>>
+>>> In usual workload, the number of dirty pages varies a lot for each
+>>> iteration
+>>> and we should gain really a lot for relatively clean cases.
+>>
+>> Can you post such a test, for an idle large guest?
 >
-> Why not pass the bitmap address to the kernel, instead of having the
-> kernel allocate it. Because apparently you plan to do that in a new
-> generation anyway?
+> OK, I'll do!
 
-Yes, we want to make qemu allocate and free bitmaps in the future.
-But currently, those are strictly tied with memory slot registration and
-changing it in one patch set is really difficult.
 
-Anyway, we need kernel side allocation mechanism to keep the current
-GET_DIRTY_LOG api. I don't mind not exporting kernel allocated bitmaps
-in this patch set and later introducing a bitmap registration mechanism
-in another patch set.
+Result of "low workload test" (running top during migration) first,
 
-As this RFC is suggesting, kernel side double buffering infrastructure is
-designed as general as possible and adding a new API like SWITCH can be done
-naturally.
+4GB guest
+picked up slots[1](len=3757047808) only
+*****************************************
+     get.org     get.opt    switch.opt
+
+     1060875     310292     190335
+     1076754     301295     188600
+      655504     318284     196029
+      529769     301471        325
+      694796      70216     221172
+      651868     353073     196184
+      543339     312865     213236
+     1061938      72785     203090
+      689527     323901     249519
+      621364     323881        473
+     1063671      70703     192958
+      915903     336318     174008
+     1046462     332384        782
+     1037942      72783     190655
+      680122     318305     243544
+      688156     314935     193526
+      558658     265934     190550
+      652454     372135     196270
+      660140      68613        352
+     1101947     378642     186575
+         ...        ...        ...
+*****************************************
+
+As expected we've got the difference more clearly.
+
+In this case, switch.opt reduced 1/3 (.1 msec) compared to get.opt
+for each iteration.
+
+And when the slot is cleaner, the ratio is bigger.
+
+
+
 
 >
-> Also, why does the kernel need to know about different bitmaps?
-
-Because we need to support current GET API. We don't have any way to get
-a new bitmap in the case of GET and we don't want to do_mmap() every time
-for GET.
-
+>>
 >
-> One alternative would be:
->
-> KVM_SWITCH_DIRTY_LOG passing the address of a bitmap. If the active
-> bitmap was clean, it returns 0, no switch performed. If the active
-> bitmap was dirty, the kernel switches to the new bitmap and returns 1.
->
-> And the responsability of cleaning the new bitmap could also be left
-> for userspace.
->
-
-That is a beautiful approach but we can do that only when we give up using
-GET api.
-
-
-I follow you and Avi's advice about that kind of maintenance policy!
-What do you think?
+> --
+> To unsubscribe from this list: send the line "unsubscribe kvm" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at http://vger.kernel.org/majordomo-info.html
