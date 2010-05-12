@@ -1,24 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:52131 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:53929 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755078Ab0ELSu0 (ORCPT
+	by vger.kernel.org with ESMTP id S1756035Ab0ELSue (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 May 2010 14:50:26 -0400
-Message-ID: <201005121849.o4CInRKD013938@imap1.linux-foundation.org>
-Subject: + numa-introduce-numa_mem_id-effective-local-memory-node-id-fix2.patch added to -mm tree
+	Wed, 12 May 2010 14:50:34 -0400
+Message-ID: <201005121849.o4CInMaH013934@imap1.linux-foundation.org>
+Subject: + numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix2.patch added to -mm tree
 From: akpm@linux-foundation.org
-Date: Wed, 12 May 2010 11:49:26 -0700
+Date: Wed, 12 May 2010 11:49:22 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mm-commits@vger.kernel.org
 Cc: lee.schermerhorn@hp.com, cl@linux-foundation.org, eric.whitney@hp.com, hpa@zytor.com, kamezawa.hiroyu@jp.fujitsu.com, linux-arch@vger.kernel.org, mel@csn.ul.ie, mingo@elte.hu, npiggin@suse.de, penberg@cs.helsinki.fi, rientjes@google.com, tglx@linutronix.de, tj@kernel.org, tony.luck@intel.com
-Message-ID: <20100512184926.ZLUcEaikYWIXD2fvngy4wHMsUWsa6K_avNdb1ea2nxA@z>
+Message-ID: <20100512184922.x33XzUmSCaD4JkHp5D7Pgks4XSIjEqJpoZX4lzWnpRw@z>
 
 
 The patch titled
-     numa-introduce-numa_mem_id-effective-local-memory-node-id-fix2
+     numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix2
 has been added to the -mm tree.  Its filename is
-     numa-introduce-numa_mem_id-effective-local-memory-node-id-fix2.patch
+     numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix2.patch
 
 Before you just go and hit "reply", please:
    a) Consider who else should be cc'ed
@@ -34,20 +34,15 @@ out what to do about this
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: numa-introduce-numa_mem_id-effective-local-memory-node-id-fix2
+Subject: numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix2
 From: Lee Schermerhorn <lee.schermerhorn@hp.com>
 
-Incremental patch 1 to
-numa-introduce-numa_mem_id-effective-local-memory-node-id.patch
-in mmotm 100428-1638.  Atop Andrew's build fix to that patch.
+Incremental patch 2 to
+numa-x86_64-use-generic-percpu-var-numa_node_id-implementation.patch
+in 28apr10 mmotm.
 
-If any of the numa topology functions--numa_mem_id() et al--have not
-been overridden by the arch, we can define them as static inline
-functions.
-
-Now, since we can no longer use cpu_to_mem() as an lvalue, also
-define set_cpu_numa_mem(cpu, node) and use this to initialize the
-per cpu numa_mem variable in __build_all_zonelists().
+Use generic function to set numa_node for a specified cpu as
+suggested by Christoph Lameter and seconded by Tejun Heo.
 
 Signed-off-by: Lee Schermerhorn <lee.schermerhorn@hp.com>
 Cc: Tejun Heo <tj@kernel.org>
@@ -66,70 +61,34 @@ Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- include/linux/topology.h |   24 +++++++++++++++++++++---
- mm/page_alloc.c          |    2 +-
- 2 files changed, 22 insertions(+), 4 deletions(-)
+ arch/x86/kernel/setup_percpu.c |    2 +-
+ arch/x86/mm/numa_64.c          |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff -puN include/linux/topology.h~numa-introduce-numa_mem_id-effective-local-memory-node-id-fix2 include/linux/topology.h
---- a/include/linux/topology.h~numa-introduce-numa_mem_id-effective-local-memory-node-id-fix2
-+++ a/include/linux/topology.h
-@@ -256,7 +256,17 @@ static inline int numa_node_id(void)
- DECLARE_PER_CPU(int, numa_mem);
- 
- #ifndef set_numa_mem
--#define set_numa_mem(__node) percpu_write(numa_mem, __node)
-+static inline void set_numa_mem(int node)
-+{
-+	percpu_write(numa_mem, node);
-+}
-+#endif
-+
-+#ifndef set_cpu_numa_mem
-+static inline void set_cpu_numa_mem(int cpu, int node)
-+{
-+	per_cpu(numa_mem, cpu) = node;
-+}
+diff -puN arch/x86/kernel/setup_percpu.c~numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix2 arch/x86/kernel/setup_percpu.c
+--- a/arch/x86/kernel/setup_percpu.c~numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix2
++++ a/arch/x86/kernel/setup_percpu.c
+@@ -268,7 +268,7 @@ void __init setup_per_cpu_areas(void)
+ 	 * make sure boot cpu numa_node is right, when boot cpu is on the
+ 	 * node that doesn't have mem installed
+ 	 */
+-	per_cpu(numa_node, boot_cpu_id) = early_cpu_to_node(boot_cpu_id);
++	set_cpu_numa_node(boot_cpu_id, early_cpu_to_node(boot_cpu_id));
  #endif
  
- #else	/* !CONFIG_HAVE_MEMORYLESS_NODES */
-@@ -264,15 +274,23 @@ DECLARE_PER_CPU(int, numa_mem);
- #define numa_mem numa_node
- static inline void set_numa_mem(int node) {}
+ 	/* Setup node to cpumask map */
+diff -puN arch/x86/mm/numa_64.c~numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix2 arch/x86/mm/numa_64.c
+--- a/arch/x86/mm/numa_64.c~numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix2
++++ a/arch/x86/mm/numa_64.c
+@@ -806,7 +806,7 @@ void __cpuinit numa_set_node(int cpu, in
+ 	per_cpu(x86_cpu_to_node_map, cpu) = node;
  
-+static inline void set_cpu_numa_mem(int cpu, int node) {}
-+
- #endif	/* [!]CONFIG_HAVE_MEMORYLESS_NODES */
+ 	if (node != NUMA_NO_NODE)
+-		per_cpu(numa_node, cpu) = node;
++		set_cpu_numa_node(cpu, node);
+ }
  
- #ifndef numa_mem_id
- /* Returns the number of the nearest Node with memory */
--#define numa_mem_id()		__this_cpu_read(numa_mem)
-+static inline int numa_mem_id(void)
-+{
-+	return __this_cpu_read(numa_mem);
-+}
- #endif
- 
- #ifndef cpu_to_mem
--#define cpu_to_mem(__cpu)	per_cpu(numa_mem, (__cpu))
-+static inline int cpu_to_mem(int cpu)
-+{
-+	return per_cpu(numa_mem, cpu);
-+}
- #endif
- 
- #ifndef topology_physical_package_id
-diff -puN mm/page_alloc.c~numa-introduce-numa_mem_id-effective-local-memory-node-id-fix2 mm/page_alloc.c
---- a/mm/page_alloc.c~numa-introduce-numa_mem_id-effective-local-memory-node-id-fix2
-+++ a/mm/page_alloc.c
-@@ -3004,7 +3004,7 @@ static int __build_all_zonelists(void *d
- 		 * node/memory hotplug, we'll fixup all on-line cpus.
- 		 */
- 		if (cpu_online(cpu))
--			cpu_to_mem(cpu) = local_memory_node(cpu_to_node(cpu));
-+			set_cpu_numa_mem(cpu, local_memory_node(cpu_to_node(cpu)));
- #endif
- 	}
- 
+ void __cpuinit numa_clear_node(int cpu)
 _
 
 Patches currently in -mm which might be from lee.schermerhorn@hp.com are
