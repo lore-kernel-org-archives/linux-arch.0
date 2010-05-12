@@ -1,69 +1,51 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH] Update the cachetlb.txt file WRT flush_dcache_page
- and update_mmu_cache
-Date: Tue, 11 May 2010 18:22:34 +0100
-Message-ID: <1273598554.3132.47.camel@e102109-lin.cambridge.arm.com>
-References: <20100511203024W.fujita.tomonori@lab.ntt.co.jp>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 07/22] lmb: Add lmb_to_bootmem()
+Date: Wed, 12 May 2010 10:03:36 +1000
+Message-ID: <1273622616.21352.59.camel@pasglop>
+References: <1273331860-14325-1-git-send-email-yinghai@kernel.org>
+	 <1273331860-14325-8-git-send-email-yinghai@kernel.org>
+	 <1273461193.23699.9.camel@pasglop>  <4BE78C37.5080103@oracle.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:32887 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752834Ab0EKRXI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 May 2010 13:23:08 -0400
-In-Reply-To: <20100511203024W.fujita.tomonori@lab.ntt.co.jp>
+Received: from gate.crashing.org ([63.228.1.57]:57482 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753312Ab0ELAFs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 11 May 2010 20:05:48 -0400
+In-Reply-To: <4BE78C37.5080103@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, James.Bottomley@HansenPartnership.com, benh@kernel.crashing.org, davem@davemloft.net, rmk@arm.linux.org.uk
+To: Yinghai <yinghai.lu@oracle.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, 2010-05-11 at 12:31 +0100, FUJITA Tomonori wrote:
-> On Mon, 10 May 2010 11:16:47 +0100
-> Catalin Marinas <catalin.marinas@arm.com> wrote:
+On Sun, 2010-05-09 at 21:31 -0700, Yinghai wrote:
+> > This is clumsy. Doesn't work with NUMA either. Also,
 > 
-> > > I don't think that just replacing sparc64 with IA64 helps much here
-> > > since we still have the problem that the whole cache handling
-> > > (architectures, subsystems, file systems) is inconsistent. I think
-> > > that we need to agree on it first.
-> >
-> > Yes, this need to be agreed and hopefully this thread is a starting
-> > point for such discussion.
+> it works NUMA. for x86 we managed to call that one time from
+> 2.6.34-rc1. (still called early_res_to_bootmem().
+> http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=commitdiff;h=1842f90cc98625d4d9bf8f8b927f17705ceb4e9c
 > 
-> Hopefully, but I'm not sure what we need to agree is clear enough.
+> > reserve_bootmem_generic() only exists on x86 afaik.
 > 
-> If we invert the meaning of PG_arch_1 (from PG_dcache_dirty to
-> PG_dcache_clean) like the way IA64 and POWERPC to use the bit to solve
-> I/D coherency, we can avoid calling flush_dcache_page() at low level
-> drivers or their subsystems (ide_* macros, libata,
-> bio_flush_dcache_pages, rq_flush_dcache_pages, etc). Architectures
-> that need to handle D aliasing and I/D coherence need two bits
-> respectively (needs another PG_arch_2 bit) to do flushes effectively.
+> previous patch add weak version 
+> [PATCH 06/22] bootmem, x86: Add weak version of
+> reserve_bootmem_generic
 
-The two bits idea was mentioned in the previous threads on cache
-coherency.
+It might work on x86, it won't work on sparc as far as I understand. In
+any case, I don't think that should be in lmb.c, that's boilerplate crap
+that eventually will go away.
 
-So we basically have two main options (IMHO):
+One thing you don't seem to get is that several archs already have some
+code to move from lmb to bootmem.
 
-1) leave things as they currently are with PG_arch_1 meaning "dirty" and
-change all low level (PIO) drivers call flush_dcache_page() when they
-dirty the D-cache.
+The right approach when making something "generic" like that is not to
+make up another one deep into x86 gunkyness and make -that- generic
+ignoring the existing implementations.
 
-2) changing the meaning of PG_arch_1 to "clean" and maybe introduce
-PG_arch_2 as an optimisation but don't force the low level drivers to
-call flush_dcache_page().
+Instead, make sure that the existing implementations are in sync, and
+then move -that- to a generic place, eventually adding (in a separate
+patch) the changes needed by x86 if any.
 
-The current cachetlb.txt recommends (1) but not all low-level (PIO)
-drivers call flush_dcache_page(), hence I/D cache coherency issues at
-least on ARM.
-
-Should we go for (2) as a general recommendation across all
-architectures that require I/D cache maintenance? Or stick with (1) and
-modify the low level drivers to call flush_dcache_page (or a PIO API
-similar to kmap that was already proposed on linux-arch)?
-
-Thanks.
-
--- 
-Catalin
+Cheers,
+Ben.
