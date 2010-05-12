@@ -1,70 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:39569 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751431Ab0EKQAn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 May 2010 12:00:43 -0400
-Message-ID: <4BE97F2A.5080900@suse.de>
-Date: Tue, 11 May 2010 18:00:42 +0200
-From: Alexander Graf <agraf@suse.de>
+Received: from serv2.oss.ntt.co.jp ([222.151.198.100]:40316 "EHLO
+	serv2.oss.ntt.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754426Ab0ELJQQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 May 2010 05:16:16 -0400
+Message-ID: <4BEA72B0.4010105@oss.ntt.co.jp>
+Date: Wed, 12 May 2010 18:19:44 +0900
+From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
 MIME-Version: 1.0
-Subject: Re: [RFC][PATCH 7/12 not tested yet] PPC: introduce __set_bit() like
- function for bitmaps in user space
-References: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com> <20100504220418.083929bc.takuya.yoshikawa@gmail.com>
-In-Reply-To: <20100504220418.083929bc.takuya.yoshikawa@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [RFC][PATCH 0/12] KVM, x86, ppc, asm-generic: moving dirty bitmaps
+ to user space
+References: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com> <4BE97DFA.1060408@suse.de>
+In-Reply-To: <4BE97DFA.1060408@suse.de>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
-Cc: avi@redhat.com, mtosatti@redhat.com, yoshikawa.takuya@oss.ntt.co.jp, fernando@oss.ntt.co.jp, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, kvm-ia64@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@ozlabs.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20100511160042.CgB5uGI_hBcmmo5GWq4bfbRZVtT1w4muSc6L7Vu9C1w@z>
-
-Takuya Yoshikawa wrote:
-> During the work of KVM's dirty page logging optimization, we encountered
-> the need of manipulating bitmaps in user space efficiantly. To achive this,
-> we introduce a uaccess function for setting a bit in user space following
-> Avi's suggestion.
->
->   KVM is now using dirty bitmaps for live-migration and VGA. Although we need
->   to update them from kernel side, copying them every time for updating the
->   dirty log is a big bottleneck. Especially, we tested that zero-copy bitmap
->   manipulation improves responses of GUI manipulations a lot.
->
-> We also found one similar need in drivers/vhost/vhost.c in which the author
-> implemented set_bit_to_user() locally using inefficient functions: see TODO
-> at the top of that.
->
-> Probably, this kind of need would be common for virtualization area.
->
-> So we introduce a function set_bit_user_non_atomic().
->
-> Signed-off-by: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-> Signed-off-by: Fernando Luis Vazquez Cao <fernando@oss.ntt.co.jp>
-> CC: Alexander Graf <agraf@suse.de>
-> CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> CC: Paul Mackerras <paulus@samba.org>
-> ---
->  arch/powerpc/include/asm/uaccess.h |   19 +++++++++++++++++++
->  1 files changed, 19 insertions(+), 0 deletions(-)
->
-> diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
-> index 3a01ce8..f878326 100644
-> --- a/arch/powerpc/include/asm/uaccess.h
-> +++ b/arch/powerpc/include/asm/uaccess.h
-> @@ -321,6 +321,25 @@ do {								\
->  	__gu_err;						\
->  })
->  
-> +static inline int set_bit_user_non_atomic(int nr, void __user *addr)
-> +{
-> +	u8 __user *p;
-> +	u8 val;
-> +
-> +	p = (u8 __user *)((unsigned long)addr + nr / BITS_PER_BYTE);
->   
-
-Does C do the + or the / first? Either way, I'd like to see brackets here :)
+To: Alexander Graf <agraf@suse.de>
+Cc: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>, avi@redhat.com, mtosatti@redhat.com, fernando@oss.ntt.co.jp, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, kvm-ia64@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@ozlabs.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20100512091944.V0tmjdlL9eEciRhkpPDSKT9nSsrlYSwGcBvn5fVPQwI@z>
 
 
-Alex
+>> [To ppc people]
+>>
+>> Hi, Benjamin, Paul, Alex,
+>>
+>> Please see the patches 6,7/12. I first say sorry for that I've not tested these
+>> yet. In that sense, these may not be in the quality for precise reviews. But I
+>> will be happy if you would give me any comments.
+>>
+>> Alex, could you help me? Though I have a plan to get PPC box in the future,
+>> currently I cannot test these.
+>>
+>
+> Could you please point me to a git tree where everything's readily
+> applied? That would make testing a lot easier.
+
+OK, I'll prepare one. Probably on sourceforge or somewhere like Kemari.
+
+Thanks,
+   Takuya
+
+
+>
+> Alex
+>
 
