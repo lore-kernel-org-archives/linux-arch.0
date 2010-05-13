@@ -1,17 +1,17 @@
 From: "Beuker Hendrik" <chandler@hiwaay.net>
 Subject: HOPE I CAN TRUST YOU ON THIS!!!
-Date: Thu, 13 May 2010 04:20:23 -0500
-Message-ID: <20100513042023.82903l758a1qjyon@webmail.hiwaay.net>
+Date: Thu, 13 May 2010 04:14:11 -0500
+Message-ID: <20100513041411.169582o3zi2wsusj@webmail.hiwaay.net>
 Reply-To: beukerhendriks@live.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII;
 	DelSp=Yes	format=flowed
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bee.hiwaay.net ([216.180.54.11]:7529 "EHLO bee.hiwaay.net"
+Received: from bee.hiwaay.net ([216.180.54.11]:11057 "EHLO bee.hiwaay.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757698Ab0EMJ4P convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 05:56:15 -0400
+	id S1758509Ab0EMKNv convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 06:13:51 -0400
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
