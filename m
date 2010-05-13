@@ -1,50 +1,55 @@
-From: "Mr. Beuker Hendrik" <info@mail.com>
-Subject: Good day
-Date: Thu, 13 May 2010 03:51:12 -0300
-Message-ID: <20100513035112.1fx8djbuwwwo8ckk@www.uccuyo.edu.ar>
-Reply-To: mr.beukerhendrik@yahoo.com.hk
+From: "Beuker Hendrik" <chandler@hiwaay.net>
+Subject: HOPE I CAN TRUST YOU ON THIS!!!
+Date: Thu, 13 May 2010 04:20:23 -0500
+Message-ID: <20100513042023.82903l758a1qjyon@webmail.hiwaay.net>
+Reply-To: beukerhendriks@live.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=US-ASCII;
+	DelSp=Yes	format=flowed
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.uccuyo.edu.ar ([200.123.107.120]:41236 "EHLO
-	mail.uccuyo.edu.ar" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753990Ab0EMHZQ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 03:25:16 -0400
+Received: from bee.hiwaay.net ([216.180.54.11]:7529 "EHLO bee.hiwaay.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757698Ab0EMJ4P convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 05:56:15 -0400
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+UBS International Holdings BV
+Herengracht 600
+NL-1017 CJ Amsterdam, Netherlands.
+www.ubs.com/investmentbank
 
+Greetings,
 
-Good day,
+I am an investment consultant working with UBS International Holdings BV
+in the Netherlands. I will be happy to work this transaction out with you
+if you have a corporate or personal Bank Account and if you are reliable
+and honest.
 
-My name is Mr. Beuker Hendrik: I work in the Euro Lottery. I am solicit=
-ing
-your assistance for a swift transfer of 1,528,000 GBP, should you be
-willing to assist me in this project, and you will be giving me just 25=
-%
-of your winnings.
+I need strong Assurance that you will never let me down, as I can arrange
+and provide you details/documentatal proof so that funds($8.5million) will
+be transferred into your account as the next of kin to the late
+depositor(Abbas Farhan al-Jabouri, who was an Election candidate and also
+a business man). Abbas Farhan al-Jabouri and his two relatives were
+executed in Mohammed al Malih, near Mandali onthe 29th of January 2009.
+During one of our periodic auditing I discovered a dormant accounts with
+the said balance (Eight million, five Hundred thousand Dollars only), this
+account have not been operated for some years now.
 
-Just as a brief, you just have to register online; due to my position i=
-n
-the company I can make it happen that you would be a winner of the abov=
-e
-stated amount. Naturally, every body would like to play a lottery if th=
-ey
-are assured of winning. I am assuring you today to be a winner, please =
-do
-not take for granted this once in a life time opportunity as we both st=
-and
-to collectively gain from this at the success of the transaction.
+At this moment I will not be able to issue more details about this
+business, until your response is received.
 
-Should you be willing to assist me in this transaction please do respon=
-d to
-E-mail: mr.beukerhendrik@yahoo.com.hk
+If you are not familiar with my Bank profile, please take a moment of your
+very busy schedules to read about my Bank
+website(www.ubs.com/investmentbank).
 
+I look forward to hearing from you as soon as possible via my private
+email; beukerhendriker@windowslive.com
+
+Thank you for your time and attention.
 Warmest Regards,
-Mr. Beuker Hendrik
-
-_________________________________
-Universidad Cat=F3lica de Cuyo
-www.uccuyo.edu.ar
+Mr.Beuker Hendrik
+Investment Consultant.
+UBS
