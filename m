@@ -1,66 +1,85 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 12/35] x86, lmb: Add lmb_find_area_node()
-Date: Thu, 13 May 2010 17:19:33 -0700
-Message-ID: <1273796396-29649-13-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 30/35] x86: Align e820 ram range to page
+Date: Thu, 13 May 2010 17:19:51 -0700
+Message-ID: <1273796396-29649-31-git-send-email-yinghai@kernel.org>
 References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:53088 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754079Ab0ENAYK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 20:24:10 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-It can be used to find NODE_DATA for numa.
+for 2.6.34
 
-Need to make sure early_node_map[] is filled before it is called, otherwise
-it will fallback to lmb_find_area(), with node range.
+To workaround wrong BIOS memory map.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    1 +
- arch/x86/mm/lmb.c          |   15 +++++++++++++++
- 2 files changed, 16 insertions(+), 0 deletions(-)
+ arch/x86/kernel/e820.c |   44 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 44 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index d0ae19f..358d8a6 100644
---- a/arch/x86/include/asm/lmb.h
-+++ b/arch/x86/include/asm/lmb.h
-@@ -15,5 +15,6 @@ int get_free_all_memory_range(struct range **rangep, int nodeid);
- void lmb_register_active_regions(int nid, unsigned long start_pfn,
- 					 unsigned long last_pfn);
- u64 lmb_hole_size(u64 start, u64 end);
-+u64 lmb_find_area_node(int nid, u64 start, u64 end, u64 size, u64 align);
- 
- #endif
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index faa9ce6..c5fa1dd 100644
---- a/arch/x86/mm/lmb.c
-+++ b/arch/x86/mm/lmb.c
-@@ -254,6 +254,21 @@ void __init lmb_free_area(u64 start, u64 end)
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 4bbbd6b..78ca7ce 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -910,6 +910,47 @@ static int __init parse_memmap_opt(char *p)
  }
+ early_param("memmap", parse_memmap_opt);
  
- /*
-+ * Need to call this function after lmb_register_active_regions,
-+ * so early_node_map[] is filled already.
-+ */
-+u64 __init lmb_find_area_node(int nid, u64 start, u64 end, u64 size, u64 align)
++static void __init e820_align_ram_page(void)
 +{
-+	u64 addr;
-+	addr = find_memory_core_early(nid, size, align, start, end);
-+	if (addr != LMB_ERROR)
-+		return addr;
++	int i;
++	bool changed = false;;
 +
-+	/* Fallback, should already have start end within node range */
-+	return lmb_find_area(start, end, size, align);
++	for (i = 0; i < e820.nr_map; i++) {
++		struct e820entry *entry = &e820.map[i];
++		u64 start, end;
++		u64 start_aligned, end_aligned;
++
++		if (entry->type != E820_RAM)
++			continue;
++
++		start = entry->addr;
++		end = start + entry->size;
++
++		start_aligned = round_up(start, PAGE_SIZE);
++		end_aligned = round_down(end, PAGE_SIZE);
++
++		if (end_aligned <= start_aligned) {
++			e820_update_range(start, end - start, E820_RAM, E820_RESERVED);
++			changed = true;
++			continue;
++		}
++		if (start < start_aligned) {
++			e820_update_range(start, start_aligned - start, E820_RAM, E820_RESERVED);
++			changed = true;
++		}
++		if (end_aligned < end) {
++			e820_update_range(end_aligned, end - end_aligned, E820_RAM, E820_RESERVED);
++			changed = true;
++		}
++	}
++
++	if (changed) {
++		sanitize_e820_map();
++		printk(KERN_INFO "aligned physical RAM map:\n");
++		e820_print_map("aligned");
++	}
 +}
 +
-+/*
-  * Finds an active region in the address range from start_pfn to last_pfn and
-  * returns its range in ei_startpfn and ei_endpfn for the lmb entry.
-  */
+ void __init finish_e820_parsing(void)
+ {
+ 	if (userdef) {
+@@ -922,6 +963,9 @@ void __init finish_e820_parsing(void)
+ 		printk(KERN_INFO "user-defined physical RAM map:\n");
+ 		e820_print_map("user");
+ 	}
++
++	/* In case, We have RAM entres that are not PAGE aligned */
++	e820_align_ram_page();
+ }
+ 
+ static inline const char *e820_type_to_string(int e820_type)
 -- 
 1.6.4.2
