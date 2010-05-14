@@ -1,91 +1,135 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 14/37] lmb: Add find_memory_core_early()
-Date: Fri, 14 May 2010 12:45:40 -0700
-Message-ID: <1273866363-14249-15-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 19/37] x86, lmb: Add x86 version of __lmb_find_area()
+Date: Fri, 14 May 2010 12:45:45 -0700
+Message-ID: <1273866363-14249-20-git-send-email-yinghai@kernel.org>
 References: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:59897 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932328Ab0ENTsr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 15:48:47 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-According to node range in early_node_map[] with __lmb_find_area
-to find free range.
+Generic version is going from high to low, and it seems it can not find
+right area compact enough.
 
-Will be used by lmb_find_area_node()
+the x86 version will go from goal to limit and just like the way We used
+for early_res
 
-lmb_find_area_node will be used to find right buffer for NODE_DATA
+use ARCH_FIND_LMB_AREA to select from them.
+
+-v2: default to no
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/mm.h |    2 ++
- mm/page_alloc.c    |   29 +++++++++++++++++++++++++++++
- 2 files changed, 31 insertions(+), 0 deletions(-)
+ arch/x86/Kconfig  |    8 +++++
+ arch/x86/mm/lmb.c |   78 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 86 insertions(+), 0 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index fb19bb9..7774e1d 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1159,6 +1159,8 @@ extern void free_bootmem_with_active_regions(int nid,
- 						unsigned long max_low_pfn);
- int add_from_early_node_map(struct range *range, int az,
- 				   int nr_range, int nid);
-+u64 __init find_memory_core_early(int nid, u64 size, u64 align,
-+					u64 goal, u64 limit);
- void *__alloc_memory_core_early(int nodeid, u64 size, u64 align,
- 				 u64 goal, u64 limit);
- typedef int (*work_fn_t)(unsigned long, unsigned long, void *);
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index d03c946..8f17f1f 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -21,6 +21,7 @@
- #include <linux/pagemap.h>
- #include <linux/jiffies.h>
- #include <linux/bootmem.h>
-+#include <linux/lmb.h>
- #include <linux/compiler.h>
- #include <linux/kernel.h>
- #include <linux/kmemcheck.h>
-@@ -3393,6 +3394,34 @@ void __init free_bootmem_with_active_regions(int nid,
- 	}
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index d80d2ab..36a5665 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -584,6 +584,14 @@ config PARAVIRT_DEBUG
+ 	  Enable to debug paravirt_ops internals.  Specifically, BUG if
+ 	  a paravirt_op is missing when it is called.
+ 
++config ARCH_LMB_FIND_AREA
++	default n
++	bool "Use x86 own lmb_find_area()"
++	---help---
++	  Use lmb_find_area() version instead of generic version, it get free
++	  area up from low.
++	  Generic one try to get free area down from limit.
++
+ config NO_BOOTMEM
+ 	default y
+ 	bool "Disable Bootmem code"
+diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
+index 5007dbf..eaa45ca 100644
+--- a/arch/x86/mm/lmb.c
++++ b/arch/x86/mm/lmb.c
+@@ -415,3 +415,81 @@ u64 __init lmb_hole_size(u64 start, u64 end)
+ 	return end - start - ((u64)ram << PAGE_SHIFT);
  }
  
-+#ifdef CONFIG_HAVE_LMB
-+u64 __init find_memory_core_early(int nid, u64 size, u64 align,
-+					u64 goal, u64 limit)
++#ifdef CONFIG_ARCH_LMB_FIND_AREA
++static int __init find_overlapped_early(u64 start, u64 end)
++{
++	int i;
++	struct lmb_region *r;
++
++	for (i = 0; i < lmb.reserved.cnt && lmb.reserved.regions[i].size; i++) {
++		r = &lmb.reserved.regions[i];
++		if (end > r->base && start < (r->base + r->size))
++			break;
++	}
++
++	return i;
++}
++
++/* Check for already reserved areas */
++static inline bool __init bad_addr(u64 *addrp, u64 size, u64 align)
++{
++	int i;
++	u64 addr = *addrp;
++	bool changed = false;
++	struct lmb_region *r;
++again:
++	i = find_overlapped_early(addr, addr + size);
++	r = &lmb.reserved.regions[i];
++	if (i < lmb.reserved.cnt && r->size) {
++		*addrp = addr = round_up(r->base + r->size, align);
++		changed = true;
++		goto again;
++	}
++	return changed;
++}
++
++u64 __init __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
++				 u64 size, u64 align)
++{
++	u64 addr, last;
++
++	addr = round_up(ei_start, align);
++	if (addr < start)
++		addr = round_up(start, align);
++	if (addr >= ei_last)
++		goto out;
++	while (bad_addr(&addr, size, align) && addr+size <= ei_last)
++		;
++	last = addr + size;
++	if (last > ei_last)
++		goto out;
++	if (last > end)
++		goto out;
++
++	return addr;
++
++out:
++	return LMB_ERROR;
++}
++
++/*
++ * Find a free area with specified alignment in a specific range.
++ */
++u64 __init lmb_find_area(u64 start, u64 end, u64 size, u64 align)
 +{
 +	int i;
 +
-+	/* Need to go over early_node_map to find out good range for node */
-+	for_each_active_range_index_in_nid(i, nid) {
++	for (i = 0; i < lmb.memory.cnt; i++) {
++		u64 ei_start = lmb.memory.regions[i].base;
++		u64 ei_last = ei_start + lmb.memory.regions[i].size;
 +		u64 addr;
-+		u64 ei_start, ei_last;
 +
-+		ei_last = early_node_map[i].end_pfn;
-+		ei_last <<= PAGE_SHIFT;
-+		ei_start = early_node_map[i].start_pfn;
-+		ei_start <<= PAGE_SHIFT;
-+		addr = __lmb_find_area(ei_start, ei_last,
-+					 goal, limit, size, align);
++		addr = __lmb_find_area(ei_start, ei_last, start, end,
++					 size, align);
 +
-+		if (addr == LMB_ERROR)
-+			continue;
-+
-+		return addr;
++		if (addr != LMB_ERROR)
++			return addr;
 +	}
-+
 +	return LMB_ERROR;
 +}
 +#endif
-+
- int __init add_from_early_node_map(struct range *range, int az,
- 				   int nr_range, int nid)
- {
 -- 
 1.6.4.2
