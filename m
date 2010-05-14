@@ -1,12 +1,12 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 35/37] x86: Change e820_any_mapped() to __init
-Date: Fri, 14 May 2010 12:46:01 -0700
-Message-ID: <1273866363-14249-36-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 23/37] x86, lmb: Use lmb_memory_size()/lmb_free_memory_size() to get correct dma_reserve
+Date: Fri, 14 May 2010 12:45:49 -0700
+Message-ID: <1273866363-14249-24-git-send-email-yinghai@kernel.org>
 References: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:17318 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:17313 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753701Ab0ENTt5 (ORCPT
+	with ESMTP id S1753519Ab0ENTt5 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 15:49:57 -0400
 In-Reply-To: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
@@ -14,37 +14,98 @@ List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-We don't need to expose e820_any_mapped() anymore
+lmb_memory_size() will return memory size in lmb.memory.region.
+lmb_free_memory_size() will return free memory size in lmb.memory.region.
+
+So We can get exact reseved size in specified range.
+
+Set the size right after initmem_init(), because later bootmem API will
+get area above 16M. (except some fallback).
+
+Later after we remove the bootmem, We could call that just before paging_init().
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/kernel/e820.c |    6 +++---
- 1 files changed, 3 insertions(+), 3 deletions(-)
+ arch/x86/include/asm/e820.h |    2 ++
+ arch/x86/kernel/e820.c      |   17 +++++++++++++++++
+ arch/x86/kernel/setup.c     |    1 +
+ arch/x86/mm/init_64.c       |    7 -------
+ 4 files changed, 20 insertions(+), 7 deletions(-)
 
+diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
+index 6fbd8cd..f59db16 100644
+--- a/arch/x86/include/asm/e820.h
++++ b/arch/x86/include/asm/e820.h
+@@ -118,6 +118,8 @@ extern u64 early_reserve_e820(u64 startt, u64 sizet, u64 align);
+ 
+ void init_lmb_memory(void);
+ void fill_lmb_memory(void);
++void find_lmb_dma_reserve(void);
++
+ extern void finish_e820_parsing(void);
+ extern void e820_reserve_resources(void);
+ extern void e820_reserve_resources_late(void);
 diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index eb556d0..c2e18f9 100644
+index 14b1c26..1144d20 100644
 --- a/arch/x86/kernel/e820.c
 +++ b/arch/x86/kernel/e820.c
-@@ -47,9 +47,10 @@ EXPORT_SYMBOL(pci_mem_start);
- /*
-  * This function checks if any part of the range <start,end> is mapped
-  * with type.
-+ * phys_pud_init() is using it and is _meminit, but we have !after_bootmem
-+ * so could use refok here
-  */
--int
--e820_any_mapped(u64 start, u64 end, unsigned type)
-+int __init_refok e820_any_mapped(u64 start, u64 end, unsigned type)
- {
- 	int i;
+@@ -1103,3 +1103,20 @@ void __init fill_lmb_memory(void)
+ 	lmb_analyze();
+ 	lmb_dump_all();
+ }
++
++void __init find_lmb_dma_reserve(void)
++{
++#ifdef CONFIG_X86_64
++	u64 free_size_pfn;
++	u64 mem_size_pfn;
++	/*
++	 * need to find out used area below MAX_DMA_PFN
++	 * need to use lmb to get free size in [0, MAX_DMA_PFN]
++	 * at first, and assume boot_mem will not take below MAX_DMA_PFN
++	 */
++	mem_size_pfn = lmb_memory_size(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
++	free_size_pfn = lmb_free_memory_size(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
++	set_dma_reserve(mem_size_pfn - free_size_pfn);
++#endif
++}
++
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 1a8888f..aad3e6c 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -1001,6 +1001,7 @@ void __init setup_arch(char **cmdline_p)
+ #endif
  
-@@ -64,7 +65,6 @@ e820_any_mapped(u64 start, u64 end, unsigned type)
- 	}
+ 	initmem_init(0, max_pfn, acpi, k8);
++	find_lmb_dma_reserve();
+ #ifndef CONFIG_NO_BOOTMEM
+ 	lmb_to_bootmem(0, max_low_pfn<<PAGE_SHIFT);
+ #endif
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index 0d2252c..37c7a82 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -53,8 +53,6 @@
+ #include <asm/init.h>
+ #include <linux/bootmem.h>
+ 
+-static unsigned long dma_reserve __initdata;
+-
+ static int __init parse_direct_gbpages_off(char *arg)
+ {
+ 	direct_gbpages = 0;
+@@ -821,11 +819,6 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 
+ 	reserve_bootmem(phys, len, flags);
+ 
+-	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
+-		dma_reserve += len / PAGE_SIZE;
+-		set_dma_reserve(dma_reserve);
+-	}
+-
  	return 0;
  }
--EXPORT_SYMBOL_GPL(e820_any_mapped);
- 
- /*
-  * This function checks if the entire range <start,end> is mapped with type.
+ #endif
 -- 
 1.6.4.2
