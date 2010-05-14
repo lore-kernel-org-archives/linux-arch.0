@@ -1,61 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:59872 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:59869 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759658Ab0ENTsj (ORCPT
+	with ESMTP id S1759638Ab0ENTsj (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 15:48:39 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 02/37] lmb: Prepare x86 to use lmb to replace early_res
-Date: Fri, 14 May 2010 12:45:28 -0700
-Message-ID: <1273866363-14249-3-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 07/37] lmb: Add lmb_find_area()
+Date: Fri, 14 May 2010 12:45:33 -0700
+Message-ID: <1273866363-14249-8-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
 References: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100514194528.0JEdPUDvjbgEMKqXrDZPsMbwZ_YOUVA_anUFsm1Az2I@z>
+Message-ID: <20100514194533.LRHN14il6q-KZltHTs-bY2O5jJXTd9m8rnso_VIfpdk@z>
 
-1. expose lmb_debug
-2. expose lmb_reserved_init_regions
+it is a wrapper for lmb_find_base
 
--v2: drop lmb_add_region() and LMB_ERROR export
--v3: seperate wrong return of lmb_fin_base to another patch
+make it more easy for x86 to use lmb. ( rebase )
+x86 early_res is using find/reserve pattern instead of alloc.
+
+keep it in weak version, so later We can use x86 own version if needed.
+also We need it in lib/lmb.c, so one called mm/page_alloc.c could get compiled
+
+-v2: Change name to lmb_find_area() according to Michael Ellerman
+-v3: Add generic weak version __lmb_find_area()
+     so keep the path for fallback to x86 version that handle from low
+-v4: use 0 for failing path
+-v5: use LMB_ERROR again
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    2 ++
- lib/lmb.c           |    4 ++--
- 2 files changed, 4 insertions(+), 2 deletions(-)
+ include/linux/lmb.h |    4 ++++
+ lib/lmb.c           |   23 +++++++++++++++++++++++
+ 2 files changed, 27 insertions(+), 0 deletions(-)
 
 diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 6f8c4bd..d88c92d 100644
+index e54c1d0..c05294f 100644
 --- a/include/linux/lmb.h
 +++ b/include/linux/lmb.h
-@@ -39,6 +39,8 @@ struct lmb {
- };
+@@ -44,6 +44,10 @@ extern struct lmb lmb;
+ extern int lmb_debug;
+ extern struct lmb_region lmb_reserved_init_regions[];
  
- extern struct lmb lmb;
-+extern int lmb_debug;
-+extern struct lmb_region lmb_reserved_init_regions[];
- 
++u64 __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
++			u64 size, u64 align);
++u64 lmb_find_area(u64 start, u64 end, u64 size, u64 align);
++
  extern void __init lmb_init(void);
  extern void __init lmb_analyze(void);
+ extern long lmb_add(phys_addr_t base, phys_addr_t size);
 diff --git a/lib/lmb.c b/lib/lmb.c
-index 0d4e4c0..b6725d6 100644
+index c92034b..1c46336 100644
 --- a/lib/lmb.c
 +++ b/lib/lmb.c
-@@ -22,9 +22,9 @@
+@@ -155,6 +155,29 @@ static phys_addr_t __init lmb_find_base(phys_addr_t size, phys_addr_t align,
+ 	return LMB_ERROR;
+ }
  
- struct lmb lmb;
- 
--static int lmb_debug;
-+int lmb_debug;
- static struct lmb_region lmb_memory_init_regions[INIT_LMB_REGIONS + 1];
--static struct lmb_region lmb_reserved_init_regions[INIT_LMB_REGIONS + 1];
-+struct lmb_region lmb_reserved_init_regions[INIT_LMB_REGIONS + 1];
- 
- #define LMB_ERROR	(~(phys_addr_t)0)
- 
++u64 __init __weak __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
++				 u64 size, u64 align)
++{
++	u64 final_start, final_end;
++	u64 mem;
++
++	final_start = max(ei_start, start);
++	final_end = min(ei_last, end);
++
++	if (final_start >= final_end)
++		return LMB_ERROR;
++
++	return  lmb_find_base(size, align, final_start, final_end);
++}
++
++/*
++ * Find a free area with specified alignment in a specific range.
++ */
++u64 __init __weak lmb_find_area(u64 start, u64 end, u64 size, u64 align)
++{
++	return lmb_find_base(size, align, start, end);
++}
++
+ static void __init_lmb lmb_remove_region(struct lmb_type *type, unsigned long r)
+ {
+ 	unsigned long i;
 -- 
 1.6.4.2
 
