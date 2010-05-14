@@ -1,49 +1,59 @@
 From: Yinghai <yinghai.lu@oracle.com>
-Subject: Re: [PATCH 07/37] lmb: Add lmb_find_area()
-Date: Fri, 14 May 2010 16:08:04 -0700
-Message-ID: <4BEDD7D4.90002@oracle.com>
-References: <1273866363-14249-1-git-send-email-yinghai@kernel.org>	 <1273866363-14249-8-git-send-email-yinghai@kernel.org> <1273876749.21352.645.camel@pasglop>
+Subject: lmb type features.
+Date: Fri, 14 May 2010 16:51:06 -0700
+Message-ID: <4BEDE1EA.8030103@oracle.com>
+References: <1273804238.21352.389.camel@pasglop>	 <4BECF00D.6080800@oracle.com>	<1273825187.21352.590.camel@pasglop>	 <20100514.013012.13730149.davem@davemloft.net>	 <4BED7DFE.2090108@oracle.com> <1273876488.21352.643.camel@pasglop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:55276 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:38689 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752903Ab0ENXLb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 19:11:31 -0400
-In-Reply-To: <1273876749.21352.645.camel@pasglop>
+	with ESMTP id S1753767Ab0ENXxP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 19:53:15 -0400
+In-Reply-To: <1273876488.21352.643.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: David Miller <davem@davemloft.net>, mingo@elte.hu, tglx@linutronix.de, hpa@zytor.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, hannes@cmpxchg.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 05/14/2010 03:39 PM, Benjamin Herrenschmidt wrote:
-> On Fri, 2010-05-14 at 12:45 -0700, Yinghai Lu wrote:
->> it is a wrapper for lmb_find_base
->>
->> make it more easy for x86 to use lmb. ( rebase )
->> x86 early_res is using find/reserve pattern instead of alloc.
->>
->> keep it in weak version, so later We can use x86 own version if needed.
->> also We need it in lib/lmb.c, so one called mm/page_alloc.c could get compiled
-> 
-> I seem to have told you that I didn't want to have that thing in the
-> core :-)
-> 
-> You keep adding those "wrappers" which basically just do prototype
-> adaptation and in this case a bit of cropping, with a name that is
-> utterly confusing as to what their intent is.
-> 
-> I might have accepted that one if you had called it something like
-> lmb_find_in_range() which at least -means- something.
+like you to make some change to lmb_type and double_array()
 
-thanks. will use sed to replace them.
+struct lmb_type {
+        unsigned long cnt;      /* number of regions */
+        unsigned long max;      /* size of the allocated array */
+        struct lmb_region *regions;
+};
 
-lmb_find_area ==> lmb_find_in_range()
+==>
 
-how about
-lmb_reserve_area  ==> lmb_reserve_range
-lmb_free_area  ==> lmb_free_range
-or leave them that way, later replace them lmb_reserve and lmb_free one by one?
+struct lmb_type {
+        unsigned long cnt;      /* number of regions */
+        unsigned long max;      /* size of the allocated array */
+	unsigned long features;
+        struct lmb_region *regions;
+};
 
-YH
+
+then have 
+
+#define LMB_ADD_MERGE (1<<0) 
+#define LMB_ARRAY_DOUBLE (1<<1)
+
+so before call double_lmb_array(), should check the features to bit is set or not.
+otherwise should emit PANIC with clear message.
+
+Usage:
+
+for range replacement,
+
+1. early stage before lmb.reserved, lmb.memory is there.
+so can not use lmb_find_base yet.
+
+2. for bootmem replacement, when do range set subtraction for final free range list,
+don't want to change lmb.reserved in the middle.  callee should make sure to have big
+enough temperately lmb_regions in lmb_type. 
+
+Thanks
+
+Yinghai
