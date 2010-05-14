@@ -1,202 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:18072 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:65056 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757247Ab0ENTu5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 15:50:57 -0400
+	with ESMTP id S1759256Ab0ENTtL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 15:49:11 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 34/37] x86: Add get_centaur_ram_top()
-Date: Fri, 14 May 2010 12:46:00 -0700
-Message-ID: <1273866363-14249-35-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 09/37] bootmem, x86: Add weak version of reserve_bootmem_generic
+Date: Fri, 14 May 2010 12:45:35 -0700
+Message-ID: <1273866363-14249-10-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
 References: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100514194600.5y1b6JeId1r8VYliz4R7-Jw2wzkatdAS_cLJoBJgeRU@z>
+Message-ID: <20100514194535.omWgBZE200JOwjugYEfMyUYh6l2XiC80Y9Bs-xhoWFc@z>
 
-So we can avoid to access e820.map[] directly.
+It will be used lmb_to_bootmem converting
 
-later we could move e820 to static and _initdata
+It is an wrapper for reserve_bootmem, and x86 64bit is using special one.
+
+Also clean up that version for x86_64. We don't need to take care of numa
+path for that, bootmem can handle it how
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/e820.h   |    9 ++++++
- arch/x86/kernel/cpu/centaur.c |   53 +-------------------------------------
- arch/x86/kernel/e820.c        |   56 +++++++++++++++++++++++++++++++++++++++++
- arch/x86/kernel/setup.c       |    2 +
- 4 files changed, 69 insertions(+), 51 deletions(-)
+ arch/x86/mm/init_32.c |    6 ------
+ arch/x86/mm/init_64.c |   20 ++------------------
+ mm/bootmem.c          |    6 ++++++
+ 3 files changed, 8 insertions(+), 24 deletions(-)
 
-diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
-index 334281f..cd7de51 100644
---- a/arch/x86/include/asm/e820.h
-+++ b/arch/x86/include/asm/e820.h
-@@ -76,6 +76,15 @@ struct e820map {
- /* see comment in arch/x86/kernel/e820.c */
- extern struct e820map e820;
- 
-+#if defined(CONFIG_X86_OOSTORE) && defined(CONFIG_CPU_SUP_CENTAUR)
-+extern int centaur_ram_top;
-+void get_centaur_ram_top(void);
-+#else
-+static inline void get_centaur_ram_top(void)
-+{
-+}
-+#endif
-+
- extern unsigned long pci_mem_start;
- extern int e820_any_mapped(u64 start, u64 end, unsigned type);
- extern int e820_all_mapped(u64 start, u64 end, unsigned type);
-diff --git a/arch/x86/kernel/cpu/centaur.c b/arch/x86/kernel/cpu/centaur.c
-index e58d978..bb49358 100644
---- a/arch/x86/kernel/cpu/centaur.c
-+++ b/arch/x86/kernel/cpu/centaur.c
-@@ -37,63 +37,14 @@ static void __cpuinit centaur_mcr_insert(int reg, u32 base, u32 size, int key)
- 	mtrr_centaur_report_mcr(reg, lo, hi);	/* Tell the mtrr driver */
+diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+index bca7909..90e0545 100644
+--- a/arch/x86/mm/init_32.c
++++ b/arch/x86/mm/init_32.c
+@@ -1069,9 +1069,3 @@ void mark_rodata_ro(void)
+ #endif
  }
- 
--/*
-- * Figure what we can cover with MCR's
-- *
-- * Shortcut: We know you can't put 4Gig of RAM on a winchip
-- */
--static u32 __cpuinit ramtop(void)
+ #endif
+-
+-int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+-				   int flags)
 -{
--	u32 clip = 0xFFFFFFFFUL;
--	u32 top = 0;
--	int i;
--
--	for (i = 0; i < e820.nr_map; i++) {
--		unsigned long start, end;
--
--		if (e820.map[i].addr > 0xFFFFFFFFUL)
--			continue;
--		/*
--		 * Don't MCR over reserved space. Ignore the ISA hole
--		 * we frob around that catastrophe already
--		 */
--		if (e820.map[i].type == E820_RESERVED) {
--			if (e820.map[i].addr >= 0x100000UL &&
--			    e820.map[i].addr < clip)
--				clip = e820.map[i].addr;
--			continue;
--		}
--		start = e820.map[i].addr;
--		end = e820.map[i].addr + e820.map[i].size;
--		if (start >= end)
--			continue;
--		if (end > top)
--			top = end;
--	}
--	/*
--	 * Everything below 'top' should be RAM except for the ISA hole.
--	 * Because of the limited MCR's we want to map NV/ACPI into our
--	 * MCR range for gunk in RAM
--	 *
--	 * Clip might cause us to MCR insufficient RAM but that is an
--	 * acceptable failure mode and should only bite obscure boxes with
--	 * a VESA hole at 15Mb
--	 *
--	 * The second case Clip sometimes kicks in is when the EBDA is marked
--	 * as reserved. Again we fail safe with reasonable results
--	 */
--	if (top > clip)
--		top = clip;
--
--	return top;
+-	return reserve_bootmem(phys, len, flags);
 -}
-+int __cpuinitdata centaur_ram_top;
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index ee41bba..634fa08 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -799,13 +799,10 @@ void mark_rodata_ro(void)
  
- /*
-  * Compute a set of MCR's to give maximum coverage
-  */
- static int __cpuinit centaur_mcr_compute(int nr, int key)
+ #endif
+ 
++#ifndef CONFIG_NO_BOOTMEM
+ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 				   int flags)
  {
--	u32 mem = ramtop();
-+	u32 mem = centaur_ram_top;
- 	u32 root = power2(mem);
- 	u32 base = root;
- 	u32 top = root;
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index b2753e7..eb556d0 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -1131,6 +1131,62 @@ void __init setup_memory_map(void)
- 	e820_print_map(who);
+-#ifdef CONFIG_NUMA
+-	int nid, next_nid;
+-	int ret;
+-#endif
+ 	unsigned long pfn = phys >> PAGE_SHIFT;
+ 
+ 	if (pfn >= max_pfn) {
+@@ -821,21 +818,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 		return -EFAULT;
+ 	}
+ 
+-	/* Should check here against the e820 map to avoid double free */
+-#ifdef CONFIG_NUMA
+-	nid = phys_to_nid(phys);
+-	next_nid = phys_to_nid(phys + len - 1);
+-	if (nid == next_nid)
+-		ret = reserve_bootmem_node(NODE_DATA(nid), phys, len, flags);
+-	else
+-		ret = reserve_bootmem(phys, len, flags);
+-
+-	if (ret != 0)
+-		return ret;
+-
+-#else
+ 	reserve_bootmem(phys, len, flags);
+-#endif
+ 
+ 	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
+ 		dma_reserve += len / PAGE_SIZE;
+@@ -844,6 +827,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 
+ 	return 0;
+ }
++#endif
+ 
+ int kern_addr_valid(unsigned long addr)
+ {
+diff --git a/mm/bootmem.c b/mm/bootmem.c
+index 58c66cc..ee31b95 100644
+--- a/mm/bootmem.c
++++ b/mm/bootmem.c
+@@ -526,6 +526,12 @@ int __init reserve_bootmem(unsigned long addr, unsigned long size,
  }
  
-+#if defined(CONFIG_X86_OOSTORE) && defined(CONFIG_CPU_SUP_CENTAUR)
-+/*
-+ * Figure what we can cover with MCR's
-+ *
-+ * Shortcut: We know you can't put 4Gig of RAM on a winchip
-+ */
-+void __init get_centaur_ram_top(void)
+ #ifndef CONFIG_NO_BOOTMEM
++int __weak __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
++				   int flags)
 +{
-+	u32 clip = 0xFFFFFFFFUL;
-+	u32 top = 0;
-+	int i;
-+
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_CENTAUR)
-+		return;
-+
-+	for (i = 0; i < e820.nr_map; i++) {
-+		unsigned long start, end;
-+
-+		if (e820.map[i].addr > 0xFFFFFFFFUL)
-+			continue;
-+		/*
-+		 * Don't MCR over reserved space. Ignore the ISA hole
-+		 * we frob around that catastrophe already
-+		 */
-+		if (e820.map[i].type == E820_RESERVED) {
-+			if (e820.map[i].addr >= 0x100000UL &&
-+			    e820.map[i].addr < clip)
-+				clip = e820.map[i].addr;
-+			continue;
-+		}
-+		start = e820.map[i].addr;
-+		end = e820.map[i].addr + e820.map[i].size;
-+		if (start >= end)
-+			continue;
-+		if (end > top)
-+			top = end;
-+	}
-+	/*
-+	 * Everything below 'top' should be RAM except for the ISA hole.
-+	 * Because of the limited MCR's we want to map NV/ACPI into our
-+	 * MCR range for gunk in RAM
-+	 *
-+	 * Clip might cause us to MCR insufficient RAM but that is an
-+	 * acceptable failure mode and should only bite obscure boxes with
-+	 * a VESA hole at 15Mb
-+	 *
-+	 * The second case Clip sometimes kicks in is when the EBDA is marked
-+	 * as reserved. Again we fail safe with reasonable results
-+	 */
-+	if (top > clip)
-+		top = clip;
-+
-+	centaur_ram_top = top;
++	return reserve_bootmem(phys, len, flags);
 +}
-+#endif
 +
- void __init init_lmb_memory(void)
+ static unsigned long __init align_idx(struct bootmem_data *bdata,
+ 				      unsigned long idx, unsigned long step)
  {
- 	lmb_init();
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index d165b2d..222515c 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -893,6 +893,8 @@ void __init setup_arch(char **cmdline_p)
- 	if (mtrr_trim_uncached_memory(max_pfn))
- 		max_pfn = e820_end_of_ram_pfn();
- 
-+	get_centaur_ram_top();
-+
- #ifdef CONFIG_X86_32
- 	/* max_low_pfn get updated here */
- 	find_low_pfn_range();
 -- 
 1.6.4.2
 
