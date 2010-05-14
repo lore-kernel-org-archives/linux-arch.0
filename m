@@ -1,108 +1,139 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 06/35] bootmem, x86: Add weak version of reserve_bootmem_generic
-Date: Thu, 13 May 2010 17:19:27 -0700
-Message-ID: <1273796396-29649-7-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 17/35] x86, lmb: Add x86 version of __lmb_find_area()
+Date: Thu, 13 May 2010 17:19:38 -0700
+Message-ID: <1273796396-29649-18-git-send-email-yinghai@kernel.org>
 References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:54058 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755049Ab0ENAZI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 20:25:08 -0400
 In-Reply-To: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-It will be used lmb_to_bootmem converting
+Generic version is going from high to low, and it seems it can not find
+right area compact enough.
 
-It is an wrapper for reserve_bootmem, and x86 64bit is using special one.
+the x86 version will go from goal to limit and just like the way We used
+for early_res
 
-Also clean up that version for x86_64. We don't need to take care of numa
-path for that, bootmem can handle it how
+use ARCH_FIND_LMB_AREA to select from them.
+
+-v2: default to no
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/mm/init_32.c |    6 ------
- arch/x86/mm/init_64.c |   20 ++------------------
- mm/bootmem.c          |    6 ++++++
- 3 files changed, 8 insertions(+), 24 deletions(-)
+ arch/x86/Kconfig  |    8 +++++
+ arch/x86/mm/lmb.c |   78 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 86 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index bca7909..90e0545 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -1069,9 +1069,3 @@ void mark_rodata_ro(void)
- #endif
- }
- #endif
--
--int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
--				   int flags)
--{
--	return reserve_bootmem(phys, len, flags);
--}
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index ee41bba..634fa08 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -799,13 +799,10 @@ void mark_rodata_ro(void)
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index d80d2ab..36a5665 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -584,6 +584,14 @@ config PARAVIRT_DEBUG
+ 	  Enable to debug paravirt_ops internals.  Specifically, BUG if
+ 	  a paravirt_op is missing when it is called.
  
- #endif
- 
-+#ifndef CONFIG_NO_BOOTMEM
- int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 				   int flags)
- {
--#ifdef CONFIG_NUMA
--	int nid, next_nid;
--	int ret;
--#endif
- 	unsigned long pfn = phys >> PAGE_SHIFT;
- 
- 	if (pfn >= max_pfn) {
-@@ -821,21 +818,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 		return -EFAULT;
- 	}
- 
--	/* Should check here against the e820 map to avoid double free */
--#ifdef CONFIG_NUMA
--	nid = phys_to_nid(phys);
--	next_nid = phys_to_nid(phys + len - 1);
--	if (nid == next_nid)
--		ret = reserve_bootmem_node(NODE_DATA(nid), phys, len, flags);
--	else
--		ret = reserve_bootmem(phys, len, flags);
--
--	if (ret != 0)
--		return ret;
--
--#else
- 	reserve_bootmem(phys, len, flags);
--#endif
- 
- 	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
- 		dma_reserve += len / PAGE_SIZE;
-@@ -844,6 +827,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 
- 	return 0;
- }
-+#endif
- 
- int kern_addr_valid(unsigned long addr)
- {
-diff --git a/mm/bootmem.c b/mm/bootmem.c
-index 58c66cc..ee31b95 100644
---- a/mm/bootmem.c
-+++ b/mm/bootmem.c
-@@ -526,6 +526,12 @@ int __init reserve_bootmem(unsigned long addr, unsigned long size,
++config ARCH_LMB_FIND_AREA
++	default n
++	bool "Use x86 own lmb_find_area()"
++	---help---
++	  Use lmb_find_area() version instead of generic version, it get free
++	  area up from low.
++	  Generic one try to get free area down from limit.
++
+ config NO_BOOTMEM
+ 	default y
+ 	bool "Disable Bootmem code"
+diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
+index c0c4220..cf9d488 100644
+--- a/arch/x86/mm/lmb.c
++++ b/arch/x86/mm/lmb.c
+@@ -435,3 +435,81 @@ u64 __init lmb_hole_size(u64 start, u64 end)
+ 	return end - start - ((u64)ram << PAGE_SHIFT);
  }
  
- #ifndef CONFIG_NO_BOOTMEM
-+int __weak __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
-+				   int flags)
++#ifdef CONFIG_ARCH_LMB_FIND_AREA
++static int __init find_overlapped_early(u64 start, u64 end)
 +{
-+	return reserve_bootmem(phys, len, flags);
++	int i;
++	struct lmb_region *r;
++
++	for (i = 0; i < lmb.reserved.cnt && lmb.reserved.regions[i].size; i++) {
++		r = &lmb.reserved.regions[i];
++		if (end > r->base && start < (r->base + r->size))
++			break;
++	}
++
++	return i;
 +}
 +
- static unsigned long __init align_idx(struct bootmem_data *bdata,
- 				      unsigned long idx, unsigned long step)
- {
++/* Check for already reserved areas */
++static inline bool __init bad_addr(u64 *addrp, u64 size, u64 align)
++{
++	int i;
++	u64 addr = *addrp;
++	bool changed = false;
++	struct lmb_region *r;
++again:
++	i = find_overlapped_early(addr, addr + size);
++	r = &lmb.reserved.regions[i];
++	if (i < lmb.reserved.cnt && r->size) {
++		*addrp = addr = round_up(r->base + r->size, align);
++		changed = true;
++		goto again;
++	}
++	return changed;
++}
++
++u64 __init __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
++				 u64 size, u64 align)
++{
++	u64 addr, last;
++
++	addr = round_up(ei_start, align);
++	if (addr < start)
++		addr = round_up(start, align);
++	if (addr >= ei_last)
++		goto out;
++	while (bad_addr(&addr, size, align) && addr+size <= ei_last)
++		;
++	last = addr + size;
++	if (last > ei_last)
++		goto out;
++	if (last > end)
++		goto out;
++
++	return addr;
++
++out:
++	return LMB_ERROR;
++}
++
++/*
++ * Find a free area with specified alignment in a specific range.
++ */
++u64 __init lmb_find_area(u64 start, u64 end, u64 size, u64 align)
++{
++	int i;
++
++	for (i = 0; i < lmb.memory.cnt; i++) {
++		u64 ei_start = lmb.memory.regions[i].base;
++		u64 ei_last = ei_start + lmb.memory.regions[i].size;
++		u64 addr;
++
++		addr = __lmb_find_area(ei_start, ei_last, start, end,
++					 size, align);
++
++		if (addr != LMB_ERROR)
++			return addr;
++	}
++	return LMB_ERROR;
++}
++#endif
 -- 
 1.6.4.2
