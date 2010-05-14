@@ -1,52 +1,109 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 37/37] x86: make e820 to be __initdata
-Date: Fri, 14 May 2010 12:46:03 -0700
-Message-ID: <1273866363-14249-38-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 26/37] lmb: Move __alloc_memory_core_early() to nobootmem.c
+Date: Fri, 14 May 2010 12:45:52 -0700
+Message-ID: <1273866363-14249-27-git-send-email-yinghai@kernel.org>
 References: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:17319 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:17292 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753669Ab0ENTt5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 15:49:57 -0400
+	with ESMTP id S1752342Ab0ENTtz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 15:49:55 -0400
 In-Reply-To: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-Finally no user after init boot stage. We can free it to save some bytes.
+We can remove #ifdef in mm/page_alloc.c
+
+and change that function to static
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/e820.h |    2 --
- arch/x86/kernel/e820.c      |    2 +-
- 2 files changed, 1 insertions(+), 3 deletions(-)
+ include/linux/mm.h |    2 --
+ mm/nobootmem.c     |   21 +++++++++++++++++++++
+ mm/page_alloc.c    |   24 ------------------------
+ 3 files changed, 21 insertions(+), 26 deletions(-)
 
-diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
-index cd7de51..f2ab72e 100644
---- a/arch/x86/include/asm/e820.h
-+++ b/arch/x86/include/asm/e820.h
-@@ -73,8 +73,6 @@ struct e820map {
- #define BIOS_END		0x00100000
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 7774e1d..2a14361 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1161,8 +1161,6 @@ int add_from_early_node_map(struct range *range, int az,
+ 				   int nr_range, int nid);
+ u64 __init find_memory_core_early(int nid, u64 size, u64 align,
+ 					u64 goal, u64 limit);
+-void *__alloc_memory_core_early(int nodeid, u64 size, u64 align,
+-				 u64 goal, u64 limit);
+ typedef int (*work_fn_t)(unsigned long, unsigned long, void *);
+ extern void work_with_active_regions(int nid, work_fn_t work_fn, void *data);
+ extern void sparse_memory_present_with_active_regions(int nid);
+diff --git a/mm/nobootmem.c b/mm/nobootmem.c
+index abaec96..e3cbde7 100644
+--- a/mm/nobootmem.c
++++ b/mm/nobootmem.c
+@@ -40,6 +40,27 @@ unsigned long max_pfn;
+ unsigned long saved_max_pfn;
+ #endif
  
- #ifdef __KERNEL__
--/* see comment in arch/x86/kernel/e820.c */
--extern struct e820map e820;
++static void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
++					u64 goal, u64 limit)
++{
++	void *ptr;
++
++	u64 addr;
++
++	if (limit > lmb.current_limit)
++		limit = lmb.current_limit;
++
++	addr = find_memory_core_early(nid, size, align, goal, limit);
++
++	if (addr == LMB_ERROR)
++		return NULL;
++
++	ptr = phys_to_virt(addr);
++	memset(ptr, 0, size);
++	lmb_reserve_area(addr, addr + size, "BOOTMEM");
++	return ptr;
++}
++
+ /*
+  * free_bootmem_late - free bootmem pages directly to page allocator
+  * @addr: starting address of the range
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 704b26f..7a07e12 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -3437,30 +3437,6 @@ int __init add_from_early_node_map(struct range *range, int az,
+ 	return nr_range;
+ }
  
- #if defined(CONFIG_X86_OOSTORE) && defined(CONFIG_CPU_SUP_CENTAUR)
- extern int centaur_ram_top;
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index c2e18f9..ad30efd 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -35,7 +35,7 @@
-  * user can e.g. boot the original kernel with mem=1G while still booting the
-  * next kernel with full memory.
-  */
--struct e820map e820;
-+static struct e820map __initdata e820;
- static struct e820map __initdata e820_saved;
- 
- /* For PCI or other memory-mapped resources */
+-#ifdef CONFIG_NO_BOOTMEM
+-void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
+-					u64 goal, u64 limit)
+-{
+-	void *ptr;
+-
+-	u64 addr;
+-
+-	if (limit > lmb.current_limit)
+-		limit = lmb.current_limit;
+-
+-	addr = find_memory_core_early(nid, size, align, goal, limit);
+-
+-	if (addr == LMB_ERROR)
+-		return NULL;
+-
+-	ptr = phys_to_virt(addr);
+-	memset(ptr, 0, size);
+-	lmb_reserve_area(addr, addr + size, "BOOTMEM");
+-	return ptr;
+-}
+-#endif
+-
+-
+ void __init work_with_active_regions(int nid, work_fn_t work_fn, void *data)
+ {
+ 	int i;
 -- 
 1.6.4.2
