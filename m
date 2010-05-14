@@ -1,23 +1,23 @@
 From: Yinghai <yinghai.lu@oracle.com>
 Subject: Re: [PATCH 11/35] lmb: Add find_memory_core_early()
-Date: Thu, 13 May 2010 23:34:47 -0700
-Message-ID: <4BECEF07.8020700@oracle.com>
-References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>	 <1273796396-29649-12-git-send-email-yinghai@kernel.org> <1273804173.21352.386.camel@pasglop>
+Date: Thu, 13 May 2010 23:39:09 -0700
+Message-ID: <4BECF00D.6080800@oracle.com>
+References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>	 <1273796396-29649-12-git-send-email-yinghai@kernel.org> <1273804238.21352.389.camel@pasglop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:62289 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:35998 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754016Ab0ENGgi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 02:36:38 -0400
-In-Reply-To: <1273804173.21352.386.camel@pasglop>
+	with ESMTP id S1755359Ab0ENGku (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 02:40:50 -0400
+In-Reply-To: <1273804238.21352.389.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 05/13/2010 07:29 PM, Benjamin Herrenschmidt wrote:
+On 05/13/2010 07:30 PM, Benjamin Herrenschmidt wrote:
 > On Thu, 2010-05-13 at 17:19 -0700, Yinghai Lu wrote:
 >> According to node range in early_node_map[] with __lmb_find_area
 >> to find free range.
@@ -25,20 +25,32 @@ On 05/13/2010 07:29 PM, Benjamin Herrenschmidt wrote:
 >> Will be used by lmb_find_area_node()
 >>
 >> lmb_find_area_node will be used to find right buffer for NODE_DATA
+>>
+>> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+>> ---
 > 
-> The prototype for this has nothing to do in lmb.h under that name at
-> least.
+> Oh and this wont' work on sparc. You should probably instead add a
+> lmb_find_in_nid() to lmb which shares code with lmb_alloc_nid().
 
-it is calling __lmb_find_area()
+should work with sparc...
 
-but it need to use early_node_map[], so put this function here
++		if (addr == LMB_ERROR)
++			continue;
+
+should do the trick.
+
+
+> 
+> However, why do you wnat to do this find + separate reserve again ? Why
+> not lmb_alloc ?
+
+keep switch smooth. maybe later could try to replace that one by one.
+also i could use lmb_reserve_area() to take name and print out name to make debug easy.
 
 > 
 > Cheers,
 > Ben.
 > 
->> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
->> ---
 >>  include/linux/mm.h |    2 ++
 >>  mm/page_alloc.c    |   29 +++++++++++++++++++++++++++++
 >>  2 files changed, 31 insertions(+), 0 deletions(-)
