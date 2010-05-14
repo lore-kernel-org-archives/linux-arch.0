@@ -1,114 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:54001 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:53906 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754810Ab0ENAYv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 20:24:51 -0400
+	with ESMTP id S1754604Ab0ENAYh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 20:24:37 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 06/35] bootmem, x86: Add weak version of reserve_bootmem_generic
-Date: Thu, 13 May 2010 17:19:27 -0700
-Message-ID: <1273796396-29649-7-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 35/35] x86: make e820 to be __initdata
+Date: Thu, 13 May 2010 17:19:56 -0700
+Message-ID: <1273796396-29649-36-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
 References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100514001927.fF-69-PgiG6AZ_NQc7Sxe7IxqWhJexvbJcjTxIMonA4@z>
+Message-ID: <20100514001956.wDFsFRuZS3BWAF1iLwgqNDSxkiMlRijQlpjjBwrdaY4@z>
 
-It will be used lmb_to_bootmem converting
-
-It is an wrapper for reserve_bootmem, and x86 64bit is using special one.
-
-Also clean up that version for x86_64. We don't need to take care of numa
-path for that, bootmem can handle it how
+Finally no user after init boot stage. We can free it to save some bytes.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/mm/init_32.c |    6 ------
- arch/x86/mm/init_64.c |   20 ++------------------
- mm/bootmem.c          |    6 ++++++
- 3 files changed, 8 insertions(+), 24 deletions(-)
+ arch/x86/include/asm/e820.h |    2 --
+ arch/x86/kernel/e820.c      |    2 +-
+ 2 files changed, 1 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index bca7909..90e0545 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -1069,9 +1069,3 @@ void mark_rodata_ro(void)
- #endif
- }
- #endif
--
--int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
--				   int flags)
--{
--	return reserve_bootmem(phys, len, flags);
--}
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index ee41bba..634fa08 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -799,13 +799,10 @@ void mark_rodata_ro(void)
+diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
+index cd7de51..f2ab72e 100644
+--- a/arch/x86/include/asm/e820.h
++++ b/arch/x86/include/asm/e820.h
+@@ -73,8 +73,6 @@ struct e820map {
+ #define BIOS_END		0x00100000
  
- #endif
+ #ifdef __KERNEL__
+-/* see comment in arch/x86/kernel/e820.c */
+-extern struct e820map e820;
  
-+#ifndef CONFIG_NO_BOOTMEM
- int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 				   int flags)
- {
--#ifdef CONFIG_NUMA
--	int nid, next_nid;
--	int ret;
--#endif
- 	unsigned long pfn = phys >> PAGE_SHIFT;
+ #if defined(CONFIG_X86_OOSTORE) && defined(CONFIG_CPU_SUP_CENTAUR)
+ extern int centaur_ram_top;
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 0e30c2e..70255d5 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -35,7 +35,7 @@
+  * user can e.g. boot the original kernel with mem=1G while still booting the
+  * next kernel with full memory.
+  */
+-struct e820map e820;
++static struct e820map __initdata e820;
+ static struct e820map __initdata e820_saved;
  
- 	if (pfn >= max_pfn) {
-@@ -821,21 +818,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 		return -EFAULT;
- 	}
- 
--	/* Should check here against the e820 map to avoid double free */
--#ifdef CONFIG_NUMA
--	nid = phys_to_nid(phys);
--	next_nid = phys_to_nid(phys + len - 1);
--	if (nid == next_nid)
--		ret = reserve_bootmem_node(NODE_DATA(nid), phys, len, flags);
--	else
--		ret = reserve_bootmem(phys, len, flags);
--
--	if (ret != 0)
--		return ret;
--
--#else
- 	reserve_bootmem(phys, len, flags);
--#endif
- 
- 	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
- 		dma_reserve += len / PAGE_SIZE;
-@@ -844,6 +827,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 
- 	return 0;
- }
-+#endif
- 
- int kern_addr_valid(unsigned long addr)
- {
-diff --git a/mm/bootmem.c b/mm/bootmem.c
-index 58c66cc..ee31b95 100644
---- a/mm/bootmem.c
-+++ b/mm/bootmem.c
-@@ -526,6 +526,12 @@ int __init reserve_bootmem(unsigned long addr, unsigned long size,
- }
- 
- #ifndef CONFIG_NO_BOOTMEM
-+int __weak __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
-+				   int flags)
-+{
-+	return reserve_bootmem(phys, len, flags);
-+}
-+
- static unsigned long __init align_idx(struct bootmem_data *bdata,
- 				      unsigned long idx, unsigned long step)
- {
+ /* For PCI or other memory-mapped resources */
 -- 
 1.6.4.2
 
