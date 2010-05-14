@@ -1,190 +1,200 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 30/37] x86: Add sanitize_e820_map()
-Date: Fri, 14 May 2010 12:45:56 -0700
-Message-ID: <1273866363-14249-31-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 34/37] x86: Add get_centaur_ram_top()
+Date: Fri, 14 May 2010 12:46:00 -0700
+Message-ID: <1273866363-14249-35-git-send-email-yinghai@kernel.org>
 References: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:18102 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:18072 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759726Ab0ENTvH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 15:51:07 -0400
+	with ESMTP id S1757247Ab0ENTu5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 15:50:57 -0400
 In-Reply-To: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-for 2.6.34
+So we can avoid to access e820.map[] directly.
 
-So We don't need to carry e820.map with it.
+later we could move e820 to static and _initdata
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/e820.h |    3 +--
- arch/x86/kernel/e820.c      |   17 +++++++++++------
- arch/x86/kernel/efi.c       |    2 +-
- arch/x86/kernel/setup.c     |    8 ++++----
- arch/x86/xen/setup.c        |    4 +---
- 5 files changed, 18 insertions(+), 16 deletions(-)
+ arch/x86/include/asm/e820.h   |    9 ++++++
+ arch/x86/kernel/cpu/centaur.c |   53 +-------------------------------------
+ arch/x86/kernel/e820.c        |   56 +++++++++++++++++++++++++++++++++++++++++
+ arch/x86/kernel/setup.c       |    2 +
+ 4 files changed, 69 insertions(+), 51 deletions(-)
 
 diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
-index f59db16..25962e1 100644
+index 334281f..cd7de51 100644
 --- a/arch/x86/include/asm/e820.h
 +++ b/arch/x86/include/asm/e820.h
-@@ -82,8 +82,7 @@ extern int e820_any_mapped(u64 start, u64 end, unsigned type);
+@@ -76,6 +76,15 @@ struct e820map {
+ /* see comment in arch/x86/kernel/e820.c */
+ extern struct e820map e820;
+ 
++#if defined(CONFIG_X86_OOSTORE) && defined(CONFIG_CPU_SUP_CENTAUR)
++extern int centaur_ram_top;
++void get_centaur_ram_top(void);
++#else
++static inline void get_centaur_ram_top(void)
++{
++}
++#endif
++
+ extern unsigned long pci_mem_start;
+ extern int e820_any_mapped(u64 start, u64 end, unsigned type);
  extern int e820_all_mapped(u64 start, u64 end, unsigned type);
- extern void e820_add_region(u64 start, u64 size, int type);
- extern void e820_print_map(char *who);
--extern int
--sanitize_e820_map(struct e820entry *biosmap, int max_nr_map, u32 *pnr_map);
-+int sanitize_e820_map(void);
- extern u64 e820_update_range(u64 start, u64 size, unsigned old_type,
- 			       unsigned new_type);
- extern u64 e820_remove_range(u64 start, u64 size, unsigned old_type,
+diff --git a/arch/x86/kernel/cpu/centaur.c b/arch/x86/kernel/cpu/centaur.c
+index e58d978..bb49358 100644
+--- a/arch/x86/kernel/cpu/centaur.c
++++ b/arch/x86/kernel/cpu/centaur.c
+@@ -37,63 +37,14 @@ static void __cpuinit centaur_mcr_insert(int reg, u32 base, u32 size, int key)
+ 	mtrr_centaur_report_mcr(reg, lo, hi);	/* Tell the mtrr driver */
+ }
+ 
+-/*
+- * Figure what we can cover with MCR's
+- *
+- * Shortcut: We know you can't put 4Gig of RAM on a winchip
+- */
+-static u32 __cpuinit ramtop(void)
+-{
+-	u32 clip = 0xFFFFFFFFUL;
+-	u32 top = 0;
+-	int i;
+-
+-	for (i = 0; i < e820.nr_map; i++) {
+-		unsigned long start, end;
+-
+-		if (e820.map[i].addr > 0xFFFFFFFFUL)
+-			continue;
+-		/*
+-		 * Don't MCR over reserved space. Ignore the ISA hole
+-		 * we frob around that catastrophe already
+-		 */
+-		if (e820.map[i].type == E820_RESERVED) {
+-			if (e820.map[i].addr >= 0x100000UL &&
+-			    e820.map[i].addr < clip)
+-				clip = e820.map[i].addr;
+-			continue;
+-		}
+-		start = e820.map[i].addr;
+-		end = e820.map[i].addr + e820.map[i].size;
+-		if (start >= end)
+-			continue;
+-		if (end > top)
+-			top = end;
+-	}
+-	/*
+-	 * Everything below 'top' should be RAM except for the ISA hole.
+-	 * Because of the limited MCR's we want to map NV/ACPI into our
+-	 * MCR range for gunk in RAM
+-	 *
+-	 * Clip might cause us to MCR insufficient RAM but that is an
+-	 * acceptable failure mode and should only bite obscure boxes with
+-	 * a VESA hole at 15Mb
+-	 *
+-	 * The second case Clip sometimes kicks in is when the EBDA is marked
+-	 * as reserved. Again we fail safe with reasonable results
+-	 */
+-	if (top > clip)
+-		top = clip;
+-
+-	return top;
+-}
++int __cpuinitdata centaur_ram_top;
+ 
+ /*
+  * Compute a set of MCR's to give maximum coverage
+  */
+ static int __cpuinit centaur_mcr_compute(int nr, int key)
+ {
+-	u32 mem = ramtop();
++	u32 mem = centaur_ram_top;
+ 	u32 root = power2(mem);
+ 	u32 base = root;
+ 	u32 top = root;
 diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index 1144d20..3c4ddaa 100644
+index b2753e7..eb556d0 100644
 --- a/arch/x86/kernel/e820.c
 +++ b/arch/x86/kernel/e820.c
-@@ -225,7 +225,7 @@ void __init e820_print_map(char *who)
-  *	   ______________________4_
-  */
- 
--int __init sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
-+static int __init __sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
- 			     u32 *pnr_map)
- {
- 	struct change_member {
-@@ -384,6 +384,11 @@ int __init sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
- 	return 0;
+@@ -1131,6 +1131,62 @@ void __init setup_memory_map(void)
+ 	e820_print_map(who);
  }
  
-+int __init sanitize_e820_map(void)
++#if defined(CONFIG_X86_OOSTORE) && defined(CONFIG_CPU_SUP_CENTAUR)
++/*
++ * Figure what we can cover with MCR's
++ *
++ * Shortcut: We know you can't put 4Gig of RAM on a winchip
++ */
++void __init get_centaur_ram_top(void)
 +{
-+	return __sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
-+}
++	u32 clip = 0xFFFFFFFFUL;
++	u32 top = 0;
++	int i;
 +
- static int __init __append_e820_map(struct e820entry *biosmap, int nr_map)
++	if (boot_cpu_data.x86_vendor != X86_VENDOR_CENTAUR)
++		return;
++
++	for (i = 0; i < e820.nr_map; i++) {
++		unsigned long start, end;
++
++		if (e820.map[i].addr > 0xFFFFFFFFUL)
++			continue;
++		/*
++		 * Don't MCR over reserved space. Ignore the ISA hole
++		 * we frob around that catastrophe already
++		 */
++		if (e820.map[i].type == E820_RESERVED) {
++			if (e820.map[i].addr >= 0x100000UL &&
++			    e820.map[i].addr < clip)
++				clip = e820.map[i].addr;
++			continue;
++		}
++		start = e820.map[i].addr;
++		end = e820.map[i].addr + e820.map[i].size;
++		if (start >= end)
++			continue;
++		if (end > top)
++			top = end;
++	}
++	/*
++	 * Everything below 'top' should be RAM except for the ISA hole.
++	 * Because of the limited MCR's we want to map NV/ACPI into our
++	 * MCR range for gunk in RAM
++	 *
++	 * Clip might cause us to MCR insufficient RAM but that is an
++	 * acceptable failure mode and should only bite obscure boxes with
++	 * a VESA hole at 15Mb
++	 *
++	 * The second case Clip sometimes kicks in is when the EBDA is marked
++	 * as reserved. Again we fail safe with reasonable results
++	 */
++	if (top > clip)
++		top = clip;
++
++	centaur_ram_top = top;
++}
++#endif
++
+ void __init init_lmb_memory(void)
  {
- 	while (nr_map) {
-@@ -572,7 +577,7 @@ void __init update_e820(void)
- 	u32 nr_map;
- 
- 	nr_map = e820.nr_map;
--	if (sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr_map))
-+	if (__sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr_map))
- 		return;
- 	e820.nr_map = nr_map;
- 	printk(KERN_INFO "modified physical RAM map:\n");
-@@ -583,7 +588,7 @@ static void __init update_e820_saved(void)
- 	u32 nr_map;
- 
- 	nr_map = e820_saved.nr_map;
--	if (sanitize_e820_map(e820_saved.map, ARRAY_SIZE(e820_saved.map), &nr_map))
-+	if (__sanitize_e820_map(e820_saved.map, ARRAY_SIZE(e820_saved.map), &nr_map))
- 		return;
- 	e820_saved.nr_map = nr_map;
- }
-@@ -678,7 +683,7 @@ void __init parse_e820_ext(struct setup_data *sdata, unsigned long pa_data)
- 		sdata = early_ioremap(pa_data, map_len);
- 	extmap = (struct e820entry *)(sdata->data);
- 	__append_e820_map(extmap, entries);
--	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
-+	sanitize_e820_map();
- 	if (map_len > PAGE_SIZE)
- 		early_iounmap(sdata, map_len);
- 	printk(KERN_INFO "extended physical RAM map:\n");
-@@ -910,7 +915,7 @@ void __init finish_e820_parsing(void)
- 	if (userdef) {
- 		u32 nr = e820.nr_map;
- 
--		if (sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr) < 0)
-+		if (__sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr) < 0)
- 			early_panic("Invalid user supplied memory map");
- 		e820.nr_map = nr;
- 
-@@ -1040,7 +1045,7 @@ char *__init default_machine_specific_memory_setup(void)
- 	 * the next section from 1mb->appropriate_mem_k
- 	 */
- 	new_nr = boot_params.e820_entries;
--	sanitize_e820_map(boot_params.e820_map,
-+	__sanitize_e820_map(boot_params.e820_map,
- 			ARRAY_SIZE(boot_params.e820_map),
- 			&new_nr);
- 	boot_params.e820_entries = new_nr;
-diff --git a/arch/x86/kernel/efi.c b/arch/x86/kernel/efi.c
-index ebe7c09..bb31919 100644
---- a/arch/x86/kernel/efi.c
-+++ b/arch/x86/kernel/efi.c
-@@ -273,7 +273,7 @@ static void __init do_add_efi_memmap(void)
- 		}
- 		e820_add_region(start, size, e820_type);
- 	}
--	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
-+	sanitize_e820_map();
- }
- 
- void __init efi_lmb_reserve_area(void)
+ 	lmb_init();
 diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index aad3e6c..33ff7f4 100644
+index d165b2d..222515c 100644
 --- a/arch/x86/kernel/setup.c
 +++ b/arch/x86/kernel/setup.c
-@@ -462,7 +462,7 @@ static void __init e820_reserve_setup_data(void)
- 	if (!found)
- 		return;
+@@ -893,6 +893,8 @@ void __init setup_arch(char **cmdline_p)
+ 	if (mtrr_trim_uncached_memory(max_pfn))
+ 		max_pfn = e820_end_of_ram_pfn();
  
--	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
-+	sanitize_e820_map();
- 	memcpy(&e820_saved, &e820, sizeof(struct e820map));
- 	printk(KERN_INFO "extended physical RAM map:\n");
- 	e820_print_map("reserve setup_data");
-@@ -625,7 +625,7 @@ static int __init dmi_low_memory_corruption(const struct dmi_system_id *d)
- 		d->ident);
- 
- 	e820_update_range(0, 0x10000, E820_RAM, E820_RESERVED);
--	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
-+	sanitize_e820_map();
- 
- 	return 0;
- }
-@@ -694,7 +694,7 @@ static void __init trim_bios_range(void)
- 	 * take them out.
- 	 */
- 	e820_remove_range(BIOS_BEGIN, BIOS_END - BIOS_BEGIN, E820_RAM, 1);
--	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
-+	sanitize_e820_map();
- }
- 
- static u64 __init get_max_mapped(void)
-@@ -874,7 +874,7 @@ void __init setup_arch(char **cmdline_p)
- 	if (ppro_with_ram_bug()) {
- 		e820_update_range(0x70000000ULL, 0x40000ULL, E820_RAM,
- 				  E820_RESERVED);
--		sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
-+		sanitize_e820_map();
- 		printk(KERN_INFO "fixed physical RAM map:\n");
- 		e820_print_map("bad_ppro");
- 	}
-diff --git a/arch/x86/xen/setup.c b/arch/x86/xen/setup.c
-index be3fcf3..d2954eb 100644
---- a/arch/x86/xen/setup.c
-+++ b/arch/x86/xen/setup.c
-@@ -44,8 +44,6 @@ char * __init xen_memory_setup(void)
- 
- 	max_pfn = min(MAX_DOMAIN_PAGES, max_pfn);
- 
--	e820.nr_map = 0;
--
- 	e820_add_region(0, PFN_PHYS((u64)max_pfn), E820_RAM);
- 
- 	/*
-@@ -66,7 +64,7 @@ char * __init xen_memory_setup(void)
- 		      __pa(xen_start_info->pt_base),
- 			"XEN START INFO");
- 
--	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
-+	sanitize_e820_map();
- 
- 	return "Xen";
- }
++	get_centaur_ram_top();
++
+ #ifdef CONFIG_X86_32
+ 	/* max_low_pfn get updated here */
+ 	find_low_pfn_range();
 -- 
 1.6.4.2
