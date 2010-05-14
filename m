@@ -1,50 +1,192 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:36104 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754964Ab0EMLrw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 13 May 2010 07:47:52 -0400
-Message-ID: <4BEBE6D0.8020000@redhat.com>
-Date: Thu, 13 May 2010 14:47:28 +0300
-From: Avi Kivity <avi@redhat.com>
-MIME-Version: 1.0
-Subject: Re: [RFC][PATCH 0/12] KVM, x86, ppc, asm-generic: moving dirty bitmaps
- to user space
-References: <20100504215645.6448af8f.takuya.yoshikawa@gmail.com> <4BE7F6D7.3060005@redhat.com> <4BE7FB7B.5010600@oss.ntt.co.jp>
-In-Reply-To: <4BE7FB7B.5010600@oss.ntt.co.jp>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from rcsinet10.oracle.com ([148.87.113.121]:52717 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754051Ab0ENAYB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 20:24:01 -0400
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 28/35] x86: Add sanitize_e820_map()
+Date: Thu, 13 May 2010 17:19:49 -0700
+Message-ID: <1273796396-29649-29-git-send-email-yinghai@kernel.org>
+In-Reply-To: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
+References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-Cc: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>, mtosatti@redhat.com, agraf@suse.de, fernando@oss.ntt.co.jp, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, kvm-ia64@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@ozlabs.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20100513114728.onVLUFkoEd7takHsoGrh9rJCd-qj_bt3BgKxgShMipY@z>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20100514001949.X7XiZOc-3vWzcajC3NVcm_4czDiHhk_TYZXbywjCor8@z>
 
-On 05/10/2010 03:26 PM, Takuya Yoshikawa wrote:
->> No doubt get.org -> get.opt is measurable, but get.opt->switch.opt is
->> problematic. Have you tried profiling to see where the time is spent
->> (well I can guess, clearing the write access from the sptes).
->
->
-> Sorry but no, and I agree with your guess.
-> Anyway, I want to do some profiling to confirm this guess.
->
->
-> BTW, If we only think about performance improvement of time, optimized
-> get(get.opt) may be enough at this stage.
->
-> But if we consider the future expansion like using user allocated 
-> bitmaps,
-> new API's introduced for switch.opt won't become waste, I think, 
-> because we
-> need a structure to get and export bitmap addresses.
+for 2.6.34
 
-User allocated bitmaps have the advantage of reducing pinned memory.  
-However we have plenty more pinned memory allocated in memory slots, so 
-by itself, user allocated bitmaps don't justify this change.
+So We don't need to carry e820.map with it.
 
-Perhaps if we optimize memory slot write protection (I have some ideas 
-about this) we can make the performance improvement more pronounced.
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/x86/include/asm/e820.h |    3 +--
+ arch/x86/kernel/e820.c      |   17 +++++++++++------
+ arch/x86/kernel/efi.c       |    2 +-
+ arch/x86/kernel/setup.c     |    8 ++++----
+ arch/x86/xen/setup.c        |    4 +---
+ 5 files changed, 18 insertions(+), 16 deletions(-)
 
+diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
+index f59db16..25962e1 100644
+--- a/arch/x86/include/asm/e820.h
++++ b/arch/x86/include/asm/e820.h
+@@ -82,8 +82,7 @@ extern int e820_any_mapped(u64 start, u64 end, unsigned type);
+ extern int e820_all_mapped(u64 start, u64 end, unsigned type);
+ extern void e820_add_region(u64 start, u64 size, int type);
+ extern void e820_print_map(char *who);
+-extern int
+-sanitize_e820_map(struct e820entry *biosmap, int max_nr_map, u32 *pnr_map);
++int sanitize_e820_map(void);
+ extern u64 e820_update_range(u64 start, u64 size, unsigned old_type,
+ 			       unsigned new_type);
+ extern u64 e820_remove_range(u64 start, u64 size, unsigned old_type,
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 92c6021..416acee 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -225,7 +225,7 @@ void __init e820_print_map(char *who)
+  *	   ______________________4_
+  */
+ 
+-int __init sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
++static int __init __sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
+ 			     u32 *pnr_map)
+ {
+ 	struct change_member {
+@@ -384,6 +384,11 @@ int __init sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
+ 	return 0;
+ }
+ 
++int __init sanitize_e820_map(void)
++{
++	return __sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++}
++
+ static int __init __append_e820_map(struct e820entry *biosmap, int nr_map)
+ {
+ 	while (nr_map) {
+@@ -572,7 +577,7 @@ void __init update_e820(void)
+ 	u32 nr_map;
+ 
+ 	nr_map = e820.nr_map;
+-	if (sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr_map))
++	if (__sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr_map))
+ 		return;
+ 	e820.nr_map = nr_map;
+ 	printk(KERN_INFO "modified physical RAM map:\n");
+@@ -583,7 +588,7 @@ static void __init update_e820_saved(void)
+ 	u32 nr_map;
+ 
+ 	nr_map = e820_saved.nr_map;
+-	if (sanitize_e820_map(e820_saved.map, ARRAY_SIZE(e820_saved.map), &nr_map))
++	if (__sanitize_e820_map(e820_saved.map, ARRAY_SIZE(e820_saved.map), &nr_map))
+ 		return;
+ 	e820_saved.nr_map = nr_map;
+ }
+@@ -678,7 +683,7 @@ void __init parse_e820_ext(struct setup_data *sdata, unsigned long pa_data)
+ 		sdata = early_ioremap(pa_data, map_len);
+ 	extmap = (struct e820entry *)(sdata->data);
+ 	__append_e820_map(extmap, entries);
+-	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++	sanitize_e820_map();
+ 	if (map_len > PAGE_SIZE)
+ 		early_iounmap(sdata, map_len);
+ 	printk(KERN_INFO "extended physical RAM map:\n");
+@@ -910,7 +915,7 @@ void __init finish_e820_parsing(void)
+ 	if (userdef) {
+ 		u32 nr = e820.nr_map;
+ 
+-		if (sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr) < 0)
++		if (__sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &nr) < 0)
+ 			early_panic("Invalid user supplied memory map");
+ 		e820.nr_map = nr;
+ 
+@@ -1040,7 +1045,7 @@ char *__init default_machine_specific_memory_setup(void)
+ 	 * the next section from 1mb->appropriate_mem_k
+ 	 */
+ 	new_nr = boot_params.e820_entries;
+-	sanitize_e820_map(boot_params.e820_map,
++	__sanitize_e820_map(boot_params.e820_map,
+ 			ARRAY_SIZE(boot_params.e820_map),
+ 			&new_nr);
+ 	boot_params.e820_entries = new_nr;
+diff --git a/arch/x86/kernel/efi.c b/arch/x86/kernel/efi.c
+index ebe7c09..bb31919 100644
+--- a/arch/x86/kernel/efi.c
++++ b/arch/x86/kernel/efi.c
+@@ -273,7 +273,7 @@ static void __init do_add_efi_memmap(void)
+ 		}
+ 		e820_add_region(start, size, e820_type);
+ 	}
+-	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++	sanitize_e820_map();
+ }
+ 
+ void __init efi_lmb_reserve_area(void)
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index c5ec1b8..9d9890c 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -462,7 +462,7 @@ static void __init e820_reserve_setup_data(void)
+ 	if (!found)
+ 		return;
+ 
+-	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++	sanitize_e820_map();
+ 	memcpy(&e820_saved, &e820, sizeof(struct e820map));
+ 	printk(KERN_INFO "extended physical RAM map:\n");
+ 	e820_print_map("reserve setup_data");
+@@ -625,7 +625,7 @@ static int __init dmi_low_memory_corruption(const struct dmi_system_id *d)
+ 		d->ident);
+ 
+ 	e820_update_range(0, 0x10000, E820_RAM, E820_RESERVED);
+-	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++	sanitize_e820_map();
+ 
+ 	return 0;
+ }
+@@ -694,7 +694,7 @@ static void __init trim_bios_range(void)
+ 	 * take them out.
+ 	 */
+ 	e820_remove_range(BIOS_BEGIN, BIOS_END - BIOS_BEGIN, E820_RAM, 1);
+-	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++	sanitize_e820_map();
+ }
+ 
+ static u64 __init get_max_mapped(void)
+@@ -874,7 +874,7 @@ void __init setup_arch(char **cmdline_p)
+ 	if (ppro_with_ram_bug()) {
+ 		e820_update_range(0x70000000ULL, 0x40000ULL, E820_RAM,
+ 				  E820_RESERVED);
+-		sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++		sanitize_e820_map();
+ 		printk(KERN_INFO "fixed physical RAM map:\n");
+ 		e820_print_map("bad_ppro");
+ 	}
+diff --git a/arch/x86/xen/setup.c b/arch/x86/xen/setup.c
+index be3fcf3..d2954eb 100644
+--- a/arch/x86/xen/setup.c
++++ b/arch/x86/xen/setup.c
+@@ -44,8 +44,6 @@ char * __init xen_memory_setup(void)
+ 
+ 	max_pfn = min(MAX_DOMAIN_PAGES, max_pfn);
+ 
+-	e820.nr_map = 0;
+-
+ 	e820_add_region(0, PFN_PHYS((u64)max_pfn), E820_RAM);
+ 
+ 	/*
+@@ -66,7 +64,7 @@ char * __init xen_memory_setup(void)
+ 		      __pa(xen_start_info->pt_base),
+ 			"XEN START INFO");
+ 
+-	sanitize_e820_map(e820.map, ARRAY_SIZE(e820.map), &e820.nr_map);
++	sanitize_e820_map();
+ 
+ 	return "Xen";
+ }
 -- 
-error compiling committee.c: too many arguments to function
+1.6.4.2
 
