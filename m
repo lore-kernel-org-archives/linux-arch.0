@@ -1,51 +1,76 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v16 00/35] Use lmb with x86
-Date: Thu, 13 May 2010 17:19:21 -0700
-Message-ID: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Subject: [PATCH 25/35] x86: Have nobootmem version setup_bootmem_allocator()
+Date: Thu, 13 May 2010 17:19:46 -0700
+Message-ID: <1273796396-29649-26-git-send-email-yinghai@kernel.org>
+References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:54024 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754493Ab0ENAYz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 20:24:55 -0400
+In-Reply-To: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-the new lmb could be used to replace early_res in x86.
+We can reduce #ifdef number from 3 to one in init_32.c
 
-Suggested by: David, Ben, and Thomas
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/x86/mm/init_32.c |   15 ++++++++++-----
+ 1 files changed, 10 insertions(+), 5 deletions(-)
 
--v6: change sequence as requested by Thomas
--v7: seperate them to more patches
--v8: add boundary checking to make sure not free partial page.
--v9: use lmb_debug to control print out of reserve_lmb.
-     add e820 clean up, and e820 become __initdata
--v10:use lmb.rmo_size and ARCH_DISCARD_LMB according to Michael
-     change name to lmb_find_area/reserve_lmb_area/free_lmb_area,
-      according to Michael
-     update find_lmb_area to use __lmb_alloc_base according to ben
--v11:move find_lmb_area_size back to x86.
-     x86 has own find_lmb_area, and could be disabled by ARCH_LMB_FIND_AREA
-      because _lmb_find_base has different behavoir from x86's old one.
-      one from high to high and one from low to high
-      need more test
-     tested for x86 32bit/64bit, numa/nonuma, nobootmem/bootmem.
--v12:refresh the series with current tip
-     seperate nobootmem.c, so could remove some #ifdef
-     still keep CONFIG_NO_BOOTMEM, in x86 .c, and could use the as tags
-     so other lmb could refer them to use NO_BOOTMEM.
-
--v14:refresh to current tip
-
--v15:remove x86 version lmb_find_area
-     remove other nobootmem and x86 e820 from this patchset
-
--v16: rebase to Ben's cleanup powerpc/lmb
-     move back most func back to arch/x86/mm/lmb.c
-
-this patches is based on tip/master+powerpc/lmb
-
-todo:
-	1. use for_each_lmb to replace for cycle
-	2. replace range handling with lmb.
-
-Thanks
-
-Yinghai
+diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+index c01c711..dfdd035 100644
+--- a/arch/x86/mm/init_32.c
++++ b/arch/x86/mm/init_32.c
+@@ -771,11 +771,9 @@ static unsigned long __init setup_node_bootmem(int nodeid,
+ 
+ 	return bootmap + bootmap_size;
+ }
+-#endif
+ 
+ void __init setup_bootmem_allocator(void)
+ {
+-#ifndef CONFIG_NO_BOOTMEM
+ 	int nodeid;
+ 	unsigned long bootmap_size, bootmap;
+ 	/*
+@@ -787,13 +785,11 @@ void __init setup_bootmem_allocator(void)
+ 	if (bootmap == -1L)
+ 		panic("Cannot find bootmem map of size %ld\n", bootmap_size);
+ 	lmb_reserve_area(bootmap, bootmap + bootmap_size, "BOOTMAP");
+-#endif
+ 
+ 	printk(KERN_INFO "  mapped low ram: 0 - %08lx\n",
+ 		 max_pfn_mapped<<PAGE_SHIFT);
+ 	printk(KERN_INFO "  low ram: 0 - %08lx\n", max_low_pfn<<PAGE_SHIFT);
+ 
+-#ifndef CONFIG_NO_BOOTMEM
+ 	for_each_online_node(nodeid) {
+ 		 unsigned long start_pfn, end_pfn;
+ 
+@@ -811,10 +807,19 @@ void __init setup_bootmem_allocator(void)
+ 		bootmap = setup_node_bootmem(nodeid, start_pfn, end_pfn,
+ 						 bootmap);
+ 	}
+-#endif
+ 
+ 	after_bootmem = 1;
+ }
++#else
++void __init setup_bootmem_allocator(void)
++{
++	printk(KERN_INFO "  mapped low ram: 0 - %08lx\n",
++		 max_pfn_mapped<<PAGE_SHIFT);
++	printk(KERN_INFO "  low ram: 0 - %08lx\n", max_low_pfn<<PAGE_SHIFT);
++
++	after_bootmem = 1;
++}
++#endif
+ 
+ /*
+  * paging_init() sets up the page tables - note that the first 8MB are
+-- 
+1.6.4.2
