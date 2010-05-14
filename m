@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 13/35] x86, lmb: Add lmb_free_memory_size()
-Date: Thu, 13 May 2010 17:19:34 -0700
-Message-ID: <1273796396-29649-14-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 04/35] lmb: Add lmb_find_area()
+Date: Thu, 13 May 2010 17:19:25 -0700
+Message-ID: <1273796396-29649-5-git-send-email-yinghai@kernel.org>
 References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
@@ -10,92 +10,80 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-It will return free memory size in specified range.
+it is a wrapper for lmb_find_base
 
-We can not use memory_size - reserved_size here, because some reserved area
-may not be in the scope of lmb.memory.region.
+make it more easy for x86 to use lmb. ( rebase )
+x86 early_res is using find/reserve pattern instead of alloc.
 
-Use lmb.memory.region subtracting lmb.reserved.region to get free range array.
-then count size of all free ranges.
+-v2: Change name to lmb_find_area() according to Michael Ellerman
+-v3: Add generic weak version __lmb_find_area()
+     so keep the path for fallback to x86 version that handle from low
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    1 +
- arch/x86/mm/lmb.c          |   51 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 52 insertions(+), 0 deletions(-)
+ include/linux/lmb.h |    4 ++++
+ lib/lmb.c           |   27 ++++++++++++++++++++++++++-
+ 2 files changed, 30 insertions(+), 1 deletions(-)
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index 358d8a6..4fb94b5 100644
---- a/arch/x86/include/asm/lmb.h
-+++ b/arch/x86/include/asm/lmb.h
-@@ -16,5 +16,6 @@ void lmb_register_active_regions(int nid, unsigned long start_pfn,
- 					 unsigned long last_pfn);
- u64 lmb_hole_size(u64 start, u64 end);
- u64 lmb_find_area_node(int nid, u64 start, u64 end, u64 size, u64 align);
-+u64 lmb_free_memory_size(u64 addr, u64 limit);
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index 0b073a3..3c23dc8 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -44,6 +44,10 @@ extern struct lmb lmb;
+ extern int lmb_debug;
+ extern struct lmb_region lmb_reserved_init_regions[];
  
- #endif
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index c5fa1dd..6c69e99 100644
---- a/arch/x86/mm/lmb.c
-+++ b/arch/x86/mm/lmb.c
-@@ -226,6 +226,57 @@ void __init lmb_to_bootmem(u64 start, u64 end)
++u64 __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
++			u64 size, u64 align);
++u64 lmb_find_area(u64 start, u64 end, u64 size, u64 align);
++
+ extern void __init lmb_init(void);
+ extern void __init lmb_analyze(void);
+ extern long lmb_add(phys_addr_t base, phys_addr_t size);
+diff --git a/lib/lmb.c b/lib/lmb.c
+index 6d49a17..f917dbf 100644
+--- a/lib/lmb.c
++++ b/lib/lmb.c
+@@ -155,6 +155,31 @@ static phys_addr_t __init lmb_find_base(phys_addr_t size, phys_addr_t align,
+ 	return LMB_ERROR;
  }
- #endif
  
-+u64 __init lmb_free_memory_size(u64 addr, u64 limit)
++u64 __init __weak __lmb_find_area(u64 ei_start, u64 ei_last, u64 start, u64 end,
++				 u64 size, u64 align)
 +{
-+	int i, count;
-+	struct range *range;
-+	int nr_range;
 +	u64 final_start, final_end;
-+	u64 free_size;
++	u64 mem;
 +
-+	count = (lmb.reserved.cnt + lmb.memory.cnt) * 2;
++	final_start = max(ei_start, start);
++	final_end = min(ei_last, end);
 +
-+	range = find_range_array(count);
-+	nr_range = 0;
++	if (final_start >= final_end)
++		return LMB_ERROR;
 +
-+	addr = PFN_UP(addr);
-+	limit = PFN_DOWN(limit);
++	mem = lmb_find_base(size, align, final_start, final_end);
 +
-+	for (i = 0; i < lmb.memory.cnt; i++) {
-+		struct lmb_region *r = &lmb.memory.regions[i];
-+
-+		final_start = PFN_UP(r->base);
-+		final_end = PFN_DOWN(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		if (final_start >= limit || final_end <= addr)
-+			continue;
-+
-+		nr_range = add_range(range, count, nr_range, final_start, final_end);
-+	}
-+	subtract_range(range, count, 0, addr);
-+	subtract_range(range, count, limit, -1ULL);
-+	for (i = 0; i < lmb.reserved.cnt; i++) {
-+		struct lmb_region *r = &lmb.reserved.regions[i];
-+
-+		final_start = PFN_DOWN(r->base);
-+		final_end = PFN_UP(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		if (final_start >= limit || final_end <= addr)
-+			continue;
-+
-+		subtract_range(range, count, final_start, final_end);
-+	}
-+	nr_range = clean_sort_range(range, count);
-+
-+	free_size = 0;
-+	for (i = 0; i < nr_range; i++)
-+		free_size += range[i].end - range[i].start;
-+
-+	return free_size << PAGE_SHIFT;
++	return mem;
 +}
 +
- void __init lmb_add_memory(u64 start, u64 end)
++/*
++ * Find a free area with specified alignment in a specific range.
++ */
++u64 __init __weak lmb_find_area(u64 start, u64 end, u64 size, u64 align)
++{
++	return lmb_find_base(size, align, start, end);
++}
++
+ static void __init_lmb lmb_remove_region(struct lmb_type *type, unsigned long r)
  {
- 	lmb_add_region(&lmb.memory, start, end - start);
+ 	unsigned long i;
+@@ -199,7 +224,7 @@ static int __init_lmb lmb_double_array(struct lmb_type *type)
+ 		new_array = kmalloc(new_size, GFP_KERNEL);
+ 		addr = new_array == NULL ? LMB_ERROR : __pa(new_array);
+ 	} else
+-		addr = lmb_find_base(new_size, sizeof(struct lmb_region), 0, LMB_ALLOC_ACCESSIBLE);
++		addr = lmb_find_area(0, lmb.current_limit, new_size, sizeof(struct lmb_region));
+ 	if (addr == LMB_ERROR) {
+ 		pr_err("lmb: Failed to double %s array from %ld to %ld entries !\n",
+ 		       lmb_type_name(type), type->max, type->max * 2);
 -- 
 1.6.4.2
