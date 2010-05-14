@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 30/35] x86: Align e820 ram range to page
-Date: Thu, 13 May 2010 17:19:51 -0700
-Message-ID: <1273796396-29649-31-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 08/35] x86,lmb: Add lmb_reserve_area/lmb_free_area
+Date: Thu, 13 May 2010 17:19:29 -0700
+Message-ID: <1273796396-29649-9-git-send-email-yinghai@kernel.org>
 References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
@@ -10,76 +10,71 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-for 2.6.34
+they are wrappers for core versions.
 
-To workaround wrong BIOS memory map.
+they are taking start/end/name instead of base/size.
+
+could add more debug print out
+
+-v2: change get_max_mapped() to lmb.default_alloc_limit according to Michael
+      Ellerman and Ben
+     change to lmb_reserve_area and lmb_free_area according to Michael Ellerman
+-v3: call check_and_double after reserve/free, so could avoid to use
+      find_lmb_area. Suggested by Michael Ellerman
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/kernel/e820.c |   44 ++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 44 insertions(+), 0 deletions(-)
+ arch/x86/include/asm/lmb.h |    4 ++++
+ arch/x86/mm/lmb.c          |   27 +++++++++++++++++++++++++++
+ 2 files changed, 31 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index 4bbbd6b..78ca7ce 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -910,6 +910,47 @@ static int __init parse_memmap_opt(char *p)
- }
- early_param("memmap", parse_memmap_opt);
+diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
+index 2f06714..bc85c1e 100644
+--- a/arch/x86/include/asm/lmb.h
++++ b/arch/x86/include/asm/lmb.h
+@@ -6,4 +6,8 @@
+ u64 lmb_find_area_size(u64 start, u64 *sizep, u64 align);
+ void lmb_to_bootmem(u64 start, u64 end);
  
-+static void __init e820_align_ram_page(void)
++void lmb_reserve_area(u64 start, u64 end, char *name);
++void lmb_free_area(u64 start, u64 end);
++void lmb_add_memory(u64 start, u64 end);
++
+ #endif
+diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
+index 37a05e2..0dbe05b 100644
+--- a/arch/x86/mm/lmb.c
++++ b/arch/x86/mm/lmb.c
+@@ -117,3 +117,30 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+ 	lmb.reserved.cnt = 0;
+ }
+ #endif
++
++void __init lmb_add_memory(u64 start, u64 end)
 +{
-+	int i;
-+	bool changed = false;;
-+
-+	for (i = 0; i < e820.nr_map; i++) {
-+		struct e820entry *entry = &e820.map[i];
-+		u64 start, end;
-+		u64 start_aligned, end_aligned;
-+
-+		if (entry->type != E820_RAM)
-+			continue;
-+
-+		start = entry->addr;
-+		end = start + entry->size;
-+
-+		start_aligned = round_up(start, PAGE_SIZE);
-+		end_aligned = round_down(end, PAGE_SIZE);
-+
-+		if (end_aligned <= start_aligned) {
-+			e820_update_range(start, end - start, E820_RAM, E820_RESERVED);
-+			changed = true;
-+			continue;
-+		}
-+		if (start < start_aligned) {
-+			e820_update_range(start, start_aligned - start, E820_RAM, E820_RESERVED);
-+			changed = true;
-+		}
-+		if (end_aligned < end) {
-+			e820_update_range(end_aligned, end - end_aligned, E820_RAM, E820_RESERVED);
-+			changed = true;
-+		}
-+	}
-+
-+	if (changed) {
-+		sanitize_e820_map();
-+		printk(KERN_INFO "aligned physical RAM map:\n");
-+		e820_print_map("aligned");
-+	}
++	lmb_add_region(&lmb.memory, start, end - start);
 +}
 +
- void __init finish_e820_parsing(void)
- {
- 	if (userdef) {
-@@ -922,6 +963,9 @@ void __init finish_e820_parsing(void)
- 		printk(KERN_INFO "user-defined physical RAM map:\n");
- 		e820_print_map("user");
- 	}
++void __init lmb_reserve_area(u64 start, u64 end, char *name)
++{
++	if (start == end)
++		return;
 +
-+	/* In case, We have RAM entres that are not PAGE aligned */
-+	e820_align_ram_page();
- }
- 
- static inline const char *e820_type_to_string(int e820_type)
++	if (WARN_ONCE(start > end, "lmb_reserve_area: wrong range [%#llx, %#llx]\n", start, end))
++		return;
++
++	lmb_add_region(&lmb.reserved, start, end - start);
++}
++
++void __init lmb_free_area(u64 start, u64 end)
++{
++	if (start == end)
++		return;
++
++	if (WARN_ONCE(start > end, "lmb_free_area: wrong range [%#llx, %#llx]\n", start, end))
++		return;
++
++	lmb_free(start, end - start);
++}
 -- 
 1.6.4.2
