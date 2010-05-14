@@ -1,119 +1,120 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 24/35] lmb: Move __alloc_memory_core_early() to
- nobootmem.c
-Date: Fri, 14 May 2010 12:36:24 +1000
-Message-ID: <1273804584.21352.404.camel@pasglop>
-References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
-	 <1273796396-29649-25-git-send-email-yinghai@kernel.org>
+From: Yinghai <yinghai.lu@oracle.com>
+Subject: Re: [PATCH 01/35] lmb: prepare x86 to use lmb to replace early_res
+Date: Thu, 13 May 2010 23:19:57 -0700
+Message-ID: <4BECEB8D.8070600@oracle.com>
+References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>	 <1273796396-29649-2-git-send-email-yinghai@kernel.org> <1273803143.21352.353.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:55299 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754169Ab0ENCiQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 13 May 2010 22:38:16 -0400
-In-Reply-To: <1273796396-29649-25-git-send-email-yinghai@kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:65248 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753480Ab0ENGWq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 02:22:46 -0400
+In-Reply-To: <1273803143.21352.353.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, 2010-05-13 at 17:19 -0700, Yinghai Lu wrote:
-> We can remove #ifdef in mm/page_alloc.c
+On 05/13/2010 07:12 PM, Benjamin Herrenschmidt wrote:
+> On Thu, 2010-05-13 at 17:19 -0700, Yinghai Lu wrote:
+>> 1. expose lmb_debug
+>> 2. expose lmb_reserved_init_regions
+>> 3. expose lmb_add_region
+>> 4. prection for include linux/lmb.h in mm/page_alloc.c and mm/bootmem.c
+>> 5. lmb_find_base() should return LMB_ERROR in one failing path.
+>>    (this one cost me 3 hours !)
+>> 6. move LMB_ERROR to lmb.h
 > 
-> and change that function to static
-
-Don't forget that nid allocation using your early_node_map[] will not
-work properly on sparc due to the scattered nature of page locality.
-
-Cheers,
-Ben.
-
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> ---
->  include/linux/mm.h |    2 --
->  mm/nobootmem.c     |   21 +++++++++++++++++++++
->  mm/page_alloc.c    |   24 ------------------------
->  3 files changed, 21 insertions(+), 26 deletions(-)
+> Oh well, let's start somewhere...
 > 
-> diff --git a/include/linux/mm.h b/include/linux/mm.h
-> index 7774e1d..2a14361 100644
-> --- a/include/linux/mm.h
-> +++ b/include/linux/mm.h
-> @@ -1161,8 +1161,6 @@ int add_from_early_node_map(struct range *range, int az,
->  				   int nr_range, int nid);
->  u64 __init find_memory_core_early(int nid, u64 size, u64 align,
->  					u64 goal, u64 limit);
-> -void *__alloc_memory_core_early(int nodeid, u64 size, u64 align,
-> -				 u64 goal, u64 limit);
->  typedef int (*work_fn_t)(unsigned long, unsigned long, void *);
->  extern void work_with_active_regions(int nid, work_fn_t work_fn, void *data);
->  extern void sparse_memory_present_with_active_regions(int nid);
-> diff --git a/mm/nobootmem.c b/mm/nobootmem.c
-> index abaec96..e3cbde7 100644
-> --- a/mm/nobootmem.c
-> +++ b/mm/nobootmem.c
-> @@ -40,6 +40,27 @@ unsigned long max_pfn;
->  unsigned long saved_max_pfn;
->  #endif
->  
-> +static void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
-> +					u64 goal, u64 limit)
-> +{
-> +	void *ptr;
-> +
-> +	u64 addr;
-> +
-> +	if (limit > lmb.current_limit)
-> +		limit = lmb.current_limit;
-> +
-> +	addr = find_memory_core_early(nid, size, align, goal, limit);
-> +
-> +	if (addr == LMB_ERROR)
-> +		return NULL;
-> +
-> +	ptr = phys_to_virt(addr);
-> +	memset(ptr, 0, size);
-> +	lmb_reserve_area(addr, addr + size, "BOOTMEM");
-> +	return ptr;
-> +}
-> +
->  /*
->   * free_bootmem_late - free bootmem pages directly to page allocator
->   * @addr: starting address of the range
-> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-> index 867a3a8..3449811 100644
-> --- a/mm/page_alloc.c
-> +++ b/mm/page_alloc.c
-> @@ -3437,30 +3437,6 @@ int __init add_from_early_node_map(struct range *range, int az,
->  	return nr_range;
->  }
->  
-> -#ifdef CONFIG_NO_BOOTMEM
-> -void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
-> -					u64 goal, u64 limit)
-> -{
-> -	void *ptr;
-> -
-> -	u64 addr;
-> -
-> -	if (limit > lmb.current_limit)
-> -		limit = lmb.current_limit;
-> -
-> -	addr = find_memory_core_early(nid, size, align, goal, limit);
-> -
-> -	if (addr == LMB_ERROR)
-> -		return NULL;
-> -
-> -	ptr = phys_to_virt(addr);
-> -	memset(ptr, 0, size);
-> -	lmb_reserve_area(addr, addr + size, "BOOTMEM");
-> -	return ptr;
-> -}
-> -#endif
-> -
-> -
->  void __init work_with_active_regions(int nid, work_fn_t work_fn, void *data)
->  {
->  	int i;
+>> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+>> ---
+>>  include/linux/lmb.h |    4 ++++
+>>  lib/lmb.c           |   21 +++++++++------------
+>>  2 files changed, 13 insertions(+), 12 deletions(-)
+>>
+>> diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+>> index 6f8c4bd..7987766 100644
+>> --- a/include/linux/lmb.h
+>> +++ b/include/linux/lmb.h
+>> @@ -19,6 +19,7 @@
+>>  #include <asm/lmb.h>
+>>  
+>>  #define INIT_LMB_REGIONS 128
+>> +#define LMB_ERROR	(~(phys_addr_t)0)
+> 
+> Ok so this was meant to remain internal. You seem to want to expose a
+> whole lot of LMB internals, I suppose for your new arch/x86/lmb.c and I
+> really really don't like it.
+> 
+> If we expose LMB_ERROR then all lmb calls that can fail should return
+> that. However, the API calls all return 0 instead. Changing that means
+> fixing all callers.
+
+ok will stop use LMB_ERROR out lib/lmb.c
+
+will go back to use -1ULL for x86 path.
+
+> 
+> We can't just have a mix bag of result code in stuff that is exposed.
+> 
+> If all you need LMB_ERROR is to expose lmb_find_area() and
+> lmb_add_region() then make the above __ and export a public variant of
+> it that returns 0.
+> 
+> But that's not the right approach. The right thing to do I believe is to
+> instead change LMB to use proper errno.h values.
+> 
+> For things like lmb_add_region(), return then as a negative int. For
+> things that return a phys_addr_t as well with a proper casting macro
+> since I -think- we can safely consider that phys addrs in the range
+> -PAGE_SIZE..-1 can be error codes. Just like we do for PTR_ERR etc...
+> 
+> This should be a separate patch btw.
+> 
+> I'm also not too happy with exposing lmb_add_region(). Why would you
+> ever need to expose it ? Just call lmb_reserve() if you want to reserve
+> something. lmb_add_region() is an internal function and has no business
+> being used outside of the main lmb.c file.
+> 
+> Also:
+> 
+>>  	/* Calculate new doubled size */
+>>  	old_size = type->max * sizeof(struct lmb_region);
+>>  	new_size = old_size << 1;
+>> @@ -206,7 +199,7 @@ static int lmb_double_array(struct lmb_type *type)
+>>  		new_array = kmalloc(new_size, GFP_KERNEL);
+>>  		addr = new_array == NULL ? LMB_ERROR : __pa(new_array);
+>>  	} else
+>> -		addr = lmb_find_base(new_size, sizeof(phys_addr_t), 0, LMB_ALLOC_ACCESSIBLE);
+>> +		addr = lmb_find_base(new_size, sizeof(struct lmb_region), 0, LMB_ALLOC_ACCESSIBLE);
+> 
+> Why this change ? Does it need to be aligned to the struct size ? if you
+> really want that and have a good justification, make this a separate
+> patch and explain why you are doing that in the changeset comment.
+
+will drop that
+
+> 
+>>  	if (addr == LMB_ERROR) {
+>>  		pr_err("lmb: Failed to double %s array from %ld to %ld entries !\n",
+>>  		       lmb_type_name(type), type->max, type->max * 2);
+>> @@ -214,6 +207,10 @@ static int lmb_double_array(struct lmb_type *type)
+>>  	}
+>>  	new_array = __va(addr);
+>>  
+>> +	if (lmb_debug)
+>> +		pr_info("lmb: %s array is doubled to %ld at %llx - %llx",
+>> +			 lmb_type_name(type), type->max * 2, (u64)addr, (u64)addr + new_size);
+>> +
+>>  	/* Found space, we now need to move the array over before
+>>  	 * we add the reserved region since it may be our reserved
+>>  	 * array itself that is full.
+>> @@ -249,7 +246,7 @@ extern int __weak lmb_memory_can_coalesce(phys_addr_t addr1, phys_addr_t size1,
+>>  	return 1;
+>>  }
+> 
+> Cheers,
+> Ben.
