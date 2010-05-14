@@ -1,34 +1,46 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 15/35] x86, lmb: Add lmb_reserve_area_overlap_ok()
-Date: Sat, 15 May 2010 08:30:34 +1000
-Message-ID: <1273876234.21352.639.camel@pasglop>
-References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
-	 <1273796396-29649-16-git-send-email-yinghai@kernel.org>
-	 <1273804337.21352.396.camel@pasglop>  <4BECF158.5070200@oracle.com>
-	 <1273825807.21352.601.camel@pasglop>  <4BED7CE3.1020507@oracle.com>
+Subject: Re: [PATCH 11/35] lmb: Add find_memory_core_early()
+Date: Sat, 15 May 2010 08:34:48 +1000
+Message-ID: <1273876488.21352.643.camel@pasglop>
+References: <1273804238.21352.389.camel@pasglop>
+	 <4BECF00D.6080800@oracle.com>	<1273825187.21352.590.camel@pasglop>
+	 <20100514.013012.13730149.davem@davemloft.net>
+	 <4BED7DFE.2090108@oracle.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:60820 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754959Ab0ENWc0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 May 2010 18:32:26 -0400
-In-Reply-To: <4BED7CE3.1020507@oracle.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <4BED7DFE.2090108@oracle.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Yinghai Lu <yinghai.lu@oracle.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: David Miller <davem@davemloft.net>, mingo@elte.hu, tglx@linutronix.de, hpa@zytor.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, hannes@cmpxchg.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2010-05-14 at 09:40 -0700, Yinghai Lu wrote:
-> later, after this patchset. this patchset is hanging around too long
-> already.
+On Fri, 2010-05-14 at 09:44 -0700, Yinghai Lu wrote:
+> On 05/14/2010 01:30 AM, David Miller wrote:
+> > From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> > Date: Fri, 14 May 2010 18:19:47 +1000
+> >
+> >   
+> >> OK, I'll have to let Davem deal with the fine point of the sparc bits,
+> >> but I think basically sparc has CONFIG_ARCH_POPULATES_NODE_MAP set, but
+> >> the way it's NUMA affinity works, the early_node_map[] is crap, you
+> >> cannot rely on the ranges in there.
+> >>     
+> >   
+> 
+> > Right, we can't use early_node_map[] on sparc, because the NUMA
+> > mappings are far too granular to use that kind of representation.
+> >   
+> good to know.
+> 
+> early_node_map[] doesn't have enough slot?
 
-That's where I strongly disagree with Ingo :-) There's no such thing as
-a patch set hanging around too long. Patches should go in when they are
-ready and in good shape, not due to some kind of time bomb, which
-results in tons of unfixable crap being merged, which is very bad
-engineering.
+I think that's the case. sparc doesn't override MAX_ACTIVE_REGIONS,
+which means you get the default which is 256 or 50 per node depending
+on MAX_NUMNODES. My understanding is that this may not be enough.
+
+Dave, what does it look like in practice tho ?
 
 Cheers,
 Ben.
