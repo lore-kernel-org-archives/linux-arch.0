@@ -1,24 +1,54 @@
-From: Mr Lee MBE <info@leetc.com>
-Subject: REPLY IMMEDIATELY!
-Date: Thu, 13 May 2010 19:30:24 -0300
-Message-ID: <697b0c44338c77568be988742a43c72e@ufabc.edu.br>
-Reply-To: lee_kwai54@live.com
-Mime-Version: 1.0
-Content-Type: text/plain;
- charset=UTF-8
-Content-Transfer-Encoding: 8bit
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 26/35] x86: Put 64 bit numa node memmap above 16M
+Date: Thu, 13 May 2010 17:19:47 -0700
+Message-ID: <1273796396-29649-27-git-send-email-yinghai@kernel.org>
+References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.ufabc.edu.br ([200.133.215.101]:58574 "EHLO
-	mail.ufabc.edu.br" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752286Ab0EMWiF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 18:38:05 -0400
+Received: from rcsinet10.oracle.com ([148.87.113.121]:51846 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752165Ab0ENAW5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 20:22:57 -0400
+In-Reply-To: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-Good Day,
+Do not use 0x8000 hard code value anymore.
 
-There is a project of USD$26.5million for you to handle with me from my
-bank. Please contact me for project details immediately.
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/x86/mm/numa_64.c |    2 +-
+ arch/x86/mm/srat_64.c |    4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
-Sincerely,
-Lee Jp
+diff --git a/arch/x86/mm/numa_64.c b/arch/x86/mm/numa_64.c
+index 18d2296..b8438ac 100644
+--- a/arch/x86/mm/numa_64.c
++++ b/arch/x86/mm/numa_64.c
+@@ -88,7 +88,7 @@ static int __init allocate_cachealigned_memnodemap(void)
+ 	if (memnodemapsize <= ARRAY_SIZE(memnode.embedded_map))
+ 		return 0;
+ 
+-	addr = 0x8000;
++	addr = __pa(MAX_DMA_ADDRESS);
+ 	nodemap_size = roundup(sizeof(s16) * memnodemapsize, L1_CACHE_BYTES);
+ 	nodemap_addr = lmb_find_area(addr, max_pfn<<PAGE_SHIFT,
+ 				      nodemap_size, L1_CACHE_BYTES);
+diff --git a/arch/x86/mm/srat_64.c b/arch/x86/mm/srat_64.c
+index 23f274c..c206b08 100644
+--- a/arch/x86/mm/srat_64.c
++++ b/arch/x86/mm/srat_64.c
+@@ -99,8 +99,8 @@ void __init acpi_numa_slit_init(struct acpi_table_slit *slit)
+ 	unsigned long phys;
+ 
+ 	length = slit->header.length;
+-	phys = lmb_find_area(0, max_pfn_mapped<<PAGE_SHIFT, length,
+-		 PAGE_SIZE);
++	phys = lmb_find_area(__pa(MAX_DMA_ADDRESS), max_pfn_mapped<<PAGE_SHIFT,
++				 length, PAGE_SIZE);
+ 
+ 	if (phys == -1L)
+ 		panic(" Can not save slit!\n");
+-- 
+1.6.4.2
