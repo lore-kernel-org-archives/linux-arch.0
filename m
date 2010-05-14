@@ -1,68 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:59706 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:64974 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759369Ab0ENTsZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 15:48:25 -0400
+	with ESMTP id S1759140Ab0ENTtG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 15:49:06 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 15/37] x86, lmb: Add lmb_find_area_node()
-Date: Fri, 14 May 2010 12:45:41 -0700
-Message-ID: <1273866363-14249-16-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 01/37] lmb: lmb_find_base() should return LMB_ERROR on failing path
+Date: Fri, 14 May 2010 12:45:27 -0700
+Message-ID: <1273866363-14249-2-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
 References: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100514194541.HyZv54lCNCo93VtkpVebC1yNmG5oaD5PZnXRtIIfSa8@z>
+Message-ID: <20100514194527.QkgfQdBSQQcSX4uOXsjD53hQlXmYMmLka6uDuu-myzY@z>
 
-It can be used to find NODE_DATA for numa.
-
-Need to make sure early_node_map[] is filled before it is called, otherwise
-it will fallback to lmb_find_area(), with node range.
+all callees assume it return LMB_ERROR when it fail to find a range
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    1 +
- arch/x86/mm/lmb.c          |   15 +++++++++++++++
- 2 files changed, 16 insertions(+), 0 deletions(-)
+ lib/lmb.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index d0ae19f..358d8a6 100644
---- a/arch/x86/include/asm/lmb.h
-+++ b/arch/x86/include/asm/lmb.h
-@@ -15,5 +15,6 @@ int get_free_all_memory_range(struct range **rangep, int nodeid);
- void lmb_register_active_regions(int nid, unsigned long start_pfn,
- 					 unsigned long last_pfn);
- u64 lmb_hole_size(u64 start, u64 end);
-+u64 lmb_find_area_node(int nid, u64 start, u64 end, u64 size, u64 align);
- 
- #endif
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index 11b76d0..17bb1fb 100644
---- a/arch/x86/mm/lmb.c
-+++ b/arch/x86/mm/lmb.c
-@@ -254,6 +254,21 @@ void __init lmb_free_area(u64 start, u64 end)
+diff --git a/lib/lmb.c b/lib/lmb.c
+index 2cd5aaa..0d4e4c0 100644
+--- a/lib/lmb.c
++++ b/lib/lmb.c
+@@ -154,7 +154,7 @@ static phys_addr_t __init lmb_find_base(phys_addr_t size, phys_addr_t align,
+ 		if (found != LMB_ERROR)
+ 			return found;
+ 	}
+-	return 0;
++	return LMB_ERROR;
  }
  
- /*
-+ * Need to call this function after lmb_register_active_regions,
-+ * so early_node_map[] is filled already.
-+ */
-+u64 __init lmb_find_area_node(int nid, u64 start, u64 end, u64 size, u64 align)
-+{
-+	u64 addr;
-+	addr = find_memory_core_early(nid, size, align, start, end);
-+	if (addr != LMB_ERROR)
-+		return addr;
-+
-+	/* Fallback, should already have start end within node range */
-+	return lmb_find_area(start, end, size, align);
-+}
-+
-+/*
-  * Finds an active region in the address range from start_pfn to last_pfn and
-  * returns its range in ei_startpfn and ei_endpfn for the lmb entry.
-  */
+ static void lmb_remove_region(struct lmb_type *type, unsigned long r)
 -- 
 1.6.4.2
 
