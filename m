@@ -1,147 +1,71 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 05/35] x86, lmb: Add lmb_find_area_size()
-Date: Thu, 13 May 2010 17:19:26 -0700
-Message-ID: <1273796396-29649-6-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 15/35] x86, lmb: Add lmb_reserve_area_overlap_ok()
+Date: Thu, 13 May 2010 17:19:36 -0700
+Message-ID: <1273796396-29649-16-git-send-email-yinghai@kernel.org>
 References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:52685 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754050Ab0ENAYA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 20:24:00 -0400
 In-Reply-To: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-size is returned according free range.
-Will be used to find free ranges for early_memtest and memory corruption check
+Some areas from firmware could be reserved several times from different callers.
 
-Do not mess it up with mm/lmb.c yet.
+If these area are overlapped, We may have overlapped entries in lmb.reserved.
+
+Try to free the area at first, before rerserve them again.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    8 ++++
- arch/x86/mm/Makefile       |    2 +
- arch/x86/mm/lmb.c          |   88 ++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 98 insertions(+), 0 deletions(-)
- create mode 100644 arch/x86/include/asm/lmb.h
- create mode 100644 arch/x86/mm/lmb.c
+ arch/x86/include/asm/lmb.h |    1 +
+ arch/x86/mm/lmb.c          |   18 ++++++++++++++++++
+ 2 files changed, 19 insertions(+), 0 deletions(-)
 
 diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-new file mode 100644
-index 0000000..aa3a66e
---- /dev/null
+index dd42ac1..9329e09 100644
+--- a/arch/x86/include/asm/lmb.h
 +++ b/arch/x86/include/asm/lmb.h
-@@ -0,0 +1,8 @@
-+#ifndef _X86_LMB_H
-+#define _X86_LMB_H
-+
-+#define ARCH_DISCARD_LMB
-+
-+u64 lmb_find_area_size(u64 start, u64 *sizep, u64 align);
-+
-+#endif
-diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
-index a4c7683..8ab0505 100644
---- a/arch/x86/mm/Makefile
-+++ b/arch/x86/mm/Makefile
-@@ -26,4 +26,6 @@ obj-$(CONFIG_NUMA)		+= numa.o numa_$(BITS).o
- obj-$(CONFIG_K8_NUMA)		+= k8topology_64.o
- obj-$(CONFIG_ACPI_NUMA)		+= srat_$(BITS).o
+@@ -7,6 +7,7 @@ u64 lmb_find_area_size(u64 start, u64 *sizep, u64 align);
+ void lmb_to_bootmem(u64 start, u64 end);
  
-+obj-$(CONFIG_HAVE_LMB)		+= lmb.o
-+
- obj-$(CONFIG_MEMTEST)		+= memtest.o
+ void lmb_reserve_area(u64 start, u64 end, char *name);
++void lmb_reserve_area_overlap_ok(u64 start, u64 end, char *name);
+ void lmb_free_area(u64 start, u64 end);
+ void lmb_add_memory(u64 start, u64 end);
+ struct range;
 diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-new file mode 100644
-index 0000000..9d26eed
---- /dev/null
+index 19a5f49..1100c18 100644
+--- a/arch/x86/mm/lmb.c
 +++ b/arch/x86/mm/lmb.c
-@@ -0,0 +1,88 @@
-+#include <linux/kernel.h>
-+#include <linux/types.h>
-+#include <linux/init.h>
-+#include <linux/bitops.h>
-+#include <linux/lmb.h>
-+#include <linux/bootmem.h>
-+#include <linux/mm.h>
-+#include <linux/range.h>
-+
-+/* Check for already reserved areas */
-+static inline bool __init bad_addr_size(u64 *addrp, u64 *sizep, u64 align)
-+{
-+	int i;
-+	u64 addr = *addrp, last;
-+	u64 size = *sizep;
-+	bool changed = false;
-+again:
-+	last = addr + size;
-+	for (i = 0; i < lmb.reserved.cnt && lmb.reserved.regions[i].size; i++) {
-+		struct lmb_region *r = &lmb.reserved.regions[i];
-+		if (last > r->base && addr < r->base) {
-+			size = r->base - addr;
-+			changed = true;
-+			goto again;
-+		}
-+		if (last > (r->base + r->size) && addr < (r->base + r->size)) {
-+			addr = round_up(r->base + r->size, align);
-+			size = last - addr;
-+			changed = true;
-+			goto again;
-+		}
-+		if (last <= (r->base + r->size) && addr >= r->base) {
-+			(*sizep)++;
-+			return false;
-+		}
-+	}
-+	if (changed) {
-+		*addrp = addr;
-+		*sizep = size;
-+	}
-+	return changed;
-+}
-+
-+static u64 __init __lmb_find_area_size(u64 ei_start, u64 ei_last, u64 start,
-+			 u64 *sizep, u64 align)
-+{
-+	u64 addr, last;
-+
-+	addr = round_up(ei_start, align);
-+	if (addr < start)
-+		addr = round_up(start, align);
-+	if (addr >= ei_last)
-+		goto out;
-+	*sizep = ei_last - addr;
-+	while (bad_addr_size(&addr, sizep, align) && addr + *sizep <= ei_last)
-+		;
-+	last = addr + *sizep;
-+	if (last > ei_last)
-+		goto out;
-+
-+	return addr;
-+
-+out:
-+	return LMB_ERROR;
-+}
-+
+@@ -309,6 +309,24 @@ void __init lmb_reserve_area(u64 start, u64 end, char *name)
+ 	lmb_add_region(&lmb.reserved, start, end - start);
+ }
+ 
 +/*
-+ * Find next free range after *start
++ * Could be used to avoid having overlap entries in lmb.reserved.region.
++ *  Don't need to use it with area that is from lmb_find_area()
++ *  Only use it for the area that fw hidden area.
 + */
-+u64 __init lmb_find_area_size(u64 start, u64 *sizep, u64 align)
++void __init lmb_reserve_area_overlap_ok(u64 start, u64 end, char *name)
 +{
-+	int i;
++	if (start == end)
++		return;
 +
-+	for (i = 0; i < lmb.memory.cnt; i++) {
-+		u64 ei_start = lmb.memory.regions[i].base;
-+		u64 ei_last = ei_start + lmb.memory.regions[i].size;
-+		u64 addr;
++	if (WARN_ONCE(start > end, "lmb_reserve_area_overlap_ok: wrong range [%#llx, %#llx]\n", start, end))
++		return;
 +
-+		addr = __lmb_find_area_size(ei_start, ei_last, start,
-+					 sizep, align);
-+
-+		if (addr != LMB_ERROR)
-+			return addr;
-+	}
-+
-+	return LMB_ERROR;
++	/* Free that region at first */
++	lmb_free(start, end - start);
++	lmb_add_region(&lmb.reserved, start, end - start);
 +}
 +
+ void __init lmb_free_area(u64 start, u64 end)
+ {
+ 	if (start == end)
 -- 
 1.6.4.2
