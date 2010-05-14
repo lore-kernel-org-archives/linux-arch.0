@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 14/35] x86, lmb: Add lmb_memory_size()
-Date: Thu, 13 May 2010 17:19:35 -0700
-Message-ID: <1273796396-29649-15-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 13/35] x86, lmb: Add lmb_free_memory_size()
+Date: Thu, 13 May 2010 17:19:34 -0700
+Message-ID: <1273796396-29649-14-git-send-email-yinghai@kernel.org>
 References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
@@ -10,73 +10,88 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-It will return memory size in specified range according to lmb.memory.region
+It will return free memory size in specified range.
 
-Try to share some code with lmb_free_memory_size() by passing get_free to
-__lmb_memory_size().
+We can not use memory_size - reserved_size here, because some reserved area
+may not be in the scope of lmb.memory.region.
+
+Use lmb.memory.region subtracting lmb.reserved.region to get free range array.
+then count size of all free ranges.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
  arch/x86/include/asm/lmb.h |    1 +
- arch/x86/mm/lmb.c          |   18 +++++++++++++++++-
- 2 files changed, 18 insertions(+), 1 deletions(-)
+ arch/x86/mm/lmb.c          |   51 ++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 52 insertions(+), 0 deletions(-)
 
 diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index 4fb94b5..dd42ac1 100644
+index 358d8a6..4fb94b5 100644
 --- a/arch/x86/include/asm/lmb.h
 +++ b/arch/x86/include/asm/lmb.h
-@@ -17,5 +17,6 @@ void lmb_register_active_regions(int nid, unsigned long start_pfn,
+@@ -16,5 +16,6 @@ void lmb_register_active_regions(int nid, unsigned long start_pfn,
+ 					 unsigned long last_pfn);
  u64 lmb_hole_size(u64 start, u64 end);
  u64 lmb_find_area_node(int nid, u64 start, u64 end, u64 size, u64 align);
- u64 lmb_free_memory_size(u64 addr, u64 limit);
-+u64 lmb_memory_size(u64 addr, u64 limit);
++u64 lmb_free_memory_size(u64 addr, u64 limit);
  
  #endif
 diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index 6c69e99..19a5f49 100644
+index c5fa1dd..6c69e99 100644
 --- a/arch/x86/mm/lmb.c
 +++ b/arch/x86/mm/lmb.c
-@@ -226,7 +226,7 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+@@ -226,6 +226,57 @@ void __init lmb_to_bootmem(u64 start, u64 end)
  }
  #endif
  
--u64 __init lmb_free_memory_size(u64 addr, u64 limit)
-+static u64 __init __lmb_memory_size(u64 addr, u64 limit, bool get_free)
- {
- 	int i, count;
- 	struct range *range;
-@@ -256,6 +256,10 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
- 	}
- 	subtract_range(range, count, 0, addr);
- 	subtract_range(range, count, limit, -1ULL);
-+
-+	/* Subtract lmb.reserved.region in range ? */
-+	if (!get_free)
-+		goto sort_and_count_them;
- 	for (i = 0; i < lmb.reserved.cnt; i++) {
- 		struct lmb_region *r = &lmb.reserved.regions[i];
- 
-@@ -268,6 +272,8 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
- 
- 		subtract_range(range, count, final_start, final_end);
- 	}
-+
-+sort_and_count_them:
- 	nr_range = clean_sort_range(range, count);
- 
- 	free_size = 0;
-@@ -277,6 +283,16 @@ u64 __init lmb_free_memory_size(u64 addr, u64 limit)
- 	return free_size << PAGE_SHIFT;
- }
- 
 +u64 __init lmb_free_memory_size(u64 addr, u64 limit)
 +{
-+	return __lmb_memory_size(addr, limit, true);
-+}
++	int i, count;
++	struct range *range;
++	int nr_range;
++	u64 final_start, final_end;
++	u64 free_size;
 +
-+u64 __init lmb_memory_size(u64 addr, u64 limit)
-+{
-+	return __lmb_memory_size(addr, limit, false);
++	count = (lmb.reserved.cnt + lmb.memory.cnt) * 2;
++
++	range = find_range_array(count);
++	nr_range = 0;
++
++	addr = PFN_UP(addr);
++	limit = PFN_DOWN(limit);
++
++	for (i = 0; i < lmb.memory.cnt; i++) {
++		struct lmb_region *r = &lmb.memory.regions[i];
++
++		final_start = PFN_UP(r->base);
++		final_end = PFN_DOWN(r->base + r->size);
++		if (final_start >= final_end)
++			continue;
++		if (final_start >= limit || final_end <= addr)
++			continue;
++
++		nr_range = add_range(range, count, nr_range, final_start, final_end);
++	}
++	subtract_range(range, count, 0, addr);
++	subtract_range(range, count, limit, -1ULL);
++	for (i = 0; i < lmb.reserved.cnt; i++) {
++		struct lmb_region *r = &lmb.reserved.regions[i];
++
++		final_start = PFN_DOWN(r->base);
++		final_end = PFN_UP(r->base + r->size);
++		if (final_start >= final_end)
++			continue;
++		if (final_start >= limit || final_end <= addr)
++			continue;
++
++		subtract_range(range, count, final_start, final_end);
++	}
++	nr_range = clean_sort_range(range, count);
++
++	free_size = 0;
++	for (i = 0; i < nr_range; i++)
++		free_size += range[i].end - range[i].start;
++
++	return free_size << PAGE_SHIFT;
 +}
 +
  void __init lmb_add_memory(u64 start, u64 end)
