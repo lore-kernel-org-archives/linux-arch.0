@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 11/35] lmb: Add find_memory_core_early()
-Date: Thu, 13 May 2010 17:19:32 -0700
-Message-ID: <1273796396-29649-12-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 33/35] x86: Change e820_any_mapped() to __init
+Date: Thu, 13 May 2010 17:19:54 -0700
+Message-ID: <1273796396-29649-34-git-send-email-yinghai@kernel.org>
 References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
@@ -10,78 +10,37 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-According to node range in early_node_map[] with __lmb_find_area
-to find free range.
-
-Will be used by lmb_find_area_node()
-
-lmb_find_area_node will be used to find right buffer for NODE_DATA
+We don't need to expose e820_any_mapped() anymore
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/mm.h |    2 ++
- mm/page_alloc.c    |   29 +++++++++++++++++++++++++++++
- 2 files changed, 31 insertions(+), 0 deletions(-)
+ arch/x86/kernel/e820.c |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index fb19bb9..7774e1d 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1159,6 +1159,8 @@ extern void free_bootmem_with_active_regions(int nid,
- 						unsigned long max_low_pfn);
- int add_from_early_node_map(struct range *range, int az,
- 				   int nr_range, int nid);
-+u64 __init find_memory_core_early(int nid, u64 size, u64 align,
-+					u64 goal, u64 limit);
- void *__alloc_memory_core_early(int nodeid, u64 size, u64 align,
- 				 u64 goal, u64 limit);
- typedef int (*work_fn_t)(unsigned long, unsigned long, void *);
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index d03c946..72afd94 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -21,6 +21,7 @@
- #include <linux/pagemap.h>
- #include <linux/jiffies.h>
- #include <linux/bootmem.h>
-+#include <linux/lmb.h>
- #include <linux/compiler.h>
- #include <linux/kernel.h>
- #include <linux/kmemcheck.h>
-@@ -3393,6 +3394,34 @@ void __init free_bootmem_with_active_regions(int nid,
- 	}
- }
- 
-+#ifdef CONFIG_HAVE_LMB
-+u64 __init find_memory_core_early(int nid, u64 size, u64 align,
-+					u64 goal, u64 limit)
-+{
-+	int i;
-+
-+	/* Need to go over early_node_map to find out good range for node */
-+	for_each_active_range_index_in_nid(i, nid) {
-+		u64 addr;
-+		u64 ei_start, ei_last;
-+
-+		ei_last = early_node_map[i].end_pfn;
-+		ei_last <<= PAGE_SHIFT;
-+		ei_start = early_node_map[i].start_pfn;
-+		ei_start <<= PAGE_SHIFT;
-+		addr = __lmb_find_area(ei_start, ei_last,
-+					 goal, limit, size, align);
-+
-+		if (addr == LMB_ERROR)
-+			continue;
-+
-+		return addr;
-+	}
-+
-+	return -1ULL;
-+}
-+#endif
-+
- int __init add_from_early_node_map(struct range *range, int az,
- 				   int nr_range, int nid)
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index f4b1285..0e30c2e 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -47,9 +47,10 @@ EXPORT_SYMBOL(pci_mem_start);
+ /*
+  * This function checks if any part of the range <start,end> is mapped
+  * with type.
++ * phys_pud_init() is using it and is _meminit, but we have !after_bootmem
++ * so could use refok here
+  */
+-int
+-e820_any_mapped(u64 start, u64 end, unsigned type)
++int __init_refok e820_any_mapped(u64 start, u64 end, unsigned type)
  {
+ 	int i;
+ 
+@@ -64,7 +65,6 @@ e820_any_mapped(u64 start, u64 end, unsigned type)
+ 	}
+ 	return 0;
+ }
+-EXPORT_SYMBOL_GPL(e820_any_mapped);
+ 
+ /*
+  * This function checks if the entire range <start,end> is mapped with type.
 -- 
 1.6.4.2
