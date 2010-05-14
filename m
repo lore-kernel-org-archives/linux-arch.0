@@ -1,47 +1,103 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 02/35] lmb: Prepare to include linux/lmb.h in core file
-Date: Thu, 13 May 2010 17:19:23 -0700
-Message-ID: <1273796396-29649-3-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 16/35] x86, lmb: Use lmb_debug to control debug message print out
+Date: Thu, 13 May 2010 17:19:37 -0700
+Message-ID: <1273796396-29649-17-git-send-email-yinghai@kernel.org>
 References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:52090 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:52580 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753374Ab0ENAXL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 20:23:11 -0400
+	with ESMTP id S1753776Ab0ENAXs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 May 2010 20:23:48 -0400
 In-Reply-To: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-Need to add protection in linux/lmb.h, to prepare to include it in
- mm/page_alloc.c and mm/bootmem.c etc.
+Also let lmb_reserve_area/lmb_free_area could print out name if lmb=debug is
+specified
+
+will also print ther name when reserve_lmb_area/free_lmb_area are called.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
+ arch/x86/mm/lmb.c |   26 ++++++++++++++++++++------
+ 1 files changed, 20 insertions(+), 6 deletions(-)
 
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 7987766..2b87641 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -2,6 +2,7 @@
- #define _LINUX_LMB_H
- #ifdef __KERNEL__
+diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
+index 1100c18..c0c4220 100644
+--- a/arch/x86/mm/lmb.c
++++ b/arch/x86/mm/lmb.c
+@@ -121,11 +121,13 @@ static void __init subtract_lmb_reserved(struct range *range, int az)
  
-+#ifdef CONFIG_HAVE_LMB
- /*
-  * Logical memory blocks.
-  *
-@@ -144,6 +145,8 @@ static inline unsigned long lmb_region_pages(const struct lmb_region *reg)
- 	     region++)
+ 	count  = lmb.reserved.cnt;
  
+-	pr_info("Subtract (%d early reservations)\n", count);
++	if (lmb_debug)
++		pr_info("Subtract (%d early reservations)\n", count);
  
-+#endif /* CONFIG_HAVE_LMB */
+ 	for (i = 0; i < count; i++) {
+ 		struct lmb_region *r = &lmb.reserved.regions[i];
+-		pr_info("  #%d [%010llx - %010llx]\n", i, (u64)r->base, (u64)r->base + r->size);
++		if (lmb_debug)
++			pr_info("  #%d [%010llx - %010llx]\n", i, (u64)r->base, (u64)r->base + r->size);
+ 		final_start = PFN_DOWN(r->base);
+ 		final_end = PFN_UP(r->base + r->size);
+ 		if (final_start >= final_end)
+@@ -205,17 +207,21 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+ 		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
+ 
+ 	count  = lmb.reserved.cnt;
+-	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
++	if (lmb_debug)
++		pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
+ 	for (i = 0; i < count; i++) {
+ 		struct lmb_region *r = &lmb.reserved.regions[i];
+-		pr_info("  #%d [%010llx - %010llx] ", i, (u64)r->base, (u64)r->base + r->size);
++		if (lmb_debug)
++			pr_info("  #%d [%010llx - %010llx] ", i, (u64)r->base, (u64)r->base + r->size);
+ 		final_start = max(start, r->base);
+ 		final_end = min(end, r->base + r->size);
+ 		if (final_start >= final_end) {
+-			pr_cont("\n");
++			if (lmb_debug)
++				pr_cont("\n");
+ 			continue;
+ 		}
+-		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
++		if (lmb_debug)
++			pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
+ 		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
+ 	}
+ 	/* Clear them to avoid misusing ? */
+@@ -306,6 +312,9 @@ void __init lmb_reserve_area(u64 start, u64 end, char *name)
+ 	if (WARN_ONCE(start > end, "lmb_reserve_area: wrong range [%#llx, %#llx]\n", start, end))
+ 		return;
+ 
++	if (lmb_debug)
++		pr_info("    lmb_reserve_area: [%010llx, %010llx] %16s\n", start, end, name);
 +
- #endif /* __KERNEL__ */
+ 	lmb_add_region(&lmb.reserved, start, end - start);
+ }
  
- #endif /* _LINUX_LMB_H */
+@@ -322,6 +331,8 @@ void __init lmb_reserve_area_overlap_ok(u64 start, u64 end, char *name)
+ 	if (WARN_ONCE(start > end, "lmb_reserve_area_overlap_ok: wrong range [%#llx, %#llx]\n", start, end))
+ 		return;
+ 
++	if (lmb_debug)
++		pr_info("    lmb_reserve_area_overlap_ok: [%010llx, %010llx] %16s\n", start, end, name);
+ 	/* Free that region at first */
+ 	lmb_free(start, end - start);
+ 	lmb_add_region(&lmb.reserved, start, end - start);
+@@ -335,6 +346,9 @@ void __init lmb_free_area(u64 start, u64 end)
+ 	if (WARN_ONCE(start > end, "lmb_free_area: wrong range [%#llx, %#llx]\n", start, end))
+ 		return;
+ 
++	if (lmb_debug)
++		pr_info("       lmb_free_area: [%010llx, %010llx]\n", start, end);
++
+ 	lmb_free(start, end - start);
+ }
+ 
 -- 
 1.6.4.2
