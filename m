@@ -1,84 +1,90 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 11/37] x86,lmb: Add lmb_reserve_area/lmb_free_area
-Date: Fri, 14 May 2010 12:45:37 -0700
-Message-ID: <1273866363-14249-12-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 18/37] x86, lmb: Use lmb_debug to control debug message print out
+Date: Fri, 14 May 2010 12:45:44 -0700
+Message-ID: <1273866363-14249-19-git-send-email-yinghai@kernel.org>
 References: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:59733 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759523Ab0ENTs1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 May 2010 15:48:27 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1273866363-14249-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-they are wrappers for core versions.
-they are taking start/end/name instead of base/size.
-will make x86 conversion more easy
+Also let lmb_reserve_area/lmb_free_area could print out name if lmb=debug is
+specified
 
-could add more debug print out
-
--v2: change get_max_mapped() to lmb.default_alloc_limit according to Michael
-      Ellerman and Ben
-     change to lmb_reserve_area and lmb_free_area according to Michael Ellerman
--v3: call check_and_double after reserve/free, so could avoid to use
-      find_lmb_area. Suggested by Michael Ellerman
+will also print ther name when reserve_lmb_area/free_lmb_area are called.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    4 ++++
- arch/x86/mm/lmb.c          |   27 +++++++++++++++++++++++++++
- 2 files changed, 31 insertions(+), 0 deletions(-)
+ arch/x86/mm/lmb.c |   24 ++++++++++++++++++------
+ 1 files changed, 18 insertions(+), 6 deletions(-)
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index 2f06714..bc85c1e 100644
---- a/arch/x86/include/asm/lmb.h
-+++ b/arch/x86/include/asm/lmb.h
-@@ -6,4 +6,8 @@
- u64 lmb_find_area_size(u64 start, u64 *sizep, u64 align);
- void lmb_to_bootmem(u64 start, u64 end);
- 
-+void lmb_reserve_area(u64 start, u64 end, char *name);
-+void lmb_free_area(u64 start, u64 end);
-+void lmb_add_memory(u64 start, u64 end);
-+
- #endif
 diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index 37a05e2..5d0b008 100644
+index 15fd3e4..5007dbf 100644
 --- a/arch/x86/mm/lmb.c
 +++ b/arch/x86/mm/lmb.c
-@@ -117,3 +117,30 @@ void __init lmb_to_bootmem(u64 start, u64 end)
- 	lmb.reserved.cnt = 0;
+@@ -121,11 +121,13 @@ static void __init subtract_lmb_reserved(struct range *range, int az)
+ 
+ 	count  = lmb.reserved.cnt;
+ 
+-	pr_info("Subtract (%d early reservations)\n", count);
++	if (lmb_debug)
++		pr_info("Subtract (%d early reservations)\n", count);
+ 
+ 	for (i = 0; i < count; i++) {
+ 		struct lmb_region *r = &lmb.reserved.regions[i];
+-		pr_info("  #%d [%010llx - %010llx]\n", i, (u64)r->base, (u64)r->base + r->size);
++		if (lmb_debug)
++			pr_info("  #%d [%010llx - %010llx]\n", i, (u64)r->base, (u64)r->base + r->size);
+ 		final_start = PFN_DOWN(r->base);
+ 		final_end = PFN_UP(r->base + r->size);
+ 		if (final_start >= final_end)
+@@ -205,17 +207,21 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+ 		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
+ 
+ 	count  = lmb.reserved.cnt;
+-	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
++	if (lmb_debug)
++		pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
+ 	for (i = 0; i < count; i++) {
+ 		struct lmb_region *r = &lmb.reserved.regions[i];
+-		pr_info("  #%d [%010llx - %010llx] ", i, (u64)r->base, (u64)r->base + r->size);
++		if (lmb_debug)
++			pr_info("  #%d [%010llx - %010llx] ", i, (u64)r->base, (u64)r->base + r->size);
+ 		final_start = max(start, r->base);
+ 		final_end = min(end, r->base + r->size);
+ 		if (final_start >= final_end) {
+-			pr_cont("\n");
++			if (lmb_debug)
++				pr_cont("\n");
+ 			continue;
+ 		}
+-		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
++		if (lmb_debug)
++			pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
+ 		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
+ 	}
+ 	/* Clear them to avoid misusing ? */
+@@ -306,6 +312,9 @@ void __init lmb_reserve_area(u64 start, u64 end, char *name)
+ 	if (WARN_ONCE(start > end, "lmb_reserve_area: wrong range [%#llx, %#llx]\n", start, end))
+ 		return;
+ 
++	if (lmb_debug)
++		pr_info("    lmb_reserve_area: [%010llx, %010llx] %16s\n", start, end, name);
++
+ 	lmb_reserve(start, end - start);
  }
- #endif
+ 
+@@ -317,6 +326,9 @@ void __init lmb_free_area(u64 start, u64 end)
+ 	if (WARN_ONCE(start > end, "lmb_free_area: wrong range [%#llx, %#llx]\n", start, end))
+ 		return;
+ 
++	if (lmb_debug)
++		pr_info("       lmb_free_area: [%010llx, %010llx]\n", start, end);
 +
-+void __init lmb_add_memory(u64 start, u64 end)
-+{
-+	lmb_add(start, end - start);
-+}
-+
-+void __init lmb_reserve_area(u64 start, u64 end, char *name)
-+{
-+	if (start == end)
-+		return;
-+
-+	if (WARN_ONCE(start > end, "lmb_reserve_area: wrong range [%#llx, %#llx]\n", start, end))
-+		return;
-+
-+	lmb_reserve(start, end - start);
-+}
-+
-+void __init lmb_free_area(u64 start, u64 end)
-+{
-+	if (start == end)
-+		return;
-+
-+	if (WARN_ONCE(start > end, "lmb_free_area: wrong range [%#llx, %#llx]\n", start, end))
-+		return;
-+
-+	lmb_free(start, end - start);
-+}
+ 	lmb_free(start, end - start);
+ }
+ 
 -- 
 1.6.4.2
