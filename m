@@ -1,36 +1,20 @@
-From: wins <xxkokmn@cox.net>
-Subject: Winner
-Date: Sat, 15 May 2010 2:33:28 -0700
-Message-ID: <20100515053328.CGSV0.155570.imail__4414.33901801265$1273917805$gmane$org@fed1rmwml28>
-Reply-To: benandrew100@aol.com
+From: "Smith, Jeffrey" <J26SMITH@bridgew.edu>
+Subject: (unknown)
+Date: Sat, 15 May 2010 12:03:35 -0400
+Message-ID: <9EB404B880BC6D42B309827FCE27AB0003A1DCA9@exch3.campus.bridgew.edu>
+Reply-To: <J26SMITH@bridgew.edu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fed1rmpop108.cox.net ([68.230.241.12]:41203 "EHLO
-	fed1rmpop108.cox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752870Ab0EOKDF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 15 May 2010 06:03:05 -0400
+Received: from smtp-cpk.frontbridge.com ([204.231.192.41]:19303 "EHLO
+	WA2EHSNDR006.bigfish.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752686Ab0EOQDq convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 15 May 2010 12:03:46 -0400
+Content-Class: urn:content-classes:message
+Subject: 
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-You were selected  in the  UK   Promo
-which took place  mayr 4th 2010 , and you are to claim the
-amount of $1,000 000 USD.it means you are one of the five(5) lucky
-winners. Your winning number is: (CT-222-6747,FGN/P-900-56).
-
-
-
-
-
-
-
-You are  to send  your claims Director  WITH THE INFORMATION BELOW
-
-
-NAME IN FULL: DELIVERY ADDRESS: AGE:
-NATIONALITY: OCCUPATION: PHONE: SEX:
-
-Ben Andrew
-
-contact e mail:    benandrew13@live.com
+AVAILABLE FOR PICKUP $350,000.00 USD LODGE IN YOUR NAME CONTACT: wuhelpdesk@w.cn <mailto:wuhelpdesk@w.cn>  
