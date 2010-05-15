@@ -1,53 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:50858 "EHLO gate.crashing.org"
+Received: from mx3.mail.elte.hu ([157.181.1.138]:51513 "EHLO mx3.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757293Ab0ENWgM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 May 2010 18:36:12 -0400
-Subject: Re: [PATCH 11/35] lmb: Add find_memory_core_early()
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <4BED7DFE.2090108@oracle.com>
-References: <1273804238.21352.389.camel@pasglop>
-	 <4BECF00D.6080800@oracle.com>	<1273825187.21352.590.camel@pasglop>
-	 <20100514.013012.13730149.davem@davemloft.net>
-	 <4BED7DFE.2090108@oracle.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Sat, 15 May 2010 08:34:48 +1000
-Message-ID: <1273876488.21352.643.camel@pasglop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+	id S1751988Ab0EOHdI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 15 May 2010 03:33:08 -0400
+Date: Sat, 15 May 2010 09:32:31 +0200
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH 15/35] x86, lmb: Add lmb_reserve_area_overlap_ok()
+Message-ID: <20100515073231.GB9877@elte.hu>
+References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
+ <1273796396-29649-16-git-send-email-yinghai@kernel.org>
+ <1273804337.21352.396.camel@pasglop>
+ <4BECF158.5070200@oracle.com>
+ <1273825807.21352.601.camel@pasglop>
+ <4BED7CE3.1020507@oracle.com>
+ <1273876234.21352.639.camel@pasglop>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1273876234.21352.639.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai.lu@oracle.com>
-Cc: David Miller <davem@davemloft.net>, mingo@elte.hu, tglx@linutronix.de, hpa@zytor.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, hannes@cmpxchg.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100514223448.mseRQUhQZ3p80kVxC1s41tCRkh0ZAiDDTyDEf0Ft95k@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Yinghai Lu <yinghai.lu@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20100515073231.vOowB3Yz_E9anK61_FQQLLXAOg1vpkNQ3iWt2s_iScU@z>
 
-On Fri, 2010-05-14 at 09:44 -0700, Yinghai Lu wrote:
-> On 05/14/2010 01:30 AM, David Miller wrote:
-> > From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> > Date: Fri, 14 May 2010 18:19:47 +1000
-> >
-> >   
-> >> OK, I'll have to let Davem deal with the fine point of the sparc bits,
-> >> but I think basically sparc has CONFIG_ARCH_POPULATES_NODE_MAP set, but
-> >> the way it's NUMA affinity works, the early_node_map[] is crap, you
-> >> cannot rely on the ranges in there.
-> >>     
-> >   
+
+* Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
+
+> On Fri, 2010-05-14 at 09:40 -0700, Yinghai Lu wrote:
+> > later, after this patchset. this patchset is hanging around too long
+> > already.
 > 
-> > Right, we can't use early_node_map[] on sparc, because the NUMA
-> > mappings are far too granular to use that kind of representation.
-> >   
-> good to know.
-> 
-> early_node_map[] doesn't have enough slot?
+> That's where I strongly disagree with Ingo :-) 
+> There's no such thing as a patch set hanging around 
+> too long. Patches should go in when they are ready 
+> and in good shape, not due to some kind of time 
+> bomb, which results in tons of unfixable crap being 
+> merged, which is very bad engineering.
 
-I think that's the case. sparc doesn't override MAX_ACTIVE_REGIONS,
-which means you get the default which is 256 or 50 per node depending
-on MAX_NUMNODES. My understanding is that this may not be enough.
+The thing i disagreed with was that the patches were 
+posted in March and there was no progress for a long 
+time. That kind of situation only leads to patches 
+being piled up unreasonably and results in Yinghai 
+wasting time and effort.
 
-Dave, what does it look like in practice tho ?
+But now there's real progress: you posted patches and 
+Yinghai is posting patches and is reacting to your 
+review feedback. As long there's steady progress (and 
+not just the steady decay of entropy destroying 
+already created value) i'm a happy camper.
 
-Cheers,
-Ben.
+Btw., it would be nice to ready the LMB core bits for 
+upstream for 2.6.35 if there's agreement about them - 
+that will make the subsequent x86 patches much easier 
+to merge.
 
+Thanks,
 
+	Ingo
