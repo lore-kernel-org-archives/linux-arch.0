@@ -1,43 +1,50 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 2/2]: atomic_t: Remove volatile from atomic_t
- definition
-Date: Mon, 17 May 2010 13:20:51 -0700 (PDT)
-Message-ID: <alpine.LFD.2.00.1005171314590.4195@i5.linux-foundation.org>
-References: <20100517043353.GA22127@kryten> <20100517043457.GA22416@kryten> <alpine.LFD.2.00.1005170800100.4195@i5.linux-foundation.org> <20100517201339.GJ20356@shareable.org>
+From: "Microsoft E-mail Promotions" <e-contact@microsoft.com>
+Subject: You Have Won!
+Date: Mon, 17 May 2010 19:38:11 -0200 (FNT)
+Message-ID: <65121.41.184.4.162.1274132291.squirrel__7082.94066503203$1274133743$gmane$org@41.184.4.162>
+Reply-To: ivannickerson02@live.com
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:38248 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751782Ab0EQUXm (ORCPT
+Received: from mail.avellaneda-ba.gov.ar ([200.71.230.2]:57267 "EHLO
+	ns2.avellaneda-ba.gov.ar" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1754692Ab0EQWCO (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 May 2010 16:23:42 -0400
-In-Reply-To: <20100517201339.GJ20356@shareable.org>
+	Mon, 17 May 2010 18:02:14 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jamie Lokier <jamie@shareable.org>
-Cc: Anton Blanchard <anton@samba.org>, akpm@linux-foundation.org, willy@linux.intel.com, benh@kernel.crashing.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+
+Congratulations: You Have Won!
+
+The MICROSOFT EMAIL PROMO TEAM is glad to announce that
+after a successful completion of the PROMO DRAWS held on the
+17th May 2010,your e-mail address,attached to winning
+numbers:(11) (80) (12)(96) (09) (43) won in the Tenth
+lottery category.
+
+You have therefore been approved to claim a total sum of
+=A3250,000,00 Pounds Sterling in cash credited to REF NO:MICRO-
+
+L/2009-END10.
+
+All participants were selected through our Microsoft computer
+ballot system drawn from 167,000 Names,as part of our
+International  "E-MAIL" Promotion Program for our prominent
+MS-WORD users all over the world and for the continuous use
+of the internet. You are advised to contact the claims
+processor with the details below via his e-mail address :
+
+NAME:  Ivan Nickerson
+EMAIL: ivannickerson02@live.com
+
+PLEASE NOTE YOU ARE TO SEND THE FOLLOWING INFORMATION TO CLAIM YOUR
+
+PRIZE:
+1.Full Name:... 2.Address:... 3.Phone:... 4.Country:...
+
+5.Sex/Gender:...
 
 
-
-On Mon, 17 May 2010, Jamie Lokier wrote:
-> 
-> I wonder if
-> 
->    extern unsigned long __nv_jiffies;
->    #define jiffies (*(volatile unsigned long *)*__nv_jiffies)
-> 
-> would improve any code in the same way as this atomic_t change.
-
-We effectively already do that. The full 64-bit jiffies isn't volatile. 
-But for legacy reasons, we have that "word-sized subpart" of the full 
-counter that is volatile - and we're using linker tricks rather the the C 
-preprocessor to do the above thing.
-
-So no, there's no room for improvement for jiffies - the only people who 
-ever use the volatile jiffies are things that read it. There are no 
-initializers that matter, and the updates (which also tend to suck with 
-"volatile" because gcc just doesn't do even the obvious optimizations) are 
-all done locked and to the non-volatile jiffies_64.
-
-		Linus
+YOURS SINCERELY,
+HILDA CREIGHTON.
