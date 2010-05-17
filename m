@@ -1,60 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:51513 "EHLO mx3.mail.elte.hu"
+Received: from gate.crashing.org ([63.228.1.57]:41338 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751988Ab0EOHdI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 15 May 2010 03:33:08 -0400
-Date: Sat, 15 May 2010 09:32:31 +0200
-From: Ingo Molnar <mingo@elte.hu>
+	id S1752801Ab0EQWDv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 17 May 2010 18:03:51 -0400
 Subject: Re: [PATCH 15/35] x86, lmb: Add lmb_reserve_area_overlap_ok()
-Message-ID: <20100515073231.GB9877@elte.hu>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <4BF17A50.1050905@oracle.com>
 References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
- <1273796396-29649-16-git-send-email-yinghai@kernel.org>
- <1273804337.21352.396.camel@pasglop>
- <4BECF158.5070200@oracle.com>
- <1273825807.21352.601.camel@pasglop>
- <4BED7CE3.1020507@oracle.com>
- <1273876234.21352.639.camel@pasglop>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1273876234.21352.639.camel@pasglop>
+	 <1273796396-29649-16-git-send-email-yinghai@kernel.org>
+	 <1273804337.21352.396.camel@pasglop> <4BECF158.5070200@oracle.com>
+	 <1273825807.21352.601.camel@pasglop> <4BED7CE3.1020507@oracle.com>
+	 <1273876234.21352.639.camel@pasglop>  <20100515073231.GB9877@elte.hu>
+	 <1274056773.21352.700.camel@pasglop>  <4BF0DE0C.2000905@oracle.com>
+	 <1274081072.21352.718.camel@pasglop>  <4BF17A50.1050905@oracle.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Tue, 18 May 2010 08:01:26 +1000
+Message-ID: <1274133686.21352.755.camel@pasglop>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Yinghai Lu <yinghai.lu@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100515073231.vOowB3Yz_E9anK61_FQQLLXAOg1vpkNQ3iWt2s_iScU@z>
+To: Yinghai <yinghai.lu@oracle.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20100517220126.bK2qykFKAVB4Il9N9HcYSyvLRHGU-pzNV_85OOpd3jU@z>
 
-
-* Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
-
-> On Fri, 2010-05-14 at 09:40 -0700, Yinghai Lu wrote:
-> > later, after this patchset. this patchset is hanging around too long
-> > already.
+On Mon, 2010-05-17 at 10:18 -0700, Yinghai wrote:
+> > No. Both will hit 2.6.36. It's way too late to queue up such changes
+> for
+> > the 2.6.35 merge window which has already opened.
 > 
-> That's where I strongly disagree with Ingo :-) 
-> There's no such thing as a patch set hanging around 
-> too long. Patches should go in when they are ready 
-> and in good shape, not due to some kind of time 
-> bomb, which results in tons of unfixable crap being 
-> merged, which is very bad engineering.
+> i have feeling that your new LMB code will hit 2.6.36. and
+> x86 patches that is using to lmb will hit 2.6.37.
+> 
+> otherwise it will make more merge conflicts between tip and lmb.
+> unless put your lmb change to tip?
 
-The thing i disagreed with was that the patches were 
-posted in March and there was no progress for a long 
-time. That kind of situation only leads to patches 
-being piled up unreasonably and results in Yinghai 
-wasting time and effort.
+There is no reason not to, I'll have them in a separate branch that Ingo
+can pull. I think we can aim for 2.6.36 in one go provided that Peter
+and Thomas are happy with the x86 side of things.
 
-But now there's real progress: you posted patches and 
-Yinghai is posting patches and is reacting to your 
-review feedback. As long there's steady progress (and 
-not just the steady decay of entropy destroying 
-already created value) i'm a happy camper.
+Cheers,
+Ben.
 
-Btw., it would be nice to ready the LMB core bits for 
-upstream for 2.6.35 if there's agreement about them - 
-that will make the subsequent x86 patches much easier 
-to merge.
 
-Thanks,
-
-	Ingo
