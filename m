@@ -1,34 +1,36 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 2/2]: atomic_t: Remove volatile from atomic_t
- definition
-Date: Mon, 17 May 2010 08:01:54 -0700 (PDT)
-Message-ID: <alpine.LFD.2.00.1005170800100.4195@i5.linux-foundation.org>
-References: <20100517043353.GA22127@kryten> <20100517043457.GA22416@kryten>
+From: "Microsoft/Yahoo" <claimsdepartment1313@ufo.tc>
+Subject: Prize Won!!!
+Date: Mon, 17 May 2010 12:01:28 -0430
+Message-ID: <web-214798557__42691.2402770997$1274113897$gmane$org@mailccs.icnet.com.ve>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:41245 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751878Ab0EQPEv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 May 2010 11:04:51 -0400
-In-Reply-To: <20100517043457.GA22416@kryten>
+Received: from mta01.intercable.net.ve ([200.8.126.226]:50961 "EHLO
+	mta01.intercable.net.ve" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751893Ab0EQQb2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 May 2010 12:31:28 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anton Blanchard <anton@samba.org>
-Cc: akpm@linux-foundation.org, willy@linux.intel.com, benh@kernel.crashing.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
+GOOD DAY
+THIS IS TO INFORM YOU THAT YOU HAVE WON THE SUM OF
+$552,000.00 FROM THE MICROSOFT=AEPROMOTION HELD ON 1ST MAY=20
+2010. PLEASE
+=46ILL THE INFORMATION BELOW AND SEND TO
+(claimsdepartment1313@ufo.tc)
 
+Name: Mr.Renny Harlings
+Email: claimsdepartment1313@ufo.tc
 
-On Mon, 17 May 2010, Anton Blanchard wrote:
-> 
-> It turns out this bad code is a result of us defining atomic_t as a
-> volatile int.
+1.Full Name:
+2.Full Address:
+3.State:
+4.Occupation:
+5.Age:
+6.Sex:
+7.Country:
+8.Tel.Number:
 
-Heh. Ok, as you point out in the commit message, I obviously agree with 
-this patch. "volatile" on data is evil, with the possible exception of 
-"jiffies" type things.
-
-So applied.
-
-		Linus
+CONGRATULATION ONCE AGAIN.
