@@ -1,39 +1,87 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 15/35] x86, lmb: Add lmb_reserve_area_overlap_ok()
-Date: Mon, 17 May 2010 10:39:33 +1000
-Message-ID: <1274056773.21352.700.camel@pasglop>
-References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
-	 <1273796396-29649-16-git-send-email-yinghai@kernel.org>
-	 <1273804337.21352.396.camel@pasglop> <4BECF158.5070200@oracle.com>
-	 <1273825807.21352.601.camel@pasglop> <4BED7CE3.1020507@oracle.com>
-	 <1273876234.21352.639.camel@pasglop>  <20100515073231.GB9877@elte.hu>
+Subject: Re: lmb type features.
+Date: Mon, 17 May 2010 10:46:36 +1000
+Message-ID: <1274057196.21352.707.camel@pasglop>
+References: <1273804238.21352.389.camel@pasglop>
+	 <4BECF00D.6080800@oracle.com>	<1273825187.21352.590.camel@pasglop>
+	 <20100514.013012.13730149.davem@davemloft.net>
+	 <4BED7DFE.2090108@oracle.com> <1273876488.21352.643.camel@pasglop>
+	 <4BEDE1EA.8030103@oracle.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:57449 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:41075 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750785Ab0EQAlT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 16 May 2010 20:41:19 -0400
-In-Reply-To: <20100515073231.GB9877@elte.hu>
+	id S1751139Ab0EQAsC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 16 May 2010 20:48:02 -0400
+In-Reply-To: <4BEDE1EA.8030103@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Yinghai Lu <yinghai.lu@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Yinghai <yinghai.lu@oracle.com>
+Cc: David Miller <davem@davemloft.net>, mingo@elte.hu, tglx@linutronix.de, hpa@zytor.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, hannes@cmpxchg.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Sat, 2010-05-15 at 09:32 +0200, Ingo Molnar wrote:
+On Fri, 2010-05-14 at 16:51 -0700, Yinghai wrote:
+
+ .../...
+
+> #define LMB_ADD_MERGE (1<<0) 
+> #define LMB_ARRAY_DOUBLE (1<<1)
 > 
-> Btw., it would be nice to ready the LMB core bits for 
-> upstream for 2.6.35 if there's agreement about them - 
-> that will make the subsequent x86 patches much easier 
-> to merge.
+> so before call double_lmb_array(), should check the features to bit is set or not.
+> otherwise should emit PANIC with clear message.
+> 
+> Usage:
+> 
+> for range replacement,
+> 
+> 1. early stage before lmb.reserved, lmb.memory is there.
+> so can not use lmb_find_base yet.
 
-Well, 2.6.34 was released already. I think it's a bit premature. We need
-to fix a few more things (the result codes for example) and do more
-testing to ensure we didn't break other archs.
+Let me make sure I understand: You mean when doing all the memory
+lmb_add() early during boot, we haven't done the various lmb_reserve()
+for all potentially reserved areas and thus cannot rely on
+double_lmb_array() doing the right thing ?
 
-Also, Yinghai wants some more changes to the core that I need to discuss
-with him to understand exactly what he wants and why :-)
+I think this is a good point. However, a better way to do that would
+be to set the default alloc limit to 0 instead of LMB_ALLOC_ANYWHERE.
+
+I haven't done that yet though I certainly intend to, but I'll need
+to ensure all the archs using LMB set a decent limit at some stage. You
+can in the meantime do it explicitely in x86.
+
+Additionally, it should be possible in most cases to do all the critical
+lmb_reserve() early, before lmb_add()'s, and thus remove the problem,
+though that is indeed not the case today.
+
+It would be nice to be able to extend the array for memory addition
+since that would allow us to have much smaller static arrays in the
+first place.
+
+> 2. for bootmem replacement, when do range set subtraction for final free range list,
+> don't want to change lmb.reserved in the middle.  callee should make sure to have big
+> enough temperately lmb_regions in lmb_type. 
+
+Sorry, I'm not sure I grasped your explanation above. You mean when
+transitioning from LMB to the page allocator, the page freeing needs to
+be done after substracting the reserved array from the memory, and that
+substraction might cause the arrays to increase in size, thus affecting
+the reserved array ?
+
+That could be solved by not doing the substraction and doing things a
+bit differently. You could have a single function that walks both arrays
+at the same time, and calls a callback for all memory ranges it finds
+that aren't reserved. Not -that- tricky to code.
 
 Cheers,
 Ben.
+
+> Thanks
+> 
+> Yinghai
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
