@@ -1,50 +1,38 @@
-From: "Microsoft E-mail Promotions" <e-contact@microsoft.com>
-Subject: You Have Won!
-Date: Mon, 17 May 2010 19:38:11 -0200 (FNT)
-Message-ID: <65121.41.184.4.162.1274132291.squirrel__7082.94066503203$1274133743$gmane$org@41.184.4.162>
-Reply-To: ivannickerson02@live.com
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 15/35] x86, lmb: Add lmb_reserve_area_overlap_ok()
+Date: Tue, 18 May 2010 08:01:26 +1000
+Message-ID: <1274133686.21352.755.camel@pasglop>
+References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>
+	 <1273796396-29649-16-git-send-email-yinghai@kernel.org>
+	 <1273804337.21352.396.camel@pasglop> <4BECF158.5070200@oracle.com>
+	 <1273825807.21352.601.camel@pasglop> <4BED7CE3.1020507@oracle.com>
+	 <1273876234.21352.639.camel@pasglop>  <20100515073231.GB9877@elte.hu>
+	 <1274056773.21352.700.camel@pasglop>  <4BF0DE0C.2000905@oracle.com>
+	 <1274081072.21352.718.camel@pasglop>  <4BF17A50.1050905@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.avellaneda-ba.gov.ar ([200.71.230.2]:57267 "EHLO
-	ns2.avellaneda-ba.gov.ar" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1754692Ab0EQWCO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 May 2010 18:02:14 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <4BF17A50.1050905@oracle.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Yinghai <yinghai.lu@oracle.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Congratulations: You Have Won!
+On Mon, 2010-05-17 at 10:18 -0700, Yinghai wrote:
+> > No. Both will hit 2.6.36. It's way too late to queue up such changes
+> for
+> > the 2.6.35 merge window which has already opened.
+> 
+> i have feeling that your new LMB code will hit 2.6.36. and
+> x86 patches that is using to lmb will hit 2.6.37.
+> 
+> otherwise it will make more merge conflicts between tip and lmb.
+> unless put your lmb change to tip?
 
-The MICROSOFT EMAIL PROMO TEAM is glad to announce that
-after a successful completion of the PROMO DRAWS held on the
-17th May 2010,your e-mail address,attached to winning
-numbers:(11) (80) (12)(96) (09) (43) won in the Tenth
-lottery category.
+There is no reason not to, I'll have them in a separate branch that Ingo
+can pull. I think we can aim for 2.6.36 in one go provided that Peter
+and Thomas are happy with the x86 side of things.
 
-You have therefore been approved to claim a total sum of
-=A3250,000,00 Pounds Sterling in cash credited to REF NO:MICRO-
-
-L/2009-END10.
-
-All participants were selected through our Microsoft computer
-ballot system drawn from 167,000 Names,as part of our
-International  "E-MAIL" Promotion Program for our prominent
-MS-WORD users all over the world and for the continuous use
-of the internet. You are advised to contact the claims
-processor with the details below via his e-mail address :
-
-NAME:  Ivan Nickerson
-EMAIL: ivannickerson02@live.com
-
-PLEASE NOTE YOU ARE TO SEND THE FOLLOWING INFORMATION TO CLAIM YOUR
-
-PRIZE:
-1.Full Name:... 2.Address:... 3.Phone:... 4.Country:...
-
-5.Sex/Gender:...
-
-
-YOURS SINCERELY,
-HILDA CREIGHTON.
+Cheers,
+Ben.
