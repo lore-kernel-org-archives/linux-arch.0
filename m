@@ -1,50 +1,36 @@
 From: Yinghai <yinghai.lu@oracle.com>
-Subject: Re: [PATCH 07/37] lmb: Add lmb_find_area()
-Date: Sun, 16 May 2010 23:09:28 -0700
-Message-ID: <4BF0DD98.1090904@oracle.com>
-References: <1273866363-14249-1-git-send-email-yinghai@kernel.org>	 <1273866363-14249-8-git-send-email-yinghai@kernel.org>	 <1273876749.21352.645.camel@pasglop>  <4BEDD7D4.90002@oracle.com> <1274057329.21352.709.camel@pasglop>
+Subject: Re: [PATCH 15/35] x86, lmb: Add lmb_reserve_area_overlap_ok()
+Date: Sun, 16 May 2010 23:11:24 -0700
+Message-ID: <4BF0DE0C.2000905@oracle.com>
+References: <1273796396-29649-1-git-send-email-yinghai@kernel.org>	 <1273796396-29649-16-git-send-email-yinghai@kernel.org>	 <1273804337.21352.396.camel@pasglop> <4BECF158.5070200@oracle.com>	 <1273825807.21352.601.camel@pasglop> <4BED7CE3.1020507@oracle.com>	 <1273876234.21352.639.camel@pasglop>  <20100515073231.GB9877@elte.hu> <1274056773.21352.700.camel@pasglop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:63363 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:23910 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753068Ab0EQGLC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 May 2010 02:11:02 -0400
-In-Reply-To: <1274057329.21352.709.camel@pasglop>
+	with ESMTP id S1753099Ab0EQGMx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 May 2010 02:12:53 -0400
+In-Reply-To: <1274056773.21352.700.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 05/16/2010 05:48 PM, Benjamin Herrenschmidt wrote:
-> On Fri, 2010-05-14 at 16:08 -0700, Yinghai wrote:
->> how about
->> lmb_reserve_area  ==> lmb_reserve_range
->> lmb_free_area  ==> lmb_free_range
+On 05/16/2010 05:39 PM, Benjamin Herrenschmidt wrote:
+> On Sat, 2010-05-15 at 09:32 +0200, Ingo Molnar wrote:
+>>
+>> Btw., it would be nice to ready the LMB core bits for 
+>> upstream for 2.6.35 if there's agreement about them - 
+>> that will make the subsequent x86 patches much easier 
+>> to merge.
 > 
-> I completely fail to see why you still need those two. They are exactly
-> the same thing as lmb_reserve() and lmb_free(), just with a slightly
-> different prototype.
+> Well, 2.6.34 was released already. I think it's a bit premature. We need
+> to fix a few more things (the result codes for example) and do more
+> testing to ensure we didn't break other archs.
 > 
->> or leave them that way, later replace them lmb_reserve and lmb_free
->> one by one?
-> 
-> Nah, if you have some use of the wrappers to ease the transition from
-> the existing x86 code, then just make up a couple of inline wrappers
-> somewhere inside the x86 code. You may not even want to call it
-> lmb_* at all... 
+so looks like your change will hit 2.6.35, and my x86 changes will hit 2.6.36?
 
-can you move asm/lmb.h down in linux/lmb.h ?
+that is too long.
 
-so I can put the inline wrapper in arch/x86/include/asm/lmb.h.
-
-> 
-> But here, I'll let Thomas and Peter decide what to do, it's really
-> x86 stuff at this stage. I don't want to see two subtlely different
-> APIs at the LMB level doing the same thing.
-> 
-> Cheers,
-> Ben.
-> 
-> 
+YH
