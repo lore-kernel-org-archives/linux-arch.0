@@ -1,38 +1,119 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 2/3] Mark the 'current' pointer register read-only when
- such a thing exists
-Date: Tue, 18 May 2010 14:05:46 -0700 (PDT)
-Message-ID: <20100518.140546.170125902.davem@davemloft.net>
-References: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk>
-	<20100518164542.6194.451.stgit@warthog.procyon.org.uk>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: schedule() && prev/current (Was: [PATCH 3/3] Make get_current()
+	__attribute__((const)))
+Date: Tue, 18 May 2010 23:22:20 +0200
+Message-ID: <20100518212220.GA5092@redhat.com>
+References: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk> <20100518164547.6194.94193.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:48266
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751441Ab0ERVFh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 May 2010 17:05:37 -0400
-In-Reply-To: <20100518164542.6194.451.stgit@warthog.procyon.org.uk>
+Received: from mx1.redhat.com ([209.132.183.28]:56616 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757242Ab0ERVZb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 May 2010 17:25:31 -0400
+Content-Disposition: inline
+In-Reply-To: <20100518164547.6194.94193.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: dhowells@redhat.com
-Cc: oleg@redhat.com, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Yong Zhang <yong.zhang0@gmail.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-From: David Howells <dhowells@redhat.com>
-Date: Tue, 18 May 2010 17:45:42 +0100
+On 05/18, David Howells wrote:
+>
+> This doesn't break cached copies of current, whether they're cached by gcc in
+> registers or on the stack.  switch_to() will save all registers on the stack
+> before actually switching, then when it switches current, it will also switch
+> the stack and then pop back what was stored in the 'unclobbered' registers for
+> the now active task and stack.  Thus the copies of current that were cached
+> just work.
+>
+> [...snip...]
+>
+> --- a/include/asm-generic/current.h
+> +++ b/include/asm-generic/current.h
+> @@ -3,7 +3,14 @@
+>
+>  #include <linux/thread_info.h>
+>
+> -#define get_current() (current_thread_info()->task)
+> +struct task_struct;
+> +
+> +static inline __attribute_const__
+> +struct task_struct *get_current(void)
+> +{
+> +	return current_thread_info()->task;
+> +}
 
-> Where the value of current is kept in a register, that register can be marked
-> such that the pointer value is read only, e.g.:
-> 
-> 	register struct task_struct *const current asm("e2");
-> 
-> This prevents inadvertent assignment outside of assembly code.
-> 
-> This has been available on the MN10300 arch for a while now, and I've also
-> tested it on the FRV arch.
-> 
-> Signed-off-by: David Howells <dhowells@redhat.com>
+Can't ack this patch, but it looks correct to me.
 
-Acked-by: David S. Miller <davem@davemloft.net>
+
+And, looking at this patch I think that schedule() can be simplified
+a little bit.
+
+"sched: Reassign prev and switch_count when reacquire_kernel_lock() fail"
+commit 6d558c3ac9b6508d26fd5cadccce51fc9d726b1c says:
+
+	Assume A->B schedule is processing,
+	...
+	Then on B's context,
+	...
+	prev and switch_count are related to A
+
+How so? switch_count - yes, we should change it. But prev must be
+equal to B, and it must be equal to current. When we return from
+switch_to() registers/stack should be restored correctly, so we
+can do
+
+	--- x/kernel/sched.c
+	+++ x/kernel/sched.c
+	@@ -3729,8 +3729,7 @@ need_resched_nonpreemptible:
+	 
+		post_schedule(rq);
+	 
+	-	if (unlikely(reacquire_kernel_lock(current) < 0)) {
+	-		prev = rq->curr;
+	+	if (unlikely(reacquire_kernel_lock(prev) < 0)) {
+			switch_count = &prev->nivcsw;
+			goto need_resched_nonpreemptible;
+		}
+
+and in fact we can simplify this even more, no need to reassign
+switch_count, we can just move the initial assignment down, under
+"need_resched_nonpreemptible" label.
+
+switch_to(prev, next, prev) changes "prev" inside context_switch()
+but it should be stable inside of schedule().
+
+Oleg.
+
+--- x/kernel/sched.c
++++ x/kernel/sched.c
+@@ -3708,7 +3708,6 @@ need_resched:
+ 	rq = cpu_rq(cpu);
+ 	rcu_sched_qs(cpu);
+ 	prev = rq->curr;
+-	switch_count = &prev->nivcsw;
+ 
+ 	release_kernel_lock(prev);
+ need_resched_nonpreemptible:
+@@ -3722,6 +3721,7 @@ need_resched_nonpreemptible:
+ 	update_rq_clock(rq);
+ 	clear_tsk_need_resched(prev);
+ 
++	switch_count = &prev->nivcsw;
+ 	if (prev->state && !(preempt_count() & PREEMPT_ACTIVE)) {
+ 		if (unlikely(signal_pending_state(prev->state, prev)))
+ 			prev->state = TASK_RUNNING;
+@@ -3758,11 +3758,8 @@ need_resched_nonpreemptible:
+ 
+ 	post_schedule(rq);
+ 
+-	if (unlikely(reacquire_kernel_lock(current) < 0)) {
+-		prev = rq->curr;
+-		switch_count = &prev->nivcsw;
++	if (unlikely(reacquire_kernel_lock(prev))
+ 		goto need_resched_nonpreemptible;
+-	}
+ 
+ 	preempt_enable_no_resched();
+ 	if (need_resched())
