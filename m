@@ -1,99 +1,95 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 3/3] Make get_current() __attribute__((const))
-Date: Tue, 18 May 2010 17:45:47 +0100
-Message-ID: <20100518164547.6194.94193.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 2/3] Mark the 'current' pointer register read-only when such a
+	thing exists
+Date: Tue, 18 May 2010 17:45:42 +0100
+Message-ID: <20100518164542.6194.451.stgit@warthog.procyon.org.uk>
 References: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53385 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:59413 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755771Ab0ERRhI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 May 2010 13:37:08 -0400
-Received: from int-mx03.intmail.prod.int.phx2.redhat.com (int-mx03.intmail.prod.int.phx2.redhat.com [10.5.11.16])
-	by mx1.redhat.com (8.13.8/8.13.8) with ESMTP id o4IHb8ce025104
+	id S1758521Ab0ERRhK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 May 2010 13:37:10 -0400
+Received: from int-mx04.intmail.prod.int.phx2.redhat.com (int-mx04.intmail.prod.int.phx2.redhat.com [10.5.11.17])
+	by mx1.redhat.com (8.13.8/8.13.8) with ESMTP id o4IHb9iR027030
 	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=OK)
-	for <linux-arch@vger.kernel.org>; Tue, 18 May 2010 13:37:08 -0400
+	for <linux-arch@vger.kernel.org>; Tue, 18 May 2010 13:37:10 -0400
 In-Reply-To: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: oleg@redhat.com, linux-arch@vger.kernel.org
 Cc: David Howells <dhowells@redhat.com>
 
-get_current() can be made __attribute__((const)) as it's not allowed to change
-under you, except in switch_to() (it's fine to violate the constness there
-since this switches stacks too, and will almost certainly do this in assembly
-code).  This allows the compiler more choices about when it can cache this
-pointer.
+Where the value of current is kept in a register, that register can be marked
+such that the pointer value is read only, e.g.:
 
-This doesn't break cached copies of current, whether they're cached by gcc in
-registers or on the stack.  switch_to() will save all registers on the stack
-before actually switching, then when it switches current, it will also switch
-the stack and then pop back what was stored in the 'unclobbered' registers for
-the now active task and stack.  Thus the copies of current that were cached
-just work.
+	register struct task_struct *const current asm("e2");
 
-Note that does not affect all arches under all circumstances.  Some arches, at
-least some of the time, keep current in a register, and some use thread_info as
-the source of current.
+This prevents inadvertent assignment outside of assembly code.
 
-This has been the norm on ARM and MN10300 arches (the latter only when not
-using E2 to hold current) for a while now.  I've also tested this on x86_64.
+This has been available on the MN10300 arch for a while now, and I've also
+tested it on the FRV arch.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- arch/powerpc/include/asm/current.h |    3 ++-
- arch/x86/include/asm/current.h     |    3 ++-
- include/asm-generic/current.h      |    9 ++++++++-
- 3 files changed, 12 insertions(+), 3 deletions(-)
+ arch/frv/include/asm/current.h        |    2 +-
+ arch/microblaze/include/asm/current.h |    2 +-
+ arch/powerpc/include/asm/current.h    |    2 +-
+ arch/sparc/include/asm/current.h      |    2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
 
+diff --git a/arch/frv/include/asm/current.h b/arch/frv/include/asm/current.h
+index 86b0274..51bdaf2 100644
+--- a/arch/frv/include/asm/current.h
++++ b/arch/frv/include/asm/current.h
+@@ -17,7 +17,7 @@
+ /*
+  * dedicate GR29 to keeping the current task pointer
+  */
+-register struct task_struct *current asm("gr29");
++register struct task_struct *const current asm("gr29");
+ 
+ #define get_current() current
+ 
+diff --git a/arch/microblaze/include/asm/current.h b/arch/microblaze/include/asm/current.h
+index 29303ed..b824847 100644
+--- a/arch/microblaze/include/asm/current.h
++++ b/arch/microblaze/include/asm/current.h
+@@ -21,7 +21,7 @@
+ /*
+  * Dedicate r31 to keeping the current task pointer
+  */
+-register struct task_struct *current asm("r31");
++register struct task_struct *const current asm("r31");
+ 
+ # define get_current()	current
+ # endif /* __ASSEMBLY__ */
 diff --git a/arch/powerpc/include/asm/current.h b/arch/powerpc/include/asm/current.h
-index 4ca5126..affcbbe 100644
+index e2c7f06..4ca5126 100644
 --- a/arch/powerpc/include/asm/current.h
 +++ b/arch/powerpc/include/asm/current.h
-@@ -15,7 +15,8 @@ struct task_struct;
- #include <linux/stddef.h>
- #include <asm/paca.h>
+@@ -32,7 +32,7 @@ static inline struct task_struct *get_current(void)
+ /*
+  * We keep `current' in r2 for speed.
+  */
+-register struct task_struct *current asm ("r2");
++register struct task_struct *const current asm ("r2");
  
--static inline struct task_struct *get_current(void)
-+static inline __attribute_const__
-+struct task_struct *get_current(void)
- {
- 	struct task_struct *task;
+ #endif
  
-diff --git a/arch/x86/include/asm/current.h b/arch/x86/include/asm/current.h
-index 4d447b7..defb13c 100644
---- a/arch/x86/include/asm/current.h
-+++ b/arch/x86/include/asm/current.h
-@@ -9,7 +9,8 @@ struct task_struct;
- 
- DECLARE_PER_CPU(struct task_struct *, current_task);
- 
--static __always_inline struct task_struct *get_current(void)
-+static __always_inline __attribute_const__
-+struct task_struct *get_current(void)
- {
- 	return percpu_read_stable(current_task);
- }
-diff --git a/include/asm-generic/current.h b/include/asm-generic/current.h
-index 5e86f6a..8deb67e 100644
---- a/include/asm-generic/current.h
-+++ b/include/asm-generic/current.h
-@@ -3,7 +3,14 @@
- 
+diff --git a/arch/sparc/include/asm/current.h b/arch/sparc/include/asm/current.h
+index f04fd6c..9ae8826 100644
+--- a/arch/sparc/include/asm/current.h
++++ b/arch/sparc/include/asm/current.h
+@@ -14,7 +14,7 @@
  #include <linux/thread_info.h>
  
--#define get_current() (current_thread_info()->task)
-+struct task_struct;
-+
-+static inline __attribute_const__
-+struct task_struct *get_current(void)
-+{
-+	return current_thread_info()->task;
-+}
-+
- #define current get_current()
+ #ifdef CONFIG_SPARC64
+-register struct task_struct *current asm("g4");
++register struct task_struct *const current asm("g4");
+ #endif
  
- #endif /* __ASM_GENERIC_CURRENT_H */
+ #ifdef CONFIG_SPARC32
