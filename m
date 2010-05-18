@@ -1,280 +1,99 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 1/3] Reduce get_current() to the asm-generic implementation
-	where possible
-Date: Tue, 18 May 2010 17:45:37 +0100
-Message-ID: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 3/3] Make get_current() __attribute__((const))
+Date: Tue, 18 May 2010 17:45:47 +0100
+Message-ID: <20100518164547.6194.94193.stgit@warthog.procyon.org.uk>
+References: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:34337 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:53385 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756708Ab0ERRen (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 May 2010 13:34:43 -0400
-Received: from int-mx01.intmail.prod.int.phx2.redhat.com (int-mx01.intmail.prod.int.phx2.redhat.com [10.5.11.11])
-	by mx1.redhat.com (8.13.8/8.13.8) with ESMTP id o4IHYfEj030742
+	id S1755771Ab0ERRhI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 May 2010 13:37:08 -0400
+Received: from int-mx03.intmail.prod.int.phx2.redhat.com (int-mx03.intmail.prod.int.phx2.redhat.com [10.5.11.16])
+	by mx1.redhat.com (8.13.8/8.13.8) with ESMTP id o4IHb8ce025104
 	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=OK)
-	for <linux-arch@vger.kernel.org>; Tue, 18 May 2010 13:34:42 -0400
+	for <linux-arch@vger.kernel.org>; Tue, 18 May 2010 13:37:08 -0400
+In-Reply-To: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: oleg@redhat.com, linux-arch@vger.kernel.org
 Cc: David Howells <dhowells@redhat.com>
 
-Reduce get_current() to the asm-generic implementation where possible to remove
-duplicate cases.
+get_current() can be made __attribute__((const)) as it's not allowed to change
+under you, except in switch_to() (it's fine to violate the constness there
+since this switches stacks too, and will almost certainly do this in assembly
+code).  This allows the compiler more choices about when it can cache this
+pointer.
 
-Note that this will lose the const attribute on get_current() for ARM and
-MN10300.  This will be added back in a later patch for all architectures.
+This doesn't break cached copies of current, whether they're cached by gcc in
+registers or on the stack.  switch_to() will save all registers on the stack
+before actually switching, then when it switches current, it will also switch
+the stack and then pop back what was stored in the 'unclobbered' registers for
+the now active task and stack.  Thus the copies of current that were cached
+just work.
+
+Note that does not affect all arches under all circumstances.  Some arches, at
+least some of the time, keep current in a register, and some use thread_info as
+the source of current.
+
+This has been the norm on ARM and MN10300 arches (the latter only when not
+using E2 to hold current) for a while now.  I've also tested this on x86_64.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- arch/alpha/include/asm/current.h   |   10 +---------
- arch/arm/include/asm/current.h     |   16 +---------------
- arch/avr32/include/asm/current.h   |   16 +---------------
- arch/cris/include/asm/current.h    |   16 +---------------
- arch/h8300/include/asm/current.h   |   26 +-------------------------
- arch/m32r/include/asm/current.h    |   16 +---------------
- arch/m68k/include/asm/current.h    |   13 ++-----------
- arch/mn10300/include/asm/current.h |    8 +-------
- arch/parisc/include/asm/current.h  |   16 +---------------
- arch/sparc/include/asm/current.h   |    7 +------
- arch/xtensa/include/asm/current.h  |   13 +------------
- 11 files changed, 12 insertions(+), 145 deletions(-)
+ arch/powerpc/include/asm/current.h |    3 ++-
+ arch/x86/include/asm/current.h     |    3 ++-
+ include/asm-generic/current.h      |    9 ++++++++-
+ 3 files changed, 12 insertions(+), 3 deletions(-)
 
-diff --git a/arch/alpha/include/asm/current.h b/arch/alpha/include/asm/current.h
-index 094d285..4c51401 100644
---- a/arch/alpha/include/asm/current.h
-+++ b/arch/alpha/include/asm/current.h
-@@ -1,9 +1 @@
--#ifndef _ALPHA_CURRENT_H
--#define _ALPHA_CURRENT_H
--
--#include <linux/thread_info.h>
--
--#define get_current()	(current_thread_info()->task)
--#define current		get_current()
--
--#endif /* _ALPHA_CURRENT_H */
-+#include <asm-generic/current.h>
-diff --git a/arch/arm/include/asm/current.h b/arch/arm/include/asm/current.h
-index 75d21e2..4c51401 100644
---- a/arch/arm/include/asm/current.h
-+++ b/arch/arm/include/asm/current.h
-@@ -1,15 +1 @@
--#ifndef _ASMARM_CURRENT_H
--#define _ASMARM_CURRENT_H
--
--#include <linux/thread_info.h>
--
--static inline struct task_struct *get_current(void) __attribute_const__;
--
+diff --git a/arch/powerpc/include/asm/current.h b/arch/powerpc/include/asm/current.h
+index 4ca5126..affcbbe 100644
+--- a/arch/powerpc/include/asm/current.h
++++ b/arch/powerpc/include/asm/current.h
+@@ -15,7 +15,8 @@ struct task_struct;
+ #include <linux/stddef.h>
+ #include <asm/paca.h>
+ 
 -static inline struct task_struct *get_current(void)
--{
--	return current_thread_info()->task;
--}
--
--#define current (get_current())
--
--#endif /* _ASMARM_CURRENT_H */
-+#include <asm-generic/current.h>
-diff --git a/arch/avr32/include/asm/current.h b/arch/avr32/include/asm/current.h
-index c7b0549..4c51401 100644
---- a/arch/avr32/include/asm/current.h
-+++ b/arch/avr32/include/asm/current.h
-@@ -1,15 +1 @@
--#ifndef __ASM_AVR32_CURRENT_H
--#define __ASM_AVR32_CURRENT_H
--
--#include <linux/thread_info.h>
--
--struct task_struct;
--
--inline static struct task_struct * get_current(void)
--{
--	return current_thread_info()->task;
--}
--
--#define current get_current()
--
--#endif /* __ASM_AVR32_CURRENT_H */
-+#include <asm-generic/current.h>
-diff --git a/arch/cris/include/asm/current.h b/arch/cris/include/asm/current.h
-index 5f5c0ef..4c51401 100644
---- a/arch/cris/include/asm/current.h
-+++ b/arch/cris/include/asm/current.h
-@@ -1,15 +1 @@
--#ifndef _CRIS_CURRENT_H
--#define _CRIS_CURRENT_H
--
--#include <linux/thread_info.h>
--
--struct task_struct;
--
--static inline struct task_struct * get_current(void)
--{
--        return current_thread_info()->task;
--}
-- 
--#define current get_current()
--
--#endif /* !(_CRIS_CURRENT_H) */
-+#include <asm-generic/current.h>
-diff --git a/arch/h8300/include/asm/current.h b/arch/h8300/include/asm/current.h
-index 57d74ee..4c51401 100644
---- a/arch/h8300/include/asm/current.h
-+++ b/arch/h8300/include/asm/current.h
-@@ -1,25 +1 @@
--#ifndef _H8300_CURRENT_H
--#define _H8300_CURRENT_H
--/*
-- *	current.h
-- *	(C) Copyright 2000, Lineo, David McCullough <davidm@lineo.com>
-- *	(C) Copyright 2002, Greg Ungerer (gerg@snapgear.com)
-- *
-- *	rather than dedicate a register (as the m68k source does), we
-- *	just keep a global,  we should probably just change it all to be
-- *	current and lose _current_task.
-- */
--
--#include <linux/thread_info.h>
--#include <asm/thread_info.h>
--
--struct task_struct;
--
--static inline struct task_struct *get_current(void)
--{
--	return(current_thread_info()->task);
--}
--
--#define	current	get_current()
--
--#endif /* _H8300_CURRENT_H */
-+#include <asm-generic/current.h>
-diff --git a/arch/m32r/include/asm/current.h b/arch/m32r/include/asm/current.h
-index 7859d86..4c51401 100644
---- a/arch/m32r/include/asm/current.h
-+++ b/arch/m32r/include/asm/current.h
-@@ -1,15 +1 @@
--#ifndef _ASM_M32R_CURRENT_H
--#define _ASM_M32R_CURRENT_H
--
--#include <linux/thread_info.h>
--
--struct task_struct;
--
--static __inline__ struct task_struct *get_current(void)
--{
--	return current_thread_info()->task;
--}
--
--#define current	(get_current())
--
--#endif	/* _ASM_M32R_CURRENT_H */
-+#include <asm-generic/current.h>
-diff --git a/arch/m68k/include/asm/current.h b/arch/m68k/include/asm/current.h
-index 91fcc53..e279667 100644
---- a/arch/m68k/include/asm/current.h
-+++ b/arch/m68k/include/asm/current.h
-@@ -12,17 +12,8 @@ register struct task_struct *current __asm__("%a2");
-  *	just keep a global,  we should probably just change it all to be
-  *	current and lose _current_task.
-  */
--#include <linux/thread_info.h>
-+#include <asm-generic/current.h>
++static inline __attribute_const__
++struct task_struct *get_current(void)
+ {
+ 	struct task_struct *task;
  
--struct task_struct;
--
--static inline struct task_struct *get_current(void)
--{
--	return(current_thread_info()->task);
--}
--
--#define	current	get_current()
--
--#endif /* CONFNIG_MMU */
-+#endif /* CONFIG_MMU */
+diff --git a/arch/x86/include/asm/current.h b/arch/x86/include/asm/current.h
+index 4d447b7..defb13c 100644
+--- a/arch/x86/include/asm/current.h
++++ b/arch/x86/include/asm/current.h
+@@ -9,7 +9,8 @@ struct task_struct;
  
- #endif /* !(_M68K_CURRENT_H) */
-diff --git a/arch/mn10300/include/asm/current.h b/arch/mn10300/include/asm/current.h
-index ca6027d..c1ee370 100644
---- a/arch/mn10300/include/asm/current.h
-+++ b/arch/mn10300/include/asm/current.h
-@@ -25,13 +25,7 @@ register struct task_struct *const current asm("e2") __attribute__((used));
- extern struct task_struct *__current;
+ DECLARE_PER_CPU(struct task_struct *, current_task);
  
- #else
--static inline __attribute__((const))
--struct task_struct *get_current(void)
--{
--	return current_thread_info()->task;
--}
--
--#define current get_current()
-+#include <asm-generic/current.h>
- #endif
+-static __always_inline struct task_struct *get_current(void)
++static __always_inline __attribute_const__
++struct task_struct *get_current(void)
+ {
+ 	return percpu_read_stable(current_task);
+ }
+diff --git a/include/asm-generic/current.h b/include/asm-generic/current.h
+index 5e86f6a..8deb67e 100644
+--- a/include/asm-generic/current.h
++++ b/include/asm-generic/current.h
+@@ -3,7 +3,14 @@
  
- #endif /* _ASM_CURRENT_H */
-diff --git a/arch/parisc/include/asm/current.h b/arch/parisc/include/asm/current.h
-index 0fb9338..4c51401 100644
---- a/arch/parisc/include/asm/current.h
-+++ b/arch/parisc/include/asm/current.h
-@@ -1,15 +1 @@
--#ifndef _PARISC_CURRENT_H
--#define _PARISC_CURRENT_H
--
--#include <linux/thread_info.h>
--
--struct task_struct;
--
--static inline struct task_struct * get_current(void)
--{
--	return current_thread_info()->task;
--}
-- 
--#define current get_current()
--
--#endif /* !(_PARISC_CURRENT_H) */
-+#include <asm-generic/current.h>
-diff --git a/arch/sparc/include/asm/current.h b/arch/sparc/include/asm/current.h
-index 10a0df5..f04fd6c 100644
---- a/arch/sparc/include/asm/current.h
-+++ b/arch/sparc/include/asm/current.h
-@@ -23,12 +23,7 @@ register struct task_struct *current asm("g4");
-  * Two stage process (inline + #define) for type-checking.
-  * We also obfuscate get_current() to check if anyone used that by mistake.
-  */
--struct task_struct;
--static inline struct task_struct *__get_current(void)
--{
--	return current_thread_info()->task;
--}
--#define current __get_current()
-+#include <asm-generic/current.h>
- #endif
+ #include <linux/thread_info.h>
  
- #endif /* !(_SPARC_CURRENT_H) */
-diff --git a/arch/xtensa/include/asm/current.h b/arch/xtensa/include/asm/current.h
-index 8d1eb5d..c3398ce 100644
---- a/arch/xtensa/include/asm/current.h
-+++ b/arch/xtensa/include/asm/current.h
-@@ -12,18 +12,7 @@
- #define _XTENSA_CURRENT_H
+-#define get_current() (current_thread_info()->task)
++struct task_struct;
++
++static inline __attribute_const__
++struct task_struct *get_current(void)
++{
++	return current_thread_info()->task;
++}
++
+ #define current get_current()
  
- #ifndef __ASSEMBLY__
--
--#include <linux/thread_info.h>
--
--struct task_struct;
--
--static inline struct task_struct *get_current(void)
--{
--	return current_thread_info()->task;
--}
--
--#define current get_current()
--
-+#include <asm-generic/current.h>
- #else
- 
- #define CURRENT_SHIFT 13
+ #endif /* __ASM_GENERIC_CURRENT_H */
