@@ -1,39 +1,54 @@
-From: Mathieu Rondonneau <mathieu.rondonneau@gmail.com>
-Subject: [PATCH] Prevent reserving RAM in the region already reserved by BIOS
-Date: Tue, 18 May 2010 22:35:30 -0700
-Message-ID: <AANLkTimwxXtNnmBuDJxg3i72VwWuHmemjrr1iGqj4j8e@mail.gmail.com>
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [PATCH 1/3] Reduce get_current() to the asm-generic
+ implementation where possible
+Date: Wed, 19 May 2010 16:21:12 +1000
+Message-ID: <20100519062112.GQ2516@laptop>
+References: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk>
+ <20100518194753.GA2318@shareable.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f194.google.com ([209.85.222.194]:39952 "EHLO
-	mail-pz0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750813Ab0ESFfb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 May 2010 01:35:31 -0400
+Received: from cantor2.suse.de ([195.135.220.15]:40521 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750801Ab0ESGVQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 May 2010 02:21:16 -0400
+Content-Disposition: inline
+In-Reply-To: <20100518194753.GA2318@shareable.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: yinghai@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Me <mathieu.rondonneau@gmail.com>
+To: Jamie Lokier <jamie@shareable.org>
+Cc: David Howells <dhowells@redhat.com>, oleg@redhat.com, linux-arch@vger.kernel.org
 
-Does it make sense to prevent looking for stolen RAM below the ISA section.
+On Tue, May 18, 2010 at 08:47:53PM +0100, Jamie Lokier wrote:
+> David Howells wrote:
+> > Reduce get_current() to the asm-generic implementation where
+> > possible to remove duplicate cases.
+> > 
+> > Note that this will lose the const attribute on get_current() for ARM and
+> > MN10300.  This will be added back in a later patch for all architectures.
+> [...]
+> > -static inline struct task_struct *get_current(void) __attribute_const__;
+> > -
+> > -static inline struct task_struct *get_current(void)
+> > -{
+> > -	return current_thread_info()->task;
+> > -}
+> 
+> 
+> Last time I looked, GCC didn't seem to do anything useful with the
+> const attribute on inline functions.  I.e. no elimination of duplicate calls.
 
+Probably child functions should be marked const as well.
 
-Signed-off-by: Mathieu Rondonneau <mathieu.rondonneau@gmail.com>
----
- arch/x86/kernel/e820.c |    2 ++
- 1 files changed, 2 insertions(+), 0 deletions(-)
+ 
+> (It does eliminate them when out-of-line.)
+> 
+> So there is probably no point putting the const attribute back, unless
+> GCC has changed at this.
+> 
+> It might be able to eliminate some duplicates if the asm inside
+> current_thread_info() is consty enough, and duplicate ->task
+> dereferences might be eliminated by strict-aliasing in some cases.
 
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index 7bca3c6..322c9c3 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -1156,6 +1156,8 @@ void __init e820_reserve_resources_late(void)
-                        end = MAX_RESOURCE_SIZE;
-                if (start >= end)
-                        continue;
-+               if (end < ISA_START_ADDRESS)
-+                       continue;
-                printk(KERN_DEBUG "reserve RAM buffer: %016llx - %016llx ",
-                               start, end);
-                reserve_region_with_split(&iomem_resource, start, end,
--- 
-1.6.3.3
+I don't think it hurts to give more information even if the compiler
+does not use it yet.
