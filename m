@@ -1,79 +1,52 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: [PATCH] schedule: simplify the reacquire_kernel_lock() logic
-Date: Wed, 19 May 2010 14:57:11 +0200
-Message-ID: <20100519125711.GA30199@redhat.com>
-References: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk> <20100518164547.6194.94193.stgit@warthog.procyon.org.uk> <20100518212220.GA5092@redhat.com> <1274250079.5605.9967.camel@twins> <20100519102743.GA10040@redhat.com> <1274265465.5605.10564.camel@twins>
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [PATCH 2/2]: atomic_t: Remove volatile from atomic_t definition
+Date: Wed, 19 May 2010 23:03:27 +1000
+Message-ID: <20100519130327.GW2516@laptop>
+References: <20100517043353.GA22127@kryten>
+ <20100517043457.GA22416@kryten>
+ <alpine.LFD.2.00.1005170800100.4195@i5.linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cantor.suse.de ([195.135.220.2]:55358 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752727Ab0ESNDo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 May 2010 09:03:44 -0400
 Content-Disposition: inline
-In-Reply-To: <1274265465.5605.10564.camel@twins>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: David Howells <dhowells@redhat.com>, Ingo Molnar <mingo@elte.hu>, Yong Zhang <yong.zhang0@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <alpine.LFD.2.00.1005170800100.4195@i5.linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Anton Blanchard <anton@samba.org>, akpm@linux-foundation.org, willy@linux.intel.com, benh@kernel.crashing.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 
-- Contrary to what 6d558c3a says, there is no need to reload
-  prev = rq->curr after the context switch. You always schedule
-  back to where you came from, prev must be equal to current
-  even if cpu/rq was changed.
+On Mon, May 17, 2010 at 08:01:54AM -0700, Linus Torvalds wrote:
+> 
+> 
+> On Mon, 17 May 2010, Anton Blanchard wrote:
+> > 
+> > It turns out this bad code is a result of us defining atomic_t as a
+> > volatile int.
+> 
+> Heh. Ok, as you point out in the commit message, I obviously agree with 
+> this patch. "volatile" on data is evil, with the possible exception of 
+> "jiffies" type things.
+> 
+> So applied.
 
-- This also means reacquire_kernel_lock() can use prev instead
-  of current.
+I wonder, Linus, is there a good reason to use volatile for these at
+all?
 
-- No need to reassign switch_count if reacquire_kernel_lock()
-  reports need_resched(), we can just move the initial assignment
-  down, under the "need_resched_nonpreemptible:" label.
+I asked you about it quite a while back, and IIRC you said it might
+be OK to remove volatile from bitops, provided that callers were audited
+(ie. that nobody used bitops on volatile variables).
 
-- Try to update the comment after context_switch().
+For atomic_read it shouldn't matter unless gcc is *really* bad at it.
+Ah, for atomic_read, the required semantic is surely ACCESS_ONCE, so
+that's where the volatile is needed? (maybe it would be clearer to
+explicitly use ACCESS_ONCE?)
 
-Signed-off-by: Oleg Nesterov <oleg@redhat.com>
----
-
- kernel/sched.c |   13 ++++++-------
- 1 file changed, 6 insertions(+), 7 deletions(-)
-
---- 34-rc1/kernel/sched.c~SCHEDULE_PREV_EQ_TO_CURRENT	2010-05-18 23:32:50.000000000 +0200
-+++ 34-rc1/kernel/sched.c	2010-05-19 14:32:57.000000000 +0200
-@@ -3679,7 +3679,6 @@ need_resched:
- 	rq = cpu_rq(cpu);
- 	rcu_sched_qs(cpu);
- 	prev = rq->curr;
--	switch_count = &prev->nivcsw;
- 
- 	release_kernel_lock(prev);
- need_resched_nonpreemptible:
-@@ -3693,6 +3692,7 @@ need_resched_nonpreemptible:
- 	update_rq_clock(rq);
- 	clear_tsk_need_resched(prev);
- 
-+	switch_count = &prev->nivcsw;
- 	if (prev->state && !(preempt_count() & PREEMPT_ACTIVE)) {
- 		if (unlikely(signal_pending_state(prev->state, prev)))
- 			prev->state = TASK_RUNNING;
-@@ -3719,8 +3719,10 @@ need_resched_nonpreemptible:
- 
- 		context_switch(rq, prev, next); /* unlocks the rq */
- 		/*
--		 * the context switch might have flipped the stack from under
--		 * us, hence refresh the local variables.
-+		 * The context switch have flipped the stack from under us
-+		 * and restored the local variables which were saved when
-+		 * this task called schedule() in the past. prev == current
-+		 * is still correct, but it can be moved to another cpu/rq.
- 		 */
- 		cpu = smp_processor_id();
- 		rq = cpu_rq(cpu);
-@@ -3729,11 +3731,8 @@ need_resched_nonpreemptible:
- 
- 	post_schedule(rq);
- 
--	if (unlikely(reacquire_kernel_lock(current) < 0)) {
--		prev = rq->curr;
--		switch_count = &prev->nivcsw;
-+	if (unlikely(reacquire_kernel_lock(prev)))
- 		goto need_resched_nonpreemptible;
--	}
- 
- 	preempt_enable_no_resched();
- 	if (need_resched())
+The case I was thinking about for bitops was for multiple non-atomic
+bitops, which would be nice to combine. In reality a lot of performance
+critical code (like page allocator) bites the bullet and does the
+open-coded bitwise ops. But it would be nice if that just worked for
+__set_bit / __clear_bit too.
