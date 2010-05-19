@@ -1,31 +1,40 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: schedule() && prev/current (Was: [PATCH 3/3] Make
- get_current() __attribute__((const)))
-Date: Wed, 19 May 2010 12:37:45 +0200
-Message-ID: <1274265465.5605.10564.camel@twins>
-References: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk>
-	 <20100518164547.6194.94193.stgit@warthog.procyon.org.uk>
-	 <20100518212220.GA5092@redhat.com> <1274250079.5605.9967.camel@twins>
-	 <20100519102743.GA10040@redhat.com>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH 1/3] Reduce get_current() to the asm-generic
+	implementation where possible
+Date: Wed, 19 May 2010 13:02:04 +0200
+Message-ID: <20100519110204.GB10040@redhat.com>
+References: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk> <20100518194753.GA2318@shareable.org> <20100519062112.GQ2516@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:49957 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757369Ab0ESKiJ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 May 2010 06:38:09 -0400
-In-Reply-To: <20100519102743.GA10040@redhat.com>
+Received: from mx1.redhat.com ([209.132.183.28]:34607 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753750Ab0ESLEi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 May 2010 07:04:38 -0400
+Content-Disposition: inline
+In-Reply-To: <20100519062112.GQ2516@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: David Howells <dhowells@redhat.com>, Ingo Molnar <mingo@elte.hu>, Yong Zhang <yong.zhang0@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Jamie Lokier <jamie@shareable.org>, David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org
 
-On Wed, 2010-05-19 at 12:27 +0200, Oleg Nesterov wrote:
+On 05/19, Nick Piggin wrote:
+>
+> On Tue, May 18, 2010 at 08:47:53PM +0100, Jamie Lokier wrote:
+> >
+> > So there is probably no point putting the const attribute back, unless
+> > GCC has changed at this.
+> >
+> > It might be able to eliminate some duplicates if the asm inside
+> > current_thread_info() is consty enough, and duplicate ->task
+> > dereferences might be eliminated by strict-aliasing in some cases.
+>
+> I don't think it hurts to give more information even if the compiler
+> does not use it yet.
 
-> Now suppose that A calls schedule() and we switch to B. When switch_to()
-> returns on B's context, this context (register/stack) matches the previous
-> context which was used by B when it in turn called schedule(), correct?
+Completely agreed.
 
-Ah, right, you always schedule back to where you came from,... I
-shouldn't try and write emails before the morning juice hits ;-)
+Personally, I think this patch makes sense even as documentation. And
+hopefully some time later gcc will be improved.
+
+Oleg.
