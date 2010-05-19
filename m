@@ -1,52 +1,86 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [PATCH 2/2]: atomic_t: Remove volatile from atomic_t definition
-Date: Wed, 19 May 2010 23:03:27 +1000
-Message-ID: <20100519130327.GW2516@laptop>
-References: <20100517043353.GA22127@kryten>
- <20100517043457.GA22416@kryten>
- <alpine.LFD.2.00.1005170800100.4195@i5.linux-foundation.org>
+From: Yong Zhang <yong.zhang0@gmail.com>
+Subject: Re: schedule() && prev/current (Was: [PATCH 3/3] Make
+ get_current() __attribute__((const)))
+Date: Wed, 19 May 2010 21:07:09 +0800
+Message-ID: <20100519130709.GA2216@zhy>
+References: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk>
+ <20100518164547.6194.94193.stgit@warthog.procyon.org.uk>
+ <20100518212220.GA5092@redhat.com>
+ <1274250079.5605.9967.camel@twins>
+ <20100519102743.GA10040@redhat.com>
+Reply-To: Yong Zhang <yong.zhang0@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:55358 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752727Ab0ESNDo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 May 2010 09:03:44 -0400
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.1005170800100.4195@i5.linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Anton Blanchard <anton@samba.org>, akpm@linux-foundation.org, willy@linux.intel.com, benh@kernel.crashing.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+In-Reply-To: <20100519102743.GA10040@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, David Howells <dhowells@redhat.com>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 17, 2010 at 08:01:54AM -0700, Linus Torvalds wrote:
+On Wed, May 19, 2010 at 12:27:43PM +0200, Oleg Nesterov wrote:
+> On 05/19, Peter Zijlstra wrote:
+> >
+> > On Tue, 2010-05-18 at 23:22 +0200, Oleg Nesterov wrote:
+> >
+> > > And, looking at this patch I think that schedule() can be simplified
+> > > a little bit.
+> > >
+> > > "sched: Reassign prev and switch_count when reacquire_kernel_lock() fail"
+> > > commit 6d558c3ac9b6508d26fd5cadccce51fc9d726b1c says:
+> > >
+> > > 	Assume A->B schedule is processing,
+> > > 	...
+> > > 	Then on B's context,
+> > > 	...
+> > > 	prev and switch_count are related to A
+> > >
+> > > How so? switch_count - yes, we should change it. But prev must be
+> > > equal to B, and it must be equal to current. When we return from
+> > > switch_to() registers/stack should be restored correctly, so we
+> > > can do
+> >
+> > What if schedule() got called at a different stack depth than we are
+> > now?
+> >
+> > I don't think we can assume anything about the stack context we just
+> > switched to.
+> 
+> Not sure I understand...
+> 
+> OK. Firstly, we shouldn't worry about the freshly forked tasks, they
+> never "return" from switch_to() but call ret_from_fork()->schedule_tail(),
+> right?
+> 
+> Now suppose that A calls schedule() and we switch to B. When switch_to()
+> returns on B's context, this context (register/stack) matches the previous
+> context which was used by B when it in turn called schedule(), correct?
+> 
+> IOW. B calls schedule, prev == B. schedule() picks another task, prev
+> is saved on B's stck after switch_to(). A calls schedule(), prev == A
+> before context_switch(A, B), but after that switch_to() switches to
+> B's stack and prev == B.
+> 
+> No?
+
+I think you are right.
+
 > 
 > 
-> On Mon, 17 May 2010, Anton Blanchard wrote:
-> > 
-> > It turns out this bad code is a result of us defining atomic_t as a
-> > volatile int.
+> I am looking into the git history now... and I guess I understand why
+> reacquire_kernel_lock() uses current. Because schedule() did something
+> like
 > 
-> Heh. Ok, as you point out in the commit message, I obviously agree with 
-> this patch. "volatile" on data is evil, with the possible exception of 
-> "jiffies" type things.
+> 	prev = context_switch(prev, next);	// prev == last
 > 
-> So applied.
+> 	finish_task_switch(prev);
+> 
+> 	reacquire_kernel_lock(current);		// prev != current
 
-I wonder, Linus, is there a good reason to use volatile for these at
-all?
+This is what I think when I wrote that patch. Now the task switch is
+entirely finished in context_switch(). So commit log in 6d558c3a has
+some flaw in it. The "prev" is also a churn.
 
-I asked you about it quite a while back, and IIRC you said it might
-be OK to remove volatile from bitops, provided that callers were audited
-(ie. that nobody used bitops on volatile variables).
-
-For atomic_read it shouldn't matter unless gcc is *really* bad at it.
-Ah, for atomic_read, the required semantic is surely ACCESS_ONCE, so
-that's where the volatile is needed? (maybe it would be clearer to
-explicitly use ACCESS_ONCE?)
-
-The case I was thinking about for bitops was for multiple non-atomic
-bitops, which would be nice to combine. In reality a lot of performance
-critical code (like page allocator) bites the bullet and does the
-open-coded bitwise ops. But it would be nice if that just worked for
-__set_bit / __clear_bit too.
+Thanks,
+Yong
