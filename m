@@ -1,46 +1,47 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH 2/2]: atomic_t: Remove volatile from atomic_t definition
-Date: Wed, 19 May 2010 15:50:46 -0700
-Message-ID: <20100519225046.GO2237@linux.vnet.ibm.com>
-References: <alpine.LFD.2.00.1005170800100.4195@i5.linux-foundation.org>
- <20100519130327.GW2516@laptop>
- <20100519150132.GJ2237@linux.vnet.ibm.com>
- <20100519.125449.56392211.davem@davemloft.net>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH] Prevent reserving RAM in the region already reserved
+ by 	BIOS
+Date: Wed, 19 May 2010 16:00:43 -0700
+Message-ID: <4BF46D9B.4090806@zytor.com>
+References: <AANLkTimwxXtNnmBuDJxg3i72VwWuHmemjrr1iGqj4j8e@mail.gmail.com>	 <4BF42296.1030905@oracle.com> <4BF4235D.3080904@zytor.com> <AANLkTikYcu6fM3yLoYIZOGZXgsRUfCgJeWS51Sjo-Fny@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e7.ny.us.ibm.com ([32.97.182.137]:55814 "EHLO e7.ny.us.ibm.com"
+Received: from terminus.zytor.com ([198.137.202.10]:54406 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751475Ab0ESWuu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 May 2010 18:50:50 -0400
-Content-Disposition: inline
-In-Reply-To: <20100519.125449.56392211.davem@davemloft.net>
+	id S1751891Ab0ESXBf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 May 2010 19:01:35 -0400
+In-Reply-To: <AANLkTikYcu6fM3yLoYIZOGZXgsRUfCgJeWS51Sjo-Fny@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: npiggin@suse.de, torvalds@linux-foundation.org, anton@samba.org, akpm@linux-foundation.org, willy@linux.intel.com, benh@kernel.crashing.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Mathieu Rondonneau <mathieu.rondonneau@gmail.com>
+Cc: Yinghai <yinghai.lu@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Wed, May 19, 2010 at 12:54:49PM -0700, David Miller wrote:
-> From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-> Date: Wed, 19 May 2010 08:01:32 -0700
+On 05/19/2010 03:58 PM, Mathieu Rondonneau wrote:
+> Thanks for the feedback.
 > 
-> > On Wed, May 19, 2010 at 11:03:27PM +1000, Nick Piggin wrote:
-> >> For atomic_read it shouldn't matter unless gcc is *really* bad at it.
-> >> Ah, for atomic_read, the required semantic is surely ACCESS_ONCE, so
-> >> that's where the volatile is needed? (maybe it would be clearer to
-> >> explicitly use ACCESS_ONCE?)
-> > 
-> > Explicit use of ACCESS_ONCE() where needed makes a lot of sense to me,
-> > and allows better code to be generated for initialization and cleanup
-> > code where no other task has access to the atomic_t.
+> No, I don' t see any changes in the /proc/iomem.
 > 
-> I agree and I want to see this too, but I think with the tree the size
-> that it is we have to work backwards at this point.
+> I am trying to prevent a ioremap of a 4K size on a non aligned 4K
+> address that is below the ISA_START_ADDRESS.
 > 
-> Existing behavior by default, and optimized cases get tagged by using
-> a new interface (atomic_read_light(), test_bit{,s}_light(), etc.)
+> The problem generates a oops about overlapping.
+> I have a fix which instruct to not to do any re-map if the section
+> name is "reserved".
+> Which is not really clean.
+> I am looking for a clean way to tell the ioremap function to not remap
+> bios reserved memory.
+> That' s why I thought the e820 would be a good start.
+> 
+> I will continue looking into this. It does not crash the systems. A
+> warning generates the oops.
+> 
 
-Fair enough!
+Why are you mapping a fixed-address in ISA space to begin with?
 
-							Thanx, Paul
+Requests to a fixed address (as opposed to dynamic allocation) have to
+be granted even in reserved space -- after all, that's what the address
+might be reserved for!
+
+	-hpa
