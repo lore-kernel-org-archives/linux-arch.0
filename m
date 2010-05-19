@@ -1,37 +1,40 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [GIT PULL] x86/atomic changes for v2.6.35
-Date: Wed, 19 May 2010 12:00:41 -0700
-Message-ID: <4BF43559.6080808@zytor.com>
-References: <20100517224531.GA27400@elte.hu> <AANLkTinWbueCQZdQgZFDLQPJYieB13orxDGYJzzRpPni@mail.gmail.com> <4BF3F480.3000902@zytor.com> <20100519161828.GB16082@linux-sh.org>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 2/2]: atomic_t: Remove volatile from atomic_t definition
+Date: Wed, 19 May 2010 12:54:49 -0700 (PDT)
+Message-ID: <20100519.125449.56392211.davem@davemloft.net>
+References: <alpine.LFD.2.00.1005170800100.4195@i5.linux-foundation.org>
+	<20100519130327.GW2516@laptop>
+	<20100519150132.GJ2237@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:49770 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752175Ab0ESTBN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 May 2010 15:01:13 -0400
-In-Reply-To: <20100519161828.GB16082@linux-sh.org>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:32870
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753245Ab0ESTyl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 May 2010 15:54:41 -0400
+In-Reply-To: <20100519150132.GJ2237@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Ingo Molnar <mingo@elte.hu>, Luca Barbieri <luca@luca-barbieri.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
+To: paulmck@linux.vnet.ibm.com
+Cc: npiggin@suse.de, torvalds@linux-foundation.org, anton@samba.org, akpm@linux-foundation.org, willy@linux.intel.com, benh@kernel.crashing.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On 05/19/2010 09:18 AM, Paul Mundt wrote:
->
-> No, the problem isn't solved, you apparently overlooked the part of
-> Geert's mail that point out that the test fails to build on architecures
-> that _do_ have atomic64_t. All of arm/parisc/powerpc/sh select
-> GENERIC_ATOMIC64, suggesting that the test itself was only ever tested on
-> x86 and never on the generic implementation. While that may be par for
-> the course these days, it's still pretty poor form.
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Date: Wed, 19 May 2010 08:01:32 -0700
+
+> On Wed, May 19, 2010 at 11:03:27PM +1000, Nick Piggin wrote:
+>> For atomic_read it shouldn't matter unless gcc is *really* bad at it.
+>> Ah, for atomic_read, the required semantic is surely ACCESS_ONCE, so
+>> that's where the volatile is needed? (maybe it would be clearer to
+>> explicitly use ACCESS_ONCE?)
 > 
+> Explicit use of ACCESS_ONCE() where needed makes a lot of sense to me,
+> and allows better code to be generated for initialization and cleanup
+> code where no other task has access to the atomic_t.
 
-I don't see any atomic64_t issues in the ARM, PowerPC or MIPS builds --
-which doesn't mean they're not there, but if so they're obscured by
-other errors.  m68k is missing #include <asm-generic/atomic64.h> in
-<asm/atomic.h>, and SPARC64 and S390 seems to have issues due to missing
-<linux/kernel.h> in atomic64_test.c; the latter is indeed a bug in the
-test and yes, should be fixed.
+I agree and I want to see this too, but I think with the tree the size
+that it is we have to work backwards at this point.
 
-	-hpa
+Existing behavior by default, and optimized cases get tagged by using
+a new interface (atomic_read_light(), test_bit{,s}_light(), etc.)
