@@ -1,53 +1,37 @@
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH] Prevent reserving RAM in the region already reserved
- by BIOS
-Date: Wed, 19 May 2010 10:43:57 -0700
-Message-ID: <4BF4235D.3080904@zytor.com>
-References: <AANLkTimwxXtNnmBuDJxg3i72VwWuHmemjrr1iGqj4j8e@mail.gmail.com> <4BF42296.1030905@oracle.com>
+Subject: Re: [GIT PULL] x86/atomic changes for v2.6.35
+Date: Wed, 19 May 2010 12:00:41 -0700
+Message-ID: <4BF43559.6080808@zytor.com>
+References: <20100517224531.GA27400@elte.hu> <AANLkTinWbueCQZdQgZFDLQPJYieB13orxDGYJzzRpPni@mail.gmail.com> <4BF3F480.3000902@zytor.com> <20100519161828.GB16082@linux-sh.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:37172 "EHLO mail.zytor.com"
+Received: from terminus.zytor.com ([198.137.202.10]:49770 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753523Ab0ESRoS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 May 2010 13:44:18 -0400
-In-Reply-To: <4BF42296.1030905@oracle.com>
+	id S1752175Ab0ESTBN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 May 2010 15:01:13 -0400
+In-Reply-To: <20100519161828.GB16082@linux-sh.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai <yinghai.lu@oracle.com>
-Cc: Mathieu Rondonneau <mathieu.rondonneau@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>
+To: Paul Mundt <lethal@linux-sh.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Ingo Molnar <mingo@elte.hu>, Luca Barbieri <luca@luca-barbieri.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
 
-On 05/19/2010 10:40 AM, Yinghai wrote:
-> On 05/18/2010 10:35 PM, Mathieu Rondonneau wrote:
->> Does it make sense to prevent looking for stolen RAM below the ISA section.
->>
->>
->> Signed-off-by: Mathieu Rondonneau <mathieu.rondonneau@gmail.com>
->> ---
->>  arch/x86/kernel/e820.c |    2 ++
->>  1 files changed, 2 insertions(+), 0 deletions(-)
->>
->> diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
->> index 7bca3c6..322c9c3 100644
->> --- a/arch/x86/kernel/e820.c
->> +++ b/arch/x86/kernel/e820.c
->> @@ -1156,6 +1156,8 @@ void __init e820_reserve_resources_late(void)
->>                         end = MAX_RESOURCE_SIZE;
->>                 if (start >= end)
->>                         continue;
->> +               if (end < ISA_START_ADDRESS)
->> +                       continue;
->>                 printk(KERN_DEBUG "reserve RAM buffer: %016llx - %016llx ",
->>                                start, end);
->>                 reserve_region_with_split(&iomem_resource, start, end,
-> 
-> do you notice any changes in /proc/iomem?
+On 05/19/2010 09:18 AM, Paul Mundt wrote:
+>
+> No, the problem isn't solved, you apparently overlooked the part of
+> Geert's mail that point out that the test fails to build on architecures
+> that _do_ have atomic64_t. All of arm/parisc/powerpc/sh select
+> GENERIC_ATOMIC64, suggesting that the test itself was only ever tested on
+> x86 and never on the generic implementation. While that may be par for
+> the course these days, it's still pretty poor form.
 > 
 
-It should be harmless to reserve memory which is already reserved, so
-this patch is at best a no-op.  Furthermore, it introduces another
-instance of special address space (ISA_START_ADDRESS in this case) which
-is never a good thing.
+I don't see any atomic64_t issues in the ARM, PowerPC or MIPS builds --
+which doesn't mean they're not there, but if so they're obscured by
+other errors.  m68k is missing #include <asm-generic/atomic64.h> in
+<asm/atomic.h>, and SPARC64 and S390 seems to have issues due to missing
+<linux/kernel.h> in atomic64_test.c; the latter is indeed a bug in the
+test and yes, should be fixed.
 
 	-hpa
