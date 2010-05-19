@@ -1,54 +1,46 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [PATCH 1/3] Reduce get_current() to the asm-generic
- implementation where possible
-Date: Wed, 19 May 2010 16:21:12 +1000
-Message-ID: <20100519062112.GQ2516@laptop>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: schedule() && prev/current (Was: [PATCH 3/3] Make
+ get_current() __attribute__((const)))
+Date: Wed, 19 May 2010 08:21:19 +0200
+Message-ID: <1274250079.5605.9967.camel@twins>
 References: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk>
- <20100518194753.GA2318@shareable.org>
+	 <20100518164547.6194.94193.stgit@warthog.procyon.org.uk>
+	 <20100518212220.GA5092@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:40521 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750801Ab0ESGVQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 May 2010 02:21:16 -0400
-Content-Disposition: inline
-In-Reply-To: <20100518194753.GA2318@shareable.org>
+Received: from bombadil.infradead.org ([18.85.46.34]:51913 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751353Ab0ESGVp convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 May 2010 02:21:45 -0400
+In-Reply-To: <20100518212220.GA5092@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jamie Lokier <jamie@shareable.org>
-Cc: David Howells <dhowells@redhat.com>, oleg@redhat.com, linux-arch@vger.kernel.org
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: David Howells <dhowells@redhat.com>, Ingo Molnar <mingo@elte.hu>, Yong Zhang <yong.zhang0@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Tue, May 18, 2010 at 08:47:53PM +0100, Jamie Lokier wrote:
-> David Howells wrote:
-> > Reduce get_current() to the asm-generic implementation where
-> > possible to remove duplicate cases.
-> > 
-> > Note that this will lose the const attribute on get_current() for ARM and
-> > MN10300.  This will be added back in a later patch for all architectures.
-> [...]
-> > -static inline struct task_struct *get_current(void) __attribute_const__;
-> > -
-> > -static inline struct task_struct *get_current(void)
-> > -{
-> > -	return current_thread_info()->task;
-> > -}
-> 
-> 
-> Last time I looked, GCC didn't seem to do anything useful with the
-> const attribute on inline functions.  I.e. no elimination of duplicate calls.
+On Tue, 2010-05-18 at 23:22 +0200, Oleg Nesterov wrote:
 
-Probably child functions should be marked const as well.
-
- 
-> (It does eliminate them when out-of-line.)
+> And, looking at this patch I think that schedule() can be simplified
+> a little bit.
 > 
-> So there is probably no point putting the const attribute back, unless
-> GCC has changed at this.
+> "sched: Reassign prev and switch_count when reacquire_kernel_lock() fail"
+> commit 6d558c3ac9b6508d26fd5cadccce51fc9d726b1c says:
 > 
-> It might be able to eliminate some duplicates if the asm inside
-> current_thread_info() is consty enough, and duplicate ->task
-> dereferences might be eliminated by strict-aliasing in some cases.
+> 	Assume A->B schedule is processing,
+> 	...
+> 	Then on B's context,
+> 	...
+> 	prev and switch_count are related to A
+> 
+> How so? switch_count - yes, we should change it. But prev must be
+> equal to B, and it must be equal to current. When we return from
+> switch_to() registers/stack should be restored correctly, so we
+> can do
 
-I don't think it hurts to give more information even if the compiler
-does not use it yet.
+What if schedule() got called at a different stack depth than we are
+now?
+
+I don't think we can assume anything about the stack context we just
+switched to.
