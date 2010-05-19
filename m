@@ -1,78 +1,79 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [GIT PULL] x86/atomic changes for v2.6.35
-Date: Wed, 19 May 2010 13:46:01 +0200
-Message-ID: <AANLkTinWbueCQZdQgZFDLQPJYieB13orxDGYJzzRpPni@mail.gmail.com>
-References: <20100517224531.GA27400@elte.hu>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: [PATCH] schedule: simplify the reacquire_kernel_lock() logic
+Date: Wed, 19 May 2010 14:57:11 +0200
+Message-ID: <20100519125711.GA30199@redhat.com>
+References: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk> <20100518164547.6194.94193.stgit@warthog.procyon.org.uk> <20100518212220.GA5092@redhat.com> <1274250079.5605.9967.camel@twins> <20100519102743.GA10040@redhat.com> <1274265465.5605.10564.camel@twins>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:38635 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754021Ab0ESLqE convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 May 2010 07:46:04 -0400
-In-Reply-To: <20100517224531.GA27400@elte.hu>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Luca Barbieri <luca@luca-barbieri.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1274265465.5605.10564.camel@twins>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: David Howells <dhowells@redhat.com>, Ingo Molnar <mingo@elte.hu>, Yong Zhang <yong.zhang0@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 18, 2010 at 00:45, Ingo Molnar <mingo@elte.hu> wrote:
-> Please pull the latest x86-atomic-for-linus git tree from:
->
-> =C2=A0 git://git.kernel.org/pub/scm/linux/kernel/git/tip/linux-2.6-ti=
-p.git x86-atomic-for-linus
->
->
-> out-of-topic modifications in x86-atomic-for-linus:
-> ---------------------------------------------------
-> lib/Makefile =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0 =C2=A0 =C2=A0 # 86a8938: lib: Add self-test for atomic64_t
-> lib/atomic64.c =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
- =C2=A0 =C2=A0 # 9757789: lib: Fix atomic64_add_unless retu
-> lib/atomic64_test.c =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0# a5c9161: x86, atomic64: In selftest, disti
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
- =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 # 25a304f: lib: Fix a=
-tomic64_inc_not_zero te
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
- =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 # 9efbcd5: lib: Fix a=
-tomic64_add_unless test
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
- =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 # d7f6de1: x86: Imple=
-ment atomic[64]_dec_if_
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
- =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 # 8f4f202: lib: Only =
-test atomic64_dec_if_po
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
- =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 # 86a8938: lib: Add s=
-elf-test for atomic64_t
+- Contrary to what 6d558c3a says, there is no need to reload
+  prev = rq->curr after the context switch. You always schedule
+  back to where you came from, prev must be equal to current
+  even if cpu/rq was changed.
 
-Is having atomic64_t mandatory now?
+- This also means reacquire_kernel_lock() can use prev instead
+  of current.
 
-According to the allmodconfig build logs
-(http://kisskb.ellerman.id.au/kisskb/matrix/),
-several architectures (at least m68k and mips) don't have it.
-=46urthermore, the test fails to compile on a few architectures that do=
- have it
-(parisc, s390, sh, ...).
+- No need to reassign switch_count if reacquire_kernel_lock()
+  reports need_resched(), we can just move the initial assignment
+  down, under the "need_resched_nonpreemptible:" label.
 
-<boilerplate>
-It's a pity this wasn't raised/resolved between its detection in linux-=
-next and
-before it entered mainline...
-</boilerplate>
+- Try to update the comment after context_switch().
 
-Gr{oetje,eeting}s,
+Signed-off-by: Oleg Nesterov <oleg@redhat.com>
+---
 
-						Geert
+ kernel/sched.c |   13 ++++++-------
+ 1 file changed, 6 insertions(+), 7 deletions(-)
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-							    -- Linus Torvalds
+--- 34-rc1/kernel/sched.c~SCHEDULE_PREV_EQ_TO_CURRENT	2010-05-18 23:32:50.000000000 +0200
++++ 34-rc1/kernel/sched.c	2010-05-19 14:32:57.000000000 +0200
+@@ -3679,7 +3679,6 @@ need_resched:
+ 	rq = cpu_rq(cpu);
+ 	rcu_sched_qs(cpu);
+ 	prev = rq->curr;
+-	switch_count = &prev->nivcsw;
+ 
+ 	release_kernel_lock(prev);
+ need_resched_nonpreemptible:
+@@ -3693,6 +3692,7 @@ need_resched_nonpreemptible:
+ 	update_rq_clock(rq);
+ 	clear_tsk_need_resched(prev);
+ 
++	switch_count = &prev->nivcsw;
+ 	if (prev->state && !(preempt_count() & PREEMPT_ACTIVE)) {
+ 		if (unlikely(signal_pending_state(prev->state, prev)))
+ 			prev->state = TASK_RUNNING;
+@@ -3719,8 +3719,10 @@ need_resched_nonpreemptible:
+ 
+ 		context_switch(rq, prev, next); /* unlocks the rq */
+ 		/*
+-		 * the context switch might have flipped the stack from under
+-		 * us, hence refresh the local variables.
++		 * The context switch have flipped the stack from under us
++		 * and restored the local variables which were saved when
++		 * this task called schedule() in the past. prev == current
++		 * is still correct, but it can be moved to another cpu/rq.
+ 		 */
+ 		cpu = smp_processor_id();
+ 		rq = cpu_rq(cpu);
+@@ -3729,11 +3731,8 @@ need_resched_nonpreemptible:
+ 
+ 	post_schedule(rq);
+ 
+-	if (unlikely(reacquire_kernel_lock(current) < 0)) {
+-		prev = rq->curr;
+-		switch_count = &prev->nivcsw;
++	if (unlikely(reacquire_kernel_lock(prev)))
+ 		goto need_resched_nonpreemptible;
+-	}
+ 
+ 	preempt_enable_no_resched();
+ 	if (need_resched())
