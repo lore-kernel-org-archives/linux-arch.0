@@ -1,71 +1,108 @@
-From: Mathieu Rondonneau <mathieu.rondonneau@gmail.com>
-Subject: Re: [PATCH] Prevent reserving RAM in the region already reserved by
-	BIOS
-Date: Wed, 19 May 2010 17:01:41 -0700
-Message-ID: <AANLkTiltANJ9eaGBkfJJOyZ8skCxxOmkAs1UvCLB_YQ9@mail.gmail.com>
-References: <AANLkTimwxXtNnmBuDJxg3i72VwWuHmemjrr1iGqj4j8e@mail.gmail.com>
-	 <4BF42296.1030905@oracle.com> <4BF4235D.3080904@zytor.com>
-	 <AANLkTikYcu6fM3yLoYIZOGZXgsRUfCgJeWS51Sjo-Fny@mail.gmail.com>
-	 <4BF46D9B.4090806@zytor.com>
+From: Yinghai <yinghai.lu@oracle.com>
+Subject: Re: [PATCH] Prevent reserving RAM in the region already reserved
+ by  BIOS
+Date: Wed, 19 May 2010 17:07:01 -0700
+Message-ID: <4BF47D25.8060209@oracle.com>
+References: <AANLkTimwxXtNnmBuDJxg3i72VwWuHmemjrr1iGqj4j8e@mail.gmail.com>	 <4BF42296.1030905@oracle.com> <4BF4235D.3080904@zytor.com>	 <AANLkTikYcu6fM3yLoYIZOGZXgsRUfCgJeWS51Sjo-Fny@mail.gmail.com>	 <4BF46D9B.4090806@zytor.com> <AANLkTiltANJ9eaGBkfJJOyZ8skCxxOmkAs1UvCLB_YQ9@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pw0-f46.google.com ([209.85.160.46]:34321 "EHLO
-	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751890Ab0ETABm convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 May 2010 20:01:42 -0400
-In-Reply-To: <4BF46D9B.4090806@zytor.com>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:23435 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752467Ab0ETAJE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 May 2010 20:09:04 -0400
+In-Reply-To: <AANLkTiltANJ9eaGBkfJJOyZ8skCxxOmkAs1UvCLB_YQ9@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Yinghai <yinghai.lu@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>
+To: Mathieu Rondonneau <mathieu.rondonneau@gmail.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>
 
-it' s not in ISA space.
-once loading the NVIDIA driver, the warnign oops shows up.
-4K starting at 0x9f800 (i.e. to 0xa007ff) overlap with the ISA space
-(starting at 0xa0000).
+On 05/19/2010 05:01 PM, Mathieu Rondonneau wrote:
+> it' s not in ISA space.
+> once loading the NVIDIA driver, the warnign oops shows up.
+> 4K starting at 0x9f800 (i.e. to 0xa007ff) overlap with the ISA space
+> (starting at 0xa0000).
+> 
+> When I don' t load the driver, no oops.
+> So I am assuming nvidia driver request 4K of memory, that happens to
+> be available in the bios area.
+> 
+> I think that there is a check missing somewhere to report that
+> available RAM buffer is already reserved (by BIOS) so we need to get
+> it from somewhere else.
 
-When I don' t load the driver, no oops.
-So I am assuming nvidia driver request 4K of memory, that happens to
-be available in the bios area.
+please check if this patch fix the problem.
 
-I think that there is a check missing somewhere to report that
-available RAM buffer is already reserved (by BIOS) so we need to get
-it from somewhere else.
+Subject: [PATCH] x86: Align e820 ram range to page
 
-Does it make sense?
--Mathieu
+To workaround wrong BIOS memory map.
 
-On Wed, May 19, 2010 at 4:00 PM, H. Peter Anvin <hpa@zytor.com> wrote:
-> On 05/19/2010 03:58 PM, Mathieu Rondonneau wrote:
->> Thanks for the feedback.
->>
->> No, I don' t see any changes in the /proc/iomem.
->>
->> I am trying to prevent a ioremap of a 4K size on a non aligned 4K
->> address that is below the ISA_START_ADDRESS.
->>
->> The problem generates a oops about overlapping.
->> I have a fix which instruct to not to do any re-map if the section
->> name is "reserved".
->> Which is not really clean.
->> I am looking for a clean way to tell the ioremap function to not rem=
-ap
->> bios reserved memory.
->> That' s why I thought the e820 would be a good start.
->>
->> I will continue looking into this. It does not crash the systems. A
->> warning generates the oops.
->>
->
-> Why are you mapping a fixed-address in ISA space to begin with?
->
-> Requests to a fixed address (as opposed to dynamic allocation) have t=
-o
-> be granted even in reserved space -- after all, that's what the addre=
-ss
-> might be reserved for!
->
-> =A0 =A0 =A0 =A0-hpa
->
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+
+---
+ arch/x86/kernel/e820.c |   44 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 44 insertions(+)
+
+Index: linux-2.6/arch/x86/kernel/e820.c
+===================================================================
+--- linux-2.6.orig/arch/x86/kernel/e820.c
++++ linux-2.6/arch/x86/kernel/e820.c
+@@ -910,6 +910,47 @@ static int __init parse_memmap_opt(char
+ }
+ early_param("memmap", parse_memmap_opt);
+ 
++static void __init e820_align_ram_page(void)
++{
++	int i;
++	bool changed = false;;
++
++	for (i = 0; i < e820.nr_map; i++) {
++		struct e820entry *entry = &e820.map[i];
++		u64 start, end;
++		u64 start_aligned, end_aligned;
++
++		if (entry->type != E820_RAM)
++			continue;
++
++		start = entry->addr;
++		end = start + entry->size;
++
++		start_aligned = round_up(start, PAGE_SIZE);
++		end_aligned = round_down(end, PAGE_SIZE);
++
++		if (end_aligned <= start_aligned) {
++			e820_update_range(start, end - start, E820_RAM, E820_RESERVED);
++			changed = true;
++			continue;
++		}
++		if (start < start_aligned) {
++			e820_update_range(start, start_aligned - start, E820_RAM, E820_RESERVED);
++			changed = true;
++		}
++		if (end_aligned < end) {
++			e820_update_range(end_aligned, end - end_aligned, E820_RAM, E820_RESERVED);
++			changed = true;
++		}
++	}
++
++	if (changed) {
++		sanitize_e820_map();
++		printk(KERN_INFO "aligned physical RAM map:\n");
++		e820_print_map("aligned");
++	}
++}
++
+ void __init finish_e820_parsing(void)
+ {
+ 	if (userdef) {
+@@ -922,6 +963,9 @@ void __init finish_e820_parsing(void)
+ 		printk(KERN_INFO "user-defined physical RAM map:\n");
+ 		e820_print_map("user");
+ 	}
++
++	/* In case, We have RAM entres that are not PAGE aligned */
++	e820_align_ram_page();
+ }
+ 
+ static inline const char *e820_type_to_string(int e820_type)
