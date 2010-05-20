@@ -1,91 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pv0-f174.google.com ([74.125.83.174]:54558 "EHLO
-	mail-pv0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751189Ab0ESNHT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 May 2010 09:07:19 -0400
-Date: Wed, 19 May 2010 21:07:09 +0800
-From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: Re: schedule() && prev/current (Was: [PATCH 3/3] Make
- get_current() __attribute__((const)))
-Message-ID: <20100519130709.GA2216@zhy>
-Reply-To: Yong Zhang <yong.zhang0@gmail.com>
-References: <20100518164537.6194.73366.stgit@warthog.procyon.org.uk>
- <20100518164547.6194.94193.stgit@warthog.procyon.org.uk>
- <20100518212220.GA5092@redhat.com>
- <1274250079.5605.9967.camel@twins>
- <20100519102743.GA10040@redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20100519102743.GA10040@redhat.com>
+Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:48539 "EHLO
+	www.etchedpixels.co.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752944Ab0ETMGR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 May 2010 08:06:17 -0400
+Date: Thu, 20 May 2010 13:12:30 +0100
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Subject: Re: [PATCH] Prevent reserving RAM in the region already reserved by
+  BIOS
+Message-ID: <20100520131230.41a99489@lxorguk.ukuu.org.uk>
+In-Reply-To: <AANLkTiltANJ9eaGBkfJJOyZ8skCxxOmkAs1UvCLB_YQ9@mail.gmail.com>
+References: <AANLkTimwxXtNnmBuDJxg3i72VwWuHmemjrr1iGqj4j8e@mail.gmail.com>
+	<4BF42296.1030905@oracle.com>
+	<4BF4235D.3080904@zytor.com>
+	<AANLkTikYcu6fM3yLoYIZOGZXgsRUfCgJeWS51Sjo-Fny@mail.gmail.com>
+	<4BF46D9B.4090806@zytor.com>
+	<AANLkTiltANJ9eaGBkfJJOyZ8skCxxOmkAs1UvCLB_YQ9@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, David Howells <dhowells@redhat.com>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20100519130709.5gpk4xn4FzwW4CZV3KKcLaPr4Te9qMxrbuUlu3B25YU@z>
+To: Mathieu Rondonneau <mathieu.rondonneau@gmail.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Yinghai <yinghai.lu@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20100520121230.bGUrNdjafgHn99CHHYzhQUiN4V88A68pP8T2W86vESs@z>
 
-On Wed, May 19, 2010 at 12:27:43PM +0200, Oleg Nesterov wrote:
-> On 05/19, Peter Zijlstra wrote:
-> >
-> > On Tue, 2010-05-18 at 23:22 +0200, Oleg Nesterov wrote:
-> >
-> > > And, looking at this patch I think that schedule() can be simplified
-> > > a little bit.
-> > >
-> > > "sched: Reassign prev and switch_count when reacquire_kernel_lock() fail"
-> > > commit 6d558c3ac9b6508d26fd5cadccce51fc9d726b1c says:
-> > >
-> > > 	Assume A->B schedule is processing,
-> > > 	...
-> > > 	Then on B's context,
-> > > 	...
-> > > 	prev and switch_count are related to A
-> > >
-> > > How so? switch_count - yes, we should change it. But prev must be
-> > > equal to B, and it must be equal to current. When we return from
-> > > switch_to() registers/stack should be restored correctly, so we
-> > > can do
-> >
-> > What if schedule() got called at a different stack depth than we are
-> > now?
-> >
-> > I don't think we can assume anything about the stack context we just
-> > switched to.
-> 
-> Not sure I understand...
-> 
-> OK. Firstly, we shouldn't worry about the freshly forked tasks, they
-> never "return" from switch_to() but call ret_from_fork()->schedule_tail(),
-> right?
-> 
-> Now suppose that A calls schedule() and we switch to B. When switch_to()
-> returns on B's context, this context (register/stack) matches the previous
-> context which was used by B when it in turn called schedule(), correct?
-> 
-> IOW. B calls schedule, prev == B. schedule() picks another task, prev
-> is saved on B's stck after switch_to(). A calls schedule(), prev == A
-> before context_switch(A, B), but after that switch_to() switches to
-> B's stack and prev == B.
-> 
-> No?
+On Wed, 19 May 2010 17:01:41 -0700
+Mathieu Rondonneau <mathieu.rondonneau@gmail.com> wrote:
 
-I think you are right.
+> it' s not in ISA space.
+> once loading the NVIDIA driver, the warnign oops shows up.
+> 4K starting at 0x9f800 (i.e. to 0xa007ff) overlap with the ISA space
+> (starting at 0xa0000).
 
-> 
-> 
-> I am looking into the git history now... and I guess I understand why
-> reacquire_kernel_lock() uses current. Because schedule() did something
-> like
-> 
-> 	prev = context_switch(prev, next);	// prev == last
-> 
-> 	finish_task_switch(prev);
-> 
-> 	reacquire_kernel_lock(current);		// prev != current
+If this is the proprietary Nvidia driver you need to take the matter up
+with Nvidia. I assume they are trying to remap chunks of the EBA for some
+reason.
 
-This is what I think when I wrote that patch. Now the task switch is
-entirely finished in context_switch(). So commit log in 6d558c3a has
-some flaw in it. The "prev" is also a churn.
+And please can you not top post to this list, it makes it very hard to
+follow when you are replying in a different order to everyone else.
 
-Thanks,
-Yong
+Alan
