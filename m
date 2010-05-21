@@ -1,33 +1,52 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 1/4] arch: local64_t
-Date: Fri, 21 May 2010 15:52:29 +0100
-Message-ID: <23895.1274453549@redhat.com>
-References: <20100521135944.884367426@chello.nl> <20100521134205.781916350@chello.nl>
+From: Mathieu Rondonneau <mathieu.rondonneau@gmail.com>
+Subject: Re: [PATCH] Prevent reserving RAM in the region already reserved by
+	BIOS
+Date: Fri, 21 May 2010 08:15:08 -0700
+Message-ID: <AANLkTinEXX6ZQoauZH3Du-z69Lx_xoUfzTb8vxhoc09i@mail.gmail.com>
+References: <AANLkTimwxXtNnmBuDJxg3i72VwWuHmemjrr1iGqj4j8e@mail.gmail.com>
+	 <4BF42296.1030905@oracle.com> <4BF4235D.3080904@zytor.com>
+	 <AANLkTikYcu6fM3yLoYIZOGZXgsRUfCgJeWS51Sjo-Fny@mail.gmail.com>
+	 <4BF46D9B.4090806@zytor.com>
+	 <AANLkTiltANJ9eaGBkfJJOyZ8skCxxOmkAs1UvCLB_YQ9@mail.gmail.com>
+	 <20100520131230.41a99489@lxorguk.ukuu.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:10684 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754001Ab0EUOxN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 21 May 2010 10:53:13 -0400
-In-Reply-To: <20100521135944.884367426@chello.nl>
+Received: from mail-pw0-f46.google.com ([209.85.160.46]:64784 "EHLO
+	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756251Ab0EUPPJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 May 2010 11:15:09 -0400
+In-Reply-To: <20100520131230.41a99489@lxorguk.ukuu.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: dhowells@redhat.com, Ingo Molnar <mingo@elte.hu>, Paul Mackerras <paulus@samba.org>, Arnaldo Carvalho de Melo <acme@infradead.org>, Frederic Weisbecker <fweisbec@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, David Miller <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Will Deacon <will.deacon@arm.com>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Yinghai <yinghai.lu@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>
 
+On Thu, May 20, 2010 at 5:12 AM, Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
+> On Wed, 19 May 2010 17:01:41 -0700
+> Mathieu Rondonneau <mathieu.rondonneau@gmail.com> wrote:
+>
+>> it' s not in ISA space.
+>> once loading the NVIDIA driver, the warnign oops shows up.
+>> 4K starting at 0x9f800 (i.e. to 0xa007ff) overlap with the ISA space
+>> (starting at 0xa0000).
+>
+> If this is the proprietary Nvidia driver you need to take the matter up
+> with Nvidia. I assume they are trying to remap chunks of the EBA for some
+> reason.
+>
+> And please can you not top post to this list, it makes it very hard to
+> follow when you are replying in a different order to everyone else.
+>
+> Alan
+>
 
+Thanks Alan, I will post on NVIDIA forum. Thanks for the feedback.
 
-Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+Yinghai, your patch had some missing parameter for the sanitize function.
+It does fixes the bios side (/proc/iomem) that now shows only aligned sections.
+But it does not prevent the Nvidia driver to try to allocate on non-4K
+align (i.e. if this is what' s happening).
 
-> + * This is the default implementation, which uses atomic64_t.  Which is
-> + * rather pointless.  The whole point behind local64_t is that some processors
-> + * can perform atomic adds and subtracts in a manner which is atomic wrt IRQs
-> + * running on this CPU.  local64_t allows exploitation of such capabilities.
-
-Interesting...  What FRV does in atomic64-ops.S should probably be rebranded
-local64_t, and atomic64_t ops be based on that in non-SMP mode.
-
-What I did on FRV was to emulate LL/ST instructions using some of the
-excessive numbers of conditional bits to do so - but it only works on UP
-systems.
-
-David
+Thanks for the help,
+-Mathieu
