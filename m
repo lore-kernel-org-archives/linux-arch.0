@@ -1,42 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:48539 "EHLO
-	www.etchedpixels.co.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752944Ab0ETMGR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 May 2010 08:06:17 -0400
-Date: Thu, 20 May 2010 13:12:30 +0100
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: [PATCH] Prevent reserving RAM in the region already reserved by
-  BIOS
-Message-ID: <20100520131230.41a99489@lxorguk.ukuu.org.uk>
-In-Reply-To: <AANLkTiltANJ9eaGBkfJJOyZ8skCxxOmkAs1UvCLB_YQ9@mail.gmail.com>
-References: <AANLkTimwxXtNnmBuDJxg3i72VwWuHmemjrr1iGqj4j8e@mail.gmail.com>
-	<4BF42296.1030905@oracle.com>
-	<4BF4235D.3080904@zytor.com>
-	<AANLkTikYcu6fM3yLoYIZOGZXgsRUfCgJeWS51Sjo-Fny@mail.gmail.com>
-	<4BF46D9B.4090806@zytor.com>
-	<AANLkTiltANJ9eaGBkfJJOyZ8skCxxOmkAs1UvCLB_YQ9@mail.gmail.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:47154 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1758612Ab0EUXDI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 21 May 2010 19:03:08 -0400
+Date: Fri, 21 May 2010 16:02:40 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 3/7]
+ numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix1
+Message-ID: <20100521160240.b61d3404.akpm@linux-foundation.org>
+In-Reply-To: <20100503150518.15039.3576.sendpatchset@localhost.localdomain>
+References: <20100503150455.15039.10178.sendpatchset@localhost.localdomain>
+	<20100503150518.15039.3576.sendpatchset@localhost.localdomain>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Rondonneau <mathieu.rondonneau@gmail.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Yinghai <yinghai.lu@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20100520121230.bGUrNdjafgHn99CHHYzhQUiN4V88A68pP8T2W86vESs@z>
+To: Lee Schermerhorn <lee.schermerhorn@hp.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-numa@vger.kernel.org, Tejun Heo <tj@kernel.org>, Valdis.Kletnieks@vt.edu, Randy Dunlap <randy.dunlap@oracle.com>, Christoph Lameter <cl@linux-foundation.org>, eric.whitney@hp.com, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Message-ID: <20100521230240.9EwxCUN4IoS5K2naTVMp3m-mp0GY_NdGzJdAZ3ZLY0w@z>
 
-On Wed, 19 May 2010 17:01:41 -0700
-Mathieu Rondonneau <mathieu.rondonneau@gmail.com> wrote:
+On Mon, 03 May 2010 11:05:18 -0400
+Lee Schermerhorn <lee.schermerhorn@hp.com> wrote:
 
-> it' s not in ISA space.
-> once loading the NVIDIA driver, the warnign oops shows up.
-> 4K starting at 0x9f800 (i.e. to 0xa007ff) overlap with the ISA space
-> (starting at 0xa0000).
+> Incremental patch 1 to
+> numa-x86_64-use-generic-percpu-var-numa_node_id-implementation.patch
+> in 28apr10 mmotm.
+> 
+> Use generic percpu numa_node variable only for x86_64.
+> 
+> x86_32 will require separate support.  Not sure it's worth it.
+> 
+> Signed-off-by: Lee Schermerhorn <lee.schermerhorn@hp.com>
+> 
+>  arch/x86/Kconfig |    2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> Index: linux-2.6.34-rc5-mmotm-100428-1653/arch/x86/Kconfig
+> ===================================================================
+> --- linux-2.6.34-rc5-mmotm-100428-1653.orig/arch/x86/Kconfig
+> +++ linux-2.6.34-rc5-mmotm-100428-1653/arch/x86/Kconfig
+> @@ -1720,7 +1720,7 @@ config HAVE_ARCH_EARLY_PFN_TO_NID
+>  	depends on NUMA
+>  
+>  config USE_PERCPU_NUMA_NODE_ID
+> -	def_bool y
+> +	def_bool X86_64
+>  	depends on NUMA
+>  
+>  menu "Power management and ACPI options"
 
-If this is the proprietary Nvidia driver you need to take the matter up
-with Nvidia. I assume they are trying to remap chunks of the EBA for some
-reason.
+i386 allmodconfig:
 
-And please can you not top post to this list, it makes it very hard to
-follow when you are replying in a different order to everyone else.
+In file included from include/linux/gfp.h:7,
+                 from include/linux/kmod.h:22,
+                 from include/linux/module.h:13,
+                 from include/linux/crypto.h:21,
+                 from arch/x86/kernel/asm-offsets_32.c:7,
+                 from arch/x86/kernel/asm-offsets.c:2:
+include/linux/topology.h: In function 'numa_node_id':
+include/linux/topology.h:248: error: implicit declaration of function 'cpu_to_node'
 
-Alan
+this patchset has been quite a PITA.  What happened?
