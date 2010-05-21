@@ -1,37 +1,25 @@
-From: "Microsoft/Yahoo" <claimsdepartment1313@ufo.tc>
-Subject: GOOD DAY
-Date: Fri, 21 May 2010 05:05:33 -0430
-Message-ID: <web-215667605@mailccs.icnet.com.ve>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 1/3] Reduce get_current() to the asm-generic implementation where possible
+Date: Fri, 21 May 2010 11:13:23 +0100
+Message-ID: <22710.1274436803@redhat.com>
+References: <20100518194753.GA2318@shareable.org> <20100518164537.6194.73366.stgit@warthog.procyon.org.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mta01.intercable.net.ve ([200.8.126.226]:43999 "EHLO
-	mta01.intercable.net.ve" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753757Ab0EUKGT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 May 2010 06:06:19 -0400
+Received: from mx1.redhat.com ([209.132.183.28]:37508 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752899Ab0EUKNf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 21 May 2010 06:13:35 -0400
+In-Reply-To: <20100518194753.GA2318@shareable.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Jamie Lokier <jamie@shareable.org>
+Cc: dhowells@redhat.com, oleg@redhat.com, linux-arch@vger.kernel.org
 
-GOOD DAY
-THIS IS TO INFORM YOU THAT YOU HAVE WON THE SUM OF
-$552,000.00 FROM THE MICROSOFT=AEPROMOTION HELD ON 6TH MAY=20
-2010. PLEASE
-=46ILL THE INFORMATION BELOW AND SEND TO
-(claimsdepartment1313@ufo.tc)=20
+Jamie Lokier <jamie@shareable.org> wrote:
 
+> Last time I looked, GCC didn't seem to do anything useful with the
+> const attribute on inline functions.  I.e. no elimination of duplicate calls.
 
-Name: Mr. Gary Smith
-Email: claimsdepartment1313@ufo.tc=20
+That's something that may change in the future.  It doesn't hurt to have it as
+far as I can see.
 
-1.Full Name:
-2.Full Address:
-3.State:
-4.Occupation:
-5.Age:
-6.Sex:
-7.Country:
-8.Tel.Number:
-
-CONGRATULATION ONCE AGAIN.
+David
