@@ -1,61 +1,35 @@
-From: Nick Piggin <npiggin@suse.de>
+From: David Miller <davem@davemloft.net>
 Subject: Re: [PATCH 2/2]: atomic_t: Remove volatile from atomic_t definition
-Date: Fri, 21 May 2010 15:27:46 +1000
-Message-ID: <20100521052746.GL2516@laptop>
-References: <alpine.LFD.2.00.1005170800100.4195@i5.linux-foundation.org>
- <20100519130327.GW2516@laptop>
- <20100519150132.GJ2237@linux.vnet.ibm.com>
- <20100519.125449.56392211.davem@davemloft.net>
- <20100519225046.GO2237@linux.vnet.ibm.com>
+Date: Thu, 20 May 2010 22:54:54 -0700 (PDT)
+Message-ID: <20100520.225454.37197037.davem@davemloft.net>
+References: <20100519.125449.56392211.davem@davemloft.net>
+	<20100519225046.GO2237@linux.vnet.ibm.com>
+	<20100521052746.GL2516@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:60672 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752292Ab0EUF1v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 21 May 2010 01:27:51 -0400
-Content-Disposition: inline
-In-Reply-To: <20100519225046.GO2237@linux.vnet.ibm.com>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:41366
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754722Ab0EUFyo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 21 May 2010 01:54:44 -0400
+In-Reply-To: <20100521052746.GL2516@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: David Miller <davem@davemloft.net>, torvalds@linux-foundation.org, anton@samba.org, akpm@linux-foundation.org, willy@linux.intel.com, benh@kernel.crashing.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: npiggin@suse.de
+Cc: paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, anton@samba.org, akpm@linux-foundation.org, willy@linux.intel.com, benh@kernel.crashing.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, May 19, 2010 at 03:50:46PM -0700, Paul E. McKenney wrote:
-> On Wed, May 19, 2010 at 12:54:49PM -0700, David Miller wrote:
-> > From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-> > Date: Wed, 19 May 2010 08:01:32 -0700
-> > 
-> > > On Wed, May 19, 2010 at 11:03:27PM +1000, Nick Piggin wrote:
-> > >> For atomic_read it shouldn't matter unless gcc is *really* bad at it.
-> > >> Ah, for atomic_read, the required semantic is surely ACCESS_ONCE, so
-> > >> that's where the volatile is needed? (maybe it would be clearer to
-> > >> explicitly use ACCESS_ONCE?)
-> > > 
-> > > Explicit use of ACCESS_ONCE() where needed makes a lot of sense to me,
-> > > and allows better code to be generated for initialization and cleanup
-> > > code where no other task has access to the atomic_t.
-> > 
-> > I agree and I want to see this too, but I think with the tree the size
-> > that it is we have to work backwards at this point.
-> > 
-> > Existing behavior by default, and optimized cases get tagged by using
-> > a new interface (atomic_read_light(), test_bit{,s}_light(), etc.)
-> 
-> Fair enough!
+From: Nick Piggin <npiggin@suse.de>
+Date: Fri, 21 May 2010 15:27:46 +1000
 
-Hmm, I'm missing something. David, back up a second, as far as I can see,
-with Anton's patches, atomic_read() *is* effectively just ACCESS_ONCE()
-now. Linus pointed out that header tangle is the reason not to just use
-the macro.
+> Hmm, I'm missing something. David, back up a second, as far as I can see,
+> with Anton's patches, atomic_read() *is* effectively just ACCESS_ONCE()
+> now. Linus pointed out that header tangle is the reason not to just use
+> the macro.
 
-Am I wrong, or is it that ACCESS_ONCE has a more relaxed semantic *in
-theory* that allows a future more aggressive implementation if the
-compiler supports it?
+My bad, I was under the impression that the proposal was to remove
+volatile usage and also not even do ACCESS_ONCE() in atomic_read().
 
-do {
-    done = ACCESS_ONCE(blah);
-} while (!done);
-
-Is this (in theory) allowed to be turned into a branch into an infinite
-loop? Wheras the volatile deref would require it be reloaded each time?
+And then explicitly annotate call sits that actually need the
+ACCESS_ONCE() semantic.
