@@ -1,56 +1,122 @@
-From: Valdis.Kletnieks@vt.edu
-Subject: Re: [PATCH 3/7] numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix1
-Date: Mon, 24 May 2010 16:19:54 -0400
-Message-ID: <15817.1274732394@localhost>
-References: <20100503150455.15039.10178.sendpatchset@localhost.localdomain> <20100503150518.15039.3576.sendpatchset@localhost.localdomain> <20100521160240.b61d3404.akpm@linux-foundation.org> <1274710172.13756.122.camel@useless.americas.hpqcorp.net> <144644.1274710321@localhost>
-            <1274712112.13756.177.camel@useless.americas.hpqcorp.net>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH] arch/tile: new multi-core architecture for Linux
+Date: Mon, 24 May 2010 22:22:05 +0200
+Message-ID: <20100524202204.GA9917@merkur.ravnborg.org>
+References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="==_Exmh_1274732394_4243P";
-	 micalg=pgp-sha1; protocol="application/pgp-signature"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: Your message of "Mon, 24 May 2010 10:41:52 EDT."
-             <1274712112.13756.177.camel@useless.americas.hpqcorp.net>
-Sender: owner-linux-mm@kvack.org
-To: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-numa@vger.kernel.org, Tejun Heo <tj@kernel.org>, Randy Dunlap <randy.dunlap@oracle.com>, Christoph Lameter <cl@linux-foundation.org>, eric.whitney@hp.com, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-List-Id: linux-arch.vger.kernel.org
-
---==_Exmh_1274732394_4243P
 Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pfepa.post.tele.dk ([195.41.46.235]:54884 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754693Ab0EXUWG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 May 2010 16:22:06 -0400
+Content-Disposition: inline
+In-Reply-To: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
 
-On Mon, 24 May 2010 10:41:52 EDT, Lee Schermerhorn said:
-> On Mon, 2010-05-24 at 10:12 -0400, Valdis.Kletnieks@vt.edu wrote:
-> > On Mon, 24 May 2010 10:09:32 EDT, Lee Schermerhorn said:
-> > > 
-> > > You asked about the fix3 patch [offlist] on Wednesday, 19May.  Do you
-> > > have that one in your tree?
-> >  
-> > numa-introduce-numa_mem_id-effective-local-memory-node-id-fix3.patch
-> > was in -mmotm0521.
-> 
-> Right.  But, Andrew needs:
-> numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix3 --
-> i.e., a fix to the 2nd patch of the percpu numa_*_id patch series.
+Hi Chris.
 
--ENOCAFFIENE ;)
+Kernle code looked good from a quick browsing.
 
---==_Exmh_1274732394_4243P
-Content-Type: application/pgp-signature
+Please explain the need for all the different directories within include/
+{arch, hv, netio}
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-Comment: Exmh version 2.5 07/13/2001
+I tried not to repeat comments from Arnd in the below.
 
-iD8DBQFL+t9qcC3lWbTT17ARAjj6AJ9IAJBDOiKtQOD/k5u9lQrS2GYERgCeNyd4
-9iR8CfKL67AFYE/I17h7w40=
-=uhbG
------END PGP SIGNATURE-----
+arch/tile/Kconfig:
+The TILE specific symbols looks like they use several different
+naming schemes. In some cases the company name (TILERA) is used
+and in some cases TILE is used. And both as prefix and suffix.
 
---==_Exmh_1274732394_4243P--
+Please stick to using TILE_ prefix. And maybe TILEGX_ in the
+cases this is relevant.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Keep all the simple settings in the top of the file.
+Stuff like:
+config ZONE_DMA
+	def_bool y
+
+config SEMAPHORE_SLEEPERS
+	def_bool y
+
+Belongs in the top of Kconfig - before your first menu.
+
+
+There is also several TILE specific options missing the TILE_ prefix.
+Like:
+config XGBE_MAIN
+	tristate "Tilera GBE/XGBE character device support"
+
+Drop this:
+config XGBE_MAIN
+	tristate "Tilera GBE/XGBE character device support"
+
+It is better to test for the gcc version and disable the option
+only in the cases where it is known to fail.
+
+
+arch/tile/Makefile:
+
+Do not mess with CC like this:
+CC = $(CROSS_COMPILE)gcc
+
+I guess you had to do this to support:
+LIBGCC_PATH     := `$(CC) -print-libgcc-file-name`
+
+If you follow other archs you could do like this:
+LIBGCC_PATH     := `$(CC) -print-libgcc-file-name`
+
+This is not needed:
+CLEAN_FILES	+= arch/tile/vmlinux.lds
+
+vmlinux.lds lives in kernel/
+
+help is missing.
+
+arch/tile/kernel/Makefile
+I has expected that compiling vmlinux.lds required knowledge on $(BITS)
+like this:
+CPPFLAGS_vmlinux.lds := -m$(BITS)
+
+
+arch/tile/kernel/vmlinux.lds.S
+A lot of effort has been put into unifying the different
+variants of vmlinux.lds.
+Please see the skeleton outlined in include/asm-generic/vmlinux.lds.h
+
+You include sections.lds - but it is empty.
+Drop that file.
+
+You include hvglue.ld.
+We use *.lds for linker script file - please rename.
+The file looks generated?? How and when?
+
+Futhermore the definitions are not used by vmlinux.lds.S - so drop the include.
+
+arch/tile/initramfs:
+Does not look like it belongs in the kernel?
+
+
+arch/tile/kernel/head_32.S
+The file uses:
+	.section .text.head, "ax"
+etc.
+
+Please use the section definitions from include/linux/init.h
+
+arch/tile/include/asm/spinlock.h
+Please make this a one-liner when you uses the asm-generic version only.
+Same goes for byteorder (which includes linux/byteorder/little_endian.h)
+
+In your mail you did not say anything about the checkpatch status.
+It is better that you make your code reasonable checkpatch clean _before_
+merging. Then you will not be hit by a lot of janitorial patches doing so.
+
+Likewise please state sparse status. We do not expect it to be sparse clean.
+But getting rid of the obvious issues is good too.
+
+
+	Sam
