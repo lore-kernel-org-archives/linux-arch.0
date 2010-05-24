@@ -1,67 +1,149 @@
 From: Chris Metcalf <cmetcalf@tilera.com>
 Subject: Re: [PATCH] arch/tile: new multi-core architecture for Linux
-Date: Mon, 24 May 2010 17:29:33 -0400
-Message-ID: <4BFAEFBD.20500@tilera.com>
-References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005240008.16497.arnd@arndb.de> <4BFA9B4E.9010200@tilera.com> <201005242053.25594.arnd@arndb.de>
+Date: Mon, 24 May 2010 17:30:58 -0400
+Message-ID: <4BFAF012.4060300@tilera.com>
+References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <20100524202204.GA9917@merkur.ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201005242053.25594.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from king.tilera.com ([72.1.168.226]:47865 "EHLO king.tilera.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753047Ab0EXVbA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 24 May 2010 17:31:00 -0400
+In-Reply-To: <20100524202204.GA9917@merkur.ravnborg.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-On 5/24/2010 2:53 PM, Arnd Bergmann wrote:
-> I would also like to wait for another opinion before it goes in.
-> Note that the regular procedure is to have the code reviewed
-> before the start of the merge window, not in the middle of it!
+On 5/24/2010 4:22 PM, Sam Ravnborg wrote:
+> Kernle code looked good from a quick browsing.
 >   
 
-Ack!  My mistake, sorry.  I was under the impression that I should wait
-for the churn on the list to die down a bit after the stable release (in
-this case 2.6.34) before trying to send big batches of new code into LKML.
+Glad to hear it, and thanks for taking the time to look it over.
 
->>> Since the file is exported to user space, the map_cache stuff probably
->>> should not be here, but get moved to a different header that
->>> is private to the kernel.
->>>   
->>>       
->> It's part of the optional extended API for mmap() used by Tilera Linux,
->> so it is actually needed by userspace.
->>     
-> Ah, that's unfortunate. How bad would it be for you to come up
-> with a different ABI for the homecache version? I don't have all
-> the facts but my feeling is that the mmap API should not be
-> touched by this and that it better fits into an extension of the
-> numa syscalls, specifically the set_mempolicy/mbind/move_pages
-> family.
+> Please explain the need for all the different directories within include/
+> {arch, hv, netio}
 >   
 
-Interesting idea.  I'll consider how straightforward this would be to do.
+Those three directories are shared with other components of our system. 
+The "arch" headers are "core architecture" headers which can be used in
+any build environment (Linux, hypervisor, user-code, booter, other
+"supervisors" like VxWorks, etc.); they are partly small inline hacks to
+use the hardware more easily, and partly just lists of name-to-number
+mappings for special registers, etc.  The "hv" headers are imported from
+the hypervisor code; these headers are "owned" by our hypervisor, and
+the ones shipped with Linux are the ones that have to do with how to run
+a supervisor under our hypervisor.  The "netio" headers are another type
+of hypervisor header that have to do with interacting with the network
+I/O silicon on the chip (the 10 Gbe and 10/100/100 Mb Ethernet).
 
->> As for <asm-generic/unistd.h>, I'll look more carefully at it, though of
->> course using it is also dependent on whether it is reasonable for us to
->> completely break compatibility with current user-space programs.
->>     
+> There is also several TILE specific options missing the TILE_ prefix.
+> Like:
+> config XGBE_MAIN
+> 	tristate "Tilera GBE/XGBE character device support"
+>
+> Drop this:
+> config XGBE_MAIN
+> 	tristate "Tilera GBE/XGBE character device support"
+>
+> It is better to test for the gcc version and disable the option
+> only in the cases where it is known to fail.
+>   
 
-I think the discussion internally supports breaking backwards
-compatibility; this will after all be aligned with our 3.0 release
-eventually, which is when we are also switching compilers to gcc.  So
-I'll see what is involved in the kernel and libc in switching to
-<asm-generic/unistd.h> and get back to you with more detailed comments
-if necessary.
+Is the "Drop this" comment a cut and paste bug?  I'm guessing you were
+referring to CONFIG_WERROR, which enables -Werror support.  The problem
+is that whether or not you can use -Werror really depends on not just
+the kernel version and the gcc version, but very likely also what
+drivers you have enabled.  We always use it internally.  I could also
+just pull this out completely (and just force it into "make" externally
+within our external build process), or move it to a "generic" configure
+option.  In any case we can't just automate it, unfortunately.
 
-> Note that the asm-generic version defines 244 numbers, while you have
-> a total of 313 numbers. You obviously need the extra arch specific
-> syscalls (e.g cmpxchg), so we need to reserve some space for those
-> in the generic header.
+> Do not mess with CC like this:
+> CC = $(CROSS_COMPILE)gcc
+>
+> I guess you had to do this to support:
+> LIBGCC_PATH     := `$(CC) -print-libgcc-file-name`
+>
+> If you follow other archs you could do like this:
+> LIBGCC_PATH     := `$(CC) -print-libgcc-file-name`
+>   
 
-Yes, although cmpxchg is actually a negative syscall value, which we use
-to save every last cycle on that path -- it doesn't do any of the usual
-syscall processing at all, just basically takes advantage of the kernel
-lock infrastructure.
+I'm guessing you meant like what h8300 does, "$(shell
+$(CROSS-COMPILE)$(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)".  That
+seems reasonable.
+
+> arch/tile/kernel/Makefile
+> I has expected that compiling vmlinux.lds required knowledge on $(BITS)
+> like this:
+> CPPFLAGS_vmlinux.lds := -m$(BITS)
+>   
+
+Our 32-bit chips only do 32-bit.  In the 64-bit mode we always build the
+kernel implicitly -m64, which is the compiler default.
+
+> arch/tile/kernel/vmlinux.lds.S
+> A lot of effort has been put into unifying the different
+> variants of vmlinux.lds.
+> Please see the skeleton outlined in include/asm-generic/vmlinux.lds.h
+>   
+
+Yes, I've tried to track this somewhat over kernel releases, but I'll go
+back and re-examine it with fresh eyes.
+
+> You include hvglue.ld.
+> We use *.lds for linker script file - please rename.
+> The file looks generated?? How and when?
+>   
+
+It's sort of a semi-generated file.  We have a test in our regressions
+that just tests that this file matches the API for our hypervisor, which
+is just calls to physical address =32KB plus 64 bytes per syscall
+number.  These defined addresses are then used for calls to e.g.
+hv_flush_asid() or whatever.  The hypervisor API changes occasionally,
+at which point we update this file.  You don't see it used in
+vmlinux.lds since it's just used as plain C calls through the arch/tile/
+code.
+
+> arch/tile/initramfs:
+> Does not look like it belongs in the kernel?
+>   
+
+Fair enough.  We ship it with the kernel to make it easy for our users
+to bootstrap up into a plausible initramfs filesystem, but it's strictly
+speaking not part of the kernel, so I'll remove it.
+
+> arch/tile/include/asm/spinlock.h
+> Please make this a one-liner when you uses the asm-generic version only.
+> Same goes for byteorder (which includes linux/byteorder/little_endian.h)
+>   
+
+I'm not sure what you mean when you say to use the asm-generic version
+of spinlock.h, since it's not SMP-ready.  Also, I don't see an
+asm-generic/byteorder.h, so I'm puzzled there too.
+
+> In your mail you did not say anything about the checkpatch status.
+> It is better that you make your code reasonable checkpatch clean _before_
+> merging. Then you will not be hit by a lot of janitorial patches doing so.
+>   
+
+I ran checkpatch over everything I submitted.  There are many
+complaints, to be sure, but I did a first pass cleaning up everything
+that was plausible, so for example all the style issues were fixed, but
+things like some uses of volatile, some uses of init_MUTEX, etc., were
+not modified.  However, I think it's in decent shape from a checkpatch
+point of view.
+
+> Likewise please state sparse status. We do not expect it to be sparse clean.
+> But getting rid of the obvious issues is good too.
+>   
+
+I have not run sparse over it.  I will do so.
+
+Thanks for your review!  Getting this much feedback from LKML is great
+-- I really appreciate it.
 
 -- 
 Chris Metcalf, Tilera Corp.
