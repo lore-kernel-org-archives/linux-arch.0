@@ -1,56 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from lennier.cc.vt.edu ([198.82.162.213]:42788 "EHLO
-	lennier.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755662Ab0EXUUR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 May 2010 16:20:17 -0400
-Subject: Re: [PATCH 3/7] numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix1
-In-Reply-To: Your message of "Mon, 24 May 2010 10:41:52 EDT."
-             <1274712112.13756.177.camel@useless.americas.hpqcorp.net>
-From: Valdis.Kletnieks@vt.edu
-References: <20100503150455.15039.10178.sendpatchset@localhost.localdomain> <20100503150518.15039.3576.sendpatchset@localhost.localdomain> <20100521160240.b61d3404.akpm@linux-foundation.org> <1274710172.13756.122.camel@useless.americas.hpqcorp.net> <144644.1274710321@localhost>
-            <1274712112.13756.177.camel@useless.americas.hpqcorp.net>
-Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="==_Exmh_1274732394_4243P";
-	 micalg=pgp-sha1; protocol="application/pgp-signature"
+Received: from king.tilera.com ([72.1.168.226]:47559 "EHLO king.tilera.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756157Ab0EXV3g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 24 May 2010 17:29:36 -0400
+Message-ID: <4BFAEFBD.20500@tilera.com>
+Date: Mon, 24 May 2010 17:29:33 -0400
+From: Chris Metcalf <cmetcalf@tilera.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH] arch/tile: new multi-core architecture for Linux
+References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005240008.16497.arnd@arndb.de> <4BFA9B4E.9010200@tilera.com> <201005242053.25594.arnd@arndb.de>
+In-Reply-To: <201005242053.25594.arnd@arndb.de>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Date: Mon, 24 May 2010 16:19:54 -0400
-Message-ID: <15817.1274732394@localhost>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-numa@vger.kernel.org, Tejun Heo <tj@kernel.org>, Randy Dunlap <randy.dunlap@oracle.com>, Christoph Lameter <cl@linux-foundation.org>, eric.whitney@hp.com, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-Message-ID: <20100524201954.ghcf_8oKIjwEyFV-3SQo5MuPPPlJcb_FNL9UMSIsWWE@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
+Message-ID: <20100524212933.arwjiEowef6rPthFMC_X2h1dfAJn_o8gjCJwE7AA138@z>
 
---==_Exmh_1274732394_4243P
-Content-Type: text/plain; charset=us-ascii
+On 5/24/2010 2:53 PM, Arnd Bergmann wrote:
+> I would also like to wait for another opinion before it goes in.
+> Note that the regular procedure is to have the code reviewed
+> before the start of the merge window, not in the middle of it!
+>   
 
-On Mon, 24 May 2010 10:41:52 EDT, Lee Schermerhorn said:
-> On Mon, 2010-05-24 at 10:12 -0400, Valdis.Kletnieks@vt.edu wrote:
-> > On Mon, 24 May 2010 10:09:32 EDT, Lee Schermerhorn said:
-> > > 
-> > > You asked about the fix3 patch [offlist] on Wednesday, 19May.  Do you
-> > > have that one in your tree?
-> >  
-> > numa-introduce-numa_mem_id-effective-local-memory-node-id-fix3.patch
-> > was in -mmotm0521.
-> 
-> Right.  But, Andrew needs:
-> numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix3 --
-> i.e., a fix to the 2nd patch of the percpu numa_*_id patch series.
+Ack!  My mistake, sorry.  I was under the impression that I should wait
+for the churn on the list to die down a bit after the stable release (in
+this case 2.6.34) before trying to send big batches of new code into LKML.
 
--ENOCAFFIENE ;)
+>>> Since the file is exported to user space, the map_cache stuff probably
+>>> should not be here, but get moved to a different header that
+>>> is private to the kernel.
+>>>   
+>>>       
+>> It's part of the optional extended API for mmap() used by Tilera Linux,
+>> so it is actually needed by userspace.
+>>     
+> Ah, that's unfortunate. How bad would it be for you to come up
+> with a different ABI for the homecache version? I don't have all
+> the facts but my feeling is that the mmap API should not be
+> touched by this and that it better fits into an extension of the
+> numa syscalls, specifically the set_mempolicy/mbind/move_pages
+> family.
+>   
 
---==_Exmh_1274732394_4243P
-Content-Type: application/pgp-signature
+Interesting idea.  I'll consider how straightforward this would be to do.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-Comment: Exmh version 2.5 07/13/2001
+>> As for <asm-generic/unistd.h>, I'll look more carefully at it, though of
+>> course using it is also dependent on whether it is reasonable for us to
+>> completely break compatibility with current user-space programs.
+>>     
 
-iD8DBQFL+t9qcC3lWbTT17ARAjj6AJ9IAJBDOiKtQOD/k5u9lQrS2GYERgCeNyd4
-9iR8CfKL67AFYE/I17h7w40=
-=uhbG
------END PGP SIGNATURE-----
+I think the discussion internally supports breaking backwards
+compatibility; this will after all be aligned with our 3.0 release
+eventually, which is when we are also switching compilers to gcc.  So
+I'll see what is involved in the kernel and libc in switching to
+<asm-generic/unistd.h> and get back to you with more detailed comments
+if necessary.
 
---==_Exmh_1274732394_4243P--
+> Note that the asm-generic version defines 244 numbers, while you have
+> a total of 313 numbers. You obviously need the extra arch specific
+> syscalls (e.g cmpxchg), so we need to reserve some space for those
+> in the generic header.
+
+Yes, although cmpxchg is actually a negative syscall value, which we use
+to save every last cycle on that path -- it doesn't do any of the usual
+syscall processing at all, just basically takes advantage of the kernel
+lock infrastructure.
+
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
+
 
