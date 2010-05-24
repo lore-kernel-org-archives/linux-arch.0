@@ -1,122 +1,68 @@
-From: Sam Ravnborg <sam@ravnborg.org>
+From: Chris Metcalf <cmetcalf@tilera.com>
 Subject: Re: [PATCH] arch/tile: new multi-core architecture for Linux
-Date: Mon, 24 May 2010 22:22:05 +0200
-Message-ID: <20100524202204.GA9917@merkur.ravnborg.org>
-References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com>
+Date: Mon, 24 May 2010 17:29:33 -0400
+Message-ID: <4BFAEFBD.20500@tilera.com>
+References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005240008.16497.arnd@arndb.de> <4BFA9B4E.9010200@tilera.com> <201005242053.25594.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepa.post.tele.dk ([195.41.46.235]:54884 "EHLO
-	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754693Ab0EXUWG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 May 2010 16:22:06 -0400
-Content-Disposition: inline
-In-Reply-To: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <201005242053.25594.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi Chris.
+On 5/24/2010 2:53 PM, Arnd Bergmann wrote:
+> I would also like to wait for another opinion before it goes in.
+> Note that the regular procedure is to have the code reviewed
+> before the start of the merge window, not in the middle of it!
+>   
 
-Kernle code looked good from a quick browsing.
+Ack!  My mistake, sorry.  I was under the impression that I should wait
+for the churn on the list to die down a bit after the stable release (in
+this case 2.6.34) before trying to send big batches of new code into LKML.
 
-Please explain the need for all the different directories within include/
-{arch, hv, netio}
+>>> Since the file is exported to user space, the map_cache stuff probably
+>>> should not be here, but get moved to a different header that
+>>> is private to the kernel.
+>>>   
+>>>       
+>> It's part of the optional extended API for mmap() used by Tilera Linux,
+>> so it is actually needed by userspace.
+>>     
+> Ah, that's unfortunate. How bad would it be for you to come up
+> with a different ABI for the homecache version? I don't have all
+> the facts but my feeling is that the mmap API should not be
+> touched by this and that it better fits into an extension of the
+> numa syscalls, specifically the set_mempolicy/mbind/move_pages
+> family.
+>   
 
-I tried not to repeat comments from Arnd in the below.
+Interesting idea.  I'll consider how straightforward this would be to do.
 
-arch/tile/Kconfig:
-The TILE specific symbols looks like they use several different
-naming schemes. In some cases the company name (TILERA) is used
-and in some cases TILE is used. And both as prefix and suffix.
+>> As for <asm-generic/unistd.h>, I'll look more carefully at it, though of
+>> course using it is also dependent on whether it is reasonable for us to
+>> completely break compatibility with current user-space programs.
+>>     
 
-Please stick to using TILE_ prefix. And maybe TILEGX_ in the
-cases this is relevant.
+I think the discussion internally supports breaking backwards
+compatibility; this will after all be aligned with our 3.0 release
+eventually, which is when we are also switching compilers to gcc.  So
+I'll see what is involved in the kernel and libc in switching to
+<asm-generic/unistd.h> and get back to you with more detailed comments
+if necessary.
 
-Keep all the simple settings in the top of the file.
-Stuff like:
-config ZONE_DMA
-	def_bool y
+> Note that the asm-generic version defines 244 numbers, while you have
+> a total of 313 numbers. You obviously need the extra arch specific
+> syscalls (e.g cmpxchg), so we need to reserve some space for those
+> in the generic header.
 
-config SEMAPHORE_SLEEPERS
-	def_bool y
+Yes, although cmpxchg is actually a negative syscall value, which we use
+to save every last cycle on that path -- it doesn't do any of the usual
+syscall processing at all, just basically takes advantage of the kernel
+lock infrastructure.
 
-Belongs in the top of Kconfig - before your first menu.
-
-
-There is also several TILE specific options missing the TILE_ prefix.
-Like:
-config XGBE_MAIN
-	tristate "Tilera GBE/XGBE character device support"
-
-Drop this:
-config XGBE_MAIN
-	tristate "Tilera GBE/XGBE character device support"
-
-It is better to test for the gcc version and disable the option
-only in the cases where it is known to fail.
-
-
-arch/tile/Makefile:
-
-Do not mess with CC like this:
-CC = $(CROSS_COMPILE)gcc
-
-I guess you had to do this to support:
-LIBGCC_PATH     := `$(CC) -print-libgcc-file-name`
-
-If you follow other archs you could do like this:
-LIBGCC_PATH     := `$(CC) -print-libgcc-file-name`
-
-This is not needed:
-CLEAN_FILES	+= arch/tile/vmlinux.lds
-
-vmlinux.lds lives in kernel/
-
-help is missing.
-
-arch/tile/kernel/Makefile
-I has expected that compiling vmlinux.lds required knowledge on $(BITS)
-like this:
-CPPFLAGS_vmlinux.lds := -m$(BITS)
-
-
-arch/tile/kernel/vmlinux.lds.S
-A lot of effort has been put into unifying the different
-variants of vmlinux.lds.
-Please see the skeleton outlined in include/asm-generic/vmlinux.lds.h
-
-You include sections.lds - but it is empty.
-Drop that file.
-
-You include hvglue.ld.
-We use *.lds for linker script file - please rename.
-The file looks generated?? How and when?
-
-Futhermore the definitions are not used by vmlinux.lds.S - so drop the include.
-
-arch/tile/initramfs:
-Does not look like it belongs in the kernel?
-
-
-arch/tile/kernel/head_32.S
-The file uses:
-	.section .text.head, "ax"
-etc.
-
-Please use the section definitions from include/linux/init.h
-
-arch/tile/include/asm/spinlock.h
-Please make this a one-liner when you uses the asm-generic version only.
-Same goes for byteorder (which includes linux/byteorder/little_endian.h)
-
-In your mail you did not say anything about the checkpatch status.
-It is better that you make your code reasonable checkpatch clean _before_
-merging. Then you will not be hit by a lot of janitorial patches doing so.
-
-Likewise please state sparse status. We do not expect it to be sparse clean.
-But getting rid of the obvious issues is good too.
-
-
-	Sam
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
