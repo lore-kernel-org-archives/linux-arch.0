@@ -1,62 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pw0-f46.google.com ([209.85.160.46]:51072 "EHLO
-	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751106Ab0EVE6w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 May 2010 00:58:52 -0400
-MIME-Version: 1.0
-In-Reply-To: <AANLkTinEXX6ZQoauZH3Du-z69Lx_xoUfzTb8vxhoc09i@mail.gmail.com>
-References: <AANLkTimwxXtNnmBuDJxg3i72VwWuHmemjrr1iGqj4j8e@mail.gmail.com>
-	 <4BF42296.1030905@oracle.com> <4BF4235D.3080904@zytor.com>
-	 <AANLkTikYcu6fM3yLoYIZOGZXgsRUfCgJeWS51Sjo-Fny@mail.gmail.com>
-	 <4BF46D9B.4090806@zytor.com>
-	 <AANLkTiltANJ9eaGBkfJJOyZ8skCxxOmkAs1UvCLB_YQ9@mail.gmail.com>
-	 <20100520131230.41a99489@lxorguk.ukuu.org.uk>
-	 <AANLkTinEXX6ZQoauZH3Du-z69Lx_xoUfzTb8vxhoc09i@mail.gmail.com>
-Date: Fri, 21 May 2010 21:58:51 -0700
-Message-ID: <AANLkTin8oSAGka-bkSuWFvW0b_VyEDdGmwGmJXiw3Oyp@mail.gmail.com>
-Subject: Re: [PATCH] Prevent reserving RAM in the region already reserved by
-	BIOS
-From: Mathieu Rondonneau <mathieu.rondonneau@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from g6t0186.atlanta.hp.com ([15.193.32.63]:28025 "EHLO
+	g6t0186.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751625Ab0EXOJk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 May 2010 10:09:40 -0400
+Subject: Re: [PATCH 3/7]
+ numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix1
+From: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
+In-Reply-To: <20100521160240.b61d3404.akpm@linux-foundation.org>
+References: <20100503150455.15039.10178.sendpatchset@localhost.localdomain>
+	 <20100503150518.15039.3576.sendpatchset@localhost.localdomain>
+	 <20100521160240.b61d3404.akpm@linux-foundation.org>
+Content-Type: text/plain
+Date: Mon, 24 May 2010 10:09:32 -0400
+Message-ID: <1274710172.13756.122.camel@useless.americas.hpqcorp.net>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Yinghai <yinghai.lu@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20100522045851.vsCCZA9UrceKAbuQiyoGeiBhhW1wVoryk12bPa6F3Ao@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-numa@vger.kernel.org, Tejun Heo <tj@kernel.org>, Valdis.Kletnieks@vt.edu, Randy Dunlap <randy.dunlap@oracle.com>, Christoph Lameter <cl@linux-foundation.org>, eric.whitney@hp.com, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Message-ID: <20100524140932.73nWHrd8HWoNj3P-9RMkYbelIttVAi3D8E5K5qT3j0Y@z>
 
-On Fri, May 21, 2010 at 8:15 AM, Mathieu Rondonneau
-<mathieu.rondonneau@gmail.com> wrote:
-> On Thu, May 20, 2010 at 5:12 AM, Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
->> On Wed, 19 May 2010 17:01:41 -0700
->> Mathieu Rondonneau <mathieu.rondonneau@gmail.com> wrote:
->>
->>> it' s not in ISA space.
->>> once loading the NVIDIA driver, the warnign oops shows up.
->>> 4K starting at 0x9f800 (i.e. to 0xa007ff) overlap with the ISA space
->>> (starting at 0xa0000).
->>
->> If this is the proprietary Nvidia driver you need to take the matter up
->> with Nvidia. I assume they are trying to remap chunks of the EBA for some
->> reason.
->>
->> And please can you not top post to this list, it makes it very hard to
->> follow when you are replying in a different order to everyone else.
->>
->> Alan
->>
->
-> Thanks Alan, I will post on NVIDIA forum. Thanks for the feedback.
->
-> Yinghai, your patch had some missing parameter for the sanitize function.
-> It does fixes the bios side (/proc/iomem) that now shows only aligned sections.
-> But it does not prevent the Nvidia driver to try to allocate on non-4K
-> align (i.e. if this is what' s happening).
->
-> Thanks for the help,
-> -Mathieu
->
+On Fri, 2010-05-21 at 16:02 -0700, Andrew Morton wrote:
+> On Mon, 03 May 2010 11:05:18 -0400
+> Lee Schermerhorn <lee.schermerhorn@hp.com> wrote:
+> 
+> > Incremental patch 1 to
+> > numa-x86_64-use-generic-percpu-var-numa_node_id-implementation.patch
+> > in 28apr10 mmotm.
+> > 
+> > Use generic percpu numa_node variable only for x86_64.
+> > 
+> > x86_32 will require separate support.  Not sure it's worth it.
+> > 
+> > Signed-off-by: Lee Schermerhorn <lee.schermerhorn@hp.com>
+> > 
+> >  arch/x86/Kconfig |    2 +-
+> >  1 file changed, 1 insertion(+), 1 deletion(-)
+> > 
+> > Index: linux-2.6.34-rc5-mmotm-100428-1653/arch/x86/Kconfig
+> > ===================================================================
+> > --- linux-2.6.34-rc5-mmotm-100428-1653.orig/arch/x86/Kconfig
+> > +++ linux-2.6.34-rc5-mmotm-100428-1653/arch/x86/Kconfig
+> > @@ -1720,7 +1720,7 @@ config HAVE_ARCH_EARLY_PFN_TO_NID
+> >  	depends on NUMA
+> >  
+> >  config USE_PERCPU_NUMA_NODE_ID
+> > -	def_bool y
+> > +	def_bool X86_64
+> >  	depends on NUMA
+> >  
+> >  menu "Power management and ACPI options"
+> 
+> i386 allmodconfig:
+> 
+> In file included from include/linux/gfp.h:7,
+>                  from include/linux/kmod.h:22,
+>                  from include/linux/module.h:13,
+>                  from include/linux/crypto.h:21,
+>                  from arch/x86/kernel/asm-offsets_32.c:7,
+>                  from arch/x86/kernel/asm-offsets.c:2:
+> include/linux/topology.h: In function 'numa_node_id':
+> include/linux/topology.h:248: error: implicit declaration of function 'cpu_to_node'
+> 
+> this patchset has been quite a PITA.  What happened?
 
-Found on Nvidia forum that they are aware of the problem. They said
-that this will be fixed in the next driver version.
+"fix3" to numa-x86_64-use-generic-percpu-var-numa_node_id-implementation
+that I send out on May 17 should have fixed this.  That was in response
+to Randy's NumaQ config that pulled the same error.  He verified that it
+fixed the error.
 
--Mathieu
+You asked about the fix3 patch [offlist] on Wednesday, 19May.  Do you
+have that one in your tree?
+
+Lee
+
