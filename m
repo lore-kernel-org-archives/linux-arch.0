@@ -1,53 +1,53 @@
-From: Lee Schermerhorn <Lee.Schermerhorn@hp.com>
-Subject: Re: [PATCH 3/7]
- numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix1
-Date: Mon, 24 May 2010 15:05:55 -0400
-Message-ID: <1274727955.13756.476.camel@useless.americas.hpqcorp.net>
-References: <20100503150455.15039.10178.sendpatchset@localhost.localdomain>
-	 <20100503150518.15039.3576.sendpatchset@localhost.localdomain>
-	 <20100521160240.b61d3404.akpm@linux-foundation.org>
-	 <1274710172.13756.122.camel@useless.americas.hpqcorp.net>
-	 <144644.1274710321@localhost>
-	 <1274712112.13756.177.camel@useless.americas.hpqcorp.net>
-	 <20100524113401.e95aafd5.akpm@linux-foundation.org>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
+Date: Mon, 24 May 2010 12:32:00 -0700
+Message-ID: <20100524123200.23e23fd2.akpm@linux-foundation.org>
+References: <20100409150335.80E3.A69D9226@jp.fujitsu.com>
+	<20100409154730.e9945cbc.kamezawa.hiroyu@jp.fujitsu.com>
+	<20100409160252.80E6.A69D9226@jp.fujitsu.com>
+	<1270802693.20295.3272.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0017.houston.hp.com ([15.201.24.20]:40795 "EHLO
-	g4t0017.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755208Ab0EXTGD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 May 2010 15:06:03 -0400
-In-Reply-To: <20100524113401.e95aafd5.akpm@linux-foundation.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:50411 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752646Ab0EXTeD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 24 May 2010 15:34:03 -0400
+In-Reply-To: <1270802693.20295.3272.camel@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Valdis.Kletnieks@vt.edu, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-numa@vger.kernel.org, Tejun Heo <tj@kernel.org>, Randy Dunlap <randy.dunlap@oracle.com>, Christoph Lameter <cl@linux-foundation.org>, eric.whitney@hp.com, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Nick Piggin <npiggin@suse.de>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
 
-On Mon, 2010-05-24 at 11:34 -0700, Andrew Morton wrote:
-> On Mon, 24 May 2010 10:41:52 -0400
-> Lee Schermerhorn <Lee.Schermerhorn@hp.com> wrote:
-> 
-> > On Mon, 2010-05-24 at 10:12 -0400, Valdis.Kletnieks@vt.edu wrote:
-> > > On Mon, 24 May 2010 10:09:32 EDT, Lee Schermerhorn said:
-> > > > 
-> > > > You asked about the fix3 patch [offlist] on Wednesday, 19May.  Do you
-> > > > have that one in your tree?
-> > >  
-> > > numa-introduce-numa_mem_id-effective-local-memory-node-id-fix3.patch
-> > > was in -mmotm0521.
+On Fri, 09 Apr 2010 10:44:53 +0200
+Peter Zijlstra <peterz@infradead.org> wrote:
+
+> On Fri, 2010-04-09 at 16:29 +0900, KOSAKI Motohiro wrote:
 > > 
-> > Right.  But, Andrew needs:
-> > numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix3 --
-> > i.e., a fix to the 2nd patch of the percpu numa_*_id patch series.
 > > 
+> > diff --git a/mm/rmap.c b/mm/rmap.c
+> > index 8b088f0..b4a0b5b 100644
+> > --- a/mm/rmap.c
+> > +++ b/mm/rmap.c
+> > @@ -295,7 +295,7 @@ struct anon_vma *page_lock_anon_vma(struct page
+> > *page)
+> >         unsigned long anon_mapping;
+> >  
+> >         rcu_read_lock();
+> > -       anon_mapping = (unsigned long) ACCESS_ONCE(page->mapping);
+> > +       anon_mapping = (unsigned long) rcu_dereference(page->mapping);
+> >         if ((anon_mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)
+> >                 goto out;
+> >         if (!page_mapped(page)) 
 > 
-> blah.
+> Yes, I think this is indeed required.
 > 
-> I have a
-> numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix1.patch
-> and a fix3.  Was there ever a fix2?
+> I'll do a new version of the patch that includes the comment updates
+> requested by Andrew.
 
-Yes.  Here's a link to it in your 5/21 mmotm series:
+Either this didn't happen or I lost the patch.
 
-http://userweb.kernel.org/~akpm/mmotm/broken-out/numa-x86_64-use-generic-percpu-var-numa_node_id-implementation-fix2.patch
+I parked mm-revalidate-anon_vma-in-page_lock_anon_vma.patch for now. 
+Hopefully everything still works without it..
