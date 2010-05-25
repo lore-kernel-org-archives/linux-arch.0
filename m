@@ -1,48 +1,43 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH] arch/tile: new multi-core architecture for Linux
-Date: Tue, 25 May 2010 11:13:03 -0400
-Message-ID: <4BFBE8FF.6080208@tilera.com>
-References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005242053.25594.arnd@arndb.de> <4BFBD68C.9060405@tilera.com> <201005251703.11613.arnd@arndb.de>
+Date: Tue, 25 May 2010 17:30:18 +0200
+Message-ID: <201005251730.18830.arnd@arndb.de>
+References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005251703.11613.arnd@arndb.de> <4BFBE8FF.6080208@tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from king.tilera.com ([72.1.168.226]:44273 "EHLO king.tilera.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757090Ab0EYPNI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 25 May 2010 11:13:08 -0400
-In-Reply-To: <201005251703.11613.arnd@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.17.10]:63622 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751024Ab0EYPaZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 May 2010 11:30:25 -0400
+In-Reply-To: <4BFBE8FF.6080208@tilera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: Chris Metcalf <cmetcalf@tilera.com>
 Cc: Ulrich Drepper <drepper@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Chen Liqin <liqin.chen@sunplusct.com>
 
-On 5/25/2010 11:03 AM, Arnd Bergmann wrote:
-> I would keep allocating from the bottom. For now, maybe we should just
-> reserve 16 arch specific syscall numbers starting at 244, and add
->
-> #define __NR_tile_cmpxchg_baddr (__NR_arch_specific_syscall + 0)
-> #define __NR_tile_raise_fpe	(__NR_arch_specific_syscall + 1)
-> #define __NR_tile_flush_cache	(__NR_arch_specific_syscall + 2)
->
-> to your own unistd.h.
->   
+On Tuesday 25 May 2010, Chris Metcalf wrote:
+> >  The idea was to only have them around as a transitional helper for
+> > new architectures while getting merged, but nothing should ever
+> > use these in production.
+> >   
+> 
+> Perhaps the best strategy for Tile for now is to enable the transitional
+> helpers, and then when glibc no longer requires any of those syscalls,
+> we can remove them from the kernel.  If this happens in the relatively
+> short term (e.g. before our 3.0 release later this year) all the better,
+> but for now we can separate this into a first change that preserves most
+> of the compatibility syscalls, and work towards remove them in a later
+> release.
 
-OK.
+I don't like the idea of adding syscalls first and then disabling them
+again. We tried that on score and now we're stuck with the wrong syscall
+table there because they never got removed.
 
->  The idea was to only have them around as a transitional helper for
-> new architectures while getting merged, but nothing should ever
-> use these in production.
->   
+Instead, I'd suggest you do the minimal syscall table for upstream and
+just carry a private patch to enable the other syscalls until you get
+a working glibc/eglibc/uclibc with the official kernel.
 
-Perhaps the best strategy for Tile for now is to enable the transitional
-helpers, and then when glibc no longer requires any of those syscalls,
-we can remove them from the kernel.  If this happens in the relatively
-short term (e.g. before our 3.0 release later this year) all the better,
-but for now we can separate this into a first change that preserves most
-of the compatibility syscalls, and work towards remove them in a later
-release.
-
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+	Arnd
