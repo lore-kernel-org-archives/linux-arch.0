@@ -1,43 +1,73 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] arch/tile: new multi-core architecture for Linux
-Date: Tue, 25 May 2010 17:30:18 +0200
-Message-ID: <201005251730.18830.arnd@arndb.de>
-References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005251703.11613.arnd@arndb.de> <4BFBE8FF.6080208@tilera.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+From: Venkatesh Pallipadi <venki@google.com>
+Subject: Re: [patch 1/2] genirq: Run irq handlers with interrupts disabled
+Date: Tue, 25 May 2010 13:32:53 -0700
+Message-ID: <1274819573-18977-1-git-send-email-venki@google.com>
+References: <20100326000405.758579387@linutronix.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:63622 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751024Ab0EYPaZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 May 2010 11:30:25 -0400
-In-Reply-To: <4BFBE8FF.6080208@tilera.com>
+Received: from smtp-out.google.com ([216.239.44.51]:33206 "EHLO
+	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932996Ab0EYUdI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 May 2010 16:33:08 -0400
+In-Reply-To: <20100326000405.758579387@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Ulrich Drepper <drepper@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Chen Liqin <liqin.chen@sunplusct.com>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Linus Torvalds <torvalds@osdl.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Andi Kleen <andi@firstfloor.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Arnaldo Carvalho de Melo <acme@redhat.com>, Venkatesh Pallipadi <venki@google.com>
 
-On Tuesday 25 May 2010, Chris Metcalf wrote:
-> >  The idea was to only have them around as a transitional helper for
-> > new architectures while getting merged, but nothing should ever
-> > use these in production.
-> >   
-> 
-> Perhaps the best strategy for Tile for now is to enable the transitional
-> helpers, and then when glibc no longer requires any of those syscalls,
-> we can remove them from the kernel.  If this happens in the relatively
-> short term (e.g. before our 3.0 release later this year) all the better,
-> but for now we can separate this into a first change that preserves most
-> of the compatibility syscalls, and work towards remove them in a later
-> release.
+Just noticed a minor side effect of this patch on /proc/stat.
 
-I don't like the idea of adding syscalls first and then disabling them
-again. We tried that on score and now we're stuck with the wrong syscall
-table there because they never got removed.
+As int handlers run with ints disabled, timer interrupt based
+samples will no longer account for any irq time. As a result, irq
+time in /proc/stat, top, etc will be mostly zero (unless some handler
+is enabling ints).
 
-Instead, I'd suggest you do the minimal syscall table for upstream and
-just carry a private patch to enable the other syscalls until you get
-a working glibc/eglibc/uclibc with the official kernel.
+This is not a problem on s390, powerpc, ia64 when VIRT_CPU_ACCOUNTING is
+enabled.
 
-	Arnd
+May be we should gracefully call it out as zero, with patch like below?
+
+Signed-off-by: Venkatesh Pallipadi <venki@google.com>
+---
+ Documentation/filesystems/proc.txt |    2 +-
+ fs/proc/stat.c                     |    4 ++++
+ 2 files changed, 5 insertions(+), 1 deletions(-)
+
+diff --git a/Documentation/filesystems/proc.txt b/Documentation/filesystems/proc.txt
+index 6507d2a..8f5254a 100644
+--- a/Documentation/filesystems/proc.txt
++++ b/Documentation/filesystems/proc.txt
+@@ -1123,7 +1123,7 @@ second).  The meanings of the columns are as follows, from left to right:
+ - system: processes executing in kernel mode
+ - idle: twiddling thumbs
+ - iowait: waiting for I/O to complete
+-- irq: servicing interrupts
++- irq: servicing interrupts (valid only with VIRT_CPU_ACCOUNTING, 0 otherwise)
+ - softirq: servicing softirqs
+ - steal: involuntary wait
+ - guest: running a normal guest
+diff --git a/fs/proc/stat.c b/fs/proc/stat.c
+index bf31b03..d92bea8 100644
+--- a/fs/proc/stat.c
++++ b/fs/proc/stat.c
+@@ -46,7 +46,9 @@ static int show_stat(struct seq_file *p, void *v)
+ 		idle = cputime64_add(idle, kstat_cpu(i).cpustat.idle);
+ 		idle = cputime64_add(idle, arch_idle_time(i));
+ 		iowait = cputime64_add(iowait, kstat_cpu(i).cpustat.iowait);
++#ifdef CONFIG_VIRT_CPU_ACCOUNTING
+ 		irq = cputime64_add(irq, kstat_cpu(i).cpustat.irq);
++#endif
+ 		softirq = cputime64_add(softirq, kstat_cpu(i).cpustat.softirq);
+ 		steal = cputime64_add(steal, kstat_cpu(i).cpustat.steal);
+ 		guest = cputime64_add(guest, kstat_cpu(i).cpustat.guest);
+@@ -87,7 +89,9 @@ static int show_stat(struct seq_file *p, void *v)
+ 		idle = kstat_cpu(i).cpustat.idle;
+ 		idle = cputime64_add(idle, arch_idle_time(i));
+ 		iowait = kstat_cpu(i).cpustat.iowait;
++#ifdef CONFIG_VIRT_CPU_ACCOUNTING
+ 		irq = kstat_cpu(i).cpustat.irq;
++#endif
+ 		softirq = kstat_cpu(i).cpustat.softirq;
+ 		steal = kstat_cpu(i).cpustat.steal;
+ 		guest = kstat_cpu(i).cpustat.guest;
+-- 
+1.7.0.1
