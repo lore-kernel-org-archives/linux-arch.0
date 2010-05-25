@@ -1,95 +1,58 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH] arch/tile: new multi-core architecture for Linux
-Date: Tue, 25 May 2010 07:02:12 +0200
-Message-ID: <20100525050212.GA10218@merkur.ravnborg.org>
-References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <20100524202204.GA9917@merkur.ravnborg.org> <4BFAF012.4060300@tilera.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
+Date: Tue, 25 May 2010 11:01:56 +0200
+Message-ID: <1274778116.5882.619.camel@twins>
+References: <20100409150335.80E3.A69D9226@jp.fujitsu.com>
+	 <20100409154730.e9945cbc.kamezawa.hiroyu@jp.fujitsu.com>
+	 <20100409160252.80E6.A69D9226@jp.fujitsu.com>
+	 <1270802693.20295.3272.camel@laptop>
+	 <20100524123200.23e23fd2.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <4BFAF012.4060300@tilera.com>
+In-Reply-To: <20100524123200.23e23fd2.akpm@linux-foundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Nick Piggin <npiggin@suse.de>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
 List-Id: linux-arch.vger.kernel.org
 
-> > There is also several TILE specific options missing the TILE_ prefix.
-> > Like:
-> > config XGBE_MAIN
-> > 	tristate "Tilera GBE/XGBE character device support"
-> >
-> > Drop this:
-> > config XGBE_MAIN
-> > 	tristate "Tilera GBE/XGBE character device support"
-> >
-> > It is better to test for the gcc version and disable the option
-> > only in the cases where it is known to fail.
-> >   
+On Mon, 2010-05-24 at 12:32 -0700, Andrew Morton wrote:
+> On Fri, 09 Apr 2010 10:44:53 +0200
+> Peter Zijlstra <peterz@infradead.org> wrote:
 > 
-> Is the "Drop this" comment a cut and paste bug?
-Yep - sorry.
-
->  I'm guessing you were
-> referring to CONFIG_WERROR, which enables -Werror support.  The problem
-> is that whether or not you can use -Werror really depends on not just
-> the kernel version and the gcc version, but very likely also what
-> drivers you have enabled.  We always use it internally.  I could also
-> just pull this out completely (and just force it into "make" externally
-> within our external build process), or move it to a "generic" configure
-> option.  In any case we can't just automate it, unfortunately.
-As Arnd pointed out the drivers does not belong in the
-arch/tile/* hirachy.
-And we have some architectures that always uses -Werror unconditionally.
-So for the arch part this way to deal with it should be safe.
-And the more we can cover under -Werror the better.
-
-I dunno how you best deal with the drivers.
-
+> > On Fri, 2010-04-09 at 16:29 +0900, KOSAKI Motohiro wrote:
+> > > 
+> > > 
+> > > diff --git a/mm/rmap.c b/mm/rmap.c
+> > > index 8b088f0..b4a0b5b 100644
+> > > --- a/mm/rmap.c
+> > > +++ b/mm/rmap.c
+> > > @@ -295,7 +295,7 @@ struct anon_vma *page_lock_anon_vma(struct page
+> > > *page)
+> > >         unsigned long anon_mapping;
+> > >  
+> > >         rcu_read_lock();
+> > > -       anon_mapping = (unsigned long) ACCESS_ONCE(page->mapping);
+> > > +       anon_mapping = (unsigned long) rcu_dereference(page->mapping);
+> > >         if ((anon_mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)
+> > >                 goto out;
+> > >         if (!page_mapped(page)) 
+> > 
+> > Yes, I think this is indeed required.
+> > 
+> > I'll do a new version of the patch that includes the comment updates
+> > requested by Andrew.
 > 
-> > Do not mess with CC like this:
-> > CC = $(CROSS_COMPILE)gcc
-> >
-> > I guess you had to do this to support:
-> > LIBGCC_PATH     := `$(CC) -print-libgcc-file-name`
-> >
-> > If you follow other archs you could do like this:
-> > LIBGCC_PATH     := `$(CC) -print-libgcc-file-name`
-> >   
-> 
-> I'm guessing you meant like what h8300 does, "$(shell
-> $(CROSS-COMPILE)$(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)".  That
-> seems reasonable.
-Correct - you are good at guessing :-)
+> Either this didn't happen or I lost the patch.
 
-> > arch/tile/include/asm/spinlock.h
-> > Please make this a one-liner when you uses the asm-generic version only.
-> > Same goes for byteorder (which includes linux/byteorder/little_endian.h)
-> >   
-> 
-> I'm not sure what you mean when you say to use the asm-generic version
-> of spinlock.h, since it's not SMP-ready.  Also, I don't see an
-> asm-generic/byteorder.h, so I'm puzzled there too.
-What I wanted to say was that a header file that simply include
-another header file then drop all the boilerplate stuff and
-let the header file be a single line.
-Both spinlock.h and byteorder.h matches this.
+It didn't happen, I got distracted.
 
-The other 15+ header files that simply include another
-heder file you follow this style. So this is a small matter
-of consistency.
+> I parked mm-revalidate-anon_vma-in-page_lock_anon_vma.patch for now. 
+> Hopefully everything still works without it..
 
-> 
-> > In your mail you did not say anything about the checkpatch status.
-> > It is better that you make your code reasonable checkpatch clean _before_
-> > merging. Then you will not be hit by a lot of janitorial patches doing so.
-> >   
-> 
-> I ran checkpatch over everything I submitted.  There are many
-> complaints, to be sure, but I did a first pass cleaning up everything
-> that was plausible, so for example all the style issues were fixed, but
-> things like some uses of volatile, some uses of init_MUTEX, etc., were
-> not modified.  However, I think it's in decent shape from a checkpatch
-> point of view.
-Good. Please include this information in you next submission.
+Yes, I think it actually does due to a number of really non-obvious
+things ;-)
 
-	Sam
+I'll try and get back to my make mmu_gather preemptible stuff shortly
+and write comments there.
