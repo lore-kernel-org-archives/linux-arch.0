@@ -1,58 +1,69 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 02/13] mm: Revalidate anon_vma in page_lock_anon_vma()
-Date: Tue, 25 May 2010 11:01:56 +0200
-Message-ID: <1274778116.5882.619.camel@twins>
-References: <20100409150335.80E3.A69D9226@jp.fujitsu.com>
-	 <20100409154730.e9945cbc.kamezawa.hiroyu@jp.fujitsu.com>
-	 <20100409160252.80E6.A69D9226@jp.fujitsu.com>
-	 <1270802693.20295.3272.camel@laptop>
-	 <20100524123200.23e23fd2.akpm@linux-foundation.org>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [PATCH] arch/tile: new multi-core architecture for Linux
+Date: Tue, 25 May 2010 09:54:20 -0400
+Message-ID: <4BFBD68C.9060405@tilera.com>
+References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005240008.16497.arnd@arndb.de> <4BFA9B4E.9010200@tilera.com> <201005242053.25594.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20100524123200.23e23fd2.akpm@linux-foundation.org>
+In-Reply-To: <201005242053.25594.arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Nick Piggin <npiggin@suse.de>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2010-05-24 at 12:32 -0700, Andrew Morton wrote:
-> On Fri, 09 Apr 2010 10:44:53 +0200
-> Peter Zijlstra <peterz@infradead.org> wrote:
-> 
-> > On Fri, 2010-04-09 at 16:29 +0900, KOSAKI Motohiro wrote:
-> > > 
-> > > 
-> > > diff --git a/mm/rmap.c b/mm/rmap.c
-> > > index 8b088f0..b4a0b5b 100644
-> > > --- a/mm/rmap.c
-> > > +++ b/mm/rmap.c
-> > > @@ -295,7 +295,7 @@ struct anon_vma *page_lock_anon_vma(struct page
-> > > *page)
-> > >         unsigned long anon_mapping;
-> > >  
-> > >         rcu_read_lock();
-> > > -       anon_mapping = (unsigned long) ACCESS_ONCE(page->mapping);
-> > > +       anon_mapping = (unsigned long) rcu_dereference(page->mapping);
-> > >         if ((anon_mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)
-> > >                 goto out;
-> > >         if (!page_mapped(page)) 
-> > 
-> > Yes, I think this is indeed required.
-> > 
-> > I'll do a new version of the patch that includes the comment updates
-> > requested by Andrew.
-> 
-> Either this didn't happen or I lost the patch.
+On 5/24/2010 2:53 PM, Arnd Bergmann wrote:
+> Note that the asm-generic version defines 244 numbers, while you have
+> a total of 313 numbers. You obviously need the extra arch specific
+> syscalls (e.g cmpxchg), so we need to reserve some space for those
+> in the generic header. All the other ones that are in your version but
+> not in the generic version are very likely not needed (unless I made
+> a mistake in the generic code).
+>   
 
-It didn't happen, I got distracted.
+I looked at the diff of the set of syscalls you provide and the ones
+we've been using.
 
-> I parked mm-revalidate-anon_vma-in-page_lock_anon_vma.patch for now. 
-> Hopefully everything still works without it..
+Specific questions:
 
-Yes, I think it actually does due to a number of really non-obvious
-things ;-)
+- How do you propose representing the architecture-specific syscalls? 
+We have three "very special" syscalls that are negative numbers, which I
+won't worry about, since they'll be out of the normal numbering
+sequence.  But we also have a few others (cmpxchg_baddr, raise_fpe,
+flush_cache) that we'll need a numbering location for.  I see that you
+already have an empty block from 244 (today) to 1023; perhaps
+architectures should just use 1023 on down?  I'll do this for now.
 
-I'll try and get back to my make mmu_gather preemptible stuff shortly
-and write comments there.
+- You renamed __NR__llseek to __NR_llseek, which of course seems pretty
+reasonable, but libc expects to see the former (both glibc and uclibc). 
+Is it worth requiring non-standard libc code?  I may just add
+__NR__llseek as an alias in my unistd.h for now.
+
+- Are you planning to keep all the ifdef'ed syscalls going forward? 
+Because honestly, I'd rather just enable __ARCH_WANT_SYSCALL_NO_AT,
+etc., and use the kernel implementations, since otherwise I'll have to
+go into both uclibc and glibc and add a bunch of extra Tilera-specific
+code and then try to push that up to their community, when really I just
+want to have the Tilera architecture userspace support be as generic as
+possible.
+
+The result seems positive overall; I'm certainly happy to dump, e.g.,
+"nice" and "stime", since they have obvious userspace wrappers (and in
+fact libc is already geared up to use them if available).  And a few
+other syscalls in the Tile list aren't even implemented but were just
+brought over from x86 "in case", like afs_syscall, putpmsg, and getpmsg,
+so I'm happy to abandon them as well.  And "sysfs" is commented out of
+uclibc, and not present in glibc, so no big loss there.  Other than that
+I think the set of supported syscalls will only change by a couple --
+and more importantly, from my point of view, Tilera gets to stay
+automatically synced to any new syscalls added to Linux going forward. 
+So this is good.
+
+I assume that folks are committing to not changing any of the existing
+numbers, ifdefs, etc. in asm-generic/unistd.h; if we're the only
+architecture using it, no one might notice until we did. :-)
+
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
