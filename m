@@ -1,36 +1,83 @@
-From: liqin.chen@sunplusct.com
+From: Paul Mundt <lethal@linux-sh.org>
 Subject: Re: [PATCH] arch/tile: new multi-core architecture for Linux
-Date: Wed, 26 May 2010 10:44:19 +0800
-Message-ID: <OF1161BF2B.C681A3D5-ON4825772F.000A9BAB-4825772F.000F0B04@sunplusct.com>
-References: <201005251703.11613.arnd@arndb.de>
+Date: Wed, 26 May 2010 14:02:25 +0900
+Message-ID: <20100526050225.GA26696@linux-sh.org>
+References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <4BF757FF.6060100@tilera.com> <201005240008.16497.arnd@arndb.de> <4BFA9B4E.9010200@tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="GB2312"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mswedge2.sunplus.com ([124.219.29.227]:59633 "EHLO
-	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932769Ab0EZDVw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 May 2010 23:21:52 -0400
-In-Reply-To: <201005251703.11613.arnd@arndb.de>
+Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:46155 "EHLO
+	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750850Ab0EZFCn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 May 2010 01:02:43 -0400
+Content-Disposition: inline
+In-Reply-To: <4BFA9B4E.9010200@tilera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Chris Metcalf <cmetcalf@tilera.com>, Ulrich Drepper <drepper@gmail.com>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Chen Liqin <liqin.chen@sunplusct.com>, Linus Torvalds <torvalds@linux-foundation.org>
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
 
-QXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4g0LTT2iAyMDEwLTA1LTI1IDIzOjAzOjExOg0K
-DQo+IA0KPiA+IC0gWW91IHJlbmFtZWQgX19OUl9fbGxzZWVrIHRvIF9fTlJfbGxzZWVrLCB3aGlj
-aCBvZiBjb3Vyc2Ugc2VlbXMgDQpwcmV0dHkNCj4gPiByZWFzb25hYmxlLCBidXQgbGliYyBleHBl
-Y3RzIHRvIHNlZSB0aGUgZm9ybWVyIChib3RoIGdsaWJjIGFuZCANCnVjbGliYykuIA0KPiA+IElz
-IGl0IHdvcnRoIHJlcXVpcmluZyBub24tc3RhbmRhcmQgbGliYyBjb2RlPyAgSSBtYXkganVzdCBh
-ZGQNCj4gPiBfX05SX19sbHNlZWsgYXMgYW4gYWxpYXMgaW4gbXkgdW5pc3RkLmggZm9yIG5vdy4N
-Cj4gDQo+IFRoYXQgd2FzIHByb2JhYmx5IGp1c3QgYSBtaXN0YWtlIG9uIG15IHNpZGUuIFRoZSBv
-bmx5IG90aGVyDQo+IGFyY2hpdGVjdHVyZSB1c2luZyB0aGUgZ2VuZXJpYyB2ZXJzaW9uIHNvIGZh
-ciBpcyBzY29yZSwgc28NCj4gbWF5YmUgQ2hlbiBMaXFpbiBjYW4gY29tbWVudCBvbiBob3cgaGUg
-ZGVhbHQgd2l0aCB0aGlzIGFuZA0KPiBpZiBoZSBkZXBlbmRzIG9uIHRoZSBkZWZpbml0aW9uIG5v
-dy4NCj4gDQoNCldoZW4gd2UgcG9ydCBnbGliYyB0byBzY29yZSBhcmNoLCB3ZSBmaXhlZCB0aGUg
-bGxzZWVrLmMgZmlsZSwNCnJlbW92ZSB0aGUgdW5kZXJzY29yZSBiZWZvcmUgbGxzZWVrLiBtYXli
-ZSBpdCBoYXMgY29tcGF0aWJsZSBwcm9ibGVtcywgDQpidXQgaXQgd29yayBvayB3aXRoIHNjb3Jl
-IGFwcGxpY2F0aW9uLg0KDQozNGMzNA0KPCAgIHJldHVybiAobG9mZl90KSAoSU5MSU5FX1NZU0NB
-TEwgKF9sbHNlZWssIDUsIGZkLCAob2ZmX3QpIChvZmZzZXQgPj4gDQozMiksDQotLS0NCj4gICBy
-ZXR1cm4gKGxvZmZfdCkgKElOTElORV9TWVNDQUxMIChsbHNlZWssIDUsIGZkLCAob2ZmX3QpIChv
-ZmZzZXQgPj4gDQozMiksDQoNCg0KLS0NCmxpcWluDQoNCg==
+On Mon, May 24, 2010 at 11:29:18AM -0400, Chris Metcalf wrote:
+> On 5/23/2010 6:08 PM, Arnd Bergmann wrote:
+> > The notable exception is pci, which should go to arch/tile/pci
+> > but still be reviewed in the pci mailing list.
+> 
+> So this is an interesting question.  Currently the "device driver"
+> support in the arch/tile/drivers directory is for devices which exist
+> literally only as part of the Tilera silicon, i.e. they are not
+> separable from the tile architecture itself.  For example, the network
+> driver is tied to the Tilera networking shim DMA engine on the chip. 
+> Does it really make sense to move this to a directory where it is more
+> visible to other architectures?  I can see that it might from the point
+> of view of code bombings done to network drivers, for example. 
+> Similarly for our other drivers, which are tied to details of the
+> hypervisor API, etc.
+
+It also depends what precisely your goal with arch/tile/drivers is. In
+the sh case I started out with an arch/sh/pci and then migrated to an
+arch/sh/drivers/ model when we started having to support various bus
+operations similar to PCI. Anything common or shared on the other hand
+gets pushed in to drivers/sh/ directly.
+
+These days there is also a drivers/platform/<arch> abstraction which
+you could easily use for platform-specific drivers that aren't things
+like CPU/board-specific bus operations/fixups.
+
+> >> --- /dev/null
+> >> +++ b/arch/tile/include/asm/addrspace.h
+> >>     
+> > This file is not referenced anywhere. I'd suggest removing it
+> > until you send code that actually uses it.
+> >   
+> 
+> OK, I've removed it.  I assumed that it was required by architectures,
+> since it is used in various places in the kernel.  I see four drivers
+> that just include it unconditionally at the moment, though curiously,
+> they don't seem to use any of the symbols it defines.  And there are
+> four architectures (avr32, m32r, mips, sh) that all provide this header
+> at the moment, though there doesn't seem to be agreement as to what
+> symbols it should define.
+> 
+To give a bit of background on this..
+
+All of these platforms provide this header for legacy reasons, and it's
+not a road you want to go down. Its primary purpose was to provide
+definitions for memory segments, and specifically wrappers for flipping
+between them. For platforms that have 1:1 cached/uncached mappings for
+lowmem in different segments, old drivers used to commonly toggle the
+high bits of an address to determine whether access was cached or not.
+These days any driver that has knowledge of memory segmentation is almost
+certainly doing something wrong.
+
+If you need to support this sort of thing, then you ideally want to hide
+the segmentation information in your ioremap() implementation (you can
+look at what arch/sh/include/asm/io.h does for its ioremap cases, and we
+have a wide variety of corner cases outside of legacy segmentation).
+
+These platforms have also traditionally had these segments bypass the MMU
+completely, so while you don't take page faults for lowmem, you can't
+reuse parts of the address space in untranslatable holes. Some
+architectures (like sh) have dropped the segmentation entirely for
+certain MMU modes which permits for things like setting up an uncached
+mapping for kernel text without enabling drivers to game the system
+without proper remapping.
