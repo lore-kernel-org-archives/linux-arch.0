@@ -1,74 +1,47 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH] arch/tile: new multi-core architecture for Linux
-Date: Thu, 27 May 2010 10:35:06 -0400
-Message-ID: <4BFE831A.8050002@tilera.com>
-References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005271041.30519.arnd@arndb.de> <4BFE73DF.5090107@tilera.com> <201005271611.47963.arnd@arndb.de>
+From: Marc Gauthier <marc@tensilica.com>
+Subject: RE: [PATCH] arch/tile: new multi-core architecture for Linux
+Date: Thu, 27 May 2010 07:52:03 -0700
+Message-ID: <522C1DF17AF50042AD8AE87F7887BD3D01637144CA@exch.hq.tensilica.com>
+References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com>
+ <201005271041.30519.arnd@arndb.de> <4BFE73DF.5090107@tilera.com>
+ <201005271611.47963.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from king.tilera.com ([72.1.168.226]:37263 "EHLO king.tilera.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755177Ab0E0OfJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 27 May 2010 10:35:09 -0400
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <201005271611.47963.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Chris Metcalf <cmetcalf@tilera.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 5/27/2010 10:11 AM, Arnd Bergmann wrote:
->>> > > I see. AFAICT, all other architectures don't need the wrapper in
->>> > > the 32 bit native case because they define the syscall calling
->>> > > conventions in libc such that they match what the kernel
->>> > > expects for a 64 bit argument (typically split in two subsequent
->>> > > argument slots). Would that work for you as well?
->>>       
+linux-arch-owner@vger.kernel.org wrote:
+> On Thursday 27 May 2010, Chris Metcalf wrote:
+>> On 5/27/2010 4:41 AM, Arnd Bergmann wrote:
+>>>> Hmm, I didn't know about that.  Any information would be
+>>>> appreciated.  I guess you could synthesize something that looked
+>>>> like a signal purely in user-space?  But how would debuggers trap
+>>>> it?  I'm not sure how it would work without a system call.
+>>>
+>>> I think the C99 standard allows you to not implement SIGFPE at all
+>>> but instead rely on applications doing fetestexcept() etc.
 >>
->> > Yes, we could override this in libc.  My assumption was that it was
->> > cleaner to do it in the kernel, since we support uclibc and glibc, and
->> > doing it in the kernel meant only doing it in one place.
->>     
-> That's not the way I meant. There are two options how (any) libc can
-> implement this:
-> 1. the calling conventions for user function calls and for kernel
->    function calls are the same, so you don't need to do anything here.
-> 2. the calling conventions are different, so you already need a wrapper
->    in user space for 64 bit arguments to split them up and you could
->    to that in exactly the way that the kernel expects to be called.
->   
+>> We use this not for the floating-point operations, but for integer
+>> divide-by-zero.  In principle we could use it for floating-point too,
+>> but we currently don't, since generally folks don't expect it there.
+>
+> Ah, I see. That probably makes a lot of sense to present as a signal
+> the way you do.
 
-The issue is that libc support for 64-bit operands on 32-bit platforms
-tends to look like "syscall(foo64, arg1, LOW(arg2), HIGH(arg2))".  This
-naturally passes the arguments in consecutive registers, for a
-register-based calling convention like ours.  However, invoking
-"foo64(arg1, (u64)arg2)" passes the u64 argument in the next consecutive
-even/odd numbered pair of registers on our architecture.  Arguably this
-notion of register alignment isn't particularly helpful, but we opted to
-do it this way when we settled on the API.  The upshot is that to match
-this, userspace needs to do "syscall(foo64, arg1, dummy, LOW(arg2),
-HIGH(arg2))".  So we need to provide these dummy-argument versions of
-the syscall wrappers to all the libcs that we use (currently uclibc,
-glibc, and sometimes newlib).  Where the 64-bit argument falls naturally
-on an even register boundary we don't need to provide any kernel stub.
+FWIW, this can also be done using some recognizable illegal
+instruction sequence, if the architecture reserves some opcodes
+as always illegal.  This makes the division routine (typically part
+of libgcc) more independent of OS, which has some merit.
+The kernel illegal instruction handler needs to recognize this
+sequence and turn it into a SIGFPE instead of SIGILL.
 
-Basically the scenario is your #2 above, but userspace already has an
-implementation of the user-space wrapper in the generic code, and I'm
-trying to avoid having to provide a tile-specific version of it.
+The Xtensa architecture libgcc added this recently, but we haven't
+yet added the SIGILL=>SIGFPE code to the kernel.
 
-For reference, here's readahead() in glibc (overridden to be a pure
-syscall wrapper for 64-bit architectures):
-
-ssize_t
-__readahead (int fd, off64_t offset, size_t count)
-{
-  return INLINE_SYSCALL (readahead, 4, fd,
-                         __LONG_LONG_PAIR ((off_t) (offset >> 32),
-                                           (off_t) (offset & 0xffffffff)),
-                         count);
-}
-
-
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+-Marc
