@@ -1,60 +1,35 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Chris Metcalf <cmetcalf@tilera.com>
 Subject: Re: [PATCH] arch/tile: new multi-core architecture for Linux
-Date: Thu, 27 May 2010 17:02:45 +0200
-Message-ID: <201005271702.45730.arnd@arndb.de>
-References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005271611.47963.arnd@arndb.de> <4BFE831A.8050002@tilera.com>
+Date: Thu, 27 May 2010 11:03:31 -0400
+Message-ID: <4BFE89C3.7000500@tilera.com>
+References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005271041.30519.arnd@arndb.de> <4BFE73DF.5090107@tilera.com> <201005271611.47963.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:57009 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754687Ab0E0PCv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 May 2010 11:02:51 -0400
-In-Reply-To: <4BFE831A.8050002@tilera.com>
+Received: from king.tilera.com ([72.1.168.226]:37745 "EHLO king.tilera.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754687Ab0E0PDf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 27 May 2010 11:03:35 -0400
+In-Reply-To: <201005271611.47963.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
 
-On Thursday 27 May 2010, Chris Metcalf wrote:
-> On 5/27/2010 10:11 AM, Arnd Bergmann wrote:
->
-> The issue is that libc support for 64-bit operands on 32-bit platforms
-> tends to look like "syscall(foo64, arg1, LOW(arg2), HIGH(arg2))".  This
-> naturally passes the arguments in consecutive registers, for a
-> register-based calling convention like ours.  However, invoking
-> "foo64(arg1, (u64)arg2)" passes the u64 argument in the next consecutive
-> even/odd numbered pair of registers on our architecture.  Arguably this
-> notion of register alignment isn't particularly helpful, but we opted to
-> do it this way when we settled on the API.  The upshot is that to match
-> this, userspace needs to do "syscall(foo64, arg1, dummy, LOW(arg2),
-> HIGH(arg2))".  So we need to provide these dummy-argument versions of
-> the syscall wrappers to all the libcs that we use (currently uclibc,
-> glibc, and sometimes newlib).  Where the 64-bit argument falls naturally
-> on an even register boundary we don't need to provide any kernel stub.
+On 5/27/2010 10:11 AM, Arnd Bergmann wrote:
+> You're right that any commit should result in something that's buildable.
+> In this case I think you can make an exception because before the first
+> patch, nothing builds in arch/tile, so you extend that phase to two
+> or three patches before you get to the first one that's actually
+> compilable.
+>   
 
-ok, makes sense. IIRC, the s390 architecture has the same requirement,
-probably some others as well.
+OK, will do.  I'm also planning to do a hard git reset to remove the
+original patch, since much of it is no longer wanted anyway.  I'll mail
+out a diff of what has changed relative to that original submission as
+just a regular "diff -ru" so previous reviewers can see what has changed.
 
-> Basically the scenario is your #2 above, but userspace already has an
-> implementation of the user-space wrapper in the generic code, and I'm
-> trying to avoid having to provide a tile-specific version of it.
-> 
-> For reference, here's readahead() in glibc (overridden to be a pure
-> syscall wrapper for 64-bit architectures):
-> 
-> ssize_t
-> __readahead (int fd, off64_t offset, size_t count)
-> {
->   return INLINE_SYSCALL (readahead, 4, fd,
->                          __LONG_LONG_PAIR ((off_t) (offset >> 32),
->                                            (off_t) (offset & 0xffffffff)),
->                          count);
-> }
-
-Ok, I see. No objection to your kernel code then, we just need to
-figure out how to do that with the generic sys_call_table.
-
-	Arnd
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
