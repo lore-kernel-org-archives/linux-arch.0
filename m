@@ -1,44 +1,46 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH] arch/tile: new multi-core architecture for Linux
-Date: Thu, 27 May 2010 11:04:50 -0400
-Message-ID: <4BFE8A12.2060606@tilera.com>
-References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005271611.47963.arnd@arndb.de> <4BFE831A.8050002@tilera.com> <201005271702.45730.arnd@arndb.de>
+Date: Thu, 27 May 2010 17:20:36 +0200
+Message-ID: <201005271720.37069.arnd@arndb.de>
+References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005271702.45730.arnd@arndb.de> <4BFE8A12.2060606@tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from king.tilera.com ([72.1.168.226]:37767 "EHLO king.tilera.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754687Ab0E0PEw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 27 May 2010 11:04:52 -0400
-In-Reply-To: <201005271702.45730.arnd@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.126.171]:51169 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757839Ab0E0PV2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 May 2010 11:21:28 -0400
+In-Reply-To: <4BFE8A12.2060606@tilera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: Chris Metcalf <cmetcalf@tilera.com>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
 
-On 5/27/2010 11:02 AM, Arnd Bergmann wrote:
-> Ok, I see. No objection to your kernel code then, we just need to
-> figure out how to do that with the generic sys_call_table.
->   
+On Thursday 27 May 2010, Chris Metcalf wrote:
+> That turns out to be fairly easy:
+> 
+> #undef __SYSCALL
+> #define __SYSCALL(nr, call) [nr] = (call),
+> 
+> #ifndef __tilegx__
+> #define sys_fadvise64 sys32_fadvise64
+> #define sys_fadvise64_64 sys32_fadvise64_64
+> #define sys_readahead sys32_readahead
+> #endif
+> 
+> void *sys_call_table[__NR_syscalls] = {
+>         [0 ... __NR_syscalls-1] = sys_ni_syscall,
+> #include <asm/unistd.h>
+> };
+> 
 
-That turns out to be fairly easy:
+Ok. This does mean that you're no longer using a shared
+version of the sys_call_table.c file but your own one, but
+since the file so simple, that should not be a problem.
 
-#undef __SYSCALL
-#define __SYSCALL(nr, call) [nr] = (call),
+We can think about merging it when we have more architectures
+that need a hack like this, which might never happen.
 
-#ifndef __tilegx__
-#define sys_fadvise64 sys32_fadvise64
-#define sys_fadvise64_64 sys32_fadvise64_64
-#define sys_readahead sys32_readahead
-#endif
-
-void *sys_call_table[__NR_syscalls] = {
-	[0 ... __NR_syscalls-1] = sys_ni_syscall,
-#include <asm/unistd.h>
-};
-
-
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+	Arnd
