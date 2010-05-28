@@ -1,60 +1,63 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Chris Metcalf <cmetcalf@tilera.com>
 Subject: Re: [PATCH] arch/tile: new multi-core architecture for Linux
-Date: Thu, 27 May 2010 22:53:06 +0200
-Message-ID: <201005272253.07498.arnd@arndb.de>
-References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005271041.30519.arnd@arndb.de> <20100527203412.GB31920@shareable.org>
+Date: Fri, 28 May 2010 12:45:36 -0400
+Message-ID: <4BFFF330.4080509@tilera.com>
+References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <4BF757FF.6060100@tilera.com> <201005240008.16497.arnd@arndb.de> <201005252345.15685.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:60015 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756656Ab0E0UxY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 May 2010 16:53:24 -0400
-In-Reply-To: <20100527203412.GB31920@shareable.org>
+Received: from king.tilera.com ([72.1.168.226]:6006 "EHLO king.tilera.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756515Ab0E1Qpj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 28 May 2010 12:45:39 -0400
+In-Reply-To: <201005252345.15685.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jamie Lokier <jamie@shareable.org>
-Cc: Chris Metcalf <cmetcalf@tilera.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
 
-On Thursday 27 May 2010 22:34:12 Jamie Lokier wrote:
-> > > > compat_sys_sendfile will not be needed with the asm-generic/unistd.h definitions,
-> > > > but I think you will still need a compat_sys_sendfile64, to which the same
-> > > > applies as to compat_sys_sched_rr_get_interval.
-> > > >   
-> > > 
-> > > I think it's the other way around: compat_sys_sendfile64() is just
-> > > sys_sendfile64(), but compat_sys_sendfile() needs to exist since it has
-> > > to write a 32-bit pointer back to userspace.
-> > 
-> > Ah. I guess you're right about compat_sys_sendfile64 not being needed.
-> > Funny enough, parisc, powerpc, s390 and sparc all define it anyway, so
-> > it didn't occur to me that they don't actually need to.
-> 
-> They do need it.
-> 
-> For example, on Sparc, compat_sys_sendfile64 takes a 32-bit
-> compat_size_t argument, and calls sys_sendfile64 with a 64-bit size_t
-> argument.
+On 5/25/2010 5:45 PM, Arnd Bergmann wrote:
+>> +u32 inb(u32 addr)
+>> > +{
+>> > +	panic("inb not implemented");
+>> > +}
+>> > +EXPORT_SYMBOL(inb);
+>>     
+> If you just remove these definitions, you get a link error for any
+> driver that tries to use these, which is probably more helpful than
+> the panic.
+>
+> OTOH, are you sure that you can't just map the PIO calls to mmio functions
+> like readb plus some fixed offset? On most non-x86 architectures, the PIO
+> area of the PCI bus is just mapped to a memory range somewhere.
+>   
 
-But size_t is unsigned and the upper halves of the argument registers
-are always zero-filled in the sparc64 compat syscall entry, so I guess the
-conversion is still not necessary there.
+I looked at where inb() and friends are used, and although we can get
+close to not requiring them for tile, it's not quite there, and will
+need some further discussions on the various lists to clean up enough
+for our purposes.  There are three problems that surface when I try to
+remove the inb family:
 
-PowerPC probably still needs it but doesn't need to do the nasty set_fs()
-stuff. s390x needs a proper assembly wrapper and parisc uses the same
-method as sparc64 IIRC.
+1. The ide-io-std.c file sets up the default_tp_ops, which we override
+in our IDE driver, but we still have to build this file, and it contains
+calls to inb, etc.
 
-mips and x86 already just call the native sendfile64 syscall.
+2. The usb pci quirks file contains some quirks that use inb and outb,
+and since we support PCI, we have to try to compile this file.
 
-> I'll be very surprised if 32-bit tile is using 64-bit size_t already :-)
+3. CONFIG_DEVPORT defaults to yes, unless you're M68K.
 
- ** Surprise! **
+None of this seems to depend on CONFIG_HAS_IOPORT.
 
-Chris mentioned that the tile compat support is not actually for the
-native 32 bit ABI but for a third ILP32 ABI of the 64 bit Tile-GX
-processors. I assume all registers in this mode are 64 bit, and so are the
-syscall arguments.
+Our PCI driver supports IOMEM read/write, but not IOPORT.
 
-	Arnd
+Perhaps something like CONFIG_ARCH_PCI_HAS_NO_IOPORT or some such, and
+then we can disable all of the above things if that config option is
+present (and CONFIG_HAS_IOPORT is false also?).
+
+For now, I'll just leave the inb/outb implementation as panic() calls.
+
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
