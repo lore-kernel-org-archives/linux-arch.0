@@ -1,64 +1,91 @@
 From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: [PATCH 6/8] arch/tile: the mm/ directory.
-Date: Fri, 28 May 2010 23:13:59 -0400
-Message-ID: <201005290334.o4T3YHS0029970@farm-0002.internal.tilera.com>
+Subject: [PATCH 7/8] arch/tile: lib/ directory.
+Date: Fri, 28 May 2010 23:16:48 -0400
+Message-ID: <201005290334.o4T3YMsn029979@farm-0002.internal.tilera.com>
 References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from king.tilera.com ([72.1.168.226]:16063 "EHLO king.tilera.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755391Ab0E2Deu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 28 May 2010 23:34:50 -0400
 In-Reply-To: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, torvalds@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
 ---
- arch/tile/mm/Makefile      |    9 +
- arch/tile/mm/elf.c         |  164 +++++++
- arch/tile/mm/extable.c     |   30 ++
- arch/tile/mm/fault.c       |  905 ++++++++++++++++++++++++++++++++++++
- arch/tile/mm/highmem.c     |  328 ++++++++++++++
- arch/tile/mm/homecache.c   |  445 ++++++++++++++++++
- arch/tile/mm/hugetlbpage.c |  343 ++++++++++++++
- arch/tile/mm/init.c        | 1082 ++++++++++++++++++++++++++++++++++++++++++++
- arch/tile/mm/migrate.h     |   50 ++
- arch/tile/mm/migrate_32.S  |  211 +++++++++
- arch/tile/mm/mmap.c        |   75 +++
- arch/tile/mm/pgtable.c     |  566 +++++++++++++++++++++++
- 12 files changed, 4208 insertions(+), 0 deletions(-)
- create mode 100644 arch/tile/mm/Makefile
- create mode 100644 arch/tile/mm/elf.c
- create mode 100644 arch/tile/mm/extable.c
- create mode 100644 arch/tile/mm/fault.c
- create mode 100644 arch/tile/mm/highmem.c
- create mode 100644 arch/tile/mm/homecache.c
- create mode 100644 arch/tile/mm/hugetlbpage.c
- create mode 100644 arch/tile/mm/init.c
- create mode 100644 arch/tile/mm/migrate.h
- create mode 100644 arch/tile/mm/migrate_32.S
- create mode 100644 arch/tile/mm/mmap.c
- create mode 100644 arch/tile/mm/pgtable.c
+ arch/tile/lib/Makefile              |   16 +
+ arch/tile/lib/__invalidate_icache.S |  106 ++++++
+ arch/tile/lib/atomic_32.c           |  347 +++++++++++++++++++
+ arch/tile/lib/atomic_asm_32.S       |  197 +++++++++++
+ arch/tile/lib/checksum.c            |  102 ++++++
+ arch/tile/lib/cpumask.c             |   51 +++
+ arch/tile/lib/delay.c               |   34 ++
+ arch/tile/lib/exports.c             |   78 +++++
+ arch/tile/lib/mb_incoherent.S       |   34 ++
+ arch/tile/lib/memchr_32.c           |   68 ++++
+ arch/tile/lib/memcpy_32.S           |  628 +++++++++++++++++++++++++++++++++++
+ arch/tile/lib/memcpy_tile64.c       |  271 +++++++++++++++
+ arch/tile/lib/memmove_32.c          |   63 ++++
+ arch/tile/lib/memset_32.c           |  274 +++++++++++++++
+ arch/tile/lib/spinlock_32.c         |  221 ++++++++++++
+ arch/tile/lib/spinlock_common.h     |   64 ++++
+ arch/tile/lib/strchr_32.c           |   66 ++++
+ arch/tile/lib/strlen_32.c           |   36 ++
+ arch/tile/lib/uaccess.c             |   31 ++
+ arch/tile/lib/usercopy_32.S         |  223 +++++++++++++
+ 20 files changed, 2910 insertions(+), 0 deletions(-)
+ create mode 100644 arch/tile/lib/Makefile
+ create mode 100644 arch/tile/lib/__invalidate_icache.S
+ create mode 100644 arch/tile/lib/atomic_32.c
+ create mode 100644 arch/tile/lib/atomic_asm_32.S
+ create mode 100644 arch/tile/lib/checksum.c
+ create mode 100644 arch/tile/lib/cpumask.c
+ create mode 100644 arch/tile/lib/delay.c
+ create mode 100644 arch/tile/lib/exports.c
+ create mode 100644 arch/tile/lib/mb_incoherent.S
+ create mode 100644 arch/tile/lib/memchr_32.c
+ create mode 100644 arch/tile/lib/memcpy_32.S
+ create mode 100644 arch/tile/lib/memcpy_tile64.c
+ create mode 100644 arch/tile/lib/memmove_32.c
+ create mode 100644 arch/tile/lib/memset_32.c
+ create mode 100644 arch/tile/lib/spinlock_32.c
+ create mode 100644 arch/tile/lib/spinlock_common.h
+ create mode 100644 arch/tile/lib/strchr_32.c
+ create mode 100644 arch/tile/lib/strlen_32.c
+ create mode 100644 arch/tile/lib/uaccess.c
+ create mode 100644 arch/tile/lib/usercopy_32.S
 
-diff --git a/arch/tile/mm/Makefile b/arch/tile/mm/Makefile
+diff --git a/arch/tile/lib/Makefile b/arch/tile/lib/Makefile
 new file mode 100644
-index 0000000..e252aed
+index 0000000..ea9c209
 --- /dev/null
-+++ b/arch/tile/mm/Makefile
-@@ -0,0 +1,9 @@
++++ b/arch/tile/lib/Makefile
+@@ -0,0 +1,16 @@
 +#
-+# Makefile for the linux tile-specific parts of the memory manager.
++# Makefile for TILE-specific library files..
 +#
 +
-+obj-y	:= init.o pgtable.o fault.o extable.o elf.o \
-+	   mmap.o homecache.o migrate_$(BITS).o
++lib-y = checksum.o cpumask.o delay.o __invalidate_icache.o \
++	mb_incoherent.o uaccess.o \
++	memcpy_$(BITS).o memchr_$(BITS).o memmove_$(BITS).o memset_$(BITS).o \
++	strchr_$(BITS).o strlen_$(BITS).o
 +
-+obj-$(CONFIG_HUGETLB_PAGE) += hugetlbpage.o
-+obj-$(CONFIG_HIGHMEM) += highmem.o
-diff --git a/arch/tile/mm/elf.c b/arch/tile/mm/elf.c
++ifneq ($(CONFIG_TILEGX),y)
++lib-y += atomic_32.o atomic_asm_32.o memcpy_tile64.o
++endif
++
++lib-$(CONFIG_SMP) += spinlock_$(BITS).o usercopy_$(BITS).o
++
++obj-$(CONFIG_MODULES) += exports.o
+diff --git a/arch/tile/lib/__invalidate_icache.S b/arch/tile/lib/__invalidate_icache.S
 new file mode 100644
-index 0000000..818c9be
+index 0000000..92e7050
 --- /dev/null
-+++ b/arch/tile/mm/elf.c
-@@ -0,0 +1,164 @@
++++ b/arch/tile/lib/__invalidate_icache.S
+@@ -0,0 +1,106 @@
 +/*
 + * Copyright 2010 Tilera Corporation. All Rights Reserved.
 + *
@@ -71,2247 +98,107 @@ index 0000000..818c9be
 + *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
 + *   NON INFRINGEMENT.  See the GNU General Public License for
 + *   more details.
-+ */
-+
-+#include <linux/mm.h>
-+#include <linux/pagemap.h>
-+#include <linux/binfmts.h>
-+#include <linux/compat.h>
-+#include <linux/mman.h>
-+#include <linux/elf.h>
-+#include <asm/pgtable.h>
-+#include <asm/pgalloc.h>
-+
-+/* Notify a running simulator, if any, that an exec just occurred. */
-+static void sim_notify_exec(const char *binary_name)
-+{
-+	unsigned char c;
-+	do {
-+		c = *binary_name++;
-+		__insn_mtspr(SPR_SIM_CONTROL,
-+			     (SIM_CONTROL_OS_EXEC
-+			      | (c << _SIM_CONTROL_OPERATOR_BITS)));
-+
-+	} while (c);
-+}
-+
-+static int notify_exec(void)
-+{
-+	int retval = 0;  /* failure */
-+	struct vm_area_struct *vma = current->mm->mmap;
-+	while (vma) {
-+		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file)
-+			break;
-+		vma = vma->vm_next;
-+	}
-+	if (vma) {
-+		char *buf = (char *) __get_free_page(GFP_KERNEL);
-+		if (buf) {
-+			char *path = d_path(&vma->vm_file->f_path,
-+					    buf, PAGE_SIZE);
-+			if (!IS_ERR(path)) {
-+				sim_notify_exec(path);
-+				retval = 1;
-+			}
-+			free_page((unsigned long)buf);
-+		}
-+	}
-+	return retval;
-+}
-+
-+/* Notify a running simulator, if any, that we loaded an interpreter. */
-+static void sim_notify_interp(unsigned long load_addr)
-+{
-+	size_t i;
-+	for (i = 0; i < sizeof(load_addr); i++) {
-+		unsigned char c = load_addr >> (i * 8);
-+		__insn_mtspr(SPR_SIM_CONTROL,
-+			     (SIM_CONTROL_OS_INTERP
-+			      | (c << _SIM_CONTROL_OPERATOR_BITS)));
-+	}
-+}
-+
-+
-+/* Kernel address of page used to map read-only kernel data into userspace. */
-+static void *vdso_page;
-+
-+/* One-entry array used for install_special_mapping. */
-+static struct page *vdso_pages[1];
-+
-+int __init vdso_setup(void)
-+{
-+	extern char __rt_sigreturn[], __rt_sigreturn_end[];
-+	vdso_page = (void *)get_zeroed_page(GFP_ATOMIC);
-+	memcpy(vdso_page, __rt_sigreturn, __rt_sigreturn_end - __rt_sigreturn);
-+	vdso_pages[0] = virt_to_page(vdso_page);
-+	return 0;
-+}
-+device_initcall(vdso_setup);
-+
-+const char *arch_vma_name(struct vm_area_struct *vma)
-+{
-+	if (vma->vm_private_data == vdso_pages)
-+		return "[vdso]";
-+#ifndef __tilegx__
-+	if (vma->vm_start == MEM_USER_INTRPT)
-+		return "[intrpt]";
-+#endif
-+	return NULL;
-+}
-+
-+int arch_setup_additional_pages(struct linux_binprm *bprm,
-+				int executable_stack)
-+{
-+	struct mm_struct *mm = current->mm;
-+	unsigned long vdso_base;
-+	int retval = 0;
-+
-+	/*
-+	 * Notify the simulator that an exec just occurred.
-+	 * If we can't find the filename of the mapping, just use
-+	 * whatever was passed as the linux_binprm filename.
-+	 */
-+	if (!notify_exec())
-+		sim_notify_exec(bprm->filename);
-+
-+	down_write(&mm->mmap_sem);
-+
-+	/*
-+	 * MAYWRITE to allow gdb to COW and set breakpoints
-+	 *
-+	 * Make sure the vDSO gets into every core dump.  Dumping its
-+	 * contents makes post-mortem fully interpretable later
-+	 * without matching up the same kernel and hardware config to
-+	 * see what PC values meant.
-+	 */
-+	vdso_base = VDSO_BASE;
-+	retval = install_special_mapping(mm, vdso_base, PAGE_SIZE,
-+					 VM_READ|VM_EXEC|
-+					 VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC|
-+					 VM_ALWAYSDUMP,
-+					 vdso_pages);
-+
-+#ifndef __tilegx__
-+	/*
-+	 * Set up a user-interrupt mapping here; the user can't
-+	 * create one themselves since it is above TASK_SIZE.
-+	 * We make it unwritable by default, so the model for adding
-+	 * interrupt vectors always involves an mprotect.
-+	 */
-+	if (!retval) {
-+		unsigned long addr = MEM_USER_INTRPT;
-+		addr = mmap_region(NULL, addr, INTRPT_SIZE,
-+				   MAP_FIXED|MAP_ANONYMOUS|MAP_PRIVATE,
-+				   VM_READ|VM_EXEC|
-+				   VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC, 0);
-+		if (addr > (unsigned long) -PAGE_SIZE)
-+			retval = (int) addr;
-+	}
-+#endif
-+
-+	up_write(&mm->mmap_sem);
-+
-+	return retval;
-+}
-+
-+
-+void elf_plat_init(struct pt_regs *regs, unsigned long load_addr)
-+{
-+	/* Zero all registers. */
-+	memset(regs, 0, sizeof(*regs));
-+
-+	/* Report the interpreter's load address. */
-+	sim_notify_interp(load_addr);
-+}
-diff --git a/arch/tile/mm/extable.c b/arch/tile/mm/extable.c
-new file mode 100644
-index 0000000..4fb0acb
---- /dev/null
-+++ b/arch/tile/mm/extable.c
-@@ -0,0 +1,30 @@
-+/*
-+ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ * A routine for synchronizing the instruction and data caches.
++ * Useful for self-modifying code.
 + *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful, but
-+ *   WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-+ *   NON INFRINGEMENT.  See the GNU General Public License for
-+ *   more details.
++ * r0 holds the buffer address
++ * r1 holds the size in bytes
 + */
 +
-+#include <linux/module.h>
-+#include <linux/spinlock.h>
-+#include <linux/uaccess.h>
-+
-+int fixup_exception(struct pt_regs *regs)
-+{
-+	const struct exception_table_entry *fixup;
-+
-+	fixup = search_exception_tables(regs->pc);
-+	if (fixup) {
-+		regs->pc = fixup->fixup;
-+		return 1;
-+	}
-+
-+	return 0;
-+}
-diff --git a/arch/tile/mm/fault.c b/arch/tile/mm/fault.c
-new file mode 100644
-index 0000000..9b6b92f
---- /dev/null
-+++ b/arch/tile/mm/fault.c
-@@ -0,0 +1,905 @@
-+/*
-+ * Copyright 2010 Tilera Corporation. All Rights Reserved.
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful, but
-+ *   WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-+ *   NON INFRINGEMENT.  See the GNU General Public License for
-+ *   more details.
-+ *
-+ * From i386 code copyright (C) 1995  Linus Torvalds
-+ */
-+
-+#include <linux/signal.h>
-+#include <linux/sched.h>
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <linux/string.h>
-+#include <linux/types.h>
-+#include <linux/ptrace.h>
-+#include <linux/mman.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
-+#include <linux/smp_lock.h>
-+#include <linux/interrupt.h>
-+#include <linux/init.h>
-+#include <linux/tty.h>
-+#include <linux/vt_kern.h>		/* For unblank_screen() */
-+#include <linux/highmem.h>
-+#include <linux/module.h>
-+#include <linux/kprobes.h>
-+#include <linux/hugetlb.h>
-+#include <linux/syscalls.h>
-+#include <linux/uaccess.h>
-+
-+#include <asm/system.h>
-+#include <asm/pgalloc.h>
-+#include <asm/sections.h>
-+
-+#include <arch/interrupts.h>
-+
-+/*
-+ * Unlock any spinlocks which will prevent us from getting the
-+ * message out
-+ */
-+void bust_spinlocks(int yes)
-+{
-+	int loglevel_save = console_loglevel;
-+
-+	if (yes) {
-+		oops_in_progress = 1;
-+		return;
-+	}
-+	oops_in_progress = 0;
-+	/*
-+	 * OK, the message is on the console.  Now we call printk()
-+	 * without oops_in_progress set so that printk will give klogd
-+	 * a poke.  Hold onto your hats...
-+	 */
-+	console_loglevel = 15;	/* NMI oopser may have shut the console up */
-+	printk(" ");
-+	console_loglevel = loglevel_save;
-+}
-+
-+static noinline void force_sig_info_fault(int si_signo, int si_code,
-+	unsigned long address, int fault_num, struct task_struct *tsk)
-+{
-+	siginfo_t info;
-+
-+	if (unlikely(tsk->pid < 2)) {
-+		panic("Signal %d (code %d) at %#lx sent to %s!",
-+		      si_signo, si_code & 0xffff, address,
-+		      tsk->pid ? "init" : "the idle task");
-+	}
-+
-+	info.si_signo = si_signo;
-+	info.si_errno = 0;
-+	info.si_code = si_code;
-+	info.si_addr = (void __user *)address;
-+	info.si_trapno = fault_num;
-+	force_sig_info(si_signo, &info, tsk);
-+}
-+
-+#ifndef __tilegx__
-+/*
-+ * Synthesize the fault a PL0 process would get by doing a word-load of
-+ * an unaligned address or a high kernel address.  Called indirectly
-+ * from sys_cmpxchg() in kernel/intvec.S.
-+ */
-+int _sys_cmpxchg_badaddr(unsigned long address, struct pt_regs *regs)
-+{
-+	if (address >= PAGE_OFFSET)
-+		force_sig_info_fault(SIGSEGV, SEGV_MAPERR, address,
-+				     INT_DTLB_MISS, current);
-+	else
-+		force_sig_info_fault(SIGBUS, BUS_ADRALN, address,
-+				     INT_UNALIGN_DATA, current);
-+
-+	/*
-+	 * Adjust pc to point at the actual instruction, which is unusual
-+	 * for syscalls normally, but is appropriate when we are claiming
-+	 * that a syscall swint1 caused a page fault or bus error.
-+	 */
-+	regs->pc -= 8;
-+
-+	/*
-+	 * Mark this as a caller-save interrupt, like a normal page fault,
-+	 * so that when we go through the signal handler path we will
-+	 * properly restore r0, r1, and r2 for the signal handler arguments.
-+	 */
-+	regs->flags |= PT_FLAGS_CALLER_SAVES;
-+
-+	return 0;
-+}
-+#endif
-+
-+static inline pmd_t *vmalloc_sync_one(pgd_t *pgd, unsigned long address)
-+{
-+	unsigned index = pgd_index(address);
-+	pgd_t *pgd_k;
-+	pud_t *pud, *pud_k;
-+	pmd_t *pmd, *pmd_k;
-+
-+	pgd += index;
-+	pgd_k = init_mm.pgd + index;
-+
-+	if (!pgd_present(*pgd_k))
-+		return NULL;
-+
-+	pud = pud_offset(pgd, address);
-+	pud_k = pud_offset(pgd_k, address);
-+	if (!pud_present(*pud_k))
-+		return NULL;
-+
-+	pmd = pmd_offset(pud, address);
-+	pmd_k = pmd_offset(pud_k, address);
-+	if (!pmd_present(*pmd_k))
-+		return NULL;
-+	if (!pmd_present(*pmd)) {
-+		set_pmd(pmd, *pmd_k);
-+		arch_flush_lazy_mmu_mode();
-+	} else
-+		BUG_ON(pmd_ptfn(*pmd) != pmd_ptfn(*pmd_k));
-+	return pmd_k;
-+}
-+
-+/*
-+ * Handle a fault on the vmalloc or module mapping area
-+ */
-+static inline int vmalloc_fault(pgd_t *pgd, unsigned long address)
-+{
-+	pmd_t *pmd_k;
-+	pte_t *pte_k;
-+
-+	/* Make sure we are in vmalloc area */
-+	if (!(address >= VMALLOC_START && address < VMALLOC_END))
-+		return -1;
-+
-+	/*
-+	 * Synchronize this task's top level page-table
-+	 * with the 'reference' page table.
-+	 */
-+	pmd_k = vmalloc_sync_one(pgd, address);
-+	if (!pmd_k)
-+		return -1;
-+	if (pmd_huge(*pmd_k))
-+		return 0;   /* support TILE huge_vmap() API */
-+	pte_k = pte_offset_kernel(pmd_k, address);
-+	if (!pte_present(*pte_k))
-+		return -1;
-+	return 0;
-+}
-+
-+/* Wait until this PTE has completed migration. */
-+static void wait_for_migration(pte_t *pte)
-+{
-+	if (pte_migrating(*pte)) {
-+		/*
-+		 * Wait until the migrater fixes up this pte.
-+		 * We scale the loop count by the clock rate so we'll wait for
-+		 * a few seconds here.
-+		 */
-+		int retries = 0;
-+		int bound = get_clock_rate();
-+		while (pte_migrating(*pte)) {
-+			barrier();
-+			if (++retries > bound)
-+				panic("Hit migrating PTE (%#llx) and"
-+				      " page PFN %#lx still migrating",
-+				      pte->val, pte_pfn(*pte));
-+		}
-+	}
-+}
-+
-+/*
-+ * It's not generally safe to use "current" to get the page table pointer,
-+ * since we might be running an oprofile interrupt in the middle of a
-+ * task switch.
-+ */
-+static pgd_t *get_current_pgd(void)
-+{
-+	HV_Context ctx = hv_inquire_context();
-+	unsigned long pgd_pfn = ctx.page_table >> PAGE_SHIFT;
-+	struct page *pgd_page = pfn_to_page(pgd_pfn);
-+	BUG_ON(PageHighMem(pgd_page));   /* oops, HIGHPTE? */
-+	return (pgd_t *) __va(ctx.page_table);
-+}
-+
-+/*
-+ * We can receive a page fault from a migrating PTE at any time.
-+ * Handle it by just waiting until the fault resolves.
-+ *
-+ * It's also possible to get a migrating kernel PTE that resolves
-+ * itself during the downcall from hypervisor to Linux.  We just check
-+ * here to see if the PTE seems valid, and if so we retry it.
-+ *
-+ * NOTE! We MUST NOT take any locks for this case.  We may be in an
-+ * interrupt or a critical region, and must do as little as possible.
-+ * Similarly, we can't use atomic ops here, since we may be handling a
-+ * fault caused by an atomic op access.
-+ */
-+static int handle_migrating_pte(pgd_t *pgd, int fault_num,
-+				unsigned long address,
-+				int is_kernel_mode, int write)
-+{
-+	pud_t *pud;
-+	pmd_t *pmd;
-+	pte_t *pte;
-+	pte_t pteval;
-+
-+	if (pgd_addr_invalid(address))
-+		return 0;
-+
-+	pgd += pgd_index(address);
-+	pud = pud_offset(pgd, address);
-+	if (!pud || !pud_present(*pud))
-+		return 0;
-+	pmd = pmd_offset(pud, address);
-+	if (!pmd || !pmd_present(*pmd))
-+		return 0;
-+	pte = pmd_huge_page(*pmd) ? ((pte_t *)pmd) :
-+		pte_offset_kernel(pmd, address);
-+	pteval = *pte;
-+	if (pte_migrating(pteval)) {
-+		wait_for_migration(pte);
-+		return 1;
-+	}
-+
-+	if (!is_kernel_mode || !pte_present(pteval))
-+		return 0;
-+	if (fault_num == INT_ITLB_MISS) {
-+		if (pte_exec(pteval))
-+			return 1;
-+	} else if (write) {
-+		if (pte_write(pteval))
-+			return 1;
-+	} else {
-+		if (pte_read(pteval))
-+			return 1;
-+	}
-+
-+	return 0;
-+}
-+
-+/*
-+ * This routine is responsible for faulting in user pages.
-+ * It passes the work off to one of the appropriate routines.
-+ * It returns true if the fault was successfully handled.
-+ */
-+static int handle_page_fault(struct pt_regs *regs,
-+			     int fault_num,
-+			     int is_page_fault,
-+			     unsigned long address,
-+			     int write)
-+{
-+	struct task_struct *tsk;
-+	struct mm_struct *mm;
-+	struct vm_area_struct *vma;
-+	unsigned long stack_offset;
-+	int fault;
-+	int si_code;
-+	int is_kernel_mode;
-+	pgd_t *pgd;
-+
-+	/* on TILE, protection faults are always writes */
-+	if (!is_page_fault)
-+		write = 1;
-+
-+	is_kernel_mode = (EX1_PL(regs->ex1) != USER_PL);
-+
-+	tsk = validate_current();
-+
-+	/*
-+	 * Check to see if we might be overwriting the stack, and bail
-+	 * out if so.  The page fault code is a relatively likely
-+	 * place to get trapped in an infinite regress, and once we
-+	 * overwrite the whole stack, it becomes very hard to recover.
-+	 */
-+	stack_offset = stack_pointer & (THREAD_SIZE-1);
-+	if (stack_offset < THREAD_SIZE / 8) {
-+		printk(KERN_ALERT "Potential stack overrun: sp %#lx\n",
-+		       stack_pointer);
-+		show_regs(regs);
-+		printk(KERN_ALERT "Killing current process %d/%s\n",
-+		       tsk->pid, tsk->comm);
-+		do_group_exit(SIGKILL);
-+	}
-+
-+	/*
-+	 * Early on, we need to check for migrating PTE entries;
-+	 * see homecache.c.  If we find a migrating PTE, we wait until
-+	 * the backing page claims to be done migrating, then we procede.
-+	 * For kernel PTEs, we rewrite the PTE and return and retry.
-+	 * Otherwise, we treat the fault like a normal "no PTE" fault,
-+	 * rather than trying to patch up the existing PTE.
-+	 */
-+	pgd = get_current_pgd();
-+	if (handle_migrating_pte(pgd, fault_num, address,
-+				 is_kernel_mode, write))
-+		return 1;
-+
-+	si_code = SEGV_MAPERR;
-+
-+	/*
-+	 * We fault-in kernel-space virtual memory on-demand. The
-+	 * 'reference' page table is init_mm.pgd.
-+	 *
-+	 * NOTE! We MUST NOT take any locks for this case. We may
-+	 * be in an interrupt or a critical region, and should
-+	 * only copy the information from the master page table,
-+	 * nothing more.
-+	 *
-+	 * This verifies that the fault happens in kernel space
-+	 * and that the fault was not a protection fault.
-+	 */
-+	if (unlikely(address >= TASK_SIZE &&
-+		     !is_arch_mappable_range(address, 0))) {
-+		if (is_kernel_mode && is_page_fault &&
-+		    vmalloc_fault(pgd, address) >= 0)
-+			return 1;
-+		/*
-+		 * Don't take the mm semaphore here. If we fixup a prefetch
-+		 * fault we could otherwise deadlock.
-+		 */
-+		mm = NULL;  /* happy compiler */
-+		vma = NULL;
-+		goto bad_area_nosemaphore;
-+	}
-+
-+	/*
-+	 * If we're trying to touch user-space addresses, we must
-+	 * be either at PL0, or else with interrupts enabled in the
-+	 * kernel, so either way we can re-enable interrupts here.
-+	 */
-+	local_irq_enable();
-+
-+	mm = tsk->mm;
-+
-+	/*
-+	 * If we're in an interrupt, have no user context or are running in an
-+	 * atomic region then we must not take the fault.
-+	 */
-+	if (in_atomic() || !mm) {
-+		vma = NULL;  /* happy compiler */
-+		goto bad_area_nosemaphore;
-+	}
-+
-+	/*
-+	 * When running in the kernel we expect faults to occur only to
-+	 * addresses in user space.  All other faults represent errors in the
-+	 * kernel and should generate an OOPS.  Unfortunately, in the case of an
-+	 * erroneous fault occurring in a code path which already holds mmap_sem
-+	 * we will deadlock attempting to validate the fault against the
-+	 * address space.  Luckily the kernel only validly references user
-+	 * space from well defined areas of code, which are listed in the
-+	 * exceptions table.
-+	 *
-+	 * As the vast majority of faults will be valid we will only perform
-+	 * the source reference check when there is a possibility of a deadlock.
-+	 * Attempt to lock the address space, if we cannot we then validate the
-+	 * source.  If this is invalid we can skip the address space check,
-+	 * thus avoiding the deadlock.
-+	 */
-+	if (!down_read_trylock(&mm->mmap_sem)) {
-+		if (is_kernel_mode &&
-+		    !search_exception_tables(regs->pc)) {
-+			vma = NULL;  /* happy compiler */
-+			goto bad_area_nosemaphore;
-+		}
-+		down_read(&mm->mmap_sem);
-+	}
-+
-+	vma = find_vma(mm, address);
-+	if (!vma)
-+		goto bad_area;
-+	if (vma->vm_start <= address)
-+		goto good_area;
-+	if (!(vma->vm_flags & VM_GROWSDOWN))
-+		goto bad_area;
-+	if (regs->sp < PAGE_OFFSET) {
-+		/*
-+		 * accessing the stack below sp is always a bug.
-+		 */
-+		if (address < regs->sp)
-+			goto bad_area;
-+	}
-+	if (expand_stack(vma, address))
-+		goto bad_area;
-+
-+/*
-+ * Ok, we have a good vm_area for this memory access, so
-+ * we can handle it..
-+ */
-+good_area:
-+	si_code = SEGV_ACCERR;
-+	if (fault_num == INT_ITLB_MISS) {
-+		if (!(vma->vm_flags & VM_EXEC))
-+			goto bad_area;
-+	} else if (write) {
-+#ifdef TEST_VERIFY_AREA
-+		if (!is_page_fault && regs->cs == KERNEL_CS)
-+			printk("WP fault at "REGFMT"\n", regs->eip);
-+#endif
-+		if (!(vma->vm_flags & VM_WRITE))
-+			goto bad_area;
-+	} else {
-+		if (!is_page_fault || !(vma->vm_flags & VM_READ))
-+			goto bad_area;
-+	}
-+
-+ survive:
-+	/*
-+	 * If for any reason at all we couldn't handle the fault,
-+	 * make sure we exit gracefully rather than endlessly redo
-+	 * the fault.
-+	 */
-+	fault = handle_mm_fault(mm, vma, address, write);
-+	if (unlikely(fault & VM_FAULT_ERROR)) {
-+		if (fault & VM_FAULT_OOM)
-+			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGBUS)
-+			goto do_sigbus;
-+		BUG();
-+	}
-+	if (fault & VM_FAULT_MAJOR)
-+		tsk->maj_flt++;
-+	else
-+		tsk->min_flt++;
-+
-+	/*
-+	 * If this was an asynchronous fault,
-+	 * restart the appropriate engine.
-+	 */
-+	switch (fault_num) {
-+#if CHIP_HAS_TILE_DMA()
-+	case INT_DMATLB_MISS:
-+	case INT_DMATLB_MISS_DWNCL:
-+	case INT_DMATLB_ACCESS:
-+	case INT_DMATLB_ACCESS_DWNCL:
-+		__insn_mtspr(SPR_DMA_CTR, SPR_DMA_CTR__REQUEST_MASK);
-+		break;
-+#endif
-+#if CHIP_HAS_SN_PROC()
-+	case INT_SNITLB_MISS:
-+	case INT_SNITLB_MISS_DWNCL:
-+		__insn_mtspr(SPR_SNCTL,
-+			     __insn_mfspr(SPR_SNCTL) &
-+			     ~SPR_SNCTL__FRZPROC_MASK);
-+		break;
-+#endif
-+	}
-+
-+	up_read(&mm->mmap_sem);
-+	return 1;
-+
-+/*
-+ * Something tried to access memory that isn't in our memory map..
-+ * Fix it, but check if it's kernel or user first..
-+ */
-+bad_area:
-+	up_read(&mm->mmap_sem);
-+
-+bad_area_nosemaphore:
-+	/* User mode accesses just cause a SIGSEGV */
-+	if (!is_kernel_mode) {
-+		/*
-+		 * It's possible to have interrupts off here.
-+		 */
-+		local_irq_enable();
-+
-+		force_sig_info_fault(SIGSEGV, si_code, address,
-+				     fault_num, tsk);
-+		return 0;
-+	}
-+
-+no_context:
-+	/* Are we prepared to handle this kernel fault?  */
-+	if (fixup_exception(regs))
-+		return 0;
-+
-+/*
-+ * Oops. The kernel tried to access some bad page. We'll have to
-+ * terminate things with extreme prejudice.
-+ */
-+
-+	bust_spinlocks(1);
-+
-+	/* FIXME: no lookup_address() yet */
-+#ifdef SUPPORT_LOOKUP_ADDRESS
-+	if (fault_num == INT_ITLB_MISS) {
-+		pte_t *pte = lookup_address(address);
-+
-+		if (pte && pte_present(*pte) && !pte_exec_kernel(*pte))
-+			printk(KERN_CRIT "kernel tried to execute"
-+			       " non-executable page - exploit attempt?"
-+			       " (uid: %d)\n", current->uid);
-+	}
-+#endif
-+	if (address < PAGE_SIZE)
-+		printk(KERN_ALERT "Unable to handle kernel NULL pointer dereference\n");
-+	else
-+		printk(KERN_ALERT "Unable to handle kernel paging request\n");
-+	printk(" at virtual address "REGFMT", pc "REGFMT"\n",
-+	       address, regs->pc);
-+
-+	show_regs(regs);
-+
-+	if (unlikely(tsk->pid < 2)) {
-+		panic("Kernel page fault running %s!",
-+		      tsk->pid ? "init" : "the idle task");
-+	}
-+
-+	/*
-+	 * More FIXME: we should probably copy the i386 here and
-+	 * implement a generic die() routine.  Not today.
-+	 */
-+#ifdef SUPPORT_DIE
-+	die("Oops", regs);
-+#endif
-+	bust_spinlocks(1);
-+
-+	do_group_exit(SIGKILL);
-+
-+/*
-+ * We ran out of memory, or some other thing happened to us that made
-+ * us unable to handle the page fault gracefully.
-+ */
-+out_of_memory:
-+	up_read(&mm->mmap_sem);
-+	if (is_global_init(tsk)) {
-+		yield();
-+		down_read(&mm->mmap_sem);
-+		goto survive;
-+	}
-+	printk("VM: killing process %s\n", tsk->comm);
-+	if (!is_kernel_mode)
-+		do_group_exit(SIGKILL);
-+	goto no_context;
-+
-+do_sigbus:
-+	up_read(&mm->mmap_sem);
-+
-+	/* Kernel mode? Handle exceptions or die */
-+	if (is_kernel_mode)
-+		goto no_context;
-+
-+	force_sig_info_fault(SIGBUS, BUS_ADRERR, address, fault_num, tsk);
-+	return 0;
-+}
-+
-+#ifndef __tilegx__
-+
-+extern char sys_cmpxchg[], __sys_cmpxchg_end[];
-+extern char __sys_cmpxchg_grab_lock[];
-+extern char __start_atomic_asm_code[], __end_atomic_asm_code[];
-+
-+/*
-+ * We return this structure in registers to avoid having to write
-+ * additional save/restore code in the intvec.S caller.
-+ */
-+struct intvec_state {
-+	void *handler;
-+	unsigned long vecnum;
-+	unsigned long fault_num;
-+	unsigned long info;
-+	unsigned long retval;
-+};
-+
-+/* We must release ICS before panicking or we won't get anywhere. */
-+#define ics_panic(fmt, ...) do { \
-+	__insn_mtspr(SPR_INTERRUPT_CRITICAL_SECTION, 0); \
-+	panic(fmt, __VA_ARGS__); \
-+} while (0)
-+
-+void do_page_fault(struct pt_regs *regs, int fault_num,
-+		   unsigned long address, unsigned long write);
-+
-+/*
-+ * When we take an ITLB or DTLB fault or access violation in the
-+ * supervisor while the critical section bit is set, the hypervisor is
-+ * reluctant to write new values into the EX_CONTEXT_1_x registers,
-+ * since that might indicate we have not yet squirreled the SPR
-+ * contents away and can thus safely take a recursive interrupt.
-+ * Accordingly, the hypervisor passes us the PC via SYSTEM_SAVE_1_2.
-+ */
-+struct intvec_state do_page_fault_ics(struct pt_regs *regs, int fault_num,
-+				      unsigned long address,
-+				      unsigned long info)
-+{
-+	unsigned long pc = info & ~1;
-+	int write = info & 1;
-+	pgd_t *pgd = get_current_pgd();
-+
-+	/* Retval is 1 at first since we will handle the fault fully. */
-+	struct intvec_state state = {
-+		do_page_fault, fault_num, address, write, 1
-+	};
-+
-+	/* Validate that we are plausibly in the right routine. */
-+	if ((pc & 0x7) != 0 || pc < PAGE_OFFSET ||
-+	    (fault_num != INT_DTLB_MISS &&
-+	     fault_num != INT_DTLB_ACCESS)) {
-+		unsigned long old_pc = regs->pc;
-+		regs->pc = pc;
-+		ics_panic("Bad ICS page fault args:"
-+			  " old PC %#lx, fault %d/%d at %#lx\n",
-+			  old_pc, fault_num, write, address);
-+	}
-+
-+	/* We might be faulting on a vmalloc page, so check that first. */
-+	if (fault_num != INT_DTLB_ACCESS && vmalloc_fault(pgd, address) >= 0)
-+		return state;
-+
-+	/*
-+	 * If we faulted with ICS set in sys_cmpxchg, we are providing
-+	 * a user syscall service that should generate a signal on
-+	 * fault.  We didn't set up a kernel stack on initial entry to
-+	 * sys_cmpxchg, but instead had one set up by the fault, which
-+	 * (because sys_cmpxchg never releases ICS) came to us via the
-+	 * SYSTEM_SAVE_1_2 mechanism, and thus EX_CONTEXT_1_[01] are
-+	 * still referencing the original user code.  We release the
-+	 * atomic lock and rewrite pt_regs so that it appears that we
-+	 * came from user-space directly, and after we finish the
-+	 * fault we'll go back to user space and re-issue the swint.
-+	 * This way the backtrace information is correct if we need to
-+	 * emit a stack dump at any point while handling this.
-+	 *
-+	 * Must match register use in sys_cmpxchg().
-+	 */
-+	if (pc >= (unsigned long) sys_cmpxchg &&
-+	    pc < (unsigned long) __sys_cmpxchg_end) {
-+#ifdef CONFIG_SMP
-+		/* Don't unlock before we could have locked. */
-+		if (pc >= (unsigned long)__sys_cmpxchg_grab_lock) {
-+			int *lock_ptr = (int *)(regs->regs[ATOMIC_LOCK_REG]);
-+			__atomic_fault_unlock(lock_ptr);
-+		}
-+#endif
-+		regs->sp = regs->regs[27];
-+	}
-+
-+	/*
-+	 * We can also fault in the atomic assembly, in which
-+	 * case we use the exception table to do the first-level fixup.
-+	 * We may re-fixup again in the real fault handler if it
-+	 * turns out the faulting address is just bad, and not,
-+	 * for example, migrating.
-+	 */
-+	else if (pc >= (unsigned long) __start_atomic_asm_code &&
-+		   pc < (unsigned long) __end_atomic_asm_code) {
-+		const struct exception_table_entry *fixup;
-+#ifdef CONFIG_SMP
-+		/* Unlock the atomic lock. */
-+		int *lock_ptr = (int *)(regs->regs[ATOMIC_LOCK_REG]);
-+		__atomic_fault_unlock(lock_ptr);
-+#endif
-+		fixup = search_exception_tables(pc);
-+		if (!fixup)
-+			ics_panic("ICS atomic fault not in table:"
-+				  " PC %#lx, fault %d", pc, fault_num);
-+		regs->pc = fixup->fixup;
-+		regs->ex1 = PL_ICS_EX1(KERNEL_PL, 0);
-+	}
-+
-+	/*
-+	 * NOTE: the one other type of access that might bring us here
-+	 * are the memory ops in __tns_atomic_acquire/__tns_atomic_release,
-+	 * but we don't have to check specially for them since we can
-+	 * always safely return to the address of the fault and retry,
-+	 * since no separate atomic locks are involved.
-+	 */
-+
-+	/*
-+	 * Now that we have released the atomic lock (if necessary),
-+	 * it's safe to spin if the PTE that caused the fault was migrating.
-+	 */
-+	if (fault_num == INT_DTLB_ACCESS)
-+		write = 1;
-+	if (handle_migrating_pte(pgd, fault_num, address, 1, write))
-+		return state;
-+
-+	/* Return zero so that we continue on with normal fault handling. */
-+	state.retval = 0;
-+	return state;
-+}
-+
-+#endif /* !__tilegx__ */
-+
-+/*
-+ * This routine handles page faults.  It determines the address, and the
-+ * problem, and then passes it handle_page_fault() for normal DTLB and
-+ * ITLB issues, and for DMA or SN processor faults when we are in user
-+ * space.  For the latter, if we're in kernel mode, we just save the
-+ * interrupt away appropriately and return immediately.  We can't do
-+ * page faults for user code while in kernel mode.
-+ */
-+void do_page_fault(struct pt_regs *regs, int fault_num,
-+		   unsigned long address, unsigned long write)
-+{
-+	int is_page_fault;
-+
-+	/* This case should have been handled by do_page_fault_ics(). */
-+	BUG_ON(write & ~1);
-+
-+#if CHIP_HAS_TILE_DMA()
-+	/*
-+	 * If it's a DMA fault, suspend the transfer while we're
-+	 * handling the miss; we'll restart after it's handled.  If we
-+	 * don't suspend, it's possible that this process could swap
-+	 * out and back in, and restart the engine since the DMA is
-+	 * still 'running'.
-+	 */
-+	if (fault_num == INT_DMATLB_MISS ||
-+	    fault_num == INT_DMATLB_ACCESS ||
-+	    fault_num == INT_DMATLB_MISS_DWNCL ||
-+	    fault_num == INT_DMATLB_ACCESS_DWNCL) {
-+		__insn_mtspr(SPR_DMA_CTR, SPR_DMA_CTR__SUSPEND_MASK);
-+		while (__insn_mfspr(SPR_DMA_USER_STATUS) &
-+		       SPR_DMA_STATUS__BUSY_MASK)
-+			;
-+	}
-+#endif
-+
-+	/* Validate fault num and decide if this is a first-time page fault. */
-+	switch (fault_num) {
-+	case INT_ITLB_MISS:
-+	case INT_DTLB_MISS:
-+#if CHIP_HAS_TILE_DMA()
-+	case INT_DMATLB_MISS:
-+	case INT_DMATLB_MISS_DWNCL:
-+#endif
-+#if CHIP_HAS_SN_PROC()
-+	case INT_SNITLB_MISS:
-+	case INT_SNITLB_MISS_DWNCL:
-+#endif
-+		is_page_fault = 1;
-+		break;
-+
-+	case INT_DTLB_ACCESS:
-+#if CHIP_HAS_TILE_DMA()
-+	case INT_DMATLB_ACCESS:
-+	case INT_DMATLB_ACCESS_DWNCL:
-+#endif
-+		is_page_fault = 0;
-+		break;
-+
-+	default:
-+		panic("Bad fault number %d in do_page_fault", fault_num);
-+	}
-+
-+	if (EX1_PL(regs->ex1) != USER_PL) {
-+		struct async_tlb *async;
-+		switch (fault_num) {
-+#if CHIP_HAS_TILE_DMA()
-+		case INT_DMATLB_MISS:
-+		case INT_DMATLB_ACCESS:
-+		case INT_DMATLB_MISS_DWNCL:
-+		case INT_DMATLB_ACCESS_DWNCL:
-+			async = &current->thread.dma_async_tlb;
-+			break;
-+#endif
-+#if CHIP_HAS_SN_PROC()
-+		case INT_SNITLB_MISS:
-+		case INT_SNITLB_MISS_DWNCL:
-+			async = &current->thread.sn_async_tlb;
-+			break;
-+#endif
-+		default:
-+			async = NULL;
-+		}
-+		if (async) {
-+
-+			/*
-+			 * No vmalloc check required, so we can allow
-+			 * interrupts immediately at this point.
-+			 */
-+			local_irq_enable();
-+
-+			set_thread_flag(TIF_ASYNC_TLB);
-+			if (async->fault_num != 0) {
-+				panic("Second async fault %d;"
-+				      " old fault was %d (%#lx/%ld)",
-+				      fault_num, async->fault_num,
-+				      address, write);
-+			}
-+			BUG_ON(fault_num == 0);
-+			async->fault_num = fault_num;
-+			async->is_fault = is_page_fault;
-+			async->is_write = write;
-+			async->address = address;
-+			return;
-+		}
-+	}
-+
-+	handle_page_fault(regs, fault_num, is_page_fault, address, write);
-+}
-+
-+
-+#if CHIP_HAS_TILE_DMA() || CHIP_HAS_SN_PROC()
-+/*
-+ * Check an async_tlb structure to see if a deferred fault is waiting,
-+ * and if so pass it to the page-fault code.
-+ */
-+static void handle_async_page_fault(struct pt_regs *regs,
-+				    struct async_tlb *async)
-+{
-+	if (async->fault_num) {
-+		/*
-+		 * Clear async->fault_num before calling the page-fault
-+		 * handler so that if we re-interrupt before returning
-+		 * from the function we have somewhere to put the
-+		 * information from the new interrupt.
-+		 */
-+		int fault_num = async->fault_num;
-+		async->fault_num = 0;
-+		handle_page_fault(regs, fault_num, async->is_fault,
-+				  async->address, async->is_write);
-+	}
-+}
-+#endif /* CHIP_HAS_TILE_DMA() || CHIP_HAS_SN_PROC() */
-+
-+
-+/*
-+ * This routine effectively re-issues asynchronous page faults
-+ * when we are returning to user space.
-+ */
-+void do_async_page_fault(struct pt_regs *regs)
-+{
-+	/*
-+	 * Clear thread flag early.  If we re-interrupt while processing
-+	 * code here, we will reset it and recall this routine before
-+	 * returning to user space.
-+	 */
-+	clear_thread_flag(TIF_ASYNC_TLB);
-+
-+#if CHIP_HAS_TILE_DMA()
-+	handle_async_page_fault(regs, &current->thread.dma_async_tlb);
-+#endif
-+#if CHIP_HAS_SN_PROC()
-+	handle_async_page_fault(regs, &current->thread.sn_async_tlb);
-+#endif
-+}
-+
-+void vmalloc_sync_all(void)
-+{
-+#ifdef __tilegx__
-+	/* Currently all L1 kernel pmd's are static and shared. */
-+	BUG_ON(pgd_index(VMALLOC_END) != pgd_index(VMALLOC_START));
++#include <arch/chip.h>
++#include <feedback.h>
++
++#if defined(__NEWLIB__) || defined(__BME__)
++#include <sys/page.h>
 +#else
-+	/*
-+	 * Note that races in the updates of insync and start aren't
-+	 * problematic: insync can only get set bits added, and updates to
-+	 * start are only improving performance (without affecting correctness
-+	 * if undone).
-+	 */
-+	static DECLARE_BITMAP(insync, PTRS_PER_PGD);
-+	static unsigned long start = PAGE_OFFSET;
-+	unsigned long address;
-+
-+	BUILD_BUG_ON(PAGE_OFFSET & ~PGDIR_MASK);
-+	for (address = start; address >= PAGE_OFFSET; address += PGDIR_SIZE) {
-+		if (!test_bit(pgd_index(address), insync)) {
-+			unsigned long flags;
-+			struct list_head *pos;
-+
-+			spin_lock_irqsave(&pgd_lock, flags);
-+			list_for_each(pos, &pgd_list)
-+				if (!vmalloc_sync_one(list_to_pgd(pos),
-+								address)) {
-+					/* Must be at first entry in list. */
-+					BUG_ON(pos != pgd_list.next);
-+					break;
-+				}
-+			spin_unlock_irqrestore(&pgd_lock, flags);
-+			if (pos != pgd_list.next)
-+				set_bit(pgd_index(address), insync);
-+		}
-+		if (address == start && test_bit(pgd_index(address), insync))
-+			start = address + PGDIR_SIZE;
-+	}
-+#endif
-+}
-diff --git a/arch/tile/mm/highmem.c b/arch/tile/mm/highmem.c
-new file mode 100644
-index 0000000..1fcecc5
---- /dev/null
-+++ b/arch/tile/mm/highmem.c
-@@ -0,0 +1,328 @@
-+/*
-+ * Copyright 2010 Tilera Corporation. All Rights Reserved.
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful, but
-+ *   WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-+ *   NON INFRINGEMENT.  See the GNU General Public License for
-+ *   more details.
-+ */
-+
-+#include <linux/highmem.h>
-+#include <linux/module.h>
-+#include <linux/pagemap.h>
-+#include <asm/homecache.h>
-+
-+#define kmap_get_pte(vaddr) \
-+	pte_offset_kernel(pmd_offset(pud_offset(pgd_offset_k(vaddr), (vaddr)),\
-+		(vaddr)), (vaddr))
-+
-+
-+void *kmap(struct page *page)
-+{
-+	void *kva;
-+	unsigned long flags;
-+	pte_t *ptep;
-+
-+	might_sleep();
-+	if (!PageHighMem(page))
-+		return page_address(page);
-+	kva = kmap_high(page);
-+
-+	/*
-+	 * Rewrite the PTE under the lock.  This ensures that the page
-+	 * is not currently migrating.
-+	 */
-+	ptep = kmap_get_pte((unsigned long)kva);
-+	flags = homecache_kpte_lock();
-+	set_pte_at(&init_mm, kva, ptep, mk_pte(page, page_to_kpgprot(page)));
-+	homecache_kpte_unlock(flags);
-+
-+	return kva;
-+}
-+EXPORT_SYMBOL(kmap);
-+
-+void kunmap(struct page *page)
-+{
-+	if (in_interrupt())
-+		BUG();
-+	if (!PageHighMem(page))
-+		return;
-+	kunmap_high(page);
-+}
-+EXPORT_SYMBOL(kunmap);
-+
-+static void debug_kmap_atomic_prot(enum km_type type)
-+{
-+#ifdef CONFIG_DEBUG_HIGHMEM
-+	static unsigned warn_count = 10;
-+
-+	if (unlikely(warn_count == 0))
-+		return;
-+
-+	if (unlikely(in_interrupt())) {
-+		if (in_irq()) {
-+			if (type != KM_IRQ0 && type != KM_IRQ1 &&
-+			    type != KM_BIO_SRC_IRQ &&
-+			    /* type != KM_BIO_DST_IRQ && */
-+			    type != KM_BOUNCE_READ) {
-+				WARN_ON(1);
-+				warn_count--;
-+			}
-+		} else if (!irqs_disabled()) {	/* softirq */
-+			if (type != KM_IRQ0 && type != KM_IRQ1 &&
-+			    type != KM_SOFTIRQ0 && type != KM_SOFTIRQ1 &&
-+			    type != KM_SKB_SUNRPC_DATA &&
-+			    type != KM_SKB_DATA_SOFTIRQ &&
-+			    type != KM_BOUNCE_READ) {
-+				WARN_ON(1);
-+				warn_count--;
-+			}
-+		}
-+	}
-+
-+	if (type == KM_IRQ0 || type == KM_IRQ1 || type == KM_BOUNCE_READ ||
-+	    type == KM_BIO_SRC_IRQ /* || type == KM_BIO_DST_IRQ */) {
-+		if (!irqs_disabled()) {
-+			WARN_ON(1);
-+			warn_count--;
-+		}
-+	} else if (type == KM_SOFTIRQ0 || type == KM_SOFTIRQ1) {
-+		if (irq_count() == 0 && !irqs_disabled()) {
-+			WARN_ON(1);
-+			warn_count--;
-+		}
-+	}
-+#endif
-+}
-+
-+/*
-+ * Describe a single atomic mapping of a page on a given cpu at a
-+ * given address, and allow it to be linked into a list.
-+ */
-+struct atomic_mapped_page {
-+	struct list_head list;
-+	struct page *page;
-+	int cpu;
-+	unsigned long va;
-+};
-+
-+static spinlock_t amp_lock = __SPIN_LOCK_UNLOCKED(&amp_lock);
-+static struct list_head amp_list = LIST_HEAD_INIT(amp_list);
-+
-+/*
-+ * Combining this structure with a per-cpu declaration lets us give
-+ * each cpu an atomic_mapped_page structure per type.
-+ */
-+struct kmap_amps {
-+	struct atomic_mapped_page per_type[KM_TYPE_NR];
-+};
-+DEFINE_PER_CPU(struct kmap_amps, amps);
-+
-+/*
-+ * Add a page and va, on this cpu, to the list of kmap_atomic pages,
-+ * and write the new pte to memory.  Writing the new PTE under the
-+ * lock guarantees that it is either on the list before migration starts
-+ * (if we won the race), or set_pte() sets the migrating bit in the PTE
-+ * (if we lost the race).  And doing it under the lock guarantees
-+ * that when kmap_atomic_fix_one_pte() comes along, it finds a valid
-+ * PTE in memory, iff the mapping is still on the amp_list.
-+ *
-+ * Finally, doing it under the lock lets us safely examine the page
-+ * to see if it is immutable or not, for the generic kmap_atomic() case.
-+ * If we examine it earlier we are exposed to a race where it looks
-+ * writable earlier, but becomes immutable before we write the PTE.
-+ */
-+static void kmap_atomic_register(struct page *page, enum km_type type,
-+				 unsigned long va, pte_t *ptep, pte_t pteval)
-+{
-+	unsigned long flags;
-+	struct atomic_mapped_page *amp;
-+
-+	flags = homecache_kpte_lock();
-+	spin_lock(&amp_lock);
-+
-+	/* With interrupts disabled, now fill in the per-cpu info. */
-+	amp = &__get_cpu_var(amps).per_type[type];
-+	amp->page = page;
-+	amp->cpu = smp_processor_id();
-+	amp->va = va;
-+
-+	/* For generic kmap_atomic(), choose the PTE writability now. */
-+	if (!pte_read(pteval))
-+		pteval = mk_pte(page, page_to_kpgprot(page));
-+
-+	list_add(&amp->list, &amp_list);
-+	set_pte(ptep, pteval);
-+	arch_flush_lazy_mmu_mode();
-+
-+	spin_unlock(&amp_lock);
-+	homecache_kpte_unlock(flags);
-+}
-+
-+/*
-+ * Remove a page and va, on this cpu, from the list of kmap_atomic pages.
-+ * Linear-time search, but we count on the lists being short.
-+ * We don't need to adjust the PTE under the lock (as opposed to the
-+ * kmap_atomic_register() case), since we're just unconditionally
-+ * zeroing the PTE after it's off the list.
-+ */
-+static void kmap_atomic_unregister(struct page *page, unsigned long va)
-+{
-+	unsigned long flags;
-+	struct atomic_mapped_page *amp;
-+	int cpu = smp_processor_id();
-+	spin_lock_irqsave(&amp_lock, flags);
-+	list_for_each_entry(amp, &amp_list, list) {
-+		if (amp->page == page && amp->cpu == cpu && amp->va == va)
-+			break;
-+	}
-+	BUG_ON(&amp->list == &amp_list);
-+	list_del(&amp->list);
-+	spin_unlock_irqrestore(&amp_lock, flags);
-+}
-+
-+/* Helper routine for kmap_atomic_fix_kpte(), below. */
-+static void kmap_atomic_fix_one_kpte(struct atomic_mapped_page *amp,
-+				     int finished)
-+{
-+	pte_t *ptep = kmap_get_pte(amp->va);
-+	if (!finished) {
-+		set_pte(ptep, pte_mkmigrate(*ptep));
-+		flush_remote(0, 0, NULL, amp->va, PAGE_SIZE, PAGE_SIZE,
-+			     cpumask_of(amp->cpu), NULL, 0);
-+	} else {
-+		/*
-+		 * Rewrite a default kernel PTE for this page.
-+		 * We rely on the fact that set_pte() writes the
-+		 * present+migrating bits last.
-+		 */
-+		pte_t pte = mk_pte(amp->page, page_to_kpgprot(amp->page));
-+		set_pte(ptep, pte);
-+	}
-+}
-+
-+/*
-+ * This routine is a helper function for homecache_fix_kpte(); see
-+ * its comments for more information on the "finished" argument here.
-+ *
-+ * Note that we hold the lock while doing the remote flushes, which
-+ * will stall any unrelated cpus trying to do kmap_atomic operations.
-+ * We could just update the PTEs under the lock, and save away copies
-+ * of the structs (or just the va+cpu), then flush them after we
-+ * release the lock, but it seems easier just to do it all under the lock.
-+ */
-+void kmap_atomic_fix_kpte(struct page *page, int finished)
-+{
-+	struct atomic_mapped_page *amp;
-+	unsigned long flags;
-+	spin_lock_irqsave(&amp_lock, flags);
-+	list_for_each_entry(amp, &amp_list, list) {
-+		if (amp->page == page)
-+			kmap_atomic_fix_one_kpte(amp, finished);
-+	}
-+	spin_unlock_irqrestore(&amp_lock, flags);
-+}
-+
-+/*
-+ * kmap_atomic/kunmap_atomic is significantly faster than kmap/kunmap
-+ * because the kmap code must perform a global TLB invalidation when
-+ * the kmap pool wraps.
-+ *
-+ * Note that they may be slower than on x86 (etc.) because unlike on
-+ * those platforms, we do have to take a global lock to map and unmap
-+ * pages on Tile (see above).
-+ *
-+ * When holding an atomic kmap is is not legal to sleep, so atomic
-+ * kmaps are appropriate for short, tight code paths only.
-+ */
-+void *kmap_atomic_prot(struct page *page, enum km_type type, pgprot_t prot)
-+{
-+	enum fixed_addresses idx;
-+	unsigned long vaddr;
-+	pte_t *pte;
-+
-+	/* even !CONFIG_PREEMPT needs this, for in_atomic in do_page_fault */
-+	pagefault_disable();
-+
-+	/* Avoid icache flushes by disallowing atomic executable mappings. */
-+	BUG_ON(pte_exec(prot));
-+
-+	if (!PageHighMem(page))
-+		return page_address(page);
-+
-+	debug_kmap_atomic_prot(type);
-+
-+	idx = type + KM_TYPE_NR*smp_processor_id();
-+	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
-+	pte = kmap_get_pte(vaddr);
-+	BUG_ON(!pte_none(*pte));
-+
-+	/* Register that this page is mapped atomically on this cpu. */
-+	kmap_atomic_register(page, type, vaddr, pte, mk_pte(page, prot));
-+
-+	return (void *)vaddr;
-+}
-+EXPORT_SYMBOL(kmap_atomic_prot);
-+
-+void *kmap_atomic(struct page *page, enum km_type type)
-+{
-+	/* PAGE_NONE is a magic value that tells us to check immutability. */
-+	return kmap_atomic_prot(page, type, PAGE_NONE);
-+}
-+EXPORT_SYMBOL(kmap_atomic);
-+
-+void kunmap_atomic(void *kvaddr, enum km_type type)
-+{
-+	unsigned long vaddr = (unsigned long) kvaddr & PAGE_MASK;
-+	enum fixed_addresses idx = type + KM_TYPE_NR*smp_processor_id();
-+
-+	/*
-+	 * Force other mappings to Oops if they try to access this pte without
-+	 * first remapping it.  Keeping stale mappings around is a bad idea.
-+	 */
-+	if (vaddr == __fix_to_virt(FIX_KMAP_BEGIN+idx)) {
-+		pte_t *pte = kmap_get_pte(vaddr);
-+		pte_t pteval = *pte;
-+		BUG_ON(!pte_present(pteval) && !pte_migrating(pteval));
-+		kmap_atomic_unregister(pte_page(pteval), vaddr);
-+		kpte_clear_flush(pte, vaddr);
-+	} else {
-+		/* Must be a lowmem page */
-+		BUG_ON(vaddr < PAGE_OFFSET);
-+		BUG_ON(vaddr >= (unsigned long)high_memory);
-+	}
-+
-+	arch_flush_lazy_mmu_mode();
-+	pagefault_enable();
-+}
-+EXPORT_SYMBOL(kunmap_atomic);
-+
-+/*
-+ * This API is supposed to allow us to map memory without a "struct page".
-+ * Currently we don't support this, though this may change in the future.
-+ */
-+void *kmap_atomic_pfn(unsigned long pfn, enum km_type type)
-+{
-+	return kmap_atomic(pfn_to_page(pfn), type);
-+}
-+void *kmap_atomic_prot_pfn(unsigned long pfn, enum km_type type, pgprot_t prot)
-+{
-+	return kmap_atomic_prot(pfn_to_page(pfn), type, prot);
-+}
-+
-+struct page *kmap_atomic_to_page(void *ptr)
-+{
-+	pte_t *pte;
-+	unsigned long vaddr = (unsigned long)ptr;
-+
-+	if (vaddr < FIXADDR_START)
-+		return virt_to_page(ptr);
-+
-+	pte = kmap_get_pte(vaddr);
-+	return pte_page(*pte);
-+}
-diff --git a/arch/tile/mm/homecache.c b/arch/tile/mm/homecache.c
-new file mode 100644
-index 0000000..52feb77
---- /dev/null
-+++ b/arch/tile/mm/homecache.c
-@@ -0,0 +1,445 @@
-+/*
-+ * Copyright 2010 Tilera Corporation. All Rights Reserved.
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful, but
-+ *   WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-+ *   NON INFRINGEMENT.  See the GNU General Public License for
-+ *   more details.
-+ *
-+ * This code maintains the "home" for each page in the system.
-+ */
-+
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/spinlock.h>
-+#include <linux/list.h>
-+#include <linux/bootmem.h>
-+#include <linux/rmap.h>
-+#include <linux/pagemap.h>
-+#include <linux/mutex.h>
-+#include <linux/interrupt.h>
-+#include <linux/sysctl.h>
-+#include <linux/pagevec.h>
-+#include <linux/ptrace.h>
-+#include <linux/timex.h>
-+#include <linux/cache.h>
-+#include <linux/smp.h>
-+
 +#include <asm/page.h>
-+#include <asm/sections.h>
-+#include <asm/tlbflush.h>
-+#include <asm/pgalloc.h>
-+#include <asm/homecache.h>
++#endif
 +
-+#include "migrate.h"
++#ifdef __tilegx__
++/* Share code among Tile family chips but adjust opcodes appropriately. */
++#define slt cmpltu
++#define bbst blbst
++#define bnezt bnzt
++#endif
 +
-+
-+#if CHIP_HAS_COHERENT_LOCAL_CACHE()
-+
-+/*
-+ * The noallocl2 option suppresses all use of the L2 cache to cache
-+ * locally from a remote home.  There's no point in using it if we
-+ * don't have coherent local caching, though.
-+ */
-+int __write_once noallocl2;
-+static int __init set_noallocl2(char *str)
-+{
-+	noallocl2 = 1;
-+	return 0;
-+}
-+early_param("noallocl2", set_noallocl2);
-+
++#if defined(__tilegx__) && __SIZEOF_POINTER__ == 4
++/* Force 32-bit ops so pointers wrap around appropriately. */
++#define ADD_PTR addx
++#define ADDI_PTR addxi
 +#else
-+
-+#define noallocl2 0
-+
++#define ADD_PTR add
++#define ADDI_PTR addi
 +#endif
 +
-+
-+
-+/* Provide no-op versions of these routines to keep flush_remote() cleaner. */
-+#define mark_caches_evicted_start() 0
-+#define mark_caches_evicted_finish(mask, timestamp) do {} while (0)
-+
-+
-+
-+
-+/*
-+ * Update the irq_stat for cpus that we are going to interrupt
-+ * with TLB or cache flushes.  Also handle removing dataplane cpus
-+ * from the TLB flush set, and setting dataplane_tlb_state instead.
-+ */
-+static void hv_flush_update(const struct cpumask *cache_cpumask,
-+			    struct cpumask *tlb_cpumask,
-+			    unsigned long tlb_va, unsigned long tlb_length,
-+			    HV_Remote_ASID *asids, int asidcount)
-+{
-+	struct cpumask mask;
-+	int i, cpu;
-+
-+	cpumask_clear(&mask);
-+	if (cache_cpumask)
-+		cpumask_or(&mask, &mask, cache_cpumask);
-+	if (tlb_cpumask && tlb_length) {
-+		cpumask_or(&mask, &mask, tlb_cpumask);
-+	}
-+
-+	for (i = 0; i < asidcount; ++i)
-+		cpumask_set_cpu(asids[i].y * smp_width + asids[i].x, &mask);
-+
-+	/*
-+	 * Don't bother to update atomically; losing a count
-+	 * here is not that critical.
-+	 */
-+	for_each_cpu(cpu, &mask)
-+		++per_cpu(irq_stat, cpu).irq_hv_flush_count;
-+}
-+
-+/*
-+ * This wrapper function around hv_flush_remote() does several things:
-+ *
-+ *  - Provides a return value error-checking panic path, since
-+ *    there's never any good reason for hv_flush_remote() to fail.
-+ *  - Accepts a 32-bit PFN rather than a 64-bit PA, which generally
-+ *    is the type that Linux wants to pass around anyway.
-+ *  - Centralizes the mark_caches_evicted() handling.
-+ *  - Canonicalizes that lengths of zero make cpumasks NULL.
-+ *  - Handles deferring TLB flushes for dataplane tiles.
-+ *  - Tracks remote interrupts in the per-cpu irq_cpustat_t.
-+ *
-+ * Note that we have to wait until the cache flush completes before
-+ * updating the per-cpu last_cache_flush word, since otherwise another
-+ * concurrent flush can race, conclude the flush has already
-+ * completed, and start to use the page while it's still dirty
-+ * remotely (running concurrently with the actual evict, presumably).
-+ */
-+void flush_remote(unsigned long cache_pfn, unsigned long cache_control,
-+		  const struct cpumask *cache_cpumask_orig,
-+		  HV_VirtAddr tlb_va, unsigned long tlb_length,
-+		  unsigned long tlb_pgsize,
-+		  const struct cpumask *tlb_cpumask_orig,
-+		  HV_Remote_ASID *asids, int asidcount)
-+{
-+	int rc;
-+	int timestamp = 0;  /* happy compiler */
-+	struct cpumask cache_cpumask_copy, tlb_cpumask_copy;
-+	struct cpumask *cache_cpumask, *tlb_cpumask;
-+	HV_PhysAddr cache_pa;
-+	char cache_buf[NR_CPUS*5], tlb_buf[NR_CPUS*5];
-+
-+	mb();   /* provided just to simplify "magic hypervisor" mode */
-+
-+	/*
-+	 * Canonicalize and copy the cpumasks.
-+	 */
-+	if (cache_cpumask_orig && cache_control) {
-+		cpumask_copy(&cache_cpumask_copy, cache_cpumask_orig);
-+		cache_cpumask = &cache_cpumask_copy;
-+	} else {
-+		cpumask_clear(&cache_cpumask_copy);
-+		cache_cpumask = NULL;
-+	}
-+	if (cache_cpumask == NULL)
-+		cache_control = 0;
-+	if (tlb_cpumask_orig && tlb_length) {
-+		cpumask_copy(&tlb_cpumask_copy, tlb_cpumask_orig);
-+		tlb_cpumask = &tlb_cpumask_copy;
-+	} else {
-+		cpumask_clear(&tlb_cpumask_copy);
-+		tlb_cpumask = NULL;
-+	}
-+
-+	hv_flush_update(cache_cpumask, tlb_cpumask, tlb_va, tlb_length,
-+			asids, asidcount);
-+	cache_pa = (HV_PhysAddr)cache_pfn << PAGE_SHIFT;
-+	if (cache_control & HV_FLUSH_EVICT_L2)
-+		timestamp = mark_caches_evicted_start();
-+	rc = hv_flush_remote(cache_pa, cache_control,
-+			     cpumask_bits(cache_cpumask),
-+			     tlb_va, tlb_length, tlb_pgsize,
-+			     cpumask_bits(tlb_cpumask),
-+			     asids, asidcount);
-+	if (cache_control & HV_FLUSH_EVICT_L2)
-+		mark_caches_evicted_finish(cache_cpumask, timestamp);
-+	if (rc == 0)
-+		return;
-+	cpumask_scnprintf(cache_buf, sizeof(cache_buf), &cache_cpumask_copy);
-+	cpumask_scnprintf(tlb_buf, sizeof(tlb_buf), &tlb_cpumask_copy);
-+
-+	printk("hv_flush_remote(%#llx, %#lx, %p [%s],"
-+	       " %#lx, %#lx, %#lx, %p [%s], %p, %d) = %d\n",
-+	       cache_pa, cache_control, cache_cpumask, cache_buf,
-+	       (unsigned long)tlb_va, tlb_length, tlb_pgsize,
-+	       tlb_cpumask, tlb_buf,
-+	       asids, asidcount, rc);
-+	if (asidcount > 0) {
-+		int i;
-+		printk(" asids:");
-+		for (i = 0; i < asidcount; ++i)
-+			printk(" %d,%d,%d",
-+			       asids[i].x, asids[i].y, asids[i].asid);
-+		printk("\n");
-+	}
-+	panic("Unsafe to continue.");
-+}
-+
-+void homecache_evict(const struct cpumask *mask)
-+{
-+	flush_remote(0, HV_FLUSH_EVICT_L2, mask, 0, 0, 0, NULL, NULL, 0);
-+}
-+
-+/* Return a mask of the cpus whose caches currently own these pages. */
-+static void homecache_mask(struct page *page, int pages,
-+			   struct cpumask *home_mask)
-+{
-+	int i;
-+	cpumask_clear(home_mask);
-+	for (i = 0; i < pages; ++i) {
-+		int home = page_home(&page[i]);
-+		if (home == PAGE_HOME_IMMUTABLE ||
-+		    home == PAGE_HOME_INCOHERENT) {
-+			cpumask_copy(home_mask, cpu_possible_mask);
-+			return;
-+		}
-+#if CHIP_HAS_CBOX_HOME_MAP()
-+		if (home == PAGE_HOME_HASH) {
-+			cpumask_or(home_mask, home_mask, &hash_for_home_map);
-+			continue;
-+		}
++        .section .text.__invalidate_icache, "ax"
++        .global __invalidate_icache
++        .type __invalidate_icache,@function
++        .hidden __invalidate_icache
++        .align 8
++__invalidate_icache:
++        FEEDBACK_ENTER(__invalidate_icache)
++        {
++         ADD_PTR r1, r0, r1       /* end of buffer */
++         blez r1, .Lexit      /* skip out if size <= 0 */
++        }
++        {
++         ADDI_PTR r1, r1, -1      /* point to last byte to flush */
++         andi r0, r0, -CHIP_L1I_LINE_SIZE()  /* align to cache-line size */
++        }
++        {
++         andi r1, r1, -CHIP_L1I_LINE_SIZE()  /* last cache line to flush */
++         mf
++        }
++#if CHIP_L1I_CACHE_SIZE() > PAGE_SIZE
++        {
++         moveli r4, CHIP_L1I_CACHE_SIZE() / PAGE_SIZE  /* loop counter */
++         move r2, r0          /* remember starting address */
++        }
 +#endif
-+		if (home == PAGE_HOME_UNCACHED)
-+			continue;
-+		BUG_ON(home < 0 || home >= NR_CPUS);
-+		cpumask_set_cpu(home, home_mask);
-+	}
-+}
-+
-+/*
-+ * Return the passed length, or zero if it's long enough that we
-+ * believe we should evict the whole L2 cache.
-+ */
-+static unsigned long cache_flush_length(unsigned long length)
-+{
-+	return (length >= CHIP_L2_CACHE_SIZE()) ? HV_FLUSH_EVICT_L2 : length;
-+}
-+
-+/* On the simulator, confirm lines have been evicted everywhere. */
-+static void validate_lines_evicted(unsigned long pfn, size_t length)
-+{
-+	sim_syscall(SIM_SYSCALL_VALIDATE_LINES_EVICTED,
-+		    (HV_PhysAddr)pfn << PAGE_SHIFT, length);
-+}
-+
-+/* Flush a page out of whatever cache(s) it is in. */
-+void homecache_flush_cache(struct page *page, int order)
-+{
-+	int pages = 1 << order;
-+	int length = cache_flush_length(pages * PAGE_SIZE);
-+	unsigned long pfn = page_to_pfn(page);
-+	struct cpumask home_mask;
-+
-+	homecache_mask(page, pages, &home_mask);
-+	flush_remote(pfn, length, &home_mask, 0, 0, 0, NULL, NULL, 0);
-+	validate_lines_evicted(pfn, pages * PAGE_SIZE);
-+}
-+
-+
-+/* Report the home corresponding to a given PTE. */
-+static int pte_to_home(pte_t pte)
-+{
-+	if (hv_pte_get_nc(pte))
-+		return PAGE_HOME_IMMUTABLE;
-+	switch (hv_pte_get_mode(pte)) {
-+	case HV_PTE_MODE_CACHE_TILE_L3:
-+		return get_remote_cache_cpu(pte);
-+	case HV_PTE_MODE_CACHE_NO_L3:
-+		return PAGE_HOME_INCOHERENT;
-+	case HV_PTE_MODE_UNCACHED:
-+		return PAGE_HOME_UNCACHED;
-+#if CHIP_HAS_CBOX_HOME_MAP()
-+	case HV_PTE_MODE_CACHE_HASH_L3:
-+		return PAGE_HOME_HASH;
++        drain
++	{
++         slt r3, r0, r1       /* set up loop invariant */
++#if CHIP_L1I_CACHE_SIZE() > PAGE_SIZE
++	 moveli r6, PAGE_SIZE
 +#endif
 +	}
-+	panic("Bad PTE %#llx\n", pte.val);
-+}
-+
-+/* Update the home of a PTE if necessary (can also be used for a pgprot_t). */
-+pte_t pte_set_home(pte_t pte, int home)
-+{
-+	/* Check for non-linear file mapping "PTEs" and pass them through. */
-+	if (pte_file(pte))
-+		return pte;
-+
-+#if CHIP_HAS_MMIO()
-+	/* Check for MMIO mappings and pass them through. */
-+	if (hv_pte_get_mode(pte) == HV_PTE_MODE_MMIO)
-+		return pte;
-+#endif
-+
-+
-+	/*
-+	 * Only immutable pages get NC mappings.  If we have a
-+	 * non-coherent PTE, but the underlying page is not
-+	 * immutable, it's likely the result of a forced
-+	 * caching setting running up against ptrace setting
-+	 * the page to be writable underneath.  In this case,
-+	 * just keep the PTE coherent.
-+	 */
-+	if (hv_pte_get_nc(pte) && home != PAGE_HOME_IMMUTABLE) {
-+		pte = hv_pte_clear_nc(pte);
-+		printk("non-immutable page incoherently referenced: %#llx\n",
-+		       pte.val);
++.Lentry:
++        {
++         icoh r0
++         ADDI_PTR r0, r0, CHIP_L1I_LINE_SIZE()   /* advance buffer */
++        }
++        {
++         slt r3, r0, r1       /* check if buffer < buffer + size */
++         bbst r3, .Lentry     /* loop if buffer < buffer + size */
++        }
++#if CHIP_L1I_CACHE_SIZE() > PAGE_SIZE
++        {
++         ADD_PTR r2, r2, r6
++         ADD_PTR r1, r1, r6
++        }
++	{
++         move r0, r2
++         addi r4, r4, -1
 +	}
-+
-+	switch (home) {
-+
-+	case PAGE_HOME_UNCACHED:
-+		pte = hv_pte_set_mode(pte, HV_PTE_MODE_UNCACHED);
-+		break;
-+
-+	case PAGE_HOME_INCOHERENT:
-+		pte = hv_pte_set_mode(pte, HV_PTE_MODE_CACHE_NO_L3);
-+		break;
-+
-+	case PAGE_HOME_IMMUTABLE:
-+		/*
-+		 * We could home this page anywhere, since it's immutable,
-+		 * but by default just home it to follow "hash_default".
-+		 */
-+		BUG_ON(hv_pte_get_writable(pte));
-+		if (pte_get_forcecache(pte)) {
-+			/* Upgrade "force any cpu" to "No L3" for immutable. */
-+			if (hv_pte_get_mode(pte) == HV_PTE_MODE_CACHE_TILE_L3
-+			    && pte_get_anyhome(pte)) {
-+				pte = hv_pte_set_mode(pte,
-+						      HV_PTE_MODE_CACHE_NO_L3);
-+			}
-+		} else
-+#if CHIP_HAS_CBOX_HOME_MAP()
-+		if (hash_default)
-+			pte = hv_pte_set_mode(pte, HV_PTE_MODE_CACHE_HASH_L3);
-+		else
-+#endif
-+			pte = hv_pte_set_mode(pte, HV_PTE_MODE_CACHE_NO_L3);
-+		pte = hv_pte_set_nc(pte);
-+		break;
-+
-+#if CHIP_HAS_CBOX_HOME_MAP()
-+	case PAGE_HOME_HASH:
-+		pte = hv_pte_set_mode(pte, HV_PTE_MODE_CACHE_HASH_L3);
-+		break;
-+#endif
-+
-+	default:
-+		BUG_ON(home < 0 || home >= NR_CPUS ||
-+		       !cpu_is_valid_lotar(home));
-+		pte = hv_pte_set_mode(pte, HV_PTE_MODE_CACHE_TILE_L3);
-+		pte = set_remote_cache_cpu(pte, home);
-+		break;
-+	}
-+
-+#if CHIP_HAS_NC_AND_NOALLOC_BITS()
-+	if (noallocl2)
-+		pte = hv_pte_set_no_alloc_l2(pte);
-+
-+	/* Simplify "no local and no l3" to "uncached" */
-+	if (hv_pte_get_no_alloc_l2(pte) && hv_pte_get_no_alloc_l1(pte) &&
-+	    hv_pte_get_mode(pte) == HV_PTE_MODE_CACHE_NO_L3) {
-+		pte = hv_pte_set_mode(pte, HV_PTE_MODE_UNCACHED);
++	{
++         slt r3, r0, r1        /* set up loop invariant */
++         bnezt r4, .Lentry
 +	}
 +#endif
++        drain
++.Lexit:
++        jrp lr
 +
-+	/* Checking this case here gives a better panic than from the hv. */
-+	BUG_ON(hv_pte_get_mode(pte) == 0);
-+
-+	return pte;
-+}
-+
-+/*
-+ * The routines in this section are the "static" versions of the normal
-+ * dynamic homecaching routines; they just set the home cache
-+ * of a kernel page once, and require a full-chip cache/TLB flush,
-+ * so they're not suitable for anything but infrequent use.
-+ */
-+
-+#if CHIP_HAS_CBOX_HOME_MAP()
-+static inline int initial_page_home(void) { return PAGE_HOME_HASH; }
-+#else
-+static inline int initial_page_home(void) { return 0; }
-+#endif
-+
-+int page_home(struct page *page)
-+{
-+	if (PageHighMem(page)) {
-+		return initial_page_home();
-+	} else {
-+		unsigned long kva = (unsigned long)page_address(page);
-+		return pte_to_home(*virt_to_pte(NULL, kva));
-+	}
-+}
-+
-+void homecache_change_page_home(struct page *page, int order, int home)
-+{
-+	int i, pages = (1 << order);
-+	unsigned long kva;
-+
-+	BUG_ON(PageHighMem(page));
-+	BUG_ON(page_count(page) > 1);
-+	BUG_ON(page_mapcount(page) != 0);
-+	kva = (unsigned long) page_address(page);
-+	flush_remote(0, HV_FLUSH_EVICT_L2, &cpu_cacheable_map,
-+		     kva, pages * PAGE_SIZE, PAGE_SIZE, cpu_online_mask,
-+		     NULL, 0);
-+
-+	for (i = 0; i < pages; ++i, kva += PAGE_SIZE) {
-+		pte_t *ptep = virt_to_pte(NULL, kva);
-+		pte_t pteval = *ptep;
-+		BUG_ON(!pte_present(pteval) || pte_huge(pteval));
-+		*ptep = pte_set_home(pteval, home);
-+	}
-+}
-+
-+struct page *homecache_alloc_pages(gfp_t gfp_mask,
-+				   unsigned int order, int home)
-+{
-+	struct page *page;
-+	BUG_ON(gfp_mask & __GFP_HIGHMEM);   /* must be lowmem */
-+	page = alloc_pages(gfp_mask, order);
-+	if (page)
-+		homecache_change_page_home(page, order, home);
-+	return page;
-+}
-+
-+struct page *homecache_alloc_pages_node(int nid, gfp_t gfp_mask,
-+					unsigned int order, int home)
-+{
-+	struct page *page;
-+	BUG_ON(gfp_mask & __GFP_HIGHMEM);   /* must be lowmem */
-+	page = alloc_pages_node(nid, gfp_mask, order);
-+	if (page)
-+		homecache_change_page_home(page, order, home);
-+	return page;
-+}
-+
-+void homecache_free_pages(unsigned long addr, unsigned int order)
-+{
-+	struct page *page;
-+
-+	if (addr == 0)
-+		return;
-+
-+	VM_BUG_ON(!virt_addr_valid((void *)addr));
-+	page = virt_to_page((void *)addr);
-+	if (put_page_testzero(page)) {
-+		int pages = (1 << order);
-+		homecache_change_page_home(page, order, initial_page_home());
-+		while (pages--)
-+			__free_page(page++);
-+	}
-+}
-diff --git a/arch/tile/mm/hugetlbpage.c b/arch/tile/mm/hugetlbpage.c
++.Lend___invalidate_icache:
++        .size __invalidate_icache, \
++		.Lend___invalidate_icache - __invalidate_icache
+diff --git a/arch/tile/lib/atomic_32.c b/arch/tile/lib/atomic_32.c
 new file mode 100644
-index 0000000..c38570f
+index 0000000..be1e8ac
 --- /dev/null
-+++ b/arch/tile/mm/hugetlbpage.c
-@@ -0,0 +1,343 @@
++++ b/arch/tile/lib/atomic_32.c
+@@ -0,0 +1,347 @@
 +/*
-+ * Copyright 2010 Tilera Corporation. All Rights Reserved.
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful, but
-+ *   WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-+ *   NON INFRINGEMENT.  See the GNU General Public License for
-+ *   more details.
-+ *
-+ * TILE Huge TLB Page Support for Kernel.
-+ * Taken from i386 hugetlb implementation:
-+ * Copyright (C) 2002, Rohit Seth <rohit.seth@intel.com>
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/fs.h>
-+#include <linux/mm.h>
-+#include <linux/hugetlb.h>
-+#include <linux/pagemap.h>
-+#include <linux/smp_lock.h>
-+#include <linux/slab.h>
-+#include <linux/err.h>
-+#include <linux/sysctl.h>
-+#include <linux/mman.h>
-+#include <asm/tlb.h>
-+#include <asm/tlbflush.h>
-+
-+pte_t *huge_pte_alloc(struct mm_struct *mm,
-+		      unsigned long addr, unsigned long sz)
-+{
-+	pgd_t *pgd;
-+	pud_t *pud;
-+	pte_t *pte = NULL;
-+
-+	/* We do not yet support multiple huge page sizes. */
-+	BUG_ON(sz != PMD_SIZE);
-+
-+	pgd = pgd_offset(mm, addr);
-+	pud = pud_alloc(mm, pgd, addr);
-+	if (pud)
-+		pte = (pte_t *) pmd_alloc(mm, pud, addr);
-+	BUG_ON(pte && !pte_none(*pte) && !pte_huge(*pte));
-+
-+	return pte;
-+}
-+
-+pte_t *huge_pte_offset(struct mm_struct *mm, unsigned long addr)
-+{
-+	pgd_t *pgd;
-+	pud_t *pud;
-+	pmd_t *pmd = NULL;
-+
-+	pgd = pgd_offset(mm, addr);
-+	if (pgd_present(*pgd)) {
-+		pud = pud_offset(pgd, addr);
-+		if (pud_present(*pud))
-+			pmd = pmd_offset(pud, addr);
-+	}
-+	return (pte_t *) pmd;
-+}
-+
-+#ifdef HUGETLB_TEST
-+struct page *follow_huge_addr(struct mm_struct *mm, unsigned long address,
-+			      int write)
-+{
-+	unsigned long start = address;
-+	int length = 1;
-+	int nr;
-+	struct page *page;
-+	struct vm_area_struct *vma;
-+
-+	vma = find_vma(mm, addr);
-+	if (!vma || !is_vm_hugetlb_page(vma))
-+		return ERR_PTR(-EINVAL);
-+
-+	pte = huge_pte_offset(mm, address);
-+
-+	/* hugetlb should be locked, and hence, prefaulted */
-+	WARN_ON(!pte || pte_none(*pte));
-+
-+	page = &pte_page(*pte)[vpfn % (HPAGE_SIZE/PAGE_SIZE)];
-+
-+	WARN_ON(!PageHead(page));
-+
-+	return page;
-+}
-+
-+int pmd_huge(pmd_t pmd)
-+{
-+	return 0;
-+}
-+
-+int pud_huge(pud_t pud)
-+{
-+	return 0;
-+}
-+
-+struct page *follow_huge_pmd(struct mm_struct *mm, unsigned long address,
-+			     pmd_t *pmd, int write)
-+{
-+	return NULL;
-+}
-+
-+#else
-+
-+struct page *follow_huge_addr(struct mm_struct *mm, unsigned long address,
-+			      int write)
-+{
-+	return ERR_PTR(-EINVAL);
-+}
-+
-+int pmd_huge(pmd_t pmd)
-+{
-+	return !!(pmd_val(pmd) & _PAGE_HUGE_PAGE);
-+}
-+
-+int pud_huge(pud_t pud)
-+{
-+	return !!(pud_val(pud) & _PAGE_HUGE_PAGE);
-+}
-+
-+struct page *follow_huge_pmd(struct mm_struct *mm, unsigned long address,
-+			     pmd_t *pmd, int write)
-+{
-+	struct page *page;
-+
-+	page = pte_page(*(pte_t *)pmd);
-+	if (page)
-+		page += ((address & ~PMD_MASK) >> PAGE_SHIFT);
-+	return page;
-+}
-+
-+struct page *follow_huge_pud(struct mm_struct *mm, unsigned long address,
-+			     pud_t *pud, int write)
-+{
-+	struct page *page;
-+
-+	page = pte_page(*(pte_t *)pud);
-+	if (page)
-+		page += ((address & ~PUD_MASK) >> PAGE_SHIFT);
-+	return page;
-+}
-+
-+int huge_pmd_unshare(struct mm_struct *mm, unsigned long *addr, pte_t *ptep)
-+{
-+	return 0;
-+}
-+
-+#endif
-+
-+#ifdef HAVE_ARCH_HUGETLB_UNMAPPED_AREA
-+static unsigned long hugetlb_get_unmapped_area_bottomup(struct file *file,
-+		unsigned long addr, unsigned long len,
-+		unsigned long pgoff, unsigned long flags)
-+{
-+	struct hstate *h = hstate_file(file);
-+	struct mm_struct *mm = current->mm;
-+	struct vm_area_struct *vma;
-+	unsigned long start_addr;
-+
-+	if (len > mm->cached_hole_size) {
-+		start_addr = mm->free_area_cache;
-+	} else {
-+		start_addr = TASK_UNMAPPED_BASE;
-+		mm->cached_hole_size = 0;
-+	}
-+
-+full_search:
-+	addr = ALIGN(start_addr, huge_page_size(h));
-+
-+	for (vma = find_vma(mm, addr); ; vma = vma->vm_next) {
-+		/* At this point:  (!vma || addr < vma->vm_end). */
-+		if (TASK_SIZE - len < addr) {
-+			/*
-+			 * Start a new search - just in case we missed
-+			 * some holes.
-+			 */
-+			if (start_addr != TASK_UNMAPPED_BASE) {
-+				start_addr = TASK_UNMAPPED_BASE;
-+				mm->cached_hole_size = 0;
-+				goto full_search;
-+			}
-+			return -ENOMEM;
-+		}
-+		if (!vma || addr + len <= vma->vm_start) {
-+			mm->free_area_cache = addr + len;
-+			return addr;
-+		}
-+		if (addr + mm->cached_hole_size < vma->vm_start)
-+			mm->cached_hole_size = vma->vm_start - addr;
-+		addr = ALIGN(vma->vm_end, huge_page_size(h));
-+	}
-+}
-+
-+static unsigned long hugetlb_get_unmapped_area_topdown(struct file *file,
-+		unsigned long addr0, unsigned long len,
-+		unsigned long pgoff, unsigned long flags)
-+{
-+	struct hstate *h = hstate_file(file);
-+	struct mm_struct *mm = current->mm;
-+	struct vm_area_struct *vma, *prev_vma;
-+	unsigned long base = mm->mmap_base, addr = addr0;
-+	unsigned long largest_hole = mm->cached_hole_size;
-+	int first_time = 1;
-+
-+	/* don't allow allocations above current base */
-+	if (mm->free_area_cache > base)
-+		mm->free_area_cache = base;
-+
-+	if (len <= largest_hole) {
-+		largest_hole = 0;
-+		mm->free_area_cache  = base;
-+	}
-+try_again:
-+	/* make sure it can fit in the remaining address space */
-+	if (mm->free_area_cache < len)
-+		goto fail;
-+
-+	/* either no address requested or cant fit in requested address hole */
-+	addr = (mm->free_area_cache - len) & huge_page_mask(h);
-+	do {
-+		/*
-+		 * Lookup failure means no vma is above this address,
-+		 * i.e. return with success:
-+		 */
-+		vma = find_vma_prev(mm, addr, &prev_vma);
-+		if (!vma) {
-+			return addr;
-+			break;
-+		}
-+
-+		/*
-+		 * new region fits between prev_vma->vm_end and
-+		 * vma->vm_start, use it:
-+		 */
-+		if (addr + len <= vma->vm_start &&
-+			    (!prev_vma || (addr >= prev_vma->vm_end))) {
-+			/* remember the address as a hint for next time */
-+			mm->cached_hole_size = largest_hole;
-+			mm->free_area_cache = addr;
-+			return addr;
-+		} else {
-+			/* pull free_area_cache down to the first hole */
-+			if (mm->free_area_cache == vma->vm_end) {
-+				mm->free_area_cache = vma->vm_start;
-+				mm->cached_hole_size = largest_hole;
-+			}
-+		}
-+
-+		/* remember the largest hole we saw so far */
-+		if (addr + largest_hole < vma->vm_start)
-+			largest_hole = vma->vm_start - addr;
-+
-+		/* try just below the current vma->vm_start */
-+		addr = (vma->vm_start - len) & huge_page_mask(h);
-+
-+	} while (len <= vma->vm_start);
-+
-+fail:
-+	/*
-+	 * if hint left us with no space for the requested
-+	 * mapping then try again:
-+	 */
-+	if (first_time) {
-+		mm->free_area_cache = base;
-+		largest_hole = 0;
-+		first_time = 0;
-+		goto try_again;
-+	}
-+	/*
-+	 * A failed mmap() very likely causes application failure,
-+	 * so fall back to the bottom-up function here. This scenario
-+	 * can happen with large stack limits and large mmap()
-+	 * allocations.
-+	 */
-+	mm->free_area_cache = TASK_UNMAPPED_BASE;
-+	mm->cached_hole_size = ~0UL;
-+	addr = hugetlb_get_unmapped_area_bottomup(file, addr0,
-+			len, pgoff, flags);
-+
-+	/*
-+	 * Restore the topdown base:
-+	 */
-+	mm->free_area_cache = base;
-+	mm->cached_hole_size = ~0UL;
-+
-+	return addr;
-+}
-+
-+unsigned long hugetlb_get_unmapped_area(struct file *file, unsigned long addr,
-+		unsigned long len, unsigned long pgoff, unsigned long flags)
-+{
-+	struct hstate *h = hstate_file(file);
-+	struct mm_struct *mm = current->mm;
-+	struct vm_area_struct *vma;
-+
-+	if (len & ~huge_page_mask(h))
-+		return -EINVAL;
-+	if (len > TASK_SIZE)
-+		return -ENOMEM;
-+
-+	if (flags & MAP_FIXED) {
-+		if (prepare_hugepage_range(file, addr, len))
-+			return -EINVAL;
-+		return addr;
-+	}
-+
-+	if (addr) {
-+		addr = ALIGN(addr, huge_page_size(h));
-+		vma = find_vma(mm, addr);
-+		if (TASK_SIZE - len >= addr &&
-+		    (!vma || addr + len <= vma->vm_start))
-+			return addr;
-+	}
-+	if (current->mm->get_unmapped_area == arch_get_unmapped_area)
-+		return hugetlb_get_unmapped_area_bottomup(file, addr, len,
-+				pgoff, flags);
-+	else
-+		return hugetlb_get_unmapped_area_topdown(file, addr, len,
-+				pgoff, flags);
-+}
-+
-+static __init int setup_hugepagesz(char *opt)
-+{
-+	unsigned long ps = memparse(opt, &opt);
-+	if (ps == PMD_SIZE) {
-+		hugetlb_add_hstate(PMD_SHIFT - PAGE_SHIFT);
-+	} else if (ps == PUD_SIZE) {
-+		hugetlb_add_hstate(PUD_SHIFT - PAGE_SHIFT);
-+	} else {
-+		printk(KERN_ERR "hugepagesz: Unsupported page size %lu M\n",
-+			ps >> 20);
-+		return 0;
-+	}
-+	return 1;
-+}
-+__setup("hugepagesz=", setup_hugepagesz);
-+
-+#endif /*HAVE_ARCH_HUGETLB_UNMAPPED_AREA*/
-diff --git a/arch/tile/mm/init.c b/arch/tile/mm/init.c
-new file mode 100644
-index 0000000..31b5c09
---- /dev/null
-+++ b/arch/tile/mm/init.c
-@@ -0,0 +1,1082 @@
-+/*
-+ * Copyright (C) 1995  Linus Torvalds
 + * Copyright 2010 Tilera Corporation. All Rights Reserved.
 + *
 + *   This program is free software; you can redistribute it and/or
@@ -2325,1079 +212,345 @@ index 0000000..31b5c09
 + *   more details.
 + */
 +
-+#include <linux/module.h>
-+#include <linux/signal.h>
-+#include <linux/sched.h>
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <linux/string.h>
-+#include <linux/types.h>
-+#include <linux/ptrace.h>
-+#include <linux/mman.h>
-+#include <linux/mm.h>
-+#include <linux/hugetlb.h>
-+#include <linux/swap.h>
-+#include <linux/smp.h>
-+#include <linux/init.h>
-+#include <linux/highmem.h>
-+#include <linux/pagemap.h>
-+#include <linux/poison.h>
-+#include <linux/bootmem.h>
-+#include <linux/slab.h>
-+#include <linux/proc_fs.h>
-+#include <linux/efi.h>
-+#include <linux/memory_hotplug.h>
++#include <linux/cache.h>
++#include <linux/delay.h>
 +#include <linux/uaccess.h>
-+#include <asm/mmu_context.h>
-+#include <asm/processor.h>
-+#include <asm/system.h>
-+#include <asm/pgtable.h>
-+#include <asm/pgalloc.h>
-+#include <asm/dma.h>
-+#include <asm/fixmap.h>
-+#include <asm/tlb.h>
-+#include <asm/tlbflush.h>
-+#include <asm/sections.h>
-+#include <asm/setup.h>
-+#include <asm/homecache.h>
-+#include <hv/hypervisor.h>
++#include <linux/module.h>
++#include <linux/mm.h>
++#include <asm/atomic.h>
 +#include <arch/chip.h>
 +
-+#include "migrate.h"
++/* The routines in atomic_asm.S are private, so we only declare them here. */
++extern struct __get_user __atomic_cmpxchg(volatile int *p,
++					  int *lock, int o, int n);
++extern struct __get_user __atomic_xchg(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic_xchg_add(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic_xchg_add_unless(volatile int *p,
++						  int *lock, int o, int n);
++extern struct __get_user __atomic_or(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic_andn(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic_xor(volatile int *p, int *lock, int n);
++
++extern u64 __atomic64_cmpxchg(volatile u64 *p, int *lock, u64 o, u64 n);
++extern u64 __atomic64_xchg(volatile u64 *p, int *lock, u64 n);
++extern u64 __atomic64_xchg_add(volatile u64 *p, int *lock, u64 n);
++extern u64 __atomic64_xchg_add_unless(volatile u64 *p,
++				      int *lock, u64 o, u64 n);
++
++
++/* See <asm/atomic.h> */
++#if ATOMIC_LOCKS_FOUND_VIA_TABLE()
 +
 +/*
-+ * We could set FORCE_MAX_ZONEORDER to "(HPAGE_SHIFT - PAGE_SHIFT + 1)"
-+ * in the Tile Kconfig, but this generates configure warnings.
-+ * Do it here and force people to get it right to compile this file.
-+ * The problem is that with 4KB small pages and 16MB huge pages,
-+ * the default value doesn't allow us to group enough small pages
-+ * together to make up a huge page.
++ * A block of memory containing locks for atomic ops. Each instance of this
++ * struct will be homed on a different CPU.
 + */
-+#if CONFIG_FORCE_MAX_ZONEORDER < HPAGE_SHIFT - PAGE_SHIFT + 1
-+# error "Change FORCE_MAX_ZONEORDER in arch/tile/Kconfig to match page size"
-+#endif
++struct atomic_locks_on_cpu {
++	int lock[ATOMIC_HASH_L2_SIZE];
++} __attribute__((aligned(ATOMIC_HASH_L2_SIZE * 4)));
 +
-+#define clear_pgd(pmdptr) (*(pmdptr) = hv_pte(0))
++static DEFINE_PER_CPU(struct atomic_locks_on_cpu, atomic_lock_pool);
 +
-+unsigned long VMALLOC_RESERVE = CONFIG_VMALLOC_RESERVE;
++/* The locks we'll use until __init_atomic_per_cpu is called. */
++static struct atomic_locks_on_cpu __initdata initial_atomic_locks;
 +
-+DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);
++/* Hash into this vector to get a pointer to lock for the given atomic. */
++struct atomic_locks_on_cpu *atomic_lock_ptr[ATOMIC_HASH_L1_SIZE]
++	__write_once = {
++	[0 ... ATOMIC_HASH_L1_SIZE-1] (&initial_atomic_locks)
++};
 +
-+/* Create an L2 page table */
-+static pte_t * __init alloc_pte(void)
++#else /* ATOMIC_LOCKS_FOUND_VIA_TABLE() */
++
++/* This page is remapped on startup to be hash-for-home. */
++int atomic_locks[PAGE_SIZE / sizeof(int) /* Only ATOMIC_HASH_SIZE is used */]
++  __attribute__((aligned(PAGE_SIZE), section(".bss.page_aligned")));
++
++#endif /* ATOMIC_LOCKS_FOUND_VIA_TABLE() */
++
++static inline int *__atomic_hashed_lock(volatile void *v)
 +{
-+	return __alloc_bootmem(L2_KERNEL_PGTABLE_SIZE, HV_PAGE_TABLE_ALIGN, 0);
-+}
++	/* NOTE: this code must match "sys_cmpxchg" in kernel/intvec.S */
++#if ATOMIC_LOCKS_FOUND_VIA_TABLE()
++	unsigned long i =
++		(unsigned long) v & ((PAGE_SIZE-1) & -sizeof(long long));
++	unsigned long n = __insn_crc32_32(0, i);
 +
-+/*
-+ * L2 page tables per controller.  We allocate these all at once from
-+ * the bootmem allocator and store them here.  This saves on kernel L2
-+ * page table memory, compared to allocating a full 64K page per L2
-+ * page table, and also means that in cases where we use huge pages,
-+ * we are guaranteed to later be able to shatter those huge pages and
-+ * switch to using these page tables instead, without requiring
-+ * further allocation.  Each l2_ptes[] entry points to the first page
-+ * table for the first hugepage-size piece of memory on the
-+ * controller; other page tables are just indexed directly, i.e. the
-+ * L2 page tables are contiguous in memory for each controller.
-+ */
-+static pte_t *l2_ptes[MAX_NUMNODES];
-+static int num_l2_ptes[MAX_NUMNODES];
++	/* Grab high bits for L1 index. */
++	unsigned long l1_index = n >> ((sizeof(n) * 8) - ATOMIC_HASH_L1_SHIFT);
++	/* Grab low bits for L2 index. */
++	unsigned long l2_index = n & (ATOMIC_HASH_L2_SIZE - 1);
 +
-+static void init_prealloc_ptes(int node, int pages)
-+{
-+	BUG_ON(pages & (HV_L2_ENTRIES-1));
-+	if (pages) {
-+		num_l2_ptes[node] = pages;
-+		l2_ptes[node] = __alloc_bootmem(pages * sizeof(pte_t),
-+						HV_PAGE_TABLE_ALIGN, 0);
-+	}
-+}
-+
-+pte_t *get_prealloc_pte(unsigned long pfn)
-+{
-+	int node = pfn_to_nid(pfn);
-+	pfn &= ~(-1UL << (NR_PA_HIGHBIT_SHIFT - PAGE_SHIFT));
-+	BUG_ON(node >= MAX_NUMNODES);
-+	BUG_ON(pfn >= num_l2_ptes[node]);
-+	return &l2_ptes[node][pfn];
-+}
-+
-+/*
-+ * What caching do we expect pages from the heap to have when
-+ * they are allocated during bootup?  (Once we've installed the
-+ * "real" swapper_pg_dir.)
-+ */
-+static int initial_heap_home(void)
-+{
-+#if CHIP_HAS_CBOX_HOME_MAP()
-+	if (hash_default)
-+		return PAGE_HOME_HASH;
-+#endif
-+	return smp_processor_id();
-+}
-+
-+/*
-+ * Place a pointer to an L2 page table in a middle page
-+ * directory entry.
-+ */
-+static void __init assign_pte(pmd_t *pmd, pte_t *page_table)
-+{
-+	phys_addr_t pa = __pa(page_table);
-+	unsigned long l2_ptfn = pa >> HV_LOG2_PAGE_TABLE_ALIGN;
-+	pte_t pteval = hv_pte_set_ptfn(__pgprot(_PAGE_TABLE), l2_ptfn);
-+	BUG_ON((pa & (HV_PAGE_TABLE_ALIGN-1)) != 0);
-+	pteval = pte_set_home(pteval, initial_heap_home());
-+	*(pte_t *)pmd = pteval;
-+	if (page_table != (pte_t *)pmd_page_vaddr(*pmd))
-+		BUG();
-+}
-+
-+#ifdef __tilegx__
-+
-+#if HV_L1_SIZE != HV_L2_SIZE
-+# error Rework assumption that L1 and L2 page tables are same size.
-+#endif
-+
-+/* Since pmd_t arrays and pte_t arrays are the same size, just use casts. */
-+static inline pmd_t *alloc_pmd(void)
-+{
-+	return (pmd_t *)alloc_pte();
-+}
-+
-+static inline void assign_pmd(pud_t *pud, pmd_t *pmd)
-+{
-+	assign_pte((pmd_t *)pud, (pte_t *)pmd);
-+}
-+
-+#endif /* __tilegx__ */
-+
-+/* Replace the given pmd with a full PTE table. */
-+void __init shatter_pmd(pmd_t *pmd)
-+{
-+	pte_t *pte = get_prealloc_pte(pte_pfn(*(pte_t *)pmd));
-+	assign_pte(pmd, pte);
-+}
-+
-+#ifdef CONFIG_HIGHMEM
-+/*
-+ * This function initializes a certain range of kernel virtual memory
-+ * with new bootmem page tables, everywhere page tables are missing in
-+ * the given range.
-+ */
-+
-+/*
-+ * NOTE: The pagetables are allocated contiguous on the physical space
-+ * so we can cache the place of the first one and move around without
-+ * checking the pgd every time.
-+ */
-+static void __init page_table_range_init(unsigned long start,
-+					 unsigned long end, pgd_t *pgd_base)
-+{
-+	pgd_t *pgd;
-+	int pgd_idx;
-+	unsigned long vaddr;
-+
-+	vaddr = start;
-+	pgd_idx = pgd_index(vaddr);
-+	pgd = pgd_base + pgd_idx;
-+
-+	for ( ; (pgd_idx < PTRS_PER_PGD) && (vaddr != end); pgd++, pgd_idx++) {
-+		pmd_t *pmd = pmd_offset(pud_offset(pgd, vaddr), vaddr);
-+		if (pmd_none(*pmd))
-+			assign_pte(pmd, alloc_pte());
-+		vaddr += PMD_SIZE;
-+	}
-+}
-+#endif /* CONFIG_HIGHMEM */
-+
-+
-+#if CHIP_HAS_CBOX_HOME_MAP()
-+
-+static int __initdata ktext_hash = 1;  /* .text pages */
-+static int __initdata kdata_hash = 1;  /* .data and .bss pages */
-+int __write_once hash_default = 1;     /* kernel allocator pages */
-+EXPORT_SYMBOL(hash_default);
-+int __write_once kstack_hash = 1;      /* if no homecaching, use h4h */
-+#endif /* CHIP_HAS_CBOX_HOME_MAP */
-+
-+/*
-+ * CPUs to use to for striping the pages of kernel data.  If hash-for-home
-+ * is available, this is only relevant if kcache_hash sets up the
-+ * .data and .bss to be page-homed, and we don't want the default mode
-+ * of using the full set of kernel cpus for the striping.
-+ */
-+static __initdata struct cpumask kdata_mask;
-+static __initdata int kdata_arg_seen;
-+
-+int __write_once kdata_huge;       /* if no homecaching, small pages */
-+
-+
-+/* Combine a generic pgprot_t with cache home to get a cache-aware pgprot. */
-+static pgprot_t __init construct_pgprot(pgprot_t prot, int home)
-+{
-+	prot = pte_set_home(prot, home);
-+#if CHIP_HAS_CBOX_HOME_MAP()
-+	if (home == PAGE_HOME_IMMUTABLE) {
-+		if (ktext_hash)
-+			prot = hv_pte_set_mode(prot, HV_PTE_MODE_CACHE_HASH_L3);
-+		else
-+			prot = hv_pte_set_mode(prot, HV_PTE_MODE_CACHE_NO_L3);
-+	}
-+#endif
-+	return prot;
-+}
-+
-+/*
-+ * For a given kernel data VA, how should it be cached?
-+ * We return the complete pgprot_t with caching bits set.
-+ */
-+static pgprot_t __init init_pgprot(ulong address)
-+{
-+	int cpu;
-+	unsigned long page;
-+	enum { CODE_DELTA = MEM_SV_INTRPT - PAGE_OFFSET };
-+
-+#if CHIP_HAS_CBOX_HOME_MAP()
-+	/* For kdata=huge, everything is just hash-for-home. */
-+	if (kdata_huge)
-+		return construct_pgprot(PAGE_KERNEL, PAGE_HOME_HASH);
-+#endif
-+
-+	/* We map the aliased pages of permanent text inaccessible. */
-+	if (address < (ulong) _sinittext - CODE_DELTA)
-+		return PAGE_NONE;
-+
-+	/*
-+	 * We map read-only data non-coherent for performance.  We could
-+	 * use neighborhood caching on TILE64, but it's not clear it's a win.
-+	 */
-+	if ((address >= (ulong) __start_rodata &&
-+	     address < (ulong) __end_rodata) ||
-+	    address == (ulong) empty_zero_page) {
-+		return construct_pgprot(PAGE_KERNEL_RO, PAGE_HOME_IMMUTABLE);
-+	}
-+
-+	/* As a performance optimization, keep the boot init stack here. */
-+	if (address >= (ulong)&init_thread_union &&
-+	    address < (ulong)&init_thread_union + THREAD_SIZE)
-+		return construct_pgprot(PAGE_KERNEL, smp_processor_id());
-+
-+#ifndef __tilegx__
-+#if !ATOMIC_LOCKS_FOUND_VIA_TABLE()
-+	/* Force the atomic_locks[] array page to be hash-for-home. */
-+	if (address == (ulong) atomic_locks)
-+		return construct_pgprot(PAGE_KERNEL, PAGE_HOME_HASH);
-+#endif
-+#endif
-+
-+	/*
-+	 * Everything else that isn't data or bss is heap, so mark it
-+	 * with the initial heap home (hash-for-home, or this cpu).  This
-+	 * includes any addresses after the loaded image; any address before
-+	 * _einittext (since we already captured the case of text before
-+	 * _sinittext); and any init-data pages.
-+	 *
-+	 * All the LOWMEM pages that we mark this way will get their
-+	 * struct page homecache properly marked later, in set_page_homes().
-+	 * The HIGHMEM pages we leave with a default zero for their
-+	 * homes, but with a zero free_time we don't have to actually
-+	 * do a flush action the first time we use them, either.
-+	 */
-+	if (address >= (ulong) _end || address < (ulong) _sdata ||
-+	    (address >= (ulong) _sinitdata &&
-+	     address < (ulong) _einitdata))
-+		return construct_pgprot(PAGE_KERNEL, initial_heap_home());
-+
-+#if CHIP_HAS_CBOX_HOME_MAP()
-+	/* Use hash-for-home if requested for data/bss. */
-+	if (kdata_hash)
-+		return construct_pgprot(PAGE_KERNEL, PAGE_HOME_HASH);
-+#endif
-+
-+	/*
-+	 * Otherwise we just hand out consecutive cpus.  To avoid
-+	 * requiring this function to hold state, we just walk forward from
-+	 * _sdata by PAGE_SIZE, skipping the readonly and init data, to reach
-+	 * the requested address, while walking cpu home around kdata_mask.
-+	 * This is typically no more than a dozen or so iterations.
-+	 */
-+	BUG_ON(_einitdata != __bss_start);
-+	for (page = (ulong)_sdata, cpu = NR_CPUS; ; ) {
-+		cpu = cpumask_next(cpu, &kdata_mask);
-+		if (cpu == NR_CPUS)
-+			cpu = cpumask_first(&kdata_mask);
-+		if (page >= address)
-+			break;
-+		page += PAGE_SIZE;
-+		if (page == (ulong)__start_rodata)
-+			page = (ulong)__end_rodata;
-+		if (page == (ulong)&init_thread_union)
-+			page += THREAD_SIZE;
-+		if (page == (ulong)_sinitdata)
-+			page = (ulong)_einitdata;
-+		if (page == (ulong)empty_zero_page)
-+			page += PAGE_SIZE;
-+#ifndef __tilegx__
-+#if !ATOMIC_LOCKS_FOUND_VIA_TABLE()
-+		if (page == (ulong)atomic_locks)
-+			page += PAGE_SIZE;
-+#endif
-+#endif
-+
-+	}
-+	return construct_pgprot(PAGE_KERNEL, cpu);
-+}
-+
-+/*
-+ * This function sets up how we cache the kernel text.  If we have
-+ * hash-for-home support, normally that is used instead (see the
-+ * kcache_hash boot flag for more information).  But if we end up
-+ * using a page-based caching technique, this option sets up the
-+ * details of that.  In addition, the "ktext=nocache" option may
-+ * always be used to disable local caching of text pages, if desired.
-+ */
-+
-+static int __initdata ktext_arg_seen;
-+static int __initdata ktext_small;
-+static int __initdata ktext_local;
-+static int __initdata ktext_all;
-+static int __initdata ktext_nondataplane;
-+static int __initdata ktext_nocache;
-+static struct cpumask __initdata ktext_mask;
-+
-+static int __init setup_ktext(char *str)
-+{
-+	if (str == NULL)
-+		return -EINVAL;
-+
-+	/* If you have a leading "nocache", turn off ktext caching */
-+	if (strncmp(str, "nocache", 7) == 0) {
-+		ktext_nocache = 1;
-+		printk("ktext: disabling local caching of kernel text\n");
-+		str += 7;
-+		if (*str == ',')
-+			++str;
-+		if (*str == '\0')
-+			return 0;
-+	}
-+
-+	ktext_arg_seen = 1;
-+
-+	/* Default setting on Tile64: use a huge page */
-+	if (strcmp(str, "huge") == 0)
-+		printk("ktext: using one huge locally cached page\n");
-+
-+	/* Pay TLB cost but get no cache benefit: cache small pages locally */
-+	else if (strcmp(str, "local") == 0) {
-+		ktext_small = 1;
-+		ktext_local = 1;
-+		printk("ktext: using small pages with local caching\n");
-+	}
-+
-+	/* Neighborhood cache ktext pages on all cpus. */
-+	else if (strcmp(str, "all") == 0) {
-+		ktext_small = 1;
-+		ktext_all = 1;
-+		printk("ktext: using maximal caching neighborhood\n");
-+	}
-+
-+
-+	/* Neighborhood ktext pages on specified mask */
-+	else if (cpulist_parse(str, &ktext_mask) == 0) {
-+		char buf[NR_CPUS * 5];
-+		cpulist_scnprintf(buf, sizeof(buf), &ktext_mask);
-+		if (cpumask_weight(&ktext_mask) > 1) {
-+			ktext_small = 1;
-+			printk("ktext: using caching neighborhood %s "
-+			       "with small pages\n", buf);
-+		} else {
-+			printk("ktext: caching on cpu %s with one huge page\n",
-+			       buf);
-+		}
-+	}
-+
-+	else if (*str)
-+		return -EINVAL;
-+
-+	return 0;
-+}
-+
-+early_param("ktext", setup_ktext);
-+
-+
-+static inline pgprot_t ktext_set_nocache(pgprot_t prot)
-+{
-+	if (!ktext_nocache)
-+		prot = hv_pte_set_nc(prot);
-+#if CHIP_HAS_NC_AND_NOALLOC_BITS()
-+	else
-+		prot = hv_pte_set_no_alloc_l2(prot);
-+#endif
-+	return prot;
-+}
-+
-+#ifndef __tilegx__
-+static pmd_t *__init get_pmd(pgd_t pgtables[], unsigned long va)
-+{
-+	return pmd_offset(pud_offset(&pgtables[pgd_index(va)], va), va);
-+}
++	return &atomic_lock_ptr[l1_index]->lock[l2_index];
 +#else
-+static pmd_t *__init get_pmd(pgd_t pgtables[], unsigned long va)
-+{
-+	pud_t *pud = pud_offset(&pgtables[pgd_index(va)], va);
-+	if (pud_none(*pud))
-+		assign_pmd(pud, alloc_pmd());
-+	return pmd_offset(pud, va);
-+}
-+#endif
-+
-+/* Temporary page table we use for staging. */
-+static pgd_t pgtables[PTRS_PER_PGD]
-+ __attribute__((section(".init.page")));
-+
-+/*
-+ * This maps the physical memory to kernel virtual address space, a total
-+ * of max_low_pfn pages, by creating page tables starting from address
-+ * PAGE_OFFSET.
-+ *
-+ * This routine transitions us from using a set of compiled-in large
-+ * pages to using some more precise caching, including removing access
-+ * to code pages mapped at PAGE_OFFSET (executed only at MEM_SV_START)
-+ * marking read-only data as locally cacheable, striping the remaining
-+ * .data and .bss across all the available tiles, and removing access
-+ * to pages above the top of RAM (thus ensuring a page fault from a bad
-+ * virtual address rather than a hypervisor shoot down for accessing
-+ * memory outside the assigned limits).
-+ */
-+static void __init kernel_physical_mapping_init(pgd_t *pgd_base)
-+{
-+	unsigned long address, pfn;
-+	pmd_t *pmd;
-+	pte_t *pte;
-+	int pte_ofs;
-+	const struct cpumask *my_cpu_mask = cpumask_of(smp_processor_id());
-+	struct cpumask kstripe_mask;
-+	int rc, i;
-+
-+#if CHIP_HAS_CBOX_HOME_MAP()
-+	if (ktext_arg_seen && ktext_hash) {
-+		printk("warning: \"ktext\" boot argument ignored"
-+		       " if \"kcache_hash\" sets up text hash-for-home\n");
-+		ktext_small = 0;
-+	}
-+
-+	if (kdata_arg_seen && kdata_hash) {
-+		printk("warning: \"kdata\" boot argument ignored"
-+		       " if \"kcache_hash\" sets up data hash-for-home\n");
-+	}
-+
-+	if (kdata_huge && !hash_default) {
-+		printk("warning: disabling \"kdata=huge\"; requires"
-+		       " kcache_hash=all or =allbutstack\n");
-+		kdata_huge = 0;
-+	}
-+#endif
-+
 +	/*
-+	 * Set up a mask for cpus to use for kernel striping.
-+	 * This is normally all cpus, but minus dataplane cpus if any.
-+	 * If the dataplane covers the whole chip, we stripe over
-+	 * the whole chip too.
++	 * Use bits [3, 3 + ATOMIC_HASH_SHIFT) as the lock index.
++	 * Using mm works here because atomic_locks is page aligned.
 +	 */
-+	cpumask_copy(&kstripe_mask, cpu_possible_mask);
-+	if (!kdata_arg_seen)
-+		kdata_mask = kstripe_mask;
-+
-+	/* Allocate and fill in L2 page tables */
-+	for (i = 0; i < MAX_NUMNODES; ++i) {
-+#ifdef CONFIG_HIGHMEM
-+		unsigned long end_pfn = node_lowmem_end_pfn[i];
-+#else
-+		unsigned long end_pfn = node_end_pfn[i];
-+#endif
-+		unsigned long end_huge_pfn = 0;
-+
-+		/* Pre-shatter the last huge page to allow per-cpu pages. */
-+		if (kdata_huge)
-+			end_huge_pfn = end_pfn - (HPAGE_SIZE >> PAGE_SHIFT);
-+
-+		pfn = node_start_pfn[i];
-+
-+		/* Allocate enough memory to hold L2 page tables for node. */
-+		init_prealloc_ptes(i, end_pfn - pfn);
-+
-+		address = (unsigned long) pfn_to_kaddr(pfn);
-+		while (pfn < end_pfn) {
-+			BUG_ON(address & (HPAGE_SIZE-1));
-+			pmd = get_pmd(pgtables, address);
-+			pte = get_prealloc_pte(pfn);
-+			if (pfn < end_huge_pfn) {
-+				pgprot_t prot = init_pgprot(address);
-+				*(pte_t *)pmd = pte_mkhuge(pfn_pte(pfn, prot));
-+				for (pte_ofs = 0; pte_ofs < PTRS_PER_PTE;
-+				     pfn++, pte_ofs++, address += PAGE_SIZE)
-+					pte[pte_ofs] = pfn_pte(pfn, prot);
-+			} else {
-+				if (kdata_huge)
-+					printk(KERN_DEBUG "pre-shattered huge"
-+					       " page at %#lx\n", address);
-+				for (pte_ofs = 0; pte_ofs < PTRS_PER_PTE;
-+				     pfn++, pte_ofs++, address += PAGE_SIZE) {
-+					pgprot_t prot = init_pgprot(address);
-+					pte[pte_ofs] = pfn_pte(pfn, prot);
-+				}
-+				assign_pte(pmd, pte);
-+			}
-+		}
-+	}
-+
-+	/*
-+	 * Set or check ktext_map now that we have cpu_possible_mask
-+	 * and kstripe_mask to work with.
-+	 */
-+	if (ktext_all)
-+		cpumask_copy(&ktext_mask, cpu_possible_mask);
-+	else if (ktext_nondataplane)
-+		ktext_mask = kstripe_mask;
-+	else if (!cpumask_empty(&ktext_mask)) {
-+		/* Sanity-check any mask that was requested */
-+		struct cpumask bad;
-+		cpumask_andnot(&bad, &ktext_mask, cpu_possible_mask);
-+		cpumask_and(&ktext_mask, &ktext_mask, cpu_possible_mask);
-+		if (!cpumask_empty(&bad)) {
-+			char buf[NR_CPUS * 5];
-+			cpulist_scnprintf(buf, sizeof(buf), &bad);
-+			printk("ktext: not using unavailable cpus %s\n", buf);
-+		}
-+		if (cpumask_empty(&ktext_mask)) {
-+			printk("ktext: no valid cpus; caching on %d.\n",
-+			       smp_processor_id());
-+			cpumask_copy(&ktext_mask,
-+				     cpumask_of(smp_processor_id()));
-+		}
-+	}
-+
-+	address = MEM_SV_INTRPT;
-+	pmd = get_pmd(pgtables, address);
-+	if (ktext_small) {
-+		/* Allocate an L2 PTE for the kernel text */
-+		int cpu = 0;
-+		pgprot_t prot = construct_pgprot(PAGE_KERNEL_EXEC,
-+						 PAGE_HOME_IMMUTABLE);
-+
-+		if (ktext_local) {
-+			if (ktext_nocache)
-+				prot = hv_pte_set_mode(prot,
-+						       HV_PTE_MODE_UNCACHED);
-+			else
-+				prot = hv_pte_set_mode(prot,
-+						       HV_PTE_MODE_CACHE_NO_L3);
-+		} else {
-+			prot = hv_pte_set_mode(prot,
-+					       HV_PTE_MODE_CACHE_TILE_L3);
-+			cpu = cpumask_first(&ktext_mask);
-+
-+			prot = ktext_set_nocache(prot);
-+		}
-+
-+		BUG_ON(address != (unsigned long)_stext);
-+		pfn = 0;  /* code starts at PA 0 */
-+		pte = alloc_pte();
-+		for (pte_ofs = 0; address < (unsigned long)_einittext;
-+		     pfn++, pte_ofs++, address += PAGE_SIZE) {
-+			if (!ktext_local) {
-+				prot = set_remote_cache_cpu(prot, cpu);
-+				cpu = cpumask_next(cpu, &ktext_mask);
-+				if (cpu == NR_CPUS)
-+					cpu = cpumask_first(&ktext_mask);
-+			}
-+			pte[pte_ofs] = pfn_pte(pfn, prot);
-+		}
-+		assign_pte(pmd, pte);
-+	} else {
-+		pte_t pteval = pfn_pte(0, PAGE_KERNEL_EXEC);
-+		pteval = pte_mkhuge(pteval);
-+#if CHIP_HAS_CBOX_HOME_MAP()
-+		if (ktext_hash) {
-+			pteval = hv_pte_set_mode(pteval,
-+						 HV_PTE_MODE_CACHE_HASH_L3);
-+			pteval = ktext_set_nocache(pteval);
-+		} else
-+#endif /* CHIP_HAS_CBOX_HOME_MAP() */
-+		if (cpumask_weight(&ktext_mask) == 1) {
-+			pteval = set_remote_cache_cpu(pteval,
-+					      cpumask_first(&ktext_mask));
-+			pteval = hv_pte_set_mode(pteval,
-+						 HV_PTE_MODE_CACHE_TILE_L3);
-+			pteval = ktext_set_nocache(pteval);
-+		} else if (ktext_nocache)
-+			pteval = hv_pte_set_mode(pteval,
-+						 HV_PTE_MODE_UNCACHED);
-+		else
-+			pteval = hv_pte_set_mode(pteval,
-+						 HV_PTE_MODE_CACHE_NO_L3);
-+		*(pte_t *)pmd = pteval;
-+	}
-+
-+	/* Set swapper_pgprot here so it is flushed to memory right away. */
-+	swapper_pgprot = init_pgprot((unsigned long)swapper_pg_dir);
-+
-+	/*
-+	 * Since we may be changing the caching of the stack and page
-+	 * table itself, we invoke an assembly helper to do the
-+	 * following steps:
-+	 *
-+	 *  - flush the cache so we start with an empty slate
-+	 *  - install pgtables[] as the real page table
-+	 *  - flush the TLB so the new page table takes effect
-+	 */
-+	rc = flush_and_install_context(__pa(pgtables),
-+				       init_pgprot((unsigned long)pgtables),
-+				       __get_cpu_var(current_asid),
-+				       cpumask_bits(my_cpu_mask));
-+	BUG_ON(rc != 0);
-+
-+	/* Copy the page table back to the normal swapper_pg_dir. */
-+	memcpy(pgd_base, pgtables, sizeof(pgtables));
-+	__install_page_table(pgd_base, __get_cpu_var(current_asid),
-+			     swapper_pgprot);
-+}
-+
-+/*
-+ * devmem_is_allowed() checks to see if /dev/mem access to a certain address
-+ * is valid. The argument is a physical page number.
-+ *
-+ * On Tile, the only valid things for which we can just hand out unchecked
-+ * PTEs are the kernel code and data.  Anything else might change its
-+ * homing with time, and we wouldn't know to adjust the /dev/mem PTEs.
-+ * Note that init_thread_union is released to heap soon after boot,
-+ * so we include it in the init data.
-+ *
-+ * For TILE-Gx, we might want to consider allowing access to PA
-+ * regions corresponding to PCI space, etc.
-+ */
-+int devmem_is_allowed(unsigned long pagenr)
-+{
-+	return pagenr < kaddr_to_pfn(_end) &&
-+		!(pagenr >= kaddr_to_pfn(&init_thread_union) ||
-+		  pagenr < kaddr_to_pfn(_einitdata)) &&
-+		!(pagenr >= kaddr_to_pfn(_sinittext) ||
-+		  pagenr <= kaddr_to_pfn(_einittext-1));
-+}
-+
-+#ifdef CONFIG_HIGHMEM
-+static void __init permanent_kmaps_init(pgd_t *pgd_base)
-+{
-+	pgd_t *pgd;
-+	pud_t *pud;
-+	pmd_t *pmd;
-+	pte_t *pte;
-+	unsigned long vaddr;
-+
-+	vaddr = PKMAP_BASE;
-+	page_table_range_init(vaddr, vaddr + PAGE_SIZE*LAST_PKMAP, pgd_base);
-+
-+	pgd = swapper_pg_dir + pgd_index(vaddr);
-+	pud = pud_offset(pgd, vaddr);
-+	pmd = pmd_offset(pud, vaddr);
-+	pte = pte_offset_kernel(pmd, vaddr);
-+	pkmap_page_table = pte;
-+}
-+#endif /* CONFIG_HIGHMEM */
-+
-+
-+static void __init init_free_pfn_range(unsigned long start, unsigned long end)
-+{
-+	unsigned long pfn;
-+	struct page *page = pfn_to_page(start);
-+
-+	for (pfn = start; pfn < end; ) {
-+		/* Optimize by freeing pages in large batches */
-+		int order = __ffs(pfn);
-+		int count, i;
-+		struct page *p;
-+
-+		if (order >= MAX_ORDER)
-+			order = MAX_ORDER-1;
-+		count = 1 << order;
-+		while (pfn + count > end) {
-+			count >>= 1;
-+			--order;
-+		}
-+		for (p = page, i = 0; i < count; ++i, ++p) {
-+			__ClearPageReserved(p);
-+			/*
-+			 * Hacky direct set to avoid unnecessary
-+			 * lock take/release for EVERY page here.
-+			 */
-+			p->_count.counter = 0;
-+			p->_mapcount.counter = -1;
-+		}
-+		init_page_count(page);
-+		__free_pages(page, order);
-+		totalram_pages += count;
-+
-+		page += count;
-+		pfn += count;
-+	}
-+}
-+
-+static void __init set_non_bootmem_pages_init(void)
-+{
-+	struct zone *z;
-+	for_each_zone(z) {
-+		unsigned long start, end;
-+		int nid = z->zone_pgdat->node_id;
-+
-+		start = z->zone_start_pfn;
-+		if (start == 0)
-+			continue;  /* bootmem */
-+		end = start + z->spanned_pages;
-+		if (zone_idx(z) == ZONE_DMA) {
-+			BUG_ON(start != node_start_pfn[nid]);
-+			start = node_free_pfn[nid];
-+		}
-+#ifdef CONFIG_HIGHMEM
-+		if (zone_idx(z) == ZONE_HIGHMEM)
-+			totalhigh_pages += z->spanned_pages;
-+#endif
-+		if (kdata_huge) {
-+			unsigned long percpu_pfn = node_percpu_pfn[nid];
-+			if (start < percpu_pfn && end > percpu_pfn)
-+				end = percpu_pfn;
-+		}
-+#ifdef CONFIG_PCI
-+		if (start <= pci_reserve_start_pfn &&
-+		    end > pci_reserve_start_pfn) {
-+			if (end > pci_reserve_end_pfn)
-+				init_free_pfn_range(pci_reserve_end_pfn, end);
-+			end = pci_reserve_start_pfn;
-+		}
-+#endif
-+		init_free_pfn_range(start, end);
-+	}
-+}
-+
-+/*
-+ * paging_init() sets up the page tables - note that all of lowmem is
-+ * already mapped by head.S.
-+ */
-+void __init paging_init(void)
-+{
-+#ifdef CONFIG_HIGHMEM
-+	unsigned long vaddr, end;
-+#endif
-+#ifdef __tilegx__
-+	pud_t *pud;
-+#endif
-+	pgd_t *pgd_base = swapper_pg_dir;
-+
-+	kernel_physical_mapping_init(pgd_base);
-+
-+#ifdef CONFIG_HIGHMEM
-+	/*
-+	 * Fixed mappings, only the page table structure has to be
-+	 * created - mappings will be set by set_fixmap():
-+	 */
-+	vaddr = __fix_to_virt(__end_of_fixed_addresses - 1) & PMD_MASK;
-+	end = (FIXADDR_TOP + PMD_SIZE - 1) & PMD_MASK;
-+	page_table_range_init(vaddr, end, pgd_base);
-+	permanent_kmaps_init(pgd_base);
-+#endif
-+
-+#ifdef __tilegx__
-+	/*
-+	 * Since GX allocates just one pmd_t array worth of vmalloc space,
-+	 * we go ahead and allocate it statically here, then share it
-+	 * globally.  As a result we don't have to worry about any task
-+	 * changing init_mm once we get up and running, and there's no
-+	 * need for e.g. vmalloc_sync_all().
-+	 */
-+	BUILD_BUG_ON(pgd_index(VMALLOC_START) != pgd_index(VMALLOC_END));
-+	pud = pud_offset(pgd_base + pgd_index(VMALLOC_START), VMALLOC_START);
-+	assign_pmd(pud, alloc_pmd());
++	unsigned long ptr = __insn_mm((unsigned long)v >> 1,
++				      (unsigned long)atomic_locks,
++				      2, (ATOMIC_HASH_SHIFT + 2) - 1);
++	return (int *)ptr;
 +#endif
 +}
 +
-+
-+/*
-+ * Walk the kernel page tables and derive the page_home() from
-+ * the PTEs, so that set_pte() can properly validate the caching
-+ * of all PTEs it sees.
-+ */
-+void __init set_page_homes(void)
++#ifdef CONFIG_SMP
++/* Return whether the passed pointer is a valid atomic lock pointer. */
++static int is_atomic_lock(int *p)
 +{
-+}
-+
-+static void __init set_max_mapnr_init(void)
-+{
-+#ifdef CONFIG_FLATMEM
-+	max_mapnr = max_low_pfn;
-+#endif
-+}
-+
-+void __init mem_init(void)
-+{
-+	int codesize, datasize, initsize;
++#if ATOMIC_LOCKS_FOUND_VIA_TABLE()
 +	int i;
-+#ifndef __tilegx__
-+	void *last;
-+#endif
++	for (i = 0; i < ATOMIC_HASH_L1_SIZE; ++i) {
 +
-+#ifdef CONFIG_FLATMEM
-+	if (!mem_map)
-+		BUG();
-+#endif
-+
-+#ifdef CONFIG_HIGHMEM
-+	/* check that fixmap and pkmap do not overlap */
-+	if (PKMAP_ADDR(LAST_PKMAP-1) >= FIXADDR_START) {
-+		printk(KERN_ERR "fixmap and kmap areas overlap"
-+		       " - this will crash\n");
-+		printk(KERN_ERR "pkstart: %lxh pkend: %lxh fixstart %lxh\n",
-+		       PKMAP_BASE, PKMAP_ADDR(LAST_PKMAP-1),
-+		       FIXADDR_START);
-+		BUG();
-+	}
-+#endif
-+
-+	set_max_mapnr_init();
-+
-+	/* this will put all bootmem onto the freelists */
-+	totalram_pages += free_all_bootmem();
-+
-+	/* count all remaining LOWMEM and give all HIGHMEM to page allocator */
-+	set_non_bootmem_pages_init();
-+
-+	codesize =  (unsigned long)&_etext - (unsigned long)&_text;
-+	datasize =  (unsigned long)&_end - (unsigned long)&_sdata;
-+	initsize =  (unsigned long)&_einittext - (unsigned long)&_sinittext;
-+	initsize += (unsigned long)&_einitdata - (unsigned long)&_sinitdata;
-+
-+	printk(KERN_INFO "Memory: %luk/%luk available (%dk kernel code, %dk data, %dk init, %ldk highmem)\n",
-+		(unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
-+		num_physpages << (PAGE_SHIFT-10),
-+		codesize >> 10,
-+		datasize >> 10,
-+		initsize >> 10,
-+		(unsigned long) (totalhigh_pages << (PAGE_SHIFT-10))
-+	       );
-+
-+	/*
-+	 * In debug mode, dump some interesting memory mappings.
-+	 */
-+#ifdef CONFIG_HIGHMEM
-+	printk(KERN_DEBUG "  KMAP    %#lx - %#lx\n",
-+	       FIXADDR_START, FIXADDR_TOP + PAGE_SIZE - 1);
-+	printk(KERN_DEBUG "  PKMAP   %#lx - %#lx\n",
-+	       PKMAP_BASE, PKMAP_ADDR(LAST_PKMAP) - 1);
-+#endif
-+#ifdef CONFIG_HUGEVMAP
-+	printk(KERN_DEBUG "  HUGEMAP %#lx - %#lx\n",
-+	       HUGE_VMAP_BASE, HUGE_VMAP_END - 1);
-+#endif
-+	printk(KERN_DEBUG "  VMALLOC %#lx - %#lx\n",
-+	       _VMALLOC_START, _VMALLOC_END - 1);
-+#ifdef __tilegx__
-+	for (i = MAX_NUMNODES-1; i >= 0; --i) {
-+		struct pglist_data *node = &node_data[i];
-+		if (node->node_present_pages) {
-+			unsigned long start = (unsigned long)
-+				pfn_to_kaddr(node->node_start_pfn);
-+			unsigned long end = start +
-+				(node->node_present_pages << PAGE_SHIFT);
-+			printk(KERN_DEBUG "  MEM%d    %#lx - %#lx\n",
-+			       i, start, end - 1);
++		if (p >= &atomic_lock_ptr[i]->lock[0] &&
++		    p < &atomic_lock_ptr[i]->lock[ATOMIC_HASH_L2_SIZE]) {
++			return 1;
 +		}
 +	}
++	return 0;
 +#else
-+	last = high_memory;
-+	for (i = MAX_NUMNODES-1; i >= 0; --i) {
-+		if ((unsigned long)vbase_map[i] != -1UL) {
-+			printk(KERN_DEBUG "  LOWMEM%d %#lx - %#lx\n",
-+			       i, (unsigned long) (vbase_map[i]),
-+			       (unsigned long) (last-1));
-+			last = vbase_map[i];
-+		}
-+	}
++	return p >= &atomic_locks[0] && p < &atomic_locks[ATOMIC_HASH_SIZE];
 +#endif
++}
 +
-+#ifndef __tilegx__
++void __atomic_fault_unlock(int *irqlock_word)
++{
++	BUG_ON(!is_atomic_lock(irqlock_word));
++	BUG_ON(*irqlock_word != 1);
++	*irqlock_word = 0;
++}
++
++#endif /* CONFIG_SMP */
++
++static inline int *__atomic_setup(volatile void *v)
++{
++	/* Issue a load to the target to bring it into cache. */
++	*(volatile int *)v;
++	return __atomic_hashed_lock(v);
++}
++
++int _atomic_xchg(atomic_t *v, int n)
++{
++	return __atomic_xchg(&v->counter, __atomic_setup(v), n).val;
++}
++EXPORT_SYMBOL(_atomic_xchg);
++
++int _atomic_xchg_add(atomic_t *v, int i)
++{
++	return __atomic_xchg_add(&v->counter, __atomic_setup(v), i).val;
++}
++EXPORT_SYMBOL(_atomic_xchg_add);
++
++int _atomic_xchg_add_unless(atomic_t *v, int a, int u)
++{
 +	/*
-+	 * Convert from using one lock for all atomic operations to
-+	 * one per cpu.
++	 * Note: argument order is switched here since it is easier
++	 * to use the first argument consistently as the "old value"
++	 * in the assembly, as is done for _atomic_cmpxchg().
 +	 */
-+	__init_atomic_per_cpu();
-+#endif
++	return __atomic_xchg_add_unless(&v->counter, __atomic_setup(v), u, a)
++		.val;
++}
++EXPORT_SYMBOL(_atomic_xchg_add_unless);
++
++int _atomic_cmpxchg(atomic_t *v, int o, int n)
++{
++	return __atomic_cmpxchg(&v->counter, __atomic_setup(v), o, n).val;
++}
++EXPORT_SYMBOL(_atomic_cmpxchg);
++
++unsigned long _atomic_or(volatile unsigned long *p, unsigned long mask)
++{
++	return __atomic_or((int *)p, __atomic_setup(p), mask).val;
++}
++EXPORT_SYMBOL(_atomic_or);
++
++unsigned long _atomic_andn(volatile unsigned long *p, unsigned long mask)
++{
++	return __atomic_andn((int *)p, __atomic_setup(p), mask).val;
++}
++EXPORT_SYMBOL(_atomic_andn);
++
++unsigned long _atomic_xor(volatile unsigned long *p, unsigned long mask)
++{
++	return __atomic_xor((int *)p, __atomic_setup(p), mask).val;
++}
++EXPORT_SYMBOL(_atomic_xor);
++
++
++u64 _atomic64_xchg(atomic64_t *v, u64 n)
++{
++	return __atomic64_xchg(&v->counter, __atomic_setup(v), n);
++}
++EXPORT_SYMBOL(_atomic64_xchg);
++
++u64 _atomic64_xchg_add(atomic64_t *v, u64 i)
++{
++	return __atomic64_xchg_add(&v->counter, __atomic_setup(v), i);
++}
++EXPORT_SYMBOL(_atomic64_xchg_add);
++
++u64 _atomic64_xchg_add_unless(atomic64_t *v, u64 a, u64 u)
++{
++	/*
++	 * Note: argument order is switched here since it is easier
++	 * to use the first argument consistently as the "old value"
++	 * in the assembly, as is done for _atomic_cmpxchg().
++	 */
++	return __atomic64_xchg_add_unless(&v->counter, __atomic_setup(v),
++					  u, a);
++}
++EXPORT_SYMBOL(_atomic64_xchg_add_unless);
++
++u64 _atomic64_cmpxchg(atomic64_t *v, u64 o, u64 n)
++{
++	return __atomic64_cmpxchg(&v->counter, __atomic_setup(v), o, n);
++}
++EXPORT_SYMBOL(_atomic64_cmpxchg);
++
++
++static inline int *__futex_setup(__user int *v)
++{
++	/*
++	 * Issue a prefetch to the counter to bring it into cache.
++	 * As for __atomic_setup, but we can't do a read into the L1
++	 * since it might fault; instead we do a prefetch into the L2.
++	 */
++	__insn_prefetch(v);
++	return __atomic_hashed_lock(v);
++}
++
++struct __get_user futex_set(int *v, int i)
++{
++	return __atomic_xchg(v, __futex_setup(v), i);
++}
++
++struct __get_user futex_add(int *v, int n)
++{
++	return __atomic_xchg_add(v, __futex_setup(v), n);
++}
++
++struct __get_user futex_or(int *v, int n)
++{
++	return __atomic_or(v, __futex_setup(v), n);
++}
++
++struct __get_user futex_andn(int *v, int n)
++{
++	return __atomic_andn(v, __futex_setup(v), n);
++}
++
++struct __get_user futex_xor(int *v, int n)
++{
++	return __atomic_xor(v, __futex_setup(v), n);
++}
++
++struct __get_user futex_cmpxchg(int *v, int o, int n)
++{
++	return __atomic_cmpxchg(v, __futex_setup(v), o, n);
 +}
 +
 +/*
-+ * this is for the non-NUMA, single node SMP system case.
-+ * Specifically, in the case of x86, we will always add
-+ * memory to the highmem for now.
++ * If any of the atomic or futex routines hit a bad address (not in
++ * the page tables at kernel PL) this routine is called.  The futex
++ * routines are never used on kernel space, and the normal atomics and
++ * bitops are never used on user space.  So a fault on kernel space
++ * must be fatal, but a fault on userspace is a futex fault and we
++ * need to return -EFAULT.  Note that the context this routine is
++ * invoked in is the context of the "_atomic_xxx()" routines called
++ * by the functions in this file.
 + */
-+#ifndef CONFIG_NEED_MULTIPLE_NODES
-+int arch_add_memory(u64 start, u64 size)
++struct __get_user __atomic_bad_address(int *addr)
 +{
-+	struct pglist_data *pgdata = &contig_page_data;
-+	struct zone *zone = pgdata->node_zones + MAX_NR_ZONES-1;
-+	unsigned long start_pfn = start >> PAGE_SHIFT;
-+	unsigned long nr_pages = size >> PAGE_SHIFT;
-+
-+	return __add_pages(zone, start_pfn, nr_pages);
++	if (unlikely(!access_ok(VERIFY_WRITE, addr, sizeof(int))))
++		panic("Bad address used for kernel atomic op: %p\n", addr);
++	return (struct __get_user) { .err = -EFAULT };
 +}
 +
-+int remove_memory(u64 start, u64 size)
++
++#if CHIP_HAS_CBOX_HOME_MAP()
++static int __init noatomichash(char *str)
 +{
-+	return -EINVAL;
-+}
-+#endif
-+
-+struct kmem_cache *pgd_cache;
-+
-+void __init pgtable_cache_init(void)
-+{
-+	pgd_cache = kmem_cache_create("pgd",
-+				PTRS_PER_PGD*sizeof(pgd_t),
-+				PTRS_PER_PGD*sizeof(pgd_t),
-+				0,
-+				NULL);
-+	if (!pgd_cache)
-+		panic("pgtable_cache_init(): Cannot create pgd cache");
-+}
-+
-+#if !CHIP_HAS_COHERENT_LOCAL_CACHE()
-+/*
-+ * The __w1data area holds data that is only written during initialization,
-+ * and is read-only and thus freely cacheable thereafter.  Fix the page
-+ * table entries that cover that region accordingly.
-+ */
-+static void mark_w1data_ro(void)
-+{
-+	/* Loop over page table entries */
-+	unsigned long addr = (unsigned long)__w1data_begin;
-+	BUG_ON((addr & (PAGE_SIZE-1)) != 0);
-+	for (; addr <= (unsigned long)__w1data_end - 1; addr += PAGE_SIZE) {
-+		unsigned long pfn = kaddr_to_pfn((void *)addr);
-+		struct page *page = pfn_to_page(pfn);
-+		pte_t *ptep = virt_to_pte(NULL, addr);
-+		BUG_ON(pte_huge(*ptep));   /* not relevant for kdata_huge */
-+		set_pte_at(&init_mm, addr, ptep, pfn_pte(pfn, PAGE_KERNEL_RO));
-+	}
-+}
-+#endif
-+
-+#ifdef CONFIG_DEBUG_PAGEALLOC
-+static long __write_once initfree;
-+#else
-+static long __write_once initfree = 1;
-+#endif
-+
-+/* Select whether to free (1) or mark unusable (0) the __init pages. */
-+static int __init set_initfree(char *str)
-+{
-+	strict_strtol(str, 0, &initfree);
-+	printk("initfree: %s free init pages\n", initfree ? "will" : "won't");
++	printk("noatomichash is deprecated.\n");
 +	return 1;
 +}
-+__setup("initfree=", set_initfree);
-+
-+static void free_init_pages(char *what, unsigned long begin, unsigned long end)
-+{
-+	unsigned long addr = (unsigned long) begin;
-+
-+	if (kdata_huge && !initfree) {
-+		printk("Warning: ignoring initfree=0:"
-+		       " incompatible with kdata=huge\n");
-+		initfree = 1;
-+	}
-+	end = (end + PAGE_SIZE - 1) & PAGE_MASK;
-+	local_flush_tlb_pages(NULL, begin, PAGE_SIZE, end - begin);
-+	for (addr = begin; addr < end; addr += PAGE_SIZE) {
-+		/*
-+		 * Note we just reset the home here directly in the
-+		 * page table.  We know this is safe because our caller
-+		 * just flushed the caches on all the other cpus,
-+		 * and they won't be touching any of these pages.
-+		 */
-+		int pfn = kaddr_to_pfn((void *)addr);
-+		struct page *page = pfn_to_page(pfn);
-+		pte_t *ptep = virt_to_pte(NULL, addr);
-+		if (!initfree) {
-+			/*
-+			 * If debugging page accesses then do not free
-+			 * this memory but mark them not present - any
-+			 * buggy init-section access will create a
-+			 * kernel page fault:
-+			 */
-+			pte_clear(&init_mm, addr, ptep);
-+			continue;
-+		}
-+		__ClearPageReserved(page);
-+		init_page_count(page);
-+		if (pte_huge(*ptep))
-+			BUG_ON(!kdata_huge);
-+		else
-+			set_pte_at(&init_mm, addr, ptep,
-+				   pfn_pte(pfn, PAGE_KERNEL));
-+		memset((void *)addr, POISON_FREE_INITMEM, PAGE_SIZE);
-+		free_page(addr);
-+		totalram_pages++;
-+	}
-+	printk(KERN_INFO "Freeing %s: %ldk freed\n", what, (end - begin) >> 10);
-+}
-+
-+void free_initmem(void)
-+{
-+	const unsigned long text_delta = MEM_SV_INTRPT - PAGE_OFFSET;
-+
-+	/*
-+	 * Evict the dirty initdata on the boot cpu, evict the w1data
-+	 * wherever it's homed, and evict all the init code everywhere.
-+	 * We are guaranteed that no one will touch the init pages any
-+	 * more, and although other cpus may be touching the w1data,
-+	 * we only actually change the caching on tile64, which won't
-+	 * be keeping local copies in the other tiles' caches anyway.
-+	 */
-+	homecache_evict(&cpu_cacheable_map);
-+
-+	/* Free the data pages that we won't use again after init. */
-+	free_init_pages("unused kernel data",
-+			(unsigned long)_sinitdata,
-+			(unsigned long)_einitdata);
-+
-+	/*
-+	 * Free the pages mapped from 0xc0000000 that correspond to code
-+	 * pages from 0xfd000000 that we won't use again after init.
-+	 */
-+	free_init_pages("unused kernel text",
-+			(unsigned long)_sinittext - text_delta,
-+			(unsigned long)_einittext - text_delta);
-+
-+#if !CHIP_HAS_COHERENT_LOCAL_CACHE()
-+	/*
-+	 * Upgrade the .w1data section to globally cached.
-+	 * We don't do this on tilepro, since the cache architecture
-+	 * pretty much makes it irrelevant, and in any case we end
-+	 * up having racing issues with other tiles that may touch
-+	 * the data after we flush the cache but before we update
-+	 * the PTEs and flush the TLBs, causing sharer shootdowns
-+	 * later.  Even though this is to clean data, it seems like
-+	 * an unnecessary complication.
-+	 */
-+	mark_w1data_ro();
++__setup("noatomichash", noatomichash);
 +#endif
 +
-+	/* Do a global TLB flush so everyone sees the changes. */
-+	flush_tlb_all();
++void __init __init_atomic_per_cpu(void)
++{
++#if ATOMIC_LOCKS_FOUND_VIA_TABLE()
++
++	unsigned int i;
++	int actual_cpu;
++
++	/*
++	 * Before this is called from setup, we just have one lock for
++	 * all atomic objects/operations.  Here we replace the
++	 * elements of atomic_lock_ptr so that they point at per_cpu
++	 * integers.  This seemingly over-complex approach stems from
++	 * the fact that DEFINE_PER_CPU defines an entry for each cpu
++	 * in the grid, not each cpu from 0..ATOMIC_HASH_SIZE-1.  But
++	 * for efficient hashing of atomics to their locks we want a
++	 * compile time constant power of 2 for the size of this
++	 * table, so we use ATOMIC_HASH_SIZE.
++	 *
++	 * Here we populate atomic_lock_ptr from the per cpu
++	 * atomic_lock_pool, interspersing by actual cpu so that
++	 * subsequent elements are homed on consecutive cpus.
++	 */
++
++	actual_cpu = cpumask_first(cpu_possible_mask);
++
++	for (i = 0; i < ATOMIC_HASH_L1_SIZE; ++i) {
++		/*
++		 * Preincrement to slightly bias against using cpu 0,
++		 * which has plenty of stuff homed on it already.
++		 */
++		actual_cpu = cpumask_next(actual_cpu, cpu_possible_mask);
++		if (actual_cpu >= nr_cpu_ids)
++			actual_cpu = cpumask_first(cpu_possible_mask);
++
++		atomic_lock_ptr[i] = &per_cpu(atomic_lock_pool, actual_cpu);
++	}
++
++#else /* ATOMIC_LOCKS_FOUND_VIA_TABLE() */
++
++	/* Validate power-of-two and "bigger than cpus" assumption */
++	BUG_ON(ATOMIC_HASH_SIZE & (ATOMIC_HASH_SIZE-1));
++	BUG_ON(ATOMIC_HASH_SIZE < nr_cpu_ids);
++
++	/*
++	 * On TILEPro we prefer to use a single hash-for-home
++	 * page, since this means atomic operations are less
++	 * likely to encounter a TLB fault and thus should
++	 * in general perform faster.  You may wish to disable
++	 * this in situations where few hash-for-home tiles
++	 * are configured.
++	 */
++	BUG_ON((unsigned long)atomic_locks % PAGE_SIZE != 0);
++
++	/* The locks must all fit on one page. */
++	BUG_ON(ATOMIC_HASH_SIZE * sizeof(int) > PAGE_SIZE);
++
++	/*
++	 * We use the page offset of the atomic value's address as
++	 * an index into atomic_locks, excluding the low 3 bits.
++	 * That should not produce more indices than ATOMIC_HASH_SIZE.
++	 */
++	BUG_ON((PAGE_SIZE >> 3) > ATOMIC_HASH_SIZE);
++
++#endif /* ATOMIC_LOCKS_FOUND_VIA_TABLE() */
++
++	/* The futex code makes this assumption, so we validate it here. */
++	BUG_ON(sizeof(atomic_t) != sizeof(int));
 +}
-diff --git a/arch/tile/mm/migrate.h b/arch/tile/mm/migrate.h
+diff --git a/arch/tile/lib/atomic_asm_32.S b/arch/tile/lib/atomic_asm_32.S
 new file mode 100644
-index 0000000..cd45a08
+index 0000000..c0d0585
 --- /dev/null
-+++ b/arch/tile/mm/migrate.h
-@@ -0,0 +1,50 @@
++++ b/arch/tile/lib/atomic_asm_32.S
+@@ -0,0 +1,197 @@
 +/*
 + * Copyright 2010 Tilera Corporation. All Rights Reserved.
 + *
@@ -3411,347 +564,1233 @@ index 0000000..cd45a08
 + *   NON INFRINGEMENT.  See the GNU General Public License for
 + *   more details.
 + *
-+ * Structure definitions for migration, exposed here for use by
-+ * arch/tile/kernel/asm-offsets.c.
-+ */
-+
-+#ifndef MM_MIGRATE_H
-+#define MM_MIGRATE_H
-+
-+#include <linux/cpumask.h>
-+#include <hv/hypervisor.h>
-+
-+/*
-+ * This function is used as a helper when setting up the initial
-+ * page table (swapper_pg_dir).
-+ */
-+extern int flush_and_install_context(HV_PhysAddr page_table, HV_PTE access,
-+				     HV_ASID asid,
-+				     const unsigned long *cpumask);
-+
-+/*
-+ * This function supports migration as a "helper" as follows:
++ * Support routines for atomic operations.  Each function takes:
 + *
-+ *  - Set the stack PTE itself to "migrating".
-+ *  - Do a global TLB flush for (va,length) and the specified ASIDs.
-+ *  - Do a cache-evict on all necessary cpus.
-+ *  - Write the new stack PTE.
++ * r0: address to manipulate
++ * r1: pointer to atomic lock guarding this operation (for FUTEX_LOCK_REG)
++ * r2: new value to write, or for cmpxchg/add_unless, value to compare against
++ * r3: (cmpxchg/xchg_add_unless) new value to write or add;
++ *     (atomic64 ops) high word of value to write
++ * r4/r5: (cmpxchg64/add_unless64) new value to write or add
 + *
-+ * Note that any non-NULL pointers must not point to the page that
-+ * is handled by the stack_pte itself.
-+ */
-+extern int homecache_migrate_stack_and_flush(pte_t stack_pte, unsigned long va,
-+				     size_t length, pte_t *stack_ptep,
-+				     const struct cpumask *cache_cpumask,
-+				     const struct cpumask *tlb_cpumask,
-+				     HV_Remote_ASID *asids,
-+				     int asidcount);
-+
-+#endif /* MM_MIGRATE_H */
-diff --git a/arch/tile/mm/migrate_32.S b/arch/tile/mm/migrate_32.S
-new file mode 100644
-index 0000000..f738765
---- /dev/null
-+++ b/arch/tile/mm/migrate_32.S
-@@ -0,0 +1,211 @@
-+/*
-+ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ * The 32-bit routines return a "struct __get_user" so that the futex code
++ * has an opportunity to return -EFAULT to the user if needed.
++ * The 64-bit routines just return a "long long" with the value,
++ * since they are only used from kernel space and don't expect to fault.
++ * Support for 16-bit ops is included in the framework but we don't provide
++ * any (x86_64 has an atomic_inc_short(), so we might want to some day).
 + *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
++ * Note that the caller is advised to issue a suitable L1 or L2
++ * prefetch on the address being manipulated to avoid extra stalls.
++ * In addition, the hot path is on two icache lines, and we start with
++ * a jump to the second line to make sure they are both in cache so
++ * that we never stall waiting on icache fill while holding the lock.
++ * (This doesn't work out with most 64-bit ops, since they consume
++ * too many bundles, so may take an extra i-cache stall.)
 + *
-+ *   This program is distributed in the hope that it will be useful, but
-+ *   WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-+ *   NON INFRINGEMENT.  See the GNU General Public License for
-+ *   more details.
++ * These routines set the INTERRUPT_CRITICAL_SECTION bit, just
++ * like sys_cmpxchg(), so that NMIs like PERF_COUNT will not interrupt
++ * the code, just page faults.
 + *
-+ * This routine is a helper for migrating the home of a set of pages to
-+ * a new cpu.  See the documentation in homecache.c for more information.
++ * If the load or store faults in a way that can be directly fixed in
++ * the do_page_fault_ics() handler (e.g. a vmalloc reference) we fix it
++ * directly, return to the instruction that faulted, and retry it.
++ *
++ * If the load or store faults in a way that potentially requires us
++ * to release the atomic lock, then retry (e.g. a migrating PTE), we
++ * reset the PC in do_page_fault_ics() to the "tns" instruction so
++ * that on return we will reacquire the lock and restart the op.  We
++ * are somewhat overloading the exception_table_entry notion by doing
++ * this, since those entries are not normally used for migrating PTEs.
++ *
++ * If the main page fault handler discovers a bad address, it will see
++ * the PC pointing to the "tns" instruction (due to the earlier
++ * exception_table_entry processing in do_page_fault_ics), and
++ * re-reset the PC to the fault handler, atomic_bad_address(), which
++ * effectively takes over from the atomic op and can either return a
++ * bad "struct __get_user" (for user addresses) or can just panic (for
++ * bad kernel addresses).
++ *
++ * Note that if the value we would store is the same as what we
++ * loaded, we bypass the load.  Other platforms with true atomics can
++ * make the guarantee that a non-atomic __clear_bit(), for example,
++ * can safely race with an atomic test_and_set_bit(); this example is
++ * from bit_spinlock.h in slub_lock() / slub_unlock().  We can't do
++ * that on Tile since the "atomic" op is really just a
++ * read/modify/write, and can race with the non-atomic
++ * read/modify/write.  However, if we can short-circuit the write when
++ * it is not needed, in the atomic case, we avoid the race.
 + */
 +
 +#include <linux/linkage.h>
-+#include <linux/threads.h>
++#include <asm/atomic.h>
 +#include <asm/page.h>
-+#include <asm/types.h>
-+#include <asm/asm-offsets.h>
++#include <asm/processor.h>
++
++	.section .text.atomic,"ax"
++ENTRY(__start_atomic_asm_code)
++
++	.macro  atomic_op, name, bitwidth, body
++	.align  64
++STD_ENTRY_SECTION(__atomic\name, .text.atomic)
++	{
++	 movei  r24, 1
++	 j      4f		/* branch to second cache line */
++	}
++1:	{
++	 .ifc \bitwidth,16
++	 lh     r22, r0
++	 .else
++	 lw     r22, r0
++	 addi   r23, r0, 4
++	 .endif
++	}
++	.ifc \bitwidth,64
++	lw      r23, r23
++	.endif
++	\body /* set r24, and r25 if 64-bit */
++	{
++	 seq    r26, r22, r24
++	 seq    r27, r23, r25
++	}
++	.ifc \bitwidth,64
++	bbnst   r27, 2f
++	.endif
++	bbs     r26, 3f		/* skip write-back if it's the same value */
++2:	{
++	 .ifc \bitwidth,16
++	 sh     r0, r24
++	 .else
++	 sw     r0, r24
++	 addi   r23, r0, 4
++	 .endif
++	}
++	.ifc \bitwidth,64
++	sw      r23, r25
++	.endif
++	mf
++3:	{
++	 move   r0, r22
++	 .ifc \bitwidth,64
++	 move   r1, r23
++	 .else
++	 move   r1, zero
++	 .endif
++	 sw     ATOMIC_LOCK_REG_NAME, zero
++	}
++	mtspr   INTERRUPT_CRITICAL_SECTION, zero
++	jrp     lr
++4:	{
++	 move   ATOMIC_LOCK_REG_NAME, r1
++	 mtspr  INTERRUPT_CRITICAL_SECTION, r24
++	}
++#ifndef CONFIG_SMP
++	j       1b		/* no atomic locks */
++#else
++	{
++	 tns    r21, ATOMIC_LOCK_REG_NAME
++	 moveli r23, 2048       /* maximum backoff time in cycles */
++	}
++	{
++	 bzt    r21, 1b		/* branch if lock acquired */
++	 moveli r25, 32         /* starting backoff time in cycles */
++	}
++5:	mtspr   INTERRUPT_CRITICAL_SECTION, zero
++	mfspr   r26, CYCLE_LOW  /* get start point for this backoff */
++6:	mfspr   r22, CYCLE_LOW  /* test to see if we've backed off enough */
++	sub     r22, r22, r26
++	slt     r22, r22, r25
++	bbst    r22, 6b
++	{
++	 mtspr  INTERRUPT_CRITICAL_SECTION, r24
++	 shli   r25, r25, 1     /* double the backoff; retry the tns */
++	}
++	{
++	 tns    r21, ATOMIC_LOCK_REG_NAME
++	 slt    r26, r23, r25   /* is the proposed backoff too big? */
++	}
++	{
++	 bzt    r21, 1b		/* branch if lock acquired */
++	 mvnz   r25, r26, r23
++	}
++	j       5b
++#endif
++	STD_ENDPROC(__atomic\name)
++	.ifc \bitwidth,32
++	.pushsection __ex_table,"a"
++	.word   1b, __atomic\name
++	.word   2b, __atomic\name
++	.word   __atomic\name, __atomic_bad_address
++	.popsection
++	.endif
++	.endm
++
++atomic_op _cmpxchg, 32, "seq r26, r22, r2; { bbns r26, 3f; move r24, r3 }"
++atomic_op _xchg, 32, "move r24, r2"
++atomic_op _xchg_add, 32, "add r24, r22, r2"
++atomic_op _xchg_add_unless, 32, \
++	"sne r26, r22, r2; { bbns r26, 3f; add r24, r22, r3 }"
++atomic_op _or, 32, "or r24, r22, r2"
++atomic_op _andn, 32, "nor r2, r2, zero; and r24, r22, r2"
++atomic_op _xor, 32, "xor r24, r22, r2"
++
++atomic_op 64_cmpxchg, 64, "{ seq r26, r22, r2; seq r27, r23, r3 }; \
++	{ bbns r26, 3f; move r24, r4 }; { bbns r27, 3f; move r25, r5 }"
++atomic_op 64_xchg, 64, "{ move r24, r2; move r25, r3 }"
++atomic_op 64_xchg_add, 64, "{ add r24, r22, r2; add r25, r23, r3 }; \
++	slt_u r26, r24, r22; add r25, r25, r26"
++atomic_op 64_xchg_add_unless, 64, \
++	"{ sne r26, r22, r2; sne r27, r23, r3 }; \
++	{ bbns r26, 3f; add r24, r22, r4 }; \
++	{ bbns r27, 3f; add r25, r23, r5 }; \
++	slt_u r26, r24, r22; add r25, r25, r26"
++
++	jrp     lr              /* happy backtracer */
++
++ENTRY(__end_atomic_asm_code)
+diff --git a/arch/tile/lib/checksum.c b/arch/tile/lib/checksum.c
+new file mode 100644
+index 0000000..e4bab5b
+--- /dev/null
++++ b/arch/tile/lib/checksum.c
+@@ -0,0 +1,102 @@
++/*
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ * Support code for the main lib/checksum.c.
++ */
++
++#include <net/checksum.h>
++#include <linux/module.h>
++
++static inline unsigned int longto16(unsigned long x)
++{
++	unsigned long ret;
++#ifdef __tilegx__
++	ret = __insn_v2sadu(x, 0);
++	ret = __insn_v2sadu(ret, 0);
++#else
++	ret = __insn_sadh_u(x, 0);
++	ret = __insn_sadh_u(ret, 0);
++#endif
++	return ret;
++}
++
++__wsum do_csum(const unsigned char *buff, int len)
++{
++	int odd, count;
++	unsigned long result = 0;
++
++	if (len <= 0)
++		goto out;
++	odd = 1 & (unsigned long) buff;
++	if (odd) {
++		result = (*buff << 8);
++		len--;
++		buff++;
++	}
++	count = len >> 1;		/* nr of 16-bit words.. */
++	if (count) {
++		if (2 & (unsigned long) buff) {
++			result += *(const unsigned short *)buff;
++			count--;
++			len -= 2;
++			buff += 2;
++		}
++		count >>= 1;		/* nr of 32-bit words.. */
++		if (count) {
++#ifdef __tilegx__
++			if (4 & (unsigned long) buff) {
++				unsigned int w = *(const unsigned int *)buff;
++				result = __insn_v2sadau(result, w, 0);
++				count--;
++				len -= 4;
++				buff += 4;
++			}
++			count >>= 1;		/* nr of 64-bit words.. */
++#endif
++
++			/*
++			 * This algorithm could wrap around for very
++			 * large buffers, but those should be impossible.
++			 */
++			BUG_ON(count >= 65530);
++
++			while (count) {
++				unsigned long w = *(const unsigned long *)buff;
++				count--;
++				buff += sizeof(w);
++#ifdef __tilegx__
++				result = __insn_v2sadau(result, w, 0);
++#else
++				result = __insn_sadah_u(result, w, 0);
++#endif
++			}
++#ifdef __tilegx__
++			if (len & 4) {
++				unsigned int w = *(const unsigned int *)buff;
++				result = __insn_v2sadau(result, w, 0);
++				buff += 4;
++			}
++#endif
++		}
++		if (len & 2) {
++			result += *(const unsigned short *) buff;
++			buff += 2;
++		}
++	}
++	if (len & 1)
++		result += *buff;
++	result = longto16(result);
++	if (odd)
++		result = swab16(result);
++out:
++	return result;
++}
+diff --git a/arch/tile/lib/cpumask.c b/arch/tile/lib/cpumask.c
+new file mode 100644
+index 0000000..af745b3
+--- /dev/null
++++ b/arch/tile/lib/cpumask.c
+@@ -0,0 +1,51 @@
++/*
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ */
++
++#include <linux/cpumask.h>
++#include <linux/ctype.h>
++#include <linux/errno.h>
++
++/*
++ * Allow cropping out bits beyond the end of the array.
++ * Move to "lib" directory if more clients want to use this routine.
++ */
++int bitmap_parselist_crop(const char *bp, unsigned long *maskp, int nmaskbits)
++{
++	unsigned a, b;
++
++	bitmap_zero(maskp, nmaskbits);
++	do {
++		if (!isdigit(*bp))
++			return -EINVAL;
++		a = simple_strtoul(bp, (char **)&bp, 10);
++		b = a;
++		if (*bp == '-') {
++			bp++;
++			if (!isdigit(*bp))
++				return -EINVAL;
++			b = simple_strtoul(bp, (char **)&bp, 10);
++		}
++		if (!(a <= b))
++			return -EINVAL;
++		if (b >= nmaskbits)
++			b = nmaskbits-1;
++		while (a <= b) {
++			set_bit(a, maskp);
++			a++;
++		}
++		if (*bp == ',')
++			bp++;
++	} while (*bp != '\0' && *bp != '\n');
++	return 0;
++}
+diff --git a/arch/tile/lib/delay.c b/arch/tile/lib/delay.c
+new file mode 100644
+index 0000000..5801b03
+--- /dev/null
++++ b/arch/tile/lib/delay.c
+@@ -0,0 +1,34 @@
++/*
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ */
++
++#include <linux/module.h>
++#include <linux/delay.h>
++#include <linux/thread_info.h>
++#include <asm/fixmap.h>
 +#include <hv/hypervisor.h>
 +
-+	.text
++void __udelay(unsigned long usecs)
++{
++	hv_nanosleep(usecs * 1000);
++}
++EXPORT_SYMBOL(__udelay);
 +
++void __ndelay(unsigned long nsecs)
++{
++	hv_nanosleep(nsecs);
++}
++EXPORT_SYMBOL(__ndelay);
++
++/* FIXME: should be declared in a header somewhere. */
++EXPORT_SYMBOL(__delay);
+diff --git a/arch/tile/lib/exports.c b/arch/tile/lib/exports.c
+new file mode 100644
+index 0000000..af8e70e
+--- /dev/null
++++ b/arch/tile/lib/exports.c
+@@ -0,0 +1,78 @@
 +/*
-+ * First, some definitions that apply to all the code in the file.
-+ */
-+
-+/* Locals (caller-save) */
-+#define r_tmp		r10
-+#define r_save_sp	r11
-+
-+/* What we save where in the stack frame; must include all callee-saves. */
-+#define FRAME_SP	4
-+#define FRAME_R30	8
-+#define FRAME_R31	12
-+#define FRAME_R32	16
-+#define FRAME_R33	20
-+#define FRAME_R34	24
-+#define FRAME_R35	28
-+#define FRAME_SIZE	32
-+
-+
-+
-+
-+/*
-+ * On entry:
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
 + *
-+ *   r0 low word of the new context PA to install (moved to r_context_lo)
-+ *   r1 high word of the new context PA to install (moved to r_context_hi)
-+ *   r2 low word of PTE to use for context access (moved to r_access_lo)
-+ *   r3 high word of PTE to use for context access (moved to r_access_lo)
-+ *   r4 ASID to use for new context (moved to r_asid)
-+ *   r5 pointer to cpumask with just this cpu set in it (r_my_cpumask)
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ *
++ * Exports from assembler code and from libtile-cc.
 + */
 +
-+/* Arguments (caller-save) */
-+#define r_context_lo_in	r0
-+#define r_context_hi_in	r1
-+#define r_access_lo_in	r2
-+#define r_access_hi_in	r3
-+#define r_asid_in	r4
-+#define r_my_cpumask	r5
++#include <linux/module.h>
 +
-+/* Locals (callee-save); must not be more than FRAME_xxx above. */
-+#define r_save_ics	r30
-+#define r_context_lo	r31
-+#define r_context_hi	r32
-+#define r_access_lo	r33
-+#define r_access_hi	r34
-+#define r_asid		r35
++/* arch/tile/lib/usercopy.S */
++#include <linux/uaccess.h>
++EXPORT_SYMBOL(__get_user_1);
++EXPORT_SYMBOL(__get_user_2);
++EXPORT_SYMBOL(__get_user_4);
++EXPORT_SYMBOL(__put_user_1);
++EXPORT_SYMBOL(__put_user_2);
++EXPORT_SYMBOL(__put_user_4);
++EXPORT_SYMBOL(__put_user_8);
++EXPORT_SYMBOL(strnlen_user_asm);
++EXPORT_SYMBOL(strncpy_from_user_asm);
++EXPORT_SYMBOL(clear_user_asm);
 +
-+STD_ENTRY(flush_and_install_context)
-+	/*
-+	 * Create a stack frame; we can't touch it once we flush the
-+	 * cache until we install the new page table and flush the TLB.
++/* arch/tile/kernel/entry.S */
++#include <linux/kernel.h>
++#include <asm/processor.h>
++EXPORT_SYMBOL(current_text_addr);
++EXPORT_SYMBOL(dump_stack);
++
++/* arch/tile/lib/__memcpy.S */
++/* NOTE: on TILE64, these symbols appear in arch/tile/lib/memcpy_tile64.c */
++EXPORT_SYMBOL(memcpy);
++EXPORT_SYMBOL(__copy_to_user_inatomic);
++EXPORT_SYMBOL(__copy_from_user_inatomic);
++EXPORT_SYMBOL(__copy_from_user_zeroing);
++
++/* hypervisor glue */
++#include <hv/hypervisor.h>
++EXPORT_SYMBOL(hv_dev_open);
++EXPORT_SYMBOL(hv_dev_pread);
++EXPORT_SYMBOL(hv_dev_pwrite);
++EXPORT_SYMBOL(hv_dev_close);
++
++/* -ltile-cc */
++uint32_t __udivsi3(uint32_t dividend, uint32_t divisor);
++EXPORT_SYMBOL(__udivsi3);
++int32_t __divsi3(int32_t dividend, int32_t divisor);
++EXPORT_SYMBOL(__divsi3);
++uint64_t __udivdi3(uint64_t dividend, uint64_t divisor);
++EXPORT_SYMBOL(__udivdi3);
++int64_t __divdi3(int64_t dividend, int64_t divisor);
++EXPORT_SYMBOL(__divdi3);
++uint32_t __umodsi3(uint32_t dividend, uint32_t divisor);
++EXPORT_SYMBOL(__umodsi3);
++int32_t __modsi3(int32_t dividend, int32_t divisor);
++EXPORT_SYMBOL(__modsi3);
++uint64_t __umoddi3(uint64_t dividend, uint64_t divisor);
++EXPORT_SYMBOL(__umoddi3);
++int64_t __moddi3(int64_t dividend, int64_t divisor);
++EXPORT_SYMBOL(__moddi3);
++#ifndef __tilegx__
++uint64_t __ll_mul(uint64_t n0, uint64_t n1);
++EXPORT_SYMBOL(__ll_mul);
++#endif
++#ifndef __tilegx__
++int64_t __muldi3(int64_t, int64_t);
++EXPORT_SYMBOL(__muldi3);
++uint64_t __lshrdi3(uint64_t, unsigned int);
++EXPORT_SYMBOL(__lshrdi3);
++#endif
+diff --git a/arch/tile/lib/mb_incoherent.S b/arch/tile/lib/mb_incoherent.S
+new file mode 100644
+index 0000000..989ad7b
+--- /dev/null
++++ b/arch/tile/lib/mb_incoherent.S
+@@ -0,0 +1,34 @@
++/*
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ *
++ * Assembly code for invoking the HV's fence_incoherent syscall.
++ */
++
++#include <linux/linkage.h>
++#include <hv/syscall_public.h>
++#include <arch/abi.h>
++#include <arch/chip.h>
++
++#if !CHIP_HAS_MF_WAITS_FOR_VICTIMS()
++
++/*
++ * Invoke the hypervisor's fence_incoherent syscall, which guarantees
++ * that all victims for cachelines homed on this tile have reached memory.
++ */
++STD_ENTRY(__mb_incoherent)
++	moveli TREG_SYSCALL_NR_NAME, HV_SYS_fence_incoherent
++	swint2
++	jrp lr
++	STD_ENDPROC(__mb_incoherent)
++
++#endif
+diff --git a/arch/tile/lib/memchr_32.c b/arch/tile/lib/memchr_32.c
+new file mode 100644
+index 0000000..6235283
+--- /dev/null
++++ b/arch/tile/lib/memchr_32.c
+@@ -0,0 +1,68 @@
++/*
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ */
++
++#include <linux/types.h>
++#include <linux/string.h>
++#include <linux/module.h>
++
++void *memchr(const void *s, int c, size_t n)
++{
++	/* Get an aligned pointer. */
++	const uintptr_t s_int = (uintptr_t) s;
++	const uint32_t *p = (const uint32_t *)(s_int & -4);
++
++	/* Create four copies of the byte for which we are looking. */
++	const uint32_t goal = 0x01010101 * (uint8_t) c;
++
++	/* Read the first word, but munge it so that bytes before the array
++	 * will not match goal.
++	 *
++	 * Note that this shift count expression works because we know
++	 * shift counts are taken mod 32.
 +	 */
-+	{
-+	 move r_save_sp, sp
-+	 sw sp, lr
-+	 addi sp, sp, -FRAME_SIZE
-+	}
-+	addi r_tmp, sp, FRAME_SP
-+	{
-+	 sw r_tmp, r_save_sp
-+	 addi r_tmp, sp, FRAME_R30
-+	}
-+	{
-+	 sw r_tmp, r30
-+	 addi r_tmp, sp, FRAME_R31
-+	}
-+	{
-+	 sw r_tmp, r31
-+	 addi r_tmp, sp, FRAME_R32
-+	}
-+	{
-+	 sw r_tmp, r32
-+	 addi r_tmp, sp, FRAME_R33
-+	}
-+	{
-+	 sw r_tmp, r33
-+	 addi r_tmp, sp, FRAME_R34
-+	}
-+	{
-+	 sw r_tmp, r34
-+	 addi r_tmp, sp, FRAME_R35
-+	}
-+	sw r_tmp, r35
++	const uint32_t before_mask = (1 << (s_int << 3)) - 1;
++	uint32_t v = (*p | before_mask) ^ (goal & before_mask);
 +
-+	/* Move some arguments to callee-save registers. */
-+	{
-+	 move r_context_lo, r_context_lo_in
-+	 move r_context_hi, r_context_hi_in
-+	}
-+	{
-+	 move r_access_lo, r_access_lo_in
-+	 move r_access_hi, r_access_hi_in
-+	}
-+	move r_asid, r_asid_in
++	/* Compute the address of the last byte. */
++	const char *const last_byte_ptr = (const char *)s + n - 1;
 +
-+	/* Disable interrupts, since we can't use our stack. */
-+	{
-+	 mfspr r_save_ics, INTERRUPT_CRITICAL_SECTION
-+	 movei r_tmp, 1
-+	}
-+	mtspr INTERRUPT_CRITICAL_SECTION, r_tmp
++	/* Compute the address of the word containing the last byte. */
++	const uint32_t *const last_word_ptr =
++	    (const uint32_t *)((uintptr_t) last_byte_ptr & -4);
 +
-+	/* First, flush our L2 cache. */
-+	{
-+	 move r0, zero  /* cache_pa */
-+	 move r1, zero
-+	}
-+	{
-+	 auli r2, zero, ha16(HV_FLUSH_EVICT_L2)  /* cache_control */
-+	 move r3, r_my_cpumask  /* cache_cpumask */
-+	}
-+	{
-+	 move r4, zero  /* tlb_va */
-+	 move r5, zero  /* tlb_length */
-+	}
-+	{
-+	 move r6, zero  /* tlb_pgsize */
-+	 move r7, zero  /* tlb_cpumask */
-+	}
-+	{
-+	 move r8, zero  /* asids */
-+	 move r9, zero  /* asidcount */
-+	}
-+	jal hv_flush_remote
-+	bnz r0, .Ldone
++	uint32_t bits;
++	char *ret;
 +
-+	/* Now install the new page table. */
-+	{
-+	 move r0, r_context_lo
-+	 move r1, r_context_hi
++	if (__builtin_expect(n == 0, 0)) {
++		/* Don't dereference any memory if the array is empty. */
++		return NULL;
 +	}
-+	{
-+	 move r2, r_access_lo
-+	 move r3, r_access_hi
-+	}
-+	{
-+	 move r4, r_asid
-+	 movei r5, HV_CTX_DIRECTIO
-+	}
-+	jal hv_install_context
-+	bnz r0, .Ldone
 +
-+	/* Finally, flush the TLB. */
-+	{
-+	 movei r0, 0   /* preserve_global */
-+	 jal hv_flush_all
++	while ((bits = __insn_seqb(v, goal)) == 0) {
++		if (__builtin_expect(p == last_word_ptr, 0)) {
++			/* We already read the last word in the array,
++			 * so give up.
++			 */
++			return NULL;
++		}
++		v = *++p;
 +	}
++
++	/* We found a match, but it might be in a byte past the end
++	 * of the array.
++	 */
++	ret = ((char *)p) + (__insn_ctz(bits) >> 3);
++	return (ret <= last_byte_ptr) ? ret : NULL;
++}
++EXPORT_SYMBOL(memchr);
+diff --git a/arch/tile/lib/memcpy_32.S b/arch/tile/lib/memcpy_32.S
+new file mode 100644
+index 0000000..f92984b
+--- /dev/null
++++ b/arch/tile/lib/memcpy_32.S
+@@ -0,0 +1,628 @@
++/*
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ *
++ * This file shares the implementation of the userspace memcpy and
++ * the kernel's memcpy, copy_to_user and copy_from_user.
++ */
++
++#include <arch/chip.h>
++
++#if CHIP_HAS_WH64() || defined(MEMCPY_TEST_WH64)
++#define MEMCPY_USE_WH64
++#endif
++
++
++#include <linux/linkage.h>
++
++/* On TILE64, we wrap these functions via arch/tile/lib/memcpy_tile64.c */
++#if !CHIP_HAS_COHERENT_LOCAL_CACHE()
++#define memcpy __memcpy_asm
++#define __copy_to_user_inatomic __copy_to_user_inatomic_asm
++#define __copy_from_user_inatomic __copy_from_user_inatomic_asm
++#define __copy_from_user_zeroing __copy_from_user_zeroing_asm
++#endif
++
++#define IS_MEMCPY	  0
++#define IS_COPY_FROM_USER  1
++#define IS_COPY_FROM_USER_ZEROING  2
++#define IS_COPY_TO_USER   -1
++
++	.section .text.memcpy_common, "ax"
++	.align 64
++
++/* Use this to preface each bundle that can cause an exception so
++ * the kernel can clean up properly. The special cleanup code should
++ * not use these, since it knows what it is doing.
++ */
++#define EX \
++	.pushsection __ex_table, "a"; \
++	.word 9f, memcpy_common_fixup; \
++	.popsection; \
++	9
++
++
++/* __copy_from_user_inatomic takes the kernel target address in r0,
++ * the user source in r1, and the bytes to copy in r2.
++ * It returns the number of uncopiable bytes (hopefully zero) in r0.
++ */
++ENTRY(__copy_from_user_inatomic)
++.type __copy_from_user_inatomic, @function
++        FEEDBACK_ENTER_EXPLICIT(__copy_from_user_inatomic, \
++	  .text.memcpy_common, \
++          .Lend_memcpy_common - __copy_from_user_inatomic)
++	{ movei r29, IS_COPY_FROM_USER; j memcpy_common }
++	.size __copy_from_user_inatomic, . - __copy_from_user_inatomic
++
++/* __copy_from_user_zeroing is like __copy_from_user_inatomic, but
++ * any uncopiable bytes are zeroed in the target.
++ */
++ENTRY(__copy_from_user_zeroing)
++.type __copy_from_user_zeroing, @function
++        FEEDBACK_REENTER(__copy_from_user_inatomic)
++	{ movei r29, IS_COPY_FROM_USER_ZEROING; j memcpy_common }
++	.size __copy_from_user_zeroing, . - __copy_from_user_zeroing
++
++/* __copy_to_user_inatomic takes the user target address in r0,
++ * the kernel source in r1, and the bytes to copy in r2.
++ * It returns the number of uncopiable bytes (hopefully zero) in r0.
++ */
++ENTRY(__copy_to_user_inatomic)
++.type __copy_to_user_inatomic, @function
++        FEEDBACK_REENTER(__copy_from_user_inatomic)
++	{ movei r29, IS_COPY_TO_USER; j memcpy_common }
++	.size __copy_to_user_inatomic, . - __copy_to_user_inatomic
++
++ENTRY(memcpy)
++.type memcpy, @function
++        FEEDBACK_REENTER(__copy_from_user_inatomic)
++	{ movei r29, IS_MEMCPY }
++	.size memcpy, . - memcpy
++	/* Fall through */
++
++	.type memcpy_common, @function
++memcpy_common:
++	/* On entry, r29 holds one of the IS_* macro values from above. */
++
++
++	/* r0 is the dest, r1 is the source, r2 is the size. */
++
++	/* Save aside original dest so we can return it at the end. */
++	{ sw sp, lr; move r23, r0; or r4, r0, r1 }
++
++	/* Check for an empty size. */
++	{ bz r2, .Ldone; andi r4, r4, 3 }
++
++	/* Save aside original values in case of a fault. */
++	{ move r24, r1; move r25, r2 }
++	move r27, lr
++
++	/* Check for an unaligned source or dest. */
++	{ bnz r4, .Lcopy_unaligned_maybe_many; addli r4, r2, -256 }
++
++.Lcheck_aligned_copy_size:
++	/* If we are copying < 256 bytes, branch to simple case. */
++	{ blzt r4, .Lcopy_8_check; slti_u r8, r2, 8 }
++
++	/* Copying >= 256 bytes, so jump to complex prefetching loop. */
++	{ andi r6, r1, 63; j .Lcopy_many }
++
++/*
++ *
++ * Aligned 4 byte at a time copy loop
++ *
++ */
++
++.Lcopy_8_loop:
++	/* Copy two words at a time to hide load latency. */
++EX:	{ lw r3, r1; addi r1, r1, 4; slti_u r8, r2, 16 }
++EX:	{ lw r4, r1; addi r1, r1, 4 }
++EX:	{ sw r0, r3; addi r0, r0, 4; addi r2, r2, -4 }
++EX:	{ sw r0, r4; addi r0, r0, 4; addi r2, r2, -4 }
++.Lcopy_8_check:
++	{ bzt r8, .Lcopy_8_loop; slti_u r4, r2, 4 }
++
++	/* Copy odd leftover word, if any. */
++	{ bnzt r4, .Lcheck_odd_stragglers }
++EX:	{ lw r3, r1; addi r1, r1, 4 }
++EX:	{ sw r0, r3; addi r0, r0, 4; addi r2, r2, -4 }
++
++.Lcheck_odd_stragglers:
++	{ bnz r2, .Lcopy_unaligned_few }
 +
 +.Ldone:
-+	/* Reset interrupts back how they were before. */
-+	mtspr INTERRUPT_CRITICAL_SECTION, r_save_ics
++	/* For memcpy return original dest address, else zero. */
++	{ mz r0, r29, r23; jrp lr }
 +
-+	/* Restore the callee-saved registers and return. */
-+	addli lr, sp, FRAME_SIZE
-+	{
-+	 lw lr, lr
-+	 addli r_tmp, sp, FRAME_R30
-+	}
-+	{
-+	 lw r30, r_tmp
-+	 addli r_tmp, sp, FRAME_R31
-+	}
-+	{
-+	 lw r31, r_tmp
-+	 addli r_tmp, sp, FRAME_R32
-+	}
-+	{
-+	 lw r32, r_tmp
-+	 addli r_tmp, sp, FRAME_R33
-+	}
-+	{
-+	 lw r33, r_tmp
-+	 addli r_tmp, sp, FRAME_R34
-+	}
-+	{
-+	 lw r34, r_tmp
-+	 addli r_tmp, sp, FRAME_R35
-+	}
-+	{
-+	 lw r35, r_tmp
-+	 addi sp, sp, FRAME_SIZE
-+	}
-+	jrp lr
-+	STD_ENDPROC(flush_and_install_context)
-diff --git a/arch/tile/mm/mmap.c b/arch/tile/mm/mmap.c
-new file mode 100644
-index 0000000..f96f4ce
---- /dev/null
-+++ b/arch/tile/mm/mmap.c
-@@ -0,0 +1,75 @@
-+/*
-+ * Copyright 2010 Tilera Corporation. All Rights Reserved.
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful, but
-+ *   WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-+ *   NON INFRINGEMENT.  See the GNU General Public License for
-+ *   more details.
-+ *
-+ * Taken from the i386 architecture and simplified.
-+ */
-+
-+#include <linux/mm.h>
-+#include <linux/random.h>
-+#include <linux/limits.h>
-+#include <linux/sched.h>
-+#include <linux/mman.h>
-+#include <linux/compat.h>
 +
 +/*
-+ * Top of mmap area (just below the process stack).
 + *
-+ * Leave an at least ~128 MB hole.
++ * Prefetching multiple cache line copy handler (for large transfers).
++ *
 + */
-+#define MIN_GAP (128*1024*1024)
-+#define MAX_GAP (TASK_SIZE/6*5)
 +
-+static inline unsigned long mmap_base(struct mm_struct *mm)
-+{
-+	unsigned long gap = rlimit(RLIMIT_STACK);
-+	unsigned long random_factor = 0;
++	/* Copy words until r1 is cache-line-aligned. */
++.Lalign_loop:
++EX:	{ lw r3, r1; addi r1, r1, 4 }
++	{ andi r6, r1, 63 }
++EX:	{ sw r0, r3; addi r0, r0, 4; addi r2, r2, -4 }
++.Lcopy_many:
++	{ bnzt r6, .Lalign_loop; addi r9, r0, 63 }
 +
-+	if (current->flags & PF_RANDOMIZE)
-+		random_factor = get_random_int() % (1024*1024);
++	{ addi r3, r1, 60; andi r9, r9, -64 }
 +
-+	if (gap < MIN_GAP)
-+		gap = MIN_GAP;
-+	else if (gap > MAX_GAP)
-+		gap = MAX_GAP;
-+
-+	return PAGE_ALIGN(TASK_SIZE - gap - random_factor);
-+}
-+
-+/*
-+ * This function, called very early during the creation of a new
-+ * process VM image, sets up which VM layout function to use:
-+ */
-+void arch_pick_mmap_layout(struct mm_struct *mm)
-+{
-+#if !defined(__tilegx__)
-+	int is_32bit = 1;
-+#elif defined(CONFIG_COMPAT)
-+	int is_32bit = is_compat_task();
-+#else
-+	int is_32bit = 0;
++#ifdef MEMCPY_USE_WH64
++        /* No need to prefetch dst, we'll just do the wh64
++         * right before we copy a line.
++	 */
 +#endif
 +
-+	/*
-+	 * Use standard layout if the expected stack growth is unlimited
-+	 * or we are running native 64 bits.
++EX:	{ lw r5, r3; addi r3, r3, 64; movei r4, 1 }
++        /* Intentionally stall for a few cycles to leave L2 cache alone. */
++        { bnzt zero, .; move r27, lr }
++EX:	{ lw r6, r3; addi r3, r3, 64 }
++        /* Intentionally stall for a few cycles to leave L2 cache alone. */
++        { bnzt zero, . }
++EX:	{ lw r7, r3; addi r3, r3, 64 }
++#ifndef MEMCPY_USE_WH64
++        /* Prefetch the dest */
++        /* Intentionally stall for a few cycles to leave L2 cache alone. */
++        { bnzt zero, . }
++        /* Use a real load to cause a TLB miss if necessary.  We aren't using
++         * r28, so this should be fine.
++         */
++EX:	{ lw r28, r9; addi r9, r9, 64 }
++        /* Intentionally stall for a few cycles to leave L2 cache alone. */
++        { bnzt zero, . }
++        { prefetch r9; addi r9, r9, 64 }
++        /* Intentionally stall for a few cycles to leave L2 cache alone. */
++        { bnzt zero, . }
++        { prefetch r9; addi r9, r9, 64 }
++#endif
++        /* Intentionally stall for a few cycles to leave L2 cache alone. */
++        { bz zero, .Lbig_loop2 }
++
++	/* On entry to this loop:
++	 * - r0 points to the start of dst line 0
++	 * - r1 points to start of src line 0
++	 * - r2 >= (256 - 60), only the first time the loop trips.
++	 * - r3 contains r1 + 128 + 60    [pointer to end of source line 2]
++	 *   This is our prefetch address. When we get near the end
++	 *   rather than prefetching off the end this is changed to point
++	 *   to some "safe" recently loaded address.
++	 * - r5 contains *(r1 + 60)       [i.e. last word of source line 0]
++	 * - r6 contains *(r1 + 64 + 60)  [i.e. last word of source line 1]
++         * - r9 contains ((r0 + 63) & -64)
++	 *     [start of next dst cache line.]
 +	 */
-+	if (!is_32bit || rlimit(RLIMIT_STACK) == RLIM_INFINITY) {
-+		mm->mmap_base = TASK_UNMAPPED_BASE;
-+		mm->get_unmapped_area = arch_get_unmapped_area;
-+		mm->unmap_area = arch_unmap_area;
-+	} else {
-+		mm->mmap_base = mmap_base(mm);
-+		mm->get_unmapped_area = arch_get_unmapped_area_topdown;
-+		mm->unmap_area = arch_unmap_area_topdown;
++
++.Lbig_loop:
++	{ jal .Lcopy_line2; add r15, r1, r2 }
++
++.Lbig_loop2:
++	/* Copy line 0, first stalling until r5 is ready. */
++EX:	{ move r12, r5; lw r16, r1 }
++	{ bz r4, .Lcopy_8_check; slti_u r8, r2, 8 }
++        /* Prefetch several lines ahead. */
++EX:	{ lw r5, r3; addi r3, r3, 64 }
++        { jal .Lcopy_line }
++
++	/* Copy line 1, first stalling until r6 is ready. */
++EX:	{ move r12, r6; lw r16, r1 }
++	{ bz r4, .Lcopy_8_check; slti_u r8, r2, 8 }
++        /* Prefetch several lines ahead. */
++EX:	{ lw r6, r3; addi r3, r3, 64 }
++	{ jal .Lcopy_line }
++
++	/* Copy line 2, first stalling until r7 is ready. */
++EX:	{ move r12, r7; lw r16, r1 }
++	{ bz r4, .Lcopy_8_check; slti_u r8, r2, 8 }
++        /* Prefetch several lines ahead. */
++EX:	{ lw r7, r3; addi r3, r3, 64 }
++        /* Use up a caches-busy cycle by jumping back to the top of the
++         * loop. Might as well get it out of the way now.
++         */
++        { j .Lbig_loop }
++
++
++	/* On entry:
++	 * - r0 points to the destination line.
++	 * - r1 points to the source line.
++         * - r3 is the next prefetch address.
++	 * - r9 holds the last address used for wh64.
++	 * - r12 = WORD_15
++         * - r16 = WORD_0.
++         * - r17 == r1 + 16.
++         * - r27 holds saved lr to restore.
++	 *
++	 * On exit:
++	 * - r0 is incremented by 64.
++	 * - r1 is incremented by 64, unless that would point to a word
++         *   beyond the end of the source array, in which case it is redirected
++         *   to point to an arbitrary word already in the cache.
++	 * - r2 is decremented by 64.
++         * - r3 is unchanged, unless it points to a word beyond the
++         *   end of the source array, in which case it is redirected
++         *   to point to an arbitrary word already in the cache.
++         *   Redirecting is OK since if we are that close to the end
++         *   of the array we will not come back to this subroutine
++         *   and use the contents of the prefetched address.
++	 * - r4 is nonzero iff r2 >= 64.
++         * - r9 is incremented by 64, unless it points beyond the
++         *   end of the last full destination cache line, in which
++         *   case it is redirected to a "safe address" that can be
++         *   clobbered (sp - 64)
++	 * - lr contains the value in r27.
++	 */
++
++/* r26 unused */
++
++.Lcopy_line:
++        /* TODO: when r3 goes past the end, we would like to redirect it
++         * to prefetch the last partial cache line (if any) just once, for the
++         * benefit of the final cleanup loop. But we don't want to
++         * prefetch that line more than once, or subsequent prefetches
++         * will go into the RTF. But then .Lbig_loop should unconditionally
++         * branch to top of loop to execute final prefetch, and its
++         * nop should become a conditional branch.
++         */
++
++        /* We need two non-memory cycles here to cover the resources
++         * used by the loads initiated by the caller.
++         */
++        { add r15, r1, r2 }
++.Lcopy_line2:
++        { slt_u r13, r3, r15; addi r17, r1, 16 }
++
++        /* NOTE: this will stall for one cycle as L1 is busy. */
++
++        /* Fill second L1D line. */
++EX:	{ lw r17, r17; addi r1, r1, 48; mvz r3, r13, r1 } /* r17 = WORD_4 */
++
++#ifdef MEMCPY_TEST_WH64
++        /* Issue a fake wh64 that clobbers the destination words
++         * with random garbage, for testing.
++         */
++	{ movei r19, 64; crc32_32 r10, r2, r9 }
++.Lwh64_test_loop:
++EX:	{ sw r9, r10; addi r9, r9, 4; addi r19, r19, -4 }
++        { bnzt r19, .Lwh64_test_loop; crc32_32 r10, r10, r19 }
++#elif CHIP_HAS_WH64()
++        /* Prepare destination line for writing. */
++EX:	{ wh64 r9; addi r9, r9, 64 }
++#else
++        /* Prefetch dest line */
++	{ prefetch r9; addi r9, r9, 64 }
++#endif
++        /* Load seven words that are L1D hits to cover wh64 L2 usage. */
++
++        /* Load the three remaining words from the last L1D line, which
++         * we know has already filled the L1D.
++         */
++EX:	{ lw r4, r1;  addi r1, r1, 4;   addi r20, r1, 16 }   /* r4 = WORD_12 */
++EX:	{ lw r8, r1;  addi r1, r1, 4;   slt_u r13, r20, r15 }/* r8 = WORD_13 */
++EX:	{ lw r11, r1; addi r1, r1, -52; mvz r20, r13, r1 }  /* r11 = WORD_14 */
++
++        /* Load the three remaining words from the first L1D line, first
++         * stalling until it has filled by "looking at" r16.
++         */
++EX:	{ lw r13, r1; addi r1, r1, 4; move zero, r16 }   /* r13 = WORD_1 */
++EX:	{ lw r14, r1; addi r1, r1, 4 }                   /* r14 = WORD_2 */
++EX:	{ lw r15, r1; addi r1, r1, 8; addi r10, r0, 60 } /* r15 = WORD_3 */
++
++        /* Load second word from the second L1D line, first
++         * stalling until it has filled by "looking at" r17.
++         */
++EX:	{ lw r19, r1; addi r1, r1, 4; move zero, r17 }  /* r19 = WORD_5 */
++
++        /* Store last word to the destination line, potentially dirtying it
++         * for the first time, which keeps the L2 busy for two cycles.
++         */
++EX:	{ sw r10, r12 }                                 /* store(WORD_15) */
++
++        /* Use two L1D hits to cover the sw L2 access above. */
++EX:	{ lw r10, r1; addi r1, r1, 4 }                  /* r10 = WORD_6 */
++EX:	{ lw r12, r1; addi r1, r1, 4 }                  /* r12 = WORD_7 */
++
++        /* Fill third L1D line. */
++EX:	{ lw r18, r1; addi r1, r1, 4 }                  /* r18 = WORD_8 */
++
++        /* Store first L1D line. */
++EX:	{ sw r0, r16; addi r0, r0, 4; add r16, r0, r2 } /* store(WORD_0) */
++EX:	{ sw r0, r13; addi r0, r0, 4; andi r16, r16, -64 } /* store(WORD_1) */
++EX:	{ sw r0, r14; addi r0, r0, 4; slt_u r16, r9, r16 } /* store(WORD_2) */
++#ifdef MEMCPY_USE_WH64
++EX:	{ sw r0, r15; addi r0, r0, 4; addi r13, sp, -64 } /* store(WORD_3) */
++#else
++        /* Back up the r9 to a cache line we are already storing to
++	 * if it gets past the end of the dest vector.  Strictly speaking,
++	 * we don't need to back up to the start of a cache line, but it's free
++	 * and tidy, so why not?
++         */
++EX:	{ sw r0, r15; addi r0, r0, 4; andi r13, r0, -64 } /* store(WORD_3) */
++#endif
++        /* Store second L1D line. */
++EX:	{ sw r0, r17; addi r0, r0, 4; mvz r9, r16, r13 }/* store(WORD_4) */
++EX:	{ sw r0, r19; addi r0, r0, 4 }                  /* store(WORD_5) */
++EX:	{ sw r0, r10; addi r0, r0, 4 }                  /* store(WORD_6) */
++EX:	{ sw r0, r12; addi r0, r0, 4 }                  /* store(WORD_7) */
++
++EX:	{ lw r13, r1; addi r1, r1, 4; move zero, r18 }  /* r13 = WORD_9 */
++EX:	{ lw r14, r1; addi r1, r1, 4 }                  /* r14 = WORD_10 */
++EX:	{ lw r15, r1; move r1, r20   }                  /* r15 = WORD_11 */
++
++        /* Store third L1D line. */
++EX:	{ sw r0, r18; addi r0, r0, 4 }                  /* store(WORD_8) */
++EX:	{ sw r0, r13; addi r0, r0, 4 }                  /* store(WORD_9) */
++EX:	{ sw r0, r14; addi r0, r0, 4 }                  /* store(WORD_10) */
++EX:	{ sw r0, r15; addi r0, r0, 4 }                  /* store(WORD_11) */
++
++        /* Store rest of fourth L1D line. */
++EX:	{ sw r0, r4;  addi r0, r0, 4 }                  /* store(WORD_12) */
++        {
++EX:	sw r0, r8                                       /* store(WORD_13) */
++        addi r0, r0, 4
++	/* Will r2 be > 64 after we subtract 64 below? */
++        shri r4, r2, 7
++        }
++        {
++EX:	sw r0, r11                                      /* store(WORD_14) */
++        addi r0, r0, 8
++        /* Record 64 bytes successfully copied. */
++        addi r2, r2, -64
++        }
++
++	{ jrp lr; move lr, r27 }
++
++        /* Convey to the backtrace library that the stack frame is size
++	 * zero, and the real return address is on the stack rather than
++	 * in 'lr'.
++	 */
++	{ info 8 }
++
++	.align 64
++.Lcopy_unaligned_maybe_many:
++	/* Skip the setup overhead if we aren't copying many bytes. */
++	{ slti_u r8, r2, 20; sub r4, zero, r0 }
++	{ bnzt r8, .Lcopy_unaligned_few; andi r4, r4, 3 }
++	{ bz r4, .Ldest_is_word_aligned; add r18, r1, r2 }
++
++/*
++ *
++ * unaligned 4 byte at a time copy handler.
++ *
++ */
++
++	/* Copy single bytes until r0 == 0 mod 4, so we can store words. */
++.Lalign_dest_loop:
++EX:	{ lb_u r3, r1; addi r1, r1, 1; addi r4, r4, -1 }
++EX:	{ sb r0, r3;   addi r0, r0, 1; addi r2, r2, -1 }
++	{ bnzt r4, .Lalign_dest_loop; andi r3, r1, 3 }
++
++	/* If source and dest are now *both* aligned, do an aligned copy. */
++	{ bz r3, .Lcheck_aligned_copy_size; addli r4, r2, -256 }
++
++.Ldest_is_word_aligned:
++
++#if CHIP_HAS_DWORD_ALIGN()
++EX:	{ andi r8, r0, 63; lwadd_na r6, r1, 4}
++	{ slti_u r9, r2, 64; bz r8, .Ldest_is_L2_line_aligned }
++
++	/* This copies unaligned words until either there are fewer
++	 * than 4 bytes left to copy, or until the destination pointer
++	 * is cache-aligned, whichever comes first.
++	 *
++	 * On entry:
++	 * - r0 is the next store address.
++	 * - r1 points 4 bytes past the load address corresponding to r0.
++	 * - r2 >= 4
++	 * - r6 is the next aligned word loaded.
++	 */
++.Lcopy_unaligned_src_words:
++EX:	{ lwadd_na r7, r1, 4; slti_u r8, r2, 4 + 4 }
++	/* stall */
++	{ dword_align r6, r7, r1; slti_u r9, r2, 64 + 4 }
++EX:	{ swadd r0, r6, 4; addi r2, r2, -4 }
++	{ bnz r8, .Lcleanup_unaligned_words; andi r8, r0, 63 }
++	{ bnzt r8, .Lcopy_unaligned_src_words; move r6, r7 }
++
++	/* On entry:
++	 * - r0 is the next store address.
++	 * - r1 points 4 bytes past the load address corresponding to r0.
++	 * - r2 >= 4 (# of bytes left to store).
++	 * - r6 is the next aligned src word value.
++	 * - r9 = (r2 < 64U).
++	 * - r18 points one byte past the end of source memory.
++	 */
++.Ldest_is_L2_line_aligned:
++
++	{
++	/* Not a full cache line remains. */
++	bnz r9, .Lcleanup_unaligned_words
++	move r7, r6
 +	}
-+}
-diff --git a/arch/tile/mm/pgtable.c b/arch/tile/mm/pgtable.c
++
++	/* r2 >= 64 */
++
++	/* Kick off two prefetches, but don't go past the end. */
++	{ addi r3, r1, 63 - 4; addi r8, r1, 64 + 63 - 4 }
++	{ prefetch r3; move r3, r8; slt_u r8, r8, r18 }
++	{ mvz r3, r8, r1; addi r8, r3, 64 }
++	{ prefetch r3; move r3, r8; slt_u r8, r8, r18 }
++	{ mvz r3, r8, r1; movei r17, 0 }
++
++.Lcopy_unaligned_line:
++	/* Prefetch another line. */
++	{ prefetch r3; addi r15, r1, 60; addi r3, r3, 64 }
++	/* Fire off a load of the last word we are about to copy. */
++EX:	{ lw_na r15, r15; slt_u r8, r3, r18 }
++
++EX:	{ mvz r3, r8, r1; wh64 r0 }
++
++	/* This loop runs twice.
++	 *
++	 * On entry:
++	 * - r17 is even before the first iteration, and odd before
++	 *   the second.  It is incremented inside the loop.  Encountering
++	 *   an even value at the end of the loop makes it stop.
++	 */
++.Lcopy_half_an_unaligned_line:
++EX:	{
++	/* Stall until the last byte is ready. In the steady state this
++	 * guarantees all words to load below will be in the L2 cache, which
++	 * avoids shunting the loads to the RTF.
++	 */
++	move zero, r15
++	lwadd_na r7, r1, 16
++	}
++EX:	{ lwadd_na r11, r1, 12 }
++EX:	{ lwadd_na r14, r1, -24 }
++EX:	{ lwadd_na r8, r1, 4 }
++EX:	{ lwadd_na r9, r1, 4 }
++EX:	{
++	lwadd_na r10, r1, 8
++	/* r16 = (r2 < 64), after we subtract 32 from r2 below. */
++	slti_u r16, r2, 64 + 32
++	}
++EX:	{ lwadd_na r12, r1, 4; addi r17, r17, 1 }
++EX:	{ lwadd_na r13, r1, 8; dword_align r6, r7, r1 }
++EX:	{ swadd r0, r6,  4; dword_align r7,  r8,  r1 }
++EX:	{ swadd r0, r7,  4; dword_align r8,  r9,  r1 }
++EX:	{ swadd r0, r8,  4; dword_align r9,  r10, r1 }
++EX:	{ swadd r0, r9,  4; dword_align r10, r11, r1 }
++EX:	{ swadd r0, r10, 4; dword_align r11, r12, r1 }
++EX:	{ swadd r0, r11, 4; dword_align r12, r13, r1 }
++EX:	{ swadd r0, r12, 4; dword_align r13, r14, r1 }
++EX:	{ swadd r0, r13, 4; addi r2, r2, -32 }
++	{ move r6, r14; bbst r17, .Lcopy_half_an_unaligned_line }
++
++	{ bzt r16, .Lcopy_unaligned_line; move r7, r6 }
++
++	/* On entry:
++	 * - r0 is the next store address.
++	 * - r1 points 4 bytes past the load address corresponding to r0.
++	 * - r2 >= 0 (# of bytes left to store).
++	 * - r7 is the next aligned src word value.
++	 */
++.Lcleanup_unaligned_words:
++	/* Handle any trailing bytes. */
++	{ bz r2, .Lcopy_unaligned_done; slti_u r8, r2, 4 }
++	{ bzt r8, .Lcopy_unaligned_src_words; move r6, r7 }
++
++	/* Move r1 back to the point where it corresponds to r0. */
++	{ addi r1, r1, -4 }
++
++#else /* !CHIP_HAS_DWORD_ALIGN() */
++
++	/* Compute right/left shift counts and load initial source words. */
++	{ andi r5, r1, -4; andi r3, r1, 3 }
++EX:	{ lw r6, r5; addi r5, r5, 4; shli r3, r3, 3 }
++EX:	{ lw r7, r5; addi r5, r5, 4; sub r4, zero, r3 }
++
++	/* Load and store one word at a time, using shifts and ORs
++	 * to correct for the misaligned src.
++	 */
++.Lcopy_unaligned_src_loop:
++	{ shr r6, r6, r3; shl r8, r7, r4 }
++EX:	{ lw r7, r5; or r8, r8, r6; move r6, r7 }
++EX:	{ sw r0, r8; addi r0, r0, 4; addi r2, r2, -4 }
++	{ addi r5, r5, 4; slti_u r8, r2, 8 }
++	{ bzt r8, .Lcopy_unaligned_src_loop; addi r1, r1, 4 }
++
++	{ bz r2, .Lcopy_unaligned_done }
++#endif /* !CHIP_HAS_DWORD_ALIGN() */
++
++	/* Fall through */
++
++/*
++ *
++ * 1 byte at a time copy handler.
++ *
++ */
++
++.Lcopy_unaligned_few:
++EX:	{ lb_u r3, r1; addi r1, r1, 1 }
++EX:	{ sb r0, r3;   addi r0, r0, 1; addi r2, r2, -1 }
++	{ bnzt r2, .Lcopy_unaligned_few }
++
++.Lcopy_unaligned_done:
++
++	/* For memcpy return original dest address, else zero. */
++	{ mz r0, r29, r23; jrp lr }
++
++.Lend_memcpy_common:
++	.size memcpy_common, .Lend_memcpy_common - memcpy_common
++
++	.section .fixup,"ax"
++memcpy_common_fixup:
++	.type memcpy_common_fixup, @function
++
++	/* Skip any bytes we already successfully copied.
++	 * r2 (num remaining) is correct, but r0 (dst) and r1 (src)
++	 * may not be quite right because of unrolling and prefetching.
++	 * So we need to recompute their values as the address just
++	 * after the last byte we are sure was successfully loaded and
++	 * then stored.
++	 */
++
++	/* Determine how many bytes we successfully copied. */
++	{ sub r3, r25, r2 }
++
++	/* Add this to the original r0 and r1 to get their new values. */
++	{ add r0, r23, r3; add r1, r24, r3 }
++
++	{ bzt r29, memcpy_fixup_loop }
++	{ blzt r29, copy_to_user_fixup_loop }
++
++copy_from_user_fixup_loop:
++	/* Try copying the rest one byte at a time, expecting a load fault. */
++.Lcfu:	{ lb_u r3, r1; addi r1, r1, 1 }
++	{ sb r0, r3; addi r0, r0, 1; addi r2, r2, -1 }
++	{ bnzt r2, copy_from_user_fixup_loop }
++
++.Lcopy_from_user_fixup_zero_remainder:
++	{ bbs r29, 2f }  /* low bit set means IS_COPY_FROM_USER */
++	/* byte-at-a-time loop faulted, so zero the rest. */
++	{ move r3, r2; bz r2, 2f /* should be impossible, but handle it. */ }
++1:      { sb r0, zero; addi r0, r0, 1; addi r3, r3, -1 }
++	{ bnzt r3, 1b }
++2:	move lr, r27
++	{ move r0, r2; jrp lr }
++
++copy_to_user_fixup_loop:
++	/* Try copying the rest one byte at a time, expecting a store fault. */
++	{ lb_u r3, r1; addi r1, r1, 1 }
++.Lctu:	{ sb r0, r3; addi r0, r0, 1; addi r2, r2, -1 }
++	{ bnzt r2, copy_to_user_fixup_loop }
++.Lcopy_to_user_fixup_done:
++	move lr, r27
++	{ move r0, r2; jrp lr }
++
++memcpy_fixup_loop:
++	/* Try copying the rest one byte at a time. We expect a disastrous
++	 * fault to happen since we are in fixup code, but let it happen.
++	 */
++	{ lb_u r3, r1; addi r1, r1, 1 }
++	{ sb r0, r3; addi r0, r0, 1; addi r2, r2, -1 }
++	{ bnzt r2, memcpy_fixup_loop }
++	/* This should be unreachable, we should have faulted again.
++	 * But be paranoid and handle it in case some interrupt changed
++	 * the TLB or something.
++	 */
++	move lr, r27
++	{ move r0, r23; jrp lr }
++
++	.size memcpy_common_fixup, . - memcpy_common_fixup
++
++	.section __ex_table,"a"
++	.word .Lcfu, .Lcopy_from_user_fixup_zero_remainder
++	.word .Lctu, .Lcopy_to_user_fixup_done
+diff --git a/arch/tile/lib/memcpy_tile64.c b/arch/tile/lib/memcpy_tile64.c
 new file mode 100644
-index 0000000..289e729
+index 0000000..4f00473
 --- /dev/null
-+++ b/arch/tile/mm/pgtable.c
-@@ -0,0 +1,566 @@
++++ b/arch/tile/lib/memcpy_tile64.c
+@@ -0,0 +1,271 @@
 +/*
 + * Copyright 2010 Tilera Corporation. All Rights Reserved.
 + *
@@ -3766,557 +1805,1288 @@ index 0000000..289e729
 + *   more details.
 + */
 +
-+#include <linux/sched.h>
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <linux/mm.h>
-+#include <linux/swap.h>
++#include <linux/string.h>
 +#include <linux/smp.h>
-+#include <linux/highmem.h>
-+#include <linux/slab.h>
-+#include <linux/pagemap.h>
-+#include <linux/spinlock.h>
-+#include <linux/cpumask.h>
 +#include <linux/module.h>
-+#include <linux/io.h>
-+#include <linux/vmalloc.h>
-+#include <linux/smp.h>
-+
-+#include <asm/system.h>
-+#include <asm/pgtable.h>
-+#include <asm/pgalloc.h>
++#include <linux/uaccess.h>
 +#include <asm/fixmap.h>
-+#include <asm/tlb.h>
++#include <asm/kmap_types.h>
 +#include <asm/tlbflush.h>
-+#include <asm/homecache.h>
++#include <hv/hypervisor.h>
++#include <arch/chip.h>
 +
-+#define K(x) ((x) << (PAGE_SHIFT-10))
 +
-+/*
-+ * The normal show_free_areas() is too verbose on Tile, with dozens
-+ * of processors and often four NUMA zones each with high and lowmem.
-+ */
-+void show_mem(void)
-+{
-+	struct zone *zone;
++#if !CHIP_HAS_COHERENT_LOCAL_CACHE()
 +
-+	printk("Active:%lu inactive:%lu dirty:%lu writeback:%lu unstable:%lu"
-+	       " free:%lu\n slab:%lu mapped:%lu pagetables:%lu bounce:%lu"
-+	       " pagecache:%lu swap:%lu\n",
-+	       (global_page_state(NR_ACTIVE_ANON) +
-+		global_page_state(NR_ACTIVE_FILE)),
-+	       (global_page_state(NR_INACTIVE_ANON) +
-+		global_page_state(NR_INACTIVE_FILE)),
-+	       global_page_state(NR_FILE_DIRTY),
-+	       global_page_state(NR_WRITEBACK),
-+	       global_page_state(NR_UNSTABLE_NFS),
-+	       global_page_state(NR_FREE_PAGES),
-+	       (global_page_state(NR_SLAB_RECLAIMABLE) +
-+		global_page_state(NR_SLAB_UNRECLAIMABLE)),
-+	       global_page_state(NR_FILE_MAPPED),
-+	       global_page_state(NR_PAGETABLE),
-+	       global_page_state(NR_BOUNCE),
-+	       global_page_state(NR_FILE_PAGES),
-+	       nr_swap_pages);
++/* Defined in memcpy.S */
++extern unsigned long __memcpy_asm(void *to, const void *from, unsigned long n);
++extern unsigned long __copy_to_user_inatomic_asm(
++	void __user *to, const void *from, unsigned long n);
++extern unsigned long __copy_from_user_inatomic_asm(
++	void *to, const void __user *from, unsigned long n);
++extern unsigned long __copy_from_user_zeroing_asm(
++	void *to, const void __user *from, unsigned long n);
 +
-+	for_each_zone(zone) {
-+		unsigned long flags, order, total = 0, largest_order = -1;
++typedef unsigned long (*memcpy_t)(void *, const void *, unsigned long);
 +
-+		if (!populated_zone(zone))
-+			continue;
++/* Size above which to consider TLB games for performance */
++#define LARGE_COPY_CUTOFF 2048
 +
-+		printk("Node %d %7s: ", zone_to_nid(zone), zone->name);
-+		spin_lock_irqsave(&zone->lock, flags);
-+		for (order = 0; order < MAX_ORDER; order++) {
-+			int nr = zone->free_area[order].nr_free;
-+			total += nr << order;
-+			if (nr)
-+				largest_order = order;
-+		}
-+		spin_unlock_irqrestore(&zone->lock, flags);
-+		printk("%lukB (largest %luKb)\n",
-+		       K(total), largest_order ? K(1UL) << largest_order : 0);
-+	}
-+}
++/* Communicate to the simulator what we are trying to do. */
++#define sim_allow_multiple_caching(b) \
++  __insn_mtspr(SPR_SIM_CONTROL, \
++   SIM_CONTROL_ALLOW_MULTIPLE_CACHING | ((b) << _SIM_CONTROL_OPERATOR_BITS))
 +
 +/*
-+ * Associate a virtual page frame with a given physical page frame
-+ * and protection flags for that frame.
-+ */
-+static void set_pte_pfn(unsigned long vaddr, unsigned long pfn, pgprot_t flags)
-+{
-+	pgd_t *pgd;
-+	pud_t *pud;
-+	pmd_t *pmd;
-+	pte_t *pte;
-+
-+	pgd = swapper_pg_dir + pgd_index(vaddr);
-+	if (pgd_none(*pgd)) {
-+		BUG();
-+		return;
-+	}
-+	pud = pud_offset(pgd, vaddr);
-+	if (pud_none(*pud)) {
-+		BUG();
-+		return;
-+	}
-+	pmd = pmd_offset(pud, vaddr);
-+	if (pmd_none(*pmd)) {
-+		BUG();
-+		return;
-+	}
-+	pte = pte_offset_kernel(pmd, vaddr);
-+	/* <pfn,flags> stored as-is, to permit clearing entries */
-+	set_pte(pte, pfn_pte(pfn, flags));
-+
-+	/*
-+	 * It's enough to flush this one mapping.
-+	 * This appears conservative since it is only called
-+	 * from __set_fixmap.
-+	 */
-+	local_flush_tlb_page(NULL, vaddr, PAGE_SIZE);
-+}
-+
-+/*
-+ * Associate a huge virtual page frame with a given physical page frame
-+ * and protection flags for that frame. pfn is for the base of the page,
-+ * vaddr is what the page gets mapped to - both must be properly aligned.
-+ * The pmd must already be instantiated.
-+ */
-+void set_pmd_pfn(unsigned long vaddr, unsigned long pfn, pgprot_t flags)
-+{
-+	pgd_t *pgd;
-+	pud_t *pud;
-+	pmd_t *pmd;
-+
-+	if (vaddr & (PMD_SIZE-1)) {		/* vaddr is misaligned */
-+		printk(KERN_WARNING "set_pmd_pfn: vaddr misaligned\n");
-+		return; /* BUG(); */
-+	}
-+	if (pfn & (PTRS_PER_PTE-1)) {		/* pfn is misaligned */
-+		printk(KERN_WARNING "set_pmd_pfn: pfn misaligned\n");
-+		return; /* BUG(); */
-+	}
-+	pgd = swapper_pg_dir + pgd_index(vaddr);
-+	if (pgd_none(*pgd)) {
-+		printk(KERN_WARNING "set_pmd_pfn: pgd_none\n");
-+		return; /* BUG(); */
-+	}
-+	pud = pud_offset(pgd, vaddr);
-+	pmd = pmd_offset(pud, vaddr);
-+	set_pmd(pmd, ptfn_pmd(HV_PFN_TO_PTFN(pfn), flags));
-+	/*
-+	 * It's enough to flush this one mapping.
-+	 * We flush both small and huge TSBs to be sure.
-+	 */
-+	local_flush_tlb_page(NULL, vaddr, HPAGE_SIZE);
-+	local_flush_tlb_pages(NULL, vaddr, PAGE_SIZE, HPAGE_SIZE);
-+}
-+
-+void __set_fixmap(enum fixed_addresses idx, unsigned long phys, pgprot_t flags)
-+{
-+	unsigned long address = __fix_to_virt(idx);
-+
-+	if (idx >= __end_of_fixed_addresses) {
-+		BUG();
-+		return;
-+	}
-+	set_pte_pfn(address, phys >> PAGE_SHIFT, flags);
-+}
-+
-+#if defined(CONFIG_HIGHPTE)
-+pte_t *_pte_offset_map(pmd_t *dir, unsigned long address, enum km_type type)
-+{
-+	pte_t *pte = kmap_atomic(pmd_page(*dir), type) +
-+		(pmd_ptfn(*dir) << HV_LOG2_PAGE_TABLE_ALIGN) & ~PAGE_MASK;
-+	return &pte[pte_index(address)];
-+}
-+#endif
-+
-+/*
-+ * List of all pgd's needed so it can invalidate entries in both cached
-+ * and uncached pgd's. This is essentially codepath-based locking
-+ * against pageattr.c; it is the unique case in which a valid change
-+ * of kernel pagetables can't be lazily synchronized by vmalloc faults.
-+ * vmalloc faults work because attached pagetables are never freed.
-+ * The locking scheme was chosen on the basis of manfred's
-+ * recommendations and having no core impact whatsoever.
-+ * -- wli
-+ */
-+DEFINE_SPINLOCK(pgd_lock);
-+LIST_HEAD(pgd_list);
-+
-+static inline void pgd_list_add(pgd_t *pgd)
-+{
-+	list_add(pgd_to_list(pgd), &pgd_list);
-+}
-+
-+static inline void pgd_list_del(pgd_t *pgd)
-+{
-+	list_del(pgd_to_list(pgd));
-+}
-+
-+#define KERNEL_PGD_INDEX_START pgd_index(PAGE_OFFSET)
-+#define KERNEL_PGD_PTRS (PTRS_PER_PGD - KERNEL_PGD_INDEX_START)
-+
-+static void pgd_ctor(pgd_t *pgd)
-+{
-+	unsigned long flags;
-+
-+	memset(pgd, 0, KERNEL_PGD_INDEX_START*sizeof(pgd_t));
-+	spin_lock_irqsave(&pgd_lock, flags);
-+
-+#ifndef __tilegx__
-+	/*
-+	 * Check that the user interrupt vector has no L2.
-+	 * It never should for the swapper, and new page tables
-+	 * should always start with an empty user interrupt vector.
-+	 */
-+	BUG_ON(((u64 *)swapper_pg_dir)[pgd_index(MEM_USER_INTRPT)] != 0);
-+#endif
-+
-+	clone_pgd_range(pgd + KERNEL_PGD_INDEX_START,
-+			swapper_pg_dir + KERNEL_PGD_INDEX_START,
-+			KERNEL_PGD_PTRS);
-+
-+	pgd_list_add(pgd);
-+	spin_unlock_irqrestore(&pgd_lock, flags);
-+}
-+
-+static void pgd_dtor(pgd_t *pgd)
-+{
-+	unsigned long flags; /* can be called from interrupt context */
-+
-+	spin_lock_irqsave(&pgd_lock, flags);
-+	pgd_list_del(pgd);
-+	spin_unlock_irqrestore(&pgd_lock, flags);
-+}
-+
-+pgd_t *pgd_alloc(struct mm_struct *mm)
-+{
-+	pgd_t *pgd = kmem_cache_alloc(pgd_cache, GFP_KERNEL);
-+	if (pgd)
-+		pgd_ctor(pgd);
-+	return pgd;
-+}
-+
-+void pgd_free(struct mm_struct *mm, pgd_t *pgd)
-+{
-+	pgd_dtor(pgd);
-+	kmem_cache_free(pgd_cache, pgd);
-+}
-+
-+
-+#define L2_USER_PGTABLE_PAGES (1 << L2_USER_PGTABLE_ORDER)
-+
-+struct page *pte_alloc_one(struct mm_struct *mm, unsigned long address)
-+{
-+	int flags = GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO|__GFP_COMP;
-+	struct page *p;
-+
-+#ifdef CONFIG_HIGHPTE
-+	flags |= __GFP_HIGHMEM;
-+#endif
-+
-+	p = alloc_pages(flags, L2_USER_PGTABLE_ORDER);
-+	if (p == NULL)
-+		return NULL;
-+
-+	pgtable_page_ctor(p);
-+	return p;
-+}
-+
-+/*
-+ * Free page immediately (used in __pte_alloc if we raced with another
-+ * process).  We have to correct whatever pte_alloc_one() did before
-+ * returning the pages to the allocator.
-+ */
-+void pte_free(struct mm_struct *mm, struct page *p)
-+{
-+	pgtable_page_dtor(p);
-+	__free_pages(p, L2_USER_PGTABLE_ORDER);
-+}
-+
-+void __pte_free_tlb(struct mmu_gather *tlb, struct page *pte,
-+		    unsigned long address)
-+{
-+	int i;
-+
-+	pgtable_page_dtor(pte);
-+	tlb->need_flush = 1;
-+	if (tlb_fast_mode(tlb)) {
-+		struct page *pte_pages[L2_USER_PGTABLE_PAGES];
-+		for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i)
-+			pte_pages[i] = pte + i;
-+		free_pages_and_swap_cache(pte_pages, L2_USER_PGTABLE_PAGES);
-+		return;
-+	}
-+	for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i) {
-+		tlb->pages[tlb->nr++] = pte + i;
-+		if (tlb->nr >= FREE_PTE_NR)
-+			tlb_flush_mmu(tlb, 0, 0);
-+	}
-+}
-+
-+#ifndef __tilegx__
-+
-+/*
-+ * FIXME: needs to be atomic vs hypervisor writes.  For now we make the
-+ * window of vulnerability a bit smaller by doing an unlocked 8-bit update.
-+ */
-+int ptep_test_and_clear_young(struct vm_area_struct *vma,
-+			      unsigned long addr, pte_t *ptep)
-+{
-+#if HV_PTE_INDEX_ACCESSED < 8 || HV_PTE_INDEX_ACCESSED >= 16
-+# error Code assumes HV_PTE "accessed" bit in second byte
-+#endif
-+	u8 *tmp = (u8 *)ptep;
-+	u8 second_byte = tmp[1];
-+	if (!(second_byte & (1 << (HV_PTE_INDEX_ACCESSED - 8))))
-+		return 0;
-+	tmp[1] = second_byte & ~(1 << (HV_PTE_INDEX_ACCESSED - 8));
-+	return 1;
-+}
-+
-+/*
-+ * This implementation is atomic vs hypervisor writes, since the hypervisor
-+ * always writes the low word (where "accessed" and "dirty" are) and this
-+ * routine only writes the high word.
-+ */
-+void ptep_set_wrprotect(struct mm_struct *mm,
-+			unsigned long addr, pte_t *ptep)
-+{
-+#if HV_PTE_INDEX_WRITABLE < 32
-+# error Code assumes HV_PTE "writable" bit in high word
-+#endif
-+	u32 *tmp = (u32 *)ptep;
-+	tmp[1] = tmp[1] & ~(1 << (HV_PTE_INDEX_WRITABLE - 32));
-+}
-+
-+#endif
-+
-+pte_t *virt_to_pte(struct mm_struct* mm, unsigned long addr)
-+{
-+	pgd_t *pgd;
-+	pud_t *pud;
-+	pmd_t *pmd;
-+
-+	if (pgd_addr_invalid(addr))
-+		return NULL;
-+
-+	pgd = mm ? pgd_offset(mm, addr) : swapper_pg_dir + pgd_index(addr);
-+	pud = pud_offset(pgd, addr);
-+	if (!pud_present(*pud))
-+		return NULL;
-+	pmd = pmd_offset(pud, addr);
-+	if (pmd_huge_page(*pmd))
-+		return (pte_t *)pmd;
-+	if (!pmd_present(*pmd))
-+		return NULL;
-+	return pte_offset_kernel(pmd, addr);
-+}
-+
-+pgprot_t set_remote_cache_cpu(pgprot_t prot, int cpu)
-+{
-+	unsigned int width = smp_width;
-+	int x = cpu % width;
-+	int y = cpu / width;
-+	BUG_ON(y >= smp_height);
-+	BUG_ON(hv_pte_get_mode(prot) != HV_PTE_MODE_CACHE_TILE_L3);
-+	BUG_ON(cpu < 0 || cpu >= NR_CPUS);
-+	BUG_ON(!cpu_is_valid_lotar(cpu));
-+	return hv_pte_set_lotar(prot, HV_XY_TO_LOTAR(x, y));
-+}
-+
-+int get_remote_cache_cpu(pgprot_t prot)
-+{
-+	HV_LOTAR lotar = hv_pte_get_lotar(prot);
-+	int x = HV_LOTAR_X(lotar);
-+	int y = HV_LOTAR_Y(lotar);
-+	BUG_ON(hv_pte_get_mode(prot) != HV_PTE_MODE_CACHE_TILE_L3);
-+	return x + y * smp_width;
-+}
-+
-+void set_pte_order(pte_t *ptep, pte_t pte, int order)
-+{
-+	unsigned long pfn = pte_pfn(pte);
-+	struct page *page = pfn_to_page(pfn);
-+
-+	/* Update the home of a PTE if necessary */
-+	pte = pte_set_home(pte, page_home(page));
-+
-+#ifdef __tilegx__
-+	*ptep = pte;
-+#else
-+	/*
-+	 * When setting a PTE, write the high bits first, then write
-+	 * the low bits.  This sets the "present" bit only after the
-+	 * other bits are in place.  If a particular PTE update
-+	 * involves transitioning from one valid PTE to another, it
-+	 * may be necessary to call set_pte_order() more than once,
-+	 * transitioning via a suitable intermediate state.
-+	 * Note that this sequence also means that if we are transitioning
-+	 * from any migrating PTE to a non-migrating one, we will not
-+	 * see a half-updated PTE with the migrating bit off.
-+	 */
-+#if HV_PTE_INDEX_PRESENT >= 32 || HV_PTE_INDEX_MIGRATING >= 32
-+# error Must write the present and migrating bits last
-+#endif
-+	((u32 *)ptep)[1] = (u32)(pte_val(pte) >> 32);
-+	barrier();
-+	((u32 *)ptep)[0] = (u32)(pte_val(pte));
-+#endif
-+}
-+
-+/* Can this mm load a PTE with cached_priority set? */
-+static inline int mm_is_priority_cached(struct mm_struct *mm)
-+{
-+	return mm->context.priority_cached;
-+}
-+
-+/*
-+ * Add a priority mapping to an mm_context and
-+ * notify the hypervisor if this is the first one.
-+ */
-+void start_mm_caching(struct mm_struct *mm)
-+{
-+	if (!mm_is_priority_cached(mm)) {
-+		mm->context.priority_cached = -1U;
-+		hv_set_caching(-1U);
-+	}
-+}
-+
-+/*
-+ * Validate and return the priority_cached flag.  We know if it's zero
-+ * that we don't need to scan, since we immediately set it non-zero
-+ * when we first consider a MAP_CACHE_PRIORITY mapping.
++ * Copy memory by briefly enabling incoherent cacheline-at-a-time mode.
 + *
-+ * We only _try_ to acquire the mmap_sem semaphore; if we can't acquire it,
-+ * since we're in an interrupt context (servicing switch_mm) we don't
-+ * worry about it and don't unset the "priority_cached" field.
-+ * Presumably we'll come back later and have more luck and clear
-+ * the value then; for now we'll just keep the cache marked for priority.
++ * We set up our own source and destination PTEs that we fully control.
++ * This is the only way to guarantee that we don't race with another
++ * thread that is modifying the PTE; we can't afford to try the
++ * copy_{to,from}_user() technique of catching the interrupt, since
++ * we must run with interrupts disabled to avoid the risk of some
++ * other code seeing the incoherent data in our cache.  (Recall that
++ * our cache is indexed by PA, so even if the other code doesn't use
++ * our KM_MEMCPY virtual addresses, they'll still hit in cache using
++ * the normal VAs that aren't supposed to hit in cache.)
 + */
-+static unsigned int update_priority_cached(struct mm_struct *mm)
++static void memcpy_multicache(void *dest, const void *source,
++			      pte_t dst_pte, pte_t src_pte, int len)
 +{
-+	if (mm->context.priority_cached && down_write_trylock(&mm->mmap_sem)) {
-+		struct vm_area_struct *vm;
-+		for (vm = mm->mmap; vm; vm = vm->vm_next) {
-+			if (hv_pte_get_cached_priority(vm->vm_page_prot))
-+				break;
-+		}
-+		if (vm == NULL)
-+			mm->context.priority_cached = 0;
-+		up_write(&mm->mmap_sem);
-+	}
-+	return mm->context.priority_cached;
-+}
-+
-+/* Set caching correctly for an mm that we are switching to. */
-+void check_mm_caching(struct mm_struct *prev, struct mm_struct *next)
-+{
-+	if (!mm_is_priority_cached(next)) {
-+		/*
-+		 * If the new mm doesn't use priority caching, just see if we
-+		 * need the hv_set_caching(), or can assume it's already zero.
-+		 */
-+		if (mm_is_priority_cached(prev))
-+			hv_set_caching(0);
-+	} else {
-+		hv_set_caching(update_priority_cached(next));
-+	}
-+}
-+
-+#if CHIP_HAS_MMIO()
-+
-+/* Map an arbitrary MMIO address, homed according to pgprot, into VA space. */
-+void __iomem *ioremap_prot(resource_size_t phys_addr, unsigned long size,
-+			   pgprot_t home)
-+{
-+	void *addr;
-+	struct vm_struct *area;
-+	unsigned long offset, last_addr;
-+	pgprot_t pgprot;
-+
-+	/* Don't allow wraparound or zero size */
-+	last_addr = phys_addr + size - 1;
-+	if (!size || last_addr < phys_addr)
-+		return NULL;
-+
-+	/* Create a read/write, MMIO VA mapping homed at the requested shim. */
-+	pgprot = PAGE_KERNEL;
-+	pgprot = hv_pte_set_mode(pgprot, HV_PTE_MODE_MMIO);
-+	pgprot = hv_pte_set_lotar(pgprot, hv_pte_get_lotar(home));
++	int idx, i;
++	unsigned long flags, newsrc, newdst, endsrc;
++	pmd_t *pmdp;
++	pte_t *ptep;
++	int cpu = get_cpu();
 +
 +	/*
-+	 * Mappings have to be page-aligned
++	 * Disable interrupts so that we don't recurse into memcpy()
++	 * in an interrupt handler, nor accidentally reference
++	 * the PA of the source from an interrupt routine.  Also
++	 * notify the simulator that we're playing games so we don't
++	 * generate spurious coherency warnings.
 +	 */
-+	offset = phys_addr & ~PAGE_MASK;
-+	phys_addr &= PAGE_MASK;
-+	size = PAGE_ALIGN(last_addr+1) - phys_addr;
++	local_irq_save(flags);
++	sim_allow_multiple_caching(1);
++
++	/* Set up the new dest mapping */
++	idx = FIX_KMAP_BEGIN + (KM_TYPE_NR * cpu) + KM_MEMCPY0;
++	newdst = __fix_to_virt(idx) + ((unsigned long)dest & (PAGE_SIZE-1));
++	pmdp = pmd_offset(pud_offset(pgd_offset_k(newdst), newdst), newdst);
++	ptep = pte_offset_kernel(pmdp, newdst);
++	if (pte_val(*ptep) != pte_val(dst_pte)) {
++		set_pte(ptep, dst_pte);
++		local_flush_tlb_page(NULL, newdst, PAGE_SIZE);
++	}
++
++	/* Set up the new source mapping */
++	idx += (KM_MEMCPY0 - KM_MEMCPY1);
++	src_pte = hv_pte_set_nc(src_pte);
++	src_pte = hv_pte_clear_writable(src_pte);  /* be paranoid */
++	newsrc = __fix_to_virt(idx) + ((unsigned long)source & (PAGE_SIZE-1));
++	pmdp = pmd_offset(pud_offset(pgd_offset_k(newsrc), newsrc), newsrc);
++	ptep = pte_offset_kernel(pmdp, newsrc);
++	*ptep = src_pte;   /* set_pte() would be confused by this */
++	local_flush_tlb_page(NULL, newsrc, PAGE_SIZE);
++
++	/* Actually move the data. */
++	__memcpy_asm((void *)newdst, (const void *)newsrc, len);
 +
 +	/*
-+	 * Ok, go for it..
++	 * Remap the source as locally-cached and not OLOC'ed so that
++	 * we can inval without also invaling the remote cpu's cache.
++	 * This also avoids known errata with inv'ing cacheable oloc data.
 +	 */
-+	area = get_vm_area(size, VM_IOREMAP /* | other flags? */);
-+	if (!area)
-+		return NULL;
-+	area->phys_addr = phys_addr;
-+	addr = area->addr;
-+	if (ioremap_page_range((unsigned long)addr, (unsigned long)addr + size,
-+			       phys_addr, pgprot)) {
-+		remove_vm_area((void *)(PAGE_MASK & (unsigned long) addr));
-+		return NULL;
-+	}
-+	return (__force void __iomem *) (offset + (char *)addr);
++	src_pte = hv_pte_set_mode(src_pte, HV_PTE_MODE_CACHE_NO_L3);
++	src_pte = hv_pte_set_writable(src_pte); /* need write access for inv */
++	*ptep = src_pte;   /* set_pte() would be confused by this */
++	local_flush_tlb_page(NULL, newsrc, PAGE_SIZE);
++
++	/*
++	 * Do the actual invalidation, covering the full L2 cache line
++	 * at the end since __memcpy_asm() is somewhat aggressive.
++	 */
++	__inv_buffer((void *)newsrc, len);
++
++	/*
++	 * We're done: notify the simulator that all is back to normal,
++	 * and re-enable interrupts and pre-emption.
++	 */
++	sim_allow_multiple_caching(0);
++	local_irq_restore(flags);
++	put_cpu_no_resched();
 +}
-+EXPORT_SYMBOL(ioremap_prot);
 +
-+/* Map a PCI MMIO bus address into VA space. */
-+void __iomem *ioremap(resource_size_t phys_addr, unsigned long size)
++/*
++ * Identify large copies from remotely-cached memory, and copy them
++ * via memcpy_multicache() if they look good, otherwise fall back
++ * to the particular kind of copying passed as the memcpy_t function.
++ */
++static unsigned long fast_copy(void *dest, const void *source, int len,
++			       memcpy_t func)
 +{
-+	panic("ioremap for PCI MMIO is not supported");
-+}
-+EXPORT_SYMBOL(ioremap);
++	/*
++	 * Check if it's big enough to bother with.  We may end up doing a
++	 * small copy via TLB manipulation if we're near a page boundary,
++	 * but presumably we'll make it up when we hit the second page.
++	 */
++	while (len >= LARGE_COPY_CUTOFF) {
++		int copy_size, bytes_left_on_page;
++		pte_t *src_ptep, *dst_ptep;
++		pte_t src_pte, dst_pte;
++		struct page *src_page, *dst_page;
 +
-+/* Unmap an MMIO VA mapping. */
-+void iounmap(volatile void __iomem *addr_in)
-+{
-+	volatile void __iomem *addr = (volatile void __iomem *)
-+		(PAGE_MASK & (unsigned long __force)addr_in);
-+#if 1
-+	vunmap((void * __force)addr);
-+#else
-+	/* x86 uses this complicated flow instead of vunmap().  Is
-+	 * there any particular reason we should do the same? */
-+	struct vm_struct *p, *o;
-+
-+	/* Use the vm area unlocked, assuming the caller
-+	   ensures there isn't another iounmap for the same address
-+	   in parallel. Reuse of the virtual address is prevented by
-+	   leaving it in the global lists until we're done with it.
-+	   cpa takes care of the direct mappings. */
-+	read_lock(&vmlist_lock);
-+	for (p = vmlist; p; p = p->next) {
-+		if (p->addr == addr)
++		/* Is the source page oloc'ed to a remote cpu? */
++retry_source:
++		src_ptep = virt_to_pte(current->mm, (unsigned long)source);
++		if (src_ptep == NULL)
 +			break;
-+	}
-+	read_unlock(&vmlist_lock);
++		src_pte = *src_ptep;
++		if (!hv_pte_get_present(src_pte) ||
++		    !hv_pte_get_readable(src_pte) ||
++		    hv_pte_get_mode(src_pte) != HV_PTE_MODE_CACHE_TILE_L3)
++			break;
++		if (get_remote_cache_cpu(src_pte) == smp_processor_id())
++			break;
++		src_page = pfn_to_page(hv_pte_get_pfn(src_pte));
++		get_page(src_page);
++		if (pte_val(src_pte) != pte_val(*src_ptep)) {
++			put_page(src_page);
++			goto retry_source;
++		}
++		if (pte_huge(src_pte)) {
++			/* Adjust the PTE to correspond to a small page */
++			int pfn = hv_pte_get_pfn(src_pte);
++			pfn += (((unsigned long)source & (HPAGE_SIZE-1))
++				>> PAGE_SHIFT);
++			src_pte = pfn_pte(pfn, src_pte);
++			src_pte = pte_mksmall(src_pte);
++		}
 +
-+	if (!p) {
-+		printk("iounmap: bad address %p\n", addr);
-+		dump_stack();
-+		return;
++		/* Is the destination page writable? */
++retry_dest:
++		dst_ptep = virt_to_pte(current->mm, (unsigned long)dest);
++		if (dst_ptep == NULL) {
++			put_page(src_page);
++			break;
++		}
++		dst_pte = *dst_ptep;
++		if (!hv_pte_get_present(dst_pte) ||
++		    !hv_pte_get_writable(dst_pte)) {
++			put_page(src_page);
++			break;
++		}
++		dst_page = pfn_to_page(hv_pte_get_pfn(dst_pte));
++		if (dst_page == src_page) {
++			/*
++			 * Source and dest are on the same page; this
++			 * potentially exposes us to incoherence if any
++			 * part of src and dest overlap on a cache line.
++			 * Just give up rather than trying to be precise.
++			 */
++			put_page(src_page);
++			break;
++		}
++		get_page(dst_page);
++		if (pte_val(dst_pte) != pte_val(*dst_ptep)) {
++			put_page(dst_page);
++			goto retry_dest;
++		}
++		if (pte_huge(dst_pte)) {
++			/* Adjust the PTE to correspond to a small page */
++			int pfn = hv_pte_get_pfn(dst_pte);
++			pfn += (((unsigned long)dest & (HPAGE_SIZE-1))
++				>> PAGE_SHIFT);
++			dst_pte = pfn_pte(pfn, dst_pte);
++			dst_pte = pte_mksmall(dst_pte);
++		}
++
++		/* All looks good: create a cachable PTE and copy from it */
++		copy_size = len;
++		bytes_left_on_page =
++			PAGE_SIZE - (((int)source) & (PAGE_SIZE-1));
++		if (copy_size > bytes_left_on_page)
++			copy_size = bytes_left_on_page;
++		bytes_left_on_page =
++			PAGE_SIZE - (((int)dest) & (PAGE_SIZE-1));
++		if (copy_size > bytes_left_on_page)
++			copy_size = bytes_left_on_page;
++		memcpy_multicache(dest, source, dst_pte, src_pte, copy_size);
++
++		/* Release the pages */
++		put_page(dst_page);
++		put_page(src_page);
++
++		/* Continue on the next page */
++		dest += copy_size;
++		source += copy_size;
++		len -= copy_size;
 +	}
 +
-+	/* Finally remove it */
-+	o = remove_vm_area((void *)addr);
-+	BUG_ON(p != o || o == NULL);
-+	kfree(p);
-+#endif
++	return func(dest, source, len);
 +}
-+EXPORT_SYMBOL(iounmap);
 +
-+#endif /* CHIP_HAS_MMIO() */
++void *memcpy(void *to, const void *from, __kernel_size_t n)
++{
++	if (n < LARGE_COPY_CUTOFF)
++		return (void *)__memcpy_asm(to, from, n);
++	else
++		return (void *)fast_copy(to, from, n, __memcpy_asm);
++}
++
++unsigned long __copy_to_user_inatomic(void __user *to, const void *from,
++				      unsigned long n)
++{
++	if (n < LARGE_COPY_CUTOFF)
++		return __copy_to_user_inatomic_asm(to, from, n);
++	else
++		return fast_copy(to, from, n, __copy_to_user_inatomic_asm);
++}
++
++unsigned long __copy_from_user_inatomic(void *to, const void __user *from,
++					unsigned long n)
++{
++	if (n < LARGE_COPY_CUTOFF)
++		return __copy_from_user_inatomic_asm(to, from, n);
++	else
++		return fast_copy(to, from, n, __copy_from_user_inatomic_asm);
++}
++
++unsigned long __copy_from_user_zeroing(void *to, const void __user *from,
++				       unsigned long n)
++{
++	if (n < LARGE_COPY_CUTOFF)
++		return __copy_from_user_zeroing_asm(to, from, n);
++	else
++		return fast_copy(to, from, n, __copy_from_user_zeroing_asm);
++}
++
++#endif /* !CHIP_HAS_COHERENT_LOCAL_CACHE() */
+diff --git a/arch/tile/lib/memmove_32.c b/arch/tile/lib/memmove_32.c
+new file mode 100644
+index 0000000..f09d8c4
+--- /dev/null
++++ b/arch/tile/lib/memmove_32.c
+@@ -0,0 +1,63 @@
++/*
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ */
++
++#include <linux/types.h>
++#include <linux/string.h>
++#include <linux/module.h>
++
++void *memmove(void *dest, const void *src, size_t n)
++{
++	if ((const char *)src >= (char *)dest + n
++	    || (char *)dest >= (const char *)src + n) {
++		/* We found no overlap, so let memcpy do all the heavy
++		 * lifting (prefetching, etc.)
++		 */
++		return memcpy(dest, src, n);
++	}
++
++	if (n != 0) {
++		const uint8_t *in;
++		uint8_t x;
++		uint8_t *out;
++		int stride;
++
++		if (src < dest) {
++			/* copy backwards */
++			in = (const uint8_t *)src + n - 1;
++			out = (uint8_t *)dest + n - 1;
++			stride = -1;
++		} else {
++			/* copy forwards */
++			in = (const uint8_t *)src;
++			out = (uint8_t *)dest;
++			stride = 1;
++                }
++
++		/* Manually software-pipeline this loop. */
++		x = *in;
++		in += stride;
++
++		while (--n != 0) {
++			*out = x;
++			out += stride;
++			x = *in;
++			in += stride;
++		}
++
++		*out = x;
++	}
++
++	return dest;
++}
++EXPORT_SYMBOL(memmove);
+diff --git a/arch/tile/lib/memset_32.c b/arch/tile/lib/memset_32.c
+new file mode 100644
+index 0000000..8593bc8
+--- /dev/null
++++ b/arch/tile/lib/memset_32.c
+@@ -0,0 +1,274 @@
++/*
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ */
++
++#include <arch/chip.h>
++
++#include <linux/types.h>
++#include <linux/string.h>
++#include <linux/module.h>
++
++
++void *memset(void *s, int c, size_t n)
++{
++	uint32_t *out32;
++	int n32;
++	uint32_t v16, v32;
++	uint8_t *out8 = s;
++#if !CHIP_HAS_WH64()
++	int ahead32;
++#else
++	int to_align32;
++#endif
++
++	/* Experimentation shows that a trivial tight loop is a win up until
++	 * around a size of 20, where writing a word at a time starts to win.
++	 */
++#define BYTE_CUTOFF 20
++
++#if BYTE_CUTOFF < 3
++	/* This must be at least at least this big, or some code later
++	 * on doesn't work.
++	 */
++#error "BYTE_CUTOFF is too small"
++#endif
++
++	if (n < BYTE_CUTOFF) {
++		/* Strangely, this turns out to be the tightest way to
++		 * write this loop.
++		 */
++		if (n != 0) {
++			do {
++				/* Strangely, combining these into one line
++				 * performs worse.
++				 */
++				*out8 = c;
++				out8++;
++			} while (--n != 0);
++		}
++
++		return s;
++	}
++
++#if !CHIP_HAS_WH64()
++	/* Use a spare issue slot to start prefetching the first cache
++	 * line early. This instruction is free as the store can be buried
++	 * in otherwise idle issue slots doing ALU ops.
++	 */
++	__insn_prefetch(out8);
++
++	/* We prefetch the end so that a short memset that spans two cache
++	 * lines gets some prefetching benefit. Again we believe this is free
++	 * to issue.
++	 */
++	__insn_prefetch(&out8[n - 1]);
++#endif /* !CHIP_HAS_WH64() */
++
++
++	/* Align 'out8'. We know n >= 3 so this won't write past the end. */
++	while (((uintptr_t) out8 & 3) != 0) {
++		*out8++ = c;
++		--n;
++	}
++
++	/* Align 'n'. */
++	while (n & 3)
++		out8[--n] = c;
++
++	out32 = (uint32_t *) out8;
++	n32 = n >> 2;
++
++	/* Tile input byte out to 32 bits. */
++	v16 = __insn_intlb(c, c);
++	v32 = __insn_intlh(v16, v16);
++
++	/* This must be at least 8 or the following loop doesn't work. */
++#define CACHE_LINE_SIZE_IN_WORDS (CHIP_L2_LINE_SIZE() / 4)
++
++#if !CHIP_HAS_WH64()
++
++	ahead32 = CACHE_LINE_SIZE_IN_WORDS;
++
++	/* We already prefetched the first and last cache lines, so
++	 * we only need to do more prefetching if we are storing
++	 * to more than two cache lines.
++	 */
++	if (n32 > CACHE_LINE_SIZE_IN_WORDS * 2) {
++		int i;
++
++		/* Prefetch the next several cache lines.
++		 * This is the setup code for the software-pipelined
++		 * loop below.
++		 */
++#define MAX_PREFETCH 5
++		ahead32 = n32 & -CACHE_LINE_SIZE_IN_WORDS;
++		if (ahead32 > MAX_PREFETCH * CACHE_LINE_SIZE_IN_WORDS)
++			ahead32 = MAX_PREFETCH * CACHE_LINE_SIZE_IN_WORDS;
++
++		for (i = CACHE_LINE_SIZE_IN_WORDS;
++		     i < ahead32; i += CACHE_LINE_SIZE_IN_WORDS)
++			__insn_prefetch(&out32[i]);
++	}
++
++	if (n32 > ahead32) {
++		while (1) {
++			int j;
++
++			/* Prefetch by reading one word several cache lines
++			 * ahead.  Since loads are non-blocking this will
++			 * cause the full cache line to be read while we are
++			 * finishing earlier cache lines.  Using a store
++			 * here causes microarchitectural performance
++			 * problems where a victimizing store miss goes to
++			 * the head of the retry FIFO and locks the pipe for
++			 * a few cycles.  So a few subsequent stores in this
++			 * loop go into the retry FIFO, and then later
++			 * stores see other stores to the same cache line
++			 * are already in the retry FIFO and themselves go
++			 * into the retry FIFO, filling it up and grinding
++			 * to a halt waiting for the original miss to be
++			 * satisfied.
++			 */
++			__insn_prefetch(&out32[ahead32]);
++
++#if 1
++#if CACHE_LINE_SIZE_IN_WORDS % 4 != 0
++#error "Unhandled CACHE_LINE_SIZE_IN_WORDS"
++#endif
++
++			n32 -= CACHE_LINE_SIZE_IN_WORDS;
++
++			/* Save icache space by only partially unrolling
++			 * this loop.
++			 */
++			for (j = CACHE_LINE_SIZE_IN_WORDS / 4; j > 0; j--) {
++				*out32++ = v32;
++				*out32++ = v32;
++				*out32++ = v32;
++				*out32++ = v32;
++			}
++#else
++			/* Unfortunately, due to a code generator flaw this
++			 * allocates a separate register for each of these
++			 * stores, which requires a large number of spills,
++			 * which makes this procedure enormously bigger
++			 * (something like 70%)
++			 */
++			*out32++ = v32;
++			*out32++ = v32;
++			*out32++ = v32;
++			*out32++ = v32;
++			*out32++ = v32;
++			*out32++ = v32;
++			*out32++ = v32;
++			*out32++ = v32;
++			*out32++ = v32;
++			*out32++ = v32;
++			*out32++ = v32;
++			*out32++ = v32;
++			*out32++ = v32;
++			*out32++ = v32;
++			*out32++ = v32;
++			n32 -= 16;
++#endif
++
++			/* To save compiled code size, reuse this loop even
++			 * when we run out of prefetching to do by dropping
++			 * ahead32 down.
++			 */
++			if (n32 <= ahead32) {
++				/* Not even a full cache line left,
++				 * so stop now.
++				 */
++				if (n32 < CACHE_LINE_SIZE_IN_WORDS)
++					break;
++
++				/* Choose a small enough value that we don't
++				 * prefetch past the end.  There's no sense
++				 * in touching cache lines we don't have to.
++				 */
++				ahead32 = CACHE_LINE_SIZE_IN_WORDS - 1;
++			}
++		}
++	}
++
++#else /* CHIP_HAS_WH64() */
++
++	/* Determine how many words we need to emit before the 'out32'
++	 * pointer becomes aligned modulo the cache line size.
++	 */
++	to_align32 =
++		(-((uintptr_t)out32 >> 2)) & (CACHE_LINE_SIZE_IN_WORDS - 1);
++
++	/* Only bother aligning and using wh64 if there is at least
++	 * one full cache line to process.  This check also prevents
++	 * overrunning the end of the buffer with alignment words.
++	 */
++	if (to_align32 <= n32 - CACHE_LINE_SIZE_IN_WORDS) {
++		int lines_left;
++
++		/* Align out32 mod the cache line size so we can use wh64. */
++		n32 -= to_align32;
++		for (; to_align32 != 0; to_align32--) {
++			*out32 = v32;
++			out32++;
++		}
++
++		/* Use unsigned divide to turn this into a right shift. */
++		lines_left = (unsigned)n32 / CACHE_LINE_SIZE_IN_WORDS;
++
++		do {
++			/* Only wh64 a few lines at a time, so we don't
++			 * exceed the maximum number of victim lines.
++			 */
++			int x = ((lines_left < CHIP_MAX_OUTSTANDING_VICTIMS())
++				  ? lines_left
++				  : CHIP_MAX_OUTSTANDING_VICTIMS());
++			uint32_t *wh = out32;
++			int i = x;
++			int j;
++
++			lines_left -= x;
++
++			do {
++				__insn_wh64(wh);
++				wh += CACHE_LINE_SIZE_IN_WORDS;
++			} while (--i);
++
++			for (j = x * (CACHE_LINE_SIZE_IN_WORDS / 4); j != 0; j--) {
++				*out32++ = v32;
++				*out32++ = v32;
++				*out32++ = v32;
++				*out32++ = v32;
++			}
++		} while (lines_left != 0);
++
++		/* We processed all full lines above, so only this many
++		 * words remain to be processed.
++		 */
++		n32 &= CACHE_LINE_SIZE_IN_WORDS - 1;
++	}
++
++#endif /* CHIP_HAS_WH64() */
++
++	/* Now handle any leftover values. */
++	if (n32 != 0) {
++		do {
++			*out32 = v32;
++			out32++;
++		} while (--n32 != 0);
++	}
++
++	return s;
++}
++EXPORT_SYMBOL(memset);
+diff --git a/arch/tile/lib/spinlock_32.c b/arch/tile/lib/spinlock_32.c
+new file mode 100644
+index 0000000..485e24d
+--- /dev/null
++++ b/arch/tile/lib/spinlock_32.c
+@@ -0,0 +1,221 @@
++/*
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ */
++
++#include <linux/spinlock.h>
++#include <linux/module.h>
++#include <asm/processor.h>
++
++#include "spinlock_common.h"
++
++void arch_spin_lock(arch_spinlock_t *lock)
++{
++	int my_ticket;
++	int iterations = 0;
++	int delta;
++
++	while ((my_ticket = __insn_tns((void *)&lock->next_ticket)) & 1)
++		delay_backoff(iterations++);
++
++	/* Increment the next ticket number, implicitly releasing tns lock. */
++	lock->next_ticket = my_ticket + TICKET_QUANTUM;
++
++	/* Wait until it's our turn. */
++	while ((delta = my_ticket - lock->current_ticket) != 0)
++		relax((128 / CYCLES_PER_RELAX_LOOP) * delta);
++}
++EXPORT_SYMBOL(arch_spin_lock);
++
++int arch_spin_trylock(arch_spinlock_t *lock)
++{
++	/*
++	 * Grab a ticket; no need to retry if it's busy, we'll just
++	 * treat that the same as "locked", since someone else
++	 * will lock it momentarily anyway.
++	 */
++	int my_ticket = __insn_tns((void *)&lock->next_ticket);
++
++	if (my_ticket == lock->current_ticket) {
++		/* Not currently locked, so lock it by keeping this ticket. */
++		lock->next_ticket = my_ticket + TICKET_QUANTUM;
++		/* Success! */
++		return 1;
++	}
++
++	if (!(my_ticket & 1)) {
++		/* Release next_ticket. */
++		lock->next_ticket = my_ticket;
++	}
++
++	return 0;
++}
++EXPORT_SYMBOL(arch_spin_trylock);
++
++void arch_spin_unlock_wait(arch_spinlock_t *lock)
++{
++	u32 iterations = 0;
++	while (arch_spin_is_locked(lock))
++		delay_backoff(iterations++);
++}
++EXPORT_SYMBOL(arch_spin_unlock_wait);
++
++/*
++ * The low byte is always reserved to be the marker for a "tns" operation
++ * since the low bit is set to "1" by a tns.  The next seven bits are
++ * zeroes.  The next byte holds the "next" writer value, i.e. the ticket
++ * available for the next task that wants to write.  The third byte holds
++ * the current writer value, i.e. the writer who holds the current ticket.
++ * If current == next == 0, there are no interested writers.
++ */
++#define WR_NEXT_SHIFT   _WR_NEXT_SHIFT
++#define WR_CURR_SHIFT   _WR_CURR_SHIFT
++#define WR_WIDTH        _WR_WIDTH
++#define WR_MASK         ((1 << WR_WIDTH) - 1)
++
++/*
++ * The last eight bits hold the active reader count.  This has to be
++ * zero before a writer can start to write.
++ */
++#define RD_COUNT_SHIFT  _RD_COUNT_SHIFT
++#define RD_COUNT_WIDTH  _RD_COUNT_WIDTH
++#define RD_COUNT_MASK   ((1 << RD_COUNT_WIDTH) - 1)
++
++
++/* Lock the word, spinning until there are no tns-ers. */
++static inline u32 get_rwlock(arch_rwlock_t *rwlock)
++{
++	u32 iterations = 0;
++	for (;;) {
++		u32 val = __insn_tns((int *)&rwlock->lock);
++		if (unlikely(val & 1)) {
++			delay_backoff(iterations++);
++			continue;
++		}
++		return val;
++	}
++}
++
++int arch_read_trylock_slow(arch_rwlock_t *rwlock)
++{
++	u32 val = get_rwlock(rwlock);
++	int locked = (val << RD_COUNT_WIDTH) == 0;
++	rwlock->lock = val + (locked << RD_COUNT_SHIFT);
++	return locked;
++}
++EXPORT_SYMBOL(arch_read_trylock_slow);
++
++void arch_read_unlock_slow(arch_rwlock_t *rwlock)
++{
++	u32 val = get_rwlock(rwlock);
++	rwlock->lock = val - (1 << RD_COUNT_SHIFT);
++}
++EXPORT_SYMBOL(arch_read_unlock_slow);
++
++void arch_write_unlock_slow(arch_rwlock_t *rwlock, u32 val)
++{
++	u32 eq, mask = 1 << WR_CURR_SHIFT;
++	while (unlikely(val & 1)) {
++		/* Limited backoff since we are the highest-priority task. */
++		relax(4);
++		val = __insn_tns((int *)&rwlock->lock);
++	}
++	val = __insn_addb(val, mask);
++	eq = __insn_seqb(val, val << (WR_CURR_SHIFT - WR_NEXT_SHIFT));
++	val = __insn_mz(eq & mask, val);
++	rwlock->lock = val;
++}
++EXPORT_SYMBOL(arch_write_unlock_slow);
++
++/*
++ * We spin until everything but the reader bits (which are in the high
++ * part of the word) are zero, i.e. no active or waiting writers, no tns.
++ *
++ * ISSUE: This approach can permanently starve readers.  A reader who sees
++ * a writer could instead take a ticket lock (just like a writer would),
++ * and atomically enter read mode (with 1 reader) when it gets the ticket.
++ * This way both readers and writers will always make forward progress
++ * in a finite time.
++ */
++void arch_read_lock_slow(arch_rwlock_t *rwlock, u32 val)
++{
++	u32 iterations = 0;
++	do {
++		if (!(val & 1))
++			rwlock->lock = val;
++		delay_backoff(iterations++);
++		val = __insn_tns((int *)&rwlock->lock);
++	} while ((val << RD_COUNT_WIDTH) != 0);
++	rwlock->lock = val + (1 << RD_COUNT_SHIFT);
++}
++EXPORT_SYMBOL(arch_read_lock_slow);
++
++void arch_write_lock_slow(arch_rwlock_t *rwlock, u32 val)
++{
++	/*
++	 * The trailing underscore on this variable (and curr_ below)
++	 * reminds us that the high bits are garbage; we mask them out
++	 * when we compare them.
++	 */
++	u32 my_ticket_;
++
++	/* Take out the next ticket; this will also stop would-be readers. */
++	if (val & 1)
++		val = get_rwlock(rwlock);
++	rwlock->lock = __insn_addb(val, 1 << WR_NEXT_SHIFT);
++
++	/* Extract my ticket value from the original word. */
++	my_ticket_ = val >> WR_NEXT_SHIFT;
++
++	/*
++	 * Wait until the "current" field matches our ticket, and
++	 * there are no remaining readers.
++	 */
++	for (;;) {
++		u32 curr_ = val >> WR_CURR_SHIFT;
++		u32 readers = val >> RD_COUNT_SHIFT;
++		u32 delta = ((my_ticket_ - curr_) & WR_MASK) + !!readers;
++		if (likely(delta == 0))
++			break;
++
++		/* Delay based on how many lock-holders are still out there. */
++		relax((256 / CYCLES_PER_RELAX_LOOP) * delta);
++
++		/*
++		 * Get a non-tns value to check; we don't need to tns
++		 * it ourselves.  Since we're not tns'ing, we retry
++		 * more rapidly to get a valid value.
++		 */
++		while ((val = rwlock->lock) & 1)
++			relax(4);
++	}
++}
++EXPORT_SYMBOL(arch_write_lock_slow);
++
++int __tns_atomic_acquire(atomic_t *lock)
++{
++	int ret;
++	u32 iterations = 0;
++
++	BUG_ON(__insn_mfspr(SPR_INTERRUPT_CRITICAL_SECTION));
++	__insn_mtspr(SPR_INTERRUPT_CRITICAL_SECTION, 1);
++
++	while ((ret = __insn_tns((void *)&lock->counter)) == 1)
++		delay_backoff(iterations++);
++	return ret;
++}
++
++void __tns_atomic_release(atomic_t *p, int v)
++{
++	p->counter = v;
++	__insn_mtspr(SPR_INTERRUPT_CRITICAL_SECTION, 0);
++}
+diff --git a/arch/tile/lib/spinlock_common.h b/arch/tile/lib/spinlock_common.h
+new file mode 100644
+index 0000000..8dffebd
+--- /dev/null
++++ b/arch/tile/lib/spinlock_common.h
+@@ -0,0 +1,64 @@
++/*
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ * This file is included into spinlock_32.c or _64.c.
++ */
++
++/*
++ * The mfspr in __spinlock_relax() is 5 or 6 cycles plus 2 for loop
++ * overhead.
++ */
++#ifdef __tilegx__
++#define CYCLES_PER_RELAX_LOOP 7
++#else
++#define CYCLES_PER_RELAX_LOOP 8
++#endif
++
++/*
++ * Idle the core for CYCLES_PER_RELAX_LOOP * iterations cycles.
++ */
++static inline void
++relax(int iterations)
++{
++	for (/*above*/; iterations > 0; iterations--)
++		__insn_mfspr(SPR_PASS);
++	barrier();
++}
++
++/* Perform bounded exponential backoff.*/
++void delay_backoff(int iterations)
++{
++	u32 exponent, loops;
++
++	/*
++	 * 2^exponent is how many times we go around the loop,
++	 * which takes 8 cycles.  We want to start with a 16- to 31-cycle
++	 * loop, so we need to go around minimum 2 = 2^1 times, so we
++	 * bias the original value up by 1.
++	 */
++	exponent = iterations + 1;
++
++	/*
++	 * Don't allow exponent to exceed 7, so we have 128 loops,
++	 * or 1,024 (to 2,047) cycles, as our maximum.
++	 */
++	if (exponent > 8)
++		exponent = 8;
++
++	loops = 1 << exponent;
++
++	/* Add a randomness factor so two cpus never get in lock step. */
++	loops += __insn_crc32_32(stack_pointer, get_cycles_low()) &
++		(loops - 1);
++
++	relax(1 << exponent);
++}
+diff --git a/arch/tile/lib/strchr_32.c b/arch/tile/lib/strchr_32.c
+new file mode 100644
+index 0000000..c94e6f7
+--- /dev/null
++++ b/arch/tile/lib/strchr_32.c
+@@ -0,0 +1,66 @@
++/*
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ */
++
++#include <linux/types.h>
++#include <linux/string.h>
++#include <linux/module.h>
++
++#undef strchr
++
++char *strchr(const char *s, int c)
++{
++	int z, g;
++
++	/* Get an aligned pointer. */
++	const uintptr_t s_int = (uintptr_t) s;
++	const uint32_t *p = (const uint32_t *)(s_int & -4);
++
++	/* Create four copies of the byte for which we are looking. */
++	const uint32_t goal = 0x01010101 * (uint8_t) c;
++
++	/* Read the first aligned word, but force bytes before the string to
++	 * match neither zero nor goal (we make sure the high bit of each
++	 * byte is 1, and the low 7 bits are all the opposite of the goal
++	 * byte).
++	 *
++	 * Note that this shift count expression works because we know shift
++	 * counts are taken mod 32.
++	 */
++	const uint32_t before_mask = (1 << (s_int << 3)) - 1;
++	uint32_t v = (*p | before_mask) ^ (goal & __insn_shrib(before_mask, 1));
++
++	uint32_t zero_matches, goal_matches;
++	while (1) {
++		/* Look for a terminating '\0'. */
++		zero_matches = __insn_seqb(v, 0);
++
++		/* Look for the goal byte. */
++		goal_matches = __insn_seqb(v, goal);
++
++		if (__builtin_expect(zero_matches | goal_matches, 0))
++			break;
++
++		v = *++p;
++	}
++
++	z = __insn_ctz(zero_matches);
++	g = __insn_ctz(goal_matches);
++
++	/* If we found c before '\0' we got a match. Note that if c == '\0'
++	 * then g == z, and we correctly return the address of the '\0'
++	 * rather than NULL.
++	 */
++	return (g <= z) ? ((char *)p) + (g >> 3) : NULL;
++}
++EXPORT_SYMBOL(strchr);
+diff --git a/arch/tile/lib/strlen_32.c b/arch/tile/lib/strlen_32.c
+new file mode 100644
+index 0000000..f26f88e
+--- /dev/null
++++ b/arch/tile/lib/strlen_32.c
+@@ -0,0 +1,36 @@
++/*
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ */
++
++#include <linux/types.h>
++#include <linux/string.h>
++#include <linux/module.h>
++
++size_t strlen(const char *s)
++{
++	/* Get an aligned pointer. */
++	const uintptr_t s_int = (uintptr_t) s;
++	const uint32_t *p = (const uint32_t *)(s_int & -4);
++
++	/* Read the first word, but force bytes before the string to be nonzero.
++	 * This expression works because we know shift counts are taken mod 32.
++	 */
++	uint32_t v = *p | ((1 << (s_int << 3)) - 1);
++
++	uint32_t bits;
++	while ((bits = __insn_seqb(v, 0)) == 0)
++		v = *++p;
++
++	return ((const char *)p) + (__insn_ctz(bits) >> 3) - s;
++}
++EXPORT_SYMBOL(strlen);
+diff --git a/arch/tile/lib/uaccess.c b/arch/tile/lib/uaccess.c
+new file mode 100644
+index 0000000..9ae1825
+--- /dev/null
++++ b/arch/tile/lib/uaccess.c
+@@ -0,0 +1,31 @@
++/*
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ */
++
++#include <linux/uaccess.h>
++#include <linux/module.h>
++
++int __range_ok(unsigned long addr, unsigned long size)
++{
++	unsigned long limit = current_thread_info()->addr_limit.seg;
++	__chk_user_ptr(addr);
++	return !((addr < limit && size <= limit - addr) ||
++		 is_arch_mappable_range(addr, size));
++}
++EXPORT_SYMBOL(__range_ok);
++
++void copy_from_user_overflow(void)
++{
++       WARN(1, "Buffer overflow detected!\n");
++}
++EXPORT_SYMBOL(copy_from_user_overflow);
+diff --git a/arch/tile/lib/usercopy_32.S b/arch/tile/lib/usercopy_32.S
+new file mode 100644
+index 0000000..979f76d
+--- /dev/null
++++ b/arch/tile/lib/usercopy_32.S
+@@ -0,0 +1,223 @@
++/*
++ * Copyright 2010 Tilera Corporation. All Rights Reserved.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.  See the GNU General Public License for
++ *   more details.
++ */
++
++#include <linux/linkage.h>
++#include <asm/errno.h>
++#include <asm/cache.h>
++#include <arch/chip.h>
++
++/* Access user memory, but use MMU to avoid propagating kernel exceptions. */
++
++	.pushsection .fixup,"ax"
++
++get_user_fault:
++	{ move r0, zero; move r1, zero }
++	{ movei r2, -EFAULT; jrp lr }
++	ENDPROC(get_user_fault)
++
++put_user_fault:
++	{ movei r0, -EFAULT; jrp lr }
++	ENDPROC(put_user_fault)
++
++	.popsection
++
++/*
++ * __get_user_N functions take a pointer in r0, and return 0 in r2
++ * on success, with the value in r0; or else -EFAULT in r2.
++ */
++#define __get_user_N(bytes, LOAD) \
++	STD_ENTRY(__get_user_##bytes); \
++1:	{ LOAD r0, r0; move r1, zero; move r2, zero }; \
++	jrp lr; \
++	STD_ENDPROC(__get_user_##bytes); \
++	.pushsection __ex_table,"a"; \
++	.word 1b, get_user_fault; \
++	.popsection
++
++__get_user_N(1, lb_u)
++__get_user_N(2, lh_u)
++__get_user_N(4, lw)
++
++/*
++ * __get_user_8 takes a pointer in r0, and returns 0 in r2
++ * on success, with the value in r0/r1; or else -EFAULT in r2.
++ */
++	STD_ENTRY(__get_user_8);
++1:	{ lw r0, r0; addi r1, r0, 4 };
++2:	{ lw r1, r1; move r2, zero };
++	jrp lr;
++	STD_ENDPROC(__get_user_8);
++	.pushsection __ex_table,"a";
++	.word 1b, get_user_fault;
++	.word 2b, get_user_fault;
++	.popsection
++
++/*
++ * __put_user_N functions take a value in r0 and a pointer in r1,
++ * and return 0 in r0 on success or -EFAULT on failure.
++ */
++#define __put_user_N(bytes, STORE) \
++	STD_ENTRY(__put_user_##bytes); \
++1:	{ STORE r1, r0; move r0, zero }; \
++	jrp lr; \
++	STD_ENDPROC(__put_user_##bytes); \
++	.pushsection __ex_table,"a"; \
++	.word 1b, put_user_fault; \
++	.popsection
++
++__put_user_N(1, sb)
++__put_user_N(2, sh)
++__put_user_N(4, sw)
++
++/*
++ * __put_user_8 takes a value in r0/r1 and a pointer in r2,
++ * and returns 0 in r0 on success or -EFAULT on failure.
++ */
++STD_ENTRY(__put_user_8)
++1:      { sw r2, r0; addi r2, r2, 4 }
++2:      { sw r2, r1; move r0, zero }
++	jrp lr
++	STD_ENDPROC(__put_user_8)
++	.pushsection __ex_table,"a"
++	.word 1b, put_user_fault
++	.word 2b, put_user_fault
++	.popsection
++
++
++/*
++ * strnlen_user_asm takes the pointer in r0, and the length bound in r1.
++ * It returns the length, including the terminating NUL, or zero on exception.
++ * If length is greater than the bound, returns one plus the bound.
++ */
++STD_ENTRY(strnlen_user_asm)
++	{ bz r1, 2f; addi r3, r0, -1 }  /* bias down to include NUL */
++1:      { lb_u r4, r0; addi r1, r1, -1 }
++	bz r4, 2f
++	{ bnzt r1, 1b; addi r0, r0, 1 }
++2:      { sub r0, r0, r3; jrp lr }
++	STD_ENDPROC(strnlen_user_asm)
++	.pushsection .fixup,"ax"
++strnlen_user_fault:
++	{ move r0, zero; jrp lr }
++	ENDPROC(strnlen_user_fault)
++	.section __ex_table,"a"
++	.word 1b, strnlen_user_fault
++	.popsection
++
++/*
++ * strncpy_from_user_asm takes the kernel target pointer in r0,
++ * the userspace source pointer in r1, and the length bound (including
++ * the trailing NUL) in r2.  On success, it returns the string length
++ * (not including the trailing NUL), or -EFAULT on failure.
++ */
++STD_ENTRY(strncpy_from_user_asm)
++	{ bz r2, 2f; move r3, r0 }
++1:      { lb_u r4, r1; addi r1, r1, 1; addi r2, r2, -1 }
++	{ sb r0, r4; addi r0, r0, 1 }
++	bz r2, 2f
++	bnzt r4, 1b
++	addi r0, r0, -1   /* don't count the trailing NUL */
++2:      { sub r0, r0, r3; jrp lr }
++	STD_ENDPROC(strncpy_from_user_asm)
++	.pushsection .fixup,"ax"
++strncpy_from_user_fault:
++	{ movei r0, -EFAULT; jrp lr }
++	ENDPROC(strncpy_from_user_fault)
++	.section __ex_table,"a"
++	.word 1b, strncpy_from_user_fault
++	.popsection
++
++/*
++ * clear_user_asm takes the user target address in r0 and the
++ * number of bytes to zero in r1.
++ * It returns the number of uncopiable bytes (hopefully zero) in r0.
++ * Note that we don't use a separate .fixup section here since we fall
++ * through into the "fixup" code as the last straight-line bundle anyway.
++ */
++STD_ENTRY(clear_user_asm)
++	{ bz r1, 2f; or r2, r0, r1 }
++	andi r2, r2, 3
++	bzt r2, .Lclear_aligned_user_asm
++1:      { sb r0, zero; addi r0, r0, 1; addi r1, r1, -1 }
++	bnzt r1, 1b
++2:      { move r0, r1; jrp lr }
++	.pushsection __ex_table,"a"
++	.word 1b, 2b
++	.popsection
++
++.Lclear_aligned_user_asm:
++1:      { sw r0, zero; addi r0, r0, 4; addi r1, r1, -4 }
++	bnzt r1, 1b
++2:      { move r0, r1; jrp lr }
++	STD_ENDPROC(clear_user_asm)
++	.pushsection __ex_table,"a"
++	.word 1b, 2b
++	.popsection
++
++/*
++ * flush_user_asm takes the user target address in r0 and the
++ * number of bytes to flush in r1.
++ * It returns the number of unflushable bytes (hopefully zero) in r0.
++ */
++STD_ENTRY(flush_user_asm)
++	bz r1, 2f
++	{ movei r2, L2_CACHE_BYTES; add r1, r0, r1 }
++	{ sub r2, zero, r2; addi r1, r1, L2_CACHE_BYTES-1 }
++	{ and r0, r0, r2; and r1, r1, r2 }
++	{ sub r1, r1, r0 }
++1:      { flush r0; addi r1, r1, -CHIP_FLUSH_STRIDE() }
++	{ addi r0, r0, CHIP_FLUSH_STRIDE(); bnzt r1, 1b }
++2:      { move r0, r1; jrp lr }
++	STD_ENDPROC(flush_user_asm)
++	.pushsection __ex_table,"a"
++	.word 1b, 2b
++	.popsection
++
++/*
++ * inv_user_asm takes the user target address in r0 and the
++ * number of bytes to invalidate in r1.
++ * It returns the number of not inv'able bytes (hopefully zero) in r0.
++ */
++STD_ENTRY(inv_user_asm)
++	bz r1, 2f
++	{ movei r2, L2_CACHE_BYTES; add r1, r0, r1 }
++	{ sub r2, zero, r2; addi r1, r1, L2_CACHE_BYTES-1 }
++	{ and r0, r0, r2; and r1, r1, r2 }
++	{ sub r1, r1, r0 }
++1:      { inv r0; addi r1, r1, -CHIP_INV_STRIDE() }
++	{ addi r0, r0, CHIP_INV_STRIDE(); bnzt r1, 1b }
++2:      { move r0, r1; jrp lr }
++	STD_ENDPROC(inv_user_asm)
++	.pushsection __ex_table,"a"
++	.word 1b, 2b
++	.popsection
++
++/*
++ * finv_user_asm takes the user target address in r0 and the
++ * number of bytes to flush-invalidate in r1.
++ * It returns the number of not finv'able bytes (hopefully zero) in r0.
++ */
++STD_ENTRY(finv_user_asm)
++	bz r1, 2f
++	{ movei r2, L2_CACHE_BYTES; add r1, r0, r1 }
++	{ sub r2, zero, r2; addi r1, r1, L2_CACHE_BYTES-1 }
++	{ and r0, r0, r2; and r1, r1, r2 }
++	{ sub r1, r1, r0 }
++1:      { finv r0; addi r1, r1, -CHIP_FINV_STRIDE() }
++	{ addi r0, r0, CHIP_FINV_STRIDE(); bnzt r1, 1b }
++2:      { move r0, r1; jrp lr }
++	STD_ENDPROC(finv_user_asm)
++	.pushsection __ex_table,"a"
++	.word 1b, 2b
++	.popsection
 -- 
 1.6.5.2
