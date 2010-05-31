@@ -1,63 +1,54 @@
 From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: [PATCH -mm 1/3] aha1532: remove ISA_DMA_THRESHOLD usage
-Date: Mon, 31 May 2010 15:59:02 +0900
-Message-ID: <1275289144-28782-2-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-References: <1275289144-28782-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Subject: [PATCH -mm 0/3] remove useless ISA_DMA_THRESHOLD
+Date: Mon, 31 May 2010 15:59:01 +0900
+Message-ID: <1275289144-28782-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:38178 "EHLO sh.osrg.net"
+Received: from sh.osrg.net ([192.16.179.4]:38179 "EHLO sh.osrg.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755922Ab0EaHAs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1756089Ab0EaHAs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Mon, 31 May 2010 03:00:48 -0400
-In-Reply-To: <1275289144-28782-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: jens.axboe@oracle.com, James.Bottomley@suse.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: jens.axboe@oracle.com, James.Bottomley@suse.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-We can safely remove ISA_DMA_THRESHOLD usage in aha1532. aha1532 uses
-ISA_DMA_THRESHOLD to see if:
+This patchset removes useless ISA_DMA_THRESHOLD:
 
-- the buffers in scatter/list are below 16MB.
-- scsi_host is below 16MB.
+- ISA_DMA_THRESHOLD is irrelevant to the majority of architectures but
+  they have to define it.
 
-Both checkings were added in the ancient times but aren't necessary
-nowadays since we properly bounce the buffers and allocate scsi_host
-below 16MB with non-zero unchecked_isa_dma.
+- ISA_DMA_THRESHOLD definition is inconsistent on architectures; ISA
+  DMA addressing restriction, DMA addressing restriction or something
+  else.
 
-Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
----
- drivers/scsi/aha1542.c |    9 ---------
- 1 files changed, 0 insertions(+), 9 deletions(-)
+- Everyone (except for SCSI) uses dma_mask instead of ancient
+  ISA_DMA_THRESHOLD.
 
-diff --git a/drivers/scsi/aha1542.c b/drivers/scsi/aha1542.c
-index 2a8cf13..f6175ed 100644
---- a/drivers/scsi/aha1542.c
-+++ b/drivers/scsi/aha1542.c
-@@ -691,8 +691,6 @@ static int aha1542_queuecommand(Scsi_Cmnd * SCpnt, void (*done) (Scsi_Cmnd *))
- 		}
- 		scsi_for_each_sg(SCpnt, sg, sg_count, i) {
- 			any2scsi(cptr[i].dataptr, SCSI_SG_PA(sg));
--			if (SCSI_SG_PA(sg) + sg->length - 1 > ISA_DMA_THRESHOLD)
--				BAD_SG_DMA(SCpnt, scsi_sglist(SCpnt), sg_count, i);
- 			any2scsi(cptr[i].datalen, sg->length);
- 		};
- 		any2scsi(ccb[mbo].datalen, sg_count * sizeof(struct chain));
-@@ -1133,16 +1131,9 @@ static int __init aha1542_detect(struct scsi_host_template * tpnt)
- 				release_region(bases[indx], 4);
- 				continue;
- 			}
--			/* For now we do this - until kmalloc is more intelligent
--			   we are resigned to stupid hacks like this */
--			if (SCSI_BUF_PA(shpnt) >= ISA_DMA_THRESHOLD) {
--				printk(KERN_ERR "Invalid address for shpnt with 1542.\n");
--				goto unregister;
--			}
- 			if (!aha1542_test_port(bases[indx], shpnt))
- 				goto unregister;
- 
--
- 			base_io = bases[indx];
- 
- 			/* Set the Bus on/off-times as not to ruin floppy performance */
--- 
-1.6.5
+Only SCSI uses ISA_DMA_THRESHOLD for ancient drivers with non-zero
+unchecked_isa_dma. We can safely remove ISA_DMA_THRESHOLD usage in
+SCSI. So we can clean up ISA_DMA_THRESHOLD on the whole tree.
+
+=
+ arch/alpha/include/asm/scatterlist.h      |    2 --
+ arch/avr32/include/asm/scatterlist.h      |    2 --
+ arch/blackfin/include/asm/scatterlist.h   |    2 --
+ arch/cris/include/asm/scatterlist.h       |    2 --
+ arch/frv/include/asm/scatterlist.h        |    2 --
+ arch/h8300/include/asm/scatterlist.h      |    2 --
+ arch/ia64/include/asm/scatterlist.h       |    9 ---------
+ arch/m32r/include/asm/scatterlist.h       |    2 --
+ arch/m68k/include/asm/scatterlist.h       |    3 ---
+ arch/microblaze/include/asm/scatterlist.h |    2 --
+ arch/mips/include/asm/scatterlist.h       |    2 --
+ arch/mn10300/include/asm/scatterlist.h    |    2 --
+ arch/parisc/include/asm/scatterlist.h     |    1 -
+ arch/powerpc/include/asm/scatterlist.h    |    3 ---
+ arch/s390/include/asm/scatterlist.h       |    2 --
+ arch/score/include/asm/scatterlist.h      |    2 --
+ arch/sh/include/asm/scatterlist.h         |    2 --
+ arch/sparc/include/asm/scatterlist.h      |    1 -
+ arch/x86/include/asm/scatterlist.h        |    1 -
+ arch/xtensa/include/asm/scatterlist.h     |    2 --
+ drivers/scsi/aha1542.c                    |    9 ---------
+ include/linux/blkdev.h                    |    2 +-
+ 22 files changed, 1 insertions(+), 56 deletions(-)
