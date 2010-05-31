@@ -1,25 +1,86 @@
-From: Yahoo Msn Program <1mistyblu@amtelecom.net>
-Subject: Winner
-Date: Sun, 30 May 2010 19:50:00 -0400 (EDT)
-Message-ID: <0cf19c23e2ebccfdd2ef08e8ef832113.squirrel@mail.amtelecom.net>
-Reply-To: eventmanagerdept002@w.cn
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: [PATCH 3/8] arch/tile: header files for the Tile architecture.
+Date: Mon, 31 May 2010 11:58:12 +0900
+Message-ID: <20100531113524E.fujita.tomonori@lab.ntt.co.jp>
+References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com>
+	<201005290334.o4T3Y1FX029944@farm-0002.internal.tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mta03.eastlink.ca ([24.224.136.9]:48240 "EHLO mta03.eastlink.ca"
+Received: from sh.osrg.net ([192.16.179.4]:49663 "EHLO sh.osrg.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752779Ab0E3XuF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 30 May 2010 19:50:05 -0400
-Received: from ip05.eastlink.ca ([unknown] [24.222.39.68])
- by mta03.eastlink.ca (Sun Java(tm) System Messaging Server 7.3-11.01 64bit
- (built Sep  1 2009)) with ESMTP id <0L390063IBKIZ0G1@mta03.eastlink.ca> for
- linux-arch@vger.kernel.org; Sun, 30 May 2010 20:50:42 -0300 (ADT)
+	id S1755339Ab0EaC6Y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 30 May 2010 22:58:24 -0400
+In-Reply-To: <201005290334.o4T3Y1FX029944@farm-0002.internal.tilera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: cmetcalf@tilera.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
 
-Good day!You have been chosen by the Yahoo Msn Online Program to receiv=
-e
-the sum of(=A3500,000,00) Contact Name: Mr. Robert Anderson with this
-information Name,address,country telephone for claims: E-mail:
-eventmanagerdept002@w.cn
+On Fri, 28 May 2010 23:10:07 -0400
+Chris Metcalf <cmetcalf@tilera.com> wrote:
+
+> This includes the relevant Linux headers in asm/; the low-level
+> low-level "Tile architecture" headers in arch/, which are
+> shared with the hypervisor, etc., and are build-system agnostic;
+> and the relevant hypervisor headers in hv/.
+> 
+> Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+
+(snip)
+
+> +++ b/arch/tile/include/asm/dma-mapping.h
+> @@ -0,0 +1,106 @@
+> +/*
+> + * Copyright 2010 Tilera Corporation. All Rights Reserved.
+> + *
+> + *   This program is free software; you can redistribute it and/or
+> + *   modify it under the terms of the GNU General Public License
+> + *   as published by the Free Software Foundation, version 2.
+> + *
+> + *   This program is distributed in the hope that it will be useful, but
+> + *   WITHOUT ANY WARRANTY; without even the implied warranty of
+> + *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
+> + *   NON INFRINGEMENT.  See the GNU General Public License for
+> + *   more details.
+> + */
+> +
+> +#ifndef _ASM_TILE_DMA_MAPPING_H
+> +#define _ASM_TILE_DMA_MAPPING_H
+> +
+> +/*
+> + * IOMMU interface. See Documentation/PCI/PCI-DMA-mapping.txt and
+> + * Documentation/DMA-API.txt for documentation.
+> + */
+
+Documentation/PCI/PCI-DMA-mapping.txt was renamed to
+Documentation/DMA-API-HOWTO. Anyway, I recommend removing the useless
+comment.
+
+
+> +#include <linux/mm.h>
+> +#include <linux/scatterlist.h>
+> +#include <linux/cache.h>
+> +#include <linux/io.h>
+> +
+> +/*
+> + * Note that on x86 and powerpc, there is a "struct dma_mapping_ops"
+> + * that is used for all the DMA operations.  For now, we don't have an
+> + * equivalent on tile, because we only have a single way of doing DMA.
+> + */
+
+I think that using "struct dma_mapping_ops" is a good idea even if you
+support the single dma ops. You can avoid lots of duplicated code.
+
+
+(snip)
+
+> --- /dev/null
+> --- /dev/null
+> +++ b/arch/tile/include/asm/scatterlist.h
+> @@ -0,0 +1 @@
+> +#include <asm-generic/scatterlist.h>
+
+Did you compile this patchset with 2.6.35-rc1? I think that you need
+to define ISA_DMA_THRESHOLD here.
