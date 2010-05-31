@@ -1,45 +1,88 @@
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: [PATCH -mm 2/3] block: kill ISA_DMA_THRESHOLD usage
-Date: Mon, 31 May 2010 15:59:03 +0900
-Message-ID: <1275289144-28782-3-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-References: <1275289144-28782-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1275289144-28782-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-Sender: linux-kernel-owner@vger.kernel.org
-To: akpm@linux-foundation.org
-Cc: jens.axboe@oracle.com, James.Bottomley@suse.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-List-Id: linux-arch.vger.kernel.org
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH 2/8] arch/tile: infrastructure and configuration-related files.
+Date: Mon, 31 May 2010 16:47:59 +0900
+Message-ID: <20100531074759.GC10515@linux-sh.org>
+References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005290333.o4T3XuRo029935@farm-0002.internal.tilera.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:38723 "EHLO
+	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753882Ab0EaHsT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 31 May 2010 03:48:19 -0400
+Content-Disposition: inline
+In-Reply-To: <201005290333.o4T3XuRo029935@farm-0002.internal.tilera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
 
-block uses ISA_DMA_THRESHOLD for BLK_BOUNCE_ISA. Only SCSI uses
-ISA_DMA_THRESHOLD for ancient drivers with non-zero
-unchecked_isa_dma. Nowadays drivers (and subsystems) use dma_mask
-properly instead of ISA_DMA_THRESHOLD.
+On Fri, May 28, 2010 at 11:09:12PM -0400, Chris Metcalf wrote:
+> +config ZONE_DMA
+> +	def_bool y
+> +
 
-Documentation/scsi/scsi_mid_low_api.txt says:
+Do you really want ZONE_DMA? Looking through the code it seems like you
+are just using this in place of ZONE_NORMAL instead of for dealing with
+any specific DMA limitations.
 
-unchecked_isa_dma - 1=>only use bottom 16 MB of ram (ISA DMA addressing
-                   restriction), 0=>can use full 32 bit (or better) DMA
-                   address space
+> +config CC_OPTIMIZE_FOR_SIZE
+> +	def_bool y
+> +
+This is a duplicate of the init/Kconfig entry. If you always want this
+enabled you can select it.
 
-So block simply uses DMA_BIT_MASK(24) for BLK_BOUNCE_ISA for SCSI.
+> +config CLOCKSOURCE_WATCHDOG
+> +	def_bool y
+> +
+Are you also sure that you want this? It doesn't seem like you have any
+of the clocksource stability issues that x86 does, so it's not obvious
+why you are enabling this.
 
-Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
----
- include/linux/blkdev.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+> +config ARCH_DISCONTIGMEM_ENABLE
+> +	def_bool y
+> +
+> +config ARCH_DISCONTIGMEM_DEFAULT
+> +	def_bool y
+> +
+Have you considered sparsemem instead?
 
-diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
-index 8b7f5e0..f95bdd1 100644
---- a/include/linux/blkdev.h
-+++ b/include/linux/blkdev.h
-@@ -709,7 +709,7 @@ extern unsigned long blk_max_low_pfn, blk_max_pfn;
- #define BLK_BOUNCE_HIGH		-1ULL
- #endif
- #define BLK_BOUNCE_ANY		(-1ULL)
--#define BLK_BOUNCE_ISA		(ISA_DMA_THRESHOLD)
-+#define BLK_BOUNCE_ISA		(DMA_BIT_MASK(24))
- 
- /*
-  * default timeout for SG_IO if none specified
--- 
-1.6.5
+> +# SMP is required for Tilera Linux.
+> +config SMP
+> +	def_bool y
+> +
+Forcing on SMP is fairly unusual, you do not support booting UP kernels
+at all?
+
+> +config SERIAL_CONSOLE
+> +	def_bool y
+> +
+
+This seems unused and looks like it was just copied over from some other
+architecture?
+
+> +config HVC_TILE
+> +	select HVC_DRIVER
+> +	def_bool y
+> +
+> +config TILE
+> +	def_bool y
+> +	select GENERIC_FIND_FIRST_BIT
+> +	select GENERIC_FIND_NEXT_BIT
+> +	select RESOURCES_64BIT
+> +	select USE_GENERIC_SMP_HELPERS
+> +
+RESOURCES_64BIT is more legacy stuff, you don't need this anymore by
+virtue of the 64-bit phys_addr_t that you're already forcing on.
+
+> +menu "Bus options"
+> +
+> +config NO_IOMEM
+> +	bool
+> +	def_bool !PCI
+> +
+
+Have you inverted the logic here? Judging from your I/O routines it's the
+PIO stuff you want disabled, not MMIO. As such, it's NO_IOPORT that you
+want. Some of the PCI drivers will still use inb/outb and friends for PCI
+IO space so disabling it for the !PCI case is fine.
