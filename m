@@ -1,43 +1,23 @@
-From: James Bottomley <James.Bottomley@suse.de>
-Subject: Re: [PATCH -mm 0/3] remove useless ISA_DMA_THRESHOLD
-Date: Tue, 01 Jun 2010 13:34:43 -0500
-Message-ID: <1275417283.21962.646.camel@mulgrave.site>
-References: <1275289144-28782-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-	 <20100601182452.GA3564@kernel.dk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH -mm 3/3] remove needless ISA_DMA_THRESHOLD
+Date: Tue, 01 Jun 2010 19:51:08 +0100
+Message-ID: <4959.1275418268@redhat.com>
+References: <1275289144-28782-4-git-send-email-fujita.tomonori@lab.ntt.co.jp> <1275289144-28782-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:36855 "EHLO mx1.suse.de"
+Received: from mx1.redhat.com ([209.132.183.28]:20002 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750748Ab0FASeu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 1 Jun 2010 14:34:50 -0400
-In-Reply-To: <20100601182452.GA3564@kernel.dk>
+	id S1753044Ab0FASwE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 1 Jun 2010 14:52:04 -0400
+In-Reply-To: <1275289144-28782-4-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jaxboe@fusionio.com>
-Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: dhowells@redhat.com, akpm@linux-foundation.org, jens.axboe@oracle.com, James.Bottomley@suse.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, 2010-06-01 at 20:24 +0200, Jens Axboe wrote:
-> On Mon, May 31 2010, FUJITA Tomonori wrote:
-> > This patchset removes useless ISA_DMA_THRESHOLD:
-> > 
-> > - ISA_DMA_THRESHOLD is irrelevant to the majority of architectures but
-> >   they have to define it.
-> > 
-> > - ISA_DMA_THRESHOLD definition is inconsistent on architectures; ISA
-> >   DMA addressing restriction, DMA addressing restriction or something
-> >   else.
-> > 
-> > - Everyone (except for SCSI) uses dma_mask instead of ancient
-> >   ISA_DMA_THRESHOLD.
-> > 
-> > Only SCSI uses ISA_DMA_THRESHOLD for ancient drivers with non-zero
-> > unchecked_isa_dma. We can safely remove ISA_DMA_THRESHOLD usage in
-> > SCSI. So we can clean up ISA_DMA_THRESHOLD on the whole tree.
+FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp> wrote:
+
+> Architectures don't need to define ISA_DMA_THRESHOLD anymore.
 > 
-> Looks good. James, it's probably easier if I just carry this patch set.
+> Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
 
-Sure, acked by me.
-
-James
+Acked-by: David Howells <dhowells@redhat.com>
