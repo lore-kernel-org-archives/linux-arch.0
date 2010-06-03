@@ -1,117 +1,54 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH 2/8] arch/tile: infrastructure and configuration-related
- files.
-Date: Thu, 03 Jun 2010 13:54:23 -0400
-Message-ID: <4C07EC4F.6050600@tilera.com>
-References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005290333.o4T3XuRo029935@farm-0002.internal.tilera.com> <20100531074759.GC10515@linux-sh.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 0/8] revised patch for arch/tile/ support
+Date: Thu, 3 Jun 2010 22:40:31 +0200
+Message-ID: <201006032240.31963.arnd@arndb.de>
+References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com> <201005290333.o4T3Xjse029917@farm-0002.internal.tilera.com> <201005291329.10941.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from king.tilera.com ([72.1.168.226]:8449 "EHLO king.tilera.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751149Ab0FCRy0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 3 Jun 2010 13:54:26 -0400
-In-Reply-To: <20100531074759.GC10515@linux-sh.org>
+Received: from moutng.kundenserver.de ([212.227.17.9]:59433 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754424Ab0FCUk7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jun 2010 16:40:59 -0400
+In-Reply-To: <201005291329.10941.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, Stephen Rothwell <sfr@canb.auug.org.au>
 
-On 5/31/2010 3:47 AM, Paul Mundt wrote:
-> On Fri, May 28, 2010 at 11:09:12PM -0400, Chris Metcalf wrote:
->   
->> +config ZONE_DMA
->> +	def_bool y
->> +
->>     
-> Do you really want ZONE_DMA? Looking through the code it seems like you
-> are just using this in place of ZONE_NORMAL instead of for dealing with
-> any specific DMA limitations.
->   
+On Saturday 29 May 2010 13:29:10 Arnd Bergmann wrote:
+> On Saturday 29 May 2010, Chris Metcalf wrote:
+> > 
+> > Thanks to some much-appreciated volunteer work reviewing that initial
+> > patch, I now have a revised set of patches which I would like to offer
+> > for submission to the mainline.
+> 
+> It seems that you have addressed all my review comments and all the
+> other comments that I have seen in the best possible ways.
+> All the controversial parts from the original code are either corrected
+> or (in case of nonessential drivers) deferred to a future review.
+> I did not expect this to be possibly in such a short time, and it
+> continues to amaze me.
+> 
+> Consequently, I fully support this series to go into 2.6.35.
+> To the entire series:
+> 
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-Yes, this dates back to 2.6.18 or so, when I think you had to have it. 
-In any case I've switched it over to ZONE_NORMAL throughout our code
-now, and it seems fine.  Thanks.
+Hi Chris,
 
->> +config CLOCKSOURCE_WATCHDOG
->> +	def_bool y
->> +
->>     
-> Are you also sure that you want this? It doesn't seem like you have any
-> of the clocksource stability issues that x86 does, so it's not obvious
-> why you are enabling this.
->   
+You evidently didn't make it into -rc1, probably because Linus considered
+your submission to be too late, or possibly because some of the bigger
+patches got lost in an email filter.
 
-Ah, good catch.  Thanks; I'm not sure where this config option came
-from, but it's gone now.
+To go forward with your architecture, I suggest that you start adding it
+to the linux-next tree. Until you have a git tree, the easiest way
+to do that is to put a tarball in quilt format at a http url under
+your control, and ask Stephen to include that.
 
->> +config ARCH_DISCONTIGMEM_ENABLE
->> +	def_bool y
->> +
->> +config ARCH_DISCONTIGMEM_DEFAULT
->> +	def_bool y
->> +
->>     
-> Have you considered sparsemem instead?
->   
+Feel free to add a 'Reviewed-by: Arnd Bergmann <arnd@arndb.de>' to your
+existing patches, and do your further work as patches on top of that.
 
-I looked at both of them a while ago (2.6.18 or 2.6.26, not sure which),
-and at the time it seemed easier to do discontig.  I vaguely recall
-there was some awkwardness with our architecture when I tried to figure
-out the sparsemem route.  I filed a tracking bug on this issue
-internally so we can revisit it at some point.
-
->> +# SMP is required for Tilera Linux.
->> +config SMP
->> +	def_bool y
->> +
->>     
-> Forcing on SMP is fairly unusual, you do not support booting UP kernels
-> at all?
->   
-
-We've written the code to try to support UP, but the couple of times
-we've tried to build with !SMP, there have been some subtle bugs. 
-There's no reason we'd ever sell a chip with a single cpu on it (that I
-can see, anyway), so it's not very pressing to investigate failures in
-this mode, so it's disabled.
-
->> +config SERIAL_CONSOLE
->> +	def_bool y
->> +
->>     
-> This seems unused and looks like it was just copied over from some other
-> architecture?
->   
-
-Thanks, good catch.
-
->> +menu "Bus options"
->> +
->> +config NO_IOMEM
->> +	bool
->> +	def_bool !PCI
->> +
->>     
-> Have you inverted the logic here? Judging from your I/O routines it's the
-> PIO stuff you want disabled, not MMIO. As such, it's NO_IOPORT that you
-> want. Some of the PCI drivers will still use inb/outb and friends for PCI
-> IO space so disabling it for the !PCI case is fine.
->   
-
-If we don't have PCI, we don't have IOMEM, since our 32-bit chips don't
-support any kind of direct MMIO.  I would also have set NO_IOPORT
-unconditionally, but it turns out some generic code (e.g. some IDE
-stuff) breaks in this case.  At some point I'll investigate this in more
-detail, though probably only after we convert our GPIO-based ATA driver
-to not use IDE at all.
-
-Thanks for your feedback!  I'll put out a [PATCH 9/8] for now to
-hopefully wrap this first set of changes up, and I'm also going to get
-all this stuff into a GIT repository on kernel.org now that I have an
-account there.
-
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+	Arnd
