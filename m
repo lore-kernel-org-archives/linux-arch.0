@@ -1,38 +1,37 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 10/28] mm: Make use of the anon_vma ref count
-Date: Wed, 09 Jun 2010 15:32:27 +0200
-Message-ID: <1276090347.1645.582.camel@laptop>
-References: <20100607110654.606530953@chello.nl>
-	 <20100607111407.309924253@chello.nl>  <20100609132245.GF5650@csn.ul.ie>
+From: JAMES ROBERTS <jsrbs01@yahoo.co.uk>
+Subject: Attn
+Date: Thu, 03 Jun 2010 11:15:51 -0500
+Message-ID: <20100603111551.f0dg41kdck40s8kw__1265.90805962241$1276099746$gmane$org@174.121.227.54>
+Reply-To: jsrbs90@yahoo.com.hk
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain;
+	charset=ISO-8859-1;
+	DelSp="Yes";
+	format="flowed"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:46309 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757643Ab0FINdD convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jun 2010 09:33:03 -0400
-In-Reply-To: <20100609132245.GF5650@csn.ul.ie>
+Received: from 15.db.79ae.static.theplanet.com ([174.121.219.21]:38200 "EHLO
+	web.webtapells.net" rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org
+	with ESMTP id S1755567Ab0FIQIg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jun 2010 12:08:36 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mel Gorman <mel@csn.ul.ie>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Nick Piggin <npiggin@suse.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+To: JAMES@ROBERTS.COM
 
-On Wed, 2010-06-09 at 14:22 +0100, Mel Gorman wrote:
-> This comment is no longer strictly correct. anon_vma_alloc() can also be
-> called from anon_vma_fork where the root of the newly allocated anon_vma
-> will be set to the same as the parents anon_vma. Maybe something like
-> 
-> /*
->  * Initialise the anon_vma root to point to itself. If called from
->  * fork, the root will be reset to the parents anon_vma 
->  */
+Attn
 
-Sure, I'll change the comment.
 
-> Else, just leave the initialisation of the root where it was but only
-> init the refcount here.
+This message might meet you in utmost surprise; however, it is just my
+urgent need for partner that made me to contact you for this transaction.
 
-Ah, that would lead to problems. We use put_anon_vma() to free in the
-create error path, and __put_anon_vma() will also check the
-anon_vma->root, so by not setting it the error path will explode.
+I am  the James Roberts.I need your urgent assistance in transferring the
+sum of(5.M MILLION Pounds.
+
+I will send you full details on how the business will be executed and also
+note that you will receive 30% of the above mentioned amount if you agree to
+help me execute this business reply me back for more clarification.
+
+Best Regards
+
+James Roberts
