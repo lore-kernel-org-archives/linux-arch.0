@@ -1,29 +1,29 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH] arch/tile: respond to reviews of the second code submission.
-Date: Fri, 4 Jun 2010 09:50:10 +0900
-Message-ID: <20100604005010.GC31868@linux-sh.org>
-References: <201005290334.o4T3Y1FX029944@farm-0002.internal.tilera.com> <201006032141.o53LfZC9019335@lab-15.internal.tilera.com>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: [PATCH] arch/tile: respond to reviews of the second code
+ submission.
+Date: Fri, 4 Jun 2010 10:31:17 +0900
+Message-ID: <20100604103049M.fujita.tomonori@lab.ntt.co.jp>
+References: <201005290334.o4T3Y1FX029944@farm-0002.internal.tilera.com>
+	<201006032141.o53LfZC9019335@lab-15.internal.tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:47682 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756588Ab0FDAug (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jun 2010 20:50:36 -0400
-Content-Disposition: inline
+Received: from sh.osrg.net ([192.16.179.4]:50536 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932126Ab0FDBb5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 3 Jun 2010 21:31:57 -0400
 In-Reply-To: <201006032141.o53LfZC9019335@lab-15.internal.tilera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, fujita.tomonori@lab.ntt.co.jp
+To: cmetcalf@tilera.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, fujita.tomonori@lab.ntt.co.jp, lethal@linux-sh.org
 
-On Thu, Jun 03, 2010 at 05:32:17PM -0400, Chris Metcalf wrote:
+On Thu, 3 Jun 2010 17:32:17 -0400
+Chris Metcalf <cmetcalf@tilera.com> wrote:
+
 > This change addresses DMA-related comments by FUJITA Tomonori
-> <fujita.tomonori@lab.ntt.co.jp> and Kconfig-related comments by Paul
-> Mundt <lethal@linux-sh.org>.
-> 
-> Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
 
-Looks good to me. Feel free to add my reviewed-by to the series.
+What about the comment on dma_alloc_coherent()?
 
-Reviewed-by: Paul Mundt <lethal@linux-sh.org>
+The rest changes look fine.
