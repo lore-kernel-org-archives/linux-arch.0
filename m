@@ -1,51 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:38177 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755967Ab0EaHAs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 31 May 2010 03:00:48 -0400
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: [PATCH -mm 2/3] block: kill ISA_DMA_THRESHOLD usage
-Date: Mon, 31 May 2010 15:59:03 +0900
-Message-ID: <1275289144-28782-3-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-In-Reply-To: <1275289144-28782-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-References: <1275289144-28782-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Received: from bombadil.infradead.org ([18.85.46.34]:55685 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751952Ab0FDHe4 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jun 2010 03:34:56 -0400
+Subject: Re: [PATCH 1/4] kernel: local_irq_{save,restore}_nmi()
+From: Peter Zijlstra <peterz@infradead.org>
+In-Reply-To: <20100604050347.GE31868@linux-sh.org>
+References: <20100409.160135.35854399.davem@davemloft.net>
+	 <20100604050347.GE31868@linux-sh.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+Date: Fri, 04 Jun 2010 09:35:15 +0200
+Message-ID: <1275636915.27810.38912.camel@twins>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: jens.axboe@oracle.com, James.Bottomley@suse.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Message-ID: <20100531065903.Bndh4O65IB-gw97xypVZN-A783cbqcbn9yEycxJpc6M@z>
+To: Paul Mundt <lethal@linux-sh.org>
+Cc: David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org
+Message-ID: <20100604073515.A0xGs5oacedxOQemvIC9_wBoepVJ7RC0RRLmiqkgvmw@z>
 
-block uses ISA_DMA_THRESHOLD for BLK_BOUNCE_ISA. Only SCSI uses
-ISA_DMA_THRESHOLD for ancient drivers with non-zero
-unchecked_isa_dma. Nowadays drivers (and subsystems) use dma_mask
-properly instead of ISA_DMA_THRESHOLD.
+On Fri, 2010-06-04 at 14:03 +0900, Paul Mundt wrote:
+> On Fri, Apr 09, 2010 at 04:01:35PM -0700, David Miller wrote:
+> > 
+> > Provide local_irq_{save,restore}_nmi() which will allow us to help
+> > architectures that implement NMIs using IRQ priorities like SPARC64
+> > does.
+> > 
+> > Sparc uses IRQ prio 15 for NMIs and implements local_irq_disable() as
+> > disable <= 14. However if you do that while inside an NMI you re-
+> > enable the NMI priority again, causing all kinds of fun.
+> > 
+> > A more solid implementation would first check the disable level and
+> > never lower it, however that is more costly and would slow down the
+> > rest of the kernel for no particular reason.
+> > 
+> > Therefore introduce local_irq_save_nmi() which can implement this
+> > slower but more solid scheme and dis-allow local_irq_save() from NMI
+> > context.
+> > 
+> > Suggested-by: David Miller <davem@davemloft.net>
+> > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> > Signed-off-by: David S. Miller <davem@davemloft.net>
+> 
+> Are there any updates for this patch series? I would like to make use of
+> this on SH as well, but it seems these haven't hit upstream yet.
 
-Documentation/scsi/scsi_mid_low_api.txt says:
+Dave found a better solution, see:
 
-unchecked_isa_dma - 1=>only use bottom 16 MB of ram (ISA DMA addressing
-                   restriction), 0=>can use full 32 bit (or better) DMA
-                   address space
+  b4f4372f96e0573d752d9e45beda02fabf716cc8
+  0c25e9e6cbe7b233bb91d14d0e2c258bf8e6ec83
+  c011f80ba0912486fe51dd2b3f71d9b33a151188
 
-So block simply uses DMA_BIT_MASK(24) for BLK_BOUNCE_ISA for SCSI.
-
-Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
----
- include/linux/blkdev.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
-
-diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
-index 8b7f5e0..f95bdd1 100644
---- a/include/linux/blkdev.h
-+++ b/include/linux/blkdev.h
-@@ -709,7 +709,7 @@ extern unsigned long blk_max_low_pfn, blk_max_pfn;
- #define BLK_BOUNCE_HIGH		-1ULL
- #endif
- #define BLK_BOUNCE_ANY		(-1ULL)
--#define BLK_BOUNCE_ISA		(ISA_DMA_THRESHOLD)
-+#define BLK_BOUNCE_ISA		(DMA_BIT_MASK(24))
- 
- /*
-  * default timeout for SG_IO if none specified
--- 
-1.6.5
 
