@@ -1,338 +1,160 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 11/28] mm: Preemptible mmu_gather
-Date: Mon, 07 Jun 2010 13:07:05 +0200
-Message-ID: <20100607111407.403277662@chello.nl>
+Subject: [PATCH 24/28] lockdep, mutex: Provide mutex_lock_nest_lock
+Date: Mon, 07 Jun 2010 13:07:18 +0200
+Message-ID: <20100607111408.592556738@chello.nl>
 References: <20100607110654.606530953@chello.nl>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:41279 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932117Ab0FGLUh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jun 2010 07:20:37 -0400
-Content-Disposition: inline; filename=mm-preempt-tlb-gather.patch
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=mutex_lock_nest_lock.patch
+Sender: linux-kernel-owner@vger.kernel.org
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fou
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Tony Luck <tony.luck@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Make mmu_gather preemptible by using a small on stack list and use
-an option allocation to speed things up.
+Provide the mutex_lock_nest_lock() annotation.
 
-Preemptible mmu_gather is desired in general and usable once
-i_mmap_lock becomes a mutex. Doing it before the mutex conversion
-saves us from having to rework the code by moving the mmu_gather
-bits inside the i_mmap_lock.
-
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: David Miller <davem@davemloft.net>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Russell King <rmk@arm.linux.org.uk>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Cc: Jeff Dike <jdike@addtoit.com>
-Cc: Tony Luck <tony.luck@intel.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- fs/exec.c                 |   10 ++++-----
- include/asm-generic/tlb.h |   51 +++++++++++++++++++++++++++++-----------------
- include/linux/mm.h        |    2 -
- mm/memory.c               |   27 +++++-------------------
- mm/mmap.c                 |   16 +++++++-------
- 5 files changed, 53 insertions(+), 53 deletions(-)
+ include/linux/lockdep.h |    3 +++
+ include/linux/mutex.h   |    9 +++++++++
+ kernel/mutex.c          |   25 +++++++++++++++++--------
+ 3 files changed, 29 insertions(+), 8 deletions(-)
 
-Index: linux-2.6/fs/exec.c
+Index: linux-2.6/include/linux/lockdep.h
 ===================================================================
---- linux-2.6.orig/fs/exec.c
-+++ linux-2.6/fs/exec.c
-@@ -503,7 +503,7 @@ static int shift_arg_pages(struct vm_are
- 	unsigned long length = old_end - old_start;
- 	unsigned long new_start = old_start - shift;
- 	unsigned long new_end = old_end - shift;
--	struct mmu_gather *tlb;
-+	struct mmu_gather tlb;
- 
- 	BUG_ON(new_start > new_end);
- 
-@@ -529,12 +529,12 @@ static int shift_arg_pages(struct vm_are
- 		return -ENOMEM;
- 
- 	lru_add_drain();
--	tlb = tlb_gather_mmu(mm, 0);
-+	tlb_gather_mmu(&tlb, mm, 0);
- 	if (new_end > old_start) {
- 		/*
- 		 * when the old and new regions overlap clear from new_end.
- 		 */
--		free_pgd_range(tlb, new_end, old_end, new_end,
-+		free_pgd_range(&tlb, new_end, old_end, new_end,
- 			vma->vm_next ? vma->vm_next->vm_start : 0);
- 	} else {
- 		/*
-@@ -543,10 +543,10 @@ static int shift_arg_pages(struct vm_are
- 		 * have constraints on va-space that make this illegal (IA64) -
- 		 * for the others its just a little faster.
- 		 */
--		free_pgd_range(tlb, old_start, old_end, new_end,
-+		free_pgd_range(&tlb, old_start, old_end, new_end,
- 			vma->vm_next ? vma->vm_next->vm_start : 0);
- 	}
--	tlb_finish_mmu(tlb, new_end, old_end);
-+	tlb_finish_mmu(&tlb, new_end, old_end);
- 
- 	/*
- 	 * Shrink the vma to just the new range.  Always succeeds.
-Index: linux-2.6/include/asm-generic/tlb.h
-===================================================================
---- linux-2.6.orig/include/asm-generic/tlb.h
-+++ linux-2.6/include/asm-generic/tlb.h
-@@ -22,14 +22,8 @@
-  * and page free order so much..
-  */
- #ifdef CONFIG_SMP
--  #ifdef ARCH_FREE_PTR_NR
--    #define FREE_PTR_NR   ARCH_FREE_PTR_NR
--  #else
--    #define FREE_PTE_NR	506
--  #endif
-   #define tlb_fast_mode(tlb) ((tlb)->nr == ~0U)
+--- linux-2.6.orig/include/linux/lockdep.h
++++ linux-2.6/include/linux/lockdep.h
+@@ -484,12 +484,15 @@ static inline void print_irqtrace_events
+ #ifdef CONFIG_DEBUG_LOCK_ALLOC
+ # ifdef CONFIG_PROVE_LOCKING
+ #  define mutex_acquire(l, s, t, i)		lock_acquire(l, s, t, 0, 2, NULL, i)
++#  define mutex_acquire_nest(l, s, t, n, i)	lock_acquire(l, s, t, 0, 2, n, i)
+ # else
+ #  define mutex_acquire(l, s, t, i)		lock_acquire(l, s, t, 0, 1, NULL, i)
++#  define mutex_acquire_nest(l, s, t, n, i)	lock_acquire(l, s, t, 0, 1, n, i)
+ # endif
+ # define mutex_release(l, n, i)			lock_release(l, n, i)
  #else
--  #define FREE_PTE_NR	1
-   #define tlb_fast_mode(tlb) 1
+ # define mutex_acquire(l, s, t, i)		do { } while (0)
++# define mutex_acquire_nest(l, s, t, n, i)	do { } while (0)
+ # define mutex_release(l, n, i)			do { } while (0)
  #endif
  
-@@ -39,30 +33,48 @@
- struct mmu_gather {
- 	struct mm_struct	*mm;
- 	unsigned int		nr;	/* set to ~0U means fast mode */
-+	unsigned int		max;	/* nr < max */
- 	unsigned int		need_flush;/* Really unmapped some ptes? */
- 	unsigned int		fullmm; /* non-zero means full mm flush */
--	struct page *		pages[FREE_PTE_NR];
-+#ifdef HAVE_ARCH_MMU_GATHER
-+	struct arch_mmu_gather	arch;
-+#endif
-+	struct page		**pages;
-+	struct page		*local[8];
- };
- 
--/* Users of the generic TLB shootdown code must declare this storage space. */
--DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
-+static inline void __tlb_alloc_pages(struct mmu_gather *tlb)
-+{
-+	unsigned long addr = __get_free_pages(GFP_ATOMIC, 0);
-+
-+	if (addr) {
-+		tlb->pages = (void *)addr;
-+		tlb->max = PAGE_SIZE / sizeof(struct page *);
-+	}
-+}
- 
- /* tlb_gather_mmu
-  *	Return a pointer to an initialized struct mmu_gather.
+Index: linux-2.6/include/linux/mutex.h
+===================================================================
+--- linux-2.6.orig/include/linux/mutex.h
++++ linux-2.6/include/linux/mutex.h
+@@ -124,6 +124,7 @@ static inline int mutex_is_locked(struct
   */
--static inline struct mmu_gather *
--tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
-+static inline void
-+tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
- {
--	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
--
- 	tlb->mm = mm;
- 
--	/* Use fast mode if only one CPU is online */
--	tlb->nr = num_online_cpus() > 1 ? 0U : ~0U;
-+	tlb->max = ARRAY_SIZE(tlb->local);
-+	tlb->pages = tlb->local;
+ #ifdef CONFIG_DEBUG_LOCK_ALLOC
+ extern void mutex_lock_nested(struct mutex *lock, unsigned int subclass);
++extern void _mutex_lock_nest_lock(struct mutex *lock, struct lockdep_map *nest_lock);
+ extern int __must_check mutex_lock_interruptible_nested(struct mutex *lock,
+ 					unsigned int subclass);
+ extern int __must_check mutex_lock_killable_nested(struct mutex *lock,
+@@ -132,6 +133,13 @@ extern int __must_check mutex_lock_killa
+ #define mutex_lock(lock) mutex_lock_nested(lock, 0)
+ #define mutex_lock_interruptible(lock) mutex_lock_interruptible_nested(lock, 0)
+ #define mutex_lock_killable(lock) mutex_lock_killable_nested(lock, 0)
 +
-+	if (num_online_cpus() > 1) {
-+		tlb->nr = 0;
-+		__tlb_alloc_pages(tlb);
-+	} else /* Use fast mode if only one CPU is online */
-+		tlb->nr = ~0U;
- 
- 	tlb->fullmm = full_mm_flush;
- 
--	return tlb;
-+#ifdef HAVE_ARCH_MMU_GATHER
-+	tlb->arch = ARCH_MMU_GATHER_INIT;
-+#endif
- }
- 
- static inline void
-@@ -75,6 +87,8 @@ tlb_flush_mmu(struct mmu_gather *tlb, un
- 	if (!tlb_fast_mode(tlb)) {
- 		free_pages_and_swap_cache(tlb->pages, tlb->nr);
- 		tlb->nr = 0;
-+		if (tlb->pages == tlb->local)
-+			__tlb_alloc_pages(tlb);
- 	}
- }
- 
-@@ -90,7 +104,8 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
- 	/* keep the page table cache within bounds */
- 	check_pgt_cache();
- 
--	put_cpu_var(mmu_gathers);
-+	if (tlb->pages != tlb->local)
-+		free_pages((unsigned long)tlb->pages, 0);
- }
- 
- /* tlb_remove_page
-@@ -106,7 +121,7 @@ static inline void tlb_remove_page(struc
- 		return;
- 	}
- 	tlb->pages[tlb->nr++] = page;
--	if (tlb->nr >= FREE_PTE_NR)
-+	if (tlb->nr >= tlb->max)
- 		tlb_flush_mmu(tlb, 0, 0);
- }
- 
-Index: linux-2.6/include/linux/mm.h
-===================================================================
---- linux-2.6.orig/include/linux/mm.h
-+++ linux-2.6/include/linux/mm.h
-@@ -760,7 +760,7 @@ int zap_vma_ptes(struct vm_area_struct *
- 		unsigned long size);
- unsigned long zap_page_range(struct vm_area_struct *vma, unsigned long address,
- 		unsigned long size, struct zap_details *);
--unsigned long unmap_vmas(struct mmu_gather **tlb,
-+unsigned long unmap_vmas(struct mmu_gather *tlb,
- 		struct vm_area_struct *start_vma, unsigned long start_addr,
- 		unsigned long end_addr, unsigned long *nr_accounted,
- 		struct zap_details *);
-Index: linux-2.6/mm/memory.c
-===================================================================
---- linux-2.6.orig/mm/memory.c
-+++ linux-2.6/mm/memory.c
-@@ -1095,17 +1095,14 @@ static unsigned long unmap_page_range(st
-  * ensure that any thus-far unmapped pages are flushed before unmap_vmas()
-  * drops the lock and schedules.
-  */
--unsigned long unmap_vmas(struct mmu_gather **tlbp,
-+unsigned long unmap_vmas(struct mmu_gather *tlb,
- 		struct vm_area_struct *vma, unsigned long start_addr,
- 		unsigned long end_addr, unsigned long *nr_accounted,
- 		struct zap_details *details)
- {
- 	long zap_work = ZAP_BLOCK_SIZE;
--	unsigned long tlb_start = 0;	/* For tlb_finish_mmu */
--	int tlb_start_valid = 0;
- 	unsigned long start = start_addr;
- 	spinlock_t *i_mmap_lock = details? details->i_mmap_lock: NULL;
--	int fullmm = (*tlbp)->fullmm;
- 	struct mm_struct *mm = vma->vm_mm;
- 
- 	mmu_notifier_invalidate_range_start(mm, start_addr, end_addr);
-@@ -1126,11 +1123,6 @@ unsigned long unmap_vmas(struct mmu_gath
- 			untrack_pfn_vma(vma, 0, 0);
- 
- 		while (start != end) {
--			if (!tlb_start_valid) {
--				tlb_start = start;
--				tlb_start_valid = 1;
--			}
--
- 			if (unlikely(is_vm_hugetlb_page(vma))) {
- 				/*
- 				 * It is undesirable to test vma->vm_file as it
-@@ -1151,7 +1143,7 @@ unsigned long unmap_vmas(struct mmu_gath
- 
- 				start = end;
- 			} else
--				start = unmap_page_range(*tlbp, vma,
-+				start = unmap_page_range(tlb, vma,
- 						start, end, &zap_work, details);
- 
- 			if (zap_work > 0) {
-@@ -1159,19 +1151,13 @@ unsigned long unmap_vmas(struct mmu_gath
- 				break;
- 			}
- 
--			tlb_finish_mmu(*tlbp, tlb_start, start);
--
- 			if (need_resched() ||
- 				(i_mmap_lock && spin_needbreak(i_mmap_lock))) {
--				if (i_mmap_lock) {
--					*tlbp = NULL;
-+				if (i_mmap_lock)
- 					goto out;
--				}
- 				cond_resched();
- 			}
- 
--			*tlbp = tlb_gather_mmu(vma->vm_mm, fullmm);
--			tlb_start_valid = 0;
- 			zap_work = ZAP_BLOCK_SIZE;
- 		}
- 	}
-@@ -1191,16 +1177,15 @@ unsigned long zap_page_range(struct vm_a
- 		unsigned long size, struct zap_details *details)
- {
- 	struct mm_struct *mm = vma->vm_mm;
--	struct mmu_gather *tlb;
-+	struct mmu_gather tlb;
- 	unsigned long end = address + size;
- 	unsigned long nr_accounted = 0;
- 
- 	lru_add_drain();
--	tlb = tlb_gather_mmu(mm, 0);
-+	tlb_gather_mmu(&tlb, mm, 0);
- 	update_hiwater_rss(mm);
- 	end = unmap_vmas(&tlb, vma, address, end, &nr_accounted, details);
--	if (tlb)
--		tlb_finish_mmu(tlb, address, end);
-+	tlb_finish_mmu(&tlb, address, end);
- 	return end;
- }
- 
-Index: linux-2.6/mm/mmap.c
-===================================================================
---- linux-2.6.orig/mm/mmap.c
-+++ linux-2.6/mm/mmap.c
-@@ -1844,17 +1844,17 @@ static void unmap_region(struct mm_struc
- 		unsigned long start, unsigned long end)
- {
- 	struct vm_area_struct *next = prev? prev->vm_next: mm->mmap;
--	struct mmu_gather *tlb;
-+	struct mmu_gather tlb;
- 	unsigned long nr_accounted = 0;
- 
- 	lru_add_drain();
--	tlb = tlb_gather_mmu(mm, 0);
-+	tlb_gather_mmu(&tlb, mm, 0);
- 	update_hiwater_rss(mm);
- 	unmap_vmas(&tlb, vma, start, end, &nr_accounted, NULL);
- 	vm_unacct_memory(nr_accounted);
--	free_pgtables(tlb, vma, prev? prev->vm_end: FIRST_USER_ADDRESS,
-+	free_pgtables(&tlb, vma, prev? prev->vm_end: FIRST_USER_ADDRESS,
- 				 next? next->vm_start: 0);
--	tlb_finish_mmu(tlb, start, end);
-+	tlb_finish_mmu(&tlb, start, end);
- }
++#define mutex_lock_nest_lock(lock, nest_lock)				\
++do {									\
++	typecheck(struct lockdep_map *, &(nest_lock)->dep_map);		\
++	_mutex_lock_nest_lock(lock, &(nest_lock)->dep_map);		\
++} while (0)
++
+ #else
+ extern void mutex_lock(struct mutex *lock);
+ extern int __must_check mutex_lock_interruptible(struct mutex *lock);
+@@ -140,6 +148,7 @@ extern int __must_check mutex_lock_killa
+ # define mutex_lock_nested(lock, subclass) mutex_lock(lock)
+ # define mutex_lock_interruptible_nested(lock, subclass) mutex_lock_interruptible(lock)
+ # define mutex_lock_killable_nested(lock, subclass) mutex_lock_killable(lock)
++# define mutex_lock_nest_lock(lock, nest_lock) mutex_lock(lock)
+ #endif
  
  /*
-@@ -2190,7 +2190,7 @@ EXPORT_SYMBOL(do_brk);
- /* Release all mmaps. */
- void exit_mmap(struct mm_struct *mm)
+Index: linux-2.6/kernel/mutex.c
+===================================================================
+--- linux-2.6.orig/kernel/mutex.c
++++ linux-2.6/kernel/mutex.c
+@@ -140,14 +140,14 @@ EXPORT_SYMBOL(mutex_unlock);
+  */
+ static inline int __sched
+ __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
+-	       	unsigned long ip)
++		    struct lockdep_map *nest_lock, unsigned long ip)
  {
--	struct mmu_gather *tlb;
-+	struct mmu_gather tlb;
- 	struct vm_area_struct *vma;
- 	unsigned long nr_accounted = 0;
- 	unsigned long end;
-@@ -2215,14 +2215,14 @@ void exit_mmap(struct mm_struct *mm)
+ 	struct task_struct *task = current;
+ 	struct mutex_waiter waiter;
+ 	unsigned long flags;
  
- 	lru_add_drain();
- 	flush_cache_mm(mm);
--	tlb = tlb_gather_mmu(mm, 1);
-+	tlb_gather_mmu(&tlb, mm, 1);
- 	/* update_hiwater_rss(mm) here? but nobody should be looking */
- 	/* Use -1 here to ensure all VMAs in the mm are unmapped */
- 	end = unmap_vmas(&tlb, vma, 0, -1, &nr_accounted, NULL);
- 	vm_unacct_memory(nr_accounted);
+ 	preempt_disable();
+-	mutex_acquire(&lock->dep_map, subclass, 0, ip);
++	mutex_acquire_nest(&lock->dep_map, subclass, 0, nest_lock, ip);
  
--	free_pgtables(tlb, vma, FIRST_USER_ADDRESS, 0);
--	tlb_finish_mmu(tlb, 0, end);
-+	free_pgtables(&tlb, vma, FIRST_USER_ADDRESS, 0);
-+	tlb_finish_mmu(&tlb, 0, end);
- 
+ #ifdef CONFIG_MUTEX_SPIN_ON_OWNER
  	/*
- 	 * Walk the list again, actually closing and freeing it,
+@@ -278,16 +278,25 @@ void __sched
+ mutex_lock_nested(struct mutex *lock, unsigned int subclass)
+ {
+ 	might_sleep();
+-	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, subclass, _RET_IP_);
++	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, subclass, NULL, _RET_IP_);
+ }
+ 
+ EXPORT_SYMBOL_GPL(mutex_lock_nested);
+ 
++void __sched
++_mutex_lock_nest_lock(struct mutex *lock, struct lockdep_map *nest)
++{
++	might_sleep();
++	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, 0, nest, _RET_IP_);
++}
++
++EXPORT_SYMBOL_GPL(_mutex_lock_nest_lock);
++
+ int __sched
+ mutex_lock_killable_nested(struct mutex *lock, unsigned int subclass)
+ {
+ 	might_sleep();
+-	return __mutex_lock_common(lock, TASK_KILLABLE, subclass, _RET_IP_);
++	return __mutex_lock_common(lock, TASK_KILLABLE, subclass, NULL, _RET_IP_);
+ }
+ EXPORT_SYMBOL_GPL(mutex_lock_killable_nested);
+ 
+@@ -296,7 +305,7 @@ mutex_lock_interruptible_nested(struct m
+ {
+ 	might_sleep();
+ 	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE,
+-				   subclass, _RET_IP_);
++				   subclass, NULL, _RET_IP_);
+ }
+ 
+ EXPORT_SYMBOL_GPL(mutex_lock_interruptible_nested);
+@@ -402,7 +411,7 @@ __mutex_lock_slowpath(atomic_t *lock_cou
+ {
+ 	struct mutex *lock = container_of(lock_count, struct mutex, count);
+ 
+-	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, 0, _RET_IP_);
++	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, 0, NULL, _RET_IP_);
+ }
+ 
+ static noinline int __sched
+@@ -410,7 +419,7 @@ __mutex_lock_killable_slowpath(atomic_t 
+ {
+ 	struct mutex *lock = container_of(lock_count, struct mutex, count);
+ 
+-	return __mutex_lock_common(lock, TASK_KILLABLE, 0, _RET_IP_);
++	return __mutex_lock_common(lock, TASK_KILLABLE, 0, NULL, _RET_IP_);
+ }
+ 
+ static noinline int __sched
+@@ -418,7 +427,7 @@ __mutex_lock_interruptible_slowpath(atom
+ {
+ 	struct mutex *lock = container_of(lock_count, struct mutex, count);
+ 
+-	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE, 0, _RET_IP_);
++	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE, 0, NULL, _RET_IP_);
+ }
+ #endif
+ 
