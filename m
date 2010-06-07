@@ -1,341 +1,229 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:41279 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932117Ab0FGLUh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jun 2010 07:20:37 -0400
-Message-ID: <20100607111407.403277662@chello.nl>
-Date: Mon, 07 Jun 2010 13:07:05 +0200
+Received: from [18.85.46.34] ([18.85.46.34]:37757 "EHLO bombadil.infradead.org"
+	rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org with ESMTP
+	id S932269Ab0FGLUj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 7 Jun 2010 07:20:39 -0400
+Message-ID: <20100607111408.500962980@chello.nl>
+Date: Mon, 07 Jun 2010 13:07:17 +0200
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 11/28] mm: Preemptible mmu_gather
+Subject: [PATCH 23/28] sparc64: Implement get_user_pages_fast().
 References: <20100607110654.606530953@chello.nl>
-Content-Disposition: inline; filename=mm-preempt-tlb-gather.patch
+Content-Disposition: inline; filename=davem-sparc64-Implement_get_user_pages_fast.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20100607110705.aDlNxz8wbVMOLnW0hWvYjc7LqtW5XLVZR1AHI40r2e0@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20100607110717.yY3kjRjCD9t2dvNd2aMTc45SQ9DUG3To8Luew8s0uYs@z>
 
-Make mmu_gather preemptible by using a small on stack list and use
-an option allocation to speed things up.
+From: David S. Miller <davem@davemloft.net>
 
-Preemptible mmu_gather is desired in general and usable once
-i_mmap_lock becomes a mutex. Doing it before the mutex conversion
-saves us from having to rework the code by moving the mmu_gather
-bits inside the i_mmap_lock.
-
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: David Miller <davem@davemloft.net>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Russell King <rmk@arm.linux.org.uk>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Cc: Jeff Dike <jdike@addtoit.com>
-Cc: Tony Luck <tony.luck@intel.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+LKML-Reference: <20100408.180015.30977694.davem@davemloft.net>
 ---
- fs/exec.c                 |   10 ++++-----
- include/asm-generic/tlb.h |   51 +++++++++++++++++++++++++++++-----------------
- include/linux/mm.h        |    2 -
- mm/memory.c               |   27 +++++-------------------
- mm/mmap.c                 |   16 +++++++-------
- 5 files changed, 53 insertions(+), 53 deletions(-)
+ arch/sparc/mm/Makefile |    2 
+ arch/sparc/mm/gup.c    |  181 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 182 insertions(+), 1 deletion(-)
+ create mode 100644 arch/sparc/mm/gup.c
 
-Index: linux-2.6/fs/exec.c
+Index: linux-2.6/arch/sparc/mm/Makefile
 ===================================================================
---- linux-2.6.orig/fs/exec.c
-+++ linux-2.6/fs/exec.c
-@@ -503,7 +503,7 @@ static int shift_arg_pages(struct vm_are
- 	unsigned long length = old_end - old_start;
- 	unsigned long new_start = old_start - shift;
- 	unsigned long new_end = old_end - shift;
--	struct mmu_gather *tlb;
-+	struct mmu_gather tlb;
+--- linux-2.6.orig/arch/sparc/mm/Makefile
++++ linux-2.6/arch/sparc/mm/Makefile
+@@ -4,7 +4,7 @@
+ asflags-y := -ansi
+ ccflags-y := -Werror
  
- 	BUG_ON(new_start > new_end);
- 
-@@ -529,12 +529,12 @@ static int shift_arg_pages(struct vm_are
- 		return -ENOMEM;
- 
- 	lru_add_drain();
--	tlb = tlb_gather_mmu(mm, 0);
-+	tlb_gather_mmu(&tlb, mm, 0);
- 	if (new_end > old_start) {
- 		/*
- 		 * when the old and new regions overlap clear from new_end.
- 		 */
--		free_pgd_range(tlb, new_end, old_end, new_end,
-+		free_pgd_range(&tlb, new_end, old_end, new_end,
- 			vma->vm_next ? vma->vm_next->vm_start : 0);
- 	} else {
- 		/*
-@@ -543,10 +543,10 @@ static int shift_arg_pages(struct vm_are
- 		 * have constraints on va-space that make this illegal (IA64) -
- 		 * for the others its just a little faster.
- 		 */
--		free_pgd_range(tlb, old_start, old_end, new_end,
-+		free_pgd_range(&tlb, old_start, old_end, new_end,
- 			vma->vm_next ? vma->vm_next->vm_start : 0);
- 	}
--	tlb_finish_mmu(tlb, new_end, old_end);
-+	tlb_finish_mmu(&tlb, new_end, old_end);
- 
- 	/*
- 	 * Shrink the vma to just the new range.  Always succeeds.
-Index: linux-2.6/include/asm-generic/tlb.h
+-obj-$(CONFIG_SPARC64)   += ultra.o tlb.o tsb.o
++obj-$(CONFIG_SPARC64)   += ultra.o tlb.o tsb.o gup.o
+ obj-y                   += fault_$(BITS).o
+ obj-y                   += init_$(BITS).o
+ obj-$(CONFIG_SPARC32)   += loadmmu.o
+Index: linux-2.6/arch/sparc/mm/gup.c
 ===================================================================
---- linux-2.6.orig/include/asm-generic/tlb.h
-+++ linux-2.6/include/asm-generic/tlb.h
-@@ -22,14 +22,8 @@
-  * and page free order so much..
-  */
- #ifdef CONFIG_SMP
--  #ifdef ARCH_FREE_PTR_NR
--    #define FREE_PTR_NR   ARCH_FREE_PTR_NR
--  #else
--    #define FREE_PTE_NR	506
--  #endif
-   #define tlb_fast_mode(tlb) ((tlb)->nr == ~0U)
- #else
--  #define FREE_PTE_NR	1
-   #define tlb_fast_mode(tlb) 1
- #endif
- 
-@@ -39,30 +33,48 @@
- struct mmu_gather {
- 	struct mm_struct	*mm;
- 	unsigned int		nr;	/* set to ~0U means fast mode */
-+	unsigned int		max;	/* nr < max */
- 	unsigned int		need_flush;/* Really unmapped some ptes? */
- 	unsigned int		fullmm; /* non-zero means full mm flush */
--	struct page *		pages[FREE_PTE_NR];
-+#ifdef HAVE_ARCH_MMU_GATHER
-+	struct arch_mmu_gather	arch;
-+#endif
-+	struct page		**pages;
-+	struct page		*local[8];
- };
- 
--/* Users of the generic TLB shootdown code must declare this storage space. */
--DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
-+static inline void __tlb_alloc_pages(struct mmu_gather *tlb)
-+{
-+	unsigned long addr = __get_free_pages(GFP_ATOMIC, 0);
+--- /dev/null
++++ linux-2.6/arch/sparc/mm/gup.c
+@@ -0,0 +1,181 @@
++/*
++ * Lockless get_user_pages_fast for sparc, cribbed from powerpc
++ *
++ * Copyright (C) 2008 Nick Piggin
++ * Copyright (C) 2008 Novell Inc.
++ */
 +
-+	if (addr) {
-+		tlb->pages = (void *)addr;
-+		tlb->max = PAGE_SIZE / sizeof(struct page *);
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <linux/vmstat.h>
++#include <linux/pagemap.h>
++#include <linux/rwsem.h>
++#include <asm/pgtable.h>
++
++/*
++ * The performance critical leaf functions are made noinline otherwise gcc
++ * inlines everything into a single function which results in too much
++ * register pressure.
++ */
++static noinline int gup_pte_range(pmd_t pmd, unsigned long addr,
++		unsigned long end, int write, struct page **pages, int *nr)
++{
++	unsigned long mask, result;
++	pte_t *ptep;
++
++	if (tlb_type == hypervisor) {
++		result = _PAGE_PRESENT_4V|_PAGE_P_4V;
++		if (write)
++			result |= _PAGE_WRITE_4V;
++	} else {
++		result = _PAGE_PRESENT_4U|_PAGE_P_4U;
++		if (write)
++			result |= _PAGE_WRITE_4U;
++	}
++	mask = result | _PAGE_SPECIAL;
++
++	ptep = pte_offset_kernel(&pmd, addr);
++	do {
++		struct page *page, *head;
++		pte_t pte = *ptep;
++
++		if ((pte_val(pte) & mask) != result)
++			return 0;
++		VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
++
++		/* The hugepage case is simplified on sparc64 because
++		 * we encode the sub-page pfn offsets into the
++		 * hugepage PTEs.  We could optimize this in the future
++		 * use page_cache_add_speculative() for the hugepage case.
++		 */
++		page = pte_page(pte);
++		head = compound_head(page);
++		if (!page_cache_get_speculative(head))
++			return 0;
++		if (unlikely(pte_val(pte) != pte_val(*ptep))) {
++			put_page(head);
++			return 0;
++		}
++
++		pages[*nr] = page;
++		(*nr)++;
++	} while (ptep++, addr += PAGE_SIZE, addr != end);
++
++	return 1;
++}
++
++static int gup_pmd_range(pud_t pud, unsigned long addr, unsigned long end,
++		int write, struct page **pages, int *nr)
++{
++	unsigned long next;
++	pmd_t *pmdp;
++
++	pmdp = pmd_offset(&pud, addr);
++	do {
++		pmd_t pmd = *pmdp;
++
++		next = pmd_addr_end(addr, end);
++		if (pmd_none(pmd))
++			return 0;
++		if (!gup_pte_range(pmd, addr, next, write, pages, nr))
++			return 0;
++	} while (pmdp++, addr = next, addr != end);
++
++	return 1;
++}
++
++static int gup_pud_range(pgd_t pgd, unsigned long addr, unsigned long end,
++		int write, struct page **pages, int *nr)
++{
++	unsigned long next;
++	pud_t *pudp;
++
++	pudp = pud_offset(&pgd, addr);
++	do {
++		pud_t pud = *pudp;
++
++		next = pud_addr_end(addr, end);
++		if (pud_none(pud))
++			return 0;
++		if (!gup_pmd_range(pud, addr, next, write, pages, nr))
++			return 0;
++	} while (pudp++, addr = next, addr != end);
++
++	return 1;
++}
++
++int get_user_pages_fast(unsigned long start, int nr_pages, int write,
++			struct page **pages)
++{
++	struct mm_struct *mm = current->mm;
++	unsigned long addr, len, end;
++	unsigned long next;
++	pgd_t *pgdp;
++	int nr = 0;
++
++	start &= PAGE_MASK;
++	addr = start;
++	len = (unsigned long) nr_pages << PAGE_SHIFT;
++	end = start + len;
++
++	/*
++	 * XXX: batch / limit 'nr', to avoid large irq off latency
++	 * needs some instrumenting to determine the common sizes used by
++	 * important workloads (eg. DB2), and whether limiting the batch size
++	 * will decrease performance.
++	 *
++	 * It seems like we're in the clear for the moment. Direct-IO is
++	 * the main guy that batches up lots of get_user_pages, and even
++	 * they are limited to 64-at-a-time which is not so many.
++	 */
++	/*
++	 * This doesn't prevent pagetable teardown, but does prevent
++	 * the pagetables from being freed on sparc.
++	 *
++	 * So long as we atomically load page table pointers versus teardown,
++	 * we can follow the address down to the the page and take a ref on it.
++	 */
++	local_irq_disable();
++
++	pgdp = pgd_offset(mm, addr);
++	do {
++		pgd_t pgd = *pgdp;
++
++		next = pgd_addr_end(addr, end);
++		if (pgd_none(pgd))
++			goto slow;
++		if (!gup_pud_range(pgd, addr, next, write, pages, &nr))
++			goto slow;
++	} while (pgdp++, addr = next, addr != end);
++
++	local_irq_enable();
++
++	VM_BUG_ON(nr != (end - start) >> PAGE_SHIFT);
++	return nr;
++
++	{
++		int ret;
++
++slow:
++		local_irq_enable();
++
++		/* Try to get the remaining pages with get_user_pages */
++		start += nr << PAGE_SHIFT;
++		pages += nr;
++
++		down_read(&mm->mmap_sem);
++		ret = get_user_pages(current, mm, start,
++			(end - start) >> PAGE_SHIFT, write, 0, pages, NULL);
++		up_read(&mm->mmap_sem);
++
++		/* Have to be a bit careful with return values */
++		if (nr > 0) {
++			if (ret < 0)
++				ret = nr;
++			else
++				ret += nr;
++		}
++
++		return ret;
 +	}
 +}
- 
- /* tlb_gather_mmu
-  *	Return a pointer to an initialized struct mmu_gather.
-  */
--static inline struct mmu_gather *
--tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
-+static inline void
-+tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
- {
--	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
--
- 	tlb->mm = mm;
- 
--	/* Use fast mode if only one CPU is online */
--	tlb->nr = num_online_cpus() > 1 ? 0U : ~0U;
-+	tlb->max = ARRAY_SIZE(tlb->local);
-+	tlb->pages = tlb->local;
-+
-+	if (num_online_cpus() > 1) {
-+		tlb->nr = 0;
-+		__tlb_alloc_pages(tlb);
-+	} else /* Use fast mode if only one CPU is online */
-+		tlb->nr = ~0U;
- 
- 	tlb->fullmm = full_mm_flush;
- 
--	return tlb;
-+#ifdef HAVE_ARCH_MMU_GATHER
-+	tlb->arch = ARCH_MMU_GATHER_INIT;
-+#endif
- }
- 
- static inline void
-@@ -75,6 +87,8 @@ tlb_flush_mmu(struct mmu_gather *tlb, un
- 	if (!tlb_fast_mode(tlb)) {
- 		free_pages_and_swap_cache(tlb->pages, tlb->nr);
- 		tlb->nr = 0;
-+		if (tlb->pages == tlb->local)
-+			__tlb_alloc_pages(tlb);
- 	}
- }
- 
-@@ -90,7 +104,8 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
- 	/* keep the page table cache within bounds */
- 	check_pgt_cache();
- 
--	put_cpu_var(mmu_gathers);
-+	if (tlb->pages != tlb->local)
-+		free_pages((unsigned long)tlb->pages, 0);
- }
- 
- /* tlb_remove_page
-@@ -106,7 +121,7 @@ static inline void tlb_remove_page(struc
- 		return;
- 	}
- 	tlb->pages[tlb->nr++] = page;
--	if (tlb->nr >= FREE_PTE_NR)
-+	if (tlb->nr >= tlb->max)
- 		tlb_flush_mmu(tlb, 0, 0);
- }
- 
-Index: linux-2.6/include/linux/mm.h
-===================================================================
---- linux-2.6.orig/include/linux/mm.h
-+++ linux-2.6/include/linux/mm.h
-@@ -760,7 +760,7 @@ int zap_vma_ptes(struct vm_area_struct *
- 		unsigned long size);
- unsigned long zap_page_range(struct vm_area_struct *vma, unsigned long address,
- 		unsigned long size, struct zap_details *);
--unsigned long unmap_vmas(struct mmu_gather **tlb,
-+unsigned long unmap_vmas(struct mmu_gather *tlb,
- 		struct vm_area_struct *start_vma, unsigned long start_addr,
- 		unsigned long end_addr, unsigned long *nr_accounted,
- 		struct zap_details *);
-Index: linux-2.6/mm/memory.c
-===================================================================
---- linux-2.6.orig/mm/memory.c
-+++ linux-2.6/mm/memory.c
-@@ -1095,17 +1095,14 @@ static unsigned long unmap_page_range(st
-  * ensure that any thus-far unmapped pages are flushed before unmap_vmas()
-  * drops the lock and schedules.
-  */
--unsigned long unmap_vmas(struct mmu_gather **tlbp,
-+unsigned long unmap_vmas(struct mmu_gather *tlb,
- 		struct vm_area_struct *vma, unsigned long start_addr,
- 		unsigned long end_addr, unsigned long *nr_accounted,
- 		struct zap_details *details)
- {
- 	long zap_work = ZAP_BLOCK_SIZE;
--	unsigned long tlb_start = 0;	/* For tlb_finish_mmu */
--	int tlb_start_valid = 0;
- 	unsigned long start = start_addr;
- 	spinlock_t *i_mmap_lock = details? details->i_mmap_lock: NULL;
--	int fullmm = (*tlbp)->fullmm;
- 	struct mm_struct *mm = vma->vm_mm;
- 
- 	mmu_notifier_invalidate_range_start(mm, start_addr, end_addr);
-@@ -1126,11 +1123,6 @@ unsigned long unmap_vmas(struct mmu_gath
- 			untrack_pfn_vma(vma, 0, 0);
- 
- 		while (start != end) {
--			if (!tlb_start_valid) {
--				tlb_start = start;
--				tlb_start_valid = 1;
--			}
--
- 			if (unlikely(is_vm_hugetlb_page(vma))) {
- 				/*
- 				 * It is undesirable to test vma->vm_file as it
-@@ -1151,7 +1143,7 @@ unsigned long unmap_vmas(struct mmu_gath
- 
- 				start = end;
- 			} else
--				start = unmap_page_range(*tlbp, vma,
-+				start = unmap_page_range(tlb, vma,
- 						start, end, &zap_work, details);
- 
- 			if (zap_work > 0) {
-@@ -1159,19 +1151,13 @@ unsigned long unmap_vmas(struct mmu_gath
- 				break;
- 			}
- 
--			tlb_finish_mmu(*tlbp, tlb_start, start);
--
- 			if (need_resched() ||
- 				(i_mmap_lock && spin_needbreak(i_mmap_lock))) {
--				if (i_mmap_lock) {
--					*tlbp = NULL;
-+				if (i_mmap_lock)
- 					goto out;
--				}
- 				cond_resched();
- 			}
- 
--			*tlbp = tlb_gather_mmu(vma->vm_mm, fullmm);
--			tlb_start_valid = 0;
- 			zap_work = ZAP_BLOCK_SIZE;
- 		}
- 	}
-@@ -1191,16 +1177,15 @@ unsigned long zap_page_range(struct vm_a
- 		unsigned long size, struct zap_details *details)
- {
- 	struct mm_struct *mm = vma->vm_mm;
--	struct mmu_gather *tlb;
-+	struct mmu_gather tlb;
- 	unsigned long end = address + size;
- 	unsigned long nr_accounted = 0;
- 
- 	lru_add_drain();
--	tlb = tlb_gather_mmu(mm, 0);
-+	tlb_gather_mmu(&tlb, mm, 0);
- 	update_hiwater_rss(mm);
- 	end = unmap_vmas(&tlb, vma, address, end, &nr_accounted, details);
--	if (tlb)
--		tlb_finish_mmu(tlb, address, end);
-+	tlb_finish_mmu(&tlb, address, end);
- 	return end;
- }
- 
-Index: linux-2.6/mm/mmap.c
-===================================================================
---- linux-2.6.orig/mm/mmap.c
-+++ linux-2.6/mm/mmap.c
-@@ -1844,17 +1844,17 @@ static void unmap_region(struct mm_struc
- 		unsigned long start, unsigned long end)
- {
- 	struct vm_area_struct *next = prev? prev->vm_next: mm->mmap;
--	struct mmu_gather *tlb;
-+	struct mmu_gather tlb;
- 	unsigned long nr_accounted = 0;
- 
- 	lru_add_drain();
--	tlb = tlb_gather_mmu(mm, 0);
-+	tlb_gather_mmu(&tlb, mm, 0);
- 	update_hiwater_rss(mm);
- 	unmap_vmas(&tlb, vma, start, end, &nr_accounted, NULL);
- 	vm_unacct_memory(nr_accounted);
--	free_pgtables(tlb, vma, prev? prev->vm_end: FIRST_USER_ADDRESS,
-+	free_pgtables(&tlb, vma, prev? prev->vm_end: FIRST_USER_ADDRESS,
- 				 next? next->vm_start: 0);
--	tlb_finish_mmu(tlb, start, end);
-+	tlb_finish_mmu(&tlb, start, end);
- }
- 
- /*
-@@ -2190,7 +2190,7 @@ EXPORT_SYMBOL(do_brk);
- /* Release all mmaps. */
- void exit_mmap(struct mm_struct *mm)
- {
--	struct mmu_gather *tlb;
-+	struct mmu_gather tlb;
- 	struct vm_area_struct *vma;
- 	unsigned long nr_accounted = 0;
- 	unsigned long end;
-@@ -2215,14 +2215,14 @@ void exit_mmap(struct mm_struct *mm)
- 
- 	lru_add_drain();
- 	flush_cache_mm(mm);
--	tlb = tlb_gather_mmu(mm, 1);
-+	tlb_gather_mmu(&tlb, mm, 1);
- 	/* update_hiwater_rss(mm) here? but nobody should be looking */
- 	/* Use -1 here to ensure all VMAs in the mm are unmapped */
- 	end = unmap_vmas(&tlb, vma, 0, -1, &nr_accounted, NULL);
- 	vm_unacct_memory(nr_accounted);
- 
--	free_pgtables(tlb, vma, FIRST_USER_ADDRESS, 0);
--	tlb_finish_mmu(tlb, 0, end);
-+	free_pgtables(&tlb, vma, FIRST_USER_ADDRESS, 0);
-+	tlb_finish_mmu(&tlb, 0, end);
- 
- 	/*
- 	 * Walk the list again, actually closing and freeing it,
 
 
