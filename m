@@ -1,54 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:55685 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751952Ab0FDHe4 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jun 2010 03:34:56 -0400
-Subject: Re: [PATCH 1/4] kernel: local_irq_{save,restore}_nmi()
-From: Peter Zijlstra <peterz@infradead.org>
-In-Reply-To: <20100604050347.GE31868@linux-sh.org>
-References: <20100409.160135.35854399.davem@davemloft.net>
-	 <20100604050347.GE31868@linux-sh.org>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Date: Fri, 04 Jun 2010 09:35:15 +0200
-Message-ID: <1275636915.27810.38912.camel@twins>
-Mime-Version: 1.0
+Received: from casper.infradead.org ([85.118.1.10]:41223 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752440Ab0FGLUG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jun 2010 07:20:06 -0400
+Message-ID: <20100607111406.662536918@chello.nl>
+Date: Mon, 07 Jun 2010 13:06:57 +0200
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [PATCH 03/28] rename anon_vma_lock to vma_lock_anon_vma
+References: <20100607110654.606530953@chello.nl>
+Content-Disposition: inline; filename=riel-01-mm-rename_anon_vma_lock_to_vma_lock_anon_vma.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org
-Message-ID: <20100604073515.A0xGs5oacedxOQemvIC9_wBoepVJ7RC0RRLmiqkgvmw@z>
+To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Message-ID: <20100607110657.VFCmRIviTtPoej3VkSskK_19JfShL1N6EYK51Xgnttc@z>
 
-On Fri, 2010-06-04 at 14:03 +0900, Paul Mundt wrote:
-> On Fri, Apr 09, 2010 at 04:01:35PM -0700, David Miller wrote:
-> > 
-> > Provide local_irq_{save,restore}_nmi() which will allow us to help
-> > architectures that implement NMIs using IRQ priorities like SPARC64
-> > does.
-> > 
-> > Sparc uses IRQ prio 15 for NMIs and implements local_irq_disable() as
-> > disable <= 14. However if you do that while inside an NMI you re-
-> > enable the NMI priority again, causing all kinds of fun.
-> > 
-> > A more solid implementation would first check the disable level and
-> > never lower it, however that is more costly and would slow down the
-> > rest of the kernel for no particular reason.
-> > 
-> > Therefore introduce local_irq_save_nmi() which can implement this
-> > slower but more solid scheme and dis-allow local_irq_save() from NMI
-> > context.
-> > 
-> > Suggested-by: David Miller <davem@davemloft.net>
-> > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> > Signed-off-by: David S. Miller <davem@davemloft.net>
-> 
-> Are there any updates for this patch series? I would like to make use of
-> this on SH as well, but it seems these haven't hit upstream yet.
+From: Rik van Riel <riel@redhat.com>
 
-Dave found a better solution, see:
+Rename anon_vma_lock to vma_lock_anon_vma.  This matches the
+naming style used in page_lock_anon_vma and will come in really
+handy further down in this patch series.
 
-  b4f4372f96e0573d752d9e45beda02fabf716cc8
-  0c25e9e6cbe7b233bb91d14d0e2c258bf8e6ec83
-  c011f80ba0912486fe51dd2b3f71d9b33a151188
+Signed-off-by: Rik van Riel <riel@redhat.com>
+Acked-by: Mel Gorman <mel@csn.ul.ie>
+Acked-by: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+LKML-Reference: <20100526153853.55b72183@annuminas.surriel.com>
+---
+ include/linux/rmap.h |    4 ++--
+ mm/mmap.c            |   12 ++++++------
+ 2 files changed, 8 insertions(+), 8 deletions(-)
+
+Index: linux-2.6/include/linux/rmap.h
+===================================================================
+--- linux-2.6.orig/include/linux/rmap.h
++++ linux-2.6/include/linux/rmap.h
+@@ -99,14 +99,14 @@ static inline struct anon_vma *page_anon
+ 	return page_rmapping(page);
+ }
+ 
+-static inline void anon_vma_lock(struct vm_area_struct *vma)
++static inline void vma_lock_anon_vma(struct vm_area_struct *vma)
+ {
+ 	struct anon_vma *anon_vma = vma->anon_vma;
+ 	if (anon_vma)
+ 		spin_lock(&anon_vma->lock);
+ }
+ 
+-static inline void anon_vma_unlock(struct vm_area_struct *vma)
++static inline void vma_unlock_anon_vma(struct vm_area_struct *vma)
+ {
+ 	struct anon_vma *anon_vma = vma->anon_vma;
+ 	if (anon_vma)
+Index: linux-2.6/mm/mmap.c
+===================================================================
+--- linux-2.6.orig/mm/mmap.c
++++ linux-2.6/mm/mmap.c
+@@ -452,12 +452,12 @@ static void vma_link(struct mm_struct *m
+ 		spin_lock(&mapping->i_mmap_lock);
+ 		vma->vm_truncate_count = mapping->truncate_count;
+ 	}
+-	anon_vma_lock(vma);
++	vma_lock_anon_vma(vma);
+ 
+ 	__vma_link(mm, vma, prev, rb_link, rb_parent);
+ 	__vma_link_file(vma);
+ 
+-	anon_vma_unlock(vma);
++	vma_unlock_anon_vma(vma);
+ 	if (mapping)
+ 		spin_unlock(&mapping->i_mmap_lock);
+ 
+@@ -1710,7 +1710,7 @@ int expand_upwards(struct vm_area_struct
+ 	 */
+ 	if (unlikely(anon_vma_prepare(vma)))
+ 		return -ENOMEM;
+-	anon_vma_lock(vma);
++	vma_lock_anon_vma(vma);
+ 
+ 	/*
+ 	 * vma->vm_start/vm_end cannot change under us because the caller
+@@ -1721,7 +1721,7 @@ int expand_upwards(struct vm_area_struct
+ 	if (address < PAGE_ALIGN(address+4))
+ 		address = PAGE_ALIGN(address+4);
+ 	else {
+-		anon_vma_unlock(vma);
++		vma_unlock_anon_vma(vma);
+ 		return -ENOMEM;
+ 	}
+ 	error = 0;
+@@ -1737,7 +1737,7 @@ int expand_upwards(struct vm_area_struct
+ 		if (!error)
+ 			vma->vm_end = address;
+ 	}
+-	anon_vma_unlock(vma);
++	vma_unlock_anon_vma(vma);
+ 	return error;
+ }
+ #endif /* CONFIG_STACK_GROWSUP || CONFIG_IA64 */
+@@ -1762,7 +1762,7 @@ static int expand_downwards(struct vm_ar
+ 	if (error)
+ 		return error;
+ 
+-	anon_vma_lock(vma);
++	vma_lock_anon_vma(vma);
+ 
+ 	/*
+ 	 * vma->vm_start/vm_end cannot change under us because the caller
 
 
