@@ -1,60 +1,34 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH 0/8] revised patch for arch/tile/ support
-Date: Sun, 6 Jun 2010 00:10:17 +1000
-Message-ID: <20100606001017.eec90e38.sfr@canb.auug.org.au>
-References: <201005200543.o4K5hFRF006079@farm-0002.internal.tilera.com>
-	<201005290333.o4T3Xjse029917@farm-0002.internal.tilera.com>
-	<201005291329.10941.arnd@arndb.de>
-	<201006032240.31963.arnd@arndb.de>
-	<4C097104.3080406@tilera.com>
-	<20100605225605.4e44d4e4.sfr@canb.auug.org.au>
-	<4C0A5180.9010702@tilera.com>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: [PATCH] arch/tile: respond to reviews of the second code
+ submission.
+Date: Mon, 7 Jun 2010 14:25:56 +0900
+Message-ID: <20100607142446D.fujita.tomonori@lab.ntt.co.jp>
+References: <201005290334.o4T3Y1FX029944@farm-0002.internal.tilera.com>
+	<201006032141.o53LfZC9019335@lab-15.internal.tilera.com>
+	<20100604103049M.fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Sun__6_Jun_2010_00_10_17_+1000_QUIoclj_vyxIPtge"
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:51067 "EHLO smtps.tip.net.au"
+Received: from sh.osrg.net ([192.16.179.4]:35227 "EHLO sh.osrg.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933319Ab0FEOK1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 5 Jun 2010 10:10:27 -0400
-In-Reply-To: <4C0A5180.9010702@tilera.com>
+	id S1751983Ab0FGF0J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 7 Jun 2010 01:26:09 -0400
+In-Reply-To: <20100604103049M.fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
+To: fujita.tomonori@lab.ntt.co.jp
+Cc: cmetcalf@tilera.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, lethal@linux-sh.org
 
---Signature=_Sun__6_Jun_2010_00_10_17_+1000_QUIoclj_vyxIPtge
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Fri, 4 Jun 2010 10:31:17 +0900
+FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp> wrote:
 
-Hi Chris,
+> On Thu, 3 Jun 2010 17:32:17 -0400
+> Chris Metcalf <cmetcalf@tilera.com> wrote:
+> 
+> > This change addresses DMA-related comments by FUJITA Tomonori
+> 
+> What about the comment on dma_alloc_coherent()?
 
-On Sat, 05 Jun 2010 09:30:40 -0400 Chris Metcalf <cmetcalf@tilera.com> wrot=
-e:
->
-> Thanks, Stephen.  One question: has linux-next reached the point where
-> Linus pulls from it automatically during each merge window, or should I
-> still ask Linus explicitly to pull for the 2.6.36 merge window?
-
-You need to ask Linus to pull your tree when you are ready.
-
-P.S. I noticed that you just added a commit with no Signed-off-by ...
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
-
---Signature=_Sun__6_Jun_2010_00_10_17_+1000_QUIoclj_vyxIPtge
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-
-iEYEARECAAYFAkwKWskACgkQjjKRsyhoI8zQHACcDAJTgFUQZO6T3Pn66wZ88P34
-a8oAn0Klv9UtalNkXG/3pyabFh0ibTM0
-=jj7D
------END PGP SIGNATURE-----
-
---Signature=_Sun__6_Jun_2010_00_10_17_+1000_QUIoclj_vyxIPtge--
+I saw that you addressed two issues (coherent_mask and GFP_KERNEL
+usage) in linux-next. Both changes look fine to me.
