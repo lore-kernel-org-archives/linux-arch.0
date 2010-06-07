@@ -1,128 +1,113 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 08/28] mm: Rename drop_anon_vma to put_anon_vma
-Date: Mon, 07 Jun 2010 13:07:02 +0200
-Message-ID: <20100607111407.125772998@chello.nl>
+Subject: [PATCH 28/28] mm: Optimize page_lock_anon_vma() fast-path
+Date: Mon, 07 Jun 2010 13:07:22 +0200
+Message-ID: <20100607111408.955268806@chello.nl>
 References: <20100607110654.606530953@chello.nl>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [18.85.46.34] ([18.85.46.34]:37730 "EHLO bombadil.infradead.org"
-	rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org with ESMTP
-	id S1756759Ab0FGLU0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 7 Jun 2010 07:20:26 -0400
-Content-Disposition: inline; filename=put_anon_vma.patch
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=mm-opt-page_lock_anon_vma.patch
+Sender: linux-kernel-owner@vger.kernel.org
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fou
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-The normal code pattern used in the kernel is: get/put.
+Optimize the page_lock_anon_vma() fast path to be one LOCKed op,
+instead of two.
 
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- include/linux/rmap.h |    4 ++--
- mm/ksm.c             |   10 +++++-----
- mm/migrate.c         |    2 +-
- mm/rmap.c            |    4 ++--
- 4 files changed, 10 insertions(+), 10 deletions(-)
+ mm/rmap.c |   65 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++----
+ 1 file changed, 61 insertions(+), 4 deletions(-)
 
-Index: linux-2.6/include/linux/rmap.h
-===================================================================
---- linux-2.6.orig/include/linux/rmap.h
-+++ linux-2.6/include/linux/rmap.h
-@@ -87,7 +87,7 @@ static inline void get_anon_vma(struct a
- 	atomic_inc(&anon_vma->external_refcount);
- }
- 
--void drop_anon_vma(struct anon_vma *);
-+void put_anon_vma(struct anon_vma *);
- #else
- static inline void anonvma_external_refcount_init(struct anon_vma *anon_vma)
- {
-@@ -102,7 +102,7 @@ static inline void get_anon_vma(struct a
- {
- }
- 
--static inline void drop_anon_vma(struct anon_vma *anon_vma)
-+static inline void put_anon_vma(struct anon_vma *anon_vma)
- {
- }
- #endif /* CONFIG_KSM */
-Index: linux-2.6/mm/ksm.c
-===================================================================
---- linux-2.6.orig/mm/ksm.c
-+++ linux-2.6/mm/ksm.c
-@@ -321,11 +321,11 @@ static void hold_anon_vma(struct rmap_it
- 	get_anon_vma(anon_vma);
- }
- 
--static void ksm_drop_anon_vma(struct rmap_item *rmap_item)
-+static void ksm_put_anon_vma(struct rmap_item *rmap_item)
- {
- 	struct anon_vma *anon_vma = rmap_item->anon_vma;
- 
--	drop_anon_vma(anon_vma);
-+	put_anon_vma(anon_vma);
- }
- 
- /*
-@@ -410,7 +410,7 @@ static void break_cow(struct rmap_item *
- 	 * It is not an accident that whenever we want to break COW
- 	 * to undo, we also need to drop a reference to the anon_vma.
- 	 */
--	ksm_drop_anon_vma(rmap_item);
-+	ksm_put_anon_vma(rmap_item);
- 
- 	down_read(&mm->mmap_sem);
- 	if (ksm_test_exit(mm))
-@@ -465,7 +465,7 @@ static void remove_node_from_stable_tree
- 			ksm_pages_sharing--;
- 		else
- 			ksm_pages_shared--;
--		ksm_drop_anon_vma(rmap_item);
-+		ksm_put_anon_vma(rmap_item);
- 		rmap_item->address &= PAGE_MASK;
- 		cond_resched();
- 	}
-@@ -553,7 +553,7 @@ static void remove_rmap_item_from_tree(s
- 		else
- 			ksm_pages_shared--;
- 
--		ksm_drop_anon_vma(rmap_item);
-+		ksm_put_anon_vma(rmap_item);
- 		rmap_item->address &= PAGE_MASK;
- 
- 	} else if (rmap_item->address & UNSTABLE_FLAG) {
-Index: linux-2.6/mm/migrate.c
-===================================================================
---- linux-2.6.orig/mm/migrate.c
-+++ linux-2.6/mm/migrate.c
-@@ -683,7 +683,7 @@ rcu_unlock:
- 
- 	/* Drop an anon_vma reference if we took one */
- 	if (anon_vma)
--		drop_anon_vma(anon_vma);
-+		put_anon_vma(anon_vma);
- 
- 	if (rcu_locked)
- 		rcu_read_unlock();
 Index: linux-2.6/mm/rmap.c
 ===================================================================
 --- linux-2.6.orig/mm/rmap.c
 +++ linux-2.6/mm/rmap.c
-@@ -272,7 +272,7 @@ static void anon_vma_unlink(struct anon_
- 
- 	if (empty) {
- 		/* We no longer need the root anon_vma */
--		drop_anon_vma(anon_vma->root);
-+		put_anon_vma(anon_vma->root);
- 		anon_vma_free(anon_vma);
- 	}
+@@ -351,20 +351,69 @@ out:
+ 	return anon_vma;
  }
-@@ -1398,7 +1398,7 @@ int try_to_munlock(struct page *page)
-  * we know we are the last user, nobody else can get a reference and we
-  * can do the freeing without the lock.
-  */
--void drop_anon_vma(struct anon_vma *anon_vma)
-+void put_anon_vma(struct anon_vma *anon_vma)
+ 
++/*
++ * Similar to page_get_anon_vma() except it locks the anon_vma.
++ *
++ * Its a little more complex as it tries to keep the fast path to a single
++ * atomic op -- the trylock. If we fail the trylock, we fall back to getting a
++ * reference like with page_get_anon_vma() and then block on the mutex.
++ */
+ struct anon_vma *page_lock_anon_vma(struct page *page)
  {
- 	if (atomic_dec_and_lock(&anon_vma->external_refcount, &anon_vma->root->lock)) {
- 		struct anon_vma *root = anon_vma->root;
+-	struct anon_vma *anon_vma = page_get_anon_vma(page);
++	struct anon_vma *anon_vma = NULL;
++	unsigned long anon_mapping;
++
++	rcu_read_lock();
++	anon_mapping = (unsigned long) ACCESS_ONCE(page->mapping);
++	if ((anon_mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)
++		goto out;
++	if (!page_mapped(page))
++		goto out;
++
++	anon_vma = (struct anon_vma *) (anon_mapping - PAGE_MAPPING_ANON);
++	if (mutex_trylock(&anon_vma->root->lock)) {
++		/*
++		 * If we observe a !0 refcount, then holding the lock ensures
++		 * the anon_vma will not go away, see __put_anon_vma().
++		 */
++		if (!atomic_read(&anon_vma->refcount)) {
++			anon_vma_unlock(anon_vma);
++			anon_vma = NULL;
++		}
++		goto out;
++	}
++
++	/* trylock failed, we got to sleep */
++	if (!atomic_inc_not_zero(&anon_vma->refcount)) {
++		anon_vma = NULL;
++		goto out;
++	}
++
++	/* we pinned the anon_vma, its safe to sleep */
++	rcu_read_unlock();
++	anon_vma_lock(anon_vma);
++
++	if (atomic_dec_and_test(&anon_vma->refcount)) {
++		/*
++		 * Oops, we held the last refcount, release the lock
++		 * and bail -- can't simply use put_anon_vma() because
++		 * we'll deadlock on the anon_vma_lock() recursion.
++		 */
++		anon_vma_unlock(anon_vma);
++		__put_anon_vma(anon_vma);
++		anon_vma = NULL;
++	}
+ 
+-	if (anon_vma)
+-		anon_vma_lock(anon_vma);
++	return anon_vma;
+ 
++out:
++	rcu_read_unlock();
+ 	return anon_vma;
+ }
+ 
+ void page_unlock_anon_vma(struct anon_vma *anon_vma)
+ {
+ 	anon_vma_unlock(anon_vma);
+-	put_anon_vma(anon_vma);
+ }
+ 
+ /*
+@@ -1422,6 +1471,14 @@ int try_to_munlock(struct page *page)
+ 
+ void __put_anon_vma(struct anon_vma *anon_vma)
+ {
++	/*
++	 * Synchronize against page_lock_anon_vma() such that
++	 * we can safely hold the lock without the anon_vma getting
++	 * freed.
++	 */
++	anon_vma_lock(anon_vma);
++	anon_vma_unlock(anon_vma);
++
+ 	if (anon_vma->root != anon_vma)
+ 		put_anon_vma(anon_vma->root);
+ 	anon_vma_free(anon_vma);
