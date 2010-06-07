@@ -1,91 +1,324 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 05/28] track the root (oldest) anon_vma
-Date: Mon, 07 Jun 2010 13:06:59 +0200
-Message-ID: <20100607111406.850090352@chello.nl>
+Subject: [PATCH 13/28] sparc: Preemptible mmu_gather
+Date: Mon, 07 Jun 2010 13:07:07 +0200
+Message-ID: <20100607111407.584761191@chello.nl>
 References: <20100607110654.606530953@chello.nl>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=riel-03-mm-track_the_root__oldest__anon_vma.patch
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from [18.85.46.34] ([18.85.46.34]:37701 "EHLO bombadil.infradead.org"
+	rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org with ESMTP
+	id S1755913Ab0FGLUO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 7 Jun 2010 07:20:14 -0400
+Content-Disposition: inline; filename=mm-preempt-tlb-gather-sparc.patch
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fou
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 
-From: Rik van Riel <riel@redhat.com>
+Rework the sparc mmu_gather usage to conform to the new world order :-)
 
-Track the root (oldest) anon_vma in each anon_vma tree.   Because we only
-take the lock on the root anon_vma, we cannot use the lock on higher-up
-anon_vmas to lock anything.  This makes it impossible to do an indirect
-lookup of the root anon_vma, since the data structures could go away from
-under us.
+Sparc mmu_gather does two things:
+ - tracks vaddrs to unhash
+ - tracks pages to free
 
-However, a direct pointer is safe because the root anon_vma is always the
-last one that gets freed on munmap or exit, by virtue of the same_vma list
-order and unlink_anon_vmas walking the list forward.
+Split these two things like powerpc has done and keep the vaddrs
+in per-cpu data structures and flush them on context switch.
 
-Signed-off-by: Rik van Riel <riel@redhat.com>
-Acked-by: Mel Gorman <mel@csn.ul.ie>
-Acked-by: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+The remaining bits can then use the generic mmu_gather.
+
+Cc: David Miller <davem@davemloft.net>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-LKML-Reference: <20100526154010.3904df5c@annuminas.surriel.com>
 ---
- include/linux/rmap.h |    1 +
- mm/rmap.c            |   18 ++++++++++++++++--
- 2 files changed, 17 insertions(+), 2 deletions(-)
+ arch/sparc/include/asm/pgalloc_64.h  |    3 +
+ arch/sparc/include/asm/tlb_64.h      |   91 ++---------------------------------
+ arch/sparc/include/asm/tlbflush_64.h |   12 +++-
+ arch/sparc/mm/tlb.c                  |   42 +++++++++-------
+ arch/sparc/mm/tsb.c                  |   15 +++--
+ 5 files changed, 51 insertions(+), 112 deletions(-)
 
-Index: linux-2.6/include/linux/rmap.h
+Index: linux-2.6/arch/sparc/include/asm/pgalloc_64.h
 ===================================================================
---- linux-2.6.orig/include/linux/rmap.h
-+++ linux-2.6/include/linux/rmap.h
-@@ -26,6 +26,7 @@
-  */
- struct anon_vma {
- 	spinlock_t lock;	/* Serialize access to vma list */
-+	struct anon_vma *root;	/* Root of this anon_vma tree */
- #if defined(CONFIG_KSM) || defined(CONFIG_MIGRATION)
+--- linux-2.6.orig/arch/sparc/include/asm/pgalloc_64.h
++++ linux-2.6/arch/sparc/include/asm/pgalloc_64.h
+@@ -78,4 +78,7 @@ static inline void check_pgt_cache(void)
+ 	quicklist_trim(0, NULL, 25, 16);
+ }
  
- 	/*
-Index: linux-2.6/mm/rmap.c
-===================================================================
---- linux-2.6.orig/mm/rmap.c
-+++ linux-2.6/mm/rmap.c
-@@ -132,6 +132,11 @@ int anon_vma_prepare(struct vm_area_stru
- 			if (unlikely(!anon_vma))
- 				goto out_enomem_free_avc;
- 			allocated = anon_vma;
-+			/*
-+			 * This VMA had no anon_vma yet.  This anon_vma is
-+			 * the root of any anon_vma tree that might form.
-+			 */
-+			anon_vma->root = anon_vma;
- 		}
- 
- 		anon_vma_lock(anon_vma);
-@@ -224,9 +229,15 @@ int anon_vma_fork(struct vm_area_struct 
- 	avc = anon_vma_chain_alloc();
- 	if (!avc)
- 		goto out_error_free_anon_vma;
--	anon_vma_chain_link(vma, avc, anon_vma);
++#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
++#define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tlb)->mm, pmd)
 +
-+	/*
-+	 * The root anon_vm's spinlock is the lock actually used when we
-+	 * lock any of the anon_vmas in this anon_vma tree.
-+	 */
-+	anon_vma->root = pvma->anon_vma->root;
- 	/* Mark this anon_vma as the one where our new (COWed) pages go. */
- 	vma->anon_vma = anon_vma;
-+	anon_vma_chain_link(vma, avc, anon_vma);
+ #endif /* _SPARC64_PGALLOC_H */
+Index: linux-2.6/arch/sparc/include/asm/tlb_64.h
+===================================================================
+--- linux-2.6.orig/arch/sparc/include/asm/tlb_64.h
++++ linux-2.6/arch/sparc/include/asm/tlb_64.h
+@@ -7,66 +7,11 @@
+ #include <asm/tlbflush.h>
+ #include <asm/mmu_context.h>
  
- 	return 0;
+-#define TLB_BATCH_NR	192
+-
+-/*
+- * For UP we don't need to worry about TLB flush
+- * and page free order so much..
+- */
+-#ifdef CONFIG_SMP
+-  #define FREE_PTE_NR	506
+-  #define tlb_fast_mode(bp) ((bp)->pages_nr == ~0U)
+-#else
+-  #define FREE_PTE_NR	1
+-  #define tlb_fast_mode(bp) 1
+-#endif
+-
+-struct mmu_gather {
+-	struct mm_struct *mm;
+-	unsigned int pages_nr;
+-	unsigned int need_flush;
+-	unsigned int fullmm;
+-	unsigned int tlb_nr;
+-	unsigned long vaddrs[TLB_BATCH_NR];
+-	struct page *pages[FREE_PTE_NR];
+-};
+-
+-DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
+-
+ #ifdef CONFIG_SMP
+ extern void smp_flush_tlb_pending(struct mm_struct *,
+ 				  unsigned long, unsigned long *);
+ #endif
  
-@@ -261,7 +272,10 @@ void unlink_anon_vmas(struct vm_area_str
+-extern void __flush_tlb_pending(unsigned long, unsigned long, unsigned long *);
+-extern void flush_tlb_pending(void);
+-
+-static inline struct mmu_gather *tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
+-{
+-	struct mmu_gather *mp = &get_cpu_var(mmu_gathers);
+-
+-	BUG_ON(mp->tlb_nr);
+-
+-	mp->mm = mm;
+-	mp->pages_nr = num_online_cpus() > 1 ? 0U : ~0U;
+-	mp->fullmm = full_mm_flush;
+-
+-	return mp;
+-}
+-
+-
+-static inline void tlb_flush_mmu(struct mmu_gather *mp)
+-{
+-	if (!mp->fullmm)
+-		flush_tlb_pending();
+-	if (mp->need_flush) {
+-		free_pages_and_swap_cache(mp->pages, mp->pages_nr);
+-		mp->pages_nr = 0;
+-		mp->need_flush = 0;
+-	}
+-
+-}
+-
+ #ifdef CONFIG_SMP
+ extern void smp_flush_tlb_mm(struct mm_struct *mm);
+ #define do_flush_tlb_mm(mm) smp_flush_tlb_mm(mm)
+@@ -74,38 +19,14 @@ extern void smp_flush_tlb_mm(struct mm_s
+ #define do_flush_tlb_mm(mm) __flush_tlb_mm(CTX_HWBITS(mm->context), SECONDARY_CONTEXT)
+ #endif
+ 
+-static inline void tlb_finish_mmu(struct mmu_gather *mp, unsigned long start, unsigned long end)
+-{
+-	tlb_flush_mmu(mp);
+-
+-	if (mp->fullmm)
+-		mp->fullmm = 0;
+-
+-	/* keep the page table cache within bounds */
+-	check_pgt_cache();
+-
+-	put_cpu_var(mmu_gathers);
+-}
+-
+-static inline void tlb_remove_page(struct mmu_gather *mp, struct page *page)
+-{
+-	if (tlb_fast_mode(mp)) {
+-		free_page_and_swap_cache(page);
+-		return;
+-	}
+-	mp->need_flush = 1;
+-	mp->pages[mp->pages_nr++] = page;
+-	if (mp->pages_nr >= FREE_PTE_NR)
+-		tlb_flush_mmu(mp);
+-}
+-
+-#define tlb_remove_tlb_entry(mp,ptep,addr) do { } while (0)
+-#define pte_free_tlb(mp, ptepage, addr) pte_free((mp)->mm, ptepage)
+-#define pmd_free_tlb(mp, pmdp, addr) pmd_free((mp)->mm, pmdp)
+-#define pud_free_tlb(tlb,pudp, addr) __pud_free_tlb(tlb,pudp,addr)
++extern void __flush_tlb_pending(unsigned long, unsigned long, unsigned long *);
++extern void flush_tlb_pending(void);
+ 
+-#define tlb_migrate_finish(mm)	do { } while (0)
+ #define tlb_start_vma(tlb, vma) do { } while (0)
+ #define tlb_end_vma(tlb, vma)	do { } while (0)
++#define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
++#define tlb_flush(tlb)	flush_tlb_pending()
++
++#include <asm-generic/tlb.h>
+ 
+ #endif /* _SPARC64_TLB_H */
+Index: linux-2.6/arch/sparc/include/asm/tlbflush_64.h
+===================================================================
+--- linux-2.6.orig/arch/sparc/include/asm/tlbflush_64.h
++++ linux-2.6/arch/sparc/include/asm/tlbflush_64.h
+@@ -5,9 +5,17 @@
+ #include <asm/mmu_context.h>
+ 
+ /* TSB flush operations. */
+-struct mmu_gather;
++
++#define TLB_BATCH_NR	192
++
++struct tlb_batch {
++	struct mm_struct *mm;
++	unsigned long tlb_nr;
++	unsigned long vaddrs[TLB_BATCH_NR];
++};
++
+ extern void flush_tsb_kernel_range(unsigned long start, unsigned long end);
+-extern void flush_tsb_user(struct mmu_gather *mp);
++extern void flush_tsb_user(struct tlb_batch *tb);
+ 
+ /* TLB flush operations. */
+ 
+Index: linux-2.6/arch/sparc/mm/tlb.c
+===================================================================
+--- linux-2.6.orig/arch/sparc/mm/tlb.c
++++ linux-2.6/arch/sparc/mm/tlb.c
+@@ -19,33 +19,33 @@
+ 
+ /* Heavily inspired by the ppc64 code.  */
+ 
+-DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);
++static DEFINE_PER_CPU(struct tlb_batch, tlb_batch);
+ 
+ void flush_tlb_pending(void)
  {
- 	struct anon_vma_chain *avc, *next;
+-	struct mmu_gather *mp = &get_cpu_var(mmu_gathers);
++	struct tlb_batch *tb = &get_cpu_var(tlb_batch);
  
--	/* Unlink each anon_vma chained to the VMA. */
+-	if (mp->tlb_nr) {
+-		flush_tsb_user(mp);
++	if (tb->tlb_nr) {
++		flush_tsb_user(tb);
+ 
+-		if (CTX_VALID(mp->mm->context)) {
++		if (CTX_VALID(tb->mm->context)) {
+ #ifdef CONFIG_SMP
+-			smp_flush_tlb_pending(mp->mm, mp->tlb_nr,
+-					      &mp->vaddrs[0]);
++			smp_flush_tlb_pending(tb->mm, tb->tlb_nr,
++					      &tb->vaddrs[0]);
+ #else
+-			__flush_tlb_pending(CTX_HWBITS(mp->mm->context),
+-					    mp->tlb_nr, &mp->vaddrs[0]);
++			__flush_tlb_pending(CTX_HWBITS(tb->mm->context),
++					    tb->tlb_nr, &tb->vaddrs[0]);
+ #endif
+ 		}
+-		mp->tlb_nr = 0;
++		tb->tlb_nr = 0;
+ 	}
+ 
+-	put_cpu_var(mmu_gathers);
++	put_cpu_var(tlb_batch);
+ }
+ 
+ void tlb_batch_add(struct mm_struct *mm, unsigned long vaddr, pte_t *ptep, pte_t orig)
+ {
+-	struct mmu_gather *mp = &__get_cpu_var(mmu_gathers);
++	struct tlb_batch *tb = &get_cpu_var(tlb_batch);
+ 	unsigned long nr;
+ 
+ 	vaddr &= PAGE_MASK;
+@@ -77,21 +77,27 @@ void tlb_batch_add(struct mm_struct *mm,
+ 
+ no_cache_flush:
+ 
+-	if (mp->fullmm)
 +	/*
-+	 * Unlink each anon_vma chained to the VMA.  This list is ordered
-+	 * from newest to oldest, ensuring the root anon_vma gets freed last.
-+	 */
- 	list_for_each_entry_safe(avc, next, &vma->anon_vma_chain, same_vma) {
- 		anon_vma_unlink(avc);
- 		list_del(&avc->same_vma);
++	if (tb->fullmm) {
++		put_cpu_var(tlb_batch);
+ 		return;
++	}
++	*/
+ 
+-	nr = mp->tlb_nr;
++	nr = tb->tlb_nr;
+ 
+-	if (unlikely(nr != 0 && mm != mp->mm)) {
++	if (unlikely(nr != 0 && mm != tb->mm)) {
+ 		flush_tlb_pending();
+ 		nr = 0;
+ 	}
+ 
+ 	if (nr == 0)
+-		mp->mm = mm;
++		tb->mm = mm;
+ 
+-	mp->vaddrs[nr] = vaddr;
+-	mp->tlb_nr = ++nr;
++	tb->vaddrs[nr] = vaddr;
++	tb->tlb_nr = ++nr;
+ 	if (nr >= TLB_BATCH_NR)
+ 		flush_tlb_pending();
++
++	put_cpu_var(tlb_batch);
+ }
+Index: linux-2.6/arch/sparc/mm/tsb.c
+===================================================================
+--- linux-2.6.orig/arch/sparc/mm/tsb.c
++++ linux-2.6/arch/sparc/mm/tsb.c
+@@ -47,12 +47,13 @@ void flush_tsb_kernel_range(unsigned lon
+ 	}
+ }
+ 
+-static void __flush_tsb_one(struct mmu_gather *mp, unsigned long hash_shift, unsigned long tsb, unsigned long nentries)
++static void __flush_tsb_one(struct tlb_batch *tb, unsigned long hash_shift,
++			    unsigned long tsb, unsigned long nentries)
+ {
+ 	unsigned long i;
+ 
+-	for (i = 0; i < mp->tlb_nr; i++) {
+-		unsigned long v = mp->vaddrs[i];
++	for (i = 0; i < tb->tlb_nr; i++) {
++		unsigned long v = tb->vaddrs[i];
+ 		unsigned long tag, ent, hash;
+ 
+ 		v &= ~0x1UL;
+@@ -65,9 +66,9 @@ static void __flush_tsb_one(struct mmu_g
+ 	}
+ }
+ 
+-void flush_tsb_user(struct mmu_gather *mp)
++void flush_tsb_user(struct tlb_batch *tb)
+ {
+-	struct mm_struct *mm = mp->mm;
++	struct mm_struct *mm = tb->mm;
+ 	unsigned long nentries, base, flags;
+ 
+ 	spin_lock_irqsave(&mm->context.lock, flags);
+@@ -76,7 +77,7 @@ void flush_tsb_user(struct mmu_gather *m
+ 	nentries = mm->context.tsb_block[MM_TSB_BASE].tsb_nentries;
+ 	if (tlb_type == cheetah_plus || tlb_type == hypervisor)
+ 		base = __pa(base);
+-	__flush_tsb_one(mp, PAGE_SHIFT, base, nentries);
++	__flush_tsb_one(tb, PAGE_SHIFT, base, nentries);
+ 
+ #ifdef CONFIG_HUGETLB_PAGE
+ 	if (mm->context.tsb_block[MM_TSB_HUGE].tsb) {
+@@ -84,7 +85,7 @@ void flush_tsb_user(struct mmu_gather *m
+ 		nentries = mm->context.tsb_block[MM_TSB_HUGE].tsb_nentries;
+ 		if (tlb_type == cheetah_plus || tlb_type == hypervisor)
+ 			base = __pa(base);
+-		__flush_tsb_one(mp, HPAGE_SHIFT, base, nentries);
++		__flush_tsb_one(tb, HPAGE_SHIFT, base, nentries);
+ 	}
+ #endif
+ 	spin_unlock_irqrestore(&mm->context.lock, flags);
