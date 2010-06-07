@@ -1,98 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:41224 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752398Ab0FGLUG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jun 2010 07:20:06 -0400
-Message-ID: <20100607111406.850090352@chello.nl>
-Date: Mon, 07 Jun 2010 13:06:59 +0200
+Received: from [18.85.46.34] ([18.85.46.34]:37713 "EHLO bombadil.infradead.org"
+	rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org with ESMTP
+	id S1756459Ab0FGLUV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 7 Jun 2010 07:20:21 -0400
+Message-ID: <20100607111407.768689094@chello.nl>
+Date: Mon, 07 Jun 2010 13:07:09 +0200
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 05/28] track the root (oldest) anon_vma
+Subject: [PATCH 15/28] arm: Preemptible mmu_gather
 References: <20100607110654.606530953@chello.nl>
-Content-Disposition: inline; filename=riel-03-mm-track_the_root__oldest__anon_vma.patch
+Content-Disposition: inline; filename=mm-preempt-tlb-gather-arm.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-Message-ID: <20100607110659.uuPafPIsveL0Qya5KVfceYNLY_tuq-YjgGBqRQQMwK4@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Russell King <rmk@arm.linux.org.uk>
+Message-ID: <20100607110709.ujuGb9kCCt6nY9YiM_C95WeozBN6SMvB-ERwEATwbW4@z>
 
-From: Rik van Riel <riel@redhat.com>
+Fix up the arm mmu_gahter code to conform to the new API.
 
-Track the root (oldest) anon_vma in each anon_vma tree.   Because we only
-take the lock on the root anon_vma, we cannot use the lock on higher-up
-anon_vmas to lock anything.  This makes it impossible to do an indirect
-lookup of the root anon_vma, since the data structures could go away from
-under us.
-
-However, a direct pointer is safe because the root anon_vma is always the
-last one that gets freed on munmap or exit, by virtue of the same_vma list
-order and unlink_anon_vmas walking the list forward.
-
-Signed-off-by: Rik van Riel <riel@redhat.com>
-Acked-by: Mel Gorman <mel@csn.ul.ie>
-Acked-by: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Cc: Russell King <rmk@arm.linux.org.uk>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-LKML-Reference: <20100526154010.3904df5c@annuminas.surriel.com>
 ---
- include/linux/rmap.h |    1 +
- mm/rmap.c            |   18 ++++++++++++++++--
- 2 files changed, 17 insertions(+), 2 deletions(-)
+ arch/arm/include/asm/tlb.h |   12 ++----------
+ 1 file changed, 2 insertions(+), 10 deletions(-)
 
-Index: linux-2.6/include/linux/rmap.h
+Index: linux-2.6/arch/arm/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/include/linux/rmap.h
-+++ linux-2.6/include/linux/rmap.h
-@@ -26,6 +26,7 @@
-  */
- struct anon_vma {
- 	spinlock_t lock;	/* Serialize access to vma list */
-+	struct anon_vma *root;	/* Root of this anon_vma tree */
- #if defined(CONFIG_KSM) || defined(CONFIG_MIGRATION)
+--- linux-2.6.orig/arch/arm/include/asm/tlb.h
++++ linux-2.6/arch/arm/include/asm/tlb.h
+@@ -40,17 +40,11 @@ struct mmu_gather {
+ 	unsigned long		range_end;
+ };
  
- 	/*
-Index: linux-2.6/mm/rmap.c
-===================================================================
---- linux-2.6.orig/mm/rmap.c
-+++ linux-2.6/mm/rmap.c
-@@ -132,6 +132,11 @@ int anon_vma_prepare(struct vm_area_stru
- 			if (unlikely(!anon_vma))
- 				goto out_enomem_free_avc;
- 			allocated = anon_vma;
-+			/*
-+			 * This VMA had no anon_vma yet.  This anon_vma is
-+			 * the root of any anon_vma tree that might form.
-+			 */
-+			anon_vma->root = anon_vma;
- 		}
- 
- 		anon_vma_lock(anon_vma);
-@@ -224,9 +229,15 @@ int anon_vma_fork(struct vm_area_struct 
- 	avc = anon_vma_chain_alloc();
- 	if (!avc)
- 		goto out_error_free_anon_vma;
--	anon_vma_chain_link(vma, avc, anon_vma);
-+
-+	/*
-+	 * The root anon_vm's spinlock is the lock actually used when we
-+	 * lock any of the anon_vmas in this anon_vma tree.
-+	 */
-+	anon_vma->root = pvma->anon_vma->root;
- 	/* Mark this anon_vma as the one where our new (COWed) pages go. */
- 	vma->anon_vma = anon_vma;
-+	anon_vma_chain_link(vma, avc, anon_vma);
- 
- 	return 0;
- 
-@@ -261,7 +272,10 @@ void unlink_anon_vmas(struct vm_area_str
+-DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
+-
+-static inline struct mmu_gather *
+-tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
++static inline void
++tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
  {
- 	struct anon_vma_chain *avc, *next;
+-	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
+-
+ 	tlb->mm = mm;
+ 	tlb->fullmm = full_mm_flush;
+-
+-	return tlb;
+ }
  
--	/* Unlink each anon_vma chained to the VMA. */
-+	/*
-+	 * Unlink each anon_vma chained to the VMA.  This list is ordered
-+	 * from newest to oldest, ensuring the root anon_vma gets freed last.
-+	 */
- 	list_for_each_entry_safe(avc, next, &vma->anon_vma_chain, same_vma) {
- 		anon_vma_unlink(avc);
- 		list_del(&avc->same_vma);
+ static inline void
+@@ -61,8 +55,6 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+ 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+-
+-	put_cpu_var(mmu_gathers);
+ }
+ 
+ /*
 
 
