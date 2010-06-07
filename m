@@ -1,229 +1,231 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [18.85.46.34] ([18.85.46.34]:37757 "EHLO bombadil.infradead.org"
-	rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org with ESMTP
-	id S932269Ab0FGLUj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 7 Jun 2010 07:20:39 -0400
-Message-ID: <20100607111408.500962980@chello.nl>
-Date: Mon, 07 Jun 2010 13:07:17 +0200
+Received: from casper.infradead.org ([85.118.1.10]:41216 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751947Ab0FGLUG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jun 2010 07:20:06 -0400
+Message-ID: <20100607111408.866134718@chello.nl>
+Date: Mon, 07 Jun 2010 13:07:21 +0200
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 23/28] sparc64: Implement get_user_pages_fast().
+Subject: [PATCH 27/28] mm: Extended batches for generic mmu_gather
 References: <20100607110654.606530953@chello.nl>
-Content-Disposition: inline; filename=davem-sparc64-Implement_get_user_pages_fast.patch
+Content-Disposition: inline; filename=mm-tlb_gather-more-batch.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20100607110717.yY3kjRjCD9t2dvNd2aMTc45SQ9DUG3To8Luew8s0uYs@z>
+Message-ID: <20100607110721.IjN8I9UvX8QCOwVC7gCB5XDlzN7k0A_-uUweTRPDgi4@z>
 
-From: David S. Miller <davem@davemloft.net>
+Instead of using a single batch (the small on-stack, or an allocated
+page), try and extend the batch every time it runs out and only flush
+once either the extend fails or we're done.
 
-Signed-off-by: David S. Miller <davem@davemloft.net>
+Requested-by: Nick Piggin <npiggin@suse.de>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-LKML-Reference: <20100408.180015.30977694.davem@davemloft.net>
 ---
- arch/sparc/mm/Makefile |    2 
- arch/sparc/mm/gup.c    |  181 +++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 182 insertions(+), 1 deletion(-)
- create mode 100644 arch/sparc/mm/gup.c
+ include/asm-generic/tlb.h |  122 ++++++++++++++++++++++++++++++----------------
+ 1 file changed, 82 insertions(+), 40 deletions(-)
 
-Index: linux-2.6/arch/sparc/mm/Makefile
+Index: linux-2.6/include/asm-generic/tlb.h
 ===================================================================
---- linux-2.6.orig/arch/sparc/mm/Makefile
-+++ linux-2.6/arch/sparc/mm/Makefile
-@@ -4,7 +4,7 @@
- asflags-y := -ansi
- ccflags-y := -Werror
+--- linux-2.6.orig/include/asm-generic/tlb.h
++++ linux-2.6/include/asm-generic/tlb.h
+@@ -17,16 +17,6 @@
+ #include <asm/pgalloc.h>
+ #include <asm/tlbflush.h>
  
--obj-$(CONFIG_SPARC64)   += ultra.o tlb.o tsb.o
-+obj-$(CONFIG_SPARC64)   += ultra.o tlb.o tsb.o gup.o
- obj-y                   += fault_$(BITS).o
- obj-y                   += init_$(BITS).o
- obj-$(CONFIG_SPARC32)   += loadmmu.o
-Index: linux-2.6/arch/sparc/mm/gup.c
-===================================================================
---- /dev/null
-+++ linux-2.6/arch/sparc/mm/gup.c
-@@ -0,0 +1,181 @@
+-/*
+- * For UP we don't need to worry about TLB flush
+- * and page free order so much..
+- */
+-#ifdef CONFIG_SMP
+-  #define tlb_fast_mode(tlb) ((tlb)->nr == ~0U)
+-#else
+-  #define tlb_fast_mode(tlb) 1
+-#endif
+-
+ #ifdef HAVE_ARCH_RCU_TABLE_FREE
+ /*
+  * Semi RCU freeing of the page directories.
+@@ -70,31 +60,66 @@ extern void tlb_remove_table(struct mmu_
+ 
+ #endif
+ 
++struct mmu_gather_batch {
++	struct mmu_gather_batch	*next;
++	unsigned int		nr;
++	unsigned int		max;
++	struct page		*pages[0];
++};
++
++#define MAX_GATHER_BATCH	\
++	((PAGE_SIZE - sizeof(struct mmu_gather_batch)) / sizeof(void *))
++
+ /* struct mmu_gather is an opaque type used by the mm code for passing around
+  * any data needed by arch specific code for tlb_remove_page.
+  */
+ struct mmu_gather {
+ 	struct mm_struct	*mm;
+-	unsigned int		nr;	/* set to ~0U means fast mode */
+-	unsigned int		max;	/* nr < max */
+-	unsigned int		need_flush;/* Really unmapped some ptes? */
+-	unsigned int		fullmm; /* non-zero means full mm flush */
+-	struct page		**pages;
+-	struct page		*local[8];
++	unsigned int		need_flush : 1,	/* Did free PTEs */
++				fast_mode  : 1; /* No batching   */
++	unsigned int		fullmm;		/* Flush full mm */
++
++	struct mmu_gather_batch *active;
++	struct mmu_gather_batch	local;
++	struct page		*__pages[8];
+ 
+ #ifdef HAVE_ARCH_RCU_TABLE_FREE
+ 	struct mmu_table_batch	*batch;
+ #endif
+ };
+ 
+-static inline void __tlb_alloc_pages(struct mmu_gather *tlb)
 +/*
-+ * Lockless get_user_pages_fast for sparc, cribbed from powerpc
-+ *
-+ * Copyright (C) 2008 Nick Piggin
-+ * Copyright (C) 2008 Novell Inc.
++ * For UP we don't need to worry about TLB flush
++ * and page free order so much..
 + */
++#ifdef CONFIG_SMP
++  #define tlb_fast_mode(tlb) (tlb->fast_mode)
++#else
++  #define tlb_fast_mode(tlb) 1
++#endif
 +
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/vmstat.h>
-+#include <linux/pagemap.h>
-+#include <linux/rwsem.h>
-+#include <asm/pgtable.h>
++static inline int tlb_next_batch(struct mmu_gather *tlb)
+ {
+-	unsigned long addr = __get_free_pages(GFP_ATOMIC, 0);
++	struct mmu_gather_batch *batch;
+ 
+-	if (addr) {
+-		tlb->pages = (void *)addr;
+-		tlb->max = PAGE_SIZE / sizeof(struct page *);
++	batch = tlb->active;
++	if (batch->next) {
++		tlb->active = batch->next;
++		return 1;
+ 	}
 +
-+/*
-+ * The performance critical leaf functions are made noinline otherwise gcc
-+ * inlines everything into a single function which results in too much
-+ * register pressure.
-+ */
-+static noinline int gup_pte_range(pmd_t pmd, unsigned long addr,
-+		unsigned long end, int write, struct page **pages, int *nr)
-+{
-+	unsigned long mask, result;
-+	pte_t *ptep;
++	batch = (void *)__get_free_pages(GFP_ATOMIC, 0);
++	if (!batch)
++		return 0;
 +
-+	if (tlb_type == hypervisor) {
-+		result = _PAGE_PRESENT_4V|_PAGE_P_4V;
-+		if (write)
-+			result |= _PAGE_WRITE_4V;
-+	} else {
-+		result = _PAGE_PRESENT_4U|_PAGE_P_4U;
-+		if (write)
-+			result |= _PAGE_WRITE_4U;
++	batch->next = NULL;
++	batch->nr   = 0;
++	batch->max  = MAX_GATHER_BATCH;
++
++	tlb->active->next = batch;
++	tlb->active = batch;
++
++	return 1;
+ }
+ 
+ /* tlb_gather_mmu
+@@ -105,17 +130,16 @@ tlb_gather_mmu(struct mmu_gather *tlb, s
+ {
+ 	tlb->mm = mm;
+ 
+-	tlb->max = ARRAY_SIZE(tlb->local);
+-	tlb->pages = tlb->local;
+-
+-	if (num_online_cpus() > 1) {
+-		tlb->nr = 0;
+-		__tlb_alloc_pages(tlb);
+-	} else /* Use fast mode if only one CPU is online */
+-		tlb->nr = ~0U;
+-
++	tlb->need_flush = 0;
++	if (num_online_cpus() == 1)
++		tlb->fast_mode = 1;
+ 	tlb->fullmm = full_mm_flush;
+ 
++	tlb->local.next = NULL;
++	tlb->local.nr   = 0;
++	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
++	tlb->active     = &tlb->local;
++
+ #ifdef HAVE_ARCH_RCU_TABLE_FREE
+ 	tlb->batch = NULL;
+ #endif
+@@ -124,6 +148,8 @@ tlb_gather_mmu(struct mmu_gather *tlb, s
+ static inline void
+ tlb_flush_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
+ {
++	struct mmu_gather_batch *batch;
++
+ 	if (!tlb->need_flush)
+ 		return;
+ 	tlb->need_flush = 0;
+@@ -131,12 +157,14 @@ tlb_flush_mmu(struct mmu_gather *tlb, un
+ #ifdef HAVE_ARCH_RCU_TABLE_FREE
+ 	tlb_table_flush(tlb);
+ #endif
+-	if (!tlb_fast_mode(tlb)) {
+-		free_pages_and_swap_cache(tlb->pages, tlb->nr);
+-		tlb->nr = 0;
+-		if (tlb->pages == tlb->local)
+-			__tlb_alloc_pages(tlb);
++	if (tlb_fast_mode(tlb))
++		return;
++
++	for (batch = &tlb->local; batch; batch = batch->next) {
++		free_pages_and_swap_cache(batch->pages, batch->nr);
++		batch->nr = 0;
+ 	}
++	tlb->active = &tlb->local;
+ }
+ 
+ /* tlb_finish_mmu
+@@ -146,13 +174,18 @@ tlb_flush_mmu(struct mmu_gather *tlb, un
+ static inline void
+ tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
+ {
++	struct mmu_gather_batch *batch, *next;
++
+ 	tlb_flush_mmu(tlb, start, end);
+ 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+ 
+-	if (tlb->pages != tlb->local)
+-		free_pages((unsigned long)tlb->pages, 0);
++	for (batch = tlb->local.next; batch; batch = next) {
++		next = batch->next;
++		free_pages((unsigned long)batch, 0);
 +	}
-+	mask = result | _PAGE_SPECIAL;
++	tlb->local.next = NULL;
+ }
+ 
+ /* tlb_remove_page
+@@ -162,14 +195,23 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+  */
+ static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+ {
++	struct mmu_gather_batch *batch;
 +
-+	ptep = pte_offset_kernel(&pmd, addr);
-+	do {
-+		struct page *page, *head;
-+		pte_t pte = *ptep;
+ 	tlb->need_flush = 1;
 +
-+		if ((pte_val(pte) & mask) != result)
-+			return 0;
-+		VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
+ 	if (tlb_fast_mode(tlb)) {
+ 		free_page_and_swap_cache(page);
+ 		return;
+ 	}
+-	tlb->pages[tlb->nr++] = page;
+-	if (tlb->nr >= tlb->max)
+-		tlb_flush_mmu(tlb, 0, 0);
 +
-+		/* The hugepage case is simplified on sparc64 because
-+		 * we encode the sub-page pfn offsets into the
-+		 * hugepage PTEs.  We could optimize this in the future
-+		 * use page_cache_add_speculative() for the hugepage case.
-+		 */
-+		page = pte_page(pte);
-+		head = compound_head(page);
-+		if (!page_cache_get_speculative(head))
-+			return 0;
-+		if (unlikely(pte_val(pte) != pte_val(*ptep))) {
-+			put_page(head);
-+			return 0;
-+		}
-+
-+		pages[*nr] = page;
-+		(*nr)++;
-+	} while (ptep++, addr += PAGE_SIZE, addr != end);
-+
-+	return 1;
-+}
-+
-+static int gup_pmd_range(pud_t pud, unsigned long addr, unsigned long end,
-+		int write, struct page **pages, int *nr)
-+{
-+	unsigned long next;
-+	pmd_t *pmdp;
-+
-+	pmdp = pmd_offset(&pud, addr);
-+	do {
-+		pmd_t pmd = *pmdp;
-+
-+		next = pmd_addr_end(addr, end);
-+		if (pmd_none(pmd))
-+			return 0;
-+		if (!gup_pte_range(pmd, addr, next, write, pages, nr))
-+			return 0;
-+	} while (pmdp++, addr = next, addr != end);
-+
-+	return 1;
-+}
-+
-+static int gup_pud_range(pgd_t pgd, unsigned long addr, unsigned long end,
-+		int write, struct page **pages, int *nr)
-+{
-+	unsigned long next;
-+	pud_t *pudp;
-+
-+	pudp = pud_offset(&pgd, addr);
-+	do {
-+		pud_t pud = *pudp;
-+
-+		next = pud_addr_end(addr, end);
-+		if (pud_none(pud))
-+			return 0;
-+		if (!gup_pmd_range(pud, addr, next, write, pages, nr))
-+			return 0;
-+	} while (pudp++, addr = next, addr != end);
-+
-+	return 1;
-+}
-+
-+int get_user_pages_fast(unsigned long start, int nr_pages, int write,
-+			struct page **pages)
-+{
-+	struct mm_struct *mm = current->mm;
-+	unsigned long addr, len, end;
-+	unsigned long next;
-+	pgd_t *pgdp;
-+	int nr = 0;
-+
-+	start &= PAGE_MASK;
-+	addr = start;
-+	len = (unsigned long) nr_pages << PAGE_SHIFT;
-+	end = start + len;
-+
-+	/*
-+	 * XXX: batch / limit 'nr', to avoid large irq off latency
-+	 * needs some instrumenting to determine the common sizes used by
-+	 * important workloads (eg. DB2), and whether limiting the batch size
-+	 * will decrease performance.
-+	 *
-+	 * It seems like we're in the clear for the moment. Direct-IO is
-+	 * the main guy that batches up lots of get_user_pages, and even
-+	 * they are limited to 64-at-a-time which is not so many.
-+	 */
-+	/*
-+	 * This doesn't prevent pagetable teardown, but does prevent
-+	 * the pagetables from being freed on sparc.
-+	 *
-+	 * So long as we atomically load page table pointers versus teardown,
-+	 * we can follow the address down to the the page and take a ref on it.
-+	 */
-+	local_irq_disable();
-+
-+	pgdp = pgd_offset(mm, addr);
-+	do {
-+		pgd_t pgd = *pgdp;
-+
-+		next = pgd_addr_end(addr, end);
-+		if (pgd_none(pgd))
-+			goto slow;
-+		if (!gup_pud_range(pgd, addr, next, write, pages, &nr))
-+			goto slow;
-+	} while (pgdp++, addr = next, addr != end);
-+
-+	local_irq_enable();
-+
-+	VM_BUG_ON(nr != (end - start) >> PAGE_SHIFT);
-+	return nr;
-+
-+	{
-+		int ret;
-+
-+slow:
-+		local_irq_enable();
-+
-+		/* Try to get the remaining pages with get_user_pages */
-+		start += nr << PAGE_SHIFT;
-+		pages += nr;
-+
-+		down_read(&mm->mmap_sem);
-+		ret = get_user_pages(current, mm, start,
-+			(end - start) >> PAGE_SHIFT, write, 0, pages, NULL);
-+		up_read(&mm->mmap_sem);
-+
-+		/* Have to be a bit careful with return values */
-+		if (nr > 0) {
-+			if (ret < 0)
-+				ret = nr;
-+			else
-+				ret += nr;
-+		}
-+
-+		return ret;
++	batch = tlb->active;
++	if (batch->nr == batch->max) {
++		if (!tlb_next_batch(tlb))
++			tlb_flush_mmu(tlb, 0, 0);
++		batch = tlb->active;
 +	}
-+}
++
++	batch->pages[batch->nr++] = page;
+ }
+ 
+ /**
 
 
