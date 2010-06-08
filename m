@@ -1,21 +1,18 @@
-From: rhgouveia@mail.telepac.pt
-Subject: Hi
-Date: Tue, 08 Jun 2010 08:38:05 +0100
-Message-ID: <20100608083805.16852o28e2cznj31@mail.telepac.pt>
+From: MSOFT <msoft59@xcelco.on.ca>
+Subject: Congrat,891,934.00GBP has been awarded to you.
+Date: Tue, 08 Jun 2010 05:23:53 -0400
+Message-ID: <1275989033.4c0e0c2922b57@webmail.xcelco.on.ca>
+Reply-To: msgames@hotmail.co.uk
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset=ISO-8859-15;
-	DelSp="Yes";
-	format="flowed"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.ptmail.sapo.pt ([212.55.154.21]:48677 "HELO
-	relay2.ptmail.sapo.pt" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with SMTP id S1751049Ab0FHHor (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jun 2010 03:44:47 -0400
-Content-Disposition: inline
+Received: from mta03.eastlink.ca ([24.224.136.9]:44145 "EHLO mta03.eastlink.ca"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751738Ab0FHJYF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Jun 2010 05:24:05 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: info@winning.com
 
-
-hi
+Submit Name:Address:Age:Sex:Occupation:Tel:Country
