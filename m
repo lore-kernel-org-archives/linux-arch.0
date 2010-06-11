@@ -1,83 +1,26 @@
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+From: Catalin Marinas <catalin.marinas@arm.com>
 Subject: Re: [PATCH v2] sata_sil24: Use memory barriers before issuing
  commands
-Date: Fri, 11 Jun 2010 18:16:47 +0900
-Message-ID: <20100611181546G.fujita.tomonori@lab.ntt.co.jp>
-References: <1276187002.24535.88.camel@e102109-lin.cambridge.arm.com>
-	<4C118697.9090305@gmail.com>
-	<20100611013829.GB16436@laptop>
+Date: Fri, 11 Jun 2010 10:41:46 +0100
+Message-ID: <1276249306.12258.38.camel@e102109-lin.cambridge.arm.com>
+References: <20100611013829.GB16436@laptop>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:47292 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757858Ab0FKJV4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 11 Jun 2010 05:21:56 -0400
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:45840 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754637Ab0FKJl7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 11 Jun 2010 05:41:59 -0400
 In-Reply-To: <20100611013829.GB16436@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: npiggin@suse.de
-Cc: hancockrwd@gmail.com, catalin.marinas@arm.com, tj@kernel.org, linux-ide@vger.kernel.org, linux-kernel@vger.kernel.org, colin.tuckley@arm.com, jeff@garzik.org, linux-arch@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Robert Hancock <hancockrwd@gmail.com>, Tejun Heo <tj@kernel.org>, linux-ide@vger.kernel.org, linux-kernel@vger.kernel.org, Colin Tuckley <colin.tuckley@arm.com>, Jeff Garzik <jeff@garzik.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Fri, 11 Jun 2010 11:38:29 +1000
-Nick Piggin <npiggin@suse.de> wrote:
-
+On Fri, 2010-06-11 at 02:38 +0100, Nick Piggin wrote:
 > On Thu, Jun 10, 2010 at 06:43:03PM -0600, Robert Hancock wrote:
-> > On 06/10/2010 10:23 AM, Catalin Marinas wrote:
-> > >On Thu, 2010-06-10 at 17:12 +0100, Tejun Heo wrote:
-> > >>On 06/10/2010 06:02 PM, Catalin Marinas wrote:
-> > >>>The data in the cmd_block buffers may reach the main memory after the
-> > >>>writel() to the device ports. This patch introduces two calls to wmb()
-> > >>>to ensure the relative ordering.
-> > >>>
-> > >>>Signed-off-by: Catalin Marinas<catalin.marinas@arm.com>
-> > >>>Tested-by: Colin Tuckley<colin.tuckley@arm.com>
-> > >>>Cc: Tejun Heo<tj@kernel.org>
-> > >>>Cc: Jeff Garzik<jeff@garzik.org>
-> > >>
-> > >>I suppose you have tested and verified that this is actually
-> > >>necessary, right?
-> > >
-> > >Yes, otherwise we get random failures with this device on ARM.
-> > >
-> > >>I've been looking through the docs but couldn't
-> > >>find anything which described the ordering between writes to main
-> > >>memory and write[bwl]()'s.  One thing that kind of bothers me is that
-> > >>r/wmb()'s are for ordering memory accesses among CPUs which
-> > >>participate in cache coherency protocol and although it may work right
-> > >>in the above case I'm not really sure whether this is the right thing
-> > >>to do.  Do you have more information on the subject?
-> > >
-> > >The mb() are not for ordering accesses among CPUs (though they would
-> > >cover this case as well). For inter-CPU ordering, we have smp_mb() and
-> > >friends. For all other cases, we have the mandatory barriers mb() and
-> > >friends and DMA is one of them.
-> > >
-> > >Apart from the memory-barriers.txt document, there is the Device I/O
-> > >docbook which mentions something about DMA buffers, though not very
-> > >clear on which barriers to use (something like just make sure that the
-> > >writes to the buffer reached the memory).
-> > >
-> > >There were some past discussions on linux-arch before and I'm cc'ing
-> > >this list again (ARM is not the only architecture with a weakly memory
-> > >ordering model).
-> > >
-> > >I'm copying the patch below again for the linux-arch people that haven't
-> > >seen the beginning of the thread:
-> > 
-> > My memory is fuzzy but I thought this came up before on PPC and I
-> > also thought the conclusion was that the platform code (for writel,
-> > etc.) should enforce ordering of MMIO accesses with respect to
-> > normal RAM accesses. (Or maybe it was just MMIO accesses with
-> > respect to each other?) I don't think the answer to that question
-> > has been clearly documented anywhere, which is somewhat unfortunate.
-> > 
-> > If the answer is that this is needed then there are likely a lot of
-> > other drivers in libata and elsewhere which need to be fixed as
-> > well. For example, I don't see any such barriers in libahci.c when I
-> > presume it would need them.
-> > 
 > > IMHO, it would be better for the platform code to ensure that MMIO
 > > access was strongly ordered with respect to each other and to RAM
 > > access. Drivers are just too likely to get this wrong, especially
@@ -87,9 +30,29 @@ Nick Piggin <npiggin@suse.de> wrote:
 > strongly ordered with memory. That serves to keep them inside
 > critical sections as well.
 
-I support the plan, however looks like nothing has changed in any
-platforms since the plan was made (in 2008 ?).
+Are there any public references to this discussion? Maybe a
+Documentation/ file (or update the memory-barriers.txt one would be
+useful).
 
-I guess that we need to add something to Documentation/ now then we
-can shout, "fix arch's code instead of a driver". The consensus was
-that strongly ordered with any memory?
+I guess correctness takes precedence here but on ARM, the only way to
+ensure relative ordering between non-cacheable writes and I/O writes is
+by flushing the write buffer (and an L2 write buffer if external cache
+is present). Hence the expensive mb().
+
+The only reference of DMA buffers vs I/O I found in the DMA-API.txt
+file:
+
+        Consistent memory is memory for which a write by either the
+        device or the processor can immediately be read by the processor
+        or device without having to worry about caching effects. (You
+        may however need to make sure to flush the processor's write
+        buffers before telling devices to read that memory.)
+
+But there is no API for "flushing the processor's write buffers". Does
+it mean that this should be taken care of in writel()? We would make the
+I/O accessors pretty expensive on some architectures.
+
+Thanks.
+
+-- 
+Catalin
