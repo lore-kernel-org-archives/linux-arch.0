@@ -1,42 +1,19 @@
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: Re: [PATCH v2] sata_sil24: Use memory barriers before issuing
- commands
-Date: Mon, 14 Jun 2010 09:35:59 +0900
-Message-ID: <20100614093444O.fujita.tomonori@lab.ntt.co.jp>
-References: <20100611013829.GB16436@laptop>
-	<1276249306.12258.38.camel@e102109-lin.cambridge.arm.com>
+From: BC-49 ONLINE CORDINATOR <phenghoo@singnet.com.sg>
+Subject: CLAIMS REQUIREMENT
+Date: Mon, 14 Jun 2010 13:34:45 +0800 (SGT)
+Message-ID: <1276493685.4c15bf755bbe2@discus.singnet.com.sg>
+Reply-To: bcl-49_claimsdept@hotmail.com
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:34841 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755005Ab0FNAgv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 13 Jun 2010 20:36:51 -0400
-In-Reply-To: <1276249306.12258.38.camel@e102109-lin.cambridge.arm.com>
+Received: from comsmtp2.singnet.com.sg ([165.21.101.75]:55514 "EHLO
+	comsmtp2.singnet.com.sg" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751598Ab0FNFfJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jun 2010 01:35:09 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: catalin.marinas@arm.com
-Cc: npiggin@suse.de, hancockrwd@gmail.com, tj@kernel.org, linux-ide@vger.kernel.org, linux-kernel@vger.kernel.org, colin.tuckley@arm.com, jeff@garzik.org, linux-arch@vger.kernel.org
+To: info@bcl.com
 
-On Fri, 11 Jun 2010 10:41:46 +0100
-Catalin Marinas <catalin.marinas@arm.com> wrote:
-
-> On Fri, 2010-06-11 at 02:38 +0100, Nick Piggin wrote:
-> > On Thu, Jun 10, 2010 at 06:43:03PM -0600, Robert Hancock wrote:
-> > > IMHO, it would be better for the platform code to ensure that MMIO
-> > > access was strongly ordered with respect to each other and to RAM
-> > > access. Drivers are just too likely to get this wrong, especially
-> > > when x86, the most tested platform, doesn't have such issues.
-> > 
-> > The plan is to make all platforms do this. writes should be
-> > strongly ordered with memory. That serves to keep them inside
-> > critical sections as well.
-> 
-> Are there any public references to this discussion? Maybe a
-> Documentation/ file (or update the memory-barriers.txt one would be
-> useful).
-
-I guess,
-
-http://marc.info/?t=121185223900001&r=1&w=2
+Your Email has been awarded =A3,1,263,584.00 in the BCL, Do send Names,=
+Address, Tel for processing.
