@@ -1,32 +1,30 @@
 From: Matt Fleming <matt@console-pimps.org>
-Subject: Re: [PATCH 4/5] parisc: Remove *(.text.*) pattern from the linker script
-Date: Mon, 14 Jun 2010 20:13:50 +0100
-Message-ID: <877hm1zatt.fsf@linux-g6p1.site>
-References: <1276519112-11649-1-git-send-email-matt@console-pimps.org> <1276519112-11649-4-git-send-email-matt@console-pimps.org> <1276528859.5374.29.camel@mulgrave.site>
+Subject: Re: [PATCH 1/5] vmlinux.lds.h: Include *(.text.*) in TEXT_TEXT
+Date: Mon, 14 Jun 2010 20:21:27 +0100
+Message-ID: <874oh5zah4.fsf@linux-g6p1.site>
+References: <1276519112-11649-1-git-send-email-matt@console-pimps.org> <20100614182212.GA14747@merkur.ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:46753 "EHLO
+Received: from arkanian.console-pimps.org ([212.110.184.194]:57954 "EHLO
 	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753378Ab0FNTNv (ORCPT
+	by vger.kernel.org with ESMTP id S1753522Ab0FNTV3 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Jun 2010 15:13:51 -0400
-In-Reply-To: <1276528859.5374.29.camel@mulgrave.site>
+	Mon, 14 Jun 2010 15:21:29 -0400
+In-Reply-To: <20100614182212.GA14747@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, linux-kernel@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Tim Abbott <tabbott@ksplice.com>, linux-kernel@vger.kernel.org
 
-On Mon, 14 Jun 2010 10:20:59 -0500, James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
+On Mon, 14 Jun 2010 20:22:12 +0200, Sam Ravnborg <sam@ravnborg.org> wrote:
 > 
-> This would destroy all of the named parisc text ordering we do above the
-> removed line because now you'd have swept up all the function sections
-> before we get to them, won't it?
+> The patch above we would match the section ".text.*" too soon and
+> add the .text..lock section at the wrong place.
+> 
+> Browsing the vmlinux.lds files other archs will be impacted too.
 
-Argh, sorry, you're completely right. I was a bit overzealous with this
-change. I'll drop it. In fact, given the very specific things that
-parisc does with the .text.* sections, this entire series makes no sense
-- it doesn't make sense to change TEXT_TEXT in a way that means parisc
-can no longer use it.
+Yeah, good point. James Bottomley has already pointed out how this
+change completely breaks parisc. I'll drop this series.
 
-Thanks for the review, James.
+Thanks for the review!
