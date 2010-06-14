@@ -1,55 +1,69 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH 4/5] parisc: Remove *(.text.*) pattern from the linker
- script
-Date: Mon, 14 Jun 2010 10:20:59 -0500
-Message-ID: <1276528859.5374.29.camel@mulgrave.site>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 1/5] vmlinux.lds.h: Include *(.text.*) in TEXT_TEXT
+Date: Mon, 14 Jun 2010 20:22:12 +0200
+Message-ID: <20100614182212.GA14747@merkur.ravnborg.org>
 References: <1276519112-11649-1-git-send-email-matt@console-pimps.org>
-	 <1276519112-11649-4-git-send-email-matt@console-pimps.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:34954 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751401Ab0FNQAO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Jun 2010 12:00:14 -0400
-In-Reply-To: <1276519112-11649-4-git-send-email-matt@console-pimps.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1276519112-11649-1-git-send-email-matt@console-pimps.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Matt Fleming <matt@console-pimps.org>
-Cc: linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, linux-kernel@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Tim Abbott <tabbott@ksplice.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2010-06-14 at 13:38 +0100, Matt Fleming wrote:
+On Mon, Jun 14, 2010 at 01:38:28PM +0100, Matt Fleming wrote:
 > From: Matt Fleming <matthew.fleming@imgtec.com>
 > 
-> Drop the pattern from the linker script because the pattern is now
-> provided by TEXT_TEXT.
+> Many architectures collect text sections beginning with '.text.' in
+> their .text section, so move this pattern into TEXT_TEXT to stop them
+> all having to duplicate the pattern in their arch/ linker scripts.
 > 
 > Signed-off-by: Matt Fleming <matthew.fleming@imgtec.com>
 > ---
->  arch/parisc/kernel/vmlinux.lds.S |    1 -
->  1 files changed, 0 insertions(+), 1 deletions(-)
+>  include/asm-generic/vmlinux.lds.h |    1 +
+>  1 files changed, 1 insertions(+), 0 deletions(-)
 > 
-> diff --git a/arch/parisc/kernel/vmlinux.lds.S b/arch/parisc/kernel/vmlinux.lds.S
-> index d64a6bb..6784e39 100644
-> --- a/arch/parisc/kernel/vmlinux.lds.S
-> +++ b/arch/parisc/kernel/vmlinux.lds.S
-> @@ -61,7 +61,6 @@ SECTIONS
->  		*(.text.sys_exit)
->  		*(.text.do_sigaltstack)
->  		*(.text.do_fork)
-> -		*(.text.*)
->  		*(.fixup)
->  		*(.lock.text)		/* out-of-line lock text */
->  		*(.gnu.warning)
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index 48c5299..08f4680 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -369,6 +369,7 @@
+>  		ALIGN_FUNCTION();					\
+>  		*(.text.hot)						\
+>  		*(.text)						\
+> +		*(.text.*)						\
+>  		*(.ref.text)						\
+>  	DEV_KEEP(init.text)						\
+>  	DEV_KEEP(exit.text)						\
 
+This will break ia64.
+From their vmlinux.lds.h:
 
-This would destroy all of the named parisc text ordering we do above the
-removed line because now you'd have swept up all the function sections
-before we get to them, won't it?
+        TEXT_TEXT
+        SCHED_TEXT
+        LOCK_TEXT
+        KPROBES_TEXT
+        *(.gnu.linkonce.t*)
+    }
+  .text2 : AT(ADDR(.text2) - LOAD_OFFSET)
+        { *(.text2) }
+#ifdef CONFIG_SMP
+  .text..lock : AT(ADDR(.text..lock) - LOAD_OFFSET)
+        { *(.text..lock) }
+#endif
 
-The ordering is an execution speed up on 32 bit systems because our
-relative jump is so short.
+The patch above we would match the section ".text.*" too soon and
+add the .text..lock section at the wrong place.
 
-James
+Browsing the vmlinux.lds files other archs will be impacted too.
+
+If you feel tempted to clean up the linker script one place to start
+would be to introduce consistent indention / layout.
+If you use arch/sparc/kernel/vmlinux.lds.h as a template then you
+have a good start.
+
+The above mentioned ia64 vmlinux.lds.h would be a good place to start.
+
+	Sam
