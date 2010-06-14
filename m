@@ -1,36 +1,35 @@
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 4/5] parisc: Remove *(.text.*) pattern from the linker script
-Date: Mon, 14 Jun 2010 13:38:31 +0100
-Message-ID: <1276519112-11649-4-git-send-email-matt@console-pimps.org>
-References: <1276519112-11649-1-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 1/5] vmlinux.lds.h: Include *(.text.*) in TEXT_TEXT
+Date: Mon, 14 Jun 2010 13:38:28 +0100
+Message-ID: <1276519112-11649-1-git-send-email-matt@console-pimps.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1276519112-11649-1-git-send-email-matt@console-pimps.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Tim Abbott <tabbott@ksplice.com>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 From: Matt Fleming <matthew.fleming@imgtec.com>
 
-Drop the pattern from the linker script because the pattern is now
-provided by TEXT_TEXT.
+Many architectures collect text sections beginning with '.text.' in
+their .text section, so move this pattern into TEXT_TEXT to stop them
+all having to duplicate the pattern in their arch/ linker scripts.
 
 Signed-off-by: Matt Fleming <matthew.fleming@imgtec.com>
 ---
- arch/parisc/kernel/vmlinux.lds.S |    1 -
- 1 files changed, 0 insertions(+), 1 deletions(-)
+ include/asm-generic/vmlinux.lds.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-diff --git a/arch/parisc/kernel/vmlinux.lds.S b/arch/parisc/kernel/vmlinux.lds.S
-index d64a6bb..6784e39 100644
---- a/arch/parisc/kernel/vmlinux.lds.S
-+++ b/arch/parisc/kernel/vmlinux.lds.S
-@@ -61,7 +61,6 @@ SECTIONS
- 		*(.text.sys_exit)
- 		*(.text.do_sigaltstack)
- 		*(.text.do_fork)
--		*(.text.*)
- 		*(.fixup)
- 		*(.lock.text)		/* out-of-line lock text */
- 		*(.gnu.warning)
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 48c5299..08f4680 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -369,6 +369,7 @@
+ 		ALIGN_FUNCTION();					\
+ 		*(.text.hot)						\
+ 		*(.text)						\
++		*(.text.*)						\
+ 		*(.ref.text)						\
+ 	DEV_KEEP(init.text)						\
+ 	DEV_KEEP(exit.text)						\
 -- 
 1.6.6.1
