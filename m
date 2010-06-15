@@ -1,79 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:35126 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754849Ab0FOLLK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 Jun 2010 07:11:10 -0400
+Received: from cantor.suse.de ([195.135.220.2]:41911 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752747Ab0FOLby (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 15 Jun 2010 07:31:54 -0400
+Date: Tue, 15 Jun 2010 21:31:50 +1000
+From: Nick Piggin <npiggin@suse.de>
 Subject: Re: [PATCH v2] sata_sil24: Use memory barriers before issuing
  commands
-From: Catalin Marinas <catalin.marinas@arm.com>
-In-Reply-To: <AANLkTilxkyOVQU6OjL7ceucxPnbX9qAjWjjM1U16M1Rm@mail.gmail.com>
+Message-ID: <20100615113150.GM6138@laptop>
 References: <AANLkTilxkyOVQU6OjL7ceucxPnbX9qAjWjjM1U16M1Rm@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Tue, 15 Jun 2010 12:10:53 +0100
-Message-ID: <1276600253.26369.46.camel@e102109-lin.cambridge.arm.com>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+ <1276600253.26369.46.camel@e102109-lin.cambridge.arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1276600253.26369.46.camel@e102109-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robert Hancock <hancockrwd@gmail.com>
-Cc: Nick Piggin <npiggin@suse.de>, Tejun Heo <tj@kernel.org>, linux-ide@vger.kernel.org, linux-kernel@vger.kernel.org, Colin Tuckley <colin.tuckley@arm.com>, Jeff Garzik <jeff@garzik.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20100615111053.y9CQovTc5pUsuVatWuL7OL293i6F3TegOn6IOkTyR4U@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Robert Hancock <hancockrwd@gmail.com>, Tejun Heo <tj@kernel.org>, linux-ide@vger.kernel.org, linux-kernel@vger.kernel.org, Colin Tuckley <colin.tuckley@arm.com>, Jeff Garzik <jeff@garzik.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20100615113150.ojKhiQRHZcaOzvCyhJXqmOb7k94d1Jc864rO-Ok1b5E@z>
 
-On Sat, 2010-06-12 at 02:30 +0100, Robert Hancock wrote:
-> On Fri, Jun 11, 2010 at 5:04 AM, Catalin Marinas
-> <catalin.marinas@arm.com> wrote:
-> > On Fri, 2010-06-11 at 11:11 +0100, Nick Piggin wrote:
-> >> On Fri, Jun 11, 2010 at 10:41:46AM +0100, Catalin Marinas wrote:
-> >> > The only reference of DMA buffers vs I/O I found in the DMA-API.txt
-> >> > file:
-> >> >
-> >> >         Consistent memory is memory for which a write by either the
-> >> >         device or the processor can immediately be read by the processor
-> >> >         or device without having to worry about caching effects. (You
-> >> >         may however need to make sure to flush the processor's write
-> >> >         buffers before telling devices to read that memory.)
-> >> >
-> >> > But there is no API for "flushing the processor's write buffers". Does
-> >> > it mean that this should be taken care of in writel()? We would make the
-> >> > I/O accessors pretty expensive on some architectures.
-> >>
-> >> The APIs for that are mb/wmb/rmb ones.
-> >
-> > So if that's the API for the above case and we are strictly referring to
-> > the sata_sil24 patch I sent - shouldn't we just add wmb() in the driver
-> > between the write to the DMA buffer and the writel() to start the DMA
-> > transfer? Do we need to move the wmb() to the writel() macro?
+On Tue, Jun 15, 2010 at 12:10:53PM +0100, Catalin Marinas wrote:
+> On Sat, 2010-06-12 at 02:30 +0100, Robert Hancock wrote:
+> > > So if that's the API for the above case and we are strictly referring to
+> > > the sata_sil24 patch I sent - shouldn't we just add wmb() in the driver
+> > > between the write to the DMA buffer and the writel() to start the DMA
+> > > transfer? Do we need to move the wmb() to the writel() macro?
+> > 
+> > I think it would be best if writel, etc. did the write buffer flushing
+> > by default. As Nick said, if there are some performance critical areas
+> > then those can use the relaxed versions but it's safest if the default
+> > behavior works as drivers expect.
 > 
-> I think it would be best if writel, etc. did the write buffer flushing
-> by default. As Nick said, if there are some performance critical areas
-> then those can use the relaxed versions but it's safest if the default
-> behavior works as drivers expect.
+> I went through the past discussion pointed to by Fujita (thanks!) but I
+> wouldn't say it resulted in a definitive guideline on how architectures
+> should implement the I/O accessors.
+> 
+> >From an ARM perspective, I would prefer to add wmb() in the drivers
+> where it matters - basically only those using DMA coherent buffers. A
+> lot of drivers already have this in place and that's already documented
+> in DMA-API.txt (maybe with a bit of clarification).
+> 
+> Some statistics - grepping drivers/ for alloc_coherent shows 285 files.
+> Of these, 69 already use barriers. It's not trivial to go through 200+
+> drivers and add barriers but I wouldn't say that's impossible.
 
-I went through the past discussion pointed to by Fujita (thanks!) but I
-wouldn't say it resulted in a definitive guideline on how architectures
-should implement the I/O accessors.
+I disagree. Firstly, you will get subtle bugs, not able to be reproduced
+and situations where driver writers don't even have that architecture to
+test on. Secondly, it is not a one-time audit and be done with it, code
+is constantly being changed and added. Driver code is going to be
+written and tested and run on different archs or even different
+implementations that do different things to ordering.
 
-From an ARM perspective, I would prefer to add wmb() in the drivers
-where it matters - basically only those using DMA coherent buffers. A
-lot of drivers already have this in place and that's already documented
-in DMA-API.txt (maybe with a bit of clarification).
+On the other hand, a performance slowdown should be far more reproducible
+and traceable.
 
-Some statistics - grepping drivers/ for alloc_coherent shows 285 files.
-Of these, 69 already use barriers. It's not trivial to go through 200+
-drivers and add barriers but I wouldn't say that's impossible.
+ 
+> If we go the other route of adding mb() in writel() (though I don't
+> prefer it), there are two additional issues:
+> 
+> (1) how relaxed would the "writel_relaxed" etc. accessors be? Are they
+> relaxed only with regards to coherent DMA buffers or relaxed with other
+> I/O operations as well? Can the compiler reorder them?
 
-If we go the other route of adding mb() in writel() (though I don't
-prefer it), there are two additional issues:
+That was up for debate. I think totally weak (like SMP ordering)
+should be fine, but that may require that we need some more barriers
+like io_wmb() (which just orders two writels from the same CPU).
+Remember we want to restrict their use outside critical fastpaths
+of important drivers -- this is a far smaller task than auditing all
+accesses in all drivers.
 
-(1) how relaxed would the "writel_relaxed" etc. accessors be? Are they
-relaxed only with regards to coherent DMA buffers or relaxed with other
-I/O operations as well? Can the compiler reorder them?
 
-(2) do we go through all the drivers that currently have *mb() and
-remove them? A quick grep in drivers/ shows over 1600 occurrences of
-*mb().
+> (2) do we go through all the drivers that currently have *mb() and
+> remove them? A quick grep in drivers/ shows over 1600 occurrences of
+> *mb().
 
--- 
-Catalin
+No need, but the ones that matter will get updated slowly. The ones
+that don't will continue to work (from an ordering point of view) on
+obscure or untested hardware.
 
