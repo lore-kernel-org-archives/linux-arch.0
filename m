@@ -1,81 +1,73 @@
-From: Tim Abbott <tabbott@ksplice.com>
-Subject: Re: [PATCH 1/5] vmlinux.lds.h: Include *(.text.*) in TEXT_TEXT
-Date: Mon, 14 Jun 2010 22:52:08 -0400 (EDT)
-Message-ID: <alpine.DEB.1.10.1006142245560.1248@dr-wily.mit.edu>
-References: <1276519112-11649-1-git-send-email-matt@console-pimps.org>  <alpine.DEB.1.10.1006141014360.1432@dr-wily.mit.edu>  <87y6ehxvby.fsf@linux-g6p1.site>  <alpine.DEB.1.10.1006141534490.1248@dr-wily.mit.edu> <1276557299.5374.847.camel@mulgrave.site>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2] sata_sil24: Use memory barriers before issuing
+ commands
+Date: Tue, 15 Jun 2010 12:10:53 +0100
+Message-ID: <1276600253.26369.46.camel@e102109-lin.cambridge.arm.com>
+References: <AANLkTilxkyOVQU6OjL7ceucxPnbX9qAjWjjM1U16M1Rm@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <1276557299.5374.847.camel@mulgrave.site>
-Sender: linux-parisc-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Michal Marek <mmarek@suse.cz>, Denys Vlasenko <vda.linux@googlemail.com>, linux-parisc@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-ide-owner@vger.kernel.org>
+In-Reply-To: <AANLkTilxkyOVQU6OjL7ceucxPnbX9qAjWjjM1U16M1Rm@mail.gmail.com>
+Sender: linux-ide-owner@vger.kernel.org
+To: Robert Hancock <hancockrwd@gmail.com>
+Cc: Nick Piggin <npiggin@suse.de>, Tejun Heo <tj@kernel.org>, linux-ide@vger.kernel.org, linux-kernel@vger.kernel.org, Colin Tuckley <colin.tuckley@arm.com>, Jeff Garzik <jeff@garzik.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 14 Jun 2010, James Bottomley wrote:
-
-> On Mon, 2010-06-14 at 18:21 -0400, Tim Abbott wrote:
-> > On Mon, 14 Jun 2010, Matt Fleming wrote:
-> > 
-> > > Do these special kernel sections include things like the parisc
-> > > .text.do_softirq, .text.sys_exit, etc? James raised a good objection to
-> > > the parisc patch of this series. I'm guessing most people saw it already
-> > > but I'll paste it here for reference,
-> > > 
-> > >     This would destroy all of the named parisc text ordering we do above the
-> > >     removed line because now you'd have swept up all the function sections
-> > >     before we get to them, won't it?
-> > > 
-> > >     The ordering is an execution speed up on 32 bit systems because our
-> > >     relative jump is so short.
-> > > 
-> > > Will you changes handle this OK?
-> > 
-> > I think I addressed this in my reply to James just now, but to be super 
-> > clear, this -ffunction-sections plan involves renaming .text.do_softirq to 
-> > .text..do_softirq (etc.) first.
+On Sat, 2010-06-12 at 02:30 +0100, Robert Hancock wrote:
+> On Fri, Jun 11, 2010 at 5:04 AM, Catalin Marinas
+> <catalin.marinas@arm.com> wrote:
+> > On Fri, 2010-06-11 at 11:11 +0100, Nick Piggin wrote:
+> >> On Fri, Jun 11, 2010 at 10:41:46AM +0100, Catalin Marinas wrote:
+> >> > The only reference of DMA buffers vs I/O I found in the DMA-API.txt
+> >> > file:
+> >> >
+> >> >         Consistent memory is memory for which a write by either the
+> >> >         device or the processor can immediately be read by the processor
+> >> >         or device without having to worry about caching effects. (You
+> >> >         may however need to make sure to flush the processor's write
+> >> >         buffers before telling devices to read that memory.)
+> >> >
+> >> > But there is no API for "flushing the processor's write buffers". Does
+> >> > it mean that this should be taken care of in writel()? We would make the
+> >> > I/O accessors pretty expensive on some architectures.
+> >>
+> >> The APIs for that are mb/wmb/rmb ones.
+> >
+> > So if that's the API for the above case and we are strictly referring to
+> > the sata_sil24 patch I sent - shouldn't we just add wmb() in the driver
+> > between the write to the DMA buffer and the writel() to start the DMA
+> > transfer? Do we need to move the wmb() to the writel() macro?
 > 
-> OK, so that doesn't make a lot of sense to me; I suspect because you
-> don't understand what parisc is doing.  These aren't names of linux
-> special sections ... they're names of function sections.  For
-> efficiency, we take specific hot functions and place them together in
-> the linker script so the jumps between them are small enough to be coded
-> as relative on the 32 bit architecture.  It's really just a more
-> efficient way of laying out the binary.
+> I think it would be best if writel, etc. did the write buffer flushing
+> by default. As Nick said, if there are some performance critical areas
+> then those can use the relaxed versions but it's safest if the default
+> behavior works as drivers expect.
 
-Yeah, I'd forgotten parisc was doing -ffunction-sections, now I understand 
-what you're talking about.  What I'd recommend is just moving the 
-.text.do_softirq and friends like in the hunk below -- I believe that 
-should achieve the same performance goals, and should have no conflict 
-with adding a wildcard for -ffunction-sections generated sections to 
-TEXT_TEXT.
+I went through the past discussion pointed to by Fujita (thanks!) but I
+wouldn't say it resulted in a definitive guideline on how architectures
+should implement the I/O accessors.
 
-	-Tim Abbott
+From an ARM perspective, I would prefer to add wmb() in the drivers
+where it matters - basically only those using DMA coherent buffers. A
+lot of drivers already have this in place and that's already documented
+in DMA-API.txt (maybe with a bit of clarification).
 
-diff --git a/arch/parisc/kernel/vmlinux.lds.S 
-b/arch/parisc/kernel/vmlinux.lds.S
-index d64a6bb..ad0d3d3 100644
---- a/arch/parisc/kernel/vmlinux.lds.S
-+++ b/arch/parisc/kernel/vmlinux.lds.S
-@@ -52,15 +52,15 @@ SECTIONS
-        _text = .;              /* Text and read-only data */
-        .text ALIGN(16) : {
-                HEAD_TEXT
-+               *(.text.do_softirq)
-+               *(.text.sys_exit)
-+               *(.text.do_sigaltstack)
-+               *(.text.do_fork)
-                TEXT_TEXT
-                SCHED_TEXT
-                LOCK_TEXT
-                KPROBES_TEXT
-                IRQENTRY_TEXT
--               *(.text.do_softirq)
--               *(.text.sys_exit)
--               *(.text.do_sigaltstack)
--               *(.text.do_fork)
-                *(.text.*)
-                *(.fixup)
-                *(.lock.text)           /* out-of-line lock text */
+Some statistics - grepping drivers/ for alloc_coherent shows 285 files.
+Of these, 69 already use barriers. It's not trivial to go through 200+
+drivers and add barriers but I wouldn't say that's impossible.
 
+If we go the other route of adding mb() in writel() (though I don't
+prefer it), there are two additional issues:
+
+(1) how relaxed would the "writel_relaxed" etc. accessors be? Are they
+relaxed only with regards to coherent DMA buffers or relaxed with other
+I/O operations as well? Can the compiler reorder them?
+
+(2) do we go through all the drivers that currently have *mb() and
+remove them? A quick grep in drivers/ shows over 1600 occurrences of
+*mb().
+
+-- 
+Catalin
 
