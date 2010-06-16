@@ -1,80 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:28631 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28660 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756491Ab0FPFqc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:32 -0400
+	with ESMTP id S1756984Ab0FPFqg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:36 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 11/37] x86,lmb: Add lmb_reserve_range/lmb_free_range
-Date: Tue, 15 Jun 2010 22:42:20 -0700
-Message-ID: <1276666966-14259-12-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 35/37] x86: Change e820_any_mapped() to __init
+Date: Tue, 15 Jun 2010 22:42:44 -0700
+Message-ID: <1276666966-14259-36-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100616054220.UAiSWGA8h3Fjxi99_X8rRvXX2q9EL6xNvB2tWmfg0BU@z>
+Message-ID: <20100616054244.J8D7u95PWGn4IbMGx_hbDDUJWQr53WKW9IvoGt66fUU@z>
 
-they are wrappers for core versions.
-they are taking start/end/name instead of base/size.
-will make x86 conversion more easy
-
-could add more debug print out
-
--v2: change get_max_mapped() to lmb.default_alloc_limit according to Michael
-      Ellerman and Ben
-     change to lmb_reserve_range and lmb_free_range according to Michael Ellerman
--v3: call check_and_double after reserve/free, so could avoid to use
-      find_lmb_area. Suggested by Michael Ellerman
+We don't need to expose e820_any_mapped() anymore
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    3 +++
- arch/x86/mm/lmb.c          |   22 ++++++++++++++++++++++
- 2 files changed, 25 insertions(+), 0 deletions(-)
+ arch/x86/kernel/e820.c |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index e8207f8..70df84f 100644
---- a/arch/x86/include/asm/lmb.h
-+++ b/arch/x86/include/asm/lmb.h
-@@ -6,4 +6,7 @@
- u64 lmb_find_in_range_size(u64 start, u64 *sizep, u64 align);
- void lmb_to_bootmem(u64 start, u64 end);
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index baa38df..f338b3b 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -47,9 +47,10 @@ EXPORT_SYMBOL(pci_mem_start);
+ /*
+  * This function checks if any part of the range <start,end> is mapped
+  * with type.
++ * phys_pud_init() is using it and is _meminit, but we have !after_bootmem
++ * so could use refok here
+  */
+-int
+-e820_any_mapped(u64 start, u64 end, unsigned type)
++int __init_refok e820_any_mapped(u64 start, u64 end, unsigned type)
+ {
+ 	int i;
  
-+void lmb_reserve_range(u64 start, u64 end, char *name);
-+void lmb_free_range(u64 start, u64 end);
-+
- #endif
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index a959699..6b6cc58 100644
---- a/arch/x86/mm/lmb.c
-+++ b/arch/x86/mm/lmb.c
-@@ -116,3 +116,25 @@ void __init lmb_to_bootmem(u64 start, u64 end)
- 		lmb_reserve(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
+@@ -64,7 +65,6 @@ e820_any_mapped(u64 start, u64 end, unsigned type)
+ 	}
+ 	return 0;
  }
- #endif
-+
-+void __init lmb_reserve_range(u64 start, u64 end, char *name)
-+{
-+	if (start == end)
-+		return;
-+
-+	if (WARN_ONCE(start > end, "lmb_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
-+		return;
-+
-+	lmb_reserve(start, end - start);
-+}
-+
-+void __init lmb_free_range(u64 start, u64 end)
-+{
-+	if (start == end)
-+		return;
-+
-+	if (WARN_ONCE(start > end, "lmb_free_range: wrong range [%#llx, %#llx]\n", start, end))
-+		return;
-+
-+	lmb_free(start, end - start);
-+}
+-EXPORT_SYMBOL_GPL(e820_any_mapped);
+ 
+ /*
+  * This function checks if the entire range <start,end> is mapped with type.
 -- 
 1.6.4.2
 
