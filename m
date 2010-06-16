@@ -1,158 +1,85 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 12/37] x86, lmb: Add get_free_all_memory_range()
-Date: Tue, 15 Jun 2010 22:42:21 -0700
-Message-ID: <1276666966-14259-13-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 32/37] x86: Align e820 ram range to page
+Date: Tue, 15 Jun 2010 22:42:41 -0700
+Message-ID: <1276666966-14259-33-git-send-email-yinghai@kernel.org>
 References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:28676 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757206Ab0FPFqj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:39 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.cra>
-Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Jan Beulich <jbeulich@novell.com>
+Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-get_free_all_memory_range is for CONFIG_NO_BOOTMEM=y, and will be called by
-free_all_memory_core_early().
+for 2.6.34
 
-It will use early_node_map aka active ranges subtract lmb.reserved to
-get all free range, and those ranges will convert to slab pages.
-
--v4: increase range size
+To workaround wrong BIOS memory map.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Jan Beulich <jbeulich@novell.com>
 ---
- arch/x86/include/asm/lmb.h |    2 +
- arch/x86/mm/lmb.c          |  102 +++++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 103 insertions(+), 1 deletions(-)
+ arch/x86/kernel/e820.c |   44 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 44 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index 70df84f..63bb597 100644
---- a/arch/x86/include/asm/lmb.h
-+++ b/arch/x86/include/asm/lmb.h
-@@ -8,5 +8,7 @@ void lmb_to_bootmem(u64 start, u64 end);
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 63b46ac..025e139 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -910,6 +910,47 @@ static int __init parse_memmap_opt(char *p)
+ }
+ early_param("memmap", parse_memmap_opt);
  
- void lmb_reserve_range(u64 start, u64 end, char *name);
- void lmb_free_range(u64 start, u64 end);
-+struct range;
-+int get_free_all_memory_range(struct range **rangep, int nodeid);
- 
- #endif
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index 6b6cc58..3954103 100644
---- a/arch/x86/mm/lmb.c
-+++ b/arch/x86/mm/lmb.c
-@@ -86,7 +86,107 @@ u64 __init lmb_find_in_range_size(u64 start, u64 *sizep, u64 align)
- 	return LMB_ERROR;
++static void __init e820_align_ram_page(void)
++{
++	int i;
++	bool changed = false;;
++
++	for (i = 0; i < e820.nr_map; i++) {
++		struct e820entry *entry = &e820.map[i];
++		u64 start, end;
++		u64 start_aligned, end_aligned;
++
++		if (entry->type != E820_RAM)
++			continue;
++
++		start = entry->addr;
++		end = start + entry->size;
++
++		start_aligned = round_up(start, PAGE_SIZE);
++		end_aligned = round_down(end, PAGE_SIZE);
++
++		if (end_aligned <= start_aligned) {
++			e820_update_range(start, end - start, E820_RAM, E820_RESERVED);
++			changed = true;
++			continue;
++		}
++		if (start < start_aligned) {
++			e820_update_range(start, start_aligned - start, E820_RAM, E820_RESERVED);
++			changed = true;
++		}
++		if (end_aligned < end) {
++			e820_update_range(end_aligned, end - end_aligned, E820_RAM, E820_RESERVED);
++			changed = true;
++		}
++	}
++
++	if (changed) {
++		sanitize_e820_map();
++		printk(KERN_INFO "aligned physical RAM map:\n");
++		e820_print_map("aligned");
++	}
++}
++
+ void __init finish_e820_parsing(void)
+ {
+ 	if (userdef) {
+@@ -922,6 +963,9 @@ void __init finish_e820_parsing(void)
+ 		printk(KERN_INFO "user-defined physical RAM map:\n");
+ 		e820_print_map("user");
+ 	}
++
++	/* In case, We have RAM entres that are not PAGE aligned */
++	e820_align_ram_page();
  }
  
--#ifndef CONFIG_NO_BOOTMEM
-+static __init struct range *find_range_array(int count)
-+{
-+	u64 end, size, mem;
-+	struct range *range;
-+
-+	size = sizeof(struct range) * count;
-+	end = lmb.current_limit;
-+
-+	mem = lmb_find_in_range(0, end, size, sizeof(struct range));
-+	if (mem == LMB_ERROR)
-+		panic("can not find more space for range array");
-+
-+	/*
-+	 * This range is tempoaray, so don't reserve it, it will not be
-+	 * overlapped because We will not alloccate new buffer before
-+	 * We discard this one
-+	 */
-+	range = __va(mem);
-+	memset(range, 0, size);
-+
-+	return range;
-+}
-+
-+#ifdef CONFIG_NO_BOOTMEM
-+static void __init subtract_lmb_reserved(struct range *range, int az)
-+{
-+	int count;
-+	u64 final_start, final_end;
-+	struct lmb_region *r;
-+
-+	/* Take out region array itself at first*/
-+	if (lmb.reserved.regions != lmb_reserved_init_regions)
-+		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
-+
-+	count  = lmb.reserved.cnt;
-+
-+	pr_info("Subtract (%d early reservations)\n", count);
-+
-+	for_each_lmb(reserved, r) {
-+		pr_info("  [%010llx - %010llx]\n", (u64)r->base, (u64)r->base + r->size);
-+		final_start = PFN_DOWN(r->base);
-+		final_end = PFN_UP(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		subtract_range(range, az, final_start, final_end);
-+	}
-+	/* Put region array back ? */
-+	if (lmb.reserved.regions != lmb_reserved_init_regions)
-+		lmb_reserve(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
-+}
-+
-+struct count_data {
-+	int nr;
-+};
-+
-+static int __init count_work_fn(unsigned long start_pfn,
-+				unsigned long end_pfn, void *datax)
-+{
-+	struct count_data *data = datax;
-+
-+	data->nr++;
-+
-+	return 0;
-+}
-+
-+static int __init count_early_node_map(int nodeid)
-+{
-+	struct count_data data;
-+
-+	data.nr = 0;
-+	work_with_active_regions(nodeid, count_work_fn, &data);
-+
-+	return data.nr;
-+}
-+
-+int __init get_free_all_memory_range(struct range **rangep, int nodeid)
-+{
-+	int count;
-+	struct range *range;
-+	int nr_range;
-+
-+	count = (lmb.reserved.cnt + count_early_node_map(nodeid)) * 2;
-+
-+	range = find_range_array(count);
-+	nr_range = 0;
-+
-+	/*
-+	 * Use early_node_map[] and lmb.reserved.region to get range array
-+	 * at first
-+	 */
-+	nr_range = add_from_early_node_map(range, count, nr_range, nodeid);
-+#ifdef CONFIG_X86_32
-+	subtract_range(range, count, max_low_pfn, -1ULL);
-+#endif
-+	subtract_lmb_reserved(range, count);
-+	nr_range = clean_sort_range(range, count);
-+
-+	*rangep = range;
-+	return nr_range;
-+}
-+#else
- void __init lmb_to_bootmem(u64 start, u64 end)
- {
- 	int count;
+ static inline const char *e820_type_to_string(int e820_type)
 -- 
 1.6.4.2
