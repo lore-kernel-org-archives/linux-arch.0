@@ -1,12 +1,12 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 23/37] x86, lmb: Use lmb_memory_size()/lmb_free_memory_size() to get correct dma_reserve
-Date: Tue, 15 Jun 2010 22:42:32 -0700
-Message-ID: <1276666966-14259-24-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 36/37] x86: Use walk_system_ream_range() instead of referring e820.map directly for tboot
+Date: Tue, 15 Jun 2010 22:42:45 -0700
+Message-ID: <1276666966-14259-37-git-send-email-yinghai@kernel.org>
 References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:28675 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28677 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757200Ab0FPFqj (ORCPT
+	with ESMTP id S1757231Ab0FPFqj (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:39 -0400
 In-Reply-To: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
@@ -14,98 +14,60 @@ List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.cra>
 Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-lmb_memory_size() will return memory size in lmb.memory.region.
-lmb_free_memory_size() will return free memory size in lmb.memory.region.
-
-So We can get exact reseved size in specified range.
-
-Set the size right after initmem_init(), because later bootmem API will
-get area above 16M. (except some fallback).
-
-Later after we remove the bootmem, We could call that just before paging_init().
+So we can make e820 to be __initdata
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/e820.h |    2 ++
- arch/x86/kernel/e820.c      |   17 +++++++++++++++++
- arch/x86/kernel/setup.c     |    1 +
- arch/x86/mm/init_64.c       |    7 -------
- 4 files changed, 20 insertions(+), 7 deletions(-)
+ arch/x86/kernel/tboot.c |   22 +++++++++-------------
+ 1 files changed, 9 insertions(+), 13 deletions(-)
 
-diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
-index 6fbd8cd..f59db16 100644
---- a/arch/x86/include/asm/e820.h
-+++ b/arch/x86/include/asm/e820.h
-@@ -118,6 +118,8 @@ extern u64 early_reserve_e820(u64 startt, u64 sizet, u64 align);
+diff --git a/arch/x86/kernel/tboot.c b/arch/x86/kernel/tboot.c
+index c2f1b26..20b9531 100644
+--- a/arch/x86/kernel/tboot.c
++++ b/arch/x86/kernel/tboot.c
+@@ -171,34 +171,30 @@ static void tboot_create_trampoline(void)
  
- void init_lmb_memory(void);
- void fill_lmb_memory(void);
-+void find_lmb_dma_reserve(void);
-+
- extern void finish_e820_parsing(void);
- extern void e820_reserve_resources(void);
- extern void e820_reserve_resources_late(void);
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index c8edb78..c09b84b 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -1110,3 +1110,20 @@ void __init fill_lmb_memory(void)
- 	lmb_analyze();
- 	lmb_dump_all();
- }
-+
-+void __init find_lmb_dma_reserve(void)
-+{
-+#ifdef CONFIG_X86_64
-+	u64 free_size_pfn;
-+	u64 mem_size_pfn;
-+	/*
-+	 * need to find out used area below MAX_DMA_PFN
-+	 * need to use lmb to get free size in [0, MAX_DMA_PFN]
-+	 * at first, and assume boot_mem will not take below MAX_DMA_PFN
-+	 */
-+	mem_size_pfn = lmb_memory_in_range(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
-+	free_size_pfn = lmb_free_memory_in_range(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
-+	set_dma_reserve(mem_size_pfn - free_size_pfn);
-+#endif
-+}
-+
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 908864a..988677a 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -1013,6 +1013,7 @@ void __init setup_arch(char **cmdline_p)
- #endif
+ #ifdef CONFIG_ACPI_SLEEP
  
- 	initmem_init(0, max_pfn, acpi, k8);
-+	find_lmb_dma_reserve();
- #ifndef CONFIG_NO_BOOTMEM
- 	lmb_to_bootmem(0, max_low_pfn<<PAGE_SHIFT);
- #endif
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index bb9315f..abb79de 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -53,8 +53,6 @@
- #include <asm/init.h>
- #include <linux/bootmem.h>
- 
--static unsigned long dma_reserve __initdata;
--
- static int __init parse_direct_gbpages_off(char *arg)
+-static void add_mac_region(phys_addr_t start, unsigned long size)
++static int
++add_mac_region(unsigned long start_pfn, unsigned long nr_pages, void  *arg)
  {
- 	direct_gbpages = 0;
-@@ -821,11 +819,6 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
++	u64 start = start_pfn;
++	u64 size = nr_pages;
+ 	struct tboot_mac_region *mr;
+-	phys_addr_t end = start + size;
  
- 	reserve_bootmem(phys, len, flags);
+ 	if (tboot->num_mac_regions >= MAX_TB_MAC_REGIONS)
+ 		panic("tboot: Too many MAC regions\n");
  
--	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
--		dma_reserve += len / PAGE_SIZE;
--		set_dma_reserve(dma_reserve);
--	}
--
- 	return 0;
+ 	if (start && size) {
+ 		mr = &tboot->mac_regions[tboot->num_mac_regions++];
+-		mr->start = round_down(start, PAGE_SIZE);
+-		mr->size  = round_up(end, PAGE_SIZE) - mr->start;
++		mr->start = start << PAGE_SHIFT;
++		mr->size  = (u32) (size << PAGE_SHIFT);
+ 	}
++
++	return 0;
  }
- #endif
+ 
+ static int tboot_setup_sleep(void)
+ {
+-	int i;
+-
+ 	tboot->num_mac_regions = 0;
+ 
+-	for (i = 0; i < e820.nr_map; i++) {
+-		if ((e820.map[i].type != E820_RAM)
+-		 && (e820.map[i].type != E820_RESERVED_KERN))
+-			continue;
+-
+-		add_mac_region(e820.map[i].addr, e820.map[i].size);
+-	}
++	walk_system_ram_range(0, max_pfn, NULL, add_mac_region);
+ 
+ 	tboot->acpi_sinfo.kernel_s3_resume_vector = acpi_wakeup_address;
+ 
 -- 
 1.6.4.2
