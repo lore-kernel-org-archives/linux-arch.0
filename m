@@ -1,50 +1,91 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 35/37] x86: Change e820_any_mapped() to __init
-Date: Tue, 15 Jun 2010 22:42:44 -0700
-Message-ID: <1276666966-14259-36-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 31/37] x86: Change e820_saved to __initdata
+Date: Tue, 15 Jun 2010 22:42:40 -0700
+Message-ID: <1276666966-14259-32-git-send-email-yinghai@kernel.org>
 References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:28660 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756984Ab0FPFqg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:36 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.cra>
 Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-We don't need to expose e820_any_mapped() anymore
+for 2.6.34
+
+Add save_e820_map() and change e820_saved to static
+also make it to be __initdata to get some bytes memory back.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/kernel/e820.c |    6 +++---
- 1 files changed, 3 insertions(+), 3 deletions(-)
+ arch/x86/include/asm/e820.h |    2 +-
+ arch/x86/kernel/e820.c      |    9 +++++++--
+ arch/x86/kernel/setup.c     |    2 +-
+ 3 files changed, 9 insertions(+), 4 deletions(-)
 
+diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
+index 25962e1..334281f 100644
+--- a/arch/x86/include/asm/e820.h
++++ b/arch/x86/include/asm/e820.h
+@@ -75,7 +75,6 @@ struct e820map {
+ #ifdef __KERNEL__
+ /* see comment in arch/x86/kernel/e820.c */
+ extern struct e820map e820;
+-extern struct e820map e820_saved;
+ 
+ extern unsigned long pci_mem_start;
+ extern int e820_any_mapped(u64 start, u64 end, unsigned type);
+@@ -83,6 +82,7 @@ extern int e820_all_mapped(u64 start, u64 end, unsigned type);
+ extern void e820_add_region(u64 start, u64 size, int type);
+ extern void e820_print_map(char *who);
+ int sanitize_e820_map(void);
++void save_e820_map(void);
+ extern u64 e820_update_range(u64 start, u64 size, unsigned old_type,
+ 			       unsigned new_type);
+ extern u64 e820_remove_range(u64 start, u64 size, unsigned old_type,
 diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index baa38df..f338b3b 100644
+index 6d85399..63b46ac 100644
 --- a/arch/x86/kernel/e820.c
 +++ b/arch/x86/kernel/e820.c
-@@ -47,9 +47,10 @@ EXPORT_SYMBOL(pci_mem_start);
- /*
-  * This function checks if any part of the range <start,end> is mapped
-  * with type.
-+ * phys_pud_init() is using it and is _meminit, but we have !after_bootmem
-+ * so could use refok here
+@@ -36,7 +36,7 @@
+  * next kernel with full memory.
   */
--int
--e820_any_mapped(u64 start, u64 end, unsigned type)
-+int __init_refok e820_any_mapped(u64 start, u64 end, unsigned type)
- {
- 	int i;
+ struct e820map e820;
+-struct e820map e820_saved;
++static struct e820map __initdata e820_saved;
  
-@@ -64,7 +65,6 @@ e820_any_mapped(u64 start, u64 end, unsigned type)
- 	}
- 	return 0;
+ /* For PCI or other memory-mapped resources */
+ unsigned long pci_mem_start = 0xaeedbabe;
+@@ -1072,12 +1072,17 @@ char *__init default_machine_specific_memory_setup(void)
+ 	return who;
  }
--EXPORT_SYMBOL_GPL(e820_any_mapped);
  
- /*
-  * This function checks if the entire range <start,end> is mapped with type.
++void __init save_e820_map(void)
++{
++	memcpy(&e820_saved, &e820, sizeof(struct e820map));
++}
++
+ void __init setup_memory_map(void)
+ {
+ 	char *who;
+ 
+ 	who = x86_init.resources.memory_setup();
+-	memcpy(&e820_saved, &e820, sizeof(struct e820map));
++	save_e820_map();
+ 	printk(KERN_INFO "BIOS-provided physical RAM map:\n");
+ 	e820_print_map(who);
+ }
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 30cbf8c..dc6b77b 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -463,7 +463,7 @@ static void __init e820_reserve_setup_data(void)
+ 		return;
+ 
+ 	sanitize_e820_map();
+-	memcpy(&e820_saved, &e820, sizeof(struct e820map));
++	save_e820_map();
+ 	printk(KERN_INFO "extended physical RAM map:\n");
+ 	e820_print_map("reserve setup_data");
+ }
 -- 
 1.6.4.2
