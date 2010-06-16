@@ -1,69 +1,48 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 02/37] lmb: Prepare x86 to use lmb to replace early_res
-Date: Wed, 16 Jun 2010 18:48:27 +1000
-Message-ID: <1276678107.2552.214.camel@pasglop>
-References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
-	 <1276666966-14259-3-git-send-email-yinghai@kernel.org>
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: Re: [PATCH -v18 00/37] Use lmb with x86
+Date: Wed, 16 Jun 2010 08:43:49 -0700
+Message-ID: <4C18F135.20807@kernel.org>
+References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>	 <AANLkTinhO5sFs4YRP3nraC_ldZ8ZgzJBOQYYv9jLd_Dw@mail.gmail.com> <1276677680.2552.205.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1276666966-14259-3-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:43044 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753320Ab0FPPpB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 11:45:01 -0400
+In-Reply-To: <1276677680.2552.205.camel@pasglop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>
+Cc: Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Johannes Weiner <hannes@cmpxchg.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Tue, 2010-06-15 at 22:42 -0700, Yinghai Lu wrote:
-> 1. expose lmb_debug
-> 2. expose lmb_reserved_init_regions
+On 06/16/2010 01:41 AM, Benjamin Herrenschmidt wrote:
+> On Tue, 2010-06-15 at 23:10 -0700, Linus Torvalds wrote:
+>> On Tuesday, June 15, 2010, Yinghai Lu <yinghai@kernel.org> wrote:
+>>>
+>>>  46 files changed, 1476 insertions(+), 1282 deletions(-)
+>>
+>> So what was the advantage again? It's adding more lines than it
+>> removes. Wasn't the point to simplify things, not make them bigger?
 > 
-> -v2: drop lmb_add_region() and LMB_ERROR export
-> -v3: seperate wrong return of lmb_fin_base to another patch
-> -v4: expose lmb_can_resize to handle x86 EFI that could have more than
->       128 entries
+> I -think- the point is that once that's done, you can remove a whole lot
+> of gunk that was added such as the kernel/range.c caca, etc...
+> (basically, x86 gunk gratuituously made generic and that should really
+> just die instead).
 
-I don't like those too much but I suppose we can go with that for now
-and fix things up later.
+right.
 
-Ack.
+this patch include seperate bootmem.c into bootmem.c and nobootmem.c to reduce
+MACRO according Ingo and others.
+ mm/bootmem.c                    |  165 +----------
+ mm/nobootmem.c                  |  415 +++++++++++++++++++++++++++
 
-Ben.
+later will
+1. remove x86 own copy for find_from_low_to_high after more testing with high to low. that is about 200 lines code.
+2. replace range.c with lmb. but need to expand lmb little bit
+   like add can_resize and can_merge to be attribute of lmb_type.
 
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> ---
->  include/linux/lmb.h |    3 +++
->  lib/lmb.c           |    5 +++--
->  2 files changed, 6 insertions(+), 2 deletions(-)
-> 
-> diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-> index 6f8c4bd..1e96224 100644
-> --- a/include/linux/lmb.h
-> +++ b/include/linux/lmb.h
-> @@ -39,6 +39,9 @@ struct lmb {
->  };
->  
->  extern struct lmb lmb;
-> +extern int lmb_debug;
-> +extern int lmb_can_resize;
-> +extern struct lmb_region lmb_reserved_init_regions[];
->  
->  extern void __init lmb_init(void);
->  extern void __init lmb_analyze(void);
-> diff --git a/lib/lmb.c b/lib/lmb.c
-> index 13d1a04..bbdb1ec 100644
-> --- a/lib/lmb.c
-> +++ b/lib/lmb.c
-> @@ -22,9 +22,10 @@
->  
->  struct lmb lmb;
->  
-> -static int lmb_debug, lmb_can_resize;
-> +int lmb_debug;
-> +int lmb_can_resize;
->  static struct lmb_region lmb_memory_init_regions[INIT_LMB_REGIONS + 1];
-> -static struct lmb_region lmb_reserved_init_regions[INIT_LMB_REGIONS + 1];
-> +struct lmb_region lmb_reserved_init_regions[INIT_LMB_REGIONS + 1];
->  
->  #define LMB_ERROR	(~(phys_addr_t)0)
->  
+Thanks
+
+Yinghai Lu
