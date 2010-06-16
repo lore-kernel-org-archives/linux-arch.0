@@ -1,94 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:28173 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28463 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754108Ab0FPFp7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:45:59 -0400
+	with ESMTP id S1756194Ab0FPFqM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:12 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 18/37] x86, lmb: Use lmb_debug to control debug message print out
-Date: Tue, 15 Jun 2010 22:42:27 -0700
-Message-ID: <1276666966-14259-19-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 09/37] bootmem, x86: Add weak version of reserve_bootmem_generic
+Date: Tue, 15 Jun 2010 22:42:18 -0700
+Message-ID: <1276666966-14259-10-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100616054227.6JaZUnZCofusC1_RhjdFlCkhIF9f7kDA7qZ3O08iKAQ@z>
+Message-ID: <20100616054218.Rh67XupGhng9Eo83_2PD9O7SJzEHSBPnwrtHiLPz--o@z>
 
-Also let lmb_reserve_range/lmb_free_range could print out name if lmb=debug is
-specified
+It will be used lmb_to_bootmem converting
 
-will also print ther name when reserve_lmb_area/free_lmb_area are called.
+It is an wrapper for reserve_bootmem, and x86 64bit is using special one.
+
+Also clean up that version for x86_64. We don't need to take care of numa
+path for that, bootmem can handle it how
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/mm/lmb.c |   24 ++++++++++++++++++------
- 1 files changed, 18 insertions(+), 6 deletions(-)
+ arch/x86/mm/init_32.c |    6 ------
+ arch/x86/mm/init_64.c |   20 ++------------------
+ mm/bootmem.c          |    6 ++++++
+ 3 files changed, 8 insertions(+), 24 deletions(-)
 
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index bd2f60b..209f25b 100644
---- a/arch/x86/mm/lmb.c
-+++ b/arch/x86/mm/lmb.c
-@@ -122,10 +122,12 @@ static void __init subtract_lmb_reserved(struct range *range, int az)
+diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+index bca7909..90e0545 100644
+--- a/arch/x86/mm/init_32.c
++++ b/arch/x86/mm/init_32.c
+@@ -1069,9 +1069,3 @@ void mark_rodata_ro(void)
+ #endif
+ }
+ #endif
+-
+-int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+-				   int flags)
+-{
+-	return reserve_bootmem(phys, len, flags);
+-}
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index ee41bba..634fa08 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -799,13 +799,10 @@ void mark_rodata_ro(void)
  
- 	count  = lmb.reserved.cnt;
+ #endif
  
--	pr_info("Subtract (%d early reservations)\n", count);
-+	if (lmb_debug)
-+		pr_info("Subtract (%d early reservations)\n", count);
++#ifndef CONFIG_NO_BOOTMEM
+ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 				   int flags)
+ {
+-#ifdef CONFIG_NUMA
+-	int nid, next_nid;
+-	int ret;
+-#endif
+ 	unsigned long pfn = phys >> PAGE_SHIFT;
  
- 	for_each_lmb(reserved, r) {
--		pr_info("  [%010llx - %010llx]\n", (u64)r->base, (u64)r->base + r->size);
-+		if (lmb_debug)
-+			pr_info("  [%010llx - %010llx]\n", (u64)r->base, (u64)r->base + r->size);
- 		final_start = PFN_DOWN(r->base);
- 		final_end = PFN_UP(r->base + r->size);
- 		if (final_start >= final_end)
-@@ -198,16 +200,20 @@ void __init lmb_to_bootmem(u64 start, u64 end)
- 		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
- 
- 	count  = lmb.reserved.cnt;
--	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
-+	if (lmb_debug)
-+		pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
- 	for_each_lmb(reserved, r) {
--		pr_info("  [%010llx - %010llx] ", (u64)r->base, (u64)r->base + r->size);
-+		if (lmb_debug)
-+			pr_info("  [%010llx - %010llx] ", (u64)r->base, (u64)r->base + r->size);
- 		final_start = max(start, r->base);
- 		final_end = min(end, r->base + r->size);
- 		if (final_start >= final_end) {
--			pr_cont("\n");
-+			if (lmb_debug)
-+				pr_cont("\n");
- 			continue;
- 		}
--		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
-+		if (lmb_debug)
-+			pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
- 		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
+ 	if (pfn >= max_pfn) {
+@@ -821,21 +818,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 		return -EFAULT;
  	}
  
-@@ -289,6 +295,9 @@ void __init lmb_reserve_range(u64 start, u64 end, char *name)
- 	if (WARN_ONCE(start > end, "lmb_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
- 		return;
+-	/* Should check here against the e820 map to avoid double free */
+-#ifdef CONFIG_NUMA
+-	nid = phys_to_nid(phys);
+-	next_nid = phys_to_nid(phys + len - 1);
+-	if (nid == next_nid)
+-		ret = reserve_bootmem_node(NODE_DATA(nid), phys, len, flags);
+-	else
+-		ret = reserve_bootmem(phys, len, flags);
+-
+-	if (ret != 0)
+-		return ret;
+-
+-#else
+ 	reserve_bootmem(phys, len, flags);
+-#endif
  
-+	if (lmb_debug)
-+		pr_info("    lmb_reserve_range: [%010llx, %010llx] %16s\n", start, end, name);
-+
- 	lmb_reserve(start, end - start);
+ 	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
+ 		dma_reserve += len / PAGE_SIZE;
+@@ -844,6 +827,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 
+ 	return 0;
+ }
++#endif
+ 
+ int kern_addr_valid(unsigned long addr)
+ {
+diff --git a/mm/bootmem.c b/mm/bootmem.c
+index 58c66cc..ee31b95 100644
+--- a/mm/bootmem.c
++++ b/mm/bootmem.c
+@@ -526,6 +526,12 @@ int __init reserve_bootmem(unsigned long addr, unsigned long size,
  }
  
-@@ -300,6 +309,9 @@ void __init lmb_free_range(u64 start, u64 end)
- 	if (WARN_ONCE(start > end, "lmb_free_range: wrong range [%#llx, %#llx]\n", start, end))
- 		return;
- 
-+	if (lmb_debug)
-+		pr_info("       lmb_free_range: [%010llx, %010llx]\n", start, end);
+ #ifndef CONFIG_NO_BOOTMEM
++int __weak __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
++				   int flags)
++{
++	return reserve_bootmem(phys, len, flags);
++}
 +
- 	lmb_free(start, end - start);
- }
- 
+ static unsigned long __init align_idx(struct bootmem_data *bdata,
+ 				      unsigned long idx, unsigned long step)
+ {
 -- 
 1.6.4.2
 
