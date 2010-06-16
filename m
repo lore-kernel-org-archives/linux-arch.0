@@ -1,97 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:28658 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28651 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756945Ab0FPFqg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:36 -0400
+	with ESMTP id S1756867Ab0FPFqf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:35 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 31/37] x86: Change e820_saved to __initdata
-Date: Tue, 15 Jun 2010 22:42:40 -0700
-Message-ID: <1276666966-14259-32-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 29/37] swiotlb: Use page alignment for early buffer allocation
+Date: Tue, 15 Jun 2010 22:42:38 -0700
+Message-ID: <1276666966-14259-30-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100616054240.8v4GWMfyfXZM6Djzl9eHP1Lx3HNQrle93dLi_n9qqc8@z>
+Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, Becky Bruce <beckyb@kernel.crashing.org>
+Message-ID: <20100616054238.XTgx8zvHaoVuh6plcl6ksLAP9hZBDGOmbIYct0TwanM@z>
 
 for 2.6.34
 
-Add save_e820_map() and change e820_saved to static
-also make it to be __initdata to get some bytes memory back.
+We could call free_bootmem_late() if swiotlb is not used, and
+it will shrink to page alignement.
+
+So alloc them with page alignment at first, to avoid lose two pages
+
+before patch:
+[    0.000000]     lmb_reserve_range: [00d3600000, 00d7600000]   swiotlb buffer
+[    0.000000]     lmb_reserve_range: [00d7e7ef40, 00d7e9ef40]     swiotlb list
+[    0.000000]     lmb_reserve_range: [00d7e3ef40, 00d7e7ef40]  swiotlb orig_ad
+[    0.000000]     lmb_reserve_range: [000008a000, 0000092000]  swiotlb overflo
+
+after patch will get
+[    0.000000]     lmb_reserve_range: [00d3600000, 00d7600000]   swiotlb buffer
+[    0.000000]     lmb_reserve_range: [00d7e7e000, 00d7e9e000]     swiotlb list
+[    0.000000]     lmb_reserve_range: [00d7e3e000, 00d7e7e000]  swiotlb orig_ad
+[    0.000000]     lmb_reserve_range: [000008a000, 0000092000]  swiotlb overflo
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: Becky Bruce <beckyb@kernel.crashing.org>
 ---
- arch/x86/include/asm/e820.h |    2 +-
- arch/x86/kernel/e820.c      |    9 +++++++--
- arch/x86/kernel/setup.c     |    2 +-
- 3 files changed, 9 insertions(+), 4 deletions(-)
+ lib/swiotlb.c |   16 ++++++++--------
+ 1 files changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
-index 25962e1..334281f 100644
---- a/arch/x86/include/asm/e820.h
-+++ b/arch/x86/include/asm/e820.h
-@@ -75,7 +75,6 @@ struct e820map {
- #ifdef __KERNEL__
- /* see comment in arch/x86/kernel/e820.c */
- extern struct e820map e820;
--extern struct e820map e820_saved;
+diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+index a009055..ecfab7f 100644
+--- a/lib/swiotlb.c
++++ b/lib/swiotlb.c
+@@ -159,7 +159,7 @@ swiotlb_init_with_default_size(size_t default_size, int verbose)
+ 	/*
+ 	 * Get IO TLB memory from the low pages
+ 	 */
+-	io_tlb_start = alloc_bootmem_low_pages(bytes);
++	io_tlb_start = alloc_bootmem_low_pages(PAGE_ALIGN(bytes));
+ 	if (!io_tlb_start)
+ 		panic("Cannot allocate SWIOTLB buffer");
+ 	io_tlb_end = io_tlb_start + bytes;
+@@ -169,16 +169,16 @@ swiotlb_init_with_default_size(size_t default_size, int verbose)
+ 	 * to find contiguous free memory regions of size up to IO_TLB_SEGSIZE
+ 	 * between io_tlb_start and io_tlb_end.
+ 	 */
+-	io_tlb_list = alloc_bootmem(io_tlb_nslabs * sizeof(int));
++	io_tlb_list = alloc_bootmem_pages(PAGE_ALIGN(io_tlb_nslabs * sizeof(int)));
+ 	for (i = 0; i < io_tlb_nslabs; i++)
+  		io_tlb_list[i] = IO_TLB_SEGSIZE - OFFSET(i, IO_TLB_SEGSIZE);
+ 	io_tlb_index = 0;
+-	io_tlb_orig_addr = alloc_bootmem(io_tlb_nslabs * sizeof(phys_addr_t));
++	io_tlb_orig_addr = alloc_bootmem_pages(PAGE_ALIGN(io_tlb_nslabs * sizeof(phys_addr_t)));
  
- extern unsigned long pci_mem_start;
- extern int e820_any_mapped(u64 start, u64 end, unsigned type);
-@@ -83,6 +82,7 @@ extern int e820_all_mapped(u64 start, u64 end, unsigned type);
- extern void e820_add_region(u64 start, u64 size, int type);
- extern void e820_print_map(char *who);
- int sanitize_e820_map(void);
-+void save_e820_map(void);
- extern u64 e820_update_range(u64 start, u64 size, unsigned old_type,
- 			       unsigned new_type);
- extern u64 e820_remove_range(u64 start, u64 size, unsigned old_type,
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index 6d85399..63b46ac 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -36,7 +36,7 @@
-  * next kernel with full memory.
-  */
- struct e820map e820;
--struct e820map e820_saved;
-+static struct e820map __initdata e820_saved;
- 
- /* For PCI or other memory-mapped resources */
- unsigned long pci_mem_start = 0xaeedbabe;
-@@ -1072,12 +1072,17 @@ char *__init default_machine_specific_memory_setup(void)
- 	return who;
+ 	/*
+ 	 * Get the overflow emergency buffer
+ 	 */
+-	io_tlb_overflow_buffer = alloc_bootmem_low(io_tlb_overflow);
++	io_tlb_overflow_buffer = alloc_bootmem_low_pages(PAGE_ALIGN(io_tlb_overflow));
+ 	if (!io_tlb_overflow_buffer)
+ 		panic("Cannot allocate SWIOTLB overflow buffer!\n");
+ 	if (verbose)
+@@ -304,13 +304,13 @@ void __init swiotlb_free(void)
+ 			   get_order(io_tlb_nslabs << IO_TLB_SHIFT));
+ 	} else {
+ 		free_bootmem_late(__pa(io_tlb_overflow_buffer),
+-				  io_tlb_overflow);
++				  PAGE_ALIGN(io_tlb_overflow));
+ 		free_bootmem_late(__pa(io_tlb_orig_addr),
+-				  io_tlb_nslabs * sizeof(phys_addr_t));
++				  PAGE_ALIGN(io_tlb_nslabs * sizeof(phys_addr_t)));
+ 		free_bootmem_late(__pa(io_tlb_list),
+-				  io_tlb_nslabs * sizeof(int));
++				  PAGE_ALIGN(io_tlb_nslabs * sizeof(int)));
+ 		free_bootmem_late(__pa(io_tlb_start),
+-				  io_tlb_nslabs << IO_TLB_SHIFT);
++				  PAGE_ALIGN(io_tlb_nslabs << IO_TLB_SHIFT));
+ 	}
  }
  
-+void __init save_e820_map(void)
-+{
-+	memcpy(&e820_saved, &e820, sizeof(struct e820map));
-+}
-+
- void __init setup_memory_map(void)
- {
- 	char *who;
- 
- 	who = x86_init.resources.memory_setup();
--	memcpy(&e820_saved, &e820, sizeof(struct e820map));
-+	save_e820_map();
- 	printk(KERN_INFO "BIOS-provided physical RAM map:\n");
- 	e820_print_map(who);
- }
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 30cbf8c..dc6b77b 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -463,7 +463,7 @@ static void __init e820_reserve_setup_data(void)
- 		return;
- 
- 	sanitize_e820_map();
--	memcpy(&e820_saved, &e820, sizeof(struct e820map));
-+	save_e820_map();
- 	printk(KERN_INFO "extended physical RAM map:\n");
- 	e820_print_map("reserve setup_data");
- }
 -- 
 1.6.4.2
 
