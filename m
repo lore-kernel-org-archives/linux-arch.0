@@ -1,78 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:28712 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28541 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757427Ab0FPFqs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:48 -0400
+	with ESMTP id S1755918Ab0FPFqS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:18 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 27/37] x86: Have nobootmem version setup_bootmem_allocator()
-Date: Tue, 15 Jun 2010 22:42:36 -0700
-Message-ID: <1276666966-14259-28-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 15/37] x86, lmb: Add lmb_find_in_range_node()
+Date: Tue, 15 Jun 2010 22:42:24 -0700
+Message-ID: <1276666966-14259-16-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100616054236.8lubCR3Zz4vVleYcUl5dqxd54AyrX4FDk_VW-RIw-7s@z>
+Message-ID: <20100616054224.TpBygebtOVG594ysduXrfO7qMXu0GrvH74QZqAwj27Y@z>
 
-We can reduce #ifdef number from 3 to one in init_32.c
+It can be used to find NODE_DATA for numa.
+
+Need to make sure early_node_map[] is filled before it is called, otherwise
+it will fallback to lmb_find_in_range(), with node range.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/mm/init_32.c |   15 ++++++++++-----
- 1 files changed, 10 insertions(+), 5 deletions(-)
+ arch/x86/include/asm/lmb.h |    1 +
+ arch/x86/mm/lmb.c          |   15 +++++++++++++++
+ 2 files changed, 16 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index e3ae067..f172aa3 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -771,11 +771,9 @@ static unsigned long __init setup_node_bootmem(int nodeid,
+diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
+index 763fb52..02fe25d 100644
+--- a/arch/x86/include/asm/lmb.h
++++ b/arch/x86/include/asm/lmb.h
+@@ -14,5 +14,6 @@ int get_free_all_memory_range(struct range **rangep, int nodeid);
+ void lmb_register_active_regions(int nid, unsigned long start_pfn,
+ 					 unsigned long last_pfn);
+ u64 lmb_hole_size(u64 start, u64 end);
++u64 lmb_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
  
- 	return bootmap + bootmap_size;
+ #endif
+diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
+index b7e42bc..399d223 100644
+--- a/arch/x86/mm/lmb.c
++++ b/arch/x86/mm/lmb.c
+@@ -240,6 +240,21 @@ void __init lmb_free_range(u64 start, u64 end)
  }
--#endif
- 
- void __init setup_bootmem_allocator(void)
- {
--#ifndef CONFIG_NO_BOOTMEM
- 	int nodeid;
- 	unsigned long bootmap_size, bootmap;
- 	/*
-@@ -787,13 +785,11 @@ void __init setup_bootmem_allocator(void)
- 	if (bootmap == (unsigned long)LMB_ERROR)
- 		panic("Cannot find bootmem map of size %ld\n", bootmap_size);
- 	lmb_reserve_range(bootmap, bootmap + bootmap_size, "BOOTMAP");
--#endif
- 
- 	printk(KERN_INFO "  mapped low ram: 0 - %08lx\n",
- 		 max_pfn_mapped<<PAGE_SHIFT);
- 	printk(KERN_INFO "  low ram: 0 - %08lx\n", max_low_pfn<<PAGE_SHIFT);
- 
--#ifndef CONFIG_NO_BOOTMEM
- 	for_each_online_node(nodeid) {
- 		 unsigned long start_pfn, end_pfn;
- 
-@@ -811,10 +807,19 @@ void __init setup_bootmem_allocator(void)
- 		bootmap = setup_node_bootmem(nodeid, start_pfn, end_pfn,
- 						 bootmap);
- 	}
--#endif
- 
- 	after_bootmem = 1;
- }
-+#else
-+void __init setup_bootmem_allocator(void)
-+{
-+	printk(KERN_INFO "  mapped low ram: 0 - %08lx\n",
-+		 max_pfn_mapped<<PAGE_SHIFT);
-+	printk(KERN_INFO "  low ram: 0 - %08lx\n", max_low_pfn<<PAGE_SHIFT);
-+
-+	after_bootmem = 1;
-+}
-+#endif
  
  /*
-  * paging_init() sets up the page tables - note that the first 8MB are
++ * Need to call this function after lmb_register_active_regions,
++ * so early_node_map[] is filled already.
++ */
++u64 __init lmb_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align)
++{
++	u64 addr;
++	addr = find_memory_core_early(nid, size, align, start, end);
++	if (addr != LMB_ERROR)
++		return addr;
++
++	/* Fallback, should already have start end within node range */
++	return lmb_find_in_range(start, end, size, align);
++}
++
++/*
+  * Finds an active region in the address range from start_pfn to last_pfn and
+  * returns its range in ei_startpfn and ei_endpfn for the lmb entry.
+  */
 -- 
 1.6.4.2
 
