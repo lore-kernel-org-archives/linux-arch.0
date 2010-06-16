@@ -1,80 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:28301 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28631 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755931Ab0FPFqD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:03 -0400
+	with ESMTP id S1756491Ab0FPFqc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:32 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 10/37] x86, lmb: Add lmb_to_bootmem()
-Date: Tue, 15 Jun 2010 22:42:19 -0700
-Message-ID: <1276666966-14259-11-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 11/37] x86,lmb: Add lmb_reserve_range/lmb_free_range
+Date: Tue, 15 Jun 2010 22:42:20 -0700
+Message-ID: <1276666966-14259-12-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100616054219.zOYqGIRNGn5Ng0EHOZ-G9YgUnYRVRyolgf9N17tb2ZA@z>
+Message-ID: <20100616054220.UAiSWGA8h3Fjxi99_X8rRvXX2q9EL6xNvB2tWmfg0BU@z>
 
-lmb_to_bootmem() will reserve lmb.reserved.region in bootmem after bootmem is
-set up.
+they are wrappers for core versions.
+they are taking start/end/name instead of base/size.
+will make x86 conversion more easy
 
-We can use it to with all arches that support lmb later.
+could add more debug print out
+
+-v2: change get_max_mapped() to lmb.default_alloc_limit according to Michael
+      Ellerman and Ben
+     change to lmb_reserve_range and lmb_free_range according to Michael Ellerman
+-v3: call check_and_double after reserve/free, so could avoid to use
+      find_lmb_area. Suggested by Michael Ellerman
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    1 +
- arch/x86/mm/lmb.c          |   30 ++++++++++++++++++++++++++++++
- 2 files changed, 31 insertions(+), 0 deletions(-)
+ arch/x86/include/asm/lmb.h |    3 +++
+ arch/x86/mm/lmb.c          |   22 ++++++++++++++++++++++
+ 2 files changed, 25 insertions(+), 0 deletions(-)
 
 diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index 9d26895..e8207f8 100644
+index e8207f8..70df84f 100644
 --- a/arch/x86/include/asm/lmb.h
 +++ b/arch/x86/include/asm/lmb.h
-@@ -4,5 +4,6 @@
- #define ARCH_DISCARD_LMB
- 
+@@ -6,4 +6,7 @@
  u64 lmb_find_in_range_size(u64 start, u64 *sizep, u64 align);
-+void lmb_to_bootmem(u64 start, u64 end);
+ void lmb_to_bootmem(u64 start, u64 end);
  
++void lmb_reserve_range(u64 start, u64 end, char *name);
++void lmb_free_range(u64 start, u64 end);
++
  #endif
 diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index 4335f48..a959699 100644
+index a959699..6b6cc58 100644
 --- a/arch/x86/mm/lmb.c
 +++ b/arch/x86/mm/lmb.c
-@@ -86,3 +86,33 @@ u64 __init lmb_find_in_range_size(u64 start, u64 *sizep, u64 align)
- 	return LMB_ERROR;
+@@ -116,3 +116,25 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+ 		lmb_reserve(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
  }
- 
-+#ifndef CONFIG_NO_BOOTMEM
-+void __init lmb_to_bootmem(u64 start, u64 end)
+ #endif
++
++void __init lmb_reserve_range(u64 start, u64 end, char *name)
 +{
-+	int count;
-+	u64 final_start, final_end;
-+	struct lmb_region *r;
++	if (start == end)
++		return;
 +
-+	/* Take out region array itself */
-+	if (lmb.reserved.regions != lmb_reserved_init_regions)
-+		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
++	if (WARN_ONCE(start > end, "lmb_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
++		return;
 +
-+	count  = lmb.reserved.cnt;
-+	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
-+	for_each_lmb(reserved, r) {
-+		pr_info("  [%010llx - %010llx] ", (u64)r->base, (u64)r->base + r->size);
-+		final_start = max(start, r->base);
-+		final_end = min(end, r->base + r->size);
-+		if (final_start >= final_end) {
-+			pr_cont("\n");
-+			continue;
-+		}
-+		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
-+		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
-+	}
-+
-+	/* Put region array back ? */
-+	if (lmb.reserved.regions != lmb_reserved_init_regions)
-+		lmb_reserve(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
++	lmb_reserve(start, end - start);
 +}
-+#endif
++
++void __init lmb_free_range(u64 start, u64 end)
++{
++	if (start == end)
++		return;
++
++	if (WARN_ONCE(start > end, "lmb_free_range: wrong range [%#llx, %#llx]\n", start, end))
++		return;
++
++	lmb_free(start, end - start);
++}
 -- 
 1.6.4.2
 
