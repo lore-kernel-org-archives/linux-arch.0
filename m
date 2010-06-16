@@ -1,153 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:28521 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28433 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756447Ab0FPFqP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:15 -0400
+	with ESMTP id S1756072Ab0FPFqJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:09 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 08/37] x86, lmb: Add lmb_find_in_range_size()
-Date: Tue, 15 Jun 2010 22:42:17 -0700
-Message-ID: <1276666966-14259-9-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 07/37] lmb: Add lmb_find_in_range()
+Date: Tue, 15 Jun 2010 22:42:16 -0700
+Message-ID: <1276666966-14259-8-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100616054217.J56GcoJ-17KObnYdNPXi_YdSzjqCl-SkgJbGDEpHIi4@z>
+Message-ID: <20100616054216.bCymQN9Ov4MKIe49nQOA4j7bE1tfpP9MCf36uJOBGxw@z>
 
-size is returned according free range.
-Will be used to find free ranges for early_memtest and memory corruption check
+it is a wrapper for lmb_find_base
 
-Do not mess it up with lib/lmb.c yet.
+make it more easy for x86 to use lmb. ( rebase )
+x86 early_res is using find/reserve pattern instead of alloc.
+
+keep it in weak version, so later We can use x86 own version if needed.
+also We need it in lib/lmb.c, so one caller mm/page_alloc.c could get compiled
+
+-v2: Change name to lmb_find_in_range() according to Michael Ellerman
+-v3: Add generic weak version __lmb_find_in_range()
+     so keep the path for fallback to x86 version that handle from low
+-v4: use 0 for failing path
+-v5: use LMB_ERROR again
+-v6: remove __lmb_find_in_range()
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    8 ++++
- arch/x86/mm/Makefile       |    2 +
- arch/x86/mm/lmb.c          |   88 ++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 98 insertions(+), 0 deletions(-)
- create mode 100644 arch/x86/include/asm/lmb.h
- create mode 100644 arch/x86/mm/lmb.c
+ include/linux/lmb.h |    2 ++
+ lib/lmb.c           |    8 ++++++++
+ 2 files changed, 10 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-new file mode 100644
-index 0000000..9d26895
---- /dev/null
-+++ b/arch/x86/include/asm/lmb.h
-@@ -0,0 +1,8 @@
-+#ifndef _X86_LMB_H
-+#define _X86_LMB_H
-+
-+#define ARCH_DISCARD_LMB
-+
-+u64 lmb_find_in_range_size(u64 start, u64 *sizep, u64 align);
-+
-+#endif
-diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
-index a4c7683..8ab0505 100644
---- a/arch/x86/mm/Makefile
-+++ b/arch/x86/mm/Makefile
-@@ -26,4 +26,6 @@ obj-$(CONFIG_NUMA)		+= numa.o numa_$(BITS).o
- obj-$(CONFIG_K8_NUMA)		+= k8topology_64.o
- obj-$(CONFIG_ACPI_NUMA)		+= srat_$(BITS).o
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index 5310c7b..6ca5659 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -45,6 +45,8 @@ extern int lmb_debug;
+ extern int lmb_can_resize;
+ extern struct lmb_region lmb_reserved_init_regions[];
  
-+obj-$(CONFIG_HAVE_LMB)		+= lmb.o
++u64 lmb_find_in_range(u64 start, u64 end, u64 size, u64 align);
 +
- obj-$(CONFIG_MEMTEST)		+= memtest.o
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-new file mode 100644
-index 0000000..4335f48
---- /dev/null
-+++ b/arch/x86/mm/lmb.c
-@@ -0,0 +1,88 @@
-+#include <linux/kernel.h>
-+#include <linux/types.h>
-+#include <linux/init.h>
-+#include <linux/bitops.h>
-+#include <linux/lmb.h>
-+#include <linux/bootmem.h>
-+#include <linux/mm.h>
-+#include <linux/range.h>
-+
-+/* Check for already reserved areas */
-+static inline bool __init bad_addr_size(u64 *addrp, u64 *sizep, u64 align)
-+{
-+	struct lmb_region *r;
-+	u64 addr = *addrp, last;
-+	u64 size = *sizep;
-+	bool changed = false;
-+
-+again:
-+	last = addr + size;
-+	for_each_lmb(reserved, r) {
-+		if (last > r->base && addr < r->base) {
-+			size = r->base - addr;
-+			changed = true;
-+			goto again;
-+		}
-+		if (last > (r->base + r->size) && addr < (r->base + r->size)) {
-+			addr = round_up(r->base + r->size, align);
-+			size = last - addr;
-+			changed = true;
-+			goto again;
-+		}
-+		if (last <= (r->base + r->size) && addr >= r->base) {
-+			(*sizep)++;
-+			return false;
-+		}
-+	}
-+	if (changed) {
-+		*addrp = addr;
-+		*sizep = size;
-+	}
-+	return changed;
-+}
-+
-+static u64 __init __lmb_find_in_range_size(u64 ei_start, u64 ei_last, u64 start,
-+			 u64 *sizep, u64 align)
-+{
-+	u64 addr, last;
-+
-+	addr = round_up(ei_start, align);
-+	if (addr < start)
-+		addr = round_up(start, align);
-+	if (addr >= ei_last)
-+		goto out;
-+	*sizep = ei_last - addr;
-+	while (bad_addr_size(&addr, sizep, align) && addr + *sizep <= ei_last)
-+		;
-+	last = addr + *sizep;
-+	if (last > ei_last)
-+		goto out;
-+
-+	return addr;
-+
-+out:
-+	return LMB_ERROR;
-+}
-+
+ extern void __init lmb_init(void);
+ extern void __init lmb_analyze(void);
+ extern long lmb_add(phys_addr_t base, phys_addr_t size);
+diff --git a/lib/lmb.c b/lib/lmb.c
+index e45e967..2e00159 100644
+--- a/lib/lmb.c
++++ b/lib/lmb.c
+@@ -156,6 +156,14 @@ static phys_addr_t __init lmb_find_base(phys_addr_t size, phys_addr_t align,
+ 	return LMB_ERROR;
+ }
+ 
 +/*
-+ * Find next free range after start, and size is returned in *sizep
++ * Find a free area with specified alignment in a specific range.
 + */
-+u64 __init lmb_find_in_range_size(u64 start, u64 *sizep, u64 align)
++u64 __init __weak lmb_find_in_range(u64 start, u64 end, u64 size, u64 align)
 +{
-+	struct lmb_region *r;
-+
-+	for_each_lmb(memory, r) {
-+		u64 ei_start = r->base;
-+		u64 ei_last = ei_start + r->size;
-+		u64 addr;
-+
-+		addr = __lmb_find_in_range_size(ei_start, ei_last, start,
-+					 sizep, align);
-+
-+		if (addr != LMB_ERROR)
-+			return addr;
-+	}
-+
-+	return LMB_ERROR;
++	return lmb_find_base(size, align, start, end);
 +}
 +
+ static void __init_lmb lmb_remove_region(struct lmb_type *type, unsigned long r)
+ {
+ 	unsigned long i;
 -- 
 1.6.4.2
 
