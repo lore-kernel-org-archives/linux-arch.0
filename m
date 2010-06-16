@@ -1,154 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:28650 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28526 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756797Ab0FPFqe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:34 -0400
+	with ESMTP id S1756572Ab0FPFqQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:16 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 33/37] x86: Use wake_system_ram_range() instead of e820_any_mapped() in agp path
-Date: Tue, 15 Jun 2010 22:42:42 -0700
-Message-ID: <1276666966-14259-34-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 17/37] x86, lmb: Add lmb_memory_in_range()
+Date: Tue, 15 Jun 2010 22:42:26 -0700
+Message-ID: <1276666966-14259-18-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100616054242.kMrtMieTecgE-oY2a-iJmIZOKbsAllDQjmfByjW59VA@z>
+Message-ID: <20100616054226.nVaVs10VqHP3TSP2Fi30Uu9VvqoLDHHEi7wG7QpY7mM@z>
 
-Move apterture_valid back to .c
+It will return memory size in specified range according to lmb.memory.region
 
-and early path still use e820_any_mapped()
+Try to share some code with lmb_free_memory_in_range() by passing get_free to
+__lmb_memory_in_range().
 
-So later we can make e820_any_mapped() to _init
+-v2: Ben want _in_range in the name instead of size
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/gart.h   |   22 ----------------------
- arch/x86/kernel/aperture_64.c |   22 ++++++++++++++++++++++
- drivers/char/agp/amd64-agp.c  |   39 ++++++++++++++++++++++++++++++++++++++-
- 3 files changed, 60 insertions(+), 23 deletions(-)
+ arch/x86/include/asm/lmb.h |    1 +
+ arch/x86/mm/lmb.c          |   18 +++++++++++++++++-
+ 2 files changed, 18 insertions(+), 1 deletions(-)
 
-diff --git a/arch/x86/include/asm/gart.h b/arch/x86/include/asm/gart.h
-index 4ac5b0f..2b63a91 100644
---- a/arch/x86/include/asm/gart.h
-+++ b/arch/x86/include/asm/gart.h
-@@ -74,26 +74,4 @@ static inline void enable_gart_translation(struct pci_dev *dev, u64 addr)
-         pci_write_config_dword(dev, AMD64_GARTAPERTURECTL, ctl);
+diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
+index 3a304f8..749c224 100644
+--- a/arch/x86/include/asm/lmb.h
++++ b/arch/x86/include/asm/lmb.h
+@@ -16,5 +16,6 @@ void lmb_register_active_regions(int nid, unsigned long start_pfn,
+ u64 lmb_hole_size(u64 start, u64 end);
+ u64 lmb_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
+ u64 lmb_free_memory_in_range(u64 addr, u64 limit);
++u64 lmb_memory_in_range(u64 addr, u64 limit);
+ 
+ #endif
+diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
+index 991dd55..bd2f60b 100644
+--- a/arch/x86/mm/lmb.c
++++ b/arch/x86/mm/lmb.c
+@@ -217,7 +217,7 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+ }
+ #endif
+ 
+-u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
++static u64 __init __lmb_memory_in_range(u64 addr, u64 limit, bool get_free)
+ {
+ 	int i, count;
+ 	struct range *range;
+@@ -246,6 +246,10 @@ u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
+ 	}
+ 	subtract_range(range, count, 0, addr);
+ 	subtract_range(range, count, limit, -1ULL);
++
++	/* Subtract lmb.reserved.region in range ? */
++	if (!get_free)
++		goto sort_and_count_them;
+ 	for_each_lmb(reserved, r) {
+ 		final_start = PFN_DOWN(r->base);
+ 		final_end = PFN_UP(r->base + r->size);
+@@ -256,6 +260,8 @@ u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
+ 
+ 		subtract_range(range, count, final_start, final_end);
+ 	}
++
++sort_and_count_them:
+ 	nr_range = clean_sort_range(range, count);
+ 
+ 	free_size = 0;
+@@ -265,6 +271,16 @@ u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
+ 	return free_size << PAGE_SHIFT;
  }
  
--static inline int aperture_valid(u64 aper_base, u32 aper_size, u32 min_size)
--{
--	if (!aper_base)
--		return 0;
--
--	if (aper_base + aper_size > 0x100000000ULL) {
--		printk(KERN_INFO "Aperture beyond 4GB. Ignoring.\n");
--		return 0;
--	}
--	if (e820_any_mapped(aper_base, aper_base + aper_size, E820_RAM)) {
--		printk(KERN_INFO "Aperture pointing to e820 RAM. Ignoring.\n");
--		return 0;
--	}
--	if (aper_size < min_size) {
--		printk(KERN_INFO "Aperture too small (%d MB) than (%d MB)\n",
--				 aper_size>>20, min_size>>20);
--		return 0;
--	}
--
--	return 1;
--}
--
- #endif /* _ASM_X86_GART_H */
-diff --git a/arch/x86/kernel/aperture_64.c b/arch/x86/kernel/aperture_64.c
-index b5d8b0b..4755b5a 100644
---- a/arch/x86/kernel/aperture_64.c
-+++ b/arch/x86/kernel/aperture_64.c
-@@ -145,6 +145,28 @@ static u32 __init find_cap(int bus, int slot, int func, int cap)
- 	return 0;
- }
- 
-+static int __init aperture_valid(u64 aper_base, u32 aper_size, u32 min_size)
++u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
 +{
-+	if (!aper_base)
-+		return 0;
-+
-+	if (aper_base + aper_size > 0x100000000ULL) {
-+		printk(KERN_INFO "Aperture beyond 4GB. Ignoring.\n");
-+		return 0;
-+	}
-+	if (e820_any_mapped(aper_base, aper_base + aper_size, E820_RAM)) {
-+		printk(KERN_INFO "Aperture pointing to e820 RAM. Ignoring.\n");
-+		return 0;
-+	}
-+	if (aper_size < min_size) {
-+		printk(KERN_INFO "Aperture too small (%d MB) than (%d MB)\n",
-+				 aper_size>>20, min_size>>20);
-+		return 0;
-+	}
-+
-+	return 1;
++	return __lmb_memory_in_range(addr, limit, true);
 +}
 +
- /* Read a standard AGPv3 bridge header */
- static u32 __init read_agp(int bus, int slot, int func, int cap, u32 *order)
++u64 __init lmb_memory_in_range(u64 addr, u64 limit)
++{
++	return __lmb_memory_in_range(addr, limit, false);
++}
++
+ void __init lmb_reserve_range(u64 start, u64 end, char *name)
  {
-diff --git a/drivers/char/agp/amd64-agp.c b/drivers/char/agp/amd64-agp.c
-index 70312da..2b33f80 100644
---- a/drivers/char/agp/amd64-agp.c
-+++ b/drivers/char/agp/amd64-agp.c
-@@ -14,7 +14,6 @@
- #include <linux/agp_backend.h>
- #include <linux/mmzone.h>
- #include <asm/page.h>		/* PAGE_SIZE */
--#include <asm/e820.h>
- #include <asm/k8.h>
- #include <asm/gart.h>
- #include "agp.h"
-@@ -232,6 +231,44 @@ static const struct agp_bridge_driver amd_8151_driver = {
- 	.agp_type_to_mask_type  = agp_generic_type_to_mask_type,
- };
- 
-+static int __devinit
-+__is_ram(unsigned long pfn, unsigned long nr_pages, void *arg)
-+{
-+	return 1;
-+}
-+
-+static int __devinit any_ram_in_range(u64 base, u64 size)
-+{
-+	unsigned long pfn, nr_pages;
-+
-+	pfn = base >> PAGE_SHIFT;
-+	nr_pages = size >> PAGE_SHIFT;
-+
-+	return walk_system_ram_range(pfn, nr_pages, NULL, __is_ram) == 1;
-+}
-+
-+static int __devinit aperture_valid(u64 aper_base, u32 aper_size, u32 min_size)
-+{
-+	if (!aper_base)
-+		return 0;
-+
-+	if (aper_base + aper_size > 0x100000000ULL) {
-+		printk(KERN_INFO "Aperture beyond 4GB. Ignoring.\n");
-+		return 0;
-+	}
-+	if (any_ram_in_range(aper_base, aper_size)) {
-+		printk(KERN_INFO "Aperture pointing to E820 RAM. Ignoring.\n");
-+		return 0;
-+	}
-+	if (aper_size < min_size) {
-+		printk(KERN_INFO "Aperture too small (%d MB) than (%d MB)\n",
-+				 aper_size>>20, min_size>>20);
-+		return 0;
-+	}
-+
-+	return 1;
-+}
-+
- /* Some basic sanity checks for the aperture. */
- static int __devinit agp_aperture_valid(u64 aper, u32 size)
- {
+ 	if (start == end)
 -- 
 1.6.4.2
 
