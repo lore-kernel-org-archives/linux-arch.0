@@ -1,53 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:28740 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28729 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757537Ab0FPFq5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:57 -0400
+	with ESMTP id S1757521Ab0FPFqz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:55 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 04/37] lmb: Export LMB_ERROR again
-Date: Tue, 15 Jun 2010 22:42:13 -0700
-Message-ID: <1276666966-14259-5-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 25/37] mm: move contig_page_data define to bootmem.c/nobootmem.c
+Date: Tue, 15 Jun 2010 22:42:34 -0700
+Message-ID: <1276666966-14259-26-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100616054213.fIVJNh8PS06uzAj68sYSkm_RB24lxeeksoqKebuBRZw@z>
+Message-ID: <20100616054234.iOJF2C6v6Lx13bNdGUyZ2fjLDJTy8AYGqFZk-jbll6c@z>
 
-will used by x86 lmb_find_in_range_node and nobootmem replacement
+We can remove #ifdef in mm/page_alloc.c
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    1 +
- lib/lmb.c           |    2 --
- 2 files changed, 1 insertions(+), 2 deletions(-)
+ mm/bootmem.c    |    7 +++++++
+ mm/nobootmem.c  |    5 +++++
+ mm/page_alloc.c |    9 ---------
+ 3 files changed, 12 insertions(+), 9 deletions(-)
 
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 1e96224..eb8a5a3 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -19,6 +19,7 @@
- #include <asm/lmb.h>
+diff --git a/mm/bootmem.c b/mm/bootmem.c
+index 2741c34..ff55ad7 100644
+--- a/mm/bootmem.c
++++ b/mm/bootmem.c
+@@ -23,6 +23,13 @@
  
- #define INIT_LMB_REGIONS 128
-+#define LMB_ERROR	(~(phys_addr_t)0)
+ #include "internal.h"
  
- struct lmb_region {
- 	phys_addr_t base;
-diff --git a/lib/lmb.c b/lib/lmb.c
-index 7a6e11a..2aaeeec 100644
---- a/lib/lmb.c
-+++ b/lib/lmb.c
-@@ -27,8 +27,6 @@ int lmb_can_resize;
- static struct lmb_region lmb_memory_init_regions[INIT_LMB_REGIONS + 1];
- struct lmb_region lmb_reserved_init_regions[INIT_LMB_REGIONS + 1];
++#ifndef CONFIG_NEED_MULTIPLE_NODES
++struct pglist_data __refdata contig_page_data = {
++ .bdata = &bootmem_node_data[0]
++ };
++EXPORT_SYMBOL(contig_page_data);
++#endif
++
+ unsigned long max_low_pfn;
+ unsigned long min_low_pfn;
+ unsigned long max_pfn;
+diff --git a/mm/nobootmem.c b/mm/nobootmem.c
+index b385871..c17b5d0 100644
+--- a/mm/nobootmem.c
++++ b/mm/nobootmem.c
+@@ -23,6 +23,11 @@
  
--#define LMB_ERROR	(~(phys_addr_t)0)
+ #include "internal.h"
+ 
++#ifndef CONFIG_NEED_MULTIPLE_NODES
++struct pglist_data __refdata contig_page_data;
++EXPORT_SYMBOL(contig_page_data);
++#endif
++
+ unsigned long max_low_pfn;
+ unsigned long min_low_pfn;
+ unsigned long max_pfn;
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index f67a09d..ed53402 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -4722,15 +4722,6 @@ void __init set_dma_reserve(unsigned long new_dma_reserve)
+ 	dma_reserve = new_dma_reserve;
+ }
+ 
+-#ifndef CONFIG_NEED_MULTIPLE_NODES
+-struct pglist_data __refdata contig_page_data = {
+-#ifndef CONFIG_NO_BOOTMEM
+- .bdata = &bootmem_node_data[0]
+-#endif
+- };
+-EXPORT_SYMBOL(contig_page_data);
+-#endif
 -
- /* inline so we don't get a warning when pr_debug is compiled out */
- static inline const char *lmb_type_name(struct lmb_type *type)
+ void __init free_area_init(unsigned long *zones_size)
  {
+ 	free_area_init_node(0, zones_size,
 -- 
 1.6.4.2
 
