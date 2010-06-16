@@ -1,67 +1,112 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 07/37] lmb: Add lmb_find_in_range()
-Date: Tue, 15 Jun 2010 22:42:16 -0700
-Message-ID: <1276666966-14259-8-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 09/37] bootmem, x86: Add weak version of reserve_bootmem_generic
+Date: Tue, 15 Jun 2010 22:42:18 -0700
+Message-ID: <1276666966-14259-10-git-send-email-yinghai@kernel.org>
 References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28463 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756194Ab0FPFqM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jun 2010 01:46:12 -0400
 In-Reply-To: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.cra>
 Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-it is a wrapper for lmb_find_base
+It will be used lmb_to_bootmem converting
 
-make it more easy for x86 to use lmb. ( rebase )
-x86 early_res is using find/reserve pattern instead of alloc.
+It is an wrapper for reserve_bootmem, and x86 64bit is using special one.
 
-keep it in weak version, so later We can use x86 own version if needed.
-also We need it in lib/lmb.c, so one caller mm/page_alloc.c could get compiled
-
--v2: Change name to lmb_find_in_range() according to Michael Ellerman
--v3: Add generic weak version __lmb_find_in_range()
-     so keep the path for fallback to x86 version that handle from low
--v4: use 0 for failing path
--v5: use LMB_ERROR again
--v6: remove __lmb_find_in_range()
+Also clean up that version for x86_64. We don't need to take care of numa
+path for that, bootmem can handle it how
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/lmb.h |    2 ++
- lib/lmb.c           |    8 ++++++++
- 2 files changed, 10 insertions(+), 0 deletions(-)
+ arch/x86/mm/init_32.c |    6 ------
+ arch/x86/mm/init_64.c |   20 ++------------------
+ mm/bootmem.c          |    6 ++++++
+ 3 files changed, 8 insertions(+), 24 deletions(-)
 
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 5310c7b..6ca5659 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -45,6 +45,8 @@ extern int lmb_debug;
- extern int lmb_can_resize;
- extern struct lmb_region lmb_reserved_init_regions[];
+diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+index bca7909..90e0545 100644
+--- a/arch/x86/mm/init_32.c
++++ b/arch/x86/mm/init_32.c
+@@ -1069,9 +1069,3 @@ void mark_rodata_ro(void)
+ #endif
+ }
+ #endif
+-
+-int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+-				   int flags)
+-{
+-	return reserve_bootmem(phys, len, flags);
+-}
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index ee41bba..634fa08 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -799,13 +799,10 @@ void mark_rodata_ro(void)
  
-+u64 lmb_find_in_range(u64 start, u64 end, u64 size, u64 align);
-+
- extern void __init lmb_init(void);
- extern void __init lmb_analyze(void);
- extern long lmb_add(phys_addr_t base, phys_addr_t size);
-diff --git a/lib/lmb.c b/lib/lmb.c
-index e45e967..2e00159 100644
---- a/lib/lmb.c
-+++ b/lib/lmb.c
-@@ -156,6 +156,14 @@ static phys_addr_t __init lmb_find_base(phys_addr_t size, phys_addr_t align,
- 	return LMB_ERROR;
+ #endif
+ 
++#ifndef CONFIG_NO_BOOTMEM
+ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 				   int flags)
+ {
+-#ifdef CONFIG_NUMA
+-	int nid, next_nid;
+-	int ret;
+-#endif
+ 	unsigned long pfn = phys >> PAGE_SHIFT;
+ 
+ 	if (pfn >= max_pfn) {
+@@ -821,21 +818,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 		return -EFAULT;
+ 	}
+ 
+-	/* Should check here against the e820 map to avoid double free */
+-#ifdef CONFIG_NUMA
+-	nid = phys_to_nid(phys);
+-	next_nid = phys_to_nid(phys + len - 1);
+-	if (nid == next_nid)
+-		ret = reserve_bootmem_node(NODE_DATA(nid), phys, len, flags);
+-	else
+-		ret = reserve_bootmem(phys, len, flags);
+-
+-	if (ret != 0)
+-		return ret;
+-
+-#else
+ 	reserve_bootmem(phys, len, flags);
+-#endif
+ 
+ 	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
+ 		dma_reserve += len / PAGE_SIZE;
+@@ -844,6 +827,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 
+ 	return 0;
+ }
++#endif
+ 
+ int kern_addr_valid(unsigned long addr)
+ {
+diff --git a/mm/bootmem.c b/mm/bootmem.c
+index 58c66cc..ee31b95 100644
+--- a/mm/bootmem.c
++++ b/mm/bootmem.c
+@@ -526,6 +526,12 @@ int __init reserve_bootmem(unsigned long addr, unsigned long size,
  }
  
-+/*
-+ * Find a free area with specified alignment in a specific range.
-+ */
-+u64 __init __weak lmb_find_in_range(u64 start, u64 end, u64 size, u64 align)
+ #ifndef CONFIG_NO_BOOTMEM
++int __weak __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
++				   int flags)
 +{
-+	return lmb_find_base(size, align, start, end);
++	return reserve_bootmem(phys, len, flags);
 +}
 +
- static void __init_lmb lmb_remove_region(struct lmb_type *type, unsigned long r)
+ static unsigned long __init align_idx(struct bootmem_data *bdata,
+ 				      unsigned long idx, unsigned long step)
  {
- 	unsigned long i;
 -- 
 1.6.4.2
