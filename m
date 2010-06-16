@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 10/37] x86, lmb: Add lmb_to_bootmem()
-Date: Tue, 15 Jun 2010 22:42:19 -0700
-Message-ID: <1276666966-14259-11-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 07/37] lmb: Add lmb_find_in_range()
+Date: Tue, 15 Jun 2010 22:42:16 -0700
+Message-ID: <1276666966-14259-8-git-send-email-yinghai@kernel.org>
 References: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1276666966-14259-1-git-send-email-yinghai@kernel.org>
@@ -10,65 +10,58 @@ To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter
 Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-lmb_to_bootmem() will reserve lmb.reserved.region in bootmem after bootmem is
-set up.
+it is a wrapper for lmb_find_base
 
-We can use it to with all arches that support lmb later.
+make it more easy for x86 to use lmb. ( rebase )
+x86 early_res is using find/reserve pattern instead of alloc.
+
+keep it in weak version, so later We can use x86 own version if needed.
+also We need it in lib/lmb.c, so one caller mm/page_alloc.c could get compiled
+
+-v2: Change name to lmb_find_in_range() according to Michael Ellerman
+-v3: Add generic weak version __lmb_find_in_range()
+     so keep the path for fallback to x86 version that handle from low
+-v4: use 0 for failing path
+-v5: use LMB_ERROR again
+-v6: remove __lmb_find_in_range()
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    1 +
- arch/x86/mm/lmb.c          |   30 ++++++++++++++++++++++++++++++
- 2 files changed, 31 insertions(+), 0 deletions(-)
+ include/linux/lmb.h |    2 ++
+ lib/lmb.c           |    8 ++++++++
+ 2 files changed, 10 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index 9d26895..e8207f8 100644
---- a/arch/x86/include/asm/lmb.h
-+++ b/arch/x86/include/asm/lmb.h
-@@ -4,5 +4,6 @@
- #define ARCH_DISCARD_LMB
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index 5310c7b..6ca5659 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -45,6 +45,8 @@ extern int lmb_debug;
+ extern int lmb_can_resize;
+ extern struct lmb_region lmb_reserved_init_regions[];
  
- u64 lmb_find_in_range_size(u64 start, u64 *sizep, u64 align);
-+void lmb_to_bootmem(u64 start, u64 end);
- 
- #endif
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index 4335f48..a959699 100644
---- a/arch/x86/mm/lmb.c
-+++ b/arch/x86/mm/lmb.c
-@@ -86,3 +86,33 @@ u64 __init lmb_find_in_range_size(u64 start, u64 *sizep, u64 align)
++u64 lmb_find_in_range(u64 start, u64 end, u64 size, u64 align);
++
+ extern void __init lmb_init(void);
+ extern void __init lmb_analyze(void);
+ extern long lmb_add(phys_addr_t base, phys_addr_t size);
+diff --git a/lib/lmb.c b/lib/lmb.c
+index e45e967..2e00159 100644
+--- a/lib/lmb.c
++++ b/lib/lmb.c
+@@ -156,6 +156,14 @@ static phys_addr_t __init lmb_find_base(phys_addr_t size, phys_addr_t align,
  	return LMB_ERROR;
  }
  
-+#ifndef CONFIG_NO_BOOTMEM
-+void __init lmb_to_bootmem(u64 start, u64 end)
++/*
++ * Find a free area with specified alignment in a specific range.
++ */
++u64 __init __weak lmb_find_in_range(u64 start, u64 end, u64 size, u64 align)
 +{
-+	int count;
-+	u64 final_start, final_end;
-+	struct lmb_region *r;
-+
-+	/* Take out region array itself */
-+	if (lmb.reserved.regions != lmb_reserved_init_regions)
-+		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
-+
-+	count  = lmb.reserved.cnt;
-+	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
-+	for_each_lmb(reserved, r) {
-+		pr_info("  [%010llx - %010llx] ", (u64)r->base, (u64)r->base + r->size);
-+		final_start = max(start, r->base);
-+		final_end = min(end, r->base + r->size);
-+		if (final_start >= final_end) {
-+			pr_cont("\n");
-+			continue;
-+		}
-+		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
-+		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
-+	}
-+
-+	/* Put region array back ? */
-+	if (lmb.reserved.regions != lmb_reserved_init_regions)
-+		lmb_reserve(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
++	return lmb_find_base(size, align, start, end);
 +}
-+#endif
++
+ static void __init_lmb lmb_remove_region(struct lmb_type *type, unsigned long r)
+ {
+ 	unsigned long i;
 -- 
 1.6.4.2
