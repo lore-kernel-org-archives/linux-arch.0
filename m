@@ -1,62 +1,82 @@
-From: Jens Axboe <jaxboe@fusionio.com>
-Subject: Re: [PATCH -mm 0/3] remove useless ISA_DMA_THRESHOLD
-Date: Thu, 17 Jun 2010 14:59:11 +0200
-Message-ID: <4C1A1C1F.5030302@fusionio.com>
-References: <20100601182452.GA3564@kernel.dk>	<20100602113022I.fujita.tomonori@lab.ntt.co.jp>	<20100602061815.GH3564@kernel.dk> <20100617214643N.fujita.tomonori@lab.ntt.co.jp>
+From: Denys Vlasenko <vda.linux@googlemail.com>
+Subject: Re: [PATCH 1/5] vmlinux.lds.h: Include *(.text.*) in TEXT_TEXT
+Date: Thu, 17 Jun 2010 20:54:23 +0200
+Message-ID: <AANLkTik0QxlSuBk0AKHBMET415vcYhaXSWNQf0GVeBn0@mail.gmail.com>
+References: <1276519112-11649-1-git-send-email-matt@console-pimps.org>
+	<alpine.DEB.1.10.1006141014360.1432@dr-wily.mit.edu>
+	<87y6ehxvby.fsf@linux-g6p1.site>
+	<1276545951.5374.260.camel@mulgrave.site>
+	<alpine.DEB.1.10.1006141608550.1248@dr-wily.mit.edu>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20100617214643N.fujita.tomonori@lab.ntt.co.jp>
-Sender: linux-kernel-owner@vger.kernel.org
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "James.Bottomley@suse.de" <James.Bottomley@suse.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:56248 "EHLO
+	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933093Ab0FQSyY convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jun 2010 14:54:24 -0400
+In-Reply-To: <alpine.DEB.1.10.1006141608550.1248@dr-wily.mit.edu>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tim Abbott <tabbott@ksplice.com>
+Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Michal Marek <mmarek@suse.cz>
 
-On 2010-06-17 14:48, FUJITA Tomonori wrote:
-> On Wed, 2 Jun 2010 08:18:15 +0200
-> Jens Axboe <jaxboe@fusionio.com> wrote:
-> 
->> On Tue, Jun 01 2010, FUJITA Tomonori wrote:
->>> On Tue, 1 Jun 2010 20:24:52 +0200
->>> Jens Axboe <jaxboe@fusionio.com> wrote:
->>>
->>>> On Mon, May 31 2010, FUJITA Tomonori wrote:
->>>>> This patchset removes useless ISA_DMA_THRESHOLD:
->>>>>
->>>>> - ISA_DMA_THRESHOLD is irrelevant to the majority of architectures but
->>>>>   they have to define it.
->>>>>
->>>>> - ISA_DMA_THRESHOLD definition is inconsistent on architectures; ISA
->>>>>   DMA addressing restriction, DMA addressing restriction or something
->>>>>   else.
->>>>>
->>>>> - Everyone (except for SCSI) uses dma_mask instead of ancient
->>>>>   ISA_DMA_THRESHOLD.
->>>>>
->>>>> Only SCSI uses ISA_DMA_THRESHOLD for ancient drivers with non-zero
->>>>> unchecked_isa_dma. We can safely remove ISA_DMA_THRESHOLD usage in
->>>>> SCSI. So we can clean up ISA_DMA_THRESHOLD on the whole tree.
->>>>
->>>> Looks good. James, it's probably easier if I just carry this patch set.
->>>
->>> Thanks,
->>>
->>> Any tree works for me, I thought about -mm though.
->>>
->>> Can you replace [1/3] with the following?
->>>
->>> I fixed the subject and the body, s/aha1532/aha1542/;
->>>
->>> Somehow I forgot to remove unused BAD_SG_DMA().
+On Tue, Jun 15, 2010 at 12:02 AM, Tim Abbott <tabbott@ksplice.com> wrot=
+e:
+> On Mon, 14 Jun 2010, James Bottomley wrote:
+>
+>> On Mon, 2010-06-14 at 20:33 +0100, Matt Fleming wrote:
+>> > On Mon, 14 Jun 2010 10:32:46 -0400 (EDT), Tim Abbott <tabbott@kspl=
+ice.com> wrote:
+>> > >
+>> > > I was planning to submit in the next couple weeks a change that =
+adds
+>> > > support for building the kernel with -ffunction-sections -fdata-=
+sections,
+>> > > which would have as a piece of it adding to TEXT_TEXT the follow=
+ing
+>> > > expression:
+>> > >
+>> > > =A0 *(.text.[A-Za-z$_]*) =A0 =A0/* handle -ffunction-sections */=
+\
 >>
->> I'll collect the acks and include this update.
-> 
-> Can you send this to -next via your tree? I want this to be
-> compile-tested on -next on various architectures.
+>> Just as a point of technical interest, that won't handle
+>> -ffunction-sections. =A0At least on parisc, we get a
+>> section .text.<function name> for every function. =A0This means that=
+ any
+>> character legal in a function name can appear there, not just letter=
+s
+>> and underscores (we get millicode ones with dollar signs as well for
+>> instance). =A0That's why *(.text.*) is safer
+>
+> Hi James,
+>
+> I believe that the pattern [A-Za-z$_] matches all valid characters to
+> start a function name (in particular, it includes "$"). =A0If I'm mis=
+sing
+> any valid characters for the start of a function name, please correct=
+ me.
 
-Yep, going out now.
+Yes, I think we need to add 0-9 too. C names can't have a digit as a st=
+arting
+character, but linker can produce such names when invoked as "ld -r --u=
+nique"
+(incremental linking).
 
+Currently we use just "ld -r" to combine all .o files from a directory
+into one bigger .o file, but this combines all similarly-named sections=
+=2E
+This not only combines all .text sections from every input .o file
+into one .text section (which isn't surprising), but also combines
+all .text.func sections too. Which we don't want to happen when we
+(eventually) want to link kernel with --gc-sections.
 
--- 
-Jens Axboe
+The fix already exists: "ld -r --unique". With --unique, ld
+will create unique sections named .text.1, .text.2, .text.func.1
+and such.
+
+Therefore, in order to accomodate .text.NUM sections in the future,
+we'd better use .text.[A-Za-z0-9$_]* pattern.
+
+--=20
+vda
