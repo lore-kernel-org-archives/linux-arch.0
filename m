@@ -1,68 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 0122700014.0.fullrate.dk ([95.166.99.235]:35902 "EHLO kernel.dk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759969Ab0FQM7M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Jun 2010 08:59:12 -0400
-Message-ID: <4C1A1C1F.5030302@fusionio.com>
-Date: Thu, 17 Jun 2010 14:59:11 +0200
-From: Jens Axboe <jaxboe@fusionio.com>
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:41387 "EHLO
+	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933294Ab0FQUTJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jun 2010 16:19:09 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH -mm 0/3] remove useless ISA_DMA_THRESHOLD
-References: <20100601182452.GA3564@kernel.dk>	<20100602113022I.fujita.tomonori@lab.ntt.co.jp>	<20100602061815.GH3564@kernel.dk> <20100617214643N.fujita.tomonori@lab.ntt.co.jp>
-In-Reply-To: <20100617214643N.fujita.tomonori@lab.ntt.co.jp>
+In-Reply-To: <1276804567.7398.264.camel@mulgrave.site>
+References: <1276519112-11649-1-git-send-email-matt@console-pimps.org>
+	<alpine.DEB.1.10.1006141014360.1432@dr-wily.mit.edu>
+	<87y6ehxvby.fsf@linux-g6p1.site>
+	<1276545951.5374.260.camel@mulgrave.site>
+	<alpine.DEB.1.10.1006141608550.1248@dr-wily.mit.edu>
+	<1276556919.5374.822.camel@mulgrave.site>
+	<alpine.DEB.1.10.1006142039250.1248@dr-wily.mit.edu>
+	<1276724403.2847.453.camel@mulgrave.site>
+	<AANLkTikgzvZvb30QhSMs_GQ6MCawl0V6GzixnDYfqmzg@mail.gmail.com>
+	<1276804567.7398.264.camel@mulgrave.site>
+Date: Thu, 17 Jun 2010 22:19:07 +0200
+Message-ID: <AANLkTink485wn-EaLibaD3Xh7X5RwXM06d6jx3GijD40@mail.gmail.com>
+Subject: Re: [PATCH 1/5] vmlinux.lds.h: Include *(.text.*) in TEXT_TEXT
+From: Denys Vlasenko <vda.linux@googlemail.com>
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "James.Bottomley@suse.de" <James.Bottomley@suse.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20100617125911.0r1XkyFTvquaL4zRzH2PqrL9_pe-jU2Vt0xT-bN_Cpo@z>
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: Tim Abbott <tabbott@ksplice.com>, Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Michal Marek <mmarek@suse.cz>, Parisc List <linux-parisc@vger.kernel.org>
+Message-ID: <20100617201907.VAVM5WOGbbLM0irtav26xejob_OI304xy781BC_dyt8@z>
 
-On 2010-06-17 14:48, FUJITA Tomonori wrote:
-> On Wed, 2 Jun 2010 08:18:15 +0200
-> Jens Axboe <jaxboe@fusionio.com> wrote:
-> 
->> On Tue, Jun 01 2010, FUJITA Tomonori wrote:
->>> On Tue, 1 Jun 2010 20:24:52 +0200
->>> Jens Axboe <jaxboe@fusionio.com> wrote:
->>>
->>>> On Mon, May 31 2010, FUJITA Tomonori wrote:
->>>>> This patchset removes useless ISA_DMA_THRESHOLD:
->>>>>
->>>>> - ISA_DMA_THRESHOLD is irrelevant to the majority of architectures but
->>>>>   they have to define it.
->>>>>
->>>>> - ISA_DMA_THRESHOLD definition is inconsistent on architectures; ISA
->>>>>   DMA addressing restriction, DMA addressing restriction or something
->>>>>   else.
->>>>>
->>>>> - Everyone (except for SCSI) uses dma_mask instead of ancient
->>>>>   ISA_DMA_THRESHOLD.
->>>>>
->>>>> Only SCSI uses ISA_DMA_THRESHOLD for ancient drivers with non-zero
->>>>> unchecked_isa_dma. We can safely remove ISA_DMA_THRESHOLD usage in
->>>>> SCSI. So we can clean up ISA_DMA_THRESHOLD on the whole tree.
->>>>
->>>> Looks good. James, it's probably easier if I just carry this patch set.
->>>
->>> Thanks,
->>>
->>> Any tree works for me, I thought about -mm though.
->>>
->>> Can you replace [1/3] with the following?
->>>
->>> I fixed the subject and the body, s/aha1532/aha1542/;
->>>
->>> Somehow I forgot to remove unused BAD_SG_DMA().
->>
->> I'll collect the acks and include this update.
-> 
-> Can you send this to -next via your tree? I want this to be
-> compile-tested on -next on various architectures.
+>> This is doable in asm, yes. For .bss, we need to not forget about
+>> @nobits too: section .bss.foo,"aw",@nobits
+>
+> That's only for bss ... we have about a handful of such statements and
+> they always use the assembler .bss directive (which doesn't need flags).
+>
+>> > Actually, as I said, that would be .data-
 
-Yep, going out now.
+You are right, in assembly we can specify needed attributes.
 
+I am more concerned about C:
+
+arch/x86/include/asm/cache.h:
+#define __read_mostly __attribute__((__section__(".data..read_mostly")))
+
+If we change it to
+
+#define __read_mostly __attribute__((__section__(".data-read_mostly")))
+
+What makes this section have correct attributes?
+
+With current gcc, __attribute__((__section__(".bss-page_aligned")))
+does get wrong attributes. That's why we settled on .bss..foo
+scheme.
+
+> I thought I just refuted that in the above: we don't care what the
+> assembler sections are flagged as because the linker script gets to pick
+> the flags anyway ... so most bugs arrived at this way have no visible
+> side effects ... and section merging problems have to be accounted for
+> anyway in the final linker scripts.
+
+When I was working on a older iteration of this patch,
+I renamed .bss.page_aligned to .page_aligned.bss
+and was bitten by linker bug: linker tried to merge
+the sections and corrupted them.
+
+Aha, here is it:
+http://sourceware.org/bugzilla/show_bug.cgi?id=5006
+
+It was since fixed, and if I read the ld patch correctly,
+now ld emits a warning and switches entire target section
+to PROGBITS - not what we want to happen to bss.
 
 -- 
-Jens Axboe
-
+vda
