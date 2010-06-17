@@ -1,68 +1,64 @@
-From: Denys Vlasenko <vda.linux@googlemail.com>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
 Subject: Re: [PATCH 1/5] vmlinux.lds.h: Include *(.text.*) in TEXT_TEXT
-Date: Thu, 17 Jun 2010 22:19:07 +0200
-Message-ID: <AANLkTink485wn-EaLibaD3Xh7X5RwXM06d6jx3GijD40@mail.gmail.com>
+Date: Thu, 17 Jun 2010 15:38:24 -0500
+Message-ID: <1276807104.7398.315.camel@mulgrave.site>
 References: <1276519112-11649-1-git-send-email-matt@console-pimps.org>
-	<alpine.DEB.1.10.1006141014360.1432@dr-wily.mit.edu>
-	<87y6ehxvby.fsf@linux-g6p1.site>
-	<1276545951.5374.260.camel@mulgrave.site>
-	<alpine.DEB.1.10.1006141608550.1248@dr-wily.mit.edu>
-	<1276556919.5374.822.camel@mulgrave.site>
-	<alpine.DEB.1.10.1006142039250.1248@dr-wily.mit.edu>
-	<1276724403.2847.453.camel@mulgrave.site>
-	<AANLkTikgzvZvb30QhSMs_GQ6MCawl0V6GzixnDYfqmzg@mail.gmail.com>
-	<1276804567.7398.264.camel@mulgrave.site>
+	 <alpine.DEB.1.10.1006141014360.1432@dr-wily.mit.edu>
+	 <87y6ehxvby.fsf@linux-g6p1.site> <1276545951.5374.260.camel@mulgrave.site>
+	 <alpine.DEB.1.10.1006141608550.1248@dr-wily.mit.edu>
+	 <1276556919.5374.822.camel@mulgrave.site>
+	 <alpine.DEB.1.10.1006142039250.1248@dr-wily.mit.edu>
+	 <1276724403.2847.453.camel@mulgrave.site>
+	 <AANLkTikgzvZvb30QhSMs_GQ6MCawl0V6GzixnDYfqmzg@mail.gmail.com>
+	 <1276804567.7398.264.camel@mulgrave.site>
+	 <AANLkTink485wn-EaLibaD3Xh7X5RwXM06d6jx3GijD40@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <1276804567.7398.264.camel@mulgrave.site>
-Sender: linux-parisc-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:56323 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757466Ab0FQUi2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 Jun 2010 16:38:28 -0400
+In-Reply-To: <AANLkTink485wn-EaLibaD3Xh7X5RwXM06d6jx3GijD40@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Denys Vlasenko <vda.linux@googlemail.com>
 Cc: Tim Abbott <tabbott@ksplice.com>, Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Michal Marek <mmarek@suse.cz>, Parisc List <linux-parisc@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
->> This is doable in asm, yes. For .bss, we need to not forget about
->> @nobits too: section .bss.foo,"aw",@nobits
->
-> That's only for bss ... we have about a handful of such statements and
-> they always use the assembler .bss directive (which doesn't need flags).
->
->> > Actually, as I said, that would be .data-
+On Thu, 2010-06-17 at 22:19 +0200, Denys Vlasenko wrote:
+> >> This is doable in asm, yes. For .bss, we need to not forget about
+> >> @nobits too: section .bss.foo,"aw",@nobits
+> >
+> > That's only for bss ... we have about a handful of such statements and
+> > they always use the assembler .bss directive (which doesn't need flags).
+> >
+> >> > Actually, as I said, that would be .data-
+> 
+> You are right, in assembly we can specify needed attributes.
+> 
+> I am more concerned about C:
+> 
+> arch/x86/include/asm/cache.h:
+> #define __read_mostly __attribute__((__section__(".data..read_mostly")))
+> 
+> If we change it to
+> 
+> #define __read_mostly __attribute__((__section__(".data-read_mostly")))
+> 
+> What makes this section have correct attributes?
 
-You are right, in assembly we can specify needed attributes.
+The fact that we specify it correctly in the sectional gather in the
+linker scripts.  i.e. we should have a (NOLOAD) type for the
+gathered .bss section ... although currently we don't.
 
-I am more concerned about C:
+The point (for the third time) is that if our linker scripts specify the
+sections and attributes absolutely (and correctly) it doesn't matter
+what random attributes the .o files pick up.  It's only if we miss a
+specifier that the linker tries to work it out from the input sections.
 
-arch/x86/include/asm/cache.h:
-#define __read_mostly __attribute__((__section__(".data..read_mostly")))
+That's how we make postfix or any other type of "nonstandard" section
+name work.
 
-If we change it to
-
-#define __read_mostly __attribute__((__section__(".data-read_mostly")))
-
-What makes this section have correct attributes?
-
-With current gcc, __attribute__((__section__(".bss-page_aligned")))
-does get wrong attributes. That's why we settled on .bss..foo
-scheme.
-
-> I thought I just refuted that in the above: we don't care what the
-> assembler sections are flagged as because the linker script gets to pick
-> the flags anyway ... so most bugs arrived at this way have no visible
-> side effects ... and section merging problems have to be accounted for
-> anyway in the final linker scripts.
-
-When I was working on a older iteration of this patch,
-I renamed .bss.page_aligned to .page_aligned.bss
-and was bitten by linker bug: linker tried to merge
-the sections and corrupted them.
-
-Aha, here is it:
-http://sourceware.org/bugzilla/show_bug.cgi?id=5006
-
-It was since fixed, and if I read the ld patch correctly,
-now ld emits a warning and switches entire target section
-to PROGBITS - not what we want to happen to bss.
-
--- 
-vda
+James
