@@ -1,109 +1,53 @@
-From: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
-Subject: PATCH : cmpxchg does not handle int * arguments on LP64
-Date: Fri, 18 Jun 2010 14:51:56 +0200
-Message-ID: <1276865516.1999.18.camel@localhost.localdomain>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: PATCH : cmpxchg does not handle int * arguments on LP64
+Date: Fri, 18 Jun 2010 15:30:30 +0200
+Message-ID: <201006181530.30338.arnd@arndb.de>
+References: <1276865516.1999.18.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="=-SHSmFS7YVL56sjW2ZELg"
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail4-relais-sop.national.inria.fr ([192.134.164.105]:42298
-	"EHLO mail4-relais-sop.national.inria.fr" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758258Ab0FRNCN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Jun 2010 09:02:13 -0400
+Received: from moutng.kundenserver.de ([212.227.126.171]:55716 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758413Ab0FRNaf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jun 2010 09:30:35 -0400
+In-Reply-To: <1276865516.1999.18.camel@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
 Cc: linux-arch@vger.kernel.org
 
+On Friday 18 June 2010, Mathieu Lacage wrote:
+> I have been using the asm-generic/system.h header to implement my
+> version of arch/xx/include/asm/system.h: it appears that the version of
+> cmpxchg defined in this generic header does not handle correctly
+> non-long arguments on an LP64 arch. 
 
---=-SHSmFS7YVL56sjW2ZELg
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+That looks like a correct observation. It's also true on ILP32
+architectures.
 
-hi,
+I am not sure though if it is actually supposed to operate on other
+types, I think there was some disagreement on this in the past.
+What code specifically did you find needs to do cmpxchg on non-long
+data?
 
-I have been using the asm-generic/system.h header to implement my
-version of arch/xx/include/asm/system.h: it appears that the version of
-cmpxchg defined in this generic header does not handle correctly
-non-long arguments on an LP64 arch. 
+> -
+> -#define cmpxchg(ptr, o, n)					\
+> -	((__typeof__(*(ptr))) __cmpxchg((unsigned long *)(ptr), \
+> -					(unsigned long)(o),	\
+> -					(unsigned long)(n)))
+> +#define cmpxchg(ptr, o, n) cmpxchg_local(ptr, o, n)
 
-The attached patch appears to work on my port: I suspect that it's not
-the right 'fix'. If so, I would be happy to be pointed in the right
-direction. The following inline patch was generated against
-davem/net-next-2.6/ (and attached to this email since I don't know what
-the proper insertion policy is)
+This seems to match what we have in include/asm-generic/cmpxchg.h.
+Maybe the best option would be to include that in asm-generic/system.h.
 
-diff --git a/include/asm-generic/system.h b/include/asm-generic/system.h
-index efa403b..da31909 100644
---- a/include/asm-generic/system.h
-+++ b/include/asm-generic/system.h
-@@ -136,24 +136,7 @@ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
- #define xchg(ptr, x) \
- 	((__typeof__(*(ptr))) __xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
- 
--static inline unsigned long __cmpxchg(volatile unsigned long *m,
--				      unsigned long old, unsigned long new)
--{
--	unsigned long retval;
--	unsigned long flags;
--
--	local_irq_save(flags);
--	retval = *m;
--	if (retval == old)
--		*m = new;
--	local_irq_restore(flags);
--	return retval;
--}
--
--#define cmpxchg(ptr, o, n)					\
--	((__typeof__(*(ptr))) __cmpxchg((unsigned long *)(ptr), \
--					(unsigned long)(o),	\
--					(unsigned long)(n)))
-+#define cmpxchg(ptr, o, n) cmpxchg_local(ptr, o, n)
- 
- #endif /* !__ASSEMBLY__ */
- 
+Nobody so far is using asm-generic/system.h, not even tile, which
+uses most of the generic headers. This makes it quite likely that
+the file is not correct right now. If you think you can improve it,
+go wild.
 
+BTW, what architecture are you working on? Is this something you
+plan to submit for inclusion soon?
 
-Mathieu
--- 
-Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
-Tel: +33 4 9238 5056
-
---=-SHSmFS7YVL56sjW2ZELg
-Content-Disposition: attachment; filename="system.patch"
-Content-Type: text/x-patch; name="system.patch"; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-
-diff --git a/include/asm-generic/system.h b/include/asm-generic/system.h
-index efa403b..da31909 100644
---- a/include/asm-generic/system.h
-+++ b/include/asm-generic/system.h
-@@ -136,24 +136,7 @@ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
- #define xchg(ptr, x) \
- 	((__typeof__(*(ptr))) __xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
- 
--static inline unsigned long __cmpxchg(volatile unsigned long *m,
--				      unsigned long old, unsigned long new)
--{
--	unsigned long retval;
--	unsigned long flags;
--
--	local_irq_save(flags);
--	retval = *m;
--	if (retval == old)
--		*m = new;
--	local_irq_restore(flags);
--	return retval;
--}
--
--#define cmpxchg(ptr, o, n)					\
--	((__typeof__(*(ptr))) __cmpxchg((unsigned long *)(ptr), \
--					(unsigned long)(o),	\
--					(unsigned long)(n)))
-+#define cmpxchg(ptr, o, n) cmpxchg_local(ptr, o, n)
- 
- #endif /* !__ASSEMBLY__ */
- 
-
---=-SHSmFS7YVL56sjW2ZELg--
+	Arnd
