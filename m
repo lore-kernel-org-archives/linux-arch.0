@@ -1,73 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:41387 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933294Ab0FQUTJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jun 2010 16:19:09 -0400
-MIME-Version: 1.0
-In-Reply-To: <1276804567.7398.264.camel@mulgrave.site>
-References: <1276519112-11649-1-git-send-email-matt@console-pimps.org>
-	<alpine.DEB.1.10.1006141014360.1432@dr-wily.mit.edu>
-	<87y6ehxvby.fsf@linux-g6p1.site>
-	<1276545951.5374.260.camel@mulgrave.site>
-	<alpine.DEB.1.10.1006141608550.1248@dr-wily.mit.edu>
-	<1276556919.5374.822.camel@mulgrave.site>
-	<alpine.DEB.1.10.1006142039250.1248@dr-wily.mit.edu>
-	<1276724403.2847.453.camel@mulgrave.site>
-	<AANLkTikgzvZvb30QhSMs_GQ6MCawl0V6GzixnDYfqmzg@mail.gmail.com>
-	<1276804567.7398.264.camel@mulgrave.site>
-Date: Thu, 17 Jun 2010 22:19:07 +0200
-Message-ID: <AANLkTink485wn-EaLibaD3Xh7X5RwXM06d6jx3GijD40@mail.gmail.com>
-Subject: Re: [PATCH 1/5] vmlinux.lds.h: Include *(.text.*) in TEXT_TEXT
-From: Denys Vlasenko <vda.linux@googlemail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:44336 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752259Ab0FSWcs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 19 Jun 2010 18:32:48 -0400
+Subject: Re: [PATCH v2] sata_sil24: Use memory barriers before issuing
+ commands
+From: Catalin Marinas <catalin.marinas@arm.com>
+In-Reply-To: <20100615113150.GM6138@laptop>
+References: <20100615113150.GM6138@laptop>
+Content-Type: text/plain; charset="UTF-8"
+Date: Sat, 19 Jun 2010 23:32:19 +0100
+Message-ID: <1276986739.11824.33.camel@toshiba-laptop>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: Tim Abbott <tabbott@ksplice.com>, Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Michal Marek <mmarek@suse.cz>, Parisc List <linux-parisc@vger.kernel.org>
-Message-ID: <20100617201907.VAVM5WOGbbLM0irtav26xejob_OI304xy781BC_dyt8@z>
+To: Nick Piggin <npiggin@suse.de>
+Cc: Robert Hancock <hancockrwd@gmail.com>, Tejun Heo <tj@kernel.org>, linux-ide@vger.kernel.org, linux-kernel@vger.kernel.org, Colin Tuckley <colin.tuckley@arm.com>, Jeff Garzik <jeff@garzik.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20100619223219.vb8NOZPGxodUKrzSdFz3ezoRdP6R3n5UB8JPF6-IoHM@z>
 
->> This is doable in asm, yes. For .bss, we need to not forget about
->> @nobits too: section .bss.foo,"aw",@nobits
->
-> That's only for bss ... we have about a handful of such statements and
-> they always use the assembler .bss directive (which doesn't need flags).
->
->> > Actually, as I said, that would be .data-
+On Tue, 2010-06-15 at 12:31 +0100, Nick Piggin wrote:
+> On Tue, Jun 15, 2010 at 12:10:53PM +0100, Catalin Marinas wrote:
+> > On Sat, 2010-06-12 at 02:30 +0100, Robert Hancock wrote:
+> > > > So if that's the API for the above case and we are strictly referring to
+> > > > the sata_sil24 patch I sent - shouldn't we just add wmb() in the driver
+> > > > between the write to the DMA buffer and the writel() to start the DMA
+> > > > transfer? Do we need to move the wmb() to the writel() macro?
+> > >
+> > > I think it would be best if writel, etc. did the write buffer flushing
+> > > by default. As Nick said, if there are some performance critical areas
+> > > then those can use the relaxed versions but it's safest if the default
+> > > behavior works as drivers expect.
+> >
+> > I went through the past discussion pointed to by Fujita (thanks!) but I
+> > wouldn't say it resulted in a definitive guideline on how architectures
+> > should implement the I/O accessors.
+> >
+> > From an ARM perspective, I would prefer to add wmb() in the drivers
+> > where it matters - basically only those using DMA coherent buffers. A
+> > lot of drivers already have this in place and that's already documented
+> > in DMA-API.txt (maybe with a bit of clarification).
+> >
+> > Some statistics - grepping drivers/ for alloc_coherent shows 285 files.
+> > Of these, 69 already use barriers. It's not trivial to go through 200+
+> > drivers and add barriers but I wouldn't say that's impossible.
+> 
+> I disagree. Firstly, you will get subtle bugs, not able to be reproduced
+> and situations where driver writers don't even have that architecture to
+> test on. Secondly, it is not a one-time audit and be done with it, code
+> is constantly being changed and added. Driver code is going to be
+> written and tested and run on different archs or even different
+> implementations that do different things to ordering.
+> 
+> On the other hand, a performance slowdown should be far more reproducible
+> and traceable.
 
-You are right, in assembly we can specify needed attributes.
+I need to do some benchmarks to see the overall impact on ARM. There are
+many PIO drivers that will have the performance affected (and we
+probably use more PIO than DMA drivers).
 
-I am more concerned about C:
+A solution may be to redefine the IO accessors in the dma-mapping.h file
+so that you get the fully ordered ones when the DMA API is used.
 
-arch/x86/include/asm/cache.h:
-#define __read_mostly __attribute__((__section__(".data..read_mostly")))
+Many drivers seem to convert a dma_addr_t value to u32/u64 and pass it
+to the device for initiating the DMA transfer. Could we enforce an
+arch-specific converter that contains the write barrier (similar to the
+dma_map_* functions but without cache maintenance)?
 
-If we change it to
+> > If we go the other route of adding mb() in writel() (though I don't
+> > prefer it), there are two additional issues:
+> >
+> > (1) how relaxed would the "writel_relaxed" etc. accessors be? Are they
+> > relaxed only with regards to coherent DMA buffers or relaxed with other
+> > I/O operations as well? Can the compiler reorder them?
+> 
+> That was up for debate. I think totally weak (like SMP ordering)
+> should be fine, but that may require that we need some more barriers
+> like io_wmb() (which just orders two writels from the same CPU).
+> Remember we want to restrict their use outside critical fastpaths
+> of important drivers -- this is a far smaller task than auditing all
+> accesses in all drivers.
 
-#define __read_mostly __attribute__((__section__(".data-read_mostly")))
+If we are to make the writel/readl on ARM fully ordered with both IO
+(enforced by hardware) and uncached memory, do we add barriers on each
+side of the writel/readl etc.? The common cases would require a barrier
+before writel (write buffer flushing) and a barrier after readl (in case
+of polling for a "DMA complete" state).
 
-What makes this section have correct attributes?
+So if io_wmb() just orders to IO writes (writel_relaxed), does it mean
+that we still need a mighty wmb() that orders any type of accesses (i.e.
+uncached memory vs IO)? Can drivers not use the strict writel() and no
+longer rely on wmb() (wondering whether we could simplify it on ARM with
+fully ordered IO accessors)?
 
-With current gcc, __attribute__((__section__(".bss-page_aligned")))
-does get wrong attributes. That's why we settled on .bss..foo
-scheme.
+Apart from the DMA coherent, what are the other uses of wmb() in Linux?
+I've seen some use cases in drivers on SMP systems in relation to
+interrupt routines.
 
-> I thought I just refuted that in the above: we don't care what the
-> assembler sections are flagged as because the linker script gets to pick
-> the flags anyway ... so most bugs arrived at this way have no visible
-> side effects ... and section merging problems have to be accounted for
-> anyway in the final linker scripts.
-
-When I was working on a older iteration of this patch,
-I renamed .bss.page_aligned to .page_aligned.bss
-and was bitten by linker bug: linker tried to merge
-the sections and corrupted them.
-
-Aha, here is it:
-http://sourceware.org/bugzilla/show_bug.cgi?id=5006
-
-It was since fixed, and if I read the ld patch correctly,
-now ld emits a warning and switches entire target section
-to PROGBITS - not what we want to happen to bss.
+Thanks.
 
 -- 
-vda
+Catalin
+
