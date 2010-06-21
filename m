@@ -1,22 +1,37 @@
-From: "Microsoft Award Promo" <dept-lampardnelson.02@live.com>
-Subject: Winnin Alert!
-Date: Sun, 20 Jun 2010 06:36:58 -0430
-Message-ID: <web-222826466@mailccs.icnet.com.ve>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 00/28] mm: preemptibility -v3
+Date: Mon, 21 Jun 2010 12:21:58 +0200
+Message-ID: <1277115718.1875.490.camel@laptop>
+References: <20100607110654.606530953@chello.nl>
+	 <1276134311.2096.438.camel@ymzhang.sh.intel.com>
+	 <1276152750.2046.2485.camel@twins>
+	 <1276153198.2096.465.camel@ymzhang.sh.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII;
-	format=flowed
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mta01.intercable.net.ve ([200.8.126.226]:44640 "EHLO
-	mta01.intercable.net.ve" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750994Ab0FTLG5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 20 Jun 2010 07:06:57 -0400
+Received: from casper.infradead.org ([85.118.1.10]:59215 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757232Ab0FUKXB convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jun 2010 06:23:01 -0400
+In-Reply-To: <1276153198.2096.465.camel@ymzhang.sh.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: "Zhang, Yanmin" <yanmin_zhang@linux.intel.com>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>
 
-Prize Won!($500,000.00 and two dell laptop), kindly 
-confirm receipt of this email,by forwarding Your 
-Details as stated below to our events manager on 
+On Thu, 2010-06-10 at 14:59 +0800, Zhang, Yanmin wrote:
 
-Email: dept-lampardnelson.02@live.com
-Name/Address/Tel number/Age/Occupation/Country of Origin.
+> > > I applied it against 2.6.35-rc2 on x86_64 machine, but kernel booting panic.
+
+<snip panic>
+
+> > Oi, that's no good. Happen to have your .config handy, I didn't actually
+> > see my machine do that.
+
+> See the attachment.
+
+That .config build and booted on my x86_64 machine, no funnies there.
+
+I pushed a git tree out to kernel.org but somehow its refusing to show
+up on git.kernel.org..
