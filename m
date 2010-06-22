@@ -1,114 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:32856 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:31953 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758813Ab0FVR2j (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jun 2010 13:28:39 -0400
+	with ESMTP id S1756892Ab0FVR2S (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jun 2010 13:28:18 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 09/25] bootmem, x86: Add weak version of reserve_bootmem_generic
-Date: Tue, 22 Jun 2010 10:26:38 -0700
-Message-ID: <1277227614-11581-10-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 02/25] lmb: Prepare x86 to use lmb to replace early_res
+Date: Tue, 22 Jun 2010 10:26:31 -0700
+Message-ID: <1277227614-11581-3-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 References: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100622172638._PXAyJQ-_1Lgu1jrw4k8gB8LUgQhfL3nbwef7Ayod1A@z>
+Message-ID: <20100622172631.6h4gVFQaA5nwBbOnQom1po3Mg1pCLmm6mYop-coq6iw@z>
 
-It will be used lmb_to_bootmem converting
+1. expose lmb_debug
+2. expose lmb_reserved_init_regions
 
-It is an wrapper for reserve_bootmem, and x86 64bit is using special one.
-
-Also clean up that version for x86_64. We don't need to take care of numa
-path for that, bootmem can handle it how
+-v2: drop lmb_add_region() and LMB_ERROR export
+-v3: seperate wrong return of lmb_fin_base to another patch
+-v4: expose lmb_can_resize to handle x86 EFI that could have more than
+      128 entries
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/x86/mm/init_32.c |    6 ------
- arch/x86/mm/init_64.c |   20 ++------------------
- mm/bootmem.c          |    6 ++++++
- 3 files changed, 8 insertions(+), 24 deletions(-)
+ include/linux/lmb.h |    3 +++
+ lib/lmb.c           |    5 +++--
+ 2 files changed, 6 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index bca7909..90e0545 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -1069,9 +1069,3 @@ void mark_rodata_ro(void)
- #endif
- }
- #endif
--
--int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
--				   int flags)
--{
--	return reserve_bootmem(phys, len, flags);
--}
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index ee41bba..634fa08 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -799,13 +799,10 @@ void mark_rodata_ro(void)
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index 6f8c4bd..1e96224 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -39,6 +39,9 @@ struct lmb {
+ };
  
- #endif
+ extern struct lmb lmb;
++extern int lmb_debug;
++extern int lmb_can_resize;
++extern struct lmb_region lmb_reserved_init_regions[];
  
-+#ifndef CONFIG_NO_BOOTMEM
- int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 				   int flags)
- {
--#ifdef CONFIG_NUMA
--	int nid, next_nid;
--	int ret;
--#endif
- 	unsigned long pfn = phys >> PAGE_SHIFT;
+ extern void __init lmb_init(void);
+ extern void __init lmb_analyze(void);
+diff --git a/lib/lmb.c b/lib/lmb.c
+index 13d1a04..bbdb1ec 100644
+--- a/lib/lmb.c
++++ b/lib/lmb.c
+@@ -22,9 +22,10 @@
  
- 	if (pfn >= max_pfn) {
-@@ -821,21 +818,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 		return -EFAULT;
- 	}
+ struct lmb lmb;
  
--	/* Should check here against the e820 map to avoid double free */
--#ifdef CONFIG_NUMA
--	nid = phys_to_nid(phys);
--	next_nid = phys_to_nid(phys + len - 1);
--	if (nid == next_nid)
--		ret = reserve_bootmem_node(NODE_DATA(nid), phys, len, flags);
--	else
--		ret = reserve_bootmem(phys, len, flags);
--
--	if (ret != 0)
--		return ret;
--
--#else
- 	reserve_bootmem(phys, len, flags);
--#endif
+-static int lmb_debug, lmb_can_resize;
++int lmb_debug;
++int lmb_can_resize;
+ static struct lmb_region lmb_memory_init_regions[INIT_LMB_REGIONS + 1];
+-static struct lmb_region lmb_reserved_init_regions[INIT_LMB_REGIONS + 1];
++struct lmb_region lmb_reserved_init_regions[INIT_LMB_REGIONS + 1];
  
- 	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
- 		dma_reserve += len / PAGE_SIZE;
-@@ -844,6 +827,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ #define LMB_ERROR	(~(phys_addr_t)0)
  
- 	return 0;
- }
-+#endif
- 
- int kern_addr_valid(unsigned long addr)
- {
-diff --git a/mm/bootmem.c b/mm/bootmem.c
-index 58c66cc..ee31b95 100644
---- a/mm/bootmem.c
-+++ b/mm/bootmem.c
-@@ -526,6 +526,12 @@ int __init reserve_bootmem(unsigned long addr, unsigned long size,
- }
- 
- #ifndef CONFIG_NO_BOOTMEM
-+int __weak __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
-+				   int flags)
-+{
-+	return reserve_bootmem(phys, len, flags);
-+}
-+
- static unsigned long __init align_idx(struct bootmem_data *bdata,
- 				      unsigned long idx, unsigned long step)
- {
 -- 
 1.6.4.2
 
