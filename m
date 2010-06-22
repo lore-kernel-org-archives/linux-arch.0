@@ -1,74 +1,76 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 10/25] x86, lmb: Add lmb_to_bootmem()
-Date: Tue, 22 Jun 2010 10:26:39 -0700
-Message-ID: <1277227614-11581-11-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 23/25] x86: Have nobootmem version setup_bootmem_allocator()
+Date: Tue, 22 Jun 2010 10:26:52 -0700
+Message-ID: <1277227614-11581-24-git-send-email-yinghai@kernel.org>
 References: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:33425 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758499Ab0FVR3U (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jun 2010 13:29:20 -0400
 In-Reply-To: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-lmb_to_bootmem() will reserve lmb.reserved.region in bootmem after bootmem is
-set up.
-
-We can use it to with all arches that support lmb later.
+We can reduce #ifdef number from 3 to one in init_32.c
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    1 +
- arch/x86/mm/lmb.c          |   30 ++++++++++++++++++++++++++++++
- 2 files changed, 31 insertions(+), 0 deletions(-)
+ arch/x86/mm/init_32.c |   15 ++++++++++-----
+ 1 files changed, 10 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index 9d26895..e8207f8 100644
---- a/arch/x86/include/asm/lmb.h
-+++ b/arch/x86/include/asm/lmb.h
-@@ -4,5 +4,6 @@
- #define ARCH_DISCARD_LMB
+diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+index e3ae067..f172aa3 100644
+--- a/arch/x86/mm/init_32.c
++++ b/arch/x86/mm/init_32.c
+@@ -771,11 +771,9 @@ static unsigned long __init setup_node_bootmem(int nodeid,
  
- u64 lmb_find_in_range_size(u64 start, u64 *sizep, u64 align);
-+void lmb_to_bootmem(u64 start, u64 end);
- 
- #endif
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index 4335f48..a959699 100644
---- a/arch/x86/mm/lmb.c
-+++ b/arch/x86/mm/lmb.c
-@@ -86,3 +86,33 @@ u64 __init lmb_find_in_range_size(u64 start, u64 *sizep, u64 align)
- 	return LMB_ERROR;
+ 	return bootmap + bootmap_size;
  }
+-#endif
  
-+#ifndef CONFIG_NO_BOOTMEM
-+void __init lmb_to_bootmem(u64 start, u64 end)
+ void __init setup_bootmem_allocator(void)
+ {
+-#ifndef CONFIG_NO_BOOTMEM
+ 	int nodeid;
+ 	unsigned long bootmap_size, bootmap;
+ 	/*
+@@ -787,13 +785,11 @@ void __init setup_bootmem_allocator(void)
+ 	if (bootmap == (unsigned long)LMB_ERROR)
+ 		panic("Cannot find bootmem map of size %ld\n", bootmap_size);
+ 	lmb_reserve_range(bootmap, bootmap + bootmap_size, "BOOTMAP");
+-#endif
+ 
+ 	printk(KERN_INFO "  mapped low ram: 0 - %08lx\n",
+ 		 max_pfn_mapped<<PAGE_SHIFT);
+ 	printk(KERN_INFO "  low ram: 0 - %08lx\n", max_low_pfn<<PAGE_SHIFT);
+ 
+-#ifndef CONFIG_NO_BOOTMEM
+ 	for_each_online_node(nodeid) {
+ 		 unsigned long start_pfn, end_pfn;
+ 
+@@ -811,10 +807,19 @@ void __init setup_bootmem_allocator(void)
+ 		bootmap = setup_node_bootmem(nodeid, start_pfn, end_pfn,
+ 						 bootmap);
+ 	}
+-#endif
+ 
+ 	after_bootmem = 1;
+ }
++#else
++void __init setup_bootmem_allocator(void)
 +{
-+	int count;
-+	u64 final_start, final_end;
-+	struct lmb_region *r;
++	printk(KERN_INFO "  mapped low ram: 0 - %08lx\n",
++		 max_pfn_mapped<<PAGE_SHIFT);
++	printk(KERN_INFO "  low ram: 0 - %08lx\n", max_low_pfn<<PAGE_SHIFT);
 +
-+	/* Take out region array itself */
-+	if (lmb.reserved.regions != lmb_reserved_init_regions)
-+		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
-+
-+	count  = lmb.reserved.cnt;
-+	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
-+	for_each_lmb(reserved, r) {
-+		pr_info("  [%010llx - %010llx] ", (u64)r->base, (u64)r->base + r->size);
-+		final_start = max(start, r->base);
-+		final_end = min(end, r->base + r->size);
-+		if (final_start >= final_end) {
-+			pr_cont("\n");
-+			continue;
-+		}
-+		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
-+		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
-+	}
-+
-+	/* Put region array back ? */
-+	if (lmb.reserved.regions != lmb_reserved_init_regions)
-+		lmb_reserve(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
++	after_bootmem = 1;
 +}
 +#endif
+ 
+ /*
+  * paging_init() sets up the page tables - note that the first 8MB are
 -- 
 1.6.4.2
