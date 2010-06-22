@@ -1,64 +1,38 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 02/25] lmb: Prepare x86 to use lmb to replace early_res
-Date: Tue, 22 Jun 2010 10:26:31 -0700
-Message-ID: <1277227614-11581-3-git-send-email-yinghai@kernel.org>
-References: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:31953 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756892Ab0FVR2S (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jun 2010 13:28:18 -0400
-In-Reply-To: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 05/25] lmb: Prepare to include linux/lmb.h in core file
+Date: Tue, 22 Jun 2010 20:45:50 +0200
+Message-ID: <20100622184550.GA25947@merkur.ravnborg.org>
+References: <1277227614-11581-1-git-send-email-yinghai@kernel.org> <1277227614-11581-6-git-send-email-yinghai@kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1277227614-11581-6-git-send-email-yinghai@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-1. expose lmb_debug
-2. expose lmb_reserved_init_regions
+On Tue, Jun 22, 2010 at 10:26:34AM -0700, Yinghai Lu wrote:
+> Need to add protection in linux/lmb.h, to prepare to include it in
+>  mm/page_alloc.c and mm/bootmem.c etc.
+> 
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> ---
+>  include/linux/lmb.h |    3 +++
+>  1 files changed, 3 insertions(+), 0 deletions(-)
+> 
+> diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+> index eb8a5a3..d529232 100644
+> --- a/include/linux/lmb.h
+> +++ b/include/linux/lmb.h
+> @@ -2,6 +2,7 @@
+>  #define _LINUX_LMB_H
+>  #ifdef __KERNEL__
+>  
+> +#ifdef CONFIG_HAVE_LMB
 
--v2: drop lmb_add_region() and LMB_ERROR export
--v3: seperate wrong return of lmb_fin_base to another patch
--v4: expose lmb_can_resize to handle x86 EFI that could have more than
-      128 entries
+The file could loose the "#ifdef __KERNEL__"
+as lmb.h is not exported to userspace.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
----
- include/linux/lmb.h |    3 +++
- lib/lmb.c           |    5 +++--
- 2 files changed, 6 insertions(+), 2 deletions(-)
-
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index 6f8c4bd..1e96224 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -39,6 +39,9 @@ struct lmb {
- };
- 
- extern struct lmb lmb;
-+extern int lmb_debug;
-+extern int lmb_can_resize;
-+extern struct lmb_region lmb_reserved_init_regions[];
- 
- extern void __init lmb_init(void);
- extern void __init lmb_analyze(void);
-diff --git a/lib/lmb.c b/lib/lmb.c
-index 13d1a04..bbdb1ec 100644
---- a/lib/lmb.c
-+++ b/lib/lmb.c
-@@ -22,9 +22,10 @@
- 
- struct lmb lmb;
- 
--static int lmb_debug, lmb_can_resize;
-+int lmb_debug;
-+int lmb_can_resize;
- static struct lmb_region lmb_memory_init_regions[INIT_LMB_REGIONS + 1];
--static struct lmb_region lmb_reserved_init_regions[INIT_LMB_REGIONS + 1];
-+struct lmb_region lmb_reserved_init_regions[INIT_LMB_REGIONS + 1];
- 
- #define LMB_ERROR	(~(phys_addr_t)0)
- 
--- 
-1.6.4.2
+	Sam
