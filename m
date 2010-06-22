@@ -1,62 +1,111 @@
-From: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
-Subject: [PATCH] asm-generic: cmpxchg does not handle non-long arguments
-Date: Tue, 22 Jun 2010 10:30:15 +0200
-Message-ID: <1277195415.23874.51.camel@localhost.localdomain>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail3-relais-sop.national.inria.fr ([192.134.164.104]:11941
-	"EHLO mail3-relais-sop.national.inria.fr" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758282Ab0FVIaT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Jun 2010 04:30:19 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH -v19 00/25] Use lmb with x86
+Date: Tue, 22 Jun 2010 10:26:29 -0700
+Message-ID: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-The version of cmpxchg defined in asm-generic/system.h does not handle
-correctly non-long arguments. Use the version defined in cmpxchg.h
-instead.
+New lmb could be used to replace early_res in x86.
 
-Signed-off-by: Mathieu Lacage <mathieu.lacage@inria.fr
+Suggested by: David, Ben, and Thomas
 
-diff --git a/include/asm-generic/system.h b/include/asm-generic/system.h
-index efa403b..4b0b9cb 100644
---- a/include/asm-generic/system.h
-+++ b/include/asm-generic/system.h
-@@ -21,6 +21,7 @@
- #include <linux/irqflags.h>
- 
- #include <asm/cmpxchg-local.h>
-+#include <asm/cmpxchg.h>
- 
- struct task_struct;
- 
-@@ -136,25 +137,6 @@ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
- #define xchg(ptr, x) \
- 	((__typeof__(*(ptr))) __xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
- 
--static inline unsigned long __cmpxchg(volatile unsigned long *m,
--				      unsigned long old, unsigned long new)
--{
--	unsigned long retval;
--	unsigned long flags;
--
--	local_irq_save(flags);
--	retval = *m;
--	if (retval == old)
--		*m = new;
--	local_irq_restore(flags);
--	return retval;
--}
--
--#define cmpxchg(ptr, o, n)					\
--	((__typeof__(*(ptr))) __cmpxchg((unsigned long *)(ptr), \
--					(unsigned long)(o),	\
--					(unsigned long)(n)))
--
- #endif /* !__ASSEMBLY__ */
- 
- #endif /* __KERNEL__ */
+-v6: change sequence as requested by Thomas
+-v7: seperate them to more patches
+-v8: add boundary checking to make sure not free partial page.
+-v9: use lmb_debug to control print out of reserve_lmb.
+     add e820 clean up, and e820 become __initdata
+-v10:use lmb.rmo_size and ARCH_DISCARD_LMB according to Michael
+     change name to lmb_find_area/reserve_lmb_area/free_lmb_area,
+      according to Michael
+     update find_lmb_area to use __lmb_alloc_base according to ben
+-v11:move find_lmb_area_size back to x86.
+     x86 has own find_lmb_area, and could be disabled by ARCH_LMB_FIND_AREA
+      because _lmb_find_base has different behavoir from x86's old one.
+      one from high to high and one from low to high
+      need more test
+     tested for x86 32bit/64bit, numa/nonuma, nobootmem/bootmem.
+-v12:refresh the series with current tip
+     seperate nobootmem.c, so could remove some #ifdef
+     still keep CONFIG_NO_BOOTMEM, in x86 .c, and could use the as tags
+     so other lmb could refer them to use NO_BOOTMEM.
+
+-v14:refresh to current tip
+
+-v15:remove x86 version lmb_find_area
+     remove other nobootmem and x86 e820 from this patchset
+
+-v16: rebase to Ben's cleanup powerpc/lmb
+     move back most func back to arch/x86/mm/lmb.c
+
+-v17: remove exposing of lmb_add_region
+     seperate first lmb core related patch to several small patches.
+
+-v18: change lmb_find_area to lmb_find_in_range
+      kill __lmb_find_area and use lmb_find_area directly
+      remove lmb_add_memory
+      change lmb_reserve_area to lmb_reserve_range
+      change lmb_free_area to lmb_free_range
+      don't clear lmb.reserved after converting
+      use for_each_lmb to replace for cycle
+      rebase to 06/15/2010 powerpc/lmb
+
+-v19: make the patchset only focus on lmb related.
+      will submit patches about bootmem/nobootmem seperating and other e820
+	 related later after this one.
+
+this patcheset is based on tip/master+powerpc/lmb
+
+todo:
+     replace range handling (subtracting) with lmb.
+
+Thanks
+
+Yinghai Lu
+
+ arch/x86/Kconfig                |    9 +-
+ arch/x86/include/asm/e820.h     |   21 +-
+ arch/x86/include/asm/efi.h      |    2 +-
+ arch/x86/include/asm/lmb.h      |   21 ++
+ arch/x86/kernel/acpi/sleep.c    |    7 +-
+ arch/x86/kernel/apic/numaq_32.c |    3 +-
+ arch/x86/kernel/check.c         |   16 +-
+ arch/x86/kernel/e820.c          |  197 ++++----------
+ arch/x86/kernel/efi.c           |    5 +-
+ arch/x86/kernel/head.c          |    3 +-
+ arch/x86/kernel/head32.c        |   10 +-
+ arch/x86/kernel/head64.c        |    7 +-
+ arch/x86/kernel/mpparse.c       |    5 +-
+ arch/x86/kernel/setup.c         |   76 ++++--
+ arch/x86/kernel/setup_percpu.c  |    6 -
+ arch/x86/kernel/trampoline.c    |    8 +-
+ arch/x86/mm/Makefile            |    2 +
+ arch/x86/mm/init.c              |    7 +-
+ arch/x86/mm/init_32.c           |   31 +-
+ arch/x86/mm/init_64.c           |   38 +--
+ arch/x86/mm/k8topology_64.c     |    4 +-
+ arch/x86/mm/lmb.c               |  398 ++++++++++++++++++++++++++
+ arch/x86/mm/memtest.c           |    7 +-
+ arch/x86/mm/numa_32.c           |   25 +-
+ arch/x86/mm/numa_64.c           |   45 ++--
+ arch/x86/mm/srat_32.c           |    3 +-
+ arch/x86/mm/srat_64.c           |   13 +-
+ arch/x86/xen/mmu.c              |    5 +-
+ arch/x86/xen/setup.c            |    3 +-
+ include/linux/early_res.h       |   23 --
+ include/linux/lmb.h             |   17 ++
+ include/linux/mm.h              |    2 +
+ kernel/Makefile                 |    1 -
+ kernel/early_res.c              |  584 ---------------------------------------
+ lib/lmb.c                       |   65 +++--
+ lib/swiotlb.c                   |   16 +-
+ mm/bootmem.c                    |   11 +-
+ mm/page_alloc.c                 |   72 +++--
+ mm/sparse-vmemmap.c             |   11 -
+ 39 files changed, 777 insertions(+), 1002 deletions(-)
+ create mode 100644 arch/x86/include/asm/lmb.h
+ create mode 100644 arch/x86/mm/lmb.c
+ delete mode 100644 include/linux/early_res.h
+ delete mode 100644 kernel/early_res.c
