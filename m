@@ -1,160 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:32703 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:32994 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758687Ab0FVR2e (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jun 2010 13:28:34 -0400
+	with ESMTP id S1758891Ab0FVR2k (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jun 2010 13:28:40 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 12/25] x86, lmb: Add get_free_all_memory_range()
-Date: Tue, 22 Jun 2010 10:26:41 -0700
-Message-ID: <1277227614-11581-13-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 16/25] x86, lmb: Add lmb_free_memory_in_range()
+Date: Tue, 22 Jun 2010 10:26:45 -0700
+Message-ID: <1277227614-11581-17-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 References: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Jan Beulich <jbeulich@novell.com>
-Message-ID: <20100622172641.pEvNwtb6SvTxmaFvL2vAyLx9V3NfmYoXl2XqKuDGDAk@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20100622172645.aK5uq0XLaBNTK9A8oNO3uaQnhWYPtIWoCdilwilni50@z>
 
-get_free_all_memory_range is for CONFIG_NO_BOOTMEM=y, and will be called by
-free_all_memory_core_early().
+It will return free memory size in specified range.
 
-It will use early_node_map aka active ranges subtract lmb.reserved to
-get all free range, and those ranges will convert to slab pages.
+We can not use memory_size - reserved_size here, because some reserved area
+may not be in the scope of lmb.memory.region.
 
--v4: increase range size
+Use lmb.memory.region subtracting lmb.reserved.region to get free range array.
+then count size of all free ranges.
+
+-v2: Ben insist on using _in_range
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Jan Beulich <jbeulich@novell.com>
 ---
- arch/x86/include/asm/lmb.h |    2 +
- arch/x86/mm/lmb.c          |  102 +++++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 103 insertions(+), 1 deletions(-)
+ arch/x86/include/asm/lmb.h |    1 +
+ arch/x86/mm/lmb.c          |   48 ++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 49 insertions(+), 0 deletions(-)
 
 diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index 70df84f..63bb597 100644
+index 02fe25d..3a304f8 100644
 --- a/arch/x86/include/asm/lmb.h
 +++ b/arch/x86/include/asm/lmb.h
-@@ -8,5 +8,7 @@ void lmb_to_bootmem(u64 start, u64 end);
- 
- void lmb_reserve_range(u64 start, u64 end, char *name);
- void lmb_free_range(u64 start, u64 end);
-+struct range;
-+int get_free_all_memory_range(struct range **rangep, int nodeid);
+@@ -15,5 +15,6 @@ void lmb_register_active_regions(int nid, unsigned long start_pfn,
+ 					 unsigned long last_pfn);
+ u64 lmb_hole_size(u64 start, u64 end);
+ u64 lmb_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
++u64 lmb_free_memory_in_range(u64 addr, u64 limit);
  
  #endif
 diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index 6b6cc58..3954103 100644
+index 399d223..991dd55 100644
 --- a/arch/x86/mm/lmb.c
 +++ b/arch/x86/mm/lmb.c
-@@ -86,7 +86,107 @@ u64 __init lmb_find_in_range_size(u64 start, u64 *sizep, u64 align)
- 	return LMB_ERROR;
+@@ -217,6 +217,54 @@ void __init lmb_to_bootmem(u64 start, u64 end)
  }
+ #endif
  
--#ifndef CONFIG_NO_BOOTMEM
-+static __init struct range *find_range_array(int count)
++u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
 +{
-+	u64 end, size, mem;
-+	struct range *range;
-+
-+	size = sizeof(struct range) * count;
-+	end = lmb.current_limit;
-+
-+	mem = lmb_find_in_range(0, end, size, sizeof(struct range));
-+	if (mem == LMB_ERROR)
-+		panic("can not find more space for range array");
-+
-+	/*
-+	 * This range is tempoaray, so don't reserve it, it will not be
-+	 * overlapped because We will not alloccate new buffer before
-+	 * We discard this one
-+	 */
-+	range = __va(mem);
-+	memset(range, 0, size);
-+
-+	return range;
-+}
-+
-+#ifdef CONFIG_NO_BOOTMEM
-+static void __init subtract_lmb_reserved(struct range *range, int az)
-+{
-+	int count;
-+	u64 final_start, final_end;
-+	struct lmb_region *r;
-+
-+	/* Take out region array itself at first*/
-+	if (lmb.reserved.regions != lmb_reserved_init_regions)
-+		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
-+
-+	count  = lmb.reserved.cnt;
-+
-+	pr_info("Subtract (%d early reservations)\n", count);
-+
-+	for_each_lmb(reserved, r) {
-+		pr_info("  [%010llx - %010llx]\n", (u64)r->base, (u64)r->base + r->size);
-+		final_start = PFN_DOWN(r->base);
-+		final_end = PFN_UP(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		subtract_range(range, az, final_start, final_end);
-+	}
-+	/* Put region array back ? */
-+	if (lmb.reserved.regions != lmb_reserved_init_regions)
-+		lmb_reserve(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
-+}
-+
-+struct count_data {
-+	int nr;
-+};
-+
-+static int __init count_work_fn(unsigned long start_pfn,
-+				unsigned long end_pfn, void *datax)
-+{
-+	struct count_data *data = datax;
-+
-+	data->nr++;
-+
-+	return 0;
-+}
-+
-+static int __init count_early_node_map(int nodeid)
-+{
-+	struct count_data data;
-+
-+	data.nr = 0;
-+	work_with_active_regions(nodeid, count_work_fn, &data);
-+
-+	return data.nr;
-+}
-+
-+int __init get_free_all_memory_range(struct range **rangep, int nodeid)
-+{
-+	int count;
++	int i, count;
 +	struct range *range;
 +	int nr_range;
++	u64 final_start, final_end;
++	u64 free_size;
++	struct lmb_region *r;
 +
-+	count = (lmb.reserved.cnt + count_early_node_map(nodeid)) * 2;
++	count = (lmb.reserved.cnt + lmb.memory.cnt) * 2;
 +
 +	range = find_range_array(count);
 +	nr_range = 0;
 +
-+	/*
-+	 * Use early_node_map[] and lmb.reserved.region to get range array
-+	 * at first
-+	 */
-+	nr_range = add_from_early_node_map(range, count, nr_range, nodeid);
-+#ifdef CONFIG_X86_32
-+	subtract_range(range, count, max_low_pfn, -1ULL);
-+#endif
-+	subtract_lmb_reserved(range, count);
++	addr = PFN_UP(addr);
++	limit = PFN_DOWN(limit);
++
++	for_each_lmb(memory, r) {
++		final_start = PFN_UP(r->base);
++		final_end = PFN_DOWN(r->base + r->size);
++		if (final_start >= final_end)
++			continue;
++		if (final_start >= limit || final_end <= addr)
++			continue;
++
++		nr_range = add_range(range, count, nr_range, final_start, final_end);
++	}
++	subtract_range(range, count, 0, addr);
++	subtract_range(range, count, limit, -1ULL);
++	for_each_lmb(reserved, r) {
++		final_start = PFN_DOWN(r->base);
++		final_end = PFN_UP(r->base + r->size);
++		if (final_start >= final_end)
++			continue;
++		if (final_start >= limit || final_end <= addr)
++			continue;
++
++		subtract_range(range, count, final_start, final_end);
++	}
 +	nr_range = clean_sort_range(range, count);
 +
-+	*rangep = range;
-+	return nr_range;
++	free_size = 0;
++	for (i = 0; i < nr_range; i++)
++		free_size += range[i].end - range[i].start;
++
++	return free_size << PAGE_SHIFT;
 +}
-+#else
- void __init lmb_to_bootmem(u64 start, u64 end)
++
+ void __init lmb_reserve_range(u64 start, u64 end, char *name)
  {
- 	int count;
+ 	if (start == end)
 -- 
 1.6.4.2
 
