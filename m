@@ -1,111 +1,67 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v19 00/25] Use lmb with x86
-Date: Tue, 22 Jun 2010 10:26:29 -0700
-Message-ID: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 07/25] lmb: Add lmb_find_in_range()
+Date: Tue, 22 Jun 2010 10:26:36 -0700
+Message-ID: <1277227614-11581-8-git-send-email-yinghai@kernel.org>
+References: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-New lmb could be used to replace early_res in x86.
+it is a wrapper for lmb_find_base
 
-Suggested by: David, Ben, and Thomas
+make it more easy for x86 to use lmb. ( rebase )
+x86 early_res is using find/reserve pattern instead of alloc.
 
--v6: change sequence as requested by Thomas
--v7: seperate them to more patches
--v8: add boundary checking to make sure not free partial page.
--v9: use lmb_debug to control print out of reserve_lmb.
-     add e820 clean up, and e820 become __initdata
--v10:use lmb.rmo_size and ARCH_DISCARD_LMB according to Michael
-     change name to lmb_find_area/reserve_lmb_area/free_lmb_area,
-      according to Michael
-     update find_lmb_area to use __lmb_alloc_base according to ben
--v11:move find_lmb_area_size back to x86.
-     x86 has own find_lmb_area, and could be disabled by ARCH_LMB_FIND_AREA
-      because _lmb_find_base has different behavoir from x86's old one.
-      one from high to high and one from low to high
-      need more test
-     tested for x86 32bit/64bit, numa/nonuma, nobootmem/bootmem.
--v12:refresh the series with current tip
-     seperate nobootmem.c, so could remove some #ifdef
-     still keep CONFIG_NO_BOOTMEM, in x86 .c, and could use the as tags
-     so other lmb could refer them to use NO_BOOTMEM.
+keep it in weak version, so later We can use x86 own version if needed.
+also We need it in lib/lmb.c, so one caller mm/page_alloc.c could get compiled
 
--v14:refresh to current tip
+-v2: Change name to lmb_find_in_range() according to Michael Ellerman
+-v3: Add generic weak version __lmb_find_in_range()
+     so keep the path for fallback to x86 version that handle from low
+-v4: use 0 for failing path
+-v5: use LMB_ERROR again
+-v6: remove __lmb_find_in_range()
 
--v15:remove x86 version lmb_find_area
-     remove other nobootmem and x86 e820 from this patchset
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ include/linux/lmb.h |    2 ++
+ lib/lmb.c           |    8 ++++++++
+ 2 files changed, 10 insertions(+), 0 deletions(-)
 
--v16: rebase to Ben's cleanup powerpc/lmb
-     move back most func back to arch/x86/mm/lmb.c
-
--v17: remove exposing of lmb_add_region
-     seperate first lmb core related patch to several small patches.
-
--v18: change lmb_find_area to lmb_find_in_range
-      kill __lmb_find_area and use lmb_find_area directly
-      remove lmb_add_memory
-      change lmb_reserve_area to lmb_reserve_range
-      change lmb_free_area to lmb_free_range
-      don't clear lmb.reserved after converting
-      use for_each_lmb to replace for cycle
-      rebase to 06/15/2010 powerpc/lmb
-
--v19: make the patchset only focus on lmb related.
-      will submit patches about bootmem/nobootmem seperating and other e820
-	 related later after this one.
-
-this patcheset is based on tip/master+powerpc/lmb
-
-todo:
-     replace range handling (subtracting) with lmb.
-
-Thanks
-
-Yinghai Lu
-
- arch/x86/Kconfig                |    9 +-
- arch/x86/include/asm/e820.h     |   21 +-
- arch/x86/include/asm/efi.h      |    2 +-
- arch/x86/include/asm/lmb.h      |   21 ++
- arch/x86/kernel/acpi/sleep.c    |    7 +-
- arch/x86/kernel/apic/numaq_32.c |    3 +-
- arch/x86/kernel/check.c         |   16 +-
- arch/x86/kernel/e820.c          |  197 ++++----------
- arch/x86/kernel/efi.c           |    5 +-
- arch/x86/kernel/head.c          |    3 +-
- arch/x86/kernel/head32.c        |   10 +-
- arch/x86/kernel/head64.c        |    7 +-
- arch/x86/kernel/mpparse.c       |    5 +-
- arch/x86/kernel/setup.c         |   76 ++++--
- arch/x86/kernel/setup_percpu.c  |    6 -
- arch/x86/kernel/trampoline.c    |    8 +-
- arch/x86/mm/Makefile            |    2 +
- arch/x86/mm/init.c              |    7 +-
- arch/x86/mm/init_32.c           |   31 +-
- arch/x86/mm/init_64.c           |   38 +--
- arch/x86/mm/k8topology_64.c     |    4 +-
- arch/x86/mm/lmb.c               |  398 ++++++++++++++++++++++++++
- arch/x86/mm/memtest.c           |    7 +-
- arch/x86/mm/numa_32.c           |   25 +-
- arch/x86/mm/numa_64.c           |   45 ++--
- arch/x86/mm/srat_32.c           |    3 +-
- arch/x86/mm/srat_64.c           |   13 +-
- arch/x86/xen/mmu.c              |    5 +-
- arch/x86/xen/setup.c            |    3 +-
- include/linux/early_res.h       |   23 --
- include/linux/lmb.h             |   17 ++
- include/linux/mm.h              |    2 +
- kernel/Makefile                 |    1 -
- kernel/early_res.c              |  584 ---------------------------------------
- lib/lmb.c                       |   65 +++--
- lib/swiotlb.c                   |   16 +-
- mm/bootmem.c                    |   11 +-
- mm/page_alloc.c                 |   72 +++--
- mm/sparse-vmemmap.c             |   11 -
- 39 files changed, 777 insertions(+), 1002 deletions(-)
- create mode 100644 arch/x86/include/asm/lmb.h
- create mode 100644 arch/x86/mm/lmb.c
- delete mode 100644 include/linux/early_res.h
- delete mode 100644 kernel/early_res.c
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index 5310c7b..6ca5659 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -45,6 +45,8 @@ extern int lmb_debug;
+ extern int lmb_can_resize;
+ extern struct lmb_region lmb_reserved_init_regions[];
+ 
++u64 lmb_find_in_range(u64 start, u64 end, u64 size, u64 align);
++
+ extern void __init lmb_init(void);
+ extern void __init lmb_analyze(void);
+ extern long lmb_add(phys_addr_t base, phys_addr_t size);
+diff --git a/lib/lmb.c b/lib/lmb.c
+index e45e967..2e00159 100644
+--- a/lib/lmb.c
++++ b/lib/lmb.c
+@@ -156,6 +156,14 @@ static phys_addr_t __init lmb_find_base(phys_addr_t size, phys_addr_t align,
+ 	return LMB_ERROR;
+ }
+ 
++/*
++ * Find a free area with specified alignment in a specific range.
++ */
++u64 __init __weak lmb_find_in_range(u64 start, u64 end, u64 size, u64 align)
++{
++	return lmb_find_base(size, align, start, end);
++}
++
+ static void __init_lmb lmb_remove_region(struct lmb_type *type, unsigned long r)
+ {
+ 	unsigned long i;
+-- 
+1.6.4.2
