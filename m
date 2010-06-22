@@ -1,97 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:36256 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759033Ab0FVRap (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jun 2010 13:30:45 -0400
+Received: from rcsinet12.oracle.com ([148.87.113.124]:46132 "EHLO
+	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759142Ab0FVR3t (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jun 2010 13:29:49 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 25/25] swiotlb: Use page alignment for early buffer allocation
-Date: Tue, 22 Jun 2010 10:26:54 -0700
-Message-ID: <1277227614-11581-26-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 24/25] x86: Put 64 bit numa node memmap above 16M
+Date: Tue, 22 Jun 2010 10:26:53 -0700
+Message-ID: <1277227614-11581-25-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 References: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, Becky Bruce <beckyb@kernel.crashing.org>
-Message-ID: <20100622172654.4D981y5m45hqHxquCrErlzP99Nb4vrnMSVZFzPbXAVg@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20100622172653.7Pq5PvxC9zDxtWSXZOjglhYVA9_tlA74NV7VYwJSqSk@z>
 
-for 2.6.34
-
-We could call free_bootmem_late() if swiotlb is not used, and
-it will shrink to page alignement.
-
-So alloc them with page alignment at first, to avoid lose two pages
-
-before patch:
-[    0.000000]     lmb_reserve_range: [00d3600000, 00d7600000]   swiotlb buffer
-[    0.000000]     lmb_reserve_range: [00d7e7ef40, 00d7e9ef40]     swiotlb list
-[    0.000000]     lmb_reserve_range: [00d7e3ef40, 00d7e7ef40]  swiotlb orig_ad
-[    0.000000]     lmb_reserve_range: [000008a000, 0000092000]  swiotlb overflo
-
-after patch will get
-[    0.000000]     lmb_reserve_range: [00d3600000, 00d7600000]   swiotlb buffer
-[    0.000000]     lmb_reserve_range: [00d7e7e000, 00d7e9e000]     swiotlb list
-[    0.000000]     lmb_reserve_range: [00d7e3e000, 00d7e7e000]  swiotlb orig_ad
-[    0.000000]     lmb_reserve_range: [000008a000, 0000092000]  swiotlb overflo
+Do not use 0x8000 hard code value anymore.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: Becky Bruce <beckyb@kernel.crashing.org>
 ---
- lib/swiotlb.c |   16 ++++++++--------
- 1 files changed, 8 insertions(+), 8 deletions(-)
+ arch/x86/mm/numa_64.c |    2 +-
+ arch/x86/mm/srat_64.c |    4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-index a009055..ecfab7f 100644
---- a/lib/swiotlb.c
-+++ b/lib/swiotlb.c
-@@ -159,7 +159,7 @@ swiotlb_init_with_default_size(size_t default_size, int verbose)
- 	/*
- 	 * Get IO TLB memory from the low pages
- 	 */
--	io_tlb_start = alloc_bootmem_low_pages(bytes);
-+	io_tlb_start = alloc_bootmem_low_pages(PAGE_ALIGN(bytes));
- 	if (!io_tlb_start)
- 		panic("Cannot allocate SWIOTLB buffer");
- 	io_tlb_end = io_tlb_start + bytes;
-@@ -169,16 +169,16 @@ swiotlb_init_with_default_size(size_t default_size, int verbose)
- 	 * to find contiguous free memory regions of size up to IO_TLB_SEGSIZE
- 	 * between io_tlb_start and io_tlb_end.
- 	 */
--	io_tlb_list = alloc_bootmem(io_tlb_nslabs * sizeof(int));
-+	io_tlb_list = alloc_bootmem_pages(PAGE_ALIGN(io_tlb_nslabs * sizeof(int)));
- 	for (i = 0; i < io_tlb_nslabs; i++)
-  		io_tlb_list[i] = IO_TLB_SEGSIZE - OFFSET(i, IO_TLB_SEGSIZE);
- 	io_tlb_index = 0;
--	io_tlb_orig_addr = alloc_bootmem(io_tlb_nslabs * sizeof(phys_addr_t));
-+	io_tlb_orig_addr = alloc_bootmem_pages(PAGE_ALIGN(io_tlb_nslabs * sizeof(phys_addr_t)));
+diff --git a/arch/x86/mm/numa_64.c b/arch/x86/mm/numa_64.c
+index 92c01a5..93a1e07 100644
+--- a/arch/x86/mm/numa_64.c
++++ b/arch/x86/mm/numa_64.c
+@@ -85,7 +85,7 @@ static int __init allocate_cachealigned_memnodemap(void)
+ 	if (memnodemapsize <= ARRAY_SIZE(memnode.embedded_map))
+ 		return 0;
  
- 	/*
- 	 * Get the overflow emergency buffer
- 	 */
--	io_tlb_overflow_buffer = alloc_bootmem_low(io_tlb_overflow);
-+	io_tlb_overflow_buffer = alloc_bootmem_low_pages(PAGE_ALIGN(io_tlb_overflow));
- 	if (!io_tlb_overflow_buffer)
- 		panic("Cannot allocate SWIOTLB overflow buffer!\n");
- 	if (verbose)
-@@ -304,13 +304,13 @@ void __init swiotlb_free(void)
- 			   get_order(io_tlb_nslabs << IO_TLB_SHIFT));
- 	} else {
- 		free_bootmem_late(__pa(io_tlb_overflow_buffer),
--				  io_tlb_overflow);
-+				  PAGE_ALIGN(io_tlb_overflow));
- 		free_bootmem_late(__pa(io_tlb_orig_addr),
--				  io_tlb_nslabs * sizeof(phys_addr_t));
-+				  PAGE_ALIGN(io_tlb_nslabs * sizeof(phys_addr_t)));
- 		free_bootmem_late(__pa(io_tlb_list),
--				  io_tlb_nslabs * sizeof(int));
-+				  PAGE_ALIGN(io_tlb_nslabs * sizeof(int)));
- 		free_bootmem_late(__pa(io_tlb_start),
--				  io_tlb_nslabs << IO_TLB_SHIFT);
-+				  PAGE_ALIGN(io_tlb_nslabs << IO_TLB_SHIFT));
- 	}
- }
+-	addr = 0x8000;
++	addr = __pa(MAX_DMA_ADDRESS);
+ 	nodemap_size = roundup(sizeof(s16) * memnodemapsize, L1_CACHE_BYTES);
+ 	nodemap_addr = lmb_find_in_range(addr, max_pfn<<PAGE_SHIFT,
+ 				      nodemap_size, L1_CACHE_BYTES);
+diff --git a/arch/x86/mm/srat_64.c b/arch/x86/mm/srat_64.c
+index 8f82c80..1f9b7b7 100644
+--- a/arch/x86/mm/srat_64.c
++++ b/arch/x86/mm/srat_64.c
+@@ -99,8 +99,8 @@ void __init acpi_numa_slit_init(struct acpi_table_slit *slit)
+ 	unsigned long phys;
  
+ 	length = slit->header.length;
+-	phys = lmb_find_in_range(0, max_pfn_mapped<<PAGE_SHIFT, length,
+-		 PAGE_SIZE);
++	phys = lmb_find_in_range(__pa(MAX_DMA_ADDRESS), max_pfn_mapped<<PAGE_SHIFT,
++				 length, PAGE_SIZE);
+ 
+ 	if (phys == (unsigned long)LMB_ERROR)
+ 		panic(" Can not save slit!\n");
 -- 
 1.6.4.2
 
