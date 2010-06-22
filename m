@@ -1,120 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:33079 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:32960 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758685Ab0FVR2s (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jun 2010 13:28:48 -0400
+	with ESMTP id S1758684Ab0FVR2k (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jun 2010 13:28:40 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 13/25] x86, lmb: Add lmb_register_active_regions() and lmb_hole_size()
-Date: Tue, 22 Jun 2010 10:26:42 -0700
-Message-ID: <1277227614-11581-14-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 14/25] lmb: Add find_memory_core_early()
+Date: Tue, 22 Jun 2010 10:26:43 -0700
+Message-ID: <1277227614-11581-15-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 References: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100622172642.AZ4Y5oIXbziBpPT6l31YoHwpa960aVv7TbmSJDjJlwc@z>
+Message-ID: <20100622172643.CzKNA3jXVsTTgFmr5xZBfY9Ui_QdGD-PI8raNiiycZI@z>
 
-lmb_register_active_regions() will be used to fill early_node_map,
-the result will be lmb.memory.region AND numa data
+According to node range in early_node_map[] with __lmb_find_in_range
+to find free range.
 
-lmb_hole_size will be used to find hole size on lmb.memory.region
-with specified range.
+Will be used by lmb_find_in_range_node()
+
+lmb_find_in_range_node will be used to find right buffer for NODE_DATA
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    4 ++
- arch/x86/mm/lmb.c          |   67 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 71 insertions(+), 0 deletions(-)
+ include/linux/mm.h |    2 ++
+ mm/page_alloc.c    |   36 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 38 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index 63bb597..763fb52 100644
---- a/arch/x86/include/asm/lmb.h
-+++ b/arch/x86/include/asm/lmb.h
-@@ -11,4 +11,8 @@ void lmb_free_range(u64 start, u64 end);
- struct range;
- int get_free_all_memory_range(struct range **rangep, int nodeid);
- 
-+void lmb_register_active_regions(int nid, unsigned long start_pfn,
-+					 unsigned long last_pfn);
-+u64 lmb_hole_size(u64 start, u64 end);
-+
- #endif
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index 3954103..b7e42bc 100644
---- a/arch/x86/mm/lmb.c
-+++ b/arch/x86/mm/lmb.c
-@@ -238,3 +238,70 @@ void __init lmb_free_range(u64 start, u64 end)
- 
- 	lmb_free(start, end - start);
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 4238a9c..a85bb08 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1164,6 +1164,8 @@ extern void free_bootmem_with_active_regions(int nid,
+ 						unsigned long max_low_pfn);
+ int add_from_early_node_map(struct range *range, int az,
+ 				   int nr_range, int nid);
++u64 __init find_memory_core_early(int nid, u64 size, u64 align,
++					u64 goal, u64 limit);
+ void *__alloc_memory_core_early(int nodeid, u64 size, u64 align,
+ 				 u64 goal, u64 limit);
+ typedef int (*work_fn_t)(unsigned long, unsigned long, void *);
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 431214b..37f30fc 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -21,6 +21,7 @@
+ #include <linux/pagemap.h>
+ #include <linux/jiffies.h>
+ #include <linux/bootmem.h>
++#include <linux/lmb.h>
+ #include <linux/compiler.h>
+ #include <linux/kernel.h>
+ #include <linux/kmemcheck.h>
+@@ -3612,6 +3613,41 @@ void __init free_bootmem_with_active_regions(int nid,
+ 	}
  }
-+
-+/*
-+ * Finds an active region in the address range from start_pfn to last_pfn and
-+ * returns its range in ei_startpfn and ei_endpfn for the lmb entry.
-+ */
-+static int __init lmb_find_active_region(const struct lmb_region *ei,
-+				  unsigned long start_pfn,
-+				  unsigned long last_pfn,
-+				  unsigned long *ei_startpfn,
-+				  unsigned long *ei_endpfn)
+ 
++#ifdef CONFIG_HAVE_LMB
++u64 __init find_memory_core_early(int nid, u64 size, u64 align,
++					u64 goal, u64 limit)
 +{
-+	u64 align = PAGE_SIZE;
++	int i;
 +
-+	*ei_startpfn = round_up(ei->base, align) >> PAGE_SHIFT;
-+	*ei_endpfn = round_down(ei->base + ei->size, align) >> PAGE_SHIFT;
++	/* Need to go over early_node_map to find out good range for node */
++	for_each_active_range_index_in_nid(i, nid) {
++		u64 addr;
++		u64 ei_start, ei_last;
++		u64 final_start, final_end;
 +
-+	/* Skip map entries smaller than a page */
-+	if (*ei_startpfn >= *ei_endpfn)
-+		return 0;
++		ei_last = early_node_map[i].end_pfn;
++		ei_last <<= PAGE_SHIFT;
++		ei_start = early_node_map[i].start_pfn;
++		ei_start <<= PAGE_SHIFT;
 +
-+	/* Skip if map is outside the node */
-+	if (*ei_endpfn <= start_pfn || *ei_startpfn >= last_pfn)
-+		return 0;
++	        final_start = max(ei_start, goal);
++		final_end = min(ei_last, limit);
 +
-+	/* Check for overlaps */
-+	if (*ei_startpfn < start_pfn)
-+		*ei_startpfn = start_pfn;
-+	if (*ei_endpfn > last_pfn)
-+		*ei_endpfn = last_pfn;
++	        if (final_start >= final_end)
++			continue;
 +
-+	return 1;
++		addr = lmb_find_in_range(final_start, final_end, size, align);
++
++		if (addr == LMB_ERROR)
++			continue;
++
++		return addr;
++	}
++
++	return LMB_ERROR;
 +}
++#endif
 +
-+/* Walk the lmb.memory map and register active regions within a node */
-+void __init lmb_register_active_regions(int nid, unsigned long start_pfn,
-+					 unsigned long last_pfn)
-+{
-+	unsigned long ei_startpfn;
-+	unsigned long ei_endpfn;
-+	struct lmb_region *r;
-+
-+	for_each_lmb(memory, r)
-+		if (lmb_find_active_region(r, start_pfn, last_pfn,
-+					   &ei_startpfn, &ei_endpfn))
-+			add_active_range(nid, ei_startpfn, ei_endpfn);
-+}
-+
-+/*
-+ * Find the hole size (in bytes) in the memory range.
-+ * @start: starting address of the memory range to scan
-+ * @end: ending address of the memory range to scan
-+ */
-+u64 __init lmb_hole_size(u64 start, u64 end)
-+{
-+	unsigned long start_pfn = start >> PAGE_SHIFT;
-+	unsigned long last_pfn = end >> PAGE_SHIFT;
-+	unsigned long ei_startpfn, ei_endpfn, ram = 0;
-+	struct lmb_region *r;
-+
-+	for_each_lmb(memory, r)
-+		if (lmb_find_active_region(r, start_pfn, last_pfn,
-+					   &ei_startpfn, &ei_endpfn))
-+			ram += ei_endpfn - ei_startpfn;
-+
-+	return end - start - ((u64)ram << PAGE_SHIFT);
-+}
-+
+ int __init add_from_early_node_map(struct range *range, int az,
+ 				   int nr_range, int nid)
+ {
 -- 
 1.6.4.2
 
