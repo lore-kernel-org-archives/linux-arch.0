@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 01/25] lmb: lmb_find_base() should return LMB_ERROR on failing path
-Date: Tue, 22 Jun 2010 10:26:30 -0700
-Message-ID: <1277227614-11581-2-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 17/25] x86, lmb: Add lmb_memory_in_range()
+Date: Tue, 22 Jun 2010 10:26:46 -0700
+Message-ID: <1277227614-11581-18-git-send-email-yinghai@kernel.org>
 References: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
@@ -10,25 +10,79 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-all callees assume it return LMB_ERROR when it fail to find a range
+It will return memory size in specified range according to lmb.memory.region
+
+Try to share some code with lmb_free_memory_in_range() by passing get_free to
+__lmb_memory_in_range().
+
+-v2: Ben want _in_range in the name instead of size
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- lib/lmb.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ arch/x86/include/asm/lmb.h |    1 +
+ arch/x86/mm/lmb.c          |   18 +++++++++++++++++-
+ 2 files changed, 18 insertions(+), 1 deletions(-)
 
-diff --git a/lib/lmb.c b/lib/lmb.c
-index 2421b2a..13d1a04 100644
---- a/lib/lmb.c
-+++ b/lib/lmb.c
-@@ -154,7 +154,7 @@ static phys_addr_t __init lmb_find_base(phys_addr_t size, phys_addr_t align,
- 		if (found != LMB_ERROR)
- 			return found;
+diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
+index 3a304f8..749c224 100644
+--- a/arch/x86/include/asm/lmb.h
++++ b/arch/x86/include/asm/lmb.h
+@@ -16,5 +16,6 @@ void lmb_register_active_regions(int nid, unsigned long start_pfn,
+ u64 lmb_hole_size(u64 start, u64 end);
+ u64 lmb_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
+ u64 lmb_free_memory_in_range(u64 addr, u64 limit);
++u64 lmb_memory_in_range(u64 addr, u64 limit);
+ 
+ #endif
+diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
+index 991dd55..bd2f60b 100644
+--- a/arch/x86/mm/lmb.c
++++ b/arch/x86/mm/lmb.c
+@@ -217,7 +217,7 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+ }
+ #endif
+ 
+-u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
++static u64 __init __lmb_memory_in_range(u64 addr, u64 limit, bool get_free)
+ {
+ 	int i, count;
+ 	struct range *range;
+@@ -246,6 +246,10 @@ u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
  	}
--	return 0;
-+	return LMB_ERROR;
+ 	subtract_range(range, count, 0, addr);
+ 	subtract_range(range, count, limit, -1ULL);
++
++	/* Subtract lmb.reserved.region in range ? */
++	if (!get_free)
++		goto sort_and_count_them;
+ 	for_each_lmb(reserved, r) {
+ 		final_start = PFN_DOWN(r->base);
+ 		final_end = PFN_UP(r->base + r->size);
+@@ -256,6 +260,8 @@ u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
+ 
+ 		subtract_range(range, count, final_start, final_end);
+ 	}
++
++sort_and_count_them:
+ 	nr_range = clean_sort_range(range, count);
+ 
+ 	free_size = 0;
+@@ -265,6 +271,16 @@ u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
+ 	return free_size << PAGE_SHIFT;
  }
  
- static void lmb_remove_region(struct lmb_type *type, unsigned long r)
++u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
++{
++	return __lmb_memory_in_range(addr, limit, true);
++}
++
++u64 __init lmb_memory_in_range(u64 addr, u64 limit)
++{
++	return __lmb_memory_in_range(addr, limit, false);
++}
++
+ void __init lmb_reserve_range(u64 start, u64 end, char *name)
+ {
+ 	if (start == end)
 -- 
 1.6.4.2
