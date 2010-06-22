@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 17/25] x86, lmb: Add lmb_memory_in_range()
-Date: Tue, 22 Jun 2010 10:26:46 -0700
-Message-ID: <1277227614-11581-18-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 10/25] x86, lmb: Add lmb_to_bootmem()
+Date: Tue, 22 Jun 2010 10:26:39 -0700
+Message-ID: <1277227614-11581-11-git-send-email-yinghai@kernel.org>
 References: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
@@ -10,79 +10,65 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-It will return memory size in specified range according to lmb.memory.region
+lmb_to_bootmem() will reserve lmb.reserved.region in bootmem after bootmem is
+set up.
 
-Try to share some code with lmb_free_memory_in_range() by passing get_free to
-__lmb_memory_in_range().
-
--v2: Ben want _in_range in the name instead of size
+We can use it to with all arches that support lmb later.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
  arch/x86/include/asm/lmb.h |    1 +
- arch/x86/mm/lmb.c          |   18 +++++++++++++++++-
- 2 files changed, 18 insertions(+), 1 deletions(-)
+ arch/x86/mm/lmb.c          |   30 ++++++++++++++++++++++++++++++
+ 2 files changed, 31 insertions(+), 0 deletions(-)
 
 diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index 3a304f8..749c224 100644
+index 9d26895..e8207f8 100644
 --- a/arch/x86/include/asm/lmb.h
 +++ b/arch/x86/include/asm/lmb.h
-@@ -16,5 +16,6 @@ void lmb_register_active_regions(int nid, unsigned long start_pfn,
- u64 lmb_hole_size(u64 start, u64 end);
- u64 lmb_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
- u64 lmb_free_memory_in_range(u64 addr, u64 limit);
-+u64 lmb_memory_in_range(u64 addr, u64 limit);
+@@ -4,5 +4,6 @@
+ #define ARCH_DISCARD_LMB
+ 
+ u64 lmb_find_in_range_size(u64 start, u64 *sizep, u64 align);
++void lmb_to_bootmem(u64 start, u64 end);
  
  #endif
 diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index 991dd55..bd2f60b 100644
+index 4335f48..a959699 100644
 --- a/arch/x86/mm/lmb.c
 +++ b/arch/x86/mm/lmb.c
-@@ -217,7 +217,7 @@ void __init lmb_to_bootmem(u64 start, u64 end)
- }
- #endif
- 
--u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
-+static u64 __init __lmb_memory_in_range(u64 addr, u64 limit, bool get_free)
- {
- 	int i, count;
- 	struct range *range;
-@@ -246,6 +246,10 @@ u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
- 	}
- 	subtract_range(range, count, 0, addr);
- 	subtract_range(range, count, limit, -1ULL);
-+
-+	/* Subtract lmb.reserved.region in range ? */
-+	if (!get_free)
-+		goto sort_and_count_them;
- 	for_each_lmb(reserved, r) {
- 		final_start = PFN_DOWN(r->base);
- 		final_end = PFN_UP(r->base + r->size);
-@@ -256,6 +260,8 @@ u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
- 
- 		subtract_range(range, count, final_start, final_end);
- 	}
-+
-+sort_and_count_them:
- 	nr_range = clean_sort_range(range, count);
- 
- 	free_size = 0;
-@@ -265,6 +271,16 @@ u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
- 	return free_size << PAGE_SHIFT;
+@@ -86,3 +86,33 @@ u64 __init lmb_find_in_range_size(u64 start, u64 *sizep, u64 align)
+ 	return LMB_ERROR;
  }
  
-+u64 __init lmb_free_memory_in_range(u64 addr, u64 limit)
++#ifndef CONFIG_NO_BOOTMEM
++void __init lmb_to_bootmem(u64 start, u64 end)
 +{
-+	return __lmb_memory_in_range(addr, limit, true);
-+}
++	int count;
++	u64 final_start, final_end;
++	struct lmb_region *r;
 +
-+u64 __init lmb_memory_in_range(u64 addr, u64 limit)
-+{
-+	return __lmb_memory_in_range(addr, limit, false);
-+}
++	/* Take out region array itself */
++	if (lmb.reserved.regions != lmb_reserved_init_regions)
++		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
 +
- void __init lmb_reserve_range(u64 start, u64 end, char *name)
- {
- 	if (start == end)
++	count  = lmb.reserved.cnt;
++	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
++	for_each_lmb(reserved, r) {
++		pr_info("  [%010llx - %010llx] ", (u64)r->base, (u64)r->base + r->size);
++		final_start = max(start, r->base);
++		final_end = min(end, r->base + r->size);
++		if (final_start >= final_end) {
++			pr_cont("\n");
++			continue;
++		}
++		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
++		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
++	}
++
++	/* Put region array back ? */
++	if (lmb.reserved.regions != lmb_reserved_init_regions)
++		lmb_reserve(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
++}
++#endif
 -- 
 1.6.4.2
