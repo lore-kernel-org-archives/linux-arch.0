@@ -1,56 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet12.oracle.com ([148.87.113.124]:46132 "EHLO
-	rcsinet12.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759142Ab0FVR3t (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jun 2010 13:29:49 -0400
+Received: from rcsinet10.oracle.com ([148.87.113.121]:31648 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756892Ab0FVR2N (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jun 2010 13:28:13 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 24/25] x86: Put 64 bit numa node memmap above 16M
-Date: Tue, 22 Jun 2010 10:26:53 -0700
-Message-ID: <1277227614-11581-25-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
-References: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v19 00/25] Use lmb with x86
+Date: Tue, 22 Jun 2010 10:26:29 -0700
+Message-ID: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100622172653.7Pq5PvxC9zDxtWSXZOjglhYVA9_tlA74NV7VYwJSqSk@z>
+Message-ID: <20100622172629.7hDIqF1lJI7JLjYu6Khu-BRggEEfZ4BEtz5mTauhn9g@z>
 
-Do not use 0x8000 hard code value anymore.
+New lmb could be used to replace early_res in x86.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- arch/x86/mm/numa_64.c |    2 +-
- arch/x86/mm/srat_64.c |    4 ++--
- 2 files changed, 3 insertions(+), 3 deletions(-)
+Suggested by: David, Ben, and Thomas
 
-diff --git a/arch/x86/mm/numa_64.c b/arch/x86/mm/numa_64.c
-index 92c01a5..93a1e07 100644
---- a/arch/x86/mm/numa_64.c
-+++ b/arch/x86/mm/numa_64.c
-@@ -85,7 +85,7 @@ static int __init allocate_cachealigned_memnodemap(void)
- 	if (memnodemapsize <= ARRAY_SIZE(memnode.embedded_map))
- 		return 0;
- 
--	addr = 0x8000;
-+	addr = __pa(MAX_DMA_ADDRESS);
- 	nodemap_size = roundup(sizeof(s16) * memnodemapsize, L1_CACHE_BYTES);
- 	nodemap_addr = lmb_find_in_range(addr, max_pfn<<PAGE_SHIFT,
- 				      nodemap_size, L1_CACHE_BYTES);
-diff --git a/arch/x86/mm/srat_64.c b/arch/x86/mm/srat_64.c
-index 8f82c80..1f9b7b7 100644
---- a/arch/x86/mm/srat_64.c
-+++ b/arch/x86/mm/srat_64.c
-@@ -99,8 +99,8 @@ void __init acpi_numa_slit_init(struct acpi_table_slit *slit)
- 	unsigned long phys;
- 
- 	length = slit->header.length;
--	phys = lmb_find_in_range(0, max_pfn_mapped<<PAGE_SHIFT, length,
--		 PAGE_SIZE);
-+	phys = lmb_find_in_range(__pa(MAX_DMA_ADDRESS), max_pfn_mapped<<PAGE_SHIFT,
-+				 length, PAGE_SIZE);
- 
- 	if (phys == (unsigned long)LMB_ERROR)
- 		panic(" Can not save slit!\n");
--- 
-1.6.4.2
+-v6: change sequence as requested by Thomas
+-v7: seperate them to more patches
+-v8: add boundary checking to make sure not free partial page.
+-v9: use lmb_debug to control print out of reserve_lmb.
+     add e820 clean up, and e820 become __initdata
+-v10:use lmb.rmo_size and ARCH_DISCARD_LMB according to Michael
+     change name to lmb_find_area/reserve_lmb_area/free_lmb_area,
+      according to Michael
+     update find_lmb_area to use __lmb_alloc_base according to ben
+-v11:move find_lmb_area_size back to x86.
+     x86 has own find_lmb_area, and could be disabled by ARCH_LMB_FIND_AREA
+      because _lmb_find_base has different behavoir from x86's old one.
+      one from high to high and one from low to high
+      need more test
+     tested for x86 32bit/64bit, numa/nonuma, nobootmem/bootmem.
+-v12:refresh the series with current tip
+     seperate nobootmem.c, so could remove some #ifdef
+     still keep CONFIG_NO_BOOTMEM, in x86 .c, and could use the as tags
+     so other lmb could refer them to use NO_BOOTMEM.
+
+-v14:refresh to current tip
+
+-v15:remove x86 version lmb_find_area
+     remove other nobootmem and x86 e820 from this patchset
+
+-v16: rebase to Ben's cleanup powerpc/lmb
+     move back most func back to arch/x86/mm/lmb.c
+
+-v17: remove exposing of lmb_add_region
+     seperate first lmb core related patch to several small patches.
+
+-v18: change lmb_find_area to lmb_find_in_range
+      kill __lmb_find_area and use lmb_find_area directly
+      remove lmb_add_memory
+      change lmb_reserve_area to lmb_reserve_range
+      change lmb_free_area to lmb_free_range
+      don't clear lmb.reserved after converting
+      use for_each_lmb to replace for cycle
+      rebase to 06/15/2010 powerpc/lmb
+
+-v19: make the patchset only focus on lmb related.
+      will submit patches about bootmem/nobootmem seperating and other e820
+	 related later after this one.
+
+this patcheset is based on tip/master+powerpc/lmb
+
+todo:
+     replace range handling (subtracting) with lmb.
+
+Thanks
+
+Yinghai Lu
+
+ arch/x86/Kconfig                |    9 +-
+ arch/x86/include/asm/e820.h     |   21 +-
+ arch/x86/include/asm/efi.h      |    2 +-
+ arch/x86/include/asm/lmb.h      |   21 ++
+ arch/x86/kernel/acpi/sleep.c    |    7 +-
+ arch/x86/kernel/apic/numaq_32.c |    3 +-
+ arch/x86/kernel/check.c         |   16 +-
+ arch/x86/kernel/e820.c          |  197 ++++----------
+ arch/x86/kernel/efi.c           |    5 +-
+ arch/x86/kernel/head.c          |    3 +-
+ arch/x86/kernel/head32.c        |   10 +-
+ arch/x86/kernel/head64.c        |    7 +-
+ arch/x86/kernel/mpparse.c       |    5 +-
+ arch/x86/kernel/setup.c         |   76 ++++--
+ arch/x86/kernel/setup_percpu.c  |    6 -
+ arch/x86/kernel/trampoline.c    |    8 +-
+ arch/x86/mm/Makefile            |    2 +
+ arch/x86/mm/init.c              |    7 +-
+ arch/x86/mm/init_32.c           |   31 +-
+ arch/x86/mm/init_64.c           |   38 +--
+ arch/x86/mm/k8topology_64.c     |    4 +-
+ arch/x86/mm/lmb.c               |  398 ++++++++++++++++++++++++++
+ arch/x86/mm/memtest.c           |    7 +-
+ arch/x86/mm/numa_32.c           |   25 +-
+ arch/x86/mm/numa_64.c           |   45 ++--
+ arch/x86/mm/srat_32.c           |    3 +-
+ arch/x86/mm/srat_64.c           |   13 +-
+ arch/x86/xen/mmu.c              |    5 +-
+ arch/x86/xen/setup.c            |    3 +-
+ include/linux/early_res.h       |   23 --
+ include/linux/lmb.h             |   17 ++
+ include/linux/mm.h              |    2 +
+ kernel/Makefile                 |    1 -
+ kernel/early_res.c              |  584 ---------------------------------------
+ lib/lmb.c                       |   65 +++--
+ lib/swiotlb.c                   |   16 +-
+ mm/bootmem.c                    |   11 +-
+ mm/page_alloc.c                 |   72 +++--
+ mm/sparse-vmemmap.c             |   11 -
+ 39 files changed, 777 insertions(+), 1002 deletions(-)
+ create mode 100644 arch/x86/include/asm/lmb.h
+ create mode 100644 arch/x86/mm/lmb.c
+ delete mode 100644 include/linux/early_res.h
+ delete mode 100644 kernel/early_res.c
 
