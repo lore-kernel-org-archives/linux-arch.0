@@ -1,34 +1,41 @@
-From: Mark Lord <kernel@teksavvy.com>
-Subject: Re: [PATCH v2] sata_sil24: Use memory barriers before issuing commands
-Date: Wed, 23 Jun 2010 09:00:14 -0400
-Message-ID: <4C22055E.5060705@teksavvy.com>
-References: <20100610160212.18091.29856.stgit@e102109-lin.cambridge.arm.com>	 <4C110EDD.2010409@kernel.org> <1276187002.24535.88.camel@e102109-lin.cambridge.arm.com> <4C118697.9090305@gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 00/28] mm: preemptibility -v3
+Date: Thu, 24 Jun 2010 11:55:31 +0200
+Message-ID: <1277373331.1875.940.camel@laptop>
+References: <20100607110654.606530953@chello.nl>
+	 <1276134311.2096.438.camel@ymzhang.sh.intel.com>
+	 <1276152750.2046.2485.camel@twins>
+	 <1276153198.2096.465.camel@ymzhang.sh.intel.com>
+	 <1277115718.1875.490.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ironport2-out.teksavvy.com ([206.248.154.181]:54093 "EHLO
-	ironport2-out.pppoe.ca" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751217Ab0FWNKN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Jun 2010 09:10:13 -0400
-In-Reply-To: <4C118697.9090305@gmail.com>
+Received: from bombadil.infradead.org ([18.85.46.34]:43802 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754565Ab0FXJ4Q convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jun 2010 05:56:16 -0400
+In-Reply-To: <1277115718.1875.490.camel@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robert Hancock <hancockrwd@gmail.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Tejun Heo <tj@kernel.org>, linux-ide@vger.kernel.org, linux-kernel@vger.kernel.org, Colin Tuckley <colin.tuckley@arm.com>, Jeff Garzik <jeff@garzik.org>, linux-arch <linux-arch@vger.kernel.org>
+To: "Zhang, Yanmin" <yanmin_zhang@linux.intel.com>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>
 
-On 10/06/10 08:43 PM, Robert Hancock wrote:
-..
-> My memory is fuzzy but I thought this came up before on PPC and I also
-> thought the conclusion was that the platform code (for writel, etc.)
-> should enforce ordering of MMIO accesses with respect to normal RAM
-> accesses. (Or maybe it was just MMIO accesses with respect to each
-> other?) I don't think the answer to that question has been clearly
-> documented anywhere, which is somewhat unfortunate.
-..
+On Mon, 2010-06-21 at 12:21 +0200, Peter Zijlstra wrote:
+> On Thu, 2010-06-10 at 14:59 +0800, Zhang, Yanmin wrote:
+> 
+> > > > I applied it against 2.6.35-rc2 on x86_64 machine, but kernel booting panic.
+> 
+> <snip panic>
+> 
+> > > Oi, that's no good. Happen to have your .config handy, I didn't actually
+> > > see my machine do that.
+> 
+> > See the attachment.
+> 
+> That .config build and booted on my x86_64 machine, no funnies there.
+> 
+> I pushed a git tree out to kernel.org but somehow its refusing to show
+> up on git.kernel.org..
 
-Different problem.  That discussion was for PIO reads into the page cache,
-and ensuring coherency from all of that.
-
-Whereas this patch is just ordinary low-level chipset programming,
-and ensuring the descriptors are visible before issuing the "go" command.
+git://git.kernel.org/pub/scm/linux/kernel/git/peterz/linux-2.6-mmu_preempt.git mmu_preempt
