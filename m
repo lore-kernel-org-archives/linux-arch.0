@@ -1,97 +1,100 @@
 From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: Re: [PATCH 12/25] x86, lmb: Add get_free_all_memory_range()
-Date: Tue, 29 Jun 2010 11:56:36 -0600
-Message-ID: <201006291156.38178.bjorn.helgaas@hp.com>
-References: <1277227614-11581-1-git-send-email-yinghai@kernel.org> <1277227614-11581-13-git-send-email-yinghai@kernel.org>
+Subject: Re: [PATCH 18/25] x86, lmb: Use lmb_debug to control debug message print out
+Date: Tue, 29 Jun 2010 11:58:52 -0600
+Message-ID: <201006291158.54280.bjorn.helgaas@hp.com>
+References: <1277227614-11581-1-git-send-email-yinghai@kernel.org> <1277227614-11581-19-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0006.atlanta.hp.com ([15.192.0.43]:37267 "EHLO
-	g5t0006.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752594Ab0F2Rzz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jun 2010 13:55:55 -0400
-In-Reply-To: <1277227614-11581-13-git-send-email-yinghai@kernel.org>
+Received: from g1t0029.austin.hp.com ([15.216.28.36]:41910 "EHLO
+	g1t0029.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753239Ab0F2R6L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jun 2010 13:58:11 -0400
+In-Reply-To: <1277227614-11581-19-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yinghai Lu <yinghai@kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jan Beulich <jbeulich@novell.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tuesday, June 22, 2010 11:26:41 am Yinghai Lu wrote:
+On Tuesday, June 22, 2010 11:26:47 am Yinghai Lu wrote:
+> Also let lmb_reserve_range/lmb_free_range could print out name if lmb=debug is
+> specified
+> 
+> will also print ther name when reserve_lmb_area/free_lmb_area are called.
+> 
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> ---
+>  arch/x86/mm/lmb.c |   24 ++++++++++++++++++------
+>  1 files changed, 18 insertions(+), 6 deletions(-)
+> 
+> diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
+> index bd2f60b..209f25b 100644
+> --- a/arch/x86/mm/lmb.c
+> +++ b/arch/x86/mm/lmb.c
+> @@ -122,10 +122,12 @@ static void __init subtract_lmb_reserved(struct range *range, int az)
+>  
+>  	count  = lmb.reserved.cnt;
+>  
+> -	pr_info("Subtract (%d early reservations)\n", count);
+> +	if (lmb_debug)
+> +		pr_info("Subtract (%d early reservations)\n", count);
+>  
+>  	for_each_lmb(reserved, r) {
+> -		pr_info("  [%010llx - %010llx]\n", (u64)r->base, (u64)r->base + r->size);
 
-> +	pr_info("Subtract (%d early reservations)\n", count);
-> +
-> +	for_each_lmb(reserved, r) {
-> +		pr_info("  [%010llx - %010llx]\n", (u64)r->base, (u64)r->base + r->size);
+Use %pR format (looks like this is rework on top of a previous patch,
+so this comment is probably redundant).
 
-Use %pR format and consider adding text to the line, e.g.,
-"lmb: early reservation [%#010llx-%#010llx] removed" so that
-grep output is useful all by itself, without requiring the
-context of the preceding lines.
-
-> +		final_start = PFN_DOWN(r->base);
-> +		final_end = PFN_UP(r->base + r->size);
-> +		if (final_start >= final_end)
-> +			continue;
-> +		subtract_range(range, az, final_start, final_end);
-> +	}
-> +	/* Put region array back ? */
-> +	if (lmb.reserved.regions != lmb_reserved_init_regions)
-> +		lmb_reserve(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
-> +}
+> +		if (lmb_debug)
+> +			pr_info("  [%010llx - %010llx]\n", (u64)r->base, (u64)r->base + r->size);
+>  		final_start = PFN_DOWN(r->base);
+>  		final_end = PFN_UP(r->base + r->size);
+>  		if (final_start >= final_end)
+> @@ -198,16 +200,20 @@ void __init lmb_to_bootmem(u64 start, u64 end)
+>  		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
+>  
+>  	count  = lmb.reserved.cnt;
+> -	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
+> +	if (lmb_debug)
+> +		pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
+>  	for_each_lmb(reserved, r) {
+> -		pr_info("  [%010llx - %010llx] ", (u64)r->base, (u64)r->base + r->size);
+> +		if (lmb_debug)
+> +			pr_info("  [%010llx - %010llx] ", (u64)r->base, (u64)r->base + r->size);
+>  		final_start = max(start, r->base);
+>  		final_end = min(end, r->base + r->size);
+>  		if (final_start >= final_end) {
+> -			pr_cont("\n");
+> +			if (lmb_debug)
+> +				pr_cont("\n");
+>  			continue;
+>  		}
+> -		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
+> +		if (lmb_debug)
+> +			pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
+>  		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
+>  	}
+>  
+> @@ -289,6 +295,9 @@ void __init lmb_reserve_range(u64 start, u64 end, char *name)
+>  	if (WARN_ONCE(start > end, "lmb_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
+>  		return;
+>  
+> +	if (lmb_debug)
+> +		pr_info("    lmb_reserve_range: [%010llx, %010llx] %16s\n", start, end, name);
 > +
-> +struct count_data {
-> +	int nr;
-> +};
+>  	lmb_reserve(start, end - start);
+>  }
+>  
+> @@ -300,6 +309,9 @@ void __init lmb_free_range(u64 start, u64 end)
+>  	if (WARN_ONCE(start > end, "lmb_free_range: wrong range [%#llx, %#llx]\n", start, end))
+>  		return;
+>  
+> +	if (lmb_debug)
+> +		pr_info("       lmb_free_range: [%010llx, %010llx]\n", start, end);
 > +
-> +static int __init count_work_fn(unsigned long start_pfn,
-> +				unsigned long end_pfn, void *datax)
-> +{
-> +	struct count_data *data = datax;
-> +
-> +	data->nr++;
-> +
-> +	return 0;
-> +}
-> +
-> +static int __init count_early_node_map(int nodeid)
-> +{
-> +	struct count_data data;
-> +
-> +	data.nr = 0;
-> +	work_with_active_regions(nodeid, count_work_fn, &data);
-> +
-> +	return data.nr;
-> +}
-> +
-> +int __init get_free_all_memory_range(struct range **rangep, int nodeid)
-> +{
-> +	int count;
-> +	struct range *range;
-> +	int nr_range;
-> +
-> +	count = (lmb.reserved.cnt + count_early_node_map(nodeid)) * 2;
-> +
-> +	range = find_range_array(count);
-> +	nr_range = 0;
-> +
-> +	/*
-> +	 * Use early_node_map[] and lmb.reserved.region to get range array
-> +	 * at first
-> +	 */
-> +	nr_range = add_from_early_node_map(range, count, nr_range, nodeid);
-> +#ifdef CONFIG_X86_32
-> +	subtract_range(range, count, max_low_pfn, -1ULL);
-> +#endif
-> +	subtract_lmb_reserved(range, count);
-> +	nr_range = clean_sort_range(range, count);
-> +
-> +	*rangep = range;
-> +	return nr_range;
-> +}
-> +#else
->  void __init lmb_to_bootmem(u64 start, u64 end)
->  {
->  	int count;
+>  	lmb_free(start, end - start);
+>  }
+>  
 > 
