@@ -1,100 +1,27 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH -mm 1/2] scsi: remove dma_is_consistent usage in 53c700
-Date: Tue, 29 Jun 2010 08:37:35 -0500
-Message-ID: <1277818655.4379.5.camel@mulgrave.site>
-References: <1277651328.4366.7.camel@mulgrave.site>
-	 <20100628123503Z.fujita.tomonori@lab.ntt.co.jp>
-	 <1277736958.10879.43.camel@mulgrave.site>
-	 <20100629150201C.fujita.tomonori@lab.ntt.co.jp>
+From: Bjorn Helgaas <bjorn.helgaas@hp.com>
+Subject: Re: [PATCH 03/25] lmb: Print new doubled array location info
+Date: Tue, 29 Jun 2010 11:44:13 -0600
+Message-ID: <201006291144.14469.bjorn.helgaas@hp.com>
+References: <1277227614-11581-1-git-send-email-yinghai@kernel.org> <1277227614-11581-4-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:54723 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754557Ab0F2Nhi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Jun 2010 09:37:38 -0400
-In-Reply-To: <20100629150201C.fujita.tomonori@lab.ntt.co.jp>
+Received: from g5t0008.atlanta.hp.com ([15.192.0.45]:33569 "EHLO
+	g5t0008.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755367Ab0F2Rnc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jun 2010 13:43:32 -0400
+In-Reply-To: <1277227614-11581-4-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: akpm@linux-foundation.org, grundler@parisc-linux.org, lethal@linux-sh.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, 2010-06-29 at 15:04 +0900, FUJITA Tomonori wrote:
-> On Mon, 28 Jun 2010 09:55:58 -0500
-> James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
-> 
-> > > > > I think that we can safely remove the above usage:
-> > > > > 
-> > > > > - such old systems haven't triger the above checking for long.
-> > > > > 
-> > > > > - the above condition is important for systems that can't allocate
-> > > > >   coherent memory if these systems do DMA. So probably it would be
-> > > > >   better to have such checking in arch's DMA initialization code
-> > > > >   instead of a driver.
-> > > > 
-> > > > Well, we can't check in the architecture because it's a driver specific
-> > > > thing ... I suppose making it a rule that dma_get_cache_alignment()
-> > > > *must* be <= L1_CACHE_BYTES fixes it ... we seem to have no architecture
-> > > > violating that, so just add it to the documentation, and the check can
-> > > > go.
-> > > 
-> > > Seems that on some architectures (arm and mips at least),
-> > > dma_get_cache_alignment() could greater than L1_CACHE_BYTES. But they
-> > > simply return the possible maximum size of cache size like:
-> > > 
-> > > static inline int dma_get_cache_alignment(void)
-> > > {
-> > > 	/* XXX Largest on any MIPS */
-> > > 	return 128;
-> > > }
-> > > 
-> > > So practically, we should be safe. I guess that we can simply convert
-> > > them to return L1_CACHE_BYTES.
-> > 
-> > As long as that's architecturally true, yes.   I mean I can't imagine
-> > any architecture that had a dma alignment requirement that was greater
-> > than its L1 cache width ... but I've been surprised be for making
-> > "Obviously this can't happen ..." type statements where MIPS is
-> > concerned.
-> 
-> How about using ARCH_KMALLOC_MINALIGN instead of L1_CACHE_BYTES?
-> 
-> In the previous merge window, we made sure that all the architectures
-> defines the minimum alignment and width of DMA properly (and the fully
-> coherent architectures don't define ARCH_KMALLOC_MINALIGN).
-> 
-> dma_get_cache_alignment should be equal to ARCH_KMALLOC_MINALIGN if an
-> architecture defines ARCH_KMALLOC_MINALIGN (probably,
-> dma_get_cache_alignment() can be implemented in the common place with
-> ARCH_KMALLOC_MINALIGN. It would be better to rename
-> ARCH_KMALLOC_MINALIGN to something like ARCH_DMA_MINALIGN).
-> 
-> It might be better to place DMA_ALIGN(x) in the common place. Seems
-> that some drivers wrongly use L1_CACHE_ALIGN() to get the dma
-> alignment. Well, using cache alignment magic in drivers isn't a good
-> idea though...
-> 
-> =
-> From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-> Subject: [PATCH] 53c700: remove dma_is_consistent usage in 53c700
-> 
-> ARCH_KMALLOC_MINALIGN returns the minimum alignment and width of DMA
-> on architectures that define ARCH_KMALLOC_MINALIGN (if it's not
-> defined, architectures are fully coherent).
-> 
-> So we can use ARCH_KMALLOC_MINALIGN instead of L1_CACHE_BYTES and
-> safely remove the alignment checking.
+On Tuesday, June 22, 2010 11:26:32 am Yinghai Lu wrote:
+> +	if (lmb_debug)
+> +		pr_info("lmb: %s array is doubled to %ld at %llx - %llx",
+> +			 lmb_type_name(type), type->max * 2, (u64)addr, (u64)addr + new_size);
 
-Actually, I'd rather not do this.  The reason is that L1_CACHE_ALIGN is
-quite a big performance optimisation on x86 for the driver.  Without it,
-it's functionally correct, but the DMA use of the mailboxes really
-thrashes the cache which damages performance (x86 has
-ARCH_KMALLOC_MINALIGN set to 8 ... the default)
-
-The only correctness problem, which the BUG is checking for is mismatch
-in dma alignment ... as I said, I'm happy just to rely on that being
-correct on every incoherent platform the driver operates on.
-
-James
+Please print this memory range the same way we print resources, e.g.,
+"%#010llx-%#010llx", with "addr" and "addr + new_size - 1".
