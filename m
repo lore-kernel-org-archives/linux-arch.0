@@ -1,84 +1,28 @@
 From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: Re: [PATCH 23/25] x86: Have nobootmem version setup_bootmem_allocator()
-Date: Tue, 29 Jun 2010 12:02:57 -0600
-Message-ID: <201006291202.58730.bjorn.helgaas@hp.com>
-References: <1277227614-11581-1-git-send-email-yinghai@kernel.org> <1277227614-11581-24-git-send-email-yinghai@kernel.org>
+Subject: Re: [PATCH -v19 00/25] Use lmb with x86
+Date: Tue, 29 Jun 2010 12:06:12 -0600
+Message-ID: <201006291206.13332.bjorn.helgaas@hp.com>
+References: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0029.austin.hp.com ([15.216.28.36]:43438 "EHLO
-	g1t0029.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754343Ab0F2SCQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jun 2010 14:02:16 -0400
-In-Reply-To: <1277227614-11581-24-git-send-email-yinghai@kernel.org>
+Received: from g6t0186.atlanta.hp.com ([15.193.32.63]:44342 "EHLO
+	g6t0186.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754343Ab0F2SFb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jun 2010 14:05:31 -0400
+In-Reply-To: <1277227614-11581-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yinghai Lu <yinghai@kernel.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tuesday, June 22, 2010 11:26:52 am Yinghai Lu wrote:
-> We can reduce #ifdef number from 3 to one in init_32.c
-> 
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> ---
->  arch/x86/mm/init_32.c |   15 ++++++++++-----
->  1 files changed, 10 insertions(+), 5 deletions(-)
-> 
-> diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-> index e3ae067..f172aa3 100644
-> --- a/arch/x86/mm/init_32.c
-> +++ b/arch/x86/mm/init_32.c
-> @@ -771,11 +771,9 @@ static unsigned long __init setup_node_bootmem(int nodeid,
->  
->  	return bootmap + bootmap_size;
->  }
-> -#endif
->  
->  void __init setup_bootmem_allocator(void)
->  {
-> -#ifndef CONFIG_NO_BOOTMEM
->  	int nodeid;
->  	unsigned long bootmap_size, bootmap;
->  	/*
-> @@ -787,13 +785,11 @@ void __init setup_bootmem_allocator(void)
->  	if (bootmap == (unsigned long)LMB_ERROR)
->  		panic("Cannot find bootmem map of size %ld\n", bootmap_size);
->  	lmb_reserve_range(bootmap, bootmap + bootmap_size, "BOOTMAP");
-> -#endif
->  
->  	printk(KERN_INFO "  mapped low ram: 0 - %08lx\n",
->  		 max_pfn_mapped<<PAGE_SHIFT);
->  	printk(KERN_INFO "  low ram: 0 - %08lx\n", max_low_pfn<<PAGE_SHIFT);
->  
-> -#ifndef CONFIG_NO_BOOTMEM
->  	for_each_online_node(nodeid) {
->  		 unsigned long start_pfn, end_pfn;
->  
-> @@ -811,10 +807,19 @@ void __init setup_bootmem_allocator(void)
->  		bootmap = setup_node_bootmem(nodeid, start_pfn, end_pfn,
->  						 bootmap);
->  	}
-> -#endif
->  
->  	after_bootmem = 1;
->  }
-> +#else
-> +void __init setup_bootmem_allocator(void)
-> +{
-> +	printk(KERN_INFO "  mapped low ram: 0 - %08lx\n",
-> +		 max_pfn_mapped<<PAGE_SHIFT);
-> +	printk(KERN_INFO "  low ram: 0 - %08lx\n", max_low_pfn<<PAGE_SHIFT);
+On Tuesday, June 22, 2010 11:26:29 am Yinghai Lu wrote:
+> New lmb could be used to replace early_res in x86.
 
-Please use %pR format here and fix up the other printks above in the
-other #ifdef branch.
-
-> +
-> +	after_bootmem = 1;
-> +}
-> +#endif
->  
->  /*
->   * paging_init() sets up the page tables - note that the first 8MB are
-> 
+Since you're fiddling in e820 anyway, can you fix places like
+e820_print_map() so they use the %pR format?  I think it'd be
+cleaner if e820_print_type() just returned a string pointer
+rather than calling printk directly.  Then we'd only need a
+single printk per region and wouldn't need the KERN_CONT junk.
