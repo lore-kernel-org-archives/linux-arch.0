@@ -1,100 +1,84 @@
 From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: Re: [PATCH 18/25] x86, lmb: Use lmb_debug to control debug message print out
-Date: Tue, 29 Jun 2010 11:58:52 -0600
-Message-ID: <201006291158.54280.bjorn.helgaas@hp.com>
-References: <1277227614-11581-1-git-send-email-yinghai@kernel.org> <1277227614-11581-19-git-send-email-yinghai@kernel.org>
+Subject: Re: [PATCH 23/25] x86: Have nobootmem version setup_bootmem_allocator()
+Date: Tue, 29 Jun 2010 12:02:57 -0600
+Message-ID: <201006291202.58730.bjorn.helgaas@hp.com>
+References: <1277227614-11581-1-git-send-email-yinghai@kernel.org> <1277227614-11581-24-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0029.austin.hp.com ([15.216.28.36]:41910 "EHLO
+Received: from g1t0029.austin.hp.com ([15.216.28.36]:43438 "EHLO
 	g1t0029.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753239Ab0F2R6L (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jun 2010 13:58:11 -0400
-In-Reply-To: <1277227614-11581-19-git-send-email-yinghai@kernel.org>
+	with ESMTP id S1754343Ab0F2SCQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jun 2010 14:02:16 -0400
+In-Reply-To: <1277227614-11581-24-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yinghai Lu <yinghai@kernel.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tuesday, June 22, 2010 11:26:47 am Yinghai Lu wrote:
-> Also let lmb_reserve_range/lmb_free_range could print out name if lmb=debug is
-> specified
-> 
-> will also print ther name when reserve_lmb_area/free_lmb_area are called.
+On Tuesday, June 22, 2010 11:26:52 am Yinghai Lu wrote:
+> We can reduce #ifdef number from 3 to one in init_32.c
 > 
 > Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 > ---
->  arch/x86/mm/lmb.c |   24 ++++++++++++++++++------
->  1 files changed, 18 insertions(+), 6 deletions(-)
+>  arch/x86/mm/init_32.c |   15 ++++++++++-----
+>  1 files changed, 10 insertions(+), 5 deletions(-)
 > 
-> diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-> index bd2f60b..209f25b 100644
-> --- a/arch/x86/mm/lmb.c
-> +++ b/arch/x86/mm/lmb.c
-> @@ -122,10 +122,12 @@ static void __init subtract_lmb_reserved(struct range *range, int az)
+> diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+> index e3ae067..f172aa3 100644
+> --- a/arch/x86/mm/init_32.c
+> +++ b/arch/x86/mm/init_32.c
+> @@ -771,11 +771,9 @@ static unsigned long __init setup_node_bootmem(int nodeid,
 >  
->  	count  = lmb.reserved.cnt;
+>  	return bootmap + bootmap_size;
+>  }
+> -#endif
 >  
-> -	pr_info("Subtract (%d early reservations)\n", count);
-> +	if (lmb_debug)
-> +		pr_info("Subtract (%d early reservations)\n", count);
+>  void __init setup_bootmem_allocator(void)
+>  {
+> -#ifndef CONFIG_NO_BOOTMEM
+>  	int nodeid;
+>  	unsigned long bootmap_size, bootmap;
+>  	/*
+> @@ -787,13 +785,11 @@ void __init setup_bootmem_allocator(void)
+>  	if (bootmap == (unsigned long)LMB_ERROR)
+>  		panic("Cannot find bootmem map of size %ld\n", bootmap_size);
+>  	lmb_reserve_range(bootmap, bootmap + bootmap_size, "BOOTMAP");
+> -#endif
 >  
->  	for_each_lmb(reserved, r) {
-> -		pr_info("  [%010llx - %010llx]\n", (u64)r->base, (u64)r->base + r->size);
-
-Use %pR format (looks like this is rework on top of a previous patch,
-so this comment is probably redundant).
-
-> +		if (lmb_debug)
-> +			pr_info("  [%010llx - %010llx]\n", (u64)r->base, (u64)r->base + r->size);
->  		final_start = PFN_DOWN(r->base);
->  		final_end = PFN_UP(r->base + r->size);
->  		if (final_start >= final_end)
-> @@ -198,16 +200,20 @@ void __init lmb_to_bootmem(u64 start, u64 end)
->  		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
+>  	printk(KERN_INFO "  mapped low ram: 0 - %08lx\n",
+>  		 max_pfn_mapped<<PAGE_SHIFT);
+>  	printk(KERN_INFO "  low ram: 0 - %08lx\n", max_low_pfn<<PAGE_SHIFT);
 >  
->  	count  = lmb.reserved.cnt;
-> -	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
-> +	if (lmb_debug)
-> +		pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
->  	for_each_lmb(reserved, r) {
-> -		pr_info("  [%010llx - %010llx] ", (u64)r->base, (u64)r->base + r->size);
-> +		if (lmb_debug)
-> +			pr_info("  [%010llx - %010llx] ", (u64)r->base, (u64)r->base + r->size);
->  		final_start = max(start, r->base);
->  		final_end = min(end, r->base + r->size);
->  		if (final_start >= final_end) {
-> -			pr_cont("\n");
-> +			if (lmb_debug)
-> +				pr_cont("\n");
->  			continue;
->  		}
-> -		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
-> +		if (lmb_debug)
-> +			pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
->  		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
+> -#ifndef CONFIG_NO_BOOTMEM
+>  	for_each_online_node(nodeid) {
+>  		 unsigned long start_pfn, end_pfn;
+>  
+> @@ -811,10 +807,19 @@ void __init setup_bootmem_allocator(void)
+>  		bootmap = setup_node_bootmem(nodeid, start_pfn, end_pfn,
+>  						 bootmap);
 >  	}
+> -#endif
 >  
-> @@ -289,6 +295,9 @@ void __init lmb_reserve_range(u64 start, u64 end, char *name)
->  	if (WARN_ONCE(start > end, "lmb_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
->  		return;
->  
-> +	if (lmb_debug)
-> +		pr_info("    lmb_reserve_range: [%010llx, %010llx] %16s\n", start, end, name);
-> +
->  	lmb_reserve(start, end - start);
+>  	after_bootmem = 1;
 >  }
->  
-> @@ -300,6 +309,9 @@ void __init lmb_free_range(u64 start, u64 end)
->  	if (WARN_ONCE(start > end, "lmb_free_range: wrong range [%#llx, %#llx]\n", start, end))
->  		return;
->  
-> +	if (lmb_debug)
-> +		pr_info("       lmb_free_range: [%010llx, %010llx]\n", start, end);
+> +#else
+> +void __init setup_bootmem_allocator(void)
+> +{
+> +	printk(KERN_INFO "  mapped low ram: 0 - %08lx\n",
+> +		 max_pfn_mapped<<PAGE_SHIFT);
+> +	printk(KERN_INFO "  low ram: 0 - %08lx\n", max_low_pfn<<PAGE_SHIFT);
+
+Please use %pR format here and fix up the other printks above in the
+other #ifdef branch.
+
 > +
->  	lmb_free(start, end - start);
->  }
+> +	after_bootmem = 1;
+> +}
+> +#endif
 >  
+>  /*
+>   * paging_init() sets up the page tables - note that the first 8MB are
 > 
