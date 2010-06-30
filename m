@@ -1,56 +1,61 @@
-From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: Re: [PATCH 03/25] lmb: Print new doubled array location info
-Date: Tue, 29 Jun 2010 14:58:27 -0600
-Message-ID: <201006291458.28495.bjorn.helgaas@hp.com>
-References: <1277227614-11581-1-git-send-email-yinghai@kernel.org> <201006291144.14469.bjorn.helgaas@hp.com> <4C2A5189.60508@kernel.org>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: [PATCH -mm 1/2] scsi: remove dma_is_consistent usage in 53c700
+Date: Wed, 30 Jun 2010 11:39:12 +0900
+Message-ID: <20100630113548K.fujita.tomonori@lab.ntt.co.jp>
+References: <1277736958.10879.43.camel@mulgrave.site>
+	<20100629150201C.fujita.tomonori@lab.ntt.co.jp>
+	<1277818655.4379.5.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0006.atlanta.hp.com ([15.192.0.43]:1977 "EHLO
-	g5t0006.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755557Ab0F2U5q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jun 2010 16:57:46 -0400
-In-Reply-To: <4C2A5189.60508@kernel.org>
+Received: from sh.osrg.net ([192.16.179.4]:41473 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752805Ab0F3Cjz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Jun 2010 22:39:55 -0400
+In-Reply-To: <1277818655.4379.5.camel@mulgrave.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: James.Bottomley@HansenPartnership.com
+Cc: fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, grundler@parisc-linux.org, lethal@linux-sh.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tuesday, June 29, 2010 02:03:21 pm Yinghai Lu wrote:
-> On 06/29/2010 10:44 AM, Bjorn Helgaas wrote:
-> > On Tuesday, June 22, 2010 11:26:32 am Yinghai Lu wrote:
-> >> +	if (lmb_debug)
-> >> +		pr_info("lmb: %s array is doubled to %ld at %llx - %llx",
-> >> +			 lmb_type_name(type), type->max * 2, (u64)addr, (u64)addr + new_size);
-> > 
-> > Please print this memory range the same way we print resources, e.g.,
-> > "%#010llx-%#010llx", with "addr" and "addr + new_size - 1".
-> 
-> ok, I will put # for 0x.
-> 
-> but i like to have
-> 
-> xxx - yyy : to include end
-> [xxx, yyy - 1]
-> 
-> just like current e820 print out.
-> and it would be more readable without too many ffff
+On Tue, 29 Jun 2010 08:37:35 -0500
+James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
 
-I think it's stupid to use two different conventions for printing
-address ranges.  That just makes extra mental work for people
-comparing e820 ranges with %pR resources.
+> > How about using ARCH_KMALLOC_MINALIGN instead of L1_CACHE_BYTES?
 
-I don't personally care that much whether we pick the convention of
-including the end (like the current e820 output) or the convention of
-excluding it (like %pR and /proc/iomem do), but whatever we pick, we
-should use it consistently.
+(snip)
 
-To me, the fact that /proc/iomem is user-visible and excludes the end
-is a pretty strong argument for adopting that convention.
+> Actually, I'd rather not do this.  The reason is that L1_CACHE_ALIGN is
+> quite a big performance optimisation on x86 for the driver.  Without it,
+> it's functionally correct, but the DMA use of the mailboxes really
+> thrashes the cache which damages performance (x86 has
+> ARCH_KMALLOC_MINALIGN set to 8 ... the default)
 
-And I think you should remove the extra spaces in "xxx - yyy".
-There's no reason to be different when we could be consistent.
+Ah, I see.
 
-Bjorn
+If slab.h doesn't define ARCH_KMALLOC_MINALIGN for architectures that
+don't define it, the driver could do something like:
+
+#ifdef ARCH_KMALLOC_MINALIGN
+#define DMA_ALIGN(x) ALIGN(x, ARCH_KMALLOC_MINALIGN)
+#else
+#define DMA_ALIGN(x) ALIGN(x, L1_CACHE_BYTES)
+#endif
+
+Seems that it's better to rename ARCH_KMALLOC_MINALIGN to something
+like ARCH_DMA_MINALIGN and make ARCH_KMALLOC_MINALIGN the slab
+internal thing.
+
+
+> The only correctness problem, which the BUG is checking for is mismatch
+> in dma alignment ... as I said, I'm happy just to rely on that being
+> correct on every incoherent platform the driver operates on.
+
+Ok, it's fine by me too. let's simply remove the BUG_ON.
+
+I think that you want to document that dma_get_cache_alignment()
+cannot be greater than the L1 cache stride. However, seems that
+dma_get_cache_alignment() is greater than L1_CACHE_BYTES on some
+architectures (they have some reasons, I assume). So I'll just remove
+the BUG_ON.
