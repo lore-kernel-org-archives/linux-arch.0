@@ -1,61 +1,59 @@
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: Re: [PATCH -mm 1/2] scsi: remove dma_is_consistent usage in 53c700
-Date: Wed, 30 Jun 2010 11:39:12 +0900
-Message-ID: <20100630113548K.fujita.tomonori@lab.ntt.co.jp>
-References: <1277736958.10879.43.camel@mulgrave.site>
-	<20100629150201C.fujita.tomonori@lab.ntt.co.jp>
-	<1277818655.4379.5.camel@mulgrave.site>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [PATCH] arch/tile: Add driver to enable access to the user dynamic
+ network.
+Date: Fri, 2 Jul 2010 08:19:36 -0400
+Message-ID: <4C2DD958.7030005@tilera.com>
+References: <201006252110.o5PLArvw010770@farm-0002.internal.tilera.com> <201006281312.16391.arnd@arndb.de> <4C28BE64.4050505@tilera.com> <201006282134.55166.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:41473 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752805Ab0F3Cjz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Jun 2010 22:39:55 -0400
-In-Reply-To: <1277818655.4379.5.camel@mulgrave.site>
+Received: from usmamail.tilera.com ([72.1.168.231]:23469 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757746Ab0GBMTj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Jul 2010 08:19:39 -0400
+In-Reply-To: <201006282134.55166.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James.Bottomley@HansenPartnership.com
-Cc: fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, grundler@parisc-linux.org, lethal@linux-sh.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, 29 Jun 2010 08:37:35 -0500
-James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
+[The question is how to use <linux/list.h> from within <asm/processor.h>.]
 
-> > How about using ARCH_KMALLOC_MINALIGN instead of L1_CACHE_BYTES?
+On 6/28/2010 3:34 PM, Arnd Bergmann wrote:
+>> I think the only "true" fix would be to have a new <linux/list_types.h>
+>> > header that provides list_head (and presumably hlist_head and
+>> > hlist_node), which <linux/list.h> would include, as would our
+>> > <asm/processor.h>.  This is certainly in line with recent
+>> > header-separation changes (e.g. mm_types.h).  Would there be interest in
+>> > a change like this?  I implemented it in my tree, and if it sounds
+>> > plausible to you, I'll send out a git diff, but it looks pretty much
+>> > exactly like this description :-)
+>>     
+> Yes, I think that would be a reasonable change.
+>
+> Another alternative might be to move the prefetch stuff from asm/processor.h
+> to asm/prefetch.h on all architectures, which also breaks the dependency loop,
+> unless I'm mistaken again
 
-(snip)
+In principle I like the <asm/prefetch.h> idea, but I'm concerned that
+the #include of <asm/system.h> from <linux/list.h> will recursively
+include <asm/processor.h> on some platforms; for example, s390 and
+xtensa include it directly.  We (tile) were including it indirectly via
+<asm/irqflags.h>, though this seems to be a spurious include on our
+part, but other platforms may also include it indirectly.  To be fair,
+I'm not sure why <asm/system.h> is included from <linux/list.h>.  It
+doesn't seem required for a tile build, at least, but no doubt it was
+put there for some reason.
 
-> Actually, I'd rather not do this.  The reason is that L1_CACHE_ALIGN is
-> quite a big performance optimisation on x86 for the driver.  Without it,
-> it's functionally correct, but the DMA use of the mailboxes really
-> thrashes the cache which damages performance (x86 has
-> ARCH_KMALLOC_MINALIGN set to 8 ... the default)
+So, if there's a good reason for it to be there, I'd say that pushes us
+back toward a separate <linux/list_types.h>.  Otherwise we can
+investigate splitting out the prefetch content on every platform to
+<asm/prefetch.h> (presumably creating some empty <asm/prefetch.h>
+headers on architectures that just use the gcc builtin) and adding new
+#includes of <asm/prefetch.h> to files that reference the prefetch
+functionality.  Arnd and other list folks, what's your instinct?
 
-Ah, I see.
-
-If slab.h doesn't define ARCH_KMALLOC_MINALIGN for architectures that
-don't define it, the driver could do something like:
-
-#ifdef ARCH_KMALLOC_MINALIGN
-#define DMA_ALIGN(x) ALIGN(x, ARCH_KMALLOC_MINALIGN)
-#else
-#define DMA_ALIGN(x) ALIGN(x, L1_CACHE_BYTES)
-#endif
-
-Seems that it's better to rename ARCH_KMALLOC_MINALIGN to something
-like ARCH_DMA_MINALIGN and make ARCH_KMALLOC_MINALIGN the slab
-internal thing.
-
-
-> The only correctness problem, which the BUG is checking for is mismatch
-> in dma alignment ... as I said, I'm happy just to rely on that being
-> correct on every incoherent platform the driver operates on.
-
-Ok, it's fine by me too. let's simply remove the BUG_ON.
-
-I think that you want to document that dma_get_cache_alignment()
-cannot be greater than the L1 cache stride. However, seems that
-dma_get_cache_alignment() is greater than L1_CACHE_BYTES on some
-architectures (they have some reasons, I assume). So I'll just remove
-the BUG_ON.
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
