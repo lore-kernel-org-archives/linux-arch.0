@@ -1,73 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:63998 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756911Ab0GDHBk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Jul 2010 03:01:40 -0400
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 07/23] lmb: Add lmb_find_in_range()
-Date: Sat,  3 Jul 2010 23:56:11 -0700
-Message-ID: <1278226587-31213-8-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
-References: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
+Received: from king.tilera.com ([72.1.168.226]:26089 "EHLO king.tilera.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757306Ab0GDMmq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 Jul 2010 08:42:46 -0400
+Message-ID: <201007041242.o64CggfV012188@farm-0002.internal.tilera.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Date: Fri, 2 Jul 2010 13:41:14 -0400
+Subject: [PATCH -v2] Move list types from <linux/list.h> to <linux/types.h>.
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100704065611.nfWzY1xBuQ7O1u9ZZtFqORCUSGaiIMGTeK0vmH-TFEw@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Matthew Wilcox <matthew@wil.cx>, Christoph Hellwig <hch@infradead.org>, Alexey Dobriyan <adobriyan@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20100702174114.EDmvvFUVw2cb0dcBHmEX3G_xwnv0_2R5Gr5ylVfApwA@z>
 
-it is a wrapper for lmb_find_base
+This allows a list_head (or hlist_head, etc.) to be used from places
+that used to be impractical, in particular <asm/processor.h>, which
+used to cause include file recursion: <linux/list.h> includes
+<linux/prefetch.h>, which always includes <asm/processor.h> for the
+prefetch macros, as well as <asm/system.h>, which often includes
+<asm/processor.h> directly or indirectly.
 
-make it more easy for x86 to use lmb. ( rebase )
-x86 early_res is using find/reserve pattern instead of alloc.
+This avoids a lot of painful workaround hackery on the tile
+architecture, where we use a list_head in the thread_struct to chain
+together tasks that are activated on a particular hardwall.
 
-keep it in weak version, so later We can use x86 own version if needed.
-also We need it in lib/lmb.c, so one caller mm/page_alloc.c could get compiled
-
--v2: Change name to lmb_find_in_range() according to Michael Ellerman
--v3: Add generic weak version __lmb_find_in_range()
-     so keep the path for fallback to x86 version that handle from low
--v4: use 0 for failing path
--v5: use LMB_ERROR again
--v6: remove __lmb_find_in_range()
-
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
 ---
- include/linux/lmb.h |    2 ++
- lib/lmb.c           |    8 ++++++++
- 2 files changed, 10 insertions(+), 0 deletions(-)
 
-diff --git a/include/linux/lmb.h b/include/linux/lmb.h
-index bdb3d46..4af450b 100644
---- a/include/linux/lmb.h
-+++ b/include/linux/lmb.h
-@@ -48,6 +48,8 @@ extern struct lmb_region lmb_reserved_init_regions[];
- #define lmb_dbg(fmt, ...) \
- 	if (lmb_debug) printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
+Folks on the Cc: list who commented on the -v1 patch, let me know
+if I can add your Acked-by to this patch.  Thanks.
+
+ include/linux/list.h  |   13 +------------
+ include/linux/types.h |   12 ++++++++++++
+ 2 files changed, 13 insertions(+), 12 deletions(-)
+
+diff --git a/include/linux/list.h b/include/linux/list.h
+index 8392884..bc43e8a 100644
+--- a/include/linux/list.h
++++ b/include/linux/list.h
+@@ -1,6 +1,7 @@
+ #ifndef _LINUX_LIST_H
+ #define _LINUX_LIST_H
  
-+u64 lmb_find_in_range(u64 start, u64 end, u64 size, u64 align);
-+
- extern void __init lmb_init(void);
- extern void __init lmb_analyze(void);
- extern long lmb_add(phys_addr_t base, phys_addr_t size);
-diff --git a/lib/lmb.c b/lib/lmb.c
-index 66bf0b0..87b3801 100644
---- a/lib/lmb.c
-+++ b/lib/lmb.c
-@@ -156,6 +156,14 @@ static phys_addr_t __init lmb_find_base(phys_addr_t size, phys_addr_t align,
- 	return LMB_ERROR;
- }
++#include <linux/types.h>
+ #include <linux/stddef.h>
+ #include <linux/poison.h>
+ #include <linux/prefetch.h>
+@@ -16,10 +17,6 @@
+  * using the generic single-entry routines.
+  */
  
-+/*
-+ * Find a free area with specified alignment in a specific range.
-+ */
-+u64 __init __weak lmb_find_in_range(u64 start, u64 end, u64 size, u64 align)
-+{
-+	return lmb_find_base(size, align, start, end);
-+}
+-struct list_head {
+-	struct list_head *next, *prev;
+-};
+-
+ #define LIST_HEAD_INIT(name) { &(name), &(name) }
+ 
+ #define LIST_HEAD(name) \
+@@ -551,14 +548,6 @@ static inline void list_splice_tail_init(struct list_head *list,
+  * You lose the ability to access the tail in O(1).
+  */
+ 
+-struct hlist_head {
+-	struct hlist_node *first;
+-};
+-
+-struct hlist_node {
+-	struct hlist_node *next, **pprev;
+-};
+-
+ #define HLIST_HEAD_INIT { .first = NULL }
+ #define HLIST_HEAD(name) struct hlist_head name = {  .first = NULL }
+ #define INIT_HLIST_HEAD(ptr) ((ptr)->first = NULL)
+diff --git a/include/linux/types.h b/include/linux/types.h
+index 23d237a..336cc39 100644
+--- a/include/linux/types.h
++++ b/include/linux/types.h
+@@ -197,6 +197,18 @@ typedef struct {
+ } atomic64_t;
+ #endif
+ 
++struct list_head {
++	struct list_head *next, *prev;
++};
 +
- static void __init_lmb lmb_remove_region(struct lmb_type *type, unsigned long r)
- {
- 	unsigned long i;
++struct hlist_head {
++	struct hlist_node *first;
++};
++
++struct hlist_node {
++	struct hlist_node *next, **pprev;
++};
++
+ struct ustat {
+ 	__kernel_daddr_t	f_tfree;
+ 	__kernel_ino_t		f_tinode;
 -- 
-1.6.4.2
+1.6.5.2
 
