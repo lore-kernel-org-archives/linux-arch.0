@@ -1,49 +1,35 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH] arch/tile: Add driver to enable access to the user dynamic
- network.
-Date: Fri, 2 Jul 2010 13:52:15 -0400
-Message-ID: <4C2E274F.2040909@tilera.com>
-References: <201006252110.o5PLArvw010770@farm-0002.internal.tilera.com> <201006282134.55166.arnd@arndb.de> <4C2DD958.7030005@tilera.com> <201007021811.04197.arnd@arndb.de>
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [PATCH] Break out types from <linux/list.h> to
+	<linux/list_types.h>.
+Date: Fri, 2 Jul 2010 13:19:11 -0600
+Message-ID: <20100702191910.GA5842@parisc-linux.org>
+References: <201007021811.04197.arnd@arndb.de> <201007021747.o62HlgmV019405@farm-0002.internal.tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([72.1.168.231]:13956 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758817Ab0GBRwQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Jul 2010 13:52:16 -0400
-In-Reply-To: <201007021811.04197.arnd@arndb.de>
+Received: from palinux.external.hp.com ([192.25.206.14]:40298 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751728Ab0GBTTM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Jul 2010 15:19:12 -0400
+Content-Disposition: inline
+In-Reply-To: <201007021747.o62HlgmV019405@farm-0002.internal.tilera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-On 7/2/2010 12:11 PM, Arnd Bergmann wrote:
-> On Friday 02 July 2010, Chris Metcalf wrote:
->   
->> So, if there's a good reason for it to be there, I'd say that pushes us
->> back toward a separate <linux/list_types.h>.  Otherwise we can
->> investigate splitting out the prefetch content on every platform to
->> <asm/prefetch.h> (presumably creating some empty <asm/prefetch.h>
->> headers on architectures that just use the gcc builtin) and adding new
->> #includes of <asm/prefetch.h> to files that reference the prefetch
->> functionality.  Arnd and other list folks, what's your instinct?
->>     
-> Makes sense. Splitting out the list types from list.h does seem to be
-> safest option. We might actually be able to do some header file
-> untangling that way, by using list_types.h in all headers that
-> use a list_head by none of the macros and functions associated with it.
->   
+On Fri, Jul 02, 2010 at 01:41:14PM -0400, Chris Metcalf wrote:
+> This allows a list_head (or hlist_head, etc.) to be used from places
+> that used to be impractical, in particular <asm/processor.h>, which
+> used to cause include file recursion: <linux/list.h> includes
+> <linux/prefetch.h>, which always includes <asm/processor.h> for the
+> prefetch macros, as well as <asm/system.h>, which often includes
+> <asm/processor.h> directly or indirectly.
 
-For now I'll just stick with the straight splitting-out (see recent git
-email).  There may be kernel code that is getting the list macros and
-functions "by accident" by including some header that in itself only
-needs the structs and so could use <linux/list_types.h>, and would need
-to #include <linux/list.h> itself to avoid breaking.  There would
-probably be a long tail of complaints that developers' obscure
-architecture, driver, etc., had been broken by an aggressive
-"untangling" change.
+Why a new header file instead of linux/types.h?
 
 -- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+Matthew Wilcox				Intel Open Source Technology Centre
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
