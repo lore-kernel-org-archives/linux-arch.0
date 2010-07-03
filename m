@@ -1,44 +1,48 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] Break out types from <linux/list.h> to <linux/list_types.h>.
-Date: Sat, 3 Jul 2010 11:00:43 +0200
-Message-ID: <201007031100.43158.arnd@arndb.de>
-References: <201007021811.04197.arnd@arndb.de> <4C2E3F1F.3010202@tilera.com> <20100702204817.GB5842@parisc-linux.org>
+Subject: Re: [PATCH] arch/tile: updates to hardwall code from community feedback.
+Date: Sat, 3 Jul 2010 21:13:26 +0200
+Message-ID: <201007032113.26655.arnd@arndb.de>
+References: <201007030217.o632HoK9004030@farm-0002.internal.tilera.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
-  charset="iso-8859-1"
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:62585 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.187]:56844 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750814Ab0GCJBD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 3 Jul 2010 05:01:03 -0400
-In-Reply-To: <20100702204817.GB5842@parisc-linux.org>
+	with ESMTP id S1755629Ab0GCTNi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 3 Jul 2010 15:13:38 -0400
+In-Reply-To: <201007030217.o632HoK9004030@farm-0002.internal.tilera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Chris Metcalf <cmetcalf@tilera.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Friday 02 July 2010 22:48:17 Matthew Wilcox wrote:
-> I wouldn't mind seeing kvm_types.h, rwlock_types.h and spinlock_types.h
-> merged into types.h, personally.  They're all pretty fundamental kernel
-> kind of types.  It's a matter of taste, and I'm not particularly fussed
-> one way or the other.
+On Friday 02 July 2010 17:45:18 Chris Metcalf wrote:
 > 
-> mm_types.h is complex and full of mm-specific information, so keeping
-> it separate makes sense to me.
+> This change reflects some feedback from Arnd Bergmann, and also
+> fixes a compat issue by removing the requirement that the cpumask
+> pointer passed to the ioctl point to memory whose size is a
+> multiple of sizeof(long), since that is awkward when userspace
+> has a different sizeof(long).
 > 
-> I just object to the unnecessary creation of tiny files like this.
-> Which is how we ended up with atomic_t and atomic64_t in there in the
-> first place :-)
+> The compat_ptr() declaration was fixed and used to pass the
+> compat_ioctl argument to the normal ioctl.  So far we limit compat
+> code to 2GB, so the difference between zero-extend and sign-extend
+> (the latter being correct, eventually) had been overlooked.
+> 
+> Remove the file_to_hardwall() abstractions since they're not
+> really needed.
 
-Ah, I didn't notice you had moved the atomic types in there. I agree that
-the list types are in the same general category and it makes sense
-to treat them the same way.
+Looks good.
 
-For rwlock_types.h and spinlock_types.h, I think including them in types.h
-would really cause too much other crap to be pulled in through lockdep
-and other things we might need in there in the future, which would in turn
-cause the same problems with types.h that Chris is trying to avoid
-in the first place by moving stuff out of list.h.
+> In addition, use <linux/list_types.h> to simplify hardwall code.
+> Instead of using a bogus hardwall_list type, we can now use
+> the proper list_head type directly.
 
-	Arnd
+It sounds like this is now ending up in linux/types.h,
+so you'll have to change that again.
+
+> Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+
+Acked-by: Arnd Bergmann <arnd@arndb.de>
