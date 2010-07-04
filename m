@@ -1,160 +1,341 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:64011 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:63999 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756972Ab0GDHBo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Jul 2010 03:01:44 -0400
+	with ESMTP id S1756917Ab0GDHBl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Jul 2010 03:01:41 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 12/23] x86, lmb: Add get_free_all_memory_range()
-Date: Sat,  3 Jul 2010 23:56:16 -0700
-Message-ID: <1278226587-31213-13-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 23/23] x86: remove old bootmem code
+Date: Sat,  3 Jul 2010 23:56:27 -0700
+Message-ID: <1278226587-31213-24-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
 References: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Jan Beulich <jbeulich@novell.com>
-Message-ID: <20100704065616.Cc2iBX4Yv670tVOge56evJomAsL2oHk2rJjXxs5loGQ@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20100704065627.EeflONl_A_M8yGSQp_XMtWbmURJ1K-1mscv-Cni-ZEE@z>
 
-get_free_all_memory_range is for CONFIG_NO_BOOTMEM=y, and will be called by
-free_all_memory_core_early().
+Requested by Ingo, Thomas and HPA.
 
-It will use early_node_map aka active ranges subtract lmb.reserved to
-get all free range, and those ranges will convert to slab pages.
-
--v4: increase range size
+it mean 2.6.34 and 2.6.35 have them bootmem and nobootmem for x86.
+and later for x86 will only have nobootmem
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Jan Beulich <jbeulich@novell.com>
 ---
- arch/x86/include/asm/lmb.h |    2 +
- arch/x86/mm/lmb.c          |  102 +++++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 103 insertions(+), 1 deletions(-)
+ arch/x86/Kconfig        |   10 +-------
+ arch/x86/kernel/setup.c |    4 ---
+ arch/x86/mm/init_32.c   |   56 -----------------------------------------------
+ arch/x86/mm/init_64.c   |   41 ----------------------------------
+ arch/x86/mm/lmb.c       |   31 --------------------------
+ arch/x86/mm/numa_32.c   |    3 --
+ arch/x86/mm/numa_64.c   |   47 ---------------------------------------
+ 7 files changed, 1 insertions(+), 191 deletions(-)
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index a6f14c6..3fb32f3 100644
---- a/arch/x86/include/asm/lmb.h
-+++ b/arch/x86/include/asm/lmb.h
-@@ -8,5 +8,7 @@ void lmb_x86_to_bootmem(u64 start, u64 end);
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 600ce1a..945438a 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -586,15 +586,7 @@ config PARAVIRT_DEBUG
+ 	  a paravirt_op is missing when it is called.
  
- void lmb_x86_reserve_range(u64 start, u64 end, char *name);
- void lmb_x86_free_range(u64 start, u64 end);
-+struct range;
-+int get_free_all_memory_range(struct range **rangep, int nodeid);
+ config NO_BOOTMEM
+-	default y
+-	bool "Disable Bootmem code"
+-	---help---
+-	  Use lmb directly instead of bootmem before slab is ready.
+-		- allocator (buddy) [generic]
+-		- early allocator (bootmem) [generic]
+-		- very early allocator (lmb) [some generic]
+-		- very very early allocator (early brk model) [x86]
+-	  So reduce one layer between early allocator to final allocator
++	def_bool y
  
- #endif
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index a6c2662..5abcf00 100644
---- a/arch/x86/mm/lmb.c
-+++ b/arch/x86/mm/lmb.c
-@@ -86,7 +86,107 @@ u64 __init lmb_x86_find_in_range_size(u64 start, u64 *sizep, u64 align)
- 	return LMB_ERROR;
+ config MEMTEST
+ 	bool "Memtest"
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 122e339..e8af1e3 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -1020,10 +1020,6 @@ void __init setup_arch(char **cmdline_p)
+ 
+ 	initmem_init(0, max_pfn, acpi, k8);
+ 	lmb_find_dma_reserve();
+-#ifndef CONFIG_NO_BOOTMEM
+-	lmb_x86_to_bootmem(0, max_low_pfn<<PAGE_SHIFT);
+-#endif
+-
+ 	dma32_reserve_bootmem();
+ 
+ #ifdef CONFIG_KVM_CLOCK
+diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+index 2b26f1a..244a274 100644
+--- a/arch/x86/mm/init_32.c
++++ b/arch/x86/mm/init_32.c
+@@ -751,68 +751,12 @@ static void __init zone_sizes_init(void)
+ 	free_area_init_nodes(max_zone_pfns);
  }
  
 -#ifndef CONFIG_NO_BOOTMEM
-+static __init struct range *find_range_array(int count)
-+{
-+	u64 end, size, mem;
-+	struct range *range;
-+
-+	size = sizeof(struct range) * count;
-+	end = lmb.current_limit;
-+
-+	mem = lmb_find_in_range(0, end, size, sizeof(struct range));
-+	if (mem == LMB_ERROR)
-+		panic("can not find more space for range array");
-+
-+	/*
-+	 * This range is tempoaray, so don't reserve it, it will not be
-+	 * overlapped because We will not alloccate new buffer before
-+	 * We discard this one
-+	 */
-+	range = __va(mem);
-+	memset(range, 0, size);
-+
-+	return range;
-+}
-+
-+#ifdef CONFIG_NO_BOOTMEM
-+static void __init lmb_x86_subtract_reserved(struct range *range, int az)
-+{
-+	int count;
-+	u64 final_start, final_end;
-+	struct lmb_region *r;
-+
-+	/* Take out region array itself at first*/
-+	if (lmb.reserved.regions != lmb_reserved_init_regions)
-+		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
-+
-+	count  = lmb.reserved.cnt;
-+
-+	pr_info("Subtract (%d early reservations)\n", count);
-+
-+	for_each_lmb(reserved, r) {
-+		pr_info("  [%010llx - %010llx]\n", (u64)r->base, (u64)r->base + r->size);
-+		final_start = PFN_DOWN(r->base);
-+		final_end = PFN_UP(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		subtract_range(range, az, final_start, final_end);
-+	}
-+	/* Put region array back ? */
-+	if (lmb.reserved.regions != lmb_reserved_init_regions)
-+		lmb_reserve(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
-+}
-+
-+struct count_data {
-+	int nr;
-+};
-+
-+static int __init count_work_fn(unsigned long start_pfn,
-+				unsigned long end_pfn, void *datax)
-+{
-+	struct count_data *data = datax;
-+
-+	data->nr++;
-+
-+	return 0;
-+}
-+
-+static int __init count_early_node_map(int nodeid)
-+{
-+	struct count_data data;
-+
-+	data.nr = 0;
-+	work_with_active_regions(nodeid, count_work_fn, &data);
-+
-+	return data.nr;
-+}
-+
-+int __init get_free_all_memory_range(struct range **rangep, int nodeid)
-+{
-+	int count;
-+	struct range *range;
-+	int nr_range;
-+
-+	count = (lmb.reserved.cnt + count_early_node_map(nodeid)) * 2;
-+
-+	range = find_range_array(count);
-+	nr_range = 0;
-+
-+	/*
-+	 * Use early_node_map[] and lmb.reserved.region to get range array
-+	 * at first
-+	 */
-+	nr_range = add_from_early_node_map(range, count, nr_range, nodeid);
-+#ifdef CONFIG_X86_32
-+	subtract_range(range, count, max_low_pfn, -1ULL);
-+#endif
-+	lmb_x86_subtract_reserved(range, count);
-+	nr_range = clean_sort_range(range, count);
-+
-+	*rangep = range;
-+	return nr_range;
-+}
-+#else
- void __init lmb_x86_to_bootmem(u64 start, u64 end)
+-static unsigned long __init setup_node_bootmem(int nodeid,
+-				 unsigned long start_pfn,
+-				 unsigned long end_pfn,
+-				 unsigned long bootmap)
+-{
+-	unsigned long bootmap_size;
+-
+-	/* don't touch min_low_pfn */
+-	bootmap_size = init_bootmem_node(NODE_DATA(nodeid),
+-					 bootmap >> PAGE_SHIFT,
+-					 start_pfn, end_pfn);
+-	printk(KERN_INFO "  node %d low ram: %08lx - %08lx\n",
+-		nodeid, start_pfn<<PAGE_SHIFT, end_pfn<<PAGE_SHIFT);
+-	printk(KERN_INFO "  node %d bootmap %08lx - %08lx\n",
+-		 nodeid, bootmap, bootmap + bootmap_size);
+-	free_bootmem_with_active_regions(nodeid, end_pfn);
+-
+-	return bootmap + bootmap_size;
+-}
+-#endif
+-
+ void __init setup_bootmem_allocator(void)
+ {
+-#ifndef CONFIG_NO_BOOTMEM
+-	int nodeid;
+-	unsigned long bootmap_size, bootmap;
+-	/*
+-	 * Initialize the boot-time allocator (with low memory only):
+-	 */
+-	bootmap_size = bootmem_bootmap_pages(max_low_pfn)<<PAGE_SHIFT;
+-	bootmap = lmb_find_in_range(0, max_pfn_mapped<<PAGE_SHIFT, bootmap_size,
+-				 PAGE_SIZE);
+-	if (bootmap == LMB_ERROR)
+-		panic("Cannot find bootmem map of size %ld\n", bootmap_size);
+-	lmb_x86_reserve_range(bootmap, bootmap + bootmap_size, "BOOTMAP");
+-#endif
+-
+ 	printk(KERN_INFO "  mapped low ram: 0 - %08lx\n",
+ 		 max_pfn_mapped<<PAGE_SHIFT);
+ 	printk(KERN_INFO "  low ram: 0 - %08lx\n", max_low_pfn<<PAGE_SHIFT);
+ 
+-#ifndef CONFIG_NO_BOOTMEM
+-	for_each_online_node(nodeid) {
+-		 unsigned long start_pfn, end_pfn;
+-
+-#ifdef CONFIG_NEED_MULTIPLE_NODES
+-		start_pfn = node_start_pfn[nodeid];
+-		end_pfn = node_end_pfn[nodeid];
+-		if (start_pfn > max_low_pfn)
+-			continue;
+-		if (end_pfn > max_low_pfn)
+-			end_pfn = max_low_pfn;
+-#else
+-		start_pfn = 0;
+-		end_pfn = max_low_pfn;
+-#endif
+-		bootmap = setup_node_bootmem(nodeid, start_pfn, end_pfn,
+-						 bootmap);
+-	}
+-#endif
+-
+ 	after_bootmem = 1;
+ }
+ 
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index 3c5b198..88f67df 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -572,23 +572,7 @@ kernel_physical_mapping_init(unsigned long start,
+ void __init initmem_init(unsigned long start_pfn, unsigned long end_pfn,
+ 				int acpi, int k8)
+ {
+-#ifndef CONFIG_NO_BOOTMEM
+-	unsigned long bootmap_size, bootmap;
+-
+-	bootmap_size = bootmem_bootmap_pages(end_pfn)<<PAGE_SHIFT;
+-	bootmap = lmb_find_in_range(0, end_pfn<<PAGE_SHIFT, bootmap_size,
+-				 PAGE_SIZE);
+-	if (bootmap == LMB_ERROR)
+-		panic("Cannot find bootmem map of size %ld\n", bootmap_size);
+-	lmb_x86_reserve_range(bootmap, bootmap + bootmap_size, "BOOTMAP");
+-	/* don't touch min_low_pfn */
+-	bootmap_size = init_bootmem_node(NODE_DATA(0), bootmap >> PAGE_SHIFT,
+-					 0, end_pfn);
+ 	lmb_x86_register_active_regions(0, start_pfn, end_pfn);
+-	free_bootmem_with_active_regions(0, end_pfn);
+-#else
+-	lmb_x86_register_active_regions(0, start_pfn, end_pfn);
+-#endif
+ }
+ #endif
+ 
+@@ -798,31 +782,6 @@ void mark_rodata_ro(void)
+ 
+ #endif
+ 
+-#ifndef CONFIG_NO_BOOTMEM
+-int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+-				   int flags)
+-{
+-	unsigned long pfn = phys >> PAGE_SHIFT;
+-
+-	if (pfn >= max_pfn) {
+-		/*
+-		 * This can happen with kdump kernels when accessing
+-		 * firmware tables:
+-		 */
+-		if (pfn < max_pfn_mapped)
+-			return -EFAULT;
+-
+-		printk(KERN_ERR "reserve_bootmem: illegal reserve %lx %lu\n",
+-				phys, len);
+-		return -EFAULT;
+-	}
+-
+-	reserve_bootmem(phys, len, flags);
+-
+-	return 0;
+-}
+-#endif
+-
+ int kern_addr_valid(unsigned long addr)
+ {
+ 	unsigned long above = ((long)addr) >> __VIRTUAL_MASK_SHIFT;
+diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
+index 952449c..8d696b9 100644
+--- a/arch/x86/mm/lmb.c
++++ b/arch/x86/mm/lmb.c
+@@ -109,7 +109,6 @@ static __init struct range *find_range_array(int count)
+ 	return range;
+ }
+ 
+-#ifdef CONFIG_NO_BOOTMEM
+ static void __init lmb_x86_subtract_reserved(struct range *range, int az)
  {
  	int count;
+@@ -186,36 +185,6 @@ int __init get_free_all_memory_range(struct range **rangep, int nodeid)
+ 	*rangep = range;
+ 	return nr_range;
+ }
+-#else
+-void __init lmb_x86_to_bootmem(u64 start, u64 end)
+-{
+-	int count;
+-	u64 final_start, final_end;
+-	struct lmb_region *r;
+-
+-	/* Take out region array itself */
+-	if (lmb.reserved.regions != lmb_reserved_init_regions)
+-		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
+-
+-	count  = lmb.reserved.cnt;
+-	lmb_dbg("(%d early reservations) ==> bootmem [%#010llx - %#010llx]\n", count, start, end);
+-	for_each_lmb(reserved, r) {
+-		lmb_dbg("  [%#010llx - %#010llx] ", (u64)r->base, (u64)r->base + r->size);
+-		final_start = max(start, r->base);
+-		final_end = min(end, r->base + r->size);
+-		if (final_start >= final_end) {
+-			lmb_dbg("\n");
+-			continue;
+-		}
+-		lmb_dbg(" ==> [%#010llx - %#010llx]\n", final_start, final_end);
+-		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
+-	}
+-
+-	/* Put region array back ? */
+-	if (lmb.reserved.regions != lmb_reserved_init_regions)
+-		lmb_reserve(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
+-}
+-#endif
+ 
+ static u64 __init __lmb_x86_memory_in_range(u64 addr, u64 limit, bool get_free)
+ {
+diff --git a/arch/x86/mm/numa_32.c b/arch/x86/mm/numa_32.c
+index 903b25d..51db9ee 100644
+--- a/arch/x86/mm/numa_32.c
++++ b/arch/x86/mm/numa_32.c
+@@ -420,9 +420,6 @@ void __init initmem_init(unsigned long start_pfn, unsigned long end_pfn,
+ 	for_each_online_node(nid) {
+ 		memset(NODE_DATA(nid), 0, sizeof(struct pglist_data));
+ 		NODE_DATA(nid)->node_id = nid;
+-#ifndef CONFIG_NO_BOOTMEM
+-		NODE_DATA(nid)->bdata = &bootmem_node_data[nid];
+-#endif
+ 	}
+ 
+ 	setup_bootmem_allocator();
+diff --git a/arch/x86/mm/numa_64.c b/arch/x86/mm/numa_64.c
+index 328f236..f783269 100644
+--- a/arch/x86/mm/numa_64.c
++++ b/arch/x86/mm/numa_64.c
+@@ -199,10 +199,6 @@ setup_node_bootmem(int nodeid, unsigned long start, unsigned long end)
+ 	unsigned long start_pfn, last_pfn, nodedata_phys;
+ 	const int pgdat_size = roundup(sizeof(pg_data_t), PAGE_SIZE);
+ 	int nid;
+-#ifndef CONFIG_NO_BOOTMEM
+-	unsigned long bootmap_start, bootmap_pages, bootmap_size;
+-	void *bootmap;
+-#endif
+ 
+ 	if (!end)
+ 		return;
+@@ -239,47 +235,6 @@ setup_node_bootmem(int nodeid, unsigned long start, unsigned long end)
+ 	NODE_DATA(nodeid)->node_start_pfn = start_pfn;
+ 	NODE_DATA(nodeid)->node_spanned_pages = last_pfn - start_pfn;
+ 
+-#ifndef CONFIG_NO_BOOTMEM
+-	NODE_DATA(nodeid)->bdata = &bootmem_node_data[nodeid];
+-
+-	/*
+-	 * Find a place for the bootmem map
+-	 * nodedata_phys could be on other nodes by alloc_bootmem,
+-	 * so need to sure bootmap_start not to be small, otherwise
+-	 * early_node_mem will get that with lmb_find_in_range instead
+-	 * of alloc_bootmem, that could clash with reserved range
+-	 */
+-	bootmap_pages = bootmem_bootmap_pages(last_pfn - start_pfn);
+-	bootmap_start = roundup(nodedata_phys + pgdat_size, PAGE_SIZE);
+-	/*
+-	 * SMP_CACHE_BYTES could be enough, but init_bootmem_node like
+-	 * to use that to align to PAGE_SIZE
+-	 */
+-	bootmap = early_node_mem(nodeid, bootmap_start, end,
+-				 bootmap_pages<<PAGE_SHIFT, PAGE_SIZE);
+-	if (bootmap == NULL)  {
+-		lmb_x86_free_range(nodedata_phys, nodedata_phys + pgdat_size);
+-		node_data[nodeid] = NULL;
+-		return;
+-	}
+-	bootmap_start = __pa(bootmap);
+-	lmb_x86_reserve_range(bootmap_start, bootmap_start+(bootmap_pages<<PAGE_SHIFT),
+-			"BOOTMAP");
+-
+-	bootmap_size = init_bootmem_node(NODE_DATA(nodeid),
+-					 bootmap_start >> PAGE_SHIFT,
+-					 start_pfn, last_pfn);
+-
+-	printk(KERN_INFO "  bootmap [%016lx -  %016lx] pages %lx\n",
+-		 bootmap_start, bootmap_start + bootmap_size - 1,
+-		 bootmap_pages);
+-	nid = phys_to_nid(bootmap_start);
+-	if (nid != nodeid)
+-		printk(KERN_INFO "    bootmap(%d) on node %d\n", nodeid, nid);
+-
+-	free_bootmem_with_active_regions(nodeid, end);
+-#endif
+-
+ 	node_set_online(nodeid);
+ }
+ 
+@@ -704,9 +659,7 @@ unsigned long __init numa_free_all_bootmem(void)
+ 	for_each_online_node(i)
+ 		pages += free_all_bootmem_node(NODE_DATA(i));
+ 
+-#ifdef CONFIG_NO_BOOTMEM
+ 	pages += free_all_memory_core_early(MAX_NUMNODES);
+-#endif
+ 
+ 	return pages;
+ }
 -- 
 1.6.4.2
 
