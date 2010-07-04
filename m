@@ -1,96 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:63981 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:63983 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756823Ab0GDHBb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Jul 2010 03:01:31 -0400
+	with ESMTP id S1756835Ab0GDHBd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Jul 2010 03:01:33 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 18/23] x86, lmb: Use lmb_debug to control debug message print out
-Date: Sat,  3 Jul 2010 23:56:22 -0700
-Message-ID: <1278226587-31213-19-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 17/23] x86, lmb: Add lmb_x86_memory_in_range()
+Date: Sat,  3 Jul 2010 23:56:21 -0700
+Message-ID: <1278226587-31213-18-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
 References: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100704065622.kZie551f19mb8bbjR13cpS6PiFNNuVEciqEuvkq-aK4@z>
+Message-ID: <20100704065621.mykm0Sqz7GYJ2ResewHpG_wPLAQ4_4uNMSdzo-90MsE@z>
 
-Also let lmb_x86_reserve_range/lmb_x86_free_range could print out name if lmb=debug is
-specified
+It will return memory size in specified range according to lmb.memory.region
 
-will also print ther name when reserve_lmb_area/free_lmb_area are called.
+Try to share some code with lmb_x86_free_memory_in_range() by passing get_free to
+__lmb_x86_memory_in_range().
 
--v2: according to Ingo, put " if (lmb_debug) " in one place
+-v2: Ben want _in_range in the name instead of size
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/mm/lmb.c |   20 ++++++++++++--------
- 1 files changed, 12 insertions(+), 8 deletions(-)
+ arch/x86/include/asm/lmb.h |    1 +
+ arch/x86/mm/lmb.c          |   18 +++++++++++++++++-
+ 2 files changed, 18 insertions(+), 1 deletions(-)
 
+diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
+index 3202090..8114713 100644
+--- a/arch/x86/include/asm/lmb.h
++++ b/arch/x86/include/asm/lmb.h
+@@ -16,5 +16,6 @@ void lmb_x86_register_active_regions(int nid, unsigned long start_pfn,
+ u64 lmb_x86_hole_size(u64 start, u64 end);
+ u64 lmb_x86_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
+ u64 lmb_x86_free_memory_in_range(u64 addr, u64 limit);
++u64 lmb_x86_memory_in_range(u64 addr, u64 limit);
+ 
+ #endif
 diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index 2dfc523..952449c 100644
+index e6b0fd5..2dfc523 100644
 --- a/arch/x86/mm/lmb.c
 +++ b/arch/x86/mm/lmb.c
-@@ -122,10 +122,10 @@ static void __init lmb_x86_subtract_reserved(struct range *range, int az)
+@@ -217,7 +217,7 @@ void __init lmb_x86_to_bootmem(u64 start, u64 end)
+ }
+ #endif
  
- 	count  = lmb.reserved.cnt;
- 
--	pr_info("Subtract (%d early reservations)\n", count);
-+	lmb_dbg("Subtract (%d early reservations)\n", count);
- 
+-u64 __init lmb_x86_free_memory_in_range(u64 addr, u64 limit)
++static u64 __init __lmb_x86_memory_in_range(u64 addr, u64 limit, bool get_free)
+ {
+ 	int i, count;
+ 	struct range *range;
+@@ -246,6 +246,10 @@ u64 __init lmb_x86_free_memory_in_range(u64 addr, u64 limit)
+ 	}
+ 	subtract_range(range, count, 0, addr);
+ 	subtract_range(range, count, limit, -1ULL);
++
++	/* Subtract lmb.reserved.region in range ? */
++	if (!get_free)
++		goto sort_and_count_them;
  	for_each_lmb(reserved, r) {
--		pr_info("  [%010llx - %010llx]\n", (u64)r->base, (u64)r->base + r->size);
-+		lmb_dbg("  [%#010llx - %#010llx]\n", (u64)r->base, (u64)r->base + r->size);
  		final_start = PFN_DOWN(r->base);
  		final_end = PFN_UP(r->base + r->size);
- 		if (final_start >= final_end)
-@@ -198,16 +198,16 @@ void __init lmb_x86_to_bootmem(u64 start, u64 end)
- 		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
+@@ -256,6 +260,8 @@ u64 __init lmb_x86_free_memory_in_range(u64 addr, u64 limit)
  
- 	count  = lmb.reserved.cnt;
--	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
-+	lmb_dbg("(%d early reservations) ==> bootmem [%#010llx - %#010llx]\n", count, start, end);
- 	for_each_lmb(reserved, r) {
--		pr_info("  [%010llx - %010llx] ", (u64)r->base, (u64)r->base + r->size);
-+		lmb_dbg("  [%#010llx - %#010llx] ", (u64)r->base, (u64)r->base + r->size);
- 		final_start = max(start, r->base);
- 		final_end = min(end, r->base + r->size);
- 		if (final_start >= final_end) {
--			pr_cont("\n");
-+			lmb_dbg("\n");
- 			continue;
- 		}
--		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
-+		lmb_dbg(" ==> [%#010llx - %#010llx]\n", final_start, final_end);
- 		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
+ 		subtract_range(range, count, final_start, final_end);
  	}
- 
-@@ -286,9 +286,11 @@ void __init lmb_x86_reserve_range(u64 start, u64 end, char *name)
- 	if (start == end)
- 		return;
- 
--	if (WARN_ONCE(start > end, "lmb_x86_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
-+	if (WARN_ONCE(start > end, "lmb_x86_reserve_range: wrong range [%#llx, %#llx)\n", start, end))
- 		return;
- 
-+	lmb_dbg("    lmb_x86_reserve_range: [%#010llx - %#010llx] %16s\n", start, end, name);
 +
- 	lmb_reserve(start, end - start);
++sort_and_count_them:
+ 	nr_range = clean_sort_range(range, count);
+ 
+ 	free_size = 0;
+@@ -265,6 +271,16 @@ u64 __init lmb_x86_free_memory_in_range(u64 addr, u64 limit)
+ 	return free_size << PAGE_SHIFT;
  }
  
-@@ -297,9 +299,11 @@ void __init lmb_x86_free_range(u64 start, u64 end)
- 	if (start == end)
- 		return;
- 
--	if (WARN_ONCE(start > end, "lmb_x86_free_range: wrong range [%#llx, %#llx]\n", start, end))
-+	if (WARN_ONCE(start > end, "lmb_x86_free_range: wrong range [%#llx, %#llx)\n", start, end))
- 		return;
- 
-+	lmb_dbg("       lmb_x86_free_range: [%#010llx - %#010llx]\n", start, end);
++u64 __init lmb_x86_free_memory_in_range(u64 addr, u64 limit)
++{
++	return __lmb_x86_memory_in_range(addr, limit, true);
++}
 +
- 	lmb_free(start, end - start);
- }
- 
++u64 __init lmb_x86_memory_in_range(u64 addr, u64 limit)
++{
++	return __lmb_x86_memory_in_range(addr, limit, false);
++}
++
+ void __init lmb_x86_reserve_range(u64 start, u64 end, char *name)
+ {
+ 	if (start == end)
 -- 
 1.6.4.2
 
