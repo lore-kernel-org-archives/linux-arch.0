@@ -1,53 +1,39 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH] Break out types from <linux/list.h> to <linux/list_types.h>.
-Date: Sat, 3 Jul 2010 21:47:58 -0400
-Message-ID: <4C2FE84E.4010407@tilera.com>
-References: <201007021811.04197.arnd@arndb.de> <4C2E3F1F.3010202@tilera.com> <20100702204817.GB5842@parisc-linux.org> <201007031100.43158.arnd@arndb.de>
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [PATCH] Break out types from <linux/list.h> to
+	<linux/list_types.h>.
+Date: Sat, 3 Jul 2010 21:22:38 -0600
+Message-ID: <20100704032237.GD5842@parisc-linux.org>
+References: <201007021811.04197.arnd@arndb.de> <4C2E3F1F.3010202@tilera.com> <20100702204817.GB5842@parisc-linux.org> <201007031100.43158.arnd@arndb.de> <4C2FE84E.4010407@tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([72.1.168.231]:21273 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756494Ab0GDBsD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 3 Jul 2010 21:48:03 -0400
-In-Reply-To: <201007031100.43158.arnd@arndb.de>
+Received: from palinux.external.hp.com ([192.25.206.14]:33740 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756713Ab0GDDWj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 3 Jul 2010 23:22:39 -0400
+Content-Disposition: inline
+In-Reply-To: <4C2FE84E.4010407@tilera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Matthew Wilcox <matthew@wil.cx>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 7/3/2010 5:00 AM, Arnd Bergmann wrote:
-> On Friday 02 July 2010 22:48:17 Matthew Wilcox wrote:
->   
->> I wouldn't mind seeing kvm_types.h, rwlock_types.h and spinlock_types.h
->> merged into types.h, personally.  They're all pretty fundamental kernel
->> kind of types.  It's a matter of taste, and I'm not particularly fussed
->> one way or the other.
->>
->> mm_types.h is complex and full of mm-specific information, so keeping
->> it separate makes sense to me.
->>
->> I just object to the unnecessary creation of tiny files like this.
->> Which is how we ended up with atomic_t and atomic64_t in there in the
->> first place :-)
->>     
-> Ah, I didn't notice you had moved the atomic types in there. I agree that
-> the list types are in the same general category and it makes sense
-> to treat them the same way.
->
-> For rwlock_types.h and spinlock_types.h, I think including them in types.h
-> would really cause too much other crap to be pulled in through lockdep
-> and other things we might need in there in the future, which would in turn
-> cause the same problems with types.h that Chris is trying to avoid
-> in the first place by moving stuff out of list.h.
->   
+On Sat, Jul 03, 2010 at 09:47:58PM -0400, Chris Metcalf wrote:
+> Sounds like we have a consensus on moving the list_head, hlist_head, and
+> hlist_node types to <linux/types.h>.  I assume everyone is agreed that
+> initializers, etc., should stay in <linux/list.h>.  I will send out a
+> revised git patch on Sunday.
 
-Sounds like we have a consensus on moving the list_head, hlist_head, and
-hlist_node types to <linux/types.h>.  I assume everyone is agreed that
-initializers, etc., should stay in <linux/list.h>.  I will send out a
-revised git patch on Sunday.
+Yes, I think that's reasonable.  By way of comparison, ATOMIC_INIT,
+etc. stayed in atomic.h.  It makes sense -- you only need the types
+for structure definitions, you don't need the initialisers.
+
+I suppose if you have a header which defines an initialiser like sched.h
+does, you'll want the list.h initialisers, but anything that complex
+should be able to handle including the full list.h header.
 
 -- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+Matthew Wilcox				Intel Open Source Technology Centre
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
