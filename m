@@ -1,92 +1,62 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 17/23] x86, lmb: Add lmb_x86_memory_in_range()
-Date: Sat,  3 Jul 2010 23:56:21 -0700
-Message-ID: <1278226587-31213-18-git-send-email-yinghai@kernel.org>
-References: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [PATCH] arch/tile: updates to hardwall code from community feedback.
+Date: Sun, 4 Jul 2010 07:54:16 -0400
+Message-ID: <4C307668.40002@tilera.com>
+References: <201007030217.o632HoK9004030@farm-0002.internal.tilera.com> <20100704035759.GA5888@linux-sh.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:63983 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756835Ab0GDHBd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Jul 2010 03:01:33 -0400
-In-Reply-To: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
+Received: from usmamail.tilera.com ([72.1.168.231]:36185 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757425Ab0GDLyS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Jul 2010 07:54:18 -0400
+In-Reply-To: <20100704035759.GA5888@linux-sh.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+To: Paul Mundt <lethal@linux-sh.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de
 
-It will return memory size in specified range according to lmb.memory.region
+On 7/3/2010 11:57 PM, Paul Mundt wrote:
+> On Fri, Jul 02, 2010 at 11:45:18AM -0400, Chris Metcalf wrote:
+>   
+>>  #define for_each_hardwall_task_safe(pos, n, head) \
+>> -	hardwall_for_each_entry_safe(pos, n, head, thread.hardwall_list)
+>> +	list_for_each_entry_safe(pos, n, head, thread.hardwall_list)
+>>  
+>>     
+> If you've killed off the rest of the wrappers due to them not really
+> having to do anything special, you could do the same for this one, too.
+>   
 
-Try to share some code with lmb_x86_free_memory_in_range() by passing get_free to
-__lmb_x86_memory_in_range().
+Good point, thanks.  Done.
 
--v2: Ben want _in_range in the name instead of size
+>>  static struct hardwall_info *hardwall_create(
+>> -	size_t size, const unsigned long __user *bits)
+>> +	size_t size, const unsigned char __user *bits)
+>>  {
+>> [...]
+>>  
+>>     
+> Does it even make any sense to accept > sizeof(struct cpumask) ? Your
+> case below obviously handles this by making sure the rest of the bits are
+> zeroed, but that still seems a bit excessive. If anything, the
+> sizeof(struct cpumask) should be your worst case (or just rejected out of
+> hand), and you could use cpumask_size() for everything else.
+>   
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- arch/x86/include/asm/lmb.h |    1 +
- arch/x86/mm/lmb.c          |   18 +++++++++++++++++-
- 2 files changed, 18 insertions(+), 1 deletions(-)
+Yes, it does make sense; see get_nodes() in mm/mempolicy.c for a similar
+API philosophy.  The idea is that you don't want to tie userspace code
+to the particular NR_CPUS that you happened to build your kernel with. 
+So you let userspace use any reasonable value for its bitmask, and as
+long as it's passing zeroes for the >NR_CPUS positions, that's OK.
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index 3202090..8114713 100644
---- a/arch/x86/include/asm/lmb.h
-+++ b/arch/x86/include/asm/lmb.h
-@@ -16,5 +16,6 @@ void lmb_x86_register_active_regions(int nid, unsigned long start_pfn,
- u64 lmb_x86_hole_size(u64 start, u64 end);
- u64 lmb_x86_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
- u64 lmb_x86_free_memory_in_range(u64 addr, u64 limit);
-+u64 lmb_x86_memory_in_range(u64 addr, u64 limit);
- 
- #endif
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index e6b0fd5..2dfc523 100644
---- a/arch/x86/mm/lmb.c
-+++ b/arch/x86/mm/lmb.c
-@@ -217,7 +217,7 @@ void __init lmb_x86_to_bootmem(u64 start, u64 end)
- }
- #endif
- 
--u64 __init lmb_x86_free_memory_in_range(u64 addr, u64 limit)
-+static u64 __init __lmb_x86_memory_in_range(u64 addr, u64 limit, bool get_free)
- {
- 	int i, count;
- 	struct range *range;
-@@ -246,6 +246,10 @@ u64 __init lmb_x86_free_memory_in_range(u64 addr, u64 limit)
- 	}
- 	subtract_range(range, count, 0, addr);
- 	subtract_range(range, count, limit, -1ULL);
-+
-+	/* Subtract lmb.reserved.region in range ? */
-+	if (!get_free)
-+		goto sort_and_count_them;
- 	for_each_lmb(reserved, r) {
- 		final_start = PFN_DOWN(r->base);
- 		final_end = PFN_UP(r->base + r->size);
-@@ -256,6 +260,8 @@ u64 __init lmb_x86_free_memory_in_range(u64 addr, u64 limit)
- 
- 		subtract_range(range, count, final_start, final_end);
- 	}
-+
-+sort_and_count_them:
- 	nr_range = clean_sort_range(range, count);
- 
- 	free_size = 0;
-@@ -265,6 +271,16 @@ u64 __init lmb_x86_free_memory_in_range(u64 addr, u64 limit)
- 	return free_size << PAGE_SHIFT;
- }
- 
-+u64 __init lmb_x86_free_memory_in_range(u64 addr, u64 limit)
-+{
-+	return __lmb_x86_memory_in_range(addr, limit, true);
-+}
-+
-+u64 __init lmb_x86_memory_in_range(u64 addr, u64 limit)
-+{
-+	return __lmb_x86_memory_in_range(addr, limit, false);
-+}
-+
- void __init lmb_x86_reserve_range(u64 start, u64 end, char *name)
- {
- 	if (start == end)
+cpumask_parse_user() won't help here, since we're not parsing an ASCII
+string input.  The main flow is just a copy_from_user() for the bits in
+the mask, then an optional memset() if the user specified fewer than
+NR_CPUS cpus, or a scan to check for set bits if the user specified more
+than NR_CPUS cpus.
+
 -- 
-1.6.4.2
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
