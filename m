@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 16/23] x86, lmb: Add lmb_x86_free_memory_in_range()
-Date: Sat,  3 Jul 2010 23:56:20 -0700
-Message-ID: <1278226587-31213-17-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 09/23] bootmem, x86: Add weak version of reserve_bootmem_generic
+Date: Sat,  3 Jul 2010 23:56:13 -0700
+Message-ID: <1278226587-31213-10-git-send-email-yinghai@kernel.org>
 References: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
@@ -10,91 +10,99 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-It will return free memory size in specified range.
+It will be used lmb_x86_to_bootmem converting
 
-We can not use memory_size - reserved_size here, because some reserved area
-may not be in the scope of lmb.memory.region.
+It is an wrapper for reserve_bootmem, and x86 64bit is using special one.
 
-Use lmb.memory.region subtracting lmb.reserved.region to get free range array.
-then count size of all free ranges.
-
--v2: Ben insist on using _in_range
+Also clean up that version for x86_64. We don't need to take care of numa
+path for that, bootmem can handle it how
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    1 +
- arch/x86/mm/lmb.c          |   48 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 49 insertions(+), 0 deletions(-)
+ arch/x86/mm/init_32.c |    6 ------
+ arch/x86/mm/init_64.c |   20 ++------------------
+ mm/bootmem.c          |    6 ++++++
+ 3 files changed, 8 insertions(+), 24 deletions(-)
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index 2ba2394..3202090 100644
---- a/arch/x86/include/asm/lmb.h
-+++ b/arch/x86/include/asm/lmb.h
-@@ -15,5 +15,6 @@ void lmb_x86_register_active_regions(int nid, unsigned long start_pfn,
- 					 unsigned long last_pfn);
- u64 lmb_x86_hole_size(u64 start, u64 end);
- u64 lmb_x86_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
-+u64 lmb_x86_free_memory_in_range(u64 addr, u64 limit);
- 
+diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+index bca7909..90e0545 100644
+--- a/arch/x86/mm/init_32.c
++++ b/arch/x86/mm/init_32.c
+@@ -1069,9 +1069,3 @@ void mark_rodata_ro(void)
  #endif
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index a99f879..e6b0fd5 100644
---- a/arch/x86/mm/lmb.c
-+++ b/arch/x86/mm/lmb.c
-@@ -217,6 +217,54 @@ void __init lmb_x86_to_bootmem(u64 start, u64 end)
  }
  #endif
+-
+-int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+-				   int flags)
+-{
+-	return reserve_bootmem(phys, len, flags);
+-}
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index ee41bba..634fa08 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -799,13 +799,10 @@ void mark_rodata_ro(void)
  
-+u64 __init lmb_x86_free_memory_in_range(u64 addr, u64 limit)
+ #endif
+ 
++#ifndef CONFIG_NO_BOOTMEM
+ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 				   int flags)
+ {
+-#ifdef CONFIG_NUMA
+-	int nid, next_nid;
+-	int ret;
+-#endif
+ 	unsigned long pfn = phys >> PAGE_SHIFT;
+ 
+ 	if (pfn >= max_pfn) {
+@@ -821,21 +818,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 		return -EFAULT;
+ 	}
+ 
+-	/* Should check here against the e820 map to avoid double free */
+-#ifdef CONFIG_NUMA
+-	nid = phys_to_nid(phys);
+-	next_nid = phys_to_nid(phys + len - 1);
+-	if (nid == next_nid)
+-		ret = reserve_bootmem_node(NODE_DATA(nid), phys, len, flags);
+-	else
+-		ret = reserve_bootmem(phys, len, flags);
+-
+-	if (ret != 0)
+-		return ret;
+-
+-#else
+ 	reserve_bootmem(phys, len, flags);
+-#endif
+ 
+ 	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
+ 		dma_reserve += len / PAGE_SIZE;
+@@ -844,6 +827,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 
+ 	return 0;
+ }
++#endif
+ 
+ int kern_addr_valid(unsigned long addr)
+ {
+diff --git a/mm/bootmem.c b/mm/bootmem.c
+index 58c66cc..ee31b95 100644
+--- a/mm/bootmem.c
++++ b/mm/bootmem.c
+@@ -526,6 +526,12 @@ int __init reserve_bootmem(unsigned long addr, unsigned long size,
+ }
+ 
+ #ifndef CONFIG_NO_BOOTMEM
++int __weak __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
++				   int flags)
 +{
-+	int i, count;
-+	struct range *range;
-+	int nr_range;
-+	u64 final_start, final_end;
-+	u64 free_size;
-+	struct lmb_region *r;
-+
-+	count = (lmb.reserved.cnt + lmb.memory.cnt) * 2;
-+
-+	range = find_range_array(count);
-+	nr_range = 0;
-+
-+	addr = PFN_UP(addr);
-+	limit = PFN_DOWN(limit);
-+
-+	for_each_lmb(memory, r) {
-+		final_start = PFN_UP(r->base);
-+		final_end = PFN_DOWN(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		if (final_start >= limit || final_end <= addr)
-+			continue;
-+
-+		nr_range = add_range(range, count, nr_range, final_start, final_end);
-+	}
-+	subtract_range(range, count, 0, addr);
-+	subtract_range(range, count, limit, -1ULL);
-+	for_each_lmb(reserved, r) {
-+		final_start = PFN_DOWN(r->base);
-+		final_end = PFN_UP(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		if (final_start >= limit || final_end <= addr)
-+			continue;
-+
-+		subtract_range(range, count, final_start, final_end);
-+	}
-+	nr_range = clean_sort_range(range, count);
-+
-+	free_size = 0;
-+	for (i = 0; i < nr_range; i++)
-+		free_size += range[i].end - range[i].start;
-+
-+	return free_size << PAGE_SHIFT;
++	return reserve_bootmem(phys, len, flags);
 +}
 +
- void __init lmb_x86_reserve_range(u64 start, u64 end, char *name)
+ static unsigned long __init align_idx(struct bootmem_data *bdata,
+ 				      unsigned long idx, unsigned long step)
  {
- 	if (start == end)
 -- 
 1.6.4.2
