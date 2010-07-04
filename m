@@ -1,80 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:63462 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:63428 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756740Ab0GDHAV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Jul 2010 03:00:21 -0400
+	with ESMTP id S1755217Ab0GDHAP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Jul 2010 03:00:15 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 10/23] x86, lmb: Add lmb_x86_to_bootmem()
-Date: Sat,  3 Jul 2010 23:56:14 -0700
-Message-ID: <1278226587-31213-11-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 04/23] lmb: Export LMB_ERROR again
+Date: Sat,  3 Jul 2010 23:56:08 -0700
+Message-ID: <1278226587-31213-5-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
 References: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100704065614.DiMO9LUssVu2sFfmNm96J-ZKvET8AbRNE9PU7YU7mnE@z>
+Message-ID: <20100704065608.6J9oSjKV3qiLMLzjWYZhZZLXYg6JgQamMl2EyGkgfm4@z>
 
-lmb_x86_to_bootmem() will reserve lmb.reserved.region in bootmem after bootmem is
-set up.
+will used by x86 lmb_x86_find_in_range_node and nobootmem replacement
 
-We can use it to with all arches that support lmb later.
+-v2: use 0 instead -1ULL, Suggesed by Linus, so we don't need cast them later to unsigned long
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    1 +
- arch/x86/mm/lmb.c          |   30 ++++++++++++++++++++++++++++++
- 2 files changed, 31 insertions(+), 0 deletions(-)
+ include/linux/lmb.h |    1 +
+ lib/lmb.c           |    2 --
+ 2 files changed, 1 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index b29e8dc..4a1b299 100644
---- a/arch/x86/include/asm/lmb.h
-+++ b/arch/x86/include/asm/lmb.h
-@@ -4,5 +4,6 @@
- #define ARCH_DISCARD_LMB
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index 5124fca..1a0ba7a 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -19,6 +19,7 @@
+ #include <asm/lmb.h>
  
- u64 lmb_x86_find_in_range_size(u64 start, u64 *sizep, u64 align);
-+void lmb_x86_to_bootmem(u64 start, u64 end);
+ #define INIT_LMB_REGIONS 128
++#define LMB_ERROR	 0
  
- #endif
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index 8e20dda..61b292f 100644
---- a/arch/x86/mm/lmb.c
-+++ b/arch/x86/mm/lmb.c
-@@ -86,3 +86,33 @@ u64 __init lmb_x86_find_in_range_size(u64 start, u64 *sizep, u64 align)
- 	return LMB_ERROR;
- }
+ struct lmb_region {
+ 	phys_addr_t base;
+diff --git a/lib/lmb.c b/lib/lmb.c
+index dde8d04..7f89468 100644
+--- a/lib/lmb.c
++++ b/lib/lmb.c
+@@ -27,8 +27,6 @@ int lmb_can_resize;
+ static struct lmb_region lmb_memory_init_regions[INIT_LMB_REGIONS + 1];
+ struct lmb_region lmb_reserved_init_regions[INIT_LMB_REGIONS + 1];
  
-+#ifndef CONFIG_NO_BOOTMEM
-+void __init lmb_x86_to_bootmem(u64 start, u64 end)
-+{
-+	int count;
-+	u64 final_start, final_end;
-+	struct lmb_region *r;
-+
-+	/* Take out region array itself */
-+	if (lmb.reserved.regions != lmb_reserved_init_regions)
-+		lmb_free(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
-+
-+	count  = lmb.reserved.cnt;
-+	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
-+	for_each_lmb(reserved, r) {
-+		pr_info("  [%010llx - %010llx] ", (u64)r->base, (u64)r->base + r->size);
-+		final_start = max(start, r->base);
-+		final_end = min(end, r->base + r->size);
-+		if (final_start >= final_end) {
-+			pr_cont("\n");
-+			continue;
-+		}
-+		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
-+		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
-+	}
-+
-+	/* Put region array back ? */
-+	if (lmb.reserved.regions != lmb_reserved_init_regions)
-+		lmb_reserve(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
-+}
-+#endif
+-#define LMB_ERROR	(~(phys_addr_t)0)
+-
+ /* inline so we don't get a warning when pr_debug is compiled out */
+ static inline const char *lmb_type_name(struct lmb_type *type)
+ {
 -- 
 1.6.4.2
 
