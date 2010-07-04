@@ -1,153 +1,237 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:63420 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:63456 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755009Ab0GDHAN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Jul 2010 03:00:13 -0400
+	with ESMTP id S1755217Ab0GDHAT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Jul 2010 03:00:19 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 08/23] x86, lmb: Add lmb_x86_find_in_range_size()
-Date: Sat,  3 Jul 2010 23:56:12 -0700
-Message-ID: <1278226587-31213-9-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 06/23] lmb: Add ARCH_DISCARD_LMB to put lmb code to .init
+Date: Sat,  3 Jul 2010 23:56:10 -0700
+Message-ID: <1278226587-31213-7-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
 References: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100704065612.DoJjNGtKaN79Mt1PHDGJgIv9o1l6la2he9G1PpCDVck@z>
+Message-ID: <20100704065610.j3GxUlXESiLUPBJpTY3hb-TzqQ0Bm-tTRdLIicuO3Y8@z>
 
-size is returned according free range.
-Will be used to find free ranges for early_memtest and memory corruption check
+So those lmb bits could be released after kernel is booted up.
 
-Do not mess it up with lib/lmb.c yet.
+Arch code could define ARCH_DISCARD_LMB in asm/lmb.h,
+__init_lmb will become __init, __initdata_lmb will becom __initdata
+
+x86 code will use that.
+
+if ARCH_DISCARD_LMB is defined, debugfs is not used
+
+-v2: use ARCH_DISCARD_LMB according to Michael Ellerman
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    8 ++++
- arch/x86/mm/Makefile       |    2 +
- arch/x86/mm/lmb.c          |   88 ++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 98 insertions(+), 0 deletions(-)
- create mode 100644 arch/x86/include/asm/lmb.h
- create mode 100644 arch/x86/mm/lmb.c
+ include/linux/lmb.h |    8 ++++++++
+ lib/lmb.c           |   48 ++++++++++++++++++++++++------------------------
+ 2 files changed, 32 insertions(+), 24 deletions(-)
 
-diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-new file mode 100644
-index 0000000..b29e8dc
---- /dev/null
-+++ b/arch/x86/include/asm/lmb.h
-@@ -0,0 +1,8 @@
-+#ifndef _X86_LMB_H
-+#define _X86_LMB_H
-+
-+#define ARCH_DISCARD_LMB
-+
-+u64 lmb_x86_find_in_range_size(u64 start, u64 *sizep, u64 align);
-+
-+#endif
-diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
-index a4c7683..8ab0505 100644
---- a/arch/x86/mm/Makefile
-+++ b/arch/x86/mm/Makefile
-@@ -26,4 +26,6 @@ obj-$(CONFIG_NUMA)		+= numa.o numa_$(BITS).o
- obj-$(CONFIG_K8_NUMA)		+= k8topology_64.o
- obj-$(CONFIG_ACPI_NUMA)		+= srat_$(BITS).o
+diff --git a/include/linux/lmb.h b/include/linux/lmb.h
+index 6750e71..bdb3d46 100644
+--- a/include/linux/lmb.h
++++ b/include/linux/lmb.h
+@@ -148,6 +148,14 @@ static inline unsigned long lmb_region_pages(const struct lmb_region *reg)
+ 	     region++)
  
-+obj-$(CONFIG_HAVE_LMB)		+= lmb.o
+ 
++#ifdef ARCH_DISCARD_LMB
++#define __init_lmb __init
++#define __initdata_lmb __initdata
++#else
++#define __init_lmb
++#define __initdata_lmb
++#endif
 +
- obj-$(CONFIG_MEMTEST)		+= memtest.o
-diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-new file mode 100644
-index 0000000..8e20dda
---- /dev/null
-+++ b/arch/x86/mm/lmb.c
-@@ -0,0 +1,88 @@
-+#include <linux/kernel.h>
-+#include <linux/types.h>
-+#include <linux/init.h>
-+#include <linux/bitops.h>
-+#include <linux/lmb.h>
-+#include <linux/bootmem.h>
-+#include <linux/mm.h>
-+#include <linux/range.h>
-+
-+/* Check for already reserved areas */
-+static inline bool __init bad_addr_size(u64 *addrp, u64 *sizep, u64 align)
-+{
-+	struct lmb_region *r;
-+	u64 addr = *addrp, last;
-+	u64 size = *sizep;
-+	bool changed = false;
-+
-+again:
-+	last = addr + size;
-+	for_each_lmb(reserved, r) {
-+		if (last > r->base && addr < r->base) {
-+			size = r->base - addr;
-+			changed = true;
-+			goto again;
-+		}
-+		if (last > (r->base + r->size) && addr < (r->base + r->size)) {
-+			addr = round_up(r->base + r->size, align);
-+			size = last - addr;
-+			changed = true;
-+			goto again;
-+		}
-+		if (last <= (r->base + r->size) && addr >= r->base) {
-+			(*sizep)++;
-+			return false;
-+		}
-+	}
-+	if (changed) {
-+		*addrp = addr;
-+		*sizep = size;
-+	}
-+	return changed;
-+}
-+
-+static u64 __init __lmb_x86_find_in_range_size(u64 ei_start, u64 ei_last, u64 start,
-+			 u64 *sizep, u64 align)
-+{
-+	u64 addr, last;
-+
-+	addr = round_up(ei_start, align);
-+	if (addr < start)
-+		addr = round_up(start, align);
-+	if (addr >= ei_last)
-+		goto out;
-+	*sizep = ei_last - addr;
-+	while (bad_addr_size(&addr, sizep, align) && addr + *sizep <= ei_last)
-+		;
-+	last = addr + *sizep;
-+	if (last > ei_last)
-+		goto out;
-+
-+	return addr;
-+
-+out:
-+	return LMB_ERROR;
-+}
-+
-+/*
-+ * Find next free range after start, and size is returned in *sizep
-+ */
-+u64 __init lmb_x86_find_in_range_size(u64 start, u64 *sizep, u64 align)
-+{
-+	struct lmb_region *r;
-+
-+	for_each_lmb(memory, r) {
-+		u64 ei_start = r->base;
-+		u64 ei_last = ei_start + r->size;
-+		u64 addr;
-+
-+		addr = __lmb_x86_find_in_range_size(ei_start, ei_last, start,
-+					 sizep, align);
-+
-+		if (addr != LMB_ERROR)
-+			return addr;
-+	}
-+
-+	return LMB_ERROR;
-+}
-+
+ #endif /* CONFIG_HAVE_LMB */
+ 
+ #endif /* __KERNEL__ */
+diff --git a/lib/lmb.c b/lib/lmb.c
+index 7f89468..66bf0b0 100644
+--- a/lib/lmb.c
++++ b/lib/lmb.c
+@@ -20,12 +20,12 @@
+ #include <linux/seq_file.h>
+ #include <linux/lmb.h>
+ 
+-struct lmb lmb;
++struct lmb lmb __initdata_lmb;
+ 
+-int lmb_debug;
+-int lmb_can_resize;
+-static struct lmb_region lmb_memory_init_regions[INIT_LMB_REGIONS + 1];
+-struct lmb_region lmb_reserved_init_regions[INIT_LMB_REGIONS + 1];
++int lmb_debug __initdata_lmb;
++int lmb_can_resize __initdata_lmb;
++static struct lmb_region lmb_memory_init_regions[INIT_LMB_REGIONS + 1] __initdata_lmb;
++struct lmb_region lmb_reserved_init_regions[INIT_LMB_REGIONS + 1] __initdata_lmb;
+ 
+ /* inline so we don't get a warning when pr_debug is compiled out */
+ static inline const char *lmb_type_name(struct lmb_type *type)
+@@ -42,23 +42,23 @@ static inline const char *lmb_type_name(struct lmb_type *type)
+  * Address comparison utilities
+  */
+ 
+-static phys_addr_t lmb_align_down(phys_addr_t addr, phys_addr_t size)
++static phys_addr_t __init_lmb lmb_align_down(phys_addr_t addr, phys_addr_t size)
+ {
+ 	return addr & ~(size - 1);
+ }
+ 
+-static phys_addr_t lmb_align_up(phys_addr_t addr, phys_addr_t size)
++static phys_addr_t __init_lmb lmb_align_up(phys_addr_t addr, phys_addr_t size)
+ {
+ 	return (addr + (size - 1)) & ~(size - 1);
+ }
+ 
+-static unsigned long lmb_addrs_overlap(phys_addr_t base1, phys_addr_t size1,
++static unsigned long __init_lmb lmb_addrs_overlap(phys_addr_t base1, phys_addr_t size1,
+ 				       phys_addr_t base2, phys_addr_t size2)
+ {
+ 	return ((base1 < (base2 + size2)) && (base2 < (base1 + size1)));
+ }
+ 
+-static long lmb_addrs_adjacent(phys_addr_t base1, phys_addr_t size1,
++static long __init_lmb lmb_addrs_adjacent(phys_addr_t base1, phys_addr_t size1,
+ 			       phys_addr_t base2, phys_addr_t size2)
+ {
+ 	if (base2 == base1 + size1)
+@@ -69,7 +69,7 @@ static long lmb_addrs_adjacent(phys_addr_t base1, phys_addr_t size1,
+ 	return 0;
+ }
+ 
+-static long lmb_regions_adjacent(struct lmb_type *type,
++static long __init_lmb lmb_regions_adjacent(struct lmb_type *type,
+ 				 unsigned long r1, unsigned long r2)
+ {
+ 	phys_addr_t base1 = type->regions[r1].base;
+@@ -80,7 +80,7 @@ static long lmb_regions_adjacent(struct lmb_type *type,
+ 	return lmb_addrs_adjacent(base1, size1, base2, size2);
+ }
+ 
+-long lmb_overlaps_region(struct lmb_type *type, phys_addr_t base, phys_addr_t size)
++long __init_lmb lmb_overlaps_region(struct lmb_type *type, phys_addr_t base, phys_addr_t size)
+ {
+ 	unsigned long i;
+ 
+@@ -156,7 +156,7 @@ static phys_addr_t __init lmb_find_base(phys_addr_t size, phys_addr_t align,
+ 	return LMB_ERROR;
+ }
+ 
+-static void lmb_remove_region(struct lmb_type *type, unsigned long r)
++static void __init_lmb lmb_remove_region(struct lmb_type *type, unsigned long r)
+ {
+ 	unsigned long i;
+ 
+@@ -168,7 +168,7 @@ static void lmb_remove_region(struct lmb_type *type, unsigned long r)
+ }
+ 
+ /* Assumption: base addr of region 1 < base addr of region 2 */
+-static void lmb_coalesce_regions(struct lmb_type *type,
++static void __init_lmb lmb_coalesce_regions(struct lmb_type *type,
+ 		unsigned long r1, unsigned long r2)
+ {
+ 	type->regions[r1].size += type->regions[r2].size;
+@@ -178,7 +178,7 @@ static void lmb_coalesce_regions(struct lmb_type *type,
+ /* Defined below but needed now */
+ static long lmb_add_region(struct lmb_type *type, phys_addr_t base, phys_addr_t size);
+ 
+-static int lmb_double_array(struct lmb_type *type)
++static int __init_lmb lmb_double_array(struct lmb_type *type)
+ {
+ 	struct lmb_region *new_array, *old_array;
+ 	phys_addr_t old_size, new_size, addr;
+@@ -249,13 +249,13 @@ static int lmb_double_array(struct lmb_type *type)
+ 	return 0;
+ }
+ 
+-extern int __weak lmb_memory_can_coalesce(phys_addr_t addr1, phys_addr_t size1,
++extern int __init_lmb __weak lmb_memory_can_coalesce(phys_addr_t addr1, phys_addr_t size1,
+ 					  phys_addr_t addr2, phys_addr_t size2)
+ {
+ 	return 1;
+ }
+ 
+-static long lmb_add_region(struct lmb_type *type, phys_addr_t base, phys_addr_t size)
++static long __init_lmb lmb_add_region(struct lmb_type *type, phys_addr_t base, phys_addr_t size)
+ {
+ 	unsigned long coalesced = 0;
+ 	long adjacent, i;
+@@ -342,13 +342,13 @@ static long lmb_add_region(struct lmb_type *type, phys_addr_t base, phys_addr_t
+ 	return 0;
+ }
+ 
+-long lmb_add(phys_addr_t base, phys_addr_t size)
++long __init_lmb lmb_add(phys_addr_t base, phys_addr_t size)
+ {
+ 	return lmb_add_region(&lmb.memory, base, size);
+ 
+ }
+ 
+-static long __lmb_remove(struct lmb_type *type, phys_addr_t base, phys_addr_t size)
++static long __init_lmb __lmb_remove(struct lmb_type *type, phys_addr_t base, phys_addr_t size)
+ {
+ 	phys_addr_t rgnbegin, rgnend;
+ 	phys_addr_t end = base + size;
+@@ -396,7 +396,7 @@ static long __lmb_remove(struct lmb_type *type, phys_addr_t base, phys_addr_t si
+ 	return lmb_add_region(type, end, rgnend - end);
+ }
+ 
+-long lmb_remove(phys_addr_t base, phys_addr_t size)
++long __init_lmb lmb_remove(phys_addr_t base, phys_addr_t size)
+ {
+ 	return __lmb_remove(&lmb.memory, base, size);
+ }
+@@ -553,7 +553,7 @@ phys_addr_t __init lmb_phys_mem_size(void)
+ 	return lmb.memory_size;
+ }
+ 
+-phys_addr_t lmb_end_of_DRAM(void)
++phys_addr_t __init_lmb lmb_end_of_DRAM(void)
+ {
+ 	int idx = lmb.memory.cnt - 1;
+ 
+@@ -614,7 +614,7 @@ int __init lmb_is_reserved(phys_addr_t addr)
+ 	return 0;
+ }
+ 
+-int lmb_is_region_reserved(phys_addr_t base, phys_addr_t size)
++int __init_lmb lmb_is_region_reserved(phys_addr_t base, phys_addr_t size)
+ {
+ 	return lmb_overlaps_region(&lmb.reserved, base, size);
+ }
+@@ -625,7 +625,7 @@ void __init lmb_set_current_limit(phys_addr_t limit)
+ 	lmb.current_limit = limit;
+ }
+ 
+-static void lmb_dump(struct lmb_type *region, char *name)
++static void __init_lmb lmb_dump(struct lmb_type *region, char *name)
+ {
+ 	unsigned long long base, size;
+ 	int i;
+@@ -641,7 +641,7 @@ static void lmb_dump(struct lmb_type *region, char *name)
+ 	}
+ }
+ 
+-void lmb_dump_all(void)
++void __init_lmb lmb_dump_all(void)
+ {
+ 	if (!lmb_debug)
+ 		return;
+@@ -707,7 +707,7 @@ static int __init early_lmb(char *p)
+ }
+ early_param("lmb", early_lmb);
+ 
+-#ifdef CONFIG_DEBUG_FS
++#if defined(CONFIG_DEBUG_FS) && !defined(ARCH_DISCARD_LMB)
+ 
+ static int lmb_debug_show(struct seq_file *m, void *private)
+ {
 -- 
 1.6.4.2
 
