@@ -1,94 +1,41 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: [PATCH -v2] Move list types from <linux/list.h> to <linux/types.h>.
-Date: Fri, 2 Jul 2010 13:41:14 -0400
-Message-ID: <201007041242.o64CggfV012188@farm-0002.internal.tilera.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, Christoph Hellwig <hch@infradead.org>, Alexey Dobriyan <adobriyan@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-List-Id: linux-arch.vger.kernel.org
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [PATCH -v2] Move list types from <linux/list.h> to
+	<linux/types.h>.
+Date: Sun, 4 Jul 2010 10:56:38 -0600
+Message-ID: <20100704165638.GE5842@parisc-linux.org>
+References: <201007041242.o64CggfV012188@farm-0002.internal.tilera.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from palinux.external.hp.com ([192.25.206.14]:33881 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757851Ab0GDQ4k (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Jul 2010 12:56:40 -0400
+Content-Disposition: inline
+In-Reply-To: <201007041242.o64CggfV012188@farm-0002.internal.tilera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Alexey Dobriyan <adobriyan@gmail.com>, Arnd Bergmann <arnd@arndb.de>
 
-This allows a list_head (or hlist_head, etc.) to be used from places
-that used to be impractical, in particular <asm/processor.h>, which
-used to cause include file recursion: <linux/list.h> includes
-<linux/prefetch.h>, which always includes <asm/processor.h> for the
-prefetch macros, as well as <asm/system.h>, which often includes
-<asm/processor.h> directly or indirectly.
+On Fri, Jul 02, 2010 at 01:41:14PM -0400, Chris Metcalf wrote:
+> This allows a list_head (or hlist_head, etc.) to be used from places
+> that used to be impractical, in particular <asm/processor.h>, which
+> used to cause include file recursion: <linux/list.h> includes
+> <linux/prefetch.h>, which always includes <asm/processor.h> for the
+> prefetch macros, as well as <asm/system.h>, which often includes
+> <asm/processor.h> directly or indirectly.
+> 
+> This avoids a lot of painful workaround hackery on the tile
+> architecture, where we use a list_head in the thread_struct to chain
+> together tasks that are activated on a particular hardwall.
+> 
+> Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
 
-This avoids a lot of painful workaround hackery on the tile
-architecture, where we use a list_head in the thread_struct to chain
-together tasks that are activated on a particular hardwall.
+Reviewed-by: Matthew Wilcox <willy@linux.intel.com>
 
-Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
----
-
-Folks on the Cc: list who commented on the -v1 patch, let me know
-if I can add your Acked-by to this patch.  Thanks.
-
- include/linux/list.h  |   13 +------------
- include/linux/types.h |   12 ++++++++++++
- 2 files changed, 13 insertions(+), 12 deletions(-)
-
-diff --git a/include/linux/list.h b/include/linux/list.h
-index 8392884..bc43e8a 100644
---- a/include/linux/list.h
-+++ b/include/linux/list.h
-@@ -1,6 +1,7 @@
- #ifndef _LINUX_LIST_H
- #define _LINUX_LIST_H
- 
-+#include <linux/types.h>
- #include <linux/stddef.h>
- #include <linux/poison.h>
- #include <linux/prefetch.h>
-@@ -16,10 +17,6 @@
-  * using the generic single-entry routines.
-  */
- 
--struct list_head {
--	struct list_head *next, *prev;
--};
--
- #define LIST_HEAD_INIT(name) { &(name), &(name) }
- 
- #define LIST_HEAD(name) \
-@@ -551,14 +548,6 @@ static inline void list_splice_tail_init(struct list_head *list,
-  * You lose the ability to access the tail in O(1).
-  */
- 
--struct hlist_head {
--	struct hlist_node *first;
--};
--
--struct hlist_node {
--	struct hlist_node *next, **pprev;
--};
--
- #define HLIST_HEAD_INIT { .first = NULL }
- #define HLIST_HEAD(name) struct hlist_head name = {  .first = NULL }
- #define INIT_HLIST_HEAD(ptr) ((ptr)->first = NULL)
-diff --git a/include/linux/types.h b/include/linux/types.h
-index 23d237a..336cc39 100644
---- a/include/linux/types.h
-+++ b/include/linux/types.h
-@@ -197,6 +197,18 @@ typedef struct {
- } atomic64_t;
- #endif
- 
-+struct list_head {
-+	struct list_head *next, *prev;
-+};
-+
-+struct hlist_head {
-+	struct hlist_node *first;
-+};
-+
-+struct hlist_node {
-+	struct hlist_node *next, **pprev;
-+};
-+
- struct ustat {
- 	__kernel_daddr_t	f_tfree;
- 	__kernel_ino_t		f_tinode;
 -- 
-1.6.5.2
+Matthew Wilcox				Intel Open Source Technology Centre
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
