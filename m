@@ -1,118 +1,74 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 13/23] x86, lmb: Add lmb_x86_register_active_regions() and lmb_x86_hole_size()
-Date: Sat,  3 Jul 2010 23:56:17 -0700
-Message-ID: <1278226587-31213-14-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 11/23] x86,lmb: Add lmb_x86_reserve_range/lmb_x86_free_range
+Date: Sat,  3 Jul 2010 23:56:15 -0700
+Message-ID: <1278226587-31213-12-git-send-email-yinghai@kernel.org>
 References: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:64029 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756917Ab0GDHB7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Jul 2010 03:01:59 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-lmb_x86_register_active_regions() will be used to fill early_node_map,
-the result will be lmb.memory.region AND numa data
+they are wrappers for core versions.
+they are taking start/end/name instead of base/size.
+will make x86 conversion more easy
 
-lmb_x86_hole_size will be used to find hole size on lmb.memory.region
-with specified range.
+could add more debug print out
+
+-v2: change get_max_mapped() to lmb.default_alloc_limit according to Michael
+      Ellerman and Ben
+     change to lmb_x86_reserve_range and lmb_x86_free_range according to Michael Ellerman
+-v3: call check_and_double after reserve/free, so could avoid to use
+      find_lmb_area. Suggested by Michael Ellerman
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/lmb.h |    4 ++
- arch/x86/mm/lmb.c          |   67 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 71 insertions(+), 0 deletions(-)
+ arch/x86/include/asm/lmb.h |    3 +++
+ arch/x86/mm/lmb.c          |   22 ++++++++++++++++++++++
+ 2 files changed, 25 insertions(+), 0 deletions(-)
 
 diff --git a/arch/x86/include/asm/lmb.h b/arch/x86/include/asm/lmb.h
-index 3fb32f3..f7595fd 100644
+index 4a1b299..a6f14c6 100644
 --- a/arch/x86/include/asm/lmb.h
 +++ b/arch/x86/include/asm/lmb.h
-@@ -11,4 +11,8 @@ void lmb_x86_free_range(u64 start, u64 end);
- struct range;
- int get_free_all_memory_range(struct range **rangep, int nodeid);
+@@ -6,4 +6,7 @@
+ u64 lmb_x86_find_in_range_size(u64 start, u64 *sizep, u64 align);
+ void lmb_x86_to_bootmem(u64 start, u64 end);
  
-+void lmb_x86_register_active_regions(int nid, unsigned long start_pfn,
-+					 unsigned long last_pfn);
-+u64 lmb_x86_hole_size(u64 start, u64 end);
++void lmb_x86_reserve_range(u64 start, u64 end, char *name);
++void lmb_x86_free_range(u64 start, u64 end);
 +
  #endif
 diff --git a/arch/x86/mm/lmb.c b/arch/x86/mm/lmb.c
-index 5abcf00..d17e115 100644
+index 61b292f..a6c2662 100644
 --- a/arch/x86/mm/lmb.c
 +++ b/arch/x86/mm/lmb.c
-@@ -238,3 +238,70 @@ void __init lmb_x86_free_range(u64 start, u64 end)
- 
- 	lmb_free(start, end - start);
+@@ -116,3 +116,25 @@ void __init lmb_x86_to_bootmem(u64 start, u64 end)
+ 		lmb_reserve(__pa(lmb.reserved.regions), sizeof(struct lmb_region) * lmb.reserved.max);
  }
+ #endif
 +
-+/*
-+ * Finds an active region in the address range from start_pfn to last_pfn and
-+ * returns its range in ei_startpfn and ei_endpfn for the lmb entry.
-+ */
-+static int __init lmb_x86_find_active_region(const struct lmb_region *ei,
-+				  unsigned long start_pfn,
-+				  unsigned long last_pfn,
-+				  unsigned long *ei_startpfn,
-+				  unsigned long *ei_endpfn)
++void __init lmb_x86_reserve_range(u64 start, u64 end, char *name)
 +{
-+	u64 align = PAGE_SIZE;
++	if (start == end)
++		return;
 +
-+	*ei_startpfn = round_up(ei->base, align) >> PAGE_SHIFT;
-+	*ei_endpfn = round_down(ei->base + ei->size, align) >> PAGE_SHIFT;
++	if (WARN_ONCE(start > end, "lmb_x86_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
++		return;
 +
-+	/* Skip map entries smaller than a page */
-+	if (*ei_startpfn >= *ei_endpfn)
-+		return 0;
-+
-+	/* Skip if map is outside the node */
-+	if (*ei_endpfn <= start_pfn || *ei_startpfn >= last_pfn)
-+		return 0;
-+
-+	/* Check for overlaps */
-+	if (*ei_startpfn < start_pfn)
-+		*ei_startpfn = start_pfn;
-+	if (*ei_endpfn > last_pfn)
-+		*ei_endpfn = last_pfn;
-+
-+	return 1;
++	lmb_reserve(start, end - start);
 +}
 +
-+/* Walk the lmb.memory map and register active regions within a node */
-+void __init lmb_x86_register_active_regions(int nid, unsigned long start_pfn,
-+					 unsigned long last_pfn)
++void __init lmb_x86_free_range(u64 start, u64 end)
 +{
-+	unsigned long ei_startpfn;
-+	unsigned long ei_endpfn;
-+	struct lmb_region *r;
++	if (start == end)
++		return;
 +
-+	for_each_lmb(memory, r)
-+		if (lmb_x86_find_active_region(r, start_pfn, last_pfn,
-+					   &ei_startpfn, &ei_endpfn))
-+			add_active_range(nid, ei_startpfn, ei_endpfn);
++	if (WARN_ONCE(start > end, "lmb_x86_free_range: wrong range [%#llx, %#llx]\n", start, end))
++		return;
++
++	lmb_free(start, end - start);
 +}
-+
-+/*
-+ * Find the hole size (in bytes) in the memory range.
-+ * @start: starting address of the memory range to scan
-+ * @end: ending address of the memory range to scan
-+ */
-+u64 __init lmb_x86_hole_size(u64 start, u64 end)
-+{
-+	unsigned long start_pfn = start >> PAGE_SHIFT;
-+	unsigned long last_pfn = end >> PAGE_SHIFT;
-+	unsigned long ei_startpfn, ei_endpfn, ram = 0;
-+	struct lmb_region *r;
-+
-+	for_each_lmb(memory, r)
-+		if (lmb_x86_find_active_region(r, start_pfn, last_pfn,
-+					   &ei_startpfn, &ei_endpfn))
-+			ram += ei_endpfn - ei_startpfn;
-+
-+	return end - start - ((u64)ram << PAGE_SHIFT);
-+}
-+
 -- 
 1.6.4.2
