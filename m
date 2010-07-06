@@ -1,13 +1,13 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 16/49] memblock: Define MEMBLOCK_ERROR internally instead of using ~(phys_addr_t)0
-Date: Tue,  6 Jul 2010 15:39:09 -0700
-Message-ID: <1278455982-24621-17-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 25/49] memblock: Make memblock_alloc_try_nid() fallback to MEMBLOCK_ALLOC_ANYWHERE
+Date: Tue,  6 Jul 2010 15:39:18 -0700
+Message-ID: <1278455982-24621-26-git-send-email-yinghai@kernel.org>
 References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:31489 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:31511 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756330Ab0GFWnS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:43:18 -0400
+	with ESMTP id S1756330Ab0GFWnW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:43:22 -0400
 In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -16,67 +16,36 @@ Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpx
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
+memblock_alloc_nid() used to fallback to allocating anywhere by using
+memblock_alloc() as a fallback.
+
+However, some of my previous patches limit memblock_alloc() to the region
+covered by MEMBLOCK_ALLOC_ACCESSIBLE which is not quite what we want
+for memblock_alloc_try_nid().
+
+So we fix it by explicitely using MEMBLOCK_ALLOC_ANYWHERE.
+
+Not that so far only sparc uses memblock_alloc_nid() and it hasn't been updated
+to clamp the accessible zone yet. Thus the temporary "breakage" should have
+no effect.
+
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- mm/memblock.c |   12 +++++++-----
- 1 files changed, 7 insertions(+), 5 deletions(-)
+ mm/memblock.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/mm/memblock.c b/mm/memblock.c
-index 6577da6..079d0de 100644
+index 4e3e9ff..00f62a2 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -22,6 +22,8 @@ static int memblock_debug;
- static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
- static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+@@ -537,7 +537,7 @@ phys_addr_t __init memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align, i
  
-+#define MEMBLOCK_ERROR	(~(phys_addr_t)0)
-+
- static int __init early_memblock(char *p)
- {
- 	if (p && strstr(p, "debug"))
-@@ -326,7 +328,7 @@ static phys_addr_t __init memblock_find_region(phys_addr_t start, phys_addr_t en
- 		base = memblock_align_down(res_base - size, align);
- 	}
- 
--	return ~(phys_addr_t)0;
-+	return MEMBLOCK_ERROR;
+ 	if (res)
+ 		return res;
+-	return memblock_alloc(size, align);
++	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ANYWHERE);
  }
  
- phys_addr_t __weak __init memblock_nid_range(phys_addr_t start, phys_addr_t end, int *nid)
-@@ -353,14 +355,14 @@ static phys_addr_t __init memblock_alloc_nid_region(struct memblock_region *mp,
- 		this_end = memblock_nid_range(start, end, &this_nid);
- 		if (this_nid == nid) {
- 			phys_addr_t ret = memblock_find_region(start, this_end, size, align);
--			if (ret != ~(phys_addr_t)0 &&
-+			if (ret != MEMBLOCK_ERROR &&
- 			    memblock_add_region(&memblock.reserved, start, size) >= 0)
- 				return ret;
- 		}
- 		start = this_end;
- 	}
  
--	return ~(phys_addr_t)0;
-+	return MEMBLOCK_ERROR;
- }
- 
- phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int nid)
-@@ -379,7 +381,7 @@ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int n
- 	for (i = 0; i < mem->cnt; i++) {
- 		phys_addr_t ret = memblock_alloc_nid_region(&mem->regions[i],
- 					       size, align, nid);
--		if (ret != ~(phys_addr_t)0)
-+		if (ret != MEMBLOCK_ERROR)
- 			return ret;
- 	}
- 
-@@ -430,7 +432,7 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
- 			continue;
- 		base = min(memblockbase + memblocksize, max_addr);
- 		res_base = memblock_find_region(memblockbase, base, size, align);
--		if (res_base != ~(phys_addr_t)0 &&
-+		if (res_base != MEMBLOCK_ERROR &&
- 		    memblock_add_region(&memblock.reserved, res_base, size) >= 0)
- 			return res_base;
- 	}
 -- 
 1.6.4.2
