@@ -1,90 +1,61 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 44/49] x86, memblock: Use memblock_debug to control debug message print out
-Date: Tue,  6 Jul 2010 15:39:37 -0700
-Message-ID: <1278455982-24621-45-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 07/49] memblock: Expose MEMBLOCK_ALLOC_ANYWHERE
+Date: Tue,  6 Jul 2010 15:39:00 -0700
+Message-ID: <1278455982-24621-8-git-send-email-yinghai@kernel.org>
 References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 List-Id: linux-arch.vger.kernel.org
 
-Also let memblock_x86_reserve_range/memblock_x86_free_range could print out name if memblock=debug is
-specified
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-will also print ther name when reserve_memblock_area/free_memblock_area are called.
-
--v2: according to Ingo, put " if (memblock_debug) " in one place
-
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/x86/mm/memblock.c |   20 ++++++++++++--------
- 1 files changed, 12 insertions(+), 8 deletions(-)
+ arch/powerpc/mm/hash_utils_64.c |    2 +-
+ include/linux/memblock.h        |    1 +
+ mm/memblock.c                   |    2 --
+ 3 files changed, 2 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-index b10258d..166d5bf 100644
---- a/arch/x86/mm/memblock.c
-+++ b/arch/x86/mm/memblock.c
-@@ -122,10 +122,10 @@ static void __init memblock_x86_subtract_reserved(struct range *range, int az)
+diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
+index 2b0a807..c630b4f 100644
+--- a/arch/powerpc/mm/hash_utils_64.c
++++ b/arch/powerpc/mm/hash_utils_64.c
+@@ -625,7 +625,7 @@ static void __init htab_initialize(void)
+ 		if (machine_is(cell))
+ 			limit = 0x80000000;
+ 		else
+-			limit = 0;
++			limit = MEMBLOCK_ALLOC_ANYWHERE;
  
- 	count  = memblock.reserved.cnt;
+ 		table = memblock_alloc_base(htab_size_bytes, htab_size_bytes, limit);
  
--	pr_info("Subtract (%d early reservations)\n", count);
-+	memblock_dbg("Subtract (%d early reservations)\n", count);
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index 3e4a52f..5853752 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -50,6 +50,7 @@ extern u64 __init memblock_alloc_nid(u64 size, u64 align, int nid);
+ extern u64 __init memblock_alloc(u64 size, u64 align);
+ extern u64 __init memblock_alloc_base(u64 size,
+ 		u64, u64 max_addr);
++#define MEMBLOCK_ALLOC_ANYWHERE	0
+ extern u64 __init __memblock_alloc_base(u64 size,
+ 		u64 align, u64 max_addr);
+ extern u64 __init memblock_phys_mem_size(void);
+diff --git a/mm/memblock.c b/mm/memblock.c
+index 9b71de0..0ad7626 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -15,8 +15,6 @@
+ #include <linux/bitops.h>
+ #include <linux/memblock.h>
  
- 	for_each_memblock(reserved, r) {
--		pr_info("  [%010llx - %010llx]\n", (u64)r->base, (u64)r->base + r->size);
-+		memblock_dbg("  [%#010llx - %#010llx]\n", (u64)r->base, (u64)r->base + r->size);
- 		final_start = PFN_DOWN(r->base);
- 		final_end = PFN_UP(r->base + r->size);
- 		if (final_start >= final_end)
-@@ -198,16 +198,16 @@ void __init memblock_x86_to_bootmem(u64 start, u64 end)
- 		memblock_free(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
+-#define MEMBLOCK_ALLOC_ANYWHERE	0
+-
+ struct memblock memblock;
  
- 	count  = memblock.reserved.cnt;
--	pr_info("(%d early reservations) ==> bootmem [%010llx - %010llx]\n", count, start, end);
-+	memblock_dbg("(%d early reservations) ==> bootmem [%#010llx - %#010llx]\n", count, start, end);
- 	for_each_memblock(reserved, r) {
--		pr_info("  [%010llx - %010llx] ", (u64)r->base, (u64)r->base + r->size);
-+		memblock_dbg("  [%#010llx - %#010llx] ", (u64)r->base, (u64)r->base + r->size);
- 		final_start = max(start, r->base);
- 		final_end = min(end, r->base + r->size);
- 		if (final_start >= final_end) {
--			pr_cont("\n");
-+			memblock_dbg("\n");
- 			continue;
- 		}
--		pr_cont(" ==> [%010llx - %010llx]\n", final_start, final_end);
-+		memblock_dbg(" ==> [%#010llx - %#010llx]\n", final_start, final_end);
- 		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
- 	}
- 
-@@ -286,9 +286,11 @@ void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
- 	if (start == end)
- 		return;
- 
--	if (WARN_ONCE(start > end, "memblock_x86_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
-+	if (WARN_ONCE(start > end, "memblock_x86_reserve_range: wrong range [%#llx, %#llx)\n", start, end))
- 		return;
- 
-+	memblock_dbg("    memblock_x86_reserve_range: [%#010llx - %#010llx] %16s\n", start, end, name);
-+
- 	memblock_reserve(start, end - start);
- }
- 
-@@ -297,9 +299,11 @@ void __init memblock_x86_free_range(u64 start, u64 end)
- 	if (start == end)
- 		return;
- 
--	if (WARN_ONCE(start > end, "memblock_x86_free_range: wrong range [%#llx, %#llx]\n", start, end))
-+	if (WARN_ONCE(start > end, "memblock_x86_free_range: wrong range [%#llx, %#llx)\n", start, end))
- 		return;
- 
-+	memblock_dbg("       memblock_x86_free_range: [%#010llx - %#010llx]\n", start, end);
-+
- 	memblock_free(start, end - start);
- }
- 
+ static int memblock_debug;
 -- 
 1.6.4.2
