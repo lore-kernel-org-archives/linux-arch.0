@@ -1,67 +1,98 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 33/49] memblock: Add memblock_find_in_range()
-Date: Tue,  6 Jul 2010 15:39:26 -0700
-Message-ID: <1278455982-24621-34-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 22/49] memblock: Add "start" argument to memblock_find_base()
+Date: Tue,  6 Jul 2010 15:39:15 -0700
+Message-ID: <1278455982-24621-23-git-send-email-yinghai@kernel.org>
 References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:32490 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757351Ab0GFWo2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:44:28 -0400
 In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-it is a wrapper for memblock_find_base
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-make it more easy for x86 to use memblock. ( rebase )
-x86 early_res is using find/reserve pattern instead of alloc.
+To constraint the search of a region between two boundaries,
+which will be used by the new NUMA aware allocator among others.
 
-keep it in weak version, so later We can use x86 own version if needed.
-also We need it in mm/memblock.c, so one caller mm/page_alloc.c could get compiled
-
--v2: Change name to memblock_find_in_range() according to Michael Ellerman
--v3: Add generic weak version __memblock_find_in_range()
-     so keep the path for fallback to x86 version that handle from low
--v4: use 0 for failing path
--v5: use MEMBLOCK_ERROR again
--v6: remove __memblock_find_in_range()
-
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- include/linux/memblock.h |    2 ++
- mm/memblock.c            |    8 ++++++++
- 2 files changed, 10 insertions(+), 0 deletions(-)
+ mm/memblock.c |   27 ++++++++++++++++-----------
+ 1 files changed, 16 insertions(+), 11 deletions(-)
 
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index 9f544cd..7162b2f 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -48,6 +48,8 @@ extern struct memblock_region memblock_reserved_init_regions[];
- #define memblock_dbg(fmt, ...) \
- 	if (memblock_debug) printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
- 
-+u64 memblock_find_in_range(u64 start, u64 end, u64 size, u64 align);
-+
- extern void __init memblock_init(void);
- extern void __init memblock_analyze(void);
- extern long memblock_add(phys_addr_t base, phys_addr_t size);
 diff --git a/mm/memblock.c b/mm/memblock.c
-index 81eaf90..58b646f 100644
+index 8659e00..bb382f2 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -156,6 +156,14 @@ static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align
+@@ -117,19 +117,18 @@ static phys_addr_t __init memblock_find_region(phys_addr_t start, phys_addr_t en
  	return MEMBLOCK_ERROR;
  }
  
-+/*
-+ * Find a free area with specified alignment in a specific range.
-+ */
-+u64 __init __weak memblock_find_in_range(u64 start, u64 end, u64 size, u64 align)
-+{
-+	return memblock_find_base(size, align, start, end);
-+}
-+
- static void __init_memblock memblock_remove_region(struct memblock_type *type, unsigned long r)
+-static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align,
++					phys_addr_t start, phys_addr_t end)
  {
- 	unsigned long i;
+ 	long i;
+-	phys_addr_t base = 0;
+-	phys_addr_t res_base;
+ 
+ 	BUG_ON(0 == size);
+ 
+ 	size = memblock_align_up(size, align);
+ 
+ 	/* Pump up max_addr */
+-	if (max_addr == MEMBLOCK_ALLOC_ACCESSIBLE)
+-		max_addr = memblock.current_limit;
++	if (end == MEMBLOCK_ALLOC_ACCESSIBLE)
++		end = memblock.current_limit;
+ 
+ 	/* We do a top-down search, this tends to limit memory
+ 	 * fragmentation by keeping early boot allocs near the
+@@ -138,13 +137,19 @@ static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align
+ 	for (i = memblock.memory.cnt - 1; i >= 0; i--) {
+ 		phys_addr_t memblockbase = memblock.memory.regions[i].base;
+ 		phys_addr_t memblocksize = memblock.memory.regions[i].size;
++		phys_addr_t bottom, top, found;
+ 
+ 		if (memblocksize < size)
+ 			continue;
+-		base = min(memblockbase + memblocksize, max_addr);
+-		res_base = memblock_find_region(memblockbase, base, size, align);
+-		if (res_base != MEMBLOCK_ERROR)
+-			return res_base;
++		if ((memblockbase + memblocksize) <= start)
++			break;
++		bottom = max(memblockbase, start);
++		top = min(memblockbase + memblocksize, end);
++		if (bottom >= top)
++			continue;
++		found = memblock_find_region(bottom, top, size, align);
++		if (found != MEMBLOCK_ERROR)
++			return found;
+ 	}
+ 	return 0;
+ }
+@@ -204,7 +209,7 @@ static int memblock_double_array(struct memblock_type *type)
+ 		new_array = kmalloc(new_size, GFP_KERNEL);
+ 		addr = new_array == NULL ? MEMBLOCK_ERROR : __pa(new_array);
+ 	} else
+-		addr = memblock_find_base(new_size, sizeof(phys_addr_t), MEMBLOCK_ALLOC_ACCESSIBLE);
++		addr = memblock_find_base(new_size, sizeof(phys_addr_t), 0, MEMBLOCK_ALLOC_ACCESSIBLE);
+ 	if (addr == MEMBLOCK_ERROR) {
+ 		pr_err("memblock: Failed to double %s array from %ld to %ld entries !\n",
+ 		       memblock_type_name(type), type->max, type->max * 2);
+@@ -409,7 +414,7 @@ long __init memblock_reserve(phys_addr_t base, phys_addr_t size)
+ 
+ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+ {
+-	phys_addr_t found = memblock_find_base(size, align, max_addr);
++	phys_addr_t found = memblock_find_base(size, align, 0, max_addr);
+ 
+ 	if (found != MEMBLOCK_ERROR &&
+ 	    memblock_add_region(&memblock.reserved, found, size) >= 0)
 -- 
 1.6.4.2
