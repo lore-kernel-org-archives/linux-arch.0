@@ -1,95 +1,113 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:31538 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:31533 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756731Ab0GFWn1 (ORCPT
+	with ESMTP id S1756718Ab0GFWn1 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:43:27 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 18/49] memblock: split memblock_find_base() out of __memblock_alloc_base()
-Date: Tue,  6 Jul 2010 15:39:11 -0700
-Message-ID: <1278455982-24621-19-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 35/49] bootmem, x86: Add weak version of reserve_bootmem_generic
+Date: Tue,  6 Jul 2010 15:39:28 -0700
+Message-ID: <1278455982-24621-36-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100706223911.lAduMcQdq3QKldWnXbWrna0MMbwHuTgKtKFZRUKxqjE@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20100706223928.4lu2cChrUIWyhLGRjFZLRJnILQ4zMh4OFHopdetvNOA@z>
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+It will be used memblock_x86_to_bootmem converting
 
-This will be used by the array resize code and might prove useful
-to some arch code as well at which point it can be made non-static.
+It is an wrapper for reserve_bootmem, and x86 64bit is using special one.
 
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Also clean up that version for x86_64. We don't need to take care of numa
+path for that, bootmem can handle it how
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- mm/memblock.c |   43 +++++++++++++++++++++++++++----------------
- 1 files changed, 27 insertions(+), 16 deletions(-)
+ arch/x86/mm/init_32.c |    6 ------
+ arch/x86/mm/init_64.c |   20 ++------------------
+ mm/bootmem.c          |    6 ++++++
+ 3 files changed, 8 insertions(+), 24 deletions(-)
 
-diff --git a/mm/memblock.c b/mm/memblock.c
-index c1dd9df..4318b52 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -366,20 +366,7 @@ phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align)
- 	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ACCESSIBLE);
+diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+index bca7909..90e0545 100644
+--- a/arch/x86/mm/init_32.c
++++ b/arch/x86/mm/init_32.c
+@@ -1069,9 +1069,3 @@ void mark_rodata_ro(void)
+ #endif
  }
- 
--phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+ #endif
+-
+-int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+-				   int flags)
 -{
--	phys_addr_t alloc;
--
--	alloc = __memblock_alloc_base(size, align, max_addr);
--
--	if (alloc == 0)
--		panic("ERROR: Failed to allocate 0x%llx bytes below 0x%llx.\n",
--		      (unsigned long long) size, (unsigned long long) max_addr);
--
--	return alloc;
+-	return reserve_bootmem(phys, len, flags);
 -}
--
--phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
-+static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index ee41bba..634fa08 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -799,13 +799,10 @@ void mark_rodata_ro(void)
+ 
+ #endif
+ 
++#ifndef CONFIG_NO_BOOTMEM
+ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 				   int flags)
  {
- 	long i;
- 	phys_addr_t base = 0;
-@@ -405,13 +392,37 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
- 			continue;
- 		base = min(memblockbase + memblocksize, max_addr);
- 		res_base = memblock_find_region(memblockbase, base, size, align);
--		if (res_base != MEMBLOCK_ERROR &&
--		    memblock_add_region(&memblock.reserved, res_base, size) >= 0)
-+		if (res_base != MEMBLOCK_ERROR)
- 			return res_base;
+-#ifdef CONFIG_NUMA
+-	int nid, next_nid;
+-	int ret;
+-#endif
+ 	unsigned long pfn = phys >> PAGE_SHIFT;
+ 
+ 	if (pfn >= max_pfn) {
+@@ -821,21 +818,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 		return -EFAULT;
  	}
+ 
+-	/* Should check here against the e820 map to avoid double free */
+-#ifdef CONFIG_NUMA
+-	nid = phys_to_nid(phys);
+-	next_nid = phys_to_nid(phys + len - 1);
+-	if (nid == next_nid)
+-		ret = reserve_bootmem_node(NODE_DATA(nid), phys, len, flags);
+-	else
+-		ret = reserve_bootmem(phys, len, flags);
+-
+-	if (ret != 0)
+-		return ret;
+-
+-#else
+ 	reserve_bootmem(phys, len, flags);
+-#endif
+ 
+ 	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
+ 		dma_reserve += len / PAGE_SIZE;
+@@ -844,6 +827,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 
  	return 0;
  }
++#endif
  
-+phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+ int kern_addr_valid(unsigned long addr)
+ {
+diff --git a/mm/bootmem.c b/mm/bootmem.c
+index 58c66cc..ee31b95 100644
+--- a/mm/bootmem.c
++++ b/mm/bootmem.c
+@@ -526,6 +526,12 @@ int __init reserve_bootmem(unsigned long addr, unsigned long size,
+ }
+ 
+ #ifndef CONFIG_NO_BOOTMEM
++int __weak __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
++				   int flags)
 +{
-+	phys_addr_t found = memblock_find_base(size, align, max_addr);
-+
-+	if (found != MEMBLOCK_ERROR &&
-+	    memblock_add_region(&memblock.reserved, found, size) >= 0)
-+		return found;
-+
-+	return 0;
++	return reserve_bootmem(phys, len, flags);
 +}
 +
-+phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
-+{
-+	phys_addr_t alloc;
-+
-+	alloc = __memblock_alloc_base(size, align, max_addr);
-+
-+	if (alloc == 0)
-+		panic("ERROR: Failed to allocate 0x%llx bytes below 0x%llx.\n",
-+		      (unsigned long long) size, (unsigned long long) max_addr);
-+
-+	return alloc;
-+}
-+
-+
- /* You must call memblock_analyze() before this. */
- phys_addr_t __init memblock_phys_mem_size(void)
+ static unsigned long __init align_idx(struct bootmem_data *bdata,
+ 				      unsigned long idx, unsigned long step)
  {
 -- 
 1.6.4.2
