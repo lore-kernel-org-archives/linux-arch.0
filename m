@@ -1,87 +1,107 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 13/49] memblock: Move memblock arrays to static storage in memblock.c and make their size a variable
-Date: Tue,  6 Jul 2010 15:39:06 -0700
-Message-ID: <1278455982-24621-14-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 48/49] x86, memblock: Use memblock_memory_size()/memblock_free_memory_size() to get correct dma_reserve
+Date: Tue,  6 Jul 2010 15:39:41 -0700
+Message-ID: <1278455982-24621-49-git-send-email-yinghai@kernel.org>
 References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+memblock_memory_size() will return memory size in memblock.memory.region.
+memblock_free_memory_size() will return free memory size in memblock.memory.region.
 
-This is in preparation for having resizable arrays.
+So We can get exact reseved size in specified range.
 
-Note that we still allocate one more than needed, this is unchanged from
-the previous implementation.
+Set the size right after initmem_init(), because later bootmem API will
+get area above 16M. (except some fallback).
 
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Later after we remove the bootmem, We could call that just before paging_init().
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/memblock.h |    7 ++++---
- mm/memblock.c            |   10 +++++++++-
- 2 files changed, 13 insertions(+), 4 deletions(-)
+ arch/x86/include/asm/e820.h |    2 ++
+ arch/x86/kernel/e820.c      |   17 +++++++++++++++++
+ arch/x86/kernel/setup.c     |    1 +
+ arch/x86/mm/init_64.c       |    7 -------
+ 4 files changed, 20 insertions(+), 7 deletions(-)
 
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index e849d31..b839053 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -18,7 +18,7 @@
+diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
+index 7186463..5be1542 100644
+--- a/arch/x86/include/asm/e820.h
++++ b/arch/x86/include/asm/e820.h
+@@ -117,6 +117,8 @@ extern unsigned long e820_end_of_low_ram_pfn(void);
+ extern u64 early_reserve_e820(u64 startt, u64 sizet, u64 align);
  
- #include <asm/memblock.h>
- 
--#define MAX_MEMBLOCK_REGIONS 128
-+#define INIT_MEMBLOCK_REGIONS 128
- 
- struct memblock_region {
- 	phys_addr_t base;
-@@ -26,8 +26,9 @@ struct memblock_region {
- };
- 
- struct memblock_type {
--	unsigned long cnt;
--	struct memblock_region regions[MAX_MEMBLOCK_REGIONS+1];
-+	unsigned long cnt;	/* number of regions */
-+	unsigned long max;	/* size of the allocated array */
-+	struct memblock_region *regions;
- };
- 
- struct memblock {
-diff --git a/mm/memblock.c b/mm/memblock.c
-index 78c2394..e1c5ce3 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -18,6 +18,8 @@
- struct memblock memblock;
- 
- static int memblock_debug;
-+static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
-+static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
- 
- static int __init early_memblock(char *p)
- {
-@@ -104,6 +106,12 @@ static void memblock_coalesce_regions(struct memblock_type *type,
- 
- void __init memblock_init(void)
- {
-+	/* Hookup the initial arrays */
-+	memblock.memory.regions	= memblock_memory_init_regions;
-+	memblock.memory.max		= INIT_MEMBLOCK_REGIONS;
-+	memblock.reserved.regions	= memblock_reserved_init_regions;
-+	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
+ void memblock_x86_fill(void);
++void memblock_find_dma_reserve(void);
 +
- 	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
- 	 * This simplifies the memblock_add() code below...
- 	 */
-@@ -169,7 +177,7 @@ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, ph
+ extern void finish_e820_parsing(void);
+ extern void e820_reserve_resources(void);
+ extern void e820_reserve_resources_late(void);
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index d5fd894..f0db4c4 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -1105,3 +1105,20 @@ void __init memblock_x86_fill(void)
+ 	memblock_analyze();
+ 	memblock_dump_all();
+ }
++
++void __init memblock_find_dma_reserve(void)
++{
++#ifdef CONFIG_X86_64
++	u64 free_size_pfn;
++	u64 mem_size_pfn;
++	/*
++	 * need to find out used area below MAX_DMA_PFN
++	 * need to use memblock to get free size in [0, MAX_DMA_PFN]
++	 * at first, and assume boot_mem will not take below MAX_DMA_PFN
++	 */
++	mem_size_pfn = memblock_x86_memory_in_range(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
++	free_size_pfn = memblock_x86_free_memory_in_range(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
++	set_dma_reserve(mem_size_pfn - free_size_pfn);
++#endif
++}
++
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index cac2c4c..58d7ece 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -1019,6 +1019,7 @@ void __init setup_arch(char **cmdline_p)
+ #endif
  
- 	if (coalesced)
- 		return coalesced;
--	if (type->cnt >= MAX_MEMBLOCK_REGIONS)
-+	if (type->cnt >= type->max)
- 		return -1;
+ 	initmem_init(0, max_pfn, acpi, k8);
++	memblock_find_dma_reserve();
+ #ifndef CONFIG_NO_BOOTMEM
+ 	memblock_x86_to_bootmem(0, max_low_pfn<<PAGE_SHIFT);
+ #endif
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index 592b236..d6d4084 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -53,8 +53,6 @@
+ #include <asm/init.h>
+ #include <linux/bootmem.h>
  
- 	/* Couldn't coalesce the MEMBLOCK, so add it to the sorted table. */
+-static unsigned long dma_reserve __initdata;
+-
+ static int __init parse_direct_gbpages_off(char *arg)
+ {
+ 	direct_gbpages = 0;
+@@ -821,11 +819,6 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 
+ 	reserve_bootmem(phys, len, flags);
+ 
+-	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
+-		dma_reserve += len / PAGE_SIZE;
+-		set_dma_reserve(dma_reserve);
+-	}
+-
+ 	return 0;
+ }
+ #endif
 -- 
 1.6.4.2
