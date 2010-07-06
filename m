@@ -1,63 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:31602 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:31937 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756905Ab0GFWnc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:43:32 -0400
+	with ESMTP id S1757236Ab0GFWnx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:43:53 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 29/49] memblock: Print new doubled array location info
-Date: Tue,  6 Jul 2010 15:39:22 -0700
-Message-ID: <1278455982-24621-30-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 30/49] memblock: Export MEMBLOCK_ERROR again
+Date: Tue,  6 Jul 2010 15:39:23 -0700
+Message-ID: <1278455982-24621-31-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100706223922.4N1VpgJGouTWAON1O-W5-7qCAflJfSXQDkypGDlVz50@z>
+Message-ID: <20100706223923.8dv1nZR4Nakz7G6wuiYJLqHa-KMPDJ1l-aujC1likTo@z>
 
-so will have more idea where it is,  use memblock_debug to controll it
+will used by x86 memblock_x86_find_in_range_node and nobootmem replacement
 
--v2: use memblock_dbg instead of " if (memblock_debug) "
+-v2: use 0 instead -1ULL, Suggesed by Linus, so we don't need cast them later to unsigned long
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- mm/memblock.c |    9 +++++----
- 1 files changed, 5 insertions(+), 4 deletions(-)
+ include/linux/memblock.h |    1 +
+ mm/memblock.c            |    2 --
+ 2 files changed, 1 insertions(+), 2 deletions(-)
 
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index 70bc467..1df1fc7 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -19,6 +19,7 @@
+ #include <asm/memblock.h>
+ 
+ #define INIT_MEMBLOCK_REGIONS 128
++#define MEMBLOCK_ERROR	 0
+ 
+ struct memblock_region {
+ 	phys_addr_t base;
 diff --git a/mm/memblock.c b/mm/memblock.c
-index f1f85c3..74143d9 100644
+index 74143d9..0bc972c 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -192,8 +192,6 @@ static int memblock_double_array(struct memblock_type *type)
- 	if (!memblock_can_resize)
- 		return -1;
+@@ -27,8 +27,6 @@ int memblock_can_resize;
+ static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+ struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
  
--	pr_debug("memblock: %s array full, doubling...", memblock_type_name(type));
+-#define MEMBLOCK_ERROR	(~(phys_addr_t)0)
 -
- 	/* Calculate new doubled size */
- 	old_size = type->max * sizeof(struct memblock_region);
- 	new_size = old_size << 1;
-@@ -221,6 +219,9 @@ static int memblock_double_array(struct memblock_type *type)
- 	}
- 	new_array = __va(addr);
- 
-+	memblock_dbg("memblock: %s array is doubled to %ld at [%#010llx - %#010llx]",
-+		 memblock_type_name(type), type->max * 2, (u64)addr, (u64)addr + new_size);
-+
- 	/* Found space, we now need to move the array over before
- 	 * we add the reserved region since it may be our reserved
- 	 * array itself that is full.
-@@ -637,8 +638,8 @@ static void memblock_dump(struct memblock_type *region, char *name)
- 		base = region->regions[i].base;
- 		size = region->regions[i].size;
- 
--		pr_info(" %s[0x%x]\t0x%016llx - 0x%016llx, 0x%llx bytes\n",
--		    name, i, base, base + size - 1, size);
-+		pr_info(" %s[%#x]\t[%#016llx - %#016llx], %#llx bytes\n",
-+		    name, i, base, base + size, size);
- 	}
- }
- 
+ /* inline so we don't get a warning when pr_debug is compiled out */
+ static inline const char *memblock_type_name(struct memblock_type *type)
+ {
 -- 
 1.6.4.2
 
