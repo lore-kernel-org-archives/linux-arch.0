@@ -1,113 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:32131 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:32629 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757029Ab0GFWoG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:44:06 -0400
+	with ESMTP id S1756982Ab0GFWoe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:44:34 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 48/49] x86, memblock: Use memblock_memory_size()/memblock_free_memory_size() to get correct dma_reserve
-Date: Tue,  6 Jul 2010 15:39:41 -0700
-Message-ID: <1278455982-24621-49-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 21/49] memblock: Add arch function to control coalescing of memblock memory regions
+Date: Tue,  6 Jul 2010 15:39:14 -0700
+Message-ID: <1278455982-24621-22-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100706223941.EyhZHCXIydPpVlaJ_gicvsywnrLe_YHOp_ALTst_aDE@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20100706223914.0MOCM4DY-AY1PYbugrpdyngVX2_jAzk9-m0vGK69TcE@z>
 
-memblock_memory_size() will return memory size in memblock.memory.region.
-memblock_free_memory_size() will return free memory size in memblock.memory.region.
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-So We can get exact reseved size in specified range.
+Some archs such as ARM want to avoid coalescing accross things such
+as the lowmem/highmem boundary or similar. This provides the option
+to control it via an arch callback for which a weak default is provided
+which always allows coalescing.
 
-Set the size right after initmem_init(), because later bootmem API will
-get area above 16M. (except some fallback).
-
-Later after we remove the bootmem, We could call that just before paging_init().
-
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/x86/include/asm/e820.h |    2 ++
- arch/x86/kernel/e820.c      |   17 +++++++++++++++++
- arch/x86/kernel/setup.c     |    1 +
- arch/x86/mm/init_64.c       |    7 -------
- 4 files changed, 20 insertions(+), 7 deletions(-)
+ include/linux/memblock.h |    2 ++
+ mm/memblock.c            |   19 ++++++++++++++++++-
+ 2 files changed, 20 insertions(+), 1 deletions(-)
 
-diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
-index 7186463..5be1542 100644
---- a/arch/x86/include/asm/e820.h
-+++ b/arch/x86/include/asm/e820.h
-@@ -117,6 +117,8 @@ extern unsigned long e820_end_of_low_ram_pfn(void);
- extern u64 early_reserve_e820(u64 startt, u64 sizet, u64 align);
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index b839053..15da7d9 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -70,6 +70,8 @@ extern void memblock_dump_all(void);
  
- void memblock_x86_fill(void);
-+void memblock_find_dma_reserve(void);
-+
- extern void finish_e820_parsing(void);
- extern void e820_reserve_resources(void);
- extern void e820_reserve_resources_late(void);
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index d5fd894..f0db4c4 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -1105,3 +1105,20 @@ void __init memblock_x86_fill(void)
- 	memblock_analyze();
- 	memblock_dump_all();
- }
-+
-+void __init memblock_find_dma_reserve(void)
-+{
-+#ifdef CONFIG_X86_64
-+	u64 free_size_pfn;
-+	u64 mem_size_pfn;
-+	/*
-+	 * need to find out used area below MAX_DMA_PFN
-+	 * need to use memblock to get free size in [0, MAX_DMA_PFN]
-+	 * at first, and assume boot_mem will not take below MAX_DMA_PFN
-+	 */
-+	mem_size_pfn = memblock_x86_memory_in_range(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
-+	free_size_pfn = memblock_x86_free_memory_in_range(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
-+	set_dma_reserve(mem_size_pfn - free_size_pfn);
-+#endif
-+}
-+
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index cac2c4c..58d7ece 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -1019,6 +1019,7 @@ void __init setup_arch(char **cmdline_p)
- #endif
+ /* Provided by the architecture */
+ extern phys_addr_t memblock_nid_range(phys_addr_t start, phys_addr_t end, int *nid);
++extern int memblock_memory_can_coalesce(phys_addr_t addr1, phys_addr_t size1,
++				   phys_addr_t addr2, phys_addr_t size2);
  
- 	initmem_init(0, max_pfn, acpi, k8);
-+	memblock_find_dma_reserve();
- #ifndef CONFIG_NO_BOOTMEM
- 	memblock_x86_to_bootmem(0, max_low_pfn<<PAGE_SHIFT);
- #endif
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 592b236..d6d4084 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -53,8 +53,6 @@
- #include <asm/init.h>
- #include <linux/bootmem.h>
- 
--static unsigned long dma_reserve __initdata;
--
- static int __init parse_direct_gbpages_off(char *arg)
- {
- 	direct_gbpages = 0;
-@@ -821,11 +819,6 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 
- 	reserve_bootmem(phys, len, flags);
- 
--	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
--		dma_reserve += len / PAGE_SIZE;
--		set_dma_reserve(dma_reserve);
--	}
--
+ /**
+  * memblock_set_current_limit - Set the current allocation limit to allow
+diff --git a/mm/memblock.c b/mm/memblock.c
+index 82be663..8659e00 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -241,6 +241,12 @@ static int memblock_double_array(struct memblock_type *type)
  	return 0;
  }
- #endif
+ 
++extern int __weak memblock_memory_can_coalesce(phys_addr_t addr1, phys_addr_t size1,
++					  phys_addr_t addr2, phys_addr_t size2)
++{
++	return 1;
++}
++
+ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
+ {
+ 	unsigned long coalesced = 0;
+@@ -262,6 +268,10 @@ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, ph
+ 			return 0;
+ 
+ 		adjacent = memblock_addrs_adjacent(base, size, rgnbase, rgnsize);
++		/* Check if arch allows coalescing */
++		if (adjacent != 0 && type == &memblock.memory &&
++		    !memblock_memory_can_coalesce(base, size, rgnbase, rgnsize))
++			break;
+ 		if (adjacent > 0) {
+ 			type->regions[i].base -= size;
+ 			type->regions[i].size += size;
+@@ -274,7 +284,14 @@ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, ph
+ 		}
+ 	}
+ 
+-	if ((i < type->cnt - 1) && memblock_regions_adjacent(type, i, i+1)) {
++	/* If we plugged a hole, we may want to also coalesce with the
++	 * next region
++	 */
++	if ((i < type->cnt - 1) && memblock_regions_adjacent(type, i, i+1) &&
++	    ((type != &memblock.memory || memblock_memory_can_coalesce(type->regions[i].base,
++							     type->regions[i].size,
++							     type->regions[i+1].base,
++							     type->regions[i+1].size)))) {
+ 		memblock_coalesce_regions(type, i, i+1);
+ 		coalesced++;
+ 	}
 -- 
 1.6.4.2
 
