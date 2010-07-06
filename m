@@ -1,53 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:31511 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:31859 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756330Ab0GFWnW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:43:22 -0400
+	with ESMTP id S1757001Ab0GFWnu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:43:50 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 25/49] memblock: Make memblock_alloc_try_nid() fallback to MEMBLOCK_ALLOC_ANYWHERE
-Date: Tue,  6 Jul 2010 15:39:18 -0700
-Message-ID: <1278455982-24621-26-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 26/49] memblock: Add debugfs files to dump the arrays content
+Date: Tue,  6 Jul 2010 15:39:19 -0700
+Message-ID: <1278455982-24621-27-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100706223918.wvJLWHETNok77WbLN22I5KEllB3VpGoYpI1slObLB20@z>
+Message-ID: <20100706223919.kmzGY9A1ZGsQyFpefD5PiUnwR6QRh3DzU1JLXNYJlrM@z>
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-memblock_alloc_nid() used to fallback to allocating anywhere by using
-memblock_alloc() as a fallback.
-
-However, some of my previous patches limit memblock_alloc() to the region
-covered by MEMBLOCK_ALLOC_ACCESSIBLE which is not quite what we want
-for memblock_alloc_try_nid().
-
-So we fix it by explicitely using MEMBLOCK_ALLOC_ANYWHERE.
-
-Not that so far only sparc uses memblock_alloc_nid() and it hasn't been updated
-to clamp the accessible zone yet. Thus the temporary "breakage" should have
-no effect.
-
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- mm/memblock.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ mm/memblock.c |   51 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 51 insertions(+), 0 deletions(-)
 
 diff --git a/mm/memblock.c b/mm/memblock.c
-index 4e3e9ff..00f62a2 100644
+index 00f62a2..c71b847 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -537,7 +537,7 @@ phys_addr_t __init memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align, i
+@@ -16,6 +16,8 @@
+ #include <linux/bitops.h>
+ #include <linux/poison.h>
+ #include <linux/pfn.h>
++#include <linux/debugfs.h>
++#include <linux/seq_file.h>
+ #include <linux/memblock.h>
  
- 	if (res)
- 		return res;
--	return memblock_alloc(size, align);
-+	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ANYWHERE);
+ struct memblock memblock;
+@@ -705,3 +707,52 @@ static int __init early_memblock(char *p)
  }
+ early_param("memblock", early_memblock);
  
- 
++#ifdef CONFIG_DEBUG_FS
++
++static int memblock_debug_show(struct seq_file *m, void *private)
++{
++	struct memblock_type *type = m->private;
++	struct memblock_region *reg;
++	int i;
++
++	for (i = 0; i < type->cnt; i++) {
++		reg = &type->regions[i];
++		seq_printf(m, "%4d: ", i);
++		if (sizeof(phys_addr_t) == 4)
++			seq_printf(m, "0x%08lx..0x%08lx\n",
++				   (unsigned long)reg->base,
++				   (unsigned long)(reg->base + reg->size - 1));
++		else
++			seq_printf(m, "0x%016llx..0x%016llx\n",
++				   (unsigned long long)reg->base,
++				   (unsigned long long)(reg->base + reg->size - 1));
++
++	}
++	return 0;
++}
++
++static int memblock_debug_open(struct inode *inode, struct file *file)
++{
++	return single_open(file, memblock_debug_show, inode->i_private);
++}
++
++static const struct file_operations memblock_debug_fops = {
++	.open = memblock_debug_open,
++	.read = seq_read,
++	.llseek = seq_lseek,
++	.release = single_release,
++};
++
++static int __init memblock_init_debugfs(void)
++{
++	struct dentry *root = debugfs_create_dir("memblock", NULL);
++	if (!root)
++		return -ENXIO;
++	debugfs_create_file("memory", S_IRUGO, root, &memblock.memory, &memblock_debug_fops);
++	debugfs_create_file("reserved", S_IRUGO, root, &memblock.reserved, &memblock_debug_fops);
++
++	return 0;
++}
++__initcall(memblock_init_debugfs);
++
++#endif /* CONFIG_DEBUG_FS */
 -- 
 1.6.4.2
 
