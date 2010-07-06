@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 23/49] memblock: NUMA allocate can now use early_pfn_map
-Date: Tue,  6 Jul 2010 15:39:16 -0700
-Message-ID: <1278455982-24621-24-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 14/49] memblock: Add debug markers at the end of the array
+Date: Tue,  6 Jul 2010 15:39:07 -0700
+Message-ID: <1278455982-24621-15-git-send-email-yinghai@kernel.org>
 References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
@@ -12,87 +12,49 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-We now provide a default (weak) implementation of memblock_nid_range()
-which uses the early_pfn_map[] if CONFIG_ARCH_POPULATES_NODE_MAP
-is set. Sparc still needs to use its own method due to the way
-the pages can be scattered between nodes.
-
-This implementation is inefficient due to our main algorithm and
-callback construct wanting to work on an ascending addresses bases
-while early_pfn_map[] would rather work with nid's (it's unsorted
-at that stage). But it should work and we can look into improving
-it subsequently, possibly using arch compile options to chose a
-different algorithm alltogether.
+Since we allocate one more than needed, why not do a bit of sanity checking
+here to ensure we don't walk past the end of the array ?
 
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- include/linux/memblock.h |    3 +++
- mm/memblock.c            |   28 +++++++++++++++++++++++++++-
- 2 files changed, 30 insertions(+), 1 deletions(-)
+ mm/memblock.c |   11 +++++++++++
+ 1 files changed, 11 insertions(+), 0 deletions(-)
 
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index 15da7d9..b69c243 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -47,6 +47,9 @@ extern long memblock_remove(phys_addr_t base, phys_addr_t size);
- extern long __init memblock_free(phys_addr_t base, phys_addr_t size);
- extern long __init memblock_reserve(phys_addr_t base, phys_addr_t size);
- 
-+/* The numa aware allocator is only available if
-+ * CONFIG_ARCH_POPULATES_NODE_MAP is set
-+ */
- extern phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int nid);
- extern phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align);
- 
 diff --git a/mm/memblock.c b/mm/memblock.c
-index bb382f2..d701c88 100644
+index e1c5ce3..21ba089 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -15,6 +15,7 @@
+@@ -13,6 +13,7 @@
+ #include <linux/kernel.h>
  #include <linux/init.h>
  #include <linux/bitops.h>
- #include <linux/poison.h>
-+#include <linux/pfn.h>
++#include <linux/poison.h>
  #include <linux/memblock.h>
  
  struct memblock memblock;
-@@ -445,11 +446,36 @@ phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align)
- /*
-  * Additional node-local allocators. Search for node memory is bottom up
-  * and walks memblock regions within that node bottom-up as well, but allocation
-- * within an memblock region is top-down.
-+ * within an memblock region is top-down. XXX I plan to fix that at some stage
-+ *
-+ * WARNING: Only available after early_node_map[] has been populated,
-+ * on some architectures, that is after all the calls to add_active_range()
-+ * have been done to populate it.
-  */
+@@ -112,6 +113,10 @@ void __init memblock_init(void)
+ 	memblock.reserved.regions	= memblock_reserved_init_regions;
+ 	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
  
- phys_addr_t __weak __init memblock_nid_range(phys_addr_t start, phys_addr_t end, int *nid)
- {
-+#ifdef CONFIG_ARCH_POPULATES_NODE_MAP
-+	/*
-+	 * This code originates from sparc which really wants use to walk by addresses
-+	 * and returns the nid. This is not very convenient for early_pfn_map[] users
-+	 * as the map isn't sorted yet, and it really wants to be walked by nid.
-+	 *
-+	 * For now, I implement the inefficient method below which walks the early
-+	 * map multiple times. Eventually we may want to use an ARCH config option
-+	 * to implement a completely different method for both case.
-+	 */
-+	unsigned long start_pfn, end_pfn;
-+	int i;
++	/* Write a marker in the unused last array entry */
++	memblock.memory.regions[INIT_MEMBLOCK_REGIONS].base = (phys_addr_t)RED_INACTIVE;
++	memblock.reserved.regions[INIT_MEMBLOCK_REGIONS].base = (phys_addr_t)RED_INACTIVE;
 +
-+	for (i = 0; i < MAX_NUMNODES; i++) {
-+		get_pfn_range_for_nid(i, &start_pfn, &end_pfn);
-+		if (start < PFN_PHYS(start_pfn) || start >= PFN_PHYS(end_pfn))
-+			continue;
-+		*nid = i;
-+		return min(end, PFN_PHYS(end_pfn));
-+	}
-+#endif
- 	*nid = 0;
+ 	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
+ 	 * This simplifies the memblock_add() code below...
+ 	 */
+@@ -131,6 +136,12 @@ void __init memblock_analyze(void)
+ {
+ 	int i;
  
- 	return end;
++	/* Check marker in the unused last array entry */
++	WARN_ON(memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS].base
++		!= (phys_addr_t)RED_INACTIVE);
++	WARN_ON(memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS].base
++		!= (phys_addr_t)RED_INACTIVE);
++
+ 	memblock.memory_size = 0;
+ 
+ 	for (i = 0; i < memblock.memory.cnt; i++)
 -- 
 1.6.4.2
