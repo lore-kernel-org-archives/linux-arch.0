@@ -1,88 +1,87 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 43/49] x86, memblock: Add memblock_x86_memory_in_range()
-Date: Tue,  6 Jul 2010 15:39:36 -0700
-Message-ID: <1278455982-24621-44-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 13/49] memblock: Move memblock arrays to static storage in memblock.c and make their size a variable
+Date: Tue,  6 Jul 2010 15:39:06 -0700
+Message-ID: <1278455982-24621-14-git-send-email-yinghai@kernel.org>
 References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 List-Id: linux-arch.vger.kernel.org
 
-It will return memory size in specified range according to memblock.memory.region
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Try to share some code with memblock_x86_free_memory_in_range() by passing get_free to
-__memblock_x86_memory_in_range().
+This is in preparation for having resizable arrays.
 
--v2: Ben want _in_range in the name instead of size
+Note that we still allocate one more than needed, this is unchanged from
+the previous implementation.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/x86/include/asm/memblock.h |    1 +
- arch/x86/mm/memblock.c          |   18 +++++++++++++++++-
- 2 files changed, 18 insertions(+), 1 deletions(-)
+ include/linux/memblock.h |    7 ++++---
+ mm/memblock.c            |   10 +++++++++-
+ 2 files changed, 13 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
-index fc3c230..2c304bb 100644
---- a/arch/x86/include/asm/memblock.h
-+++ b/arch/x86/include/asm/memblock.h
-@@ -16,5 +16,6 @@ void memblock_x86_register_active_regions(int nid, unsigned long start_pfn,
- u64 memblock_x86_hole_size(u64 start, u64 end);
- u64 memblock_x86_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
- u64 memblock_x86_free_memory_in_range(u64 addr, u64 limit);
-+u64 memblock_x86_memory_in_range(u64 addr, u64 limit);
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index e849d31..b839053 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -18,7 +18,7 @@
  
- #endif
-diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-index b04b43b..b10258d 100644
---- a/arch/x86/mm/memblock.c
-+++ b/arch/x86/mm/memblock.c
-@@ -217,7 +217,7 @@ void __init memblock_x86_to_bootmem(u64 start, u64 end)
- }
- #endif
+ #include <asm/memblock.h>
  
--u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
-+static u64 __init __memblock_x86_memory_in_range(u64 addr, u64 limit, bool get_free)
+-#define MAX_MEMBLOCK_REGIONS 128
++#define INIT_MEMBLOCK_REGIONS 128
+ 
+ struct memblock_region {
+ 	phys_addr_t base;
+@@ -26,8 +26,9 @@ struct memblock_region {
+ };
+ 
+ struct memblock_type {
+-	unsigned long cnt;
+-	struct memblock_region regions[MAX_MEMBLOCK_REGIONS+1];
++	unsigned long cnt;	/* number of regions */
++	unsigned long max;	/* size of the allocated array */
++	struct memblock_region *regions;
+ };
+ 
+ struct memblock {
+diff --git a/mm/memblock.c b/mm/memblock.c
+index 78c2394..e1c5ce3 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -18,6 +18,8 @@
+ struct memblock memblock;
+ 
+ static int memblock_debug;
++static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
++static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+ 
+ static int __init early_memblock(char *p)
  {
- 	int i, count;
- 	struct range *range;
-@@ -246,6 +246,10 @@ u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
- 	}
- 	subtract_range(range, count, 0, addr);
- 	subtract_range(range, count, limit, -1ULL);
-+
-+	/* Subtract memblock.reserved.region in range ? */
-+	if (!get_free)
-+		goto sort_and_count_them;
- 	for_each_memblock(reserved, r) {
- 		final_start = PFN_DOWN(r->base);
- 		final_end = PFN_UP(r->base + r->size);
-@@ -256,6 +260,8 @@ u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
+@@ -104,6 +106,12 @@ static void memblock_coalesce_regions(struct memblock_type *type,
  
- 		subtract_range(range, count, final_start, final_end);
- 	}
-+
-+sort_and_count_them:
- 	nr_range = clean_sort_range(range, count);
- 
- 	free_size = 0;
-@@ -265,6 +271,16 @@ u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
- 	return free_size << PAGE_SHIFT;
- }
- 
-+u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
-+{
-+	return __memblock_x86_memory_in_range(addr, limit, true);
-+}
-+
-+u64 __init memblock_x86_memory_in_range(u64 addr, u64 limit)
-+{
-+	return __memblock_x86_memory_in_range(addr, limit, false);
-+}
-+
- void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
+ void __init memblock_init(void)
  {
- 	if (start == end)
++	/* Hookup the initial arrays */
++	memblock.memory.regions	= memblock_memory_init_regions;
++	memblock.memory.max		= INIT_MEMBLOCK_REGIONS;
++	memblock.reserved.regions	= memblock_reserved_init_regions;
++	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
++
+ 	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
+ 	 * This simplifies the memblock_add() code below...
+ 	 */
+@@ -169,7 +177,7 @@ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, ph
+ 
+ 	if (coalesced)
+ 		return coalesced;
+-	if (type->cnt >= MAX_MEMBLOCK_REGIONS)
++	if (type->cnt >= type->max)
+ 		return -1;
+ 
+ 	/* Couldn't coalesce the MEMBLOCK, so add it to the sorted table. */
 -- 
 1.6.4.2
