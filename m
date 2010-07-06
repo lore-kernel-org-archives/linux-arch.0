@@ -1,339 +1,182 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 49/49] x86: remove old bootmem code
-Date: Tue,  6 Jul 2010 15:39:42 -0700
-Message-ID: <1278455982-24621-50-git-send-email-yinghai@kernel.org>
-References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v23 00/49] Use memblock with x86
+Date: Tue,  6 Jul 2010 15:38:53 -0700
+Message-ID: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:32140 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:31948 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757038Ab0GFWoH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:44:07 -0400
-In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
+	with ESMTP id S1757248Ab0GFWny (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:43:54 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-Requested by Ingo, Thomas and HPA.
+New memblock could be used to replace early_res in x86.
 
-it mean 2.6.34 and 2.6.35 have them bootmem and nobootmem for x86.
-and later for x86 will only have nobootmem
+Suggested by: David, Ben, and Thomas
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- arch/x86/Kconfig        |   10 +-------
- arch/x86/kernel/setup.c |    4 ---
- arch/x86/mm/init_32.c   |   56 -----------------------------------------------
- arch/x86/mm/init_64.c   |   41 ----------------------------------
- arch/x86/mm/memblock.c  |   31 --------------------------
- arch/x86/mm/numa_32.c   |    3 --
- arch/x86/mm/numa_64.c   |   47 ---------------------------------------
- 7 files changed, 1 insertions(+), 191 deletions(-)
+-v18: change memblock_find_area to memblock_find_in_range
+      kill __memblock_find_area and use memblock_find_area directly
+      remove memblock_add_memory
+      change memblock_reserve_area to memblock_reserve_range
+      change memblock_free_area to memblock_free_range
+      don't clear memblock.reserved after converting
+      use for_each_memblock to replace for cycle
+      rebase to 06/15/2010 powerpc/memblock
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 4006748..e3a7458 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -586,15 +586,7 @@ config PARAVIRT_DEBUG
- 	  a paravirt_op is missing when it is called.
- 
- config NO_BOOTMEM
--	default y
--	bool "Disable Bootmem code"
--	---help---
--	  Use memblock directly instead of bootmem before slab is ready.
--		- allocator (buddy) [generic]
--		- early allocator (bootmem) [generic]
--		- very early allocator (memblock) [some generic]
--		- very very early allocator (early brk model) [x86]
--	  So reduce one layer between early allocator to final allocator
-+	def_bool y
- 
- config MEMTEST
- 	bool "Memtest"
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 58d7ece..b721988 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -1020,10 +1020,6 @@ void __init setup_arch(char **cmdline_p)
- 
- 	initmem_init(0, max_pfn, acpi, k8);
- 	memblock_find_dma_reserve();
--#ifndef CONFIG_NO_BOOTMEM
--	memblock_x86_to_bootmem(0, max_low_pfn<<PAGE_SHIFT);
--#endif
--
- 	dma32_reserve_bootmem();
- 
- #ifdef CONFIG_KVM_CLOCK
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index 49adf16..c2385d7 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -751,68 +751,12 @@ static void __init zone_sizes_init(void)
- 	free_area_init_nodes(max_zone_pfns);
- }
- 
--#ifndef CONFIG_NO_BOOTMEM
--static unsigned long __init setup_node_bootmem(int nodeid,
--				 unsigned long start_pfn,
--				 unsigned long end_pfn,
--				 unsigned long bootmap)
--{
--	unsigned long bootmap_size;
--
--	/* don't touch min_low_pfn */
--	bootmap_size = init_bootmem_node(NODE_DATA(nodeid),
--					 bootmap >> PAGE_SHIFT,
--					 start_pfn, end_pfn);
--	printk(KERN_INFO "  node %d low ram: %08lx - %08lx\n",
--		nodeid, start_pfn<<PAGE_SHIFT, end_pfn<<PAGE_SHIFT);
--	printk(KERN_INFO "  node %d bootmap %08lx - %08lx\n",
--		 nodeid, bootmap, bootmap + bootmap_size);
--	free_bootmem_with_active_regions(nodeid, end_pfn);
--
--	return bootmap + bootmap_size;
--}
--#endif
--
- void __init setup_bootmem_allocator(void)
- {
--#ifndef CONFIG_NO_BOOTMEM
--	int nodeid;
--	unsigned long bootmap_size, bootmap;
--	/*
--	 * Initialize the boot-time allocator (with low memory only):
--	 */
--	bootmap_size = bootmem_bootmap_pages(max_low_pfn)<<PAGE_SHIFT;
--	bootmap = memblock_find_in_range(0, max_pfn_mapped<<PAGE_SHIFT, bootmap_size,
--				 PAGE_SIZE);
--	if (bootmap == MEMBLOCK_ERROR)
--		panic("Cannot find bootmem map of size %ld\n", bootmap_size);
--	memblock_x86_reserve_range(bootmap, bootmap + bootmap_size, "BOOTMAP");
--#endif
--
- 	printk(KERN_INFO "  mapped low ram: 0 - %08lx\n",
- 		 max_pfn_mapped<<PAGE_SHIFT);
- 	printk(KERN_INFO "  low ram: 0 - %08lx\n", max_low_pfn<<PAGE_SHIFT);
- 
--#ifndef CONFIG_NO_BOOTMEM
--	for_each_online_node(nodeid) {
--		 unsigned long start_pfn, end_pfn;
--
--#ifdef CONFIG_NEED_MULTIPLE_NODES
--		start_pfn = node_start_pfn[nodeid];
--		end_pfn = node_end_pfn[nodeid];
--		if (start_pfn > max_low_pfn)
--			continue;
--		if (end_pfn > max_low_pfn)
--			end_pfn = max_low_pfn;
--#else
--		start_pfn = 0;
--		end_pfn = max_low_pfn;
--#endif
--		bootmap = setup_node_bootmem(nodeid, start_pfn, end_pfn,
--						 bootmap);
--	}
--#endif
--
- 	after_bootmem = 1;
- }
- 
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index d6d4084..690b8d1 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -572,23 +572,7 @@ kernel_physical_mapping_init(unsigned long start,
- void __init initmem_init(unsigned long start_pfn, unsigned long end_pfn,
- 				int acpi, int k8)
- {
--#ifndef CONFIG_NO_BOOTMEM
--	unsigned long bootmap_size, bootmap;
--
--	bootmap_size = bootmem_bootmap_pages(end_pfn)<<PAGE_SHIFT;
--	bootmap = memblock_find_in_range(0, end_pfn<<PAGE_SHIFT, bootmap_size,
--				 PAGE_SIZE);
--	if (bootmap == MEMBLOCK_ERROR)
--		panic("Cannot find bootmem map of size %ld\n", bootmap_size);
--	memblock_x86_reserve_range(bootmap, bootmap + bootmap_size, "BOOTMAP");
--	/* don't touch min_low_pfn */
--	bootmap_size = init_bootmem_node(NODE_DATA(0), bootmap >> PAGE_SHIFT,
--					 0, end_pfn);
- 	memblock_x86_register_active_regions(0, start_pfn, end_pfn);
--	free_bootmem_with_active_regions(0, end_pfn);
--#else
--	memblock_x86_register_active_regions(0, start_pfn, end_pfn);
--#endif
- }
- #endif
- 
-@@ -798,31 +782,6 @@ void mark_rodata_ro(void)
- 
- #endif
- 
--#ifndef CONFIG_NO_BOOTMEM
--int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
--				   int flags)
--{
--	unsigned long pfn = phys >> PAGE_SHIFT;
--
--	if (pfn >= max_pfn) {
--		/*
--		 * This can happen with kdump kernels when accessing
--		 * firmware tables:
--		 */
--		if (pfn < max_pfn_mapped)
--			return -EFAULT;
--
--		printk(KERN_ERR "reserve_bootmem: illegal reserve %lx %lu\n",
--				phys, len);
--		return -EFAULT;
--	}
--
--	reserve_bootmem(phys, len, flags);
--
--	return 0;
--}
--#endif
--
- int kern_addr_valid(unsigned long addr)
- {
- 	unsigned long above = ((long)addr) >> __VIRTUAL_MASK_SHIFT;
-diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-index 166d5bf..8b26b58 100644
---- a/arch/x86/mm/memblock.c
-+++ b/arch/x86/mm/memblock.c
-@@ -109,7 +109,6 @@ static __init struct range *find_range_array(int count)
- 	return range;
- }
- 
--#ifdef CONFIG_NO_BOOTMEM
- static void __init memblock_x86_subtract_reserved(struct range *range, int az)
- {
- 	int count;
-@@ -186,36 +185,6 @@ int __init get_free_all_memory_range(struct range **rangep, int nodeid)
- 	*rangep = range;
- 	return nr_range;
- }
--#else
--void __init memblock_x86_to_bootmem(u64 start, u64 end)
--{
--	int count;
--	u64 final_start, final_end;
--	struct memblock_region *r;
--
--	/* Take out region array itself */
--	if (memblock.reserved.regions != memblock_reserved_init_regions)
--		memblock_free(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
--
--	count  = memblock.reserved.cnt;
--	memblock_dbg("(%d early reservations) ==> bootmem [%#010llx - %#010llx]\n", count, start, end);
--	for_each_memblock(reserved, r) {
--		memblock_dbg("  [%#010llx - %#010llx] ", (u64)r->base, (u64)r->base + r->size);
--		final_start = max(start, r->base);
--		final_end = min(end, r->base + r->size);
--		if (final_start >= final_end) {
--			memblock_dbg("\n");
--			continue;
--		}
--		memblock_dbg(" ==> [%#010llx - %#010llx]\n", final_start, final_end);
--		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
--	}
--
--	/* Put region array back ? */
--	if (memblock.reserved.regions != memblock_reserved_init_regions)
--		memblock_reserve(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
--}
--#endif
- 
- static u64 __init __memblock_x86_memory_in_range(u64 addr, u64 limit, bool get_free)
- {
-diff --git a/arch/x86/mm/numa_32.c b/arch/x86/mm/numa_32.c
-index ddf9730..70ddeb7 100644
---- a/arch/x86/mm/numa_32.c
-+++ b/arch/x86/mm/numa_32.c
-@@ -420,9 +420,6 @@ void __init initmem_init(unsigned long start_pfn, unsigned long end_pfn,
- 	for_each_online_node(nid) {
- 		memset(NODE_DATA(nid), 0, sizeof(struct pglist_data));
- 		NODE_DATA(nid)->node_id = nid;
--#ifndef CONFIG_NO_BOOTMEM
--		NODE_DATA(nid)->bdata = &bootmem_node_data[nid];
--#endif
- 	}
- 
- 	setup_bootmem_allocator();
-diff --git a/arch/x86/mm/numa_64.c b/arch/x86/mm/numa_64.c
-index 984b1ff..aef0ff7 100644
---- a/arch/x86/mm/numa_64.c
-+++ b/arch/x86/mm/numa_64.c
-@@ -199,10 +199,6 @@ setup_node_bootmem(int nodeid, unsigned long start, unsigned long end)
- 	unsigned long start_pfn, last_pfn, nodedata_phys;
- 	const int pgdat_size = roundup(sizeof(pg_data_t), PAGE_SIZE);
- 	int nid;
--#ifndef CONFIG_NO_BOOTMEM
--	unsigned long bootmap_start, bootmap_pages, bootmap_size;
--	void *bootmap;
--#endif
- 
- 	if (!end)
- 		return;
-@@ -239,47 +235,6 @@ setup_node_bootmem(int nodeid, unsigned long start, unsigned long end)
- 	NODE_DATA(nodeid)->node_start_pfn = start_pfn;
- 	NODE_DATA(nodeid)->node_spanned_pages = last_pfn - start_pfn;
- 
--#ifndef CONFIG_NO_BOOTMEM
--	NODE_DATA(nodeid)->bdata = &bootmem_node_data[nodeid];
--
--	/*
--	 * Find a place for the bootmem map
--	 * nodedata_phys could be on other nodes by alloc_bootmem,
--	 * so need to sure bootmap_start not to be small, otherwise
--	 * early_node_mem will get that with memblock_find_in_range instead
--	 * of alloc_bootmem, that could clash with reserved range
--	 */
--	bootmap_pages = bootmem_bootmap_pages(last_pfn - start_pfn);
--	bootmap_start = roundup(nodedata_phys + pgdat_size, PAGE_SIZE);
--	/*
--	 * SMP_CACHE_BYTES could be enough, but init_bootmem_node like
--	 * to use that to align to PAGE_SIZE
--	 */
--	bootmap = early_node_mem(nodeid, bootmap_start, end,
--				 bootmap_pages<<PAGE_SHIFT, PAGE_SIZE);
--	if (bootmap == NULL)  {
--		memblock_x86_free_range(nodedata_phys, nodedata_phys + pgdat_size);
--		node_data[nodeid] = NULL;
--		return;
--	}
--	bootmap_start = __pa(bootmap);
--	memblock_x86_reserve_range(bootmap_start, bootmap_start+(bootmap_pages<<PAGE_SHIFT),
--			"BOOTMAP");
--
--	bootmap_size = init_bootmem_node(NODE_DATA(nodeid),
--					 bootmap_start >> PAGE_SHIFT,
--					 start_pfn, last_pfn);
--
--	printk(KERN_INFO "  bootmap [%016lx -  %016lx] pages %lx\n",
--		 bootmap_start, bootmap_start + bootmap_size - 1,
--		 bootmap_pages);
--	nid = phys_to_nid(bootmap_start);
--	if (nid != nodeid)
--		printk(KERN_INFO "    bootmap(%d) on node %d\n", nodeid, nid);
--
--	free_bootmem_with_active_regions(nodeid, end);
--#endif
--
- 	node_set_online(nodeid);
- }
- 
-@@ -704,9 +659,7 @@ unsigned long __init numa_free_all_bootmem(void)
- 	for_each_online_node(i)
- 		pages += free_all_bootmem_node(NODE_DATA(i));
- 
--#ifdef CONFIG_NO_BOOTMEM
- 	pages += free_all_memory_core_early(MAX_NUMNODES);
--#endif
- 
- 	return pages;
- }
--- 
-1.6.4.2
+-v19: make the patchset only focus on memblock related.
+      will submit patches about bootmem/nobootmem seperating and other e820
+	 related later after this one.
+
+-v20: put ben change together...
+      add memblock_dbg() according to Ingo
+
+-v21: debug print add # for 0x
+      removed old bootmem support for x86 according to Ingo, Thomas and HPA
+      change MEMBLOCK_ERROR to 0 according to Linus
+
+-v22: change x86 related memblock to memblock_x86_ instead of according to Ingo
+
+-v23: rename lmb to memblock before Ben's cleanup patcheset, and x86 using patches.
+
+patch 45: has to be done in one shoot to switch from early_res to memblock.
+
+please pull from powerpc/memblock, and apply this patchset.
+
+todo:
+     replace range handling (subtracting) with memblock.
+
+Thanks
+
+Yinghai Lu
+
+ Documentation/kernel-parameters.txt               |    2 +-
+ arch/microblaze/Kconfig                           |    2 +-
+ arch/microblaze/include/asm/{lmb.h => memblock.h} |    9 +-
+ arch/microblaze/kernel/prom.c                     |   14 +-
+ arch/microblaze/mm/init.c                         |   40 +-
+ arch/microblaze/platform/generic/system.dts       |    4 +-
+ arch/powerpc/Kconfig                              |    2 +-
+ arch/powerpc/include/asm/abs_addr.h               |    2 +-
+ arch/powerpc/include/asm/lmb.h                    |   15 -
+ arch/powerpc/include/asm/memblock.h               |    8 +
+ arch/powerpc/include/asm/mmu.h                    |   12 +
+ arch/powerpc/kernel/btext.c                       |    2 +-
+ arch/powerpc/kernel/crash.c                       |    2 +-
+ arch/powerpc/kernel/crash_dump.c                  |    4 +-
+ arch/powerpc/kernel/dma-swiotlb.c                 |    2 +-
+ arch/powerpc/kernel/dma.c                         |    4 +-
+ arch/powerpc/kernel/head_40x.S                    |    6 +-
+ arch/powerpc/kernel/machine_kexec.c               |   12 +-
+ arch/powerpc/kernel/paca.c                        |    8 +-
+ arch/powerpc/kernel/prom.c                        |   73 +-
+ arch/powerpc/kernel/rtas.c                        |    6 +-
+ arch/powerpc/kernel/setup-common.c                |    2 +-
+ arch/powerpc/kernel/setup_32.c                    |   16 +-
+ arch/powerpc/kernel/setup_64.c                    |   20 +-
+ arch/powerpc/kernel/vdso.c                        |    4 +-
+ arch/powerpc/mm/40x_mmu.c                         |   19 +-
+ arch/powerpc/mm/44x_mmu.c                         |   14 +
+ arch/powerpc/mm/fsl_booke_mmu.c                   |   12 +-
+ arch/powerpc/mm/hash_utils_64.c                   |   53 +-
+ arch/powerpc/mm/init_32.c                         |   57 +-
+ arch/powerpc/mm/init_64.c                         |    3 +-
+ arch/powerpc/mm/mem.c                             |  110 ++--
+ arch/powerpc/mm/numa.c                            |   89 ++--
+ arch/powerpc/mm/pgtable_32.c                      |    6 +-
+ arch/powerpc/mm/pgtable_64.c                      |    4 +-
+ arch/powerpc/mm/ppc_mmu_32.c                      |   20 +-
+ arch/powerpc/mm/stab.c                            |    4 +-
+ arch/powerpc/mm/tlb_nohash.c                      |   20 +-
+ arch/powerpc/platforms/85xx/corenet_ds.c          |    4 +-
+ arch/powerpc/platforms/85xx/mpc8536_ds.c          |    4 +-
+ arch/powerpc/platforms/85xx/mpc85xx_ds.c          |    4 +-
+ arch/powerpc/platforms/85xx/mpc85xx_mds.c         |    4 +-
+ arch/powerpc/platforms/86xx/mpc86xx_hpcn.c        |    4 +-
+ arch/powerpc/platforms/cell/iommu.c               |   10 +-
+ arch/powerpc/platforms/embedded6xx/wii.c          |   12 +-
+ arch/powerpc/platforms/maple/setup.c              |    2 +-
+ arch/powerpc/platforms/pasemi/iommu.c             |    4 +-
+ arch/powerpc/platforms/powermac/setup.c           |    4 +-
+ arch/powerpc/platforms/ps3/htab.c                 |    2 +-
+ arch/powerpc/platforms/ps3/mm.c                   |    6 +-
+ arch/powerpc/platforms/ps3/os-area.c              |    4 +-
+ arch/powerpc/platforms/pseries/hotplug-memory.c   |   38 +-
+ arch/powerpc/platforms/pseries/iommu.c            |    2 +-
+ arch/powerpc/platforms/pseries/phyp_dump.c        |    4 +-
+ arch/powerpc/sysdev/dart_iommu.c                  |    8 +-
+ arch/powerpc/sysdev/fsl_pci.c                     |    4 +-
+ arch/sh/Kconfig                                   |    2 +-
+ arch/sh/include/asm/lmb.h                         |    6 -
+ arch/sh/include/asm/memblock.h                    |    4 +
+ arch/sh/kernel/machine_kexec.c                    |   18 +-
+ arch/sh/kernel/setup.c                            |    8 +-
+ arch/sh/mm/init.c                                 |   44 +-
+ arch/sh/mm/numa.c                                 |    8 +-
+ arch/sparc/Kconfig                                |    2 +-
+ arch/sparc/include/asm/lmb.h                      |   10 -
+ arch/sparc/include/asm/memblock.h                 |    8 +
+ arch/sparc/kernel/mdesc.c                         |   16 +-
+ arch/sparc/kernel/prom_64.c                       |    4 +-
+ arch/sparc/mm/init_64.c                           |   76 +--
+ arch/x86/Kconfig                                  |   15 +-
+ arch/x86/include/asm/e820.h                       |   20 +-
+ arch/x86/include/asm/efi.h                        |    2 +-
+ arch/x86/include/asm/memblock.h                   |   21 +
+ arch/x86/kernel/acpi/sleep.c                      |    7 +-
+ arch/x86/kernel/apic/numaq_32.c                   |    3 +-
+ arch/x86/kernel/check.c                           |   16 +-
+ arch/x86/kernel/e820.c                            |  192 ++----
+ arch/x86/kernel/efi.c                             |    5 +-
+ arch/x86/kernel/head.c                            |    3 +-
+ arch/x86/kernel/head32.c                          |   10 +-
+ arch/x86/kernel/head64.c                          |    7 +-
+ arch/x86/kernel/mpparse.c                         |    5 +-
+ arch/x86/kernel/setup.c                           |   78 ++-
+ arch/x86/kernel/setup_percpu.c                    |    6 -
+ arch/x86/kernel/trampoline.c                      |    8 +-
+ arch/x86/mm/Makefile                              |    2 +
+ arch/x86/mm/init.c                                |    7 +-
+ arch/x86/mm/init_32.c                             |   66 +--
+ arch/x86/mm/init_64.c                             |   67 +--
+ arch/x86/mm/k8topology_64.c                       |    4 +-
+ arch/x86/mm/memblock.c                            |  359 ++++++++++
+ arch/x86/mm/memtest.c                             |    7 +-
+ arch/x86/mm/numa_32.c                             |   28 +-
+ arch/x86/mm/numa_64.c                             |   84 +--
+ arch/x86/mm/srat_32.c                             |    3 +-
+ arch/x86/mm/srat_64.c                             |   11 +-
+ arch/x86/xen/mmu.c                                |    5 +-
+ arch/x86/xen/setup.c                              |    3 +-
+ include/linux/early_res.h                         |   23 -
+ include/linux/lmb.h                               |   89 ---
+ include/linux/memblock.h                          |  165 +++++
+ include/linux/mm.h                                |    2 +
+ kernel/Makefile                                   |    1 -
+ kernel/early_res.c                                |  584 ----------------
+ lib/Kconfig                                       |    3 -
+ lib/Makefile                                      |    2 -
+ lib/lmb.c                                         |  541 ---------------
+ mm/Kconfig                                        |    3 +
+ mm/Makefile                                       |    2 +
+ mm/bootmem.c                                      |   11 +-
+ mm/memblock.c                                     |  766 +++++++++++++++++++++
+ mm/page_alloc.c                                   |   72 ++-
+ mm/sparse-vmemmap.c                               |   11 -
+ 113 files changed, 2110 insertions(+), 2217 deletions(-)
+ rename arch/microblaze/include/asm/{lmb.h => memblock.h} (61%)
+ delete mode 100644 arch/powerpc/include/asm/lmb.h
+ create mode 100644 arch/powerpc/include/asm/memblock.h
+ delete mode 100644 arch/sh/include/asm/lmb.h
+ create mode 100644 arch/sh/include/asm/memblock.h
+ delete mode 100644 arch/sparc/include/asm/lmb.h
+ create mode 100644 arch/sparc/include/asm/memblock.h
+ create mode 100644 arch/x86/include/asm/memblock.h
+ create mode 100644 arch/x86/mm/memblock.c
+ delete mode 100644 include/linux/early_res.h
+ delete mode 100644 include/linux/lmb.h
+ create mode 100644 include/linux/memblock.h
+ delete mode 100644 kernel/early_res.c
+ delete mode 100644 lib/lmb.c
+ create mode 100644 mm/memblock.c
