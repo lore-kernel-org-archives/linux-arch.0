@@ -1,60 +1,114 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 14/49] memblock: Add debug markers at the end of the array
-Date: Tue,  6 Jul 2010 15:39:07 -0700
-Message-ID: <1278455982-24621-15-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 39/49] x86, memblock: Add memblock_x86_register_active_regions() and memblock_x86_hole_size()
+Date: Tue,  6 Jul 2010 15:39:32 -0700
+Message-ID: <1278455982-24621-40-git-send-email-yinghai@kernel.org>
 References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+memblock_x86_register_active_regions() will be used to fill early_node_map,
+the result will be memblock.memory.region AND numa data
 
-Since we allocate one more than needed, why not do a bit of sanity checking
-here to ensure we don't walk past the end of the array ?
+memblock_x86_hole_size will be used to find hole size on memblock.memory.region
+with specified range.
 
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- mm/memblock.c |   11 +++++++++++
- 1 files changed, 11 insertions(+), 0 deletions(-)
+ arch/x86/include/asm/memblock.h |    4 ++
+ arch/x86/mm/memblock.c          |   67 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 71 insertions(+), 0 deletions(-)
 
-diff --git a/mm/memblock.c b/mm/memblock.c
-index e1c5ce3..21ba089 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -13,6 +13,7 @@
- #include <linux/kernel.h>
- #include <linux/init.h>
- #include <linux/bitops.h>
-+#include <linux/poison.h>
- #include <linux/memblock.h>
+diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
+index 72639ce..16af28d 100644
+--- a/arch/x86/include/asm/memblock.h
++++ b/arch/x86/include/asm/memblock.h
+@@ -11,4 +11,8 @@ void memblock_x86_free_range(u64 start, u64 end);
+ struct range;
+ int get_free_all_memory_range(struct range **rangep, int nodeid);
  
- struct memblock memblock;
-@@ -112,6 +113,10 @@ void __init memblock_init(void)
- 	memblock.reserved.regions	= memblock_reserved_init_regions;
- 	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
- 
-+	/* Write a marker in the unused last array entry */
-+	memblock.memory.regions[INIT_MEMBLOCK_REGIONS].base = (phys_addr_t)RED_INACTIVE;
-+	memblock.reserved.regions[INIT_MEMBLOCK_REGIONS].base = (phys_addr_t)RED_INACTIVE;
++void memblock_x86_register_active_regions(int nid, unsigned long start_pfn,
++					 unsigned long last_pfn);
++u64 memblock_x86_hole_size(u64 start, u64 end);
 +
- 	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
- 	 * This simplifies the memblock_add() code below...
- 	 */
-@@ -131,6 +136,12 @@ void __init memblock_analyze(void)
- {
- 	int i;
+ #endif
+diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
+index 249754b..e09b66f 100644
+--- a/arch/x86/mm/memblock.c
++++ b/arch/x86/mm/memblock.c
+@@ -238,3 +238,70 @@ void __init memblock_x86_free_range(u64 start, u64 end)
  
-+	/* Check marker in the unused last array entry */
-+	WARN_ON(memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS].base
-+		!= (phys_addr_t)RED_INACTIVE);
-+	WARN_ON(memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS].base
-+		!= (phys_addr_t)RED_INACTIVE);
+ 	memblock_free(start, end - start);
+ }
 +
- 	memblock.memory_size = 0;
- 
- 	for (i = 0; i < memblock.memory.cnt; i++)
++/*
++ * Finds an active region in the address range from start_pfn to last_pfn and
++ * returns its range in ei_startpfn and ei_endpfn for the memblock entry.
++ */
++static int __init memblock_x86_find_active_region(const struct memblock_region *ei,
++				  unsigned long start_pfn,
++				  unsigned long last_pfn,
++				  unsigned long *ei_startpfn,
++				  unsigned long *ei_endpfn)
++{
++	u64 align = PAGE_SIZE;
++
++	*ei_startpfn = round_up(ei->base, align) >> PAGE_SHIFT;
++	*ei_endpfn = round_down(ei->base + ei->size, align) >> PAGE_SHIFT;
++
++	/* Skip map entries smaller than a page */
++	if (*ei_startpfn >= *ei_endpfn)
++		return 0;
++
++	/* Skip if map is outside the node */
++	if (*ei_endpfn <= start_pfn || *ei_startpfn >= last_pfn)
++		return 0;
++
++	/* Check for overlaps */
++	if (*ei_startpfn < start_pfn)
++		*ei_startpfn = start_pfn;
++	if (*ei_endpfn > last_pfn)
++		*ei_endpfn = last_pfn;
++
++	return 1;
++}
++
++/* Walk the memblock.memory map and register active regions within a node */
++void __init memblock_x86_register_active_regions(int nid, unsigned long start_pfn,
++					 unsigned long last_pfn)
++{
++	unsigned long ei_startpfn;
++	unsigned long ei_endpfn;
++	struct memblock_region *r;
++
++	for_each_memblock(memory, r)
++		if (memblock_x86_find_active_region(r, start_pfn, last_pfn,
++					   &ei_startpfn, &ei_endpfn))
++			add_active_range(nid, ei_startpfn, ei_endpfn);
++}
++
++/*
++ * Find the hole size (in bytes) in the memory range.
++ * @start: starting address of the memory range to scan
++ * @end: ending address of the memory range to scan
++ */
++u64 __init memblock_x86_hole_size(u64 start, u64 end)
++{
++	unsigned long start_pfn = start >> PAGE_SHIFT;
++	unsigned long last_pfn = end >> PAGE_SHIFT;
++	unsigned long ei_startpfn, ei_endpfn, ram = 0;
++	struct memblock_region *r;
++
++	for_each_memblock(memory, r)
++		if (memblock_x86_find_active_region(r, start_pfn, last_pfn,
++					   &ei_startpfn, &ei_endpfn))
++			ram += ei_endpfn - ei_startpfn;
++
++	return end - start - ((u64)ram << PAGE_SHIFT);
++}
++
 -- 
 1.6.4.2
