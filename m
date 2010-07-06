@@ -1,47 +1,108 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 03/49] memblock: No reason to include asm/memblock.h late
-Date: Tue,  6 Jul 2010 15:38:56 -0700
-Message-ID: <1278455982-24621-4-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 35/49] bootmem, x86: Add weak version of reserve_bootmem_generic
+Date: Tue,  6 Jul 2010 15:39:28 -0700
+Message-ID: <1278455982-24621-36-git-send-email-yinghai@kernel.org>
 References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:31548 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756614Ab0GFWn1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:43:27 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+It will be used memblock_x86_to_bootmem converting
 
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+It is an wrapper for reserve_bootmem, and x86 64bit is using special one.
+
+Also clean up that version for x86_64. We don't need to take care of numa
+path for that, bootmem can handle it how
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/memblock.h |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ arch/x86/mm/init_32.c |    6 ------
+ arch/x86/mm/init_64.c |   20 ++------------------
+ mm/bootmem.c          |    6 ++++++
+ 3 files changed, 8 insertions(+), 24 deletions(-)
 
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index 86e7daf..4b69313 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -16,6 +16,8 @@
- #include <linux/init.h>
- #include <linux/mm.h>
+diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+index bca7909..90e0545 100644
+--- a/arch/x86/mm/init_32.c
++++ b/arch/x86/mm/init_32.c
+@@ -1069,9 +1069,3 @@ void mark_rodata_ro(void)
+ #endif
+ }
+ #endif
+-
+-int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+-				   int flags)
+-{
+-	return reserve_bootmem(phys, len, flags);
+-}
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index ee41bba..634fa08 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -799,13 +799,10 @@ void mark_rodata_ro(void)
  
-+#include <asm/memblock.h>
-+
- #define MAX_MEMBLOCK_REGIONS 128
+ #endif
  
- struct memblock_region {
-@@ -82,8 +84,6 @@ memblock_end_pfn(struct memblock_type *type, unsigned long region_nr)
- 	       memblock_size_pages(type, region_nr);
++#ifndef CONFIG_NO_BOOTMEM
+ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 				   int flags)
+ {
+-#ifdef CONFIG_NUMA
+-	int nid, next_nid;
+-	int ret;
+-#endif
+ 	unsigned long pfn = phys >> PAGE_SHIFT;
+ 
+ 	if (pfn >= max_pfn) {
+@@ -821,21 +818,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 		return -EFAULT;
+ 	}
+ 
+-	/* Should check here against the e820 map to avoid double free */
+-#ifdef CONFIG_NUMA
+-	nid = phys_to_nid(phys);
+-	next_nid = phys_to_nid(phys + len - 1);
+-	if (nid == next_nid)
+-		ret = reserve_bootmem_node(NODE_DATA(nid), phys, len, flags);
+-	else
+-		ret = reserve_bootmem(phys, len, flags);
+-
+-	if (ret != 0)
+-		return ret;
+-
+-#else
+ 	reserve_bootmem(phys, len, flags);
+-#endif
+ 
+ 	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
+ 		dma_reserve += len / PAGE_SIZE;
+@@ -844,6 +827,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 
+ 	return 0;
+ }
++#endif
+ 
+ int kern_addr_valid(unsigned long addr)
+ {
+diff --git a/mm/bootmem.c b/mm/bootmem.c
+index 58c66cc..ee31b95 100644
+--- a/mm/bootmem.c
++++ b/mm/bootmem.c
+@@ -526,6 +526,12 @@ int __init reserve_bootmem(unsigned long addr, unsigned long size,
  }
  
--#include <asm/memblock.h>
--
- #endif /* __KERNEL__ */
- 
- #endif /* _LINUX_MEMBLOCK_H */
+ #ifndef CONFIG_NO_BOOTMEM
++int __weak __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
++				   int flags)
++{
++	return reserve_bootmem(phys, len, flags);
++}
++
+ static unsigned long __init align_idx(struct bootmem_data *bdata,
+ 				      unsigned long idx, unsigned long step)
+ {
 -- 
 1.6.4.2
