@@ -1,73 +1,391 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:32508 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:32523 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757370Ab0GFWo3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:44:29 -0400
+	with ESMTP id S1756812Ab0GFWoa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:44:30 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 33/49] memblock: Add memblock_find_in_range()
-Date: Tue,  6 Jul 2010 15:39:26 -0700
-Message-ID: <1278455982-24621-34-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 19/49] memblock: Move functions around into a more sensible order
+Date: Tue,  6 Jul 2010 15:39:12 -0700
+Message-ID: <1278455982-24621-20-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100706223926.BGMzs1iEh-zlWLnYf74zrpcXrSm8TUjr1x6ZeRCxde4@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20100706223912.5wicNqwPIQyLx_13NIQslFN_3StYtrUncMIazcazckY@z>
 
-it is a wrapper for memblock_find_base
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-make it more easy for x86 to use memblock. ( rebase )
-x86 early_res is using find/reserve pattern instead of alloc.
+Some shuffling is needed for doing array resize so we may as well
+put some sense into the ordering of the functions in the whole memblock.c
+file. No code change. Added some comments.
 
-keep it in weak version, so later We can use x86 own version if needed.
-also We need it in mm/memblock.c, so one caller mm/page_alloc.c could get compiled
-
--v2: Change name to memblock_find_in_range() according to Michael Ellerman
--v3: Add generic weak version __memblock_find_in_range()
-     so keep the path for fallback to x86 version that handle from low
--v4: use 0 for failing path
--v5: use MEMBLOCK_ERROR again
--v6: remove __memblock_find_in_range()
-
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- include/linux/memblock.h |    2 ++
- mm/memblock.c            |    8 ++++++++
- 2 files changed, 10 insertions(+), 0 deletions(-)
+ mm/memblock.c |  293 ++++++++++++++++++++++++++++++---------------------------
+ 1 files changed, 156 insertions(+), 137 deletions(-)
 
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index 9f544cd..7162b2f 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -48,6 +48,8 @@ extern struct memblock_region memblock_reserved_init_regions[];
- #define memblock_dbg(fmt, ...) \
- 	if (memblock_debug) printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
- 
-+u64 memblock_find_in_range(u64 start, u64 end, u64 size, u64 align);
-+
- extern void __init memblock_init(void);
- extern void __init memblock_analyze(void);
- extern long memblock_add(phys_addr_t base, phys_addr_t size);
 diff --git a/mm/memblock.c b/mm/memblock.c
-index 81eaf90..58b646f 100644
+index 4318b52..2c67be9 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -156,6 +156,14 @@ static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align
- 	return MEMBLOCK_ERROR;
+@@ -24,40 +24,18 @@ static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIO
+ 
+ #define MEMBLOCK_ERROR	(~(phys_addr_t)0)
+ 
+-static int __init early_memblock(char *p)
+-{
+-	if (p && strstr(p, "debug"))
+-		memblock_debug = 1;
+-	return 0;
+-}
+-early_param("memblock", early_memblock);
++/*
++ * Address comparison utilities
++ */
+ 
+-static void memblock_dump(struct memblock_type *region, char *name)
++static phys_addr_t memblock_align_down(phys_addr_t addr, phys_addr_t size)
+ {
+-	unsigned long long base, size;
+-	int i;
+-
+-	pr_info(" %s.cnt  = 0x%lx\n", name, region->cnt);
+-
+-	for (i = 0; i < region->cnt; i++) {
+-		base = region->regions[i].base;
+-		size = region->regions[i].size;
+-
+-		pr_info(" %s[0x%x]\t0x%016llx - 0x%016llx, 0x%llx bytes\n",
+-		    name, i, base, base + size - 1, size);
+-	}
++	return addr & ~(size - 1);
  }
  
-+/*
-+ * Find a free area with specified alignment in a specific range.
-+ */
-+u64 __init __weak memblock_find_in_range(u64 start, u64 end, u64 size, u64 align)
+-void memblock_dump_all(void)
++static phys_addr_t memblock_align_up(phys_addr_t addr, phys_addr_t size)
+ {
+-	if (!memblock_debug)
+-		return;
+-
+-	pr_info("MEMBLOCK configuration:\n");
+-	pr_info(" memory size = 0x%llx\n", (unsigned long long)memblock.memory_size);
+-
+-	memblock_dump(&memblock.memory, "memory");
+-	memblock_dump(&memblock.reserved, "reserved");
++	return (addr + (size - 1)) & ~(size - 1);
+ }
+ 
+ static unsigned long memblock_addrs_overlap(phys_addr_t base1, phys_addr_t size1,
+@@ -88,6 +66,77 @@ static long memblock_regions_adjacent(struct memblock_type *type,
+ 	return memblock_addrs_adjacent(base1, size1, base2, size2);
+ }
+ 
++long memblock_overlaps_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
 +{
-+	return memblock_find_base(size, align, start, end);
++	unsigned long i;
++
++	for (i = 0; i < type->cnt; i++) {
++		phys_addr_t rgnbase = type->regions[i].base;
++		phys_addr_t rgnsize = type->regions[i].size;
++		if (memblock_addrs_overlap(base, size, rgnbase, rgnsize))
++			break;
++	}
++
++	return (i < type->cnt) ? i : -1;
 +}
 +
- static void __init_memblock memblock_remove_region(struct memblock_type *type, unsigned long r)
++/*
++ * Find, allocate, deallocate or reserve unreserved regions. All allocations
++ * are top-down.
++ */
++
++static phys_addr_t __init memblock_find_region(phys_addr_t start, phys_addr_t end,
++					  phys_addr_t size, phys_addr_t align)
++{
++	phys_addr_t base, res_base;
++	long j;
++
++	base = memblock_align_down((end - size), align);
++	while (start <= base) {
++		j = memblock_overlaps_region(&memblock.reserved, base, size);
++		if (j < 0)
++			return base;
++		res_base = memblock.reserved.regions[j].base;
++		if (res_base < size)
++			break;
++		base = memblock_align_down(res_base - size, align);
++	}
++
++	return MEMBLOCK_ERROR;
++}
++
++static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++{
++	long i;
++	phys_addr_t base = 0;
++	phys_addr_t res_base;
++
++	BUG_ON(0 == size);
++
++	size = memblock_align_up(size, align);
++
++	/* Pump up max_addr */
++	if (max_addr == MEMBLOCK_ALLOC_ACCESSIBLE)
++		max_addr = memblock.current_limit;
++
++	/* We do a top-down search, this tends to limit memory
++	 * fragmentation by keeping early boot allocs near the
++	 * top of memory
++	 */
++	for (i = memblock.memory.cnt - 1; i >= 0; i--) {
++		phys_addr_t memblockbase = memblock.memory.regions[i].base;
++		phys_addr_t memblocksize = memblock.memory.regions[i].size;
++
++		if (memblocksize < size)
++			continue;
++		base = min(memblockbase + memblocksize, max_addr);
++		res_base = memblock_find_region(memblockbase, base, size, align);
++		if (res_base != MEMBLOCK_ERROR)
++			return res_base;
++	}
++	return 0;
++}
++
+ static void memblock_remove_region(struct memblock_type *type, unsigned long r)
  {
  	unsigned long i;
+@@ -107,22 +156,6 @@ static void memblock_coalesce_regions(struct memblock_type *type,
+ 	memblock_remove_region(type, r2);
+ }
+ 
+-void __init memblock_analyze(void)
+-{
+-	int i;
+-
+-	/* Check marker in the unused last array entry */
+-	WARN_ON(memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS].base
+-		!= (phys_addr_t)RED_INACTIVE);
+-	WARN_ON(memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS].base
+-		!= (phys_addr_t)RED_INACTIVE);
+-
+-	memblock.memory_size = 0;
+-
+-	for (i = 0; i < memblock.memory.cnt; i++)
+-		memblock.memory_size += memblock.memory.regions[i].size;
+-}
+-
+ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
+ {
+ 	unsigned long coalesced = 0;
+@@ -260,49 +293,41 @@ long __init memblock_reserve(phys_addr_t base, phys_addr_t size)
+ 	return memblock_add_region(_rgn, base, size);
+ }
+ 
+-long memblock_overlaps_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
++phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+ {
+-	unsigned long i;
++	phys_addr_t found = memblock_find_base(size, align, max_addr);
+ 
+-	for (i = 0; i < type->cnt; i++) {
+-		phys_addr_t rgnbase = type->regions[i].base;
+-		phys_addr_t rgnsize = type->regions[i].size;
+-		if (memblock_addrs_overlap(base, size, rgnbase, rgnsize))
+-			break;
+-	}
++	if (found != MEMBLOCK_ERROR &&
++	    memblock_add_region(&memblock.reserved, found, size) >= 0)
++		return found;
+ 
+-	return (i < type->cnt) ? i : -1;
++	return 0;
+ }
+ 
+-static phys_addr_t memblock_align_down(phys_addr_t addr, phys_addr_t size)
++phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+ {
+-	return addr & ~(size - 1);
+-}
++	phys_addr_t alloc;
+ 
+-static phys_addr_t memblock_align_up(phys_addr_t addr, phys_addr_t size)
+-{
+-	return (addr + (size - 1)) & ~(size - 1);
++	alloc = __memblock_alloc_base(size, align, max_addr);
++
++	if (alloc == 0)
++		panic("ERROR: Failed to allocate 0x%llx bytes below 0x%llx.\n",
++		      (unsigned long long) size, (unsigned long long) max_addr);
++
++	return alloc;
+ }
+ 
+-static phys_addr_t __init memblock_find_region(phys_addr_t start, phys_addr_t end,
+-					  phys_addr_t size, phys_addr_t align)
++phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align)
+ {
+-	phys_addr_t base, res_base;
+-	long j;
++	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ACCESSIBLE);
++}
+ 
+-	base = memblock_align_down((end - size), align);
+-	while (start <= base) {
+-		j = memblock_overlaps_region(&memblock.reserved, base, size);
+-		if (j < 0)
+-			return base;
+-		res_base = memblock.reserved.regions[j].base;
+-		if (res_base < size)
+-			break;
+-		base = memblock_align_down(res_base - size, align);
+-	}
+ 
+-	return MEMBLOCK_ERROR;
+-}
++/*
++ * Additional node-local allocators. Search for node memory is bottom up
++ * and walks memblock regions within that node bottom-up as well, but allocation
++ * within an memblock region is top-down.
++ */
+ 
+ phys_addr_t __weak __init memblock_nid_range(phys_addr_t start, phys_addr_t end, int *nid)
+ {
+@@ -361,67 +386,9 @@ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int n
+ 	return memblock_alloc(size, align);
+ }
+ 
+-phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align)
+-{
+-	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ACCESSIBLE);
+-}
+-
+-static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+-{
+-	long i;
+-	phys_addr_t base = 0;
+-	phys_addr_t res_base;
+-
+-	BUG_ON(0 == size);
+-
+-	size = memblock_align_up(size, align);
+-
+-	/* Pump up max_addr */
+-	if (max_addr == MEMBLOCK_ALLOC_ACCESSIBLE)
+-		max_addr = memblock.current_limit;
+-
+-	/* We do a top-down search, this tends to limit memory
+-	 * fragmentation by keeping early boot allocs near the
+-	 * top of memory
+-	 */
+-	for (i = memblock.memory.cnt - 1; i >= 0; i--) {
+-		phys_addr_t memblockbase = memblock.memory.regions[i].base;
+-		phys_addr_t memblocksize = memblock.memory.regions[i].size;
+-
+-		if (memblocksize < size)
+-			continue;
+-		base = min(memblockbase + memblocksize, max_addr);
+-		res_base = memblock_find_region(memblockbase, base, size, align);
+-		if (res_base != MEMBLOCK_ERROR)
+-			return res_base;
+-	}
+-	return 0;
+-}
+-
+-phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+-{
+-	phys_addr_t found = memblock_find_base(size, align, max_addr);
+-
+-	if (found != MEMBLOCK_ERROR &&
+-	    memblock_add_region(&memblock.reserved, found, size) >= 0)
+-		return found;
+-
+-	return 0;
+-}
+-
+-phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+-{
+-	phys_addr_t alloc;
+-
+-	alloc = __memblock_alloc_base(size, align, max_addr);
+-
+-	if (alloc == 0)
+-		panic("ERROR: Failed to allocate 0x%llx bytes below 0x%llx.\n",
+-		      (unsigned long long) size, (unsigned long long) max_addr);
+-
+-	return alloc;
+-}
+-
++/*
++ * Remaining API functions
++ */
+ 
+ /* You must call memblock_analyze() before this. */
+ phys_addr_t __init memblock_phys_mem_size(void)
+@@ -501,6 +468,50 @@ void __init memblock_set_current_limit(phys_addr_t limit)
+ 	memblock.current_limit = limit;
+ }
+ 
++static void memblock_dump(struct memblock_type *region, char *name)
++{
++	unsigned long long base, size;
++	int i;
++
++	pr_info(" %s.cnt  = 0x%lx\n", name, region->cnt);
++
++	for (i = 0; i < region->cnt; i++) {
++		base = region->regions[i].base;
++		size = region->regions[i].size;
++
++		pr_info(" %s[0x%x]\t0x%016llx - 0x%016llx, 0x%llx bytes\n",
++		    name, i, base, base + size - 1, size);
++	}
++}
++
++void memblock_dump_all(void)
++{
++	if (!memblock_debug)
++		return;
++
++	pr_info("MEMBLOCK configuration:\n");
++	pr_info(" memory size = 0x%llx\n", (unsigned long long)memblock.memory_size);
++
++	memblock_dump(&memblock.memory, "memory");
++	memblock_dump(&memblock.reserved, "reserved");
++}
++
++void __init memblock_analyze(void)
++{
++	int i;
++
++	/* Check marker in the unused last array entry */
++	WARN_ON(memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS].base
++		!= (phys_addr_t)RED_INACTIVE);
++	WARN_ON(memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS].base
++		!= (phys_addr_t)RED_INACTIVE);
++
++	memblock.memory_size = 0;
++
++	for (i = 0; i < memblock.memory.cnt; i++)
++		memblock.memory_size += memblock.memory.regions[i].size;
++}
++
+ void __init memblock_init(void)
+ {
+ 	/* Hookup the initial arrays */
+@@ -528,3 +539,11 @@ void __init memblock_init(void)
+ 	memblock.current_limit = MEMBLOCK_ALLOC_ANYWHERE;
+ }
+ 
++static int __init early_memblock(char *p)
++{
++	if (p && strstr(p, "debug"))
++		memblock_debug = 1;
++	return 0;
++}
++early_param("memblock", early_memblock);
++
 -- 
 1.6.4.2
 
