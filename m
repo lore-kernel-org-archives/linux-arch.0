@@ -1,153 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:31535 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:31538 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756726Ab0GFWn1 (ORCPT
+	with ESMTP id S1756731Ab0GFWn1 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jul 2010 18:43:27 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 34/49] x86, memblock: Add memblock_x86_find_in_range_size()
-Date: Tue,  6 Jul 2010 15:39:27 -0700
-Message-ID: <1278455982-24621-35-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 18/49] memblock: split memblock_find_base() out of __memblock_alloc_base()
+Date: Tue,  6 Jul 2010 15:39:11 -0700
+Message-ID: <1278455982-24621-19-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 References: <1278455982-24621-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100706223927.JstY6X5BJRJjMUbZfk14-P39D0t7pRf10u7-evWvOIs@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20100706223911.lAduMcQdq3QKldWnXbWrna0MMbwHuTgKtKFZRUKxqjE@z>
 
-size is returned according free range.
-Will be used to find free ranges for early_memtest and memory corruption check
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Do not mess it up with lib/memblock.c yet.
+This will be used by the array resize code and might prove useful
+to some arch code as well at which point it can be made non-static.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/x86/include/asm/memblock.h |    8 ++++
- arch/x86/mm/Makefile            |    2 +
- arch/x86/mm/memblock.c          |   88 +++++++++++++++++++++++++++++++++++++++
- 3 files changed, 98 insertions(+), 0 deletions(-)
- create mode 100644 arch/x86/include/asm/memblock.h
- create mode 100644 arch/x86/mm/memblock.c
+ mm/memblock.c |   43 +++++++++++++++++++++++++++----------------
+ 1 files changed, 27 insertions(+), 16 deletions(-)
 
-diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
-new file mode 100644
-index 0000000..c14219a
---- /dev/null
-+++ b/arch/x86/include/asm/memblock.h
-@@ -0,0 +1,8 @@
-+#ifndef _X86_MEMBLOCK_H
-+#define _X86_MEMBLOCK_H
-+
-+#define ARCH_DISCARD_MEMBLOCK
-+
-+u64 memblock_x86_find_in_range_size(u64 start, u64 *sizep, u64 align);
-+
-+#endif
-diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
-index a4c7683..5554339 100644
---- a/arch/x86/mm/Makefile
-+++ b/arch/x86/mm/Makefile
-@@ -26,4 +26,6 @@ obj-$(CONFIG_NUMA)		+= numa.o numa_$(BITS).o
- obj-$(CONFIG_K8_NUMA)		+= k8topology_64.o
- obj-$(CONFIG_ACPI_NUMA)		+= srat_$(BITS).o
+diff --git a/mm/memblock.c b/mm/memblock.c
+index c1dd9df..4318b52 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -366,20 +366,7 @@ phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align)
+ 	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ACCESSIBLE);
+ }
  
-+obj-$(CONFIG_HAVE_MEMBLOCK)		+= memblock.o
-+
- obj-$(CONFIG_MEMTEST)		+= memtest.o
-diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-new file mode 100644
-index 0000000..c602afb
---- /dev/null
-+++ b/arch/x86/mm/memblock.c
-@@ -0,0 +1,88 @@
-+#include <linux/kernel.h>
-+#include <linux/types.h>
-+#include <linux/init.h>
-+#include <linux/bitops.h>
-+#include <linux/memblock.h>
-+#include <linux/bootmem.h>
-+#include <linux/mm.h>
-+#include <linux/range.h>
-+
-+/* Check for already reserved areas */
-+static inline bool __init bad_addr_size(u64 *addrp, u64 *sizep, u64 align)
+-phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+-{
+-	phys_addr_t alloc;
+-
+-	alloc = __memblock_alloc_base(size, align, max_addr);
+-
+-	if (alloc == 0)
+-		panic("ERROR: Failed to allocate 0x%llx bytes below 0x%llx.\n",
+-		      (unsigned long long) size, (unsigned long long) max_addr);
+-
+-	return alloc;
+-}
+-
+-phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+ {
+ 	long i;
+ 	phys_addr_t base = 0;
+@@ -405,13 +392,37 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ 			continue;
+ 		base = min(memblockbase + memblocksize, max_addr);
+ 		res_base = memblock_find_region(memblockbase, base, size, align);
+-		if (res_base != MEMBLOCK_ERROR &&
+-		    memblock_add_region(&memblock.reserved, res_base, size) >= 0)
++		if (res_base != MEMBLOCK_ERROR)
+ 			return res_base;
+ 	}
+ 	return 0;
+ }
+ 
++phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
 +{
-+	struct memblock_region *r;
-+	u64 addr = *addrp, last;
-+	u64 size = *sizep;
-+	bool changed = false;
++	phys_addr_t found = memblock_find_base(size, align, max_addr);
 +
-+again:
-+	last = addr + size;
-+	for_each_memblock(reserved, r) {
-+		if (last > r->base && addr < r->base) {
-+			size = r->base - addr;
-+			changed = true;
-+			goto again;
-+		}
-+		if (last > (r->base + r->size) && addr < (r->base + r->size)) {
-+			addr = round_up(r->base + r->size, align);
-+			size = last - addr;
-+			changed = true;
-+			goto again;
-+		}
-+		if (last <= (r->base + r->size) && addr >= r->base) {
-+			(*sizep)++;
-+			return false;
-+		}
-+	}
-+	if (changed) {
-+		*addrp = addr;
-+		*sizep = size;
-+	}
-+	return changed;
++	if (found != MEMBLOCK_ERROR &&
++	    memblock_add_region(&memblock.reserved, found, size) >= 0)
++		return found;
++
++	return 0;
 +}
 +
-+static u64 __init __memblock_x86_find_in_range_size(u64 ei_start, u64 ei_last, u64 start,
-+			 u64 *sizep, u64 align)
++phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
 +{
-+	u64 addr, last;
++	phys_addr_t alloc;
 +
-+	addr = round_up(ei_start, align);
-+	if (addr < start)
-+		addr = round_up(start, align);
-+	if (addr >= ei_last)
-+		goto out;
-+	*sizep = ei_last - addr;
-+	while (bad_addr_size(&addr, sizep, align) && addr + *sizep <= ei_last)
-+		;
-+	last = addr + *sizep;
-+	if (last > ei_last)
-+		goto out;
++	alloc = __memblock_alloc_base(size, align, max_addr);
 +
-+	return addr;
++	if (alloc == 0)
++		panic("ERROR: Failed to allocate 0x%llx bytes below 0x%llx.\n",
++		      (unsigned long long) size, (unsigned long long) max_addr);
 +
-+out:
-+	return MEMBLOCK_ERROR;
++	return alloc;
 +}
 +
-+/*
-+ * Find next free range after start, and size is returned in *sizep
-+ */
-+u64 __init memblock_x86_find_in_range_size(u64 start, u64 *sizep, u64 align)
-+{
-+	struct memblock_region *r;
 +
-+	for_each_memblock(memory, r) {
-+		u64 ei_start = r->base;
-+		u64 ei_last = ei_start + r->size;
-+		u64 addr;
-+
-+		addr = __memblock_x86_find_in_range_size(ei_start, ei_last, start,
-+					 sizep, align);
-+
-+		if (addr != MEMBLOCK_ERROR)
-+			return addr;
-+	}
-+
-+	return MEMBLOCK_ERROR;
-+}
-+
+ /* You must call memblock_analyze() before this. */
+ phys_addr_t __init memblock_phys_mem_size(void)
+ {
 -- 
 1.6.4.2
 
