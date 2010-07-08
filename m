@@ -1,53 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:49056 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756350Ab0GGWo1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jul 2010 18:44:27 -0400
-Message-ID: <4C35034B.6040906@codeaurora.org>
-Date: Wed, 07 Jul 2010 15:44:27 -0700
-From: Zach Pfeffer <zpfeffer@codeaurora.org>
-MIME-Version: 1.0
-Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
- memory management
-References: <1278135507-20294-1-git-send-email-zpfeffer@codeaurora.org> <m14oggpepx.fsf@fess.ebiederm.org>
-In-Reply-To: <m14oggpepx.fsf@fess.ebiederm.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Received: from sh.osrg.net ([192.16.179.4]:43054 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753984Ab0GHHAE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 8 Jul 2010 03:00:04 -0400
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: [PATCH -mm 0/3] unify dma_get_cache_alignment implementations
+Date: Thu,  8 Jul 2010 15:57:45 +0900
+Message-ID: <1278572268-26146-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: mel@csn.ul.ie, andi@firstfloor.org, dwalker@codeaurora.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-msm@vger.kernel.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org
-Message-ID: <20100707224427.tSuG8NjYc7b-LlTJHMmBXraN0RfbQ6TLf1G0rPcXU-E@z>
+To: akpm@linux-foundation.org
+Cc: linux-kernel@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org
+Message-ID: <20100708065745.UBVX-Q6XeWpmxBnTXKiTeC0LbSvcJJGCenTzY8G_r4g@z>
 
-Eric W. Biederman wrote:
-> Zach Pfeffer <zpfeffer@codeaurora.org> writes:
-> 
->> This patch contains the documentation for the API, termed the Virtual
->> Contiguous Memory Manager. Its use would allow all of the IOMMU to VM,
->> VM to device and device to IOMMU interoperation code to be refactored
->> into platform independent code.
->>
->> Comments, suggestions and criticisms are welcome and wanted.
-> 
-> How does this differ from the dma api?
+Now each architecture has the own dma_get_cache_alignment
+implementation.
 
-The DMA API handles the allocation and use of DMA channels. It can
-configure physical transfer settings, manage scatter-gather lists,
-etc. 
+dma_get_cache_alignment returns the minimum DMA
+alignment. Architectures defines it as ARCH_KMALLOC_MINALIGN (it's
+used to make sure that malloc'ed buffer is DMA-safe; the buffer
+doesn't share a cache with the others). So we can unify
+dma_get_cache_alignment implementations.
 
-The VCM is a different thing. The VCM allows a Virtual Contiguous
-Memory region to be created and associated with a device that
-addresses the bus virtually or physically. If the bus is addressed
-physically the Virtual Contiguous Memory is one-to-one mapped. If the
-bus is virtually mapped than a contiguous virtual reservation may be
-backed by a discontiguous list of physical blocks. This discontiguous
-list could be a SG list of just a list of physical blocks that would
-back the entire virtual reservation.
+This can be applied to -mm.
 
-The VCM allows all device buffers to be passed between all devices in
-the system without passing those buffers through each domain's
-API. This means that instead of writing code to interoperate between
-DMA engines, IOMMU mapped spaces, CPUs and physically addressed
-devices the user can simply target a device with a buffer using the
-same API regardless of how that device maps or otherwise accesses the
-buffer.
+=
+ arch/alpha/include/asm/dma-mapping.h         |    1 -
+ arch/arm/include/asm/cache.h                 |    2 +-
+ arch/arm/include/asm/dma-mapping.h           |    5 -----
+ arch/avr32/include/asm/cache.h               |    2 +-
+ arch/avr32/include/asm/dma-mapping.h         |    5 -----
+ arch/blackfin/include/asm/cache.h            |    2 +-
+ arch/blackfin/include/asm/dma-mapping.h      |    1 -
+ arch/cris/include/asm/dma-mapping.h          |    6 ------
+ arch/frv/include/asm/dma-mapping.h           |    6 ------
+ arch/frv/include/asm/mem-layout.h            |    2 +-
+ arch/ia64/include/asm/dma-mapping.h          |    2 --
+ arch/ia64/kernel/setup.c                     |    6 ------
+ arch/m68k/include/asm/cache.h                |    2 +-
+ arch/m68k/include/asm/dma-mapping.h          |    5 -----
+ arch/microblaze/include/asm/dma-mapping.h    |    5 -----
+ arch/microblaze/include/asm/page.h           |    2 +-
+ arch/mips/include/asm/dma-mapping.h          |    7 -------
+ arch/mips/include/asm/mach-generic/kmalloc.h |    2 +-
+ arch/mips/include/asm/mach-ip27/kmalloc.h    |    2 +-
+ arch/mips/include/asm/mach-ip32/kmalloc.h    |    4 ++--
+ arch/mips/include/asm/mach-tx49xx/kmalloc.h  |    2 +-
+ arch/mn10300/include/asm/cache.h             |    2 +-
+ arch/mn10300/include/asm/dma-mapping.h       |    6 ------
+ arch/parisc/include/asm/cache.h              |    2 ++
+ arch/parisc/include/asm/dma-mapping.h        |    6 ------
+ arch/powerpc/include/asm/dma-mapping.h       |   15 ---------------
+ arch/powerpc/include/asm/page_32.h           |    2 +-
+ arch/sh/include/asm/dma-mapping.h            |    9 ---------
+ arch/sh/include/asm/page.h                   |    2 +-
+ arch/sparc/include/asm/dma-mapping.h         |    9 ---------
+ arch/tile/include/asm/dma-mapping.h          |    7 -------
+ arch/x86/include/asm/dma-mapping.h           |    7 -------
+ arch/xtensa/include/asm/cache.h              |    2 +-
+ arch/xtensa/include/asm/dma-mapping.h        |    6 ------
+ include/linux/dma-mapping.h                  |    8 ++++++++
+ include/linux/slab_def.h                     |    4 +++-
+ include/linux/slob_def.h                     |    4 +++-
+ include/linux/slub_def.h                     |    8 +++++---
+ 38 files changed, 36 insertions(+), 134 deletions(-)
