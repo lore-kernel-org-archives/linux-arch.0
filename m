@@ -1,47 +1,70 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH 03/23] lmb: Print new doubled array location info
-Date: Thu, 08 Jul 2010 13:07:38 -0700
-Message-ID: <4C36300A.7030606@kernel.org>
-References: <1278226587-31213-1-git-send-email-yinghai@kernel.org> <1278226587-31213-4-git-send-email-yinghai@kernel.org> <201007081255.58049.bjorn.helgaas@hp.com>
+From: Zach Pfeffer <zpfeffer@codeaurora.org>
+Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
+ memory management
+Date: Thu, 08 Jul 2010 16:59:52 -0700
+Message-ID: <4C366678.60605@codeaurora.org>
+References: <1278135507-20294-1-git-send-email-zpfeffer@codeaurora.org> <m14oggpepx.fsf@fess.ebiederm.org> <4C35034B.6040906@codeaurora.org> <20100707230710.GA31792@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:52831 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755009Ab0GHUMI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jul 2010 16:12:08 -0400
-In-Reply-To: <201007081255.58049.bjorn.helgaas@hp.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20100707230710.GA31792@n2100.arm.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On 07/08/2010 11:55 AM, Bjorn Helgaas wrote:
-> On Sunday, July 04, 2010 12:56:07 am Yinghai Lu wrote:
->> -		pr_info(" %s[0x%x]\t0x%016llx - 0x%016llx, 0x%llx bytes\n",
->> -		    name, i, base, base + size - 1, size);
->> +		pr_info(" %s[%#x]\t[%#016llx - %#016llx], %#llx bytes\n",
->> +		    name, i, base, base + size, size);
+Russell King - ARM Linux wrote:
+> On Wed, Jul 07, 2010 at 03:44:27PM -0700, Zach Pfeffer wrote:
+>> The DMA API handles the allocation and use of DMA channels. It can
+>> configure physical transfer settings, manage scatter-gather lists,
+>> etc. 
 > 
-> I know you think it's prettier to have zeroes and extra spaces like this:
+> You're confused about what the DMA API is.  You're talking about
+> the DMA engine subsystem (drivers/dma) not the DMA API (see
+> Documentation/DMA-API.txt, include/linux/dma-mapping.h, and
+> arch/arm/include/asm/dma-mapping.h)
+
+Thanks for the clarification. 
+
 > 
->   [0xe7000000 - 0xe8000000, 0x1000000 bytes]
+>> The VCM allows all device buffers to be passed between all devices in
+>> the system without passing those buffers through each domain's
+>> API. This means that instead of writing code to interoperate between
+>> DMA engines, IOMMU mapped spaces, CPUs and physically addressed
+>> devices the user can simply target a device with a buffer using the
+>> same API regardless of how that device maps or otherwise accesses the
+>> buffer.
 > 
-> rather than a bunch of 'F's:
+> With the DMA API, if we have a SG list which refers to the physical
+> pages (as a struct page, offset, length tuple), the DMA API takes
+> care of dealing with CPU caches and IOMMUs to make the data in the
+> buffer visible to the target device.  It provides you with a set of
+> cookies referring to the SG lists, which may be coalesced if the
+> IOMMU can do so.
 > 
->   [0xe7000000-0xe7ffffff]
+> If you have a kernel virtual address, the DMA API has single buffer
+> mapping/unmapping functions to do the same thing, and provide you
+> with a cookie to pass to the device to refer to that buffer.
 > 
-> But for the record, I still think you're wrong and that it's better
-> to be consistent even if it's slightly uglier.  The inconsistencies
-> lead to confusion and off-by-one errors.
+> These cookies are whatever the device needs to be able to access
+> the buffer - for instance, if system SDRAM is located at 0xc0000000
+> virtual, 0x80000000 physical and 0x40000000 as far as the DMA device
+> is concerned, then the cookie for a buffer at 0xc0000000 virtual will
+> be 0x40000000 and not 0x80000000.
 
-We can make them to be consistent later.
+It sounds like I've got some work to do. I appreciate the feedback.
 
-current for early mem stage, it is consistent to without -1.
+The problem I'm trying to solve boils down to this: map a set of
+contiguous physical buffers to an aligned IOMMU address. I need to
+allocate the set of physical buffers in a particular way: use 1 MB
+contiguous physical memory, then 64 KB, then 4 KB, etc. and I need to
+align the IOMMU address in a particular way. I also need to swap out the
+IOMMU address spaces and map the buffers into the kernel.
 
-later I like to see all pci resource could be consistent to without -1 too.
+I have this all solved, but it sounds like I'll need to migrate to the DMA
+API to upstream it.
 
-Thanks
-
-Yinghai
+-- 
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
