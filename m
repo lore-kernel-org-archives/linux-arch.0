@@ -1,31 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:43056 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753989Ab0GHHAE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 8 Jul 2010 03:00:04 -0400
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: [PATCH -mm 1/3] rename ARCH_KMALLOC_MINALIGN to ARCH_DMA_MINALIGN
-Date: Thu,  8 Jul 2010 15:57:46 +0900
-Message-ID: <1278572268-26146-2-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-In-Reply-To: <1278572268-26146-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-References: <1278572268-26146-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:46252 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757138Ab0GHTyE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jul 2010 15:54:04 -0400
+Message-ID: <201007081953.o68JrUpl025247@imap1.linux-foundation.org>
+Subject: + dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign.patch added to -mm tree
+From: akpm@linux-foundation.org
+Date: Thu, 08 Jul 2010 12:53:29 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org
-Message-ID: <20100708065746.WMyAn_uoOl3RlbdW5W0Orgyb35Sdho4o2GWEK2OxWoo@z>
+To: mm-commits@vger.kernel.org
+Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org
+Message-ID: <20100708195329.f1qkTYNAwJnZ_E8TBPWxYVUUk1a3drO8UBqeH-nlvmk@z>
+
+
+The patch titled
+     dma-mapping: rename ARCH_KMALLOC_MINALIGN to ARCH_DMA_MINALIGN
+has been added to the -mm tree.  Its filename is
+     dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign.patch
+
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
+
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
+out what to do about this
+
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: dma-mapping: rename ARCH_KMALLOC_MINALIGN to ARCH_DMA_MINALIGN
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+
+Now each architecture has the own dma_get_cache_alignment implementation.
+
+dma_get_cache_alignment returns the minimum DMA alignment.  Architectures
+define it as ARCH_KMALLOC_MINALIGN (it's used to make sure that malloc'ed
+buffer is DMA-safe; the buffer doesn't share a cache with the others).  So
+we can unify dma_get_cache_alignment implementations.
+
+
+This patch:
 
 dma_get_cache_alignment() needs to know if an architecture defines
 ARCH_KMALLOC_MINALIGN or not (needs to know if architecture has DMA
-alignment restriction). However, slab.h define ARCH_KMALLOC_MINALIGN
-if architectures doesn't define it.
+alignment restriction).  However, slab.h define ARCH_KMALLOC_MINALIGN if
+architectures doesn't define it.
 
-Let's rename ARCH_KMALLOC_MINALIGN to
-ARCH_DMA_MINALIGN. ARCH_KMALLOC_MINALIGN is used only in the internals
-of slab/slob/slub (except for crypto).
+Let's rename ARCH_KMALLOC_MINALIGN to ARCH_DMA_MINALIGN. 
+ARCH_KMALLOC_MINALIGN is used only in the internals of slab/slob/slub
+(except for crypto).
 
 Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
+
  arch/arm/include/asm/cache.h                 |    2 +-
  arch/avr32/include/asm/cache.h               |    2 +-
  arch/blackfin/include/asm/cache.h            |    2 +-
@@ -45,10 +79,9 @@ Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
  include/linux/slub_def.h                     |    8 +++++---
  17 files changed, 26 insertions(+), 20 deletions(-)
 
-diff --git a/arch/arm/include/asm/cache.h b/arch/arm/include/asm/cache.h
-index 66c160b..9d61220 100644
---- a/arch/arm/include/asm/cache.h
-+++ b/arch/arm/include/asm/cache.h
+diff -puN arch/arm/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/arm/include/asm/cache.h
+--- a/arch/arm/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/arch/arm/include/asm/cache.h
 @@ -14,7 +14,7 @@
   * cache before the transfer is done, causing old data to be seen by
   * the CPU.
@@ -58,10 +91,9 @@ index 66c160b..9d61220 100644
  
  /*
   * With EABI on ARMv5 and above we must have 64-bit aligned slab pointers.
-diff --git a/arch/avr32/include/asm/cache.h b/arch/avr32/include/asm/cache.h
-index d3cf35a..c3a58a1 100644
---- a/arch/avr32/include/asm/cache.h
-+++ b/arch/avr32/include/asm/cache.h
+diff -puN arch/avr32/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/avr32/include/asm/cache.h
+--- a/arch/avr32/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/arch/avr32/include/asm/cache.h
 @@ -11,7 +11,7 @@
   * cache before the transfer is done, causing old data to be seen by
   * the CPU.
@@ -71,10 +103,9 @@ index d3cf35a..c3a58a1 100644
  
  #ifndef __ASSEMBLER__
  struct cache_info {
-diff --git a/arch/blackfin/include/asm/cache.h b/arch/blackfin/include/asm/cache.h
-index 93f6c63..bd0641a 100644
---- a/arch/blackfin/include/asm/cache.h
-+++ b/arch/blackfin/include/asm/cache.h
+diff -puN arch/blackfin/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/blackfin/include/asm/cache.h
+--- a/arch/blackfin/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/arch/blackfin/include/asm/cache.h
 @@ -15,7 +15,7 @@
  #define L1_CACHE_BYTES	(1 << L1_CACHE_SHIFT)
  #define SMP_CACHE_BYTES	L1_CACHE_BYTES
@@ -84,10 +115,9 @@ index 93f6c63..bd0641a 100644
  
  #ifdef CONFIG_SMP
  #define __cacheline_aligned
-diff --git a/arch/frv/include/asm/mem-layout.h b/arch/frv/include/asm/mem-layout.h
-index ccae981..e9a0ec8 100644
---- a/arch/frv/include/asm/mem-layout.h
-+++ b/arch/frv/include/asm/mem-layout.h
+diff -puN arch/frv/include/asm/mem-layout.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/frv/include/asm/mem-layout.h
+--- a/arch/frv/include/asm/mem-layout.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/arch/frv/include/asm/mem-layout.h
 @@ -35,7 +35,7 @@
   * the slab must be aligned such that load- and store-double instructions don't
   * fault if used
@@ -97,10 +127,9 @@ index ccae981..e9a0ec8 100644
  #define	ARCH_SLAB_MINALIGN		L1_CACHE_BYTES
  
  /*****************************************************************************/
-diff --git a/arch/m68k/include/asm/cache.h b/arch/m68k/include/asm/cache.h
-index ecafbe1..0395c51 100644
---- a/arch/m68k/include/asm/cache.h
-+++ b/arch/m68k/include/asm/cache.h
+diff -puN arch/m68k/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/m68k/include/asm/cache.h
+--- a/arch/m68k/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/arch/m68k/include/asm/cache.h
 @@ -8,6 +8,6 @@
  #define        L1_CACHE_SHIFT  4
  #define        L1_CACHE_BYTES  (1<< L1_CACHE_SHIFT)
@@ -109,10 +138,9 @@ index ecafbe1..0395c51 100644
 +#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
  
  #endif
-diff --git a/arch/microblaze/include/asm/page.h b/arch/microblaze/include/asm/page.h
-index c12c6df..2b108db 100644
---- a/arch/microblaze/include/asm/page.h
-+++ b/arch/microblaze/include/asm/page.h
+diff -puN arch/microblaze/include/asm/page.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/microblaze/include/asm/page.h
+--- a/arch/microblaze/include/asm/page.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/arch/microblaze/include/asm/page.h
 @@ -40,7 +40,7 @@
  #ifndef __ASSEMBLY__
  
@@ -122,10 +150,9 @@ index c12c6df..2b108db 100644
  
  #define ARCH_SLAB_MINALIGN	L1_CACHE_BYTES
  
-diff --git a/arch/mips/include/asm/mach-generic/kmalloc.h b/arch/mips/include/asm/mach-generic/kmalloc.h
-index b8e6deb..a5d6690 100644
---- a/arch/mips/include/asm/mach-generic/kmalloc.h
-+++ b/arch/mips/include/asm/mach-generic/kmalloc.h
+diff -puN arch/mips/include/asm/mach-generic/kmalloc.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/mips/include/asm/mach-generic/kmalloc.h
+--- a/arch/mips/include/asm/mach-generic/kmalloc.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/arch/mips/include/asm/mach-generic/kmalloc.h
 @@ -7,7 +7,7 @@
   * Total overkill for most systems but need as a safe default.
   * Set this one if any device in the system might do non-coherent DMA.
@@ -135,10 +162,9 @@ index b8e6deb..a5d6690 100644
  #endif
  
  #endif /* __ASM_MACH_GENERIC_KMALLOC_H */
-diff --git a/arch/mips/include/asm/mach-ip27/kmalloc.h b/arch/mips/include/asm/mach-ip27/kmalloc.h
-index 426bd04..82c23ce 100644
---- a/arch/mips/include/asm/mach-ip27/kmalloc.h
-+++ b/arch/mips/include/asm/mach-ip27/kmalloc.h
+diff -puN arch/mips/include/asm/mach-ip27/kmalloc.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/mips/include/asm/mach-ip27/kmalloc.h
+--- a/arch/mips/include/asm/mach-ip27/kmalloc.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/arch/mips/include/asm/mach-ip27/kmalloc.h
 @@ -2,7 +2,7 @@
  #define __ASM_MACH_IP27_KMALLOC_H
  
@@ -148,10 +174,9 @@ index 426bd04..82c23ce 100644
   */
  
  #endif /* __ASM_MACH_IP27_KMALLOC_H */
-diff --git a/arch/mips/include/asm/mach-ip32/kmalloc.h b/arch/mips/include/asm/mach-ip32/kmalloc.h
-index b1e0be6..042ca92 100644
---- a/arch/mips/include/asm/mach-ip32/kmalloc.h
-+++ b/arch/mips/include/asm/mach-ip32/kmalloc.h
+diff -puN arch/mips/include/asm/mach-ip32/kmalloc.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/mips/include/asm/mach-ip32/kmalloc.h
+--- a/arch/mips/include/asm/mach-ip32/kmalloc.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/arch/mips/include/asm/mach-ip32/kmalloc.h
 @@ -3,9 +3,9 @@
  
  
@@ -164,10 +189,9 @@ index b1e0be6..042ca92 100644
  #endif
  
  #endif /* __ASM_MACH_IP32_KMALLOC_H */
-diff --git a/arch/mips/include/asm/mach-tx49xx/kmalloc.h b/arch/mips/include/asm/mach-tx49xx/kmalloc.h
-index 913ff19..6ac7f1f 100644
---- a/arch/mips/include/asm/mach-tx49xx/kmalloc.h
-+++ b/arch/mips/include/asm/mach-tx49xx/kmalloc.h
+diff -puN arch/mips/include/asm/mach-tx49xx/kmalloc.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/mips/include/asm/mach-tx49xx/kmalloc.h
+--- a/arch/mips/include/asm/mach-tx49xx/kmalloc.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/arch/mips/include/asm/mach-tx49xx/kmalloc.h
 @@ -2,7 +2,7 @@
  #define __ASM_MACH_TX49XX_KMALLOC_H
  
@@ -177,10 +201,9 @@ index 913ff19..6ac7f1f 100644
   */
  
  #endif /* __ASM_MACH_TX49XX_KMALLOC_H */
-diff --git a/arch/mn10300/include/asm/cache.h b/arch/mn10300/include/asm/cache.h
-index 6e2fe28..781bf61 100644
---- a/arch/mn10300/include/asm/cache.h
-+++ b/arch/mn10300/include/asm/cache.h
+diff -puN arch/mn10300/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/mn10300/include/asm/cache.h
+--- a/arch/mn10300/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/arch/mn10300/include/asm/cache.h
 @@ -21,7 +21,7 @@
  #define L1_CACHE_DISPARITY	L1_CACHE_NENTRIES * L1_CACHE_BYTES
  #endif
@@ -190,10 +213,9 @@ index 6e2fe28..781bf61 100644
  
  /* data cache purge registers
   * - read from the register to unconditionally purge that cache line
-diff --git a/arch/powerpc/include/asm/page_32.h b/arch/powerpc/include/asm/page_32.h
-index bd0849d..68d73b2 100644
---- a/arch/powerpc/include/asm/page_32.h
-+++ b/arch/powerpc/include/asm/page_32.h
+diff -puN arch/powerpc/include/asm/page_32.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/powerpc/include/asm/page_32.h
+--- a/arch/powerpc/include/asm/page_32.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/arch/powerpc/include/asm/page_32.h
 @@ -10,7 +10,7 @@
  #define VM_DATA_DEFAULT_FLAGS	VM_DATA_DEFAULT_FLAGS32
  
@@ -203,10 +225,9 @@ index bd0849d..68d73b2 100644
  #endif
  
  #ifdef CONFIG_PTE_64BIT
-diff --git a/arch/sh/include/asm/page.h b/arch/sh/include/asm/page.h
-index fb703d1..c4e0b3d 100644
---- a/arch/sh/include/asm/page.h
-+++ b/arch/sh/include/asm/page.h
+diff -puN arch/sh/include/asm/page.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/sh/include/asm/page.h
+--- a/arch/sh/include/asm/page.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/arch/sh/include/asm/page.h
 @@ -180,7 +180,7 @@ typedef struct page *pgtable_t;
   * Some drivers need to perform DMA into kmalloc'ed buffers
   * and so we have to increase the kmalloc minalign for this.
@@ -216,10 +237,9 @@ index fb703d1..c4e0b3d 100644
  
  #ifdef CONFIG_SUPERH64
  /*
-diff --git a/arch/xtensa/include/asm/cache.h b/arch/xtensa/include/asm/cache.h
-index ed8cd3c..d2fd932 100644
---- a/arch/xtensa/include/asm/cache.h
-+++ b/arch/xtensa/include/asm/cache.h
+diff -puN arch/xtensa/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/xtensa/include/asm/cache.h
+--- a/arch/xtensa/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/arch/xtensa/include/asm/cache.h
 @@ -29,6 +29,6 @@
  # define CACHE_WAY_SIZE ICACHE_WAY_SIZE
  #endif
@@ -228,10 +248,9 @@ index ed8cd3c..d2fd932 100644
 +#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
  
  #endif	/* _XTENSA_CACHE_H */
-diff --git a/include/linux/slab_def.h b/include/linux/slab_def.h
-index 1acfa73..791a502 100644
---- a/include/linux/slab_def.h
-+++ b/include/linux/slab_def.h
+diff -puN include/linux/slab_def.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign include/linux/slab_def.h
+--- a/include/linux/slab_def.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/include/linux/slab_def.h
 @@ -17,7 +17,6 @@
  
  #include <trace/events/kmem.h>
@@ -250,10 +269,9 @@ index 1acfa73..791a502 100644
  #define ARCH_KMALLOC_MINALIGN __alignof__(unsigned long long)
  #endif
  
-diff --git a/include/linux/slob_def.h b/include/linux/slob_def.h
-index 62667f7..4382db0 100644
---- a/include/linux/slob_def.h
-+++ b/include/linux/slob_def.h
+diff -puN include/linux/slob_def.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign include/linux/slob_def.h
+--- a/include/linux/slob_def.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/include/linux/slob_def.h
 @@ -1,7 +1,9 @@
  #ifndef __LINUX_SLOB_DEF_H
  #define __LINUX_SLOB_DEF_H
@@ -265,10 +283,9 @@ index 62667f7..4382db0 100644
  #define ARCH_KMALLOC_MINALIGN __alignof__(unsigned long)
  #endif
  
-diff --git a/include/linux/slub_def.h b/include/linux/slub_def.h
-index 6447a72..6d14409 100644
---- a/include/linux/slub_def.h
-+++ b/include/linux/slub_def.h
+diff -puN include/linux/slub_def.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign include/linux/slub_def.h
+--- a/include/linux/slub_def.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
++++ a/include/linux/slub_def.h
 @@ -106,15 +106,17 @@ struct kmem_cache {
  /*
   * Kmalloc subsystem.
@@ -290,6 +307,13 @@ index 6447a72..6d14409 100644
  #define ARCH_KMALLOC_MINALIGN __alignof__(unsigned long long)
  #endif
  
--- 
-1.6.5
+_
+
+Patches currently in -mm which might be from fujita.tomonori@lab.ntt.co.jp are
+
+linux-next.patch
+scsi-add-__init-__exit-macros-to-ibmvstgtc.patch
+dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign.patch
+dma-mapping-unify-dma_get_cache_alignment-implementations.patch
+dma-mapping-parisc-set-arch_dma_minalign.patch
 
