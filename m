@@ -1,36 +1,36 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: LMB bits
-Date: Sat, 10 Jul 2010 21:01:59 +1000
-Message-ID: <1278759719.28659.155.camel@pasglop>
-References: <1278659480.28659.149.camel@pasglop>
-	 <20100709072408.GD10743@elte.hu>
-	 <20100709.172050.112604881.davem@davemloft.net>
-	 <20100709.205544.48508808.davem@davemloft.net>
+From: "Mr Ling Tia Liu." <info@liu.org>
+Subject: Business Deal
+Date: Fri, 9 Jul 2010 19:18:12 -0300
+Message-ID: <dd6f458afa25f53ac14a8cbe6a3141a5.squirrel@email.mahkotamedical.com>
+Reply-To: lingtia@discuz.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:48822 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754287Ab0GJLC0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 10 Jul 2010 07:02:26 -0400
-In-Reply-To: <20100709.205544.48508808.davem@davemloft.net>
+Received: from 51.118.58.in-addr.arpa.static.tm.net.my ([58.27.51.102]:34684
+	"EHLO mahkotamedical.com" rhost-flags-OK-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751229Ab0GJTsG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 10 Jul 2010 15:48:06 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: mingo@elte.hu, yinghai@kernel.org, hpa@zytor.com, tglx@linutronix.de, torvalds@linux-foundation.org, linux-arch@vger.kernel.org
 
-On Fri, 2010-07-09 at 20:55 -0700, David Miller wrote:
-> A quick update, I'm still chipping away to find the culprit,
-> I know so far that things are ok at least 14 patches into the
-> series.
-> 
-> I'll work more to try and track down the exact problem tomorrow. 
 
-Thanks Dave !
 
-To save you that burden in the future, do you know if there's a sparc64
-box somewhere I can access to do tests ? Or an emulator maybe ?
 
-Cheers,
-Ben.
+Good day,
+
+my name is Mr. Ling Tia Liu; I work with Industrial and commercial Bank of
+China i need your assistance regarding $21,300,000.00 US Dollars that will
+be transfer out of my bank After the successful transfer,40% for you and
+60% for me if you are interested contact me with your details
+
+
+Name..........
+Sex.........
+Age.............
+country.......
+Phone Contact......
+Home Address....
+Occupation
+Thanks
