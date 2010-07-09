@@ -1,70 +1,36 @@
-From: Zach Pfeffer <zpfeffer@codeaurora.org>
-Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
- memory management
-Date: Thu, 08 Jul 2010 16:59:52 -0700
-Message-ID: <4C366678.60605@codeaurora.org>
-References: <1278135507-20294-1-git-send-email-zpfeffer@codeaurora.org> <m14oggpepx.fsf@fess.ebiederm.org> <4C35034B.6040906@codeaurora.org> <20100707230710.GA31792@n2100.arm.linux.org.uk>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH -mm 2/3] unify dma_get_cache_alignment implementations
+Date: Thu, 08 Jul 2010 23:14:30 -0700 (PDT)
+Message-ID: <20100708.231430.35020644.davem@davemloft.net>
+References: <1278572268-26146-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+	<1278572268-26146-3-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20100707230710.GA31792@n2100.arm.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:57022
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752012Ab0GIGOP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jul 2010 02:14:15 -0400
+In-Reply-To: <1278572268-26146-3-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: fujita.tomonori@lab.ntt.co.jp
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Russell King - ARM Linux wrote:
-> On Wed, Jul 07, 2010 at 03:44:27PM -0700, Zach Pfeffer wrote:
->> The DMA API handles the allocation and use of DMA channels. It can
->> configure physical transfer settings, manage scatter-gather lists,
->> etc. 
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Date: Thu,  8 Jul 2010 15:57:47 +0900
+
+> dma_get_cache_alignment returns the minimum DMA
+> alignment. Architectures defines it as ARCH_DMA_MINALIGN (formally
+> ARCH_KMALLOC_MINALIGN). So we can unify dma_get_cache_alignment
+> implementations.
 > 
-> You're confused about what the DMA API is.  You're talking about
-> the DMA engine subsystem (drivers/dma) not the DMA API (see
-> Documentation/DMA-API.txt, include/linux/dma-mapping.h, and
-> arch/arm/include/asm/dma-mapping.h)
-
-Thanks for the clarification. 
-
+> Note that some architectures implement dma_get_cache_alignment
+> wrongly. dma_get_cache_alignment() should return the minimum DMA
+> alignment. So fully-coherent architectures should return 1. This patch
+> also fixes this issue.
 > 
->> The VCM allows all device buffers to be passed between all devices in
->> the system without passing those buffers through each domain's
->> API. This means that instead of writing code to interoperate between
->> DMA engines, IOMMU mapped spaces, CPUs and physically addressed
->> devices the user can simply target a device with a buffer using the
->> same API regardless of how that device maps or otherwise accesses the
->> buffer.
-> 
-> With the DMA API, if we have a SG list which refers to the physical
-> pages (as a struct page, offset, length tuple), the DMA API takes
-> care of dealing with CPU caches and IOMMUs to make the data in the
-> buffer visible to the target device.  It provides you with a set of
-> cookies referring to the SG lists, which may be coalesced if the
-> IOMMU can do so.
-> 
-> If you have a kernel virtual address, the DMA API has single buffer
-> mapping/unmapping functions to do the same thing, and provide you
-> with a cookie to pass to the device to refer to that buffer.
-> 
-> These cookies are whatever the device needs to be able to access
-> the buffer - for instance, if system SDRAM is located at 0xc0000000
-> virtual, 0x80000000 physical and 0x40000000 as far as the DMA device
-> is concerned, then the cookie for a buffer at 0xc0000000 virtual will
-> be 0x40000000 and not 0x80000000.
+> Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
 
-It sounds like I've got some work to do. I appreciate the feedback.
-
-The problem I'm trying to solve boils down to this: map a set of
-contiguous physical buffers to an aligned IOMMU address. I need to
-allocate the set of physical buffers in a particular way: use 1 MB
-contiguous physical memory, then 64 KB, then 4 KB, etc. and I need to
-align the IOMMU address in a particular way. I also need to swap out the
-IOMMU address spaces and map the buffers into the kernel.
-
-I have this all solved, but it sounds like I'll need to migrate to the DMA
-API to upstream it.
-
--- 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+Acked-by: David S. Miller <davem@davemloft.net>
