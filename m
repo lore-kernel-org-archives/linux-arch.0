@@ -1,137 +1,45 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH 01/49] lmb: rename to memblock
-Date: Fri, 09 Jul 2010 11:49:42 +0200
-Message-ID: <4C36F0B6.4060807@monstr.eu>
-References: <1278455982-24621-1-git-send-email-yinghai@kernel.org> <1278455982-24621-2-git-send-email-yinghai@kernel.org> <4C36D873.8060901@kernel.org>
-Reply-To: monstr@monstr.eu
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: LMB bits
+Date: Fri, 9 Jul 2010 15:51:17 +0200
+Message-ID: <20100709135117.GA4602@elte.hu>
+References: <1278031351-23223-1-git-send-email-yinghai@kernel.org>
+ <1278659480.28659.149.camel@pasglop>
+ <20100709072408.GD10743@elte.hu>
+ <AANLkTikAb5UeOLmcZaHWfKEUkwgrE4sNMinkGHxxMdTl@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f46.google.com ([209.85.214.46]:50534 "EHLO
-	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750963Ab0GIJwu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jul 2010 05:52:50 -0400
-In-Reply-To: <4C36D873.8060901@kernel.org>
+Received: from mx2.mail.elte.hu ([157.181.151.9]:54460 "EHLO mx2.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756532Ab0GINvo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 9 Jul 2010 09:51:44 -0400
+Content-Disposition: inline
+In-Reply-To: <AANLkTikAb5UeOLmcZaHWfKEUkwgrE4sNMinkGHxxMdTl@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: microblaze-uclinux@itee.uq.edu.au, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Yinghai Lu <yinghai@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org
 
-Yinghai Lu wrote:
-> On 07/06/2010 03:38 PM, Yinghai Lu wrote:
->> via following scripts
->>
->>       FILES=$(find * -type f | grep -vE 'oprofile|[^K]config')
->>
->>       sed -i \
->>         -e 's/lmb/memblock/g' \
->>         -e 's/LMB/MEMBLOCK/g' \
->>         $FILES
->>
->>       for N in $(find . -name lmb.[ch]); do
->>         M=$(echo $N | sed 's/lmb/memblock/g')
->>         mv $N $M
->>       done
->>
->> and remove some wrong change like lmbench and dlmb etc.
->>
->> also move memblock.c from lib/ to mm/
->>
->> Suggested-by: Ingo Molnar <mingo@elte.hu>
->> Acked-by: "H. Peter Anvin" <hpa@zytor.com>
->> Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
->> Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
->> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
->> ---
->>  arch/microblaze/platform/generic/system.dts       |    4 +-
->>
-> ...
->> diff --git a/arch/microblaze/platform/generic/system.dts b/arch/microblaze/platform/generic/system.dts
->> index 2d5c417..2936ae6 100644
->> --- a/arch/microblaze/platform/generic/system.dts
->> +++ b/arch/microblaze/platform/generic/system.dts
->> @@ -70,7 +70,7 @@
->>  			xlnx,allow-icache-wr = <0x1>;
->>  			xlnx,area-optimized = <0x0>;
->>  			xlnx,cache-byte-size = <0x2000>;
->> -			xlnx,d-lmb = <0x1>;
->> +			xlnx,d-memblock = <0x1>;
->>  			xlnx,d-opb = <0x0>;
->>  			xlnx,d-plb = <0x1>;
->>  			xlnx,data-size = <0x20>;
->> @@ -89,7 +89,7 @@
->>  			xlnx,fsl-data-size = <0x20>;
->>  			xlnx,fsl-exception = <0x0>;
->>  			xlnx,fsl-links = <0x0>;
->> -			xlnx,i-lmb = <0x1>;
->> +			xlnx,i-memblock = <0x1>;
->>  			xlnx,i-opb = <0x0>;
->>  			xlnx,i-plb = <0x1>;
->>  			xlnx,icache-always-used = <0x1>;
-> ...
+
+* Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+
+> On Fri, Jul 9, 2010 at 09:24, Ingo Molnar <mingo@elte.hu> wrote:
+> > * Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
+> >
+> >> So I've pushed the memblocks rename and the modified version of my patches
+> >> that Yinghai produced in the "memblock" branch of the powerpc.git tree,
+> >> based on top of current Linus tree.
 > 
-> looks like that change to microblaze dts is wrong.
+> > to Linus straight away - to get the big rename out of the way:
+> >
+> > ??74 files changed, 1039 insertions(+), 1039 deletions(-)
 > 
-> Michal, it seems lmb in microblaze have lmb special?
+> Seems I have missed that part of the discussion: why is lmb renamed?
 
-DTS change is definitely wrong. LMB means local memory bus - which means 
-that CPU has this connection.
-
-> 
-> in arch/microblaze/
-> 
-> include/asm/cpuinfo.h:  u32 use_dlmb;
-> include/asm/cpuinfo.h:  u32 use_ilmb;
-> kernel/cpu/cpuinfo-pvr-full.c:  CI(use_dlmb, D_LMB);
-> kernel/cpu/cpuinfo-pvr-full.c:  CI(use_ilmb, I_LMB);
-> kernel/cpu/cpuinfo-static.c:    ci->use_dlmb = fcpu(cpu, "xlnx,d-lmb");
-> kernel/cpu/cpuinfo-static.c:    ci->use_ilmb = fcpu(cpu, "xlnx,i-lmb");
-> kernel/prom.c:#include <linux/lmb.h>
-> kernel/prom.c:  lmb_add(base, size);
-> kernel/prom.c:  return lmb_alloc(size, align);
-> kernel/prom.c:  lmb_init();
-> kernel/prom.c:  lmb_analyze();
-> kernel/prom.c:  pr_debug("Phys. mem: %lx\n", (unsigned long) lmb_phys_mem_size());
-> mm/init.c:#include <linux/lmb.h>
-> mm/init.c:      for (i = 0; i < lmb.memory.cnt; i++) {
-> mm/init.c:              memory_start = (u32) lmb.memory.region[i].base;
-> mm/init.c:              memory_end = (u32) lmb.memory.region[i].base
-> mm/init.c:                              + (u32) lmb.memory.region[i].size;
-> mm/init.c:      lmb_reserve(kernel_align_start, kernel_align_size);
-> mm/init.c:      lmb_reserve(PFN_UP(TOPHYS((u32)klimit)) << PAGE_SHIFT, map_size);
-> mm/init.c:      for (i = 0; i < lmb.reserved.cnt; i++) {
-> mm/init.c:                      (u32) lmb.reserved.region[i].base,
-> mm/init.c:                      (u32) lmb_size_bytes(&lmb.reserved, i));
-> mm/init.c:              reserve_bootmem(lmb.reserved.region[i].base,
-> mm/init.c:                      lmb_size_bytes(&lmb.reserved, i) - 1, BOOTMEM_DEFAULT);
-> mm/init.c:                      lmb.memory.region[0].size = memory_size;
-> mm/init.c:      if (!lmb.reserved.cnt) {
-> mm/init.c:      if ((u32) lmb.memory.region[0].size < 0x1000000) {
-> mm/init.c:      memory_start = (u32) lmb.memory.region[0].base;
-> mm/init.c:      memory_end = (u32) lmb.memory.region[0].base +
-> mm/init.c:                              (u32) lmb.memory.region[0].size;
-> mm/init.c:      lmb_reserve(kstart, ksize);
-> mm/init.c:              p = __va(lmb_alloc_base(PAGE_SIZE, PAGE_SIZE,
-> platform/generic/system.dts:                    xlnx,d-lmb = <0x1>;
-> platform/generic/system.dts:                    xlnx,i-lmb = <0x1>;
-> 
-> thought we should keep d-lmb and i-lmb, and change other lmb to memblock.
-
-
-The rest of microblaze changes look ok.
-
-Please revert this DTS part and for the rest:
-
-Acked-by: Michal Simek <monstr@monstr.eu>
+The reason is to make it more apparent at first glance what it is all about, 
+to reduce the pool of silly abbreviations that only mean something to those 
+deeply involved with that code.
 
 Thanks,
-Michal
 
-
-
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
-Microblaze U-BOOT custodian
+	Ingo
