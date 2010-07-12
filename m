@@ -1,37 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:36649 "EHLO gate.crashing.org"
+Received: from sh.osrg.net ([192.16.179.4]:47846 "EHLO sh.osrg.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752912Ab0GIGUV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 9 Jul 2010 02:20:21 -0400
-Subject: Re: [PATCH 03/23] lmb: Print new doubled array location info
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <4C36300A.7030606@kernel.org>
-References: <1278226587-31213-1-git-send-email-yinghai@kernel.org>
-	 <1278226587-31213-4-git-send-email-yinghai@kernel.org>
-	 <201007081255.58049.bjorn.helgaas@hp.com>  <4C36300A.7030606@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
-Date: Fri, 09 Jul 2010 16:19:46 +1000
-Message-ID: <1278656386.28659.130.camel@pasglop>
+	id S1752608Ab0GLB1A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 11 Jul 2010 21:27:00 -0400
+Date: Mon, 12 Jul 2010 10:25:08 +0900
+Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
+ memory management
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+In-Reply-To: <4C366678.60605@codeaurora.org>
+References: <4C35034B.6040906@codeaurora.org>
+	<20100707230710.GA31792@n2100.arm.linux.org.uk>
+	<4C366678.60605@codeaurora.org>
 Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
+Message-ID: <20100712102435B.fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Bjorn Helgaas <bjorn.helgaas@hp.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100709061946.VbE3dX0-Eqd765xRnqQ03PhQi66324zANmqY9mQ323E@z>
+To: zpfeffer@codeaurora.org
+Cc: linux@arm.linux.org.uk, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20100712012508.ZfORwamgcCESGOOkIAp_qnR_D4L3L21__Orx2lvtkdA@z>
 
+On Thu, 08 Jul 2010 16:59:52 -0700
+Zach Pfeffer <zpfeffer@codeaurora.org> wrote:
 
-> We can make them to be consistent later.
-> 
-> current for early mem stage, it is consistent to without -1.
-> 
-> later I like to see all pci resource could be consistent to without -1 too.
+> The problem I'm trying to solve boils down to this: map a set of
+> contiguous physical buffers to an aligned IOMMU address. I need to
+> allocate the set of physical buffers in a particular way: use 1 MB
+> contiguous physical memory, then 64 KB, then 4 KB, etc. and I need to
+> align the IOMMU address in a particular way.
 
-No. You won't change what is the de-facto standard all over the kernel
-to make it consistent with x86 crap.
+Sounds like the DMA API already supports what you want.
 
--1 is the right way to print those things.
-
-Ben.
-
-
+You can set segment_boundary_mask in struct device_dma_parameters if
+you want to align the IOMMU address. See IOMMU implementations that
+support dma_get_seg_boundary() properly.
