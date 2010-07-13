@@ -1,78 +1,78 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 18/50] memblock: Define MEMBLOCK_ERROR internally instead of using ~(phys_addr_t)0
-Date: Tue, 13 Jul 2010 00:10:12 -0700
-Message-ID: <1279005044-24777-19-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 37/50] x86, memblock: Add memblock_x86_to_bootmem()
+Date: Tue, 13 Jul 2010 00:10:31 -0700
+Message-ID: <1279005044-24777-38-git-send-email-yinghai@kernel.org>
 References: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:29233 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754102Ab0GMHQp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:16:45 -0400
 In-Reply-To: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+memblock_x86_to_bootmem() will reserve memblock.reserved.region in bootmem after bootmem is
+set up.
 
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+We can use it to with all arches that support memblock later.
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- mm/memblock.c |   12 +++++++-----
- 1 files changed, 7 insertions(+), 5 deletions(-)
+ arch/x86/include/asm/memblock.h |    1 +
+ arch/x86/mm/memblock.c          |   30 ++++++++++++++++++++++++++++++
+ 2 files changed, 31 insertions(+), 0 deletions(-)
 
-diff --git a/mm/memblock.c b/mm/memblock.c
-index eae3dc0..5743417 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -22,6 +22,8 @@ static int memblock_debug;
- static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
- static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
+index c14219a..69cf853 100644
+--- a/arch/x86/include/asm/memblock.h
++++ b/arch/x86/include/asm/memblock.h
+@@ -4,5 +4,6 @@
+ #define ARCH_DISCARD_MEMBLOCK
  
-+#define MEMBLOCK_ERROR	(~(phys_addr_t)0)
+ u64 memblock_x86_find_in_range_size(u64 start, u64 *sizep, u64 align);
++void memblock_x86_to_bootmem(u64 start, u64 end);
+ 
+ #endif
+diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
+index c602afb..7986a12 100644
+--- a/arch/x86/mm/memblock.c
++++ b/arch/x86/mm/memblock.c
+@@ -86,3 +86,33 @@ u64 __init memblock_x86_find_in_range_size(u64 start, u64 *sizep, u64 align)
+ 	return MEMBLOCK_ERROR;
+ }
+ 
++#ifndef CONFIG_NO_BOOTMEM
++void __init memblock_x86_to_bootmem(u64 start, u64 end)
++{
++	int count;
++	u64 final_start, final_end;
++	struct memblock_region *r;
 +
- static int __init early_memblock(char *p)
- {
- 	if (p && strstr(p, "debug"))
-@@ -326,7 +328,7 @@ static phys_addr_t __init memblock_find_region(phys_addr_t start, phys_addr_t en
- 		base = memblock_align_down(res_base - size, align);
- 	}
- 
--	return ~(phys_addr_t)0;
-+	return MEMBLOCK_ERROR;
- }
- 
- phys_addr_t __weak __init memblock_nid_range(phys_addr_t start, phys_addr_t end, int *nid)
-@@ -353,14 +355,14 @@ static phys_addr_t __init memblock_alloc_nid_region(struct memblock_region *mp,
- 		this_end = memblock_nid_range(start, end, &this_nid);
- 		if (this_nid == nid) {
- 			phys_addr_t ret = memblock_find_region(start, this_end, size, align);
--			if (ret != ~(phys_addr_t)0 &&
-+			if (ret != MEMBLOCK_ERROR &&
- 			    memblock_add_region(&memblock.reserved, ret, size) >= 0)
- 				return ret;
- 		}
- 		start = this_end;
- 	}
- 
--	return ~(phys_addr_t)0;
-+	return MEMBLOCK_ERROR;
- }
- 
- phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int nid)
-@@ -379,7 +381,7 @@ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int n
- 	for (i = 0; i < mem->cnt; i++) {
- 		phys_addr_t ret = memblock_alloc_nid_region(&mem->regions[i],
- 					       size, align, nid);
--		if (ret != ~(phys_addr_t)0)
-+		if (ret != MEMBLOCK_ERROR)
- 			return ret;
- 	}
- 
-@@ -430,7 +432,7 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
- 			continue;
- 		base = min(memblockbase + memblocksize, max_addr);
- 		res_base = memblock_find_region(memblockbase, base, size, align);
--		if (res_base != ~(phys_addr_t)0 &&
-+		if (res_base != MEMBLOCK_ERROR &&
- 		    memblock_add_region(&memblock.reserved, res_base, size) >= 0)
- 			return res_base;
- 	}
++	/* Take out region array itself */
++	if (memblock.reserved.regions != memblock_reserved_init_regions)
++		memblock_free(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
++
++	count  = memblock.reserved.cnt;
++	pr_info("(%d early reservations) ==> bootmem [%010llx-%010llx]\n", count, start, end - 1);
++	for_each_memblock(reserved, r) {
++		pr_info("  [%010llx-%010llx] ", (u64)r->base, (u64)r->base + r->size - 1);
++		final_start = max(start, r->base);
++		final_end = min(end, r->base + r->size);
++		if (final_start >= final_end) {
++			pr_cont("\n");
++			continue;
++		}
++		pr_cont(" ==> [%010llx-%010llx]\n", final_start, final_end - 1);
++		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
++	}
++
++	/* Put region array back ? */
++	if (memblock.reserved.regions != memblock_reserved_init_regions)
++		memblock_reserve(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
++}
++#endif
 -- 
 1.6.4.2
